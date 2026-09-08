@@ -1,20 +1,41 @@
 # GPT VPS Bridge
 
-Minimal read-only Vercel bridge used to prove the path:
+Private bridge for the owner's VPS ARM:
 
-`ChatGPT → Vercel → VPS ARM MCP → Vercel → ChatGPT`
+`ChatGPT -> @Vercel -> Vercel Function -> mcp.dashboard.thaiduy.store -> VPS ARM`
 
-## Endpoints
+## Start here for a new AI session
 
-- `GET /api/ping` → calls MCP tool `ping`
-- `GET /api/vps-identity` → calls MCP tool `vps_identity`
+Fetch:
+`https://gpt-vps-bridge.vercel.app/api/guide`
 
-The upstream MCP endpoint defaults to:
+The guide is deliberately non-secret and exists so another ChatGPT session/account with access to @Vercel can rediscover how to use this bridge without relying on chat memory.
 
-`https://lightbi.app/remote-mcp/mcp`
+Repository guide:
+`AI_BRIDGE_GUIDE.md`
 
-Override with `VPS_MCP_URL` on Vercel if needed.
+## Current endpoints
+
+- `GET /api/ping`
+- `GET /api/vps-identity`
+- `GET /api/system-status`
+- `GET /api/workspace-roots`
+- `GET /api/fs-list`
+- `GET /api/fs-read`
+- `GET /api/fs-search`
+- `GET /api/git-status`
+- `GET /api/git-diff`
+- `GET /api/guide`
+
+## Design direction
+
+The bridge should minimize ChatGPT tool-call overhead. Related operations may be grouped into one server-side batch instead of forcing one remote tool call per shell fragment.
+
+The public MCP gateway stays unprivileged. Privileged host operations, when enabled, belong behind a separate authenticated host executor running as `ubuntu` so normal configuration, testing, Docker/LXD work, and `sudo` remain possible without mounting the Docker socket into the public gateway container.
 
 ## Security
 
-This POC intentionally exposes only harmless read-only tools. Do not add filesystem, shell, Docker, write, or mutation capabilities until authentication, replay protection, capability scoping, and audit controls are in place.
+- VPS tool execution validates Vercel OIDC for the expected team/project/environment.
+- Keep secrets out of URL query strings and public logs.
+- The activity wall is observability-only.
+- Disk-side operational logs should retain enough detail to reconstruct work after a ChatGPT context rollover, with bounded rotation on the VPS.
