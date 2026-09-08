@@ -18,3 +18,19 @@ Active path:
 - VPS MCP verifies team/project/environment before tool execution.
 - Public discovery is allowed; execution requires valid Vercel identity.
 - Never place secrets, passwords, private keys, cookies, or bearer tokens in URL query strings.
+
+## Privileged v0.3 design checkpoint
+
+Before enabling write/exec/Docker/LXD/sudo capabilities, read:
+`BRIDGE_V0_3_ARCHITECTURE_PLAN.md`
+
+Key decisions:
+- keep public MCP gateway unprivileged
+- run privileged host executor as `ubuntu`
+- prefer grouped `exec_batch` operations over many tiny calls
+- use deterministic capability/denial reporting
+- retain full rotating disk logs and a richer read-only terminal wall
+- add application-layer authenticated encryption + replay protection for privileged Vercel-to-executor calls
+- never put raw secrets in URL query strings
+
+Current production remains read-only until these layers are implemented and regression-tested.
