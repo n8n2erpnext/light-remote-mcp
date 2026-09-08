@@ -1,0 +1,24 @@
+[Unit]
+Description=GPT VPS Operator Host Executor
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/gpt-vps-operator
+RuntimeDirectory=gpt-vps-operator
+RuntimeDirectoryMode=0750
+LogsDirectory=gpt-vps-operator
+LogsDirectoryMode=0750
+Environment=OPERATOR_SOCKET=/run/gpt-vps-operator/operator.sock
+Environment=OPERATOR_KEY_FILE=/home/ubuntu/.config/gpt-vps-operator/operator.private.json
+Environment=OPERATOR_LOG_DIR=/var/log/gpt-vps-operator
+ExecStart=/usr/bin/node /opt/gpt-vps-operator/executor.mjs
+Restart=on-failure
+RestartSec=2
+TimeoutStopSec=10
+
+[Install]
+WantedBy=multi-user.target

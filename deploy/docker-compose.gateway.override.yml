@@ -1,0 +1,8 @@
+services:
+  lightbi-mcp-poc:
+    volumes:
+      - /run/gpt-vps-operator:/run/gpt-vps-operator:ro
+    group_add:
+      - "${GPT_OPERATOR_GID:-1001}"
+    environment:
+      - OPERATOR_SOCKET=/run/gpt-vps-operator/operator.sock

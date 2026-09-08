@@ -1,0 +1,9 @@
+/var/log/gpt-vps-operator/operations.jsonl {
+    size 50M
+    rotate 3
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+}

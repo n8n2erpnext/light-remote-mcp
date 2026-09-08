@@ -1,20 +1,20 @@
 # GPT VPS Bridge
 
-Private bridge for the owner's VPS ARM:
+Portable private operator bridge for the owner's VPS ARM.
 
-`ChatGPT -> @Vercel -> Vercel Function -> mcp.dashboard.thaiduy.store -> VPS ARM`
+`ChatGPT -> @Vercel -> Vercel Function -> MCP Gateway -> Host Executor (ubuntu) -> VPS ARM`
 
-## Start here for a new AI session
+## Start here
 
-Fetch:
+A fresh ChatGPT session should fetch:
 `https://gpt-vps-bridge.vercel.app/api/guide`
 
-The guide is deliberately non-secret and exists so another ChatGPT session/account with access to @Vercel can rediscover how to use this bridge without relying on chat memory.
+Repository recovery docs:
+- `AI_BRIDGE_GUIDE.md`
+- `BRIDGE_V0_3_ARCHITECTURE_PLAN.md`
+- `PORTABILITY.md`
 
-Repository guide:
-`AI_BRIDGE_GUIDE.md`
-
-## Current endpoints
+## Read-only endpoints
 
 - `GET /api/ping`
 - `GET /api/vps-identity`
@@ -25,17 +25,28 @@ Repository guide:
 - `GET /api/fs-search`
 - `GET /api/git-status`
 - `GET /api/git-diff`
-- `GET /api/guide`
 
-## Design direction
+## Operator endpoints
 
-The bridge should minimize ChatGPT tool-call overhead. Related operations may be grouped into one server-side batch instead of forcing one remote tool call per shell fragment.
+- `GET /api/operator-capabilities`
+- `GET /api/operator-exec?p=<base64url JSON>`
+- `GET /api/operator-job?id=<job_id>`
+- `GET /api/operator-output?id=<job_id>&stream=stdout&full=0&offset=0&limit=4194304`
 
-The public MCP gateway stays unprivileged. Privileged host operations, when enabled, belong behind a separate authenticated host executor running as `ubuntu` so normal configuration, testing, Docker/LXD work, and `sudo` remain possible without mounting the Docker socket into the public gateway container.
+`operator-exec` accepts one logical shell batch with `cwd`, `script`, timeout, wait window, session ID and audit note. Build/test/Git/Docker/LXD/system work should be grouped naturally instead of split into artificial one-command calls.
+
+The host executor runs as `ubuntu`. It has the same normal host groups as an interactive operator shell and may use `sudo` on demand; the Internet-facing gateway remains unprivileged and has no Docker socket.
 
 ## Security
 
-- VPS tool execution validates Vercel OIDC for the expected team/project/environment.
-- Keep secrets out of URL query strings and public logs.
-- The activity wall is observability-only.
-- Disk-side operational logs should retain enough detail to reconstruct work after a ChatGPT context rollover, with bounded rotation on the VPS.
+- Vercel OIDC authenticates the expected team/project/environment.
+- Privileged command bodies are sealed with X25519 + HKDF-SHA256 + AES-256-GCM before reaching the gateway.
+- The executor enforces short expiry and replay rejection.
+- The host private key is never committed or copied into Vercel/gateway.
+- Raw secrets must never be placed in URL payloads; use server-side references.
+
+## Observability
+
+The read-only wall mirrors operator command/output history. Live memory is bounded; authoritative JSONL history stays on VPS disk with 50 MB × 3 rotation. Completed job memory is separately bounded and older full output can be reconstructed from disk.
+
+Current v0.3 source is implemented and locally regression-tested; production cutover must only be marked complete after the host service, gateway and Vercel path all pass end-to-end checks.
