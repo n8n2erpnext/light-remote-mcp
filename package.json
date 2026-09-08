@@ -1,0 +1,9 @@
+{
+  "name": "gpt-vps-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Minimal Vercel read-only bridge from ChatGPT to the owner's VPS ARM MCP endpoint.",
+  "engines": {
+    "node": ">=20"
+  }
+}
