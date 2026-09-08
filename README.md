@@ -26,14 +26,16 @@ Repository recovery docs:
 - `GET /api/git-status`
 - `GET /api/git-diff`
 
-## Operator endpoints
+## Operator endpoint
 
-- `GET /api/operator-capabilities`
-- `GET /api/operator-exec?p=<base64url JSON>`
-- `GET /api/operator-job?id=<job_id>`
-- `GET /api/operator-output?id=<job_id>&stream=stdout&full=0&offset=0&limit=4194304`
+Vercel Hobby limits this project to 12 Serverless Functions, so all operator actions share one transport function:
 
-`operator-exec` accepts one logical shell batch with `cwd`, `script`, timeout, wait window, session ID and audit note. Build/test/Git/Docker/LXD/system work should be grouped naturally instead of split into artificial one-command calls.
+- `GET /api/operator?action=capabilities`
+- `GET /api/operator?action=exec&p=<base64url JSON>`
+- `GET /api/operator?action=job&id=<job_id>`
+- `GET /api/operator?action=output&id=<job_id>&stream=stdout&full=0&offset=0&limit=4194304`
+
+The `exec` action accepts one logical shell batch with `cwd`, `script`, timeout, wait window, session ID and audit note. Build/test/Git/Docker/LXD/system work should be grouped naturally instead of split into artificial one-command calls.
 
 The host executor runs as `ubuntu`. It has the same normal host groups as an interactive operator shell and may use `sudo` on demand; the Internet-facing gateway remains unprivileged and has no Docker socket.
 

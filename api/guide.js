@@ -16,10 +16,10 @@ module.exports = function handler(req, res) {
       search: '/api/fs-search?root=n8n2erpnext&path=.&query=needle&maxResults=40', gitStatus: '/api/git-status?root=n8n2erpnext&repoPath=repo', gitDiff: '/api/git-diff?root=n8n2erpnext&repoPath=repo'
     },
     operatorEndpoints: {
-      capabilities: '/api/operator-capabilities',
-      exec: '/api/operator-exec?p=<base64url JSON>',
-      job: '/api/operator-job?id=<job_id>',
-      output: '/api/operator-output?id=<job_id>&stream=stdout&full=0&offset=0&limit=4194304'
+      capabilities: '/api/operator?action=capabilities',
+      exec: '/api/operator?action=exec&p=<base64url JSON>',
+      job: '/api/operator?action=job&id=<job_id>',
+      output: '/api/operator?action=output&id=<job_id>&stream=stdout&full=0&offset=0&limit=4194304'
     },
     execPayload: { script:'shell script', cwd:'/home/ubuntu', timeoutMs:600000, waitMs:7000, sessionId:'chatgpt', note:'intent' },
     rules: ['Prefer one logical exec_batch over many tiny calls.','Never put passwords, tokens, private keys, cookies or bearer tokens in URL payloads.','Use server-side secret references for secret-bearing work.','Wall is read-only observability only.'],
