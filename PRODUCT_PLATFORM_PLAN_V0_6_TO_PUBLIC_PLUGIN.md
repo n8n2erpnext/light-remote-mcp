@@ -163,7 +163,7 @@ Current wall remains read-only. Execution remains behind MCP/control APIs.
 
 ### v0.6 implementation checkpoint — 2026-09-09
 
-Branch `codex/v0.6-device-presence` now contains the branch-only foundation: persistent local device registry, device/account/node identity propagation, independent heartbeat/TTL presence, named `30m` / `1h` / `3h` plus custom per-session leases, read-only device/session state in executor/gateway/Vercel/Wall, body-safe structured POST operator transport, and repeatable device/presence/lease regressions. Production remains tagged `v0.5.2`; this checkpoint is not deployed and does not claim remote-node transport. See `DEVICE_PRESENCE_V0_6.md`.
+Branch `codex/v0.6-device-presence` now contains the branch-only foundation: persistent local device registry, device/account/node identity propagation, independent heartbeat/TTL presence, named `30m` / `1h` / `3h` plus custom per-session leases, read-only device/session state in executor/gateway/Vercel/Wall, body-safe structured POST operator transport, no static shared bridge Bearer, and repeatable device/presence/lease regressions. Production remains tagged `v0.5.2`; this checkpoint is not deployed and does not claim remote-node transport. See `DEVICE_PRESENCE_V0_6.md`.
 
 ## 4. v0.7 — Device Enrollment
 
@@ -484,7 +484,7 @@ During development:
 - When an operation may rebuild/restart the MCP gateway/operator/control path currently carrying that call, switch to RDC rescue channel for the disruptive step.
 - After restart/build, immediately return to the self-hosted operator path and prove the new path end-to-end.
 - Avoid making RDC the normal execution path; it is a rescue/failover channel during soak.
-- Production v0.5.x keeps `/api/operator` GET/query/base64 as bootstrap-only compatibility. The v0.6 branch adds authenticated structured POST/body transport and caps legacy GET payloads to small calls with deterministic rejection when too large. RDC remains rescue-only for self-disruptive steps. The public product should converge on Streamable HTTP/POST or an equivalent body-safe transport and must not carry secrets in URLs.
+- Production v0.5.x keeps `/api/operator` GET/query/base64 as bootstrap-only compatibility. The v0.6 branch adds structured POST/body transport and caps legacy GET payloads to small calls with deterministic rejection when too large. RDC remains rescue-only for self-disruptive steps. The public product should converge on Streamable HTTP/POST or an equivalent body-safe transport and must not carry secrets in URLs.
 
 ## 13. Execution order from here
 

@@ -1,5 +1,4 @@
 const { callOperator, execOperator } = require('../lib/operator');
-const { requireBridgeCaller } = require('../lib/caller-auth');
 const { aid, field, jobId, normalizeExecPayload, normalizeSessionOpenPayload, payloadFor, sid } = require('../lib/operator-request');
 
 module.exports=async function handler(req,res){
@@ -7,7 +6,6 @@ module.exports=async function handler(req,res){
   res.setHeader('Cache-Control','no-store');
   res.setHeader('X-Robots-Tag','noindex, nofollow, noarchive');
   if(!['GET','POST'].includes(req.method)) return res.status(405).json({ok:false,error:'method_not_allowed'});
-  if(!requireBridgeCaller(req,res)) return;
   const action=String(field(req,'action','capabilities'));
   try {
     let upstream;

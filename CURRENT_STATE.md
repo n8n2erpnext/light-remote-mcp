@@ -27,12 +27,13 @@ Version: v0.5.2 production stability hotfix
 - Authoritative audit remains `/var/log/gpt-vps-operator/operations.jsonl` with 50 MiB x 3 rotation; Wall memory remains bounded at 16 MiB / 5000 events.
 
 ## Security / transport
-- v0.5.1 closes a caller-boundary defect discovered during soak: Vercel OIDC authenticates the Vercel function to the ARM gateway, but by itself does **not** authenticate the internet caller invoking the Vercel function.
-- All Vercel read/operator proxy endpoints now require `Authorization: Bearer ...` at the bridge boundary via `VPS_BRIDGE_CALLER_SECRET`; if the secret is absent or too short, the bridge fails closed with `401 bridge_caller_auth_required` before obtaining upstream OIDC.
-- ARM still independently requires Vercel OIDC for privileged `/operator/*` and MCP `tools/call`; the new bridge caller guard is an additional outer authorization boundary, not a replacement.
+- Production `v0.5.2` still contains the v0.5.1 static caller-Bearer hotfix; that remains production history until a later accepted release replaces it.
+- Development `v0.6` deliberately removes the static shared Bearer requirement from Vercel read/operator endpoints. No `VPS_BRIDGE_CALLER_SECRET` is required by the v0.6 bridge runtime.
+- ARM independently continues to require Vercel OIDC for privileged `/operator/*` and MCP `tools/call`.
 - Privileged envelopes remain X25519 + HKDF-SHA256 + AES-256-GCM with short expiry, replay rejection, and semantic `operationId` idempotency.
-- The current Vercel `/api/operator` GET/query/base64 path remains bootstrap transport only. Large source patches can break query/base64 transport; RDC is the rescue lane until body-safe POST/Streamable HTTP transport replaces it.
-- Never move caller secrets, passwords, tokens, private keys, or cookies into URL query parameters.
+- v0.6 uses body-safe structured POST for operator payloads; GET/query/base64 remains small-call compatibility only.
+- Public-product authorization must come from explicit account/device authorization plus ChatGPT permission/confirmation semantics, not a long-lived shared Bearer secret.
+- Never move passwords, tokens, private keys, cookies, or other credentials into URL query parameters.
 
 ## v0.5 closure proof
 - All syntax checks and root/gateway npm audits pass with 0 known vulnerabilities.
