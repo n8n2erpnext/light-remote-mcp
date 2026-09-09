@@ -9,7 +9,7 @@ function execPayload(value){
   if(!/^[A-Za-z0-9._:-]{16,128}$/.test(operationId)) throw new Error('invalid_operation_id');
   return { action:'exec_batch', operationId, script:d.script, cwd:d.cwd||'/home/ubuntu',
     timeoutMs:Math.max(1000,Math.min(Number(d.timeoutMs)||600000,7200000)),
-    waitMs:Math.max(0,Math.min(Number(d.waitMs)||7000,7000)), sessionId:String(d.sessionId||'chatgpt'), note:String(d.note||'') };
+    waitMs:Math.max(0,Math.min(Number.isFinite(Number(d.waitMs))?Number(d.waitMs):7000,7000)), sessionId:String(d.sessionId||'chatgpt'), note:String(d.note||'') };
 }
 module.exports=async function handler(req,res){
   const started=Date.now(); let action=String(req.query.action||'capabilities');
