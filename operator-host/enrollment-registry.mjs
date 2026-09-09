@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { deviceHeartbeatMessage, normalizeDeviceCapabilities } from '../lib/device-proof.mjs';
+import { deviceHeartbeatMessage, normalizeDeviceCapabilities } from './device-proof.mjs';
 
 export class EnrollmentError extends Error {
   constructor(message, status = 400) { super(message); this.status = status; }
