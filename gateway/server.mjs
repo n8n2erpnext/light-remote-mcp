@@ -12,7 +12,7 @@ import { rootNames, listWorkspace, readWorkspaceText, searchWorkspace, gitStatus
 
 const PORT = Number(process.env.PORT || 8080);
 const WALL_PORT = Number(process.env.WALL_PORT || 8081);
-const VERSION = '0.3.0';
+const VERSION = '0.4.0';
 const RootSchema = z.enum(['n8n2erpnext', 'services', 'thaiduy', 'frappe']);
 
 function textResult(value) {
@@ -156,6 +156,12 @@ async function requireOperatorIdentity(req, res, next) {
 
 app.post('/operator', softRateLimit, requireOperatorIdentity, (req, res) => proxyOperatorJson(res, 'POST', '/v1/execute', req.body));
 app.get('/operator/capabilities', softRateLimit, requireOperatorIdentity, (_req, res) => proxyOperatorJson(res, 'GET', '/v1/capabilities'));
+app.post('/operator/sessions/open', softRateLimit, requireOperatorIdentity, (req, res) => proxyOperatorJson(res, 'POST', '/v1/sessions/open', req.body));
+app.get('/operator/sessions', softRateLimit, requireOperatorIdentity, (_req, res) => proxyOperatorJson(res, 'GET', '/v1/sessions'));
+app.get('/operator/session-stats', softRateLimit, requireOperatorIdentity, (req, res) => proxyOperatorJson(res, 'GET', `/v1/session-stats?hours=${encodeURIComponent(req.query.hours || '168')}`));
+app.get('/operator/sessions/:id', softRateLimit, requireOperatorIdentity, (req, res) => proxyOperatorJson(res, 'GET', `/v1/sessions/${encodeURIComponent(req.params.id)}`));
+app.post('/operator/sessions/:id/resume', softRateLimit, requireOperatorIdentity, (req, res) => proxyOperatorJson(res, 'POST', `/v1/sessions/${encodeURIComponent(req.params.id)}/resume`, req.body || {}));
+app.post('/operator/sessions/:id/close', softRateLimit, requireOperatorIdentity, (req, res) => proxyOperatorJson(res, 'POST', `/v1/sessions/${encodeURIComponent(req.params.id)}/close`, req.body || {}));
 app.get('/operator/jobs/:id', softRateLimit, requireOperatorIdentity, (req, res) => proxyOperatorJson(res, 'GET', `/v1/jobs/${encodeURIComponent(req.params.id)}`));
 app.get('/operator/output/:id', softRateLimit, requireOperatorIdentity, (req, res) => {
   const qs = new URLSearchParams(req.query).toString();

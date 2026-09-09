@@ -5,6 +5,7 @@ import zlib from 'node:zlib';
 import crypto from 'node:crypto';
 import { decryptEnvelope as decryptSealedEnvelope } from './crypto.mjs';
 import { spawn } from 'node:child_process';
+import { SessionRegistry, SessionError } from './session-manager.mjs';
 
 const SOCKET_PATH = process.env.OPERATOR_SOCKET || '/run/gpt-vps-operator/operator.sock';
 const KEY_FILE = process.env.OPERATOR_KEY_FILE || '/home/ubuntu/.config/gpt-vps-operator/operator.private.json';
@@ -17,7 +18,10 @@ const MAX_BODY_BYTES = Number(process.env.OPERATOR_MAX_BODY || 8 * 1024 * 1024);
 const MAX_JOB_CACHE_BYTES = Number(process.env.OPERATOR_JOB_CACHE_BYTES || 64 * 1024 * 1024);
 const MAX_JOB_CACHE_AGE_MS = Number(process.env.OPERATOR_JOB_CACHE_AGE_MS || 6 * 60 * 60 * 1000);
 const OPERATION_DEDUPE_MS = Number(process.env.OPERATOR_DEDUPE_MS || 6 * 60 * 60 * 1000);
-const VERSION = '0.3.0';
+const SESSION_IDLE_MS = Number(process.env.OPERATOR_SESSION_IDLE_MS || 30 * 60 * 1000);
+const SESSION_HISTORY_MS = Number(process.env.OPERATOR_SESSION_HISTORY_MS || 7 * 24 * 60 * 60 * 1000);
+const MAX_ACTIVE_SESSIONS = Number(process.env.OPERATOR_MAX_ACTIVE_SESSIONS || 8);
+const VERSION = '0.4.0';
 
 const jobs = new Map();
 const operationDedupe = new Map();
@@ -26,6 +30,7 @@ const ring = [];
 const sseClients = new Set();
 let ringBytes = 0;
 let sequence = 0;
+const sessions = new SessionRegistry({ idleMs:SESSION_IDLE_MS, maxActive:MAX_ACTIVE_SESSIONS, historyMs:SESSION_HISTORY_MS, emit:event => pushEvent(event) });
 
 fs.mkdirSync(LOG_DIR, { recursive: true });
 function redact(value) {
@@ -156,6 +161,7 @@ function finishJob(job, exitCode, signal) {
   job.signal = signal || null;
   job.status = exitCode === 0 ? 'ok' : job.timedOut ? 'timeout' : 'error';
   clearTimeout(job.timer);
+  sessions.finishJob(job.sessionId, job.id, job.status);
   pushEvent({ type: 'job_finished', jobId: job.id, requestId: job.requestId, operationId: job.operationId, sessionId: job.sessionId,
     status: job.status, exitCode, signal: signal || null, durationMs: job.finishedAt - job.startedAt });
   for (const resolve of job.waiters.splice(0)) resolve();
@@ -182,7 +188,11 @@ function startJob(payload, requestId) {
   const stat = fs.statSync(cwd);
   if (!stat.isDirectory()) throw new Error('cwd_not_directory');
   const timeoutMs = Math.max(1000, Math.min(Number(payload.timeoutMs) || 600000, 7200000));
-  const sessionId = String(payload.sessionId || 'default');
+  const requestedSessionId = String(payload.sessionId || 'default');
+  const session = sessions.ensure(requestedSessionId, { implicit:true });
+  sessions.record(session.id, 'toolCalls');
+  sessions.record(session.id, 'execCalls');
+  const sessionId = session.id;
   const note = String(payload.note || '');
   const fingerprint = crypto.createHash('sha256').update(JSON.stringify({ script, cwd, timeoutMs, sessionId, note })).digest('hex');
   const existing = operationDedupe.get(operationId);
@@ -196,6 +206,7 @@ function startJob(payload, requestId) {
     timedOut: false, stdout: createAccumulator(), stderr: createAccumulator(), waiters: [], pid: null, timer: null
   };
   jobs.set(job.id, job);
+  sessions.attachJob(job.sessionId, job.id);
   operationDedupe.set(operationId, { jobId: job.id, fingerprint, expiresAt: Date.now() + OPERATION_DEDUPE_MS });
   pushEvent({ type: 'job_started', jobId: job.id, requestId, operationId: job.operationId, sessionId: job.sessionId, status: 'running',
     cwd, script: redact(script), note: redact(job.note), timeoutMs });
@@ -247,6 +258,33 @@ function fullOutputFromDisk(jobId, stream) {
   }
   return output;
 }
+function sessionStatsFromDisk(hours = 168) {
+  const cutoff = Date.now() - Math.max(1, Math.min(Number(hours) || 168, 24 * 90)) * 3600000;
+  const bySession = new Map();
+  const get = id => {
+    if (!bySession.has(id)) bySession.set(id, { sessionId:id, firstSeenAt:null, lastSeenAt:null, label:'', workspace:'', opens:0, resumes:0, expires:0, closes:0, holdStarts:0, holdReleases:0, toolCalls:0, execCalls:0, jobReads:0, outputReads:0 });
+    return bySession.get(id);
+  };
+  for (const file of logFilesOldestFirst()) {
+    for (const line of readLogText(file).split('\n')) {
+      if (!line) continue;
+      let e; try { e=JSON.parse(line); } catch { continue; }
+      const at=Date.parse(e.at || e.ts || 0); if (!Number.isFinite(at) || at < cutoff || !e.sessionId) continue;
+      const row=get(e.sessionId); row.firstSeenAt=row.firstSeenAt==null?at:Math.min(row.firstSeenAt,at); row.lastSeenAt=Math.max(row.lastSeenAt||0,at);
+      if (e.type==='session_opened') { row.opens++; row.label=e.label||row.label; row.workspace=e.workspace||row.workspace; }
+      else if (e.type==='session_resumed') row.resumes++;
+      else if (e.type==='session_expired') row.expires++;
+      else if (e.type==='session_closed') row.closes++;
+      else if (e.type==='session_hold_started') row.holdStarts++;
+      else if (e.type==='session_hold_released') row.holdReleases++;
+      else if (e.type==='session_activity' && e.action in row) row[e.action]++;
+    }
+  }
+  const sessions=[...bySession.values()].sort((a,b)=>(b.lastSeenAt||0)-(a.lastSeenAt||0));
+  const totals=sessions.reduce((a,s)=>{ for (const k of ['opens','resumes','expires','closes','holdStarts','holdReleases','toolCalls','execCalls','jobReads','outputReads']) a[k]=(a[k]||0)+s[k]; return a; },{sessions:sessions.length});
+  return { hours:Math.max(1, Math.min(Number(hours)||168,24*90)), totals, sessions };
+}
+
 function sendJson(res, status, value) {
   const body = JSON.stringify(value);
   res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
@@ -267,11 +305,12 @@ async function readJson(req) {
 function capabilities() {
   return {
     service: 'gpt-vps-operator', version: VERSION, user: process.env.USER || 'ubuntu',
-    execution: ['exec_batch', 'async_jobs', 'output_retrieval'],
+    execution: ['exec_batch', 'async_jobs', 'output_retrieval', 'managed_sessions'],
     expectedHostCapabilities: ['filesystem', 'git', 'build-test', 'docker', 'lxd', 'systemctl', 'sudo-on-demand'],
     socket: SOCKET_PATH, logFile: LOG_FILE,
     limits: { maxScriptBytes: 1024 * 1024, maxTimeoutMs: 7200000, memoryOutputBytes: MAX_MEMORY_OUTPUT,
-      ringBytes: MAX_RING_BYTES, ringEvents: MAX_RING_EVENTS, jobCacheBytes: MAX_JOB_CACHE_BYTES, jobCacheAgeMs: MAX_JOB_CACHE_AGE_MS, operationDedupeMs: OPERATION_DEDUPE_MS }
+      ringBytes: MAX_RING_BYTES, ringEvents: MAX_RING_EVENTS, jobCacheBytes: MAX_JOB_CACHE_BYTES, jobCacheAgeMs: MAX_JOB_CACHE_AGE_MS, operationDedupeMs: OPERATION_DEDUPE_MS,
+      sessionIdleMs: SESSION_IDLE_MS, sessionHistoryMs: SESSION_HISTORY_MS, maxActiveSessions: MAX_ACTIVE_SESSIONS }
   };
 }
 
@@ -288,6 +327,23 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && url.pathname === '/v1/capabilities') {
       return sendJson(res, 200, { ok: true, ...capabilities() });
     }
+    if (req.method === 'POST' && url.pathname === '/v1/sessions/open') {
+      const body = await readJson(req);
+      return sendJson(res, 200, { ok:true, session:sessions.open({ openId:body.openId, label:body.label, workspace:body.workspace }) });
+    }
+    if (req.method === 'GET' && url.pathname === '/v1/sessions') {
+      return sendJson(res, 200, { ok:true, active:sessions.activeCount(), maxActive:MAX_ACTIVE_SESSIONS, sessions:sessions.list() });
+    }
+    if (req.method === 'GET' && url.pathname === '/v1/session-stats') {
+      return sendJson(res, 200, { ok:true, ...sessionStatsFromDisk(url.searchParams.get('hours')) });
+    }
+    const sessionAction = url.pathname.match(/^\/v1\/sessions\/([A-Za-z0-9._:-]+)(?:\/(resume|close))?$/);
+    if (sessionAction) {
+      const sid=sessionAction[1], action=sessionAction[2] || 'get';
+      if (req.method === 'GET' && action === 'get') return sendJson(res, 200, { ok:true, session:sessions.get(sid) });
+      if (req.method === 'POST' && action === 'resume') return sendJson(res, 200, { ok:true, session:sessions.resume(sid) });
+      if (req.method === 'POST' && action === 'close') return sendJson(res, 200, { ok:true, session:sessions.close(sid) });
+    }
     if (req.method === 'POST' && url.pathname === '/v1/execute') {
       const envelope = await readJson(req);
       const { payload, requestId, aad, kid } = decryptEnvelope(envelope);
@@ -300,6 +356,7 @@ const server = http.createServer(async (req, res) => {
     const jobMatch = url.pathname.match(/^\/v1\/jobs\/([0-9a-f-]+)$/i);
     if (req.method === 'GET' && jobMatch) {
       const job = jobs.get(jobMatch[1]);
+      if (job) { sessions.record(job.sessionId, 'toolCalls'); sessions.record(job.sessionId, 'jobReads'); }
       return job ? sendJson(res, 200, { ok: true, job: jobView(job) }) : sendJson(res, 404, { ok: false, error: 'job_not_found' });
     }
     const outputMatch = url.pathname.match(/^\/v1\/output\/([0-9a-f-]+)$/i);
@@ -309,6 +366,7 @@ const server = http.createServer(async (req, res) => {
       const offset = Math.max(0, Number(url.searchParams.get('offset')) || 0);
       const limit = Math.max(1, Math.min(Number(url.searchParams.get('limit')) || MAX_MEMORY_OUTPUT, 8 * 1024 * 1024));
       const job = jobs.get(outputMatch[1]);
+      if (job) { sessions.record(job.sessionId, 'toolCalls'); sessions.record(job.sessionId, 'outputReads'); }
       let text;
       if (full) text = fullOutputFromDisk(outputMatch[1], stream);
       else if (job) text = job[stream].snapshot().text;
@@ -334,7 +392,7 @@ const server = http.createServer(async (req, res) => {
   } catch (error) {
     const message = error?.message || 'internal_error';
     pushEvent({ type: 'executor_error', status: 'error', detail: redact(message) });
-    const status = ['invalid_envelope', 'expired_envelope', 'replay_detected', 'unknown_kid', 'invalid_envelope_auth', 'unsupported_action'].includes(message) ? 401 : message === 'operation_id_conflict' ? 409 : 400;
+    const status = error instanceof SessionError ? error.status : ['invalid_envelope', 'expired_envelope', 'replay_detected', 'unknown_kid', 'invalid_envelope_auth', 'unsupported_action'].includes(message) ? 401 : message === 'operation_id_conflict' ? 409 : 400;
     return sendJson(res, status, { ok: false, error: message });
   }
 });

@@ -1,0 +1,21 @@
+import fs from 'node:fs';
+import http from 'node:http';
+import { spawn } from 'node:child_process';
+import { createRequire } from 'node:module';
+const require=createRequire(import.meta.url); const { sealOperatorPayload }=require('../../lib/operator-crypto');
+const root=new URL('../..',import.meta.url).pathname, socketPath='/tmp/gpt-vps-session-selftest.sock', logDir='/tmp/gpt-vps-session-selftest-log';
+fs.rmSync(socketPath,{force:true}); fs.rmSync(logDir,{recursive:true,force:true}); fs.mkdirSync(logDir,{recursive:true});
+const child=spawn(process.execPath,[`${root}/operator-host/executor.mjs`],{cwd:root,env:{...process.env,OPERATOR_SOCKET:socketPath,OPERATOR_LOG_DIR:logDir,OPERATOR_KEY_FILE:'/home/ubuntu/.config/gpt-vps-operator/operator.private.json',OPERATOR_SESSION_IDLE_MS:'800',OPERATOR_MAX_ACTIVE_SESSIONS:'3',OPERATOR_SESSION_HISTORY_MS:'10000'},stdio:['ignore','pipe','pipe']});
+const sleep=ms=>new Promise(r=>setTimeout(r,ms)); for(let i=0;i<80&&!fs.existsSync(socketPath);i++) await sleep(50); if(!fs.existsSync(socketPath)) throw new Error('socket_not_ready');
+function request(method,target,body){return new Promise((resolve,reject)=>{const payload=body==null?null:Buffer.from(JSON.stringify(body)); const req=http.request({socketPath,method,path:target,headers:payload?{'content-type':'application/json','content-length':payload.length}:{}},res=>{let text='';res.on('data',c=>text+=c);res.on('end',()=>{let json;try{json=JSON.parse(text)}catch{json={raw:text}}resolve({status:res.statusCode,json})})});req.on('error',reject);if(payload)req.write(payload);req.end()})}
+const openId='session-open-selftest-v04'; const opened=await request('POST','/v1/sessions/open',{openId,label:'long-build',workspace:'/home/ubuntu'}); if(opened.status!==200) throw new Error('open_failed'); const sid=opened.json.session.sessionId; const openRetry=await request('POST','/v1/sessions/open',{openId,label:'long-build',workspace:'/home/ubuntu'}); if(openRetry.status!==200||openRetry.json.session.sessionId!==sid) throw new Error('open_dedupe_failed');
+const env=sealOperatorPayload({action:'exec_batch',operationId:'session-hold-selftest-v04',cwd:'/tmp',script:"sleep 1.4; printf 'held-ok\\n'",sessionId:sid,waitMs:0,timeoutMs:5000});
+const exec=await request('POST','/v1/execute',env); if(exec.status!==200||exec.json.job.status!=='running') throw new Error('exec_not_running');
+await sleep(950); const held=await request('GET',`/v1/sessions/${sid}`); if(held.json.session.state!=='hold'||held.json.session.activeJobs.length!==1) throw new Error('hold_failed');
+await sleep(700); const released=await request('GET',`/v1/sessions/${sid}`); if(released.json.session.state!=='active'||released.json.session.activeJobs.length!==0) throw new Error('release_failed');
+await sleep(900); const expired=await request('GET',`/v1/sessions/${sid}`); if(expired.json.session.state!=='expired') throw new Error('expiry_failed');
+const resume=await request('POST',`/v1/sessions/${sid}/resume`,{}); if(resume.status!==410||resume.json.error!=='session_expired') throw new Error('expired_resume_failed');
+const a=await request('POST','/v1/sessions/open',{label:'a'}), b=await request('POST','/v1/sessions/open',{label:'b'}), c=await request('POST','/v1/sessions/open',{label:'c'}), d=await request('POST','/v1/sessions/open',{label:'d'}); if([a,b,c].some(x=>x.status!==200)||d.status!==429) throw new Error('capacity_failed');
+const sessionStats=await request('GET','/v1/session-stats?hours=1'); const statRow=sessionStats.json.sessions?.find(x=>x.sessionId===sid); if(sessionStats.status!==200||!statRow||statRow.toolCalls<1||statRow.execCalls<1||statRow.holdStarts!==1||statRow.holdReleases!==1) throw new Error('session_stats_failed');
+const audit=fs.readFileSync(`${logDir}/operations.jsonl`,'utf8'); for(const e of ['session_opened','session_hold_started','session_hold_released','session_expired']) if(!audit.includes(e)) throw new Error(`audit_missing_${e}`);
+console.log(JSON.stringify({ok:true,sessionId:sid,held:held.json.session.state,released:released.json.session.state,expired:expired.json.session.state,resumeStatus:resume.status,openRetrySameSession:openRetry.json.session.sessionId===sid,capacityStatus:d.status,stats:released.json.session.stats,diskStats:statRow},null,2)); child.kill('SIGTERM'); await sleep(100);

@@ -6,11 +6,12 @@ The bridge is intentionally split into three replaceable layers:
 2. `gateway/`: provider-neutral authenticated MCP/HTTP gateway. It is unprivileged and can move to any HTTPS host.
 3. `operator-host/`: provider-neutral host executor running as the normal `ubuntu` operator account over a local Unix socket.
 
-A future transport provider only needs to reproduce four operations:
-- execute one encrypted operator envelope
+A future transport provider only needs to reproduce operator execution plus the session-lane control surface:
+- open/resume/query/close a logical session
+- execute one encrypted operator envelope bound to that session
 - query a job
 - retrieve output
-- query capabilities
+- query capabilities and session stats
 
 The privileged payload format is X25519 + HKDF-SHA256 + AES-256-GCM with short-lived request IDs and replay rejection. The host private key never belongs in the transport provider or gateway container.
 

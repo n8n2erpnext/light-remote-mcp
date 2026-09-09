@@ -23,7 +23,7 @@ Active path:
 ## Privileged v0.3 design checkpoint
 
 For privileged write/exec/Docker/LXD/sudo work, read:
-`BRIDGE_V0_3_ARCHITECTURE_PLAN.md`
+`SESSION_LANES_V0_4.md` for managed agent sessions, then `BRIDGE_V0_3_ARCHITECTURE_PLAN.md`
 
 Key decisions:
 - keep public MCP gateway unprivileged
@@ -34,4 +34,6 @@ Key decisions:
 - add application-layer authenticated encryption + replay protection for privileged Vercel-to-executor calls
 - never put raw secrets in URL query strings
 
-Production v0.3 is active: Vercel OIDC -> encrypted operator call -> host executor as `ubuntu`. Every logical exec must carry a stable `operationId`; retries reuse it. The wall is read-only and protected by NetBird PIN auth. RDC remains a temporary rescue path during soak.
+Production v0.4 session-lane rollout extends the accepted v0.3 operator: Vercel OIDC -> encrypted operator call -> host executor as `ubuntu`. Every logical exec must carry a stable `operationId`; retries reuse it. The wall is read-only and protected by NetBird PIN auth. RDC remains a temporary rescue path during soak.
+## Managed sessions
+Open one server-issued session per agent lane. Idle sessions expire after 30 minutes, but any running job automatically holds the session until completion; a fresh 30-minute reconnect grace begins after the last job finishes. Normal target is 1–3 agents, with an explicit ceiling of 8 live sessions. No filesystem/Git locks are imposed.

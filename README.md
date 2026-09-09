@@ -51,4 +51,10 @@ The host executor runs as `ubuntu`. It has the same normal host groups as an int
 
 The read-only wall mirrors operator command/output history. Live memory is bounded; authoritative JSONL history stays on VPS disk with 50 MB × 3 rotation. Completed job memory is separately bounded and older full output can be reconstructed from disk.
 
-Production v0.3 is active. The host executor, gateway and Vercel path have passed end-to-end operator checks. The wall is routed through NetBird PIN authentication; RDC remains a temporary rescue path during soak.
+Production v0.4 adds managed multi-agent session lanes on top of the accepted v0.3 operator baseline. The host executor, gateway and Vercel path have passed end-to-end operator checks. The wall is routed through NetBird PIN authentication; RDC remains a temporary rescue path during soak.
+
+## Managed multi-agent sessions (v0.4)
+
+Each agent sends a stable `openId` for one connection attempt and receives a server-issued session before operator work; retries of the same open request are deduplicated. Idle lease is 30 minutes. A running build/test job automatically puts the session in hold, so a 60+ minute LightBI build survives network/Vercel disconnection; when the last job finishes, a fresh 30-minute reconnect grace starts. The live-session ceiling is 8 (target 1–3). There are no repo/file locks: agents coordinate through Git as normal.
+
+Session lifecycle and operator usage are written to VPS JSONL and can be aggregated with `action=session-stats`; Vercel emits structured request logs as the second-side transport trace. See `SESSION_LANES_V0_4.md`.
