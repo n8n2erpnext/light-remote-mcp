@@ -9,8 +9,9 @@ Active path:
 
 1. Use `@Vercel` and find project `gpt-vps-bridge`.
 2. Fetch `https://gpt-vps-bridge.vercel.app/api/guide`.
-3. Follow the endpoint/capability map returned there.
-4. Prefer grouped operations when a task naturally belongs together.
+3. Read `CURRENT_STATE.md` for the active production checkpoint.
+4. Follow the endpoint/capability map returned by `/api/guide`.
+5. Prefer grouped operations when a task naturally belongs together.
 
 ## Current security model
 
@@ -21,7 +22,7 @@ Active path:
 
 ## Privileged v0.3 design checkpoint
 
-Before enabling write/exec/Docker/LXD/sudo capabilities, read:
+For privileged write/exec/Docker/LXD/sudo work, read:
 `BRIDGE_V0_3_ARCHITECTURE_PLAN.md`
 
 Key decisions:
@@ -33,4 +34,4 @@ Key decisions:
 - add application-layer authenticated encryption + replay protection for privileged Vercel-to-executor calls
 - never put raw secrets in URL query strings
 
-Current production remains read-only until these layers are implemented and regression-tested.
+Production v0.3 is active: Vercel OIDC -> encrypted operator call -> host executor as `ubuntu`. Every logical exec must carry a stable `operationId`; retries reuse it. The wall is read-only and protected by NetBird PIN auth. RDC remains a temporary rescue path during soak.

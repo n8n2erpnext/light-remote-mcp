@@ -16,9 +16,11 @@ const MAX_MEMORY_OUTPUT = Number(process.env.OPERATOR_MEMORY_OUTPUT || 4 * 1024 
 const MAX_BODY_BYTES = Number(process.env.OPERATOR_MAX_BODY || 8 * 1024 * 1024);
 const MAX_JOB_CACHE_BYTES = Number(process.env.OPERATOR_JOB_CACHE_BYTES || 64 * 1024 * 1024);
 const MAX_JOB_CACHE_AGE_MS = Number(process.env.OPERATOR_JOB_CACHE_AGE_MS || 6 * 60 * 60 * 1000);
+const OPERATION_DEDUPE_MS = Number(process.env.OPERATOR_DEDUPE_MS || 6 * 60 * 60 * 1000);
 const VERSION = '0.3.0';
 
 const jobs = new Map();
+const operationDedupe = new Map();
 const replay = new Map();
 const ring = [];
 const sseClients = new Set();
@@ -119,7 +121,7 @@ function jobView(job) {
   const out = job.stdout.snapshot();
   const err = job.stderr.snapshot();
   return {
-    jobId: job.id, requestId: job.requestId, sessionId: job.sessionId, status: job.status,
+    jobId: job.id, requestId: job.requestId, operationId: job.operationId, sessionId: job.sessionId, status: job.status,
     cwd: job.cwd, script: redact(job.script), note: redact(job.note || ''), pid: job.pid || null,
     startedAt: job.startedAt, finishedAt: job.finishedAt || null, exitCode: job.exitCode,
     signal: job.signal || null, durationMs: job.finishedAt ? job.finishedAt - job.startedAt : Date.now() - job.startedAt,
@@ -134,6 +136,7 @@ function approximateJobMemoryBytes(job) {
 }
 
 function pruneJobs(now = Date.now()) {
+  for (const [op, entry] of operationDedupe) if (entry.expiresAt <= now) operationDedupe.delete(op);
   for (const [id, job] of jobs) {
     if (job.finishedAt && now - job.finishedAt > MAX_JOB_CACHE_AGE_MS) jobs.delete(id);
   }
@@ -153,7 +156,7 @@ function finishJob(job, exitCode, signal) {
   job.signal = signal || null;
   job.status = exitCode === 0 ? 'ok' : job.timedOut ? 'timeout' : 'error';
   clearTimeout(job.timer);
-  pushEvent({ type: 'job_finished', jobId: job.id, requestId: job.requestId, sessionId: job.sessionId,
+  pushEvent({ type: 'job_finished', jobId: job.id, requestId: job.requestId, operationId: job.operationId, sessionId: job.sessionId,
     status: job.status, exitCode, signal: signal || null, durationMs: job.finishedAt - job.startedAt });
   for (const resolve of job.waiters.splice(0)) resolve();
   pruneJobs(job.finishedAt);
@@ -163,13 +166,15 @@ function emitStream(job, stream, data) {
   const text = data.toString('utf8');
   job[stream].add(text);
   for (let i = 0; i < text.length; i += 16384) {
-    pushEvent({ type: stream, jobId: job.id, requestId: job.requestId, sessionId: job.sessionId,
+    pushEvent({ type: stream, jobId: job.id, requestId: job.requestId, operationId: job.operationId, sessionId: job.sessionId,
       status: 'running', chunk: redact(text.slice(i, i + 16384)) });
   }
 }
 
 function startJob(payload, requestId) {
   pruneJobs();
+  const operationId = String(payload.operationId || '').trim();
+  if (!/^[A-Za-z0-9._:-]{16,128}$/.test(operationId)) throw new Error('invalid_operation_id');
   const script = String(payload.script || '');
   if (!script.trim()) throw new Error('empty_script');
   if (Buffer.byteLength(script) > 1024 * 1024) throw new Error('script_too_large');
@@ -177,13 +182,22 @@ function startJob(payload, requestId) {
   const stat = fs.statSync(cwd);
   if (!stat.isDirectory()) throw new Error('cwd_not_directory');
   const timeoutMs = Math.max(1000, Math.min(Number(payload.timeoutMs) || 600000, 7200000));
+  const sessionId = String(payload.sessionId || 'default');
+  const note = String(payload.note || '');
+  const fingerprint = crypto.createHash('sha256').update(JSON.stringify({ script, cwd, timeoutMs, sessionId, note })).digest('hex');
+  const existing = operationDedupe.get(operationId);
+  if (existing) {
+    if (existing.fingerprint !== fingerprint) throw new Error('operation_id_conflict');
+    const prior = jobs.get(existing.jobId); if (prior) return prior; operationDedupe.delete(operationId);
+  }
   const job = {
-    id: crypto.randomUUID(), requestId, sessionId: String(payload.sessionId || 'default'), note: String(payload.note || ''),
+    id: crypto.randomUUID(), requestId, operationId, operationFingerprint: fingerprint, sessionId, note,
     cwd, script, status: 'running', startedAt: Date.now(), finishedAt: null, exitCode: null, signal: null,
     timedOut: false, stdout: createAccumulator(), stderr: createAccumulator(), waiters: [], pid: null, timer: null
   };
   jobs.set(job.id, job);
-  pushEvent({ type: 'job_started', jobId: job.id, requestId, sessionId: job.sessionId, status: 'running',
+  operationDedupe.set(operationId, { jobId: job.id, fingerprint, expiresAt: Date.now() + OPERATION_DEDUPE_MS });
+  pushEvent({ type: 'job_started', jobId: job.id, requestId, operationId: job.operationId, sessionId: job.sessionId, status: 'running',
     cwd, script: redact(script), note: redact(job.note), timeoutMs });
   const child = spawn('/bin/bash', ['-lc', script], { cwd, env: { ...process.env, GPT_OPERATOR_SESSION: job.sessionId }, stdio: ['ignore', 'pipe', 'pipe'] });
   job.pid = child.pid || null;
@@ -257,7 +271,7 @@ function capabilities() {
     expectedHostCapabilities: ['filesystem', 'git', 'build-test', 'docker', 'lxd', 'systemctl', 'sudo-on-demand'],
     socket: SOCKET_PATH, logFile: LOG_FILE,
     limits: { maxScriptBytes: 1024 * 1024, maxTimeoutMs: 7200000, memoryOutputBytes: MAX_MEMORY_OUTPUT,
-      ringBytes: MAX_RING_BYTES, ringEvents: MAX_RING_EVENTS, jobCacheBytes: MAX_JOB_CACHE_BYTES, jobCacheAgeMs: MAX_JOB_CACHE_AGE_MS }
+      ringBytes: MAX_RING_BYTES, ringEvents: MAX_RING_EVENTS, jobCacheBytes: MAX_JOB_CACHE_BYTES, jobCacheAgeMs: MAX_JOB_CACHE_AGE_MS, operationDedupeMs: OPERATION_DEDUPE_MS }
   };
 }
 
@@ -320,7 +334,7 @@ const server = http.createServer(async (req, res) => {
   } catch (error) {
     const message = error?.message || 'internal_error';
     pushEvent({ type: 'executor_error', status: 'error', detail: redact(message) });
-    const status = ['invalid_envelope', 'expired_envelope', 'replay_detected', 'unknown_kid', 'invalid_envelope_auth', 'unsupported_action'].includes(message) ? 401 : 400;
+    const status = ['invalid_envelope', 'expired_envelope', 'replay_detected', 'unknown_kid', 'invalid_envelope_auth', 'unsupported_action'].includes(message) ? 401 : message === 'operation_id_conflict' ? 409 : 400;
     return sendJson(res, status, { ok: false, error: message });
   }
 });

@@ -35,7 +35,7 @@ Vercel Hobby limits this project to 12 Serverless Functions, so all operator act
 - `GET /api/operator?action=job&id=<job_id>`
 - `GET /api/operator?action=output&id=<job_id>&stream=stdout&full=0&offset=0&limit=4194304`
 
-The `exec` action accepts one logical shell batch with `cwd`, `script`, timeout, wait window, session ID and audit note. Build/test/Git/Docker/LXD/system work should be grouped naturally instead of split into artificial one-command calls.
+The `exec` action accepts one logical shell batch with stable `operationId`, `cwd`, `script`, timeout, wait window, session ID and audit note. Reuse the same `operationId` only for retries of the same logical action; changing the payload under the same ID is rejected. Build/test/Git/Docker/LXD/system work should be grouped naturally instead of split into artificial one-command calls.
 
 The host executor runs as `ubuntu`. It has the same normal host groups as an interactive operator shell and may use `sudo` on demand; the Internet-facing gateway remains unprivileged and has no Docker socket.
 
@@ -51,4 +51,4 @@ The host executor runs as `ubuntu`. It has the same normal host groups as an int
 
 The read-only wall mirrors operator command/output history. Live memory is bounded; authoritative JSONL history stays on VPS disk with 50 MB × 3 rotation. Completed job memory is separately bounded and older full output can be reconstructed from disk.
 
-Current v0.3 source is implemented and locally regression-tested; production cutover must only be marked complete after the host service, gateway and Vercel path all pass end-to-end checks.
+Production v0.3 is active. The host executor, gateway and Vercel path have passed end-to-end operator checks. The wall is routed through NetBird PIN authentication; RDC remains a temporary rescue path during soak.

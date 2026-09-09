@@ -1,7 +1,7 @@
 # GPT VPS Bridge v0.3 — Architecture & Operations Plan
 
 Date: 2026-09-09
-Status: design checkpoint; privileged executor is NOT production-enabled yet.
+Status: v0.3 production-active; operator plane enabled and acceptance-tested on 2026-09-09.
 
 ## 1. Goal
 
@@ -25,7 +25,7 @@ Expected daily capabilities:
 Direct unaudited root login is not a design goal; the host executor runs as `ubuntu`, whose existing sudo policy provides elevated operations when explicitly invoked.
 ## 2. Current production truth
 
-Current MCP gateway is v0.2 read-only and runs in an unprivileged container.
+Current MCP gateway is v0.3 and remains an unprivileged container; privileged execution is delegated over a host-only Unix socket to the `ubuntu` executor.
 
 Current controls:
 - Vercel OIDC required for `tools/call`
@@ -190,16 +190,16 @@ Maintain a small machine-readable checkpoint with current repo, branch, commit, 
 
 ## 12. Rollout order
 
-Phase A: keep current read-only v0.2 stable.
+Phase A: read-only v0.2 baseline — complete.
 
-Phase B: implement disk logging, 16 MB wall buffer and richer terminal-style wall.
+Phase B: disk logging, 16 MB wall buffer and richer terminal-style wall — complete.
 
-Phase C: implement host executor as `ubuntu`, reachable only by Unix socket or loopback.
+Phase C: host executor as `ubuntu`, reachable only by Unix socket — complete.
 
-Phase D: add encrypted/replay-protected call envelope and capability/status endpoint.
+Phase D: encrypted/replay-protected call envelope and capability/status endpoint — complete.
 
-Phase E: add `exec_batch`, output retrieval and process/session controls.
+Phase E: `exec_batch`, async job lookup and output retrieval — complete.
 
-Phase F: enable filesystem mutation, Docker/LXD and sudo-backed system configuration after regression tests.
+Phase F: filesystem mutation, Git/build/test, Docker/LXD and sudo-backed system capability acceptance — complete for operator shell semantics; keep RDC as rescue during soak.
 
 RDC remains a rescue path until the self-hosted bridge has proven stable across real daily work.

@@ -34,14 +34,14 @@ function request(method, target, body) {
 }
 const caps = await request('GET','/v1/capabilities');
 if (caps.status !== 200 || !caps.json.ok) throw new Error('capabilities_failed');
-const envelope = sealOperatorPayload({ action:'exec_batch', cwd:'/home/ubuntu',
+const envelope = sealOperatorPayload({ action:'exec_batch', operationId:'selftest-operator-v03', cwd:'/home/ubuntu',
   script:"printf 'selftest-ok\\n'", sessionId:'v03-regression', note:'encrypted regression', waitMs:5000, timeoutMs:10000 });
 const first = await request('POST','/v1/execute',envelope);
 if (first.status !== 200 || first.json.job?.exitCode !== 0) throw new Error('execute_failed');
 const jobId = first.json.job.jobId;
 const replay = await request('POST','/v1/execute',envelope);
 if (replay.status !== 401 || replay.json.error !== 'replay_detected') throw new Error('replay_guard_failed');
-const tampered = sealOperatorPayload({ action:'exec_batch', cwd:'/home/ubuntu', script:'true', sessionId:'tamper' });
+const tampered = sealOperatorPayload({ action:'exec_batch', operationId:'tamper-envelope-v03', cwd:'/home/ubuntu', script:'true', sessionId:'tamper' });
 tampered.ciphertext = tampered.ciphertext.slice(0,-1) + (tampered.ciphertext.endsWith('A') ? 'B' : 'A');
 const bad = await request('POST','/v1/execute',tampered);
 if (bad.status !== 401 || bad.json.error !== 'invalid_envelope_auth') throw new Error('tamper_guard_failed');

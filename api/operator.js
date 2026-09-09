@@ -4,7 +4,9 @@ function execPayload(value){
   if(!value) throw new Error('missing_payload');
   const d=JSON.parse(Buffer.from(String(value),'base64url').toString('utf8'));
   if(typeof d.script!=='string'||!d.script.trim()) throw new Error('invalid_script');
-  return { action:'exec_batch', script:d.script, cwd:d.cwd||'/home/ubuntu',
+  const operationId=String(d.operationId||'').trim();
+  if(!/^[A-Za-z0-9._:-]{16,128}$/.test(operationId)) throw new Error('invalid_operation_id');
+  return { action:'exec_batch', operationId, script:d.script, cwd:d.cwd||'/home/ubuntu',
     timeoutMs:Math.max(1000,Math.min(Number(d.timeoutMs)||600000,7200000)),
     waitMs:Math.max(0,Math.min(Number(d.waitMs)||7000,7000)), sessionId:String(d.sessionId||'chatgpt'), note:String(d.note||'') };
 }

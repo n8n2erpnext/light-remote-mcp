@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { sealOperatorPayload } = require('../../lib/operator-crypto');
 const body = Buffer.from(JSON.stringify(sealOperatorPayload({
-  action:'exec_batch', cwd:'/home/ubuntu', sessionId:'v03-systemd-proof', waitMs:7000, timeoutMs:20000,
+  action:'exec_batch', operationId:'selftest-systemd-v03', cwd:'/home/ubuntu', sessionId:'v03-systemd-proof', waitMs:7000, timeoutMs:20000,
   note:'Prove host operator capabilities without mutation',
   script:"id; sudo -n true && echo sudo-ok; docker version --format 'docker={{.Server.Version}}'; lxc version | head -4; git --version; node --version"
 })));
