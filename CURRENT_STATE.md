@@ -1,7 +1,7 @@
 # GPT VPS Bridge — Current State
 
 Updated: 2026-09-09
-Version: v0.5.2 production stability hotfix
+Version: v0.6.0-dev production-test candidate
 
 ## Active path
 `ChatGPT -> @Vercel -> gpt-vps-bridge.vercel.app -> ARM hub/MCP Gateway -> Unix socket -> gpt-vps-operator (ubuntu)`
@@ -27,14 +27,23 @@ Version: v0.5.2 production stability hotfix
 - Authoritative audit remains `/var/log/gpt-vps-operator/operations.jsonl` with 50 MiB x 3 rotation; Wall memory remains bounded at 16 MiB / 5000 events.
 
 ## Security / transport
-- Production `v0.5.2` still contains the v0.5.1 static caller-Bearer hotfix; that remains production history until a later accepted release replaces it.
-- Development `v0.6` deliberately removes the static shared Bearer requirement from Vercel read/operator endpoints. No `VPS_BRIDGE_CALLER_SECRET` is required by the v0.6 bridge runtime.
-- The v0.6 candidate now fails closed with a separate short-lived ARM-validated bridge session: `/api/auth` relays local operator credentials over Vercel OIDC, ARM mints a 15-minute session, and protected read/operator/MCP tool calls must forward it as `x-bridge-session`. Wall cookies and bridge sessions are cryptographically domain-separated.
+- Production is now serving the v0.6 candidate on `main`; the v0.5.1 static caller-Bearer hotfix remains history only and `VPS_BRIDGE_CALLER_SECRET` is no longer required by the v0.6 runtime.
+- v0.6 fails closed with a separate short-lived ARM-validated bridge session: `/api/auth` relays local operator credentials over Vercel OIDC, ARM mints a 15-minute session, and protected read/operator/MCP tool calls must forward it as `x-bridge-session`. Wall cookies and bridge sessions are cryptographically domain-separated.
 - ARM independently continues to require Vercel OIDC for privileged `/operator/*` and MCP `tools/call`.
 - Privileged envelopes remain X25519 + HKDF-SHA256 + AES-256-GCM with short expiry, replay rejection, and semantic `operationId` idempotency.
 - v0.6 uses body-safe structured POST for operator payloads; GET/query/base64 remains small-call compatibility only.
 - Public-product authorization must come from explicit account/device authorization plus ChatGPT permission/confirmation semantics, not a long-lived shared Bearer secret.
 - Never move passwords, tokens, private keys, cookies, or other credentials into URL query parameters.
+
+
+## v0.6 production-test proof
+- `main` and `codex/v0.6-device-presence` converged on the accepted candidate before production promotion.
+- Vercel production built READY with 12/12 functions and Node 22.x.
+- Anonymous `/api/operator?action=capabilities` returns 401 with upstream `bridge_session_required`; the public production bridge is not anonymous execution.
+- Live `/api/auth` returns a 15-minute bridge session after the local operator credential check; the proof never prints the password or session token.
+- Authenticated production proof passes capabilities, device listing (`arm-local`, node `arm`, online), 1-hour session lease (`3600000` ms), and clean session close.
+- ARM host/gateway/Wall run v0.6.0-dev; Wall local auth, `/api/devices`, sessions, activity and SSE remain live-proof PASS.
+- This is a production-test candidate, not the final public OAuth/account/device authorization release and not yet a stable v0.6.0 tag.
 
 ## v0.5 closure proof
 - All syntax checks and root/gateway npm audits pass with 0 known vulnerabilities.

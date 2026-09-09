@@ -1,9 +1,9 @@
 # GPT Remote Operator — Device Presence v0.6
 
 Updated: 2026-09-09
-Status: branch foundation; not deployed to production
-Branch: `codex/v0.6-device-presence`
-Production remains: `v0.5.2` on `main`
+Status: production-test candidate deployed on ARM + Vercel production
+Branch: `codex/v0.6-device-presence` (candidate development lane)
+Production: `main` serves the same v0.6 candidate; no stable v0.6.0 tag yet
 
 ## Purpose
 v0.6 separates a device being online from an operator session being alive.
