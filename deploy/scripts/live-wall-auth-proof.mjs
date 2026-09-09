@@ -24,7 +24,7 @@ const cookie=setCookie.split(';',1)[0];
 if(r.status!==303||!cookie) throw new Error('valid_login_failed');
 console.log('wall-valid-login=303 cookie=issued');
 const authHeaders={cookie};
-for(const path of ['/','/api/sessions','/api/activity?limit=1']){
+for(const path of ['/','/api/devices','/api/sessions','/api/activity?limit=1']){
   r=await fetch(base+path,{headers:authHeaders,redirect:'manual'});
   if(r.status!==200) throw new Error(`auth_path_failed:${path}:${r.status}`);
   console.log(`wall-auth-path=${path}:200`);

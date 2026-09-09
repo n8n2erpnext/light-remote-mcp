@@ -38,6 +38,7 @@ Current defaults:
 - heartbeat interval: 30 seconds
 - presence TTL: 90 seconds
 - registry file: `/var/lib/gpt-vps-operator/devices.json`
+- Linux systemd daemon uses `Restart=always`; explicit service stop remains authoritative, while unexpected/clean process termination is automatically recovered
 - state file mode: `0600`
 - heartbeat must be at least 5 seconds and strictly shorter than the presence TTL; invalid runtime configuration fails fast
 

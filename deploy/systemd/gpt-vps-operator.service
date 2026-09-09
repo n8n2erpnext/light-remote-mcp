@@ -19,7 +19,7 @@ Environment=OPERATOR_STATE_DIR=/var/lib/gpt-vps-operator
 ExecStartPre=/usr/bin/mkdir -p /home/ubuntu/.local/run/gpt-vps-operator
 ExecStartPre=/usr/bin/chmod 0750 /home/ubuntu/.local/run/gpt-vps-operator
 ExecStart=/usr/bin/node /opt/gpt-vps-operator/executor.mjs
-Restart=on-failure
+Restart=always
 RestartSec=2
 TimeoutStopSec=10
 
