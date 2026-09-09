@@ -1,10 +1,10 @@
 {
   "name": "gpt-vps-bridge",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "private": true,
   "description": "Portable ChatGPT-to-VPS operator bridge with Vercel transport, an unprivileged gateway, and an encrypted host executor.",
   "engines": {
-    "node": ">=20"
+    "node": "22.x"
   },
   "dependencies": {
     "@vercel/oidc": "^3.8.5"

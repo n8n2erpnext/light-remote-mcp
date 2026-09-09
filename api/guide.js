@@ -1,7 +1,7 @@
 module.exports = function handler(req, res) {
   res.setHeader('Cache-Control','no-store'); res.setHeader('X-Robots-Tag','noindex,nofollow,noarchive');
   if(req.method!=='GET') return res.status(405).json({ok:false,error:'method_not_allowed'});
-  return res.status(200).json({ok:true,project:'gpt-vps-bridge',version:'0.5.1',purpose:'ChatGPT-facing relay to the owner VPS operator hub',
+  return res.status(200).json({ok:true,project:'gpt-vps-bridge',version:'0.5.2',purpose:'ChatGPT-facing relay to the owner VPS operator hub',
     activePath:'ChatGPT -> @Vercel -> ARM hub -> selected node executor',upstream:'https://mcp.dashboard.thaiduy.store',wall:'https://wall.dashboard.thaiduy.store',
     recoveryDocs:['CURRENT_STATE.md','AI_BRIDGE_GUIDE.md','SESSION_OWNERSHIP_V0_5.md','SESSION_LANES_V0_4.md','HUB_TOPOLOGY_V0_5.md','PRODUCT_PLATFORM_PLAN_V0_6_TO_PUBLIC_PLUGIN.md','BRIDGE_V0_3_ARCHITECTURE_PLAN.md','PORTABILITY.md'],
     sessionStart:{agentId:'generate one stable random agent id for this ChatGPT agent/chat, e.g. a_<uuid>',openId:'stable id for one open attempt',open:'/api/operator?action=session-open&p=<base64url {agentId,openId,label,workspace}>'},
