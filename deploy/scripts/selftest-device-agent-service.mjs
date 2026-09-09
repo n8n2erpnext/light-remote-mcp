@@ -1,0 +1,11 @@
+import fs from 'node:fs';
+import { spawnSync } from 'node:child_process';
+const file=new URL('../../device-agent/install-linux-service.sh',import.meta.url).pathname;
+const text=fs.readFileSync(file,'utf8');
+if(spawnSync('bash',['-n',file]).status!==0)throw new Error('linux_service_installer_syntax_failed');
+for(const rule of ['Restart=always','NoNewPrivileges=true','PrivateTmp=true','ProtectSystem=strict','ReadWritePaths=$HOME_DIR/.config/gpt-operator-agent','ProtectKernelTunables=true','ProtectKernelModules=true','ProtectControlGroups=true','LockPersonality=true','RestrictSUIDSGID=true','CapabilityBoundingSet=','AmbientCapabilities='])if(!text.includes(rule))throw new Error(`service_hardening_missing:${rule}`);
+if(!text.includes('Run operator-agent login first'))throw new Error('service_install_before_enrollment_guard_missing');
+if(/password|pollToken|privateKey/i.test(text))throw new Error('service_installer_secret_material_reference');
+console.log('device-agent-service-shell-syntax=PASS');
+console.log('device-agent-service-hardening=PASS');
+console.log('device-agent-service-enrollment-guard=PASS');

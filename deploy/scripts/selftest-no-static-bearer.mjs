@@ -15,7 +15,8 @@ for(const rel of [...runtimeFiles,...currentGuides]){
 if(fs.existsSync(path.join(root,'lib/caller-auth.js'))) throw new Error('caller_auth_module_still_present');
 if(fs.existsSync(path.join(root,'deploy/scripts/selftest-bridge-caller-auth.mjs'))) throw new Error('legacy_bearer_test_still_present');
 const guide=fs.readFileSync(path.join(root,'api/guide.js'),'utf8');
-if(!guide.includes('no static shared Bearer secret')) throw new Error('guide_missing_no_static_bearer_contract');
+if(!/staticSharedBearer\s*:\s*false/.test(guide)) throw new Error('guide_missing_static_bearer_false_contract');
+if(!/no static shared Bearer/i.test(guide)) throw new Error('guide_missing_no_static_bearer_security_text');
 
 const operatorLib=require('../../lib/operator');
 const mcpLib=require('../../lib/mcp');

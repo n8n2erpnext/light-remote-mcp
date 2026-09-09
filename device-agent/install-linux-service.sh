@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+USER_NAME="${SUDO_USER:-${USER}}"
+HOME_DIR="$(getent passwd "$USER_NAME" | cut -d: -f6)"
+NODE_BIN="$(command -v node)"
+STATE_FILE="$HOME_DIR/.config/gpt-operator-agent/device.json"
+if [[ ! -f "$STATE_FILE" ]]; then
+  echo "Device is not enrolled yet. Run operator-agent login first." >&2
+  exit 2
+fi
+sudo install -d -m 0755 /opt/gpt-operator-agent/device-agent /opt/gpt-operator-agent/lib
+sudo install -m 0755 "$ROOT_DIR/device-agent/operator-agent.mjs" /opt/gpt-operator-agent/device-agent/operator-agent.mjs
+sudo install -m 0644 "$ROOT_DIR/lib/device-proof.mjs" /opt/gpt-operator-agent/lib/device-proof.mjs
+unit="$(mktemp)"
+trap 'rm -f "$unit"' EXIT
+cat > "$unit" <<UNIT
+[Unit]
+Description=GPT Operator Device Agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=$USER_NAME
+Environment=HOME=$HOME_DIR
+ExecStart=$NODE_BIN /opt/gpt-operator-agent/device-agent/operator-agent.mjs daemon
+Restart=always
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=$HOME_DIR/.config/gpt-operator-agent
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+LockPersonality=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+sudo install -m 0644 "$unit" /etc/systemd/system/gpt-operator-device-agent.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now gpt-operator-device-agent.service
+echo "Installed gpt-operator-device-agent.service for $USER_NAME"

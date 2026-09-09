@@ -35,6 +35,7 @@ export class DeviceRegistry {
     return v;
   }
   _state(device, now = this.now()) {
+    if (device.revokedAt) return 'revoked';
     if (device.offlineAt) return 'offline';
     return now - device.lastSeenAt <= this.presenceTtlMs ? 'online' : 'offline';
   }
@@ -52,6 +53,7 @@ export class DeviceRegistry {
       firstSeenAt: device.firstSeenAt,
       lastSeenAt: device.lastSeenAt,
       offlineAt: device.offlineAt,
+      revokedAt: device.revokedAt || null,
       publicIdentityKey: device.publicIdentityKey,
       capabilities: [...device.capabilities],
       policyProfile: device.policyProfile,
@@ -90,6 +92,7 @@ export class DeviceRegistry {
           agentVersion: boundedText(raw.agentVersion || 'unknown', 40),
           firstSeenAt, lastSeenAt,
           offlineAt: Number.isFinite(Number(raw.offlineAt)) ? Number(raw.offlineAt) : null,
+          revokedAt: Number.isFinite(Number(raw.revokedAt)) ? Number(raw.revokedAt) : null,
           publicIdentityKey: raw.publicIdentityKey ? boundedText(raw.publicIdentityKey, 4096) : null,
           capabilities: cleanCapabilities(raw.capabilities),
           policyProfile: boundedText(raw.policyProfile || 'default', 120)
@@ -118,6 +121,7 @@ export class DeviceRegistry {
       firstSeenAt: prior?.firstSeenAt || now,
       lastSeenAt: now,
       offlineAt: null,
+      revokedAt: null,
       publicIdentityKey: input.publicIdentityKey ? boundedText(input.publicIdentityKey, 4096) : (prior?.publicIdentityKey || null),
       capabilities: cleanCapabilities(input.capabilities?.length ? input.capabilities : prior?.capabilities),
       policyProfile: boundedText(input.policyProfile || prior?.policyProfile || 'default', 120)
@@ -132,16 +136,57 @@ export class DeviceRegistry {
     return this._view(device);
   }
 
-  heartbeat(deviceId) {
+  enroll(input = {}) {
+    const now = this.now();
+    const accountId = this._requireId(input.accountId, 'account_id');
+    const deviceId = this._requireId(input.deviceId, 'device_id');
+    const nodeId = this._requireId(input.nodeId || deviceId, 'node_id');
+    const prior = this.devices.get(deviceId);
+    if (prior && (prior.accountId !== accountId || prior.publicIdentityKey !== input.publicIdentityKey)) throw new DeviceError('device_identity_conflict', 409);
+    const device = {
+      accountId, deviceId, nodeId,
+      displayName: boundedText(input.displayName || prior?.displayName || deviceId, 120),
+      platform: boundedText(input.platform || prior?.platform || 'unknown', 40),
+      architecture: boundedText(input.architecture || prior?.architecture || 'unknown', 40),
+      agentVersion: boundedText(input.agentVersion || prior?.agentVersion || 'unknown', 40),
+      firstSeenAt: prior?.firstSeenAt || now, lastSeenAt: prior?.lastSeenAt || now, offlineAt: now, revokedAt: null,
+      publicIdentityKey: boundedText(input.publicIdentityKey || prior?.publicIdentityKey || '', 4096) || null,
+      capabilities: cleanCapabilities(input.capabilities),
+      policyProfile: boundedText(input.policyProfile || prior?.policyProfile || 'default', 120)
+    };
+    this.devices.set(deviceId, device); this._persist();
+    this.emit({ type:'device_enrolled', accountId, deviceId, nodeId, status:'offline', displayName:device.displayName, platform:device.platform, architecture:device.architecture, agentVersion:device.agentVersion });
+    return this._view(device, { now });
+  }
+
+  heartbeat(deviceId, options = {}) {
     const device = this.devices.get(String(deviceId || ''));
     if (!device) throw new DeviceError('device_not_found', 404);
+    if (device.revokedAt) throw new DeviceError('device_revoked', 403);
     const now = this.now();
     const wasOffline = this._state(device, now) === 'offline';
     device.lastSeenAt = now;
     device.offlineAt = null;
+    let capabilitiesChanged = false;
+    if (Array.isArray(options.capabilities)) {
+      const next = cleanCapabilities(options.capabilities);
+      capabilitiesChanged = JSON.stringify(next) !== JSON.stringify(device.capabilities);
+      device.capabilities = next;
+    }
+    if (wasOffline || capabilitiesChanged) this._persist();
     if (wasOffline) this.emit({ type:'device_online', accountId:device.accountId, deviceId:device.deviceId, nodeId:device.nodeId, status:'online' });
     return this._view(device, { now });
   }
+  revoke(deviceId, reason = 'owner_revoked') {
+    const device = this.devices.get(String(deviceId || ''));
+    if (!device) throw new DeviceError('device_not_found', 404);
+    if (!device.revokedAt) {
+      device.revokedAt = this.now(); device.offlineAt = device.revokedAt; this._persist();
+      this.emit({ type:'device_revoked', accountId:device.accountId, deviceId:device.deviceId, nodeId:device.nodeId, status:'revoked', reason:boundedText(reason,80) });
+    }
+    return this._view(device);
+  }
+
   markOffline(deviceId, reason = 'agent_stopped') {
     const device = this.devices.get(String(deviceId || ''));
     if (!device) throw new DeviceError('device_not_found', 404);

@@ -8,6 +8,7 @@ import { decryptEnvelope as decryptSealedEnvelope } from './crypto.mjs';
 import { spawn } from 'node:child_process';
 import { SessionRegistry, SessionError, SESSION_LEASE_PRESETS } from './session-manager.mjs';
 import { DeviceRegistry, DeviceError } from './device-registry.mjs';
+import { EnrollmentRegistry, EnrollmentError } from './enrollment-registry.mjs';
 
 const SOCKET_PATH = process.env.OPERATOR_SOCKET || '/run/gpt-vps-operator/operator.sock';
 const KEY_FILE = process.env.OPERATOR_KEY_FILE || '/home/ubuntu/.config/gpt-vps-operator/operator.private.json';
@@ -15,6 +16,8 @@ const LOG_DIR = process.env.OPERATOR_LOG_DIR || '/var/log/gpt-vps-operator';
 const LOG_FILE = path.join(LOG_DIR, 'operations.jsonl');
 const STATE_DIR = process.env.OPERATOR_STATE_DIR || '/var/lib/gpt-vps-operator';
 const DEVICE_STATE_FILE = path.join(STATE_DIR, 'devices.json');
+const ENROLLMENT_STATE_FILE = path.join(STATE_DIR, 'enrollments.json');
+const ENROLLMENT_SIGNER_FILE = path.join(STATE_DIR, 'enrollment-signer.json');
 const MAX_RING_BYTES = Number(process.env.OPERATOR_RING_BYTES || 16 * 1024 * 1024);
 const MAX_RING_EVENTS = Number(process.env.OPERATOR_RING_EVENTS || 5000);
 const MAX_MEMORY_OUTPUT = Number(process.env.OPERATOR_MEMORY_OUTPUT || 4 * 1024 * 1024);
@@ -35,10 +38,12 @@ const DEVICE_POLICY_PROFILE = String(process.env.OPERATOR_DEVICE_POLICY_PROFILE 
 const DEVICE_PUBLIC_KEY = String(process.env.OPERATOR_DEVICE_PUBLIC_KEY || '');
 const DEVICE_PRESENCE_TTL_MS = Number(process.env.OPERATOR_DEVICE_PRESENCE_TTL_MS || 90 * 1000);
 const DEVICE_HEARTBEAT_MS = Number(process.env.OPERATOR_DEVICE_HEARTBEAT_MS || 30 * 1000);
+const ENROLLMENT_TTL_MS = Number(process.env.OPERATOR_ENROLLMENT_TTL_MS || 10 * 60 * 1000);
+const ENROLLMENT_ACTIVATION_URL = String(process.env.OPERATOR_ENROLLMENT_ACTIVATION_URL || 'https://wall.dashboard.thaiduy.store/enroll');
 if (!Number.isFinite(DEVICE_PRESENCE_TTL_MS) || DEVICE_PRESENCE_TTL_MS < 10_000) throw new Error('invalid_device_presence_ttl');
 if (!Number.isFinite(DEVICE_HEARTBEAT_MS) || DEVICE_HEARTBEAT_MS < 5_000 || DEVICE_HEARTBEAT_MS >= DEVICE_PRESENCE_TTL_MS) throw new Error('invalid_device_heartbeat');
 const HOST_CAPABILITIES = ['filesystem', 'git', 'build-test', 'docker', 'lxd', 'systemctl', 'sudo-on-demand'];
-const VERSION = '0.6.0-dev';
+const VERSION = '0.7.0-dev';
 
 const jobs = new Map();
 const operationDedupe = new Map();
@@ -49,6 +54,7 @@ let ringBytes = 0;
 let sequence = 0;
 const sessions = new SessionRegistry({ idleMs:SESSION_IDLE_MS, minIdleMs:SESSION_MIN_IDLE_MS, maxIdleMs:SESSION_MAX_IDLE_MS, maxActive:MAX_ACTIVE_SESSIONS, historyMs:SESSION_HISTORY_MS, accountId:ACCOUNT_ID, deviceId:DEVICE_ID, nodeId:NODE_ID, emit:event => pushEvent(event) });
 const devices = new DeviceRegistry({ stateFile:DEVICE_STATE_FILE, presenceTtlMs:DEVICE_PRESENCE_TTL_MS, emit:event => pushEvent(event) });
+const enrollments = new EnrollmentRegistry({ stateFile:ENROLLMENT_STATE_FILE, signerFile:ENROLLMENT_SIGNER_FILE, activationBaseUrl:ENROLLMENT_ACTIVATION_URL, ttlMs:ENROLLMENT_TTL_MS, emit:event => pushEvent(event) });
 
 fs.mkdirSync(LOG_DIR, { recursive: true });
 function redact(value) {
@@ -85,6 +91,7 @@ function pushEvent(input) {
   return event;
 }
 if (devices.loadError) pushEvent({ type:'device_registry_load_error', status:'error', detail:redact(devices.loadError) });
+if (enrollments.loadError) pushEvent({ type:'enrollment_registry_load_error', status:'error', detail:redact(enrollments.loadError) });
 devices.register({ accountId:ACCOUNT_ID, deviceId:DEVICE_ID, nodeId:NODE_ID, displayName:DEVICE_NAME, platform:os.platform(), architecture:os.arch(), agentVersion:VERSION, publicIdentityKey:DEVICE_PUBLIC_KEY || null, capabilities:HOST_CAPABILITIES, policyProfile:DEVICE_POLICY_PROFILE });
 const deviceHeartbeat = setInterval(() => { try { devices.heartbeat(DEVICE_ID); } catch (error) { console.error('[device] heartbeat failed', error?.message || error); } }, DEVICE_HEARTBEAT_MS);
 deviceHeartbeat.unref();
@@ -346,10 +353,11 @@ async function readJson(req) {
 function capabilities() {
   return {
     service: 'gpt-vps-operator', version: VERSION, accountId:ACCOUNT_ID, deviceId:DEVICE_ID, nodeId:NODE_ID, user: process.env.USER || 'ubuntu',
-    execution: ['exec_batch', 'async_jobs', 'output_retrieval', 'managed_sessions', 'device_presence', 'configurable_session_lease'],
+    execution: ['exec_batch', 'async_jobs', 'output_retrieval', 'managed_sessions', 'device_presence', 'configurable_session_lease', 'device_enrollment'],
     expectedHostCapabilities: HOST_CAPABILITIES,
     socket: SOCKET_PATH, logFile: LOG_FILE,
     presence: { ttlMs:DEVICE_PRESENCE_TTL_MS, heartbeatMs:DEVICE_HEARTBEAT_MS },
+    enrollment: { ttlMs:ENROLLMENT_TTL_MS, activationUrl:ENROLLMENT_ACTIVATION_URL, signer:enrollments.signerInfo(), keyAlgorithm:'Ed25519', oneTimeCode:true, signedHeartbeat:true },
     sessionLeasePresets: SESSION_LEASE_PRESETS,
     limits: { maxScriptBytes: 1024 * 1024, maxTimeoutMs: 7200000, memoryOutputBytes: MAX_MEMORY_OUTPUT,
       ringBytes: MAX_RING_BYTES, ringEvents: MAX_RING_EVENTS, jobCacheBytes: MAX_JOB_CACHE_BYTES, jobCacheAgeMs: MAX_JOB_CACHE_AGE_MS, operationDedupeMs: OPERATION_DEDUPE_MS,
@@ -370,12 +378,47 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && url.pathname === '/v1/capabilities') {
       return sendJson(res, 200, { ok: true, ...capabilities() });
     }
+    if (req.method === 'POST' && url.pathname === '/v1/enrollments/begin') {
+      const body = await readJson(req);
+      return sendJson(res, 200, { ok:true, enrollment:enrollments.begin(body) });
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/enrollments/poll') {
+      const body = await readJson(req);
+      return sendJson(res, 200, { ok:true, enrollment:enrollments.poll(body) });
+    }
+    if (req.method === 'GET' && url.pathname === '/v1/enrollments') {
+      return sendJson(res, 200, { ok:true, pending:enrollments.listPending() });
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/enrollments/approve') {
+      const body = await readJson(req);
+      const approval = enrollments.approve(body);
+      const binding = enrollments.binding(approval.deviceId);
+      const device = devices.enroll({ accountId:binding.accountId, deviceId:binding.deviceId, nodeId:binding.deviceId, displayName:binding.displayName, platform:binding.platform, architecture:binding.architecture, agentVersion:binding.agentVersion, publicIdentityKey:binding.publicIdentityKey, capabilities:binding.approvedCapabilities, policyProfile:binding.policyProfile });
+      return sendJson(res, 200, { ok:true, approval, device });
+    }
     if (req.method === 'GET' && url.pathname === '/v1/devices') {
       return sendJson(res, 200, { ok:true, currentDeviceId:DEVICE_ID, devices:devices.list({ activeSessionsForNode:nodeId => sessions.activeCountByNode(nodeId) }) });
     }
     const deviceMatch = url.pathname.match(/^\/v1\/devices\/([A-Za-z0-9._:-]+)$/);
     if (req.method === 'GET' && deviceMatch) {
       return sendJson(res, 200, { ok:true, device:devices.get(deviceMatch[1], { activeSessionsForNode:nodeId => sessions.activeCountByNode(nodeId) }) });
+    }
+    const heartbeatMatch = url.pathname.match(/^\/v1\/devices\/([A-Za-z0-9._:-]+)\/heartbeat$/);
+    if (req.method === 'POST' && heartbeatMatch) {
+      const body = await readJson(req);
+      if (String(body.deviceId || '') !== heartbeatMatch[1]) throw new EnrollmentError('device_id_mismatch', 409);
+      const proof = enrollments.verifyHeartbeat(body);
+      const device = devices.heartbeat(heartbeatMatch[1], { capabilities:proof.effectiveCapabilities });
+      pushEvent({ type:'device_heartbeat_verified', accountId:device.accountId, deviceId:device.deviceId, nodeId:device.nodeId, status:'online', capabilities:proof.effectiveCapabilities });
+      return sendJson(res, 200, { ok:true, device });
+    }
+    const revokeMatch = url.pathname.match(/^\/v1\/devices\/([A-Za-z0-9._:-]+)\/revoke$/);
+    if (req.method === 'POST' && revokeMatch) {
+      const body = await readJson(req);
+      if (String(body.deviceId || revokeMatch[1]) !== revokeMatch[1]) throw new EnrollmentError('device_id_mismatch', 409);
+      const binding = enrollments.revoke({ deviceId:revokeMatch[1], accountId:body.accountId, reason:body.reason });
+      const device = devices.revoke(revokeMatch[1], body.reason || 'owner_revoked');
+      return sendJson(res, 200, { ok:true, binding, device });
     }
     if (req.method === 'POST' && url.pathname === '/v1/sessions/open') {
       const body = await readJson(req);
@@ -448,7 +491,7 @@ const server = http.createServer(async (req, res) => {
   } catch (error) {
     const message = error?.message || 'internal_error';
     pushEvent({ type: 'executor_error', status: 'error', detail: redact(message) });
-    const status = error instanceof SessionError || error instanceof DeviceError ? error.status : ['invalid_envelope', 'expired_envelope', 'replay_detected', 'unknown_kid', 'invalid_envelope_auth', 'unsupported_action'].includes(message) ? 401 : message === 'operation_id_conflict' ? 409 : 400;
+    const status = error instanceof SessionError || error instanceof DeviceError || error instanceof EnrollmentError ? error.status : ['invalid_envelope', 'expired_envelope', 'replay_detected', 'unknown_kid', 'invalid_envelope_auth', 'unsupported_action'].includes(message) ? 401 : message === 'operation_id_conflict' ? 409 : 400;
     return sendJson(res, status, { ok: false, error: message });
   }
 });
