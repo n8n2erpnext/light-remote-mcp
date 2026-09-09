@@ -11,10 +11,12 @@ const files = [
   ['operator-host/session-manager.mjs', 'session-manager.mjs'],
   ['operator-host/device-registry.mjs', 'device-registry.mjs'],
   ['operator-host/enrollment-registry.mjs', 'enrollment-registry.mjs'],
+  ['operator-host/fleet-router.mjs', 'fleet-router.mjs'],
   ['lib/device-proof.mjs', 'device-proof.mjs']
 ];
 for (const [src, dest] of files) fs.copyFileSync(path.join(root, src), path.join(dir, dest));
 await import(pathToFileURL(path.join(dir, 'enrollment-registry.mjs')));
+await import(pathToFileURL(path.join(dir, 'fleet-router.mjs')));
 const installer = fs.readFileSync(path.join(root, 'deploy/scripts/install-host.sh'), 'utf8');
 for (const [, dest] of files) if (!installer.includes(`/opt/gpt-vps-operator/${dest}`)) throw new Error(`installer_missing_${dest}`);
 console.log('host-install-layout-imports=PASS');

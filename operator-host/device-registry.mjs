@@ -110,6 +110,8 @@ export class DeviceRegistry {
     const deviceId = this._requireId(input.deviceId, 'device_id');
     const nodeId = this._requireId(input.nodeId, 'node_id');
     const prior = this.devices.get(deviceId);
+    const nodeOwner=[...this.devices.values()].find(row=>row.nodeId===nodeId && row.deviceId!==deviceId);
+    if (nodeOwner) throw new DeviceError('node_identity_conflict',409);
     if (prior && (prior.accountId !== accountId || prior.nodeId !== nodeId)) throw new DeviceError('device_identity_conflict', 409);
     const wasOffline = prior ? this._state(prior, now) === 'offline' : false;
     const device = {
@@ -142,6 +144,8 @@ export class DeviceRegistry {
     const deviceId = this._requireId(input.deviceId, 'device_id');
     const nodeId = this._requireId(input.nodeId || deviceId, 'node_id');
     const prior = this.devices.get(deviceId);
+    const nodeOwner=[...this.devices.values()].find(row=>row.nodeId===nodeId && row.deviceId!==deviceId);
+    if (nodeOwner) throw new DeviceError('node_identity_conflict',409);
     if (prior && (prior.accountId !== accountId || prior.publicIdentityKey !== input.publicIdentityKey)) throw new DeviceError('device_identity_conflict', 409);
     const device = {
       accountId, deviceId, nodeId,
@@ -202,6 +206,14 @@ export class DeviceRegistry {
     const device = this.devices.get(String(deviceId || ''));
     if (!device) throw new DeviceError('device_not_found', 404);
     return this._view(device, options);
+  }
+
+  getByNodeId(nodeId, options = {}) {
+    const nid=this._requireId(nodeId,'node_id');
+    const matches=[...this.devices.values()].filter(device=>device.nodeId===nid);
+    if (!matches.length) throw new DeviceError('node_not_found',404);
+    if (matches.length>1) throw new DeviceError('node_identity_conflict',409);
+    return this._view(matches[0],options);
   }
 
   list(options = {}) {

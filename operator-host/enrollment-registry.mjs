@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { deviceHeartbeatMessage, normalizeDeviceCapabilities } from './device-proof.mjs';
+import { deviceChannelMessage, deviceHeartbeatMessage, normalizeDeviceCapabilities } from './device-proof.mjs';
 
 export class EnrollmentError extends Error {
   constructor(message, status = 400) { super(message); this.status = status; }
@@ -200,6 +200,23 @@ export class EnrollmentRegistry {
 
   binding(deviceId, { allowRevoked = false } = {}) { const row=this.bindings.get(String(deviceId||'')); if (!row) throw new EnrollmentError('device_binding_not_found',404); if (row.revokedAt && !allowRevoked) throw new EnrollmentError('device_revoked',403); return row; }
   revoke(input = {}) { const row=this.binding(input.deviceId,{allowRevoked:true}); const accountId=String(input.accountId||''); if (row.accountId!==accountId) throw new EnrollmentError('device_account_mismatch',403); if (!row.revokedAt) { row.revokedAt=this.now(); row.revokeReason=bounded(input.reason||'owner_revoked',120); this._persist(); this.emit({type:'device_revoked',deviceId:row.deviceId,accountId:row.accountId,status:'revoked',reason:row.revokeReason}); } return { deviceId:row.deviceId, accountId:row.accountId, revokedAt:row.revokedAt, reason:row.revokeReason }; }
+  verifyChannel(input = {}, action = '', payload = {}) {
+    this._prune();
+    const binding=this.binding(input.deviceId);
+    const timestamp=Number(input.timestamp), nonce=String(input.nonce||''), signature=String(input.signature||''), channelAction=String(action||'');
+    if (!/^[a-z0-9._:-]{1,64}$/.test(channelAction)) throw new EnrollmentError('invalid_device_channel_action');
+    if (!Number.isSafeInteger(timestamp) || Math.abs(this.now()-timestamp) > 60_000) throw new EnrollmentError('device_proof_expired',401);
+    if (!/^[A-Za-z0-9_-]{16,128}$/.test(nonce)) throw new EnrollmentError('invalid_device_nonce');
+    const replayKey=`channel:${binding.deviceId}:${nonce}`;
+    if (this.nonces.has(replayKey)) throw new EnrollmentError('device_proof_replay',409);
+    const message=deviceChannelMessage({deviceId:binding.deviceId,action:channelAction,timestamp,nonce,payload});
+    let ok=false;
+    try { const key=crypto.createPublicKey({key:Buffer.from(binding.publicIdentityKey,'base64'),format:'der',type:'spki'}); ok=crypto.verify(null,Buffer.from(message),key,Buffer.from(signature,'base64url')); } catch { ok=false; }
+    if (!ok) throw new EnrollmentError('invalid_device_proof',401);
+    this.nonces.set(replayKey,this.now()+120_000);
+    return { binding, proof:{timestamp,nonce,action:channelAction} };
+  }
+
   verifyHeartbeat(input = {}) {
     this._prune();
     const binding=this.binding(input.deviceId);
@@ -210,7 +227,7 @@ export class EnrollmentRegistry {
     if (this.nonces.has(replayKey)) throw new EnrollmentError('device_proof_replay',409);
     const effectiveCapabilities=cleanCapabilities(input.capabilities);
     if (effectiveCapabilities.some(item => !binding.approvedCapabilities.includes(item))) throw new EnrollmentError('device_capability_escalation',403);
-    const message=JSON.stringify({ version:1, deviceId:binding.deviceId, timestamp, nonce, capabilities:effectiveCapabilities });
+    const message=deviceHeartbeatMessage({ deviceId:binding.deviceId, timestamp, nonce, capabilities:effectiveCapabilities });
     let ok=false;
     try { const key=crypto.createPublicKey({key:Buffer.from(binding.publicIdentityKey,'base64'),format:'der',type:'spki'}); ok=crypto.verify(null,Buffer.from(message),key,Buffer.from(signature,'base64url')); } catch { ok=false; }
     if (!ok) throw new EnrollmentError('invalid_device_proof',401);

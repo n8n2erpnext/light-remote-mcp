@@ -9,6 +9,7 @@ import { spawn } from 'node:child_process';
 import { SessionRegistry, SessionError, SESSION_LEASE_PRESETS } from './session-manager.mjs';
 import { DeviceRegistry, DeviceError } from './device-registry.mjs';
 import { EnrollmentRegistry, EnrollmentError } from './enrollment-registry.mjs';
+import { FleetRouter, FleetError } from './fleet-router.mjs';
 
 const SOCKET_PATH = process.env.OPERATOR_SOCKET || '/run/gpt-vps-operator/operator.sock';
 const KEY_FILE = process.env.OPERATOR_KEY_FILE || '/home/ubuntu/.config/gpt-vps-operator/operator.private.json';
@@ -40,10 +41,13 @@ const DEVICE_PRESENCE_TTL_MS = Number(process.env.OPERATOR_DEVICE_PRESENCE_TTL_M
 const DEVICE_HEARTBEAT_MS = Number(process.env.OPERATOR_DEVICE_HEARTBEAT_MS || 30 * 1000);
 const ENROLLMENT_TTL_MS = Number(process.env.OPERATOR_ENROLLMENT_TTL_MS || 10 * 60 * 1000);
 const ENROLLMENT_ACTIVATION_URL = String(process.env.OPERATOR_ENROLLMENT_ACTIVATION_URL || 'https://wall.dashboard.thaiduy.store/enroll');
+const FLEET_CHANNEL_TTL_MS = Number(process.env.OPERATOR_FLEET_CHANNEL_TTL_MS || 20 * 1000);
+const FLEET_COMMAND_LEASE_MS = Number(process.env.OPERATOR_FLEET_COMMAND_LEASE_MS || 12 * 1000);
+const FLEET_MAX_QUEUED_PER_NODE = Number(process.env.OPERATOR_FLEET_MAX_QUEUED_PER_NODE || 64);
 if (!Number.isFinite(DEVICE_PRESENCE_TTL_MS) || DEVICE_PRESENCE_TTL_MS < 10_000) throw new Error('invalid_device_presence_ttl');
 if (!Number.isFinite(DEVICE_HEARTBEAT_MS) || DEVICE_HEARTBEAT_MS < 5_000 || DEVICE_HEARTBEAT_MS >= DEVICE_PRESENCE_TTL_MS) throw new Error('invalid_device_heartbeat');
 const HOST_CAPABILITIES = ['filesystem', 'git', 'build-test', 'docker', 'lxd', 'systemctl', 'sudo-on-demand'];
-const VERSION = '0.7.0-dev';
+const VERSION = '0.8.0-dev';
 
 const jobs = new Map();
 const operationDedupe = new Map();
@@ -55,6 +59,7 @@ let sequence = 0;
 const sessions = new SessionRegistry({ idleMs:SESSION_IDLE_MS, minIdleMs:SESSION_MIN_IDLE_MS, maxIdleMs:SESSION_MAX_IDLE_MS, maxActive:MAX_ACTIVE_SESSIONS, historyMs:SESSION_HISTORY_MS, accountId:ACCOUNT_ID, deviceId:DEVICE_ID, nodeId:NODE_ID, emit:event => pushEvent(event) });
 const devices = new DeviceRegistry({ stateFile:DEVICE_STATE_FILE, presenceTtlMs:DEVICE_PRESENCE_TTL_MS, emit:event => pushEvent(event) });
 const enrollments = new EnrollmentRegistry({ stateFile:ENROLLMENT_STATE_FILE, signerFile:ENROLLMENT_SIGNER_FILE, activationBaseUrl:ENROLLMENT_ACTIVATION_URL, ttlMs:ENROLLMENT_TTL_MS, emit:event => pushEvent(event) });
+const fleet = new FleetRouter({ channelTtlMs:FLEET_CHANNEL_TTL_MS, commandLeaseMs:FLEET_COMMAND_LEASE_MS, maxQueuedPerNode:FLEET_MAX_QUEUED_PER_NODE, emit:event => pushEvent(event) });
 
 fs.mkdirSync(LOG_DIR, { recursive: true });
 function redact(value) {
@@ -157,7 +162,7 @@ function jobView(job) {
   const err = job.stderr.snapshot();
   return {
     jobId: job.id, requestId: job.requestId, operationId: job.operationId, accountId:job.accountId, deviceId:job.deviceId, sessionId: job.sessionId, agentId: job.agentId, nodeId: job.nodeId, status: job.status,
-    cwd: job.cwd, script: redact(job.script), note: redact(job.note || ''), pid: job.pid || null,
+    cwd: job.cwd, script: redact(job.script), note: redact(job.note || ''), pid: job.pid || null, route:job.remote?'outbound-leaf':'local', commandId:job.commandId||null, requiredCapabilities:[...(job.requiredCapabilities||[])],
     startedAt: job.startedAt, finishedAt: job.finishedAt || null, exitCode: job.exitCode,
     signal: job.signal || null, durationMs: job.finishedAt ? job.finishedAt - job.startedAt : Date.now() - job.startedAt,
     stdout: redact(out.text), stderr: redact(err.text), stdoutBytes: out.totalBytes, stderrBytes: err.totalBytes,
@@ -214,18 +219,38 @@ function startJob(payload, requestId) {
   const script = String(payload.script || '');
   if (!script.trim()) throw new Error('empty_script');
   if (Buffer.byteLength(script) > 1024 * 1024) throw new Error('script_too_large');
-  const cwd = path.resolve(String(payload.cwd || '/home/ubuntu'));
-  const stat = fs.statSync(cwd);
-  if (!stat.isDirectory()) throw new Error('cwd_not_directory');
   const timeoutMs = Math.max(1000, Math.min(Number(payload.timeoutMs) || 600000, 7200000));
   const requestedSessionId = String(payload.sessionId || '');
   const agentId = String(payload.agentId || '').trim();
   const session = sessions.ensure(requestedSessionId, { agentId });
+  if (payload.nodeId != null && String(payload.nodeId) !== session.nodeId) throw new SessionError('session_target_mismatch',409);
+  const remote=session.nodeId!==NODE_ID;
+  let cwd=String(payload.cwd || '/home/ubuntu');
+  if (!cwd || cwd.length>1024 || cwd.includes('\0')) throw new Error('invalid_cwd');
+  if (!remote) {
+    cwd=path.resolve(cwd);
+    const stat = fs.statSync(cwd);
+    if (!stat.isDirectory()) throw new Error('cwd_not_directory');
+  }
+  const requiredCapabilities=[];
+  for(const raw of Array.isArray(payload.requiredCapabilities)&&payload.requiredCapabilities.length?payload.requiredCapabilities:['filesystem']) {
+    const item=String(raw||'').trim();
+    if(!/^[A-Za-z0-9._:-]{1,80}$/.test(item))throw new Error('invalid_required_capability');
+    if(!requiredCapabilities.includes(item))requiredCapabilities.push(item);
+  }
+  requiredCapabilities.sort();
+  let route=null;
+  if(remote) {
+    route=targetRoute(session.nodeId);
+    if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);
+    const missing=requiredCapabilities.filter(cap=>!route.capabilities.includes(cap));
+    if(missing.length)throw new FleetError('target_node_capability_missing',409);
+  }
   sessions.record(session.id, 'toolCalls');
   sessions.record(session.id, 'execCalls');
   const sessionId = session.id;
   const note = String(payload.note || '');
-  const fingerprint = crypto.createHash('sha256').update(JSON.stringify({ script, cwd, timeoutMs, sessionId, note })).digest('hex');
+  const fingerprint = crypto.createHash('sha256').update(JSON.stringify({ script, cwd, timeoutMs, sessionId, note, nodeId:session.nodeId, requiredCapabilities })).digest('hex');
   const existing = operationDedupe.get(operationId);
   if (existing) {
     if (existing.fingerprint !== fingerprint) throw new Error('operation_id_conflict');
@@ -234,14 +259,28 @@ function startJob(payload, requestId) {
   const job = {
     id: crypto.randomUUID(), requestId, operationId, operationFingerprint: fingerprint, accountId:session.accountId, deviceId:session.deviceId, sessionId, agentId:session.agentId, nodeId:session.nodeId, note,
     cwd, script, status: 'running', startedAt: Date.now(), finishedAt: null, exitCode: null, signal: null,
-    timedOut: false, stdout: createAccumulator(), stderr: createAccumulator(), waiters: [], pid: null, timer: null
+    timedOut: false, stdout: createAccumulator(), stderr: createAccumulator(), waiters: [], pid: null, timer: null,
+    remote, commandId:null, requiredCapabilities
   };
   jobs.set(job.id, job);
   sessions.attachJob(job.sessionId, job.id);
   operationDedupe.set(operationId, { jobId: job.id, fingerprint, expiresAt: Date.now() + OPERATION_DEDUPE_MS });
-  pushEvent({ type: 'job_started', jobId: job.id, requestId, operationId: job.operationId, accountId:job.accountId, deviceId:job.deviceId, sessionId: job.sessionId, agentId:job.agentId, nodeId:job.nodeId, status: 'running',
+  pushEvent({ type: 'job_started', jobId: job.id, requestId, operationId: job.operationId, accountId:job.accountId, deviceId:job.deviceId, sessionId: job.sessionId, agentId:job.agentId, nodeId:job.nodeId, status: 'running', route:remote?'outbound-leaf':'local', requiredCapabilities,
     cwd, script: redact(script), note: redact(job.note), timeoutMs });
-  const child = spawn('/bin/bash', ['-lc', script], { cwd, env: { ...process.env, GPT_OPERATOR_ACCOUNT:job.accountId, GPT_OPERATOR_DEVICE:job.deviceId, GPT_OPERATOR_SESSION: job.sessionId }, stdio: ['ignore', 'pipe', 'pipe'] });
+  if(remote) {
+    const command=fleet.enqueue({accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'exec',operationId,sessionId,agentId:job.agentId,script,cwd,timeoutMs,note,requiredCapabilities}});
+    job.commandId=command.commandId;
+    job.timer=setTimeout(()=>{
+      if(job.finishedAt)return;
+      fleet.abandon(job.commandId,'remote_result_timeout');
+      job.timedOut=true;
+      emitStream(job,'stderr',Buffer.from('remote command result timeout\n'));
+      finishJob(job,124,null);
+    },timeoutMs+FLEET_CHANNEL_TTL_MS*2);
+    job.timer.unref();
+    return job;
+  }
+  const child = spawn('/bin/bash', ['-lc', script], { cwd, env: { ...process.env, GPT_OPERATOR_ACCOUNT:job.accountId, GPT_OPERATOR_DEVICE:job.deviceId, GPT_OPERATOR_NODE:job.nodeId, GPT_OPERATOR_SESSION: job.sessionId }, stdio: ['ignore', 'pipe', 'pipe'] });
   job.pid = child.pid || null;
   child.stdout.on('data', data => emitStream(job, 'stdout', data));
   child.stderr.on('data', data => emitStream(job, 'stderr', data));
@@ -353,11 +392,12 @@ async function readJson(req) {
 function capabilities() {
   return {
     service: 'gpt-vps-operator', version: VERSION, accountId:ACCOUNT_ID, deviceId:DEVICE_ID, nodeId:NODE_ID, user: process.env.USER || 'ubuntu',
-    execution: ['exec_batch', 'async_jobs', 'output_retrieval', 'managed_sessions', 'device_presence', 'configurable_session_lease', 'device_enrollment'],
+    execution: ['exec_batch', 'async_jobs', 'output_retrieval', 'managed_sessions', 'device_presence', 'configurable_session_lease', 'device_enrollment', 'fleet_routing'],
     expectedHostCapabilities: HOST_CAPABILITIES,
     socket: SOCKET_PATH, logFile: LOG_FILE,
     presence: { ttlMs:DEVICE_PRESENCE_TTL_MS, heartbeatMs:DEVICE_HEARTBEAT_MS },
     enrollment: { ttlMs:ENROLLMENT_TTL_MS, activationUrl:ENROLLMENT_ACTIVATION_URL, signer:enrollments.signerInfo(), keyAlgorithm:'Ed25519', oneTimeCode:true, signedHeartbeat:true },
+    fleet: { hubNodeId:NODE_ID, outboundLeafChannel:true, explicitTargetRouting:true, silentFallback:false, channelTtlMs:FLEET_CHANNEL_TTL_MS, commandLeaseMs:FLEET_COMMAND_LEASE_MS, maxQueuedPerNode:FLEET_MAX_QUEUED_PER_NODE },
     sessionLeasePresets: SESSION_LEASE_PRESETS,
     limits: { maxScriptBytes: 1024 * 1024, maxTimeoutMs: 7200000, memoryOutputBytes: MAX_MEMORY_OUTPUT,
       ringBytes: MAX_RING_BYTES, ringEvents: MAX_RING_EVENTS, jobCacheBytes: MAX_JOB_CACHE_BYTES, jobCacheAgeMs: MAX_JOB_CACHE_AGE_MS, operationDedupeMs: OPERATION_DEDUPE_MS,
@@ -369,6 +409,45 @@ function recentEvents(limit = 500) {
   const n = Math.max(1, Math.min(Number(limit) || 500, MAX_RING_EVENTS));
   return ring.slice(-n).map(item => item.event);
 }
+
+function routingViewForDevice(device) {
+  if (device.nodeId === NODE_ID) return { mode:'local', state:'online', draining:false, sessionCeiling:MAX_ACTIVE_SESSIONS, queuedCommands:0, inFlightCommands:0 };
+  try { return { mode:'outbound-leaf', ...fleet.view(device.nodeId) }; }
+  catch { return { mode:'outbound-leaf', state:'offline', draining:false, sessionCeiling:null, queuedCommands:0, inFlightCommands:0, channelTtlMs:FLEET_CHANNEL_TTL_MS }; }
+}
+function deviceView(device) { return { ...device, routing:routingViewForDevice(device) }; }
+function allDeviceViews() { return devices.list({ activeSessionsForNode:nodeId => sessions.activeCountByNode(nodeId) }).map(deviceView); }
+function targetRoute(requestedNodeId) {
+  const nodeId=String(requestedNodeId || NODE_ID).trim();
+  if (!/^[A-Za-z0-9._:-]{1,128}$/.test(nodeId)) throw new DeviceError('invalid_node_id');
+  if (nodeId===NODE_ID) return { accountId:ACCOUNT_ID, deviceId:DEVICE_ID, nodeId:NODE_ID, mode:'local', sessionCeiling:MAX_ACTIVE_SESSIONS, capabilities:[...HOST_CAPABILITIES], state:'online', draining:false };
+  const device=devices.getByNodeId(nodeId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
+  if (device.accountId!==ACCOUNT_ID) throw new DeviceError('target_node_account_mismatch',403);
+  if (device.state!=='online') throw new DeviceError('target_node_offline',409);
+  const route=fleet.assertRoutable(nodeId,{accountId:ACCOUNT_ID,deviceId:device.deviceId});
+  return { ...route, mode:'outbound-leaf' };
+}
+function verifiedChannelContext(body, action) {
+  const payload=body?.payload;
+  if (!payload || typeof payload!=='object' || Array.isArray(payload)) throw new EnrollmentError('invalid_device_channel_payload');
+  const proof=enrollments.verifyChannel(body,action,payload), binding=proof.binding;
+  if (binding.accountId!==ACCOUNT_ID) throw new EnrollmentError('device_account_mismatch',403);
+  const device=devices.get(binding.deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
+  if (device.accountId!==ACCOUNT_ID || device.publicIdentityKey!==binding.publicIdentityKey) throw new EnrollmentError('device_binding_mismatch',403);
+  return {payload,proof,binding,device};
+}
+function verifiedLeafCapabilities(value,binding) {
+  const out=[];
+  for (const raw of Array.isArray(value)?value:[]) {
+    const item=String(raw||'').trim();
+    if (!/^[A-Za-z0-9._:-]{1,80}$/.test(item)) throw new EnrollmentError('invalid_device_capability');
+    if (!binding.approvedCapabilities.includes(item)) throw new EnrollmentError('device_capability_escalation',403);
+    if (!out.includes(item)) out.push(item);
+  }
+  if (!out.length) throw new EnrollmentError('device_capabilities_required');
+  return out.sort();
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url || '/', 'http://operator.local');
   try {
@@ -400,12 +479,57 @@ const server = http.createServer(async (req, res) => {
       const device = devices.enroll({ accountId:binding.accountId, deviceId:binding.deviceId, nodeId:binding.deviceId, displayName:binding.displayName, platform:binding.platform, architecture:binding.architecture, agentVersion:binding.agentVersion, publicIdentityKey:binding.publicIdentityKey, capabilities:binding.approvedCapabilities, policyProfile:binding.policyProfile });
       return sendJson(res, 200, { ok:true, approval, device });
     }
+    if (req.method === 'POST' && url.pathname === '/v1/device-channel/poll') {
+      const body=await readJson(req), ctx=verifiedChannelContext(body,'poll');
+      if (ctx.payload.nodeId!=null && String(ctx.payload.nodeId)!==ctx.device.nodeId) throw new EnrollmentError('device_node_mismatch',409);
+      const capabilities=verifiedLeafCapabilities(ctx.payload.capabilities,ctx.binding);
+      devices.heartbeat(ctx.device.deviceId,{capabilities});
+      const waitMs=Math.max(0,Math.min(Number(ctx.payload.waitMs)||8000,15000));
+      const channel=await fleet.waitPoll({accountId:ACCOUNT_ID,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,sessionCeiling:ctx.payload.sessionCeiling,draining:Boolean(ctx.payload.draining),capabilities},waitMs);
+      return sendJson(res,200,{ok:true,channel});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/device-channel/result') {
+      const body=await readJson(req), ctx=verifiedChannelContext(body,'result'), result=ctx.payload;
+      let command;
+      try { command=fleet.command(result.commandId); }
+      catch(error) {
+        if(error?.message!=='command_not_found')throw error;
+        const receipt=fleet.receipt(result.commandId);
+        if(!receipt)throw error;
+        if(receipt.accountId!==ACCOUNT_ID || receipt.deviceId!==ctx.device.deviceId || receipt.nodeId!==ctx.device.nodeId)throw new FleetError('command_device_mismatch',403);
+        const prior=jobs.get(receipt.jobId);
+        return sendJson(res,200,{ok:true,accepted:true,duplicate:true,job:prior?jobView(prior):null});
+      }
+      if (command.accountId!==ACCOUNT_ID || command.deviceId!==ctx.device.deviceId || command.nodeId!==ctx.device.nodeId) throw new FleetError('command_device_mismatch',403);
+      const job=jobs.get(command.jobId);
+      if (!job || job.commandId!==command.commandId) throw new FleetError('remote_job_not_found',404);
+      const stdout=String(result.stdout||''), stderr=String(result.stderr||'');
+      if (Buffer.byteLength(stdout)>MAX_MEMORY_OUTPUT || Buffer.byteLength(stderr)>MAX_MEMORY_OUTPUT) throw new FleetError('remote_result_too_large',413);
+      const exitCode=Number(result.exitCode);
+      if (!Number.isInteger(exitCode) || exitCode < 0 || exitCode > 255) throw new FleetError('invalid_remote_exit_code');
+      if (stdout) emitStream(job,'stdout',Buffer.from(stdout));
+      if (stderr) emitStream(job,'stderr',Buffer.from(stderr));
+      job.timedOut=String(result.status||'')==='timeout';
+      fleet.complete({accountId:ACCOUNT_ID,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,commandId:command.commandId});
+      finishJob(job,exitCode,null);
+      return sendJson(res,200,{ok:true,accepted:true,duplicate:false,job:jobView(job)});
+    }
     if (req.method === 'GET' && url.pathname === '/v1/devices') {
-      return sendJson(res, 200, { ok:true, currentDeviceId:DEVICE_ID, devices:devices.list({ activeSessionsForNode:nodeId => sessions.activeCountByNode(nodeId) }) });
+      return sendJson(res, 200, { ok:true, currentDeviceId:DEVICE_ID, devices:allDeviceViews() });
+    }
+    if (req.method === 'GET' && url.pathname === '/v1/fleet') {
+      return sendJson(res, 200, { ok:true, hubNodeId:NODE_ID, nodes:[{accountId:ACCOUNT_ID,deviceId:DEVICE_ID,nodeId:NODE_ID,mode:'local',state:'online',draining:false,sessionCeiling:MAX_ACTIVE_SESSIONS,activeSessions:sessions.activeCountByNode(NODE_ID)}, ...fleet.list().map(node=>({...node,mode:'outbound-leaf',activeSessions:sessions.activeCountByNode(node.nodeId)}))] });
+    }
+    const drainMatch=url.pathname.match(/^\/v1\/fleet\/([A-Za-z0-9._:-]+)\/drain$/);
+    if (req.method === 'POST' && drainMatch) {
+      if (drainMatch[1]===NODE_ID) throw new FleetError('hub_node_drain_not_supported',409);
+      const body=await readJson(req);
+      if (typeof body.draining!=='boolean') throw new FleetError('invalid_node_drain_state');
+      return sendJson(res,200,{ok:true,node:fleet.setOwnerDrain(drainMatch[1],body.draining)});
     }
     const deviceMatch = url.pathname.match(/^\/v1\/devices\/([A-Za-z0-9._:-]+)$/);
     if (req.method === 'GET' && deviceMatch) {
-      return sendJson(res, 200, { ok:true, device:devices.get(deviceMatch[1], { activeSessionsForNode:nodeId => sessions.activeCountByNode(nodeId) }) });
+      return sendJson(res, 200, { ok:true, device:deviceView(devices.get(deviceMatch[1], { activeSessionsForNode:nodeId => sessions.activeCountByNode(nodeId) })) });
     }
     const heartbeatMatch = url.pathname.match(/^\/v1\/devices\/([A-Za-z0-9._:-]+)\/heartbeat$/);
     if (req.method === 'POST' && heartbeatMatch) {
@@ -425,8 +549,8 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { ok:true, binding, device });
     }
     if (req.method === 'POST' && url.pathname === '/v1/sessions/open') {
-      const body = await readJson(req);
-      return sendJson(res, 200, { ok:true, session:sessions.open({ openId:body.openId, agentId:body.agentId, label:body.label, workspace:body.workspace, leaseMs:body.leaseMs, leasePreset:body.leasePreset }) });
+      const body = await readJson(req), route=targetRoute(body.nodeId);
+      return sendJson(res, 200, { ok:true, route, session:sessions.open({ openId:body.openId, agentId:body.agentId, label:body.label, workspace:body.workspace, leaseMs:body.leaseMs, leasePreset:body.leasePreset, nodeId:route.nodeId, deviceId:route.deviceId, maxActiveForNode:route.sessionCeiling }) });
     }
     if (req.method === 'GET' && url.pathname === '/v1/sessions') {
       return sendJson(res, 200, { ok:true, active:sessions.activeCount(), maxActive:MAX_ACTIVE_SESSIONS, defaultLeaseMs:SESSION_IDLE_MS, minLeaseMs:SESSION_MIN_IDLE_MS, maxLeaseMs:SESSION_MAX_IDLE_MS, leasePresets:SESSION_LEASE_PRESETS, sessions:sessions.list() });
@@ -495,7 +619,7 @@ const server = http.createServer(async (req, res) => {
   } catch (error) {
     const message = error?.message || 'internal_error';
     pushEvent({ type: 'executor_error', status: 'error', detail: redact(message) });
-    const status = error instanceof SessionError || error instanceof DeviceError || error instanceof EnrollmentError ? error.status : ['invalid_envelope', 'expired_envelope', 'replay_detected', 'unknown_kid', 'invalid_envelope_auth', 'unsupported_action'].includes(message) ? 401 : message === 'operation_id_conflict' ? 409 : 400;
+    const status = error instanceof SessionError || error instanceof DeviceError || error instanceof EnrollmentError || error instanceof FleetError ? error.status : ['invalid_envelope', 'expired_envelope', 'replay_detected', 'unknown_kid', 'invalid_envelope_auth', 'unsupported_action'].includes(message) ? 401 : message === 'operation_id_conflict' ? 409 : 400;
     return sendJson(res, status, { ok: false, error: message });
   }
 });

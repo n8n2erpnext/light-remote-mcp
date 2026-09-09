@@ -1,6 +1,6 @@
 const crypto = require("node:crypto");
 const { callOperator, execOperator } = require('../lib/operator');
-const { aid, field, jobId, normalizeDeviceHeartbeat, normalizeDeviceRevoke, normalizeEnrollmentApprove, normalizeEnrollmentCancel, normalizeEnrollmentBegin, normalizeEnrollmentPoll, normalizeExecPayload, normalizeSessionOpenPayload, payloadFor, sid } = require('../lib/operator-request');
+const { aid, field, jobId, normalizeDeviceHeartbeat, normalizeDeviceRevoke, normalizeEnrollmentApprove, normalizeEnrollmentCancel, normalizeEnrollmentBegin, normalizeEnrollmentPoll, normalizeNodeDrain, normalizeExecPayload, normalizeSessionOpenPayload, payloadFor, sid } = require('../lib/operator-request');
 
 function enrollmentSourceHash(req){ const ip=String(req.headers?.["x-forwarded-for"]||"unknown").split(",")[0].trim().slice(0,128); return crypto.createHash("sha256").update("v07-enrollment:"+ip).digest("hex"); }
 
@@ -23,6 +23,8 @@ module.exports=async function handler(req,res){
     else if(action==='device-heartbeat') { const body=normalizeDeviceHeartbeat(payloadFor(req)); upstream=await call(`/operator/devices/${encodeURIComponent(body.deviceId)}/heartbeat`,{method:'POST',body}); }
     else if(action==='device-revoke') { const body=normalizeDeviceRevoke(payloadFor(req)); upstream=await call(`/operator/devices/${encodeURIComponent(body.deviceId)}/revoke`,{method:'POST',body}); }
     else if(action==='devices') upstream=await call('/operator/devices');
+    else if(action==='fleet') upstream=await call('/operator/fleet');
+    else if(action==='node-drain') { const body=normalizeNodeDrain(payloadFor(req)); upstream=await call(`/operator/fleet/${encodeURIComponent(body.nodeId)}/drain`,{method:'POST',body}); }
     else if(action==='device') upstream=await call(`/operator/devices/${encodeURIComponent(String(field(req,'id','')))}`);
     else if(action==='session-open') upstream=await call('/operator/sessions/open',{method:'POST',body:normalizeSessionOpenPayload(payloadFor(req))});
     else if(action==='session-resume') upstream=await call(`/operator/sessions/${encodeURIComponent(sid(field(req,'sid')))}/resume`,{method:'POST',body:{agentId:aid(field(req,'aid'))}});

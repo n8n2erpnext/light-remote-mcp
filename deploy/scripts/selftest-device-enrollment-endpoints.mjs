@@ -17,7 +17,7 @@ for(let i=0;i<100&&!fs.existsSync(socketPath);i++)await sleep(40);
 if(!fs.existsSync(socketPath))throw new Error(`executor_not_ready:${stderr}`);
 function request(method,target,body){return new Promise((resolve,reject)=>{const payload=body==null?null:Buffer.from(JSON.stringify(body));const req=http.request({socketPath,method,path:target,headers:payload?{'content-type':'application/json','content-length':payload.length}:{}},res=>{let text='';res.on('data',c=>text+=c);res.on('end',()=>{let json;try{json=JSON.parse(text)}catch{json={raw:text}}resolve({status:res.statusCode,json});});});req.on('error',reject);if(payload)req.write(payload);req.end();});}
 const caps=await request('GET','/v1/capabilities');
-if(caps.status!==200||caps.json.version!=='0.7.0-dev'||!caps.json.enrollment?.signedHeartbeat)throw new Error('v07_capabilities_failed');
+if(caps.status!==200||!caps.json.enrollment?.signedHeartbeat||!caps.json.execution?.includes('fleet_routing'))throw new Error('device_enrollment_capabilities_failed');
 const {publicKey,privateKey}=crypto.generateKeyPairSync('ed25519');
 const publicIdentityKey=publicKey.export({format:'der',type:'spki'}).toString('base64');
 const begun=await request('POST','/v1/enrollments/begin',{publicIdentityKey,displayName:'Endpoint Device',platform:'linux',architecture:'x64',agentVersion:'0.7-test',fingerprintSummary:'endpoint/linux/x64',capabilities:['git','docker'],policyProfile:'test-policy'});

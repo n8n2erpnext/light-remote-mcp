@@ -95,12 +95,21 @@ export class SessionRegistry {
     let n=0; for (const s of this.sessions.values()) if (s.nodeId===nid && ['active','hold'].includes(this._state(s, now))) n++;
     return n;
   }
-  open({ id = null, openId = null, agentId, label = '', workspace = '', implicit = false, leaseMs = null, leasePreset = null } = {}) {
+  open({ id = null, openId = null, agentId, label = '', workspace = '', implicit = false, leaseMs = null, leasePreset = null, nodeId = null, deviceId = null, maxActiveForNode = null } = {}) {
     this.prune();
     const aid = String(agentId || '').trim();
     if (!this._validAgent(aid)) throw new SessionError('invalid_agent_id');
+    const targetNodeId=String(nodeId || this.nodeId).trim(), targetDeviceId=String(deviceId || this.deviceId).trim();
+    if (!this._validId(targetNodeId)) throw new SessionError('invalid_node_id');
+    if (!this._validId(targetDeviceId)) throw new SessionError('invalid_device_id');
+    let nodeCeiling=null;
+    if (maxActiveForNode != null) {
+      nodeCeiling=Number(maxActiveForNode);
+      if (!Number.isInteger(nodeCeiling) || nodeCeiling < 1 || nodeCeiling > 1000) throw new SessionError('invalid_node_session_capacity');
+    }
     const liveId = this.agentSessions.get(aid), live = liveId ? this.sessions.get(liveId) : null;
     if (live && ['active','hold'].includes(this._state(live))) {
+      if (live.nodeId!==targetNodeId || live.deviceId!==targetDeviceId) throw new SessionError('agent_session_target_conflict',409);
       this.emit({ type:'session_reused_for_agent', accountId:live.accountId, deviceId:live.deviceId, sessionId:live.id, agentId:aid, nodeId:live.nodeId, status:this._state(live) });
       return this._view(live);
     }
@@ -118,11 +127,12 @@ export class SessionRegistry {
       if (priorId) this.openDedupe.delete(stableOpenId);
     }
     if (this.activeCount() >= this.maxActive) throw new SessionError('session_capacity_reached', 429);
+    if (nodeCeiling != null && this.activeCountByNode(targetNodeId) >= nodeCeiling) throw new SessionError('node_session_capacity_reached',429);
     const sessionId = id ? String(id) : this._id();
     if (!this._validId(sessionId)) throw new SessionError('invalid_session_id');
     if (this.sessions.has(sessionId)) throw new SessionError('session_already_exists', 409);
     const now=Date.now(), leaseSpec=this._leaseSpec(leaseMs, leasePreset), effectiveLeaseMs=leaseSpec.leaseMs;
-    const s={ id:sessionId, accountId:this.accountId, deviceId:this.deviceId, agentId:aid, nodeId:this.nodeId, openId:stableOpenId, label:String(label||'').slice(0,120), workspace:String(workspace||'').slice(0,512), implicit:Boolean(implicit), leaseMs:effectiveLeaseMs, leasePreset:leaseSpec.leasePreset,
+    const s={ id:sessionId, accountId:this.accountId, deviceId:targetDeviceId, agentId:aid, nodeId:targetNodeId, openId:stableOpenId, label:String(label||'').slice(0,120), workspace:String(workspace||'').slice(0,512), implicit:Boolean(implicit), leaseMs:effectiveLeaseMs, leasePreset:leaseSpec.leasePreset,
       createdAt:now, lastSeenAt:now, closedAt:null, expiredAt:null, activeJobs:new Set(), connectCount:1, reconnectCount:0,
       stats:{ toolCalls:0, execCalls:0, jobsStarted:0, jobsFinished:0, outputReads:0, jobReads:0, errors:0 } };
     this.sessions.set(sessionId,s); this.agentSessions.set(aid, sessionId); if (stableOpenId) this.openDedupe.set(stableOpenId, sessionId);

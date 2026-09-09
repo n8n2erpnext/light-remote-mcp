@@ -170,6 +170,8 @@ function requireBridgeForToolCall(req, res, next) {
   return res.status(401).json({ jsonrpc:'2.0', error:{ code:-32002, message:'Bridge session required' }, id:req.body?.id ?? null });
 }
 
+app.post('/device-channel/poll', softRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/poll', req.body || {}));
+app.post('/device-channel/result', softRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/result', req.body || {}));
 app.post('/operator/auth/login', softRateLimit, requireVercelIdentity, wallAuth.bridgeLogin);
 app.post('/operator/enrollments/begin', softRateLimit, requireVercelIdentity, (req, res) => proxyOperatorJson(res, 'POST', '/v1/enrollments/begin', req.body || {}));
 app.post('/operator/enrollments/poll', softRateLimit, requireVercelIdentity, (req, res) => proxyOperatorJson(res, 'POST', '/v1/enrollments/poll', req.body || {}));
@@ -180,6 +182,8 @@ app.post('/operator/enrollments/approve', softRateLimit, requireOperatorIdentity
 app.post('/operator', softRateLimit, requireOperatorIdentity, (req, res) => proxyOperatorJson(res, 'POST', '/v1/execute', req.body));
 app.get('/operator/capabilities', softRateLimit, requireOperatorIdentity, (_req, res) => proxyOperatorJson(res, 'GET', '/v1/capabilities'));
 app.get('/operator/devices', softRateLimit, requireOperatorIdentity, (_req, res) => proxyOperatorJson(res, 'GET', '/v1/devices'));
+app.get('/operator/fleet', softRateLimit, requireOperatorIdentity, (_req, res) => proxyOperatorJson(res, 'GET', '/v1/fleet'));
+app.post('/operator/fleet/:id/drain', softRateLimit, requireOperatorIdentity, (req, res) => proxyOperatorJson(res, 'POST', `/v1/fleet/${encodeURIComponent(req.params.id)}/drain`, req.body || {}));
 app.get('/operator/devices/:id', softRateLimit, requireOperatorIdentity, (req, res) => proxyOperatorJson(res, 'GET', `/v1/devices/${encodeURIComponent(req.params.id)}`));
 app.post('/operator/devices/:id/revoke', softRateLimit, requireOperatorIdentity, (req, res) => proxyOperatorJson(res, 'POST', `/v1/devices/${encodeURIComponent(req.params.id)}/revoke`, { deviceId:req.params.id, accountId:OPERATOR_ACCOUNT_ID, reason:String(req.body?.reason || 'owner_revoked').slice(0,120) }));
 app.post('/operator/sessions/open', softRateLimit, requireOperatorIdentity, (req, res) => proxyOperatorJson(res, 'POST', '/v1/sessions/open', req.body));
