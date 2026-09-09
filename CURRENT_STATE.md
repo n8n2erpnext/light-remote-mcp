@@ -1,7 +1,7 @@
 # GPT VPS Bridge — Current State
 
 Updated: 2026-09-09
-Version: v0.5.0 production closure
+Version: v0.5.1 production security hotfix
 
 ## Active path
 `ChatGPT -> @Vercel -> gpt-vps-bridge.vercel.app -> ARM hub/MCP Gateway -> Unix socket -> gpt-vps-operator (ubuntu)`
@@ -26,10 +26,12 @@ Version: v0.5.0 production closure
 - Authoritative audit remains `/var/log/gpt-vps-operator/operations.jsonl` with 50 MiB x 3 rotation; Wall memory remains bounded at 16 MiB / 5000 events.
 
 ## Security / transport
-- Vercel OIDC still gates operator and MCP tool calls. Unauthenticated MCP discovery (`tools/list`) remains intentionally public, while unauthenticated `tools/call` and `/operator/*` return 401.
+- v0.5.1 closes a caller-boundary defect discovered during soak: Vercel OIDC authenticates the Vercel function to the ARM gateway, but by itself does **not** authenticate the internet caller invoking the Vercel function.
+- All Vercel read/operator proxy endpoints now require `Authorization: Bearer ...` at the bridge boundary via `VPS_BRIDGE_CALLER_SECRET`; if the secret is absent or too short, the bridge fails closed with `401 bridge_caller_auth_required` before obtaining upstream OIDC.
+- ARM still independently requires Vercel OIDC for privileged `/operator/*` and MCP `tools/call`; the new bridge caller guard is an additional outer authorization boundary, not a replacement.
 - Privileged envelopes remain X25519 + HKDF-SHA256 + AES-256-GCM with short expiry, replay rejection, and semantic `operationId` idempotency.
-- The current Vercel `/api/operator` GET/query/base64 path is bootstrap transport only. Small calls are acceptable; large source patches can break query/base64 transport and may use RDC as rescue during soak.
-- Public-product transport must use Streamable HTTP/POST bodies or another body-safe equivalent; never move secret-bearing material into URL queries.
+- The current Vercel `/api/operator` GET/query/base64 path remains bootstrap transport only. Large source patches can break query/base64 transport; RDC is the rescue lane until body-safe POST/Streamable HTTP transport replaces it.
+- Never move caller secrets, passwords, tokens, private keys, or cookies into URL query parameters.
 
 ## v0.5 closure proof
 - All syntax checks and root/gateway npm audits pass with 0 known vulnerabilities.

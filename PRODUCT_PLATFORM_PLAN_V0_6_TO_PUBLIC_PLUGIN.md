@@ -484,7 +484,7 @@ During development:
 - When an operation may rebuild/restart the MCP gateway/operator/control path currently carrying that call, switch to RDC rescue channel for the disruptive step.
 - After restart/build, immediately return to the self-hosted operator path and prove the new path end-to-end.
 - Avoid making RDC the normal execution path; it is a rescue/failover channel during soak.
-- The current `/api/operator` GET/query/base64 route is bootstrap-only and acceptable only for small development calls. Large source patches must not be forced through it; RDC may rescue those during soak. The public product must use Streamable HTTP/POST bodies or an equivalent body-safe transport and must not carry secrets in URLs.
+- Production v0.5.x keeps `/api/operator` GET/query/base64 as bootstrap-only compatibility. The v0.6 branch adds authenticated structured POST/body transport and caps legacy GET payloads to small calls with deterministic rejection when too large. RDC remains rescue-only for self-disruptive steps. The public product should converge on Streamable HTTP/POST or an equivalent body-safe transport and must not carry secrets in URLs.
 
 ## 13. Execution order from here
 

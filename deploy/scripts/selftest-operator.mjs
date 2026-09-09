@@ -5,15 +5,17 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { sealOperatorPayload } = require('../../lib/operator-crypto');
 const root = new URL('../..', import.meta.url).pathname;
-const socketPath = '/tmp/gpt-vps-operator-selftest.sock';
-const logDir = '/tmp/gpt-vps-operator-selftest-log';
+const run = `${process.pid}-${Date.now()}`;
+const socketPath = `/tmp/gpt-vps-operator-selftest-${run}.sock`;
+const logDir = `/tmp/gpt-vps-operator-selftest-${run}-log`;
+const stateDir = `/tmp/gpt-vps-operator-selftest-${run}-state`;
 fs.rmSync(socketPath, { force:true });
 fs.rmSync(logDir, { recursive:true, force:true });
 fs.mkdirSync(logDir, { recursive:true });
 const child = spawn(process.execPath, [`${root}/operator-host/executor.mjs`], {
   cwd: root,
   env: { ...process.env, OPERATOR_SOCKET:socketPath, OPERATOR_LOG_DIR:logDir,OPERATOR_STATE_DIR:'/tmp/gpt-vps-operator-selftest-state',
-    OPERATOR_KEY_FILE:'/home/ubuntu/.config/gpt-vps-operator/operator.private.json' },
+    OPERATOR_KEY_FILE:'/home/ubuntu/.config/gpt-vps-operator/operator.private.json', OPERATOR_STATE_DIR:stateDir },
   stdio:['ignore','pipe','pipe']
 });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -56,3 +58,4 @@ console.log(JSON.stringify({ ok:true, execute:first.status, replay:replay.json.e
   tamper:bad.json.error, output:out.json.output.trim(), cache:caps.json.limits }, null, 2));
 child.kill('SIGTERM');
 await sleep(100);
+fs.rmSync(socketPath,{force:true}); fs.rmSync(logDir,{recursive:true,force:true}); fs.rmSync(stateDir,{recursive:true,force:true});

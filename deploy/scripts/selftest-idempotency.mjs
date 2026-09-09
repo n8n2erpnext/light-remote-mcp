@@ -3,9 +3,9 @@ import http from 'node:http';
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 const require=createRequire(import.meta.url); const {sealOperatorPayload}=require('../../lib/operator-crypto');
-const root=new URL('../..',import.meta.url).pathname, socket='/tmp/gpt-vps-idem.sock', logDir='/tmp/gpt-vps-idem-log', marker='/tmp/gpt-vps-idem-marker';
+const root=new URL('../..',import.meta.url).pathname, run=`${process.pid}-${Date.now()}`, socket=`/tmp/gpt-vps-idem-${run}.sock`, logDir=`/tmp/gpt-vps-idem-${run}-log`, marker=`/tmp/gpt-vps-idem-${run}-marker`, stateDir=`/tmp/gpt-vps-idem-${run}-state`;
 for(const p of [socket,marker]) fs.rmSync(p,{force:true}); fs.rmSync(logDir,{recursive:true,force:true}); fs.mkdirSync(logDir,{recursive:true});
-const child=spawn(process.execPath,[`${root}/operator-host/executor.mjs`],{cwd:root,env:{...process.env,OPERATOR_SOCKET:socket,OPERATOR_LOG_DIR:logDir,OPERATOR_STATE_DIR:'/tmp/gpt-vps-idem-state',OPERATOR_KEY_FILE:'/home/ubuntu/.config/gpt-vps-operator/operator.private.json'},stdio:['ignore','pipe','pipe']});
+const child=spawn(process.execPath,[`${root}/operator-host/executor.mjs`],{cwd:root,env:{...process.env,OPERATOR_SOCKET:socket,OPERATOR_LOG_DIR:logDir,OPERATOR_STATE_DIR:stateDir,OPERATOR_KEY_FILE:'/home/ubuntu/.config/gpt-vps-operator/operator.private.json'},stdio:['ignore','pipe','pipe']});
 const sleep=ms=>new Promise(r=>setTimeout(r,ms)); for(let i=0;i<80&&!fs.existsSync(socket);i++) await sleep(50); if(!fs.existsSync(socket)) throw new Error('socket_not_ready');
 function raw(method,path,body){return new Promise((resolve,reject)=>{const b=body==null?null:Buffer.from(JSON.stringify(body));const q=http.request({socketPath:socket,path,method,headers:b?{'content-type':'application/json','content-length':b.length}:{}},r=>{let d='';r.on('data',c=>d+=c);r.on('end',()=>resolve({status:r.statusCode,json:JSON.parse(d)}));});q.on('error',reject);if(b)q.end(b);else q.end();});}
 function req(body){return raw('POST','/v1/execute',body);}
@@ -22,4 +22,4 @@ const audit=fs.readFileSync(`${logDir}/operations.jsonl`,'utf8');
 const starts=audit.split('\n').filter(line=>line.includes('"type":"job_started"')&&line.includes(operationId)).length;
 if(starts!==1) throw new Error(`expected_one_job_started_got_${starts}`);
 console.log(JSON.stringify({ok:true,operationId,jobId:a.json.job.jobId,dedupedJobId:b.json.job.jobId,marker:fs.readFileSync(marker,'utf8'),conflict:c.json.error,jobStarts:starts},null,2));
-child.kill('SIGTERM'); await sleep(100);
+child.kill('SIGTERM'); await sleep(100); fs.rmSync(socket,{force:true}); fs.rmSync(marker,{force:true}); fs.rmSync(logDir,{recursive:true,force:true}); fs.rmSync(stateDir,{recursive:true,force:true});
