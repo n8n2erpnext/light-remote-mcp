@@ -1,4 +1,5 @@
 const { callOperator, execOperator } = require('../lib/operator');
+const { requireBridgeCaller } = require('../lib/caller-auth');
 function sid(value){ const v=String(value||''); if(!/^[A-Za-z0-9._:-]{1,128}$/.test(v)) throw new Error('invalid_session_id'); return v; }
 function aid(value){ const v=String(value||''); if(!/^[A-Za-z0-9._:-]{16,128}$/.test(v)) throw new Error('invalid_agent_id'); return v; }
 function id(value){ const v=String(value||''); if(!/^[0-9a-f-]{20,}$/i.test(v)) throw new Error('invalid_job_id'); return v; }
@@ -16,6 +17,7 @@ module.exports=async function handler(req,res){
   const started=Date.now(); let action=String(req.query.action||'capabilities');
   res.setHeader('Cache-Control','no-store'); res.setHeader('X-Robots-Tag','noindex, nofollow, noarchive');
   if(req.method!=='GET') return res.status(405).json({ok:false,error:'method_not_allowed'});
+  if(!requireBridgeCaller(req,res)) return;
   try {
     let upstream;
     if(action==='capabilities') upstream=await callOperator('/operator/capabilities');

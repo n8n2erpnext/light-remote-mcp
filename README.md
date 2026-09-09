@@ -13,7 +13,7 @@ Each agent generates one opaque random `agentId` and opens one server-issued ses
 Idle lease is 30 minutes. Any session-aware tool call renews it. Running jobs put the lane in HOLD so long builds survive Vercel/network loss; when the final job finishes, a fresh 30-minute reconnect grace begins. Default live ceiling is 5 sessions. There are intentionally no repo/file/service locks: use normal Git/worktree discipline.
 
 ## Read endpoints
-Discovery may call these without a session. After opening a lane, append `sid=<sessionId>&aid=<agentId>` so reads renew and audit the correct session:
+v0.5.1 requires an authenticated bridge caller for every Vercel read/operator proxy request. After caller authentication and session open, append `sid=<sessionId>&aid=<agentId>` so reads renew and audit the correct session:
 - `GET /api/ping`
 - `GET /api/vps-identity`
 - `GET /api/system-status`
@@ -30,7 +30,7 @@ All operator actions share one Vercel Function to stay below the Hobby function 
 Grouped shell batches are preferred for build/test/Git/Docker/LXD/system work. Reuse an `operationId` only to retry the exact same logical action; changed payloads under the same ID are rejected. The current GET/query/base64 operator route is bootstrap-only for small development calls; large source patches use the RDC rescue lane during soak. The public product must move to body-safe Streamable HTTP/POST transport.
 
 ## Security
-Vercel OIDC authenticates the expected bridge. Privileged payloads use X25519 + HKDF-SHA256 + AES-256-GCM, short expiry, replay rejection and semantic idempotency. The public gateway remains unprivileged/read-only; the executor runs as `ubuntu` with sudo-on-demand. Never place raw credentials/tokens/private keys/cookies in URL query strings.
+v0.5.1 separates two identities that must not be conflated: the internet caller must authenticate to the Vercel bridge, then Vercel OIDC authenticates that bridge to ARM. The outer bridge boundary requires `Authorization: Bearer` backed by `VPS_BRIDGE_CALLER_SECRET` and fails closed if the secret is unset. Privileged payloads still use X25519 + HKDF-SHA256 + AES-256-GCM, short expiry, replay rejection and semantic idempotency. Never place caller credentials/tokens/private keys/cookies in URL query strings.
 
 ## Wall / audit
 `wall.dashboard.thaiduy.store` is read-only and now has independent local authentication: scrypt password verification, a signed `HttpOnly + Secure + SameSite=Strict` session cookie, and login throttling. NetBird PIN/SSO may remain as an optional outer defense. v0.5 shows `ALL` plus one tab per active/HOLD session, with node/session/agent metadata, stats, jobs, command and output. SSE is primary; deduplicated replay plus a bounded 1-second missed-event probe keeps the Wall near-real-time without turning it into a session heartbeat. Browser/session views are bounded; authoritative full JSONL history is on the VPS with 50 MiB x 3 rotation.
