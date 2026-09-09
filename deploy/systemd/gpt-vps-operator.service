@@ -8,13 +8,13 @@ Type=simple
 User=ubuntu
 Group=ubuntu
 WorkingDirectory=/opt/gpt-vps-operator
-RuntimeDirectory=gpt-vps-operator
-RuntimeDirectoryMode=0750
 LogsDirectory=gpt-vps-operator
 LogsDirectoryMode=0750
-Environment=OPERATOR_SOCKET=/run/gpt-vps-operator/operator.sock
+Environment=OPERATOR_SOCKET=/home/ubuntu/.local/run/gpt-vps-operator/operator.sock
 Environment=OPERATOR_KEY_FILE=/home/ubuntu/.config/gpt-vps-operator/operator.private.json
 Environment=OPERATOR_LOG_DIR=/var/log/gpt-vps-operator
+ExecStartPre=/usr/bin/mkdir -p /home/ubuntu/.local/run/gpt-vps-operator
+ExecStartPre=/usr/bin/chmod 0750 /home/ubuntu/.local/run/gpt-vps-operator
 ExecStart=/usr/bin/node /opt/gpt-vps-operator/executor.mjs
 Restart=on-failure
 RestartSec=2

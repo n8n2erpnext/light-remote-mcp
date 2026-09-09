@@ -22,3 +22,15 @@ Version: v0.3 production-active
 
 ## Recovery order
 Fetch `/api/guide`, then read `AI_BRIDGE_GUIDE.md`, this file, and `BRIDGE_V0_3_ARCHITECTURE_PLAN.md`. Use disk logs only when recent response/job output is insufficient. RDC is rescue-only during soak.
+
+## Final acceptance 2026-09-09
+- E2E mutation/build through @Vercel -> encrypted gateway -> host executor: PASS.
+- Exact retry with same `operationId`: same job returned, no duplicate side effect: PASS.
+- Changed payload under same `operationId`: HTTP 409 `operation_id_conflict`: PASS.
+- Async execution: returned `running`, later job/output retrieval returned `async-ok`: PASS.
+- Timeout enforcement: 1500 ms job ended `timeout` with `SIGTERM`; post-timeout command did not execute: PASS.
+- Executor restart without gateway recreate: stable socket bind remained usable: PASS.
+- Wall unauthenticated access: NetBird auth returned HTTP 401: PASS.
+
+Stable socket host path: `/home/ubuntu/.local/run/gpt-vps-operator/operator.sock`.
+The gateway bind-mounts its parent directory read-only so executor socket recreation is visible without recreating the container.
