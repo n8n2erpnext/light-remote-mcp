@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { recordActivity, recentActivity, attachActivitySse } from './activity.mjs';
 import { dashboardHtml } from './dashboard.mjs';
 import { createWallAuth } from './wall-auth.mjs';
-import { authenticateVercel, requireVercelForToolCall, securityInfo } from './security.mjs';
+import { authenticateVercel, isToolCall, requireVercelForToolCall, securityInfo } from './security.mjs';
 import { proxyOperatorJson, proxyOperatorSse } from './operator-proxy.mjs';
 import { rootNames, listWorkspace, readWorkspaceText, searchWorkspace, gitStatus, gitDiff } from './workspace.mjs';
 
@@ -146,15 +146,29 @@ function softRateLimit(req, res, next) {
   if (state.count > 600) return res.status(429).json({ error: 'rate_limited', retryAfterSeconds: 60 - Math.floor((now % 60000) / 1000) });
   next();
 }
+const wallAuth = createWallAuth();
 app.get('/healthz', (_req, res) => res.json({
-  ok: true, service: 'thaiduy-vps-arm-mcp', version: VERSION, mode: 'read-plus-operator', security: securityInfo()
+  ok: true, service: 'thaiduy-vps-arm-mcp', version: VERSION, mode: 'read-plus-operator', security: { ...securityInfo(), bridgeSession:'required-for-tool-and-operator-calls', bridgeSessionTtlSeconds:wallAuth.info().bridgeSessionTtlSeconds }
 }));
 
-async function requireOperatorIdentity(req, res, next) {
+async function requireVercelIdentity(req, res, next) {
   try { req.mcpIdentity = await authenticateVercel(req); return next(); }
   catch { return res.status(401).json({ ok: false, error: 'unauthorized_operator_call' }); }
 }
+async function requireOperatorIdentity(req, res, next) {
+  try { req.mcpIdentity = await authenticateVercel(req); }
+  catch { return res.status(401).json({ ok: false, error: 'unauthorized_operator_call' }); }
+  return wallAuth.requireBridgeSession(req, res, next);
+}
+function requireBridgeForToolCall(req, res, next) {
+  if (!isToolCall(req)) return next();
+  const identity = wallAuth.bridgeIdentity(req);
+  if (identity) { req.bridgeIdentity = identity; return next(); }
+  res.set('Cache-Control', 'no-store');
+  return res.status(401).json({ jsonrpc:'2.0', error:{ code:-32002, message:'Bridge session required' }, id:req.body?.id ?? null });
+}
 
+app.post('/operator/auth/login', softRateLimit, requireVercelIdentity, wallAuth.bridgeLogin);
 app.post('/operator', softRateLimit, requireOperatorIdentity, (req, res) => proxyOperatorJson(res, 'POST', '/v1/execute', req.body));
 app.get('/operator/capabilities', softRateLimit, requireOperatorIdentity, (_req, res) => proxyOperatorJson(res, 'GET', '/v1/capabilities'));
 app.get('/operator/devices', softRateLimit, requireOperatorIdentity, (_req, res) => proxyOperatorJson(res, 'GET', '/v1/devices'));
@@ -172,7 +186,7 @@ app.get('/operator/output/:id', softRateLimit, requireOperatorIdentity, (req, re
   return proxyOperatorJson(res, 'GET', `/v1/output/${encodeURIComponent(req.params.id)}${qs ? `?${qs}` : ''}`);
 });
 
-app.post('/mcp', softRateLimit, requireVercelForToolCall, async (req, res) => {
+app.post('/mcp', softRateLimit, requireVercelForToolCall, requireBridgeForToolCall, async (req, res) => {
   const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
   const server = getServer(req.mcpIdentity);
   try {
@@ -193,7 +207,6 @@ for (const method of ['get', 'delete']) app[method]('/mcp', (_req, res) => res.s
 
 
 const wallApp = express();
-const wallAuth = createWallAuth();
 wallApp.disable('x-powered-by');
 wallApp.set('trust proxy', 'loopback, linklocal, uniquelocal');
 wallApp.use(express.urlencoded({ extended:false, limit:'4kb' }));

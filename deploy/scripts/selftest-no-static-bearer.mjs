@@ -19,18 +19,29 @@ if(!guide.includes('no static shared Bearer secret')) throw new Error('guide_mis
 
 const operatorLib=require('../../lib/operator');
 const mcpLib=require('../../lib/mcp');
-operatorLib.callOperator=async target=>({target,anonymousReach:true});
-operatorLib.execOperator=async payload=>({payload,anonymousReach:true});
-mcpLib.callMcpTool=async (name,args)=>({name,args,anonymousReach:true});
+function upstreamAuth(options={}){
+  if(options.bridgeSession) return;
+  const error=new Error('operator_http_401'); error.status=401; error.payload={error:'bridge_session_required'}; throw error;
+}
+operatorLib.callOperator=async (target,options={})=>{upstreamAuth(options);return {target,bridgeSession:options.bridgeSession};};
+operatorLib.execOperator=async (payload,options={})=>{upstreamAuth(options);return {payload,bridgeSession:options.bridgeSession};};
+mcpLib.callMcpTool=async (name,args,options={})=>{upstreamAuth(options);return {name,args,bridgeSession:options.bridgeSession};};
 const {runReadTool}=require('../../lib/http');
 const operatorHandler=require('../../api/operator');
 function resMock(){return {statusCode:200,headers:{},body:null,setHeader(k,v){this.headers[String(k).toLowerCase()]=v;},status(n){this.statusCode=n;return this;},json(v){this.body=v;return this;}};}
 let res=resMock();
 await runReadTool({method:'GET',query:{},headers:{}},res,'ping');
-if(res.statusCode!==200||res.body?.upstream?.anonymousReach!==true) throw new Error('anonymous_read_did_not_reach_upstream');
+if(res.statusCode!==401||res.body?.upstream?.error!=='bridge_session_required') throw new Error('anonymous_read_not_rejected_upstream');
 res=resMock();
 await operatorHandler({method:'GET',query:{action:'capabilities'},headers:{}},res);
-if(res.statusCode!==200||res.body?.upstream?.anonymousReach!==true) throw new Error('anonymous_operator_did_not_reach_upstream');
-console.log('no-static-bridge-bearer=PASS');
-console.log('anonymous-read-bridge=PASS');
-console.log('anonymous-operator-bridge=PASS');
+if(res.statusCode!==401||res.body?.upstream?.error!=='bridge_session_required') throw new Error('anonymous_operator_not_rejected_upstream');
+res=resMock();
+await runReadTool({method:'GET',query:{},headers:{'x-bridge-session':'session-test'}},res,'ping');
+if(res.statusCode!==200||res.body?.upstream?.bridgeSession!=='session-test') throw new Error('bridge_session_read_not_forwarded');
+res=resMock();
+await operatorHandler({method:'GET',query:{action:'capabilities'},headers:{'x-bridge-session':'session-test'}},res);
+if(res.statusCode!==200||res.body?.upstream?.bridgeSession!=='session-test') throw new Error('bridge_session_operator_not_forwarded');
+console.log('no-static-shared-bearer=PASS');
+console.log('anonymous-read-upstream-reject=PASS');
+console.log('anonymous-operator-upstream-reject=PASS');
+console.log('bridge-session-forwarding=PASS');

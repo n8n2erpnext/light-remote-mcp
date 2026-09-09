@@ -5,6 +5,7 @@ const DEFAULT_CONFIG = '/run/secrets/wall-auth.json';
 const COOKIE = '__Host-gpt_operator_wall';
 const LOGIN_WINDOW_MS = 10 * 60 * 1000;
 const LOGIN_MAX_ATTEMPTS = 10;
+const DEFAULT_BRIDGE_TTL_SECONDS = 15 * 60;
 
 function b64url(value) { return Buffer.from(value).toString('base64url'); }
 function fromB64url(value) { return Buffer.from(String(value), 'base64url').toString('utf8'); }
@@ -59,6 +60,25 @@ function verifySession(secret, token) {
   try { username = fromB64url(parts[1]); } catch { return null; }
   return { username, expiresAt };
 }
+function signBridgeSession(secret, username, expiresAt) {
+  const nonce = crypto.randomBytes(16).toString('base64url');
+  const body = `b1.${b64url(username)}.${expiresAt}.${nonce}`;
+  const sig = crypto.createHmac('sha256', Buffer.from(secret, 'base64url')).update(`bridge:${body}`).digest('base64url');
+  return `${body}.${sig}`;
+}
+function verifyBridgeSession(secret, token) {
+  const parts = String(token || '').split('.');
+  if (parts.length !== 5 || parts[0] !== 'b1') return null;
+  const body = parts.slice(0, 4).join('.');
+  const expected = crypto.createHmac('sha256', Buffer.from(secret, 'base64url')).update(`bridge:${body}`).digest('base64url');
+  if (!safeEqual(expected, parts[4])) return null;
+  const expiresAt = Number(parts[2]);
+  if (!Number.isSafeInteger(expiresAt) || expiresAt <= Date.now()) return null;
+  let username;
+  try { username = fromB64url(parts[1]); } catch { return null; }
+  return { username, expiresAt, scope:'operator' };
+}
+
 function sessionCookie(token, ttlSeconds) {
   return `${COOKIE}=${token}; Path=/; Max-Age=${ttlSeconds}; HttpOnly; Secure; SameSite=Strict; Priority=High`;
 }
@@ -72,12 +92,19 @@ function loginHtml(message = '') {
 }
 export function createWallAuth(options = {}) {
   const config = loadConfig(options.configFile);
+  const bridgeTtlSeconds = Math.max(300, Math.min(Number(options.bridgeTtlSeconds || process.env.BRIDGE_SESSION_TTL_SECONDS) || DEFAULT_BRIDGE_TTL_SECONDS, 3600));
   const failures = new Map();
   const identity = req => {
     const token = parseCookies(req.headers.cookie)[COOKIE];
     const value = verifySession(config.cookieSecret, token);
     return value && safeEqual(value.username, config.username) ? value : null;
   };
+  const bridgeIdentity = req => {
+    const token = String(req.headers?.['x-bridge-session'] || '');
+    const value = verifyBridgeSession(config.cookieSecret, token);
+    return value && safeEqual(value.username, config.username) ? value : null;
+  };
+  const credentialsOk = (username, password) => safeEqual(username, config.username) && verifyPassword(password, config.passwordHash);
   const attemptKey = req => `${req.ip || req.socket.remoteAddress || 'unknown'}|${config.username}`;
   function recentFailures(key, now = Date.now()) {
     const values = (failures.get(key) || []).filter(at => now - at < LOGIN_WINDOW_MS);
@@ -110,7 +137,7 @@ export function createWallAuth(options = {}) {
     }
     const username = String(req.body?.username || '');
     const password = String(req.body?.password || '');
-    const ok = safeEqual(username, config.username) && verifyPassword(password, config.passwordHash);
+    const ok = credentialsOk(username, password);
     if (!ok) {
       history.push(now); failures.set(key, history); setLoginSecurity(res);
       return res.status(401).type('html').send(loginHtml('Invalid username or password.'));
@@ -120,10 +147,35 @@ export function createWallAuth(options = {}) {
     res.set('Set-Cookie', sessionCookie(signSession(config.cookieSecret, config.username, expiresAt), config.sessionTtlSeconds));
     return res.redirect(303, '/');
   }
+  function requireBridgeSession(req, res, next) {
+    const value = bridgeIdentity(req);
+    if (!value) return res.status(401).json({ ok:false, error:'bridge_session_required' });
+    req.bridgeIdentity = value; return next();
+  }
+  function bridgeLogin(req, res) {
+    const key = attemptKey(req), now = Date.now(), history = recentFailures(key, now);
+    if (history.length >= LOGIN_MAX_ATTEMPTS) {
+      const retry = Math.max(1, Math.ceil((LOGIN_WINDOW_MS - (now - history[0])) / 1000));
+      res.set('Retry-After', String(retry));
+      return res.status(429).json({ ok:false, error:'bridge_login_rate_limited', retryAfterSeconds:retry });
+    }
+    const username = String(req.body?.username || '');
+    const password = String(req.body?.password || '');
+    if (!credentialsOk(username, password)) {
+      history.push(now); failures.set(key, history);
+      return res.status(401).json({ ok:false, error:'invalid_bridge_credentials' });
+    }
+    failures.delete(key);
+    const expiresAt = Date.now() + bridgeTtlSeconds * 1000;
+    return res.status(200).json({ ok:true, session:{
+      token:signBridgeSession(config.cookieSecret, config.username, expiresAt),
+      expiresAt, expiresInSeconds:bridgeTtlSeconds, scope:'operator'
+    }});
+  }
   function logout(_req, res) {
     res.set('Set-Cookie', clearCookie());
     return res.redirect(303, '/login');
   }
-  return { loginPage, login, logout, requirePage, requireApi, identity,
-    info: () => ({ mode:config.mode, username:config.username, sessionTtlSeconds:config.sessionTtlSeconds }) };
+  return { loginPage, login, logout, requirePage, requireApi, identity, bridgeLogin, requireBridgeSession, bridgeIdentity,
+    info: () => ({ mode:config.mode, username:config.username, sessionTtlSeconds:config.sessionTtlSeconds, bridgeSessionTtlSeconds:bridgeTtlSeconds }) };
 }

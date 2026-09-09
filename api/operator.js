@@ -7,19 +7,21 @@ module.exports=async function handler(req,res){
   res.setHeader('X-Robots-Tag','noindex, nofollow, noarchive');
   if(!['GET','POST'].includes(req.method)) return res.status(405).json({ok:false,error:'method_not_allowed'});
   const action=String(field(req,'action','capabilities'));
+  const bridgeSession=String(req.headers?.['x-bridge-session']||'');
+  const call=(path,options={})=>callOperator(path,{...options,bridgeSession});
   try {
     let upstream;
-    if(action==='capabilities') upstream=await callOperator('/operator/capabilities');
-    else if(action==='devices') upstream=await callOperator('/operator/devices');
-    else if(action==='device') upstream=await callOperator(`/operator/devices/${encodeURIComponent(String(field(req,'id','')))}`);
-    else if(action==='session-open') upstream=await callOperator('/operator/sessions/open',{method:'POST',body:normalizeSessionOpenPayload(payloadFor(req))});
-    else if(action==='session-resume') upstream=await callOperator(`/operator/sessions/${encodeURIComponent(sid(field(req,'sid')))}/resume`,{method:'POST',body:{agentId:aid(field(req,'aid'))}});
-    else if(action==='session-close') upstream=await callOperator(`/operator/sessions/${encodeURIComponent(sid(field(req,'sid')))}/close`,{method:'POST',body:{agentId:aid(field(req,'aid'))}});
-    else if(action==='session') upstream=await callOperator(`/operator/sessions/${encodeURIComponent(sid(field(req,'sid')))}?agentId=${encodeURIComponent(aid(field(req,'aid')))}`);
-    else if(action==='sessions') upstream=await callOperator('/operator/sessions');
-    else if(action==='session-stats') upstream=await callOperator(`/operator/session-stats?hours=${encodeURIComponent(String(field(req,'hours','168')))}`);
-    else if(action==='exec') upstream=await execOperator(normalizeExecPayload(payloadFor(req)));
-    else if(action==='job') upstream=await callOperator(`/operator/jobs/${encodeURIComponent(jobId(field(req,'id')))}?agentId=${encodeURIComponent(aid(field(req,'aid')))}`);
+    if(action==='capabilities') upstream=await call('/operator/capabilities');
+    else if(action==='devices') upstream=await call('/operator/devices');
+    else if(action==='device') upstream=await call(`/operator/devices/${encodeURIComponent(String(field(req,'id','')))}`);
+    else if(action==='session-open') upstream=await call('/operator/sessions/open',{method:'POST',body:normalizeSessionOpenPayload(payloadFor(req))});
+    else if(action==='session-resume') upstream=await call(`/operator/sessions/${encodeURIComponent(sid(field(req,'sid')))}/resume`,{method:'POST',body:{agentId:aid(field(req,'aid'))}});
+    else if(action==='session-close') upstream=await call(`/operator/sessions/${encodeURIComponent(sid(field(req,'sid')))}/close`,{method:'POST',body:{agentId:aid(field(req,'aid'))}});
+    else if(action==='session') upstream=await call(`/operator/sessions/${encodeURIComponent(sid(field(req,'sid')))}?agentId=${encodeURIComponent(aid(field(req,'aid')))}`);
+    else if(action==='sessions') upstream=await call('/operator/sessions');
+    else if(action==='session-stats') upstream=await call(`/operator/session-stats?hours=${encodeURIComponent(String(field(req,'hours','168')))}`);
+    else if(action==='exec') upstream=await execOperator(normalizeExecPayload(payloadFor(req)),{bridgeSession});
+    else if(action==='job') upstream=await call(`/operator/jobs/${encodeURIComponent(jobId(field(req,'id')))}?agentId=${encodeURIComponent(aid(field(req,'aid')))}`);
     else if(action==='output') {
       const fullRaw=String(field(req,'full','0')).toLowerCase();
       const q=new URLSearchParams({
@@ -29,7 +31,7 @@ module.exports=async function handler(req,res){
         offset:String(Math.max(0,Number(field(req,'offset',0))||0)),
         limit:String(Math.max(1,Math.min(Number(field(req,'limit',4194304))||4194304,8388608)))
       });
-      upstream=await callOperator(`/operator/output/${encodeURIComponent(jobId(field(req,'id')))}?${q}`);
+      upstream=await call(`/operator/output/${encodeURIComponent(jobId(field(req,'id')))}?${q}`);
     } else {
       const e=new Error('invalid_action'); e.status=400; throw e;
     }

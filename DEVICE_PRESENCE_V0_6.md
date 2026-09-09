@@ -69,7 +69,7 @@ Executor:
 
 Gateway/Vercel branch surfaces mirror the device reads. Wall receives `/api/devices` behind Wall auth and shows device state separately from session tabs.
 
-The v0.6 Vercel development bridge does not require a static shared caller Bearer. Upstream Vercel -> ARM OIDC and privileged encrypted-envelope controls remain intact. Public-product authorization is deferred to the account/device/ChatGPT permission plane rather than a shared secret.
+The v0.6 Vercel bridge does not require a static shared caller Bearer. For production testing it uses a short-lived ARM-minted bridge session: `POST /api/auth` validates the current local operator login at ARM, returns a 15-minute session, and protected Vercel calls forward it as `x-bridge-session`. ARM requires that session in addition to Vercel -> ARM OIDC before operator or MCP tool execution. Wall cookies and bridge sessions are domain-separated and cannot be cross-used. Public-product authorization replaces the temporary local-login mint step with the account/device/ChatGPT OAuth-permission plane.
 
 Wall device refresh is read-only. It does not call session touch/resume and therefore cannot extend a session lease. The browser refreshes device metadata at a bounded interval only to render TTL-based online/offline state; operator SSE remains the live job/activity path.
 
@@ -95,7 +95,7 @@ Wall device refresh is read-only. It does not call session touch/resume and ther
 
 `deploy/scripts/selftest-shutdown-sse.mjs` proves executor SIGTERM closes active SSE clients and exits cleanly instead of waiting for the forced 5-second fallback.
 
-`deploy/scripts/selftest-no-static-bearer.mjs` prevents the static shared Bearer boundary from being reintroduced into v0.6 runtime/current guidance. Existing crypto, replay, tamper, operation-id idempotency, session ownership/HOLD/expiry/capacity and Wall realtime tests remain regression requirements.
+`deploy/scripts/selftest-no-static-bearer.mjs` prevents the static shared Bearer boundary from being reintroduced and proves anonymous requests are rejected by the ARM bridge-session gate. `deploy/scripts/selftest-bridge-session-auth.mjs` proves login, missing/tampered-token rejection, Wall/Bridge token domain separation and gateway guard placement. Existing crypto, replay, tamper, operation-id idempotency, session ownership/HOLD/expiry/capacity and Wall realtime tests remain regression requirements.
 
 ## Not implemented yet
 - remote device enrollment/device-code flow

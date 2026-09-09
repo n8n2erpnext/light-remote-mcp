@@ -29,6 +29,7 @@ Version: v0.5.2 production stability hotfix
 ## Security / transport
 - Production `v0.5.2` still contains the v0.5.1 static caller-Bearer hotfix; that remains production history until a later accepted release replaces it.
 - Development `v0.6` deliberately removes the static shared Bearer requirement from Vercel read/operator endpoints. No `VPS_BRIDGE_CALLER_SECRET` is required by the v0.6 bridge runtime.
+- The v0.6 candidate now fails closed with a separate short-lived ARM-validated bridge session: `/api/auth` relays local operator credentials over Vercel OIDC, ARM mints a 15-minute session, and protected read/operator/MCP tool calls must forward it as `x-bridge-session`. Wall cookies and bridge sessions are cryptographically domain-separated.
 - ARM independently continues to require Vercel OIDC for privileged `/operator/*` and MCP `tools/call`.
 - Privileged envelopes remain X25519 + HKDF-SHA256 + AES-256-GCM with short expiry, replay rejection, and semantic `operationId` idempotency.
 - v0.6 uses body-safe structured POST for operator payloads; GET/query/base64 remains small-call compatibility only.
