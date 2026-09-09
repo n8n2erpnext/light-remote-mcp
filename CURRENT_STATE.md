@@ -1,7 +1,7 @@
 # GPT VPS Bridge — Current State
 
 Updated: 2026-09-09
-Version: v0.5.1 production security hotfix
+Version: v0.5.2 production stability hotfix
 
 ## Active path
 `ChatGPT -> @Vercel -> gpt-vps-bridge.vercel.app -> ARM hub/MCP Gateway -> Unix socket -> gpt-vps-operator (ubuntu)`
@@ -12,6 +12,7 @@ Version: v0.5.1 production security hotfix
 - v0.5 enforces one-agent/one-live-session ownership. A different `agentId` cannot resume, execute, read job state, or retrieve output from another lane (`409 session_owner_mismatch`).
 - Re-opening while the same agent already has a live lane returns the same session instead of consuming another slot. Default live-session ceiling is 5.
 - Session-aware reads renew the lease. Expired/closed sessions remain audit history but consume no live capacity.
+- v0.5.2 pins the Vercel/serverless Node major to `22.x`, matching the tested host/toolchain and preventing automatic future-major runtime jumps from `engines.node >=20`.
 - Current execution node is `nodeId=arm`. Remote-node transport is not implemented yet; ARM is the future hub anchor.
 - No repo/file/service locking is imposed. Concurrent agents coordinate through normal Git branch/worktree/clean-tree discipline.
 
