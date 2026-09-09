@@ -38,5 +38,5 @@ v0.6 removes the static shared Bearer secret from the Vercel boundary. For produ
 ## Hub direction
 Current node is `arm`. v0.5 carries `nodeId` in sessions/jobs/logs and treats ARM as the future routing/audit/wall hub. Planned topology is `GPT -> Vercel -> ARM hub -> {ARM, AMD, HomeLab...}`. Remote-node transport is deliberately not claimed implemented until a second executor exists; see `HUB_TOPOLOGY_V0_5.md`.
 
-## v0.6 production-test candidate
-`main` and `codex/v0.6-device-presence` now carry the same v0.6 candidate: separate device presence, configurable per-session leases, no static bridge Bearer, and a short-lived ARM-validated bridge-session gate. Vercel production and the ARM runtime are live for acceptance testing; no stable v0.6.0 tag has been cut yet. See `DEVICE_PRESENCE_V0_6.md`.
+## v0.7 production-test candidate
+`main` and `codex/v0.7-device-enrollment` now carry the v0.7 candidate. `operator-agent login` creates an Ed25519 identity locally and returns a 10-minute one-time device code plus activation URL; owner approval binds only the public identity and capability subset, while signed heartbeat proof is required before the device becomes online. Pending enrollment can be owner-cancelled and enrolled devices can be revoked. Vercel/ARM live acceptance passed the complete enrollment/revoke path. Remote leaf execution remains v0.8 work; no stable v0.7.0 tag has been cut. See `DEVICE_ENROLLMENT_V0_7.md`.

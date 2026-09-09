@@ -203,6 +203,10 @@ Example fleet view:
 
 The ChatGPT-facing URL never changes when a new node is enrolled.
 
+### v0.7 implementation checkpoint — 2026-09-09
+
+The v0.7 candidate is live on ARM and Vercel production-test. Implemented: one-time 10-minute device code, hashed poll token, local Ed25519 device key, ARM-signed device certificate, authenticated owner approval/cancel/revoke, capability subset enforcement, signed heartbeat with replay/timestamp checks, source-hashed pending-enrollment rate limiting, CLI `login/poll/heartbeat/status/daemon`, and hardened Linux systemd installation. Live acceptance passed approval-offline -> certificate poll -> signed heartbeat-online -> revoke -> heartbeat 403, and Wall enrollment surfaces remain authenticated/read-only. A real flattened-install import bug was found during deployment and is now covered by an installed-layout regression. This checkpoint does not implement v0.8 leaf routing or claim multi-node execution.
+
 ## 5. v0.8 — ARM Hub & Fleet Routing
 
 ARM remains the first control-hub node. Additional executors connect outbound to the Hub; ChatGPT/Vercel does not connect directly to leaf executors.

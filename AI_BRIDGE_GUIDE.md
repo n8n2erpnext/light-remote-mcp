@@ -34,3 +34,6 @@ Use the Vercel bridge directly for normal development calls; v0.6 does not requi
 The v0.6 branch includes body-safe structured POST transport for `/api/operator`; GET/query/base64 remains legacy compatibility only and is capped to small payloads with deterministic `414 payload_too_large_use_post`. Do not move credentials or private material into query strings. RDC remains the rescue lane for self-disruptive deployment/rebuild steps.
 
 Audit is authoritative on VPS JSONL. Current node is `arm`; AMD/HomeLab remote execution is future work, not claimed active today. See `CURRENT_STATE.md`, `SESSION_OWNERSHIP_V0_5.md`, `HUB_TOPOLOGY_V0_5.md`, `SESSION_LANES_V0_4.md`, and `PRODUCT_PLATFORM_PLAN_V0_6_TO_PUBLIC_PLUGIN.md`.
+
+## Device enrollment (v0.7)
+`operator-agent login` generates the device Ed25519 private key locally and starts a short-lived device-code flow. The activation URL carries only the enrollment ID; the one-time code is entered after owner authentication. Approval binds the public key and an explicit capability subset but leaves the device offline until signed heartbeat proof succeeds. Owner-authenticated cancel/revoke paths provide cleanup. Remote execution on newly enrolled leaf devices is not claimed until v0.8.

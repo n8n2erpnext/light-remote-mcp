@@ -1,7 +1,7 @@
 # GPT VPS Bridge — Current State
 
 Updated: 2026-09-09
-Version: v0.6.0-dev production-test candidate
+Version: v0.7.0-dev production-test candidate
 
 ## Active path
 `ChatGPT -> @Vercel -> gpt-vps-bridge.vercel.app -> ARM hub/MCP Gateway -> Unix socket -> gpt-vps-operator (ubuntu)`
@@ -35,6 +35,16 @@ Version: v0.6.0-dev production-test candidate
 - Public-product authorization must come from explicit account/device authorization plus ChatGPT permission/confirmation semantics, not a long-lived shared Bearer secret.
 - Never move passwords, tokens, private keys, cookies, or other credentials into URL query parameters.
 
+
+## v0.7 production-test proof
+- `main` and `codex/v0.7-device-enrollment` converge on the v0.7 candidate.
+- Device enrollment uses a 10-minute one-time code, a 256-bit poll token, local Ed25519 device keys, ARM-signed device certificates, explicit owner approval, capability subset enforcement, and signed heartbeat proof.
+- Approval alone leaves the device offline; only a valid signed heartbeat makes it online. Device-local policy may reduce approved capabilities but cannot increase them.
+- Public begin/poll/heartbeat travel through Vercel OIDC; owner list/approve/cancel/revoke additionally require the short-lived bridge session. No static shared Bearer is reintroduced.
+- Live production proof passed begin -> approve -> offline -> poll/certificate verify -> signed heartbeat online -> revoke -> heartbeat 403, with test cleanup leaving zero pending enrollments.
+- Wall `/enroll` and `/api/enrollments` pass authenticated live checks without regressing device/session/activity/SSE views.
+- A real installed-layout bug (`/opt/lib/device-proof.mjs` missing) was caught during ARM deployment, fixed by an explicit host runtime manifest, and guarded by `selftest-host-install-layout.mjs`.
+- Remote command routing to enrolled leaf devices is deliberately not implemented or claimed until v0.8. No stable v0.7.0 tag has been cut.
 
 ## v0.6 production-test proof
 - `main` and `codex/v0.6-device-presence` converged on the accepted candidate before production promotion.
