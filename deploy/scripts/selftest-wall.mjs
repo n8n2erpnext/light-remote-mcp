@@ -8,8 +8,15 @@ if (!match) throw new Error('wall inline script not found');
 if (!html.includes("/api/sessions") || !html.includes("new EventSource('/events')")) {
   throw new Error('wall session/SSE endpoints missing');
 }
+const inline = match[1];
+for (const token of ['seenEvents', 'scheduleSessionRefresh', 'probeActivityHead', 'catchUpActivity', '/api/activity?limit=1']) {
+  if (!inline.includes(token)) throw new Error(`wall realtime safeguard missing: ${token}`);
+}
+if (inline.includes('setInterval(refreshSessions')) {
+  throw new Error('wall must not poll full session metadata on a fixed interval');
+}
 const file = `/tmp/gpt-vps-wall-inline-${process.pid}.js`;
-writeFileSync(file, match[1]);
+writeFileSync(file, inline);
 const result = spawnSync(process.execPath, ['--check', file], { encoding: 'utf8' });
 try { unlinkSync(file); } catch {}
 if (result.status !== 0) {
@@ -19,3 +26,4 @@ if (result.status !== 0) {
 console.log('wall-inline-js=PASS');
 console.log('wall-session-tabs=present');
 console.log('wall-sse=present');
+console.log('wall-realtime-safeguards=present');

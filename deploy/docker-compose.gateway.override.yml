@@ -1,8 +1,11 @@
 services:
   lightbi-mcp-poc:
+    user: "${GPT_OPERATOR_UID:-1001}:${GPT_OPERATOR_GID:-1001}"
     volumes:
       - /home/ubuntu/.local/run/gpt-vps-operator:/run/gpt-vps-operator:ro
+      - /home/ubuntu/.config/gpt-vps-operator/wall-auth.json:/run/secrets/wall-auth.json:ro
     group_add:
       - "${GPT_OPERATOR_GID:-1001}"
     environment:
       - OPERATOR_SOCKET=/run/gpt-vps-operator/operator.sock
+      - WALL_AUTH_CONFIG_FILE=/run/secrets/wall-auth.json

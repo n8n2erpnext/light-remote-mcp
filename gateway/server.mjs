@@ -6,6 +6,7 @@ import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js
 import { z } from 'zod';
 import { recordActivity, recentActivity, attachActivitySse } from './activity.mjs';
 import { dashboardHtml } from './dashboard.mjs';
+import { createWallAuth } from './wall-auth.mjs';
 import { authenticateVercel, requireVercelForToolCall, securityInfo } from './security.mjs';
 import { proxyOperatorJson, proxyOperatorSse } from './operator-proxy.mjs';
 import { rootNames, listWorkspace, readWorkspaceText, searchWorkspace, gitStatus, gitDiff } from './workspace.mjs';
@@ -190,7 +191,10 @@ for (const method of ['get', 'delete']) app[method]('/mcp', (_req, res) => res.s
 
 
 const wallApp = express();
+const wallAuth = createWallAuth();
 wallApp.disable('x-powered-by');
+wallApp.set('trust proxy', 'loopback, linklocal, uniquelocal');
+wallApp.use(express.urlencoded({ extended:false, limit:'4kb' }));
 wallApp.use((_req, res, next) => {
   res.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
   res.set('X-Content-Type-Options', 'nosniff');
@@ -198,16 +202,19 @@ wallApp.use((_req, res, next) => {
   res.set('Cache-Control', 'no-store');
   next();
 });
-wallApp.get('/', (_req, res) => {
-  res.set('Content-Security-Policy', "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; img-src 'self'; frame-ancestors 'none'; base-uri 'none'");
+wallApp.get('/login', wallAuth.loginPage);
+wallApp.post('/auth/login', wallAuth.login);
+wallApp.post('/auth/logout', wallAuth.logout);
+wallApp.get('/', wallAuth.requirePage, (_req, res) => {
+  res.set('Content-Security-Policy', "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; img-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
   res.type('html').send(dashboardHtml());
 });
-wallApp.get('/api/sessions', (_req, res) => proxyOperatorJson(res, 'GET', '/v1/sessions'));
-wallApp.get('/api/activity', (req, res) => {
+wallApp.get('/api/sessions', wallAuth.requireApi, (_req, res) => proxyOperatorJson(res, 'GET', '/v1/sessions'));
+wallApp.get('/api/activity', wallAuth.requireApi, (req, res) => {
   const limit = Math.max(1, Math.min(Number(req.query.limit) || 1000, 5000));
   return proxyOperatorJson(res, 'GET', `/v1/activity?limit=${limit}`);
 });
-wallApp.get('/events', proxyOperatorSse);
+wallApp.get('/events', wallAuth.requireApi, proxyOperatorSse);
 wallApp.use((_req, res) => res.status(404).end());
 
 const httpServer = app.listen(PORT, '0.0.0.0', () => {
