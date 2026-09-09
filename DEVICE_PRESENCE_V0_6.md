@@ -92,6 +92,8 @@ Wall device refresh is read-only. It does not call session touch/resume and ther
 
 `deploy/scripts/selftest-wall-node-tabs.mjs` proves NODE tabs select a node lane, filter jobs by `nodeId`, render node/device metadata, and rerender after device refresh. `deploy/scripts/selftest-vercel-function-budget.mjs` keeps the top-level Vercel API at or below the 12-function project ceiling; the current branch uses 11.
 
+`deploy/scripts/selftest-shutdown-sse.mjs` proves executor SIGTERM closes active SSE clients and exits cleanly instead of waiting for the forced 5-second fallback.
+
 `deploy/scripts/selftest-no-static-bearer.mjs` prevents the static shared Bearer boundary from being reintroduced into v0.6 runtime/current guidance. Existing crypto, replay, tamper, operation-id idempotency, session ownership/HOLD/expiry/capacity and Wall realtime tests remain regression requirements.
 
 ## Not implemented yet

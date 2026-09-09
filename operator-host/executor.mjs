@@ -459,16 +459,22 @@ server.listen(SOCKET_PATH, () => {
   console.log(`gpt-vps-operator v${VERSION} listening on ${SOCKET_PATH}`);
 });
 
+let shuttingDown = false;
 function shutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
   console.log(`[operator] ${signal}, shutting down`);
   clearInterval(deviceHeartbeat);
   try { devices.markOffline(DEVICE_ID, signal.toLowerCase()); } catch {}
+  for (const res of sseClients) { try { res.end(); } catch {} }
+  sseClients.clear();
   for (const job of jobs.values()) {
     if (job.status === 'running' && job.pid) {
       try { process.kill(job.pid, 'SIGTERM'); } catch {}
     }
   }
   server.close(() => process.exit(0));
+  server.closeAllConnections?.();
   setTimeout(() => process.exit(1), 5000).unref();
 }
 process.on('SIGTERM', () => shutdown('SIGTERM'));
