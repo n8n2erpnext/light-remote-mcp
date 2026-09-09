@@ -1,18 +1,18 @@
 import fs from 'node:fs';
 import http from 'node:http';
 import { spawn } from 'node:child_process';
-import { createRequire } from 'node:module';
-const require=createRequire(import.meta.url); const { sealOperatorPayload }=require('../../lib/operator-crypto');
+import { createOperatorCryptoFixture } from './selftest-crypto-fixture.mjs';
 const root=new URL('../..',import.meta.url).pathname, run=`${process.pid}-${Date.now()}`, socketPath=`/tmp/gpt-vps-session-selftest-${run}.sock`, logDir=`/tmp/gpt-vps-session-selftest-${run}-log`, stateDir=`/tmp/gpt-vps-session-selftest-${run}-state`;
 fs.rmSync(socketPath,{force:true}); fs.rmSync(logDir,{recursive:true,force:true}); fs.rmSync(stateDir,{recursive:true,force:true}); fs.mkdirSync(logDir,{recursive:true});
-const child=spawn(process.execPath,[`${root}/operator-host/executor.mjs`],{cwd:root,env:{...process.env,OPERATOR_SOCKET:socketPath,OPERATOR_LOG_DIR:logDir,OPERATOR_STATE_DIR:stateDir,OPERATOR_KEY_FILE:'/home/ubuntu/.config/gpt-vps-operator/operator.private.json',OPERATOR_SESSION_IDLE_MS:'800',OPERATOR_SESSION_MIN_IDLE_MS:'100',OPERATOR_SESSION_MAX_IDLE_MS:'5000',OPERATOR_MAX_ACTIVE_SESSIONS:'3',OPERATOR_SESSION_HISTORY_MS:'10000',OPERATOR_NODE_ID:'arm'},stdio:['ignore','pipe','pipe']});
+const cryptoFixture=createOperatorCryptoFixture(stateDir);
+const child=spawn(process.execPath,[`${root}/operator-host/executor.mjs`],{cwd:root,env:{...process.env,OPERATOR_SOCKET:socketPath,OPERATOR_LOG_DIR:logDir,OPERATOR_STATE_DIR:stateDir,OPERATOR_KEY_FILE:cryptoFixture.privateFile,OPERATOR_SESSION_IDLE_MS:'800',OPERATOR_SESSION_MIN_IDLE_MS:'100',OPERATOR_SESSION_MAX_IDLE_MS:'5000',OPERATOR_MAX_ACTIVE_SESSIONS:'3',OPERATOR_SESSION_HISTORY_MS:'10000',OPERATOR_NODE_ID:'arm'},stdio:['ignore','pipe','pipe']});
 const sleep=ms=>new Promise(r=>setTimeout(r,ms)); for(let i=0;i<80&&!fs.existsSync(socketPath);i++) await sleep(50); if(!fs.existsSync(socketPath)) throw new Error('socket_not_ready');
 function request(method,target,body){return new Promise((resolve,reject)=>{const payload=body==null?null:Buffer.from(JSON.stringify(body)); const req=http.request({socketPath,method,path:target,headers:payload?{'content-type':'application/json','content-length':payload.length}:{}},res=>{let text='';res.on('data',c=>text+=c);res.on('end',()=>{let json;try{json=JSON.parse(text)}catch{json={raw:text}}resolve({status:res.statusCode,json})})});req.on('error',reject);if(payload)req.write(payload);req.end()})}
 const aid='agent-selftest-v05-aaaaaaaa', other='agent-selftest-v05-bbbbbbbb', openId='session-open-selftest-v05';
 const opened=await request('POST','/v1/sessions/open',{openId,agentId:aid,label:'long-build',workspace:'/home/ubuntu'}); if(opened.status!==200||opened.json.session.leaseMs!==800||!opened.json.session.deviceId||!opened.json.session.accountId) throw new Error('open_failed'); const sid=opened.json.session.sessionId;
 const sameAgent=await request('POST','/v1/sessions/open',{openId:'session-open-selftest-v05-new',agentId:aid,label:'other'}); if(sameAgent.status!==200||sameAgent.json.session.sessionId!==sid) throw new Error('one_agent_one_session_failed');
 const wrongResume=await request('POST',`/v1/sessions/${sid}/resume`,{agentId:other}); if(wrongResume.status!==409||wrongResume.json.error!=='session_owner_mismatch') throw new Error('owner_guard_failed');
-const env=sealOperatorPayload({action:'exec_batch',operationId:'session-hold-selftest-v05',cwd:'/tmp',script:"sleep 1.4; printf 'held-ok\\n'",sessionId:sid,agentId:aid,waitMs:0,timeoutMs:5000});
+const env=cryptoFixture.seal({action:'exec_batch',operationId:'session-hold-selftest-v05',cwd:'/tmp',script:"sleep 1.4; printf 'held-ok\\n'",sessionId:sid,agentId:aid,waitMs:0,timeoutMs:5000});
 const exec=await request('POST','/v1/execute',env); if(exec.status!==200||exec.json.job.status!=='running') throw new Error('exec_not_running');
 await sleep(950); const held=await request('GET',`/v1/sessions/${sid}?agentId=${aid}`); if(held.json.session.state!=='hold'||held.json.session.activeJobs.length!==1) throw new Error('hold_failed');
 await sleep(700); const released=await request('GET',`/v1/sessions/${sid}?agentId=${aid}`); if(released.json.session.state!=='active'||released.json.session.activeJobs.length!==0) throw new Error('release_failed');

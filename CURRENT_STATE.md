@@ -1,10 +1,10 @@
 # GPT VPS Bridge — Current State
 
 Updated: 2026-09-09
-Version: v0.7.0-dev production-test candidate
+Version: v0.8.0-dev production-test candidate
 
 ## Active path
-`ChatGPT -> @Vercel -> gpt-vps-bridge.vercel.app -> ARM hub/MCP Gateway -> Unix socket -> gpt-vps-operator (ubuntu)`
+`ChatGPT -> @Vercel -> gpt-vps-bridge.vercel.app -> ARM Hub -> {ARM local executor | explicitly selected outbound leaf}`
 
 ## Production facts
 - v0.3 operator baseline remains accepted: encrypted, authenticated, idempotent host execution as `ubuntu` with sudo/Docker/LXD/Git/build/test capability.
@@ -13,7 +13,7 @@ Version: v0.7.0-dev production-test candidate
 - Re-opening while the same agent already has a live lane returns the same session instead of consuming another slot. Default live-session ceiling is 5.
 - Session-aware reads renew the lease. Expired/closed sessions remain audit history but consume no live capacity.
 - v0.5.2 pins the Vercel/serverless Node major to `22.x`, matching the tested host/toolchain and preventing automatic future-major runtime jumps from `engines.node >=20`.
-- Current execution node is `nodeId=arm`. Remote-node transport is not implemented yet; ARM is the future hub anchor.
+- ARM is the live Hub (`nodeId=arm`). `VPS-AMD` is the first live outbound leaf (`dev_700ad1e57b626a18ffad9339`); leaf sessions/jobs are explicitly target-bound and never silently fall back to ARM.
 - No repo/file/service locking is imposed. Concurrent agents coordinate through normal Git branch/worktree/clean-tree discipline.
 
 ## Wall / observability
@@ -27,7 +27,7 @@ Version: v0.7.0-dev production-test candidate
 - Authoritative audit remains `/var/log/gpt-vps-operator/operations.jsonl` with 50 MiB x 3 rotation; Wall memory remains bounded at 16 MiB / 5000 events.
 
 ## Security / transport
-- Production is now serving the v0.6 candidate on `main`; the v0.5.1 static caller-Bearer hotfix remains history only and `VPS_BRIDGE_CALLER_SECRET` is no longer required by the v0.6 runtime.
+- Production is now serving the v0.8 production-test candidate on `main`; the v0.5.1 static caller-Bearer hotfix remains history only and `VPS_BRIDGE_CALLER_SECRET` is not part of the current runtime.
 - v0.6 fails closed with a separate short-lived ARM-validated bridge session: `/api/auth` relays local operator credentials over Vercel OIDC, ARM mints a 15-minute session, and protected read/operator/MCP tool calls must forward it as `x-bridge-session`. Wall cookies and bridge sessions are cryptographically domain-separated.
 - ARM independently continues to require Vercel OIDC for privileged `/operator/*` and MCP `tools/call`.
 - Privileged envelopes remain X25519 + HKDF-SHA256 + AES-256-GCM with short expiry, replay rejection, and semantic `operationId` idempotency.
@@ -35,6 +35,16 @@ Version: v0.7.0-dev production-test candidate
 - Public-product authorization must come from explicit account/device authorization plus ChatGPT permission/confirmation semantics, not a long-lived shared Bearer secret.
 - Never move passwords, tokens, private keys, cookies, or other credentials into URL query parameters.
 
+
+## v0.8 production-test proof
+- ARM is the control Hub and enrolled Linux leaves connect outbound directly to `/device-channel/poll` and `/device-channel/result`; ChatGPT/Vercel never connects directly to a leaf.
+- Leaf channel requests use Ed25519 device proof bound to action, timestamp, nonce and canonical payload hash. Replay/timestamp/account/device checks fail closed.
+- Sessions bind to one device/node. Per-node session ceilings, offline/drain checks and explicit target routing are enforced before enqueue; a requested leaf is never silently replaced by ARM.
+- Command delivery uses bounded queues, command leases/redelivery and idempotent completed-result receipts. The leaf `0600` command spool prevents a crash/restart from blindly executing an in-progress command twice.
+- Real second-node acceptance passed with `VPS-AMD` (`linux/x64`): public Vercel opened independent ARM and AMD sessions; ARM returned `VPS-ARM:aarch64`, AMD returned `VPS-AMD:x86_64`.
+- Draining AMD caused a fresh AMD-targeted session to return `409 target_node_draining`; undrain/cleanup restored AMD online with zero active sessions.
+- Authoritative JSONL audit and authenticated Wall activity both attributed ARM and AMD job events to their exact node/device IDs. Vercel acceptance traffic had no warning/error/fatal runtime logs.
+- Full ARM regression is green and the test crypto fixture is portable; no stable v0.8.0 tag has been cut. See `FLEET_ROUTING_V0_8.md`.
 
 ## v0.7 production-test proof
 - `main` and `codex/v0.7-device-enrollment` converge on the v0.7 candidate.
@@ -44,7 +54,7 @@ Version: v0.7.0-dev production-test candidate
 - Live production proof passed begin -> approve -> offline -> poll/certificate verify -> signed heartbeat online -> revoke -> heartbeat 403, with test cleanup leaving zero pending enrollments.
 - Wall `/enroll` and `/api/enrollments` pass authenticated live checks without regressing device/session/activity/SSE views.
 - A real installed-layout bug (`/opt/lib/device-proof.mjs` missing) was caught during ARM deployment, fixed by an explicit host runtime manifest, and guarded by `selftest-host-install-layout.mjs`.
-- Remote command routing to enrolled leaf devices is deliberately not implemented or claimed until v0.8. No stable v0.7.0 tag has been cut.
+- At the v0.7 checkpoint remote command routing was deliberately deferred; that boundary is now superseded by the v0.8 fleet candidate. No stable v0.7.0 tag was cut.
 
 ## v0.6 production-test proof
 - `main` and `codex/v0.6-device-presence` converged on the accepted candidate before production promotion.
@@ -68,4 +78,4 @@ Version: v0.7.0-dev production-test candidate
 Every real session-aware call refreshes `lastSeenAt`. Running jobs suspend expiry. Transport loss never owns process lifetime; the same agent resumes its lane. A different agent is rejected rather than silently sharing it.
 
 ## Recovery order
-Fetch `/api/guide`, then read `AI_BRIDGE_GUIDE.md`, this file, `SESSION_OWNERSHIP_V0_5.md`, `HUB_TOPOLOGY_V0_5.md`, `SESSION_LANES_V0_4.md`, `PRODUCT_PLATFORM_PLAN_V0_6_TO_PUBLIC_PLUGIN.md`, and the latest dated handoff. RDC remains rescue-only during soak.
+Fetch `/api/guide`, then read `AI_BRIDGE_GUIDE.md`, this file, `SESSION_OWNERSHIP_V0_5.md`, `HUB_TOPOLOGY_V0_5.md`, `SESSION_LANES_V0_4.md`, `PRODUCT_PLATFORM_PLAN_V0_6_TO_PUBLIC_PLUGIN.md`, `FLEET_ROUTING_V0_8.md`, and the latest dated handoff. RDC remains rescue-only during soak.

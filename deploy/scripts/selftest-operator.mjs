@@ -1,9 +1,7 @@
 import fs from 'node:fs';
 import http from 'node:http';
 import { spawn } from 'node:child_process';
-import { createRequire } from 'node:module';
-const require = createRequire(import.meta.url);
-const { sealOperatorPayload } = require('../../lib/operator-crypto');
+import { createOperatorCryptoFixture } from './selftest-crypto-fixture.mjs';
 const root = new URL('../..', import.meta.url).pathname;
 const run = `${process.pid}-${Date.now()}`;
 const socketPath = `/tmp/gpt-vps-operator-selftest-${run}.sock`;
@@ -12,10 +10,11 @@ const stateDir = `/tmp/gpt-vps-operator-selftest-${run}-state`;
 fs.rmSync(socketPath, { force:true });
 fs.rmSync(logDir, { recursive:true, force:true });
 fs.mkdirSync(logDir, { recursive:true });
+const cryptoFixture=createOperatorCryptoFixture(stateDir);
 const child = spawn(process.execPath, [`${root}/operator-host/executor.mjs`], {
   cwd: root,
   env: { ...process.env, OPERATOR_SOCKET:socketPath, OPERATOR_LOG_DIR:logDir,OPERATOR_STATE_DIR:'/tmp/gpt-vps-operator-selftest-state',
-    OPERATOR_KEY_FILE:'/home/ubuntu/.config/gpt-vps-operator/operator.private.json', OPERATOR_STATE_DIR:stateDir },
+    OPERATOR_KEY_FILE:cryptoFixture.privateFile, OPERATOR_STATE_DIR:stateDir },
   stdio:['ignore','pipe','pipe']
 });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -39,14 +38,14 @@ if (caps.status !== 200 || !caps.json.ok) throw new Error('capabilities_failed')
 const agentId='agent-selftest-operator-v05-aaaaaaaa';
 const opened=await request('POST','/v1/sessions/open',{agentId,openId:'selftest-operator-open-v05',label:'operator regression'});
 if(opened.status!==200) throw new Error('session_open_failed'); const sessionId=opened.json.session.sessionId;
-const envelope = sealOperatorPayload({ action:'exec_batch', operationId:'selftest-operator-v05', cwd:'/home/ubuntu',
+const envelope = cryptoFixture.seal({ action:'exec_batch', operationId:'selftest-operator-v05', cwd:'/home/ubuntu',
   script:"printf 'selftest-ok\\n'", sessionId, agentId, note:'encrypted regression', waitMs:5000, timeoutMs:10000 });
 const first = await request('POST','/v1/execute',envelope);
 if (first.status !== 200 || first.json.job?.exitCode !== 0) throw new Error('execute_failed');
 const jobId = first.json.job.jobId;
 const replay = await request('POST','/v1/execute',envelope);
 if (replay.status !== 401 || replay.json.error !== 'replay_detected') throw new Error('replay_guard_failed');
-const tampered = sealOperatorPayload({ action:'exec_batch', operationId:'tamper-envelope-v05', cwd:'/home/ubuntu', script:'true', sessionId, agentId });
+const tampered = cryptoFixture.seal({ action:'exec_batch', operationId:'tamper-envelope-v05', cwd:'/home/ubuntu', script:'true', sessionId, agentId });
 const tamperedBytes=Buffer.from(tampered.ciphertext,'base64url');
 tamperedBytes[0]^=0x01;
 tampered.ciphertext=tamperedBytes.toString('base64url');

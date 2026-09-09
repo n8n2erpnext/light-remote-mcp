@@ -2,7 +2,7 @@
 
 Updated: 2026-09-09
 Status: active product plan
-Current implementation baseline: v0.5.0 single-node ARM production closure
+Current implementation baseline: v0.8.0-dev production-test candidate — ARM Hub + VPS-AMD outbound leaf
 
 ## 0. Product direction
 
@@ -26,9 +26,9 @@ Core product properties:
 - Linux, Windows and macOS share one protocol with platform-specific adapters.
 - Deterministic policy is authoritative; learned "Frog" safety is additive and fail-open relative to operator availability, never the sole safety boundary.
 
-## 1. Current production truth — v0.5
+## 1. Historical production baseline — v0.5
 
-Current path:
+v0.5 path:
 
 `ChatGPT -> Vercel bridge -> ARM MCP gateway -> Unix socket -> host executor (ubuntu)`
 
@@ -222,6 +222,10 @@ Fleet requirements:
 - safe drain/reconnect semantics for node upgrades
 
 Acceptance: enroll one second AMD/HomeLab node, execute independent sessions on ARM and the new node, and prove Wall/audit attribution remains exact.
+
+### v0.8 implementation checkpoint — 2026-09-09
+
+Acceptance passed with real `VPS-AMD` (`linux/x64`) as the second node. ARM runs the Hub and local executor; AMD runs the installed Linux device-agent service and maintains an Ed25519-signed outbound long-poll channel directly to ARM. Public Vercel opened independent ARM and AMD sessions and executed harmless proof commands returning `VPS-ARM:aarch64` and `VPS-AMD:x86_64`. Per-node ceilings, explicit target binding, command lease/redelivery, completed-result idempotency, local `0600` command spool, owner/local drain and exact Wall/JSONL node attribution are implemented. Draining AMD caused a new AMD-targeted session to fail `409 target_node_draining`; no ARM fallback occurred. Vercel runtime acceptance contained no warning/error/fatal logs. This remains a production-test candidate, not a stable v0.8.0 tag. See `FLEET_ROUTING_V0_8.md`.
 
 ## 6. v0.9 — Platform Adapters
 
@@ -512,11 +516,11 @@ During development:
 - revoke/rotate
 - outbound control channel
 
-### Phase 4 — second node / fleet
-- enroll one AMD or HomeLab executor
-- Hub routing and fan-in
-- fleet wall
-- prove multiple nodes and multiple sessions
+### Phase 4 — second node / fleet — ACCEPTED production-test 2026-09-09
+- [x] enroll one AMD executor
+- [x] Hub routing and fan-in
+- [x] fleet Wall/audit attribution
+- [x] prove independent ARM + AMD sessions and no-fallback drain guard
 
 ### Phase 5 — platform adapters
 - Windows PowerShell service

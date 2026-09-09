@@ -4,16 +4,15 @@ import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { spawn } from 'node:child_process';
-import { createRequire } from 'node:module';
+import { createOperatorCryptoFixture } from './selftest-crypto-fixture.mjs';
 import { deviceChannelMessage } from '../../lib/device-proof.mjs';
-const require=createRequire(import.meta.url);
-const { sealOperatorPayload }=require('../../lib/operator-crypto');
 
 const root=new URL('../..',import.meta.url).pathname;
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'gpt-v08-fleet-exec-'));
 const socketPath=path.join(dir,'operator.sock'),logDir=path.join(dir,'log'),stateDir=path.join(dir,'state');
 fs.mkdirSync(logDir,{recursive:true});fs.mkdirSync(stateDir,{recursive:true});
-const child=spawn(process.execPath,[`${root}/operator-host/executor.mjs`],{cwd:root,env:{...process.env,OPERATOR_SOCKET:socketPath,OPERATOR_LOG_DIR:logDir,OPERATOR_STATE_DIR:stateDir,OPERATOR_KEY_FILE:'/home/ubuntu/.config/gpt-vps-operator/operator.private.json',OPERATOR_DEVICE_PRESENCE_TTL_MS:'90000',OPERATOR_DEVICE_HEARTBEAT_MS:'30000',OPERATOR_FLEET_CHANNEL_TTL_MS:'5000',OPERATOR_FLEET_COMMAND_LEASE_MS:'2000'},stdio:['ignore','pipe','pipe']});
+const cryptoFixture=createOperatorCryptoFixture(stateDir);
+const child=spawn(process.execPath,[`${root}/operator-host/executor.mjs`],{cwd:root,env:{...process.env,OPERATOR_SOCKET:socketPath,OPERATOR_LOG_DIR:logDir,OPERATOR_STATE_DIR:stateDir,OPERATOR_KEY_FILE:cryptoFixture.privateFile,OPERATOR_DEVICE_PRESENCE_TTL_MS:'90000',OPERATOR_DEVICE_HEARTBEAT_MS:'30000',OPERATOR_FLEET_CHANNEL_TTL_MS:'5000',OPERATOR_FLEET_COMMAND_LEASE_MS:'2000'},stdio:['ignore','pipe','pipe']});
 let stderr='';child.stderr.on('data',c=>stderr+=c);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 for(let i=0;i<100&&!fs.existsSync(socketPath);i++)await sleep(40);
@@ -41,7 +40,7 @@ const capacity=await request('POST','/v1/sessions/open',{agentId:agent2,openId:'
 if(capacity.status!==429||capacity.json.error!=='node_session_capacity_reached')throw new Error(`node_capacity_guard_failed:${capacity.status}:${capacity.json.error}`);
 const conflict=await request('POST','/v1/sessions/open',{agentId:agent1,openId:'open-v08-fleet-conflict12',label:'arm-conflict',workspace:'/tmp',nodeId:'arm'});
 if(conflict.status!==409||conflict.json.error!=='agent_session_target_conflict')throw new Error(`target_conflict_guard_failed:${conflict.status}:${conflict.json.error}`);
-const envelope=sealOperatorPayload({action:'exec_batch',operationId:'operation-v08-fleet-aaaaaaaa',cwd:'/tmp',script:"printf 'leaf-ok\\n'",sessionId,agentId:agent1,nodeId,requiredCapabilities:['filesystem'],waitMs:0,timeoutMs:10000,note:'fleet integration'});
+const envelope=cryptoFixture.seal({action:'exec_batch',operationId:'operation-v08-fleet-aaaaaaaa',cwd:'/tmp',script:"printf 'leaf-ok\\n'",sessionId,agentId:agent1,nodeId,requiredCapabilities:['filesystem'],waitMs:0,timeoutMs:10000,note:'fleet integration'});
 const started=await request('POST','/v1/execute',envelope);
 if(started.status!==200||started.json.job?.route!=='outbound-leaf'||started.json.job?.status!=='running'||!started.json.job?.commandId)throw new Error(`remote_start_failed:${started.status}:${started.json.error}`);
 const jobId=started.json.job.jobId,commandId=started.json.job.commandId;
@@ -56,7 +55,7 @@ const output=await request('GET',`/v1/output/${jobId}?agentId=${agent1}&stream=s
 if(output.status!==200||output.json.output!=='leaf-ok\n')throw new Error(`remote_output_wrong:${JSON.stringify(output.json.output)}`);
 const drained=await request('POST',`/v1/fleet/${nodeId}/drain`,{draining:true});
 if(drained.status!==200||drained.json.node?.draining!==true)throw new Error('drain_failed');
-const blockedEnvelope=sealOperatorPayload({action:'exec_batch',operationId:'operation-v08-fleet-drain12',cwd:'/tmp',script:'true',sessionId,agentId:agent1,nodeId,requiredCapabilities:['filesystem'],waitMs:0,timeoutMs:10000});
+const blockedEnvelope=cryptoFixture.seal({action:'exec_batch',operationId:'operation-v08-fleet-drain12',cwd:'/tmp',script:'true',sessionId,agentId:agent1,nodeId,requiredCapabilities:['filesystem'],waitMs:0,timeoutMs:10000});
 const blocked=await request('POST','/v1/execute',blockedEnvelope);
 if(blocked.status!==409||blocked.json.error!=='target_node_draining')throw new Error(`drain_exec_guard_failed:${blocked.status}:${blocked.json.error}`);
 const undrained=await request('POST',`/v1/fleet/${nodeId}/drain`,{draining:false});
