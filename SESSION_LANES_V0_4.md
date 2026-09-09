@@ -13,7 +13,7 @@ Purpose: let 1–3 ChatGPT agents work concurrently on the same VPS while keepin
 
 ## Capacity / resource rules
 - Normal target: 1–3 concurrent agents.
-- Configured ceiling: 8 live sessions (`OPERATOR_MAX_ACTIVE_SESSIONS`).
+- v0.4 originally used an 8-session ceiling; v0.5 current default is 5 live sessions (`OPERATOR_MAX_ACTIVE_SESSIONS`).
 - Idle grace: 30 minutes (`OPERATOR_SESSION_IDLE_MS`).
 - In-memory session history: 7 days (`OPERATOR_SESSION_HISTORY_MS`).
 - Running-job hold is not a permanent lease: current job timeout is capped at 2 hours.
@@ -35,3 +35,6 @@ VPS JSONL records session opened/resumed/expired/closed, hold start/release, ope
 - `action=session-close&sid=<sessionId>`
 
 Use the same `sessionId` for all exec/job/output activity in one logical agent lane.
+
+## v0.5 ownership extension
+The v0.4 lease/HOLD state machine remains unchanged. v0.5 layers `agentId` ownership on top: one agent owns one live session, same-agent repeat opens reuse that lane, and a different agent is rejected with `409 session_owner_mismatch`. Session-aware read tools also renew the lease. The current default live ceiling is 5. See `SESSION_OWNERSHIP_V0_5.md`.

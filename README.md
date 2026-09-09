@@ -1,21 +1,19 @@
 # GPT VPS Bridge
 
-Portable private operator bridge for the owner's VPS ARM.
+Portable private operator bridge and ARM control hub.
 
-`ChatGPT -> @Vercel -> Vercel Function -> MCP Gateway -> Host Executor (ubuntu) -> VPS ARM`
+`ChatGPT -> @Vercel -> Vercel Function -> ARM MCP Gateway -> selected Host Executor -> target node`
 
 ## Start here
+A fresh ChatGPT agent should fetch `https://gpt-vps-bridge.vercel.app/api/guide` and follow the returned session rules. Recovery docs: `CURRENT_STATE.md`, `AI_BRIDGE_GUIDE.md`, `SESSION_OWNERSHIP_V0_5.md`, `HUB_TOPOLOGY_V0_5.md`, `SESSION_LANES_V0_4.md`, `PORTABILITY.md`.
 
-A fresh ChatGPT session should fetch:
-`https://gpt-vps-bridge.vercel.app/api/guide`
+## Session-first operation (v0.5)
+Each agent generates one opaque random `agentId` and opens one server-issued session. One agent owns one live lane; a second agent cannot attach to that session (`409 session_owner_mismatch`). Re-opening while the same agent already has a live lane returns the same session rather than allocating another.
 
-Repository recovery docs:
-- `AI_BRIDGE_GUIDE.md`
-- `BRIDGE_V0_3_ARCHITECTURE_PLAN.md`
-- `PORTABILITY.md`
+Idle lease is 30 minutes. Any session-aware tool call renews it. Running jobs put the lane in HOLD so long builds survive Vercel/network loss; when the final job finishes, a fresh 30-minute reconnect grace begins. Default live ceiling is 5 sessions. There are intentionally no repo/file/service locks: use normal Git/worktree discipline.
 
-## Read-only endpoints
-
+## Read endpoints
+Discovery may call these without a session. After opening a lane, append `sid=<sessionId>&aid=<agentId>` so reads renew and audit the correct session:
 - `GET /api/ping`
 - `GET /api/vps-identity`
 - `GET /api/system-status`
@@ -26,35 +24,16 @@ Repository recovery docs:
 - `GET /api/git-status`
 - `GET /api/git-diff`
 
-## Operator endpoint
+## Operator transport
+All operator actions share one Vercel Function to stay below the Hobby function limit. Open with `action=session-open&p=<base64url {agentId,openId,label,workspace}>`; exec payloads include `agentId`, `sessionId`, stable `operationId`, `cwd`, `script`, timeout/wait and note. Resume/get/close/job/output carry `aid=<agentId>`.
 
-Vercel Hobby limits this project to 12 Serverless Functions, so all operator actions share one transport function:
-
-- `GET /api/operator?action=capabilities`
-- `GET /api/operator?action=exec&p=<base64url JSON>`
-- `GET /api/operator?action=job&id=<job_id>`
-- `GET /api/operator?action=output&id=<job_id>&stream=stdout&full=0&offset=0&limit=4194304`
-
-The `exec` action accepts one logical shell batch with stable `operationId`, `cwd`, `script`, timeout, wait window, session ID and audit note. Reuse the same `operationId` only for retries of the same logical action; changing the payload under the same ID is rejected. Build/test/Git/Docker/LXD/system work should be grouped naturally instead of split into artificial one-command calls.
-
-The host executor runs as `ubuntu`. It has the same normal host groups as an interactive operator shell and may use `sudo` on demand; the Internet-facing gateway remains unprivileged and has no Docker socket.
+Grouped shell batches are preferred for build/test/Git/Docker/LXD/system work. Reuse an `operationId` only to retry the exact same logical action; changed payloads under the same ID are rejected.
 
 ## Security
+Vercel OIDC authenticates the expected bridge. Privileged payloads use X25519 + HKDF-SHA256 + AES-256-GCM, short expiry, replay rejection and semantic idempotency. The public gateway remains unprivileged/read-only; the executor runs as `ubuntu` with sudo-on-demand. Never place raw credentials/tokens/private keys/cookies in URL query strings.
 
-- Vercel OIDC authenticates the expected team/project/environment.
-- Privileged command bodies are sealed with X25519 + HKDF-SHA256 + AES-256-GCM before reaching the gateway.
-- The executor enforces short expiry and replay rejection.
-- The host private key is never committed or copied into Vercel/gateway.
-- Raw secrets must never be placed in URL payloads; use server-side references.
+## Wall / audit
+`wall.dashboard.thaiduy.store` is NetBird-PIN protected and read-only. v0.5 shows `ALL` plus one tab per active/HOLD session, with node/session/agent metadata, stats, jobs, command and output. Browser/session views are bounded; authoritative full JSONL history is on the VPS with 50 MiB x 3 rotation.
 
-## Observability
-
-The read-only wall mirrors operator command/output history. Live memory is bounded; authoritative JSONL history stays on VPS disk with 50 MB × 3 rotation. Completed job memory is separately bounded and older full output can be reconstructed from disk.
-
-Production v0.4 adds managed multi-agent session lanes on top of the accepted v0.3 operator baseline. The host executor, gateway and Vercel path have passed end-to-end operator checks. The wall is routed through NetBird PIN authentication; RDC remains a temporary rescue path during soak.
-
-## Managed multi-agent sessions (v0.4)
-
-Each agent sends a stable `openId` for one connection attempt and receives a server-issued session before operator work; retries of the same open request are deduplicated. Idle lease is 30 minutes. A running build/test job automatically puts the session in hold, so a 60+ minute LightBI build survives network/Vercel disconnection; when the last job finishes, a fresh 30-minute reconnect grace starts. The live-session ceiling is 8 (target 1–3). There are no repo/file locks: agents coordinate through Git as normal.
-
-Session lifecycle and operator usage are written to VPS JSONL and can be aggregated with `action=session-stats`; Vercel emits structured request logs as the second-side transport trace. See `SESSION_LANES_V0_4.md`.
+## Hub direction
+Current node is `arm`. v0.5 carries `nodeId` in sessions/jobs/logs and treats ARM as the future routing/audit/wall hub. Planned topology is `GPT -> Vercel -> ARM hub -> {ARM, AMD, HomeLab...}`. Remote-node transport is deliberately not claimed implemented until a second executor exists; see `HUB_TOPOLOGY_V0_5.md`.

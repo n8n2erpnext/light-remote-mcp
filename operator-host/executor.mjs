@@ -20,8 +20,9 @@ const MAX_JOB_CACHE_AGE_MS = Number(process.env.OPERATOR_JOB_CACHE_AGE_MS || 6 *
 const OPERATION_DEDUPE_MS = Number(process.env.OPERATOR_DEDUPE_MS || 6 * 60 * 60 * 1000);
 const SESSION_IDLE_MS = Number(process.env.OPERATOR_SESSION_IDLE_MS || 30 * 60 * 1000);
 const SESSION_HISTORY_MS = Number(process.env.OPERATOR_SESSION_HISTORY_MS || 7 * 24 * 60 * 60 * 1000);
-const MAX_ACTIVE_SESSIONS = Number(process.env.OPERATOR_MAX_ACTIVE_SESSIONS || 8);
-const VERSION = '0.4.0';
+const MAX_ACTIVE_SESSIONS = Number(process.env.OPERATOR_MAX_ACTIVE_SESSIONS || 5);
+const NODE_ID = String(process.env.OPERATOR_NODE_ID || 'arm');
+const VERSION = '0.5.0';
 
 const jobs = new Map();
 const operationDedupe = new Map();
@@ -30,7 +31,7 @@ const ring = [];
 const sseClients = new Set();
 let ringBytes = 0;
 let sequence = 0;
-const sessions = new SessionRegistry({ idleMs:SESSION_IDLE_MS, maxActive:MAX_ACTIVE_SESSIONS, historyMs:SESSION_HISTORY_MS, emit:event => pushEvent(event) });
+const sessions = new SessionRegistry({ idleMs:SESSION_IDLE_MS, maxActive:MAX_ACTIVE_SESSIONS, historyMs:SESSION_HISTORY_MS, nodeId:NODE_ID, emit:event => pushEvent(event) });
 
 fs.mkdirSync(LOG_DIR, { recursive: true });
 function redact(value) {
@@ -126,7 +127,7 @@ function jobView(job) {
   const out = job.stdout.snapshot();
   const err = job.stderr.snapshot();
   return {
-    jobId: job.id, requestId: job.requestId, operationId: job.operationId, sessionId: job.sessionId, status: job.status,
+    jobId: job.id, requestId: job.requestId, operationId: job.operationId, sessionId: job.sessionId, agentId: job.agentId, nodeId: job.nodeId, status: job.status,
     cwd: job.cwd, script: redact(job.script), note: redact(job.note || ''), pid: job.pid || null,
     startedAt: job.startedAt, finishedAt: job.finishedAt || null, exitCode: job.exitCode,
     signal: job.signal || null, durationMs: job.finishedAt ? job.finishedAt - job.startedAt : Date.now() - job.startedAt,
@@ -162,7 +163,7 @@ function finishJob(job, exitCode, signal) {
   job.status = exitCode === 0 ? 'ok' : job.timedOut ? 'timeout' : 'error';
   clearTimeout(job.timer);
   sessions.finishJob(job.sessionId, job.id, job.status);
-  pushEvent({ type: 'job_finished', jobId: job.id, requestId: job.requestId, operationId: job.operationId, sessionId: job.sessionId,
+  pushEvent({ type: 'job_finished', jobId: job.id, requestId: job.requestId, operationId: job.operationId, sessionId: job.sessionId, agentId:job.agentId, nodeId:job.nodeId,
     status: job.status, exitCode, signal: signal || null, durationMs: job.finishedAt - job.startedAt });
   for (const resolve of job.waiters.splice(0)) resolve();
   pruneJobs(job.finishedAt);
@@ -172,7 +173,7 @@ function emitStream(job, stream, data) {
   const text = data.toString('utf8');
   job[stream].add(text);
   for (let i = 0; i < text.length; i += 16384) {
-    pushEvent({ type: stream, jobId: job.id, requestId: job.requestId, operationId: job.operationId, sessionId: job.sessionId,
+    pushEvent({ type: stream, jobId: job.id, requestId: job.requestId, operationId: job.operationId, sessionId: job.sessionId, agentId:job.agentId, nodeId:job.nodeId,
       status: 'running', chunk: redact(text.slice(i, i + 16384)) });
   }
 }
@@ -188,8 +189,9 @@ function startJob(payload, requestId) {
   const stat = fs.statSync(cwd);
   if (!stat.isDirectory()) throw new Error('cwd_not_directory');
   const timeoutMs = Math.max(1000, Math.min(Number(payload.timeoutMs) || 600000, 7200000));
-  const requestedSessionId = String(payload.sessionId || 'default');
-  const session = sessions.ensure(requestedSessionId, { implicit:true });
+  const requestedSessionId = String(payload.sessionId || '');
+  const agentId = String(payload.agentId || '').trim();
+  const session = sessions.ensure(requestedSessionId, { agentId });
   sessions.record(session.id, 'toolCalls');
   sessions.record(session.id, 'execCalls');
   const sessionId = session.id;
@@ -201,14 +203,14 @@ function startJob(payload, requestId) {
     const prior = jobs.get(existing.jobId); if (prior) return prior; operationDedupe.delete(operationId);
   }
   const job = {
-    id: crypto.randomUUID(), requestId, operationId, operationFingerprint: fingerprint, sessionId, note,
+    id: crypto.randomUUID(), requestId, operationId, operationFingerprint: fingerprint, sessionId, agentId:session.agentId, nodeId:session.nodeId, note,
     cwd, script, status: 'running', startedAt: Date.now(), finishedAt: null, exitCode: null, signal: null,
     timedOut: false, stdout: createAccumulator(), stderr: createAccumulator(), waiters: [], pid: null, timer: null
   };
   jobs.set(job.id, job);
   sessions.attachJob(job.sessionId, job.id);
   operationDedupe.set(operationId, { jobId: job.id, fingerprint, expiresAt: Date.now() + OPERATION_DEDUPE_MS });
-  pushEvent({ type: 'job_started', jobId: job.id, requestId, operationId: job.operationId, sessionId: job.sessionId, status: 'running',
+  pushEvent({ type: 'job_started', jobId: job.id, requestId, operationId: job.operationId, sessionId: job.sessionId, agentId:job.agentId, nodeId:job.nodeId, status: 'running',
     cwd, script: redact(script), note: redact(job.note), timeoutMs });
   const child = spawn('/bin/bash', ['-lc', script], { cwd, env: { ...process.env, GPT_OPERATOR_SESSION: job.sessionId }, stdio: ['ignore', 'pipe', 'pipe'] });
   job.pid = child.pid || null;
@@ -246,6 +248,23 @@ function readLogText(file) {
   return file.endsWith('.gz') ? zlib.gunzipSync(data).toString('utf8') : data.toString('utf8');
 }
 
+function jobOwnerFromDisk(jobId) {
+  for (const file of logFilesOldestFirst()) {
+    for (const line of readLogText(file).split('\n')) {
+      if (!line) continue;
+      let event; try { event = JSON.parse(line); } catch { continue; }
+      if (event.jobId === jobId && event.type === 'job_started') return { sessionId:event.sessionId, agentId:event.agentId || null, nodeId:event.nodeId || 'arm' };
+    }
+  }
+  return null;
+}
+function assertDiskJobOwner(jobId, agentId) {
+  const owner=jobOwnerFromDisk(jobId);
+  if (!owner) return null;
+  if (!agentId || owner.agentId !== agentId) throw new SessionError('session_owner_mismatch',409);
+  return owner;
+}
+
 function fullOutputFromDisk(jobId, stream) {
   let output = '';
   for (const file of logFilesOldestFirst()) {
@@ -262,7 +281,7 @@ function sessionStatsFromDisk(hours = 168) {
   const cutoff = Date.now() - Math.max(1, Math.min(Number(hours) || 168, 24 * 90)) * 3600000;
   const bySession = new Map();
   const get = id => {
-    if (!bySession.has(id)) bySession.set(id, { sessionId:id, firstSeenAt:null, lastSeenAt:null, label:'', workspace:'', opens:0, resumes:0, expires:0, closes:0, holdStarts:0, holdReleases:0, toolCalls:0, execCalls:0, jobReads:0, outputReads:0 });
+    if (!bySession.has(id)) bySession.set(id, { sessionId:id, agentId:'', nodeId:'arm', firstSeenAt:null, lastSeenAt:null, label:'', workspace:'', opens:0, resumes:0, expires:0, closes:0, holdStarts:0, holdReleases:0, toolCalls:0, execCalls:0, jobReads:0, outputReads:0 });
     return bySession.get(id);
   };
   for (const file of logFilesOldestFirst()) {
@@ -271,7 +290,7 @@ function sessionStatsFromDisk(hours = 168) {
       let e; try { e=JSON.parse(line); } catch { continue; }
       const at=Date.parse(e.at || e.ts || 0); if (!Number.isFinite(at) || at < cutoff || !e.sessionId) continue;
       const row=get(e.sessionId); row.firstSeenAt=row.firstSeenAt==null?at:Math.min(row.firstSeenAt,at); row.lastSeenAt=Math.max(row.lastSeenAt||0,at);
-      if (e.type==='session_opened') { row.opens++; row.label=e.label||row.label; row.workspace=e.workspace||row.workspace; }
+      if (e.type==='session_opened') { row.opens++; row.label=e.label||row.label; row.workspace=e.workspace||row.workspace; row.agentId=e.agentId||row.agentId||''; row.nodeId=e.nodeId||row.nodeId||'arm'; }
       else if (e.type==='session_resumed') row.resumes++;
       else if (e.type==='session_expired') row.expires++;
       else if (e.type==='session_closed') row.closes++;
@@ -304,7 +323,7 @@ async function readJson(req) {
 
 function capabilities() {
   return {
-    service: 'gpt-vps-operator', version: VERSION, user: process.env.USER || 'ubuntu',
+    service: 'gpt-vps-operator', version: VERSION, nodeId:NODE_ID, user: process.env.USER || 'ubuntu',
     execution: ['exec_batch', 'async_jobs', 'output_retrieval', 'managed_sessions'],
     expectedHostCapabilities: ['filesystem', 'git', 'build-test', 'docker', 'lxd', 'systemctl', 'sudo-on-demand'],
     socket: SOCKET_PATH, logFile: LOG_FILE,
@@ -329,7 +348,7 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'POST' && url.pathname === '/v1/sessions/open') {
       const body = await readJson(req);
-      return sendJson(res, 200, { ok:true, session:sessions.open({ openId:body.openId, label:body.label, workspace:body.workspace }) });
+      return sendJson(res, 200, { ok:true, session:sessions.open({ openId:body.openId, agentId:body.agentId, label:body.label, workspace:body.workspace }) });
     }
     if (req.method === 'GET' && url.pathname === '/v1/sessions') {
       return sendJson(res, 200, { ok:true, active:sessions.activeCount(), maxActive:MAX_ACTIVE_SESSIONS, sessions:sessions.list() });
@@ -337,12 +356,15 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && url.pathname === '/v1/session-stats') {
       return sendJson(res, 200, { ok:true, ...sessionStatsFromDisk(url.searchParams.get('hours')) });
     }
-    const sessionAction = url.pathname.match(/^\/v1\/sessions\/([A-Za-z0-9._:-]+)(?:\/(resume|close))?$/);
+    const sessionAction = url.pathname.match(/^\/v1\/sessions\/([A-Za-z0-9._:-]+)(?:\/(resume|close|touch))?$/);
     if (sessionAction) {
       const sid=sessionAction[1], action=sessionAction[2] || 'get';
-      if (req.method === 'GET' && action === 'get') return sendJson(res, 200, { ok:true, session:sessions.get(sid) });
-      if (req.method === 'POST' && action === 'resume') return sendJson(res, 200, { ok:true, session:sessions.resume(sid) });
-      if (req.method === 'POST' && action === 'close') return sendJson(res, 200, { ok:true, session:sessions.close(sid) });
+      const body = req.method === 'POST' ? await readJson(req) : null;
+      const aid = body?.agentId || url.searchParams.get('agentId');
+      if (req.method === 'GET' && action === 'get') return sendJson(res, 200, { ok:true, session:sessions.get(sid, aid) });
+      if (req.method === 'POST' && action === 'resume') return sendJson(res, 200, { ok:true, session:sessions.resume(sid, aid) });
+      if (req.method === 'POST' && action === 'close') return sendJson(res, 200, { ok:true, session:sessions.close(sid, aid) });
+      if (req.method === 'POST' && action === 'touch') return sendJson(res, 200, { ok:true, session:sessions.touch(sid, aid, body?.action || 'tool') });
     }
     if (req.method === 'POST' && url.pathname === '/v1/execute') {
       const envelope = await readJson(req);
@@ -356,7 +378,8 @@ const server = http.createServer(async (req, res) => {
     const jobMatch = url.pathname.match(/^\/v1\/jobs\/([0-9a-f-]+)$/i);
     if (req.method === 'GET' && jobMatch) {
       const job = jobs.get(jobMatch[1]);
-      if (job) { sessions.record(job.sessionId, 'toolCalls'); sessions.record(job.sessionId, 'jobReads'); }
+      const aid = url.searchParams.get('agentId');
+      if (job) { sessions.ensure(job.sessionId, { agentId:aid }); sessions.record(job.sessionId, 'toolCalls'); sessions.record(job.sessionId, 'jobReads'); }
       return job ? sendJson(res, 200, { ok: true, job: jobView(job) }) : sendJson(res, 404, { ok: false, error: 'job_not_found' });
     }
     const outputMatch = url.pathname.match(/^\/v1\/output\/([0-9a-f-]+)$/i);
@@ -366,7 +389,9 @@ const server = http.createServer(async (req, res) => {
       const offset = Math.max(0, Number(url.searchParams.get('offset')) || 0);
       const limit = Math.max(1, Math.min(Number(url.searchParams.get('limit')) || MAX_MEMORY_OUTPUT, 8 * 1024 * 1024));
       const job = jobs.get(outputMatch[1]);
-      if (job) { sessions.record(job.sessionId, 'toolCalls'); sessions.record(job.sessionId, 'outputReads'); }
+      const aid = url.searchParams.get('agentId');
+      if (job) { sessions.ensure(job.sessionId, { agentId:aid }); sessions.record(job.sessionId, 'toolCalls'); sessions.record(job.sessionId, 'outputReads'); }
+      else assertDiskJobOwner(outputMatch[1], aid);
       let text;
       if (full) text = fullOutputFromDisk(outputMatch[1], stream);
       else if (job) text = job[stream].snapshot().text;
