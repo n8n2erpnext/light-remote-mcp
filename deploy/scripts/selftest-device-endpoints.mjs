@@ -9,7 +9,7 @@ fs.mkdirSync(logDir,{recursive:true}); fs.mkdirSync(stateDir,{recursive:true});
 const env={...process.env,OPERATOR_SOCKET:socket,OPERATOR_LOG_DIR:logDir,OPERATOR_STATE_DIR:stateDir,
   OPERATOR_KEY_FILE:'/home/ubuntu/.config/gpt-vps-operator/operator.private.json',OPERATOR_ACCOUNT_ID:'acct-test',
   OPERATOR_DEVICE_ID:'device-test',OPERATOR_NODE_ID:'arm-test',OPERATOR_DEVICE_NAME:'ARM Test',
-  OPERATOR_SESSION_IDLE_MS:'2000',OPERATOR_SESSION_MIN_IDLE_MS:'500',OPERATOR_SESSION_MAX_IDLE_MS:'5000'};
+  OPERATOR_SESSION_IDLE_MS:'2000',OPERATOR_SESSION_MIN_IDLE_MS:'500',OPERATOR_SESSION_MAX_IDLE_MS:'14400000'};
 const child=spawn(process.execPath,[`${root}/operator-host/executor.mjs`],{cwd:root,env,stdio:['ignore','pipe','pipe']});
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 for(let i=0;i<80&&!fs.existsSync(socket);i++) await sleep(50);
@@ -18,10 +18,10 @@ function request(method,target,body){return new Promise((resolve,reject)=>{const
   const req=http.request({socketPath:socket,method,path:target,headers:payload?{'content-type':'application/json','content-length':payload.length}:{}},res=>{let text='';res.on('data',c=>text+=c);res.on('end',()=>resolve({status:res.statusCode,json:JSON.parse(text)}));});
   req.on('error',reject); if(payload)req.write(payload); req.end();});}
 try {
-  const cap=await request('GET','/v1/capabilities'); if(cap.status!==200||cap.json.deviceId!=='device-test') throw new Error('capabilities_device_missing');
+  const cap=await request('GET','/v1/capabilities'); if(cap.status!==200||cap.json.deviceId!=='device-test'||cap.json.sessionLeasePresets?.['1h']!==3600000) throw new Error('capabilities_device_missing');
   const before=await request('GET','/v1/devices'); if(before.status!==200||before.json.devices?.[0]?.state!=='online'||before.json.devices[0].activeSessions!==0) throw new Error('device_list_initial_failed');  const aid='agent-device-endpoint-test-aaaaaaaa', openId='device-endpoint-open-test-aaaaaaaa';
-  const opened=await request('POST','/v1/sessions/open',{agentId:aid,openId,label:'device endpoint',workspace:'/tmp',leaseMs:1200});
-  if(opened.status!==200||opened.json.session.leaseMs!==1200||opened.json.session.deviceId!=='device-test') throw new Error('session_device_lease_failed');
+  const opened=await request('POST','/v1/sessions/open',{agentId:aid,openId,label:'device endpoint',workspace:'/tmp',leaseMs:1200,leasePreset:'custom'});
+  if(opened.status!==200||opened.json.session.leaseMs!==1200||opened.json.session.leasePreset!=='custom'||opened.json.session.deviceId!=='device-test') throw new Error('session_device_lease_failed');
   const sid=opened.json.session.sessionId;
   const during=await request('GET','/v1/devices/device-test');
   if(during.status!==200||during.json.device.activeSessions!==1||during.json.device.accountId!=='acct-test') throw new Error('device_active_session_projection_failed');

@@ -3,7 +3,7 @@
 Updated: 2026-09-09
 Status: branch foundation; not deployed to production
 Branch: `codex/v0.6-device-presence`
-Production remains: `v0.5.0` on `main`
+Production remains: `v0.5.2` on `main`
 
 ## Purpose
 v0.6 separates a device being online from an operator session being alive.
@@ -50,18 +50,21 @@ v0.6 keeps the v0.5 default 30-minute lease but makes the lease a per-session va
 
 Current branch defaults:
 - default: 30 minutes
+- named presets: `30m`, `1h`, `3h`
+- `custom` accepts an explicit `leaseMs` within policy bounds
+- `Always Keep Alive` is explicitly rejected as future-only, not silently emulated
 - minimum: 5 minutes in normal runtime
 - maximum: 24 hours
 - active jobs still force HOLD
 - when the final active job completes, the same session-specific lease starts fresh
 
-The session view and session audit events now carry `accountId`, `deviceId`, `nodeId` and `leaseMs`. One-agent/one-live-session ownership remains unchanged.
+The session view and session audit events now carry `accountId`, `deviceId`, `nodeId`, `leaseMs` and `leasePreset`. One-agent/one-live-session ownership remains unchanged.
 
 ## Read-only surfaces
 Executor:
 - `GET /v1/devices`
 - `GET /v1/devices/:deviceId`
-- `POST /v1/sessions/open` accepts optional `leaseMs`
+- `POST /v1/sessions/open` accepts optional `leasePreset` (`30m` / `1h` / `3h` / `custom`) plus `leaseMs` for custom leases
 
 Gateway/Vercel branch surfaces mirror the device reads. Wall receives `/api/devices` behind Wall auth and shows device state separately from session tabs.
 
@@ -76,12 +79,16 @@ Wall device refresh is read-only. It does not call session touch/resume and ther
 - persisted state reload
 
 `deploy/scripts/selftest-device-endpoints.mjs` proves executor integration:
-- capabilities expose device identity
+- capabilities expose device identity and lease presets
 - `/v1/devices` returns the registered device online
 - custom session lease is accepted within policy bounds
 - device active-session count changes 0 -> 1 -> 0
 - session carries device/account identity
 - device state file is created and reloadable
+
+`deploy/scripts/selftest-lease-presets.mjs` proves `30m` / `1h` / `3h` / `custom`, conflict rejection, missing custom duration rejection, invalid preset rejection, and explicit future-only rejection for Always Keep Alive.
+
+`deploy/scripts/selftest-wall-node-tabs.mjs` proves NODE tabs select a node lane, filter jobs by `nodeId`, render node/device metadata, and rerender after device refresh. `deploy/scripts/selftest-vercel-function-budget.mjs` keeps the top-level Vercel API at or below the 12-function project ceiling; the current branch uses 11.
 
 Existing v0.5 crypto, replay, tamper, operation-id idempotency, session ownership/HOLD/expiry/capacity and Wall realtime tests remain regression requirements.
 

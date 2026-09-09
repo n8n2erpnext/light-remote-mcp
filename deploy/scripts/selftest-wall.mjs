@@ -9,7 +9,7 @@ if (!html.includes("/api/sessions") || !html.includes("/api/devices") || !html.i
   throw new Error('wall device/session/SSE endpoints missing');
 }
 const inline = match[1];
-for (const token of ['seenEvents', 'scheduleSessionRefresh', 'refreshDevices', 'probeActivityHead', 'catchUpActivity', '/api/activity?limit=1']) {
+for (const token of ['seenEvents', 'scheduleSessionRefresh', 'refreshDevices', 'leasePreset', 'probeActivityHead', 'catchUpActivity', '/api/activity?limit=1']) {
   if (!inline.includes(token)) throw new Error(`wall realtime safeguard missing: ${token}`);
 }
 if (inline.includes('setInterval(refreshSessions')) {

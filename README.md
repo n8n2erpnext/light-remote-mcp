@@ -25,7 +25,7 @@ v0.5.1 requires an authenticated bridge caller for every Vercel read/operator pr
 - `GET /api/git-diff`
 
 ## Operator transport
-All operator actions share one Vercel Function to stay below the Hobby function limit. Open with `action=session-open&p=<base64url {agentId,openId,label,workspace}>`; exec payloads include `agentId`, `sessionId`, stable `operationId`, `cwd`, `script`, timeout/wait and note. Resume/get/close/job/output carry `aid=<agentId>`.
+All operator actions share one Vercel Function to stay below the 12-function project ceiling; `deploy/scripts/selftest-vercel-function-budget.mjs` guards that budget in regression. Open with `action=session-open&p=<base64url {agentId,openId,label,workspace}>`; exec payloads include `agentId`, `sessionId`, stable `operationId`, `cwd`, `script`, timeout/wait and note. Resume/get/close/job/output carry `aid=<agentId>`.
 
 Grouped shell batches are preferred for build/test/Git/Docker/LXD/system work. Reuse an `operationId` only to retry the exact same logical action; changed payloads under the same ID are rejected. v0.6 adds structured POST/body transport for operator payloads and keeps GET/query/base64 only as a legacy small-call compatibility lane with a strict size ceiling. RDC remains the rescue lane for self-disruptive deploy/rebuild work.
 

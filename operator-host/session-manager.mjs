@@ -1,5 +1,7 @@
 import crypto from 'node:crypto';
 
+export const SESSION_LEASE_PRESETS = Object.freeze({ '30m':30*60*1000, '1h':60*60*1000, '3h':3*60*60*1000 });
+
 export class SessionError extends Error {
   constructor(message, status = 400) { super(message); this.status = status; }
 }
@@ -30,6 +32,18 @@ export class SessionRegistry {
     if (!Number.isFinite(lease) || lease < this.minIdleMs || lease > this.maxIdleMs) throw new SessionError('invalid_session_lease');
     return Math.round(lease);
   }
+  _leaseSpec(value, preset) {
+    const name=String(preset||'').trim().toLowerCase();
+    if (!name) return { leaseMs:this._lease(value), leasePreset:(value == null || value === '') ? 'default' : 'custom' };
+    if (name === 'always' || name === 'always-keep-alive' || name === 'always_keep_alive') throw new SessionError('session_lease_preset_not_available');
+    if (name === 'custom') {
+      if (value == null || value === '') throw new SessionError('custom_session_lease_required');
+      return { leaseMs:this._lease(value), leasePreset:'custom' };
+    }
+    if (!(name in SESSION_LEASE_PRESETS)) throw new SessionError('invalid_session_lease_preset');
+    if (value != null && value !== '') throw new SessionError('session_lease_preset_conflict');
+    return { leaseMs:this._lease(SESSION_LEASE_PRESETS[name]), leasePreset:name };
+  }
   _state(s, now = Date.now()) {
     if (s.closedAt) return 'closed';
     if (s.activeJobs.size) return 'hold';
@@ -37,7 +51,7 @@ export class SessionRegistry {
     if (now - s.lastSeenAt >= s.leaseMs) {
       s.expiredAt = now;
       if (this.agentSessions.get(s.agentId) === s.id) this.agentSessions.delete(s.agentId);
-      this.emit({ type:'session_expired', accountId:s.accountId, deviceId:s.deviceId, sessionId:s.id, agentId:s.agentId, nodeId:s.nodeId, status:'expired', leaseMs:s.leaseMs });
+      this.emit({ type:'session_expired', accountId:s.accountId, deviceId:s.deviceId, sessionId:s.id, agentId:s.agentId, nodeId:s.nodeId, status:'expired', leaseMs:s.leaseMs, leasePreset:s.leasePreset });
       return 'expired';
     }
     return 'active';
@@ -45,7 +59,7 @@ export class SessionRegistry {
   _view(s, now = Date.now()) {
     const state = this._state(s, now);
     return {
-      accountId:s.accountId, deviceId:s.deviceId, sessionId:s.id, agentId:s.agentId, nodeId:s.nodeId, openId:s.openId || null, label:s.label, workspace:s.workspace, implicit:s.implicit, state, leaseMs:s.leaseMs,
+      accountId:s.accountId, deviceId:s.deviceId, sessionId:s.id, agentId:s.agentId, nodeId:s.nodeId, openId:s.openId || null, label:s.label, workspace:s.workspace, implicit:s.implicit, state, leaseMs:s.leaseMs, leasePreset:s.leasePreset,
       createdAt:s.createdAt, lastSeenAt:s.lastSeenAt, closedAt:s.closedAt, expiredAt:s.expiredAt,
       expiresAt: state === 'active' ? s.lastSeenAt + s.leaseMs : null,
       holdReason: state === 'hold' ? 'active_job' : null, activeJobs:[...s.activeJobs],
@@ -81,7 +95,7 @@ export class SessionRegistry {
     let n=0; for (const s of this.sessions.values()) if (s.nodeId===nid && ['active','hold'].includes(this._state(s, now))) n++;
     return n;
   }
-  open({ id = null, openId = null, agentId, label = '', workspace = '', implicit = false, leaseMs = null } = {}) {
+  open({ id = null, openId = null, agentId, label = '', workspace = '', implicit = false, leaseMs = null, leasePreset = null } = {}) {
     this.prune();
     const aid = String(agentId || '').trim();
     if (!this._validAgent(aid)) throw new SessionError('invalid_agent_id');
@@ -107,12 +121,12 @@ export class SessionRegistry {
     const sessionId = id ? String(id) : this._id();
     if (!this._validId(sessionId)) throw new SessionError('invalid_session_id');
     if (this.sessions.has(sessionId)) throw new SessionError('session_already_exists', 409);
-    const now=Date.now(), effectiveLeaseMs=this._lease(leaseMs);
-    const s={ id:sessionId, accountId:this.accountId, deviceId:this.deviceId, agentId:aid, nodeId:this.nodeId, openId:stableOpenId, label:String(label||'').slice(0,120), workspace:String(workspace||'').slice(0,512), implicit:Boolean(implicit), leaseMs:effectiveLeaseMs,
+    const now=Date.now(), leaseSpec=this._leaseSpec(leaseMs, leasePreset), effectiveLeaseMs=leaseSpec.leaseMs;
+    const s={ id:sessionId, accountId:this.accountId, deviceId:this.deviceId, agentId:aid, nodeId:this.nodeId, openId:stableOpenId, label:String(label||'').slice(0,120), workspace:String(workspace||'').slice(0,512), implicit:Boolean(implicit), leaseMs:effectiveLeaseMs, leasePreset:leaseSpec.leasePreset,
       createdAt:now, lastSeenAt:now, closedAt:null, expiredAt:null, activeJobs:new Set(), connectCount:1, reconnectCount:0,
       stats:{ toolCalls:0, execCalls:0, jobsStarted:0, jobsFinished:0, outputReads:0, jobReads:0, errors:0 } };
     this.sessions.set(sessionId,s); this.agentSessions.set(aid, sessionId); if (stableOpenId) this.openDedupe.set(stableOpenId, sessionId);
-    this.emit({ type:'session_opened', accountId:s.accountId, deviceId:s.deviceId, sessionId, agentId:aid, nodeId:s.nodeId, openId:stableOpenId, status:'active', label:s.label, workspace:s.workspace, implicit:s.implicit, leaseMs:s.leaseMs });
+    this.emit({ type:'session_opened', accountId:s.accountId, deviceId:s.deviceId, sessionId, agentId:aid, nodeId:s.nodeId, openId:stableOpenId, status:'active', label:s.label, workspace:s.workspace, implicit:s.implicit, leaseMs:s.leaseMs, leasePreset:s.leasePreset });
     return this._view(s, now);
   }
   ensure(id, { agentId, implicit = false } = {}) {
@@ -186,6 +200,6 @@ export class SessionRegistry {
   finishJob(id, jobId, jobStatus) {
     const s=this.sessions.get(String(id||'')); if (!s) return;
     s.activeJobs.delete(jobId); s.stats.jobsFinished++; s.lastSeenAt=Date.now();
-    if (!s.activeJobs.size) this.emit({ type:'session_hold_released', accountId:s.accountId, deviceId:s.deviceId, sessionId:s.id, agentId:s.agentId, nodeId:s.nodeId, jobId, status:'active', jobStatus, graceMs:s.leaseMs });
+    if (!s.activeJobs.size) this.emit({ type:'session_hold_released', accountId:s.accountId, deviceId:s.deviceId, sessionId:s.id, agentId:s.agentId, nodeId:s.nodeId, jobId, status:'active', jobStatus, graceMs:s.leaseMs, leasePreset:s.leasePreset });
   }
 }

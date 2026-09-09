@@ -6,7 +6,7 @@ import zlib from 'node:zlib';
 import crypto from 'node:crypto';
 import { decryptEnvelope as decryptSealedEnvelope } from './crypto.mjs';
 import { spawn } from 'node:child_process';
-import { SessionRegistry, SessionError } from './session-manager.mjs';
+import { SessionRegistry, SessionError, SESSION_LEASE_PRESETS } from './session-manager.mjs';
 import { DeviceRegistry, DeviceError } from './device-registry.mjs';
 
 const SOCKET_PATH = process.env.OPERATOR_SOCKET || '/run/gpt-vps-operator/operator.sock';
@@ -350,6 +350,7 @@ function capabilities() {
     expectedHostCapabilities: HOST_CAPABILITIES,
     socket: SOCKET_PATH, logFile: LOG_FILE,
     presence: { ttlMs:DEVICE_PRESENCE_TTL_MS, heartbeatMs:DEVICE_HEARTBEAT_MS },
+    sessionLeasePresets: SESSION_LEASE_PRESETS,
     limits: { maxScriptBytes: 1024 * 1024, maxTimeoutMs: 7200000, memoryOutputBytes: MAX_MEMORY_OUTPUT,
       ringBytes: MAX_RING_BYTES, ringEvents: MAX_RING_EVENTS, jobCacheBytes: MAX_JOB_CACHE_BYTES, jobCacheAgeMs: MAX_JOB_CACHE_AGE_MS, operationDedupeMs: OPERATION_DEDUPE_MS,
       sessionIdleMs: SESSION_IDLE_MS, sessionMinIdleMs:SESSION_MIN_IDLE_MS, sessionMaxIdleMs:SESSION_MAX_IDLE_MS, sessionHistoryMs: SESSION_HISTORY_MS, maxActiveSessions: MAX_ACTIVE_SESSIONS }
@@ -378,10 +379,10 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'POST' && url.pathname === '/v1/sessions/open') {
       const body = await readJson(req);
-      return sendJson(res, 200, { ok:true, session:sessions.open({ openId:body.openId, agentId:body.agentId, label:body.label, workspace:body.workspace, leaseMs:body.leaseMs }) });
+      return sendJson(res, 200, { ok:true, session:sessions.open({ openId:body.openId, agentId:body.agentId, label:body.label, workspace:body.workspace, leaseMs:body.leaseMs, leasePreset:body.leasePreset }) });
     }
     if (req.method === 'GET' && url.pathname === '/v1/sessions') {
-      return sendJson(res, 200, { ok:true, active:sessions.activeCount(), maxActive:MAX_ACTIVE_SESSIONS, defaultLeaseMs:SESSION_IDLE_MS, minLeaseMs:SESSION_MIN_IDLE_MS, maxLeaseMs:SESSION_MAX_IDLE_MS, sessions:sessions.list() });
+      return sendJson(res, 200, { ok:true, active:sessions.activeCount(), maxActive:MAX_ACTIVE_SESSIONS, defaultLeaseMs:SESSION_IDLE_MS, minLeaseMs:SESSION_MIN_IDLE_MS, maxLeaseMs:SESSION_MAX_IDLE_MS, leasePresets:SESSION_LEASE_PRESETS, sessions:sessions.list() });
     }
     if (req.method === 'GET' && url.pathname === '/v1/session-stats') {
       return sendJson(res, 200, { ok:true, ...sessionStatsFromDisk(url.searchParams.get('hours')) });
