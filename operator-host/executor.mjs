@@ -389,6 +389,10 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && url.pathname === '/v1/enrollments') {
       return sendJson(res, 200, { ok:true, pending:enrollments.listPending() });
     }
+    if (req.method === 'POST' && url.pathname === '/v1/enrollments/cancel') {
+      const body = await readJson(req);
+      return sendJson(res, 200, { ok:true, enrollment:enrollments.cancel(body) });
+    }
     if (req.method === 'POST' && url.pathname === '/v1/enrollments/approve') {
       const body = await readJson(req);
       const approval = enrollments.approve(body);

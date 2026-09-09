@@ -175,6 +175,7 @@ app.post('/operator/enrollments/begin', softRateLimit, requireVercelIdentity, (r
 app.post('/operator/enrollments/poll', softRateLimit, requireVercelIdentity, (req, res) => proxyOperatorJson(res, 'POST', '/v1/enrollments/poll', req.body || {}));
 app.post('/operator/devices/:id/heartbeat', softRateLimit, requireVercelIdentity, (req, res) => proxyOperatorJson(res, 'POST', `/v1/devices/${encodeURIComponent(req.params.id)}/heartbeat`, req.body || {}));
 app.get('/operator/enrollments', softRateLimit, requireOperatorIdentity, (_req, res) => proxyOperatorJson(res, 'GET', '/v1/enrollments'));
+app.post('/operator/enrollments/cancel', softRateLimit, requireOperatorIdentity, (req, res) => proxyOperatorJson(res, 'POST', '/v1/enrollments/cancel', req.body || {}));
 app.post('/operator/enrollments/approve', softRateLimit, requireOperatorIdentity, (req, res) => proxyOperatorJson(res, 'POST', '/v1/enrollments/approve', { ...(req.body || {}), accountId:OPERATOR_ACCOUNT_ID }));
 app.post('/operator', softRateLimit, requireOperatorIdentity, (req, res) => proxyOperatorJson(res, 'POST', '/v1/execute', req.body));
 app.get('/operator/capabilities', softRateLimit, requireOperatorIdentity, (_req, res) => proxyOperatorJson(res, 'GET', '/v1/capabilities'));

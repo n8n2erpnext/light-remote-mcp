@@ -94,3 +94,7 @@ Pending requests and approved bindings survive executor restart. Enrollment sign
 - Capability-governed leaf execution adapters.
 
 v0.7 must not claim v0.8 fleet execution until a real second node is enrolled and routed end-to-end.
+
+## Pending enrollment cancellation
+
+Owner-authenticated `enrollment-cancel` immediately invalidates an abandoned pending/replaced enrollment and clears its one-time code material. Live acceptance proofs use cancel-before-approval or revoke-after-approval cleanup so test devices do not accumulate in the registry.

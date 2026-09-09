@@ -46,6 +46,13 @@ console.log('enrollment-code-one-time=PASS');
 console.log('enrollment-secret-storage=PASS');
 console.log('enrollment-capability-subset=PASS');
 console.log('enrollment-certificate-signature=PASS');
+
+const cancelKeys=crypto.generateKeyPairSync('ed25519');
+const cancellable=registry.begin({publicIdentityKey:cancelKeys.publicKey.export({format:'der',type:'spki'}).toString('base64'),displayName:'Cancel Device',platform:'linux',architecture:'arm64',capabilities:['git'],sourceHash:'b'.repeat(64)});
+const cancelled=registry.cancel({enrollmentId:cancellable.enrollmentId});
+if(cancelled.state!=='cancelled'||registry.poll({enrollmentId:cancellable.enrollmentId,pollToken:cancellable.pollToken}).state!=='cancelled') throw new Error('enrollment_cancel_failed');
+try{registry.approve({code:cancellable.deviceCode,accountId:'self-hosted-local',approvedCapabilities:['git']});throw new Error('cancelled_code_accepted');}catch(e){if(e.status!==404)throw e;}
+console.log('enrollment-cancel=PASS');
 console.log('device-heartbeat-proof-replay=PASS');
 console.log('device-heartbeat-no-escalation=PASS');
 const limitDir=fs.mkdtempSync(path.join(os.tmpdir(),'gpt-enrollment-source-limit-'));

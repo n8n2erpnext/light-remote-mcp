@@ -187,6 +187,17 @@ export class EnrollmentRegistry {
     return { enrollmentId:row.enrollmentId, state:row.state };
   }
 
+  cancel(input = {}) {
+    this._prune();
+    const enrollmentId=String(input.enrollmentId||'');
+    const row=this.pending.get(enrollmentId);
+    if (!row) throw new EnrollmentError('enrollment_not_found',404);
+    if (!['pending','replaced'].includes(row.state)) throw new EnrollmentError('enrollment_not_cancellable',409);
+    row.state='cancelled'; row.cancelledAt=this.now(); row.codeHash=''; row.codeSalt=''; this._persist();
+    this.emit({type:'device_enrollment_cancelled',enrollmentId,status:'cancelled'});
+    return { enrollmentId, state:'cancelled', cancelledAt:row.cancelledAt };
+  }
+
   binding(deviceId, { allowRevoked = false } = {}) { const row=this.bindings.get(String(deviceId||'')); if (!row) throw new EnrollmentError('device_binding_not_found',404); if (row.revokedAt && !allowRevoked) throw new EnrollmentError('device_revoked',403); return row; }
   revoke(input = {}) { const row=this.binding(input.deviceId,{allowRevoked:true}); const accountId=String(input.accountId||''); if (row.accountId!==accountId) throw new EnrollmentError('device_account_mismatch',403); if (!row.revokedAt) { row.revokedAt=this.now(); row.revokeReason=bounded(input.reason||'owner_revoked',120); this._persist(); this.emit({type:'device_revoked',deviceId:row.deviceId,accountId:row.accountId,status:'revoked',reason:row.revokeReason}); } return { deviceId:row.deviceId, accountId:row.accountId, revokedAt:row.revokedAt, reason:row.revokeReason }; }
   verifyHeartbeat(input = {}) {

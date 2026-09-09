@@ -1,6 +1,6 @@
 const crypto = require("node:crypto");
 const { callOperator, execOperator } = require('../lib/operator');
-const { aid, field, jobId, normalizeDeviceHeartbeat, normalizeDeviceRevoke, normalizeEnrollmentApprove, normalizeEnrollmentBegin, normalizeEnrollmentPoll, normalizeExecPayload, normalizeSessionOpenPayload, payloadFor, sid } = require('../lib/operator-request');
+const { aid, field, jobId, normalizeDeviceHeartbeat, normalizeDeviceRevoke, normalizeEnrollmentApprove, normalizeEnrollmentCancel, normalizeEnrollmentBegin, normalizeEnrollmentPoll, normalizeExecPayload, normalizeSessionOpenPayload, payloadFor, sid } = require('../lib/operator-request');
 
 function enrollmentSourceHash(req){ const ip=String(req.headers?.["x-forwarded-for"]||"unknown").split(",")[0].trim().slice(0,128); return crypto.createHash("sha256").update("v07-enrollment:"+ip).digest("hex"); }
 
@@ -18,6 +18,7 @@ module.exports=async function handler(req,res){
     else if(action==='enrollment-begin') upstream=await call('/operator/enrollments/begin',{method:'POST',body:{...normalizeEnrollmentBegin(payloadFor(req)),sourceHash:enrollmentSourceHash(req)}});
     else if(action==='enrollment-poll') upstream=await call('/operator/enrollments/poll',{method:'POST',body:normalizeEnrollmentPoll(payloadFor(req))});
     else if(action==='enrollments') upstream=await call('/operator/enrollments');
+    else if(action==='enrollment-cancel') upstream=await call('/operator/enrollments/cancel',{method:'POST',body:normalizeEnrollmentCancel(payloadFor(req))});
     else if(action==='enrollment-approve') upstream=await call('/operator/enrollments/approve',{method:'POST',body:normalizeEnrollmentApprove(payloadFor(req))});
     else if(action==='device-heartbeat') { const body=normalizeDeviceHeartbeat(payloadFor(req)); upstream=await call(`/operator/devices/${encodeURIComponent(body.deviceId)}/heartbeat`,{method:'POST',body}); }
     else if(action==='device-revoke') { const body=normalizeDeviceRevoke(payloadFor(req)); upstream=await call(`/operator/devices/${encodeURIComponent(body.deviceId)}/revoke`,{method:'POST',body}); }
