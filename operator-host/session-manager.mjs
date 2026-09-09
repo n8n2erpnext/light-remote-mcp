@@ -5,10 +5,16 @@ export class SessionError extends Error {
 }
 
 export class SessionRegistry {
-  constructor({ idleMs = 30 * 60 * 1000, maxActive = 5, historyMs = 7 * 24 * 60 * 60 * 1000, nodeId = 'arm', emit = () => {} } = {}) {
-    this.idleMs = idleMs;
-    this.maxActive = maxActive;
+  constructor({ idleMs = 30 * 60 * 1000, minIdleMs = 1000, maxIdleMs = 24 * 60 * 60 * 1000, maxActive = 5, historyMs = 7 * 24 * 60 * 60 * 1000, accountId = 'self-hosted-local', deviceId = 'arm-local', nodeId = 'arm', emit = () => {} } = {}) {
+    this.idleMs = Number(idleMs);
+    this.minIdleMs = Number(minIdleMs);
+    this.maxIdleMs = Number(maxIdleMs);
+    this.maxActive = Number(maxActive);
+    if (!Number.isFinite(this.minIdleMs) || !Number.isFinite(this.maxIdleMs) || !Number.isFinite(this.idleMs) || this.minIdleMs < 100 || this.maxIdleMs < this.minIdleMs || this.idleMs < this.minIdleMs || this.idleMs > this.maxIdleMs) throw new SessionError('invalid_session_lease_config');
+    if (!Number.isInteger(this.maxActive) || this.maxActive < 1 || this.maxActive > 1000) throw new SessionError('invalid_session_capacity_config');
     this.historyMs = historyMs;
+    this.accountId = String(accountId || 'self-hosted-local');
+    this.deviceId = String(deviceId || 'arm-local');
     this.nodeId = String(nodeId || 'arm');
     this.emit = emit;
     this.sessions = new Map();
@@ -18,14 +24,20 @@ export class SessionRegistry {
   _id() { return `s_${Date.now().toString(36)}_${crypto.randomBytes(8).toString('hex')}`; }
   _validId(id) { return /^[A-Za-z0-9._:-]{1,128}$/.test(String(id || '')); }
   _validAgent(id) { return /^[A-Za-z0-9._:-]{16,128}$/.test(String(id || '')); }
+  _lease(value) {
+    if (value == null || value === '') return this.idleMs;
+    const lease = Number(value);
+    if (!Number.isFinite(lease) || lease < this.minIdleMs || lease > this.maxIdleMs) throw new SessionError('invalid_session_lease');
+    return Math.round(lease);
+  }
   _state(s, now = Date.now()) {
     if (s.closedAt) return 'closed';
     if (s.activeJobs.size) return 'hold';
     if (s.expiredAt) return 'expired';
-    if (now - s.lastSeenAt >= this.idleMs) {
+    if (now - s.lastSeenAt >= s.leaseMs) {
       s.expiredAt = now;
       if (this.agentSessions.get(s.agentId) === s.id) this.agentSessions.delete(s.agentId);
-      this.emit({ type:'session_expired', sessionId:s.id, agentId:s.agentId, nodeId:s.nodeId, status:'expired', idleMs:this.idleMs });
+      this.emit({ type:'session_expired', accountId:s.accountId, deviceId:s.deviceId, sessionId:s.id, agentId:s.agentId, nodeId:s.nodeId, status:'expired', leaseMs:s.leaseMs });
       return 'expired';
     }
     return 'active';
@@ -33,9 +45,9 @@ export class SessionRegistry {
   _view(s, now = Date.now()) {
     const state = this._state(s, now);
     return {
-      sessionId:s.id, agentId:s.agentId, nodeId:s.nodeId, openId:s.openId || null, label:s.label, workspace:s.workspace, implicit:s.implicit, state,
+      accountId:s.accountId, deviceId:s.deviceId, sessionId:s.id, agentId:s.agentId, nodeId:s.nodeId, openId:s.openId || null, label:s.label, workspace:s.workspace, implicit:s.implicit, state, leaseMs:s.leaseMs,
       createdAt:s.createdAt, lastSeenAt:s.lastSeenAt, closedAt:s.closedAt, expiredAt:s.expiredAt,
-      expiresAt: state === 'active' ? s.lastSeenAt + this.idleMs : null,
+      expiresAt: state === 'active' ? s.lastSeenAt + s.leaseMs : null,
       holdReason: state === 'hold' ? 'active_job' : null, activeJobs:[...s.activeJobs],
       connectCount:s.connectCount, reconnectCount:s.reconnectCount,
       stats:{ ...s.stats }
@@ -63,13 +75,19 @@ export class SessionRegistry {
     let n=0; for (const s of this.sessions.values()) if (['active','hold'].includes(this._state(s, now))) n++;
     return n;
   }
-  open({ id = null, openId = null, agentId, label = '', workspace = '', implicit = false } = {}) {
+  activeCountByNode(nodeId, now = Date.now()) {
+    this.prune(now);
+    const nid=String(nodeId||'');
+    let n=0; for (const s of this.sessions.values()) if (s.nodeId===nid && ['active','hold'].includes(this._state(s, now))) n++;
+    return n;
+  }
+  open({ id = null, openId = null, agentId, label = '', workspace = '', implicit = false, leaseMs = null } = {}) {
     this.prune();
     const aid = String(agentId || '').trim();
     if (!this._validAgent(aid)) throw new SessionError('invalid_agent_id');
     const liveId = this.agentSessions.get(aid), live = liveId ? this.sessions.get(liveId) : null;
     if (live && ['active','hold'].includes(this._state(live))) {
-      this.emit({ type:'session_reused_for_agent', sessionId:live.id, agentId:aid, nodeId:live.nodeId, status:this._state(live) });
+      this.emit({ type:'session_reused_for_agent', accountId:live.accountId, deviceId:live.deviceId, sessionId:live.id, agentId:aid, nodeId:live.nodeId, status:this._state(live) });
       return this._view(live);
     }
     if (liveId) this.agentSessions.delete(aid);
@@ -89,12 +107,12 @@ export class SessionRegistry {
     const sessionId = id ? String(id) : this._id();
     if (!this._validId(sessionId)) throw new SessionError('invalid_session_id');
     if (this.sessions.has(sessionId)) throw new SessionError('session_already_exists', 409);
-    const now=Date.now();
-    const s={ id:sessionId, agentId:aid, nodeId:this.nodeId, openId:stableOpenId, label:String(label||'').slice(0,120), workspace:String(workspace||'').slice(0,512), implicit:Boolean(implicit),
+    const now=Date.now(), effectiveLeaseMs=this._lease(leaseMs);
+    const s={ id:sessionId, accountId:this.accountId, deviceId:this.deviceId, agentId:aid, nodeId:this.nodeId, openId:stableOpenId, label:String(label||'').slice(0,120), workspace:String(workspace||'').slice(0,512), implicit:Boolean(implicit), leaseMs:effectiveLeaseMs,
       createdAt:now, lastSeenAt:now, closedAt:null, expiredAt:null, activeJobs:new Set(), connectCount:1, reconnectCount:0,
       stats:{ toolCalls:0, execCalls:0, jobsStarted:0, jobsFinished:0, outputReads:0, jobReads:0, errors:0 } };
     this.sessions.set(sessionId,s); this.agentSessions.set(aid, sessionId); if (stableOpenId) this.openDedupe.set(stableOpenId, sessionId);
-    this.emit({ type:'session_opened', sessionId, agentId:aid, nodeId:s.nodeId, openId:stableOpenId, status:'active', label:s.label, workspace:s.workspace, implicit:s.implicit });
+    this.emit({ type:'session_opened', accountId:s.accountId, deviceId:s.deviceId, sessionId, agentId:aid, nodeId:s.nodeId, openId:stableOpenId, status:'active', label:s.label, workspace:s.workspace, implicit:s.implicit, leaseMs:s.leaseMs });
     return this._view(s, now);
   }
   ensure(id, { agentId, implicit = false } = {}) {
@@ -121,7 +139,7 @@ export class SessionRegistry {
     if (state === 'expired') throw new SessionError('session_expired',410);
     if (state === 'closed') throw new SessionError('session_closed',410);
     s.lastSeenAt=Date.now(); s.connectCount++; s.reconnectCount++;
-    this.emit({ type:'session_resumed', sessionId:s.id, agentId:s.agentId, nodeId:s.nodeId, status:this._state(s), reconnectCount:s.reconnectCount });
+    this.emit({ type:'session_resumed', accountId:s.accountId, deviceId:s.deviceId, sessionId:s.id, agentId:s.agentId, nodeId:s.nodeId, status:this._state(s), reconnectCount:s.reconnectCount });
     return this._view(s);
   }
   get(id, agentId = null) {
@@ -142,7 +160,7 @@ export class SessionRegistry {
     if (!s.closedAt) {
       s.closedAt=Date.now();
       if (this.agentSessions.get(s.agentId) === s.id) this.agentSessions.delete(s.agentId);
-      this.emit({ type:'session_closed', sessionId:s.id, agentId:s.agentId, nodeId:s.nodeId, status:'closed' });
+      this.emit({ type:'session_closed', accountId:s.accountId, deviceId:s.deviceId, sessionId:s.id, agentId:s.agentId, nodeId:s.nodeId, status:'closed' });
     }
     return this._view(s);
   }
@@ -150,24 +168,24 @@ export class SessionRegistry {
     const s=this.ensure(id, { agentId });
     s.stats.toolCalls++;
     s.lastSeenAt=Date.now();
-    this.emit({ type:'session_activity', sessionId:s.id, agentId:s.agentId, nodeId:s.nodeId, action:'toolCalls', tool:String(action||'tool').slice(0,120), status:this._state(s) });
+    this.emit({ type:'session_activity', accountId:s.accountId, deviceId:s.deviceId, sessionId:s.id, agentId:s.agentId, nodeId:s.nodeId, action:'toolCalls', tool:String(action||'tool').slice(0,120), status:this._state(s) });
     return this._view(s);
   }
   record(id, field) {
     const s=this.sessions.get(String(id||'')); if (!s) return;
     if (field in s.stats) s.stats[field]++;
     s.lastSeenAt=Date.now();
-    this.emit({ type:'session_activity', sessionId:s.id, agentId:s.agentId, nodeId:s.nodeId, action:field, status:this._state(s) });
+    this.emit({ type:'session_activity', accountId:s.accountId, deviceId:s.deviceId, sessionId:s.id, agentId:s.agentId, nodeId:s.nodeId, action:field, status:this._state(s) });
   }
   attachJob(id, jobId) {
     const s=this.sessions.get(String(id||'')); if (!s) throw new SessionError('session_not_found',404);
     const wasHolding=s.activeJobs.size>0;
     s.activeJobs.add(jobId); s.stats.jobsStarted++; s.lastSeenAt=Date.now();
-    if (!wasHolding) this.emit({ type:'session_hold_started', sessionId:s.id, agentId:s.agentId, nodeId:s.nodeId, jobId, status:'hold' });
+    if (!wasHolding) this.emit({ type:'session_hold_started', accountId:s.accountId, deviceId:s.deviceId, sessionId:s.id, agentId:s.agentId, nodeId:s.nodeId, jobId, status:'hold' });
   }
   finishJob(id, jobId, jobStatus) {
     const s=this.sessions.get(String(id||'')); if (!s) return;
     s.activeJobs.delete(jobId); s.stats.jobsFinished++; s.lastSeenAt=Date.now();
-    if (!s.activeJobs.size) this.emit({ type:'session_hold_released', sessionId:s.id, agentId:s.agentId, nodeId:s.nodeId, jobId, status:'active', jobStatus, graceMs:this.idleMs });
+    if (!s.activeJobs.size) this.emit({ type:'session_hold_released', accountId:s.accountId, deviceId:s.deviceId, sessionId:s.id, agentId:s.agentId, nodeId:s.nodeId, jobId, status:'active', jobStatus, graceMs:s.leaseMs });
   }
 }

@@ -12,7 +12,7 @@ fs.rmSync(logDir, { recursive:true, force:true });
 fs.mkdirSync(logDir, { recursive:true });
 const child = spawn(process.execPath, [`${root}/operator-host/executor.mjs`], {
   cwd: root,
-  env: { ...process.env, OPERATOR_SOCKET:socketPath, OPERATOR_LOG_DIR:logDir,
+  env: { ...process.env, OPERATOR_SOCKET:socketPath, OPERATOR_LOG_DIR:logDir,OPERATOR_STATE_DIR:'/tmp/gpt-vps-operator-selftest-state',
     OPERATOR_KEY_FILE:'/home/ubuntu/.config/gpt-vps-operator/operator.private.json' },
   stdio:['ignore','pipe','pipe']
 });

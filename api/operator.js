@@ -19,7 +19,9 @@ module.exports=async function handler(req,res){
   try {
     let upstream;
     if(action==='capabilities') upstream=await callOperator('/operator/capabilities');
-    else if(action==='session-open') { const d=req.query.p?JSON.parse(Buffer.from(String(req.query.p),'base64url').toString('utf8')):{}; const openId=String(d.openId||'').trim(); if(!/^[A-Za-z0-9._:-]{16,128}$/.test(openId)) throw new Error('invalid_session_open_id'); upstream=await callOperator('/operator/sessions/open',{method:'POST',body:{openId,agentId:aid(d.agentId),label:String(d.label||''),workspace:String(d.workspace||'')}}); }
+    else if(action==='devices') upstream=await callOperator('/operator/devices');
+    else if(action==='device') upstream=await callOperator(`/operator/devices/${encodeURIComponent(String(req.query.id||''))}`);
+    else if(action==='session-open') { const d=req.query.p?JSON.parse(Buffer.from(String(req.query.p),'base64url').toString('utf8')):{}; const openId=String(d.openId||'').trim(); if(!/^[A-Za-z0-9._:-]{16,128}$/.test(openId)) throw new Error('invalid_session_open_id'); const leaseMs=d.leaseMs==null?undefined:Number(d.leaseMs); upstream=await callOperator('/operator/sessions/open',{method:'POST',body:{openId,agentId:aid(d.agentId),label:String(d.label||''),workspace:String(d.workspace||''),leaseMs}}); }
     else if(action==='session-resume') upstream=await callOperator(`/operator/sessions/${encodeURIComponent(sid(req.query.sid))}/resume`,{method:'POST',body:{agentId:aid(req.query.aid)}});
     else if(action==='session-close') upstream=await callOperator(`/operator/sessions/${encodeURIComponent(sid(req.query.sid))}/close`,{method:'POST',body:{agentId:aid(req.query.aid)}});
     else if(action==='session') upstream=await callOperator(`/operator/sessions/${encodeURIComponent(sid(req.query.sid))}?agentId=${encodeURIComponent(aid(req.query.aid))}`);

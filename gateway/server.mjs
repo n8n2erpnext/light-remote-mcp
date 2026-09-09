@@ -13,7 +13,7 @@ import { rootNames, listWorkspace, readWorkspaceText, searchWorkspace, gitStatus
 
 const PORT = Number(process.env.PORT || 8080);
 const WALL_PORT = Number(process.env.WALL_PORT || 8081);
-const VERSION = '0.5.0';
+const VERSION = '0.6.0-dev';
 const RootSchema = z.enum(['n8n2erpnext', 'services', 'thaiduy', 'frappe']);
 
 function textResult(value) {
@@ -157,6 +157,8 @@ async function requireOperatorIdentity(req, res, next) {
 
 app.post('/operator', softRateLimit, requireOperatorIdentity, (req, res) => proxyOperatorJson(res, 'POST', '/v1/execute', req.body));
 app.get('/operator/capabilities', softRateLimit, requireOperatorIdentity, (_req, res) => proxyOperatorJson(res, 'GET', '/v1/capabilities'));
+app.get('/operator/devices', softRateLimit, requireOperatorIdentity, (_req, res) => proxyOperatorJson(res, 'GET', '/v1/devices'));
+app.get('/operator/devices/:id', softRateLimit, requireOperatorIdentity, (req, res) => proxyOperatorJson(res, 'GET', `/v1/devices/${encodeURIComponent(req.params.id)}`));
 app.post('/operator/sessions/open', softRateLimit, requireOperatorIdentity, (req, res) => proxyOperatorJson(res, 'POST', '/v1/sessions/open', req.body));
 app.post('/operator/sessions/:id/touch', softRateLimit, requireOperatorIdentity, (req, res) => proxyOperatorJson(res, 'POST', `/v1/sessions/${encodeURIComponent(req.params.id)}/touch`, req.body || {}));
 app.get('/operator/sessions', softRateLimit, requireOperatorIdentity, (_req, res) => proxyOperatorJson(res, 'GET', '/v1/sessions'));
@@ -209,6 +211,7 @@ wallApp.get('/', wallAuth.requirePage, (_req, res) => {
   res.set('Content-Security-Policy', "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; img-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
   res.type('html').send(dashboardHtml());
 });
+wallApp.get('/api/devices', wallAuth.requireApi, (_req, res) => proxyOperatorJson(res, 'GET', '/v1/devices'));
 wallApp.get('/api/sessions', wallAuth.requireApi, (_req, res) => proxyOperatorJson(res, 'GET', '/v1/sessions'));
 wallApp.get('/api/activity', wallAuth.requireApi, (req, res) => {
   const limit = Math.max(1, Math.min(Number(req.query.limit) || 1000, 5000));

@@ -161,6 +161,10 @@ Wall tabs:
 
 Current wall remains read-only. Execution remains behind MCP/control APIs.
 
+### v0.6 implementation checkpoint — 2026-09-09
+
+Branch `codex/v0.6-device-presence` now contains the branch-only foundation: persistent local device registry, device/account/node identity propagation, independent heartbeat/TTL presence, per-session configurable leases, read-only device surfaces in executor/gateway/Vercel/Wall, and repeatable device endpoint/presence regressions. Production remains tagged `v0.5.0`; this checkpoint is not deployed and does not claim remote-node transport. See `DEVICE_PRESENCE_V0_6.md`.
+
 ## 4. v0.7 — Device Enrollment
 
 Public onboarding must not require users to paste SSH keys or long-lived bearer tokens.

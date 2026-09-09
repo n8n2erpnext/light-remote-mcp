@@ -5,7 +5,7 @@ Portable private operator bridge and ARM control hub.
 `ChatGPT -> @Vercel -> Vercel Function -> ARM MCP Gateway -> selected Host Executor -> target node`
 
 ## Start here
-A fresh ChatGPT agent should fetch `https://gpt-vps-bridge.vercel.app/api/guide` and follow the returned session rules. Recovery docs: `CURRENT_STATE.md`, `AI_BRIDGE_GUIDE.md`, `SESSION_OWNERSHIP_V0_5.md`, `HUB_TOPOLOGY_V0_5.md`, `SESSION_LANES_V0_4.md`, `PRODUCT_PLATFORM_PLAN_V0_6_TO_PUBLIC_PLUGIN.md`, `PORTABILITY.md`.
+A fresh ChatGPT agent should fetch `https://gpt-vps-bridge.vercel.app/api/guide` and follow the returned session rules. Recovery docs: `CURRENT_STATE.md`, `AI_BRIDGE_GUIDE.md`, `SESSION_OWNERSHIP_V0_5.md`, `HUB_TOPOLOGY_V0_5.md`, `SESSION_LANES_V0_4.md`, `PRODUCT_PLATFORM_PLAN_V0_6_TO_PUBLIC_PLUGIN.md`, `DEVICE_PRESENCE_V0_6.md`, `PORTABILITY.md`.
 
 ## Session-first operation (v0.5)
 Each agent generates one opaque random `agentId` and opens one server-issued session. One agent owns one live lane; a second agent cannot attach to that session (`409 session_owner_mismatch`). Re-opening while the same agent already has a live lane returns the same session rather than allocating another.
@@ -37,3 +37,6 @@ Vercel OIDC authenticates the expected bridge. Privileged payloads use X25519 + 
 
 ## Hub direction
 Current node is `arm`. v0.5 carries `nodeId` in sessions/jobs/logs and treats ARM as the future routing/audit/wall hub. Planned topology is `GPT -> Vercel -> ARM hub -> {ARM, AMD, HomeLab...}`. Remote-node transport is deliberately not claimed implemented until a second executor exists; see `HUB_TOPOLOGY_V0_5.md`.
+
+## v0.6 development branch
+`codex/v0.6-device-presence` separates device presence from operator-session lifetime and adds configurable per-session leases. It is branch-only and not production. See `DEVICE_PRESENCE_V0_6.md`.

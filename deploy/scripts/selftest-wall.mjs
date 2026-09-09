@@ -5,11 +5,11 @@ import { dashboardHtml } from '../../gateway/dashboard.mjs';
 const html = dashboardHtml();
 const match = html.match(/<script>([\s\S]*?)<\/script>/);
 if (!match) throw new Error('wall inline script not found');
-if (!html.includes("/api/sessions") || !html.includes("new EventSource('/events')")) {
-  throw new Error('wall session/SSE endpoints missing');
+if (!html.includes("/api/sessions") || !html.includes("/api/devices") || !html.includes("new EventSource('/events')")) {
+  throw new Error('wall device/session/SSE endpoints missing');
 }
 const inline = match[1];
-for (const token of ['seenEvents', 'scheduleSessionRefresh', 'probeActivityHead', 'catchUpActivity', '/api/activity?limit=1']) {
+for (const token of ['seenEvents', 'scheduleSessionRefresh', 'refreshDevices', 'probeActivityHead', 'catchUpActivity', '/api/activity?limit=1']) {
   if (!inline.includes(token)) throw new Error(`wall realtime safeguard missing: ${token}`);
 }
 if (inline.includes('setInterval(refreshSessions')) {
@@ -27,3 +27,4 @@ console.log('wall-inline-js=PASS');
 console.log('wall-session-tabs=present');
 console.log('wall-sse=present');
 console.log('wall-realtime-safeguards=present');
+console.log('wall-device-presence-view=present');

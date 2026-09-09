@@ -1,4 +1,5 @@
 import http from 'node:http';
+import os from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
@@ -6,11 +7,14 @@ import crypto from 'node:crypto';
 import { decryptEnvelope as decryptSealedEnvelope } from './crypto.mjs';
 import { spawn } from 'node:child_process';
 import { SessionRegistry, SessionError } from './session-manager.mjs';
+import { DeviceRegistry, DeviceError } from './device-registry.mjs';
 
 const SOCKET_PATH = process.env.OPERATOR_SOCKET || '/run/gpt-vps-operator/operator.sock';
 const KEY_FILE = process.env.OPERATOR_KEY_FILE || '/home/ubuntu/.config/gpt-vps-operator/operator.private.json';
 const LOG_DIR = process.env.OPERATOR_LOG_DIR || '/var/log/gpt-vps-operator';
 const LOG_FILE = path.join(LOG_DIR, 'operations.jsonl');
+const STATE_DIR = process.env.OPERATOR_STATE_DIR || '/var/lib/gpt-vps-operator';
+const DEVICE_STATE_FILE = path.join(STATE_DIR, 'devices.json');
 const MAX_RING_BYTES = Number(process.env.OPERATOR_RING_BYTES || 16 * 1024 * 1024);
 const MAX_RING_EVENTS = Number(process.env.OPERATOR_RING_EVENTS || 5000);
 const MAX_MEMORY_OUTPUT = Number(process.env.OPERATOR_MEMORY_OUTPUT || 4 * 1024 * 1024);
@@ -19,10 +23,22 @@ const MAX_JOB_CACHE_BYTES = Number(process.env.OPERATOR_JOB_CACHE_BYTES || 64 * 
 const MAX_JOB_CACHE_AGE_MS = Number(process.env.OPERATOR_JOB_CACHE_AGE_MS || 6 * 60 * 60 * 1000);
 const OPERATION_DEDUPE_MS = Number(process.env.OPERATOR_DEDUPE_MS || 6 * 60 * 60 * 1000);
 const SESSION_IDLE_MS = Number(process.env.OPERATOR_SESSION_IDLE_MS || 30 * 60 * 1000);
+const SESSION_MIN_IDLE_MS = Number(process.env.OPERATOR_SESSION_MIN_IDLE_MS || 5 * 60 * 1000);
+const SESSION_MAX_IDLE_MS = Number(process.env.OPERATOR_SESSION_MAX_IDLE_MS || 24 * 60 * 60 * 1000);
 const SESSION_HISTORY_MS = Number(process.env.OPERATOR_SESSION_HISTORY_MS || 7 * 24 * 60 * 60 * 1000);
 const MAX_ACTIVE_SESSIONS = Number(process.env.OPERATOR_MAX_ACTIVE_SESSIONS || 5);
+const ACCOUNT_ID = String(process.env.OPERATOR_ACCOUNT_ID || 'self-hosted-local');
+const DEVICE_ID = String(process.env.OPERATOR_DEVICE_ID || 'arm-local');
 const NODE_ID = String(process.env.OPERATOR_NODE_ID || 'arm');
-const VERSION = '0.5.0';
+const DEVICE_NAME = String(process.env.OPERATOR_DEVICE_NAME || os.hostname());
+const DEVICE_POLICY_PROFILE = String(process.env.OPERATOR_DEVICE_POLICY_PROFILE || 'self-hosted-owner');
+const DEVICE_PUBLIC_KEY = String(process.env.OPERATOR_DEVICE_PUBLIC_KEY || '');
+const DEVICE_PRESENCE_TTL_MS = Number(process.env.OPERATOR_DEVICE_PRESENCE_TTL_MS || 90 * 1000);
+const DEVICE_HEARTBEAT_MS = Number(process.env.OPERATOR_DEVICE_HEARTBEAT_MS || 30 * 1000);
+if (!Number.isFinite(DEVICE_PRESENCE_TTL_MS) || DEVICE_PRESENCE_TTL_MS < 10_000) throw new Error('invalid_device_presence_ttl');
+if (!Number.isFinite(DEVICE_HEARTBEAT_MS) || DEVICE_HEARTBEAT_MS < 5_000 || DEVICE_HEARTBEAT_MS >= DEVICE_PRESENCE_TTL_MS) throw new Error('invalid_device_heartbeat');
+const HOST_CAPABILITIES = ['filesystem', 'git', 'build-test', 'docker', 'lxd', 'systemctl', 'sudo-on-demand'];
+const VERSION = '0.6.0-dev';
 
 const jobs = new Map();
 const operationDedupe = new Map();
@@ -31,7 +47,8 @@ const ring = [];
 const sseClients = new Set();
 let ringBytes = 0;
 let sequence = 0;
-const sessions = new SessionRegistry({ idleMs:SESSION_IDLE_MS, maxActive:MAX_ACTIVE_SESSIONS, historyMs:SESSION_HISTORY_MS, nodeId:NODE_ID, emit:event => pushEvent(event) });
+const sessions = new SessionRegistry({ idleMs:SESSION_IDLE_MS, minIdleMs:SESSION_MIN_IDLE_MS, maxIdleMs:SESSION_MAX_IDLE_MS, maxActive:MAX_ACTIVE_SESSIONS, historyMs:SESSION_HISTORY_MS, accountId:ACCOUNT_ID, deviceId:DEVICE_ID, nodeId:NODE_ID, emit:event => pushEvent(event) });
+const devices = new DeviceRegistry({ stateFile:DEVICE_STATE_FILE, presenceTtlMs:DEVICE_PRESENCE_TTL_MS, emit:event => pushEvent(event) });
 
 fs.mkdirSync(LOG_DIR, { recursive: true });
 function redact(value) {
@@ -67,6 +84,11 @@ function pushEvent(input) {
   for (const res of sseClients) res.write(frame);
   return event;
 }
+if (devices.loadError) pushEvent({ type:'device_registry_load_error', status:'error', detail:redact(devices.loadError) });
+devices.register({ accountId:ACCOUNT_ID, deviceId:DEVICE_ID, nodeId:NODE_ID, displayName:DEVICE_NAME, platform:os.platform(), architecture:os.arch(), agentVersion:VERSION, publicIdentityKey:DEVICE_PUBLIC_KEY || null, capabilities:HOST_CAPABILITIES, policyProfile:DEVICE_POLICY_PROFILE });
+const deviceHeartbeat = setInterval(() => { try { devices.heartbeat(DEVICE_ID); } catch (error) { console.error('[device] heartbeat failed', error?.message || error); } }, DEVICE_HEARTBEAT_MS);
+deviceHeartbeat.unref();
+
 function pruneReplay(now = Date.now()) {
   for (const [id, exp] of replay) if (exp <= now) replay.delete(id);
 }
@@ -127,7 +149,7 @@ function jobView(job) {
   const out = job.stdout.snapshot();
   const err = job.stderr.snapshot();
   return {
-    jobId: job.id, requestId: job.requestId, operationId: job.operationId, sessionId: job.sessionId, agentId: job.agentId, nodeId: job.nodeId, status: job.status,
+    jobId: job.id, requestId: job.requestId, operationId: job.operationId, accountId:job.accountId, deviceId:job.deviceId, sessionId: job.sessionId, agentId: job.agentId, nodeId: job.nodeId, status: job.status,
     cwd: job.cwd, script: redact(job.script), note: redact(job.note || ''), pid: job.pid || null,
     startedAt: job.startedAt, finishedAt: job.finishedAt || null, exitCode: job.exitCode,
     signal: job.signal || null, durationMs: job.finishedAt ? job.finishedAt - job.startedAt : Date.now() - job.startedAt,
@@ -163,7 +185,7 @@ function finishJob(job, exitCode, signal) {
   job.status = exitCode === 0 ? 'ok' : job.timedOut ? 'timeout' : 'error';
   clearTimeout(job.timer);
   sessions.finishJob(job.sessionId, job.id, job.status);
-  pushEvent({ type: 'job_finished', jobId: job.id, requestId: job.requestId, operationId: job.operationId, sessionId: job.sessionId, agentId:job.agentId, nodeId:job.nodeId,
+  pushEvent({ type: 'job_finished', jobId: job.id, requestId: job.requestId, operationId: job.operationId, accountId:job.accountId, deviceId:job.deviceId, sessionId: job.sessionId, agentId:job.agentId, nodeId:job.nodeId,
     status: job.status, exitCode, signal: signal || null, durationMs: job.finishedAt - job.startedAt });
   for (const resolve of job.waiters.splice(0)) resolve();
   pruneJobs(job.finishedAt);
@@ -173,7 +195,7 @@ function emitStream(job, stream, data) {
   const text = data.toString('utf8');
   job[stream].add(text);
   for (let i = 0; i < text.length; i += 16384) {
-    pushEvent({ type: stream, jobId: job.id, requestId: job.requestId, operationId: job.operationId, sessionId: job.sessionId, agentId:job.agentId, nodeId:job.nodeId,
+    pushEvent({ type: stream, jobId: job.id, requestId: job.requestId, operationId: job.operationId, accountId:job.accountId, deviceId:job.deviceId, sessionId: job.sessionId, agentId:job.agentId, nodeId:job.nodeId,
       status: 'running', chunk: redact(text.slice(i, i + 16384)) });
   }
 }
@@ -203,16 +225,16 @@ function startJob(payload, requestId) {
     const prior = jobs.get(existing.jobId); if (prior) return prior; operationDedupe.delete(operationId);
   }
   const job = {
-    id: crypto.randomUUID(), requestId, operationId, operationFingerprint: fingerprint, sessionId, agentId:session.agentId, nodeId:session.nodeId, note,
+    id: crypto.randomUUID(), requestId, operationId, operationFingerprint: fingerprint, accountId:session.accountId, deviceId:session.deviceId, sessionId, agentId:session.agentId, nodeId:session.nodeId, note,
     cwd, script, status: 'running', startedAt: Date.now(), finishedAt: null, exitCode: null, signal: null,
     timedOut: false, stdout: createAccumulator(), stderr: createAccumulator(), waiters: [], pid: null, timer: null
   };
   jobs.set(job.id, job);
   sessions.attachJob(job.sessionId, job.id);
   operationDedupe.set(operationId, { jobId: job.id, fingerprint, expiresAt: Date.now() + OPERATION_DEDUPE_MS });
-  pushEvent({ type: 'job_started', jobId: job.id, requestId, operationId: job.operationId, sessionId: job.sessionId, agentId:job.agentId, nodeId:job.nodeId, status: 'running',
+  pushEvent({ type: 'job_started', jobId: job.id, requestId, operationId: job.operationId, accountId:job.accountId, deviceId:job.deviceId, sessionId: job.sessionId, agentId:job.agentId, nodeId:job.nodeId, status: 'running',
     cwd, script: redact(script), note: redact(job.note), timeoutMs });
-  const child = spawn('/bin/bash', ['-lc', script], { cwd, env: { ...process.env, GPT_OPERATOR_SESSION: job.sessionId }, stdio: ['ignore', 'pipe', 'pipe'] });
+  const child = spawn('/bin/bash', ['-lc', script], { cwd, env: { ...process.env, GPT_OPERATOR_ACCOUNT:job.accountId, GPT_OPERATOR_DEVICE:job.deviceId, GPT_OPERATOR_SESSION: job.sessionId }, stdio: ['ignore', 'pipe', 'pipe'] });
   job.pid = child.pid || null;
   child.stdout.on('data', data => emitStream(job, 'stdout', data));
   child.stderr.on('data', data => emitStream(job, 'stderr', data));
@@ -323,13 +345,14 @@ async function readJson(req) {
 
 function capabilities() {
   return {
-    service: 'gpt-vps-operator', version: VERSION, nodeId:NODE_ID, user: process.env.USER || 'ubuntu',
-    execution: ['exec_batch', 'async_jobs', 'output_retrieval', 'managed_sessions'],
-    expectedHostCapabilities: ['filesystem', 'git', 'build-test', 'docker', 'lxd', 'systemctl', 'sudo-on-demand'],
+    service: 'gpt-vps-operator', version: VERSION, accountId:ACCOUNT_ID, deviceId:DEVICE_ID, nodeId:NODE_ID, user: process.env.USER || 'ubuntu',
+    execution: ['exec_batch', 'async_jobs', 'output_retrieval', 'managed_sessions', 'device_presence', 'configurable_session_lease'],
+    expectedHostCapabilities: HOST_CAPABILITIES,
     socket: SOCKET_PATH, logFile: LOG_FILE,
+    presence: { ttlMs:DEVICE_PRESENCE_TTL_MS, heartbeatMs:DEVICE_HEARTBEAT_MS },
     limits: { maxScriptBytes: 1024 * 1024, maxTimeoutMs: 7200000, memoryOutputBytes: MAX_MEMORY_OUTPUT,
       ringBytes: MAX_RING_BYTES, ringEvents: MAX_RING_EVENTS, jobCacheBytes: MAX_JOB_CACHE_BYTES, jobCacheAgeMs: MAX_JOB_CACHE_AGE_MS, operationDedupeMs: OPERATION_DEDUPE_MS,
-      sessionIdleMs: SESSION_IDLE_MS, sessionHistoryMs: SESSION_HISTORY_MS, maxActiveSessions: MAX_ACTIVE_SESSIONS }
+      sessionIdleMs: SESSION_IDLE_MS, sessionMinIdleMs:SESSION_MIN_IDLE_MS, sessionMaxIdleMs:SESSION_MAX_IDLE_MS, sessionHistoryMs: SESSION_HISTORY_MS, maxActiveSessions: MAX_ACTIVE_SESSIONS }
   };
 }
 
@@ -346,12 +369,19 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && url.pathname === '/v1/capabilities') {
       return sendJson(res, 200, { ok: true, ...capabilities() });
     }
+    if (req.method === 'GET' && url.pathname === '/v1/devices') {
+      return sendJson(res, 200, { ok:true, currentDeviceId:DEVICE_ID, devices:devices.list({ activeSessionsForNode:nodeId => sessions.activeCountByNode(nodeId) }) });
+    }
+    const deviceMatch = url.pathname.match(/^\/v1\/devices\/([A-Za-z0-9._:-]+)$/);
+    if (req.method === 'GET' && deviceMatch) {
+      return sendJson(res, 200, { ok:true, device:devices.get(deviceMatch[1], { activeSessionsForNode:nodeId => sessions.activeCountByNode(nodeId) }) });
+    }
     if (req.method === 'POST' && url.pathname === '/v1/sessions/open') {
       const body = await readJson(req);
-      return sendJson(res, 200, { ok:true, session:sessions.open({ openId:body.openId, agentId:body.agentId, label:body.label, workspace:body.workspace }) });
+      return sendJson(res, 200, { ok:true, session:sessions.open({ openId:body.openId, agentId:body.agentId, label:body.label, workspace:body.workspace, leaseMs:body.leaseMs }) });
     }
     if (req.method === 'GET' && url.pathname === '/v1/sessions') {
-      return sendJson(res, 200, { ok:true, active:sessions.activeCount(), maxActive:MAX_ACTIVE_SESSIONS, sessions:sessions.list() });
+      return sendJson(res, 200, { ok:true, active:sessions.activeCount(), maxActive:MAX_ACTIVE_SESSIONS, defaultLeaseMs:SESSION_IDLE_MS, minLeaseMs:SESSION_MIN_IDLE_MS, maxLeaseMs:SESSION_MAX_IDLE_MS, sessions:sessions.list() });
     }
     if (req.method === 'GET' && url.pathname === '/v1/session-stats') {
       return sendJson(res, 200, { ok:true, ...sessionStatsFromDisk(url.searchParams.get('hours')) });
@@ -417,7 +447,7 @@ const server = http.createServer(async (req, res) => {
   } catch (error) {
     const message = error?.message || 'internal_error';
     pushEvent({ type: 'executor_error', status: 'error', detail: redact(message) });
-    const status = error instanceof SessionError ? error.status : ['invalid_envelope', 'expired_envelope', 'replay_detected', 'unknown_kid', 'invalid_envelope_auth', 'unsupported_action'].includes(message) ? 401 : message === 'operation_id_conflict' ? 409 : 400;
+    const status = error instanceof SessionError || error instanceof DeviceError ? error.status : ['invalid_envelope', 'expired_envelope', 'replay_detected', 'unknown_kid', 'invalid_envelope_auth', 'unsupported_action'].includes(message) ? 401 : message === 'operation_id_conflict' ? 409 : 400;
     return sendJson(res, status, { ok: false, error: message });
   }
 });
@@ -430,6 +460,8 @@ server.listen(SOCKET_PATH, () => {
 
 function shutdown(signal) {
   console.log(`[operator] ${signal}, shutting down`);
+  clearInterval(deviceHeartbeat);
+  try { devices.markOffline(DEVICE_ID, signal.toLowerCase()); } catch {}
   for (const job of jobs.values()) {
     if (job.status === 'running' && job.pid) {
       try { process.kill(job.pid, 'SIGTERM'); } catch {}
