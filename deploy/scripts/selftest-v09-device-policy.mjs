@@ -28,8 +28,17 @@ expect(view.policyRevision===3&&view.approvedCapabilities.includes('sudo-on-dema
 const reloaded=new EnrollmentRegistry({stateFile:path.join(dir,'state.json'),signerFile:path.join(dir,'signer.json'),now:()=>now});
 const persisted=reloaded.policyView(approved.deviceId);
 expect(persisted.policyRevision===3&&persisted.grantableCapabilities.includes('sudo-on-demand'),'policy_persistence_failed');
+const legacyPath=path.join(dir,'legacy-state.json');
+const legacyState=JSON.parse(fs.readFileSync(path.join(dir,'state.json'),'utf8'));
+const legacyBinding=legacyState.bindings.find(row=>row.deviceId===approved.deviceId);
+delete legacyBinding.grantableCapabilities; delete legacyBinding.policyRevision; delete legacyBinding.policyUpdatedAt;
+fs.writeFileSync(legacyPath,JSON.stringify(legacyState),{mode:0o600});
+const migrated=new EnrollmentRegistry({stateFile:legacyPath,signerFile:path.join(dir,'signer.json'),now:()=>now}).policyView(approved.deviceId);
+expect(migrated.policyRevision===1,'legacy_policy_revision_migration_failed');
+expect(JSON.stringify(migrated.grantableCapabilities)===JSON.stringify(migrated.approvedCapabilities),'legacy_grantable_migration_failed');
 console.log('v09-device-policy-owner-toggle=PASS');
 console.log('v09-device-policy-grantable-boundary=PASS');
 console.log('v09-device-policy-signed-envelope=PASS');
 console.log('v09-device-policy-persistence=PASS');
+console.log('v09-device-policy-legacy-migration=PASS');
 fs.rmSync(dir,{recursive:true,force:true});
