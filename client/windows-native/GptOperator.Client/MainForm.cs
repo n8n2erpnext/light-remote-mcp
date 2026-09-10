@@ -25,6 +25,7 @@ internal sealed class MainForm : Form
     private readonly Label _updateDot = new() { Text = "●", AutoSize = true, Font = UiTheme.Font(11, FontStyle.Bold), ForeColor = UiTheme.Warning, Visible = false, BackColor = Color.Transparent };
     private readonly ToolStripMenuItem _menuUpdate = new("Check for updates");
     private readonly ToolStripMenuItem _menuDetails = new("Details view") { CheckOnClick = true };
+    private readonly ToolStripMenuItem _menuConnection = new("Server settings…");
     private readonly ToolStripMenuItem _trayConnect = new();
     private readonly ToolStripMenuItem _trayUpdate = new("Check for updates");
     private readonly NotifyIcon _tray;
@@ -204,10 +205,11 @@ internal sealed class MainForm : Form
         UiTheme.StyleMenu(menu);
         _menuUpdate.Click += async (_, _) => await CheckUpdateAsync(interactive: true);
         _menuDetails.Click += (_, _) => SetDetailsMode(_menuDetails.Checked);
+        _menuConnection.Click += async (_, _) => await ShowConnectionSettingsAsync();
         var logs = new ToolStripMenuItem("Open log folder", null, (_, _) => OpenLogs());
         var about = new ToolStripMenuItem("About Light Remote MCP", null, (_, _) => ShowAbout());
         var exit = new ToolStripMenuItem("Exit", null, (_, _) => ExitApplication());
-        menu.Items.AddRange(new ToolStripItem[] { _menuUpdate, new ToolStripSeparator(), _menuDetails, logs, new ToolStripSeparator(), about, exit });
+        menu.Items.AddRange(new ToolStripItem[] { _menuUpdate, _menuConnection, new ToolStripSeparator(), _menuDetails, logs, new ToolStripSeparator(), about, exit });
         return menu;
     }
 
@@ -357,6 +359,20 @@ internal sealed class MainForm : Form
         catch (OperationCanceledException) { _enrollment.Text = "Enrollment expired. Start again when ready."; }
         catch (Exception ex) { _enrollment.Text = $"Enrollment failed: {ex.Message}"; }
         finally { _enroll.Enabled = _lastStatus?.Enrolled != true; }
+    }
+
+    private async Task ShowConnectionSettingsAsync()
+    {
+        using var dialog = new ConnectionSettingsDialog(ConnectionConfig.Load(), _lastStatus?.Enrolled == true);
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+        await _agent.StopAsync();
+        if (_lastStatus?.Enrolled == true)
+        {
+            MessageBox.Show(this,
+                "Server settings were saved. This device is already enrolled; if the server identity changed, re-enroll the device before reconnecting.",
+                ProductName, MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+        await RefreshAsync();
     }
 
     private async Task CheckUpdateAsync(bool interactive)

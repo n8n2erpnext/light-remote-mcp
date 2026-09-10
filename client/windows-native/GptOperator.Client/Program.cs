@@ -63,8 +63,14 @@ internal static class Program
             using var supervisor = new AgentSupervisor();
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
             var status = await supervisor.ReadStatusAsync(timeout.Token);
+            var semverOk = SemanticVersion.IsNewer("0.9.0-beta.2", "0.9.0-beta.1")
+                && SemanticVersion.IsNewer("0.9.0-rc.1", "0.9.0-beta.9")
+                && SemanticVersion.IsNewer("0.9.0", "0.9.0-rc.9")
+                && !SemanticVersion.IsNewer("0.9.0-beta.1", "0.9.0-beta.1")
+                && !SemanticVersion.IsNewer("0.9.0-beta.1", "0.9.0-rc.1");
             var result = new {
-                ok = File.Exists(AppPaths.NodeExe) && File.Exists(AppPaths.AgentScript) && File.Exists(AppPaths.UpdatePublicKey),
+                ok = File.Exists(AppPaths.NodeExe) && File.Exists(AppPaths.AgentScript) && File.Exists(AppPaths.UpdatePublicKey) && semverOk,
+                semanticVersion = semverOk ? "pass" : "fail",
                 clientVersion = ClientVersion.Display,
                 agentVersion = status.Version,
                 platformAdapter = status.PlatformAdapter,

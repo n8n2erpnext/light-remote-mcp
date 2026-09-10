@@ -17,7 +17,10 @@ try {
   r=response(); next=false; fresh.requireApi(req({},cookie+'x'),r,()=>{next=true;}); if(next||r.statusCode!==401) throw new Error('tampered cookie accepted');
   const limited=createWallAuth({configFile:file}); for(let i=0;i<10;i++){r=response();limited.login(req({username:'operator',password:'bad'}),r);} r=response();limited.login(req({username:'operator',password:'bad'}),r); if(r.statusCode!==429||!r.headers['retry-after']) throw new Error('rate limit missing');
   r=response(); fresh.logout(req(),r); if(r.statusCode!==303||!/Max-Age=0/.test(r.headers['set-cookie'])) throw new Error('logout cookie clear failed');
+  const localHttp=createWallAuth({configFile:file,cookieSecure:false}); r=response(); localHttp.login(req({username:'operator',password}),r);
+  const localCookie=r.headers['set-cookie']; if(/; Secure;/.test(localCookie)||!localCookie.startsWith('gpt_operator_wall=')) throw new Error('localhost http cookie mode invalid');
   console.log('wall-auth-local=PASS');
+  console.log('wall-auth-localhost-http-cookie=PASS');
   console.log('wall-auth-cookie-flags=PASS');
   console.log('wall-auth-tamper=PASS');
   console.log('wall-auth-rate-limit=PASS');

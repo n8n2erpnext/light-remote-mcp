@@ -2,8 +2,10 @@
 set -euo pipefail
 
 ROOT=/opt/gpt-operator-agent
-MANIFEST_URL="${GPT_OPERATOR_UPDATE_MANIFEST_URL:-https://github.com/n8n2erpnext/light-remote-mcp/releases/latest/download/client-update.json}"
-SIGNATURE_URL="${GPT_OPERATOR_UPDATE_SIGNATURE_URL:-https://github.com/n8n2erpnext/light-remote-mcp/releases/latest/download/client-update.json.sig}"
+MANIFEST_URL="${GPT_OPERATOR_UPDATE_MANIFEST_URL:-https://raw.githubusercontent.com/n8n2erpnext/light-remote-mcp/main/channels/beta/client-update.json}"
+SIGNATURE_URL="${GPT_OPERATOR_UPDATE_SIGNATURE_URL:-https://raw.githubusercontent.com/n8n2erpnext/light-remote-mcp/main/channels/beta/client-update.json.sig}"
+BASE_URL="${OPERATOR_AGENT_BASE_URL:-https://light-remote-mcp.vercel.app}"
+HUB_URL="${OPERATOR_AGENT_HUB_URL:-https://mcp.dashboard.thaiduy.store}"
 BUNDLE=""
 DEV_BUNDLE=0
 TARGET_USER="${SUDO_USER:-${USER:-}}"
@@ -12,11 +14,15 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --bundle) BUNDLE="$2"; DEV_BUNDLE=1; shift 2;;
     --user) TARGET_USER="$2"; shift 2;;
+    --base-url) BASE_URL="${2%/}"; shift 2;;
+    --hub-url) HUB_URL="${2%/}"; shift 2;;
     *) echo "Unknown argument: $1" >&2; exit 2;;
   esac
 done
 
 [[ -n "$TARGET_USER" ]] || { echo "Unable to determine target user" >&2; exit 2; }
+[[ "$BASE_URL" == https://* ]] || { echo "--base-url must be HTTPS" >&2; exit 2; }
+[[ "$HUB_URL" == https://* ]] || { echo "--hub-url must be HTTPS" >&2; exit 2; }
 TARGET_HOME="$(getent passwd "$TARGET_USER" | cut -d: -f6)"
 [[ -n "$TARGET_HOME" ]] || { echo "Unable to determine home for $TARGET_USER" >&2; exit 2; }
 
@@ -45,7 +51,7 @@ import json,sys
 print(json.load(open(sys.argv[1]))['version'])
 PY
 )"
-  echo "Installing local development bundle $VERSION"
+  echo "Installing local bundle $VERSION"
 else
   curl -fsSL "$MANIFEST_URL" -o "$TMP/client-update.json"
   curl -fsSL "$SIGNATURE_URL" -o "$TMP/client-update.json.sig.b64"
@@ -86,7 +92,7 @@ STATE_FILE="$TARGET_HOME/.config/gpt-operator-agent/device.json"
 if [[ ! -f "$STATE_FILE" ]]; then
   echo
   echo "This Linux user is not enrolled yet. Starting device enrollment..."
-  sudo -u "$TARGET_USER" env HOME="$TARGET_HOME" "$ROOT/current/runtime/node" "$ROOT/current/device-agent/operator-agent.mjs" login
+  sudo -u "$TARGET_USER" env HOME="$TARGET_HOME" OPERATOR_AGENT_BASE_URL="$BASE_URL" OPERATOR_AGENT_HUB_URL="$HUB_URL" "$ROOT/current/runtime/node" "$ROOT/current/device-agent/operator-agent.mjs" login
 fi
 [[ -f "$STATE_FILE" ]] || { echo "Device enrollment did not produce state" >&2; exit 2; }
 POLICY_HELPER="$ROOT/current/device-agent/linux-service-policy.mjs"
@@ -113,6 +119,8 @@ Type=simple
 User=$TARGET_USER
 WorkingDirectory=$TARGET_HOME
 Environment=HOME=$TARGET_HOME
+Environment=OPERATOR_AGENT_BASE_URL=$BASE_URL
+Environment=OPERATOR_AGENT_HUB_URL=$HUB_URL
 ExecStart=$ROOT/current/runtime/node $ROOT/current/device-agent/operator-agent.mjs daemon
 Restart=always
 RestartSec=5
@@ -165,6 +173,8 @@ sudo systemctl enable --now gpt-operator-agent-update.timer
 sleep 2
 systemctl --no-pager --full status gpt-operator-device-agent.service | sed -n '1,12p'
 echo
-printf 'GPT Operator installed: version=%s user=%s\n' "$VERSION" "$TARGET_USER"
+printf 'Light Remote MCP client installed: version=%s user=%s\n' "$VERSION" "$TARGET_USER"
+printf 'Enrollment bridge: %s\n' "$BASE_URL"
+printf 'Device hub: %s\n' "$HUB_URL"
 echo 'The terminal can now be closed; systemd owns the connection.'
 echo 'Signed update checks run automatically every ~6 hours.'

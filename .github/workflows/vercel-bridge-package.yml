@@ -1,0 +1,63 @@
+name: Vercel Bridge Bundle
+
+on:
+  push:
+    branches:
+      - main
+      - codex/v0.9-device-policy-resume
+    tags:
+      - 'v0.9.*'
+    paths:
+      - 'api/**'
+      - 'lib/**'
+      - 'deploy/vercel/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'operator-public-keys.json'
+      - 'VERSION'
+      - 'LICENSE'
+      - 'NOTICE'
+      - '.github/workflows/vercel-bridge-package.yml'
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  package-vercel:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.2'
+      - name: Build Vercel bridge bundle
+        shell: bash
+        run: deploy/vercel/build-bundle.sh
+      - name: Bundle contract smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="$(cat VERSION)"
+          OUT=dist/vercel
+          ARCHIVE="$OUT/Light-Remote-MCP-Vercel-Bridge-${VERSION}.tar.gz"
+          (cd "$OUT" && sha256sum -c SHA256SUMS.txt)
+          TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
+          tar -xzf "$ARCHIVE" -C "$TMP"
+          test -f "$TMP/light-remote-mcp-vercel/api/operator.js"
+          test -f "$TMP/light-remote-mcp-vercel/lib/operator-crypto.js"
+          test -f "$TMP/light-remote-mcp-vercel/vercel.json"
+          test -s "$TMP/light-remote-mcp-vercel/LICENSE"
+          (cd "$TMP/light-remote-mcp-vercel" && npm ci --omit=dev)
+          node --check "$TMP/light-remote-mcp-vercel/api/operator.js"
+          echo vercel-bridge-package-contract=PASS
+      - name: Upload Vercel bridge bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: light-remote-vercel-bridge-${{ github.sha }}
+          path: |
+            dist/vercel/Light-Remote-MCP-Vercel-Bridge-*.tar.gz
+            dist/vercel/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14

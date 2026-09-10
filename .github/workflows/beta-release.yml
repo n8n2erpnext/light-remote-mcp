@@ -1,0 +1,59 @@
+name: Beta Release
+
+on:
+  push:
+    tags:
+      - 'v0.9.*-beta.*'
+
+permissions:
+  contents: write
+
+jobs:
+  linux-client:
+    uses: ./.github/workflows/linux-client-build.yml
+  windows-client:
+    uses: ./.github/workflows/windows-native-client.yml
+  linux-server:
+    uses: ./.github/workflows/server-linux-build.yml
+  vercel-bridge:
+    uses: ./.github/workflows/vercel-bridge-package.yml
+
+  publish:
+    needs: [linux-client, windows-client, linux-server, vercel-bridge]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Assemble release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="$(cat VERSION)"
+          test "v$VERSION" = "$GITHUB_REF_NAME"
+          mkdir -p release-assets
+          find artifacts -type f -name 'Light-Remote-MCP-Client-Linux-*.tar.gz' -exec cp {} release-assets/ \;
+          find artifacts -type f -name 'Light-Remote-MCP-Server-Linux-*.tar.gz' -exec cp {} release-assets/ \;
+          find artifacts -type f -name 'Light-Remote-MCP-Vercel-Bridge-*.tar.gz' -exec cp {} release-assets/ \;
+          win="$(find artifacts -type f -name 'Light-Remote-MCP-Setup-x64.exe' -print -quit)"
+          test -n "$win"; cp "$win" "release-assets/Light-Remote-MCP-Setup-x64-${VERSION}.exe"
+          installer="$(find artifacts -type f -name 'install.sh' -print -quit)"
+          test -n "$installer"; cp "$installer" release-assets/install-linux-client.sh
+          chmod 0755 release-assets/install-linux-client.sh
+          test "$(find release-assets -maxdepth 1 -type f | wc -l)" -eq 7
+          (cd release-assets && sha256sum * > SHA256SUMS.txt)
+          cat release-assets/SHA256SUMS.txt
+      - name: Create GitHub prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release create "$GITHUB_REF_NAME" release-assets/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Light Remote MCP $GITHUB_REF_NAME" \
+            --notes-file RELEASE_NOTES_V0_9_0_BETA_1.md \
+            --prerelease \
+            --verify-tag

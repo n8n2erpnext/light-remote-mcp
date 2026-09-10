@@ -148,6 +148,9 @@ internal sealed class AgentSupervisor : IDisposable
         };
         psi.Environment["OPERATOR_AGENT_STATE"] = AppPaths.StateFile;
         psi.Environment["HOME"] = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var connection = ConnectionConfig.Load();
+        psi.Environment["OPERATOR_AGENT_BASE_URL"] = connection.BridgeUrl;
+        psi.Environment["OPERATOR_AGENT_HUB_URL"] = connection.HubUrl;
         return psi;
     }
     private static async Task<(int ExitCode, string Stdout, string Stderr)> RunAgentAsync(string arguments, CancellationToken cancellationToken, bool allowFailure = false)

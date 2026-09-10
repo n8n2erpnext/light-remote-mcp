@@ -1,12 +1,13 @@
 {
   "name": "light-remote-mcp",
-  "version": "0.6.0-dev",
+  "version": "0.9.0-beta.1",
   "private": true,
-  "description": "Portable ChatGPT-to-VPS operator bridge with Vercel transport, an unprivileged gateway, and an encrypted host executor.",
+  "description": "Light Remote MCP: governed outbound remote execution for AI tools and user-owned machines.",
   "engines": {
     "node": "22.x"
   },
   "dependencies": {
     "@vercel/oidc": "^3.8.5"
-  }
+  },
+  "license": "Apache-2.0"
 }

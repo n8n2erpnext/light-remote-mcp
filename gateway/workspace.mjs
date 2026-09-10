@@ -4,12 +4,22 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
-const ROOTS = Object.freeze({
+const DEFAULT_ROOTS = {
   n8n2erpnext: '/workspace/n8n2erpnext',
   services: '/workspace/services',
   thaiduy: '/workspace/thaiduy.digital',
   frappe: '/workspace/frappe'
-});
+};
+function loadRoots() {
+  const raw = process.env.MCP_WORKSPACE_ROOTS_JSON;
+  if (!raw) return DEFAULT_ROOTS;
+  let parsed; try { parsed = JSON.parse(raw); } catch { throw new Error('workspace_roots_json_invalid'); }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('workspace_roots_json_invalid');
+  const entries = Object.entries(parsed).filter(([name,value]) => /^[A-Za-z0-9._-]{1,64}$/.test(name) && typeof value === 'string' && value.startsWith('/workspace/'));
+  if (!entries.length || entries.length > 32 || entries.length !== Object.keys(parsed).length) throw new Error('workspace_roots_json_invalid');
+  return Object.fromEntries(entries);
+}
+const ROOTS = Object.freeze(loadRoots());
 const DENY_PARTS = new Set(['.ssh', '.gnupg', '.aws', 'node_modules', '.git/objects']);
 const DENY_NAME = /(^\.env($|\.)|secret|token|credential|password|id_ed25519|id_rsa|\.pem$|\.key$|\.p12$|\.pfx$|\.npmrc$|\.netrc$)/i;
 const SKIP_DIRS = new Set(['.git', 'node_modules', '.next', 'dist', 'build', 'coverage']);

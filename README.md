@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img alt="Status" src="https://img.shields.io/badge/status-v0.9%20packaging%20candidate-f59e0b">
+  <img alt="Status" src="https://img.shields.io/badge/status-v0.9.0--beta.1-f59e0b">
   <img alt="Windows" src="https://img.shields.io/badge/Windows-native%20tray%20client-2563eb">
   <img alt="Linux" src="https://img.shields.io/badge/Linux-systemd%20agent-059669">
   <img alt="Transport" src="https://img.shields.io/badge/transport-outbound--only-171717">
@@ -142,36 +142,115 @@ Current controls include:
 
 The update signing private key is intentionally kept outside the repository and outside normal CI. Clients ship only the public verification key.
 
-## Current acceptance
+## Public beta: `v0.9.0-beta.1`
 
-The project is still pre-stable. `main` represents the accepted v0.8 fleet-routing candidate; the active v0.9 work is being validated on dedicated branches before promotion.
+`v0.9.0-beta.1` is the first public beta of the frozen execution/control-plane architecture. It is pre-stable software, backed by live ARM + Linux x64 + Windows x64 acceptance, signed update/rollback proof, and packaging gates for clients, the self-hosted Linux Server, and the Vercel bridge.
 
-Live acceptance has already covered:
+Release assets are built from tagged source. Prefer files attached to the GitHub prerelease over arbitrary CI artifacts. The update channel is signed separately; clients verify the manifest signature and selected artifact SHA-256 before installation.
 
-- ARM Hub/local executor on Linux aarch64;
-- a second Linux x86_64 leaf through the public Vercel route;
-- a real Windows x64 leaf through the same Vercel -> ARM Hub path;
-- PowerShell, filesystem, Git/build, process/network, Services read, Event Log, and package-manager execution on Windows;
-- Linux platform capability inference including governed `sudo-on-demand`;
-- exact Wall/audit node attribution and cleanup back to zero active sessions.
+### What you deploy
 
-## Getting the client
-
-There is no stable `v1.0` release yet. Current Windows and Linux packages are engineering candidates produced by GitHub Actions from the active acceptance branches.
-
-Do not treat an arbitrary CI artifact as a stable public release. Public distribution will be enabled only after the packaging/update channel is closed and the corresponding source commit is promoted.
-
-The current packaging work lives on:
+For the current self-hosted beta, Vercel is a **thin authenticated bridge**, not the durable Server. Durable routing/session/job state remains on the Linux Server/Hub.
 
 ```text
-codex/v0.9-client-packaging
+Windows / Linux clients
+        |  outbound enrollment + device channel
+        v
+Light Remote MCP Linux Server / Hub
+        ^
+        |  authenticated operator traffic
+Vercel bridge
+        ^
+        |  current private/reference integration
+AI / operator client
 ```
 
-The current platform-adapter work is documented in:
+The long-term product boundary is `Client <-> Server <-> Light Remote Plugin/App <-> ChatGPT`. See [`PRODUCT_ARCHITECTURE_ROADMAP_V0_9_BETA_TO_PLUGIN.md`](PRODUCT_ARCHITECTURE_ROADMAP_V0_9_BETA_TO_PLUGIN.md).
+
+## Quick start — self-hosted beta
+
+The examples below use `v0.9.0-beta.1`. Replace example domains, Vercel team/project names, users and workspace paths with your own values.
+
+### 1. Download and install the Linux Server / Hub
+Use a Linux x64 or arm64 VPS. Download the matching server archive from the GitHub prerelease and verify it against `SHA256SUMS.txt`, then extract it:
+
+```bash
+mkdir -p ~/light-remote-beta && cd ~/light-remote-beta
+# Download the matching Light-Remote-MCP-Server-Linux-*-0.9.0-beta.1.tar.gz
+# and SHA256SUMS.txt from the v0.9.0-beta.1 GitHub prerelease first.
+sha256sum -c SHA256SUMS.txt --ignore-missing
+tar -xzf Light-Remote-MCP-Server-Linux-arm64-0.9.0-beta.1.tar.gz
+cd package
+```
+
+Publish the MCP listener through your own HTTPS reverse proxy at a domain such as `https://mcp.example.com`. The installer defaults both MCP and Wall to localhost and does not silently open a public management port.
+
+```bash
+sudo ./install.sh \
+  --user ubuntu \
+  --vercel-team YOUR_VERCEL_TEAM_SLUG \
+  --vercel-project light-remote-mcp \
+  --public-mcp-url https://mcp.example.com \
+  --workspace code=/srv/code
+```
+
+On Debian/Ubuntu, add `--install-deps` if the supported Docker/Git/Curl/OpenSSL prerequisites are missing. State, keys and logs live outside the versioned release directory so an upgrade does not erase enrollment or audit state.
+
+The Wall defaults to `http://127.0.0.1:8081`. On a remote VPS, keep that default and use an SSH/VPN tunnel when approving devices, or explicitly choose a VPN/LAN bind with `--wall-bind` and `--wall-url`. Public Wall binding is never implicit.
+
+The installer prints the **public** operator-key JSON required by the Vercel bridge. The private operator key stays only on the Linux Server.
+
+### 2. Deploy the Vercel bridge
+Two paths are supported. The easiest is to import the public GitHub repository into a Vercel project. For a minimal deployment payload, download and extract `Light-Remote-MCP-Vercel-Bridge-0.9.0-beta.1.tar.gz` from the prerelease and deploy that directory with the Vercel CLI.
+
+Configure these Vercel environment variables:
 
 ```text
-PLATFORM_ADAPTERS_V0_9.md
+VPS_MCP_BASE=https://mcp.example.com
+VPS_MCP_URL=https://mcp.example.com/mcp
+VPS_MCP_AUDIENCE=https://mcp.example.com
+OPERATOR_PUBLIC_KEYS_JSON=<public JSON printed by the Server installer>
 ```
+
+The Linux Server validates the calling Vercel team/project through OIDC. The Vercel deployment therefore needs to match the `--vercel-team` and `--vercel-project` values used during Server installation.
+
+Packaged deployment notes live in [`deploy/vercel/README.md`](deploy/vercel/README.md).
+
+### 3. Install a Windows client
+
+Download `Light-Remote-MCP-Setup-x64-0.9.0-beta.1.exe` from the prerelease and run the installer. Open **Light Remote MCP → Server settings…** before enrollment and set:
+
+```text
+Bridge URL: https://YOUR-PROJECT.vercel.app
+Hub URL:    https://mcp.example.com
+```
+
+Both endpoints must be HTTPS. Choose **Enroll device**, open the approval URL, review requested capabilities in Wall, approve only what you want, and leave the client running in the tray. The agent normally runs as the signed-in user; privileged operations remain capability/elevation events rather than permanent administrator identity.
+
+### 4. Install a Linux client / server leaf
+Download `install-linux-client.sh` plus the matching Linux client archive from the prerelease. Run the installer as the normal target user; it invokes `sudo` only for system installation steps:
+
+```bash
+chmod +x install-linux-client.sh
+./install-linux-client.sh \
+  --bundle ./Light-Remote-MCP-Client-Linux-x64-0.9.0-beta.1.tar.gz \
+  --base-url https://YOUR-PROJECT.vercel.app \
+  --hub-url https://mcp.example.com
+```
+
+For arm64, use the arm64 archive. After enrollment, systemd owns the connection and the shell may be closed. The same client package is suitable for a headless Linux server leaf; a native Linux Desktop GUI is a later roadmap item.
+
+### 5. ChatGPT / custom MCP App status
+
+The open-source Server and clients can be self-hosted now. A generally distributable **Light Remote Plugin/App with account/OAuth is not included in `beta.1` yet**, so this README does not ask you to weaken the Server to anonymous access or a static shared bearer merely to make ChatGPT connect.
+
+OpenAI currently supports custom MCP Apps in Developer Mode. Full write/modify MCP actions are available in beta for ChatGPT Business and Enterprise/Edu workspaces, while Pro supports read/fetch MCP connections in Developer Mode. ChatGPT connects to a remote MCP server; private/local servers require a supported secure tunnel or a remotely reachable endpoint. See [OpenAI's current Developer Mode and MCP Apps documentation](https://help.openai.com/en/articles/12584461) before enabling a write-capable custom app.
+
+The next distribution milestone is the account/OAuth + self-describing Light Remote Plugin/App layer in the product roadmap. When published, the intended flow is: create/sign in to an account → install a client → approve device capabilities → enable **Light Remote** in ChatGPT → let the Agent discover allowed devices/tools and work within Server/device policy.
+
+### Updating beta clients
+
+The beta channel is separate from GitHub's `releases/latest` semantics. Windows and Linux clients read the signed manifest at `channels/beta/client-update.json` and `channels/beta/client-update.json.sig`. A release is not trusted merely because a file exists on GitHub: signature and artifact hash checks remain mandatory.
 
 ## Development
 
@@ -242,17 +321,9 @@ For recovery and architecture context, start with:
 
 ## Roadmap
 
-Near-term priorities are intentionally narrow:
+The v0.9 beta freezes the execution/control-plane contracts while product work moves upward into distribution: account/OAuth, a thin self-describing Plugin/App, distribution web, Linux Desktop UX, and a hosted implementation of the same Server contract. Vercel remains a deployment adapter rather than product authority.
 
-- finish the Windows native tray client and installer as the default Windows path;
-- keep Linux installation persistent under systemd with the same signed update channel;
-- close cross-platform client update acceptance and release rollback behavior;
-- finish the v0.9 platform-adapter promotion without regressing v0.8 routing guarantees;
-- expose owner-managed device capability profiles without weakening device-local enforcement;
-- replace temporary operator-auth plumbing with a public account/device authorization plane suitable for an official MCP/App distribution path;
-- keep macOS deferred until Windows and Linux packaging are stable enough to justify another native distribution lane.
-
-The public-product direction is documented in [`PRODUCT_PLATFORM_PLAN_V0_6_TO_PUBLIC_PLUGIN.md`](PRODUCT_PLATFORM_PLAN_V0_6_TO_PUBLIC_PLUGIN.md).
+See [`PRODUCT_ARCHITECTURE_ROADMAP_V0_9_BETA_TO_PLUGIN.md`](PRODUCT_ARCHITECTURE_ROADMAP_V0_9_BETA_TO_PLUGIN.md) for the locked technical boundaries and [`PRODUCT_PLATFORM_PLAN_V0_6_TO_PUBLIC_PLUGIN.md`](PRODUCT_PLATFORM_PLAN_V0_6_TO_PUBLIC_PLUGIN.md) for the longer engineering history.
 
 ## Light ecosystem
 
@@ -272,9 +343,9 @@ See [`THIRD_PARTY_DISTRIBUTION_NOTICES.md`](THIRD_PARTY_DISTRIBUTION_NOTICES.md)
 
 ## Project licensing
 
-A project-wide Light Remote MCP license has not yet been declared at the repository root. The stable public release should include an explicit project license before downstream redistribution is encouraged.
+Light Remote MCP source is licensed under the **Apache License 2.0**; see [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE). The software license does not grant permission to use the Light Remote MCP name, logos or project identity to imply endorsement or official status.
 
-Third-party components retain their own licenses and notices.
+Third-party components retain their own licenses and notices. See [`THIRD_PARTY_DISTRIBUTION_NOTICES.md`](THIRD_PARTY_DISTRIBUTION_NOTICES.md).
 
 ---
 

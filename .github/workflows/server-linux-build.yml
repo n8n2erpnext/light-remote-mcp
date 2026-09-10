@@ -1,0 +1,65 @@
+name: Linux Server Bundle
+
+on:
+  push:
+    branches:
+      - main
+      - codex/v0.9-device-policy-resume
+    tags:
+      - 'v0.9.*'
+    paths:
+      - 'gateway/**'
+      - 'operator-host/**'
+      - 'lib/**'
+      - 'deploy/server-linux/**'
+      - 'deploy/scripts/generate-operator-key.mjs'
+      - 'deploy/scripts/generate-wall-auth.mjs'
+      - 'VERSION'
+      - 'LICENSE'
+      - 'NOTICE'
+      - 'THIRD_PARTY_DISTRIBUTION_NOTICES.md'
+      - '.github/workflows/server-linux-build.yml'
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+jobs:
+  build-server:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        arch: [x64, arm64]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build server bundle
+        shell: bash
+        run: deploy/server-linux/build-bundle.sh "${{ matrix.arch }}"
+      - name: Server package contract smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="$(cat VERSION)"
+          OUT="dist/server-linux/${{ matrix.arch }}"
+          ARCHIVE="$OUT/Light-Remote-MCP-Server-Linux-${{ matrix.arch }}-${VERSION}.tar.gz"
+          (cd "$OUT" && sha256sum -c SHA256SUMS.txt)
+          TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
+          tar -xzf "$ARCHIVE" -C "$TMP"
+          test -x "$TMP/package/runtime/node"
+          test -s "$TMP/package/licenses/node/LICENSE"
+          test -x "$TMP/package/install.sh"
+          test -f "$TMP/package/gateway/package-lock.json"
+          test -f "$TMP/package/operator-host/executor.mjs"
+          bash -n "$TMP/package/install.sh"
+          "$TMP/package/runtime/node" --check "$TMP/package/operator-host/executor.mjs" || [[ "${{ matrix.arch }}" == arm64 ]]
+          python3 -c "import json,sys; m=json.load(open(sys.argv[1])); assert m['version']==sys.argv[2],m; assert m['platform'].startswith('linux-'),m; print('server-linux-package-contract=PASS')" "$TMP/package/manifest.json" "$VERSION"
+      - name: Upload Linux server bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: light-remote-server-linux-${{ matrix.arch }}-${{ github.sha }}
+          path: |
+            dist/server-linux/${{ matrix.arch }}/Light-Remote-MCP-Server-Linux-${{ matrix.arch }}-*.tar.gz
+            dist/server-linux/${{ matrix.arch }}/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14

@@ -28,8 +28,9 @@ internal sealed class UpdateClient
         var root = doc.RootElement;
         if (root.GetProperty("schemaVersion").GetInt32() != 1) throw new InvalidOperationException("Unsupported update manifest schema.");
         var versionText = root.GetProperty("version").GetString() ?? throw new InvalidOperationException("Update version missing.");
-        if (!Version.TryParse(versionText.TrimStart('v'), out var version)) throw new InvalidOperationException("Invalid update version.");
-        if (version <= ClientVersion.SemVer) return null;
+        if (!SemanticVersion.TryParse(versionText, out var candidate) || candidate is null) throw new InvalidOperationException("Invalid update version.");
+        if (!SemanticVersion.TryParse(ClientVersion.Display, out var current) || current is null) throw new InvalidOperationException("Invalid client version.");
+        if (candidate.CompareTo(current) <= 0) return null;
         var platforms = root.GetProperty("artifacts");
         if (!platforms.TryGetProperty("windows-x64", out var item)) return null;
         var artifact = new UpdateArtifact(

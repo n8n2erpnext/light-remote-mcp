@@ -5,12 +5,16 @@ on:
     branches:
       - codex/v0.9-client-packaging
       - codex/v0.9-device-policy-resume
+      - main
+    tags:
+      - 'v0.9.*'
     paths:
       - 'client/**'
       - 'device-agent/**'
       - 'lib/device-proof.mjs'
       - '.github/workflows/linux-client-build.yml'
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
@@ -47,18 +51,19 @@ jobs:
           cp lib/device-proof.mjs "$PKG/lib/"
           cp client/linux/updater.mjs "$PKG/client/linux/"
           cp client/update-public.pem "$PKG/client/update-public.pem"
+          cp LICENSE NOTICE THIRD_PARTY_DISTRIBUTION_NOTICES.md "$PKG/"
           cat > "$PKG/manifest.json" <<JSON
           {
             "product": "GPT Operator Linux ${TARGET_ARCH}",
-            "version": "0.9.0-dev",
+            "version": "0.9.0-beta.1",
             "gitSha": "${GITHUB_SHA}",
             "node": "v${NODE_VERSION}",
             "platform": "linux-${TARGET_ARCH}",
             "builtAtUtc": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           }
           JSON
-          tar -czf "$OUT/GPT-Operator-Agent-Linux-${TARGET_ARCH}-dev.tar.gz" -C "$OUT" package
-          (cd "$OUT" && sha256sum "GPT-Operator-Agent-Linux-${TARGET_ARCH}-dev.tar.gz") > "$OUT/SHA256SUMS.txt"
+          tar -czf "$OUT/Light-Remote-MCP-Client-Linux-${TARGET_ARCH}-0.9.0-beta.1.tar.gz" -C "$OUT" package
+          (cd "$OUT" && sha256sum "Light-Remote-MCP-Client-Linux-${TARGET_ARCH}-0.9.0-beta.1.tar.gz") > "$OUT/SHA256SUMS.txt"
       - name: Package contract smoke
         shell: bash
         env:
@@ -69,6 +74,9 @@ jobs:
           PKG="$OUT/package"
           test -x "$PKG/runtime/node"
           test -s "$PKG/licenses/node/LICENSE"
+          test -s "$PKG/LICENSE"
+          test -s "$PKG/NOTICE"
+          test -s "$PKG/THIRD_PARTY_DISTRIBUTION_NOTICES.md"
           test -f "$PKG/device-agent/operator-agent.mjs"
           test -f "$PKG/device-agent/linux-service-policy.mjs"
           test -f "$PKG/client/linux/updater.mjs"

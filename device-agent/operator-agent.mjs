@@ -7,7 +7,7 @@ import { spawn } from 'node:child_process';
 import { deviceChannelMessage, deviceHeartbeatMessage, devicePolicyMessage, normalizeDeviceCapabilities } from '../lib/device-proof.mjs';
 import { createPlatformAdapter } from './platform-adapters/index.mjs';
 
-const VERSION='0.9.0-dev';
+const VERSION='0.9.0-beta.1';
 const PLATFORM_ADAPTER=createPlatformAdapter();
 const DEFAULT_BASE=process.env.OPERATOR_AGENT_BASE_URL || 'https://light-remote-mcp.vercel.app';
 const DEFAULT_HUB=process.env.OPERATOR_AGENT_HUB_URL || 'https://mcp.dashboard.thaiduy.store';

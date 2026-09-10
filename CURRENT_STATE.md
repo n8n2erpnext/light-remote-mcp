@@ -1,7 +1,7 @@
 # Light Remote MCP — Current State
 
 Updated: 2026-09-10
-Version: v0.9 acceptance candidate on `codex/v0.9-device-policy-resume`; production remains v0.8.0-dev
+Version: `v0.9.0-beta.1` source candidate on `codex/v0.9-device-policy-resume`; public beta promotion approved, production reference remains v0.8.0-dev until promotion completes
 
 ## Active path
 `ChatGPT -> @Vercel -> light-remote-mcp.vercel.app -> ARM Hub -> {ARM local executor | explicitly selected outbound leaf}`
@@ -36,6 +36,15 @@ Version: v0.9 acceptance candidate on `codex/v0.9-device-policy-resume`; product
 - Public-product authorization must come from explicit account/device authorization plus ChatGPT permission/confirmation semantics, not a long-lived shared Bearer secret.
 - Never move passwords, tokens, private keys, cookies, or other credentials into URL query parameters.
 
+
+
+## v0.9.0-beta.1 public distribution preparation
+- Owner selected Apache-2.0 and approved the public beta. Root `LICENSE` + `NOTICE` are now part of the candidate.
+- Product architecture is locked in `PRODUCT_ARCHITECTURE_ROADMAP_V0_9_BETA_TO_PLUGIN.md`: Client <-> Server <-> thin Plugin/App <-> ChatGPT; Vercel is a deployment adapter, not authority.
+- Public self-host packages now cover Linux Server/Hub x64+arm64, Vercel bridge, Windows x64 client, and Linux client x64+arm64. Windows/Linux clients can target a user's own Bridge/Hub URLs.
+- Beta updates use signed `channels/beta/client-update.json` + signature, not GitHub `releases/latest`; Windows now has prerelease-aware SemVer ordering.
+- Final pre-commit ARM regression is 37/37 PASS; root and gateway npm audits are 0 vulnerabilities; all beta workflow YAML parses cleanly.
+- ChatGPT write-capable custom MCP use remains plan/workspace dependent and the generally distributable account/OAuth Light Remote Plugin/App is post-beta work; beta does not reintroduce anonymous execution or a static shared bearer.
 
 ## v0.9 platform-adapter preview proof
 - Branch `codex/v0.9-device-policy-resume` is the active v0.9 acceptance lane; production `main` remains v0.8. No stable v0.9.0 tag exists.

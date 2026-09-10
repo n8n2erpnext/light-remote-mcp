@@ -1,7 +1,7 @@
 {
-  "name": "lightbi-mcp-poc",
-  "version": "1.0.0",
-  "description": "",
+  "name": "light-remote-mcp-server",
+  "version": "0.9.0-beta.1",
+  "description": "Light Remote MCP self-hosted gateway and MCP control plane.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -9,7 +9,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "Apache-2.0",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
     "express": "^5.2.1",

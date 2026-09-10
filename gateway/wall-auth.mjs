@@ -2,7 +2,8 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 
 const DEFAULT_CONFIG = '/run/secrets/wall-auth.json';
-const COOKIE = '__Host-gpt_operator_wall';
+const SECURE_COOKIE = '__Host-gpt_operator_wall';
+const LOCAL_COOKIE = 'gpt_operator_wall';
 const LOGIN_WINDOW_MS = 10 * 60 * 1000;
 const LOGIN_MAX_ATTEMPTS = 10;
 const DEFAULT_BRIDGE_TTL_SECONDS = 15 * 60;
@@ -79,11 +80,11 @@ function verifyBridgeSession(secret, token) {
   return { username, expiresAt, scope:'operator' };
 }
 
-function sessionCookie(token, ttlSeconds) {
-  return `${COOKIE}=${token}; Path=/; Max-Age=${ttlSeconds}; HttpOnly; Secure; SameSite=Strict; Priority=High`;
+function sessionCookie(name, token, ttlSeconds, secure = true) {
+  return `${name}=${token}; Path=/; Max-Age=${ttlSeconds}; HttpOnly; ${secure ? 'Secure; ' : ''}SameSite=Strict; Priority=High`;
 }
-function clearCookie() {
-  return `${COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict; Priority=High`;
+function clearCookie(name, secure = true) {
+  return `${name}=; Path=/; Max-Age=0; HttpOnly; ${secure ? 'Secure; ' : ''}SameSite=Strict; Priority=High`;
 }
 function loginHtml(message = '') {
   const note = message ? `<div class="err">${message}</div>` : '';
@@ -93,9 +94,11 @@ function loginHtml(message = '') {
 export function createWallAuth(options = {}) {
   const config = loadConfig(options.configFile);
   const bridgeTtlSeconds = Math.max(300, Math.min(Number(options.bridgeTtlSeconds || process.env.BRIDGE_SESSION_TTL_SECONDS) || DEFAULT_BRIDGE_TTL_SECONDS, 3600));
+  const cookieSecure = options.cookieSecure ?? String(process.env.WALL_COOKIE_SECURE || 'true').toLowerCase() !== 'false';
+  const cookieName = cookieSecure ? SECURE_COOKIE : LOCAL_COOKIE;
   const failures = new Map();
   const identity = req => {
-    const token = parseCookies(req.headers.cookie)[COOKIE];
+    const token = parseCookies(req.headers.cookie)[cookieName];
     const value = verifySession(config.cookieSecret, token);
     return value && safeEqual(value.username, config.username) ? value : null;
   };
@@ -144,7 +147,7 @@ export function createWallAuth(options = {}) {
     }
     failures.delete(key);
     const expiresAt = Date.now() + config.sessionTtlSeconds * 1000;
-    res.set('Set-Cookie', sessionCookie(signSession(config.cookieSecret, config.username, expiresAt), config.sessionTtlSeconds));
+    res.set('Set-Cookie', sessionCookie(cookieName, signSession(config.cookieSecret, config.username, expiresAt), config.sessionTtlSeconds, cookieSecure));
     return res.redirect(303, '/');
   }
   function requireBridgeSession(req, res, next) {
@@ -173,9 +176,9 @@ export function createWallAuth(options = {}) {
     }});
   }
   function logout(_req, res) {
-    res.set('Set-Cookie', clearCookie());
+    res.set('Set-Cookie', clearCookie(cookieName, cookieSecure));
     return res.redirect(303, '/login');
   }
   return { loginPage, login, logout, requirePage, requireApi, identity, bridgeLogin, requireBridgeSession, bridgeIdentity,
-    info: () => ({ mode:config.mode, username:config.username, sessionTtlSeconds:config.sessionTtlSeconds, bridgeSessionTtlSeconds:bridgeTtlSeconds }) };
+    info: () => ({ mode:config.mode, username:config.username, sessionTtlSeconds:config.sessionTtlSeconds, bridgeSessionTtlSeconds:bridgeTtlSeconds, cookieSecure, cookieName }) };
 }

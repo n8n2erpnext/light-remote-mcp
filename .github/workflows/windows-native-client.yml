@@ -5,12 +5,16 @@ on:
     branches:
       - codex/v0.9-client-packaging
       - codex/v0.9-device-policy-resume
+      - main
+    tags:
+      - 'v0.9.*'
     paths:
       - 'client/**'
       - 'device-agent/**'
       - 'lib/device-proof.mjs'
       - '.github/workflows/windows-native-client.yml'
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
@@ -57,6 +61,9 @@ jobs:
           Copy-Item device-agent/platform-adapters/*.mjs $adapterDir
           Copy-Item lib/device-proof.mjs $libDir
           Copy-Item client/update-public.pem (Join-Path $configDir 'client-update-public.pem')
+          Copy-Item LICENSE (Join-Path $stage 'LICENSE')
+          Copy-Item NOTICE (Join-Path $stage 'NOTICE')
+          Copy-Item THIRD_PARTY_DISTRIBUTION_NOTICES.md (Join-Path $stage 'THIRD_PARTY_DISTRIBUTION_NOTICES.md')
       - name: Native client bundled runtime smoke
         shell: pwsh
         run: |
@@ -65,7 +72,7 @@ jobs:
           $exe = Join-Path $stage 'GptOperator.Client.exe'
           $node = Join-Path $stage 'runtime\node.exe'
           $agent = Join-Path $stage 'agent\device-agent\operator-agent.mjs'
-          foreach ($notice in @('licenses\node\LICENSE','licenses\dotnet\LICENSE.txt','licenses\dotnet\ThirdPartyNotices.txt','THIRD_PARTY_NOTICES.txt')) {
+          foreach ($notice in @('LICENSE','NOTICE','THIRD_PARTY_DISTRIBUTION_NOTICES.md','licenses\node\LICENSE','licenses\dotnet\LICENSE.txt','licenses\dotnet\ThirdPartyNotices.txt','THIRD_PARTY_NOTICES.txt')) {
             $noticePath = Join-Path $stage $notice
             if (-not (Test-Path $noticePath) -or (Get-Item $noticePath).Length -lt 100) { throw "bundled notice missing/empty: $notice" }
           }
@@ -82,7 +89,7 @@ jobs:
           $json = Get-Content $result -Raw | ConvertFrom-Json
           if (-not $json.ok) { throw "self-test not ok: $(Get-Content $result -Raw)" }
           if ($json.platformAdapter -ne 'win32') { throw "expected win32 adapter, got $($json.platformAdapter)" }
-          if ($json.clientVersion -ne '0.9.0-dev') { throw "client version mismatch: $($json.clientVersion)" }
+          if ($json.clientVersion -ne '0.9.0-beta.1') { throw "client version mismatch: $($json.clientVersion)" }
           Write-Host "windows-native-selftest=PASS agent=$($json.agentVersion) adapter=$($json.platformAdapter)"
 
           $manifestFixture = (Resolve-Path 'deploy/fixtures/client-update-test.json').Path
@@ -117,7 +124,7 @@ jobs:
           $stage = (Resolve-Path 'dist\windows\stage').Path
           $out = Join-Path $PWD 'dist\windows\installer'
           New-Item -ItemType Directory -Force -Path $out | Out-Null
-          & $env:ISCC "/DStageDir=$stage" "/DOutputDir=$out" "/DAppVersion=0.9.0-dev" client/windows-native/installer/GptOperator.iss
+          & $env:ISCC "/DStageDir=$stage" "/DOutputDir=$out" "/DAppVersion=0.9.0-beta.1" client/windows-native/installer/GptOperator.iss
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup build failed' }
           $installer = Join-Path $out 'Light-Remote-MCP-Setup-x64.exe'
           if (-not (Test-Path $installer)) { throw 'installer missing' }
@@ -145,12 +152,12 @@ jobs:
           if (Get-ScheduledTask -TaskName $legacyName -ErrorAction SilentlyContinue) { throw 'legacy scheduled task survived native install' }
           $exe = Join-Path $installDir 'GptOperator.Client.exe'
           if (-not (Test-Path $exe)) { throw "installed client missing: $exe" }
-          foreach ($notice in @('licenses\node\LICENSE','licenses\dotnet\LICENSE.txt','licenses\dotnet\ThirdPartyNotices.txt','THIRD_PARTY_NOTICES.txt')) {
+          foreach ($notice in @('LICENSE','NOTICE','THIRD_PARTY_DISTRIBUTION_NOTICES.md','licenses\node\LICENSE','licenses\dotnet\LICENSE.txt','licenses\dotnet\ThirdPartyNotices.txt','THIRD_PARTY_NOTICES.txt')) {
             $noticePath = Join-Path $installDir $notice
             if (-not (Test-Path $noticePath) -or (Get-Item $noticePath).Length -lt 100) { throw "installed notice missing/empty: $notice" }
           }
           Write-Host 'windows-installed-runtime-notices=PASS'
-          $rollback = Join-Path $env:LOCALAPPDATA 'GPTOperatorAgent\updates\rollback\GPT-Operator-Setup-0.9.0-dev-x64.exe'
+          $rollback = Join-Path $env:LOCALAPPDATA 'GPTOperatorAgent\updates\rollback\GPT-Operator-Setup-0.9.0-beta.1-x64.exe'
           if (-not (Test-Path $rollback)) { throw "rollback installer cache missing: $rollback" }
           "WINDOWS_INSTALL_DIR=$installDir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           "WINDOWS_INSTALLED_EXE=$exe" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
@@ -187,7 +194,7 @@ jobs:
           $psi.ArgumentList.Add('--apply-update')
           $psi.ArgumentList.Add($badInstaller)
           $psi.ArgumentList.Add($env:WINDOWS_INSTALL_DIR)
-          $psi.ArgumentList.Add('0.9.0-dev')
+          $psi.ArgumentList.Add('0.9.0-beta.1')
           $psi.ArgumentList.Add('0')
           $p = [System.Diagnostics.Process]::Start($psi)
           if (-not $p.WaitForExit(180000)) {

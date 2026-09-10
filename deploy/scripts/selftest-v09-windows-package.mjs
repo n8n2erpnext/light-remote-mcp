@@ -11,6 +11,9 @@ const supervisor=fs.readFileSync(new URL('../../client/windows-native/GptOperato
 const updater=fs.readFileSync(new URL('../../client/windows-native/GptOperator.Client/UpdateClient.cs',import.meta.url),'utf8');
 const applier=fs.readFileSync(new URL('../../client/windows-native/GptOperator.Client/UpdateApplier.cs',import.meta.url),'utf8');
 const installer=fs.readFileSync(new URL('../../client/windows-native/installer/GptOperator.iss',import.meta.url),'utf8');
+const connection=fs.readFileSync(new URL('../../client/windows-native/GptOperator.Client/ConnectionConfig.cs',import.meta.url),'utf8');
+const connectionDialog=fs.readFileSync(new URL('../../client/windows-native/GptOperator.Client/ConnectionSettingsDialog.cs',import.meta.url),'utf8');
+const semver=fs.readFileSync(new URL('../../client/windows-native/GptOperator.Client/SemanticVersion.cs',import.meta.url),'utf8');
 const notices=fs.readFileSync(new URL('../../client/windows-native/GptOperator.Client/THIRD_PARTY_NOTICES.txt',import.meta.url),'utf8');
 function expect(condition,message){if(!condition)throw new Error(message);}
 
@@ -22,6 +25,7 @@ expect(workflow.includes('windows-native-update-signature=PASS'),'signed_update_
 expect(workflow.includes("Copy-Item (Join-Path $nodeRoot 'LICENSE')"),'windows_node_license_not_bundled');
 expect(workflow.includes("Copy-Item (Join-Path $dotnetRoot 'LICENSE.txt')"),'windows_dotnet_license_not_bundled');
 expect(workflow.includes("Copy-Item (Join-Path $dotnetRoot 'ThirdPartyNotices.txt')"),'windows_dotnet_notices_not_bundled');
+expect(workflow.includes("Copy-Item LICENSE (Join-Path $stage 'LICENSE')")&&workflow.includes("Copy-Item NOTICE (Join-Path $stage 'NOTICE')"),'windows_project_license_not_bundled');
 expect(workflow.includes('windows-installed-runtime-notices=PASS'),'windows_runtime_notice_install_smoke_missing');
 expect(workflow.includes('Light-Remote-MCP-Setup-x64.exe'),'native_setup_artifact_missing');
 expect(!workflow.includes('START-HERE.ps1'),'powershell_user_flow_returned');
@@ -39,6 +43,12 @@ expect(form.includes('Runs in the tray when this window is closed.'),'summary_hi
 expect(form.includes('Still connected in the system tray'),'close_to_tray_missing');
 expect(form.includes('Software\\Microsoft\\Windows\\CurrentVersion\\Run'),'autostart_missing');
 expect(form.includes('Enroll device'),'native_enrollment_ui_missing');
+expect(connection.includes('OPERATOR_AGENT_BASE_URL')&&connection.includes('OPERATOR_AGENT_HUB_URL'),'windows_selfhost_connection_config_missing');
+expect(connection.includes('RequireHttps'),'windows_selfhost_connection_https_guard_missing');
+expect(connectionDialog.includes('Server / Hub URL'),'windows_server_settings_dialog_missing');
+expect(semver.includes('CompareTo')&&semver.includes('IsNewer'),'windows_semver_comparator_missing');
+expect(updater.includes('SemanticVersion.TryParse')&&updater.includes('candidate.CompareTo(current)'),'windows_prerelease_update_order_missing');
+expect(form.includes('Server settings…'),'windows_server_settings_menu_missing');
 expect(form.includes('Light Remote MCP'),'light_remote_brand_missing');
 expect(form.includes('Details view'),'details_view_missing');
 expect(form.includes('WindowState == FormWindowState.Minimized'),'minimize_to_tray_missing');

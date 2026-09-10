@@ -16,8 +16,8 @@ import { rootNames, listWorkspace, readWorkspaceText, searchWorkspace, gitStatus
 const PORT = Number(process.env.PORT || 8080);
 const WALL_PORT = Number(process.env.WALL_PORT || 8081);
 const OPERATOR_ACCOUNT_ID = String(process.env.OPERATOR_ACCOUNT_ID || 'self-hosted-local');
-const VERSION = '0.9.0-dev';
-const RootSchema = z.enum(['n8n2erpnext', 'services', 'thaiduy', 'frappe']);
+const VERSION = '0.9.0-beta.1';
+const RootSchema = z.string().min(1).max(64).refine(value => rootNames().includes(value), 'unknown_root');
 
 function textResult(value) {
   const text = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
@@ -121,13 +121,15 @@ function getServer(identity) {
 
   return server;
 }
+const DEFAULT_ALLOWED_HOSTS = [
+  'mcp.dashboard.thaiduy.store',
+  'lightbi-mcp-poc', 'lightbi-mcp-poc:8080',
+  '100.94.184.141', '100.94.184.141:5488', 'localhost:8080', '127.0.0.1:8080'
+];
+const EXTRA_ALLOWED_HOSTS = String(process.env.MCP_ALLOWED_HOSTS || '').split(',').map(value => value.trim()).filter(Boolean);
 const app = createMcpExpressApp({
   host: '0.0.0.0',
-  allowedHosts: [
-    'mcp.dashboard.thaiduy.store',
-    'lightbi-mcp-poc', 'lightbi-mcp-poc:8080',
-    '100.94.184.141', '100.94.184.141:5488', 'localhost:8080', '127.0.0.1:8080'
-  ]
+  allowedHosts: [...new Set([...DEFAULT_ALLOWED_HOSTS, ...EXTRA_ALLOWED_HOSTS])]
 });
 
 app.disable('x-powered-by');

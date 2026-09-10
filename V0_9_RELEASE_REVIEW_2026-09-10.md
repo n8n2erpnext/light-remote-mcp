@@ -1,6 +1,6 @@
 # v0.9 Release Review — 2026-09-10
 
-Status: **ENGINEERING GO / PROMOTION HOLD**
+Status: **ENGINEERING GO / BETA PROMOTION APPROVED — SOURCE/CI GATE IN PROGRESS**
 Branch: `codex/v0.9-device-policy-resume`
 Live-acceptance content commit: `13aeb484808b94aaa005db2049f0045b1710a678`
 Main reconciliation commit: `b1ae1fd`
@@ -15,7 +15,7 @@ The reconciliation tree is byte-identical to the already-tested candidate tree:
 `origin/main` is now an ancestor of the acceptance branch, so a later owner-approved promotion can use the normal branch/release gate without replaying divergent history.
 
 ## Automated gates
-Final ARM selftest gate: **36/36 PASS, 0 skip, 0 fail**.
+Final pre-beta ARM selftest gate: **37/37 PASS, 0 skip, 0 fail** (the 37th gate covers public distribution/self-host packaging).
 Root `npm audit --omit=dev`: **0 vulnerabilities**.
 Gateway `npm audit --omit=dev`: **0 vulnerabilities**.
 `git diff --check`: clean.
@@ -61,14 +61,17 @@ The release review found that binary packaging carried the application-specific 
 
 This closes the mechanical third-party notice packaging gate; it does not substitute for legal advice or for the owner selecting the project's own root license.
 
-## Promotion blockers / owner decisions
-Engineering acceptance is green, but promotion is intentionally held at this checkpoint.
+## Promotion decisions resolved
+The owner selected **Apache License 2.0** for the project and explicitly approved promotion to a public beta. Root `LICENSE` and `NOTICE` are now part of the beta source candidate. Third-party notices remain separate.
 
-Two owner-level decisions remain before a stable public v0.9 release:
-1. Explicit approval to promote the accepted v0.9 branch to `main` and cut the release/tag.
-2. Select and add a project-wide root license. The repository is public, but there is currently no root `LICENSE`/`COPYING` file; README already warns that redistribution should not be encouraged until an explicit license is declared.
-
-No `main` update, stable tag, or GitHub Release is created by this review.
+The approved beta version is `v0.9.0-beta.1`; this is a prerelease, not stable `v0.9.0`. Promotion still requires the source commit to pass GitHub package CI before `main`/tag publication.
 
 ## Release-ready next sequence
 After the owner resolves the two decisions above: re-run the final branch gate if source changes, promote to `main`, verify the production Vercel/ARM path, build release packages from the promoted commit, sign the update manifest with the external signing key, publish the GitHub Release assets, verify the canonical updater channel, and only then cut/confirm the stable tag according to the chosen release convention.
+
+## Beta distribution gate added
+The beta cut adds exact tagged packaging for Windows x64, Linux clients x64/arm64, Linux Server x64/arm64 and the thin Vercel bridge. The Linux/Windows update default now points to a signed `channels/beta` manifest instead of GitHub `releases/latest`, because prereleases must not depend on stable-release selection semantics.
+
+Windows gained a prerelease-aware SemVer comparator so `beta -> rc -> stable` ordering is correct. The self-test includes explicit beta/rc/stable ordering checks. Public self-host configuration for Vercel/Server endpoints is now supported by Linux installer flags and Windows **Server settings…**.
+
+The self-hosted Vercel release bundle deliberately ships an empty operator-key placeholder: a user must provide `OPERATOR_PUBLIC_KEYS_JSON` from their own Linux Server. This prevents an extracted public bundle from silently inheriting the reference deployment's operator public key.

@@ -30,3 +30,6 @@ Upstream reference: https://github.com/netbirdio/netbird
 
 ## Packaging gate
 CI must fail if the bundled runtime license/notice files are absent or empty. Installer smoke also verifies that the Windows notice files survive installation, not only staging.
+
+## Project license files in release packages
+Public beta Windows, Linux client, Linux Server and Vercel bridge bundles also carry the Light Remote MCP root `LICENSE` and `NOTICE`. Those project files are separate from the upstream runtime notices described above.

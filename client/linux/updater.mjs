@@ -9,8 +9,8 @@ const ROOT=process.env.GPT_OPERATOR_INSTALL_ROOT||'/opt/gpt-operator-agent';
 const CURRENT=path.join(ROOT,'current');
 const RELEASES=path.join(ROOT,'releases');
 const PUBLIC_KEY=process.env.GPT_OPERATOR_UPDATE_PUBLIC_KEY||path.join(ROOT,'update-public.pem');
-const MANIFEST_URL=process.env.GPT_OPERATOR_UPDATE_MANIFEST_URL||'https://github.com/n8n2erpnext/light-remote-mcp/releases/latest/download/client-update.json';
-const SIGNATURE_URL=process.env.GPT_OPERATOR_UPDATE_SIGNATURE_URL||'https://github.com/n8n2erpnext/light-remote-mcp/releases/latest/download/client-update.json.sig';
+const MANIFEST_URL=process.env.GPT_OPERATOR_UPDATE_MANIFEST_URL||'https://raw.githubusercontent.com/n8n2erpnext/light-remote-mcp/main/channels/beta/client-update.json';
+const SIGNATURE_URL=process.env.GPT_OPERATOR_UPDATE_SIGNATURE_URL||'https://raw.githubusercontent.com/n8n2erpnext/light-remote-mcp/main/channels/beta/client-update.json.sig';
 const SERVICE=process.env.GPT_OPERATOR_SERVICE||'gpt-operator-device-agent.service';
 const LOCK=path.join(ROOT,'.update.lock');
 

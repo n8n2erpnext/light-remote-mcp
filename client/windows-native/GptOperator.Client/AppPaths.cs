@@ -12,6 +12,7 @@ internal static class AppPaths
     public static readonly string RollbackDir = Path.Combine(UpdateDir, "rollback");
     public static readonly string UpdateLog = Path.Combine(LogDir, "update.log");
     public static readonly string StateFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".config", "gpt-operator-agent", "device.json");
+    public static readonly string ConnectionFile = Path.Combine(LocalData, "connection.json");
     public static readonly string AgentLog = Path.Combine(LogDir, "agent.log");
 
     public static void EnsureDirectories()
