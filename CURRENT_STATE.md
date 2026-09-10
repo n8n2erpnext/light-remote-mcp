@@ -1,7 +1,7 @@
 # GPT VPS Bridge — Current State
 
-Updated: 2026-09-09
-Version: v0.8.0-dev production-test candidate
+Updated: 2026-09-10
+Version: v0.9.0-dev platform-adapter preview; production remains v0.8.0-dev
 
 ## Active path
 `ChatGPT -> @Vercel -> gpt-vps-bridge.vercel.app -> ARM Hub -> {ARM local executor | explicitly selected outbound leaf}`
@@ -13,7 +13,8 @@ Version: v0.8.0-dev production-test candidate
 - Re-opening while the same agent already has a live lane returns the same session instead of consuming another slot. Default live-session ceiling is 5.
 - Session-aware reads renew the lease. Expired/closed sessions remain audit history but consume no live capacity.
 - v0.5.2 pins the Vercel/serverless Node major to `22.x`, matching the tested host/toolchain and preventing automatic future-major runtime jumps from `engines.node >=20`.
-- ARM is the live Hub (`nodeId=arm`). `VPS-AMD` is the first live outbound leaf (`dev_700ad1e57b626a18ffad9339`); leaf sessions/jobs are explicitly target-bound and never silently fall back to ARM.
+- ARM is the live Hub (`nodeId=arm`). `VPS-AMD` is the first live outbound Linux leaf; leaf sessions/jobs are explicitly target-bound and never silently fall back to ARM.
+- v0.9 has also completed live Windows x64 leaf acceptance through the unchanged production Vercel -> ARM Hub route. Windows DEV persistence uses a per-user Interactive/Limited Scheduled Task rather than weakening blank-password Service policy.
 - No repo/file/service locking is imposed. Concurrent agents coordinate through normal Git branch/worktree/clean-tree discipline.
 
 ## Wall / observability
@@ -35,6 +36,15 @@ Version: v0.8.0-dev production-test candidate
 - Public-product authorization must come from explicit account/device authorization plus ChatGPT permission/confirmation semantics, not a long-lived shared Bearer secret.
 - Never move passwords, tokens, private keys, cookies, or other credentials into URL query parameters.
 
+
+## v0.9 platform-adapter preview proof
+- Branch `codex/v0.9-platform-adapters` is the active preview lane; production `main` remains v0.8. No stable v0.9.0 tag exists.
+- Leaf execution is now adapter-based. Linux and Windows independently discover capabilities, infer script-required capabilities, apply the local deny boundary, and only then spawn the native shell/process. Caller `requiredCapabilities` cannot hide a capability from the device.
+- A real Windows x64 desktop is live-accepted using the existing v0.8 fleet protocol. Seven proof jobs covered host/PowerShell, temporary filesystem I/O, Git + bundled Node, process/network inspection, Services read, Event Log read, and package-manager read. Wall attribution recorded 12 successful Windows `job_finished` events / 36 related events across repeated proof rounds with zero active sessions after cleanup.
+- Final Windows acceptance observed Git 2.54.x, bundled Node x64, Windows PowerShell 5.1, and `winget v1.29.290`. Vercel production traffic for the final 30-minute window was 121 HTTP 200 responses with no warning/error/fatal logs.
+- Blank-password Windows Service startup correctly failed with SCM Event 7038; DEV mode now uses a per-user Scheduled Task (`Interactive`, `Limited`) with no stored password/PIN. GitHub Actions validated this registration on Windows Server 2025. Password-backed Service mode remains optional and does not default to LocalSystem.
+- AMD x86_64 v0.9 source/full-suite testing is green. A live migration exposed that the legacy v0.8 unit had `NoNewPrivileges=true`, contradicting owner-approved `sudo-on-demand`. Checkpoint `4a584ff` adds a dynamic unit policy: NNP remains true unless effective sudo-on-demand is approved and not locally denied. The legacy constrained service cannot self-relax its own NNP bit, so one external privileged maintenance step is still required before Linux v0.9 is called live-migrated.
+- macOS work is deferred by product-owner decision. See `PLATFORM_ADAPTERS_V0_9.md`.
 
 ## v0.8 production-test proof
 - ARM is the control Hub and enrolled Linux leaves connect outbound directly to `/device-channel/poll` and `/device-channel/result`; ChatGPT/Vercel never connects directly to a leaf.
@@ -78,4 +88,4 @@ Version: v0.8.0-dev production-test candidate
 Every real session-aware call refreshes `lastSeenAt`. Running jobs suspend expiry. Transport loss never owns process lifetime; the same agent resumes its lane. A different agent is rejected rather than silently sharing it.
 
 ## Recovery order
-Fetch `/api/guide`, then read `AI_BRIDGE_GUIDE.md`, this file, `SESSION_OWNERSHIP_V0_5.md`, `HUB_TOPOLOGY_V0_5.md`, `SESSION_LANES_V0_4.md`, `PRODUCT_PLATFORM_PLAN_V0_6_TO_PUBLIC_PLUGIN.md`, `FLEET_ROUTING_V0_8.md`, and the latest dated handoff. RDC remains rescue-only during soak.
+Fetch `/api/guide`, then read `AI_BRIDGE_GUIDE.md`, this file, `SESSION_OWNERSHIP_V0_5.md`, `HUB_TOPOLOGY_V0_5.md`, `SESSION_LANES_V0_4.md`, `PRODUCT_PLATFORM_PLAN_V0_6_TO_PUBLIC_PLUGIN.md`, `FLEET_ROUTING_V0_8.md`, `PLATFORM_ADAPTERS_V0_9.md`, and the latest dated handoff. RDC remains rescue-only during soak.

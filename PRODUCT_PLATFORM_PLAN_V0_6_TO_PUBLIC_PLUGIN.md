@@ -245,7 +245,7 @@ Primary adapter:
 
 ### Windows
 
-Windows agent runs as a Service. Default execution adapter is PowerShell 7 when available, with native process execution where appropriate.
+Windows execution uses the platform adapter with PowerShell 7 when available (Windows PowerShell fallback), plus native process execution where appropriate. DEV persistence defaults to a per-user Scheduled Task (`Interactive`, `Limited`) so blank-password/PIN-only developer desktops do not require weakening Windows Service policy. Password-backed Service mode remains an optional deployment lane and must run as the enrolled user, never LocalSystem by default.
 
 Capabilities:
 
@@ -271,7 +271,9 @@ Windows-specific protected areas include:
 - encoded/obfuscated PowerShell
 - UAC/privilege escalation paths
 
-### macOS
+### macOS — deferred
+
+Implementation is paused by product-owner decision. The protocol requirements below remain roadmap context only; no current v0.9 acceptance claim is made for macOS.
 
 Initial target is developer-owned Macs/Mac mini servers.
 
@@ -304,6 +306,14 @@ macOS protected capabilities:
 - sudo
 
 Distribution trust is the main macOS complexity; the remote operator protocol itself remains the same.
+
+### v0.9 implementation checkpoint — 2026-09-10
+
+The platform-adapter preview is live on `codex/v0.9-platform-adapters`; production `main` remains the accepted v0.8 candidate. The fleet/enrollment protocol is unchanged. Linux and Windows adapters independently discover capabilities, re-infer script requirements at the device boundary, and apply local final-deny policy before spawn.
+
+Real Windows x64 acceptance passed through public production Vercel -> ARM Hub -> outbound Windows leaf. The owner-approved Windows capability lanes passed PowerShell/host identity, temporary filesystem I/O, Git + bundled Node, process/network inspection, Services read, Event Log read, and winget. DEV persistence uses a per-user `Interactive` / `Limited` Scheduled Task with no stored password/PIN; GitHub Actions validated the same task principal on Windows Server 2025. Service mode remains optional for password-backed accounts and does not default to LocalSystem.
+
+AMD x86_64 full-suite testing on v0.9 source is green. Live migration exposed a legacy v0.8 systemd contradiction: `NoNewPrivileges=true` prevents an owner-approved `sudo-on-demand` capability from working. Checkpoint `4a584ff` fixes future Linux installs by deriving NNP from effective local capability state. The already-running legacy AMD service cannot self-relax that bit and therefore still requires one external privileged maintenance step before Linux live migration can be called complete. macOS is deferred. See `PLATFORM_ADAPTERS_V0_9.md`.
 
 ## 7. v1.0 — Governed Safety Plane
 

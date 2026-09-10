@@ -5,7 +5,7 @@ Portable private operator bridge and ARM control hub.
 `ChatGPT -> @Vercel -> Vercel Function -> ARM MCP Gateway -> selected Host Executor -> target node`
 
 ## Start here
-A fresh ChatGPT agent should fetch `https://gpt-vps-bridge.vercel.app/api/guide` and follow the returned session rules. Recovery docs: `CURRENT_STATE.md`, `AI_BRIDGE_GUIDE.md`, `SESSION_OWNERSHIP_V0_5.md`, `HUB_TOPOLOGY_V0_5.md`, `SESSION_LANES_V0_4.md`, `PRODUCT_PLATFORM_PLAN_V0_6_TO_PUBLIC_PLUGIN.md`, `DEVICE_PRESENCE_V0_6.md`, `PORTABILITY.md`.
+A fresh ChatGPT agent should fetch `https://gpt-vps-bridge.vercel.app/api/guide` and follow the returned session rules. Recovery docs: `CURRENT_STATE.md`, `AI_BRIDGE_GUIDE.md`, `SESSION_OWNERSHIP_V0_5.md`, `HUB_TOPOLOGY_V0_5.md`, `SESSION_LANES_V0_4.md`, `PRODUCT_PLATFORM_PLAN_V0_6_TO_PUBLIC_PLUGIN.md`, `DEVICE_PRESENCE_V0_6.md`, `DEVICE_ENROLLMENT_V0_7.md`, `FLEET_ROUTING_V0_8.md`, `PLATFORM_ADAPTERS_V0_9.md`, `PORTABILITY.md`.
 
 ## Session-first operation (v0.5)
 Each agent generates one opaque random `agentId` and opens one server-issued session. One agent owns one live lane; a second agent cannot attach to that session (`409 session_owner_mismatch`). Re-opening while the same agent already has a live lane returns the same session rather than allocating another.
@@ -36,7 +36,14 @@ v0.6 removes the static shared Bearer secret from the Vercel boundary. For produ
 `wall.dashboard.thaiduy.store` is read-only and now has independent local authentication: scrypt password verification, a signed `HttpOnly + Secure + SameSite=Strict` session cookie, and login throttling. NetBird PIN/SSO may remain as an optional outer defense. v0.5 shows `ALL` plus one tab per active/HOLD session, with node/session/agent metadata, stats, jobs, command and output. SSE is primary; deduplicated replay plus a bounded 1-second missed-event probe keeps the Wall near-real-time without turning it into a session heartbeat. Browser/session views are bounded; authoritative full JSONL history is on the VPS with 50 MiB x 3 rotation.
 
 ## Hub direction
-ARM is now the live routing/audit/Wall Hub. The production-test topology is `GPT -> Vercel -> ARM Hub -> {ARM local, enrolled outbound leaves}`. `VPS-AMD` is the first accepted second node. Sessions/jobs/logs retain exact `deviceId/nodeId`; leaf targets are explicit and offline/draining leaves never silently fall back to ARM. See `HUB_TOPOLOGY_V0_5.md` and `FLEET_ROUTING_V0_8.md`.
+ARM is now the live routing/audit/Wall Hub. The production-test topology is `GPT -> Vercel -> ARM Hub -> {ARM local, enrolled outbound leaves}`. `VPS-AMD` is the first accepted Linux second node and v0.9 has completed live Windows x64 leaf acceptance. Sessions/jobs/logs retain exact `deviceId/nodeId`; leaf targets are explicit and offline/draining leaves never silently fall back to ARM. See `HUB_TOPOLOGY_V0_5.md`, `FLEET_ROUTING_V0_8.md`, and `PLATFORM_ADAPTERS_V0_9.md`.
+
+## v0.9 platform-adapter preview
+`codex/v0.9-platform-adapters` is the current preview branch; production `main` remains the accepted v0.8 candidate. v0.9 moves leaf execution behind platform adapters without changing the v0.8 signed fleet protocol. Linux and Windows re-infer script capabilities at the device before spawn, so caller metadata cannot suppress local policy.
+
+Windows DEV acceptance is live on a real x64 desktop through public Vercel -> ARM Hub -> outbound Windows leaf. The current DEV persistence model is a per-user Scheduled Task with Interactive logon and Limited run level; it stores no Windows password/PIN and stays online while that user is signed in. Service mode remains optional for password-backed accounts and does not default to LocalSystem. Live proof covered PowerShell, filesystem, Git/build, process/network, Services read, Event Log read, and winget.
+
+Linux v0.9 full-suite testing is green on AMD x86_64. A live migration exposed a legacy `NoNewPrivileges=true` conflict with approved `sudo-on-demand`; checkpoint `4a584ff` fixes future installs by deriving NNP from effective local capability state. The already-running legacy AMD unit still needs one external privileged maintenance step because it cannot relax its own NNP bit. macOS is deferred. See `PLATFORM_ADAPTERS_V0_9.md`.
 
 ## v0.8 production-test candidate
 `main` and `codex/v0.8-fleet-routing` carry the fleet candidate. Enrolled Linux leaves maintain a signed Ed25519 outbound channel directly to ARM Hub, advertise capability/session ceiling, and receive explicitly targeted commands through bounded lease/redelivery queues. Live production acceptance passed independent ARM (`aarch64`) and VPS-AMD (`x86_64`) sessions through the public Vercel bridge, exact Wall/audit node attribution, drain/undrain, and `409 target_node_draining` with no silent ARM fallback. No stable v0.8.0 tag has been cut. See `FLEET_ROUTING_V0_8.md`.
