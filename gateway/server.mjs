@@ -253,6 +253,7 @@ wallApp.get('/', wallAuth.requirePage, (_req, res) => {
 wallApp.get('/api/devices', wallAuth.requireApi, (_req, res) => proxyOperatorJson(res, 'GET', '/v1/devices'));
 wallApp.get('/api/devices/:id', wallAuth.requireApi, (req, res) => proxyOperatorJson(res, 'GET', `/v1/devices/${encodeURIComponent(req.params.id)}`));
 wallApp.post('/api/devices/:id/policy', wallAuth.requireApi, (req, res) => proxyOperatorJson(res, 'POST', `/v1/devices/${encodeURIComponent(req.params.id)}/policy`, { ...(req.body || {}), deviceId:req.params.id, accountId:OPERATOR_ACCOUNT_ID }));
+wallApp.post('/api/devices/:id/maintenance/update', wallAuth.requireApi, (req, res) => proxyOperatorJson(res, 'POST', `/v1/devices/${encodeURIComponent(req.params.id)}/maintenance/update`, {}));
 wallApp.get('/api/enrollments', wallAuth.requireApi, (_req, res) => proxyOperatorJson(res, 'GET', '/v1/enrollments'));
 wallApp.post('/api/enrollments/approve', wallAuth.requireApi, (req, res) => proxyOperatorJson(res, 'POST', '/v1/enrollments/approve', { ...(req.body || {}), accountId:OPERATOR_ACCOUNT_ID }));
 wallApp.get('/api/sessions', wallAuth.requireApi, (_req, res) => proxyOperatorJson(res, 'GET', '/v1/sessions'));

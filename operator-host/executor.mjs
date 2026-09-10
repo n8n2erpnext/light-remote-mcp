@@ -197,6 +197,7 @@ function finishJob(job, exitCode, signal) {
   job.status = exitCode === 0 ? 'ok' : job.timedOut ? 'timeout' : 'error';
   clearTimeout(job.timer);
   sessions.finishJob(job.sessionId, job.id, job.status);
+  if (job.autoCloseSession) { try { sessions.close(job.sessionId, job.agentId); } catch {} }
   pushEvent({ type: 'job_finished', jobId: job.id, requestId: job.requestId, operationId: job.operationId, accountId:job.accountId, deviceId:job.deviceId, sessionId: job.sessionId, agentId:job.agentId, nodeId:job.nodeId,
     status: job.status, exitCode, signal: signal || null, durationMs: job.finishedAt - job.startedAt });
   for (const resolve of job.waiters.splice(0)) resolve();
@@ -421,6 +422,28 @@ function policyViewForDevice(device) {
 }
 function deviceView(device) { return { ...device, routing:routingViewForDevice(device), policy:policyViewForDevice(device) }; }
 function allDeviceViews() { return devices.list({ activeSessionsForNode:nodeId => sessions.activeCountByNode(nodeId) }).map(deviceView); }
+function queueSignedUpdate(deviceId) {
+  const device=devices.get(deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
+  if(device.nodeId===NODE_ID||device.platform!=='linux')throw new DeviceError('maintenance_update_unsupported_platform',409);
+  const route=targetRoute(device.nodeId),requiredCapabilities=['sudo-on-demand','systemctl'];
+  const missing=requiredCapabilities.filter(cap=>!route.capabilities.includes(cap));
+  if(missing.length)throw new FleetError('target_node_capability_missing',409);
+  const agentId=`agent-maintenance-${crypto.randomBytes(8).toString('hex')}`;
+  const openId=`open-maintenance-${crypto.randomBytes(8).toString('hex')}`;
+  let session;
+  try {
+    session=sessions.open({agentId,openId,label:'signed client update',workspace:'/home/ubuntu',leasePreset:'30m',nodeId:route.nodeId,deviceId:route.deviceId,maxActiveForNode:route.sessionCeiling});
+    const operationId=`maintenance-update-${crypto.randomBytes(8).toString('hex')}`;
+    const requestId=`maintenance-${crypto.randomUUID()}`;
+    const job=startJob({operationId,script:'sudo -n systemctl start --no-block gpt-operator-agent-update.service',cwd:'/home/ubuntu',timeoutMs:15_000,sessionId:session.sessionId,agentId,nodeId:route.nodeId,requiredCapabilities,note:'owner requested signed client update'},requestId);
+    job.autoCloseSession=true;
+    pushEvent({type:'device_maintenance_update_requested',accountId:device.accountId,deviceId:device.deviceId,nodeId:device.nodeId,sessionId:session.sessionId,agentId,jobId:job.id,status:'queued'});
+    return {accepted:true,deviceId:device.deviceId,nodeId:device.nodeId,sessionId:session.sessionId,agentId,job:jobView(job)};
+  } catch(error) {
+    if(session?.sessionId){try{sessions.close(session.sessionId,agentId);}catch{}}
+    throw error;
+  }
+}
 function targetRoute(requestedNodeId) {
   const nodeId=String(requestedNodeId || NODE_ID).trim();
   if (!/^[A-Za-z0-9._:-]{1,128}$/.test(nodeId)) throw new DeviceError('invalid_node_id');
@@ -540,6 +563,10 @@ const server = http.createServer(async (req, res) => {
     const deviceMatch = url.pathname.match(/^\/v1\/devices\/([A-Za-z0-9._:-]+)$/);
     if (req.method === 'GET' && deviceMatch) {
       return sendJson(res, 200, { ok:true, device:deviceView(devices.get(deviceMatch[1], { activeSessionsForNode:nodeId => sessions.activeCountByNode(nodeId) })) });
+    }
+    const maintenanceUpdateMatch = url.pathname.match(/^\/v1\/devices\/([A-Za-z0-9._:-]+)\/maintenance\/update$/);
+    if (req.method === 'POST' && maintenanceUpdateMatch) {
+      return sendJson(res,200,{ok:true,maintenance:queueSignedUpdate(maintenanceUpdateMatch[1])});
     }
     const policyMatch = url.pathname.match(/^\/v1\/devices\/([A-Za-z0-9._:-]+)\/policy$/);
     if (req.method === 'POST' && policyMatch) {
