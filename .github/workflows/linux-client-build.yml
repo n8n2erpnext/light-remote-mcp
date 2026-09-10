@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - codex/v0.9-client-packaging
+      - codex/v0.9-device-policy-resume
     paths:
       - 'client/**'
       - 'device-agent/**'
