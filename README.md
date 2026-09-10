@@ -266,7 +266,9 @@ Light Remote MCP can serve as an infrastructure bridge for AI-assisted operation
 
 The Windows client uses UI/layout patterns derived from the NetBird desktop client. NetBird's applicable client code is distributed under the BSD 3-Clause license; the required notice is bundled with the Windows client in `THIRD_PARTY_NOTICES.txt`.
 
-No NetBird branding, logo, or endorsement is used by Light Remote MCP.
+Linux packages bundle the pinned Node.js runtime and carry its upstream license at `licenses/node/LICENSE`. The self-contained Windows installer carries the bundled Node.js license plus the .NET runtime license and third-party notices under `licenses/node/` and `licenses/dotnet/`. CI treats those files as package-contract requirements rather than optional documentation.
+
+See [`THIRD_PARTY_DISTRIBUTION_NOTICES.md`](THIRD_PARTY_DISTRIBUTION_NOTICES.md) for the distribution layout. No NetBird branding, logo, or endorsement is used by Light Remote MCP.
 
 ## Project licensing
 

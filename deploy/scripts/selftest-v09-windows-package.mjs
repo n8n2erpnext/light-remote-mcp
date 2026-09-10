@@ -11,6 +11,7 @@ const supervisor=fs.readFileSync(new URL('../../client/windows-native/GptOperato
 const updater=fs.readFileSync(new URL('../../client/windows-native/GptOperator.Client/UpdateClient.cs',import.meta.url),'utf8');
 const applier=fs.readFileSync(new URL('../../client/windows-native/GptOperator.Client/UpdateApplier.cs',import.meta.url),'utf8');
 const installer=fs.readFileSync(new URL('../../client/windows-native/installer/GptOperator.iss',import.meta.url),'utf8');
+const notices=fs.readFileSync(new URL('../../client/windows-native/GptOperator.Client/THIRD_PARTY_NOTICES.txt',import.meta.url),'utf8');
 function expect(condition,message){if(!condition)throw new Error(message);}
 
 expect(/runs-on:\s*windows-latest/.test(workflow),'windows_runner_missing');
@@ -18,12 +19,18 @@ expect(workflow.includes("dotnet-version: '8.0.x'"),'dotnet_not_pinned');
 expect(workflow.includes("node-version: '22.23.2'"),'node_not_pinned');
 expect(workflow.includes('windows-native-installer-roundtrip=PASS'),'installer_roundtrip_missing');
 expect(workflow.includes('windows-native-update-signature=PASS'),'signed_update_ci_missing');
+expect(workflow.includes("Copy-Item (Join-Path $nodeRoot 'LICENSE')"),'windows_node_license_not_bundled');
+expect(workflow.includes("Copy-Item (Join-Path $dotnetRoot 'LICENSE.txt')"),'windows_dotnet_license_not_bundled');
+expect(workflow.includes("Copy-Item (Join-Path $dotnetRoot 'ThirdPartyNotices.txt')"),'windows_dotnet_notices_not_bundled');
+expect(workflow.includes('windows-installed-runtime-notices=PASS'),'windows_runtime_notice_install_smoke_missing');
 expect(workflow.includes('Light-Remote-MCP-Setup-x64.exe'),'native_setup_artifact_missing');
 expect(!workflow.includes('START-HERE.ps1'),'powershell_user_flow_returned');
 expect(project.includes('<UseWindowsForms>true</UseWindowsForms>'),'native_winforms_missing');
 expect(project.includes('<SelfContained>true</SelfContained>'),'self_contained_missing');
 expect(project.includes('<PublishSingleFile>true</PublishSingleFile>'),'single_file_shell_missing');
 expect(project.includes('THIRD_PARTY_NOTICES.txt'),'third_party_notice_not_packaged');
+expect(notices.includes('licenses\\node\\LICENSE'),'node_notice_location_missing');
+expect(notices.includes('licenses\\dotnet\\ThirdPartyNotices.txt'),'dotnet_notice_location_missing');
 expect(form.includes('NotifyIcon'),'tray_icon_missing');
 expect(form.includes('new Size(860, 620)'),'details_view_width_regressed');
 expect(form.includes('Width = 390, Visible = false'),'details_panel_width_regressed');

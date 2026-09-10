@@ -67,3 +67,9 @@ AMD soak sampled three rounds with the same healthy MainPID, `active/running`, u
 ## Release boundary
 
 Linux live migration and signed rollback acceptance are technically CLOSED for the v0.9 preview. The `0.9.0-rc.1` name used here is an acceptance fixture, not a published stable release. Production promotion still requires owner approval and the normal branch/release process; `main`, stable tags, and GitHub Releases remain untouched by this checkpoint.
+## Post-acceptance release-channel cleanup
+After rollback acceptance closed, AMD was moved off the temporary NetBird fixture URLs and back to the canonical GitHub Release manifest/signature URLs using a transient root systemd maintenance unit launched through the governed leaf execution path.
+
+A Wall maintenance trigger against the canonical channel completed successfully and the updater reported `no_update_manifest`; AMD remained on healthy `0.9.0-rc.1` with the timer active. The temporary ARM HTTP fixture listener on port `5590` was then stopped.
+
+This cleanup is release preparation only. It does not publish a GitHub Release, promote `main`, or cut a stable tag. See `V0_9_RELEASE_REVIEW_2026-09-10.md`.

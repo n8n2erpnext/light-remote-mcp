@@ -68,7 +68,7 @@ The Windows task also demonstrated recovery behavior: after the interactive Powe
 ## Vercel preview
 Latest v0.9 preview deployment on `codex/v0.9-device-policy-resume` is READY with 12 Node functions, preserving the Hobby 12/12 function budget. The only build warning is the known project-setting mismatch: repo `engines.node=22.x` intentionally overrides the Vercel project setting of Node 24.x.
 
-The preview guide must report `0.9.0-dev` and include this document before v0.9 is considered documentation-complete. Production `main` remains v0.8 until the remaining live migration gate is resolved.
+The preview guide must report `0.9.0-dev` and include this document before v0.9 is considered documentation-complete. Production `main` remains v0.8 even though the Linux live-migration gate is now closed; promotion is held for the owner-approved release gate.
 
 ## Device Policy live acceptance
 Owner-controlled Device Policy is CLOSED on the acceptance branch. Live Windows proof removed `package-manager`, synchronized signed revision 2, and proved that `winget --version` was denied locally with exit 126 even though caller metadata omitted `package-manager`. Restoring the exact policy produced revision 3 and the same command returned `winget v1.29.290` with exit 0.
@@ -83,6 +83,7 @@ A signed/hash-valid `0.9.0-rc.2` fixture with a deliberately non-executable bund
 ## Deferred / open gates
 - macOS platform adapter and distribution work: deferred.
 - production promotion of v0.9: not yet approved.
+- project-wide root license: owner decision required before a stable public release.
 - stable `v0.9.0` tag: not cut.
 
 ## Acceptance exit rule

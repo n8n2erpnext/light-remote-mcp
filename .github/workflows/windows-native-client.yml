@@ -41,8 +41,18 @@ jobs:
           $adapterDir = Join-Path $agentDir 'platform-adapters'
           $libDir = Join-Path $agentRoot 'lib'
           $configDir = Join-Path $stage 'config'
-          New-Item -ItemType Directory -Force -Path $runtime,$agentDir,$adapterDir,$libDir,$configDir | Out-Null
-          Copy-Item (Get-Command node.exe).Source (Join-Path $runtime 'node.exe')
+          $licenseDir = Join-Path $stage 'licenses'
+          $nodeLicenseDir = Join-Path $licenseDir 'node'
+          $dotnetLicenseDir = Join-Path $licenseDir 'dotnet'
+          New-Item -ItemType Directory -Force -Path $runtime,$agentDir,$adapterDir,$libDir,$configDir,$nodeLicenseDir,$dotnetLicenseDir | Out-Null
+          $nodeExe = (Get-Command node.exe).Source
+          $nodeRoot = Split-Path $nodeExe -Parent
+          $dotnetExe = (Get-Command dotnet.exe).Source
+          $dotnetRoot = Split-Path $dotnetExe -Parent
+          Copy-Item $nodeExe (Join-Path $runtime 'node.exe')
+          Copy-Item (Join-Path $nodeRoot 'LICENSE') (Join-Path $nodeLicenseDir 'LICENSE')
+          Copy-Item (Join-Path $dotnetRoot 'LICENSE.txt') (Join-Path $dotnetLicenseDir 'LICENSE.txt')
+          Copy-Item (Join-Path $dotnetRoot 'ThirdPartyNotices.txt') (Join-Path $dotnetLicenseDir 'ThirdPartyNotices.txt')
           Copy-Item device-agent/operator-agent.mjs $agentDir
           Copy-Item device-agent/platform-adapters/*.mjs $adapterDir
           Copy-Item lib/device-proof.mjs $libDir
@@ -55,6 +65,11 @@ jobs:
           $exe = Join-Path $stage 'GptOperator.Client.exe'
           $node = Join-Path $stage 'runtime\node.exe'
           $agent = Join-Path $stage 'agent\device-agent\operator-agent.mjs'
+          foreach ($notice in @('licenses\node\LICENSE','licenses\dotnet\LICENSE.txt','licenses\dotnet\ThirdPartyNotices.txt','THIRD_PARTY_NOTICES.txt')) {
+            $noticePath = Join-Path $stage $notice
+            if (-not (Test-Path $noticePath) -or (Get-Item $noticePath).Length -lt 100) { throw "bundled notice missing/empty: $notice" }
+          }
+          Write-Host 'windows-bundled-runtime-notices=PASS'
           $env:OPERATOR_AGENT_STATE = Join-Path $env:RUNNER_TEMP 'native-empty-device.json'
           Write-Host '--- bundled agent direct status ---'
           & $node $agent status
@@ -130,6 +145,11 @@ jobs:
           if (Get-ScheduledTask -TaskName $legacyName -ErrorAction SilentlyContinue) { throw 'legacy scheduled task survived native install' }
           $exe = Join-Path $installDir 'GptOperator.Client.exe'
           if (-not (Test-Path $exe)) { throw "installed client missing: $exe" }
+          foreach ($notice in @('licenses\node\LICENSE','licenses\dotnet\LICENSE.txt','licenses\dotnet\ThirdPartyNotices.txt','THIRD_PARTY_NOTICES.txt')) {
+            $noticePath = Join-Path $installDir $notice
+            if (-not (Test-Path $noticePath) -or (Get-Item $noticePath).Length -lt 100) { throw "installed notice missing/empty: $notice" }
+          }
+          Write-Host 'windows-installed-runtime-notices=PASS'
           $rollback = Join-Path $env:LOCALAPPDATA 'GPTOperatorAgent\updates\rollback\GPT-Operator-Setup-0.9.0-dev-x64.exe'
           if (-not (Test-Path $rollback)) { throw "rollback installer cache missing: $rollback" }
           "WINDOWS_INSTALL_DIR=$installDir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
