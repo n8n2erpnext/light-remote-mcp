@@ -119,7 +119,8 @@ jobs:
           Start-Sleep -Milliseconds 500
 
           $installDir = Join-Path $env:RUNNER_TEMP 'GPT Operator Installed'
-          $args = @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',("/DIR=" + $installDir))
+          $dirArg = '/DIR="' + $installDir + '"'
+          $args = @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',$dirArg)
           $p = Start-Process -FilePath $env:WINDOWS_INSTALLER -ArgumentList $args -PassThru -Wait
           if ($p.ExitCode -ne 0) { throw "installer exit=$($p.ExitCode)" }
           if (Get-ScheduledTask -TaskName $legacyName -ErrorAction SilentlyContinue) { throw 'legacy scheduled task survived native install' }

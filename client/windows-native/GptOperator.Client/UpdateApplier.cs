@@ -5,8 +5,6 @@ namespace GptOperator.Client;
 
 internal static class UpdateApplier
 {
-    private const string SilentArgs = "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS";
-
     public static async Task<int> ApplyAsync(string installer, string installDir, string currentVersion, int parentPid)
     {
         AppPaths.EnsureDirectories();
@@ -80,11 +78,17 @@ internal static class UpdateApplier
         int exitCode;
         try
         {
-            using var process = Process.Start(new ProcessStartInfo(installer, SilentArgs)
+            var psi = new ProcessStartInfo(installer)
             {
                 UseShellExecute = false,
                 CreateNoWindow = true
-            });
+            };
+            psi.ArgumentList.Add("/VERYSILENT");
+            psi.ArgumentList.Add("/SUPPRESSMSGBOXES");
+            psi.ArgumentList.Add("/NORESTART");
+            psi.ArgumentList.Add("/CLOSEAPPLICATIONS");
+            psi.ArgumentList.Add($"/DIR={installDir}");
+            using var process = Process.Start(psi);
             if (process is null) return false;
             await process.WaitForExitAsync();
             exitCode = process.ExitCode;
