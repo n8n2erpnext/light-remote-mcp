@@ -74,10 +74,10 @@ jobs:
           $settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit ([TimeSpan]::Zero) -MultipleInstances IgnoreNew
           try {
             Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force | Out-Null
-            $xml = Export-ScheduledTask -TaskName $taskName
-            if ($xml -notmatch '<LogonType>InteractiveToken</LogonType>') { throw 'InteractiveToken task principal missing.' }
-            if ($xml -notmatch '<RunLevel>LeastPrivilege</RunLevel>') { throw 'LeastPrivilege task run level missing.' }
-            Write-Host 'windows-scheduled-task-interactive-token=PASS'
+            $registered = Get-ScheduledTask -TaskName $taskName
+            if ([string]$registered.Principal.LogonType -ne 'Interactive') { throw "Interactive task principal missing: $($registered.Principal.LogonType)" }
+            if ([string]$registered.Principal.RunLevel -ne 'Limited') { throw "Limited task run level missing: $($registered.Principal.RunLevel)" }
+            Write-Host "windows-scheduled-task-interactive-token=PASS logon=$($registered.Principal.LogonType) runLevel=$($registered.Principal.RunLevel)"
           } finally { Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction SilentlyContinue }
 
       - name: Fetch pinned WinSW
