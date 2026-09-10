@@ -10,6 +10,8 @@ function expect(value,message){if(!value)throw new Error(message);}
 expect(linuxWorkflow.includes('arch: [x64, arm64]'),'linux_arch_matrix_missing');
 expect(linuxWorkflow.includes('node-v${NODE_VERSION}-linux-${TARGET_ARCH}.tar.xz'),'linux_node_runtime_not_bundled');
 expect(linuxWorkflow.includes('actions/upload-artifact@v4'),'linux_artifact_upload_missing');
+expect(linuxWorkflow.includes('(cd "$OUT" && sha256sum "GPT-Operator-Agent-Linux-${TARGET_ARCH}-dev.tar.gz")'),'linux_checksum_not_portable');
+expect(linuxWorkflow.includes('(cd "$OUT" && sha256sum -c SHA256SUMS.txt)'),'linux_checksum_ci_verify_missing');
 expect(install.includes('gpt-operator-device-agent.service'),'linux_agent_service_missing');
 expect(install.includes('gpt-operator-agent-update.timer'),'linux_update_timer_missing');
 expect(install.includes('OnUnitActiveSec=6h'),'linux_update_cadence_missing');

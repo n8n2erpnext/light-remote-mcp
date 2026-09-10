@@ -57,7 +57,7 @@ jobs:
           }
           JSON
           tar -czf "$OUT/GPT-Operator-Agent-Linux-${TARGET_ARCH}-dev.tar.gz" -C "$OUT" package
-          sha256sum "$OUT/GPT-Operator-Agent-Linux-${TARGET_ARCH}-dev.tar.gz" > "$OUT/SHA256SUMS.txt"
+          (cd "$OUT" && sha256sum "GPT-Operator-Agent-Linux-${TARGET_ARCH}-dev.tar.gz") > "$OUT/SHA256SUMS.txt"
       - name: Package contract smoke
         shell: bash
         env:
@@ -71,6 +71,7 @@ jobs:
           test -f "$PKG/device-agent/linux-service-policy.mjs"
           test -f "$PKG/client/linux/updater.mjs"
           test -f "$PKG/manifest.json"
+          (cd "$OUT" && sha256sum -c SHA256SUMS.txt)
           if [[ "$TARGET_ARCH" == "x64" ]]; then
             export OPERATOR_AGENT_STATE="$RUNNER_TEMP/gpt-empty-device.json"
             STATUS="$($PKG/runtime/node $PKG/device-agent/operator-agent.mjs status)"
