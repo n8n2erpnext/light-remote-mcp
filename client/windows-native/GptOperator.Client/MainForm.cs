@@ -15,12 +15,12 @@ internal sealed class MainForm : Form
     private readonly Label _heroMeta = new() { AutoSize = true, Font = UiTheme.Font(9), ForeColor = UiTheme.Muted };
     private readonly Label _enrollment = new() { AutoSize = true, MaximumSize = new Size(350, 0), TextAlign = ContentAlignment.MiddleCenter, ForeColor = UiTheme.Muted };
     private readonly Button _enroll = new() { Text = "Enroll device", Width = 154, Height = 38 };
-    private readonly Label _summary = new() { AutoSize = true, ForeColor = UiTheme.Muted };
+    private readonly Label _summary = new() { AutoSize = false, Dock = DockStyle.Fill, ForeColor = UiTheme.Muted, Font = UiTheme.Font(9) };
     private readonly Label _deviceIdValue = new() { AutoSize = false, Height = 40, AutoEllipsis = true, ForeColor = UiTheme.Text, Cursor = Cursors.Hand };
     private readonly Label _platformValue = new() { AutoSize = true, ForeColor = UiTheme.Text };
     private readonly Label _versionValue = new() { AutoSize = true, ForeColor = UiTheme.Text };
     private readonly FlowLayoutPanel _capabilities = new() { Dock = DockStyle.Fill, FlowDirection = FlowDirection.LeftToRight, WrapContents = true, AutoScroll = true, BackColor = UiTheme.Surface };
-    private readonly RoundedPanel _detailsCard = new() { Dock = DockStyle.Right, Width = 300, Visible = false };
+    private readonly RoundedPanel _detailsCard = new() { Dock = DockStyle.Right, Width = 340, Visible = false };
     private readonly Button _more = new() { Text = "⋮", Width = 38, Height = 38, TabStop = false };
     private readonly Label _updateDot = new() { Text = "●", AutoSize = true, Font = UiTheme.Font(11, FontStyle.Bold), ForeColor = UiTheme.Warning, Visible = false, BackColor = Color.Transparent };
     private readonly ToolStripMenuItem _menuUpdate = new("Check for updates");
@@ -81,14 +81,14 @@ internal sealed class MainForm : Form
 
     private Control BuildHeader()
     {
-        var header = new Panel { Dock = DockStyle.Top, Height = 68, BackColor = UiTheme.Background, Padding = new Padding(20, 13, 18, 8) };
+        var header = new Panel { Dock = DockStyle.Top, Height = 72, BackColor = UiTheme.Background, Padding = new Padding(20, 13, 18, 8) };
         var mark = new Label {
             Text = "L", TextAlign = ContentAlignment.MiddleCenter, Size = new Size(36, 36),
             BackColor = UiTheme.Accent, ForeColor = Color.White, Font = UiTheme.Font(16, FontStyle.Bold),
             Location = new Point(20, 14)
         };
-        var product = new Label { Text = ProductName, AutoSize = true, ForeColor = UiTheme.Text, Font = UiTheme.Font(11.5f, FontStyle.Bold), Location = new Point(68, 14) };
-        var subtitle = new Label { Text = "Secure remote MCP agent", AutoSize = true, ForeColor = UiTheme.Muted, Font = UiTheme.Font(8.5f), Location = new Point(68, 35) };
+        var product = new Label { Text = ProductName, AutoSize = true, ForeColor = UiTheme.Text, Font = UiTheme.Font(11.5f, FontStyle.Bold), Location = new Point(68, 12) };
+        var subtitle = new Label { Text = "Secure remote MCP agent", AutoSize = true, ForeColor = UiTheme.Muted, Font = UiTheme.Font(8.5f), Location = new Point(68, 38) };
         _more.Anchor = AnchorStyles.Top | AnchorStyles.Right;
         _more.Location = new Point(header.Width - 58, 11);
         _updateDot.Anchor = AnchorStyles.Top | AnchorStyles.Right;
@@ -140,12 +140,20 @@ internal sealed class MainForm : Form
         hero.Controls.Add(_enrollment, 0, 5);
         hero.Controls.Add(_enroll, 0, 6);
 
-        var summaryCard = new RoundedPanel { Dock = DockStyle.Bottom, Height = 108, Padding = new Padding(18, 16, 18, 14) };
-        var summaryTitle = new Label { Text = "Secure device link", AutoSize = true, ForeColor = UiTheme.Text, Font = UiTheme.Font(10, FontStyle.Bold), Location = new Point(18, 16) };
-        _summary.Location = new Point(18, 42);
-        _summary.MaximumSize = new Size(340, 0);
-        var hint = new Label { Text = "Closing this window keeps the device online in the system tray.", AutoSize = true, ForeColor = UiTheme.Muted, Font = UiTheme.Font(8.5f), Location = new Point(18, 70) };
-        summaryCard.Controls.AddRange(new Control[] { summaryTitle, _summary, hint });
+        var summaryCard = new RoundedPanel { Dock = DockStyle.Bottom, Height = 124, Padding = new Padding(18, 14, 18, 14) };
+        var summaryLayout = new TableLayoutPanel {
+            Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3, BackColor = UiTheme.Surface, Margin = Padding.Empty, Padding = Padding.Empty
+        };
+        summaryLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        summaryLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
+        summaryLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
+        summaryLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        var summaryTitle = new Label { Text = "Secure device link", AutoSize = false, Dock = DockStyle.Fill, ForeColor = UiTheme.Text, Font = UiTheme.Font(10, FontStyle.Bold), TextAlign = ContentAlignment.MiddleLeft };
+        var hint = new Label { Text = "Runs in the tray when this window is closed.", AutoSize = false, Dock = DockStyle.Fill, ForeColor = UiTheme.Muted, Font = UiTheme.Font(8.25f), TextAlign = ContentAlignment.MiddleLeft };
+        summaryLayout.Controls.Add(summaryTitle, 0, 0);
+        summaryLayout.Controls.Add(_summary, 0, 1);
+        summaryLayout.Controls.Add(hint, 0, 2);
+        summaryCard.Controls.Add(summaryLayout);
 
         main.Controls.Add(hero);
         main.Controls.Add(summaryCard);
@@ -157,7 +165,7 @@ internal sealed class MainForm : Form
         _detailsCard.Padding = new Padding(20, 18, 20, 18);
         var title = new Label { Text = "Device details", AutoSize = true, Font = UiTheme.Font(12, FontStyle.Bold), ForeColor = UiTheme.Text, Dock = DockStyle.Top };
         var caption = new Label { Text = "Identity, runtime and granted permissions", AutoSize = true, ForeColor = UiTheme.Muted, Font = UiTheme.Font(8.5f), Dock = DockStyle.Top, Padding = new Padding(0, 4, 0, 14) };
-        var rows = new TableLayoutPanel { Dock = DockStyle.Top, Height = 176, ColumnCount = 1, RowCount = 6, BackColor = UiTheme.Surface };
+        var rows = new TableLayoutPanel { Dock = DockStyle.Top, Height = 182, ColumnCount = 1, RowCount = 6, BackColor = UiTheme.Surface };
         rows.RowStyles.Clear();
         rows.Controls.Add(MetaCaption("DEVICE ID"), 0, 0);
         _deviceIdValue.Dock = DockStyle.Fill;
@@ -167,7 +175,7 @@ internal sealed class MainForm : Form
         rows.Controls.Add(_platformValue, 0, 3);
         rows.Controls.Add(MetaCaption("VERSION"), 0, 4);
         rows.Controls.Add(_versionValue, 0, 5);
-        for (var i = 0; i < 6; i++) rows.RowStyles.Add(new RowStyle(SizeType.Absolute, i % 2 == 0 ? 22 : i == 1 ? 40 : 30));
+        for (var i = 0; i < 6; i++) rows.RowStyles.Add(new RowStyle(SizeType.Absolute, i % 2 == 0 ? 22 : i == 1 ? 38 : 39));
 
         var permissionsTitle = new Label { Text = "Granted permissions", AutoSize = true, ForeColor = UiTheme.Text, Font = UiTheme.Font(9.5f, FontStyle.Bold), Dock = DockStyle.Top, Padding = new Padding(0, 15, 0, 8) };
         _capabilities.Padding = new Padding(0, 4, 0, 4);
@@ -404,7 +412,7 @@ internal sealed class MainForm : Form
         _detailsMode = enabled;
         _menuDetails.Checked = enabled;
         _detailsCard.Visible = enabled;
-        ClientSize = enabled ? new Size(760, 570) : new Size(430, 570);
+        ClientSize = enabled ? new Size(820, 570) : new Size(430, 570);
     }
 
     private void EnsureAutostart()

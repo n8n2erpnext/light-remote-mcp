@@ -24,6 +24,10 @@ expect(project.includes('<UseWindowsForms>true</UseWindowsForms>'),'native_winfo
 expect(project.includes('<SelfContained>true</SelfContained>'),'self_contained_missing');
 expect(project.includes('<PublishSingleFile>true</PublishSingleFile>'),'single_file_shell_missing');
 expect(form.includes('NotifyIcon'),'tray_icon_missing');
+expect(form.includes('new Size(820, 570)'),'details_view_width_regressed');
+expect(form.includes('Width = 340, Visible = false'),'details_panel_width_regressed');
+expect(form.includes('summaryLayout = new TableLayoutPanel'),'summary_card_layout_regressed');
+expect(form.includes('Runs in the tray when this window is closed.'),'summary_hint_missing');
 expect(form.includes('Still connected in the system tray'),'close_to_tray_missing');
 expect(form.includes('Software\\Microsoft\\Windows\\CurrentVersion\\Run'),'autostart_missing');
 expect(form.includes('Enroll device'),'native_enrollment_ui_missing');
