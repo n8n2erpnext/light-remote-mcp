@@ -9,7 +9,14 @@ if [[ ! -f "$STATE_FILE" ]]; then
   echo "Device is not enrolled yet. Run operator-agent login first." >&2
   exit 2
 fi
-NO_NEW_PRIVILEGES="$($NODE_BIN "$ROOT_DIR/device-agent/linux-service-policy.mjs" "$STATE_FILE")"
+NO_NEW_PRIVILEGES="$($NODE_BIN "$ROOT_DIR/device-agent/linux-service-policy.mjs" "$STATE_FILE" noNewPrivileges)"
+RESTRICT_SUID_SGID="$($NODE_BIN "$ROOT_DIR/device-agent/linux-service-policy.mjs" "$STATE_FILE" restrictSuidSgid)"
+CLEAR_CAPABILITY_BOUNDING_SET="$($NODE_BIN "$ROOT_DIR/device-agent/linux-service-policy.mjs" "$STATE_FILE" clearCapabilityBoundingSet)"
+if [[ "$CLEAR_CAPABILITY_BOUNDING_SET" == "true" ]]; then
+  CAPABILITY_BOUNDING_SET_LINE="CapabilityBoundingSet="
+else
+  CAPABILITY_BOUNDING_SET_LINE="# CapabilityBoundingSet left at the system default for approved sudo-on-demand"
+fi
 sudo install -d -m 0755 /opt/gpt-operator-agent/device-agent /opt/gpt-operator-agent/device-agent/platform-adapters /opt/gpt-operator-agent/lib
 sudo install -m 0755 "$ROOT_DIR/device-agent/operator-agent.mjs" /opt/gpt-operator-agent/device-agent/operator-agent.mjs
 sudo install -m 0644 "$ROOT_DIR"/device-agent/platform-adapters/*.mjs /opt/gpt-operator-agent/device-agent/platform-adapters/
@@ -38,9 +45,9 @@ ProtectKernelTunables=true
 ProtectKernelModules=true
 ProtectControlGroups=true
 LockPersonality=true
-RestrictSUIDSGID=true
+RestrictSUIDSGID=$RESTRICT_SUID_SGID
 RestrictRealtime=true
-CapabilityBoundingSet=
+$CAPABILITY_BOUNDING_SET_LINE
 AmbientCapabilities=
 
 [Install]

@@ -4,10 +4,14 @@ import { linuxServicePolicy } from '../../device-agent/linux-service-policy.mjs'
 const file=new URL('../../device-agent/install-linux-service.sh',import.meta.url).pathname;
 const text=fs.readFileSync(file,'utf8');
 if(spawnSync('bash',['-n',file]).status!==0)throw new Error('linux_service_installer_syntax_failed');
-for(const rule of ['Restart=always','PrivateTmp=true','ProtectSystem=strict','ReadWritePaths=$HOME_DIR/.config/gpt-operator-agent','ProtectKernelTunables=true','ProtectKernelModules=true','ProtectControlGroups=true','LockPersonality=true','RestrictSUIDSGID=true','CapabilityBoundingSet=','AmbientCapabilities='])if(!text.includes(rule))throw new Error(`service_hardening_missing:${rule}`);
-if(!text.includes('NoNewPrivileges=$NO_NEW_PRIVILEGES'))throw new Error('dynamic_no_new_privileges_missing');
-if(linuxServicePolicy({enrollment:{approvedCapabilities:['filesystem']}}).noNewPrivileges!==true)throw new Error('default_no_new_privileges_not_enforced');
-if(linuxServicePolicy({enrollment:{approvedCapabilities:['filesystem','sudo-on-demand']},policy:{deniedCapabilities:[]}}).noNewPrivileges!==false)throw new Error('approved_sudo_not_reflected');
+for(const rule of ['Restart=always','PrivateTmp=true','ProtectSystem=strict','ReadWritePaths=$HOME_DIR/.config/gpt-operator-agent','ProtectKernelTunables=true','ProtectKernelModules=true','ProtectControlGroups=true','LockPersonality=true','AmbientCapabilities='])if(!text.includes(rule))throw new Error(`service_hardening_missing:${rule}`);
+for(const marker of ['NoNewPrivileges=$NO_NEW_PRIVILEGES','RestrictSUIDSGID=$RESTRICT_SUID_SGID','$CAPABILITY_BOUNDING_SET_LINE'])if(!text.includes(marker))throw new Error(`dynamic_privilege_policy_missing:${marker}`);
+const normal=linuxServicePolicy({enrollment:{approvedCapabilities:['filesystem']}});
+if(!(normal.noNewPrivileges&&normal.restrictSuidSgid&&normal.clearCapabilityBoundingSet))throw new Error('default_hardening_not_enforced');
+const sudo=linuxServicePolicy({enrollment:{approvedCapabilities:['filesystem','sudo-on-demand']},policy:{deniedCapabilities:[]}});
+if(sudo.noNewPrivileges||sudo.restrictSuidSgid||sudo.clearCapabilityBoundingSet)throw new Error('approved_sudo_hardening_not_relaxed');
+const denied=linuxServicePolicy({enrollment:{approvedCapabilities:['filesystem','sudo-on-demand']},policy:{deniedCapabilities:['sudo-on-demand']}});
+if(!(denied.noNewPrivileges&&denied.restrictSuidSgid&&denied.clearCapabilityBoundingSet))throw new Error('local_deny_did_not_restore_hardening');
 if(!text.includes('Run operator-agent login first'))throw new Error('service_install_before_enrollment_guard_missing');
 if(/password|pollToken|privateKey/i.test(text))throw new Error('service_installer_secret_material_reference');
 console.log('device-agent-service-shell-syntax=PASS');
