@@ -492,7 +492,7 @@ const server = http.createServer(async (req, res) => {
       if (ctx.payload.nodeId!=null && String(ctx.payload.nodeId)!==ctx.device.nodeId) throw new EnrollmentError('device_node_mismatch',409);
       const reportedRevision=Math.max(0,Number(ctx.payload.policyRevision)||0);
       const capabilities=verifiedLeafCapabilities(ctx.payload.capabilities,ctx.binding,reportedRevision);
-      devices.heartbeat(ctx.device.deviceId,{capabilities});
+      devices.heartbeat(ctx.device.deviceId,{capabilities,agentVersion:ctx.payload.agentVersion});
       const waitMs=Math.max(0,Math.min(Number(ctx.payload.waitMs)||8000,15000));
       const channel=await fleet.waitPoll({accountId:ACCOUNT_ID,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,sessionCeiling:ctx.payload.sessionCeiling,draining:Boolean(ctx.payload.draining),capabilities},waitMs);
       const policy=reportedRevision===Math.max(1,Number(ctx.binding.policyRevision)||1)?null:enrollments.policyEnvelope(ctx.device.deviceId);

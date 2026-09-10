@@ -171,14 +171,19 @@ export class DeviceRegistry {
     const wasOffline = this._state(device, now) === 'offline';
     device.lastSeenAt = now;
     device.offlineAt = null;
-    let capabilitiesChanged = false;
+    let capabilitiesChanged = false, agentVersionChanged = false;
     if (Array.isArray(options.capabilities)) {
       const next = cleanCapabilities(options.capabilities);
       capabilitiesChanged = JSON.stringify(next) !== JSON.stringify(device.capabilities);
       device.capabilities = next;
     }
-    if (wasOffline || capabilitiesChanged) this._persist();
-    if (wasOffline) this.emit({ type:'device_online', accountId:device.accountId, deviceId:device.deviceId, nodeId:device.nodeId, status:'online' });
+    if (options.agentVersion != null) {
+      const nextVersion = boundedText(options.agentVersion, 40).trim();
+      if (nextVersion) { agentVersionChanged = nextVersion !== device.agentVersion; device.agentVersion = nextVersion; }
+    }
+    if (wasOffline || capabilitiesChanged || agentVersionChanged) this._persist();
+    if (wasOffline) this.emit({ type:'device_online', accountId:device.accountId, deviceId:device.deviceId, nodeId:device.nodeId, status:'online', agentVersion:device.agentVersion });
+    else if (capabilitiesChanged || agentVersionChanged) this.emit({ type:'device_updated', accountId:device.accountId, deviceId:device.deviceId, nodeId:device.nodeId, status:'online', agentVersion:device.agentVersion });
     return this._view(device, { now });
   }
   revoke(deviceId, reason = 'owner_revoked') {

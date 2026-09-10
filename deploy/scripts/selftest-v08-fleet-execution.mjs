@@ -27,9 +27,11 @@ const approved=await request('POST','/v1/enrollments/approve',{code:enrollment.d
 if(approved.status!==200||approved.json.device?.state!=='offline')throw new Error('approve_failed');
 const deviceId=approved.json.approval.deviceId,nodeId=deviceId;
 function signed(action,payload){const timestamp=Date.now(),nonce=crypto.randomBytes(18).toString('base64url');const signature=crypto.sign(null,Buffer.from(deviceChannelMessage({deviceId,action,timestamp,nonce,payload})),privateKey).toString('base64url');return{deviceId,timestamp,nonce,signature,payload};}
-const hello={nodeId,sessionCeiling:1,draining:false,capabilities:['filesystem','git'],policyRevision:1,waitMs:0};
+const hello={nodeId,agentVersion:'0.9-runtime-test',sessionCeiling:1,draining:false,capabilities:['filesystem','git'],policyRevision:1,waitMs:0};
 const channel=await request('POST','/v1/device-channel/poll',signed('poll',hello));
 if(channel.status!==200||channel.json.channel?.node?.state!=='online')throw new Error(`channel_online_failed:${channel.status}:${channel.json.error}`);
+const refreshedDevice=await request('GET',`/v1/devices/${deviceId}`);
+if(refreshedDevice.status!==200||refreshedDevice.json.device?.agentVersion!=='0.9-runtime-test')throw new Error('signed_channel_agent_version_refresh_failed');
 const fleet=await request('GET','/v1/fleet');
 if(fleet.status!==200||!fleet.json.nodes.some(n=>n.nodeId===nodeId&&n.sessionCeiling===1&&n.state==='online'))throw new Error('fleet_view_failed');
 const agent1='agent-v08-fleet-aaaaaaaaaaaaaaaa',agent2='agent-v08-fleet-bbbbbbbbbbbbbbbb';
