@@ -30,5 +30,8 @@ const linuxWorkflow=fs.readFileSync(new URL('../../.github/workflows/linux-clien
 for(const marker of ['linux-service-policy.mjs','NoNewPrivileges=$NO_NEW_PRIVILEGES','RestrictSUIDSGID=$RESTRICT_SUID_SGID','$CAPABILITY_BOUNDING_SET_LINE','AmbientCapabilities='])expect(installer.includes(marker),`installer_policy_marker_missing:${marker}`);
 for(const marker of ['linux-service-policy.mjs','NoNewPrivileges=$NO_NEW_PRIVILEGES','RestrictSUIDSGID=$RESTRICT_SUID_SGID','$CAPABILITY_BOUNDING_SET_LINE','Invalid Linux service policy helper output'])expect(packagedInstaller.includes(marker),`packaged_installer_policy_marker_missing:${marker}`);
 expect(linuxWorkflow.includes('cp device-agent/linux-service-policy.mjs'), 'linux_package_policy_helper_missing');
+expect(packagedInstaller.includes('cp -a --no-preserve=ownership'), 'linux_package_must_not_preserve_user_ownership');
+expect(packagedInstaller.includes('chown -R root:root'), 'linux_release_root_ownership_missing');
+expect(packagedInstaller.includes('chmod -R go-w'), 'linux_release_write_hardening_missing');
 console.log('v09-linux-service-policy=PASS');
 console.log('v09-linux-web-sudo-toggle-no-reinstall=PASS');

@@ -48,11 +48,11 @@ async function main(){
     const tmp=path.join(RELEASES,`.incoming-${manifest.version}-${process.pid}`);
     fs.rmSync(tmp,{recursive:true,force:true});fs.mkdirSync(tmp,{recursive:true,mode:0o755});
     const archiveFile=path.join(tmp,'package.tar.gz');fs.writeFileSync(archiveFile,archive,{mode:0o600});
-    run('tar',['-xzf',archiveFile,'-C',tmp]);fs.rmSync(archiveFile,{force:true});
+    run('tar',['--no-same-owner','-xzf',archiveFile,'-C',tmp]);fs.rmSync(archiveFile,{force:true});
     const packageRoot=path.join(tmp,'package');if(!fs.existsSync(path.join(packageRoot,'manifest.json')))fail('package_manifest_missing');
     const packageManifest=JSON.parse(fs.readFileSync(path.join(packageRoot,'manifest.json'),'utf8'));
     if(packageManifest.version!==manifest.version)fail('package_version_mismatch');
-    fs.rmSync(target,{recursive:true,force:true});fs.renameSync(packageRoot,target);fs.rmSync(tmp,{recursive:true,force:true});
+    fs.rmSync(target,{recursive:true,force:true});fs.renameSync(packageRoot,target);run('chown',['-R','root:root',target]);run('chmod',['-R','go-w',target]);fs.rmSync(tmp,{recursive:true,force:true});
     let previous=null;try{previous=fs.realpathSync(CURRENT);}catch{}
     atomicCurrent(target);
     run('systemctl',['daemon-reload']);
