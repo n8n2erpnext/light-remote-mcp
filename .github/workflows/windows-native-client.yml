@@ -1,0 +1,128 @@
+name: Windows Native Client
+
+on:
+  push:
+    branches:
+      - codex/v0.9-client-packaging
+    paths:
+      - 'client/**'
+      - 'device-agent/**'
+      - 'lib/device-proof.mjs'
+      - '.github/workflows/windows-native-client.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-install-smoke:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.2'
+      - name: Publish native tray client
+        shell: pwsh
+        run: |
+          $stage = Join-Path $PWD 'dist\windows\stage'
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          dotnet publish client/windows-native/GptOperator.Client/GptOperator.Client.csproj `
+            -c Release -r win-x64 --self-contained true -o $stage
+          if ($LASTEXITCODE -ne 0) { throw 'dotnet publish failed' }
+          $runtime = Join-Path $stage 'runtime'
+          $agentRoot = Join-Path $stage 'agent'
+          $agentDir = Join-Path $agentRoot 'device-agent'
+          $adapterDir = Join-Path $agentDir 'platform-adapters'
+          $libDir = Join-Path $agentRoot 'lib'
+          $configDir = Join-Path $stage 'config'
+          New-Item -ItemType Directory -Force -Path $runtime,$agentDir,$adapterDir,$libDir,$configDir | Out-Null
+          Copy-Item (Get-Command node.exe).Source (Join-Path $runtime 'node.exe')
+          Copy-Item device-agent/operator-agent.mjs $agentDir
+          Copy-Item device-agent/platform-adapters/*.mjs $adapterDir
+          Copy-Item lib/device-proof.mjs $libDir
+          Copy-Item client/update-public.pem (Join-Path $configDir 'client-update-public.pem')
+      - name: Native client bundled runtime smoke
+        shell: pwsh
+        run: |
+          $stage = Join-Path $PWD 'dist\windows\stage'
+          $result = Join-Path $env:RUNNER_TEMP 'gpt-native-selftest.json'
+          $exe = Join-Path $stage 'GptOperator.Client.exe'
+          & $exe --self-test-output $result
+          if ($LASTEXITCODE -ne 0) { throw 'native client self-test failed' }
+          $json = Get-Content $result -Raw | ConvertFrom-Json
+          if (-not $json.ok) { throw "self-test not ok: $(Get-Content $result -Raw)" }
+          if ($json.platformAdapter -ne 'win32') { throw "expected win32 adapter, got $($json.platformAdapter)" }
+          if ($json.clientVersion -ne '0.9.0-dev') { throw "client version mismatch: $($json.clientVersion)" }
+          Write-Host "windows-native-selftest=PASS agent=$($json.agentVersion) adapter=$($json.platformAdapter)"
+
+          $sigResult = Join-Path $env:RUNNER_TEMP 'gpt-update-signature.json'
+          & $exe --verify-update-fixture deploy/fixtures/client-update-test.json deploy/fixtures/client-update-test.json.sig $sigResult
+          if ($LASTEXITCODE -ne 0) { throw 'signed update fixture verification failed' }
+          $sigJson = Get-Content $sigResult -Raw | ConvertFrom-Json
+          if (-not $sigJson.ok) { throw "update signature fixture invalid: $(Get-Content $sigResult -Raw)" }
+          $tampered = Join-Path $env:RUNNER_TEMP 'client-update-tampered.json'
+          (Get-Content deploy/fixtures/client-update-test.json -Raw).Replace('99.0.0','99.0.1') | Set-Content -LiteralPath $tampered -NoNewline -Encoding utf8
+          & $exe --verify-update-fixture $tampered deploy/fixtures/client-update-test.json.sig (Join-Path $env:RUNNER_TEMP 'tampered-result.json')
+          if ($LASTEXITCODE -eq 0) { throw 'tampered update manifest was accepted' }
+          Write-Host 'windows-native-update-signature=PASS tamper-rejected=PASS'
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup -y --no-progress
+            if ($LASTEXITCODE -ne 0) { throw 'Inno Setup install failed' }
+          }
+          "ISCC=$iscc" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - name: Build per-user installer
+        shell: pwsh
+        run: |
+          $stage = (Resolve-Path 'dist\windows\stage').Path
+          $out = Join-Path $PWD 'dist\windows\installer'
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          & $env:ISCC "/DStageDir=$stage" "/DOutputDir=$out" "/DAppVersion=0.9.0-dev" client/windows-native/installer/GptOperator.iss
+          if ($LASTEXITCODE -ne 0) { throw 'Inno Setup build failed' }
+          $installer = Join-Path $out 'GPT-Operator-Setup-x64.exe'
+          if (-not (Test-Path $installer)) { throw 'installer missing' }
+          "WINDOWS_INSTALLER=$installer" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Installer install-run-uninstall smoke
+        shell: pwsh
+        run: |
+          $installDir = Join-Path $env:RUNNER_TEMP 'GPT Operator Installed'
+          $args = @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',("/DIR=" + $installDir))
+          $p = Start-Process -FilePath $env:WINDOWS_INSTALLER -ArgumentList $args -PassThru -Wait
+          if ($p.ExitCode -ne 0) { throw "installer exit=$($p.ExitCode)" }
+          $exe = Join-Path $installDir 'GptOperator.Client.exe'
+          $result = Join-Path $env:RUNNER_TEMP 'installed-selftest.json'
+          & $exe --self-test-output $result
+          if ($LASTEXITCODE -ne 0) { throw 'installed client self-test failed' }
+          $json = Get-Content $result -Raw | ConvertFrom-Json
+          if (-not $json.ok -or $json.platformAdapter -ne 'win32') { throw "installed client invalid: $(Get-Content $result -Raw)" }
+          $unins = Join-Path $installDir 'unins000.exe'
+          $u = Start-Process -FilePath $unins -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART') -PassThru -Wait
+          if ($u.ExitCode -ne 0) { throw "uninstaller exit=$($u.ExitCode)" }
+          Write-Host 'windows-native-installer-roundtrip=PASS'
+      - name: Hash Windows installer
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash $env:WINDOWS_INSTALLER -Algorithm SHA256).Hash.ToLowerInvariant()
+          $sum = Join-Path (Split-Path $env:WINDOWS_INSTALLER -Parent) 'SHA256SUMS.txt'
+          "$hash  GPT-Operator-Setup-x64.exe" | Set-Content -LiteralPath $sum -Encoding ascii
+          Write-Host "windows-native-installer-sha256=$hash"
+
+      - name: Upload native Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: gpt-operator-native-windows-x64-${{ github.sha }}
+          path: |
+            dist/windows/installer/GPT-Operator-Setup-x64.exe
+            dist/windows/installer/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14
