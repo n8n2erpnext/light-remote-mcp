@@ -1,10 +1,10 @@
-# GPT VPS Bridge — Current State
+# Light Remote MCP — Current State
 
 Updated: 2026-09-10
 Version: v0.9.0-dev platform-adapter preview; production remains v0.8.0-dev
 
 ## Active path
-`ChatGPT -> @Vercel -> gpt-vps-bridge.vercel.app -> ARM Hub -> {ARM local executor | explicitly selected outbound leaf}`
+`ChatGPT -> @Vercel -> light-remote-mcp.vercel.app -> ARM Hub -> {ARM local executor | explicitly selected outbound leaf}`
 
 ## Production facts
 - v0.3 operator baseline remains accepted: encrypted, authenticated, idempotent host execution as `ubuntu` with sudo/Docker/LXD/Git/build/test capability.

@@ -1,12 +1,12 @@
-# GPT VPS Bridge — START HERE
+# Light Remote MCP — START HERE
 
 This Vercel project is the approved ChatGPT-facing relay into the owner's ARM operator hub.
 
 Active path:
-`ChatGPT -> @Vercel -> gpt-vps-bridge.vercel.app -> ARM hub -> selected executor`
+`ChatGPT -> @Vercel -> light-remote-mcp.vercel.app -> ARM hub -> selected executor`
 
 ## New agent startup
-1. Fetch public `https://gpt-vps-bridge.vercel.app/api/guide`.
+1. Fetch public `https://light-remote-mcp.vercel.app/api/guide`.
 2. Obtain a short-lived bridge session through `POST /api/auth` using the current local operator login; do not put credentials in a URL.
 3. Send the returned value as `x-bridge-session` on protected read/operator calls.
 4. Generate one opaque random `agentId` for this agent/chat and one stable `openId` for the open attempt.

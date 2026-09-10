@@ -3,6 +3,8 @@
 Date: 2026-09-09
 Status: v0.3 production-active; operator plane enabled and acceptance-tested on 2026-09-09.
 
+> Historical architecture checkpoint. The product and Vercel gateway were later renamed to **Light Remote MCP**; current operational URLs below use the canonical `light-remote-mcp.vercel.app` domain.
+
 ## 1. Goal
 
 Build a self-hosted remote operations plane that is practical enough to replace Remote Desktop Commander for daily development/configuration work while remaining observable and explicitly secured.
@@ -40,7 +42,7 @@ Current read-only tools include:
 `ping`, `vps_identity`, `system_status`, `workspace_roots`, `fs_list`, `fs_read_text`, `fs_search`, `git_status`, `git_diff`.
 
 Current guide endpoint:
-`https://gpt-vps-bridge.vercel.app/api/guide`
+`https://light-remote-mcp.vercel.app/api/guide`
 
 This is the recovery/discovery entry point for a fresh ChatGPT session or another authorized account using @Vercel.
 

@@ -1,7 +1,7 @@
 module.exports = function handler(req, res) {
   res.setHeader('Cache-Control','no-store'); res.setHeader('X-Robots-Tag','noindex,nofollow,noarchive');
   if(req.method!=='GET') return res.status(405).json({ok:false,error:'method_not_allowed'});
-  return res.status(200).json({ok:true,project:'gpt-vps-bridge',version:'0.9.0-dev',purpose:'ChatGPT-facing relay to the owner ARM operator hub',
+  return res.status(200).json({ok:true,project:'light-remote-mcp',version:'0.9.0-dev',purpose:'Light Remote MCP relay to the owner ARM operator hub',
     activePath:'ChatGPT -> Vercel bridge -> ARM hub -> selected node executor',upstream:'https://mcp.dashboard.thaiduy.store',wall:'https://wall.dashboard.thaiduy.store',
     recoveryDocs:['CURRENT_STATE.md','AI_BRIDGE_GUIDE.md','SESSION_OWNERSHIP_V0_5.md','HUB_TOPOLOGY_V0_5.md','PRODUCT_PLATFORM_PLAN_V0_6_TO_PUBLIC_PLUGIN.md','DEVICE_PRESENCE_V0_6.md','DEVICE_ENROLLMENT_V0_7.md','FLEET_ROUTING_V0_8.md','PLATFORM_ADAPTERS_V0_9.md','PORTABILITY.md'],
     auth:{login:'POST /api/auth body={username,password}',sessionHeader:'x-bridge-session',defaultTtlMinutes:15,staticSharedBearer:false,future:'hosted account/device OAuth + ChatGPT permission plane'},

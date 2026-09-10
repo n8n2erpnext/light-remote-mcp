@@ -15,7 +15,7 @@
 
 The client connects **outbound** to a governed hub. AI tools do not need inbound SSH access to the target machine, and an enrolled node is addressed explicitly instead of being discovered through a broad network tunnel.
 
-The project began as `gpt-vps-bridge`; the repository name is retained temporarily while the product is being consolidated under the **Light Remote MCP** name.
+The project began as `gpt-vps-bridge`; the repository and public gateway now use the **Light Remote MCP** name, while a small set of internal compatibility identifiers remain until existing enrolled devices can be migrated safely.
 
 ## Why Light Remote MCP
 
@@ -220,14 +220,14 @@ deploy/scripts/              Regression, live-proof, and packaging helpers
 docs / top-level *.md        Versioned architecture and recovery contracts
 ```
 
-The historical file names still contain `gpt-operator` and `gpt-vps-bridge` identifiers in places where changing them would break device state, service migration, or rollback compatibility. User-facing branding is being moved to **Light Remote MCP** without invalidating existing enrolled devices.
+The historical file names still contain `gpt-operator` and `gpt-vps-bridge` identifiers in places where changing them would break device state, service migration, or rollback compatibility. User-facing branding now uses **Light Remote MCP**; compatibility identifiers are retained only where changing them would invalidate existing enrolled devices, service migration, or rollback behavior.
 
 ## Operator guide
 
 The reference deployment exposes a machine-readable operator guide at:
 
 ```text
-https://gpt-vps-bridge.vercel.app/api/guide
+https://light-remote-mcp.vercel.app/api/guide
 ```
 
 That endpoint describes the current session/open/exec/resume contract for AI agents working through the reference environment. It is a development/control-plane guide, not a promise that the reference deployment is an unrestricted public execution service.

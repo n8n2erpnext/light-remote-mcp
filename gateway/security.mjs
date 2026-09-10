@@ -1,7 +1,7 @@
 import { createRemoteJWKSet, decodeJwt, jwtVerify } from 'jose';
 
 const TEAM_SLUG = process.env.VERCEL_TEAM_SLUG || 'thdangduys-projects';
-const PROJECT_NAME = process.env.VERCEL_PROJECT_NAME || 'gpt-vps-bridge';
+const PROJECT_NAME = process.env.VERCEL_PROJECT_NAME || 'light-remote-mcp';
 const AUDIENCE = process.env.VERCEL_AUDIENCE || 'https://mcp.dashboard.thaiduy.store';
 const ALLOWED_ENV = process.env.VERCEL_ENVIRONMENT || 'production';
 const TEAM_ISSUER = `https://oidc.vercel.com/${TEAM_SLUG}`;
