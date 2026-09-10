@@ -41,6 +41,7 @@ jobs:
           tar -xJf "$NODE_TAR"
           install -m 0755 "node-v${NODE_VERSION}-linux-${TARGET_ARCH}/bin/node" "$PKG/runtime/node"
           cp device-agent/operator-agent.mjs "$PKG/device-agent/"
+          cp device-agent/linux-service-policy.mjs "$PKG/device-agent/"
           cp device-agent/platform-adapters/*.mjs "$PKG/device-agent/platform-adapters/"
           cp lib/device-proof.mjs "$PKG/lib/"
           cp client/linux/updater.mjs "$PKG/client/linux/"
@@ -67,6 +68,7 @@ jobs:
           PKG="$OUT/package"
           test -x "$PKG/runtime/node"
           test -f "$PKG/device-agent/operator-agent.mjs"
+          test -f "$PKG/device-agent/linux-service-policy.mjs"
           test -f "$PKG/client/linux/updater.mjs"
           test -f "$PKG/manifest.json"
           if [[ "$TARGET_ARCH" == "x64" ]]; then

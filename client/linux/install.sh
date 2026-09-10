@@ -80,6 +80,23 @@ sudo cp -a "$TMP/package/." "$ROOT/releases/$VERSION/"
 sudo install -m 0644 "$TMP/update-public.pem" "$ROOT/update-public.pem"
 sudo ln -sfn "$ROOT/releases/$VERSION" "$ROOT/current.next"
 sudo mv -Tf "$ROOT/current.next" "$ROOT/current"
+STATE_FILE="$TARGET_HOME/.config/gpt-operator-agent/device.json"
+if [[ ! -f "$STATE_FILE" ]]; then
+  echo
+  echo "This Linux user is not enrolled yet. Starting device enrollment..."
+  sudo -u "$TARGET_USER" env HOME="$TARGET_HOME" "$ROOT/current/runtime/node" "$ROOT/current/device-agent/operator-agent.mjs" login
+fi
+[[ -f "$STATE_FILE" ]] || { echo "Device enrollment did not produce state" >&2; exit 2; }
+POLICY_HELPER="$ROOT/current/device-agent/linux-service-policy.mjs"
+NO_NEW_PRIVILEGES="$("$ROOT/current/runtime/node" "$POLICY_HELPER" "$STATE_FILE" noNewPrivileges)"
+RESTRICT_SUID_SGID="$("$ROOT/current/runtime/node" "$POLICY_HELPER" "$STATE_FILE" restrictSuidSgid)"
+CLEAR_CAPABILITY_BOUNDING_SET="$("$ROOT/current/runtime/node" "$POLICY_HELPER" "$STATE_FILE" clearCapabilityBoundingSet)"
+if [[ "$CLEAR_CAPABILITY_BOUNDING_SET" == "true" ]]; then
+  CAPABILITY_BOUNDING_SET_LINE="CapabilityBoundingSet="
+else
+  CAPABILITY_BOUNDING_SET_LINE="# CapabilityBoundingSet left at the system default for approved sudo-on-demand"
+fi
+
 sudo tee /etc/systemd/system/gpt-operator-device-agent.service >/dev/null <<UNIT
 [Unit]
 Description=GPT Operator outbound device agent
@@ -101,8 +118,9 @@ ProtectKernelTunables=true
 ProtectKernelModules=true
 ProtectControlGroups=true
 LockPersonality=true
-NoNewPrivileges=false
-RestrictSUIDSGID=false
+NoNewPrivileges=$NO_NEW_PRIVILEGES
+RestrictSUIDSGID=$RESTRICT_SUID_SGID
+$CAPABILITY_BOUNDING_SET_LINE
 AmbientCapabilities=
 ReadWritePaths=$TARGET_HOME/.config/gpt-operator-agent
 
@@ -133,13 +151,6 @@ Persistent=true
 [Install]
 WantedBy=timers.target
 UNIT
-
-STATE_FILE="$TARGET_HOME/.config/gpt-operator-agent/device.json"
-if [[ ! -f "$STATE_FILE" ]]; then
-  echo
-  echo "This Linux user is not enrolled yet. Starting device enrollment..."
-  sudo -u "$TARGET_USER" env HOME="$TARGET_HOME" "$ROOT/current/runtime/node" "$ROOT/current/device-agent/operator-agent.mjs" login
-fi
 
 sudo systemctl daemon-reload
 sudo systemctl enable --now gpt-operator-device-agent.service

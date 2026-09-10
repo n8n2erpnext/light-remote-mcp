@@ -13,6 +13,10 @@ expect(webDisabled.noNewPrivileges===false&&webDisabled.restrictSuidSgid===false
 const legacy=linuxServicePolicy({enrollment:{approvedCapabilities:['filesystem','sudo-on-demand']}});
 expect(legacy.sudoGrantable===true,'legacy_approved_sudo_fallback_missing');
 const installer=fs.readFileSync(new URL('../../device-agent/install-linux-service.sh',import.meta.url),'utf8');
+const packagedInstaller=fs.readFileSync(new URL('../../client/linux/install.sh',import.meta.url),'utf8');
+const linuxWorkflow=fs.readFileSync(new URL('../../.github/workflows/linux-client-build.yml',import.meta.url),'utf8');
 for(const marker of ['linux-service-policy.mjs','NoNewPrivileges=$NO_NEW_PRIVILEGES','RestrictSUIDSGID=$RESTRICT_SUID_SGID','$CAPABILITY_BOUNDING_SET_LINE','AmbientCapabilities='])expect(installer.includes(marker),`installer_policy_marker_missing:${marker}`);
+for(const marker of ['linux-service-policy.mjs','NoNewPrivileges=$NO_NEW_PRIVILEGES','RestrictSUIDSGID=$RESTRICT_SUID_SGID','$CAPABILITY_BOUNDING_SET_LINE'])expect(packagedInstaller.includes(marker),`packaged_installer_policy_marker_missing:${marker}`);
+expect(linuxWorkflow.includes('cp device-agent/linux-service-policy.mjs'), 'linux_package_policy_helper_missing');
 console.log('v09-linux-service-policy=PASS');
 console.log('v09-linux-web-sudo-toggle-no-reinstall=PASS');
