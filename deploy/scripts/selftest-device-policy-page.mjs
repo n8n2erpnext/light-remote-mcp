@@ -17,6 +17,8 @@ const dashboard=fs.readFileSync(new URL('../../gateway/dashboard.mjs',import.met
 if(!dashboard.includes('/device-policy?id='))throw new Error('dashboard_policy_link_missing');
 const api=fs.readFileSync(new URL('../../api/operator.js',import.meta.url),'utf8');
 if(!api.includes("action==='device-policy'")||!api.includes('normalizeDevicePolicy'))throw new Error('vercel_device_policy_route_missing');
+const sync=fs.readFileSync(new URL('./sync-gateway.sh',import.meta.url),'utf8');
+if(!sync.includes('device-policy-page.mjs'))throw new Error('gateway_sync_device_policy_page_missing');
 console.log('device-policy-page-inline-js=PASS');
 console.log('device-policy-owner-auth=PASS');
 console.log('device-policy-vercel-route=PASS');
