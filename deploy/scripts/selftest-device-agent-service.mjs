@@ -1,11 +1,16 @@
 import fs from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import { linuxServicePolicy } from '../../device-agent/linux-service-policy.mjs';
 const file=new URL('../../device-agent/install-linux-service.sh',import.meta.url).pathname;
 const text=fs.readFileSync(file,'utf8');
 if(spawnSync('bash',['-n',file]).status!==0)throw new Error('linux_service_installer_syntax_failed');
-for(const rule of ['Restart=always','NoNewPrivileges=true','PrivateTmp=true','ProtectSystem=strict','ReadWritePaths=$HOME_DIR/.config/gpt-operator-agent','ProtectKernelTunables=true','ProtectKernelModules=true','ProtectControlGroups=true','LockPersonality=true','RestrictSUIDSGID=true','CapabilityBoundingSet=','AmbientCapabilities='])if(!text.includes(rule))throw new Error(`service_hardening_missing:${rule}`);
+for(const rule of ['Restart=always','PrivateTmp=true','ProtectSystem=strict','ReadWritePaths=$HOME_DIR/.config/gpt-operator-agent','ProtectKernelTunables=true','ProtectKernelModules=true','ProtectControlGroups=true','LockPersonality=true','RestrictSUIDSGID=true','CapabilityBoundingSet=','AmbientCapabilities='])if(!text.includes(rule))throw new Error(`service_hardening_missing:${rule}`);
+if(!text.includes('NoNewPrivileges=$NO_NEW_PRIVILEGES'))throw new Error('dynamic_no_new_privileges_missing');
+if(linuxServicePolicy({enrollment:{approvedCapabilities:['filesystem']}}).noNewPrivileges!==true)throw new Error('default_no_new_privileges_not_enforced');
+if(linuxServicePolicy({enrollment:{approvedCapabilities:['filesystem','sudo-on-demand']},policy:{deniedCapabilities:[]}}).noNewPrivileges!==false)throw new Error('approved_sudo_not_reflected');
 if(!text.includes('Run operator-agent login first'))throw new Error('service_install_before_enrollment_guard_missing');
 if(/password|pollToken|privateKey/i.test(text))throw new Error('service_installer_secret_material_reference');
 console.log('device-agent-service-shell-syntax=PASS');
 console.log('device-agent-service-hardening=PASS');
+console.log('device-agent-service-dynamic-privilege-policy=PASS');
 console.log('device-agent-service-enrollment-guard=PASS');

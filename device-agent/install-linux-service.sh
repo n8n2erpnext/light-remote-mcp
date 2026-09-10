@@ -9,6 +9,7 @@ if [[ ! -f "$STATE_FILE" ]]; then
   echo "Device is not enrolled yet. Run operator-agent login first." >&2
   exit 2
 fi
+NO_NEW_PRIVILEGES="$($NODE_BIN "$ROOT_DIR/device-agent/linux-service-policy.mjs" "$STATE_FILE")"
 sudo install -d -m 0755 /opt/gpt-operator-agent/device-agent /opt/gpt-operator-agent/device-agent/platform-adapters /opt/gpt-operator-agent/lib
 sudo install -m 0755 "$ROOT_DIR/device-agent/operator-agent.mjs" /opt/gpt-operator-agent/device-agent/operator-agent.mjs
 sudo install -m 0644 "$ROOT_DIR"/device-agent/platform-adapters/*.mjs /opt/gpt-operator-agent/device-agent/platform-adapters/
@@ -29,7 +30,7 @@ ExecStart=$NODE_BIN /opt/gpt-operator-agent/device-agent/operator-agent.mjs daem
 Restart=always
 RestartSec=5
 UMask=0077
-NoNewPrivileges=true
+NoNewPrivileges=$NO_NEW_PRIVILEGES
 PrivateTmp=true
 ProtectSystem=strict
 ReadWritePaths=$HOME_DIR/.config/gpt-operator-agent
