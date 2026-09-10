@@ -33,5 +33,7 @@ expect(linuxWorkflow.includes('cp device-agent/linux-service-policy.mjs'), 'linu
 expect(packagedInstaller.includes('cp -a --no-preserve=ownership'), 'linux_package_must_not_preserve_user_ownership');
 expect(packagedInstaller.includes('chown -R root:root'), 'linux_release_root_ownership_missing');
 expect(packagedInstaller.includes('chmod -R go-w'), 'linux_release_write_hardening_missing');
+expect(packagedInstaller.includes('Environment=GPT_OPERATOR_UPDATE_MANIFEST_URL=$MANIFEST_URL'), 'linux_update_manifest_channel_not_persisted');
+expect(packagedInstaller.includes('Environment=GPT_OPERATOR_UPDATE_SIGNATURE_URL=$SIGNATURE_URL'), 'linux_update_signature_channel_not_persisted');
 console.log('v09-linux-service-policy=PASS');
 console.log('v09-linux-web-sudo-toggle-no-reinstall=PASS');

@@ -141,6 +141,8 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
+Environment=GPT_OPERATOR_UPDATE_MANIFEST_URL=$MANIFEST_URL
+Environment=GPT_OPERATOR_UPDATE_SIGNATURE_URL=$SIGNATURE_URL
 ExecStart=$ROOT/current/runtime/node $ROOT/current/client/linux/updater.mjs
 UNIT
 sudo tee /etc/systemd/system/gpt-operator-agent-update.timer >/dev/null <<'UNIT'
