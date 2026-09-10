@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using System.Text;
 
 namespace GptOperator.Client;
 
@@ -16,6 +17,8 @@ internal sealed record EnrollmentInfo(string ActivationUrl, string DeviceCode, i
 
 internal sealed class AgentSupervisor : IDisposable
 {
+    private static readonly object LogGate = new();
+    private static bool _logEncodingChecked;
     private readonly object _gate = new();
     private Process? _daemon;
     private CancellationTokenSource? _restartCts;
@@ -176,9 +179,40 @@ internal sealed class AgentSupervisor : IDisposable
         try
         {
             AppPaths.EnsureDirectories();
-            File.AppendAllText(AppPaths.AgentLog, $"{DateTimeOffset.UtcNow:o} [{kind}] {line}{Environment.NewLine}");
+            lock (LogGate)
+            {
+                EnsureUtf8LogFile();
+                File.AppendAllText(
+                    AppPaths.AgentLog,
+                    $"{DateTimeOffset.UtcNow:o} [{kind}] {line}{Environment.NewLine}",
+                    new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+            }
         }
         catch { }
+    }
+
+    private static void EnsureUtf8LogFile()
+    {
+        if (_logEncodingChecked) return;
+        _logEncodingChecked = true;
+        if (!File.Exists(AppPaths.AgentLog)) return;
+
+        var bytes = File.ReadAllBytes(AppPaths.AgentLog);
+        var utf16Bom = bytes.Length >= 2 &&
+            ((bytes[0] == 0xFF && bytes[1] == 0xFE) || (bytes[0] == 0xFE && bytes[1] == 0xFF));
+        var validUtf8 = true;
+        if (!utf16Bom)
+        {
+            try { _ = new UTF8Encoding(false, true).GetString(bytes); }
+            catch (DecoderFallbackException) { validUtf8 = false; }
+        }
+
+        if (!utf16Bom && validUtf8) return;
+        var legacy = Path.Combine(
+            AppPaths.LogDir,
+            $"agent.legacy-{DateTimeOffset.UtcNow:yyyyMMdd-HHmmss}.log");
+        File.Move(AppPaths.AgentLog, legacy, overwrite: true);
+        File.WriteAllText(AppPaths.AgentLog, string.Empty, new UTF8Encoding(false));
     }
 
     public void Dispose()

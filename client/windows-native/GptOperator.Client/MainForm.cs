@@ -20,7 +20,7 @@ internal sealed class MainForm : Form
     private readonly Label _platformValue = new() { AutoSize = true, ForeColor = UiTheme.Text };
     private readonly Label _versionValue = new() { AutoSize = true, ForeColor = UiTheme.Text };
     private readonly FlowLayoutPanel _capabilities = new() { Dock = DockStyle.Fill, FlowDirection = FlowDirection.LeftToRight, WrapContents = true, AutoScroll = true, BackColor = UiTheme.Surface };
-    private readonly RoundedPanel _detailsCard = new() { Dock = DockStyle.Right, Width = 340, Visible = false };
+    private readonly RoundedPanel _detailsCard = new() { Dock = DockStyle.Right, Width = 390, Visible = false, Radius = 16 };
     private readonly Button _more = new() { Text = "⋮", Width = 38, Height = 38, TabStop = false };
     private readonly Label _updateDot = new() { Text = "●", AutoSize = true, Font = UiTheme.Font(11, FontStyle.Bold), ForeColor = UiTheme.Warning, Visible = false, BackColor = Color.Transparent };
     private readonly ToolStripMenuItem _menuUpdate = new("Check for updates");
@@ -40,8 +40,8 @@ internal sealed class MainForm : Form
     public MainForm()
     {
         Text = ProductName;
-        ClientSize = new Size(430, 570);
-        MinimumSize = new Size(430, 570);
+        ClientSize = new Size(430, 620);
+        MinimumSize = new Size(430, 620);
         StartPosition = FormStartPosition.CenterScreen;
         MaximizeBox = false;
         BackColor = UiTheme.Background;
@@ -140,13 +140,13 @@ internal sealed class MainForm : Form
         hero.Controls.Add(_enrollment, 0, 5);
         hero.Controls.Add(_enroll, 0, 6);
 
-        var summaryCard = new RoundedPanel { Dock = DockStyle.Bottom, Height = 124, Padding = new Padding(18, 14, 18, 14) };
+        var summaryCard = new RoundedPanel { Dock = DockStyle.Bottom, Height = 144, Padding = new Padding(18, 14, 18, 14), Radius = 16 };
         var summaryLayout = new TableLayoutPanel {
             Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3, BackColor = UiTheme.Surface, Margin = Padding.Empty, Padding = Padding.Empty
         };
         summaryLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        summaryLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
-        summaryLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
+        summaryLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
+        summaryLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));
         summaryLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         var summaryTitle = new Label { Text = "Secure device link", AutoSize = false, Dock = DockStyle.Fill, ForeColor = UiTheme.Text, Font = UiTheme.Font(10, FontStyle.Bold), TextAlign = ContentAlignment.MiddleLeft };
         var hint = new Label { Text = "Runs in the tray when this window is closed.", AutoSize = false, Dock = DockStyle.Fill, ForeColor = UiTheme.Muted, Font = UiTheme.Font(8.25f), TextAlign = ContentAlignment.MiddleLeft };
@@ -164,8 +164,8 @@ internal sealed class MainForm : Form
     {
         _detailsCard.Padding = new Padding(20, 18, 20, 18);
         var title = new Label { Text = "Device details", AutoSize = true, Font = UiTheme.Font(12, FontStyle.Bold), ForeColor = UiTheme.Text, Dock = DockStyle.Top };
-        var caption = new Label { Text = "Identity, runtime and granted permissions", AutoSize = true, ForeColor = UiTheme.Muted, Font = UiTheme.Font(8.5f), Dock = DockStyle.Top, Padding = new Padding(0, 4, 0, 14) };
-        var rows = new TableLayoutPanel { Dock = DockStyle.Top, Height = 182, ColumnCount = 1, RowCount = 6, BackColor = UiTheme.Surface };
+        var caption = new Label { Text = "Identity, runtime and granted permissions", AutoSize = false, Height = 42, ForeColor = UiTheme.Muted, Font = UiTheme.Font(8.5f), Dock = DockStyle.Top, Padding = new Padding(0, 4, 0, 10) };
+        var rows = new TableLayoutPanel { Dock = DockStyle.Top, Height = 188, ColumnCount = 1, RowCount = 6, BackColor = UiTheme.Surface };
         rows.RowStyles.Clear();
         rows.Controls.Add(MetaCaption("DEVICE ID"), 0, 0);
         _deviceIdValue.Dock = DockStyle.Fill;
@@ -177,10 +177,10 @@ internal sealed class MainForm : Form
         rows.Controls.Add(_versionValue, 0, 5);
         for (var i = 0; i < 6; i++) rows.RowStyles.Add(new RowStyle(SizeType.Absolute, i % 2 == 0 ? 22 : i == 1 ? 38 : 39));
 
-        var permissionsTitle = new Label { Text = "Granted permissions", AutoSize = true, ForeColor = UiTheme.Text, Font = UiTheme.Font(9.5f, FontStyle.Bold), Dock = DockStyle.Top, Padding = new Padding(0, 15, 0, 8) };
+        var permissionsTitle = new Label { Text = "Granted permissions", AutoSize = false, Height = 48, ForeColor = UiTheme.Text, Font = UiTheme.Font(9.5f, FontStyle.Bold), Dock = DockStyle.Top, Padding = new Padding(0, 16, 0, 8) };
         _capabilities.Padding = new Padding(0, 4, 0, 4);
 
-        var logs = new Button { Text = "Open logs", Dock = DockStyle.Bottom, Height = 36 };
+        var logs = new Button { Text = "Open log folder", Dock = DockStyle.Bottom, Height = 36 };
         UiTheme.StyleButton(logs);
         logs.Click += (_, _) => OpenLogs();
 
@@ -204,7 +204,7 @@ internal sealed class MainForm : Form
         UiTheme.StyleMenu(menu);
         _menuUpdate.Click += async (_, _) => await CheckUpdateAsync(interactive: true);
         _menuDetails.Click += (_, _) => SetDetailsMode(_menuDetails.Checked);
-        var logs = new ToolStripMenuItem("Open logs", null, (_, _) => OpenLogs());
+        var logs = new ToolStripMenuItem("Open log folder", null, (_, _) => OpenLogs());
         var about = new ToolStripMenuItem("About Light Remote MCP", null, (_, _) => ShowAbout());
         var exit = new ToolStripMenuItem("Exit", null, (_, _) => ExitApplication());
         menu.Items.AddRange(new ToolStripItem[] { _menuUpdate, new ToolStripSeparator(), _menuDetails, logs, new ToolStripSeparator(), about, exit });
@@ -218,7 +218,7 @@ internal sealed class MainForm : Form
         var open = new ToolStripMenuItem("Open Light Remote MCP", null, (_, _) => ShowWindow());
         _trayConnect.Click += async (_, _) => await SetConnectionAsync(!_agent.IsRunning);
         _trayUpdate.Click += async (_, _) => await CheckUpdateAsync(interactive: true);
-        var logs = new ToolStripMenuItem("Open logs", null, (_, _) => OpenLogs());
+        var logs = new ToolStripMenuItem("Open log folder", null, (_, _) => OpenLogs());
         var exit = new ToolStripMenuItem("Exit", null, (_, _) => ExitApplication());
         menu.Items.AddRange(new ToolStripItem[] { open, _trayConnect, _trayUpdate, logs, new ToolStripSeparator(), exit });
         return menu;
@@ -412,7 +412,7 @@ internal sealed class MainForm : Form
         _detailsMode = enabled;
         _menuDetails.Checked = enabled;
         _detailsCard.Visible = enabled;
-        ClientSize = enabled ? new Size(820, 570) : new Size(430, 570);
+        ClientSize = enabled ? new Size(860, 620) : new Size(430, 620);
     }
 
     private void EnsureAutostart()
