@@ -70,4 +70,10 @@ The Gateway recovered to `v0.9.0-dev`; MCP health and Wall auth boundaries are h
 
 Device Policy v0.9 is technically CLOSED: owner changes are bounded by grantable capabilities, revisions are signed, stale devices receive policy before command execution, local platform inference prevents caller understatement from bypassing policy, restore/recovery is proven, legacy state migrates safely, and audit attribution remains target-bound.
 
-This does **not** promote all of v0.9 to production. `main` remains owner-controlled; no stable tag is cut here. VPS-AMD is still on agent `0.8.0-dev`, so the broader v0.9 platform release retains its separate Linux live-migration gate.
+At the moment this Device Policy checkpoint closed, this did **not** promote all of v0.9 to production: `main` remained owner-controlled, no stable tag was cut, and VPS-AMD was still on agent `0.8.0-dev`, leaving the separate Linux live-migration gate open. The post-closure note below records the later closure of that gate.
+
+## Post-closure Linux migration note
+
+The broader Linux gate referenced above was closed later on 2026-09-10 without changing the Device Policy acceptance result. VPS-AMD is now live on the v0.9 packaged layout with policy revision 3, root-owned releases, and the signed updater timer active.
+
+The structured Wall maintenance path updated AMD from `0.9.0-dev` to signed acceptance `0.9.0-rc.1`. A subsequent signed/hash-valid but intentionally broken `0.9.0-rc.2` activation failed the stable service-health gate and automatically rolled back to healthy `rc.1`. See `LINUX_SIGNED_UPDATE_V0_9_ACCEPTANCE_2026-09-10.md` for the updater defects, rollback proof, and final 36/36 regression/fleet soak.

@@ -309,11 +309,11 @@ Distribution trust is the main macOS complexity; the remote operator protocol it
 
 ### v0.9 implementation checkpoint — 2026-09-10
 
-The platform-adapter preview is live on `codex/v0.9-platform-adapters`; production `main` remains the accepted v0.8 candidate. The fleet/enrollment protocol is unchanged. Linux and Windows adapters independently discover capabilities, re-infer script requirements at the device boundary, and apply local final-deny policy before spawn.
+The active v0.9 acceptance lane is `codex/v0.9-device-policy-resume`; production `main` remains the accepted v0.8 candidate. The fleet/enrollment protocol is unchanged. Linux and Windows adapters independently discover capabilities, re-infer script requirements at the device boundary, and apply local final-deny policy before spawn.
 
 Real Windows x64 acceptance passed through public production Vercel -> ARM Hub -> outbound Windows leaf. The owner-approved Windows capability lanes passed PowerShell/host identity, temporary filesystem I/O, Git + bundled Node, process/network inspection, Services read, Event Log read, and winget. DEV persistence uses a per-user `Interactive` / `Limited` Scheduled Task with no stored password/PIN; GitHub Actions validated the same task principal on Windows Server 2025. Service mode remains optional for password-backed accounts and does not default to LocalSystem.
 
-AMD x86_64 full-suite testing on v0.9 source is green. Live migration exposed a legacy v0.8 systemd contradiction: `NoNewPrivileges=true` prevents an owner-approved `sudo-on-demand` capability from working. Checkpoint `4a584ff` fixes future Linux installs by deriving NNP from effective local capability state. The already-running legacy AMD service cannot self-relax that bit and therefore still requires one external privileged maintenance step before Linux live migration can be called complete. macOS is deferred. See `PLATFORM_ADAPTERS_V0_9.md`.
+AMD x86_64 Linux live migration is now complete. The one-time privileged transition moved the leaf to the root-owned versioned package layout with dynamic `NoNewPrivileges` policy and an active signed-update timer. A structured Wall action triggers updater maintenance through an auto-closing session. Signed `0.9.0-rc.1` acceptance updated the real leaf; a signed/hash-valid `0.9.0-rc.2` with a deliberately non-executable bundled runtime proved activation failure, externally visible updater failure, automatic rollback, and healthy recovery to `rc.1`. Final ARM regression is 36/36 PASS and ARM+AMD+Windows soak stayed clean. macOS is deferred. See `PLATFORM_ADAPTERS_V0_9.md` and `LINUX_SIGNED_UPDATE_V0_9_ACCEPTANCE_2026-09-10.md`.
 
 ## 7. v1.0 — Governed Safety Plane
 
@@ -488,7 +488,7 @@ Do not monetize basic device online presence. Monetization should attach to mana
 - Replay protection and semantic idempotency remain mandatory.
 - One agent instance cannot silently share another session.
 - Audit identifiers always include account/device/node/session/agent/request/operation/job.
-- Wall is read-only and is never required for execution.
+- Wall is not a generic executor and is never required for session/process survival. Owner mutations exposed there must be narrow structured actions (for example Device Policy or signed updater maintenance), policy-bounded and audited.
 - Secrets are redacted from wall/logging/learned-safety inputs.
 - Hard deny policy cannot be disabled by ChatGPT permission alone.
 - Git/resource collaboration is not globally locked by the operator.

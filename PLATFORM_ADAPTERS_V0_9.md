@@ -1,9 +1,10 @@
 # Platform Adapters v0.9
 
 Updated: 2026-09-10
-Status: preview / native Windows + Device Policy live acceptance; production `main` remains v0.8
+Status: v0.9 acceptance candidate / Windows + Device Policy + Linux live migration/signed rollback closed; production `main` remains v0.8
 Acceptance branch: `codex/v0.9-device-policy-resume`
 Device Policy closure: `DEVICE_POLICY_V0_9_ACCEPTANCE_2026-09-10.md`
+Linux updater closure: `LINUX_SIGNED_UPDATE_V0_9_ACCEPTANCE_2026-09-10.md`
 
 ## Scope
 v0.9 does not replace the v0.8 fleet protocol. It keeps the same enrolled Ed25519 device identity, outbound signed `poll/result` channel, explicit target binding, per-node session ceilings, command lease/redelivery, idempotent receipts, and Wall/audit attribution.
@@ -35,7 +36,7 @@ A live AMD migration exposed a real hardening contradiction: the v0.8 installed 
 
 All other systemd hardening remains in place, including normal-user execution, `ProtectSystem=strict`, bounded writable state path, empty capability bounding/ambient sets, kernel/control-group protections, `PrivateTmp`, `UMask=0077`, and restart policy.
 
-The AMD x86_64 repo was switched cleanly from v0.8 to v0.9 source and the complete `selftest-*` suite passed with `AMD_V09_SELFTEST_FAILS=0`. The currently running legacy v0.8 AMD service could not self-install the policy fix because its inherited `NoNewPrivileges=true` blocks sudo before the new unit can be written. This is a one-time live migration blocker requiring an external privileged maintenance lane; it is not being bypassed from inside the constrained service.
+The AMD x86_64 live migration is complete. The one-time privileged transition installed the root-owned versioned package layout under `/opt/gpt-operator-agent/releases`, preserved enrollment/policy state, activated the signed-update timer, and moved the service to the dynamic `NoNewPrivileges` unit policy. Wall Policy revision 2 proved `sudo-on-demand` removal denies privileged execution with exit 126; revision 3 restored it and privileged `systemctl` execution passed.
 
 ## Windows adapter
 Windows uses PowerShell when available and keeps the executor under the enrolled normal user. It does not use LocalSystem as the default execution identity.
@@ -74,11 +75,15 @@ Owner-controlled Device Policy is CLOSED on the acceptance branch. Live Windows 
 
 See `DEVICE_POLICY_V0_9_ACCEPTANCE_2026-09-10.md` for job IDs, audit attribution, migration evidence, deployment defects found during activation, and the closure assessment.
 
+## Linux signed-update acceptance
+The real AMD leaf accepted signed `0.9.0-rc.1` through the structured Wall `Run signed update now` path, restarted into `active/running`, and reported the new version. Live acceptance found and fixed two updater defects: symlink invocation previously skipped ESM `main()`, and a transient `is-active` check could accept a crash-looping release. The repaired updater requires a stable running MainPID before commit.
+
+A signed/hash-valid `0.9.0-rc.2` fixture with a deliberately non-executable bundled Node runtime then failed after integrity verification and activation. The updater returned `update_failed:update_rollback:0.9.0-rc.2`, restored `current` to `0.9.0-rc.1`, and recovered the agent to a stable running service. Final ARM regression was 36/36 PASS; three fleet samples and repeated Windows acceptance remained clean. See `LINUX_SIGNED_UPDATE_V0_9_ACCEPTANCE_2026-09-10.md`.
+
 ## Deferred / open gates
 - macOS platform adapter and distribution work: deferred.
-- AMD Linux live service migration to the new dynamic `NoNewPrivileges` policy: pending an external privileged maintenance lane because the legacy constrained service cannot relax its own NNP bit.
 - production promotion of v0.9: not yet approved.
 - stable `v0.9.0` tag: not cut.
 
 ## Acceptance exit rule
-Do not call v0.9 production-accepted until the Linux live migration is completed and the final branch preview/full regression remains green. Windows platform acceptance itself is complete for the current DEV persistence model.
+Linux live migration, Device Policy, Windows platform acceptance, and signed Linux update/rollback are closed on the v0.9 acceptance branch. Do not call v0.9 production-promoted until owner approval and the normal branch/release gate; `main` and stable tags remain unchanged.

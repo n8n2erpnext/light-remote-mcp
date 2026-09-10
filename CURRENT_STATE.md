@@ -1,7 +1,7 @@
 # Light Remote MCP — Current State
 
 Updated: 2026-09-10
-Version: v0.9.0-dev platform-adapter preview; production remains v0.8.0-dev
+Version: v0.9 acceptance candidate on `codex/v0.9-device-policy-resume`; production remains v0.8.0-dev
 
 ## Active path
 `ChatGPT -> @Vercel -> light-remote-mcp.vercel.app -> ARM Hub -> {ARM local executor | explicitly selected outbound leaf}`
@@ -18,7 +18,7 @@ Version: v0.9.0-dev platform-adapter preview; production remains v0.8.0-dev
 - No repo/file/service locking is imposed. Concurrent agents coordinate through normal Git branch/worktree/clean-tree discipline.
 
 ## Wall / observability
-- Wall is read-only and never keeps a device/session alive.
+- Wall is an authenticated owner control plane, not a generic executor. Structured Device Policy and signed-update maintenance actions are allowed; arbitrary shell execution is not exposed from Wall, and Wall never keeps a device/session alive.
 - Wall now has independent local authentication: scrypt password verification, HMAC-signed session token, `HttpOnly + Secure + SameSite=Strict` cookie, login throttling, `/login`, `/auth/login`, and `/auth/logout`.
 - Wall secret config is outside Git at `/home/ubuntu/.config/gpt-vps-operator/wall-auth.json`, mode `0600`, bind-mounted read-only as `/run/secrets/wall-auth.json`.
 - The bootstrap password is stored only on the VPS in `/home/ubuntu/.config/gpt-vps-operator/wall-bootstrap-password`, mode `0600`; retrieve it locally and remove that plaintext bootstrap file after storing it safely.
@@ -38,12 +38,12 @@ Version: v0.9.0-dev platform-adapter preview; production remains v0.8.0-dev
 
 
 ## v0.9 platform-adapter preview proof
-- Branch `codex/v0.9-platform-adapters` is the active preview lane; production `main` remains v0.8. No stable v0.9.0 tag exists.
+- Branch `codex/v0.9-device-policy-resume` is the active v0.9 acceptance lane; production `main` remains v0.8. No stable v0.9.0 tag exists.
 - Leaf execution is now adapter-based. Linux and Windows independently discover capabilities, infer script-required capabilities, apply the local deny boundary, and only then spawn the native shell/process. Caller `requiredCapabilities` cannot hide a capability from the device.
 - A real Windows x64 desktop is live-accepted using the existing v0.8 fleet protocol. Seven proof jobs covered host/PowerShell, temporary filesystem I/O, Git + bundled Node, process/network inspection, Services read, Event Log read, and package-manager read. Wall attribution recorded 12 successful Windows `job_finished` events / 36 related events across repeated proof rounds with zero active sessions after cleanup.
 - Final Windows acceptance observed Git 2.54.x, bundled Node x64, Windows PowerShell 5.1, and `winget v1.29.290`. Vercel production traffic for the final 30-minute window was 121 HTTP 200 responses with no warning/error/fatal logs.
 - Blank-password Windows Service startup correctly failed with SCM Event 7038; DEV mode now uses a per-user Scheduled Task (`Interactive`, `Limited`) with no stored password/PIN. GitHub Actions validated this registration on Windows Server 2025. Password-backed Service mode remains optional and does not default to LocalSystem.
-- AMD x86_64 v0.9 source/full-suite testing is green. A live migration exposed that the legacy v0.8 unit had `NoNewPrivileges=true`, contradicting owner-approved `sudo-on-demand`. Checkpoint `4a584ff` adds a dynamic unit policy: NNP remains true unless effective sudo-on-demand is approved and not locally denied. The legacy constrained service cannot self-relax its own NNP bit, so one external privileged maintenance step is still required before Linux v0.9 is called live-migrated.
+- AMD x86_64 Linux live migration is complete. The packaged layout is root-owned under `/opt/gpt-operator-agent/releases`, `current` selects the active release, the updater timer is active, and Wall Device Policy revision 3 keeps `sudo-on-demand`/`systemctl` genuinely usable. Signed acceptance moved `0.9.0-dev -> 0.9.0-rc.1`; a valid signed/hash-verified but non-executable `0.9.0-rc.2` then failed the stable service-health gate and automatically rolled back to healthy `rc.1`. Final ARM regression is 36/36 PASS and ARM+AMD+Windows fleet soak remained online with zero active sessions. See `LINUX_SIGNED_UPDATE_V0_9_ACCEPTANCE_2026-09-10.md`.
 - macOS work is deferred by product-owner decision. See `PLATFORM_ADAPTERS_V0_9.md`.
 
 ## v0.8 production-test proof
@@ -88,4 +88,4 @@ Version: v0.9.0-dev platform-adapter preview; production remains v0.8.0-dev
 Every real session-aware call refreshes `lastSeenAt`. Running jobs suspend expiry. Transport loss never owns process lifetime; the same agent resumes its lane. A different agent is rejected rather than silently sharing it.
 
 ## Recovery order
-Fetch `/api/guide`, then read `AI_BRIDGE_GUIDE.md`, this file, `SESSION_OWNERSHIP_V0_5.md`, `HUB_TOPOLOGY_V0_5.md`, `SESSION_LANES_V0_4.md`, `PRODUCT_PLATFORM_PLAN_V0_6_TO_PUBLIC_PLUGIN.md`, `FLEET_ROUTING_V0_8.md`, `PLATFORM_ADAPTERS_V0_9.md`, and the latest dated handoff. RDC remains rescue-only during soak.
+Fetch `/api/guide`, then read `AI_BRIDGE_GUIDE.md`, this file, `SESSION_OWNERSHIP_V0_5.md`, `HUB_TOPOLOGY_V0_5.md`, `SESSION_LANES_V0_4.md`, `PRODUCT_PLATFORM_PLAN_V0_6_TO_PUBLIC_PLUGIN.md`, `FLEET_ROUTING_V0_8.md`, `PLATFORM_ADAPTERS_V0_9.md`, `DEVICE_POLICY_V0_9_ACCEPTANCE_2026-09-10.md`, `LINUX_SIGNED_UPDATE_V0_9_ACCEPTANCE_2026-09-10.md`, and the latest dated handoff. RDC remains rescue-only during soak.
