@@ -2,8 +2,9 @@
 
 Status: **ENGINEERING GO / PROMOTION HOLD**
 Branch: `codex/v0.9-device-policy-resume`
-Candidate content commit: `13aeb484808b94aaa005db2049f0045b1710a678`
+Live-acceptance content commit: `13aeb484808b94aaa005db2049f0045b1710a678`
 Main reconciliation commit: `b1ae1fd`
+Release-prep packaging/source commit: `119850ab242ae8dffeb7c6ca298b166db75462d2`
 
 ## Branch / ancestry
 `origin/main` was not initially an ancestor of the v0.9 acceptance branch because the Light Remote MCP identity commits had landed independently on both lines. A no-content reconciliation merge was completed on the acceptance branch.
@@ -19,11 +20,15 @@ Root `npm audit --omit=dev`: **0 vulnerabilities**.
 Gateway `npm audit --omit=dev`: **0 vulnerabilities**.
 `git diff --check`: clean.
 
-GitHub Actions for the tested candidate tree are green:
+GitHub Actions for the live-accepted candidate tree were green:
 - Linux Client Packages run `34479343542`: **SUCCESS**.
 - Windows Native Client run `34479343549`: **SUCCESS**.
 
-The ancestry-only merge did not alter the candidate tree, so those package results remain applicable to the reconciled source content.
+The ancestry-only merge did not alter that tree. After the third-party notice packaging hardening changed the release package contract, CI was run again on commit `119850a`:
+- Linux Client Packages run `34485046439`: **SUCCESS** for both x64 and arm64; build, package-contract smoke, and artifact upload all passed.
+- Windows Native Client run `34485046414`: **SUCCESS** through publish, bundled-runtime notice smoke, installer build, installed-layout smoke, rollback smoke, uninstall, hash, and artifact upload.
+
+The final release-prep package artifacts therefore come from the notice-hardened candidate, not only from the earlier acceptance tree.
 ## Live acceptance / recovery
 Linux signed-update acceptance is closed on the real AMD leaf. Signed `0.9.0-rc.1` activated successfully; signed/hash-valid `0.9.0-rc.2` with a deliberately non-executable bundled runtime failed the stable service-health gate and automatically rolled back to healthy `rc.1`.
 
