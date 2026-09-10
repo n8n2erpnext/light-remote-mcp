@@ -7,7 +7,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { deviceChannelMessage, deviceHeartbeatMessage } from '../lib/device-proof.mjs';
 
 const VERSION='0.8.0-dev';
-const DEFAULT_BASE=process.env.OPERATOR_AGENT_BASE_URL || 'https://gpt-vps-bridge.vercel.app';
+const DEFAULT_BASE=process.env.OPERATOR_AGENT_BASE_URL || 'https://light-remote-mcp.vercel.app';
 const DEFAULT_HUB=process.env.OPERATOR_AGENT_HUB_URL || 'https://mcp.dashboard.thaiduy.store';
 const STATE_FILE=process.env.OPERATOR_AGENT_STATE || path.join(os.homedir(),'.config','gpt-operator-agent','device.json');
 const COMMAND_DIR=process.env.OPERATOR_AGENT_COMMAND_DIR || path.join(path.dirname(STATE_FILE),'commands');

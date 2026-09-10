@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 
-const base=String(process.env.BRIDGE_PROOF_BASE||'https://gpt-vps-bridge.vercel.app').replace(/\/$/,'');
+const base=String(process.env.BRIDGE_PROOF_BASE||'https://light-remote-mcp.vercel.app').replace(/\/$/,'');
 const configFile=process.env.WALL_AUTH_FILE||'/home/ubuntu/.config/gpt-vps-operator/wall-auth.json';
 const passwordFile=process.env.WALL_BOOTSTRAP_PASSWORD_FILE||'/home/ubuntu/.config/gpt-vps-operator/wall-bootstrap-password';
 const cfg=JSON.parse(fs.readFileSync(configFile,'utf8'));

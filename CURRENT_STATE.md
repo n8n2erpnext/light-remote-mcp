@@ -1,4 +1,4 @@
-# GPT VPS Bridge — Current State
+# Light Remote MCP — Current State
 
 Updated: 2026-09-09
 Version: v0.8.0-dev production-test candidate
