@@ -13,6 +13,8 @@ const socketPath=path.join(dir,'operator.sock'),logDir=path.join(dir,'log'),stat
 fs.mkdirSync(logDir,{recursive:true});fs.mkdirSync(stateDir,{recursive:true});
 const cryptoFixture=createOperatorCryptoFixture(stateDir);
 const child=spawn(process.execPath,[`${root}/operator-host/executor.mjs`],{cwd:root,env:{...process.env,OPERATOR_SOCKET:socketPath,OPERATOR_LOG_DIR:logDir,OPERATOR_STATE_DIR:stateDir,OPERATOR_KEY_FILE:cryptoFixture.privateFile,OPERATOR_DEVICE_PRESENCE_TTL_MS:'90000',OPERATOR_FLEET_CHANNEL_TTL_MS:'5000',OPERATOR_FLEET_COMMAND_LEASE_MS:'2000'},stdio:['ignore','pipe','pipe']});
+const cleanupChild=()=>{try{if(!child.killed)child.kill('SIGTERM');}catch{}};
+process.on('exit',cleanupChild);
 let stderr='';child.stderr.on('data',c=>stderr+=c);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 for(let i=0;i<100&&!fs.existsSync(socketPath);i++)await sleep(40);
@@ -50,4 +52,4 @@ const audit=fs.readFileSync(path.join(logDir,'operations.jsonl'),'utf8');
 for(const token of ['device_maintenance_update_requested','owner requested signed client update','sudo -n systemctl start --no-block gpt-operator-agent-update.service'])if(!audit.includes(token))throw new Error(`maintenance_audit_missing:${token}`);
 console.log(JSON.stringify({ok:true,deviceId,jobId:maintenance.job.jobId,script:command.payload.script,requiredCapabilities:command.payload.requiredCapabilities,blocked:blocked.json.error},null,2));
 console.log('v09-maintenance-update=PASS');
-child.kill('SIGTERM');await sleep(100);fs.rmSync(dir,{recursive:true,force:true});
+cleanupChild();process.off('exit',cleanupChild);await sleep(100);fs.rmSync(dir,{recursive:true,force:true});
