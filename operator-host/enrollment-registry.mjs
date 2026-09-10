@@ -106,14 +106,18 @@ export class EnrollmentRegistry {
       const data = JSON.parse(fs.readFileSync(this.stateFile,'utf8'));
       if (data?.schemaVersion !== 1 || !Array.isArray(data.pending) || !Array.isArray(data.bindings)) throw new Error('invalid_schema');
       for (const row of data.pending) if (row?.enrollmentId) this.pending.set(row.enrollmentId,row);
+      let migrated=false;
       for (const row of data.bindings) if (row?.deviceId) {
-        row.grantableCapabilities = cleanCapabilities(row.grantableCapabilities || row.requestedCapabilities || row.approvedCapabilities || []);
-        row.approvedCapabilities = cleanCapabilities(row.approvedCapabilities || []);
-        row.policyRevision = Math.max(1, Number(row.policyRevision) || 1);
-        row.policyUpdatedAt = Number(row.policyUpdatedAt) || Number(row.issuedAt) || Date.now();
+        const grantable=cleanCapabilities(row.grantableCapabilities || row.requestedCapabilities || row.approvedCapabilities || []);
+        const approved=cleanCapabilities(row.approvedCapabilities || []);
+        const policyRevision=Math.max(1,Number(row.policyRevision)||1);
+        const policyUpdatedAt=Number(row.policyUpdatedAt)||Number(row.issuedAt)||this.now();
+        if(JSON.stringify(row.grantableCapabilities)!==JSON.stringify(grantable)||JSON.stringify(row.approvedCapabilities)!==JSON.stringify(approved)||row.policyRevision!==policyRevision||row.policyUpdatedAt!==policyUpdatedAt)migrated=true;
+        row.grantableCapabilities=grantable; row.approvedCapabilities=approved; row.policyRevision=policyRevision; row.policyUpdatedAt=policyUpdatedAt;
         this.bindings.set(row.deviceId,row);
       }
       this._prune(false);
+      if(migrated)this._persist();
     } catch (error) { this.pending.clear(); this.bindings.clear(); this.loadError = error?.message || 'invalid_enrollment_state'; }
   }
   _prune(persist = true) {

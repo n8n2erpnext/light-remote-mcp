@@ -36,6 +36,8 @@ fs.writeFileSync(legacyPath,JSON.stringify(legacyState),{mode:0o600});
 const migrated=new EnrollmentRegistry({stateFile:legacyPath,signerFile:path.join(dir,'signer.json'),now:()=>now}).policyView(approved.deviceId);
 expect(migrated.policyRevision===1,'legacy_policy_revision_migration_failed');
 expect(JSON.stringify(migrated.grantableCapabilities)===JSON.stringify(migrated.approvedCapabilities),'legacy_grantable_migration_failed');
+const migratedDisk=JSON.parse(fs.readFileSync(legacyPath,'utf8')).bindings.find(row=>row.deviceId===approved.deviceId);
+expect(migratedDisk.policyRevision===1&&Array.isArray(migratedDisk.grantableCapabilities),'legacy_policy_migration_not_persisted');
 console.log('v09-device-policy-owner-toggle=PASS');
 console.log('v09-device-policy-grantable-boundary=PASS');
 console.log('v09-device-policy-signed-envelope=PASS');
