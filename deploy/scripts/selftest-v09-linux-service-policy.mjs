@@ -1,4 +1,7 @@
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { linuxServicePolicy } from '../../device-agent/linux-service-policy.mjs';
 function expect(value,message){if(!value)throw new Error(message);}
 const normal=linuxServicePolicy({enrollment:{grantableCapabilities:['filesystem','git'],approvedCapabilities:['filesystem','git']}});
@@ -12,11 +15,20 @@ expect(webDisabled.sudoGrantable===true,'web_disable_must_not_remove_future_gran
 expect(webDisabled.noNewPrivileges===false&&webDisabled.restrictSuidSgid===false&&webDisabled.clearCapabilityBoundingSet===false,'web_toggle_must_not_require_service_reinstall');
 const legacy=linuxServicePolicy({enrollment:{approvedCapabilities:['filesystem','sudo-on-demand']}});
 expect(legacy.sudoGrantable===true,'legacy_approved_sudo_fallback_missing');
+const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'lrm-linux-policy-'));
+const helperReal=new URL('../../device-agent/linux-service-policy.mjs',import.meta.url);
+const helperLink=path.join(tmp,'linux-service-policy.mjs');
+const stateFile=path.join(tmp,'device.json');
+fs.symlinkSync(helperReal,helperLink);
+fs.writeFileSync(stateFile,JSON.stringify({enrollment:{grantableCapabilities:['filesystem','sudo-on-demand']}}));
+const cli=spawnSync(process.execPath,[helperLink,stateFile,'noNewPrivileges'],{encoding:'utf8'});
+expect(cli.status===0&&cli.stdout==='false','symlink_cli_policy_output_failed');
+fs.rmSync(tmp,{recursive:true,force:true});
 const installer=fs.readFileSync(new URL('../../device-agent/install-linux-service.sh',import.meta.url),'utf8');
 const packagedInstaller=fs.readFileSync(new URL('../../client/linux/install.sh',import.meta.url),'utf8');
 const linuxWorkflow=fs.readFileSync(new URL('../../.github/workflows/linux-client-build.yml',import.meta.url),'utf8');
 for(const marker of ['linux-service-policy.mjs','NoNewPrivileges=$NO_NEW_PRIVILEGES','RestrictSUIDSGID=$RESTRICT_SUID_SGID','$CAPABILITY_BOUNDING_SET_LINE','AmbientCapabilities='])expect(installer.includes(marker),`installer_policy_marker_missing:${marker}`);
-for(const marker of ['linux-service-policy.mjs','NoNewPrivileges=$NO_NEW_PRIVILEGES','RestrictSUIDSGID=$RESTRICT_SUID_SGID','$CAPABILITY_BOUNDING_SET_LINE'])expect(packagedInstaller.includes(marker),`packaged_installer_policy_marker_missing:${marker}`);
+for(const marker of ['linux-service-policy.mjs','NoNewPrivileges=$NO_NEW_PRIVILEGES','RestrictSUIDSGID=$RESTRICT_SUID_SGID','$CAPABILITY_BOUNDING_SET_LINE','Invalid Linux service policy helper output'])expect(packagedInstaller.includes(marker),`packaged_installer_policy_marker_missing:${marker}`);
 expect(linuxWorkflow.includes('cp device-agent/linux-service-policy.mjs'), 'linux_package_policy_helper_missing');
 console.log('v09-linux-service-policy=PASS');
 console.log('v09-linux-web-sudo-toggle-no-reinstall=PASS');

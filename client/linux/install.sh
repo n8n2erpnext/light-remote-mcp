@@ -91,6 +91,9 @@ POLICY_HELPER="$ROOT/current/device-agent/linux-service-policy.mjs"
 NO_NEW_PRIVILEGES="$("$ROOT/current/runtime/node" "$POLICY_HELPER" "$STATE_FILE" noNewPrivileges)"
 RESTRICT_SUID_SGID="$("$ROOT/current/runtime/node" "$POLICY_HELPER" "$STATE_FILE" restrictSuidSgid)"
 CLEAR_CAPABILITY_BOUNDING_SET="$("$ROOT/current/runtime/node" "$POLICY_HELPER" "$STATE_FILE" clearCapabilityBoundingSet)"
+for value in "$NO_NEW_PRIVILEGES" "$RESTRICT_SUID_SGID" "$CLEAR_CAPABILITY_BOUNDING_SET"; do
+  [[ "$value" == "true" || "$value" == "false" ]] || { echo "Invalid Linux service policy helper output" >&2; exit 2; }
+done
 if [[ "$CLEAR_CAPABILITY_BOUNDING_SET" == "true" ]]; then
   CAPABILITY_BOUNDING_SET_LINE="CapabilityBoundingSet="
 else
