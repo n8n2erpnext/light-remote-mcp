@@ -8,6 +8,13 @@ internal static class UpdateApplier
     public static async Task<int> ApplyAsync(string installer, string installDir, string currentVersion, int parentPid)
     {
         AppPaths.EnsureDirectories();
+        var versionCore = currentVersion.Split('-', 2)[0];
+        if (!Path.IsPathFullyQualified(installer) || !Path.IsPathFullyQualified(installDir) ||
+            !Version.TryParse(versionCore, out _))
+        {
+            Log($"apply_invalid_args installer={installer} installDir={installDir} current={currentVersion}");
+            return 23;
+        }
         try
         {
             await WaitForParentAsync(parentPid);

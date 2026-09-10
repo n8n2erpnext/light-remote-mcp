@@ -154,13 +154,21 @@ jobs:
         shell: pwsh
         run: |
           $badInstaller = Join-Path $env:RUNNER_TEMP 'broken-update.exe'
-          Set-Content -LiteralPath $badInstaller -Value 'not an installer' -Encoding ascii
+          Copy-Item (Join-Path $env:SystemRoot 'System32\where.exe') $badInstaller -Force
           $helper = Join-Path $env:RUNNER_TEMP 'gpt-update-helper.exe'
           Copy-Item $env:WINDOWS_INSTALLED_EXE $helper -Force
           $updateLog = Join-Path $env:LOCALAPPDATA 'GPTOperatorAgent\logs\update.log'
           Remove-Item $updateLog -Force -ErrorAction SilentlyContinue
           Write-Host 'windows-native-update-rollback=start'
-          $p = Start-Process -FilePath $helper -ArgumentList @('--apply-update',$badInstaller,$env:WINDOWS_INSTALL_DIR,'0.9.0-dev','0') -PassThru
+          $psi = [System.Diagnostics.ProcessStartInfo]::new($helper)
+          $psi.UseShellExecute = $false
+          $psi.CreateNoWindow = $true
+          $psi.ArgumentList.Add('--apply-update')
+          $psi.ArgumentList.Add($badInstaller)
+          $psi.ArgumentList.Add($env:WINDOWS_INSTALL_DIR)
+          $psi.ArgumentList.Add('0.9.0-dev')
+          $psi.ArgumentList.Add('0')
+          $p = [System.Diagnostics.Process]::Start($psi)
           if (-not $p.WaitForExit(180000)) {
             Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
             if (Test-Path $updateLog) { Get-Content $updateLog -Raw | Write-Host }
@@ -168,7 +176,9 @@ jobs:
           }
           if (Test-Path $updateLog) { Get-Content $updateLog -Raw | Write-Host }
           if ($p.ExitCode -ne 0) { throw "rollback helper failed exit=$($p.ExitCode)" }
-          if (-not (Test-Path $updateLog) -or -not ((Get-Content $updateLog -Raw) -match 'rollback_success')) { throw 'rollback success marker missing' }
+          $updateText = Get-Content $updateLog -Raw
+          if ($updateText -notmatch 'apply_start current=0\.9\.0-dev') { throw 'rollback helper argv were not preserved' }
+          if ($updateText -notmatch 'rollback_success') { throw 'rollback success marker missing' }
           if (-not (Test-Path $env:WINDOWS_INSTALLED_EXE)) { throw 'installed client missing after rollback' }
           Write-Host 'windows-native-update-rollback=PASS'
 
