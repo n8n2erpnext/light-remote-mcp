@@ -6,6 +6,8 @@ const cfg=JSON.parse(fs.readFileSync(process.env.WALL_AUTH_FILE||'/home/ubuntu/.
 const password=fs.readFileSync(process.env.WALL_BOOTSTRAP_PASSWORD_FILE||'/home/ubuntu/.config/gpt-vps-operator/wall-bootstrap-password','utf8').trim();
 const nodeId=String(process.env.V09_POLICY_NODE||'dev_ffc2a5da8b9e0f75fd9f3508');
 const workspace=String(process.env.V09_POLICY_WORKSPACE||'C:\\Users\\Public');
+const wallBase=String(process.env.V09_POLICY_WALL_BASE||'http://100.94.184.141:5489').replace(/\/$/,'');
+let wallCookie='';
 const targetCapability=String(process.env.V09_POLICY_CAPABILITY||'package-manager');
 
 async function req(path,options={}){
@@ -43,16 +45,27 @@ async function exec(script,requiredCapabilities,expectOk=true){
   return job;
 }
 
-async function device(){
-  const r=await req(`/api/operator?action=device&id=${encodeURIComponent(nodeId)}`,{headers});
-  if(r.status!==200)throw new Error(`device_read:${r.status}`);
-  return r.json?.upstream?.device;
+async function wallReq(path,options={}){
+  const h={...(options.headers||{})}; if(wallCookie)h.cookie=wallCookie;
+  const r=await fetch(wallBase+path,{...options,headers:h,redirect:'manual'}),text=await r.text();
+  let json;try{json=JSON.parse(text)}catch{json={raw:text}}
+  return {status:r.status,json,headers:r.headers};
 }
-
+async function wallLogin(){
+  const body=new URLSearchParams({username:cfg.username,password}).toString();
+  const r=await wallReq('/auth/login',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body});
+  const setCookie=r.headers.get('set-cookie')||''; wallCookie=setCookie.split(';')[0];
+  if(r.status!==303||!wallCookie.includes('='))throw new Error(`wall_auth_failed:${r.status}`);
+}
+async function device(){
+  const r=await wallReq(`/api/devices/${encodeURIComponent(nodeId)}`);
+  if(r.status!==200)throw new Error(`device_read:${r.status}:${r.json?.error||''}`);
+  return r.json?.device;
+}
 async function setPolicy(policyProfile,approvedCapabilities){
-  const r=await post('device-policy',{deviceId:nodeId,policyProfile,approvedCapabilities});
-  if(r.status!==200)throw new Error(`policy_update:${r.status}:${r.json?.upstream?.error||r.json?.error}`);
-  return r.json?.upstream?.policy;
+  const r=await wallReq(`/api/devices/${encodeURIComponent(nodeId)}/policy`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({policyProfile,approvedCapabilities})});
+  if(r.status!==200)throw new Error(`policy_update:${r.status}:${r.json?.error||''}`);
+  return r.json?.policy;
 }
 async function readAgentStatus(){
   const script=`$root=Join-Path $env:LOCALAPPDATA 'Programs\\Light Remote MCP'; & (Join-Path $root 'runtime\\node.exe') (Join-Path $root 'agent\\device-agent\\operator-agent.mjs') status`;
@@ -73,6 +86,7 @@ async function waitAgentRevision(revision,capabilityExpected){
 }
 
 try{
+  await wallLogin();
   const d=await device();
   if(!d||d.state!=='online')throw new Error(`policy_target_not_online:${d?.state}`);
   if(!d.policy)throw new Error('policy_view_missing');
