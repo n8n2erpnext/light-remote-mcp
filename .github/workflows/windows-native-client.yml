@@ -103,7 +103,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path $out | Out-Null
           & $env:ISCC "/DStageDir=$stage" "/DOutputDir=$out" "/DAppVersion=0.9.0-dev" client/windows-native/installer/GptOperator.iss
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup build failed' }
-          $installer = Join-Path $out 'GPT-Operator-Setup-x64.exe'
+          $installer = Join-Path $out 'Light-Remote-MCP-Setup-x64.exe'
           if (-not (Test-Path $installer)) { throw 'installer missing' }
           "WINDOWS_INSTALLER=$installer" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
@@ -201,7 +201,7 @@ jobs:
         run: |
           $hash = (Get-FileHash $env:WINDOWS_INSTALLER -Algorithm SHA256).Hash.ToLowerInvariant()
           $sum = Join-Path (Split-Path $env:WINDOWS_INSTALLER -Parent) 'SHA256SUMS.txt'
-          "$hash  GPT-Operator-Setup-x64.exe" | Set-Content -LiteralPath $sum -Encoding ascii
+          "$hash  Light-Remote-MCP-Setup-x64.exe" | Set-Content -LiteralPath $sum -Encoding ascii
           Write-Host "windows-native-installer-sha256=$hash"
 
       - name: Upload native Windows installer
@@ -209,7 +209,7 @@ jobs:
         with:
           name: gpt-operator-native-windows-x64-${{ github.sha }}
           path: |
-            dist/windows/installer/GPT-Operator-Setup-x64.exe
+            dist/windows/installer/Light-Remote-MCP-Setup-x64.exe
             dist/windows/installer/SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 14

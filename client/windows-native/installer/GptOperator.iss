@@ -10,17 +10,17 @@
 
 [Setup]
 AppId={{A8D073F5-9792-4FA6-96A6-13C565F255F3}
-AppName=GPT Operator
+AppName=Light Remote MCP
 AppVersion={#AppVersion}
 AppPublisher=Thai Duy
-DefaultDirName={localappdata}\Programs\GPT Operator
-DefaultGroupName=GPT Operator
+DefaultDirName={localappdata}\Programs\Light Remote MCP
+DefaultGroupName=Light Remote MCP
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir={#OutputDir}
-OutputBaseFilename=GPT-Operator-Setup-x64
+OutputBaseFilename=Light-Remote-MCP-Setup-x64
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
@@ -32,19 +32,24 @@ AppMutex=Local\GPT_OPERATOR_CLIENT_V09
 Source: "{#StageDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Registry]
-Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "GPT Operator"; ValueData: """{app}\GptOperator.Client.exe"" --background"; Flags: uninsdeletevalue
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "Light Remote MCP"; ValueData: """{app}\GptOperator.Client.exe"" --background"; Flags: uninsdeletevalue
 
 [Icons]
-Name: "{group}\GPT Operator"; Filename: "{app}\GptOperator.Client.exe"
-Name: "{userdesktop}\GPT Operator"; Filename: "{app}\GptOperator.Client.exe"; Tasks: desktopicon
+Name: "{group}\Light Remote MCP"; Filename: "{app}\GptOperator.Client.exe"
+Name: "{userdesktop}\Light Remote MCP"; Filename: "{app}\GptOperator.Client.exe"; Tasks: desktopicon
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional icons:"; Flags: unchecked
 
 [Run]
-Filename: "{app}\GptOperator.Client.exe"; Description: "Start GPT Operator"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\GptOperator.Client.exe"; Description: "Start Light Remote MCP"; Flags: nowait postinstall skipifsilent
 
 [Code]
+procedure RemoveLegacyAutostart();
+begin
+  RegDeleteValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Run', 'GPT Operator');
+end;
+
 procedure StopAndRemoveLegacyTask();
 var
   ResultCode: Integer;
@@ -67,6 +72,7 @@ end;
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 begin
   StopAndRemoveLegacyTask();
+  RemoveLegacyAutostart();
   Result := '';
 end;
 
