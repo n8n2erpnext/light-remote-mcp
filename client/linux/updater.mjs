@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
 const ROOT=process.env.GPT_OPERATOR_INSTALL_ROOT||'/opt/gpt-operator-agent';
 const CURRENT=path.join(ROOT,'current');
@@ -15,8 +16,10 @@ const LOCK=path.join(ROOT,'.update.lock');
 
 function fail(message){throw new Error(message);}
 function platformKey(){if(process.platform!=='linux')fail('linux_only');if(process.arch==='x64')return'linux-x64';if(process.arch==='arm64')return'linux-arm64';fail(`unsupported_arch:${process.arch}`);}
-function parseVersion(value){const m=String(value||'').replace(/^v/,'').match(/^(\d+)\.(\d+)\.(\d+)$/);if(!m)return null;return m.slice(1).map(Number);}
-function newer(a,b){const aa=parseVersion(a),bb=parseVersion(b);if(!aa||!bb)return false;for(let i=0;i<3;i++){if(aa[i]>bb[i])return true;if(aa[i]<bb[i])return false;}return false;}
+export function parseVersion(value){const m=String(value||'').replace(/^v/,'').match(/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z.-]+)?$/);if(!m)return null;return{core:m.slice(1,4).map(Number),pre:m[4]?m[4].split('.'):[]};}
+function comparePre(a,b){if(!a.length&&!b.length)return 0;if(!a.length)return 1;if(!b.length)return-1;for(let i=0;i<Math.max(a.length,b.length);i++){if(i>=a.length)return-1;if(i>=b.length)return 1;const ai=a[i],bi=b[i],an=/^\d+$/.test(ai),bn=/^\d+$/.test(bi);if(an&&bn){const d=Number(ai)-Number(bi);if(d)return d>0?1:-1;continue;}if(an!==bn)return an?-1:1;if(ai!==bi)return ai>bi?1:-1;}return 0;}
+export function compareVersion(a,b){const aa=parseVersion(a),bb=parseVersion(b);if(!aa||!bb)return null;for(let i=0;i<3;i++){if(aa.core[i]>bb.core[i])return 1;if(aa.core[i]<bb.core[i])return-1;}return comparePre(aa.pre,bb.pre);}
+export function newer(a,b){return compareVersion(a,b)>0;}
 function run(file,args,{allowFailure=false}={}){const r=spawnSync(file,args,{encoding:'utf8'});if(!allowFailure&&r.status!==0)fail(`${file}_failed:${r.status}:${String(r.stderr||r.stdout).trim()}`);return r;}
 async function download(url){const r=await fetch(url,{signal:AbortSignal.timeout(30000)});if(r.status===404)return null;if(!r.ok)fail(`download_${r.status}:${url}`);return Buffer.from(await r.arrayBuffer());}
 function verifyManifest(bytes,signatureText){const key=fs.readFileSync(PUBLIC_KEY,'utf8');let signature;try{signature=Buffer.from(String(signatureText||'').trim(),'base64');}catch{fail('invalid_manifest_signature_encoding');}const ok=crypto.verify('sha256',bytes,key,signature);if(!ok)fail('invalid_manifest_signature');}
@@ -63,4 +66,4 @@ async function main(){
   } finally {try{if(lockFd!=null)fs.closeSync(lockFd);}catch{}try{fs.rmSync(LOCK,{force:true});}catch{}}
 }
 
-main().catch(error=>{console.error(`update_failed:${error.message}`);process.exitCode=1;});
+if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url))main().catch(error=>{console.error(`update_failed:${error.message}`);process.exitCode=1;});
