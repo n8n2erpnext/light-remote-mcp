@@ -21,6 +21,8 @@ const structured={action:'exec',payload:{operationId:'transport-op-aaaaaaaa',scr
 if(payloadFor({method:'POST',body:structured})!==structured.payload) throw new Error('structured_body_not_preserved');
 const normalized=normalizeExecPayload(structured.payload);
 if(normalized.script.length!==100000||normalized.operationId!==structured.payload.operationId) throw new Error('structured_exec_changed');
+if(normalized.cwd!==undefined) throw new Error('omitted_cwd_must_stay_undefined');
+if(normalizeExecPayload({...structured.payload,cwd:'C:\\work'}).cwd!=='C:\\work') throw new Error('explicit_windows_cwd_changed');
 const tooLarge={...structured.payload,script:'x'.repeat(1024*1024+1)};
 expectError(()=>normalizeExecPayload(tooLarge),'script_too_large',413);
 const opened=normalizeSessionOpenPayload({...sample,leaseMs:600000,leasePreset:'custom'});

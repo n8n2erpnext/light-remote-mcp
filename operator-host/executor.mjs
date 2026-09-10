@@ -225,8 +225,8 @@ function startJob(payload, requestId) {
   const session = sessions.ensure(requestedSessionId, { agentId });
   if (payload.nodeId != null && String(payload.nodeId) !== session.nodeId) throw new SessionError('session_target_mismatch',409);
   const remote=session.nodeId!==NODE_ID;
-  let cwd=String(payload.cwd || '/home/ubuntu');
-  if (!cwd || cwd.length>1024 || cwd.includes('\0')) throw new Error('invalid_cwd');
+  let cwd=payload.cwd==null||String(payload.cwd)==='' ? (remote?'':'/home/ubuntu') : String(payload.cwd);
+  if (cwd.length>1024 || cwd.includes('\0') || (!remote && !cwd)) throw new Error('invalid_cwd');
   if (!remote) {
     cwd=path.resolve(cwd);
     const stat = fs.statSync(cwd);

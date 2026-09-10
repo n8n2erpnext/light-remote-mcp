@@ -40,12 +40,12 @@ const capacity=await request('POST','/v1/sessions/open',{agentId:agent2,openId:'
 if(capacity.status!==429||capacity.json.error!=='node_session_capacity_reached')throw new Error(`node_capacity_guard_failed:${capacity.status}:${capacity.json.error}`);
 const conflict=await request('POST','/v1/sessions/open',{agentId:agent1,openId:'open-v08-fleet-conflict12',label:'arm-conflict',workspace:'/tmp',nodeId:'arm'});
 if(conflict.status!==409||conflict.json.error!=='agent_session_target_conflict')throw new Error(`target_conflict_guard_failed:${conflict.status}:${conflict.json.error}`);
-const envelope=cryptoFixture.seal({action:'exec_batch',operationId:'operation-v08-fleet-aaaaaaaa',cwd:'/tmp',script:"printf 'leaf-ok\\n'",sessionId,agentId:agent1,nodeId,requiredCapabilities:['filesystem'],waitMs:0,timeoutMs:10000,note:'fleet integration'});
+const envelope=cryptoFixture.seal({action:'exec_batch',operationId:'operation-v08-fleet-aaaaaaaa',script:"printf 'leaf-ok\\n'",sessionId,agentId:agent1,nodeId,requiredCapabilities:['filesystem'],waitMs:0,timeoutMs:10000,note:'fleet integration'});
 const started=await request('POST','/v1/execute',envelope);
 if(started.status!==200||started.json.job?.route!=='outbound-leaf'||started.json.job?.status!=='running'||!started.json.job?.commandId)throw new Error(`remote_start_failed:${started.status}:${started.json.error}`);
 const jobId=started.json.job.jobId,commandId=started.json.job.commandId;
 const dispatched=await request('POST','/v1/device-channel/poll',signed('poll',hello));
-if(dispatched.status!==200||dispatched.json.channel?.state!=='command'||dispatched.json.channel?.command?.commandId!==commandId||dispatched.json.channel?.command?.payload?.script!=="printf 'leaf-ok\\n'")throw new Error('remote_dispatch_failed');
+if(dispatched.status!==200||dispatched.json.channel?.state!=='command'||dispatched.json.channel?.command?.commandId!==commandId||dispatched.json.channel?.command?.payload?.script!=="printf 'leaf-ok\\n'"||dispatched.json.channel?.command?.payload?.cwd!=='')throw new Error('remote_dispatch_failed');
 const result={commandId,status:'ok',exitCode:0,stdout:'leaf-ok\n',stderr:'',durationMs:5};
 const accepted=await request('POST','/v1/device-channel/result',signed('result',result));
 if(accepted.status!==200||accepted.json.duplicate!==false||accepted.json.job?.status!=='ok')throw new Error(`remote_result_failed:${accepted.status}:${accepted.json.error}`);

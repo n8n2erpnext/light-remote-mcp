@@ -9,8 +9,9 @@ if [[ ! -f "$STATE_FILE" ]]; then
   echo "Device is not enrolled yet. Run operator-agent login first." >&2
   exit 2
 fi
-sudo install -d -m 0755 /opt/gpt-operator-agent/device-agent /opt/gpt-operator-agent/lib
+sudo install -d -m 0755 /opt/gpt-operator-agent/device-agent /opt/gpt-operator-agent/device-agent/platform-adapters /opt/gpt-operator-agent/lib
 sudo install -m 0755 "$ROOT_DIR/device-agent/operator-agent.mjs" /opt/gpt-operator-agent/device-agent/operator-agent.mjs
+sudo install -m 0644 "$ROOT_DIR"/device-agent/platform-adapters/*.mjs /opt/gpt-operator-agent/device-agent/platform-adapters/
 sudo install -m 0644 "$ROOT_DIR/lib/device-proof.mjs" /opt/gpt-operator-agent/lib/device-proof.mjs
 unit="$(mktemp)"
 trap 'rm -f "$unit"' EXIT
