@@ -16,6 +16,7 @@
 The client connects **outbound** to a governed hub. AI tools do not need inbound SSH access to the target machine, and an enrolled node is addressed explicitly instead of being discovered through a broad network tunnel.
 
 The project began as `gpt-vps-bridge`; the repository name is retained temporarily while the product is being consolidated under the **Light Remote MCP** name.
+
 ## Why Light Remote MCP
 
 - **No inbound SSH requirement.** Enrolled devices maintain a signed outbound channel to the hub.
@@ -44,6 +45,7 @@ ARM Hub  ---- audit / session / routing
         +---- Windows outbound leaf
         +---- Linux outbound leaf(s)
 ```
+
 The current production-test route is:
 
 ```text
@@ -71,6 +73,7 @@ See [`FLEET_ROUTING_V0_8.md`](FLEET_ROUTING_V0_8.md), [`PLATFORM_ADAPTERS_V0_9.m
 ### Windows
 
 The Windows client is designed to behave like a normal desktop application: install once, enroll once, then leave it running in the system tray. No PowerShell session needs to remain open.
+
 Current Windows behavior includes:
 
 - native dark tray UI under the **Light Remote MCP** brand;
@@ -97,6 +100,7 @@ install script
 ```
 
 A separate updater timer verifies the signed manifest and artifact hash, switches the versioned `current` target, restarts the agent, and rolls back when the new service does not become healthy.
+
 ## Enrollment and trust
 
 A new device creates its private identity locally, then starts a short-lived owner approval flow.
@@ -150,6 +154,7 @@ Live acceptance has already covered:
 - PowerShell, filesystem, Git/build, process/network, Services read, Event Log, and package-manager execution on Windows;
 - Linux platform capability inference including governed `sudo-on-demand`;
 - exact Wall/audit node attribution and cleanup back to zero active sessions.
+
 ## Getting the client
 
 There is no stable `v1.0` release yet. Current Windows and Linux packages are engineering candidates produced by GitHub Actions from the active acceptance branches.
@@ -177,6 +182,7 @@ PLATFORM_ADAPTERS_V0_9.md
 - Windows/.NET 8 SDK only when building the native Windows shell locally
 
 The repository intentionally keeps most acceptance checks as standalone scripts under `deploy/scripts/` so the same contracts can run on CI and on the reference ARM/AMD hosts.
+
 ### Validate
 
 Run the standalone regression suite from the repository root:
@@ -203,6 +209,7 @@ GitHub Actions provides the native packaging gates:
 The Windows workflow performs a real install/self-test/rollback/uninstall roundtrip on a Windows runner rather than stopping at compilation.
 
 ## Repository map
+
 ```text
 api/                         Vercel-facing API routes and guide metadata
 gateway/                     ARM Hub / MCP gateway runtime
@@ -232,6 +239,7 @@ For recovery and architecture context, start with:
 - [`FLEET_ROUTING_V0_8.md`](FLEET_ROUTING_V0_8.md)
 - [`PLATFORM_ADAPTERS_V0_9.md`](PLATFORM_ADAPTERS_V0_9.md)
 - [`PRODUCT_PLATFORM_PLAN_V0_6_TO_PUBLIC_PLUGIN.md`](PRODUCT_PLATFORM_PLAN_V0_6_TO_PUBLIC_PLUGIN.md)
+
 ## Roadmap
 
 Near-term priorities are intentionally narrow:
@@ -253,6 +261,7 @@ Light Remote MCP is part of the broader [`n8n2erpnext`](https://github.com/n8n2e
 It is intentionally independent from [LightBI](https://github.com/n8n2erpnext/lightbi), but the products share a similar posture: local/self-hosted execution where it improves control, explicit trust boundaries, auditable behavior, upgradeability, and fail-closed handling when evidence or authorization is weak.
 
 Light Remote MCP can serve as an infrastructure bridge for AI-assisted operations across a user's own machines; LightBI remains focused on governed business analysis and evidence-bound data workflows.
+
 ## Third-party notices
 
 The Windows client uses UI/layout patterns derived from the NetBird desktop client. NetBird's applicable client code is distributed under the BSD 3-Clause license; the required notice is bundled with the Windows client in `THIRD_PARTY_NOTICES.txt`.
