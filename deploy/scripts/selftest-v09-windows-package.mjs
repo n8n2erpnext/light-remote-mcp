@@ -3,6 +3,7 @@ import fs from 'node:fs';
 const workflow=fs.readFileSync(new URL('../../.github/workflows/windows-agent-dev-build.yml',import.meta.url),'utf8');
 const installer=fs.readFileSync(new URL('../../device-agent/install-windows-service.ps1',import.meta.url),'utf8');
 const setup=fs.readFileSync(new URL('../../device-agent/setup-windows-dev.ps1',import.meta.url),'utf8');
+const rights=fs.readFileSync(new URL('../../device-agent/windows-service-rights.ps1',import.meta.url),'utf8');
 
 function expect(condition,message){if(!condition)throw new Error(message);}
 expect(/runs-on:\s*windows-latest/.test(workflow),'windows_runner_missing');
@@ -17,6 +18,14 @@ expect(!/LocalSystem/i.test(installer),'localsystem_must_not_be_used');
 expect(!/<password>/i.test(installer),'service_password_must_not_be_written_to_xml');
 expect(installer.includes('USERPROFILE'),'service_userprofile_missing');
 expect(installer.includes('icacls.exe'),'state_acl_hardening_missing');
+expect(installer.includes('Grant-GptServiceLogonRight'),'service_logon_right_grant_missing');
+expect(installer.includes('Get-GptServiceStartDiagnostic'),'service_start_diagnostic_missing');
+expect(rights.includes('SeServiceLogonRight'),'service_logon_right_constant_missing');
+expect(rights.includes('LsaAddAccountRights'),'lsa_add_account_rights_missing');
+expect(!rights.includes('SeDenyServiceLogonRight'),'deny_service_logon_must_not_be_modified');
+expect(workflow.includes('windows-service-rights.ps1'),'rights_helper_not_packaged');
+expect(workflow.includes('windows-service-logon-right=PASS'),'rights_helper_windows_ci_missing');
+expect(workflow.includes('windows-bundled-node-smoke=PASS'),'bundled_node_smoke_missing');
 expect(setup.includes('Start-Process $url'),'approval_browser_open_missing');
 expect(setup.includes("Get-Service -Name 'GPTOperatorDeviceAgent'"),'setup_service_health_missing');
 console.log('v09-windows-package-contract=PASS');

@@ -6,6 +6,9 @@ param(
 $ErrorActionPreference = 'Stop'
 if ($env:OS -ne 'Windows_NT') { throw 'This installer must run on Windows.' }
 $RootDir = Split-Path -Parent $PSScriptRoot
+$RightsHelper = Join-Path $PSScriptRoot 'windows-service-rights.ps1'
+if (-not (Test-Path $RightsHelper)) { throw "Windows service-rights helper missing: $RightsHelper" }
+. $RightsHelper
 $StateFile = Join-Path $env:USERPROFILE '.config\gpt-operator-agent\device.json'
 if (-not (Test-Path $StateFile)) { throw 'Device is not enrolled yet. Run operator-agent login first.' }
 if (-not (Test-Path $WinSWPath)) { throw "WinSW wrapper not found: $WinSWPath" }
@@ -15,6 +18,8 @@ if (-not $ServiceCredential) {
 }
 $credentialLeaf = (($ServiceCredential.UserName -split '\\')[-1] -split '@')[0]
 if ($credentialLeaf -ne $env:USERNAME) { throw 'Service credential must be the enrolled device owner for this developer install.' }
+$serviceAccountSid = Grant-GptServiceLogonRight -AccountName $ServiceCredential.UserName
+Write-Host "Granted SeServiceLogonRight to $($ServiceCredential.UserName) ($serviceAccountSid)"
 $BundledNode = Join-Path $RootDir 'runtime\node.exe'
 $NodeSource = if (Test-Path $BundledNode) { $BundledNode } else { (Get-Command node.exe -ErrorAction Stop).Source }
 $AppDir = Join-Path $env:LOCALAPPDATA 'GPTOperatorAgent'
@@ -67,7 +72,11 @@ New-Service -Name $ServiceName -BinaryPathName $binary -DisplayName 'GPT Operato
 try {
   Start-Service -Name $ServiceName
 } catch {
-  throw "Service was installed but did not start. Verify that $($ServiceCredential.UserName) has 'Log on as a service' and that WinSW matches this architecture. $($_.Exception.Message)"
+  $startError = $_.Exception.Message
+  $diagnostic = Get-GptServiceStartDiagnostic -ServiceName $ServiceName -AppDir $AppDir
+  Write-Host '--- Windows service start diagnostic ---' -ForegroundColor Yellow
+  Write-Host ($diagnostic | ConvertTo-Json -Depth 6)
+  throw "Service was installed but did not start after SeServiceLogonRight was granted. $startError"
 }
 $service = Get-Service -Name $ServiceName
 $StateDir = Split-Path -Parent $StateFile

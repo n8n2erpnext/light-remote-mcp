@@ -46,7 +46,8 @@ jobs:
         run: |
           $files = @(
             'device-agent/setup-windows-dev.ps1',
-            'device-agent/install-windows-service.ps1'
+            'device-agent/install-windows-service.ps1',
+            'device-agent/windows-service-rights.ps1'
           )
           foreach ($file in $files) {
             $tokens = $null
@@ -55,6 +56,11 @@ jobs:
             if ($errors.Count) { $errors | Format-List | Out-String | Write-Error; throw "PowerShell parse failed: $file" }
           }
           Write-Host 'windows-powershell-parse=PASS'
+          . ./device-agent/windows-service-rights.ps1
+          $account = if ($env:USERDOMAIN) { "$env:USERDOMAIN\$env:USERNAME" } else { $env:USERNAME }
+          $sid = Grant-GptServiceLogonRight -AccountName $account
+          if (-not $sid.StartsWith('S-1-')) { throw "Service logon right SID invalid: $sid" }
+          Write-Host "windows-service-logon-right=PASS sid=$sid"
 
       - name: Fetch pinned WinSW
         shell: pwsh
@@ -80,6 +86,7 @@ jobs:
           Copy-Item device-agent/operator-agent.mjs $agentDir
           Copy-Item device-agent/setup-windows-dev.ps1 $agentDir
           Copy-Item device-agent/install-windows-service.ps1 $agentDir
+          Copy-Item device-agent/windows-service-rights.ps1 $agentDir
           Copy-Item device-agent/platform-adapters/index.mjs $adapterDir
           Copy-Item device-agent/platform-adapters/shared.mjs $adapterDir
           Copy-Item device-agent/platform-adapters/linux.mjs $adapterDir
@@ -88,6 +95,11 @@ jobs:
           Copy-Item $env:WINSW_PATH (Join-Path $agentDir 'winsw.exe')
           $nodePath = (Get-Command node.exe -ErrorAction Stop).Source
           Copy-Item $nodePath (Join-Path $runtimeDir 'node.exe')
+          $bundledNode = Join-Path $runtimeDir 'node.exe'
+          $env:OPERATOR_AGENT_STATE = Join-Path $env:RUNNER_TEMP 'bundle-empty-device.json'
+          $bundleStatus = (& $bundledNode (Join-Path $agentDir 'operator-agent.mjs') status | Out-String) | ConvertFrom-Json
+          if ($bundleStatus.platformAdapter -ne 'win32') { throw "Bundled Node/agent smoke failed: $($bundleStatus.platformAdapter)" }
+          Write-Host 'windows-bundled-node-smoke=PASS'
           $nodeLicense = Join-Path (Split-Path $nodePath -Parent) 'LICENSE'
           if (Test-Path $nodeLicense) { Copy-Item $nodeLicense (Join-Path $runtimeDir 'NODE-LICENSE.txt') }
           Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/winsw/winsw/v2.12.0/LICENSE.txt' -OutFile (Join-Path $agentDir 'WINSW-LICENSE.txt')
