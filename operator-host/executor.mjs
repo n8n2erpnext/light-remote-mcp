@@ -47,7 +47,7 @@ const FLEET_MAX_QUEUED_PER_NODE = Number(process.env.OPERATOR_FLEET_MAX_QUEUED_P
 if (!Number.isFinite(DEVICE_PRESENCE_TTL_MS) || DEVICE_PRESENCE_TTL_MS < 10_000) throw new Error('invalid_device_presence_ttl');
 if (!Number.isFinite(DEVICE_HEARTBEAT_MS) || DEVICE_HEARTBEAT_MS < 5_000 || DEVICE_HEARTBEAT_MS >= DEVICE_PRESENCE_TTL_MS) throw new Error('invalid_device_heartbeat');
 const HOST_CAPABILITIES = ['filesystem', 'git', 'build-test', 'docker', 'lxd', 'systemctl', 'sudo-on-demand'];
-const VERSION = '0.8.0-dev';
+const VERSION = '0.9.0-dev';
 
 const jobs = new Map();
 const operationDedupe = new Map();
@@ -415,7 +415,11 @@ function routingViewForDevice(device) {
   try { return { mode:'outbound-leaf', ...fleet.view(device.nodeId) }; }
   catch { return { mode:'outbound-leaf', state:'offline', draining:false, sessionCeiling:null, queuedCommands:0, inFlightCommands:0, channelTtlMs:FLEET_CHANNEL_TTL_MS }; }
 }
-function deviceView(device) { return { ...device, routing:routingViewForDevice(device) }; }
+function policyViewForDevice(device) {
+  if (device.nodeId===NODE_ID) return null;
+  try { return enrollments.policyView(device.deviceId); } catch { return null; }
+}
+function deviceView(device) { return { ...device, routing:routingViewForDevice(device), policy:policyViewForDevice(device) }; }
 function allDeviceViews() { return devices.list({ activeSessionsForNode:nodeId => sessions.activeCountByNode(nodeId) }).map(deviceView); }
 function targetRoute(requestedNodeId) {
   const nodeId=String(requestedNodeId || NODE_ID).trim();
@@ -425,7 +429,8 @@ function targetRoute(requestedNodeId) {
   if (device.accountId!==ACCOUNT_ID) throw new DeviceError('target_node_account_mismatch',403);
   if (device.state!=='online') throw new DeviceError('target_node_offline',409);
   const route=fleet.assertRoutable(nodeId,{accountId:ACCOUNT_ID,deviceId:device.deviceId});
-  return { ...route, mode:'outbound-leaf' };
+  const binding=enrollments.binding(device.deviceId), allowed=new Set(binding.approvedCapabilities||[]);
+  return { ...route, capabilities:(route.capabilities||[]).filter(cap=>allowed.has(cap)), mode:'outbound-leaf' };
 }
 function verifiedChannelContext(body, action) {
   const payload=body?.payload;
@@ -436,16 +441,19 @@ function verifiedChannelContext(body, action) {
   if (device.accountId!==ACCOUNT_ID || device.publicIdentityKey!==binding.publicIdentityKey) throw new EnrollmentError('device_binding_mismatch',403);
   return {payload,proof,binding,device};
 }
-function verifiedLeafCapabilities(value,binding) {
-  const out=[];
+function verifiedLeafCapabilities(value,binding,reportedRevision=0) {
+  const reported=[];
   for (const raw of Array.isArray(value)?value:[]) {
     const item=String(raw||'').trim();
     if (!/^[A-Za-z0-9._:-]{1,80}$/.test(item)) throw new EnrollmentError('invalid_device_capability');
-    if (!binding.approvedCapabilities.includes(item)) throw new EnrollmentError('device_capability_escalation',403);
-    if (!out.includes(item)) out.push(item);
+    if (!reported.includes(item)) reported.push(item);
   }
+  const currentRevision=Math.max(1,Number(binding.policyRevision)||1), stale=currentRevision>1 && Number(reportedRevision||0)<currentRevision;
+  const extras=reported.filter(item=>!binding.approvedCapabilities.includes(item));
+  if (extras.length && !stale) throw new EnrollmentError('device_capability_escalation',403);
+  const out=reported.filter(item=>binding.approvedCapabilities.includes(item)).sort();
   if (!out.length) throw new EnrollmentError('device_capabilities_required');
-  return out.sort();
+  return out;
 }
 
 const server = http.createServer(async (req, res) => {
@@ -482,11 +490,13 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/poll') {
       const body=await readJson(req), ctx=verifiedChannelContext(body,'poll');
       if (ctx.payload.nodeId!=null && String(ctx.payload.nodeId)!==ctx.device.nodeId) throw new EnrollmentError('device_node_mismatch',409);
-      const capabilities=verifiedLeafCapabilities(ctx.payload.capabilities,ctx.binding);
+      const reportedRevision=Math.max(0,Number(ctx.payload.policyRevision)||0);
+      const capabilities=verifiedLeafCapabilities(ctx.payload.capabilities,ctx.binding,reportedRevision);
       devices.heartbeat(ctx.device.deviceId,{capabilities});
       const waitMs=Math.max(0,Math.min(Number(ctx.payload.waitMs)||8000,15000));
       const channel=await fleet.waitPoll({accountId:ACCOUNT_ID,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,sessionCeiling:ctx.payload.sessionCeiling,draining:Boolean(ctx.payload.draining),capabilities},waitMs);
-      return sendJson(res,200,{ok:true,channel});
+      const policy=reportedRevision===Math.max(1,Number(ctx.binding.policyRevision)||1)?null:enrollments.policyEnvelope(ctx.device.deviceId);
+      return sendJson(res,200,{ok:true,channel,policy});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/result') {
       const body=await readJson(req), ctx=verifiedChannelContext(body,'result'), result=ctx.payload;
@@ -531,14 +541,25 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && deviceMatch) {
       return sendJson(res, 200, { ok:true, device:deviceView(devices.get(deviceMatch[1], { activeSessionsForNode:nodeId => sessions.activeCountByNode(nodeId) })) });
     }
+    const policyMatch = url.pathname.match(/^\/v1\/devices\/([A-Za-z0-9._:-]+)\/policy$/);
+    if (req.method === 'POST' && policyMatch) {
+      const body=await readJson(req);
+      if (String(body.deviceId || policyMatch[1]) !== policyMatch[1]) throw new EnrollmentError('device_id_mismatch',409);
+      const policy=enrollments.updatePolicy({deviceId:policyMatch[1],accountId:body.accountId,approvedCapabilities:body.approvedCapabilities,policyProfile:body.policyProfile});
+      const device=devices.get(policyMatch[1],{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
+      if(device.nodeId!==NODE_ID){try{fleet.wake(device.nodeId);}catch{}}
+      pushEvent({type:'device_policy_updated',accountId:policy.accountId,deviceId:policy.deviceId,nodeId:device.nodeId,status:'updated',policyProfile:policy.policyProfile,policyRevision:policy.policyRevision,capabilities:policy.approvedCapabilities});
+      return sendJson(res,200,{ok:true,policy,device:deviceView(device)});
+    }
     const heartbeatMatch = url.pathname.match(/^\/v1\/devices\/([A-Za-z0-9._:-]+)\/heartbeat$/);
     if (req.method === 'POST' && heartbeatMatch) {
       const body = await readJson(req);
       if (String(body.deviceId || '') !== heartbeatMatch[1]) throw new EnrollmentError('device_id_mismatch', 409);
       const proof = enrollments.verifyHeartbeat(body);
       const device = devices.heartbeat(heartbeatMatch[1], { capabilities:proof.effectiveCapabilities });
+      const currentRevision=Math.max(1,Number(proof.binding.policyRevision)||1), policy=proof.reportedPolicyRevision===currentRevision?null:enrollments.policyEnvelope(device.deviceId);
       pushEvent({ type:'device_heartbeat_verified', accountId:device.accountId, deviceId:device.deviceId, nodeId:device.nodeId, status:'online', capabilities:proof.effectiveCapabilities });
-      return sendJson(res, 200, { ok:true, device });
+      return sendJson(res, 200, { ok:true, device, policy });
     }
     const revokeMatch = url.pathname.match(/^\/v1\/devices\/([A-Za-z0-9._:-]+)\/revoke$/);
     if (req.method === 'POST' && revokeMatch) {

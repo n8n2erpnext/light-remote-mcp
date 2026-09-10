@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { recordActivity, recentActivity, attachActivitySse } from './activity.mjs';
 import { dashboardHtml } from './dashboard.mjs';
 import { enrollmentApprovalHtml } from './enrollment-page.mjs';
+import { devicePolicyHtml } from './device-policy-page.mjs';
 import { createWallAuth } from './wall-auth.mjs';
 import { authenticateVercel, isToolCall, requireVercelForToolCall, securityInfo } from './security.mjs';
 import { proxyOperatorJson, proxyOperatorSse } from './operator-proxy.mjs';
@@ -15,7 +16,7 @@ import { rootNames, listWorkspace, readWorkspaceText, searchWorkspace, gitStatus
 const PORT = Number(process.env.PORT || 8080);
 const WALL_PORT = Number(process.env.WALL_PORT || 8081);
 const OPERATOR_ACCOUNT_ID = String(process.env.OPERATOR_ACCOUNT_ID || 'self-hosted-local');
-const VERSION = '0.7.0-dev';
+const VERSION = '0.9.0-dev';
 const RootSchema = z.enum(['n8n2erpnext', 'services', 'thaiduy', 'frappe']);
 
 function textResult(value) {
@@ -185,6 +186,7 @@ app.get('/operator/devices', softRateLimit, requireOperatorIdentity, (_req, res)
 app.get('/operator/fleet', softRateLimit, requireOperatorIdentity, (_req, res) => proxyOperatorJson(res, 'GET', '/v1/fleet'));
 app.post('/operator/fleet/:id/drain', softRateLimit, requireOperatorIdentity, (req, res) => proxyOperatorJson(res, 'POST', `/v1/fleet/${encodeURIComponent(req.params.id)}/drain`, req.body || {}));
 app.get('/operator/devices/:id', softRateLimit, requireOperatorIdentity, (req, res) => proxyOperatorJson(res, 'GET', `/v1/devices/${encodeURIComponent(req.params.id)}`));
+app.post('/operator/devices/:id/policy', softRateLimit, requireOperatorIdentity, (req, res) => proxyOperatorJson(res, 'POST', `/v1/devices/${encodeURIComponent(req.params.id)}/policy`, { ...(req.body || {}), deviceId:req.params.id, accountId:OPERATOR_ACCOUNT_ID }));
 app.post('/operator/devices/:id/revoke', softRateLimit, requireOperatorIdentity, (req, res) => proxyOperatorJson(res, 'POST', `/v1/devices/${encodeURIComponent(req.params.id)}/revoke`, { deviceId:req.params.id, accountId:OPERATOR_ACCOUNT_ID, reason:String(req.body?.reason || 'owner_revoked').slice(0,120) }));
 app.post('/operator/sessions/open', softRateLimit, requireOperatorIdentity, (req, res) => proxyOperatorJson(res, 'POST', '/v1/sessions/open', req.body));
 app.post('/operator/sessions/:id/touch', softRateLimit, requireOperatorIdentity, (req, res) => proxyOperatorJson(res, 'POST', `/v1/sessions/${encodeURIComponent(req.params.id)}/touch`, req.body || {}));
@@ -239,11 +241,18 @@ wallApp.get('/enroll', wallAuth.requirePage, (req, res) => {
   res.set('Content-Security-Policy', "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
   res.type('html').send(enrollmentApprovalHtml(enrollmentId));
 });
+wallApp.get('/device-policy', wallAuth.requirePage, (req, res) => {
+  const deviceId=String(req.query.id||'').replace(/[^A-Za-z0-9._:-]/g,'').slice(0,128);
+  res.set('Content-Security-Policy', "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
+  res.type('html').send(devicePolicyHtml(deviceId));
+});
 wallApp.get('/', wallAuth.requirePage, (_req, res) => {
   res.set('Content-Security-Policy', "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; img-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
   res.type('html').send(dashboardHtml());
 });
 wallApp.get('/api/devices', wallAuth.requireApi, (_req, res) => proxyOperatorJson(res, 'GET', '/v1/devices'));
+wallApp.get('/api/devices/:id', wallAuth.requireApi, (req, res) => proxyOperatorJson(res, 'GET', `/v1/devices/${encodeURIComponent(req.params.id)}`));
+wallApp.post('/api/devices/:id/policy', wallAuth.requireApi, (req, res) => proxyOperatorJson(res, 'POST', `/v1/devices/${encodeURIComponent(req.params.id)}/policy`, { ...(req.body || {}), deviceId:req.params.id, accountId:OPERATOR_ACCOUNT_ID }));
 wallApp.get('/api/enrollments', wallAuth.requireApi, (_req, res) => proxyOperatorJson(res, 'GET', '/v1/enrollments'));
 wallApp.post('/api/enrollments/approve', wallAuth.requireApi, (req, res) => proxyOperatorJson(res, 'POST', '/v1/enrollments/approve', { ...(req.body || {}), accountId:OPERATOR_ACCOUNT_ID }));
 wallApp.get('/api/sessions', wallAuth.requireApi, (_req, res) => proxyOperatorJson(res, 'GET', '/v1/sessions'));

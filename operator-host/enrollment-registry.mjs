@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { deviceChannelMessage, deviceHeartbeatMessage, normalizeDeviceCapabilities } from './device-proof.mjs';
+import { deviceChannelMessage, deviceHeartbeatMessage, devicePolicyMessage, normalizeDeviceCapabilities } from './device-proof.mjs';
 
 export class EnrollmentError extends Error {
   constructor(message, status = 400) { super(message); this.status = status; }
@@ -106,7 +106,13 @@ export class EnrollmentRegistry {
       const data = JSON.parse(fs.readFileSync(this.stateFile,'utf8'));
       if (data?.schemaVersion !== 1 || !Array.isArray(data.pending) || !Array.isArray(data.bindings)) throw new Error('invalid_schema');
       for (const row of data.pending) if (row?.enrollmentId) this.pending.set(row.enrollmentId,row);
-      for (const row of data.bindings) if (row?.deviceId) this.bindings.set(row.deviceId,row);
+      for (const row of data.bindings) if (row?.deviceId) {
+        row.grantableCapabilities = cleanCapabilities(row.grantableCapabilities || row.requestedCapabilities || row.approvedCapabilities || []);
+        row.approvedCapabilities = cleanCapabilities(row.approvedCapabilities || []);
+        row.policyRevision = Math.max(1, Number(row.policyRevision) || 1);
+        row.policyUpdatedAt = Number(row.policyUpdatedAt) || Number(row.issuedAt) || Date.now();
+        this.bindings.set(row.deviceId,row);
+      }
       this._prune(false);
     } catch (error) { this.pending.clear(); this.bindings.clear(); this.loadError = error?.message || 'invalid_enrollment_state'; }
   }
@@ -162,7 +168,7 @@ export class EnrollmentRegistry {
     const policyProfile = bounded(input.policyProfile || row.requestedPolicy || 'default',80);
     if (!POLICY_RE.test(policyProfile)) throw new EnrollmentError('invalid_policy_profile');
     const now = this.now(), deviceId=deviceIdForFingerprint(row.publicKeySha256), certificateId=`cert_${crypto.randomUUID()}`;
-    const binding = { deviceId, accountId, publicKeySha256:row.publicKeySha256, publicIdentityKey:row.publicIdentityKey, approvedCapabilities, policyProfile, displayName:bounded(input.displayName || row.displayName,120), platform:row.platform, architecture:row.architecture, agentVersion:row.agentVersion, fingerprintSummary:row.fingerprintSummary, certificateId, issuedAt:now, notAfter:now+this.certificateTtlMs };
+    const binding = { deviceId, accountId, publicKeySha256:row.publicKeySha256, publicIdentityKey:row.publicIdentityKey, grantableCapabilities:[...row.requestedCapabilities], approvedCapabilities, policyProfile, policyRevision:1, policyUpdatedAt:now, displayName:bounded(input.displayName || row.displayName,120), platform:row.platform, architecture:row.architecture, agentVersion:row.agentVersion, fingerprintSummary:row.fingerprintSummary, certificateId, issuedAt:now, notAfter:now+this.certificateTtlMs };
     binding.certificate = certificateBody(binding);
     binding.certificateSignature = crypto.sign(null, Buffer.from(canonicalCertificate(binding)), this.signer.privateKey).toString('base64url');
     this.bindings.set(deviceId,binding);
@@ -198,6 +204,29 @@ export class EnrollmentRegistry {
     return { enrollmentId, state:'cancelled', cancelledAt:row.cancelledAt };
   }
 
+  policyView(deviceId) {
+    const row=this.binding(deviceId);
+    return { deviceId:row.deviceId, accountId:row.accountId, policyProfile:row.policyProfile, policyRevision:Math.max(1,Number(row.policyRevision)||1), policyUpdatedAt:Number(row.policyUpdatedAt)||row.issuedAt, grantableCapabilities:[...(row.grantableCapabilities||row.approvedCapabilities||[])], approvedCapabilities:[...row.approvedCapabilities] };
+  }
+  policyEnvelope(deviceId) {
+    const policy=this.policyView(deviceId);
+    const signature=crypto.sign(null,Buffer.from(devicePolicyMessage({deviceId:policy.deviceId,accountId:policy.accountId,revision:policy.policyRevision,approvedCapabilities:policy.approvedCapabilities,grantableCapabilities:policy.grantableCapabilities,policyProfile:policy.policyProfile,updatedAt:policy.policyUpdatedAt})),this.signer.privateKey).toString('base64url');
+    return { policy, signature, signer:this.signerInfo() };
+  }
+  updatePolicy(input = {}) {
+    const row=this.binding(input.deviceId);
+    const accountId=String(input.accountId||'');
+    if(row.accountId!==accountId) throw new EnrollmentError('device_account_mismatch',403);
+    const grantable=cleanCapabilities(row.grantableCapabilities || row.approvedCapabilities || []);
+    const approved=cleanCapabilities(Array.isArray(input.approvedCapabilities)?input.approvedCapabilities:row.approvedCapabilities);
+    if(!approved.length) throw new EnrollmentError('approved_capabilities_required');
+    if(approved.some(item=>!grantable.includes(item))) throw new EnrollmentError('approved_capability_not_grantable',403);
+    const profile=bounded(input.policyProfile ?? row.policyProfile ?? 'default',80) || 'default';
+    if(!POLICY_RE.test(profile)) throw new EnrollmentError('invalid_policy_profile');
+    const same=profile===row.policyProfile && approved.length===row.approvedCapabilities.length && approved.every((item,index)=>item===row.approvedCapabilities[index]);
+    if(!same){row.approvedCapabilities=approved;row.policyProfile=profile;row.policyRevision=Math.max(1,Number(row.policyRevision)||1)+1;row.policyUpdatedAt=this.now();this._persist();this.emit({type:'device_policy_updated',deviceId:row.deviceId,accountId:row.accountId,status:'updated',policyProfile:profile,policyRevision:row.policyRevision,capabilities:approved});}
+    return this.policyView(row.deviceId);
+  }
   binding(deviceId, { allowRevoked = false } = {}) { const row=this.bindings.get(String(deviceId||'')); if (!row) throw new EnrollmentError('device_binding_not_found',404); if (row.revokedAt && !allowRevoked) throw new EnrollmentError('device_revoked',403); return row; }
   revoke(input = {}) { const row=this.binding(input.deviceId,{allowRevoked:true}); const accountId=String(input.accountId||''); if (row.accountId!==accountId) throw new EnrollmentError('device_account_mismatch',403); if (!row.revokedAt) { row.revokedAt=this.now(); row.revokeReason=bounded(input.reason||'owner_revoked',120); this._persist(); this.emit({type:'device_revoked',deviceId:row.deviceId,accountId:row.accountId,status:'revoked',reason:row.revokeReason}); } return { deviceId:row.deviceId, accountId:row.accountId, revokedAt:row.revokedAt, reason:row.revokeReason }; }
   verifyChannel(input = {}, action = '', payload = {}) {
@@ -225,13 +254,17 @@ export class EnrollmentRegistry {
     if (!/^[A-Za-z0-9_-]{16,128}$/.test(nonce)) throw new EnrollmentError('invalid_device_nonce');
     const replayKey=`${binding.deviceId}:${nonce}`;
     if (this.nonces.has(replayKey)) throw new EnrollmentError('device_proof_replay',409);
-    const effectiveCapabilities=cleanCapabilities(input.capabilities);
-    if (effectiveCapabilities.some(item => !binding.approvedCapabilities.includes(item))) throw new EnrollmentError('device_capability_escalation',403);
-    const message=deviceHeartbeatMessage({ deviceId:binding.deviceId, timestamp, nonce, capabilities:effectiveCapabilities });
+    const reportedCapabilities=cleanCapabilities(input.capabilities);
+    const message=deviceHeartbeatMessage({ deviceId:binding.deviceId, timestamp, nonce, capabilities:reportedCapabilities });
     let ok=false;
     try { const key=crypto.createPublicKey({key:Buffer.from(binding.publicIdentityKey,'base64'),format:'der',type:'spki'}); ok=crypto.verify(null,Buffer.from(message),key,Buffer.from(signature,'base64url')); } catch { ok=false; }
     if (!ok) throw new EnrollmentError('invalid_device_proof',401);
+    const currentRevision=Math.max(1,Number(binding.policyRevision)||1), stale=currentRevision>1 && Math.max(0,Number(input.policyRevision)||0)<currentRevision;
+    const extras=reportedCapabilities.filter(item=>!binding.approvedCapabilities.includes(item));
+    if(extras.length&&!stale)throw new EnrollmentError('device_capability_escalation',403);
+    const effectiveCapabilities=reportedCapabilities.filter(item=>binding.approvedCapabilities.includes(item));
+    if(!effectiveCapabilities.length)throw new EnrollmentError('device_capabilities_required');
     this.nonces.set(replayKey,this.now()+120_000);
-    return { binding, effectiveCapabilities, proof:{timestamp,nonce} };
+    return { binding, effectiveCapabilities, reportedPolicyRevision:Math.max(0,Number(input.policyRevision)||0), proof:{timestamp,nonce} };
   }
 }

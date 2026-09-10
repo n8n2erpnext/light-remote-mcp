@@ -2,14 +2,13 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 export function linuxServicePolicy(state = {}) {
-  const approved = new Set(state?.enrollment?.approvedCapabilities || []);
-  const denied = new Set(state?.policy?.deniedCapabilities || []);
-  const sudoOnDemand = approved.has('sudo-on-demand') && !denied.has('sudo-on-demand');
+  const grantable = new Set(state?.enrollment?.grantableCapabilities || state?.enrollment?.approvedCapabilities || []);
+  const sudoGrantable = grantable.has('sudo-on-demand');
   return {
-    sudoOnDemand,
-    noNewPrivileges: !sudoOnDemand,
-    restrictSuidSgid: !sudoOnDemand,
-    clearCapabilityBoundingSet: !sudoOnDemand
+    sudoGrantable,
+    noNewPrivileges: !sudoGrantable,
+    restrictSuidSgid: !sudoGrantable,
+    clearCapabilityBoundingSet: !sudoGrantable
   };
 }
 

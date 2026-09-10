@@ -1,0 +1,35 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import { EnrollmentRegistry } from '../../operator-host/enrollment-registry.mjs';
+import { devicePolicyMessage } from '../../lib/device-proof.mjs';
+function expect(value,message){if(!value)throw new Error(message);}
+const dir=fs.mkdtempSync(path.join(os.tmpdir(),'gpt-v09-policy-'));
+let now=1_900_000_000_000;
+const registry=new EnrollmentRegistry({stateFile:path.join(dir,'state.json'),signerFile:path.join(dir,'signer.json'),now:()=>now});
+const keys=crypto.generateKeyPairSync('ed25519');
+const begin=registry.begin({publicIdentityKey:keys.publicKey.export({format:'der',type:'spki'}).toString('base64'),displayName:'Policy Device',platform:'linux',architecture:'x64',capabilities:['filesystem','git','sudo-on-demand'],policyProfile:'ops'});
+const approved=registry.approve({code:begin.deviceCode,accountId:'self-hosted-local',approvedCapabilities:['filesystem','git','sudo-on-demand'],policyProfile:'ops'});
+let view=registry.policyView(approved.deviceId);
+expect(view.policyRevision===1,'initial_policy_revision');
+expect(view.grantableCapabilities.includes('sudo-on-demand'),'grantable_sudo_missing');
+now+=1000;
+view=registry.updatePolicy({deviceId:approved.deviceId,accountId:'self-hosted-local',approvedCapabilities:['filesystem','git'],policyProfile:'standard'});
+expect(view.policyRevision===2&&!view.approvedCapabilities.includes('sudo-on-demand'),'sudo_disable_failed');
+const envelope=registry.policyEnvelope(approved.deviceId);
+const signer=crypto.createPublicKey({key:Buffer.from(envelope.signer.publicKey,'base64'),format:'der',type:'spki'});
+const msg=devicePolicyMessage({deviceId:envelope.policy.deviceId,accountId:envelope.policy.accountId,revision:envelope.policy.policyRevision,approvedCapabilities:envelope.policy.approvedCapabilities,grantableCapabilities:envelope.policy.grantableCapabilities,policyProfile:envelope.policy.policyProfile,updatedAt:envelope.policy.policyUpdatedAt});
+expect(crypto.verify(null,Buffer.from(msg),signer,Buffer.from(envelope.signature,'base64url')),'policy_signature_invalid');
+try{registry.updatePolicy({deviceId:approved.deviceId,accountId:'self-hosted-local',approvedCapabilities:['filesystem','docker'],policyProfile:'bad'});throw new Error('ungrantable_capability_accepted');}catch(e){if(e.message!=='approved_capability_not_grantable')throw e;}
+now+=1000;
+view=registry.updatePolicy({deviceId:approved.deviceId,accountId:'self-hosted-local',approvedCapabilities:['filesystem','git','sudo-on-demand'],policyProfile:'ops'});
+expect(view.policyRevision===3&&view.approvedCapabilities.includes('sudo-on-demand'),'sudo_reenable_failed');
+const reloaded=new EnrollmentRegistry({stateFile:path.join(dir,'state.json'),signerFile:path.join(dir,'signer.json'),now:()=>now});
+const persisted=reloaded.policyView(approved.deviceId);
+expect(persisted.policyRevision===3&&persisted.grantableCapabilities.includes('sudo-on-demand'),'policy_persistence_failed');
+console.log('v09-device-policy-owner-toggle=PASS');
+console.log('v09-device-policy-grantable-boundary=PASS');
+console.log('v09-device-policy-signed-envelope=PASS');
+console.log('v09-device-policy-persistence=PASS');
+fs.rmSync(dir,{recursive:true,force:true});
