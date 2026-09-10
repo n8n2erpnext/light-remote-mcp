@@ -4,11 +4,14 @@ import crypto from 'node:crypto';
 const base=String(process.env.BRIDGE_PROOF_BASE||'https://light-remote-mcp.vercel.app').replace(/\/$/,'');
 const cfg=JSON.parse(fs.readFileSync(process.env.WALL_AUTH_FILE||'/home/ubuntu/.config/gpt-vps-operator/wall-auth.json','utf8'));
 const password=fs.readFileSync(process.env.WALL_BOOTSTRAP_PASSWORD_FILE||'/home/ubuntu/.config/gpt-vps-operator/wall-bootstrap-password','utf8').trim();
+const platform=String(process.env.V09_POLICY_PLATFORM||'windows').toLowerCase();
 const nodeId=String(process.env.V09_POLICY_NODE||'dev_ffc2a5da8b9e0f75fd9f3508');
-const workspace=String(process.env.V09_POLICY_WORKSPACE||'C:\\Users\\Public');
+const workspace=String(process.env.V09_POLICY_WORKSPACE||(platform==='linux'?'/home/ubuntu':'C:\\Users\\Public'));
 const wallBase=String(process.env.V09_POLICY_WALL_BASE||'http://100.94.184.141:5489').replace(/\/$/,'');
 let wallCookie='';
-const targetCapability=String(process.env.V09_POLICY_CAPABILITY||'package-manager');
+const targetCapability=String(process.env.V09_POLICY_CAPABILITY||(platform==='linux'?'sudo-on-demand':'package-manager'));
+const testScript=platform==='linux'?'sudo -n systemctl is-active gpt-operator-device-agent.service':'winget --version';
+const callerCapabilities=platform==='linux'?['filesystem']:['filesystem','powershell'];
 
 async function req(path,options={}){
   const r=await fetch(base+path,options), text=await r.text();
@@ -68,8 +71,10 @@ async function setPolicy(policyProfile,approvedCapabilities){
   return r.json?.policy;
 }
 async function readAgentStatus(){
-  const script=`$root=Join-Path $env:LOCALAPPDATA 'Programs\\Light Remote MCP'; & (Join-Path $root 'runtime\\node.exe') (Join-Path $root 'agent\\device-agent\\operator-agent.mjs') status`;
-  const job=await exec(script,['filesystem','powershell']);
+  const script=platform==='linux'
+    ? `/opt/gpt-operator-agent/current/runtime/node /opt/gpt-operator-agent/current/device-agent/operator-agent.mjs status`
+    : `$root=Join-Path $env:LOCALAPPDATA 'Programs\\Light Remote MCP'; & (Join-Path $root 'runtime\\node.exe') (Join-Path $root 'agent\\device-agent\\operator-agent.mjs') status`;
+  const job=await exec(script,callerCapabilities);
   const line=(job.stdout||'').trim();
   let value; try{value=JSON.parse(line)}catch{throw new Error(`agent_status_parse:${line}`)}
   return {job,value};
@@ -102,18 +107,18 @@ try{
   changed=true;
   const restrictedStatus=await waitAgentRevision(restricted.policyRevision,false);
 
-  const denied=await exec('winget --version',['filesystem','powershell'],false);
-  if(denied.exitCode!==126||!/local capability denied: package-manager/.test(denied.stderr||'')){
+  const denied=await exec(testScript,callerCapabilities,false);
+  if(denied.exitCode!==126||!new RegExp(`local capability denied: .*${targetCapability.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}`).test(denied.stderr||'')){
     throw new Error(`local_policy_deny_missing:${JSON.stringify({status:denied.status,exitCode:denied.exitCode,stderr:denied.stderr})}`);
   }
 
   const restored=await setPolicy(originalPolicy.policyProfile,originalPolicy.approvedCapabilities);
   changed=false;
   const restoredStatus=await waitAgentRevision(restored.policyRevision,true);
-  const allowed=await exec('winget --version',['filesystem','powershell']);
+  const allowed=await exec(testScript,callerCapabilities);
 
   console.log(JSON.stringify({
-    proof:'LIVE_V09_DEVICE_POLICY_PASS',nodeId,targetCapability,
+    proof:'LIVE_V09_DEVICE_POLICY_PASS',platform,nodeId,targetCapability,testScript,
     restrictedRevision:restricted.policyRevision,
     restrictedEffective:restrictedStatus.effectiveCapabilities,
     denied:{jobId:denied.jobId,exitCode:denied.exitCode,stderr:(denied.stderr||'').trim()},
