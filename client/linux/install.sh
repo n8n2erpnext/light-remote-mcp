@@ -2,8 +2,8 @@
 set -euo pipefail
 
 ROOT=/opt/gpt-operator-agent
-MANIFEST_URL="${GPT_OPERATOR_UPDATE_MANIFEST_URL:-https://github.com/thdangduy/gpt-vps-bridge/releases/latest/download/client-update.json}"
-SIGNATURE_URL="${GPT_OPERATOR_UPDATE_SIGNATURE_URL:-https://github.com/thdangduy/gpt-vps-bridge/releases/latest/download/client-update.json.sig}"
+MANIFEST_URL="${GPT_OPERATOR_UPDATE_MANIFEST_URL:-https://github.com/n8n2erpnext/light-remote-mcp/releases/latest/download/client-update.json}"
+SIGNATURE_URL="${GPT_OPERATOR_UPDATE_SIGNATURE_URL:-https://github.com/n8n2erpnext/light-remote-mcp/releases/latest/download/client-update.json.sig}"
 BUNDLE=""
 DEV_BUNDLE=0
 TARGET_USER="${SUDO_USER:-${USER:-}}"
