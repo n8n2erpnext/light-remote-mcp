@@ -1,0 +1,3 @@
+# Signed fixtures/manifests are byte-exact cryptographic inputs.
+deploy/fixtures/client-update-test.json -text
+deploy/fixtures/client-update-test.json.sig -text

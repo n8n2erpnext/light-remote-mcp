@@ -69,8 +69,13 @@ jobs:
           if ($json.clientVersion -ne '0.9.0-dev') { throw "client version mismatch: $($json.clientVersion)" }
           Write-Host "windows-native-selftest=PASS agent=$($json.agentVersion) adapter=$($json.platformAdapter)"
 
+          $manifestFixture = (Resolve-Path 'deploy/fixtures/client-update-test.json').Path
+          $manifestHash = (Get-FileHash $manifestFixture -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($manifestHash -ne '48790b1532b863cb471bfcf68ff5f4a87fa0497e270bec5abbde254acf5d18e7') { throw "signed fixture byte hash changed: $manifestHash" }
+          Write-Host "windows-signed-fixture-bytes=PASS sha256=$manifestHash"
           $sigResult = Join-Path $env:RUNNER_TEMP 'gpt-update-signature.json'
-          $sig = Start-Process -FilePath $exe -ArgumentList @('--verify-update-fixture',(Resolve-Path 'deploy/fixtures/client-update-test.json').Path,(Resolve-Path 'deploy/fixtures/client-update-test.json.sig').Path,$sigResult) -PassThru -Wait
+          $sig = Start-Process -FilePath $exe -ArgumentList @('--verify-update-fixture',$manifestFixture,(Resolve-Path 'deploy/fixtures/client-update-test.json.sig').Path,$sigResult) -PassThru -Wait
+          if (Test-Path $sigResult) { Get-Content $sigResult -Raw | Write-Host }
           if ($sig.ExitCode -ne 0) { throw "signed update fixture verification failed exit=$($sig.ExitCode)" }
           $sigJson = Get-Content $sigResult -Raw | ConvertFrom-Json
           if (-not $sigJson.ok) { throw "update signature fixture invalid: $(Get-Content $sigResult -Raw)" }
