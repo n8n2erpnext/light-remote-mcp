@@ -46,6 +46,7 @@ jobs:
         run: |
           $files = @(
             'device-agent/setup-windows-dev.ps1',
+            'device-agent/install-windows-task.ps1',
             'device-agent/install-windows-service.ps1',
             'device-agent/windows-service-rights.ps1'
           )
@@ -61,6 +62,23 @@ jobs:
           $sid = Grant-GptServiceLogonRight -AccountName $account
           if (-not $sid.StartsWith('S-1-')) { throw "Service logon right SID invalid: $sid" }
           Write-Host "windows-service-logon-right=PASS sid=$sid"
+
+      - name: Scheduled Task interactive-token smoke
+        shell: pwsh
+        run: |
+          $taskName = "GPTOperatorTaskSmoke-$env:GITHUB_RUN_ID"
+          $account = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+          $action = New-ScheduledTaskAction -Execute (Join-Path $env:SystemRoot 'System32\cmd.exe') -Argument '/c exit 0'
+          $trigger = New-ScheduledTaskTrigger -AtLogOn -User $account
+          $principal = New-ScheduledTaskPrincipal -UserId $account -LogonType Interactive -RunLevel Limited
+          $settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit ([TimeSpan]::Zero) -MultipleInstances IgnoreNew
+          try {
+            Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force | Out-Null
+            $xml = Export-ScheduledTask -TaskName $taskName
+            if ($xml -notmatch '<LogonType>InteractiveToken</LogonType>') { throw 'InteractiveToken task principal missing.' }
+            if ($xml -notmatch '<RunLevel>LeastPrivilege</RunLevel>') { throw 'LeastPrivilege task run level missing.' }
+            Write-Host 'windows-scheduled-task-interactive-token=PASS'
+          } finally { Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction SilentlyContinue }
 
       - name: Fetch pinned WinSW
         shell: pwsh
@@ -85,6 +103,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path $agentDir,$adapterDir,$libDir,$runtimeDir | Out-Null
           Copy-Item device-agent/operator-agent.mjs $agentDir
           Copy-Item device-agent/setup-windows-dev.ps1 $agentDir
+          Copy-Item device-agent/install-windows-task.ps1 $agentDir
           Copy-Item device-agent/install-windows-service.ps1 $agentDir
           Copy-Item device-agent/windows-service-rights.ps1 $agentDir
           Copy-Item device-agent/platform-adapters/index.mjs $adapterDir
@@ -117,7 +136,8 @@ jobs:
             '4. The setup opens the approval page and prints a one-time device code.',
             '5. Approve the device, then setup installs and starts GPTOperatorDeviceAgent.', '',
             'This is an unsigned development build. Device private keys remain local.',
-            'The service runs as the enrolled Windows user, not LocalSystem.'
+            'DEV mode uses a per-user Scheduled Task with Interactive logon; no password/PIN is stored.',
+            'The agent is online while the enrolled Windows user is signed in.'
           )
           $readme | Set-Content -LiteralPath (Join-Path $root 'README-WINDOWS-DEV.txt') -Encoding UTF8
           $manifest = [ordered]@{

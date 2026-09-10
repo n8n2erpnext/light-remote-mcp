@@ -13,10 +13,10 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
 $RootDir = Split-Path -Parent $PSScriptRoot
 $Node = Join-Path $RootDir 'runtime\node.exe'
 $Agent = Join-Path $PSScriptRoot 'operator-agent.mjs'
-$Installer = Join-Path $PSScriptRoot 'install-windows-service.ps1'
+$Installer = Join-Path $PSScriptRoot 'install-windows-task.ps1'
 if (-not (Test-Path $Node)) { throw "Bundled Node runtime missing: $Node" }
 if (-not (Test-Path $Agent)) { throw "Agent missing: $Agent" }
-if (-not (Test-Path $Installer)) { throw "Installer missing: $Installer" }
+if (-not (Test-Path $Installer)) { throw "Task installer missing: $Installer" }
 function Invoke-Agent([string[]]$Arguments) {
   $output = & $Node $Agent @Arguments 2>&1
   if ($LASTEXITCODE -ne 0) { throw (($output | Out-String).Trim()) }
@@ -45,10 +45,10 @@ if (-not $status.enrolled) {
   if (-not $status.enrolled) { throw 'Enrollment was not approved before timeout.' }
 }
 Write-Host "Enrolled deviceId=$($status.deviceId) adapter=$($status.platformAdapter)" -ForegroundColor Green
-Write-Host 'Windows Service will run as this same user. Windows may request the account password once for SCM.' -ForegroundColor Cyan
+Write-Host 'Windows DEV mode uses a per-user Scheduled Task. No account password or PIN is required.' -ForegroundColor Cyan
 & $Installer
-if ($LASTEXITCODE -ne 0) { throw 'Windows service installer failed.' }
-$service = Get-Service -Name 'GPTOperatorDeviceAgent' -ErrorAction Stop
-if ($service.Status -ne 'Running') { throw "Service state is $($service.Status), expected Running." }
-Write-Host 'GPT Operator Windows leaf is installed and running.' -ForegroundColor Green
+if ($LASTEXITCODE -ne 0) { throw 'Windows Scheduled Task installer failed.' }
+$task = Get-ScheduledTask -TaskName 'GPTOperatorDeviceAgent' -ErrorAction Stop
+if ($task.State -ne 'Running') { throw "Scheduled Task state is $($task.State), expected Running." }
+Write-Host 'GPT Operator Windows leaf is installed and running in the signed-in user session.' -ForegroundColor Green
 Write-Host 'Return to ChatGPT; the device should appear online in the ARM Hub within ~20 seconds.'
