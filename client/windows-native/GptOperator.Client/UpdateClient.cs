@@ -60,10 +60,16 @@ internal sealed class UpdateClient
     }
     public void LaunchInstaller(string installerPath, UpdateInfo update)
     {
-        var args = string.IsNullOrWhiteSpace(update.Artifact.InstallerArgs)
-            ? "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS"
-            : update.Artifact.InstallerArgs!;
-        Process.Start(new ProcessStartInfo(installerPath, args) { UseShellExecute = true });
+        AppPaths.EnsureDirectories();
+        var helper = Path.Combine(AppPaths.UpdateDir, $"update-helper-{Guid.NewGuid():N}.exe");
+        File.Copy(Application.ExecutablePath, helper, overwrite: true);
+        var psi = new ProcessStartInfo(helper) { UseShellExecute = false, CreateNoWindow = true };
+        psi.ArgumentList.Add("--apply-update");
+        psi.ArgumentList.Add(installerPath);
+        psi.ArgumentList.Add(AppPaths.Root);
+        psi.ArgumentList.Add(ClientVersion.Display);
+        psi.ArgumentList.Add(Environment.ProcessId.ToString());
+        Process.Start(psi);
     }
 
     internal static void VerifySignedManifest(byte[] manifestBytes, string signatureText, string publicKeyFile)

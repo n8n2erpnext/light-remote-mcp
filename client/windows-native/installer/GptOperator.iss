@@ -45,7 +45,32 @@ Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription:
 Filename: "{app}\GptOperator.Client.exe"; Description: "Start GPT Operator"; Flags: nowait postinstall skipifsilent
 
 [Code]
-function InitializeSetup(): Boolean;
+procedure StopAndRemoveLegacyTask();
+var
+  ResultCode: Integer;
 begin
-  Result := True;
+  Exec(ExpandConstant('{sys}\schtasks.exe'), '/End /TN "GPTOperatorDeviceAgent"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Exec(ExpandConstant('{sys}\schtasks.exe'), '/Delete /TN "GPTOperatorDeviceAgent" /F', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+end;
+
+procedure CacheRollbackInstaller();
+var
+  RollbackDir, RollbackFile: String;
+begin
+  RollbackDir := ExpandConstant('{localappdata}\GPTOperatorAgent\updates\rollback');
+  ForceDirectories(RollbackDir);
+  RollbackFile := RollbackDir + '\GPT-Operator-Setup-{#AppVersion}-x64.exe';
+  FileCopy(ExpandConstant('{srcexe}'), RollbackFile, False);
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+begin
+  StopAndRemoveLegacyTask();
+  Result := '';
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if CurStep = ssPostInstall then
+    CacheRollbackInstaller();
 end;

@@ -5,6 +5,7 @@ const project=fs.readFileSync(new URL('../../client/windows-native/GptOperator.C
 const form=fs.readFileSync(new URL('../../client/windows-native/GptOperator.Client/MainForm.cs',import.meta.url),'utf8');
 const supervisor=fs.readFileSync(new URL('../../client/windows-native/GptOperator.Client/AgentSupervisor.cs',import.meta.url),'utf8');
 const updater=fs.readFileSync(new URL('../../client/windows-native/GptOperator.Client/UpdateClient.cs',import.meta.url),'utf8');
+const applier=fs.readFileSync(new URL('../../client/windows-native/GptOperator.Client/UpdateApplier.cs',import.meta.url),'utf8');
 const installer=fs.readFileSync(new URL('../../client/windows-native/installer/GptOperator.iss',import.meta.url),'utf8');
 function expect(condition,message){if(!condition)throw new Error(message);}
 
@@ -28,9 +29,16 @@ expect(supervisor.includes('Math.Min(30'),'restart_backoff_missing');
 expect(updater.includes('VerifySignedManifest'),'signed_manifest_verify_missing');
 expect(updater.includes('DSASignatureFormat.Rfc3279DerSequence'),'windows_ecdsa_der_format_missing');
 expect(updater.includes('CryptographicOperations.FixedTimeEquals'),'artifact_hash_constant_time_missing');
+expect(updater.includes('update-helper-'),'detached_update_helper_missing');
+expect(applier.includes('rollback_success'),'post_install_rollback_missing');
+expect(applier.includes('--self-test-output'),'post_install_health_check_missing');
 expect(installer.includes('PrivilegesRequired=lowest'),'per_user_installer_missing');
 expect(installer.includes('{localappdata}\\Programs\\GPT Operator'),'localappdata_install_missing');
 expect(installer.includes('uninsdeletevalue'),'autostart_uninstall_cleanup_missing');
+expect(installer.includes('GPTOperatorDeviceAgent'),'legacy_task_migration_missing');
+expect(installer.includes('CacheRollbackInstaller'),'rollback_installer_cache_missing');
+expect(workflow.includes('windows-native-legacy-task-migration=PASS'),'legacy_task_ci_missing');
+expect(workflow.includes('windows-native-update-rollback=PASS'),'rollback_ci_missing');
 expect(!/LocalSystem/i.test(installer),'installer_must_not_use_localsystem');
 expect(fs.existsSync(new URL('../../client/update-public.pem',import.meta.url)),'update_public_key_missing');
 expect(fs.existsSync(new URL('../../deploy/fixtures/client-update-test.json.sig',import.meta.url)),'signed_update_fixture_missing');

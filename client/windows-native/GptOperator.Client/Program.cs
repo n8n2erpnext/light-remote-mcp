@@ -8,6 +8,15 @@ internal static class Program
     private static void Main(string[] args)
     {
         AppPaths.EnsureDirectories();
+        var applyIndex = Array.IndexOf(args, "--apply-update");
+        if (applyIndex >= 0 && applyIndex + 4 < args.Length)
+        {
+            _ = int.TryParse(args[applyIndex + 4], out var parentPid);
+            Environment.ExitCode = UpdateApplier.ApplyAsync(
+                args[applyIndex + 1], args[applyIndex + 2], args[applyIndex + 3], parentPid).GetAwaiter().GetResult();
+            return;
+        }
+
         var verifyIndex = Array.IndexOf(args, "--verify-update-fixture");
         if (verifyIndex >= 0 && verifyIndex + 3 < args.Length)
         {

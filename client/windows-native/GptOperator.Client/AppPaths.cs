@@ -9,6 +9,8 @@ internal static class AppPaths
     public static readonly string LocalData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "GPTOperatorAgent");
     public static readonly string LogDir = Path.Combine(LocalData, "logs");
     public static readonly string UpdateDir = Path.Combine(LocalData, "updates");
+    public static readonly string RollbackDir = Path.Combine(UpdateDir, "rollback");
+    public static readonly string UpdateLog = Path.Combine(LogDir, "update.log");
     public static readonly string StateFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".config", "gpt-operator-agent", "device.json");
     public static readonly string AgentLog = Path.Combine(LogDir, "agent.log");
 
@@ -16,6 +18,10 @@ internal static class AppPaths
     {
         Directory.CreateDirectory(LogDir);
         Directory.CreateDirectory(UpdateDir);
+        Directory.CreateDirectory(RollbackDir);
         Directory.CreateDirectory(Path.GetDirectoryName(StateFile)!);
     }
+
+    public static string RollbackInstaller(string version)
+        => Path.Combine(RollbackDir, $"GPT-Operator-Setup-{version}-x64.exe");
 }
