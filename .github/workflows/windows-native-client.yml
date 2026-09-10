@@ -52,8 +52,17 @@ jobs:
           $stage = Join-Path $PWD 'dist\windows\stage'
           $result = Join-Path $env:RUNNER_TEMP 'gpt-native-selftest.json'
           $exe = Join-Path $stage 'GptOperator.Client.exe'
+          $node = Join-Path $stage 'runtime\node.exe'
+          $agent = Join-Path $stage 'agent\device-agent\operator-agent.mjs'
+          $env:OPERATOR_AGENT_STATE = Join-Path $env:RUNNER_TEMP 'native-empty-device.json'
+          Write-Host '--- bundled agent direct status ---'
+          & $node $agent status
+          if ($LASTEXITCODE -ne 0) { throw 'bundled agent direct status failed' }
+          Write-Host '--- native client self-test ---'
           & $exe --self-test-output $result
-          if ($LASTEXITCODE -ne 0) { throw 'native client self-test failed' }
+          $selfExit = $LASTEXITCODE
+          if (Test-Path $result) { Get-Content $result -Raw | Write-Host }
+          if ($selfExit -ne 0) { throw "native client self-test failed exit=$selfExit" }
           $json = Get-Content $result -Raw | ConvertFrom-Json
           if (-not $json.ok) { throw "self-test not ok: $(Get-Content $result -Raw)" }
           if ($json.platformAdapter -ne 'win32') { throw "expected win32 adapter, got $($json.platformAdapter)" }
