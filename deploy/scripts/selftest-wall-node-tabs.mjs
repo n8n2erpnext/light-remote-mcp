@@ -13,6 +13,7 @@ for (const token of [
   "(j.nodeId||'arm')===nodeId",
   "deviceRows.find(d=>(d.nodeId||'arm')===nodeId)",
   "renderDevices();renderTabs();applyFilter();",
+  "filter(row=>row&&row.state!=='revoked')",
 ]) {
   if (!inline.includes(token)) throw new Error(`wall node-tab contract missing: ${token}`);
 }
