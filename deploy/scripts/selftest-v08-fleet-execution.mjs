@@ -27,7 +27,7 @@ const approved=await request('POST','/v1/enrollments/approve',{code:enrollment.d
 if(approved.status!==200||approved.json.device?.state!=='offline')throw new Error('approve_failed');
 const deviceId=approved.json.approval.deviceId,nodeId=deviceId;
 function signed(action,payload){const timestamp=Date.now(),nonce=crypto.randomBytes(18).toString('base64url');const signature=crypto.sign(null,Buffer.from(deviceChannelMessage({deviceId,action,timestamp,nonce,payload})),privateKey).toString('base64url');return{deviceId,timestamp,nonce,signature,payload};}
-const hello={nodeId,sessionCeiling:1,draining:false,capabilities:['filesystem','git'],waitMs:0};
+const hello={nodeId,sessionCeiling:1,draining:false,capabilities:['filesystem','git'],policyRevision:1,waitMs:0};
 const channel=await request('POST','/v1/device-channel/poll',signed('poll',hello));
 if(channel.status!==200||channel.json.channel?.node?.state!=='online')throw new Error(`channel_online_failed:${channel.status}:${channel.json.error}`);
 const fleet=await request('GET','/v1/fleet');
@@ -53,6 +53,17 @@ const duplicate=await request('POST','/v1/device-channel/result',signed('result'
 if(duplicate.status!==200||duplicate.json.duplicate!==true)throw new Error(`duplicate_result_not_idempotent:${duplicate.status}:${duplicate.json.error}`);
 const output=await request('GET',`/v1/output/${jobId}?agentId=${agent1}&stream=stdout&full=1&limit=1048576`);
 if(output.status!==200||output.json.output!=='leaf-ok\n')throw new Error(`remote_output_wrong:${JSON.stringify(output.json.output)}`);
+const policyChanged=await request('POST',`/v1/devices/${deviceId}/policy`,{deviceId,accountId:'self-hosted-local',approvedCapabilities:['filesystem'],policyProfile:'restricted'});
+if(policyChanged.status!==200||policyChanged.json.policy?.policyRevision!==2)throw new Error(`policy_change_failed:${policyChanged.status}`);
+const policyBlockedEnvelope=cryptoFixture.seal({action:'exec_batch',operationId:'operation-v09-policy-block-git',script:'git status',sessionId,agentId:agent1,nodeId,requiredCapabilities:['git'],waitMs:0,timeoutMs:10000});
+const policyBlocked=await request('POST','/v1/execute',policyBlockedEnvelope);
+if(policyBlocked.status!==409||policyBlocked.json.error!=='target_node_capability_missing')throw new Error(`policy_immediate_guard_failed:${policyBlocked.status}:${policyBlocked.json.error}`);
+const staleHello={...hello,policyRevision:1};
+const policySync=await request('POST','/v1/device-channel/poll',signed('poll',staleHello));
+if(policySync.status!==200||policySync.json.policy?.policy?.policyRevision!==2||policySync.json.policy?.policy?.approvedCapabilities?.join(',')!=='filesystem')throw new Error(`stale_policy_sync_failed:${policySync.status}:${policySync.json.error}`);
+const currentHello={...hello,capabilities:['filesystem'],policyRevision:2};
+const policyCurrent=await request('POST','/v1/device-channel/poll',signed('poll',currentHello));
+if(policyCurrent.status!==200||policyCurrent.json.policy!==null)throw new Error('current_policy_should_not_resend');
 const drained=await request('POST',`/v1/fleet/${nodeId}/drain`,{draining:true});
 if(drained.status!==200||drained.json.node?.draining!==true)throw new Error('drain_failed');
 const blockedEnvelope=cryptoFixture.seal({action:'exec_batch',operationId:'operation-v08-fleet-drain12',cwd:'/tmp',script:'true',sessionId,agentId:agent1,nodeId,requiredCapabilities:['filesystem'],waitMs:0,timeoutMs:10000});

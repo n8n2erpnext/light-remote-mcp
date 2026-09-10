@@ -73,6 +73,7 @@ export class FleetRouter {
     if(!set.size)this.waiters.delete(nodeId);
     return this.poll(input);
   }
+  wake(nodeId) { this._notify(validId(nodeId,'node_id')); }
   setOwnerDrain(nodeId, draining=true) {
     const node=this.node(nodeId), before=Boolean(node.agentDraining||node.ownerDraining); node.ownerDraining=Boolean(draining); const after=Boolean(node.agentDraining||node.ownerDraining);
     if(before!==after)this.emit({type:'node_drain_changed',accountId:node.accountId,deviceId:node.deviceId,nodeId:node.nodeId,status:after?'draining':'online',draining:after});
