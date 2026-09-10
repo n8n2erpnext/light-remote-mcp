@@ -59,8 +59,8 @@ jobs:
           & $node $agent status
           if ($LASTEXITCODE -ne 0) { throw 'bundled agent direct status failed' }
           Write-Host '--- native client self-test ---'
-          & $exe --self-test-output $result
-          $selfExit = $LASTEXITCODE
+          $self = Start-Process -FilePath $exe -ArgumentList @('--self-test-output',$result) -PassThru -Wait
+          $selfExit = $self.ExitCode
           if (Test-Path $result) { Get-Content $result -Raw | Write-Host }
           if ($selfExit -ne 0) { throw "native client self-test failed exit=$selfExit" }
           $json = Get-Content $result -Raw | ConvertFrom-Json
@@ -70,14 +70,15 @@ jobs:
           Write-Host "windows-native-selftest=PASS agent=$($json.agentVersion) adapter=$($json.platformAdapter)"
 
           $sigResult = Join-Path $env:RUNNER_TEMP 'gpt-update-signature.json'
-          & $exe --verify-update-fixture deploy/fixtures/client-update-test.json deploy/fixtures/client-update-test.json.sig $sigResult
-          if ($LASTEXITCODE -ne 0) { throw 'signed update fixture verification failed' }
+          $sig = Start-Process -FilePath $exe -ArgumentList @('--verify-update-fixture',(Resolve-Path 'deploy/fixtures/client-update-test.json').Path,(Resolve-Path 'deploy/fixtures/client-update-test.json.sig').Path,$sigResult) -PassThru -Wait
+          if ($sig.ExitCode -ne 0) { throw "signed update fixture verification failed exit=$($sig.ExitCode)" }
           $sigJson = Get-Content $sigResult -Raw | ConvertFrom-Json
           if (-not $sigJson.ok) { throw "update signature fixture invalid: $(Get-Content $sigResult -Raw)" }
           $tampered = Join-Path $env:RUNNER_TEMP 'client-update-tampered.json'
           (Get-Content deploy/fixtures/client-update-test.json -Raw).Replace('99.0.0','99.0.1') | Set-Content -LiteralPath $tampered -NoNewline -Encoding utf8
-          & $exe --verify-update-fixture $tampered deploy/fixtures/client-update-test.json.sig (Join-Path $env:RUNNER_TEMP 'tampered-result.json')
-          if ($LASTEXITCODE -eq 0) { throw 'tampered update manifest was accepted' }
+          $tamperedResult = Join-Path $env:RUNNER_TEMP 'tampered-result.json'
+          $bad = Start-Process -FilePath $exe -ArgumentList @('--verify-update-fixture',$tampered,(Resolve-Path 'deploy/fixtures/client-update-test.json.sig').Path,$tamperedResult) -PassThru -Wait
+          if ($bad.ExitCode -eq 0) { throw 'tampered update manifest was accepted' }
           Write-Host 'windows-native-update-signature=PASS tamper-rejected=PASS'
 
       - name: Install Inno Setup
@@ -110,8 +111,8 @@ jobs:
           if ($p.ExitCode -ne 0) { throw "installer exit=$($p.ExitCode)" }
           $exe = Join-Path $installDir 'GptOperator.Client.exe'
           $result = Join-Path $env:RUNNER_TEMP 'installed-selftest.json'
-          & $exe --self-test-output $result
-          if ($LASTEXITCODE -ne 0) { throw 'installed client self-test failed' }
+          $installed = Start-Process -FilePath $exe -ArgumentList @('--self-test-output',$result) -PassThru -Wait
+          if ($installed.ExitCode -ne 0) { throw "installed client self-test failed exit=$($installed.ExitCode)" }
           $json = Get-Content $result -Raw | ConvertFrom-Json
           if (-not $json.ok -or $json.platformAdapter -ne 'win32') { throw "installed client invalid: $(Get-Content $result -Raw)" }
           $unins = Join-Path $installDir 'unins000.exe'
