@@ -1,10 +1,9 @@
 # Platform Adapters v0.9
 
 Updated: 2026-09-10
-Status: preview / live Windows acceptance; production `main` remains v0.8
-Branch: `codex/v0.9-platform-adapters`
-Current branch checkpoint: `4a584ffd7886a37ea7f535429d4373c1c85d3af5`
-Production main checkpoint: `4fe9d15e311542a31882303d61a37174554d1e03`
+Status: preview / native Windows + Device Policy live acceptance; production `main` remains v0.8
+Acceptance branch: `codex/v0.9-device-policy-resume`
+Device Policy closure: `DEVICE_POLICY_V0_9_ACCEPTANCE_2026-09-10.md`
 
 ## Scope
 v0.9 does not replace the v0.8 fleet protocol. It keeps the same enrolled Ed25519 device identity, outbound signed `poll/result` channel, explicit target binding, per-node session ceilings, command lease/redelivery, idempotent receipts, and Wall/audit attribution.
@@ -42,20 +41,10 @@ The AMD x86_64 repo was switched cleanly from v0.8 to v0.9 source and the comple
 Windows uses PowerShell when available and keeps the executor under the enrolled normal user. It does not use LocalSystem as the default execution identity.
 
 Advertised/tested Windows capabilities include filesystem, PowerShell, Git, build-test, package-manager, Windows Services read, Event Log read, and process/network inspection. Protected mutation areas such as Registry administration, scheduled-task administration, service administration, Defender/Firewall changes, credential stores, sensitive SAM/SECURITY access, encoded/obfuscated PowerShell, and UAC escalation are not auto-advertised and are independently inferred/guarded at the leaf.
-### Windows DEV persistence
-The first Service-based developer install correctly failed on a blank-password local account with SCM Event 7038 even after `SeServiceLogonRight` was granted. The product does not weaken the machine-wide Windows policy to allow blank-password service logon.
+### Windows native persistence
+Windows now ships as a self-contained .NET 8 WinForms tray client with bundled Node runtime and the enrolled device agent. Normal installation is per-user, does not require an elevated PowerShell window to remain open, starts with the user session, and keeps the outbound device connection alive while the main window is closed to tray.
 
-Windows DEV mode therefore uses a per-user Scheduled Task with:
-- `LogonType=Interactive`
-- `RunLevel=Limited`
-- no stored account password or PIN
-- automatic start at user logon plus immediate start after install
-- the enrolled user's local state/private key unchanged
-- cleanup of the failed legacy service before task registration
-
-GitHub Actions validates the Windows bundle on `windows-latest` / Windows Server 2025 with Node 22.23.2, adapter smoke tests, PowerShell parser checks, pinned WinSW SHA256, LSA service-right helper coverage, real Task Scheduler `Interactive/Limited` registration, bundled-runtime smoke test, and artifact assembly.
-
-Password-backed Windows accounts may still use the optional Service installer. That lane runs with an explicit user `PSCredential`; it does not write the password into WinSW XML and does not default to LocalSystem.
+The installer migrates the earlier Scheduled Task development lane, preserves device identity/private-key state, and includes signed-update verification plus rollback. The old Scheduled Task and optional Service approaches are retained only as historical migration context, not the current default distribution model.
 
 ## Live Windows acceptance
 A real enrolled Windows x64 desktop completed end-to-end execution through the unchanged production route:
@@ -76,9 +65,14 @@ Wall/audit attribution after the Windows acceptance showed the Windows node onli
 The Windows task also demonstrated recovery behavior: after the interactive PowerShell host was accidentally closed, Task Scheduler restarted the agent and the Hub observed the node return online without re-enrollment.
 
 ## Vercel preview
-Latest v0.9 preview deployment for checkpoint `4a584ff` is READY with 12 Node functions, preserving the Hobby 12/12 function budget. The only build warning is the known project-setting mismatch: repo `engines.node=22.x` intentionally overrides the Vercel project setting of Node 24.x.
+Latest v0.9 preview deployment on `codex/v0.9-device-policy-resume` is READY with 12 Node functions, preserving the Hobby 12/12 function budget. The only build warning is the known project-setting mismatch: repo `engines.node=22.x` intentionally overrides the Vercel project setting of Node 24.x.
 
 The preview guide must report `0.9.0-dev` and include this document before v0.9 is considered documentation-complete. Production `main` remains v0.8 until the remaining live migration gate is resolved.
+
+## Device Policy live acceptance
+Owner-controlled Device Policy is CLOSED on the acceptance branch. Live Windows proof removed `package-manager`, synchronized signed revision 2, and proved that `winget --version` was denied locally with exit 126 even though caller metadata omitted `package-manager`. Restoring the exact policy produced revision 3 and the same command returned `winget v1.29.290` with exit 0.
+
+See `DEVICE_POLICY_V0_9_ACCEPTANCE_2026-09-10.md` for job IDs, audit attribution, migration evidence, deployment defects found during activation, and the closure assessment.
 
 ## Deferred / open gates
 - macOS platform adapter and distribution work: deferred.
