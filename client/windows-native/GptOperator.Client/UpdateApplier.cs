@@ -90,7 +90,7 @@ internal static class UpdateApplier
             psi.ArgumentList.Add($"/DIR={installDir}");
             using var process = Process.Start(psi);
             if (process is null) return false;
-            await process.WaitForExitAsync();
+            if (!await WaitForExitOrKillAsync(process, TimeSpan.FromSeconds(120), "installer")) return false;
             exitCode = process.ExitCode;
         }
         catch (Exception ex)
@@ -112,7 +112,7 @@ internal static class UpdateApplier
                 ArgumentList = { "--self-test-output", result }
             });
             if (health is null) return false;
-            await health.WaitForExitAsync();
+            if (!await WaitForExitOrKillAsync(health, TimeSpan.FromSeconds(30), "health")) return false;
             if (health.ExitCode != 0 || !File.Exists(result)) return false;
             using var doc = JsonDocument.Parse(await File.ReadAllTextAsync(result));
             return doc.RootElement.TryGetProperty("ok", out var ok) && ok.GetBoolean();
@@ -123,6 +123,23 @@ internal static class UpdateApplier
             return false;
         }
         finally { try { File.Delete(result); } catch { } }
+    }
+
+    private static async Task<bool> WaitForExitOrKillAsync(Process process, TimeSpan timeout, string phase)
+    {
+        using var cts = new CancellationTokenSource(timeout);
+        try
+        {
+            await process.WaitForExitAsync(cts.Token);
+            return true;
+        }
+        catch (OperationCanceledException)
+        {
+            Log($"{phase}_timeout seconds={(int)timeout.TotalSeconds}");
+            try { if (!process.HasExited) process.Kill(entireProcessTree: true); } catch { }
+            try { await process.WaitForExitAsync(); } catch { }
+            return false;
+        }
     }
 
     private static void StartInstalledClient(string installDir)

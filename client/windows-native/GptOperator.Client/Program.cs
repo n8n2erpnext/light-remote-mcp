@@ -61,7 +61,8 @@ internal static class Program
         try
         {
             using var supervisor = new AgentSupervisor();
-            var status = await supervisor.ReadStatusAsync();
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+            var status = await supervisor.ReadStatusAsync(timeout.Token);
             var result = new {
                 ok = File.Exists(AppPaths.NodeExe) && File.Exists(AppPaths.AgentScript) && File.Exists(AppPaths.UpdatePublicKey),
                 clientVersion = ClientVersion.Display,

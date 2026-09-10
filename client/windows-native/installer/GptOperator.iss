@@ -60,7 +60,8 @@ begin
   RollbackDir := ExpandConstant('{localappdata}\GPTOperatorAgent\updates\rollback');
   ForceDirectories(RollbackDir);
   RollbackFile := RollbackDir + '\GPT-Operator-Setup-{#AppVersion}-x64.exe';
-  FileCopy(ExpandConstant('{srcexe}'), RollbackFile, False);
+  if CompareText(ExpandConstant('{srcexe}'), RollbackFile) <> 0 then
+    CopyFile(ExpandConstant('{srcexe}'), RollbackFile, False);
 end;
 
 function PrepareToInstall(var NeedsRestart: Boolean): String;

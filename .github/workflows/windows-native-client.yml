@@ -107,7 +107,8 @@ jobs:
           if (-not (Test-Path $installer)) { throw 'installer missing' }
           "WINDOWS_INSTALLER=$installer" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
-      - name: Installer install-run-uninstall smoke
+      - name: Install and migrate legacy Windows client
+        timeout-minutes: 4
         shell: pwsh
         run: |
           $legacyName = 'GPTOperatorDeviceAgent'
@@ -121,34 +122,69 @@ jobs:
           $installDir = Join-Path $env:RUNNER_TEMP 'GPT Operator Installed'
           $dirArg = '/DIR="' + $installDir + '"'
           $args = @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',$dirArg)
-          $p = Start-Process -FilePath $env:WINDOWS_INSTALLER -ArgumentList $args -PassThru -Wait
+          Write-Host "windows-native-install-start dir=$installDir"
+          $p = Start-Process -FilePath $env:WINDOWS_INSTALLER -ArgumentList $args -PassThru
+          if (-not $p.WaitForExit(120000)) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; throw 'installer timed out after 120s' }
           if ($p.ExitCode -ne 0) { throw "installer exit=$($p.ExitCode)" }
           if (Get-ScheduledTask -TaskName $legacyName -ErrorAction SilentlyContinue) { throw 'legacy scheduled task survived native install' }
-          Write-Host 'windows-native-legacy-task-migration=PASS'
-
           $exe = Join-Path $installDir 'GptOperator.Client.exe'
-          $result = Join-Path $env:RUNNER_TEMP 'installed-selftest.json'
-          $installed = Start-Process -FilePath $exe -ArgumentList @('--self-test-output',$result) -PassThru -Wait
-          if ($installed.ExitCode -ne 0) { throw "installed client self-test failed exit=$($installed.ExitCode)" }
-          $json = Get-Content $result -Raw | ConvertFrom-Json
-          if (-not $json.ok -or $json.platformAdapter -ne 'win32') { throw "installed client invalid: $(Get-Content $result -Raw)" }
-
+          if (-not (Test-Path $exe)) { throw "installed client missing: $exe" }
           $rollback = Join-Path $env:LOCALAPPDATA 'GPTOperatorAgent\updates\rollback\GPT-Operator-Setup-0.9.0-dev-x64.exe'
           if (-not (Test-Path $rollback)) { throw "rollback installer cache missing: $rollback" }
+          "WINDOWS_INSTALL_DIR=$installDir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "WINDOWS_INSTALLED_EXE=$exe" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "WINDOWS_ROLLBACK=$rollback" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host 'windows-native-legacy-task-migration=PASS'
+
+      - name: Installed native client self-test
+        timeout-minutes: 2
+        shell: pwsh
+        run: |
+          $result = Join-Path $env:RUNNER_TEMP 'installed-selftest.json'
+          Write-Host 'windows-native-installed-selftest=start'
+          $p = Start-Process -FilePath $env:WINDOWS_INSTALLED_EXE -ArgumentList @('--self-test-output',$result) -PassThru
+          if (-not $p.WaitForExit(30000)) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; throw 'installed client self-test timed out after 30s' }
+          if ($p.ExitCode -ne 0) { throw "installed client self-test failed exit=$($p.ExitCode)" }
+          $json = Get-Content $result -Raw | ConvertFrom-Json
+          if (-not $json.ok -or $json.platformAdapter -ne 'win32') { throw "installed client invalid: $(Get-Content $result -Raw)" }
+          Write-Host 'windows-native-installed-selftest=PASS'
+
+      - name: Broken update rollback smoke
+        timeout-minutes: 5
+        shell: pwsh
+        run: |
           $badInstaller = Join-Path $env:RUNNER_TEMP 'broken-update.exe'
           Set-Content -LiteralPath $badInstaller -Value 'not an installer' -Encoding ascii
           $helper = Join-Path $env:RUNNER_TEMP 'gpt-update-helper.exe'
-          Copy-Item $exe $helper -Force
-          $apply = Start-Process -FilePath $helper -ArgumentList @('--apply-update',$badInstaller,$installDir,'0.9.0-dev','0') -PassThru -Wait
-          if ($apply.ExitCode -ne 0) { throw "rollback helper failed exit=$($apply.ExitCode)" }
+          Copy-Item $env:WINDOWS_INSTALLED_EXE $helper -Force
           $updateLog = Join-Path $env:LOCALAPPDATA 'GPTOperatorAgent\logs\update.log'
+          Remove-Item $updateLog -Force -ErrorAction SilentlyContinue
+          Write-Host 'windows-native-update-rollback=start'
+          $p = Start-Process -FilePath $helper -ArgumentList @('--apply-update',$badInstaller,$env:WINDOWS_INSTALL_DIR,'0.9.0-dev','0') -PassThru
+          if (-not $p.WaitForExit(180000)) {
+            Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+            if (Test-Path $updateLog) { Get-Content $updateLog -Raw | Write-Host }
+            throw 'rollback helper timed out after 180s'
+          }
+          if (Test-Path $updateLog) { Get-Content $updateLog -Raw | Write-Host }
+          if ($p.ExitCode -ne 0) { throw "rollback helper failed exit=$($p.ExitCode)" }
           if (-not (Test-Path $updateLog) -or -not ((Get-Content $updateLog -Raw) -match 'rollback_success')) { throw 'rollback success marker missing' }
+          if (-not (Test-Path $env:WINDOWS_INSTALLED_EXE)) { throw 'installed client missing after rollback' }
           Write-Host 'windows-native-update-rollback=PASS'
 
-          Get-Process -Name 'GptOperator.Client' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-          $unins = Join-Path $installDir 'unins000.exe'
-          $u = Start-Process -FilePath $unins -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART') -PassThru -Wait
-          if ($u.ExitCode -ne 0) { throw "uninstaller exit=$($u.ExitCode)" }
+      - name: Uninstall native Windows client
+        if: always()
+        timeout-minutes: 3
+        shell: pwsh
+        run: |
+          Get-Process -Name 'GptOperator.Client','gpt-update-helper' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+          Unregister-ScheduledTask -TaskName 'GPTOperatorDeviceAgent' -Confirm:$false -ErrorAction SilentlyContinue
+          $unins = Join-Path $env:WINDOWS_INSTALL_DIR 'unins000.exe'
+          if (Test-Path $unins) {
+            $p = Start-Process -FilePath $unins -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART') -PassThru
+            if (-not $p.WaitForExit(60000)) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; throw 'uninstaller timed out after 60s' }
+            if ($p.ExitCode -ne 0) { throw "uninstaller exit=$($p.ExitCode)" }
+          }
           Write-Host 'windows-native-installer-roundtrip=PASS'
       - name: Hash Windows installer
         shell: pwsh
