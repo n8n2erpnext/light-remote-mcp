@@ -26,6 +26,7 @@ expect(supervisor.includes('operator-agent.mjs')||supervisor.includes('AppPaths.
 expect(supervisor.includes('StartDaemon'),'daemon_supervisor_missing');
 expect(supervisor.includes('Math.Min(30'),'restart_backoff_missing');
 expect(updater.includes('VerifySignedManifest'),'signed_manifest_verify_missing');
+expect(updater.includes('DSASignatureFormat.Rfc3279DerSequence'),'windows_ecdsa_der_format_missing');
 expect(updater.includes('CryptographicOperations.FixedTimeEquals'),'artifact_hash_constant_time_missing');
 expect(installer.includes('PrivilegesRequired=lowest'),'per_user_installer_missing');
 expect(installer.includes('{localappdata}\\Programs\\GPT Operator'),'localappdata_install_missing');

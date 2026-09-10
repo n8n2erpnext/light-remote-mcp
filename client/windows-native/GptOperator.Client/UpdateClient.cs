@@ -74,7 +74,7 @@ internal sealed class UpdateClient
         catch { throw new InvalidOperationException("Update manifest signature encoding is invalid."); }
         using var ecdsa = ECDsa.Create();
         ecdsa.ImportFromPem(File.ReadAllText(publicKeyFile));
-        if (!ecdsa.VerifyData(manifestBytes, signature, HashAlgorithmName.SHA256))
+        if (!ecdsa.VerifyData(manifestBytes, signature, HashAlgorithmName.SHA256, DSASignatureFormat.Rfc3279DerSequence))
             throw new CryptographicException("Update manifest signature is invalid.");
     }
 
