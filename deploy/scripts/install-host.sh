@@ -8,6 +8,8 @@ sudo install -m 0644 "$ROOT_DIR/operator-host/session-manager.mjs" /opt/gpt-vps-
 sudo install -m 0644 "$ROOT_DIR/operator-host/device-registry.mjs" /opt/gpt-vps-operator/device-registry.mjs
 sudo install -m 0644 "$ROOT_DIR/operator-host/enrollment-registry.mjs" /opt/gpt-vps-operator/enrollment-registry.mjs
 sudo install -m 0644 "$ROOT_DIR/operator-host/fleet-router.mjs" /opt/gpt-vps-operator/fleet-router.mjs
+sudo install -m 0644 "$ROOT_DIR/operator-host/device-connection-registry.mjs" /opt/gpt-vps-operator/device-connection-registry.mjs
+sudo install -m 0644 "$ROOT_DIR/operator-host/device-access-grant-registry.mjs" /opt/gpt-vps-operator/device-access-grant-registry.mjs
 sudo install -m 0644 "$ROOT_DIR/lib/device-proof.mjs" /opt/gpt-vps-operator/device-proof.mjs
 sudo install -d -o ubuntu -g ubuntu -m 0700 /home/ubuntu/.config/gpt-vps-operator
 sudo install -d -o ubuntu -g ubuntu -m 0750 /home/ubuntu/.local/run/gpt-vps-operator
