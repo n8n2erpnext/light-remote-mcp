@@ -2,9 +2,12 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { startLocalWall } from '../../device-agent/local-wall.mjs';
+import { startLocalWall, isAllowedLocalWallBindHost } from '../../device-agent/local-wall.mjs';
 
 const port=24000+(process.pid%10000),brand=new URL('../../assets/branding/light-remote-mark.svg',import.meta.url).pathname;
+if(!isAllowedLocalWallBindHost('127.0.0.1')||!isAllowedLocalWallBindHost('100.94.235.29')||!isAllowedLocalWallBindHost('10.0.0.5')||!isAllowedLocalWallBindHost('172.20.1.5')||!isAllowedLocalWallBindHost('192.168.1.5'))throw new Error('local_wall_private_bind_rejected');
+if(isAllowedLocalWallBindHost('0.0.0.0')||isAllowedLocalWallBindHost('8.8.8.8')||isAllowedLocalWallBindHost('203.0.113.10'))throw new Error('local_wall_public_bind_allowed');
+
 let connected=false,grace=30,connects=0,disconnects=0,graces=0,approvals=0,denials=0;
 const accessRequestId='pa_localwall_access_request_1234567890';
 const wall=startLocalWall({host:'127.0.0.1',port,brandSvgPath:brand,
@@ -35,5 +38,5 @@ try{
   if(g.status!==200||graces!==1||grace!==60)throw new Error('local_wall_grace_failed');
   const d=await req('POST','/api/disconnect',{});
   if(d.status!==200||disconnects!==1||connected)throw new Error('local_wall_disconnect_failed');
-  console.log(JSON.stringify({ok:true,loopback:true,brand:true,connects,disconnects,graces,approvals,denials,sessionTree:true,deviceAccessControls:true},null,2));
+  console.log(JSON.stringify({ok:true,loopback:true,privateBind:true,publicBindDenied:true,brand:true,connects,disconnects,graces,approvals,denials,sessionTree:true,deviceAccessControls:true},null,2));
 } finally {await wall.close();}
