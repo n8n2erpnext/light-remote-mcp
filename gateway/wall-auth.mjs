@@ -103,10 +103,15 @@ function sessionCookie(name, token, ttlSeconds, secure = true) {
 function clearCookie(name, secure = true) {
   return `${name}=; Path=/; Max-Age=0; HttpOnly; ${secure ? 'Secure; ' : ''}SameSite=Strict; Priority=High`;
 }
-function loginHtml(message = '') {
+function safeNext(value) {
+  const text=String(value||'').trim();
+  return text.startsWith('/') && !text.startsWith('//') && text.length <= 512 ? text : '/';
+}
+function loginHtml(message = '', next = '/') {
   const note = message ? `<div class="err">${message}</div>` : '';
+  const nextValue=String(safeNext(next)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Light Remote MCP — Login</title><style>
-:root{color-scheme:dark;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#080a0c;color:#d8dee7}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#080a0c}.card{width:min(420px,calc(100vw - 32px));border:1px solid #252d36;border-radius:12px;background:#0a0e12;padding:22px}.muted{color:#718096}.brand-title{display:flex;align-items:center;gap:12px;margin-bottom:8px}.brand-title>span{display:flex;align-items:baseline;gap:7px}.brand-title strong{font-size:20px;color:#f3f4f6}.brand-title small{font-size:10px;letter-spacing:.16em;color:#718096}.brand-mark{flex:0 0 auto}.err{margin:12px 0;color:#ff9b9b}label{display:block;margin-top:14px}input,button{width:100%;margin-top:6px;border:1px solid #2b333d;background:#0e1216;color:#d8dee7;border-radius:7px;padding:10px;font:inherit}button{cursor:pointer;margin-top:18px}</style></head><body><main class="card">${brandTitleSvg(48)}<p class="muted">Independent operator authentication</p>${note}<form method="post" action="/auth/login"><label>Username<input name="username" autocomplete="username" required autofocus></label><label>Password<input type="password" name="password" autocomplete="current-password" required></label><button type="submit">Sign in</button></form></main></body></html>`;
+:root{color-scheme:dark;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#080a0c;color:#d8dee7}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#080a0c}.card{width:min(420px,calc(100vw - 32px));border:1px solid #252d36;border-radius:12px;background:#0a0e12;padding:22px}.muted{color:#718096}.brand-title{display:flex;align-items:center;gap:12px;margin-bottom:8px}.brand-title>span{display:flex;align-items:baseline;gap:7px}.brand-title strong{font-size:20px;color:#f3f4f6}.brand-title small{font-size:10px;letter-spacing:.16em;color:#718096}.brand-mark{flex:0 0 auto}.err{margin:12px 0;color:#ff9b9b}label{display:block;margin-top:14px}input,button{width:100%;margin-top:6px;border:1px solid #2b333d;background:#0e1216;color:#d8dee7;border-radius:7px;padding:10px;font:inherit}button{cursor:pointer;margin-top:18px}</style></head><body><main class="card">${brandTitleSvg(48)}<p class="muted">Independent operator authentication</p>${note}<form method="post" action="/auth/login"><input type="hidden" name="next" value="${nextValue}"><label>Username<input name="username" autocomplete="username" required autofocus></label><label>Password<input type="password" name="password" autocomplete="current-password" required></label><button type="submit">Sign in</button></form></main></body></html>`;
 }
 export function createWallAuth(options = {}) {
   const config = loadConfig(options.configFile);
@@ -147,7 +152,7 @@ export function createWallAuth(options = {}) {
   }
   function requirePage(req, res, next) {
     const value = identity(req);
-    if (!value) return res.redirect(303, '/login');
+    if (!value) { const target=safeNext(req.originalUrl || req.url || '/'); return res.redirect(303, `/login?next=${encodeURIComponent(target)}`); }
     req.wallIdentity = value; return next();
   }
   function requireApi(req, res, next) {
@@ -156,27 +161,28 @@ export function createWallAuth(options = {}) {
     req.wallIdentity = value; return next();
   }
   function loginPage(req, res) {
-    if (identity(req)) return res.redirect(303, '/');
-    setLoginSecurity(res); return res.status(200).type('html').send(loginHtml());
+    const next=safeNext(req.query?.next);
+    if (identity(req)) return res.redirect(303, next);
+    setLoginSecurity(res); return res.status(200).type('html').send(loginHtml('', next));
   }
   function login(req, res) {
     const key = attemptKey(req), now = Date.now(), history = recentFailures(key, now);
     if (history.length >= LOGIN_MAX_ATTEMPTS) {
       const retry = Math.max(1, Math.ceil((LOGIN_WINDOW_MS - (now - history[0])) / 1000));
       res.set('Retry-After', String(retry)); setLoginSecurity(res);
-      return res.status(429).type('html').send(loginHtml('Too many failed attempts. Try again later.'));
+      return res.status(429).type('html').send(loginHtml('Too many failed attempts. Try again later.', safeNext(req.body?.next)));
     }
     const username = String(req.body?.username || '');
     const password = String(req.body?.password || '');
     const ok = credentialsOk(username, password);
     if (!ok) {
       history.push(now); failures.set(key, history); setLoginSecurity(res);
-      return res.status(401).type('html').send(loginHtml('Invalid username or password.'));
+      return res.status(401).type('html').send(loginHtml('Invalid username or password.', safeNext(req.body?.next)));
     }
     failures.delete(key);
     const expiresAt = Date.now() + config.sessionTtlSeconds * 1000;
     res.set('Set-Cookie', sessionCookie(cookieName, signSession(config.cookieSecret, config.username, expiresAt), config.sessionTtlSeconds, cookieSecure));
-    return res.redirect(303, '/');
+    return res.redirect(303, safeNext(req.body?.next));
   }
   function requireBridgeSession(req, res, next) {
     const value = bridgeIdentity(req);

@@ -5,21 +5,29 @@ This Vercel project is the approved ChatGPT-facing relay into the owner's ARM op
 Active path:
 `ChatGPT -> @Vercel -> light-remote-mcp.vercel.app -> ARM hub -> selected executor`
 
-## New agent startup
-1. Fetch public `https://light-remote-mcp.vercel.app/api/guide`.
-2. Obtain a short-lived bridge session through `POST /api/auth` using the current local operator login; do not put credentials in a URL.
-3. Send the returned value as `x-bridge-session` on protected read/operator calls.
-4. Generate one opaque random `agentId` for this agent/chat and one stable `openId` for the open attempt.
-5. Open a session and retain the returned server-issued `sessionId`. Omit `nodeId` only for ARM-local compatibility; for a leaf, specify its exact `nodeId`.
-6. Send `agentId + sessionId` on operator exec/job/output/resume calls and tracked reads. Keep the session target fixed; leaf exec may also declare `requiredCapabilities`.
-7. On transient network loss, resume the same session with the same agentId; if the bridge session expires, re-authenticate, and if the operator lane expired, open a new lane.
-8. Prefer grouped `exec_batch` operations when commands logically belong together.
+## New agent startup — ChatGPT Plus / @Vercel
+1. Fetch `https://light-remote-mcp.vercel.app/api/guide` and follow its `plusBridge` contract. Do not ask the owner for Wall credentials.
+2. Generate one opaque stable `agentId` for this chat (16–128 safe characters).
+3. Call `GET /api/operator?via=plus&action=authorize-begin&p=<base64url-json>` with `{agentId,label}`. The response contains a one-time code, polling token and Wall approval URL. Never expose the polling token in prose.
+4. Ask the owner to open the returned Wall URL and approve only if the displayed code matches. The authorization request expires after ten minutes.
+5. After owner approval, call `authorize-poll` once with `{requestId,pollToken}`. Retain the returned short-lived `ps` capability privately for this chat; default lifetime is one hour. It is not a password and must not be logged or echoed.
+6. Use `GET /api/operator?via=plus&ps=<session>&action=devices` or `fleet`, choose the exact target, then generate one stable `openId` for the session-open attempt.
+7. Open the durable operator lane with `action=session-open&p=<base64url-json>` and retain the server-issued `sessionId`. Omit `nodeId` only for ARM-local compatibility; specify leaf targets explicitly.
+8. Send the same `agentId + sessionId` for exec/job/output/resume/close calls. `exec` also uses a stable `operationId`; retry the same semantic operation with the same ID.
+9. On transient transport loss, resume the same durable session. If `ps` expires, start a new owner-approval pairing; do not fall back to anonymous execution or a different device.
+
+The Plus compatibility lane is GET-only because the current `@Vercel` fetch surface cannot provide arbitrary application POST/header calls. The query may carry only the short-lived owner-approved Plus capability and bounded base64url request payload. Owner passwords, private keys, Wall cookies and long-lived credentials never belong in URLs.
+
+### Legacy/reference operator clients
+Non-Plus clients that can issue arbitrary POST requests may still use `POST /api/auth` and `x-bridge-session`. That is a compatibility lane, not the current ChatGPT Plus startup flow.
 
 ## Session semantics
 One agent owns one live session on one target node. A same-agent repeat open returns the existing lane only for the same target; cross-target reuse is rejected. A different agent trying to use that session is rejected with `409 session_owner_mismatch`. Idle grace is 30 minutes, active jobs HOLD the lane regardless of transport, and the final job gives a fresh 30-minute grace. ARM local ceiling is 5; leaves advertise their own per-node ceiling.
 
 ## Security / execution
-v0.6 removes the static shared Bearer boundary. During production testing, ARM mints a separate 15-minute bridge session only after the local operator credential check; Vercel merely relays the login and forwards `x-bridge-session`. ARM validates both Vercel OIDC and that short-lived session before protected operator/MCP tool calls. Wall cookies are cryptographically domain-separated from bridge sessions. Privileged bodies remain protected with X25519 + HKDF-SHA256 + AES-256-GCM, replay rejection and semantic `operationId` idempotency. The public App/Plugin later replaces this temporary login-mint step with account/device OAuth and ChatGPT permission semantics.
+There is no static shared Bearer boundary. For ChatGPT Plus, ARM accepts an exact Vercel OIDC caller for the configured project/environment, but that identity alone cannot operate devices: the owner must also approve a short-lived Plus session in Wall. The Plus session is cryptographically domain-separated from Wall cookies, bridge sessions and OAuth tokens and is bound to the chat's `agentId`; session-open and subsequent durable session ownership enforce the same agent identity.
+
+Privileged bodies remain protected with X25519 + HKDF-SHA256 + AES-256-GCM, replay rejection and semantic `operationId` idempotency. Signed device policy and device-side capability inference are the final execution boundary. The legacy `x-bridge-session` and direct MCP OAuth lanes remain separate compatibility/test surfaces; the future public App/Plugin replaces the Vercel compatibility adapter with account/device authorization and ChatGPT permission semantics.
 
 ## Wall / observability
 Wall is an authenticated owner control plane with `ALL` plus per-session tabs. It is not a generic shell/executor: mutations are explicit structured actions such as Device Policy changes and `Run signed update now`, each bounded by server/device policy and fully audited. Wall never owns device/session lifetime. Independent local auth is active even without NetBird: scrypt password verification plus a signed `HttpOnly + Secure + SameSite=Strict` session cookie and login throttling. NetBird may remain as an optional outer layer.
@@ -29,9 +37,9 @@ The bootstrap password itself is never stored in Git or logs. On the VPS it is t
 Wall SSE is the primary live path. A 1-second lightweight activity-head probe is only a missed-event detector; it triggers bounded catch-up when needed. It does not keep a session alive and must not become a high-frequency worker loop.
 
 ## Development transport rule
-Use the Vercel bridge directly for normal development calls; v0.6 does not require a static shared caller Bearer. Protected calls do require the short-lived `x-bridge-session` minted through `/api/auth`. Preview Deployment Protection may still gate preview URLs independently at the Vercel platform layer. Self-disruptive gateway work uses RDC only for the disruptive step.
+For the owner’s current ChatGPT Plus workflow, normal development calls must dogfood `@Vercel -> /api/operator?via=plus -> owner-approved Plus session -> ARM Hub`. A fresh chat must be able to pair, select ARM/AMD/Windows explicitly, open/resume/close durable sessions, execute work and read durable output without RDC.
 
-The v0.6 branch includes body-safe structured POST transport for `/api/operator`; GET/query/base64 remains legacy compatibility only and is capped to small payloads with deterministic `414 payload_too_large_use_post`. Do not move credentials or private material into query strings. RDC remains the rescue lane for self-disruptive deployment/rebuild steps.
+Structured POST remains the normal transport for native/internal clients. GET/query/base64 is an explicit Plus compatibility adapter only. It is bounded, `no-store`, uses semantic idempotency, and may carry only the short-lived pairing/session capability required because the current connector is GET-only. It must never carry owner credentials, private keys or cookies. RDC is rescue-only during the cutoff window and is not an acceptance dependency.
 
 Audit is authoritative on VPS JSONL. ARM is the live Hub and `VPS-AMD` is the first accepted outbound leaf. Explicit leaf targets fail closed when offline/draining; there is no silent fallback. See `CURRENT_STATE.md`, `FLEET_ROUTING_V0_8.md`, `PLATFORM_ADAPTERS_V0_9.md`, `SESSION_OWNERSHIP_V0_5.md`, `HUB_TOPOLOGY_V0_5.md`, `SESSION_LANES_V0_4.md`, and `PRODUCT_PLATFORM_PLAN_V0_6_TO_PUBLIC_PLUGIN.md`.
 

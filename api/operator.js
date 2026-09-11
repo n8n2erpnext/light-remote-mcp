@@ -9,19 +9,33 @@ module.exports=async function handler(req,res){
   const started=Date.now();
   res.setHeader('Cache-Control','no-store');
   res.setHeader('X-Robots-Tag','noindex, nofollow, noarchive');
+  res.setHeader('Referrer-Policy','no-referrer');
   if(!['GET','POST'].includes(req.method)) return res.status(405).json({ok:false,error:'method_not_allowed'});
   const action=String(field(req,'action','capabilities'));
   const wantsPlus=String(field(req,'via',''))==='plus';
-  const plus=wantsPlus && req.method==='GET' && String(process.env.VERCEL_ENV||'')==='preview';
-  if(wantsPlus&&!plus) return res.status(403).json({ok:false,error:'plus_bridge_preview_only'});
+  const plus=wantsPlus && req.method==='GET';
+  if(wantsPlus&&!plus) return res.status(405).json({ok:false,error:'plus_bridge_get_only'});
   const bridgeSession=String(req.headers?.['x-bridge-session']||'');
+  const plusSession=String(field(req,'ps','')).trim();
   const call=(path,options={})=>callOperator(path,{...options,bridgeSession});
-  const plusCall=(path,options={})=>callOperator(path,options);
+  const plusCall=(path,options={})=>callOperator(path,{...options,plusSession});
   try {
     let upstream;
     if(plus){
-      if(action==='capabilities') upstream=await plusCall('/plus/capabilities');
-      else if(action==='devices') upstream=await plusCall('/plus/devices');
+      if(action==='authorize-begin') {
+        const d=payloadFor(req), agentId=aid(d.agentId), label=String(d.label||'ChatGPT Plus').trim().slice(0,120);
+        upstream=await callOperator('/plus/auth/begin',{method:'POST',body:{agentId,label}});
+      }
+      else if(action==='authorize-poll') {
+        const d=payloadFor(req), requestId=String(d.requestId||'').trim(), pollToken=String(d.pollToken||'').trim();
+        if(!/^pa_[A-Za-z0-9_-]{20,80}$/.test(requestId)){const e=new Error('invalid_plus_request_id');e.status=400;throw e;}
+        if(!/^[A-Za-z0-9_-]{32,128}$/.test(pollToken)){const e=new Error('invalid_plus_poll_token');e.status=400;throw e;}
+        upstream=await callOperator('/plus/auth/poll',{method:'POST',body:{requestId,pollToken}});
+      }
+      else {
+        if(!/^o1\.plus\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(plusSession)){const e=new Error('plus_session_required');e.status=401;throw e;}
+        if(action==='capabilities') upstream=await plusCall('/plus/capabilities');
+        else if(action==='devices') upstream=await plusCall('/plus/devices');
       else if(action==='fleet') upstream=await plusCall('/plus/fleet');
       else if(action==='device') upstream=await plusCall(`/plus/devices/${encodeURIComponent(String(field(req,'id','')))}`);
       else if(action==='sessions') upstream=await plusCall('/plus/sessions');
@@ -34,7 +48,8 @@ module.exports=async function handler(req,res){
       else if(action==='output'){
         const q=new URLSearchParams({agentId:aid(field(req,'aid')),stream:field(req,'stream')==='stderr'?'stderr':'stdout',full:['1','true','yes'].includes(String(field(req,'full','0')).toLowerCase())?'1':'0',offset:String(Math.max(0,Number(field(req,'offset',0))||0)),limit:String(Math.max(1,Math.min(Number(field(req,'limit',4194304))||4194304,8388608)))});
         upstream=await plusCall(`/plus/output/${encodeURIComponent(jobId(field(req,'id')))}?${q}`);
-      } else { const e=new Error('plus_action_not_allowed'); e.status=403; throw e; }
+        } else { const e=new Error('plus_action_not_allowed'); e.status=403; throw e; }
+      }
     } else
     if(action==='capabilities') upstream=await call('/operator/capabilities');
     else if(action==='enrollment-begin') upstream=await call('/operator/enrollments/begin',{method:'POST',body:{...normalizeEnrollmentBegin(payloadFor(req)),sourceHash:enrollmentSourceHash(req)}});

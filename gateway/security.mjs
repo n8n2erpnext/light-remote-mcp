@@ -4,7 +4,7 @@ const TEAM_SLUG = process.env.VERCEL_TEAM_SLUG || 'thdangduys-projects';
 const PROJECT_NAME = process.env.VERCEL_PROJECT_NAME || 'light-remote-mcp';
 const AUDIENCE = process.env.VERCEL_AUDIENCE || 'https://mcp.dashboard.thaiduy.store';
 const ALLOWED_ENV = process.env.VERCEL_ENVIRONMENT || 'production';
-const PLUS_BRIDGE_ENV = process.env.VERCEL_PLUS_BRIDGE_ENVIRONMENT || 'preview';
+const PLUS_BRIDGE_ENVS = String(process.env.VERCEL_PLUS_BRIDGE_ENVIRONMENTS || process.env.VERCEL_PLUS_BRIDGE_ENVIRONMENT || 'production,preview').split(',').map(v=>v.trim()).filter(Boolean);
 const TEAM_ISSUER = `https://oidc.vercel.com/${TEAM_SLUG}`;
 const GLOBAL_ISSUER = 'https://oidc.vercel.com';
 const expectedSubject = environment => `owner:${TEAM_SLUG}:project:${PROJECT_NAME}:environment:${environment}`;
@@ -38,8 +38,14 @@ export async function authenticateVercel(req) {
 }
 
 export async function authenticateVercelPlusBridge(req) {
-  return authenticateVercelEnvironment(req, PLUS_BRIDGE_ENV);
+  let lastError = null;
+  for (const environment of PLUS_BRIDGE_ENVS) {
+    try { return await authenticateVercelEnvironment(req, environment); }
+    catch (error) { lastError = error; }
+  }
+  throw lastError || new Error('plus_environment_not_allowed');
 }
+
 
 export async function requireVercelForToolCall(req, res, next) {
   if (!isToolCall(req)) return next();
@@ -63,6 +69,6 @@ export function securityInfo() {
     audience: AUDIENCE,
     project: PROJECT_NAME,
     environment: ALLOWED_ENV,
-    plusBridgeEnvironment: PLUS_BRIDGE_ENV
+    plusBridgeEnvironments: PLUS_BRIDGE_ENVS
   };
 }

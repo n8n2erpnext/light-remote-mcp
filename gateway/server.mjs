@@ -15,6 +15,7 @@ import { rootNames, listWorkspace, readWorkspaceText, searchWorkspace, gitStatus
 import { registerRemoteTools } from './remote-tools.mjs';
 import { registerConvenienceTools } from './remote-convenience-tools.mjs';
 import { registerMcpOAuth, mcpAuthChallenge } from './oauth.mjs';
+import { createPlusAuth } from './plus-auth.mjs';
 
 const PORT = Number(process.env.PORT || 8080);
 const WALL_PORT = Number(process.env.WALL_PORT || 8081);
@@ -157,9 +158,10 @@ function softRateLimit(req, res, next) {
   next();
 }
 const wallAuth = createWallAuth();
+const plusAuth = createPlusAuth(wallAuth);
 registerMcpOAuth(app, wallAuth);
 app.get('/healthz', (_req, res) => res.json({
-  ok: true, service: 'thaiduy-vps-arm-mcp', version: VERSION, mode: 'read-plus-operator', security: { ...securityInfo(), toolCalls:'oauth-or-vercel-oidc-plus-bridge-session', plusBridge:'protected-vercel-preview-plus-oidc', bridgeSession:'required-for-vercel-operator-calls', bridgeSessionTtlSeconds:wallAuth.info().bridgeSessionTtlSeconds }
+  ok: true, service: 'thaiduy-vps-arm-mcp', version: VERSION, mode: 'read-plus-operator', security: { ...securityInfo(), toolCalls:'oauth-or-vercel-oidc-plus-bridge-session', plusBridge:'owner-approved-short-lived-plus-session-over-vercel', bridgeSession:'required-for-vercel-operator-calls', bridgeSessionTtlSeconds:wallAuth.info().bridgeSessionTtlSeconds }
 }));
 
 async function requireVercelIdentity(req, res, next) {
@@ -171,12 +173,14 @@ async function requireOperatorIdentity(req, res, next) {
   catch { return res.status(401).json({ ok: false, error: 'unauthorized_operator_call' }); }
   return wallAuth.requireBridgeSession(req, res, next);
 }
-async function requirePlusBridgeIdentity(req, res, next) {
-  try {
-    req.mcpIdentity = await authenticateVercelPlusBridge(req);
-    req.mcpIdentity.authType='vercel-plus-bridge';
-    return next();
-  } catch { return res.status(401).json({ ok:false, error:'unauthorized_plus_bridge_call' }); }
+async function requirePlusVercelIdentity(req, res, next) {
+  try { req.mcpIdentity = await authenticateVercel(req); }
+  catch {
+    try { req.mcpIdentity = await authenticateVercelPlusBridge(req); }
+    catch { return res.status(401).json({ ok:false, error:'unauthorized_plus_bridge_call' }); }
+  }
+  req.mcpIdentity.authType='vercel-plus-bridge';
+  return next();
 }
 async function requireMcpIdentity(req, res, next) {
   const auth=String(req.get('authorization') || '');
@@ -228,18 +232,20 @@ app.get('/operator/output/:id', softRateLimit, requireOperatorIdentity, (req, re
   return proxyOperatorJson(res, 'GET', `/v1/output/${encodeURIComponent(req.params.id)}${qs ? `?${qs}` : ''}`);
 });
 
-app.get('/plus/capabilities', softRateLimit, requirePlusBridgeIdentity, (_req,res)=>proxyOperatorJson(res,'GET','/v1/capabilities'));
-app.get('/plus/devices', softRateLimit, requirePlusBridgeIdentity, (_req,res)=>proxyOperatorJson(res,'GET','/v1/devices'));
-app.get('/plus/fleet', softRateLimit, requirePlusBridgeIdentity, (_req,res)=>proxyOperatorJson(res,'GET','/v1/fleet'));
-app.get('/plus/devices/:id', softRateLimit, requirePlusBridgeIdentity, (req,res)=>proxyOperatorJson(res,'GET',`/v1/devices/${encodeURIComponent(req.params.id)}`));
-app.get('/plus/sessions', softRateLimit, requirePlusBridgeIdentity, (_req,res)=>proxyOperatorJson(res,'GET','/v1/sessions'));
-app.post('/plus/sessions/open', softRateLimit, requirePlusBridgeIdentity, (req,res)=>proxyOperatorJson(res,'POST','/v1/sessions/open',req.body||{}));
-app.post('/plus/sessions/:id/resume', softRateLimit, requirePlusBridgeIdentity, (req,res)=>proxyOperatorJson(res,'POST',`/v1/sessions/${encodeURIComponent(req.params.id)}/resume`,req.body||{}));
-app.post('/plus/sessions/:id/close', softRateLimit, requirePlusBridgeIdentity, (req,res)=>proxyOperatorJson(res,'POST',`/v1/sessions/${encodeURIComponent(req.params.id)}/close`,req.body||{}));
-app.get('/plus/sessions/:id', softRateLimit, requirePlusBridgeIdentity, (req,res)=>proxyOperatorJson(res,'GET',`/v1/sessions/${encodeURIComponent(req.params.id)}?agentId=${encodeURIComponent(req.query.agentId||'')}`));
-app.post('/plus/execute', softRateLimit, requirePlusBridgeIdentity, (req,res)=>proxyOperatorJson(res,'POST','/v1/execute',req.body||{}));
-app.get('/plus/jobs/:id', softRateLimit, requirePlusBridgeIdentity, (req,res)=>proxyOperatorJson(res,'GET',`/v1/jobs/${encodeURIComponent(req.params.id)}?agentId=${encodeURIComponent(req.query.agentId||'')}`));
-app.get('/plus/output/:id', softRateLimit, requirePlusBridgeIdentity, (req,res)=>{
+app.post('/plus/auth/begin', softRateLimit, requirePlusVercelIdentity, plusAuth.begin);
+app.post('/plus/auth/poll', softRateLimit, requirePlusVercelIdentity, plusAuth.poll);
+app.get('/plus/capabilities', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, (_req,res)=>proxyOperatorJson(res,'GET','/v1/capabilities'));
+app.get('/plus/devices', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, (_req,res)=>proxyOperatorJson(res,'GET','/v1/devices'));
+app.get('/plus/fleet', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, (_req,res)=>proxyOperatorJson(res,'GET','/v1/fleet'));
+app.get('/plus/devices/:id', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, (req,res)=>proxyOperatorJson(res,'GET',`/v1/devices/${encodeURIComponent(req.params.id)}`));
+app.get('/plus/sessions', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, (_req,res)=>proxyOperatorJson(res,'GET','/v1/sessions'));
+app.post('/plus/sessions/open', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, plusAuth.requireAgent, (req,res)=>proxyOperatorJson(res,'POST','/v1/sessions/open',req.body||{}));
+app.post('/plus/sessions/:id/resume', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, plusAuth.requireAgent, (req,res)=>proxyOperatorJson(res,'POST',`/v1/sessions/${encodeURIComponent(req.params.id)}/resume`,req.body||{}));
+app.post('/plus/sessions/:id/close', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, plusAuth.requireAgent, (req,res)=>proxyOperatorJson(res,'POST',`/v1/sessions/${encodeURIComponent(req.params.id)}/close`,req.body||{}));
+app.get('/plus/sessions/:id', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, plusAuth.requireAgent, (req,res)=>proxyOperatorJson(res,'GET',`/v1/sessions/${encodeURIComponent(req.params.id)}?agentId=${encodeURIComponent(req.query.agentId||'')}`));
+app.post('/plus/execute', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, (req,res)=>proxyOperatorJson(res,'POST','/v1/execute',req.body||{}));
+app.get('/plus/jobs/:id', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, plusAuth.requireAgent, (req,res)=>proxyOperatorJson(res,'GET',`/v1/jobs/${encodeURIComponent(req.params.id)}?agentId=${encodeURIComponent(req.query.agentId||'')}`));
+app.get('/plus/output/:id', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, plusAuth.requireAgent, (req,res)=>{
   const qs=new URLSearchParams(req.query).toString();
   return proxyOperatorJson(res,'GET',`/v1/output/${encodeURIComponent(req.params.id)}${qs?`?${qs}`:''}`);
 });
@@ -279,6 +285,10 @@ wallApp.use((_req, res, next) => {
 wallApp.get('/login', wallAuth.loginPage);
 wallApp.post('/auth/login', wallAuth.login);
 wallApp.post('/auth/logout', wallAuth.logout);
+wallApp.get('/plus-authorize', wallAuth.requirePage, plusAuth.page);
+wallApp.get('/api/plus-authorizations', wallAuth.requireApi, plusAuth.list);
+wallApp.post('/api/plus-authorizations/:id/approve', wallAuth.requireApi, plusAuth.approve);
+wallApp.post('/api/plus-authorizations/:id/deny', wallAuth.requireApi, plusAuth.deny);
 wallApp.get('/enroll', wallAuth.requirePage, (req, res) => {
   const enrollmentId = String(req.query.id || '').replace(/[^A-Za-z0-9._:-]/g,'').slice(0,128);
   res.set('Content-Security-Policy', "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");

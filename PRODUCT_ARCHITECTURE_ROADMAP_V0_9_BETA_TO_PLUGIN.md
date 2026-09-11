@@ -68,9 +68,9 @@ Do not add new privileged capability classes during the beta cut. Changes to the
 ## RDC replacement continuity gate
 RDC is rescue-only and must not remain a product dependency. The **current ChatGPT Plus continuity lane is Vercel-only**:
 
-`ChatGPT Plus -> @Vercel -> Vercel-authenticated protected preview -> api/operator?via=plus -> preview-scoped Vercel OIDC -> ARM Hub -> explicit ARM/AMD/Windows target`.
+`ChatGPT Plus -> @Vercel -> api/operator?via=plus -> owner-approved short-lived Plus session -> Vercel OIDC -> ARM Hub -> explicit ARM/AMD/Windows target`.
 
-Before RDC disappears, a fresh Plus chat using only `@Vercel` must independently pass device/fleet discovery, durable session open/resume/close, encrypted exec/job/output, filesystem mutation, Git/build-test, process/network/service reads where supported, and policy-authorized maintenance actions. The Plus bridge accepts GET at the ChatGPT-facing edge because the current Vercel connector fetch surface cannot attach arbitrary project headers or POST bodies; mutations remain idempotent through stable operation IDs and are executed as internal POSTs after Vercel Authentication and preview-scoped OIDC verification. Public production access is not an acceptable substitute for Vercel Authentication.
+Before RDC disappears, a fresh Plus chat using only `@Vercel` must first create a ten-minute pairing request, receive explicit owner approval in Wall, poll once for a short-lived Plus operator session, then independently pass device/fleet discovery, durable session open/resume/close, encrypted exec/job/output, filesystem mutation, Git/build-test, process/network/service reads where supported, and policy-authorized maintenance actions. The Plus bridge accepts GET at the ChatGPT-facing edge because the current Vercel connector fetch surface cannot attach arbitrary project headers or POST bodies. Production or Preview Vercel functions may relay the call only after exact Vercel OIDC verification at ARM, and operator actions additionally require the owner-approved short-lived Plus session. Mutations remain idempotent through stable operation IDs.
 
 Dogfooding is now a merge/release invariant: a feature that makes the project impossible to operate through the Plus -> Vercel lane is a release-blocking regression. Direct MCP OAuth dogfood remains a secondary protocol test, not the owner continuity gate.
 
@@ -86,11 +86,11 @@ Self-host owner OAuth may remain in v0.9 for eligible Business/Enterprise/Edu te
 7. macOS: defer until Windows/Linux distribution and signing/update operations are stable.
 
 ## OpenAI distribution reality for this beta
-As of this roadmap date, full MCP write/modify actions are available to Business and Enterprise/Edu, not ChatGPT Plus. The owner currently uses Plus, and the project is not yet available as a reviewed Plugin/App in the ChatGPT Plugin Directory. Therefore Plus operation is intentionally routed through `@Vercel` and the protected Vercel bridge.
+As of this roadmap date, full MCP write/modify actions are available to Business and Enterprise/Edu, not ChatGPT Plus. The owner currently uses Plus, and the project is not yet available as a reviewed Plugin/App in the ChatGPT Plugin Directory. Therefore Plus operation is intentionally routed through `@Vercel` and the owner-paired Vercel compatibility bridge.
 
-The README must distinguish four states: self-host installation is available; Plus control currently requires the protected Vercel bridge; direct write-capable MCP testing requires an eligible workspace; Plugin Directory availability is future and only after OpenAI review/approval.
+The README must distinguish four states: self-host installation is available; Plus control currently requires the owner-paired Vercel bridge; direct write-capable MCP testing requires an eligible workspace; Plugin Directory availability is future and only after OpenAI review/approval.
 
 ## Release progression
-`v0.9.0-beta.1` is the first public beta candidate for the frozen execution/control-plane architecture. Beta promotion requires Apache-2.0 root licensing, final full regression (currently 39/39), package CI for Windows/Linux, server deployment bundles, live Vercel + ARM + AMD + Windows version proof, and no release-blocking security regression.
+`v0.9.0-beta.1` is the first public beta candidate for the frozen execution/control-plane architecture. Beta promotion requires Apache-2.0 root licensing, final full regression (currently 41/41 before the Plus pairing addition; rerun required after this change), package CI for Windows/Linux, server deployment bundles, live Vercel + ARM + AMD + Windows version proof, and no release-blocking security regression.
 
 Stable `v0.9.0` is not implied by the beta tag. Stable requires beta soak plus any account/plugin decisions explicitly scheduled for that release.

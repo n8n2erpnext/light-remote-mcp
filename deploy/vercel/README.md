@@ -4,7 +4,7 @@ This bundle is the thin Vercel edge/bridge. It is **not** the durable Server/Hub
 
 ## Required environment
 
-Set these Vercel variables for **Production and Preview** (the current ChatGPT Plus bridge runs through a protected Preview deployment):
+Set these Vercel variables for **Production and Preview**:
 
 ```text
 VPS_MCP_BASE=https://mcp.example.com
@@ -13,7 +13,7 @@ VPS_MCP_AUDIENCE=https://mcp.example.com
 OPERATOR_PUBLIC_KEYS_JSON={...public key set printed by the Linux Server installer...}
 ```
 
-`VPS_MCP_AUDIENCE` must equal the audience configured on the Linux Server. The server verifies the Vercel team slug, project name and environment. Legacy/reference operator calls remain `production` scoped; the ChatGPT Plus bridge is separately pinned to `preview` and is intended to sit behind Vercel Authentication.
+`VPS_MCP_AUDIENCE` must equal the audience configured on the Linux Server. The server verifies the Vercel team slug, project name and environment. The ChatGPT Plus bridge accepts the environment-scoped Vercel OIDC identity but additionally requires a short-lived owner-approved Plus session before any device/session/exec action.
 
 `OPERATOR_PUBLIC_KEYS_JSON` contains only the public encryption key set. Never upload the matching private key to Vercel.
 
@@ -26,7 +26,7 @@ npm ci
 npx vercel link
 npx vercel --prod
 ```
-Before deploying, add the variables through the Vercel dashboard or `vercel env add` for both Preview and Production. Do not commit environment values into this bundle. For ChatGPT Plus control, keep the preview protected with Vercel Authentication and call `/api/operator?via=plus` through `@Vercel`; the endpoint rejects production deployment traffic by design.
+Before deploying, add the variables through the Vercel dashboard or `vercel env add` for both Preview and Production. Do not commit environment values into this bundle. For ChatGPT Plus control, call `/api/operator?via=plus` through `@Vercel`: begin pairing, approve the one-time request in Wall, poll once for the short-lived Plus session, then include that session only for subsequent operator calls. The bridge never accepts an owner password or private key in the URL.
 
 The bridge project name and team slug must match the values passed to the Linux Server installer. If you rename the Vercel project later, update the server-side `VERCEL_PROJECT_NAME` and restart the gateway.
 
