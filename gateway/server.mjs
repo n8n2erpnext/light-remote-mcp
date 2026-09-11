@@ -219,12 +219,17 @@ app.post('/operator/fleet/:id/drain', softRateLimit, requireOperatorIdentity, (r
 app.get('/operator/devices/:id', softRateLimit, requireOperatorIdentity, (req, res) => proxyOperatorJson(res, 'GET', `/v1/devices/${encodeURIComponent(req.params.id)}`));
 app.post('/operator/devices/:id/policy', softRateLimit, requireOperatorIdentity, (req, res) => proxyOperatorJson(res, 'POST', `/v1/devices/${encodeURIComponent(req.params.id)}/policy`, { ...(req.body || {}), deviceId:req.params.id, accountId:OPERATOR_ACCOUNT_ID }));
 app.post('/operator/devices/:id/revoke', softRateLimit, requireOperatorIdentity, (req, res) => proxyOperatorJson(res, 'POST', `/v1/devices/${encodeURIComponent(req.params.id)}/revoke`, { deviceId:req.params.id, accountId:OPERATOR_ACCOUNT_ID, reason:String(req.body?.reason || 'owner_revoked').slice(0,120) }));
+app.get('/operator/devices/:id/connection', softRateLimit, requireOperatorIdentity, (req,res)=>proxyOperatorJson(res,'GET',`/v1/devices/${encodeURIComponent(req.params.id)}/connection`));
+app.post('/operator/devices/:id/connection/connect', softRateLimit, requireOperatorIdentity, (req,res)=>proxyOperatorJson(res,'POST',`/v1/devices/${encodeURIComponent(req.params.id)}/connection/connect`,req.body||{}));
+app.post('/operator/devices/:id/connection/disconnect', softRateLimit, requireOperatorIdentity, (req,res)=>proxyOperatorJson(res,'POST',`/v1/devices/${encodeURIComponent(req.params.id)}/connection/disconnect`,req.body||{}));
+app.post('/operator/devices/:id/connection/grace', softRateLimit, requireOperatorIdentity, (req,res)=>proxyOperatorJson(res,'POST',`/v1/devices/${encodeURIComponent(req.params.id)}/connection/grace`,req.body||{}));
 app.post('/operator/sessions/open', softRateLimit, requireOperatorIdentity, (req, res) => proxyOperatorJson(res, 'POST', '/v1/sessions/open', req.body));
 app.post('/operator/sessions/:id/touch', softRateLimit, requireOperatorIdentity, (req, res) => proxyOperatorJson(res, 'POST', `/v1/sessions/${encodeURIComponent(req.params.id)}/touch`, req.body || {}));
 app.get('/operator/sessions', softRateLimit, requireOperatorIdentity, (_req, res) => proxyOperatorJson(res, 'GET', '/v1/sessions'));
 app.get('/operator/session-stats', softRateLimit, requireOperatorIdentity, (req, res) => proxyOperatorJson(res, 'GET', `/v1/session-stats?hours=${encodeURIComponent(req.query.hours || '168')}`));
 app.get('/operator/sessions/:id', softRateLimit, requireOperatorIdentity, (req, res) => proxyOperatorJson(res, 'GET', `/v1/sessions/${encodeURIComponent(req.params.id)}?agentId=${encodeURIComponent(req.query.agentId || '')}`));
 app.post('/operator/sessions/:id/resume', softRateLimit, requireOperatorIdentity, (req, res) => proxyOperatorJson(res, 'POST', `/v1/sessions/${encodeURIComponent(req.params.id)}/resume`, req.body || {}));
+app.post('/operator/sessions/:id/hold', softRateLimit, requireOperatorIdentity, (req, res) => proxyOperatorJson(res, 'POST', `/v1/sessions/${encodeURIComponent(req.params.id)}/hold`, req.body || {}));
 app.post('/operator/sessions/:id/close', softRateLimit, requireOperatorIdentity, (req, res) => proxyOperatorJson(res, 'POST', `/v1/sessions/${encodeURIComponent(req.params.id)}/close`, req.body || {}));
 app.get('/operator/jobs/:id', softRateLimit, requireOperatorIdentity, (req, res) => proxyOperatorJson(res, 'GET', `/v1/jobs/${encodeURIComponent(req.params.id)}?agentId=${encodeURIComponent(req.query.agentId || '')}`));
 app.get('/operator/output/:id', softRateLimit, requireOperatorIdentity, (req, res) => {
@@ -238,9 +243,11 @@ app.get('/plus/capabilities', softRateLimit, requirePlusVercelIdentity, plusAuth
 app.get('/plus/devices', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, (_req,res)=>proxyOperatorJson(res,'GET','/v1/devices'));
 app.get('/plus/fleet', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, (_req,res)=>proxyOperatorJson(res,'GET','/v1/fleet'));
 app.get('/plus/devices/:id', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, (req,res)=>proxyOperatorJson(res,'GET',`/v1/devices/${encodeURIComponent(req.params.id)}`));
+app.get('/plus/devices/:id/connection', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, (req,res)=>proxyOperatorJson(res,'GET',`/v1/devices/${encodeURIComponent(req.params.id)}/connection`));
 app.get('/plus/sessions', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, (_req,res)=>proxyOperatorJson(res,'GET','/v1/sessions'));
 app.post('/plus/sessions/open', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, plusAuth.requireAgent, (req,res)=>proxyOperatorJson(res,'POST','/v1/sessions/open',req.body||{}));
 app.post('/plus/sessions/:id/resume', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, plusAuth.requireAgent, (req,res)=>proxyOperatorJson(res,'POST',`/v1/sessions/${encodeURIComponent(req.params.id)}/resume`,req.body||{}));
+app.post('/plus/sessions/:id/hold', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, plusAuth.requireAgent, (req,res)=>proxyOperatorJson(res,'POST',`/v1/sessions/${encodeURIComponent(req.params.id)}/hold`,req.body||{}));
 app.post('/plus/sessions/:id/close', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, plusAuth.requireAgent, (req,res)=>proxyOperatorJson(res,'POST',`/v1/sessions/${encodeURIComponent(req.params.id)}/close`,req.body||{}));
 app.get('/plus/sessions/:id', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, plusAuth.requireAgent, (req,res)=>proxyOperatorJson(res,'GET',`/v1/sessions/${encodeURIComponent(req.params.id)}?agentId=${encodeURIComponent(req.query.agentId||'')}`));
 app.post('/plus/execute', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, (req,res)=>proxyOperatorJson(res,'POST','/v1/execute',req.body||{}));
@@ -307,6 +314,10 @@ wallApp.get('/api/devices', wallAuth.requireApi, (_req, res) => proxyOperatorJso
 wallApp.get('/api/devices/:id', wallAuth.requireApi, (req, res) => proxyOperatorJson(res, 'GET', `/v1/devices/${encodeURIComponent(req.params.id)}`));
 wallApp.post('/api/devices/:id/policy', wallAuth.requireApi, (req, res) => proxyOperatorJson(res, 'POST', `/v1/devices/${encodeURIComponent(req.params.id)}/policy`, { ...(req.body || {}), deviceId:req.params.id, accountId:OPERATOR_ACCOUNT_ID }));
 wallApp.post('/api/devices/:id/maintenance/update', wallAuth.requireApi, (req, res) => proxyOperatorJson(res, 'POST', `/v1/devices/${encodeURIComponent(req.params.id)}/maintenance/update`, {}));
+wallApp.get('/api/devices/:id/connection', wallAuth.requireApi, (req,res)=>proxyOperatorJson(res,'GET',`/v1/devices/${encodeURIComponent(req.params.id)}/connection`));
+wallApp.post('/api/devices/:id/connection/connect', wallAuth.requireApi, (req,res)=>proxyOperatorJson(res,'POST',`/v1/devices/${encodeURIComponent(req.params.id)}/connection/connect`,req.body||{}));
+wallApp.post('/api/devices/:id/connection/disconnect', wallAuth.requireApi, (req,res)=>proxyOperatorJson(res,'POST',`/v1/devices/${encodeURIComponent(req.params.id)}/connection/disconnect`,req.body||{}));
+wallApp.post('/api/devices/:id/connection/grace', wallAuth.requireApi, (req,res)=>proxyOperatorJson(res,'POST',`/v1/devices/${encodeURIComponent(req.params.id)}/connection/grace`,req.body||{}));
 wallApp.get('/api/enrollments', wallAuth.requireApi, (_req, res) => proxyOperatorJson(res, 'GET', '/v1/enrollments'));
 wallApp.post('/api/enrollments/approve', wallAuth.requireApi, (req, res) => proxyOperatorJson(res, 'POST', '/v1/enrollments/approve', { ...(req.body || {}), accountId:OPERATOR_ACCOUNT_ID }));
 wallApp.get('/api/sessions', wallAuth.requireApi, (_req, res) => proxyOperatorJson(res, 'GET', '/v1/sessions'));

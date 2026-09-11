@@ -32,22 +32,22 @@ export function registerRemoteTools(server, tracked, identity) {
 
   server.registerTool('light_remote_open_session', {
     title:'Open durable Light Remote session',
-    description:'Open or reuse a durable target-bound operator session. Use one stable agentId per ChatGPT conversation and a stable openId per open attempt. Never silently switch nodeId.',
+    description:'Open or reuse a durable target-bound Agent lane. Use one stable agentId per ChatGPT conversation. The same agentId may own a separate lane on another device. Reconnect grace is bounded to 15–60 minutes and is not the device connection lifetime.',
     inputSchema:{
       agentId, openId:agentId,
       label:z.string().max(160).optional(), workspace:z.string().max(240).optional(),
-      nodeId:id.optional(), leasePreset:z.enum(['30m','1h','3h']).optional(),
-      leaseMs:z.number().int().min(300000).max(86400000).optional()
+      nodeId:id.optional(), gracePreset:z.enum(['15m','30m','45m','60m']).optional(),
+      graceMs:z.number().int().min(900000).max(3600000).optional()
     },
     annotations:annotations({ idempotent:true })
   }, tracked('light_remote_open_session', identity, async input => callOperatorJson('POST','/v1/sessions/open',{
     agentId:input.agentId, openId:input.openId, label:input.label || 'ChatGPT Light Remote',
-    workspace:input.workspace || '', nodeId:input.nodeId, leasePreset:input.leasePreset, leaseMs:input.leaseMs
+    workspace:input.workspace || '', nodeId:input.nodeId, gracePreset:input.gracePreset, graceMs:input.graceMs
   })));
 
   server.registerTool('light_remote_session', {
     title:'Read Light Remote session',
-    description:'Read one durable session by ID. Session reads renew the lease according to server policy.',
+    description:'Read one durable Agent session by ID. Activity renews only the bounded reconnect grace; it never extends the device hard connection lease.',
     inputSchema:{ sessionId:id, agentId },
     annotations:annotations({ readOnly:true, idempotent:true })
   }, tracked('light_remote_session', identity, async input => callOperatorJson('GET',
@@ -60,6 +60,14 @@ export function registerRemoteTools(server, tracked, identity) {
     annotations:annotations({ idempotent:true })
   }, tracked('light_remote_resume_session', identity, async input => callOperatorJson('POST',
     `/v1/sessions/${encodeURIComponent(input.sessionId)}/resume`, { agentId:input.agentId })));
+
+  server.registerTool('light_remote_hold_session', {
+    title:'Hold Light Remote session',
+    description:'Mark an Agent lane as temporarily disconnected/recoverable without closing it. It remains resumable only inside the configured reconnect grace.',
+    inputSchema:{ sessionId:id, agentId, reason:z.enum(['transport_lost','chat_disconnected','client_temporarily_offline','user_idle']).optional() },
+    annotations:annotations({ idempotent:true })
+  }, tracked('light_remote_hold_session', identity, async input => callOperatorJson('POST',
+    `/v1/sessions/${encodeURIComponent(input.sessionId)}/hold`, { agentId:input.agentId, reason:input.reason || 'transport_lost' })));
 
   server.registerTool('light_remote_exec', {
     title:'Execute on a Light Remote device',

@@ -18,17 +18,17 @@ function request(method,target,body){return new Promise((resolve,reject)=>{const
   const req=http.request({socketPath:socket,method,path:target,headers:payload?{'content-type':'application/json','content-length':payload.length}:{}},res=>{let text='';res.on('data',c=>text+=c);res.on('end',()=>resolve({status:res.statusCode,json:JSON.parse(text)}));});
   req.on('error',reject); if(payload)req.write(payload); req.end();});}
 try {
-  const cap=await request('GET','/v1/capabilities'); if(cap.status!==200||cap.json.deviceId!=='device-test'||cap.json.sessionLeasePresets?.['1h']!==3600000) throw new Error('capabilities_device_missing');
+  const cap=await request('GET','/v1/capabilities'); if(cap.status!==200||cap.json.deviceId!=='device-test'||cap.json.sessionGracePresets?.['60m']!==3600000) throw new Error('capabilities_device_missing');
   const before=await request('GET','/v1/devices'); if(before.status!==200||before.json.devices?.[0]?.state!=='online'||before.json.devices[0].activeSessions!==0) throw new Error('device_list_initial_failed');  const aid='agent-device-endpoint-test-aaaaaaaa', openId='device-endpoint-open-test-aaaaaaaa';
-  const opened=await request('POST','/v1/sessions/open',{agentId:aid,openId,label:'device endpoint',workspace:'/tmp',leaseMs:1200,leasePreset:'custom'});
-  if(opened.status!==200||opened.json.session.leaseMs!==1200||opened.json.session.leasePreset!=='custom'||opened.json.session.deviceId!=='device-test') throw new Error('session_device_lease_failed');
+  const opened=await request('POST','/v1/sessions/open',{agentId:aid,openId,label:'device endpoint',workspace:'/tmp',graceMs:1200,gracePreset:'custom'});
+  if(opened.status!==200||opened.json.session.graceMs!==1200||opened.json.session.gracePreset!=='custom'||opened.json.session.deviceId!=='device-test') throw new Error('session_device_lease_failed');
   const sid=opened.json.session.sessionId;
   const during=await request('GET','/v1/devices/device-test');
   if(during.status!==200||during.json.device.activeSessions!==1||during.json.device.accountId!=='acct-test') throw new Error('device_active_session_projection_failed');
   const closed=await request('POST',`/v1/sessions/${sid}/close`,{agentId:aid}); if(closed.status!==200||closed.json.session.state!=='closed') throw new Error('close_failed');
   const after=await request('GET','/v1/devices'); if(after.json.devices?.[0]?.activeSessions!==0) throw new Error('device_session_release_projection_failed');
   if(!fs.existsSync(`${stateDir}/devices.json`)) throw new Error('device_state_not_persisted');
-  console.log(JSON.stringify({ok:true,deviceId:during.json.device.deviceId,nodeId:during.json.device.nodeId,leaseMs:opened.json.session.leaseMs,activeDuring:during.json.device.activeSessions,activeAfter:after.json.devices[0].activeSessions,persisted:true},null,2));
+  console.log(JSON.stringify({ok:true,deviceId:during.json.device.deviceId,nodeId:during.json.device.nodeId,graceMs:opened.json.session.graceMs,activeDuring:during.json.device.activeSessions,activeAfter:after.json.devices[0].activeSessions,persisted:true},null,2));
 } finally {
   child.kill('SIGTERM'); await sleep(100);
   fs.rmSync(socket,{force:true}); fs.rmSync(logDir,{recursive:true,force:true}); fs.rmSync(stateDir,{recursive:true,force:true});

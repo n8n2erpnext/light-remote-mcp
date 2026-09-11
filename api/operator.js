@@ -38,9 +38,11 @@ module.exports=async function handler(req,res){
         else if(action==='devices') upstream=await plusCall('/plus/devices');
       else if(action==='fleet') upstream=await plusCall('/plus/fleet');
       else if(action==='device') upstream=await plusCall(`/plus/devices/${encodeURIComponent(String(field(req,'id','')))}`);
+      else if(action==='device-connection') upstream=await plusCall(`/plus/devices/${encodeURIComponent(String(field(req,'id','')))}/connection`);
       else if(action==='sessions') upstream=await plusCall('/plus/sessions');
       else if(action==='session-open') upstream=await plusCall('/plus/sessions/open',{method:'POST',body:normalizeSessionOpenPayload(payloadFor(req))});
       else if(action==='session-resume') upstream=await plusCall(`/plus/sessions/${encodeURIComponent(sid(field(req,'sid')))}/resume`,{method:'POST',body:{agentId:aid(field(req,'aid'))}});
+      else if(action==='session-hold') upstream=await plusCall(`/plus/sessions/${encodeURIComponent(sid(field(req,'sid')))}/hold`,{method:'POST',body:{agentId:aid(field(req,'aid')),reason:String(field(req,'reason','transport_lost')).slice(0,80)}});
       else if(action==='session-close') upstream=await plusCall(`/plus/sessions/${encodeURIComponent(sid(field(req,'sid')))}/close`,{method:'POST',body:{agentId:aid(field(req,'aid'))}});
       else if(action==='session') upstream=await plusCall(`/plus/sessions/${encodeURIComponent(sid(field(req,'sid')))}?agentId=${encodeURIComponent(aid(field(req,'aid')))}`);
       else if(action==='exec') upstream=await plusCall('/plus/execute',{method:'POST',body:sealOperatorPayload(normalizeExecPayload(payloadFor(req))),timeoutMs:9500});
@@ -64,8 +66,13 @@ module.exports=async function handler(req,res){
     else if(action==='fleet') upstream=await call('/operator/fleet');
     else if(action==='node-drain') { const body=normalizeNodeDrain(payloadFor(req)); upstream=await call(`/operator/fleet/${encodeURIComponent(body.nodeId)}/drain`,{method:'POST',body}); }
     else if(action==='device') upstream=await call(`/operator/devices/${encodeURIComponent(String(field(req,'id','')))}`);
+    else if(action==='device-connection') upstream=await call(`/operator/devices/${encodeURIComponent(String(field(req,'id','')))}/connection`);
+    else if(action==='device-connect') upstream=await call(`/operator/devices/${encodeURIComponent(String(field(req,'id','')))}/connection/connect`,{method:'POST',body:payloadFor(req)});
+    else if(action==='device-disconnect') upstream=await call(`/operator/devices/${encodeURIComponent(String(field(req,'id','')))}/connection/disconnect`,{method:'POST',body:payloadFor(req)});
+    else if(action==='device-connection-grace') upstream=await call(`/operator/devices/${encodeURIComponent(String(field(req,'id','')))}/connection/grace`,{method:'POST',body:payloadFor(req)});
     else if(action==='session-open') upstream=await call('/operator/sessions/open',{method:'POST',body:normalizeSessionOpenPayload(payloadFor(req))});
     else if(action==='session-resume') upstream=await call(`/operator/sessions/${encodeURIComponent(sid(field(req,'sid')))}/resume`,{method:'POST',body:{agentId:aid(field(req,'aid'))}});
+    else if(action==='session-hold') upstream=await call(`/operator/sessions/${encodeURIComponent(sid(field(req,'sid')))}/hold`,{method:'POST',body:{agentId:aid(field(req,'aid')),reason:String(field(req,'reason','transport_lost')).slice(0,80)}});
     else if(action==='session-close') upstream=await call(`/operator/sessions/${encodeURIComponent(sid(field(req,'sid')))}/close`,{method:'POST',body:{agentId:aid(field(req,'aid'))}});
     else if(action==='session') upstream=await call(`/operator/sessions/${encodeURIComponent(sid(field(req,'sid')))}?agentId=${encodeURIComponent(aid(field(req,'aid')))}`);
     else if(action==='sessions') upstream=await call('/operator/sessions');

@@ -6,10 +6,11 @@ import zlib from 'node:zlib';
 import crypto from 'node:crypto';
 import { decryptEnvelope as decryptSealedEnvelope } from './crypto.mjs';
 import { spawn } from 'node:child_process';
-import { SessionRegistry, SessionError, SESSION_LEASE_PRESETS } from './session-manager.mjs';
+import { SessionRegistry, SessionError, SESSION_GRACE_PRESETS } from './session-manager.mjs';
 import { DeviceRegistry, DeviceError } from './device-registry.mjs';
 import { EnrollmentRegistry, EnrollmentError } from './enrollment-registry.mjs';
 import { FleetRouter, FleetError } from './fleet-router.mjs';
+import { DeviceConnectionRegistry, DeviceConnectionError, DEFAULT_PLAN_CONNECTION_CAPS } from './device-connection-registry.mjs';
 
 const SOCKET_PATH = process.env.OPERATOR_SOCKET || '/run/gpt-vps-operator/operator.sock';
 const KEY_FILE = process.env.OPERATOR_KEY_FILE || '/home/ubuntu/.config/gpt-vps-operator/operator.private.json';
@@ -19,6 +20,7 @@ const STATE_DIR = process.env.OPERATOR_STATE_DIR || '/var/lib/gpt-vps-operator';
 const DEVICE_STATE_FILE = path.join(STATE_DIR, 'devices.json');
 const ENROLLMENT_STATE_FILE = path.join(STATE_DIR, 'enrollments.json');
 const ENROLLMENT_SIGNER_FILE = path.join(STATE_DIR, 'enrollment-signer.json');
+const CONNECTION_STATE_FILE = path.join(STATE_DIR, 'device-connections.json');
 const MAX_RING_BYTES = Number(process.env.OPERATOR_RING_BYTES || 16 * 1024 * 1024);
 const MAX_RING_EVENTS = Number(process.env.OPERATOR_RING_EVENTS || 5000);
 const MAX_MEMORY_OUTPUT = Number(process.env.OPERATOR_MEMORY_OUTPUT || 4 * 1024 * 1024);
@@ -27,11 +29,15 @@ const MAX_JOB_CACHE_BYTES = Number(process.env.OPERATOR_JOB_CACHE_BYTES || 64 * 
 const MAX_JOB_CACHE_AGE_MS = Number(process.env.OPERATOR_JOB_CACHE_AGE_MS || 6 * 60 * 60 * 1000);
 const OPERATION_DEDUPE_MS = Number(process.env.OPERATOR_DEDUPE_MS || 6 * 60 * 60 * 1000);
 const SESSION_IDLE_MS = Number(process.env.OPERATOR_SESSION_IDLE_MS || 30 * 60 * 1000);
-const SESSION_MIN_IDLE_MS = Number(process.env.OPERATOR_SESSION_MIN_IDLE_MS || 5 * 60 * 1000);
-const SESSION_MAX_IDLE_MS = Number(process.env.OPERATOR_SESSION_MAX_IDLE_MS || 24 * 60 * 60 * 1000);
+const SESSION_MIN_IDLE_MS = Number(process.env.OPERATOR_SESSION_MIN_IDLE_MS || 15 * 60 * 1000);
+const SESSION_MAX_IDLE_MS = Number(process.env.OPERATOR_SESSION_MAX_IDLE_MS || 60 * 60 * 1000);
+const SESSION_ACTIVE_WINDOW_MS = Number(process.env.OPERATOR_SESSION_ACTIVE_WINDOW_MS || 60 * 1000);
 const SESSION_HISTORY_MS = Number(process.env.OPERATOR_SESSION_HISTORY_MS || 7 * 24 * 60 * 60 * 1000);
 const MAX_ACTIVE_SESSIONS = Number(process.env.OPERATOR_MAX_ACTIVE_SESSIONS || 5);
 const ACCOUNT_ID = String(process.env.OPERATOR_ACCOUNT_ID || 'self-hosted-local');
+const ACCOUNT_PLAN = String(process.env.OPERATOR_ACCOUNT_PLAN || 'free').trim().toLowerCase();
+const CONNECTION_LEASE_ENFORCE = ['1','true','yes'].includes(String(process.env.OPERATOR_CONNECTION_LEASE_ENFORCE || '0').toLowerCase());
+const CONNECTION_REAP_MS = Number(process.env.OPERATOR_CONNECTION_REAP_MS || 30 * 1000);
 const DEVICE_ID = String(process.env.OPERATOR_DEVICE_ID || 'arm-local');
 const NODE_ID = String(process.env.OPERATOR_NODE_ID || 'arm');
 const DEVICE_NAME = String(process.env.OPERATOR_DEVICE_NAME || os.hostname());
@@ -56,10 +62,11 @@ const ring = [];
 const sseClients = new Set();
 let ringBytes = 0;
 let sequence = 0;
-const sessions = new SessionRegistry({ idleMs:SESSION_IDLE_MS, minIdleMs:SESSION_MIN_IDLE_MS, maxIdleMs:SESSION_MAX_IDLE_MS, maxActive:MAX_ACTIVE_SESSIONS, historyMs:SESSION_HISTORY_MS, accountId:ACCOUNT_ID, deviceId:DEVICE_ID, nodeId:NODE_ID, emit:event => pushEvent(event) });
+const sessions = new SessionRegistry({ idleMs:SESSION_IDLE_MS, minIdleMs:SESSION_MIN_IDLE_MS, maxIdleMs:SESSION_MAX_IDLE_MS, activeWindowMs:SESSION_ACTIVE_WINDOW_MS, maxActive:MAX_ACTIVE_SESSIONS, historyMs:SESSION_HISTORY_MS, accountId:ACCOUNT_ID, deviceId:DEVICE_ID, nodeId:NODE_ID, emit:event => pushEvent(event) });
 const devices = new DeviceRegistry({ stateFile:DEVICE_STATE_FILE, presenceTtlMs:DEVICE_PRESENCE_TTL_MS, emit:event => pushEvent(event) });
 const enrollments = new EnrollmentRegistry({ stateFile:ENROLLMENT_STATE_FILE, signerFile:ENROLLMENT_SIGNER_FILE, activationBaseUrl:ENROLLMENT_ACTIVATION_URL, ttlMs:ENROLLMENT_TTL_MS, emit:event => pushEvent(event) });
 const fleet = new FleetRouter({ channelTtlMs:FLEET_CHANNEL_TTL_MS, commandLeaseMs:FLEET_COMMAND_LEASE_MS, maxQueuedPerNode:FLEET_MAX_QUEUED_PER_NODE, emit:event => pushEvent(event) });
+const connections = new DeviceConnectionRegistry({ stateFile:CONNECTION_STATE_FILE, emit:event => pushEvent(event) });
 
 fs.mkdirSync(LOG_DIR, { recursive: true });
 function redact(value) {
@@ -97,9 +104,17 @@ function pushEvent(input) {
 }
 if (devices.loadError) pushEvent({ type:'device_registry_load_error', status:'error', detail:redact(devices.loadError) });
 if (enrollments.loadError) pushEvent({ type:'enrollment_registry_load_error', status:'error', detail:redact(enrollments.loadError) });
+if (connections.loadError) pushEvent({ type:'device_connection_registry_load_error', status:'error', detail:redact(connections.loadError) });
 devices.register({ accountId:ACCOUNT_ID, deviceId:DEVICE_ID, nodeId:NODE_ID, displayName:DEVICE_NAME, platform:os.platform(), architecture:os.arch(), agentVersion:VERSION, publicIdentityKey:DEVICE_PUBLIC_KEY || null, capabilities:HOST_CAPABILITIES, policyProfile:DEVICE_POLICY_PROFILE });
 const deviceHeartbeat = setInterval(() => { try { devices.heartbeat(DEVICE_ID); } catch (error) { console.error('[device] heartbeat failed', error?.message || error); } }, DEVICE_HEARTBEAT_MS);
 deviceHeartbeat.unref();
+const connectionReaper = setInterval(() => {
+  try {
+    const closed=connections.reap({activeSessionsForDevice:deviceId=>sessions.activeCountByDevice(deviceId)});
+    for(const item of closed) sessions.closeByDevice(item.deviceId,`device_${item.reason}`,{force:true});
+  } catch(error) { console.error('[connection] reap failed', error?.message || error); }
+}, Math.max(5000,CONNECTION_REAP_MS));
+connectionReaper.unref();
 
 function pruneReplay(now = Date.now()) {
   for (const [id, exp] of replay) if (exp <= now) replay.delete(id);
@@ -224,6 +239,7 @@ function startJob(payload, requestId) {
   const requestedSessionId = String(payload.sessionId || '');
   const agentId = String(payload.agentId || '').trim();
   const session = sessions.ensure(requestedSessionId, { agentId });
+  requireDeviceConnection(session.deviceId);
   if (payload.nodeId != null && String(payload.nodeId) !== session.nodeId) throw new SessionError('session_target_mismatch',409);
   const remote=session.nodeId!==NODE_ID;
   let cwd=payload.cwd==null||String(payload.cwd)==='' ? (remote?'':'/home/ubuntu') : String(payload.cwd);
@@ -393,16 +409,17 @@ async function readJson(req) {
 function capabilities() {
   return {
     service: 'gpt-vps-operator', version: VERSION, accountId:ACCOUNT_ID, deviceId:DEVICE_ID, nodeId:NODE_ID, user: process.env.USER || 'ubuntu',
-    execution: ['exec_batch', 'async_jobs', 'output_retrieval', 'managed_sessions', 'device_presence', 'configurable_session_lease', 'device_enrollment', 'fleet_routing'],
+    execution: ['exec_batch', 'async_jobs', 'output_retrieval', 'managed_sessions', 'device_presence', 'device_scoped_reconnect_grace', 'device_enrollment', 'fleet_routing'],
     expectedHostCapabilities: HOST_CAPABILITIES,
     socket: SOCKET_PATH, logFile: LOG_FILE,
     presence: { ttlMs:DEVICE_PRESENCE_TTL_MS, heartbeatMs:DEVICE_HEARTBEAT_MS },
     enrollment: { ttlMs:ENROLLMENT_TTL_MS, activationUrl:ENROLLMENT_ACTIVATION_URL, signer:enrollments.signerInfo(), keyAlgorithm:'Ed25519', oneTimeCode:true, signedHeartbeat:true },
     fleet: { hubNodeId:NODE_ID, outboundLeafChannel:true, explicitTargetRouting:true, silentFallback:false, channelTtlMs:FLEET_CHANNEL_TTL_MS, commandLeaseMs:FLEET_COMMAND_LEASE_MS, maxQueuedPerNode:FLEET_MAX_QUEUED_PER_NODE },
-    sessionLeasePresets: SESSION_LEASE_PRESETS,
+    deviceConnection: { enforced:CONNECTION_LEASE_ENFORCE, accountPlan:ACCOUNT_PLAN, planCapsMs:DEFAULT_PLAN_CONNECTION_CAPS, reconnectGraceMinMs:15*60*1000, reconnectGraceMaxMs:60*60*1000, unlimited:false },
+    sessionGracePresets: SESSION_GRACE_PRESETS,
     limits: { maxScriptBytes: 1024 * 1024, maxTimeoutMs: 7200000, memoryOutputBytes: MAX_MEMORY_OUTPUT,
       ringBytes: MAX_RING_BYTES, ringEvents: MAX_RING_EVENTS, jobCacheBytes: MAX_JOB_CACHE_BYTES, jobCacheAgeMs: MAX_JOB_CACHE_AGE_MS, operationDedupeMs: OPERATION_DEDUPE_MS,
-      sessionIdleMs: SESSION_IDLE_MS, sessionMinIdleMs:SESSION_MIN_IDLE_MS, sessionMaxIdleMs:SESSION_MAX_IDLE_MS, sessionHistoryMs: SESSION_HISTORY_MS, maxActiveSessions: MAX_ACTIVE_SESSIONS }
+      sessionGraceMs: SESSION_IDLE_MS, sessionMinGraceMs:SESSION_MIN_IDLE_MS, sessionMaxGraceMs:SESSION_MAX_IDLE_MS, sessionActiveWindowMs:SESSION_ACTIVE_WINDOW_MS, sessionHistoryMs: SESSION_HISTORY_MS, maxActiveSessions: MAX_ACTIVE_SESSIONS }
   };
 }
 
@@ -420,7 +437,15 @@ function policyViewForDevice(device) {
   if (device.nodeId===NODE_ID) return null;
   try { return enrollments.policyView(device.deviceId); } catch { return null; }
 }
-function deviceView(device) { return { ...device, routing:routingViewForDevice(device), policy:policyViewForDevice(device) }; }
+function connectionViewForDevice(deviceId) {
+  const view=connections.get(deviceId);
+  return { ...view, enforced:CONNECTION_LEASE_ENFORCE };
+}
+function requireDeviceConnection(deviceId) {
+  if (!CONNECTION_LEASE_ENFORCE) return connections.get(deviceId);
+  return connections.assertConnected(deviceId);
+}
+function deviceView(device) { return { ...device, routing:routingViewForDevice(device), policy:policyViewForDevice(device), connection:connectionViewForDevice(device.deviceId) }; }
 function allDeviceViews() { return devices.list({ activeSessionsForNode:nodeId => sessions.activeCountByNode(nodeId) }).map(deviceView); }
 function queueSignedUpdate(deviceId) {
   const device=devices.get(deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
@@ -432,7 +457,7 @@ function queueSignedUpdate(deviceId) {
   const openId=`open-maintenance-${crypto.randomBytes(8).toString('hex')}`;
   let session;
   try {
-    session=sessions.open({agentId,openId,label:'signed client update',workspace:'/home/ubuntu',leasePreset:'30m',nodeId:route.nodeId,deviceId:route.deviceId,maxActiveForNode:route.sessionCeiling});
+    session=sessions.open({agentId,openId,label:'signed client update',workspace:'/home/ubuntu',gracePreset:'30m',nodeId:route.nodeId,deviceId:route.deviceId,maxActiveForNode:route.sessionCeiling});
     const operationId=`maintenance-update-${crypto.randomBytes(8).toString('hex')}`;
     const requestId=`maintenance-${crypto.randomUUID()}`;
     const job=startJob({operationId,script:'sudo -n systemctl start --no-block gpt-operator-agent-update.service',cwd:'/home/ubuntu',timeoutMs:15_000,sessionId:session.sessionId,agentId,nodeId:route.nodeId,requiredCapabilities,note:'owner requested signed client update'},requestId);
@@ -447,10 +472,11 @@ function queueSignedUpdate(deviceId) {
 function targetRoute(requestedNodeId) {
   const nodeId=String(requestedNodeId || NODE_ID).trim();
   if (!/^[A-Za-z0-9._:-]{1,128}$/.test(nodeId)) throw new DeviceError('invalid_node_id');
-  if (nodeId===NODE_ID) return { accountId:ACCOUNT_ID, deviceId:DEVICE_ID, nodeId:NODE_ID, mode:'local', sessionCeiling:MAX_ACTIVE_SESSIONS, capabilities:[...HOST_CAPABILITIES], state:'online', draining:false };
+  if (nodeId===NODE_ID) { requireDeviceConnection(DEVICE_ID); return { accountId:ACCOUNT_ID, deviceId:DEVICE_ID, nodeId:NODE_ID, mode:'local', sessionCeiling:MAX_ACTIVE_SESSIONS, capabilities:[...HOST_CAPABILITIES], state:'online', draining:false }; }
   const device=devices.getByNodeId(nodeId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
   if (device.accountId!==ACCOUNT_ID) throw new DeviceError('target_node_account_mismatch',403);
   if (device.state!=='online') throw new DeviceError('target_node_offline',409);
+  requireDeviceConnection(device.deviceId);
   const route=fleet.assertRoutable(nodeId,{accountId:ACCOUNT_ID,deviceId:device.deviceId});
   const binding=enrollments.binding(device.deviceId), allowed=new Set(binding.approvedCapabilities||[]);
   return { ...route, capabilities:(route.capabilities||[]).filter(cap=>allowed.has(cap)), mode:'outbound-leaf' };
@@ -515,6 +541,7 @@ const server = http.createServer(async (req, res) => {
       if (ctx.payload.nodeId!=null && String(ctx.payload.nodeId)!==ctx.device.nodeId) throw new EnrollmentError('device_node_mismatch',409);
       const reportedRevision=Math.max(0,Number(ctx.payload.policyRevision)||0);
       const capabilities=verifiedLeafCapabilities(ctx.payload.capabilities,ctx.binding,reportedRevision);
+      requireDeviceConnection(ctx.device.deviceId);
       devices.heartbeat(ctx.device.deviceId,{capabilities,agentVersion:ctx.payload.agentVersion});
       const waitMs=Math.max(0,Math.min(Number(ctx.payload.waitMs)||8000,15000));
       const channel=await fleet.waitPoll({accountId:ACCOUNT_ID,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,sessionCeiling:ctx.payload.sessionCeiling,draining:Boolean(ctx.payload.draining),capabilities},waitMs);
@@ -596,23 +623,49 @@ const server = http.createServer(async (req, res) => {
       const device = devices.revoke(revokeMatch[1], body.reason || 'owner_revoked');
       return sendJson(res, 200, { ok:true, binding, device });
     }
+    const connectionMatch = url.pathname.match(/^\/v1\/devices\/([A-Za-z0-9._:-]+)\/connection(?:\/(connect|disconnect|grace|activity))?$/);
+    if (connectionMatch) {
+      const deviceId=connectionMatch[1], action=connectionMatch[2] || 'get';
+      const device=devices.get(deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
+      if (device.accountId!==ACCOUNT_ID) throw new DeviceConnectionError('device_connection_account_mismatch',403);
+      if (req.method==='GET' && action==='get') return sendJson(res,200,{ok:true,connection:connectionViewForDevice(deviceId)});
+      if (req.method==='POST' && action==='connect') {
+        const body=await readJson(req);
+        const connection=connections.connect({accountId:ACCOUNT_ID,deviceId,plan:ACCOUNT_PLAN,requestedLeaseMs:body.requestedLeaseMs,reconnectGraceMs:body.reconnectGraceMs});
+        return sendJson(res,200,{ok:true,connection});
+      }
+      if (req.method==='POST' && action==='disconnect') {
+        const body=await readJson(req), connection=connections.disconnect(deviceId,body.reason||'user_disconnect');
+        sessions.closeByDevice(deviceId,connection.closeReason||'device_connection_closed',{force:true});
+        return sendJson(res,200,{ok:true,connection});
+      }
+      if (req.method==='POST' && action==='grace') {
+        const body=await readJson(req);
+        return sendJson(res,200,{ok:true,connection:connections.setGrace(deviceId,body.reconnectGraceMs)});
+      }
+      if (req.method==='POST' && action==='activity') {
+        const body=await readJson(req);
+        return sendJson(res,200,{ok:true,connection:connections.touch(deviceId,body.reason||'activity')});
+      }
+    }
     if (req.method === 'POST' && url.pathname === '/v1/sessions/open') {
       const body = await readJson(req), route=targetRoute(body.nodeId);
-      return sendJson(res, 200, { ok:true, route, session:sessions.open({ openId:body.openId, agentId:body.agentId, label:body.label, workspace:body.workspace, leaseMs:body.leaseMs, leasePreset:body.leasePreset, nodeId:route.nodeId, deviceId:route.deviceId, maxActiveForNode:route.sessionCeiling }) });
+      return sendJson(res, 200, { ok:true, route, session:sessions.open({ openId:body.openId, agentId:body.agentId, label:body.label, workspace:body.workspace, graceMs:body.graceMs, gracePreset:body.gracePreset, leaseMs:body.leaseMs, leasePreset:body.leasePreset, nodeId:route.nodeId, deviceId:route.deviceId, maxActiveForNode:route.sessionCeiling }) });
     }
     if (req.method === 'GET' && url.pathname === '/v1/sessions') {
-      return sendJson(res, 200, { ok:true, active:sessions.activeCount(), maxActive:MAX_ACTIVE_SESSIONS, defaultLeaseMs:SESSION_IDLE_MS, minLeaseMs:SESSION_MIN_IDLE_MS, maxLeaseMs:SESSION_MAX_IDLE_MS, leasePresets:SESSION_LEASE_PRESETS, sessions:sessions.list() });
+      return sendJson(res, 200, { ok:true, active:sessions.activeCount(), maxActive:MAX_ACTIVE_SESSIONS, defaultGraceMs:SESSION_IDLE_MS, minGraceMs:SESSION_MIN_IDLE_MS, maxGraceMs:SESSION_MAX_IDLE_MS, gracePresets:SESSION_GRACE_PRESETS, sessions:sessions.list() });
     }
     if (req.method === 'GET' && url.pathname === '/v1/session-stats') {
       return sendJson(res, 200, { ok:true, ...sessionStatsFromDisk(url.searchParams.get('hours')) });
     }
-    const sessionAction = url.pathname.match(/^\/v1\/sessions\/([A-Za-z0-9._:-]+)(?:\/(resume|close|touch))?$/);
+    const sessionAction = url.pathname.match(/^\/v1\/sessions\/([A-Za-z0-9._:-]+)(?:\/(resume|close|touch|hold))?$/);
     if (sessionAction) {
       const sid=sessionAction[1], action=sessionAction[2] || 'get';
       const body = req.method === 'POST' ? await readJson(req) : null;
       const aid = body?.agentId || url.searchParams.get('agentId');
       if (req.method === 'GET' && action === 'get') return sendJson(res, 200, { ok:true, session:sessions.get(sid, aid) });
       if (req.method === 'POST' && action === 'resume') return sendJson(res, 200, { ok:true, session:sessions.resume(sid, aid) });
+      if (req.method === 'POST' && action === 'hold') return sendJson(res, 200, { ok:true, session:sessions.hold(sid, aid, body?.reason || 'transport_lost') });
       if (req.method === 'POST' && action === 'close') return sendJson(res, 200, { ok:true, session:sessions.close(sid, aid) });
       if (req.method === 'POST' && action === 'touch') return sendJson(res, 200, { ok:true, session:sessions.touch(sid, aid, body?.action || 'tool') });
     }
@@ -667,7 +720,7 @@ const server = http.createServer(async (req, res) => {
   } catch (error) {
     const message = error?.message || 'internal_error';
     pushEvent({ type: 'executor_error', status: 'error', detail: redact(message) });
-    const status = error instanceof SessionError || error instanceof DeviceError || error instanceof EnrollmentError || error instanceof FleetError ? error.status : ['invalid_envelope', 'expired_envelope', 'replay_detected', 'unknown_kid', 'invalid_envelope_auth', 'unsupported_action'].includes(message) ? 401 : message === 'operation_id_conflict' ? 409 : 400;
+    const status = error instanceof SessionError || error instanceof DeviceError || error instanceof EnrollmentError || error instanceof FleetError || error instanceof DeviceConnectionError ? error.status : ['invalid_envelope', 'expired_envelope', 'replay_detected', 'unknown_kid', 'invalid_envelope_auth', 'unsupported_action'].includes(message) ? 401 : message === 'operation_id_conflict' ? 409 : 400;
     return sendJson(res, status, { ok: false, error: message });
   }
 });
@@ -684,6 +737,7 @@ function shutdown(signal) {
   shuttingDown = true;
   console.log(`[operator] ${signal}, shutting down`);
   clearInterval(deviceHeartbeat);
+  clearInterval(connectionReaper);
   try { devices.markOffline(DEVICE_ID, signal.toLowerCase()); } catch {}
   for (const res of sseClients) { try { res.end(); } catch {} }
   sseClients.clear();

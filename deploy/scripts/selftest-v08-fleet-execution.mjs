@@ -35,13 +35,14 @@ if(refreshedDevice.status!==200||refreshedDevice.json.device?.agentVersion!=='0.
 const fleet=await request('GET','/v1/fleet');
 if(fleet.status!==200||!fleet.json.nodes.some(n=>n.nodeId===nodeId&&n.sessionCeiling===1&&n.state==='online'))throw new Error('fleet_view_failed');
 const agent1='agent-v08-fleet-aaaaaaaaaaaaaaaa',agent2='agent-v08-fleet-bbbbbbbbbbbbbbbb';
-const opened=await request('POST','/v1/sessions/open',{agentId:agent1,openId:'open-v08-fleet-aaaaaaaaaaaa',label:'leaf',workspace:'/tmp',nodeId,leasePreset:'30m'});
+const opened=await request('POST','/v1/sessions/open',{agentId:agent1,openId:'open-v08-fleet-aaaaaaaaaaaa',label:'leaf',workspace:'/tmp',nodeId,gracePreset:'30m'});
 if(opened.status!==200||opened.json.session?.nodeId!==nodeId||opened.json.session?.deviceId!==deviceId)throw new Error(`leaf_session_open_failed:${opened.status}:${opened.json.error}`);
 const sessionId=opened.json.session.sessionId;
 const capacity=await request('POST','/v1/sessions/open',{agentId:agent2,openId:'open-v08-fleet-bbbbbbbbbbbb',label:'leaf2',workspace:'/tmp',nodeId});
 if(capacity.status!==429||capacity.json.error!=='node_session_capacity_reached')throw new Error(`node_capacity_guard_failed:${capacity.status}:${capacity.json.error}`);
-const conflict=await request('POST','/v1/sessions/open',{agentId:agent1,openId:'open-v08-fleet-conflict12',label:'arm-conflict',workspace:'/tmp',nodeId:'arm'});
-if(conflict.status!==409||conflict.json.error!=='agent_session_target_conflict')throw new Error(`target_conflict_guard_failed:${conflict.status}:${conflict.json.error}`);
+const parallelTarget=await request('POST','/v1/sessions/open',{agentId:agent1,openId:'open-v08-fleet-parallel12',label:'arm-parallel',workspace:'/tmp',nodeId:'arm'});
+if(parallelTarget.status!==200||parallelTarget.json.session?.nodeId!=='arm'||parallelTarget.json.session?.sessionId===sessionId)throw new Error(`same_agent_multi_device_lane_failed:${parallelTarget.status}:${parallelTarget.json.error}`);
+await request('POST',`/v1/sessions/${parallelTarget.json.session.sessionId}/close`,{agentId:agent1});
 const envelope=cryptoFixture.seal({action:'exec_batch',operationId:'operation-v08-fleet-aaaaaaaa',script:"printf 'leaf-ok\\n'",sessionId,agentId:agent1,nodeId,requiredCapabilities:['filesystem'],waitMs:0,timeoutMs:10000,note:'fleet integration'});
 const started=await request('POST','/v1/execute',envelope);
 if(started.status!==200||started.json.job?.route!=='outbound-leaf'||started.json.job?.status!=='running'||!started.json.job?.commandId)throw new Error(`remote_start_failed:${started.status}:${started.json.error}`);

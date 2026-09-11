@@ -25,10 +25,10 @@ if(normalized.cwd!==undefined) throw new Error('omitted_cwd_must_stay_undefined'
 if(normalizeExecPayload({...structured.payload,cwd:'C:\\work'}).cwd!=='C:\\work') throw new Error('explicit_windows_cwd_changed');
 const tooLarge={...structured.payload,script:'x'.repeat(1024*1024+1)};
 expectError(()=>normalizeExecPayload(tooLarge),'script_too_large',413);
-const opened=normalizeSessionOpenPayload({...sample,leaseMs:600000,leasePreset:'custom'});
-if(opened.leaseMs!==600000||opened.leasePreset!=='custom'||opened.agentId!==sample.agentId) throw new Error('session_open_normalization_failed');
-expectError(()=>normalizeSessionOpenPayload({...sample,leaseMs:'nope'}),'invalid_session_lease');
-expectError(()=>normalizeSessionOpenPayload({...sample,leasePreset:'bad preset'}),'invalid_session_lease_preset');
+const opened=normalizeSessionOpenPayload({...sample,graceMs:900000,gracePreset:'custom'});
+if(opened.graceMs!==900000||opened.gracePreset!=='custom'||opened.agentId!==sample.agentId) throw new Error('session_open_normalization_failed');
+expectError(()=>normalizeSessionOpenPayload({...sample,graceMs:'nope'}),'invalid_session_grace');
+expectError(()=>normalizeSessionOpenPayload({...sample,gracePreset:'bad preset'}),'invalid_session_grace_preset');
 console.log(`operator-transport-legacy-limit=${MAX_GET_PAYLOAD_CHARS}`);
 console.log('operator-transport-strict-base64url=PASS');
 console.log('operator-transport-post-body=PASS');
