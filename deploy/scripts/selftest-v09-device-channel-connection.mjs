@@ -25,6 +25,8 @@ r=await request('POST','/v1/device-channel/connect',signed('connect',{nodeId,age
 if(r.status!==200||r.json.connection?.state!=='connected'||r.json.connection?.plan!=='free') throw new Error(`signed_connect_failed:${r.status}:${r.json.error}`);
 r=await request('POST','/v1/device-channel/poll',signed('poll',hello));
 if(r.status!==200||r.json.channel?.node?.state!=='online') throw new Error(`poll_after_connect_failed:${r.status}:${r.json.error}`);
+r=await request('POST','/v1/device-channel/activity',signed('activity',{nodeId,agentVersion:'0.9-test',limit:100}));
+if(r.status!==200||!Array.isArray(r.json.events)||!r.json.events.length||r.json.events.some(e=>e.deviceId!==deviceId)) throw new Error('signed_device_activity_scope_failed');
 r=await request('POST','/v1/device-channel/grace',signed('grace',{reconnectGraceMs:45*60*1000}));
 if(r.status!==200||r.json.connection?.reconnectGraceMs!==45*60*1000) throw new Error('signed_grace_failed');
 const aid='agent-channel-lease-test-aaaaaaaa',aid2='agent-channel-lease-test-bbbbbbbb';
@@ -65,5 +67,5 @@ r=await request('POST','/v1/device-channel/connect',signed('connect',{nodeId,age
 if(r.status!==200) throw new Error('reconnect_after_disconnect_failed');
 access=await request('POST','/v1/device-access/request',{agentId:aid,deviceId,label:'ChatGPT A again'});
 if(access.status!==201||access.json.access?.state!=='pending'||access.json.access?.request?.requestId===accessRequest.requestId) throw new Error('new_connection_must_require_new_approval');
-console.log(JSON.stringify({ok:true,signedConnect:true,signedDisconnect:true,graceMinutes:45,sessionCascade:true,statusSessionTree:true,localApproval:true,multiAgentOneApproval:true,grantClosedOnDisconnect:true,reconnectRequiresApproval:true},null,2));
+console.log(JSON.stringify({ok:true,signedConnect:true,signedDisconnect:true,graceMinutes:45,sessionCascade:true,statusSessionTree:true,deviceScopedActivity:true,localApproval:true,multiAgentOneApproval:true,grantClosedOnDisconnect:true,reconnectRequiresApproval:true},null,2));
 child.kill('SIGTERM');await sleep(100);fs.rmSync(dir,{recursive:true,force:true});

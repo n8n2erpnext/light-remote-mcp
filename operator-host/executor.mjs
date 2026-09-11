@@ -112,11 +112,14 @@ if (accessGrants.loadError) pushEvent({ type:'device_access_registry_load_error'
 devices.register({ accountId:ACCOUNT_ID, deviceId:DEVICE_ID, nodeId:NODE_ID, displayName:DEVICE_NAME, platform:os.platform(), architecture:os.arch(), agentVersion:VERSION, publicIdentityKey:DEVICE_PUBLIC_KEY || null, capabilities:HOST_CAPABILITIES, policyProfile:DEVICE_POLICY_PROFILE });
 const deviceHeartbeat = setInterval(() => { try { devices.heartbeat(DEVICE_ID); } catch (error) { console.error('[device] heartbeat failed', error?.message || error); } }, DEVICE_HEARTBEAT_MS);
 deviceHeartbeat.unref();
+function reapAccessGrants(){
+  return accessGrants.reap({connectionForDevice:deviceId=>connections.get(deviceId),liveSessionsForDevice:deviceId=>sessions.activeCountByDevice(deviceId)});
+}
 const connectionReaper = setInterval(() => {
   try {
-    const closed=connections.reap({activeSessionsForDevice:deviceId=>sessions.activeCountByDevice(deviceId)});
+    const closed=connections.reap();
     for(const item of closed){ sessions.closeByDevice(item.deviceId,`device_${item.reason}`,{force:true}); accessGrants.closeByDevice(item.deviceId,`device_${item.reason}`); }
-    accessGrants.reap({connectionForDevice:deviceId=>connections.get(deviceId)});
+    reapAccessGrants();
   } catch(error) { console.error('[connection] reap failed', error?.message || error); }
 }, Math.max(5000,CONNECTION_REAP_MS));
 connectionReaper.unref();
@@ -428,9 +431,11 @@ function capabilities() {
   };
 }
 
-function recentEvents(limit = 500) {
+function recentEvents(limit = 500, deviceId = null) {
   const n = Math.max(1, Math.min(Number(limit) || 500, MAX_RING_EVENTS));
-  return ring.slice(-n).map(item => item.event);
+  const did = deviceId == null ? null : String(deviceId);
+  const rows = did ? ring.map(item => item.event).filter(event => String(event.deviceId || '') === did) : ring.map(item => item.event);
+  return rows.slice(-n);
 }
 
 function routingViewForDevice(device) {
@@ -546,6 +551,7 @@ const server = http.createServer(async (req, res) => {
       const device=devices.get(deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
       if(device.accountId!==ACCOUNT_ID) throw new DeviceAccessGrantError('device_access_account_mismatch',403);
       const connection=connections.assertConnected(deviceId);
+      reapAccessGrants();
       const access=accessGrants.request({accountId:ACCOUNT_ID,deviceId,connectionId:connection.connectionId,connectionExpiresAt:connection.hardExpiresAt,agentId:body.agentId,label:body.label});
       return sendJson(res,access.state==='approved'?200:201,{ok:true,access});
     }
@@ -566,14 +572,15 @@ const server = http.createServer(async (req, res) => {
       const connection=connections.assertConnected(request.deviceId);
       if(connection.connectionId!==request.connectionId) throw new DeviceAccessGrantError('device_connection_changed',409);
       if(accessRequestMatch[2]==='approve'){
-        const grant=accessGrants.approve(request.requestId,{deviceId:request.deviceId,connectionId:connection.connectionId,connectionExpiresAt:connection.hardExpiresAt});
+        const grant=accessGrants.approve(request.requestId,{deviceId:request.deviceId,connectionId:connection.connectionId,connectionExpiresAt:connection.hardExpiresAt,idleGraceMs:connection.reconnectGraceMs});
         return sendJson(res,200,{ok:true,grant});
       }
       return sendJson(res,200,{ok:true,authorization:accessGrants.deny(request.requestId,'owner_denied',{deviceId:request.deviceId})});
     }
     const accessGrantMatch=url.pathname.match(/^\/v1\/device-access\/grants\/(dag_[A-Za-z0-9._:-]+)$/);
     if (req.method === 'GET' && accessGrantMatch) {
-      const grant=accessGrants.assert(accessGrantMatch[1]);
+      reapAccessGrants();
+      const grant=accessGrants.assert(accessGrantMatch[1],{touch:false});
       const connection=connections.assertConnected(grant.deviceId);
       accessGrants.assert(grant.grantId,{deviceId:grant.deviceId,connectionId:connection.connectionId});
       const device=devices.get(grant.deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
@@ -600,7 +607,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/access-approve') {
       const body=await readJson(req), ctx=verifiedChannelContext(body,'access-approve');
       const connection=connections.assertConnected(ctx.device.deviceId);
-      const grant=accessGrants.approve(ctx.payload.requestId,{deviceId:ctx.device.deviceId,connectionId:connection.connectionId,connectionExpiresAt:connection.hardExpiresAt});
+      const grant=accessGrants.approve(ctx.payload.requestId,{deviceId:ctx.device.deviceId,connectionId:connection.connectionId,connectionExpiresAt:connection.hardExpiresAt,idleGraceMs:connection.reconnectGraceMs});
       return sendJson(res,200,{ok:true,grant});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/access-deny') {
@@ -613,6 +620,12 @@ const server = http.createServer(async (req, res) => {
       const connection=requireDeviceConnection(ctx.device.deviceId);
       const liveSessions=sessions.list({deviceId:ctx.device.deviceId}).filter(item=>item.state==='active'||item.state==='hold');
       return sendJson(res,200,{ok:true,device:deviceView(ctx.device),connection:{...connections.get(ctx.device.deviceId),enforced:CONNECTION_LEASE_ENFORCE},sessions:liveSessions,access:{pending:accessGrants.pendingForDevice(ctx.device.deviceId),activeGrant:accessGrants.activeForDevice(ctx.device.deviceId,connection.connectionId)}});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/device-channel/activity') {
+      const body=await readJson(req), ctx=verifiedChannelContext(body,'activity');
+      requireDeviceConnection(ctx.device.deviceId);
+      const limit=Math.max(1,Math.min(Number(ctx.payload.limit)||500,5000));
+      return sendJson(res,200,{ok:true,deviceId:ctx.device.deviceId,events:recentEvents(limit,ctx.device.deviceId)});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/poll') {
       const body=await readJson(req), ctx=verifiedChannelContext(body,'poll');
@@ -798,7 +811,8 @@ const server = http.createServer(async (req, res) => {
         totalBytes, hasMore: offset + Buffer.byteLength(slice) < totalBytes, output: redact(slice) });
     }
     if (req.method === 'GET' && url.pathname === '/v1/activity') {
-      return sendJson(res, 200, { ok: true, version: VERSION, ringBytes, events: recentEvents(url.searchParams.get('limit')) });
+      const deviceId=url.searchParams.get('deviceId');
+    return sendJson(res, 200, { ok: true, version: VERSION, ringBytes, deviceId:deviceId||null, events: recentEvents(url.searchParams.get('limit'),deviceId) });
     }
     if (req.method === 'GET' && url.pathname === '/v1/events') {
       res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store', connection: 'keep-alive' });

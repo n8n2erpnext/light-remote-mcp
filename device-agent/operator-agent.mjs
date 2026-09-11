@@ -142,6 +142,11 @@ async function remoteDeviceStatus(hub=DEFAULT_HUB){
   const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
   return channelRequest(state,hub,'status',{nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION});
 }
+async function remoteDeviceActivity(hub=DEFAULT_HUB,limit=500){
+  const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
+  const bounded=Math.max(1,Math.min(Number(limit)||500,5000));
+  return channelRequest(state,hub,'activity',{nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,limit:bounded});
+}
 async function approveDeviceAccess(requestId,hub=DEFAULT_HUB){
   const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
   const id=String(requestId||'').trim();if(!/^pa_[A-Za-z0-9_-]{20,80}$/.test(id))throw new Error('invalid_plus_request_id');
@@ -170,7 +175,7 @@ async function daemon(args){
   let stopped=false,wake=null,failures=0,localWall=null;
   const stop=()=>{stopped=true;if(wake)wake();try{localWall?.server.close();}catch{}};process.on('SIGTERM',stop);process.on('SIGINT',stop);
   const wait=ms=>new Promise(resolve=>{const timer=setTimeout(()=>{wake=null;resolve();},ms);wake=()=>{clearTimeout(timer);wake=null;resolve();};});
-  localWall=startLocalWall({host:LOCAL_WALL_HOST,port:LOCAL_WALL_PORT,brandSvgPath:LOCAL_WALL_BRAND,getLocalStatus:async()=>statusView(),getRemoteStatus:async()=>{const remote=await remoteDeviceStatus(hub);return remote;},connect:async data=>connectCloud({hub,graceMinutes:data.graceMinutes,leaseHours:data.leaseHours,silent:true}),disconnect:async data=>disconnectCloud({hub,reason:data.reason||'local_wall_disconnect',silent:true}),setGrace:async data=>setConnectionGrace({hub,minutes:data.minutes,silent:true}),accessApprove:async requestId=>approveDeviceAccess(requestId,hub),accessDeny:async(requestId,data)=>denyDeviceAccess(requestId,hub,data?.reason||'owner_denied')});
+  localWall=startLocalWall({host:LOCAL_WALL_HOST,port:LOCAL_WALL_PORT,brandSvgPath:LOCAL_WALL_BRAND,getLocalStatus:async()=>statusView(),getRemoteStatus:async()=>{const remote=await remoteDeviceStatus(hub);return remote;},getRemoteActivity:async limit=>remoteDeviceActivity(hub,limit),connect:async data=>connectCloud({hub,graceMinutes:data.graceMinutes,leaseHours:data.leaseHours,silent:true}),disconnect:async data=>disconnectCloud({hub,reason:data.reason||'local_wall_disconnect',silent:true}),setGrace:async data=>setConnectionGrace({hub,minutes:data.minutes,silent:true}),accessApprove:async requestId=>approveDeviceAccess(requestId,hub),accessDeny:async(requestId,data)=>denyDeviceAccess(requestId,hub,data?.reason||'owner_denied')});
   console.log(JSON.stringify({event:'local_wall_started',url:localWall.url,deviceId:state.enrollment?.deviceId||null}));
   console.log(JSON.stringify({event:'device_agent_started',mode:'always-alive-service',platformAdapter:PLATFORM_ADAPTER.id,deviceId:state.enrollment?.deviceId||null,nodeId:state.enrollment?.nodeId||null,sessionCeiling,waitMs,dormantPollMs,localWallUrl:localWall.url}));
   while(!stopped){

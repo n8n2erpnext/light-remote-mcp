@@ -12,7 +12,6 @@ function accessOf(value) { return value?.access || value; }
 function grantOf(value) { return value?.grant || accessOf(value)?.grant || null; }
 
 export function createPlusAuth(wallAuth, options = {}) {
-  const wallOrigin = String(process.env.WALL_PUBLIC_ORIGIN || 'https://wall.dashboard.thaiduy.store').replace(/\/$/, '');
   const requestAccess = options.requestAccess || (async () => { throw new Error('plus_access_request_unavailable'); });
   const pollAccess = options.pollAccess || (async () => { throw new Error('plus_access_poll_unavailable'); });
   const getAccessRequest = options.getAccessRequest || (async () => { throw new Error('plus_access_request_unavailable'); });
@@ -34,7 +33,7 @@ export function createPlusAuth(wallAuth, options = {}) {
       if(result?.state==='approved')return res.status(200).json({ok:true,status:'approved',session:sessionFor(grantOf(result))});
       const row=result?.request;
       if(!row?.requestId||!result?.pollToken)throw new Error('invalid_plus_access_request');
-      return res.status(201).json({ok:true,status:'pending',authorization:{requestId:row.requestId,deviceId:row.deviceId,agentId,label,userCode:row.userCode,pollToken:result.pollToken,expiresInSeconds:Math.max(0,Math.ceil((row.expiresAt-Date.now())/1000)),approvalSurface:'device-local-wall',localWallUrl:'http://127.0.0.1:5491/',activationUrl:`${wallOrigin}/plus-authorize?id=${encodeURIComponent(row.requestId)}`}});
+      return res.status(201).json({ok:true,status:'pending',authorization:{requestId:row.requestId,deviceId:row.deviceId,agentId,label,userCode:row.userCode,pollToken:result.pollToken,expiresInSeconds:Math.max(0,Math.ceil((row.expiresAt-Date.now())/1000)),approvalSurface:'device-wall-code',approvalPath:'/approve'}});
     } catch(error) { return res.status(Number(error.status)||400).json({ok:false,error:error.message||'plus_authorization_failed'}); }
   }
 
@@ -59,7 +58,7 @@ export function createPlusAuth(wallAuth, options = {}) {
       const value=await getAccessRequest(id),row=value?.authorization||value;
       if(!row)return res.status(404).type('html').send('<!doctype html><title>Light Remote MCP</title><p>Authorization request not found or expired.</p>');
       res.set('Content-Security-Policy',"default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'");
-      return res.type('html').send(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Authorize ChatGPT Plus</title><style>:root{color-scheme:dark;font-family:system-ui;background:#080a0c;color:#e5e7eb}body{margin:0;padding:24px}.card{max-width:620px;margin:auto;border:1px solid #29313a;border-radius:14px;padding:22px;background:#0b0f13}.muted{color:#8b98a8}.code{font:700 24px ui-monospace,monospace;letter-spacing:.12em;color:#ffcc00}</style></head><body><main class="card"><h1>Approve on the device Local Wall</h1><p class="muted">For security, this request cannot be approved from the hosted control Wall. Open Light Remote Local Wall on the selected device and match this code.</p><p>Request code</p><div class="code">${esc(row.userCode)}</div><p><b>Device:</b> ${esc(row.deviceId)}<br><b>Agent:</b> ${esc(row.agentId||'ChatGPT')}<br><b>Label:</b> ${esc(row.label||'ChatGPT Plus')}</p><p class="muted">Local Wall default: http://127.0.0.1:5491/ · The device background service remains alive even while its cloud state is Dormant.</p></main></body></html>`);
+      return res.type('html').send(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Authorize ChatGPT Plus</title><style>:root{color-scheme:dark;font-family:system-ui;background:#080a0c;color:#e5e7eb}body{margin:0;padding:24px}.card{max-width:620px;margin:auto;border:1px solid #29313a;border-radius:14px;padding:22px;background:#0b0f13}.muted{color:#8b98a8}.code{font:700 24px ui-monospace,monospace;letter-spacing:.12em;color:#ffcc00}</style></head><body><main class="card"><h1>Approve on the selected device Wall</h1><p class="muted">Open that device's Light Remote Wall, go to <b>/approve</b>, enter this code, then choose Approve or Deny.</p><p>Request code</p><div class="code">${esc(row.userCode)}</div><p><b>Device:</b> ${esc(row.deviceId)}<br><b>Agent:</b> ${esc(row.agentId||'ChatGPT')}<br><b>Label:</b> ${esc(row.label||'ChatGPT Plus')}</p><p class="muted">Approval does not create or extend the device connection and does not set a session duration.</p></main></body></html>`);
     } catch(error){ return res.status(Number(error.status)||404).type('html').send('<!doctype html><title>Light Remote MCP</title><p>Authorization request not found or expired.</p>'); }
   }
   async function requireSession(req,res,next){

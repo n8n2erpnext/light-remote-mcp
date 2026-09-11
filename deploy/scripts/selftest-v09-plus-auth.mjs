@@ -16,7 +16,7 @@ const access={
 const plus=createPlusAuth(wall,access);
 function response(){return {statusCode:200,body:null,status(n){this.statusCode=n;return this;},json(v){this.body=v;return this;},type(){return this;},send(v){this.body=v;return this;},set(){return this;}};}
 const agentA='agent-plus-selftest-0001',agentB='agent-plus-selftest-0002',deviceId='dev_plus_selftest_arm';
-let res=response();await plus.begin({body:{agentId:agentA,deviceId,label:'ChatGPT A'}},res);assert.equal(res.statusCode,201);const auth=res.body.authorization;assert.equal(auth.deviceId,deviceId);assert.equal(auth.approvalSurface,'device-local-wall');assert.equal(auth.localWallUrl,'http://127.0.0.1:5491/');assert.match(auth.userCode,/^[A-Z2-9]{4}-[A-Z2-9]{4}$/);
+let res=response();await plus.begin({body:{agentId:agentA,deviceId,label:'ChatGPT A'}},res);assert.equal(res.statusCode,201);const auth=res.body.authorization;assert.equal(auth.deviceId,deviceId);assert.equal(auth.approvalSurface,'device-wall-code');assert.equal(auth.approvalPath,'/approve');assert.equal(auth.localWallUrl,undefined);assert.equal(auth.activationUrl,undefined);assert.match(auth.userCode,/^[A-Z2-9]{4}-[A-Z2-9]{4}$/);
 res=response();await plus.poll({body:{requestId:auth.requestId,pollToken:auth.pollToken}},res);assert.equal(res.statusCode,202);
 activeGrant={grantId:'dag_selftest_grant_00000001',deviceId,connectionId:'dc_selftest_00000001',expiresAt:Date.now()+7200000};
 res=response();await plus.poll({body:{requestId:auth.requestId,pollToken:auth.pollToken}},res);assert.equal(res.statusCode,200);const tokenA=res.body.session.token;assert.equal(res.body.session.grantId,activeGrant.grantId);assert.equal(res.body.session.deviceId,deviceId);

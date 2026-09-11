@@ -105,15 +105,13 @@ export class DeviceConnectionRegistry {
     this.emit({type:'device_connection_grace_updated',accountId:row.accountId,deviceId:row.deviceId,connectionId:row.connectionId,status:'connected',reconnectGraceMs:row.reconnectGraceMs});
     return this._view(row);
   }
-  reap({activeSessionsForDevice=()=>0}={}){
+  reap(){
     const now=this.now(),closed=[];
     for(const row of this.connections.values()){
-      if(row.closedAt)continue;
-      let reason=null;
-      if(now>=row.hardExpiresAt) reason='hard_lease_expired';
-      else if(Number(activeSessionsForDevice(row.deviceId)||0)===0 && now-row.lastActivityAt>=row.reconnectGraceMs) reason='idle_grace_expired';
-      if(reason){row.closedAt=now;row.closeReason=reason;closed.push({deviceId:row.deviceId,connectionId:row.connectionId,reason});
-        this.emit({type:'device_connection_closed',accountId:row.accountId,deviceId:row.deviceId,connectionId:row.connectionId,status:'dormant',reason});}
+      if(row.closedAt||now<row.hardExpiresAt)continue;
+      const reason='hard_lease_expired';
+      row.closedAt=now;row.closeReason=reason;closed.push({deviceId:row.deviceId,connectionId:row.connectionId,reason});
+      this.emit({type:'device_connection_closed',accountId:row.accountId,deviceId:row.deviceId,connectionId:row.connectionId,status:'dormant',reason});
     }
     if(closed.length)this._persist();
     return closed;

@@ -57,8 +57,8 @@ Version: `v0.9.0-beta.1` source candidate on `codex/v0.9-device-policy-resume`; 
 ## v0.9 connection/session refactor checkpoint
 - P0/P1 are landed in `853811f`: finite Device Connection Registry plus `(deviceId, agentId)` Agent lanes and 15/30/45/60 minute reconnect grace.
 - P2 is landed in `ee87985`: local service stays alive while cloud can be Dormant; Dormant performs no continuous cloud polling; Windows/Linux Connect/Disconnect no longer controls service lifetime.
-- P3 is landed in `ab11c6a`: loopback Local Wall (`127.0.0.1:5491`) exposes Connect/Disconnect, finite lease countdown, reconnect grace and this-device Agent sessions. Linux Server/Client and Windows Native Actions are green.
-- P4 is in active source review: Device Access Grant state is persistent and scoped to account + device + connection; signed Local-Wall approval replaces the temporary one-hour agent-bound Plus authorization. One approval covers multiple ChatGPT windows on that device until disconnect/hard-expiry/revoke/connection change.
+- P3 baseline landed in `ab11c6a`; current follow-up source upgrades Local Wall to the canonical single-device operator Wall: session lanes + live operator command/output stream + device-scoped history. The Wall is observer/control only and closing the browser does not affect runtime. Private/NetBird bind support landed in `0e19745`.
+- P4 is in active source review: Device Access Grant state is persistent and scoped to account + device + connection; `/approve` uses a short code and Approve/Deny only, with no duration or Connect step. One approval covers multiple ChatGPT windows on that device. Grant idle expiry is 15–60 minutes after all Agent lanes/tool activity stop; this does not close the parent Device Connection Lease.
 
 ## v0.9 platform-adapter preview proof
 - Branch `codex/v0.9-device-policy-resume` is the active v0.9 acceptance lane; production `main` remains v0.8. No stable v0.9.0 tag exists.

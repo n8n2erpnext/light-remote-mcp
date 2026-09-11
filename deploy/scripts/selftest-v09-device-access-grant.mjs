@@ -46,6 +46,28 @@ const denied=reloaded.request({...base3,agentId:'agent-access-test-dddddddd',lab
 reloaded.deny(denied.request.requestId,'owner_denied',{deviceId:base3.deviceId});
 assert.throws(()=>reloaded.poll({requestId:denied.request.requestId,pollToken:denied.pollToken}),/plus_authorization_denied/);
 
+const idleBase={...base,connectionId:'dc-test-idle',connectionExpiresAt:now+2*60*60*1000};
+const idleReq=reloaded.request({...idleBase,agentId:'agent-access-test-idleaaaa',label:'ChatGPT Idle'});
+const idleGrant=reloaded.approve(idleReq.request.requestId,{deviceId:idleBase.deviceId,connectionId:idleBase.connectionId,connectionExpiresAt:idleBase.connectionExpiresAt,idleGraceMs:15*60*1000});
+assert.equal(idleGrant.idleGraceMs,15*60*1000);
+now+=14*60*1000;
+assert.equal(reloaded.reap({connectionForDevice:()=>({state:'connected',connectionId:idleBase.connectionId}),liveSessionsForDevice:()=>0}).length,0);
+now+=2*60*1000;
+const idleClosed=reloaded.reap({connectionForDevice:()=>({state:'connected',connectionId:idleBase.connectionId}),liveSessionsForDevice:()=>0});
+assert.equal(idleClosed[0]?.closeReason,'device_access_idle_expired');
+
+const heldBase={...base,connectionId:'dc-test-held',connectionExpiresAt:now+2*60*60*1000};
+const heldReq=reloaded.request({...heldBase,agentId:'agent-access-test-heldaaaa',label:'ChatGPT Held'});
+const heldGrant=reloaded.approve(heldReq.request.requestId,{deviceId:heldBase.deviceId,connectionId:heldBase.connectionId,connectionExpiresAt:heldBase.connectionExpiresAt,idleGraceMs:15*60*1000});
+now+=16*60*1000;
+assert.equal(reloaded.reap({connectionForDevice:()=>({state:'connected',connectionId:heldBase.connectionId}),liveSessionsForDevice:()=>1}).length,0);
+assert.equal(reloaded.assert(heldGrant.grantId,{touch:false}).grantId,heldGrant.grantId);
+reloaded.assert(heldGrant.grantId); // a real tool/authenticated call refreshes grant activity
+now+=14*60*1000;
+assert.equal(reloaded.reap({connectionForDevice:()=>({state:'connected',connectionId:heldBase.connectionId}),liveSessionsForDevice:()=>0}).length,0);
+now+=2*60*1000;
+assert.equal(reloaded.reap({connectionForDevice:()=>({state:'connected',connectionId:heldBase.connectionId}),liveSessionsForDevice:()=>0})[0]?.closeReason,'device_access_idle_expired');
+
 const base4={...base,connectionId:'dc-test-4',connectionExpiresAt:now+120_000};
 const expiring=reloaded.request({...base4,agentId:'agent-access-test-eeeeeeee',label:'ChatGPT E'});
 now=expiring.request.expiresAt+1;
@@ -55,3 +77,4 @@ fs.rmSync(file,{force:true});
 console.log('v09-device-access-grant=PASS');
 console.log('v09-device-access-multi-agent-one-approval=PASS');
 console.log('v09-device-access-disconnect-expiry=PASS');
+console.log('v09-device-access-idle-grace=PASS');

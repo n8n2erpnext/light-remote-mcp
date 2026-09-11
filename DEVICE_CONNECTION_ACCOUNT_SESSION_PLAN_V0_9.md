@@ -61,7 +61,7 @@ Session states are:
 
 A returning Agent inside the grace resumes the same session/job/output lane. A returning Agent after terminal expiry creates a new lane. If the device access grant is still valid because other sessions are active, that new lane does not need another owner approval.
 
-If no Agent sessions remain live and no tool activity occurs for the configured grace, the device access grant closes and the device connection may close early instead of consuming the rest of the hard lease.
+If no Agent sessions remain live and no tool activity occurs for the configured grace, the Device Access Grant closes. Agent inactivity does not close the Device Connection Lease; that lease remains valid until explicit Disconnect, revoke/authority failure, or its absolute hard expiry.
 ## 6. Owner approval semantics
 Approval is per device access grant, not per ChatGPT window. Several Agent sessions may attach to one approved grant. Human approval is not a fixed one-hour bearer lifetime.
 
@@ -70,7 +70,7 @@ Technical credentials may rotate internally, but token rotation must be invisibl
 The current ChatGPT Plus -> `@Vercel` compatibility lane must therefore stop binding human approval to one `agentId` with a hardcoded one-hour expiry. It should resolve a live device grant first, then create/reuse target-bound Agent sessions underneath it.
 
 ## 7. Local Wall and Desktop App
-Local Wall is the control surface for exactly one local device by default. Desktop applications may embed it or open it in a browser.
+Local Wall is the observer/control surface for exactly one local device by default. It uses the same operator-stream/session-lane/history experience as the owner reference Wall, but is scoped to one device. Desktop applications may embed it or open it in a browser. Closing or reloading Wall must never keep alive or terminate the service, cloud lease, access grant, Agent sessions, or durable jobs.
 
 Required local states:
 - Service: `running` / local health.
@@ -79,7 +79,8 @@ Required local states:
 - Hard lease: connected-at, expires-at, remaining time and plan cap.
 - Reconnect grace: 15–60 minutes.
 - Sessions: all Agent lanes on this device with state, last activity, jobs and reconnect count.
-- Controls: Connect, Disconnect now, End session, Revoke access, policy/capabilities, logs and maintenance.
+- Controls/observability: device/cloud status, Agent session lanes, live operator stream, command/output history, policy/capabilities and maintenance. Connection controls may be exposed by the device App/Wall, but Wall presence itself is never a keepalive mechanism.
+- Approval UX: `/approve` accepts the short code, resolves only a pending request for this device, offers Approve/Deny, then reports success and returns to `/`. Approval never asks for a duration and never creates or extends the Device Connection Lease.
 
 VPS/Linux headless uses the same Local Wall contract. Windows/Linux/macOS Desktop adds native chrome/tray/service management but does not change authority semantics.
 
@@ -90,7 +91,7 @@ All users may see their account-owned device inventory. VIP adds a convenience f
 ## 9. Server-load rule
 The always-alive local service must not imply an always-open central connection. A dormant client performs no long-poll/cloud heartbeat loop. Only a user-created Device Connection Lease opens the outbound channel.
 
-Within a live lease the channel may use long poll, streaming or a future transport, but the hard expiry and early-idle close are transport-independent. The server must be able to reap expired leases and all associated sessions even if the client disappears without a clean disconnect.
+Within a live lease the channel may use long poll, streaming or a future transport. The Device Connection hard expiry is absolute; Agent/session and Device Access Grant idle expiry are separate child lifecycles and must not reap the parent Device Connection. The server must still reap expired hard leases and associated child state even if the client disappears without a clean disconnect.
 
 ## 10. Durable jobs at hard expiry
 A hard lease expiry blocks new tool calls immediately. Existing jobs enter terminating policy. Jobs explicitly marked session-bound may be stopped; safe background jobs may detach and continue locally but Light Remote loses control until a new connection is created. The server must persist the last known job/output state for audit and later inspection.

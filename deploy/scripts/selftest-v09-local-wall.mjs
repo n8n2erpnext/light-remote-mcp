@@ -1,42 +1,34 @@
 import http from 'node:http';
-import fs from 'node:fs';
-import path from 'node:path';
-import os from 'node:os';
 import { startLocalWall, isAllowedLocalWallBindHost } from '../../device-agent/local-wall.mjs';
 
 const port=24000+(process.pid%10000),brand=new URL('../../assets/branding/light-remote-mark.svg',import.meta.url).pathname;
 if(!isAllowedLocalWallBindHost('127.0.0.1')||!isAllowedLocalWallBindHost('100.94.235.29')||!isAllowedLocalWallBindHost('10.0.0.5')||!isAllowedLocalWallBindHost('172.20.1.5')||!isAllowedLocalWallBindHost('192.168.1.5'))throw new Error('local_wall_private_bind_rejected');
 if(isAllowedLocalWallBindHost('0.0.0.0')||isAllowedLocalWallBindHost('8.8.8.8')||isAllowedLocalWallBindHost('203.0.113.10'))throw new Error('local_wall_public_bind_allowed');
-
-let connected=false,grace=30,connects=0,disconnects=0,graces=0,approvals=0,denials=0;
-const accessRequestId='pa_localwall_access_request_1234567890';
+let connected=true,grace=30,connects=0,disconnects=0,graces=0,approvals=0,denials=0;
+const requests=[
+  {requestId:'pa_localwall_access_request_1234567890',agentId:'agent-localwall-test-bbbbbbbb',label:'ChatGPT B',userCode:'ABCD-EFGH',expiresAt:Date.now()+300000},
+  {requestId:'pa_localwall_access_request_0987654321',agentId:'agent-localwall-test-cccccccc',label:'ChatGPT C',userCode:'WXYZ-2345',expiresAt:Date.now()+300000}
+];
 const wall=startLocalWall({host:'127.0.0.1',port,brandSvgPath:brand,
-  getLocalStatus:async()=>({ok:true,enrolled:true,deviceId:'dev_localwall_test',deviceName:'LOCAL-WALL-TEST',accountId:'acct-test',cloudDesiredConnected:connected,cloudState:connected?'connected':'dormant',connectionPlan:'free',hardExpiresAt:connected?Date.now()+3600000:null,reconnectGraceMs:grace*60000}),
-  getRemoteStatus:async()=>({ok:true,sessions:connected?[{sessionId:'s_localwall_test',agentId:'agent-localwall-test-aaaaaaaa',label:'ChatGPT A',state:'active',lastSeenAt:Date.now(),activeJobs:[]}]:[],access:{pending:connected?[{requestId:accessRequestId,agentId:'agent-localwall-test-bbbbbbbb',label:'ChatGPT B',userCode:'ABCD-EFGH',expiresAt:Date.now()+300000}]:[]}}),
-  connect:async data=>{connects++;connected=true;grace=Number(data.graceMinutes||grace);return {state:'connected',reconnectGraceMs:grace*60000};},
-  disconnect:async()=>{disconnects++;connected=false;return {state:'dormant'};},
-  setGrace:async data=>{graces++;grace=Number(data.minutes);return {state:'connected',reconnectGraceMs:grace*60000};},
-  accessApprove:async requestId=>{if(requestId!==accessRequestId)throw new Error('wrong_access_request');approvals++;return {state:'approved',requestId};},
-  accessDeny:async requestId=>{if(requestId!==accessRequestId)throw new Error('wrong_access_request');denials++;return {state:'denied',requestId};}
+  getLocalStatus:async()=>({ok:true,enrolled:true,deviceId:'dev_localwall_test',deviceName:'LOCAL-WALL-TEST',accountId:'acct-test',platformAdapter:'linux',version:'0.9-test',policyProfile:'fleet-leaf',effectiveCapabilities:['filesystem','git'],cloudDesiredConnected:connected,cloudState:connected?'connected':'dormant',connectionPlan:'free',hardExpiresAt:connected?Date.now()+3600000:null,reconnectGraceMs:grace*60000}),
+  getRemoteStatus:async()=>({ok:true,device:{deviceId:'dev_localwall_test',displayName:'LOCAL-WALL-TEST',state:'online',platform:'linux',architecture:'x64',agentVersion:'0.9-test'},connection:{state:connected?'connected':'dormant',plan:'free',remainingMs:connected?3600000:0},sessions:connected?[{sessionId:'s_localwall_test',agentId:'agent-localwall-test-aaaaaaaa',label:'ChatGPT A',state:'active',lastSeenAt:Date.now(),graceMs:30*60000,activeJobs:[],stats:{toolCalls:2,execCalls:1}}]:[],access:{pending:connected?requests:[]}}),
+  getRemoteActivity:async()=>({ok:true,events:[{id:1,at:new Date().toISOString(),type:'job_started',jobId:'job-local-1',deviceId:'dev_localwall_test',sessionId:'s_localwall_test',agentId:'agent-localwall-test-aaaaaaaa',status:'running',cwd:'/tmp',script:'echo hello'},{id:2,at:new Date().toISOString(),type:'stdout',jobId:'job-local-1',deviceId:'dev_localwall_test',chunk:'hello\n'},{id:3,at:new Date().toISOString(),type:'job_finished',jobId:'job-local-1',deviceId:'dev_localwall_test',status:'ok',exitCode:0,durationMs:5}]}),
+  connect:async data=>{connects++;connected=true;grace=Number(data.graceMinutes||grace);return {state:'connected',reconnectGraceMs:grace*60000};},disconnect:async()=>{disconnects++;connected=false;return {state:'dormant'};},setGrace:async data=>{graces++;grace=Number(data.minutes);return {state:'connected',reconnectGraceMs:grace*60000};},
+  accessApprove:async requestId=>{if(!requests.some(x=>x.requestId===requestId))throw new Error('wrong_access_request');approvals++;return {state:'approved',requestId};},accessDeny:async requestId=>{if(!requests.some(x=>x.requestId===requestId))throw new Error('wrong_access_request');denials++;return {state:'denied',requestId};}
 });
-function req(method,target,payload){return new Promise((resolve,reject)=>{const data=payload==null?null:Buffer.from(JSON.stringify(payload));const r=http.request({host:'127.0.0.1',port,method,path:target,headers:data?{'content-type':'application/json','content-length':data.length}:{}},res=>{let text='';res.on('data',c=>text+=c);res.on('end',()=>{let json=null;try{json=JSON.parse(text)}catch{}resolve({status:res.statusCode,text,json});});});r.on('error',reject);if(data)r.write(data);r.end();});}
+function req(method,target,payload){return new Promise((resolve,reject)=>{const data=payload==null?null:Buffer.from(JSON.stringify(payload));const headers=data?{'content-type':'application/json','content-length':data.length}:{};const r=http.request({host:'127.0.0.1',port,method,path:target,headers},res=>{let text='';res.on('data',c=>text+=c);res.on('end',()=>{let json=null;try{json=JSON.parse(text)}catch{}resolve({status:res.statusCode,text,json});});});r.on('error',reject);if(data)r.write(data);r.end();});}
 await new Promise(r=>setTimeout(r,80));
 try{
-  const html=await req('GET','/');
-  if(html.status!==200||!html.text.includes('Light Remote')||!html.text.includes('Local Wall · this device only'))throw new Error('local_wall_html_failed');
-  const dormant=await req('GET','/api/status');
-  if(dormant.status!==200||dormant.json.local.cloudState!=='dormant'||dormant.json.remote!==null)throw new Error('local_wall_dormant_status_failed');
-  const c=await req('POST','/api/connect',{graceMinutes:45});
-  if(c.status!==200||connects!==1||grace!==45)throw new Error('local_wall_connect_failed');
-  const live=await req('GET','/api/status');
-  if(live.status!==200||live.json.local.cloudState!=='connected'||live.json.remote.sessions?.length!==1||live.json.remote.access?.pending?.length!==1)throw new Error('local_wall_live_sessions_failed');
-  const a=await req('POST',`/api/access/${accessRequestId}/approve`,{});
-  if(a.status!==200||approvals!==1||a.json.authorization?.state!=='approved')throw new Error('local_wall_access_approve_failed');
-  const n=await req('POST',`/api/access/${accessRequestId}/deny`,{});
-  if(n.status!==200||denials!==1||n.json.authorization?.state!=='denied')throw new Error('local_wall_access_deny_failed');
-  const g=await req('POST','/api/grace',{minutes:60});
-  if(g.status!==200||graces!==1||grace!==60)throw new Error('local_wall_grace_failed');
-  const d=await req('POST','/api/disconnect',{});
-  if(d.status!==200||disconnects!==1||connected)throw new Error('local_wall_disconnect_failed');
-  console.log(JSON.stringify({ok:true,loopback:true,privateBind:true,publicBindDenied:true,brand:true,connects,disconnects,graces,approvals,denials,sessionTree:true,deviceAccessControls:true},null,2));
-} finally {await wall.close();}
+  const html=await req('GET','/');if(html.status!==200||!html.text.includes('LIVE OPERATOR STREAM')||!html.text.includes('one device · session lanes · operator history')||!html.text.includes('Closing the browser does not stop'))throw new Error('single_device_wall_contract_failed');
+  if(html.text.includes('id="connect"')||html.text.includes('Reconnect grace</span><select'))throw new Error('root_wall_must_not_be_connection_form');
+  const approveHtml=await req('GET','/approve');if(approveHtml.status!==200||!approveHtml.text.includes('Enter code')||!approveHtml.text.includes('Approve')||approveHtml.text.includes('lease-hours')||approveHtml.text.includes('graceMinutes'))throw new Error('approve_page_contract_failed');
+  const live=await req('GET','/api/status');if(live.status!==200||live.json.remote.sessions?.length!==1||live.json.remote.access?.pending?.length!==2)throw new Error('local_wall_live_sessions_failed');
+  const activity=await req('GET','/api/activity?limit=50');if(activity.status!==200||activity.json.events?.length!==3||activity.json.events[0].deviceId!=='dev_localwall_test')throw new Error('local_wall_activity_failed');
+  const lookup=await req('GET','/api/approve?code=abcd-efgh');if(lookup.status!==200||lookup.json.request?.requestId!==requests[0].requestId)throw new Error('approval_code_lookup_failed');
+  const bad=await req('GET','/api/approve?code=NOPE-0000');if(bad.status!==404||bad.json.error!=='approval_code_not_found')throw new Error('unknown_approval_code_not_rejected');
+  const a=await req('POST','/api/approve',{code:'ABCD-EFGH',decision:'approve'});if(a.status!==200||approvals!==1||a.json.decision!=='approved')throw new Error('code_approve_failed');
+  const n=await req('POST','/api/approve',{code:'WXYZ-2345',decision:'deny'});if(n.status!==200||denials!==1||n.json.decision!=='denied')throw new Error('code_deny_failed');
+  const g=await req('POST','/api/grace',{minutes:60});if(g.status!==200||graces!==1||grace!==60)throw new Error('local_wall_grace_api_failed');
+  const beforeClose=disconnects;await wall.close();if(disconnects!==beforeClose||!connected)throw new Error('wall_close_must_not_disconnect_device');
+  console.log(JSON.stringify({ok:true,singleDeviceWall:true,liveOperatorStream:true,history:true,approveByCode:true,approveRedirectContract:true,wallObserverOnly:true,privateBind:true,publicBindDenied:true,approvals,denials},null,2));
+} catch(error){try{await wall.close();}catch{}throw error;}

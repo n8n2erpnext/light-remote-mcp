@@ -19,7 +19,7 @@ expect(server.includes("app.get('/plus/bootstrap/devices'")&&server.includes('/v
 expect(api.includes('deviceId')&&api.includes('invalid_plus_device_id'),'plus_device_selection_missing');
 expect(server.includes("s.deviceId===req.plusIdentity.deviceId"),'plus_sessions_must_be_device_filtered');
 expect(!server.includes("wallApp.post('/api/plus-authorizations/:id/approve'")&&!server.includes("wallApp.post('/api/plus-authorizations/:id/deny'"),'hosted_wall_must_not_approve_device_access');
-expect(text('gateway/plus-auth.mjs').includes('Approve on the device Local Wall')&&!text('gateway/plus-auth.mjs').includes('Approve for 1 hour'),'local_wall_approval_semantics_missing');
+expect(text('gateway/plus-auth.mjs').includes("approvalPath:'/approve'")&&!text('gateway/plus-auth.mjs').includes('Approve for 1 hour')&&!text('gateway/plus-auth.mjs').includes("localWallUrl:'http://127.0.0.1:5491/'"),'local_wall_approval_semantics_missing');
 expect(server.includes("plusBridge:'owner-approved-device-access-grant-over-vercel'"),'health_device_grant_semantics_missing');
 expect(!text('gateway/plus-auth.mjs').includes('SESSION_TTL_MS = 60 * 60 * 1000'),'plus_human_approval_must_not_be_fixed_one_hour');
 expect(server.includes('authenticateVercelPlusBridge')&&server.includes('authenticateVercel(req)'),'plus_oidc_environment_fallback_missing');
