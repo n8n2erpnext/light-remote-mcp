@@ -10,7 +10,7 @@ import { enrollmentApprovalHtml } from './enrollment-page.mjs';
 import { devicePolicyHtml } from './device-policy-page.mjs';
 import { createWallAuth } from './wall-auth.mjs';
 import { authenticateVercel, authenticateVercelPlusBridge, isToolCall, securityInfo } from './security.mjs';
-import { proxyOperatorJson, proxyOperatorSse } from './operator-proxy.mjs';
+import { callOperatorJson, proxyOperatorJson, proxyOperatorSse } from './operator-proxy.mjs';
 import { rootNames, listWorkspace, readWorkspaceText, searchWorkspace, gitStatus, gitDiff } from './workspace.mjs';
 import { registerRemoteTools } from './remote-tools.mjs';
 import { registerConvenienceTools } from './remote-convenience-tools.mjs';
@@ -158,10 +158,16 @@ function softRateLimit(req, res, next) {
   next();
 }
 const wallAuth = createWallAuth();
-const plusAuth = createPlusAuth(wallAuth);
+const plusAuth = createPlusAuth(wallAuth, {
+  requestAccess: body => callOperatorJson('POST','/v1/device-access/request',body),
+  pollAccess: body => callOperatorJson('POST','/v1/device-access/poll',body),
+  getAccessRequest: id => callOperatorJson('GET',`/v1/device-access/requests/${encodeURIComponent(id)}`),
+  listAccessRequests: () => callOperatorJson('GET','/v1/device-access/requests'),
+  assertGrant: id => callOperatorJson('GET',`/v1/device-access/grants/${encodeURIComponent(id)}`)
+});
 registerMcpOAuth(app, wallAuth);
 app.get('/healthz', (_req, res) => res.json({
-  ok: true, service: 'thaiduy-vps-arm-mcp', version: VERSION, mode: 'read-plus-operator', security: { ...securityInfo(), toolCalls:'oauth-or-vercel-oidc-plus-bridge-session', plusBridge:'owner-approved-short-lived-plus-session-over-vercel', bridgeSession:'required-for-vercel-operator-calls', bridgeSessionTtlSeconds:wallAuth.info().bridgeSessionTtlSeconds }
+  ok: true, service: 'thaiduy-vps-arm-mcp', version: VERSION, mode: 'read-plus-operator', security: { ...securityInfo(), toolCalls:'oauth-or-vercel-oidc-plus-device-grant', plusBridge:'owner-approved-device-access-grant-over-vercel', bridgeSession:'required-for-vercel-operator-calls', bridgeSessionTtlSeconds:wallAuth.info().bridgeSessionTtlSeconds }
 }));
 
 async function requireVercelIdentity(req, res, next) {
@@ -202,9 +208,34 @@ async function requireMcpIdentity(req, res, next) {
   return res.status(401).json({ jsonrpc:'2.0', error:{ code:-32001, message:'Light Remote authorization required' }, id:req.body?.id ?? null });
 }
 
+function requirePlusDeviceParam(req,res,next){
+  if(String(req.params?.id||'')!==String(req.plusIdentity?.deviceId||''))return res.status(403).json({ok:false,error:'plus_device_grant_target_mismatch'});
+  return next();
+}
+async function requirePlusSessionDevice(req,res,next){
+  try{
+    const agentId=String(req.body?.agentId??req.query?.agentId??'').trim();
+    const sessionId=String(req.params?.id||'').trim();
+    const value=await callOperatorJson('GET',`/v1/sessions/${encodeURIComponent(sessionId)}?agentId=${encodeURIComponent(agentId)}`);
+    if(value?.session?.deviceId!==req.plusIdentity?.deviceId)return res.status(403).json({ok:false,error:'plus_device_grant_session_mismatch'});
+    req.plusSessionView=value.session;return next();
+  }catch(error){return res.status(Number(error.status)||400).json({ok:false,error:error.message||'plus_session_target_check_failed'});}
+}
+async function requirePlusJobDevice(req,res,next){
+  try{
+    const agentId=String(req.body?.agentId??req.query?.agentId??'').trim();
+    const jobId=String(req.params?.id||'').trim();
+    const value=await callOperatorJson('GET',`/v1/jobs/${encodeURIComponent(jobId)}?agentId=${encodeURIComponent(agentId)}`);
+    if(value?.job?.deviceId!==req.plusIdentity?.deviceId)return res.status(403).json({ok:false,error:'plus_device_grant_job_mismatch'});
+    req.plusJobView=value.job;return next();
+  }catch(error){return res.status(Number(error.status)||400).json({ok:false,error:error.message||'plus_job_target_check_failed'});}
+}
+
 app.post('/device-channel/connect', softRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/connect', req.body || {}));
 app.post('/device-channel/disconnect', softRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/disconnect', req.body || {}));
 app.post('/device-channel/grace', softRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/grace', req.body || {}));
+app.post('/device-channel/access-approve', softRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/access-approve', req.body || {}));
+app.post('/device-channel/access-deny', softRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/access-deny', req.body || {}));
 app.post('/device-channel/status', softRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/status', req.body || {}));
 app.post('/device-channel/poll', softRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/poll', req.body || {}));
 app.post('/device-channel/result', softRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/result', req.body || {}));
@@ -243,20 +274,21 @@ app.get('/operator/output/:id', softRateLimit, requireOperatorIdentity, (req, re
 
 app.post('/plus/auth/begin', softRateLimit, requirePlusVercelIdentity, plusAuth.begin);
 app.post('/plus/auth/poll', softRateLimit, requirePlusVercelIdentity, plusAuth.poll);
+app.get('/plus/bootstrap/devices', softRateLimit, requirePlusVercelIdentity, async (_req,res)=>{ try{const value=await callOperatorJson('GET','/v1/devices');const devices=(value.devices||[]).map(d=>({deviceId:d.deviceId,nodeId:d.nodeId,displayName:d.displayName,platform:d.platform,architecture:d.architecture,state:d.state,connection:{state:d.connection?.state||'dormant',remainingMs:d.connection?.remainingMs||0}}));return res.json({ok:true,devices});}catch(error){return res.status(Number(error.status)||502).json({ok:false,error:error.message||'operator_unavailable'});} });
 app.get('/plus/capabilities', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, (_req,res)=>proxyOperatorJson(res,'GET','/v1/capabilities'));
-app.get('/plus/devices', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, (_req,res)=>proxyOperatorJson(res,'GET','/v1/devices'));
-app.get('/plus/fleet', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, (_req,res)=>proxyOperatorJson(res,'GET','/v1/fleet'));
-app.get('/plus/devices/:id', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, (req,res)=>proxyOperatorJson(res,'GET',`/v1/devices/${encodeURIComponent(req.params.id)}`));
-app.get('/plus/devices/:id/connection', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, (req,res)=>proxyOperatorJson(res,'GET',`/v1/devices/${encodeURIComponent(req.params.id)}/connection`));
-app.get('/plus/sessions', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, (_req,res)=>proxyOperatorJson(res,'GET','/v1/sessions'));
-app.post('/plus/sessions/open', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, plusAuth.requireAgent, (req,res)=>proxyOperatorJson(res,'POST','/v1/sessions/open',req.body||{}));
-app.post('/plus/sessions/:id/resume', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, plusAuth.requireAgent, (req,res)=>proxyOperatorJson(res,'POST',`/v1/sessions/${encodeURIComponent(req.params.id)}/resume`,req.body||{}));
-app.post('/plus/sessions/:id/hold', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, plusAuth.requireAgent, (req,res)=>proxyOperatorJson(res,'POST',`/v1/sessions/${encodeURIComponent(req.params.id)}/hold`,req.body||{}));
-app.post('/plus/sessions/:id/close', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, plusAuth.requireAgent, (req,res)=>proxyOperatorJson(res,'POST',`/v1/sessions/${encodeURIComponent(req.params.id)}/close`,req.body||{}));
-app.get('/plus/sessions/:id', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, plusAuth.requireAgent, (req,res)=>proxyOperatorJson(res,'GET',`/v1/sessions/${encodeURIComponent(req.params.id)}?agentId=${encodeURIComponent(req.query.agentId||'')}`));
-app.post('/plus/execute', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, (req,res)=>proxyOperatorJson(res,'POST','/v1/execute',req.body||{}));
-app.get('/plus/jobs/:id', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, plusAuth.requireAgent, (req,res)=>proxyOperatorJson(res,'GET',`/v1/jobs/${encodeURIComponent(req.params.id)}?agentId=${encodeURIComponent(req.query.agentId||'')}`));
-app.get('/plus/output/:id', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, plusAuth.requireAgent, (req,res)=>{
+app.get('/plus/devices', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, async (req,res)=>{try{const value=await callOperatorJson('GET',`/v1/devices/${encodeURIComponent(req.plusIdentity.deviceId)}`);return res.json({ok:true,currentDeviceId:req.plusIdentity.deviceId,devices:value.device?[value.device]:[]});}catch(error){return res.status(Number(error.status)||502).json({ok:false,error:error.message||'operator_unavailable'});}});
+app.get('/plus/fleet', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, async (req,res)=>{try{const value=await callOperatorJson('GET','/v1/fleet');return res.json({ok:true,hubNodeId:value.hubNodeId,nodes:(value.nodes||[]).filter(n=>n.deviceId===req.plusIdentity.deviceId)});}catch(error){return res.status(Number(error.status)||502).json({ok:false,error:error.message||'operator_unavailable'});}});
+app.get('/plus/devices/:id', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, requirePlusDeviceParam, (req,res)=>proxyOperatorJson(res,'GET',`/v1/devices/${encodeURIComponent(req.params.id)}`));
+app.get('/plus/devices/:id/connection', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, requirePlusDeviceParam, (req,res)=>proxyOperatorJson(res,'GET',`/v1/devices/${encodeURIComponent(req.params.id)}/connection`));
+app.get('/plus/sessions', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, async (req,res)=>{try{const value=await callOperatorJson('GET','/v1/sessions');const sessions=(value.sessions||[]).filter(s=>s.deviceId===req.plusIdentity.deviceId);return res.json({ok:true,active:sessions.filter(s=>s.state==='active'||s.state==='hold').length,maxActive:value.maxActive,defaultGraceMs:value.defaultGraceMs,minGraceMs:value.minGraceMs,maxGraceMs:value.maxGraceMs,gracePresets:value.gracePresets,sessions});}catch(error){return res.status(Number(error.status)||502).json({ok:false,error:error.message||'operator_unavailable'});}});
+app.post('/plus/sessions/open', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, plusAuth.requireAgent, plusAuth.requireGrantedNode, (req,res)=>proxyOperatorJson(res,'POST','/v1/sessions/open',req.body||{}));
+app.post('/plus/sessions/:id/resume', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, plusAuth.requireAgent, requirePlusSessionDevice, (req,res)=>proxyOperatorJson(res,'POST',`/v1/sessions/${encodeURIComponent(req.params.id)}/resume`,req.body||{}));
+app.post('/plus/sessions/:id/hold', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, plusAuth.requireAgent, requirePlusSessionDevice, (req,res)=>proxyOperatorJson(res,'POST',`/v1/sessions/${encodeURIComponent(req.params.id)}/hold`,req.body||{}));
+app.post('/plus/sessions/:id/close', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, plusAuth.requireAgent, requirePlusSessionDevice, (req,res)=>proxyOperatorJson(res,'POST',`/v1/sessions/${encodeURIComponent(req.params.id)}/close`,req.body||{}));
+app.get('/plus/sessions/:id', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, plusAuth.requireAgent, requirePlusSessionDevice, (req,res)=>proxyOperatorJson(res,'GET',`/v1/sessions/${encodeURIComponent(req.params.id)}?agentId=${encodeURIComponent(req.query.agentId||'')}`));
+app.post('/plus/execute', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, (req,res)=>proxyOperatorJson(res,'POST','/v1/device-access/execute',{grantId:req.plusIdentity.grantId,envelope:req.body||{}}));
+app.get('/plus/jobs/:id', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, plusAuth.requireAgent, requirePlusJobDevice, (req,res)=>proxyOperatorJson(res,'GET',`/v1/jobs/${encodeURIComponent(req.params.id)}?agentId=${encodeURIComponent(req.query.agentId||'')}`));
+app.get('/plus/output/:id', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, plusAuth.requireAgent, requirePlusJobDevice, (req,res)=>{
   const qs=new URLSearchParams(req.query).toString();
   return proxyOperatorJson(res,'GET',`/v1/output/${encodeURIComponent(req.params.id)}${qs?`?${qs}`:''}`);
 });
@@ -298,8 +330,6 @@ wallApp.post('/auth/login', wallAuth.login);
 wallApp.post('/auth/logout', wallAuth.logout);
 wallApp.get('/plus-authorize', wallAuth.requirePage, plusAuth.page);
 wallApp.get('/api/plus-authorizations', wallAuth.requireApi, plusAuth.list);
-wallApp.post('/api/plus-authorizations/:id/approve', wallAuth.requireApi, plusAuth.approve);
-wallApp.post('/api/plus-authorizations/:id/deny', wallAuth.requireApi, plusAuth.deny);
 wallApp.get('/enroll', wallAuth.requirePage, (req, res) => {
   const enrollmentId = String(req.query.id || '').replace(/[^A-Za-z0-9._:-]/g,'').slice(0,128);
   res.set('Content-Security-Policy', "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");

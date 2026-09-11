@@ -142,6 +142,18 @@ async function remoteDeviceStatus(hub=DEFAULT_HUB){
   const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
   return channelRequest(state,hub,'status',{nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION});
 }
+async function approveDeviceAccess(requestId,hub=DEFAULT_HUB){
+  const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
+  const id=String(requestId||'').trim();if(!/^pa_[A-Za-z0-9_-]{20,80}$/.test(id))throw new Error('invalid_plus_request_id');
+  const response=await channelRequest(state,hub,'access-approve',{requestId:id});
+  return response.grant||response.authorization||response;
+}
+async function denyDeviceAccess(requestId,hub=DEFAULT_HUB,reason='owner_denied'){
+  const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
+  const id=String(requestId||'').trim();if(!/^pa_[A-Za-z0-9_-]{20,80}$/.test(id))throw new Error('invalid_plus_request_id');
+  const response=await channelRequest(state,hub,'access-deny',{requestId:id,reason:String(reason||'owner_denied').slice(0,80)});
+  return response.authorization||response;
+}
 function statusView(state=readState()){
   if(!state)return {ok:true,version:VERSION,platformAdapter:PLATFORM_ADAPTER.id,enrolled:false,deviceId:null,deviceName:os.hostname(),accountId:null,cloudDesiredConnected:false,cloudState:'dormant',connectionId:null,hardExpiresAt:null,reconnectGraceMs:null,connectionPlan:null,stateFile:STATE_FILE,localWallUrl:`http://${LOCAL_WALL_HOST}:${LOCAL_WALL_PORT}/`};
   return {ok:true,version:VERSION,platformAdapter:PLATFORM_ADAPTER.id,enrolled:Boolean(state.enrollment?.deviceId),deviceId:state.enrollment?.deviceId||null,deviceName:os.hostname(),nodeId:state.enrollment?.nodeId||state.enrollment?.deviceId||null,accountId:state.enrollment?.accountId||null,pendingEnrollmentId:state.pendingEnrollment?.enrollmentId||null,publicKeySha256:state.identity?.publicKeySha256||null,policyProfile:state.enrollment?.policyProfile||state.pendingEnrollment?.requestedPolicy||null,policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),grantableCapabilities:state.enrollment?.grantableCapabilities||state.enrollment?.approvedCapabilities||[],approvedCapabilities:state.enrollment?.approvedCapabilities||[],deniedCapabilities:state.policy?.deniedCapabilities||[],effectiveCapabilities:state.effectiveCapabilities||[],draining:Boolean(state.routing?.draining),cloudDesiredConnected:cloudDesired(state),cloudState:state.cloud?.state||(cloudDesired(state)?'legacy-connected':'dormant'),connectionId:state.cloud?.connectionId||null,hardExpiresAt:state.cloud?.hardExpiresAt||null,reconnectGraceMs:state.cloud?.reconnectGraceMs||null,connectionPlan:state.cloud?.plan||null,lastCloudError:state.cloud?.lastError||null,lastHeartbeatAt:state.lastHeartbeatAt||null,stateFile:STATE_FILE,commandDir:COMMAND_DIR,localWallUrl:`http://${LOCAL_WALL_HOST}:${LOCAL_WALL_PORT}/`,privateKeyStoredLocally:Boolean(state.identity?.privateKey)};
@@ -158,7 +170,7 @@ async function daemon(args){
   let stopped=false,wake=null,failures=0,localWall=null;
   const stop=()=>{stopped=true;if(wake)wake();try{localWall?.server.close();}catch{}};process.on('SIGTERM',stop);process.on('SIGINT',stop);
   const wait=ms=>new Promise(resolve=>{const timer=setTimeout(()=>{wake=null;resolve();},ms);wake=()=>{clearTimeout(timer);wake=null;resolve();};});
-  localWall=startLocalWall({host:LOCAL_WALL_HOST,port:LOCAL_WALL_PORT,brandSvgPath:LOCAL_WALL_BRAND,getLocalStatus:async()=>statusView(),getRemoteStatus:async()=>{const remote=await remoteDeviceStatus(hub);return remote;},connect:async data=>connectCloud({hub,graceMinutes:data.graceMinutes,leaseHours:data.leaseHours,silent:true}),disconnect:async data=>disconnectCloud({hub,reason:data.reason||'local_wall_disconnect',silent:true}),setGrace:async data=>setConnectionGrace({hub,minutes:data.minutes,silent:true})});
+  localWall=startLocalWall({host:LOCAL_WALL_HOST,port:LOCAL_WALL_PORT,brandSvgPath:LOCAL_WALL_BRAND,getLocalStatus:async()=>statusView(),getRemoteStatus:async()=>{const remote=await remoteDeviceStatus(hub);return remote;},connect:async data=>connectCloud({hub,graceMinutes:data.graceMinutes,leaseHours:data.leaseHours,silent:true}),disconnect:async data=>disconnectCloud({hub,reason:data.reason||'local_wall_disconnect',silent:true}),setGrace:async data=>setConnectionGrace({hub,minutes:data.minutes,silent:true}),accessApprove:async requestId=>approveDeviceAccess(requestId,hub),accessDeny:async(requestId,data)=>denyDeviceAccess(requestId,hub,data?.reason||'owner_denied')});
   console.log(JSON.stringify({event:'local_wall_started',url:localWall.url,deviceId:state.enrollment?.deviceId||null}));
   console.log(JSON.stringify({event:'device_agent_started',mode:'always-alive-service',platformAdapter:PLATFORM_ADAPTER.id,deviceId:state.enrollment?.deviceId||null,nodeId:state.enrollment?.nodeId||null,sessionCeiling,waitMs,dormantPollMs,localWallUrl:localWall.url}));
   while(!stopped){

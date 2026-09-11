@@ -147,7 +147,7 @@ Migration safety: enforcement remains OFF by default until P2 teaches the always
 
 Regression checkpoint: 44 standalone selftests pass, including new device-connection registry and enforced endpoint tests. Root and Gateway production dependency audits report zero vulnerabilities.
 
-## 15. Implementation checkpoint — P2 client dormant lifecycle
+## 16. Implementation checkpoint — P2 client dormant lifecycle
 P0/P1 landed in commit `853811f`. P2 now implements the always-alive local service / finite-cloud-connection split without enabling hard-lease enforcement by default on the existing fleet.
 
 - Linux/device agent stays alive in `daemon` while cloud state is `dormant`; dormant mode performs no cloud poll or heartbeat loop.
@@ -158,7 +158,7 @@ P0/P1 landed in commit `853811f`. P2 now implements the always-alive local servi
 - Enforcement remains behind `OPERATOR_CONNECTION_LEASE_ENFORCE` until installed clients and Wall controls complete migration.
 - P2 local acceptance: 46/46 selftests, root/gateway audit 0, diff check clean; Windows native compilation remains a CI gate after push.
 
-## 16. Implementation checkpoint — P3 Local Wall
+## 17. Implementation checkpoint — P3 Local Wall
 P2 is committed as `ee87985`; Linux Server, Linux Client and Windows Native Client GitHub Actions all completed successfully, including the real Windows compile/install/rollback lane.
 
 P3 now adds a loopback-only Local Wall served by the always-alive client service at `127.0.0.1:5491`. It exposes this-device service/cloud state, finite lease countdown, reconnect grace (15/30/45/60m), Agent session tree, and Connect/Disconnect controls. The Local Wall performs no remote status call while the device is Dormant.
@@ -166,3 +166,16 @@ P3 now adds a loopback-only Local Wall served by the always-alive client service
 The device channel now has a signed `status` operation scoped to the calling device; it returns only that device's connection state and active/held Agent sessions. Linux service installation no longer requires enrollment first, so service + Wall may stay alive before login/enrollment. Windows tray/app exposes an Open Local Wall action and packages the same Wall runtime/assets.
 
 P3 local acceptance: 48/48 standalone selftests, root/gateway audit 0, syntax checks and diff check clean. Enforcement remains migration-gated until the installed reference fleet is upgraded to a client containing the dormant/Wall lifecycle.
+## 18. Implementation checkpoint — P4 Device Access Grant / Plus bridge
+P3 is committed as `ab11c6a`. P4 replaces the temporary one-hour, agent-bound Plus approval with a persistent server-side Device Access Grant bound to `(accountId, deviceId, connectionId)`.
+
+- `authorize-begin` now requires one explicit connected `deviceId`. Pre-authorization `devices-bootstrap` exists only to select that device.
+- If the current Device Connection already has an active grant, another ChatGPT window receives its own scoped `ps` capability without another owner approval.
+- If no grant exists, the selected device receives a pending access request through its signed device channel. Local Wall is the approval authority; hosted `/plus-authorize` is informational only.
+- Local Wall Approve/Deny uses Ed25519-signed `access-approve` / `access-deny`; one approval resolves all pending ChatGPT requests for the same device connection.
+- `ps` is scoped to `grantId + deviceId + connectionId`, is not agent-bound, and cannot outlive the finite Device Connection Lease. Every protected call re-validates the grant server-side.
+- Durable Agent lanes remain independently owned by `(deviceId, agentId)`. A grant for one device cannot open, resume, inspect, execute, read jobs/output, or enumerate sessions from another device.
+- Device disconnect, hard lease expiry, device revoke, or connection identity change closes the grant and terminally closes that device's Agent lanes. A later connection therefore requires a new owner approval.
+- Plus `devices`, `fleet`, and `sessions` responses are filtered to the granted device; encrypted execution is re-bound at the operator-host grant boundary before job start.
+
+P4 local acceptance: 49/49 standalone selftests PASS, including a dedicated persistent Device Access Grant regression; root/gateway production audits report zero vulnerabilities; diff and syntax checks PASS. Production deployment remains held until this checkpoint is committed, CI is green, and the reference fleet is upgraded safely.

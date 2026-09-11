@@ -22,9 +22,11 @@ module.exports=async function handler(req,res){
   try {
     let upstream;
     if(plus){
-      if(action==='authorize-begin') {
-        const d=payloadFor(req), agentId=aid(d.agentId), label=String(d.label||'ChatGPT Plus').trim().slice(0,120);
-        upstream=await callOperator('/plus/auth/begin',{method:'POST',body:{agentId,label}});
+      if(action==='devices-bootstrap') upstream=await callOperator('/plus/bootstrap/devices');
+      else if(action==='authorize-begin') {
+        const d=payloadFor(req), agentId=aid(d.agentId), label=String(d.label||'ChatGPT Plus').trim().slice(0,120), deviceId=String(d.deviceId||'').trim();
+        if(!/^[A-Za-z0-9._:-]{1,128}$/.test(deviceId)){const e=new Error('invalid_plus_device_id');e.status=400;throw e;}
+        upstream=await callOperator('/plus/auth/begin',{method:'POST',body:{agentId,label,deviceId}});
       }
       else if(action==='authorize-poll') {
         const d=payloadFor(req), requestId=String(d.requestId||'').trim(), pollToken=String(d.pollToken||'').trim();

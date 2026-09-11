@@ -11,6 +11,7 @@ import { DeviceRegistry, DeviceError } from './device-registry.mjs';
 import { EnrollmentRegistry, EnrollmentError } from './enrollment-registry.mjs';
 import { FleetRouter, FleetError } from './fleet-router.mjs';
 import { DeviceConnectionRegistry, DeviceConnectionError, DEFAULT_PLAN_CONNECTION_CAPS } from './device-connection-registry.mjs';
+import { DeviceAccessGrantRegistry, DeviceAccessGrantError } from './device-access-grant-registry.mjs';
 
 const SOCKET_PATH = process.env.OPERATOR_SOCKET || '/run/gpt-vps-operator/operator.sock';
 const KEY_FILE = process.env.OPERATOR_KEY_FILE || '/home/ubuntu/.config/gpt-vps-operator/operator.private.json';
@@ -21,6 +22,7 @@ const DEVICE_STATE_FILE = path.join(STATE_DIR, 'devices.json');
 const ENROLLMENT_STATE_FILE = path.join(STATE_DIR, 'enrollments.json');
 const ENROLLMENT_SIGNER_FILE = path.join(STATE_DIR, 'enrollment-signer.json');
 const CONNECTION_STATE_FILE = path.join(STATE_DIR, 'device-connections.json');
+const ACCESS_STATE_FILE = path.join(STATE_DIR, 'device-access-grants.json');
 const MAX_RING_BYTES = Number(process.env.OPERATOR_RING_BYTES || 16 * 1024 * 1024);
 const MAX_RING_EVENTS = Number(process.env.OPERATOR_RING_EVENTS || 5000);
 const MAX_MEMORY_OUTPUT = Number(process.env.OPERATOR_MEMORY_OUTPUT || 4 * 1024 * 1024);
@@ -67,6 +69,7 @@ const devices = new DeviceRegistry({ stateFile:DEVICE_STATE_FILE, presenceTtlMs:
 const enrollments = new EnrollmentRegistry({ stateFile:ENROLLMENT_STATE_FILE, signerFile:ENROLLMENT_SIGNER_FILE, activationBaseUrl:ENROLLMENT_ACTIVATION_URL, ttlMs:ENROLLMENT_TTL_MS, emit:event => pushEvent(event) });
 const fleet = new FleetRouter({ channelTtlMs:FLEET_CHANNEL_TTL_MS, commandLeaseMs:FLEET_COMMAND_LEASE_MS, maxQueuedPerNode:FLEET_MAX_QUEUED_PER_NODE, emit:event => pushEvent(event) });
 const connections = new DeviceConnectionRegistry({ stateFile:CONNECTION_STATE_FILE, emit:event => pushEvent(event) });
+const accessGrants = new DeviceAccessGrantRegistry({ stateFile:ACCESS_STATE_FILE, emit:event => pushEvent(event) });
 
 fs.mkdirSync(LOG_DIR, { recursive: true });
 function redact(value) {
@@ -105,13 +108,15 @@ function pushEvent(input) {
 if (devices.loadError) pushEvent({ type:'device_registry_load_error', status:'error', detail:redact(devices.loadError) });
 if (enrollments.loadError) pushEvent({ type:'enrollment_registry_load_error', status:'error', detail:redact(enrollments.loadError) });
 if (connections.loadError) pushEvent({ type:'device_connection_registry_load_error', status:'error', detail:redact(connections.loadError) });
+if (accessGrants.loadError) pushEvent({ type:'device_access_registry_load_error', status:'error', detail:redact(accessGrants.loadError) });
 devices.register({ accountId:ACCOUNT_ID, deviceId:DEVICE_ID, nodeId:NODE_ID, displayName:DEVICE_NAME, platform:os.platform(), architecture:os.arch(), agentVersion:VERSION, publicIdentityKey:DEVICE_PUBLIC_KEY || null, capabilities:HOST_CAPABILITIES, policyProfile:DEVICE_POLICY_PROFILE });
 const deviceHeartbeat = setInterval(() => { try { devices.heartbeat(DEVICE_ID); } catch (error) { console.error('[device] heartbeat failed', error?.message || error); } }, DEVICE_HEARTBEAT_MS);
 deviceHeartbeat.unref();
 const connectionReaper = setInterval(() => {
   try {
     const closed=connections.reap({activeSessionsForDevice:deviceId=>sessions.activeCountByDevice(deviceId)});
-    for(const item of closed) sessions.closeByDevice(item.deviceId,`device_${item.reason}`,{force:true});
+    for(const item of closed){ sessions.closeByDevice(item.deviceId,`device_${item.reason}`,{force:true}); accessGrants.closeByDevice(item.deviceId,`device_${item.reason}`); }
+    accessGrants.reap({connectionForDevice:deviceId=>connections.get(deviceId)});
   } catch(error) { console.error('[connection] reap failed', error?.message || error); }
 }, Math.max(5000,CONNECTION_REAP_MS));
 connectionReaper.unref();
@@ -536,6 +541,44 @@ const server = http.createServer(async (req, res) => {
       const device = devices.enroll({ accountId:binding.accountId, deviceId:binding.deviceId, nodeId:binding.deviceId, displayName:binding.displayName, platform:binding.platform, architecture:binding.architecture, agentVersion:binding.agentVersion, publicIdentityKey:binding.publicIdentityKey, capabilities:binding.approvedCapabilities, policyProfile:binding.policyProfile });
       return sendJson(res, 200, { ok:true, approval, device });
     }
+    if (req.method === 'POST' && url.pathname === '/v1/device-access/request') {
+      const body=await readJson(req), deviceId=String(body.deviceId||'');
+      const device=devices.get(deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
+      if(device.accountId!==ACCOUNT_ID) throw new DeviceAccessGrantError('device_access_account_mismatch',403);
+      const connection=connections.assertConnected(deviceId);
+      const access=accessGrants.request({accountId:ACCOUNT_ID,deviceId,connectionId:connection.connectionId,connectionExpiresAt:connection.hardExpiresAt,agentId:body.agentId,label:body.label});
+      return sendJson(res,access.state==='approved'?200:201,{ok:true,access});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/device-access/poll') {
+      const body=await readJson(req);
+      return sendJson(res,200,{ok:true,access:accessGrants.poll(body)});
+    }
+    if (req.method === 'GET' && url.pathname === '/v1/device-access/requests') {
+      return sendJson(res,200,{ok:true,pending:accessGrants.pendingAll()});
+    }
+    const accessRequestInfoMatch=url.pathname.match(/^\/v1\/device-access\/requests\/(pa_[A-Za-z0-9_-]+)$/);
+    if (req.method === 'GET' && accessRequestInfoMatch) {
+      return sendJson(res,200,{ok:true,authorization:accessGrants.requestInfo(accessRequestInfoMatch[1])});
+    }
+    const accessRequestMatch=url.pathname.match(/^\/v1\/device-access\/requests\/(pa_[A-Za-z0-9_-]+)\/(approve|deny)$/);
+    if (req.method === 'POST' && accessRequestMatch) {
+      const request=accessGrants.requestInfo(accessRequestMatch[1]);
+      const connection=connections.assertConnected(request.deviceId);
+      if(connection.connectionId!==request.connectionId) throw new DeviceAccessGrantError('device_connection_changed',409);
+      if(accessRequestMatch[2]==='approve'){
+        const grant=accessGrants.approve(request.requestId,{deviceId:request.deviceId,connectionId:connection.connectionId,connectionExpiresAt:connection.hardExpiresAt});
+        return sendJson(res,200,{ok:true,grant});
+      }
+      return sendJson(res,200,{ok:true,authorization:accessGrants.deny(request.requestId,'owner_denied',{deviceId:request.deviceId})});
+    }
+    const accessGrantMatch=url.pathname.match(/^\/v1\/device-access\/grants\/(dag_[A-Za-z0-9._:-]+)$/);
+    if (req.method === 'GET' && accessGrantMatch) {
+      const grant=accessGrants.assert(accessGrantMatch[1]);
+      const connection=connections.assertConnected(grant.deviceId);
+      accessGrants.assert(grant.grantId,{deviceId:grant.deviceId,connectionId:connection.connectionId});
+      const device=devices.get(grant.deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
+      return sendJson(res,200,{ok:true,grant,device:{deviceId:device.deviceId,nodeId:device.nodeId,displayName:device.displayName,platform:device.platform,architecture:device.architecture},connection:connections.get(grant.deviceId)});
+    }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/connect') {
       const body=await readJson(req), ctx=verifiedChannelContext(body,'connect');
       const connection=connections.connect({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,plan:ACCOUNT_PLAN,requestedLeaseMs:ctx.payload.requestedLeaseMs,reconnectGraceMs:ctx.payload.reconnectGraceMs});
@@ -546,6 +589,7 @@ const server = http.createServer(async (req, res) => {
       const body=await readJson(req), ctx=verifiedChannelContext(body,'disconnect');
       const connection=connections.disconnect(ctx.device.deviceId,ctx.payload.reason||'client_disconnect');
       sessions.closeByDevice(ctx.device.deviceId,connection.closeReason||'device_connection_closed',{force:true});
+      accessGrants.closeByDevice(ctx.device.deviceId,connection.closeReason||'device_connection_closed');
       try { devices.markOffline(ctx.device.deviceId,connection.closeReason||'client_disconnect'); } catch {}
       return sendJson(res,200,{ok:true,connection});
     }
@@ -553,11 +597,22 @@ const server = http.createServer(async (req, res) => {
       const body=await readJson(req), ctx=verifiedChannelContext(body,'grace');
       return sendJson(res,200,{ok:true,connection:connections.setGrace(ctx.device.deviceId,ctx.payload.reconnectGraceMs)});
     }
+    if (req.method === 'POST' && url.pathname === '/v1/device-channel/access-approve') {
+      const body=await readJson(req), ctx=verifiedChannelContext(body,'access-approve');
+      const connection=connections.assertConnected(ctx.device.deviceId);
+      const grant=accessGrants.approve(ctx.payload.requestId,{deviceId:ctx.device.deviceId,connectionId:connection.connectionId,connectionExpiresAt:connection.hardExpiresAt});
+      return sendJson(res,200,{ok:true,grant});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/device-channel/access-deny') {
+      const body=await readJson(req), ctx=verifiedChannelContext(body,'access-deny');
+      const result=accessGrants.deny(ctx.payload.requestId,ctx.payload.reason||'owner_denied',{deviceId:ctx.device.deviceId});
+      return sendJson(res,200,{ok:true,authorization:result});
+    }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/status') {
       const body=await readJson(req), ctx=verifiedChannelContext(body,'status');
       const connection=requireDeviceConnection(ctx.device.deviceId);
       const liveSessions=sessions.list({deviceId:ctx.device.deviceId}).filter(item=>item.state==='active'||item.state==='hold');
-      return sendJson(res,200,{ok:true,device:deviceView(ctx.device),connection:{...connections.get(ctx.device.deviceId),enforced:CONNECTION_LEASE_ENFORCE},sessions:liveSessions});
+      return sendJson(res,200,{ok:true,device:deviceView(ctx.device),connection:{...connections.get(ctx.device.deviceId),enforced:CONNECTION_LEASE_ENFORCE},sessions:liveSessions,access:{pending:accessGrants.pendingForDevice(ctx.device.deviceId),activeGrant:accessGrants.activeForDevice(ctx.device.deviceId,connection.connectionId)}});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/poll') {
       const body=await readJson(req), ctx=verifiedChannelContext(body,'poll');
@@ -569,7 +624,7 @@ const server = http.createServer(async (req, res) => {
       const waitMs=Math.max(0,Math.min(Number(ctx.payload.waitMs)||8000,15000));
       const channel=await fleet.waitPoll({accountId:ACCOUNT_ID,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,sessionCeiling:ctx.payload.sessionCeiling,draining:Boolean(ctx.payload.draining),capabilities},waitMs);
       const policy=reportedRevision===Math.max(1,Number(ctx.binding.policyRevision)||1)?null:enrollments.policyEnvelope(ctx.device.deviceId);
-      return sendJson(res,200,{ok:true,channel,policy});
+      return sendJson(res,200,{ok:true,channel,policy,access:{pending:accessGrants.pendingForDevice(ctx.device.deviceId),activeGrant:accessGrants.activeForDevice(ctx.device.deviceId,connections.get(ctx.device.deviceId)?.connectionId)}});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/result') {
       const body=await readJson(req), ctx=verifiedChannelContext(body,'result'), result=ctx.payload;
@@ -644,6 +699,7 @@ const server = http.createServer(async (req, res) => {
       if (String(body.deviceId || revokeMatch[1]) !== revokeMatch[1]) throw new EnrollmentError('device_id_mismatch', 409);
       const binding = enrollments.revoke({ deviceId:revokeMatch[1], accountId:body.accountId, reason:body.reason });
       const device = devices.revoke(revokeMatch[1], body.reason || 'owner_revoked');
+      try { accessGrants.closeByDevice(revokeMatch[1], body.reason || 'owner_revoked'); } catch {}
       return sendJson(res, 200, { ok:true, binding, device });
     }
     const connectionMatch = url.pathname.match(/^\/v1\/devices\/([A-Za-z0-9._:-]+)\/connection(?:\/(connect|disconnect|grace|activity))?$/);
@@ -659,6 +715,7 @@ const server = http.createServer(async (req, res) => {
       }
       if (req.method==='POST' && action==='disconnect') {
         const body=await readJson(req), connection=connections.disconnect(deviceId,body.reason||'user_disconnect');
+        accessGrants.closeByDevice(deviceId,connection.closeReason||'device_connection_closed');
         sessions.closeByDevice(deviceId,connection.closeReason||'device_connection_closed',{force:true});
         return sendJson(res,200,{ok:true,connection});
       }
@@ -691,6 +748,19 @@ const server = http.createServer(async (req, res) => {
       if (req.method === 'POST' && action === 'hold') return sendJson(res, 200, { ok:true, session:sessions.hold(sid, aid, body?.reason || 'transport_lost') });
       if (req.method === 'POST' && action === 'close') return sendJson(res, 200, { ok:true, session:sessions.close(sid, aid) });
       if (req.method === 'POST' && action === 'touch') return sendJson(res, 200, { ok:true, session:sessions.touch(sid, aid, body?.action || 'tool') });
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/device-access/execute') {
+      const body=await readJson(req), grant=accessGrants.assert(body.grantId);
+      const connection=connections.assertConnected(grant.deviceId);
+      accessGrants.assert(grant.grantId,{deviceId:grant.deviceId,connectionId:connection.connectionId});
+      const {payload,requestId,aad,kid}=decryptEnvelope(body.envelope||{});
+      if(payload.action!=='exec_batch')throw new Error('unsupported_action');
+      const session=sessions.ensure(String(payload.sessionId||''),{agentId:String(payload.agentId||'')});
+      if(session.deviceId!==grant.deviceId)throw new DeviceAccessGrantError('device_access_grant_session_mismatch',403);
+      const job=startJob(payload,requestId);
+      const waitMs=Math.max(0,Math.min(Number(payload.waitMs)||0,8000));
+      await waitForJob(job,waitMs);
+      return sendJson(res,200,{ok:true,encryptedByKid:kid,aad,job:jobView(job)});
     }
     if (req.method === 'POST' && url.pathname === '/v1/execute') {
       const envelope = await readJson(req);
