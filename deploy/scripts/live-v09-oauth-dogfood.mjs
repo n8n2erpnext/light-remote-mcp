@@ -114,12 +114,22 @@ async function runConvenienceProof(access,device,label){
   const suffix=crypto.randomBytes(5).toString('hex');
   const parent=device.platform==='win32'?`C:\\Users\\Public\\lrm-${suffix}`:`/tmp/lrm-${suffix}`;
   const file=device.platform==='win32'?`${parent}\\proof.txt`:`${parent}/proof.txt`;
-  const createDir=device.platform==='win32'?`New-Item -ItemType Directory -Force -Path '${parent}' | Out-Null`:`mkdir -p -- '${parent}'`;
+  const copy=device.platform==='win32'?`${parent}\\copy.txt`:`${parent}/copy.txt`;
+  const moved=device.platform==='win32'?`${parent}\\moved.txt`:`${parent}/moved.txt`;
   try{
-    await waitToolJob(access,agentId,'light_remote_exec',{sessionId,agentId,operationId:`op-mkdir-${crypto.randomBytes(8).toString('hex')}`,script:createDir,requiredCapabilities:['filesystem'],waitMs:7000});
+    await waitToolJob(access,agentId,'light_remote_make_directory',{sessionId,agentId,operationId:`op-mkdir-${crypto.randomBytes(8).toString('hex')}`,path:parent,parents:true});
     await waitToolJob(access,agentId,'light_remote_write_text_file',{sessionId,agentId,operationId:`op-write-${crypto.randomBytes(8).toString('hex')}`,path:file,content:`${marker}\nsecond-line\n`,mode:'rewrite'});
     const read=await waitToolJob(access,agentId,'light_remote_read_text_file',{sessionId,agentId,path:file,startLine:1,maxLines:10});
     if(!read.text.includes(marker))throw new Error(`${label}_convenience_read_marker_missing`);
+    const stat=await waitToolJob(access,agentId,'light_remote_stat_path',{sessionId,agentId,path:file});
+    if(!stat.text.includes('proof.txt'))throw new Error(`${label}_convenience_stat_missing`);
+    await waitToolJob(access,agentId,'light_remote_copy_path',{sessionId,agentId,operationId:`op-copy-${crypto.randomBytes(8).toString('hex')}`,source:file,destination:copy});
+    const copied=await waitToolJob(access,agentId,'light_remote_read_text_file',{sessionId,agentId,path:copy,startLine:1,maxLines:10});
+    if(!copied.text.includes(marker))throw new Error(`${label}_convenience_copy_missing`);
+    await waitToolJob(access,agentId,'light_remote_move_path',{sessionId,agentId,operationId:`op-move-${crypto.randomBytes(8).toString('hex')}`,source:copy,destination:moved});
+    const movedRead=await waitToolJob(access,agentId,'light_remote_read_text_file',{sessionId,agentId,path:moved,startLine:1,maxLines:10});
+    if(!movedRead.text.includes(marker))throw new Error(`${label}_convenience_move_missing`);
+    await waitToolJob(access,agentId,'light_remote_delete_path',{sessionId,agentId,operationId:`op-delete-${crypto.randomBytes(8).toString('hex')}`,path:moved,recursive:false});
     const list=await waitToolJob(access,agentId,'light_remote_list_directory',{sessionId,agentId,path:parent,maxEntries:500});
     if(!list.text.includes(file.split(/[\\/]/).pop()))throw new Error(`${label}_convenience_list_missing`);
     const search=await waitToolJob(access,agentId,'light_remote_search_text',{sessionId,agentId,path:parent,query:marker,maxResults:10});
@@ -135,7 +145,7 @@ async function runConvenienceProof(access,device,label){
     const verifyScript=device.platform==='win32'?`if(Get-Process -Id ${pid} -ErrorAction SilentlyContinue){throw 'still-running'}; 'KILLED'`:`if kill -0 ${pid} 2>/dev/null; then exit 9; else echo KILLED; fi`;
     const verified=await waitToolJob(access,agentId,'light_remote_exec',{sessionId,agentId,operationId:`op-verify-kill-${crypto.randomBytes(8).toString('hex')}`,script:verifyScript,requiredCapabilities:device.platform==='win32'?['filesystem','powershell','windows-process-network']:['filesystem'],waitMs:7000});
     if(!verified.text.includes('KILLED'))throw new Error(`${label}_kill_verify_missing`);
-    console.log(`mcp-${label}-convenience-file-process-kill=PASS`);
+    console.log(`mcp-${label}-convenience-file-path-process-kill=PASS`);
   } finally {
     const cleanup=device.platform==='win32'?`Remove-Item -LiteralPath '${parent.replaceAll("'","''")}' -Recurse -Force -ErrorAction SilentlyContinue`:`rm -rf -- '${parent.replaceAll("'","'\\''")}'`;
     try{await waitToolJob(access,agentId,'light_remote_exec',{sessionId,agentId,operationId:`op-clean-${crypto.randomBytes(8).toString('hex')}`,script:cleanup,requiredCapabilities:['filesystem'],waitMs:7000});}catch{}
@@ -187,7 +197,7 @@ try{
   await mcp(access,10,'initialize',{protocolVersion:'2025-06-18',capabilities:{},clientInfo:{name:'light-remote-oauth-dogfood',version:'1'}});
   const listed=await mcp(access,11,'tools/list');
   const names=(listed.result?.tools||[]).map(tool=>tool.name);
-  for(const required of ['light_remote_devices','light_remote_open_session','light_remote_exec','light_remote_job','light_remote_output','light_remote_close_session','light_remote_read_text_file','light_remote_list_directory','light_remote_write_text_file','light_remote_search_text','light_remote_process_list','light_remote_kill_process'])if(!names.includes(required))throw new Error(`missing_tool:${required}`);
+  for(const required of ['light_remote_devices','light_remote_open_session','light_remote_exec','light_remote_job','light_remote_output','light_remote_close_session','light_remote_read_text_file','light_remote_list_directory','light_remote_write_text_file','light_remote_search_text','light_remote_process_list','light_remote_kill_process','light_remote_stat_path','light_remote_make_directory','light_remote_copy_path','light_remote_move_path','light_remote_delete_path'])if(!names.includes(required))throw new Error(`missing_tool:${required}`);
   console.log(`mcp-tools-list=PASS count=${names.length}`);
   const devices=parseTool(await mcp(access,12,'tools/call',{name:'light_remote_devices',arguments:{}}));
   if(!devices||devices.error)throw new Error(`devices_failed:${JSON.stringify(devices).slice(0,500)}`);

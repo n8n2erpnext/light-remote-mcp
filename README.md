@@ -240,21 +240,21 @@ chmod +x install-linux-client.sh
 
 For arm64, use the arm64 archive. After enrollment, systemd owns the connection and the shell may be closed. The same client package is suitable for a headless Linux server leaf; a native Linux Desktop GUI is a later roadmap item.
 
-### 5. ChatGPT / custom MCP App
+### 5. ChatGPT Plus today — Vercel bridge is the required control path
 
-`beta.1` includes a native OAuth 2.0 authorization lane for the remote MCP endpoint. It uses Authorization Code + PKCE S256, short-lived access tokens, refresh tokens, OAuth Protected Resource Metadata, and Dynamic Client Registration. The old Vercel OIDC + short-lived bridge-session lane remains available for the reference deployment; OAuth does **not** remove device policy or capability enforcement.
-
-In ChatGPT Developer Mode, create a custom MCP App using your public Server endpoint, for example:
+For the current ChatGPT Plus operating environment, **do not configure Light Remote as a custom full MCP App**. Full write/modify MCP access is not available on Plus, and the project is not yet published as a Light Remote Plugin/App in the ChatGPT Plugin Directory. The supported owner path for this beta is therefore:
 
 ```text
-https://mcp.example.com/mcp
+ChatGPT Plus -> @Vercel -> protected Vercel preview bridge -> ARM Hub -> selected ARM/AMD/Windows executor
 ```
 
-Choose OAuth when prompted. The MCP client discovers the authorization metadata automatically. The browser authorization page asks for the owner credentials created by the Server installer; after approval, ChatGPT receives policy-bounded MCP access and may refresh it without storing the owner password. Do not configure anonymous access or a static shared bearer.
+The Vercel deployment is an intentional compatibility adapter for ChatGPT Plus, not merely a hosting convenience. Use a Vercel-authenticated/protected preview deployment for operator traffic. `api/operator?via=plus` accepts GET only because the current `@Vercel` fetch surface cannot attach the project's private bridge-session header or issue arbitrary POST requests. Mutating operations remain semantically idempotent through `operationId`, are encrypted before the ARM executor, and are still checked by signed device policy and local capability inference.
 
-A newly connected Agent should call `light_remote_operating_contract`, then `light_remote_devices`, choose an explicit target, open a durable session, execute work, poll/read durable output, and close the session. The generic `light_remote_exec` lane provides shell/PowerShell access bounded by the target device policy, covering normal coding/operations work such as filesystem changes, Git, build/test, process/network inspection, services/systemd, Docker/LXD, package managers and logs. For common Agent workflows, beta.1 also exposes typed convenience tools for bounded text-file reads/writes, directory listing, literal text search, process listing and process termination; these still execute through the same durable encrypted job/policy path rather than bypassing it.
+The protected preview bridge must never be replaced by a public anonymous operator endpoint. Production/public Vercel requests are rejected by the Plus bridge; the reference lane is intentionally preview-only so Vercel Authentication remains the outer user gate.
 
-This is a **custom self-hosted MCP App**, not yet a separately reviewed/public Light Remote listing in the ChatGPT Plugin Directory. The product roadmap keeps that publication step separate from the open-source beta.
+The direct `/mcp` OAuth lane remains in the codebase for Business/Enterprise/Edu testing and future Plugin/App publication. It is **not** the current Plus acceptance path. The beta continuity gate is: a fresh Plus chat using only `@Vercel` must be able to discover the protected bridge, select an explicit device, open a durable session, execute/read output, resume/close the session, and perform routine coding/operations work without RDC.
+
+The machine-readable Vercel guide documents the exact bridge actions and safety rules. No static shared bearer is used anywhere in this path.
 
 ### Updating beta clients
 

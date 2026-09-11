@@ -9,7 +9,7 @@ import { dashboardHtml } from './dashboard.mjs';
 import { enrollmentApprovalHtml } from './enrollment-page.mjs';
 import { devicePolicyHtml } from './device-policy-page.mjs';
 import { createWallAuth } from './wall-auth.mjs';
-import { authenticateVercel, isToolCall, securityInfo } from './security.mjs';
+import { authenticateVercel, authenticateVercelPlusBridge, isToolCall, securityInfo } from './security.mjs';
 import { proxyOperatorJson, proxyOperatorSse } from './operator-proxy.mjs';
 import { rootNames, listWorkspace, readWorkspaceText, searchWorkspace, gitStatus, gitDiff } from './workspace.mjs';
 import { registerRemoteTools } from './remote-tools.mjs';
@@ -159,7 +159,7 @@ function softRateLimit(req, res, next) {
 const wallAuth = createWallAuth();
 registerMcpOAuth(app, wallAuth);
 app.get('/healthz', (_req, res) => res.json({
-  ok: true, service: 'thaiduy-vps-arm-mcp', version: VERSION, mode: 'read-plus-operator', security: { ...securityInfo(), toolCalls:'oauth-or-vercel-oidc-plus-bridge-session', bridgeSession:'required-for-vercel-operator-calls', bridgeSessionTtlSeconds:wallAuth.info().bridgeSessionTtlSeconds }
+  ok: true, service: 'thaiduy-vps-arm-mcp', version: VERSION, mode: 'read-plus-operator', security: { ...securityInfo(), toolCalls:'oauth-or-vercel-oidc-plus-bridge-session', plusBridge:'protected-vercel-preview-plus-oidc', bridgeSession:'required-for-vercel-operator-calls', bridgeSessionTtlSeconds:wallAuth.info().bridgeSessionTtlSeconds }
 }));
 
 async function requireVercelIdentity(req, res, next) {
@@ -170,6 +170,13 @@ async function requireOperatorIdentity(req, res, next) {
   try { req.mcpIdentity = await authenticateVercel(req); }
   catch { return res.status(401).json({ ok: false, error: 'unauthorized_operator_call' }); }
   return wallAuth.requireBridgeSession(req, res, next);
+}
+async function requirePlusBridgeIdentity(req, res, next) {
+  try {
+    req.mcpIdentity = await authenticateVercelPlusBridge(req);
+    req.mcpIdentity.authType='vercel-plus-bridge';
+    return next();
+  } catch { return res.status(401).json({ ok:false, error:'unauthorized_plus_bridge_call' }); }
 }
 async function requireMcpIdentity(req, res, next) {
   const auth=String(req.get('authorization') || '');
@@ -219,6 +226,22 @@ app.get('/operator/jobs/:id', softRateLimit, requireOperatorIdentity, (req, res)
 app.get('/operator/output/:id', softRateLimit, requireOperatorIdentity, (req, res) => {
   const qs = new URLSearchParams(req.query).toString();
   return proxyOperatorJson(res, 'GET', `/v1/output/${encodeURIComponent(req.params.id)}${qs ? `?${qs}` : ''}`);
+});
+
+app.get('/plus/capabilities', softRateLimit, requirePlusBridgeIdentity, (_req,res)=>proxyOperatorJson(res,'GET','/v1/capabilities'));
+app.get('/plus/devices', softRateLimit, requirePlusBridgeIdentity, (_req,res)=>proxyOperatorJson(res,'GET','/v1/devices'));
+app.get('/plus/fleet', softRateLimit, requirePlusBridgeIdentity, (_req,res)=>proxyOperatorJson(res,'GET','/v1/fleet'));
+app.get('/plus/devices/:id', softRateLimit, requirePlusBridgeIdentity, (req,res)=>proxyOperatorJson(res,'GET',`/v1/devices/${encodeURIComponent(req.params.id)}`));
+app.get('/plus/sessions', softRateLimit, requirePlusBridgeIdentity, (_req,res)=>proxyOperatorJson(res,'GET','/v1/sessions'));
+app.post('/plus/sessions/open', softRateLimit, requirePlusBridgeIdentity, (req,res)=>proxyOperatorJson(res,'POST','/v1/sessions/open',req.body||{}));
+app.post('/plus/sessions/:id/resume', softRateLimit, requirePlusBridgeIdentity, (req,res)=>proxyOperatorJson(res,'POST',`/v1/sessions/${encodeURIComponent(req.params.id)}/resume`,req.body||{}));
+app.post('/plus/sessions/:id/close', softRateLimit, requirePlusBridgeIdentity, (req,res)=>proxyOperatorJson(res,'POST',`/v1/sessions/${encodeURIComponent(req.params.id)}/close`,req.body||{}));
+app.get('/plus/sessions/:id', softRateLimit, requirePlusBridgeIdentity, (req,res)=>proxyOperatorJson(res,'GET',`/v1/sessions/${encodeURIComponent(req.params.id)}?agentId=${encodeURIComponent(req.query.agentId||'')}`));
+app.post('/plus/execute', softRateLimit, requirePlusBridgeIdentity, (req,res)=>proxyOperatorJson(res,'POST','/v1/execute',req.body||{}));
+app.get('/plus/jobs/:id', softRateLimit, requirePlusBridgeIdentity, (req,res)=>proxyOperatorJson(res,'GET',`/v1/jobs/${encodeURIComponent(req.params.id)}?agentId=${encodeURIComponent(req.query.agentId||'')}`));
+app.get('/plus/output/:id', softRateLimit, requirePlusBridgeIdentity, (req,res)=>{
+  const qs=new URLSearchParams(req.query).toString();
+  return proxyOperatorJson(res,'GET',`/v1/output/${encodeURIComponent(req.params.id)}${qs?`?${qs}`:''}`);
 });
 
 app.post('/mcp', softRateLimit, requireMcpIdentity, async (req, res) => {

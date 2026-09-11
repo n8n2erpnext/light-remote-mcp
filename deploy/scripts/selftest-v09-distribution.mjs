@@ -19,8 +19,8 @@ expect(text('.github/workflows/server-linux-build.yml').includes('arch: [x64, ar
 expect(text('.github/workflows/vercel-bridge-package.yml').includes('vercel-bridge-package-contract=PASS'),'vercel_bundle_ci_missing');
 expect(text('lib/operator-crypto.js').includes('OPERATOR_PUBLIC_KEYS_JSON'),'vercel_public_key_env_override_missing');
 expect(text('README.md').includes('## Quick start — self-hosted beta'),'readme_beta_quickstart_missing');
-expect(text('README.md').includes('native OAuth 2.0 authorization lane'),'readme_chatgpt_oauth_missing');
-expect(text('README.md').includes('not yet a separately reviewed/public Light Remote listing'),'readme_plugin_directory_boundary_missing');
+expect(text('README.md').includes('ChatGPT Plus today — Vercel bridge is the required control path'),'readme_plus_vercel_path_missing');
+expect(text('README.md').includes('The direct `/mcp` OAuth lane remains'),'readme_direct_mcp_boundary_missing');
 const workspaceProbe=spawnSync(process.execPath,['--input-type=module','-e',
   "import {rootNames} from './gateway/workspace.mjs'; console.log(JSON.stringify(rootNames()));"],{
   cwd:root,encoding:'utf8',env:{...process.env,MCP_WORKSPACE_ROOTS_JSON:'{"project":"/workspace/project"}'}

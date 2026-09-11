@@ -38,6 +38,9 @@ function contentScript(platform,content){
   if(platform==='win32')return windowsDecode('c',content)+';';
   return linuxDecode('c',content)+';';
 }
+function twoPathScript(platform,first,second){
+  return pathScript(platform,first)+(platform==='win32'?windowsDecode('q',second)+';':linuxDecode('q',second)+';');
+}
 async function platformFor(sessionId,ownerAgentId){return (await context(sessionId,ownerAgentId)).device.platform;}
 
 export function registerConvenienceTools(server,tracked,identity){
@@ -129,4 +132,56 @@ export function registerConvenienceTools(server,tracked,identity){
     const caps=platform==='win32'?['filesystem','powershell','windows-process-network']:['filesystem'];
     return submit({sessionId:input.sessionId,agentId:input.agentId,operationId:input.operationId,script,requiredCapabilities:caps,note:'terminate process'});
   }));
+
+  server.registerTool('light_remote_stat_path',{
+    title:'Stat remote path', description:'Read bounded metadata for one remote path.',
+    inputSchema:{...baseInput,path:textPath}, annotations:ann(true,false,true)
+  },tracked('light_remote_stat_path',identity,async input=>{
+    const platform=await platformFor(input.sessionId,input.agentId),prefix=pathScript(platform,input.path);
+    const script=platform==='win32'
+      ? `${prefix} Get-Item -LiteralPath $p -Force | Select-Object FullName,PSIsContainer,Length,LastWriteTime | ConvertTo-Json -Compress`
+      : `${prefix} stat -c '%F\t%s\t%a\t%U:%G\t%y\t%n' -- "$p"`;
+    return submit({sessionId:input.sessionId,agentId:input.agentId,operationId:`stat-${crypto.randomUUID()}`,script,note:'stat path'});
+  }));
+
+  server.registerTool('light_remote_make_directory',{
+    title:'Create remote directory', description:'Create a directory on the selected target. Retry with the same operationId.',
+    inputSchema:{...baseInput,operationId:opId,path:textPath,parents:z.boolean().optional()}, annotations:ann(false,true,true)
+  },tracked('light_remote_make_directory',identity,async input=>{
+    const platform=await platformFor(input.sessionId,input.agentId),prefix=pathScript(platform,input.path);
+    const script=platform==='win32'?`${prefix} New-Item -ItemType Directory -Path $p ${input.parents===false?'':'-Force'} | Out-Null`
+      :`${prefix} mkdir ${input.parents===false?'':'-p '}-- "$p"`;
+    return submit({sessionId:input.sessionId,agentId:input.agentId,operationId:input.operationId,script,note:'create directory'});
+  }));
+
+  server.registerTool('light_remote_copy_path',{
+    title:'Copy remote path', description:'Copy a file or directory on one target. Existing destination content may be replaced.',
+    inputSchema:{...baseInput,operationId:opId,source:textPath,destination:textPath}, annotations:ann(false,true,true)
+  },tracked('light_remote_copy_path',identity,async input=>{
+    const platform=await platformFor(input.sessionId,input.agentId),prefix=twoPathScript(platform,input.source,input.destination);
+    const script=platform==='win32'?`${prefix} Copy-Item -LiteralPath $p -Destination $q -Recurse -Force`
+      :`${prefix} cp -a -- "$p" "$q"`;
+    return submit({sessionId:input.sessionId,agentId:input.agentId,operationId:input.operationId,script,note:'copy path'});
+  }));
+
+  server.registerTool('light_remote_move_path',{
+    title:'Move remote path', description:'Move or rename a file or directory on one target.',
+    inputSchema:{...baseInput,operationId:opId,source:textPath,destination:textPath}, annotations:ann(false,true,true)
+  },tracked('light_remote_move_path',identity,async input=>{
+    const platform=await platformFor(input.sessionId,input.agentId),prefix=twoPathScript(platform,input.source,input.destination);
+    const script=platform==='win32'?`${prefix} Move-Item -LiteralPath $p -Destination $q -Force`
+      :`${prefix} mv -f -- "$p" "$q"`;
+    return submit({sessionId:input.sessionId,agentId:input.agentId,operationId:input.operationId,script,note:'move path'});
+  }));
+
+  server.registerTool('light_remote_delete_path',{
+    title:'Delete remote path', description:'Delete a file or directory on one target. Recursive directory deletion must be explicit.',
+    inputSchema:{...baseInput,operationId:opId,path:textPath,recursive:z.boolean().optional()}, annotations:ann(false,true,true)
+  },tracked('light_remote_delete_path',identity,async input=>{
+    const platform=await platformFor(input.sessionId,input.agentId),prefix=pathScript(platform,input.path);
+    const script=platform==='win32'?`${prefix} Remove-Item -LiteralPath $p -Force ${input.recursive?'-Recurse':''}`
+      :`${prefix} rm ${input.recursive?'-rf':'-f'} -- "$p"`;
+    return submit({sessionId:input.sessionId,agentId:input.agentId,operationId:input.operationId,script,note:'delete path'});
+  }));
+
 }

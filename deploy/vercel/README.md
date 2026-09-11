@@ -4,7 +4,7 @@ This bundle is the thin Vercel edge/bridge. It is **not** the durable Server/Hub
 
 ## Required environment
 
-Set these Vercel Production variables:
+Set these Vercel variables for **Production and Preview** (the current ChatGPT Plus bridge runs through a protected Preview deployment):
 
 ```text
 VPS_MCP_BASE=https://mcp.example.com
@@ -13,7 +13,7 @@ VPS_MCP_AUDIENCE=https://mcp.example.com
 OPERATOR_PUBLIC_KEYS_JSON={...public key set printed by the Linux Server installer...}
 ```
 
-`VPS_MCP_AUDIENCE` must equal the audience configured on the Linux Server. The server also verifies the Vercel team slug, project name and `production` environment before accepting privileged bridge calls.
+`VPS_MCP_AUDIENCE` must equal the audience configured on the Linux Server. The server verifies the Vercel team slug, project name and environment. Legacy/reference operator calls remain `production` scoped; the ChatGPT Plus bridge is separately pinned to `preview` and is intended to sit behind Vercel Authentication.
 
 `OPERATOR_PUBLIC_KEYS_JSON` contains only the public encryption key set. Never upload the matching private key to Vercel.
 
@@ -26,7 +26,7 @@ npm ci
 npx vercel link
 npx vercel --prod
 ```
-Before the production deploy, add the variables through the Vercel dashboard or `vercel env add`. Do not commit environment values into this bundle.
+Before deploying, add the variables through the Vercel dashboard or `vercel env add` for both Preview and Production. Do not commit environment values into this bundle. For ChatGPT Plus control, keep the preview protected with Vercel Authentication and call `/api/operator?via=plus` through `@Vercel`; the endpoint rejects production deployment traffic by design.
 
 The bridge project name and team slug must match the values passed to the Linux Server installer. If you rename the Vercel project later, update the server-side `VERCEL_PROJECT_NAME` and restart the gateway.
 
@@ -38,4 +38,4 @@ The release bundle exists so a self-hosting user can deploy an exact tagged sour
 
 ## Boundary
 
-The Vercel bridge may disappear or be replaced by a hosted Light Remote Server later. Clients and the Plugin/App contract must not depend on Vercel-specific behavior.
+For the current ChatGPT Plus owner workflow, the Vercel bridge is a required compatibility layer because Plus cannot use the write-capable custom MCP lane. It may disappear only after a supported Light Remote Plugin/App or another first-party write-capable integration is available. Clients and the core Server/device authority model must still remain portable.

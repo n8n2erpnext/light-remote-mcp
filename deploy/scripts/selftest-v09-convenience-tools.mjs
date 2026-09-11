@@ -6,7 +6,8 @@ const docker=fs.readFileSync(new URL('../../gateway/Dockerfile',import.meta.url)
 const sync=fs.readFileSync(new URL('./sync-gateway.sh',import.meta.url),'utf8');
 const required=[
   'light_remote_read_text_file','light_remote_list_directory','light_remote_write_text_file',
-  'light_remote_search_text','light_remote_process_list','light_remote_kill_process'
+  'light_remote_search_text','light_remote_process_list','light_remote_kill_process',
+  'light_remote_stat_path','light_remote_make_directory','light_remote_copy_path','light_remote_move_path','light_remote_delete_path'
 ];
 for(const name of required) if(!tool.includes(`registerTool('${name}'`)) throw new Error(`missing_convenience_tool:${name}`);
 if(!tool.includes("operationId:opId")||!tool.includes("annotations:ann(false,true,true)")) throw new Error('convenience_mutation_contract_missing');

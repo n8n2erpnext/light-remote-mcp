@@ -32,7 +32,7 @@ The machine-readable contract should state at minimum: `role=remote_execution_co
 
 Plugin/App code should contain minimal business authority. Account/device authorization, routing, durable job state, policy, audit and updates belong to the Server.
 
-Official Plugin Directory publication is a later distribution milestone. Until approval, the supported OpenAI path is a custom MCP App in Developer Mode where the user's plan/workspace supports the required actions.
+Official Plugin Directory publication is a later distribution milestone. For the current owner workflow on ChatGPT Plus, full write-capable custom MCP is not available, so the operational control path is the protected Vercel bridge used through the installed `@Vercel` connector. Direct MCP/OAuth remains a Business/Enterprise/Edu test/future-publication lane, not the Plus continuity lane.
 
 ## Account and distribution target
 A future distribution website owns signup/login, downloads, documentation, Terms/Privacy, account/device management and optional billing. It is not part of the critical job execution path.
@@ -66,11 +66,15 @@ The following are frozen unless a release-blocking defect is found: signed devic
 
 Do not add new privileged capability classes during the beta cut. Changes to the above require a regression addition plus re-running the full release gate.
 ## RDC replacement continuity gate
-RDC is rescue-only and must not remain a product dependency. Before the external RDC path is allowed to disappear, a fresh ChatGPT connection through Light Remote must independently pass OAuth discovery/PKCE/refresh, tool discovery, ARM/AMD/Windows targeting, durable session open/resume/close, exec/job/output, filesystem mutation, Git/build-test, process/network/service reads where supported, and signed-update control on a policy-authorized Linux leaf.
+RDC is rescue-only and must not remain a product dependency. The **current ChatGPT Plus continuity lane is Vercel-only**:
 
-Dogfooding is now a merge/release invariant: a feature that makes the project impossible to operate through Light Remote itself is a release-blocking regression. The reference proof is `deploy/scripts/live-v09-oauth-dogfood.mjs`.
+`ChatGPT Plus -> @Vercel -> Vercel-authenticated protected preview -> api/operator?via=plus -> preview-scoped Vercel OIDC -> ARM Hub -> explicit ARM/AMD/Windows target`.
 
-Self-host owner OAuth is part of the v0.9 beta surface: Authorization Code + PKCE S256, refresh tokens, protected-resource metadata and dynamic client registration. Hosted multi-user account OAuth remains post-beta.
+Before RDC disappears, a fresh Plus chat using only `@Vercel` must independently pass device/fleet discovery, durable session open/resume/close, encrypted exec/job/output, filesystem mutation, Git/build-test, process/network/service reads where supported, and policy-authorized maintenance actions. The Plus bridge accepts GET at the ChatGPT-facing edge because the current Vercel connector fetch surface cannot attach arbitrary project headers or POST bodies; mutations remain idempotent through stable operation IDs and are executed as internal POSTs after Vercel Authentication and preview-scoped OIDC verification. Public production access is not an acceptable substitute for Vercel Authentication.
+
+Dogfooding is now a merge/release invariant: a feature that makes the project impossible to operate through the Plus -> Vercel lane is a release-blocking regression. Direct MCP OAuth dogfood remains a secondary protocol test, not the owner continuity gate.
+
+Self-host owner OAuth may remain in v0.9 for eligible Business/Enterprise/Edu testing and future Plugin/App publication. Hosted multi-user account OAuth remains post-beta.
 
 ## Post-beta roadmap
 1. Hosted account plane: distribution-site accounts, account-scoped device ownership/revocation, multi-user OAuth/SSO, and billing/plan policy where applicable.
@@ -82,9 +86,9 @@ Self-host owner OAuth is part of the v0.9 beta surface: Authorization Code + PKC
 7. macOS: defer until Windows/Linux distribution and signing/update operations are stable.
 
 ## OpenAI distribution reality for this beta
-As of this roadmap date, a custom MCP App can be created in ChatGPT Developer Mode by eligible workspaces, while full MCP write/modify actions are a beta capability for Business and Enterprise/Edu. Pro can connect read/fetch MCPs in Developer Mode, but the full remote-exec experience must not be advertised as generally available to every ChatGPT plan yet.
+As of this roadmap date, full MCP write/modify actions are available to Business and Enterprise/Edu, not ChatGPT Plus. The owner currently uses Plus, and the project is not yet available as a reviewed Plugin/App in the ChatGPT Plugin Directory. Therefore Plus operation is intentionally routed through `@Vercel` and the protected Vercel bridge.
 
-The README must therefore distinguish three states: local/server installation is available; custom MCP App testing is plan/workspace dependent; Plugin Directory availability is future and only after OpenAI review/approval.
+The README must distinguish four states: self-host installation is available; Plus control currently requires the protected Vercel bridge; direct write-capable MCP testing requires an eligible workspace; Plugin Directory availability is future and only after OpenAI review/approval.
 
 ## Release progression
 `v0.9.0-beta.1` is the first public beta candidate for the frozen execution/control-plane architecture. Beta promotion requires Apache-2.0 root licensing, final full regression (currently 39/39), package CI for Windows/Linux, server deployment bundles, live Vercel + ARM + AMD + Windows version proof, and no release-blocking security regression.
