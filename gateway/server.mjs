@@ -237,6 +237,7 @@ app.post('/device-channel/grace', softRateLimit, (req, res) => proxyOperatorJson
 app.post('/device-channel/access-approve', softRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/access-approve', req.body || {}));
 app.post('/device-channel/access-deny', softRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/access-deny', req.body || {}));
 app.post('/device-channel/status', softRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/status', req.body || {}));
+app.post('/device-channel/activity', softRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/activity', req.body || {}));
 app.post('/device-channel/poll', softRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/poll', req.body || {}));
 app.post('/device-channel/result', softRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/result', req.body || {}));
 app.post('/operator/auth/login', softRateLimit, requireVercelIdentity, wallAuth.bridgeLogin);

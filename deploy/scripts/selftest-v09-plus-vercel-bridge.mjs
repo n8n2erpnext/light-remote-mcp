@@ -16,6 +16,7 @@ expect(api.includes("action==='session-open'")&&api.includes("action==='output'"
 expect(server.includes("app.post('/plus/auth/begin'")&&server.includes('plusAuth.requireSession'),'plus_gateway_pairing_gate_missing');
 expect(server.includes('plusAuth.requireAgent')&&server.includes('plusAuth.requireGrantedNode'),'plus_device_grant_tool_gate_missing');
 expect(server.includes("app.get('/plus/bootstrap/devices'")&&server.includes('/v1/device-access/execute'),'plus_device_grant_route_missing');
+expect(server.includes("app.post('/device-channel/activity'")&&server.includes("'/v1/device-channel/activity'"),'device_wall_activity_gateway_route_missing');
 expect(api.includes('deviceId')&&api.includes('invalid_plus_device_id'),'plus_device_selection_missing');
 expect(server.includes("s.deviceId===req.plusIdentity.deviceId"),'plus_sessions_must_be_device_filtered');
 expect(!server.includes("wallApp.post('/api/plus-authorizations/:id/approve'")&&!server.includes("wallApp.post('/api/plus-authorizations/:id/deny'"),'hosted_wall_must_not_approve_device_access');
