@@ -30,7 +30,7 @@ function textResult(value) {
 function tracked(name, identity, fn) {
   return async args => {
     const started = Date.now();
-    const caller = identity?.project ? `vercel:${identity.project}` : 'public-discovery';
+    const caller = identity?.authType==='oauth' ? `oauth:${identity.subject||'owner'}` : identity?.project ? `vercel:${identity.project}` : 'public-discovery';
     recordActivity({ kind: 'tool', tool: name, status: 'running', caller });
     try {
       const result = await fn(args || {});
@@ -159,7 +159,7 @@ function softRateLimit(req, res, next) {
 const wallAuth = createWallAuth();
 registerMcpOAuth(app, wallAuth);
 app.get('/healthz', (_req, res) => res.json({
-  ok: true, service: 'thaiduy-vps-arm-mcp', version: VERSION, mode: 'read-plus-operator', security: { ...securityInfo(), bridgeSession:'required-for-tool-and-operator-calls', bridgeSessionTtlSeconds:wallAuth.info().bridgeSessionTtlSeconds }
+  ok: true, service: 'thaiduy-vps-arm-mcp', version: VERSION, mode: 'read-plus-operator', security: { ...securityInfo(), toolCalls:'oauth-or-vercel-oidc-plus-bridge-session', bridgeSession:'required-for-vercel-operator-calls', bridgeSessionTtlSeconds:wallAuth.info().bridgeSessionTtlSeconds }
 }));
 
 async function requireVercelIdentity(req, res, next) {

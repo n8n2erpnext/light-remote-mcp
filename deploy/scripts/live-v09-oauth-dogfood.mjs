@@ -9,38 +9,41 @@ import { hashWallPassword } from '../../gateway/wall-auth.mjs';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const port=Number(process.env.LRM_DOGFOOD_PORT||18080);
 const wallPort=port+1;
-const base=`http://127.0.0.1:${port}`;
+const externalBase=String(process.env.LRM_DOGFOOD_BASE||'').replace(/\/$/,'');
+const external=Boolean(externalBase);
+const base=external?externalBase:`http://127.0.0.1:${port}`;
 const temp=fs.mkdtempSync(path.join(os.tmpdir(),'lrm-oauth-dogfood-'));
-const username='oauth-dogfood';
-const password=crypto.randomBytes(24).toString('base64url');
-const configFile=path.join(temp,'wall-auth.json');
-fs.writeFileSync(configFile,JSON.stringify({
-  mode:'local',username,passwordHash:hashWallPassword(password),
-  cookieSecret:crypto.randomBytes(32).toString('base64url'),sessionTtlSeconds:3600
-}),{mode:0o600});
-
+let username,password,configFile='';
+if(external){
+  const authFile=process.env.WALL_AUTH_FILE||path.join(os.homedir(),'.config/gpt-vps-operator/wall-auth.json');
+  const passwordFile=process.env.WALL_BOOTSTRAP_PASSWORD_FILE||path.join(os.homedir(),'.config/gpt-vps-operator/wall-bootstrap-password');
+  const cfg=JSON.parse(fs.readFileSync(authFile,'utf8'));
+  username=String(cfg.username||''); password=fs.readFileSync(passwordFile,'utf8').trim();
+  if(!username||!password)throw new Error('external_owner_credentials_unavailable');
+}else{
+  username='oauth-dogfood'; password=crypto.randomBytes(24).toString('base64url');
+  configFile=path.join(temp,'wall-auth.json');
+  fs.writeFileSync(configFile,JSON.stringify({mode:'local',username,passwordHash:hashWallPassword(password),
+    cookieSecret:crypto.randomBytes(32).toString('base64url'),sessionTtlSeconds:3600}),{mode:0o600});
+}
 const operatorSocket=process.env.OPERATOR_SOCKET || path.join(os.homedir(),'.local/run/gpt-vps-operator/operator.sock');
 const publicKeys=process.env.OPERATOR_PUBLIC_KEYS_FILE || path.join(root,'operator-public-keys.json');
-if(!fs.existsSync(operatorSocket)) throw new Error(`operator_socket_missing:${operatorSocket}`);
-if(!fs.existsSync(publicKeys)) throw new Error(`operator_public_keys_missing:${publicKeys}`);
-const child=spawn(process.execPath,['gateway/server.mjs'],{
-  cwd:root,stdio:['ignore','pipe','pipe'],env:{...process.env,
-    PORT:String(port),WALL_PORT:String(wallPort),WALL_AUTH_CONFIG_FILE:configFile,
-    WALL_COOKIE_SECURE:'false',OPERATOR_SOCKET:operatorSocket,
-    OPERATOR_PUBLIC_KEYS_FILE:publicKeys,MCP_PUBLIC_ORIGIN:base,
-    MCP_ALLOWED_HOSTS:`127.0.0.1:${port},localhost:${port}`
-  }
-});
-let childLog='';
-child.stdout.on('data',d=>{childLog+=d});
-child.stderr.on('data',d=>{childLog+=d});
+let child=null,childLog='';
+if(!external){
+  if(!fs.existsSync(operatorSocket)) throw new Error(`operator_socket_missing:${operatorSocket}`);
+  if(!fs.existsSync(publicKeys)) throw new Error(`operator_public_keys_missing:${publicKeys}`);
+  child=spawn(process.execPath,['gateway/server.mjs'],{cwd:root,stdio:['ignore','pipe','pipe'],env:{...process.env,
+    PORT:String(port),WALL_PORT:String(wallPort),WALL_AUTH_CONFIG_FILE:configFile,WALL_COOKIE_SECURE:'false',OPERATOR_SOCKET:operatorSocket,
+    OPERATOR_PUBLIC_KEYS_FILE:publicKeys,MCP_PUBLIC_ORIGIN:base,MCP_ALLOWED_HOSTS:`127.0.0.1:${port},localhost:${port}`}});
+  child.stdout.on('data',d=>{childLog+=d}); child.stderr.on('data',d=>{childLog+=d});
+}
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function waitReady(){
-  const deadline=Date.now()+10000;
+  const deadline=Date.now()+15000;
   while(Date.now()<deadline){
-    if(child.exitCode!=null) throw new Error(`gateway_exited:${child.exitCode}:${childLog}`);
+    if(child?.exitCode!=null) throw new Error(`gateway_exited:${child.exitCode}:${childLog}`);
     try{const r=await fetch(`${base}/healthz`);if(r.ok)return;}catch{}
-    await sleep(100);
+    await sleep(150);
   }
   throw new Error(`gateway_not_ready:${childLog}`);
 }
@@ -244,6 +247,5 @@ try{
   if(win) await runConvenienceProof(access,win,'windows');
   console.log('LIVE_V09_OAUTH_DOGFOOD=PASS');
 } finally {
-  child.kill('SIGTERM');
-  await Promise.race([new Promise(resolve=>child.once('exit',resolve)),sleep(3000)]).catch(()=>{});
+  if(child){ child.kill('SIGTERM'); await Promise.race([new Promise(resolve=>child.once('exit',resolve)),sleep(3000)]).catch(()=>{}); }
 }

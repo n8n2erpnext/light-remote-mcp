@@ -272,6 +272,8 @@ The repository intentionally keeps most acceptance checks as standalone scripts 
 
 ### Validate
 
+The reference acceptance script can test either an ephemeral local Gateway or an already deployed HTTPS MCP endpoint. For a self-owned deployment, set `LRM_DOGFOOD_BASE=https://mcp.example.com` and provide the local Wall credential files; the script performs OAuth + durable ARM/Linux/Windows-style fleet operations without printing the password.
+
 Run the standalone regression suite from the repository root:
 
 ```bash
