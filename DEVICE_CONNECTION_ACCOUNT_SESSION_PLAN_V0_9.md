@@ -157,3 +157,12 @@ P0/P1 landed in commit `853811f`. P2 now implements the always-alive local servi
 - Device disconnect cascades terminal close to all Agent sessions for that device only.
 - Enforcement remains behind `OPERATOR_CONNECTION_LEASE_ENFORCE` until installed clients and Wall controls complete migration.
 - P2 local acceptance: 46/46 selftests, root/gateway audit 0, diff check clean; Windows native compilation remains a CI gate after push.
+
+## 16. Implementation checkpoint — P3 Local Wall
+P2 is committed as `ee87985`; Linux Server, Linux Client and Windows Native Client GitHub Actions all completed successfully, including the real Windows compile/install/rollback lane.
+
+P3 now adds a loopback-only Local Wall served by the always-alive client service at `127.0.0.1:5491`. It exposes this-device service/cloud state, finite lease countdown, reconnect grace (15/30/45/60m), Agent session tree, and Connect/Disconnect controls. The Local Wall performs no remote status call while the device is Dormant.
+
+The device channel now has a signed `status` operation scoped to the calling device; it returns only that device's connection state and active/held Agent sessions. Linux service installation no longer requires enrollment first, so service + Wall may stay alive before login/enrollment. Windows tray/app exposes an Open Local Wall action and packages the same Wall runtime/assets.
+
+P3 local acceptance: 48/48 standalone selftests, root/gateway audit 0, syntax checks and diff check clean. Enforcement remains migration-gated until the installed reference fleet is upgraded to a client containing the dormant/Wall lifecycle.

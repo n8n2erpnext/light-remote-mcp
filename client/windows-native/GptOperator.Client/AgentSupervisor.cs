@@ -16,7 +16,8 @@ internal sealed record AgentStatus(
     string? CloudState,
     long? HardExpiresAt,
     long? ReconnectGraceMs,
-    string? ConnectionPlan);
+    string? ConnectionPlan,
+    string? LocalWallUrl);
 
 internal sealed record EnrollmentInfo(string ActivationUrl, string DeviceCode, int ExpiresInSeconds);
 
@@ -48,7 +49,7 @@ internal sealed class AgentSupervisor : IDisposable
             Text(root, "deviceId"), Text(root, "nodeId"), Text(root, "accountId"),
             Text(root, "version"), Text(root, "platformAdapter"), caps,
             root.TryGetProperty("cloudDesiredConnected", out var cd) && cd.ValueKind == JsonValueKind.True,
-            Text(root, "cloudState"), Long(root, "hardExpiresAt"), Long(root, "reconnectGraceMs"), Text(root, "connectionPlan"));
+            Text(root, "cloudState"), Long(root, "hardExpiresAt"), Long(root, "reconnectGraceMs"), Text(root, "connectionPlan"), Text(root, "localWallUrl"));
     }
 
     public async Task<EnrollmentInfo> BeginEnrollmentAsync(CancellationToken cancellationToken = default)

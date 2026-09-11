@@ -553,6 +553,12 @@ const server = http.createServer(async (req, res) => {
       const body=await readJson(req), ctx=verifiedChannelContext(body,'grace');
       return sendJson(res,200,{ok:true,connection:connections.setGrace(ctx.device.deviceId,ctx.payload.reconnectGraceMs)});
     }
+    if (req.method === 'POST' && url.pathname === '/v1/device-channel/status') {
+      const body=await readJson(req), ctx=verifiedChannelContext(body,'status');
+      const connection=requireDeviceConnection(ctx.device.deviceId);
+      const liveSessions=sessions.list({deviceId:ctx.device.deviceId}).filter(item=>item.state==='active'||item.state==='hold');
+      return sendJson(res,200,{ok:true,device:deviceView(ctx.device),connection:{...connections.get(ctx.device.deviceId),enforced:CONNECTION_LEASE_ENFORCE},sessions:liveSessions});
+    }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/poll') {
       const body=await readJson(req), ctx=verifiedChannelContext(body,'poll');
       if (ctx.payload.nodeId!=null && String(ctx.payload.nodeId)!==ctx.device.nodeId) throw new EnrollmentError('device_node_mismatch',409);

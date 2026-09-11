@@ -30,11 +30,13 @@ if(r.status!==200||r.json.connection?.reconnectGraceMs!==45*60*1000) throw new E
 const aid='agent-channel-lease-test-aaaaaaaa',opened=await request('POST','/v1/sessions/open',{agentId:aid,openId:'open-channel-lease-test-aaaa',nodeId});
 if(opened.status!==200) throw new Error(`session_open_failed:${opened.status}:${opened.json.error}`);
 const sid=opened.json.session.sessionId;
+r=await request('POST','/v1/device-channel/status',signed('status',{nodeId,agentVersion:'0.9-test'}));
+if(r.status!==200||r.json.sessions?.length!==1||r.json.sessions[0]?.sessionId!==sid||r.json.connection?.state!=='connected') throw new Error('signed_status_session_tree_failed');
 r=await request('POST','/v1/device-channel/disconnect',signed('disconnect',{reason:'selftest_disconnect'}));
 if(r.status!==200||r.json.connection?.state!=='dormant') throw new Error('signed_disconnect_failed');
 r=await request('GET',`/v1/sessions/${sid}?agentId=${aid}`);
 if(r.status!==200||r.json.session?.state!=='closed') throw new Error('disconnect_session_cascade_failed');
 r=await request('POST','/v1/device-channel/poll',signed('poll',hello));
 if(r.status!==409||r.json.error!=='device_connection_required') throw new Error('poll_not_gated_after_disconnect');
-console.log(JSON.stringify({ok:true,signedConnect:true,signedDisconnect:true,graceMinutes:45,sessionCascade:true},null,2));
+console.log(JSON.stringify({ok:true,signedConnect:true,signedDisconnect:true,graceMinutes:45,sessionCascade:true,statusSessionTree:true},null,2));
 child.kill('SIGTERM');await sleep(100);fs.rmSync(dir,{recursive:true,force:true});

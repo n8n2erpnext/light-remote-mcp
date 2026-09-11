@@ -206,10 +206,11 @@ internal sealed class MainForm : Form
         _menuUpdate.Click += async (_, _) => await CheckUpdateAsync(interactive: true);
         _menuDetails.Click += (_, _) => SetDetailsMode(_menuDetails.Checked);
         _menuConnection.Click += async (_, _) => await ShowConnectionSettingsAsync();
+        var wall = new ToolStripMenuItem("Open Local Wall", null, (_, _) => OpenLocalWall());
         var logs = new ToolStripMenuItem("Open log folder", null, (_, _) => OpenLogs());
         var about = new ToolStripMenuItem("About Light Remote MCP", null, (_, _) => ShowAbout());
         var exit = new ToolStripMenuItem("Exit", null, (_, _) => ExitApplication());
-        menu.Items.AddRange(new ToolStripItem[] { _menuUpdate, _menuConnection, new ToolStripSeparator(), _menuDetails, logs, new ToolStripSeparator(), about, exit });
+        menu.Items.AddRange(new ToolStripItem[] { _menuUpdate, _menuConnection, new ToolStripSeparator(), _menuDetails, wall, logs, new ToolStripSeparator(), about, exit });
         return menu;
     }
 
@@ -220,9 +221,10 @@ internal sealed class MainForm : Form
         var open = new ToolStripMenuItem("Open Light Remote MCP", null, (_, _) => ShowWindow());
         _trayConnect.Click += async (_, _) => await SetConnectionAsync(!(_lastStatus?.CloudDesiredConnected == true && string.Equals(_lastStatus.CloudState, "connected", StringComparison.OrdinalIgnoreCase)));
         _trayUpdate.Click += async (_, _) => await CheckUpdateAsync(interactive: true);
+        var wall = new ToolStripMenuItem("Open Local Wall", null, (_, _) => OpenLocalWall());
         var logs = new ToolStripMenuItem("Open log folder", null, (_, _) => OpenLogs());
         var exit = new ToolStripMenuItem("Exit", null, (_, _) => ExitApplication());
-        menu.Items.AddRange(new ToolStripItem[] { open, _trayConnect, _trayUpdate, logs, new ToolStripSeparator(), exit });
+        menu.Items.AddRange(new ToolStripItem[] { open, _trayConnect, wall, _trayUpdate, logs, new ToolStripSeparator(), exit });
         return menu;
     }
 
@@ -441,6 +443,12 @@ internal sealed class MainForm : Form
             key?.SetValue(ProductName, $"\"{Application.ExecutablePath}\" --background", RegistryValueKind.String);
         }
         catch { }
+    }
+
+    private void OpenLocalWall()
+    {
+        var url = _lastStatus?.LocalWallUrl ?? "http://127.0.0.1:5491/";
+        try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); } catch { }
     }
 
     private void OpenLogs()

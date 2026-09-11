@@ -26,6 +26,8 @@ expect(workflow.includes("Copy-Item (Join-Path $nodeRoot 'LICENSE')"),'windows_n
 expect(workflow.includes("Copy-Item (Join-Path $dotnetRoot 'LICENSE.txt')"),'windows_dotnet_license_not_bundled');
 expect(workflow.includes("Copy-Item (Join-Path $dotnetRoot 'ThirdPartyNotices.txt')"),'windows_dotnet_notices_not_bundled');
 expect(workflow.includes("Copy-Item LICENSE (Join-Path $stage 'LICENSE')")&&workflow.includes("Copy-Item NOTICE (Join-Path $stage 'NOTICE')"),'windows_project_license_not_bundled');
+expect(workflow.includes('Copy-Item device-agent/local-wall.mjs $agentDir'),'windows_local_wall_not_bundled');
+expect(workflow.includes('Copy-Item assets/branding/light-remote-mark.svg $brandDir'),'windows_local_wall_brand_not_bundled');
 expect(workflow.includes('windows-installed-runtime-notices=PASS'),'windows_runtime_notice_install_smoke_missing');
 expect(workflow.includes('Light-Remote-MCP-Setup-x64.exe'),'native_setup_artifact_missing');
 expect(!workflow.includes('START-HERE.ps1'),'powershell_user_flow_returned');
@@ -53,6 +55,8 @@ expect(connectionDialog.includes('Server / Hub URL'),'windows_server_settings_di
 expect(semver.includes('CompareTo')&&semver.includes('IsNewer'),'windows_semver_comparator_missing');
 expect(updater.includes('SemanticVersion.TryParse')&&updater.includes('candidate.CompareTo(current)'),'windows_prerelease_update_order_missing');
 expect(form.includes('Server settings…'),'windows_server_settings_menu_missing');
+expect(form.includes('Open Local Wall')&&form.includes('OpenLocalWall'),'windows_local_wall_menu_missing');
+expect(supervisor.includes('localWallUrl')||supervisor.includes('LocalWallUrl'),'windows_local_wall_status_missing');
 expect(form.includes('Light Remote MCP'),'light_remote_brand_missing');
 expect(form.includes('Details view'),'details_view_missing');
 expect(form.includes('WindowState == FormWindowState.Minimized'),'minimize_to_tray_missing');

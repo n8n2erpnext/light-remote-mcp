@@ -5,10 +5,6 @@ USER_NAME="${SUDO_USER:-${USER}}"
 HOME_DIR="$(getent passwd "$USER_NAME" | cut -d: -f6)"
 NODE_BIN="$(command -v node)"
 STATE_FILE="$HOME_DIR/.config/gpt-operator-agent/device.json"
-if [[ ! -f "$STATE_FILE" ]]; then
-  echo "Device is not enrolled yet. Run operator-agent login first." >&2
-  exit 2
-fi
 NO_NEW_PRIVILEGES="$($NODE_BIN "$ROOT_DIR/device-agent/linux-service-policy.mjs" "$STATE_FILE" noNewPrivileges)"
 RESTRICT_SUID_SGID="$($NODE_BIN "$ROOT_DIR/device-agent/linux-service-policy.mjs" "$STATE_FILE" restrictSuidSgid)"
 CLEAR_CAPABILITY_BOUNDING_SET="$($NODE_BIN "$ROOT_DIR/device-agent/linux-service-policy.mjs" "$STATE_FILE" clearCapabilityBoundingSet)"
@@ -17,10 +13,12 @@ if [[ "$CLEAR_CAPABILITY_BOUNDING_SET" == "true" ]]; then
 else
   CAPABILITY_BOUNDING_SET_LINE="# CapabilityBoundingSet left at the system default for approved sudo-on-demand"
 fi
-sudo install -d -m 0755 /opt/gpt-operator-agent/device-agent /opt/gpt-operator-agent/device-agent/platform-adapters /opt/gpt-operator-agent/lib
+sudo install -d -m 0755 /opt/gpt-operator-agent/device-agent /opt/gpt-operator-agent/device-agent/platform-adapters /opt/gpt-operator-agent/lib /opt/gpt-operator-agent/assets/branding
 sudo install -m 0755 "$ROOT_DIR/device-agent/operator-agent.mjs" /opt/gpt-operator-agent/device-agent/operator-agent.mjs
+sudo install -m 0644 "$ROOT_DIR/device-agent/local-wall.mjs" /opt/gpt-operator-agent/device-agent/local-wall.mjs
 sudo install -m 0644 "$ROOT_DIR"/device-agent/platform-adapters/*.mjs /opt/gpt-operator-agent/device-agent/platform-adapters/
 sudo install -m 0644 "$ROOT_DIR/lib/device-proof.mjs" /opt/gpt-operator-agent/lib/device-proof.mjs
+sudo install -m 0644 "$ROOT_DIR/assets/branding/light-remote-mark.svg" /opt/gpt-operator-agent/assets/branding/light-remote-mark.svg
 unit="$(mktemp)"
 trap 'rm -f "$unit"' EXIT
 cat > "$unit" <<UNIT
@@ -57,3 +55,4 @@ sudo install -m 0644 "$unit" /etc/systemd/system/gpt-operator-device-agent.servi
 sudo systemctl daemon-reload
 sudo systemctl enable --now gpt-operator-device-agent.service
 echo "Installed gpt-operator-device-agent.service for $USER_NAME"
+echo "Local Wall: http://127.0.0.1:5491/ (service stays alive even before enrollment or while cloud is dormant)"

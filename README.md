@@ -30,7 +30,7 @@ Official brand assets live under `assets/branding/`: the round LR mark is used f
 - **Owner-approved capabilities.** Filesystem, Git, Docker, system services, package managers, and privileged operations remain capability-gated.
 - **Device-side enforcement.** The leaf re-infers capabilities from the command before execution instead of trusting caller metadata alone.
 - **Local device identity.** Each device creates its own Ed25519 identity; the private key stays on that device.
-- **Persistent clients.** Windows runs as a native tray application and Linux runs under systemd, so closing a terminal does not break the connection.
+- **Always-alive local service, finite cloud lease.** Windows keeps the agent supervised behind the tray app and Linux runs it under systemd; closing a terminal never stops the local service, while the cloud channel may be Connected or Dormant independently.
 - **Signed updates.** Windows and Linux share a signed update-manifest design with hash verification and rollback behavior.
 - **Auditable routing.** Sessions, jobs, output, and Wall events retain the exact device/node attribution.
 
@@ -71,19 +71,20 @@ See [`FLEET_ROUTING_V0_8.md`](FLEET_ROUTING_V0_8.md), [`PLATFORM_ADAPTERS_V0_9.m
 
 | Platform | Current client | Persistence | Packaging status |
 | --- | --- | --- | --- |
-| Windows x64 | Native .NET 8 WinForms tray application with bundled Node runtime and device agent | Starts with the signed-in user; closing the window keeps the agent in the tray | v0.9 packaging candidate, installer acceptance green |
-| Linux x64 | Bundled Node runtime + device agent | systemd service | v0.9 package acceptance green |
-| Linux arm64 | Bundled Node runtime + device agent | systemd service | v0.9 package acceptance green |
+| Windows x64 | Native .NET 8 WinForms tray application with bundled Node runtime, local Wall and device agent | Starts with the signed-in user; local service stays alive while cloud can be Connected or Dormant | v0.9 packaging candidate, installer acceptance green |
+| Linux x64 | Bundled Node runtime + device agent + localhost Wall | systemd always-alive local service; finite cloud lease | v0.9 package acceptance green |
+| Linux arm64 | Bundled Node runtime + device agent + localhost Wall | systemd always-alive local service; finite cloud lease | v0.9 package acceptance green |
 | macOS | Deferred | — | Not currently shipped |
 
 ### Windows
 
-The Windows client is designed to behave like a normal desktop application: install once, enroll once, then leave it running in the system tray. No PowerShell session needs to remain open.
+The Windows client is designed to behave like a normal desktop application: install once and leave the local service supervised in the tray. No PowerShell session needs to remain open. Cloud access is explicit: Connect creates a finite server lease; Disconnect or lease expiry leaves the local service alive in Dormant state.
 
 Current Windows behavior includes:
 
 - native dark tray UI under the **Light Remote MCP** brand;
-- connect/disconnect control and device status;
+- connect/disconnect control for the finite cloud lease, plus Connected/Dormant device status;
+- Local Wall access on `http://127.0.0.1:5491/` for this-device control and Agent-session visibility;
 - device/runtime/capability details;
 - enrollment through the browser approval flow;
 - automatic startup for the current Windows user;
@@ -96,13 +97,13 @@ The active Windows CI gate builds the self-contained client, packages the Inno S
 
 ### Linux
 
-Linux uses a smaller operational surface:
+Linux uses a smaller operational surface. The systemd service stays alive even while cloud access is Dormant, and serves the same localhost Wall contract used by the desktop client:
 
 ```text
 install script
   -> versioned bundle under /opt
   -> gpt-operator-device-agent.service
-  -> outbound device channel
+  -> localhost Wall + finite outbound device channel when Connected
 ```
 
 A separate updater timer verifies the signed manifest and artifact hash, switches the versioned `current` target, restarts the agent, and rolls back when the new service does not become healthy.
@@ -116,7 +117,8 @@ device generates Ed25519 identity
   -> one-time enrollment code
   -> owner approves requested capability subset
   -> server binds the public identity
-  -> signed heartbeat/poll proves the device before it becomes online
+  -> user creates a finite Device Connection Lease
+  -> signed connect/poll proves the device before cloud execution becomes available
 ```
 
 Important boundaries:

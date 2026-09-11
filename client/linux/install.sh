@@ -176,5 +176,6 @@ echo
 printf 'Light Remote MCP client installed: version=%s user=%s\n' "$VERSION" "$TARGET_USER"
 printf 'Enrollment bridge: %s\n' "$BASE_URL"
 printf 'Device hub: %s\n' "$HUB_URL"
-echo 'The terminal can now be closed; systemd owns the connection.'
+echo 'The terminal can now be closed; systemd owns the always-alive local service.'
+echo 'Local Wall: http://127.0.0.1:5491/ (cloud may be Connected or Dormant independently).'
 echo 'Signed update checks run automatically every ~6 hours.'
