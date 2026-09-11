@@ -8,6 +8,7 @@
     <AssemblyName>GptOperator.Client</AssemblyName>
     <RootNamespace>GptOperator.Client</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\light-remote.ico</ApplicationIcon>
     <Version>0.9.0</Version>
     <FileVersion>0.9.0.0</FileVersion>
     <AssemblyVersion>0.9.0.0</AssemblyVersion>
@@ -16,6 +17,11 @@
     <PublishTrimmed>false</PublishTrimmed>
   </PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Assets\light-remote-mark.png" LogicalName="LightRemoteMark.png" />
+    <Content Include="Assets\light-remote.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+    </Content>
     <Content Include="THIRD_PARTY_NOTICES.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>Always</CopyToPublishDirectory>

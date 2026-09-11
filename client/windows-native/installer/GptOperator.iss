@@ -27,6 +27,7 @@ WizardStyle=modern
 CloseApplications=yes
 RestartApplications=no
 UninstallDisplayIcon={app}\GptOperator.Client.exe
+SetupIconFile={#StageDir}\Assets\light-remote.ico
 AppMutex=Local\GPT_OPERATOR_CLIENT_V09
 [Files]
 Source: "{#StageDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs

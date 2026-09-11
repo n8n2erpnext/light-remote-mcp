@@ -49,6 +49,7 @@ internal sealed class MainForm : Form
         ForeColor = UiTheme.Text;
         Font = UiTheme.Font(9.5f);
         AutoScaleMode = AutoScaleMode.Dpi;
+        Icon = BrandAssets.AppIcon;
 
         Controls.Add(BuildContent());
         Controls.Add(BuildHeader());
@@ -83,13 +84,12 @@ internal sealed class MainForm : Form
     private Control BuildHeader()
     {
         var header = new Panel { Dock = DockStyle.Top, Height = 72, BackColor = UiTheme.Background, Padding = new Padding(20, 13, 18, 8) };
-        var mark = new Label {
-            Text = "L", TextAlign = ContentAlignment.MiddleCenter, Size = new Size(36, 36),
-            BackColor = UiTheme.Accent, ForeColor = Color.White, Font = UiTheme.Font(16, FontStyle.Bold),
-            Location = new Point(20, 14)
+        var mark = new PictureBox {
+            Size = new Size(42, 42), Location = new Point(18, 10), BackColor = Color.Transparent,
+            Image = BrandAssets.Mark, SizeMode = PictureBoxSizeMode.Zoom, TabStop = false
         };
-        var product = new Label { Text = ProductName, AutoSize = true, ForeColor = UiTheme.Text, Font = UiTheme.Font(11.5f, FontStyle.Bold), Location = new Point(68, 12) };
-        var subtitle = new Label { Text = "Secure remote MCP agent", AutoSize = true, ForeColor = UiTheme.Muted, Font = UiTheme.Font(8.5f), Location = new Point(68, 38) };
+        var product = new Label { Text = ProductName, AutoSize = true, ForeColor = UiTheme.Text, Font = UiTheme.Font(11.5f, FontStyle.Bold), Location = new Point(72, 12) };
+        var subtitle = new Label { Text = "Secure remote MCP agent", AutoSize = true, ForeColor = UiTheme.Muted, Font = UiTheme.Font(8.5f), Location = new Point(72, 38) };
         _more.Anchor = AnchorStyles.Top | AnchorStyles.Right;
         _more.Location = new Point(header.Width - 58, 11);
         _updateDot.Anchor = AnchorStyles.Top | AnchorStyles.Right;

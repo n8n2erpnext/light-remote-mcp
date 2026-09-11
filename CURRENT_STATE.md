@@ -45,6 +45,7 @@ Version: `v0.9.0-beta.1` source candidate on `codex/v0.9-device-policy-resume`; 
 - Beta updates use signed `channels/beta/client-update.json` + signature, not GitHub `releases/latest`; Windows now has prerelease-aware SemVer ordering.
 - Final pre-commit ARM regression is 37/37 PASS; root and gateway npm audits are 0 vulnerabilities; all beta workflow YAML parses cleanly.
 - Current owner operation is ChatGPT Plus, so write-capable direct custom MCP is not the continuity path. Until a reviewed Light Remote Plugin/App is available, Plus control is required to traverse `@Vercel` -> Vercel-authenticated protected Preview -> `api/operator?via=plus` -> preview-scoped Vercel OIDC -> ARM Hub. No anonymous execution or static shared bearer is reintroduced.
+- Canonical Light Remote branding is stored under `assets/branding/` and applied to the Windows app/header/tray/installer plus Wall login/dashboard/enrollment/device-policy surfaces.
 
 ## v0.9 Light Remote self-dogfood continuity
 - A native owner OAuth lane is now implemented for `/mcp`: Authorization Code + PKCE S256, protected-resource/authorization metadata, DCR, short-lived access tokens and refresh tokens. The existing Vercel OIDC + bridge-session lane remains intact.

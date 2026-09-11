@@ -1,0 +1,10 @@
+const markPaths = `<path d="M0 94.44L16.34 0H34.79L21.42 77.79H48.105L45.18 94.44H0Z" fill="black"/><path d="M32 94.44L43.34 30H70.745C78.035 30 83.66 32.055 87.62 36.165C91.58 40.275 92.975 45.615 91.805 52.185C90.755 58.095 87.845 62.85 83.075 66.45C78.305 70.02 72.485 71.805 65.615 71.805H43.43L45.59 59.34H64.31C66.8 59.34 68.885 58.71 70.565 57.45C72.245 56.16 73.295 54.39 73.715 52.14C74.075 49.92 73.64 48.135 72.41 46.785C71.21 45.405 69.38 44.715 66.92 44.715H59.18L50.45 94.44H32ZM76.575 118.44L56.705 65.73L75.11 65.1L96.465 118.44H76.575Z" fill="black"/>`;
+
+export function brandMarkSvg(size = 42) {
+  const px = Math.max(24, Math.min(Number(size) || 42, 160));
+  return `<svg class="brand-mark" width="${px}" height="${px}" viewBox="0 0 119 119" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Light Remote"><circle cx="59.5" cy="59.5" r="59.5" fill="#FFCC00"/>${markPaths}</svg>`;
+}
+
+export function brandTitleSvg(size = 42) {
+  return `<span class="brand-title">${brandMarkSvg(size)}<span><strong>Light Remote</strong><small>MCP</small></span></span>`;
+}

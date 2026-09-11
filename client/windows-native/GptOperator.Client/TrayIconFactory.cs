@@ -11,19 +11,18 @@ internal static class TrayIconFactory
         using (var g = Graphics.FromImage(bitmap))
         {
             g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+            g.PixelOffsetMode = PixelOffsetMode.HighQuality;
             g.Clear(Color.Transparent);
-            var baseColor = connected ? UiTheme.Accent : enrolled ? UiTheme.Warning : UiTheme.Muted;
-            using var fill = new SolidBrush(baseColor);
-            using var path = new GraphicsPath();
-            path.AddPolygon(new[] {
-                new Point(6, 6), new Point(18, 6), new Point(12, 15),
-                new Point(25, 15), new Point(14, 26), new Point(14, 18),
-                new Point(6, 18)
-            });
-            g.FillPath(fill, path);
-            using var dot = new SolidBrush(Color.White);
-            g.FillEllipse(dot, 22, 5, 5, 5);
+            g.DrawImage(BrandAssets.Mark, new Rectangle(1, 1, 30, 30));
+
+            var state = connected ? UiTheme.Success : enrolled ? UiTheme.Warning : UiTheme.Muted;
+            using var border = new SolidBrush(Color.FromArgb(235, 8, 10, 12));
+            using var fill = new SolidBrush(state);
+            g.FillEllipse(border, 21, 21, 11, 11);
+            g.FillEllipse(fill, 23, 23, 7, 7);
         }
+
         var handle = bitmap.GetHicon();
         try
         {

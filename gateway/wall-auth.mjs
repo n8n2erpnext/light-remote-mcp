@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
+import { brandTitleSvg } from './brand.mjs';
 
 const DEFAULT_CONFIG = '/run/secrets/wall-auth.json';
 const SECURE_COOKIE = '__Host-gpt_operator_wall';
@@ -104,8 +105,8 @@ function clearCookie(name, secure = true) {
 }
 function loginHtml(message = '') {
   const note = message ? `<div class="err">${message}</div>` : '';
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GPT VPS Operator Wall — Login</title><style>
-:root{color-scheme:dark;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#080a0c;color:#d8dee7}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#080a0c}.card{width:min(420px,calc(100vw - 32px));border:1px solid #252d36;border-radius:12px;background:#0a0e12;padding:22px}.muted{color:#718096}.err{margin:12px 0;color:#ff9b9b}label{display:block;margin-top:14px}input,button{width:100%;margin-top:6px;border:1px solid #2b333d;background:#0e1216;color:#d8dee7;border-radius:7px;padding:10px;font:inherit}button{cursor:pointer;margin-top:18px}</style></head><body><main class="card"><h1 style="font-size:19px;margin:0">GPT VPS Operator Wall</h1><p class="muted">Independent operator authentication</p>${note}<form method="post" action="/auth/login"><label>Username<input name="username" autocomplete="username" required autofocus></label><label>Password<input type="password" name="password" autocomplete="current-password" required></label><button type="submit">Sign in</button></form></main></body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Light Remote MCP — Login</title><style>
+:root{color-scheme:dark;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#080a0c;color:#d8dee7}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#080a0c}.card{width:min(420px,calc(100vw - 32px));border:1px solid #252d36;border-radius:12px;background:#0a0e12;padding:22px}.muted{color:#718096}.brand-title{display:flex;align-items:center;gap:12px;margin-bottom:8px}.brand-title>span{display:flex;align-items:baseline;gap:7px}.brand-title strong{font-size:20px;color:#f3f4f6}.brand-title small{font-size:10px;letter-spacing:.16em;color:#718096}.brand-mark{flex:0 0 auto}.err{margin:12px 0;color:#ff9b9b}label{display:block;margin-top:14px}input,button{width:100%;margin-top:6px;border:1px solid #2b333d;background:#0e1216;color:#d8dee7;border-radius:7px;padding:10px;font:inherit}button{cursor:pointer;margin-top:18px}</style></head><body><main class="card">${brandTitleSvg(48)}<p class="muted">Independent operator authentication</p>${note}<form method="post" action="/auth/login"><label>Username<input name="username" autocomplete="username" required autofocus></label><label>Password<input type="password" name="password" autocomplete="current-password" required></label><button type="submit">Sign in</button></form></main></body></html>`;
 }
 export function createWallAuth(options = {}) {
   const config = loadConfig(options.configFile);

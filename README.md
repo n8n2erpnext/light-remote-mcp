@@ -1,6 +1,10 @@
 # Light Remote MCP
 
 <p align="center">
+  <img src="assets/branding/light-remote-mark.svg" alt="Light Remote" width="128">
+</p>
+
+<p align="center">
   <strong>Secure outbound remote execution for AI tools and the machines you already own.</strong>
 </p>
 
@@ -16,6 +20,8 @@
 The client connects **outbound** to a governed hub. AI tools do not need inbound SSH access to the target machine, and an enrolled node is addressed explicitly instead of being discovered through a broad network tunnel.
 
 The project began as `gpt-vps-bridge`; the repository and public gateway now use the **Light Remote MCP** name, while a small set of internal compatibility identifiers remain until existing enrolled devices can be migrated safely.
+
+Official brand assets live under `assets/branding/`: the round LR mark is used for application/tray/installer surfaces, while the supplied horizontal lockup is kept as the canonical wordmark asset.
 
 ## Why Light Remote MCP
 
