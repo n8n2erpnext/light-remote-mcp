@@ -87,6 +87,6 @@ As of this roadmap date, a custom MCP App can be created in ChatGPT Developer Mo
 The README must therefore distinguish three states: local/server installation is available; custom MCP App testing is plan/workspace dependent; Plugin Directory availability is future and only after OpenAI review/approval.
 
 ## Release progression
-`v0.9.0-beta.1` is the first public beta candidate for the frozen execution/control-plane architecture. Beta promotion requires Apache-2.0 root licensing, final full regression (currently 38/38), package CI for Windows/Linux, server deployment bundles, live Vercel + ARM + AMD + Windows version proof, and no release-blocking security regression.
+`v0.9.0-beta.1` is the first public beta candidate for the frozen execution/control-plane architecture. Beta promotion requires Apache-2.0 root licensing, final full regression (currently 39/39), package CI for Windows/Linux, server deployment bundles, live Vercel + ARM + AMD + Windows version proof, and no release-blocking security regression.
 
 Stable `v0.9.0` is not implied by the beta tag. Stable requires beta soak plus any account/plugin decisions explicitly scheduled for that release.

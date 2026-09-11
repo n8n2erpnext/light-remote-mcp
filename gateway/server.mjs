@@ -13,6 +13,7 @@ import { authenticateVercel, isToolCall, securityInfo } from './security.mjs';
 import { proxyOperatorJson, proxyOperatorSse } from './operator-proxy.mjs';
 import { rootNames, listWorkspace, readWorkspaceText, searchWorkspace, gitStatus, gitDiff } from './workspace.mjs';
 import { registerRemoteTools } from './remote-tools.mjs';
+import { registerConvenienceTools } from './remote-convenience-tools.mjs';
 import { registerMcpOAuth, mcpAuthChallenge } from './oauth.mjs';
 
 const PORT = Number(process.env.PORT || 8080);
@@ -122,6 +123,7 @@ function getServer(identity) {
     gitDiff(root, repoPath, path, cached)));
 
   registerRemoteTools(server, tracked, identity);
+  registerConvenienceTools(server, tracked, identity);
   return server;
 }
 const DEFAULT_ALLOWED_HOSTS = [

@@ -88,6 +88,58 @@ async function runNodeProof(access,device,{label,script,requiredCapabilities}){
   }finally{await mcp(access,220+Math.floor(Math.random()*1000),'tools/call',{name:'light_remote_close_session',arguments:{sessionId:session.sessionId,agentId}}).catch(()=>{});}
 }
 
+
+async function waitToolJob(access,agentId,name,args){
+  const submitted=parseTool(await mcp(access,300+Math.floor(Math.random()*10000),'tools/call',{name,arguments:args}));
+  let job=pickJob(submitted); if(!job?.jobId)throw new Error(`${name}_submit_failed:${JSON.stringify(submitted).slice(0,700)}`);
+  for(let i=0;i<40&&job.status==='running';i++){
+    await sleep(400);
+    const state=parseTool(await mcp(access,400+i+Math.floor(Math.random()*10000),'tools/call',{name:'light_remote_job',arguments:{jobId:job.jobId,agentId}}));
+    job=pickJob(state)||state;
+  }
+  if(job.status!=='ok')throw new Error(`${name}_job_failed:${JSON.stringify(job).slice(0,900)}`);
+  const output=parseTool(await mcp(access,500+Math.floor(Math.random()*10000),'tools/call',{name:'light_remote_output',arguments:{jobId:job.jobId,agentId,stream:'stdout',full:true,limit:262144}}));
+  return {job,text:String(output?.stdout??output?.output??output?.text??'')};
+}
+async function runConvenienceProof(access,device,label){
+  const agentId=`agent-convenience-${label}-${crypto.randomBytes(8).toString('hex')}`;
+  const opened=parseTool(await mcp(access,600+Math.floor(Math.random()*10000),'tools/call',{name:'light_remote_open_session',arguments:{
+    agentId,openId:`open-convenience-${label}-${crypto.randomBytes(8).toString('hex')}`,label:`Convenience dogfood ${label}`,nodeId:device.nodeId,leasePreset:'30m'
+  }}));
+  const session=pickSession(opened); if(!session?.sessionId)throw new Error(`${label}_convenience_open_failed`);
+  const sessionId=session.sessionId, marker=`LRM_CONVENIENCE_${label.toUpperCase()}_${crypto.randomBytes(5).toString('hex')}`;
+  const suffix=crypto.randomBytes(5).toString('hex');
+  const parent=device.platform==='win32'?`C:\\Users\\Public\\lrm-${suffix}`:`/tmp/lrm-${suffix}`;
+  const file=device.platform==='win32'?`${parent}\\proof.txt`:`${parent}/proof.txt`;
+  const createDir=device.platform==='win32'?`New-Item -ItemType Directory -Force -Path '${parent}' | Out-Null`:`mkdir -p -- '${parent}'`;
+  try{
+    await waitToolJob(access,agentId,'light_remote_exec',{sessionId,agentId,operationId:`op-mkdir-${crypto.randomBytes(8).toString('hex')}`,script:createDir,requiredCapabilities:['filesystem'],waitMs:7000});
+    await waitToolJob(access,agentId,'light_remote_write_text_file',{sessionId,agentId,operationId:`op-write-${crypto.randomBytes(8).toString('hex')}`,path:file,content:`${marker}\nsecond-line\n`,mode:'rewrite'});
+    const read=await waitToolJob(access,agentId,'light_remote_read_text_file',{sessionId,agentId,path:file,startLine:1,maxLines:10});
+    if(!read.text.includes(marker))throw new Error(`${label}_convenience_read_marker_missing`);
+    const list=await waitToolJob(access,agentId,'light_remote_list_directory',{sessionId,agentId,path:parent,maxEntries:500});
+    if(!list.text.includes(file.split(/[\\/]/).pop()))throw new Error(`${label}_convenience_list_missing`);
+    const search=await waitToolJob(access,agentId,'light_remote_search_text',{sessionId,agentId,path:parent,query:marker,maxResults:10});
+    if(!search.text.includes(marker))throw new Error(`${label}_convenience_search_missing`);
+    const processes=await waitToolJob(access,agentId,'light_remote_process_list',{sessionId,agentId,limit:30});
+    if(!processes.text.trim())throw new Error(`${label}_convenience_process_empty`);
+    const spawnScript=device.platform==='win32'
+      ? "$p=Start-Process -FilePath 'powershell.exe' -ArgumentList '-NoLogo','-NoProfile','-NonInteractive','-Command','Start-Sleep -Seconds 120' -WindowStyle Hidden -PassThru; $p.Id"
+      : "nohup sleep 120 >/dev/null 2>&1 & echo $!";
+    const spawned=await waitToolJob(access,agentId,'light_remote_exec',{sessionId,agentId,operationId:`op-spawn-${crypto.randomBytes(8).toString('hex')}`,script:spawnScript,requiredCapabilities:device.platform==='win32'?['filesystem','powershell']:['filesystem'],waitMs:7000});
+    const pid=Number((spawned.text.match(/\b\d+\b/)||[])[0]); if(!Number.isInteger(pid)||pid<2)throw new Error(`${label}_spawn_pid_missing`);
+    await waitToolJob(access,agentId,'light_remote_kill_process',{sessionId,agentId,operationId:`op-kill-${crypto.randomBytes(8).toString('hex')}`,pid,force:true});
+    const verifyScript=device.platform==='win32'?`if(Get-Process -Id ${pid} -ErrorAction SilentlyContinue){throw 'still-running'}; 'KILLED'`:`if kill -0 ${pid} 2>/dev/null; then exit 9; else echo KILLED; fi`;
+    const verified=await waitToolJob(access,agentId,'light_remote_exec',{sessionId,agentId,operationId:`op-verify-kill-${crypto.randomBytes(8).toString('hex')}`,script:verifyScript,requiredCapabilities:device.platform==='win32'?['filesystem','powershell','windows-process-network']:['filesystem'],waitMs:7000});
+    if(!verified.text.includes('KILLED'))throw new Error(`${label}_kill_verify_missing`);
+    console.log(`mcp-${label}-convenience-file-process-kill=PASS`);
+  } finally {
+    const cleanup=device.platform==='win32'?`Remove-Item -LiteralPath '${parent.replaceAll("'","''")}' -Recurse -Force -ErrorAction SilentlyContinue`:`rm -rf -- '${parent.replaceAll("'","'\\''")}'`;
+    try{await waitToolJob(access,agentId,'light_remote_exec',{sessionId,agentId,operationId:`op-clean-${crypto.randomBytes(8).toString('hex')}`,script:cleanup,requiredCapabilities:['filesystem'],waitMs:7000});}catch{}
+    await mcp(access,700+Math.floor(Math.random()*10000),'tools/call',{name:'light_remote_close_session',arguments:{sessionId,agentId}}).catch(()=>{});
+  }
+}
+
 try{
   await waitReady();
   console.log('oauth-dogfood-gateway=PASS');
@@ -132,7 +184,7 @@ try{
   await mcp(access,10,'initialize',{protocolVersion:'2025-06-18',capabilities:{},clientInfo:{name:'light-remote-oauth-dogfood',version:'1'}});
   const listed=await mcp(access,11,'tools/list');
   const names=(listed.result?.tools||[]).map(tool=>tool.name);
-  for(const required of ['light_remote_devices','light_remote_open_session','light_remote_exec','light_remote_job','light_remote_output','light_remote_close_session'])if(!names.includes(required))throw new Error(`missing_tool:${required}`);
+  for(const required of ['light_remote_devices','light_remote_open_session','light_remote_exec','light_remote_job','light_remote_output','light_remote_close_session','light_remote_read_text_file','light_remote_list_directory','light_remote_write_text_file','light_remote_search_text','light_remote_process_list','light_remote_kill_process'])if(!names.includes(required))throw new Error(`missing_tool:${required}`);
   console.log(`mcp-tools-list=PASS count=${names.length}`);
   const devices=parseTool(await mcp(access,12,'tools/call',{name:'light_remote_devices',arguments:{}}));
   if(!devices||devices.error)throw new Error(`devices_failed:${JSON.stringify(devices).slice(0,500)}`);
@@ -176,16 +228,20 @@ try{
   if(!pickSession(closed)?.sessionId)throw new Error(`session_close_failed:${JSON.stringify(closed).slice(0,500)}`);
   console.log('mcp-session-close=PASS');
   const online=(devices.devices||[]).filter(device=>device.state==='online');
+  const arm=online.find(device=>device.nodeId==='arm');
   const amd=online.find(device=>device.displayName==='VPS-AMD');
   const win=online.find(device=>device.platform==='win32');
+  if(arm) await runConvenienceProof(access,arm,'arm'); else throw new Error('arm_convenience_target_missing');
   if(amd){
     await runNodeProof(access,amd,{label:'amd',requiredCapabilities:['filesystem','git','docker','systemctl'],script:
       "set -e; f=$(mktemp); printf 'LIGHT_REMOTE_AMD_DOGFOOD\n' > \"$f\"; cat \"$f\"; rm -f \"$f\"; uname -m; git --version; docker --version; systemctl --version | head -1"});
   } else console.log('mcp-amd-fleet-proof=SKIP offline');
+  if(amd) await runConvenienceProof(access,amd,'amd');
   if(win){
     await runNodeProof(access,win,{label:'windows',requiredCapabilities:['filesystem','powershell','git','package-manager','windows-process-network','windows-services'],script:
       "$ErrorActionPreference='Stop'; $f=Join-Path $env:TEMP 'lrm-oauth-dogfood.txt'; Set-Content -LiteralPath $f -Value 'LIGHT_REMOTE_WINDOWS_DOGFOOD'; Get-Content -LiteralPath $f; Remove-Item -LiteralPath $f -Force; git --version; Get-Process -Id $PID | Select-Object -ExpandProperty ProcessName; Get-Service | Select-Object -First 1 -ExpandProperty Name; winget --version"});
   } else console.log('mcp-windows-fleet-proof=SKIP offline');
+  if(win) await runConvenienceProof(access,win,'windows');
   console.log('LIVE_V09_OAUTH_DOGFOOD=PASS');
 } finally {
   child.kill('SIGTERM');
