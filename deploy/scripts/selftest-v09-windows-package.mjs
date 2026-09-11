@@ -27,6 +27,7 @@ expect(workflow.includes("Copy-Item (Join-Path $dotnetRoot 'LICENSE.txt')"),'win
 expect(workflow.includes("Copy-Item (Join-Path $dotnetRoot 'ThirdPartyNotices.txt')"),'windows_dotnet_notices_not_bundled');
 expect(workflow.includes("Copy-Item LICENSE (Join-Path $stage 'LICENSE')")&&workflow.includes("Copy-Item NOTICE (Join-Path $stage 'NOTICE')"),'windows_project_license_not_bundled');
 expect(workflow.includes('Copy-Item device-agent/local-wall.mjs $agentDir'),'windows_local_wall_not_bundled');
+expect(workflow.includes('Copy-Item device-agent/local-wall-auth.mjs $agentDir'),'windows_local_wall_auth_not_bundled');
 expect(workflow.includes('Copy-Item assets/branding/light-remote-mark.svg $brandDir'),'windows_local_wall_brand_not_bundled');
 expect(workflow.includes('windows-installed-runtime-notices=PASS'),'windows_runtime_notice_install_smoke_missing');
 expect(workflow.includes('Light-Remote-MCP-Setup-x64.exe'),'native_setup_artifact_missing');

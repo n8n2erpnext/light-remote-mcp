@@ -1,0 +1,28 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+import { AgentClientRegistry } from '../../operator-host/agent-client-registry.mjs';
+
+let now=5_000_000;
+const file=`/tmp/lrm-agent-client-${process.pid}.json`;
+fs.rmSync(file,{force:true});
+const reg=new AgentClientRegistry({stateFile:file,now:()=>now,ttlMs:60*60*1000});
+const grantA={grantId:'dag_aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',deviceId:'dev-a',connectionId:'dc-a'};
+const grantB={grantId:'dag_bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',deviceId:'dev-b',connectionId:'dc-b'};
+const first=reg.attach({accountId:'acct',agentId:'agent-client-test-0001',grant:grantA});
+assert.ok(first.clientSessionId.startsWith('lrc_'));
+assert.equal(first.bindings.length,1);
+const second=reg.attach({clientSessionId:first.clientSessionId,accountId:'acct',agentId:'agent-client-test-0001',grant:grantB});
+assert.deepEqual(second.bindings.map(x=>x.deviceId).sort(),['dev-a','dev-b']);
+assert.equal(reg.resolve(first.clientSessionId,{agentId:'agent-client-test-0001',deviceId:'dev-a'}).grantId,grantA.grantId);
+assert.throws(()=>reg.resolve(first.clientSessionId,{agentId:'agent-other-0000001',deviceId:'dev-a'}),/agent_client_agent_mismatch/);
+reg.removeDevice('dev-a','disconnect');
+assert.throws(()=>reg.resolve(first.clientSessionId,{agentId:'agent-client-test-0001',deviceId:'dev-a'}),/agent_client_device_not_authorized/);
+assert.equal(reg.resolve(first.clientSessionId,{agentId:'agent-client-test-0001',deviceId:'dev-b'}).grantId,grantB.grantId);
+const reloaded=new AgentClientRegistry({stateFile:file,now:()=>now,ttlMs:60*60*1000});
+assert.equal(reloaded.view(first.clientSessionId,{agentId:'agent-client-test-0001'}).bindings.length,1);
+now+=60*60*1000+1;
+assert.throws(()=>reloaded.view(first.clientSessionId,{agentId:'agent-client-test-0001'}),/agent_client_expired/);
+fs.rmSync(file,{force:true});
+console.log('v09-agent-client-multi-device=PASS');
+console.log('v09-agent-client-device-isolation=PASS');
+console.log('v09-agent-client-persistence=PASS');

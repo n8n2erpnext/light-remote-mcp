@@ -11,7 +11,7 @@ if(!(normal.noNewPrivileges&&normal.restrictSuidSgid&&normal.clearCapabilityBoun
 const sudoGrantable=linuxServicePolicy({enrollment:{grantableCapabilities:['filesystem','sudo-on-demand'],approvedCapabilities:['filesystem']}});
 if(sudoGrantable.noNewPrivileges||sudoGrantable.restrictSuidSgid||sudoGrantable.clearCapabilityBoundingSet)throw new Error('grantable_sudo_must_support_web_toggle_without_reinstall');
 if(text.includes('Run operator-agent login first')||text.includes('Device is not enrolled yet'))throw new Error('service_must_start_before_enrollment');
-if(!text.includes('local-wall.mjs')||!text.includes('light-remote-mark.svg')||!text.includes('Local Wall: http://127.0.0.1:5491/'))throw new Error('local_wall_service_install_missing');
+if(!text.includes('local-wall.mjs')||!text.includes('local-wall-auth.mjs')||!text.includes('light-remote-mark.svg')||!text.includes('Local Wall: http://127.0.0.1:5491/'))throw new Error('local_wall_service_install_missing');
 if(/password|pollToken|privateKey/i.test(text))throw new Error('service_installer_secret_material_reference');
 console.log('device-agent-service-shell-syntax=PASS');
 console.log('device-agent-service-hardening=PASS');

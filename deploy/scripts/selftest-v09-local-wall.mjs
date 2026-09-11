@@ -4,7 +4,7 @@ import { startLocalWall, isAllowedLocalWallBindHost } from '../../device-agent/l
 const port=24000+(process.pid%10000),brand=new URL('../../assets/branding/light-remote-mark.svg',import.meta.url).pathname;
 if(!isAllowedLocalWallBindHost('127.0.0.1')||!isAllowedLocalWallBindHost('100.94.235.29')||!isAllowedLocalWallBindHost('10.0.0.5')||!isAllowedLocalWallBindHost('172.20.1.5')||!isAllowedLocalWallBindHost('192.168.1.5'))throw new Error('local_wall_private_bind_rejected');
 if(isAllowedLocalWallBindHost('0.0.0.0')||isAllowedLocalWallBindHost('8.8.8.8')||isAllowedLocalWallBindHost('203.0.113.10'))throw new Error('local_wall_public_bind_allowed');
-let connected=true,grace=30,connects=0,disconnects=0,graces=0,approvals=0,denials=0;
+let connected=true,grace=30,connects=0,disconnects=0,graces=0,approvals=0,denials=0,pairings=0;
 const requests=[
   {requestId:'pa_localwall_access_request_1234567890',agentId:'agent-localwall-test-bbbbbbbb',label:'ChatGPT B',userCode:'ABCD-EFGH',expiresAt:Date.now()+300000},
   {requestId:'pa_localwall_access_request_0987654321',agentId:'agent-localwall-test-cccccccc',label:'ChatGPT C',userCode:'WXYZ-2345',expiresAt:Date.now()+300000}
@@ -14,13 +14,16 @@ const wall=startLocalWall({host:'127.0.0.1',port,brandSvgPath:brand,
   getRemoteStatus:async()=>({ok:true,device:{deviceId:'dev_localwall_test',displayName:'LOCAL-WALL-TEST',state:'online',platform:'linux',architecture:'x64',agentVersion:'0.9-test'},connection:{state:connected?'connected':'dormant',plan:'free',remainingMs:connected?3600000:0},sessions:connected?[{sessionId:'s_localwall_test',agentId:'agent-localwall-test-aaaaaaaa',label:'ChatGPT A',state:'active',lastSeenAt:Date.now(),graceMs:30*60000,activeJobs:[],stats:{toolCalls:2,execCalls:1}}]:[],access:{pending:connected?requests:[]}}),
   getRemoteActivity:async()=>({ok:true,events:[{id:1,at:new Date().toISOString(),type:'job_started',jobId:'job-local-1',deviceId:'dev_localwall_test',sessionId:'s_localwall_test',agentId:'agent-localwall-test-aaaaaaaa',status:'running',cwd:'/tmp',script:'echo hello'},{id:2,at:new Date().toISOString(),type:'stdout',jobId:'job-local-1',deviceId:'dev_localwall_test',chunk:'hello\n'},{id:3,at:new Date().toISOString(),type:'job_finished',jobId:'job-local-1',deviceId:'dev_localwall_test',status:'ok',exitCode:0,durationMs:5}]}),
   connect:async data=>{connects++;connected=true;grace=Number(data.graceMinutes||grace);return {state:'connected',reconnectGraceMs:grace*60000};},disconnect:async()=>{disconnects++;connected=false;return {state:'dormant'};},setGrace:async data=>{graces++;grace=Number(data.minutes);return {state:'connected',reconnectGraceMs:grace*60000};},
+  pairingCode:async()=>{pairings++;return {code:pairings===1?'PAIR-2345':'PAIR-6789',expiresAt:Date.now()+180000,ttlMs:180000};},
   accessApprove:async requestId=>{if(!requests.some(x=>x.requestId===requestId))throw new Error('wrong_access_request');approvals++;return {state:'approved',requestId};},accessDeny:async requestId=>{if(!requests.some(x=>x.requestId===requestId))throw new Error('wrong_access_request');denials++;return {state:'denied',requestId};}
 });
 function req(method,target,payload){return new Promise((resolve,reject)=>{const data=payload==null?null:Buffer.from(JSON.stringify(payload));const headers=data?{'content-type':'application/json','content-length':data.length}:{};const r=http.request({host:'127.0.0.1',port,method,path:target,headers},res=>{let text='';res.on('data',c=>text+=c);res.on('end',()=>{let json=null;try{json=JSON.parse(text)}catch{}resolve({status:res.statusCode,text,json});});});r.on('error',reject);if(data)r.write(data);r.end();});}
 await new Promise(r=>setTimeout(r,80));
 try{
-  const html=await req('GET','/');if(html.status!==200||!html.text.includes('LIVE OPERATOR STREAM')||!html.text.includes('one device · session lanes · operator history')||!html.text.includes('Closing the browser does not stop'))throw new Error('single_device_wall_contract_failed');
+  const html=await req('GET','/');if(html.status!==200||!html.text.includes('LIVE OPERATOR STREAM')||!html.text.includes('one device · session lanes · operator history')||!html.text.includes('Closing the browser does not stop')||!html.text.includes('id="acode"')||!html.text.includes('New A')||!html.text.includes('Approve B'))throw new Error('single_device_wall_contract_failed');
   if(html.text.includes('id="connect"')||html.text.includes('Reconnect grace</span><select'))throw new Error('root_wall_must_not_be_connection_form');
+  const pair1=await req('POST','/api/pairing-code');if(pair1.status!==200||pair1.json.pairing?.code!=='PAIR-2345')throw new Error('pairing_a_issue_failed');
+  const pair2=await req('POST','/api/pairing-code');if(pair2.status!==200||pair2.json.pairing?.code!=='PAIR-6789'||pairings!==2)throw new Error('pairing_a_rotate_failed');
   const approveHtml=await req('GET','/approve');if(approveHtml.status!==200||!approveHtml.text.includes('Enter code')||!approveHtml.text.includes('Approve')||approveHtml.text.includes('lease-hours')||approveHtml.text.includes('graceMinutes'))throw new Error('approve_page_contract_failed');
   const live=await req('GET','/api/status');if(live.status!==200||live.json.remote.sessions?.length!==1||live.json.remote.access?.pending?.length!==2)throw new Error('local_wall_live_sessions_failed');
   const activity=await req('GET','/api/activity?limit=50');if(activity.status!==200||activity.json.events?.length!==3||activity.json.events[0].deviceId!=='dev_localwall_test')throw new Error('local_wall_activity_failed');
@@ -30,5 +33,5 @@ try{
   const n=await req('POST','/api/approve',{code:'WXYZ-2345',decision:'deny'});if(n.status!==200||denials!==1||n.json.decision!=='denied')throw new Error('code_deny_failed');
   const g=await req('POST','/api/grace',{minutes:60});if(g.status!==200||graces!==1||grace!==60)throw new Error('local_wall_grace_api_failed');
   const beforeClose=disconnects;await wall.close();if(disconnects!==beforeClose||!connected)throw new Error('wall_close_must_not_disconnect_device');
-  console.log(JSON.stringify({ok:true,singleDeviceWall:true,liveOperatorStream:true,history:true,approveByCode:true,approveRedirectContract:true,wallObserverOnly:true,privateBind:true,publicBindDenied:true,approvals,denials},null,2));
+  console.log(JSON.stringify({ok:true,singleDeviceWall:true,liveOperatorStream:true,history:true,approveByCode:true,approveRedirectContract:true,pairingA:true,wallObserverOnly:true,privateBind:true,publicBindDenied:true,approvals,denials},null,2));
 } catch(error){try{await wall.close();}catch{}throw error;}

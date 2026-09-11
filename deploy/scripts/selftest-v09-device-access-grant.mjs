@@ -77,4 +77,18 @@ fs.rmSync(file,{force:true});
 console.log('v09-device-access-grant=PASS');
 console.log('v09-device-access-multi-agent-one-approval=PASS');
 console.log('v09-device-access-disconnect-expiry=PASS');
+
+// P4.5: an A-code pairing request must require its own B approval even when an underlying grant is already active.
+let pairNow=9_000_000;const pairFile=`/tmp/lrm-device-access-pair-${process.pid}.json`;fs.rmSync(pairFile,{force:true});
+const pairReg=new DeviceAccessGrantRegistry({stateFile:pairFile,now:()=>pairNow});
+const pairBase={accountId:'acct-pair',deviceId:'dev-pair',connectionId:'dc-pair-1',connectionExpiresAt:pairNow+4*60*60*1000};
+const firstReq=pairReg.request({...pairBase,agentId:'agent-pairing-first-0001',label:'First client'});
+const firstGrant=pairReg.approve(firstReq.request.requestId,{deviceId:pairBase.deviceId,connectionId:pairBase.connectionId,connectionExpiresAt:pairBase.connectionExpiresAt,idleGraceMs:30*60*1000});
+const pairReq=pairReg.request({...pairBase,agentId:'agent-pairing-second-0002',label:'Pairing client',forceApproval:true,requestTtlMs:5*60*1000,pairingId:'dpa_pairing_00000001'});
+assert.equal(pairReq.state,'pending');assert.ok(pairReq.request.pairingRequired);
+assert.equal(pairReg.poll({requestId:pairReq.request.requestId,pollToken:pairReq.pollToken}).state,'pending','active grant must not bypass B approval');
+const reused=pairReg.approve(pairReq.request.requestId,{deviceId:pairBase.deviceId,connectionId:pairBase.connectionId,connectionExpiresAt:pairBase.connectionExpiresAt,idleGraceMs:30*60*1000});assert.equal(reused.grantId,firstGrant.grantId);
+assert.equal(pairReg.poll({requestId:pairReq.request.requestId,pollToken:pairReq.pollToken}).state,'approved');
+fs.rmSync(pairFile,{force:true});
+console.log('v09-device-access-pairing-requires-b-approval=PASS');
 console.log('v09-device-access-idle-grace=PASS');

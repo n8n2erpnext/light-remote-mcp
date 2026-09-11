@@ -60,6 +60,7 @@ jobs:
           Copy-Item (Join-Path $dotnetRoot 'ThirdPartyNotices.txt') (Join-Path $dotnetLicenseDir 'ThirdPartyNotices.txt')
           Copy-Item device-agent/operator-agent.mjs $agentDir
           Copy-Item device-agent/local-wall.mjs $agentDir
+          Copy-Item device-agent/local-wall-auth.mjs $agentDir
           Copy-Item device-agent/platform-adapters/*.mjs $adapterDir
           Copy-Item lib/device-proof.mjs $libDir
           Copy-Item assets/branding/light-remote-mark.svg $brandDir

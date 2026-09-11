@@ -12,6 +12,8 @@ import { EnrollmentRegistry, EnrollmentError } from './enrollment-registry.mjs';
 import { FleetRouter, FleetError } from './fleet-router.mjs';
 import { DeviceConnectionRegistry, DeviceConnectionError, DEFAULT_PLAN_CONNECTION_CAPS } from './device-connection-registry.mjs';
 import { DeviceAccessGrantRegistry, DeviceAccessGrantError } from './device-access-grant-registry.mjs';
+import { DevicePairingRegistry, DevicePairingRegistryError } from './device-pairing-registry.mjs';
+import { AgentClientRegistry, AgentClientRegistryError } from './agent-client-registry.mjs';
 
 const SOCKET_PATH = process.env.OPERATOR_SOCKET || '/run/gpt-vps-operator/operator.sock';
 const KEY_FILE = process.env.OPERATOR_KEY_FILE || '/home/ubuntu/.config/gpt-vps-operator/operator.private.json';
@@ -23,6 +25,7 @@ const ENROLLMENT_STATE_FILE = path.join(STATE_DIR, 'enrollments.json');
 const ENROLLMENT_SIGNER_FILE = path.join(STATE_DIR, 'enrollment-signer.json');
 const CONNECTION_STATE_FILE = path.join(STATE_DIR, 'device-connections.json');
 const ACCESS_STATE_FILE = path.join(STATE_DIR, 'device-access-grants.json');
+const AGENT_CLIENT_STATE_FILE = path.join(STATE_DIR, 'agent-clients.json');
 const MAX_RING_BYTES = Number(process.env.OPERATOR_RING_BYTES || 16 * 1024 * 1024);
 const MAX_RING_EVENTS = Number(process.env.OPERATOR_RING_EVENTS || 5000);
 const MAX_MEMORY_OUTPUT = Number(process.env.OPERATOR_MEMORY_OUTPUT || 4 * 1024 * 1024);
@@ -70,6 +73,8 @@ const enrollments = new EnrollmentRegistry({ stateFile:ENROLLMENT_STATE_FILE, si
 const fleet = new FleetRouter({ channelTtlMs:FLEET_CHANNEL_TTL_MS, commandLeaseMs:FLEET_COMMAND_LEASE_MS, maxQueuedPerNode:FLEET_MAX_QUEUED_PER_NODE, emit:event => pushEvent(event) });
 const connections = new DeviceConnectionRegistry({ stateFile:CONNECTION_STATE_FILE, emit:event => pushEvent(event) });
 const accessGrants = new DeviceAccessGrantRegistry({ stateFile:ACCESS_STATE_FILE, emit:event => pushEvent(event) });
+const pairingCodes = new DevicePairingRegistry({ emit:event => pushEvent(event) });
+const agentClients = new AgentClientRegistry({ stateFile:AGENT_CLIENT_STATE_FILE, emit:event => pushEvent(event) });
 
 fs.mkdirSync(LOG_DIR, { recursive: true });
 function redact(value) {
@@ -109,6 +114,7 @@ if (devices.loadError) pushEvent({ type:'device_registry_load_error', status:'er
 if (enrollments.loadError) pushEvent({ type:'enrollment_registry_load_error', status:'error', detail:redact(enrollments.loadError) });
 if (connections.loadError) pushEvent({ type:'device_connection_registry_load_error', status:'error', detail:redact(connections.loadError) });
 if (accessGrants.loadError) pushEvent({ type:'device_access_registry_load_error', status:'error', detail:redact(accessGrants.loadError) });
+if (agentClients.loadError) pushEvent({ type:'agent_client_registry_load_error', status:'error', detail:redact(agentClients.loadError) });
 devices.register({ accountId:ACCOUNT_ID, deviceId:DEVICE_ID, nodeId:NODE_ID, displayName:DEVICE_NAME, platform:os.platform(), architecture:os.arch(), agentVersion:VERSION, publicIdentityKey:DEVICE_PUBLIC_KEY || null, capabilities:HOST_CAPABILITIES, policyProfile:DEVICE_POLICY_PROFILE });
 const deviceHeartbeat = setInterval(() => { try { devices.heartbeat(DEVICE_ID); } catch (error) { console.error('[device] heartbeat failed', error?.message || error); } }, DEVICE_HEARTBEAT_MS);
 deviceHeartbeat.unref();
@@ -118,8 +124,8 @@ function reapAccessGrants(){
 const connectionReaper = setInterval(() => {
   try {
     const closed=connections.reap();
-    for(const item of closed){ sessions.closeByDevice(item.deviceId,`device_${item.reason}`,{force:true}); accessGrants.closeByDevice(item.deviceId,`device_${item.reason}`); }
-    reapAccessGrants();
+    for(const item of closed){ sessions.closeByDevice(item.deviceId,`device_${item.reason}`,{force:true}); accessGrants.closeByDevice(item.deviceId,`device_${item.reason}`); pairingCodes.invalidateDevice(item.deviceId,`device_${item.reason}`); agentClients.removeDevice(item.deviceId,`device_${item.reason}`); }
+    pairingCodes.reap();agentClients.reap();reapAccessGrants();
   } catch(error) { console.error('[connection] reap failed', error?.message || error); }
 }, Math.max(5000,CONNECTION_REAP_MS));
 connectionReaper.unref();
@@ -546,6 +552,14 @@ const server = http.createServer(async (req, res) => {
       const device = devices.enroll({ accountId:binding.accountId, deviceId:binding.deviceId, nodeId:binding.deviceId, displayName:binding.displayName, platform:binding.platform, architecture:binding.architecture, agentVersion:binding.agentVersion, publicIdentityKey:binding.publicIdentityKey, capabilities:binding.approvedCapabilities, policyProfile:binding.policyProfile });
       return sendJson(res, 200, { ok:true, approval, device });
     }
+    if (req.method === 'POST' && url.pathname === '/v1/device-pair/begin') {
+      const body=await readJson(req);
+      const paired=pairingCodes.redeem(body.aCode,{connectionForDevice:deviceId=>connections.get(deviceId)});
+      const connection=connections.assertConnected(paired.deviceId);
+      if(connection.connectionId!==paired.connectionId) throw new DevicePairingRegistryError('device_connection_changed',409);
+      const access=accessGrants.request({accountId:paired.accountId,deviceId:paired.deviceId,connectionId:paired.connectionId,connectionExpiresAt:connection.hardExpiresAt,agentId:body.agentId,label:body.label,forceApproval:true,requestTtlMs:5*60*1000,pairingId:paired.pairingId});
+      return sendJson(res,201,{ok:true,access,pairing:{pairingId:paired.pairingId,deviceId:paired.deviceId}});
+    }
     if (req.method === 'POST' && url.pathname === '/v1/device-access/request') {
       const body=await readJson(req), deviceId=String(body.deviceId||'');
       const device=devices.get(deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
@@ -586,6 +600,36 @@ const server = http.createServer(async (req, res) => {
       const device=devices.get(grant.deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
       return sendJson(res,200,{ok:true,grant,device:{deviceId:device.deviceId,nodeId:device.nodeId,displayName:device.displayName,platform:device.platform,architecture:device.architecture},connection:connections.get(grant.deviceId)});
     }
+    if (req.method === 'POST' && url.pathname === '/v1/agent-client/attach') {
+      const body=await readJson(req), grant=accessGrants.assert(body.grantId,{touch:false});
+      const connection=connections.assertConnected(grant.deviceId);
+      if(connection.connectionId!==grant.connectionId)throw new AgentClientRegistryError('agent_client_device_connection_mismatch',409);
+      const client=agentClients.attach({clientSessionId:body.clientSessionId||null,accountId:grant.accountId,agentId:body.agentId,grant,pairingRequestId:body.pairingRequestId||null});
+      const device=devices.get(grant.deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
+      return sendJson(res,200,{ok:true,client:{clientSessionId:client.clientSessionId,agentId:client.agentId,expiresAt:client.expiresAt},device:{deviceId:device.deviceId,nodeId:device.nodeId,displayName:device.displayName,state:device.state,platform:device.platform,architecture:device.architecture}});
+    }
+    const agentClientDevicesMatch=url.pathname.match(/^\/v1\/agent-client\/(lrc_[A-Za-z0-9_-]+)\/devices$/);
+    if (req.method === 'GET' && agentClientDevicesMatch) {
+      const agentId=String(url.searchParams.get('agentId')||''),client=agentClients.view(agentClientDevicesMatch[1],{agentId,touch:true}),authorized=[];
+      for(const binding of client.bindings){
+        try{
+          const grant=accessGrants.assert(binding.grantId,{deviceId:binding.deviceId,connectionId:binding.connectionId,touch:false}),connection=connections.assertConnected(binding.deviceId);
+          if(connection.connectionId!==binding.connectionId)throw new AgentClientRegistryError('agent_client_device_connection_mismatch',409);
+          const device=devices.get(binding.deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
+          authorized.push({deviceId:device.deviceId,nodeId:device.nodeId,name:device.displayName,state:device.state,platform:device.platform,architecture:device.architecture,connection:{state:connection.state,remainingMs:connection.remainingMs||Math.max(0,connection.hardExpiresAt-Date.now())}});
+        }catch{agentClients.removeDevice(binding.deviceId,'binding_invalid');}
+      }
+      return sendJson(res,200,{ok:true,client:{clientSessionId:client.clientSessionId,agentId:client.agentId,expiresAt:client.expiresAt},devices:authorized});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/agent-client/resolve') {
+      const body=await readJson(req),binding=agentClients.resolve(body.clientSessionId,{agentId:body.agentId,deviceId:body.deviceId,touch:true});
+      try{
+        const grant=accessGrants.assert(binding.grantId,{deviceId:binding.deviceId,connectionId:binding.connectionId}),connection=connections.assertConnected(binding.deviceId);
+        if(connection.connectionId!==binding.connectionId)throw new AgentClientRegistryError('agent_client_device_connection_mismatch',409);
+        const device=devices.get(binding.deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
+        return sendJson(res,200,{ok:true,binding,grant,device:{deviceId:device.deviceId,nodeId:device.nodeId,displayName:device.displayName,state:device.state,platform:device.platform,architecture:device.architecture},connection});
+      }catch(error){agentClients.removeDevice(binding.deviceId,'binding_invalid');throw error;}
+    }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/connect') {
       const body=await readJson(req), ctx=verifiedChannelContext(body,'connect');
       const connection=connections.connect({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,plan:ACCOUNT_PLAN,requestedLeaseMs:ctx.payload.requestedLeaseMs,reconnectGraceMs:ctx.payload.reconnectGraceMs});
@@ -597,12 +641,20 @@ const server = http.createServer(async (req, res) => {
       const connection=connections.disconnect(ctx.device.deviceId,ctx.payload.reason||'client_disconnect');
       sessions.closeByDevice(ctx.device.deviceId,connection.closeReason||'device_connection_closed',{force:true});
       accessGrants.closeByDevice(ctx.device.deviceId,connection.closeReason||'device_connection_closed');
+      pairingCodes.invalidateDevice(ctx.device.deviceId,connection.closeReason||'device_connection_closed');
+      agentClients.removeDevice(ctx.device.deviceId,connection.closeReason||'device_connection_closed');
       try { devices.markOffline(ctx.device.deviceId,connection.closeReason||'client_disconnect'); } catch {}
       return sendJson(res,200,{ok:true,connection});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/grace') {
       const body=await readJson(req), ctx=verifiedChannelContext(body,'grace');
       return sendJson(res,200,{ok:true,connection:connections.setGrace(ctx.device.deviceId,ctx.payload.reconnectGraceMs)});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/device-channel/pairing-code') {
+      const body=await readJson(req), ctx=verifiedChannelContext(body,'pairing-code');
+      const connection=connections.assertConnected(ctx.device.deviceId);
+      const pairing=pairingCodes.rotate({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,connectionId:connection.connectionId,connectionExpiresAt:connection.hardExpiresAt});
+      return sendJson(res,200,{ok:true,pairing});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/access-approve') {
       const body=await readJson(req), ctx=verifiedChannelContext(body,'access-approve');
@@ -713,6 +765,8 @@ const server = http.createServer(async (req, res) => {
       const binding = enrollments.revoke({ deviceId:revokeMatch[1], accountId:body.accountId, reason:body.reason });
       const device = devices.revoke(revokeMatch[1], body.reason || 'owner_revoked');
       try { accessGrants.closeByDevice(revokeMatch[1], body.reason || 'owner_revoked'); } catch {}
+      try { pairingCodes.invalidateDevice(revokeMatch[1], body.reason || 'owner_revoked'); } catch {}
+      try { agentClients.removeDevice(revokeMatch[1], body.reason || 'owner_revoked'); } catch {}
       return sendJson(res, 200, { ok:true, binding, device });
     }
     const connectionMatch = url.pathname.match(/^\/v1\/devices\/([A-Za-z0-9._:-]+)\/connection(?:\/(connect|disconnect|grace|activity))?$/);
@@ -729,6 +783,8 @@ const server = http.createServer(async (req, res) => {
       if (req.method==='POST' && action==='disconnect') {
         const body=await readJson(req), connection=connections.disconnect(deviceId,body.reason||'user_disconnect');
         accessGrants.closeByDevice(deviceId,connection.closeReason||'device_connection_closed');
+        pairingCodes.invalidateDevice(deviceId,connection.closeReason||'device_connection_closed');
+        agentClients.removeDevice(deviceId,connection.closeReason||'device_connection_closed');
         sessions.closeByDevice(deviceId,connection.closeReason||'device_connection_closed',{force:true});
         return sendJson(res,200,{ok:true,connection});
       }
@@ -827,7 +883,7 @@ const server = http.createServer(async (req, res) => {
   } catch (error) {
     const message = error?.message || 'internal_error';
     pushEvent({ type: 'executor_error', status: 'error', detail: redact(message) });
-    const status = error instanceof SessionError || error instanceof DeviceError || error instanceof EnrollmentError || error instanceof FleetError || error instanceof DeviceConnectionError ? error.status : ['invalid_envelope', 'expired_envelope', 'replay_detected', 'unknown_kid', 'invalid_envelope_auth', 'unsupported_action'].includes(message) ? 401 : message === 'operation_id_conflict' ? 409 : 400;
+    const status = error instanceof SessionError || error instanceof DeviceError || error instanceof EnrollmentError || error instanceof FleetError || error instanceof DeviceConnectionError || error instanceof DeviceAccessGrantError || error instanceof DevicePairingRegistryError || error instanceof AgentClientRegistryError ? error.status : ['invalid_envelope', 'expired_envelope', 'replay_detected', 'unknown_kid', 'invalid_envelope_auth', 'unsupported_action'].includes(message) ? 401 : message === 'operation_id_conflict' ? 409 : 400;
     return sendJson(res, status, { ok: false, error: message });
   }
 });

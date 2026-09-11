@@ -47,6 +47,7 @@ jobs:
           cp "node-v${NODE_VERSION}-linux-${TARGET_ARCH}/LICENSE" "$PKG/licenses/node/LICENSE"
           cp device-agent/operator-agent.mjs "$PKG/device-agent/"
           cp device-agent/local-wall.mjs "$PKG/device-agent/"
+          cp device-agent/local-wall-auth.mjs "$PKG/device-agent/"
           cp device-agent/linux-service-policy.mjs "$PKG/device-agent/"
           cp device-agent/platform-adapters/*.mjs "$PKG/device-agent/platform-adapters/"
           cp lib/device-proof.mjs "$PKG/lib/"

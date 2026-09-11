@@ -5,6 +5,13 @@ This Vercel project is the approved ChatGPT-facing relay into the owner's ARM op
 Active path:
 `ChatGPT -> @Vercel -> light-remote-mcp.vercel.app -> ARM hub -> selected executor`
 
+## P4.5 public pairing target — A/B codes
+The public golden path is being migrated away from pre-authorization device enumeration. A normal Agent must not discover account/fleet/devices/capabilities before pairing. The device Local Wall will show a short-lived one-time **A code** while its finite Device Connection is active. The user gives A directly to ChatGPT/Codex/Claude. The Agent calls one high-level connect action; server resolves exactly that device, consumes A, and returns a short-lived **B code** plus an opaque continuation. The user enters B at that exact device Wall `/approve` and explicitly Approves/Deny. A alone never grants execution, and B cannot be approved on another device.
+
+After approval the Agent client session gains one authorized device binding. Repeating A/B for another device adds another independent binding to the same client session. Normal `list_devices` then means only the Agent's currently authorized set, not account inventory. Per-device grants, connection leases, Agent sessions, jobs and Disconnect remain isolated; the user may route Task A to Device A and Task B to Device B concurrently.
+
+Target Agent state machine is intentionally compact: `need_a_code -> approval_required -> ready`. If an A code is supplied, call connect directly. Do **not** call `devices-bootstrap`, `fleet`, `capabilities`, account lookup or broad status probes on the normal path. Those remain compatibility/debug/admin surfaces. Until P4.5 source and live acceptance close, the legacy sequence below remains the active compatibility path.
+
 ## New agent startup — ChatGPT Plus / @Vercel
 1. Fetch `https://light-remote-mcp.vercel.app/api/guide` and follow its `plusBridge` contract. Do not ask the owner for Wall credentials.
 2. Generate one opaque stable `agentId` for this ChatGPT chat/window (16–128 safe characters).
@@ -38,6 +45,7 @@ Privileged bodies remain protected with X25519 + HKDF-SHA256 + AES-256-GCM, repl
 
 ## Wall / observability
 There are two distinct control surfaces. **Local Wall** is served by the always-alive client service and is scoped to exactly one device. It keeps the operator-stream/session-lane/history experience of the reference Wall: live command/output, Agent lanes, device/cloud state, policy/capability context and maintenance. It may be exposed on localhost, a private/NetBird address, or behind the owner's reverse proxy. Wall is observer/control only: closing the tab/browser does not affect the service, cloud lease, grant, Agent sessions or durable jobs. Pending access is handled at `/approve` by entering the short code and choosing Approve/Deny.
+Any non-loopback Local Wall bind is fail-closed unless **device-local owner authentication** is configured. The owner session protects the Wall root, A-code issuance, `/approve`, APIs and SSE. Reverse proxy/TLS/NetBird are transport/outer-defense choices, not substitutes for the owner session. `wall-auth-init` reads the password from stdin rather than argv; the stored file contains a scrypt verifier plus an independent cookie-signing secret and is mode `0600`.
 
 The hosted/reference Wall on the Server is the owner aggregate view: device presence, policy, maintenance, activity and fleet/session observability. In the future Account Portal, normal users see all devices bound to their account; VIP adds the convenience multi-device Wall used by the owner reference environment. Aggregation never merges device identities, leases, grants or session authority.
 

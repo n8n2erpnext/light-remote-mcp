@@ -10,9 +10,14 @@ function esc(value) {
 }
 function accessOf(value) { return value?.access || value; }
 function grantOf(value) { return value?.grant || accessOf(value)?.grant || null; }
+function pairingCode(value){const raw=String(value||'').trim().toUpperCase().replace(/-/g,'');if(!/^[A-Z2-9]{8}$/.test(raw))throw new Error('invalid_pairing_code');return `${raw.slice(0,4)}-${raw.slice(4)}`;}
 
 export function createPlusAuth(wallAuth, options = {}) {
   const requestAccess = options.requestAccess || (async () => { throw new Error('plus_access_request_unavailable'); });
+  const pairAccess = options.pairAccess || (async () => { throw new Error('plus_pairing_unavailable'); });
+  const attachClient = options.attachClient || (async () => { throw new Error('agent_client_unavailable'); });
+  const listClientDevices = options.listClientDevices || (async () => { throw new Error('agent_client_unavailable'); });
+  const resolveClientDevice = options.resolveClientDevice || (async () => { throw new Error('agent_client_unavailable'); });
   const pollAccess = options.pollAccess || (async () => { throw new Error('plus_access_poll_unavailable'); });
   const getAccessRequest = options.getAccessRequest || (async () => { throw new Error('plus_access_request_unavailable'); });
   const listAccessRequests = options.listAccessRequests || (async () => ({ pending:[] }));
@@ -23,6 +28,46 @@ export function createPlusAuth(wallAuth, options = {}) {
     const payload={sub:'owner',scope:'device-operator',grantId:grant.grantId,deviceId:grant.deviceId,connectionId:grant.connectionId,iat:Date.now(),exp:Number(grant.expiresAt),jti:crypto.randomUUID()};
     return {token:wallAuth.signOAuthToken('plus',payload),expiresAt:payload.exp,expiresInSeconds:Math.max(0,Math.ceil((payload.exp-Date.now())/1000)),scope:payload.scope,grantId:payload.grantId,deviceId:payload.deviceId,connectionId:payload.connectionId};
   }
+  function clientTokenFor(client) {
+    if(!client?.clientSessionId||!client?.agentId||!Number.isFinite(Number(client?.expiresAt)))throw new Error('invalid_agent_client');
+    const payload={scope:'agent-client',clientSessionId:client.clientSessionId,agentId:client.agentId,iat:Date.now(),exp:Number(client.expiresAt),jti:crypto.randomUUID()};
+    return wallAuth.signOAuthToken('client',payload);
+  }
+  function clientContext(token){const value=wallAuth.verifyOAuthToken('client',String(token||''));return value&&value.scope==='agent-client'&&value.clientSessionId&&value.agentId?value:null;}
+  async function connectBegin(req,res){
+    try{
+      const body=req.body||{},aCode=pairingCode(body.aCode),agentId=safeId(body.agentId,/^[A-Za-z0-9._:-]{16,128}$/,'invalid_plus_agent_id'),label=String(body.label||'ChatGPT').trim().slice(0,120);
+      let existing=null;if(body.client){existing=clientContext(body.client);if(!existing)return res.status(401).json({ok:false,status:'need_a_code',error:'agent_client_invalid'});if(existing.agentId!==agentId)return res.status(403).json({ok:false,status:'need_a_code',error:'agent_client_agent_mismatch'});}
+      const result=accessOf(await pairAccess({aCode,agentId,label})),row=result?.request;
+      if(result?.state!=='pending'||!row?.requestId||!result?.pollToken)throw new Error('invalid_pairing_access_request');
+      const exp=Number(row.expiresAt),payload={scope:'device-pairing-continuation',requestId:row.requestId,pollToken:result.pollToken,agentId,clientSessionId:existing?.clientSessionId||null,iat:Date.now(),exp,jti:crypto.randomUUID()};
+      return res.status(201).json({ok:true,status:'approval_required',code:row.userCode,continuation:wallAuth.signOAuthToken('pair',payload),expiresInSeconds:Math.max(0,Math.ceil((exp-Date.now())/1000))});
+    }catch(error){const missing=['pairing_code_not_found','pairing_code_expired','invalid_pairing_code'].includes(error.message);return res.status(Number(error.status)||400).json({ok:false,status:missing?'need_a_code':'error',error:error.message||'pairing_failed'});}
+  }
+  async function connectPoll(req,res){
+    try{
+      const ctx=wallAuth.verifyOAuthToken('pair',String(req.body?.continuation||''));
+      if(!ctx||ctx.scope!=='device-pairing-continuation'||!ctx.requestId||!ctx.pollToken||!ctx.agentId)return res.status(401).json({ok:false,status:'approval_expired',error:'pairing_continuation_required'});
+      const result=accessOf(await pollAccess({requestId:ctx.requestId,pollToken:ctx.pollToken}));
+      if(result?.state!=='approved')return res.status(202).json({ok:true,status:'approval_required',expiresInSeconds:Math.max(0,Math.ceil(((result?.request?.expiresAt)||Date.now())-Date.now())/1000)});
+      const grant=grantOf(result),attached=await attachClient({clientSessionId:ctx.clientSessionId||null,agentId:ctx.agentId,grantId:grant.grantId,pairingRequestId:ctx.requestId}),client=attached?.client,device=attached?.device||{};
+      return res.status(200).json({ok:true,status:'ready',device:device.displayName||device.deviceId||grant.deviceId,client:clientTokenFor(client)});
+    }catch(error){const denied=error.message==='plus_authorization_denied',expired=['plus_authorization_expired','agent_client_expired'].includes(error.message);return res.status(Number(error.status)||400).json({ok:false,status:expired?'approval_expired':denied?'access_revoked':'error',error:error.message||'pairing_failed'});}
+  }
+  async function requireClient(req,res,next){
+    const ctx=clientContext(req.get('x-light-client')||'');
+    if(!ctx)return res.status(401).json({ok:false,error:'agent_client_required'});
+    req.plusClient=ctx;return next();
+  }
+  async function listDevices(req,res){
+    try{const value=await listClientDevices(req.plusClient.clientSessionId,req.plusClient.agentId);return res.json({ok:true,devices:(value?.devices||[]).map(d=>({id:d.deviceId,name:d.name||d.deviceId,state:d.state||'unknown'}))});}
+    catch(error){return res.status(Number(error.status)||401).json({ok:false,error:error.message||'agent_client_required'});}
+  }
+  async function requireClientDevice(req,res,next){
+    try{const deviceId=safeId(req.body?.deviceId??req.query?.deviceId,/^[A-Za-z0-9._:-]{1,128}$/,'invalid_plus_device_id');const value=await resolveClientDevice({clientSessionId:req.plusClient.clientSessionId,agentId:req.plusClient.agentId,deviceId});req.plusClientDevice=value;req.plusClientDeviceId=deviceId;return next();}
+    catch(error){return res.status(Number(error.status)||403).json({ok:false,error:error.message||'agent_client_device_not_authorized'});}
+  }
+
   async function begin(req, res) {
     try {
       const body=req.body||{};
@@ -88,5 +133,5 @@ export function createPlusAuth(wallAuth, options = {}) {
     return next();
   }
 
-  return {begin,poll,list,page,requireSession,requireAgent,requireGrantedNode};
+  return {connectBegin,connectPoll,requireClient,listDevices,requireClientDevice,begin,poll,list,page,requireSession,requireAgent,requireGrantedNode};
 }

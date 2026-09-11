@@ -61,22 +61,35 @@ export class DeviceAccessGrantRegistry {
     for(const row of this.grants.values())if(row.deviceId===deviceId&&row.connectionId===connectionId&&!row.closedAt&&now<row.expiresAt)return row;
     return null;
   }
-  request({accountId,deviceId,connectionId,connectionExpiresAt,agentId=null,label='ChatGPT Plus'}={}){
+  request({accountId,deviceId,connectionId,connectionExpiresAt,agentId=null,label='ChatGPT Plus',forceApproval=false,requestTtlMs=REQUEST_TTL_MS,pairingId=null}={}){
     const aid=validId(accountId,'invalid_access_account_id'),did=validId(deviceId,'invalid_access_device_id'),cid=validId(connectionId,'invalid_access_connection_id');
     const now=this.now(),expiresAt=Number(connectionExpiresAt);
     if(!Number.isFinite(expiresAt)||expiresAt<=now)throw new DeviceAccessGrantError('device_connection_expired',410);
     const active=this._activeGrant(did,cid,now);
-    if(active){active.lastActivityAt=now;this._persist();return {state:'approved',grant:{...active},request:null,pollToken:null};}
+    if(active&&!forceApproval){active.lastActivityAt=now;this._persist();return {state:'approved',grant:{...active},request:null,pollToken:null};}
+    const ttl=Math.max(30*1000,Math.min(Number(requestTtlMs)||REQUEST_TTL_MS,REQUEST_TTL_MS));
     const requestId=`pa_${crypto.randomBytes(18).toString('base64url')}`,pollToken=crypto.randomBytes(32).toString('base64url');
-    const row={requestId,accountId:aid,deviceId:did,connectionId:cid,agentId:agentId?validId(agentId,'invalid_plus_agent_id'):null,label:String(label||'ChatGPT Plus').slice(0,120),userCode:userCode(),pollHash:digest(pollToken),createdAt:now,expiresAt:Math.min(expiresAt,now+REQUEST_TTL_MS),state:'pending',consumedAt:null,deniedAt:null};
+    const row={requestId,accountId:aid,deviceId:did,connectionId:cid,agentId:agentId?validId(agentId,'invalid_plus_agent_id'):null,label:String(label||'ChatGPT Plus').slice(0,120),userCode:userCode(),pollHash:digest(pollToken),createdAt:now,expiresAt:Math.min(expiresAt,now+ttl),state:'pending',consumedAt:null,deniedAt:null,pairingRequired:Boolean(forceApproval),pairingId:pairingId?validId(pairingId,'invalid_pairing_id'):null};
     this.requests.set(requestId,row);this._persist();
-    this.emit({type:'device_access_requested',accountId:aid,deviceId:did,connectionId:cid,requestId,status:'pending',label:row.label,agentId:row.agentId});
+    this.emit({type:'device_access_requested',accountId:aid,deviceId:did,connectionId:cid,requestId,status:'pending',label:row.label,agentId:row.agentId,pairingRequired:row.pairingRequired});
     return {state:'pending',request:{...row,pollHash:undefined},pollToken,grant:null};
   }
   poll({requestId,pollToken}={}){
     const id=validId(requestId,'invalid_plus_request_id'),row=this.requests.get(id),now=this.now();
-    if(!row||row.consumedAt||!equalDigest(pollToken,row.pollHash))throw new DeviceAccessGrantError('plus_authorization_not_found',404);
+    if(!row||!equalDigest(pollToken,row.pollHash))throw new DeviceAccessGrantError('plus_authorization_not_found',404);
     const active=this._activeGrant(row.deviceId,row.connectionId,now);
+    if(row.consumedAt){
+      if(row.state==='approved'&&active)return {state:'approved',grant:{...active}};
+      if(row.state==='denied')throw new DeviceAccessGrantError('plus_authorization_denied',403);
+      if(row.state==='expired'||row.expiresAt<=now)throw new DeviceAccessGrantError('plus_authorization_expired',410);
+      throw new DeviceAccessGrantError('plus_authorization_not_found',404);
+    }
+    if(row.pairingRequired){
+      if(row.state==='approved'){if(!active)throw new DeviceAccessGrantError('device_access_grant_required',401);row.consumedAt=now;this._persist();return {state:'approved',grant:{...active}};}
+      if(row.state==='denied')throw new DeviceAccessGrantError('plus_authorization_denied',403);
+      if(row.expiresAt<=now){row.state='expired';row.consumedAt=now;this._persist();throw new DeviceAccessGrantError('plus_authorization_expired',410);}
+      return {state:'pending',request:{requestId:row.requestId,deviceId:row.deviceId,connectionId:row.connectionId,label:row.label,userCode:row.userCode,expiresAt:row.expiresAt}};
+    }
     if(active){row.state='approved';row.consumedAt=now;this._persist();return {state:'approved',grant:{...active}};}
     if(row.state==='denied')throw new DeviceAccessGrantError('plus_authorization_denied',403);
     if(row.expiresAt<=now){row.state='expired';row.consumedAt=now;this._persist();throw new DeviceAccessGrantError('plus_authorization_expired',410);}
@@ -95,7 +108,8 @@ export class DeviceAccessGrantRegistry {
     const grant=prior||{grantId:`dag_${crypto.randomUUID()}`,accountId:row.accountId,deviceId:row.deviceId,connectionId:cid,approvedAt:now,lastActivityAt:now,idleGraceMs:this._grace(idleGraceMs),expiresAt,closedAt:null,closeReason:null};
     if(prior){grant.lastActivityAt=now;if(idleGraceMs!=null)grant.idleGraceMs=this._grace(idleGraceMs);}
     this.grants.set(grant.grantId,grant);
-    for(const pending of this.requests.values())if(pending.deviceId===row.deviceId&&pending.connectionId===cid&&!pending.consumedAt&&pending.state==='pending')pending.state='approved';
+    if(row.pairingRequired)row.state='approved';
+    else for(const pending of this.requests.values())if(!pending.pairingRequired&&pending.deviceId===row.deviceId&&pending.connectionId===cid&&!pending.consumedAt&&pending.state==='pending')pending.state='approved';
     this._persist();
     this.emit({type:'device_access_approved',accountId:row.accountId,deviceId:row.deviceId,connectionId:cid,requestId:row.requestId,grantId:grant.grantId,status:'approved'});
     return {...grant};
@@ -106,7 +120,8 @@ export class DeviceAccessGrantRegistry {
     if(row.state!=='pending')throw new DeviceAccessGrantError(`plus_authorization_${row.state}`,409);
     if(deviceId!=null&&row.deviceId!==String(deviceId))throw new DeviceAccessGrantError('device_access_request_device_mismatch',403);
     const deniedAt=this.now(),denyReason=String(reason||'owner_denied').slice(0,80);
-    for(const pending of this.requests.values())if(pending.deviceId===row.deviceId&&pending.connectionId===row.connectionId&&!pending.consumedAt&&pending.state==='pending'){pending.state='denied';pending.deniedAt=deniedAt;pending.denyReason=denyReason;}
+    if(row.pairingRequired){row.state='denied';row.deniedAt=deniedAt;row.denyReason=denyReason;}
+    else for(const pending of this.requests.values())if(!pending.pairingRequired&&pending.deviceId===row.deviceId&&pending.connectionId===row.connectionId&&!pending.consumedAt&&pending.state==='pending'){pending.state='denied';pending.deniedAt=deniedAt;pending.denyReason=denyReason;}
     this._persist();
     this.emit({type:'device_access_denied',accountId:row.accountId,deviceId:row.deviceId,connectionId:row.connectionId,requestId:row.requestId,status:'denied'});
     return {requestId:row.requestId,state:row.state};
