@@ -17,10 +17,11 @@ function state(desired){return {identity:{algorithm:'Ed25519',privateKey:private
   policy:{serverPolicyRevision:1,localFinalDenyBoundary:true},effectiveCapabilities:['filesystem'],
   cloud:{desiredConnected:desired,state:desired?'connected':'dormant'}};}
 fs.writeFileSync(stateFile,JSON.stringify(state(false)),{mode:0o600});
-let requests=0,mode='expire';
+let requests=0,mode='expire',racePollResolve=null;
 const server=http.createServer((req,res)=>{requests++;let body='';req.on('data',c=>body+=c);req.on('end',()=>{
   res.setHeader('content-type','application/json');
-  if(mode==='connect'&&req.url==='/device-channel/connect') return res.end(JSON.stringify({ok:true,connection:{connectionId:'dc_test',state:'connected',plan:'free',connectedAt:Date.now(),hardExpiresAt:Date.now()+3600000,reconnectGraceMs:1800000}}));
+  if(mode==='race'&&req.url==='/device-channel/poll'){racePollResolve?.();return setTimeout(()=>res.end(JSON.stringify({ok:true,channel:{}})),650);}
+  if((mode==='connect'||mode==='race')&&req.url==='/device-channel/connect'){const id=mode==='race'?'dc_race':'dc_test';return res.end(JSON.stringify({ok:true,connection:{connectionId:id,state:'connected',plan:'free',connectedAt:Date.now(),hardExpiresAt:Date.now()+3600000,reconnectGraceMs:1800000}}));}
   res.statusCode=410;res.end(JSON.stringify({ok:false,error:'device_connection_expired'}));
 });});
 await new Promise(r=>server.listen(0,'127.0.0.1',r));
@@ -50,5 +51,19 @@ if(connect.exitCode!==0) throw new Error(`connect_failed:${err}`);
 const connectedState=JSON.parse(fs.readFileSync(stateFile,'utf8'));
 if(connectedState.cloud?.desiredConnected!==true||connectedState.cloud?.state!=='connected'||connectedState.cloud?.connectionId!=='dc_test') throw new Error('connect_state_not_persisted');
 if(requests!==1) throw new Error(`connect_request_count_wrong:${requests}`);
-console.log(JSON.stringify({ok:true,dormantCloudRequests:0,expiryRequests:1,connectRequests:1,serviceModel:'always-alive-local/cloud-finite'},null,2));
+
+// Prove a Local Wall connect cannot be clobbered by an already in-flight daemon long poll.
+fs.writeFileSync(stateFile,JSON.stringify(state(true)),{mode:0o600});requests=0;mode='race';
+let racePollStartedResolve;const racePollStarted=new Promise(r=>{racePollStartedResolve=r;});racePollResolve=racePollStartedResolve;
+daemon=startDaemon();
+await Promise.race([racePollStarted,sleep(1500).then(()=>{throw new Error('race_poll_not_started');})]);
+const raceConnect=spawn(process.execPath,[`${root}/device-agent/operator-agent.mjs`,'connect','--hub',base],{cwd:root,env,stdio:['ignore','pipe','pipe']});
+let raceErr='';raceConnect.stderr.on('data',d=>raceErr+=d);await new Promise(r=>raceConnect.on('close',r));
+if(raceConnect.exitCode!==0) throw new Error(`race_connect_failed:${raceErr}`);
+await sleep(900);
+const raceState=JSON.parse(fs.readFileSync(stateFile,'utf8'));
+if(raceState.cloud?.connectionId!=='dc_race'||raceState.cloud?.hardExpiresAt==null||raceState.cloud?.reconnectGraceMs!==1800000) throw new Error(`inflight_poll_clobbered_connect_state:${JSON.stringify(raceState.cloud)}`);
+daemon.kill('SIGTERM');await sleep(150);
+
+console.log(JSON.stringify({ok:true,dormantCloudRequests:0,expiryRequests:1,connectRequests:1,inflightPollConnectRace:'preserved',serviceModel:'always-alive-local/cloud-finite'},null,2));
 server.close();fs.rmSync(tmp,{recursive:true,force:true});

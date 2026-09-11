@@ -178,7 +178,11 @@ async function daemon(args){
     if(!state.enrollment?.deviceId||!cloudDesired(state)){await wait(dormantPollMs);continue;}
     try{
       const payload={nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling,draining:Boolean(state.routing?.draining),capabilities:effectiveCapabilities(state.enrollment.approvedCapabilities,state.policy?.deniedCapabilities),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),waitMs};
-      const response=await channelRequest(state,hub,'poll',payload);applyPolicyEnvelope(state,response.policy);failures=0;
+      const response=await channelRequest(state,hub,'poll',payload);
+      // A Local Wall connect/disconnect can update device.json while this long-poll is in flight.
+      // Re-read before persisting the poll result so the daemon never clobbers newer lease metadata.
+      const latestAfterPoll=readState();if(latestAfterPoll)state=latestAfterPoll;
+      applyPolicyEnvelope(state,response.policy);failures=0;
       state.cloud={...(state.cloud||{}),desiredConnected:true,state:'connected',lastServerActivityAt:Date.now(),lastError:null};writeState(state);
       const command=response.channel?.command;
       if(command){
