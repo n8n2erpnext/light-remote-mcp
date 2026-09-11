@@ -94,8 +94,83 @@ async function executeCommand(state,command){
   const result={commandId:command.commandId,status:timedOut?'timeout':exitCode===0?'ok':'error',exitCode:timedOut?124:Math.max(0,Math.min(Number(exitCode)||0,255)),stdout:out.text(),stderr:err.text(),durationMs:Date.now()-startedAt,outputTruncated:out.truncated()||err.truncated()};
   writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;
 }
-async function daemon(args){const hub=args.hub||DEFAULT_HUB,state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');state.enrollment.nodeId=state.enrollment.nodeId||state.enrollment.deviceId;state.effectiveCapabilities=effectiveCapabilities(state.enrollment.approvedCapabilities,state.policy?.deniedCapabilities);const sessionCeiling=Math.max(1,Math.min(Number(process.env.OPERATOR_AGENT_MAX_SESSIONS)||2,100));const waitMs=Math.max(1000,Math.min(Number(process.env.OPERATOR_AGENT_CHANNEL_WAIT_MS)||8000,15000));let stopped=false,wake=null,failures=0;const stop=()=>{stopped=true;if(wake)wake();};process.on('SIGTERM',stop);process.on('SIGINT',stop);const wait=ms=>new Promise(resolve=>{const timer=setTimeout(()=>{wake=null;resolve();},ms);wake=()=>{clearTimeout(timer);wake=null;resolve();};});console.log(JSON.stringify({event:'device_agent_started',mode:'outbound-leaf',platformAdapter:PLATFORM_ADAPTER.id,deviceId:state.enrollment.deviceId,nodeId:state.enrollment.nodeId,sessionCeiling,waitMs}));while(!stopped){try{const payload={nodeId:state.enrollment.nodeId,agentVersion:VERSION,sessionCeiling,draining:Boolean(state.routing?.draining),capabilities:state.effectiveCapabilities,policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),waitMs};const response=await channelRequest(state,hub,'poll',payload);applyPolicyEnvelope(state,response.policy);failures=0;const command=response.channel?.command;if(command){const result=await executeCommand(state,command);let delivered=false,resultFailures=0;while(!stopped&&!delivered){try{const ack=await channelRequest(state,hub,'result',result);delivered=Boolean(ack.accepted);resultFailures=0;}catch(error){resultFailures++;console.error(JSON.stringify({event:'device_result_delivery_failed',deviceId:state.enrollment.deviceId,commandId:command.commandId,error:error.message,status:error.status||null,failures:resultFailures}));await wait(Math.min(1000*(2**Math.min(resultFailures,5)),30000));}}}}catch(error){failures++;console.error(JSON.stringify({event:'device_channel_failed',deviceId:state.enrollment.deviceId,error:error.message,status:error.status||null,failures}));if(!stopped)await wait(Math.min(1000*(2**Math.min(failures,5)),30000));}}writeState(state);console.log(JSON.stringify({event:'device_agent_stopped',deviceId:state.enrollment.deviceId,nodeId:state.enrollment.nodeId}));}
+function cloudDesired(state){return state?.cloud?.desiredConnected!==false;}
+function markCloudState(state,value){state.cloud={...(state.cloud||{}),...value,changedAt:Date.now()};writeState(state);return state.cloud;}
+async function connectCloud(args){
+  const hub=args.hub||DEFAULT_HUB,state=readState();
+  if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
+  const hours=args['lease-hours']==null?null:Number(args['lease-hours']);
+  const graceMinutes=args['grace-minutes']==null?null:Number(args['grace-minutes']);
+  if(hours!=null&&(!Number.isFinite(hours)||hours<=0))throw new Error('invalid_connection_hours');
+  if(graceMinutes!=null&&(!Number.isFinite(graceMinutes)||graceMinutes<15||graceMinutes>60))throw new Error('invalid_reconnect_grace_minutes');
+  const payload={nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION};
+  if(hours!=null)payload.requestedLeaseMs=Math.round(hours*60*60*1000);
+  if(graceMinutes!=null)payload.reconnectGraceMs=Math.round(graceMinutes*60*1000);
+  const response=await channelRequest(state,hub,'connect',payload),connection=response.connection;
+  markCloudState(state,{desiredConnected:true,state:'connected',connectionId:connection?.connectionId||null,connectedAt:connection?.connectedAt||Date.now(),hardExpiresAt:connection?.hardExpiresAt||null,reconnectGraceMs:connection?.reconnectGraceMs||null,plan:connection?.plan||null,lastError:null});
+  console.log(JSON.stringify({ok:true,cloud:'connected',deviceId:state.enrollment.deviceId,connection},null,2));
+}
+async function disconnectCloud(args){
+  const hub=args.hub||DEFAULT_HUB,state=readState();
+  if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
+  let connection=null,error=null;
+  try{const response=await channelRequest(state,hub,'disconnect',{reason:String(args.reason||'user_disconnect').slice(0,80)});connection=response.connection;}
+  catch(e){error=e;}
+  markCloudState(state,{desiredConnected:false,state:'dormant',connectionId:null,hardExpiresAt:null,lastDisconnectedAt:Date.now(),lastError:error?.message||null});
+  if(error)console.error(JSON.stringify({event:'device_disconnect_remote_ack_failed',deviceId:state.enrollment.deviceId,error:error.message,status:error.status||null}));
+  console.log(JSON.stringify({ok:true,cloud:'dormant',deviceId:state.enrollment.deviceId,connection,remoteAck:!error},null,2));
+}
+async function setConnectionGrace(args){
+  const hub=args.hub||DEFAULT_HUB,state=readState();
+  if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
+  const minutes=Number(args.minutes||args['grace-minutes']);
+  if(!Number.isFinite(minutes)||minutes<15||minutes>60)throw new Error('invalid_reconnect_grace_minutes');
+  const response=await channelRequest(state,hub,'grace',{reconnectGraceMs:Math.round(minutes*60*1000)});
+  markCloudState(state,{reconnectGraceMs:response.connection?.reconnectGraceMs||Math.round(minutes*60*1000)});
+  console.log(JSON.stringify({ok:true,deviceId:state.enrollment.deviceId,connection:response.connection},null,2));
+}
+async function daemon(args){
+  const hub=args.hub||DEFAULT_HUB;let state=readState();
+  if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
+  state.enrollment.nodeId=state.enrollment.nodeId||state.enrollment.deviceId;
+  state.effectiveCapabilities=effectiveCapabilities(state.enrollment.approvedCapabilities,state.policy?.deniedCapabilities);
+  const sessionCeiling=Math.max(1,Math.min(Number(process.env.OPERATOR_AGENT_MAX_SESSIONS)||2,100));
+  const waitMs=Math.max(1000,Math.min(Number(process.env.OPERATOR_AGENT_CHANNEL_WAIT_MS)||8000,15000));
+  const dormantPollMs=Math.max(1000,Math.min(Number(process.env.OPERATOR_AGENT_DORMANT_CHECK_MS)||2000,30000));
+  let stopped=false,wake=null,failures=0;
+  const stop=()=>{stopped=true;if(wake)wake();};process.on('SIGTERM',stop);process.on('SIGINT',stop);
+  const wait=ms=>new Promise(resolve=>{const timer=setTimeout(()=>{wake=null;resolve();},ms);wake=()=>{clearTimeout(timer);wake=null;resolve();};});
+  console.log(JSON.stringify({event:'device_agent_started',mode:'always-alive-service',platformAdapter:PLATFORM_ADAPTER.id,deviceId:state.enrollment.deviceId,nodeId:state.enrollment.nodeId,sessionCeiling,waitMs,dormantPollMs}));
+  while(!stopped){
+    const latest=readState();if(latest?.enrollment?.deviceId===state.enrollment.deviceId)state=latest;
+    if(!cloudDesired(state)){await wait(dormantPollMs);continue;}
+    try{
+      const payload={nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling,draining:Boolean(state.routing?.draining),capabilities:effectiveCapabilities(state.enrollment.approvedCapabilities,state.policy?.deniedCapabilities),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),waitMs};
+      const response=await channelRequest(state,hub,'poll',payload);applyPolicyEnvelope(state,response.policy);failures=0;
+      state.cloud={...(state.cloud||{}),desiredConnected:true,state:'connected',lastServerActivityAt:Date.now(),lastError:null};writeState(state);
+      const command=response.channel?.command;
+      if(command){
+        const result=await executeCommand(state,command);let delivered=false,resultFailures=0;
+        while(!stopped&&!delivered){
+          try{const ack=await channelRequest(state,hub,'result',result);delivered=Boolean(ack.accepted);resultFailures=0;}
+          catch(error){
+            if(['device_connection_required','device_connection_expired'].includes(error.message)){markCloudState(state,{desiredConnected:false,state:'dormant',hardExpiresAt:null,lastError:error.message});break;}
+            resultFailures++;console.error(JSON.stringify({event:'device_result_delivery_failed',deviceId:state.enrollment.deviceId,commandId:command.commandId,error:error.message,status:error.status||null,failures:resultFailures}));await wait(Math.min(1000*(2**Math.min(resultFailures,5)),30000));
+          }
+        }
+      }
+    }catch(error){
+      if(['device_connection_required','device_connection_expired'].includes(error.message)){
+        failures=0;markCloudState(state,{desiredConnected:false,state:'dormant',connectionId:null,hardExpiresAt:null,lastError:error.message,lastDisconnectedAt:Date.now()});
+        console.error(JSON.stringify({event:'device_cloud_dormant',deviceId:state.enrollment.deviceId,reason:error.message,status:error.status||null}));
+        continue;
+      }
+      failures++;console.error(JSON.stringify({event:'device_channel_failed',deviceId:state.enrollment.deviceId,error:error.message,status:error.status||null,failures}));if(!stopped)await wait(Math.min(1000*(2**Math.min(failures,5)),30000));
+    }
+  }
+  writeState(state);console.log(JSON.stringify({event:'device_agent_stopped',deviceId:state.enrollment.deviceId,nodeId:state.enrollment.nodeId}));
+}
 async function setDrain(args,draining){const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');state.routing={...(state.routing||{}),draining:Boolean(draining),changedAt:Date.now()};writeState(state);const payload={nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling:Math.max(1,Math.min(Number(process.env.OPERATOR_AGENT_MAX_SESSIONS)||2,100)),draining:Boolean(draining),capabilities:effectiveCapabilities(state.enrollment.approvedCapabilities,state.policy?.deniedCapabilities),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),waitMs:0};const response=await channelRequest(state,args.hub||DEFAULT_HUB,'poll',payload);applyPolicyEnvelope(state,response.policy);console.log(JSON.stringify({ok:true,deviceId:state.enrollment.deviceId,nodeId:payload.nodeId,draining:Boolean(draining),channelState:response.channel?.node?.state||null},null,2));}
-async function status(){const state=readState();if(!state){console.log(JSON.stringify({ok:true,version:VERSION,platformAdapter:PLATFORM_ADAPTER.id,enrolled:false,stateFile:STATE_FILE},null,2));return;}console.log(JSON.stringify({ok:true,version:VERSION,platformAdapter:PLATFORM_ADAPTER.id,enrolled:Boolean(state.enrollment?.deviceId),deviceId:state.enrollment?.deviceId||null,nodeId:state.enrollment?.nodeId||state.enrollment?.deviceId||null,accountId:state.enrollment?.accountId||null,pendingEnrollmentId:state.pendingEnrollment?.enrollmentId||null,publicKeySha256:state.identity?.publicKeySha256||null,policyProfile:state.enrollment?.policyProfile||state.pendingEnrollment?.requestedPolicy||null,policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),grantableCapabilities:state.enrollment?.grantableCapabilities||state.enrollment?.approvedCapabilities||[],approvedCapabilities:state.enrollment?.approvedCapabilities||[],deniedCapabilities:state.policy?.deniedCapabilities||[],effectiveCapabilities:state.effectiveCapabilities||[],draining:Boolean(state.routing?.draining),lastHeartbeatAt:state.lastHeartbeatAt||null,stateFile:STATE_FILE,commandDir:COMMAND_DIR,privateKeyStoredLocally:Boolean(state.identity?.privateKey)},null,2));}
+async function status(){const state=readState();if(!state){console.log(JSON.stringify({ok:true,version:VERSION,platformAdapter:PLATFORM_ADAPTER.id,enrolled:false,stateFile:STATE_FILE},null,2));return;}console.log(JSON.stringify({ok:true,version:VERSION,platformAdapter:PLATFORM_ADAPTER.id,enrolled:Boolean(state.enrollment?.deviceId),deviceId:state.enrollment?.deviceId||null,nodeId:state.enrollment?.nodeId||state.enrollment?.deviceId||null,accountId:state.enrollment?.accountId||null,pendingEnrollmentId:state.pendingEnrollment?.enrollmentId||null,publicKeySha256:state.identity?.publicKeySha256||null,policyProfile:state.enrollment?.policyProfile||state.pendingEnrollment?.requestedPolicy||null,policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),grantableCapabilities:state.enrollment?.grantableCapabilities||state.enrollment?.approvedCapabilities||[],approvedCapabilities:state.enrollment?.approvedCapabilities||[],deniedCapabilities:state.policy?.deniedCapabilities||[],effectiveCapabilities:state.effectiveCapabilities||[],draining:Boolean(state.routing?.draining),cloudDesiredConnected:cloudDesired(state),cloudState:state.cloud?.state||(cloudDesired(state)?'legacy-connected':'dormant'),connectionId:state.cloud?.connectionId||null,hardExpiresAt:state.cloud?.hardExpiresAt||null,reconnectGraceMs:state.cloud?.reconnectGraceMs||null,connectionPlan:state.cloud?.plan||null,lastCloudError:state.cloud?.lastError||null,lastHeartbeatAt:state.lastHeartbeatAt||null,stateFile:STATE_FILE,commandDir:COMMAND_DIR,privateKeyStoredLocally:Boolean(state.identity?.privateKey)},null,2));}
 const args=parseArgs(process.argv.slice(2)),command=args._[0]||'status';
-try{if(command==='login')await login(args);else if(command==='poll'){const state=readState();if(!state)throw new Error('no_device_state');console.log(JSON.stringify(await finishEnrollment(state,args.base||DEFAULT_BASE,{wait:false}),null,2));}else if(command==='heartbeat'){const state=readState();if(!state)throw new Error('no_device_state');console.log(JSON.stringify(await heartbeat(state,args.base||DEFAULT_BASE),null,2));}else if(command==='daemon')await daemon(args);else if(command==='drain')await setDrain(args,true);else if(command==='undrain')await setDrain(args,false);else if(command==='status')await status();else throw new Error(`unknown_command:${command}`);}catch(error){console.error(JSON.stringify({ok:false,error:error.message,status:error.status||null},null,2));process.exitCode=1;}
+try{if(command==='login')await login(args);else if(command==='poll'){const state=readState();if(!state)throw new Error('no_device_state');console.log(JSON.stringify(await finishEnrollment(state,args.base||DEFAULT_BASE,{wait:false}),null,2));}else if(command==='heartbeat'){const state=readState();if(!state)throw new Error('no_device_state');console.log(JSON.stringify(await heartbeat(state,args.base||DEFAULT_BASE),null,2));}else if(command==='daemon')await daemon(args);else if(command==='connect')await connectCloud(args);else if(command==='disconnect')await disconnectCloud(args);else if(command==='set-grace')await setConnectionGrace(args);else if(command==='drain')await setDrain(args,true);else if(command==='undrain')await setDrain(args,false);else if(command==='status')await status();else throw new Error(`unknown_command:${command}`);}catch(error){console.error(JSON.stringify({ok:false,error:error.message,status:error.status||null},null,2));process.exitCode=1;}

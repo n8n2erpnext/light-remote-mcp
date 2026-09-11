@@ -146,3 +146,14 @@ P1 authority is implemented behind `OPERATOR_CONNECTION_LEASE_ENFORCE`. `DeviceC
 Migration safety: enforcement remains OFF by default until P2 teaches the always-alive client service to enter a truly dormant state without cloud polling and to reconnect only from Local Wall/Desktop App. This prevents the current ARM/AMD/Windows reference fleet from being stranded by a half-migrated protocol.
 
 Regression checkpoint: 44 standalone selftests pass, including new device-connection registry and enforced endpoint tests. Root and Gateway production dependency audits report zero vulnerabilities.
+
+## 15. Implementation checkpoint — P2 client dormant lifecycle
+P0/P1 landed in commit `853811f`. P2 now implements the always-alive local service / finite-cloud-connection split without enabling hard-lease enforcement by default on the existing fleet.
+
+- Linux/device agent stays alive in `daemon` while cloud state is `dormant`; dormant mode performs no cloud poll or heartbeat loop.
+- Signed device operations now include `connect`, `disconnect` and reconnect-grace mutation.
+- Hard-expiry/connection-required responses move the agent to dormant instead of creating a reconnect storm.
+- Windows supervision separates local service lifetime from cloud desired state; Connect/Disconnect no longer means start/kill the local daemon.
+- Device disconnect cascades terminal close to all Agent sessions for that device only.
+- Enforcement remains behind `OPERATOR_CONNECTION_LEASE_ENFORCE` until installed clients and Wall controls complete migration.
+- P2 local acceptance: 46/46 selftests, root/gateway audit 0, diff check clean; Windows native compilation remains a CI gate after push.

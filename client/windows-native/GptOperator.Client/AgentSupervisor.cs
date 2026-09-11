@@ -11,7 +11,12 @@ internal sealed record AgentStatus(
     string? AccountId,
     string? Version,
     string? PlatformAdapter,
-    string[] EffectiveCapabilities);
+    string[] EffectiveCapabilities,
+    bool CloudDesiredConnected,
+    string? CloudState,
+    long? HardExpiresAt,
+    long? ReconnectGraceMs,
+    string? ConnectionPlan);
 
 internal sealed record EnrollmentInfo(string ActivationUrl, string DeviceCode, int ExpiresInSeconds);
 
@@ -24,8 +29,9 @@ internal sealed class AgentSupervisor : IDisposable
     private CancellationTokenSource? _restartCts;
     private int _restartFailures;
     private bool _disposed;
+    private bool _serviceDesired = true;
 
-    public bool DesiredConnected { get; private set; } = true;
+    public bool DesiredConnected { get; private set; }
     public bool IsRunning { get { lock (_gate) return _daemon is { HasExited: false }; } }
     public string? LastError { get; private set; }
     public event Action? Changed;
@@ -40,7 +46,9 @@ internal sealed class AgentSupervisor : IDisposable
         return new AgentStatus(
             root.TryGetProperty("enrolled", out var e) && e.GetBoolean(),
             Text(root, "deviceId"), Text(root, "nodeId"), Text(root, "accountId"),
-            Text(root, "version"), Text(root, "platformAdapter"), caps);
+            Text(root, "version"), Text(root, "platformAdapter"), caps,
+            root.TryGetProperty("cloudDesiredConnected", out var cd) && cd.ValueKind == JsonValueKind.True,
+            Text(root, "cloudState"), Long(root, "hardExpiresAt"), Long(root, "reconnectGraceMs"), Text(root, "connectionPlan"));
     }
 
     public async Task<EnrollmentInfo> BeginEnrollmentAsync(CancellationToken cancellationToken = default)
@@ -62,17 +70,38 @@ internal sealed class AgentSupervisor : IDisposable
         using var doc = JsonDocument.Parse(result.Stdout);
         return doc.RootElement.TryGetProperty("state", out var state) && state.GetString() == "approved";
     }
-    public async Task StartAsync()
+    public async Task EnsureServiceAsync()
     {
-        DesiredConnected = true;
+        _serviceDesired = true;
         var status = await ReadStatusAsync();
-        if (!status.Enrolled) { Changed?.Invoke(); return; }
-        StartDaemon();
+        DesiredConnected = status.CloudDesiredConnected;
+        if (status.Enrolled) StartDaemon();
+        Changed?.Invoke();
     }
 
-    public Task StopAsync()
+    public async Task StartAsync()
     {
+        _serviceDesired = true;
+        var status = await ReadStatusAsync();
+        if (!status.Enrolled) { DesiredConnected = false; Changed?.Invoke(); return; }
+        StartDaemon();
+        var result = await RunAgentAsync("connect", CancellationToken.None, allowFailure: true);
+        if (result.ExitCode != 0) throw new InvalidOperationException(string.IsNullOrWhiteSpace(result.Stderr) ? "Could not create Light Remote cloud connection." : result.Stderr.Trim());
+        DesiredConnected = true;
+        Changed?.Invoke();
+    }
+
+    public async Task StopAsync()
+    {
+        var status = await ReadStatusAsync();
+        if (status.Enrolled) await RunAgentAsync("disconnect", CancellationToken.None, allowFailure: true);
         DesiredConnected = false;
+        Changed?.Invoke();
+    }
+
+    public Task StopServiceAsync()
+    {
+        _serviceDesired = false;
         _restartCts?.Cancel();
         lock (_gate)
         {
@@ -89,17 +118,17 @@ internal sealed class AgentSupervisor : IDisposable
 
     public async Task RestartAsync()
     {
-        await StopAsync();
+        await StopServiceAsync();
         await Task.Delay(400);
-        DesiredConnected = true;
-        await StartAsync();
+        _serviceDesired = true;
+        await EnsureServiceAsync();
     }
 
     private void StartDaemon()
     {
         lock (_gate)
         {
-            if (_disposed || !DesiredConnected || _daemon is { HasExited: false }) return;
+            if (_disposed || !_serviceDesired || _daemon is { HasExited: false }) return;
             var psi = BaseStartInfo();
             psi.ArgumentList.Add(AppPaths.AgentScript);
             psi.ArgumentList.Add("daemon");
@@ -124,7 +153,7 @@ internal sealed class AgentSupervisor : IDisposable
         }
         process.Dispose();
         Changed?.Invoke();
-        if (!DesiredConnected || _disposed) return;
+        if (!_serviceDesired || _disposed) return;
         _restartFailures++;
         var delay = TimeSpan.FromSeconds(Math.Min(30, Math.Pow(2, Math.Min(_restartFailures, 5))));
         _restartCts?.Cancel();
@@ -132,7 +161,7 @@ internal sealed class AgentSupervisor : IDisposable
         try
         {
             await Task.Delay(delay, _restartCts.Token);
-            if (DesiredConnected && !_disposed) StartDaemon();
+            if (_serviceDesired && !_disposed) StartDaemon();
         }
         catch (OperationCanceledException) { }
     }
@@ -171,6 +200,9 @@ internal sealed class AgentSupervisor : IDisposable
 
     private static string? Text(JsonElement root, string name)
         => root.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
+
+    private static long? Long(JsonElement root, string name)
+        => root.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.Number && value.TryGetInt64(out var result) ? result : null;
 
     private static string LineValue(string text, string prefix)
         => text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
@@ -220,7 +252,7 @@ internal sealed class AgentSupervisor : IDisposable
 
     public void Dispose()
     {
-        _disposed = true; DesiredConnected = false; _restartCts?.Cancel();
+        _disposed = true; _serviceDesired = false; DesiredConnected = false; _restartCts?.Cancel();
         lock (_gate) { try { if (_daemon is { HasExited: false }) _daemon.Kill(true); } catch { } _daemon?.Dispose(); _daemon = null; }
         _restartCts?.Dispose();
     }

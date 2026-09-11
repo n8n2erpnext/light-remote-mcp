@@ -536,6 +536,23 @@ const server = http.createServer(async (req, res) => {
       const device = devices.enroll({ accountId:binding.accountId, deviceId:binding.deviceId, nodeId:binding.deviceId, displayName:binding.displayName, platform:binding.platform, architecture:binding.architecture, agentVersion:binding.agentVersion, publicIdentityKey:binding.publicIdentityKey, capabilities:binding.approvedCapabilities, policyProfile:binding.policyProfile });
       return sendJson(res, 200, { ok:true, approval, device });
     }
+    if (req.method === 'POST' && url.pathname === '/v1/device-channel/connect') {
+      const body=await readJson(req), ctx=verifiedChannelContext(body,'connect');
+      const connection=connections.connect({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,plan:ACCOUNT_PLAN,requestedLeaseMs:ctx.payload.requestedLeaseMs,reconnectGraceMs:ctx.payload.reconnectGraceMs});
+      devices.heartbeat(ctx.device.deviceId,{agentVersion:ctx.payload.agentVersion});
+      return sendJson(res,200,{ok:true,connection});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/device-channel/disconnect') {
+      const body=await readJson(req), ctx=verifiedChannelContext(body,'disconnect');
+      const connection=connections.disconnect(ctx.device.deviceId,ctx.payload.reason||'client_disconnect');
+      sessions.closeByDevice(ctx.device.deviceId,connection.closeReason||'device_connection_closed',{force:true});
+      try { devices.markOffline(ctx.device.deviceId,connection.closeReason||'client_disconnect'); } catch {}
+      return sendJson(res,200,{ok:true,connection});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/device-channel/grace') {
+      const body=await readJson(req), ctx=verifiedChannelContext(body,'grace');
+      return sendJson(res,200,{ok:true,connection:connections.setGrace(ctx.device.deviceId,ctx.payload.reconnectGraceMs)});
+    }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/poll') {
       const body=await readJson(req), ctx=verifiedChannelContext(body,'poll');
       if (ctx.payload.nodeId!=null && String(ctx.payload.nodeId)!==ctx.device.nodeId) throw new EnrollmentError('device_node_mismatch',409);

@@ -218,7 +218,7 @@ internal sealed class MainForm : Form
         var menu = new ContextMenuStrip();
         UiTheme.StyleMenu(menu);
         var open = new ToolStripMenuItem("Open Light Remote MCP", null, (_, _) => ShowWindow());
-        _trayConnect.Click += async (_, _) => await SetConnectionAsync(!_agent.IsRunning);
+        _trayConnect.Click += async (_, _) => await SetConnectionAsync(!(_lastStatus?.CloudDesiredConnected == true && string.Equals(_lastStatus.CloudState, "connected", StringComparison.OrdinalIgnoreCase)));
         _trayUpdate.Click += async (_, _) => await CheckUpdateAsync(interactive: true);
         var logs = new ToolStripMenuItem("Open log folder", null, (_, _) => OpenLogs());
         var exit = new ToolStripMenuItem("Exit", null, (_, _) => ExitApplication());
@@ -231,7 +231,7 @@ internal sealed class MainForm : Form
         AppPaths.EnsureDirectories();
         EnsureAutostart();
         await RefreshAsync();
-        if (_lastStatus?.Enrolled == true) await _agent.StartAsync();
+        if (_lastStatus?.Enrolled == true) await _agent.EnsureServiceAsync();
         await RefreshAsync();
         _refreshTimer.Start();
         _ = CheckForUpdateLaterAsync();
@@ -257,8 +257,8 @@ internal sealed class MainForm : Form
         try
         {
             _lastStatus = await _agent.ReadStatusAsync();
-            var connected = _lastStatus.Enrolled && _agent.IsRunning;
-            var stateText = connected ? "Connected" : _lastStatus.Enrolled ? "Offline" : "Not enrolled";
+            var connected = _lastStatus.Enrolled && _lastStatus.CloudDesiredConnected && string.Equals(_lastStatus.CloudState, "connected", StringComparison.OrdinalIgnoreCase);
+            var stateText = connected ? "Connected" : _lastStatus.Enrolled ? (_agent.IsRunning ? "Dormant" : "Service stopped") : "Not enrolled";
             _status.Text = stateText;
             _status.ForeColor = connected ? UiTheme.Success : _lastStatus.Enrolled ? UiTheme.Warning : UiTheme.Muted;
             _machine.Text = Environment.MachineName.ToLowerInvariant();
@@ -271,8 +271,8 @@ internal sealed class MainForm : Form
             _enroll.Visible = !_lastStatus.Enrolled;
             if (_lastStatus.Enrolled) _enrollment.Text = "";
             _summary.Text = connected
-                ? "Outbound-only channel • signed device identity • starts with Windows"
-                : _lastStatus.Enrolled ? "Device identity is ready. Connect when you want remote access." : "Enroll once to bind this Windows user to your remote MCP account.";
+                ? $"Background service running • finite cloud lease{(_lastStatus.HardExpiresAt is long exp ? $" • expires {DateTimeOffset.FromUnixTimeMilliseconds(exp):g}" : "")}"
+                : _lastStatus.Enrolled ? "Background service is alive locally. Cloud connection is dormant until you press Connect." : "Enroll once to bind this Windows device to your Light Remote account.";
             _deviceIdValue.Text = _lastStatus.DeviceId ?? "Not enrolled";
             _platformValue.Text = $"{_lastStatus.PlatformAdapter ?? "win32"}  •  {System.Runtime.InteropServices.RuntimeInformation.OSArchitecture}";
             _versionValue.Text = $"Client {ClientVersion.Display}  •  Agent {_lastStatus.Version ?? "unknown"}";
@@ -324,8 +324,8 @@ internal sealed class MainForm : Form
         _connectionSwitch.Enabled = false;
         try
         {
-            if (shouldConnect && !_agent.IsRunning) await _agent.StartAsync();
-            else if (!shouldConnect && _agent.IsRunning) await _agent.StopAsync();
+            if (shouldConnect) await _agent.StartAsync();
+            else await _agent.StopAsync();
         }
         finally
         {
@@ -366,6 +366,7 @@ internal sealed class MainForm : Form
         using var dialog = new ConnectionSettingsDialog(ConnectionConfig.Load(), _lastStatus?.Enrolled == true);
         if (dialog.ShowDialog(this) != DialogResult.OK) return;
         await _agent.StopAsync();
+        await _agent.StopServiceAsync();
         if (_lastStatus?.Enrolled == true)
         {
             MessageBox.Show(this,
@@ -397,7 +398,7 @@ internal sealed class MainForm : Form
             _menuUpdate.Enabled = false;
             _menuUpdate.Text = "Downloading update…";
             var installer = await _updates.DownloadAndVerifyAsync(update);
-            await _agent.StopAsync();
+            await _agent.StopServiceAsync();
             _updates.LaunchInstaller(installer, update);
             ExitApplication();
         }

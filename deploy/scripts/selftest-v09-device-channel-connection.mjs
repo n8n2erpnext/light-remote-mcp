@@ -1,0 +1,40 @@
+import fs from 'node:fs';
+import http from 'node:http';
+import os from 'node:os';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import { spawn } from 'node:child_process';
+import { createOperatorCryptoFixture } from './selftest-crypto-fixture.mjs';
+import { deviceChannelMessage } from '../../lib/device-proof.mjs';
+
+const root=new URL('../..',import.meta.url).pathname,dir=fs.mkdtempSync(path.join(os.tmpdir(),'lr-channel-lease-'));
+const socket=path.join(dir,'operator.sock'),logDir=path.join(dir,'log'),stateDir=path.join(dir,'state');fs.mkdirSync(logDir,{recursive:true});fs.mkdirSync(stateDir,{recursive:true});
+const fixture=createOperatorCryptoFixture(stateDir);
+const child=spawn(process.execPath,[`${root}/operator-host/executor.mjs`],{cwd:root,env:{...process.env,OPERATOR_SOCKET:socket,OPERATOR_LOG_DIR:logDir,OPERATOR_STATE_DIR:stateDir,OPERATOR_KEY_FILE:fixture.privateFile,OPERATOR_CONNECTION_LEASE_ENFORCE:'1',OPERATOR_ACCOUNT_PLAN:'free'},stdio:['ignore','pipe','pipe']});
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));for(let i=0;i<100&&!fs.existsSync(socket);i++)await sleep(40);if(!fs.existsSync(socket))throw new Error('executor_not_ready');
+function request(method,target,body){return new Promise((resolve,reject)=>{const payload=body==null?null:Buffer.from(JSON.stringify(body));const req=http.request({socketPath:socket,method,path:target,headers:payload?{'content-type':'application/json','content-length':payload.length}:{}},res=>{let text='';res.on('data',c=>text+=c);res.on('end',()=>{let json;try{json=JSON.parse(text)}catch{json={raw:text}}resolve({status:res.statusCode,json});});});req.on('error',reject);if(payload)req.write(payload);req.end();});}
+const {publicKey,privateKey}=crypto.generateKeyPairSync('ed25519'),publicIdentityKey=publicKey.export({format:'der',type:'spki'}).toString('base64');
+const begun=await request('POST','/v1/enrollments/begin',{publicIdentityKey,displayName:'Lease Leaf',platform:'linux',architecture:'x64',agentVersion:'0.9-test',fingerprintSummary:'lease-test',capabilities:['filesystem'],policyProfile:'test'});
+const enrollment=begun.json.enrollment,approved=await request('POST','/v1/enrollments/approve',{code:enrollment.deviceCode,accountId:'self-hosted-local',approvedCapabilities:['filesystem'],policyProfile:'test'});
+const deviceId=approved.json.approval.deviceId,nodeId=deviceId;
+function signed(action,payload){const timestamp=Date.now(),nonce=crypto.randomBytes(18).toString('base64url'),signature=crypto.sign(null,Buffer.from(deviceChannelMessage({deviceId,action,timestamp,nonce,payload})),privateKey).toString('base64url');return{deviceId,timestamp,nonce,signature,payload};}
+const hello={nodeId,agentVersion:'0.9-test',sessionCeiling:2,draining:false,capabilities:['filesystem'],policyRevision:1,waitMs:0};
+let r=await request('POST','/v1/device-channel/poll',signed('poll',hello));
+if(r.status!==409||r.json.error!=='device_connection_required') throw new Error('poll_not_gated_before_connect');
+r=await request('POST','/v1/device-channel/connect',signed('connect',{nodeId,agentVersion:'0.9-test',requestedLeaseMs:2*60*60*1000,reconnectGraceMs:30*60*1000}));
+if(r.status!==200||r.json.connection?.state!=='connected'||r.json.connection?.plan!=='free') throw new Error(`signed_connect_failed:${r.status}:${r.json.error}`);
+r=await request('POST','/v1/device-channel/poll',signed('poll',hello));
+if(r.status!==200||r.json.channel?.node?.state!=='online') throw new Error(`poll_after_connect_failed:${r.status}:${r.json.error}`);
+r=await request('POST','/v1/device-channel/grace',signed('grace',{reconnectGraceMs:45*60*1000}));
+if(r.status!==200||r.json.connection?.reconnectGraceMs!==45*60*1000) throw new Error('signed_grace_failed');
+const aid='agent-channel-lease-test-aaaaaaaa',opened=await request('POST','/v1/sessions/open',{agentId:aid,openId:'open-channel-lease-test-aaaa',nodeId});
+if(opened.status!==200) throw new Error(`session_open_failed:${opened.status}:${opened.json.error}`);
+const sid=opened.json.session.sessionId;
+r=await request('POST','/v1/device-channel/disconnect',signed('disconnect',{reason:'selftest_disconnect'}));
+if(r.status!==200||r.json.connection?.state!=='dormant') throw new Error('signed_disconnect_failed');
+r=await request('GET',`/v1/sessions/${sid}?agentId=${aid}`);
+if(r.status!==200||r.json.session?.state!=='closed') throw new Error('disconnect_session_cascade_failed');
+r=await request('POST','/v1/device-channel/poll',signed('poll',hello));
+if(r.status!==409||r.json.error!=='device_connection_required') throw new Error('poll_not_gated_after_disconnect');
+console.log(JSON.stringify({ok:true,signedConnect:true,signedDisconnect:true,graceMinutes:45,sessionCascade:true},null,2));
+child.kill('SIGTERM');await sleep(100);fs.rmSync(dir,{recursive:true,force:true});
