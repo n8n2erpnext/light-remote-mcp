@@ -16,6 +16,8 @@ expect(text('gateway/package.json').includes('"license": "Apache-2.0"'),'gateway
 expect(text('deploy/server-linux/install.sh').includes('--wall-bind'),'server_wall_bind_option_missing');
 expect(text('deploy/server-linux/install.sh').includes('OPERATOR_PUBLIC_KEYS_JSON value'),'server_public_key_handoff_missing');
 expect(text('.github/workflows/server-linux-build.yml').includes('arch: [x64, arm64]'),'server_arch_matrix_missing');
+expect(text('.github/workflows/linux-client-build.yml').includes('Light-Remote-MCP-Client-Linux-${{ matrix.arch }}-0.9.0-beta.1.tar.gz'),'linux_client_artifact_upload_name_mismatch');
+expect(!text('.github/workflows/linux-client-build.yml').includes('GPT-Operator-Agent-Linux-${{ matrix.arch }}-dev.tar.gz'),'stale_linux_client_artifact_name_present');
 expect(text('.github/workflows/vercel-bridge-package.yml').includes('vercel-bridge-package-contract=PASS'),'vercel_bundle_ci_missing');
 expect(text('lib/operator-crypto.js').includes('OPERATOR_PUBLIC_KEYS_JSON'),'vercel_public_key_env_override_missing');
 expect(text('README.md').includes('## Quick start — self-hosted beta'),'readme_beta_quickstart_missing');
