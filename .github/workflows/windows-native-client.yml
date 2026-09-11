@@ -194,7 +194,8 @@ jobs:
           $psi.ArgumentList.Add('--apply-update')
           $psi.ArgumentList.Add($badInstaller)
           $psi.ArgumentList.Add($env:WINDOWS_INSTALL_DIR)
-          $psi.ArgumentList.Add('0.9.0-beta.1')
+          $currentVersion = (Get-Content VERSION -Raw).Trim()
+          $psi.ArgumentList.Add($currentVersion)
           $psi.ArgumentList.Add('0')
           $p = [System.Diagnostics.Process]::Start($psi)
           if (-not $p.WaitForExit(180000)) {
@@ -205,7 +206,8 @@ jobs:
           if (Test-Path $updateLog) { Get-Content $updateLog -Raw | Write-Host }
           if ($p.ExitCode -ne 0) { throw "rollback helper failed exit=$($p.ExitCode)" }
           $updateText = Get-Content $updateLog -Raw
-          if ($updateText -notmatch 'apply_start current=0\.9\.0-dev') { throw 'rollback helper argv were not preserved' }
+          $expected = 'apply_start current=' + [regex]::Escape($currentVersion)
+          if ($updateText -notmatch $expected) { throw 'rollback helper argv were not preserved' }
           if ($updateText -notmatch 'rollback_success') { throw 'rollback success marker missing' }
           if (-not (Test-Path $env:WINDOWS_INSTALLED_EXE)) { throw 'installed client missing after rollback' }
           Write-Host 'windows-native-update-rollback=PASS'

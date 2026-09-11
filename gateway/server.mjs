@@ -9,9 +9,11 @@ import { dashboardHtml } from './dashboard.mjs';
 import { enrollmentApprovalHtml } from './enrollment-page.mjs';
 import { devicePolicyHtml } from './device-policy-page.mjs';
 import { createWallAuth } from './wall-auth.mjs';
-import { authenticateVercel, isToolCall, requireVercelForToolCall, securityInfo } from './security.mjs';
+import { authenticateVercel, isToolCall, securityInfo } from './security.mjs';
 import { proxyOperatorJson, proxyOperatorSse } from './operator-proxy.mjs';
 import { rootNames, listWorkspace, readWorkspaceText, searchWorkspace, gitStatus, gitDiff } from './workspace.mjs';
+import { registerRemoteTools } from './remote-tools.mjs';
+import { registerMcpOAuth, mcpAuthChallenge } from './oauth.mjs';
 
 const PORT = Number(process.env.PORT || 8080);
 const WALL_PORT = Number(process.env.WALL_PORT || 8081);
@@ -119,12 +121,13 @@ function getServer(identity) {
   }, tracked('git_diff', identity, async ({ root, repoPath = '.', path = '', cached = false }) =>
     gitDiff(root, repoPath, path, cached)));
 
+  registerRemoteTools(server, tracked, identity);
   return server;
 }
 const DEFAULT_ALLOWED_HOSTS = [
   'mcp.dashboard.thaiduy.store',
   'lightbi-mcp-poc', 'lightbi-mcp-poc:8080',
-  '100.94.184.141', '100.94.184.141:5488', 'localhost:8080', '127.0.0.1:8080'
+  '100.94.184.141', '100.94.184.141:5488', 'localhost', 'localhost:8080', '127.0.0.1', '127.0.0.1:8080'
 ];
 const EXTRA_ALLOWED_HOSTS = String(process.env.MCP_ALLOWED_HOSTS || '').split(',').map(value => value.trim()).filter(Boolean);
 const app = createMcpExpressApp({
@@ -152,6 +155,7 @@ function softRateLimit(req, res, next) {
   next();
 }
 const wallAuth = createWallAuth();
+registerMcpOAuth(app, wallAuth);
 app.get('/healthz', (_req, res) => res.json({
   ok: true, service: 'thaiduy-vps-arm-mcp', version: VERSION, mode: 'read-plus-operator', security: { ...securityInfo(), bridgeSession:'required-for-tool-and-operator-calls', bridgeSessionTtlSeconds:wallAuth.info().bridgeSessionTtlSeconds }
 }));
@@ -165,12 +169,24 @@ async function requireOperatorIdentity(req, res, next) {
   catch { return res.status(401).json({ ok: false, error: 'unauthorized_operator_call' }); }
   return wallAuth.requireBridgeSession(req, res, next);
 }
-function requireBridgeForToolCall(req, res, next) {
-  if (!isToolCall(req)) return next();
-  const identity = wallAuth.bridgeIdentity(req);
-  if (identity) { req.bridgeIdentity = identity; return next(); }
-  res.set('Cache-Control', 'no-store');
-  return res.status(401).json({ jsonrpc:'2.0', error:{ code:-32002, message:'Bridge session required' }, id:req.body?.id ?? null });
+async function requireMcpIdentity(req, res, next) {
+  const auth=String(req.get('authorization') || '');
+  const token=auth.startsWith('Bearer ') ? auth.slice(7).trim() : '';
+  const owner=token ? wallAuth.verifyBridgeToken(token) : null;
+  if(owner) {
+    req.bridgeIdentity=owner;
+    req.mcpIdentity={ project:'light-remote-oauth', subject:owner.username, environment:'owner', authType:'oauth' };
+    return next();
+  }
+  try {
+    req.mcpIdentity=await authenticateVercel(req);
+    if(!isToolCall(req)) return next();
+    const bridge=wallAuth.bridgeIdentity(req);
+    if(bridge) { req.bridgeIdentity=bridge; return next(); }
+  } catch {}
+  res.set('Cache-Control','no-store');
+  mcpAuthChallenge(res);
+  return res.status(401).json({ jsonrpc:'2.0', error:{ code:-32001, message:'Light Remote authorization required' }, id:req.body?.id ?? null });
 }
 
 app.post('/device-channel/poll', softRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/poll', req.body || {}));
@@ -203,7 +219,7 @@ app.get('/operator/output/:id', softRateLimit, requireOperatorIdentity, (req, re
   return proxyOperatorJson(res, 'GET', `/v1/output/${encodeURIComponent(req.params.id)}${qs ? `?${qs}` : ''}`);
 });
 
-app.post('/mcp', softRateLimit, requireVercelForToolCall, requireBridgeForToolCall, async (req, res) => {
+app.post('/mcp', softRateLimit, requireMcpIdentity, async (req, res) => {
   const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
   const server = getServer(req.mcpIdentity);
   try {

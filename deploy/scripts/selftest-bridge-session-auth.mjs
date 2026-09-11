@@ -22,7 +22,8 @@ try {
   r=response(); next=false; fresh.requireApi(req({}, {cookie:`__Host-gpt_operator_wall=${token}`}),r,()=>{next=true;}); if(next||r.statusCode!==401) throw new Error('bridge_token_cross_use_accepted');
   const server=fs.readFileSync(new URL('../../gateway/server.mjs',import.meta.url),'utf8');
   if(!server.includes("app.post('/operator/auth/login', softRateLimit, requireVercelIdentity, wallAuth.bridgeLogin)")) throw new Error('bridge_login_not_vercel_oidc_gated');
-  if(!server.includes("app.post('/mcp', softRateLimit, requireVercelForToolCall, requireBridgeForToolCall")) throw new Error('mcp_bridge_session_guard_missing');
+  if(!server.includes("app.post('/mcp', softRateLimit, requireMcpIdentity")) throw new Error('mcp_identity_guard_missing');
+  if(!server.includes('async function requireMcpIdentity')||!server.includes('authenticateVercel(req)')||!server.includes('wallAuth.bridgeIdentity(req)')) throw new Error('mcp_vercel_bridge_guard_regressed');
   console.log('bridge-session-login=PASS');
   console.log('bridge-session-required=PASS');
   console.log('bridge-session-tamper=PASS');

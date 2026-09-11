@@ -75,3 +75,6 @@ The beta cut adds exact tagged packaging for Windows x64, Linux clients x64/arm6
 Windows gained a prerelease-aware SemVer comparator so `beta -> rc -> stable` ordering is correct. The self-test includes explicit beta/rc/stable ordering checks. Public self-host configuration for Vercel/Server endpoints is now supported by Linux installer flags and Windows **Server settings…**.
 
 The self-hosted Vercel release bundle deliberately ships an empty operator-key placeholder: a user must provide `OPERATOR_PUBLIC_KEYS_JSON` from their own Linux Server. This prevents an extracted public bundle from silently inheriting the reference deployment's operator public key.
+
+## 2026-09-11 continuity gate extension
+Because RDC is approaching end-of-availability, beta promotion now additionally requires Light Remote self-dogfood. The candidate includes native owner OAuth for the MCP endpoint and a policy-bounded remote execution tool catalog. Local live proof passes OAuth PKCE/refresh plus ARM/AMD/Windows execution through the real operator socket. This does not lower the Vercel OIDC/bridge-session boundary. Public endpoint + fresh-ChatGPT acceptance remains required before the beta tag.

@@ -24,6 +24,21 @@ function requestSocket(method, targetPath, body = null, headers = {}) {
   });
 }
 
+
+export async function callOperatorJson(method, targetPath, body = null) {
+  const upstream = await requestSocket(method, targetPath, body);
+  const text = upstream.body.toString('utf8');
+  let payload;
+  try { payload = JSON.parse(text); } catch { payload = { raw:text }; }
+  if (upstream.status < 200 || upstream.status >= 300) {
+    const error = new Error(payload?.error || `operator_http_${upstream.status}`);
+    error.status = upstream.status;
+    error.payload = payload;
+    throw error;
+  }
+  return payload;
+}
+
 export async function proxyOperatorJson(res, method, targetPath, body = null) {
   try {
     const upstream = await requestSocket(method, targetPath, body);

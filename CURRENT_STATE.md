@@ -1,6 +1,6 @@
 # Light Remote MCP — Current State
 
-Updated: 2026-09-10
+Updated: 2026-09-11
 Version: `v0.9.0-beta.1` source candidate on `codex/v0.9-device-policy-resume`; public beta promotion approved, production reference remains v0.8.0-dev until promotion completes
 
 ## Active path
@@ -45,6 +45,12 @@ Version: `v0.9.0-beta.1` source candidate on `codex/v0.9-device-policy-resume`; 
 - Beta updates use signed `channels/beta/client-update.json` + signature, not GitHub `releases/latest`; Windows now has prerelease-aware SemVer ordering.
 - Final pre-commit ARM regression is 37/37 PASS; root and gateway npm audits are 0 vulnerabilities; all beta workflow YAML parses cleanly.
 - ChatGPT write-capable custom MCP use remains plan/workspace dependent and the generally distributable account/OAuth Light Remote Plugin/App is post-beta work; beta does not reintroduce anonymous execution or a static shared bearer.
+
+## v0.9 Light Remote self-dogfood continuity
+- A native owner OAuth lane is now implemented for `/mcp`: Authorization Code + PKCE S256, protected-resource/authorization metadata, DCR, short-lived access tokens and refresh tokens. The existing Vercel OIDC + bridge-session lane remains intact.
+- The MCP tool surface now exposes the operating contract, device/fleet discovery, durable session open/read/resume/close, durable exec/job/output, session recovery, node drain, device policy and signed Linux update control. Generic exec remains policy/capability bounded on the target device.
+- `deploy/scripts/live-v09-oauth-dogfood.mjs` passes end-to-end locally against the live operator socket: OAuth discovery/DCR/PKCE/replay rejection/refresh -> MCP initialize/tools -> ARM exec/output/resume -> AMD Linux file/Git/Docker/systemd proof -> Windows file/Git/process/service/package-manager proof.
+- Full static regression after this work is 38/38 PASS; root and gateway audits remain zero known vulnerabilities. Production/public OAuth deployment proof is the next gate before beta promotion.
 
 ## v0.9 platform-adapter preview proof
 - Branch `codex/v0.9-device-policy-resume` is the active v0.9 acceptance lane; production `main` remains v0.8. No stable v0.9.0 tag exists.

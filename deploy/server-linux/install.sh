@@ -83,7 +83,7 @@ TARGET_GID="$(id -g "$TARGET_USER")"
 PUBLIC_HOST="$(python3 - "$PUBLIC_MCP_URL" <<'PY'
 from urllib.parse import urlparse
 import sys
-u=urlparse(sys.argv[1]); print(u.netloc)
+u=urlparse(sys.argv[1]); print(u.hostname or '')
 PY
 )"
 [[ -n "$PUBLIC_HOST" ]] || { echo 'Unable to parse --public-mcp-url.' >&2; exit 2; }
@@ -151,6 +151,7 @@ VERCEL_PROJECT_NAME=$VERCEL_PROJECT
 VERCEL_ENVIRONMENT=production
 VERCEL_AUDIENCE=$PUBLIC_MCP_URL
 MCP_ALLOWED_HOSTS=$PUBLIC_HOST
+MCP_PUBLIC_ORIGIN=$PUBLIC_MCP_URL
 MCP_BIND=$MCP_BIND
 MCP_PORT=$MCP_PORT
 WALL_BIND=$WALL_BIND
@@ -178,12 +179,14 @@ services:
     environment:
       OPERATOR_SOCKET: /run/light-remote-mcp/operator.sock
       WALL_AUTH_CONFIG_FILE: /run/secrets/wall-auth.json
+      OPERATOR_PUBLIC_KEYS_FILE: /run/secrets/operator-public-keys.json
     ports:
       - "$MCP_BIND:$MCP_PORT:8080"
       - "$WALL_BIND:$WALL_PORT:8081"
     volumes:
       - /run/light-remote-mcp:/run/light-remote-mcp:ro
       - $ETC/wall-auth.json:/run/secrets/wall-auth.json:ro
+      - $ETC/operator-public-keys.json:/run/secrets/operator-public-keys.json:ro
 EOF
 for item in "${WORKSPACES[@]}"; do
   name="${item%%=*}"

@@ -240,13 +240,21 @@ chmod +x install-linux-client.sh
 
 For arm64, use the arm64 archive. After enrollment, systemd owns the connection and the shell may be closed. The same client package is suitable for a headless Linux server leaf; a native Linux Desktop GUI is a later roadmap item.
 
-### 5. ChatGPT / custom MCP App status
+### 5. ChatGPT / custom MCP App
 
-The open-source Server and clients can be self-hosted now. A generally distributable **Light Remote Plugin/App with account/OAuth is not included in `beta.1` yet**, so this README does not ask you to weaken the Server to anonymous access or a static shared bearer merely to make ChatGPT connect.
+`beta.1` includes a native OAuth 2.0 authorization lane for the remote MCP endpoint. It uses Authorization Code + PKCE S256, short-lived access tokens, refresh tokens, OAuth Protected Resource Metadata, and Dynamic Client Registration. The old Vercel OIDC + short-lived bridge-session lane remains available for the reference deployment; OAuth does **not** remove device policy or capability enforcement.
 
-OpenAI currently supports custom MCP Apps in Developer Mode. Full write/modify MCP actions are available in beta for ChatGPT Business and Enterprise/Edu workspaces, while Pro supports read/fetch MCP connections in Developer Mode. ChatGPT connects to a remote MCP server; private/local servers require a supported secure tunnel or a remotely reachable endpoint. See [OpenAI's current Developer Mode and MCP Apps documentation](https://help.openai.com/en/articles/12584461) before enabling a write-capable custom app.
+In ChatGPT Developer Mode, create a custom MCP App using your public Server endpoint, for example:
 
-The next distribution milestone is the account/OAuth + self-describing Light Remote Plugin/App layer in the product roadmap. When published, the intended flow is: create/sign in to an account → install a client → approve device capabilities → enable **Light Remote** in ChatGPT → let the Agent discover allowed devices/tools and work within Server/device policy.
+```text
+https://mcp.example.com/mcp
+```
+
+Choose OAuth when prompted. The MCP client discovers the authorization metadata automatically. The browser authorization page asks for the owner credentials created by the Server installer; after approval, ChatGPT receives policy-bounded MCP access and may refresh it without storing the owner password. Do not configure anonymous access or a static shared bearer.
+
+A newly connected Agent should call `light_remote_operating_contract`, then `light_remote_devices`, choose an explicit target, open a durable session, execute work, poll/read durable output, and close the session. The generic `light_remote_exec` lane provides shell/PowerShell access bounded by the target device policy, covering normal coding/operations work such as filesystem changes, Git, build/test, process/network inspection, services/systemd, Docker/LXD, package managers and logs.
+
+This is a **custom self-hosted MCP App**, not yet a separately reviewed/public Light Remote listing in the ChatGPT Plugin Directory. The product roadmap keeps that publication step separate from the open-source beta.
 
 ### Updating beta clients
 

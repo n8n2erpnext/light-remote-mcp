@@ -1,6 +1,6 @@
 # Light Remote MCP — Product Architecture Roadmap
 
-Updated: 2026-09-10
+Updated: 2026-09-11
 Status: architecture lock for v0.9 beta and the path to a public ChatGPT Plugin/App
 License: Apache-2.0 for Light Remote MCP source; third-party notices remain separate.
 
@@ -65,8 +65,15 @@ Beta quick-start is intentionally explicit about topology: Vercel alone is not t
 The following are frozen unless a release-blocking defect is found: signed device identity, signed policy revision, outbound leaf poll/result protocol, target-bound sessions, session ownership, command lease/redelivery, idempotent result receipts, capability inference, Linux signed updater/rollback, Windows signed updater/rollback, Wall structured policy/update mutations, and third-party runtime notice packaging.
 
 Do not add new privileged capability classes during the beta cut. Changes to the above require a regression addition plus re-running the full release gate.
+## RDC replacement continuity gate
+RDC is rescue-only and must not remain a product dependency. Before the external RDC path is allowed to disappear, a fresh ChatGPT connection through Light Remote must independently pass OAuth discovery/PKCE/refresh, tool discovery, ARM/AMD/Windows targeting, durable session open/resume/close, exec/job/output, filesystem mutation, Git/build-test, process/network/service reads where supported, and signed-update control on a policy-authorized Linux leaf.
+
+Dogfooding is now a merge/release invariant: a feature that makes the project impossible to operate through Light Remote itself is a release-blocking regression. The reference proof is `deploy/scripts/live-v09-oauth-dogfood.mjs`.
+
+Self-host owner OAuth is part of the v0.9 beta surface: Authorization Code + PKCE S256, refresh tokens, protected-resource metadata and dynamic client registration. Hosted multi-user account OAuth remains post-beta.
+
 ## Post-beta roadmap
-1. Account/OAuth plane: distribution-site accounts, refreshable authorization suitable for ChatGPT custom Apps/Plugins, account-scoped device ownership and revocation.
+1. Hosted account plane: distribution-site accounts, account-scoped device ownership/revocation, multi-user OAuth/SSO, and billing/plan policy where applicable.
 2. Plugin/App product surface: self-describing tool catalog and operating contract; publish privately first, then submit for Plugin Directory review when eligible.
 3. Distribution web: account onboarding, downloads, device management, Terms/Privacy and release channels.
 4. Linux Desktop native UX with the same localhost-Wall and normal-user privilege model as Windows.
@@ -80,6 +87,6 @@ As of this roadmap date, a custom MCP App can be created in ChatGPT Developer Mo
 The README must therefore distinguish three states: local/server installation is available; custom MCP App testing is plan/workspace dependent; Plugin Directory availability is future and only after OpenAI review/approval.
 
 ## Release progression
-`v0.9.0-beta.1` is the first public beta candidate for the frozen execution/control-plane architecture. Beta promotion requires Apache-2.0 root licensing, final 36/36 regression, package CI for Windows/Linux, server deployment bundles, live Vercel + ARM + AMD + Windows version proof, and no release-blocking security regression.
+`v0.9.0-beta.1` is the first public beta candidate for the frozen execution/control-plane architecture. Beta promotion requires Apache-2.0 root licensing, final full regression (currently 38/38), package CI for Windows/Linux, server deployment bundles, live Vercel + ARM + AMD + Windows version proof, and no release-blocking security regression.
 
 Stable `v0.9.0` is not implied by the beta tag. Stable requires beta soak plus any account/plugin decisions explicitly scheduled for that release.
