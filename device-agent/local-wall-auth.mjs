@@ -44,8 +44,8 @@ export function loadLocalWallAuth(file,{required=false}={}){
   const issue=()=>{const expiresAt=Date.now()+ttlSeconds*1000;return{token:signSession(row.cookieSecret,row.username,expiresAt),expiresAt,ttlSeconds};};
   return{enabled:true,username:row.username,ttlSeconds,identity,verifyCredentials,issue};
 }
-export function writeLocalWallAuthConfig(file,{username='owner',password,cookieSecret=crypto.randomBytes(32).toString('base64url'),sessionTtlSeconds=DEFAULT_TTL_SECONDS,passwordHash=null}={}){
-  const user=String(username||'owner').trim();if(!/^[A-Za-z0-9._@+-]{1,120}$/.test(user))throw new Error('invalid_local_wall_username');
+export function writeLocalWallAuthConfig(file,{username='operator',password,cookieSecret=crypto.randomBytes(32).toString('base64url'),sessionTtlSeconds=DEFAULT_TTL_SECONDS,passwordHash=null}={}){
+  const user=String(username||'operator').trim();if(!/^[A-Za-z0-9._@+-]{1,120}$/.test(user))throw new Error('invalid_local_wall_username');
   if(passwordHash==null&&String(password||'').length<12)throw new Error('local_wall_password_too_short');
   const encoded=passwordHash||hashLocalWallPassword(password);if(!/^scrypt\$[A-Za-z0-9_-]+\$[A-Za-z0-9_-]+$/.test(String(encoded)))throw new Error('invalid_local_wall_password_hash');
   if(!/^[A-Za-z0-9_-]{32,128}$/.test(String(cookieSecret)))throw new Error('invalid_local_wall_cookie_secret');

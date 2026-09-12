@@ -8,12 +8,12 @@ import { writeLocalWallAuthConfig, loadLocalWallAuth } from '../../device-agent/
 
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'lr-wall-auth-')),file=path.join(dir,'wall-auth.json');
 const password='selftest-wall-password-123';
-writeLocalWallAuthConfig(file,{username:'owner',password,sessionTtlSeconds:3600});
+writeLocalWallAuthConfig(file,{username:'operator',password,sessionTtlSeconds:3600});
 assert.equal(fs.statSync(file).mode & 0o777,0o600);
 const stored=fs.readFileSync(file,'utf8');assert.ok(!stored.includes(password));assert.match(stored,/scrypt\$/);
-assert.throws(()=>writeLocalWallAuthConfig(path.join(dir,'weak.json'),{username:'owner',password:'short'}),/local_wall_password_too_short/);
+assert.throws(()=>writeLocalWallAuthConfig(path.join(dir,'weak.json'),{username:'operator',password:'short'}),/local_wall_password_too_short/);
 const auth=loadLocalWallAuth(file,{required:true});
-assert.equal(auth.enabled,true);assert.equal(auth.username,'owner');
+assert.equal(auth.enabled,true);assert.equal(auth.username,'operator');
 assert.throws(()=>startLocalWall({host:'10.0.0.5',port:29999}),/local_wall_auth_required_for_non_loopback/);
 const port=27000+(process.pid%5000),brand=new URL('../../assets/branding/light-remote-mark.svg',import.meta.url).pathname;
 let pairingCalls=0;
@@ -33,9 +33,9 @@ try{
   let r=await req('GET','/');assert.equal(r.status,303);assert.match(String(r.headers.location),/^\/login\?next=/);
   r=await req('GET','/api/status');assert.equal(r.status,401);assert.match(r.text,/wall_auth_required/);
   r=await req('GET','/events');assert.equal(r.status,401);assert.match(r.text,/wall_auth_required/);
-  r=await req('GET','/login');assert.equal(r.status,200);assert.match(r.text,/Device Wall owner login/);assert.ok(!r.text.includes(password));
-  r=await req('POST','/auth/login',{body:'username=owner&password=wrong&next=%2F'});assert.equal(r.status,401);assert.ok(!r.headers['set-cookie']);
-  const form=new URLSearchParams({username:'owner',password,next:'/'}).toString();
+  r=await req('GET','/login');assert.equal(r.status,200);assert.match(r.text,/Device Wall login/);assert.ok(!r.text.includes(password));
+  r=await req('POST','/auth/login',{body:'username=operator&password=wrong&next=%2F'});assert.equal(r.status,401);assert.ok(!r.headers['set-cookie']);
+  const form=new URLSearchParams({username:'operator',password,next:'/'}).toString();
   r=await req('POST','/auth/login',{body:form,headers:{'x-forwarded-proto':'https'}});assert.equal(r.status,303);
   const cookie=String(r.headers['set-cookie']?.[0]||'').split(';')[0];assert.match(cookie,/^lr_wall_session=/);assert.match(String(r.headers['set-cookie']),/HttpOnly/);assert.match(String(r.headers['set-cookie']),/SameSite=Strict/);assert.match(String(r.headers['set-cookie']),/Secure/);
   r=await req('GET','/',{headers:{cookie}});assert.equal(r.status,200);assert.match(r.text,/LIVE OPERATOR STREAM/);

@@ -81,7 +81,7 @@ Required local states:
 - Sessions: all Agent lanes on this device with state, last activity, jobs and reconnect count.
 - Controls/observability: device/cloud status, Agent session lanes, live operator stream, command/output history, policy/capabilities and maintenance. Connection controls may be exposed by the device App/Wall, but Wall presence itself is never a keepalive mechanism.
 - Approval UX: `/approve` accepts the short code, resolves only a pending request for this device, offers Approve/Deny, then reports success and returns to `/`. Approval never asks for a duration and never creates or extends the Device Connection Lease.
-- Security boundary: loopback-only Wall may rely on local-machine access, but any non-loopback/private/VPN bind **must fail closed unless device-local owner authentication is configured**. Reverse proxy/TLS/NetBird may add outer defense but do not replace the Wall owner session. A code display, `/approve`, status/activity/SSE, Connect/Disconnect, policy and maintenance all sit behind that owner session.
+- Security boundary: loopback-only Wall may rely on local-machine access, but any non-loopback/private/VPN bind **must fail closed unless device-local Wall authentication is configured**. Reverse proxy/TLS/NetBird may add outer defense but do not replace the Wall owner session. A code display, `/approve`, status/activity/SSE, Connect/Disconnect, policy and maintenance all sit behind that owner session.
 
 VPS/Linux headless uses the same Local Wall contract. Windows/Linux/macOS Desktop adds native chrome/tray/service management but does not change authority semantics.
 
