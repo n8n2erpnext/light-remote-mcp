@@ -1,4 +1,5 @@
 import http from 'node:http';
+import vm from 'node:vm';
 import { startLocalWall, isAllowedLocalWallBindHost } from '../../device-agent/local-wall.mjs';
 
 const port=24000+(process.pid%10000),brand=new URL('../../assets/branding/light-remote-mark.svg',import.meta.url).pathname;
@@ -18,13 +19,16 @@ const wall=startLocalWall({host:'127.0.0.1',port,brandSvgPath:brand,
   accessApprove:async requestId=>{if(!requests.some(x=>x.requestId===requestId))throw new Error('wrong_access_request');approvals++;return {state:'approved',requestId};},accessDeny:async requestId=>{if(!requests.some(x=>x.requestId===requestId))throw new Error('wrong_access_request');denials++;return {state:'denied',requestId};}
 });
 function req(method,target,payload){return new Promise((resolve,reject)=>{const data=payload==null?null:Buffer.from(JSON.stringify(payload));const headers=data?{'content-type':'application/json','content-length':data.length}:{};const r=http.request({host:'127.0.0.1',port,method,path:target,headers},res=>{let text='';res.on('data',c=>text+=c);res.on('end',()=>{let json=null;try{json=JSON.parse(text)}catch{}resolve({status:res.statusCode,text,json});});});r.on('error',reject);if(data)r.write(data);r.end();});}
+function assertInlineScriptsParse(html,label){const scripts=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m=>m[1]);if(!scripts.length)throw new Error(label+'_inline_script_missing');for(const [i,script] of scripts.entries()){try{new vm.Script(script,{filename:`${label}-inline-${i}.js`});}catch(error){throw new Error(`${label}_inline_script_invalid:${error.message}`);}}}
 await new Promise(r=>setTimeout(r,80));
 try{
   const html=await req('GET','/');if(html.status!==200||!html.text.includes('LIVE OPERATOR STREAM')||!html.text.includes('one device · session lanes · operator history')||!html.text.includes('Closing the browser does not stop')||!html.text.includes('id="acode"')||!html.text.includes('New A')||!html.text.includes('Approve B'))throw new Error('single_device_wall_contract_failed');
+  assertInlineScriptsParse(html.text,'root_wall');
   if(html.text.includes('id="connect"')||html.text.includes('Reconnect grace</span><select'))throw new Error('root_wall_must_not_be_connection_form');
   const pair1=await req('POST','/api/pairing-code');if(pair1.status!==200||pair1.json.pairing?.code!=='PAIR-2345')throw new Error('pairing_a_issue_failed');
   const pair2=await req('POST','/api/pairing-code');if(pair2.status!==200||pair2.json.pairing?.code!=='PAIR-6789'||pairings!==2)throw new Error('pairing_a_rotate_failed');
   const approveHtml=await req('GET','/approve');if(approveHtml.status!==200||!approveHtml.text.includes('Enter code')||!approveHtml.text.includes('Approve')||approveHtml.text.includes('lease-hours')||approveHtml.text.includes('graceMinutes'))throw new Error('approve_page_contract_failed');
+  assertInlineScriptsParse(approveHtml.text,'approve_wall');
   const live=await req('GET','/api/status');if(live.status!==200||live.json.remote.sessions?.length!==1||live.json.remote.access?.pending?.length!==2)throw new Error('local_wall_live_sessions_failed');
   const activity=await req('GET','/api/activity?limit=50');if(activity.status!==200||activity.json.events?.length!==3||activity.json.events[0].deviceId!=='dev_localwall_test')throw new Error('local_wall_activity_failed');
   const lookup=await req('GET','/api/approve?code=abcd-efgh');if(lookup.status!==200||lookup.json.request?.requestId!==requests[0].requestId)throw new Error('approval_code_lookup_failed');
