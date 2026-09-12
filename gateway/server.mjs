@@ -397,6 +397,7 @@ wallApp.get('/', wallAuth.requirePage, (_req, res) => {
   res.set('Content-Security-Policy', "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; img-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
   res.type('html').send(dashboardHtml());
 });
+wallApp.post('/api/account-owner-proof', wallAuth.requireApi, (_req,res)=>proxyOperatorJson(res,'POST','/v1/accounts/owner-proof',{ownerProofVerified:true}));
 wallApp.get('/api/devices', wallAuth.requireApi, (_req, res) => proxyOperatorJson(res, 'GET', '/v1/devices'));
 wallApp.get('/api/devices/:id', wallAuth.requireApi, (req, res) => proxyOperatorJson(res, 'GET', `/v1/devices/${encodeURIComponent(req.params.id)}`));
 wallApp.post('/api/devices/:id/policy', wallAuth.requireApi, (req, res) => proxyOperatorJson(res, 'POST', `/v1/devices/${encodeURIComponent(req.params.id)}/policy`, { ...(req.body || {}), deviceId:req.params.id, accountId:OPERATOR_ACCOUNT_ID }));

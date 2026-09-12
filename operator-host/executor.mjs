@@ -540,6 +540,12 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && url.pathname === '/v1/capabilities') {
       return sendJson(res, 200, { ok: true, ...capabilities() });
     }
+    if (req.method === 'POST' && url.pathname === '/v1/accounts/owner-proof') {
+      const body=await readJson(req);
+      if(body.ownerProofVerified!==true) throw new AccountError('owner_migration_proof_required',403);
+      const proof=accounts.issueOwnerProof({accountId:ACCOUNT_ID,deviceId:DEVICE_ID});
+      return sendJson(res,200,{ok:true,proof});
+    }
     if (req.method === 'POST' && url.pathname === '/v1/accounts/register') {
       const body=await readJson(req);
       if(body.ownerCode) accounts.consumeOwnerProof(body.ownerCode);

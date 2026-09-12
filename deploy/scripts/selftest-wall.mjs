@@ -8,6 +8,9 @@ if (!match) throw new Error('wall inline script not found');
 if (!html.includes("/api/sessions") || !html.includes("/api/devices") || !html.includes("new EventSource('/events')")) {
   throw new Error('wall device/session/SSE endpoints missing');
 }
+if (!html.includes('Owner code') || !html.includes('/api/account-owner-proof') || !html.includes('copyOwnerProof')) {
+  throw new Error('wall owner proof controls missing');
+}
 const inline = match[1];
 for (const token of ['seenEvents', 'scheduleSessionRefresh', 'refreshDevices', 'leasePreset', 'probeActivityHead', 'catchUpActivity', '/api/activity?limit=1']) {
   if (!inline.includes(token)) throw new Error(`wall realtime safeguard missing: ${token}`);
