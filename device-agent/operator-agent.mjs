@@ -230,13 +230,13 @@ async function daemon(args){
         while(!stopped&&!delivered){
           try{const ack=await channelRequest(state,hub,'result',result);delivered=Boolean(ack.accepted);resultFailures=0;}
           catch(error){
-            if(['device_connection_required','device_connection_expired'].includes(error.message)){markCloudState(state,{desiredConnected:false,state:'dormant',hardExpiresAt:null,lastError:error.message});break;}
+            if(['device_connection_required','device_connection_expired','device_revoked'].includes(error.message)){markCloudState(state,{desiredConnected:false,state:'dormant',connectionId:null,hardExpiresAt:null,lastError:error.message,lastDisconnectedAt:Date.now()});break;}
             resultFailures++;console.error(JSON.stringify({event:'device_result_delivery_failed',deviceId:state.enrollment.deviceId,commandId:command.commandId,error:error.message,status:error.status||null,failures:resultFailures}));await wait(Math.min(1000*(2**Math.min(resultFailures,5)),30000));
           }
         }
       }
     }catch(error){
-      if(['device_connection_required','device_connection_expired'].includes(error.message)){
+      if(['device_connection_required','device_connection_expired','device_revoked'].includes(error.message)){
         failures=0;markCloudState(state,{desiredConnected:false,state:'dormant',connectionId:null,hardExpiresAt:null,lastError:error.message,lastDisconnectedAt:Date.now()});
         console.error(JSON.stringify({event:'device_cloud_dormant',deviceId:state.enrollment.deviceId,reason:error.message,status:error.status||null}));
         continue;

@@ -13,7 +13,7 @@ const signer=crypto.generateKeyPairSync('ed25519');
 const signerPublic=signer.publicKey.export({format:'der',type:'spki'}).toString('base64');
 const enrollmentId='enr_12345678-1234-1234-1234-123456789abc';
 const pollToken='p'.repeat(43),deviceCode='ABCD-EFGH';
-let beginPayload=null,heartbeatCount=0,channelPollCount=0;
+let beginPayload=null,heartbeatCount=0,channelPollCount=0,revokeChannel=false;
 function send(res,status,value){res.writeHead(status,{'content-type':'application/json'});res.end(JSON.stringify(value));}
 function deviceIdFromBegin(){const pubDer=Buffer.from(beginPayload.publicIdentityKey,'base64');const hash=crypto.createHash('sha256').update(pubDer).digest('hex');return `dev_${hash.slice(0,24)}`;}
 function verifyWithDevice(message,signature){const key=crypto.createPublicKey({key:Buffer.from(beginPayload.publicIdentityKey,'base64'),format:'der',type:'spki'});return crypto.verify(null,Buffer.from(message),key,Buffer.from(signature,'base64url'));}
@@ -23,6 +23,7 @@ const server=http.createServer(async(req,res)=>{
     const message=deviceChannelMessage({deviceId:body.deviceId,action:'poll',timestamp:body.timestamp,nonce:body.nonce,payload:body.payload});
     if(!beginPayload||!verifyWithDevice(message,body.signature))return send(res,401,{ok:false,error:'bad_channel_signature'});
     channelPollCount++;
+    if(revokeChannel)return send(res,403,{ok:false,error:'device_revoked'});
     return send(res,200,{ok:true,channel:{node:{state:'online',draining:false},state:'idle',command:null}});
   }
   if(req.url!=='/api/operator')return send(res,404,{ok:false,error:'not_found'});
@@ -75,6 +76,12 @@ const deadline=Date.now()+5000;while(channelPollCount<2&&Date.now()<deadline)awa
 if(channelPollCount<2){daemonChild.kill('SIGTERM');throw new Error(`daemon_channel_loop_failed:${daemonErr}`);}
 let wallReady=false;for(let i=0;i<30&&!wallReady;i++){try{const st=await wallReq(wallPort,'GET','/api/status');wallReady=st.status===200;}catch{}if(!wallReady)await new Promise(r=>setTimeout(r,100));}
 if(!wallReady){daemonChild.kill('SIGTERM');throw new Error('daemon_local_wall_not_ready');}
+revokeChannel=true;
+let revokedLocal=null;for(let i=0;i<40;i++){revokedLocal=JSON.parse(fs.readFileSync(stateFile,'utf8'));if(revokedLocal.cloud?.lastError==='device_revoked')break;await new Promise(r=>setTimeout(r,100));}
+if(revokedLocal?.cloud?.lastError!=='device_revoked'||revokedLocal.cloud?.state!=='dormant'||revokedLocal.cloud?.desiredConnected!==false||revokedLocal.cloud?.connectionId!=null||revokedLocal.cloud?.hardExpiresAt!=null){daemonChild.kill('SIGTERM');throw new Error('daemon_revoked_state_not_persisted');}
+const revokedStatus=await wallReq(wallPort,'GET','/api/status');
+if(revokedStatus.status!==200||revokedStatus.json?.local?.lastCloudError!=='device_revoked'){daemonChild.kill('SIGTERM');throw new Error('local_wall_revoked_state_missing');}
+revokeChannel=false;
 const reBegin=await wallReq(wallPort,'POST','/api/enrollment/begin',{});
 if(reBegin.status!==200||reBegin.json?.enrollment?.mode!=='reenroll'||!beginPayload.capabilities.includes('sudo-on-demand')){daemonChild.kill('SIGTERM');throw new Error('daemon_reenroll_begin_failed');}
 const rePending=JSON.parse(fs.readFileSync(stateFile,'utf8'));
@@ -94,6 +101,7 @@ console.log('device-agent-secret-output=PASS');
 console.log('device-agent-certificate-verify=PASS');
 console.log('device-agent-signed-heartbeat=PASS');
 console.log('device-agent-local-deny-boundary=PASS');
+console.log('device-agent-revoked-state-persists-for-wall-reenroll=PASS');
 console.log('device-agent-reenroll-full-grantable-local-deny-preserved=PASS');
 console.log('device-agent-reenroll-returns-dormant=PASS');
 server.close();fs.rmSync(dir,{recursive:true,force:true});
