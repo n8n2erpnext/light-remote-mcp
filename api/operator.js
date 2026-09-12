@@ -29,6 +29,7 @@ module.exports=async function handler(req,res){
     let upstream;
     if(plus){
       if(action==='connect') {
+        if(!String(req.query?.p||'').trim()){const e=new Error('pairing_code_required');e.status=428;e.payload={ok:false,status:'need_a_code',error:e.message};throw e;}
         const d=payloadFor(req),raw=String(d.aCode||'').trim().toUpperCase().replace(/-/g,'');
         if(!raw){const e=new Error('pairing_code_required');e.status=428;e.payload={ok:false,status:'need_a_code',error:e.message};throw e;}
         if(!/^[A-Z2-9]{8}$/.test(raw)){const e=new Error('invalid_pairing_code');e.status=400;e.payload={ok:false,status:'need_a_code',error:e.message};throw e;}
