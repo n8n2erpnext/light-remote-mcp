@@ -24,6 +24,8 @@ try{
   if(me.status!==200||me.json.account?.accountId!=='self-hosted-local')throw new Error('me_failed');
   const dev=await request('GET','/v1/accounts/devices',null,token);
   if(dev.status!==200||dev.json.devices?.length!==1||dev.json.devices[0]?.deviceId!=='arm-test'||dev.json.devices[0]?.accountId!=='self-hosted-local')throw new Error('account_devices_failed');
+  const usage=await request('GET','/v1/accounts/usage?months=6',null,token);
+  if(usage.status!==200||usage.json.account?.accountId!=='self-hosted-local'||usage.json.entitlements?.plan!=='free'||!Array.isArray(usage.json.usage?.series)||usage.json.usage.series.length!==6)throw new Error('account_usage_failed');
   const dup=await request('POST','/v1/accounts/register',{email,password:secret,ownerProofVerified:true});
   if(dup.status!==409||dup.json.error!=='account_email_exists')throw new Error('duplicate_register_failed');
   const bad=await request('POST','/v1/accounts/login',{email,password:'definitely-wrong'});
@@ -38,7 +40,7 @@ try{
   if(stateText.includes(secret)||stateText.includes(token)||stateText.includes(login.json.token))throw new Error('raw_secret_persisted');
   const audit=fs.readFileSync(path.join(log,'operations.jsonl'),'utf8');
   if(audit.includes(email))throw new Error('email_leaked_to_audit');
-  console.log(JSON.stringify({ok:true,register:true,login:true,me:true,devices:true,logout:true,rawSecretsPersisted:false,emailAuditLeak:false},null,2));
+  console.log(JSON.stringify({ok:true,register:true,login:true,me:true,devices:true,usage:true,logout:true,rawSecretsPersisted:false,emailAuditLeak:false},null,2));
   console.log('ACCOUNT_API_GATE=PASS');
 } finally {
   child.kill('SIGTERM');

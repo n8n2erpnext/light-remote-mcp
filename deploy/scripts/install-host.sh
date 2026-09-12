@@ -13,6 +13,7 @@ sudo install -m 0644 "$ROOT_DIR/operator-host/device-access-grant-registry.mjs" 
 sudo install -m 0644 "$ROOT_DIR/operator-host/device-pairing-registry.mjs" /opt/gpt-vps-operator/device-pairing-registry.mjs
 sudo install -m 0644 "$ROOT_DIR/operator-host/agent-client-registry.mjs" /opt/gpt-vps-operator/agent-client-registry.mjs
 sudo install -m 0644 "$ROOT_DIR/operator-host/account-registry.mjs" /opt/gpt-vps-operator/account-registry.mjs
+sudo install -m 0644 "$ROOT_DIR/operator-host/usage-registry.mjs" /opt/gpt-vps-operator/usage-registry.mjs
 sudo install -m 0644 "$ROOT_DIR/lib/device-proof.mjs" /opt/gpt-vps-operator/device-proof.mjs
 sudo install -d -o ubuntu -g ubuntu -m 0700 /home/ubuntu/.config/gpt-vps-operator
 sudo install -d -o ubuntu -g ubuntu -m 0750 /home/ubuntu/.local/run/gpt-vps-operator

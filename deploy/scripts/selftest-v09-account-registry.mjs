@@ -30,11 +30,14 @@ try{
   if(!login.token||login.token===first.token)throw new Error('fresh_login_session_required');
   expectError(()=>registry.register({email:'second@example.com',password:'second account password'}),'account_registration_closed',409);
   if(events.some(e=>'email' in e))throw new Error('account_event_leaks_email');
+  const pro=registry.setPlan('self-hosted-local','pro');if(pro.plan!=='pro')throw new Error('account_plan_pro_failed');
+  const vip=registry.setPlan('self-hosted-local','VIP');if(vip.plan!=='vip')throw new Error('account_plan_vip_failed');
+  expectError(()=>registry.setPlan('self-hosted-local','enterprise'),'invalid_account_plan',400);
   const reloaded=new AccountRegistry({stateFile,bootstrapAccountId:'self-hosted-local',sessionTtlMs:60*60*1000,now:()=>now});
   if(reloaded.authenticate(login.token).account.email!=='owner@example.com')throw new Error('persistence_reload_failed');
   const out=reloaded.logout(login.token);if(!out.loggedOut)throw new Error('logout_failed');
   expectError(()=>reloaded.authenticate(login.token),'account_session_required',401);
   now+=2*60*60*1000;
   expectError(()=>reloaded.authenticate(first.token),'account_session_required',401);
-  console.log(JSON.stringify({ok:true,bootstrapAccount:true,passwordHashed:true,tokenHashed:true,persistence:true,logout:true,expiry:true,noEmailAudit:true,ownerProofOneTime:true},null,2));
+  console.log(JSON.stringify({ok:true,bootstrapAccount:true,passwordHashed:true,tokenHashed:true,persistence:true,logout:true,expiry:true,noEmailAudit:true,ownerProofOneTime:true,planAuthority:true},null,2));
 }finally{fs.rmSync(dir,{recursive:true,force:true});}

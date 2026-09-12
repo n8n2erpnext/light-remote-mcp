@@ -8,6 +8,8 @@ export class AccountError extends Error {
 const EMAIL_RE=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ACCOUNT_RE=/^[A-Za-z0-9._:-]{1,128}$/;
 const OWNER_PROOF_TTL_MS=5*60*1000;
+const ACCOUNT_PLANS=new Set(['free','pro','vip']);
+function normalizePlan(value){const plan=String(value||'free').trim().toLowerCase();if(!ACCOUNT_PLANS.has(plan))throw new AccountError('invalid_account_plan');return plan;}
 function ownerCode(){const alphabet='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',bytes=crypto.randomBytes(8);let out='';for(let i=0;i<8;i++)out+=alphabet[bytes[i]%alphabet.length];return `${out.slice(0,4)}-${out.slice(4)}`;}
 function normalizeOwnerCode(value){const raw=String(value||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');return raw.length===8?`${raw.slice(0,4)}-${raw.slice(4)}`:'';}
 function normalizeEmail(value){return String(value||'').trim().toLowerCase();}
@@ -88,7 +90,7 @@ export class AccountRegistry{
     if(this.byEmail.has(email))throw new AccountError('account_email_exists',409);
     if(this.accounts.size>0)throw new AccountError('account_registration_closed',409);
     const accountId=this.bootstrapAccountId;
-    const now=this.now(),row={accountId,email,passwordHash:passwordHash(password),plan:'free',status:'active',createdAt:now,lastLoginAt:now};
+    const now=this.now(),row={accountId,email,passwordHash:passwordHash(password),plan:normalizePlan(input.plan||'free'),status:'active',createdAt:now,lastLoginAt:now};
     this.accounts.set(accountId,row);this.byEmail.set(email,accountId);this._persist();this.emit({type:'account_registered',accountId,status:'active'});return this._issue(row);
   }
   login(input={}){
@@ -106,5 +108,6 @@ export class AccountRegistry{
   }
   logout(token){const hash=sha256(token);const session=this.sessions.get(hash);if(session){this.sessions.delete(hash);this._persist();this.emit({type:'account_logout',accountId:session.accountId,status:'ok'});}return {loggedOut:Boolean(session)};}
   account(accountId){const row=this.accounts.get(String(accountId||''));if(!row)throw new AccountError('account_not_found',404);return this._viewAccount(row);}
+  setPlan(accountId,plan){const row=this.accounts.get(String(accountId||''));if(!row)throw new AccountError('account_not_found',404);const next=normalizePlan(plan),prior=row.plan||'free';if(prior===next)return this._viewAccount(row);row.plan=next;this._persist();this.emit({type:'account_plan_changed',accountId:row.accountId,status:'ok',fromPlan:prior,toPlan:next});return this._viewAccount(row);}
   list(){return [...this.accounts.values()].map(row=>this._viewAccount(row)).sort((a,b)=>a.createdAt-b.createdAt);}
 }

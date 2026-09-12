@@ -21,7 +21,7 @@ async function accountAction(req,res,action){
     setSessionCookie(res,upstream.token,upstream.session?.expiresAt);
     return res.status(action==='register'?201:200).json({ok:true,account:upstream.account,session:upstream.session});
   }
-  if(action==='me'||action==='devices'){
+  if(action==='me'||action==='devices'||action==='usage'){
     if(!method(req,res,'GET'))return; const token=accountRequired(req,res); if(!token)return;
     const upstream=await callOperator(`/account/${action}`,{accountSession:token,timeoutMs:9000});
     return res.status(200).json(upstream);

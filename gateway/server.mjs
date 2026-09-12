@@ -284,6 +284,7 @@ app.post('/account/login', softRateLimit, requireVercelIdentity, (req,res)=>prox
 app.get('/account/me', softRateLimit, requireVercelIdentity, (req,res)=>proxyOperatorJson(res,'GET','/v1/accounts/me',null,accountProxyHeaders(req)));
 app.post('/account/logout', softRateLimit, requireVercelIdentity, (req,res)=>proxyOperatorJson(res,'POST','/v1/accounts/logout',{},accountProxyHeaders(req)));
 app.get('/account/devices', softRateLimit, requireVercelIdentity, (req,res)=>proxyOperatorJson(res,'GET','/v1/accounts/devices',null,accountProxyHeaders(req)));
+app.get('/account/usage', softRateLimit, requireVercelIdentity, (req,res)=>proxyOperatorJson(res,'GET',`/v1/accounts/usage?months=${Math.max(1,Math.min(Number(req.query.months)||6,24))}`,null,accountProxyHeaders(req)));
 app.post('/account/enrollments/approve', softRateLimit, requireVercelIdentity, (req,res)=>proxyOperatorJson(res,'POST','/v1/accounts/enrollments/approve',req.body||{},accountProxyHeaders(req)));
 app.post('/account/devices/revoke-all', softRateLimit, requireVercelIdentity, (req,res)=>proxyOperatorJson(res,'POST','/v1/accounts/devices/revoke-all',{},accountProxyHeaders(req)));
 app.post('/account/devices/:id/revoke', softRateLimit, requireVercelIdentity, (req,res)=>proxyOperatorJson(res,'POST',`/v1/accounts/devices/${encodeURIComponent(req.params.id)}/revoke`,{},accountProxyHeaders(req)));

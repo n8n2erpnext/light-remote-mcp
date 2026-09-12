@@ -15,6 +15,7 @@ import { DeviceAccessGrantRegistry, DeviceAccessGrantError } from './device-acce
 import { DevicePairingRegistry, DevicePairingRegistryError } from './device-pairing-registry.mjs';
 import { AgentClientRegistry, AgentClientRegistryError } from './agent-client-registry.mjs';
 import { AccountRegistry, AccountError } from './account-registry.mjs';
+import { UsageRegistry } from './usage-registry.mjs';
 
 const SOCKET_PATH = process.env.OPERATOR_SOCKET || '/run/gpt-vps-operator/operator.sock';
 const KEY_FILE = process.env.OPERATOR_KEY_FILE || '/home/ubuntu/.config/gpt-vps-operator/operator.private.json';
@@ -28,6 +29,7 @@ const CONNECTION_STATE_FILE = path.join(STATE_DIR, 'device-connections.json');
 const ACCESS_STATE_FILE = path.join(STATE_DIR, 'device-access-grants.json');
 const AGENT_CLIENT_STATE_FILE = path.join(STATE_DIR, 'agent-clients.json');
 const ACCOUNT_STATE_FILE = path.join(STATE_DIR, 'accounts.json');
+const USAGE_STATE_FILE = path.join(STATE_DIR, 'usage.json');
 const MAX_RING_BYTES = Number(process.env.OPERATOR_RING_BYTES || 16 * 1024 * 1024);
 const MAX_RING_EVENTS = Number(process.env.OPERATOR_RING_EVENTS || 5000);
 const MAX_MEMORY_OUTPUT = Number(process.env.OPERATOR_MEMORY_OUTPUT || 4 * 1024 * 1024);
@@ -69,6 +71,7 @@ const ring = [];
 const sseClients = new Set();
 let ringBytes = 0;
 let sequence = 0;
+const usage = new UsageRegistry({ stateFile:USAGE_STATE_FILE });
 const sessions = new SessionRegistry({ idleMs:SESSION_IDLE_MS, minIdleMs:SESSION_MIN_IDLE_MS, maxIdleMs:SESSION_MAX_IDLE_MS, activeWindowMs:SESSION_ACTIVE_WINDOW_MS, maxActive:MAX_ACTIVE_SESSIONS, historyMs:SESSION_HISTORY_MS, accountId:ACCOUNT_ID, deviceId:DEVICE_ID, nodeId:NODE_ID, emit:event => pushEvent(event) });
 const devices = new DeviceRegistry({ stateFile:DEVICE_STATE_FILE, presenceTtlMs:DEVICE_PRESENCE_TTL_MS, emit:event => pushEvent(event) });
 const enrollments = new EnrollmentRegistry({ stateFile:ENROLLMENT_STATE_FILE, signerFile:ENROLLMENT_SIGNER_FILE, activationBaseUrl:ENROLLMENT_ACTIVATION_URL, ttlMs:ENROLLMENT_TTL_MS, emit:event => pushEvent(event) });
@@ -100,6 +103,7 @@ function diskRecord(event) {
 
 function pushEvent(input) {
   const event = { id: ++sequence, at: new Date().toISOString(), ...input };
+  try { usage.ingest(event); } catch (error) { console.error('[usage] ingest failed', error?.message || error); }
   const encoded = JSON.stringify(event);
   const bytes = Buffer.byteLength(encoded);
   ring.push({ event, bytes });
@@ -119,6 +123,7 @@ if (connections.loadError) pushEvent({ type:'device_connection_registry_load_err
 if (accessGrants.loadError) pushEvent({ type:'device_access_registry_load_error', status:'error', detail:redact(accessGrants.loadError) });
 if (agentClients.loadError) pushEvent({ type:'agent_client_registry_load_error', status:'error', detail:redact(agentClients.loadError) });
 if (accounts.loadError) pushEvent({ type:'account_registry_load_error', status:'error', detail:redact(accounts.loadError) });
+if (usage.loadError) pushEvent({ type:'usage_registry_load_error', status:'error', detail:redact(usage.loadError) });
 devices.register({ accountId:ACCOUNT_ID, deviceId:DEVICE_ID, nodeId:NODE_ID, displayName:DEVICE_NAME, platform:os.platform(), architecture:os.arch(), agentVersion:VERSION, publicIdentityKey:DEVICE_PUBLIC_KEY || null, capabilities:HOST_CAPABILITIES, policyProfile:DEVICE_POLICY_PROFILE });
 const deviceHeartbeat = setInterval(() => { try { devices.heartbeat(DEVICE_ID); } catch (error) { console.error('[device] heartbeat failed', error?.message || error); } }, DEVICE_HEARTBEAT_MS);
 deviceHeartbeat.unref();
@@ -407,6 +412,15 @@ function sessionStatsFromDisk(hours = 168) {
   return { hours:Math.max(1, Math.min(Number(hours)||168,24*90)), totals, sessions };
 }
 
+function backfillUsageIfNeeded(){
+  if(!usage.isEmpty()){usage.reconcileConnections(connections.list());return {backfilled:false};}
+  const events=[];
+  for(const file of logFilesOldestFirst()) for(const line of readLogText(file).split('\n')){if(!line)continue;try{events.push(JSON.parse(line));}catch{}}
+  const result=usage.backfill(events);usage.reconcileConnections(connections.list());return result;
+}
+const usageBootstrap=backfillUsageIfNeeded();
+if(usageBootstrap.backfilled) pushEvent({type:'usage_backfill_completed',accountId:ACCOUNT_ID,status:'ok',events:usageBootstrap.events,trackingSince:usageBootstrap.trackingSince});
+
 function sendJson(res, status, value) {
   const body = JSON.stringify(value);
   res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
@@ -430,6 +444,9 @@ function requireAccount(req,{touch=true}={}){
   return accounts.authenticate(accountSessionToken(req),{touch});
 }
 
+function activeAccountPlan(accountId=ACCOUNT_ID){try{return String(accounts.account(accountId).plan||ACCOUNT_PLAN).toLowerCase();}catch{return ACCOUNT_PLAN;}}
+function planEntitlements(plan){const key=String(plan||'free').toLowerCase(),capMs=DEFAULT_PLAN_CONNECTION_CAPS[key]||DEFAULT_PLAN_CONNECTION_CAPS.free;return {plan:key,connectionLeaseMs:capMs,connectionLeaseHours:capMs/3600000,multiDeviceConsole:key==='pro'||key==='vip',usageMetering:true,singleCodebase:true};}
+
 function capabilities() {
   return {
     service: 'gpt-vps-operator', version: VERSION, accountId:ACCOUNT_ID, deviceId:DEVICE_ID, nodeId:NODE_ID, user: process.env.USER || 'ubuntu',
@@ -439,7 +456,7 @@ function capabilities() {
     presence: { ttlMs:DEVICE_PRESENCE_TTL_MS, heartbeatMs:DEVICE_HEARTBEAT_MS },
     enrollment: { ttlMs:ENROLLMENT_TTL_MS, activationUrl:ENROLLMENT_ACTIVATION_URL, signer:enrollments.signerInfo(), keyAlgorithm:'Ed25519', oneTimeCode:true, signedHeartbeat:true },
     fleet: { hubNodeId:NODE_ID, outboundLeafChannel:true, explicitTargetRouting:true, silentFallback:false, channelTtlMs:FLEET_CHANNEL_TTL_MS, commandLeaseMs:FLEET_COMMAND_LEASE_MS, maxQueuedPerNode:FLEET_MAX_QUEUED_PER_NODE },
-    deviceConnection: { enforced:CONNECTION_LEASE_ENFORCE, accountPlan:ACCOUNT_PLAN, planCapsMs:DEFAULT_PLAN_CONNECTION_CAPS, reconnectGraceMinMs:15*60*1000, reconnectGraceMaxMs:60*60*1000, unlimited:false },
+    deviceConnection: { enforced:CONNECTION_LEASE_ENFORCE, accountPlan:activeAccountPlan(), planCapsMs:DEFAULT_PLAN_CONNECTION_CAPS, reconnectGraceMinMs:15*60*1000, reconnectGraceMaxMs:60*60*1000, unlimited:false },
     sessionGracePresets: SESSION_GRACE_PRESETS,
     limits: { maxScriptBytes: 1024 * 1024, maxTimeoutMs: 7200000, memoryOutputBytes: MAX_MEMORY_OUTPUT,
       ringBytes: MAX_RING_BYTES, ringEvents: MAX_RING_EVENTS, jobCacheBytes: MAX_JOB_CACHE_BYTES, jobCacheAgeMs: MAX_JOB_CACHE_AGE_MS, operationDedupeMs: OPERATION_DEDUPE_MS,
@@ -559,14 +576,18 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'GET' && url.pathname === '/v1/accounts/me') {
       const identity=requireAccount(req);
-      return sendJson(res,200,{ok:true,...identity});
+      return sendJson(res,200,{ok:true,...identity,entitlements:planEntitlements(identity.account.plan)});
     }
     if (req.method === 'POST' && url.pathname === '/v1/accounts/logout') {
       return sendJson(res,200,{ok:true,...accounts.logout(accountSessionToken(req))});
     }
     if (req.method === 'GET' && url.pathname === '/v1/accounts/devices') {
       const identity=requireAccount(req),owned=allDeviceViews().filter(device=>device.accountId===identity.account.accountId);
-      return sendJson(res,200,{ok:true,account:identity.account,devices:owned});
+      return sendJson(res,200,{ok:true,account:identity.account,entitlements:planEntitlements(identity.account.plan),devices:owned});
+    }
+    if (req.method === 'GET' && url.pathname === '/v1/accounts/usage') {
+      const identity=requireAccount(req,{touch:false}),months=Math.max(1,Math.min(Number(url.searchParams.get('months'))||6,24));
+      return sendJson(res,200,{ok:true,account:identity.account,entitlements:planEntitlements(identity.account.plan),usage:usage.summary(identity.account.accountId,{months})});
     }
     if(req.method==='POST'&&url.pathname==='/v1/accounts/enrollments/approve'){
       const identity=requireAccount(req),body=await readJson(req),approval=enrollments.approve({...body,accountId:identity.account.accountId});
@@ -695,7 +716,7 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/connect') {
       const body=await readJson(req), ctx=verifiedChannelContext(body,'connect');
-      const connection=connections.connect({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,plan:ACCOUNT_PLAN,requestedLeaseMs:ctx.payload.requestedLeaseMs,reconnectGraceMs:ctx.payload.reconnectGraceMs});
+      const connection=connections.connect({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,plan:activeAccountPlan(ctx.binding.accountId),requestedLeaseMs:ctx.payload.requestedLeaseMs,reconnectGraceMs:ctx.payload.reconnectGraceMs});
       devices.heartbeat(ctx.device.deviceId,{agentVersion:ctx.payload.agentVersion});
       return sendJson(res,200,{ok:true,connection});
     }
@@ -846,7 +867,7 @@ const server = http.createServer(async (req, res) => {
       if (req.method==='GET' && action==='get') return sendJson(res,200,{ok:true,connection:connectionViewForDevice(deviceId)});
       if (req.method==='POST' && action==='connect') {
         const body=await readJson(req);
-        const connection=connections.connect({accountId:ACCOUNT_ID,deviceId,plan:ACCOUNT_PLAN,requestedLeaseMs:body.requestedLeaseMs,reconnectGraceMs:body.reconnectGraceMs});
+        const connection=connections.connect({accountId:ACCOUNT_ID,deviceId,plan:activeAccountPlan(ACCOUNT_ID),requestedLeaseMs:body.requestedLeaseMs,reconnectGraceMs:body.reconnectGraceMs});
         return sendJson(res,200,{ok:true,connection});
       }
       if (req.method==='POST' && action==='disconnect') {
