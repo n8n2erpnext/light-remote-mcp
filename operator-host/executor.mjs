@@ -446,6 +446,14 @@ function requireAccount(req,{touch=true}={}){
 
 function activeAccountPlan(accountId=ACCOUNT_ID){try{return String(accounts.account(accountId).plan||ACCOUNT_PLAN).toLowerCase();}catch{return ACCOUNT_PLAN;}}
 function planEntitlements(plan){const key=String(plan||'free').toLowerCase(),capMs=DEFAULT_PLAN_CONNECTION_CAPS[key]||DEFAULT_PLAN_CONNECTION_CAPS.free;return {plan:key,connectionLeaseMs:capMs,connectionLeaseHours:capMs/3600000,multiDeviceConsole:key==='pro'||key==='vip',usageMetering:true,singleCodebase:true};}
+function revokeRuntimeForDevice(deviceId,reason){
+  const why=String(reason||'owner_revoked');
+  try{connections.disconnect(deviceId,why);}catch{}
+  try{accessGrants.closeByDevice(deviceId,why);}catch{}
+  try{pairingCodes.invalidateDevice(deviceId,why);}catch{}
+  try{agentClients.removeDevice(deviceId,why);}catch{}
+  try{sessions.closeByDevice(deviceId,why,{force:true});}catch{}
+}
 
 function capabilities() {
   return {
@@ -599,7 +607,7 @@ const server = http.createServer(async (req, res) => {
       const identity=requireAccount(req),device=devices.get(accountRevokeMatch[1]);
       if(device.accountId!==identity.account.accountId)throw new AccountError('account_device_mismatch',403);
       const binding=enrollments.revoke({deviceId:device.deviceId,accountId:identity.account.accountId,reason:'account_owner_revoked'}),revoked=devices.revoke(device.deviceId,'account_owner_revoked');
-      try{accessGrants.closeByDevice(device.deviceId,'account_owner_revoked');pairingCodes.invalidateDevice(device.deviceId,'account_owner_revoked');agentClients.removeDevice(device.deviceId,'account_owner_revoked');sessions.closeByDevice(device.deviceId,'account_owner_revoked',{force:true});}catch{}
+      revokeRuntimeForDevice(device.deviceId,'account_owner_revoked');
       return sendJson(res,200,{ok:true,binding,device:revoked});
     }
     if (req.method === 'POST' && url.pathname === '/v1/accounts/devices/revoke-all') {
@@ -607,10 +615,7 @@ const server = http.createServer(async (req, res) => {
       for(const device of rows){
         try{enrollments.revoke({deviceId:device.deviceId,accountId:identity.account.accountId,reason:'account_owner_revoke_all'});}catch{}
         try{revoked.push(devices.revoke(device.deviceId,'account_owner_revoke_all'));}catch{}
-        try{accessGrants.closeByDevice(device.deviceId,'account_owner_revoke_all');}catch{}
-        try{pairingCodes.invalidateDevice(device.deviceId,'account_owner_revoke_all');}catch{}
-        try{agentClients.removeDevice(device.deviceId,'account_owner_revoke_all');}catch{}
-        try{sessions.closeByDevice(device.deviceId,'account_owner_revoke_all',{force:true});}catch{}
+        revokeRuntimeForDevice(device.deviceId,'account_owner_revoke_all');
       }
       return sendJson(res,200,{ok:true,revoked});
     }
@@ -854,9 +859,7 @@ const server = http.createServer(async (req, res) => {
       if (String(body.deviceId || revokeMatch[1]) !== revokeMatch[1]) throw new EnrollmentError('device_id_mismatch', 409);
       const binding = enrollments.revoke({ deviceId:revokeMatch[1], accountId:body.accountId, reason:body.reason });
       const device = devices.revoke(revokeMatch[1], body.reason || 'owner_revoked');
-      try { accessGrants.closeByDevice(revokeMatch[1], body.reason || 'owner_revoked'); } catch {}
-      try { pairingCodes.invalidateDevice(revokeMatch[1], body.reason || 'owner_revoked'); } catch {}
-      try { agentClients.removeDevice(revokeMatch[1], body.reason || 'owner_revoked'); } catch {}
+      revokeRuntimeForDevice(revokeMatch[1],body.reason||'owner_revoked');
       return sendJson(res, 200, { ok:true, binding, device });
     }
     const connectionMatch = url.pathname.match(/^\/v1\/devices\/([A-Za-z0-9._:-]+)\/connection(?:\/(connect|disconnect|grace|activity))?$/);

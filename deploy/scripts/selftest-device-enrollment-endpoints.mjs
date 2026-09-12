@@ -16,6 +16,8 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 for(let i=0;i<100&&!fs.existsSync(socketPath);i++)await sleep(40);
 if(!fs.existsSync(socketPath))throw new Error(`executor_not_ready:${stderr}`);
 function request(method,target,body){return new Promise((resolve,reject)=>{const payload=body==null?null:Buffer.from(JSON.stringify(body));const req=http.request({socketPath,method,path:target,headers:payload?{'content-type':'application/json','content-length':payload.length}:{}},res=>{let text='';res.on('data',c=>text+=c);res.on('end',()=>{let json;try{json=JSON.parse(text)}catch{json={raw:text}}resolve({status:res.statusCode,json});});});req.on('error',reject);if(payload)req.write(payload);req.end();});}
+const executorSource=fs.readFileSync(path.join(root,'operator-host/executor.mjs'),'utf8');
+for(const token of ["revokeRuntimeForDevice(device.deviceId,'account_owner_revoked')","revokeRuntimeForDevice(device.deviceId,'account_owner_revoke_all')","revokeRuntimeForDevice(revokeMatch[1],body.reason||'owner_revoked')","connections.disconnect(deviceId,why)"]){if(!executorSource.includes(token))throw new Error('revoke_cascade_contract_missing:'+token);}
 const caps=await request('GET','/v1/capabilities');
 if(caps.status!==200||!caps.json.enrollment?.signedHeartbeat||!caps.json.execution?.includes('fleet_routing'))throw new Error('device_enrollment_capabilities_failed');
 const {publicKey,privateKey}=crypto.generateKeyPairSync('ed25519');
@@ -44,8 +46,14 @@ const policy=await request('POST',`/v1/devices/${deviceId}/policy`,{deviceId,acc
 if(policy.status!==200||policy.json.policy?.policyRevision!==2||policy.json.policy?.approvedCapabilities?.join(',')!=='git'||!policy.json.policy?.grantableCapabilities?.includes('docker'))throw new Error(`device_policy_update_failed:${policy.status}`);
 devices=await request('GET','/v1/devices');enrolled=devices.json.devices?.find(d=>d.deviceId===deviceId);
 if(enrolled?.policy?.policyProfile!=='restricted'||enrolled?.policy?.policyRevision!==2)throw new Error('device_policy_view_not_updated');
+const connected=await request('POST',`/v1/devices/${deviceId}/connection/connect`,{});
+if(connected.status!==200||connected.json.connection?.state!=='connected')throw new Error('device_connection_before_revoke_failed');
 const revoked=await request('POST',`/v1/devices/${deviceId}/revoke`,{deviceId,accountId:'self-hosted-local',reason:'selftest_cleanup'});
 if(revoked.status!==200||revoked.json.device?.state!=='revoked')throw new Error('device_revoke_failed');
+const afterRevokeConnection=await request('GET',`/v1/devices/${deviceId}/connection`);
+if(afterRevokeConnection.status!==200||afterRevokeConnection.json.connection?.state!=='dormant'||afterRevokeConnection.json.connection?.closeReason!=='selftest_cleanup')throw new Error('revoke_did_not_close_device_connection');
+const usageState=JSON.parse(fs.readFileSync(path.join(stateDir,'usage.json'),'utf8'));
+if((usageState.openConnections||[]).some(row=>row.deviceId===deviceId))throw new Error('revoke_usage_clock_still_open');
 const timestamp2=Date.now(),nonce2=crypto.randomBytes(18).toString('base64url');
 const signature2=crypto.sign(null,Buffer.from(deviceHeartbeatMessage({deviceId,timestamp:timestamp2,nonce:nonce2,capabilities})),privateKey).toString('base64url');
 const afterRevoke=await request('POST',`/v1/devices/${deviceId}/heartbeat`,{deviceId,timestamp:timestamp2,nonce:nonce2,capabilities,signature:signature2});
@@ -57,5 +65,5 @@ const reapproved=await request('POST','/v1/enrollments/approve',{code:rebegun.js
 if(reapproved.status!==200||reapproved.json.approval?.deviceId!==deviceId||reapproved.json.device?.state!=='offline'||reapproved.json.device?.revokedAt!=null||reapproved.json.device?.firstSeenAt!==firstSeenAt)throw new Error('revoked_device_reenroll_failed');
 const stateText=fs.readFileSync(path.join(stateDir,'enrollments.json'),'utf8');
 if(stateText.includes(e.deviceCode)||stateText.includes(privateKey.export({format:'der',type:'pkcs8'}).toString('base64')))throw new Error('host_state_secret_leak');
-console.log(JSON.stringify({ok:true,version:caps.json.version,enrollmentId:e.enrollmentId,deviceId,approvedState:approved.json.device.state,heartbeatState:heart.json.device.state,capabilities:heart.json.device.capabilities,replay:replay.json.error,revoked:revoked.json.device.state,reenrolled:reapproved.json.device.state},null,2));
+console.log(JSON.stringify({ok:true,version:caps.json.version,enrollmentId:e.enrollmentId,deviceId,approvedState:approved.json.device.state,heartbeatState:heart.json.device.state,capabilities:heart.json.device.capabilities,replay:replay.json.error,revoked:revoked.json.device.state,revokeClosedLease:true,usageClockClosed:true,reenrolled:reapproved.json.device.state},null,2));
 child.kill('SIGTERM'); await sleep(100); fs.rmSync(dir,{recursive:true,force:true});
