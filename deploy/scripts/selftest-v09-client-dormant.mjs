@@ -35,6 +35,15 @@ await sleep(900);
 if(requests!==0) throw new Error(`dormant_client_called_server:${requests}`);
 daemon.kill('SIGTERM');await sleep(150);
 
+// A locally known hard-expired lease must become Dormant without waiting on a remote status/poll timeout.
+const locallyExpired=state(true);locallyExpired.cloud.hardExpiresAt=Date.now()-1000;locallyExpired.cloud.connectionId='dc_local_expired';
+fs.writeFileSync(stateFile,JSON.stringify(locallyExpired),{mode:0o600});requests=0;mode='connect';
+daemon=startDaemon();await sleep(900);
+const localExpiredState=JSON.parse(fs.readFileSync(stateFile,'utf8'));
+if(requests!==0) throw new Error(`local_hard_expiry_called_server:${requests}`);
+if(localExpiredState.cloud?.desiredConnected!==false||localExpiredState.cloud?.state!=='dormant'||localExpiredState.cloud?.connectionId!==null) throw new Error('local_hard_expiry_not_dormant');
+daemon.kill('SIGTERM');await sleep(150);
+
 fs.writeFileSync(stateFile,JSON.stringify(state(true)),{mode:0o600});requests=0;mode='expire';
 daemon=startDaemon();
 await sleep(1800);
@@ -65,5 +74,5 @@ const raceState=JSON.parse(fs.readFileSync(stateFile,'utf8'));
 if(raceState.cloud?.connectionId!=='dc_race'||raceState.cloud?.hardExpiresAt==null||raceState.cloud?.reconnectGraceMs!==1800000) throw new Error(`inflight_poll_clobbered_connect_state:${JSON.stringify(raceState.cloud)}`);
 daemon.kill('SIGTERM');await sleep(150);
 
-console.log(JSON.stringify({ok:true,dormantCloudRequests:0,expiryRequests:1,connectRequests:1,inflightPollConnectRace:'preserved',serviceModel:'always-alive-local/cloud-finite'},null,2));
+console.log(JSON.stringify({ok:true,dormantCloudRequests:0,localHardExpiryRequests:0,expiryRequests:1,connectRequests:1,inflightPollConnectRace:'preserved',serviceModel:'always-alive-local/cloud-finite'},null,2));
 server.close();fs.rmSync(tmp,{recursive:true,force:true});

@@ -102,6 +102,13 @@ async function executeCommand(state,command){
   writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;
 }
 function cloudDesired(state){return Boolean(state?.enrollment?.deviceId)&&state?.cloud?.desiredConnected!==false;}
+function expireLocalHardLease(state,{persist=true}={}){
+  const expiresAt=Number(state?.cloud?.hardExpiresAt);
+  if(!cloudDesired(state)||state?.cloud?.state!=='connected'||!Number.isFinite(expiresAt)||Date.now()<expiresAt)return false;
+  state.cloud={...(state.cloud||{}),desiredConnected:false,state:'dormant',connectionId:null,hardExpiresAt:null,lastError:'device_connection_expired',lastDisconnectedAt:Date.now(),changedAt:Date.now()};
+  if(persist)writeState(state);
+  return true;
+}
 function markCloudState(state,value){state.cloud={...(state.cloud||{}),...value,changedAt:Date.now()};writeState(state);return state.cloud;}
 async function connectCloud(args={}){
   const hub=args.hub||DEFAULT_HUB,state=readState();
@@ -167,6 +174,7 @@ async function denyDeviceAccess(requestId,hub=DEFAULT_HUB,reason='owner_denied')
   return response.authorization||response;
 }
 function statusView(state=readState()){
+  if(state)expireLocalHardLease(state);
   if(!state)return {ok:true,version:VERSION,platformAdapter:PLATFORM_ADAPTER.id,enrolled:false,deviceId:null,deviceName:os.hostname(),accountId:null,cloudDesiredConnected:false,cloudState:'dormant',connectionId:null,hardExpiresAt:null,reconnectGraceMs:null,connectionPlan:null,stateFile:STATE_FILE,localWallUrl:`http://${LOCAL_WALL_HOST}:${LOCAL_WALL_PORT}/`};
   return {ok:true,version:VERSION,platformAdapter:PLATFORM_ADAPTER.id,enrolled:Boolean(state.enrollment?.deviceId),deviceId:state.enrollment?.deviceId||null,deviceName:os.hostname(),nodeId:state.enrollment?.nodeId||state.enrollment?.deviceId||null,accountId:state.enrollment?.accountId||null,pendingEnrollmentId:state.pendingEnrollment?.enrollmentId||null,publicKeySha256:state.identity?.publicKeySha256||null,policyProfile:state.enrollment?.policyProfile||state.pendingEnrollment?.requestedPolicy||null,policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),grantableCapabilities:state.enrollment?.grantableCapabilities||state.enrollment?.approvedCapabilities||[],approvedCapabilities:state.enrollment?.approvedCapabilities||[],deniedCapabilities:state.policy?.deniedCapabilities||[],effectiveCapabilities:state.effectiveCapabilities||[],draining:Boolean(state.routing?.draining),cloudDesiredConnected:cloudDesired(state),cloudState:state.cloud?.state||(cloudDesired(state)?'legacy-connected':'dormant'),connectionId:state.cloud?.connectionId||null,hardExpiresAt:state.cloud?.hardExpiresAt||null,reconnectGraceMs:state.cloud?.reconnectGraceMs||null,connectionPlan:state.cloud?.plan||null,lastCloudError:state.cloud?.lastError||null,lastHeartbeatAt:state.lastHeartbeatAt||null,stateFile:STATE_FILE,commandDir:COMMAND_DIR,localWallUrl:`http://${LOCAL_WALL_HOST}:${LOCAL_WALL_PORT}/`,privateKeyStoredLocally:Boolean(state.identity?.privateKey)};
 }
@@ -188,6 +196,7 @@ async function daemon(args){
   console.log(JSON.stringify({event:'device_agent_started',mode:'always-alive-service',platformAdapter:PLATFORM_ADAPTER.id,deviceId:state.enrollment?.deviceId||null,nodeId:state.enrollment?.nodeId||null,sessionCeiling,waitMs,dormantPollMs,localWallUrl:localWall.url}));
   while(!stopped){
     const latest=readState();if(latest)state=latest;
+    expireLocalHardLease(state);
     if(!state.enrollment?.deviceId||!cloudDesired(state)){await wait(dormantPollMs);continue;}
     try{
       const payload={nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling,draining:Boolean(state.routing?.draining),capabilities:effectiveCapabilities(state.enrollment.approvedCapabilities,state.policy?.deniedCapabilities),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),waitMs};
