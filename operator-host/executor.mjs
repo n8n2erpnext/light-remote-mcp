@@ -542,7 +542,8 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'POST' && url.pathname === '/v1/accounts/register') {
       const body=await readJson(req);
-      if(body.ownerProofVerified!==true) throw new AccountError('owner_migration_proof_required',403);
+      if(body.ownerCode) accounts.consumeOwnerProof(body.ownerCode);
+      else if(body.ownerProofVerified!==true) throw new AccountError('owner_migration_proof_required',403);
       const created=accounts.register({email:body.email,password:body.password});
       return sendJson(res,201,{ok:true,account:created.account,session:created.session,token:created.token});
     }
@@ -711,6 +712,12 @@ const server = http.createServer(async (req, res) => {
       const connection=connections.assertConnected(ctx.device.deviceId);
       const pairing=pairingCodes.rotate({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,connectionId:connection.connectionId,connectionExpiresAt:connection.hardExpiresAt});
       return sendJson(res,200,{ok:true,pairing});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/device-channel/account-owner-proof') {
+      const body=await readJson(req), ctx=verifiedChannelContext(body,'account-owner-proof');
+      connections.assertConnected(ctx.device.deviceId);
+      const proof=accounts.issueOwnerProof({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId});
+      return sendJson(res,200,{ok:true,proof});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/access-approve') {
       const body=await readJson(req), ctx=verifiedChannelContext(body,'access-approve');

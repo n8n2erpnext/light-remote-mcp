@@ -7,6 +7,9 @@ export class AccountError extends Error {
 }
 const EMAIL_RE=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ACCOUNT_RE=/^[A-Za-z0-9._:-]{1,128}$/;
+const OWNER_PROOF_TTL_MS=5*60*1000;
+function ownerCode(){const alphabet='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',bytes=crypto.randomBytes(8);let out='';for(let i=0;i<8;i++)out+=alphabet[bytes[i]%alphabet.length];return `${out.slice(0,4)}-${out.slice(4)}`;}
+function normalizeOwnerCode(value){const raw=String(value||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');return raw.length===8?`${raw.slice(0,4)}-${raw.slice(4)}`:'';}
 function normalizeEmail(value){return String(value||'').trim().toLowerCase();}
 function sha256(value){return crypto.createHash('sha256').update(String(value||'')).digest('hex');}
 function safeEqual(a,b){const aa=Buffer.from(String(a||'')),bb=Buffer.from(String(b||''));return aa.length===bb.length&&aa.length>0&&crypto.timingSafeEqual(aa,bb);}
@@ -26,7 +29,7 @@ export class AccountRegistry{
   constructor({stateFile=null,bootstrapAccountId='self-hosted-local',sessionTtlMs=7*24*60*60*1000,now=()=>Date.now(),emit=()=>{}}={}){
     if(!ACCOUNT_RE.test(String(bootstrapAccountId||'')))throw new AccountError('invalid_bootstrap_account_id');
     this.stateFile=stateFile;this.bootstrapAccountId=String(bootstrapAccountId);this.sessionTtlMs=Math.max(30*60*1000,Math.min(Number(sessionTtlMs)||7*24*60*60*1000,30*24*60*60*1000));
-    this.now=now;this.emit=emit;this.accounts=new Map();this.byEmail=new Map();this.sessions=new Map();this.loadError=null;this._load();
+    this.now=now;this.emit=emit;this.accounts=new Map();this.byEmail=new Map();this.sessions=new Map();this.ownerProofs=new Map();this.loadError=null;this._load();
   }
   _persist(){
     if(!this.stateFile)return;
@@ -58,6 +61,25 @@ export class AccountRegistry{
     const mine=[...this.sessions.values()].filter(x=>x.accountId===account.accountId).sort((a,b)=>b.createdAt-a.createdAt);
     for(const stale of mine.slice(20))this.sessions.delete(stale.tokenHash);
     this._persist();return {token,session:{sessionId:row.sessionId,expiresAt:row.expiresAt},account:this._viewAccount(account)};
+  }
+  issueOwnerProof({accountId,deviceId,ttlMs=OWNER_PROOF_TTL_MS}={}){
+    const aid=String(accountId||''),did=String(deviceId||'');
+    if(this.accounts.size>0)throw new AccountError('account_registration_closed',409);
+    if(aid!==this.bootstrapAccountId)throw new AccountError('owner_migration_account_mismatch',403);
+    if(!ACCOUNT_RE.test(did))throw new AccountError('invalid_owner_proof_device');
+    const now=this.now(),ttl=Math.max(60_000,Math.min(Number(ttlMs)||OWNER_PROOF_TTL_MS,10*60*1000));
+    for(const [hash,row] of this.ownerProofs)if(row.deviceId===did||row.expiresAt<=now)this.ownerProofs.delete(hash);
+    const code=ownerCode(),codeHash=sha256(code),row={accountId:aid,deviceId:did,createdAt:now,expiresAt:now+ttl};
+    this.ownerProofs.set(codeHash,row);this.emit({type:'account_owner_proof_issued',accountId:aid,deviceId:did,status:'pending',expiresAt:row.expiresAt});
+    return {code,expiresAt:row.expiresAt,deviceId:did};
+  }
+  consumeOwnerProof(code){
+    if(this.accounts.size>0)throw new AccountError('account_registration_closed',409);
+    const normalized=normalizeOwnerCode(code);if(!normalized)throw new AccountError('owner_migration_proof_required',401);
+    const hash=sha256(normalized),row=this.ownerProofs.get(hash),now=this.now();
+    if(!row||row.expiresAt<=now){if(row)this.ownerProofs.delete(hash);throw new AccountError('owner_migration_proof_invalid',401);}
+    this.ownerProofs.delete(hash);this.emit({type:'account_owner_proof_consumed',accountId:row.accountId,deviceId:row.deviceId,status:'consumed'});
+    return {...row};
   }
   register(input={}){
     const email=normalizeEmail(input.email),password=String(input.password||'');

@@ -17,7 +17,7 @@ async function accountAction(req,res,action){
   if(mutations.has(action)&&!sameOriginMutation(req))return res.status(403).json({ok:false,error:'cross_site_request_denied'});
   if(action==='register'||action==='login'){
     if(!method(req,res,'POST'))return;
-    const upstream=await callOperator(`/account/${action}`,{method:'POST',body:{email:req.body?.email,password:req.body?.password,ownerPassword:req.body?.ownerPassword},timeoutMs:9000});
+    const upstream=await callOperator(`/account/${action}`,{method:'POST',body:{email:req.body?.email,password:req.body?.password,ownerPassword:req.body?.ownerPassword,ownerCode:req.body?.ownerCode},timeoutMs:9000});
     setSessionCookie(res,upstream.token,upstream.session?.expiresAt);
     return res.status(action==='register'?201:200).json({ok:true,account:upstream.account,session:upstream.session});
   }

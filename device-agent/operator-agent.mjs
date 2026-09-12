@@ -161,6 +161,11 @@ async function rotatePairingCode(hub=DEFAULT_HUB){
   const response=await channelRequest(state,hub,'pairing-code',{nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION});
   return response.pairing;
 }
+async function accountOwnerProofCode(hub=DEFAULT_HUB){
+  const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
+  const response=await channelRequest(state,hub,'account-owner-proof',{nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION});
+  return response.proof;
+}
 async function approveDeviceAccess(requestId,hub=DEFAULT_HUB){
   const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
   const id=String(requestId||'').trim();if(!/^pa_[A-Za-z0-9_-]{20,80}$/.test(id))throw new Error('invalid_plus_request_id');
@@ -202,7 +207,7 @@ async function daemon(args){
   const stop=()=>{stopped=true;if(wake)wake();try{localWall?.server.close();}catch{}};process.on('SIGTERM',stop);process.on('SIGINT',stop);
   const wait=ms=>new Promise(resolve=>{const timer=setTimeout(()=>{wake=null;resolve();},ms);wake=()=>{clearTimeout(timer);wake=null;resolve();};});
   const wallAuth=loadLocalWallAuth(LOCAL_WALL_AUTH_FILE,{required:!['127.0.0.1','::1','localhost'].includes(String(LOCAL_WALL_HOST))});
-  localWall=startLocalWall({host:LOCAL_WALL_HOST,port:LOCAL_WALL_PORT,brandSvgPath:LOCAL_WALL_BRAND,auth:wallAuth,getLocalStatus:async()=>statusView(),getRemoteStatus:async()=>{const remote=await remoteDeviceStatus(hub);return remote;},getRemoteActivity:async limit=>remoteDeviceActivity(hub,limit),connect:async data=>connectCloud({hub,graceMinutes:data.graceMinutes,leaseHours:data.leaseHours,silent:true}),disconnect:async data=>disconnectCloud({hub,reason:data.reason||'local_wall_disconnect',silent:true}),setGrace:async data=>setConnectionGrace({hub,minutes:data.minutes,silent:true}),setPermissions:async data=>setLocalPermissions(data?.allowedCapabilities),pairingCode:async()=>rotatePairingCode(hub),accessApprove:async requestId=>approveDeviceAccess(requestId,hub),accessDeny:async(requestId,data)=>denyDeviceAccess(requestId,hub,data?.reason||'owner_denied')});
+  localWall=startLocalWall({host:LOCAL_WALL_HOST,port:LOCAL_WALL_PORT,brandSvgPath:LOCAL_WALL_BRAND,auth:wallAuth,getLocalStatus:async()=>statusView(),getRemoteStatus:async()=>{const remote=await remoteDeviceStatus(hub);return remote;},getRemoteActivity:async limit=>remoteDeviceActivity(hub,limit),connect:async data=>connectCloud({hub,graceMinutes:data.graceMinutes,leaseHours:data.leaseHours,silent:true}),disconnect:async data=>disconnectCloud({hub,reason:data.reason||'local_wall_disconnect',silent:true}),setGrace:async data=>setConnectionGrace({hub,minutes:data.minutes,silent:true}),setPermissions:async data=>setLocalPermissions(data?.allowedCapabilities),pairingCode:async()=>rotatePairingCode(hub),ownerProofCode:async()=>accountOwnerProofCode(hub),accessApprove:async requestId=>approveDeviceAccess(requestId,hub),accessDeny:async(requestId,data)=>denyDeviceAccess(requestId,hub,data?.reason||'owner_denied')});
   console.log(JSON.stringify({event:'local_wall_started',url:localWall.url,deviceId:state.enrollment?.deviceId||null}));
   console.log(JSON.stringify({event:'device_agent_started',mode:'always-alive-service',platformAdapter:PLATFORM_ADAPTER.id,deviceId:state.enrollment?.deviceId||null,nodeId:state.enrollment?.nodeId||null,sessionCeiling,waitMs,dormantPollMs,localWallUrl:localWall.url}));
   while(!stopped){

@@ -260,6 +260,7 @@ app.post('/device-channel/connect', softRateLimit, (req, res) => proxyOperatorJs
 app.post('/device-channel/disconnect', softRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/disconnect', req.body || {}));
 app.post('/device-channel/grace', softRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/grace', req.body || {}));
 app.post('/device-channel/pairing-code', softRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/pairing-code', req.body || {}));
+app.post('/device-channel/account-owner-proof', softRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/account-owner-proof', req.body || {}));
 app.post('/device-channel/access-approve', softRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/access-approve', req.body || {}));
 app.post('/device-channel/access-deny', softRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/access-deny', req.body || {}));
 app.post('/device-channel/status', softRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/status', req.body || {}));
@@ -267,6 +268,8 @@ app.post('/device-channel/activity', softRateLimit, (req, res) => proxyOperatorJ
 app.post('/device-channel/poll', softRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/poll', req.body || {}));
 app.post('/device-channel/result', softRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/result', req.body || {}));
 app.post('/account/register', softRateLimit, requireVercelIdentity, (req,res)=>{
+  const ownerCode=String(req.body?.ownerCode||'').trim();
+  if(ownerCode)return proxyOperatorJson(res,'POST','/v1/accounts/register',{email:req.body?.email,password:req.body?.password,ownerCode});
   const ownerPassword=String(req.body?.ownerPassword||'');
   if(!ownerPassword||!wallAuth.verifyCredentials(wallAuth.info().username,ownerPassword))return res.status(401).json({ok:false,error:'owner_migration_proof_required'});
   return proxyOperatorJson(res,'POST','/v1/accounts/register',{email:req.body?.email,password:req.body?.password,ownerProofVerified:true});

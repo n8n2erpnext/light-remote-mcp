@@ -10,6 +10,11 @@ const events=[];
 const registry=new AccountRegistry({stateFile,bootstrapAccountId:'self-hosted-local',sessionTtlMs:60*60*1000,now:()=>now,emit:e=>events.push(e)});
 function expectError(fn,message,status){let caught=null;try{fn();}catch(e){caught=e;}if(!(caught instanceof AccountError)||caught.message!==message||caught.status!==status)throw new Error(`expected_${message}_${status}`);}
 try{
+  const proof=registry.issueOwnerProof({accountId:'self-hosted-local',deviceId:'dev_owner_test'});
+  if(!/^[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(proof.code)||proof.deviceId!=='dev_owner_test')throw new Error('owner_proof_issue_failed');
+  const consumed=registry.consumeOwnerProof(proof.code);if(consumed.deviceId!=='dev_owner_test')throw new Error('owner_proof_consume_failed');
+  expectError(()=>registry.consumeOwnerProof(proof.code),'owner_migration_proof_invalid',401);
+  if(events.some(e=>JSON.stringify(e).includes(proof.code)))throw new Error('owner_proof_leaked_to_event');
   const first=registry.register({email:'Owner@Example.com',password:'correct horse battery staple'});
   if(first.account.accountId!=='self-hosted-local'||first.account.email!=='owner@example.com'||first.account.plan!=='free')throw new Error('bootstrap_account_contract_failed');
   const raw=JSON.parse(fs.readFileSync(stateFile,'utf8'));
@@ -31,5 +36,5 @@ try{
   expectError(()=>reloaded.authenticate(login.token),'account_session_required',401);
   now+=2*60*60*1000;
   expectError(()=>reloaded.authenticate(first.token),'account_session_required',401);
-  console.log(JSON.stringify({ok:true,bootstrapAccount:true,passwordHashed:true,tokenHashed:true,persistence:true,logout:true,expiry:true,noEmailAudit:true},null,2));
+  console.log(JSON.stringify({ok:true,bootstrapAccount:true,passwordHashed:true,tokenHashed:true,persistence:true,logout:true,expiry:true,noEmailAudit:true,ownerProofOneTime:true},null,2));
 }finally{fs.rmSync(dir,{recursive:true,force:true});}
