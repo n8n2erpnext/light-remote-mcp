@@ -541,7 +541,9 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { ok: true, ...capabilities() });
     }
     if (req.method === 'POST' && url.pathname === '/v1/accounts/register') {
-      const body=await readJson(req),created=accounts.register(body);
+      const body=await readJson(req);
+      if(body.ownerProofVerified!==true) throw new AccountError('owner_migration_proof_required',403);
+      const created=accounts.register({email:body.email,password:body.password});
       return sendJson(res,201,{ok:true,account:created.account,session:created.session,token:created.token});
     }
     if (req.method === 'POST' && url.pathname === '/v1/accounts/login') {

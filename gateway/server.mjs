@@ -269,7 +269,7 @@ app.post('/device-channel/result', softRateLimit, (req, res) => proxyOperatorJso
 app.post('/account/register', softRateLimit, requireVercelIdentity, (req,res)=>{
   const ownerPassword=String(req.body?.ownerPassword||'');
   if(!ownerPassword||!wallAuth.verifyCredentials(wallAuth.info().username,ownerPassword))return res.status(401).json({ok:false,error:'owner_migration_proof_required'});
-  return proxyOperatorJson(res,'POST','/v1/accounts/register',{email:req.body?.email,password:req.body?.password});
+  return proxyOperatorJson(res,'POST','/v1/accounts/register',{email:req.body?.email,password:req.body?.password,ownerProofVerified:true});
 });
 app.post('/account/login', softRateLimit, requireVercelIdentity, (req,res)=>proxyOperatorJson(res,'POST','/v1/accounts/login',req.body||{}));
 app.get('/account/me', softRateLimit, requireVercelIdentity, (req,res)=>proxyOperatorJson(res,'GET','/v1/accounts/me',null,accountProxyHeaders(req)));

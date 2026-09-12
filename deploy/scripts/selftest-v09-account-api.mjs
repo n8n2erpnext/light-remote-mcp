@@ -15,14 +15,16 @@ const email=`integration-${crypto.randomBytes(4).toString('hex')}@example.test`;
 const secret=`T-${crypto.randomBytes(18).toString('base64url')}`;
 try{
   await waitSocket();
-  const reg=await request('POST','/v1/accounts/register',{email,password:secret});
+  const denied=await request('POST','/v1/accounts/register',{email,password:secret});
+  if(denied.status!==403||denied.json.error!=='owner_migration_proof_required')throw new Error('owner_proof_boundary_failed');
+  const reg=await request('POST','/v1/accounts/register',{email,password:secret,ownerProofVerified:true});
   if(reg.status!==201||reg.json.account?.accountId!=='self-hosted-local'||!reg.json.token)throw new Error('register_failed');
   const token=reg.json.token;
   const me=await request('GET','/v1/accounts/me',null,token);
   if(me.status!==200||me.json.account?.accountId!=='self-hosted-local')throw new Error('me_failed');
   const dev=await request('GET','/v1/accounts/devices',null,token);
   if(dev.status!==200||dev.json.devices?.length!==1||dev.json.devices[0]?.deviceId!=='arm-test'||dev.json.devices[0]?.accountId!=='self-hosted-local')throw new Error('account_devices_failed');
-  const dup=await request('POST','/v1/accounts/register',{email,password:secret});
+  const dup=await request('POST','/v1/accounts/register',{email,password:secret,ownerProofVerified:true});
   if(dup.status!==409||dup.json.error!=='account_email_exists')throw new Error('duplicate_register_failed');
   const bad=await request('POST','/v1/accounts/login',{email,password:'definitely-wrong'});
   if(bad.status!==401||bad.json.error!=='invalid_account_credentials')throw new Error('bad_login_failed');
