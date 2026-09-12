@@ -29,8 +29,10 @@ module.exports=async function handler(req,res){
     let upstream;
     if(plus){
       if(action==='connect') {
-        const d=payloadFor(req),raw=String(d.aCode||'').trim().toUpperCase().replace(/-/g,''),agentId=aid(d.agentId),label=String(d.label||'ChatGPT').trim().slice(0,120);
-        if(!/^[A-Z2-9]{8}$/.test(raw)){const e=new Error('invalid_pairing_code');e.status=400;throw e;}
+        const d=payloadFor(req),raw=String(d.aCode||'').trim().toUpperCase().replace(/-/g,'');
+        if(!raw){const e=new Error('pairing_code_required');e.status=428;e.payload={ok:false,status:'need_a_code',error:e.message};throw e;}
+        if(!/^[A-Z2-9]{8}$/.test(raw)){const e=new Error('invalid_pairing_code');e.status=400;e.payload={ok:false,status:'need_a_code',error:e.message};throw e;}
+        const agentId=aid(d.agentId),label=String(d.label||'ChatGPT').trim().slice(0,120);
         let client=null;if(d.client!=null&&String(d.client).trim()){client=String(d.client).trim();if(!/^o1\.client\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(client)){const e=new Error('invalid_agent_client');e.status=400;throw e;}}
         upstream=await callOperator('/plus/connect/begin',{method:'POST',body:{aCode:`${raw.slice(0,4)}-${raw.slice(4)}`,agentId,label,client}});
       }

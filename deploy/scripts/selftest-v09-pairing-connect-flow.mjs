@@ -36,8 +36,9 @@ const plus=createPlusAuth(wall,{pairAccess,pollAccess,assertGrant,attachClient,l
 function response(){return {statusCode:200,body:null,status(n){this.statusCode=n;return this;},json(v){this.body=v;return this;},type(){return this;},send(v){this.body=v;return this;},set(){return this;}};}
 function requestWithClient(token,body={},query={}){return {body,query,get:name=>name==='x-light-client'?token:''};}
 
+let r=response();await plus.connectBegin({body:{agentId,label:'fresh-agent'}},r);assert.equal(r.body.status,'need_a_code');assert.equal(r.body.error,'invalid_pairing_code');
 const a1=pairing.rotate({accountId,deviceId:'dev-a',connectionId:'dc-a',connectionExpiresAt:connections.get('dev-a').hardExpiresAt});
-let r=response();await plus.connectBegin({body:{aCode:a1.code,agentId,label:'ChatGPT'}},r);
+r=response();await plus.connectBegin({body:{aCode:a1.code,agentId,label:'ChatGPT'}},r);
 assert.equal(r.statusCode,201);assert.equal(r.body.status,'approval_required');assert.match(r.body.code,/^[A-Z2-9]{4}-[A-Z2-9]{4}$/);assert.ok(r.body.continuation.startsWith('o1.pair.'));
 assert.ok(JSON.stringify(r.body).length<1000,'connect response must remain compact');
 const b1=r.body.code,cont1=r.body.continuation,ctx1=verify('pair',cont1);
