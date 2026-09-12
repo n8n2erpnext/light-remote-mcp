@@ -35,7 +35,7 @@ const server=http.createServer(async(req,res)=>{
     if(payload.enrollmentId!==enrollmentId||payload.pollToken!==pollToken)return send(res,401,{ok:false,error:'bad_poll'});
     const deviceId=deviceIdFromBegin(),publicKeySha256=deviceId.slice(4).padEnd(64,'0');
     const realHash=crypto.createHash('sha256').update(Buffer.from(beginPayload.publicIdentityKey,'base64')).digest('hex');
-    const approvedCapabilities=beginPayload.capabilities.slice(0,Math.min(2,beginPayload.capabilities.length));
+    const approvedCapabilities=beginPayload.capabilities.slice();
     const cert={version:1,certificateId:'cert_12345678-1234-1234-1234-123456789abc',deviceId,accountId:'self-hosted-local',publicKeySha256:realHash,publicIdentityKey:beginPayload.publicIdentityKey,approvedCapabilities,policyProfile:beginPayload.policyProfile,issuedAt:Date.now(),notAfter:Date.now()+86400000};
     const certificateSignature=crypto.sign(null,Buffer.from(JSON.stringify(cert)),signer.privateKey).toString('base64url');
     return send(res,200,{ok:true,upstream:{enrollment:{enrollmentId,state:'approved',deviceId,accountId:'self-hosted-local',approvedCapabilities,policyProfile:beginPayload.policyProfile,certificate:cert,certificateSignature,signer:{algorithm:'Ed25519',publicKey:signerPublic}}}});
@@ -50,6 +50,7 @@ const server=http.createServer(async(req,res)=>{
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const base=`http://127.0.0.1:${server.address().port}`;
 function run(args,extraEnv={}){return new Promise((resolve,reject)=>{const child=spawn(process.execPath,[cli,...args],{env:{...process.env,OPERATOR_AGENT_STATE:stateFile,OPERATOR_AGENT_BASE_URL:base,OPERATOR_AGENT_HUB_URL:base,...extraEnv},stdio:['ignore','pipe','pipe']});let stdout='',stderr='';child.stdout.on('data',c=>stdout+=c);child.stderr.on('data',c=>stderr+=c);child.on('error',reject);child.on('exit',code=>resolve({code,stdout,stderr}));});}
+function wallReq(port,method,target,payload){return new Promise((resolve,reject)=>{const data=payload==null?null:Buffer.from(JSON.stringify(payload));const headers=data?{'content-type':'application/json','content-length':data.length}:{};const r=http.request({host:'127.0.0.1',port,method,path:target,headers},res=>{let text='';res.on('data',c=>text+=c);res.on('end',()=>{let json=null;try{json=JSON.parse(text)}catch{}resolve({status:res.statusCode,text,json});});});r.on('error',reject);if(data)r.write(data);r.end();});}
 const login=await run(['login','--no-wait','--name','CLI Test Device','--policy','cli-test','--deny','sudo-on-demand']);
 if(login.code!==0||!login.stdout.includes('Activation URL:')||!login.stdout.includes(`Device code: ${deviceCode}`))throw new Error(`cli_login_failed:${login.stderr}`);
 const pending=JSON.parse(fs.readFileSync(stateFile,'utf8'));
@@ -63,14 +64,29 @@ if(poll.code!==0||heartbeatCount<1)throw new Error(`cli_poll_or_heartbeat_failed
 const enrolled=JSON.parse(fs.readFileSync(stateFile,'utf8'));
 if(!enrolled.enrollment?.deviceId||enrolled.pendingEnrollment||!Array.isArray(enrolled.effectiveCapabilities))throw new Error('cli_enrolled_state_invalid');
 if(enrolled.policy?.deniedCapabilities?.includes('sudo-on-demand')!==true)throw new Error('cli_local_deny_missing');
+if(enrolled.cloud?.state!=='dormant'||enrolled.cloud?.desiredConnected!==false)throw new Error('fresh_enrollment_must_wait_for_explicit_connect');
 const status2=await run(['status']);
 if(status2.stdout.includes(enrolled.identity.privateKey)||status2.stdout.includes(pollToken)||!status2.stdout.includes('"enrolled": true'))throw new Error('cli_enrolled_status_invalid');
-const daemonChild=spawn(process.execPath,[cli,'daemon'],{env:{...process.env,OPERATOR_AGENT_STATE:stateFile,OPERATOR_AGENT_BASE_URL:base,OPERATOR_AGENT_HUB_URL:base,OPERATOR_AGENT_CHANNEL_WAIT_MS:'1000'},stdio:['ignore','pipe','pipe']});
+const daemonState=JSON.parse(fs.readFileSync(stateFile,'utf8'));daemonState.cloud={...(daemonState.cloud||{}),desiredConnected:true,state:'connected',hardExpiresAt:Date.now()+600000,lastError:null};fs.writeFileSync(stateFile,JSON.stringify(daemonState,null,2)+'\n',{mode:0o600});
+const wallPort=26000+(process.pid%5000);
+const daemonChild=spawn(process.execPath,[cli,'daemon'],{env:{...process.env,OPERATOR_AGENT_STATE:stateFile,OPERATOR_AGENT_BASE_URL:base,OPERATOR_AGENT_HUB_URL:base,OPERATOR_AGENT_CHANNEL_WAIT_MS:'1000',OPERATOR_AGENT_WALL_PORT:String(wallPort)},stdio:['ignore','pipe','pipe']});
 let daemonOut='',daemonErr='';daemonChild.stdout.on('data',c=>daemonOut+=c);daemonChild.stderr.on('data',c=>daemonErr+=c);
 const deadline=Date.now()+5000;while(channelPollCount<2&&Date.now()<deadline)await new Promise(r=>setTimeout(r,100));
 if(channelPollCount<2){daemonChild.kill('SIGTERM');throw new Error(`daemon_channel_loop_failed:${daemonErr}`);}
+let wallReady=false;for(let i=0;i<30&&!wallReady;i++){try{const st=await wallReq(wallPort,'GET','/api/status');wallReady=st.status===200;}catch{}if(!wallReady)await new Promise(r=>setTimeout(r,100));}
+if(!wallReady){daemonChild.kill('SIGTERM');throw new Error('daemon_local_wall_not_ready');}
+const reBegin=await wallReq(wallPort,'POST','/api/enrollment/begin',{});
+if(reBegin.status!==200||reBegin.json?.enrollment?.mode!=='reenroll'||!beginPayload.capabilities.includes('sudo-on-demand')){daemonChild.kill('SIGTERM');throw new Error('daemon_reenroll_begin_failed');}
+const rePending=JSON.parse(fs.readFileSync(stateFile,'utf8'));
+if(!rePending.policy?.deniedCapabilities?.includes('sudo-on-demand')){daemonChild.kill('SIGTERM');throw new Error('reenroll_local_deny_lost_at_begin');}
+const rePoll=await wallReq(wallPort,'POST','/api/enrollment/poll',{});
+if(rePoll.status!==200||rePoll.json?.enrollment?.state!=='approved'){daemonChild.kill('SIGTERM');throw new Error('daemon_reenroll_poll_failed');}
+const reenrolled=JSON.parse(fs.readFileSync(stateFile,'utf8'));
+if(!reenrolled.enrollment?.approvedCapabilities?.includes('sudo-on-demand')||!reenrolled.policy?.deniedCapabilities?.includes('sudo-on-demand')||reenrolled.effectiveCapabilities?.includes('sudo-on-demand')){daemonChild.kill('SIGTERM');throw new Error('reenroll_local_policy_not_preserved');}
+if(reenrolled.cloud?.state!=='dormant'||reenrolled.cloud?.desiredConnected!==false||reenrolled.cloud?.lastError!=null){daemonChild.kill('SIGTERM');throw new Error('reenroll_connection_state_not_reset');}
 daemonChild.kill('SIGTERM');const daemonCode=await new Promise(resolve=>daemonChild.on('exit',resolve));
 if(daemonCode!==0||!daemonOut.includes('device_agent_started')||!daemonOut.includes('device_agent_stopped'))throw new Error(`daemon_shutdown_failed:${daemonCode}:${daemonErr}`);
+console.log('device-agent-fresh-enrollment-dormant=PASS');
 console.log('device-agent-daemon-channel=PASS');
 console.log('device-agent-daemon-clean-shutdown=PASS');
 console.log('device-agent-local-key-0600=PASS');
@@ -78,4 +94,6 @@ console.log('device-agent-secret-output=PASS');
 console.log('device-agent-certificate-verify=PASS');
 console.log('device-agent-signed-heartbeat=PASS');
 console.log('device-agent-local-deny-boundary=PASS');
+console.log('device-agent-reenroll-full-grantable-local-deny-preserved=PASS');
+console.log('device-agent-reenroll-returns-dormant=PASS');
 server.close();fs.rmSync(dir,{recursive:true,force:true});

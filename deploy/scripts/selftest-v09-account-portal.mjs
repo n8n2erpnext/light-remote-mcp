@@ -6,7 +6,7 @@ const home=read('index.html'),login=read('login/index.html'),register=read('regi
 const auth=read('api/auth.js'),web=read('lib/account-web.js'),css=read('assets/light-remote-portal.css'),usage=read('usage/index.html'),settings=read('settings/index.html');
 function need(ok,name){if(!ok)throw new Error(`account_portal_contract_failed:${name}`);console.log(`${name}=PASS`);}
 need(home.includes('Light Remote')&&home.includes('Devices')&&home.includes('Usage')&&home.includes('Settings'),'account-portal-shell');
-need(home.includes('Add a device')&&home.includes('Revoke all')&&home.includes('Where you use it'),'account-portal-device-actions');
+need(home.includes('Add a device')&&home.includes('Revoke all')&&home.includes('Where you use it')&&home.includes('New install')&&home.includes('Revoked device')&&home.includes('Link device')&&home.includes('Re-enroll device'),'account-portal-device-actions');
 need(home.includes('ChatGPT')&&home.includes('Claude')&&home.includes('Any MCP client'),'account-portal-client-lanes');
 need(login.includes('/api/auth?action=login')&&register.includes('/api/auth?action=register')&&register.includes('Owner proof code')&&register.includes('ownerCode'),'account-portal-auth-actions');
 need(home.includes('/api/auth?action=devices')&&home.includes('/api/auth?action=enrollment-approve'),'account-portal-device-api');
