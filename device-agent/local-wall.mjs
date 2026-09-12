@@ -13,10 +13,16 @@ function loadBrand(path){try{return fs.readFileSync(path,'utf8');}catch{return '
 function normalizeCode(value){return String(value||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');}
 function sameOriginMutation(req){
   const site=String(req.headers['sec-fetch-site']||'').toLowerCase();
-  if(site&& !['same-origin','same-site','none'].includes(site)) return false;
+  if(site==='cross-site') return false;
+  if(site==='same-origin'||site==='none') return true;
   const origin=String(req.headers.origin||'');
-  if(!origin)return true;
-  try{const expected=String(req.headers['x-forwarded-host']||req.headers.host||'').split(',')[0].trim();return new URL(origin).host===expected;}catch{return false;}
+  if(!origin)return site!=='same-site';
+  try{
+    const originHost=new URL(origin).host;
+    const candidates=[req.headers['x-forwarded-host'],req.headers['x-original-host'],req.headers.host]
+      .flatMap(v=>String(v||'').split(',')).map(v=>v.trim()).filter(Boolean);
+    return candidates.includes(originHost);
+  }catch{return false;}
 }
 export function isAllowedLocalWallBindHost(host){
   const h=String(host||'').trim();

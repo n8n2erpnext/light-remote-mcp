@@ -43,6 +43,8 @@ try{
   r=await req('POST','/api/pairing-code',{headers:{cookie,'content-type':'application/json'},body:'{}'});assert.equal(r.status,200);assert.equal(pairingCalls,1);assert.match(r.text,/ABCD-EFGH/);
   r=await req('POST','/api/pairing-code',{headers:{'content-type':'application/json'},body:'{}'});assert.equal(r.status,401);assert.equal(pairingCalls,1);
   r=await req('POST','/api/pairing-code',{headers:{cookie,origin:'https://evil.example','x-forwarded-host':'amdwall.example','content-type':'application/json'},body:'{}'});assert.equal(r.status,403);assert.equal(pairingCalls,1);
+  r=await req('POST','/api/pairing-code',{headers:{cookie,origin:'https://amdwall.example','sec-fetch-site':'same-origin','x-forwarded-host':'100.94.235.29:5491','content-type':'application/json'},body:'{}'});assert.equal(r.status,200);assert.equal(pairingCalls,2);
+  r=await req('POST','/api/pairing-code',{headers:{cookie,origin:'https://evil.example','sec-fetch-site':'same-site','x-forwarded-host':'amdwall.example','content-type':'application/json'},body:'{}'});assert.equal(r.status,403);assert.equal(pairingCalls,2);
   r=await req('POST','/auth/logout',{headers:{cookie,origin:'https://amdwall.example','x-forwarded-host':'amdwall.example','x-forwarded-proto':'https'},body:''});assert.equal(r.status,303);assert.match(String(r.headers['set-cookie']),/Max-Age=0/);
   console.log('v09-local-wall-auth-login=PASS');
   console.log('v09-local-wall-auth-private-bind-required=PASS');
