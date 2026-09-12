@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "channel": "beta",
+  "version": "0.9.0-rc.5",
+  "artifacts": {
+    "linux-x64": {
+      "url": "http://100.94.184.141:5590/Light-Remote-MCP-Client-Linux-x64-0.9.0-rc.5.tar.gz",
+      "sha256": "5eb0b3622fee96c37db669e41c8869703c728bd8e309d254de565a6e987feb04",
+      "size": 44017320
+    }
+  }
+}
