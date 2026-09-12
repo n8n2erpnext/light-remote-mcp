@@ -15,8 +15,8 @@ const required=[
   "app.get('/operator/enrollments', softRateLimit, requireOperatorIdentity",
   "app.post('/operator/enrollments/approve', softRateLimit, requireOperatorIdentity",
   "app.post('/operator/devices/:id/revoke', softRateLimit, requireOperatorIdentity",
-  "wallApp.get('/enroll', wallAuth.requirePage",
-  "wallApp.post('/api/enrollments/approve', wallAuth.requireApi"
+  "wallApp.get('/enroll', accountWallAuth.requirePage",
+  "wallApp.post('/api/enrollments/approve', accountWallAuth.requireApi"
 ];
 for(const value of required)if(!server.includes(value))throw new Error(`gateway_enrollment_guard_missing:${value}`);
 console.log('enrollment-page-inline-js=PASS');

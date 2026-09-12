@@ -8,7 +8,7 @@ import { recordActivity, recentActivity, attachActivitySse } from './activity.mj
 import { dashboardHtml } from './dashboard.mjs';
 import { enrollmentApprovalHtml } from './enrollment-page.mjs';
 import { devicePolicyHtml } from './device-policy-page.mjs';
-import { createWallAuth } from './wall-auth.mjs';
+import { createWallAuth, createAccountWallAuth } from './wall-auth.mjs';
 import { authenticateVercel, authenticateVercelPlusBridge, isToolCall, securityInfo } from './security.mjs';
 import { callOperatorJson, proxyOperatorJson, proxyOperatorSse } from './operator-proxy.mjs';
 import { rootNames, listWorkspace, readWorkspaceText, searchWorkspace, gitStatus, gitDiff } from './workspace.mjs';
@@ -158,6 +158,12 @@ function softRateLimit(req, res, next) {
   next();
 }
 const wallAuth = createWallAuth();
+const accountWallAuth = createAccountWallAuth(wallAuth, {
+  accountId:OPERATOR_ACCOUNT_ID,
+  loginAccount: body => callOperatorJson('POST','/v1/accounts/login',body),
+  authenticateAccount: token => callOperatorJson('GET','/v1/accounts/me',null,{'x-light-account-session':token}),
+  logoutAccount: token => callOperatorJson('POST','/v1/accounts/logout',{}, {'x-light-account-session':token})
+});
 const plusAuth = createPlusAuth(wallAuth, {
   requestAccess: body => callOperatorJson('POST','/v1/device-access/request',body),
   pairAccess: body => callOperatorJson('POST','/v1/device-pair/begin',body),
@@ -378,42 +384,42 @@ wallApp.use((_req, res, next) => {
   res.set('Cache-Control', 'no-store');
   next();
 });
-wallApp.get('/login', wallAuth.loginPage);
-wallApp.post('/auth/login', wallAuth.login);
-wallApp.post('/auth/logout', wallAuth.logout);
-wallApp.get('/plus-authorize', wallAuth.requirePage, plusAuth.page);
-wallApp.get('/api/plus-authorizations', wallAuth.requireApi, plusAuth.list);
-wallApp.get('/enroll', wallAuth.requirePage, (req, res) => {
+wallApp.get('/login', accountWallAuth.loginPage);
+wallApp.post('/auth/login', accountWallAuth.login);
+wallApp.post('/auth/logout', accountWallAuth.logout);
+wallApp.get('/plus-authorize', accountWallAuth.requirePage, plusAuth.page);
+wallApp.get('/api/plus-authorizations', accountWallAuth.requireApi, plusAuth.list);
+wallApp.get('/enroll', accountWallAuth.requirePage, (req, res) => {
   const enrollmentId = String(req.query.id || '').replace(/[^A-Za-z0-9._:-]/g,'').slice(0,128);
   res.set('Content-Security-Policy', "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
   res.type('html').send(enrollmentApprovalHtml(enrollmentId));
 });
-wallApp.get('/device-policy', wallAuth.requirePage, (req, res) => {
+wallApp.get('/device-policy', accountWallAuth.requirePage, (req, res) => {
   const deviceId=String(req.query.id||'').replace(/[^A-Za-z0-9._:-]/g,'').slice(0,128);
   res.set('Content-Security-Policy', "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
   res.type('html').send(devicePolicyHtml(deviceId));
 });
-wallApp.get('/', wallAuth.requirePage, (_req, res) => {
+wallApp.get('/', accountWallAuth.requirePage, (_req, res) => {
   res.set('Content-Security-Policy', "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; img-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
   res.type('html').send(dashboardHtml());
 });
-wallApp.post('/api/account-owner-proof', wallAuth.requireApi, (_req,res)=>proxyOperatorJson(res,'POST','/v1/accounts/owner-proof',{ownerProofVerified:true}));
-wallApp.get('/api/devices', wallAuth.requireApi, (_req, res) => proxyOperatorJson(res, 'GET', '/v1/devices'));
-wallApp.get('/api/devices/:id', wallAuth.requireApi, (req, res) => proxyOperatorJson(res, 'GET', `/v1/devices/${encodeURIComponent(req.params.id)}`));
-wallApp.post('/api/devices/:id/policy', wallAuth.requireApi, (req, res) => proxyOperatorJson(res, 'POST', `/v1/devices/${encodeURIComponent(req.params.id)}/policy`, { ...(req.body || {}), deviceId:req.params.id, accountId:OPERATOR_ACCOUNT_ID }));
-wallApp.post('/api/devices/:id/maintenance/update', wallAuth.requireApi, (req, res) => proxyOperatorJson(res, 'POST', `/v1/devices/${encodeURIComponent(req.params.id)}/maintenance/update`, {}));
-wallApp.get('/api/devices/:id/connection', wallAuth.requireApi, (req,res)=>proxyOperatorJson(res,'GET',`/v1/devices/${encodeURIComponent(req.params.id)}/connection`));
-wallApp.post('/api/devices/:id/connection/connect', wallAuth.requireApi, (req,res)=>proxyOperatorJson(res,'POST',`/v1/devices/${encodeURIComponent(req.params.id)}/connection/connect`,req.body||{}));
-wallApp.post('/api/devices/:id/connection/disconnect', wallAuth.requireApi, (req,res)=>proxyOperatorJson(res,'POST',`/v1/devices/${encodeURIComponent(req.params.id)}/connection/disconnect`,req.body||{}));
-wallApp.post('/api/devices/:id/connection/grace', wallAuth.requireApi, (req,res)=>proxyOperatorJson(res,'POST',`/v1/devices/${encodeURIComponent(req.params.id)}/connection/grace`,req.body||{}));
-wallApp.get('/api/enrollments', wallAuth.requireApi, (_req, res) => proxyOperatorJson(res, 'GET', '/v1/enrollments'));
-wallApp.post('/api/enrollments/approve', wallAuth.requireApi, (req, res) => proxyOperatorJson(res, 'POST', '/v1/enrollments/approve', { ...(req.body || {}), accountId:OPERATOR_ACCOUNT_ID }));
-wallApp.get('/api/sessions', wallAuth.requireApi, (_req, res) => proxyOperatorJson(res, 'GET', '/v1/sessions'));
-wallApp.get('/api/activity', wallAuth.requireApi, (req, res) => {
+wallApp.post('/api/account-owner-proof', accountWallAuth.requireApi, (_req,res)=>proxyOperatorJson(res,'POST','/v1/accounts/owner-proof',{ownerProofVerified:true}));
+wallApp.get('/api/devices', accountWallAuth.requireApi, (_req, res) => proxyOperatorJson(res, 'GET', '/v1/devices'));
+wallApp.get('/api/devices/:id', accountWallAuth.requireApi, (req, res) => proxyOperatorJson(res, 'GET', `/v1/devices/${encodeURIComponent(req.params.id)}`));
+wallApp.post('/api/devices/:id/policy', accountWallAuth.requireApi, (req, res) => proxyOperatorJson(res, 'POST', `/v1/devices/${encodeURIComponent(req.params.id)}/policy`, { ...(req.body || {}), deviceId:req.params.id, accountId:OPERATOR_ACCOUNT_ID }));
+wallApp.post('/api/devices/:id/maintenance/update', accountWallAuth.requireApi, (req, res) => proxyOperatorJson(res, 'POST', `/v1/devices/${encodeURIComponent(req.params.id)}/maintenance/update`, {}));
+wallApp.get('/api/devices/:id/connection', accountWallAuth.requireApi, (req,res)=>proxyOperatorJson(res,'GET',`/v1/devices/${encodeURIComponent(req.params.id)}/connection`));
+wallApp.post('/api/devices/:id/connection/connect', accountWallAuth.requireApi, (req,res)=>proxyOperatorJson(res,'POST',`/v1/devices/${encodeURIComponent(req.params.id)}/connection/connect`,req.body||{}));
+wallApp.post('/api/devices/:id/connection/disconnect', accountWallAuth.requireApi, (req,res)=>proxyOperatorJson(res,'POST',`/v1/devices/${encodeURIComponent(req.params.id)}/connection/disconnect`,req.body||{}));
+wallApp.post('/api/devices/:id/connection/grace', accountWallAuth.requireApi, (req,res)=>proxyOperatorJson(res,'POST',`/v1/devices/${encodeURIComponent(req.params.id)}/connection/grace`,req.body||{}));
+wallApp.get('/api/enrollments', accountWallAuth.requireApi, (_req, res) => proxyOperatorJson(res, 'GET', '/v1/enrollments'));
+wallApp.post('/api/enrollments/approve', accountWallAuth.requireApi, (req, res) => proxyOperatorJson(res, 'POST', '/v1/enrollments/approve', { ...(req.body || {}), accountId:OPERATOR_ACCOUNT_ID }));
+wallApp.get('/api/sessions', accountWallAuth.requireApi, (_req, res) => proxyOperatorJson(res, 'GET', '/v1/sessions'));
+wallApp.get('/api/activity', accountWallAuth.requireApi, (req, res) => {
   const limit = Math.max(1, Math.min(Number(req.query.limit) || 1000, 5000));
   return proxyOperatorJson(res, 'GET', `/v1/activity?limit=${limit}`);
 });
-wallApp.get('/events', wallAuth.requireApi, proxyOperatorSse);
+wallApp.get('/events', accountWallAuth.requireApi, proxyOperatorSse);
 wallApp.use((_req, res) => res.status(404).end());
 
 const httpServer = app.listen(PORT, '0.0.0.0', () => {

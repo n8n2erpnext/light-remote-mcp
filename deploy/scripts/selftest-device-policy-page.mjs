@@ -13,7 +13,7 @@ new Function(scripts[0]);
 const normalized=normalizeDevicePolicy({deviceId:id,policyProfile:'ops',approvedCapabilities:['filesystem','sudo-on-demand']});
 if(normalized.deviceId!==id||normalized.policyProfile!=='ops'||normalized.approvedCapabilities.join(',')!=='filesystem,sudo-on-demand')throw new Error('device_policy_normalizer_failed');
 const server=fs.readFileSync(new URL('../../gateway/server.mjs',import.meta.url),'utf8');
-for(const marker of ["app.post('/operator/devices/:id/policy', softRateLimit, requireOperatorIdentity","wallApp.get('/device-policy', wallAuth.requirePage","wallApp.post('/api/devices/:id/policy', wallAuth.requireApi","wallApp.post('/api/devices/:id/maintenance/update', wallAuth.requireApi"])if(!server.includes(marker))throw new Error(`device_policy_auth_guard_missing:${marker}`);
+for(const marker of ["app.post('/operator/devices/:id/policy', softRateLimit, requireOperatorIdentity","wallApp.get('/device-policy', accountWallAuth.requirePage","wallApp.post('/api/devices/:id/policy', accountWallAuth.requireApi","wallApp.post('/api/devices/:id/maintenance/update', accountWallAuth.requireApi"])if(!server.includes(marker))throw new Error(`device_policy_auth_guard_missing:${marker}`);
 const dashboard=fs.readFileSync(new URL('../../gateway/dashboard.mjs',import.meta.url),'utf8');
 if(!dashboard.includes('/device-policy?id='))throw new Error('dashboard_policy_link_missing');
 const api=fs.readFileSync(new URL('../../api/operator.js',import.meta.url),'utf8');
