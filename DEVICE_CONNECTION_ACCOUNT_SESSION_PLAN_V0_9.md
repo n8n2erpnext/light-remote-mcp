@@ -88,7 +88,7 @@ VPS/Linux headless uses the same Local Wall contract. Windows/Linux/macOS Deskto
 ## 8. Account Portal and VIP fleet Wall
 The hosted Account Portal is separate from Local Wall. After account login it lists every device bound to the account, usage, profile/security and plan/entitlement information.
 
-All users may see their account-owned device inventory. VIP adds a convenience fleet Wall that aggregates several devices into one management screen. VIP does not merge device identities, leases, grants or sessions into one security context; each device remains isolated underneath the aggregate UI.
+All users may see their account-owned device inventory and manage the account-approved permission ceiling for each of their devices from a per-device Permissions page. That page must expose only capabilities the device declares grantable; device-local policy remains the final deny boundary. VIP adds only a convenience fleet Wall that aggregates several devices into one management screen. VIP does not merge device identities, leases, grants, permissions or sessions into one security context; each device remains isolated underneath the aggregate UI.
 ## 9. Server-load rule
 The always-alive local service must not imply an always-open central connection. A dormant client performs no long-poll/cloud heartbeat loop. Only a user-created Device Connection Lease opens the outbound channel.
 
