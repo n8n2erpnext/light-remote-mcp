@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
   "channel": "beta",
-  "version": "0.9.0-rc.3",
-  "gitSha": "3218379ac3f13d9e2a22564d4373eb8fedc3a64c",
-  "publishedAtUtc": "2026-09-12T06:50:33Z",
+  "version": "0.9.0-rc.4",
+  "gitSha": "258ca0ae66796fc1d557055ce4b608a0d43a64f6",
+  "publishedAtUtc": "2026-09-12T07:02:44Z",
   "artifacts": {
     "linux-x64": {
-      "url": "http://100.94.184.141:5590/Light-Remote-MCP-Client-Linux-x64-0.9.0-rc.3.tar.gz",
-      "sha256": "d6d8ace1264c12a3eb3b1b1297f7944f28c635cd8ba68b0029f4154c842bd65e",
-      "size": 44017345
+      "url": "http://100.94.184.141:5590/Light-Remote-MCP-Client-Linux-x64-0.9.0-rc.4.tar.gz",
+      "sha256": "d06dbeccb1f5379ea64422298adbc7afa970ab88c03d5c944d7d892ac6915af9",
+      "size": 44017320
     }
   }
 }
