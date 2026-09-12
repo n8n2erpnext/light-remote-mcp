@@ -14,6 +14,7 @@ import { DeviceConnectionRegistry, DeviceConnectionError, DEFAULT_PLAN_CONNECTIO
 import { DeviceAccessGrantRegistry, DeviceAccessGrantError } from './device-access-grant-registry.mjs';
 import { DevicePairingRegistry, DevicePairingRegistryError } from './device-pairing-registry.mjs';
 import { AgentClientRegistry, AgentClientRegistryError } from './agent-client-registry.mjs';
+import { AccountRegistry, AccountError } from './account-registry.mjs';
 
 const SOCKET_PATH = process.env.OPERATOR_SOCKET || '/run/gpt-vps-operator/operator.sock';
 const KEY_FILE = process.env.OPERATOR_KEY_FILE || '/home/ubuntu/.config/gpt-vps-operator/operator.private.json';
@@ -26,6 +27,7 @@ const ENROLLMENT_SIGNER_FILE = path.join(STATE_DIR, 'enrollment-signer.json');
 const CONNECTION_STATE_FILE = path.join(STATE_DIR, 'device-connections.json');
 const ACCESS_STATE_FILE = path.join(STATE_DIR, 'device-access-grants.json');
 const AGENT_CLIENT_STATE_FILE = path.join(STATE_DIR, 'agent-clients.json');
+const ACCOUNT_STATE_FILE = path.join(STATE_DIR, 'accounts.json');
 const MAX_RING_BYTES = Number(process.env.OPERATOR_RING_BYTES || 16 * 1024 * 1024);
 const MAX_RING_EVENTS = Number(process.env.OPERATOR_RING_EVENTS || 5000);
 const MAX_MEMORY_OUTPUT = Number(process.env.OPERATOR_MEMORY_OUTPUT || 4 * 1024 * 1024);
@@ -75,6 +77,7 @@ const connections = new DeviceConnectionRegistry({ stateFile:CONNECTION_STATE_FI
 const accessGrants = new DeviceAccessGrantRegistry({ stateFile:ACCESS_STATE_FILE, emit:event => pushEvent(event) });
 const pairingCodes = new DevicePairingRegistry({ emit:event => pushEvent(event) });
 const agentClients = new AgentClientRegistry({ stateFile:AGENT_CLIENT_STATE_FILE, emit:event => pushEvent(event) });
+const accounts = new AccountRegistry({ stateFile:ACCOUNT_STATE_FILE, bootstrapAccountId:ACCOUNT_ID, emit:event => pushEvent(event) });
 
 fs.mkdirSync(LOG_DIR, { recursive: true });
 function redact(value) {
@@ -115,6 +118,7 @@ if (enrollments.loadError) pushEvent({ type:'enrollment_registry_load_error', st
 if (connections.loadError) pushEvent({ type:'device_connection_registry_load_error', status:'error', detail:redact(connections.loadError) });
 if (accessGrants.loadError) pushEvent({ type:'device_access_registry_load_error', status:'error', detail:redact(accessGrants.loadError) });
 if (agentClients.loadError) pushEvent({ type:'agent_client_registry_load_error', status:'error', detail:redact(agentClients.loadError) });
+if (accounts.loadError) pushEvent({ type:'account_registry_load_error', status:'error', detail:redact(accounts.loadError) });
 devices.register({ accountId:ACCOUNT_ID, deviceId:DEVICE_ID, nodeId:NODE_ID, displayName:DEVICE_NAME, platform:os.platform(), architecture:os.arch(), agentVersion:VERSION, publicIdentityKey:DEVICE_PUBLIC_KEY || null, capabilities:HOST_CAPABILITIES, policyProfile:DEVICE_POLICY_PROFILE });
 const deviceHeartbeat = setInterval(() => { try { devices.heartbeat(DEVICE_ID); } catch (error) { console.error('[device] heartbeat failed', error?.message || error); } }, DEVICE_HEARTBEAT_MS);
 deviceHeartbeat.unref();
@@ -419,6 +423,12 @@ async function readJson(req) {
   }
   return JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
 }
+function accountSessionToken(req){
+  return String(req.headers['x-light-account-session']||'').trim();
+}
+function requireAccount(req,{touch=true}={}){
+  return accounts.authenticate(accountSessionToken(req),{touch});
+}
 
 function capabilities() {
   return {
@@ -529,6 +539,50 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'GET' && url.pathname === '/v1/capabilities') {
       return sendJson(res, 200, { ok: true, ...capabilities() });
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/accounts/register') {
+      const body=await readJson(req),created=accounts.register(body);
+      return sendJson(res,201,{ok:true,account:created.account,session:created.session,token:created.token});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/accounts/login') {
+      const body=await readJson(req),logged=accounts.login(body);
+      return sendJson(res,200,{ok:true,account:logged.account,session:logged.session,token:logged.token});
+    }
+    if (req.method === 'GET' && url.pathname === '/v1/accounts/me') {
+      const identity=requireAccount(req);
+      return sendJson(res,200,{ok:true,...identity});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/accounts/logout') {
+      return sendJson(res,200,{ok:true,...accounts.logout(accountSessionToken(req))});
+    }
+    if (req.method === 'GET' && url.pathname === '/v1/accounts/devices') {
+      const identity=requireAccount(req),owned=allDeviceViews().filter(device=>device.accountId===identity.account.accountId);
+      return sendJson(res,200,{ok:true,account:identity.account,devices:owned});
+    }
+    if(req.method==='POST'&&url.pathname==='/v1/accounts/enrollments/approve'){
+      const identity=requireAccount(req),body=await readJson(req),approval=enrollments.approve({...body,accountId:identity.account.accountId});
+      const binding=enrollments.binding(approval.deviceId),device=devices.enroll({accountId:binding.accountId,deviceId:binding.deviceId,nodeId:binding.deviceId,displayName:binding.displayName,platform:binding.platform,architecture:binding.architecture,agentVersion:binding.agentVersion,publicIdentityKey:binding.publicIdentityKey,capabilities:binding.approvedCapabilities,policyProfile:binding.policyProfile});
+      return sendJson(res,200,{ok:true,approval,device});
+    }
+    const accountRevokeMatch=url.pathname.match(/^\/v1\/accounts\/devices\/([A-Za-z0-9._:-]+)\/revoke$/);
+    if(req.method==='POST'&&accountRevokeMatch){
+      const identity=requireAccount(req),device=devices.get(accountRevokeMatch[1]);
+      if(device.accountId!==identity.account.accountId)throw new AccountError('account_device_mismatch',403);
+      const binding=enrollments.revoke({deviceId:device.deviceId,accountId:identity.account.accountId,reason:'account_owner_revoked'}),revoked=devices.revoke(device.deviceId,'account_owner_revoked');
+      try{accessGrants.closeByDevice(device.deviceId,'account_owner_revoked');pairingCodes.invalidateDevice(device.deviceId,'account_owner_revoked');agentClients.removeDevice(device.deviceId,'account_owner_revoked');sessions.closeByDevice(device.deviceId,'account_owner_revoked',{force:true});}catch{}
+      return sendJson(res,200,{ok:true,binding,device:revoked});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/accounts/devices/revoke-all') {
+      const identity=requireAccount(req),rows=devices.list().filter(device=>device.accountId===identity.account.accountId&&device.state!=='revoked'),revoked=[];
+      for(const device of rows){
+        try{enrollments.revoke({deviceId:device.deviceId,accountId:identity.account.accountId,reason:'account_owner_revoke_all'});}catch{}
+        try{revoked.push(devices.revoke(device.deviceId,'account_owner_revoke_all'));}catch{}
+        try{accessGrants.closeByDevice(device.deviceId,'account_owner_revoke_all');}catch{}
+        try{pairingCodes.invalidateDevice(device.deviceId,'account_owner_revoke_all');}catch{}
+        try{agentClients.removeDevice(device.deviceId,'account_owner_revoke_all');}catch{}
+        try{sessions.closeByDevice(device.deviceId,'account_owner_revoke_all',{force:true});}catch{}
+      }
+      return sendJson(res,200,{ok:true,revoked});
     }
     if (req.method === 'POST' && url.pathname === '/v1/enrollments/begin') {
       const body = await readJson(req);
@@ -883,7 +937,7 @@ const server = http.createServer(async (req, res) => {
   } catch (error) {
     const message = error?.message || 'internal_error';
     pushEvent({ type: 'executor_error', status: 'error', detail: redact(message) });
-    const status = error instanceof SessionError || error instanceof DeviceError || error instanceof EnrollmentError || error instanceof FleetError || error instanceof DeviceConnectionError || error instanceof DeviceAccessGrantError || error instanceof DevicePairingRegistryError || error instanceof AgentClientRegistryError ? error.status : ['invalid_envelope', 'expired_envelope', 'replay_detected', 'unknown_kid', 'invalid_envelope_auth', 'unsupported_action'].includes(message) ? 401 : message === 'operation_id_conflict' ? 409 : 400;
+    const status = error instanceof SessionError || error instanceof DeviceError || error instanceof EnrollmentError || error instanceof FleetError || error instanceof DeviceConnectionError || error instanceof DeviceAccessGrantError || error instanceof DevicePairingRegistryError || error instanceof AgentClientRegistryError || error instanceof AccountError ? error.status : ['invalid_envelope', 'expired_envelope', 'replay_detected', 'unknown_kid', 'invalid_envelope_auth', 'unsupported_action'].includes(message) ? 401 : message === 'operation_id_conflict' ? 409 : 400;
     return sendJson(res, status, { ok: false, error: message });
   }
 });

@@ -25,8 +25,8 @@ function requestSocket(method, targetPath, body = null, headers = {}) {
 }
 
 
-export async function callOperatorJson(method, targetPath, body = null) {
-  const upstream = await requestSocket(method, targetPath, body);
+export async function callOperatorJson(method, targetPath, body = null, headers = {}) {
+  const upstream = await requestSocket(method, targetPath, body, headers);
   const text = upstream.body.toString('utf8');
   let payload;
   try { payload = JSON.parse(text); } catch { payload = { raw:text }; }
@@ -39,9 +39,9 @@ export async function callOperatorJson(method, targetPath, body = null) {
   return payload;
 }
 
-export async function proxyOperatorJson(res, method, targetPath, body = null) {
+export async function proxyOperatorJson(res, method, targetPath, body = null, headers = {}) {
   try {
-    const upstream = await requestSocket(method, targetPath, body);
+    const upstream = await requestSocket(method, targetPath, body, headers);
     res.status(upstream.status);
     res.set('Cache-Control', 'no-store');
     const type = upstream.headers['content-type'];

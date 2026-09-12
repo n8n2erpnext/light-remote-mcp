@@ -1,18 +1,26 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>GPT VPS Bridge</title>
-</head>
-<body>
-  <main>
-    <h1>GPT VPS Bridge</h1>
-    <p>Read-only POC bridge from Vercel to the VPS ARM MCP endpoint.</p>
-    <ul>
-      <li><a href="/api/ping">/api/ping</a></li>
-      <li><a href="/api/vps-identity">/api/vps-identity</a></li>
-    </ul>
-  </main>
-</body>
-</html>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow,noarchive"><title>Light Remote — Devices</title><link rel="stylesheet" href="/assets/light-remote-portal.css"></head><body>
+<div class="app"><aside class="sidebar"><div class="brand"><img src="/assets/branding/light-remote-mark.svg" alt=""><span><strong>Light Remote</strong><small>Remote MCP</small></span></div>
+<nav class="nav"><a class="active" href="/"><span class="icon">▣</span>Devices</a><a href="/usage/"><span class="icon">▥</span>Usage</a><a href="/settings/"><span class="icon">⚙</span>Settings</a></nav>
+<div class="account-foot"><div id="accountEmail" class="account-email">loading…</div><div id="accountPlan" class="account-meta"></div><div class="footer-links"><a href="#">Terms</a><a href="#">Privacy</a><button id="logout" class="btn" style="padding:4px 8px">Logout</button></div></div></aside>
+<main class="main"><div class="page-head"><div><h1>Devices</h1><p>Machines your approved AI clients can reach through Light Remote.</p></div><button id="addDevice" class="btn primary">＋ Add a device</button></div>
+<section class="panel"><div class="panel-head"><h2>Your devices</h2><button id="revokeAll" class="btn danger">Revoke all</button></div><div id="devices"><div class="empty">Loading devices…</div></div></section>
+<section class="panel where" id="where"><div class="panel-head"><div><h2>Where you use it</h2><div class="muted" style="margin-top:5px">The same account and device authority follows every supported client.</div></div></div>
+<div class="where-row"><div class="where-left"><div class="app-icon">◎</div><div><div class="where-title">ChatGPT</div><div class="where-sub">Current beta uses the Vercel compatibility bridge. Official Plugin will connect to this same Light Remote account plane.</div></div></div><span class="link">Compatibility bridge</span></div>
+<div class="where-row"><div class="where-left"><div class="app-icon">C</div><div><div class="where-title">Claude</div><div class="where-sub">Use the same Light Remote server and account-owned devices.</div></div></div><span class="link">MCP endpoint</span></div>
+<div class="where-row"><div class="where-left"><div class="app-icon">MCP</div><div><div class="where-title">Any MCP client</div><div class="where-sub">Cursor, VS Code and custom agents can use the portable Light Remote server lane.</div></div></div><span class="link">Endpoint</span></div></section>
+</main></div>
+<div id="modal" class="hide" style="position:fixed;inset:0;background:#000a;display:grid;place-items:center;padding:20px"><div class="auth-card"><h1>Add a device</h1><p>Enter the one-time device code shown by the Light Remote client on the target machine.</p><label class="field"><span>Device code</span><input id="deviceCode" placeholder="ABCD-EFGH" autocomplete="one-time-code"></label><div id="modalError" class="error"></div><div style="display:flex;gap:10px;margin-top:18px"><button id="cancelAdd" class="btn">Cancel</button><button id="approveAdd" class="btn primary">Add device</button></div></div></div>
+<script>
+const devicesEl=document.getElementById('devices'),emailEl=document.getElementById('accountEmail'),planEl=document.getElementById('accountPlan'),modal=document.getElementById('modal'),modalError=document.getElementById('modalError');
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function ago(value){const ms=Date.now()-Number(value||0);if(!Number.isFinite(ms)||ms<0)return 'just now';const m=Math.floor(ms/60000);if(m<1)return 'just now';if(m<60)return m+'m ago';const h=Math.floor(m/60);if(h<24)return h+'h ago';return Math.floor(h/24)+'d ago';}
+async function api(path,options={}){const r=await fetch(path,{cache:'no-store',...options,headers:{'content-type':'application/json',...(options.headers||{})}});let j={};try{j=await r.json();}catch{}if(r.status===401){location.href='/login/';throw new Error('login_required');}if(!r.ok)throw new Error(j.error||('HTTP '+r.status));return j;}
+function renderDevices(rows){const active=(rows||[]).filter(d=>d.state!=='revoked');if(!active.length){devicesEl.innerHTML='<div class="empty">No devices yet. Add your first Light Remote device.</div>';return;}devicesEl.innerHTML=active.map(d=>{const c=d.connection||{},online=d.state==='online',connected=c.state==='connected';return '<div class="device-row"><div class="device-main"><span class="dot '+(online?'online':'')+'"></span><div><div class="device-name">'+esc(d.displayName||d.deviceId)+'</div><div class="device-sub">Last seen '+esc(ago(d.lastSeenAt))+' · '+esc(d.platform||'unknown')+'/'+esc(d.architecture||'')+(connected?' · lease '+esc(Math.max(0,Math.floor((c.remainingMs||0)/60000)))+'m':'')+'</div></div></div><div class="device-actions"><span class="badge '+(online?'online':'')+'">'+esc(online?'Online':'Offline')+'</span>'+(connected?'<span class="badge connected">Connected</span>':'')+'<button class="btn danger" data-revoke="'+esc(d.deviceId)+'">Revoke</button></div></div>';}).join('');devicesEl.querySelectorAll('[data-revoke]').forEach(btn=>btn.onclick=()=>revokeDevice(btn.dataset.revoke));}
+async function load(){const me=await api('/api/auth?action=me'),data=await api('/api/auth?action=devices');emailEl.textContent=me.account.email;planEl.textContent=(me.account.plan||'free').toUpperCase()+' plan';renderDevices(data.devices||[]);}
+async function revokeDevice(id){if(!confirm('Revoke this device from your Light Remote account?'))return;await api('/api/auth?action=device-revoke',{method:'POST',body:JSON.stringify({deviceId:id})});await load();}
+document.getElementById('addDevice').onclick=()=>{modal.classList.remove('hide');document.getElementById('deviceCode').focus();};document.getElementById('cancelAdd').onclick=()=>modal.classList.add('hide');
+document.getElementById('approveAdd').onclick=async e=>{e.target.disabled=true;modalError.textContent='';try{await api('/api/auth?action=enrollment-approve',{method:'POST',body:JSON.stringify({code:document.getElementById('deviceCode').value})});modal.classList.add('hide');document.getElementById('deviceCode').value='';await load();}catch(err){modalError.textContent=err.message;}finally{e.target.disabled=false;}};
+document.getElementById('revokeAll').onclick=async()=>{if(!confirm('Revoke all devices from this account?'))return;await api('/api/auth?action=devices-revoke-all',{method:'POST',body:'{}'});await load();};
+document.getElementById('logout').onclick=async()=>{try{await fetch('/api/auth?action=logout',{method:'POST',headers:{'content-type':'application/json'},body:'{}'});}finally{location.href='/login/';}};
+load().catch(e=>{if(e.message!=='login_required')devicesEl.innerHTML='<div class="empty error">'+esc(e.message)+'</div>';});
+</script></body></html>

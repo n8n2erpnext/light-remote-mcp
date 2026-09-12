@@ -192,6 +192,10 @@ async function requirePlusVercelIdentity(req, res, next) {
   req.mcpIdentity.authType='vercel-plus-bridge';
   return next();
 }
+function accountProxyHeaders(req){
+  const token=String(req.get('x-light-account-session')||'').trim();
+  return token?{'x-light-account-session':token}:{};
+}
 async function requireMcpIdentity(req, res, next) {
   const auth=String(req.get('authorization') || '');
   const token=auth.startsWith('Bearer ') ? auth.slice(7).trim() : '';
@@ -262,6 +266,18 @@ app.post('/device-channel/status', softRateLimit, (req, res) => proxyOperatorJso
 app.post('/device-channel/activity', softRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/activity', req.body || {}));
 app.post('/device-channel/poll', softRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/poll', req.body || {}));
 app.post('/device-channel/result', softRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/result', req.body || {}));
+app.post('/account/register', softRateLimit, requireVercelIdentity, (req,res)=>{
+  const ownerPassword=String(req.body?.ownerPassword||'');
+  if(!ownerPassword||!wallAuth.verifyCredentials(wallAuth.info().username,ownerPassword))return res.status(401).json({ok:false,error:'owner_migration_proof_required'});
+  return proxyOperatorJson(res,'POST','/v1/accounts/register',{email:req.body?.email,password:req.body?.password});
+});
+app.post('/account/login', softRateLimit, requireVercelIdentity, (req,res)=>proxyOperatorJson(res,'POST','/v1/accounts/login',req.body||{}));
+app.get('/account/me', softRateLimit, requireVercelIdentity, (req,res)=>proxyOperatorJson(res,'GET','/v1/accounts/me',null,accountProxyHeaders(req)));
+app.post('/account/logout', softRateLimit, requireVercelIdentity, (req,res)=>proxyOperatorJson(res,'POST','/v1/accounts/logout',{},accountProxyHeaders(req)));
+app.get('/account/devices', softRateLimit, requireVercelIdentity, (req,res)=>proxyOperatorJson(res,'GET','/v1/accounts/devices',null,accountProxyHeaders(req)));
+app.post('/account/enrollments/approve', softRateLimit, requireVercelIdentity, (req,res)=>proxyOperatorJson(res,'POST','/v1/accounts/enrollments/approve',req.body||{},accountProxyHeaders(req)));
+app.post('/account/devices/revoke-all', softRateLimit, requireVercelIdentity, (req,res)=>proxyOperatorJson(res,'POST','/v1/accounts/devices/revoke-all',{},accountProxyHeaders(req)));
+app.post('/account/devices/:id/revoke', softRateLimit, requireVercelIdentity, (req,res)=>proxyOperatorJson(res,'POST',`/v1/accounts/devices/${encodeURIComponent(req.params.id)}/revoke`,{},accountProxyHeaders(req)));
 app.post('/operator/auth/login', softRateLimit, requireVercelIdentity, wallAuth.bridgeLogin);
 app.post('/operator/enrollments/begin', softRateLimit, requireVercelIdentity, (req, res) => proxyOperatorJson(res, 'POST', '/v1/enrollments/begin', req.body || {}));
 app.post('/operator/enrollments/poll', softRateLimit, requireVercelIdentity, (req, res) => proxyOperatorJson(res, 'POST', '/v1/enrollments/poll', req.body || {}));
