@@ -18,16 +18,18 @@ permissions:
 
 jobs:
   build-macos:
-    runs-on: macos-13
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 25
     strategy:
       matrix:
         include:
           - arch: x64
+            runner: macos-15-intel
             node_arch: x64
             swift_target: x86_64-apple-macos11.0
             pkg_arch: x86_64
           - arch: arm64
+            runner: macos-15
             node_arch: arm64
             swift_target: arm64-apple-macos11.0
             pkg_arch: arm64
