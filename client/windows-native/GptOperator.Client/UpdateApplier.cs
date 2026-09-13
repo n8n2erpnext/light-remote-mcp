@@ -18,6 +18,7 @@ internal static class UpdateApplier
         try
         {
             await WaitForParentAsync(parentPid);
+            await StopBackgroundAgentTaskAsync();
             Log($"apply_start current={currentVersion} installer={installer}");
             var installed = await TryInstallAndVerifyAsync(installer, installDir);
             if (installed)
@@ -38,6 +39,7 @@ internal static class UpdateApplier
             if (!rolledBack)
             {
                 Log("rollback_failed");
+                TryRestartBackgroundAgentTask();
                 return 21;
             }
 
@@ -62,8 +64,35 @@ internal static class UpdateApplier
             {
                 Log($"rollback_exception {rollbackEx.GetType().Name}: {rollbackEx.Message}");
             }
+            TryRestartBackgroundAgentTask();
             return 22;
         }
+    }
+
+    private static async Task StopBackgroundAgentTaskAsync()
+    {
+        try
+        {
+            var psi = new ProcessStartInfo("schtasks.exe") { UseShellExecute = false, CreateNoWindow = true };
+            psi.ArgumentList.Add("/End"); psi.ArgumentList.Add("/TN"); psi.ArgumentList.Add("LightRemoteDeviceAgent");
+            using var process = Process.Start(psi);
+            if (process is not null) await WaitForExitOrKillAsync(process, TimeSpan.FromSeconds(10), "agent_task_stop");
+            await Task.Delay(350);
+            Log($"agent_task_stop exit={(process is null ? -1 : process.ExitCode)}");
+        }
+        catch (Exception ex) { Log($"agent_task_stop_failed {ex.GetType().Name}: {ex.Message}"); }
+    }
+
+    private static void TryRestartBackgroundAgentTask()
+    {
+        try
+        {
+            var psi = new ProcessStartInfo("schtasks.exe") { UseShellExecute = false, CreateNoWindow = true };
+            psi.ArgumentList.Add("/Run"); psi.ArgumentList.Add("/TN"); psi.ArgumentList.Add("LightRemoteDeviceAgent");
+            Process.Start(psi)?.Dispose();
+            Log("agent_task_restart_requested");
+        }
+        catch (Exception ex) { Log($"agent_task_restart_failed {ex.GetType().Name}: {ex.Message}"); }
     }
 
     private static async Task WaitForParentAsync(int parentPid)
