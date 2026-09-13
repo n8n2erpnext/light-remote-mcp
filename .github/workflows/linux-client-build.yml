@@ -123,9 +123,13 @@ jobs:
           DEB_ARCH=$([[ "$TARGET_ARCH" == x64 ]] && echo amd64 || echo arm64)
           DEB="$OUT/deb/light-remote_${VERSION}_${DEB_ARCH}.deb"
           test -s "$DEB"
-          dpkg-deb -I "$DEB" | grep -q 'Package: light-remote'
-          dpkg-deb -c "$DEB" | grep -q 'light-remote-agent.service'
-          dpkg-deb -c "$DEB" | grep -q 'client/linux-debian/updater-wrapper.mjs'
+          DEB_INFO="$RUNNER_TEMP/light-remote-${DEB_ARCH}.info"
+          DEB_CONTENTS="$RUNNER_TEMP/light-remote-${DEB_ARCH}.contents"
+          dpkg-deb -I "$DEB" > "$DEB_INFO"
+          dpkg-deb -c "$DEB" > "$DEB_CONTENTS"
+          grep -Fq 'Package: light-remote' "$DEB_INFO"
+          grep -Fq 'light-remote-agent.service' "$DEB_CONTENTS"
+          grep -Fq 'client/linux-debian/updater-wrapper.mjs' "$DEB_CONTENTS"
           echo "debian-${DEB_ARCH}-package-contract=PASS"
 
       - name: Upload Linux package
