@@ -20,6 +20,7 @@ internal static class UpdateApplier
             await WaitForParentAsync(parentPid);
             await StopBackgroundAgentTaskAsync();
             Log($"apply_start current={currentVersion} installer={installer}");
+            await StopInstalledRuntimeAsync(installDir);
             var installed = await TryInstallAndVerifyAsync(installer, installDir);
             if (installed)
             {
@@ -35,6 +36,7 @@ internal static class UpdateApplier
                 Log($"rollback_missing path={rollback}");
                 return 20;
             }
+            await StopInstalledRuntimeAsync(installDir);
             var rolledBack = await TryInstallAndVerifyAsync(rollback, installDir);
             if (!rolledBack)
             {
@@ -53,6 +55,10 @@ internal static class UpdateApplier
             try
             {
                 var rollback = AppPaths.RollbackInstaller(currentVersion);
+                if (File.Exists(rollback))
+                {
+                    await StopInstalledRuntimeAsync(installDir);
+                }
                 if (File.Exists(rollback) && await TryInstallAndVerifyAsync(rollback, installDir))
                 {
                     Log("rollback_success_after_exception");
@@ -106,6 +112,46 @@ internal static class UpdateApplier
         }
         catch (ArgumentException) { }
         catch (OperationCanceledException) { Log("parent_wait_timeout"); }
+    }
+
+    private static async Task StopInstalledRuntimeAsync(string installDir)
+    {
+        await EndScheduledTaskAsync("LightRemoteDeviceAgent");
+        var targets = new[] {
+            Path.GetFullPath(Path.Combine(installDir, "GptOperator.Client.exe")),
+            Path.GetFullPath(Path.Combine(installDir, "runtime", "node.exe"))
+        };
+        foreach (var process in Process.GetProcesses())
+        {
+            try
+            {
+                var path = process.MainModule?.FileName;
+                if (path is null || !targets.Any(target => string.Equals(Path.GetFullPath(path), target, StringComparison.OrdinalIgnoreCase))) continue;
+                Log($"stopping_runtime pid={process.Id} file={Path.GetFileName(path)}");
+                process.Kill(entireProcessTree: true);
+                await process.WaitForExitAsync();
+            }
+            catch { }
+            finally { process.Dispose(); }
+        }
+    }
+
+    private static async Task EndScheduledTaskAsync(string taskName)
+    {
+        try
+        {
+            var psi = new ProcessStartInfo(Path.Combine(Environment.SystemDirectory, "schtasks.exe"))
+            {
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            psi.ArgumentList.Add("/End");
+            psi.ArgumentList.Add("/TN");
+            psi.ArgumentList.Add(taskName);
+            using var process = Process.Start(psi);
+            if (process is not null) await WaitForExitOrKillAsync(process, TimeSpan.FromSeconds(10), "task_end");
+        }
+        catch { }
     }
 
     private static async Task<bool> TryInstallAndVerifyAsync(string installer, string installDir)
