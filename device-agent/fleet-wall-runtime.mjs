@@ -53,6 +53,7 @@ async function fleetCall(action,payload={}){
     const fresh=await renewAuthority(true);return channel(action,{...payload,fleetToken:fresh.token});
   }
 }
+async function reportFleetStatus(status='online'){return fleetCall('fleet-status',{status,moduleVersion:VERSION,port:PORT});}
 function json(res,status,value){const text=JSON.stringify(value);res.writeHead(status,{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'});res.end(text);}
 function safeNext(value){const text=String(value||'').trim();return text.startsWith('/')&&!text.startsWith('//')&&text.length<=512?text:'/';}
 function secureRequest(req){return Boolean(req.socket?.encrypted)||String(req.headers['x-forwarded-proto']||'').split(',')[0].trim().toLowerCase()==='https';}
@@ -76,7 +77,7 @@ async function stop(reason='fleet_wall_stopped'){
 }
 async function authorityWatchdog(){
   if(stopping)return;
-  try{await renewAuthority(false);}
+  try{await renewAuthority(false);await reportFleetStatus('online');}
   catch(error){
     const expiresAt=Number(authority?.lease?.expiresAt)||0;
     if(shouldTerminateAuthority(error)||expiresAt<=Date.now()){await stop(error.message||'fleet_authority_lost');process.exit(0);}
@@ -142,6 +143,7 @@ async function start(){
     return json(res,404,{ok:false,error:'not_found'});
   }catch(error){if(shouldTerminateAuthority(error))setImmediate(()=>stop(error.message).finally(()=>process.exit(0)));return json(res,Number(error.status)||400,{ok:false,error:error.message||'fleet_wall_error'});}});
   await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(PORT,HOST,()=>{server.off('error',reject);resolve();});});
+  await reportFleetStatus('online');
   watchdogTimer=setInterval(authorityWatchdog,WATCHDOG_MS);watchdogTimer.unref?.();
   if(PARENT_PID>0){parentTimer=setInterval(()=>{try{process.kill(PARENT_PID,0);}catch{stop('fleet_parent_exited').finally(()=>process.exit(0));}},PARENT_CHECK_MS);parentTimer.unref?.();}
   console.log(JSON.stringify({event:'fleet_wall_started',version:VERSION,url:`http://${HOST}:${PORT}/`,deviceId:authority.lease.deviceId,leaseExpiresAt:authority.lease.expiresAt}));

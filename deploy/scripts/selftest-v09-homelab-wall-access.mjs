@@ -46,6 +46,7 @@ const hub=http.createServer(async(req,res)=>{let text='';for await(const c of re
   const expected=deviceChannelMessage({deviceId:body.deviceId,action,timestamp:body.timestamp,nonce:body.nonce,payload:body.payload});
   if(body.deviceId!==deviceId||!crypto.verify(null,Buffer.from(expected),publicKey,Buffer.from(String(body.signature||''),'base64url')))return reply(res,401,{error:'invalid_signature'});
   if(action==='fleet-authority')return reply(res,200,{ok:true,authority:{token:'fleet-homelab-token',lease:{leaseId:'fl_homelab',deviceId,expiresAt:Date.now()+60000}}});
+  if(action==='fleet-status'){if(body.payload?.status!=='online'||Number(body.payload?.port)<=0)return reply(res,400,{ok:false,error:'invalid_fleet_status'});return reply(res,200,{ok:true,fleet:{desired:true,status:'online',port:Number(body.payload.port)}});}
   if(body.payload?.fleetToken!=='fleet-homelab-token')return reply(res,401,{ok:false,error:'fleet_authority_required'});
   const policy={policyRevision:1,policyProfile:'full',grantableCapabilities:['filesystem','git'],approvedCapabilities:['filesystem','git']};
   if(action==='fleet-devices')return reply(res,200,{ok:true,mainDeviceId:deviceId,devices:[{deviceId,nodeId:deviceId,displayName:'Homelab Main',state:'online',platform:'linux',architecture:'arm64',agentVersion:'0.9.0-rc.6',activeSessions:0,connection:{state:'connected',remainingMs:60000},policy}]});

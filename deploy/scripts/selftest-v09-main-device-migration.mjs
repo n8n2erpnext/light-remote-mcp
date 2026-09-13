@@ -41,15 +41,20 @@ async function enroll(label){
   if(r.status!==200||r.json.entitlements?.fleetWall!==true)throw new Error('pro_fleet_entitlement_missing');
 
   r=await request('POST','/v1/accounts/main-device',{deviceId:a.deviceId},{'x-light-account-session':token});
-  if(r.status!==200||r.json.account?.mainDeviceId!==a.deviceId)throw new Error('set_main_a_failed');
+  if(r.status!==200||r.json.account?.mainDeviceId!==a.deviceId||r.json.account?.fleetProvisioning?.state!=='starting')throw new Error('set_main_a_failed');
   r=await request('POST','/v1/device-channel/fleet-intent',a.signed('fleet-intent',{}));
-  if(r.status!==200||r.json.fleet?.desired!==true)throw new Error('main_a_intent_missing');
+  if(r.status!==200||r.json.fleet?.desired!==true||r.json.account?.fleetProvisioning?.state!=='configuring')throw new Error('main_a_intent_missing');
   r=await request('POST','/v1/device-channel/fleet-intent',b.signed('fleet-intent',{}));
   if(r.status!==200||r.json.fleet?.desired!==false)throw new Error('non_main_b_intent_should_be_false');
   r=await request('POST','/v1/device-channel/fleet-authority',a.signed('fleet-authority',{moduleVersion:'0.9.0-rc.6'}));
-  if(r.status!==200||!r.json.authority?.token)throw new Error('main_a_authority_missing');
-  const tokenA=r.json.authority.token;  r=await request('POST','/v1/accounts/main-device',{deviceId:b.deviceId},{'x-light-account-session':token});
-  if(r.status!==200||r.json.account?.mainDeviceId!==b.deviceId)throw new Error('set_main_b_failed');
+  if(r.status!==200||!r.json.authority?.token||r.json.account?.fleetProvisioning?.state!=='ready')throw new Error('main_a_authority_missing');
+  const tokenA=r.json.authority.token;
+  r=await request('POST','/v1/device-channel/fleet-status',a.signed('fleet-status',{status:'online',moduleVersion:'0.9.0-rc.6',port:5492}));
+  if(r.status!==401||r.json.error!=='fleet_authority_required')throw new Error('fleet_status_without_authority_not_rejected');
+  r=await request('POST','/v1/device-channel/fleet-status',a.signed('fleet-status',{fleetToken:tokenA,status:'online',moduleVersion:'0.9.0-rc.6',port:5492}));
+  if(r.status!==200||r.json.account?.fleetProvisioning?.state!=='online')throw new Error('main_a_online_status_missing');
+  r=await request('POST','/v1/accounts/main-device',{deviceId:b.deviceId},{'x-light-account-session':token});
+  if(r.status!==200||r.json.account?.mainDeviceId!==b.deviceId||r.json.account?.fleetProvisioning?.deviceId!==b.deviceId||r.json.account?.fleetProvisioning?.state!=='starting')throw new Error('set_main_b_failed');
   r=await request('POST','/v1/device-channel/fleet-intent',a.signed('fleet-intent',{}));
   if(r.status!==200||r.json.fleet?.desired!==false||r.json.fleet?.reason!=='not_main_device')throw new Error('old_main_a_intent_survived');
   r=await request('POST','/v1/device-channel/fleet-devices',a.signed('fleet-devices',{fleetToken:tokenA}));
@@ -58,10 +63,12 @@ async function enroll(label){
   if(r.status!==403||r.json.error!=='fleet_main_device_required')throw new Error('old_main_a_reacquired_authority');
 
   r=await request('POST','/v1/device-channel/fleet-intent',b.signed('fleet-intent',{}));
-  if(r.status!==200||r.json.fleet?.desired!==true)throw new Error('new_main_b_intent_missing');
+  if(r.status!==200||r.json.fleet?.desired!==true||r.json.account?.fleetProvisioning?.state!=='configuring')throw new Error('new_main_b_intent_missing');
   r=await request('POST','/v1/device-channel/fleet-authority',b.signed('fleet-authority',{moduleVersion:'0.9.0-rc.6'}));
-  if(r.status!==200||!r.json.authority?.token||r.json.authority?.lease?.deviceId!==b.deviceId)throw new Error('new_main_b_authority_missing');
+  if(r.status!==200||!r.json.authority?.token||r.json.authority?.lease?.deviceId!==b.deviceId||r.json.account?.fleetProvisioning?.state!=='ready')throw new Error('new_main_b_authority_missing');
   const tokenB=r.json.authority.token;
+  r=await request('POST','/v1/device-channel/fleet-status',b.signed('fleet-status',{fleetToken:tokenB,status:'online',moduleVersion:'0.9.0-rc.6',port:5492}));
+  if(r.status!==200||r.json.account?.fleetProvisioning?.state!=='online')throw new Error('new_main_b_online_status_missing');
   r=await request('POST','/v1/device-channel/fleet-devices',b.signed('fleet-devices',{fleetToken:tokenB}));
   if(r.status!==200||r.json.mainDeviceId!==b.deviceId||!r.json.devices?.some(d=>d.deviceId===a.deviceId)||!r.json.devices?.some(d=>d.deviceId===b.deviceId))throw new Error('new_main_b_fleet_view_failed');
   r=await request('POST','/v1/device-channel/fleet-device-policy',b.signed('fleet-device-policy',{fleetToken:tokenB,deviceId:a.deviceId,policyProfile:'fleet-test',approvedCapabilities:['filesystem']}));
@@ -73,13 +80,14 @@ async function enroll(label){
   if(!viewA||!viewB||viewA.publicIdentityKey!==a.publicIdentityKey||viewB.publicIdentityKey!==b.publicIdentityKey)throw new Error('main_migration_changed_device_identity');
 
   r=await request('POST','/v1/accounts/main-device/clear',{}, {'x-light-account-session':token});
-  if(r.status!==200||r.json.account?.mainDeviceId!==null)throw new Error('clear_main_after_migration_failed');
+  if(r.status!==200||r.json.account?.mainDeviceId!==null||r.json.account?.fleetProvisioning!==null)throw new Error('clear_main_after_migration_failed');
   r=await request('POST','/v1/device-channel/fleet-devices',b.signed('fleet-devices',{fleetToken:tokenB}));
   if(r.status!==403||r.json.error!=='fleet_main_device_required')throw new Error('main_clear_did_not_revoke_b');
 
   console.log('v09-main-migration-a-to-b=PASS');
   console.log('v09-main-migration-old-authority-revoked=PASS');
   console.log('v09-main-migration-new-authority-issued=PASS');
+  console.log('v09-main-migration-provisioning-state-machine=PASS');
   console.log('v09-main-migration-no-reenroll=PASS');
   console.log('v09-main-migration-no-fallback=PASS');
 } finally {

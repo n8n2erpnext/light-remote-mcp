@@ -593,6 +593,10 @@ function fleetTarget(ctx,deviceId){
   if(device.state==='revoked')throw new FleetAuthorityError('fleet_target_revoked',409);
   return device;
 }
+function wakeDeviceChannelForDevice(deviceId){
+  if(!deviceId)return false;
+  try{const device=devices.get(deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});fleet.wake(device.nodeId||device.deviceId);return true;}catch{return false;}
+}
 function verifiedLeafCapabilities(value,binding,reportedRevision=0) {
   const reported=[];
   for (const raw of Array.isArray(value)?value:[]) {
@@ -644,8 +648,10 @@ const server = http.createServer(async (req, res) => {
       if(device.accountId!==accountId)throw new AccountError('account_device_mismatch',403);
       if(device.state==='revoked')throw new AccountError('main_device_revoked',409);
       const prior=accounts.account(accountId).mainDeviceId||null;if(prior&&prior!==device.deviceId)fleetAuthority.invalidateDevice(prior,'main_device_changed');
-      fleetAuthority.invalidateDevice(device.deviceId,'main_device_changed');const account=accounts.setMainDevice(accountId,device.deviceId);
-      return sendJson(res,200,{ok:true,account,entitlements:planEntitlements(account),mainDevice:device});
+      fleetAuthority.invalidateDevice(device.deviceId,'main_device_changed');let account=accounts.setMainDevice(accountId,device.deviceId),entitlements=planEntitlements(account);
+      account=accounts.setFleetProvisioning(accountId,{deviceId:device.deviceId,state:entitlements.fleetWall&&entitlements.multiDeviceConsole?'starting':'failed',reason:entitlements.fleetWall&&entitlements.multiDeviceConsole?'main_device_selected':'fleet_entitlement_required',port:5492});
+      if(prior&&prior!==device.deviceId)wakeDeviceChannelForDevice(prior);wakeDeviceChannelForDevice(device.deviceId);
+      return sendJson(res,200,{ok:true,account,entitlements,mainDevice:device});
     }
     const adminEntitlementRevoke=url.pathname.match(/^\/v1\/admin\/accounts\/([A-Za-z0-9._:-]+)\/entitlement\/revoke$/);
     if (req.method === 'POST' && adminEntitlementRevoke) {
@@ -689,12 +695,14 @@ const server = http.createServer(async (req, res) => {
       if(device.state==='revoked')throw new AccountError('main_device_revoked',409);
       const priorMain=identity.account.mainDeviceId||null;if(priorMain&&priorMain!==device.deviceId)fleetAuthority.invalidateDevice(priorMain,'main_device_changed');
       fleetAuthority.invalidateDevice(device.deviceId,'main_device_changed');
-      const account=accounts.setMainDevice(identity.account.accountId,device.deviceId);
-      return sendJson(res,200,{ok:true,account,entitlements:planEntitlements(account),mainDevice:device});
+      let account=accounts.setMainDevice(identity.account.accountId,device.deviceId),entitlements=planEntitlements(account);
+      account=accounts.setFleetProvisioning(account.accountId,{deviceId:device.deviceId,state:entitlements.fleetWall&&entitlements.multiDeviceConsole?'starting':'failed',reason:entitlements.fleetWall&&entitlements.multiDeviceConsole?'main_device_selected':'fleet_entitlement_required',port:5492});
+      if(priorMain&&priorMain!==device.deviceId)wakeDeviceChannelForDevice(priorMain);wakeDeviceChannelForDevice(device.deviceId);
+      return sendJson(res,200,{ok:true,account,entitlements,mainDevice:device});
     }
     if (req.method === 'POST' && url.pathname === '/v1/accounts/main-device/clear') {
-      const identity=requireAccount(req);fleetAuthority.invalidateAccount(identity.account.accountId,'main_device_cleared');
-      const account=accounts.clearMainDevice(identity.account.accountId,{reason:'account_owner_cleared'});
+      const identity=requireAccount(req),priorMain=identity.account.mainDeviceId||null;fleetAuthority.invalidateAccount(identity.account.accountId,'main_device_cleared');
+      const account=accounts.clearMainDevice(identity.account.accountId,{reason:'account_owner_cleared'});if(priorMain)wakeDeviceChannelForDevice(priorMain);
       return sendJson(res,200,{ok:true,account,entitlements:planEntitlements(account)});
     }
     if (req.method === 'GET' && url.pathname === '/v1/accounts/usage') {
@@ -859,16 +867,25 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res,200,{ok:true,account,entitlements:planEntitlements(account)});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/fleet-intent') {
-      const body=await readJson(req),ctx=verifiedChannelContext(body,'fleet-intent'),account=accounts.account(ctx.binding.accountId),entitlements=planEntitlements(account);
+      const body=await readJson(req),ctx=verifiedChannelContext(body,'fleet-intent');let account=accounts.account(ctx.binding.accountId),entitlements=planEntitlements(account);
       const desired=Boolean(entitlements.fleetWall&&entitlements.multiDeviceConsole&&account.mainDeviceId===ctx.device.deviceId&&ctx.device.state!=='revoked');
       const reason=desired?'main_device_eligible':!entitlements.fleetWall?'fleet_entitlement_required':!account.mainDeviceId?'main_device_not_selected':account.mainDeviceId!==ctx.device.deviceId?'not_main_device':'main_device_unavailable';
       if(!desired)fleetAuthority.invalidateDevice(ctx.device.deviceId,reason);
-      return sendJson(res,200,{ok:true,fleet:{desired,port:5492,reason},account:{accountId:account.accountId,plan:account.plan,mainDeviceId:account.mainDeviceId},entitlements});
+      if(desired&&account.fleetProvisioning?.deviceId===ctx.device.deviceId&&account.fleetProvisioning?.state!=='online')account=accounts.setFleetProvisioning(account.accountId,{deviceId:ctx.device.deviceId,state:'configuring',reason,moduleVersion:ctx.payload.moduleVersion||null,port:5492});
+      else if(!desired&&account.mainDeviceId===ctx.device.deviceId)account=accounts.setFleetProvisioning(account.accountId,{deviceId:ctx.device.deviceId,state:'failed',reason,moduleVersion:ctx.payload.moduleVersion||null,port:5492});
+      return sendJson(res,200,{ok:true,fleet:{desired,port:5492,reason},account:{accountId:account.accountId,plan:account.plan,mainDeviceId:account.mainDeviceId,fleetProvisioning:account.fleetProvisioning||null},entitlements});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/fleet-authority') {
-      const body=await readJson(req),ctx=verifiedChannelContext(body,'fleet-authority'),{account,entitlements}=fleetEligibility(ctx);
+      const body=await readJson(req),ctx=verifiedChannelContext(body,'fleet-authority');let {account,entitlements}=fleetEligibility(ctx);
       const issued=fleetAuthority.issue({accountId:account.accountId,mainDeviceId:account.mainDeviceId,deviceId:ctx.device.deviceId,publicKeySha256:ctx.binding.publicKeySha256,entitlementId:account.entitlement?.entitlementId||null,moduleVersion:ctx.payload.moduleVersion||null});
-      return sendJson(res,200,{ok:true,fleet:{desired:true,port:5492},account:{accountId:account.accountId,plan:account.plan,mainDeviceId:account.mainDeviceId},entitlements,authority:issued});
+      if(account.fleetProvisioning?.deviceId===ctx.device.deviceId&&account.fleetProvisioning?.state!=='online')account=accounts.setFleetProvisioning(account.accountId,{deviceId:ctx.device.deviceId,state:'ready',reason:'fleet_authority_issued',moduleVersion:ctx.payload.moduleVersion||null,port:5492});
+      return sendJson(res,200,{ok:true,fleet:{desired:true,port:5492},account:{accountId:account.accountId,plan:account.plan,mainDeviceId:account.mainDeviceId,fleetProvisioning:account.fleetProvisioning||null},entitlements,authority:issued});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/device-channel/fleet-status') {
+      const body=await readJson(req),ctx=verifiedFleetContext(verifiedChannelContext(body,'fleet-status'));let {account,entitlements}=ctx;
+      const status=String(ctx.payload.status||'').trim().toLowerCase(),port=Number(ctx.payload.port)||5492;if(status!=='online')throw new FleetAuthorityError('invalid_fleet_status');if(port!==5492)throw new FleetAuthorityError('invalid_fleet_status_port');
+      account=accounts.setFleetProvisioning(account.accountId,{deviceId:ctx.device.deviceId,state:'online',reason:'fleet_runtime_online',moduleVersion:ctx.payload.moduleVersion||null,port});
+      return sendJson(res,200,{ok:true,fleet:{desired:true,status:'online',port},account:{accountId:account.accountId,plan:account.plan,mainDeviceId:account.mainDeviceId,fleetProvisioning:account.fleetProvisioning||null},entitlements});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/fleet-devices') {
       const body=await readJson(req),ctx=verifiedFleetContext(verifiedChannelContext(body,'fleet-devices'));

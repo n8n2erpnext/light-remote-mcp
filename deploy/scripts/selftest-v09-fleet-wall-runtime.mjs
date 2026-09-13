@@ -15,13 +15,14 @@ const publicKeySha256=crypto.createHash('sha256').update(Buffer.from(publicIdent
 const deviceId='dev_fleet_wall_test';
 fs.writeFileSync(stateFile,JSON.stringify({identity:{publicIdentityKey,publicKeySha256},enrollment:{deviceId,accountId:'self-hosted-local'}}));
 fs.writeFileSync(identityFile,JSON.stringify({privateKey:privateEncoded,publicKey:publicIdentityKey}),{mode:0o600});
-let authorityAllowed=true,authorityCalls=0,signedCalls=0,policyCalls=0,updateCalls=0;
+let authorityAllowed=true,authorityCalls=0,statusCalls=0,signedCalls=0,policyCalls=0,updateCalls=0;
 const hub=http.createServer(async(req,res)=>{let text='';for await(const chunk of req)text+=chunk;const body=JSON.parse(text||'{}'),action=String(req.url||'').split('/').pop();
   const expected=deviceChannelMessage({deviceId:body.deviceId,action,timestamp:body.timestamp,nonce:body.nonce,payload:body.payload});
   if(body.deviceId!==deviceId||!crypto.verify(null,Buffer.from(expected),publicKey,Buffer.from(String(body.signature||''),'base64url'))){res.writeHead(401,{'content-type':'application/json'});return res.end(JSON.stringify({error:'invalid_signature'}));}
   signedCalls++;
   if(action==='fleet-authority'){authorityCalls++;if(!authorityAllowed){res.writeHead(403,{'content-type':'application/json'});return res.end(JSON.stringify({error:'fleet_main_device_required'}));}
     return reply(res,200,{ok:true,authority:{token:'fleet-test-token',lease:{leaseId:'fl_test',deviceId,expiresAt:Date.now()+1400}},entitlements:{fleetWall:true,multiDeviceConsole:true}});}
+  if(action==='fleet-status'){statusCalls++;if(body.payload?.status!=='online'||Number(body.payload?.port)!==Number(process.env.TEST_FLEET_PORT||body.payload?.port))return reply(res,400,{ok:false,error:'invalid_fleet_status'});return reply(res,200,{ok:true,fleet:{desired:true,status:'online',port:Number(body.payload.port)}});}
   if(body.payload?.fleetToken!=='fleet-test-token')return reply(res,401,{ok:false,error:'fleet_authority_required'});
   if(action==='fleet-devices')return reply(res,200,{ok:true,mainDeviceId:deviceId,devices:[{accountId:'self-hosted-local',deviceId,nodeId:deviceId,displayName:'Fleet Main',state:'online',platform:'linux',architecture:'x64',agentVersion:'0.9.0-rc.6',activeSessions:0,connection:{state:'connected',remainingMs:60000}}]});
   if(action==='fleet-sessions')return reply(res,200,{ok:true,mainDeviceId:deviceId,sessions:[]});
@@ -44,7 +45,7 @@ let r=await get(fleetPort,'/');if(r.status!==200||!r.text.includes('Fleet Wall Â
 r=await get(fleetPort,'/api/devices');if(r.status!==200||!JSON.parse(r.text).devices?.some(d=>d.deviceId===deviceId))throw new Error('fleet_wall_devices_failed');
 r=await get(fleetPort,'/api/sessions');if(r.status!==200||!Array.isArray(JSON.parse(r.text).sessions))throw new Error('fleet_wall_sessions_failed');
 r=await get(fleetPort,'/api/activity?limit=10');if(r.status!==200||JSON.parse(r.text).events?.[0]?.deviceId!==deviceId)throw new Error('fleet_wall_activity_failed');
-if(authorityCalls<1||signedCalls<4)throw new Error('fleet_wall_signed_channel_not_used');
+if(authorityCalls<1||statusCalls<1||signedCalls<5)throw new Error('fleet_wall_signed_channel_not_used');
 authorityAllowed=false;await waitClosed(fleetPort,5000);const firstExit=await exitOf(child);if(firstExit.code!==0)throw new Error(`fleet_wall_authority_shutdown_failed:${firstExit.code}:${stderr}`);
 console.log('v09-fleet-wall-authority-loss-closes-port=PASS');
 const deniedPort=await freePort();child=spawnFleet(deniedPort);stderr='';child.stderr.on('data',d=>stderr+=d);const deniedExit=await exitOf(child,4000);if(deniedExit.code===0||!stderr.includes('fleet_main_device_required'))throw new Error('unauthorized_fleet_wall_start_not_rejected');

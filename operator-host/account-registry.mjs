@@ -10,6 +10,7 @@ const ACCOUNT_RE=/^[A-Za-z0-9._:-]{1,128}$/;
 const OWNER_PROOF_TTL_MS=5*60*1000;
 const ACCOUNT_PLANS=new Set(['free','pro','vip']);
 const PLAN_RANK=Object.freeze({free:0,pro:1,vip:2});
+const FLEET_PROVISION_STATES=new Set(['starting','configuring','ready','online','failed']);
 function normalizePlan(value){const plan=String(value||'free').trim().toLowerCase();if(!ACCOUNT_PLANS.has(plan))throw new AccountError('invalid_account_plan');return plan;}
 function entitlementView(row,now){
   const e=row.entitlement;
@@ -62,7 +63,7 @@ export class AccountRegistry{
     for(const [hash,row] of this.sessions)if(row.expiresAt<=now||!this.accounts.has(row.accountId)){this.sessions.delete(hash);changed=true;}
     if(changed&&persist)this._persist();return changed;
   }
-  _viewAccount(row){const entitlement=entitlementView(row,this.now());return {accountId:row.accountId,email:row.email,plan:entitlement.plan,entitlement,mainDeviceId:row.mainDeviceId||null,status:row.status||'active',createdAt:row.createdAt,lastLoginAt:row.lastLoginAt||null};}
+  _viewAccount(row){const entitlement=entitlementView(row,this.now()),fleetProvisioning=row.fleetProvisioning&&FLEET_PROVISION_STATES.has(row.fleetProvisioning.state)?{...row.fleetProvisioning}:null;return {accountId:row.accountId,email:row.email,plan:entitlement.plan,entitlement,mainDeviceId:row.mainDeviceId||null,fleetProvisioning,status:row.status||'active',createdAt:row.createdAt,lastLoginAt:row.lastLoginAt||null};}
   _issue(account){
     this._prune(false);
     const token=crypto.randomBytes(32).toString('base64url'),tokenHash=sha256(token),now=this.now();
@@ -132,6 +133,20 @@ export class AccountRegistry{
     row.plan=next;row.entitlement={entitlementId,plan:next,source,sourceRef,validFrom:now,validUntil,grantedAt:now};this._persist();
     this.emit({type:'account_entitlement_changed',accountId:row.accountId,status:'ok',fromPlan:prior,toPlan:next,source,validUntil});return this._viewAccount(row);
   }
+  setFleetProvisioning(accountId,input={}){
+    const row=this.accounts.get(String(accountId||''));if(!row)throw new AccountError('account_not_found',404);
+    const deviceId=String(input.deviceId||'').trim(),state=String(input.state||'').trim();
+    if(!ACCOUNT_RE.test(deviceId))throw new AccountError('invalid_fleet_provision_device');
+    if(!FLEET_PROVISION_STATES.has(state))throw new AccountError('invalid_fleet_provision_state');
+    const now=this.now(),prior=row.fleetProvisioning||null;
+    row.fleetProvisioning={deviceId,state,reason:input.reason==null?null:String(input.reason).slice(0,120),moduleVersion:input.moduleVersion==null?null:String(input.moduleVersion).slice(0,80),port:input.port==null?null:Math.max(1,Math.min(Number(input.port)||5492,65535)),startedAt:prior?.deviceId===deviceId?Number(prior.startedAt)||now:now,updatedAt:now,onlineAt:state==='online'?(prior?.deviceId===deviceId?prior.onlineAt||now:now):(prior?.deviceId===deviceId?prior.onlineAt||null:null)};
+    this._persist();this.emit({type:'account_fleet_provisioning_changed',accountId:row.accountId,deviceId,state,status:state,reason:row.fleetProvisioning.reason,moduleVersion:row.fleetProvisioning.moduleVersion,port:row.fleetProvisioning.port});return this._viewAccount(row);
+  }
+  clearFleetProvisioning(accountId,{reason='fleet_not_requested'}={}){
+    const row=this.accounts.get(String(accountId||''));if(!row)throw new AccountError('account_not_found',404);
+    const prior=row.fleetProvisioning||null;if(!prior)return this._viewAccount(row);
+    row.fleetProvisioning=null;this._persist();this.emit({type:'account_fleet_provisioning_cleared',accountId:row.accountId,deviceId:prior.deviceId||null,status:'cleared',reason:String(reason||'fleet_not_requested').slice(0,120)});return this._viewAccount(row);
+  }
   setMainDevice(accountId,deviceId){
     const row=this.accounts.get(String(accountId||''));if(!row)throw new AccountError('account_not_found',404);
     const next=String(deviceId||'').trim();if(!ACCOUNT_RE.test(next))throw new AccountError('invalid_main_device');
@@ -141,7 +156,7 @@ export class AccountRegistry{
   clearMainDevice(accountId,{reason='main_device_cleared'}={}){
     const row=this.accounts.get(String(accountId||''));if(!row)throw new AccountError('account_not_found',404);
     const prior=row.mainDeviceId||null;if(!prior)return this._viewAccount(row);
-    row.mainDeviceId=null;this._persist();this.emit({type:'account_main_device_changed',accountId:row.accountId,status:'ok',fromDeviceId:prior,toDeviceId:null,reason:String(reason||'main_device_cleared').slice(0,80)});return this._viewAccount(row);
+    row.mainDeviceId=null;row.fleetProvisioning=null;this._persist();this.emit({type:'account_main_device_changed',accountId:row.accountId,status:'ok',fromDeviceId:prior,toDeviceId:null,reason:String(reason||'main_device_cleared').slice(0,80)});return this._viewAccount(row);
   }
   setPlan(accountId,plan){return this.applyEntitlement(accountId,{plan,source:'admin',durationMs:null,allowDowngrade:true});}
   list(){return [...this.accounts.values()].map(row=>this._viewAccount(row)).sort((a,b)=>a.createdAt-b.createdAt);}
