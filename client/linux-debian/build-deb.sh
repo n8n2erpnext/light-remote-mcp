@@ -8,9 +8,10 @@ mkdir -p "$TMP/extract"; tar -xzf "$BUNDLE" -C "$TMP/extract"
 PKG="$TMP/extract/package"; [[ -f "$PKG/manifest.json" && -x "$PKG/runtime/node" ]] || { echo 'invalid client bundle' >&2; exit 2; }
 read -r VERSION PLATFORM < <(python3 -c 'import json,sys;m=json.load(open(sys.argv[1]));print(m["version"],m["platform"])' "$PKG/manifest.json")
 case "$PLATFORM" in linux-x64) ARCH=amd64;; linux-arm64) ARCH=arm64;; *) echo "unsupported Debian platform: $PLATFORM" >&2; exit 2;; esac
-STAGE="$TMP/stage"; mkdir -p "$STAGE/DEBIAN" "$STAGE/opt/gpt-operator-agent/releases/$VERSION" "$STAGE/usr/lib/systemd/user" "$STAGE/etc/systemd/system" "$STAGE/etc/xdg/autostart"
+STAGE="$TMP/stage"; mkdir -p "$STAGE/DEBIAN" "$STAGE/opt/gpt-operator-agent/releases/$VERSION" "$STAGE/usr/lib/systemd/user" "$STAGE/etc/systemd/system" "$STAGE/etc/xdg/autostart" "$STAGE/usr/share/icons/hicolor/256x256/apps"
 cp -a "$PKG/." "$STAGE/opt/gpt-operator-agent/releases/$VERSION/"
 cp "$ROOT_DIR/client/update-public.pem" "$STAGE/opt/gpt-operator-agent/update-public.pem"
+cp "$PKG/assets/branding/light-remote-mark-256.png" "$STAGE/usr/share/icons/hicolor/256x256/apps/light-remote.png"
 cp "$ROOT_DIR/client/linux-debian/systemd/light-remote-agent.service" "$STAGE/usr/lib/systemd/user/"
 cp "$ROOT_DIR/client/linux-debian/systemd/light-remote-tray.service" "$STAGE/usr/lib/systemd/user/"
 cp "$ROOT_DIR/client/linux-debian/systemd/light-remote-update.service" "$STAGE/etc/systemd/system/"

@@ -8,8 +8,9 @@ final class TrayDelegate: NSObject, NSApplicationDelegate {
     let root = ProcessInfo.processInfo.environment["LIGHT_REMOTE_ROOT"] ?? "/Library/Application Support/Light Remote"
     var node: String { root + "/current/runtime/node" }
     var agent: String { root + "/current/device-agent/operator-agent.mjs" }
+    var brandIcon: String { root + "/current/assets/branding/light-remote-mark-256.png" }
     func applicationDidFinishLaunching(_ notification: Notification) {
-        if let button = statusItem.button { button.title = "LR"; button.toolTip = "Light Remote" }
+        if let button = statusItem.button { if let image = NSImage(contentsOfFile: brandIcon) { image.size = NSSize(width: 18, height: 18); image.isTemplate = false; button.image = image; button.imagePosition = .imageOnly; button.title = "" } else { button.title = "Light Remote" }; button.toolTip = "Light Remote" }
         let menu = NSMenu(); stateItem.isEnabled = false; menu.addItem(stateItem); menu.addItem(.separator())
         menu.addItem(NSMenuItem(title:"Open Local Wall",action:#selector(openWall),keyEquivalent:"")); menu.addItem(connectItem)
         menu.addItem(NSMenuItem(title:"Restart Light Remote",action:#selector(restartAgent),keyEquivalent:"")); menu.addItem(NSMenuItem(title:"Check for updates",action:#selector(checkUpdates),keyEquivalent:"")); menu.addItem(NSMenuItem(title:"Stop Light Remote",action:#selector(stopAgent),keyEquivalent:"")); menu.addItem(.separator()); menu.addItem(NSMenuItem(title:"Quit tray",action:#selector(quitTray),keyEquivalent:""))

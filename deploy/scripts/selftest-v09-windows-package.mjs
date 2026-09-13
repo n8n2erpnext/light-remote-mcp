@@ -49,6 +49,9 @@ expect(!taskInstaller.includes("-Execute $Node -Argument"),'windows_agent_task_m
 expect(agentHost.includes('CreateNoWindow = true')&&agentHost.includes('RedirectStandardOutput = true'),'windows_agent_host_not_hidden');
 expect(manifest.includes('PerMonitorV2'),'windows_dpi_manifest_missing');
 expect(exists('client/windows-native/GptOperator.Client/Assets/light-remote.ico'),'windows_icon_missing');
+expect(project.includes('<ApplicationIcon>Assets\\light-remote.ico</ApplicationIcon>'),'windows_app_icon_contract_missing');
+expect(updaterProject.includes('<ApplicationIcon>..\\GptOperator.Client\\Assets\\light-remote.ico</ApplicationIcon>'),'windows_updater_icon_contract_missing');
+expect(installer.includes('SetupIconFile={#StageDir}\\Assets\\light-remote.ico'),'windows_installer_icon_contract_missing');
 expect(exists('client/update-public.pem'),'update_public_key_missing');
 console.log('v09-windows-independent-updater=PASS');
 console.log('v09-windows-tray-package-contract=PASS');

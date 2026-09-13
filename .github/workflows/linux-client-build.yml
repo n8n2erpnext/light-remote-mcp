@@ -55,6 +55,7 @@ jobs:
           cp device-agent/platform-adapters/*.mjs "$PKG/device-agent/platform-adapters/"
           cp lib/device-proof.mjs "$PKG/lib/"
           cp assets/branding/light-remote-mark.svg "$PKG/assets/branding/"
+          cp assets/branding/light-remote-mark-256.png "$PKG/assets/branding/"
           cp client/linux/updater.mjs "$PKG/client/linux/"
           cp client/linux-debian/updater-wrapper.mjs "$PKG/client/linux-debian/"
           cp client/linux-debian/tray/light-remote-tray.py "$PKG/client/linux-debian/tray/"
@@ -92,6 +93,8 @@ jobs:
           test -f "$PKG/client/linux/updater.mjs"
           test -f "$PKG/client/linux-debian/updater-wrapper.mjs"
           test -f "$PKG/client/linux-debian/tray/light-remote-tray.py"
+          test -f "$PKG/assets/branding/light-remote-mark.svg"
+          test -f "$PKG/assets/branding/light-remote-mark-256.png"
           test -f "$PKG/manifest.json"
           (cd "$OUT" && sha256sum -c SHA256SUMS.txt)
           if [[ "$TARGET_ARCH" == "x64" ]]; then

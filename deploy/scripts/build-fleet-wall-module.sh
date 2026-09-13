@@ -12,6 +12,7 @@ cp "$ROOT/lib/device-proof.mjs" "$PKG/lib/"
 cp "$ROOT/gateway/dashboard.mjs" "$PKG/gateway/"
 cp "$ROOT/gateway/device-policy-page.mjs" "$PKG/gateway/"
 cp "$ROOT/gateway/brand.mjs" "$PKG/gateway/"
+cp "$ROOT/gateway/brand-mark.svg" "$PKG/gateway/"
 cat > "$PKG/manifest.json" <<JSON
 {
   "component": "fleet-wall",

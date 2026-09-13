@@ -7,7 +7,7 @@ try:
 except Exception as exc:
     raise SystemExit(f'Light Remote tray dependencies unavailable: {exc}')
 
-ROOT=os.environ.get('LIGHT_REMOTE_ROOT','/opt/gpt-operator-agent'); NODE=f'{ROOT}/current/runtime/node'; AGENT=f'{ROOT}/current/device-agent/operator-agent.mjs'; WALL='http://127.0.0.1:5491/'; ICON=os.environ.get('LIGHT_REMOTE_ICON',f'{ROOT}/current/assets/branding/light-remote-mark.svg'); SERVICE='light-remote-agent.service'; UPDATE='light-remote-update.service'
+ROOT=os.environ.get('LIGHT_REMOTE_ROOT','/opt/gpt-operator-agent'); NODE=f'{ROOT}/current/runtime/node'; AGENT=f'{ROOT}/current/device-agent/operator-agent.mjs'; WALL='http://127.0.0.1:5491/'; ICON=os.environ.get('LIGHT_REMOTE_ICON',f'{ROOT}/current/assets/branding/light-remote-mark-256.png'); SERVICE='light-remote-agent.service'; UPDATE='light-remote-update.service'
 def run(args,timeout=12): return subprocess.run(args,text=True,capture_output=True,timeout=timeout)
 def agent(*args): return run([NODE,AGENT,*args])
 def status():
