@@ -8,7 +8,7 @@ import {FleetComponentManager} from '../../device-agent/fleet-component-manager.
 
 const root=path.resolve(new URL('../..',import.meta.url).pathname),tmp=fs.mkdtempSync(path.join(os.tmpdir(),'lr-fleet-component-'));
 const packageDir=path.join(tmp,'src','fleet-wall');fs.mkdirSync(path.join(packageDir,'device-agent'),{recursive:true});fs.mkdirSync(path.join(packageDir,'lib'),{recursive:true});fs.mkdirSync(path.join(packageDir,'gateway'),{recursive:true});
-for(const [src,dst] of [['device-agent/fleet-wall-runtime.mjs','device-agent/fleet-wall-runtime.mjs'],['device-agent/local-wall-auth.mjs','device-agent/local-wall-auth.mjs'],['lib/device-proof.mjs','lib/device-proof.mjs'],['gateway/dashboard.mjs','gateway/dashboard.mjs'],['gateway/brand.mjs','gateway/brand.mjs']])fs.copyFileSync(path.join(root,src),path.join(packageDir,dst));
+for(const [src,dst] of [['device-agent/fleet-wall-runtime.mjs','device-agent/fleet-wall-runtime.mjs'],['device-agent/local-wall-auth.mjs','device-agent/local-wall-auth.mjs'],['lib/device-proof.mjs','lib/device-proof.mjs'],['gateway/dashboard.mjs','gateway/dashboard.mjs'],['gateway/device-policy-page.mjs','gateway/device-policy-page.mjs'],['gateway/brand.mjs','gateway/brand.mjs']])fs.copyFileSync(path.join(root,src),path.join(packageDir,dst));
 fs.writeFileSync(path.join(packageDir,'manifest.json'),JSON.stringify({component:'fleet-wall',version:'0.9.0-rc.6'},null,2));
 const archive=path.join(tmp,'fleet-wall.tar.gz'),tar=spawnSync('tar',['-czf',archive,'-C',path.join(tmp,'src'),'fleet-wall'],{encoding:'utf8'});if(tar.status!==0)throw new Error(`tar_failed:${tar.stderr}`);
 const artifact=fs.readFileSync(archive),sha256=crypto.createHash('sha256').update(artifact).digest('hex');
