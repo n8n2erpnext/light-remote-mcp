@@ -5,9 +5,11 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { deviceChannelMessage, deviceHeartbeatMessage } from '../../lib/device-proof.mjs';
+import { writeLocalWallAuthConfig } from '../../device-agent/local-wall-auth.mjs';
 
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'gpt-device-agent-cli-'));
-const stateFile=path.join(dir,'device.json');
+const stateFile=path.join(dir,'device.json'),wallAuthFile=path.join(dir,'wall-auth.json'),wallPassword='device-agent-wall-test-123';
+writeLocalWallAuthConfig(wallAuthFile,{username:'operator',password:wallPassword});
 const cli=new URL('../../device-agent/operator-agent.mjs',import.meta.url).pathname;
 const signer=crypto.generateKeyPairSync('ed25519');
 const signerPublic=signer.publicKey.export({format:'der',type:'spki'}).toString('base64');
@@ -51,7 +53,7 @@ const server=http.createServer(async(req,res)=>{
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const base=`http://127.0.0.1:${server.address().port}`;
 function run(args,extraEnv={}){return new Promise((resolve,reject)=>{const child=spawn(process.execPath,[cli,...args],{env:{...process.env,OPERATOR_AGENT_STATE:stateFile,OPERATOR_AGENT_BASE_URL:base,OPERATOR_AGENT_HUB_URL:base,...extraEnv},stdio:['ignore','pipe','pipe']});let stdout='',stderr='';child.stdout.on('data',c=>stdout+=c);child.stderr.on('data',c=>stderr+=c);child.on('error',reject);child.on('exit',code=>resolve({code,stdout,stderr}));});}
-function wallReq(port,method,target,payload){return new Promise((resolve,reject)=>{const data=payload==null?null:Buffer.from(JSON.stringify(payload));const headers=data?{'content-type':'application/json','content-length':data.length}:{};const r=http.request({host:'127.0.0.1',port,method,path:target,headers},res=>{let text='';res.on('data',c=>text+=c);res.on('end',()=>{let json=null;try{json=JSON.parse(text)}catch{}resolve({status:res.statusCode,text,json});});});r.on('error',reject);if(data)r.write(data);r.end();});}
+function wallReq(port,method,target,payload,{headers={},form=false}={}){return new Promise((resolve,reject)=>{let data=null;const requestHeaders={...headers};if(payload!=null){data=Buffer.from(form?new URLSearchParams(payload).toString():JSON.stringify(payload));requestHeaders['content-type']=form?'application/x-www-form-urlencoded':'application/json';requestHeaders['content-length']=data.length;}const r=http.request({host:'127.0.0.1',port,method,path:target,headers:requestHeaders},res=>{let text='';res.on('data',c=>text+=c);res.on('end',()=>{let json=null;try{json=JSON.parse(text)}catch{}resolve({status:res.statusCode,headers:res.headers,text,json});});});r.on('error',reject);if(data)r.write(data);r.end();});}
 const login=await run(['login','--no-wait','--name','CLI Test Device','--policy','cli-test','--deny','sudo-on-demand']);
 if(login.code!==0||!login.stdout.includes('Activation URL:')||!login.stdout.includes(`Device code: ${deviceCode}`))throw new Error(`cli_login_failed:${login.stderr}`);
 const pending=JSON.parse(fs.readFileSync(stateFile,'utf8'));
@@ -70,23 +72,29 @@ const status2=await run(['status']);
 if(status2.stdout.includes(enrolled.identity.privateKey)||status2.stdout.includes(pollToken)||!status2.stdout.includes('"enrolled": true'))throw new Error('cli_enrolled_status_invalid');
 const daemonState=JSON.parse(fs.readFileSync(stateFile,'utf8'));daemonState.cloud={...(daemonState.cloud||{}),desiredConnected:true,state:'connected',hardExpiresAt:Date.now()+600000,lastError:null};fs.writeFileSync(stateFile,JSON.stringify(daemonState,null,2)+'\n',{mode:0o600});
 const wallPort=26000+(process.pid%5000);
-const daemonChild=spawn(process.execPath,[cli,'daemon'],{env:{...process.env,OPERATOR_AGENT_STATE:stateFile,OPERATOR_AGENT_BASE_URL:base,OPERATOR_AGENT_HUB_URL:base,OPERATOR_AGENT_CHANNEL_WAIT_MS:'1000',OPERATOR_AGENT_WALL_PORT:String(wallPort)},stdio:['ignore','pipe','pipe']});
+const daemonChild=spawn(process.execPath,[cli,'daemon'],{env:{...process.env,OPERATOR_AGENT_STATE:stateFile,OPERATOR_AGENT_BASE_URL:base,OPERATOR_AGENT_HUB_URL:base,OPERATOR_AGENT_CHANNEL_WAIT_MS:'1000',OPERATOR_AGENT_WALL_PORT:String(wallPort),OPERATOR_AGENT_WALL_AUTH_FILE:wallAuthFile},stdio:['ignore','pipe','pipe']});
 let daemonOut='',daemonErr='';daemonChild.stdout.on('data',c=>daemonOut+=c);daemonChild.stderr.on('data',c=>daemonErr+=c);
 const deadline=Date.now()+5000;while(channelPollCount<2&&Date.now()<deadline)await new Promise(r=>setTimeout(r,100));
 if(channelPollCount<2){daemonChild.kill('SIGTERM');throw new Error(`daemon_channel_loop_failed:${daemonErr}`);}
-let wallReady=false;for(let i=0;i<30&&!wallReady;i++){try{const st=await wallReq(wallPort,'GET','/api/status');wallReady=st.status===200;}catch{}if(!wallReady)await new Promise(r=>setTimeout(r,100));}
-if(!wallReady){daemonChild.kill('SIGTERM');throw new Error('daemon_local_wall_not_ready');}
+let loginPage=null;for(let i=0;i<30&&!loginPage;i++){try{const st=await wallReq(wallPort,'GET','/login');if(st.status===200)loginPage=st;}catch{}if(!loginPage)await new Promise(r=>setTimeout(r,100));}
+if(!loginPage){daemonChild.kill('SIGTERM');throw new Error('daemon_local_wall_not_ready');}
+const loginCsrf=String(loginPage.text).match(/name="csrf" value="([^"]+)"/)?.[1];if(!loginCsrf){daemonChild.kill('SIGTERM');throw new Error('daemon_wall_login_csrf_missing');}
+const loggedIn=await wallReq(wallPort,'POST','/auth/login',{username:'operator',password:wallPassword,next:'/',csrf:loginCsrf},{form:true});if(loggedIn.status!==303){daemonChild.kill('SIGTERM');throw new Error(`daemon_wall_login_failed:${loggedIn.status}`);}
+const wallCookie=String(loggedIn.headers['set-cookie']?.[0]||'').split(';')[0];
+const wallHome=await wallReq(wallPort,'GET','/',null,{headers:{cookie:wallCookie}});const wallCsrf=String(wallHome.text).match(/const wallCsrf="([^"]+)"/)?.[1];if(wallHome.status!==200||!wallCsrf){daemonChild.kill('SIGTERM');throw new Error('daemon_wall_session_csrf_missing');}
+const wallHeaders={cookie:wallCookie,'x-light-remote-csrf':wallCsrf};
+const readyStatus=await wallReq(wallPort,'GET','/api/status',null,{headers:{cookie:wallCookie}});if(readyStatus.status!==200){daemonChild.kill('SIGTERM');throw new Error('daemon_local_wall_auth_status_failed');}
 revokeChannel=true;
 let revokedLocal=null;for(let i=0;i<40;i++){revokedLocal=JSON.parse(fs.readFileSync(stateFile,'utf8'));if(revokedLocal.cloud?.lastError==='device_revoked')break;await new Promise(r=>setTimeout(r,100));}
 if(revokedLocal?.cloud?.lastError!=='device_revoked'||revokedLocal.cloud?.state!=='dormant'||revokedLocal.cloud?.desiredConnected!==false||revokedLocal.cloud?.connectionId!=null||revokedLocal.cloud?.hardExpiresAt!=null){daemonChild.kill('SIGTERM');throw new Error('daemon_revoked_state_not_persisted');}
-const revokedStatus=await wallReq(wallPort,'GET','/api/status');
+const revokedStatus=await wallReq(wallPort,'GET','/api/status',null,{headers:{cookie:wallCookie}});
 if(revokedStatus.status!==200||revokedStatus.json?.local?.lastCloudError!=='device_revoked'){daemonChild.kill('SIGTERM');throw new Error('local_wall_revoked_state_missing');}
 revokeChannel=false;
-const reBegin=await wallReq(wallPort,'POST','/api/enrollment/begin',{});
+const reBegin=await wallReq(wallPort,'POST','/api/enrollment/begin',{}, {headers:wallHeaders});
 if(reBegin.status!==200||reBegin.json?.enrollment?.mode!=='reenroll'||!beginPayload.capabilities.includes('sudo-on-demand')){daemonChild.kill('SIGTERM');throw new Error('daemon_reenroll_begin_failed');}
 const rePending=JSON.parse(fs.readFileSync(stateFile,'utf8'));
 if(!rePending.policy?.deniedCapabilities?.includes('sudo-on-demand')){daemonChild.kill('SIGTERM');throw new Error('reenroll_local_deny_lost_at_begin');}
-const rePoll=await wallReq(wallPort,'POST','/api/enrollment/poll',{});
+const rePoll=await wallReq(wallPort,'POST','/api/enrollment/poll',{}, {headers:wallHeaders});
 if(rePoll.status!==200||rePoll.json?.enrollment?.state!=='approved'){daemonChild.kill('SIGTERM');throw new Error('daemon_reenroll_poll_failed');}
 const reenrolled=JSON.parse(fs.readFileSync(stateFile,'utf8'));
 if(!reenrolled.enrollment?.approvedCapabilities?.includes('sudo-on-demand')||!reenrolled.policy?.deniedCapabilities?.includes('sudo-on-demand')||reenrolled.effectiveCapabilities?.includes('sudo-on-demand')){daemonChild.kill('SIGTERM');throw new Error('reenroll_local_policy_not_preserved');}
