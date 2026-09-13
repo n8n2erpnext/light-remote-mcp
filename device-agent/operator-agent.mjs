@@ -15,7 +15,7 @@ import { FleetComponentSupervisor } from './fleet-component-supervisor.mjs';
 function runtimeVersion(){
   const forced=String(process.env.LIGHT_REMOTE_VERSION||process.env.OPERATOR_AGENT_VERSION||'').trim();if(forced)return forced;
   try{const manifest=JSON.parse(fs.readFileSync(fileURLToPath(new URL('../manifest.json',import.meta.url)),'utf8'));if(manifest?.version)return String(manifest.version); }catch{}
-  try{const value=fs.readFileSync(fileURLToPath(new URL('../VERSION',import.meta.url)),'utf8').trim();if(value)return value;}catch{}
+  for(const rel of ['../VERSION','../../VERSION']){try{const value=fs.readFileSync(fileURLToPath(new URL(rel,import.meta.url)),'utf8').trim();if(value)return value;}catch{}}
   return '0.9.0-dev';
 }
 const VERSION=runtimeVersion();

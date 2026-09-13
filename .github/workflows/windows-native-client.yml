@@ -180,6 +180,22 @@ jobs:
           $agentInfo = Get-ScheduledTaskInfo -TaskName 'LightRemoteDeviceAgent'
           if ($agentTask.State -ne 'Running') { throw "LightRemoteDeviceAgent not running: $($agentTask.State) result=$($agentInfo.LastTaskResult)" }
           if ($updateTask.TaskName -ne 'LightRemoteUpdater') { throw 'LightRemoteUpdater missing' }
+          $agentAction = @($agentTask.Actions)[0]
+          if ([IO.Path]::GetFileName($agentAction.Execute) -ne 'GptOperator.Client.exe') { throw "agent task must use hidden native host, got $($agentAction.Execute)" }
+          if ($agentAction.Arguments -notmatch '--agent-host') { throw "agent task missing --agent-host: $($agentAction.Arguments)" }
+          if (-not (Test-NetConnection -ComputerName 127.0.0.1 -Port 5491 -InformationLevel Quiet)) { throw 'Local Wall 5491 not listening after install' }
+          $runtimeNode = Join-Path $installDir 'runtime\node.exe'
+          $agentNodes = @(Get-Process node -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $runtimeNode })
+          if (-not $agentNodes) { throw 'hidden agent node process missing' }
+          if ($agentNodes | Where-Object { $_.MainWindowHandle -ne 0 }) { throw 'agent node unexpectedly owns a visible console window' }
+          $trayProbe = Start-Process -FilePath $exe -PassThru
+          Start-Sleep -Milliseconds 900
+          Stop-Process -Id $trayProbe.Id -Force -ErrorAction SilentlyContinue
+          Start-Sleep -Milliseconds 500
+          if ((Get-ScheduledTask -TaskName 'LightRemoteDeviceAgent').State -ne 'Running') { throw 'closing tray stopped background agent task' }
+          if (-not (Test-NetConnection -ComputerName 127.0.0.1 -Port 5491 -InformationLevel Quiet)) { throw 'closing tray stopped Local Wall 5491' }
+          Write-Host 'windows-agent-hidden-console=PASS'
+          Write-Host 'windows-tray-exit-agent-survival=PASS'
           Write-Host 'windows-background-agent-task=PASS'
           Write-Host 'windows-updater-task=PASS'
           Write-Host 'windows-native-legacy-task-migration=PASS'
@@ -195,6 +211,8 @@ jobs:
           if ($p.ExitCode -ne 0) { throw "installed client self-test failed exit=$($p.ExitCode)" }
           $json = Get-Content $result -Raw | ConvertFrom-Json
           if (-not $json.ok -or $json.platformAdapter -ne 'win32') { throw "installed client invalid: $(Get-Content $result -Raw)" }
+          $expectedVersion = (Get-Content VERSION -Raw).Trim()
+          if ($json.agentVersion -ne $expectedVersion) { throw "installed agent version mismatch: $($json.agentVersion) expected=$expectedVersion" }
           Write-Host 'windows-native-installed-selftest=PASS'
 
       - name: Broken update rollback smoke

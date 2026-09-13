@@ -9,6 +9,7 @@ const updater=read('client/windows-native/GptOperator.Client/UpdateClient.cs');
 const applier=read('client/windows-native/GptOperator.Client/UpdateApplier.cs');
 const installer=read('client/windows-native/installer/GptOperator.iss');
 const taskInstaller=read('device-agent/install-windows-task.ps1');
+const agentHost=read('client/windows-native/GptOperator.Client/AgentHost.cs');
 const manifest=read('client/windows-native/GptOperator.Client/app.manifest');
 function expect(ok,msg){if(!ok)throw new Error(msg);}
 expect(/runs-on:\s*windows-latest/.test(workflow),'windows_runner_missing');
@@ -22,7 +23,7 @@ expect(project.includes('<UseWindowsForms>true</UseWindowsForms>'),'winforms_tra
 expect(project.includes('net8.0-windows10.0.17763.0'),'windows_10_target_missing');
 expect(project.includes('<Compile Remove="MainForm.cs;ConnectionSwitch.cs;ConnectionSettingsDialog.cs" />'),'native_window_not_removed');
 expect(program.includes('Application.Run(new TrayApplicationContext())'),'tray_context_not_entrypoint');
-expect(program.includes('--open-wall')&&program.includes('--scheduled-update'),'windows_tray_modes_missing');
+expect(program.includes('--open-wall')&&program.includes('--scheduled-update')&&program.includes('--agent-host'),'windows_tray_modes_missing');
 expect(!program.includes('new MainForm'),'native_main_window_returned');
 for(const token of ['NotifyIcon','Open Local Wall','Restart Light Remote','Check for updates','Stop Light Remote','Quit tray','LightRemoteDeviceAgent','LightRemoteUpdater'])expect(tray.includes(token),`tray_contract_missing:${token}`);
 expect(tray.includes('ExitThread()')&&!tray.includes('StopServiceAsync'),'quit_tray_must_not_stop_agent');
@@ -36,6 +37,10 @@ expect(!/LocalSystem/i.test(installer+taskInstaller),'windows_must_not_use_local
 expect(taskInstaller.includes("$AgentTask='LightRemoteDeviceAgent'")&&taskInstaller.includes("$UpdateTask='LightRemoteUpdater'"),'windows_task_names_missing');
 expect(taskInstaller.includes('New-ScheduledTaskTrigger -AtLogOn')&&taskInstaller.includes('RepetitionInterval (New-TimeSpan -Hours 6)'),'windows_task_schedules_missing');
 expect(taskInstaller.includes('-RunLevel Limited'),'windows_task_must_be_limited');
+expect(taskInstaller.includes('-Execute $Tray')&&taskInstaller.includes("-Argument '--agent-host'"),'windows_agent_task_must_use_hidden_native_host');
+expect(!taskInstaller.includes("-Execute $Node -Argument"),'windows_agent_task_must_not_launch_node_directly');
+expect(agentHost.includes('CreateNoWindow = true')&&agentHost.includes('RedirectStandardOutput = true'),'windows_agent_host_not_hidden');
+expect(workflow.includes('windows-agent-hidden-console=PASS')&&workflow.includes('windows-tray-exit-agent-survival=PASS'),'windows_hidden_agent_ci_missing');
 expect(updater.includes('VerifySignedManifest')&&updater.includes('CryptographicOperations.FixedTimeEquals'),'windows_signed_update_verification_missing');
 expect(applier.includes('rollback_success')&&applier.includes('--self-test-output'),'windows_rollback_health_gate_missing');
 expect(manifest.includes('PerMonitorV2'),'windows_dpi_manifest_missing');

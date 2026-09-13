@@ -4,6 +4,8 @@ const need=(ok,name)=>{if(!ok)throw new Error(name);console.log(`${name}=PASS`);
 const csproj=read('client/windows-native/GptOperator.Client/GptOperator.Client.csproj');
 const winTray=read('client/windows-native/GptOperator.Client/TrayApplicationContext.cs');
 const winInstall=read('device-agent/install-windows-task.ps1');
+const winProgram=read('client/windows-native/GptOperator.Client/Program.cs');
+const winHost=read('client/windows-native/GptOperator.Client/AgentHost.cs');
 const winIss=read('client/windows-native/installer/GptOperator.iss');
 const debBuild=read('client/linux-debian/build-deb.sh');
 const debAgent=read('client/linux-debian/systemd/light-remote-agent.service');
@@ -18,6 +20,8 @@ need(csproj.includes('<Compile Remove="MainForm.cs;ConnectionSwitch.cs;Connectio
 need(csproj.includes('net8.0-windows10.0.17763.0'),'windows-10-11-target');
 need(winTray.includes('Open Local Wall')&&winTray.includes('Quit tray')&&winTray.includes('Stop Light Remote'),'windows-tray-controls');
 need(winInstall.includes("LightRemoteDeviceAgent")&&winInstall.includes("LightRemoteUpdater"),'windows-independent-runtime-updater');
+need(winInstall.includes('-Execute $Tray')&&winInstall.includes("--agent-host"),'windows-hidden-agent-task-host');
+need(winProgram.includes('--agent-host')&&winHost.includes('CreateNoWindow = true'),'windows-agent-no-console-window');
 need(winIss.includes('--open-wall')&&!winIss.includes('Description: "Start Light Remote MCP"'),'windows-shortcut-opens-wall');
 need(debAgent.includes('operator-agent.mjs daemon')&&debAgent.includes('WantedBy=default.target'),'debian-user-agent');
 need(debTray.includes("SERVICE='light-remote-agent.service'")&&debTray.includes('Quit tray'),'debian-tray-controls');
