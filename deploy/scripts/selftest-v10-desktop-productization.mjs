@@ -22,7 +22,7 @@ need(winTray.includes('Open Local Wall')&&winTray.includes('Quit tray')&&winTray
 need(winInstall.includes("LightRemoteDeviceAgent")&&winInstall.includes("LightRemoteUpdater"),'windows-independent-runtime-updater');
 need(winInstall.includes('-Execute $Tray')&&winInstall.includes("--agent-host"),'windows-hidden-agent-task-host');
 need(winProgram.includes('--agent-host')&&winHost.includes('CreateNoWindow = true'),'windows-agent-no-console-window');
-need(winIss.includes('--open-wall')&&!winIss.includes('Description: "Start Light Remote MCP"'),'windows-shortcut-opens-wall');
+need(winIss.includes('--launch')&&!winIss.includes('Description: "Start Light Remote MCP"'),'windows-shortcut-opens-wall');
 need(debAgent.includes('operator-agent.mjs daemon')&&debAgent.includes('WantedBy=default.target'),'debian-user-agent');
 need(debTray.includes("SERVICE='light-remote-agent.service'")&&debTray.includes('Quit tray'),'debian-tray-controls');
 need(debUpdate.includes('Type=oneshot')&&debBuild.includes('light-remote-update.timer'),'debian-privileged-updater');

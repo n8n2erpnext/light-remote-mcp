@@ -194,8 +194,13 @@ jobs:
           Start-Sleep -Milliseconds 500
           if ((Get-ScheduledTask -TaskName 'LightRemoteDeviceAgent').State -ne 'Running') { throw 'closing tray stopped background agent task' }
           if (-not (Test-NetConnection -ComputerName 127.0.0.1 -Port 5491 -InformationLevel Quiet)) { throw 'closing tray stopped Local Wall 5491' }
+          $relaunchedTray = Start-Process -FilePath $exe -ArgumentList @('--launch') -PassThru
+          Start-Sleep -Milliseconds 1200
+          if ($relaunchedTray.HasExited) { throw 'desktop launcher did not restore the tray process' }
+          if (-not (Test-NetConnection -ComputerName 127.0.0.1 -Port 5491 -InformationLevel Quiet)) { throw 'desktop launcher disturbed Local Wall 5491' }
           Write-Host 'windows-agent-hidden-console=PASS'
           Write-Host 'windows-tray-exit-agent-survival=PASS'
+          Write-Host 'windows-tray-relaunch=PASS'
           Write-Host 'windows-background-agent-task=PASS'
           Write-Host 'windows-updater-task=PASS'
           Write-Host 'windows-native-legacy-task-migration=PASS'

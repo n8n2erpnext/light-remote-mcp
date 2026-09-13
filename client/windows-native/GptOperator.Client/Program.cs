@@ -33,12 +33,19 @@ internal static class Program
         }
 
         if (args.Contains("--agent-host", StringComparer.OrdinalIgnoreCase)) { Environment.ExitCode = AgentHost.Run(); return; }
-        if (args.Contains("--open-wall", StringComparer.OrdinalIgnoreCase)) { try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("http://127.0.0.1:5491/") { UseShellExecute = true }); } catch { } return; }
+        if (args.Contains("--open-wall", StringComparer.OrdinalIgnoreCase)) { OpenWall(); return; }
         if (args.Contains("--scheduled-update", StringComparer.OrdinalIgnoreCase)) { Environment.ExitCode = RunScheduledUpdateAsync().GetAwaiter().GetResult(); return; }
+        var launcher = args.Contains("--launch", StringComparer.OrdinalIgnoreCase);
         using var mutex = new Mutex(true, @"Local\GPT_OPERATOR_CLIENT_V09", out var firstInstance);
-        if (!firstInstance) return;
+        if (!firstInstance) { if (launcher) OpenWall(); return; }
         ApplicationConfiguration.Initialize();
         Application.Run(new TrayApplicationContext());
+    }
+
+    private static void OpenWall()
+    {
+        try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("http://127.0.0.1:5491/") { UseShellExecute = true }); }
+        catch { }
     }
 
     private static async Task<int> RunScheduledUpdateAsync()

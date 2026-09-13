@@ -60,15 +60,10 @@ function sessionCookie(token,ttl,secure){return `${LOCAL_WALL_COOKIE}=${token}; 
 function clearCookie(secure){return `${LOCAL_WALL_COOKIE}=; Path=/; Max-Age=0; HttpOnly; ${secure?'Secure; ':''}SameSite=Strict; Priority=High`;}
 function formBody(req,limit=16*1024){return new Promise((resolve,reject)=>{let size=0,chunks=[];req.on('data',c=>{size+=c.length;if(size>limit){reject(new Error('body_too_large'));req.destroy();return;}chunks.push(c);});req.on('end',()=>resolve(Object.fromEntries(new URLSearchParams(Buffer.concat(chunks).toString('utf8')))));req.on('error',reject);});}
 function jsonBody(req,limit=64*1024){return new Promise((resolve,reject)=>{let size=0,chunks=[];req.on('data',c=>{size+=c.length;if(size>limit){reject(new Error('body_too_large'));req.destroy();return;}chunks.push(c);});req.on('end',()=>{try{resolve(JSON.parse(Buffer.concat(chunks).toString('utf8')||'{}'));}catch{reject(new Error('invalid_json'));}});req.on('error',reject);});}
-function sameOriginMutation(req){
-  const site=String(req.headers['sec-fetch-site']||'').toLowerCase();if(site==='cross-site')return false;if(site==='same-origin'||site==='none')return true;
-  const origin=String(req.headers.origin||'');if(!origin)return site!=='same-site';
-  try{const originHost=new URL(origin).host,candidates=[req.headers['x-forwarded-host'],req.headers['x-original-host'],req.headers.host].flatMap(v=>String(v||'').split(',')).map(v=>v.trim()).filter(Boolean);return candidates.includes(originHost);}catch{return false;}
-}
-function loginPage(message='',next='/'){
+function loginPage(message='',next='/',csrf=''){
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const note=message?`<div class="error">${esc(message)}</div>`:'';
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Light Remote — Fleet Wall login</title><style>:root{color-scheme:dark;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#080a0c;color:#d8dee7}body{margin:0;min-height:100vh;display:grid;place-items:center}.card{width:min(420px,calc(100vw - 32px));border:1px solid #252d36;border-radius:12px;background:#0a0e12;padding:22px}.muted{color:#718096}.error{color:#ff8e8e;margin-top:12px}label{display:block;margin-top:14px}input,button{width:100%;margin-top:6px;border:1px solid #2b333d;background:#0e1216;color:#d8dee7;border-radius:7px;padding:10px;font:inherit;box-sizing:border-box}button{cursor:pointer;margin-top:18px}</style></head><body><main class="card"><h2>Light Remote</h2><p class="muted">Fleet Wall · Main device</p>${note}<form method="post" action="/auth/login"><input type="hidden" name="next" value="${esc(safeNext(next))}"><label>Email / recovery username<input name="username" autocomplete="username" required autofocus></label><label>Password<input type="password" name="password" autocomplete="current-password" required></label><button type="submit">Sign in</button></form></main></body></html>`;
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Light Remote — Fleet Wall login</title><style>:root{color-scheme:dark;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#080a0c;color:#d8dee7}body{margin:0;min-height:100vh;display:grid;place-items:center}.card{width:min(420px,calc(100vw - 32px));border:1px solid #252d36;border-radius:12px;background:#0a0e12;padding:22px}.muted{color:#718096}.error{color:#ff8e8e;margin-top:12px}label{display:block;margin-top:14px}input,button{width:100%;margin-top:6px;border:1px solid #2b333d;background:#0e1216;color:#d8dee7;border-radius:7px;padding:10px;font:inherit;box-sizing:border-box}button{cursor:pointer;margin-top:18px}</style></head><body><main class="card"><h2>Light Remote</h2><p class="muted">Fleet Wall · Main device</p>${note}<form method="post" action="/auth/login"><input type="hidden" name="next" value="${esc(safeNext(next))}"><input type="hidden" name="csrf" value="${esc(csrf)}"><label>Email / recovery username<input name="username" autocomplete="username" required autofocus></label><label>Password<input type="password" name="password" autocomplete="current-password" required></label><button type="submit">Sign in</button></form></main></body></html>`;
 }
 function pageHeaders(){return {'content-type':'text/html; charset=utf-8','cache-control':'no-store','x-frame-options':'DENY','referrer-policy':'no-referrer','content-security-policy':"default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"};}
 function accountAuthenticate(email,password){return channel('account-auth',{email:String(email||'').trim(),password:String(password||'')});}
@@ -93,42 +88,44 @@ async function start(){
   const loopback=['127.0.0.1','::1','localhost'].includes(String(HOST));
   const auth=loadLocalWallAuth(AUTH_FILE,{required:!loopback}),failures=new Map();
   const requireIdentity=req=>!auth.enabled||auth.identity(req);
+  const mutationAllowed=req=>!auth.enabled||auth.verifyRequestCsrf(req,String(req.headers['x-light-remote-csrf']||''));
   server=http.createServer(async(req,res)=>{try{
     const url=new URL(req.url||'/','http://fleet.wall');
     if(req.method==='GET'&&url.pathname==='/healthz')return json(res,200,{ok:true,service:'light-remote-fleet-wall',version:VERSION});
     if(auth.enabled&&req.method==='GET'&&url.pathname==='/login'){
       if(auth.identity(req)){res.writeHead(303,{location:safeNext(url.searchParams.get('next')),'cache-control':'no-store'});return res.end();}
-      res.writeHead(200,pageHeaders());res.end(loginPage('',url.searchParams.get('next')));return;
+      res.writeHead(200,pageHeaders());res.end(loginPage('',url.searchParams.get('next'),auth.issueLoginCsrf()));return;
     }
     if(auth.enabled&&req.method==='POST'&&url.pathname==='/auth/login'){
-      if(!sameOriginMutation(req))return json(res,403,{ok:false,error:'cross_site_mutation_denied'});
+      const data=await formBody(req);
+      if(!auth.verifyLoginCsrf(data.csrf)){res.writeHead(403,pageHeaders());res.end(loginPage('Login session expired. Reload and try again.',data.next,auth.issueLoginCsrf()));return;}
       const key=String(req.socket.remoteAddress||'unknown'),now=Date.now(),recent=(failures.get(key)||[]).filter(at=>now-at<10*60*1000);
-      if(recent.length>=10){res.writeHead(429,{...pageHeaders(),'retry-after':'600'});res.end(loginPage('Too many failed attempts. Try again later.','/'));return;}
-      const data=await formBody(req);let verified=auth.verifyCredentials(data.username,data.password);
+      if(recent.length>=10){res.writeHead(429,{...pageHeaders(),'retry-after':'600'});res.end(loginPage('Too many failed attempts. Try again later.','/',auth.issueLoginCsrf()));return;}
+      let verified=auth.verifyCredentials(data.username,data.password);
       if(!verified&&String(data.username||'').includes('@')){try{const remote=await accountAuthenticate(data.username,data.password);verified=Boolean(remote?.account?.accountId);}catch{verified=false;}}
-      if(!verified){recent.push(now);failures.set(key,recent);res.writeHead(401,pageHeaders());res.end(loginPage('Invalid email or password.',data.next));return;}
+      if(!verified){recent.push(now);failures.set(key,recent);res.writeHead(401,pageHeaders());res.end(loginPage('Invalid email or password.',data.next,auth.issueLoginCsrf()));return;}
       failures.delete(key);const issued=auth.issue();res.writeHead(303,{location:safeNext(data.next),'set-cookie':sessionCookie(issued.token,issued.ttlSeconds,secureRequest(req)),'cache-control':'no-store'});return res.end();
     }
     if(auth.enabled&&req.method==='POST'&&url.pathname==='/auth/logout'){
-      if(!sameOriginMutation(req))return json(res,403,{ok:false,error:'cross_site_mutation_denied'});
+      const data=await formBody(req);if(!auth.verifyRequestCsrf(req,data.csrf))return json(res,403,{ok:false,error:'csrf_invalid'});
       res.writeHead(303,{location:'/login','set-cookie':clearCookie(secureRequest(req)),'cache-control':'no-store'});return res.end();
     }
     if(!requireIdentity(req)){
       if(url.pathname.startsWith('/api/')||url.pathname==='/events')return json(res,401,{ok:false,error:'wall_auth_required'});
       res.writeHead(303,{location:`/login?next=${encodeURIComponent(safeNext(req.url||'/'))}`,'cache-control':'no-store'});return res.end();
     }
-    if(req.method==='GET'&&url.pathname==='/'){res.writeHead(200,pageHeaders());res.end(dashboardHtml({surface:'fleet',showLogout:Boolean(auth.enabled)}));return;}
+    if(req.method==='GET'&&url.pathname==='/'){res.writeHead(200,pageHeaders());res.end(dashboardHtml({surface:'fleet',showLogout:Boolean(auth.enabled),csrfToken:auth.enabled?auth.csrfForRequest(req)||'':''}));return;}
     if(req.method==='GET'&&url.pathname==='/device-policy'){
       const deviceId=String(url.searchParams.get('id')||'').trim();if(!/^[A-Za-z0-9._:-]{1,128}$/.test(deviceId))return json(res,400,{ok:false,error:'invalid_device_id'});
-      res.writeHead(200,pageHeaders());res.end(devicePolicyHtml(deviceId));return;
+      res.writeHead(200,pageHeaders());res.end(devicePolicyHtml(deviceId,{csrfToken:auth.enabled?auth.csrfForRequest(req)||'':''}));return;
     }
     if(req.method==='GET'&&url.pathname==='/api/devices'){const value=await fleetCall('fleet-devices');return json(res,200,{ok:true,mainDeviceId:value.mainDeviceId,devices:value.devices||[]});}
     const deviceApi=url.pathname.match(/^\/api\/devices\/([A-Za-z0-9._:-]{1,128})$/);
     if(req.method==='GET'&&deviceApi){const value=await fleetCall('fleet-devices'),device=(value.devices||[]).find(d=>d.deviceId===deviceApi[1]);if(!device)return json(res,404,{ok:false,error:'device_not_found'});return json(res,200,{ok:true,device});}
     const policyApi=url.pathname.match(/^\/api\/devices\/([A-Za-z0-9._:-]{1,128})\/policy$/);
-    if(req.method==='POST'&&policyApi){if(!sameOriginMutation(req))return json(res,403,{ok:false,error:'cross_site_mutation_denied'});const body=await jsonBody(req),value=await fleetCall('fleet-device-policy',{deviceId:policyApi[1],policyProfile:body.policyProfile,approvedCapabilities:body.approvedCapabilities});return json(res,200,value);}
+    if(req.method==='POST'&&policyApi){if(!mutationAllowed(req))return json(res,403,{ok:false,error:'csrf_invalid'});const body=await jsonBody(req),value=await fleetCall('fleet-device-policy',{deviceId:policyApi[1],policyProfile:body.policyProfile,approvedCapabilities:body.approvedCapabilities});return json(res,200,value);}
     const updateApi=url.pathname.match(/^\/api\/devices\/([A-Za-z0-9._:-]{1,128})\/maintenance\/update$/);
-    if(req.method==='POST'&&updateApi){if(!sameOriginMutation(req))return json(res,403,{ok:false,error:'cross_site_mutation_denied'});const value=await fleetCall('fleet-device-update',{deviceId:updateApi[1]});return json(res,200,value);}
+    if(req.method==='POST'&&updateApi){if(!mutationAllowed(req))return json(res,403,{ok:false,error:'csrf_invalid'});const value=await fleetCall('fleet-device-update',{deviceId:updateApi[1]});return json(res,200,value);}
     if(req.method==='GET'&&url.pathname==='/api/sessions'){const value=await fleetCall('fleet-sessions');return json(res,200,{ok:true,mainDeviceId:value.mainDeviceId,sessions:value.sessions||[]});}
     if(req.method==='GET'&&url.pathname==='/api/activity'){
       const limit=Math.max(1,Math.min(Number(url.searchParams.get('limit'))||500,5000)),value=await fleetCall('fleet-activity',{limit});

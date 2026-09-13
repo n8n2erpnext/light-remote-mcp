@@ -24,6 +24,21 @@ function signSession(secret,username,expiresAt){
   const sig=crypto.createHmac('sha256',Buffer.from(secret,'base64url')).update(`local-wall:${body}`).digest('base64url');
   return `${body}.${sig}`;
 }
+function csrfContext(sessionToken=''){return sessionToken?crypto.createHash('sha256').update(String(sessionToken)).digest('base64url'):'preauth';}
+function signCsrf(secret,purpose,expiresAt,sessionToken=''){
+  const nonce=crypto.randomBytes(16).toString('base64url'),context=csrfContext(sessionToken);
+  const body=`v1.${b64(purpose)}.${expiresAt}.${nonce}.${context}`;
+  const sig=crypto.createHmac('sha256',Buffer.from(secret,'base64url')).update(`local-wall-csrf:${body}`).digest('base64url');
+  return `${body}.${sig}`;
+}
+function verifyCsrf(secret,token,purpose,sessionToken=''){
+  const parts=String(token||'').split('.');if(parts.length!==6||parts[0]!=='v1')return false;
+  let tokenPurpose;try{tokenPurpose=fromB64(parts[1]);}catch{return false;}if(!safeEqual(tokenPurpose,purpose))return false;
+  const expiresAt=Number(parts[2]);if(!Number.isSafeInteger(expiresAt)||expiresAt<=Date.now())return false;
+  if(!safeEqual(parts[4],csrfContext(sessionToken)))return false;
+  const body=parts.slice(0,5).join('.'),expected=crypto.createHmac('sha256',Buffer.from(secret,'base64url')).update(`local-wall-csrf:${body}`).digest('base64url');
+  return safeEqual(expected,parts[5]);
+}
 function verifySession(secret,token){
   const parts=String(token||'').split('.');if(parts.length!==5||parts[0]!=='v1')return null;
   const body=parts.slice(0,4).join('.'),expected=crypto.createHmac('sha256',Buffer.from(secret,'base64url')).update(`local-wall:${body}`).digest('base64url');
@@ -40,10 +55,15 @@ export function loadLocalWallAuth(file,{required=false}={}){
   if(!['local','account-only'].includes(mode)||!row.username||!row.cookieSecret)throw new Error('invalid_local_wall_auth_config');
   if(mode==='local'&&!row.passwordHash)throw new Error('invalid_local_wall_auth_config');
   const ttlSeconds=Math.max(300,Math.min(Number(row.sessionTtlSeconds)||DEFAULT_TTL_SECONDS,7*24*60*60));
-  const identity=req=>{const token=parseLocalWallCookies(req.headers.cookie)[LOCAL_WALL_COOKIE],value=verifySession(row.cookieSecret,token);return value&&safeEqual(value.username,row.username)?value:null;};
+  const rawSession=req=>parseLocalWallCookies(req.headers.cookie)[LOCAL_WALL_COOKIE]||'';
+  const identity=req=>{const token=rawSession(req),value=verifySession(row.cookieSecret,token);return value&&safeEqual(value.username,row.username)?value:null;};
   const verifyCredentials=(username,password)=>mode==='local'&&safeEqual(username,row.username)&&verifyPassword(password,row.passwordHash);
   const issue=()=>{const expiresAt=Date.now()+ttlSeconds*1000;return{token:signSession(row.cookieSecret,row.username,expiresAt),expiresAt,ttlSeconds};};
-  return{enabled:true,mode,recoveryEnabled:mode==='local',username:row.username,ttlSeconds,identity,verifyCredentials,issue};
+  const issueLoginCsrf=()=>signCsrf(row.cookieSecret,'login',Date.now()+10*60*1000);
+  const verifyLoginCsrf=token=>verifyCsrf(row.cookieSecret,token,'login');
+  const csrfForRequest=req=>{const token=rawSession(req),value=verifySession(row.cookieSecret,token);if(!value||!safeEqual(value.username,row.username))return null;return signCsrf(row.cookieSecret,'mutation',Math.min(value.expiresAt,Date.now()+ttlSeconds*1000),token);};
+  const verifyRequestCsrf=(req,token)=>{const session=rawSession(req),value=verifySession(row.cookieSecret,session);return Boolean(value&&safeEqual(value.username,row.username)&&verifyCsrf(row.cookieSecret,token,'mutation',session));};
+  return{enabled:true,mode,recoveryEnabled:mode==='local',username:row.username,ttlSeconds,identity,verifyCredentials,issue,issueLoginCsrf,verifyLoginCsrf,csrfForRequest,verifyRequestCsrf};
 }
 export function writeLocalWallAuthConfig(file,{username='operator',password,cookieSecret=crypto.randomBytes(32).toString('base64url'),sessionTtlSeconds=DEFAULT_TTL_SECONDS,passwordHash=null}={}){
   const user=String(username||'operator').trim();if(!/^[A-Za-z0-9._@+-]{1,120}$/.test(user))throw new Error('invalid_local_wall_username');
