@@ -1,0 +1,18 @@
+[Unit]
+Description=Light Remote background agent and Local Wall
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=OPERATOR_AGENT_BASE_URL=https://light-remote-mcp.vercel.app
+Environment=OPERATOR_AGENT_HUB_URL=https://mcp.dashboard.thaiduy.store
+ExecStart=/opt/gpt-operator-agent/current/runtime/node /opt/gpt-operator-agent/current/device-agent/operator-agent.mjs daemon
+Restart=always
+RestartSec=5
+UMask=0077
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,26 @@
+[Unit]
+Description=Light Remote Host Local Wall + Fleet Companion
+After=network-online.target gpt-vps-operator.service
+Wants=network-online.target
+Requires=gpt-vps-operator.service
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/gpt-vps-operator/host-wall
+Environment=OPERATOR_AGENT_STATE=/var/lib/gpt-vps-operator/host-companion-device.json
+Environment=OPERATOR_AGENT_IDENTITY_FILE=/var/lib/gpt-vps-operator/host-device-identity.json
+Environment=OPERATOR_AGENT_HUB_URL=https://mcp.dashboard.thaiduy.store
+Environment=OPERATOR_AGENT_WALL_HOST=127.0.0.1
+Environment=OPERATOR_AGENT_WALL_PORT=5491
+Environment=OPERATOR_AGENT_WALL_AUTH_FILE=/home/ubuntu/.config/gpt-vps-operator/host-wall-auth.json
+Environment=OPERATOR_FLEET_WALL_HOST=127.0.0.1
+Environment=OPERATOR_FLEET_WALL_PORT=5492
+ExecStart=/usr/bin/node /opt/gpt-vps-operator/host-wall/device-agent/operator-agent.mjs wall-only
+Restart=always
+RestartSec=3
+TimeoutStopSec=10
+
+[Install]
+WantedBy=multi-user.target

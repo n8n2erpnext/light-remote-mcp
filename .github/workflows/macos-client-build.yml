@@ -1,0 +1,133 @@
+name: macOS Client Packages
+
+on:
+  push:
+    branches: [codex/v0.9-device-policy-resume, main]
+    tags: ['v0.9.*']
+    paths:
+      - 'client/macos/**'
+      - 'client/update-public.pem'
+      - 'device-agent/**'
+      - 'lib/device-proof.mjs'
+      - '.github/workflows/macos-client-build.yml'
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  build-macos:
+    runs-on: macos-13
+    timeout-minutes: 25
+    strategy:
+      matrix:
+        include:
+          - arch: x64
+            node_arch: x64
+            swift_target: x86_64-apple-macos11.0
+            pkg_arch: x86_64
+          - arch: arm64
+            node_arch: arm64
+            swift_target: arm64-apple-macos11.0
+            pkg_arch: arm64
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build macOS 11+ client package
+        shell: bash
+        env:
+          NODE_VERSION: 22.23.2
+          TARGET_ARCH: ${{ matrix.arch }}
+          NODE_ARCH: ${{ matrix.node_arch }}
+          SWIFT_TARGET: ${{ matrix.swift_target }}
+        run: |
+          set -euo pipefail
+          VERSION="$(tr -d '\r\n' < VERSION)"
+          OUT="$PWD/dist/macos/$TARGET_ARCH"
+          PKG="$OUT/package"
+          mkdir -p "$PKG/runtime" "$PKG/device-agent/platform-adapters" "$PKG/lib" "$PKG/client/macos" "$PKG/licenses/node" "$PKG/assets/branding" "$PKG/tray"
+          NODE_TAR="node-v${NODE_VERSION}-darwin-${NODE_ARCH}.tar.gz"
+          curl -fsSLO "https://nodejs.org/dist/v${NODE_VERSION}/SHASUMS256.txt"
+          curl -fsSLO "https://nodejs.org/dist/v${NODE_VERSION}/${NODE_TAR}"
+          grep "  ${NODE_TAR}$" SHASUMS256.txt | shasum -a 256 -c -
+          tar -xzf "$NODE_TAR"
+          install -m 0755 "node-v${NODE_VERSION}-darwin-${NODE_ARCH}/bin/node" "$PKG/runtime/node"
+          cp "node-v${NODE_VERSION}-darwin-${NODE_ARCH}/LICENSE" "$PKG/licenses/node/LICENSE"
+          cp device-agent/operator-agent.mjs device-agent/local-wall.mjs device-agent/local-wall-auth.mjs device-agent/fleet-component-manager.mjs device-agent/fleet-component-supervisor.mjs "$PKG/device-agent/"
+          cp device-agent/platform-adapters/*.mjs "$PKG/device-agent/platform-adapters/"
+          cp lib/device-proof.mjs "$PKG/lib/"
+          cp assets/branding/light-remote-mark.svg "$PKG/assets/branding/"
+          cp client/macos/updater.mjs "$PKG/client/macos/"
+          cp client/update-public.pem "$PKG/client/update-public.pem"
+          cp LICENSE NOTICE THIRD_PARTY_DISTRIBUTION_NOTICES.md "$PKG/"
+          xcrun swiftc -O -target "$SWIFT_TARGET" client/macos/tray/main.swift -o "$PKG/tray/LightRemoteTray"
+          chmod 0755 "$PKG/tray/LightRemoteTray"
+          cat > "$PKG/manifest.json" <<JSON
+          {
+            "product": "Light Remote macOS ${TARGET_ARCH}",
+            "version": "$VERSION",
+            "gitSha": "${GITHUB_SHA}",
+            "node": "v${NODE_VERSION}",
+            "platform": "macos-${TARGET_ARCH}",
+            "minimumMacOS": "11.0",
+            "builtAtUtc": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          }
+          JSON
+          tar -czf "$OUT/Light-Remote-Client-macOS-${TARGET_ARCH}-${VERSION}.tar.gz" -C "$OUT" package
+          (cd "$OUT" && shasum -a 256 "Light-Remote-Client-macOS-${TARGET_ARCH}-${VERSION}.tar.gz") > "$OUT/SHA256SUMS.txt"
+      - name: Package contract and Big Sur target smoke
+        shell: bash
+        env:
+          TARGET_ARCH: ${{ matrix.arch }}
+        run: |
+          set -euo pipefail
+          VERSION="$(tr -d '\r\n' < VERSION)"
+          OUT="$PWD/dist/macos/$TARGET_ARCH"; PKG="$OUT/package"
+          test -x "$PKG/runtime/node"
+          test -x "$PKG/tray/LightRemoteTray"
+          test -f "$PKG/device-agent/platform-adapters/macos.mjs"
+          test -f "$PKG/device-agent/fleet-component-manager.mjs"
+          test -f "$PKG/device-agent/fleet-component-supervisor.mjs"
+          test -f "$PKG/client/macos/updater.mjs"
+          node --check client/macos/updater.mjs
+          bash -n client/macos/build-pkg.sh
+          plutil -lint client/macos/launchd/*.plist
+          file "$PKG/runtime/node" "$PKG/tray/LightRemoteTray"
+          otool -l "$PKG/tray/LightRemoteTray" | grep -A5 LC_BUILD_VERSION | grep -q 'minos 11.0'
+          (cd "$OUT" && shasum -a 256 -c SHA256SUMS.txt)
+          if [[ "$TARGET_ARCH" == x64 ]]; then
+            export OPERATOR_AGENT_STATE="$RUNNER_TEMP/light-remote-empty-device.json"
+            STATUS="$($PKG/runtime/node $PKG/device-agent/operator-agent.mjs status)"
+            python3 - "$STATUS" <<'PY'
+          import json,sys
+          j=json.loads(sys.argv[1]); assert j['platformAdapter']=='darwin',j; assert not j['enrolled'],j
+          print('macos-x64-agent-smoke=PASS')
+          PY
+          else
+            file "$PKG/runtime/node" | grep -q arm64
+            echo 'macos-arm64-runtime-architecture=PASS'
+          fi
+      - name: Build installer pkg
+        shell: bash
+        env:
+          TARGET_ARCH: ${{ matrix.arch }}
+        run: |
+          set -euo pipefail
+          VERSION="$(tr -d '\r\n' < VERSION)"
+          BUNDLE="$PWD/dist/macos/$TARGET_ARCH/Light-Remote-Client-macOS-${TARGET_ARCH}-${VERSION}.tar.gz"
+          client/macos/build-pkg.sh "$BUNDLE" "$PWD/dist/macos/$TARGET_ARCH/pkg"
+          PKGFILE="$PWD/dist/macos/$TARGET_ARCH/pkg/Light-Remote-${VERSION}-${{ matrix.pkg_arch }}.pkg"
+          test -s "$PKGFILE"
+          pkgutil --check-signature "$PKGFILE" || true
+          pkgutil --payload-files "$PKGFILE" | grep -q 'Library/Application Support/Light Remote/releases'
+          shasum -a 256 "$PKGFILE" >> "$PWD/dist/macos/$TARGET_ARCH/SHA256SUMS.txt"
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: light-remote-macos-${{ matrix.arch }}-${{ github.sha }}
+          path: |
+            dist/macos/${{ matrix.arch }}/Light-Remote-Client-macOS-${{ matrix.arch }}-*.tar.gz
+            dist/macos/${{ matrix.arch }}/pkg/*.pkg
+            dist/macos/${{ matrix.arch }}/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14

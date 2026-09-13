@@ -13,13 +13,15 @@ jobs:
     uses: ./.github/workflows/linux-client-build.yml
   windows-client:
     uses: ./.github/workflows/windows-native-client.yml
+  macos-client:
+    uses: ./.github/workflows/macos-client-build.yml
   linux-server:
     uses: ./.github/workflows/server-linux-build.yml
   vercel-bridge:
     uses: ./.github/workflows/vercel-bridge-package.yml
 
   publish:
-    needs: [linux-client, windows-client, linux-server, vercel-bridge]
+    needs: [linux-client, windows-client, macos-client, linux-server, vercel-bridge]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -35,6 +37,9 @@ jobs:
           test "v$VERSION" = "$GITHUB_REF_NAME"
           mkdir -p release-assets
           find artifacts -type f -name 'Light-Remote-MCP-Client-Linux-*.tar.gz' -exec cp {} release-assets/ \;
+          find artifacts -type f -name 'light-remote_*.deb' -exec cp {} release-assets/ \;
+          find artifacts -type f -name 'Light-Remote-Client-macOS-*.tar.gz' -exec cp {} release-assets/ \;
+          find artifacts -type f -name 'Light-Remote-*.pkg' -exec cp {} release-assets/ \;
           find artifacts -type f -name 'Light-Remote-MCP-Server-Linux-*.tar.gz' -exec cp {} release-assets/ \;
           find artifacts -type f -name 'Light-Remote-MCP-Vercel-Bridge-*.tar.gz' -exec cp {} release-assets/ \;
           win="$(find artifacts -type f -name 'Light-Remote-MCP-Setup-x64.exe' -print -quit)"
@@ -42,7 +47,10 @@ jobs:
           installer="$(find artifacts -type f -name 'install.sh' -print -quit)"
           test -n "$installer"; cp "$installer" release-assets/install-linux-client.sh
           chmod 0755 release-assets/install-linux-client.sh
-          test "$(find release-assets -maxdepth 1 -type f | wc -l)" -eq 7
+          test "$(find release-assets -maxdepth 1 -type f -name 'Light-Remote-MCP-Client-Linux-*.tar.gz' | wc -l)" -eq 2
+          test "$(find release-assets -maxdepth 1 -type f -name 'light-remote_*.deb' | wc -l)" -eq 2
+          test "$(find release-assets -maxdepth 1 -type f -name 'Light-Remote-Client-macOS-*.tar.gz' | wc -l)" -eq 2
+          test "$(find release-assets -maxdepth 1 -type f -name 'Light-Remote-*.pkg' | wc -l)" -eq 2
           (cd release-assets && sha256sum * > SHA256SUMS.txt)
           cat release-assets/SHA256SUMS.txt
       - name: Create GitHub prerelease

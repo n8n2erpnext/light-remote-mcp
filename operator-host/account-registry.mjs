@@ -9,7 +9,15 @@ const EMAIL_RE=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ACCOUNT_RE=/^[A-Za-z0-9._:-]{1,128}$/;
 const OWNER_PROOF_TTL_MS=5*60*1000;
 const ACCOUNT_PLANS=new Set(['free','pro','vip']);
+const PLAN_RANK=Object.freeze({free:0,pro:1,vip:2});
 function normalizePlan(value){const plan=String(value||'free').trim().toLowerCase();if(!ACCOUNT_PLANS.has(plan))throw new AccountError('invalid_account_plan');return plan;}
+function entitlementView(row,now){
+  const e=row.entitlement;
+  if(e&&ACCOUNT_PLANS.has(e.plan)){const active=e.validUntil==null||Number(e.validUntil)>now;if(active)return {entitlementId:e.entitlementId,plan:e.plan,source:e.source||'admin',sourceRef:e.sourceRef||null,validFrom:Number(e.validFrom)||row.createdAt,validUntil:e.validUntil==null?null:Number(e.validUntil),grantedAt:Number(e.grantedAt)||row.createdAt};}
+  const legacy=normalizePlan(row.plan||'free');
+  if(legacy!=='free'&&!e)return {entitlementId:null,plan:legacy,source:'legacy',sourceRef:null,validFrom:row.createdAt,validUntil:null,grantedAt:row.createdAt};
+  return {entitlementId:null,plan:'free',source:e?'expired':'default',sourceRef:e?.sourceRef||null,validFrom:e?.validFrom||row.createdAt,validUntil:e?.validUntil||null,grantedAt:e?.grantedAt||row.createdAt};
+}
 function ownerCode(){const alphabet='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',bytes=crypto.randomBytes(8);let out='';for(let i=0;i<8;i++)out+=alphabet[bytes[i]%alphabet.length];return `${out.slice(0,4)}-${out.slice(4)}`;}
 function normalizeOwnerCode(value){const raw=String(value||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');return raw.length===8?`${raw.slice(0,4)}-${raw.slice(4)}`:'';}
 function normalizeEmail(value){return String(value||'').trim().toLowerCase();}
@@ -54,7 +62,7 @@ export class AccountRegistry{
     for(const [hash,row] of this.sessions)if(row.expiresAt<=now||!this.accounts.has(row.accountId)){this.sessions.delete(hash);changed=true;}
     if(changed&&persist)this._persist();return changed;
   }
-  _viewAccount(row){return {accountId:row.accountId,email:row.email,plan:row.plan||'free',status:row.status||'active',createdAt:row.createdAt,lastLoginAt:row.lastLoginAt||null};}
+  _viewAccount(row){const entitlement=entitlementView(row,this.now());return {accountId:row.accountId,email:row.email,plan:entitlement.plan,entitlement,mainDeviceId:row.mainDeviceId||null,status:row.status||'active',createdAt:row.createdAt,lastLoginAt:row.lastLoginAt||null};}
   _issue(account){
     this._prune(false);
     const token=crypto.randomBytes(32).toString('base64url'),tokenHash=sha256(token),now=this.now();
@@ -90,14 +98,19 @@ export class AccountRegistry{
     if(this.byEmail.has(email))throw new AccountError('account_email_exists',409);
     if(this.accounts.size>0)throw new AccountError('account_registration_closed',409);
     const accountId=this.bootstrapAccountId;
-    const now=this.now(),row={accountId,email,passwordHash:passwordHash(password),plan:normalizePlan(input.plan||'free'),status:'active',createdAt:now,lastLoginAt:now};
+    const now=this.now(),row={accountId,email,passwordHash:passwordHash(password),plan:normalizePlan(input.plan||'free'),mainDeviceId:null,status:'active',createdAt:now,lastLoginAt:now};
     this.accounts.set(accountId,row);this.byEmail.set(email,accountId);this._persist();this.emit({type:'account_registered',accountId,status:'active'});return this._issue(row);
   }
-  login(input={}){
+  verifyCredentials(input={}, {recordLogin=false, eventType='account_login'}={}){
     const email=normalizeEmail(input.email),password=String(input.password||''),accountId=this.byEmail.get(email),row=accountId?this.accounts.get(accountId):null;
     if(!row||!safeEqual(row.email,email)||!verifyPassword(password,row.passwordHash))throw new AccountError('invalid_account_credentials',401);
     if((row.status||'active')!=='active')throw new AccountError('account_disabled',403);
-    row.lastLoginAt=this.now();this._persist();this.emit({type:'account_login',accountId:row.accountId,status:'ok'});return this._issue(row);
+    if(recordLogin){row.lastLoginAt=this.now();this._persist();this.emit({type:eventType,accountId:row.accountId,status:'ok'});}
+    return this._viewAccount(row);
+  }
+  login(input={}){
+    const account=this.verifyCredentials(input,{recordLogin:true,eventType:'account_login'}),row=this.accounts.get(account.accountId);
+    return this._issue(row);
   }
   authenticate(token,{touch=true}={}){
     this._prune();const hash=sha256(token),session=this.sessions.get(hash);
@@ -108,6 +121,28 @@ export class AccountRegistry{
   }
   logout(token){const hash=sha256(token);const session=this.sessions.get(hash);if(session){this.sessions.delete(hash);this._persist();this.emit({type:'account_logout',accountId:session.accountId,status:'ok'});}return {loggedOut:Boolean(session)};}
   account(accountId){const row=this.accounts.get(String(accountId||''));if(!row)throw new AccountError('account_not_found',404);return this._viewAccount(row);}
-  setPlan(accountId,plan){const row=this.accounts.get(String(accountId||''));if(!row)throw new AccountError('account_not_found',404);const next=normalizePlan(plan),prior=row.plan||'free';if(prior===next)return this._viewAccount(row);row.plan=next;this._persist();this.emit({type:'account_plan_changed',accountId:row.accountId,status:'ok',fromPlan:prior,toPlan:next});return this._viewAccount(row);}
+  applyEntitlement(accountId,input={}){
+    const row=this.accounts.get(String(accountId||''));if(!row)throw new AccountError('account_not_found',404);
+    const next=normalizePlan(input.plan),now=this.now(),current=entitlementView(row,now),source=String(input.source||'admin').slice(0,40),sourceRef=input.sourceRef==null?null:String(input.sourceRef).slice(0,160),allowDowngrade=Boolean(input.allowDowngrade);
+    if(!allowDowngrade&&PLAN_RANK[next]<PLAN_RANK[current.plan])throw new AccountError('account_entitlement_downgrade_not_allowed',409);
+    const rawDuration=input.durationMs==null?null:Number(input.durationMs);if(rawDuration!=null&&(!Number.isFinite(rawDuration)||rawDuration<=0||rawDuration>10*365*86400000))throw new AccountError('invalid_entitlement_duration');
+    if(!allowDowngrade&&current.plan===next&&current.validUntil==null&&current.plan!=='free')throw new AccountError('account_entitlement_permanent',409);
+    let validUntil=null;if(rawDuration!=null){const base=current.plan===next&&current.validUntil&&current.validUntil>now?current.validUntil:now;validUntil=base+Math.round(rawDuration);}
+    const prior=current.plan,entitlementId=String(input.entitlementId||`ent_${crypto.randomUUID()}`);
+    row.plan=next;row.entitlement={entitlementId,plan:next,source,sourceRef,validFrom:now,validUntil,grantedAt:now};this._persist();
+    this.emit({type:'account_entitlement_changed',accountId:row.accountId,status:'ok',fromPlan:prior,toPlan:next,source,validUntil});return this._viewAccount(row);
+  }
+  setMainDevice(accountId,deviceId){
+    const row=this.accounts.get(String(accountId||''));if(!row)throw new AccountError('account_not_found',404);
+    const next=String(deviceId||'').trim();if(!ACCOUNT_RE.test(next))throw new AccountError('invalid_main_device');
+    const prior=row.mainDeviceId||null;if(prior===next)return this._viewAccount(row);
+    row.mainDeviceId=next;this._persist();this.emit({type:'account_main_device_changed',accountId:row.accountId,status:'ok',fromDeviceId:prior,toDeviceId:next});return this._viewAccount(row);
+  }
+  clearMainDevice(accountId,{reason='main_device_cleared'}={}){
+    const row=this.accounts.get(String(accountId||''));if(!row)throw new AccountError('account_not_found',404);
+    const prior=row.mainDeviceId||null;if(!prior)return this._viewAccount(row);
+    row.mainDeviceId=null;this._persist();this.emit({type:'account_main_device_changed',accountId:row.accountId,status:'ok',fromDeviceId:prior,toDeviceId:null,reason:String(reason||'main_device_cleared').slice(0,80)});return this._viewAccount(row);
+  }
+  setPlan(accountId,plan){return this.applyEntitlement(accountId,{plan,source:'admin',durationMs:null,allowDowngrade:true});}
   list(){return [...this.accounts.values()].map(row=>this._viewAccount(row)).sort((a,b)=>a.createdAt-b.createdAt);}
 }

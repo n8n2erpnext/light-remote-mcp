@@ -1,0 +1,11 @@
+[Unit]
+Description=Light Remote signed updater
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+Environment=GPT_OPERATOR_INSTALL_ROOT=/opt/gpt-operator-agent
+Environment=GPT_OPERATOR_SERVICE=light-remote-agent.service
+Environment=LIGHT_REMOTE_SYSTEMD_USER_UNITS=1
+ExecStart=/opt/gpt-operator-agent/current/runtime/node /opt/gpt-operator-agent/current/client/linux-debian/updater-wrapper.mjs

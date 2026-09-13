@@ -16,6 +16,9 @@ import { DevicePairingRegistry, DevicePairingRegistryError } from './device-pair
 import { AgentClientRegistry, AgentClientRegistryError } from './agent-client-registry.mjs';
 import { AccountRegistry, AccountError } from './account-registry.mjs';
 import { UsageRegistry } from './usage-registry.mjs';
+import { LicenseKeyRegistry, LicenseKeyError } from './license-key-registry.mjs';
+import { FleetAuthorityRegistry, FleetAuthorityError } from './fleet-authority-registry.mjs';
+import { loadOrCreateHostDeviceIdentity, ensureHostCompanionState } from './host-device-identity.mjs';
 
 const SOCKET_PATH = process.env.OPERATOR_SOCKET || '/run/gpt-vps-operator/operator.sock';
 const KEY_FILE = process.env.OPERATOR_KEY_FILE || '/home/ubuntu/.config/gpt-vps-operator/operator.private.json';
@@ -25,11 +28,15 @@ const STATE_DIR = process.env.OPERATOR_STATE_DIR || '/var/lib/gpt-vps-operator';
 const DEVICE_STATE_FILE = path.join(STATE_DIR, 'devices.json');
 const ENROLLMENT_STATE_FILE = path.join(STATE_DIR, 'enrollments.json');
 const ENROLLMENT_SIGNER_FILE = path.join(STATE_DIR, 'enrollment-signer.json');
+const HOST_DEVICE_IDENTITY_FILE = path.join(STATE_DIR, 'host-device-identity.json');
+const HOST_COMPANION_STATE_FILE = path.join(STATE_DIR, 'host-companion-device.json');
 const CONNECTION_STATE_FILE = path.join(STATE_DIR, 'device-connections.json');
 const ACCESS_STATE_FILE = path.join(STATE_DIR, 'device-access-grants.json');
 const AGENT_CLIENT_STATE_FILE = path.join(STATE_DIR, 'agent-clients.json');
 const ACCOUNT_STATE_FILE = path.join(STATE_DIR, 'accounts.json');
 const USAGE_STATE_FILE = path.join(STATE_DIR, 'usage.json');
+const LICENSE_STATE_FILE = path.join(STATE_DIR, 'license-keys.json');
+const FLEET_AUTHORITY_TTL_MS = Number(process.env.OPERATOR_FLEET_AUTHORITY_TTL_MS || 10 * 60 * 1000);
 const MAX_RING_BYTES = Number(process.env.OPERATOR_RING_BYTES || 16 * 1024 * 1024);
 const MAX_RING_EVENTS = Number(process.env.OPERATOR_RING_EVENTS || 5000);
 const MAX_MEMORY_OUTPUT = Number(process.env.OPERATOR_MEMORY_OUTPUT || 4 * 1024 * 1024);
@@ -51,7 +58,6 @@ const DEVICE_ID = String(process.env.OPERATOR_DEVICE_ID || 'arm-local');
 const NODE_ID = String(process.env.OPERATOR_NODE_ID || 'arm');
 const DEVICE_NAME = String(process.env.OPERATOR_DEVICE_NAME || os.hostname());
 const DEVICE_POLICY_PROFILE = String(process.env.OPERATOR_DEVICE_POLICY_PROFILE || 'self-hosted-owner');
-const DEVICE_PUBLIC_KEY = String(process.env.OPERATOR_DEVICE_PUBLIC_KEY || '');
 const DEVICE_PRESENCE_TTL_MS = Number(process.env.OPERATOR_DEVICE_PRESENCE_TTL_MS || 90 * 1000);
 const DEVICE_HEARTBEAT_MS = Number(process.env.OPERATOR_DEVICE_HEARTBEAT_MS || 30 * 1000);
 const ENROLLMENT_TTL_MS = Number(process.env.OPERATOR_ENROLLMENT_TTL_MS || 10 * 60 * 1000);
@@ -62,7 +68,7 @@ const FLEET_MAX_QUEUED_PER_NODE = Number(process.env.OPERATOR_FLEET_MAX_QUEUED_P
 if (!Number.isFinite(DEVICE_PRESENCE_TTL_MS) || DEVICE_PRESENCE_TTL_MS < 10_000) throw new Error('invalid_device_presence_ttl');
 if (!Number.isFinite(DEVICE_HEARTBEAT_MS) || DEVICE_HEARTBEAT_MS < 5_000 || DEVICE_HEARTBEAT_MS >= DEVICE_PRESENCE_TTL_MS) throw new Error('invalid_device_heartbeat');
 const HOST_CAPABILITIES = ['filesystem', 'git', 'build-test', 'docker', 'lxd', 'systemctl', 'sudo-on-demand'];
-const VERSION = '0.9.0-beta.1';
+const VERSION = String(process.env.LIGHT_REMOTE_VERSION || process.env.OPERATOR_VERSION || '0.9.0-rc.6');
 
 const jobs = new Map();
 const operationDedupe = new Map();
@@ -81,6 +87,9 @@ const accessGrants = new DeviceAccessGrantRegistry({ stateFile:ACCESS_STATE_FILE
 const pairingCodes = new DevicePairingRegistry({ emit:event => pushEvent(event) });
 const agentClients = new AgentClientRegistry({ stateFile:AGENT_CLIENT_STATE_FILE, emit:event => pushEvent(event) });
 const accounts = new AccountRegistry({ stateFile:ACCOUNT_STATE_FILE, bootstrapAccountId:ACCOUNT_ID, emit:event => pushEvent(event) });
+const licenses = new LicenseKeyRegistry({ stateFile:LICENSE_STATE_FILE, emit:event => pushEvent(event) });
+const fleetAuthority = new FleetAuthorityRegistry({ ttlMs:FLEET_AUTHORITY_TTL_MS, emit:event => pushEvent(event) });
+const hostIdentity = loadOrCreateHostDeviceIdentity(HOST_DEVICE_IDENTITY_FILE);
 
 fs.mkdirSync(LOG_DIR, { recursive: true });
 function redact(value) {
@@ -123,8 +132,11 @@ if (connections.loadError) pushEvent({ type:'device_connection_registry_load_err
 if (accessGrants.loadError) pushEvent({ type:'device_access_registry_load_error', status:'error', detail:redact(accessGrants.loadError) });
 if (agentClients.loadError) pushEvent({ type:'agent_client_registry_load_error', status:'error', detail:redact(agentClients.loadError) });
 if (accounts.loadError) pushEvent({ type:'account_registry_load_error', status:'error', detail:redact(accounts.loadError) });
+if (licenses.loadError) pushEvent({ type:'license_registry_load_error', status:'error', detail:redact(licenses.loadError) });
 if (usage.loadError) pushEvent({ type:'usage_registry_load_error', status:'error', detail:redact(usage.loadError) });
-devices.register({ accountId:ACCOUNT_ID, deviceId:DEVICE_ID, nodeId:NODE_ID, displayName:DEVICE_NAME, platform:os.platform(), architecture:os.arch(), agentVersion:VERSION, publicIdentityKey:DEVICE_PUBLIC_KEY || null, capabilities:HOST_CAPABILITIES, policyProfile:DEVICE_POLICY_PROFILE });
+const hostBinding=enrollments.ensureTrustedBinding({accountId:ACCOUNT_ID,deviceId:DEVICE_ID,publicIdentityKey:hostIdentity.publicKey,displayName:DEVICE_NAME,platform:os.platform(),architecture:os.arch(),agentVersion:VERSION,fingerprintSummary:`integrated hub / ${os.platform()} ${os.arch()} / key ${hostIdentity.publicKeySha256.slice(0,12)}`,capabilities:HOST_CAPABILITIES,policyProfile:DEVICE_POLICY_PROFILE});
+ensureHostCompanionState(HOST_COMPANION_STATE_FILE,{identity:hostIdentity,binding:hostBinding,signer:enrollments.signerInfo(),nodeId:NODE_ID});
+devices.register({ accountId:ACCOUNT_ID, deviceId:DEVICE_ID, nodeId:NODE_ID, displayName:DEVICE_NAME, platform:os.platform(), architecture:os.arch(), agentVersion:VERSION, publicIdentityKey:hostBinding.publicIdentityKey, capabilities:HOST_CAPABILITIES, policyProfile:DEVICE_POLICY_PROFILE });
 const deviceHeartbeat = setInterval(() => { try { devices.heartbeat(DEVICE_ID); } catch (error) { console.error('[device] heartbeat failed', error?.message || error); } }, DEVICE_HEARTBEAT_MS);
 deviceHeartbeat.unref();
 function reapAccessGrants(){
@@ -285,6 +297,9 @@ function startJob(payload, requestId) {
     if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);
     const missing=requiredCapabilities.filter(cap=>!route.capabilities.includes(cap));
     if(missing.length)throw new FleetError('target_node_capability_missing',409);
+  } else {
+    const missing=requiredCapabilities.filter(cap=>!hostEffectiveCapabilities().includes(cap));
+    if(missing.length)throw new DeviceError('local_host_capability_missing',409);
   }
   sessions.record(session.id, 'toolCalls');
   sessions.record(session.id, 'execCalls');
@@ -444,8 +459,15 @@ function requireAccount(req,{touch=true}={}){
   return accounts.authenticate(accountSessionToken(req),{touch});
 }
 
-function activeAccountPlan(accountId=ACCOUNT_ID){try{return String(accounts.account(accountId).plan||ACCOUNT_PLAN).toLowerCase();}catch{return ACCOUNT_PLAN;}}
-function planEntitlements(plan){const key=String(plan||'free').toLowerCase(),capMs=DEFAULT_PLAN_CONNECTION_CAPS[key]||DEFAULT_PLAN_CONNECTION_CAPS.free;return {plan:key,connectionLeaseMs:capMs,connectionLeaseHours:capMs/3600000,multiDeviceConsole:key==='pro'||key==='vip',usageMetering:true,singleCodebase:true};}
+function activeAccount(accountId=ACCOUNT_ID){try{return accounts.account(accountId);}catch{return {accountId,plan:ACCOUNT_PLAN,entitlement:{plan:ACCOUNT_PLAN,source:'environment',validUntil:null}};}}
+function activeAccountPlan(accountId=ACCOUNT_ID){return String(activeAccount(accountId).plan||ACCOUNT_PLAN).toLowerCase();}
+function hostEffectiveCapabilities(){
+  try{const state=JSON.parse(fs.readFileSync(HOST_COMPANION_STATE_FILE,'utf8')),allowed=Array.isArray(state.effectiveCapabilities)?state.effectiveCapabilities:HOST_CAPABILITIES;return HOST_CAPABILITIES.filter(cap=>allowed.includes(cap));}
+  catch{return [...HOST_CAPABILITIES];}
+}
+const PLAN_FEATURES=Object.freeze({free:{fleetWall:false,multiDeviceConsole:false},pro:{fleetWall:true,multiDeviceConsole:true},vip:{fleetWall:true,multiDeviceConsole:true}});
+function planEntitlements(input){const account=typeof input==='object'&&input?input:null,key=String(account?.plan||input||'free').toLowerCase(),capMs=DEFAULT_PLAN_CONNECTION_CAPS[key]||DEFAULT_PLAN_CONNECTION_CAPS.free,validUntil=account?.entitlement?.validUntil??null,features=PLAN_FEATURES[key]||PLAN_FEATURES.free;return {plan:key,connectionLeaseMs:capMs,connectionLeaseHours:capMs/3600000,fleetWall:Boolean(features.fleetWall),multiDeviceConsole:Boolean(features.multiDeviceConsole),usageMetering:true,singleCodebase:true,validUntil,source:account?.entitlement?.source||null};}
+function connectionSpec(accountId,requestedLeaseMs){const account=activeAccount(accountId),key=String(account.plan||'free').toLowerCase(),planCap=DEFAULT_PLAN_CONNECTION_CAPS[key]||DEFAULT_PLAN_CONNECTION_CAPS.free,expires=Number(account.entitlement?.validUntil),now=Date.now(),remaining=key!=='free'&&Number.isFinite(expires)&&expires>now?expires-now:planCap,cap=Math.min(planCap,remaining),requested=requestedLeaseMs==null?cap:Number(requestedLeaseMs);if(!Number.isFinite(requested)||requested<=0||requested>cap)throw new DeviceConnectionError('invalid_device_connection_lease');return {plan:key,requestedLeaseMs:requested,account};}
 function revokeRuntimeForDevice(deviceId,reason){
   const why=String(reason||'owner_revoked');
   try{connections.disconnect(deviceId,why);}catch{}
@@ -453,6 +475,16 @@ function revokeRuntimeForDevice(deviceId,reason){
   try{pairingCodes.invalidateDevice(deviceId,why);}catch{}
   try{agentClients.removeDevice(deviceId,why);}catch{}
   try{sessions.closeByDevice(deviceId,why,{force:true});}catch{}
+  try{fleetAuthority.invalidateDevice(deviceId,why);}catch{}
+}
+function closeRuntimeForAccount(accountId,reason){
+  const closed=[];
+  for(const device of devices.list().filter(row=>row.accountId===String(accountId||''))){revokeRuntimeForDevice(device.deviceId,reason);closed.push(device.deviceId);}
+  return closed;
+}
+function clearMainIfMatches(accountId,deviceId,reason='main_device_unavailable'){
+  try{const account=accounts.account(accountId);if(account.mainDeviceId===String(deviceId||''))return accounts.clearMainDevice(accountId,{reason});}catch{}
+  return null;
 }
 
 function capabilities() {
@@ -523,7 +555,7 @@ function queueSignedUpdate(deviceId) {
 function targetRoute(requestedNodeId) {
   const nodeId=String(requestedNodeId || NODE_ID).trim();
   if (!/^[A-Za-z0-9._:-]{1,128}$/.test(nodeId)) throw new DeviceError('invalid_node_id');
-  if (nodeId===NODE_ID) { requireDeviceConnection(DEVICE_ID); return { accountId:ACCOUNT_ID, deviceId:DEVICE_ID, nodeId:NODE_ID, mode:'local', sessionCeiling:MAX_ACTIVE_SESSIONS, capabilities:[...HOST_CAPABILITIES], state:'online', draining:false }; }
+  if (nodeId===NODE_ID) { requireDeviceConnection(DEVICE_ID); return { accountId:ACCOUNT_ID, deviceId:DEVICE_ID, nodeId:NODE_ID, mode:'local', sessionCeiling:MAX_ACTIVE_SESSIONS, capabilities:hostEffectiveCapabilities(), state:'online', draining:false }; }
   const device=devices.getByNodeId(nodeId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
   if (device.accountId!==ACCOUNT_ID) throw new DeviceError('target_node_account_mismatch',403);
   if (device.state!=='online') throw new DeviceError('target_node_offline',409);
@@ -540,6 +572,26 @@ function verifiedChannelContext(body, action) {
   const device=devices.get(binding.deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
   if (device.accountId!==ACCOUNT_ID || device.publicIdentityKey!==binding.publicIdentityKey) throw new EnrollmentError('device_binding_mismatch',403);
   return {payload,proof,binding,device};
+}
+function fleetEligibility(ctx){
+  const account=accounts.account(ctx.binding.accountId),entitlements=planEntitlements(account);
+  if(!entitlements.fleetWall||!entitlements.multiDeviceConsole)throw new FleetAuthorityError('fleet_entitlement_required',403);
+  if(!account.mainDeviceId||account.mainDeviceId!==ctx.device.deviceId){fleetAuthority.invalidateDevice(ctx.device.deviceId,'main_device_mismatch');throw new FleetAuthorityError('fleet_main_device_required',403);}
+  if(ctx.device.state==='revoked')throw new FleetAuthorityError('fleet_main_device_revoked',403);
+  return {account,entitlements};
+}
+function verifiedFleetContext(ctx){
+  const {account,entitlements}=fleetEligibility(ctx),token=String(ctx.payload.fleetToken||'');
+  const lease=fleetAuthority.verify(token,{accountId:account.accountId,deviceId:ctx.device.deviceId,publicKeySha256:ctx.binding.publicKeySha256});
+  return {...ctx,account,entitlements,lease};
+}
+function fleetTarget(ctx,deviceId){
+  const targetId=String(deviceId||'').trim();
+  if(!/^[A-Za-z0-9._:-]{1,128}$/.test(targetId))throw new FleetAuthorityError('invalid_fleet_target');
+  const device=devices.get(targetId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
+  if(device.accountId!==ctx.account.accountId)throw new FleetAuthorityError('fleet_target_account_mismatch',403);
+  if(device.state==='revoked')throw new FleetAuthorityError('fleet_target_revoked',409);
+  return device;
 }
 function verifiedLeafCapabilities(value,binding,reportedRevision=0) {
   const reported=[];
@@ -565,6 +617,44 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && url.pathname === '/v1/capabilities') {
       return sendJson(res, 200, { ok: true, ...capabilities() });
     }
+    if (req.method === 'GET' && url.pathname === '/v1/admin/licenses') {
+      return sendJson(res,200,{ok:true,licenses:licenses.list()});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/admin/licenses/issue') {
+      const body=await readJson(req),issued=licenses.issue(body);
+      return sendJson(res,201,{ok:true,...issued});
+    }
+    const adminLicenseRevoke=url.pathname.match(/^\/v1\/admin\/licenses\/(lic_[A-Za-z0-9-]+)\/revoke$/);
+    if (req.method === 'POST' && adminLicenseRevoke) {
+      const body=await readJson(req),license=licenses.revoke(adminLicenseRevoke[1],body.reason||'admin_revoked');
+      return sendJson(res,200,{ok:true,license});
+    }
+    const adminAccountMatch=url.pathname.match(/^\/v1\/admin\/accounts\/([A-Za-z0-9._:-]+)$/);
+    if (req.method === 'GET' && adminAccountMatch) return sendJson(res,200,{ok:true,account:accounts.account(adminAccountMatch[1])});
+    const adminEntitlementMatch=url.pathname.match(/^\/v1\/admin\/accounts\/([A-Za-z0-9._:-]+)\/entitlement$/);
+    if (req.method === 'POST' && adminEntitlementMatch) {
+      const body=await readJson(req),durationMs=body.durationDays==null?null:Number(body.durationDays)*86400000;
+      const account=accounts.applyEntitlement(adminEntitlementMatch[1],{plan:body.plan,durationMs,source:'admin',sourceRef:String(body.sourceRef||'license-admin-cli'),allowDowngrade:true}),entitlements=planEntitlements(account);
+      if(!entitlements.fleetWall)fleetAuthority.invalidateAccount(account.accountId,'fleet_entitlement_removed');
+      return sendJson(res,200,{ok:true,account,entitlements});
+    }
+    const adminMainMatch=url.pathname.match(/^\/v1\/admin\/accounts\/([A-Za-z0-9._:-]+)\/main-device$/);
+    if(req.method==='POST'&&adminMainMatch){
+      const body=await readJson(req),accountId=adminMainMatch[1],device=devices.get(body.deviceId);
+      if(device.accountId!==accountId)throw new AccountError('account_device_mismatch',403);
+      if(device.state==='revoked')throw new AccountError('main_device_revoked',409);
+      const prior=accounts.account(accountId).mainDeviceId||null;if(prior&&prior!==device.deviceId)fleetAuthority.invalidateDevice(prior,'main_device_changed');
+      fleetAuthority.invalidateDevice(device.deviceId,'main_device_changed');const account=accounts.setMainDevice(accountId,device.deviceId);
+      return sendJson(res,200,{ok:true,account,entitlements:planEntitlements(account),mainDevice:device});
+    }
+    const adminEntitlementRevoke=url.pathname.match(/^\/v1\/admin\/accounts\/([A-Za-z0-9._:-]+)\/entitlement\/revoke$/);
+    if (req.method === 'POST' && adminEntitlementRevoke) {
+      const body=await readJson(req),accountId=adminEntitlementRevoke[1];
+      const account=accounts.applyEntitlement(accountId,{plan:'free',durationMs:null,source:'admin_revoke',sourceRef:String(body.reason||'license-admin-cli'),allowDowngrade:true});
+      const closedDevices=closeRuntimeForAccount(accountId,'account_entitlement_revoked');
+      fleetAuthority.invalidateAccount(accountId,'fleet_entitlement_revoked');
+      return sendJson(res,200,{ok:true,account,entitlements:planEntitlements(account),closedDevices});
+    }
     if (req.method === 'POST' && url.pathname === '/v1/accounts/owner-proof') {
       const body=await readJson(req);
       if(body.ownerProofVerified!==true) throw new AccountError('owner_migration_proof_required',403);
@@ -584,18 +674,38 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'GET' && url.pathname === '/v1/accounts/me') {
       const identity=requireAccount(req);
-      return sendJson(res,200,{ok:true,...identity,entitlements:planEntitlements(identity.account.plan)});
+      return sendJson(res,200,{ok:true,...identity,entitlements:planEntitlements(identity.account)});
     }
     if (req.method === 'POST' && url.pathname === '/v1/accounts/logout') {
       return sendJson(res,200,{ok:true,...accounts.logout(accountSessionToken(req))});
     }
     if (req.method === 'GET' && url.pathname === '/v1/accounts/devices') {
       const identity=requireAccount(req),owned=allDeviceViews().filter(device=>device.accountId===identity.account.accountId);
-      return sendJson(res,200,{ok:true,account:identity.account,entitlements:planEntitlements(identity.account.plan),devices:owned});
+      return sendJson(res,200,{ok:true,account:identity.account,entitlements:planEntitlements(identity.account),devices:owned});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/accounts/main-device') {
+      const identity=requireAccount(req),body=await readJson(req),device=devices.get(body.deviceId);
+      if(device.accountId!==identity.account.accountId)throw new AccountError('account_device_mismatch',403);
+      if(device.state==='revoked')throw new AccountError('main_device_revoked',409);
+      const priorMain=identity.account.mainDeviceId||null;if(priorMain&&priorMain!==device.deviceId)fleetAuthority.invalidateDevice(priorMain,'main_device_changed');
+      fleetAuthority.invalidateDevice(device.deviceId,'main_device_changed');
+      const account=accounts.setMainDevice(identity.account.accountId,device.deviceId);
+      return sendJson(res,200,{ok:true,account,entitlements:planEntitlements(account),mainDevice:device});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/accounts/main-device/clear') {
+      const identity=requireAccount(req);fleetAuthority.invalidateAccount(identity.account.accountId,'main_device_cleared');
+      const account=accounts.clearMainDevice(identity.account.accountId,{reason:'account_owner_cleared'});
+      return sendJson(res,200,{ok:true,account,entitlements:planEntitlements(account)});
     }
     if (req.method === 'GET' && url.pathname === '/v1/accounts/usage') {
       const identity=requireAccount(req,{touch:false}),months=Math.max(1,Math.min(Number(url.searchParams.get('months'))||6,24));
-      return sendJson(res,200,{ok:true,account:identity.account,entitlements:planEntitlements(identity.account.plan),usage:usage.summary(identity.account.accountId,{months})});
+      return sendJson(res,200,{ok:true,account:identity.account,entitlements:planEntitlements(identity.account),usage:usage.summary(identity.account.accountId,{months})});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/accounts/redeem-license') {
+      const identity=requireAccount(req),body=await readJson(req),candidate=licenses.inspect(body.key);
+      const account=accounts.applyEntitlement(identity.account.accountId,{plan:candidate.plan,durationMs:candidate.durationMs,source:'redeem_key',sourceRef:candidate.licenseId});
+      const consumed=licenses.consume(candidate.licenseId,identity.account.accountId);
+      return sendJson(res,200,{ok:true,account,entitlements:planEntitlements(account),license:consumed.license});
     }
     if(req.method==='POST'&&url.pathname==='/v1/accounts/enrollments/approve'){
       const identity=requireAccount(req),body=await readJson(req),approval=enrollments.approve({...body,accountId:identity.account.accountId});
@@ -606,18 +716,21 @@ const server = http.createServer(async (req, res) => {
     if(req.method==='POST'&&accountRevokeMatch){
       const identity=requireAccount(req),device=devices.get(accountRevokeMatch[1]);
       if(device.accountId!==identity.account.accountId)throw new AccountError('account_device_mismatch',403);
+      if(device.deviceId===DEVICE_ID)throw new AccountError('integrated_hub_device_not_revocable',409);
       const binding=enrollments.revoke({deviceId:device.deviceId,accountId:identity.account.accountId,reason:'account_owner_revoked'}),revoked=devices.revoke(device.deviceId,'account_owner_revoked');
       revokeRuntimeForDevice(device.deviceId,'account_owner_revoked');
-      return sendJson(res,200,{ok:true,binding,device:revoked});
+      const account=clearMainIfMatches(identity.account.accountId,device.deviceId,'main_device_revoked')||accounts.account(identity.account.accountId);
+      return sendJson(res,200,{ok:true,binding,device:revoked,account,entitlements:planEntitlements(account)});
     }
     if (req.method === 'POST' && url.pathname === '/v1/accounts/devices/revoke-all') {
-      const identity=requireAccount(req),rows=devices.list().filter(device=>device.accountId===identity.account.accountId&&device.state!=='revoked'),revoked=[];
+      const identity=requireAccount(req),rows=devices.list().filter(device=>device.accountId===identity.account.accountId&&device.state!=='revoked'&&device.deviceId!==DEVICE_ID),revoked=[];
       for(const device of rows){
         try{enrollments.revoke({deviceId:device.deviceId,accountId:identity.account.accountId,reason:'account_owner_revoke_all'});}catch{}
         try{revoked.push(devices.revoke(device.deviceId,'account_owner_revoke_all'));}catch{}
         revokeRuntimeForDevice(device.deviceId,'account_owner_revoke_all');
       }
-      return sendJson(res,200,{ok:true,revoked});
+      const account=accounts.clearMainDevice(identity.account.accountId,{reason:'account_owner_revoke_all'});
+      return sendJson(res,200,{ok:true,revoked,preserved:[DEVICE_ID],account,entitlements:planEntitlements(account)});
     }
     if (req.method === 'POST' && url.pathname === '/v1/enrollments/begin') {
       const body = await readJson(req);
@@ -721,7 +834,7 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/connect') {
       const body=await readJson(req), ctx=verifiedChannelContext(body,'connect');
-      const connection=connections.connect({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,plan:activeAccountPlan(ctx.binding.accountId),requestedLeaseMs:ctx.payload.requestedLeaseMs,reconnectGraceMs:ctx.payload.reconnectGraceMs});
+      const spec=connectionSpec(ctx.binding.accountId,ctx.payload.requestedLeaseMs),connection=connections.connect({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,plan:spec.plan,requestedLeaseMs:spec.requestedLeaseMs,reconnectGraceMs:ctx.payload.reconnectGraceMs});
       devices.heartbeat(ctx.device.deviceId,{agentVersion:ctx.payload.agentVersion});
       return sendJson(res,200,{ok:true,connection});
     }
@@ -739,10 +852,55 @@ const server = http.createServer(async (req, res) => {
       const body=await readJson(req), ctx=verifiedChannelContext(body,'grace');
       return sendJson(res,200,{ok:true,connection:connections.setGrace(ctx.device.deviceId,ctx.payload.reconnectGraceMs)});
     }
+    if (req.method === 'POST' && url.pathname === '/v1/device-channel/account-auth') {
+      const body=await readJson(req), ctx=verifiedChannelContext(body,'account-auth');
+      const account=accounts.verifyCredentials({email:ctx.payload.email,password:ctx.payload.password},{recordLogin:true,eventType:'account_wall_login'});
+      if(account.accountId!==ctx.binding.accountId)throw new AccountError('device_account_mismatch',403);
+      return sendJson(res,200,{ok:true,account,entitlements:planEntitlements(account)});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/device-channel/fleet-intent') {
+      const body=await readJson(req),ctx=verifiedChannelContext(body,'fleet-intent'),account=accounts.account(ctx.binding.accountId),entitlements=planEntitlements(account);
+      const desired=Boolean(entitlements.fleetWall&&entitlements.multiDeviceConsole&&account.mainDeviceId===ctx.device.deviceId&&ctx.device.state!=='revoked');
+      const reason=desired?'main_device_eligible':!entitlements.fleetWall?'fleet_entitlement_required':!account.mainDeviceId?'main_device_not_selected':account.mainDeviceId!==ctx.device.deviceId?'not_main_device':'main_device_unavailable';
+      if(!desired)fleetAuthority.invalidateDevice(ctx.device.deviceId,reason);
+      return sendJson(res,200,{ok:true,fleet:{desired,port:5492,reason},account:{accountId:account.accountId,plan:account.plan,mainDeviceId:account.mainDeviceId},entitlements});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/device-channel/fleet-authority') {
+      const body=await readJson(req),ctx=verifiedChannelContext(body,'fleet-authority'),{account,entitlements}=fleetEligibility(ctx);
+      const issued=fleetAuthority.issue({accountId:account.accountId,mainDeviceId:account.mainDeviceId,deviceId:ctx.device.deviceId,publicKeySha256:ctx.binding.publicKeySha256,entitlementId:account.entitlement?.entitlementId||null,moduleVersion:ctx.payload.moduleVersion||null});
+      return sendJson(res,200,{ok:true,fleet:{desired:true,port:5492},account:{accountId:account.accountId,plan:account.plan,mainDeviceId:account.mainDeviceId},entitlements,authority:issued});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/device-channel/fleet-devices') {
+      const body=await readJson(req),ctx=verifiedFleetContext(verifiedChannelContext(body,'fleet-devices'));
+      const rows=allDeviceViews().filter(device=>device.accountId===ctx.account.accountId&&device.state!=='revoked');
+      return sendJson(res,200,{ok:true,mainDeviceId:ctx.account.mainDeviceId,authority:ctx.lease,devices:rows});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/device-channel/fleet-sessions') {
+      const body=await readJson(req),ctx=verifiedFleetContext(verifiedChannelContext(body,'fleet-sessions')),owned=new Set(allDeviceViews().filter(device=>device.accountId===ctx.account.accountId&&device.state!=='revoked').map(device=>device.deviceId));
+      const rows=sessions.list().filter(row=>owned.has(row.deviceId));
+      return sendJson(res,200,{ok:true,mainDeviceId:ctx.account.mainDeviceId,authority:ctx.lease,sessions:rows});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/device-channel/fleet-activity') {
+      const body=await readJson(req),ctx=verifiedFleetContext(verifiedChannelContext(body,'fleet-activity')),owned=new Set(allDeviceViews().filter(device=>device.accountId===ctx.account.accountId&&device.state!=='revoked').map(device=>device.deviceId)),limit=Math.max(1,Math.min(Number(ctx.payload.limit)||500,5000));
+      const rows=recentEvents(MAX_RING_EVENTS).filter(event=>event.accountId===ctx.account.accountId||owned.has(String(event.deviceId||''))).slice(-limit);
+      return sendJson(res,200,{ok:true,mainDeviceId:ctx.account.mainDeviceId,authority:ctx.lease,events:rows});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/device-channel/fleet-device-policy') {
+      const body=await readJson(req),ctx=verifiedFleetContext(verifiedChannelContext(body,'fleet-device-policy')),target=fleetTarget(ctx,ctx.payload.deviceId);
+      const policy=enrollments.updatePolicy({deviceId:target.deviceId,accountId:ctx.account.accountId,approvedCapabilities:ctx.payload.approvedCapabilities,policyProfile:ctx.payload.policyProfile});
+      if(target.nodeId!==NODE_ID){try{fleet.wake(target.nodeId);}catch{}}
+      pushEvent({type:'device_policy_updated',accountId:policy.accountId,deviceId:policy.deviceId,nodeId:target.nodeId,status:'updated',policyProfile:policy.policyProfile,policyRevision:policy.policyRevision,capabilities:policy.approvedCapabilities,source:'fleet_wall'});
+      return sendJson(res,200,{ok:true,mainDeviceId:ctx.account.mainDeviceId,policy,device:deviceView(target)});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/device-channel/fleet-device-update') {
+      const body=await readJson(req),ctx=verifiedFleetContext(verifiedChannelContext(body,'fleet-device-update')),target=fleetTarget(ctx,ctx.payload.deviceId);
+      return sendJson(res,200,{ok:true,mainDeviceId:ctx.account.mainDeviceId,maintenance:queueSignedUpdate(target.deviceId)});
+    }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/pairing-code') {
       const body=await readJson(req), ctx=verifiedChannelContext(body,'pairing-code');
       const connection=connections.assertConnected(ctx.device.deviceId);
-      const pairing=pairingCodes.rotate({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,connectionId:connection.connectionId,connectionExpiresAt:connection.hardExpiresAt});
+      const spec={accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,connectionId:connection.connectionId,connectionExpiresAt:connection.hardExpiresAt};
+      const pairing=ctx.payload.rotate===true?pairingCodes.rotate(spec):pairingCodes.currentOrRotate(spec);
       return sendJson(res,200,{ok:true,pairing});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/account-owner-proof') {
@@ -857,9 +1015,11 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && revokeMatch) {
       const body = await readJson(req);
       if (String(body.deviceId || revokeMatch[1]) !== revokeMatch[1]) throw new EnrollmentError('device_id_mismatch', 409);
+      if(revokeMatch[1]===DEVICE_ID)throw new EnrollmentError('integrated_hub_device_not_revocable',409);
       const binding = enrollments.revoke({ deviceId:revokeMatch[1], accountId:body.accountId, reason:body.reason });
       const device = devices.revoke(revokeMatch[1], body.reason || 'owner_revoked');
       revokeRuntimeForDevice(revokeMatch[1],body.reason||'owner_revoked');
+      clearMainIfMatches(device.accountId,device.deviceId,'main_device_revoked');
       return sendJson(res, 200, { ok:true, binding, device });
     }
     const connectionMatch = url.pathname.match(/^\/v1\/devices\/([A-Za-z0-9._:-]+)\/connection(?:\/(connect|disconnect|grace|activity))?$/);
@@ -870,7 +1030,7 @@ const server = http.createServer(async (req, res) => {
       if (req.method==='GET' && action==='get') return sendJson(res,200,{ok:true,connection:connectionViewForDevice(deviceId)});
       if (req.method==='POST' && action==='connect') {
         const body=await readJson(req);
-        const connection=connections.connect({accountId:ACCOUNT_ID,deviceId,plan:activeAccountPlan(ACCOUNT_ID),requestedLeaseMs:body.requestedLeaseMs,reconnectGraceMs:body.reconnectGraceMs});
+        const spec=connectionSpec(ACCOUNT_ID,body.requestedLeaseMs),connection=connections.connect({accountId:ACCOUNT_ID,deviceId,plan:spec.plan,requestedLeaseMs:spec.requestedLeaseMs,reconnectGraceMs:body.reconnectGraceMs});
         return sendJson(res,200,{ok:true,connection});
       }
       if (req.method==='POST' && action==='disconnect') {
@@ -976,7 +1136,7 @@ const server = http.createServer(async (req, res) => {
   } catch (error) {
     const message = error?.message || 'internal_error';
     pushEvent({ type: 'executor_error', status: 'error', detail: redact(message) });
-    const status = error instanceof SessionError || error instanceof DeviceError || error instanceof EnrollmentError || error instanceof FleetError || error instanceof DeviceConnectionError || error instanceof DeviceAccessGrantError || error instanceof DevicePairingRegistryError || error instanceof AgentClientRegistryError || error instanceof AccountError ? error.status : ['invalid_envelope', 'expired_envelope', 'replay_detected', 'unknown_kid', 'invalid_envelope_auth', 'unsupported_action'].includes(message) ? 401 : message === 'operation_id_conflict' ? 409 : 400;
+    const status = error instanceof SessionError || error instanceof DeviceError || error instanceof EnrollmentError || error instanceof FleetError || error instanceof DeviceConnectionError || error instanceof DeviceAccessGrantError || error instanceof DevicePairingRegistryError || error instanceof AgentClientRegistryError || error instanceof AccountError || error instanceof LicenseKeyError || error instanceof FleetAuthorityError ? error.status : ['invalid_envelope', 'expired_envelope', 'replay_detected', 'unknown_kid', 'invalid_envelope_auth', 'unsupported_action'].includes(message) ? 401 : message === 'operation_id_conflict' ? 409 : 400;
     return sendJson(res, status, { ok: false, error: message });
   }
 });

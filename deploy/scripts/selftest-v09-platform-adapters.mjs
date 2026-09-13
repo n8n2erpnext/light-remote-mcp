@@ -20,9 +20,19 @@ expect(hasAll(windowsRequired,['filesystem','powershell','windows-services','win
 expect(windows.hardDeny('pwsh -EncodedCommand AAA')==='windows_encoded_powershell_denied','windows_encoded_guard_failed');
 expect(windows.hardDeny('reg save HKLM\\SAM C:\\temp\\sam')==='windows_sensitive_hive_denied','windows_hive_guard_failed');
 expect(windows.commandFor('Get-Date').file==='pwsh','windows_shell_failed');
+
+const macos=createPlatformAdapter({platform:'darwin',commandExists:fakeExists(['git','node','docker','brew','sudo','launchctl','log','swift'])});
+const macosCaps=macos.discoverCapabilities();
+expect(hasAll(macosCaps,['filesystem','git','build-test','docker','package-manager','sudo-on-demand','macos-services','macos-log']),'macos_discovery_failed');
+const macosRequired=macos.inferRequiredCapabilities('sudo launchctl print gui/501; log show --last 1m; brew list; git status');
+expect(hasAll(macosRequired,['filesystem','sudo-on-demand','macos-services','macos-log','package-manager','git']),'macos_inference_failed');
+expect(macos.hardDeny('security find-generic-password -s demo -w')==='macos_keychain_secret_export_denied','macos_keychain_guard_failed');
+expect(macos.commandFor('sw_vers').file==='/bin/zsh','macos_shell_failed');
+
 try{createPlatformAdapter({platform:'aix',commandExists:()=>false});throw new Error('unsupported_platform_not_rejected');}
 catch(error){if(error.message!=='unsupported_platform:aix')throw error;}
 
 console.log('v09-linux-adapter=PASS');
 console.log('v09-windows-adapter=PASS');
+console.log('v09-macos-adapter=PASS');
 console.log('v09-protected-capability-default-deny=PASS');

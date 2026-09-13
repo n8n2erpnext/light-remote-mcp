@@ -17,7 +17,7 @@ expect(linuxWorkflow.includes('cp device-agent/local-wall-auth.mjs "$PKG/device-
 expect(linuxWorkflow.includes('cp assets/branding/light-remote-mark.svg "$PKG/assets/branding/"'),'linux_local_wall_brand_not_bundled');
 expect(linuxWorkflow.includes('test -s "$PKG/LICENSE"')&&linuxWorkflow.includes('test -s "$PKG/NOTICE"'),'linux_project_license_not_verified');
 expect(linuxWorkflow.includes('actions/upload-artifact@v4'),'linux_artifact_upload_missing');
-expect(linuxWorkflow.includes('(cd "$OUT" && sha256sum "Light-Remote-MCP-Client-Linux-${TARGET_ARCH}-0.9.0-beta.1.tar.gz")'),'linux_checksum_not_portable');
+expect(linuxWorkflow.includes('(cd "$OUT" && sha256sum "Light-Remote-MCP-Client-Linux-${TARGET_ARCH}-${VERSION}.tar.gz")'),'linux_checksum_not_portable');
 expect(linuxWorkflow.includes('(cd "$OUT" && sha256sum -c SHA256SUMS.txt)'),'linux_checksum_ci_verify_missing');
 expect(install.includes('gpt-operator-device-agent.service'),'linux_agent_service_missing');
 expect(install.includes('gpt-operator-agent-update.timer'),'linux_update_timer_missing');

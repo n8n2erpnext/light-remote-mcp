@@ -128,6 +128,23 @@ export class EnrollmentRegistry {
   }
   signerInfo() { return { algorithm:'Ed25519', publicKey:this.signer.publicEncoded, publicKeySha256:sha256(Buffer.from(this.signer.publicEncoded,'base64')) }; }
 
+  ensureTrustedBinding(input = {}) {
+    const deviceId=bounded(input.deviceId,128),accountId=bounded(input.accountId,128);
+    if(!ID_RE.test(deviceId)||!ID_RE.test(accountId))throw new EnrollmentError('invalid_trusted_device_identity');
+    const publicKey=parseEd25519PublicKey(input.publicIdentityKey),capabilities=cleanCapabilities(input.capabilities);
+    if(!capabilities.length)throw new EnrollmentError('device_capabilities_required');
+    const prior=this.bindings.get(deviceId);
+    if(prior){
+      if(prior.accountId!==accountId||prior.publicKeySha256!==publicKey.fingerprint||prior.publicIdentityKey!==publicKey.encoded)throw new EnrollmentError('trusted_device_binding_conflict',409);
+      if(prior.revokedAt)throw new EnrollmentError('device_revoked',403);
+      return prior;
+    }
+    const policyProfile=bounded(input.policyProfile||'self-hosted-owner',80);if(!POLICY_RE.test(policyProfile))throw new EnrollmentError('invalid_policy_profile');
+    const now=this.now(),binding={deviceId,accountId,publicKeySha256:publicKey.fingerprint,publicIdentityKey:publicKey.encoded,grantableCapabilities:[...capabilities],approvedCapabilities:[...capabilities],policyProfile,policyRevision:1,policyUpdatedAt:now,displayName:bounded(input.displayName||deviceId,120),platform:bounded(input.platform||'unknown',40),architecture:bounded(input.architecture||'unknown',40),agentVersion:bounded(input.agentVersion||'unknown',40),fingerprintSummary:bounded(input.fingerprintSummary||`trusted host ${deviceId}`,200),certificateId:`cert_${crypto.randomUUID()}`,issuedAt:now,notAfter:now+this.certificateTtlMs,trustedHost:true};
+    binding.certificate=certificateBody(binding);binding.certificateSignature=crypto.sign(null,Buffer.from(canonicalCertificate(binding)),this.signer.privateKey).toString('base64url');
+    this.bindings.set(deviceId,binding);this._persist();this.emit({type:'trusted_device_binding_created',deviceId,accountId,status:'approved',policyProfile,capabilities:[...capabilities]});return binding;
+  }
+
   begin(input = {}) {
     this._prune();
     const publicKey = parseEd25519PublicKey(input.publicIdentityKey);

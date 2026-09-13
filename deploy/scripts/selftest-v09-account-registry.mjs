@@ -32,12 +32,15 @@ try{
   if(events.some(e=>'email' in e))throw new Error('account_event_leaks_email');
   const pro=registry.setPlan('self-hosted-local','pro');if(pro.plan!=='pro')throw new Error('account_plan_pro_failed');
   const vip=registry.setPlan('self-hosted-local','VIP');if(vip.plan!=='vip')throw new Error('account_plan_vip_failed');
+  const withMain=registry.setMainDevice('self-hosted-local','dev-main-test');if(withMain.mainDeviceId!=='dev-main-test')throw new Error('account_main_device_set_failed');
   expectError(()=>registry.setPlan('self-hosted-local','enterprise'),'invalid_account_plan',400);
   const reloaded=new AccountRegistry({stateFile,bootstrapAccountId:'self-hosted-local',sessionTtlMs:60*60*1000,now:()=>now});
   if(reloaded.authenticate(login.token).account.email!=='owner@example.com')throw new Error('persistence_reload_failed');
+  if(reloaded.account('self-hosted-local').mainDeviceId!=='dev-main-test')throw new Error('account_main_device_persistence_failed');
+  if(reloaded.clearMainDevice('self-hosted-local').mainDeviceId!==null)throw new Error('account_main_device_clear_failed');
   const out=reloaded.logout(login.token);if(!out.loggedOut)throw new Error('logout_failed');
   expectError(()=>reloaded.authenticate(login.token),'account_session_required',401);
   now+=2*60*60*1000;
   expectError(()=>reloaded.authenticate(first.token),'account_session_required',401);
-  console.log(JSON.stringify({ok:true,bootstrapAccount:true,passwordHashed:true,tokenHashed:true,persistence:true,logout:true,expiry:true,noEmailAudit:true,ownerProofOneTime:true,planAuthority:true},null,2));
+  console.log(JSON.stringify({ok:true,bootstrapAccount:true,passwordHashed:true,tokenHashed:true,persistence:true,logout:true,expiry:true,noEmailAudit:true,ownerProofOneTime:true,planAuthority:true,mainDeviceAuthority:true},null,2));
 }finally{fs.rmSync(dir,{recursive:true,force:true});}

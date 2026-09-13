@@ -32,13 +32,19 @@ internal static class Program
             return;
         }
 
+        if (args.Contains("--open-wall", StringComparer.OrdinalIgnoreCase)) { try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("http://127.0.0.1:5491/") { UseShellExecute = true }); } catch { } return; }
+        if (args.Contains("--scheduled-update", StringComparer.OrdinalIgnoreCase)) { Environment.ExitCode = RunScheduledUpdateAsync().GetAwaiter().GetResult(); return; }
         using var mutex = new Mutex(true, @"Local\GPT_OPERATOR_CLIENT_V09", out var firstInstance);
         if (!firstInstance) return;
         ApplicationConfiguration.Initialize();
-        using var form = new MainForm();
-        if (args.Contains("--background", StringComparer.OrdinalIgnoreCase))
-            form.Shown += (_, _) => form.Hide();
-        Application.Run(form);
+        Application.Run(new TrayApplicationContext());
+    }
+
+    private static async Task<int> RunScheduledUpdateAsync()
+    {
+        try { var client=new UpdateClient(); var update=await client.CheckAsync(); if(update is null)return 0; var installer=await client.DownloadAndVerifyAsync(update); client.LaunchInstaller(installer,update); return 0; }
+        catch(FileNotFoundException){return 0;}
+        catch(Exception ex){try{AppPaths.EnsureDirectories();File.AppendAllText(AppPaths.UpdateLog,$"{DateTimeOffset.UtcNow:o} scheduled_update_failed {ex.Message}{Environment.NewLine}");}catch{}return 1;}
     }
 
     private static bool VerifyUpdateFixture(string manifest, string signature, string output)

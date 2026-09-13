@@ -8,17 +8,29 @@ import { fileURLToPath } from 'node:url';
 import { deviceChannelMessage, deviceHeartbeatMessage, devicePolicyMessage, normalizeDeviceCapabilities } from '../lib/device-proof.mjs';
 import { createPlatformAdapter } from './platform-adapters/index.mjs';
 import { startLocalWall } from './local-wall.mjs';
-import { loadLocalWallAuth, writeLocalWallAuthConfig } from './local-wall-auth.mjs';
+import { loadLocalWallAuth, writeLocalWallAuthConfig, writeAccountOnlyWallAuthConfig } from './local-wall-auth.mjs';
+import { FleetComponentManager } from './fleet-component-manager.mjs';
+import { FleetComponentSupervisor } from './fleet-component-supervisor.mjs';
 
-const VERSION='0.9.0-beta.1';
+function runtimeVersion(){
+  const forced=String(process.env.LIGHT_REMOTE_VERSION||process.env.OPERATOR_AGENT_VERSION||'').trim();if(forced)return forced;
+  try{const manifest=JSON.parse(fs.readFileSync(fileURLToPath(new URL('../manifest.json',import.meta.url)),'utf8'));if(manifest?.version)return String(manifest.version); }catch{}
+  try{const value=fs.readFileSync(fileURLToPath(new URL('../VERSION',import.meta.url)),'utf8').trim();if(value)return value;}catch{}
+  return '0.9.0-dev';
+}
+const VERSION=runtimeVersion();
 const PLATFORM_ADAPTER=createPlatformAdapter();
 const DEFAULT_BASE=process.env.OPERATOR_AGENT_BASE_URL || 'https://light-remote-mcp.vercel.app';
 const DEFAULT_HUB=process.env.OPERATOR_AGENT_HUB_URL || 'https://mcp.dashboard.thaiduy.store';
 const STATE_FILE=process.env.OPERATOR_AGENT_STATE || path.join(os.homedir(),'.config','gpt-operator-agent','device.json');
+const EXTERNAL_IDENTITY_FILE=String(process.env.OPERATOR_AGENT_IDENTITY_FILE||'').trim();
 const COMMAND_DIR=process.env.OPERATOR_AGENT_COMMAND_DIR || path.join(path.dirname(STATE_FILE),'commands');
 const LOCAL_WALL_HOST=process.env.OPERATOR_AGENT_WALL_HOST || '127.0.0.1';
 const LOCAL_WALL_PORT=Math.max(1024,Math.min(Number(process.env.OPERATOR_AGENT_WALL_PORT)||5491,65535));
 const LOCAL_WALL_AUTH_FILE=process.env.OPERATOR_AGENT_WALL_AUTH_FILE || path.join(path.dirname(STATE_FILE),'wall-auth.json');
+const FLEET_WALL_HOST=process.env.OPERATOR_FLEET_WALL_HOST||LOCAL_WALL_HOST;
+const FLEET_WALL_PORT=Math.max(1024,Math.min(Number(process.env.OPERATOR_FLEET_WALL_PORT)||5492,65535));
+const FLEET_WALL_PUBLIC_URL=String(process.env.OPERATOR_FLEET_WALL_PUBLIC_URL||'').trim();
 const LOCAL_WALL_BRAND=fileURLToPath(new URL('../assets/branding/light-remote-mark.svg',import.meta.url));
 const MAX_OUTPUT=4*1024*1024;
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -27,12 +39,14 @@ function parseArgs(argv){const out={_:[]};for(let i=0;i<argv.length;i++){const v
 function readState(){try{return JSON.parse(fs.readFileSync(STATE_FILE,'utf8'));}catch{return null;}}
 function writeJson0600(file,value){const dir=path.dirname(file);fs.mkdirSync(dir,{recursive:true,mode:0o700});const tmp=`${file}.${process.pid}.tmp`;fs.writeFileSync(tmp,`${JSON.stringify(value,null,2)}\n`,{mode:0o600});fs.chmodSync(tmp,0o600);fs.renameSync(tmp,file);}
 function writeState(state){writeJson0600(STATE_FILE,state);}
-function ensureIdentity(state={}){if(state.identity?.privateKey&&state.identity?.publicIdentityKey)return state;const {publicKey,privateKey}=crypto.generateKeyPairSync('ed25519');const publicIdentityKey=publicKey.export({format:'der',type:'spki'}).toString('base64');return {...state,identity:{algorithm:'Ed25519',privateKey:privateKey.export({format:'der',type:'pkcs8'}).toString('base64'),publicIdentityKey,publicKeySha256:sha256(Buffer.from(publicIdentityKey,'base64')),createdAt:Date.now()}};}
+let externalIdentityCache=null;
+function externalIdentity(){if(!EXTERNAL_IDENTITY_FILE)return null;if(externalIdentityCache)return externalIdentityCache;const row=JSON.parse(fs.readFileSync(EXTERNAL_IDENTITY_FILE,'utf8')),privateKey=crypto.createPrivateKey({key:Buffer.from(row.privateKey,'base64'),format:'der',type:'pkcs8'}),publicKey=crypto.createPublicKey({key:Buffer.from(row.publicKey||row.publicIdentityKey,'base64'),format:'der',type:'spki'});if(privateKey.asymmetricKeyType!=='ed25519'||publicKey.asymmetricKeyType!=='ed25519')throw new Error('invalid_external_device_identity');const publicIdentityKey=publicKey.export({format:'der',type:'spki'}).toString('base64');externalIdentityCache={privateKey,publicIdentityKey,publicKeySha256:sha256(Buffer.from(publicIdentityKey,'base64')),createdAt:Number(row.createdAt)||Date.now()};return externalIdentityCache;}
+function ensureIdentity(state={}){if(state.identity?.publicIdentityKey&&(state.identity?.privateKey||EXTERNAL_IDENTITY_FILE))return state;const external=externalIdentity();if(external)return {...state,identity:{algorithm:'Ed25519',publicIdentityKey:external.publicIdentityKey,publicKeySha256:external.publicKeySha256,createdAt:external.createdAt}};const {publicKey,privateKey}=crypto.generateKeyPairSync('ed25519');const publicIdentityKey=publicKey.export({format:'der',type:'spki'}).toString('base64');return {...state,identity:{algorithm:'Ed25519',privateKey:privateKey.export({format:'der',type:'pkcs8'}).toString('base64'),publicIdentityKey,publicKeySha256:sha256(Buffer.from(publicIdentityKey,'base64')),createdAt:Date.now()}};}
 function discoverCapabilities(){return PLATFORM_ADAPTER.discoverCapabilities();}
 function effectiveCapabilities(approved,denied){const deny=new Set(denied||[]);return (approved||[]).filter(x=>!deny.has(x)).sort();}
 async function parseResponse(response){const text=await response.text();let json;try{json=JSON.parse(text)}catch{json={raw:text}}if(!response.ok||!json.ok){const e=new Error(json.error||json.upstream?.error||`http_${response.status}`);e.status=response.status;e.payload=json;throw e;}return json;}
 async function operator(base,action,payload){const response=await fetch(`${base.replace(/\/$/,'')}/api/operator`,{method:'POST',headers:{'content-type':'application/json','accept':'application/json'},body:JSON.stringify({action,payload}),signal:AbortSignal.timeout(15000)});return (await parseResponse(response)).upstream;}
-function privateKey(state){return crypto.createPrivateKey({key:Buffer.from(state.identity.privateKey,'base64'),format:'der',type:'pkcs8'});}
+function privateKey(state){if(state.identity?.privateKey)return crypto.createPrivateKey({key:Buffer.from(state.identity.privateKey,'base64'),format:'der',type:'pkcs8'});const external=externalIdentity();if(!external||external.publicIdentityKey!==state.identity?.publicIdentityKey)throw new Error('device_private_key_unavailable');return external.privateKey;}
 function verifyEnrollment(state,enrollment){const cert=enrollment.certificate;if(!cert||cert.publicKeySha256!==state.identity.publicKeySha256||cert.deviceId!==enrollment.deviceId)throw new Error('device_certificate_identity_mismatch');const signer=crypto.createPublicKey({key:Buffer.from(enrollment.signer.publicKey,'base64'),format:'der',type:'spki'});if(!crypto.verify(null,Buffer.from(JSON.stringify(cert)),signer,Buffer.from(enrollment.certificateSignature,'base64url')))throw new Error('device_certificate_signature_invalid');return true;}
 function applyPolicyEnvelope(state,envelope){
   if(!envelope)return false;
@@ -103,6 +117,7 @@ async function executeCommand(state,command){
   const result={commandId:command.commandId,status:timedOut?'timeout':exitCode===0?'ok':'error',exitCode:timedOut?124:Math.max(0,Math.min(Number(exitCode)||0,255)),stdout:out.text(),stderr:err.text(),durationMs:Date.now()-startedAt,outputTruncated:out.truncated()||err.truncated()};
   writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;
 }
+async function localFleetStatus(){try{const r=await fetch(`http://${FLEET_WALL_HOST}:${FLEET_WALL_PORT}/healthz`,{headers:{accept:'application/json'},signal:AbortSignal.timeout(800)}),j=await r.json();if(!r.ok||!j.ok||j.service!=='light-remote-fleet-wall')throw new Error('fleet_wall_unhealthy');return {healthy:true,port:FLEET_WALL_PORT,version:j.version||null,publicUrl:FLEET_WALL_PUBLIC_URL||null};}catch{return {healthy:false,port:FLEET_WALL_PORT,version:null,publicUrl:FLEET_WALL_PUBLIC_URL||null};}}
 function cloudDesired(state){return Boolean(state?.enrollment?.deviceId)&&state?.cloud?.desiredConnected!==false;}
 function expireLocalHardLease(state,{persist=true}={}){
   const expiresAt=Number(state?.cloud?.hardExpiresAt);
@@ -158,9 +173,14 @@ async function remoteDeviceActivity(hub=DEFAULT_HUB,limit=500){
   const bounded=Math.max(1,Math.min(Number(limit)||500,5000));
   return channelRequest(state,hub,'activity',{nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,limit:bounded});
 }
-async function rotatePairingCode(hub=DEFAULT_HUB){
+async function authenticateWallAccount(email,password,hub=DEFAULT_HUB){
   const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
-  const response=await channelRequest(state,hub,'pairing-code',{nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION});
+  const response=await channelRequest(state,hub,'account-auth',{email:String(email||''),password:String(password||'')});
+  return {account:response.account,entitlements:response.entitlements};
+}
+async function rotatePairingCode(hub=DEFAULT_HUB,options={}){
+  const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
+  const response=await channelRequest(state,hub,'pairing-code',{nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,rotate:options.rotate===true});
   return response.pairing;
 }
 async function accountOwnerProofCode(hub=DEFAULT_HUB){
@@ -180,21 +200,22 @@ async function denyDeviceAccess(requestId,hub=DEFAULT_HUB,reason='owner_denied')
   const response=await channelRequest(state,hub,'access-deny',{requestId:id,reason:String(reason||'owner_denied').slice(0,80)});
   return response.authorization||response;
 }
-function setLocalPermissions(allowedCapabilities){
+function setLocalPermissions(allowedCapabilities,profile='custom'){
   const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
   const grantable=normalizeDeviceCapabilities(state.enrollment.grantableCapabilities||state.enrollment.approvedCapabilities||[]);
   const allowed=normalizeDeviceCapabilities(Array.isArray(allowedCapabilities)?allowedCapabilities:[]);
   if(allowed.some(cap=>!grantable.includes(cap)))throw new Error('local_permission_not_grantable');
+  const localProfile=/^(safe|developer|full|custom)$/.test(String(profile||''))?String(profile):'custom';
   const denied=grantable.filter(cap=>!allowed.includes(cap));
-  state.policy={...(state.policy||{}),deniedCapabilities:denied,localFinalDenyBoundary:true,localPolicyUpdatedAt:Date.now()};
+  state.policy={...(state.policy||{}),deniedCapabilities:denied,localProfile,localFinalDenyBoundary:true,localPolicyUpdatedAt:Date.now()};
   state.effectiveCapabilities=effectiveCapabilities(state.enrollment.approvedCapabilities,denied);
   writeState(state);
-  return {grantableCapabilities:grantable,serverApprovedCapabilities:[...(state.enrollment.approvedCapabilities||[])],localAllowedCapabilities:allowed,deniedCapabilities:denied,effectiveCapabilities:[...state.effectiveCapabilities],updatedAt:state.policy.localPolicyUpdatedAt};
+  return {profile:localProfile,grantableCapabilities:grantable,serverApprovedCapabilities:[...(state.enrollment.approvedCapabilities||[])],localAllowedCapabilities:allowed,deniedCapabilities:denied,effectiveCapabilities:[...state.effectiveCapabilities],updatedAt:state.policy.localPolicyUpdatedAt};
 }
 function statusView(state=readState()){
   if(state)expireLocalHardLease(state);
   if(!state)return {ok:true,version:VERSION,platformAdapter:PLATFORM_ADAPTER.id,enrolled:false,deviceId:null,deviceName:os.hostname(),accountId:null,cloudDesiredConnected:false,cloudState:'dormant',connectionId:null,hardExpiresAt:null,reconnectGraceMs:null,connectionPlan:null,stateFile:STATE_FILE,localWallUrl:`http://${LOCAL_WALL_HOST}:${LOCAL_WALL_PORT}/`};
-  return {ok:true,version:VERSION,platformAdapter:PLATFORM_ADAPTER.id,enrolled:Boolean(state.enrollment?.deviceId),deviceId:state.enrollment?.deviceId||null,deviceName:os.hostname(),nodeId:state.enrollment?.nodeId||state.enrollment?.deviceId||null,accountId:state.enrollment?.accountId||null,pendingEnrollmentId:state.pendingEnrollment?.enrollmentId||null,publicKeySha256:state.identity?.publicKeySha256||null,policyProfile:state.enrollment?.policyProfile||state.pendingEnrollment?.requestedPolicy||null,policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),grantableCapabilities:state.enrollment?.grantableCapabilities||state.enrollment?.approvedCapabilities||[],approvedCapabilities:state.enrollment?.approvedCapabilities||[],deniedCapabilities:state.policy?.deniedCapabilities||[],effectiveCapabilities:state.effectiveCapabilities||[],draining:Boolean(state.routing?.draining),cloudDesiredConnected:cloudDesired(state),cloudState:state.cloud?.state||(cloudDesired(state)?'legacy-connected':'dormant'),connectionId:state.cloud?.connectionId||null,hardExpiresAt:state.cloud?.hardExpiresAt||null,reconnectGraceMs:state.cloud?.reconnectGraceMs||null,connectionPlan:state.cloud?.plan||null,lastCloudError:state.cloud?.lastError||null,lastHeartbeatAt:state.lastHeartbeatAt||null,stateFile:STATE_FILE,commandDir:COMMAND_DIR,localWallUrl:`http://${LOCAL_WALL_HOST}:${LOCAL_WALL_PORT}/`,privateKeyStoredLocally:Boolean(state.identity?.privateKey)};
+  return {ok:true,version:VERSION,platformAdapter:PLATFORM_ADAPTER.id,enrolled:Boolean(state.enrollment?.deviceId),deviceId:state.enrollment?.deviceId||null,deviceName:state.enrollment?.displayName||os.hostname(),nodeId:state.enrollment?.nodeId||state.enrollment?.deviceId||null,accountId:state.enrollment?.accountId||null,pendingEnrollmentId:state.pendingEnrollment?.enrollmentId||null,publicKeySha256:state.identity?.publicKeySha256||null,policyProfile:state.enrollment?.policyProfile||state.pendingEnrollment?.requestedPolicy||null,localPolicyProfile:state.policy?.localProfile||((state.policy?.deniedCapabilities||[]).length?'custom':'full'),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),grantableCapabilities:state.enrollment?.grantableCapabilities||state.enrollment?.approvedCapabilities||[],approvedCapabilities:state.enrollment?.approvedCapabilities||[],deniedCapabilities:state.policy?.deniedCapabilities||[],effectiveCapabilities:state.effectiveCapabilities||[],draining:Boolean(state.routing?.draining),cloudDesiredConnected:cloudDesired(state),cloudState:state.cloud?.state||(cloudDesired(state)?'legacy-connected':'dormant'),connectionId:state.cloud?.connectionId||null,hardExpiresAt:state.cloud?.hardExpiresAt||null,reconnectGraceMs:state.cloud?.reconnectGraceMs||null,connectionPlan:state.cloud?.plan||null,lastCloudError:state.cloud?.lastError||null,lastHeartbeatAt:state.lastHeartbeatAt||null,stateFile:STATE_FILE,commandDir:COMMAND_DIR,localWallUrl:`http://${LOCAL_WALL_HOST}:${LOCAL_WALL_PORT}/`,privateKeyStoredLocally:Boolean(state.identity?.privateKey)};
 }
 async function daemon(args){
   const hub=args.hub||DEFAULT_HUB,base=args.base||DEFAULT_BASE;let state=readState()||{};
@@ -205,13 +226,17 @@ async function daemon(args){
   const sessionCeiling=Math.max(1,Math.min(Number(process.env.OPERATOR_AGENT_MAX_SESSIONS)||2,100));
   const waitMs=Math.max(1000,Math.min(Number(process.env.OPERATOR_AGENT_CHANNEL_WAIT_MS)||8000,15000));
   const dormantPollMs=Math.max(1000,Math.min(Number(process.env.OPERATOR_AGENT_DORMANT_CHECK_MS)||2000,30000));
-  let stopped=false,wake=null,failures=0,localWall=null;
-  const stop=()=>{stopped=true;if(wake)wake();try{localWall?.server.close();}catch{}};process.on('SIGTERM',stop);process.on('SIGINT',stop);
+  let stopped=false,wake=null,failures=0,localWall=null,fleetTimer=null,fleetReconciling=false;
+  const fleetManager=new FleetComponentManager(),fleetSupervisor=new FleetComponentSupervisor({manager:fleetManager,stateProvider:()=>readState(),requestIntent:async current=>{const response=await channelRequest(current,hub,'fleet-intent',{agentVersion:VERSION,moduleVersion:fleetManager.current()?.version||null});return response.fleet;},env:{OPERATOR_AGENT_STATE:STATE_FILE,OPERATOR_AGENT_IDENTITY_FILE:EXTERNAL_IDENTITY_FILE,OPERATOR_AGENT_WALL_AUTH_FILE:LOCAL_WALL_AUTH_FILE,OPERATOR_AGENT_HUB_URL:hub,OPERATOR_FLEET_WALL_HOST:FLEET_WALL_HOST,OPERATOR_FLEET_WALL_PORT:String(FLEET_WALL_PORT),OPERATOR_FLEET_WALL_PUBLIC_URL:FLEET_WALL_PUBLIC_URL},emit:event=>console.log(JSON.stringify(event))});
+  const stop=()=>{stopped=true;if(wake)wake();if(fleetTimer){clearInterval(fleetTimer);fleetTimer=null;}fleetSupervisor.close().catch(()=>{});try{localWall?.server.close();}catch{}};process.on('SIGTERM',stop);process.on('SIGINT',stop);
   const wait=ms=>new Promise(resolve=>{const timer=setTimeout(()=>{wake=null;resolve();},ms);wake=()=>{clearTimeout(timer);wake=null;resolve();};});
   const wallAuth=loadLocalWallAuth(LOCAL_WALL_AUTH_FILE,{required:!['127.0.0.1','::1','localhost'].includes(String(LOCAL_WALL_HOST))});
-  localWall=startLocalWall({host:LOCAL_WALL_HOST,port:LOCAL_WALL_PORT,brandSvgPath:LOCAL_WALL_BRAND,auth:wallAuth,getLocalStatus:async()=>statusView(),getRemoteStatus:async()=>{const remote=await remoteDeviceStatus(hub);return remote;},getRemoteActivity:async limit=>remoteDeviceActivity(hub,limit),connect:async data=>connectCloud({hub,graceMinutes:data.graceMinutes,leaseHours:data.leaseHours,silent:true}),disconnect:async data=>disconnectCloud({hub,reason:data.reason||'local_wall_disconnect',silent:true}),setGrace:async data=>setConnectionGrace({hub,minutes:data.minutes,silent:true}),setPermissions:async data=>setLocalPermissions(data?.allowedCapabilities),beginEnrollment:async()=>beginWallEnrollment(base),pollEnrollment:async()=>pollWallEnrollment(base),pairingCode:async()=>rotatePairingCode(hub),ownerProofCode:async()=>accountOwnerProofCode(hub),accessApprove:async requestId=>approveDeviceAccess(requestId,hub),accessDeny:async(requestId,data)=>denyDeviceAccess(requestId,hub,data?.reason||'owner_denied')});
+  localWall=startLocalWall({host:LOCAL_WALL_HOST,port:LOCAL_WALL_PORT,brandSvgPath:LOCAL_WALL_BRAND,auth:wallAuth,getLocalStatus:async()=>({...statusView(),fleetWall:await localFleetStatus()}),getRemoteStatus:async()=>{const remote=await remoteDeviceStatus(hub);return remote;},getRemoteActivity:async limit=>remoteDeviceActivity(hub,limit),connect:async data=>connectCloud({hub,graceMinutes:data.graceMinutes,leaseHours:data.leaseHours,silent:true}),disconnect:async data=>disconnectCloud({hub,reason:data.reason||'local_wall_disconnect',silent:true}),setGrace:async data=>setConnectionGrace({hub,minutes:data.minutes,silent:true}),setPermissions:async data=>setLocalPermissions(data?.allowedCapabilities,data?.profile),beginEnrollment:async()=>beginWallEnrollment(base),pollEnrollment:async()=>pollWallEnrollment(base),accountAuthenticate:async data=>authenticateWallAccount(data?.username,data?.password,hub),pairingCode:async data=>rotatePairingCode(hub,data),ownerProofCode:async()=>accountOwnerProofCode(hub),accessApprove:async requestId=>approveDeviceAccess(requestId,hub),accessDeny:async(requestId,data)=>denyDeviceAccess(requestId,hub,data?.reason||'owner_denied')});
   console.log(JSON.stringify({event:'local_wall_started',url:localWall.url,deviceId:state.enrollment?.deviceId||null}));
   console.log(JSON.stringify({event:'device_agent_started',mode:'always-alive-service',platformAdapter:PLATFORM_ADAPTER.id,deviceId:state.enrollment?.deviceId||null,nodeId:state.enrollment?.nodeId||null,sessionCeiling,waitMs,dormantPollMs,localWallUrl:localWall.url}));
+  const fleetReconcileMs=Math.max(500,Math.min(Number(process.env.OPERATOR_FLEET_RECONCILE_MS)||15000,300000));
+  const reconcileFleet=async()=>{if(stopped||fleetReconciling)return;fleetReconciling=true;try{await fleetSupervisor.reconcile();}catch(error){console.error(JSON.stringify({event:'fleet_component_reconcile_failed',error:error.message,status:error.status||null}));}finally{fleetReconciling=false;}};
+  fleetTimer=setInterval(reconcileFleet,fleetReconcileMs);fleetTimer.unref?.();
   while(!stopped){
     const latest=readState();if(latest)state=latest;
     expireLocalHardLease(state);
@@ -244,11 +269,25 @@ async function daemon(args){
       failures++;console.error(JSON.stringify({event:'device_channel_failed',deviceId:state.enrollment.deviceId,error:error.message,status:error.status||null,failures}));if(!stopped)await wait(Math.min(1000*(2**Math.min(failures,5)),30000));
     }
   }
+  try{await fleetSupervisor.close();}catch{}
   try{await localWall?.close();}catch{}
   if(Object.keys(state).length)writeState(state);console.log(JSON.stringify({event:'device_agent_stopped',deviceId:state.enrollment?.deviceId||null,nodeId:state.enrollment?.nodeId||null}));
 }
+async function wallOnly(args){
+  const hub=args.hub||DEFAULT_HUB,state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
+  if(!fs.existsSync(LOCAL_WALL_AUTH_FILE))writeAccountOnlyWallAuthConfig(LOCAL_WALL_AUTH_FILE,{username:'account'});
+  const wallAuth=loadLocalWallAuth(LOCAL_WALL_AUTH_FILE,{required:!['127.0.0.1','::1','localhost'].includes(String(LOCAL_WALL_HOST))});
+  const fleetManager=new FleetComponentManager(),fleetSupervisor=new FleetComponentSupervisor({manager:fleetManager,stateProvider:()=>readState(),requestIntent:async current=>{const response=await channelRequest(current,hub,'fleet-intent',{agentVersion:VERSION,moduleVersion:fleetManager.current()?.version||null});return response.fleet;},env:{OPERATOR_AGENT_STATE:STATE_FILE,OPERATOR_AGENT_IDENTITY_FILE:EXTERNAL_IDENTITY_FILE,OPERATOR_AGENT_WALL_AUTH_FILE:LOCAL_WALL_AUTH_FILE,OPERATOR_AGENT_HUB_URL:hub,OPERATOR_FLEET_WALL_HOST:FLEET_WALL_HOST,OPERATOR_FLEET_WALL_PORT:String(FLEET_WALL_PORT),OPERATOR_FLEET_WALL_PUBLIC_URL:FLEET_WALL_PUBLIC_URL},emit:event=>console.log(JSON.stringify(event))});
+  const localWall=startLocalWall({host:LOCAL_WALL_HOST,port:LOCAL_WALL_PORT,brandSvgPath:LOCAL_WALL_BRAND,auth:wallAuth,getLocalStatus:async()=>({...statusView(),fleetWall:await localFleetStatus()}),getRemoteStatus:async()=>remoteDeviceStatus(hub),getRemoteActivity:async limit=>remoteDeviceActivity(hub,limit),connect:async data=>connectCloud({hub,graceMinutes:data.graceMinutes,leaseHours:data.leaseHours,silent:true}),disconnect:async data=>disconnectCloud({hub,reason:data.reason||'local_wall_disconnect',silent:true}),setGrace:async data=>setConnectionGrace({hub,minutes:data.minutes,silent:true}),setPermissions:async data=>setLocalPermissions(data?.allowedCapabilities,data?.profile),accountAuthenticate:async data=>authenticateWallAccount(data?.username,data?.password,hub),pairingCode:async data=>rotatePairingCode(hub,data),ownerProofCode:async()=>accountOwnerProofCode(hub),accessApprove:async requestId=>approveDeviceAccess(requestId,hub),accessDeny:async(requestId,data)=>denyDeviceAccess(requestId,hub,data?.reason||'owner_denied')});
+  console.log(JSON.stringify({event:'host_wall_companion_started',mode:'wall-only',url:localWall.url,deviceId:state.enrollment.deviceId,nodeId:state.enrollment.nodeId||state.enrollment.deviceId}));
+  let stopping=false,resolveStop;const stopped=new Promise(resolve=>resolveStop=resolve);const stop=()=>{if(stopping)return;stopping=true;resolveStop();};process.once('SIGTERM',stop);process.once('SIGINT',stop);
+  const reconcile=async()=>{if(stopping)return;try{await fleetSupervisor.reconcile();}catch(error){console.error(JSON.stringify({event:'fleet_component_reconcile_failed',error:error.message,status:error.status||null}));}};
+  await reconcile();const timer=setInterval(reconcile,Math.max(1000,Math.min(Number(process.env.OPERATOR_FLEET_RECONCILE_MS)||15000,300000)));timer.unref?.();
+  await stopped;clearInterval(timer);try{await fleetSupervisor.close();}catch{}try{await localWall.close();}catch{}console.log(JSON.stringify({event:'host_wall_companion_stopped',deviceId:state.enrollment.deviceId}));
+}
+
 async function setDrain(args,draining){const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');state.routing={...(state.routing||{}),draining:Boolean(draining),changedAt:Date.now()};writeState(state);const payload={nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling:Math.max(1,Math.min(Number(process.env.OPERATOR_AGENT_MAX_SESSIONS)||2,100)),draining:Boolean(draining),capabilities:effectiveCapabilities(state.enrollment.approvedCapabilities,state.policy?.deniedCapabilities),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),waitMs:0};const response=await channelRequest(state,args.hub||DEFAULT_HUB,'poll',payload);applyPolicyEnvelope(state,response.policy);console.log(JSON.stringify({ok:true,deviceId:state.enrollment.deviceId,nodeId:payload.nodeId,draining:Boolean(draining),channelState:response.channel?.node?.state||null},null,2));}
 async function status(){console.log(JSON.stringify(statusView(),null,2));}
 async function initWallAuth(args){const password=fs.readFileSync(0,'utf8').replace(/[\r\n]+$/,'');if(password.length<12)throw new Error('local_wall_password_too_short');const result=writeLocalWallAuthConfig(LOCAL_WALL_AUTH_FILE,{username:args.username||'operator',password});console.log(JSON.stringify({ok:true,wallAuth:'configured',file:result.file,username:result.username,passwordEchoed:false},null,2));}
 const args=parseArgs(process.argv.slice(2)),command=args._[0]||'status';
-try{if(command==='login')await login(args);else if(command==='poll'){const state=readState();if(!state)throw new Error('no_device_state');console.log(JSON.stringify(await finishEnrollment(state,args.base||DEFAULT_BASE,{wait:false}),null,2));}else if(command==='heartbeat'){const state=readState();if(!state)throw new Error('no_device_state');console.log(JSON.stringify(await heartbeat(state,args.base||DEFAULT_BASE),null,2));}else if(command==='daemon')await daemon(args);else if(command==='connect')await connectCloud(args);else if(command==='disconnect')await disconnectCloud(args);else if(command==='set-grace')await setConnectionGrace(args);else if(command==='drain')await setDrain(args,true);else if(command==='undrain')await setDrain(args,false);else if(command==='status')await status();else if(command==='wall-auth-init')await initWallAuth(args);else throw new Error(`unknown_command:${command}`);}catch(error){console.error(JSON.stringify({ok:false,error:error.message,status:error.status||null},null,2));process.exitCode=1;}
+try{if(command==='login')await login(args);else if(command==='poll'){const state=readState();if(!state)throw new Error('no_device_state');console.log(JSON.stringify(await finishEnrollment(state,args.base||DEFAULT_BASE,{wait:false}),null,2));}else if(command==='heartbeat'){const state=readState();if(!state)throw new Error('no_device_state');console.log(JSON.stringify(await heartbeat(state,args.base||DEFAULT_BASE),null,2));}else if(command==='daemon')await daemon(args);else if(command==='wall-only')await wallOnly(args);else if(command==='connect')await connectCloud(args);else if(command==='disconnect')await disconnectCloud(args);else if(command==='set-grace')await setConnectionGrace(args);else if(command==='drain')await setDrain(args,true);else if(command==='undrain')await setDrain(args,false);else if(command==='status')await status();else if(command==='wall-auth-init')await initWallAuth(args);else throw new Error(`unknown_command:${command}`);}catch(error){console.error(JSON.stringify({ok:false,error:error.message,status:error.status||null},null,2));process.exitCode=1;}

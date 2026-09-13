@@ -33,7 +33,7 @@ export class DevicePairingRegistry {
   }
   _invalidate(row,reason){
     if(!row||row.invalidatedAt||row.consumedAt)return;
-    row.invalidatedAt=this.now();row.invalidateReason=String(reason||'invalidated').slice(0,80);
+    row.invalidatedAt=this.now();row.invalidateReason=String(reason||'invalidated').slice(0,80);row.code=null;
     if(this.currentByDevice.get(row.deviceId)===row.codeHash)this.currentByDevice.delete(row.deviceId);
     this.emit({type:'device_pairing_a_invalidated',accountId:row.accountId,deviceId:row.deviceId,connectionId:row.connectionId,pairingId:row.pairingId,status:'invalidated',reason:row.invalidateReason});
   }
@@ -49,11 +49,18 @@ export class DevicePairingRegistry {
     if(!Number.isFinite(hardExpiresAt)||hardExpiresAt<=now)throw new DevicePairingRegistryError('device_connection_expired',410);
     const priorHash=this.currentByDevice.get(did);if(priorHash)this._invalidate(this.rows.get(priorHash),'rotated');
     let code,codeHash;do{code=makeCode();codeHash=hashCode(code);}while(this.rows.has(codeHash));
-    const row={pairingId:`dpa_${crypto.randomBytes(18).toString('base64url')}`,accountId:aid,deviceId:did,connectionId:cid,codeHash,createdAt:now,expiresAt:Math.min(hardExpiresAt,now+this.ttlMs),consumedAt:null,invalidatedAt:null,invalidateReason:null};
+    const row={pairingId:`dpa_${crypto.randomBytes(18).toString('base64url')}`,accountId:aid,deviceId:did,connectionId:cid,codeHash,code,createdAt:now,expiresAt:Math.min(hardExpiresAt,now+this.ttlMs),consumedAt:null,invalidatedAt:null,invalidateReason:null};
     this.rows.set(codeHash,row);this.currentByDevice.set(did,codeHash);
     this.emit({type:'device_pairing_a_rotated',accountId:aid,deviceId:did,connectionId:cid,pairingId:row.pairingId,status:'ready',expiresAt:row.expiresAt});
     return {pairingId:row.pairingId,code,expiresAt:row.expiresAt,ttlMs:Math.max(0,row.expiresAt-now)};
   }
+  current({accountId,deviceId,connectionId}={}){
+    this.reap();const aid=validId(accountId,'invalid_pairing_account_id'),did=validId(deviceId,'invalid_pairing_device_id'),cid=validId(connectionId,'invalid_pairing_connection_id'),hash=this.currentByDevice.get(did),row=hash?this.rows.get(hash):null,now=this.now();
+    if(!row||row.invalidatedAt||row.consumedAt||row.expiresAt<=now||!row.code)return null;
+    if(row.accountId!==aid||row.connectionId!==cid){this._invalidate(row,'device_connection_changed');return null;}
+    return {pairingId:row.pairingId,code:row.code,expiresAt:row.expiresAt,ttlMs:Math.max(0,row.expiresAt-now)};
+  }
+  currentOrRotate(input={}){return this.current(input)||this.rotate(input);}
   redeem(code,{connectionForDevice=()=>null}={}){
     this.reap();const normalized=normalizeCode(code),hash=hashCode(normalized),row=this.rows.get(hash),now=this.now();
     if(!row||row.consumedAt||row.invalidatedAt)throw new DevicePairingRegistryError('pairing_code_not_found',404);
@@ -62,7 +69,7 @@ export class DevicePairingRegistry {
     const connection=connectionForDevice(row.deviceId);
     if(!connection||connection.state!=='connected'){this._invalidate(row,'device_connection_closed');throw new DevicePairingRegistryError('device_connection_required',409);}
     if(connection.connectionId!==row.connectionId){this._invalidate(row,'device_connection_changed');throw new DevicePairingRegistryError('device_connection_changed',409);}
-    row.consumedAt=now;this.currentByDevice.delete(row.deviceId);
+    row.consumedAt=now;row.code=null;this.currentByDevice.delete(row.deviceId);
     this.emit({type:'device_pairing_a_redeemed',accountId:row.accountId,deviceId:row.deviceId,connectionId:row.connectionId,pairingId:row.pairingId,status:'consumed'});
     return {pairingId:row.pairingId,accountId:row.accountId,deviceId:row.deviceId,connectionId:row.connectionId,createdAt:row.createdAt,expiresAt:row.expiresAt,consumedAt:row.consumedAt};
   }

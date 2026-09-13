@@ -1,4 +1,4 @@
-name: Windows Native Client
+name: Windows Tray Client
 
 on:
   push:
@@ -59,8 +59,11 @@ jobs:
           Copy-Item (Join-Path $dotnetRoot 'LICENSE.txt') (Join-Path $dotnetLicenseDir 'LICENSE.txt')
           Copy-Item (Join-Path $dotnetRoot 'ThirdPartyNotices.txt') (Join-Path $dotnetLicenseDir 'ThirdPartyNotices.txt')
           Copy-Item device-agent/operator-agent.mjs $agentDir
+          Copy-Item device-agent/install-windows-task.ps1 $agentDir
           Copy-Item device-agent/local-wall.mjs $agentDir
           Copy-Item device-agent/local-wall-auth.mjs $agentDir
+          Copy-Item device-agent/fleet-component-manager.mjs $agentDir
+          Copy-Item device-agent/fleet-component-supervisor.mjs $agentDir
           Copy-Item device-agent/platform-adapters/*.mjs $adapterDir
           Copy-Item lib/device-proof.mjs $libDir
           Copy-Item assets/branding/light-remote-mark.svg $brandDir
@@ -68,6 +71,7 @@ jobs:
           Copy-Item LICENSE (Join-Path $stage 'LICENSE')
           Copy-Item NOTICE (Join-Path $stage 'NOTICE')
           Copy-Item THIRD_PARTY_DISTRIBUTION_NOTICES.md (Join-Path $stage 'THIRD_PARTY_DISTRIBUTION_NOTICES.md')
+          Copy-Item VERSION (Join-Path $stage 'VERSION')
       - name: Native client bundled runtime smoke
         shell: pwsh
         run: |
@@ -76,6 +80,7 @@ jobs:
           $exe = Join-Path $stage 'GptOperator.Client.exe'
           $node = Join-Path $stage 'runtime\node.exe'
           $agent = Join-Path $stage 'agent\device-agent\operator-agent.mjs'
+          foreach ($fleetFile in @('agent\device-agent\fleet-component-manager.mjs','agent\device-agent\fleet-component-supervisor.mjs')) { if (-not (Test-Path (Join-Path $stage $fleetFile))) { throw "fleet base module missing: $fleetFile" } }
           foreach ($notice in @('LICENSE','NOTICE','THIRD_PARTY_DISTRIBUTION_NOTICES.md','licenses\node\LICENSE','licenses\dotnet\LICENSE.txt','licenses\dotnet\ThirdPartyNotices.txt','THIRD_PARTY_NOTICES.txt')) {
             $noticePath = Join-Path $stage $notice
             if (-not (Test-Path $noticePath) -or (Get-Item $noticePath).Length -lt 100) { throw "bundled notice missing/empty: $notice" }
@@ -93,8 +98,9 @@ jobs:
           $json = Get-Content $result -Raw | ConvertFrom-Json
           if (-not $json.ok) { throw "self-test not ok: $(Get-Content $result -Raw)" }
           if ($json.platformAdapter -ne 'win32') { throw "expected win32 adapter, got $($json.platformAdapter)" }
-          if ($json.clientVersion -ne '0.9.0-beta.1') { throw "client version mismatch: $($json.clientVersion)" }
-          Write-Host "windows-native-selftest=PASS agent=$($json.agentVersion) adapter=$($json.platformAdapter)"
+          $expectedVersion = (Get-Content VERSION -Raw).Trim()
+          if ($json.clientVersion -ne $expectedVersion) { throw "client version mismatch: $($json.clientVersion) expected=$expectedVersion" }
+          Write-Host "windows-tray-selftest=PASS agent=$($json.agentVersion) adapter=$($json.platformAdapter)"
 
           $manifestFixture = (Resolve-Path 'deploy/fixtures/client-update-test.json').Path
           $manifestHash = (Get-FileHash $manifestFixture -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -128,13 +134,14 @@ jobs:
           $stage = (Resolve-Path 'dist\windows\stage').Path
           $out = Join-Path $PWD 'dist\windows\installer'
           New-Item -ItemType Directory -Force -Path $out | Out-Null
-          & $env:ISCC "/DStageDir=$stage" "/DOutputDir=$out" "/DAppVersion=0.9.0-beta.1" client/windows-native/installer/GptOperator.iss
+          $version = (Get-Content VERSION -Raw).Trim()
+          & $env:ISCC "/DStageDir=$stage" "/DOutputDir=$out" "/DAppVersion=$version" client/windows-native/installer/GptOperator.iss
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup build failed' }
           $installer = Join-Path $out 'Light-Remote-MCP-Setup-x64.exe'
           if (-not (Test-Path $installer)) { throw 'installer missing' }
           "WINDOWS_INSTALLER=$installer" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
-      - name: Install and migrate legacy Windows client
+      - name: Install tray, background agent and updater tasks
         timeout-minutes: 4
         shell: pwsh
         run: |
@@ -161,14 +168,23 @@ jobs:
             if (-not (Test-Path $noticePath) -or (Get-Item $noticePath).Length -lt 100) { throw "installed notice missing/empty: $notice" }
           }
           Write-Host 'windows-installed-runtime-notices=PASS'
-          $rollback = Join-Path $env:LOCALAPPDATA 'GPTOperatorAgent\updates\rollback\GPT-Operator-Setup-0.9.0-beta.1-x64.exe'
+          $version = (Get-Content VERSION -Raw).Trim()
+          $rollback = Join-Path $env:LOCALAPPDATA ("GPTOperatorAgent\updates\rollback\GPT-Operator-Setup-$version-x64.exe")
           if (-not (Test-Path $rollback)) { throw "rollback installer cache missing: $rollback" }
           "WINDOWS_INSTALL_DIR=$installDir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           "WINDOWS_INSTALLED_EXE=$exe" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           "WINDOWS_ROLLBACK=$rollback" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          $agentTask = Get-ScheduledTask -TaskName 'LightRemoteDeviceAgent' -ErrorAction Stop
+          $updateTask = Get-ScheduledTask -TaskName 'LightRemoteUpdater' -ErrorAction Stop
+          Start-Sleep -Milliseconds 800
+          $agentInfo = Get-ScheduledTaskInfo -TaskName 'LightRemoteDeviceAgent'
+          if ($agentTask.State -ne 'Running') { throw "LightRemoteDeviceAgent not running: $($agentTask.State) result=$($agentInfo.LastTaskResult)" }
+          if ($updateTask.TaskName -ne 'LightRemoteUpdater') { throw 'LightRemoteUpdater missing' }
+          Write-Host 'windows-background-agent-task=PASS'
+          Write-Host 'windows-updater-task=PASS'
           Write-Host 'windows-native-legacy-task-migration=PASS'
 
-      - name: Installed native client self-test
+      - name: Installed tray client self-test
         timeout-minutes: 2
         shell: pwsh
         run: |
@@ -223,6 +239,8 @@ jobs:
         run: |
           Get-Process -Name 'GptOperator.Client','gpt-update-helper' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
           Unregister-ScheduledTask -TaskName 'GPTOperatorDeviceAgent' -Confirm:$false -ErrorAction SilentlyContinue
+          Unregister-ScheduledTask -TaskName 'LightRemoteDeviceAgent' -Confirm:$false -ErrorAction SilentlyContinue
+          Unregister-ScheduledTask -TaskName 'LightRemoteUpdater' -Confirm:$false -ErrorAction SilentlyContinue
           $unins = Join-Path $env:WINDOWS_INSTALL_DIR 'unins000.exe'
           if (Test-Path $unins) {
             $p = Start-Process -FilePath $unins -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART') -PassThru
@@ -241,7 +259,7 @@ jobs:
       - name: Upload native Windows installer
         uses: actions/upload-artifact@v4
         with:
-          name: gpt-operator-native-windows-x64-${{ github.sha }}
+          name: light-remote-windows-x64-${{ github.sha }}
           path: |
             dist/windows/installer/Light-Remote-MCP-Setup-x64.exe
             dist/windows/installer/SHA256SUMS.txt

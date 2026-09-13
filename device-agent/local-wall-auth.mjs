@@ -36,13 +36,14 @@ export function parseLocalWallCookies(header=''){
 }
 export function loadLocalWallAuth(file,{required=false}={}){
   if(!file||!fs.existsSync(file)){if(required)throw new Error('local_wall_auth_required_for_non_loopback');return{enabled:false};}
-  const row=JSON.parse(fs.readFileSync(file,'utf8'));
-  if(row.mode!=='local'||!row.username||!row.passwordHash||!row.cookieSecret)throw new Error('invalid_local_wall_auth_config');
+  const row=JSON.parse(fs.readFileSync(file,'utf8')),mode=String(row.mode||'');
+  if(!['local','account-only'].includes(mode)||!row.username||!row.cookieSecret)throw new Error('invalid_local_wall_auth_config');
+  if(mode==='local'&&!row.passwordHash)throw new Error('invalid_local_wall_auth_config');
   const ttlSeconds=Math.max(300,Math.min(Number(row.sessionTtlSeconds)||DEFAULT_TTL_SECONDS,7*24*60*60));
   const identity=req=>{const token=parseLocalWallCookies(req.headers.cookie)[LOCAL_WALL_COOKIE],value=verifySession(row.cookieSecret,token);return value&&safeEqual(value.username,row.username)?value:null;};
-  const verifyCredentials=(username,password)=>safeEqual(username,row.username)&&verifyPassword(password,row.passwordHash);
+  const verifyCredentials=(username,password)=>mode==='local'&&safeEqual(username,row.username)&&verifyPassword(password,row.passwordHash);
   const issue=()=>{const expiresAt=Date.now()+ttlSeconds*1000;return{token:signSession(row.cookieSecret,row.username,expiresAt),expiresAt,ttlSeconds};};
-  return{enabled:true,username:row.username,ttlSeconds,identity,verifyCredentials,issue};
+  return{enabled:true,mode,recoveryEnabled:mode==='local',username:row.username,ttlSeconds,identity,verifyCredentials,issue};
 }
 export function writeLocalWallAuthConfig(file,{username='operator',password,cookieSecret=crypto.randomBytes(32).toString('base64url'),sessionTtlSeconds=DEFAULT_TTL_SECONDS,passwordHash=null}={}){
   const user=String(username||'operator').trim();if(!/^[A-Za-z0-9._@+-]{1,120}$/.test(user))throw new Error('invalid_local_wall_username');
@@ -52,4 +53,12 @@ export function writeLocalWallAuthConfig(file,{username='operator',password,cook
   const dir=path.dirname(file);fs.mkdirSync(dir,{recursive:true,mode:0o700});const tmp=`${file}.${process.pid}.tmp`;
   fs.writeFileSync(tmp,`${JSON.stringify({mode:'local',username:user,passwordHash:encoded,cookieSecret,sessionTtlSeconds},null,2)}\n`,{mode:0o600});
   fs.chmodSync(tmp,0o600);fs.renameSync(tmp,file);return{file,username:user,sessionTtlSeconds};
+}
+
+export function writeAccountOnlyWallAuthConfig(file,{username='account',cookieSecret=crypto.randomBytes(32).toString('base64url'),sessionTtlSeconds=DEFAULT_TTL_SECONDS}={}){
+  const user=String(username||'account').trim();if(!/^[A-Za-z0-9._@+-]{1,120}$/.test(user))throw new Error('invalid_local_wall_username');
+  if(!/^[A-Za-z0-9_-]{32,128}$/.test(String(cookieSecret)))throw new Error('invalid_local_wall_cookie_secret');
+  const dir=path.dirname(file);fs.mkdirSync(dir,{recursive:true,mode:0o700});const tmp=`${file}.${process.pid}.tmp`;
+  fs.writeFileSync(tmp,`${JSON.stringify({mode:'account-only',username:user,cookieSecret,sessionTtlSeconds},null,2)}\n`,{mode:0o600});
+  fs.chmodSync(tmp,0o600);fs.renameSync(tmp,file);return{file,username:user,sessionTtlSeconds,recoveryEnabled:false};
 }

@@ -265,6 +265,14 @@ async function requireClientJobDevice(req,res,next){
 app.post('/device-channel/connect', softRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/connect', req.body || {}));
 app.post('/device-channel/disconnect', softRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/disconnect', req.body || {}));
 app.post('/device-channel/grace', softRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/grace', req.body || {}));
+app.post('/device-channel/account-auth', softRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/account-auth', req.body || {}));
+app.post('/device-channel/fleet-intent', softRateLimit, (req,res)=>proxyOperatorJson(res,'POST','/v1/device-channel/fleet-intent',req.body||{}));
+app.post('/device-channel/fleet-authority', softRateLimit, (req,res)=>proxyOperatorJson(res,'POST','/v1/device-channel/fleet-authority',req.body||{}));
+app.post('/device-channel/fleet-devices', softRateLimit, (req,res)=>proxyOperatorJson(res,'POST','/v1/device-channel/fleet-devices',req.body||{}));
+app.post('/device-channel/fleet-sessions', softRateLimit, (req,res)=>proxyOperatorJson(res,'POST','/v1/device-channel/fleet-sessions',req.body||{}));
+app.post('/device-channel/fleet-activity', softRateLimit, (req,res)=>proxyOperatorJson(res,'POST','/v1/device-channel/fleet-activity',req.body||{}));
+app.post('/device-channel/fleet-device-policy', softRateLimit, (req,res)=>proxyOperatorJson(res,'POST','/v1/device-channel/fleet-device-policy',req.body||{}));
+app.post('/device-channel/fleet-device-update', softRateLimit, (req,res)=>proxyOperatorJson(res,'POST','/v1/device-channel/fleet-device-update',req.body||{}));
 app.post('/device-channel/pairing-code', softRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/pairing-code', req.body || {}));
 app.post('/device-channel/account-owner-proof', softRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/account-owner-proof', req.body || {}));
 app.post('/device-channel/access-approve', softRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/access-approve', req.body || {}));
@@ -285,6 +293,9 @@ app.get('/account/me', softRateLimit, requireVercelIdentity, (req,res)=>proxyOpe
 app.post('/account/logout', softRateLimit, requireVercelIdentity, (req,res)=>proxyOperatorJson(res,'POST','/v1/accounts/logout',{},accountProxyHeaders(req)));
 app.get('/account/devices', softRateLimit, requireVercelIdentity, (req,res)=>proxyOperatorJson(res,'GET','/v1/accounts/devices',null,accountProxyHeaders(req)));
 app.get('/account/usage', softRateLimit, requireVercelIdentity, (req,res)=>proxyOperatorJson(res,'GET',`/v1/accounts/usage?months=${Math.max(1,Math.min(Number(req.query.months)||6,24))}`,null,accountProxyHeaders(req)));
+app.post('/account/main-device', softRateLimit, requireVercelIdentity, (req,res)=>proxyOperatorJson(res,'POST','/v1/accounts/main-device',{deviceId:req.body?.deviceId},accountProxyHeaders(req)));
+app.post('/account/main-device/clear', softRateLimit, requireVercelIdentity, (req,res)=>proxyOperatorJson(res,'POST','/v1/accounts/main-device/clear',{},accountProxyHeaders(req)));
+app.post('/account/redeem-license', softRateLimit, requireVercelIdentity, (req,res)=>proxyOperatorJson(res,'POST','/v1/accounts/redeem-license',{key:req.body?.key},accountProxyHeaders(req)));
 app.post('/account/enrollments/approve', softRateLimit, requireVercelIdentity, (req,res)=>proxyOperatorJson(res,'POST','/v1/accounts/enrollments/approve',req.body||{},accountProxyHeaders(req)));
 app.post('/account/devices/revoke-all', softRateLimit, requireVercelIdentity, (req,res)=>proxyOperatorJson(res,'POST','/v1/accounts/devices/revoke-all',{},accountProxyHeaders(req)));
 app.post('/account/devices/:id/revoke', softRateLimit, requireVercelIdentity, (req,res)=>proxyOperatorJson(res,'POST',`/v1/accounts/devices/${encodeURIComponent(req.params.id)}/revoke`,{},accountProxyHeaders(req)));
