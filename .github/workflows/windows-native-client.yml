@@ -227,8 +227,15 @@ jobs:
           Write-Host 'windows-agent-hidden-console=PASS'
           Write-Host 'windows-tray-exit-agent-survival=PASS'
           Write-Host 'windows-tray-relaunch=PASS'
-          Stop-Process -Name 'GptOperator.Client' -Force -ErrorAction SilentlyContinue
           Stop-ScheduledTask -TaskName 'LightRemoteDeviceAgent' -ErrorAction SilentlyContinue
+          $taskStopDeadline = (Get-Date).AddSeconds(10)
+          do {
+            $agentTaskState = (Get-ScheduledTask -TaskName 'LightRemoteDeviceAgent' -ErrorAction Stop).State
+            if ($agentTaskState -ne 'Running') { break }
+            Start-Sleep -Milliseconds 250
+          } while ((Get-Date) -lt $taskStopDeadline)
+          if ($agentTaskState -eq 'Running') { throw 'agent scheduled task did not stop for updater independence probe' }
+          Get-Process -Name 'GptOperator.Client','node' -ErrorAction SilentlyContinue | Where-Object { try { $_.Path -eq $exe -or $_.Path -eq $runtimeNode } catch { $false } } | Stop-Process -Force -ErrorAction SilentlyContinue
           $agentExitDeadline = (Get-Date).AddSeconds(10)
           do {
             $runtimeStillRunning = @(Get-Process -Name 'GptOperator.Client','node' -ErrorAction SilentlyContinue | Where-Object { try { $_.Path -eq $exe -or $_.Path -eq $runtimeNode } catch { $false } })
