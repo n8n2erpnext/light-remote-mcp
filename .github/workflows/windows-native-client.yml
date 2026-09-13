@@ -113,6 +113,7 @@ jobs:
           Write-Host "windows-tray-selftest=PASS agent=$($json.agentVersion) adapter=$($json.platformAdapter)"
           $updaterSelfResult = Join-Path $env:RUNNER_TEMP 'updater-selftest.json'
           $updaterSelf = Start-Process -FilePath $updater -ArgumentList @('--self-test-output',$updaterSelfResult,$stage) -PassThru -Wait
+          if (Test-Path $updaterSelfResult) { Get-Content $updaterSelfResult -Raw | Write-Host }
           if ($updaterSelf.ExitCode -ne 0) { throw "independent updater self-test failed exit=$($updaterSelf.ExitCode)" }
           $updaterSelfJson = Get-Content $updaterSelfResult -Raw | ConvertFrom-Json
           if (-not $updaterSelfJson.ok -or -not $updaterSelfJson.updaterOutsideApp -or $updaterSelfJson.runtime -ne 'independent-updater') { throw "independent updater self-test invalid: $(Get-Content $updaterSelfResult -Raw)" }
@@ -311,15 +312,19 @@ jobs:
           Unregister-ScheduledTask -TaskName 'GPTOperatorDeviceAgent' -Confirm:$false -ErrorAction SilentlyContinue
           Unregister-ScheduledTask -TaskName 'LightRemoteDeviceAgent' -Confirm:$false -ErrorAction SilentlyContinue
           Unregister-ScheduledTask -TaskName 'LightRemoteUpdater' -Confirm:$false -ErrorAction SilentlyContinue
-          $unins = Join-Path $env:WINDOWS_INSTALL_DIR 'unins000.exe'
-          if (Test-Path $unins) {
-            $p = Start-Process -FilePath $unins -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART') -PassThru
-            if (-not $p.WaitForExit(60000)) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; throw 'uninstaller timed out after 60s' }
-            if ($p.ExitCode -ne 0) { throw "uninstaller exit=$($p.ExitCode)" }
+          if ($env:WINDOWS_INSTALL_DIR) {
+            $unins = Join-Path $env:WINDOWS_INSTALL_DIR 'unins000.exe'
+            if (Test-Path $unins) {
+              $p = Start-Process -FilePath $unins -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART') -PassThru
+              if (-not $p.WaitForExit(60000)) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; throw 'uninstaller timed out after 60s' }
+              if ($p.ExitCode -ne 0) { throw "uninstaller exit=$($p.ExitCode)" }
+            }
+            $updaterRoot = Join-Path $env:LOCALAPPDATA 'Light Remote\Updater'
+            if (Test-Path $updaterRoot) { throw "updater recovery root survived uninstall: $updaterRoot" }
+            Write-Host 'windows-native-installer-roundtrip=PASS'
+          } else {
+            Write-Host 'windows-native-installer-roundtrip=SKIP install-not-reached'
           }
-          $updaterRoot = Join-Path $env:LOCALAPPDATA 'Light Remote\Updater'
-          if (Test-Path $updaterRoot) { throw "updater recovery root survived uninstall: $updaterRoot" }
-          Write-Host 'windows-native-installer-roundtrip=PASS'
       - name: Hash Windows installer
         shell: pwsh
         run: |

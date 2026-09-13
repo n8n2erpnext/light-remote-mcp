@@ -6,7 +6,6 @@ internal static class Program
 {
     private static async Task<int> Main(string[] args)
     {
-        RecoveryPaths.EnsureDirectories();
         try
         {
             var apply=Array.IndexOf(args,"--apply-update");if(apply>=0&&apply+4<args.Length){_=int.TryParse(args[apply+4],out var parentPid);return await UpdateApplier.ApplyAsync(args[apply+1],args[apply+2],args[apply+3],parentPid);}
