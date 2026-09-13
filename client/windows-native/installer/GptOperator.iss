@@ -7,6 +7,9 @@
 #ifndef AppVersion
   #define AppVersion "0.9.0-rc.6"
 #endif
+#ifndef UpdaterStageDir
+  #error UpdaterStageDir must be defined
+#endif
 
 [Setup]
 AppId={{A8D073F5-9792-4FA6-96A6-13C565F255F3}
@@ -31,6 +34,7 @@ SetupIconFile={#StageDir}\Assets\light-remote.ico
 AppMutex=Local\GPT_OPERATOR_CLIENT_V09
 [Files]
 Source: "{#StageDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#UpdaterStageDir}\*"; DestDir: "{localappdata}\Light Remote\Updater"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Registry]
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "Light Remote MCP"; ValueData: """{app}\GptOperator.Client.exe"" --background"; Flags: uninsdeletevalue
@@ -68,9 +72,9 @@ procedure CacheRollbackInstaller();
 var
   RollbackDir, RollbackFile: String;
 begin
-  RollbackDir := ExpandConstant('{localappdata}\GPTOperatorAgent\updates\rollback');
+  RollbackDir := ExpandConstant('{localappdata}\Light Remote\Updater\rollback');
   ForceDirectories(RollbackDir);
-  RollbackFile := RollbackDir + '\GPT-Operator-Setup-{#AppVersion}-x64.exe';
+  RollbackFile := RollbackDir + '\Light-Remote-MCP-Setup-{#AppVersion}-x64.exe';
   if CompareText(ExpandConstant('{srcexe}'), RollbackFile) <> 0 then
     CopyFile(ExpandConstant('{srcexe}'), RollbackFile, False);
 end;
@@ -89,6 +93,10 @@ begin
 end;
 
 [UninstallRun]
+Filename: "{sys}\schtasks.exe"; Parameters: "/End /TN ""LightRemoteUpdater"""; Flags: runhidden waituntilterminated skipifdoesntexist
 Filename: "{sys}\schtasks.exe"; Parameters: "/End /TN ""LightRemoteDeviceAgent"""; Flags: runhidden waituntilterminated skipifdoesntexist
 Filename: "{sys}\schtasks.exe"; Parameters: "/Delete /TN ""LightRemoteDeviceAgent"" /F"; Flags: runhidden waituntilterminated skipifdoesntexist
 Filename: "{sys}\schtasks.exe"; Parameters: "/Delete /TN ""LightRemoteUpdater"" /F"; Flags: runhidden waituntilterminated skipifdoesntexist
+
+[UninstallDelete]
+Type: filesandordirs; Name: "{localappdata}\Light Remote\Updater"

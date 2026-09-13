@@ -35,10 +35,17 @@ jobs:
         shell: pwsh
         run: |
           $stage = Join-Path $PWD 'dist\windows\stage'
-          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          $updaterStage = Join-Path $PWD 'dist\windows\updater'
+          New-Item -ItemType Directory -Force -Path $stage,$updaterStage | Out-Null
           dotnet publish client/windows-native/GptOperator.Client/GptOperator.Client.csproj `
             -c Release -r win-x64 --self-contained true -o $stage
-          if ($LASTEXITCODE -ne 0) { throw 'dotnet publish failed' }
+          if ($LASTEXITCODE -ne 0) { throw 'dotnet publish client failed' }
+          dotnet publish client/windows-native/LightRemote.Updater/LightRemote.Updater.csproj `
+            -c Release -r win-x64 --self-contained true -o $updaterStage
+          if ($LASTEXITCODE -ne 0) { throw 'dotnet publish updater failed' }
+          $updaterConfig = Join-Path $updaterStage 'config'
+          New-Item -ItemType Directory -Force -Path $updaterConfig | Out-Null
+          Copy-Item client/update-public.pem (Join-Path $updaterConfig 'client-update-public.pem')
           $runtime = Join-Path $stage 'runtime'
           $agentRoot = Join-Path $stage 'agent'
           $agentDir = Join-Path $agentRoot 'device-agent'
@@ -80,6 +87,9 @@ jobs:
           $exe = Join-Path $stage 'GptOperator.Client.exe'
           $node = Join-Path $stage 'runtime\node.exe'
           $agent = Join-Path $stage 'agent\device-agent\operator-agent.mjs'
+          $updaterStage = Join-Path $PWD 'dist\windows\updater'
+          $updater = Join-Path $updaterStage 'LightRemote.Updater.exe'
+          if (-not (Test-Path $updater)) { throw 'independent updater publish missing' }
           foreach ($fleetFile in @('agent\device-agent\fleet-component-manager.mjs','agent\device-agent\fleet-component-supervisor.mjs')) { if (-not (Test-Path (Join-Path $stage $fleetFile))) { throw "fleet base module missing: $fleetFile" } }
           foreach ($notice in @('LICENSE','NOTICE','THIRD_PARTY_DISTRIBUTION_NOTICES.md','licenses\node\LICENSE','licenses\dotnet\LICENSE.txt','licenses\dotnet\ThirdPartyNotices.txt','THIRD_PARTY_NOTICES.txt')) {
             $noticePath = Join-Path $stage $notice
@@ -101,13 +111,19 @@ jobs:
           $expectedVersion = (Get-Content VERSION -Raw).Trim()
           if ($json.clientVersion -ne $expectedVersion) { throw "client version mismatch: $($json.clientVersion) expected=$expectedVersion" }
           Write-Host "windows-tray-selftest=PASS agent=$($json.agentVersion) adapter=$($json.platformAdapter)"
+          $updaterSelfResult = Join-Path $env:RUNNER_TEMP 'updater-selftest.json'
+          $updaterSelf = Start-Process -FilePath $updater -ArgumentList @('--self-test-output',$updaterSelfResult,$stage) -PassThru -Wait
+          if ($updaterSelf.ExitCode -ne 0) { throw "independent updater self-test failed exit=$($updaterSelf.ExitCode)" }
+          $updaterSelfJson = Get-Content $updaterSelfResult -Raw | ConvertFrom-Json
+          if (-not $updaterSelfJson.ok -or -not $updaterSelfJson.updaterOutsideApp -or $updaterSelfJson.runtime -ne 'independent-updater') { throw "independent updater self-test invalid: $(Get-Content $updaterSelfResult -Raw)" }
+          Write-Host 'windows-independent-updater-selftest=PASS'
 
           $manifestFixture = (Resolve-Path 'deploy/fixtures/client-update-test.json').Path
           $manifestHash = (Get-FileHash $manifestFixture -Algorithm SHA256).Hash.ToLowerInvariant()
           if ($manifestHash -ne '48790b1532b863cb471bfcf68ff5f4a87fa0497e270bec5abbde254acf5d18e7') { throw "signed fixture byte hash changed: $manifestHash" }
           Write-Host "windows-signed-fixture-bytes=PASS sha256=$manifestHash"
           $sigResult = Join-Path $env:RUNNER_TEMP 'gpt-update-signature.json'
-          $sig = Start-Process -FilePath $exe -ArgumentList @('--verify-update-fixture',$manifestFixture,(Resolve-Path 'deploy/fixtures/client-update-test.json.sig').Path,$sigResult) -PassThru -Wait
+          $sig = Start-Process -FilePath $updater -ArgumentList @('--verify-update-fixture',$manifestFixture,(Resolve-Path 'deploy/fixtures/client-update-test.json.sig').Path,$sigResult) -PassThru -Wait
           if (Test-Path $sigResult) { Get-Content $sigResult -Raw | Write-Host }
           if ($sig.ExitCode -ne 0) { throw "signed update fixture verification failed exit=$($sig.ExitCode)" }
           $sigJson = Get-Content $sigResult -Raw | ConvertFrom-Json
@@ -115,9 +131,9 @@ jobs:
           $tampered = Join-Path $env:RUNNER_TEMP 'client-update-tampered.json'
           (Get-Content deploy/fixtures/client-update-test.json -Raw).Replace('99.0.0','99.0.1') | Set-Content -LiteralPath $tampered -NoNewline -Encoding utf8
           $tamperedResult = Join-Path $env:RUNNER_TEMP 'tampered-result.json'
-          $bad = Start-Process -FilePath $exe -ArgumentList @('--verify-update-fixture',$tampered,(Resolve-Path 'deploy/fixtures/client-update-test.json.sig').Path,$tamperedResult) -PassThru -Wait
+          $bad = Start-Process -FilePath $updater -ArgumentList @('--verify-update-fixture',$tampered,(Resolve-Path 'deploy/fixtures/client-update-test.json.sig').Path,$tamperedResult) -PassThru -Wait
           if ($bad.ExitCode -eq 0) { throw 'tampered update manifest was accepted' }
-          Write-Host 'windows-native-update-signature=PASS tamper-rejected=PASS'
+          Write-Host 'windows-independent-update-signature=PASS tamper-rejected=PASS'
 
       - name: Install Inno Setup
         shell: pwsh
@@ -132,10 +148,11 @@ jobs:
         shell: pwsh
         run: |
           $stage = (Resolve-Path 'dist\windows\stage').Path
+          $updaterStage = (Resolve-Path 'dist\windows\updater').Path
           $out = Join-Path $PWD 'dist\windows\installer'
           New-Item -ItemType Directory -Force -Path $out | Out-Null
           $version = (Get-Content VERSION -Raw).Trim()
-          & $env:ISCC "/DStageDir=$stage" "/DOutputDir=$out" "/DAppVersion=$version" client/windows-native/installer/GptOperator.iss
+          & $env:ISCC "/DStageDir=$stage" "/DUpdaterStageDir=$updaterStage" "/DOutputDir=$out" "/DAppVersion=$version" client/windows-native/installer/GptOperator.iss
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup build failed' }
           $installer = Join-Path $out 'Light-Remote-MCP-Setup-x64.exe'
           if (-not (Test-Path $installer)) { throw 'installer missing' }
@@ -169,17 +186,25 @@ jobs:
           }
           Write-Host 'windows-installed-runtime-notices=PASS'
           $version = (Get-Content VERSION -Raw).Trim()
-          $rollback = Join-Path $env:LOCALAPPDATA ("GPTOperatorAgent\updates\rollback\GPT-Operator-Setup-$version-x64.exe")
+          $updaterRoot = Join-Path $env:LOCALAPPDATA 'Light Remote\Updater'
+          $updaterExe = Join-Path $updaterRoot 'LightRemote.Updater.exe'
+          if (-not (Test-Path $updaterExe)) { throw "independent updater missing: $updaterExe" }
+          $rollback = Join-Path $updaterRoot ("rollback\Light-Remote-MCP-Setup-$version-x64.exe")
           if (-not (Test-Path $rollback)) { throw "rollback installer cache missing: $rollback" }
           "WINDOWS_INSTALL_DIR=$installDir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           "WINDOWS_INSTALLED_EXE=$exe" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           "WINDOWS_ROLLBACK=$rollback" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "WINDOWS_UPDATER=$updaterExe" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           $agentTask = Get-ScheduledTask -TaskName 'LightRemoteDeviceAgent' -ErrorAction Stop
           $updateTask = Get-ScheduledTask -TaskName 'LightRemoteUpdater' -ErrorAction Stop
           Start-Sleep -Milliseconds 800
           $agentInfo = Get-ScheduledTaskInfo -TaskName 'LightRemoteDeviceAgent'
           if ($agentTask.State -ne 'Running') { throw "LightRemoteDeviceAgent not running: $($agentTask.State) result=$($agentInfo.LastTaskResult)" }
           if ($updateTask.TaskName -ne 'LightRemoteUpdater') { throw 'LightRemoteUpdater missing' }
+          $updateAction = @($updateTask.Actions)[0]
+          if ([IO.Path]::GetFullPath($updateAction.Execute) -ne [IO.Path]::GetFullPath($updaterExe)) { throw "updater task is not independent: $($updateAction.Execute)" }
+          if ($updateAction.Arguments -notmatch '--scheduled-update' -or $updateAction.Arguments -notmatch '--install-dir') { throw "updater task arguments invalid: $($updateAction.Arguments)" }
+          if ([IO.Path]::GetFullPath($updaterExe).StartsWith([IO.Path]::GetFullPath($installDir), [StringComparison]::OrdinalIgnoreCase)) { throw 'updater executable lives inside replaceable app tree' }
           $agentAction = @($agentTask.Actions)[0]
           if ([IO.Path]::GetFileName($agentAction.Execute) -ne 'GptOperator.Client.exe') { throw "agent task must use hidden native host, got $($agentAction.Execute)" }
           if ($agentAction.Arguments -notmatch '--agent-host') { throw "agent task missing --agent-host: $($agentAction.Arguments)" }
@@ -201,8 +226,30 @@ jobs:
           Write-Host 'windows-agent-hidden-console=PASS'
           Write-Host 'windows-tray-exit-agent-survival=PASS'
           Write-Host 'windows-tray-relaunch=PASS'
+          Stop-Process -Name 'GptOperator.Client' -Force -ErrorAction SilentlyContinue
+          Stop-ScheduledTask -TaskName 'LightRemoteDeviceAgent' -ErrorAction SilentlyContinue
+          $agentExitDeadline = (Get-Date).AddSeconds(10)
+          do {
+            $runtimeStillRunning = @(Get-Process -Name 'GptOperator.Client','node' -ErrorAction SilentlyContinue | Where-Object { try { $_.Path -eq $exe -or $_.Path -eq $runtimeNode } catch { $false } })
+            if (-not $runtimeStillRunning) { break }
+            Start-Sleep -Milliseconds 250
+          } while ((Get-Date) -lt $agentExitDeadline)
+          if ($runtimeStillRunning) { throw 'app runtime did not quiesce for updater independence probe' }
+          $heldExe = "$exe.app-held"
+          Move-Item $exe $heldExe -Force
+          try {
+            $recoveryResult = Join-Path $env:RUNNER_TEMP 'updater-app-missing-selftest.json'
+            $recovery = Start-Process -FilePath $updaterExe -ArgumentList @('--self-test-output',$recoveryResult,$installDir) -PassThru -Wait
+            if ($recovery.ExitCode -ne 0) { throw "updater failed while app executable missing exit=$($recovery.ExitCode)" }
+            $recoveryJson = Get-Content $recoveryResult -Raw | ConvertFrom-Json
+            if (-not $recoveryJson.ok -or -not $recoveryJson.updaterOutsideApp) { throw "updater recovery self-test invalid: $(Get-Content $recoveryResult -Raw)" }
+            Write-Host 'windows-updater-survives-app-missing=PASS'
+          } finally { Move-Item $heldExe $exe -Force }
+          Start-ScheduledTask -TaskName 'LightRemoteDeviceAgent'
+          Start-Sleep -Milliseconds 700
+          if ((Get-ScheduledTask -TaskName 'LightRemoteDeviceAgent').State -ne 'Running') { throw 'agent did not restart after updater independence probe' }
           Write-Host 'windows-background-agent-task=PASS'
-          Write-Host 'windows-updater-task=PASS'
+          Write-Host 'windows-independent-updater-task=PASS'
           Write-Host 'windows-native-legacy-task-migration=PASS'
 
       - name: Installed tray client self-test
@@ -226,11 +273,11 @@ jobs:
         run: |
           $badInstaller = Join-Path $env:RUNNER_TEMP 'broken-update.exe'
           Copy-Item (Join-Path $env:SystemRoot 'System32\where.exe') $badInstaller -Force
-          $helper = Join-Path $env:RUNNER_TEMP 'gpt-update-helper.exe'
-          Copy-Item $env:WINDOWS_INSTALLED_EXE $helper -Force
-          $updateLog = Join-Path $env:LOCALAPPDATA 'GPTOperatorAgent\logs\update.log'
+          $helper = Join-Path $env:RUNNER_TEMP 'light-remote-update-helper.exe'
+          Copy-Item $env:WINDOWS_UPDATER $helper -Force
+          $updateLog = Join-Path $env:LOCALAPPDATA 'Light Remote\Updater\logs\update.log'
           Remove-Item $updateLog -Force -ErrorAction SilentlyContinue
-          Write-Host 'windows-native-update-rollback=start'
+          Write-Host 'windows-independent-update-rollback=start'
           $psi = [System.Diagnostics.ProcessStartInfo]::new($helper)
           $psi.UseShellExecute = $false
           $psi.CreateNoWindow = $true
@@ -253,14 +300,14 @@ jobs:
           if ($updateText -notmatch $expected) { throw 'rollback helper argv were not preserved' }
           if ($updateText -notmatch 'rollback_success') { throw 'rollback success marker missing' }
           if (-not (Test-Path $env:WINDOWS_INSTALLED_EXE)) { throw 'installed client missing after rollback' }
-          Write-Host 'windows-native-update-rollback=PASS'
+          Write-Host 'windows-independent-update-rollback=PASS'
 
       - name: Uninstall native Windows client
         if: always()
         timeout-minutes: 3
         shell: pwsh
         run: |
-          Get-Process -Name 'GptOperator.Client','gpt-update-helper' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+          Get-Process -Name 'GptOperator.Client','LightRemote.Updater','light-remote-update-helper' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
           Unregister-ScheduledTask -TaskName 'GPTOperatorDeviceAgent' -Confirm:$false -ErrorAction SilentlyContinue
           Unregister-ScheduledTask -TaskName 'LightRemoteDeviceAgent' -Confirm:$false -ErrorAction SilentlyContinue
           Unregister-ScheduledTask -TaskName 'LightRemoteUpdater' -Confirm:$false -ErrorAction SilentlyContinue
@@ -270,6 +317,8 @@ jobs:
             if (-not $p.WaitForExit(60000)) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; throw 'uninstaller timed out after 60s' }
             if ($p.ExitCode -ne 0) { throw "uninstaller exit=$($p.ExitCode)" }
           }
+          $updaterRoot = Join-Path $env:LOCALAPPDATA 'Light Remote\Updater'
+          if (Test-Path $updaterRoot) { throw "updater recovery root survived uninstall: $updaterRoot" }
           Write-Host 'windows-native-installer-roundtrip=PASS'
       - name: Hash Windows installer
         shell: pwsh
