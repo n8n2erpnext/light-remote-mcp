@@ -28,6 +28,8 @@ TARGET_HOME="$(getent passwd "$TARGET_USER" | cut -d: -f6)"
 
 for cmd in curl openssl python3 tar sha256sum sudo systemctl; do command -v "$cmd" >/dev/null || { echo "Missing required command: $cmd" >&2; exit 2; }; done
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
+AGENT_WAS_ACTIVE=0
+if systemctl is-active --quiet gpt-operator-device-agent.service 2>/dev/null; then AGENT_WAS_ACTIVE=1; fi
 cat > "$TMP/update-public.pem" <<'PEM'
 -----BEGIN PUBLIC KEY-----
 MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEd0yyFRW9uXeqHy4psV2m8c4bn9wS
@@ -227,6 +229,7 @@ sudo systemctl enable --now gpt-operator-device-agent.service
 sudo systemctl enable --now gpt-operator-agent-update.timer
 sudo systemctl enable --now gpt-operator-agent-update.path
 sudo systemctl enable --now gpt-operator-agent-update-check.path
+if [[ "$AGENT_WAS_ACTIVE" == "1" ]]; then sudo systemctl restart gpt-operator-device-agent.service; fi
 sleep 2
 systemctl --no-pager --full status gpt-operator-device-agent.service | sed -n '1,12p'
 echo
