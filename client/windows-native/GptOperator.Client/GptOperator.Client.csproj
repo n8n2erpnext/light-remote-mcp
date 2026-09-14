@@ -15,6 +15,9 @@
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
     <PublishTrimmed>false</PublishTrimmed>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="MainForm.cs;ConnectionSwitch.cs;ConnectionSettingsDialog.cs" />

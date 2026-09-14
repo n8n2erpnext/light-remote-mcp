@@ -90,6 +90,11 @@ jobs:
           Copy-Item NOTICE (Join-Path $stage 'NOTICE')
           Copy-Item THIRD_PARTY_DISTRIBUTION_NOTICES.md (Join-Path $stage 'THIRD_PARTY_DISTRIBUTION_NOTICES.md')
           Copy-Item VERSION (Join-Path $stage 'VERSION')
+          $trayBytes=(Get-Item (Join-Path $stage 'GptOperator.Client.exe')).Length
+          $helperBytes=(Get-Item (Join-Path $updaterStage 'LightRemote.Updater.exe')).Length
+          $stageBytes=(Get-ChildItem $stage -File -Recurse | Measure-Object Length -Sum).Sum
+          $helperStageBytes=(Get-ChildItem $updaterStage -File -Recurse | Measure-Object Length -Sum).Sum
+          Write-Host "windows-size-tray-bytes=$trayBytes helper-bytes=$helperBytes stage-bytes=$stageBytes helper-stage-bytes=$helperStageBytes"
       - name: Native client bundled runtime smoke
         shell: pwsh
         run: |
@@ -161,14 +166,15 @@ jobs:
         shell: pwsh
         run: |
           $stage = (Resolve-Path 'dist\windows\stage').Path
-          $updaterStage = (Resolve-Path 'dist\windows\updater').Path
           $out = Join-Path $PWD 'dist\windows\installer'
           New-Item -ItemType Directory -Force -Path $out | Out-Null
           $version = (Get-Content VERSION -Raw).Trim()
-          & $env:ISCC "/DStageDir=$stage" "/DUpdaterStageDir=$updaterStage" "/DOutputDir=$out" "/DAppVersion=$version" client/windows-native/installer/GptOperator.iss
+          & $env:ISCC "/DStageDir=$stage" "/DOutputDir=$out" "/DAppVersion=$version" client/windows-native/installer/GptOperator.iss
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup build failed' }
           $installer = Join-Path $out 'Light-Remote-MCP-Setup-x64.exe'
           if (-not (Test-Path $installer)) { throw 'installer missing' }
+          $installerBytes=(Get-Item $installer).Length
+          Write-Host "windows-size-installer-bytes=$installerBytes"
           "WINDOWS_INSTALLER=$installer" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Install tray, background agent and updater tasks

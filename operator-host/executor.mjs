@@ -75,6 +75,9 @@ const ENROLLMENT_ACTIVATION_URL = String(process.env.OPERATOR_ENROLLMENT_ACTIVAT
 const FLEET_CHANNEL_TTL_MS = Number(process.env.OPERATOR_FLEET_CHANNEL_TTL_MS || 20 * 1000);
 const FLEET_COMMAND_LEASE_MS = Number(process.env.OPERATOR_FLEET_COMMAND_LEASE_MS || 12 * 1000);
 const FLEET_MAX_QUEUED_PER_NODE = Number(process.env.OPERATOR_FLEET_MAX_QUEUED_PER_NODE || 64);
+const DEVICE_CHANNEL_RUNTIME_LIMIT = Math.max(1, Number(process.env.OPERATOR_DEVICE_CHANNEL_RUNTIME_LIMIT || 240));
+const DEVICE_CHANNEL_OBSERVER_LIMIT = Math.max(1, Number(process.env.OPERATOR_DEVICE_CHANNEL_OBSERVER_LIMIT || 240));
+const DEVICE_CHANNEL_CONTROL_LIMIT = Math.max(1, Number(process.env.OPERATOR_DEVICE_CHANNEL_CONTROL_LIMIT || 120));
 if (!Number.isFinite(DEVICE_PRESENCE_TTL_MS) || DEVICE_PRESENCE_TTL_MS < 10_000) throw new Error('invalid_device_presence_ttl');
 if (!Number.isFinite(DEVICE_HEARTBEAT_MS) || DEVICE_HEARTBEAT_MS < 5_000 || DEVICE_HEARTBEAT_MS >= DEVICE_PRESENCE_TTL_MS) throw new Error('invalid_device_heartbeat');
 const HOST_CAPABILITIES = ['filesystem', 'git', 'build-test', 'docker', 'lxd', 'systemctl', 'sudo-on-demand'];
@@ -87,6 +90,7 @@ const LIGHT_SCP=new LightScpRegistry();
 const jobs = new Map();
 const operationDedupe = new Map();
 const replay = new Map();
+const trustedChannelRateBuckets = new Map();
 const ring = [];
 const sseClients = new Set();
 let ringBytes = 0;
@@ -578,9 +582,9 @@ function backfillUsageIfNeeded(){
 const usageBootstrap=backfillUsageIfNeeded();
 if(usageBootstrap.backfilled) pushEvent({type:'usage_backfill_completed',accountId:ACCOUNT_ID,status:'ok',events:usageBootstrap.events,trackingSince:usageBootstrap.trackingSince});
 
-function sendJson(res, status, value) {
+function sendJson(res, status, value, headers={}) {
   const body = JSON.stringify(value);
-  res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
+  res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...headers });
   res.end(body);
 }
 
@@ -726,6 +730,20 @@ function targetRoute(requestedNodeId) {
   const binding=enrollments.binding(device.deviceId), allowed=new Set(binding.approvedCapabilities||[]);
   return { ...route, capabilities:(route.capabilities||[]).filter(cap=>allowed.has(cap)), mode:'outbound-leaf' };
 }
+class DeviceChannelRateLimitError extends Error {
+  constructor(lane,retryAfterSeconds){super('rate_limited');this.status=429;this.scope=`device-channel-${lane}`;this.retryAfterSeconds=retryAfterSeconds;}
+}
+function trustedChannelLane(action){
+  if(['poll','result','update-report'].includes(action))return 'runtime';
+  if(['status','activity','fleet-intent','fleet-authority','fleet-status','fleet-devices','fleet-sessions','fleet-activity'].includes(action))return 'observer';
+  return 'control';
+}
+function enforceTrustedChannelRate(deviceId,action,now=Date.now()){
+  const lane=trustedChannelLane(action),limit=lane==='runtime'?DEVICE_CHANNEL_RUNTIME_LIMIT:lane==='observer'?DEVICE_CHANNEL_OBSERVER_LIMIT:DEVICE_CHANNEL_CONTROL_LIMIT;
+  const minute=Math.floor(now/60000),key=`${lane}:${deviceId}`,current=trustedChannelRateBuckets.get(key),state=current?.minute===minute?current:{minute,count:0};
+  state.count++;trustedChannelRateBuckets.set(key,state);
+  if(state.count>limit)throw new DeviceChannelRateLimitError(lane,Math.max(1,60-Math.floor((now%60000)/1000)));
+}
 function verifiedChannelContext(body, action) {
   const payload=body?.payload;
   if (!payload || typeof payload!=='object' || Array.isArray(payload)) throw new EnrollmentError('invalid_device_channel_payload');
@@ -733,6 +751,7 @@ function verifiedChannelContext(body, action) {
   if (binding.accountId!==ACCOUNT_ID) throw new EnrollmentError('device_account_mismatch',403);
   const device=devices.get(binding.deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
   if (device.accountId!==ACCOUNT_ID || device.publicIdentityKey!==binding.publicIdentityKey) throw new EnrollmentError('device_binding_mismatch',403);
+  enforceTrustedChannelRate(device.deviceId,action);
   return {payload,proof,binding,device};
 }
 function fleetEligibility(ctx){
@@ -1394,8 +1413,9 @@ const server = http.createServer(async (req, res) => {
   } catch (error) {
     const message = error?.message || 'internal_error';
     pushEvent({ type: 'executor_error', status: 'error', detail: redact(message) });
-    const status = error instanceof SessionError || error instanceof DeviceError || error instanceof EnrollmentError || error instanceof FleetError || error instanceof DeviceConnectionError || error instanceof DeviceAccessGrantError || error instanceof DevicePairingRegistryError || error instanceof AgentClientRegistryError || error instanceof AccountError || error instanceof LicenseKeyError || error instanceof FleetAuthorityError ? error.status : ['invalid_envelope', 'expired_envelope', 'replay_detected', 'unknown_kid', 'invalid_envelope_auth', 'unsupported_action'].includes(message) ? 401 : message === 'operation_id_conflict' ? 409 : 400;
-    return sendJson(res, status, { ok: false, error: message });
+    const status = error instanceof SessionError || error instanceof DeviceError || error instanceof EnrollmentError || error instanceof FleetError || error instanceof DeviceConnectionError || error instanceof DeviceAccessGrantError || error instanceof DevicePairingRegistryError || error instanceof AgentClientRegistryError || error instanceof AccountError || error instanceof LicenseKeyError || error instanceof FleetAuthorityError || error instanceof DeviceChannelRateLimitError ? error.status : ['invalid_envelope', 'expired_envelope', 'replay_detected', 'unknown_kid', 'invalid_envelope_auth', 'unsupported_action'].includes(message) ? 401 : message === 'operation_id_conflict' ? 409 : 400;
+    const limited=error instanceof DeviceChannelRateLimitError;
+    return sendJson(res, status, { ok: false, error: message, ...(limited?{scope:error.scope,retryAfterSeconds:error.retryAfterSeconds}:{}) }, limited?{'retry-after':String(error.retryAfterSeconds)}:{});
   }
 });
 

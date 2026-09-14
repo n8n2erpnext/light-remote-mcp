@@ -33,11 +33,17 @@ for(const token of ['NotifyIcon','Open Local Wall','Restart Light Remote','Check
 expect(tray.includes('ExitThread()')&&!tray.includes('StopServiceAsync'),'quit_tray_must_not_stop_agent');
 expect(trayIcon.includes('BrandAssets.Mark'),'tray_brand_mark_missing');
 expect(updaterProject.includes('<AssemblyName>LightRemote.Updater</AssemblyName>')&&updaterProject.includes('<OutputType>WinExe</OutputType>'),'independent_updater_project_missing');
+expect(project.includes('<EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>')&&updaterProject.includes('<EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>'),'windows_single_file_compression_missing');
+expect(updaterProject.includes('<PublishTrimmed>true</PublishTrimmed>')&&updaterProject.includes('<TrimMode>partial</TrimMode>'),'windows_updater_trim_missing');
+expect(project.includes('<DebugType>none</DebugType>')&&updaterProject.includes('<DebugType>none</DebugType>'),'windows_release_debug_symbols_not_disabled');
 expect(updaterProgram.includes('--scheduled-update')&&updaterProgram.includes('--apply-update')&&updaterProgram.includes('--verify-update-fixture'),'updater_modes_missing');
 expect(updater.includes('VerifySignedManifest')&&updater.includes('CryptographicOperations.FixedTimeEquals'),'windows_signed_update_verification_missing');
 expect(applier.includes('rollback_success')&&applier.includes('--self-test-output'),'windows_rollback_health_gate_missing');
 expect(recovery.includes('"Light Remote", "Updater"')&&recovery.includes('RollbackDir')&&recovery.includes('UpdateLog'),'updater_recovery_root_missing');
-expect(installer.includes('UpdaterStageDir')&&installer.includes('DestDir: "{localappdata}\\Light Remote\\Updater"'),'updater_not_installed_outside_app');
+expect(!installer.includes('UpdaterStageDir'),'duplicate_updater_payload_remains');
+expect(workflow.includes("Copy-Item (Join-Path $updaterStage '*') $helperCandidate -Recurse -Force"),'helper_candidate_not_packaged');
+expect(taskInstaller.includes("$HelperCandidate=Join-Path $InstallRoot 'helper-candidate'")&&taskInstaller.includes("Copy-Item (Join-Path $HelperCandidate '*') $UpdaterRoot -Recurse -Force"),'updater_bootstrap_from_candidate_missing');
+expect(workflow.includes('windows-size-tray-bytes=')&&workflow.includes('windows-size-installer-bytes='),'windows_size_telemetry_missing');
 expect(installer.includes('Light-Remote-MCP-Setup-{#AppVersion}-x64.exe'),'independent_rollback_cache_missing');
 expect(installer.includes('PrivilegesRequired=lowest')&&installer.includes('Parameters: "--launch"'),'windows_installer_contract_missing');
 expect(installer.includes('LightRemoteDeviceAgent')&&installer.includes('LightRemoteUpdater'),'windows_task_cleanup_missing');

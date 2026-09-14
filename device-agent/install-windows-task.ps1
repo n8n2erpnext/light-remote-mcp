@@ -5,6 +5,12 @@ if($env:OS -ne 'Windows_NT'){throw 'This installer must run on Windows.'}
 if([string]::IsNullOrWhiteSpace($InstallRoot)){$InstallRoot=(Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path}
 $Node=Join-Path $InstallRoot 'runtime\node.exe';$Agent=Join-Path $InstallRoot 'agent\device-agent\operator-agent.mjs';$Tray=Join-Path $InstallRoot 'GptOperator.Client.exe'
 $UpdaterRoot=Join-Path $env:LOCALAPPDATA 'Light Remote\Updater';$Updater=Join-Path $UpdaterRoot 'LightRemote.Updater.exe';$UpdaterKey=Join-Path $UpdaterRoot 'config\client-update-public.pem'
+$HelperCandidate=Join-Path $InstallRoot 'helper-candidate'
+if(-not(Test-Path $Updater)){
+  $CandidateUpdater=Join-Path $HelperCandidate 'LightRemote.Updater.exe';$CandidateKey=Join-Path $HelperCandidate 'config\client-update-public.pem'
+  foreach($f in @($CandidateUpdater,$CandidateKey)){if(-not(Test-Path $f)){throw "Required updater bootstrap file missing: $f"}}
+  New-Item -ItemType Directory -Force -Path $UpdaterRoot|Out-Null;Copy-Item (Join-Path $HelperCandidate '*') $UpdaterRoot -Recurse -Force
+}
 foreach($f in @($Node,$Agent,$Tray,$Updater,$UpdaterKey)){if(-not(Test-Path $f)){throw "Required Light Remote file missing: $f"}}
 $AgentTask='LightRemoteDeviceAgent';$UpdateTask='LightRemoteUpdater';$Legacy='GPTOperatorDeviceAgent';$account=[System.Security.Principal.WindowsIdentity]::GetCurrent().Name
 Unregister-ScheduledTask -TaskName $Legacy -Confirm:$false -ErrorAction SilentlyContinue

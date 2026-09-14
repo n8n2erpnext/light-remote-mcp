@@ -7,9 +7,6 @@
 #ifndef AppVersion
   #define AppVersion "0.9.0-rc.6"
 #endif
-#ifndef UpdaterStageDir
-  #error UpdaterStageDir must be defined
-#endif
 
 [Setup]
 AppId={{A8D073F5-9792-4FA6-96A6-13C565F255F3}
@@ -34,7 +31,6 @@ SetupIconFile={#StageDir}\Assets\light-remote.ico
 AppMutex=Local\GPT_OPERATOR_CLIENT_V09
 [Files]
 Source: "{#StageDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "{#UpdaterStageDir}\*"; DestDir: "{localappdata}\Light Remote\Updater"; Flags: ignoreversion recursesubdirs createallsubdirs onlyifdoesntexist
 
 [Registry]
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "Light Remote MCP"; ValueData: """{app}\GptOperator.Client.exe"" --background"; Flags: uninsdeletevalue
