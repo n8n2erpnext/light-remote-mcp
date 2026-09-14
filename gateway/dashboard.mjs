@@ -54,11 +54,11 @@ async function refreshSessions(){if(sessionsInFlight)return sessionsInFlight;ses
 async function loadActivity(limit=5000){try{const r=await fetch('/api/activity?limit='+limit,{cache:'no-store'}),d=await r.json();for(const e of (d.events||[]))ingest(e,{queue:false,render:true,refresh:false});scheduleSessionRefresh(0);}catch{}}
 async function catchUpActivity(){if(catchupInFlight)return catchupInFlight;catchupInFlight=(async()=>{try{const r=await fetch('/api/activity?limit=500',{cache:'no-store'}),d=await r.json();let touchedSession=false;for(const e of (d.events||[])){const wasSession=!!(e.type&&e.type.startsWith('session_'));if(ingest(e,{queue:true,render:true,refresh:false})&&wasSession)touchedSession=true;}if(touchedSession)scheduleSessionRefresh();}catch{}finally{catchupInFlight=null;}})();return catchupInFlight;}
 async function probeActivityHead(){if(document.hidden||paused||probeInFlight)return;probeInFlight=true;try{const r=await fetch('/api/activity?limit=1',{cache:'no-store'}),d=await r.json(),head=(d.events||[])[0];if(head&&!eventSeen(head))await catchUpActivity();}catch{}finally{probeInFlight=false;}}
-const es=new EventSource('/events');
-es.onopen=()=>{conn.textContent='live';conn.className='pill ok';};
-es.onerror=()=>{conn.textContent='reconnecting';conn.className='pill running';};
-es.addEventListener('activity',ev=>{try{ingest(JSON.parse(ev.data));}catch{}});
-refreshDevices();refreshSessions();loadActivity();setInterval(probeActivityHead,1000);setInterval(()=>{if(!document.hidden)refreshDevices();},30000);
+let es=null,sseLive=false;
+function openEvents(){if(es||document.hidden)return;es=new EventSource('/events');es.onopen=()=>{sseLive=true;conn.textContent='live';conn.className='pill ok';};es.onerror=()=>{sseLive=false;conn.textContent='reconnecting';conn.className='pill running';};es.addEventListener('activity',ev=>{try{ingest(JSON.parse(ev.data));}catch{}});}
+function closeEvents(){if(es){es.close();es=null;}sseLive=false;}
+document.addEventListener('visibilitychange',()=>{if(document.hidden){closeEvents();return;}catchUpActivity();refreshDevices();refreshSessions();openEvents();});
+openEvents();refreshDevices();refreshSessions();loadActivity();setInterval(()=>{if(!sseLive)probeActivityHead();},5000);setInterval(()=>{if(!document.hidden)refreshDevices();},30000);
 filter.oninput=applyFilter;statusSel.onchange=applyFilter;
 document.getElementById('pause').onclick=e=>{paused=!paused;e.currentTarget.querySelector('span').textContent=paused?'Resume':'Pause';if(!paused){const q=pending;pending=[];pendingKeys.clear();for(const item of q)ingest(item,{queue:false});probeActivityHead();}};
 document.getElementById('copyVisible').onclick=()=>navigator.clipboard.writeText([...jobs.values()].filter(j=>{const el=document.getElementById('j-'+j.jobId);return el&&!el.classList.contains('hidden');}).map(jobText).join('\\n\\n---\\n\\n'));

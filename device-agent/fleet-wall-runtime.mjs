@@ -23,7 +23,8 @@ const RENEW_SKEW_MS=Math.max(1000,Number(process.env.OPERATOR_FLEET_AUTHORITY_RE
 const WATCHDOG_MS=Math.max(1000,Number(process.env.OPERATOR_FLEET_AUTHORITY_CHECK_MS)||30_000);
 const PARENT_PID=Math.max(0,Number(process.env.LIGHT_REMOTE_FLEET_PARENT_PID)||0);
 const PARENT_CHECK_MS=Math.max(500,Number(process.env.LIGHT_REMOTE_FLEET_PARENT_CHECK_MS)||2000);
-let authority=null,server=null,stopping=false,watchdogTimer=null,parentTimer=null;
+let authority=null,server=null,stopping=false,watchdogTimer=null,parentTimer=null,activityTimer=null,activityInFlight=false;
+const activityClients=new Set(),activitySeen=new Set(),activityOrder=[];
 
 function privateHost(host){const h=String(host||'').trim();if(['127.0.0.1','::1','localhost'].includes(h))return true;if(net.isIP(h)!==4)return false;const [a,b]=h.split('.').map(Number);return a===10||(a===172&&b>=16&&b<=31)||(a===192&&b===168)||(a===100&&b>=64&&b<=127);}
 function readState(){return JSON.parse(fs.readFileSync(STATE_FILE,'utf8'));}
@@ -56,6 +57,12 @@ async function fleetCall(action,payload={}){
   }
 }
 async function reportFleetStatus(status='online'){return fleetCall('fleet-status',{status,moduleVersion:VERSION,port:PORT});}
+function activityKey(event){return `${String(event?.id??'')}@${String(event?.at??'')}`;}
+function rememberActivity(event){const key=activityKey(event);if(!key||activitySeen.has(key))return false;activitySeen.add(key);activityOrder.push(key);while(activityOrder.length>2000)activitySeen.delete(activityOrder.shift());return true;}
+function broadcastActivity(event){const id=String(event?.id??''),data=JSON.stringify(event);for(const res of [...activityClients]){try{res.write(`id: ${id}\nevent: activity\ndata: ${data}\n\n`);}catch{activityClients.delete(res);}}stopActivityPumpIfIdle();}
+async function activityPump(){if(stopping||activityInFlight||!activityClients.size)return;activityInFlight=true;try{const value=await fleetCall('fleet-activity',{limit:250});for(const event of (value.events||[]))if(rememberActivity(event))broadcastActivity(event);}catch(error){if(shouldTerminateAuthority(error)){for(const res of [...activityClients]){try{res.write(`event: authority_lost\ndata: ${JSON.stringify({error:error.message})}\n\n`);}catch{}}setImmediate(()=>stop(error.message).finally(()=>process.exit(0)));}}finally{activityInFlight=false;}}
+function ensureActivityPump(){if(activityTimer)return;void activityPump();activityTimer=setInterval(activityPump,1000);activityTimer.unref?.();}
+function stopActivityPumpIfIdle(){if(activityClients.size||!activityTimer)return;clearInterval(activityTimer);activityTimer=null;activitySeen.clear();activityOrder.length=0;}
 function json(res,status,value){const text=JSON.stringify(value);res.writeHead(status,{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'});res.end(text);}
 function safeNext(value){const text=String(value||'').trim();return text.startsWith('/')&&!text.startsWith('//')&&text.length<=512?text:'/';}
 function secureRequest(req){return Boolean(req.socket?.encrypted)||String(req.headers['x-forwarded-proto']||'').split(',')[0].trim().toLowerCase()==='https';}
@@ -75,6 +82,7 @@ async function stop(reason='fleet_wall_stopped'){
   if(stopping)return;stopping=true;console.error(JSON.stringify({event:'fleet_wall_stopping',reason}));
   if(watchdogTimer){clearInterval(watchdogTimer);watchdogTimer=null;}
   if(parentTimer){clearInterval(parentTimer);parentTimer=null;}
+  if(activityTimer){clearInterval(activityTimer);activityTimer=null;}activityClients.clear();
   if(server){try{server.closeAllConnections?.();}catch{}await new Promise(resolve=>server.close(()=>resolve()));}
 }
 async function authorityWatchdog(){
@@ -139,10 +147,9 @@ async function start(){
     if(req.method==='GET'&&url.pathname==='/events'){
       res.writeHead(200,{'content-type':'text/event-stream','cache-control':'no-store',connection:'keep-alive','x-accel-buffering':'no'});
       res.write(`event: hello\ndata: ${JSON.stringify({ok:true,now:new Date().toISOString(),version:VERSION})}\n\n`);
-      let closed=false,inFlight=false;const seen=new Set();
-      const pump=async()=>{if(closed||inFlight)return;inFlight=true;try{const value=await fleetCall('fleet-activity',{limit:250});for(const event of (value.events||[])){const key=String(event.id??'')+'@'+String(event.at??'');if(seen.has(key))continue;seen.add(key);if(seen.size>2000)seen.delete(seen.values().next().value);res.write(`id: ${String(event.id??'')}\nevent: activity\ndata: ${JSON.stringify(event)}\n\n`);}}catch(error){if(shouldTerminateAuthority(error)){res.write(`event: authority_lost\ndata: ${JSON.stringify({error:error.message})}\n\n`);setImmediate(()=>stop(error.message).finally(()=>process.exit(0)));}}finally{inFlight=false;}};
-      await pump();const timer=setInterval(pump,1000),keep=setInterval(()=>{if(!closed)res.write(`: keepalive ${Date.now()}\n\n`);},20000);
-      req.on('close',()=>{closed=true;clearInterval(timer);clearInterval(keep);});return;
+      activityClients.add(res);ensureActivityPump();
+      let closed=false;const keep=setInterval(()=>{if(!closed)res.write(`: keepalive ${Date.now()}\n\n`);},20000);
+      req.on('close',()=>{closed=true;clearInterval(keep);activityClients.delete(res);stopActivityPumpIfIdle();});return;
     }
     return json(res,404,{ok:false,error:'not_found'});
   }catch(error){if(shouldTerminateAuthority(error))setImmediate(()=>stop(error.message).finally(()=>process.exit(0)));return json(res,Number(error.status)||400,{ok:false,error:error.message||'fleet_wall_error'});}});
