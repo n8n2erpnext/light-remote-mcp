@@ -51,8 +51,21 @@ jobs:
           test -x "$TMP/package/install.sh"
           test -f "$TMP/package/gateway/package-lock.json"
           test -f "$TMP/package/operator-host/executor.mjs"
+          test -f "$TMP/package/device-agent/platform-adapters/index.mjs"
           bash -n "$TMP/package/install.sh"
-          "$TMP/package/runtime/node" --check "$TMP/package/operator-host/executor.mjs" || [[ "${{ matrix.arch }}" == arm64 ]]
+          if [[ "${{ matrix.arch }}" == x64 ]]; then
+            "$TMP/package/runtime/node" --check "$TMP/package/operator-host/executor.mjs"
+            RUNTIME="$TMP/runtime-smoke"; mkdir -p "$RUNTIME/state" "$RUNTIME/logs"
+            "$TMP/package/runtime/node" "$TMP/package/deploy/scripts/generate-operator-key.mjs" "$RUNTIME/public.json" "$RUNTIME/private.json" >/dev/null
+            OPERATOR_SOCKET="$RUNTIME/operator.sock" OPERATOR_KEY_FILE="$RUNTIME/private.json" OPERATOR_LOG_DIR="$RUNTIME/logs" OPERATOR_STATE_DIR="$RUNTIME/state" LIGHT_REMOTE_VERSION="$VERSION" OPERATOR_DEVICE_ID=ci-smoke OPERATOR_NODE_ID=ci-smoke OPERATOR_ACCOUNT_ID=ci-smoke timeout 8s "$TMP/package/runtime/node" "$TMP/package/operator-host/executor.mjs" >"$RUNTIME/stdout.log" 2>"$RUNTIME/stderr.log" & PID=$!
+            for _ in {1..50}; do [[ -S "$RUNTIME/operator.sock" ]] && break; sleep 0.1; done
+            test -S "$RUNTIME/operator.sock" || { cat "$RUNTIME/stderr.log"; exit 1; }
+            curl -fsS --unix-socket "$RUNTIME/operator.sock" http://localhost/healthz | python3 -c "import json,sys; j=json.load(sys.stdin); assert j['ok'] and j['version']==sys.argv[1],j" "$VERSION"
+            kill "$PID" 2>/dev/null || true; wait "$PID" 2>/dev/null || true
+            echo server-linux-runtime-smoke=PASS
+          else
+            file "$TMP/package/runtime/node" | grep -Eq 'ARM aarch64|aarch64'
+          fi
           python3 -c "import json,sys; m=json.load(open(sys.argv[1])); assert m['version']==sys.argv[2],m; assert m['platform'].startswith('linux-'),m; print('server-linux-package-contract=PASS')" "$TMP/package/manifest.json" "$VERSION"
       - name: Upload Linux server bundle
         uses: actions/upload-artifact@v4

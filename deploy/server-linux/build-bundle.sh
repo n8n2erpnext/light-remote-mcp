@@ -26,6 +26,8 @@ cp "node-v${NODE_VERSION}-linux-${TARGET_ARCH}/LICENSE" "$PKG/licenses/node/LICE
 cp -a "$ROOT_DIR/operator-host" "$PKG/operator-host"
 cp -a "$ROOT_DIR/gateway" "$PKG/gateway"
 cp -a "$ROOT_DIR/lib" "$PKG/lib"
+mkdir -p "$PKG/device-agent"
+cp -a "$ROOT_DIR/device-agent/platform-adapters" "$PKG/device-agent/platform-adapters"
 cp "$ROOT_DIR/deploy/scripts/generate-operator-key.mjs" "$PKG/deploy/scripts/"
 cp "$ROOT_DIR/deploy/scripts/generate-wall-auth.mjs" "$PKG/deploy/scripts/"
 cp "$ROOT_DIR/deploy/server-linux/install.sh" "$PKG/install.sh"

@@ -18,6 +18,8 @@ expect(text('gateway/package.json').includes('"license": "Apache-2.0"'),'gateway
 expect(text('deploy/server-linux/install.sh').includes('--wall-bind'),'server_wall_bind_option_missing');
 expect(text('deploy/server-linux/install.sh').includes('OPERATOR_PUBLIC_KEYS_JSON value'),'server_public_key_handoff_missing');
 expect(text('.github/workflows/server-linux-build.yml').includes('arch: [x64, arm64]'),'server_arch_matrix_missing');
+expect(text('deploy/server-linux/build-bundle.sh').includes('device-agent/platform-adapters'),'server_bundle_platform_adapters_missing');
+expect(text('.github/workflows/server-linux-build.yml').includes('server-linux-runtime-smoke=PASS'),'server_runtime_smoke_ci_missing');
 const linuxClientWorkflow=text('.github/workflows/linux-client-build.yml'),macosClientWorkflow=text('.github/workflows/macos-client-build.yml'),betaWorkflow=text('.github/workflows/beta-release.yml');
 expect(linuxClientWorkflow.includes('Light-Remote-MCP-Client-Linux-${{ matrix.arch }}-*.tar.gz'),'linux_client_artifact_upload_name_mismatch');
 expect(linuxClientWorkflow.includes('dist/linux/${{ matrix.arch }}/deb/*.deb'),'debian_artifact_upload_missing');
