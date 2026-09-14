@@ -12,6 +12,11 @@ on:
       - 'client/**'
       - 'device-agent/**'
       - 'lib/device-proof.mjs'
+      - 'lib/native-fs.mjs'
+      - 'lib/native-process.mjs'
+      - 'lib/native-search.mjs'
+      - 'lib/light-scp-file.mjs'
+      - 'lib/light-scp-registry.mjs'
       - '.github/workflows/windows-native-client.yml'
   workflow_dispatch:
   workflow_call:
@@ -72,7 +77,7 @@ jobs:
           Copy-Item device-agent/fleet-component-manager.mjs $agentDir
           Copy-Item device-agent/fleet-component-supervisor.mjs $agentDir
           Copy-Item device-agent/platform-adapters/*.mjs $adapterDir
-          Copy-Item lib/device-proof.mjs $libDir
+          foreach ($lib in @('device-proof.mjs','native-fs.mjs','native-process.mjs','native-search.mjs','light-scp-file.mjs','light-scp-registry.mjs')) { Copy-Item (Join-Path 'lib' $lib) (Join-Path $libDir $lib) }
           Copy-Item assets/branding/light-remote-mark.svg $brandDir
           Copy-Item client/update-public.pem (Join-Path $configDir 'client-update-public.pem')
           Copy-Item LICENSE (Join-Path $stage 'LICENSE')
@@ -91,6 +96,7 @@ jobs:
           $updater = Join-Path $updaterStage 'LightRemote.Updater.exe'
           if (-not (Test-Path $updater)) { throw 'independent updater publish missing' }
           foreach ($fleetFile in @('agent\device-agent\fleet-component-manager.mjs','agent\device-agent\fleet-component-supervisor.mjs')) { if (-not (Test-Path (Join-Path $stage $fleetFile))) { throw "fleet base module missing: $fleetFile" } }
+          foreach ($lib in @('agent\lib\device-proof.mjs','agent\lib\native-fs.mjs','agent\lib\native-process.mjs','agent\lib\native-search.mjs','agent\lib\light-scp-file.mjs','agent\lib\light-scp-registry.mjs')) { if (-not (Test-Path (Join-Path $stage $lib))) { throw "agent runtime lib missing: $lib" } }
           foreach ($notice in @('LICENSE','NOTICE','THIRD_PARTY_DISTRIBUTION_NOTICES.md','licenses\node\LICENSE','licenses\dotnet\LICENSE.txt','licenses\dotnet\ThirdPartyNotices.txt','THIRD_PARTY_NOTICES.txt')) {
             $noticePath = Join-Path $stage $notice
             if (-not (Test-Path $noticePath) -or (Get-Item $noticePath).Length -lt 100) { throw "bundled notice missing/empty: $notice" }

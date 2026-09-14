@@ -7,6 +7,8 @@ const read=rel=>fs.readFileSync(path.join(root,rel),'utf8');
 const linux=read('device-agent/install-linux-service.sh');
 const windows=read('device-agent/install-windows-service.ps1');
 const agent=read('device-agent/operator-agent.mjs');
+const linuxWorkflow=read('.github/workflows/linux-client-build.yml');
+const windowsWorkflow=read('.github/workflows/windows-native-client.yml');
 
 const agentModules=['operator-agent.mjs','local-wall.mjs','local-wall-auth.mjs','fleet-component-manager.mjs','fleet-component-supervisor.mjs'];
 const libModules=['device-proof.mjs','native-fs.mjs','native-process.mjs','native-search.mjs','light-scp-file.mjs','light-scp-registry.mjs'];
@@ -17,6 +19,10 @@ for(const file of agentModules){
 for(const file of libModules){
   assert.ok(linux.includes(file),`linux_missing_lib_module:${file}`);
   assert.ok(windows.includes(file),`windows_missing_lib_module:${file}`);
+}
+for(const file of libModules){
+  assert.ok(linuxWorkflow.includes(`lib/${file}`),`linux_workflow_missing_lib:${file}`);
+  assert.ok(windowsWorkflow.includes(`lib/${file}`),`windows_workflow_missing_lib:${file}`);
 }
 assert.ok(linux.includes('platform-adapters/*.mjs'),'linux_missing_platform_adapters');
 assert.ok(windows.includes('platform-adapters\\*.mjs'),'windows_missing_platform_adapters');

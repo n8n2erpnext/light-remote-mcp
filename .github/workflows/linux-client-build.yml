@@ -12,6 +12,11 @@ on:
       - 'client/**'
       - 'device-agent/**'
       - 'lib/device-proof.mjs'
+      - 'lib/native-fs.mjs'
+      - 'lib/native-process.mjs'
+      - 'lib/native-search.mjs'
+      - 'lib/light-scp-file.mjs'
+      - 'lib/light-scp-registry.mjs'
       - '.github/workflows/linux-client-build.yml'
   workflow_dispatch:
   workflow_call:
@@ -53,7 +58,7 @@ jobs:
           cp device-agent/fleet-component-supervisor.mjs "$PKG/device-agent/"
           cp device-agent/linux-service-policy.mjs "$PKG/device-agent/"
           cp device-agent/platform-adapters/*.mjs "$PKG/device-agent/platform-adapters/"
-          cp lib/device-proof.mjs "$PKG/lib/"
+          for lib in device-proof.mjs native-fs.mjs native-process.mjs native-search.mjs light-scp-file.mjs light-scp-registry.mjs; do cp "lib/$lib" "$PKG/lib/$lib"; done
           cp assets/branding/light-remote-mark.svg "$PKG/assets/branding/"
           cp assets/branding/light-remote-mark-256.png "$PKG/assets/branding/"
           cp client/linux/updater.mjs "$PKG/client/linux/"
@@ -90,6 +95,12 @@ jobs:
           test -f "$PKG/device-agent/fleet-component-manager.mjs"
           test -f "$PKG/device-agent/fleet-component-supervisor.mjs"
           test -f "$PKG/device-agent/linux-service-policy.mjs"
+          test -f "$PKG/lib/device-proof.mjs"
+          test -f "$PKG/lib/native-fs.mjs"
+          test -f "$PKG/lib/native-process.mjs"
+          test -f "$PKG/lib/native-search.mjs"
+          test -f "$PKG/lib/light-scp-file.mjs"
+          test -f "$PKG/lib/light-scp-registry.mjs"
           test -f "$PKG/client/linux/updater.mjs"
           test -f "$PKG/client/linux-debian/updater-wrapper.mjs"
           test -f "$PKG/client/linux-debian/tray/light-remote-tray.py"
