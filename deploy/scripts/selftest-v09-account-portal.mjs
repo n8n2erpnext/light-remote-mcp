@@ -6,7 +6,7 @@ const home=read('index.html'),login=read('login/index.html'),register=read('regi
 const auth=read('api/auth.js'),web=read('lib/account-web.js'),css=read('assets/light-remote-portal.css'),usage=read('usage/index.html'),settings=read('settings/index.html');
 function need(ok,name){if(!ok)throw new Error(`account_portal_contract_failed:${name}`);console.log(`${name}=PASS`);}
 need(home.includes('Light Remote')&&home.includes('Devices')&&home.includes('Usage')&&home.includes('Settings'),'account-portal-shell');
-need(home.includes('Add a device')&&home.includes('Revoke all')&&home.includes('Where you use it')&&home.includes('New install')&&home.includes('Revoked device')&&home.includes('Link device')&&home.includes('Re-enroll device'),'account-portal-device-actions');
+need(home.includes('Add a device')&&home.includes('Revoke all')&&home.includes('Remove')&&home.includes('Type REMOVE')&&home.includes('Where you use it')&&home.includes('New install')&&home.includes('Revoked device')&&home.includes('Link device')&&home.includes('Re-enroll device'),'account-portal-device-actions');
 need(home.includes('ChatGPT')&&home.includes('Claude')&&home.includes('Any MCP client'),'account-portal-client-lanes');
 need(login.includes('/api/auth?action=login')&&register.includes('/api/auth?action=register')&&register.includes('Owner proof code')&&register.includes('ownerCode'),'account-portal-auth-actions');
 need(home.includes('/api/auth?action=devices')&&home.includes('/api/auth?action=enrollment-approve'),'account-portal-device-api');
@@ -14,8 +14,8 @@ need(home.includes('Starting setup')&&home.includes('Configuring Fleet')&&home.i
 need(home.includes('retryAfterSeconds')&&home.includes('Too many requests. Please wait'),'account-portal-rate-limit-feedback');
 need(!home.includes('/api/account-')&&!login.includes('/api/account-')&&!register.includes('/api/account-'),'account-portal-single-function-budget');
 need(usage.includes('/api/auth?action=usage')&&settings.includes('/api/auth?action=me')&&settings.includes('/api/auth?action=redeem-license')&&!usage.includes('/api/account-me')&&!settings.includes('/api/account-me'),'account-portal-subpage-auth-router');
-need(auth.includes("action==='register'")&&auth.includes('ownerCode')&&auth.includes('ownerPassword')&&auth.includes("action==='device-revoke'")&&auth.includes("action==='devices-revoke-all'")&&auth.includes("action==='redeem-license'"),'account-auth-router');
-const gateway=read('gateway/server.mjs');need(gateway.includes('deviceChannelRateLimit')&&gateway.includes('mainDeviceRateLimit')&&gateway.includes("scope:namespace"),'gateway-scoped-rate-limits');need(gateway.includes('ownerCode')&&gateway.includes('owner_migration_proof_required')&&gateway.includes('wallAuth.verifyCredentials'),'account-owner-migration-proof');
+need(auth.includes("action==='register'")&&auth.includes('ownerCode')&&auth.includes('ownerPassword')&&auth.includes("action==='device-revoke'")&&auth.includes("action==='device-remove'")&&auth.includes("action==='devices-revoke-all'")&&auth.includes("action==='redeem-license'"),'account-auth-router');
+const gateway=read('gateway/server.mjs');need(gateway.includes('/account/devices/:id/remove'),'account-device-remove-route');need(gateway.includes('deviceChannelRateLimit')&&gateway.includes('mainDeviceRateLimit')&&gateway.includes("scope:namespace"),'gateway-scoped-rate-limits');need(gateway.includes('ownerCode')&&gateway.includes('owner_migration_proof_required')&&gateway.includes('wallAuth.verifyCredentials'),'account-owner-migration-proof');
 need(auth.includes("action==='usage'")&&gateway.includes("/account/usage"),'account-usage-router');
 need(settings.includes('Activate PRO / VIP')&&settings.includes('Redeem key')&&gateway.includes('/account/redeem-license'),'account-license-redeem-ui');
 need(web.includes('__Host-light_remote_account')&&web.includes('HttpOnly')&&web.includes('Secure')&&web.includes('SameSite=Strict'),'account-cookie-security');

@@ -37,7 +37,11 @@ const ACCOUNT_STATE_FILE = path.join(STATE_DIR, 'accounts.json');
 const USAGE_STATE_FILE = path.join(STATE_DIR, 'usage.json');
 const LICENSE_STATE_FILE = path.join(STATE_DIR, 'license-keys.json');
 const FLEET_AUTHORITY_TTL_MS = Number(process.env.OPERATOR_FLEET_AUTHORITY_TTL_MS || 10 * 60 * 1000);
-const MAX_RING_BYTES = Number(process.env.OPERATOR_RING_BYTES || 16 * 1024 * 1024);
+const RING_HARD_CAP_BYTES = 10 * 1024 * 1024;
+const MAX_RING_BYTES = Math.max(1024 * 1024, Math.min(Number(process.env.OPERATOR_RING_BYTES || 8 * 1024 * 1024), RING_HARD_CAP_BYTES));
+const MAX_RING_AGE_MS = Math.max(60000, Math.min(Number(process.env.OPERATOR_RING_AGE_MS || 15 * 60 * 1000), 3600000));
+const DISK_FLUSH_MS = Math.max(10, Math.min(Number(process.env.OPERATOR_DISK_FLUSH_MS || 50), 1000));
+const DISK_BATCH_BYTES = Math.max(16384, Math.min(Number(process.env.OPERATOR_DISK_BATCH_BYTES || 262144), 1048576));
 const MAX_RING_EVENTS = Number(process.env.OPERATOR_RING_EVENTS || 5000);
 const MAX_MEMORY_OUTPUT = Number(process.env.OPERATOR_MEMORY_OUTPUT || 4 * 1024 * 1024);
 const MAX_BODY_BYTES = Number(process.env.OPERATOR_MAX_BODY || 8 * 1024 * 1024);
@@ -102,28 +106,24 @@ function redact(value) {
   return text;
 }
 
-function diskRecord(event) {
+let diskQueue = []; let diskQueueBytes = 0; let diskFlushTimer = null; let diskWriteChain = Promise.resolve();function serializedDiskRecord(event) {
   const safe = { ...event };
-  for (const key of ['script', 'stdout', 'stderr', 'chunk', 'note']) {
-    if (safe[key] != null) safe[key] = redact(safe[key]);
-  }
-  fs.appendFileSync(LOG_FILE, `${JSON.stringify(safe)}\n`, { encoding: 'utf8' });
+  for (const key of ['script', 'stdout', 'stderr', 'chunk', 'note']) if (safe[key] != null) safe[key] = redact(safe[key]);
+  return JSON.stringify(safe)+"\n";
 }
 
-function pushEvent(input) {
-  const event = { id: ++sequence, at: new Date().toISOString(), ...input };
-  try { usage.ingest(event); } catch (error) { console.error('[usage] ingest failed', error?.message || error); }
+function flushDiskRecords(){if(diskFlushTimer){clearTimeout(diskFlushTimer);diskFlushTimer=null;}if(!diskQueue.length)return diskWriteChain;const batch=diskQueue.join('');diskQueue=[];diskQueueBytes=0;diskWriteChain=diskWriteChain.then(()=>fs.promises.appendFile(LOG_FILE,batch,{encoding:'utf8'})).catch(e=>console.error('[disk] append failed',e?.message||e));return diskWriteChain;}
+function queueDiskRecord(event){const line=serializedDiskRecord(event);diskQueue.push(line);diskQueueBytes+=Buffer.byteLength(line);if(diskQueueBytes>=DISK_BATCH_BYTES)void flushDiskRecords();else if(!diskFlushTimer){diskFlushTimer=setTimeout(()=>void flushDiskRecords(),DISK_FLUSH_MS);diskFlushTimer.unref?.();}}function pruneRing(now=Date.now()){const cutoff=now-MAX_RING_AGE_MS;while(ring.length&&(ring.length>MAX_RING_EVENTS||ringBytes>MAX_RING_BYTES||ring[0].atMs<cutoff)){const old=ring.shift();ringBytes-=old.bytes;}}function pushEvent(input) {
+  const now=Date.now(); const event={id:++sequence,at:new Date(now).toISOString(),...input};
   const encoded = JSON.stringify(event);
   const bytes = Buffer.byteLength(encoded);
-  ring.push({ event, bytes });
+  ring.push({ event, bytes, atMs:now });
   ringBytes += bytes;
-  while (ring.length > MAX_RING_EVENTS || ringBytes > MAX_RING_BYTES) {
-    const old = ring.shift();
-    ringBytes -= old.bytes;
-  }
-  diskRecord(event);
+  pruneRing(now);
   const frame = `id: ${event.id}\nevent: activity\ndata: ${encoded}\n\n`;
-  for (const res of sseClients) res.write(frame);
+  for (const res of sseClients) { try { res.write(frame); } catch {} }
+  try { usage.ingest(event); } catch (error) { console.error('[usage] ingest failed', error?.message || error); }
+  queueDiskRecord(event);
   return event;
 }
 if (devices.loadError) pushEvent({ type:'device_registry_load_error', status:'error', detail:redact(devices.loadError) });
@@ -477,6 +477,15 @@ function revokeRuntimeForDevice(deviceId,reason){
   try{sessions.closeByDevice(deviceId,why,{force:true});}catch{}
   try{fleetAuthority.invalidateDevice(deviceId,why);}catch{}
 }
+function removeRuntimeForDevice(deviceId,reason='account_owner_removed'){
+  const why=String(reason||'account_owner_removed');
+  revokeRuntimeForDevice(deviceId,why);
+  try{connections.remove(deviceId,why);}catch{}
+  try{accessGrants.purgeDevice(deviceId,why);}catch{}
+  try{pairingCodes.purgeDevice(deviceId,why);}catch{}
+  try{agentClients.removeDevice(deviceId,why);}catch{}
+  try{fleetAuthority.invalidateDevice(deviceId,why);}catch{}
+}
 function closeRuntimeForAccount(accountId,reason){
   const closed=[];
   for(const device of devices.list().filter(row=>row.accountId===String(accountId||''))){revokeRuntimeForDevice(device.deviceId,reason);closed.push(device.deviceId);}
@@ -499,12 +508,13 @@ function capabilities() {
     deviceConnection: { enforced:CONNECTION_LEASE_ENFORCE, accountPlan:activeAccountPlan(), planCapsMs:DEFAULT_PLAN_CONNECTION_CAPS, reconnectGraceMinMs:15*60*1000, reconnectGraceMaxMs:60*60*1000, unlimited:false },
     sessionGracePresets: SESSION_GRACE_PRESETS,
     limits: { maxScriptBytes: 1024 * 1024, maxTimeoutMs: 7200000, memoryOutputBytes: MAX_MEMORY_OUTPUT,
-      ringBytes: MAX_RING_BYTES, ringEvents: MAX_RING_EVENTS, jobCacheBytes: MAX_JOB_CACHE_BYTES, jobCacheAgeMs: MAX_JOB_CACHE_AGE_MS, operationDedupeMs: OPERATION_DEDUPE_MS,
+      ringBytes: MAX_RING_BYTES, ringHardCapBytes:RING_HARD_CAP_BYTES, ringAgeMs:MAX_RING_AGE_MS, ringEvents: MAX_RING_EVENTS, diskFlushMs:DISK_FLUSH_MS, diskBatchBytes:DISK_BATCH_BYTES, jobCacheBytes: MAX_JOB_CACHE_BYTES, jobCacheAgeMs: MAX_JOB_CACHE_AGE_MS, operationDedupeMs: OPERATION_DEDUPE_MS,
       sessionGraceMs: SESSION_IDLE_MS, sessionMinGraceMs:SESSION_MIN_IDLE_MS, sessionMaxGraceMs:SESSION_MAX_IDLE_MS, sessionActiveWindowMs:SESSION_ACTIVE_WINDOW_MS, sessionHistoryMs: SESSION_HISTORY_MS, maxActiveSessions: MAX_ACTIVE_SESSIONS }
   };
 }
 
 function recentEvents(limit = 500, deviceId = null) {
+  pruneRing();
   const n = Math.max(1, Math.min(Number(limit) || 500, MAX_RING_EVENTS));
   const did = deviceId == null ? null : String(deviceId);
   const rows = did ? ring.map(item => item.event).filter(event => String(event.deviceId || '') === did) : ring.map(item => item.event);
@@ -686,7 +696,7 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res,200,{ok:true,...accounts.logout(accountSessionToken(req))});
     }
     if (req.method === 'GET' && url.pathname === '/v1/accounts/devices') {
-      const identity=requireAccount(req),owned=allDeviceViews().filter(device=>device.accountId===identity.account.accountId);
+      const identity=requireAccount(req),owned=allDeviceViews().filter(device=>device.accountId===identity.account.accountId).map(device=>({...device,removable:device.deviceId!==DEVICE_ID,revocable:device.deviceId!==DEVICE_ID&&device.state!=='revoked'}));
       return sendJson(res,200,{ok:true,account:identity.account,entitlements:planEntitlements(identity.account),devices:owned});
     }
     if (req.method === 'POST' && url.pathname === '/v1/accounts/main-device') {
@@ -729,6 +739,17 @@ const server = http.createServer(async (req, res) => {
       revokeRuntimeForDevice(device.deviceId,'account_owner_revoked');
       const account=clearMainIfMatches(identity.account.accountId,device.deviceId,'main_device_revoked')||accounts.account(identity.account.accountId);
       return sendJson(res,200,{ok:true,binding,device:revoked,account,entitlements:planEntitlements(account)});
+    }
+    const accountRemoveMatch=url.pathname.match(/^\/v1\/accounts\/devices\/([A-Za-z0-9._:-]+)\/remove$/);
+    if(req.method==='POST'&&accountRemoveMatch){
+      const identity=requireAccount(req),device=devices.get(accountRemoveMatch[1]);
+      if(device.accountId!==identity.account.accountId)throw new AccountError('account_device_mismatch',403);
+      if(device.deviceId===DEVICE_ID)throw new AccountError('integrated_hub_device_not_removable',409);
+      const account=clearMainIfMatches(identity.account.accountId,device.deviceId,'main_device_removed')||accounts.account(identity.account.accountId);
+      removeRuntimeForDevice(device.deviceId,'account_owner_removed');
+      let binding={deviceId:device.deviceId,removed:false};try{binding=enrollments.remove({deviceId:device.deviceId,accountId:identity.account.accountId,reason:'account_owner_removed'});}catch(error){if(error.message!=='device_binding_not_found')throw error;}
+      const removed=devices.remove(device.deviceId,'account_owner_removed');wakeDeviceChannelForDevice(device.deviceId);
+      return sendJson(res,200,{ok:true,removed,binding,account,entitlements:planEntitlements(account)});
     }
     if (req.method === 'POST' && url.pathname === '/v1/accounts/devices/revoke-all') {
       const identity=requireAccount(req),rows=devices.list().filter(device=>device.accountId===identity.account.accountId&&device.state!=='revoked'&&device.deviceId!==DEVICE_ID),revoked=[];
@@ -1006,7 +1027,9 @@ const server = http.createServer(async (req, res) => {
     }
     const maintenanceUpdateMatch = url.pathname.match(/^\/v1\/devices\/([A-Za-z0-9._:-]+)\/maintenance\/update$/);
     if (req.method === 'POST' && maintenanceUpdateMatch) {
-      return sendJson(res,200,{ok:true,maintenance:queueSignedUpdate(maintenanceUpdateMatch[1])});
+      const maintenance=queueSignedUpdate(maintenanceUpdateMatch[1]);
+      await flushDiskRecords();
+      return sendJson(res,200,{ok:true,maintenance});
     }
     const policyMatch = url.pathname.match(/^\/v1\/devices\/([A-Za-z0-9._:-]+)\/policy$/);
     if (req.method === 'POST' && policyMatch) {
@@ -1128,7 +1151,7 @@ const server = http.createServer(async (req, res) => {
       if (job) { sessions.ensure(job.sessionId, { agentId:aid }); sessions.record(job.sessionId, 'toolCalls'); sessions.record(job.sessionId, 'outputReads'); }
       else assertDiskJobOwner(outputMatch[1], aid);
       let text;
-      if (full) text = fullOutputFromDisk(outputMatch[1], stream);
+      if (full) { await flushDiskRecords(); text = fullOutputFromDisk(outputMatch[1], stream); }
       else if (job) text = job[stream].snapshot().text;
       else text = fullOutputFromDisk(outputMatch[1], stream);
       const totalBytes = Buffer.byteLength(text);
@@ -1143,6 +1166,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && url.pathname === '/v1/events') {
       res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store', connection: 'keep-alive' });
       sseClients.add(res);
+      pruneRing();
       res.write(`event: hello\ndata: ${JSON.stringify({ ok: true, now: new Date().toISOString(), version: VERSION })}\n\n`);
       for (const item of ring.slice(-100)) res.write(`id: ${item.event.id}\nevent: activity\ndata: ${JSON.stringify(item.event)}\n\n`);
       const timer = setInterval(() => res.write(`: keepalive ${Date.now()}\n\n`), 20000);
@@ -1179,7 +1203,7 @@ function shutdown(signal) {
       try { process.kill(job.pid, 'SIGTERM'); } catch {}
     }
   }
-  server.close(() => process.exit(0));
+  void flushDiskRecords().finally(()=>server.close(()=>process.exit(0)));
   server.closeAllConnections?.();
   setTimeout(() => process.exit(1), 5000).unref();
 }

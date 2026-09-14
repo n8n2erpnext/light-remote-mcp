@@ -21,7 +21,7 @@ import { createPlusAuth } from './plus-auth.mjs';
 const PORT = Number(process.env.PORT || 8080);
 const WALL_PORT = Number(process.env.WALL_PORT || 8081);
 const OPERATOR_ACCOUNT_ID = String(process.env.OPERATOR_ACCOUNT_ID || 'self-hosted-local');
-const VERSION = '0.9.0-beta.1';
+const VERSION = String(process.env.LIGHT_REMOTE_VERSION || '0.9.0-rc.6');
 const RootSchema = z.string().min(1).max(64).refine(value => rootNames().includes(value), 'unknown_root');
 
 function textResult(value) {
@@ -153,6 +153,19 @@ function rateIdentity(value){return crypto.createHash('sha256').update(String(va
 function clientAddress(req){return String(req.ip||req.socket.remoteAddress||'unknown');}
 function accountRateIdentity(req){const token=String(req.get('x-light-account-session')||'').trim();return token?`session:${rateIdentity(token)}`:`ip:${clientAddress(req)}`;}
 function deviceRateIdentity(req){const id=String(req.body?.deviceId||req.body?.nodeId||'').trim();return /^[A-Za-z0-9._:-]{1,128}$/.test(id)?`device:${id}`:`ip:${clientAddress(req)}`;}
+function plusRateIdentity(req){
+  const client=String(req.headers['x-light-client']||'').trim();
+  if(/^o1\.client\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(client))return `client:${rateIdentity(client)}`;
+  const session=String(req.headers['x-plus-session']||'').trim();
+  if(/^o1\.plus\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(session))return `session:${rateIdentity(session)}`;
+  const agent=String(req.body?.agentId||'').trim();
+  if(/^[A-Za-z0-9._:-]{16,128}$/.test(agent))return `agent:${rateIdentity(agent)}`;
+  const continuation=String(req.body?.continuation||'').trim();
+  if(continuation)return `pair:${rateIdentity(continuation)}`;
+  const aCode=String(req.body?.aCode||'').trim();
+  if(aCode)return `pair:${rateIdentity(aCode)}`;
+  return `ip:${clientAddress(req)}`;
+}
 function createRateLimit(namespace,limit,keyFn){
   return function rateLimit(req,res,next){
     const now=Date.now(),minute=Math.floor(now/60000),identity=keyFn(req),key=`${namespace}:${identity}`,current=rateBuckets.get(key),state=current?.minute===minute?current:{minute,count:0};
@@ -163,6 +176,7 @@ function createRateLimit(namespace,limit,keyFn){
 }
 const softRateLimit=createRateLimit('edge',1200,req=>`ip:${clientAddress(req)}`);
 const deviceChannelRateLimit=createRateLimit('device-channel',240,deviceRateIdentity);
+const plusRateLimit=createRateLimit('plus',240,plusRateIdentity);
 const accountReadRateLimit=createRateLimit('account-read',240,accountRateIdentity);
 const accountMutationRateLimit=createRateLimit('account-mutation',60,accountRateIdentity);
 const mainDeviceRateLimit=createRateLimit('main-device',20,accountRateIdentity);
@@ -309,6 +323,7 @@ app.post('/account/redeem-license', accountMutationRateLimit, requireVercelIdent
 app.post('/account/enrollments/approve', accountMutationRateLimit, requireVercelIdentity, (req,res)=>proxyOperatorJson(res,'POST','/v1/accounts/enrollments/approve',req.body||{},accountProxyHeaders(req)));
 app.post('/account/devices/revoke-all', accountMutationRateLimit, requireVercelIdentity, (req,res)=>proxyOperatorJson(res,'POST','/v1/accounts/devices/revoke-all',{},accountProxyHeaders(req)));
 app.post('/account/devices/:id/revoke', accountMutationRateLimit, requireVercelIdentity, (req,res)=>proxyOperatorJson(res,'POST',`/v1/accounts/devices/${encodeURIComponent(req.params.id)}/revoke`,{},accountProxyHeaders(req)));
+app.post('/account/devices/:id/remove', accountMutationRateLimit, requireVercelIdentity, (req,res)=>proxyOperatorJson(res,'POST',`/v1/accounts/devices/${encodeURIComponent(req.params.id)}/remove`,{},accountProxyHeaders(req)));
 app.post('/operator/auth/login', softRateLimit, requireVercelIdentity, wallAuth.bridgeLogin);
 app.post('/operator/enrollments/begin', softRateLimit, requireVercelIdentity, (req, res) => proxyOperatorJson(res, 'POST', '/v1/enrollments/begin', req.body || {}));
 app.post('/operator/enrollments/poll', softRateLimit, requireVercelIdentity, (req, res) => proxyOperatorJson(res, 'POST', '/v1/enrollments/poll', req.body || {}));
@@ -342,34 +357,35 @@ app.get('/operator/output/:id', softRateLimit, requireOperatorIdentity, (req, re
   return proxyOperatorJson(res, 'GET', `/v1/output/${encodeURIComponent(req.params.id)}${qs ? `?${qs}` : ''}`);
 });
 
-app.post('/plus/connect/begin', softRateLimit, requirePlusVercelIdentity, plusAuth.connectBegin);
-app.post('/plus/connect/poll', softRateLimit, requirePlusVercelIdentity, plusAuth.connectPoll);
-app.get('/plus/client/devices', softRateLimit, requirePlusVercelIdentity, plusAuth.requireClient, plusAuth.listDevices);
-app.post('/plus/client/sessions/open', softRateLimit, requirePlusVercelIdentity, plusAuth.requireClient, plusAuth.requireClientDevice, (req,res)=>proxyOperatorJson(res,'POST','/v1/sessions/open',{...(req.body||{}),agentId:req.plusClient.agentId,nodeId:req.plusClientDevice?.device?.nodeId}));
-app.get('/plus/client/sessions/:id', softRateLimit, requirePlusVercelIdentity, plusAuth.requireClient, plusAuth.requireClientDevice, requireClientSessionDevice, (req,res)=>proxyOperatorJson(res,'GET',`/v1/sessions/${encodeURIComponent(req.params.id)}?agentId=${encodeURIComponent(req.plusClient.agentId)}`));
-app.post('/plus/client/sessions/:id/resume', softRateLimit, requirePlusVercelIdentity, plusAuth.requireClient, plusAuth.requireClientDevice, requireClientSessionDevice, (req,res)=>proxyOperatorJson(res,'POST',`/v1/sessions/${encodeURIComponent(req.params.id)}/resume`,{agentId:req.plusClient.agentId}));
-app.post('/plus/client/sessions/:id/hold', softRateLimit, requirePlusVercelIdentity, plusAuth.requireClient, plusAuth.requireClientDevice, requireClientSessionDevice, (req,res)=>proxyOperatorJson(res,'POST',`/v1/sessions/${encodeURIComponent(req.params.id)}/hold`,{agentId:req.plusClient.agentId,reason:String(req.body?.reason||'transport_lost').slice(0,80)}));
-app.post('/plus/client/sessions/:id/close', softRateLimit, requirePlusVercelIdentity, plusAuth.requireClient, plusAuth.requireClientDevice, requireClientSessionDevice, (req,res)=>proxyOperatorJson(res,'POST',`/v1/sessions/${encodeURIComponent(req.params.id)}/close`,{agentId:req.plusClient.agentId}));
-app.post('/plus/client/execute', softRateLimit, requirePlusVercelIdentity, plusAuth.requireClient, plusAuth.requireClientDevice, (req,res)=>proxyOperatorJson(res,'POST','/v1/device-access/execute',{grantId:req.plusClientDevice.grant.grantId,envelope:req.body?.envelope||{}}));
-app.get('/plus/client/jobs/:id', softRateLimit, requirePlusVercelIdentity, plusAuth.requireClient, plusAuth.requireClientDevice, requireClientJobDevice, (req,res)=>proxyOperatorJson(res,'GET',`/v1/jobs/${encodeURIComponent(req.params.id)}?agentId=${encodeURIComponent(req.plusClient.agentId)}`));
-app.get('/plus/client/output/:id', softRateLimit, requirePlusVercelIdentity, plusAuth.requireClient, plusAuth.requireClientDevice, requireClientJobDevice, (req,res)=>{const q=new URLSearchParams({agentId:req.plusClient.agentId,stream:req.query.stream==='stderr'?'stderr':'stdout',full:req.query.full==='1'?'1':'0',offset:String(Math.max(0,Number(req.query.offset)||0)),limit:String(Math.max(1,Math.min(Number(req.query.limit)||4194304,8388608)))});return proxyOperatorJson(res,'GET',`/v1/output/${encodeURIComponent(req.params.id)}?${q}`);});
-app.post('/plus/auth/begin', softRateLimit, requirePlusVercelIdentity, plusAuth.begin);
-app.post('/plus/auth/poll', softRateLimit, requirePlusVercelIdentity, plusAuth.poll);
-app.get('/plus/bootstrap/devices', softRateLimit, requirePlusVercelIdentity, async (_req,res)=>{ try{const value=await callOperatorJson('GET','/v1/devices');const devices=(value.devices||[]).map(d=>({deviceId:d.deviceId,nodeId:d.nodeId,displayName:d.displayName,platform:d.platform,architecture:d.architecture,state:d.state,connection:{state:d.connection?.state||'dormant',remainingMs:d.connection?.remainingMs||0}}));return res.json({ok:true,devices});}catch(error){return res.status(Number(error.status)||502).json({ok:false,error:error.message||'operator_unavailable'});} });
-app.get('/plus/capabilities', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, (_req,res)=>proxyOperatorJson(res,'GET','/v1/capabilities'));
-app.get('/plus/devices', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, async (req,res)=>{try{const value=await callOperatorJson('GET',`/v1/devices/${encodeURIComponent(req.plusIdentity.deviceId)}`);return res.json({ok:true,currentDeviceId:req.plusIdentity.deviceId,devices:value.device?[value.device]:[]});}catch(error){return res.status(Number(error.status)||502).json({ok:false,error:error.message||'operator_unavailable'});}});
-app.get('/plus/fleet', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, async (req,res)=>{try{const value=await callOperatorJson('GET','/v1/fleet');return res.json({ok:true,hubNodeId:value.hubNodeId,nodes:(value.nodes||[]).filter(n=>n.deviceId===req.plusIdentity.deviceId)});}catch(error){return res.status(Number(error.status)||502).json({ok:false,error:error.message||'operator_unavailable'});}});
-app.get('/plus/devices/:id', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, requirePlusDeviceParam, (req,res)=>proxyOperatorJson(res,'GET',`/v1/devices/${encodeURIComponent(req.params.id)}`));
-app.get('/plus/devices/:id/connection', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, requirePlusDeviceParam, (req,res)=>proxyOperatorJson(res,'GET',`/v1/devices/${encodeURIComponent(req.params.id)}/connection`));
-app.get('/plus/sessions', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, async (req,res)=>{try{const value=await callOperatorJson('GET','/v1/sessions');const sessions=(value.sessions||[]).filter(s=>s.deviceId===req.plusIdentity.deviceId);return res.json({ok:true,active:sessions.filter(s=>s.state==='active'||s.state==='hold').length,maxActive:value.maxActive,defaultGraceMs:value.defaultGraceMs,minGraceMs:value.minGraceMs,maxGraceMs:value.maxGraceMs,gracePresets:value.gracePresets,sessions});}catch(error){return res.status(Number(error.status)||502).json({ok:false,error:error.message||'operator_unavailable'});}});
-app.post('/plus/sessions/open', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, plusAuth.requireAgent, plusAuth.requireGrantedNode, (req,res)=>proxyOperatorJson(res,'POST','/v1/sessions/open',req.body||{}));
-app.post('/plus/sessions/:id/resume', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, plusAuth.requireAgent, requirePlusSessionDevice, (req,res)=>proxyOperatorJson(res,'POST',`/v1/sessions/${encodeURIComponent(req.params.id)}/resume`,req.body||{}));
-app.post('/plus/sessions/:id/hold', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, plusAuth.requireAgent, requirePlusSessionDevice, (req,res)=>proxyOperatorJson(res,'POST',`/v1/sessions/${encodeURIComponent(req.params.id)}/hold`,req.body||{}));
-app.post('/plus/sessions/:id/close', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, plusAuth.requireAgent, requirePlusSessionDevice, (req,res)=>proxyOperatorJson(res,'POST',`/v1/sessions/${encodeURIComponent(req.params.id)}/close`,req.body||{}));
-app.get('/plus/sessions/:id', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, plusAuth.requireAgent, requirePlusSessionDevice, (req,res)=>proxyOperatorJson(res,'GET',`/v1/sessions/${encodeURIComponent(req.params.id)}?agentId=${encodeURIComponent(req.query.agentId||'')}`));
-app.post('/plus/execute', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, (req,res)=>proxyOperatorJson(res,'POST','/v1/device-access/execute',{grantId:req.plusIdentity.grantId,envelope:req.body||{}}));
-app.get('/plus/jobs/:id', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, plusAuth.requireAgent, requirePlusJobDevice, (req,res)=>proxyOperatorJson(res,'GET',`/v1/jobs/${encodeURIComponent(req.params.id)}?agentId=${encodeURIComponent(req.query.agentId||'')}`));
-app.get('/plus/output/:id', softRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, plusAuth.requireAgent, requirePlusJobDevice, (req,res)=>{
+app.post('/plus/connect/begin', plusRateLimit, requirePlusVercelIdentity, plusAuth.connectBegin);
+app.post('/plus/connect/poll', plusRateLimit, requirePlusVercelIdentity, plusAuth.connectPoll);
+app.post('/plus/connect/recover', plusRateLimit, requirePlusVercelIdentity, plusAuth.connectRecover);
+app.get('/plus/client/devices', plusRateLimit, requirePlusVercelIdentity, plusAuth.requireClient, plusAuth.listDevices);
+app.post('/plus/client/sessions/open', plusRateLimit, requirePlusVercelIdentity, plusAuth.requireClient, plusAuth.requireClientDevice, (req,res)=>proxyOperatorJson(res,'POST','/v1/sessions/open',{...(req.body||{}),agentId:req.plusClient.agentId,nodeId:req.plusClientDevice?.device?.nodeId}));
+app.get('/plus/client/sessions/:id', plusRateLimit, requirePlusVercelIdentity, plusAuth.requireClient, plusAuth.requireClientDevice, requireClientSessionDevice, (req,res)=>proxyOperatorJson(res,'GET',`/v1/sessions/${encodeURIComponent(req.params.id)}?agentId=${encodeURIComponent(req.plusClient.agentId)}`));
+app.post('/plus/client/sessions/:id/resume', plusRateLimit, requirePlusVercelIdentity, plusAuth.requireClient, plusAuth.requireClientDevice, requireClientSessionDevice, (req,res)=>proxyOperatorJson(res,'POST',`/v1/sessions/${encodeURIComponent(req.params.id)}/resume`,{agentId:req.plusClient.agentId}));
+app.post('/plus/client/sessions/:id/hold', plusRateLimit, requirePlusVercelIdentity, plusAuth.requireClient, plusAuth.requireClientDevice, requireClientSessionDevice, (req,res)=>proxyOperatorJson(res,'POST',`/v1/sessions/${encodeURIComponent(req.params.id)}/hold`,{agentId:req.plusClient.agentId,reason:String(req.body?.reason||'transport_lost').slice(0,80)}));
+app.post('/plus/client/sessions/:id/close', plusRateLimit, requirePlusVercelIdentity, plusAuth.requireClient, plusAuth.requireClientDevice, requireClientSessionDevice, (req,res)=>proxyOperatorJson(res,'POST',`/v1/sessions/${encodeURIComponent(req.params.id)}/close`,{agentId:req.plusClient.agentId}));
+app.post('/plus/client/execute', plusRateLimit, requirePlusVercelIdentity, plusAuth.requireClient, plusAuth.requireClientDevice, (req,res)=>proxyOperatorJson(res,'POST','/v1/device-access/execute',{grantId:req.plusClientDevice.grant.grantId,envelope:req.body?.envelope||{}}));
+app.get('/plus/client/jobs/:id', plusRateLimit, requirePlusVercelIdentity, plusAuth.requireClient, plusAuth.requireClientDevice, requireClientJobDevice, (req,res)=>proxyOperatorJson(res,'GET',`/v1/jobs/${encodeURIComponent(req.params.id)}?agentId=${encodeURIComponent(req.plusClient.agentId)}`));
+app.get('/plus/client/output/:id', plusRateLimit, requirePlusVercelIdentity, plusAuth.requireClient, plusAuth.requireClientDevice, requireClientJobDevice, (req,res)=>{const q=new URLSearchParams({agentId:req.plusClient.agentId,stream:req.query.stream==='stderr'?'stderr':'stdout',full:req.query.full==='1'?'1':'0',offset:String(Math.max(0,Number(req.query.offset)||0)),limit:String(Math.max(1,Math.min(Number(req.query.limit)||4194304,8388608)))});return proxyOperatorJson(res,'GET',`/v1/output/${encodeURIComponent(req.params.id)}?${q}`);});
+app.post('/plus/auth/begin', plusRateLimit, requirePlusVercelIdentity, plusAuth.begin);
+app.post('/plus/auth/poll', plusRateLimit, requirePlusVercelIdentity, plusAuth.poll);
+app.get('/plus/bootstrap/devices', plusRateLimit, requirePlusVercelIdentity, async (_req,res)=>{ try{const value=await callOperatorJson('GET','/v1/devices');const devices=(value.devices||[]).map(d=>({deviceId:d.deviceId,nodeId:d.nodeId,displayName:d.displayName,platform:d.platform,architecture:d.architecture,state:d.state,connection:{state:d.connection?.state||'dormant',remainingMs:d.connection?.remainingMs||0}}));return res.json({ok:true,devices});}catch(error){return res.status(Number(error.status)||502).json({ok:false,error:error.message||'operator_unavailable'});} });
+app.get('/plus/capabilities', plusRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, (_req,res)=>proxyOperatorJson(res,'GET','/v1/capabilities'));
+app.get('/plus/devices', plusRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, async (req,res)=>{try{const value=await callOperatorJson('GET',`/v1/devices/${encodeURIComponent(req.plusIdentity.deviceId)}`);return res.json({ok:true,currentDeviceId:req.plusIdentity.deviceId,devices:value.device?[value.device]:[]});}catch(error){return res.status(Number(error.status)||502).json({ok:false,error:error.message||'operator_unavailable'});}});
+app.get('/plus/fleet', plusRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, async (req,res)=>{try{const value=await callOperatorJson('GET','/v1/fleet');return res.json({ok:true,hubNodeId:value.hubNodeId,nodes:(value.nodes||[]).filter(n=>n.deviceId===req.plusIdentity.deviceId)});}catch(error){return res.status(Number(error.status)||502).json({ok:false,error:error.message||'operator_unavailable'});}});
+app.get('/plus/devices/:id', plusRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, requirePlusDeviceParam, (req,res)=>proxyOperatorJson(res,'GET',`/v1/devices/${encodeURIComponent(req.params.id)}`));
+app.get('/plus/devices/:id/connection', plusRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, requirePlusDeviceParam, (req,res)=>proxyOperatorJson(res,'GET',`/v1/devices/${encodeURIComponent(req.params.id)}/connection`));
+app.get('/plus/sessions', plusRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, async (req,res)=>{try{const value=await callOperatorJson('GET','/v1/sessions');const sessions=(value.sessions||[]).filter(s=>s.deviceId===req.plusIdentity.deviceId);return res.json({ok:true,active:sessions.filter(s=>s.state==='active'||s.state==='hold').length,maxActive:value.maxActive,defaultGraceMs:value.defaultGraceMs,minGraceMs:value.minGraceMs,maxGraceMs:value.maxGraceMs,gracePresets:value.gracePresets,sessions});}catch(error){return res.status(Number(error.status)||502).json({ok:false,error:error.message||'operator_unavailable'});}});
+app.post('/plus/sessions/open', plusRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, plusAuth.requireAgent, plusAuth.requireGrantedNode, (req,res)=>proxyOperatorJson(res,'POST','/v1/sessions/open',req.body||{}));
+app.post('/plus/sessions/:id/resume', plusRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, plusAuth.requireAgent, requirePlusSessionDevice, (req,res)=>proxyOperatorJson(res,'POST',`/v1/sessions/${encodeURIComponent(req.params.id)}/resume`,req.body||{}));
+app.post('/plus/sessions/:id/hold', plusRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, plusAuth.requireAgent, requirePlusSessionDevice, (req,res)=>proxyOperatorJson(res,'POST',`/v1/sessions/${encodeURIComponent(req.params.id)}/hold`,req.body||{}));
+app.post('/plus/sessions/:id/close', plusRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, plusAuth.requireAgent, requirePlusSessionDevice, (req,res)=>proxyOperatorJson(res,'POST',`/v1/sessions/${encodeURIComponent(req.params.id)}/close`,req.body||{}));
+app.get('/plus/sessions/:id', plusRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, plusAuth.requireAgent, requirePlusSessionDevice, (req,res)=>proxyOperatorJson(res,'GET',`/v1/sessions/${encodeURIComponent(req.params.id)}?agentId=${encodeURIComponent(req.query.agentId||'')}`));
+app.post('/plus/execute', plusRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, (req,res)=>proxyOperatorJson(res,'POST','/v1/device-access/execute',{grantId:req.plusIdentity.grantId,envelope:req.body||{}}));
+app.get('/plus/jobs/:id', plusRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, plusAuth.requireAgent, requirePlusJobDevice, (req,res)=>proxyOperatorJson(res,'GET',`/v1/jobs/${encodeURIComponent(req.params.id)}?agentId=${encodeURIComponent(req.query.agentId||'')}`));
+app.get('/plus/output/:id', plusRateLimit, requirePlusVercelIdentity, plusAuth.requireSession, plusAuth.requireAgent, requirePlusJobDevice, (req,res)=>{
   const qs=new URLSearchParams(req.query).toString();
   return proxyOperatorJson(res,'GET',`/v1/output/${encodeURIComponent(req.params.id)}${qs?`?${qs}`:''}`);
 });

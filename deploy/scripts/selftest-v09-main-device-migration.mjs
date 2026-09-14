@@ -8,6 +8,8 @@ import {createOperatorCryptoFixture} from './selftest-crypto-fixture.mjs';
 import {deviceChannelMessage} from '../../lib/device-proof.mjs';
 
 const root=new URL('../..',import.meta.url).pathname;
+const agentSource=fs.readFileSync(`${root}/device-agent/operator-agent.mjs`,'utf8');
+if(!agentSource.includes('if(state.identity?.privateKey){delete state.identity')||!agentSource.includes('external_identity_rotation_required'))throw new Error('hard_remove_identity_rotation_missing');
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'lr-main-migration-'));
 const socket=path.join(dir,'operator.sock'),stateDir=path.join(dir,'state'),logDir=path.join(dir,'log');
 fs.mkdirSync(stateDir,{recursive:true});fs.mkdirSync(logDir,{recursive:true});
@@ -83,6 +85,16 @@ async function enroll(label){
   if(r.status!==200||r.json.account?.mainDeviceId!==null||r.json.account?.fleetProvisioning!==null)throw new Error('clear_main_after_migration_failed');
   r=await request('POST','/v1/device-channel/fleet-devices',b.signed('fleet-devices',{fleetToken:tokenB}));
   if(r.status!==403||r.json.error!=='fleet_main_device_required')throw new Error('main_clear_did_not_revoke_b');
+
+  r=await request('POST',`/v1/accounts/devices/${a.deviceId}/remove`,{}, {'x-light-account-session':token});
+  if(r.status!==200||r.json.removed?.deviceId!==a.deviceId)throw new Error('hard_remove_a_failed');
+  r=await request('GET','/v1/accounts/devices',null,{'x-light-account-session':token});
+  if(r.status!==200||r.json.devices?.some(d=>d.deviceId===a.deviceId)||!r.json.devices?.some(d=>d.deviceId===b.deviceId))throw new Error('hard_remove_a_registry_not_purged');
+  r=await request('POST','/v1/device-channel/fleet-intent',a.signed('fleet-intent',{}));
+  if(r.status!==404||r.json.error!=='device_binding_not_found')throw new Error('hard_remove_a_binding_survived');
+  r=await request('POST','/v1/accounts/devices/arm-local/remove',{}, {'x-light-account-session':token});
+  if(r.status!==409||r.json.error!=='integrated_hub_device_not_removable')throw new Error('integrated_hub_remove_not_rejected');
+  console.log('v09-device-hard-remove=PASS');
 
   console.log('v09-main-migration-a-to-b=PASS');
   console.log('v09-main-migration-old-authority-revoked=PASS');

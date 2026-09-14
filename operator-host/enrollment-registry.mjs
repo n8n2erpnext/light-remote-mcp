@@ -250,6 +250,16 @@ export class EnrollmentRegistry {
   }
   binding(deviceId, { allowRevoked = false } = {}) { const row=this.bindings.get(String(deviceId||'')); if (!row) throw new EnrollmentError('device_binding_not_found',404); if (row.revokedAt && !allowRevoked) throw new EnrollmentError('device_revoked',403); return row; }
   revoke(input = {}) { const row=this.binding(input.deviceId,{allowRevoked:true}); const accountId=String(input.accountId||''); if (row.accountId!==accountId) throw new EnrollmentError('device_account_mismatch',403); if (!row.revokedAt) { row.revokedAt=this.now(); row.revokeReason=bounded(input.reason||'owner_revoked',120); this._persist(); this.emit({type:'device_revoked',deviceId:row.deviceId,accountId:row.accountId,status:'revoked',reason:row.revokeReason}); } return { deviceId:row.deviceId, accountId:row.accountId, revokedAt:row.revokedAt, reason:row.revokeReason }; }
+  remove(input = {}) {
+    const deviceId=bounded(input.deviceId,128),accountId=bounded(input.accountId,128),row=this.bindings.get(deviceId);
+    if(!row) throw new EnrollmentError('device_binding_not_found',404);
+    if(row.accountId!==accountId) throw new EnrollmentError('device_account_mismatch',403);
+    this.bindings.delete(deviceId);
+    for(const [id,pending] of this.pending) if(pending?.deviceId===deviceId) this.pending.delete(id);
+    this._persist();this.emit({type:'device_binding_removed',deviceId,accountId,status:'removed',reason:bounded(input.reason||'owner_removed',120)});
+    return {deviceId,accountId,removed:true};
+  }
+
   verifyChannel(input = {}, action = '', payload = {}) {
     this._prune();
     const binding=this.binding(input.deviceId);

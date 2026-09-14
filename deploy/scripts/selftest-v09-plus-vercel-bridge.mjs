@@ -8,7 +8,12 @@ function response(){return {statusCode:200,body:null,status(n){this.statusCode=n
 const api=text('api/operator.js');
 const server=text('gateway/server.mjs');
 const security=text('gateway/security.mjs');
+const opReq=text('lib/operator-request.js');
+expect(opReq.includes('const MAX_GET_PAYLOAD_CHARS = 12000;'),'plus_get_payload_cap_must_be_12k');
 expect(api.includes("const plus=wantsPlus && req.method==='GET'"),'plus_bridge_must_be_get_only');
+expect(api.includes("action==='connection-helper'")&&api.includes('connectionHelperView')&&api.includes('quickGuide'),'plus_connection_helper_missing');
+expect(api.includes('pairingRecovery')&&api.includes("'/plus/connect/recover'")&&server.includes("app.post('/plus/connect/recover'"),'plus_pairing_recovery_missing');
+expect(server.includes("plusRateLimit=createRateLimit('plus'")&&server.includes('plusRateIdentity')&&!server.includes("app.post('/plus/connect/begin', softRateLimit"),'plus_scoped_rate_limit_missing');
 expect(api.includes("action==='connect'")&&api.includes("action==='connect-poll'")&&api.includes("action==='list-devices'"),'plus_golden_pairing_surface_missing');
 expect(api.includes("action==='devices-bootstrap'")&&api.includes("action==='authorize-begin'")&&api.includes("action==='authorize-poll'"),'plus_compatibility_surface_missing');
 expect(api.includes("plus_session_required")&&api.includes("plusSession"),'plus_session_gate_missing');
@@ -47,6 +52,15 @@ const token=r.body.session.token;let next=false;
 r=response(); await plus.requireSession({get:()=>token},r,()=>{next=true;});expect(next,'plus_session_verify_failed');
 next=false;r=response();plus.requireAgent({body:{agentId:'agent-v09-plus-selftest-0002'},query:{}},r,()=>{next=true;});expect(next,'plus_multi_agent_same_grant_failed');
 next=false;r=response();plus.requireGrantedNode({plusIdentity:{nodeId:'arm'},body:{agentId:'agent-v09-plus-selftest-0002',nodeId:'amd'},query:{}},r,()=>{next=true;});expect(!next&&r.statusCode===403&&r.body?.error==='plus_device_grant_target_mismatch','plus_cross_device_target_not_rejected');
+
+const recoveryAgent='agent-v09-plus-recovery-0001',recoveryRequest='pa_recovery_selftest_0000000001',recoveryPoll='R'.repeat(32);
+const recoveryPlus=createPlusAuth(fakeWall,{
+  pollAccess:async body=>{expect(body.requestId===recoveryRequest&&body.pollToken===recoveryPoll,'plus_pairing_recovery_poll_mismatch');return {access:{state:'approved',grant}};},
+  getAccessRequest:async id=>({authorization:{requestId:id,agentId:recoveryAgent}}),
+  attachClient:async body=>({client:{clientSessionId:'acs_recovery_selftest_0001',agentId:body.agentId,expiresAt:Date.now()+3600000},device:{deviceId:grant.deviceId,displayName:'RECOVERY'}})
+});
+r=response();await recoveryPlus.connectRecover({body:{requestId:recoveryRequest,pollToken:recoveryPoll}},r);
+expect(r.statusCode===200&&r.body?.status==='ready'&&r.body?.recovered===true&&String(r.body?.client||'').startsWith('o1.client.'),'plus_pairing_recovery_attach_failed');
 
 console.log('v09-plus-vercel-ab-golden-path=PASS');
 console.log('v09-plus-vercel-pairing=PASS');

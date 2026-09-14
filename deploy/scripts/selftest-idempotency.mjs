@@ -18,7 +18,7 @@ if(fs.readFileSync(marker,'utf8')!=='x') throw new Error('side_effect_ran_more_t
 const conflictPayload={...payload,script:`printf y >> ${marker}`};
 const c=await req(cryptoFixture.seal(conflictPayload));
 if(c.status!==409||c.json.error!=='operation_id_conflict') throw new Error(`conflict_guard_failed:${c.status}:${c.json.error}`);
-const audit=fs.readFileSync(`${logDir}/operations.jsonl`,'utf8');
+let audit='';for(let i=0;i<50;i++){try{audit=fs.readFileSync(`${logDir}/operations.jsonl`,'utf8');}catch{}if(audit.includes(operationId))break;await sleep(20);}
 const starts=audit.split('\n').filter(line=>line.includes('"type":"job_started"')&&line.includes(operationId)).length;
 if(starts!==1) throw new Error(`expected_one_job_started_got_${starts}`);
 console.log(JSON.stringify({ok:true,operationId,jobId:a.json.job.jobId,dedupedJobId:b.json.job.jobId,marker:fs.readFileSync(marker,'utf8'),conflict:c.json.error,jobStarts:starts},null,2));

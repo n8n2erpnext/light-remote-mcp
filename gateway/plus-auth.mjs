@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { brandFaviconSvg } from './brand.mjs';
 
 function safeId(value, pattern, name) {
   const text = String(value || '').trim();
@@ -54,6 +55,18 @@ export function createPlusAuth(wallAuth, options = {}) {
       return res.status(200).json({ok:true,status:'ready',device:device.displayName||device.deviceId||grant.deviceId,client:clientTokenFor(client)});
     }catch(error){const denied=error.message==='plus_authorization_denied',expired=['plus_authorization_expired','agent_client_expired'].includes(error.message);return res.status(Number(error.status)||400).json({ok:false,status:expired?'approval_expired':denied?'access_revoked':'error',error:error.message||'pairing_failed'});}
   }
+  async function connectRecover(req,res){
+    try{
+      const requestId=safeId(req.body?.requestId,/^pa_[A-Za-z0-9_-]{20,80}$/,'invalid_plus_request_id');
+      const pollToken=safeId(req.body?.pollToken,/^[A-Za-z0-9_-]{32,128}$/,'invalid_plus_poll_token');
+      const result=accessOf(await pollAccess({requestId,pollToken}));
+      if(result?.state!=='approved')return res.status(202).json({ok:true,status:'approval_required',expiresInSeconds:Math.max(0,Math.ceil(((result?.request?.expiresAt)||Date.now())-Date.now())/1000)});
+      const infoValue=await getAccessRequest(requestId),row=infoValue?.authorization||infoValue;
+      if(!row?.agentId)throw new Error('pairing_recovery_agent_missing');
+      const grant=grantOf(result),attached=await attachClient({clientSessionId:null,agentId:row.agentId,grantId:grant.grantId,pairingRequestId:requestId}),client=attached?.client,device=attached?.device||{};
+      return res.status(200).json({ok:true,status:'ready',device:device.displayName||device.deviceId||grant.deviceId,client:clientTokenFor(client),recovered:true});
+    }catch(error){const denied=error.message==='plus_authorization_denied',expired=['plus_authorization_expired','agent_client_expired'].includes(error.message);return res.status(Number(error.status)||400).json({ok:false,status:expired?'approval_expired':denied?'access_revoked':'error',error:error.message||'pairing_recovery_failed'});}
+  }
   async function requireClient(req,res,next){
     const ctx=clientContext(req.get('x-light-client')||'');
     if(!ctx)return res.status(401).json({ok:false,error:'agent_client_required'});
@@ -103,7 +116,7 @@ export function createPlusAuth(wallAuth, options = {}) {
       const value=await getAccessRequest(id),row=value?.authorization||value;
       if(!row)return res.status(404).type('html').send('<!doctype html><title>Light Remote MCP</title><p>Authorization request not found or expired.</p>');
       res.set('Content-Security-Policy',"default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'");
-      return res.type('html').send(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Authorize ChatGPT Plus</title><style>:root{color-scheme:dark;font-family:system-ui;background:#080a0c;color:#e5e7eb}body{margin:0;padding:24px}.card{max-width:620px;margin:auto;border:1px solid #29313a;border-radius:14px;padding:22px;background:#0b0f13}.muted{color:#8b98a8}.code{font:700 24px ui-monospace,monospace;letter-spacing:.12em;color:#ffcc00}</style></head><body><main class="card"><h1>Approve on the selected device Wall</h1><p class="muted">Open that device's Light Remote Wall, go to <b>/approve</b>, enter this code, then choose Approve or Deny.</p><p>Request code</p><div class="code">${esc(row.userCode)}</div><p><b>Device:</b> ${esc(row.deviceId)}<br><b>Agent:</b> ${esc(row.agentId||'ChatGPT')}<br><b>Label:</b> ${esc(row.label||'ChatGPT Plus')}</p><p class="muted">Approval does not create or extend the device connection and does not set a session duration.</p></main></body></html>`);
+      return res.type('html').send(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">${brandFaviconSvg()}<title>Authorize ChatGPT Plus</title><style>:root{color-scheme:dark;font-family:system-ui;background:#080a0c;color:#e5e7eb}body{margin:0;padding:24px}.card{max-width:620px;margin:auto;border:1px solid #29313a;border-radius:14px;padding:22px;background:#0b0f13}.muted{color:#8b98a8}.code{font:700 24px ui-monospace,monospace;letter-spacing:.12em;color:#ffcc00}</style></head><body><main class="card"><h1>Approve on the selected device Wall</h1><p class="muted">Open that device's Light Remote Wall, go to <b>/approve</b>, enter this code, then choose Approve or Deny.</p><p>Request code</p><div class="code">${esc(row.userCode)}</div><p><b>Device:</b> ${esc(row.deviceId)}<br><b>Agent:</b> ${esc(row.agentId||'ChatGPT')}<br><b>Label:</b> ${esc(row.label||'ChatGPT Plus')}</p><p class="muted">Approval does not create or extend the device connection and does not set a session duration.</p></main></body></html>`);
     } catch(error){ return res.status(Number(error.status)||404).type('html').send('<!doctype html><title>Light Remote MCP</title><p>Authorization request not found or expired.</p>'); }
   }
   async function requireSession(req,res,next){
@@ -133,5 +146,5 @@ export function createPlusAuth(wallAuth, options = {}) {
     return next();
   }
 
-  return {connectBegin,connectPoll,requireClient,listDevices,requireClientDevice,begin,poll,list,page,requireSession,requireAgent,requireGrantedNode};
+  return {connectBegin,connectPoll,connectRecover,requireClient,listDevices,requireClientDevice,begin,poll,list,page,requireSession,requireAgent,requireGrantedNode};
 }

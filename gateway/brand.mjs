@@ -12,3 +12,7 @@ export function brandMarkSvg(size = 42) {
 export function brandTitleSvg(size = 42) {
   return '<span class="brand-title">' + brandMarkSvg(size) + '<span><strong>Light Remote</strong><small>MCP</small></span></span>';
 }
+
+export function brandFaviconSvg() {
+  return '<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,' + Buffer.from(canonicalMark).toString('base64') + '">';
+}

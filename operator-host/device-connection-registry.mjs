@@ -84,6 +84,13 @@ export class DeviceConnectionRegistry {
       this.emit({type:'device_connection_closed',accountId:row.accountId,deviceId:row.deviceId,connectionId:row.connectionId,status:'dormant',reason:row.closeReason});}
     return this._view(row);
   }
+  remove(deviceId,reason='owner_removed'){
+    const did=validId(deviceId,'invalid_connection_device_id'),row=this.connections.get(did);
+    if(!row)return {deviceId:did,removed:false};
+    this.connections.delete(did);this._persist();
+    this.emit({type:'device_connection_removed',accountId:row.accountId,deviceId:did,connectionId:row.connectionId,status:'removed',reason:String(reason||'owner_removed').slice(0,80)});
+    return {deviceId:did,removed:true};
+  }
   touch(deviceId,reason='activity'){
     const row=this.assertConnected(deviceId); row.lastActivityAt=this.now(); this._persist();
     this.emit({type:'device_connection_activity',accountId:row.accountId,deviceId:row.deviceId,connectionId:row.connectionId,status:'connected',reason:String(reason).slice(0,80)});

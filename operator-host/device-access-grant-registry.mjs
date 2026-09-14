@@ -146,6 +146,14 @@ export class DeviceAccessGrantRegistry {
     for(const row of this.grants.values())if(row.deviceId===did&&!row.closedAt)closed.push(this.close(row.grantId,reason));
     return closed;
   }
+  purgeDevice(deviceId,reason='owner_removed'){
+    const did=validId(deviceId,'invalid_access_device_id');let grants=0,requests=0;
+    for(const [id,row] of this.grants)if(row.deviceId===did){this.grants.delete(id);grants++;}
+    for(const [id,row] of this.requests)if(row.deviceId===did){this.requests.delete(id);requests++;}
+    if(grants||requests)this._persist();
+    this.emit({type:'device_access_purged',deviceId:did,status:'removed',reason:String(reason||'owner_removed').slice(0,80),grants,requests});
+    return {deviceId:did,grants,requests};
+  }
   requestInfo(requestId){
     const id=validId(requestId,'invalid_plus_request_id'),row=this.requests.get(id);
     if(!row)throw new DeviceAccessGrantError('plus_authorization_not_found',404);

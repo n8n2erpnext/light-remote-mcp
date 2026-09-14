@@ -196,6 +196,14 @@ export class DeviceRegistry {
     return this._view(device);
   }
 
+  remove(deviceId, reason = 'owner_removed') {
+    const did=this._requireId(deviceId,'device_id'),device=this.devices.get(did);
+    if(!device) throw new DeviceError('device_not_found',404);
+    this.devices.delete(did);this._persist();
+    this.emit({type:'device_removed',accountId:device.accountId,deviceId:did,nodeId:device.nodeId,status:'removed',reason:boundedText(reason,80)});
+    return {accountId:device.accountId,deviceId:did,nodeId:device.nodeId,removed:true};
+  }
+
   markOffline(deviceId, reason = 'agent_stopped') {
     const device = this.devices.get(String(deviceId || ''));
     if (!device) throw new DeviceError('device_not_found', 404);

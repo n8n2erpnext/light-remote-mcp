@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import express from 'express';
+import { brandFaviconSvg } from './brand.mjs';
 
 const ACCESS_TTL_SECONDS = 3600;
 const CODE_TTL_MS = 2 * 60 * 1000;
@@ -33,7 +34,7 @@ function pkceS256(verifier) {
 function consentHtml(params,message='') {
   const hidden=Object.entries(params).map(([k,v])=>`<input type="hidden" name="${escapeHtml(k)}" value="${escapeHtml(v)}">`).join('');
   const error=message?`<div class="err">${escapeHtml(message)}</div>`:'';
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Light Remote MCP authorization</title><style>
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">${brandFaviconSvg()}<title>Light Remote MCP authorization</title><style>
 :root{color-scheme:dark;font-family:ui-sans-serif,system-ui;background:#090b0e;color:#e5e7eb}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center}.card{width:min(460px,calc(100vw - 32px));border:1px solid #2b3139;border-radius:16px;background:#10141a;padding:24px}.muted{color:#98a2b3}.err{color:#ffaaaa;margin:12px 0}label{display:block;margin:14px 0}input,button{width:100%;padding:11px;border-radius:8px;border:1px solid #303844;background:#0b0f14;color:#e5e7eb;font:inherit}button{cursor:pointer;background:#1d4ed8;border-color:#1d4ed8;margin-top:8px}</style></head><body><main class="card"><h1>Authorize Light Remote MCP</h1><p class="muted">ChatGPT is requesting access to your policy-bounded remote devices. Device policy and local capability checks remain authoritative.</p>${error}<form method="post" action="/oauth/authorize">${hidden}<label>Username<input name="username" autocomplete="username" required></label><label>Password<input type="password" name="password" autocomplete="current-password" required></label><button type="submit">Authorize</button></form></main></body></html>`;
 }
 function clientFromId(wallAuth,clientId) {

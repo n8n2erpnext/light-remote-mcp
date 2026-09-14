@@ -5,6 +5,34 @@ const { aid, field, jobId, normalizeDeviceHeartbeat, normalizeDevicePolicy, norm
 
 function enrollmentSourceHash(req){ const ip=String(req.headers?.["x-forwarded-for"]||"unknown").split(",")[0].trim().slice(0,128); return crypto.createHash("sha256").update("v07-enrollment:"+ip).digest("hex"); }
 
+function connectionHelperView(value={}) {
+  const status=String(value.status||'need_a_code');
+  const base={protocol:'light-remote-plus-v1',endpoint:'/api/operator?via=plus&action=connection-helper',status};
+  if(status==='approval_required') return {...value,helper:{...base,nextAction:'owner_approve_b_then_poll',instruction:'Ask the owner to enter the returned B code on the exact Wall that produced A, approve it, then call connection-helper again with nextPayload.',nextPayload:{continuation:value.continuation}}};
+  if(status==='ready') return {...value,helper:{...base,nextAction:'list-devices',instruction:'Connection is ready. Keep the opaque client token private and reuse it for all calls in this Agent session.',quickGuide:{listDevices:'action=list-devices&client=<client>',sessionOpen:'action=session-open&client=<client>&p=<base64url {deviceId,openId,agentId,label,workspace,gracePreset}>',exec:'action=exec&client=<client>&p=<base64url {deviceId,operationId,script,cwd,timeoutMs,waitMs,sessionId,agentId,requiredCapabilities}>',durableOutput:'If exec returns running, use action=job then action=output with the same client and explicit device.',rules:['Generate one stable agentId per chat/window.','Pair each additional device independently with its own A/B flow.','Never enumerate account devices before pairing.','Never expose client/continuation capabilities to the user.']}}};
+  return {...value,helper:{...base,nextAction:'provide_a_code',instruction:'Get a fresh A code from the target Local Wall, then call connection-helper with {aCode,agentId,label}. Do not send client on the first pairing.'}};
+}
+
+function pairingRecovery(continuation){
+  const parts=String(continuation||'').split('.');
+  if(parts.length!==4||parts[0]!=='o1'||parts[1]!=='pair')return null;
+  try{
+    const value=JSON.parse(Buffer.from(parts[2],'base64url').toString('utf8'));
+    const requestId=String(value?.requestId||''),pollToken=String(value?.pollToken||'');
+    if(!/^pa_[A-Za-z0-9_-]{20,80}$/.test(requestId)||!/^[A-Za-z0-9_-]{32,128}$/.test(pollToken))return null;
+    return {requestId,pollToken};
+  }catch{return null;}
+}
+async function pollPairing(continuation){
+  try{return await callOperator('/plus/connect/poll',{method:'POST',body:{continuation}});}
+  catch(error){
+    const recovery=pairingRecovery(continuation);
+    if(error.status===401&&error.payload?.error==='pairing_continuation_required'&&recovery)return callOperator('/plus/connect/recover',{method:'POST',body:recovery});
+    throw error;
+  }
+}
+
+
 module.exports=async function handler(req,res){
   const started=Date.now();
   res.setHeader('Cache-Control','no-store');
@@ -20,7 +48,7 @@ module.exports=async function handler(req,res){
   const plusClient=String(field(req,'client','')).trim();
   const plusClientValid=/^o1\.client\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(plusClient);
   const compactClientActions=new Set(['list-devices','session-open','session-resume','session-hold','session-close','session','exec','job','output']);
-  const compactPlusResponse=()=>plus&&(action==='connect'||action==='connect-poll'||(plusClientValid&&compactClientActions.has(action)));
+  const compactPlusResponse=()=>plus&&(action==='connection-helper'||action==='connect'||action==='connect-poll'||(plusClientValid&&compactClientActions.has(action)));
   const call=(path,options={})=>callOperator(path,{...options,bridgeSession});
   const plusCall=(path,options={})=>callOperator(path,{...options,plusSession});
   const clientCall=(path,options={})=>callOperator(path,{...options,plusClient});
@@ -28,7 +56,26 @@ module.exports=async function handler(req,res){
   try {
     let upstream;
     if(plus){
-      if(action==='connect') {
+      if(action==='connection-helper') {
+        if(!String(req.query?.p||'').trim()) upstream=connectionHelperView({ok:false,status:'need_a_code',error:'pairing_code_required'});
+        else {
+          const d=payloadFor(req);
+          if(d.continuation){
+            const continuation=String(d.continuation||'').trim();
+            if(!/^o1\.pair\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(continuation)){const e=new Error('invalid_pairing_continuation');e.status=400;throw e;}
+            upstream=connectionHelperView(await pollPairing(continuation));
+          } else {
+            const raw=String(d.aCode||'').trim().toUpperCase().replace(/-/g,'');
+            if(!/^[A-Z2-9]{8}$/.test(raw)){upstream=connectionHelperView({ok:false,status:'need_a_code',error:raw?'invalid_pairing_code':'pairing_code_required'});}
+            else {
+              const agentId=aid(d.agentId),label=String(d.label||'ChatGPT').trim().slice(0,120);
+              let client=null;if(d.client!=null&&String(d.client).trim()){client=String(d.client).trim();if(!/^o1\.client\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(client)){const e=new Error('invalid_agent_client');e.status=400;throw e;}}
+              upstream=connectionHelperView(await callOperator('/plus/connect/begin',{method:'POST',body:{aCode:`${raw.slice(0,4)}-${raw.slice(4)}`,agentId,label,client}}));
+            }
+          }
+        }
+      }
+      else if(action==='connect') {
         if(!String(req.query?.p||'').trim()){const e=new Error('pairing_code_required');e.status=428;e.payload={ok:false,status:'need_a_code',error:e.message};throw e;}
         const d=payloadFor(req),raw=String(d.aCode||'').trim().toUpperCase().replace(/-/g,'');
         if(!raw){const e=new Error('pairing_code_required');e.status=428;e.payload={ok:false,status:'need_a_code',error:e.message};throw e;}
@@ -40,7 +87,7 @@ module.exports=async function handler(req,res){
       else if(action==='connect-poll') {
         const d=payloadFor(req),continuation=String(d.continuation||'').trim();
         if(!/^o1\.pair\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(continuation)){const e=new Error('invalid_pairing_continuation');e.status=400;throw e;}
-        upstream=await callOperator('/plus/connect/poll',{method:'POST',body:{continuation}});
+        upstream=await pollPairing(continuation);
       }
       else if(action==='devices-bootstrap') upstream=await callOperator('/plus/bootstrap/devices');
       else if(action==='authorize-begin') {

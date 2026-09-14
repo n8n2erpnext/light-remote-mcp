@@ -1,7 +1,7 @@
 module.exports = function handler(req, res) {
   res.setHeader('Cache-Control','no-store'); res.setHeader('X-Robots-Tag','noindex,nofollow,noarchive');
   if(req.method!=='GET') return res.status(405).json({ok:false,error:'method_not_allowed'});
-  return res.status(200).json({ok:true,project:'light-remote-mcp',version:'0.9.0-beta.1',purpose:'Light Remote MCP relay to the owner ARM operator hub',
+  return res.status(200).json({ok:true,project:'light-remote-mcp',version:'0.9.0-rc.6',purpose:'Light Remote MCP relay to the owner ARM operator hub',
     activePath:'ChatGPT -> Vercel bridge -> ARM hub -> selected node executor',upstream:'https://mcp.dashboard.thaiduy.store',wall:'https://wall.dashboard.thaiduy.store',
     recoveryDocs:['CURRENT_STATE.md','AI_BRIDGE_GUIDE.md','SESSION_OWNERSHIP_V0_5.md','HUB_TOPOLOGY_V0_5.md','PRODUCT_PLATFORM_PLAN_V0_6_TO_PUBLIC_PLUGIN.md','DEVICE_PRESENCE_V0_6.md','DEVICE_ENROLLMENT_V0_7.md','FLEET_ROUTING_V0_8.md','PLATFORM_ADAPTERS_V0_9.md','PORTABILITY.md'],
     auth:{plusCurrent:'ChatGPT Plus golden path is A/B device pairing over @Vercel GET: user supplies one Local Wall A code, Agent calls connect directly, server returns B, owner enters B at that exact Wall and Approves, then the Agent client may operate only its authorized device set; no pre-auth fleet discovery, no custom MCP and no x-bridge-session header from ChatGPT',legacyOwner:'POST /api/auth + x-bridge-session remains for non-Plus/reference operator clients',staticSharedBearer:false,directMcp:'Business/Enterprise/Edu test/future Plugin lane only'},

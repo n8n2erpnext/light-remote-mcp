@@ -73,6 +73,13 @@ export class DevicePairingRegistry {
     this.emit({type:'device_pairing_a_redeemed',accountId:row.accountId,deviceId:row.deviceId,connectionId:row.connectionId,pairingId:row.pairingId,status:'consumed'});
     return {pairingId:row.pairingId,accountId:row.accountId,deviceId:row.deviceId,connectionId:row.connectionId,createdAt:row.createdAt,expiresAt:row.expiresAt,consumedAt:row.consumedAt};
   }
+  purgeDevice(deviceId,reason='owner_removed'){
+    const did=validId(deviceId,'invalid_pairing_device_id');let count=0;
+    for(const [hash,row] of [...this.rows])if(row.deviceId===did){this.rows.delete(hash);count++;}
+    this.currentByDevice.delete(did);
+    this.emit({type:'device_pairing_purged',deviceId:did,status:'removed',reason:String(reason||'owner_removed').slice(0,80),count});
+    return {deviceId:did,count};
+  }
   invalidateDevice(deviceId,reason='device_connection_closed'){
     const did=validId(deviceId,'invalid_pairing_device_id'),hash=this.currentByDevice.get(did),row=hash?this.rows.get(hash):null;
     if(row)this._invalidate(row,reason);
