@@ -59,7 +59,8 @@ function externalIdentity(){if(!EXTERNAL_IDENTITY_FILE)return null;if(externalId
 function ensureIdentity(state={}){if(state.identity?.publicIdentityKey&&(state.identity?.privateKey||EXTERNAL_IDENTITY_FILE))return state;const external=externalIdentity();if(external)return {...state,identity:{algorithm:'Ed25519',publicIdentityKey:external.publicIdentityKey,publicKeySha256:external.publicKeySha256,createdAt:external.createdAt}};const {publicKey,privateKey}=crypto.generateKeyPairSync('ed25519');const publicIdentityKey=publicKey.export({format:'der',type:'spki'}).toString('base64');return {...state,identity:{algorithm:'Ed25519',privateKey:privateKey.export({format:'der',type:'pkcs8'}).toString('base64'),publicIdentityKey,publicKeySha256:sha256(Buffer.from(publicIdentityKey,'base64')),createdAt:Date.now()}};}
 function discoverCapabilities(){return PLATFORM_ADAPTER.discoverCapabilities();}
 function effectiveCapabilities(approved,denied){const deny=new Set(denied||[]);return (approved||[]).filter(x=>!deny.has(x)).sort();}
-async function parseResponse(response){const text=await response.text();let json;try{json=JSON.parse(text)}catch{json={raw:text}}if(!response.ok||!json.ok){const e=new Error(json.error||json.upstream?.error||`http_${response.status}`);e.status=response.status;e.payload=json;throw e;}return json;}
+function responseRetryAfterMs(response,json){const header=String(response.headers?.get?.('retry-after')||'').trim(),bodySeconds=Number(json?.retryAfterSeconds);let value=Number.isFinite(bodySeconds)&&bodySeconds>0?bodySeconds*1000:0;if(/^\d+$/.test(header))value=Math.max(value,Number(header)*1000);else if(header){const at=Date.parse(header);if(Number.isFinite(at))value=Math.max(value,at-Date.now());}return Math.max(0,Math.min(value,5*60*1000));}
+async function parseResponse(response){const text=await response.text();let json;try{json=JSON.parse(text)}catch{json={raw:text}}if(!response.ok||!json.ok){const e=new Error(json.error||json.upstream?.error||`http_${response.status}`);e.status=response.status;e.payload=json;e.retryAfterMs=responseRetryAfterMs(response,json);throw e;}return json;}
 async function operator(base,action,payload){const response=await fetch(`${base.replace(/\/$/,'')}/api/operator`,{method:'POST',headers:{'content-type':'application/json','accept':'application/json'},body:JSON.stringify({action,payload}),signal:AbortSignal.timeout(15000)});return (await parseResponse(response)).upstream;}
 function privateKey(state){if(state.identity?.privateKey)return crypto.createPrivateKey({key:Buffer.from(state.identity.privateKey,'base64'),format:'der',type:'pkcs8'});const external=externalIdentity();if(!external||external.publicIdentityKey!==state.identity?.publicIdentityKey)throw new Error('device_private_key_unavailable');return external.privateKey;}
 function verifyEnrollment(state,enrollment){const cert=enrollment.certificate;if(!cert||cert.publicKeySha256!==state.identity.publicKeySha256||cert.deviceId!==enrollment.deviceId)throw new Error('device_certificate_identity_mismatch');const signer=crypto.createPublicKey({key:Buffer.from(enrollment.signer.publicKey,'base64'),format:'der',type:'spki'});if(!crypto.verify(null,Buffer.from(JSON.stringify(cert)),signer,Buffer.from(enrollment.certificateSignature,'base64url')))throw new Error('device_certificate_signature_invalid');return true;}
@@ -376,7 +377,7 @@ async function daemon(args){
           try{const ack=await channelRequest(state,hub,'result',result);delivered=Boolean(ack.accepted);resultFailures=0;}
           catch(error){
             if(['device_binding_not_found','device_not_found'].includes(error.message)){markDeviceRemoved(state,error.message);break;}if(['device_connection_required','device_connection_expired','device_revoked'].includes(error.message)){markCloudState(state,{desiredConnected:false,state:'dormant',connectionId:null,hardExpiresAt:null,lastError:error.message,lastDisconnectedAt:Date.now()});break;}
-            resultFailures++;console.error(JSON.stringify({event:'device_result_delivery_failed',deviceId:state.enrollment.deviceId,commandId:command.commandId,error:error.message,status:error.status||null,failures:resultFailures}));await wait(Math.min(1000*(2**Math.min(resultFailures,5)),30000));
+            resultFailures++;const retryInMs=Math.min(Math.max(1000*(2**Math.min(resultFailures,5)),Number(error.retryAfterMs)||0),300000);console.error(JSON.stringify({event:'device_result_delivery_failed',deviceId:state.enrollment.deviceId,commandId:command.commandId,error:error.message,status:error.status||null,failures:resultFailures,retryInMs}));await wait(retryInMs);
           }
         }
       }
@@ -387,7 +388,7 @@ async function daemon(args){
         console.error(JSON.stringify({event:'device_cloud_dormant',deviceId:state.enrollment.deviceId,reason:error.message,status:error.status||null}));
         continue;
       }
-      failures++;console.error(JSON.stringify({event:'device_channel_failed',deviceId:state.enrollment.deviceId,error:error.message,status:error.status||null,failures}));if(!stopped)await wait(Math.min(1000*(2**Math.min(failures,5)),30000));
+      failures++;const retryInMs=Math.min(Math.max(1000*(2**Math.min(failures,5)),Number(error.retryAfterMs)||0),300000);console.error(JSON.stringify({event:'device_channel_failed',deviceId:state.enrollment.deviceId,error:error.message,status:error.status||null,failures,retryInMs}));if(!stopped)await wait(retryInMs);
     }
   }
   try{await fleetSupervisor.close();}catch{}
