@@ -306,6 +306,8 @@ jobs:
           $currentVersion = (Get-Content VERSION -Raw).Trim()
           $psi.ArgumentList.Add($currentVersion)
           $psi.ArgumentList.Add('0')
+          $psi.ArgumentList.Add('99.0.0')
+          $psi.ArgumentList.Add('ut_cirollback_1234567890')
           $p = [System.Diagnostics.Process]::Start($psi)
           if (-not $p.WaitForExit(180000)) {
             Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
