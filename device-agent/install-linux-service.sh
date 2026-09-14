@@ -61,4 +61,17 @@ sudo install -m 0644 "$unit" /etc/systemd/system/gpt-operator-device-agent.servi
 sudo systemctl daemon-reload
 sudo systemctl enable --now gpt-operator-device-agent.service
 echo "Installed gpt-operator-device-agent.service for $USER_NAME"
-echo "Local Wall: http://127.0.0.1:5491/ (service stays alive even before enrollment or while cloud is dormant)"
+WALL_HOST="127.0.0.1"
+WALL_PORT="5491"
+SERVICE_ENV="$(systemctl show gpt-operator-device-agent.service --property=Environment --value 2>/dev/null || true)"
+for item in $SERVICE_ENV; do
+  case "$item" in
+    OPERATOR_AGENT_WALL_HOST=*) WALL_HOST="${item#*=}";;
+    OPERATOR_AGENT_WALL_PORT=*) WALL_PORT="${item#*=}";;
+  esac
+done
+WALL_HOST="${WALL_HOST%\"}"; WALL_HOST="${WALL_HOST#\"}"
+WALL_PORT="${WALL_PORT%\"}"; WALL_PORT="${WALL_PORT#\"}"
+WALL_DISPLAY_HOST="$WALL_HOST"
+if [[ "$WALL_DISPLAY_HOST" == *:* && "$WALL_DISPLAY_HOST" != \[*\] ]]; then WALL_DISPLAY_HOST="[$WALL_DISPLAY_HOST]"; fi
+printf 'Local Wall: http://%s:%s/ (service stays alive even before enrollment or while cloud is dormant).\n' "$WALL_DISPLAY_HOST" "$WALL_PORT"

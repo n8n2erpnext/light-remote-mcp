@@ -237,5 +237,18 @@ printf 'Light Remote MCP client installed: version=%s user=%s\n' "$VERSION" "$TA
 printf 'Enrollment bridge: %s\n' "$BASE_URL"
 printf 'Device hub: %s\n' "$HUB_URL"
 echo 'The terminal can now be closed; systemd owns the always-alive local service.'
-echo 'Local Wall: http://127.0.0.1:5491/ (cloud may be Connected or Dormant independently).'
+WALL_HOST="127.0.0.1"
+WALL_PORT="5491"
+SERVICE_ENV="$(systemctl show gpt-operator-device-agent.service --property=Environment --value 2>/dev/null || true)"
+for item in $SERVICE_ENV; do
+  case "$item" in
+    OPERATOR_AGENT_WALL_HOST=*) WALL_HOST="${item#*=}";;
+    OPERATOR_AGENT_WALL_PORT=*) WALL_PORT="${item#*=}";;
+  esac
+done
+WALL_HOST="${WALL_HOST%\"}"; WALL_HOST="${WALL_HOST#\"}"
+WALL_PORT="${WALL_PORT%\"}"; WALL_PORT="${WALL_PORT#\"}"
+WALL_DISPLAY_HOST="$WALL_HOST"
+if [[ "$WALL_DISPLAY_HOST" == *:* && "$WALL_DISPLAY_HOST" != \[*\] ]]; then WALL_DISPLAY_HOST="[$WALL_DISPLAY_HOST]"; fi
+printf 'Local Wall: http://%s:%s/ (cloud may be Connected or Dormant independently).\n' "$WALL_DISPLAY_HOST" "$WALL_PORT"
 echo 'Signed update availability checks run automatically every ~6 hours; installation remains owner-triggered.'

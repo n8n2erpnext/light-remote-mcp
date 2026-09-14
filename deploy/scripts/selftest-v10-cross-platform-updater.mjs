@@ -22,4 +22,5 @@ assert.ok(macAgent.includes('LIGHT_REMOTE_UPDATE_STATE_DIR'),'mac_core_update_st
 assert.ok(macPkg.includes('if [[ ! -x "\\$ROOT/updater/current/runtime/node" ]]'),'mac_helper_bootstrap_not_guarded');
 assert.ok(linuxInstall.includes('gpt-operator-agent-update-check.service')&&linuxInstall.includes('gpt-operator-agent-update.path'),'linux_check_apply_split_missing');
 assert.ok(linuxInstall.includes('AGENT_WAS_ACTIVE=0')&&linuxInstall.includes('systemctl restart gpt-operator-device-agent.service'),'linux_existing_agent_restart_missing');
+assert.ok(linuxInstall.includes('systemctl show gpt-operator-device-agent.service --property=Environment --value')&&linuxInstall.includes('WALL_DISPLAY_HOST'),'linux_effective_wall_url_missing');
 console.log('v10-cross-platform-updater-lifeboat=PASS');
