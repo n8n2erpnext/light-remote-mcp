@@ -33,6 +33,7 @@ for(const token of ['NotifyIcon','Open Local Wall','Restart Light Remote','Check
 expect(tray.includes('ExitThread()')&&!tray.includes('StopServiceAsync'),'quit_tray_must_not_stop_agent');
 expect(trayIcon.includes('BrandAssets.Mark'),'tray_brand_mark_missing');
 expect(updaterProject.includes('<AssemblyName>LightRemote.Updater</AssemblyName>')&&updaterProject.includes('<OutputType>WinExe</OutputType>'),'independent_updater_project_missing');
+expect(!updaterProgram.includes('JsonSerializer.Serialize')&&!applier.includes('JsonSerializer.Serialize'),'trimmed_updater_reflection_json_forbidden');
 expect(project.includes('<EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>')&&updaterProject.includes('<EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>'),'windows_single_file_compression_missing');
 expect(updaterProject.includes('<PublishTrimmed>true</PublishTrimmed>')&&updaterProject.includes('<TrimMode>partial</TrimMode>'),'windows_updater_trim_missing');
 expect(project.includes('<DebugType>none</DebugType>')&&updaterProject.includes('<DebugType>none</DebugType>'),'windows_release_debug_symbols_not_disabled');
