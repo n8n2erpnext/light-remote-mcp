@@ -19,6 +19,8 @@ expect(api.includes("action==='devices-bootstrap'")&&api.includes("action==='aut
 expect(api.includes("plus_session_required")&&api.includes("plusSession"),'plus_session_gate_missing');
 expect(api.includes("sealOperatorPayload(normalizeExecPayload"),'plus_bridge_exec_encryption_missing');
 expect(api.includes("action==='session-open'")&&api.includes("action==='output'"),'plus_bridge_durable_surface_missing');
+expect(api.includes("action.startsWith('process-')")&&api.includes("'process-start'")&&api.includes("'process-output'"),'plus_native_process_surface_missing');
+expect(server.includes("app.post('/plus/client/context'")&&server.includes("ensureClientContext"),'plus_working_context_surface_missing');
 expect(server.includes("app.post('/plus/connect/begin'")&&server.includes("app.post('/plus/connect/poll'"),'plus_gateway_ab_pairing_missing');
 expect(server.includes("app.get('/plus/client/devices'")&&server.includes("app.post('/plus/client/execute'"),'plus_gateway_client_set_missing');
 expect(server.includes("app.post('/plus/auth/begin'")&&server.includes('plusAuth.requireSession'),'plus_gateway_compatibility_gate_missing');
@@ -57,7 +59,8 @@ const recoveryAgent='agent-v09-plus-recovery-0001',recoveryRequest='pa_recovery_
 const recoveryPlus=createPlusAuth(fakeWall,{
   pollAccess:async body=>{expect(body.requestId===recoveryRequest&&body.pollToken===recoveryPoll,'plus_pairing_recovery_poll_mismatch');return {access:{state:'approved',grant}};},
   getAccessRequest:async id=>({authorization:{requestId:id,agentId:recoveryAgent}}),
-  attachClient:async body=>({client:{clientSessionId:'acs_recovery_selftest_0001',agentId:body.agentId,expiresAt:Date.now()+3600000},device:{deviceId:grant.deviceId,displayName:'RECOVERY'}})
+  attachClient:async body=>({client:{clientSessionId:'acs_recovery_selftest_0001',agentId:body.agentId,expiresAt:Date.now()+3600000},device:{deviceId:grant.deviceId,displayName:'RECOVERY'}}),
+  ensureClientContext:async body=>({ok:true,context:{clientSessionId:body.clientSessionId,agentId:body.agentId,deviceId:body.deviceId,sessionId:'session-recovery-selftest',nodeId:'arm',workspace:'',gracePreset:'60m'}})
 });
 r=response();await recoveryPlus.connectRecover({body:{requestId:recoveryRequest,pollToken:recoveryPoll}},r);
 expect(r.statusCode===200&&r.body?.status==='ready'&&r.body?.recovered===true&&String(r.body?.client||'').startsWith('o1.client.'),'plus_pairing_recovery_attach_failed');

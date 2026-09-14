@@ -17,6 +17,9 @@ import { registerRemoteTools } from './remote-tools.mjs';
 import { registerConvenienceTools } from './remote-convenience-tools.mjs';
 import { registerMcpOAuth, mcpAuthChallenge } from './oauth.mjs';
 import { createPlusAuth } from './plus-auth.mjs';
+import { sealOperatorPayload } from './operator-crypto.mjs';
+import { createPlusTransferHandlers } from './plus-transfer.mjs';
+import { ChunkTransferRegistry } from './chunk-transfer.mjs';
 
 const PORT = Number(process.env.PORT || 8080);
 const WALL_PORT = Number(process.env.WALL_PORT || 8081);
@@ -141,6 +144,7 @@ const app = createMcpExpressApp({
 
 app.disable('x-powered-by');
 app.use((req, res, next) => {
+  req.lightRemoteAcceptedAt=Date.now();
   res.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
   res.set('X-Content-Type-Options', 'nosniff');
   res.set('Referrer-Policy', 'no-referrer');
@@ -193,10 +197,19 @@ const plusAuth = createPlusAuth(wallAuth, {
   attachClient: body => callOperatorJson('POST','/v1/agent-client/attach',body),
   listClientDevices: (id,agentId) => callOperatorJson('GET',`/v1/agent-client/${encodeURIComponent(id)}/devices?agentId=${encodeURIComponent(agentId)}`),
   resolveClientDevice: body => callOperatorJson('POST','/v1/agent-client/resolve',body),
+  ensureClientContext: body => callOperatorJson('POST','/v1/agent-client/context',body),
   pollAccess: body => callOperatorJson('POST','/v1/device-access/poll',body),
   getAccessRequest: id => callOperatorJson('GET',`/v1/device-access/requests/${encodeURIComponent(id)}`),
   listAccessRequests: () => callOperatorJson('GET','/v1/device-access/requests'),
   assertGrant: id => callOperatorJson('GET',`/v1/device-access/grants/${encodeURIComponent(id)}`)
+});
+const plusTransfer = createPlusTransferHandlers({
+  registry:new ChunkTransferRegistry({
+    ttlMs:Number(process.env.LIGHT_REMOTE_TRANSFER_TTL_MS)||600000,
+    maxTransferBytes:Math.min(Number(process.env.LIGHT_REMOTE_TRANSFER_MAX_BYTES)||5*1024*1024,5*1024*1024),
+    maxChunkBytes:Number(process.env.LIGHT_REMOTE_TRANSFER_CHUNK_BYTES)||5120
+  }),
+  callOperatorJson,sealOperatorPayload
 });
 registerMcpOAuth(app, wallAuth);
 app.get('/healthz', (_req, res) => res.json({
@@ -361,12 +374,18 @@ app.post('/plus/connect/begin', plusRateLimit, requirePlusVercelIdentity, plusAu
 app.post('/plus/connect/poll', plusRateLimit, requirePlusVercelIdentity, plusAuth.connectPoll);
 app.post('/plus/connect/recover', plusRateLimit, requirePlusVercelIdentity, plusAuth.connectRecover);
 app.get('/plus/client/devices', plusRateLimit, requirePlusVercelIdentity, plusAuth.requireClient, plusAuth.listDevices);
+app.post('/plus/client/context', plusRateLimit, requirePlusVercelIdentity, plusAuth.requireClient, plusAuth.workingContext);
+app.post('/plus/client/transfers', plusRateLimit, requirePlusVercelIdentity, plusAuth.requireClient, plusAuth.requireClientDevice, plusTransfer.begin);
+app.post('/plus/client/transfers/:id/chunk', plusRateLimit, requirePlusVercelIdentity, plusAuth.requireClient, plusAuth.requireClientDevice, plusTransfer.put);
+app.post('/plus/client/transfers/:id/status', plusRateLimit, requirePlusVercelIdentity, plusAuth.requireClient, plusAuth.requireClientDevice, plusTransfer.status);
+app.post('/plus/client/transfers/:id/commit', plusRateLimit, requirePlusVercelIdentity, plusAuth.requireClient, plusAuth.requireClientDevice, plusTransfer.commit);
+app.post('/plus/client/transfers/:id/cancel', plusRateLimit, requirePlusVercelIdentity, plusAuth.requireClient, plusAuth.requireClientDevice, plusTransfer.cancel);
 app.post('/plus/client/sessions/open', plusRateLimit, requirePlusVercelIdentity, plusAuth.requireClient, plusAuth.requireClientDevice, (req,res)=>proxyOperatorJson(res,'POST','/v1/sessions/open',{...(req.body||{}),agentId:req.plusClient.agentId,nodeId:req.plusClientDevice?.device?.nodeId}));
 app.get('/plus/client/sessions/:id', plusRateLimit, requirePlusVercelIdentity, plusAuth.requireClient, plusAuth.requireClientDevice, requireClientSessionDevice, (req,res)=>proxyOperatorJson(res,'GET',`/v1/sessions/${encodeURIComponent(req.params.id)}?agentId=${encodeURIComponent(req.plusClient.agentId)}`));
 app.post('/plus/client/sessions/:id/resume', plusRateLimit, requirePlusVercelIdentity, plusAuth.requireClient, plusAuth.requireClientDevice, requireClientSessionDevice, (req,res)=>proxyOperatorJson(res,'POST',`/v1/sessions/${encodeURIComponent(req.params.id)}/resume`,{agentId:req.plusClient.agentId}));
 app.post('/plus/client/sessions/:id/hold', plusRateLimit, requirePlusVercelIdentity, plusAuth.requireClient, plusAuth.requireClientDevice, requireClientSessionDevice, (req,res)=>proxyOperatorJson(res,'POST',`/v1/sessions/${encodeURIComponent(req.params.id)}/hold`,{agentId:req.plusClient.agentId,reason:String(req.body?.reason||'transport_lost').slice(0,80)}));
 app.post('/plus/client/sessions/:id/close', plusRateLimit, requirePlusVercelIdentity, plusAuth.requireClient, plusAuth.requireClientDevice, requireClientSessionDevice, (req,res)=>proxyOperatorJson(res,'POST',`/v1/sessions/${encodeURIComponent(req.params.id)}/close`,{agentId:req.plusClient.agentId}));
-app.post('/plus/client/execute', plusRateLimit, requirePlusVercelIdentity, plusAuth.requireClient, plusAuth.requireClientDevice, (req,res)=>proxyOperatorJson(res,'POST','/v1/device-access/execute',{grantId:req.plusClientDevice.grant.grantId,envelope:req.body?.envelope||{}}));
+app.post('/plus/client/execute', plusRateLimit, requirePlusVercelIdentity, plusAuth.requireClient, plusAuth.requireClientDevice, (req,res)=>proxyOperatorJson(res,'POST','/v1/device-access/execute',{grantId:req.plusClientDevice.grant.grantId,agentId:req.plusClient.agentId,envelope:req.body?.envelope||{},telemetry:{bridgeReceivedAt:req.body?.bridgeReceivedAt,gatewayAcceptedAt:req.lightRemoteAcceptedAt}}));
 app.get('/plus/client/jobs/:id', plusRateLimit, requirePlusVercelIdentity, plusAuth.requireClient, plusAuth.requireClientDevice, requireClientJobDevice, (req,res)=>proxyOperatorJson(res,'GET',`/v1/jobs/${encodeURIComponent(req.params.id)}?agentId=${encodeURIComponent(req.plusClient.agentId)}`));
 app.get('/plus/client/output/:id', plusRateLimit, requirePlusVercelIdentity, plusAuth.requireClient, plusAuth.requireClientDevice, requireClientJobDevice, (req,res)=>{const q=new URLSearchParams({agentId:req.plusClient.agentId,stream:req.query.stream==='stderr'?'stderr':'stdout',full:req.query.full==='1'?'1':'0',offset:String(Math.max(0,Number(req.query.offset)||0)),limit:String(Math.max(1,Math.min(Number(req.query.limit)||4194304,8388608)))});return proxyOperatorJson(res,'GET',`/v1/output/${encodeURIComponent(req.params.id)}?${q}`);});
 app.post('/plus/auth/begin', plusRateLimit, requirePlusVercelIdentity, plusAuth.begin);

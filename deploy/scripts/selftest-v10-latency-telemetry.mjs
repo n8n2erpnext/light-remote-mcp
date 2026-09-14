@@ -1,0 +1,18 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+const read=rel=>fs.readFileSync(new URL('../../'+rel,import.meta.url),'utf8');
+const vercel=read('api/operator.js'),gateway=read('gateway/server.mjs'),transfer=read('gateway/plus-transfer.mjs');
+const executor=read('operator-host/executor.mjs'),agent=read('device-agent/operator-agent.mjs'),wall=read('gateway/dashboard.mjs');
+assert.ok(vercel.includes('bridgeReceivedAt:started'),'bridge_receive_missing');
+assert.ok(gateway.includes('req.lightRemoteAcceptedAt=Date.now()'),'gateway_accept_missing');
+assert.ok(gateway.includes('gatewayAcceptedAt:req.lightRemoteAcceptedAt'),'gateway_forward_missing');
+assert.ok(transfer.includes('gatewayAcceptedAt:req.lightRemoteAcceptedAt'),'chunk_commit_timing_missing');
+for(const key of ['bridgeMs','gatewayMs','dispatchMs','firstByteMs','executionMs'])assert.ok(executor.includes(key),`operator_latency_missing:${key}`);
+assert.ok(executor.includes('applyDeviceTelemetry(job,result.telemetry)'),'device_timing_merge_missing');
+assert.ok(agent.includes('deviceReceivedAt=Date.now()'),'device_receive_missing');
+assert.ok(agent.includes('firstOutputAt:Number.isSafeInteger(reportedFirst)'),'device_first_output_missing');
+assert.ok(agent.includes('completedAt};'),'device_completion_missing');
+for(const label of ['bridge','gateway','dispatch','first-byte','execution','wall'])assert.ok(wall.includes(`['${label}'`),`wall_latency_label_missing:${label}`);
+assert.ok(wall.includes('markWallDisplay(j)'),'wall_display_timestamp_missing');
+console.log('v10-latency-telemetry-stages=PASS');
+console.log('v10-latency-telemetry-wall-report=PASS');

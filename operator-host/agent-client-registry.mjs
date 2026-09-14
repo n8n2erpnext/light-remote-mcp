@@ -46,22 +46,34 @@ export class AgentClientRegistry {
     const now=this.now();let row;
     if(clientSessionId)row=this._row(clientSessionId,{agentId:agent,accountId:aid});
     else if(requestId){for(const candidate of this.rows.values()){const prior=candidate.bindings?.[grant.deviceId];if(!candidate.closedAt&&candidate.accountId===aid&&candidate.agentId===agent&&prior?.pairingRequestId===requestId&&prior?.grantId===grant.grantId){row=candidate;break;}}}
-    if(!row){const id=`lrc_${crypto.randomBytes(18).toString('base64url')}`;row={clientSessionId:id,accountId:aid,agentId:agent,createdAt:now,lastActivityAt:now,expiresAt:now+this.ttlMs,closedAt:null,closeReason:null,bindings:{}};this.rows.set(id,row);this.emit({type:'agent_client_created',accountId:aid,agentId:agent,clientSessionId:id,status:'active'});}
+    if(!row){const id=`lrc_${crypto.randomBytes(18).toString('base64url')}`;row={clientSessionId:id,accountId:aid,agentId:agent,createdAt:now,lastActivityAt:now,expiresAt:now+this.ttlMs,closedAt:null,closeReason:null,defaultDeviceId:null,bindings:{}};this.rows.set(id,row);this.emit({type:'agent_client_created',accountId:aid,agentId:agent,clientSessionId:id,status:'active'});}
     row.bindings=row.bindings&&typeof row.bindings==='object'?row.bindings:{};
-    const previous=row.bindings[grant.deviceId];row.bindings[grant.deviceId]={deviceId:grant.deviceId,grantId:grant.grantId,connectionId:grant.connectionId,boundAt:previous?.boundAt||now,lastActivityAt:now,pairingRequestId:requestId||previous?.pairingRequestId||null};row.lastActivityAt=now;
+    const previous=row.bindings[grant.deviceId];row.bindings[grant.deviceId]={deviceId:grant.deviceId,grantId:grant.grantId,connectionId:grant.connectionId,boundAt:previous?.boundAt||now,lastActivityAt:now,pairingRequestId:requestId||previous?.pairingRequestId||null,workingContext:previous?.workingContext||null};row.defaultDeviceId=grant.deviceId;row.lastActivityAt=now;
     this._persist();this.emit({type:'agent_client_device_bound',accountId:aid,agentId:agent,clientSessionId:row.clientSessionId,deviceId:grant.deviceId,connectionId:grant.connectionId,grantId:grant.grantId,status:'authorized'});
     return this.view(row.clientSessionId,{agentId:agent});
   }
   view(clientSessionId,{agentId=null,touch=false}={}){const row=this._row(clientSessionId,{agentId,touch});return {...row,bindings:Object.values(row.bindings||{}).map(x=>({...x}))};}
-  resolve(clientSessionId,{agentId,deviceId,touch=true}={}){
-    const row=this._row(clientSessionId,{agentId,touch}),did=validId(deviceId,'invalid_agent_client_device'),binding=row.bindings?.[did];
+  resolve(clientSessionId,{agentId,deviceId=null,touch=true}={}){
+    const row=this._row(clientSessionId,{agentId,touch});
+    let did=String(deviceId||'').trim();
+    if(!did){const active=Object.keys(row.bindings||{});did=String(row.defaultDeviceId||'').trim();if(!did&&active.length===1)did=active[0];if(!did)throw new AgentClientRegistryError('agent_client_target_required',409);}
+    did=validId(did,'invalid_agent_client_device');const binding=row.bindings?.[did];
     if(!binding)throw new AgentClientRegistryError('agent_client_device_not_authorized',403);
-    if(touch){binding.lastActivityAt=this.now();this._persist();}
-    return {...binding,clientSessionId:row.clientSessionId,agentId:row.agentId,accountId:row.accountId};
+    if(touch){binding.lastActivityAt=this.now();row.defaultDeviceId=did;this._persist();}
+    return {...binding,workingContext:binding.workingContext?{...binding.workingContext}:null,clientSessionId:row.clientSessionId,agentId:row.agentId,accountId:row.accountId};
+  }
+  setWorkingContext(clientSessionId,{agentId,deviceId,sessionId,workspace='',gracePreset='60m'}={}){
+    const row=this._row(clientSessionId,{agentId,touch:true}),did=validId(deviceId,'invalid_agent_client_device'),binding=row.bindings?.[did];
+    if(!binding)throw new AgentClientRegistryError('agent_client_device_not_authorized',403);
+    const sid=validId(sessionId,'invalid_agent_client_session'),now=this.now();
+    binding.workingContext={sessionId:sid,workspace:String(workspace||'').slice(0,512),gracePreset:String(gracePreset||'60m').slice(0,16),updatedAt:now};
+    binding.lastActivityAt=now;row.defaultDeviceId=did;row.lastActivityAt=now;this._persist();
+    this.emit({type:'agent_client_context_bound',accountId:row.accountId,agentId:row.agentId,clientSessionId:row.clientSessionId,deviceId:did,sessionId:sid,status:'ready'});
+    return {...binding.workingContext,deviceId:did,clientSessionId:row.clientSessionId,agentId:row.agentId};
   }
   removeDevice(deviceId,reason='device_access_closed'){
     const did=validId(deviceId,'invalid_agent_client_device');let count=0;
-    for(const row of this.rows.values())if(!row.closedAt&&row.bindings?.[did]){delete row.bindings[did];count++;this.emit({type:'agent_client_device_unbound',accountId:row.accountId,agentId:row.agentId,clientSessionId:row.clientSessionId,deviceId:did,status:'removed',reason:String(reason||'removed').slice(0,80)});}
+    for(const row of this.rows.values())if(!row.closedAt&&row.bindings?.[did]){delete row.bindings[did];if(row.defaultDeviceId===did)row.defaultDeviceId=Object.keys(row.bindings||{})[0]||null;count++;this.emit({type:'agent_client_device_unbound',accountId:row.accountId,agentId:row.agentId,clientSessionId:row.clientSessionId,deviceId:did,status:'removed',reason:String(reason||'removed').slice(0,80)});}
     if(count)this._persist();return count;
   }
   close(clientSessionId,reason='closed'){

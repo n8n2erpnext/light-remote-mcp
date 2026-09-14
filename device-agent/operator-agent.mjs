@@ -11,6 +11,10 @@ import { startLocalWall } from './local-wall.mjs';
 import { loadLocalWallAuth, writeLocalWallAuthConfig, writeAccountOnlyWallAuthConfig } from './local-wall-auth.mjs';
 import { FleetComponentManager } from './fleet-component-manager.mjs';
 import { FleetComponentSupervisor } from './fleet-component-supervisor.mjs';
+import { executeNativeFs, filesystemPolicy } from '../lib/native-fs.mjs';
+import { NativeProcessRegistry } from '../lib/native-process.mjs';
+import { NativeSearchRegistry } from '../lib/native-search.mjs';
+import { LightScpRegistry } from '../lib/light-scp-registry.mjs';
 
 function runtimeVersion(){
   const forced=String(process.env.LIGHT_REMOTE_VERSION||process.env.OPERATOR_AGENT_VERSION||'').trim();if(forced)return forced;
@@ -20,6 +24,9 @@ function runtimeVersion(){
 }
 const VERSION=runtimeVersion();
 const PLATFORM_ADAPTER=createPlatformAdapter();
+const NATIVE_PROCESSES=new NativeProcessRegistry();
+const NATIVE_SEARCHES=new NativeSearchRegistry();
+const LIGHT_SCP=new LightScpRegistry();
 const DEFAULT_BASE=process.env.OPERATOR_AGENT_BASE_URL || 'https://light-remote-mcp.vercel.app';
 const DEFAULT_HUB=process.env.OPERATOR_AGENT_HUB_URL || 'https://mcp.dashboard.thaiduy.store';
 const STATE_FILE=process.env.OPERATOR_AGENT_STATE || path.join(os.homedir(),'.config','gpt-operator-agent','device.json');
@@ -75,6 +82,52 @@ function readCommand(commandId){try{return JSON.parse(fs.readFileSync(commandFil
 function writeCommand(commandId,value){fs.mkdirSync(COMMAND_DIR,{recursive:true,mode:0o700});writeJson0600(commandFile(commandId),value);}
 function pruneCommandSpool(){fs.mkdirSync(COMMAND_DIR,{recursive:true,mode:0o700});const rows=fs.readdirSync(COMMAND_DIR).filter(name=>/^cmd_[A-Za-z0-9-]{20,}\.json$/.test(name)).map(name=>({name,stat:fs.statSync(path.join(COMMAND_DIR,name))})).sort((a,b)=>b.stat.mtimeMs-a.stat.mtimeMs);const cutoff=Date.now()-24*60*60*1000;for(let i=0;i<rows.length;i++)if(i>=100||rows[i].stat.mtimeMs<cutoff)fs.rmSync(path.join(COMMAND_DIR,rows[i].name),{force:true});}
 function boundedCollector(limit=MAX_OUTPUT){let size=0,chunks=[],truncated=false;return{add(data){const buf=Buffer.from(data);if(size>=limit){truncated=true;return;}const take=buf.subarray(0,Math.max(0,limit-size));chunks.push(take);size+=take.length;if(take.length<buf.length)truncated=true;},text(){return Buffer.concat(chunks).toString('utf8');},truncated(){return truncated;}};}
+async function executeProcessCommand(state,p){
+  const request=p.process&&typeof p.process==='object'&&!Array.isArray(p.process)?p.process:{};
+  const op=String(request.op||'');
+  const owner={accountId:state.enrollment.accountId,deviceId:state.enrollment.deviceId,sessionId:String(p.sessionId||''),agentId:String(p.agentId||'')};
+  const effective=effectiveCapabilities(state.enrollment.approvedCapabilities,state.policy?.deniedCapabilities);
+  if(op==='start'){
+    const script=String(request.script||'');if(!script.trim())throw new Error('process_script_required');
+    const required=[...new Set([...(Array.isArray(request.requiredCapabilities)?request.requiredCapabilities:[]),...PLATFORM_ADAPTER.inferRequiredCapabilities(script)])].sort();
+    const policyDeny=PLATFORM_ADAPTER.hardDeny?.(script)||null;if(policyDeny)throw new Error(`local platform policy denied: ${policyDeny}`);
+    const missing=required.filter(cap=>!effective.includes(cap));if(missing.length)throw new Error(`local capability denied: ${missing.join(',')}`);
+    const cwd=String(request.cwd||os.homedir());let stat;try{stat=fs.statSync(cwd);}catch{}if(!stat?.isDirectory())throw new Error('cwd_not_directory');
+    return {ok:true,operation:'start',process:NATIVE_PROCESSES.start({...owner,script,cwd,timeoutMs:request.timeoutMs,spawnSpec:value=>PLATFORM_ADAPTER.commandFor(value),env:{GPT_OPERATOR_ACCOUNT:owner.accountId,GPT_OPERATOR_DEVICE:owner.deviceId,GPT_OPERATOR_NODE:state.enrollment.nodeId||owner.deviceId,GPT_OPERATOR_SESSION:owner.sessionId}})};
+  }
+  if(!effective.includes('filesystem'))throw new Error('local capability denied: filesystem');
+  if(op==='input')return {ok:true,operation:'input',process:NATIVE_PROCESSES.input(request.processId,owner,{data:request.data,eof:Boolean(request.eof)})};
+  if(op==='output')return {ok:true,operation:'output',...NATIVE_PROCESSES.output(request.processId,owner,{stream:request.stream,offset:request.offset,limit:request.limit})};
+  if(op==='stop')return {ok:true,operation:'stop',process:NATIVE_PROCESSES.stop(request.processId,owner,{force:Boolean(request.force)})};
+  if(op==='list')return {ok:true,operation:'list',processes:NATIVE_PROCESSES.list(owner)};
+  throw new Error('process_operation_unsupported');
+}
+
+async function executeSearchCommand(state,p){
+  const request=p.search&&typeof p.search==='object'&&!Array.isArray(p.search)?p.search:{};
+  const op=String(request.op||''),owner={accountId:state.enrollment.accountId,deviceId:state.enrollment.deviceId,sessionId:String(p.sessionId||''),agentId:String(p.agentId||'')};
+  const effective=effectiveCapabilities(state.enrollment.approvedCapabilities,state.policy?.deniedCapabilities);if(!effective.includes('filesystem'))throw new Error('local capability denied: filesystem');
+  if(op==='start'){const policy=filesystemPolicy();return {ok:true,operation:'start',search:await NATIVE_SEARCHES.start({...owner,path:request.path,searchType:request.searchType,pattern:request.pattern,literalSearch:Boolean(request.literalSearch),ignoreCase:request.ignoreCase!==false,filePattern:request.filePattern,contextLines:request.contextLines,maxResults:request.maxResults,readRoots:policy.readRoots})};}
+  if(op==='results')return {ok:true,operation:'results',...NATIVE_SEARCHES.results(request.searchId,owner,{offset:request.offset,limit:request.limit})};
+  if(op==='cancel')return {ok:true,operation:'cancel',search:NATIVE_SEARCHES.cancel(request.searchId,owner)};
+  throw new Error('search_operation_unsupported');
+}
+
+async function executeScpCommand(state,p){
+  const request=p.scp&&typeof p.scp==='object'&&!Array.isArray(p.scp)?p.scp:{};
+  const op=String(request.op||''),owner={accountId:state.enrollment.accountId,deviceId:state.enrollment.deviceId,sessionId:String(p.sessionId||''),agentId:String(p.agentId||'')};
+  const effective=effectiveCapabilities(state.enrollment.approvedCapabilities,state.policy?.deniedCapabilities);
+  if(!effective.includes('filesystem'))throw new Error('local capability denied: filesystem');
+  if(op==='upload-begin')return {ok:true,operation:op,transfer:await LIGHT_SCP.beginUpload(owner,request)};
+  if(op==='upload-chunk')return {ok:true,operation:op,transfer:await LIGHT_SCP.putUploadChunk(owner,request.transferId,request)};
+  if(op==='upload-commit')return {ok:true,operation:op,result:await LIGHT_SCP.commitUpload(owner,request.transferId)};
+  if(op==='download-begin')return {ok:true,operation:op,transfer:await LIGHT_SCP.beginDownload(owner,request)};
+  if(op==='download-chunk')return {ok:true,operation:op,chunk:await LIGHT_SCP.readDownloadChunk(owner,request.transferId,request)};
+  if(op==='status')return {ok:true,operation:op,transfer:await LIGHT_SCP.status(owner,request.transferId)};
+  if(op==='cancel')return {ok:true,operation:op,result:await LIGHT_SCP.cancel(owner,request.transferId)};
+  throw new Error('scp_operation_unsupported');
+}
+
 async function executeCommand(state,command){
   const existing=readCommand(command.commandId);
   if(existing?.state==='finished'&&existing.result)return existing.result;
@@ -83,6 +136,50 @@ async function executeCommand(state,command){
     writeCommand(command.commandId,{...existing,state:'finished',finishedAt:Date.now(),result});return result;
   }
   const p=command.payload||{};
+  if(p.type==='scp'){
+    const startedAt=Date.now();writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'running',startedAt});
+    try{
+      const data=await executeScpCommand(state,p);
+      const result={commandId:command.commandId,status:'ok',exitCode:0,stdout:'',stderr:'',durationMs:Date.now()-startedAt,data};
+      writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;
+    }catch(error){
+      const result={commandId:command.commandId,status:'error',exitCode:1,stdout:'',stderr:String(error?.message||error)+'\n',durationMs:Date.now()-startedAt,data:{ok:false,error:String(error?.message||error),status:Number(error?.status)||500}};
+      writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;
+    }
+  }
+  if(p.type==='search'){
+    const startedAt=Date.now();writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'running',startedAt});
+    try{const data=await executeSearchCommand(state,p);const result={commandId:command.commandId,status:'ok',exitCode:0,stdout:'',stderr:'',durationMs:Date.now()-startedAt,data};writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;}
+    catch(error){const result={commandId:command.commandId,status:'error',exitCode:1,stdout:'',stderr:String(error?.message||error)+'\n',durationMs:Date.now()-startedAt,data:{ok:false,error:String(error?.message||error),status:Number(error?.status)||500}};writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;}
+  }
+  if(p.type==='process'){
+    const startedAt=Date.now();writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'running',startedAt});
+    try{
+      const data=await executeProcessCommand(state,p);
+      const result={commandId:command.commandId,status:'ok',exitCode:0,stdout:'',stderr:'',durationMs:Date.now()-startedAt,data};
+      writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;
+    }catch(error){
+      const result={commandId:command.commandId,status:'error',exitCode:1,stdout:'',stderr:String(error?.message||error)+'\n',durationMs:Date.now()-startedAt,data:{ok:false,error:String(error?.message||error),status:Number(error?.status)||500}};
+      writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;
+    }
+  }
+  if(p.type==='fs'){
+    const effective=effectiveCapabilities(state.enrollment.approvedCapabilities,state.policy?.deniedCapabilities);
+    const startedAt=Date.now();
+    if(!effective.includes('filesystem')){
+      const result={commandId:command.commandId,status:'error',exitCode:126,stdout:'',stderr:'local capability denied: filesystem\n',durationMs:0};
+      writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});return result;
+    }
+    writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'running',startedAt});
+    try{
+      const data=await executeNativeFs(p.fs||{}, {policy:filesystemPolicy()});
+      const result={commandId:command.commandId,status:'ok',exitCode:0,stdout:'',stderr:'',durationMs:Date.now()-startedAt,data};
+      writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;
+    }catch(error){
+      const result={commandId:command.commandId,status:'error',exitCode:1,stdout:'',stderr:String(error?.message||error)+'\n',durationMs:Date.now()-startedAt,data:{ok:false,error:String(error?.message||error),status:Number(error?.status)||500}};
+      writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;
+    }
+  }
   if(p.type!=='exec')throw new Error('unsupported_leaf_command');
   const script=String(p.script||'');
   const effective=effectiveCapabilities(state.enrollment.approvedCapabilities,state.policy?.deniedCapabilities);
@@ -108,13 +205,14 @@ async function executeCommand(state,command){
     writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt:Date.now(),finishedAt:Date.now(),result});return result;
   }
   const startedAt=Date.now();writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'running',startedAt});
-  const out=boundedCollector(),err=boundedCollector();let timedOut=false;
+  const out=boundedCollector(),err=boundedCollector();let timedOut=false,firstOutputAt=null;
+  const markOutput=(collector,data)=>{if(firstOutputAt==null)firstOutputAt=Date.now();collector.add(data);};
   const exitCode=await new Promise(resolve=>{
     const child=spawn(spec.file,spec.args,{cwd,env:{...process.env,GPT_OPERATOR_ACCOUNT:state.enrollment.accountId,GPT_OPERATOR_DEVICE:state.enrollment.deviceId,GPT_OPERATOR_NODE:state.enrollment.nodeId||state.enrollment.deviceId,GPT_OPERATOR_SESSION:String(p.sessionId||'')},stdio:['ignore','pipe','pipe']});
-    child.stdout.on('data',d=>out.add(d));child.stderr.on('data',d=>err.add(d));child.on('error',e=>{err.add(`${e.message}\n`);resolve(127);});child.on('exit',code=>resolve(code??128));
+    child.stdout.on('data',d=>markOutput(out,d));child.stderr.on('data',d=>markOutput(err,d));child.on('error',e=>{err.add(`${e.message}\n`);resolve(127);});child.on('exit',code=>resolve(code??128));
     const timer=setTimeout(()=>{timedOut=true;child.kill('SIGTERM');setTimeout(()=>child.kill('SIGKILL'),5000).unref();},Math.max(1000,Math.min(Number(p.timeoutMs)||600000,7200000)));timer.unref();child.on('close',()=>clearTimeout(timer));
   });
-  const result={commandId:command.commandId,status:timedOut?'timeout':exitCode===0?'ok':'error',exitCode:timedOut?124:Math.max(0,Math.min(Number(exitCode)||0,255)),stdout:out.text(),stderr:err.text(),durationMs:Date.now()-startedAt,outputTruncated:out.truncated()||err.truncated()};
+  const result={commandId:command.commandId,status:timedOut?'timeout':exitCode===0?'ok':'error',exitCode:timedOut?124:Math.max(0,Math.min(Number(exitCode)||0,255)),stdout:out.text(),stderr:err.text(),durationMs:Date.now()-startedAt,outputTruncated:out.truncated()||err.truncated(),telemetry:{firstOutputAt}};
   writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;
 }
 async function localFleetStatus(){try{const r=await fetch(`http://${FLEET_WALL_HOST}:${FLEET_WALL_PORT}/healthz`,{headers:{accept:'application/json'},signal:AbortSignal.timeout(800)}),j=await r.json();if(!r.ok||!j.ok||j.service!=='light-remote-fleet-wall')throw new Error('fleet_wall_unhealthy');return {healthy:true,port:FLEET_WALL_PORT,version:j.version||null,publicUrl:FLEET_WALL_PUBLIC_URL||null};}catch{return {healthy:false,port:FLEET_WALL_PORT,version:null,publicUrl:FLEET_WALL_PUBLIC_URL||null};}}
@@ -254,7 +352,11 @@ async function daemon(args){
       void reconcileFleet();
       const command=response.channel?.command;
       if(command){
-        const result=await executeCommand(state,command);let delivered=false,resultFailures=0;
+        const deviceReceivedAt=Date.now();
+        const result=await executeCommand(state,command),completedAt=Date.now();
+        const reportedFirst=Number(result.telemetry?.firstOutputAt);
+        result.telemetry={...(result.telemetry||{}),deviceReceivedAt,firstOutputAt:Number.isSafeInteger(reportedFirst)&&reportedFirst>0?reportedFirst:completedAt,completedAt};
+        let delivered=false,resultFailures=0;
         while(!stopped&&!delivered){
           try{const ack=await channelRequest(state,hub,'result',result);delivered=Boolean(ack.accepted);resultFailures=0;}
           catch(error){

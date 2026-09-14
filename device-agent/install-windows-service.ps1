@@ -27,6 +27,7 @@ $AgentDir = Join-Path $AppDir 'device-agent'
 $AdapterDir = Join-Path $AgentDir 'platform-adapters'
 $LibDir = Join-Path $AppDir 'lib'
 $RuntimeDir = Join-Path $AppDir 'runtime'
+$AssetDir = Join-Path $AppDir 'assets\branding'
 $NodeBin = Join-Path $RuntimeDir 'node.exe'
 $ServiceName = 'GPTOperatorDeviceAgent'
 $ServiceExe = Join-Path $AppDir 'gpt-operator-device-agent.exe'
@@ -37,10 +38,16 @@ if ($existing) {
   & sc.exe delete $ServiceName | Out-Null
   Start-Sleep -Milliseconds 750
 }
-New-Item -ItemType Directory -Force -Path $AgentDir,$AdapterDir,$LibDir,$RuntimeDir | Out-Null
+New-Item -ItemType Directory -Force -Path $AgentDir,$AdapterDir,$LibDir,$RuntimeDir,$AssetDir | Out-Null
 Copy-Item (Join-Path $RootDir 'device-agent\operator-agent.mjs') (Join-Path $AgentDir 'operator-agent.mjs') -Force
+foreach ($agentModule in @('local-wall.mjs','local-wall-auth.mjs','fleet-component-manager.mjs','fleet-component-supervisor.mjs')) {
+  Copy-Item (Join-Path $RootDir "device-agent\$agentModule") (Join-Path $AgentDir $agentModule) -Force
+}
 Copy-Item (Join-Path $RootDir 'device-agent\platform-adapters\*.mjs') $AdapterDir -Force
-Copy-Item (Join-Path $RootDir 'lib\device-proof.mjs') (Join-Path $LibDir 'device-proof.mjs') -Force
+foreach ($lib in @('device-proof.mjs','native-fs.mjs','native-process.mjs','native-search.mjs','light-scp-file.mjs','light-scp-registry.mjs')) {
+  Copy-Item (Join-Path $RootDir "lib\$lib") (Join-Path $LibDir $lib) -Force
+}
+Copy-Item (Join-Path $RootDir 'assets\branding\light-remote-mark.svg') (Join-Path $AssetDir 'light-remote-mark.svg') -Force
 Copy-Item $NodeSource $NodeBin -Force
 Copy-Item $WinSWPath $ServiceExe -Force
 $nodeXml = [System.Security.SecurityElement]::Escape($NodeBin)

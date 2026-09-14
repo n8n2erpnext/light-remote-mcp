@@ -19,6 +19,11 @@ import { UsageRegistry } from './usage-registry.mjs';
 import { LicenseKeyRegistry, LicenseKeyError } from './license-key-registry.mjs';
 import { FleetAuthorityRegistry, FleetAuthorityError } from './fleet-authority-registry.mjs';
 import { loadOrCreateHostDeviceIdentity, ensureHostCompanionState } from './host-device-identity.mjs';
+import { executeNativeFs, filesystemPolicy } from '../lib/native-fs.mjs';
+import { NativeProcessRegistry } from '../lib/native-process.mjs';
+import { NativeSearchRegistry } from '../lib/native-search.mjs';
+import { LightScpRegistry } from '../lib/light-scp-registry.mjs';
+import { createPlatformAdapter } from '../device-agent/platform-adapters/index.mjs';
 
 const SOCKET_PATH = process.env.OPERATOR_SOCKET || '/run/gpt-vps-operator/operator.sock';
 const KEY_FILE = process.env.OPERATOR_KEY_FILE || '/home/ubuntu/.config/gpt-vps-operator/operator.private.json';
@@ -73,6 +78,10 @@ if (!Number.isFinite(DEVICE_PRESENCE_TTL_MS) || DEVICE_PRESENCE_TTL_MS < 10_000)
 if (!Number.isFinite(DEVICE_HEARTBEAT_MS) || DEVICE_HEARTBEAT_MS < 5_000 || DEVICE_HEARTBEAT_MS >= DEVICE_PRESENCE_TTL_MS) throw new Error('invalid_device_heartbeat');
 const HOST_CAPABILITIES = ['filesystem', 'git', 'build-test', 'docker', 'lxd', 'systemctl', 'sudo-on-demand'];
 const VERSION = String(process.env.LIGHT_REMOTE_VERSION || process.env.OPERATOR_VERSION || '0.9.0-rc.6');
+const HOST_PLATFORM_ADAPTER=createPlatformAdapter({platform:process.platform});
+const NATIVE_PROCESSES=new NativeProcessRegistry();
+const NATIVE_SEARCHES=new NativeSearchRegistry();
+const LIGHT_SCP=new LightScpRegistry();
 
 const jobs = new Map();
 const operationDedupe = new Map();
@@ -207,6 +216,24 @@ function createAccumulator(limit = MAX_MEMORY_OUTPUT) {
   };
 }
 
+function telemetryTimestamp(value,now=Date.now()) {
+  const n=Number(value);
+  return Number.isSafeInteger(n)&&n>0&&Math.abs(now-n)<=24*60*60*1000?n:null;
+}
+function ingressTelemetry(raw={},operatorAcceptedAt=Date.now()) {
+  return {bridgeReceivedAt:telemetryTimestamp(raw?.bridgeReceivedAt,operatorAcceptedAt),gatewayAcceptedAt:telemetryTimestamp(raw?.gatewayAcceptedAt,operatorAcceptedAt),operatorAcceptedAt};
+}
+function applyDeviceTelemetry(job,raw={}) {
+  const now=Date.now(),next={...(job.telemetry||{})};
+  for(const key of ['deviceReceivedAt','firstOutputAt','completedAt']){const value=telemetryTimestamp(raw?.[key],now);if(value)next[key]=value;}
+  job.telemetry=next;if(next.firstOutputAt)job.firstOutputAt=next.firstOutputAt;return next;
+}
+function latencyView(job) {
+  const t=job.telemetry||{},dispatchAt=t.dispatchAt??job.startedAt??null,deviceReceivedAt=t.deviceReceivedAt??(!job.remote?job.startedAt:null),firstOutputAt=t.firstOutputAt??job.firstOutputAt??null,completedAt=t.completedAt??job.finishedAt??null;
+  const delta=(a,b)=>Number.isFinite(a)&&Number.isFinite(b)&&b>=a?b-a:null;
+  return {bridgeReceivedAt:t.bridgeReceivedAt??null,gatewayAcceptedAt:t.gatewayAcceptedAt??null,operatorAcceptedAt:t.operatorAcceptedAt??null,dispatchAt,deviceReceivedAt,firstOutputAt,completedAt,bridgeMs:delta(t.bridgeReceivedAt,t.gatewayAcceptedAt),gatewayMs:delta(t.gatewayAcceptedAt,t.operatorAcceptedAt),dispatchMs:delta(t.operatorAcceptedAt,deviceReceivedAt),firstByteMs:delta(deviceReceivedAt,firstOutputAt),executionMs:delta(deviceReceivedAt,completedAt)};
+}
+
 function jobView(job) {
   const out = job.stdout.snapshot();
   const err = job.stderr.snapshot();
@@ -216,7 +243,7 @@ function jobView(job) {
     startedAt: job.startedAt, finishedAt: job.finishedAt || null, exitCode: job.exitCode,
     signal: job.signal || null, durationMs: job.finishedAt ? job.finishedAt - job.startedAt : Date.now() - job.startedAt,
     stdout: redact(out.text), stderr: redact(err.text), stdoutBytes: out.totalBytes, stderrBytes: err.totalBytes,
-    outputTruncated: out.truncated || err.truncated
+    outputTruncated: out.truncated || err.truncated, resultData:job.resultData ?? null, latency:latencyView(job)
   };
 }
 function approximateJobMemoryBytes(job) {
@@ -242,6 +269,10 @@ function pruneJobs(now = Date.now()) {
 function finishJob(job, exitCode, signal) {
   if (job.finishedAt) return;
   job.finishedAt = Date.now();
+  job.telemetry={...(job.telemetry||{}),completedAt:job.telemetry?.completedAt||job.finishedAt};
+  if(!job.telemetry.deviceReceivedAt&&!job.remote)job.telemetry.deviceReceivedAt=job.startedAt;
+  if(!job.firstOutputAt)job.firstOutputAt=job.telemetry.firstOutputAt||job.finishedAt;
+  if(!job.telemetry.firstOutputAt)job.telemetry.firstOutputAt=job.firstOutputAt;
   job.exitCode = exitCode;
   job.signal = signal || null;
   job.status = exitCode === 0 ? 'ok' : job.timedOut ? 'timeout' : 'error';
@@ -249,12 +280,13 @@ function finishJob(job, exitCode, signal) {
   sessions.finishJob(job.sessionId, job.id, job.status);
   if (job.autoCloseSession) { try { sessions.close(job.sessionId, job.agentId); } catch {} }
   pushEvent({ type: 'job_finished', jobId: job.id, requestId: job.requestId, operationId: job.operationId, accountId:job.accountId, deviceId:job.deviceId, sessionId: job.sessionId, agentId:job.agentId, nodeId:job.nodeId,
-    status: job.status, exitCode, signal: signal || null, durationMs: job.finishedAt - job.startedAt });
+    status: job.status, exitCode, signal: signal || null, durationMs: job.finishedAt - job.startedAt, latency:latencyView(job) });
   for (const resolve of job.waiters.splice(0)) resolve();
   pruneJobs(job.finishedAt);
 }
 
 function emitStream(job, stream, data) {
+  const now=Date.now();if(!job.firstOutputAt){job.firstOutputAt=now;job.telemetry={...(job.telemetry||{}),firstOutputAt:job.telemetry?.firstOutputAt||now};}
   const text = data.toString('utf8');
   job[stream].add(text);
   for (let i = 0; i < text.length; i += 16384) {
@@ -350,6 +382,115 @@ function startJob(payload, requestId) {
   job.timer.unref();
   return job;
 }
+async function startFsOperation(payload,requestId){
+  const operationId=String(payload.operationId||'').trim();
+  if(!/^[A-Za-z0-9._:-]{16,128}$/.test(operationId))throw new Error('invalid_operation_id');
+  const agentId=String(payload.agentId||'').trim(),session=sessions.ensure(String(payload.sessionId||''),{agentId});
+  requireDeviceConnection(session.deviceId);
+  if(payload.nodeId!=null&&String(payload.nodeId)!==session.nodeId)throw new SessionError('session_target_mismatch',409);
+  const fsRequest=payload.fs&&typeof payload.fs==='object'&&!Array.isArray(payload.fs)?payload.fs:null;
+  if(!fsRequest)throw new Error('filesystem_request_required');
+  const remote=session.nodeId!==NODE_ID,requiredCapabilities=['filesystem'];
+  if(remote){const route=targetRoute(session.nodeId);if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(!route.capabilities.includes('filesystem'))throw new FleetError('target_node_capability_missing',409);}
+  else if(!hostEffectiveCapabilities().includes('filesystem'))throw new DeviceError('local_host_capability_missing',409);
+  const fingerprint=crypto.createHash('sha256').update(JSON.stringify({fsRequest,sessionId:session.id,nodeId:session.nodeId})).digest('hex');
+  const existing=operationDedupe.get(operationId);
+  if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
+  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-fs:${String(fsRequest.op||'unknown')}`,cwd:'',script:'',status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null};
+  jobs.set(job.id,job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
+  pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:remote?'outbound-leaf':'local',requiredCapabilities,note:job.note});
+  if(remote){const command=fleet.enqueue({accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'fs',operationId,sessionId:job.sessionId,agentId:job.agentId,fs:fsRequest}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},60000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();return job;}
+  Promise.resolve().then(()=>executeNativeFs(fsRequest,{policy:filesystemPolicy()})).then(data=>{job.resultData=data;finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n'));finishJob(job,1,null);});
+  return job;
+}
+
+async function startScpOperation(payload,requestId){
+  const operationId=String(payload.operationId||'').trim();if(!/^[A-Za-z0-9._:-]{16,128}$/.test(operationId))throw new Error('invalid_operation_id');
+  const agentId=String(payload.agentId||'').trim(),session=sessions.ensure(String(payload.sessionId||''),{agentId});requireDeviceConnection(session.deviceId);
+  if(payload.nodeId!=null&&String(payload.nodeId)!==session.nodeId)throw new SessionError('session_target_mismatch',409);
+  const request=payload.scp&&typeof payload.scp==='object'&&!Array.isArray(payload.scp)?payload.scp:null;if(!request)throw new Error('scp_request_required');
+  const remote=session.nodeId!==NODE_ID,requiredCapabilities=['filesystem'];
+  if(remote){const route=targetRoute(session.nodeId);if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(!route.capabilities.includes('filesystem'))throw new FleetError('target_node_capability_missing',409);}else if(!hostEffectiveCapabilities().includes('filesystem'))throw new DeviceError('local_host_capability_missing',409);
+  const fingerprint=crypto.createHash('sha256').update(JSON.stringify({request,sessionId:session.id,nodeId:session.nodeId})).digest('hex'),existing=operationDedupe.get(operationId);
+  if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
+  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`light-scp:${String(request.op||'unknown')}`,cwd:String(request.destination||request.source||''),script:'',status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null};
+  jobs.set(job.id,job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
+  pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:remote?'outbound-leaf':'local',requiredCapabilities,note:job.note});
+  if(remote){const command=fleet.enqueue({accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'scp',operationId,sessionId:job.sessionId,agentId:job.agentId,scp:request}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},60000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();return job;}
+  Promise.resolve().then(()=>executeLocalScpRequest(job,request)).then(data=>{job.resultData=data;finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n'));finishJob(job,1,null);});return job;
+}
+
+async function executeLocalScpRequest(job,request){
+  const owner={accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId},op=String(request.op||'');
+  if(op==='upload-begin')return {ok:true,operation:op,transfer:await LIGHT_SCP.beginUpload(owner,request)};
+  if(op==='upload-chunk')return {ok:true,operation:op,transfer:await LIGHT_SCP.putUploadChunk(owner,request.transferId,request)};
+  if(op==='upload-commit')return {ok:true,operation:op,result:await LIGHT_SCP.commitUpload(owner,request.transferId)};
+  if(op==='download-begin')return {ok:true,operation:op,transfer:await LIGHT_SCP.beginDownload(owner,request)};
+  if(op==='download-chunk')return {ok:true,operation:op,chunk:await LIGHT_SCP.readDownloadChunk(owner,request.transferId,request)};
+  if(op==='status')return {ok:true,operation:op,transfer:await LIGHT_SCP.status(owner,request.transferId)};
+  if(op==='cancel')return {ok:true,operation:op,result:await LIGHT_SCP.cancel(owner,request.transferId)};
+  throw new Error('scp_operation_unsupported');
+}
+
+async function startProcessOperation(payload,requestId){
+  const operationId=String(payload.operationId||'').trim();if(!/^[A-Za-z0-9._:-]{16,128}$/.test(operationId))throw new Error('invalid_operation_id');
+  const agentId=String(payload.agentId||'').trim(),session=sessions.ensure(String(payload.sessionId||''),{agentId});requireDeviceConnection(session.deviceId);
+  if(payload.nodeId!=null&&String(payload.nodeId)!==session.nodeId)throw new SessionError('session_target_mismatch',409);
+  const request=payload.process&&typeof payload.process==='object'&&!Array.isArray(payload.process)?payload.process:null;if(!request)throw new Error('process_request_required');
+  const remote=session.nodeId!==NODE_ID,requiredCapabilities=['filesystem'];
+  if(remote){const route=targetRoute(session.nodeId);if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(!route.capabilities.includes('filesystem'))throw new FleetError('target_node_capability_missing',409);}else if(!hostEffectiveCapabilities().includes('filesystem'))throw new DeviceError('local_host_capability_missing',409);
+  const fingerprint=crypto.createHash('sha256').update(JSON.stringify({request,sessionId:session.id,nodeId:session.nodeId})).digest('hex'),existing=operationDedupe.get(operationId);
+  if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
+  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-process:${String(request.op||'unknown')}`,cwd:String(request.cwd||''),script:String(request.script||''),status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null};
+  jobs.set(job.id,job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
+  pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:remote?'outbound-leaf':'local',requiredCapabilities,note:job.note});
+  if(remote){const command=fleet.enqueue({accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'process',operationId,sessionId:job.sessionId,agentId:job.agentId,process:request}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},30000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();return job;}
+  Promise.resolve().then(()=>executeLocalProcessRequest(job,request)).then(data=>{job.resultData=data;finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n'));finishJob(job,1,null);});return job;
+}
+
+async function executeLocalProcessRequest(job,request){
+  const owner={accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId},op=String(request.op||'');
+  if(op==='start'){
+    const script=String(request.script||'');if(!script.trim())throw new Error('process_script_required');
+    const required=[...new Set([...(Array.isArray(request.requiredCapabilities)?request.requiredCapabilities:[]),...HOST_PLATFORM_ADAPTER.inferRequiredCapabilities(script)])].sort();
+    const denied=HOST_PLATFORM_ADAPTER.hardDeny?.(script)||null;if(denied)throw new Error(`local platform policy denied: ${denied}`);
+    const missing=required.filter(cap=>!hostEffectiveCapabilities().includes(cap));if(missing.length)throw new DeviceError('local_host_capability_missing',409);
+    const cwd=path.resolve(String(request.cwd||'/home/ubuntu'));let stat;try{stat=fs.statSync(cwd);}catch{}if(!stat?.isDirectory())throw new Error('cwd_not_directory');
+    return {ok:true,operation:'start',process:NATIVE_PROCESSES.start({...owner,script,cwd,timeoutMs:request.timeoutMs,spawnSpec:value=>HOST_PLATFORM_ADAPTER.commandFor(value),env:{GPT_OPERATOR_ACCOUNT:job.accountId,GPT_OPERATOR_DEVICE:job.deviceId,GPT_OPERATOR_NODE:job.nodeId,GPT_OPERATOR_SESSION:job.sessionId}})};
+  }
+  if(!hostEffectiveCapabilities().includes('filesystem'))throw new DeviceError('local_host_capability_missing',409);
+  if(op==='input')return {ok:true,operation:'input',process:NATIVE_PROCESSES.input(request.processId,owner,{data:request.data,eof:Boolean(request.eof)})};
+  if(op==='output')return {ok:true,operation:'output',...NATIVE_PROCESSES.output(request.processId,owner,{stream:request.stream,offset:request.offset,limit:request.limit})};
+  if(op==='stop')return {ok:true,operation:'stop',process:NATIVE_PROCESSES.stop(request.processId,owner,{force:Boolean(request.force)})};
+  if(op==='list')return {ok:true,operation:'list',processes:NATIVE_PROCESSES.list(owner)};
+  throw new Error('process_operation_unsupported');
+}
+
+async function startSearchOperation(payload,requestId){
+  const operationId=String(payload.operationId||'').trim();if(!/^[A-Za-z0-9._:-]{16,128}$/.test(operationId))throw new Error('invalid_operation_id');
+  const agentId=String(payload.agentId||'').trim(),session=sessions.ensure(String(payload.sessionId||''),{agentId});requireDeviceConnection(session.deviceId);
+  if(payload.nodeId!=null&&String(payload.nodeId)!==session.nodeId)throw new SessionError('session_target_mismatch',409);
+  const request=payload.search&&typeof payload.search==='object'&&!Array.isArray(payload.search)?payload.search:null;if(!request)throw new Error('search_request_required');
+  const remote=session.nodeId!==NODE_ID,requiredCapabilities=['filesystem'];
+  if(remote){const route=targetRoute(session.nodeId);if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(!route.capabilities.includes('filesystem'))throw new FleetError('target_node_capability_missing',409);}else if(!hostEffectiveCapabilities().includes('filesystem'))throw new DeviceError('local_host_capability_missing',409);
+  const fingerprint=crypto.createHash('sha256').update(JSON.stringify({request,sessionId:session.id,nodeId:session.nodeId})).digest('hex'),existing=operationDedupe.get(operationId);
+  if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
+  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-search:${String(request.op||'unknown')}`,cwd:String(request.path||''),script:'',status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null};
+  jobs.set(job.id,job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
+  pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:remote?'outbound-leaf':'local',requiredCapabilities,note:job.note});
+  if(remote){const command=fleet.enqueue({accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'search',operationId,sessionId:job.sessionId,agentId:job.agentId,search:request}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},30000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();return job;}
+  Promise.resolve().then(()=>executeLocalSearchRequest(job,request)).then(data=>{job.resultData=data;finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n'));finishJob(job,1,null);});return job;
+}
+
+async function executeLocalSearchRequest(job,request){
+  const owner={accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId},op=String(request.op||'');
+  if(!hostEffectiveCapabilities().includes('filesystem'))throw new DeviceError('local_host_capability_missing',409);
+  if(op==='start'){const policy=filesystemPolicy();return {ok:true,operation:'start',search:await NATIVE_SEARCHES.start({...owner,path:request.path,searchType:request.searchType,pattern:request.pattern,literalSearch:Boolean(request.literalSearch),ignoreCase:request.ignoreCase!==false,filePattern:request.filePattern,contextLines:request.contextLines,maxResults:request.maxResults,readRoots:policy.readRoots})};}
+  if(op==='results')return {ok:true,operation:'results',...NATIVE_SEARCHES.results(request.searchId,owner,{offset:request.offset,limit:request.limit})};
+  if(op==='cancel')return {ok:true,operation:'cancel',search:NATIVE_SEARCHES.cancel(request.searchId,owner)};
+  throw new Error('search_operation_unsupported');
+}
+
 async function waitForJob(job, waitMs) {
   if (job.finishedAt || waitMs <= 0) return;
   await Promise.race([
@@ -853,13 +994,29 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res,200,{ok:true,client:{clientSessionId:client.clientSessionId,agentId:client.agentId,expiresAt:client.expiresAt},devices:authorized});
     }
     if (req.method === 'POST' && url.pathname === '/v1/agent-client/resolve') {
-      const body=await readJson(req),binding=agentClients.resolve(body.clientSessionId,{agentId:body.agentId,deviceId:body.deviceId,touch:true});
+      const body=await readJson(req),binding=agentClients.resolve(body.clientSessionId,{agentId:body.agentId,deviceId:body.deviceId||null,touch:true});
       try{
         const grant=accessGrants.assert(binding.grantId,{deviceId:binding.deviceId,connectionId:binding.connectionId}),connection=connections.assertConnected(binding.deviceId);
         if(connection.connectionId!==binding.connectionId)throw new AgentClientRegistryError('agent_client_device_connection_mismatch',409);
         const device=devices.get(binding.deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
         return sendJson(res,200,{ok:true,binding,grant,device:{deviceId:device.deviceId,nodeId:device.nodeId,displayName:device.displayName,state:device.state,platform:device.platform,architecture:device.architecture},connection});
       }catch(error){agentClients.removeDevice(binding.deviceId,'binding_invalid');throw error;}
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/agent-client/context') {
+      const body=await readJson(req),binding=agentClients.resolve(body.clientSessionId,{agentId:body.agentId,deviceId:body.deviceId||null,touch:true});
+      try{
+        const grant=accessGrants.assert(binding.grantId,{deviceId:binding.deviceId,connectionId:binding.connectionId}),connection=connections.assertConnected(binding.deviceId);
+        if(connection.connectionId!==binding.connectionId)throw new AgentClientRegistryError('agent_client_device_connection_mismatch',409);
+        const device=devices.get(binding.deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)}),route=targetRoute(device.nodeId);
+        const workspace=body.workspace==null?String(binding.workingContext?.workspace||''):String(body.workspace||'').slice(0,512);
+        const gracePreset=String(body.gracePreset||binding.workingContext?.gracePreset||'60m');
+        let session=null;
+        if(binding.workingContext?.sessionId){try{const prior=sessions.get(binding.workingContext.sessionId,binding.agentId);if(['active','hold'].includes(prior.state))session=prior;}catch{}}
+        if(!session)session=sessions.open({agentId:binding.agentId,label:'ChatGPT Light Remote',workspace,gracePreset,nodeId:device.nodeId,deviceId:device.deviceId,maxActiveForNode:route.sessionCeiling});
+        if(workspace!==session.workspace)session=sessions.setWorkspace(session.sessionId,binding.agentId,workspace);
+        const context=agentClients.setWorkingContext(binding.clientSessionId,{agentId:binding.agentId,deviceId:device.deviceId,sessionId:session.sessionId,workspace:session.workspace,gracePreset:session.gracePreset});
+        return sendJson(res,200,{ok:true,context:{...context,nodeId:device.nodeId,displayName:device.displayName,platform:device.platform,architecture:device.architecture,deviceState:device.state,connectionState:connection.state},session});
+      }catch(error){if(['agent_client_device_connection_mismatch','device_connection_closed','device_connection_expired'].includes(error.message))agentClients.removeDevice(binding.deviceId,'binding_invalid');throw error;}
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/connect') {
       const body=await readJson(req), ctx=verifiedChannelContext(body,'connect');
@@ -999,6 +1156,9 @@ const server = http.createServer(async (req, res) => {
       if (!job || job.commandId!==command.commandId) throw new FleetError('remote_job_not_found',404);
       const stdout=String(result.stdout||''), stderr=String(result.stderr||'');
       if (Buffer.byteLength(stdout)>MAX_MEMORY_OUTPUT || Buffer.byteLength(stderr)>MAX_MEMORY_OUTPUT) throw new FleetError('remote_result_too_large',413);
+      if(result.data!==undefined&&Buffer.byteLength(JSON.stringify(result.data))>MAX_MEMORY_OUTPUT)throw new FleetError('remote_result_data_too_large',413);
+      if(result.data!==undefined)job.resultData=result.data;
+      applyDeviceTelemetry(job,result.telemetry);
       const exitCode=Number(result.exitCode);
       if (!Number.isInteger(exitCode) || exitCode < 0 || exitCode > 255) throw new FleetError('invalid_remote_exit_code');
       if (stdout) emitStream(job,'stdout',Buffer.from(stdout));
@@ -1112,17 +1272,55 @@ const server = http.createServer(async (req, res) => {
       if (req.method === 'POST' && action === 'touch') return sendJson(res, 200, { ok:true, session:sessions.touch(sid, aid, body?.action || 'tool') });
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-access/execute') {
+      const operatorAcceptedAt=Date.now();
       const body=await readJson(req), grant=accessGrants.assert(body.grantId);
       const connection=connections.assertConnected(grant.deviceId);
       accessGrants.assert(grant.grantId,{deviceId:grant.deviceId,connectionId:connection.connectionId});
       const {payload,requestId,aad,kid}=decryptEnvelope(body.envelope||{});
-      if(payload.action!=='exec_batch')throw new Error('unsupported_action');
+      if(!['exec_batch','fs','process','search','scp'].includes(payload.action))throw new Error('unsupported_action');
       const session=sessions.ensure(String(payload.sessionId||''),{agentId:String(payload.agentId||'')});
       if(session.deviceId!==grant.deviceId)throw new DeviceAccessGrantError('device_access_grant_session_mismatch',403);
-      const job=startJob(payload,requestId);
+      const job=payload.action==='fs'?await startFsOperation(payload,requestId):payload.action==='process'?await startProcessOperation(payload,requestId):payload.action==='search'?await startSearchOperation(payload,requestId):payload.action==='scp'?await startScpOperation(payload,requestId):startJob(payload,requestId);
+      if(!job.telemetry?.operatorAcceptedAt){job.telemetry={...(job.telemetry||{}),...ingressTelemetry(body.telemetry,operatorAcceptedAt),dispatchAt:job.startedAt};if(!job.remote)job.telemetry.deviceReceivedAt=job.startedAt;}
       const waitMs=Math.max(0,Math.min(Number(payload.waitMs)||0,8000));
       await waitForJob(job,waitMs);
-      return sendJson(res,200,{ok:true,encryptedByKid:kid,aad,job:jobView(job)});
+      return sendJson(res,200,{ok:job.finishedAt?job.exitCode===0:true,encryptedByKid:kid,aad,job:jobView(job),data:job.resultData});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/scp') {
+      const envelope=await readJson(req);
+      const {payload,requestId,aad,kid}=decryptEnvelope(envelope);
+      if(payload.action!=='scp')throw new Error('unsupported_action');
+      const job=await startScpOperation(payload,requestId);
+      const waitMs=Math.max(0,Math.min(Number(payload.waitMs)||7000,8000));
+      await waitForJob(job,waitMs);
+      return sendJson(res,200,{ok:job.finishedAt?job.exitCode===0:true,encryptedByKid:kid,aad,job:jobView(job),data:job.resultData});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/process') {
+      const envelope=await readJson(req);
+      const {payload,requestId,aad,kid}=decryptEnvelope(envelope);
+      if(payload.action!=='process')throw new Error('unsupported_action');
+      const job=await startProcessOperation(payload,requestId);
+      const waitMs=Math.max(0,Math.min(Number(payload.waitMs)||7000,8000));
+      await waitForJob(job,waitMs);
+      return sendJson(res,200,{ok:job.finishedAt?job.exitCode===0:true,encryptedByKid:kid,aad,job:jobView(job),data:job.resultData});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/search') {
+      const envelope=await readJson(req);
+      const {payload,requestId,aad,kid}=decryptEnvelope(envelope);
+      if(payload.action!=='search')throw new Error('unsupported_action');
+      const job=await startSearchOperation(payload,requestId);
+      const waitMs=Math.max(0,Math.min(Number(payload.waitMs)||7000,8000));
+      await waitForJob(job,waitMs);
+      return sendJson(res,200,{ok:job.finishedAt?job.exitCode===0:true,encryptedByKid:kid,aad,job:jobView(job),data:job.resultData});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/fs') {
+      const envelope=await readJson(req);
+      const {payload,requestId,aad,kid}=decryptEnvelope(envelope);
+      if(payload.action!=='fs')throw new Error('unsupported_action');
+      const job=await startFsOperation(payload,requestId);
+      const waitMs=Math.max(0,Math.min(Number(payload.waitMs)||7000,8000));
+      await waitForJob(job,waitMs);
+      return sendJson(res,200,{ok:job.finishedAt?job.exitCode===0:true,encryptedByKid:kid,aad,job:jobView(job),data:job.resultData});
     }
     if (req.method === 'POST' && url.pathname === '/v1/execute') {
       const envelope = await readJson(req);

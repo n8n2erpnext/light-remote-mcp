@@ -219,6 +219,16 @@ export class SessionRegistry {
     return this._view(s);
   }
 
+  setWorkspace(id,agentId,workspace='') {
+    const s=this.sessions.get(String(id||'')); if (!s) throw new SessionError('session_not_found',404);
+    this._owner(s,agentId); const state=this._state(s);
+    if (state==='expired') throw new SessionError('session_expired',410);
+    if (state==='closed') throw new SessionError('session_closed',410);
+    s.workspace=String(workspace||'').slice(0,512); s.lastSeenAt=this.now(); s.holdReason=null;
+    this.emit({type:'session_workspace_updated',accountId:s.accountId,deviceId:s.deviceId,sessionId:s.id,agentId:s.agentId,nodeId:s.nodeId,status:this._state(s),workspace:s.workspace});
+    return this._view(s);
+  }
+
   list({deviceId=null}={}) {
     this.prune(); const did=deviceId==null?null:String(deviceId);
     return [...this.sessions.values()].filter(s=>did==null||s.deviceId===did).map(s=>this._view(s)).sort((a,b)=>b.createdAt-a.createdAt);

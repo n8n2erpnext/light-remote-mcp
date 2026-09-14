@@ -9,7 +9,7 @@ function connectionHelperView(value={}) {
   const status=String(value.status||'need_a_code');
   const base={protocol:'light-remote-plus-v1',endpoint:'/api/operator?via=plus&action=connection-helper',status};
   if(status==='approval_required') return {...value,helper:{...base,nextAction:'owner_approve_b_then_poll',instruction:'Ask the owner to enter the returned B code on the exact Wall that produced A, approve it, then call connection-helper again with nextPayload.',nextPayload:{continuation:value.continuation}}};
-  if(status==='ready') return {...value,helper:{...base,nextAction:'list-devices',instruction:'Connection is ready. Keep the opaque client token private and reuse it for all calls in this Agent session.',quickGuide:{listDevices:'action=list-devices&client=<client>',sessionOpen:'action=session-open&client=<client>&p=<base64url {deviceId,openId,agentId,label,workspace,gracePreset}>',exec:'action=exec&client=<client>&p=<base64url {deviceId,operationId,script,cwd,timeoutMs,waitMs,sessionId,agentId,requiredCapabilities}>',durableOutput:'If exec returns running, use action=job then action=output with the same client and explicit device.',rules:['Generate one stable agentId per chat/window.','Pair each additional device independently with its own A/B flow.','Never enumerate account devices before pairing.','Never expose client/continuation capabilities to the user.']}}};
+  if(status==='ready') return {...value,helper:{...base,nextAction:'ready',instruction:'Connection and working context are ready. Keep the opaque client token private; reuse the returned context instead of listing devices or reopening a session.',quickGuide:{context:'action=context&client=<client> recovers or updates the exact working context without broad enumeration.',exec:'action=exec&client=<client>&p=<base64url {deviceId,operationId,script,cwd,timeoutMs,waitMs,sessionId,agentId,requiredCapabilities}>',fs:'action=fs&client=<client>&p=<base64url {deviceId,operationId,sessionId,agentId,fs}>',durableOutput:'If a job is running, use action=job then action=output with the same client and exact device.',rules:['Reuse context.deviceId/context.sessionId after READY.','Call action=context only for recovery, workspace change, or target change.','Pair each additional device independently with its own A/B flow.','Never expose client/continuation capabilities to the user.']}}};
   return {...value,helper:{...base,nextAction:'provide_a_code',instruction:'Get a fresh A code from the target Local Wall, then call connection-helper with {aCode,agentId,label}. Do not send client on the first pairing.'}};
 }
 
@@ -47,11 +47,11 @@ module.exports=async function handler(req,res){
   const plusSession=String(field(req,'ps','')).trim();
   const plusClient=String(field(req,'client','')).trim();
   const plusClientValid=/^o1\.client\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(plusClient);
-  const compactClientActions=new Set(['list-devices','session-open','session-resume','session-hold','session-close','session','exec','job','output']);
+  const compactClientActions=new Set(['context','list-devices','session-open','session-resume','session-hold','session-close','session','exec','fs','process-start','process-input','process-output','process-list','process-stop','search-start','search-results','search-cancel','transfer-begin','transfer-chunk','transfer-status','transfer-commit','transfer-cancel','job','output']);
   const compactPlusResponse=()=>plus&&(action==='connection-helper'||action==='connect'||action==='connect-poll'||(plusClientValid&&compactClientActions.has(action)));
   const call=(path,options={})=>callOperator(path,{...options,bridgeSession});
   const plusCall=(path,options={})=>callOperator(path,{...options,plusSession});
-  const clientCall=(path,options={})=>callOperator(path,{...options,plusClient});
+  const clientCall=(path,options={})=>{const body=options.body&&typeof options.body==='object'&&!Array.isArray(options.body)?{...options.body,bridgeReceivedAt:started}:options.body;return callOperator(path,{...options,...(body===undefined?{}:{body}),plusClient});};
   const clientDevice=value=>{const v=String(value||'').trim();if(!/^[A-Za-z0-9._:-]{1,128}$/.test(v)){const e=new Error('invalid_plus_device_id');e.status=400;throw e;}return v;};
   try {
     let upstream;
@@ -103,13 +103,62 @@ module.exports=async function handler(req,res){
       }
       else {
         const usingClient=plusClientValid;
-        if(action==='list-devices'){if(!usingClient){const e=new Error('agent_client_required');e.status=401;throw e;}upstream=await clientCall('/plus/client/devices');}
+        if(action==='context'){
+          if(!usingClient){const e=new Error('agent_client_required');e.status=401;throw e;}
+          const d=String(req.query?.p||'').trim()?payloadFor(req):{},body={};
+          if(d.deviceId!=null||d.device!=null)body.deviceId=clientDevice(d.deviceId||d.device);
+          if(d.workspace!=null)body.workspace=String(d.workspace||'').slice(0,512);
+          if(d.gracePreset!=null)body.gracePreset=String(d.gracePreset||'60m').slice(0,16);
+          upstream=await clientCall('/plus/client/context',{method:'POST',body});
+        }
+        else if(action==='list-devices'){if(!usingClient){const e=new Error('agent_client_required');e.status=401;throw e;}upstream=await clientCall('/plus/client/devices');}
         else if(usingClient&&action==='session-open'){const d=payloadFor(req),deviceId=clientDevice(d.deviceId||d.device),body=normalizeSessionOpenPayload(d);upstream=await clientCall('/plus/client/sessions/open',{method:'POST',body:{...body,deviceId}});}
         else if(usingClient&&action==='session-resume') upstream=await clientCall(`/plus/client/sessions/${encodeURIComponent(sid(field(req,'sid')))}/resume?deviceId=${encodeURIComponent(clientDevice(field(req,'device')))}`,{method:'POST',body:{deviceId:clientDevice(field(req,'device'))}});
         else if(usingClient&&action==='session-hold') upstream=await clientCall(`/plus/client/sessions/${encodeURIComponent(sid(field(req,'sid')))}/hold?deviceId=${encodeURIComponent(clientDevice(field(req,'device')))}`,{method:'POST',body:{deviceId:clientDevice(field(req,'device')),reason:String(field(req,'reason','transport_lost')).slice(0,80)}});
         else if(usingClient&&action==='session-close') upstream=await clientCall(`/plus/client/sessions/${encodeURIComponent(sid(field(req,'sid')))}/close?deviceId=${encodeURIComponent(clientDevice(field(req,'device')))}`,{method:'POST',body:{deviceId:clientDevice(field(req,'device'))}});
         else if(usingClient&&action==='session') upstream=await clientCall(`/plus/client/sessions/${encodeURIComponent(sid(field(req,'sid')))}?deviceId=${encodeURIComponent(clientDevice(field(req,'device')))}`);
         else if(usingClient&&action==='exec'){const d=payloadFor(req),deviceId=clientDevice(d.deviceId||d.device),payload=normalizeExecPayload(d);upstream=await clientCall('/plus/client/execute',{method:'POST',body:{deviceId,envelope:sealOperatorPayload(payload)},timeoutMs:9500});}
+        else if(usingClient&&action==='fs'){
+          const d=payloadFor(req),deviceId=clientDevice(d.deviceId||d.device),fs=d.fs;
+          if(!fs||typeof fs!=='object'||Array.isArray(fs)){const e=new Error('invalid_fs_payload');e.status=400;throw e;}
+          const payload={action:'fs',operationId:aid(d.operationId),sessionId:sid(d.sessionId),agentId:aid(d.agentId),nodeId:d.nodeId==null?undefined:clientDevice(d.nodeId),fs,waitMs:Math.max(0,Math.min(Number(d.waitMs)||7000,8000))};
+          upstream=await clientCall('/plus/client/execute',{method:'POST',body:{deviceId,envelope:sealOperatorPayload(payload)},timeoutMs:9500});
+        }
+        else if(usingClient&&action.startsWith('process-')){
+          const d=payloadFor(req),deviceId=clientDevice(d.deviceId||d.device);
+          const op=action.slice('process-'.length);
+          if(!['start','input','output','list','stop'].includes(op)){const e=new Error('invalid_process_action');e.status=400;throw e;}
+          const process={op};
+          if(op==='start'){process.script=String(d.script||'');process.cwd=d.cwd==null?undefined:String(d.cwd);process.timeoutMs=d.timeoutMs==null?undefined:Number(d.timeoutMs);process.requiredCapabilities=Array.isArray(d.requiredCapabilities)?d.requiredCapabilities:undefined;}
+          if(op==='input'){process.processId=String(d.processId||'');process.data=String(d.data||'');process.eof=Boolean(d.eof);}
+          if(op==='output'){process.processId=String(d.processId||'');process.stream=d.stream==='stderr'?'stderr':'stdout';process.offset=Math.max(0,Number(d.offset)||0);process.limit=Math.max(1,Math.min(Number(d.limit)||262144,1048576));}
+          if(op==='stop'){process.processId=String(d.processId||'');process.force=Boolean(d.force);}
+          const payload={action:'process',operationId:aid(d.operationId),sessionId:sid(d.sessionId),agentId:aid(d.agentId),nodeId:d.nodeId==null?undefined:clientDevice(d.nodeId),process,waitMs:Math.max(0,Math.min(Number(d.waitMs)||7000,8000))};
+          upstream=await clientCall('/plus/client/execute',{method:'POST',body:{deviceId,envelope:sealOperatorPayload(payload)},timeoutMs:9500});
+        }
+        else if(usingClient&&action.startsWith('search-')){
+          const d=payloadFor(req),deviceId=clientDevice(d.deviceId||d.device),op=action.slice('search-'.length);
+          if(!['start','results','cancel'].includes(op)){const e=new Error('invalid_search_action');e.status=400;throw e;}
+          const search={op};
+          if(op==='start'){search.path=String(d.path||'');search.searchType=d.searchType==='files'?'files':'content';search.pattern=String(d.pattern||'');search.literalSearch=Boolean(d.literalSearch);search.ignoreCase=d.ignoreCase!==false;search.filePattern=d.filePattern==null?'':String(d.filePattern);search.contextLines=Math.max(0,Math.min(Number(d.contextLines)||0,20));search.maxResults=Math.max(1,Math.min(Number(d.maxResults)||200,1000));}
+          if(op==='results'){search.searchId=String(d.searchId||'');search.offset=Math.max(0,Number(d.offset)||0);search.limit=Math.max(1,Math.min(Number(d.limit)||100,500));}
+          if(op==='cancel')search.searchId=String(d.searchId||'');
+          const payload={action:'search',operationId:aid(d.operationId),sessionId:sid(d.sessionId),agentId:aid(d.agentId),nodeId:d.nodeId==null?undefined:clientDevice(d.nodeId),search,waitMs:Math.max(0,Math.min(Number(d.waitMs)||7000,8000))};
+          upstream=await clientCall('/plus/client/execute',{method:'POST',body:{deviceId,envelope:sealOperatorPayload(payload)},timeoutMs:9500});
+        }
+        else if(usingClient&&action.startsWith('transfer-')){
+          const d=payloadFor(req),deviceId=clientDevice(d.deviceId||d.device),op=action.slice('transfer-'.length);
+          if(!['begin','chunk','status','commit','cancel'].includes(op)){const e=new Error('invalid_transfer_action');e.status=400;throw e;}
+          if(op==='begin'){
+            const body={deviceId,purpose:'operator-payload',totalBytes:Number(d.totalBytes),totalChunks:Number(d.totalChunks),sha256:String(d.sha256||'')};
+            upstream=await clientCall('/plus/client/transfers',{method:'POST',body,timeoutMs:9500});
+          }else{
+            const transferId=String(d.transferId||'').trim();if(!/^lt_[A-Za-z0-9_-]{20,80}$/.test(transferId)){const e=new Error('invalid_transfer_id');e.status=400;throw e;}
+            const suffix=op==='chunk'?'chunk':op;
+            const body=op==='chunk'?{deviceId,index:Number(d.index),data:String(d.data||''),sha256:String(d.sha256||'')}:{deviceId};
+            upstream=await clientCall(`/plus/client/transfers/${encodeURIComponent(transferId)}/${suffix}`,{method:'POST',body,timeoutMs:9500});
+          }
+        }
         else if(usingClient&&action==='job') upstream=await clientCall(`/plus/client/jobs/${encodeURIComponent(jobId(field(req,'id')))}?deviceId=${encodeURIComponent(clientDevice(field(req,'device')))}`);
         else if(usingClient&&action==='output'){const q=new URLSearchParams({deviceId:clientDevice(field(req,'device')),stream:field(req,'stream')==='stderr'?'stderr':'stdout',full:['1','true','yes'].includes(String(field(req,'full','0')).toLowerCase())?'1':'0',offset:String(Math.max(0,Number(field(req,'offset',0))||0)),limit:String(Math.max(1,Math.min(Number(field(req,'limit',4194304))||4194304,8388608)))});upstream=await clientCall(`/plus/client/output/${encodeURIComponent(jobId(field(req,'id')))}?${q}`);}
         else {
