@@ -5,6 +5,7 @@ on:
     branches: [codex/v0.9-device-policy-resume, main]
     tags: ['v0.9.*']
     paths:
+      - 'VERSION'
       - 'client/macos/**'
       - 'client/update-public.pem'
       - 'device-agent/**'

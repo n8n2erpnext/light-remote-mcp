@@ -9,6 +9,7 @@ on:
     tags:
       - 'v0.9.*'
     paths:
+      - 'VERSION'
       - 'client/**'
       - 'device-agent/**'
       - 'lib/device-proof.mjs'
