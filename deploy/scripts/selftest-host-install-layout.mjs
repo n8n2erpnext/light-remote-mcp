@@ -1,39 +1,23 @@
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
 
-const root = path.resolve(new URL('../..', import.meta.url).pathname);
-const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gpt-host-layout-'));
-const files = [
-  ['operator-host/executor.mjs', 'executor.mjs'],
-  ['operator-host/crypto.mjs', 'crypto.mjs'],
-  ['operator-host/session-manager.mjs', 'session-manager.mjs'],
-  ['operator-host/device-registry.mjs', 'device-registry.mjs'],
-  ['operator-host/enrollment-registry.mjs', 'enrollment-registry.mjs'],
-  ['operator-host/fleet-router.mjs', 'fleet-router.mjs'],
-  ['operator-host/device-connection-registry.mjs', 'device-connection-registry.mjs'],
-  ['operator-host/device-access-grant-registry.mjs', 'device-access-grant-registry.mjs'],
-  ['operator-host/device-pairing-registry.mjs', 'device-pairing-registry.mjs'],
-  ['operator-host/agent-client-registry.mjs', 'agent-client-registry.mjs'],
-  ['operator-host/account-registry.mjs', 'account-registry.mjs'],
-  ['operator-host/usage-registry.mjs', 'usage-registry.mjs'],
-  ['operator-host/license-key-registry.mjs', 'license-key-registry.mjs'],
-  ['operator-host/fleet-authority-registry.mjs', 'fleet-authority-registry.mjs'],
-  ['lib/device-proof.mjs', 'device-proof.mjs']
-];
-for (const [src, dest] of files) fs.copyFileSync(path.join(root, src), path.join(dir, dest));
-await import(pathToFileURL(path.join(dir, 'enrollment-registry.mjs')));
-await import(pathToFileURL(path.join(dir, 'fleet-router.mjs')));
-await import(pathToFileURL(path.join(dir, 'device-connection-registry.mjs')));
-await import(pathToFileURL(path.join(dir, 'device-access-grant-registry.mjs')));
-await import(pathToFileURL(path.join(dir, 'device-pairing-registry.mjs')));
-await import(pathToFileURL(path.join(dir, 'agent-client-registry.mjs')));
-await import(pathToFileURL(path.join(dir, 'account-registry.mjs')));
-await import(pathToFileURL(path.join(dir, 'usage-registry.mjs')));
-await import(pathToFileURL(path.join(dir, 'license-key-registry.mjs')));
-await import(pathToFileURL(path.join(dir, 'fleet-authority-registry.mjs')));
-const installer = fs.readFileSync(path.join(root, 'deploy/scripts/install-host.sh'), 'utf8');
-for (const [, dest] of files) if (!installer.includes(`/opt/gpt-vps-operator/${dest}`)) throw new Error(`installer_missing_${dest}`);
+const root=path.resolve(new URL('../..',import.meta.url).pathname);
+const installer=fs.readFileSync(path.join(root,'deploy/scripts/install-host.sh'),'utf8');
+const unit=fs.readFileSync(path.join(root,'deploy/systemd/gpt-vps-operator.service'),'utf8');
+const executor=fs.readFileSync(path.join(root,'operator-host/executor.mjs'),'utf8');
+
+const libs=['device-proof.mjs','native-fs.mjs','native-process.mjs','native-search.mjs','light-scp-file.mjs','light-scp-registry.mjs'];
+for(const lib of libs){
+  if(!installer.includes(`"/opt/gpt-vps-operator/lib/$lib"`))throw new Error(`host_installer_missing_lib:${lib}`);
+  if(!installer.includes(`"/opt/gpt-vps-operator/host-wall/lib/$lib"`))throw new Error(`host_wall_installer_missing_lib:${lib}`);
+}
+if(!installer.includes('/opt/gpt-vps-operator/operator-host/'))throw new Error('operator_host_layout_not_preserved');
+if(!installer.includes('/opt/gpt-vps-operator/device-agent/platform-adapters/'))throw new Error('operator_platform_adapter_layout_missing');
+if(!unit.includes('WorkingDirectory=/opt/gpt-vps-operator/operator-host'))throw new Error('operator_workdir_layout_stale');
+if(!unit.includes('ExecStart=/usr/bin/node /opt/gpt-vps-operator/operator-host/executor.mjs'))throw new Error('operator_exec_layout_stale');
+for(const rel of ['../lib/native-fs.mjs','../lib/native-process.mjs','../lib/native-search.mjs','../lib/light-scp-registry.mjs','../device-agent/platform-adapters/index.mjs']){
+  if(!executor.includes(`from '${rel}'`))throw new Error(`executor_import_contract_missing:${rel}`);
+}
 console.log('host-install-layout-imports=PASS');
-console.log('host-install-layout-manifest=PASS');
+console.log('host-install-layout-native-runtime=PASS');
+console.log('host-wall-install-layout-native-runtime=PASS');
