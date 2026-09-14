@@ -9,6 +9,12 @@ on:
       - 'client/update-public.pem'
       - 'device-agent/**'
       - 'lib/device-proof.mjs'
+      - 'lib/native-fs.mjs'
+      - 'lib/native-process.mjs'
+      - 'lib/native-search.mjs'
+      - 'lib/light-scp-file.mjs'
+      - 'lib/light-scp-registry.mjs'
+      - 'lib/update-contract.mjs'
       - '.github/workflows/macos-client-build.yml'
   workflow_dispatch:
   workflow_call:
@@ -55,12 +61,12 @@ jobs:
           tar -xzf "$NODE_TAR"
           install -m 0755 "node-v${NODE_VERSION}-darwin-${NODE_ARCH}/bin/node" "$PKG/runtime/node"
           cp "node-v${NODE_VERSION}-darwin-${NODE_ARCH}/LICENSE" "$PKG/licenses/node/LICENSE"
-          cp device-agent/operator-agent.mjs device-agent/local-wall.mjs device-agent/local-wall-auth.mjs device-agent/fleet-component-manager.mjs device-agent/fleet-component-supervisor.mjs "$PKG/device-agent/"
+          cp device-agent/operator-agent.mjs device-agent/local-wall.mjs device-agent/local-wall-auth.mjs device-agent/update-settings-page.mjs device-agent/fleet-component-manager.mjs device-agent/fleet-component-supervisor.mjs "$PKG/device-agent/"
           cp device-agent/platform-adapters/*.mjs "$PKG/device-agent/platform-adapters/"
-          cp lib/device-proof.mjs "$PKG/lib/"
+          for lib in device-proof.mjs native-fs.mjs native-process.mjs native-search.mjs light-scp-file.mjs light-scp-registry.mjs update-contract.mjs; do cp "lib/$lib" "$PKG/lib/$lib"; done
           cp assets/branding/light-remote-mark.svg "$PKG/assets/branding/"
           cp assets/branding/light-remote-mark-256.png "$PKG/assets/branding/"
-          cp client/macos/updater.mjs "$PKG/client/macos/"
+          cp client/macos/updater.mjs client/macos/update-lifeboat.mjs "$PKG/client/macos/"
           cp client/update-public.pem "$PKG/client/update-public.pem"
           cp LICENSE NOTICE THIRD_PARTY_DISTRIBUTION_NOTICES.md "$PKG/"
           xcrun swiftc -O -target "$SWIFT_TARGET" client/macos/tray/main.swift -o "$PKG/tray/LightRemoteTray"
@@ -92,8 +98,11 @@ jobs:
           test -f "$PKG/device-agent/platform-adapters/macos.mjs"
           test -f "$PKG/device-agent/fleet-component-manager.mjs"
           test -f "$PKG/device-agent/fleet-component-supervisor.mjs"
+          for lib in device-proof.mjs native-fs.mjs native-process.mjs native-search.mjs light-scp-file.mjs light-scp-registry.mjs update-contract.mjs; do test -f "$PKG/lib/$lib"; done
           test -f "$PKG/client/macos/updater.mjs"
+          test -f "$PKG/client/macos/update-lifeboat.mjs"
           node --check client/macos/updater.mjs
+          node --check client/macos/update-lifeboat.mjs
           bash -n client/macos/build-pkg.sh
           plutil -lint client/macos/launchd/*.plist
           file "$PKG/runtime/node" "$PKG/tray/LightRemoteTray"

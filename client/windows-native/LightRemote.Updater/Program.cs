@@ -8,20 +8,28 @@ internal static class Program
     {
         try
         {
-            var apply=Array.IndexOf(args,"--apply-update");if(apply>=0&&apply+4<args.Length){_=int.TryParse(args[apply+4],out var parentPid);return await UpdateApplier.ApplyAsync(args[apply+1],args[apply+2],args[apply+3],parentPid);}
+            var apply=Array.IndexOf(args,"--apply-update");if(apply>=0&&apply+6<args.Length){_=int.TryParse(args[apply+4],out var parentPid);return await UpdateApplier.ApplyAsync(args[apply+1],args[apply+2],args[apply+3],parentPid,args[apply+5],args[apply+6]);}
             var verify=Array.IndexOf(args,"--verify-update-fixture");if(verify>=0&&verify+3<args.Length)return VerifyFixture(args[verify+1],args[verify+2],args[verify+3])?0:1;
             var self=Array.IndexOf(args,"--self-test-output");if(self>=0&&self+2<args.Length)return SelfTest(args[self+1],args[self+2])?0:1;
-            var scheduled=Array.IndexOf(args,"--scheduled-update");if(scheduled>=0&&scheduled+2<args.Length&&string.Equals(args[scheduled+1],"--install-dir",StringComparison.OrdinalIgnoreCase))return await RunScheduledUpdateAsync(args[scheduled+2]);
+            var check=Array.IndexOf(args,"--check-update");if(check>=0&&check+2<args.Length&&string.Equals(args[check+1],"--install-dir",StringComparison.OrdinalIgnoreCase))return await RunCheckUpdateAsync(args[check+2]);
+            var now=Array.IndexOf(args,"--apply-update-now");if(now>=0&&now+2<args.Length&&string.Equals(args[now+1],"--install-dir",StringComparison.OrdinalIgnoreCase))return await RunApplyUpdateNowAsync(args[now+2]);
+            var scheduled=Array.IndexOf(args,"--scheduled-update");if(scheduled>=0&&scheduled+2<args.Length&&string.Equals(args[scheduled+1],"--install-dir",StringComparison.OrdinalIgnoreCase))return await RunCheckUpdateAsync(args[scheduled+2]);
             return 2;
         }
         catch(FileNotFoundException){return 0;}
         catch(Exception ex){UpdateApplier.Log($"updater_failed {ex.GetType().Name}: {ex.Message}");return 1;}
     }
 
-    private static async Task<int> RunScheduledUpdateAsync(string installDir)
+    private static string CurrentVersion(string installDir){if(!Path.IsPathFullyQualified(installDir))throw new InvalidOperationException("Install directory must be absolute.");var file=Path.Combine(installDir,"VERSION");if(!File.Exists(file))throw new FileNotFoundException("Installed VERSION file is missing.",file);return File.ReadAllText(file).Trim();}
+    private static void WriteJson(string file,object value){RecoveryPaths.EnsureDirectories();var tmp=file+"."+Environment.ProcessId+".tmp";File.WriteAllText(tmp,JsonSerializer.Serialize(value));File.Move(tmp,file,true);}
+    private static void WriteStatus(string state,string currentVersion,string? targetVersion=null,string? code=null)=>WriteJson(RecoveryPaths.StatusFile,new{state,currentVersion,targetVersion,helperVersion=typeof(Program).Assembly.GetName().Version?.ToString(),code,updatedAt=DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()});
+    private static async Task<int> RunCheckUpdateAsync(string installDir)
     {
-        if(!Path.IsPathFullyQualified(installDir))throw new InvalidOperationException("Install directory must be absolute.");var versionFile=Path.Combine(installDir,"VERSION");if(!File.Exists(versionFile))throw new FileNotFoundException("Installed VERSION file is missing.",versionFile);var currentVersion=File.ReadAllText(versionFile).Trim();
-        var client=new UpdateClient();var update=await client.CheckAsync(currentVersion);if(update is null)return 0;var installer=await client.DownloadAndVerifyAsync(update);client.LaunchApplyHelper(installer,installDir,currentVersion);return 0;
+        var current=CurrentVersion(installDir);WriteStatus("checking",current);try{var update=await new UpdateClient().CheckAsync(current);WriteStatus(update is null?"idle":"available",current,update?.Version);return 0;}catch(FileNotFoundException){WriteStatus("idle",current);return 0;}catch{WriteStatus("failed",current,null,"LRU100");throw;}
+    }
+    private static async Task<int> RunApplyUpdateNowAsync(string installDir)
+    {
+        var current=CurrentVersion(installDir);WriteStatus("checking",current);var client=new UpdateClient();UpdateInfo? update;try{update=await client.CheckAsync(current);}catch(FileNotFoundException){WriteStatus("idle",current);return 0;}catch{WriteStatus("failed",current,null,"LRU100");throw;}if(update is null){WriteStatus("idle",current);return 0;}WriteStatus("downloading",current,update.Version);var installer=await client.DownloadAndVerifyAsync(update);var txId="ut_"+Guid.NewGuid().ToString("N");WriteJson(RecoveryPaths.TransactionFile,new{schemaVersion=1,txId,fromVersion=current,targetVersion=update.Version,startedAt=DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()});try{File.Delete(RecoveryPaths.AckFile);}catch{}WriteStatus("installing_core",current,update.Version);client.LaunchApplyHelper(installer,installDir,current,update.Version,txId);return 0;
     }
     private static bool VerifyFixture(string manifest,string signature,string output){try{UpdateClient.VerifySignedManifest(File.ReadAllBytes(manifest),File.ReadAllText(signature).Trim(),RecoveryPaths.UpdatePublicKey);File.WriteAllText(output,JsonSerializer.Serialize(new{ok=true,updateSignature="valid",runtime="independent-updater"}));return true;}catch(Exception ex){File.WriteAllText(output,JsonSerializer.Serialize(new{ok=false,error=ex.Message}));return false;}}
     private static bool SelfTest(string output,string installDir){try{var process=Environment.ProcessPath??"";var appExe=Path.Combine(installDir,"GptOperator.Client.exe");var result=new{ok=File.Exists(process)&&File.Exists(RecoveryPaths.UpdatePublicKey)&&Path.IsPathFullyQualified(installDir),runtime="independent-updater",updater=process,app=appExe,updaterOutsideApp=!IsUnder(process,installDir)};File.WriteAllText(output,JsonSerializer.Serialize(result));return result.ok&&result.updaterOutsideApp;}catch(Exception ex){File.WriteAllText(output,JsonSerializer.Serialize(new{ok=false,error=ex.Message}));return false;}}

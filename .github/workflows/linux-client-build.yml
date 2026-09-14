@@ -17,6 +17,7 @@ on:
       - 'lib/native-search.mjs'
       - 'lib/light-scp-file.mjs'
       - 'lib/light-scp-registry.mjs'
+      - 'lib/update-contract.mjs'
       - '.github/workflows/linux-client-build.yml'
   workflow_dispatch:
   workflow_call:
@@ -54,14 +55,15 @@ jobs:
           cp device-agent/operator-agent.mjs "$PKG/device-agent/"
           cp device-agent/local-wall.mjs "$PKG/device-agent/"
           cp device-agent/local-wall-auth.mjs "$PKG/device-agent/"
+          cp device-agent/update-settings-page.mjs "$PKG/device-agent/"
           cp device-agent/fleet-component-manager.mjs "$PKG/device-agent/"
           cp device-agent/fleet-component-supervisor.mjs "$PKG/device-agent/"
           cp device-agent/linux-service-policy.mjs "$PKG/device-agent/"
           cp device-agent/platform-adapters/*.mjs "$PKG/device-agent/platform-adapters/"
-          for lib in device-proof.mjs native-fs.mjs native-process.mjs native-search.mjs light-scp-file.mjs light-scp-registry.mjs; do cp "lib/$lib" "$PKG/lib/$lib"; done
+          for lib in device-proof.mjs native-fs.mjs native-process.mjs native-search.mjs light-scp-file.mjs light-scp-registry.mjs update-contract.mjs; do cp "lib/$lib" "$PKG/lib/$lib"; done
           cp assets/branding/light-remote-mark.svg "$PKG/assets/branding/"
           cp assets/branding/light-remote-mark-256.png "$PKG/assets/branding/"
-          cp client/linux/updater.mjs "$PKG/client/linux/"
+          cp client/linux/updater.mjs client/linux/update-lifeboat.mjs "$PKG/client/linux/"
           cp client/linux-debian/updater-wrapper.mjs "$PKG/client/linux-debian/"
           cp client/linux-debian/tray/light-remote-tray.py "$PKG/client/linux-debian/tray/"
           cp client/update-public.pem "$PKG/client/update-public.pem"
@@ -101,6 +103,8 @@ jobs:
           test -f "$PKG/lib/native-search.mjs"
           test -f "$PKG/lib/light-scp-file.mjs"
           test -f "$PKG/lib/light-scp-registry.mjs"
+          test -f "$PKG/lib/update-contract.mjs"
+          test -f "$PKG/client/linux/update-lifeboat.mjs"
           test -f "$PKG/client/linux/updater.mjs"
           test -f "$PKG/client/linux-debian/updater-wrapper.mjs"
           test -f "$PKG/client/linux-debian/tray/light-remote-tray.py"

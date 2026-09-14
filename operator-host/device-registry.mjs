@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { normalizeUpdateStatus } from '../lib/update-contract.mjs';
 
 export class DeviceError extends Error {
   constructor(message, status = 400) { super(message); this.status = status; }
@@ -57,6 +58,7 @@ export class DeviceRegistry {
       publicIdentityKey: device.publicIdentityKey,
       capabilities: [...device.capabilities],
       policyProfile: device.policyProfile,
+      update: normalizeUpdateStatus(device.updateStatus||{}),
       activeSessions: Math.max(0, Number(activeSessionsForNode(device.nodeId)) || 0),
       presenceTtlMs: this.presenceTtlMs
     };
@@ -95,7 +97,8 @@ export class DeviceRegistry {
           revokedAt: Number.isFinite(Number(raw.revokedAt)) ? Number(raw.revokedAt) : null,
           publicIdentityKey: raw.publicIdentityKey ? boundedText(raw.publicIdentityKey, 4096) : null,
           capabilities: cleanCapabilities(raw.capabilities),
-          policyProfile: boundedText(raw.policyProfile || 'default', 120)
+          policyProfile: boundedText(raw.policyProfile || 'default', 120),
+          updateStatus: normalizeUpdateStatus(raw.updateStatus||{})
         });
       }
     } catch (error) {
@@ -126,7 +129,8 @@ export class DeviceRegistry {
       revokedAt: null,
       publicIdentityKey: input.publicIdentityKey ? boundedText(input.publicIdentityKey, 4096) : (prior?.publicIdentityKey || null),
       capabilities: cleanCapabilities(input.capabilities?.length ? input.capabilities : prior?.capabilities),
-      policyProfile: boundedText(input.policyProfile || prior?.policyProfile || 'default', 120)
+      policyProfile: boundedText(input.policyProfile || prior?.policyProfile || 'default', 120),
+      updateStatus: normalizeUpdateStatus(input.updateStatus||prior?.updateStatus||{})
     };
     this.devices.set(deviceId, device);
     this._persist();
@@ -156,7 +160,8 @@ export class DeviceRegistry {
       firstSeenAt: prior?.firstSeenAt || now, lastSeenAt: prior?.lastSeenAt || now, offlineAt: now, revokedAt: null,
       publicIdentityKey: boundedText(input.publicIdentityKey || prior?.publicIdentityKey || '', 4096) || null,
       capabilities: cleanCapabilities(input.capabilities),
-      policyProfile: boundedText(input.policyProfile || prior?.policyProfile || 'default', 120)
+      policyProfile: boundedText(input.policyProfile || prior?.policyProfile || 'default', 120),
+      updateStatus: normalizeUpdateStatus(input.updateStatus||prior?.updateStatus||{})
     };
     this.devices.set(deviceId, device); this._persist();
     this.emit({ type:'device_enrolled', accountId, deviceId, nodeId, status:'offline', displayName:device.displayName, platform:device.platform, architecture:device.architecture, agentVersion:device.agentVersion });
@@ -171,7 +176,7 @@ export class DeviceRegistry {
     const wasOffline = this._state(device, now) === 'offline';
     device.lastSeenAt = now;
     device.offlineAt = null;
-    let capabilitiesChanged = false, agentVersionChanged = false;
+    let capabilitiesChanged = false, agentVersionChanged = false, updateStatusChanged = false;
     if (Array.isArray(options.capabilities)) {
       const next = cleanCapabilities(options.capabilities);
       capabilitiesChanged = JSON.stringify(next) !== JSON.stringify(device.capabilities);
@@ -181,9 +186,14 @@ export class DeviceRegistry {
       const nextVersion = boundedText(options.agentVersion, 40).trim();
       if (nextVersion) { agentVersionChanged = nextVersion !== device.agentVersion; device.agentVersion = nextVersion; }
     }
-    if (wasOffline || capabilitiesChanged || agentVersionChanged) this._persist();
+    if (options.updateStatus && typeof options.updateStatus === 'object') {
+      const nextUpdate = normalizeUpdateStatus(options.updateStatus);
+      updateStatusChanged = JSON.stringify(nextUpdate) !== JSON.stringify(normalizeUpdateStatus(device.updateStatus||{}));
+      device.updateStatus = nextUpdate;
+    }
+    if (wasOffline || capabilitiesChanged || agentVersionChanged || updateStatusChanged) this._persist();
     if (wasOffline) this.emit({ type:'device_online', accountId:device.accountId, deviceId:device.deviceId, nodeId:device.nodeId, status:'online', agentVersion:device.agentVersion });
-    else if (capabilitiesChanged || agentVersionChanged) this.emit({ type:'device_updated', accountId:device.accountId, deviceId:device.deviceId, nodeId:device.nodeId, status:'online', agentVersion:device.agentVersion });
+    else if (capabilitiesChanged || agentVersionChanged || updateStatusChanged) this.emit({ type:'device_updated', accountId:device.accountId, deviceId:device.deviceId, nodeId:device.nodeId, status:'online', agentVersion:device.agentVersion });
     return this._view(device, { now });
   }
   revoke(deviceId, reason = 'owner_revoked') {

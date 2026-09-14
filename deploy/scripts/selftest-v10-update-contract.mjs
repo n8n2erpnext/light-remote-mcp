@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import {UPDATE_CODES,normalizeUpdateReport,normalizeUpdateStatus,updateCodeKnown} from '../../lib/update-contract.mjs';
+const report=normalizeUpdateReport({reportId:'ur_abcdefghijklmnop',outcome:'rollback',code:UPDATE_CODES.CORE_HEALTH,phase:'verify_core',fromVersion:'0.9.0-rc.6',targetVersion:'0.9.1',activeVersion:'0.9.0-rc.6',helperVersion:'0.9.0-rc.6',platform:'linux',rollback:{attempted:true,success:true},detail:'health timeout'});
+assert.equal(report.code,'LRU131');assert.equal(report.rollback.success,true);assert.equal(report.detail,'health timeout');
+assert.equal(updateCodeKnown('LRU150'),true);assert.equal(updateCodeKnown('BAD'),false);
+assert.throws(()=>normalizeUpdateReport({reportId:'bad',outcome:'failed',code:'BAD'}));
+const status=normalizeUpdateStatus({state:'verifying_core',currentVersion:'0.9.0',targetVersion:'0.9.1',helperVersion:'0.9.0',code:'LRU131',updatedAt:123});
+assert.deepEqual(status,{state:'verifying_core',currentVersion:'0.9.0',targetVersion:'0.9.1',helperVersion:'0.9.0',code:'LRU131',updatedAt:123});
+console.log('v10-update-report-contract=PASS');
+console.log('v10-update-status-contract=PASS');

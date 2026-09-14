@@ -34,7 +34,7 @@ SetupIconFile={#StageDir}\Assets\light-remote.ico
 AppMutex=Local\GPT_OPERATOR_CLIENT_V09
 [Files]
 Source: "{#StageDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "{#UpdaterStageDir}\*"; DestDir: "{localappdata}\Light Remote\Updater"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#UpdaterStageDir}\*"; DestDir: "{localappdata}\Light Remote\Updater"; Flags: ignoreversion recursesubdirs createallsubdirs onlyifdoesntexist
 
 [Registry]
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "Light Remote MCP"; ValueData: """{app}\GptOperator.Client.exe"" --background"; Flags: uninsdeletevalue

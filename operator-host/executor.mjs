@@ -23,6 +23,7 @@ import { executeNativeFs, filesystemPolicy } from '../lib/native-fs.mjs';
 import { NativeProcessRegistry } from '../lib/native-process.mjs';
 import { NativeSearchRegistry } from '../lib/native-search.mjs';
 import { LightScpRegistry } from '../lib/light-scp-registry.mjs';
+import { normalizeUpdateReport } from '../lib/update-contract.mjs';
 import { createPlatformAdapter } from '../device-agent/platform-adapters/index.mjs';
 
 const SOCKET_PATH = process.env.OPERATOR_SOCKET || '/run/gpt-vps-operator/operator.sock';
@@ -681,6 +682,16 @@ function requireDeviceConnection(deviceId) {
 }
 function deviceView(device) { return { ...device, routing:routingViewForDevice(device), policy:policyViewForDevice(device), connection:connectionViewForDevice(device.deviceId) }; }
 function allDeviceViews() { return devices.list({ activeSessionsForNode:nodeId => sessions.activeCountByNode(nodeId) }).map(deviceView); }
+function queueHelperUpdate(deviceId) {
+  const device=devices.get(deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});if(device.nodeId===NODE_ID)throw new DeviceError('helper_update_hub_not_client',409);const route=targetRoute(device.nodeId);
+  const agentId=`agent-update-${crypto.randomBytes(8).toString('hex')}`,openId=`open-update-${crypto.randomBytes(8).toString('hex')}`;let session;
+  try{session=sessions.open({agentId,openId,label:'client update',workspace:'',gracePreset:'30m',nodeId:route.nodeId,deviceId:route.deviceId,maxActiveForNode:route.sessionCeiling});const operationId=`client-update-${crypto.randomBytes(8).toString('hex')}`,requestId=`update-${crypto.randomUUID()}`;
+    const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:null,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.sessionId,agentId:session.agentId,nodeId:session.nodeId,note:'owner requested helper client update',cwd:'',script:'request signed client update',status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote:true,commandId:null,requiredCapabilities:[],resultData:null,autoCloseSession:true};
+    jobs.set(job.id,job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:'outbound-leaf',requiredCapabilities:[],note:job.note});
+    const command=fleet.enqueue({accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'update',operationId,sessionId:job.sessionId,agentId:job.agentId,update:{op:'request'}}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},60000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();pushEvent({type:'device_update_requested',accountId:device.accountId,deviceId:device.deviceId,nodeId:device.nodeId,sessionId:session.sessionId,agentId,jobId:job.id,status:'queued'});return {accepted:true,deviceId:device.deviceId,nodeId:device.nodeId,sessionId:session.sessionId,agentId,job:jobView(job)};
+  }catch(error){if(session?.sessionId){try{sessions.close(session.sessionId,agentId);}catch{}}throw error;}
+}
+
 function queueSignedUpdate(deviceId) {
   const device=devices.get(deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
   if(device.nodeId===NODE_ID||device.platform!=='linux')throw new DeviceError('maintenance_update_unsupported_platform',409);
@@ -1089,7 +1100,7 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/fleet-device-update') {
       const body=await readJson(req),ctx=verifiedFleetContext(verifiedChannelContext(body,'fleet-device-update')),target=fleetTarget(ctx,ctx.payload.deviceId);
-      return sendJson(res,200,{ok:true,mainDeviceId:ctx.account.mainDeviceId,maintenance:queueSignedUpdate(target.deviceId)});
+      return sendJson(res,200,{ok:true,mainDeviceId:ctx.account.mainDeviceId,maintenance:queueHelperUpdate(target.deviceId)});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/pairing-code') {
       const body=await readJson(req), ctx=verifiedChannelContext(body,'pairing-code');
@@ -1121,6 +1132,14 @@ const server = http.createServer(async (req, res) => {
       const liveSessions=sessions.list({deviceId:ctx.device.deviceId}).filter(item=>item.state==='active'||item.state==='hold');
       return sendJson(res,200,{ok:true,device:deviceView(ctx.device),connection:{...connections.get(ctx.device.deviceId),enforced:CONNECTION_LEASE_ENFORCE},sessions:liveSessions,access:{pending:accessGrants.pendingForDevice(ctx.device.deviceId),activeGrant:accessGrants.activeForDevice(ctx.device.deviceId,connection.connectionId)}});
     }
+    if (req.method === 'POST' && url.pathname === '/v1/device-channel/update-report') {
+      const body=await readJson(req),ctx=verifiedChannelContext(body,'update-report');
+      requireDeviceConnection(ctx.device.deviceId);
+      if(ctx.payload.nodeId!=null&&String(ctx.payload.nodeId)!==ctx.device.nodeId)throw new EnrollmentError('device_node_mismatch',409);
+      const report=normalizeUpdateReport(ctx.payload);
+      pushEvent({type:'device_update_report',accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,status:report.outcome==='success'?'ok':'error',...report});
+      return sendJson(res,200,{ok:true,accepted:true,reportId:report.reportId});
+    }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/activity') {
       const body=await readJson(req), ctx=verifiedChannelContext(body,'activity');
       requireDeviceConnection(ctx.device.deviceId);
@@ -1133,7 +1152,7 @@ const server = http.createServer(async (req, res) => {
       const reportedRevision=Math.max(0,Number(ctx.payload.policyRevision)||0);
       const capabilities=verifiedLeafCapabilities(ctx.payload.capabilities,ctx.binding,reportedRevision);
       requireDeviceConnection(ctx.device.deviceId);
-      devices.heartbeat(ctx.device.deviceId,{capabilities,agentVersion:ctx.payload.agentVersion});
+      devices.heartbeat(ctx.device.deviceId,{capabilities,agentVersion:ctx.payload.agentVersion,updateStatus:ctx.payload.updateStatus});
       const waitMs=Math.max(0,Math.min(Number(ctx.payload.waitMs)||8000,15000));
       const channel=await fleet.waitPoll({accountId:ACCOUNT_ID,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,sessionCeiling:ctx.payload.sessionCeiling,draining:Boolean(ctx.payload.draining),capabilities},waitMs);
       const policy=reportedRevision===Math.max(1,Number(ctx.binding.policyRevision)||1)?null:enrollments.policyEnvelope(ctx.device.deviceId);

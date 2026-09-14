@@ -15,7 +15,7 @@ PY
 )
 case "$PLATFORM" in macos-x64) ARCH=x86_64;; macos-arm64) ARCH=arm64;; *) echo "unsupported platform: $PLATFORM" >&2; exit 2;; esac
 ROOT_STAGE="$TMP/root"; SCRIPTS="$TMP/scripts"; APP_ROOT="$ROOT_STAGE/Library/Application Support/Light Remote"
-mkdir -p "$APP_ROOT/releases/$VERSION" "$ROOT_STAGE/Library/LaunchAgents" "$ROOT_STAGE/Library/LaunchDaemons" "$SCRIPTS" "$OUT"
+mkdir -p "$APP_ROOT/releases/$VERSION" "$APP_ROOT/update-runtime" "$ROOT_STAGE/Library/LaunchAgents" "$ROOT_STAGE/Library/LaunchDaemons" "$SCRIPTS" "$OUT"
 cp -a "$PKG/." "$APP_ROOT/releases/$VERSION/"
 cp "$ROOT_DIR/client/update-public.pem" "$APP_ROOT/update-public.pem"
 cp "$ROOT_DIR/client/macos/launchd/com.lightremote.agent.plist" "$ROOT_STAGE/Library/LaunchAgents/"
@@ -27,6 +27,16 @@ set -e
 ROOT='/Library/Application Support/Light Remote'
 ln -sfn "\$ROOT/releases/$VERSION" "\$ROOT/current.next"
 mv -f "\$ROOT/current.next" "\$ROOT/current"
+if [[ ! -x "\$ROOT/updater/current/runtime/node" ]]; then
+  HELPER="\$ROOT/updater/releases/$VERSION"
+  mkdir -p "\$HELPER/runtime" "\$HELPER/client/macos" "\$HELPER/lib"
+  cp "\$ROOT/releases/$VERSION/runtime/node" "\$HELPER/runtime/node"
+  cp "\$ROOT/releases/$VERSION/client/macos/updater.mjs" "\$ROOT/releases/$VERSION/client/macos/update-lifeboat.mjs" "\$HELPER/client/macos/"
+  cp "\$ROOT/releases/$VERSION/lib/update-contract.mjs" "\$HELPER/lib/update-contract.mjs"
+  cp "\$ROOT/releases/$VERSION/manifest.json" "\$HELPER/manifest.json"
+  ln -sfn "\$HELPER" "\$ROOT/updater/current.next"
+  mv -f "\$ROOT/updater/current.next" "\$ROOT/updater/current"
+fi
 chown -R root:wheel "\$ROOT"
 chmod -R go-w "\$ROOT"
 launchctl bootout system/com.lightremote.updater >/dev/null 2>&1 || true
@@ -35,6 +45,10 @@ launchctl enable system/com.lightremote.updater >/dev/null 2>&1 || true
 USER_NAME="\$(stat -f '%Su' /dev/console 2>/dev/null || true)"
 if [[ -n "\$USER_NAME" && "\$USER_NAME" != root && "\$USER_NAME" != loginwindow ]]; then
   UID_NUM="\$(id -u "\$USER_NAME")"
+  GROUP_NAME="\$(id -gn "\$USER_NAME")"
+  mkdir -p "\$ROOT/update-runtime"
+  chown "\$USER_NAME:\$GROUP_NAME" "\$ROOT/update-runtime"
+  chmod 700 "\$ROOT/update-runtime"
   for LABEL in com.lightremote.agent com.lightremote.tray; do
     launchctl asuser "\$UID_NUM" launchctl bootout "gui/\$UID_NUM/\$LABEL" >/dev/null 2>&1 || true
     launchctl asuser "\$UID_NUM" launchctl bootstrap "gui/\$UID_NUM" "/Library/LaunchAgents/\$LABEL.plist" >/dev/null 2>&1 || true

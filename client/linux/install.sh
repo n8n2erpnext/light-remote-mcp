@@ -95,6 +95,23 @@ if [[ ! -f "$STATE_FILE" ]]; then
   sudo -u "$TARGET_USER" env HOME="$TARGET_HOME" OPERATOR_AGENT_BASE_URL="$BASE_URL" OPERATOR_AGENT_HUB_URL="$HUB_URL" "$ROOT/current/runtime/node" "$ROOT/current/device-agent/operator-agent.mjs" login
 fi
 [[ -f "$STATE_FILE" ]] || { echo "Device enrollment did not produce state" >&2; exit 2; }
+UPDATE_STATE_DIR="$TARGET_HOME/.config/gpt-operator-agent/update-runtime"
+UPDATE_REQUEST_FILE="$UPDATE_STATE_DIR/request.json"
+UPDATE_CHECK_REQUEST_FILE="$UPDATE_STATE_DIR/check-request.json"
+sudo -u "$TARGET_USER" install -d -m 0700 "$UPDATE_STATE_DIR"
+UPDATER_ROOT="$ROOT/updater"
+if [[ ! -x "$UPDATER_ROOT/current/runtime/node" ]]; then
+  UPDATER_RELEASE="$UPDATER_ROOT/releases/$VERSION"
+  sudo rm -rf "$UPDATER_RELEASE"
+  sudo install -d -m 0755 "$UPDATER_RELEASE/runtime" "$UPDATER_RELEASE/client/linux" "$UPDATER_RELEASE/lib"
+  sudo install -m 0755 "$ROOT/current/runtime/node" "$UPDATER_RELEASE/runtime/node"
+  sudo install -m 0644 "$ROOT/current/client/linux/updater.mjs" "$UPDATER_RELEASE/client/linux/updater.mjs"
+  sudo install -m 0644 "$ROOT/current/client/linux/update-lifeboat.mjs" "$UPDATER_RELEASE/client/linux/update-lifeboat.mjs"
+  sudo install -m 0644 "$ROOT/current/lib/update-contract.mjs" "$UPDATER_RELEASE/lib/update-contract.mjs"
+  sudo install -m 0644 "$ROOT/current/manifest.json" "$UPDATER_RELEASE/manifest.json"
+  sudo ln -sfn "$UPDATER_RELEASE" "$UPDATER_ROOT/current.next"
+  sudo mv -Tf "$UPDATER_ROOT/current.next" "$UPDATER_ROOT/current"
+fi
 POLICY_HELPER="$ROOT/current/device-agent/linux-service-policy.mjs"
 NO_NEW_PRIVILEGES="$("$ROOT/current/runtime/node" "$POLICY_HELPER" "$STATE_FILE" noNewPrivileges)"
 RESTRICT_SUID_SGID="$("$ROOT/current/runtime/node" "$POLICY_HELPER" "$STATE_FILE" restrictSuidSgid)"
@@ -119,6 +136,7 @@ Type=simple
 User=$TARGET_USER
 WorkingDirectory=$TARGET_HOME
 Environment=HOME=$TARGET_HOME
+Environment=LIGHT_REMOTE_UPDATE_STATE_DIR=$UPDATE_STATE_DIR
 Environment=OPERATOR_AGENT_BASE_URL=$BASE_URL
 Environment=OPERATOR_AGENT_HUB_URL=$HUB_URL
 ExecStart=$ROOT/current/runtime/node $ROOT/current/device-agent/operator-agent.mjs daemon
@@ -151,13 +169,50 @@ Wants=network-online.target
 Type=oneshot
 Environment=GPT_OPERATOR_UPDATE_MANIFEST_URL=$MANIFEST_URL
 Environment=GPT_OPERATOR_UPDATE_SIGNATURE_URL=$SIGNATURE_URL
-ExecStart=$ROOT/current/runtime/node $ROOT/current/client/linux/updater.mjs
+Environment=LIGHT_REMOTE_UPDATE_STATE_DIR=$UPDATE_STATE_DIR
+ExecStart=$ROOT/updater/current/runtime/node $ROOT/updater/current/client/linux/updater.mjs
+UNIT
+sudo tee /etc/systemd/system/gpt-operator-agent-update-check.service >/dev/null <<UNIT
+[Unit]
+Description=Check signed Light Remote client update availability
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+Environment=GPT_OPERATOR_UPDATE_MANIFEST_URL=$MANIFEST_URL
+Environment=GPT_OPERATOR_UPDATE_SIGNATURE_URL=$SIGNATURE_URL
+Environment=LIGHT_REMOTE_UPDATE_STATE_DIR=$UPDATE_STATE_DIR
+ExecStart=$ROOT/updater/current/runtime/node $ROOT/updater/current/client/linux/updater.mjs --check-only
+UNIT
+sudo tee /etc/systemd/system/gpt-operator-agent-update.path >/dev/null <<UNIT
+[Unit]
+Description=Wake Light Remote updater on owner request
+
+[Path]
+PathExists=$UPDATE_REQUEST_FILE
+Unit=gpt-operator-agent-update.service
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+sudo tee /etc/systemd/system/gpt-operator-agent-update-check.path >/dev/null <<UNIT
+[Unit]
+Description=Wake Light Remote update checker on owner request
+
+[Path]
+PathExists=$UPDATE_CHECK_REQUEST_FILE
+Unit=gpt-operator-agent-update-check.service
+
+[Install]
+WantedBy=multi-user.target
 UNIT
 sudo tee /etc/systemd/system/gpt-operator-agent-update.timer >/dev/null <<'UNIT'
 [Unit]
 Description=Periodic GPT Operator signed client update check
 
 [Timer]
+Unit=gpt-operator-agent-update-check.service
 OnBootSec=5min
 OnUnitActiveSec=6h
 RandomizedDelaySec=15min
@@ -170,6 +225,8 @@ UNIT
 sudo systemctl daemon-reload
 sudo systemctl enable --now gpt-operator-device-agent.service
 sudo systemctl enable --now gpt-operator-agent-update.timer
+sudo systemctl enable --now gpt-operator-agent-update.path
+sudo systemctl enable --now gpt-operator-agent-update-check.path
 sleep 2
 systemctl --no-pager --full status gpt-operator-device-agent.service | sed -n '1,12p'
 echo
@@ -178,4 +235,4 @@ printf 'Enrollment bridge: %s\n' "$BASE_URL"
 printf 'Device hub: %s\n' "$HUB_URL"
 echo 'The terminal can now be closed; systemd owns the always-alive local service.'
 echo 'Local Wall: http://127.0.0.1:5491/ (cloud may be Connected or Dormant independently).'
-echo 'Signed update checks run automatically every ~6 hours.'
+echo 'Signed update availability checks run automatically every ~6 hours; installation remains owner-triggered.'

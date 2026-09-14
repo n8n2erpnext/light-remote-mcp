@@ -10,6 +10,11 @@ internal static class RecoveryPaths
     public static readonly string RollbackDir = Path.Combine(Root, "rollback");
     public static readonly string LogDir = Path.Combine(Root, "logs");
     public static readonly string UpdateLog = Path.Combine(LogDir, "update.log");
+    public static readonly string StateDir = Path.Combine(Root, "state");
+    public static readonly string StatusFile = Path.Combine(StateDir, "status.json");
+    public static readonly string ReportFile = Path.Combine(StateDir, "pending-report.json");
+    public static readonly string TransactionFile = Path.Combine(StateDir, "transaction.json");
+    public static readonly string AckFile = Path.Combine(StateDir, "core-health-ack.json");
 
     public static void EnsureDirectories()
     {
@@ -18,6 +23,7 @@ internal static class RecoveryPaths
         Directory.CreateDirectory(CacheDir);
         Directory.CreateDirectory(RollbackDir);
         Directory.CreateDirectory(LogDir);
+        Directory.CreateDirectory(StateDir);
     }
 
     public static string RollbackInstaller(string version)

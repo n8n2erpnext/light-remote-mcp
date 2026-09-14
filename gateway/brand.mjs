@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 
 const canonicalMark = fs.readFileSync(new URL('./brand-mark.svg', import.meta.url), 'utf8').trim();
+export const BRANDING_VERSION = '0.9.0-rc.6.brand1';
 
 export function brandMarkSvg(size = 42) {
   const px = Math.max(24, Math.min(Number(size) || 42, 160));

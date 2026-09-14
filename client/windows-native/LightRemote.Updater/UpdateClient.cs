@@ -39,10 +39,10 @@ internal sealed class UpdateClient
         if(!CryptographicOperations.FixedTimeEquals(Convert.FromHexString(actual),Convert.FromHexString(update.Artifact.Sha256))){File.Delete(file);throw new InvalidOperationException("Update SHA256 mismatch.");}return file;
     }
 
-    public void LaunchApplyHelper(string installerPath,string installDir,string currentVersion)
+    public void LaunchApplyHelper(string installerPath,string installDir,string currentVersion,string targetVersion,string txId)
     {
         RecoveryPaths.EnsureDirectories();var helper=Path.Combine(RecoveryPaths.CacheDir,$"updater-helper-{Guid.NewGuid():N}.exe");File.Copy(Environment.ProcessPath??throw new InvalidOperationException("Updater executable path unavailable."),helper,true);
-        var psi=new ProcessStartInfo(helper){UseShellExecute=false,CreateNoWindow=true};psi.ArgumentList.Add("--apply-update");psi.ArgumentList.Add(installerPath);psi.ArgumentList.Add(installDir);psi.ArgumentList.Add(currentVersion);psi.ArgumentList.Add(Environment.ProcessId.ToString());Process.Start(psi);
+        var psi=new ProcessStartInfo(helper){UseShellExecute=false,CreateNoWindow=true};psi.ArgumentList.Add("--apply-update");psi.ArgumentList.Add(installerPath);psi.ArgumentList.Add(installDir);psi.ArgumentList.Add(currentVersion);psi.ArgumentList.Add(Environment.ProcessId.ToString());psi.ArgumentList.Add(targetVersion);psi.ArgumentList.Add(txId);Process.Start(psi);
     }
 
     internal static void VerifySignedManifest(byte[] manifestBytes,string signatureText,string publicKeyFile)
