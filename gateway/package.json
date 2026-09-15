@@ -1,6 +1,6 @@
 {
   "name": "light-remote-mcp-server",
-  "version": "0.9.0-rc.18",
+  "version": "0.9.0-rc.19",
   "description": "Light Remote MCP self-hosted gateway and MCP control plane.",
   "main": "index.js",
   "scripts": {

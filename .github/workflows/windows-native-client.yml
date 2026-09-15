@@ -418,13 +418,13 @@ jobs:
           Get-Process -Name 'GptOperator.Client','LightRemote.Updater' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
           Unregister-ScheduledTask -TaskName 'LightRemoteDeviceAgent' -Confirm:$false -ErrorAction SilentlyContinue
           Unregister-ScheduledTask -TaskName 'LightRemoteUpdater' -Confirm:$false -ErrorAction SilentlyContinue
-          if ($env:WINDOWS_COMPACT_INSTALL_DIR) {
-            $unins = Join-Path $env:WINDOWS_COMPACT_INSTALL_DIR 'unins000.exe'
-            if (Test-Path $unins) {
-              $p = Start-Process -FilePath $unins -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART') -PassThru
-              if (-not $p.WaitForExit(60000)) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; throw 'compact uninstaller timed out after 60s' }
-              if ($p.ExitCode -ne 0) { throw "compact uninstaller exit=$($p.ExitCode)" }
-            }
+          $compactDir = $env:WINDOWS_COMPACT_INSTALL_DIR
+          if ([string]::IsNullOrWhiteSpace($compactDir)) { $compactDir = Join-Path $env:RUNNER_TEMP 'Light Remote Compact Installed' }
+          $unins = Join-Path $compactDir 'unins000.exe'
+          if (Test-Path $unins) {
+            $p = Start-Process -FilePath $unins -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART') -PassThru
+            if (-not $p.WaitForExit(60000)) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; throw 'compact uninstaller timed out after 60s' }
+            if ($p.ExitCode -ne 0) { throw "compact uninstaller exit=$($p.ExitCode)" }
           }
           $updaterRoot = Join-Path $env:LOCALAPPDATA 'Light Remote\Updater'
           if (Test-Path $updaterRoot) { throw "compact updater recovery root survived uninstall: $updaterRoot" }
