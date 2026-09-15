@@ -13,7 +13,7 @@ import {devicePolicyHtml} from '../gateway/device-policy-page.mjs';
 import {updateSettingsHtml} from './update-settings-page.mjs';
 import {brandMarkSvg,brandTitleSvg,brandFaviconSvg,BRANDING_VERSION} from '../lib/brand.mjs';
 
-const VERSION=runtimeVersion({envNames:['LIGHT_REMOTE_FLEET_VERSION'],fallback:BRANDING_VERSION});
+const VERSION=runtimeVersion({envNames:['LIGHT_REMOTE_FLEET_VERSION']});
 const STATE_FILE=process.env.OPERATOR_AGENT_STATE||path.join(os.homedir(),'.config','gpt-operator-agent','device.json');
 const EXTERNAL_IDENTITY_FILE=String(process.env.OPERATOR_AGENT_IDENTITY_FILE||'').trim();
 const AUTH_FILE=process.env.OPERATOR_AGENT_WALL_AUTH_FILE||path.join(path.dirname(STATE_FILE),'wall-auth.json');
