@@ -13,6 +13,8 @@ need(tray.includes('agentRun(["poll"])')&&tray.includes('state == "approved"')&&
 need(agent.includes('writeAccountOnlyWallAuthConfig(LOCAL_WALL_AUTH_FILE')&&wall.includes('action=\"/auth/logout\"'),'macos-approved-wall-login-logout');
 need(tray.includes('Account / Logout…')&&tray.includes('light-remote-mcp.vercel.app/'),'macos-account-logout-discovery');
 need(tray.includes('.systemGreen')&&tray.includes('.systemOrange')&&tray.includes('.systemGray')&&tray.includes('.systemRed'),'macos-tray-connection-states');
+need(tray.includes('NSStatusItem.squareLength')&&tray.includes('statusItem.isVisible = true'),'macos-tray-fixed-visible-slot');
+need(tray.includes('LightRemote.icns')&&tray.includes('base.draw(in: NSRect(origin: .zero, size: size))')&&tray.includes('NSString(string: \"LR\")'),'macos-tray-icon-fallback');
 need(pkg.includes('/Applications/Light Remote.app')&&pkg.includes('<key>CFBundleIdentifier</key><string>com.lightremote.client</string>'),'macos-app-bundle-install');
 need(pkg.includes('lsregister -f')&&uninstall.includes('lsregister -u'),'macos-launchservices-registration');
 need(pkg.includes('LightRemoteLauncher')&&pkg.includes('launchctl kickstart -k')&&pkg.includes('iconutil -c icns'),'macos-launchpad-reopen-launcher');

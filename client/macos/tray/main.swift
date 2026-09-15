@@ -3,7 +3,7 @@ import Cocoa
 enum TrayVisualState { case unavailable, unlinked, dormant, connected }
 
 final class TrayDelegate: NSObject, NSApplicationDelegate {
-    let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+    let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
     let stateItem = NSMenuItem(title: "Starting…", action: nil, keyEquivalent: "")
     let accountItem = NSMenuItem(title: "Sign in / Link device…", action: #selector(accountAction), keyEquivalent: "")
     let connectItem = NSMenuItem(title: "Connect", action: #selector(toggleConnection), keyEquivalent: "")
@@ -16,9 +16,10 @@ final class TrayDelegate: NSObject, NSApplicationDelegate {
     var node: String { root + "/current/runtime/node" }
     var agent: String { root + "/current/device-agent/operator-agent.mjs" }
     var brandIcon: String { root + "/current/assets/branding/light-remote-mark-256.png" }
+    let appIcon = "/Applications/Light Remote.app/Contents/Resources/LightRemote.icns"
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        if let button = statusItem.button { button.imagePosition = .imageOnly; button.title = ""; button.toolTip = "Light Remote" }
+        if let button = statusItem.button { button.imagePosition = .imageOnly; button.imageScaling = .scaleProportionallyDown; button.title = ""; button.toolTip = "Light Remote" }; statusItem.isVisible = true
         let menu = NSMenu(); stateItem.isEnabled = false
         menu.addItem(stateItem); menu.addItem(.separator()); menu.addItem(accountItem)
         menu.addItem(NSMenuItem(title: "Open Local Wall", action: #selector(openWall), keyEquivalent: "")); menu.addItem(connectItem)
@@ -51,9 +52,16 @@ final class TrayDelegate: NSObject, NSApplicationDelegate {
     }
 
     func trayIcon(_ visual: TrayVisualState) -> NSImage? {
-        guard let base = NSImage(contentsOfFile: brandIcon) else { return nil }
-        let size = NSSize(width: 18, height: 18), image = NSImage(size: NSSize(width: 18, height: 18))
-        image.lockFocus(); base.draw(in: NSRect(origin: .zero, size: size), from: .zero, operation: .sourceOver, fraction: 1)
+        let base = NSImage(contentsOfFile: brandIcon) ?? NSImage(contentsOfFile: appIcon)
+        let size = NSSize(width: 18, height: 18), image = NSImage(size: size)
+        image.lockFocus()
+        if let base {
+            base.draw(in: NSRect(origin: .zero, size: size))
+        } else {
+            NSColor.black.setFill(); NSBezierPath(ovalIn: NSRect(x: 1, y: 1, width: 16, height: 16)).fill()
+            let text = NSString(string: "LR"), attrs: [NSAttributedString.Key.font: NSFont.boldSystemFont(ofSize: 7), .foregroundColor: NSColor.white]
+            text.draw(at: NSPoint(x: 4, y: 5), withAttributes: attrs)
+        }
         let color: NSColor
         switch visual {
         case .connected: color = .systemGreen
@@ -66,7 +74,7 @@ final class TrayDelegate: NSObject, NSApplicationDelegate {
         image.unlockFocus(); image.isTemplate = false; return image
     }
     func setVisual(_ visual: TrayVisualState, label: String) {
-        if let button = statusItem.button { button.image = trayIcon(visual); button.toolTip = "Light Remote — \(label)" }
+        if let button = statusItem.button { button.image = trayIcon(visual); button.imageScaling = .scaleProportionallyDown; button.toolTip = "Light Remote — \(label)" }; statusItem.isVisible = true
     }
     func showAlert(_ title: String, _ message: String) {
         NSApp.activate(ignoringOtherApps: true)
