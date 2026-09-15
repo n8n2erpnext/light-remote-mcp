@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
 import { NativeTerminalRegistry } from '../../lib/native-terminal.mjs';
 import { createLinuxAdapter } from '../../device-agent/platform-adapters/linux.mjs';
 import { createWindowsAdapter } from '../../device-agent/platform-adapters/windows.mjs';
@@ -26,7 +27,21 @@ assert.match(out.output.text,/30 100/);
 assert.match(out.output.text,/AFTER_INT/);
 assert.throws(()=>reg.output(started.terminalId,{...owner,agentId:'agent-other-0001'}),/terminal_owner_mismatch/);
 reg.stop(started.terminalId,owner,{force:true});
+await wait(120);
+assert.notEqual(reg.view(started.terminalId,owner).state,'running');
 reg.close();
+
+let fakeChild=null;
+const lostExitProvider={spawn(){fakeChild=spawn('/bin/sh',['-c','sleep 30'],{stdio:'ignore'});return {pid:fakeChild.pid,write(){},resize(){},onData(){},onExit(){},kill(signal){if(signal==='SIGTERM')return;process.kill(fakeChild.pid,signal||'SIGKILL');}};}};
+const lostExitReg=new NativeTerminalRegistry({ptyProvider:lostExitProvider,platform:'linux',stopGraceMs:80});
+const lost=lostExitReg.start({...owner,shellSpec:{file:'/bin/sh',args:[],shell:'sh'},cwd:'/tmp'});
+lostExitReg.stop(lost.terminalId,owner,{force:false});
+assert.equal(lostExitReg.view(lost.terminalId,owner).state,'stopping');
+await wait(180);
+const stopped=lostExitReg.view(lost.terminalId,owner);
+assert.equal(stopped.state,'finished');
+assert.ok(stopped.finishedAt);
+lostExitReg.close();
 
 const win=createWindowsAdapter({commandExists:name=>['pwsh','cmd.exe','git','node'].includes(name)});
 assert.ok(win.discoverCapabilities().includes('terminal'));
@@ -37,4 +52,5 @@ assert.ok(mac.discoverCapabilities().includes('terminal'));
 assert.deepEqual(mac.terminalFor({shell:'zsh'}),{file:'/bin/zsh',args:['-l'],shell:'zsh'});
 console.log('v10-native-terminal-pty-resize-signal=PASS');
 console.log('v10-native-terminal-owner-isolation=PASS');
+console.log('v10-native-terminal-bounded-stop=PASS');
 console.log('v10-terminal-cross-platform-shells=PASS');
