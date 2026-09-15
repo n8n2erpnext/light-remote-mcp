@@ -21,6 +21,7 @@ function expect(ok,msg){if(!ok)throw new Error(msg);}
 expect(/runs-on:\s*windows-latest/.test(workflow),'windows_runner_missing');
 expect(workflow.includes("dotnet-version: '8.0.x'")&&workflow.includes("node-version: '22.23.2'"),'windows_runtime_pin_missing');
 expect(workflow.includes('windows-tray-selftest=PASS'),'windows_tray_ci_missing');
+expect(workflow.includes("$agentRoot = Join-Path $stage 'agent'")&&workflow.includes('stage-client-core.mjs --verify $agentRoot'),'windows_core_verify_target_missing');
 expect(workflow.includes('windows-independent-updater-selftest=PASS')&&workflow.includes('windows-updater-survives-app-missing=PASS'),'windows_updater_independence_ci_missing');
 expect(workflow.includes('windows-independent-update-signature=PASS')&&workflow.includes('windows-independent-update-rollback=PASS'),'windows_updater_recovery_ci_missing');
 expect(workflow.includes('stage-client-core.mjs $agentRoot')&&workflow.includes('install-windows-task.ps1')&&coreSources.has('device-agent/local-wall.mjs')&&coreSources.has('device-agent/local-wall-auth.mjs'),'windows_runtime_not_packaged');

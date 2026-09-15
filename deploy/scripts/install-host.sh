@@ -3,15 +3,16 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 sudo install -d -m 0755 /opt/gpt-vps-operator/operator-host /opt/gpt-vps-operator/lib /opt/gpt-vps-operator/device-agent/platform-adapters
 sudo install -m 0644 "$ROOT_DIR"/operator-host/*.mjs /opt/gpt-vps-operator/operator-host/
-for lib in device-proof.mjs native-fs.mjs native-process.mjs native-search.mjs light-scp-file.mjs light-scp-registry.mjs update-contract.mjs; do
+for lib in device-proof.mjs native-fs.mjs native-process.mjs native-search.mjs light-scp-file.mjs light-scp-registry.mjs update-contract.mjs runtime-version.mjs; do
   sudo install -m 0644 "$ROOT_DIR/lib/$lib" "/opt/gpt-vps-operator/lib/$lib"
 done
 sudo install -m 0644 "$ROOT_DIR"/device-agent/platform-adapters/*.mjs /opt/gpt-vps-operator/device-agent/platform-adapters/
 sudo install -m 0755 "$ROOT_DIR/deploy/scripts/light-remote-license-admin.mjs" /opt/gpt-vps-operator/light-remote-license-admin.mjs
+sudo install -m 0644 "$ROOT_DIR/VERSION" /opt/gpt-vps-operator/VERSION
 sudo install -d -m 0755 /opt/gpt-vps-operator/host-wall/device-agent/platform-adapters /opt/gpt-vps-operator/host-wall/lib /opt/gpt-vps-operator/host-wall/assets/branding /opt/gpt-vps-operator/host-wall/client
 sudo install -m 0644 "$ROOT_DIR/device-agent/operator-agent.mjs" "$ROOT_DIR/device-agent/local-wall.mjs" "$ROOT_DIR/device-agent/local-wall-auth.mjs" "$ROOT_DIR/device-agent/update-settings-page.mjs" "$ROOT_DIR/device-agent/fleet-component-manager.mjs" "$ROOT_DIR/device-agent/fleet-component-supervisor.mjs" /opt/gpt-vps-operator/host-wall/device-agent/
 sudo install -m 0644 "$ROOT_DIR/device-agent/platform-adapters/"*.mjs /opt/gpt-vps-operator/host-wall/device-agent/platform-adapters/
-for lib in device-proof.mjs native-fs.mjs native-process.mjs native-search.mjs light-scp-file.mjs light-scp-registry.mjs update-contract.mjs; do
+for lib in device-proof.mjs native-fs.mjs native-process.mjs native-search.mjs light-scp-file.mjs light-scp-registry.mjs update-contract.mjs runtime-version.mjs; do
   sudo install -m 0644 "$ROOT_DIR/lib/$lib" "/opt/gpt-vps-operator/host-wall/lib/$lib"
 done
 sudo install -m 0644 "$ROOT_DIR/assets/branding/light-remote-mark.svg" /opt/gpt-vps-operator/host-wall/assets/branding/light-remote-mark.svg

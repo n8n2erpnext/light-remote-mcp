@@ -12,6 +12,8 @@ on:
       - 'operator-host/**'
       - 'lib/**'
       - 'deploy/server-linux/**'
+      - 'deploy/scripts/install-host.sh'
+      - 'deploy/scripts/selftest-host-install-layout.mjs'
       - 'deploy/scripts/generate-operator-key.mjs'
       - 'deploy/scripts/generate-wall-auth.mjs'
       - 'VERSION'
@@ -33,6 +35,8 @@ jobs:
         arch: [x64, arm64]
     steps:
       - uses: actions/checkout@v4
+      - name: Legacy live-host parity smoke
+        run: node deploy/scripts/selftest-host-install-layout.mjs
       - name: Build server bundle
         shell: bash
         run: deploy/server-linux/build-bundle.sh "${{ matrix.arch }}"

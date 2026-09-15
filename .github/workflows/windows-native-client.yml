@@ -98,6 +98,7 @@ jobs:
           $exe = Join-Path $stage 'GptOperator.Client.exe'
           $node = Join-Path $stage 'runtime\node.exe'
           $agent = Join-Path $stage 'agent\device-agent\operator-agent.mjs'
+          $agentRoot = Join-Path $stage 'agent'
           $updaterStage = Join-Path $PWD 'dist\windows\updater'
           $updater = Join-Path $updaterStage 'LightRemote.Updater.exe'
           node deploy/scripts/stage-client-core.mjs --verify $agentRoot
