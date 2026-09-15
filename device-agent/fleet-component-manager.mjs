@@ -4,10 +4,13 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
+import {compareVersion,parseVersion} from '../lib/version-compat.mjs';
 
 const DEFAULT_MANIFEST='https://raw.githubusercontent.com/n8n2erpnext/light-remote-mcp/main/channels/beta/fleet-wall-module.json';
 const DEFAULT_SIGNATURE=`${DEFAULT_MANIFEST}.sig`;
 const VERSION_RE=/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
+function rcTrain(value){const p=parseVersion(value);return p?.pre?.[0]==="rc"&&/^[0-9]+$/.test(p.pre[1]||"")?p.core.join(".")+"-rc."+Number(p.pre[1]):null;}
+export function fleetVersionCanReplace(current,incoming){const a=parseVersion(current),b=parseVersion(incoming);if(!a||!b||a.raw===b.raw)return false;const at=rcTrain(a.raw),bt=rcTrain(b.raw);if(at&&bt&&at===bt)return false;return compareVersion(b.raw,a.raw)>0;}
 function fail(message){throw new Error(message);}
 function dataRoot(){
   if(process.platform==='win32')return path.join(process.env.LOCALAPPDATA||path.join(os.homedir(),'AppData','Local'),'Light Remote','components','fleet-wall');
@@ -70,6 +73,7 @@ export class FleetComponentManager{
     const size=Math.max(1,Math.min(Number(artifact.size)||0,32*1024*1024));if(!size)fail('invalid_fleet_component_size');
     const existing=this.current();
     if(existing?.version===manifest.version)return{installed:false,...existing,manifest};
+    if(existing&&!fleetVersionCanReplace(existing.version,manifest.version))return{installed:false,...existing,manifest,skipped:"not-newer"};
     const archiveBytes=await download(artifact.url,Math.min(32*1024*1024,size+1024));
     if(archiveBytes.length!==Number(artifact.size))fail('fleet_component_size_mismatch');
     const actual=crypto.createHash('sha256').update(archiveBytes).digest('hex');

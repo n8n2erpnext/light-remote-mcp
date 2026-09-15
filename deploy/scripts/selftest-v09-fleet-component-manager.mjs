@@ -4,9 +4,13 @@ import path from 'node:path';
 import http from 'node:http';
 import crypto from 'node:crypto';
 import {spawnSync} from 'node:child_process';
-import {FleetComponentManager} from '../../device-agent/fleet-component-manager.mjs';
+import {FleetComponentManager,fleetVersionCanReplace} from '../../device-agent/fleet-component-manager.mjs';
 
 const root=path.resolve(new URL('../..',import.meta.url).pathname),tmp=fs.mkdtempSync(path.join(os.tmpdir(),'lr-fleet-component-'));
+if(fleetVersionCanReplace("0.9.0-rc.6.brand1","0.9.0-rc.6.main1"))throw new Error("fleet_same_train_switch_allowed");
+if(fleetVersionCanReplace("0.9.0-rc.24","0.9.0-rc.6.main1"))throw new Error("fleet_downgrade_allowed");
+if(!fleetVersionCanReplace("0.9.0-rc.6.brand1","0.9.0-rc.24"))throw new Error("fleet_newer_rc_rejected");
+if(!fleetVersionCanReplace("0.9.0-rc.24","0.9.0"))throw new Error("fleet_stable_upgrade_rejected");
 const packageDir=path.join(tmp,'src','fleet-wall');fs.mkdirSync(path.join(packageDir,'device-agent'),{recursive:true});fs.mkdirSync(path.join(packageDir,'lib'),{recursive:true});fs.mkdirSync(path.join(packageDir,'gateway'),{recursive:true});fs.mkdirSync(path.join(packageDir,'assets','branding'),{recursive:true});
 for(const [src,dst] of [['device-agent/fleet-wall-runtime.mjs','device-agent/fleet-wall-runtime.mjs'],['device-agent/local-wall-auth.mjs','device-agent/local-wall-auth.mjs'],['lib/device-proof.mjs','lib/device-proof.mjs'],['lib/runtime-version.mjs','lib/runtime-version.mjs'],['lib/brand.mjs','lib/brand.mjs'],['gateway/dashboard.mjs','gateway/dashboard.mjs'],['gateway/device-policy-page.mjs','gateway/device-policy-page.mjs'],['gateway/brand.mjs','gateway/brand.mjs'],['assets/branding/light-remote-mark.svg','assets/branding/light-remote-mark.svg']])fs.copyFileSync(path.join(root,src),path.join(packageDir,dst));
 fs.writeFileSync(path.join(packageDir,'manifest.json'),JSON.stringify({component:'fleet-wall',version:'0.9.0-rc.6'},null,2));
