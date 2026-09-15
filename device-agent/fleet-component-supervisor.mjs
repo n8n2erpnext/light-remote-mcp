@@ -5,7 +5,8 @@ export class FleetComponentSupervisor{
   constructor({manager,stateProvider,requestIntent,execPath=process.execPath,env={},updateCheckMs=6*60*60*1000,intentBaseBackoffMs=15_000,intentMaxBackoffMs=300_000,emit=()=>{}}={}){
     if(!manager||typeof stateProvider!=='function'||typeof requestIntent!=='function')throw new Error('fleet_supervisor_config_required');
     this.manager=manager;this.stateProvider=stateProvider;this.requestIntent=requestIntent;this.execPath=execPath;this.env=env;this.updateCheckMs=Math.max(60_000,Number(updateCheckMs)||6*60*60*1000);this.emit=emit;
-    this.child=null;this.runtime=null;this.lastUpdateCheckAt=this.manager.current()?Date.now():0;this.closed=false;this.intentFailures=0;this.nextIntentAt=0;this.intentBaseBackoffMs=Math.max(10,Number(intentBaseBackoffMs)||15_000);this.intentMaxBackoffMs=Math.max(this.intentBaseBackoffMs,Number(intentMaxBackoffMs)||300_000);
+    // A restart must not reset the Fleet update window and leave a verified-but-stale module forever.
+    this.child=null;this.runtime=null;this.lastUpdateCheckAt=0;this.closed=false;this.intentFailures=0;this.nextIntentAt=0;this.intentBaseBackoffMs=Math.max(10,Number(intentBaseBackoffMs)||15_000);this.intentMaxBackoffMs=Math.max(this.intentBaseBackoffMs,Number(intentMaxBackoffMs)||300_000);
   }
   running(){return Boolean(this.child&&this.child.exitCode==null&&!this.child.killed);}
   async stop(reason='fleet_not_desired'){
@@ -31,7 +32,10 @@ export class FleetComponentSupervisor{
     let intent;try{intent=await this.requestIntent(state);this.intentFailures=0;this.nextIntentAt=0;}catch(error){this.intentFailures++;const exponential=Math.min(this.intentBaseBackoffMs*(2**Math.min(this.intentFailures-1,5)),this.intentMaxBackoffMs),retryInMs=Math.max(exponential,Math.max(0,Number(error.retryAfterMs)||0));this.nextIntentAt=Date.now()+retryInMs;this.emit({event:'fleet_intent_failed',error:error.message,status:error.status||null,failures:this.intentFailures,retryInMs});return{desired:this.running(),running:this.running(),error:error.message,backoffUntil:this.nextIntentAt,retryInMs};}
     if(!intent?.desired){await this.stop(intent?.reason||'fleet_not_desired');return{desired:false,running:false,reason:intent?.reason||'fleet_not_desired'};}
     let current=this.manager.current(),updateNow=Date.now();
-    if(!current||updateNow-this.lastUpdateCheckAt>=this.updateCheckMs){const installed=await this.manager.ensureInstalled();this.lastUpdateCheckAt=updateNow;current={version:installed.version,release:installed.release,runtime:installed.runtime};}
+    if(!current||updateNow-this.lastUpdateCheckAt>=this.updateCheckMs){
+      try{const installed=await this.manager.ensureInstalled();this.lastUpdateCheckAt=updateNow;current={version:installed.version,release:installed.release,runtime:installed.runtime};}
+      catch(error){this.lastUpdateCheckAt=updateNow;this.emit({event:'fleet_component_update_check_failed',error:error.message});if(!current)throw error;}
+    }
     if(this.running()&&this.runtime===current.runtime)return{desired:true,running:true,version:current.version};
     if(this.running())await this.stop('fleet_component_changed');this._start(current.runtime);
     return{desired:true,running:true,version:current.version};
