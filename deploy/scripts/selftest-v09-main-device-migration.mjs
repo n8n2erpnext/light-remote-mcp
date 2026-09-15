@@ -10,6 +10,7 @@ import {deviceChannelMessage} from '../../lib/device-proof.mjs';
 const root=new URL('../..',import.meta.url).pathname,currentVersion=fs.readFileSync(`${root}/VERSION`,'utf8').trim();
 const agentSource=fs.readFileSync(`${root}/device-agent/operator-agent.mjs`,'utf8');
 if(!agentSource.includes('if(state.identity?.privateKey){delete state.identity')||!agentSource.includes('external_identity_rotation_required'))throw new Error('hard_remove_identity_rotation_missing');
+if(!agentSource.includes('fleetHealthy:local.healthy===true')||!agentSource.includes('fleetPort:local.port'))throw new Error('fleet_intent_local_health_probe_missing');
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'lr-main-migration-'));
 const socket=path.join(dir,'operator.sock'),stateDir=path.join(dir,'state'),logDir=path.join(dir,'log');
 fs.mkdirSync(stateDir,{recursive:true});fs.mkdirSync(logDir,{recursive:true});
@@ -73,6 +74,8 @@ async function enroll(label){
   r=await request('POST','/v1/device-channel/fleet-authority',a.signed('fleet-authority',{moduleVersion:'0.9.0-rc.6'}));
   if(r.status!==200||!r.json.authority?.token||r.json.account?.fleetProvisioning?.state!=='ready')throw new Error('main_a_authority_missing');
   const tokenA=r.json.authority.token;
+  r=await request('POST','/v1/device-channel/fleet-intent',a.signed('fleet-intent',{agentVersion:currentVersion,moduleVersion:'0.9.0-rc.6.brand1',fleetHealthy:true,fleetPort:5492}));
+  if(r.status!==200||r.json.account?.fleetProvisioning?.state!=='online'||r.json.account?.fleetProvisioning?.reason!=='fleet_runtime_observed')throw new Error('legacy_fleet_runtime_health_fallback_missing');
   r=await request('POST','/v1/device-channel/fleet-status',a.signed('fleet-status',{status:'online',moduleVersion:'0.9.0-rc.6',port:5492}));
   if(r.status!==401||r.json.error!=='fleet_authority_required')throw new Error('fleet_status_without_authority_not_rejected');
   r=await request('POST','/v1/device-channel/fleet-status',a.signed('fleet-status',{fleetToken:tokenA,status:'online',moduleVersion:'0.9.0-rc.6',port:5492}));
