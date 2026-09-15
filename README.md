@@ -71,10 +71,11 @@ See [`FLEET_ROUTING_V0_8.md`](FLEET_ROUTING_V0_8.md), [`PLATFORM_ADAPTERS_V0_9.m
 
 | Platform | Current client | Persistence | Packaging status |
 | --- | --- | --- | --- |
-| Windows x64 | Native .NET 8 WinForms tray application with bundled Node runtime, local Wall and device agent | Starts with the signed-in user; local service stays alive while cloud can be Connected or Dormant | v0.9 packaging candidate, installer acceptance green |
-| Linux x64 | Bundled Node runtime + device agent + localhost Wall | systemd always-alive local service; finite cloud lease | v0.9 package acceptance green |
-| Linux arm64 | Bundled Node runtime + device agent + localhost Wall | systemd always-alive local service; finite cloud lease | v0.9 package acceptance green |
-| macOS | Deferred | — | Not currently shipped |
+| Windows x64 | Native .NET 8 tray + bundled canonical Core + independent updater | Signed-in-user Agent host; local runtime survives tray exit; cloud can be Connected or Dormant | v0.9 RC packaging lane; Full + Compact installers |
+| Linux x64 VPS/terminal | Bundled Node runtime + canonical Core + localhost Wall | systemd always-alive local service; finite cloud lease | v0.9 RC tar package |
+| Linux arm64 VPS/terminal | Bundled Node runtime + canonical Core + localhost Wall | systemd always-alive local service; finite cloud lease | v0.9 RC tar package |
+| Linux desktop x64/arm64 | Same Linux canonical Core as VPS package plus desktop tray integration | systemd Agent + desktop tray; finite cloud lease | v0.9 RC `.deb`, derived from the same Linux Core bundle |
+| macOS Intel / Apple Silicon | Native Swift tray + native app launcher + bundled canonical Core + independent updater | launchd Agent/Tray + system updater; local runtime survives tray exit | v0.9 RC `.pkg` for macOS 11+; public distribution still requires external Apple signing/notarization credentials |
 
 ### Windows
 
@@ -107,6 +108,14 @@ install script
 ```
 
 A separate updater timer verifies the signed manifest and artifact hash, switches the versioned `current` target, restarts the agent, and rolls back when the new service does not become healthy.
+
+### Cross-platform Core and update alignment
+
+`VERSION` is the Core release source of truth. Windows, macOS, Linux desktop, and Linux VPS packages stage the same governed Agent/Wall/Fleet/update libraries through `client/core-files.json` and `deploy/scripts/stage-client-core.mjs`; every staged client carries `client-core.json` with the Core version and a deterministic digest. Platform shells are overlays only.
+
+The beta update channel is a separate signed trust plane. A release is update-ready only when the signed manifest is compatible with the current Server window and contains HTTPS artifacts for `windows-x64`, `macos-x64`, `macos-arm64`, `linux-x64`, and `linux-arm64`. Artifact SHA-256 and size are verified before install, the Core health gate must acknowledge the new release, and failure rolls back. The update signing private key is intentionally external to the repository, VPS, Vercel, and CI. GitHub prerelease CI may assemble an **unsigned** candidate manifest, but an offline signature and `check-update-readiness.mjs` verification are required before publishing it as the active channel.
+
+OS package signing is distinct from update-manifest signing. macOS supports external App/Installer signing identities during packaging; Windows Authenticode and Apple Developer ID/notarization remain release credentials, not embedded project secrets.
 
 ## Enrollment and trust
 

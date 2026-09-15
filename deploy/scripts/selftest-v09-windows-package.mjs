@@ -15,13 +15,15 @@ const installer=read('client/windows-native/installer/GptOperator.iss');
 const taskInstaller=read('device-agent/install-windows-task.ps1');
 const agentHost=read('client/windows-native/GptOperator.Client/AgentHost.cs');
 const manifest=read('client/windows-native/GptOperator.Client/app.manifest');
+const coreSpec=JSON.parse(read('client/core-files.json'));
+const coreSources=new Set(coreSpec.files.map(row=>row.source));
 function expect(ok,msg){if(!ok)throw new Error(msg);}
 expect(/runs-on:\s*windows-latest/.test(workflow),'windows_runner_missing');
 expect(workflow.includes("dotnet-version: '8.0.x'")&&workflow.includes("node-version: '22.23.2'"),'windows_runtime_pin_missing');
 expect(workflow.includes('windows-tray-selftest=PASS'),'windows_tray_ci_missing');
 expect(workflow.includes('windows-independent-updater-selftest=PASS')&&workflow.includes('windows-updater-survives-app-missing=PASS'),'windows_updater_independence_ci_missing');
 expect(workflow.includes('windows-independent-update-signature=PASS')&&workflow.includes('windows-independent-update-rollback=PASS'),'windows_updater_recovery_ci_missing');
-expect(workflow.includes('install-windows-task.ps1')&&workflow.includes('local-wall.mjs')&&workflow.includes('local-wall-auth.mjs'),'windows_runtime_not_packaged');
+expect(workflow.includes('stage-client-core.mjs $agentRoot')&&workflow.includes('install-windows-task.ps1')&&coreSources.has('device-agent/local-wall.mjs')&&coreSources.has('device-agent/local-wall-auth.mjs'),'windows_runtime_not_packaged');
 expect(project.includes('<UseWindowsForms>true</UseWindowsForms>')&&project.includes('net8.0-windows10.0.17763.0'),'windows_client_target_missing');
 expect(project.includes('<Compile Remove="MainForm.cs;ConnectionSwitch.cs;ConnectionSettingsDialog.cs" />'),'native_window_not_removed');
 expect(program.includes('Application.Run(new TrayApplicationContext())'),'tray_context_not_entrypoint');

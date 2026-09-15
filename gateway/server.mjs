@@ -20,11 +20,12 @@ import { createPlusAuth } from './plus-auth.mjs';
 import { sealOperatorPayload } from './operator-crypto.mjs';
 import { createPlusTransferHandlers } from './plus-transfer.mjs';
 import { ChunkTransferRegistry } from './chunk-transfer.mjs';
+import { runtimeVersion } from '../lib/runtime-version.mjs';
 
 const PORT = Number(process.env.PORT || 8080);
 const WALL_PORT = Number(process.env.WALL_PORT || 8081);
 const OPERATOR_ACCOUNT_ID = String(process.env.OPERATOR_ACCOUNT_ID || 'self-hosted-local');
-const VERSION = String(process.env.LIGHT_REMOTE_VERSION || '0.9.0-rc.6');
+const VERSION = runtimeVersion({envNames:['LIGHT_REMOTE_VERSION']});
 const RootSchema = z.string().min(1).max(64).refine(value => rootNames().includes(value), 'unknown_root');
 
 function textResult(value) {
@@ -335,6 +336,7 @@ app.post('/account/main-device/clear', mainDeviceRateLimit, requireVercelIdentit
 app.post('/account/redeem-license', accountMutationRateLimit, requireVercelIdentity, (req,res)=>proxyOperatorJson(res,'POST','/v1/accounts/redeem-license',{key:req.body?.key},accountProxyHeaders(req)));
 app.post('/account/enrollments/approve', accountMutationRateLimit, requireVercelIdentity, (req,res)=>proxyOperatorJson(res,'POST','/v1/accounts/enrollments/approve',req.body||{},accountProxyHeaders(req)));
 app.post('/account/devices/revoke-all', accountMutationRateLimit, requireVercelIdentity, (req,res)=>proxyOperatorJson(res,'POST','/v1/accounts/devices/revoke-all',{},accountProxyHeaders(req)));
+app.post('/account/devices/:id/update', accountMutationRateLimit, requireVercelIdentity, (req,res)=>proxyOperatorJson(res,'POST',`/v1/accounts/devices/${encodeURIComponent(req.params.id)}/update`,{force:req.body?.force===true},accountProxyHeaders(req)));
 app.post('/account/devices/:id/revoke', accountMutationRateLimit, requireVercelIdentity, (req,res)=>proxyOperatorJson(res,'POST',`/v1/accounts/devices/${encodeURIComponent(req.params.id)}/revoke`,{},accountProxyHeaders(req)));
 app.post('/account/devices/:id/remove', accountMutationRateLimit, requireVercelIdentity, (req,res)=>proxyOperatorJson(res,'POST',`/v1/accounts/devices/${encodeURIComponent(req.params.id)}/remove`,{},accountProxyHeaders(req)));
 app.post('/operator/auth/login', softRateLimit, requireVercelIdentity, wallAuth.bridgeLogin);

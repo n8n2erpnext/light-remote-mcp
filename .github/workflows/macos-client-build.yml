@@ -16,6 +16,10 @@ on:
       - 'lib/light-scp-file.mjs'
       - 'lib/light-scp-registry.mjs'
       - 'lib/update-contract.mjs'
+      - 'lib/runtime-version.mjs'
+      - 'deploy/scripts/stage-client-core.mjs'
+      - 'client/core-files.json'
+      - 'assets/branding/**'
       - '.github/workflows/macos-client-build.yml'
   workflow_dispatch:
   workflow_call:
@@ -54,7 +58,7 @@ jobs:
           VERSION="$(tr -d '\r\n' < VERSION)"
           OUT="$PWD/dist/macos/$TARGET_ARCH"
           PKG="$OUT/package"
-          mkdir -p "$PKG/runtime" "$PKG/device-agent/platform-adapters" "$PKG/lib" "$PKG/client/macos" "$PKG/licenses/node" "$PKG/assets/branding" "$PKG/tray"
+          mkdir -p "$PKG/runtime" "$PKG/client/macos" "$PKG/licenses/node" "$PKG/tray"
           NODE_TAR="node-v${NODE_VERSION}-darwin-${NODE_ARCH}.tar.gz"
           curl -fsSLO "https://nodejs.org/dist/v${NODE_VERSION}/SHASUMS256.txt"
           curl -fsSLO "https://nodejs.org/dist/v${NODE_VERSION}/${NODE_TAR}"
@@ -62,16 +66,13 @@ jobs:
           tar -xzf "$NODE_TAR"
           install -m 0755 "node-v${NODE_VERSION}-darwin-${NODE_ARCH}/bin/node" "$PKG/runtime/node"
           cp "node-v${NODE_VERSION}-darwin-${NODE_ARCH}/LICENSE" "$PKG/licenses/node/LICENSE"
-          cp device-agent/operator-agent.mjs device-agent/local-wall.mjs device-agent/local-wall-auth.mjs device-agent/update-settings-page.mjs device-agent/fleet-component-manager.mjs device-agent/fleet-component-supervisor.mjs "$PKG/device-agent/"
-          cp device-agent/platform-adapters/*.mjs "$PKG/device-agent/platform-adapters/"
-          for lib in device-proof.mjs native-fs.mjs native-process.mjs native-search.mjs light-scp-file.mjs light-scp-registry.mjs update-contract.mjs; do cp "lib/$lib" "$PKG/lib/$lib"; done
-          cp assets/branding/light-remote-mark.svg "$PKG/assets/branding/"
-          cp assets/branding/light-remote-mark-256.png "$PKG/assets/branding/"
+          node deploy/scripts/stage-client-core.mjs "$PKG"
           cp client/macos/updater.mjs client/macos/update-lifeboat.mjs "$PKG/client/macos/"
-          cp client/update-public.pem "$PKG/client/update-public.pem"
           cp LICENSE NOTICE THIRD_PARTY_DISTRIBUTION_NOTICES.md "$PKG/"
           xcrun swiftc -O -target "$SWIFT_TARGET" client/macos/tray/main.swift -o "$PKG/tray/LightRemoteTray"
-          chmod 0755 "$PKG/tray/LightRemoteTray"
+          xcrun swiftc -O -target "$SWIFT_TARGET" client/macos/launcher/main.swift -o "$PKG/tray/LightRemoteLauncher"
+          chmod 0755 "$PKG/tray/LightRemoteTray" "$PKG/tray/LightRemoteLauncher"
+          CORE_DIGEST="$(node -e "const fs=require('fs');console.log(JSON.parse(fs.readFileSync(process.argv[1],'utf8')).digest)" "$PKG/client-core.json")"
           cat > "$PKG/manifest.json" <<JSON
           {
             "product": "Light Remote macOS ${TARGET_ARCH}",
@@ -79,6 +80,7 @@ jobs:
             "gitSha": "${GITHUB_SHA}",
             "node": "v${NODE_VERSION}",
             "platform": "macos-${TARGET_ARCH}",
+            "coreDigest": "${CORE_DIGEST}",
             "minimumMacOS": "11.0",
             "builtAtUtc": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           }
@@ -93,14 +95,17 @@ jobs:
           set -euo pipefail
           VERSION="$(tr -d '\r\n' < VERSION)"
           OUT="$PWD/dist/macos/$TARGET_ARCH"; PKG="$OUT/package"
+          node deploy/scripts/stage-client-core.mjs --verify "$PKG"
+          test -f "$PKG/client-core.json"
           test -x "$PKG/runtime/node"
           test -x "$PKG/tray/LightRemoteTray"
+          test -x "$PKG/tray/LightRemoteLauncher"
           test -f "$PKG/assets/branding/light-remote-mark-256.png"
           test -f assets/branding/light-remote-mark-512.png
           test -f "$PKG/device-agent/platform-adapters/macos.mjs"
           test -f "$PKG/device-agent/fleet-component-manager.mjs"
           test -f "$PKG/device-agent/fleet-component-supervisor.mjs"
-          for lib in device-proof.mjs native-fs.mjs native-process.mjs native-search.mjs light-scp-file.mjs light-scp-registry.mjs update-contract.mjs; do test -f "$PKG/lib/$lib"; done
+          for lib in device-proof.mjs native-fs.mjs native-process.mjs native-search.mjs light-scp-file.mjs light-scp-registry.mjs update-contract.mjs runtime-version.mjs; do test -f "$PKG/lib/$lib"; done
           test -f "$PKG/client/macos/updater.mjs"
           test -f "$PKG/client/macos/update-lifeboat.mjs"
           node --check client/macos/updater.mjs
@@ -108,8 +113,9 @@ jobs:
           bash -n client/macos/build-pkg.sh
           bash -n client/macos/uninstall.sh
           plutil -lint client/macos/launchd/*.plist
-          file "$PKG/runtime/node" "$PKG/tray/LightRemoteTray"
+          file "$PKG/runtime/node" "$PKG/tray/LightRemoteTray" "$PKG/tray/LightRemoteLauncher"
           otool -l "$PKG/tray/LightRemoteTray" | grep -A5 LC_BUILD_VERSION | grep -q 'minos 11.0'
+          otool -l "$PKG/tray/LightRemoteLauncher" | grep -A5 LC_BUILD_VERSION | grep -q 'minos 11.0'
           (cd "$OUT" && shasum -a 256 -c SHA256SUMS.txt)
           if [[ "$TARGET_ARCH" == x64 ]]; then
             export OPERATOR_AGENT_STATE="$RUNNER_TEMP/light-remote-empty-device.json"

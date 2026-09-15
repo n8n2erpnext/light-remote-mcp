@@ -7,7 +7,7 @@ BUNDLE="${1:-}"; OUT="${2:-$ROOT_DIR/dist/macos/pkg}"
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 mkdir -p "$TMP/extract"; tar -xzf "$BUNDLE" -C "$TMP/extract"
 PKG="$TMP/extract/package"
-[[ -f "$PKG/manifest.json" && -x "$PKG/runtime/node" && -x "$PKG/tray/LightRemoteTray" ]] || { echo 'invalid macOS client bundle' >&2; exit 2; }
+[[ -f "$PKG/manifest.json" && -x "$PKG/runtime/node" && -x "$PKG/tray/LightRemoteTray" && -x "$PKG/tray/LightRemoteLauncher" ]] || { echo 'invalid macOS client bundle' >&2; exit 2; }
 read -r VERSION PLATFORM < <(python3 - "$PKG/manifest.json" <<'PY'
 import json,sys
 m=json.load(open(sys.argv[1])); print(m['version'],m['platform'])
@@ -41,19 +41,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 <key>LSUIElement</key><true/>
 </dict></plist>
 PLIST
-cat > "$APP/Contents/MacOS/LightRemoteLauncher" <<'LAUNCHER'
-#!/bin/bash
-set -u
-uid="$(id -u)"; label="gui/${uid}/com.lightremote.tray"
-/bin/launchctl enable "$label" >/dev/null 2>&1 || true
-if ! /bin/launchctl kickstart -k "$label" >/dev/null 2>&1; then
-  root='/Library/Application Support/Light Remote'
-  if [[ -x "$root/current/tray/LightRemoteTray" ]]; then
-    /usr/bin/nohup "$root/current/tray/LightRemoteTray" >/dev/null 2>&1 &
-  fi
-fi
-exit 0
-LAUNCHER
+cp "$PKG/tray/LightRemoteLauncher" "$APP/Contents/MacOS/LightRemoteLauncher"
 chmod 0755 "$APP/Contents/MacOS/LightRemoteLauncher"
 ICONSET="$TMP/LightRemote.iconset"; mkdir -p "$ICONSET"; ICON_SRC="$ROOT_DIR/assets/branding/light-remote-mark-512.png"
 make_icon(){ /usr/bin/sips -z "$1" "$1" "$ICON_SRC" --out "$ICONSET/$2" >/dev/null; }
@@ -64,6 +52,13 @@ make_icon 256 icon_256x256.png; make_icon 512 icon_256x256@2x.png
 make_icon 512 icon_512x512.png; make_icon 1024 icon_512x512@2x.png
 /usr/bin/iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/LightRemote.icns"
 /usr/bin/plutil -lint "$APP/Contents/Info.plist" >/dev/null
+if [[ -n "${MACOS_APP_SIGN_IDENTITY:-}" ]]; then
+  /usr/bin/codesign --force --options runtime --timestamp --sign "$MACOS_APP_SIGN_IDENTITY" "$APP"
+  /usr/bin/codesign --verify --deep --strict "$APP"
+  echo "macos_app_signing=signed"
+else
+  echo "macos_app_signing=unsigned_external_identity_not_configured"
+fi
 
 cat > "$SCRIPTS/preinstall" <<'PRE'
 #!/bin/bash
@@ -134,5 +129,12 @@ exit 0
 POST
 chmod 0755 "$SCRIPTS/postinstall"
 IDENT="com.lightremote.client.${PLATFORM}"
-pkgbuild --root "$ROOT_STAGE" --scripts "$SCRIPTS" --identifier "$IDENT" --version "$SHORT_VERSION" --install-location / "$OUT/Light-Remote-${VERSION}-${ARCH}.pkg"
+PKGBUILD_ARGS=(--root "$ROOT_STAGE" --scripts "$SCRIPTS" --identifier "$IDENT" --version "$SHORT_VERSION" --install-location /)
+if [[ -n "${MACOS_INSTALLER_SIGN_IDENTITY:-}" ]]; then
+  PKGBUILD_ARGS+=(--sign "$MACOS_INSTALLER_SIGN_IDENTITY")
+  echo "macos_installer_signing=signed"
+else
+  echo "macos_installer_signing=unsigned_external_identity_not_configured"
+fi
+pkgbuild "${PKGBUILD_ARGS[@]}" "$OUT/Light-Remote-${VERSION}-${ARCH}.pkg"
 echo "Built $OUT/Light-Remote-${VERSION}-${ARCH}.pkg"

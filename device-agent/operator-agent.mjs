@@ -16,14 +16,9 @@ import { NativeProcessRegistry } from '../lib/native-process.mjs';
 import { NativeSearchRegistry } from '../lib/native-search.mjs';
 import { LightScpRegistry } from '../lib/light-scp-registry.mjs';
 import { normalizeUpdateReport, normalizeUpdateStatus } from '../lib/update-contract.mjs';
+import { runtimeVersion } from '../lib/runtime-version.mjs';
 
-function runtimeVersion(){
-  const forced=String(process.env.LIGHT_REMOTE_VERSION||process.env.OPERATOR_AGENT_VERSION||'').trim();if(forced)return forced;
-  try{const manifest=JSON.parse(fs.readFileSync(fileURLToPath(new URL('../manifest.json',import.meta.url)),'utf8'));if(manifest?.version)return String(manifest.version); }catch{}
-  for(const rel of ['../VERSION','../../VERSION']){try{const value=fs.readFileSync(fileURLToPath(new URL(rel,import.meta.url)),'utf8').trim();if(value)return value;}catch{}}
-  return '0.9.0-dev';
-}
-const VERSION=runtimeVersion();
+const VERSION=runtimeVersion({envNames:['LIGHT_REMOTE_VERSION','OPERATOR_AGENT_VERSION']});
 const PLATFORM_ADAPTER=createPlatformAdapter();
 const NATIVE_PROCESSES=new NativeProcessRegistry();
 const NATIVE_SEARCHES=new NativeSearchRegistry();
@@ -147,7 +142,7 @@ async function executeCommand(state,command){
   const p=command.payload||{};
   if(p.type==='update'){
     const startedAt=Date.now();writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'running',startedAt});
-    try{const data=await requestLocalUpdate('fleet-wall');const result={commandId:command.commandId,status:'ok',exitCode:0,stdout:'',stderr:'',durationMs:Date.now()-startedAt,data};writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;}
+    try{const source=String(p.update?.source||'remote-owner').slice(0,40),data=await requestLocalUpdate(source);const result={commandId:command.commandId,status:'ok',exitCode:0,stdout:'',stderr:'',durationMs:Date.now()-startedAt,data};writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;}
     catch(error){const result={commandId:command.commandId,status:'error',exitCode:1,stdout:'',stderr:String(error?.message||error)+'\n',durationMs:Date.now()-startedAt,data:{ok:false,error:String(error?.message||error)}};writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;}
   }
   if(p.type==='scp'){

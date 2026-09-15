@@ -7,7 +7,7 @@ import { spawn } from 'node:child_process';
 import { createOperatorCryptoFixture } from './selftest-crypto-fixture.mjs';
 import { deviceChannelMessage } from '../../lib/device-proof.mjs';
 
-const root=new URL('../..',import.meta.url).pathname;
+const root=new URL('../..',import.meta.url).pathname,currentVersion=fs.readFileSync(`${root}/VERSION`,'utf8').trim();
 const gatewaySource=fs.readFileSync(`${root}/gateway/server.mjs`,'utf8');
 if(gatewaySource.includes('deviceRateIdentity')||gatewaySource.includes('deviceChannelRateLimit'))throw new Error('gateway_unsigned_device_quota_remains');
 if(!gatewaySource.includes("createRateLimit('device-channel-edge',2400"))throw new Error('gateway_edge_rate_limit_missing');
@@ -23,7 +23,7 @@ function request(method,target,body){return new Promise((resolve,reject)=>{const
 async function enroll(label){
   const {publicKey,privateKey}=crypto.generateKeyPairSync('ed25519');
   const publicIdentityKey=publicKey.export({format:'der',type:'spki'}).toString('base64');
-  let r=await request('POST','/v1/enrollments/begin',{publicIdentityKey,displayName:label,platform:'linux',architecture:'x64',agentVersion:'rate-test',fingerprintSummary:label,capabilities:['filesystem'],policyProfile:'test'});
+  let r=await request('POST','/v1/enrollments/begin',{publicIdentityKey,displayName:label,platform:'linux',architecture:'x64',agentVersion:currentVersion,fingerprintSummary:label,capabilities:['filesystem'],policyProfile:'test'});
   if(r.status!==200)throw new Error(`enroll_begin_failed:${r.status}:${r.json.error}`);
   r=await request('POST','/v1/enrollments/approve',{code:r.json.enrollment.deviceCode,accountId:'self-hosted-local',approvedCapabilities:['filesystem'],policyProfile:'test'});
   if(r.status!==200)throw new Error(`enroll_approve_failed:${r.status}:${r.json.error}`);
@@ -32,14 +32,15 @@ async function enroll(label){
   return {deviceId,signed};
 }
 const a=await enroll('Rate A'),b=await enroll('Rate B');
-async function connect(dev){const r=await request('POST','/v1/device-channel/connect',dev.signed('connect',{nodeId:dev.deviceId,agentVersion:'rate-test',requestedLeaseMs:3600000,reconnectGraceMs:1800000}));if(r.status!==200)throw new Error(`connect_failed:${r.status}:${r.json.error}`);}
+async function connect(dev){const r=await request('POST','/v1/device-channel/connect',dev.signed('connect',{nodeId:dev.deviceId,agentVersion:currentVersion,requestedLeaseMs:3600000,reconnectGraceMs:1800000}));if(r.status!==200)throw new Error(`connect_failed:${r.status}:${r.json.error}`);}
 await connect(a);await connect(b);
-const statusPayload=dev=>({nodeId:dev.deviceId,agentVersion:'rate-test'});
+const minuteOffset=Date.now()%60000;if(minuteOffset>54000)await sleep(62000-minuteOffset);
+const statusPayload=dev=>({nodeId:dev.deviceId,agentVersion:currentVersion});
 let r=await request('POST','/v1/device-channel/status',a.signed('status',statusPayload(a)));
 if(r.status!==200)throw new Error('observer_first_failed');
 r=await request('POST','/v1/device-channel/status',a.signed('status',statusPayload(a)));
 if(r.status!==429||r.json.scope!=='device-channel-observer'||!Number(r.json.retryAfterSeconds)||!r.headers['retry-after'])throw new Error(`observer_limit_contract_failed:${r.status}:${JSON.stringify(r.json)}`);
-const pollPayload=dev=>({nodeId:dev.deviceId,agentVersion:'rate-test',sessionCeiling:2,draining:false,capabilities:['filesystem'],policyRevision:1,waitMs:0});
+const pollPayload=dev=>({nodeId:dev.deviceId,agentVersion:currentVersion,sessionCeiling:2,draining:false,capabilities:['filesystem'],policyRevision:1,waitMs:0});
 r=await request('POST','/v1/device-channel/poll',a.signed('poll',pollPayload(a)));
 if(r.status!==200)throw new Error(`observer_starved_runtime:${r.status}:${r.json.error}`);
 r=await request('POST','/v1/device-channel/poll',a.signed('poll',pollPayload(a)));

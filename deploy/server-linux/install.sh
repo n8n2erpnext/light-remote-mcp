@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="${LIGHT_REMOTE_VERSION:-0.9.0-beta.1}"
 ROOT="/opt/light-remote-mcp/server"
 ETC="/etc/light-remote-mcp"
 STATE="/var/lib/light-remote-mcp"
 SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BUNDLE_VERSION="$(tr -d '\r\n' < "$SRC/VERSION" 2>/dev/null || true)"
+VERSION="${LIGHT_REMOTE_VERSION:-$BUNDLE_VERSION}"
+[[ -n "$VERSION" ]] || { echo "Bundle VERSION missing" >&2; exit 2; }
 TARGET_USER="${SUDO_USER:-${USER:-}}"
 VERCEL_TEAM=""
 VERCEL_PROJECT="light-remote-mcp"

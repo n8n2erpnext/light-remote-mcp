@@ -5,6 +5,8 @@ const install=fs.readFileSync(new URL('../../client/linux/install.sh',import.met
 const updater=fs.readFileSync(new URL('../../client/linux/updater.mjs',import.meta.url),'utf8');
 const signer=fs.readFileSync(new URL('../../client/sign-update-manifest.mjs',import.meta.url),'utf8');
 const verifier=fs.readFileSync(new URL('../../client/verify-update-manifest.mjs',import.meta.url),'utf8');
+const coreSpec=JSON.parse(fs.readFileSync(new URL('../../client/core-files.json',import.meta.url),'utf8'));
+const coreSources=new Set(coreSpec.files.map(row=>row.source));
 function expect(value,message){if(!value)throw new Error(message);}
 
 expect(linuxWorkflow.includes('arch: [x64, arm64]'),'linux_arch_matrix_missing');
@@ -12,10 +14,10 @@ expect(linuxWorkflow.includes('node-v${NODE_VERSION}-linux-${TARGET_ARCH}.tar.xz
 expect(linuxWorkflow.includes('cp "node-v${NODE_VERSION}-linux-${TARGET_ARCH}/LICENSE" "$PKG/licenses/node/LICENSE"'),'linux_node_license_not_bundled');
 expect(linuxWorkflow.includes('test -s "$PKG/licenses/node/LICENSE"'),'linux_node_license_not_verified');
 expect(linuxWorkflow.includes('cp LICENSE NOTICE THIRD_PARTY_DISTRIBUTION_NOTICES.md "$PKG/"'),'linux_project_license_not_bundled');
-expect(linuxWorkflow.includes('cp device-agent/local-wall.mjs "$PKG/device-agent/"'),'linux_local_wall_not_bundled');
-expect(linuxWorkflow.includes('cp device-agent/local-wall-auth.mjs "$PKG/device-agent/"'),'linux_local_wall_auth_not_bundled');
-expect(linuxWorkflow.includes('cp assets/branding/light-remote-mark.svg "$PKG/assets/branding/"'),'linux_local_wall_brand_not_bundled');
-expect(linuxWorkflow.includes('cp assets/branding/light-remote-mark-256.png "$PKG/assets/branding/"'),'linux_tray_brand_png_not_bundled');
+expect(linuxWorkflow.includes('stage-client-core.mjs "$PKG"')&&coreSources.has('device-agent/local-wall.mjs'),'linux_local_wall_not_bundled');
+expect(coreSources.has('device-agent/local-wall-auth.mjs'),'linux_local_wall_auth_not_bundled');
+expect(coreSources.has('assets/branding/light-remote-mark.svg'),'linux_local_wall_brand_not_bundled');
+expect(coreSources.has('assets/branding/light-remote-mark-256.png'),'linux_tray_brand_png_not_bundled');
 expect(linuxWorkflow.includes('test -s "$PKG/LICENSE"')&&linuxWorkflow.includes('test -s "$PKG/NOTICE"'),'linux_project_license_not_verified');
 expect(linuxWorkflow.includes('actions/upload-artifact@v4'),'linux_artifact_upload_missing');
 expect(linuxWorkflow.includes('(cd "$OUT" && sha256sum "Light-Remote-MCP-Client-Linux-${TARGET_ARCH}-${VERSION}.tar.gz")'),'linux_checksum_not_portable');

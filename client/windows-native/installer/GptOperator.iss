@@ -5,7 +5,7 @@
   #error OutputDir must be defined
 #endif
 #ifndef AppVersion
-  #define AppVersion "0.9.0-rc.6"
+  #define AppVersion "0.9.0-dev"
 #endif
 #ifndef OutputBaseName
   #define OutputBaseName "Light-Remote-MCP-Setup-x64"

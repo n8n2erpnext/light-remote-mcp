@@ -19,6 +19,10 @@ on:
       - 'lib/light-scp-file.mjs'
       - 'lib/light-scp-registry.mjs'
       - 'lib/update-contract.mjs'
+      - 'lib/runtime-version.mjs'
+      - 'deploy/scripts/stage-client-core.mjs'
+      - 'client/core-files.json'
+      - 'assets/branding/**'
       - '.github/workflows/linux-client-build.yml'
   workflow_dispatch:
   workflow_call:
@@ -45,7 +49,7 @@ jobs:
           VERSION="$(tr -d '\r\n' < VERSION)"
           OUT="$PWD/dist/linux/$TARGET_ARCH"
           PKG="$OUT/package"
-          mkdir -p "$PKG/runtime" "$PKG/device-agent/platform-adapters" "$PKG/lib" "$PKG/client/linux" "$PKG/client/linux-debian/tray" "$PKG/licenses/node" "$PKG/assets/branding"
+          mkdir -p "$PKG/runtime" "$PKG/client/linux" "$PKG/client/linux-debian/tray" "$PKG/licenses/node"
           NODE_TAR="node-v${NODE_VERSION}-linux-${TARGET_ARCH}.tar.xz"
           curl -fsSLO "https://nodejs.org/dist/v${NODE_VERSION}/SHASUMS256.txt"
           curl -fsSLO "https://nodejs.org/dist/v${NODE_VERSION}/${NODE_TAR}"
@@ -53,22 +57,13 @@ jobs:
           tar -xJf "$NODE_TAR"
           install -m 0755 "node-v${NODE_VERSION}-linux-${TARGET_ARCH}/bin/node" "$PKG/runtime/node"
           cp "node-v${NODE_VERSION}-linux-${TARGET_ARCH}/LICENSE" "$PKG/licenses/node/LICENSE"
-          cp device-agent/operator-agent.mjs "$PKG/device-agent/"
-          cp device-agent/local-wall.mjs "$PKG/device-agent/"
-          cp device-agent/local-wall-auth.mjs "$PKG/device-agent/"
-          cp device-agent/update-settings-page.mjs "$PKG/device-agent/"
-          cp device-agent/fleet-component-manager.mjs "$PKG/device-agent/"
-          cp device-agent/fleet-component-supervisor.mjs "$PKG/device-agent/"
+          node deploy/scripts/stage-client-core.mjs "$PKG"
           cp device-agent/linux-service-policy.mjs "$PKG/device-agent/"
-          cp device-agent/platform-adapters/*.mjs "$PKG/device-agent/platform-adapters/"
-          for lib in device-proof.mjs native-fs.mjs native-process.mjs native-search.mjs light-scp-file.mjs light-scp-registry.mjs update-contract.mjs; do cp "lib/$lib" "$PKG/lib/$lib"; done
-          cp assets/branding/light-remote-mark.svg "$PKG/assets/branding/"
-          cp assets/branding/light-remote-mark-256.png "$PKG/assets/branding/"
           cp client/linux/updater.mjs client/linux/update-lifeboat.mjs "$PKG/client/linux/"
           cp client/linux-debian/updater-wrapper.mjs "$PKG/client/linux-debian/"
           cp client/linux-debian/tray/light-remote-tray.py "$PKG/client/linux-debian/tray/"
-          cp client/update-public.pem "$PKG/client/update-public.pem"
           cp LICENSE NOTICE THIRD_PARTY_DISTRIBUTION_NOTICES.md "$PKG/"
+          CORE_DIGEST="$(node -e "const fs=require('fs');console.log(JSON.parse(fs.readFileSync(process.argv[1],'utf8')).digest)" "$PKG/client-core.json")"
           cat > "$PKG/manifest.json" <<JSON
           {
             "product": "GPT Operator Linux ${TARGET_ARCH}",
@@ -76,6 +71,7 @@ jobs:
             "gitSha": "${GITHUB_SHA}",
             "node": "v${NODE_VERSION}",
             "platform": "linux-${TARGET_ARCH}",
+            "coreDigest": "${CORE_DIGEST}",
             "builtAtUtc": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           }
           JSON
@@ -94,6 +90,8 @@ jobs:
           test -s "$PKG/LICENSE"
           test -s "$PKG/NOTICE"
           test -s "$PKG/THIRD_PARTY_DISTRIBUTION_NOTICES.md"
+          node deploy/scripts/stage-client-core.mjs --verify "$PKG"
+          test -f "$PKG/client-core.json"
           test -f "$PKG/device-agent/operator-agent.mjs"
           test -f "$PKG/device-agent/fleet-component-manager.mjs"
           test -f "$PKG/device-agent/fleet-component-supervisor.mjs"
@@ -105,6 +103,7 @@ jobs:
           test -f "$PKG/lib/light-scp-file.mjs"
           test -f "$PKG/lib/light-scp-registry.mjs"
           test -f "$PKG/lib/update-contract.mjs"
+          test -f "$PKG/lib/runtime-version.mjs"
           test -f "$PKG/client/linux/update-lifeboat.mjs"
           test -f "$PKG/client/linux/updater.mjs"
           test -f "$PKG/client/linux-debian/updater-wrapper.mjs"

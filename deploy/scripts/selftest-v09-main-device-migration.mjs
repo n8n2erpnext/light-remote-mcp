@@ -7,7 +7,7 @@ import {spawn} from 'node:child_process';
 import {createOperatorCryptoFixture} from './selftest-crypto-fixture.mjs';
 import {deviceChannelMessage} from '../../lib/device-proof.mjs';
 
-const root=new URL('../..',import.meta.url).pathname;
+const root=new URL('../..',import.meta.url).pathname,currentVersion=fs.readFileSync(`${root}/VERSION`,'utf8').trim();
 const agentSource=fs.readFileSync(`${root}/device-agent/operator-agent.mjs`,'utf8');
 if(!agentSource.includes('if(state.identity?.privateKey){delete state.identity')||!agentSource.includes('external_identity_rotation_required'))throw new Error('hard_remove_identity_rotation_missing');
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'lr-main-migration-'));
@@ -26,7 +26,7 @@ if(!fs.existsSync(socket))throw new Error('executor_not_ready');function request
 async function enroll(label){
   const {publicKey,privateKey}=crypto.generateKeyPairSync('ed25519');
   const publicIdentityKey=publicKey.export({format:'der',type:'spki'}).toString('base64');
-  const begun=await request('POST','/v1/enrollments/begin',{publicIdentityKey,displayName:label,platform:'linux',architecture:'x64',agentVersion:'0.9.0-rc.6',fingerprintSummary:`${label}-fingerprint`,capabilities:['filesystem'],policyProfile:'test'});
+  const begun=await request('POST','/v1/enrollments/begin',{publicIdentityKey,displayName:label,platform:'linux',architecture:'x64',agentVersion:currentVersion,fingerprintSummary:`${label}-fingerprint`,capabilities:['filesystem'],policyProfile:'test'});
   if(begun.status!==200)throw new Error(`${label}_begin_failed:${begun.status}:${begun.json.error}`);
   const approved=await request('POST','/v1/enrollments/approve',{code:begun.json.enrollment.deviceCode,accountId:'self-hosted-local',approvedCapabilities:['filesystem'],policyProfile:'test'});
   if(approved.status!==200)throw new Error(`${label}_approve_failed:${approved.status}:${approved.json.error}`);
@@ -41,6 +41,28 @@ async function enroll(label){
   const a=await enroll('Device A'),b=await enroll('Device B');
   r=await request('POST','/v1/admin/accounts/self-hosted-local/entitlement',{plan:'pro',durationDays:30,sourceRef:'main-migration-selftest'});
   if(r.status!==200||r.json.entitlements?.fleetWall!==true)throw new Error('pro_fleet_entitlement_missing');
+
+  r=await request('POST','/v1/accounts/main-device',{deviceId:a.deviceId},{'x-light-account-session':token});
+  if(r.status!==409||r.json.error!=='main_device_offline')throw new Error('offline_device_became_main');
+  for(const device of [a,b]){
+    r=await request('POST','/v1/device-channel/connect',device.signed('connect',{nodeId:device.deviceId,agentVersion:currentVersion,requestedLeaseMs:2*60*60*1000,reconnectGraceMs:30*60*1000}));
+    if(r.status!==200||r.json.connection?.state!=='connected')throw new Error('main_candidate_connect_failed');
+    r=await request('POST','/v1/device-channel/poll',device.signed('poll',{nodeId:device.deviceId,agentVersion:currentVersion,sessionCeiling:2,draining:false,capabilities:['filesystem'],policyRevision:1,waitMs:0}));
+    if(r.status!==200||r.json.channel?.node?.state!=='online')throw new Error('main_candidate_poll_failed');
+  }
+
+  r=await request('POST',`/v1/accounts/devices/${a.deviceId}/update`,{force:false},{'x-light-account-session':token});
+  if(r.status!==428||r.json.error!=='force_update_confirmation_required')throw new Error('force_update_confirmation_not_required');
+  r=await request('POST',`/v1/accounts/devices/${a.deviceId}/update`,{force:true},{'x-light-account-session':token});
+  if(r.status!==200||r.json.forced!==true||r.json.maintenance?.accepted!==true||r.json.maintenance?.source!=='account-portal')throw new Error(`account_force_update_queue_failed:${r.status}:${r.json.error}`);
+  const updateMaintenance=r.json.maintenance;
+  r=await request('POST','/v1/device-channel/poll',a.signed('poll',{nodeId:a.deviceId,agentVersion:currentVersion,sessionCeiling:2,draining:false,capabilities:['filesystem'],policyRevision:1,waitMs:0}));
+  const updateCommand=r.json.channel?.command;
+  if(r.status!==200||updateCommand?.payload?.type!=='update'||updateCommand?.payload?.update?.op!=='request'||updateCommand?.payload?.update?.source!=='account-portal')throw new Error('account_force_update_command_contract_failed');
+  r=await request('POST','/v1/device-channel/result',a.signed('result',{commandId:updateCommand.commandId,status:'ok',exitCode:0,stdout:'',stderr:'',durationMs:1,data:{accepted:true,source:'account-portal',mode:'apply',transport:'helper-trigger'}}));
+  if(r.status!==200||r.json.job?.status!=='ok'||r.json.job?.resultData?.mode!=='apply')throw new Error('account_force_update_result_failed');
+  r=await request('GET',`/v1/sessions/${updateMaintenance.sessionId}?agentId=${encodeURIComponent(updateMaintenance.agentId)}`);
+  if(r.status!==200||r.json.session?.state!=='closed')throw new Error('account_force_update_session_not_auto_closed');
 
   r=await request('POST','/v1/accounts/main-device',{deviceId:a.deviceId},{'x-light-account-session':token});
   if(r.status!==200||r.json.account?.mainDeviceId!==a.deviceId||r.json.account?.fleetProvisioning?.state!=='starting')throw new Error('set_main_a_failed');
@@ -95,6 +117,7 @@ async function enroll(label){
   r=await request('POST','/v1/accounts/devices/arm-local/remove',{}, {'x-light-account-session':token});
   if(r.status!==409||r.json.error!=='integrated_hub_device_not_removable')throw new Error('integrated_hub_remove_not_rejected');
   console.log('v09-device-hard-remove=PASS');
+  console.log('v09-account-force-update-helper-lane=PASS');
 
   console.log('v09-main-migration-a-to-b=PASS');
   console.log('v09-main-migration-old-authority-revoked=PASS');

@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v0.9.*-beta.*'
+      - 'v0.9.0-rc.*'
 
 permissions:
   contents: write
@@ -44,6 +45,8 @@ jobs:
           find artifacts -type f -name 'Light-Remote-MCP-Vercel-Bridge-*.tar.gz' -exec cp {} release-assets/ \;
           win="$(find artifacts -type f -name 'Light-Remote-MCP-Setup-x64.exe' -print -quit)"
           test -n "$win"; cp "$win" "release-assets/Light-Remote-MCP-Setup-x64-${VERSION}.exe"
+          compact="$(find artifacts -type f -name 'Light-Remote-MCP-Compact-Setup-x64.exe' -print -quit)"
+          test -n "$compact"; cp "$compact" "release-assets/Light-Remote-MCP-Compact-Setup-x64-${VERSION}.exe"
           installer="$(find artifacts -type f -name 'install.sh' -print -quit)"
           test -n "$installer"; cp "$installer" release-assets/install-linux-client.sh
           chmod 0755 release-assets/install-linux-client.sh
@@ -51,6 +54,13 @@ jobs:
           test "$(find release-assets -maxdepth 1 -type f -name 'light-remote_*.deb' | wc -l)" -eq 2
           test "$(find release-assets -maxdepth 1 -type f -name 'Light-Remote-Client-macOS-*.tar.gz' | wc -l)" -eq 2
           test "$(find release-assets -maxdepth 1 -type f -name 'Light-Remote-*.pkg' | wc -l)" -eq 2
+          BASE_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}"
+          node deploy/scripts/build-client-update-manifest.mjs release-assets "$BASE_URL" release-assets/client-update-unsigned.json
+          cat > release-assets/UPDATE-SIGNING-REQUIRED.txt <<EOF
+          client-update-unsigned.json is NOT trusted by clients until it is signed outside CI with the offline update signing key.
+          Verify/publish with client/sign-update-manifest.mjs and deploy/scripts/check-update-readiness.mjs.
+          Never place the private update signing key in GitHub Actions, Vercel, or the VPS.
+          EOF
           (cd release-assets && sha256sum * > SHA256SUMS.txt)
           cat release-assets/SHA256SUMS.txt
       - name: Create GitHub prerelease

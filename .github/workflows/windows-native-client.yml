@@ -19,6 +19,10 @@ on:
       - 'lib/light-scp-file.mjs'
       - 'lib/light-scp-registry.mjs'
       - 'lib/update-contract.mjs'
+      - 'lib/runtime-version.mjs'
+      - 'deploy/scripts/stage-client-core.mjs'
+      - 'client/core-files.json'
+      - 'assets/branding/**'
       - '.github/workflows/windows-native-client.yml'
   workflow_dispatch:
   workflow_call:
@@ -59,14 +63,11 @@ jobs:
           $runtime = Join-Path $stage 'runtime'
           $agentRoot = Join-Path $stage 'agent'
           $agentDir = Join-Path $agentRoot 'device-agent'
-          $adapterDir = Join-Path $agentDir 'platform-adapters'
-          $libDir = Join-Path $agentRoot 'lib'
-          $brandDir = Join-Path $agentRoot 'assets\branding'
           $configDir = Join-Path $stage 'config'
           $licenseDir = Join-Path $stage 'licenses'
           $nodeLicenseDir = Join-Path $licenseDir 'node'
           $dotnetLicenseDir = Join-Path $licenseDir 'dotnet'
-          New-Item -ItemType Directory -Force -Path $runtime,$agentDir,$adapterDir,$libDir,$brandDir,$configDir,$nodeLicenseDir,$dotnetLicenseDir | Out-Null
+          New-Item -ItemType Directory -Force -Path $runtime,$agentDir,$configDir,$nodeLicenseDir,$dotnetLicenseDir | Out-Null
           $nodeExe = (Get-Command node.exe).Source
           $nodeBytes = (Get-Item $nodeExe).Length
           $nodeRoot = Split-Path $nodeExe -Parent
@@ -76,16 +77,9 @@ jobs:
           Copy-Item (Join-Path $nodeRoot 'LICENSE') (Join-Path $nodeLicenseDir 'LICENSE')
           Copy-Item (Join-Path $dotnetRoot 'LICENSE.txt') (Join-Path $dotnetLicenseDir 'LICENSE.txt')
           Copy-Item (Join-Path $dotnetRoot 'ThirdPartyNotices.txt') (Join-Path $dotnetLicenseDir 'ThirdPartyNotices.txt')
-          Copy-Item device-agent/operator-agent.mjs $agentDir
+          node deploy/scripts/stage-client-core.mjs $agentRoot
+          if ($LASTEXITCODE -ne 0) { throw 'canonical client core staging failed' }
           Copy-Item device-agent/install-windows-task.ps1 $agentDir
-          Copy-Item device-agent/local-wall.mjs $agentDir
-          Copy-Item device-agent/local-wall-auth.mjs $agentDir
-          Copy-Item device-agent/update-settings-page.mjs $agentDir
-          Copy-Item device-agent/fleet-component-manager.mjs $agentDir
-          Copy-Item device-agent/fleet-component-supervisor.mjs $agentDir
-          Copy-Item device-agent/platform-adapters/*.mjs $adapterDir
-          foreach ($lib in @('device-proof.mjs','native-fs.mjs','native-process.mjs','native-search.mjs','light-scp-file.mjs','light-scp-registry.mjs','update-contract.mjs')) { Copy-Item (Join-Path 'lib' $lib) (Join-Path $libDir $lib) }
-          Copy-Item assets/branding/light-remote-mark.svg $brandDir
           Copy-Item client/update-public.pem (Join-Path $configDir 'client-update-public.pem')
           Copy-Item LICENSE (Join-Path $stage 'LICENSE')
           Copy-Item NOTICE (Join-Path $stage 'NOTICE')
@@ -106,9 +100,12 @@ jobs:
           $agent = Join-Path $stage 'agent\device-agent\operator-agent.mjs'
           $updaterStage = Join-Path $PWD 'dist\windows\updater'
           $updater = Join-Path $updaterStage 'LightRemote.Updater.exe'
+          node deploy/scripts/stage-client-core.mjs --verify $agentRoot
+          if ($LASTEXITCODE -ne 0) { throw 'canonical client core verification failed' }
+          if (-not (Test-Path (Join-Path $agentRoot 'client-core.json'))) { throw 'client core metadata missing' }
           if (-not (Test-Path $updater)) { throw 'independent updater publish missing' }
           foreach ($fleetFile in @('agent\device-agent\fleet-component-manager.mjs','agent\device-agent\fleet-component-supervisor.mjs')) { if (-not (Test-Path (Join-Path $stage $fleetFile))) { throw "fleet base module missing: $fleetFile" } }
-          foreach ($lib in @('agent\lib\device-proof.mjs','agent\lib\native-fs.mjs','agent\lib\native-process.mjs','agent\lib\native-search.mjs','agent\lib\light-scp-file.mjs','agent\lib\light-scp-registry.mjs','agent\lib\update-contract.mjs')) { if (-not (Test-Path (Join-Path $stage $lib))) { throw "agent runtime lib missing: $lib" } }
+          foreach ($lib in @('agent\lib\device-proof.mjs','agent\lib\native-fs.mjs','agent\lib\native-process.mjs','agent\lib\native-search.mjs','agent\lib\light-scp-file.mjs','agent\lib\light-scp-registry.mjs','agent\lib\update-contract.mjs','agent\lib\runtime-version.mjs')) { if (-not (Test-Path (Join-Path $stage $lib))) { throw "agent runtime lib missing: $lib" } }
           foreach ($notice in @('LICENSE','NOTICE','THIRD_PARTY_DISTRIBUTION_NOTICES.md','licenses\node\LICENSE','licenses\dotnet\LICENSE.txt','licenses\dotnet\ThirdPartyNotices.txt','THIRD_PARTY_NOTICES.txt')) {
             $noticePath = Join-Path $stage $notice
             if (-not (Test-Path $noticePath) -or (Get-Item $noticePath).Length -lt 100) { throw "bundled notice missing/empty: $notice" }
@@ -127,7 +124,10 @@ jobs:
           if (-not $json.ok) { throw "self-test not ok: $(Get-Content $result -Raw)" }
           if ($json.platformAdapter -ne 'win32') { throw "expected win32 adapter, got $($json.platformAdapter)" }
           $expectedVersion = (Get-Content VERSION -Raw).Trim()
+          $coreMeta = Get-Content (Join-Path $agentRoot 'client-core.json') -Raw | ConvertFrom-Json
+          if ($coreMeta.version -ne $expectedVersion) { throw "canonical client core version mismatch: $($coreMeta.version) expected=$expectedVersion" }
           if ($json.clientVersion -ne $expectedVersion) { throw "client version mismatch: $($json.clientVersion) expected=$expectedVersion" }
+          if ($json.agentVersion -ne $expectedVersion) { throw "bundled agent version mismatch: $($json.agentVersion) expected=$expectedVersion" }
           Write-Host "windows-tray-selftest=PASS agent=$($json.agentVersion) adapter=$($json.platformAdapter)"
           $updaterSelfResult = Join-Path $env:RUNNER_TEMP 'updater-selftest.json'
           $updaterSelf = Start-Process -FilePath $updater -ArgumentList @('--self-test-output',$updaterSelfResult,$stage) -PassThru -Wait

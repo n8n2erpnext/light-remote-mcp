@@ -1,0 +1,13 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..'),read=rel=>fs.readFileSync(path.join(root,rel),'utf8'),need=(v,m)=>{if(!v)throw new Error(m);};
+const workflow=read('.github/workflows/macos-client-build.yml'),pkg=read('client/macos/build-pkg.sh'),launcher=read('client/macos/launcher/main.swift');
+need(workflow.includes('client/macos/launcher/main.swift')&&workflow.includes('LightRemoteLauncher'),'macos_native_launcher_not_built');
+need(workflow.includes('otool -l "$PKG/tray/LightRemoteLauncher"')&&workflow.includes("minos 11.0"),'macos_launcher_minimum_target_not_checked');
+need(pkg.includes('cp "$PKG/tray/LightRemoteLauncher" "$APP/Contents/MacOS/LightRemoteLauncher"'),'macos_app_does_not_use_native_launcher');
+need(!pkg.includes("cat > \"$APP/Contents/MacOS/LightRemoteLauncher\" <<'LAUNCHER'"),'macos_shell_launcher_regressed');
+need(launcher.includes('/bin/launchctl')&&launcher.includes('kickstart')&&launcher.includes('com.lightremote.tray'),'macos_native_launcher_lifecycle_contract_missing');
+need(pkg.includes('MACOS_APP_SIGN_IDENTITY')&&pkg.includes('MACOS_INSTALLER_SIGN_IDENTITY'),'macos_external_signing_hooks_missing');
+need(pkg.includes('codesign --verify --deep --strict')&&!pkg.includes('MACOS_APP_SIGN_IDENTITY:-Light Remote'),'macos_app_signing_must_not_invent_identity');
+console.log('v10-macos-native-launcher=PASS');console.log('v10-macos-external-signing-boundary=PASS');

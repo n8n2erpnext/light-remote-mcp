@@ -17,6 +17,7 @@ await new Promise(r=>setTimeout(r,80));
 try{
   const rootPage=await request('GET','/');
   if(rootPage.status!==200||!rootPage.text.includes("settingsLink.href='/settings'"))throw new Error('local_settings_link_missing');
+  if(!rootPage.text.includes('Server requires client update')||!rootPage.text.includes('Server update required'))throw new Error('local_server_compatibility_notice_missing');
   const settings=await request('GET','/settings');
   if(settings.status!==200||!settings.text.includes('Updater Helper is independent from Core'))throw new Error('local_update_settings_contract_failed');
   if(!settings.text.includes('Check now')||!settings.text.includes('Update now'))throw new Error('local_update_actions_missing');

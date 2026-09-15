@@ -2,7 +2,7 @@ namespace GptOperator.Client;
 
 internal static class ClientVersion
 {
-    private const string Fallback = "0.9.0-rc.6";
+    private const string Fallback = "0.9.0-dev";
     public static string Display {
         get {
             try {

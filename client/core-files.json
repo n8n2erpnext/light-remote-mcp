@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "files": [
+    {
+      "source": "device-agent/operator-agent.mjs",
+      "destination": "device-agent/operator-agent.mjs"
+    },
+    {
+      "source": "device-agent/local-wall.mjs",
+      "destination": "device-agent/local-wall.mjs"
+    },
+    {
+      "source": "device-agent/local-wall-auth.mjs",
+      "destination": "device-agent/local-wall-auth.mjs"
+    },
+    {
+      "source": "device-agent/update-settings-page.mjs",
+      "destination": "device-agent/update-settings-page.mjs"
+    },
+    {
+      "source": "device-agent/fleet-component-manager.mjs",
+      "destination": "device-agent/fleet-component-manager.mjs"
+    },
+    {
+      "source": "device-agent/fleet-component-supervisor.mjs",
+      "destination": "device-agent/fleet-component-supervisor.mjs"
+    },
+    {
+      "source": "device-agent/platform-adapters/index.mjs",
+      "destination": "device-agent/platform-adapters/index.mjs"
+    },
+    {
+      "source": "device-agent/platform-adapters/shared.mjs",
+      "destination": "device-agent/platform-adapters/shared.mjs"
+    },
+    {
+      "source": "device-agent/platform-adapters/linux.mjs",
+      "destination": "device-agent/platform-adapters/linux.mjs"
+    },
+    {
+      "source": "device-agent/platform-adapters/windows.mjs",
+      "destination": "device-agent/platform-adapters/windows.mjs"
+    },
+    {
+      "source": "device-agent/platform-adapters/macos.mjs",
+      "destination": "device-agent/platform-adapters/macos.mjs"
+    },
+    {
+      "source": "lib/device-proof.mjs",
+      "destination": "lib/device-proof.mjs"
+    },
+    {
+      "source": "lib/native-fs.mjs",
+      "destination": "lib/native-fs.mjs"
+    },
+    {
+      "source": "lib/native-process.mjs",
+      "destination": "lib/native-process.mjs"
+    },
+    {
+      "source": "lib/native-search.mjs",
+      "destination": "lib/native-search.mjs"
+    },
+    {
+      "source": "lib/light-scp-file.mjs",
+      "destination": "lib/light-scp-file.mjs"
+    },
+    {
+      "source": "lib/light-scp-registry.mjs",
+      "destination": "lib/light-scp-registry.mjs"
+    },
+    {
+      "source": "lib/update-contract.mjs",
+      "destination": "lib/update-contract.mjs"
+    },
+    {
+      "source": "lib/runtime-version.mjs",
+      "destination": "lib/runtime-version.mjs"
+    },
+    {
+      "source": "assets/branding/light-remote-mark.svg",
+      "destination": "assets/branding/light-remote-mark.svg"
+    },
+    {
+      "source": "assets/branding/light-remote-mark-256.png",
+      "destination": "assets/branding/light-remote-mark-256.png"
+    },
+    {
+      "source": "client/update-public.pem",
+      "destination": "client/update-public.pem"
+    }
+  ]
+}

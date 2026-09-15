@@ -24,6 +24,8 @@ import { NativeProcessRegistry } from '../lib/native-process.mjs';
 import { NativeSearchRegistry } from '../lib/native-search.mjs';
 import { LightScpRegistry } from '../lib/light-scp-registry.mjs';
 import { normalizeUpdateReport } from '../lib/update-contract.mjs';
+import { clientCompatibility } from '../lib/version-compat.mjs';
+import { runtimeVersion } from '../lib/runtime-version.mjs';
 import { createPlatformAdapter } from '../device-agent/platform-adapters/index.mjs';
 
 const SOCKET_PATH = process.env.OPERATOR_SOCKET || '/run/gpt-vps-operator/operator.sock';
@@ -81,7 +83,10 @@ const DEVICE_CHANNEL_CONTROL_LIMIT = Math.max(1, Number(process.env.OPERATOR_DEV
 if (!Number.isFinite(DEVICE_PRESENCE_TTL_MS) || DEVICE_PRESENCE_TTL_MS < 10_000) throw new Error('invalid_device_presence_ttl');
 if (!Number.isFinite(DEVICE_HEARTBEAT_MS) || DEVICE_HEARTBEAT_MS < 5_000 || DEVICE_HEARTBEAT_MS >= DEVICE_PRESENCE_TTL_MS) throw new Error('invalid_device_heartbeat');
 const HOST_CAPABILITIES = ['filesystem', 'git', 'build-test', 'docker', 'lxd', 'systemctl', 'sudo-on-demand'];
-const VERSION = String(process.env.LIGHT_REMOTE_VERSION || process.env.OPERATOR_VERSION || '0.9.0-rc.6');
+const VERSION = runtimeVersion({envNames:['LIGHT_REMOTE_VERSION','OPERATOR_VERSION']});
+const CLIENT_BACKWARD_RELEASES=Math.max(0,Math.min(Number(process.env.OPERATOR_CLIENT_BACKWARD_RELEASES)||3,20));
+const MIN_SUPPORTED_CLIENT_VERSION=String(process.env.OPERATOR_MIN_SUPPORTED_CLIENT_VERSION||'').trim()||null;
+const compatibilityFor=device=>clientCompatibility(VERSION,device?.agentVersion,{backwardReleases:CLIENT_BACKWARD_RELEASES,explicit:MIN_SUPPORTED_CLIENT_VERSION});
 const HOST_PLATFORM_ADAPTER=createPlatformAdapter({platform:process.platform});
 const NATIVE_PROCESSES=new NativeProcessRegistry();
 const NATIVE_SEARCHES=new NativeSearchRegistry();
@@ -684,15 +689,15 @@ function requireDeviceConnection(deviceId) {
   if (!CONNECTION_LEASE_ENFORCE) return connections.get(deviceId);
   return connections.assertConnected(deviceId);
 }
-function deviceView(device) { return { ...device, routing:routingViewForDevice(device), policy:policyViewForDevice(device), connection:connectionViewForDevice(device.deviceId) }; }
+function deviceView(device) { return { ...device, routing:routingViewForDevice(device), policy:policyViewForDevice(device), connection:connectionViewForDevice(device.deviceId), compatibility:compatibilityFor(device) }; }
 function allDeviceViews() { return devices.list({ activeSessionsForNode:nodeId => sessions.activeCountByNode(nodeId) }).map(deviceView); }
-function queueHelperUpdate(deviceId) {
-  const device=devices.get(deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});if(device.nodeId===NODE_ID)throw new DeviceError('helper_update_hub_not_client',409);const route=targetRoute(device.nodeId);
+function queueHelperUpdate(deviceId,{source='remote-owner'}={}) {
+  const device=devices.get(deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});if(device.nodeId===NODE_ID)throw new DeviceError('helper_update_hub_not_client',409);const route=targetRoute(device.nodeId),updateSource=String(source||'remote-owner').slice(0,40);
   const agentId=`agent-update-${crypto.randomBytes(8).toString('hex')}`,openId=`open-update-${crypto.randomBytes(8).toString('hex')}`;let session;
   try{session=sessions.open({agentId,openId,label:'client update',workspace:'',gracePreset:'30m',nodeId:route.nodeId,deviceId:route.deviceId,maxActiveForNode:route.sessionCeiling});const operationId=`client-update-${crypto.randomBytes(8).toString('hex')}`,requestId=`update-${crypto.randomUUID()}`;
-    const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:null,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.sessionId,agentId:session.agentId,nodeId:session.nodeId,note:'owner requested helper client update',cwd:'',script:'request signed client update',status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote:true,commandId:null,requiredCapabilities:[],resultData:null,autoCloseSession:true};
+    const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:null,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.sessionId,agentId:session.agentId,nodeId:session.nodeId,note:`${updateSource} requested helper client update`,cwd:'',script:'request signed client update',status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote:true,commandId:null,requiredCapabilities:[],resultData:null,autoCloseSession:true};
     jobs.set(job.id,job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:'outbound-leaf',requiredCapabilities:[],note:job.note});
-    const command=fleet.enqueue({accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'update',operationId,sessionId:job.sessionId,agentId:job.agentId,update:{op:'request'}}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},60000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();pushEvent({type:'device_update_requested',accountId:device.accountId,deviceId:device.deviceId,nodeId:device.nodeId,sessionId:session.sessionId,agentId,jobId:job.id,status:'queued'});return {accepted:true,deviceId:device.deviceId,nodeId:device.nodeId,sessionId:session.sessionId,agentId,job:jobView(job)};
+    const command=fleet.enqueue({accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'update',operationId,sessionId:job.sessionId,agentId:job.agentId,update:{op:'request',source:updateSource}}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},60000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();pushEvent({type:'device_update_requested',accountId:device.accountId,deviceId:device.deviceId,nodeId:device.nodeId,sessionId:session.sessionId,agentId,jobId:job.id,status:'queued',source:updateSource});return {accepted:true,deviceId:device.deviceId,nodeId:device.nodeId,sessionId:session.sessionId,agentId,source:updateSource,job:jobView(job)};
   }catch(error){if(session?.sessionId){try{sessions.close(session.sessionId,agentId);}catch{}}throw error;}
 }
 
@@ -755,11 +760,12 @@ function verifiedChannelContext(body, action) {
   return {payload,proof,binding,device};
 }
 function fleetEligibility(ctx){
-  const account=accounts.account(ctx.binding.accountId),entitlements=planEntitlements(account);
+  const account=accounts.account(ctx.binding.accountId),entitlements=planEntitlements(account),compatibility=compatibilityFor(ctx.device);
   if(!entitlements.fleetWall||!entitlements.multiDeviceConsole)throw new FleetAuthorityError('fleet_entitlement_required',403);
   if(!account.mainDeviceId||account.mainDeviceId!==ctx.device.deviceId){fleetAuthority.invalidateDevice(ctx.device.deviceId,'main_device_mismatch');throw new FleetAuthorityError('fleet_main_device_required',403);}
   if(ctx.device.state==='revoked')throw new FleetAuthorityError('fleet_main_device_revoked',403);
-  return {account,entitlements};
+  if(!compatibility.supported)throw new FleetAuthorityError(compatibility.status,409);
+  return {account,entitlements,compatibility};
 }
 function verifiedFleetContext(ctx){
   const {account,entitlements}=fleetEligibility(ctx),token=String(ctx.payload.fleetToken||'');
@@ -828,6 +834,8 @@ const server = http.createServer(async (req, res) => {
       const body=await readJson(req),accountId=adminMainMatch[1],device=devices.get(body.deviceId);
       if(device.accountId!==accountId)throw new AccountError('account_device_mismatch',403);
       if(device.state==='revoked')throw new AccountError('main_device_revoked',409);
+      if(device.state!=='online')throw new AccountError('main_device_offline',409);
+      const compatibility=compatibilityFor(device);if(!compatibility.supported)throw new AccountError(compatibility.status,409);
       const prior=accounts.account(accountId).mainDeviceId||null;if(prior&&prior!==device.deviceId)fleetAuthority.invalidateDevice(prior,'main_device_changed');
       fleetAuthority.invalidateDevice(device.deviceId,'main_device_changed');let account=accounts.setMainDevice(accountId,device.deviceId),entitlements=planEntitlements(account);
       account=accounts.setFleetProvisioning(accountId,{deviceId:device.deviceId,state:entitlements.fleetWall&&entitlements.multiDeviceConsole?'starting':'failed',reason:entitlements.fleetWall&&entitlements.multiDeviceConsole?'main_device_selected':'fleet_entitlement_required',port:5492});
@@ -867,13 +875,15 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res,200,{ok:true,...accounts.logout(accountSessionToken(req))});
     }
     if (req.method === 'GET' && url.pathname === '/v1/accounts/devices') {
-      const identity=requireAccount(req),owned=allDeviceViews().filter(device=>device.accountId===identity.account.accountId).map(device=>({...device,removable:device.deviceId!==DEVICE_ID,revocable:device.deviceId!==DEVICE_ID&&device.state!=='revoked'}));
+      const identity=requireAccount(req),owned=allDeviceViews().filter(device=>device.accountId===identity.account.accountId).map(device=>({...device,removable:device.deviceId!==DEVICE_ID,revocable:device.deviceId!==DEVICE_ID&&device.state!=='revoked',helperUpdatable:device.deviceId!==DEVICE_ID&&device.state!=='revoked'}));
       return sendJson(res,200,{ok:true,account:identity.account,entitlements:planEntitlements(identity.account),devices:owned});
     }
     if (req.method === 'POST' && url.pathname === '/v1/accounts/main-device') {
       const identity=requireAccount(req),body=await readJson(req),device=devices.get(body.deviceId);
       if(device.accountId!==identity.account.accountId)throw new AccountError('account_device_mismatch',403);
       if(device.state==='revoked')throw new AccountError('main_device_revoked',409);
+      if(device.state!=='online')throw new AccountError('main_device_offline',409);
+      const compatibility=compatibilityFor(device);if(!compatibility.supported)throw new AccountError(compatibility.status,409);
       const priorMain=identity.account.mainDeviceId||null;if(priorMain&&priorMain!==device.deviceId)fleetAuthority.invalidateDevice(priorMain,'main_device_changed');
       fleetAuthority.invalidateDevice(device.deviceId,'main_device_changed');
       let account=accounts.setMainDevice(identity.account.accountId,device.deviceId),entitlements=planEntitlements(account);
@@ -900,6 +910,17 @@ const server = http.createServer(async (req, res) => {
       const identity=requireAccount(req),body=await readJson(req),approval=enrollments.approve({...body,accountId:identity.account.accountId});
       const binding=enrollments.binding(approval.deviceId),device=devices.enroll({accountId:binding.accountId,deviceId:binding.deviceId,nodeId:binding.deviceId,displayName:binding.displayName,platform:binding.platform,architecture:binding.architecture,agentVersion:binding.agentVersion,publicIdentityKey:binding.publicIdentityKey,capabilities:binding.approvedCapabilities,policyProfile:binding.policyProfile});
       return sendJson(res,200,{ok:true,approval,device});
+    }
+    const accountUpdateMatch=url.pathname.match(/^\/v1\/accounts\/devices\/([A-Za-z0-9._:-]+)\/update$/);
+    if(req.method==='POST'&&accountUpdateMatch){
+      const identity=requireAccount(req),body=await readJson(req),device=devices.get(accountUpdateMatch[1]);
+      if(device.accountId!==identity.account.accountId)throw new AccountError('account_device_mismatch',403);
+      if(device.deviceId===DEVICE_ID)throw new AccountError('helper_update_hub_not_client',409);
+      if(device.state==='revoked')throw new AccountError('device_revoked',409);
+      if(device.state!=='online')throw new AccountError('client_update_offline',409);
+      if(body.force!==true)throw new AccountError('force_update_confirmation_required',428);
+      const compatibility=compatibilityFor(device),maintenance=queueHelperUpdate(device.deviceId,{source:'account-portal'});
+      return sendJson(res,200,{ok:true,forced:true,compatibility,maintenance});
     }
     const accountRevokeMatch=url.pathname.match(/^\/v1\/accounts\/devices\/([A-Za-z0-9._:-]+)\/revoke$/);
     if(req.method==='POST'&&accountRevokeMatch){
@@ -1076,12 +1097,14 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/fleet-intent') {
       const body=await readJson(req),ctx=verifiedChannelContext(body,'fleet-intent');let account=accounts.account(ctx.binding.accountId),entitlements=planEntitlements(account);
-      const desired=Boolean(entitlements.fleetWall&&entitlements.multiDeviceConsole&&account.mainDeviceId===ctx.device.deviceId&&ctx.device.state!=='revoked');
-      const reason=desired?'main_device_eligible':!entitlements.fleetWall?'fleet_entitlement_required':!account.mainDeviceId?'main_device_not_selected':account.mainDeviceId!==ctx.device.deviceId?'not_main_device':'main_device_unavailable';
+      const reportedVersion=String(ctx.payload.agentVersion||ctx.device.agentVersion||''),compatibility=clientCompatibility(VERSION,reportedVersion,{backwardReleases:CLIENT_BACKWARD_RELEASES,explicit:MIN_SUPPORTED_CLIENT_VERSION});
+      const baseEligible=Boolean(entitlements.fleetWall&&entitlements.multiDeviceConsole&&account.mainDeviceId===ctx.device.deviceId&&ctx.device.state!=='revoked'),desired=Boolean(baseEligible&&compatibility.supported);
+      const reason=desired?'main_device_eligible':!entitlements.fleetWall?'fleet_entitlement_required':!account.mainDeviceId?'main_device_not_selected':account.mainDeviceId!==ctx.device.deviceId?'not_main_device':!compatibility.supported?compatibility.status:'main_device_unavailable';
       if(!desired)fleetAuthority.invalidateDevice(ctx.device.deviceId,reason);
-      if(desired&&account.fleetProvisioning?.deviceId===ctx.device.deviceId&&account.fleetProvisioning?.state!=='online')account=accounts.setFleetProvisioning(account.accountId,{deviceId:ctx.device.deviceId,state:'configuring',reason,moduleVersion:ctx.payload.moduleVersion||null,port:5492});
-      else if(!desired&&account.mainDeviceId===ctx.device.deviceId)account=accounts.setFleetProvisioning(account.accountId,{deviceId:ctx.device.deviceId,state:'failed',reason,moduleVersion:ctx.payload.moduleVersion||null,port:5492});
-      return sendJson(res,200,{ok:true,fleet:{desired,port:5492,reason},account:{accountId:account.accountId,plan:account.plan,mainDeviceId:account.mainDeviceId,fleetProvisioning:account.fleetProvisioning||null},entitlements});
+      const versionState={agentVersion:reportedVersion,minimumSupportedVersion:compatibility.minimumSupportedVersion,latestVersion:compatibility.latestVersion,updateRequired:compatibility.updateRequired};
+      if(desired&&account.fleetProvisioning?.deviceId===ctx.device.deviceId&&account.fleetProvisioning?.state!=='online')account=accounts.setFleetProvisioning(account.accountId,{deviceId:ctx.device.deviceId,state:'configuring',reason,moduleVersion:ctx.payload.moduleVersion||null,...versionState,port:5492});
+      else if(!desired&&account.mainDeviceId===ctx.device.deviceId)account=accounts.setFleetProvisioning(account.accountId,{deviceId:ctx.device.deviceId,state:compatibility.updateRequired?'update_required':'failed',reason,moduleVersion:ctx.payload.moduleVersion||null,...versionState,port:5492});
+      return sendJson(res,200,{ok:true,fleet:{desired,port:5492,reason,compatibility,updateRequired:compatibility.updateRequired},account:{accountId:account.accountId,plan:account.plan,mainDeviceId:account.mainDeviceId,fleetProvisioning:account.fleetProvisioning||null},entitlements});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/fleet-authority') {
       const body=await readJson(req),ctx=verifiedChannelContext(body,'fleet-authority');let {account,entitlements}=fleetEligibility(ctx);
@@ -1119,7 +1142,7 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/fleet-device-update') {
       const body=await readJson(req),ctx=verifiedFleetContext(verifiedChannelContext(body,'fleet-device-update')),target=fleetTarget(ctx,ctx.payload.deviceId);
-      return sendJson(res,200,{ok:true,mainDeviceId:ctx.account.mainDeviceId,maintenance:queueHelperUpdate(target.deviceId)});
+      return sendJson(res,200,{ok:true,mainDeviceId:ctx.account.mainDeviceId,maintenance:queueHelperUpdate(target.deviceId,{source:'fleet-wall'})});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/pairing-code') {
       const body=await readJson(req), ctx=verifiedChannelContext(body,'pairing-code');

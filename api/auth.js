@@ -13,7 +13,7 @@ function accountRequired(req, res) {
   return token;
 }
 async function accountAction(req,res,action){
-  const mutations=new Set(['register','login','logout','enrollment-approve','device-revoke','device-remove','devices-revoke-all','redeem-license','main-device','main-device-clear']);
+  const mutations=new Set(['register','login','logout','enrollment-approve','device-revoke','device-remove','device-update','devices-revoke-all','redeem-license','main-device','main-device-clear']);
   if(mutations.has(action)&&!sameOriginMutation(req))return res.status(403).json({ok:false,error:'cross_site_request_denied'});
   if(action==='register'||action==='login'){
     if(!method(req,res,'POST'))return;
@@ -34,6 +34,13 @@ async function accountAction(req,res,action){
   if(action==='enrollment-approve'){
     if(!method(req,res,'POST'))return; const token=accountRequired(req,res); if(!token)return;
     const upstream=await callOperator('/account/enrollments/approve',{method:'POST',body:{code:req.body?.code},accountSession:token,timeoutMs:9000});
+    return res.status(200).json(upstream);
+  }
+  if(action==='device-update'){
+    if(!method(req,res,'POST'))return; const token=accountRequired(req,res); if(!token)return;
+    const id=String(req.body?.deviceId||'').trim(); if(!/^[A-Za-z0-9._:-]{1,128}$/.test(id))return res.status(400).json({ok:false,error:'invalid_device_id'});
+    if(req.body?.force!==true)return res.status(428).json({ok:false,error:'force_update_confirmation_required'});
+    const upstream=await callOperator(`/account/devices/${encodeURIComponent(id)}/update`,{method:'POST',body:{force:true},accountSession:token,timeoutMs:9000});
     return res.status(200).json(upstream);
   }
   if(action==='device-revoke'){
