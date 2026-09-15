@@ -13,6 +13,7 @@ expect(opReq.includes('const MAX_GET_PAYLOAD_CHARS = 12000;'),'plus_get_payload_
 expect(api.includes("const plus=wantsPlus && req.method==='GET'"),'plus_bridge_must_be_get_only');
 expect(api.includes("action==='connection-helper'")&&api.includes('connectionHelperView')&&api.includes('toolHelperHint')&&api.includes("nextAction:'load_tool_helper'"),'plus_connection_helper_missing');
 expect(api.includes('pairingRecovery')&&api.includes("'/plus/connect/recover'")&&server.includes("app.post('/plus/connect/recover'"),'plus_pairing_recovery_missing');
+expect(api.includes("if(error.status===401&&recovery)return callOperator('/plus/connect/recover'"),'plus_pairing_recovery_must_not_depend_on_error_payload_string');
 expect(server.includes("plusRateLimit=createRateLimit('plus'")&&server.includes('plusRateIdentity')&&!server.includes("app.post('/plus/connect/begin', softRateLimit"),'plus_scoped_rate_limit_missing');
 expect(api.includes("action==='connect'")&&api.includes("action==='connect-poll'")&&api.includes("action==='list-devices'"),'plus_golden_pairing_surface_missing');
 expect(api.includes("action==='devices-bootstrap'")&&api.includes("action==='authorize-begin'")&&api.includes("action==='authorize-poll'"),'plus_compatibility_surface_missing');

@@ -28,7 +28,7 @@ async function pollPairing(continuation){
   try{return await callOperator('/plus/connect/poll',{method:'POST',body:{continuation}});}
   catch(error){
     const recovery=pairingRecovery(continuation);
-    if(error.status===401&&error.payload?.error==='pairing_continuation_required'&&recovery)return callOperator('/plus/connect/recover',{method:'POST',body:recovery});
+    if(error.status===401&&recovery)return callOperator('/plus/connect/recover',{method:'POST',body:recovery});
     throw error;
   }
 }
