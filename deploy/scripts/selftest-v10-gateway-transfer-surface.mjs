@@ -8,8 +8,9 @@ const read=rel=>fs.readFileSync(path.join(root,rel),'utf8');
 const server=read('gateway/server.mjs'),api=read('api/operator.js');
 const docker=read('gateway/Dockerfile'),sync=read('deploy/scripts/sync-gateway.sh');
 for(const f of ['chunk-transfer.mjs','plus-transfer.mjs']){
-  assert(docker.includes(f),`gateway docker missing ${f}`);
-  assert(sync.includes(f),`gateway sync missing ${f}`);
+  assert(fs.existsSync(path.join(root,'gateway',f)),`gateway source missing ${f}`);
+  assert(docker.includes('COPY gateway/*.mjs ./'),`gateway docker wildcard packaging missing for ${f}`);
+  assert(sync.includes('context: "${ROOT_DIR}"')&&sync.includes('dockerfile: gateway/Dockerfile')&&sync.includes('docker compose build "$SERVICE"'),`gateway canonical deploy missing for ${f}`);
 }
 for(const route of ['/plus/client/transfers','/plus/client/transfers/:id/chunk','/plus/client/transfers/:id/status','/plus/client/transfers/:id/commit','/plus/client/transfers/:id/cancel']) assert(server.includes(route),`gateway route missing ${route}`);
 assert.match(server,/transfers'.*requirePlusVercelIdentity.*plusAuth\.requireClient.*plusAuth\.requireClientDevice.*plusTransfer\.begin/s);

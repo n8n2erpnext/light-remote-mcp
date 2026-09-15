@@ -19,7 +19,7 @@ if(!tool.includes("action:'search'")||tool.includes("registerTool('light_remote_
 if(!executor.includes("['exec_batch','fs','process','search','scp'].includes(payload.action)")) throw new Error('device_access_search_allowlist_missing');
 if(!vercel.includes("action.startsWith('search-')")||!vercel.includes("['start','results','cancel'].includes(op)")) throw new Error('vercel_search_surface_missing');
 if(!server.includes("registerConvenienceTools(server, tracked, identity)")) throw new Error('convenience_server_registration_missing');
-if(!docker.includes('remote-convenience-tools.mjs')) throw new Error('convenience_docker_packaging_missing');
-if(!sync.includes('remote-convenience-tools.mjs')) throw new Error('convenience_gateway_sync_missing');
+if(!docker.includes('COPY gateway/*.mjs ./')) throw new Error('convenience_docker_packaging_missing');
+if(!sync.includes('context: "${ROOT_DIR}"')||!sync.includes('dockerfile: gateway/Dockerfile')||!sync.includes('docker compose build "$SERVICE"')||!sync.includes('docker compose up -d --no-build --force-recreate "$SERVICE"')) throw new Error('convenience_gateway_sync_missing');
 console.log('v09-convenience-tool-contract=PASS');
 console.log('v09-convenience-idempotency-encryption=PASS');

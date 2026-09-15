@@ -19,8 +19,8 @@ for(const name of ['light_remote_devices','light_remote_open_session','light_rem
 expect(tools.includes('light_remote_operating_contract'),'operating_contract_missing');
 expect(tools.includes('light_remote_set_device_policy'),'device_policy_tool_missing');
 expect(tools.includes('light_remote_run_signed_update'),'signed_update_tool_missing');
-expect(docker.includes('operator-crypto.mjs')&&docker.includes('remote-tools.mjs')&&docker.includes('oauth.mjs'),'gateway_image_oauth_files_missing');
-expect(sync.includes('operator-crypto.mjs')&&sync.includes('remote-tools.mjs')&&sync.includes('oauth.mjs'),'gateway_sync_oauth_files_missing');
+expect(docker.includes('COPY gateway/*.mjs ./'),'gateway_image_oauth_files_missing');
+expect(sync.includes('context: "${ROOT_DIR}"')&&sync.includes('dockerfile: gateway/Dockerfile')&&sync.includes('docker compose build "$SERVICE"')&&sync.includes('docker compose up -d --no-build --force-recreate "$SERVICE"'),'gateway_sync_oauth_files_missing');
 expect(installer.includes('MCP_PUBLIC_ORIGIN=$PUBLIC_MCP_URL'),'selfhost_oauth_origin_missing');
 expect(installer.includes('OPERATOR_PUBLIC_KEYS_FILE: /run/secrets/operator-public-keys.json'),'selfhost_gateway_public_key_missing');
 expect(installer.includes('operator-public-keys.json:/run/secrets/operator-public-keys.json:ro'),'selfhost_public_key_mount_missing');

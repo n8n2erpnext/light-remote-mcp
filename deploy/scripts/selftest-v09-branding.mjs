@@ -23,7 +23,7 @@ expect(!exists('assets/branding/light-remote-lockup.svg')&&!exists('assets/brand
 expect(!text('gateway/brand.mjs').includes('119 119')&&!text('gateway/brand.mjs').includes('M0 94.44'),'legacy_gateway_trace_survived');
 expect(text('README.md').includes('assets/branding/light-remote-mark.svg'),'readme_brand_missing');
 expect(text('gateway/Dockerfile').includes('brand-mark.svg'),'gateway_brand_package_missing');
-expect(text('deploy/scripts/sync-gateway.sh').includes('brand-mark.svg'),'gateway_brand_sync_missing');
+expect(text('deploy/scripts/sync-gateway.sh').includes('context: "${ROOT_DIR}"')&&text('deploy/scripts/sync-gateway.sh').includes('dockerfile: gateway/Dockerfile'),'gateway_brand_sync_missing');
 expect(text('deploy/scripts/build-fleet-wall-module.sh').includes('brand-mark.svg'),'fleet_brand_package_missing');
 expect(text('client/macos/tray/main.swift').includes('light-remote-mark-256.png'),'macos_tray_brand_missing');
 expect(text('client/linux-debian/tray/light-remote-tray.py').includes('light-remote-mark-256.png'),'linux_tray_brand_missing');

@@ -1,0 +1,9 @@
+**
+!gateway/
+!gateway/*.mjs
+!gateway/package.json
+!gateway/package-lock.json
+!gateway/brand-mark.svg
+!lib/
+!lib/runtime-version.mjs
+!VERSION

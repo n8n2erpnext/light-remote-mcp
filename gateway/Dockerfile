@@ -1,9 +1,12 @@
 FROM node:22-alpine
 RUN apk add --no-cache git
-WORKDIR /app
-COPY package*.json ./
+WORKDIR /app/gateway
+COPY gateway/package*.json ./
 RUN npm ci --omit=dev
-COPY server.mjs activity.mjs security.mjs workspace.mjs dashboard.mjs brand.mjs brand-mark.svg operator-proxy.mjs operator-crypto.mjs remote-tools.mjs remote-convenience-tools.mjs chunk-transfer.mjs plus-transfer.mjs oauth.mjs plus-auth.mjs wall-auth.mjs enrollment-page.mjs device-policy-page.mjs ./
+COPY gateway/*.mjs ./
+COPY gateway/brand-mark.svg ./
+COPY lib/runtime-version.mjs /app/lib/runtime-version.mjs
+COPY VERSION /app/VERSION
 USER node
 EXPOSE 8080 8081
 CMD ["node", "server.mjs"]
