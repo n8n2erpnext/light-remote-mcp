@@ -58,6 +58,10 @@
       "destination": "lib/native-process.mjs"
     },
     {
+      "source": "lib/native-terminal.mjs",
+      "destination": "lib/native-terminal.mjs"
+    },
+    {
       "source": "lib/native-search.mjs",
       "destination": "lib/native-search.mjs"
     },

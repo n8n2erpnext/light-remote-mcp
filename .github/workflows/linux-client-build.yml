@@ -15,6 +15,7 @@ on:
       - 'lib/device-proof.mjs'
       - 'lib/native-fs.mjs'
       - 'lib/native-process.mjs'
+      - 'lib/native-terminal.mjs'
       - 'lib/native-search.mjs'
       - 'lib/light-scp-file.mjs'
       - 'lib/light-scp-registry.mjs'
@@ -24,6 +25,10 @@ on:
       - 'lib/brand.mjs'
       - 'lib/update-helper-reconcile.mjs'
       - 'deploy/scripts/stage-client-core.mjs'
+      - 'deploy/scripts/stage-terminal-runtime.mjs'
+      - 'deploy/scripts/terminal-runtime-smoke.mjs'
+      - 'package.json'
+      - 'package-lock.json'
       - 'client/core-files.json'
       - 'assets/branding/**'
       - '.github/workflows/linux-client-build.yml'
@@ -60,7 +65,9 @@ jobs:
           tar -xJf "$NODE_TAR"
           install -m 0755 "node-v${NODE_VERSION}-linux-${TARGET_ARCH}/bin/node" "$PKG/runtime/node"
           cp "node-v${NODE_VERSION}-linux-${TARGET_ARCH}/LICENSE" "$PKG/licenses/node/LICENSE"
+          npm ci --ignore-scripts
           node deploy/scripts/stage-client-core.mjs "$PKG"
+          node deploy/scripts/stage-terminal-runtime.mjs "$PKG" linux "$TARGET_ARCH"
           cp device-agent/linux-service-policy.mjs "$PKG/device-agent/"
           cp client/linux/updater.mjs client/linux/update-lifeboat.mjs "$PKG/client/linux/"
           cp client/linux-debian/updater-wrapper.mjs "$PKG/client/linux-debian/"
@@ -102,6 +109,8 @@ jobs:
           test -f "$PKG/lib/device-proof.mjs"
           test -f "$PKG/lib/native-fs.mjs"
           test -f "$PKG/lib/native-process.mjs"
+          test -f "$PKG/lib/native-terminal.mjs"
+          test -s "$PKG/licenses/terminal-runtime/homebridge-node-pty-LICENSE"
           test -f "$PKG/lib/native-search.mjs"
           test -f "$PKG/lib/light-scp-file.mjs"
           test -f "$PKG/lib/light-scp-registry.mjs"
@@ -128,6 +137,12 @@ jobs:
           else
             file "$PKG/runtime/node" | grep -Eq 'ARM aarch64|aarch64'
             echo 'linux-arm64-runtime-architecture=PASS'
+          fi
+          if [[ "$TARGET_ARCH" == "x64" ]]; then
+            node deploy/scripts/terminal-runtime-smoke.mjs "$PKG"
+          else
+            file "$PKG/node_modules/@homebridge/node-pty-prebuilt-multiarch/prebuilds/linux-arm64/node.abi127.node" | grep -Eq 'ARM aarch64|aarch64'
+            echo 'linux-arm64-terminal-runtime-architecture=PASS'
           fi
           bash -n client/linux/install.sh
           "$PKG/runtime/node" --check "$PKG/client/linux/updater.mjs" || [[ "$TARGET_ARCH" == "arm64" ]]

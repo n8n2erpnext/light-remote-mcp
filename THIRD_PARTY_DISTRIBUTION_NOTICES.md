@@ -28,6 +28,16 @@ The Windows client contains UI/layout work derived from the NetBird desktop clie
 
 Upstream reference: https://github.com/netbirdio/netbird
 
+
+## PTY / ConPTY terminal runtime
+Light Remote packages a native pseudo-terminal backend for SSH-class interactive terminal sessions.
+
+- Linux packages use `@homebridge/node-pty-prebuilt-multiarch` under the MIT license, with the package license copied to `licenses/terminal-runtime/homebridge-node-pty-LICENSE`.
+- Windows and macOS packages use `node-pty` under the MIT license, with the package license copied to `licenses/terminal-runtime/node-pty-LICENSE`.
+- Windows terminal sessions use the ConPTY backend supplied by the packaged `node-pty` runtime; Linux and macOS use native PTY semantics.
+
+Upstream references: https://github.com/homebridge/node-pty-prebuilt-multiarch and https://github.com/microsoft/node-pty
+
 ## Packaging gate
 CI must fail if the bundled runtime license/notice files are absent or empty. Installer smoke also verifies that the Windows notice files survive installation, not only staging.
 

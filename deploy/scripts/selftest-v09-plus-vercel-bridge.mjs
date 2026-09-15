@@ -20,6 +20,7 @@ expect(api.includes("plus_session_required")&&api.includes("plusSession"),'plus_
 expect(api.includes("sealOperatorPayload(normalizeExecPayload"),'plus_bridge_exec_encryption_missing');
 expect(api.includes("action==='session-open'")&&api.includes("action==='output'"),'plus_bridge_durable_surface_missing');
 expect(api.includes("action.startsWith('process-')")&&api.includes("'process-start'")&&api.includes("'process-output'"),'plus_native_process_surface_missing');
+expect(api.includes("action.startsWith('terminal-')")&&api.includes("action:'terminal'")&&api.includes('invalid_terminal_action'),'plus_terminal_surface_missing');
 expect(api.includes("action==='tool-helper'")&&api.includes('toolHelperView'),'plus_tool_helper_surface_missing');
 expect(api.includes("action==='scp'")&&api.includes("action:'scp'")&&api.includes('invalid_scp_payload'),'plus_light_scp_surface_missing');
 expect(server.includes("app.post('/plus/client/context'")&&server.includes("ensureClientContext"),'plus_working_context_surface_missing');

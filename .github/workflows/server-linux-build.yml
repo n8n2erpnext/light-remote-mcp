@@ -14,6 +14,10 @@ on:
       - 'deploy/server-linux/**'
       - 'deploy/scripts/install-host.sh'
       - 'deploy/scripts/selftest-host-install-layout.mjs'
+      - 'deploy/scripts/stage-terminal-runtime.mjs'
+      - 'deploy/scripts/terminal-runtime-smoke.mjs'
+      - 'package.json'
+      - 'package-lock.json'
       - '.dockerignore'
       - 'deploy/scripts/sync-gateway.sh'
       - 'deploy/scripts/generate-operator-key.mjs'
@@ -50,7 +54,9 @@ jobs:
           docker run --rm light-remote-gateway-ci node -e "import('../lib/runtime-version.mjs').then(m=>{const v=m.runtimeVersion({env:{}});console.log('gateway-container-version='+v);if(v!==process.argv[1])process.exit(2)})" "$VERSION_EXPECTED"
       - name: Build server bundle
         shell: bash
-        run: deploy/server-linux/build-bundle.sh "${{ matrix.arch }}"
+        run: |
+          npm ci --ignore-scripts
+          deploy/server-linux/build-bundle.sh "${{ matrix.arch }}"
       - name: Server package contract smoke
         shell: bash
         run: |
@@ -66,6 +72,8 @@ jobs:
           test -x "$TMP/package/install.sh"
           test -f "$TMP/package/gateway/package-lock.json"
           test -f "$TMP/package/operator-host/executor.mjs"
+          test -f "$TMP/package/lib/native-terminal.mjs"
+          test -s "$TMP/package/licenses/terminal-runtime/homebridge-node-pty-LICENSE"
           test -f "$TMP/package/device-agent/platform-adapters/index.mjs"
           bash -n "$TMP/package/install.sh"
           if [[ "${{ matrix.arch }}" == x64 ]]; then
@@ -77,9 +85,12 @@ jobs:
             test -S "$RUNTIME/operator.sock" || { cat "$RUNTIME/stderr.log"; exit 1; }
             curl -fsS --unix-socket "$RUNTIME/operator.sock" http://localhost/healthz | python3 -c "import json,sys; j=json.load(sys.stdin); assert j['ok'] and j['version']==sys.argv[1],j" "$VERSION"
             kill "$PID" 2>/dev/null || true; wait "$PID" 2>/dev/null || true
+            node deploy/scripts/terminal-runtime-smoke.mjs "$TMP/package"
             echo server-linux-runtime-smoke=PASS
           else
             file "$TMP/package/runtime/node" | grep -Eq 'ARM aarch64|aarch64'
+            file "$TMP/package/node_modules/@homebridge/node-pty-prebuilt-multiarch/prebuilds/linux-arm64/node.abi127.node" | grep -Eq 'ARM aarch64|aarch64'
+            echo server-linux-arm64-terminal-runtime-architecture=PASS
           fi
           python3 -c "import json,sys; m=json.load(open(sys.argv[1])); assert m['version']==sys.argv[2],m; assert m['platform'].startswith('linux-'),m; print('server-linux-package-contract=PASS')" "$TMP/package/manifest.json" "$VERSION"
       - name: Upload Linux server bundle

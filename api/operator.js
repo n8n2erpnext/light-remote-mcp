@@ -142,6 +142,19 @@ module.exports=async function handler(req,res){
           const payload={action:'process',operationId:aid(d.operationId),sessionId:sid(d.sessionId),agentId:aid(d.agentId),nodeId:d.nodeId==null?undefined:clientDevice(d.nodeId),process,waitMs:Math.max(0,Math.min(Number(d.waitMs)||7000,8000))};
           upstream=await clientCall('/plus/client/execute',{method:'POST',body:{deviceId,envelope:sealOperatorPayload(payload)},timeoutMs:9500});
         }
+        else if(usingClient&&action.startsWith('terminal-')){
+          const d=payloadFor(req),deviceId=clientDevice(d.deviceId||d.device),op=action.slice('terminal-'.length);
+          if(!['start','input','output','resize','signal','list','stop'].includes(op)){const e=new Error('invalid_terminal_action');e.status=400;throw e;}
+          const terminal={op};
+          if(op==='start'){terminal.shell=normalizeShellId(d.shell);terminal.cwd=d.cwd==null?undefined:String(d.cwd);terminal.cols=Math.max(20,Math.min(Number(d.cols)||120,500));terminal.rows=Math.max(5,Math.min(Number(d.rows)||32,200));terminal.term=d.term==null?undefined:String(d.term).slice(0,64);}
+          if(op==='input'){terminal.terminalId=String(d.terminalId||'');terminal.data=String(d.data||'');}
+          if(op==='output'){terminal.terminalId=String(d.terminalId||'');terminal.offset=Math.max(0,Number(d.offset)||0);terminal.limit=Math.max(1,Math.min(Number(d.limit)||262144,1048576));}
+          if(op==='resize'){terminal.terminalId=String(d.terminalId||'');terminal.cols=Math.max(20,Math.min(Number(d.cols)||120,500));terminal.rows=Math.max(5,Math.min(Number(d.rows)||32,200));}
+          if(op==='signal'){terminal.terminalId=String(d.terminalId||'');terminal.signal=String(d.signal||'interrupt').toLowerCase();}
+          if(op==='stop'){terminal.terminalId=String(d.terminalId||'');terminal.force=Boolean(d.force);}
+          const payload={action:'terminal',operationId:aid(d.operationId),sessionId:sid(d.sessionId),agentId:aid(d.agentId),nodeId:d.nodeId==null?undefined:clientDevice(d.nodeId),terminal,waitMs:Math.max(0,Math.min(Number(d.waitMs)||7000,8000))};
+          upstream=await clientCall('/plus/client/execute',{method:'POST',body:{deviceId,envelope:sealOperatorPayload(payload)},timeoutMs:9500});
+        }
         else if(usingClient&&action.startsWith('search-')){
           const d=payloadFor(req),deviceId=clientDevice(d.deviceId||d.device),op=action.slice('search-'.length);
           if(!['start','results','cancel'].includes(op)){const e=new Error('invalid_search_action');e.status=400;throw e;}

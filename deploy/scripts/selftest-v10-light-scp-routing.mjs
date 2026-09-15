@@ -10,7 +10,7 @@ const ops=['upload-begin','upload-chunk','upload-commit','download-begin','downl
 assert.ok(operator.includes('async function startScpOperation'),'operator_scp_dispatch_missing');
 assert.ok(operator.includes("payload:{type:'scp'"),'operator_fleet_scp_payload_missing');
 assert.ok(operator.includes("url.pathname === '/v1/scp'"),'operator_scp_route_missing');
-assert.ok(operator.includes("'exec_batch','fs','process','search','scp'"),'device_access_scp_allowlist_missing');
+assert.ok(operator.includes("'exec_batch','fs','process','terminal','search','scp'"),'device_access_scp_allowlist_missing');
 assert.ok(operator.includes("payload.action==='scp'?await startScpOperation"),'device_access_scp_dispatch_missing');
 assert.ok(agent.includes("if(p.type==='scp')"),'leaf_scp_dispatch_missing');
 assert.ok(agent.includes('executeScpCommand(state,p)'),'leaf_scp_executor_missing');

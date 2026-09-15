@@ -24,6 +24,7 @@ export function createWindowsAdapter({commandExists}) {
     discoverCapabilities() {
       const caps=['filesystem'];
       if(shell)caps.push('powershell');
+      if(shell||cmd)caps.push('terminal');
       if(commandExists('git'))caps.push('git');
       if(['node','python','py','cargo'].some(commandExists))caps.push('build-test');
       if(commandExists('docker'))caps.push('docker');
@@ -52,6 +53,13 @@ export function createWindowsAdapter({commandExists}) {
       if(!['default','powershell'].includes(requested))throw new Error(`windows_shell_unsupported:${requested}`);
       if(!shell)throw new Error('powershell_unavailable');
       return {file:shell,args:['-NoLogo','-NoProfile','-NonInteractive','-Command',String(script||'')]};
+        },
+    terminalFor({shell:requestedShell='default'}={}) {
+      const requested=String(requestedShell||'default').trim().toLowerCase();
+      if(requested==='cmd'){if(!cmd)throw new Error('cmd_unavailable');return {file:cmd,args:['/d'],shell:'cmd'};}
+      if(!['default','powershell'].includes(requested))throw new Error(`windows_shell_unsupported:${requested}`);
+      if(!shell)throw new Error('powershell_unavailable');
+      return {file:shell,args:['-NoLogo'],shell:'powershell'};
     }
   };
 }

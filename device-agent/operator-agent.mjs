@@ -13,6 +13,7 @@ import { FleetComponentManager } from './fleet-component-manager.mjs';
 import { FleetComponentSupervisor } from './fleet-component-supervisor.mjs';
 import { executeNativeFs, filesystemPolicy } from '../lib/native-fs.mjs';
 import { NativeProcessRegistry } from '../lib/native-process.mjs';
+import { NativeTerminalRegistry } from '../lib/native-terminal.mjs';
 import { NativeSearchRegistry } from '../lib/native-search.mjs';
 import { LightScpRegistry } from '../lib/light-scp-registry.mjs';
 import { normalizeUpdateReport, normalizeUpdateStatus } from '../lib/update-contract.mjs';
@@ -23,6 +24,7 @@ const CORE_ROOT=fileURLToPath(new URL('../',import.meta.url));
 const UPDATE_MODE=String(process.env.LIGHT_REMOTE_UPDATE_MODE||'independent-helper').trim()||'independent-helper';
 const PLATFORM_ADAPTER=createPlatformAdapter();
 const NATIVE_PROCESSES=new NativeProcessRegistry();
+const NATIVE_TERMINALS=new NativeTerminalRegistry({emit:event=>console.log(JSON.stringify(event))});
 const NATIVE_SEARCHES=new NativeSearchRegistry();
 const LIGHT_SCP=new LightScpRegistry();
 const DEFAULT_BASE=process.env.OPERATOR_AGENT_BASE_URL || 'https://light-remote-mcp.vercel.app';
@@ -109,6 +111,25 @@ async function executeProcessCommand(state,p){
   throw new Error('process_operation_unsupported');
 }
 
+async function executeTerminalCommand(state,p){
+  const request=p.terminal&&typeof p.terminal==='object'&&!Array.isArray(p.terminal)?p.terminal:{};
+  const op=String(request.op||''),owner={accountId:state.enrollment.accountId,deviceId:state.enrollment.deviceId,sessionId:String(p.sessionId||''),agentId:String(p.agentId||'')};
+  const effective=effectiveCapabilities(state.enrollment.approvedCapabilities,state.policy?.deniedCapabilities);
+  if(!effective.includes('terminal'))throw new Error('local capability denied: terminal');
+  if(op==='start'){
+    const cwd=String(request.cwd||os.homedir());let stat;try{stat=fs.statSync(cwd);}catch{}if(!stat?.isDirectory())throw new Error('cwd_not_directory');
+    const shellSpec=PLATFORM_ADAPTER.terminalFor({shell:request.shell});
+    return {ok:true,operation:'start',terminal:NATIVE_TERMINALS.start({...owner,shellSpec,cwd,cols:request.cols,rows:request.rows,term:request.term,env:{GPT_OPERATOR_ACCOUNT:owner.accountId,GPT_OPERATOR_DEVICE:owner.deviceId,GPT_OPERATOR_NODE:state.enrollment.nodeId||owner.deviceId,GPT_OPERATOR_SESSION:owner.sessionId}})};
+  }
+  if(op==='input')return {ok:true,operation:'input',terminal:NATIVE_TERMINALS.input(request.terminalId,owner,{data:request.data})};
+  if(op==='output')return {ok:true,operation:'output',...NATIVE_TERMINALS.output(request.terminalId,owner,{offset:request.offset,limit:request.limit})};
+  if(op==='resize')return {ok:true,operation:'resize',terminal:NATIVE_TERMINALS.resize(request.terminalId,owner,{cols:request.cols,rows:request.rows})};
+  if(op==='signal')return {ok:true,operation:'signal',terminal:NATIVE_TERMINALS.signal(request.terminalId,owner,{signal:request.signal})};
+  if(op==='stop')return {ok:true,operation:'stop',terminal:NATIVE_TERMINALS.stop(request.terminalId,owner,{force:Boolean(request.force)})};
+  if(op==='list')return {ok:true,operation:'list',terminals:NATIVE_TERMINALS.list(owner)};
+  throw new Error('terminal_operation_unsupported');
+}
+
 async function executeSearchCommand(state,p){
   const request=p.search&&typeof p.search==='object'&&!Array.isArray(p.search)?p.search:{};
   const op=String(request.op||''),owner={accountId:state.enrollment.accountId,deviceId:state.enrollment.deviceId,sessionId:String(p.sessionId||''),agentId:String(p.agentId||'')};
@@ -161,6 +182,11 @@ async function executeCommand(state,command){
   if(p.type==='search'){
     const startedAt=Date.now();writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'running',startedAt});
     try{const data=await executeSearchCommand(state,p);const result={commandId:command.commandId,status:'ok',exitCode:0,stdout:'',stderr:'',durationMs:Date.now()-startedAt,data};writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;}
+    catch(error){const result={commandId:command.commandId,status:'error',exitCode:1,stdout:'',stderr:String(error?.message||error)+'\n',durationMs:Date.now()-startedAt,data:{ok:false,error:String(error?.message||error),status:Number(error?.status)||500}};writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;}
+  }
+  if(p.type==='terminal'){
+    const startedAt=Date.now();writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'running',startedAt});
+    try{const data=await executeTerminalCommand(state,p);const result={commandId:command.commandId,status:'ok',exitCode:0,stdout:'',stderr:'',durationMs:Date.now()-startedAt,data};writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;}
     catch(error){const result={commandId:command.commandId,status:'error',exitCode:1,stdout:'',stderr:String(error?.message||error)+'\n',durationMs:Date.now()-startedAt,data:{ok:false,error:String(error?.message||error),status:Number(error?.status)||500}};writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;}
   }
   if(p.type==='process'){

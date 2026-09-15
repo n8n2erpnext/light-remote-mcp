@@ -7,7 +7,9 @@
     "node": "22.x"
   },
   "dependencies": {
-    "@vercel/oidc": "^3.8.5"
+    "@homebridge/node-pty-prebuilt-multiarch": "0.14.1",
+    "@vercel/oidc": "^3.8.5",
+    "node-pty": "^1.1.0"
   },
   "license": "Apache-2.0"
 }

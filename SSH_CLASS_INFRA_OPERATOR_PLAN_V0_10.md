@@ -270,3 +270,13 @@ Every implementation phase must test:
 - CI packaging for each touched platform
 
 No stable tag/release is implied by this plan.
+
+
+## Phase 1 implementation checkpoint — PTY / ConPTY
+
+- Wall remains the authority/control plane; terminal is only an execution primitive beneath the existing Light Remote session.
+- Tool Helper selects recommendations from the already-known target `platform` and `architecture`; OS detection is not a separate permission-discovery protocol.
+- `terminal` is a separately governed elevated raw-shell capability. Safe and Developer exclude it by default; Infra may select it only when the device advertises it; Full/Custom remain bounded by grantable capabilities and owner choice.
+- Linux uses a PTY backend with x64/arm64 prebuilds; Windows uses ConPTY; macOS uses native PTY. CMD and PowerShell are both Windows terminal modes.
+- Terminal lifecycle contract: start, input, output-by-offset, resize, signal, list, stop. RAM ring is primary realtime state; Wall/activity and disk audit are async observers, not inline dependencies.
+- PTY output persistence records lifecycle/activity metadata by default; raw terminal byte streams remain bounded in RAM unless a later explicit logging policy enables durable content capture.
