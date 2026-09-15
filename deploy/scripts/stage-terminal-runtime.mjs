@@ -29,7 +29,12 @@ let nativePath='';
 if(platform==='linux'){
   nativePath=path.join(destination,'prebuilds',`linux-${arch}`,'node.abi127.node');
 }else if(platform==='darwin'){
+  const helperPath=path.join(destination,'prebuilds',`darwin-${arch}`,'spawn-helper');
   nativePath=path.join(destination,'prebuilds',`darwin-${arch}`,'pty.node');
+  if(!fs.existsSync(helperPath))throw new Error(`terminal_runtime_spawn_helper_missing:${platform}-${arch}`);
+  fs.chmodSync(helperPath,0o755);
+  const helperMode=fs.statSync(helperPath).mode&0o777;
+  if((helperMode&0o111)===0)throw new Error(`terminal_runtime_spawn_helper_not_executable:${platform}-${arch}:${helperMode.toString(8)}`);
 }else{
   nativePath=path.join(destination,'prebuilds',`win32-${arch}`,'pty.node');
 }

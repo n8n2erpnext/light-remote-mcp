@@ -25,6 +25,7 @@ need(core.files.some(x=>x.source==='lib/native-terminal.mjs'),'client_core_termi
 need(pkg.dependencies?.['node-pty']==='^1.1.0'||pkg.dependencies?.['node-pty']==='1.1.0','node_pty_dependency_missing');
 need(pkg.dependencies?.['@homebridge/node-pty-prebuilt-multiarch']==='^0.14.1'||pkg.dependencies?.['@homebridge/node-pty-prebuilt-multiarch']==='0.14.1','linux_pty_dependency_missing');
 need(stage.includes("fs.rmSync(path.join(destination,'third_party')"),'terminal_runtime_third_party_prune_missing');
+need(stage.includes("'spawn-helper'")&&stage.includes('fs.chmodSync(helperPath,0o755)')&&stage.includes('terminal_runtime_spawn_helper_not_executable'),'macos_spawn_helper_exec_contract_missing');
 console.log('v10-terminal-plane-routing=PASS');
 console.log('v10-terminal-helper-policy=PASS');
 console.log('v10-terminal-package-contract=PASS');
