@@ -109,10 +109,26 @@ if [[ -n "\$USER_NAME" && "\$USER_NAME" != root && "\$USER_NAME" != loginwindow 
   mkdir -p "\$ROOT/update-runtime"; chown "\$USER_NAME:\$GROUP_NAME" "\$ROOT/update-runtime"; chmod 700 "\$ROOT/update-runtime"
   for LABEL in com.lightremote.agent com.lightremote.tray; do
     launchctl asuser "\$UID_NUM" launchctl bootout "gui/\$UID_NUM/\$LABEL" >/dev/null 2>&1 || true
-    launchctl asuser "\$UID_NUM" launchctl bootstrap "gui/\$UID_NUM" "/Library/LaunchAgents/\$LABEL.plist" >/dev/null 2>&1 || true
-    launchctl asuser "\$UID_NUM" launchctl enable "gui/\$UID_NUM/\$LABEL" >/dev/null 2>&1 || true
-    launchctl asuser "\$UID_NUM" launchctl kickstart -k "gui/\$UID_NUM/\$LABEL" >/dev/null 2>&1 || true
+    if ! launchctl asuser "\$UID_NUM" launchctl bootstrap "gui/\$UID_NUM" "/Library/LaunchAgents/\$LABEL.plist" >/dev/null 2>&1; then
+      launchctl print "gui/\$UID_NUM/\$LABEL" >/dev/null 2>&1 || exit 31
+    fi
+    launchctl asuser "\$UID_NUM" launchctl enable "gui/\$UID_NUM/\$LABEL" >/dev/null 2>&1 || exit 32
+    launchctl asuser "\$UID_NUM" launchctl kickstart -k "gui/\$UID_NUM/\$LABEL" >/dev/null 2>&1 || exit 33
+    launchctl print "gui/\$UID_NUM/\$LABEL" >/dev/null 2>&1 || exit 34
   done
+  WALL_OK=0
+  for _ in {1..20}; do
+    if /usr/bin/curl -fsS --max-time 1 'http://127.0.0.1:5491/' >/dev/null 2>&1; then WALL_OK=1; break; fi
+    sleep 0.5
+  done
+  if [[ "\$WALL_OK" != 1 ]]; then
+    launchctl asuser "\$UID_NUM" launchctl kickstart -k "gui/\$UID_NUM/com.lightremote.agent" >/dev/null 2>&1 || exit 35
+    for _ in {1..20}; do
+      if /usr/bin/curl -fsS --max-time 1 'http://127.0.0.1:5491/' >/dev/null 2>&1; then WALL_OK=1; break; fi
+      sleep 0.5
+    done
+  fi
+  [[ "\$WALL_OK" == 1 ]] || exit 36
 fi
 exit 0
 POST

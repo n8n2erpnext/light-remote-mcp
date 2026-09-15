@@ -150,7 +150,23 @@ final class TrayDelegate: NSObject, NSApplicationDelegate {
         if available && !enrolled { pollEnrollmentIfNeeded(pendingId) }
     }
 
-    @objc func openWall() { NSWorkspace.shared.open(URL(string: "http://127.0.0.1:5491/")!) }
+    func wallReachable() -> Bool { run("/usr/bin/curl", ["-fsS", "--max-time", "1", "http://127.0.0.1:5491/"]).0 == 0 }
+    @objc func openWall() {
+        DispatchQueue.global().async {
+            var ready = self.wallReachable()
+            if !ready {
+                self.restartAgentNow()
+                for _ in 0..<20 {
+                    if self.wallReachable() { ready = true; break }
+                    Thread.sleep(forTimeInterval: 0.25)
+                }
+            }
+            DispatchQueue.main.async {
+                if ready { NSWorkspace.shared.open(URL(string: "http://127.0.0.1:5491/")!) }
+                else { self.showAlert("Local Wall unavailable", "Light Remote Agent could not restore Local Wall on 127.0.0.1:5491. Use Restart Light Remote and check the Agent service.") }
+            }
+        }
+    }
     @objc func toggleConnection() {
         let s = status(), connected = ((s["cloudDesiredConnected"] as? Bool) ?? false) && ((s["cloudState"] as? String) == "connected")
         DispatchQueue.global().async { _ = self.agentRun([connected ? "disconnect" : "connect"]); DispatchQueue.main.async { self.refresh() } }
@@ -159,7 +175,7 @@ final class TrayDelegate: NSObject, NSApplicationDelegate {
         DispatchQueue.global().async { _ = self.run("/bin/launchctl", args); DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { self.refresh() } }
     }
     @objc func restartAgent() {
-        let uid = getuid(); launchctl(["enable", "gui/\(uid)/com.lightremote.agent"]); launchctl(["kickstart", "-k", "gui/\(uid)/com.lightremote.agent"])
+        DispatchQueue.global().async { self.restartAgentNow(); DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { self.refresh() } }
     }
     @objc func stopAgent() {
         let uid = getuid(); launchctl(["disable", "gui/\(uid)/com.lightremote.agent"]); launchctl(["kill", "SIGTERM", "gui/\(uid)/com.lightremote.agent"])

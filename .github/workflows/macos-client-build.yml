@@ -144,7 +144,11 @@ jobs:
           EXPANDED="$RUNNER_TEMP/light-remote-pkg-$TARGET_ARCH"; rm -rf "$EXPANDED"
           pkgutil --expand "$PKGFILE" "$EXPANDED"
           grep -Fq "com.lightremote.client.macos-$TARGET_ARCH" "$EXPANDED/PackageInfo"
+          grep -Fq 'http://127.0.0.1:5491/' "$EXPANDED/Scripts/postinstall"
+          grep -Fq 'launchctl print' "$EXPANDED/Scripts/postinstall"
+          grep -Fq 'WALL_OK' "$EXPANDED/Scripts/postinstall"
           echo "macos-system-package-receipt=PASS id=com.lightremote.client.macos-$TARGET_ARCH"
+          echo "macos-local-wall-postinstall-gate=PASS"
           [[ "$(plutil -extract KeepAlive raw client/macos/launchd/com.lightremote.tray.plist)" == false ]]
           shasum -a 256 "$PKGFILE" >> "$PWD/dist/macos/$TARGET_ARCH/SHA256SUMS.txt"
       - name: Upload macOS artifacts

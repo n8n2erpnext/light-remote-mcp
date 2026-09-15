@@ -18,6 +18,8 @@ need(tray.includes('LightRemote.icns')&&tray.includes('base.draw(in: NSRect(orig
 need(pkg.includes('/Applications/Light Remote.app')&&pkg.includes('<key>CFBundleIdentifier</key><string>com.lightremote.client</string>'),'macos-app-bundle-install');
 need(pkg.includes('lsregister -f')&&uninstall.includes('lsregister -u'),'macos-launchservices-registration');
 need(pkg.includes('LightRemoteLauncher')&&pkg.includes('launchctl kickstart -k')&&pkg.includes('iconutil -c icns'),'macos-launchpad-reopen-launcher');
+need(pkg.includes('launchctl print \"gui/\\$UID_NUM/\\$LABEL\"')&&pkg.includes('http://127.0.0.1:5491/')&&pkg.includes('[[ \"\\$WALL_OK\" == 1 ]] || exit 36'),'macos-postinstall-wall-health-gate');
+need(tray.includes('func wallReachable() -> Bool')&&tray.includes('restartAgentNow()')&&tray.includes('Local Wall unavailable'),'macos-tray-wall-self-recovery');
 need(plist.includes('<key>RunAtLoad</key><true/>')&&plist.includes('<key>KeepAlive</key><false/>'),'macos-tray-quit-lifetime');
 need(flow.includes('Applications/Light Remote.app/Contents/Info.plist')&&flow.includes('LightRemote.icns'),'macos-ci-app-payload-gate');
 need(pkg.includes('Contents/Resources/uninstall.sh')&&tray.includes('Uninstall Light Remote…')&&tray.includes('--from-tray'),'macos-official-uninstall-entry');
