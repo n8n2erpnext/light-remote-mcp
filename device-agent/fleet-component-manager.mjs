@@ -45,7 +45,7 @@ export class FleetComponentManager{
   _validatePackage(dir,version){
     const file=path.join(dir,'manifest.json');if(!fs.existsSync(file))fail('fleet_component_manifest_missing');const m=JSON.parse(fs.readFileSync(file,'utf8'));
     if(m.component!=='fleet-wall'||m.version!==version)fail('fleet_component_manifest_mismatch');
-    for(const rel of ['device-agent/fleet-wall-runtime.mjs','device-agent/local-wall-auth.mjs','lib/device-proof.mjs','lib/runtime-version.mjs','gateway/dashboard.mjs','gateway/device-policy-page.mjs','gateway/brand.mjs','gateway/brand-mark.svg'])if(!fs.existsSync(path.join(dir,rel)))fail(`fleet_component_file_missing:${rel}`);
+    for(const rel of ['device-agent/fleet-wall-runtime.mjs','device-agent/local-wall-auth.mjs','lib/device-proof.mjs','lib/runtime-version.mjs','lib/brand.mjs','gateway/dashboard.mjs','gateway/device-policy-page.mjs','gateway/brand.mjs','assets/branding/light-remote-mark.svg'])if(!fs.existsSync(path.join(dir,rel)))fail(`fleet_component_file_missing:${rel}`);
     return m;
   }
   _prepareRoot(){

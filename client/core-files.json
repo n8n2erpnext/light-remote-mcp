@@ -78,6 +78,18 @@
       "destination": "lib/runtime-version.mjs"
     },
     {
+      "source": "lib/brand.mjs",
+      "destination": "lib/brand.mjs"
+    },
+    {
+      "source": "lib/version-compat.mjs",
+      "destination": "lib/version-compat.mjs"
+    },
+    {
+      "source": "lib/update-helper-reconcile.mjs",
+      "destination": "lib/update-helper-reconcile.mjs"
+    },
+    {
       "source": "assets/branding/light-remote-mark.svg",
       "destination": "assets/branding/light-remote-mark.svg"
     },

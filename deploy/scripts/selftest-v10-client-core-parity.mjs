@@ -19,7 +19,7 @@ try{
   }
   need(new Set(digests).size===1,'client_core_cross_platform_digest_drift');
   for(const wf of ['linux-client-build.yml','macos-client-build.yml','windows-native-client.yml']){
-    const text=fs.readFileSync(path.join(root,'.github/workflows',wf),'utf8');need(text.includes('stage-client-core.mjs'),`workflow_missing_canonical_stager:${wf}`);need(text.includes("lib/runtime-version.mjs"),`workflow_missing_runtime_version_trigger:${wf}`);
+    const text=fs.readFileSync(path.join(root,'.github/workflows',wf),'utf8');need(text.includes('stage-client-core.mjs'),`workflow_missing_canonical_stager:${wf}`);need(text.includes("lib/runtime-version.mjs"),`workflow_missing_runtime_version_trigger:${wf}`);for(const shared of ['lib/version-compat.mjs','lib/brand.mjs','lib/update-helper-reconcile.mjs'])need(text.includes(shared),`workflow_missing_shared_core_trigger:${wf}:${shared}`);
   }
   const linux=fs.readFileSync(path.join(root,'.github/workflows/linux-client-build.yml'),'utf8');need(linux.includes('client/linux-debian/build-deb.sh "$BUNDLE"'),'linux_desktop_not_derived_from_vps_core_bundle');
   const windowsVersion=fs.readFileSync(path.join(root,'client/windows-native/GptOperator.Client/ClientVersion.cs'),'utf8');need(windowsVersion.includes('0.9.0-dev')&&!windowsVersion.includes('0.9.0-rc.6'),'windows_version_fallback_stale');

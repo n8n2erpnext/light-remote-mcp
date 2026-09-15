@@ -5,15 +5,15 @@ OUT="${1:-$ROOT/dist/fleet-wall}"
 VERSION="$(tr -d '\r\n' < "$ROOT/VERSION")"
 WORK="$OUT/work"
 PKG="$WORK/fleet-wall"
-rm -rf "$WORK"; mkdir -p "$PKG/device-agent" "$PKG/lib" "$PKG/gateway" "$OUT"
+rm -rf "$WORK"; mkdir -p "$PKG/device-agent" "$PKG/lib" "$PKG/gateway" "$PKG/assets/branding" "$OUT"
 cp "$ROOT/device-agent/fleet-wall-runtime.mjs" "$PKG/device-agent/"
 cp "$ROOT/device-agent/update-settings-page.mjs" "$PKG/device-agent/"
 cp "$ROOT/device-agent/local-wall-auth.mjs" "$PKG/device-agent/"
-cp "$ROOT/lib/device-proof.mjs" "$ROOT/lib/runtime-version.mjs" "$PKG/lib/"
+cp "$ROOT/lib/device-proof.mjs" "$ROOT/lib/runtime-version.mjs" "$ROOT/lib/brand.mjs" "$PKG/lib/"
 cp "$ROOT/gateway/dashboard.mjs" "$PKG/gateway/"
 cp "$ROOT/gateway/device-policy-page.mjs" "$PKG/gateway/"
 cp "$ROOT/gateway/brand.mjs" "$PKG/gateway/"
-cp "$ROOT/gateway/brand-mark.svg" "$PKG/gateway/"
+cp "$ROOT/assets/branding/light-remote-mark.svg" "$PKG/assets/branding/"
 cat > "$PKG/manifest.json" <<JSON
 {
   "component": "fleet-wall",

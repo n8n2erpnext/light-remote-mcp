@@ -15,6 +15,7 @@ Environment=OPERATOR_AGENT_HUB_URL=https://mcp.dashboard.thaiduy.store
 Environment=OPERATOR_AGENT_WALL_HOST=127.0.0.1
 Environment=OPERATOR_AGENT_WALL_PORT=5491
 Environment=OPERATOR_AGENT_WALL_AUTH_FILE=/home/ubuntu/.config/gpt-vps-operator/host-wall-auth.json
+Environment=LIGHT_REMOTE_UPDATE_MODE=server-managed
 Environment=OPERATOR_FLEET_WALL_HOST=127.0.0.1
 Environment=OPERATOR_FLEET_WALL_PORT=5492
 ExecStart=/usr/bin/node /opt/gpt-vps-operator/host-wall/device-agent/operator-agent.mjs wall-only

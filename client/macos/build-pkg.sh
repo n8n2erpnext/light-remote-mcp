@@ -124,6 +124,10 @@ if [[ -n "\$USER_NAME" && "\$USER_NAME" != root && "\$USER_NAME" != loginwindow 
     done
   fi
   [[ "\$WALL_OK" == 1 ]] || exit 36
+  "\$ROOT/current/runtime/node" "\$ROOT/current/lib/update-helper-reconcile.mjs" \
+    --platform darwin --version "$VERSION" --core-root "\$ROOT/current" --install-root "\$ROOT" --state-dir "\$ROOT/update-runtime" || exit 37
+else
+  echo 'helper_reconcile=deferred_no_console_user'
 fi
 exit 0
 POST

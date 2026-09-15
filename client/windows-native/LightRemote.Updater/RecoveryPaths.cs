@@ -16,6 +16,15 @@ internal static class RecoveryPaths
     public static readonly string TransactionFile = Path.Combine(StateDir, "transaction.json");
     public static readonly string AckFile = Path.Combine(StateDir, "core-health-ack.json");
 
+    public static string HelperVersion()
+    {
+        foreach(var file in new[]{Path.Combine(AppContext.BaseDirectory,"VERSION"),Path.Combine(Root,"VERSION")})
+        {
+            try { if(File.Exists(file)){var value=File.ReadAllText(file).Trim();if(!string.IsNullOrWhiteSpace(value))return value;} } catch {}
+        }
+        return "unknown";
+    }
+
     public static void EnsureDirectories()
     {
         Directory.CreateDirectory(Root);

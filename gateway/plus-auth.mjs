@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { brandFaviconSvg } from './brand.mjs';
+import { brandFaviconSvg, brandTitleSvg } from './brand.mjs';
 
 function safeId(value, pattern, name) {
   const text = String(value || '').trim();
@@ -12,6 +12,8 @@ function esc(value) {
 function accessOf(value) { return value?.access || value; }
 function grantOf(value) { return value?.grant || accessOf(value)?.grant || null; }
 function pairingCode(value){const raw=String(value||'').trim().toUpperCase().replace(/-/g,'');if(!/^[A-Z2-9]{8}$/.test(raw))throw new Error('invalid_pairing_code');return `${raw.slice(0,4)}-${raw.slice(4)}`;}
+
+function brandedErrorPage(message){return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">${brandFaviconSvg()}<title>Light Remote MCP</title><style>:root{color-scheme:dark;font-family:system-ui;background:#080a0c;color:#e5e7eb}body{margin:0;min-height:100vh;display:grid;place-items:center}.card{width:min(520px,calc(100vw - 32px));border:1px solid #29313a;border-radius:14px;padding:22px;background:#0b0f13}.brand-title{display:flex;align-items:center;gap:12px;margin-bottom:12px}.brand-title>span{display:flex;align-items:baseline;gap:7px}.brand-title small{color:#8b98a8}.muted{color:#8b98a8}</style></head><body><main class="card">${brandTitleSvg(44)}<p class="muted">${esc(message)}</p></main></body></html>`;}
 
 export function createPlusAuth(wallAuth, options = {}) {
   const requestAccess = options.requestAccess || (async () => { throw new Error('plus_access_request_unavailable'); });
@@ -126,10 +128,10 @@ export function createPlusAuth(wallAuth, options = {}) {
     try {
       const id=safeId(req.query.id,/^pa_[A-Za-z0-9_-]{20,80}$/,'invalid_plus_request_id');
       const value=await getAccessRequest(id),row=value?.authorization||value;
-      if(!row)return res.status(404).type('html').send('<!doctype html><title>Light Remote MCP</title><p>Authorization request not found or expired.</p>');
+      if(!row)return res.status(404).type('html').send(brandedErrorPage('Authorization request not found or expired.'));
       res.set('Content-Security-Policy',"default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'");
-      return res.type('html').send(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">${brandFaviconSvg()}<title>Authorize ChatGPT Plus</title><style>:root{color-scheme:dark;font-family:system-ui;background:#080a0c;color:#e5e7eb}body{margin:0;padding:24px}.card{max-width:620px;margin:auto;border:1px solid #29313a;border-radius:14px;padding:22px;background:#0b0f13}.muted{color:#8b98a8}.code{font:700 24px ui-monospace,monospace;letter-spacing:.12em;color:#ffcc00}</style></head><body><main class="card"><h1>Approve on the selected device Wall</h1><p class="muted">Open that device's Light Remote Wall, go to <b>/approve</b>, enter this code, then choose Approve or Deny.</p><p>Request code</p><div class="code">${esc(row.userCode)}</div><p><b>Device:</b> ${esc(row.deviceId)}<br><b>Agent:</b> ${esc(row.agentId||'ChatGPT')}<br><b>Label:</b> ${esc(row.label||'ChatGPT Plus')}</p><p class="muted">Approval does not create or extend the device connection and does not set a session duration.</p></main></body></html>`);
-    } catch(error){ return res.status(Number(error.status)||404).type('html').send('<!doctype html><title>Light Remote MCP</title><p>Authorization request not found or expired.</p>'); }
+      return res.type('html').send(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">${brandFaviconSvg()}<title>Authorize ChatGPT Plus</title><style>:root{color-scheme:dark;font-family:system-ui;background:#080a0c;color:#e5e7eb}body{margin:0;padding:24px}.card{max-width:620px;margin:auto;border:1px solid #29313a;border-radius:14px;padding:22px;background:#0b0f13}.brand-title{display:flex;align-items:center;gap:12px;margin-bottom:10px}.brand-title>span{display:flex;align-items:baseline;gap:7px}.brand-title strong{font-size:20px;color:#f3f4f6}.brand-title small{font-size:10px;letter-spacing:.16em;color:#8b98a8}.brand-mark{flex:0 0 auto}.muted{color:#8b98a8}.code{font:700 24px ui-monospace,monospace;letter-spacing:.12em;color:#ffcc00}</style></head><body><main class="card">${brandTitleSvg(44)}<h1>Approve on the selected device Wall</h1><p class="muted">Open that device's Light Remote Wall, go to <b>/approve</b>, enter this code, then choose Approve or Deny.</p><p>Request code</p><div class="code">${esc(row.userCode)}</div><p><b>Device:</b> ${esc(row.deviceId)}<br><b>Agent:</b> ${esc(row.agentId||'ChatGPT')}<br><b>Label:</b> ${esc(row.label||'ChatGPT Plus')}</p><p class="muted">Approval does not create or extend the device connection and does not set a session duration.</p></main></body></html>`);
+    } catch(error){ return res.status(Number(error.status)||404).type('html').send(brandedErrorPage('Authorization request not found or expired.')); }
   }
   async function requireSession(req,res,next){
     try {

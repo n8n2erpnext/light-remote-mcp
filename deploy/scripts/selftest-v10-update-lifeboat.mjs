@@ -22,8 +22,13 @@ try{
   const final=finalizeHelperFromCore(paths,source);
   if(final.version!=='0.9.1'||helperVersion(paths)!=='0.9.1')throw new Error('helper_finalize_failed');
   if(fs.realpathSync(paths.helperCurrent)!==fs.realpathSync(final.target))throw new Error('helper_current_not_atomic');
+  fs.writeFileSync(path.join(source,'manifest.json'),JSON.stringify({version:'0.9.1',gitSha:'aaaaaaaaaaaaaaaa'}));const buildA=finalizeHelperFromCore(paths,source);
+  fs.writeFileSync(path.join(source,'manifest.json'),JSON.stringify({version:'0.9.1',gitSha:'bbbbbbbbbbbbbbbb'}));const buildB=finalizeHelperFromCore(paths,source);
+  if(buildA.target===buildB.target||!buildA.target.includes('aaaaaaaaaaaa')||!buildB.target.includes('bbbbbbbbbbbb'))throw new Error('helper_build_identity_release_not_isolated');
+  if(fs.realpathSync(paths.helperCurrent)!==fs.realpathSync(buildB.target))throw new Error('helper_build_identity_current_wrong');
   console.log('v10-update-core-ack-gate=PASS');
   console.log('v10-update-helper-finalize=PASS');
+  console.log('v10-update-helper-build-identity=PASS');
 } finally {fs.rmSync(tmp,{recursive:true,force:true});}
 
 const repo=path.resolve(new URL('../..',import.meta.url).pathname);

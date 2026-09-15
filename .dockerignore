@@ -3,7 +3,10 @@
 !gateway/*.mjs
 !gateway/package.json
 !gateway/package-lock.json
-!gateway/brand-mark.svg
 !lib/
 !lib/runtime-version.mjs
+!lib/brand.mjs
+!assets/
+!assets/branding/
+!assets/branding/light-remote-mark.svg
 !VERSION

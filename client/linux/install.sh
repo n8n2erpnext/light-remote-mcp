@@ -230,13 +230,6 @@ sudo systemctl enable --now gpt-operator-agent-update.timer
 sudo systemctl enable --now gpt-operator-agent-update.path
 sudo systemctl enable --now gpt-operator-agent-update-check.path
 if [[ "$AGENT_WAS_ACTIVE" == "1" ]]; then sudo systemctl restart gpt-operator-device-agent.service; fi
-sleep 2
-systemctl --no-pager --full status gpt-operator-device-agent.service | sed -n '1,12p'
-echo
-printf 'Light Remote MCP client installed: version=%s user=%s\n' "$VERSION" "$TARGET_USER"
-printf 'Enrollment bridge: %s\n' "$BASE_URL"
-printf 'Device hub: %s\n' "$HUB_URL"
-echo 'The terminal can now be closed; systemd owns the always-alive local service.'
 WALL_HOST="127.0.0.1"
 WALL_PORT="5491"
 SERVICE_ENV="$(systemctl show gpt-operator-device-agent.service --property=Environment --value 2>/dev/null || true)"
@@ -250,5 +243,25 @@ WALL_HOST="${WALL_HOST%\"}"; WALL_HOST="${WALL_HOST#\"}"
 WALL_PORT="${WALL_PORT%\"}"; WALL_PORT="${WALL_PORT#\"}"
 WALL_DISPLAY_HOST="$WALL_HOST"
 if [[ "$WALL_DISPLAY_HOST" == *:* && "$WALL_DISPLAY_HOST" != \[*\] ]]; then WALL_DISPLAY_HOST="[$WALL_DISPLAY_HOST]"; fi
+AGENT_HEALTHY=0
+for _ in {1..40}; do
+  MAIN_PID="$(systemctl show gpt-operator-device-agent.service -p MainPID --value 2>/dev/null || echo 0)"
+  HTTP_CODE="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 1 "http://$WALL_DISPLAY_HOST:$WALL_PORT/" 2>/dev/null || true)"
+  if systemctl is-active --quiet gpt-operator-device-agent.service && [[ "$MAIN_PID" =~ ^[1-9][0-9]*$ ]] && [[ "$HTTP_CODE" =~ ^(200|303|401)$ ]]; then AGENT_HEALTHY=1; break; fi
+  sleep 0.5
+done
+if [[ "$AGENT_HEALTHY" != "1" ]]; then
+  systemctl --no-pager --full status gpt-operator-device-agent.service | sed -n '1,24p' >&2 || true
+  echo 'Light Remote Core failed post-install health gate; updater Helper was not changed.' >&2
+  exit 37
+fi
+sudo env LIGHT_REMOTE_UPDATE_STATE_DIR="$UPDATE_STATE_DIR" "$ROOT/current/runtime/node" "$ROOT/current/lib/update-helper-reconcile.mjs" \
+  --platform linux --version "$VERSION" --core-root "$ROOT/current" --install-root "$ROOT" --state-dir "$UPDATE_STATE_DIR"
+systemctl --no-pager --full status gpt-operator-device-agent.service | sed -n '1,12p'
+echo
+printf 'Light Remote MCP client installed: version=%s user=%s\n' "$VERSION" "$TARGET_USER"
+printf 'Enrollment bridge: %s\n' "$BASE_URL"
+printf 'Device hub: %s\n' "$HUB_URL"
+echo 'The terminal can now be closed; systemd owns the always-alive local service.'
 printf 'Local Wall: http://%s:%s/ (cloud may be Connected or Dormant independently).\n' "$WALL_DISPLAY_HOST" "$WALL_PORT"
 echo 'Signed update availability checks run automatically every ~6 hours; installation remains owner-triggered.'
