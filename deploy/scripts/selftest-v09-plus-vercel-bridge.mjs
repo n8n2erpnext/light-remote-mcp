@@ -11,7 +11,7 @@ const security=text('gateway/security.mjs');
 const opReq=text('lib/operator-request.js');
 expect(opReq.includes('const MAX_GET_PAYLOAD_CHARS = 12000;'),'plus_get_payload_cap_must_be_12k');
 expect(api.includes("const plus=wantsPlus && req.method==='GET'"),'plus_bridge_must_be_get_only');
-expect(api.includes("action==='connection-helper'")&&api.includes('connectionHelperView')&&api.includes('quickGuide'),'plus_connection_helper_missing');
+expect(api.includes("action==='connection-helper'")&&api.includes('connectionHelperView')&&api.includes('toolHelperHint')&&api.includes("nextAction:'load_tool_helper'"),'plus_connection_helper_missing');
 expect(api.includes('pairingRecovery')&&api.includes("'/plus/connect/recover'")&&server.includes("app.post('/plus/connect/recover'"),'plus_pairing_recovery_missing');
 expect(server.includes("plusRateLimit=createRateLimit('plus'")&&server.includes('plusRateIdentity')&&!server.includes("app.post('/plus/connect/begin', softRateLimit"),'plus_scoped_rate_limit_missing');
 expect(api.includes("action==='connect'")&&api.includes("action==='connect-poll'")&&api.includes("action==='list-devices'"),'plus_golden_pairing_surface_missing');
@@ -20,6 +20,8 @@ expect(api.includes("plus_session_required")&&api.includes("plusSession"),'plus_
 expect(api.includes("sealOperatorPayload(normalizeExecPayload"),'plus_bridge_exec_encryption_missing');
 expect(api.includes("action==='session-open'")&&api.includes("action==='output'"),'plus_bridge_durable_surface_missing');
 expect(api.includes("action.startsWith('process-')")&&api.includes("'process-start'")&&api.includes("'process-output'"),'plus_native_process_surface_missing');
+expect(api.includes("action==='tool-helper'")&&api.includes('toolHelperView'),'plus_tool_helper_surface_missing');
+expect(api.includes("action==='scp'")&&api.includes("action:'scp'")&&api.includes('invalid_scp_payload'),'plus_light_scp_surface_missing');
 expect(server.includes("app.post('/plus/client/context'")&&server.includes("ensureClientContext"),'plus_working_context_surface_missing');
 expect(server.includes("app.post('/plus/connect/begin'")&&server.includes("app.post('/plus/connect/poll'"),'plus_gateway_ab_pairing_missing');
 expect(server.includes("app.get('/plus/client/devices'")&&server.includes("app.post('/plus/client/execute'"),'plus_gateway_client_set_missing');

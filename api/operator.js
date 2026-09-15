@@ -2,6 +2,7 @@ const crypto = require("node:crypto");
 const { callOperator, execOperator } = require('../lib/operator');
 const { sealOperatorPayload } = require('../lib/operator-crypto');
 const { aid, field, jobId, normalizeDeviceHeartbeat, normalizeDevicePolicy, normalizeDeviceRevoke, normalizeEnrollmentApprove, normalizeEnrollmentCancel, normalizeEnrollmentBegin, normalizeEnrollmentPoll, normalizeNodeDrain, normalizeExecPayload, normalizeSessionOpenPayload, payloadFor, sid } = require('../lib/operator-request');
+const { toolHelperHint, toolHelperView } = require('../lib/plus-tool-helper');
 
 function enrollmentSourceHash(req){ const ip=String(req.headers?.["x-forwarded-for"]||"unknown").split(",")[0].trim().slice(0,128); return crypto.createHash("sha256").update("v07-enrollment:"+ip).digest("hex"); }
 
@@ -9,7 +10,7 @@ function connectionHelperView(value={}) {
   const status=String(value.status||'need_a_code');
   const base={protocol:'light-remote-plus-v1',endpoint:'/api/operator?via=plus&action=connection-helper',status};
   if(status==='approval_required') return {...value,helper:{...base,nextAction:'owner_approve_b_then_poll',instruction:'Ask the owner to enter the returned B code on the exact Wall that produced A, approve it, then call connection-helper again with nextPayload.',nextPayload:{continuation:value.continuation}}};
-  if(status==='ready') return {...value,helper:{...base,nextAction:'ready',instruction:'Connection and working context are ready. Keep the opaque client token private; reuse the returned context instead of listing devices or reopening a session.',quickGuide:{context:'action=context&client=<client> recovers or updates the exact working context without broad enumeration.',exec:'action=exec&client=<client>&p=<base64url {deviceId,operationId,script,cwd,timeoutMs,waitMs,sessionId,agentId,requiredCapabilities}>',fs:'action=fs&client=<client>&p=<base64url {deviceId,operationId,sessionId,agentId,fs}>',durableOutput:'If a job is running, use action=job then action=output with the same client and exact device.',rules:['Reuse context.deviceId/context.sessionId after READY.','Call action=context only for recovery, workspace change, or target change.','Pair each additional device independently with its own A/B flow.','Never expose client/continuation capabilities to the user.']}}};
+  if(status==='ready') return {...value,helper:{...base,nextAction:'load_tool_helper',instruction:'Connection and working context are ready. Keep the opaque client token private; reuse the returned context and immediately load the Tool Helper instead of reading repo source for tool syntax.',toolHelper:toolHelperHint(),rules:['Reuse context.deviceId/context.sessionId after READY.','Pair each additional device independently with its own A/B flow.','Never expose client/continuation capabilities to the user.']}};
   return {...value,helper:{...base,nextAction:'provide_a_code',instruction:'Get a fresh A code from the target Local Wall, then call connection-helper with {aCode,agentId,label}. Do not send client on the first pairing.'}};
 }
 
@@ -47,7 +48,7 @@ module.exports=async function handler(req,res){
   const plusSession=String(field(req,'ps','')).trim();
   const plusClient=String(field(req,'client','')).trim();
   const plusClientValid=/^o1\.client\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(plusClient);
-  const compactClientActions=new Set(['context','list-devices','session-open','session-resume','session-hold','session-close','session','exec','fs','process-start','process-input','process-output','process-list','process-stop','search-start','search-results','search-cancel','transfer-begin','transfer-chunk','transfer-status','transfer-commit','transfer-cancel','job','output']);
+  const compactClientActions=new Set(['tool-helper','context','list-devices','session-open','session-resume','session-hold','session-close','session','exec','fs','process-start','process-input','process-output','process-list','process-stop','search-start','search-results','search-cancel','scp','transfer-begin','transfer-chunk','transfer-status','transfer-commit','transfer-cancel','job','output']);
   const compactPlusResponse=()=>plus&&(action==='connection-helper'||action==='connect'||action==='connect-poll'||(plusClientValid&&compactClientActions.has(action)));
   const call=(path,options={})=>callOperator(path,{...options,bridgeSession});
   const plusCall=(path,options={})=>callOperator(path,{...options,plusSession});
@@ -103,7 +104,12 @@ module.exports=async function handler(req,res){
       }
       else {
         const usingClient=plusClientValid;
-        if(action==='context'){
+        if(action==='tool-helper'){
+          if(!usingClient){const e=new Error('agent_client_required');e.status=401;throw e;}
+          const current=await clientCall('/plus/client/context',{method:'POST',body:{}});
+          upstream=toolHelperView(current);
+        }
+        else if(action==='context'){
           if(!usingClient){const e=new Error('agent_client_required');e.status=401;throw e;}
           const d=String(req.query?.p||'').trim()?payloadFor(req):{},body={};
           if(d.deviceId!=null||d.device!=null)body.deviceId=clientDevice(d.deviceId||d.device);
@@ -144,6 +150,12 @@ module.exports=async function handler(req,res){
           if(op==='results'){search.searchId=String(d.searchId||'');search.offset=Math.max(0,Number(d.offset)||0);search.limit=Math.max(1,Math.min(Number(d.limit)||100,500));}
           if(op==='cancel')search.searchId=String(d.searchId||'');
           const payload={action:'search',operationId:aid(d.operationId),sessionId:sid(d.sessionId),agentId:aid(d.agentId),nodeId:d.nodeId==null?undefined:clientDevice(d.nodeId),search,waitMs:Math.max(0,Math.min(Number(d.waitMs)||7000,8000))};
+          upstream=await clientCall('/plus/client/execute',{method:'POST',body:{deviceId,envelope:sealOperatorPayload(payload)},timeoutMs:9500});
+        }
+        else if(usingClient&&action==='scp'){
+          const d=payloadFor(req),deviceId=clientDevice(d.deviceId||d.device),scp=d.scp;
+          if(!scp||typeof scp!=='object'||Array.isArray(scp)){const e=new Error('invalid_scp_payload');e.status=400;throw e;}
+          const payload={action:'scp',operationId:aid(d.operationId),sessionId:sid(d.sessionId),agentId:aid(d.agentId),nodeId:d.nodeId==null?undefined:clientDevice(d.nodeId),scp,waitMs:Math.max(0,Math.min(Number(d.waitMs)||7000,8000))};
           upstream=await clientCall('/plus/client/execute',{method:'POST',body:{deviceId,envelope:sealOperatorPayload(payload)},timeoutMs:9500});
         }
         else if(usingClient&&action.startsWith('transfer-')){
