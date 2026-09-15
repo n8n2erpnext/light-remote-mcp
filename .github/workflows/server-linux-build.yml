@@ -5,11 +5,13 @@ on:
     branches:
       - main
       - codex/v0.9-device-policy-resume
+      - codex/v0.9-fleet-monotonic-update
     tags:
       - 'v0.9.*'
     paths:
       - 'gateway/**'
       - 'operator-host/**'
+      - 'device-agent/**'
       - 'lib/**'
       - 'deploy/server-linux/**'
       - 'deploy/scripts/install-host.sh'
