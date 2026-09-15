@@ -335,6 +335,10 @@ function startJob(payload, requestId) {
     if(!/^[A-Za-z0-9._:-]{1,80}$/.test(item))throw new Error('invalid_required_capability');
     if(!requiredCapabilities.includes(item))requiredCapabilities.push(item);
   }
+  if(!remote){
+    for(const raw of HOST_PLATFORM_ADAPTER.inferRequiredCapabilities(script,{shell}))if(!requiredCapabilities.includes(raw))requiredCapabilities.push(raw);
+    const denied=HOST_PLATFORM_ADAPTER.hardDeny?.(script)||null;if(denied)throw new DeviceError(`local platform policy denied: ${denied}`,403);
+  }
   requiredCapabilities.sort();
   let route=null;
   if(remote) {
