@@ -18,8 +18,14 @@ if(process.platform==='win32'){
 }
 const terminal=registry.start({...owner,shellSpec,cwd:process.cwd(),cols:90,rows:28});
 registry.input(terminal.terminalId,owner,{data:input});
-await new Promise(resolve=>setTimeout(resolve,600));
-const out=registry.output(terminal.terminalId,owner,{offset:0,limit:65536});
-if(!out.output.text.includes('LIGHT_REMOTE_PTY_OK'))throw new Error(`terminal_runtime_smoke_output_missing:${JSON.stringify(out.output.text)}`);
+const deadline=Date.now()+5000;
+let offset=0,text='',lastState='running';
+while(Date.now()<deadline&&!text.includes('LIGHT_REMOTE_PTY_OK')){
+  const out=registry.output(terminal.terminalId,owner,{offset,limit:65536});
+  text+=out.output.text;offset=out.output.nextOffset;lastState=out.state;
+  if(text.includes('LIGHT_REMOTE_PTY_OK'))break;
+  await new Promise(resolve=>setTimeout(resolve,100));
+}
+if(!text.includes('LIGHT_REMOTE_PTY_OK'))throw new Error(`terminal_runtime_smoke_output_missing:state=${lastState}:output=${JSON.stringify(text)}`);
 registry.close();
 console.log(`terminal-runtime-smoke=PASS platform=${process.platform} arch=${process.arch}`);
