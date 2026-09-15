@@ -137,6 +137,14 @@ export class EnrollmentRegistry {
     if(prior){
       if(prior.accountId!==accountId||prior.publicKeySha256!==publicKey.fingerprint||prior.publicIdentityKey!==publicKey.encoded)throw new EnrollmentError('trusted_device_binding_conflict',409);
       if(prior.revokedAt)throw new EnrollmentError('device_revoked',403);
+      const grantable=[...capabilities],approved=cleanCapabilities(prior.approvedCapabilities||[]).filter(cap=>grantable.includes(cap));
+      const grantableChanged=JSON.stringify(cleanCapabilities(prior.grantableCapabilities||prior.approvedCapabilities||[]))!==JSON.stringify(grantable);
+      const approvedChanged=JSON.stringify(cleanCapabilities(prior.approvedCapabilities||[]))!==JSON.stringify(approved);
+      if(grantableChanged||approvedChanged){
+        prior.grantableCapabilities=grantable;prior.approvedCapabilities=approved;prior.policyRevision=Math.max(1,Number(prior.policyRevision)||1)+1;prior.policyUpdatedAt=this.now();
+        if(approvedChanged){prior.certificate=certificateBody(prior);prior.certificateSignature=crypto.sign(null,Buffer.from(canonicalCertificate(prior)),this.signer.privateKey).toString('base64url');}
+        this._persist();this.emit({type:'trusted_device_capabilities_updated',deviceId,accountId,status:'updated',policyRevision:prior.policyRevision,grantableCapabilities:[...grantable],approvedCapabilities:[...approved]});
+      }
       return prior;
     }
     const policyProfile=bounded(input.policyProfile||'self-hosted-owner',80);if(!POLICY_RE.test(policyProfile))throw new EnrollmentError('invalid_policy_profile');

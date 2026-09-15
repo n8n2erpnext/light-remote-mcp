@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { EnrollmentRegistry, EnrollmentError } from '../../operator-host/enrollment-registry.mjs';
-import { deviceHeartbeatMessage } from '../../lib/device-proof.mjs';
+import { deviceHeartbeatMessage, devicePolicyMessage } from '../../lib/device-proof.mjs';
 
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'gpt-enrollment-registry-'));
 const stateFile=path.join(dir,'enrollments.json'), signerFile=path.join(dir,'signer.json');
@@ -46,6 +46,20 @@ console.log('enrollment-code-one-time=PASS');
 console.log('enrollment-secret-storage=PASS');
 console.log('enrollment-capability-subset=PASS');
 console.log('enrollment-certificate-signature=PASS');
+
+const trustedKeys=crypto.generateKeyPairSync('ed25519');
+const trustedPublic=trustedKeys.publicKey.export({format:'der',type:'spki'}).toString('base64');
+const trustedFirst=registry.ensureTrustedBinding({accountId:'self-hosted-local',deviceId:'trusted-host-test',publicIdentityKey:trustedPublic,capabilities:['filesystem','git'],policyProfile:'infra'});
+const trustedRevision=trustedFirst.policyRevision;
+const trustedUpdated=registry.ensureTrustedBinding({accountId:'self-hosted-local',deviceId:'trusted-host-test',publicIdentityKey:trustedPublic,capabilities:['filesystem','git','terminal'],policyProfile:'infra'});
+if(!trustedUpdated.grantableCapabilities.includes('terminal'))throw new Error('trusted_host_new_capability_not_grantable');
+if(trustedUpdated.approvedCapabilities.includes('terminal'))throw new Error('trusted_host_new_capability_auto_approved');
+if(trustedUpdated.policyRevision!==trustedRevision+1)throw new Error('trusted_host_capability_policy_revision_not_incremented');
+const trustedEnvelope=registry.policyEnvelope('trusted-host-test');
+const trustedSigner=crypto.createPublicKey({key:Buffer.from(trustedEnvelope.signer.publicKey,'base64'),format:'der',type:'spki'});
+const trustedMessage=devicePolicyMessage({deviceId:trustedEnvelope.policy.deviceId,accountId:trustedEnvelope.policy.accountId,revision:trustedEnvelope.policy.policyRevision,approvedCapabilities:trustedEnvelope.policy.approvedCapabilities,grantableCapabilities:trustedEnvelope.policy.grantableCapabilities,policyProfile:trustedEnvelope.policy.policyProfile,updatedAt:trustedEnvelope.policy.policyUpdatedAt});
+if(!crypto.verify(null,Buffer.from(trustedMessage),trustedSigner,Buffer.from(trustedEnvelope.signature,'base64url')))throw new Error('trusted_host_capability_policy_signature_invalid');
+console.log('trusted-host-capability-refresh-fail-closed=PASS');
 
 const cancelKeys=crypto.generateKeyPairSync('ed25519');
 const cancellable=registry.begin({publicIdentityKey:cancelKeys.publicKey.export({format:'der',type:'spki'}).toString('base64'),displayName:'Cancel Device',platform:'linux',architecture:'arm64',capabilities:['git'],sourceHash:'b'.repeat(64)});
