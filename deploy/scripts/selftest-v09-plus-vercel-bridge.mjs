@@ -33,6 +33,7 @@ expect(server.includes("app.post('/device-channel/activity'")&&server.includes("
 expect(api.includes('aCode')&&api.includes('invalid_pairing_code'),'plus_a_code_direct_connect_missing');
 expect(api.includes('pairing_code_required')&&api.includes("status:'need_a_code'")&&api.includes("req.query?.p"),'plus_missing_a_must_prompt_for_code');
 expect(text('api/guide.js').includes('ask only for the A code')&&text('api/guide.js').includes('ask_user_for_target_local_wall_a_code'),'plus_guide_missing_a_contract_missing');
+expect(['terminal-start','terminal-input','terminal-output','terminal-resize','terminal-signal','terminal-list','terminal-stop'].every(action=>text('api/guide.js').includes(`'${action}'`))&&text('api/guide.js').includes("terminal:'GET action=terminal-{start|input|output|resize|signal|list|stop}"),'plus_guide_terminal_contract_missing');
 expect(api.includes('compactPlusResponse')&&api.includes('compactClientActions'),'plus_compact_golden_response_missing');
 expect(server.includes("s.deviceId===req.plusIdentity.deviceId"),'plus_sessions_must_be_device_filtered');
 expect(!server.includes("wallApp.post('/api/plus-authorizations/:id/approve'")&&!server.includes("wallApp.post('/api/plus-authorizations/:id/deny'"),'hosted_wall_must_not_approve_device_access');
