@@ -51,6 +51,7 @@ expect(workflow.includes('windows-size-tray-bytes=')&&workflow.includes('windows
 expect(installer.includes('Light-Remote-MCP-Setup-{#AppVersion}-x64.exe'),'independent_rollback_cache_missing');
 expect(installer.includes('PrivilegesRequired=lowest')&&installer.includes('Parameters: "--launch"'),'windows_installer_contract_missing');
 expect(installer.includes('LightRemoteDeviceAgent')&&installer.includes('LightRemoteUpdater'),'windows_task_cleanup_missing');
+expect(installer.includes('procedure QuiesceInstalledRuntime()')&&installer.includes("$targets=@($AppExe,$NodeExe)")&&installer.includes("$targets -contains $_.Path")&&installer.includes('light-remote-runtime-quiesced')&&installer.includes('StopAndRemoveLegacyTask();\n  QuiesceInstalledRuntime();'),'windows_reinstall_runtime_quiesce_missing');
 expect(!/LocalSystem/i.test(installer+taskInstaller),'windows_must_not_use_localsystem');
 expect(taskInstaller.includes("$UpdaterRoot=Join-Path $env:LOCALAPPDATA 'Light Remote\\Updater'")&&taskInstaller.includes("$Updater=Join-Path $UpdaterRoot 'LightRemote.Updater.exe'"),'updater_recovery_path_missing');
 expect(taskInstaller.includes('-Execute $Updater')&&taskInstaller.includes('--scheduled-update --install-dir'),'windows_updater_task_not_independent');

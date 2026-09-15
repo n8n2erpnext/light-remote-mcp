@@ -139,6 +139,36 @@ begin
   Exec(ExpandConstant('{sys}\schtasks.exe'), '/Delete /TN "LightRemoteUpdater" /F', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
 end;
 
+procedure QuiesceInstalledRuntime();
+var
+  ScriptFile, ScriptText, AppExe, NodeExe, Args: String;
+  ResultCode: Integer;
+begin
+  AppExe := ExpandConstant('{app}\GptOperator.Client.exe');
+  NodeExe := ExpandConstant('{app}\runtime\node.exe');
+  ScriptFile := ExpandConstant('{tmp}\light-remote-preinstall-quiesce.ps1');
+  ScriptText :=
+    'param([string]$AppExe,[string]$NodeExe)' + #13#10 +
+    '$ErrorActionPreference=''SilentlyContinue''' + #13#10 +
+    '$targets=@($AppExe,$NodeExe)' + #13#10 +
+    '$deadline=(Get-Date).AddSeconds(10)' + #13#10 +
+    'do {' + #13#10 +
+    '  $p=@(Get-Process -Name ''GptOperator.Client'',''node'' -ErrorAction SilentlyContinue | Where-Object { try { $targets -contains $_.Path } catch { $false } })' + #13#10 +
+    '  if(-not $p){ exit 0 }' + #13#10 +
+    '  $p | Stop-Process -Force -ErrorAction SilentlyContinue' + #13#10 +
+    '  Start-Sleep -Milliseconds 200' + #13#10 +
+    '} while((Get-Date) -lt $deadline)' + #13#10 +
+    '$left=@(Get-Process -Name ''GptOperator.Client'',''node'' -ErrorAction SilentlyContinue | Where-Object { try { $targets -contains $_.Path } catch { $false } })' + #13#10 +
+    'if($left){ exit 41 }' + #13#10 +
+    'exit 0' + #13#10;
+  if not SaveStringToFile(ScriptFile, ScriptText, False) then
+    RaiseException('Unable to stage Light Remote runtime quiesce helper');
+  Args := '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + ScriptFile + '" -AppExe "' + AppExe + '" -NodeExe "' + NodeExe + '"';
+  if (not Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'), Args, '', SW_HIDE, ewWaitUntilTerminated, ResultCode)) or (ResultCode <> 0) then
+    RaiseException('Unable to stop the installed Light Remote runtime before replacement (exit ' + IntToStr(ResultCode) + ')');
+  Log('light-remote-runtime-quiesced');
+end;
+
 procedure CacheRollbackInstaller();
 var
   RollbackDir, RollbackFile: String;
@@ -161,6 +191,7 @@ begin
   end;
 #endif
   StopAndRemoveLegacyTask();
+  QuiesceInstalledRuntime();
   RemoveLegacyAutostart();
   Result := '';
 end;
