@@ -24,7 +24,9 @@ cat > "$PKG/manifest.json" <<JSON
 }
 JSON
 ART="$OUT/Light-Remote-Fleet-Wall-${VERSION}.tar.gz"
-tar -czf "$ART" -C "$WORK" fleet-wall
+SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-$(git -C "$ROOT" log -1 --format=%ct)}"
+find "$PKG" -exec touch -h -d "@$SOURCE_DATE_EPOCH" {} +
+tar --sort=name --mtime="@$SOURCE_DATE_EPOCH" --owner=0 --group=0 --numeric-owner --format=gnu -cf - -C "$WORK" fleet-wall | gzip -n > "$ART"
 SHA="$(sha256sum "$ART" | awk '{print $1}')"
 SIZE="$(stat -c %s "$ART")"
 cat > "$OUT/fleet-wall-module-metadata.json" <<JSON

@@ -4,8 +4,7 @@ on:
   push:
     branches:
       - main
-      - codex/v0.9-device-policy-resume
-      - codex/v0.9-fleet-monotonic-update
+      - 'codex/v0.9-*'
     tags:
       - 'v0.9.*'
     paths:
@@ -15,6 +14,7 @@ on:
       - 'lib/**'
       - 'deploy/server-linux/**'
       - 'deploy/scripts/install-host.sh'
+      - 'deploy/scripts/build-fleet-wall-module.sh'
       - 'deploy/scripts/selftest-host-install-layout.mjs'
       - 'deploy/scripts/stage-terminal-runtime.mjs'
       - 'deploy/scripts/terminal-runtime-smoke.mjs'
@@ -43,6 +43,17 @@ jobs:
         arch: [x64, arm64]
     steps:
       - uses: actions/checkout@v4
+      - name: Fleet module reproducibility smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          A="$RUNNER_TEMP/fleet-repro-a"
+          B="$RUNNER_TEMP/fleet-repro-b"
+          bash deploy/scripts/build-fleet-wall-module.sh "$A"
+          bash deploy/scripts/build-fleet-wall-module.sh "$B"
+          ART="Light-Remote-Fleet-Wall-$(cat VERSION).tar.gz"
+          cmp "$A/$ART" "$B/$ART"
+          echo "fleet-module-reproducible=PASS sha256=$(sha256sum "$A/$ART" | awk '{print $1}')"
       - name: Legacy live-host parity smoke
         run: node deploy/scripts/selftest-host-install-layout.mjs
       - name: Gateway canonical image smoke
