@@ -39,10 +39,10 @@ export function ensureHostCompanionState(file,{identity,binding,signer,nodeId}){
   if(prior.enrollment?.deviceId&&prior.enrollment.deviceId!==binding.deviceId)throw new Error('host_companion_device_conflict');
   if(prior.identity?.publicIdentityKey&&prior.identity.publicIdentityKey!==identity.publicKey)throw new Error('host_companion_identity_conflict');
   const denied=Array.isArray(prior.policy?.deniedCapabilities)?prior.policy.deniedCapabilities:[];
-  const approved=[...(binding.approvedCapabilities||[])],effective=approved.filter(cap=>!denied.includes(cap)).sort();
+  const approved=[...(binding.approvedCapabilities||[])],grantable=[...(binding.grantableCapabilities||approved)],effective=grantable.filter(cap=>!denied.includes(cap)).sort();
   const state={...prior,
     identity:{algorithm:'Ed25519',publicIdentityKey:identity.publicKey,publicKeySha256:identity.publicKeySha256,createdAt:identity.createdAt},
-    enrollment:{...(prior.enrollment||{}),enrollmentId:'trusted-host',deviceId:binding.deviceId,nodeId:String(nodeId||binding.deviceId),accountId:binding.accountId,grantableCapabilities:[...(binding.grantableCapabilities||approved)],approvedCapabilities:approved,policyProfile:binding.policyProfile,displayName:binding.displayName||binding.deviceId,certificate:binding.certificate,certificateSignature:binding.certificateSignature,signer,enrolledAt:prior.enrollment?.enrolledAt||Date.now()},
+    enrollment:{...(prior.enrollment||{}),enrollmentId:'trusted-host',deviceId:binding.deviceId,nodeId:String(nodeId||binding.deviceId),accountId:binding.accountId,grantableCapabilities:[...grantable],approvedCapabilities:approved,policyProfile:binding.policyProfile,displayName:binding.displayName||binding.deviceId,certificate:binding.certificate,certificateSignature:binding.certificateSignature,signer,enrolledAt:prior.enrollment?.enrolledAt||Date.now()},
     policy:{...(prior.policy||{}),serverPolicyRevision:Math.max(1,Number(binding.policyRevision)||1),localFinalDenyBoundary:true},
     effectiveCapabilities:effective,
     cloud:prior.cloud||{desiredConnected:false,state:'dormant',connectionId:null,hardExpiresAt:null,lastError:null,lastDisconnectedAt:Date.now()}

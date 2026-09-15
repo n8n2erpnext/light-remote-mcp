@@ -30,6 +30,8 @@ try{
   const companion=JSON.parse(fs.readFileSync(path.join(stateDir,'host-companion-device.json'),'utf8'));
   if(companion.identity?.privateKey)throw new Error('companion_state_must_not_store_private_key');
   if(companion.enrollment?.deviceId!=='arm-local'||companion.identity?.publicIdentityKey!==identity.publicKey)throw new Error('companion_identity_mismatch');
+if(!companion.enrollment?.grantableCapabilities?.includes('terminal'))throw new Error('host_terminal_not_grantable');
+if(!companion.effectiveCapabilities?.includes('terminal'))throw new Error('host_main_must_use_local_authority_for_new_capability');
   const key=crypto.createPrivateKey({key:Buffer.from(identity.privateKey,'base64'),format:'der',type:'pkcs8'});
   const signed=(action,payload)=>{const timestamp=Date.now(),nonce=crypto.randomBytes(18).toString('base64url');return{deviceId:'arm-local',timestamp,nonce,signature:crypto.sign(null,Buffer.from(deviceChannelMessage({deviceId:'arm-local',action,timestamp,nonce,payload})),key).toString('base64url'),payload};};
   let r=await req('POST','/v1/device-channel/connect',signed('connect',{nodeId:'arm',agentVersion:'0.9.0-rc.6',requestedLeaseMs:60*60*1000,reconnectGraceMs:30*60*1000}));
@@ -50,6 +52,7 @@ try{
   console.log('v09-host-main-private-key-isolated=PASS');
   console.log('v09-host-main-non-revocable=PASS');
   console.log('v09-host-main-identity-restart-stable=PASS');
+  console.log('v10-host-main-local-authority=PASS');
   restarted.kill('SIGTERM');await sleep(100);
 }finally{
   try{child.kill('SIGTERM');}catch{}

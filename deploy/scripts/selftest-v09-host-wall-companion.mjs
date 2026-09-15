@@ -12,7 +12,7 @@ const stateFile=path.join(dir,'device.json'),authFile=path.join(dir,'wall-auth.j
 const {publicKey,privateKey}=crypto.generateKeyPairSync('ed25519');
 const publicIdentityKey=publicKey.export({format:'der',type:'spki'}).toString('base64');
 const publicKeySha256=crypto.createHash('sha256').update(Buffer.from(publicIdentityKey,'base64')).digest('hex');
-fs.writeFileSync(stateFile,JSON.stringify({identity:{privateKey:privateKey.export({format:'der',type:'pkcs8'}).toString('base64'),publicIdentityKey,publicKeySha256},enrollment:{deviceId:'arm-local',nodeId:'arm',accountId:'self-hosted-local',grantableCapabilities:['filesystem'],approvedCapabilities:['filesystem'],policyProfile:'self-hosted-owner',displayName:'VPS-ARM'},policy:{deniedCapabilities:[],localProfile:'full'},effectiveCapabilities:['filesystem'],cloud:{desiredConnected:false,state:'dormant'}}));
+fs.writeFileSync(stateFile,JSON.stringify({identity:{privateKey:privateKey.export({format:'der',type:'pkcs8'}).toString('base64'),publicIdentityKey,publicKeySha256},enrollment:{enrollmentId:'trusted-host',deviceId:'arm-local',nodeId:'arm',accountId:'self-hosted-local',grantableCapabilities:['filesystem','terminal'],approvedCapabilities:['filesystem'],policyProfile:'self-hosted-owner',displayName:'VPS-ARM'},policy:{deniedCapabilities:[],localProfile:'full'},effectiveCapabilities:['filesystem','terminal'],cloud:{desiredConnected:false,state:'dormant'}}));
 let fleetIntent=0,polls=0,badSignature=0;
 const hub=http.createServer(async(req,res)=>{
   const chunks=[];for await(const c of req)chunks.push(c);let body={};try{body=JSON.parse(Buffer.concat(chunks).toString('utf8')||'{}')}catch{}
@@ -38,9 +38,11 @@ await sleep(250);if(polls!==0)throw new Error(`host_wall_must_not_poll:${polls}`
 const auth=JSON.parse(fs.readFileSync(authFile,'utf8'));
 if(auth.mode!=='account-only'||auth.passwordHash)throw new Error('host_wall_account_only_auth_failed');
 if((fs.statSync(authFile).mode&0o777)!==0o600)throw new Error('host_wall_auth_permissions');
+const statusChild=spawn(process.execPath,[`${root}/device-agent/operator-agent.mjs`,'status'],{cwd:root,env:{...process.env,OPERATOR_AGENT_STATE:stateFile,OPERATOR_AGENT_WALL_AUTH_FILE:authFile},stdio:['ignore','pipe','pipe']});let statusOut='';statusChild.stdout.on('data',d=>statusOut+=d);await new Promise(r=>statusChild.once('exit',r));const statusJson=JSON.parse(statusOut);if(statusJson.policyAuthority!=='local-main'||!statusJson.effectiveCapabilities?.includes('terminal'))throw new Error('trusted_host_local_authority_status_failed');
 child.kill('SIGTERM');await new Promise(r=>child.once('exit',r));
 if(!stdout.includes('host_wall_companion_started')||!stdout.includes('host_wall_companion_stopped'))throw new Error('host_wall_lifecycle_markers_missing');
 console.log('v09-host-wall-account-only-auth=PASS');
 console.log('v09-host-wall-signed-fleet-intent=PASS');
 console.log('v09-host-wall-zero-poll=PASS');
+console.log('v10-host-main-local-authority=PASS');
 await new Promise(r=>hub.close(r));fs.rmSync(dir,{recursive:true,force:true});
