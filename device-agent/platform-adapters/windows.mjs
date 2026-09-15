@@ -18,6 +18,7 @@ const RULES=[
 
 export function createWindowsAdapter({commandExists}) {
   const shell=firstAvailable(commandExists,['pwsh','powershell.exe','powershell']);
+  const cmd=firstAvailable(commandExists,['cmd.exe','cmd']);
   return {
     id:'win32',displayName:'Windows PowerShell adapter',
     discoverCapabilities() {
@@ -42,7 +43,13 @@ export function createWindowsAdapter({commandExists}) {
       if(/\\(SAM|SECURITY)(?:\\|\b)/i.test(text)||/HKLM:\\SAM|HKLM:\\SECURITY/i.test(text))return 'windows_sensitive_hive_denied';
       return null;
     },
-    commandFor(script) {
+    shellModes() {
+      const modes=['default'];if(shell)modes.push('powershell');if(cmd)modes.push('cmd');return modes;
+    },
+    commandFor(script,{shell:requestedShell='default'}={}) {
+      const requested=String(requestedShell||'default').trim().toLowerCase();
+      if(requested==='cmd'){if(!cmd)throw new Error('cmd_unavailable');return {file:cmd,args:['/d','/s','/c',String(script||'')]};}
+      if(!['default','powershell'].includes(requested))throw new Error(`windows_shell_unsupported:${requested}`);
       if(!shell)throw new Error('powershell_unavailable');
       return {file:shell,args:['-NoLogo','-NoProfile','-NonInteractive','-Command',String(script||'')]};
     }

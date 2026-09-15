@@ -1,7 +1,7 @@
 const crypto = require("node:crypto");
 const { callOperator, execOperator } = require('../lib/operator');
 const { sealOperatorPayload } = require('../lib/operator-crypto');
-const { aid, field, jobId, normalizeDeviceHeartbeat, normalizeDevicePolicy, normalizeDeviceRevoke, normalizeEnrollmentApprove, normalizeEnrollmentCancel, normalizeEnrollmentBegin, normalizeEnrollmentPoll, normalizeNodeDrain, normalizeExecPayload, normalizeSessionOpenPayload, payloadFor, sid } = require('../lib/operator-request');
+const { aid, field, jobId, normalizeDeviceHeartbeat, normalizeDevicePolicy, normalizeDeviceRevoke, normalizeEnrollmentApprove, normalizeEnrollmentCancel, normalizeEnrollmentBegin, normalizeEnrollmentPoll, normalizeNodeDrain, normalizeShellId, normalizeExecPayload, normalizeSessionOpenPayload, payloadFor, sid } = require('../lib/operator-request');
 const { toolHelperHint, toolHelperView } = require('../lib/plus-tool-helper');
 
 function enrollmentSourceHash(req){ const ip=String(req.headers?.["x-forwarded-for"]||"unknown").split(",")[0].trim().slice(0,128); return crypto.createHash("sha256").update("v07-enrollment:"+ip).digest("hex"); }
@@ -135,7 +135,7 @@ module.exports=async function handler(req,res){
           const op=action.slice('process-'.length);
           if(!['start','input','output','list','stop'].includes(op)){const e=new Error('invalid_process_action');e.status=400;throw e;}
           const process={op};
-          if(op==='start'){process.script=String(d.script||'');process.cwd=d.cwd==null?undefined:String(d.cwd);process.timeoutMs=d.timeoutMs==null?undefined:Number(d.timeoutMs);process.requiredCapabilities=Array.isArray(d.requiredCapabilities)?d.requiredCapabilities:undefined;}
+          if(op==='start'){process.script=String(d.script||'');process.cwd=d.cwd==null?undefined:String(d.cwd);process.shell=normalizeShellId(d.shell);process.timeoutMs=d.timeoutMs==null?undefined:Number(d.timeoutMs);process.requiredCapabilities=Array.isArray(d.requiredCapabilities)?d.requiredCapabilities:undefined;}
           if(op==='input'){process.processId=String(d.processId||'');process.data=String(d.data||'');process.eof=Boolean(d.eof);}
           if(op==='output'){process.processId=String(d.processId||'');process.stream=d.stream==='stderr'?'stderr':'stdout';process.offset=Math.max(0,Number(d.offset)||0);process.limit=Math.max(1,Math.min(Number(d.limit)||262144,1048576));}
           if(op==='stop'){process.processId=String(d.processId||'');process.force=Boolean(d.force);}

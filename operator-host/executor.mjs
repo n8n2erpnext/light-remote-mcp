@@ -313,6 +313,7 @@ function startJob(payload, requestId) {
   if (!script.trim()) throw new Error('empty_script');
   if (Buffer.byteLength(script) > 1024 * 1024) throw new Error('script_too_large');
   const timeoutMs = Math.max(1000, Math.min(Number(payload.timeoutMs) || 600000, 7200000));
+  const shell = String(payload.shell || 'default');
   const requestedSessionId = String(payload.sessionId || '');
   const agentId = String(payload.agentId || '').trim();
   const session = sessions.ensure(requestedSessionId, { agentId });
@@ -347,7 +348,7 @@ function startJob(payload, requestId) {
   sessions.record(session.id, 'execCalls');
   const sessionId = session.id;
   const note = String(payload.note || '');
-  const fingerprint = crypto.createHash('sha256').update(JSON.stringify({ script, cwd, timeoutMs, sessionId, note, nodeId:session.nodeId, requiredCapabilities })).digest('hex');
+  const fingerprint = crypto.createHash('sha256').update(JSON.stringify({ script, cwd, shell, timeoutMs, sessionId, note, nodeId:session.nodeId, requiredCapabilities })).digest('hex');
   const existing = operationDedupe.get(operationId);
   if (existing) {
     if (existing.fingerprint !== fingerprint) throw new Error('operation_id_conflict');
@@ -355,7 +356,7 @@ function startJob(payload, requestId) {
   }
   const job = {
     id: crypto.randomUUID(), requestId, operationId, operationFingerprint: fingerprint, accountId:session.accountId, deviceId:session.deviceId, sessionId, agentId:session.agentId, nodeId:session.nodeId, note,
-    cwd, script, status: 'running', startedAt: Date.now(), finishedAt: null, exitCode: null, signal: null,
+    cwd, script, shell, status: 'running', startedAt: Date.now(), finishedAt: null, exitCode: null, signal: null,
     timedOut: false, stdout: createAccumulator(), stderr: createAccumulator(), waiters: [], pid: null, timer: null,
     remote, commandId:null, requiredCapabilities
   };
@@ -365,7 +366,7 @@ function startJob(payload, requestId) {
   pushEvent({ type: 'job_started', jobId: job.id, requestId, operationId: job.operationId, accountId:job.accountId, deviceId:job.deviceId, sessionId: job.sessionId, agentId:job.agentId, nodeId:job.nodeId, status: 'running', route:remote?'outbound-leaf':'local', requiredCapabilities,
     cwd, script: redact(script), note: redact(job.note), timeoutMs });
   if(remote) {
-    const command=fleet.enqueue({accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'exec',operationId,sessionId,agentId:job.agentId,script,cwd,timeoutMs,note,requiredCapabilities}});
+    const command=fleet.enqueue({accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'exec',operationId,sessionId,agentId:job.agentId,script,cwd,shell,timeoutMs,note,requiredCapabilities}});
     job.commandId=command.commandId;
     job.timer=setTimeout(()=>{
       if(job.finishedAt)return;
@@ -377,7 +378,8 @@ function startJob(payload, requestId) {
     job.timer.unref();
     return job;
   }
-  const child = spawn('/bin/bash', ['-lc', script], { cwd, env: { ...process.env, GPT_OPERATOR_ACCOUNT:job.accountId, GPT_OPERATOR_DEVICE:job.deviceId, GPT_OPERATOR_NODE:job.nodeId, GPT_OPERATOR_SESSION: job.sessionId }, stdio: ['ignore', 'pipe', 'pipe'] });
+  const localSpec=HOST_PLATFORM_ADAPTER.commandFor(script,{shell});
+  const child = spawn(localSpec.file, localSpec.args, { cwd, env: { ...process.env, GPT_OPERATOR_ACCOUNT:job.accountId, GPT_OPERATOR_DEVICE:job.deviceId, GPT_OPERATOR_NODE:job.nodeId, GPT_OPERATOR_SESSION: job.sessionId }, stdio: ['ignore', 'pipe', 'pipe'] });
   job.pid = child.pid || null;
   child.stdout.on('data', data => emitStream(job, 'stdout', data));
   child.stderr.on('data', data => emitStream(job, 'stderr', data));
@@ -462,11 +464,11 @@ async function executeLocalProcessRequest(job,request){
   const owner={accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId},op=String(request.op||'');
   if(op==='start'){
     const script=String(request.script||'');if(!script.trim())throw new Error('process_script_required');
-    const required=[...new Set([...(Array.isArray(request.requiredCapabilities)?request.requiredCapabilities:[]),...HOST_PLATFORM_ADAPTER.inferRequiredCapabilities(script)])].sort();
+    const required=[...new Set([...(Array.isArray(request.requiredCapabilities)?request.requiredCapabilities:[]),...HOST_PLATFORM_ADAPTER.inferRequiredCapabilities(script,{shell:request.shell})])].sort();
     const denied=HOST_PLATFORM_ADAPTER.hardDeny?.(script)||null;if(denied)throw new Error(`local platform policy denied: ${denied}`);
     const missing=required.filter(cap=>!hostEffectiveCapabilities().includes(cap));if(missing.length)throw new DeviceError('local_host_capability_missing',409);
     const cwd=path.resolve(String(request.cwd||'/home/ubuntu'));let stat;try{stat=fs.statSync(cwd);}catch{}if(!stat?.isDirectory())throw new Error('cwd_not_directory');
-    return {ok:true,operation:'start',process:NATIVE_PROCESSES.start({...owner,script,cwd,timeoutMs:request.timeoutMs,spawnSpec:value=>HOST_PLATFORM_ADAPTER.commandFor(value),env:{GPT_OPERATOR_ACCOUNT:job.accountId,GPT_OPERATOR_DEVICE:job.deviceId,GPT_OPERATOR_NODE:job.nodeId,GPT_OPERATOR_SESSION:job.sessionId}})};
+    return {ok:true,operation:'start',process:NATIVE_PROCESSES.start({...owner,script,cwd,timeoutMs:request.timeoutMs,spawnSpec:value=>HOST_PLATFORM_ADAPTER.commandFor(value,{shell:request.shell}),env:{GPT_OPERATOR_ACCOUNT:job.accountId,GPT_OPERATOR_DEVICE:job.deviceId,GPT_OPERATOR_NODE:job.nodeId,GPT_OPERATOR_SESSION:job.sessionId}})};
   }
   if(!hostEffectiveCapabilities().includes('filesystem'))throw new DeviceError('local_host_capability_missing',409);
   if(op==='input')return {ok:true,operation:'input',process:NATIVE_PROCESSES.input(request.processId,owner,{data:request.data,eof:Boolean(request.eof)})};

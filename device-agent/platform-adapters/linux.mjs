@@ -29,8 +29,17 @@ export function createLinuxAdapter({commandExists}) {
       return uniqueCapabilities(['filesystem',...inferCapabilities(script,RULES)]);
     },
     hardDeny() { return null; },
-    commandFor(script) {
-      return {file:'/bin/bash',args:['-lc',String(script||'')]};
+    shellModes() {
+      const modes=['default'];
+      for(const name of ['bash','zsh','sh'])if(commandExists(name))modes.push(name);
+      return [...new Set(modes)];
+    },
+    commandFor(script,{shell='default'}={}) {
+      const requested=String(shell||'default').trim().toLowerCase();
+      const selected=requested==='default'?(commandExists('bash')?'bash':commandExists('sh')?'sh':null):requested;
+      const files={bash:'/bin/bash',zsh:'/bin/zsh',sh:'/bin/sh'};
+      if(!selected||!files[selected]||!commandExists(selected))throw new Error(`linux_shell_unavailable:${requested}`);
+      return {file:files[selected],args:['-lc',String(script||'')]};
     }
   };
 }

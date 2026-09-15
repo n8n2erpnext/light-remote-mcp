@@ -1,0 +1,30 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
+const require=createRequire(import.meta.url);
+const {normalizeExecPayload}=require('../../lib/operator-request.js');
+const {toolHelperView}=require('../../lib/plus-tool-helper.js');
+const local=fs.readFileSync(new URL('../../device-agent/local-wall.mjs',import.meta.url),'utf8');
+const fleet=fs.readFileSync(new URL('../../gateway/device-policy-page.mjs',import.meta.url),'utf8');
+for(const source of [local,fleet]){
+  for(const profile of ['safe','developer','infra','full','custom'])assert(source.includes(`value=\"${profile}\"`)||source.includes(`${profile}:`),`missing profile ${profile}`);
+  for(const cap of ['powershell','windows-eventlog','windows-process-network','macos-log'])assert(source.includes(`'${cap}'`),`safe cross-platform cap missing ${cap}`);
+  for(const cap of ['systemctl','windows-services-admin','windows-registry','windows-scheduled-tasks','windows-defender-firewall','macos-services'])assert(source.includes(`'${cap}'`),`infra cap missing ${cap}`);
+  const infra=source.match(/infra:\[([^\]]+)\]/)?.[1]||'';
+  assert(!infra.includes('sudo-on-demand'),'infra must not auto-enable sudo');
+  assert(!infra.includes('windows-uac-admin'),'infra must not auto-enable UAC');
+}
+const base={operationId:'op_shell_contract_123456',script:'echo ok',sessionId:'s_test',agentId:'a_1234567890123456'};
+assert.equal(normalizeExecPayload({...base,shell:'cmd'}).shell,'cmd');
+assert.equal(normalizeExecPayload({...base,shell:'powershell'}).shell,'powershell');
+assert.equal(normalizeExecPayload({...base,shell:'zsh'}).shell,'zsh');
+assert.throws(()=>normalizeExecPayload({...base,shell:'/bin/fish'}),/invalid_shell/);
+const win=toolHelperView({context:{deviceId:'dev',sessionId:'sid',agentId:'aid',nodeId:'node',platform:'win32',architecture:'x64'}});
+assert.deepEqual(win.target.shellModes,['default','powershell','cmd']);
+assert(win.tools.exec.payload.includes('shell?')&&win.tools.process.startPayload.includes('shell?'));
+assert(win.policy.profiles.includes('infra'));
+const mac=toolHelperView({context:{platform:'darwin'}});assert(mac.target.shellModes.includes('zsh')&&mac.target.shellModes.includes('bash'));
+const linux=toolHelperView({context:{platform:'linux'}});assert(linux.target.shellModes.includes('bash')&&linux.target.shellModes.includes('sh'));
+console.log('v10-cross-platform-policy-profiles=PASS');
+console.log('v10-cross-platform-shell-selector=PASS');
+console.log('v10-tool-helper-shell-policy-guidance=PASS');

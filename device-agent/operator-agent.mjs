@@ -95,11 +95,11 @@ async function executeProcessCommand(state,p){
   const effective=effectiveCapabilities(state.enrollment.approvedCapabilities,state.policy?.deniedCapabilities);
   if(op==='start'){
     const script=String(request.script||'');if(!script.trim())throw new Error('process_script_required');
-    const required=[...new Set([...(Array.isArray(request.requiredCapabilities)?request.requiredCapabilities:[]),...PLATFORM_ADAPTER.inferRequiredCapabilities(script)])].sort();
+    const required=[...new Set([...(Array.isArray(request.requiredCapabilities)?request.requiredCapabilities:[]),...PLATFORM_ADAPTER.inferRequiredCapabilities(script,{shell:request.shell})])].sort();
     const policyDeny=PLATFORM_ADAPTER.hardDeny?.(script)||null;if(policyDeny)throw new Error(`local platform policy denied: ${policyDeny}`);
     const missing=required.filter(cap=>!effective.includes(cap));if(missing.length)throw new Error(`local capability denied: ${missing.join(',')}`);
     const cwd=String(request.cwd||os.homedir());let stat;try{stat=fs.statSync(cwd);}catch{}if(!stat?.isDirectory())throw new Error('cwd_not_directory');
-    return {ok:true,operation:'start',process:NATIVE_PROCESSES.start({...owner,script,cwd,timeoutMs:request.timeoutMs,spawnSpec:value=>PLATFORM_ADAPTER.commandFor(value),env:{GPT_OPERATOR_ACCOUNT:owner.accountId,GPT_OPERATOR_DEVICE:owner.deviceId,GPT_OPERATOR_NODE:state.enrollment.nodeId||owner.deviceId,GPT_OPERATOR_SESSION:owner.sessionId}})};
+    return {ok:true,operation:'start',process:NATIVE_PROCESSES.start({...owner,script,cwd,timeoutMs:request.timeoutMs,spawnSpec:value=>PLATFORM_ADAPTER.commandFor(value,{shell:request.shell}),env:{GPT_OPERATOR_ACCOUNT:owner.accountId,GPT_OPERATOR_DEVICE:owner.deviceId,GPT_OPERATOR_NODE:state.enrollment.nodeId||owner.deviceId,GPT_OPERATOR_SESSION:owner.sessionId}})};
   }
   if(!effective.includes('filesystem'))throw new Error('local capability denied: filesystem');
   if(op==='input')return {ok:true,operation:'input',process:NATIVE_PROCESSES.input(request.processId,owner,{data:request.data,eof:Boolean(request.eof)})};
@@ -194,7 +194,7 @@ async function executeCommand(state,command){
   if(p.type!=='exec')throw new Error('unsupported_leaf_command');
   const script=String(p.script||'');
   const effective=effectiveCapabilities(state.enrollment.approvedCapabilities,state.policy?.deniedCapabilities);
-  const inferred=PLATFORM_ADAPTER.inferRequiredCapabilities(script);
+  const inferred=PLATFORM_ADAPTER.inferRequiredCapabilities(script,{shell:p.shell});
   const required=[...new Set([...(Array.isArray(p.requiredCapabilities)?p.requiredCapabilities:[]),...inferred])].sort();
   const policyDeny=PLATFORM_ADAPTER.hardDeny?.(script)||null;
   if(policyDeny){
@@ -211,7 +211,7 @@ async function executeCommand(state,command){
     const result={commandId:command.commandId,status:'error',exitCode:72,stdout:'',stderr:'cwd_not_directory\n',durationMs:0};
     writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt:Date.now(),finishedAt:Date.now(),result});return result;
   }
-  let spec;try{spec=PLATFORM_ADAPTER.commandFor(script);}catch(error){
+  let spec;try{spec=PLATFORM_ADAPTER.commandFor(script,{shell:p.shell});}catch(error){
     const result={commandId:command.commandId,status:'error',exitCode:126,stdout:'',stderr:`platform adapter unavailable: ${error.message}\n`,durationMs:0};
     writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt:Date.now(),finishedAt:Date.now(),result});return result;
   }
@@ -315,7 +315,7 @@ function setLocalPermissions(allowedCapabilities,profile='custom'){
   const grantable=normalizeDeviceCapabilities(state.enrollment.grantableCapabilities||state.enrollment.approvedCapabilities||[]);
   const allowed=normalizeDeviceCapabilities(Array.isArray(allowedCapabilities)?allowedCapabilities:[]);
   if(allowed.some(cap=>!grantable.includes(cap)))throw new Error('local_permission_not_grantable');
-  const localProfile=/^(safe|developer|full|custom)$/.test(String(profile||''))?String(profile):'custom';
+  const localProfile=/^(safe|developer|infra|full|custom)$/.test(String(profile||''))?String(profile):'custom';
   const denied=grantable.filter(cap=>!allowed.includes(cap));
   state.policy={...(state.policy||{}),deniedCapabilities:denied,localProfile,localFinalDenyBoundary:true,localPolicyUpdatedAt:Date.now()};
   state.effectiveCapabilities=effectiveCapabilities(state.enrollment.approvedCapabilities,denied);
