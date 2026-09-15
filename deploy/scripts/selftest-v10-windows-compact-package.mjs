@@ -20,8 +20,10 @@ expect(workflow.includes("$nodeVersion -ne 'v22.23.2'")&&workflow.includes(sha),
 expect(workflow.includes('windows-compact-installed-selftest=PASS')&&workflow.includes('windows-compact-installer-roundtrip=PASS'),'compact_ci_roundtrip_missing');
 expect(task.includes('Stop-ScheduledTask -TaskName $taskName')&&task.includes('[IO.Path]::GetFullPath($_.Path) -eq $nodeFull'),'compact_reinstall_stale_node_cleanup_missing');
 expect(task.includes('Stale Light Remote Node runtime survived task cleanup'),'compact_reinstall_stale_node_guard_missing');
-expect(task.includes('$startDeadline=(Get-Date).AddSeconds(10)')&&task.includes('Light Remote background task failed to stay running'),'compact_agent_start_health_gate_missing');
+expect(task.includes('$startDeadline=(Get-Date).AddSeconds(10);$stableSince=$null')&&task.includes('TotalSeconds -ge 2')&&task.includes('failed stable-start gate'),'compact_agent_start_health_gate_missing');
 expect(!/taskkill/i.test(task)&&!task.includes('Get-Process node | Stop-Process'),'compact_cleanup_must_not_kill_unrelated_node');
 expect(workflow.includes('$compactDir = $env:WINDOWS_COMPACT_INSTALL_DIR')&&workflow.includes("$compactDir = Join-Path $env:RUNNER_TEMP 'Light Remote Compact Installed'"),'compact_cleanup_fallback_missing');
+expect(workflow.includes("$fullNode = Join-Path $env:WINDOWS_INSTALL_DIR 'runtime\\node.exe'")&&workflow.includes("$compactNode = Join-Path $compactDir 'runtime\\node.exe'"),'desktop_ci_exact_node_cleanup_missing');
+expect(workflow.includes("GPTOperatorAgent\\logs\\agent.log")&&workflow.includes('compact background agent is not running: state='),'compact_ci_agent_diagnostics_missing');
 expect(workflow.includes('Light-Remote-MCP-Compact-Setup-x64.exe')&&workflow.includes('windows-compact-installer-sha256='),'compact_artifact_missing');
 console.log('v10-windows-compact-package=PASS');

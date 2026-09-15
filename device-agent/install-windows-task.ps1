@@ -35,15 +35,18 @@ $updaterAction=New-ScheduledTaskAction -Execute $Updater -Argument $updaterArgs 
 $first=(Get-Date).AddMinutes(5);$updaterTrigger=New-ScheduledTaskTrigger -Once -At $first -RepetitionInterval (New-TimeSpan -Hours 6)
 Register-ScheduledTask -TaskName $UpdateTask -Action $updaterAction -Trigger $updaterTrigger -Principal $principal -Settings (New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -MultipleInstances IgnoreNew) -Description 'Light Remote independent signed recovery updater.' -Force|Out-Null
 Start-ScheduledTask -TaskName $AgentTask
-$startDeadline=(Get-Date).AddSeconds(10)
-do {
+$startDeadline=(Get-Date).AddSeconds(10);$stableSince=$null
+while((Get-Date)-lt $startDeadline){
   Start-Sleep -Milliseconds 250
   $task=Get-ScheduledTask -TaskName $AgentTask -ErrorAction Stop
-  if($task.State -eq 'Running'){break}
-} while((Get-Date)-lt $startDeadline)
-if($task.State -ne 'Running'){
+  if($task.State -eq 'Running'){
+    if($null -eq $stableSince){$stableSince=Get-Date}
+    if(((Get-Date)-$stableSince).TotalSeconds -ge 2){break}
+  } else {$stableSince=$null}
+}
+if($task.State -ne 'Running' -or $null -eq $stableSince -or ((Get-Date)-$stableSince).TotalSeconds -lt 2){
   $taskInfo=Get-ScheduledTaskInfo -TaskName $AgentTask -ErrorAction SilentlyContinue
-  throw "Light Remote background task failed to stay running: state=$($task.State) result=$($taskInfo.LastTaskResult)"
+  throw "Light Remote background task failed stable-start gate: state=$($task.State) result=$($taskInfo.LastTaskResult)"
 }
 Write-Host "Light Remote background task installed: $($task.State) user=$account"
 Write-Host "Independent updater task installed: $Updater"

@@ -350,7 +350,13 @@ jobs:
         timeout-minutes: 3
         shell: pwsh
         run: |
-          Get-Process -Name 'GptOperator.Client','LightRemote.Updater','light-remote-update-helper' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+          Stop-ScheduledTask -TaskName 'LightRemoteDeviceAgent' -ErrorAction SilentlyContinue
+          if ($env:WINDOWS_INSTALL_DIR) {
+            $fullExe = Join-Path $env:WINDOWS_INSTALL_DIR 'GptOperator.Client.exe'
+            $fullNode = Join-Path $env:WINDOWS_INSTALL_DIR 'runtime\node.exe'
+            Get-Process -Name 'GptOperator.Client','node' -ErrorAction SilentlyContinue | Where-Object { try { $_.Path -eq $fullExe -or $_.Path -eq $fullNode } catch { $false } } | Stop-Process -Force -ErrorAction SilentlyContinue
+          }
+          Get-Process -Name 'LightRemote.Updater','light-remote-update-helper' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
           Unregister-ScheduledTask -TaskName 'GPTOperatorDeviceAgent' -Confirm:$false -ErrorAction SilentlyContinue
           Unregister-ScheduledTask -TaskName 'LightRemoteDeviceAgent' -Confirm:$false -ErrorAction SilentlyContinue
           Unregister-ScheduledTask -TaskName 'LightRemoteUpdater' -Confirm:$false -ErrorAction SilentlyContinue
@@ -403,7 +409,13 @@ jobs:
           $expected=(Get-Content VERSION -Raw).Trim()
           if (-not $json.ok -or $json.agentVersion -ne $expected -or $json.platformAdapter -ne 'win32') { throw "compact installed self-test invalid: $(Get-Content $result -Raw)" }
           Start-Sleep -Milliseconds 700
-          if ((Get-ScheduledTask -TaskName 'LightRemoteDeviceAgent' -ErrorAction Stop).State -ne 'Running') { throw 'compact background agent is not running' }
+          $compactTask = Get-ScheduledTask -TaskName 'LightRemoteDeviceAgent' -ErrorAction Stop
+          if ($compactTask.State -ne 'Running') {
+            $compactInfo = Get-ScheduledTaskInfo -TaskName 'LightRemoteDeviceAgent' -ErrorAction SilentlyContinue
+            $agentLog = Join-Path $env:LOCALAPPDATA 'GPTOperatorAgent\logs\agent.log'
+            if (Test-Path $agentLog) { Get-Content $agentLog -Tail 80 | Write-Host }
+            throw "compact background agent is not running: state=$($compactTask.State) result=$($compactInfo.LastTaskResult)"
+          }
           if (-not(Test-NetConnection -ComputerName 127.0.0.1 -Port 5491 -InformationLevel Quiet)) { throw 'compact Local Wall 5491 not listening' }
           Write-Host 'windows-compact-node-download-verify=PASS'
           Write-Host 'windows-compact-node-cache-reuse=PASS'
@@ -415,11 +427,15 @@ jobs:
         timeout-minutes: 3
         shell: pwsh
         run: |
-          Get-Process -Name 'GptOperator.Client','LightRemote.Updater' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-          Unregister-ScheduledTask -TaskName 'LightRemoteDeviceAgent' -Confirm:$false -ErrorAction SilentlyContinue
-          Unregister-ScheduledTask -TaskName 'LightRemoteUpdater' -Confirm:$false -ErrorAction SilentlyContinue
+          Stop-ScheduledTask -TaskName 'LightRemoteDeviceAgent' -ErrorAction SilentlyContinue
           $compactDir = $env:WINDOWS_COMPACT_INSTALL_DIR
           if ([string]::IsNullOrWhiteSpace($compactDir)) { $compactDir = Join-Path $env:RUNNER_TEMP 'Light Remote Compact Installed' }
+          $compactExe = Join-Path $compactDir 'GptOperator.Client.exe'
+          $compactNode = Join-Path $compactDir 'runtime\node.exe'
+          Get-Process -Name 'GptOperator.Client','node' -ErrorAction SilentlyContinue | Where-Object { try { $_.Path -eq $compactExe -or $_.Path -eq $compactNode } catch { $false } } | Stop-Process -Force -ErrorAction SilentlyContinue
+          Get-Process -Name 'LightRemote.Updater' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+          Unregister-ScheduledTask -TaskName 'LightRemoteDeviceAgent' -Confirm:$false -ErrorAction SilentlyContinue
+          Unregister-ScheduledTask -TaskName 'LightRemoteUpdater' -Confirm:$false -ErrorAction SilentlyContinue
           $unins = Join-Path $compactDir 'unins000.exe'
           if (Test-Path $unins) {
             $p = Start-Process -FilePath $unins -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART') -PassThru

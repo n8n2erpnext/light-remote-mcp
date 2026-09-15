@@ -96,6 +96,7 @@ jobs:
           test -x "$PKG/runtime/node"
           test -x "$PKG/tray/LightRemoteTray"
           test -f "$PKG/assets/branding/light-remote-mark-256.png"
+          test -f assets/branding/light-remote-mark-512.png
           test -f "$PKG/device-agent/platform-adapters/macos.mjs"
           test -f "$PKG/device-agent/fleet-component-manager.mjs"
           test -f "$PKG/device-agent/fleet-component-supervisor.mjs"
@@ -105,6 +106,7 @@ jobs:
           node --check client/macos/updater.mjs
           node --check client/macos/update-lifeboat.mjs
           bash -n client/macos/build-pkg.sh
+          bash -n client/macos/uninstall.sh
           plutil -lint client/macos/launchd/*.plist
           file "$PKG/runtime/node" "$PKG/tray/LightRemoteTray"
           otool -l "$PKG/tray/LightRemoteTray" | grep -A5 LC_BUILD_VERSION | grep -q 'minos 11.0'
@@ -133,7 +135,17 @@ jobs:
           PKGFILE="$PWD/dist/macos/$TARGET_ARCH/pkg/Light-Remote-${VERSION}-${{ matrix.pkg_arch }}.pkg"
           test -s "$PKGFILE"
           pkgutil --check-signature "$PKGFILE" || true
-          pkgutil --payload-files "$PKGFILE" | grep -q 'Library/Application Support/Light Remote/releases'
+          PAYLOAD="$(pkgutil --payload-files "$PKGFILE")"
+          grep -Fq 'Library/Application Support/Light Remote/releases' <<<"$PAYLOAD"
+          grep -Fq 'Applications/Light Remote.app/Contents/Info.plist' <<<"$PAYLOAD"
+          grep -Fq 'Applications/Light Remote.app/Contents/MacOS/LightRemoteLauncher' <<<"$PAYLOAD"
+          grep -Fq 'Applications/Light Remote.app/Contents/Resources/LightRemote.icns' <<<"$PAYLOAD"
+          grep -Fq 'Applications/Light Remote.app/Contents/Resources/uninstall.sh' <<<"$PAYLOAD"
+          EXPANDED="$RUNNER_TEMP/light-remote-pkg-$TARGET_ARCH"; rm -rf "$EXPANDED"
+          pkgutil --expand "$PKGFILE" "$EXPANDED"
+          grep -Fq "com.lightremote.client.macos-$TARGET_ARCH" "$EXPANDED/PackageInfo"
+          echo "macos-system-package-receipt=PASS id=com.lightremote.client.macos-$TARGET_ARCH"
+          [[ "$(plutil -extract KeepAlive raw client/macos/launchd/com.lightremote.tray.plist)" == false ]]
           shasum -a 256 "$PKGFILE" >> "$PWD/dist/macos/$TARGET_ARCH/SHA256SUMS.txt"
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
