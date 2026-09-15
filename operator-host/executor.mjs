@@ -255,7 +255,7 @@ function jobView(job) {
     startedAt: job.startedAt, finishedAt: job.finishedAt || null, exitCode: job.exitCode,
     signal: job.signal || null, durationMs: job.finishedAt ? job.finishedAt - job.startedAt : Date.now() - job.startedAt,
     stdout: redact(out.text), stderr: redact(err.text), stdoutBytes: out.totalBytes, stderrBytes: err.totalBytes,
-    outputTruncated: out.truncated || err.truncated, resultData:job.resultData ?? null, latency:latencyView(job)
+    outputTruncated: out.truncated || err.truncated, resultData:job.resultData ?? null, resultSummary:redact(job.resultSummary||''), toolMeta:job.toolMeta||null, latency:latencyView(job)
   };
 }
 function approximateJobMemoryBytes(job) {
@@ -292,7 +292,7 @@ function finishJob(job, exitCode, signal) {
   sessions.finishJob(job.sessionId, job.id, job.status);
   if (job.autoCloseSession) { try { sessions.close(job.sessionId, job.agentId); } catch {} }
   pushEvent({ type: 'job_finished', jobId: job.id, requestId: job.requestId, operationId: job.operationId, accountId:job.accountId, deviceId:job.deviceId, sessionId: job.sessionId, agentId:job.agentId, nodeId:job.nodeId,
-    status: job.status, exitCode, signal: signal || null, durationMs: job.finishedAt - job.startedAt, latency:latencyView(job) });
+    status: job.status, exitCode, signal: signal || null, durationMs: job.finishedAt - job.startedAt, resultSummary:redact(job.resultSummary||''), toolMeta:job.toolMeta||null, latency:latencyView(job) });
   for (const resolve of job.waiters.splice(0)) resolve();
   pruneJobs(job.finishedAt);
 }
@@ -484,6 +484,38 @@ async function executeLocalProcessRequest(job,request){
   throw new Error('process_operation_unsupported');
 }
 
+function shortTerminalId(value){const text=String(value||'');return text.length>18?text.slice(0,18)+'…':text;}
+function terminalInputPreview(value){
+  const raw=String(value||''),bytes=Buffer.byteLength(raw),unsafeControl=/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(raw);
+  let text=raw.replace(/\r\n/g,'\n').replace(/\r/g,'\n').replace(/\x1b\[[0-?]*[ -\/]*[@-~]/g,'').replace(/\n+/g,' ↵ ').trim();
+  const safeBare=/^(?:pwd|ls|id|whoami|date|uptime|clear|exit|env|set|help|history|jobs|fg|bg|ps|top|htop|df|du|free|uname|hostname|stty)$/i.test(text),bare=/^[^\s|;&<>]+$/.test(text);
+  const suspicious=(bare&&!safeBare)||/^(?:[A-Za-z0-9._~+\/=-]{16,})$/.test(text)||/(?:password|passwd|token|secret|api[_-]?key|authorization|bearer|private key)/i.test(text);
+  if(unsafeControl||suspicious)text='';else text=redact(text).slice(0,180);
+  return {bytes,preview:text};
+}
+function terminalWallMeta(request={}){
+  const op=String(request.op||'unknown').toLowerCase(),terminalId=String(request.terminalId||''),handle=shortTerminalId(terminalId),input=op==='input'?terminalInputPreview(request.data):{bytes:0,preview:''};
+  let label='PTY '+op.toUpperCase();
+  if(op==='start')label+=' · '+String(request.shell||'default')+' · '+String(Number(request.cols)||120)+'×'+String(Number(request.rows)||32)+(request.cwd?' · '+String(request.cwd):'');
+  else if(op==='input')label+=' · '+(handle||'terminal')+' · '+(input.preview||String(input.bytes)+' B input');
+  else if(op==='output')label+=' · '+(handle||'terminal')+' · offset '+String(Math.max(0,Number(request.offset)||0))+' · limit '+String(Math.max(1,Number(request.limit)||262144))+' B';
+  else if(op==='resize')label+=' · '+(handle||'terminal')+' · '+String(Number(request.cols)||120)+'×'+String(Number(request.rows)||32);
+  else if(op==='signal')label+=' · '+(handle||'terminal')+' · '+String(request.signal||'interrupt');
+  else if(op==='stop')label+=' · '+(handle||'terminal')+' · '+(request.force?'force':'graceful');
+  return {kind:'terminal',op,terminalId:terminalId||null,shell:op==='start'?String(request.shell||'default'):null,cwd:op==='start'?String(request.cwd||''):null,cols:['start','resize'].includes(op)?Number(request.cols)||null:null,rows:['start','resize'].includes(op)?Number(request.rows)||null:null,signal:op==='signal'?String(request.signal||'interrupt'):null,force:op==='stop'?Boolean(request.force):null,inputBytes:op==='input'?input.bytes:null,inputPreview:op==='input'?(input.preview||null):null,label:redact(label)};
+}
+function terminalResultSummary(data){
+  if(!data||typeof data!=='object')return '';
+  const op=String(data.operation||''),list=Array.isArray(data.terminals)?data.terminals:null;
+  if(op==='list'&&list){const running=list.filter(x=>x&&x.state==='running').length;return list.length+' terminal'+(list.length===1?'':'s')+' · '+running+' running';}
+  const t=data.terminal&&typeof data.terminal==='object'?data.terminal:data,parts=[];
+  if(t.state)parts.push(String(t.state));if(t.terminalId)parts.push(shortTerminalId(t.terminalId));if(op==='start'&&t.pid)parts.push('pid '+String(t.pid));
+  if(op==='resize'&&t.cols&&t.rows)parts.push(String(t.cols)+'×'+String(t.rows));
+  if(op==='output'&&data.output){parts.push(String(Number(data.output.returnedBytes)||0)+' B');parts.push('offset '+String(Number(data.output.nextOffset)||0)+'/'+String(Number(data.output.totalBytes)||0));}
+  else if((op==='input'||op==='signal'||op==='stop')&&Number.isFinite(Number(t.outputBytes)))parts.push('buffer '+String(Number(t.outputBytes)||0)+' B');
+  return parts.join(' · ');
+}
+
 async function startTerminalOperation(payload,requestId){
   const operationId=String(payload.operationId||'').trim();if(!/^[A-Za-z0-9._:-]{16,128}$/.test(operationId))throw new Error('invalid_operation_id');
   const agentId=String(payload.agentId||'').trim(),session=sessions.ensure(String(payload.sessionId||''),{agentId});requireDeviceConnection(session.deviceId);
@@ -493,11 +525,12 @@ async function startTerminalOperation(payload,requestId){
   if(remote){const route=targetRoute(session.nodeId);if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(!route.capabilities.includes('terminal'))throw new FleetError('target_node_capability_missing',409);}else if(!hostEffectiveCapabilities().includes('terminal'))throw new DeviceError('local_host_capability_missing',409);
   const fingerprint=crypto.createHash('sha256').update(JSON.stringify({request,sessionId:session.id,nodeId:session.nodeId})).digest('hex'),existing=operationDedupe.get(operationId);
   if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
-  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-terminal:${String(request.op||'unknown')}`,cwd:String(request.cwd||''),script:'',status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null};
+  const toolMeta=terminalWallMeta(request);
+  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-terminal:${toolMeta.op}`,cwd:String(toolMeta.cwd||''),script:toolMeta.label,status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null,resultSummary:'',toolMeta};
   jobs.set(job.id,job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
-  pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:remote?'outbound-leaf':'local',requiredCapabilities,note:job.note});
+  pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:remote?'outbound-leaf':'local',requiredCapabilities,cwd:job.cwd,script:redact(job.script),note:job.note,toolMeta:job.toolMeta});
   if(remote){const command=fleet.enqueue({accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'terminal',operationId,sessionId:job.sessionId,agentId:job.agentId,terminal:request}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},30000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();return job;}
-  Promise.resolve().then(()=>executeLocalTerminalRequest(job,request)).then(data=>{job.resultData=data;finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n'));finishJob(job,1,null);});return job;
+  Promise.resolve().then(()=>executeLocalTerminalRequest(job,request)).then(data=>{job.resultData=data;job.resultSummary=terminalResultSummary(data);finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};job.resultSummary='error · '+redact(String(error?.message||error));emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n'));finishJob(job,1,null);});return job;
 }
 
 async function executeLocalTerminalRequest(job,request){
@@ -1261,7 +1294,7 @@ const server = http.createServer(async (req, res) => {
       const stdout=String(result.stdout||''), stderr=String(result.stderr||'');
       if (Buffer.byteLength(stdout)>MAX_MEMORY_OUTPUT || Buffer.byteLength(stderr)>MAX_MEMORY_OUTPUT) throw new FleetError('remote_result_too_large',413);
       if(result.data!==undefined&&Buffer.byteLength(JSON.stringify(result.data))>MAX_MEMORY_OUTPUT)throw new FleetError('remote_result_data_too_large',413);
-      if(result.data!==undefined)job.resultData=result.data;
+      if(result.data!==undefined){job.resultData=result.data;if(job.toolMeta?.kind==='terminal')job.resultSummary=terminalResultSummary(result.data);}
       applyDeviceTelemetry(job,result.telemetry);
       const exitCode=Number(result.exitCode);
       if (!Number.isInteger(exitCode) || exitCode < 0 || exitCode > 255) throw new FleetError('invalid_remote_exit_code');

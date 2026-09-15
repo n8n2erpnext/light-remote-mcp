@@ -6,7 +6,7 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const read=rel=>fs.readFileSync(path.join(root,rel),'utf8');
 const need=(v,m)=>{if(!v)throw new Error(m);};
 const api=read('api/operator.js'),host=read('operator-host/executor.mjs'),agent=read('device-agent/operator-agent.mjs');
-const helper=read('lib/plus-tool-helper.js'),wall=read('device-agent/local-wall.mjs'),policy=read('gateway/device-policy-page.mjs');
+const helper=read('lib/plus-tool-helper.js'),wall=read('device-agent/local-wall.mjs'),dashboard=read('gateway/dashboard.mjs'),policy=read('gateway/device-policy-page.mjs');
 const core=JSON.parse(read('client/core-files.json')),pkg=JSON.parse(read('package.json')),stage=read('deploy/scripts/stage-terminal-runtime.mjs');
 need(api.includes("action.startsWith('terminal-')")&&api.includes("action:'terminal'"),'plus_terminal_surface_missing');
 need(host.includes("payload.action==='terminal'")&&host.includes('startTerminalOperation'),'host_terminal_dispatch_missing');
@@ -26,6 +26,11 @@ need(pkg.dependencies?.['node-pty']==='^1.1.0'||pkg.dependencies?.['node-pty']==
 need(pkg.dependencies?.['@homebridge/node-pty-prebuilt-multiarch']==='^0.14.1'||pkg.dependencies?.['@homebridge/node-pty-prebuilt-multiarch']==='0.14.1','linux_pty_dependency_missing');
 need(stage.includes("fs.rmSync(path.join(destination,'third_party')"),'terminal_runtime_third_party_prune_missing');
 need(stage.includes("'spawn-helper'")&&stage.includes('fs.chmodSync(helperPath,0o755)')&&stage.includes('terminal_runtime_spawn_helper_not_executable'),'macos_spawn_helper_exec_contract_missing');
+need(host.includes('terminalWallMeta(request)')&&host.includes('script:toolMeta.label')&&host.includes('resultSummary=terminalResultSummary'),'terminal_wall_activity_metadata_missing');
+for(const surface of [wall,dashboard]){
+  need(surface.includes('function toolLabel(j)')&&surface.includes('terminalHandle(j)')&&surface.includes('resultSummary')&&surface.includes('opbadge'),'terminal_wall_observability_ui_missing');
+  need(surface.includes('filter cwd / command / output / PTY'),'terminal_wall_filter_hint_missing');
+}
 console.log('v10-terminal-plane-routing=PASS');
 console.log('v10-terminal-helper-policy=PASS');
 console.log('v10-terminal-package-contract=PASS');
