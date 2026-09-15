@@ -1,6 +1,6 @@
 {
   "name": "light-remote-mcp",
-  "version": "0.9.0-rc.17",
+  "version": "0.9.0-rc.18",
   "private": true,
   "description": "Light Remote MCP: governed outbound remote execution for AI tools and user-owned machines.",
   "engines": {

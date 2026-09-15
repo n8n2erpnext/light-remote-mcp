@@ -68,6 +68,7 @@ jobs:
           $dotnetLicenseDir = Join-Path $licenseDir 'dotnet'
           New-Item -ItemType Directory -Force -Path $runtime,$agentDir,$adapterDir,$libDir,$brandDir,$configDir,$nodeLicenseDir,$dotnetLicenseDir | Out-Null
           $nodeExe = (Get-Command node.exe).Source
+          $nodeBytes = (Get-Item $nodeExe).Length
           $nodeRoot = Split-Path $nodeExe -Parent
           $dotnetExe = (Get-Command dotnet.exe).Source
           $dotnetRoot = Split-Path $dotnetExe -Parent
@@ -94,7 +95,7 @@ jobs:
           $helperBytes=(Get-Item (Join-Path $updaterStage 'LightRemote.Updater.exe')).Length
           $stageBytes=(Get-ChildItem $stage -File -Recurse | Measure-Object Length -Sum).Sum
           $helperStageBytes=(Get-ChildItem $updaterStage -File -Recurse | Measure-Object Length -Sum).Sum
-          Write-Host "windows-size-tray-bytes=$trayBytes helper-bytes=$helperBytes stage-bytes=$stageBytes helper-stage-bytes=$helperStageBytes"
+          Write-Host "windows-size-tray-bytes=$trayBytes helper-bytes=$helperBytes node-bytes=$nodeBytes stage-bytes=$stageBytes helper-stage-bytes=$helperStageBytes"
       - name: Native client bundled runtime smoke
         shell: pwsh
         run: |
@@ -176,6 +177,20 @@ jobs:
           $installerBytes=(Get-Item $installer).Length
           Write-Host "windows-size-installer-bytes=$installerBytes"
           "WINDOWS_INSTALLER=$installer" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Build compact web installer
+        shell: pwsh
+        run: |
+          $stage = (Resolve-Path 'dist\windows\stage').Path
+          $out = Join-Path $PWD 'dist\windows\installer'
+          $version = (Get-Content VERSION -Raw).Trim()
+          $compact = & client/windows-native/installer/build-compact.ps1 -StageDir $stage -OutputDir $out -AppVersion $version -Iscc $env:ISCC | Select-Object -Last 1
+          if (-not (Test-Path $compact)) { throw "compact installer missing: $compact" }
+          $compactBytes=(Get-Item $compact).Length
+          $fullBytes=(Get-Item $env:WINDOWS_INSTALLER).Length
+          if ($compactBytes -ge $fullBytes) { throw "compact installer is not smaller: compact=$compactBytes full=$fullBytes" }
+          Write-Host "windows-compact-vs-full-bytes=$compactBytes/$fullBytes"
+          "WINDOWS_COMPACT_INSTALLER=$compact" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Install tray, background agent and updater tasks
         timeout-minutes: 4
@@ -352,13 +367,78 @@ jobs:
           } else {
             Write-Host 'windows-native-installer-roundtrip=SKIP install-not-reached'
           }
-      - name: Hash Windows installer
+      - name: Install compact web client and verify runtime cache
+        timeout-minutes: 5
         shell: pwsh
         run: |
-          $hash = (Get-FileHash $env:WINDOWS_INSTALLER -Algorithm SHA256).Hash.ToLowerInvariant()
+          $installDir = Join-Path $env:RUNNER_TEMP 'Light Remote Compact Installed'
+          $log1 = Join-Path $env:RUNNER_TEMP 'compact-install-download.log'
+          $dirArg = '/DIR="' + $installDir + '"'
+          $logArg = '/LOG="' + $log1 + '"'
+          $args = @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',$dirArg,$logArg)
+          $p = Start-Process -FilePath $env:WINDOWS_COMPACT_INSTALLER -ArgumentList $args -PassThru
+          if (-not $p.WaitForExit(180000)) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; throw 'compact installer timed out after 180s' }
+          if ($p.ExitCode -ne 0) { if(Test-Path $log1){Get-Content $log1 -Raw|Write-Host}; throw "compact installer exit=$($p.ExitCode)" }
+          $node = Join-Path $installDir 'runtime\node.exe'
+          if (-not(Test-Path $node)) { throw 'compact installer did not provision Node runtime' }
+          $nodeVersion = (& $node --version).Trim()
+          if ($nodeVersion -ne 'v22.23.2') { throw "compact Node version mismatch: $nodeVersion" }
+          $cache = Join-Path $env:LOCALAPPDATA 'Light Remote\Updater\runtime-cache\node-v22.23.2-win-x64.zip'
+          if (-not(Test-Path $cache)) { throw "compact Node cache missing: $cache" }
+          $cacheHash=(Get-FileHash $cache -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($cacheHash -ne '1177b4137ba5adaa56354ae40f1080c7450e8ae09cecb47da459d1c52ac99f97') { throw "compact Node cache hash mismatch: $cacheHash" }
+          if ((Get-Content $log1 -Raw) -notmatch 'compact-node-source=download') { throw 'compact first install did not use verified download path' }
+          $log2 = Join-Path $env:RUNNER_TEMP 'compact-install-cache.log'
+          $logArg2 = '/LOG="' + $log2 + '"'
+          $args2 = @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',$dirArg,$logArg2)
+          $p2 = Start-Process -FilePath $env:WINDOWS_COMPACT_INSTALLER -ArgumentList $args2 -PassThru
+          if (-not $p2.WaitForExit(180000)) { Stop-Process -Id $p2.Id -Force -ErrorAction SilentlyContinue; throw 'compact cache reinstall timed out after 180s' }
+          if ($p2.ExitCode -ne 0) { if(Test-Path $log2){Get-Content $log2 -Raw|Write-Host}; throw "compact cache reinstall exit=$($p2.ExitCode)" }
+          if ((Get-Content $log2 -Raw) -notmatch 'compact-node-source=cache') { throw 'compact reinstall did not reuse verified Node cache' }
+          $exe = Join-Path $installDir 'GptOperator.Client.exe'
+          $result = Join-Path $env:RUNNER_TEMP 'compact-installed-selftest.json'
+          $self = Start-Process -FilePath $exe -ArgumentList @('--self-test-output',$result) -PassThru -Wait
+          if ($self.ExitCode -ne 0) { throw "compact installed self-test failed exit=$($self.ExitCode)" }
+          $json=Get-Content $result -Raw|ConvertFrom-Json
+          $expected=(Get-Content VERSION -Raw).Trim()
+          if (-not $json.ok -or $json.agentVersion -ne $expected -or $json.platformAdapter -ne 'win32') { throw "compact installed self-test invalid: $(Get-Content $result -Raw)" }
+          Start-Sleep -Milliseconds 700
+          if ((Get-ScheduledTask -TaskName 'LightRemoteDeviceAgent' -ErrorAction Stop).State -ne 'Running') { throw 'compact background agent is not running' }
+          if (-not(Test-NetConnection -ComputerName 127.0.0.1 -Port 5491 -InformationLevel Quiet)) { throw 'compact Local Wall 5491 not listening' }
+          Write-Host 'windows-compact-node-download-verify=PASS'
+          Write-Host 'windows-compact-node-cache-reuse=PASS'
+          Write-Host 'windows-compact-installed-selftest=PASS'
+          "WINDOWS_COMPACT_INSTALL_DIR=$installDir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Uninstall compact Windows client
+        if: always()
+        timeout-minutes: 3
+        shell: pwsh
+        run: |
+          Get-Process -Name 'GptOperator.Client','LightRemote.Updater' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+          Unregister-ScheduledTask -TaskName 'LightRemoteDeviceAgent' -Confirm:$false -ErrorAction SilentlyContinue
+          Unregister-ScheduledTask -TaskName 'LightRemoteUpdater' -Confirm:$false -ErrorAction SilentlyContinue
+          if ($env:WINDOWS_COMPACT_INSTALL_DIR) {
+            $unins = Join-Path $env:WINDOWS_COMPACT_INSTALL_DIR 'unins000.exe'
+            if (Test-Path $unins) {
+              $p = Start-Process -FilePath $unins -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART') -PassThru
+              if (-not $p.WaitForExit(60000)) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; throw 'compact uninstaller timed out after 60s' }
+              if ($p.ExitCode -ne 0) { throw "compact uninstaller exit=$($p.ExitCode)" }
+            }
+          }
+          $updaterRoot = Join-Path $env:LOCALAPPDATA 'Light Remote\Updater'
+          if (Test-Path $updaterRoot) { throw "compact updater recovery root survived uninstall: $updaterRoot" }
+          Write-Host 'windows-compact-installer-roundtrip=PASS'
+
+      - name: Hash Windows installers
+        shell: pwsh
+        run: |
+          $fullHash = (Get-FileHash $env:WINDOWS_INSTALLER -Algorithm SHA256).Hash.ToLowerInvariant()
+          $compactHash = (Get-FileHash $env:WINDOWS_COMPACT_INSTALLER -Algorithm SHA256).Hash.ToLowerInvariant()
           $sum = Join-Path (Split-Path $env:WINDOWS_INSTALLER -Parent) 'SHA256SUMS.txt'
-          "$hash  Light-Remote-MCP-Setup-x64.exe" | Set-Content -LiteralPath $sum -Encoding ascii
-          Write-Host "windows-native-installer-sha256=$hash"
+          @("$fullHash  Light-Remote-MCP-Setup-x64.exe","$compactHash  Light-Remote-MCP-Compact-Setup-x64.exe") | Set-Content -LiteralPath $sum -Encoding ascii
+          Write-Host "windows-native-installer-sha256=$fullHash"
+          Write-Host "windows-compact-installer-sha256=$compactHash"
 
       - name: Upload native Windows installer
         uses: actions/upload-artifact@v4
@@ -366,6 +446,7 @@ jobs:
           name: light-remote-windows-x64-${{ github.sha }}
           path: |
             dist/windows/installer/Light-Remote-MCP-Setup-x64.exe
+            dist/windows/installer/Light-Remote-MCP-Compact-Setup-x64.exe
             dist/windows/installer/SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 14
