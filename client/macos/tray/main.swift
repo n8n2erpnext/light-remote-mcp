@@ -59,7 +59,8 @@ final class TrayDelegate: NSObject, NSApplicationDelegate {
             base.draw(in: NSRect(origin: .zero, size: size))
         } else {
             NSColor.black.setFill(); NSBezierPath(ovalIn: NSRect(x: 1, y: 1, width: 16, height: 16)).fill()
-            let text = NSString(string: "LR"), attrs: [NSAttributedString.Key.font: NSFont.boldSystemFont(ofSize: 7), .foregroundColor: NSColor.white]
+            let text = NSString(string: "LR")
+            let attrs: [NSAttributedString.Key: Any] = [.font: NSFont.boldSystemFont(ofSize: 7), .foregroundColor: NSColor.white]
             text.draw(at: NSPoint(x: 4, y: 5), withAttributes: attrs)
         }
         let color: NSColor
