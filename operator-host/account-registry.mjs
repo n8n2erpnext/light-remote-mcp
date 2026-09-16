@@ -102,6 +102,17 @@ export class AccountRegistry{
     const now=this.now(),row={accountId,email,passwordHash:passwordHash(password),plan:normalizePlan(input.plan||'free'),mainDeviceId:null,status:'active',createdAt:now,lastLoginAt:now};
     this.accounts.set(accountId,row);this.byEmail.set(email,accountId);this._persist();this.emit({type:'account_registered',accountId,status:'active'});return this._issue(row);
   }
+  provision(input={}){
+    const email=normalizeEmail(input.email),password=String(input.password||''),requested=String(input.accountId||'').trim();
+    if(!EMAIL_RE.test(email)||email.length>254)throw new AccountError('invalid_email');
+    if(password.length<10||password.length>1024)throw new AccountError('invalid_password');
+    if(this.byEmail.has(email))throw new AccountError('account_email_exists',409);
+    const accountId=requested||`acct_${crypto.randomUUID()}`;
+    if(!ACCOUNT_RE.test(accountId))throw new AccountError('invalid_account_id');
+    if(this.accounts.has(accountId))throw new AccountError('account_id_exists',409);
+    const now=this.now(),row={accountId,email,passwordHash:passwordHash(password),plan:normalizePlan(input.plan||'free'),mainDeviceId:null,status:'active',createdAt:now,lastLoginAt:null};
+    this.accounts.set(accountId,row);this.byEmail.set(email,accountId);this._persist();this.emit({type:'account_provisioned',accountId,status:'active'});return this._viewAccount(row);
+  }
   verifyCredentials(input={}, {recordLogin=false, eventType='account_login'}={}){
     const email=normalizeEmail(input.email),password=String(input.password||''),accountId=this.byEmail.get(email),row=accountId?this.accounts.get(accountId):null;
     if(!row||!safeEqual(row.email,email)||!verifyPassword(password,row.passwordHash))throw new AccountError('invalid_account_credentials',401);

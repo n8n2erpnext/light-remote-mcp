@@ -105,12 +105,12 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       try{
         const grant=accessGrants.assert(binding.grantId,{deviceId:binding.deviceId,connectionId:binding.connectionId}),connection=connections.assertConnected(binding.deviceId);
         if(connection.connectionId!==binding.connectionId)throw new AgentClientRegistryError('agent_client_device_connection_mismatch',409);
-        const device=devices.get(binding.deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)}),route=targetRoute(device.nodeId);
+        const device=devices.get(binding.deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)}),route=targetRoute(device.nodeId,binding.accountId);
         const workspace=body.workspace==null?String(binding.workingContext?.workspace||''):String(body.workspace||'').slice(0,512);
         const gracePreset=String(body.gracePreset||binding.workingContext?.gracePreset||'60m');
         let session=null;
         if(binding.workingContext?.sessionId){try{const prior=sessions.get(binding.workingContext.sessionId,binding.agentId);if(['active','hold'].includes(prior.state))session=prior;}catch{}}
-        if(!session)session=sessions.open({agentId:binding.agentId,label:'ChatGPT Light Remote',workspace,gracePreset,nodeId:device.nodeId,deviceId:device.deviceId,maxActiveForNode:route.sessionCeiling});
+        if(!session)session=sessions.open({agentId:binding.agentId,label:'ChatGPT Light Remote',workspace,gracePreset,nodeId:device.nodeId,deviceId:device.deviceId,accountId:binding.accountId,maxActiveForNode:route.sessionCeiling});
         if(workspace!==session.workspace)session=sessions.setWorkspace(session.sessionId,binding.agentId,workspace);
         const context=agentClients.setWorkingContext(binding.clientSessionId,{agentId:binding.agentId,deviceId:device.deviceId,sessionId:session.sessionId,workspace:session.workspace,gracePreset:session.gracePreset});
         return sendJson(res,200,{ok:true,context:{...context,nodeId:device.nodeId,displayName:device.displayName,platform:device.platform,architecture:device.architecture,deviceState:device.state,connectionState:connection.state},session});
@@ -245,7 +245,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       requireDeviceConnection(ctx.device.deviceId);
       devices.heartbeat(ctx.device.deviceId,{capabilities,agentVersion:ctx.payload.agentVersion,updateStatus:ctx.payload.updateStatus});
       const waitMs=Math.max(0,Math.min(Number(ctx.payload.waitMs)||8000,15000));
-      const channel=await fleet.waitPoll({accountId:ACCOUNT_ID,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,sessionCeiling:ctx.payload.sessionCeiling,draining:Boolean(ctx.payload.draining),capabilities},waitMs);
+      const channel=await fleet.waitPoll({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,sessionCeiling:ctx.payload.sessionCeiling,draining:Boolean(ctx.payload.draining),capabilities},waitMs);
       const policy=reportedRevision===Math.max(1,Number(ctx.binding.policyRevision)||1)?null:enrollments.policyEnvelope(ctx.device.deviceId);
       return sendJson(res,200,{ok:true,channel,policy,access:{pending:accessGrants.pendingForDevice(ctx.device.deviceId),activeGrant:accessGrants.activeForDevice(ctx.device.deviceId,connections.get(ctx.device.deviceId)?.connectionId)}});
     }
@@ -257,11 +257,11 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
         if(error?.message!=='command_not_found')throw error;
         const receipt=fleet.receipt(result.commandId);
         if(!receipt)throw error;
-        if(receipt.accountId!==ACCOUNT_ID || receipt.deviceId!==ctx.device.deviceId || receipt.nodeId!==ctx.device.nodeId)throw new FleetError('command_device_mismatch',403);
+        if(receipt.accountId!==ctx.binding.accountId || receipt.deviceId!==ctx.device.deviceId || receipt.nodeId!==ctx.device.nodeId)throw new FleetError('command_device_mismatch',403);
         const prior=jobs.get(receipt.jobId);
         return sendJson(res,200,{ok:true,accepted:true,duplicate:true,job:prior?jobView(prior):null});
       }
-      if (command.accountId!==ACCOUNT_ID || command.deviceId!==ctx.device.deviceId || command.nodeId!==ctx.device.nodeId) throw new FleetError('command_device_mismatch',403);
+      if (command.accountId!==ctx.binding.accountId || command.deviceId!==ctx.device.deviceId || command.nodeId!==ctx.device.nodeId) throw new FleetError('command_device_mismatch',403);
       const job=jobs.get(command.jobId);
       if (!job || job.commandId!==command.commandId) throw new FleetError('remote_job_not_found',404);
       const stdout=String(result.stdout||''), stderr=String(result.stderr||'');
@@ -274,7 +274,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       if (stdout) emitStream(job,'stdout',Buffer.from(stdout));
       if (stderr) emitStream(job,'stderr',Buffer.from(stderr));
       job.timedOut=String(result.status||'')==='timeout';
-      fleet.complete({accountId:ACCOUNT_ID,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,commandId:command.commandId});
+      fleet.complete({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,commandId:command.commandId});
       finishJob(job,exitCode,null);
       return sendJson(res,200,{ok:true,accepted:true,duplicate:false,job:jobView(job)});
     }

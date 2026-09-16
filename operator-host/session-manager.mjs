@@ -130,11 +130,12 @@ export class SessionRegistry {
   }
 
   open({ id=null, openId=null, agentId, label='', workspace='', implicit=false,
-    graceMs=null, gracePreset=null, leaseMs=null, leasePreset=null, nodeId=null, deviceId=null, maxActiveForNode=null }={}) {
+    graceMs=null, gracePreset=null, leaseMs=null, leasePreset=null, nodeId=null, deviceId=null, accountId=null, maxActiveForNode=null }={}) {
     this.prune();
     const aid=String(agentId||'').trim();
     if (!this._validAgent(aid)) throw new SessionError('invalid_agent_id');
-    const targetNodeId=String(nodeId||this.nodeId).trim(), targetDeviceId=String(deviceId||this.deviceId).trim();
+    const targetNodeId=String(nodeId||this.nodeId).trim(), targetDeviceId=String(deviceId||this.deviceId).trim(), targetAccountId=String(accountId||this.accountId).trim();
+    if (!this._validId(targetAccountId)) throw new SessionError('invalid_account_id');
     if (!this._validId(targetNodeId)) throw new SessionError('invalid_node_id');
     if (!this._validId(targetDeviceId)) throw new SessionError('invalid_device_id');
     let nodeCeiling=null;
@@ -144,7 +145,7 @@ export class SessionRegistry {
     }
     const laneKey=this._laneKey(targetDeviceId,aid), liveId=this.agentDeviceSessions.get(laneKey), live=liveId?this.sessions.get(liveId):null;
     if (live&&['active','hold'].includes(this._state(live))) {
-      if (live.nodeId!==targetNodeId) throw new SessionError('agent_session_target_conflict',409);
+      if (live.nodeId!==targetNodeId||live.accountId!==targetAccountId) throw new SessionError('agent_session_target_conflict',409);
       this.emit({type:'session_reused_for_agent',accountId:live.accountId,deviceId:live.deviceId,sessionId:live.id,agentId:aid,nodeId:live.nodeId,status:this._state(live)});
       return this._view(live);
     }
@@ -155,6 +156,7 @@ export class SessionRegistry {
       const openKey=this._openKey(targetDeviceId,stableOpenId), priorId=this.openDedupe.get(openKey), prior=priorId?this.sessions.get(priorId):null;
       if (prior) {
         this._owner(prior,aid);
+        if(prior.accountId!==targetAccountId)throw new SessionError('session_account_mismatch',409);
         const state=this._state(prior);
         if (state==='expired'||state==='closed') throw new SessionError('session_open_id_expired',410);
         return this._view(prior);
@@ -168,7 +170,7 @@ export class SessionRegistry {
     if (this.sessions.has(sessionId)) throw new SessionError('session_already_exists',409);
     const requestedGrace=graceMs??leaseMs, requestedPreset=gracePreset??leasePreset;
     const graceSpec=this._graceSpec(requestedGrace,requestedPreset), now=this.now();
-    const s={id:sessionId,accountId:this.accountId,deviceId:targetDeviceId,agentId:aid,nodeId:targetNodeId,openId:stableOpenId,
+    const s={id:sessionId,accountId:targetAccountId,deviceId:targetDeviceId,agentId:aid,nodeId:targetNodeId,openId:stableOpenId,
       label:String(label||'').slice(0,120),workspace:String(workspace||'').slice(0,512),implicit:Boolean(implicit),
       graceMs:graceSpec.graceMs,gracePreset:graceSpec.gracePreset,createdAt:now,lastSeenAt:now,closedAt:null,expiredAt:null,
       holdReason:null,activeJobs:new Set(),connectCount:1,reconnectCount:0,

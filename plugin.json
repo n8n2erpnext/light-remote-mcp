@@ -1,0 +1,34 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "light-remote",
+  "version": "0.1.0",
+  "description": "Remote files, commands, managed processes, and PTY sessions on user-owned devices through a policy-bounded MCP connection.",
+  "author": {"name": "Light Remote", "url": "https://plugin.thaiduy.digital"},
+  "homepage": "https://plugin.thaiduy.digital",
+  "repository": "https://github.com/n8n2erpnext/light-remote-mcp",
+  "license": "Apache-2.0",
+  "keywords": ["remote", "mcp", "terminal", "infrastructure", "developer-tools"],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Light Remote",
+        "shortDescription": "Remote files, commands, processes, and PTY sessions on your own devices.",
+        "longDescription": "Connect ChatGPT and Codex to user-owned devices through OAuth, explicit device targeting, durable sessions, local policy boundaries, filesystem tools, managed processes, and real PTY/ConPTY terminals.",
+        "developerName": "Light Remote",
+        "category": "Developer Tools",
+        "capabilities": ["Read", "Write", "Execute"],
+        "websiteURL": "https://plugin.thaiduy.digital",
+        "privacyPolicyURL": "https://plugin.thaiduy.digital/privacy",
+        "termsOfServiceURL": "https://plugin.thaiduy.digital/terms",
+        "brandColor": "#2563EB",
+        "composerIcon": "./assets/branding/light-remote-mark-256.png",
+        "logo": "./assets/branding/light-remote-mark-512.png",        "defaultPrompt": [
+          "List my available Light Remote devices and their allowed capabilities.",
+          "Open a durable session on my selected device and inspect the workspace.",
+          "Run the project tests on my selected device and summarize the result.",
+          "Open an interactive terminal on my selected device, run pwd, then close the terminal."
+        ]
+      }
+    }
+  }
+}
