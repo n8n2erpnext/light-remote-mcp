@@ -11,6 +11,17 @@ export async function handleAccountRoutes(req,res,url,deps){
       const body=await readJson(req),account=accounts.verifyCredentials(body,{recordLogin:true,eventType:'plugin_oauth_login'});
       return sendJson(res,200,{ok:true,account});
     }
+    const pluginRemoveMatch=url.pathname.match(/^\/v1\/plugin\/accounts\/([A-Za-z0-9._:-]+)\/devices\/([A-Za-z0-9._:-]+)\/remove$/);
+    if(req.method==='POST'&&pluginRemoveMatch){
+      const body=await readJson(req),accountId=pluginRemoveMatch[1],deviceId=pluginRemoveMatch[2],device=devices.get(deviceId);
+      if(device.accountId!==accountId)throw new AccountError('account_device_mismatch',403);
+      if(device.deviceId===DEVICE_ID)throw new AccountError('integrated_hub_device_not_removable',409);
+      const account=clearMainIfMatches(accountId,device.deviceId,'main_device_removed')||accounts.account(accountId);
+      removeRuntimeForDevice(device.deviceId,'plugin_owner_removed');
+      let binding={deviceId:device.deviceId,removed:false};try{binding=enrollments.remove({deviceId:device.deviceId,accountId,reason:String(body.reason||'plugin_owner_removed').slice(0,120)});}catch(error){if(error.message!=='device_binding_not_found')throw error;}
+      const removed=devices.remove(device.deviceId,'plugin_owner_removed');wakeDeviceChannelForDevice(device.deviceId);
+      return sendJson(res,200,{ok:true,removed,binding,account,entitlements:planEntitlements(account)});
+    }
     if (req.method === 'POST' && url.pathname === '/v1/admin/licenses/issue') {
       const body=await readJson(req),issued=licenses.issue(body);
       return sendJson(res,201,{ok:true,...issued});

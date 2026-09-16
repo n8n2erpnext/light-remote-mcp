@@ -12,7 +12,7 @@ final class TrayDelegate: NSObject, NSApplicationDelegate {
     var enrollmentPollInFlight = false
     let onboardingKey = "LightRemoteDidPresentAccountOnboarding"
     let root = ProcessInfo.processInfo.environment["LIGHT_REMOTE_ROOT"] ?? "/Library/Application Support/Light Remote"
-    let accountPortal = "https://light-remote-mcp.vercel.app/"
+    let accountPortal = "https://light-remote.thaiduy.digital/"
     var node: String { root + "/current/runtime/node" }
     var agent: String { root + "/current/device-agent/operator-agent.mjs" }
     var brandIcon: String { root + "/current/assets/branding/light-remote-mark-256.png" }

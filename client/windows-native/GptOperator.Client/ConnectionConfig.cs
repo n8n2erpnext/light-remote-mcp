@@ -6,8 +6,8 @@ internal sealed record ConnectionSettings(string BridgeUrl, string HubUrl);
 
 internal static class ConnectionConfig
 {
-    public const string DefaultBridgeUrl = "https://light-remote-mcp.vercel.app";
-    public const string DefaultHubUrl = "https://mcp.dashboard.thaiduy.store";
+    public const string DefaultBridgeUrl = "https://light-remote.thaiduy.digital";
+    public const string DefaultHubUrl = "https://light-remote.thaiduy.digital";
 
     public static ConnectionSettings Load()
     {

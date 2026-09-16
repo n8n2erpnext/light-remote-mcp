@@ -72,6 +72,17 @@ const resultResp=await fetch(`${origin}/device-channel/result`,{method:'POST',he
 const executed=await execPromise;assert.equal(executed.job.status,'ok');assert.equal(executed.job.accountId,accountId);assert.equal(executed.job.deviceId,deviceId);
 const output=await adapter.output(executed.job.jobId);assert.equal(output.output,'hosted-account-job-ok\n');
 const closed=await adapter.closeSession(session.sessionId);assert.equal(closed.state,'closed');
+const vip=await socketReq('POST',`/v1/admin/accounts/${accountId}/entitlement`,{plan:'vip',sourceRef:'openai-review-selftest'});assert.equal(vip.status,200);assert.equal(vip.json.account.plan,'vip');assert.equal(vip.json.entitlements.fleetWall,true);
+const helper=await adapter.connectionHelper();assert.equal(helper.account.plan,'vip');assert.equal(helper.topology.length,1);assert.equal(helper.topology[0].deviceId,deviceId);assert.equal(helper.governance.silentFallback,false);assert.match(helper.onboarding.trustBoundary,/cannot mint its own A code/i);
+const inspected=await adapter.inspectDevice(deviceId);assert.equal(inspected.device.deviceId,deviceId);assert.equal(inspected.policy.localFinalDeny,true);assert.equal(inspected.fleet.accountPlan,'vip');
+const activity=await adapter.recentActivity(deviceId,50);assert.equal(activity.deviceId,deviceId);assert.ok(activity.events.length>0);for(const event of activity.events){assert.equal(event.accountId,undefined);assert.equal(event.jobId,undefined);assert.equal(event.sessionId,undefined);assert.equal(event.agentId,undefined);assert.equal(event.requestId,undefined);}
+const main=await adapter.setMainDevice(deviceId);assert.equal(main.account.mainDeviceId,deviceId);assert.equal(main.mainDevice.deviceId,deviceId);
+const revoked=await adapter.revokeDevice(deviceId,'openai_review_selftest');assert.equal(revoked.revoked,true);assert.equal(revoked.state,'revoked');
+const afterRevoke=await adapter.devices();assert.equal(afterRevoke.length,0);
+const removed=await adapter.removeDevice(deviceId,'openai_review_selftest_cleanup');assert.equal(removed.removed,true);
+const missing=await socketReq('GET',`/v1/devices/${deviceId}`);assert.equal(missing.status,404);
+const accountAfter=await socketReq('GET',`/v1/admin/accounts/${accountId}`);assert.equal(accountAfter.status,200);assert.equal(accountAfter.json.account.mainDeviceId,null);
+console.log('plugin_hosted_product_lifecycle=PASS');
 console.log('plugin_hosted_account_session_job_output=PASS');
 console.log('plugin_hosted_account_enrollment_channel_isolation=PASS');
 plugin.kill('SIGTERM');operator.kill('SIGTERM');

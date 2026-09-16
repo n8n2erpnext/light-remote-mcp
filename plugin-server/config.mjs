@@ -1,7 +1,7 @@
 import os from 'node:os';
 import path from 'node:path';
 
-export const PUBLIC_ORIGIN = String(process.env.LIGHT_REMOTE_PLUGIN_ORIGIN || 'https://plugin.thaiduy.digital').replace(/\/$/, '');
+export const PUBLIC_ORIGIN = String(process.env.LIGHT_REMOTE_PLUGIN_ORIGIN || 'https://light-remote.thaiduy.digital').replace(/\/$/, '');
 const loopbackHttpAllowed = process.env.LIGHT_REMOTE_PLUGIN_ALLOW_HTTP_LOOPBACK === '1' && /^http:\/\/(?:127\.0\.0\.1|localhost)(?::\d+)?$/.test(PUBLIC_ORIGIN);
 if (!PUBLIC_ORIGIN.startsWith('https://') && !loopbackHttpAllowed) throw new Error('plugin_origin_must_be_https');
 

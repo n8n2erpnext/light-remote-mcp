@@ -1,48 +1,70 @@
-# Light Remote OpenAI Plugin — Submission Readiness (2026-09-16)
+# Light Remote OpenAI Plugin — Full-product Reviewer Readiness (2026-09-16)
 
-## Current deployed candidate
+## Reviewer-only source branch
 
-- Branch: `codex/v0.11-openai-plugin`
-- Base commit before submission work: `805e08bfdc9faf0ea68a6fd922a18582a658334a`
-- Public MCP: `https://plugin.thaiduy.digital/mcp`
-- Reviewer LXD: `light-remote-review`
-- Plugin release path: `/opt/light-remote-plugin/releases/v011-20260916-805e08b-worktree`
-- Operator release path: `/opt/gpt-vps-operator-releases/v011-20260916-805e08b-worktree`
-- `current` points to the plugin release above. Operator systemd uses a v0.11 drop-in and `OPERATOR_ENROLLMENT_ACTIVATION_URL=https://plugin.thaiduy.digital/enroll`.
+- Branch: `reviewer/openai-full-product`.
+- Base: `2e12d5cb2b71b141fd7683272ea0a027efbe252f` (`codex/v0.11-openai-plugin`).
+- Primary/candidate worktree remains separate and untouched.
+- Canonical public origin: `https://light-remote.thaiduy.digital`.
+- Universal MCP URL: `https://light-remote.thaiduy.digital/mcp`.
+- Vercel compatibility code remains in the repository for legacy/Beta behavior, but Vercel is not in the reviewer runtime path.
 
-## Acceptance completed
+## Full-product reviewer design
 
-- Plugin OAuth/MCP selftest: PASS.
-- DCR + PKCE S256 + authorization-code exchange + access token + refresh rotation + refresh replay rejection: PASS in automated selftest.
-- Hosted production-style second-account test: PASS.
-- Account isolation: second account cannot open `review-demo`: PASS.
-- Second-account enrollment -> signed connect -> signed poll -> durable session -> remote job dispatch -> signed result -> output -> close session: PASS.
-- Full portable suite: `106 total / 105 passed / 0 failed / 1 skipped (live-host acceptance)`; exit 0.
-- Public `healthz`, OAuth discovery, protected-resource metadata, account login page, MCP initialize, tools/list, and unauthenticated MCP challenge: PASS after live deploy.
-- Public `/api/operator` non-allowlisted action denial: PASS.
-- Reviewer persisted account ID migrated to `reviewer`, matching integrated device `review-demo`; backup: `/var/lib/light-remote-review/accounts.json.pre-reviewer-id-20260916`.
-- Reviewer plugin/operator services: active; post-deploy journal shows clean starts and no runtime errors.
+The reviewer fixture is not a reduced MCP demo. It uses the Light Remote control plane and normal product runtime with isolated reviewer state:
+
+- `light-remote-review`: reviewer control plane + integrated `review-main` device.
+- `light-remote-review-leaf`: independent outbound `review-leaf` client device.
+- Reviewer account: `reviewer`, entitlement: **VIP**.
+- Local Wall, Fleet/Main authority, signed device channel, policy, durable sessions/jobs, native filesystem/search/process, PTY, activity, and updater/helper state use production code paths.
+- No production user account, device, key, file, or log is copied into the reviewer environment.
+- Normal A/B onboarding remains local-first; reviewer devices are pre-enrolled fixture data, not a security bypass.
+
+## OpenAI-facing surface
+
+- 20 MCP tools: 14 existing execution/recovery tools plus Connection Helper, Device Inspector, Recent Activity, Set Main, Revoke Device, and Remove Device.
+- Four portable skills: connection/onboarding, remote operations, Fleet/device governance, and policy/observability.
+- Tool annotations reflect worst-case behavior; revoke/remove are destructive.
+- Starter prompts demonstrate topology/Fleet, explicit target work, real PTY lifecycle, activity, and policy denial.
+- Five positive + three negative review cases are defined in `REVIEW_TEST_CASES.md`.
+
+## Source acceptance completed before commit
+
+- Plugin OAuth/MCP + hosted tests: PASS.
+- Hosted full-product lifecycle: VIP -> Connection Helper -> inspect/activity -> Set Main -> revoke -> remove: PASS on the real operator implementation.
+- Portable suite: `106 total / 105 passed / 0 failed / 1 skipped (live-host acceptance)`; exit 0.
+- Root `npm audit --omit=dev --audit-level=moderate`: 0 vulnerabilities.
+- Plugin `npm audit --prefix plugin-server --omit=dev --audit-level=moderate`: 0 vulnerabilities.
+- Root/compat manifests parse: PASS.
+- Modified JavaScript syntax checks: PASS.
+- Four `SKILL.md` frontmatter checks: PASS.
+- Changed-file credential literal scan: 0 hits.
+- `git diff --check`: PASS.
+- Reviewer-surface old-origin scan: PASS.
 
 ## OpenAI docs verified 2026-09-16
 
 - Submission: https://developers.openai.com/plugins/deploy/submission
+- MCP review requirements: https://developers.openai.com/plugins/deploy/app-review
+- Packaging: https://developers.openai.com/plugins/build/plugins
 - Authentication: https://developers.openai.com/plugins/build/auth
-- Guidelines/privacy: https://developers.openai.com/plugins/app-guidelines
+- Security/privacy: https://developers.openai.com/plugins/guides/security-privacy
 
-Key current requirements used here: verified developer/business identity; public production MCP URL; reviewer-ready credentials without MFA/email/SMS/private-network dependency; accurate annotations; five positive + three negative cases; public website/support/privacy/terms; Scan Tools; DCR remains supported; PKCE S256 required; DCR client must remain valid while the connection is in use; privacy must disclose data categories, purposes, recipients, retention, and controls.
+Applied current requirements: public production MCP URL; reviewer-ready credentials with no MFA/email/SMS/private-network dependency; accurate tool names/schemas/annotations; five positive + three negative tests; realistic starter prompts; public website/support/privacy/terms; Scan Tools; verified developer/business identity; and an OpenAI project with **global data residency** because EU-residency projects currently cannot submit MCP plugins for review.
 
-## Remaining hard gates
+## Remaining gates after source commit
 
-1. Determine the exact verified Developer Identity in the OpenAI Platform and align publisher-facing metadata.
-2. Install the portal-provided domain challenge token. Until then `/.well-known/openai-apps-challenge` intentionally returns 404.
-3. Exercise reviewer sign-in through the real ChatGPT/plugin submission UI. Automated use of the stored reviewer password was intentionally not bypassed when safety controls blocked it.
-4. Run Scan Tools in the portal against the final public endpoint.
-5. Run the documented five positive and three negative reviewer cases on the exact final deployment.
-6. Commit/push this branch and require clean CI on the exact commit before submission.
+1. Push the reviewer-only commit and require CI green on that exact SHA.
+2. Deploy that exact SHA into `light-remote-review`; do not deploy an uncommitted worktree.
+3. Install/start the real host Local Wall/Fleet path for `review-main`.
+4. Create `light-remote-review-leaf`, install the normal Linux client, and enroll it to the reviewer account.
+5. Set reviewer entitlement to VIP and verify Main/Fleet migration, policy, PTY, activity, updater/helper, revoke/remove/reset behavior.
+6. Re-run public OAuth/MCP smoke and the documented five positive + three negative cases.
+7. Install the exact OpenAI portal domain challenge token when the portal supplies it.
+8. Scan Tools on the final public endpoint; ensure the 20 tools and four skills match the submission draft.
+9. Exercise reviewer OAuth through the real OpenAI/ChatGPT review UI.
+10. Stop before **Submit for Review**.
 
-## Rollback
+## Rollback principle
 
-- Previous plugin snapshot: `/opt/light-remote-plugin/releases/pre-v011-20260916-1655`.
-- Remove `/etc/systemd/system/light-remote-review-operator.service.d/v011.conf`, run `systemctl daemon-reload`, restart operator to return to `/opt/gpt-vps-operator/operator-host/executor.mjs`.
-- Repoint `/opt/light-remote-plugin/current` to the previous snapshot and restart `light-remote-review-plugin`.
-- If reviewer account-ID migration itself must be reversed, restore `/var/lib/light-remote-review/accounts.json.pre-reviewer-id-20260916` only with plugin/operator stopped.
+Keep the existing reviewer deployment and backup until the full-product deployment passes acceptance. Cut public ingress only after local health/OAuth/MCP/device/Fleet checks pass. Do not touch `lxd-arm`.

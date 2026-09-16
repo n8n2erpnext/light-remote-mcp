@@ -30,7 +30,11 @@ const operator=http.createServer(async(req,res)=>{
     if(body.email==='reviewer@example.test'&&body.password===reviewerPassword) return res.end(JSON.stringify({ok:true,account:{accountId:'reviewer',email:'reviewer@example.test'}}));
     res.statusCode=401; return res.end(JSON.stringify({ok:false,error:'invalid_account_credentials'}));
   }
-  if(req.method==='GET'&&req.url==='/v1/devices') return res.end(JSON.stringify({ok:true,devices:[{deviceId:'dev_review',accountId:'reviewer',displayName:'review-demo',platform:'linux',architecture:'arm64',state:'online',capabilities:['filesystem','terminal'],policyProfile:'review'}]}));
+  const reviewDevice={deviceId:'dev_review',nodeId:'dev_review',accountId:'reviewer',displayName:'review-demo',platform:'linux',architecture:'arm64',state:'online',capabilities:['filesystem','terminal'],effectiveCapabilities:['filesystem','terminal'],policyProfile:'review',routing:{mode:'local',state:'online',draining:false,sessionCeiling:2,queuedCommands:0,inFlightCommands:0},connection:{state:'connected',plan:'vip',enforced:true,reconnectGraceMs:1800000},updateStatus:{state:'managed',currentVersion:'0.9.0-rc.26',helperVersion:'server-managed',mode:'server-managed'}};
+  if(req.method==='GET'&&req.url==='/v1/devices') return res.end(JSON.stringify({ok:true,currentDeviceId:'dev_review',devices:[reviewDevice]}));
+  if(req.method==='GET'&&req.url==='/v1/devices/dev_review') return res.end(JSON.stringify({ok:true,device:reviewDevice}));
+  if(req.method==='GET'&&req.url==='/v1/admin/accounts/reviewer') return res.end(JSON.stringify({ok:true,account:{accountId:'reviewer',email:'reviewer@example.test',plan:'vip',mainDeviceId:'dev_review',fleetProvisioning:{deviceId:'dev_review',state:'online',moduleVersion:'0.9.0-rc.26',port:5492}}}));
+  if(req.method==='GET'&&req.url.startsWith('/v1/activity?deviceId=dev_review')) return res.end(JSON.stringify({ok:true,events:[{type:'job_started',deviceId:'dev_review',status:'running',route:'local',requiredCapabilities:['terminal'],script:'PTY START',note:'native-terminal:start'}]}));
   res.statusCode=404; res.end(JSON.stringify({ok:false,error:'not_found'}));
 });
 await new Promise((resolve,reject)=>{operator.once('error',reject);operator.listen(socket,resolve)});
@@ -46,10 +50,13 @@ const init=await postMcp({jsonrpc:'2.0',id:1,method:'initialize',params:{protoco
 assert.equal(init.result.serverInfo.name,'light-remote');
 assert.match(init.result.instructions,/explicit device/i);
 const listed=await postMcp({jsonrpc:'2.0',id:2,method:'tools/list',params:{}});
-assert.equal(listed.result.tools.length,14);
+assert.equal(listed.result.tools.length,20);
 for(const tool of listed.result.tools){assert.ok(Array.isArray(tool.securitySchemes)&&tool.securitySchemes.length===1,`${tool.name}_securitySchemes`);assert.equal(tool.securitySchemes[0].type,'oauth2');assert.ok(tool.annotations,`${tool.name}_annotations`)}
-const execTool=listed.result.tools.find(t=>t.name==='light_remote_exec'),termTool=listed.result.tools.find(t=>t.name==='light_remote_terminal');
+const execTool=listed.result.tools.find(t=>t.name==='light_remote_exec'),termTool=listed.result.tools.find(t=>t.name==='light_remote_terminal'),helperTool=listed.result.tools.find(t=>t.name==='light_remote_connection_helper'),mainTool=listed.result.tools.find(t=>t.name==='light_remote_set_main_device'),revokeTool=listed.result.tools.find(t=>t.name==='light_remote_revoke_device'),removeTool=listed.result.tools.find(t=>t.name==='light_remote_remove_device');
 for(const tool of [execTool,termTool]){assert.equal(tool.annotations.readOnlyHint,false);assert.equal(tool.annotations.destructiveHint,true);assert.equal(tool.annotations.openWorldHint,true)}
+assert.equal(helperTool.annotations.readOnlyHint,true);assert.equal(helperTool.annotations.openWorldHint,false);
+assert.equal(mainTool.annotations.readOnlyHint,false);assert.equal(mainTool.annotations.destructiveHint,false);
+for(const tool of [revokeTool,removeTool]){assert.equal(tool.annotations.readOnlyHint,false);assert.equal(tool.annotations.destructiveHint,true);assert.equal(tool.annotations.openWorldHint,false)}
 console.log('plugin_tool_metadata=PASS');
 
 const unauth=await postMcp({jsonrpc:'2.0',id:3,method:'tools/call',params:{name:'light_remote_list_devices',arguments:{}}});
@@ -77,12 +84,16 @@ assert.equal(authSubmit.status,303);const callback=new URL(authSubmit.headers.ge
 const tokenBody=new URLSearchParams({grant_type:'authorization_code',client_id:reg.client_id,code,redirect_uri:redirect,code_verifier:verifier,resource:`${env.LIGHT_REMOTE_PLUGIN_ORIGIN}/mcp`});
 const tokenResp=await fetch(`${env.LIGHT_REMOTE_PLUGIN_ORIGIN}/oauth/token`,{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:tokenBody});assert.equal(tokenResp.status,200);const tokens=await tokenResp.json();assert.ok(tokens.access_token);assert.ok(tokens.refresh_token);assert.match(tokens.scope,/remote:read/);
 const authDevices=await postMcp({jsonrpc:'2.0',id:4,method:'tools/call',params:{name:'light_remote_list_devices',arguments:{}}},tokens.access_token);assert.equal(authDevices.result.isError,undefined);assert.equal(authDevices.result.structuredContent.items.length,1);assert.equal(authDevices.result.structuredContent.items[0].name,'review-demo');assert.equal(authDevices.result.structuredContent.items[0].accountId,undefined);
+const helper=await postMcp({jsonrpc:'2.0',id:5,method:'tools/call',params:{name:'light_remote_connection_helper',arguments:{}}},tokens.access_token);assert.equal(helper.result.structuredContent.product,'Light Remote');assert.equal(helper.result.structuredContent.account.plan,'vip');assert.equal(helper.result.structuredContent.topology[0].role,'main');assert.equal(helper.result.structuredContent.topology[0].accountId,undefined);
+const inspected=await postMcp({jsonrpc:'2.0',id:6,method:'tools/call',params:{name:'light_remote_inspect_device',arguments:{deviceId:'dev_review'}}},tokens.access_token);assert.equal(inspected.result.structuredContent.device.name,'review-demo');assert.equal(inspected.result.structuredContent.policy.localFinalDeny,true);
+const activity=await postMcp({jsonrpc:'2.0',id:7,method:'tools/call',params:{name:'light_remote_recent_activity',arguments:{deviceId:'dev_review',limit:10}}},tokens.access_token);assert.equal(activity.result.structuredContent.events[0].type,'job_started');assert.equal(activity.result.structuredContent.events[0].jobId,undefined);
+console.log('plugin_product_discovery=PASS');
 const refreshBody=new URLSearchParams({grant_type:'refresh_token',client_id:reg.client_id,refresh_token:tokens.refresh_token,resource:`${env.LIGHT_REMOTE_PLUGIN_ORIGIN}/mcp`});
 const refreshResp=await fetch(`${env.LIGHT_REMOTE_PLUGIN_ORIGIN}/oauth/token`,{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:refreshBody});assert.equal(refreshResp.status,200);const rotated=await refreshResp.json();assert.ok(rotated.access_token);assert.ok(rotated.refresh_token);assert.notEqual(rotated.refresh_token,tokens.refresh_token);
 const replayResp=await fetch(`${env.LIGHT_REMOTE_PLUGIN_ORIGIN}/oauth/token`,{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:refreshBody});assert.equal(replayResp.status,400);assert.equal((await replayResp.json()).error,'invalid_grant');
 const privacyText=await (await fetch(`${env.LIGHT_REMOTE_PLUGIN_ORIGIN}/privacy`)).text();for(const term of ['Data categories and purposes','Recipients','Retention','User controls','Restricted data'])assert.match(privacyText,new RegExp(term,'i'));
 const rootManifest=JSON.parse(fs.readFileSync(path.join(root,'plugin.json'),'utf8'));assert.equal(rootManifest.$schema,'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json');assert.equal(rootManifest.extensions?.['com.openai']?.interface?.displayName,'Light Remote');
-const portableMcp=JSON.parse(fs.readFileSync(path.join(root,'mcp.json'),'utf8'));assert.equal(portableMcp.$schema,'https://agent-plugins.org/schemas/1.0.0/mcp.schema.json');assert.equal(portableMcp.mcpServers?.['light-remote']?.type,'streamable-http');assert.equal(portableMcp.mcpServers?.['light-remote']?.url,'https://plugin.thaiduy.digital/mcp');
+const portableMcp=JSON.parse(fs.readFileSync(path.join(root,'mcp.json'),'utf8'));assert.equal(portableMcp.$schema,'https://agent-plugins.org/schemas/1.0.0/mcp.schema.json');assert.equal(portableMcp.mcpServers?.['light-remote']?.type,'streamable-http');assert.equal(portableMcp.mcpServers?.['light-remote']?.url,'https://light-remote.thaiduy.digital/mcp');
 console.log('plugin_oauth_authenticated_refresh_portable_privacy=PASS');
 
 child.kill('SIGTERM');

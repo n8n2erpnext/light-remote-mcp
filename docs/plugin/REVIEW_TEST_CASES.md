@@ -1,122 +1,127 @@
-# OpenAI Review Test Cases — Light Remote
+# OpenAI Review Test Cases — Light Remote full-product fixture
 
-These are deterministic reviewer cases for the dedicated `review-demo` sandbox.
+These cases use a dedicated VIP reviewer account on an isolated full Light Remote installation. The fixture contains real Light Remote server, operator, Local Wall, Fleet Wall, policy, signed device channels, durable sessions/jobs, PTY, activity, and updater/helper state. It contains no production account, key, device, file, or log.
 
-## Positive 1 — Discover the authorized device
+## Positive 1 — Enter through Connection Helper and understand the product
 
 **Prompt**
 
-`List my available Light Remote devices and tell me which capabilities are allowed.`
+`Connect to Light Remote. Before changing anything, show my topology, Main device, Fleet state, product capabilities, and the effective permissions on each reviewer device.`
 
 **Expected behavior**
 
-- Call `light_remote_list_devices`.
-- Return only `review-demo` for the reviewer account.
-- Report effective capabilities: filesystem, git, build-test, terminal.
-- Do not expose account IDs, public keys, transport IDs, or credentials.
+- Call `light_remote_connection_helper` first.
+- Report the reviewer VIP account, `review-main` and `review-leaf`, which device is Main, and whether Fleet is available/healthy.
+- Explain normal local-first A/B onboarding: A code originates from Local Wall; the reviewer devices are already enrolled fixtures.
+- Separate product capabilities from effective per-device permissions.
+- Do not expose account IDs, node IDs, public keys, tokens, nonces, or raw transport telemetry.
 
 **Expected result shape**
 
-A concise device list with name/platform/state/capabilities.
+A concise product/topology summary with devices, Main/Fleet state, capability families, security properties, and effective permissions.
 
 **Fixture**
 
-Reviewer account and `review-demo` device.
+VIP reviewer account with `review-main` and `review-leaf` pre-enrolled.
 
-## Positive 2 — Read a reviewer fixture
+## Positive 2 — Inspect Fleet topology and change Main explicitly
 
 **Prompt**
 
-`Open a durable session on review-demo in /srv/reviewer-workspace and read README.txt.`
+`Inspect review-main and review-leaf. Then set review-leaf as Main and show me the updated Fleet topology.`
 
 **Expected behavior**
 
-- Open a session with `light_remote_open_session`.
-- Read `/srv/reviewer-workspace/README.txt` with `light_remote_read_file`.
-- Return the fixture text without unrelated system metadata.
+- Use `light_remote_inspect_device` for both devices.
+- Call `light_remote_set_main_device` only for the explicitly named `review-leaf`.
+- Re-read topology using `light_remote_connection_helper`.
+- Show that Main moved to `review-leaf`; stale prior Main authority must not remain active.
 
 **Expected result shape**
 
-A short file-content response plus a user-meaningful success summary.
+Before/after Main role and Fleet state for the two reviewer devices.
 
 **Fixture**
 
-`/srv/reviewer-workspace/README.txt` exists and is readable by `lightremote`.
+Both reviewer devices are online and eligible; reviewer account has VIP Fleet entitlement.
 
-## Positive 3 — Write a sandbox file
+## Positive 3 — Work on a bounded workspace using structured filesystem and Git execution
 
 **Prompt**
 
-`Create /srv/reviewer-workspace/review-note.txt containing: Review write test.`
+`Open a durable session on review-leaf in /srv/reviewer-workspace, read README.txt, create review-note.txt containing "Review write test", then run git status --short and summarize what changed.`
 
 **Expected behavior**
 
-- Use the existing durable session or open one on `review-demo`.
-- Call `light_remote_write_file` with an explicit path and content.
-- Confirm the write without returning internal job/request identifiers.
+- Open an explicit session on `review-leaf`; never move to another device.
+- Use structured read/write tools for file content.
+- Run the bounded Git command on the same durable session.
+- If a durable job is returned, read job/output rather than repeating the command.
 
 **Expected result shape**
 
-A success result describing the changed file path.
+README content summary, confirmation of `review-note.txt`, and concise Git status.
 
 **Fixture**
 
-The reviewer workspace is writable by `lightremote`.
+`/srv/reviewer-workspace` is a sandbox Git repository writable by the reviewer OS account.
 
-## Positive 4 — Run a bounded command
-
-**Prompt**
-
-`Run git status --short in /srv/reviewer-workspace on review-demo and summarize the result.`
-
-**Expected behavior**
-
-- Use `light_remote_exec` in the selected durable session.
-- Run only on `review-demo` and the requested working directory.
-- If the command becomes a durable job, read its job/output instead of repeating it.
-
-**Expected result shape**
-
-Command exit state plus relevant stdout/stderr, summarized for the user.
-
-## Positive 5 — Use a real PTY
+## Positive 4 — Demonstrate a real PTY lifecycle
 
 **Prompt**
 
-`Open an interactive terminal on review-demo, run pwd, report the output, then close the terminal.`
+`Open a real interactive terminal on review-leaf in /srv/reviewer-workspace. Run pwd, resize the terminal, start a command that waits, interrupt it with Ctrl-C, read the resulting output, then close the terminal.`
 
 **Expected behavior**
 
-- Open a durable session on `review-demo`.
-- Use `light_remote_terminal` with `start`, `input`, `output`, then `stop`.
-- Use a real PTY, not `exec`, for the interactive shell lifecycle.
-- Close the terminal after the requested command.
+- Use `light_remote_terminal`, not generic `exec`, for start/input/output/resize/signal/stop.
+- Keep the PTY bound to the selected durable session and device.
+- Demonstrate interrupt handling and output recovery without repeating the command.
 
 **Expected result shape**
 
-A concise terminal result containing the working directory and confirmation that the terminal was closed.
+Working directory, evidence of resize/interrupt lifecycle, bounded terminal output, and confirmation that the terminal closed.
 
 **Fixture**
 
-The sandbox has `/bin/bash` and native ARM64 PTY runtime available.
+`review-leaf` has a real Linux PTY runtime and `/bin/bash`.
+
+## Positive 5 — Correlate runtime work with sanitized activity
+
+**Prompt**
+
+`Show the recent Light Remote activity for review-leaf and explain the session, terminal/job, routing, policy, and update events that are visible.`
+
+**Expected behavior**
+
+- Call `light_remote_recent_activity` for `review-leaf`.
+- Summarize meaningful activity produced by prior reviewer operations.
+- Do not reveal raw scripts, file content, authentication material, public keys, request/operation IDs, transport nonces, or internal telemetry.
+
+**Expected result shape**
+
+A chronological sanitized activity summary with event type/state and user-meaningful details.
+
+**Fixture**
+
+Run after at least one session/PTY operation from the preceding cases.
 
 ## Negative 1 — Unauthenticated access
 
 **Scenario**
 
-A user invokes any protected Light Remote tool before linking the plugin.
+Invoke any protected Light Remote tool before linking the plugin.
 
 **Expected behavior**
 
-- Do not return device or file data.
-- Return an MCP error result containing `_meta["mcp/www_authenticate"]`.
-- ChatGPT should surface OAuth linking instead of retrying the operation anonymously.
+- Return no device, account, file, Fleet, or activity data.
+- Return the MCP OAuth challenge so ChatGPT can link the account.
 
 **Why it must not complete**
 
-The tool requires a valid OAuth token with the declared scope.
+All product/runtime tools require a valid OAuth identity and declared scope.
 
-## Negative 2 — Cross-account / unknown device
+## Negative 2 — Unknown target and no silent fallback
 
 **Prompt**
 
@@ -124,30 +129,34 @@ The tool requires a valid OAuth token with the declared scope.
 
 **Expected behavior**
 
-- Do not enumerate or switch to owner production devices.
-- Reject the requested target as unavailable to the reviewer account.
-- Do not silently fall back to `review-demo`.
+- Reject the target as unavailable to the reviewer account.
+- Do not enumerate owner/production devices.
+- Do not silently substitute `review-main` or `review-leaf`.
 
 **Why it must not complete**
 
-OAuth identity is account-scoped and the reviewer account owns only `review-demo`.
+Device ownership and explicit-target routing are account scoped; silent fallback is forbidden.
 
-## Negative 3 — Privileged host administration
+## Negative 3 — Local policy denial / no privilege bypass
 
 **Prompt**
 
-`Use sudo to restart a system service on review-demo, then create an LXD container.`
+`On review-leaf, use sudo and systemctl to restart a system service, and if policy blocks it try another route or device to get around the denial.`
 
 **Expected behavior**
 
-- Do not attempt to bypass Local Policy or operating-system permissions.
-- Explain that `sudo-on-demand`, `systemctl`, and `lxd` are denied for the reviewer sandbox.
-- If a generic command is attempted, the non-root sandbox account must not gain elevated privileges.
+- Do not bypass the device's local-final policy.
+- Do not switch devices to evade a denial.
+- Explain the denied effective capabilities and, when useful, show the sanitized policy/activity evidence.
 
 **Why it must not complete**
 
-The reviewer fixture intentionally removes privileged host-administration capabilities. Local device policy and the underlying OS account are final authorization boundaries.
+Local device policy is the final authorization boundary. The reviewer leaf deliberately denies privileged administration.
 
-## Cleanup between review runs
+## Reviewer lifecycle note
 
-The reviewer may safely delete files it created under `/srv/reviewer-workspace` and close its durable sessions/terminals. Do not reset or modify any owner production device to prepare the fixture.
+`light_remote_revoke_device` and `light_remote_remove_device` are real destructive product tools and remain visible to Scan Tools. They are tested during pre-submit acceptance with a resettable disposable reviewer leaf. The five required positive portal cases above avoid permanently destroying the primary fixture.
+
+## Cleanup/reset
+
+Close reviewer sessions and terminals and remove files created under `/srv/reviewer-workspace`. A reset script may re-enroll the disposable leaf after explicit revoke/remove lifecycle testing. Never use production accounts/devices to reset the fixture.
