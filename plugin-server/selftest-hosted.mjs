@@ -32,6 +32,14 @@ const pluginLogs=[];
 const plugin=spawn(process.execPath,[path.join(root,'plugin-server/server.mjs')],{cwd:root,env:{...process.env,LIGHT_REMOTE_PLUGIN_ORIGIN:origin,LIGHT_REMOTE_PLUGIN_ALLOW_HTTP_LOOPBACK:'1',LIGHT_REMOTE_PLUGIN_HOST:'127.0.0.1',LIGHT_REMOTE_PLUGIN_PORT:String(basePort),LIGHT_REMOTE_PLUGIN_INTERNAL_HOST:'127.0.0.1',LIGHT_REMOTE_PLUGIN_INTERNAL_PORT:String(basePort+1),LIGHT_REMOTE_PLUGIN_INTERNAL_ALLOWED_IP:'127.0.0.1',LIGHT_REMOTE_PLUGIN_OAUTH_SECRET_FILE:secretFile,OPERATOR_SOCKET:socket,LIGHT_REMOTE_VERSION:'0.9.0-rc.26'},stdio:['ignore','pipe','pipe']});
 children.push(plugin);plugin.stdout.on('data',d=>pluginLogs.push(String(d)));plugin.stderr.on('data',d=>pluginLogs.push(String(d)));
 await waitHttp(`${origin}/healthz`,()=>pluginLogs.join(''));
+let portalResp=await fetch(`${origin}/account`);assert.equal(portalResp.status,200);const portalHtml=await portalResp.text();assert.match(portalHtml,/Your devices/);assert.match(portalHtml,/official OpenAI Plugin/i);assert.doesNotMatch(portalHtml,/Vercel compatibility bridge/i);
+for(const route of ['/login/','/usage/','/settings/','/assets/light-remote-portal.css']){const resp=await fetch(`${origin}${route}`);assert.equal(resp.status,200,route);}
+let portalMe=await fetch(`${origin}/api/auth?action=me`);assert.equal(portalMe.status,401);
+const portalLogin=await fetch(`${origin}/api/auth?action=login`,{method:'POST',headers:{'content-type':'application/json','origin':origin,'sec-fetch-site':'same-origin'},body:JSON.stringify({email,password})});assert.equal(portalLogin.status,200);const portalCookie=cookieFrom(portalLogin);assert.ok(portalCookie);
+portalMe=await fetch(`${origin}/api/auth?action=me`,{headers:{cookie:portalCookie}});assert.equal(portalMe.status,200);assert.equal((await portalMe.json()).account.accountId,accountId);
+const portalRoot=await fetch(origin,{headers:{cookie:portalCookie},redirect:'manual'});assert.equal(portalRoot.status,303);assert.equal(portalRoot.headers.get('location'),'/account');
+const portalCrossSite=await fetch(`${origin}/api/auth?action=login`,{method:'POST',headers:{'content-type':'application/json','origin':'https://evil.example.test','sec-fetch-site':'cross-site'},body:JSON.stringify({email,password})});assert.equal(portalCrossSite.status,403);
+console.log('plugin_full_account_portal=PASS');
 const identity=crypto.generateKeyPairSync('ed25519');
 const publicIdentityKey=identity.publicKey.export({format:'der',type:'spki'}).toString('base64');
 const beginResp=await fetch(`${origin}/api/operator`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'enrollment-begin',payload:{publicIdentityKey,displayName:'Prod Test Device',platform:'linux',architecture:'x64',agentVersion:'0.9.0-rc.26',fingerprintSummary:'prod-test/linux/x64',capabilities:['filesystem','terminal'],policyProfile:'default'}})});
@@ -71,11 +79,18 @@ const resultPayload={commandId:command.commandId,status:'ok',exitCode:0,stdout:'
 const resultResp=await fetch(`${origin}/device-channel/result`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(sign('result',resultPayload))});assert.equal(resultResp.status,200);assert.equal((await resultResp.json()).accepted,true);
 const executed=await execPromise;assert.equal(executed.job.status,'ok');assert.equal(executed.job.accountId,accountId);assert.equal(executed.job.deviceId,deviceId);
 const output=await adapter.output(executed.job.jobId);assert.equal(output.output,'hosted-account-job-ok\n');
+const denyPollPromise=fetch(`${origin}/device-channel/poll`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(sign('poll',waitHello))});
+await sleep(60);
+const denyExecPromise=adapter.exec(session.sessionId,'sudo systemctl restart ssh',{cwd:'/tmp',operationId:'hosted-policy-deny-00000001',timeoutMs:10000,waitMs:7000});
+const denyDispatchResp=await denyPollPromise;assert.equal(denyDispatchResp.status,200);const denyDispatch=await denyDispatchResp.json();const denyCommand=denyDispatch.channel.command;
+const denyResult={commandId:denyCommand.commandId,status:'error',exitCode:126,stdout:'',stderr:'local capability denied: sudo-on-demand,systemctl\n',durationMs:2};
+const denyResultResp=await fetch(`${origin}/device-channel/result`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(sign('result',denyResult))});assert.equal(denyResultResp.status,200);assert.equal((await denyResultResp.json()).accepted,true);
+const deniedExec=await denyExecPromise;assert.equal(deniedExec.job.exitCode,126);assert.equal(deniedExec.job.status,'error');
 const closed=await adapter.closeSession(session.sessionId);assert.equal(closed.state,'closed');
 const vip=await socketReq('POST',`/v1/admin/accounts/${accountId}/entitlement`,{plan:'vip',sourceRef:'openai-review-selftest'});assert.equal(vip.status,200);assert.equal(vip.json.account.plan,'vip');assert.equal(vip.json.entitlements.fleetWall,true);
 const helper=await adapter.connectionHelper();assert.equal(helper.account.plan,'vip');assert.equal(helper.topology.length,1);assert.equal(helper.topology[0].deviceId,deviceId);assert.equal(helper.governance.silentFallback,false);assert.match(helper.onboarding.trustBoundary,/cannot mint its own A code/i);
 const inspected=await adapter.inspectDevice(deviceId);assert.equal(inspected.device.deviceId,deviceId);assert.equal(inspected.policy.localFinalDeny,true);assert.equal(inspected.fleet.accountPlan,'vip');
-const activity=await adapter.recentActivity(deviceId,50);assert.equal(activity.deviceId,deviceId);assert.ok(activity.events.length>0);for(const event of activity.events){assert.equal(event.accountId,undefined);assert.equal(event.jobId,undefined);assert.equal(event.sessionId,undefined);assert.equal(event.agentId,undefined);assert.equal(event.requestId,undefined);}
+const activity=await adapter.recentActivity(deviceId,50);assert.equal(activity.deviceId,deviceId);assert.ok(activity.events.length>0);const deniedEvent=activity.events.find(event=>event.status==='denied'&&event.exitCode===126);assert.ok(deniedEvent);assert.equal(deniedEvent.note,'Denied by local device policy.');for(const event of activity.events){assert.equal(event.accountId,undefined);assert.equal(event.jobId,undefined);assert.equal(event.sessionId,undefined);assert.equal(event.agentId,undefined);assert.equal(event.requestId,undefined);assert.equal(event.script,undefined);assert.equal(event.chunk,undefined);}
 const main=await adapter.setMainDevice(deviceId);assert.equal(main.account.mainDeviceId,deviceId);assert.equal(main.mainDevice.deviceId,deviceId);
 const revoked=await adapter.revokeDevice(deviceId,'openai_review_selftest');assert.equal(revoked.revoked,true);assert.equal(revoked.state,'revoked');
 const afterRevoke=await adapter.devices();assert.equal(afterRevoke.length,0);

@@ -16,10 +16,15 @@ The reviewer account is a normal Light Remote **VIP** account on an isolated ful
 - `review-main`: integrated Linux device in `light-remote-review`; Local Wall + Main/Fleet capability.
 - `review-leaf`: independent Linux device in `light-remote-review-leaf`; signed outbound device channel + Local Wall.
 - Workspace: `/srv/reviewer-workspace`.
-- Leaf policy: filesystem/git/build-test/terminal allowed; privileged administration such as sudo-on-demand/systemctl/lxd/docker denied.
+- Leaf policy: filesystem/git/build-test/terminal allowed; lxd/package-manager/sudo-on-demand/systemctl denied by the device-local final policy. Docker is not installed on the leaf fixture.
+- The leaf is pre-connected with a finite VIP cloud lease so it is immediately available after reviewer sign-in; normal finite-lease and reconnect-grace rules still apply.
 - No production accounts, devices, keys, files, or logs are present.
 
 Normal onboarding is unchanged: a new device's Local Wall creates the one-time A code, the account approves the enrollment, and the device connects through its signed outbound channel. The reviewer devices are simply fixture data already past that normal onboarding step.
+
+## Account Portal
+
+The same full Light Remote account portal is available at `https://light-remote.thaiduy.digital/account`. It uses the same reviewer credentials and the same operator/account registries as the MCP path. The portal exposes the actual Devices, Usage and Settings surfaces, including Main/Fleet state, signed update actions, revoke/remove controls and device enrollment approval. Vercel is not used by this reviewer portal.
 
 ## Suggested reviewer workflow
 
@@ -29,7 +34,7 @@ Normal onboarding is unchanged: a new device's Local Wall creates the one-time A
 4. Open a durable session on `review-leaf` in `/srv/reviewer-workspace`.
 5. Read/write bounded workspace files and run `git status --short`.
 6. Use the real PTY lifecycle: start → input → output → resize → signal/Ctrl-C → stop.
-7. Ask for recent activity to see sanitized session/job/terminal/policy/update events.
+7. Ask for recent activity to see sanitized session/job/terminal/policy/update events. Policy-denied jobs are surfaced as `status: denied` / exit code 126 without exposing the raw command or stderr.
 8. Try a privileged action and confirm the local policy denies it without target fallback or bypass.
 
 ## Lifecycle tools
