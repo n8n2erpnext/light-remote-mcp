@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - 'codex/**'
+      - 'reviewer/**'
     tags:
       - 'v0.9.*'
     paths:
