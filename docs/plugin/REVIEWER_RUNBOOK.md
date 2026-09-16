@@ -2,36 +2,40 @@
 
 ## Connection
 
-Use the production Universal MCP endpoint:
+Use the public Universal MCP endpoint:
 
-`https://plugin.thaiduy.digital/mcp`
+`https://light-remote.thaiduy.digital/mcp`
 
-The plugin uses OAuth. When ChatGPT prompts for linking, sign in with the reviewer credentials supplied in the OpenAI submission form. No MFA, email confirmation, VPN, NetBird client, or additional setup is required.
+The plugin uses OAuth. Sign in with the reviewer credentials supplied in the OpenAI submission form. No MFA, email/SMS confirmation, VPN, NetBird client, installer, or private-network access is required for review.
 
-## What the reviewer account can see
+## Reviewer fixture
 
-The OAuth reviewer account owns exactly one sandbox device:
+The reviewer account is a normal Light Remote **VIP** account on an isolated full-product installation. It is pre-enrolled only so the reviewer can begin after normal provisioning without needing a separate physical machine.
 
-- Device: `review-demo`
-- OS: Ubuntu Linux ARM64
-- Workspace: `/srv/reviewer-workspace`
-- Effective capabilities: filesystem, git, build-test, terminal
+- Account: `reviewer` / VIP entitlement.
+- `review-main`: integrated Linux device in `light-remote-review`; Local Wall + Main/Fleet capability.
+- `review-leaf`: independent Linux device in `light-remote-review-leaf`; signed outbound device channel + Local Wall.
+- Workspace: `/srv/reviewer-workspace`.
+- Leaf policy: filesystem/git/build-test/terminal allowed; privileged administration such as sudo-on-demand/systemctl/lxd/docker denied.
+- No production accounts, devices, keys, files, or logs are present.
 
-The account is intentionally isolated from owner production devices and cannot enumerate them.
+Normal onboarding is unchanged: a new device's Local Wall creates the one-time A code, the account approves the enrollment, and the device connects through its signed outbound channel. The reviewer devices are simply fixture data already past that normal onboarding step.
 
-## Suggested first workflow
+## Suggested reviewer workflow
 
-1. Ask Light Remote to list available devices.
-2. Select `review-demo` explicitly.
-3. Open a durable session in `/srv/reviewer-workspace`.
-4. Read `README.txt`.
-5. Write or edit a file in that workspace.
-6. Run a bounded command such as `git status --short`.
-7. Start a PTY, run `pwd`, read output, then stop the PTY.
-8. Close the durable session when finished.
-## Service and isolation notes
+1. Ask: `Connect to Light Remote and explain my topology and effective permissions before making changes.`
+2. The Agent should call `light_remote_connection_helper` first and show `review-main`, `review-leaf`, Main/Fleet state, capability families, and local-policy boundary.
+3. Inspect both devices and optionally move Main explicitly to the other eligible reviewer device.
+4. Open a durable session on `review-leaf` in `/srv/reviewer-workspace`.
+5. Read/write bounded workspace files and run `git status --short`.
+6. Use the real PTY lifecycle: start → input → output → resize → signal/Ctrl-C → stop.
+7. Ask for recent activity to see sanitized session/job/terminal/policy/update events.
+8. Try a privileged action and confirm the local policy denies it without target fallback or bypass.
 
-The reviewer fixture uses the same production MCP/OAuth code path as normal accounts. It is not a separate mock server. The persisted reviewer credential account ID and the integrated `review-demo` device account ID must both be `reviewer`; deployment acceptance checks this before submission.
+## Lifecycle tools
 
-Normal Light Remote clients can enroll through `https://plugin.thaiduy.digital/enroll?id=<enrollmentId>` and then use the signed outbound device channel. Those accounts and devices are isolated from the reviewer fixture.
+`light_remote_set_main_device`, `light_remote_revoke_device`, and `light_remote_remove_device` use the same account/device registries as the product. Revoke/remove are destructive. Portal-required positive cases should not permanently destroy the primary fixture; pre-submit acceptance may use a resettable disposable leaf to exercise those paths.
 
+## Isolation
+
+The reviewer installation uses the same Light Remote control-plane, Local Wall/Fleet, signed device channel, policy, durable session/job, PTY, observability, and updater/helper code paths as the product. Vercel is not in the OpenAI reviewer data path. Account scoping prevents the reviewer OAuth identity from enumerating any owner/production device.

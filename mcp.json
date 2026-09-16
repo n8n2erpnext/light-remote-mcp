@@ -3,7 +3,7 @@
   "mcpServers": {
     "light-remote": {
       "type": "streamable-http",
-      "url": "https://plugin.thaiduy.digital/mcp"
+      "url": "https://light-remote.thaiduy.digital/mcp"
     }
   }
 }

@@ -4,8 +4,8 @@ set -euo pipefail
 ROOT=/opt/gpt-operator-agent
 MANIFEST_URL="${GPT_OPERATOR_UPDATE_MANIFEST_URL:-https://raw.githubusercontent.com/n8n2erpnext/light-remote-mcp/main/channels/beta/client-update.json}"
 SIGNATURE_URL="${GPT_OPERATOR_UPDATE_SIGNATURE_URL:-https://raw.githubusercontent.com/n8n2erpnext/light-remote-mcp/main/channels/beta/client-update.json.sig}"
-BASE_URL="${OPERATOR_AGENT_BASE_URL:-https://light-remote-mcp.vercel.app}"
-HUB_URL="${OPERATOR_AGENT_HUB_URL:-https://mcp.dashboard.thaiduy.store}"
+BASE_URL="${OPERATOR_AGENT_BASE_URL:-https://light-remote.thaiduy.digital}"
+HUB_URL="${OPERATOR_AGENT_HUB_URL:-https://light-remote.thaiduy.digital}"
 BUNDLE=""
 DEV_BUNDLE=0
 TARGET_USER="${SUDO_USER:-${USER:-}}"

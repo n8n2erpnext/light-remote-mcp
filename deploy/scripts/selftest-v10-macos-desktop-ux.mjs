@@ -11,7 +11,7 @@ const uninstall=read('client/macos/uninstall.sh');
 need(tray.includes('agentRun(["login", "--no-wait"])')&&tray.includes('Activation URL:')&&tray.includes('Device code:'),'macos-first-run-account-enrollment');
 need(tray.includes('agentRun(["poll"])')&&tray.includes('state == "approved"')&&tray.includes('restartAgentNow()'),'macos-enrollment-poll-restart');
 need(agent.includes('writeAccountOnlyWallAuthConfig(LOCAL_WALL_AUTH_FILE')&&wall.includes('action=\"/auth/logout\"'),'macos-approved-wall-login-logout');
-need(tray.includes('Account / Logout…')&&tray.includes('light-remote-mcp.vercel.app/'),'macos-account-logout-discovery');
+need(tray.includes('Account / Logout…')&&tray.includes('light-remote.thaiduy.digital/'),'macos-account-logout-discovery');
 need(tray.includes('.systemGreen')&&tray.includes('.systemOrange')&&tray.includes('.systemGray')&&tray.includes('.systemRed'),'macos-tray-connection-states');
 need(tray.includes('NSStatusItem.squareLength')&&tray.includes('statusItem.isVisible = true'),'macos-tray-fixed-visible-slot');
 need(tray.includes('LightRemote.icns')&&tray.includes('base.draw(in: NSRect(origin: .zero, size: size))')&&tray.includes('NSString(string: \"LR\")'),'macos-tray-icon-fallback');

@@ -1,33 +1,50 @@
 {
   "name": "light-remote",
   "version": "0.1.0",
-  "description": "Remote files, commands, managed processes, and PTY sessions on user-owned devices through a policy-bounded MCP connection.",
+  "description": "Governed remote computing for AI agents across user-owned devices with local policy, durable sessions, real terminals, Fleet, and recovery.",
   "author": {
     "name": "Light Remote",
-    "url": "https://plugin.thaiduy.digital"
+    "url": "https://light-remote.thaiduy.digital"
   },
-  "homepage": "https://plugin.thaiduy.digital",
+  "homepage": "https://light-remote.thaiduy.digital",
   "repository": "https://github.com/n8n2erpnext/light-remote-mcp",
   "license": "Apache-2.0",
-  "keywords": ["remote", "mcp", "terminal", "infrastructure", "developer-tools"],
+  "keywords": [
+    "remote",
+    "mcp",
+    "terminal",
+    "fleet",
+    "infrastructure",
+    "developer-tools",
+    "remote-computing"
+  ],
   "interface": {
     "displayName": "Light Remote",
-    "shortDescription": "Remote files, commands, processes, and PTY sessions on your own devices.",
-    "longDescription": "Connect ChatGPT and Codex to user-owned devices through OAuth, explicit device targeting, durable sessions, local policy boundaries, filesystem tools, managed processes, and real PTY/ConPTY terminals.",
+    "shortDescription": "Governed remote work across your own devices, with local policy, Fleet, durable sessions, and real terminals.",
+    "longDescription": "Light Remote connects ChatGPT and Codex to explicitly authorized user-owned devices. It combines local-first A/B enrollment, device-local final policy, Main/Fleet multi-device governance, durable sessions and recoverable jobs, bounded filesystem/search/process tools, real PTY/ConPTY terminals, activity observability, and signed update/recovery architecture. Targets remain explicit and Light Remote never silently falls back to another device.",
     "developerName": "Light Remote",
     "category": "Developer Tools",
-    "capabilities": ["Read", "Write", "Execute"],
-    "websiteURL": "https://plugin.thaiduy.digital",
-    "privacyPolicyURL": "https://plugin.thaiduy.digital/privacy",
-    "termsOfServiceURL": "https://plugin.thaiduy.digital/terms",
+    "capabilities": [
+      "Read",
+      "Write",
+      "Execute"
+    ],
+    "websiteURL": "https://light-remote.thaiduy.digital",
+    "privacyPolicyURL": "https://light-remote.thaiduy.digital/privacy",
+    "termsOfServiceURL": "https://light-remote.thaiduy.digital/terms",
     "defaultPrompt": [
-      "List my available Light Remote devices and their allowed capabilities.",
-      "Open a durable session on my selected device and inspect the workspace.",
-      "Run the project tests on my selected device and summarize the result.",
-      "Open an interactive terminal on my selected device, run pwd, then close the terminal."
+      "Connect to Light Remote, show my device topology and effective permissions, and explain what you can safely do before making changes.",
+      "Inspect my Light Remote Fleet, open a durable session on the device I choose, investigate the workspace, and show the recent activity trail.",
+      "Open a real interactive terminal on my selected device, run the failing test, interrupt it with Ctrl-C if it hangs, and recover the output without repeating the command.",
+      "Explain why a privileged operation is denied on my selected device using its effective policy and recent Light Remote activity.",
+      "Show my Main device and Fleet state, then switch Main only if I explicitly name another eligible device."
     ],
     "brandColor": "#2563EB",
     "composerIcon": "./assets/branding/light-remote-mark-256.png",
-    "logo": "./assets/branding/light-remote-mark-512.png"
+    "logo": "./assets/branding/light-remote-mark-512.png",
+    "screenshots": [
+      "./assets/screenshots/device-wall-demo.png",
+      "./assets/screenshots/permissions-demo.png"
+    ]
   }
 }
