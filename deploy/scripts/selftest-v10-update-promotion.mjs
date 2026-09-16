@@ -1,0 +1,24 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import {spawnSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
+
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..'),tmp=fs.mkdtempSync(path.join(os.tmpdir(),'lr-update-promote-')),version=fs.readFileSync(path.join(root,'VERSION'),'utf8').trim();
+const need=(v,m)=>{if(!v)throw new Error(m);},assets=path.join(tmp,'assets');fs.mkdirSync(assets);
+const names=[`Light-Remote-MCP-Setup-x64-${version}.exe`,`Light-Remote-Client-macOS-x64-${version}.tar.gz`,`Light-Remote-Client-macOS-arm64-${version}.tar.gz`,`Light-Remote-MCP-Client-Linux-x64-${version}.tar.gz`,`Light-Remote-MCP-Client-Linux-arm64-${version}.tar.gz`];
+for(const [i,name] of names.entries())fs.writeFileSync(path.join(assets,name),`promotion-artifact-${i}-${name}\n`);
+const manifest=path.join(tmp,'incoming.json'),signature=`${manifest}.sig`,channel=path.join(tmp,'channel');
+const build=spawnSync(process.execPath,[path.join(root,'deploy/scripts/build-client-update-manifest.mjs'),assets,`https://github.com/test/light-remote/releases/download/v${version}`,manifest],{cwd:root,encoding:'utf8'});need(build.status===0,build.stderr);
+const {publicKey,privateKey}=crypto.generateKeyPairSync('ec',{namedCurve:'prime256v1'}),publicFile=path.join(tmp,'public.pem');fs.writeFileSync(publicFile,publicKey.export({type:'spki',format:'pem'}));
+const sign=()=>fs.writeFileSync(signature,crypto.sign('sha256',fs.readFileSync(manifest),privateKey).toString('base64')+'\n');sign();
+const promote=(extra=[],dir=channel)=>spawnSync(process.execPath,[path.join(root,'deploy/scripts/promote-client-update-channel.mjs'),'--manifest',manifest,'--signature',signature,'--public-key',publicFile,'--server-version',version,'--channel-dir',dir,'--skip-remote-verify',...extra],{cwd:root,encoding:'utf8'});
+let r=promote(['--apply']);need(r.status===0&&r.stdout.includes('update_promotion=APPLIED'),'promotion_apply_failed');need(fs.readFileSync(path.join(channel,'client-update.json')).equals(fs.readFileSync(manifest)),'promotion_manifest_bytes_changed');
+sign();r=promote(['--apply']);need(r.status===0&&r.stdout.includes('update_promotion=ALREADY_CURRENT'),'promotion_resigned_idempotency_failed');
+const original=fs.readFileSync(manifest,'utf8'),changed=JSON.parse(original);changed.artifacts['linux-x64'].size+=1;fs.writeFileSync(manifest,JSON.stringify(changed,null,2)+'\n');sign();r=promote(['--apply']);need(r.status!==0&&r.stderr.includes('update_promotion_same_version_content_mismatch'),'same_version_mutation_not_rejected');
+fs.writeFileSync(manifest,original);sign();const newer={schemaVersion:1,channel:'beta',version:'0.9.0-rc.25',artifacts:{}};const newerBytes=Buffer.from(JSON.stringify(newer)+'\n');fs.writeFileSync(path.join(channel,'client-update.json'),newerBytes);fs.writeFileSync(path.join(channel,'client-update.json.sig'),crypto.sign('sha256',newerBytes,privateKey).toString('base64')+'\n');r=promote(['--apply']);need(r.status!==0&&r.stderr.includes('update_promotion_rollback_rejected'),'promotion_rollback_not_rejected');
+const badDir=path.join(tmp,'bad');fs.writeFileSync(signature,Buffer.from('bad').toString('base64')+'\n');r=promote([],badDir);need(r.status!==0&&r.stderr.includes('update_readiness_signature_invalid'),'promotion_bad_signature_not_rejected');
+const source=fs.readFileSync(path.join(root,'deploy/scripts/promote-client-update-channel.mjs'),'utf8');need(source.includes("if(!has('--skip-remote-verify'))")&&source.includes('update_promotion_remote_sha_mismatch'),'promotion_remote_verify_not_default');
+console.log('v10-update-promotion-apply-idempotent=PASS');console.log('v10-update-promotion-same-version-mutation=PASS');console.log('v10-update-promotion-rollback=PASS');console.log('v10-update-promotion-signature-remote-gate=PASS');
+fs.rmSync(tmp,{recursive:true,force:true});

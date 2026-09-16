@@ -57,9 +57,11 @@ jobs:
           BASE_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}"
           node deploy/scripts/build-client-update-manifest.mjs release-assets "$BASE_URL" release-assets/client-update-unsigned.json
           cat > release-assets/UPDATE-SIGNING-REQUIRED.txt <<EOF
-          client-update-unsigned.json is NOT trusted by clients until it is signed outside CI with the offline update signing key.
-          Verify/publish with client/sign-update-manifest.mjs and deploy/scripts/check-update-readiness.mjs.
-          Never place the private update signing key in GitHub Actions, Vercel, or the VPS.
+          client-update-unsigned.json is NOT trusted by clients until it is signed by the owner release authority.
+          Current deployment keeps the private update signing key on the owner-controlled ARM host with mode 0600.
+          Never place the private key in GitHub Actions, Vercel, release assets, or client packages.
+          Sign exact manifest bytes with client/sign-update-manifest.mjs, then promote with deploy/scripts/promote-client-update-channel.mjs.
+          Promotion verifies signature, current version, all required platforms, and remote artifact size/SHA256 before staging channels/beta.
           EOF
           (cd release-assets && sha256sum * > SHA256SUMS.txt)
           cat release-assets/SHA256SUMS.txt
