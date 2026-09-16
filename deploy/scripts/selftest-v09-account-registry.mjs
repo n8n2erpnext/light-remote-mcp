@@ -48,9 +48,13 @@ try{
   if(reloaded.account('self-hosted-local').mainDeviceId!=='dev-main-test')throw new Error('account_main_device_persistence_failed');
   if(reloaded.account('self-hosted-local').fleetProvisioning?.state!=='online')throw new Error('fleet_provision_persistence_failed');
   const cleared=reloaded.clearMainDevice('self-hosted-local');if(cleared.mainDeviceId!==null||cleared.fleetProvisioning!==null)throw new Error('account_main_device_clear_failed');
-  const out=reloaded.logout(login.token);if(!out.loggedOut)throw new Error('logout_failed');
+  const rotated=reloaded.rotatePassword('self-hosted-local');
+  if(!rotated.verified||!rotated.temporaryPassword||rotated.invalidatedSessions<1)throw new Error('password_rotation_contract_failed');
   expectError(()=>reloaded.authenticate(login.token),'account_session_required',401);
+  const rotatedLogin=reloaded.login({email:'owner@example.com',password:rotated.temporaryPassword});if(!rotatedLogin.token)throw new Error('rotated_password_login_failed');
+  const rotatedRaw=JSON.stringify(JSON.parse(fs.readFileSync(stateFile,'utf8')));if(rotatedRaw.includes(rotated.temporaryPassword))throw new Error('rotated_plaintext_password_persisted');
+  const out=reloaded.logout(rotatedLogin.token);if(!out.loggedOut)throw new Error('logout_failed');
   now+=2*60*60*1000;
   expectError(()=>reloaded.authenticate(first.token),'account_session_required',401);
-  console.log(JSON.stringify({ok:true,bootstrapAccount:true,passwordHashed:true,tokenHashed:true,persistence:true,logout:true,expiry:true,noEmailAudit:true,ownerProofOneTime:true,planAuthority:true,mainDeviceAuthority:true,fleetProvisioning:true},null,2));
+  console.log(JSON.stringify({ok:true,bootstrapAccount:true,passwordHashed:true,passwordRotation:true,tokenHashed:true,persistence:true,logout:true,expiry:true,noEmailAudit:true,ownerProofOneTime:true,planAuthority:true,mainDeviceAuthority:true,fleetProvisioning:true},null,2));
 }finally{fs.rmSync(dir,{recursive:true,force:true});}

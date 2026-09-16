@@ -124,6 +124,17 @@ export class AccountRegistry{
     const account=this.verifyCredentials(input,{recordLogin:true,eventType:'account_login'}),row=this.accounts.get(account.accountId);
     return this._issue(row);
   }
+  rotatePassword(accountId,{password=null,invalidateSessions=true}={}){
+    const row=this.accounts.get(String(accountId||''));if(!row)throw new AccountError('account_not_found',404);
+    const generated=password==null,temporaryPassword=generated?`LRR-${crypto.randomBytes(24).toString('base64url')}`:String(password);
+    if(temporaryPassword.length<16||temporaryPassword.length>1024)throw new AccountError('invalid_password');
+    row.passwordHash=passwordHash(temporaryPassword);let invalidatedSessions=0;
+    if(invalidateSessions){for(const [hash,session] of this.sessions)if(session.accountId===row.accountId){this.sessions.delete(hash);invalidatedSessions++;}}
+    this._persist();
+    if(!verifyPassword(temporaryPassword,row.passwordHash))throw new AccountError('password_rotation_verify_failed',500);
+    this.emit({type:'account_password_rotated',accountId:row.accountId,status:'ok',invalidatedSessions});
+    return {account:this._viewAccount(row),temporaryPassword:generated?temporaryPassword:null,invalidatedSessions,verified:true};
+  }
   authenticate(token,{touch=true}={}){
     this._prune();const hash=sha256(token),session=this.sessions.get(hash);
     if(!session)throw new AccountError('account_session_required',401);
