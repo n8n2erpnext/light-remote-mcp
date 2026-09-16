@@ -142,7 +142,7 @@ Tool Helper cũng giữ exact `deviceId + sessionId + agentId` để giảm lỗ
 
 Updater Helper chạy độc lập với Core. Khi có bản mới, nó kiểm signed manifest, SHA-256/size, stage Core mới, health-check rồi mới commit. Nếu health fail, updater có đường rollback thay vì để một bản update hỏng tự cắt luôn khả năng cứu máy.
 
-## Quick start cho người ít kinh nghiệm
+## Quick start
 
 Bạn cần:
 
