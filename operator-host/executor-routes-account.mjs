@@ -33,6 +33,11 @@ export async function handleAccountRoutes(req,res,url,deps){
     }
     const adminAccountMatch=url.pathname.match(/^\/v1\/admin\/accounts\/([A-Za-z0-9._:-]+)$/);
     if (req.method === 'GET' && adminAccountMatch) return sendJson(res,200,{ok:true,account:accounts.account(adminAccountMatch[1])});
+    const adminPasswordRotateMatch=url.pathname.match(/^\/v1\/admin\/accounts\/([A-Za-z0-9._:-]+)\/password\/rotate$/);
+    if(req.method==='POST'&&adminPasswordRotateMatch){
+      const rotated=accounts.rotatePassword(adminPasswordRotateMatch[1],{invalidateSessions:true});
+      return sendJson(res,200,{ok:true,account:rotated.account,temporaryPassword:rotated.temporaryPassword,invalidatedSessions:rotated.invalidatedSessions,verified:rotated.verified});
+    }
     const adminEntitlementMatch=url.pathname.match(/^\/v1\/admin\/accounts\/([A-Za-z0-9._:-]+)\/entitlement$/);
     if (req.method === 'POST' && adminEntitlementMatch) {
       const body=await readJson(req),durationMs=body.durationDays==null?null:Number(body.durationDays)*86400000;
