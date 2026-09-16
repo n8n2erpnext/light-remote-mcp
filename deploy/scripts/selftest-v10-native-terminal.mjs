@@ -6,6 +6,11 @@ import { createWindowsAdapter } from '../../device-agent/platform-adapters/windo
 import { createMacOSAdapter } from '../../device-agent/platform-adapters/macos.mjs';
 
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+async function waitForOutput(registry,terminalId,owner,{offset=0,patterns=[],timeoutMs=2500}={}){
+  const deadline=Date.now()+timeoutMs;let out=null;
+  do{out=registry.output(terminalId,owner,{offset,limit:65536});if(patterns.every(pattern=>pattern.test(out.output.text)))return out;await wait(25);}while(Date.now()<deadline);
+  throw new Error(`terminal_output_timeout:${out?.output?.text||''}`);
+}
 const owner={accountId:'acct-term',deviceId:'dev-term',sessionId:'session-term-0001',agentId:'agent-term-0001'};
 const linux=createLinuxAdapter({commandExists:name=>['bash','sh','git','node'].includes(name)});
 assert.ok(linux.discoverCapabilities().includes('terminal'));
@@ -14,15 +19,13 @@ const reg=new NativeTerminalRegistry({maxTerminals:3,bufferBytes:65536});
 const started=reg.start({...owner,shellSpec:linux.terminalFor({shell:'bash'}),cwd:'/tmp',cols:80,rows:24});
 assert.match(started.terminalId,/^ltm_/);
 reg.input(started.terminalId,owner,{data:"printf 'LR_TERM_OK\\n'; stty size; sleep 30\n"});
-await wait(180);
-let out=reg.output(started.terminalId,owner,{offset:0,limit:65536});
+let out=await waitForOutput(reg,started.terminalId,owner,{patterns:[/LR_TERM_OK/,/24 80/]});
 assert.match(out.output.text,/LR_TERM_OK/);
 assert.match(out.output.text,/24 80/);
 reg.resize(started.terminalId,owner,{cols:100,rows:30});
 reg.signal(started.terminalId,owner,{signal:'interrupt'});
 reg.input(started.terminalId,owner,{data:"stty size; printf 'AFTER_INT\\n'\n"});
-await wait(180);
-out=reg.output(started.terminalId,owner,{offset:out.output.nextOffset,limit:65536});
+out=await waitForOutput(reg,started.terminalId,owner,{offset:out.output.nextOffset,patterns:[/30 100/,/AFTER_INT/]});
 assert.match(out.output.text,/30 100/);
 assert.match(out.output.text,/AFTER_INT/);
 assert.throws(()=>reg.output(started.terminalId,{...owner,agentId:'agent-other-0001'}),/terminal_owner_mismatch/);
