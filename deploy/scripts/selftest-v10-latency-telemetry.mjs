@@ -1,8 +1,12 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
-const read=rel=>fs.readFileSync(new URL('../../'+rel,import.meta.url),'utf8');
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {readOperatorSourceSurface} from './test-source-surface.mjs';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
+const read=rel=>fs.readFileSync(path.join(root,rel),'utf8');
 const vercel=read('api/operator.js'),gateway=read('gateway/server.mjs'),transfer=read('gateway/plus-transfer.mjs');
-const executor=read('operator-host/executor.mjs'),agent=read('device-agent/operator-agent.mjs'),wall=read('gateway/dashboard.mjs');
+const executor=readOperatorSourceSurface(root),agent=read('device-agent/operator-agent.mjs'),wall=read('gateway/dashboard.mjs');
 assert.ok(vercel.includes('bridgeReceivedAt:started'),'bridge_receive_missing');
 assert.ok(gateway.includes('req.lightRemoteAcceptedAt=Date.now()'),'gateway_accept_missing');
 assert.ok(gateway.includes('gatewayAcceptedAt:req.lightRemoteAcceptedAt'),'gateway_forward_missing');

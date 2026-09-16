@@ -1,9 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
+import {readOperatorSourceSurface} from './test-source-surface.mjs';
 
 const root=path.resolve(new URL('../..',import.meta.url).pathname);
-const operator=fs.readFileSync(path.join(root,'operator-host/executor.mjs'),'utf8');
+const operator=readOperatorSourceSurface(root);
 const agent=fs.readFileSync(path.join(root,'device-agent/operator-agent.mjs'),'utf8');
 const ops=['upload-begin','upload-chunk','upload-commit','download-begin','download-chunk','status','cancel'];
 

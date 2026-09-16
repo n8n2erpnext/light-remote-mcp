@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import {readOperatorSourceSurface} from './test-source-surface.mjs';
 import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
@@ -16,7 +17,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 for(let i=0;i<100&&!fs.existsSync(socketPath);i++)await sleep(40);
 if(!fs.existsSync(socketPath))throw new Error(`executor_not_ready:${stderr}`);
 function request(method,target,body){return new Promise((resolve,reject)=>{const payload=body==null?null:Buffer.from(JSON.stringify(body));const req=http.request({socketPath,method,path:target,headers:payload?{'content-type':'application/json','content-length':payload.length}:{}},res=>{let text='';res.on('data',c=>text+=c);res.on('end',()=>{let json;try{json=JSON.parse(text)}catch{json={raw:text}}resolve({status:res.statusCode,json});});});req.on('error',reject);if(payload)req.write(payload);req.end();});}
-const executorSource=fs.readFileSync(path.join(root,'operator-host/executor.mjs'),'utf8');
+const executorSource=readOperatorSourceSurface(root);
 for(const token of ["revokeRuntimeForDevice(device.deviceId,'account_owner_revoked')","revokeRuntimeForDevice(device.deviceId,'account_owner_revoke_all')","revokeRuntimeForDevice(revokeMatch[1],body.reason||'owner_revoked')","connections.disconnect(deviceId,why)"]){if(!executorSource.includes(token))throw new Error('revoke_cascade_contract_missing:'+token);}
 const caps=await request('GET','/v1/capabilities');
 if(caps.status!==200||!caps.json.enrollment?.signedHeartbeat||!caps.json.execution?.includes('fleet_routing'))throw new Error('device_enrollment_capabilities_failed');

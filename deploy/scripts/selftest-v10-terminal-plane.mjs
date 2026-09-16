@@ -1,11 +1,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {readOperatorSourceSurface} from './test-source-surface.mjs';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const read=rel=>fs.readFileSync(path.join(root,rel),'utf8');
 const need=(v,m)=>{if(!v)throw new Error(m);};
-const api=read('api/operator.js'),host=read('operator-host/executor.mjs'),agent=read('device-agent/operator-agent.mjs');
+const api=read('api/operator.js'),host=readOperatorSourceSurface(root),agent=read('device-agent/operator-agent.mjs');
 const helper=read('lib/plus-tool-helper.js'),wall=read('device-agent/local-wall.mjs'),dashboard=read('gateway/dashboard.mjs'),policy=read('gateway/device-policy-page.mjs');
 const core=JSON.parse(read('client/core-files.json')),pkg=JSON.parse(read('package.json')),stage=read('deploy/scripts/stage-terminal-runtime.mjs');
 need(api.includes("action.startsWith('terminal-')")&&api.includes("action:'terminal'"),'plus_terminal_surface_missing');

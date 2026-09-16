@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - 'codex/v0.9-*'
+      - 'codex/**'
     tags:
       - 'v0.9.*'
     paths:
@@ -35,6 +35,33 @@ on:
 permissions:
   contents: read
 jobs:
+  audit-selftests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.2'
+          cache: npm
+      - name: Install audit dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts
+          npm ci --ignore-scripts --prefix gateway
+      - name: Full repository selftest audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          count=0
+          for test in deploy/scripts/selftest-*.mjs; do
+            echo "==> $test"
+            timeout 40s node "$test"
+            count=$((count+1))
+          done
+          echo "repository-selftests=PASS count=$count"
+
   build-server:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -85,6 +112,9 @@ jobs:
           test -x "$TMP/package/install.sh"
           test -f "$TMP/package/gateway/package-lock.json"
           test -f "$TMP/package/operator-host/executor.mjs"
+          test -f "$TMP/package/operator-host/executor-routes-account.mjs"
+          test -f "$TMP/package/operator-host/executor-routes-device-channel.mjs"
+          test -f "$TMP/package/operator-host/executor-routes-runtime.mjs"
           test -f "$TMP/package/lib/native-terminal.mjs"
           test -s "$TMP/package/licenses/terminal-runtime/homebridge-node-pty-LICENSE"
           test -f "$TMP/package/device-agent/platform-adapters/index.mjs"

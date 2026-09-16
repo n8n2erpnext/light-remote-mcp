@@ -1,8 +1,12 @@
 import fs from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {readOperatorSourceSurface} from './test-source-surface.mjs';
 
 const tool=fs.readFileSync(new URL('../../gateway/remote-convenience-tools.mjs',import.meta.url),'utf8');
 const server=fs.readFileSync(new URL('../../gateway/server.mjs',import.meta.url),'utf8');
-const executor=fs.readFileSync(new URL('../../operator-host/executor.mjs',import.meta.url),'utf8');
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
+const executor=readOperatorSourceSurface(root);
 const vercel=fs.readFileSync(new URL('../../api/operator.js',import.meta.url),'utf8');
 const docker=fs.readFileSync(new URL('../../gateway/Dockerfile',import.meta.url),'utf8');
 const sync=fs.readFileSync(new URL('./sync-gateway.sh',import.meta.url),'utf8');
