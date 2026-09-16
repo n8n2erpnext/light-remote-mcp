@@ -12,7 +12,7 @@ function escapeHtml(value='') {
   return String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 }
 function publicOrigin() {
-  const raw=String(process.env.MCP_PUBLIC_ORIGIN || 'https://mcp.dashboard.thaiduy.store').replace(/\/$/,'');
+  const raw=String(process.env.MCP_PUBLIC_ORIGIN || 'https://mcp.example.invalid').replace(/\/$/,'');
   const url=new URL(raw);
   if(url.protocol!=='https:' && !['localhost','127.0.0.1'].includes(url.hostname)) throw new Error('mcp_public_origin_must_be_https');
   return url.origin;

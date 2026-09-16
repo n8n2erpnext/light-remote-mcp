@@ -1,206 +1,188 @@
 # Light Remote MCP
 
 <p align="center">
-  <img src="assets/branding/light-remote-mark.svg" alt="Light Remote" width="128">
+  <img src="assets/branding/light-remote-mark.svg" alt="Light Remote MCP" width="128">
 </p>
 
 <p align="center">
-  <strong>Secure outbound remote execution for AI tools and the machines you already own.</strong>
+  <strong>Cho ChatGPT Web và AI làm việc trực tiếp trên máy của bạn qua HTTP — không cần mở SSH inbound cho từng máy.</strong>
 </p>
 
 <p align="center">
-  <img alt="Status" src="https://img.shields.io/badge/status-v0.9.0--beta.1-f59e0b">
-  <img alt="Windows" src="https://img.shields.io/badge/Windows-native%20tray%20client-2563eb">
-  <img alt="Linux" src="https://img.shields.io/badge/Linux-systemd%20agent-059669">
-  <img alt="Transport" src="https://img.shields.io/badge/transport-outbound--only-171717">
+  <a href="README.md"><b>Tiếng Việt</b></a> · <a href="README.en.md">English</a>
 </p>
 
-**Light Remote MCP** turns a Windows or Linux machine into an explicitly authorized remote execution target for ChatGPT, Claude, Codex, and other MCP-capable AI workflows.
+<p align="center">
+  <img alt="Beta" src="https://img.shields.io/badge/beta-v0.9.0--rc.26-f59e0b">
+  <img alt="Windows" src="https://img.shields.io/badge/Windows-x64-2563eb">
+  <img alt="Linux" src="https://img.shields.io/badge/Linux-x64%20%7C%20arm64-059669">
+  <img alt="macOS" src="https://img.shields.io/badge/macOS-Intel%20%7C%20Apple%20Silicon-555555">
+  <img alt="Transport" src="https://img.shields.io/badge/device%20transport-outbound--first-171717">
+</p>
 
-The client connects **outbound** to a governed hub. AI tools do not need inbound SSH access to the target machine, and an enrolled node is addressed explicitly instead of being discovered through a broad network tunnel.
+**Light Remote MCP** là một lớp remote execution có kiểm soát dành cho ChatGPT Web, Agent và các mô hình AI khác. Thay vì để AI SSH trực tiếp vào từng VPS/PC, Light Remote đưa filesystem, process, terminal PTY/ConPTY, Git, Docker, system services và nhiều thao tác infra qua một luồng HTTP được gắn đúng **device + session + Agent + policy**.
 
-The project began as `gpt-vps-bridge`; the repository and public gateway now use the **Light Remote MCP** name, while a small set of internal compatibility identifiers remain until existing enrolled devices can be migrated safely.
+Mục tiêu thực tế: thay phần lớn workflow “mở SSH rồi thao tác tay” bằng một kết nối AI có thể audit, cấp quyền theo máy, giữ session bền và thu hồi được.
 
-Official brand assets live under `assets/branding/`: the round LR mark is used for application/tray/installer surfaces, while the supplied horizontal lockup is kept as the canonical wordmark asset.
+> **Beta:** `0.9.0-rc.26` là release candidate để test. Hãy bắt đầu với quyền thấp trên máy không critical trước khi bật terminal, sudo/UAC, package manager hoặc system-service permissions.
 
-## Why Light Remote MCP
+## Vì sao Light Remote khác một remote shell thông thường?
+- **Không cần mở inbound SSH trên leaf client.** Windows/Linux/macOS Agent giữ outbound device channel tới Hub.
+- **Không cần mở terminal để giữ kết nối.** Windows chạy background Agent sau tray, Linux chạy systemd, macOS dùng launchd; đóng PowerShell/SSH/browser không làm service biến mất.
+- **PTY/ConPTY thật.** Agent có thể mở shell tương tác, gửi Ctrl-C, resize terminal, chạy installer/TUI/curses và giữ terminal theo session.
+- **Local Wall là quyền lực cuối ở máy.** Bạn thấy session, job, command/output, PTY, A/B pairing và tự chọn profile quyền `Safe / Developer / Infra / Full / Custom`.
+- **Fleet không được phép “nhảy máy”.** Mỗi job luôn gắn exact device; máy đích offline/denied thì fail, không fallback sang máy khác.
+- **Signed update + rollback.** Manifest update được ký, artifact kiểm SHA-256/size, Updater Helper độc lập với Core và có health gate trước khi commit phiên bản mới.
+- **Agent được hướng dẫn dùng tool đúng loại.** Connection Helper lo pairing/context; Tool Helper chỉ cho Agent khi nào dùng filesystem, search, process, PTY, exec, SCP hoặc durable job thay vì shell bừa.
 
-- **No inbound SSH requirement.** Enrolled devices maintain a signed outbound channel to the hub.
-- **Explicit target selection.** Commands target a specific `nodeId`; an offline leaf never silently falls back to another machine.
-- **Owner-approved capabilities.** Filesystem, Git, Docker, system services, package managers, and privileged operations remain capability-gated.
-- **Device-side enforcement.** The leaf re-infers capabilities from the command before execution instead of trusting caller metadata alone.
-- **Local device identity.** Each device creates its own Ed25519 identity; the private key stays on that device.
-- **Always-alive local service, finite cloud lease.** Windows keeps the agent supervised behind the tray app and Linux runs it under systemd; closing a terminal never stops the local service, while the cloud channel may be Connected or Dormant independently.
-- **Signed updates.** Windows and Linux share a signed update-manifest design with hash verification and rollback behavior.
-- **Auditable routing.** Sessions, jobs, output, and Wall events retain the exact device/node attribution.
-
-Light Remote MCP is not a general remote-desktop replacement. It is a controlled execution bridge for automation, development, infrastructure work, and MCP-style tool use.
-
-## Architecture
-
-```text
-AI client / MCP consumer
-        |
-        v
-Vercel gateway / control edge
-        |
-        v
-ARM Hub  ---- audit / session / routing
-        |
-        +---- ARM local executor
-        +---- Windows outbound leaf
-        +---- Linux outbound leaf(s)
-```
-
-The current production-test route is:
+## Kiến trúc ngắn gọn
 
 ```text
-ChatGPT / operator client
-  -> Vercel
-  -> ARM Hub
-  -> explicitly selected enrolled node
-  -> platform adapter
-  -> governed local execution
+ChatGPT Web / Agent / AI model
+            |
+            | HTTPS
+            v
+      Vercel bridge
+            |
+            v
+   Light Remote Server / Hub
+     session · policy · audit
+            |
+     +------+------+------+
+     |             |      |
+   Main         Windows  Linux/macOS
+   Host          leaf      leaf
 ```
 
-The Vercel layer is intentionally thin. The ARM Hub owns session routing, device presence, audit attribution, and command delivery. Leaf devices poll outbound and return signed results through the same trust boundary.
+**Vercel chỉ là bridge HTTP mỏng.** Hub bền vững vẫn chạy trên Linux Server/VPS của bạn. Device client kết nối outbound về Hub; Vercel không giữ private device key hay update signing private key.
 
-See [`FLEET_ROUTING_V0_8.md`](FLEET_ROUTING_V0_8.md), [`PLATFORM_ADAPTERS_V0_9.md`](PLATFORM_ADAPTERS_V0_9.md), and [`AI_BRIDGE_GUIDE.md`](AI_BRIDGE_GUIDE.md) for the engineering contracts behind the current implementation.
+## Những thứ Agent có thể làm
+| Nhóm | Khả năng hiện có |
+| --- | --- |
+| Filesystem | đọc/ghi/edit/stat/list/mkdir/copy/move/delete bằng structured tool |
+| Search | tìm file hoặc nội dung đệ quy, có paging, không cần `grep/find` cho mọi việc |
+| Git / build | làm việc với repo, diff, branch, build và test trong policy cho phép |
+| Exec | lệnh shell/PowerShell/zsh một lần, có timeout và capability inference |
+| Process | process dài hạn có stdin/stdout, đọc output theo offset, stop độc lập |
+| Terminal | PTY trên Linux/macOS, ConPTY trên Windows; input/output/resize/Ctrl-C/terminate/kill |
+| File transfer | SCP-style upload/download file lớn hoặc binary, kiểm SHA-256 từng chunk và toàn file |
+| Infra | Docker, LXD, systemd, Windows Services/Registry/Tasks/Firewall, macOS launchd/log tùy platform và policy |
+| Durable work | job có thể tiếp tục chạy qua nhiều HTTP call; output được lấy tiếp thay vì ép vào một response |
+| Multi-device | Fleet Wall, Main device, leaf routing, per-device policy và update orchestration khi entitlement cho phép |
 
-## Platform clients
+### PTY/ConPTY: khi Agent cần một terminal thật
 
-| Platform | Current client | Persistence | Packaging status |
-| --- | --- | --- | --- |
-| Windows x64 | Native .NET 8 tray + bundled canonical Core + independent updater | Signed-in-user Agent host; local runtime survives tray exit; cloud can be Connected or Dormant | v0.9 RC packaging lane; Full + Compact installers |
-| Linux x64 VPS/terminal | Bundled Node runtime + canonical Core + localhost Wall | systemd always-alive local service; finite cloud lease | v0.9 RC tar package |
-| Linux arm64 VPS/terminal | Bundled Node runtime + canonical Core + localhost Wall | systemd always-alive local service; finite cloud lease | v0.9 RC tar package |
-| Linux desktop x64/arm64 | Same Linux canonical Core as VPS package plus desktop tray integration | systemd Agent + desktop tray; finite cloud lease | v0.9 RC `.deb`, derived from the same Linux Core bundle |
-| macOS Intel / Apple Silicon | Native Swift tray + native app launcher + bundled canonical Core + independent updater | launchd Agent/Tray + system updater; local runtime survives tray exit | v0.9 RC `.pkg` for macOS 11+; public distribution still requires external Apple signing/notarization credentials |
-
-### Windows
-
-The Windows client is designed to behave like a normal desktop application: install once and leave the local service supervised in the tray. No PowerShell session needs to remain open. Cloud access is explicit: Connect creates a finite server lease; Disconnect or lease expiry leaves the local service alive in Dormant state.
-
-Current Windows behavior includes:
-
-- native dark tray UI under the **Light Remote MCP** brand;
-- connect/disconnect control for the finite cloud lease, plus Connected/Dormant device status;
-- Local Wall access on `http://127.0.0.1:5491/` for this-device control and Agent-session visibility;
-- device/runtime/capability details;
-- enrollment through the browser approval flow;
-- automatic startup for the current Windows user;
-- supervised agent restart with bounded backoff;
-- signed update checking and verified installer handoff;
-- migration from the earlier Scheduled Task development client;
-- rollback smoke-tested in GitHub Actions.
-
-The active Windows CI gate builds the self-contained client, packages the Inno Setup installer, installs it on a Windows runner, verifies the installed client, forces a broken-update rollback path, uninstalls it, hashes the installer, and only then uploads the artifact.
-
-### Linux
-
-Linux uses a smaller operational surface. The systemd service stays alive even while cloud access is Dormant, and serves the same localhost Wall contract used by the desktop client:
+Light Remote không giả lập terminal bằng `exec`. `terminal-*` tạo một PTY/ConPTY thật, giữ ownership theo account/device/session/Agent và hỗ trợ:
 
 ```text
-install script
-  -> versioned bundle under /opt
-  -> gpt-operator-device-agent.service
-  -> localhost Wall + finite outbound device channel when Connected
+start → input → output → resize → signal → list → stop
 ```
 
-A separate updater timer verifies the signed manifest and artifact hash, switches the versioned `current` target, restarts the agent, and rolls back when the new service does not become healthy.
+Vì raw terminal chạy với quyền của service account và không thể inference từng dòng input như `exec`, capability `terminal` **không nằm trong Safe/Developer mặc định**. Bạn phải chủ động bật nó bằng `Infra`, `Full` hoặc `Custom` trên Wall.
 
-### Cross-platform Core and update alignment
+## Device Wall — quyền và lịch sử nằm ở phía bạn
 
-`VERSION` is the Core release source of truth. Windows, macOS, Linux desktop, and Linux VPS packages stage the same governed Agent/Wall/Fleet/update libraries through `client/core-files.json` and `deploy/scripts/stage-client-core.mjs`; every staged client carries `client-core.json` with the Core version and a deterministic digest. Platform shells are overlays only.
+![Light Remote Device Wall demo](assets/screenshots/device-wall-demo.png)
 
-The beta update channel is a separate signed trust plane. A release is update-ready only when the signed manifest is compatible with the current Server window and contains HTTPS artifacts for `windows-x64`, `macos-x64`, `macos-arm64`, `linux-x64`, and `linux-arm64`. Artifact SHA-256 and size are verified before install, the Core health gate must acknowledge the new release, and failure rolls back. The update signing private key is intentionally external to the repository, VPS, Vercel, and CI. GitHub prerelease CI may assemble an **unsigned** candidate manifest, but an offline signature and `check-update-readiness.mjs` verification are required before publishing it as the active channel.
+Device Wall là control/observer surface cục bộ của **một máy**. Nó hiển thị trạng thái cloud, lease, session lanes, Agent, cwd, command/output, PTY operation và live operator stream. Wall có thể đóng mà không dừng service, cloud lease, Agent session hay durable job.
 
-OS package signing is distinct from update-manifest signing. macOS supports external App/Installer signing identities during packaging; Windows Authenticode and Apple Developer ID/notarization remain release credentials, not embedded project secrets.
+### Local Device Policy
+![Light Remote Local Device Policy demo](assets/screenshots/permissions-demo.png)
 
-## Enrollment and trust
-
-A new device creates its private identity locally, then starts a short-lived owner approval flow.
+Policy được áp theo nguyên tắc fail-closed:
 
 ```text
-device generates Ed25519 identity
-  -> one-time enrollment code
-  -> owner approves requested capability subset
-  -> server binds the public identity
-  -> user creates a finite Device Connection Lease
-  -> signed connect/poll proves the device before cloud execution becomes available
+Main device = capabilities máy hỗ trợ ∩ Local Wall policy
+Fleet leaf  = capabilities máy hỗ trợ ∩ server-approved policy ∩ Local Wall policy
 ```
 
-Important boundaries:
+Local Wall luôn giữ quyền **deny cuối cùng**. `Infra` không tự động đồng nghĩa với sudo/UAC; các quyền nâng cao vẫn phải được cấp riêng.
 
-- Private device keys are not uploaded to the control plane.
-- Enrollment codes are short-lived and one-time.
-- Owner approval cannot grant capabilities the device did not request.
-- A revoked device cannot re-enter the fleet with its old proof.
-- Timestamp/nonce replay checks apply to the device channel.
-- Explicit leaf targeting never falls back to ARM when the target is offline or draining.
-- Local policy may reduce effective permissions; it cannot silently increase owner-approved permissions.
+## Fleet Wall — nhiều máy, vẫn giữ exact target
 
-## Security posture
+Khi Fleet entitlement được bật, một Main device có thể quản lý nhiều leaf device trong cùng account. Fleet cung cấp:
 
-Light Remote MCP favors explicit trust boundaries over a broad remote shell.
-Current controls include:
+- danh sách device và online/offline state;
+- Main-device authority và Fleet component riêng;
+- session/job routing theo exact `deviceId/nodeId`;
+- policy của từng leaf và khả năng thu hồi device;
+- `Update all current clients` qua signed client-update channel;
+- không tự chuyển job sang máy khác nếu leaf đang offline, draining hoặc bị deny.
 
-- Vercel-to-Hub authentication at the public edge;
-- short-lived operator sessions instead of a long-lived shared caller bearer;
-- X25519 + HKDF-SHA256 + AES-256-GCM privileged envelopes;
-- semantic `operationId` idempotency and replay rejection;
-- session ownership and per-node session ceilings;
-- device-side capability inference before spawn;
-- bounded command queues, lease/redelivery, and result-receipt idempotency;
-- read-only Wall/audit visibility with exact node attribution;
-- ECDSA P-256 signed client update manifests;
-- SHA-256 artifact verification before install;
-- update rollback paths on both Windows and Linux.
+Fleet Wall là một **signed component** độc lập. Version Fleet, Core và branding không bị trộn làm một; updater chỉ nhận component hợp lệ, không sidegrade/rollback tùy ý.
 
-The update signing private key is intentionally kept outside the repository and outside normal CI. Clients ship only the public verification key.
+## Ba Helper mà người dùng/Agent sẽ gặp
 
-## Public beta: `v0.9.0-beta.1`
+### 1. Connection Helper
 
-`v0.9.0-beta.1` is the first public beta of the frozen execution/control-plane architecture. It is pre-stable software, backed by live ARM + Linux x64 + Windows x64 acceptance, signed update/rollback proof, and packaging gates for clients, the self-hosted Linux Server, and the Vercel bridge.
+Connection Helper biến việc kết nối ChatGPT thành flow A/B ngắn thay vì phải đưa token dài cho người dùng:
 
-Release assets are built from tagged source. Prefer files attached to the GitHub prerelease over arbitrary CI artifacts. The update channel is signed separately; clients verify the manifest signature and selected artifact SHA-256 before installation.
+1. Local Wall tạo **A code** ngắn hạn.
+2. ChatGPT/Agent gửi A vào `connection-helper` qua Vercel.
+3. Server trả **B approval** cho đúng Wall đã tạo A.
+4. Chủ máy kiểm tra và bấm Approve B.
+5. Agent poll lại, nhận `READY`, exact device/session context và một opaque client capability riêng tư.
+Opaque client/continuation không nên được echo lại cho người dùng. Mỗi device bổ sung phải được pair độc lập.
 
-### What you deploy
+### 2. Tool Helper
 
-For the current self-hosted beta, Vercel is a **thin authenticated bridge**, not the durable Server. Durable routing/session/job state remains on the Linux Server/Hub.
+Ngay sau `READY`, Agent nạp Tool Helper. Helper mô tả platform, shell modes, workspace và canonical tool contract để Agent chọn đúng thao tác:
 
-```text
-Windows / Linux clients
-        |  outbound enrollment + device channel
-        v
-Light Remote MCP Linux Server / Hub
-        ^
-        |  authenticated operator traffic
-Vercel bridge
-        ^
-        |  current private/reference integration
-AI / operator client
-```
+- `fs` thay vì shell cho file/text operations;
+- `search` thay vì tự grep toàn repo;
+- `terminal-*` khi thực sự cần PTY/ConPTY;
+- `process-*` cho process dài hạn nhưng không cần TTY;
+- `exec` cho one-shot shell work;
+- `scp` cho file lớn/binary;
+- `job/output` khi công việc kéo dài hơn một HTTP response.
 
-The long-term product boundary is `Client <-> Server <-> Light Remote Plugin/App <-> ChatGPT`. See [`PRODUCT_ARCHITECTURE_ROADMAP_V0_9_BETA_TO_PLUGIN.md`](PRODUCT_ARCHITECTURE_ROADMAP_V0_9_BETA_TO_PLUGIN.md).
+Tool Helper cũng giữ exact `deviceId + sessionId + agentId` để giảm lỗi “đang làm máy A nhưng lệnh rơi sang máy B”.
 
-## Quick start — self-hosted beta
+### 3. Updater Helper
 
-The examples below use `v0.9.0-beta.1`. Replace example domains, Vercel team/project names, users and workspace paths with your own values.
+Updater Helper chạy độc lập với Core. Khi có bản mới, nó kiểm signed manifest, SHA-256/size, stage Core mới, health-check rồi mới commit. Nếu health fail, updater có đường rollback thay vì để một bản update hỏng tự cắt luôn khả năng cứu máy.
 
-### 1. Download and install the Linux Server / Hub
-Use a Linux x64 or arm64 VPS. Download the matching server archive from the GitHub prerelease and verify it against `SHA256SUMS.txt`, then extract it:
+## Quick start cho người ít kinh nghiệm
+
+Bạn cần:
+
+- một tài khoản GitHub;
+- một tài khoản Vercel;
+- một VPS Linux x64 hoặc arm64 làm **Server/Hub**;
+- một domain/subdomain HTTPS trỏ tới MCP gateway của VPS;
+- ít nhất một client Windows/Linux/macOS;
+- ChatGPT Web hoặc một AI client có thể gọi bridge HTTP.
+
+> Luồng đơn giản nhất để bắt đầu là **Linux VPS làm Hub + Vercel làm bridge + Windows làm client**.
+
+### Bước 1 — tải bản Beta từ Releases
+Mở trang [GitHub Releases](https://github.com/n8n2erpnext/light-remote-mcp/releases) và chọn release candidate mới nhất. Với `v0.9.0-rc.26`, các file chính là:
+
+- Hub Linux x64: `Light-Remote-MCP-Server-Linux-x64-0.9.0-rc.26.tar.gz`
+- Hub Linux arm64: `Light-Remote-MCP-Server-Linux-arm64-0.9.0-rc.26.tar.gz`
+- Windows full installer: `Light-Remote-MCP-Setup-x64-0.9.0-rc.26.exe`
+- Windows compact installer: `Light-Remote-MCP-Compact-Setup-x64-0.9.0-rc.26.exe`
+- Linux client: `.deb` hoặc `Light-Remote-MCP-Client-Linux-*.tar.gz`
+- macOS: `Light-Remote-0.9.0-rc.26-*.pkg`
+- Vercel bridge exact-release bundle: `Light-Remote-MCP-Vercel-Bridge-0.9.0-rc.26.tar.gz`
+- checksum: `SHA256SUMS.txt`
+
+Nếu chỉ muốn dùng bình thường trên Windows, chọn **full installer**. Compact installer phù hợp khi muốn bootstrap nhỏ hơn và dùng runtime cache.
+
+### Bước 2 — dựng Linux Server / Hub
+
+Giải nén đúng server bundle trên VPS. Ví dụ arm64:
 
 ```bash
-mkdir -p ~/light-remote-beta && cd ~/light-remote-beta
-# Download the matching Light-Remote-MCP-Server-Linux-*-0.9.0-beta.1.tar.gz
-# and SHA256SUMS.txt from the v0.9.0-beta.1 GitHub prerelease first.
-sha256sum -c SHA256SUMS.txt --ignore-missing
-tar -xzf Light-Remote-MCP-Server-Linux-arm64-0.9.0-beta.1.tar.gz
+mkdir -p ~/light-remote && cd ~/light-remote
+tar -xzf Light-Remote-MCP-Server-Linux-arm64-0.9.0-rc.26.tar.gz
 cd package
 ```
 
-Publish the MCP listener through your own HTTPS reverse proxy at a domain such as `https://mcp.example.com`. The installer defaults both MCP and Wall to localhost and does not silently open a public management port.
+Hub yêu cầu Docker Compose v2. Trên Debian/Ubuntu có thể để installer cài dependency bằng `--install-deps`.
+
+Bạn cần một URL HTTPS công khai, ví dụ `https://mcp.example.com`, reverse-proxy tới MCP listener local của Hub. Có thể dùng Caddy, Nginx, Cloudflare Tunnel hoặc reverse proxy bạn đang quen dùng; Light Remote không tự public Wall ra Internet.
+Cài Hub bằng user thường của VPS (không dùng `root` làm executor). Ví dụ user `ubuntu`:
 
 ```bash
 sudo ./install.sh \
@@ -208,174 +190,162 @@ sudo ./install.sh \
   --vercel-team YOUR_VERCEL_TEAM_SLUG \
   --vercel-project light-remote-mcp \
   --public-mcp-url https://mcp.example.com \
-  --workspace code=/srv/code
+  --install-deps
 ```
 
-On Debian/Ubuntu, add `--install-deps` if the supported Docker/Git/Curl/OpenSSL prerequisites are missing. State, keys and logs live outside the versioned release directory so an upgrade does not erase enrollment or audit state.
+Installer sẽ tạo service, state/config riêng và in ra một dòng **`Vercel OPERATOR_PUBLIC_KEYS_JSON value:`**. Copy nguyên JSON public đó để dùng ở bước Vercel. Private operator key không rời Hub.
 
-The Wall defaults to `http://127.0.0.1:8081`. On a remote VPS, keep that default and use an SSH/VPN tunnel when approving devices, or explicitly choose a VPN/LAN bind with `--wall-bind` and `--wall-url`. Public Wall binding is never implicit.
+Mặc định:
 
-The installer prints the **public** operator-key JSON required by the Vercel bridge. The private operator key stays only on the Linux Server.
+```text
+MCP listener  127.0.0.1:8080
+Wall          127.0.0.1:8081
+Server files  /opt/light-remote-mcp/server
+Config        /etc/light-remote-mcp
+State         /var/lib/light-remote-mcp
+```
 
-### 2. Deploy the Vercel bridge
-Two paths are supported. The easiest is to import the public GitHub repository into a Vercel project. For a minimal deployment payload, download and extract `Light-Remote-MCP-Vercel-Bridge-0.9.0-beta.1.tar.gz` from the prerelease and deploy that directory with the Vercel CLI.
+Với Wall ở VPS từ xa, giữ nó private. Hai cách dễ hiểu:
 
-Configure these Vercel environment variables:
+- dùng VPN như NetBird/Tailscale và đặt `--wall-bind <VPN_IP> --wall-url http://<VPN_IP>:8081`; hoặc
+- giữ `127.0.0.1:8081` và mở SSH local-forward khi cần approve: `ssh -L 8081:127.0.0.1:8081 ubuntu@YOUR_VPS`.
+
+Không cần public Wall ra Internet chỉ để Light Remote hoạt động.
+
+### Bước 3 — deploy Vercel bridge
+Cách ít kỹ thuật nhất là fork repo này vào GitHub của bạn rồi import fork đó vào Vercel:
+
+1. Trong Vercel chọn **Add New → Project**.
+2. Import repo `light-remote-mcp` vừa fork.
+3. Giữ Root Directory ở repository root; không cần đổi framework preset đặc biệt.
+4. Thêm 4 environment variables cho cả **Production** và **Preview**:
 
 ```text
 VPS_MCP_BASE=https://mcp.example.com
 VPS_MCP_URL=https://mcp.example.com/mcp
 VPS_MCP_AUDIENCE=https://mcp.example.com
-OPERATOR_PUBLIC_KEYS_JSON=<public JSON printed by the Server installer>
+OPERATOR_PUBLIC_KEYS_JSON={JSON public mà Hub installer vừa in ra}
 ```
 
-The Linux Server validates the calling Vercel team/project through OIDC. The Vercel deployment therefore needs to match the `--vercel-team` and `--vercel-project` values used during Server installation.
+5. Deploy và ghi lại URL Vercel, ví dụ `https://your-light-remote.vercel.app`.
 
-Packaged deployment notes live in [`deploy/vercel/README.md`](deploy/vercel/README.md).
+`YOUR_VERCEL_TEAM_SLUG` và tên project phải khớp với những gì đã truyền cho Server installer; Hub dùng Vercel OIDC để kiểm tra caller chứ không tin mọi request Internet.
 
-### 3. Install a Windows client
+Nếu không muốn fork toàn repo, có thể tải `Light-Remote-MCP-Vercel-Bridge-0.9.0-rc.26.tar.gz` từ Releases và deploy exact bundle đó. Chi tiết kỹ thuật nằm trong [`deploy/vercel/README.md`](deploy/vercel/README.md).
 
-Download `Light-Remote-MCP-Setup-x64-0.9.0-beta.1.exe` from the prerelease and run the installer. Open **Light Remote MCP → Server settings…** before enrollment and set:
+### Bước 4 — cài client
+
+#### Windows x64 — đường dễ nhất
+
+1. Tải `Light-Remote-MCP-Setup-x64-0.9.0-rc.26.exe` và chạy installer.
+2. Mở Light Remote MCP.
+3. Vào **Server settings…** và điền:
 
 ```text
-Bridge URL: https://YOUR-PROJECT.vercel.app
-Hub URL:    https://mcp.example.com
+Vercel bridge URL: https://your-light-remote.vercel.app
+Server / Hub URL:  https://mcp.example.com
 ```
 
-Both endpoints must be HTTPS. Choose **Enroll device**, open the approval URL, review requested capabilities in Wall, approve only what you want, and leave the client running in the tray. The agent normally runs as the signed-in user; privileged operations remain capability/elevation events rather than permanent administrator identity.
+4. Bấm **Enroll device**. App sẽ tạo code và tự mở browser tới trang approve.
+5. Đăng nhập/approve đúng device đang hiển thị.
+6. Khi app báo linked, bật **Connect** nếu chưa tự chuyển sang Connected.
 
-### 4. Install a Linux client / server leaf
-Download `install-linux-client.sh` plus the matching Linux client archive from the prerelease. Run the installer as the normal target user; it invokes `sudo` only for system installation steps:
+Sau đó có thể đóng cửa sổ app. Tray/background Agent tiếp tục chạy; bạn không phải giữ PowerShell hay terminal mở.
+
+#### Linux x64 / arm64
+
+Tải `install-linux-client.sh`, rồi chạy với URL Vercel và Hub của bạn:
 
 ```bash
 chmod +x install-linux-client.sh
 ./install-linux-client.sh \
-  --bundle ./Light-Remote-MCP-Client-Linux-x64-0.9.0-beta.1.tar.gz \
-  --base-url https://YOUR-PROJECT.vercel.app \
+  --base-url https://your-light-remote.vercel.app \
   --hub-url https://mcp.example.com
 ```
 
-For arm64, use the arm64 archive. After enrollment, systemd owns the connection and the shell may be closed. The same client package is suitable for a headless Linux server leaf; a native Linux Desktop GUI is a later roadmap item.
+Không truyền `--bundle` thì installer tự lấy signed Beta manifest, verify chữ ký, chọn đúng x64/arm64, kiểm SHA-256/size rồi cài. Khi thiết bị chưa được enroll, installer sẽ bắt đầu flow approve ngay trong lần cài đầu.
 
-### 5. ChatGPT Plus today — Vercel bridge is the required control path
+Xong có thể đóng terminal: `systemd` giữ Agent luôn sống, update availability được kiểm định kỳ và Local Wall mặc định ở `http://127.0.0.1:5491/`.
 
-For the current ChatGPT Plus operating environment, **do not configure Light Remote as a custom full MCP App**. Full write/modify MCP access is not available on Plus, and the project is not yet published as a Light Remote Plugin/App in the ChatGPT Plugin Directory. The supported owner path for this beta is therefore:
+#### macOS Intel / Apple Silicon
+
+Tải `.pkg` đúng kiến trúc (`x86_64` hoặc `arm64`), cài package rồi dùng menu bar của Light Remote: **Sign in / Link device… → Open Local Wall → Connect**.
+
+Beta package macOS có thể phụ thuộc external Apple signing/notarization credentials của release pipeline. Nếu macOS báo package không được tin cậy, hãy kiểm checksum/release provenance trước; không nên tắt Gatekeeper chỉ để ép cài một binary bạn chưa xác minh.
+
+### Bước 5 — cho ChatGPT Web kết nối tới đúng máy
+Trong cuộc chat có connector Vercel đã kết nối, mở **Local Wall** của đúng máy bạn muốn cho Agent dùng, bấm hiển thị/copy **A code**, rồi gửi nguyên capsule mà Wall tạo cho ChatGPT. Nội dung có dạng:
 
 ```text
-ChatGPT Plus -> @Vercel -> Light Remote Vercel bridge -> device Local Wall approval -> ARM Hub -> selected ARM/AMD/Windows executor
+Light Remote connection request
+A code: ABCD-EFGH
+Agent: use @Vercel and action=connection-helper. First call payload {aCode,agentId,label}; do not enumerate devices and do not send client on first pairing. Follow helper.nextAction/helper.nextPayload. Keep continuation/client private.
 ```
 
-The Vercel deployment is an intentional compatibility adapter for ChatGPT Plus, not merely a hosting convenience. `api/operator?via=plus` accepts GET only because the current `@Vercel` fetch surface cannot attach the project's private bridge-session header or issue arbitrary POST requests.
+Agent phải đi theo response của Connection Helper thay vì tự đoán protocol:
 
-A Plus chat does **not** receive permanent credentials. It first calls `devices-bootstrap`, explicitly chooses one connected device, then calls `authorize-begin` with its `agentId + deviceId`. If that device already has an active Device Access Grant for the current connection lease, a new ChatGPT window receives a scoped `ps` capability immediately with no extra owner prompt. Otherwise a ten-minute request appears on that device Local Wall; the enrolled service signs Approve/Deny. `authorize-poll` then returns a `ps` scoped to `grantId + deviceId + connectionId`, expiring no later than the finite Device Connection Lease. Human approval has no separate fixed one-hour TTL. Vercel OIDC remains mandatory, mutating operations still require stable `operationId` values, execution envelopes remain encrypted, and signed device policy plus device-local capability inference remain the final authority.
+1. A hợp lệ → server tạo request và trả **B code / approval_required**.
+2. Trên **chính Local Wall đã tạo A**, mở **Approve B**, nhập B và kiểm tra label Agent.
+3. Bấm **Approve**.
+4. ChatGPT gọi lại `connection-helper` bằng `helper.nextPayload` cho tới khi nhận `READY`.
+5. Sau READY, Agent giữ opaque client ở nội bộ, nạp `tool-helper` và dùng exact context được trả về.
 
-Because the Plus connector is GET-only, only the one-time polling capability and device-grant-scoped `ps` are carried on the compatibility request URL. They are deliberately **not** static shared bearers: the poll token is short-lived, `ps` is bounded by the selected device connection lease, neither is an owner password/private key/cookie, responses are `no-store`, and application logs never print the capability. Long-lived credentials must never be put in URLs.
+Từ đây bạn có thể nói tự nhiên như: “vào repo này xem test fail”, “kiểm Docker trên VPS”, “mở terminal chạy TUI”, “copy file này sang máy Windows”, hoặc “theo dõi process build”. Agent sẽ chọn tool phù hợp theo Tool Helper và quyền bạn đã bật trên Wall.
 
-The direct `/mcp` OAuth lane remains in the codebase for Business/Enterprise/Edu testing and future Plugin/App publication. It is **not** the current Plus acceptance path. The beta continuity gate is: a fresh Plus chat using only `@Vercel` must bootstrap devices, select an explicit connected device, reuse or obtain Local-Wall approval for its Device Access Grant, open a durable Agent lane, execute/read output, resume/close it, and perform routine coding/operations work without RDC.
+> **Không gửi opaque client/continuation lên chat để copy tay.** Đây là capability nội bộ ngắn hạn dành cho Agent runtime.
 
-The machine-readable Vercel guide documents the exact pairing/actions and safety rules. No static shared bearer is used anywhere in this path.
+### Bước 6 — thêm máy thứ hai
 
-### Updating beta clients
+Cài Light Remote trên máy mới, enroll/Connect nó, rồi tạo **A code riêng trên Wall của máy đó** và pair A/B lại. Không có pre-auth fleet discovery: một Agent chỉ thấy các device đã được owner cho phép vào chính Agent client đó.
+## Cập nhật và Force Update
 
-The beta channel is separate from GitHub's `releases/latest` semantics. Windows and Linux clients read the signed manifest at `channels/beta/client-update.json` and `channels/beta/client-update.json.sig`. A release is not trusted merely because a file exists on GitHub: signature and artifact hash checks remain mandatory.
+Client dùng signed Beta channel trong `channels/beta/`. Một update chỉ được chấp nhận khi manifest có chữ ký hợp lệ, version không rollback/sidegrade trái policy, artifact đúng HTTPS + SHA-256 + size và Core mới vượt health gate.
 
-## Development
+- Local Wall có **Check now / Update now** khi client dùng independent updater.
+- Account/Fleet control plane có thể gửi **Force update** tới client quá cũ qua helper lane đã xác thực.
+- Windows/Linux/macOS giữ updater độc lập với Core để một Core hỏng không tự phá đường cứu hộ.
+- Server/Hub là deployment plane riêng; Wall của server không tự kéo client package vào Host.
 
-### Requirements
+## Mô hình bảo mật
 
-- Node.js 22.x
-- npm
-- Windows/.NET 8 SDK only when building the native Windows shell locally
+Light Remote không biến HTTP thành một `ssh root` không kiểm soát. Các lớp chính gồm:
 
-The repository intentionally keeps most acceptance checks as standalone scripts under `deploy/scripts/` so the same contracts can run on CI and on the reference ARM/AMD hosts.
+- Vercel OIDC xác thực bridge được Hub tin cậy;
+- device identity Ed25519 và signed heartbeat/outbound channel;
+- A/B pairing ngắn hạn, one-time và bound vào đúng device/connection;
+- session/job ownership theo account + device + Agent;
+- capability inference ở device trước khi spawn;
+- local policy luôn có quyền deny cuối;
+- PTY/ConPTY cần capability riêng;
+- private device key và update-signing private key không đi vào client payload/Vercel/GitHub Actions;
+- signed update manifest + artifact hash/size + rollback.
 
-### Validate
+Xem [`SECURITY.md`](SECURITY.md) trước khi public Hub/Wall hoặc cấp quyền nâng cao.
+## Cho developer và tester
 
-The reference acceptance script can test either an ephemeral local Gateway or an already deployed HTTPS MCP endpoint. For a self-owned deployment, set `LRM_DOGFOOD_BASE=https://mcp.example.com` and provide the local Wall credential files; the script performs OAuth + durable ARM/Linux/Windows-style fleet operations without printing the password.
+Public `main` giữ code/release contracts sạch; lịch sử handoff/plan trước Beta được đóng băng ở branch [`before-beta`](https://github.com/n8n2erpnext/light-remote-mcp/tree/before-beta).
 
-Run the standalone regression suite from the repository root:
+- Hướng dẫn phát triển/test: [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)
+- Vercel bridge: [`deploy/vercel/README.md`](deploy/vercel/README.md)
+- Host executor: [`operator-host/README.md`](operator-host/README.md)
+- Signed Beta channel: [`channels/beta/README.md`](channels/beta/README.md)
+- Release notes: [`docs/releases/`](docs/releases/)
+
+Quick validation:
 
 ```bash
-for test in deploy/scripts/selftest-*.mjs; do
-  node "$test"
-done
+npm ci
+npm test
+# chỉ chạy trên Linux host thật có systemd/runtime tương ứng
+npm run test:host
 ```
 
-Useful focused gates include:
+## Trạng thái Beta
 
-```bash
-node deploy/scripts/selftest-v09-windows-package.mjs
-node deploy/scripts/selftest-v09-platform-adapters.mjs
-node deploy/scripts/selftest-v09-agent-capability-inference.mjs
-```
+`v0.9.0-rc.26` là prerelease Beta hiện tại. Windows x64, Linux x64/arm64, macOS Intel/Apple Silicon, Linux Server và Vercel bridge đều có build lane riêng; update channel active hiện trỏ tới RC26.
 
-GitHub Actions provides the native packaging gates:
+Light Remote vẫn là phần mềm pre-stable: hãy test với policy thấp trước, backup dữ liệu quan trọng và chỉ bật terminal/sudo/UAC/system-service permissions khi bạn hiểu phạm vi quyền của Agent.
 
-- `.github/workflows/windows-native-client.yml`
-- `.github/workflows/linux-client-build.yml`
+## License
 
-The Windows workflow performs a real install/self-test/rollback/uninstall roundtrip on a Windows runner rather than stopping at compilation.
-
-## Repository map
-
-```text
-api/                         Vercel-facing API routes and guide metadata
-gateway/                     ARM Hub / MCP gateway runtime
-device-agent/                Enrolled leaf agent and platform adapters
-client/windows-native/       Native Windows tray application and installer
-client/linux/                Linux installer and updater path
-deploy/scripts/              Regression, live-proof, and packaging helpers
-docs / top-level *.md        Versioned architecture and recovery contracts
-```
-
-The historical file names still contain `gpt-operator` and `gpt-vps-bridge` identifiers in places where changing them would break device state, service migration, or rollback compatibility. User-facing branding now uses **Light Remote MCP**; compatibility identifiers are retained only where changing them would invalidate existing enrolled devices, service migration, or rollback behavior.
-
-## Operator guide
-
-The reference deployment exposes a machine-readable operator guide at:
-
-```text
-https://light-remote-mcp.vercel.app/api/guide
-```
-
-That endpoint describes the current session/open/exec/resume contract for AI agents working through the reference environment. It is a development/control-plane guide, not a promise that the reference deployment is an unrestricted public execution service.
-
-For recovery and architecture context, start with:
-
-- [`CURRENT_STATE.md`](CURRENT_STATE.md)
-- [`AI_BRIDGE_GUIDE.md`](AI_BRIDGE_GUIDE.md)
-- [`FLEET_ROUTING_V0_8.md`](FLEET_ROUTING_V0_8.md)
-- [`PLATFORM_ADAPTERS_V0_9.md`](PLATFORM_ADAPTERS_V0_9.md)
-- [`PRODUCT_PLATFORM_PLAN_V0_6_TO_PUBLIC_PLUGIN.md`](PRODUCT_PLATFORM_PLAN_V0_6_TO_PUBLIC_PLUGIN.md)
-
-## Roadmap
-
-The v0.9 beta freezes the execution/control-plane contracts while product work moves upward into distribution: account/OAuth, a thin self-describing Plugin/App, distribution web, Linux Desktop UX, and a hosted implementation of the same Server contract. Vercel remains a deployment adapter rather than product authority.
-
-See [`PRODUCT_ARCHITECTURE_ROADMAP_V0_9_BETA_TO_PLUGIN.md`](PRODUCT_ARCHITECTURE_ROADMAP_V0_9_BETA_TO_PLUGIN.md) for the locked technical boundaries and [`PRODUCT_PLATFORM_PLAN_V0_6_TO_PUBLIC_PLUGIN.md`](PRODUCT_PLATFORM_PLAN_V0_6_TO_PUBLIC_PLUGIN.md) for the longer engineering history.
-
-## Light ecosystem
-
-Light Remote MCP is part of the broader [`n8n2erpnext`](https://github.com/n8n2erpnext) open-source engineering ecosystem.
-
-It is intentionally independent from [LightBI](https://github.com/n8n2erpnext/lightbi), but the products share a similar posture: local/self-hosted execution where it improves control, explicit trust boundaries, auditable behavior, upgradeability, and fail-closed handling when evidence or authorization is weak.
-
-Light Remote MCP can serve as an infrastructure bridge for AI-assisted operations across a user's own machines; LightBI remains focused on governed business analysis and evidence-bound data workflows.
-
-## Third-party notices
-
-The Windows client uses UI/layout patterns derived from the NetBird desktop client. NetBird's applicable client code is distributed under the BSD 3-Clause license; the required notice is bundled with the Windows client in `THIRD_PARTY_NOTICES.txt`.
-
-Linux packages bundle the pinned Node.js runtime and carry its upstream license at `licenses/node/LICENSE`. The self-contained Windows installer carries the bundled Node.js license plus the .NET runtime license and third-party notices under `licenses/node/` and `licenses/dotnet/`. CI treats those files as package-contract requirements rather than optional documentation.
-
-See [`THIRD_PARTY_DISTRIBUTION_NOTICES.md`](THIRD_PARTY_DISTRIBUTION_NOTICES.md) for the distribution layout. No NetBird branding, logo, or endorsement is used by Light Remote MCP.
-
-## Project licensing
-
-Light Remote MCP source is licensed under the **Apache License 2.0**; see [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE). The software license does not grant permission to use the Light Remote MCP name, logos or project identity to imply endorsement or official status.
-
-Third-party components retain their own licenses and notices. See [`THIRD_PARTY_DISTRIBUTION_NOTICES.md`](THIRD_PARTY_DISTRIBUTION_NOTICES.md).
-
----
-
-**Light Remote MCP is pre-stable software.** Expect active iteration in packaging, authorization, update delivery, and public MCP integration until the first stable release is cut.
+Apache-2.0. Xem [`LICENSE`](LICENSE), [`NOTICE`](NOTICE) và [`THIRD_PARTY_DISTRIBUTION_NOTICES.md`](THIRD_PARTY_DISTRIBUTION_NOTICES.md).

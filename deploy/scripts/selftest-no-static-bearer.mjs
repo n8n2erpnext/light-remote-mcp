@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const require=createRequire(import.meta.url);
 const runtimeFiles=['lib/http.js','api/operator.js','api/guide.js'];
-const currentGuides=['README.md','AI_BRIDGE_GUIDE.md','DEVICE_PRESENCE_V0_6.md'];
+const currentGuides=['README.md','README.en.md','SECURITY.md','docs/DEVELOPMENT.md'];
 const forbidden=[/VPS_BRIDGE_CALLER_SECRET/,/bridge_caller_auth_required/,/requireBridgeCaller/,/isBridgeCallerAuthorized/];
 for(const rel of [...runtimeFiles,...currentGuides]){
   const text=fs.readFileSync(path.join(root,rel),'utf8');

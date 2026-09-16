@@ -71,9 +71,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          NOTES_FILE="RELEASE_NOTES_V0_9_0_RC.md"
+          NOTES_FILE="docs/releases/RELEASE_NOTES_V0_9_0_RC.md"
           case "$GITHUB_REF_NAME" in
-            *-beta.*) NOTES_FILE="RELEASE_NOTES_V0_9_0_BETA_1.md" ;;
+            *-beta.*) NOTES_FILE="docs/releases/RELEASE_NOTES_V0_9_0_BETA_1.md" ;;
           esac
           gh release create "$GITHUB_REF_NAME" release-assets/* \
             --repo "$GITHUB_REPOSITORY" \

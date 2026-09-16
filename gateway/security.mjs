@@ -1,8 +1,8 @@
 import { createRemoteJWKSet, decodeJwt, jwtVerify } from 'jose';
 
-const TEAM_SLUG = process.env.VERCEL_TEAM_SLUG || 'thdangduys-projects';
+const TEAM_SLUG = process.env.VERCEL_TEAM_SLUG || 'your-vercel-team';
 const PROJECT_NAME = process.env.VERCEL_PROJECT_NAME || 'light-remote-mcp';
-const AUDIENCE = process.env.VERCEL_AUDIENCE || 'https://mcp.dashboard.thaiduy.store';
+const AUDIENCE = process.env.VERCEL_AUDIENCE || 'https://mcp.example.invalid';
 const ALLOWED_ENV = process.env.VERCEL_ENVIRONMENT || 'production';
 const PLUS_BRIDGE_ENVS = String(process.env.VERCEL_PLUS_BRIDGE_ENVIRONMENTS || process.env.VERCEL_PLUS_BRIDGE_ENVIRONMENT || 'production,preview').split(',').map(v=>v.trim()).filter(Boolean);
 const TEAM_ISSUER = `https://oidc.vercel.com/${TEAM_SLUG}`;

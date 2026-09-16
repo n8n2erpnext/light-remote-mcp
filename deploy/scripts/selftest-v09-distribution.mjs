@@ -28,9 +28,11 @@ expect(betaWorkflow.includes('macos-client:')&&betaWorkflow.includes('light-remo
 expect(!linuxClientWorkflow.includes('GPT-Operator-Agent-Linux-${{ matrix.arch }}-dev.tar.gz'),'stale_linux_client_artifact_name_present');
 expect(text('.github/workflows/vercel-bridge-package.yml').includes('vercel-bridge-package-contract=PASS'),'vercel_bundle_ci_missing');
 expect(text('lib/operator-crypto.js').includes('OPERATOR_PUBLIC_KEYS_JSON'),'vercel_public_key_env_override_missing');
-expect(text('README.md').includes('## Quick start — self-hosted beta'),'readme_beta_quickstart_missing');
-expect(text('README.md').includes('ChatGPT Plus today — Vercel bridge is the required control path'),'readme_plus_vercel_path_missing');
-expect(text('README.md').includes('The direct `/mcp` OAuth lane remains'),'readme_direct_mcp_boundary_missing');
+const readmeVi=text('README.md'),readmeEn=text('README.en.md');
+expect(readmeVi.includes('## Quick start cho người ít kinh nghiệm')&&readmeVi.includes('### Bước 5 — cho ChatGPT Web kết nối tới đúng máy'),'readme_vi_user_quickstart_missing');
+expect(readmeEn.includes('## Quick start for low-tech users')&&readmeEn.includes('### Step 5 — connect ChatGPT Web to the exact machine'),'readme_en_user_quickstart_missing');
+expect(readmeVi.includes('connection-helper')&&readmeVi.includes('Vercel bridge URL'),'readme_connection_helper_vercel_path_missing');
+expect(text('api/guide.js').includes("directMcp:'Business/Enterprise/Edu test/future Plugin lane only'"),'direct_mcp_boundary_contract_missing');
 const workspaceProbe=spawnSync(process.execPath,['--input-type=module','-e',
   "import {rootNames} from './gateway/workspace.mjs'; console.log(JSON.stringify(rootNames()));"],{
   cwd:root,encoding:'utf8',env:{...process.env,MCP_WORKSPACE_ROOTS_JSON:'{"project":"/workspace/project"}'}

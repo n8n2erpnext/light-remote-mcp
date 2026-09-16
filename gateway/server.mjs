@@ -49,15 +49,15 @@ function tracked(name, identity, fn) {
   };
 }
 function getServer(identity) {
-  const server = new McpServer({ name: 'thaiduy-vps-arm-mcp', version: VERSION });
+  const server = new McpServer({ name: 'light-remote-mcp', version: VERSION });
   const ro = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false };
 
   server.registerTool('ping', {
-    title: 'Ping VPS ARM', description: 'Read-only connectivity proof.', annotations: { title: 'Ping VPS ARM', ...ro }
+    title: 'Ping Light Remote Host', description: 'Read-only connectivity proof.', annotations: { title: 'Ping Light Remote Host', ...ro }
   }, tracked('ping', identity, async () => `pong ${new Date().toISOString()}`));
 
   server.registerTool('vps_identity', {
-    title: 'VPS ARM Identity', description: 'Return non-sensitive runtime identity.', annotations: { title: 'VPS ARM Identity', ...ro }
+    title: 'Light Remote Host Identity', description: 'Return non-sensitive runtime identity.', annotations: { title: 'Light Remote Host Identity', ...ro }
   }, tracked('vps_identity', identity, async () => ({
     hostname: os.hostname(), platform: os.platform(), arch: os.arch(), uptimeSeconds: Math.floor(os.uptime())
   })));
@@ -133,9 +133,7 @@ function getServer(identity) {
   return server;
 }
 const DEFAULT_ALLOWED_HOSTS = [
-  'mcp.dashboard.thaiduy.store',
-  'lightbi-mcp-poc', 'lightbi-mcp-poc:8080',
-  '100.94.184.141', '100.94.184.141:5488', 'localhost', 'localhost:8080', '127.0.0.1', '127.0.0.1:8080'
+  'localhost', 'localhost:8080', '127.0.0.1', '127.0.0.1:8080'
 ];
 const EXTRA_ALLOWED_HOSTS = String(process.env.MCP_ALLOWED_HOSTS || '').split(',').map(value => value.trim()).filter(Boolean);
 const app = createMcpExpressApp({
@@ -213,7 +211,7 @@ const plusTransfer = createPlusTransferHandlers({
 });
 registerMcpOAuth(app, wallAuth);
 app.get('/healthz', (_req, res) => res.json({
-  ok: true, service: 'thaiduy-vps-arm-mcp', version: VERSION, mode: 'read-plus-operator', security: { ...securityInfo(), toolCalls:'oauth-or-vercel-oidc-plus-device-grant', plusBridge:'owner-approved-device-access-grant-over-vercel', bridgeSession:'required-for-vercel-operator-calls', bridgeSessionTtlSeconds:wallAuth.info().bridgeSessionTtlSeconds }
+  ok: true, service: 'light-remote-mcp', version: VERSION, mode: 'read-plus-operator', security: { ...securityInfo(), toolCalls:'oauth-or-vercel-oidc-plus-device-grant', plusBridge:'owner-approved-device-access-grant-over-vercel', bridgeSession:'required-for-vercel-operator-calls', bridgeSessionTtlSeconds:wallAuth.info().bridgeSessionTtlSeconds }
 }));
 
 async function requireVercelIdentity(req, res, next) {
@@ -482,10 +480,10 @@ wallApp.get('/events', accountWallAuth.requireApi, proxyOperatorSse);
 wallApp.use((_req, res) => res.status(404).end());
 
 const httpServer = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`thaiduy-vps-arm-mcp v${VERSION} listening on ${PORT}`);
+  console.log(`light-remote-mcp v${VERSION} listening on ${PORT}`);
 });
 const wallServer = wallApp.listen(WALL_PORT, '0.0.0.0', () => {
-  console.log(`thaiduy-vps-arm-wall v${VERSION} listening on ${WALL_PORT}`);
+  console.log(`light-remote-wall v${VERSION} listening on ${WALL_PORT}`);
 });
 
 function shutdown(signal) {

@@ -5,10 +5,7 @@ import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
 const DEFAULT_ROOTS = {
-  n8n2erpnext: '/workspace/n8n2erpnext',
-  services: '/workspace/services',
-  thaiduy: '/workspace/thaiduy.digital',
-  frappe: '/workspace/frappe'
+  workspace: '/workspace/workspace'
 };
 function loadRoots() {
   const raw = process.env.MCP_WORKSPACE_ROOTS_JSON;

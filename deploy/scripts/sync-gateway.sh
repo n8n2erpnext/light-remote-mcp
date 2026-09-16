@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-DEST="${1:-/home/ubuntu/services/lightbi-mcp-poc}"
-SERVICE="${LIGHT_REMOTE_GATEWAY_SERVICE:-lightbi-mcp-poc}"
+DEST="${1:-${LIGHT_REMOTE_GATEWAY_DEST:-}}"
+SERVICE="${LIGHT_REMOTE_GATEWAY_SERVICE:-light-remote-mcp-gateway}"
 STAMP="$(date +%Y%m%d-%H%M%S)"
-BACKUP="/home/ubuntu/backups/gpt-vps-operator/gateway-$STAMP"
+BACKUP_ROOT="${LIGHT_REMOTE_GATEWAY_BACKUP_DIR:-${HOME}/.cache/light-remote-mcp/gateway-backups}"
+BACKUP="$BACKUP_ROOT/gateway-$STAMP"
+[[ -n "$DEST" ]] || { echo "Usage: sync-gateway.sh <compose-directory> or set LIGHT_REMOTE_GATEWAY_DEST" >&2; exit 2; }
 mkdir -p "$BACKUP"
 [[ -f "$DEST/docker-compose.yml" ]] || { echo "Missing live compose: $DEST/docker-compose.yml" >&2; exit 2; }
 cp -a "$DEST/docker-compose.yml" "$BACKUP/docker-compose.yml"

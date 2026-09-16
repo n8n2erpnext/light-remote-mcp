@@ -34,13 +34,15 @@ async function enroll(label){
 const a=await enroll('Rate A'),b=await enroll('Rate B');
 async function connect(dev){const r=await request('POST','/v1/device-channel/connect',dev.signed('connect',{nodeId:dev.deviceId,agentVersion:currentVersion,requestedLeaseMs:3600000,reconnectGraceMs:1800000}));if(r.status!==200)throw new Error(`connect_failed:${r.status}:${r.json.error}`);}
 await connect(a);await connect(b);
-const minuteOffset=Date.now()%60000;if(minuteOffset>54000)await sleep(62000-minuteOffset);
+async function ensureMinuteBudget(minRemainingMs=10000){const offset=Date.now()%60000;if(offset>60000-minRemainingMs)await sleep(60050-offset);}
 const statusPayload=dev=>({nodeId:dev.deviceId,agentVersion:currentVersion});
+await ensureMinuteBudget();
 let r=await request('POST','/v1/device-channel/status',a.signed('status',statusPayload(a)));
 if(r.status!==200)throw new Error('observer_first_failed');
 r=await request('POST','/v1/device-channel/status',a.signed('status',statusPayload(a)));
 if(r.status!==429||r.json.scope!=='device-channel-observer'||!Number(r.json.retryAfterSeconds)||!r.headers['retry-after'])throw new Error(`observer_limit_contract_failed:${r.status}:${JSON.stringify(r.json)}`);
 const pollPayload=dev=>({nodeId:dev.deviceId,agentVersion:currentVersion,sessionCeiling:2,draining:false,capabilities:['filesystem'],policyRevision:1,waitMs:0});
+await ensureMinuteBudget();
 r=await request('POST','/v1/device-channel/poll',a.signed('poll',pollPayload(a)));
 if(r.status!==200)throw new Error(`observer_starved_runtime:${r.status}:${r.json.error}`);
 r=await request('POST','/v1/device-channel/poll',a.signed('poll',pollPayload(a)));
@@ -51,6 +53,7 @@ for(let i=0;i<3;i++){
   const bad=await request('POST','/v1/device-channel/status',forged);
   if(bad.status===429||bad.status<400)throw new Error(`forged_signature_consumed_quota:${bad.status}`);
 }
+await ensureMinuteBudget();
 r=await request('POST','/v1/device-channel/status',b.signed('status',statusPayload(b)));
 if(r.status!==200)throw new Error(`forged_signature_starved_valid_observer:${r.status}:${r.json.error}`);
 r=await request('POST','/v1/device-channel/status',b.signed('status',statusPayload(b)));

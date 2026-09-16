@@ -33,7 +33,7 @@ cp "$ROOT_DIR/deploy/scripts/generate-operator-key.mjs" "$PKG/deploy/scripts/"
 cp "$ROOT_DIR/deploy/scripts/generate-wall-auth.mjs" "$PKG/deploy/scripts/"
 cp "$ROOT_DIR/deploy/server-linux/install.sh" "$PKG/install.sh"
 chmod 0755 "$PKG/install.sh"
-for f in LICENSE NOTICE VERSION THIRD_PARTY_DISTRIBUTION_NOTICES.md PRODUCT_ARCHITECTURE_ROADMAP_V0_9_BETA_TO_PLUGIN.md; do
+for f in LICENSE NOTICE VERSION THIRD_PARTY_DISTRIBUTION_NOTICES.md; do
   cp "$ROOT_DIR/$f" "$PKG/$f"
 done
 cat > "$PKG/manifest.json" <<EOF

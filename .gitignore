@@ -4,3 +4,18 @@ node_modules/
 !.env.example
 operator.private.json
 *.private.json
+
+# Local engineering scratch material. Public docs belong under docs/.
+HANDOFF_*.md
+*_HANDOFF_*.md
+CURRENT_STATE.md
+docs/internal/
+client/windows-native/installer/finish-info.txt
+
+# One-off pre-beta rollout helpers preserved on before-beta / local archive.
+deploy/scripts/live-brand-*.sh
+deploy/scripts/live-main-fleet-arm-rollout.mjs
+deploy/scripts/live-wall-ux-*.mjs
+# Live proof/migration scripts are historical evidence, not public release tooling.
+deploy/scripts/live-v*-*.mjs
+deploy/scripts/live-wall-auth-proof.mjs
