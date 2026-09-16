@@ -9,6 +9,7 @@ import { runtimeVersion } from '../lib/runtime-version.mjs';
 import { INTERNAL_ALLOWED_IP, INTERNAL_HOST, INTERNAL_PORT, OPENAI_CHALLENGE_FILE, PUBLIC_ALLOWED_HOSTS, PUBLIC_HOST, PUBLIC_ORIGIN, PUBLIC_PORT } from './config.mjs';
 import { authenticateAccess, registerOAuth } from './oauth.mjs';
 import { pruneHostedAccountState, registerHostedAccountRoutes } from './account-hosted.mjs';
+import { pruneAccountPortalState, registerAccountPortal } from './account-portal.mjs';
 import { prunePublicDeviceRateState, registerPublicDeviceRoutes } from './device-public.mjs';
 import { PUBLIC_PAGE_BODIES } from './public-pages.mjs';
 import { PLUGIN_TOOL_SECURITY, registerPluginTools } from './tools.mjs';
@@ -22,8 +23,9 @@ publicApp.set('trust proxy','loopback, linklocal, uniquelocal');
 publicApp.use((_req,res,next)=>{res.set('X-Content-Type-Options','nosniff');res.set('Referrer-Policy','no-referrer');res.set('Cache-Control','no-store');res.set('X-Robots-Tag','noindex, nofollow, noarchive');res.set('Permissions-Policy','camera=(), microphone=(), geolocation=()');next();});
 registerOAuth(publicApp);
 registerHostedAccountRoutes(publicApp);
+registerAccountPortal(publicApp);
 registerPublicDeviceRoutes(publicApp);
-const publicStatePruner=setInterval(()=>{pruneHostedAccountState();prunePublicDeviceRateState();},60_000);
+const publicStatePruner=setInterval(()=>{pruneHostedAccountState();pruneAccountPortalState();prunePublicDeviceRateState();},60_000);
 publicStatePruner.unref?.();
 
 function html(title,body){return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><style>body{font:16px system-ui;max-width:820px;margin:48px auto;padding:0 20px;line-height:1.6;color:#1f2937}h1,h2{line-height:1.2}code{background:#f3f4f6;padding:2px 5px;border-radius:4px}a{color:#1d4ed8}</style></head><body>${body}</body></html>`;}
