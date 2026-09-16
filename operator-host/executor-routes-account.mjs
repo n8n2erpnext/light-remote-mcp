@@ -3,6 +3,14 @@ export async function handleAccountRoutes(req,res,url,deps){
     if (req.method === 'GET' && url.pathname === '/v1/admin/licenses') {
       return sendJson(res,200,{ok:true,licenses:licenses.list()});
     }
+    if (req.method === 'POST' && url.pathname === '/v1/admin/accounts/provision') {
+      const body=await readJson(req),account=accounts.provision(body);
+      return sendJson(res,201,{ok:true,account});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/plugin/auth/verify') {
+      const body=await readJson(req),account=accounts.verifyCredentials(body,{recordLogin:true,eventType:'plugin_oauth_login'});
+      return sendJson(res,200,{ok:true,account});
+    }
     if (req.method === 'POST' && url.pathname === '/v1/admin/licenses/issue') {
       const body=await readJson(req),issued=licenses.issue(body);
       return sendJson(res,201,{ok:true,...issued});

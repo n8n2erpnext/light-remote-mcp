@@ -83,8 +83,8 @@ export async function handleRuntimeRoutes(req,res,url,deps){
       }
     }
     if (req.method === 'POST' && url.pathname === '/v1/sessions/open') {
-      const body = await readJson(req), route=targetRoute(body.nodeId);
-      return sendJson(res, 200, { ok:true, route, session:sessions.open({ openId:body.openId, agentId:body.agentId, label:body.label, workspace:body.workspace, graceMs:body.graceMs, gracePreset:body.gracePreset, leaseMs:body.leaseMs, leasePreset:body.leasePreset, nodeId:route.nodeId, deviceId:route.deviceId, maxActiveForNode:route.sessionCeiling }) });
+      const body = await readJson(req), route=targetRoute(body.nodeId,body.accountId||ACCOUNT_ID);
+      return sendJson(res, 200, { ok:true, route, session:sessions.open({ openId:body.openId, agentId:body.agentId, label:body.label, workspace:body.workspace, graceMs:body.graceMs, gracePreset:body.gracePreset, leaseMs:body.leaseMs, leasePreset:body.leasePreset, nodeId:route.nodeId, deviceId:route.deviceId, accountId:route.accountId, maxActiveForNode:route.sessionCeiling }) });
     }
     if (req.method === 'GET' && url.pathname === '/v1/sessions') {
       return sendJson(res, 200, { ok:true, active:sessions.activeCount(), maxActive:MAX_ACTIVE_SESSIONS, defaultGraceMs:SESSION_IDLE_MS, minGraceMs:SESSION_MIN_IDLE_MS, maxGraceMs:SESSION_MAX_IDLE_MS, gracePresets:SESSION_GRACE_PRESETS, sessions:sessions.list() });
@@ -115,6 +115,15 @@ export async function handleRuntimeRoutes(req,res,url,deps){
       const job=payload.action==='fs'?await startFsOperation(payload,requestId):payload.action==='process'?await startProcessOperation(payload,requestId):payload.action==='terminal'?await startTerminalOperation(payload,requestId):payload.action==='search'?await startSearchOperation(payload,requestId):payload.action==='scp'?await startScpOperation(payload,requestId):startJob(payload,requestId);
       if(!job.telemetry?.operatorAcceptedAt){job.telemetry={...(job.telemetry||{}),...ingressTelemetry(body.telemetry,operatorAcceptedAt),dispatchAt:job.startedAt};if(!job.remote)job.telemetry.deviceReceivedAt=job.startedAt;}
       const waitMs=Math.max(0,Math.min(Number(payload.waitMs)||0,8000));
+      await waitForJob(job,waitMs);
+      return sendJson(res,200,{ok:job.finishedAt?job.exitCode===0:true,encryptedByKid:kid,aad,job:jobView(job),data:job.resultData});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/terminal') {
+      const envelope=await readJson(req);
+      const {payload,requestId,aad,kid}=decryptEnvelope(envelope);
+      if(payload.action!=='terminal')throw new Error('unsupported_action');
+      const job=await startTerminalOperation(payload,requestId);
+      const waitMs=Math.max(0,Math.min(Number(payload.waitMs)||7000,8000));
       await waitForJob(job,waitMs);
       return sendJson(res,200,{ok:job.finishedAt?job.exitCode===0:true,encryptedByKid:kid,aad,job:jobView(job),data:job.resultData});
     }

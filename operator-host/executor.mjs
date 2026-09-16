@@ -345,7 +345,7 @@ function startJob(payload, requestId) {
   requiredCapabilities.sort();
   let route=null;
   if(remote) {
-    route=targetRoute(session.nodeId);
+    route=targetRoute(session.nodeId,session.accountId);
     if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);
     const missing=requiredCapabilities.filter(cap=>!route.capabilities.includes(cap));
     if(missing.length)throw new FleetError('target_node_capability_missing',409);
@@ -412,7 +412,7 @@ async function startFsOperation(payload,requestId){
   const fsRequest=payload.fs&&typeof payload.fs==='object'&&!Array.isArray(payload.fs)?payload.fs:null;
   if(!fsRequest)throw new Error('filesystem_request_required');
   const remote=session.nodeId!==NODE_ID,requiredCapabilities=['filesystem'];
-  if(remote){const route=targetRoute(session.nodeId);if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(!route.capabilities.includes('filesystem'))throw new FleetError('target_node_capability_missing',409);}
+  if(remote){const route=targetRoute(session.nodeId,session.accountId);if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(!route.capabilities.includes('filesystem'))throw new FleetError('target_node_capability_missing',409);}
   else if(!hostEffectiveCapabilities().includes('filesystem'))throw new DeviceError('local_host_capability_missing',409);
   const fingerprint=crypto.createHash('sha256').update(JSON.stringify({fsRequest,sessionId:session.id,nodeId:session.nodeId})).digest('hex');
   const existing=operationDedupe.get(operationId);
@@ -431,7 +431,7 @@ async function startScpOperation(payload,requestId){
   if(payload.nodeId!=null&&String(payload.nodeId)!==session.nodeId)throw new SessionError('session_target_mismatch',409);
   const request=payload.scp&&typeof payload.scp==='object'&&!Array.isArray(payload.scp)?payload.scp:null;if(!request)throw new Error('scp_request_required');
   const remote=session.nodeId!==NODE_ID,requiredCapabilities=['filesystem'];
-  if(remote){const route=targetRoute(session.nodeId);if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(!route.capabilities.includes('filesystem'))throw new FleetError('target_node_capability_missing',409);}else if(!hostEffectiveCapabilities().includes('filesystem'))throw new DeviceError('local_host_capability_missing',409);
+  if(remote){const route=targetRoute(session.nodeId,session.accountId);if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(!route.capabilities.includes('filesystem'))throw new FleetError('target_node_capability_missing',409);}else if(!hostEffectiveCapabilities().includes('filesystem'))throw new DeviceError('local_host_capability_missing',409);
   const fingerprint=crypto.createHash('sha256').update(JSON.stringify({request,sessionId:session.id,nodeId:session.nodeId})).digest('hex'),existing=operationDedupe.get(operationId);
   if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
   const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`light-scp:${String(request.op||'unknown')}`,cwd:String(request.destination||request.source||''),script:'',status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null};
@@ -459,7 +459,7 @@ async function startProcessOperation(payload,requestId){
   if(payload.nodeId!=null&&String(payload.nodeId)!==session.nodeId)throw new SessionError('session_target_mismatch',409);
   const request=payload.process&&typeof payload.process==='object'&&!Array.isArray(payload.process)?payload.process:null;if(!request)throw new Error('process_request_required');
   const remote=session.nodeId!==NODE_ID,requiredCapabilities=['filesystem'];
-  if(remote){const route=targetRoute(session.nodeId);if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(!route.capabilities.includes('filesystem'))throw new FleetError('target_node_capability_missing',409);}else if(!hostEffectiveCapabilities().includes('filesystem'))throw new DeviceError('local_host_capability_missing',409);
+  if(remote){const route=targetRoute(session.nodeId,session.accountId);if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(!route.capabilities.includes('filesystem'))throw new FleetError('target_node_capability_missing',409);}else if(!hostEffectiveCapabilities().includes('filesystem'))throw new DeviceError('local_host_capability_missing',409);
   const fingerprint=crypto.createHash('sha256').update(JSON.stringify({request,sessionId:session.id,nodeId:session.nodeId})).digest('hex'),existing=operationDedupe.get(operationId);
   if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
   const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-process:${String(request.op||'unknown')}`,cwd:String(request.cwd||''),script:String(request.script||''),status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null};
@@ -525,7 +525,7 @@ async function startTerminalOperation(payload,requestId){
   if(payload.nodeId!=null&&String(payload.nodeId)!==session.nodeId)throw new SessionError('session_target_mismatch',409);
   const request=payload.terminal&&typeof payload.terminal==='object'&&!Array.isArray(payload.terminal)?payload.terminal:null;if(!request)throw new Error('terminal_request_required');
   const remote=session.nodeId!==NODE_ID,requiredCapabilities=['terminal'];
-  if(remote){const route=targetRoute(session.nodeId);if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(!route.capabilities.includes('terminal'))throw new FleetError('target_node_capability_missing',409);}else if(!hostEffectiveCapabilities().includes('terminal'))throw new DeviceError('local_host_capability_missing',409);
+  if(remote){const route=targetRoute(session.nodeId,session.accountId);if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(!route.capabilities.includes('terminal'))throw new FleetError('target_node_capability_missing',409);}else if(!hostEffectiveCapabilities().includes('terminal'))throw new DeviceError('local_host_capability_missing',409);
   const fingerprint=crypto.createHash('sha256').update(JSON.stringify({request,sessionId:session.id,nodeId:session.nodeId})).digest('hex'),existing=operationDedupe.get(operationId);
   if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
   const toolMeta=terminalWallMeta(request);
@@ -559,7 +559,7 @@ async function startSearchOperation(payload,requestId){
   if(payload.nodeId!=null&&String(payload.nodeId)!==session.nodeId)throw new SessionError('session_target_mismatch',409);
   const request=payload.search&&typeof payload.search==='object'&&!Array.isArray(payload.search)?payload.search:null;if(!request)throw new Error('search_request_required');
   const remote=session.nodeId!==NODE_ID,requiredCapabilities=['filesystem'];
-  if(remote){const route=targetRoute(session.nodeId);if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(!route.capabilities.includes('filesystem'))throw new FleetError('target_node_capability_missing',409);}else if(!hostEffectiveCapabilities().includes('filesystem'))throw new DeviceError('local_host_capability_missing',409);
+  if(remote){const route=targetRoute(session.nodeId,session.accountId);if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(!route.capabilities.includes('filesystem'))throw new FleetError('target_node_capability_missing',409);}else if(!hostEffectiveCapabilities().includes('filesystem'))throw new DeviceError('local_host_capability_missing',409);
   const fingerprint=crypto.createHash('sha256').update(JSON.stringify({request,sessionId:session.id,nodeId:session.nodeId})).digest('hex'),existing=operationDedupe.get(operationId);
   if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
   const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-search:${String(request.op||'unknown')}`,cwd:String(request.path||''),script:'',status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null};
@@ -766,12 +766,12 @@ function requireDeviceConnection(deviceId) {
   if (!CONNECTION_LEASE_ENFORCE) return connections.get(deviceId);
   return connections.assertConnected(deviceId);
 }
-function deviceView(device) { return { ...device, routing:routingViewForDevice(device), policy:policyViewForDevice(device), connection:connectionViewForDevice(device.deviceId), compatibility:compatibilityFor(device) }; }
+function deviceView(device) { return { ...device, effectiveCapabilities:device.nodeId===NODE_ID?hostEffectiveCapabilities():[...(device.capabilities||[])], routing:routingViewForDevice(device), policy:policyViewForDevice(device), connection:connectionViewForDevice(device.deviceId), compatibility:compatibilityFor(device) }; }
 function allDeviceViews() { return devices.list({ activeSessionsForNode:nodeId => sessions.activeCountByNode(nodeId) }).map(deviceView); }
 function queueHelperUpdate(deviceId,{source='remote-owner'}={}) {
-  const device=devices.get(deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});if(device.nodeId===NODE_ID)throw new DeviceError('helper_update_hub_not_client',409);const route=targetRoute(device.nodeId),updateSource=String(source||'remote-owner').slice(0,40);
+  const device=devices.get(deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});if(device.nodeId===NODE_ID)throw new DeviceError('helper_update_hub_not_client',409);const route=targetRoute(device.nodeId,device.accountId),updateSource=String(source||'remote-owner').slice(0,40);
   const agentId=`agent-update-${crypto.randomBytes(8).toString('hex')}`,openId=`open-update-${crypto.randomBytes(8).toString('hex')}`;let session;
-  try{session=sessions.open({agentId,openId,label:'client update',workspace:'',gracePreset:'30m',nodeId:route.nodeId,deviceId:route.deviceId,maxActiveForNode:route.sessionCeiling});const operationId=`client-update-${crypto.randomBytes(8).toString('hex')}`,requestId=`update-${crypto.randomUUID()}`;
+  try{session=sessions.open({agentId,openId,label:'client update',workspace:'',gracePreset:'30m',nodeId:route.nodeId,deviceId:route.deviceId,accountId:route.accountId,maxActiveForNode:route.sessionCeiling});const operationId=`client-update-${crypto.randomBytes(8).toString('hex')}`,requestId=`update-${crypto.randomUUID()}`;
     const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:null,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.sessionId,agentId:session.agentId,nodeId:session.nodeId,note:`${updateSource} requested helper client update`,cwd:'',script:'request signed client update',status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote:true,commandId:null,requiredCapabilities:[],resultData:null,autoCloseSession:true};
     jobs.set(job.id,job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:'outbound-leaf',requiredCapabilities:[],note:job.note});
     const command=fleet.enqueue({accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'update',operationId,sessionId:job.sessionId,agentId:job.agentId,update:{op:'request',source:updateSource}}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},60000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();pushEvent({type:'device_update_requested',accountId:device.accountId,deviceId:device.deviceId,nodeId:device.nodeId,sessionId:session.sessionId,agentId,jobId:job.id,status:'queued',source:updateSource});return {accepted:true,deviceId:device.deviceId,nodeId:device.nodeId,sessionId:session.sessionId,agentId,source:updateSource,job:jobView(job)};
@@ -781,14 +781,14 @@ function queueHelperUpdate(deviceId,{source='remote-owner'}={}) {
 function queueSignedUpdate(deviceId) {
   const device=devices.get(deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
   if(device.nodeId===NODE_ID||device.platform!=='linux')throw new DeviceError('maintenance_update_unsupported_platform',409);
-  const route=targetRoute(device.nodeId),requiredCapabilities=['sudo-on-demand','systemctl'];
+  const route=targetRoute(device.nodeId,device.accountId),requiredCapabilities=['sudo-on-demand','systemctl'];
   const missing=requiredCapabilities.filter(cap=>!route.capabilities.includes(cap));
   if(missing.length)throw new FleetError('target_node_capability_missing',409);
   const agentId=`agent-maintenance-${crypto.randomBytes(8).toString('hex')}`;
   const openId=`open-maintenance-${crypto.randomBytes(8).toString('hex')}`;
   let session;
   try {
-    session=sessions.open({agentId,openId,label:'signed client update',workspace:'/home/ubuntu',gracePreset:'30m',nodeId:route.nodeId,deviceId:route.deviceId,maxActiveForNode:route.sessionCeiling});
+    session=sessions.open({agentId,openId,label:'signed client update',workspace:'/home/ubuntu',gracePreset:'30m',nodeId:route.nodeId,deviceId:route.deviceId,accountId:route.accountId,maxActiveForNode:route.sessionCeiling});
     const operationId=`maintenance-update-${crypto.randomBytes(8).toString('hex')}`;
     const requestId=`maintenance-${crypto.randomUUID()}`;
     const job=startJob({operationId,script:'sudo -n systemctl start --no-block gpt-operator-agent-update.service',cwd:'/home/ubuntu',timeoutMs:15_000,sessionId:session.sessionId,agentId,nodeId:route.nodeId,requiredCapabilities,note:'owner requested signed client update'},requestId);
@@ -800,15 +800,15 @@ function queueSignedUpdate(deviceId) {
     throw error;
   }
 }
-function targetRoute(requestedNodeId) {
-  const nodeId=String(requestedNodeId || NODE_ID).trim();
+function targetRoute(requestedNodeId, accountId=ACCOUNT_ID) {
+  const nodeId=String(requestedNodeId || NODE_ID).trim(), aid=String(accountId||ACCOUNT_ID).trim();
   if (!/^[A-Za-z0-9._:-]{1,128}$/.test(nodeId)) throw new DeviceError('invalid_node_id');
-  if (nodeId===NODE_ID) { requireDeviceConnection(DEVICE_ID); return { accountId:ACCOUNT_ID, deviceId:DEVICE_ID, nodeId:NODE_ID, mode:'local', sessionCeiling:MAX_ACTIVE_SESSIONS, capabilities:hostEffectiveCapabilities(), state:'online', draining:false }; }
+  if (nodeId===NODE_ID) { if(aid!==ACCOUNT_ID)throw new DeviceError('target_node_account_mismatch',403);requireDeviceConnection(DEVICE_ID); return { accountId:ACCOUNT_ID, deviceId:DEVICE_ID, nodeId:NODE_ID, mode:'local', sessionCeiling:MAX_ACTIVE_SESSIONS, capabilities:hostEffectiveCapabilities(), state:'online', draining:false }; }
   const device=devices.getByNodeId(nodeId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
-  if (device.accountId!==ACCOUNT_ID) throw new DeviceError('target_node_account_mismatch',403);
+  if (device.accountId!==aid) throw new DeviceError('target_node_account_mismatch',403);
   if (device.state!=='online') throw new DeviceError('target_node_offline',409);
   requireDeviceConnection(device.deviceId);
-  const route=fleet.assertRoutable(nodeId,{accountId:ACCOUNT_ID,deviceId:device.deviceId});
+  const route=fleet.assertRoutable(nodeId,{accountId:aid,deviceId:device.deviceId});
   const binding=enrollments.binding(device.deviceId), allowed=new Set(binding.approvedCapabilities||[]);
   return { ...route, capabilities:(route.capabilities||[]).filter(cap=>allowed.has(cap)), mode:'outbound-leaf' };
 }
@@ -830,9 +830,9 @@ function verifiedChannelContext(body, action) {
   const payload=body?.payload;
   if (!payload || typeof payload!=='object' || Array.isArray(payload)) throw new EnrollmentError('invalid_device_channel_payload');
   const proof=enrollments.verifyChannel(body,action,payload), binding=proof.binding;
-  if (binding.accountId!==ACCOUNT_ID) throw new EnrollmentError('device_account_mismatch',403);
+  const account=binding.accountId===ACCOUNT_ID?activeAccount(binding.accountId):accounts.account(binding.accountId);if((account.status||'active')!=='active')throw new EnrollmentError('device_account_disabled',403);
   const device=devices.get(binding.deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
-  if (device.accountId!==ACCOUNT_ID || device.publicIdentityKey!==binding.publicIdentityKey) throw new EnrollmentError('device_binding_mismatch',403);
+  if (device.accountId!==binding.accountId || device.publicIdentityKey!==binding.publicIdentityKey) throw new EnrollmentError('device_binding_mismatch',403);
   enforceTrustedChannelRate(device.deviceId,action);
   return {payload,proof,binding,device};
 }

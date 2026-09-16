@@ -1,0 +1,18 @@
+{
+  "name": "light-remote-openai-plugin-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Submission-grade OpenAI plugin MCP facade for Light Remote.",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node selftest.mjs && node selftest-hosted.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "express": "^5.2.1",
+    "jose": "^6.2.12",
+    "zod": "^4.5.4"
+  },
+  "license": "Apache-2.0"
+}

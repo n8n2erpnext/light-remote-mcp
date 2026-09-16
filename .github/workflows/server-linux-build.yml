@@ -9,6 +9,7 @@ on:
       - 'v0.9.*'
     paths:
       - 'gateway/**'
+      - 'plugin-server/**'
       - 'operator-host/**'
       - 'device-agent/**'
       - 'lib/**'
@@ -52,6 +53,7 @@ jobs:
           set -euo pipefail
           npm ci --ignore-scripts
           npm ci --ignore-scripts --prefix gateway
+          npm ci --ignore-scripts --prefix plugin-server
       - name: Full repository selftest audit
         run: npm test
 
