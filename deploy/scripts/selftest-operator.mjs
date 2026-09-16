@@ -38,14 +38,14 @@ if (caps.status !== 200 || !caps.json.ok) throw new Error('capabilities_failed')
 const agentId='agent-selftest-operator-v05-aaaaaaaa';
 const opened=await request('POST','/v1/sessions/open',{agentId,openId:'selftest-operator-open-v05',label:'operator regression'});
 if(opened.status!==200) throw new Error('session_open_failed'); const sessionId=opened.json.session.sessionId;
-const envelope = cryptoFixture.seal({ action:'exec_batch', operationId:'selftest-operator-v05', cwd:'/home/ubuntu',
+const envelope = cryptoFixture.seal({ action:'exec_batch', operationId:'selftest-operator-v05', cwd:root,
   script:"printf 'selftest-ok\\n'", sessionId, agentId, note:'encrypted regression', waitMs:5000, timeoutMs:10000 });
 const first = await request('POST','/v1/execute',envelope);
 if (first.status !== 200 || first.json.job?.exitCode !== 0) throw new Error('execute_failed');
 const jobId = first.json.job.jobId;
 const replay = await request('POST','/v1/execute',envelope);
 if (replay.status !== 401 || replay.json.error !== 'replay_detected') throw new Error('replay_guard_failed');
-const tampered = cryptoFixture.seal({ action:'exec_batch', operationId:'tamper-envelope-v05', cwd:'/home/ubuntu', script:'true', sessionId, agentId });
+const tampered = cryptoFixture.seal({ action:'exec_batch', operationId:'tamper-envelope-v05', cwd:root, script:'true', sessionId, agentId });
 const tamperedBytes=Buffer.from(tampered.ciphertext,'base64url');
 tamperedBytes[0]^=0x01;
 tampered.ciphertext=tamperedBytes.toString('base64url');

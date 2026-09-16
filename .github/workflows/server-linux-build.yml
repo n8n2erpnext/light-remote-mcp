@@ -56,11 +56,18 @@ jobs:
           set -euo pipefail
           count=0
           for test in deploy/scripts/selftest-*.mjs; do
+            case "$test" in
+              deploy/scripts/selftest-systemd.mjs)
+                echo "==> $test (live-host acceptance; not portable to GitHub runner)"
+                continue
+                ;;
+            esac
             echo "==> $test"
             timeout 40s node "$test"
             count=$((count+1))
           done
-          echo "repository-selftests=PASS count=$count"
+          test "$count" -eq 103
+          echo "portable-repository-selftests=PASS count=$count live_host_tests=1"
 
   build-server:
     runs-on: ubuntu-latest
