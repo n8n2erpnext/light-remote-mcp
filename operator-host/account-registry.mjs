@@ -140,7 +140,9 @@ export class AccountRegistry{
     if(!FLEET_PROVISION_STATES.has(state))throw new AccountError('invalid_fleet_provision_state');
     const now=this.now(),prior=row.fleetProvisioning||null;
     row.fleetProvisioning={deviceId,state,reason:input.reason==null?null:String(input.reason).slice(0,120),moduleVersion:input.moduleVersion==null?null:String(input.moduleVersion).slice(0,80),agentVersion:input.agentVersion==null?null:String(input.agentVersion).slice(0,80),minimumSupportedVersion:input.minimumSupportedVersion==null?null:String(input.minimumSupportedVersion).slice(0,80),latestVersion:input.latestVersion==null?null:String(input.latestVersion).slice(0,80),updateRequired:Boolean(input.updateRequired),port:input.port==null?null:Math.max(1,Math.min(Number(input.port)||5492,65535)),startedAt:prior?.deviceId===deviceId?Number(prior.startedAt)||now:now,updatedAt:now,onlineAt:state==='online'?(prior?.deviceId===deviceId?prior.onlineAt||now:now):(prior?.deviceId===deviceId?prior.onlineAt||null:null)};
-    this._persist();this.emit({type:'account_fleet_provisioning_changed',accountId:row.accountId,deviceId,state,status:state,reason:row.fleetProvisioning.reason,moduleVersion:row.fleetProvisioning.moduleVersion,port:row.fleetProvisioning.port});return this._viewAccount(row);
+    const materialFields=['deviceId','state','reason','moduleVersion','agentVersion','minimumSupportedVersion','latestVersion','updateRequired','port'];
+    const materialChanged=!prior||materialFields.some(key=>prior[key]!==row.fleetProvisioning[key]);
+    this._persist();if(materialChanged)this.emit({type:'account_fleet_provisioning_changed',accountId:row.accountId,deviceId,state,status:state,reason:row.fleetProvisioning.reason,moduleVersion:row.fleetProvisioning.moduleVersion,port:row.fleetProvisioning.port});return this._viewAccount(row);
   }
   clearFleetProvisioning(accountId,{reason='fleet_not_requested'}={}){
     const row=this.accounts.get(String(accountId||''));if(!row)throw new AccountError('account_not_found',404);

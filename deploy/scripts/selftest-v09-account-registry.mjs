@@ -35,6 +35,13 @@ try{
   const withMain=registry.setMainDevice('self-hosted-local','dev-main-test');if(withMain.mainDeviceId!=='dev-main-test')throw new Error('account_main_device_set_failed');
   const starting=registry.setFleetProvisioning('self-hosted-local',{deviceId:'dev-main-test',state:'starting',reason:'main_device_selected',port:5492});if(starting.fleetProvisioning?.state!=='starting')throw new Error('fleet_provision_start_failed');
   const online=registry.setFleetProvisioning('self-hosted-local',{deviceId:'dev-main-test',state:'online',reason:'fleet_runtime_online',moduleVersion:'0.9.0-rc.6',port:5492});if(online.fleetProvisioning?.state!=='online'||!online.fleetProvisioning?.onlineAt)throw new Error('fleet_provision_online_failed');
+  const fleetEventsBeforeHeartbeat=events.filter(e=>e.type==='account_fleet_provisioning_changed').length,updatedBeforeHeartbeat=online.fleetProvisioning.updatedAt;
+  now+=15_000;const heartbeat=registry.setFleetProvisioning('self-hosted-local',{deviceId:'dev-main-test',state:'online',reason:'fleet_runtime_online',moduleVersion:'0.9.0-rc.6',port:5492});
+  if(heartbeat.fleetProvisioning.updatedAt<=updatedBeforeHeartbeat)throw new Error('fleet_provision_heartbeat_liveness_not_updated');
+  if(events.filter(e=>e.type==='account_fleet_provisioning_changed').length!==fleetEventsBeforeHeartbeat)throw new Error('fleet_provision_heartbeat_audit_not_deduped');
+  if(JSON.parse(fs.readFileSync(stateFile,'utf8')).accounts[0]?.fleetProvisioning?.updatedAt!==now)throw new Error('fleet_provision_heartbeat_not_persisted');
+  now+=15_000;registry.setFleetProvisioning('self-hosted-local',{deviceId:'dev-main-test',state:'online',reason:'fleet_runtime_online',moduleVersion:'0.9.0-rc.7',port:5492});
+  if(events.filter(e=>e.type==='account_fleet_provisioning_changed').length!==fleetEventsBeforeHeartbeat+1)throw new Error('fleet_provision_material_change_not_emitted');
   expectError(()=>registry.setPlan('self-hosted-local','enterprise'),'invalid_account_plan',400);
   const reloaded=new AccountRegistry({stateFile,bootstrapAccountId:'self-hosted-local',sessionTtlMs:60*60*1000,now:()=>now});
   if(reloaded.authenticate(login.token).account.email!=='owner@example.com')throw new Error('persistence_reload_failed');
