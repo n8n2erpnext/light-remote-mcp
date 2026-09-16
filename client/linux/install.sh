@@ -73,7 +73,7 @@ PY
   tar -xzf "$TMP/package.tar.gz" -C "$TMP"
 fi
 
-[[ -f "$TMP/package/manifest.json" && -x "$TMP/package/runtime/node" ]] || { echo "Invalid GPT Operator Linux package" >&2; exit 2; }
+[[ -f "$TMP/package/manifest.json" && -x "$TMP/package/runtime/node" ]] || { echo "Invalid Light Remote Linux package" >&2; exit 2; }
 PACKAGE_VERSION="$(python3 - "$TMP/package/manifest.json" <<'PY'
 import json,sys
 print(json.load(open(sys.argv[1]))['version'])
@@ -129,7 +129,7 @@ fi
 
 sudo tee /etc/systemd/system/gpt-operator-device-agent.service >/dev/null <<UNIT
 [Unit]
-Description=GPT Operator outbound device agent
+Description=Light Remote outbound device agent
 After=network-online.target
 Wants=network-online.target
 
@@ -163,7 +163,7 @@ UNIT
 
 sudo tee /etc/systemd/system/gpt-operator-agent-update.service >/dev/null <<UNIT
 [Unit]
-Description=Update GPT Operator client from signed release manifest
+Description=Update Light Remote client from signed release manifest
 After=network-online.target
 Wants=network-online.target
 
@@ -211,7 +211,7 @@ WantedBy=multi-user.target
 UNIT
 sudo tee /etc/systemd/system/gpt-operator-agent-update.timer >/dev/null <<'UNIT'
 [Unit]
-Description=Periodic GPT Operator signed client update check
+Description=Periodic Light Remote signed client update check
 
 [Timer]
 Unit=gpt-operator-agent-update-check.service

@@ -29,7 +29,7 @@ unit="$(mktemp)"
 trap 'rm -f "$unit"' EXIT
 cat > "$unit" <<UNIT
 [Unit]
-Description=GPT Operator Device Agent
+Description=Light Remote Device Agent
 After=network-online.target
 Wants=network-online.target
 

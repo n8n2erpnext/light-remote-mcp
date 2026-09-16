@@ -2,7 +2,7 @@ name: macOS Client Packages
 
 on:
   push:
-    branches: [codex/v0.9-device-policy-resume, main]
+    branches: [main, 'codex/**']
     tags: ['v0.9.*']
     paths:
       - 'VERSION'

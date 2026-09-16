@@ -50,5 +50,5 @@ Write-Host 'Windows DEV mode uses a per-user Scheduled Task. No account password
 if ($LASTEXITCODE -ne 0) { throw 'Windows Scheduled Task installer failed.' }
 $task = Get-ScheduledTask -TaskName 'GPTOperatorDeviceAgent' -ErrorAction Stop
 if ($task.State -ne 'Running') { throw "Scheduled Task state is $($task.State), expected Running." }
-Write-Host 'GPT Operator Windows leaf is installed and running in the signed-in user session.' -ForegroundColor Green
+Write-Host 'Light Remote Windows device is installed and running in the signed-in user session.' -ForegroundColor Green
 Write-Host 'Return to ChatGPT; the device should appear online in the ARM Hub within ~20 seconds.'

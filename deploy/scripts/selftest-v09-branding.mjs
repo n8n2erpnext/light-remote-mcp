@@ -28,4 +28,7 @@ expect(text('deploy/scripts/build-fleet-wall-module.sh').includes('lib/brand.mjs
 expect(text('client/macos/tray/main.swift').includes('light-remote-mark-256.png'),'macos_tray_brand_missing');
 expect(text('client/linux-debian/tray/light-remote-tray.py').includes('light-remote-mark-256.png'),'linux_tray_brand_missing');
 expect(text('client/linux-debian/build-deb.sh').includes('/usr/share/icons/hicolor/256x256/apps/light-remote.png'),'linux_deb_icon_missing');
+const publicBrandSurfaces=['.github/workflows/linux-client-build.yml','client/linux/install.sh','device-agent/install-linux-service.sh','device-agent/install-windows-service.ps1','device-agent/setup-windows-dev.ps1'];
+for(const surface of publicBrandSurfaces)expect(!text(surface).includes('GPT Operator'),`legacy_public_brand_text:${surface}`);
+expect(text('.github/workflows/linux-client-build.yml').includes('\"product\": \"Light Remote Linux ${TARGET_ARCH}\"'),'linux_package_product_brand_missing');
 console.log('v09-light-remote-branding=PASS canonical='+canonicalSha);

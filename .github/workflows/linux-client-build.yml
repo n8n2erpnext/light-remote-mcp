@@ -3,9 +3,8 @@ name: Linux Client Packages
 on:
   push:
     branches:
-      - codex/v0.9-client-packaging
-      - codex/v0.9-device-policy-resume
       - main
+      - 'codex/**'
     tags:
       - 'v0.9.*'
     paths:
@@ -76,7 +75,7 @@ jobs:
           CORE_DIGEST="$(node -e "const fs=require('fs');console.log(JSON.parse(fs.readFileSync(process.argv[1],'utf8')).digest)" "$PKG/client-core.json")"
           cat > "$PKG/manifest.json" <<JSON
           {
-            "product": "GPT Operator Linux ${TARGET_ARCH}",
+            "product": "Light Remote Linux ${TARGET_ARCH}",
             "version": "${VERSION}",
             "gitSha": "${GITHUB_SHA}",
             "node": "v${NODE_VERSION}",

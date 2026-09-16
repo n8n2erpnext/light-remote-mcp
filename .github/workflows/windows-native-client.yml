@@ -3,9 +3,8 @@ name: Windows Tray Client
 on:
   push:
     branches:
-      - codex/v0.9-client-packaging
-      - codex/v0.9-device-policy-resume
       - main
+      - 'codex/**'
     tags:
       - 'v0.9.*'
     paths:
@@ -102,6 +101,7 @@ jobs:
           $helperStageBytes=(Get-ChildItem $updaterStage -File -Recurse | Measure-Object Length -Sum).Sum
           Write-Host "windows-size-tray-bytes=$trayBytes helper-bytes=$helperBytes node-bytes=$nodeBytes stage-bytes=$stageBytes helper-stage-bytes=$helperStageBytes"
       - name: Native client bundled runtime smoke
+        timeout-minutes: 3
         shell: pwsh
         run: |
           $stage = Join-Path $PWD 'dist\windows\stage'
@@ -131,7 +131,8 @@ jobs:
           & $node $agent status
           if ($LASTEXITCODE -ne 0) { throw 'bundled agent direct status failed' }
           Write-Host '--- native client self-test ---'
-          $self = Start-Process -FilePath $exe -ArgumentList @('--self-test-output',$result) -PassThru -Wait
+          $self = Start-Process -FilePath $exe -ArgumentList @('--self-test-output',$result) -PassThru
+          if (-not $self.WaitForExit(30000)) { Stop-Process -Id $self.Id -Force -ErrorAction SilentlyContinue; throw 'native client bundled self-test timed out after 30s' }
           $selfExit = $self.ExitCode
           if (Test-Path $result) { Get-Content $result -Raw | Write-Host }
           if ($selfExit -ne 0) { throw "native client self-test failed exit=$selfExit" }
@@ -145,7 +146,8 @@ jobs:
           if ($json.agentVersion -ne $expectedVersion) { throw "bundled agent version mismatch: $($json.agentVersion) expected=$expectedVersion" }
           Write-Host "windows-tray-selftest=PASS agent=$($json.agentVersion) adapter=$($json.platformAdapter)"
           $updaterSelfResult = Join-Path $env:RUNNER_TEMP 'updater-selftest.json'
-          $updaterSelf = Start-Process -FilePath $updater -ArgumentList @('--self-test-output',$updaterSelfResult,$stage) -PassThru -Wait
+          $updaterSelf = Start-Process -FilePath $updater -ArgumentList @('--self-test-output',$updaterSelfResult,$stage) -PassThru
+          if (-not $updaterSelf.WaitForExit(30000)) { Stop-Process -Id $updaterSelf.Id -Force -ErrorAction SilentlyContinue; throw 'independent updater self-test timed out after 30s' }
           if (Test-Path $updaterSelfResult) { Get-Content $updaterSelfResult -Raw | Write-Host }
           if ($updaterSelf.ExitCode -ne 0) { throw "independent updater self-test failed exit=$($updaterSelf.ExitCode)" }
           $updaterSelfJson = Get-Content $updaterSelfResult -Raw | ConvertFrom-Json
@@ -157,7 +159,8 @@ jobs:
           if ($manifestHash -ne '48790b1532b863cb471bfcf68ff5f4a87fa0497e270bec5abbde254acf5d18e7') { throw "signed fixture byte hash changed: $manifestHash" }
           Write-Host "windows-signed-fixture-bytes=PASS sha256=$manifestHash"
           $sigResult = Join-Path $env:RUNNER_TEMP 'gpt-update-signature.json'
-          $sig = Start-Process -FilePath $updater -ArgumentList @('--verify-update-fixture',$manifestFixture,(Resolve-Path 'deploy/fixtures/client-update-test.json.sig').Path,$sigResult) -PassThru -Wait
+          $sig = Start-Process -FilePath $updater -ArgumentList @('--verify-update-fixture',$manifestFixture,(Resolve-Path 'deploy/fixtures/client-update-test.json.sig').Path,$sigResult) -PassThru
+          if (-not $sig.WaitForExit(30000)) { Stop-Process -Id $sig.Id -Force -ErrorAction SilentlyContinue; throw 'signed update fixture verification timed out after 30s' }
           if (Test-Path $sigResult) { Get-Content $sigResult -Raw | Write-Host }
           if ($sig.ExitCode -ne 0) { throw "signed update fixture verification failed exit=$($sig.ExitCode)" }
           $sigJson = Get-Content $sigResult -Raw | ConvertFrom-Json
@@ -165,7 +168,8 @@ jobs:
           $tampered = Join-Path $env:RUNNER_TEMP 'client-update-tampered.json'
           (Get-Content deploy/fixtures/client-update-test.json -Raw).Replace('99.0.0','99.0.1') | Set-Content -LiteralPath $tampered -NoNewline -Encoding utf8
           $tamperedResult = Join-Path $env:RUNNER_TEMP 'tampered-result.json'
-          $bad = Start-Process -FilePath $updater -ArgumentList @('--verify-update-fixture',$tampered,(Resolve-Path 'deploy/fixtures/client-update-test.json.sig').Path,$tamperedResult) -PassThru -Wait
+          $bad = Start-Process -FilePath $updater -ArgumentList @('--verify-update-fixture',$tampered,(Resolve-Path 'deploy/fixtures/client-update-test.json.sig').Path,$tamperedResult) -PassThru
+          if (-not $bad.WaitForExit(30000)) { Stop-Process -Id $bad.Id -Force -ErrorAction SilentlyContinue; throw 'tampered update fixture probe timed out after 30s' }
           if ($bad.ExitCode -eq 0) { throw 'tampered update manifest was accepted' }
           Write-Host 'windows-independent-update-signature=PASS tamper-rejected=PASS'
 

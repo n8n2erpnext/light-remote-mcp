@@ -14,7 +14,7 @@ if (-not (Test-Path $StateFile)) { throw 'Device is not enrolled yet. Run operat
 if (-not (Test-Path $WinSWPath)) { throw "WinSW wrapper not found: $WinSWPath" }
 if (-not $ServiceCredential) {
   $defaultUser = if ($env:USERDOMAIN) { "$env:USERDOMAIN\$env:USERNAME" } else { $env:USERNAME }
-  $ServiceCredential = Get-Credential -UserName $defaultUser -Message 'Credential for GPT Operator Device Agent service'
+  $ServiceCredential = Get-Credential -UserName $defaultUser -Message 'Credential for Light Remote Device Agent service'
 }
 $credentialLeaf = (($ServiceCredential.UserName -split '\\')[-1] -split '@')[0]
 if ($credentialLeaf -ne $env:USERNAME) { throw 'Service credential must be the enrolled device owner for this developer install.' }
@@ -58,8 +58,8 @@ New-Item -ItemType Directory -Force -Path (Join-Path $AppDir 'logs') | Out-Null
 $xml = @"
 <service>
   <id>$ServiceName</id>
-  <name>GPT Operator Device Agent</name>
-  <description>Outbound GPT operator leaf agent running as the enrolled Windows user.</description>
+  <name>Light Remote Device Agent</name>
+  <description>Light Remote outbound device agent running as the enrolled Windows user.</description>
   <executable>$nodeXml</executable>
   <arguments>&quot;$agentXml&quot; daemon</arguments>
   <env name="HOME" value="$homeXml" />
@@ -75,7 +75,7 @@ $xml = @"
 "@
 Set-Content -LiteralPath $ServiceXml -Value $xml -Encoding UTF8
 $binary = '"' + $ServiceExe + '"'
-New-Service -Name $ServiceName -BinaryPathName $binary -DisplayName 'GPT Operator Device Agent' -StartupType Automatic -Credential $ServiceCredential | Out-Null
+New-Service -Name $ServiceName -BinaryPathName $binary -DisplayName 'Light Remote Device Agent' -StartupType Automatic -Credential $ServiceCredential | Out-Null
 try {
   Start-Service -Name $ServiceName
 } catch {
