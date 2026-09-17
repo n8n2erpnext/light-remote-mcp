@@ -7,7 +7,7 @@ import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js
 import { callOperatorJson } from '../gateway/operator-proxy.mjs';
 import { runtimeVersion } from '../lib/runtime-version.mjs';
 import { INTERNAL_ALLOWED_IP, INTERNAL_HOST, INTERNAL_PORT, OPENAI_CHALLENGE_FILE, PUBLIC_ALLOWED_HOSTS, PUBLIC_HOST, PUBLIC_ORIGIN, PUBLIC_PORT } from './config.mjs';
-import { authenticateAccess, registerOAuth } from './oauth.mjs';
+import { authenticateAccess, challengeValue, registerOAuth } from './oauth.mjs';
 import { pruneHostedAccountState, registerHostedAccountRoutes } from './account-hosted.mjs';
 import { pruneAccountPortalState, registerAccountPortal } from './account-portal.mjs';
 import { prunePublicDeviceRateState, registerPublicDeviceRoutes } from './device-public.mjs';
@@ -37,7 +37,9 @@ publicApp.get('/healthz',(_q,r)=>r.json({ok:true,service:'light-remote-plugin',v
 publicApp.get('/.well-known/openai-apps-challenge',(_q,r)=>{try{const token=fs.readFileSync(OPENAI_CHALLENGE_FILE,'utf8').trim();if(!token)return r.sendStatus(404);return r.type('text/plain').send(token);}catch{return r.sendStatus(404);}});
 
 function mcpServer(identity){const server=new McpServer({name:'light-remote',version:VERSION},{instructions:INSTRUCTIONS});registerPluginTools(server,identity);installOpenAiToolSecurityCompat(server,PLUGIN_TOOL_SECURITY);return server;}
-publicApp.post('/mcp',async(req,res)=>{const {identity}=await authenticateAccess(req);const transport=new StreamableHTTPServerTransport({sessionIdGenerator:undefined,enableJsonResponse:true}),server=mcpServer(identity);try{await server.connect(transport);await transport.handleRequest(req,res,req.body);}catch(error){console.error('[plugin-mcp]',error?.message||error);if(!res.headersSent)res.status(500).json({jsonrpc:'2.0',error:{code:-32603,message:'Internal error'},id:req.body?.id??null});}finally{await transport.close().catch(()=>{});await server.close().catch(()=>{});}});
+const MCP_AUTH_SCOPES=['remote:read','remote:write','remote:execute','remote:terminal'];
+function normalizeMcpAccept(req){const raw=String(req.get('accept')||'').trim();if(!raw||raw.split(',').some(v=>v.trim()==='*/*'))req.headers.accept='application/json, text/event-stream';}
+publicApp.post('/mcp',async(req,res)=>{const {identity}=await authenticateAccess(req);if(!identity){res.set('WWW-Authenticate',challengeValue(MCP_AUTH_SCOPES));return res.status(401).json({error:'invalid_token'});}normalizeMcpAccept(req);const transport=new StreamableHTTPServerTransport({sessionIdGenerator:undefined,enableJsonResponse:true}),server=mcpServer(identity);try{await server.connect(transport);await transport.handleRequest(req,res,req.body);}catch(error){console.error('[plugin-mcp]',error?.message||error);if(!res.headersSent)res.status(500).json({jsonrpc:'2.0',error:{code:-32603,message:'Internal error'},id:req.body?.id??null});}finally{await transport.close().catch(()=>{});await server.close().catch(()=>{});}});
 for(const method of ['get','delete'])publicApp[method]('/mcp',(_q,r)=>r.status(405).json({jsonrpc:'2.0',error:{code:-32000,message:'Method not allowed'},id:null}));
 
 const internal=express();internal.disable('x-powered-by');internal.use(express.json({limit:'2mb'}));

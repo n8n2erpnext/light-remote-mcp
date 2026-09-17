@@ -116,7 +116,7 @@ Invoke any protected Light Remote tool before linking the plugin.
 **Expected behavior**
 
 - Return no device, account, file, Fleet, or activity data.
-- Return the MCP OAuth challenge so ChatGPT can link the account.
+- Return HTTP `401 Unauthorized` at the MCP transport boundary with a `WWW-Authenticate` challenge that points to `/.well-known/oauth-protected-resource/mcp`, so ChatGPT can discover and run OAuth before any MCP request reaches a tool.
 
 **Why it must not complete**
 
