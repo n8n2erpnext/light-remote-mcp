@@ -9,6 +9,18 @@ on:
     tags:
       - 'v0.9.*'
     paths:
+      - 'plugin.json'
+      - 'mcp.json'
+      - '.codex-plugin/**'
+      - 'skills/**'
+      - 'assets/**'
+      - 'index.html'
+      - 'login/**'
+      - 'register/**'
+      - 'usage/**'
+      - 'settings/**'
+      - 'docs/plugin/**'
+      - 'deploy/reviewer/**'
       - 'gateway/**'
       - 'plugin-server/**'
       - 'operator-host/**'

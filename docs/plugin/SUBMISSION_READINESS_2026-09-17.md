@@ -1,4 +1,4 @@
-# Light Remote OpenAI Plugin — Full-product Reviewer Readiness (2026-09-16)
+# Light Remote OpenAI Plugin — Full-product Reviewer Readiness (2026-09-17)
 
 ## Reviewer-only source branch
 
@@ -26,6 +26,7 @@ The reviewer fixture is not a reduced MCP demo. It uses the Light Remote control
 - Four portable skills: connection/onboarding, remote operations, Fleet/device governance, and policy/observability.
 - Tool annotations reflect worst-case behavior; revoke/remove are destructive.
 - Starter prompts demonstrate topology/Fleet, explicit target work, real PTY lifecycle, activity, and policy denial.
+- The submission declares no MCP-rendered UI, so the review draft should not include screenshots; product portal screenshots remain internal documentation only.
 - Five positive + three negative review cases are defined in `REVIEW_TEST_CASES.md`.
 
 ## Source acceptance completed before commit
@@ -42,7 +43,7 @@ The reviewer fixture is not a reduced MCP demo. It uses the Light Remote control
 - `git diff --check`: PASS.
 - Reviewer-surface old-origin scan: PASS.
 
-## OpenAI docs verified 2026-09-16
+## OpenAI docs verified 2026-09-17
 
 - Submission: https://developers.openai.com/plugins/deploy/submission
 - MCP review requirements: https://developers.openai.com/plugins/deploy/app-review
@@ -52,18 +53,26 @@ The reviewer fixture is not a reduced MCP demo. It uses the Light Remote control
 
 Applied current requirements: public production MCP URL; reviewer-ready credentials with no MFA/email/SMS/private-network dependency; accurate tool names/schemas/annotations; five positive + three negative tests; realistic starter prompts; public website/support/privacy/terms; Scan Tools; verified developer/business identity; and an OpenAI project with **global data residency** because EU-residency projects currently cannot submit MCP plugins for review.
 
-## Remaining gates after source commit
+## Current deployment status and remaining external gates
 
-1. Push the reviewer-only commit and require CI green on that exact SHA.
-2. Deploy that exact SHA into `light-remote-review`; do not deploy an uncommitted worktree.
-3. Install/start the real host Local Wall/Fleet path for `review-main`.
-4. Create `light-remote-review-leaf`, install the normal Linux client, and enroll it to the reviewer account.
-5. Set reviewer entitlement to VIP and verify Main/Fleet migration, policy, PTY, activity, updater/helper, revoke/remove/reset behavior.
-6. Re-run public OAuth/MCP smoke and the documented five positive + three negative cases.
-7. Install the exact OpenAI portal domain challenge token when the portal supplies it.
-8. Scan Tools on the final public endpoint; ensure the 20 tools and four skills match the submission draft.
-9. Exercise reviewer OAuth through the real OpenAI/ChatGPT review UI.
-10. Stop before **Submit for Review**.
+Completed on the reviewer branch/fixture:
+
+- Reviewer branch CI is green on the current exact source commit before each activation.
+- Public canonical origin is `https://light-remote.thaiduy.digital`; health, account portal, OAuth discovery, and MCP endpoint are public.
+- Reviewer account is VIP with two pre-enrolled Linux devices; Local Wall, Main migration, Fleet Wall, policy denial, PTY, filesystem/Git, activity, and no-fallback behavior have been exercised live. Both reviewer devices are intentionally restricted to safe effective permissions even though Light Remote can describe broader product capabilities.
+- Fleet migration has been verified in both directions at runtime; only the selected Main owns the active Fleet Wall listener.
+- Reviewer login works from a normal external browser without MFA, email/SMS confirmation, VPN, or NetBird.
+
+Still external/manual before **Submit for Review**:
+
+1. Select the verified Developer/Business Identity in the OpenAI Platform and make publisher-facing fields match it.
+2. Use an OpenAI project with **global data residency** and Apps Management write access.
+3. Install the exact portal-issued domain challenge token and verify the public challenge endpoint returns only that token.
+4. Run **Scan Tools** against the final endpoint and review all 20 tool definitions/annotations.
+5. Upload the final four-skill bundle from root `skills/` to the same draft (the current MCP server does not expose the draft static-skills import extension).
+6. Enter a freshly rotated reviewer password and exercise OAuth/tool selection through the real OpenAI review/developer surface.
+7. Copy the five positive and three negative cases into the draft and rerun them there.
+8. Choose availability/localization, review release notes/policy attestations, and stop before **Submit for Review**.
 
 ## Rollback principle
 

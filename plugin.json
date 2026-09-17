@@ -35,7 +35,7 @@
         "websiteURL": "https://light-remote.thaiduy.digital",
         "privacyPolicyURL": "https://light-remote.thaiduy.digital/privacy",
         "termsOfServiceURL": "https://light-remote.thaiduy.digital/terms",
-        "brandColor": "#2563EB",
+        "brandColor": "#FFCC00",
         "composerIcon": "./assets/branding/light-remote-mark-256.png",
         "logo": "./assets/branding/light-remote-mark-512.png",
         "defaultPrompt": [
@@ -44,10 +44,6 @@
           "Open a real interactive terminal on my selected device, run the failing test, interrupt it with Ctrl-C if it hangs, and recover the output without repeating the command.",
           "Explain why a privileged operation is denied on my selected device using its effective policy and recent Light Remote activity.",
           "Show my Main device and Fleet state, then switch Main only if I explicitly name another eligible device."
-        ],
-        "screenshots": [
-          "./assets/screenshots/device-wall-demo.png",
-          "./assets/screenshots/permissions-demo.png"
         ]
       }
     }

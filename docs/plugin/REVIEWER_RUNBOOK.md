@@ -16,9 +16,11 @@ The reviewer account is a normal Light Remote **VIP** account on an isolated ful
 - `review-main`: integrated Linux device in `light-remote-review`; Local Wall + Main/Fleet capability.
 - `review-leaf`: independent Linux device in `light-remote-review-leaf`; signed outbound device channel + Local Wall.
 - Workspace: `/srv/reviewer-workspace`.
-- Leaf policy: filesystem/git/build-test/terminal allowed; lxd/package-manager/sudo-on-demand/systemctl denied by the device-local final policy. Docker is not installed on the leaf fixture.
+- Reviewer policy on both devices: filesystem/git/build-test/terminal allowed; privileged administration such as docker/lxd/package-manager/sudo-on-demand/systemctl is denied when that capability exists. The product capability catalog remains visible separately from these effective reviewer permissions.
 - The leaf is pre-connected with a finite VIP cloud lease so it is immediately available after reviewer sign-in; normal finite-lease and reconnect-grace rules still apply.
 - No production accounts, devices, keys, files, or logs are present.
+- Every device eligible to become Main must have a writable Fleet component store at `/home/lightremote/.local/share/light-remote/components/fleet-wall`; otherwise Main migration will remain in `Configuring Fleet`.
+- Reviewer systemd activation must use one canonical release drop-in per service. Do not stack competing `zz*`/`zzz*` `ExecStart` overrides; verify the effective `ExecStart` after every release switch.
 
 Normal onboarding is unchanged: a new device's Local Wall creates the one-time A code, the account approves the enrollment, and the device connects through its signed outbound channel. The reviewer devices are simply fixture data already past that normal onboarding step.
 
