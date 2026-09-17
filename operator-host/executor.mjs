@@ -325,7 +325,7 @@ function startJob(payload, requestId) {
   requireDeviceConnection(session.deviceId);
   if (payload.nodeId != null && String(payload.nodeId) !== session.nodeId) throw new SessionError('session_target_mismatch',409);
   const remote=session.nodeId!==NODE_ID;
-  let cwd=payload.cwd==null||String(payload.cwd)==='' ? (remote?'':'/home/ubuntu') : String(payload.cwd);
+  let cwd=payload.cwd==null||String(payload.cwd)==='' ? (remote?'':String(session.workspace||os.homedir())) : String(payload.cwd);
   if (cwd.length>1024 || cwd.includes('\0') || (!remote && !cwd)) throw new Error('invalid_cwd');
   if (!remote) {
     cwd=path.resolve(cwd);
@@ -476,7 +476,7 @@ async function executeLocalProcessRequest(job,request){
     const required=[...new Set([...(Array.isArray(request.requiredCapabilities)?request.requiredCapabilities:[]),...HOST_PLATFORM_ADAPTER.inferRequiredCapabilities(script,{shell:request.shell})])].sort();
     const denied=HOST_PLATFORM_ADAPTER.hardDeny?.(script)||null;if(denied)throw new Error(`local platform policy denied: ${denied}`);
     const missing=required.filter(cap=>!hostEffectiveCapabilities().includes(cap));if(missing.length)throw new DeviceError('local_host_capability_missing',409);
-    const cwd=path.resolve(String(request.cwd||'/home/ubuntu'));let stat;try{stat=fs.statSync(cwd);}catch{}if(!stat?.isDirectory())throw new Error('cwd_not_directory');
+    const cwd=path.resolve(String(request.cwd||session.workspace||os.homedir()));let stat;try{stat=fs.statSync(cwd);}catch{}if(!stat?.isDirectory())throw new Error('cwd_not_directory');
     return {ok:true,operation:'start',process:NATIVE_PROCESSES.start({...owner,script,cwd,timeoutMs:request.timeoutMs,spawnSpec:value=>HOST_PLATFORM_ADAPTER.commandFor(value,{shell:request.shell}),env:{GPT_OPERATOR_ACCOUNT:job.accountId,GPT_OPERATOR_DEVICE:job.deviceId,GPT_OPERATOR_NODE:job.nodeId,GPT_OPERATOR_SESSION:job.sessionId}})};
   }
   if(!hostEffectiveCapabilities().includes('filesystem'))throw new DeviceError('local_host_capability_missing',409);
@@ -540,7 +540,7 @@ async function executeLocalTerminalRequest(job,request){
   const owner={accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId},op=String(request.op||'');
   if(!hostEffectiveCapabilities().includes('terminal'))throw new DeviceError('local_host_capability_missing',409);
   if(op==='start'){
-    const cwd=path.resolve(String(request.cwd||os.homedir()));let stat;try{stat=fs.statSync(cwd);}catch{}if(!stat?.isDirectory())throw new Error('cwd_not_directory');
+    const cwd=path.resolve(String(request.cwd||session.workspace||os.homedir()));let stat;try{stat=fs.statSync(cwd);}catch{}if(!stat?.isDirectory())throw new Error('cwd_not_directory');
     const shellSpec=HOST_PLATFORM_ADAPTER.terminalFor({shell:request.shell});
     return {ok:true,operation:'start',terminal:NATIVE_TERMINALS.start({...owner,shellSpec,cwd,cols:request.cols,rows:request.rows,term:request.term,env:{GPT_OPERATOR_ACCOUNT:job.accountId,GPT_OPERATOR_DEVICE:job.deviceId,GPT_OPERATOR_NODE:job.nodeId,GPT_OPERATOR_SESSION:job.sessionId}})};
   }
