@@ -62,6 +62,7 @@ Completed on the reviewer branch/fixture:
 - Reviewer account is VIP with two pre-enrolled Linux devices; Local Wall, Main migration, Fleet Wall, policy denial, PTY, filesystem/Git, activity, and no-fallback behavior have been exercised live. Both reviewer devices are intentionally restricted to safe effective permissions even though Light Remote can describe broader product capabilities.
 - Fleet migration has been verified in both directions at runtime; only the selected Main owns the active Fleet Wall listener.
 - Reviewer login works from a normal external browser without MFA, email/SMS confirmation, VPN, or NetBird.
+- Reviewer leaf availability is self-healing with a local-only timer that uses the normal signed device `connect` path after lease expiry; the production VIP 72-hour hard cap remains unchanged.
 
 Still external/manual before **Submit for Review**:
 

@@ -47,6 +47,20 @@ assert.deepEqual(seededState.effectiveCapabilities,['build-test','filesystem','g
 for(const cap of ['docker','lxd','systemctl','sudo-on-demand']) assert.ok(seededState.policy.deniedCapabilities.includes(cap),cap);
 fs.rmSync(fixtureDir,{recursive:true,force:true});
 
+const leaseDir=fs.mkdtempSync(path.join(process.env.TMPDIR||'/tmp','lr-review-lease-'));
+const leaseState=path.join(leaseDir,'device.json'),fakeAgent=path.join(leaseDir,'fake-agent.mjs');
+const future=Date.now()+60_000;
+fs.writeFileSync(leaseState,JSON.stringify({enrollment:{deviceId:'review-leaf'},cloud:{desiredConnected:true,state:'connected',hardExpiresAt:future}}));
+let leaseRun=spawnSync(process.execPath,[path.join(root,'deploy/reviewer/ensure-reviewer-lease.mjs'),`--state=${leaseState}`,`--agent=${path.join(leaseDir,'missing-agent.mjs')}`],{encoding:'utf8'});
+assert.equal(leaseRun.status,0,leaseRun.stderr);assert.match(leaseRun.stdout,/\"action\":\"noop\"/);
+fs.writeFileSync(leaseState,JSON.stringify({enrollment:{deviceId:'review-leaf'},cloud:{desiredConnected:false,state:'dormant',hardExpiresAt:Date.now()-1}}));
+fs.writeFileSync(fakeAgent,`import fs from 'node:fs';const f=process.env.OPERATOR_AGENT_STATE,j=JSON.parse(fs.readFileSync(f,'utf8'));j.cloud={...(j.cloud||{}),desiredConnected:true,state:'connected',hardExpiresAt:Date.now()+72*3600000};fs.writeFileSync(f,JSON.stringify(j));`);
+leaseRun=spawnSync(process.execPath,[path.join(root,'deploy/reviewer/ensure-reviewer-lease.mjs'),`--state=${leaseState}`,`--agent=${fakeAgent}`],{encoding:'utf8'});
+assert.equal(leaseRun.status,0,leaseRun.stderr);assert.match(leaseRun.stdout,/\"action\":\"reconnected\"/);
+const leaseService=read('deploy/reviewer/systemd/light-remote-review-lease-refresh.service'),leaseTimer=read('deploy/reviewer/systemd/light-remote-review-lease-refresh.timer');
+assert.match(leaseService,/--lease-hours=72/);assert.match(leaseService,/--grace-minutes=60/);assert.match(leaseTimer,/OnUnitActiveSec=1min/);
+fs.rmSync(leaseDir,{recursive:true,force:true});
+
 const executor=read('operator-host/executor.mjs');
 assert.match(executor,/devices\.register\([\s\S]*capabilities:hostEffectiveCapabilities\(\)/);
 assert.match(executor,/devices\.heartbeat\(DEVICE_ID,\{capabilities:hostEffectiveCapabilities\(\)\}\)/);
