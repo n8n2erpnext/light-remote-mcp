@@ -28,9 +28,8 @@ This file is the canonical handoff for creating the public OpenAI plugin draft.
 
 Reviewer authentication is a normal Light Remote account using the production OAuth path.
 
-- Reviewer email: `openai-review@thaiduy.digital`
-- Password: **never commit it**. Retrieve it securely from the reviewer LXD at submission time.
-- Credential file: `/home/lightremote/.config/light-remote-review/reviewer-credentials.json`
+- Reviewer email: `openai-reviewer@thaiduy.digital`
+- Password: **never commit it**. Rotate it through the local-only operator admin endpoint immediately before filling the OpenAI reviewer credential field, then paste it directly into the portal. Do not persist the plaintext password in Git or reviewer files.
 - MFA: disabled for the reviewer fixture.
 - Email/SMS confirmation: not required.
 - Private network access: not required; reviewer connects through the public MCP URL.
@@ -45,7 +44,7 @@ The reviewer environment is a dedicated full Light Remote installation using iso
 - Account: `reviewer`, entitlement: **VIP**.
 - Workspace: `/srv/reviewer-workspace`.
 - Local Wall and Fleet Wall use the same production code paths as normal Light Remote installations.
-- Reviewer policy exposes safe filesystem/git/build/terminal capabilities and denies privileged administration such as `sudo-on-demand`, `systemctl`, `lxd`, and `docker` on the leaf.
+- Reviewer policy exposes safe filesystem/git/build/terminal capabilities on both reviewer devices and uses the device-local final policy to deny privileged administration such as `sudo-on-demand`, `systemctl`, `lxd`, `docker`, and package management when present.
 - Plugin/operator run non-root; reviewer secrets are stored outside Git.
 
 ## Domain verification
@@ -104,7 +103,7 @@ Do not click Submit until all of these are true:
 1. Verified Developer Identity is known and listing/publisher fields match it.
 2. OpenAI portal challenge token is installed and `/.well-known/openai-apps-challenge` returns the exact token.
 3. Reviewer OAuth linking is exercised through the real ChatGPT/portal UI using the submitted demo credential.
-4. Scan Tools on the final public endpoint is clean and its **20-tool** set matches `TOOL_METADATA.md`; the final four-skill bundle is uploaded/imported into the same draft and reviewed.
+4. Scan Tools on the final public endpoint is clean and its **20-tool** set matches `TOOL_METADATA.md`; upload the final four-skill bundle from root `skills/` into the same draft and review it. The current MCP server does not advertise the draft static-skills extension, so do not expect Scan Tools to import skills from the server.
 5. Five positive and three negative reviewer cases pass on the deployed endpoint.
 6. Final portable test suite and CI are green on the exact submitted commit.
 7. The submission project uses **global data residency** (not EU data residency).

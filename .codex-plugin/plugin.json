@@ -39,12 +39,8 @@
       "Explain why a privileged operation is denied on my selected device using its effective policy and recent Light Remote activity.",
       "Show my Main device and Fleet state, then switch Main only if I explicitly name another eligible device."
     ],
-    "brandColor": "#2563EB",
+    "brandColor": "#FFCC00",
     "composerIcon": "./assets/branding/light-remote-mark-256.png",
-    "logo": "./assets/branding/light-remote-mark-512.png",
-    "screenshots": [
-      "./assets/screenshots/device-wall-demo.png",
-      "./assets/screenshots/permissions-demo.png"
-    ]
+    "logo": "./assets/branding/light-remote-mark-512.png"
   }
 }

@@ -160,8 +160,8 @@ if (licenses.loadError) pushEvent({ type:'license_registry_load_error', status:'
 if (usage.loadError) pushEvent({ type:'usage_registry_load_error', status:'error', detail:redact(usage.loadError) });
 const hostBinding=enrollments.ensureTrustedBinding({accountId:ACCOUNT_ID,deviceId:DEVICE_ID,publicIdentityKey:hostIdentity.publicKey,displayName:DEVICE_NAME,platform:os.platform(),architecture:os.arch(),agentVersion:VERSION,fingerprintSummary:`integrated hub / ${os.platform()} ${os.arch()} / key ${hostIdentity.publicKeySha256.slice(0,12)}`,capabilities:HOST_CAPABILITIES,policyProfile:DEVICE_POLICY_PROFILE});
 ensureHostCompanionState(HOST_COMPANION_STATE_FILE,{identity:hostIdentity,binding:hostBinding,signer:enrollments.signerInfo(),nodeId:NODE_ID});
-devices.register({ accountId:ACCOUNT_ID, deviceId:DEVICE_ID, nodeId:NODE_ID, displayName:DEVICE_NAME, platform:os.platform(), architecture:os.arch(), agentVersion:VERSION, publicIdentityKey:hostBinding.publicIdentityKey, capabilities:HOST_CAPABILITIES, policyProfile:DEVICE_POLICY_PROFILE });
-const deviceHeartbeat = setInterval(() => { try { devices.heartbeat(DEVICE_ID); } catch (error) { console.error('[device] heartbeat failed', error?.message || error); } }, DEVICE_HEARTBEAT_MS);
+devices.register({ accountId:ACCOUNT_ID, deviceId:DEVICE_ID, nodeId:NODE_ID, displayName:DEVICE_NAME, platform:os.platform(), architecture:os.arch(), agentVersion:VERSION, publicIdentityKey:hostBinding.publicIdentityKey, capabilities:hostEffectiveCapabilities(), policyProfile:DEVICE_POLICY_PROFILE });
+const deviceHeartbeat = setInterval(() => { try { devices.heartbeat(DEVICE_ID,{capabilities:hostEffectiveCapabilities()}); } catch (error) { console.error('[device] heartbeat failed', error?.message || error); } }, DEVICE_HEARTBEAT_MS);
 deviceHeartbeat.unref();
 function reapAccessGrants(){
   return accessGrants.reap({connectionForDevice:deviceId=>connections.get(deviceId),liveSessionsForDevice:deviceId=>sessions.activeCountByDevice(deviceId)});

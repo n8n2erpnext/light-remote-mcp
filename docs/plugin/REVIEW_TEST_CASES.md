@@ -28,18 +28,19 @@ VIP reviewer account with `review-main` and `review-leaf` pre-enrolled.
 
 **Prompt**
 
-`Inspect review-main and review-leaf. Then set review-leaf as Main and show me the updated Fleet topology.`
+`Inspect review-main and review-leaf. Set review-leaf as Main, confirm its Fleet Wall becomes online and the old Main authority closes, then set review-main back as Main and confirm Fleet returns online there.`
 
 **Expected behavior**
 
 - Use `light_remote_inspect_device` for both devices.
-- Call `light_remote_set_main_device` only for the explicitly named `review-leaf`.
-- Re-read topology using `light_remote_connection_helper`.
-- Show that Main moved to `review-leaf`; stale prior Main authority must not remain active.
+- Call `light_remote_set_main_device` only for the explicitly named device at each step.
+- Re-read topology after each Main change using `light_remote_connection_helper`.
+- Show that Main moves to `review-leaf`, stale prior Main authority closes, then Main returns to `review-main` with Fleet online there.
+- Leave the fixture with `review-main` as Main so later cases start from a stable baseline.
 
 **Expected result shape**
 
-Before/after Main role and Fleet state for the two reviewer devices.
+A two-way Main/Fleet migration summary showing only one active Fleet authority at a time and final Main restored to `review-main`.
 
 **Fixture**
 
