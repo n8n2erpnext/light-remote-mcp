@@ -4,6 +4,7 @@ Initial public OpenAI plugin submission candidate.
 
 - Adds a public Universal MCP endpoint at `https://light-remote.thaiduy.digital/mcp`.
 - Adds OAuth 2.1 authorization-code authentication with PKCE S256, DCR, resource binding, scoped access tokens, and rotating refresh tokens.
+- Adds OpenID Connect discovery and a scoped UserInfo endpoint (`openid` + `email`) so ChatGPT can obtain a verified account email for workspace domain restrictions; ID tokens remain optional.
 - Advertises per-tool OAuth `securitySchemes` and enforces OAuth at the MCP HTTP boundary with `401 Unauthorized` + `WWW-Authenticate` protected-resource discovery before any protected MCP request reaches a tool.
 - Exposes 20 account-scoped MCP tools: the original 14 execution/recovery tools plus Connection Helper, Device Inspector, Recent Activity, Set Main, Revoke Device, and Remove Device so the reviewer can see and exercise Light Remote governance and Fleet lifecycle rather than only the execution surface.
 - Adds explicit worst-case MCP annotations for read-only, destructive, and open-world behavior.

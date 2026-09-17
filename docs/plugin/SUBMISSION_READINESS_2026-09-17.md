@@ -60,6 +60,7 @@ Completed on the reviewer branch/fixture:
 - Reviewer branch CI is green on the current exact source commit before each activation.
 - Public canonical origin is `https://light-remote.thaiduy.digital`; health, account portal, OAuth discovery, and MCP endpoint are public.
 - OpenAI Scan Tools compatibility now enforces OAuth at the `/mcp` HTTP boundary (`401 Unauthorized` + `WWW-Authenticate`) and accepts a standards-valid `Accept: */*` scanner probe by normalizing it before the MCP transport. A regression test reproduces the observed OpenAI `aiohttp` probe.
+- OpenAI OAuth compatibility also publishes `/.well-known/openid-configuration`, advertises `openid`/`email`, exposes `/userinfo` with `email_verified: true`, declares RFC 9207 issuer-response support, and round-trips accepted DCR client metadata. This matches the portal scan sequence and workspace domain-restriction contract observed on 2026-09-17.
 - Reviewer account is VIP with two pre-enrolled Linux devices; Local Wall, Main migration, Fleet Wall, policy denial, PTY, filesystem/Git, activity, and no-fallback behavior have been exercised live. Both reviewer devices are intentionally restricted to safe effective permissions even though Light Remote can describe broader product capabilities.
 - Fleet migration has been verified in both directions at runtime; only the selected Main owns the active Fleet Wall listener.
 - Reviewer login works from a normal external browser without MFA, email/SMS confirmation, VPN, or NetBird.

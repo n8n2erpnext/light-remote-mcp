@@ -51,25 +51,27 @@ assert.equal(scannerProbe.status,401);assert.match(scannerProbe.headers.get('www
 console.log('plugin_http_auth_boundary_scanner_probe=PASS');
 const meta=await (await fetch(`${env.LIGHT_REMOTE_PLUGIN_ORIGIN}/.well-known/oauth-authorization-server`)).json();
 assert.deepEqual(meta.code_challenge_methods_supported,['S256']);
-assert.ok(meta.registration_endpoint.endsWith('/oauth/register'));
+assert.ok(meta.registration_endpoint.endsWith('/oauth/register'));assert.equal(meta.authorization_response_iss_parameter_supported,true);assert.ok(meta.scopes_supported.includes('openid'));assert.ok(meta.scopes_supported.includes('email'));
+const oidc=await (await fetch(`${env.LIGHT_REMOTE_PLUGIN_ORIGIN}/.well-known/openid-configuration`)).json();assert.equal(oidc.issuer,env.LIGHT_REMOTE_PLUGIN_ORIGIN);assert.ok(oidc.userinfo_endpoint.endsWith('/userinfo'));assert.deepEqual(oidc.subject_types_supported,['public']);
 const resource=await (await fetch(`${env.LIGHT_REMOTE_PLUGIN_ORIGIN}/.well-known/oauth-protected-resource/mcp`)).json();
 assert.equal(resource.resource,`${env.LIGHT_REMOTE_PLUGIN_ORIGIN}/mcp`);
 assert.ok(resource.scopes_supported.includes('remote:terminal'));
 
 const redirect='https://client.example.invalid/callback';
-const regResp=await fetch(`${env.LIGHT_REMOTE_PLUGIN_ORIGIN}/oauth/register`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({client_name:'OpenAI selftest',redirect_uris:[redirect],token_endpoint_auth_method:'none'})});
-assert.equal(regResp.status,201);const reg=await regResp.json();assert.ok(reg.client_id);
+const regResp=await fetch(`${env.LIGHT_REMOTE_PLUGIN_ORIGIN}/oauth/register`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({client_name:'OpenAI selftest',redirect_uris:[redirect],token_endpoint_auth_method:'none',grant_types:['authorization_code','refresh_token'],response_types:['code'],scope:'remote:read openid email offline_access'})});
+assert.equal(regResp.status,201);const reg=await regResp.json();assert.ok(reg.client_id);assert.equal(reg.client_name,'OpenAI selftest');assert.equal(reg.scope,'remote:read openid email offline_access');
 const verifier=crypto.randomBytes(48).toString('base64url');
 const challenge=crypto.createHash('sha256').update(verifier).digest('base64url');
 const authUrl=new URL(`${env.LIGHT_REMOTE_PLUGIN_ORIGIN}/oauth/authorize`);
-authUrl.search=new URLSearchParams({client_id:reg.client_id,redirect_uri:redirect,response_type:'code',code_challenge:challenge,code_challenge_method:'S256',resource:`${env.LIGHT_REMOTE_PLUGIN_ORIGIN}/mcp`,scope:'remote:read',state:'state123'}).toString();
-const authPage=await fetch(authUrl);assert.equal(authPage.status,200);assert.match(await authPage.text(),/Requested permissions: remote:read/);
+authUrl.search=new URLSearchParams({client_id:reg.client_id,redirect_uri:redirect,response_type:'code',code_challenge:challenge,code_challenge_method:'S256',resource:`${env.LIGHT_REMOTE_PLUGIN_ORIGIN}/mcp`,scope:'remote:read openid email offline_access',state:'state123'}).toString();
+const authPage=await fetch(authUrl);assert.equal(authPage.status,200);assert.match(await authPage.text(),/Requested permissions: remote:read openid email offline_access/);
 console.log('plugin_oauth_discovery_dcr_pkce=PASS');
-const authBody=new URLSearchParams({client_id:reg.client_id,redirect_uri:redirect,response_type:'code',code_challenge:challenge,code_challenge_method:'S256',resource:`${env.LIGHT_REMOTE_PLUGIN_ORIGIN}/mcp`,scope:'remote:read offline_access',state:'state123',email:'reviewer@example.test',password:reviewerPassword});
+const authBody=new URLSearchParams({client_id:reg.client_id,redirect_uri:redirect,response_type:'code',code_challenge:challenge,code_challenge_method:'S256',resource:`${env.LIGHT_REMOTE_PLUGIN_ORIGIN}/mcp`,scope:'remote:read openid email offline_access',state:'state123',email:'reviewer@example.test',password:reviewerPassword});
 const authSubmit=await fetch(`${env.LIGHT_REMOTE_PLUGIN_ORIGIN}/oauth/authorize`,{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:authBody,redirect:'manual'});
 assert.equal(authSubmit.status,303);const callback=new URL(authSubmit.headers.get('location'));assert.equal(callback.searchParams.get('state'),'state123');assert.equal(callback.searchParams.get('iss'),env.LIGHT_REMOTE_PLUGIN_ORIGIN);const code=callback.searchParams.get('code');assert.ok(code);
 const tokenBody=new URLSearchParams({grant_type:'authorization_code',client_id:reg.client_id,code,redirect_uri:redirect,code_verifier:verifier,resource:`${env.LIGHT_REMOTE_PLUGIN_ORIGIN}/mcp`});
-const tokenResp=await fetch(`${env.LIGHT_REMOTE_PLUGIN_ORIGIN}/oauth/token`,{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:tokenBody});assert.equal(tokenResp.status,200);const tokens=await tokenResp.json();assert.ok(tokens.access_token);assert.ok(tokens.refresh_token);assert.match(tokens.scope,/remote:read/);
+const tokenResp=await fetch(`${env.LIGHT_REMOTE_PLUGIN_ORIGIN}/oauth/token`,{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:tokenBody});assert.equal(tokenResp.status,200);const tokens=await tokenResp.json();assert.ok(tokens.access_token);assert.ok(tokens.refresh_token);assert.match(tokens.scope,/remote:read/);assert.match(tokens.scope,/openid/);assert.match(tokens.scope,/email/);
+const userinfoResp=await fetch(`${env.LIGHT_REMOTE_PLUGIN_ORIGIN}/userinfo`,{headers:{authorization:`Bearer ${tokens.access_token}`}});assert.equal(userinfoResp.status,200);const userinfo=await userinfoResp.json();assert.equal(userinfo.sub,'reviewer');assert.equal(userinfo.email,'reviewer@example.test');assert.equal(userinfo.email_verified,true);console.log('plugin_oidc_userinfo=PASS');
 const initResp=await postMcp({jsonrpc:'2.0',id:1,method:'initialize',params:{protocolVersion:'2025-06-18',capabilities:{},clientInfo:{name:'selftest',version:'1'}}},tokens.access_token,'*/*');assert.equal(initResp.status,200);const init=initResp.json;assert.equal(init.result.serverInfo.name,'light-remote');assert.match(init.result.instructions,/explicit device/i);
 const listedResp=await postMcp({jsonrpc:'2.0',id:2,method:'tools/list',params:{}},tokens.access_token,'*/*');assert.equal(listedResp.status,200);const listed=listedResp.json;assert.equal(listed.result.tools.length,20);
 for(const tool of listed.result.tools){assert.ok(Array.isArray(tool.securitySchemes)&&tool.securitySchemes.length===1,`${tool.name}_securitySchemes`);assert.equal(tool.securitySchemes[0].type,'oauth2');assert.ok(tool.annotations,`${tool.name}_annotations`)}
