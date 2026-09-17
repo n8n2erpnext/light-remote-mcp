@@ -470,6 +470,7 @@ async function startProcessOperation(payload,requestId){
 }
 
 async function executeLocalProcessRequest(job,request){
+  const session=sessions.ensure(job.sessionId,{agentId:job.agentId});
   const owner={accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId},op=String(request.op||'');
   if(op==='start'){
     const script=String(request.script||'');if(!script.trim())throw new Error('process_script_required');
@@ -537,6 +538,7 @@ async function startTerminalOperation(payload,requestId){
 }
 
 async function executeLocalTerminalRequest(job,request){
+  const session=sessions.ensure(job.sessionId,{agentId:job.agentId});
   const owner={accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId},op=String(request.op||'');
   if(!hostEffectiveCapabilities().includes('terminal'))throw new DeviceError('local_host_capability_missing',409);
   if(op==='start'){
