@@ -65,7 +65,7 @@ const challenge=crypto.createHash('sha256').update(verifier).digest('base64url')
 const relayState='x'.repeat(547);
 const authUrl=new URL(`${env.LIGHT_REMOTE_PLUGIN_ORIGIN}/oauth/authorize`);
 authUrl.search=new URLSearchParams({client_id:reg.client_id,redirect_uri:redirect,response_type:'code',code_challenge:challenge,code_challenge_method:'S256',resource:`${env.LIGHT_REMOTE_PLUGIN_ORIGIN}/mcp`,scope:'remote:read openid email offline_access',state:relayState}).toString();
-const authPage=await fetch(authUrl);assert.equal(authPage.status,200);const authCsp=authPage.headers.get('content-security-policy')||'';assert.match(authCsp,/form-action 'self' https:\/\/client\.example\.invalid/);assert.match(await authPage.text(),/Requested permissions: remote:read openid email offline_access/);
+const authPage=await fetch(authUrl);assert.equal(authPage.status,200);const authCsp=authPage.headers.get('content-security-policy')||'';assert.doesNotMatch(authCsp,/form-action/i);assert.match(authCsp,/frame-ancestors 'none'/);assert.match(await authPage.text(),/Requested permissions: remote:read openid email offline_access/);
 console.log('plugin_oauth_discovery_dcr_pkce=PASS');
 const authBody=new URLSearchParams({client_id:reg.client_id,redirect_uri:redirect,response_type:'code',code_challenge:challenge,code_challenge_method:'S256',resource:`${env.LIGHT_REMOTE_PLUGIN_ORIGIN}/mcp`,scope:'remote:read openid email offline_access',state:relayState,email:'reviewer@example.test',password:reviewerPassword});
 const authSubmit=await fetch(`${env.LIGHT_REMOTE_PLUGIN_ORIGIN}/oauth/authorize`,{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:authBody,redirect:'manual'});
