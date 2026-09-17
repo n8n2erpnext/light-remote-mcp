@@ -1,0 +1,18 @@
+[Unit]
+Description=Light Remote OpenAI Reviewer Lease Refresh
+After=network-online.target light-remote-review-leaf-agent.service
+Wants=network-online.target
+Requires=light-remote-review-leaf-agent.service
+
+[Service]
+Type=oneshot
+User=lightremote
+Group=lightremote
+Environment=OPERATOR_AGENT_STATE=/var/lib/light-remote-review-leaf/device.json
+ExecStart=/usr/local/bin/node /opt/light-remote-review-client/current/deploy/reviewer/ensure-reviewer-lease.mjs --state=/var/lib/light-remote-review-leaf/device.json --agent=/opt/light-remote-review-client/current/device-agent/operator-agent.mjs --hub=https://light-remote.thaiduy.digital --lease-hours=72 --grace-minutes=60
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/lib/light-remote-review-leaf

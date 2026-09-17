@@ -18,6 +18,7 @@ The reviewer account is a normal Light Remote **VIP** account on an isolated ful
 - Workspace: `/srv/reviewer-workspace`.
 - Reviewer policy on both devices: filesystem/git/build-test/terminal allowed; privileged administration such as docker/lxd/package-manager/sudo-on-demand/systemctl is denied when that capability exists. The product capability catalog remains visible separately from these effective reviewer permissions.
 - The leaf is pre-connected with a finite VIP cloud lease so it is immediately available after reviewer sign-in; normal finite-lease and reconnect-grace rules still apply.
+- A reviewer-only local systemd timer checks once per minute and reconnects the leaf through the normal signed `connect` path only after its hard lease has expired or become dormant. It never extends a live lease, bypasses account policy, or changes enrollment.
 - No production accounts, devices, keys, files, or logs are present.
 - Every device eligible to become Main must have a writable Fleet component store at `/home/lightremote/.local/share/light-remote/components/fleet-wall`; otherwise Main migration will remain in `Configuring Fleet`.
 - Reviewer systemd activation must use one canonical release drop-in per service. Do not stack competing `zz*`/`zzz*` `ExecStart` overrides; verify the effective `ExecStart` after every release switch.
