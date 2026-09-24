@@ -1,5 +1,6 @@
 const crypto = require('node:crypto');
-const bundledPublicKeys = { currentKid:null, keys:{} };
+let runtimeConfig={};try{runtimeConfig=require('./runtime-config.cjs')}catch{}
+const bundledPublicKeys = runtimeConfig.operatorPublicKeys || { currentKid:null, keys:{} };
 function loadPublicKeys() {
   let raw=''; try{raw=globalThis.Netlify?.env?.get?.('OPERATOR_PUBLIC_KEYS_JSON')||''}catch{} raw=raw||process.env.OPERATOR_PUBLIC_KEYS_JSON;
   if (!raw) return bundledPublicKeys;
