@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import crypto from 'node:crypto';
+import { StringDecoder } from 'node:string_decoder';
 import { decryptEnvelope as decryptSealedEnvelope } from './crypto.mjs';
 import { spawn } from 'node:child_process';
 import { SessionRegistry, SessionError, SESSION_GRACE_PRESETS } from './session-manager.mjs';
@@ -208,6 +209,32 @@ function decryptEnvelope(envelope) {
   return result;
 }
 
+function likelyBinaryBytes(value) {
+  const buf=Buffer.isBuffer(value)?value:Buffer.from(value);
+  if(!buf.length)return false;
+  if(buf.length>=4){
+    if(buf[0]===0x1f&&buf[1]===0x8b)return true;
+    if(buf[0]===0x50&&buf[1]===0x4b&&[0x03,0x05,0x07].includes(buf[2]))return true;
+    if(buf[0]===0x7f&&buf[1]===0x45&&buf[2]===0x4c&&buf[3]===0x46)return true;
+    if(buf[0]===0x00&&buf[1]===0x01&&buf[2]===0x00&&buf[3]===0x00)return true;
+    const magic=buf.subarray(0,4).toString('ascii');if(magic==='wOFF'||magic==='wOF2')return true;
+  }
+  const sample=buf.subarray(0,Math.min(buf.length,8192));let controls=0;
+  for(const byte of sample){if(byte===0)return true;if(byte<32&&byte!==9&&byte!==10&&byte!==13)controls++;}
+  return controls>=8&&controls/sample.length>0.01;
+}
+function streamState(job,stream){
+  job.outputStates ||= {};
+  return job.outputStates[stream] ||= {decoder:new StringDecoder('utf8'),binary:false,binaryBytes:0,finished:false};
+}
+function appendStreamText(job,stream,text){
+  if(!text)return;
+  job[stream].add(text);
+  for(let i=0;i<text.length;i+=16384)pushEvent({type:stream,jobId:job.id,requestId:job.requestId,operationId:job.operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',chunk:redact(text.slice(i,i+16384))});
+}
+function flushOutputStates(job){
+  for(const stream of ['stdout','stderr']){const state=job.outputStates?.[stream];if(!state||state.finished)continue;state.finished=true;if(state.binary){appendStreamText(job,stream,'[binary '+stream+' suppressed · '+state.binaryBytes+' bytes]\n');continue;}appendStreamText(job,stream,state.decoder.end());}
+}
 function createAccumulator(limit = MAX_MEMORY_OUTPUT) {
   let total = 0;
   let full = '';
@@ -301,6 +328,7 @@ function finishJob(job, exitCode, signal) {
   job.exitCode = exitCode;
   job.signal = signal || null;
   job.status = exitCode === 0 ? 'ok' : job.timedOut ? 'timeout' : 'error';
+  flushOutputStates(job);
   if(!job.resultSummary&&job.resultData)job.resultSummary=nativeActivityResult(job.toolMeta,job.resultData);
   clearTimeout(job.timer);
   sessions.finishJob(job.sessionId, job.id, job.status);
@@ -313,12 +341,9 @@ function finishJob(job, exitCode, signal) {
 
 function emitStream(job, stream, data) {
   const now=Date.now();if(!job.firstOutputAt){job.firstOutputAt=now;job.telemetry={...(job.telemetry||{}),firstOutputAt:job.telemetry?.firstOutputAt||now};}
-  const text = data.toString('utf8');
-  job[stream].add(text);
-  for (let i = 0; i < text.length; i += 16384) {
-    pushEvent({ type: stream, jobId: job.id, requestId: job.requestId, operationId: job.operationId, accountId:job.accountId, deviceId:job.deviceId, sessionId: job.sessionId, agentId:job.agentId, nodeId:job.nodeId,
-      status: 'running', chunk: redact(text.slice(i, i + 16384)) });
-  }
+  const buf=Buffer.isBuffer(data)?data:Buffer.from(data);const state=streamState(job,stream);
+  if(state.binary||likelyBinaryBytes(buf)){state.binary=true;state.binaryBytes+=buf.length;return;}
+  appendStreamText(job,stream,state.decoder.write(buf));
 }
 
 function startJob(payload, requestId) {

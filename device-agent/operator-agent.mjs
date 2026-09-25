@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { StringDecoder } from 'node:string_decoder';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { deviceChannelMessage, deviceHeartbeatMessage, devicePolicyMessage, normalizeDeviceCapabilities } from '../lib/device-proof.mjs';
@@ -98,7 +99,8 @@ function commandFile(commandId){if(!/^cmd_[A-Za-z0-9-]{20,}$/.test(String(comman
 function readCommand(commandId){try{return JSON.parse(fs.readFileSync(commandFile(commandId),'utf8'));}catch{return null;}}
 function writeCommand(commandId,value){fs.mkdirSync(COMMAND_DIR,{recursive:true,mode:0o700});writeJson0600(commandFile(commandId),value);}
 function pruneCommandSpool(){fs.mkdirSync(COMMAND_DIR,{recursive:true,mode:0o700});const rows=fs.readdirSync(COMMAND_DIR).filter(name=>/^cmd_[A-Za-z0-9-]{20,}\.json$/.test(name)).map(name=>({name,stat:fs.statSync(path.join(COMMAND_DIR,name))})).sort((a,b)=>b.stat.mtimeMs-a.stat.mtimeMs);const cutoff=Date.now()-24*60*60*1000;for(let i=0;i<rows.length;i++)if(i>=100||rows[i].stat.mtimeMs<cutoff)fs.rmSync(path.join(COMMAND_DIR,rows[i].name),{force:true});}
-function boundedCollector(limit=MAX_OUTPUT){let size=0,chunks=[],truncated=false;return{add(data){const buf=Buffer.from(data);if(size>=limit){truncated=true;return;}const take=buf.subarray(0,Math.max(0,limit-size));chunks.push(take);size+=take.length;if(take.length<buf.length)truncated=true;},text(){return Buffer.concat(chunks).toString('utf8');},truncated(){return truncated;}};}
+function likelyBinaryBytes(value){const buf=Buffer.isBuffer(value)?value:Buffer.from(value);if(!buf.length)return false;if(buf.length>=4){if(buf[0]===0x1f&&buf[1]===0x8b)return true;if(buf[0]===0x50&&buf[1]===0x4b&&[0x03,0x05,0x07].includes(buf[2]))return true;if(buf[0]===0x7f&&buf[1]===0x45&&buf[2]===0x4c&&buf[3]===0x46)return true;if(buf[0]===0x00&&buf[1]===0x01&&buf[2]===0x00&&buf[3]===0x00)return true;const magic=buf.subarray(0,4).toString('ascii');if(magic==='wOFF'||magic==='wOF2')return true;}const sample=buf.subarray(0,Math.min(buf.length,8192));let controls=0;for(const byte of sample){if(byte===0)return true;if(byte<32&&byte!==9&&byte!==10&&byte!==13)controls++;}return controls>=8&&controls/sample.length>0.01;}
+function boundedCollector(limit=MAX_OUTPUT){let size=0,chunks=[],truncated=false,finished=false,binary=false,binaryBytes=0;const decoder=new StringDecoder('utf8');const addText=text=>{if(!text)return;const buf=Buffer.from(text,'utf8');if(size>=limit){truncated=true;return;}const take=buf.subarray(0,Math.max(0,limit-size));chunks.push(take);size+=take.length;if(take.length<buf.length)truncated=true;};return{add(data){const buf=Buffer.isBuffer(data)?data:Buffer.from(data);if(binary||likelyBinaryBytes(buf)){binary=true;binaryBytes+=buf.length;return;}addText(decoder.write(buf));},finish(){if(finished)return;finished=true;if(binary)addText('[binary output suppressed · '+binaryBytes+' bytes]\n');else addText(decoder.end());},text(){this.finish();return Buffer.concat(chunks).toString('utf8');},truncated(){return truncated;},binaryBytes(){return binaryBytes;}};}
 async function executeProcessCommand(state,p){
   const request=p.process&&typeof p.process==='object'&&!Array.isArray(p.process)?p.process:{};
   const op=String(request.op||'');
