@@ -54,6 +54,8 @@ expect(installer.includes('Light-Remote-MCP-Setup-{#AppVersion}-x64.exe'),'indep
 expect(installer.includes('PrivilegesRequired=lowest')&&installer.includes('Parameters: "--launch"'),'windows_installer_contract_missing');
 expect(installer.includes('LightRemoteDeviceAgent')&&installer.includes('LightRemoteUpdater'),'windows_task_cleanup_missing');
 expect(installer.includes('LightRemote.Client.exe')&&installer.includes('[InstallDelete]')&&installer.includes('GptOperator.Client.exe'),'windows_installer_client_rename_missing');
+const installerArgsLine=installer.split(/\r?\n/).find(line=>line.trim().startsWith('Args := '))||'';
+expect(installerArgsLine.includes('-LegacyAppExe \"')&&!installerArgsLine.includes('\\\"'),'windows_installer_quiesce_quoting_invalid');
 expect(installer.includes('procedure QuiesceInstalledRuntime()')&&installer.includes("$targets=@($AppExe,$LegacyAppExe,$NodeExe)")&&installer.includes("$targets -contains $_.Path")&&installer.includes('light-remote-runtime-quiesced')&&installer.includes('StopAndRemoveLegacyTask();\n  QuiesceInstalledRuntime();'),'windows_reinstall_runtime_quiesce_missing');
 expect(!/LocalSystem/i.test(installer+taskInstaller),'windows_must_not_use_localsystem');
 expect(taskInstaller.includes("$UpdaterRoot=Join-Path $env:LOCALAPPDATA 'Light Remote\\Updater'")&&taskInstaller.includes("$Updater=Join-Path $UpdaterRoot 'LightRemote.Updater.exe'"),'updater_recovery_path_missing');

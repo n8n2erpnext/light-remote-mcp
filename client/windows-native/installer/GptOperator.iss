@@ -167,7 +167,7 @@ begin
     'exit 0' + #13#10;
   if not SaveStringToFile(ScriptFile, ScriptText, False) then
     RaiseException('Unable to stage Light Remote runtime quiesce helper');
-  Args := '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"' + ScriptFile + '\" -AppExe \"' + AppExe + '\" -LegacyAppExe \"' + LegacyAppExe + '\" -NodeExe \"' + NodeExe + '\"';
+  Args := '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + ScriptFile + '" -AppExe "' + AppExe + '" -LegacyAppExe "' + LegacyAppExe + '" -NodeExe "' + NodeExe + '"';
   if (not Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'), Args, '', SW_HIDE, ewWaitUntilTerminated, ResultCode)) or (ResultCode <> 0) then
     RaiseException('Unable to stop the installed Light Remote runtime before replacement (exit ' + IntToStr(ResultCode) + ')');
   Log('light-remote-runtime-quiesced');
