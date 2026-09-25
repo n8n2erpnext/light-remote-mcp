@@ -12,6 +12,10 @@ function requestOrigin(req){
   const host=String(req.headers?.['x-forwarded-host']||req.headers?.host||'').split(',')[0].trim();
   return /^[A-Za-z0-9.-]+(?::\d{1,5})?$/.test(host)?`${proto}://${host}`:'';
 }
+function validPlusClientCredential(value){
+  const text=String(value||'').trim();
+  return /^o1\.client\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(text)||/^lr1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(text);
+}
 function connectionHelperView(value={},origin='') {
   const status=String(value.status||'need_a_code');
   const base={protocol:'light-remote-plus-v1',endpoint:'/api/operator?via=plus&action=connection-helper',status};
@@ -63,7 +67,7 @@ module.exports=async function handler(req,res){
   const bridgeSession=String(req.headers?.['x-bridge-session']||'');
   const plusSession=String(field(req,'ps','')).trim();
   const plusClient=String(field(req,'client','')).trim();
-  const plusClientValid=/^o1\.client\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(plusClient);
+  const plusClientValid=validPlusClientCredential(plusClient);
   const plusClientClassification=classifyClientCapability(plusClient,{now:started});
   const plusClientFingerprint=plusClient?clientFingerprint(plusClient):null;
   const deployment=String(process.env.VERCEL_GIT_COMMIT_SHA||process.env.VERCEL_DEPLOYMENT_ID||'unknown').slice(0,16);
@@ -103,7 +107,7 @@ module.exports=async function handler(req,res){
             if(!/^[A-Z2-9]{8}$/.test(raw)){upstream=connectionHelperView({ok:false,status:'need_a_code',error:raw?'invalid_pairing_code':'pairing_code_required'},helperOrigin);}
             else {
               const agentId=aid(d.agentId),label=String(d.label||'ChatGPT').trim().slice(0,120);
-              let client=null;if(d.client!=null&&String(d.client).trim()){client=String(d.client).trim();if(!/^o1\.client\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(client)){const e=new Error('invalid_agent_client');e.status=400;throw e;}}
+              let client=null;if(d.client!=null&&String(d.client).trim()){client=String(d.client).trim();if(!validPlusClientCredential(client)){const e=new Error('invalid_agent_client');e.status=400;throw e;}}
               upstream=connectionHelperView(await callOperator('/plus/connect/begin',{method:'POST',body:{aCode:`${raw.slice(0,4)}-${raw.slice(4)}`,agentId,label,client}}),helperOrigin);
             }
           }
@@ -115,7 +119,7 @@ module.exports=async function handler(req,res){
         if(!raw){const e=new Error('pairing_code_required');e.status=428;e.payload={ok:false,status:'need_a_code',error:e.message};throw e;}
         if(!/^[A-Z2-9]{8}$/.test(raw)){const e=new Error('invalid_pairing_code');e.status=400;e.payload={ok:false,status:'need_a_code',error:e.message};throw e;}
         const agentId=aid(d.agentId),label=String(d.label||'ChatGPT').trim().slice(0,120);
-        let client=null;if(d.client!=null&&String(d.client).trim()){client=String(d.client).trim();if(!/^o1\.client\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(client)){const e=new Error('invalid_agent_client');e.status=400;throw e;}}
+        let client=null;if(d.client!=null&&String(d.client).trim()){client=String(d.client).trim();if(!validPlusClientCredential(client)){const e=new Error('invalid_agent_client');e.status=400;throw e;}}
         upstream=await callOperator('/plus/connect/begin',{method:'POST',body:{aCode:`${raw.slice(0,4)}-${raw.slice(4)}`,agentId,label,client}});
       }
       else if(action==='connect-poll') {

@@ -32,8 +32,26 @@ assert.equal(wall.inspectOAuthToken('client',expired).reason,'expired');
 const wrongExp=wall.signOAuthToken('client',{...payload,exp:String(now+60000)});
 assert.equal(wall.inspectOAuthToken('client',wrongExp).reason,'exp_type');
 
+const clientRef=wall.mintClientRef({clientSessionId:payload.clientSessionId,agentId:payload.agentId});
+assert.match(clientRef,/^lr1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/);
+assert.ok(clientRef.length<valid.length);
+assert.equal(wall.inspectClientRef(clientRef).reason,'valid');
+assert.equal(wall.verifyClientRef(clientRef)?.clientSessionId,payload.clientSessionId);
+assert.equal(wall.verifyClientRef(clientRef)?.agentId,payload.agentId);
+const refParts=clientRef.split('.');
+refParts[3]=(refParts[3][0]==='A'?'B':'A')+refParts[3].slice(1);
+assert.equal(wall.inspectClientRef(refParts.join('.')).reason,'signature');
+assert.equal(wall.verifyClientRef(refParts.join('.')),null);
+
 function response(){return {statusCode:200,body:null,status(n){this.statusCode=n;return this;},json(v){this.body=v;return this;}};}
 const plus=createPlusAuth(wall,{listClientDevices:async()=>({devices:[]})});
+const refReq={headers:{'x-light-client':clientRef},body:{},query:{},get(name){return this.headers[String(name).toLowerCase()]||'';}};
+const refRes=response();let refPassed=false;
+await plus.requireClient(refReq,refRes,()=>{refPassed=true;});
+assert.equal(refPassed,true);
+assert.equal(refReq.plusClient?.clientSessionId,payload.clientSessionId);
+assert.equal(refReq.plusClient?.agentId,payload.agentId);
+
 const req={headers:{'x-light-client':expired,'x-light-trace':'trace-diag-001'},body:{},query:{},get(name){return this.headers[String(name).toLowerCase()]||'';}};
 const res=response(),warn=console.warn,rows=[];
 console.warn=value=>rows.push(String(value));
@@ -49,6 +67,22 @@ assert.match(logged.clientFingerprint,/^[a-f0-9]{16}$/);
 assert.equal(logged.clientLength,expired.length);
 assert.equal(rows[0].includes(expired),false);
 
+const grant={grantId:'dag_diag_client_ref_0001',deviceId:'dev-diag',connectionId:'dc-diag',expiresAt:now+60000};
+const recoveryPlus=createPlusAuth(wall,{
+  pollAccess:async()=>({access:{state:'approved',grant}}),
+  getAccessRequest:async id=>({authorization:{requestId:id,agentId:payload.agentId}}),
+  attachClient:async body=>({client:{clientSessionId:payload.clientSessionId,agentId:body.agentId,expiresAt:now+60000},device:{deviceId:grant.deviceId,displayName:'DIAG'}}),
+  ensureClientContext:async body=>({ok:true,context:{clientSessionId:body.clientSessionId,agentId:body.agentId,deviceId:body.deviceId,sessionId:'session-diag-ref',nodeId:'arm',workspace:'',gracePreset:'60m'}})
+});
+const recoverRes=response();
+await recoveryPlus.connectRecover({body:{requestId:'pa_diag_client_ref_00000001',pollToken:'R'.repeat(32)}},recoverRes);
+assert.equal(recoverRes.statusCode,200);
+assert.equal(recoverRes.body?.status,'ready');
+assert.match(String(recoverRes.body?.client||''),/^lr1\./);
+assert.ok(String(recoverRes.body.client).length<valid.length);
+
 fs.rmSync(dir,{recursive:true,force:true});
 console.log('v11-client-diagnostic-reasons=PASS');
 console.log('v11-client-diagnostic-redaction=PASS');
+console.log('v11-client-ref-mint-verify=PASS');
+console.log('v11-client-ref-ready-recovery=PASS');

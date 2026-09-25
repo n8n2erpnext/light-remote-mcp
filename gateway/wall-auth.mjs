@@ -66,6 +66,31 @@ function verifyScopedToken(secret, kind, token) {
   const inspected=inspectScopedToken(secret,kind,token);
   return inspected.ok?inspected.payload:null;
 }
+function signClientRef(secret, value = {}) {
+  const clientSessionId=String(value.clientSessionId||'').trim(),agentId=String(value.agentId||'').trim();
+  if(!/^[A-Za-z0-9._:-]{1,180}$/.test(clientSessionId)||!/^[A-Za-z0-9._:-]{1,180}$/.test(agentId))throw new Error('invalid_client_ref_identity');
+  const clientPart=b64url(clientSessionId),agentPart=b64url(agentId),body=`lr1.${clientPart}.${agentPart}`;
+  const sig=crypto.createHmac('sha256',Buffer.from(secret,'base64url')).update(`client-ref:${body}`).digest('base64url');
+  return `${body}.${sig}`;
+}
+function inspectClientRef(secret, token) {
+  const parts=String(token||'').split('.');
+  if(parts.length!==4||parts[0]!=='lr1')return {ok:false,reason:'shape'};
+  const body=parts.slice(0,3).join('.');
+  const expected=crypto.createHmac('sha256',Buffer.from(secret,'base64url')).update(`client-ref:${body}`).digest('base64url');
+  if(!safeEqual(expected,parts[3]))return {ok:false,reason:'signature'};
+  let clientSessionId,agentId;
+  try{
+    clientSessionId=fromB64url(parts[1]);agentId=fromB64url(parts[2]);
+    if(b64url(clientSessionId)!==parts[1]||b64url(agentId)!==parts[2])return {ok:false,reason:'encoding'};
+  }catch{return {ok:false,reason:'encoding'};}
+  if(!/^[A-Za-z0-9._:-]{1,180}$/.test(clientSessionId)||!/^[A-Za-z0-9._:-]{1,180}$/.test(agentId))return {ok:false,reason:'schema'};
+  return {ok:true,reason:'valid',clientSessionId,agentId};
+}
+function verifyClientRef(secret, token) {
+  const inspected=inspectClientRef(secret,token);
+  return inspected.ok?{scope:'agent-client',clientSessionId:inspected.clientSessionId,agentId:inspected.agentId}:null;
+}
 
 function signSession(secret, username, expiresAt) {
   const nonce = crypto.randomBytes(16).toString('base64url');
@@ -144,6 +169,9 @@ export function createWallAuth(options = {}) {
   const signOAuthToken = (kind, payload) => signScopedToken(config.cookieSecret, kind, payload);
   const inspectOAuthToken = (kind, token) => inspectScopedToken(config.cookieSecret, kind, token);
   const verifyOAuthToken = (kind, token) => verifyScopedToken(config.cookieSecret, kind, token);
+  const mintClientRef = value => signClientRef(config.cookieSecret, value);
+  const inspectClientRefToken = token => inspectClientRef(config.cookieSecret, token);
+  const verifyClientRefToken = token => verifyClientRef(config.cookieSecret, token);
   const mintBridgeSession = (ttlSeconds = bridgeTtlSeconds) => {
     const ttl = Math.max(300, Math.min(Number(ttlSeconds) || bridgeTtlSeconds, 3600));
     const expiresAt = Date.now() + ttl * 1000;
@@ -218,7 +246,7 @@ export function createWallAuth(options = {}) {
     return res.redirect(303, '/login');
   }
   return { loginPage, login, logout, requirePage, requireApi, identity, bridgeLogin, requireBridgeSession, bridgeIdentity,
-    verifyCredentials:credentialsOk, verifyBridgeToken, mintBridgeSession, signOAuthToken, inspectOAuthToken, verifyOAuthToken,
+    verifyCredentials:credentialsOk, verifyBridgeToken, mintBridgeSession, signOAuthToken, inspectOAuthToken, verifyOAuthToken, mintClientRef, inspectClientRef:inspectClientRefToken, verifyClientRef:verifyClientRefToken,
     info: () => ({ mode:config.mode, username:config.username, sessionTtlSeconds:config.sessionTtlSeconds, bridgeSessionTtlSeconds:bridgeTtlSeconds, cookieSecure, cookieName }) };
 }
 

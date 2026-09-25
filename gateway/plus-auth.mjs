@@ -53,9 +53,18 @@ export function createPlusAuth(wallAuth, options = {}) {
     const payload={scope:'agent-client',clientSessionId:client.clientSessionId,agentId:client.agentId,iat:Date.now(),exp:Number(client.expiresAt),jti:crypto.randomUUID()};
     return wallAuth.signOAuthToken('client',payload);
   }
+  function clientRefFor(client) {
+    if(!client?.clientSessionId||!client?.agentId)throw new Error('invalid_agent_client');
+    return typeof wallAuth.mintClientRef==='function'?wallAuth.mintClientRef({clientSessionId:client.clientSessionId,agentId:client.agentId}):clientTokenFor(client);
+  }
   function inspectClientContext(token){
     const raw=String(token||'');
     if(!raw)return {context:null,reason:'missing'};
+    if(raw.startsWith('lr1.')&&typeof wallAuth.inspectClientRef==='function'){
+      const inspected=wallAuth.inspectClientRef(raw);
+      if(!inspected?.ok)return {context:null,reason:`ref_${inspected?.reason||'invalid'}`};
+      return {context:{scope:'agent-client',clientSessionId:inspected.clientSessionId,agentId:inspected.agentId},reason:'valid_ref'};
+    }
     const inspected=typeof wallAuth.inspectOAuthToken==='function'?wallAuth.inspectOAuthToken('client',raw):null;
     const value=inspected?(inspected.ok?inspected.payload:null):wallAuth.verifyOAuthToken('client',raw);
     if(!value)return {context:null,reason:inspected?.reason||'invalid'};
@@ -83,7 +92,7 @@ export function createPlusAuth(wallAuth, options = {}) {
       if(result?.state!=='approved')return res.status(202).json({ok:true,status:'approval_required',expiresInSeconds:Math.max(0,Math.ceil(((result?.request?.expiresAt)||Date.now())-Date.now())/1000)});
       const grant=grantOf(result),attached=await attachClient({clientSessionId:ctx.clientSessionId||null,agentId:ctx.agentId,grantId:grant.grantId,pairingRequestId:ctx.requestId}),client=attached?.client,device=attached?.device||{};
       const contextValue=await ensureClientContext({clientSessionId:client.clientSessionId,agentId:client.agentId,deviceId:device.deviceId||grant.deviceId,workspace:'',gracePreset:'60m'});
-      return res.status(200).json({ok:true,status:'ready',device:device.displayName||device.deviceId||grant.deviceId,client:clientTokenFor(client),context:contextValue?.context||null});
+      return res.status(200).json({ok:true,status:'ready',device:device.displayName||device.deviceId||grant.deviceId,client:clientRefFor(client),context:contextValue?.context||null});
     }catch(error){const denied=error.message==='plus_authorization_denied',expired=['plus_authorization_expired','agent_client_expired'].includes(error.message);return res.status(Number(error.status)||400).json({ok:false,status:expired?'approval_expired':denied?'access_revoked':'error',error:error.message||'pairing_failed'});}
   }
   async function connectRecover(req,res){
@@ -96,7 +105,7 @@ export function createPlusAuth(wallAuth, options = {}) {
       if(!row?.agentId)throw new Error('pairing_recovery_agent_missing');
       const grant=grantOf(result),attached=await attachClient({clientSessionId:null,agentId:row.agentId,grantId:grant.grantId,pairingRequestId:requestId}),client=attached?.client,device=attached?.device||{};
       const contextValue=await ensureClientContext({clientSessionId:client.clientSessionId,agentId:client.agentId,deviceId:device.deviceId||grant.deviceId,workspace:'',gracePreset:'60m'});
-      return res.status(200).json({ok:true,status:'ready',device:device.displayName||device.deviceId||grant.deviceId,client:clientTokenFor(client),context:contextValue?.context||null,recovered:true});
+      return res.status(200).json({ok:true,status:'ready',device:device.displayName||device.deviceId||grant.deviceId,client:clientRefFor(client),context:contextValue?.context||null,recovered:true});
     }catch(error){const denied=error.message==='plus_authorization_denied',expired=['plus_authorization_expired','agent_client_expired'].includes(error.message);return res.status(Number(error.status)||400).json({ok:false,status:expired?'approval_expired':denied?'access_revoked':'error',error:error.message||'pairing_recovery_failed'});}
   }
   async function requireClient(req,res,next){
