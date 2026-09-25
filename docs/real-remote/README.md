@@ -85,3 +85,14 @@ without Playwright or DOM injection being the primary control path.
 ## Development rule
 
 All Real Remote work stays on feature/real-remote until the feature reaches a stable acceptance milestone. Production main remains unchanged unless a shared-core change is independently useful and reviewed for the existing Light Remote product.
+
+## Current experimental milestone
+
+V0.2 remains read-only and adds visual proof on Windows:
+- desktop.status: interactive desktop/session metadata.
+- desktop.windows: visible top-level Win32 windows.
+- desktop.frame: one bounded JPEG snapshot from the real desktop.
+
+desktop.frame is deliberately a control-plane proof, not the final Real Remote video transport. It defaults to at most 960x540 JPEG quality 50 and is hard bounded to 1280x720, quality 25..70 and roughly 650 KiB encoded JPEG bytes before base64. The live milestone will move frames and desktop events to a persistent data plane instead of repeated snapshot RPCs.
+
+No mouse, keyboard or other desktop mutation opcode is enabled in V0.2.

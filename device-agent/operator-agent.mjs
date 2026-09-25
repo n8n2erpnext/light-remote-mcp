@@ -153,6 +153,12 @@ async function executeDesktopCommand(state,p){
   if(!REAL_REMOTE_AVAILABLE)throw new Error('real_remote_unavailable');
   if(op==='status')return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('status',{})};
   if(op==='windows')return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('windows',{limit:Math.max(1,Math.min(Number(request.limit)||100,200))})};
+  if(op==='frame')return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('frame',{
+    screen:request.screen==null?-1:Math.max(-1,Math.min(Number(request.screen)||0,31)),
+    maxWidth:Math.max(320,Math.min(Number(request.maxWidth)||960,1280)),
+    maxHeight:Math.max(180,Math.min(Number(request.maxHeight)||540,720)),
+    quality:Math.max(25,Math.min(Number(request.quality)||50,70))
+  },{timeoutMs:10000})};
   throw new Error('desktop_operation_unsupported');
 }
 

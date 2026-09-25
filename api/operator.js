@@ -182,9 +182,10 @@ module.exports=async function handler(req,res){
         }
         else if(usingClient&&action.startsWith('desktop-')){
           const d=payloadFor(req),deviceId=clientDevice(d.deviceId||d.device),op=action.slice('desktop-'.length);
-          if(!['status','windows'].includes(op)){const e=new Error('invalid_desktop_action');e.status=400;throw e;}
+          if(!['status','windows','frame'].includes(op)){const e=new Error('invalid_desktop_action');e.status=400;throw e;}
           const desktop={op};
           if(op==='windows')desktop.limit=Math.max(1,Math.min(Number(d.limit)||100,200));
+          if(op==='frame'){desktop.screen=d.screen==null?-1:Math.max(-1,Math.min(Number(d.screen)||0,31));desktop.maxWidth=Math.max(320,Math.min(Number(d.maxWidth)||960,1280));desktop.maxHeight=Math.max(180,Math.min(Number(d.maxHeight)||540,720));desktop.quality=Math.max(25,Math.min(Number(d.quality)||50,70));}
           const payload={action:'desktop',operationId:aid(d.operationId),sessionId:sid(d.sessionId),agentId:aid(d.agentId),nodeId:d.nodeId==null?undefined:clientDevice(d.nodeId),desktop,waitMs:Math.max(0,Math.min(Number(d.waitMs)||7000,8000))};
           upstream=await clientCall('/plus/client/execute',{method:'POST',body:{deviceId,envelope:sealOperatorPayload(payload)},timeoutMs:9500});
         }
