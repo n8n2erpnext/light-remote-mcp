@@ -150,6 +150,19 @@ try{
   Write-Host "windows-real-remote-enter=PASS sentInputs=$($enterAck.sentInputs) inputSeq=$($enterAck.inputSeq) seq=$($enterAfter.stateSeq)"
   Write-Host 'windows-real-remote-keyboard-navigation=PASS keys=CTRL+A,TAB,RIGHT,ENTER'
 
+  $scrollRegions=@($enterAfter.nodes|Where-Object { $_.role -eq 'region' -and $_.name -eq 'Light Remote Scroll Region' })
+  if($scrollRegions.Count -ne 1 -or $null -eq $scrollRegions[0].center){throw "Scroll region semantic center missing count=$($scrollRegions.Count)"}
+  $scrollX=[int][Math]::Round([double]$scrollRegions[0].center.x);$scrollY=[int][Math]::Round([double]$scrollRegions[0].center.y);$scrollBeforeSeq=[long]$enterAfter.stateSeq
+  $scrollAck=Invoke-Rr 'accept-os-wheel' 'input' @{events=@(@{type='move';x=$scrollX;y=$scrollY},@{type='wheel';delta=-1200});semanticSessionId=$sem;afterSeq=$scrollBeforeSeq;settleMs=150}
+  if([int]$scrollAck.appliedEvents -ne 2 -or [int]$scrollAck.sentInputs -ne 1){throw "WHEEL SendInput proof missing applied=$($scrollAck.appliedEvents) sent=$($scrollAck.sentInputs)"}
+  if([long]$scrollAck.stateSeq -le $scrollBeforeSeq -or $scrollAck.gap -or $scrollAck.resyncRecommended){throw 'WHEEL ACK did not advance cleanly'}
+  $scrollAfter=Invoke-Rr 'accept-wheel-after' 'semantic-snapshot' @{semanticSessionId=$sem}
+  $scrollAccepted=@($scrollAfter.nodes|Where-Object { $_.role -eq 'region' -and $_.name -eq 'Light Remote Scroll Accepted' })
+  if($scrollAccepted.Count -ne 1){throw 'OS wheel did not scroll acceptance region'}
+  if([long]$scrollAfter.stateSeq -le [long]$scrollAck.stateSeq){throw 'Post-WHEEL stateSeq did not advance'}
+  Write-Host "windows-real-remote-wheel=PASS delta=-1200 sentInputs=$($scrollAck.sentInputs) x=$scrollX y=$scrollY inputSeq=$($scrollAck.inputSeq) seq=$($scrollAfter.stateSeq)"
+  Write-Host 'windows-real-remote-scroll-closed-loop=PASS'
+
   $d=Invoke-Rr 'accept-detach' 'semantic-detach' @{semanticSessionId=$sem};if(-not $d.detached -or $d.provider -ne 'browser-cdp'){throw 'Detach failed'};$detached=$true
   Write-Host 'windows-real-remote-browser-os-input-acceptance=PASS'
 }finally{

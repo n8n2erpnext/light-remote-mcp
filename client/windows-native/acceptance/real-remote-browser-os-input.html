@@ -9,6 +9,8 @@ main{text-align:center}button{font:inherit;padding:28px 44px;min-width:420px;bor
 button[aria-pressed="true"]{border-color:#16c60c;background:#12331a}
 input{display:block;box-sizing:border-box;width:520px;margin:24px auto 0;padding:16px 20px;border-radius:12px;border:2px solid #767676;background:#0c1116;color:#fff;font:22px system-ui,sans-serif}
 input:focus{border-color:#3a96dd;outline:none}
+#scrollbox{box-sizing:border-box;width:520px;height:180px;margin:24px auto 0;overflow:auto;border:2px solid #767676;border-radius:12px;background:#0c1116;overscroll-behavior:contain}
+#scrollfill{height:720px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:24px}
 output{display:block;margin-top:24px;font-size:18px}
 </style>
 </head>
@@ -18,12 +20,14 @@ output{display:block;margin-top:24px;font-size:18px}
 <button id="accept" type="button" aria-label="Light Remote OS Input" aria-pressed="false">Light Remote OS Input</button>
 <input id="text" type="text" aria-label="Light Remote Text Input" autocomplete="off" spellcheck="false">
 <button id="keyboard" type="button" aria-label="Light Remote Keyboard Target">Keyboard Target</button>
+<div id="scrollbox" role="region" aria-label="Light Remote Scroll Region" tabindex="-1"><div id="scrollfill"><span>Scroll proof target</span></div></div>
 <output id="state" role="status" aria-label="Light Remote Text Waiting">waiting</output>
 </main>
 <script>
 const button=document.getElementById('accept');
 const textInput=document.getElementById('text');
 const keyboard=document.getElementById('keyboard');
+const scrollbox=document.getElementById('scrollbox');
 const state=document.getElementById('state');
 const expectedText='Tiếng Việt ✓';
 const ctrlAText='CTRL+A OK';
@@ -64,6 +68,14 @@ keyboard.addEventListener('click',()=>{
   state.setAttribute('aria-label','Light Remote Enter Accepted');
   state.textContent='keyboard accepted';
   document.title='Light Remote Keyboard Accepted';
+});
+scrollbox.addEventListener('scroll',()=>{
+  if(scrollbox.scrollTop>0){
+    scrollbox.setAttribute('aria-label','Light Remote Scroll Accepted');
+    state.setAttribute('aria-label','Light Remote Scroll Accepted');
+    state.textContent='scroll accepted';
+    document.title='Light Remote Scroll Accepted';
+  }
 });
 </script>
 </body>

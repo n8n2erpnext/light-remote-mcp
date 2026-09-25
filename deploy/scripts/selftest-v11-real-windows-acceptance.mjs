@@ -31,7 +31,10 @@ for(const token of [
   'windows-real-remote-tab=PASS',
   'windows-real-remote-right=PASS',
   'windows-real-remote-enter=PASS',
-  'windows-real-remote-keyboard-navigation=PASS'
+  'windows-real-remote-keyboard-navigation=PASS',
+  "@{type='wheel';delta=-1200}",
+  'windows-real-remote-wheel=PASS',
+  'windows-real-remote-scroll-closed-loop=PASS'
 ])need(script.includes(token),'windows_acceptance_contract_missing:'+token);
 
 need(!script.includes('[hashtable]$Args'),'windows_acceptance_powershell_args_shadow_forbidden');
@@ -55,6 +58,8 @@ need(fixture.includes("const ctrlAText='CTRL+A OK';")&&fixture.includes("setAttr
 need(fixture.includes("addEventListener('focus'")&&fixture.includes("setAttribute('aria-label','Light Remote Tab Accepted')"),'windows_acceptance_fixture_tab_state_missing');
 need(fixture.includes("event.key==='ArrowRight'")&&fixture.includes("setAttribute('aria-label','Light Remote Right Accepted')"),'windows_acceptance_fixture_right_state_missing');
 need(fixture.includes("setAttribute('aria-label','Light Remote Enter Accepted')"),'windows_acceptance_fixture_enter_state_missing');
+need(fixture.includes('role="region" aria-label="Light Remote Scroll Region"'),'windows_acceptance_fixture_scroll_region_missing');
+need(fixture.includes("addEventListener('scroll'")&&fixture.includes("scrollbox.scrollTop>0")&&fixture.includes("setAttribute('aria-label','Light Remote Scroll Accepted')"),'windows_acceptance_fixture_scroll_state_missing');
 need(inputHelper.includes('KeyUnicode=0x0004')&&inputHelper.includes('Keyboard(0,(ushort)ch,KeyUnicode)'),'windows_acceptance_unicode_sendinput_contract_missing');
 need(!fixture.match(/https?:\/\//i),'windows_acceptance_fixture_must_be_offline');
 
