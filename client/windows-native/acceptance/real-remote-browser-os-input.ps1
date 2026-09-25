@@ -200,7 +200,12 @@ try{
   }while([DateTime]::UtcNow -lt $navDeadline)
   if($null -eq $nextAfter -or $nextButtons.Count -ne 1){throw 'Same semantic session did not observe navigation target page'}
   if([string]$nextAfter.semanticSessionId -ne $sem){throw "Semantic session changed across navigation: $($nextAfter.semanticSessionId)"}
-  Write-Host "windows-real-remote-navigation-same-session=PASS semanticSessionId=$sem seq=$($nextAfter.stateSeq) targetUrl=$($nextAfter.target.url)"
+  $nextTargetUrl=[string]$nextAfter.target.url
+  $nextTargetTitle=[string]$nextAfter.target.title
+  if($nextTargetUrl -notlike '*real-remote-browser-os-input-next.html'){throw "Navigation target URL stale: $nextTargetUrl"}
+  if($nextTargetTitle -ne 'Light Remote Navigation Acceptance'){throw "Navigation target title stale: $nextTargetTitle"}
+  Write-Host "windows-real-remote-navigation-target-metadata=PASS title=$nextTargetTitle url=$nextTargetUrl"
+  Write-Host "windows-real-remote-navigation-same-session=PASS semanticSessionId=$sem seq=$($nextAfter.stateSeq) targetUrl=$nextTargetUrl"
 
   Start-Sleep -Milliseconds 250
   $nextStable=Invoke-Rr 'accept-navigation-stable' 'semantic-snapshot' @{semanticSessionId=$sem}

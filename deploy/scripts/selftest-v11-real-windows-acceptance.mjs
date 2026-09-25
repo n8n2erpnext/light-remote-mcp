@@ -39,6 +39,7 @@ for(const token of [
   "'Light Remote Navigate'",
   "'Light Remote Next Page'",
   'windows-real-remote-navigation-resync=PASS',
+  'windows-real-remote-navigation-target-metadata=PASS',
   'windows-real-remote-navigation-same-session=PASS',
   'windows-real-remote-navigation-continued-input=PASS',
   'windows-real-remote-navigation-closed-loop=PASS'

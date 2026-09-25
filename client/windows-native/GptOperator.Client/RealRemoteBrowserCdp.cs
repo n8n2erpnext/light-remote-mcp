@@ -17,8 +17,8 @@ internal static partial class RealRemoteHelper
         public required string Epoch { get; init; }
         public required Uri Endpoint { get; init; }
         public required string TargetId { get; init; }
-        public required string TargetTitle { get; init; }
-        public required string TargetUrl { get; init; }
+        public required string TargetTitle { get; set; }
+        public required string TargetUrl { get; set; }
         public required int MaxDepth { get; init; }
         public required int MaxNodes { get; init; }
         public required long AttachedAt { get; init; }

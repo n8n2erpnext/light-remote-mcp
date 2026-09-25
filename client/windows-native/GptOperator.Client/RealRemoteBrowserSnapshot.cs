@@ -52,9 +52,17 @@ internal static partial class RealRemoteHelper
         var domMap = dom.ValueKind == JsonValueKind.Object ? BrowserDomMap(dom) : new Dictionary<long, BrowserDomInfo>();
         var viewport = BrowserViewport(session);
         var rows = BrowserAxRows(session, ax, domMap, viewport, out var truncated);
+        BrowserRefreshTargetMetadata(session);
 
         long stateSeq;
-        lock (session.Gate) stateSeq = ++session.StateSeq;
+        string targetTitle;
+        string targetUrl;
+        lock (session.Gate)
+        {
+            stateSeq = ++session.StateSeq;
+            targetTitle = session.TargetTitle;
+            targetUrl = session.TargetUrl;
+        }
         return new
         {
             protocolVersion = ProtocolVersion,
@@ -70,7 +78,7 @@ internal static partial class RealRemoteHelper
             maxNodes = session.MaxNodes,
             nodeCount = rows.Count,
             truncated,
-            target = new { id = session.TargetId, title = session.TargetTitle, url = session.TargetUrl },
+            target = new { id = session.TargetId, title = targetTitle, url = targetUrl },
             viewport = new
             {
                 pageX = RoundInt(viewport.PageX),
@@ -86,6 +94,48 @@ internal static partial class RealRemoteHelper
             scopeChanged = session.ScopeChanged,
             nodes = rows
         };
+    }
+
+    private static void BrowserRefreshTargetMetadata(BrowserSemanticSession session)
+    {
+        try
+        {
+            var history = BrowserCdpCommand(session, "Page.getNavigationHistory");
+            if (history.ValueKind != JsonValueKind.Object ||
+                !history.TryGetProperty("currentIndex", out var currentNode) ||
+                !currentNode.TryGetInt32(out var currentIndex) ||
+                currentIndex < 0 ||
+                !history.TryGetProperty("entries", out var entries) ||
+                entries.ValueKind != JsonValueKind.Array)
+                return;
+
+            var index = 0;
+            foreach (var entry in entries.EnumerateArray())
+            {
+                if (index++ != currentIndex) continue;
+                if (entry.ValueKind != JsonValueKind.Object ||
+                    !entry.TryGetProperty("url", out var urlNode) ||
+                    urlNode.ValueKind != JsonValueKind.String)
+                    return;
+
+                var url = LimitSemanticText(urlNode.GetString(), 2048);
+                if (string.IsNullOrWhiteSpace(url)) return;
+                var title = entry.TryGetProperty("title", out var titleNode) && titleNode.ValueKind == JsonValueKind.String
+                    ? LimitSemanticText(titleNode.GetString(), 512)
+                    : "";
+
+                lock (session.Gate)
+                {
+                    session.TargetUrl = url;
+                    session.TargetTitle = title;
+                }
+                return;
+            }
+        }
+        catch
+        {
+            // Target metadata is observational. Keep the last known values if CDP history is unavailable.
+        }
     }
 
     private static List<Dictionary<string, object?>> BrowserAxRows(
