@@ -223,6 +223,15 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       const liveSessions=sessions.list({deviceId:ctx.device.deviceId}).filter(item=>item.state==='active'||item.state==='hold');
       return sendJson(res,200,{ok:true,device:deviceView(ctx.device),connection:{...connections.get(ctx.device.deviceId),enforced:CONNECTION_LEASE_ENFORCE},sessions:liveSessions,access:{pending:accessGrants.pendingForDevice(ctx.device.deviceId),activeGrant:accessGrants.activeForDevice(ctx.device.deviceId,connection.connectionId)}});
     }
+    if (req.method === 'POST' && url.pathname === '/v1/device-channel/session-close') {
+      const body=await readJson(req), ctx=verifiedChannelContext(body,'session-close');
+      requireDeviceConnection(ctx.device.deviceId);
+      const sessionId=String(ctx.payload.sessionId||'').trim(), agentId=String(ctx.payload.agentId||'').trim();
+      const current=sessions.get(sessionId,agentId);
+      if(current.deviceId!==ctx.device.deviceId)throw new EnrollmentError('session_device_mismatch',409);
+      const session=sessions.close(sessionId,agentId,String(ctx.payload.reason||'owner_closed_from_wall').slice(0,80));
+      return sendJson(res,200,{ok:true,session});
+    }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/update-report') {
       const body=await readJson(req),ctx=verifiedChannelContext(body,'update-report');
       requireDeviceConnection(ctx.device.deviceId);

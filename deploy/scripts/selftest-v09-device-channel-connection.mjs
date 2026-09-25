@@ -93,6 +93,10 @@ if(opened.status!==200||opened2.status!==200) throw new Error(`session_open_fail
 const sid=opened.json.session.sessionId,sid2=opened2.json.session.sessionId;
 r=await request('POST','/v1/device-channel/status',signed('status',{nodeId,agentVersion:currentVersion}));
 if(r.status!==200||r.json.sessions?.length!==2||!r.json.sessions.some(x=>x.sessionId===sid)||!r.json.sessions.some(x=>x.sessionId===sid2)||r.json.connection?.state!=='connected'||r.json.access?.activeGrant?.grantId!==grantId) throw new Error('signed_status_session_tree_failed');
+r=await request('POST','/v1/device-channel/session-close',signed('session-close',{nodeId,agentVersion:currentVersion,sessionId:sid2,agentId:aid2,reason:'owner_closed_from_wall'}));
+if(r.status!==200||r.json.session?.state!=='closed'||r.json.session?.sessionId!==sid2) throw new Error('signed_manual_session_close_failed');
+r=await request('POST','/v1/device-channel/status',signed('status',{nodeId,agentVersion:currentVersion}));
+if(r.status!==200||r.json.sessions?.length!==1||r.json.sessions[0]?.sessionId!==sid) throw new Error('manual_session_close_not_reflected_in_status');
 r=await request('POST','/v1/device-channel/disconnect',signed('disconnect',{reason:'selftest_disconnect'}));
 if(r.status!==200||r.json.connection?.state!=='dormant') throw new Error('signed_disconnect_failed');
 r=await request('GET',`/v1/sessions/${sid}?agentId=${aid}`);

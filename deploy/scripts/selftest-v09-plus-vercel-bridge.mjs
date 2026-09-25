@@ -36,6 +36,7 @@ expect(server.includes("app.post('/plus/auth/begin'")&&server.includes('plusAuth
 expect(server.includes('plusAuth.requireAgent')&&server.includes('plusAuth.requireGrantedNode'),'plus_device_grant_tool_gate_missing');
 expect(server.includes("app.get('/plus/bootstrap/devices'")&&server.includes('/v1/device-access/execute'),'plus_device_grant_route_missing');
 expect(server.includes("app.post('/device-channel/activity'")&&server.includes("'/v1/device-channel/activity'"),'device_wall_activity_gateway_route_missing');
+expect(server.includes("app.post('/device-channel/session-close'")&&server.includes("'/v1/device-channel/session-close'"),'device_wall_session_close_gateway_route_missing');
 expect(api.includes('aCode')&&api.includes('invalid_pairing_code'),'plus_a_code_direct_connect_missing');
 expect(api.includes('pairing_code_required')&&api.includes("status:'need_a_code'")&&api.includes("req.query?.p"),'plus_missing_a_must_prompt_for_code');
 expect(text('api/guide.js').includes('ask only for the A code')&&text('api/guide.js').includes('ask_user_for_target_local_wall_a_code'),'plus_guide_missing_a_contract_missing');
