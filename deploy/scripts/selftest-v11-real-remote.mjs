@@ -89,7 +89,7 @@ assert.ok(executor.includes('async function startDesktopOperation(')&&executor.i
 assert.ok(routes.includes("'desktop'].includes(payload.action)")&&routes.includes("payload.action==='desktop'?await startDesktopOperation"));
 assert.ok(api.includes("action.startsWith('desktop-')")&&api.includes("'status','windows','frame'")&&api.includes("action:'desktop'"));
 assert.ok(toolHelper.includes("desktop-status")&&toolHelper.includes("desktop-windows")&&toolHelper.includes("desktop-frame")&&toolHelper.includes("capability:'desktop'"));
-assert.ok(windowsWorkflow.includes('Real Remote hidden helper JSONL smoke')&&windowsWorkflow.includes('--real-remote-helper')&&windowsWorkflow.includes('windows-real-remote-helper=PASS'));
+assert.ok(windowsWorkflow.includes('- name: Real Remote hidden helper smoke')&&windowsWorkflow.includes('timeout-minutes: 1')&&windowsWorkflow.includes('--real-remote-helper')&&windowsWorkflow.includes('windows-real-remote-helper=PASS'));
 
 console.log('v11-real-remote-jsonl-bridge=PASS');
 console.log('v11-real-remote-same-app-windows-helper=PASS');

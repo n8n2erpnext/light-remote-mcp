@@ -102,6 +102,62 @@ jobs:
           $stageBytes=(Get-ChildItem $stage -File -Recurse | Measure-Object Length -Sum).Sum
           $helperStageBytes=(Get-ChildItem $updaterStage -File -Recurse | Measure-Object Length -Sum).Sum
           Write-Host "windows-size-tray-bytes=$trayBytes helper-bytes=$helperBytes node-bytes=$nodeBytes stage-bytes=$stageBytes helper-stage-bytes=$helperStageBytes"
+      - name: Real Remote hidden helper smoke
+        timeout-minutes: 1
+        shell: pwsh
+        run: |
+          $stage = Join-Path $PWD 'dist\windows\stage'
+          $exe = Join-Path $stage 'GptOperator.Client.exe'
+          if (-not (Test-Path $exe)) { throw 'Real Remote helper executable missing after publish' }
+
+          $rrPsi = [System.Diagnostics.ProcessStartInfo]::new()
+          $rrPsi.FileName = $exe
+          $rrPsi.UseShellExecute = $false
+          $rrPsi.CreateNoWindow = $true
+          $rrPsi.RedirectStandardInput = $true
+          $rrPsi.RedirectStandardOutput = $true
+          $rrPsi.RedirectStandardError = $true
+          $rrPsi.ArgumentList.Add('--real-remote-helper')
+          $rr = [System.Diagnostics.Process]::new()
+          $rr.StartInfo = $rrPsi
+          if (-not $rr.Start()) { throw 'Real Remote helper did not start' }
+
+          try {
+            $rr.StandardInput.WriteLine('{"id":"ci-status","op":"status","args":{}}')
+            $rr.StandardInput.WriteLine('{"id":"ci-windows","op":"windows","args":{"limit":5}}')
+            $rr.StandardInput.Flush()
+
+            $rrStatusLine = $rr.StandardOutput.ReadLine()
+            $rrWindowsLine = $rr.StandardOutput.ReadLine()
+            if ([string]::IsNullOrWhiteSpace($rrStatusLine) -or [string]::IsNullOrWhiteSpace($rrWindowsLine)) { throw 'Real Remote helper returned empty JSONL' }
+
+            $rrStatus = $rrStatusLine | ConvertFrom-Json
+            $rrWindows = $rrWindowsLine | ConvertFrom-Json
+            if (-not $rrStatus.ok -or $rrStatus.result.protocolVersion -ne 1 -or $rrStatus.result.platform -ne 'win32') { throw "Real Remote status invalid: $rrStatusLine" }
+            if (-not $rrWindows.ok -or $rrWindows.result.protocolVersion -ne 1 -or $rrWindows.result.count -lt 0) { throw "Real Remote windows invalid: $rrWindowsLine" }
+            Write-Host "windows-real-remote-helper=PASS pid=$($rrStatus.result.processId) interactive=$($rrStatus.result.interactive) screens=$($rrStatus.result.screens.Count)"
+
+            if ($rrStatus.result.interactive -and $rrStatus.result.screens.Count -gt 0) {
+              $rr.StandardInput.WriteLine('{"id":"ci-frame","op":"frame","args":{"maxWidth":320,"maxHeight":180,"quality":30}}')
+              $rr.StandardInput.Flush()
+              $rrFrameLine = $rr.StandardOutput.ReadLine()
+              $rrFrame = $rrFrameLine | ConvertFrom-Json
+              if ($rrFrame.ok) {
+                if ($rrFrame.result.mime -ne 'image/jpeg' -or $rrFrame.result.encoding -ne 'base64' -or $rrFrame.result.bytes -le 0 -or $rrFrame.result.bytes -gt 665600) { throw "Real Remote frame contract invalid: $rrFrameLine" }
+                Write-Host "windows-real-remote-frame-probe=PASS width=$($rrFrame.result.width) height=$($rrFrame.result.height) bytes=$($rrFrame.result.bytes)"
+              } else {
+                Write-Warning "windows-real-remote-frame-probe=SKIP error=$($rrFrame.error)"
+              }
+            } else {
+              Write-Host 'windows-real-remote-frame-probe=SKIP no-interactive-screen'
+            }
+          }
+          finally {
+            try { $rr.StandardInput.Close() } catch {}
+            if (-not $rr.WaitForExit(5000)) { Stop-Process -Id $rr.Id -Force -ErrorAction SilentlyContinue }
+            $rr.Dispose()
+          }
+
       - name: Native client bundled runtime smoke
         timeout-minutes: 3
         shell: pwsh
@@ -148,51 +204,6 @@ jobs:
           if ($json.agentVersion -ne $expectedVersion) { throw "bundled agent version mismatch: $($json.agentVersion) expected=$expectedVersion" }
           Write-Host "windows-tray-selftest=PASS agent=$($json.agentVersion) adapter=$($json.platformAdapter)"
 
-          Write-Host '--- Real Remote hidden helper JSONL smoke ---'
-          $rrPsi = [System.Diagnostics.ProcessStartInfo]::new()
-          $rrPsi.FileName = $exe
-          $rrPsi.UseShellExecute = $false
-          $rrPsi.CreateNoWindow = $true
-          $rrPsi.RedirectStandardInput = $true
-          $rrPsi.RedirectStandardOutput = $true
-          $rrPsi.RedirectStandardError = $true
-          $rrPsi.ArgumentList.Add('--real-remote-helper')
-          $rr = [System.Diagnostics.Process]::new()
-          $rr.StartInfo = $rrPsi
-          if (-not $rr.Start()) { throw 'Real Remote helper did not start' }
-          try {
-            $rr.StandardInput.WriteLine('{"id":"ci-status","op":"status","args":{}}')
-            $rr.StandardInput.WriteLine('{"id":"ci-windows","op":"windows","args":{"limit":5}}')
-            $rr.StandardInput.Flush()
-            $rrStatusLine = $rr.StandardOutput.ReadLine()
-            $rrWindowsLine = $rr.StandardOutput.ReadLine()
-            if ([string]::IsNullOrWhiteSpace($rrStatusLine) -or [string]::IsNullOrWhiteSpace($rrWindowsLine)) { throw 'Real Remote helper returned empty JSONL' }
-            $rrStatus = $rrStatusLine | ConvertFrom-Json
-            $rrWindows = $rrWindowsLine | ConvertFrom-Json
-            if (-not $rrStatus.ok -or $rrStatus.result.protocolVersion -ne 1 -or $rrStatus.result.platform -ne 'win32') { throw "Real Remote status invalid: $rrStatusLine" }
-            if (-not $rrWindows.ok -or $rrWindows.result.protocolVersion -ne 1 -or $rrWindows.result.count -lt 0) { throw "Real Remote windows invalid: $rrWindowsLine" }
-            Write-Host "windows-real-remote-helper=PASS pid=$($rrStatus.result.processId) interactive=$($rrStatus.result.interactive) screens=$($rrStatus.result.screens.Count)"
-
-            if ($rrStatus.result.interactive -and $rrStatus.result.screens.Count -gt 0) {
-              $rr.StandardInput.WriteLine('{"id":"ci-frame","op":"frame","args":{"maxWidth":320,"maxHeight":180,"quality":30}}')
-              $rr.StandardInput.Flush()
-              $rrFrameLine = $rr.StandardOutput.ReadLine()
-              $rrFrame = $rrFrameLine | ConvertFrom-Json
-              if ($rrFrame.ok) {
-                if ($rrFrame.result.mime -ne 'image/jpeg' -or $rrFrame.result.encoding -ne 'base64' -or $rrFrame.result.bytes -le 0 -or $rrFrame.result.bytes -gt 665600) { throw "Real Remote frame contract invalid: $rrFrameLine" }
-                Write-Host "windows-real-remote-frame-probe=PASS width=$($rrFrame.result.width) height=$($rrFrame.result.height) bytes=$($rrFrame.result.bytes)"
-              } else {
-                Write-Warning "windows-real-remote-frame-probe=SKIP error=$($rrFrame.error)"
-              }
-            } else {
-              Write-Host 'windows-real-remote-frame-probe=SKIP no-interactive-screen'
-            }
-          }
-          finally {
-            try { $rr.StandardInput.Close() } catch {}
-            if (-not $rr.WaitForExit(5000)) { Stop-Process -Id $rr.Id -Force -ErrorAction SilentlyContinue }
-            $rr.Dispose()
-          }
           $updaterSelfResult = Join-Path $env:RUNNER_TEMP 'updater-selftest.json'
           $updaterSelf = Start-Process -FilePath $updater -ArgumentList @('--self-test-output',$updaterSelfResult,$stage) -PassThru
           if (-not $updaterSelf.WaitForExit(30000)) { Stop-Process -Id $updaterSelf.Id -Force -ErrorAction SilentlyContinue; throw 'independent updater self-test timed out after 30s' }
