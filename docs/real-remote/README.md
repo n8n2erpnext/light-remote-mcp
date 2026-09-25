@@ -88,11 +88,16 @@ All Real Remote work stays on feature/real-remote until the feature reaches a st
 
 ## Current experimental milestone
 
-V0.2 remains read-only and adds visual proof on Windows:
-- desktop.status: interactive desktop/session metadata.
-- desktop.windows: visible top-level Win32 windows.
-- desktop.frame: one bounded JPEG snapshot from the real desktop.
+V0.3 adds bounded Windows input while keeping view and mutation as separate permissions:
+- desktop.status: interactive desktop/session metadata;
+- desktop.windows: visible top-level Win32 windows;
+- desktop.frame: one bounded JPEG snapshot from the real desktop;
+- desktop.input: bounded mouse, wheel, text and named-key batches.
 
-desktop.frame is deliberately a control-plane proof, not the final Real Remote video transport. It defaults to at most 960x540 JPEG quality 50 and is hard bounded to 1280x720, quality 25..70 and roughly 650 KiB encoded JPEG bytes before base64. The live milestone will move frames and desktop events to a persistent data plane instead of repeated snapshot RPCs.
+The read path requires the desktop capability. Mutation additionally requires desktop-input, which is locally denied by default until the owner explicitly enables it in Local Wall. Both the host and Windows Agent enforce that capability boundary.
 
-No mouse, keyboard or other desktop mutation opcode is enabled in V0.2.
+desktop.frame remains a control-plane proof, not the final Real Remote video transport. It defaults to at most 960x540 JPEG quality 50 and is hard bounded to 1280x720, quality 25..70 and roughly 650 KiB encoded JPEG bytes before base64. Input batches are limited to 64 normalized events and do not expose arbitrary raw INPUT packets.
+
+Windows input uses SetCursorPos and SendInput from the existing GptOperator.Client.exe hidden helper. Windows UIPI and secure-desktop boundaries remain in force; Real Remote does not elevate around them.
+
+The next milestone moves frame delivery to a persistent live data plane and adds attach/detach lifecycle before browser/form acceptance.

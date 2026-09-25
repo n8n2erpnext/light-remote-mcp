@@ -23,6 +23,7 @@ import { executeNativeFs, filesystemPolicy } from '../lib/native-fs.mjs';
 import { NativeProcessRegistry } from '../lib/native-process.mjs';
 import { NativeTerminalRegistry } from '../lib/native-terminal.mjs';
 import { NativeSearchRegistry } from '../lib/native-search.mjs';
+import realRemoteInputPolicy from '../lib/real-remote-input.cjs';
 import { LightScpRegistry } from '../lib/light-scp-registry.mjs';
 import { normalizeUpdateReport } from '../lib/update-contract.mjs';
 import { clientCompatibility } from '../lib/version-compat.mjs';
@@ -553,18 +554,21 @@ async function executeLocalTerminalRequest(job,request){
   throw new Error('terminal_operation_unsupported');
 }
 
+const {normalizeDesktopInput}=realRemoteInputPolicy;
+
 async function startDesktopOperation(payload,requestId){
   const operationId=String(payload.operationId||'').trim();if(!/^[A-Za-z0-9._:-]{16,128}$/.test(operationId))throw new Error('invalid_operation_id');
   const agentId=String(payload.agentId||'').trim(),session=sessions.ensure(String(payload.sessionId||''),{agentId});requireDeviceConnection(session.deviceId);
   if(payload.nodeId!=null&&String(payload.nodeId)!==session.nodeId)throw new SessionError('session_target_mismatch',409);
-  const request=payload.desktop&&typeof payload.desktop==='object'&&!Array.isArray(payload.desktop)?payload.desktop:null;if(!request)throw new Error('desktop_request_required');
-  const op=String(request.op||'');if(!['status','windows','frame'].includes(op))throw new Error('desktop_operation_unsupported');
-  const remote=session.nodeId!==NODE_ID,requiredCapabilities=['desktop'];
+  let request=payload.desktop&&typeof payload.desktop==='object'&&!Array.isArray(payload.desktop)?payload.desktop:null;if(!request)throw new Error('desktop_request_required');
+  const op=String(request.op||'');if(!['status','windows','frame','input'].includes(op))throw new Error('desktop_operation_unsupported');
+  if(op==='input')request={op,...normalizeDesktopInput({events:request.events})};
+  const remote=session.nodeId!==NODE_ID,requiredCapabilities=op==='input'?['desktop','desktop-input']:['desktop'];
   if(!remote)throw new DeviceError('desktop_local_host_not_supported',409);
-  const route=targetRoute(session.nodeId);if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(!route.capabilities.includes('desktop'))throw new FleetError('target_node_capability_missing',409);
+  const route=targetRoute(session.nodeId);if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(requiredCapabilities.some(cap=>!route.capabilities.includes(cap)))throw new FleetError('target_node_capability_missing',409);
   const fingerprint=crypto.createHash('sha256').update(JSON.stringify({request,sessionId:session.id,nodeId:session.nodeId})).digest('hex'),existing=operationDedupe.get(operationId);
   if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
-  const toolMeta={kind:'desktop',op,label:op==='status'?'Desktop status':op==='windows'?'Desktop windows':'Desktop frame'};
+  const toolMeta={kind:'desktop',op,label:op==='status'?'Desktop status':op==='windows'?'Desktop windows':op==='frame'?'Desktop frame':'Desktop input'};
   const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-desktop:${op}`,cwd:'',script:toolMeta.label,status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote:true,commandId:null,requiredCapabilities,resultData:null,resultSummary:'',toolMeta};
   jobs.set(job.id,job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
   pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:'outbound-leaf',requiredCapabilities,note:job.note,toolMeta});

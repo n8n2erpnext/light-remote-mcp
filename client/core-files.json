@@ -66,6 +66,14 @@
       "destination": "lib/native-desktop.mjs"
     },
     {
+      "source": "lib/real-remote-policy.mjs",
+      "destination": "lib/real-remote-policy.mjs"
+    },
+    {
+      "source": "lib/real-remote-input.cjs",
+      "destination": "lib/real-remote-input.cjs"
+    },
+    {
       "source": "lib/native-search.mjs",
       "destination": "lib/native-search.mjs"
     },

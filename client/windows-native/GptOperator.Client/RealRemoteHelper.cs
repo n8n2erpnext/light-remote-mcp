@@ -7,7 +7,7 @@ using System.Text.Json;
 
 namespace GptOperator.Client;
 
-internal static class RealRemoteHelper
+internal static partial class RealRemoteHelper
 {
     private const int ProtocolVersion = 1;
     private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
@@ -66,6 +66,7 @@ internal static class RealRemoteHelper
                     "status" => Status(),
                     "windows" => Windows(Limit(args)),
                     "frame" => Frame(args),
+                    "input" => Input(args),
                     _ => throw new InvalidOperationException($"desktop_operation_unsupported:{op}")
                 };
                 output.WriteLine(JsonSerializer.Serialize(new { id, ok = true, result }));
