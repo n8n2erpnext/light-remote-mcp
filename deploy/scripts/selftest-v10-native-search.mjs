@@ -33,3 +33,7 @@ fs.rmSync(root,{recursive:true,force:true});
 console.log('v10-native-search-content-files=PASS');
 console.log('v10-native-search-pagination-boundary=PASS');
 console.log('v10-native-search-cancel-owner=PASS');
+
+const executor=fs.readFileSync(new URL('../../operator-host/executor.mjs',import.meta.url),'utf8');
+for(const token of ["kind:'search'","kind:'process'","kind:'scp'",'searchActivityMeta(request)','processActivityMeta(request)','scpActivityMeta(request)'])if(!executor.includes(token))throw new Error('native_activity_meta_missing:'+token);
+console.log('v10-native-activity-wall-meta=PASS');

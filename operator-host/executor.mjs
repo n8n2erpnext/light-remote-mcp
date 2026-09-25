@@ -433,6 +433,40 @@ function fsActivityResult(meta,data){
   return '';
 }
 
+function shortNativeId(value){const text=String(value||'');return text.length>18?text.slice(0,18)+'…':text;}
+function scpActivityMeta(request={}){
+  const op=String(request.op||'unknown').toLowerCase(),meta={kind:'scp',op};
+  if(request.source!=null)meta.source=String(request.source);
+  if(request.destination!=null)meta.destination=String(request.destination);
+  if(request.transferId!=null)meta.transferId=String(request.transferId);
+  if(request.offset!=null)meta.offset=Number(request.offset);
+  if(request.data!=null)meta.bytes=Buffer.byteLength(String(request.data),'utf8');
+  return meta;
+}
+function processActivityMeta(request={}){
+  const op=String(request.op||'unknown').toLowerCase(),meta={kind:'process',op};
+  if(request.processId!=null)meta.processId=String(request.processId);
+  if(request.cwd!=null)meta.cwd=String(request.cwd);
+  if(request.shell!=null)meta.shell=String(request.shell);
+  if(request.timeoutMs!=null)meta.timeoutMs=Number(request.timeoutMs);
+  if(op==='input'){meta.inputBytes=Buffer.byteLength(String(request.data||''),'utf8');meta.eof=request.eof===true;}
+  if(op==='output'){meta.stream=String(request.stream||'stdout');meta.offset=Math.max(0,Number(request.offset)||0);meta.limit=Math.max(1,Number(request.limit)||262144);}
+  if(op==='stop')meta.force=request.force===true;
+  return meta;
+}
+function searchActivityMeta(request={}){
+  const op=String(request.op||'unknown').toLowerCase(),meta={kind:'search',op};
+  if(request.path!=null)meta.path=String(request.path);
+  if(request.searchType!=null)meta.searchType=String(request.searchType);
+  if(request.pattern!=null)meta.pattern=redact(String(request.pattern)).slice(0,180);
+  if(request.filePattern!=null)meta.filePattern=String(request.filePattern);
+  if(request.searchId!=null)meta.searchId=String(request.searchId);
+  if(request.offset!=null)meta.offset=Math.max(0,Number(request.offset)||0);
+  if(request.limit!=null)meta.limit=Math.max(1,Number(request.limit)||0);
+  if(request.maxResults!=null)meta.maxResults=Math.max(1,Number(request.maxResults)||0);
+  return meta;
+}
+
 async function startFsOperation(payload,requestId){
   const operationId=String(payload.operationId||'').trim();
   if(!/^[A-Za-z0-9._:-]{16,128}$/.test(operationId))throw new Error('invalid_operation_id');
@@ -465,9 +499,10 @@ async function startScpOperation(payload,requestId){
   if(remote){const route=targetRoute(session.nodeId);if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(!route.capabilities.includes('filesystem'))throw new FleetError('target_node_capability_missing',409);}else if(!hostEffectiveCapabilities().includes('filesystem'))throw new DeviceError('local_host_capability_missing',409);
   const fingerprint=crypto.createHash('sha256').update(JSON.stringify({request,sessionId:session.id,nodeId:session.nodeId})).digest('hex'),existing=operationDedupe.get(operationId);
   if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
-  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`light-scp:${String(request.op||'unknown')}`,cwd:String(request.destination||request.source||''),script:'',status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null};
+  const toolMeta=scpActivityMeta(request);
+  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`light-scp:${toolMeta.op}`,cwd:String(request.destination||request.source||''),script:'',status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null,resultSummary:'',toolMeta};
   jobs.set(job.id,job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
-  pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:remote?'outbound-leaf':'local',requiredCapabilities,note:job.note});
+  pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:remote?'outbound-leaf':'local',requiredCapabilities,note:job.note,toolMeta:job.toolMeta});
   if(remote){const command=fleet.enqueue({accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'scp',operationId,sessionId:job.sessionId,agentId:job.agentId,scp:request}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},60000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();return job;}
   Promise.resolve().then(()=>executeLocalScpRequest(job,request)).then(data=>{job.resultData=data;finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n'));finishJob(job,1,null);});return job;
 }
@@ -493,9 +528,10 @@ async function startProcessOperation(payload,requestId){
   if(remote){const route=targetRoute(session.nodeId);if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(!route.capabilities.includes('filesystem'))throw new FleetError('target_node_capability_missing',409);}else if(!hostEffectiveCapabilities().includes('filesystem'))throw new DeviceError('local_host_capability_missing',409);
   const fingerprint=crypto.createHash('sha256').update(JSON.stringify({request,sessionId:session.id,nodeId:session.nodeId})).digest('hex'),existing=operationDedupe.get(operationId);
   if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
-  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-process:${String(request.op||'unknown')}`,cwd:String(request.cwd||''),script:String(request.script||''),status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null};
+  const toolMeta=processActivityMeta(request);
+  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-process:${toolMeta.op}`,cwd:String(request.cwd||''),script:String(request.script||''),status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null,resultSummary:'',toolMeta};
   jobs.set(job.id,job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
-  pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:remote?'outbound-leaf':'local',requiredCapabilities,note:job.note});
+  pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:remote?'outbound-leaf':'local',requiredCapabilities,note:job.note,toolMeta:job.toolMeta});
   if(remote){const command=fleet.enqueue({accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'process',operationId,sessionId:job.sessionId,agentId:job.agentId,process:request}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},30000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();return job;}
   Promise.resolve().then(()=>executeLocalProcessRequest(job,request)).then(data=>{job.resultData=data;finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n'));finishJob(job,1,null);});return job;
 }
@@ -617,9 +653,10 @@ async function startSearchOperation(payload,requestId){
   if(remote){const route=targetRoute(session.nodeId);if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(!route.capabilities.includes('filesystem'))throw new FleetError('target_node_capability_missing',409);}else if(!hostEffectiveCapabilities().includes('filesystem'))throw new DeviceError('local_host_capability_missing',409);
   const fingerprint=crypto.createHash('sha256').update(JSON.stringify({request,sessionId:session.id,nodeId:session.nodeId})).digest('hex'),existing=operationDedupe.get(operationId);
   if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
-  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-search:${String(request.op||'unknown')}`,cwd:String(request.path||''),script:'',status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null};
+  const toolMeta=searchActivityMeta(request);
+  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-search:${toolMeta.op}`,cwd:String(request.path||''),script:'',status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null,resultSummary:'',toolMeta};
   jobs.set(job.id,job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
-  pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:remote?'outbound-leaf':'local',requiredCapabilities,note:job.note});
+  pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:remote?'outbound-leaf':'local',requiredCapabilities,note:job.note,toolMeta:job.toolMeta});
   if(remote){const command=fleet.enqueue({accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'search',operationId,sessionId:job.sessionId,agentId:job.agentId,search:request}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},30000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();return job;}
   Promise.resolve().then(()=>executeLocalSearchRequest(job,request)).then(data=>{job.resultData=data;finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n'));finishJob(job,1,null);});return job;
 }
