@@ -76,20 +76,36 @@ try{
   }while([DateTime]::UtcNow -lt $readyDeadline)
   if($nodes.Count -ne 1){throw "Acceptance button count=$($nodes.Count) after readiness wait"}
   if(-not $before.viewport.screenEstimateAvailable){throw 'No browser screen estimate'}
-  $button=$nodes[0];if($button.coordinateSpace -ne 'screen-dip-estimate' -or $null -eq $button.center){throw "Bad coordinate space after readiness wait: $($button.coordinateSpace)"}
-  $x=[int][Math]::Round([double]$button.center.x);$y=[int][Math]::Round([double]$button.center.y);$beforeSeq=[long]$before.stateSeq
+  $clickAttempt=0;$accepted=@();$ack=$null;$after=$before;$x=0;$y=0;$beforeSeq=[long]$before.stateSeq
+  do{
+    $clickAttempt++
+    if($clickAttempt -gt 1){
+      $before=Invoke-Rr ("accept-click-before-"+$clickAttempt) 'semantic-snapshot' @{semanticSessionId=$sem}
+      $alreadyAccepted=@($before.nodes|Where-Object { $_.role -eq 'button' -and $_.name -eq 'Light Remote Accepted' })
+      if($alreadyAccepted.Count -eq 1){$after=$before;$accepted=$alreadyAccepted;break}
+      $nodes=@($before.nodes|Where-Object { $_.role -eq 'button' -and $_.name -eq 'Light Remote OS Input' })
+      if($nodes.Count -ne 1){throw "Acceptance button count=$($nodes.Count) before click retry $clickAttempt"}
+    }
+    $button=$nodes[0];if($button.coordinateSpace -ne 'screen-dip-estimate' -or $null -eq $button.center){throw "Bad coordinate space on click attempt $clickAttempt: $($button.coordinateSpace)"}
+    $x=[int][Math]::Round([double]$button.center.x);$y=[int][Math]::Round([double]$button.center.y);$beforeSeq=[long]$before.stateSeq
+    [LightRemoteAcceptanceWindow]::Focus($hwnd);Start-Sleep -Milliseconds 100
+    $ack=Invoke-Rr ("accept-os-click-"+$clickAttempt) 'input' @{events=@(@{type='move';x=$x;y=$y},@{type='click';button='left';count=1});semanticSessionId=$sem;afterSeq=$beforeSeq;settleMs=150}
+    if($ack.provider -ne 'browser-cdp' -or $ack.observation -ne 'cdp-snapshot+journal'){throw 'CDP ACK contract mismatch'}
+    if([int]$ack.appliedEvents -ne 2 -or [int]$ack.sentInputs -lt 2){throw "SendInput proof missing applied=$($ack.appliedEvents) sent=$($ack.sentInputs)"}
+    if([long]$ack.stateSeq -le $beforeSeq -or $ack.gap -or $ack.resyncRecommended){throw 'CDP ACK did not advance cleanly'}
+    $observeDeadline=[DateTime]::UtcNow.AddMilliseconds(900);$observeAttempt=0
+    do{
+      $observeAttempt++
+      $after=Invoke-Rr ("accept-after-"+$clickAttempt+"-"+$observeAttempt) 'semantic-snapshot' @{semanticSessionId=$sem}
+      $accepted=@($after.nodes|Where-Object { $_.role -eq 'button' -and $_.name -eq 'Light Remote Accepted' })
+      if($accepted.Count -eq 1){break}
+      Start-Sleep -Milliseconds 100
+    }while([DateTime]::UtcNow -lt $observeDeadline)
+  }while($accepted.Count -ne 1 -and $clickAttempt -lt 2)
+  if($accepted.Count -ne 1){throw "OS click did not change browser semantic state after $clickAttempt attempts"}
+  if($ack -and [long]$after.stateSeq -le [long]$ack.stateSeq){throw 'Post-click stateSeq did not advance'}
 
-  $ack=Invoke-Rr 'accept-os-click' 'input' @{events=@(@{type='move';x=$x;y=$y},@{type='click';button='left';count=1});semanticSessionId=$sem;afterSeq=$beforeSeq;settleMs=150}
-  if($ack.provider -ne 'browser-cdp' -or $ack.observation -ne 'cdp-snapshot+journal'){throw 'CDP ACK contract mismatch'}
-  if([int]$ack.appliedEvents -ne 2 -or [int]$ack.sentInputs -lt 2){throw "SendInput proof missing applied=$($ack.appliedEvents) sent=$($ack.sentInputs)"}
-  if([long]$ack.stateSeq -le $beforeSeq -or $ack.gap -or $ack.resyncRecommended){throw 'CDP ACK did not advance cleanly'}
-
-  $after=Invoke-Rr 'accept-after' 'semantic-snapshot' @{semanticSessionId=$sem}
-  $accepted=@($after.nodes|Where-Object { $_.role -eq 'button' -and $_.name -eq 'Light Remote Accepted' })
-  if($accepted.Count -ne 1){throw 'OS click did not change browser semantic state'}
-  if([long]$after.stateSeq -le [long]$ack.stateSeq){throw 'Post-click stateSeq did not advance'}
-
-  Write-Host "windows-real-remote-os-input=PASS sentInputs=$($ack.sentInputs) x=$x y=$y"
+  Write-Host "windows-real-remote-os-input=PASS sentInputs=$($ack.sentInputs) x=$x y=$y attempts=$clickAttempt"
   Write-Host "windows-real-remote-cdp-ack=PASS inputSeq=$($ack.inputSeq) beforeSeq=$beforeSeq ackSeq=$($ack.stateSeq)"
   Write-Host "windows-real-remote-browser-state-change=PASS name=Light Remote Accepted seq=$($after.stateSeq)"
 

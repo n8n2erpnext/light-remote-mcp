@@ -43,6 +43,8 @@ need(!script.includes('& taskkill.exe'),'windows_acceptance_native_taskkill_exit
 need(script.includes("Start-Process -FilePath 'taskkill.exe'"),'windows_acceptance_safe_taskkill_cleanup_missing');
 need(script.includes('return $r.result'),'windows_acceptance_powershell_return_missing');
 need(script.includes('$readyDeadline=[DateTime]::UtcNow.AddSeconds([Math]::Min($TimeoutSeconds,10))'),'windows_acceptance_readiness_wait_missing');
+need(script.includes('$clickAttempt -lt 2')&&script.includes('$observeDeadline=[DateTime]::UtcNow.AddMilliseconds(900)'),'windows_acceptance_bounded_click_retry_missing');
+need(script.includes('[LightRemoteAcceptanceWindow]::Focus($hwnd);Start-Sleep -Milliseconds 100'),'windows_acceptance_click_refocus_missing');
 need(workflow.includes('$browserReadyDeadline = [DateTime]::UtcNow.AddSeconds(5)'),'windows_hidden_smoke_readiness_wait_missing');
 for(const forbidden of ['Input.dispatch','Runtime.evaluate','Runtime.callFunctionOn','DOM.resolveNode']){
   need(!script.includes(forbidden),'windows_acceptance_cdp_mutation_forbidden:'+forbidden);
