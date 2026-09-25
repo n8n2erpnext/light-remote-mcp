@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Light Remote OS Input Acceptance</title>
+<style>
+html,body{height:100%;margin:0}body{display:grid;place-items:center;background:#101418;color:#f2f2f2;font:24px system-ui,sans-serif}
+main{text-align:center}button{font:inherit;padding:28px 44px;min-width:420px;border-radius:16px;border:2px solid #3a96dd;background:#18222d;color:#fff}
+button[aria-pressed="true"]{border-color:#16c60c;background:#12331a}
+output{display:block;margin-top:24px;font-size:18px}
+</style>
+</head>
+<body>
+<main>
+<h1>Light Remote Real Windows E2E</h1>
+<button id="accept" type="button" aria-label="Light Remote OS Input" aria-pressed="false">Light Remote OS Input</button>
+<output id="state">waiting</output>
+</main>
+<script>
+const button=document.getElementById('accept');
+const state=document.getElementById('state');
+button.addEventListener('click',()=>{
+  button.setAttribute('aria-pressed','true');
+  button.setAttribute('aria-label','Light Remote Accepted');
+  button.textContent='Light Remote Accepted';
+  state.textContent='accepted';
+  document.title='Light Remote OS Input Accepted';
+});
+</script>
+</body>
+</html>
