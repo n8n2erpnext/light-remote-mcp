@@ -9,7 +9,7 @@ if(!assetArg||!baseArg)throw new Error('usage: node deploy/scripts/build-client-
 const assets=path.resolve(assetArg),base=String(baseArg).replace(/\/$/,''),version=fs.readFileSync(path.join(repo,'VERSION'),'utf8').trim();
 if(!/^https:\/\//i.test(base))throw new Error('update_base_url_must_be_https');
 const names={
-  'windows-x64':`Light-Remote-MCP-Setup-x64-${version}.exe`,
+  'windows-x64':`Light-Remote-Setup-x64-${version}.exe`,
   'macos-x64':`Light-Remote-Client-macOS-x64-${version}.tar.gz`,
   'macos-arm64':`Light-Remote-Client-macOS-arm64-${version}.tar.gz`,
   'linux-x64':`Light-Remote-MCP-Client-Linux-x64-${version}.tar.gz`,

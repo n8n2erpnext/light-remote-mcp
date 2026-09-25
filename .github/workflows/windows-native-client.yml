@@ -376,7 +376,7 @@ jobs:
           $version = (Get-Content VERSION -Raw).Trim()
           & $env:ISCC "/DStageDir=$stage" "/DOutputDir=$out" "/DAppVersion=$version" client/windows-native/installer/GptOperator.iss
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup build failed' }
-          $installer = Join-Path $out 'Light-Remote-MCP-Setup-x64.exe'
+          $installer = Join-Path $out 'Light-Remote-Setup-x64.exe'
           if (-not (Test-Path $installer)) { throw 'installer missing' }
           $installerBytes=(Get-Item $installer).Length
           Write-Host "windows-size-installer-bytes=$installerBytes"
@@ -427,7 +427,7 @@ jobs:
           $updaterRoot = Join-Path $env:LOCALAPPDATA 'Light Remote\Updater'
           $updaterExe = Join-Path $updaterRoot 'LightRemote.Updater.exe'
           if (-not (Test-Path $updaterExe)) { throw "independent updater missing: $updaterExe" }
-          $rollback = Join-Path $updaterRoot ("rollback\Light-Remote-MCP-Setup-$version-x64.exe")
+          $rollback = Join-Path $updaterRoot ("rollback\Light-Remote-Setup-$version-x64.exe")
           if (-not (Test-Path $rollback)) { throw "rollback installer cache missing: $rollback" }
           "WINDOWS_INSTALL_DIR=$installDir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           "WINDOWS_INSTALLED_EXE=$exe" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
@@ -530,6 +530,11 @@ jobs:
           $psi.ArgumentList.Add($badInstaller)
           $psi.ArgumentList.Add($env:WINDOWS_INSTALL_DIR)
           $currentVersion = (Get-Content VERSION -Raw).Trim()
+          $legacyRollback = $env:WINDOWS_ROLLBACK -replace 'Light-Remote-Setup-', 'Light-Remote-MCP-Setup-'
+          Copy-Item $env:WINDOWS_ROLLBACK $legacyRollback -Force
+          Remove-Item $env:WINDOWS_ROLLBACK -Force
+          if (Test-Path $env:WINDOWS_ROLLBACK) { throw 'new rollback cache must be absent during legacy fallback smoke' }
+          if (-not (Test-Path $legacyRollback)) { throw "legacy rollback fixture missing: $legacyRollback" }
           $psi.ArgumentList.Add($currentVersion)
           $psi.ArgumentList.Add('0')
           $psi.ArgumentList.Add('99.0.0')
@@ -546,6 +551,8 @@ jobs:
           $expected = 'apply_start current=' + [regex]::Escape($currentVersion)
           if ($updateText -notmatch $expected) { throw 'rollback helper argv were not preserved' }
           if ($updateText -notmatch 'rollback_success') { throw 'rollback success marker missing' }
+          if ($updateText -notmatch 'rollback_source path=.*Light-Remote-MCP-Setup-') { throw 'legacy rollback path was not selected' }
+          Write-Host 'windows-legacy-rollback-name-fallback=PASS'
           if (-not (Test-Path $env:WINDOWS_INSTALLED_EXE)) { throw 'installed client missing after rollback' }
           Write-Host 'windows-independent-update-rollback=PASS'
 
@@ -656,7 +663,7 @@ jobs:
           $fullHash = (Get-FileHash $env:WINDOWS_INSTALLER -Algorithm SHA256).Hash.ToLowerInvariant()
           $compactHash = (Get-FileHash $env:WINDOWS_COMPACT_INSTALLER -Algorithm SHA256).Hash.ToLowerInvariant()
           $sum = Join-Path (Split-Path $env:WINDOWS_INSTALLER -Parent) 'SHA256SUMS.txt'
-          @("$fullHash  Light-Remote-MCP-Setup-x64.exe","$compactHash  Light-Remote-MCP-Compact-Setup-x64.exe") | Set-Content -LiteralPath $sum -Encoding ascii
+          @("$fullHash  Light-Remote-Setup-x64.exe","$compactHash  Light-Remote-Compact-Setup-x64.exe") | Set-Content -LiteralPath $sum -Encoding ascii
           Write-Host "windows-native-installer-sha256=$fullHash"
           Write-Host "windows-compact-installer-sha256=$compactHash"
 
@@ -665,8 +672,8 @@ jobs:
         with:
           name: light-remote-windows-x64-${{ github.sha }}
           path: |
-            dist/windows/installer/Light-Remote-MCP-Setup-x64.exe
-            dist/windows/installer/Light-Remote-MCP-Compact-Setup-x64.exe
+            dist/windows/installer/Light-Remote-Setup-x64.exe
+            dist/windows/installer/Light-Remote-Compact-Setup-x64.exe
             dist/windows/installer/SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 14

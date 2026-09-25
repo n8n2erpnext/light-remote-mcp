@@ -8,7 +8,7 @@
   #define AppVersion "0.9.0-dev"
 #endif
 #ifndef OutputBaseName
-  #define OutputBaseName "Light-Remote-MCP-Setup-x64"
+  #define OutputBaseName "Light-Remote-Setup-x64"
 #endif
 #ifdef CompactNodeBootstrap
   #ifndef NodeZipName
@@ -181,7 +181,7 @@ var
 begin
   RollbackDir := ExpandConstant('{localappdata}\Light Remote\Updater\rollback');
   ForceDirectories(RollbackDir);
-  RollbackFile := RollbackDir + '\Light-Remote-MCP-Setup-{#AppVersion}-x64.exe';
+  RollbackFile := RollbackDir + '\Light-Remote-Setup-{#AppVersion}-x64.exe';
   if CompareText(ExpandConstant('{srcexe}'), RollbackFile) <> 0 then
     CopyFile(ExpandConstant('{srcexe}'), RollbackFile, False);
 end;

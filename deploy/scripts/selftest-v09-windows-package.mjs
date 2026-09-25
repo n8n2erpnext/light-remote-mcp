@@ -57,7 +57,9 @@ expect(!installer.includes('UpdaterStageDir'),'duplicate_updater_payload_remains
 expect(workflow.includes("Copy-Item (Join-Path $updaterStage '*') $helperCandidate -Recurse -Force"),'helper_candidate_not_packaged');
 expect(taskInstaller.includes("$HelperCandidate=Join-Path $InstallRoot 'helper-candidate'")&&taskInstaller.includes("Copy-Item (Join-Path $HelperCandidate '*') $UpdaterRoot -Recurse -Force"),'updater_bootstrap_from_candidate_missing');
 expect(workflow.includes('windows-size-tray-bytes=')&&workflow.includes('windows-size-installer-bytes='),'windows_size_telemetry_missing');
-expect(installer.includes('Light-Remote-MCP-Setup-{#AppVersion}-x64.exe'),'independent_rollback_cache_missing');
+expect(installer.includes('Light-Remote-Setup-{#AppVersion}-x64.exe'),'independent_rollback_cache_missing');
+expect(recovery.includes('Light-Remote-Setup-{version}-x64.exe')&&recovery.includes('Light-Remote-MCP-Setup-{version}-x64.exe')&&recovery.includes('ResolveRollbackInstaller'),'windows_rollback_filename_migration_missing');
+expect(applier.includes('ResolveRollbackInstaller')&&applier.includes('rollback_source path='),'windows_rollback_legacy_resolution_missing');
 expect(installer.includes('PrivilegesRequired=lowest')&&installer.includes('Parameters: "--launch"'),'windows_installer_contract_missing');
 expect(installer.includes('LightRemoteDeviceAgent')&&installer.includes('LightRemoteUpdater'),'windows_task_cleanup_missing');
 expect(installer.includes('LightRemote.Client.exe')&&installer.includes('[InstallDelete]')&&installer.includes('GptOperator.Client.exe'),'windows_installer_client_rename_missing');

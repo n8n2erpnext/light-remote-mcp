@@ -7,7 +7,7 @@ import {fileURLToPath} from 'node:url';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..'),tmp=fs.mkdtempSync(path.join(os.tmpdir(),'lr-update-ready-')),version=fs.readFileSync(path.join(root,'VERSION'),'utf8').trim();
 const need=(v,m)=>{if(!v)throw new Error(m);},asset=path.join(tmp,'assets');fs.mkdirSync(asset);
-const names=[`Light-Remote-MCP-Setup-x64-${version}.exe`,`Light-Remote-Client-macOS-x64-${version}.tar.gz`,`Light-Remote-Client-macOS-arm64-${version}.tar.gz`,`Light-Remote-MCP-Client-Linux-x64-${version}.tar.gz`,`Light-Remote-MCP-Client-Linux-arm64-${version}.tar.gz`];
+const names=[`Light-Remote-Setup-x64-${version}.exe`,`Light-Remote-Client-macOS-x64-${version}.tar.gz`,`Light-Remote-Client-macOS-arm64-${version}.tar.gz`,`Light-Remote-MCP-Client-Linux-x64-${version}.tar.gz`,`Light-Remote-MCP-Client-Linux-arm64-${version}.tar.gz`];
 for(const [i,name] of names.entries())fs.writeFileSync(path.join(asset,name),Buffer.from(`artifact-${i}-${version}-${name}\n`));
 const manifest=path.join(tmp,'client-update.json'),build=spawnSync(process.execPath,[path.join(root,'deploy/scripts/build-client-update-manifest.mjs'),asset,`https://github.com/test/light-remote/releases/download/v${version}`,manifest],{cwd:root,encoding:'utf8'});need(build.status===0,`update_manifest_build_failed:${build.stderr}`);
 const {publicKey,privateKey}=crypto.generateKeyPairSync('ec',{namedCurve:'prime256v1'}),publicFile=path.join(tmp,'public.pem'),signatureFile=`${manifest}.sig`;fs.writeFileSync(publicFile,publicKey.export({type:'spki',format:'pem'}));
