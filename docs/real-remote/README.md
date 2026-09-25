@@ -125,3 +125,16 @@ V0.4-C closes the input loop without adding a second mutation tool:
 - settleMs defaults to 90 ms and is bounded to 0..250 ms; events arriving later remain available through desktop-semantic-events from the returned state sequence.
 
 This makes the normal control loop: semantic state -> bounded OS input -> semantic ACK -> next decision. Pixel frames remain checkpoint/resync evidence rather than the per-action transport.
+
+
+V0.5-A adds a read-only Chromium semantic provider while preserving the same desktop control plane:
+- desktop-semantic-attach accepts provider=browser-cdp in addition to the default windows-uia provider;
+- browser-cdp attaches only to an already-enabled loopback Chromium DevTools endpoint; Light Remote does not launch a browser or enable remote debugging;
+- explicit cdpEndpoint values and discovered WebSocket debugger URLs must resolve to loopback, and proxy/redirect following is disabled for CDP discovery;
+- target selection can use targetId or urlMatch, otherwise the helper prefers a page target matching the foreground-window title before falling back to the first page target;
+- one persistent CDP WebSocket carries Accessibility, DOM and Page commands/events for the semantic session;
+- Accessibility.getFullAXTree plus DOMSnapshot.captureSnapshot are mapped into the existing semantic node shape, including role/name, hierarchy, DOM id/class/tag, focus/state, viewport bounds, paint order and a clearly-labelled screen coordinate estimate when browser window metrics are available;
+- Page/DOM/Accessibility changes are retained in a bounded 512-event journal using the same epoch/stateSeq resume model;
+- the browser semantic provider does not use Runtime.evaluate, does not inject page script, and does not mutate the DOM.
+
+Mouse and keyboard mutation remains desktop-input through Windows SetCursorPos/SendInput. V0.5-A is semantic observation only; browser-cdp sessions are not yet accepted by the closed-loop desktop-input ACK until the next browser-input integration milestone.

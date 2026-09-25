@@ -139,6 +139,8 @@ const inputHelper=read('client/windows-native/GptOperator.Client/RealRemoteInput
 const semanticHelper=read('client/windows-native/GptOperator.Client/RealRemoteSemantic.cs');
 const semanticEventsHelper=read('client/windows-native/GptOperator.Client/RealRemoteSemanticEvents.cs');
 const inputAckHelper=read('client/windows-native/GptOperator.Client/RealRemoteInputAck.cs');
+const browserCdpHelper=read('client/windows-native/GptOperator.Client/RealRemoteBrowserCdp.cs');
+const browserSnapshotHelper=read('client/windows-native/GptOperator.Client/RealRemoteBrowserSnapshot.cs');
 const windowsProject=read('client/windows-native/GptOperator.Client/GptOperator.Client.csproj');
 const supervisor=read('client/windows-native/GptOperator.Client/AgentSupervisor.cs');
 const host=read('client/windows-native/GptOperator.Client/AgentHost.cs');
@@ -153,6 +155,11 @@ assert.ok(!semanticEventsHelper.includes('TextPattern.'),'semantic journal must 
 assert.ok(windowsProject.includes('<UseWPF>true</UseWPF>'),'Windows UIA reference pack must come from WindowsDesktop/WPF SDK support');
 for(const token of ['SendInput(','SetCursorPos(','desktop_input_blocked','desktop_input_invalid_event_count','Keyboard(ushort vk,ushort scan,uint flags)','BeginSemanticInput(args)','CompleteSemanticInput(semanticInput,applied,sent)'])assert.ok(inputHelper.includes(token),`Windows input contract missing: ${token}`);
 for(const token of ['SemanticInputContext','InputSeq','afterSeq','settleMs','focusOutsideScope','resyncRecommended','hasMore'])assert.ok(inputAckHelper.includes(token),`Windows closed-loop input ACK missing: ${token}`);
+for(const token of ['SemanticProvider(args)','browser-cdp','BrowserSemanticAttach(args)','BrowserSemanticSnapshot(args)','BrowserSemanticDetach(args)'])assert.ok(semanticHelper.includes(token),`Browser semantic provider routing missing: ${token}`);
+for(const token of ['ClientWebSocket','socket.Options.Proxy = null','UseProxy = false','AllowAutoRedirect = false','BrowserLoopbackHost','browser_cdp_endpoint_not_loopback','browser_cdp_websocket_not_loopback','Accessibility.enable','DOM.enable','Page.enable','DevToolsActivePort','BrowserSemanticJournalLimit = 512'])assert.ok(browserCdpHelper.includes(token),`Browser CDP contract missing: ${token}`);
+for(const token of ['Accessibility.getFullAXTree','DOMSnapshot.captureSnapshot','includePaintOrder','Page.getLayoutMetrics','Browser.getWindowForTarget','screenBoundsEstimate','paintOrder','chromium-cdp','coordinateSpace'])assert.ok(browserSnapshotHelper.includes(token),`Browser semantic snapshot contract missing: ${token}`);
+assert.ok(!browserSnapshotHelper.includes('Runtime.evaluate'),'Browser semantic provider must not inject page script');
+assert.ok(!browserCdpHelper.includes('Process.Start('),'Browser semantic provider must not launch Chromium or enable debugging');
 assert.ok(!inputHelper.includes('mouse_event('),'legacy mouse_event must not be used');
 assert.ok(!read('lib/real-remote-input.cjs').includes("type==='raw'"),'raw arbitrary INPUT packets must not be exposed');
 for(const source of [supervisor,host]){
@@ -169,6 +176,7 @@ assert.ok(agent.includes("NATIVE_DESKTOP.request('windows'"));
 assert.ok(agent.includes("NATIVE_DESKTOP.request('frame'"));
 assert.ok(agent.includes("NATIVE_DESKTOP.request('input'")&&agent.includes("local capability denied: desktop-input")&&agent.includes("normalizeDesktopInput(request)"));
 assert.ok(agent.includes("NATIVE_DESKTOP.request('semantic-attach'")&&agent.includes("NATIVE_DESKTOP.request('semantic-snapshot'")&&agent.includes("NATIVE_DESKTOP.request('semantic-events'")&&agent.includes("NATIVE_DESKTOP.request('semantic-detach'"));
+assert.ok(agent.includes("'browser-cdp'")&&agent.includes("semantic.cdpEndpoint")&&agent.includes("semantic.targetId")&&agent.includes("semantic.urlMatch"));
 
 const executor=read('operator-host/executor.mjs');
 const routes=read('operator-host/executor-routes-runtime.mjs');
@@ -178,10 +186,10 @@ const wall=read('device-agent/local-wall.mjs');
 const windowsWorkflow=read('.github/workflows/windows-native-client.yml');
 assert.ok(executor.includes('async function startDesktopOperation(')&&executor.includes("payload:{type:'desktop'")&&executor.includes("op==='input'?['desktop','desktop-input']:['desktop']")&&executor.includes("normalizeDesktopInput(request)")&&executor.includes("'semantic-attach'")&&executor.includes("'semantic-snapshot'")&&executor.includes("'semantic-events'")&&executor.includes("'semantic-detach'"));
 assert.ok(routes.includes("'desktop'].includes(payload.action)")&&routes.includes("payload.action==='desktop'?await startDesktopOperation"));
-assert.ok(api.includes("action.startsWith('desktop-')")&&api.includes("'status','windows','frame','input','semantic-attach','semantic-snapshot','semantic-events','semantic-detach'")&&api.includes("normalizeDesktopInput")&&api.includes("semanticSessionId:d.semanticSessionId")&&api.includes("afterSeq:d.afterSeq")&&api.includes("settleMs:d.settleMs")&&api.includes("action:'desktop'"));
-assert.ok(toolHelper.includes("desktop-status")&&toolHelper.includes("desktop-windows")&&toolHelper.includes("desktop-frame")&&toolHelper.includes("desktop-semantic-attach")&&toolHelper.includes("desktop-semantic-snapshot")&&toolHelper.includes("desktop-semantic-events")&&toolHelper.includes("desktop-semantic-detach")&&toolHelper.includes("desktop-input")&&toolHelper.includes("semanticSessionId?,afterSeq?,settleMs?")&&toolHelper.includes("inputSeq")&&toolHelper.includes("capabilities:['desktop','desktop-input']"));
+assert.ok(api.includes("action.startsWith('desktop-')")&&api.includes("'status','windows','frame','input','semantic-attach','semantic-snapshot','semantic-events','semantic-detach'")&&api.includes("normalizeDesktopInput")&&api.includes("semanticSessionId:d.semanticSessionId")&&api.includes("afterSeq:d.afterSeq")&&api.includes("settleMs:d.settleMs")&&api.includes("'browser-cdp'")&&api.includes("desktop.cdpEndpoint")&&api.includes("desktop.targetId")&&api.includes("desktop.urlMatch")&&api.includes("action:'desktop'"));
+assert.ok(toolHelper.includes("desktop-status")&&toolHelper.includes("desktop-windows")&&toolHelper.includes("desktop-frame")&&toolHelper.includes("desktop-semantic-attach")&&toolHelper.includes("desktop-semantic-snapshot")&&toolHelper.includes("desktop-semantic-events")&&toolHelper.includes("desktop-semantic-detach")&&toolHelper.includes("desktop-input")&&toolHelper.includes("provider?,scope?")&&toolHelper.includes("cdpEndpoint?,targetId?,urlMatch?")&&toolHelper.includes("browser-cdp")&&toolHelper.includes("loopback Chromium DevTools")&&toolHelper.includes("semanticSessionId?,afterSeq?,settleMs?")&&toolHelper.includes("inputSeq")&&toolHelper.includes("capabilities:['desktop','desktop-input']"));
 assert.ok(wall.includes("'desktop':['Desktop view'")&&wall.includes("'desktop-input':['Desktop input'")&&wall.includes("locally blocked by default"));
-assert.ok(windowsWorkflow.includes('- name: Real Remote hidden helper smoke')&&windowsWorkflow.includes('timeout-minutes: 1')&&windowsWorkflow.includes('--real-remote-helper')&&windowsWorkflow.includes('windows-real-remote-helper=PASS')&&windowsWorkflow.includes('windows-real-remote-input-negative=PASS')&&windowsWorkflow.includes('windows-real-remote-semantic=PASS')&&windowsWorkflow.includes('windows-real-remote-semantic-events=PASS')&&windowsWorkflow.includes('windows-real-remote-input-ack=PASS'));
+assert.ok(windowsWorkflow.includes('- name: Real Remote hidden helper smoke')&&windowsWorkflow.includes('timeout-minutes: 1')&&windowsWorkflow.includes('--real-remote-helper')&&windowsWorkflow.includes('windows-real-remote-helper=PASS')&&windowsWorkflow.includes('windows-real-remote-input-negative=PASS')&&windowsWorkflow.includes('windows-real-remote-semantic=PASS')&&windowsWorkflow.includes('windows-real-remote-semantic-events=PASS')&&windowsWorkflow.includes('windows-real-remote-input-ack=PASS')&&windowsWorkflow.includes('windows-real-remote-browser-cdp=PASS'));
 
 console.log('v11-real-remote-jsonl-bridge=PASS');
 console.log('v11-real-remote-same-app-windows-helper=PASS');
@@ -192,3 +200,4 @@ console.log('v11-real-remote-bounded-input=PASS');
 console.log('v11-real-remote-semantic-session=PASS');
 console.log('v11-real-remote-semantic-event-journal=PASS');
 console.log('v11-real-remote-closed-loop-input-ack=PASS');
+console.log('v11-real-remote-browser-cdp-semantic=PASS');

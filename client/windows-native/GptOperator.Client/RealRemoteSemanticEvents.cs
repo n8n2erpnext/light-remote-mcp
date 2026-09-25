@@ -168,6 +168,7 @@ internal static partial class RealRemoteHelper
     private static object SemanticEvents(JsonElement args)
     {
         var id = SemanticSessionId(args);
+        if (BrowserSemanticHas(id)) return BrowserSemanticEvents(args);
         var afterSeq = SemanticAfterSeq(args);
         var limit = SemanticInt(args, "limit", 100, 1, 200);
         SemanticSession session;

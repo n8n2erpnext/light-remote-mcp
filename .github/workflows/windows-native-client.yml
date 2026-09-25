@@ -188,6 +188,64 @@ jobs:
               $rrSemDetach = $rrSemDetachLine | ConvertFrom-Json
               if (-not $rrSemDetach.ok -or -not $rrSemDetach.result.detached -or $rrSemDetach.result.semanticSessionId -ne $semId) { throw "Real Remote semantic detach invalid: $rrSemDetachLine" }
               Write-Host "windows-real-remote-semantic=PASS nodes=$($rrSemAttach.result.nodeCount) seq=$($rrSemSnapshot.result.stateSeq)"
+
+              $browserCandidates = @(
+                (Join-Path $env:ProgramFiles 'Google\Chrome\Application\chrome.exe'),
+                (Join-Path $env:ProgramFiles 'Microsoft\Edge\Application\msedge.exe'),
+                (Join-Path ([Environment]::GetFolderPath('ProgramFilesX86')) 'Google\Chrome\Application\chrome.exe'),
+                (Join-Path ([Environment]::GetFolderPath('ProgramFilesX86')) 'Microsoft\Edge\Application\msedge.exe')
+              )
+              $browserExe = $browserCandidates | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+              if (-not $browserExe) { throw 'Chromium browser missing for Real Remote CDP smoke' }
+              $browserProfile = Join-Path $env:RUNNER_TEMP ('real-remote-cdp-' + [Guid]::NewGuid().ToString('N'))
+              $browserHtml = Join-Path $env:RUNNER_TEMP 'real-remote-cdp.html'
+              New-Item -ItemType Directory -Force -Path $browserProfile | Out-Null
+              Set-Content -Path $browserHtml -Encoding UTF8 -Value '<!doctype html><html><head><title>Real Remote CDP CI</title></head><body><main><h1>Real Remote Browser</h1><button id="continue" class="primary">Continue</button><input id="account" aria-label="Account" value="not-read"/></main></body></html>'
+              $browserUrl = ([System.Uri]::new($browserHtml)).AbsoluteUri
+              $browser = Start-Process -FilePath $browserExe -ArgumentList @('--headless=new','--remote-debugging-port=0','--remote-allow-origins=*','--disable-background-networking','--disable-default-apps','--no-first-run','--no-default-browser-check',("--user-data-dir=$browserProfile"),$browserUrl) -PassThru
+              try {
+                $portFile = Join-Path $browserProfile 'DevToolsActivePort'
+                $deadline = [DateTime]::UtcNow.AddSeconds(15)
+                while (-not (Test-Path $portFile) -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 100 }
+                if (-not (Test-Path $portFile)) { throw 'Chromium DevToolsActivePort was not created' }
+                $cdpPort = [int]((Get-Content $portFile -TotalCount 1).Trim())
+                if ($cdpPort -lt 1 -or $cdpPort -gt 65535) { throw "Chromium DevTools port invalid: $cdpPort" }
+                $cdpEndpoint = "http://127.0.0.1:$cdpPort"
+
+                $rr.StandardInput.WriteLine((@{id='ci-browser-attach';op='semantic-attach';args=@{provider='browser-cdp';cdpEndpoint=$cdpEndpoint;urlMatch='real-remote-cdp.html';maxDepth=8;maxNodes=300}} | ConvertTo-Json -Compress -Depth 6))
+                $rr.StandardInput.Flush()
+                $rrBrowserAttachLine = $rr.StandardOutput.ReadLine()
+                $rrBrowserAttach = $rrBrowserAttachLine | ConvertFrom-Json
+                if (-not $rrBrowserAttach.ok -or $rrBrowserAttach.result.provider -ne 'browser-cdp' -or [string]::IsNullOrWhiteSpace($rrBrowserAttach.result.semanticSessionId) -or $rrBrowserAttach.result.nodeCount -lt 1) { throw "Real Remote browser semantic attach invalid: $rrBrowserAttachLine" }
+                $button = @($rrBrowserAttach.result.nodes | Where-Object { $_.role -eq 'button' -and $_.name -eq 'Continue' })
+                if ($button.Count -lt 1) { throw "Real Remote browser semantic button missing: $rrBrowserAttachLine" }
+
+                $browserSemId = [string]$rrBrowserAttach.result.semanticSessionId
+                $rr.StandardInput.WriteLine((@{id='ci-browser-snapshot';op='semantic-snapshot';args=@{semanticSessionId=$browserSemId}} | ConvertTo-Json -Compress -Depth 4))
+                $rr.StandardInput.Flush()
+                $rrBrowserSnapshotLine = $rr.StandardOutput.ReadLine()
+                $rrBrowserSnapshot = $rrBrowserSnapshotLine | ConvertFrom-Json
+                if (-not $rrBrowserSnapshot.ok -or $rrBrowserSnapshot.result.provider -ne 'browser-cdp' -or $rrBrowserSnapshot.result.semanticSessionId -ne $browserSemId -or $rrBrowserSnapshot.result.stateSeq -lt $rrBrowserAttach.result.stateSeq) { throw "Real Remote browser semantic snapshot invalid: $rrBrowserSnapshotLine" }
+
+                $browserAfter = [long]$rrBrowserSnapshot.result.stateSeq
+                $rr.StandardInput.WriteLine((@{id='ci-browser-events';op='semantic-events';args=@{semanticSessionId=$browserSemId;afterSeq=$browserAfter;limit=20}} | ConvertTo-Json -Compress -Depth 4))
+                $rr.StandardInput.Flush()
+                $rrBrowserEventsLine = $rr.StandardOutput.ReadLine()
+                $rrBrowserEvents = $rrBrowserEventsLine | ConvertFrom-Json
+                if (-not $rrBrowserEvents.ok -or $rrBrowserEvents.result.provider -ne 'browser-cdp' -or $rrBrowserEvents.result.semanticSessionId -ne $browserSemId -or -not $rrBrowserEvents.result.eventsAvailable -or $null -eq $rrBrowserEvents.result.events) { throw "Real Remote browser semantic events invalid: $rrBrowserEventsLine" }
+
+                $rr.StandardInput.WriteLine((@{id='ci-browser-detach';op='semantic-detach';args=@{semanticSessionId=$browserSemId}} | ConvertTo-Json -Compress -Depth 4))
+                $rr.StandardInput.Flush()
+                $rrBrowserDetachLine = $rr.StandardOutput.ReadLine()
+                $rrBrowserDetach = $rrBrowserDetachLine | ConvertFrom-Json
+                if (-not $rrBrowserDetach.ok -or $rrBrowserDetach.result.provider -ne 'browser-cdp' -or -not $rrBrowserDetach.result.detached) { throw "Real Remote browser semantic detach invalid: $rrBrowserDetachLine" }
+                Write-Host "windows-real-remote-browser-cdp=PASS nodes=$($rrBrowserAttach.result.nodeCount) seq=$($rrBrowserSnapshot.result.stateSeq) events=$($rrBrowserEvents.result.events.Count)"
+              }
+              finally {
+                if ($browser -and -not $browser.HasExited) { & taskkill.exe /PID $browser.Id /T /F 2>$null | Out-Null }
+                Remove-Item $browserProfile -Recurse -Force -ErrorAction SilentlyContinue
+                Remove-Item $browserHtml -Force -ErrorAction SilentlyContinue
+              }
             } else {
               Write-Host 'windows-real-remote-semantic=SKIP no-interactive-session'
             }

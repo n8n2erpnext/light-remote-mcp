@@ -35,6 +35,8 @@ internal static partial class RealRemoteHelper
 
     private static object SemanticAttach(JsonElement args)
     {
+        var provider = SemanticProvider(args);
+        if (provider == "browser-cdp") return BrowserSemanticAttach(args);
         EnsureSemanticInteractive();
         var scope = SemanticScope(args);
         var session = new SemanticSession
@@ -56,6 +58,7 @@ internal static partial class RealRemoteHelper
     {
         EnsureSemanticInteractive();
         var id = SemanticSessionId(args);
+        if (BrowserSemanticHas(id)) return BrowserSemanticSnapshot(args);
         SemanticSession session;
         lock (SemanticLock)
         {
@@ -68,6 +71,7 @@ internal static partial class RealRemoteHelper
     private static object SemanticDetach(JsonElement args)
     {
         var id = SemanticSessionId(args);
+        if (BrowserSemanticHas(id)) return BrowserSemanticDetach(args);
         SemanticSession session;
         lock (SemanticLock)
         {
@@ -230,6 +234,19 @@ internal static partial class RealRemoteHelper
     private static void EnsureSemanticInteractive()
     {
         if (!Environment.UserInteractive) throw new InvalidOperationException("desktop_session_not_interactive");
+    }
+
+    private static string SemanticProvider(JsonElement args)
+    {
+        var provider = args.ValueKind == JsonValueKind.Object && args.TryGetProperty("provider", out var node)
+            ? (node.GetString() ?? "windows-uia").Trim().ToLowerInvariant()
+            : "windows-uia";
+        return provider switch
+        {
+            "windows-uia" => provider,
+            "browser-cdp" => provider,
+            _ => throw new InvalidOperationException("semantic_invalid_provider")
+        };
     }
 
     private static string SemanticScope(JsonElement args)

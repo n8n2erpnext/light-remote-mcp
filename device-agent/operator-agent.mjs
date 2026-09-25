@@ -168,12 +168,13 @@ async function executeDesktopCommand(state,p){
     return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('input',input,{timeoutMs:10000})};
   }
   if(op==='semantic-attach'){
+    const provider=String(request.provider||'windows-uia').trim().toLowerCase();
+    if(!['windows-uia','browser-cdp'].includes(provider))throw new Error('invalid_semantic_provider');
     const depth=Number(request.maxDepth),nodes=Number(request.maxNodes);
-    return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('semantic-attach',{
-      scope:request.scope==='desktop'?'desktop':'foreground',
-      maxDepth:Math.max(0,Math.min(Number.isFinite(depth)?depth:6,12)),
-      maxNodes:Math.max(1,Math.min(Number.isFinite(nodes)?nodes:400,1500))
-    },{timeoutMs:15000})};
+    const semantic={provider,maxDepth:Math.max(0,Math.min(Number.isFinite(depth)?depth:(provider==='browser-cdp'?8:6),12)),maxNodes:Math.max(1,Math.min(Number.isFinite(nodes)?nodes:(provider==='browser-cdp'?600:400),1500))};
+    if(provider==='windows-uia')semantic.scope=request.scope==='desktop'?'desktop':'foreground';
+    else{if(request.cdpEndpoint!=null)semantic.cdpEndpoint=String(request.cdpEndpoint).slice(0,256);if(request.targetId!=null)semantic.targetId=String(request.targetId).slice(0,256);if(request.urlMatch!=null)semantic.urlMatch=String(request.urlMatch).slice(0,512);}
+    return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('semantic-attach',semantic,{timeoutMs:15000})};
   }
   if(op==='semantic-snapshot')return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('semantic-snapshot',{semanticSessionId:String(request.semanticSessionId||'')},{timeoutMs:15000})};
   if(op==='semantic-events'){
