@@ -3,6 +3,7 @@ const { callOperator, execOperator } = require('../lib/operator');
 const { sealOperatorPayload } = require('../lib/operator-crypto');
 const { aid, field, jobId, normalizeDeviceHeartbeat, normalizeDevicePolicy, normalizeDeviceRevoke, normalizeEnrollmentApprove, normalizeEnrollmentCancel, normalizeEnrollmentBegin, normalizeEnrollmentPoll, normalizeNodeDrain, normalizeShellId, normalizeExecPayload, normalizeSessionOpenPayload, payloadFor, sid } = require('../lib/operator-request');
 const { toolHelperHint, toolHelperView } = require('../lib/plus-tool-helper');
+const { inspectPlusExecPayload } = require('../lib/plus-batch-policy.cjs');
 
 function enrollmentSourceHash(req){ const ip=String(req.headers?.["x-forwarded-for"]||"unknown").split(",")[0].trim().slice(0,128); return crypto.createHash("sha256").update("v07-enrollment:"+ip).digest("hex"); }
 function requestOrigin(req){
@@ -132,7 +133,7 @@ module.exports=async function handler(req,res){
         else if(usingClient&&action==='session-hold') upstream=await clientCall(`/plus/client/sessions/${encodeURIComponent(sid(field(req,'sid')))}/hold?deviceId=${encodeURIComponent(clientDevice(field(req,'device')))}`,{method:'POST',body:{deviceId:clientDevice(field(req,'device')),reason:String(field(req,'reason','transport_lost')).slice(0,80)}});
         else if(usingClient&&action==='session-close') upstream=await clientCall(`/plus/client/sessions/${encodeURIComponent(sid(field(req,'sid')))}/close?deviceId=${encodeURIComponent(clientDevice(field(req,'device')))}`,{method:'POST',body:{deviceId:clientDevice(field(req,'device'))}});
         else if(usingClient&&action==='session') upstream=await clientCall(`/plus/client/sessions/${encodeURIComponent(sid(field(req,'sid')))}?deviceId=${encodeURIComponent(clientDevice(field(req,'device')))}`);
-        else if(usingClient&&action==='exec'){const d=payloadFor(req),deviceId=clientDevice(d.deviceId||d.device),payload=normalizeExecPayload(d);upstream=await clientCall('/plus/client/execute',{method:'POST',body:{deviceId,envelope:sealOperatorPayload(payload)},timeoutMs:9500});}
+        else if(usingClient&&action==='exec'){const d=payloadFor(req),deviceId=clientDevice(d.deviceId||d.device),payload=normalizeExecPayload(d);inspectPlusExecPayload(payload,{transport:'direct'});upstream=await clientCall('/plus/client/execute',{method:'POST',body:{deviceId,envelope:sealOperatorPayload(payload)},timeoutMs:9500});}
         else if(usingClient&&action==='fs'){
           const d=payloadFor(req),deviceId=clientDevice(d.deviceId||d.device),fs=d.fs;
           if(!fs||typeof fs!=='object'||Array.isArray(fs)){const e=new Error('invalid_fs_payload');e.status=400;throw e;}
