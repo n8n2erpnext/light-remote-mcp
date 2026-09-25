@@ -301,11 +301,12 @@ function finishJob(job, exitCode, signal) {
   job.exitCode = exitCode;
   job.signal = signal || null;
   job.status = exitCode === 0 ? 'ok' : job.timedOut ? 'timeout' : 'error';
+  if(!job.resultSummary&&job.resultData)job.resultSummary=nativeActivityResult(job.toolMeta,job.resultData);
   clearTimeout(job.timer);
   sessions.finishJob(job.sessionId, job.id, job.status);
   if (job.autoCloseSession) { try { sessions.close(job.sessionId, job.agentId); } catch {} }
   pushEvent({ type: 'job_finished', jobId: job.id, requestId: job.requestId, operationId: job.operationId, accountId:job.accountId, deviceId:job.deviceId, sessionId: job.sessionId, agentId:job.agentId, nodeId:job.nodeId,
-    status: job.status, exitCode, signal: signal || null, durationMs: job.finishedAt - job.startedAt, resultSummary:redact(job.resultSummary||''), toolMeta:job.toolMeta||null, latency:latencyView(job) });
+    status: job.status, exitCode, signal: signal || null, durationMs: job.finishedAt - job.startedAt, requiredCapabilities:job.requiredCapabilities||[], cwd:job.cwd||'', script:redact(job.script||''), note:redact(job.note||''), resultSummary:redact(job.resultSummary||''), toolMeta:job.toolMeta||null, latency:latencyView(job) });
   for (const resolve of job.waiters.splice(0)) resolve();
   pruneJobs(job.finishedAt);
 }
@@ -449,6 +450,11 @@ function scpActivityMeta(request={}){
   if(request.destination!=null)meta.destination=String(request.destination);
   if(request.transferId!=null)meta.transferId=String(request.transferId);
   if(request.offset!=null)meta.offset=Number(request.offset);
+  if(request.index!=null)meta.index=Number(request.index);
+  if(request.totalBytes!=null)meta.totalBytes=Number(request.totalBytes);
+  if(request.chunkBytes!=null)meta.chunkBytes=Number(request.chunkBytes);
+  if(request.overwrite!=null)meta.overwrite=request.overwrite===true;
+  if(request.createParents!=null)meta.createParents=request.createParents===true;
   if(request.data!=null)meta.bytes=Buffer.byteLength(String(request.data),'utf8');
   return meta;
 }
@@ -475,6 +481,7 @@ function searchActivityMeta(request={}){
   if(request.maxResults!=null)meta.maxResults=Math.max(1,Number(request.maxResults)||0);
   return meta;
 }
+function nativeActivityResult(meta,data){if(!data||typeof data!=='object')return '';if(data.ok===false)return 'error · '+redact(String(data.error||'operation failed'));const kind=String(meta?.kind||''),op=String(meta?.op||data.operation||'');if(kind==='fs')return fsActivityResult(meta,data);if(kind==='terminal')return terminalResultSummary(data);if(kind==='search'){const v=data.search&&typeof data.search==='object'?data.search:data,p=[];if(v.state)p.push(String(v.state));if(Number.isFinite(Number(v.returned)))p.push(String(Number(v.returned))+' returned');if(Number.isFinite(Number(v.resultCount)))p.push(String(Number(v.resultCount))+' result'+(Number(v.resultCount)===1?'':'s'));if(Number.isFinite(Number(v.scannedFiles)))p.push(String(Number(v.scannedFiles))+' files scanned');if(Number.isFinite(Number(v.scannedDirs)))p.push(String(Number(v.scannedDirs))+' dirs');if(v.hasMore===true)p.push('more available');return p.join(' · ')||'completed';}if(kind==='process'){if(op==='list'&&Array.isArray(data.processes)){const r=data.processes.filter(x=>x?.state==='running').length;return data.processes.length+' process'+(data.processes.length===1?'':'es')+' · '+r+' running';}const v=data.process&&typeof data.process==='object'?data.process:data,p=[];if(v.state)p.push(String(v.state));if(v.processId)p.push(shortNativeId(v.processId));if(v.pid)p.push('pid '+String(v.pid));if(Number.isFinite(Number(v.exitCode)))p.push('exit '+String(v.exitCode));if(Number.isFinite(Number(v.stdoutBytes)))p.push('stdout '+String(v.stdoutBytes)+' B');if(Number.isFinite(Number(v.stderrBytes)))p.push('stderr '+String(v.stderrBytes)+' B');if(data.output&&Number.isFinite(Number(data.output.returnedBytes)))p.push(String(data.output.returnedBytes)+' B returned');return p.join(' · ')||'completed';}if(kind==='scp'){const v=data.transfer&&typeof data.transfer==='object'?data.transfer:data.result&&typeof data.result==='object'?data.result:data.chunk&&typeof data.chunk==='object'?data.chunk:data,p=[];if(v.mode)p.push(String(v.mode));if(v.path)p.push(String(v.path));if(Number.isFinite(Number(v.progressBytes))&&Number.isFinite(Number(v.totalBytes)))p.push(String(v.progressBytes)+'/'+String(v.totalBytes)+' B');else if(Number.isFinite(Number(v.bytes)))p.push(String(v.bytes)+' B');else if(Number.isFinite(Number(v.totalBytes)))p.push(String(v.totalBytes)+' B');if(Number.isFinite(Number(v.progressChunks))&&Number.isFinite(Number(v.totalChunks)))p.push(String(v.progressChunks)+'/'+String(v.totalChunks)+' chunks');if(v.complete===true)p.push('complete');if(v.cancelled===true)p.push('cancelled');return p.join(' · ')||'completed';}if(kind==='desktop'){const v=data.desktop&&typeof data.desktop==='object'?data.desktop:data,p=[];if(Array.isArray(v.windows))p.push(String(v.windows.length)+' windows');if(v.semanticSessionId)p.push('semantic '+shortNativeId(v.semanticSessionId));if(Number.isFinite(Number(v.width))&&Number.isFinite(Number(v.height)))p.push(String(v.width)+'×'+String(v.height));if(Number.isFinite(Number(v.stateSeq)))p.push('state '+String(v.stateSeq));return p.join(' · ')||'completed';}return '';}
 
 async function startFsOperation(payload,requestId){
   const operationId=String(payload.operationId||'').trim();
@@ -513,7 +520,7 @@ async function startScpOperation(payload,requestId){
   jobs.set(job.id,job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
   pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:remote?'outbound-leaf':'local',requiredCapabilities,note:job.note,toolMeta:job.toolMeta});
   if(remote){const command=fleet.enqueue({accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'scp',operationId,sessionId:job.sessionId,agentId:job.agentId,scp:request}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},60000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();return job;}
-  Promise.resolve().then(()=>executeLocalScpRequest(job,request)).then(data=>{job.resultData=data;finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n'));finishJob(job,1,null);});return job;
+  Promise.resolve().then(()=>executeLocalScpRequest(job,request)).then(data=>{job.resultData=data;job.resultSummary=nativeActivityResult(job.toolMeta,data);finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n'));finishJob(job,1,null);});return job;
 }
 
 async function executeLocalScpRequest(job,request){
@@ -542,7 +549,7 @@ async function startProcessOperation(payload,requestId){
   jobs.set(job.id,job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
   pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:remote?'outbound-leaf':'local',requiredCapabilities,note:job.note,toolMeta:job.toolMeta});
   if(remote){const command=fleet.enqueue({accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'process',operationId,sessionId:job.sessionId,agentId:job.agentId,process:request}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},30000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();return job;}
-  Promise.resolve().then(()=>executeLocalProcessRequest(job,request)).then(data=>{job.resultData=data;finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n'));finishJob(job,1,null);});return job;
+  Promise.resolve().then(()=>executeLocalProcessRequest(job,request)).then(data=>{job.resultData=data;job.resultSummary=nativeActivityResult(job.toolMeta,data);finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n'));finishJob(job,1,null);});return job;
 }
 
 async function executeLocalProcessRequest(job,request){
@@ -667,7 +674,7 @@ async function startSearchOperation(payload,requestId){
   jobs.set(job.id,job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
   pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:remote?'outbound-leaf':'local',requiredCapabilities,note:job.note,toolMeta:job.toolMeta});
   if(remote){const command=fleet.enqueue({accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'search',operationId,sessionId:job.sessionId,agentId:job.agentId,search:request}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},30000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();return job;}
-  Promise.resolve().then(()=>executeLocalSearchRequest(job,request)).then(data=>{job.resultData=data;finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n'));finishJob(job,1,null);});return job;
+  Promise.resolve().then(()=>executeLocalSearchRequest(job,request)).then(data=>{job.resultData=data;const v=data?.search||data;if(v&&typeof v==='object'){for(const key of ['path','searchType','pattern','filePattern'])if(v[key]!=null&&!job.toolMeta[key])job.toolMeta[key]=key==='pattern'?redact(String(v[key])).slice(0,180):String(v[key]);}job.resultSummary=nativeActivityResult(job.toolMeta,data);finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n'));finishJob(job,1,null);});return job;
 }
 
 async function executeLocalSearchRequest(job,request){

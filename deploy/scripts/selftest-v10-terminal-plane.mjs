@@ -37,10 +37,19 @@ for(const surface of [wall,dashboard]){
   const start=surface.indexOf('function fsCommand(j)'),end=surface.indexOf('function jobText(j)',start);
   need(start>=0&&end>start,'native_group_renderer_probe_slice_missing');
   const renderer=surface.slice(start,end);
-  const probe=vm.runInNewContext(renderer+";({startLabel:toolLabel({note:'native-search:start',script:'',cwd:'/srv'}),startCommand:commandText({note:'native-search:start',script:'',cwd:'/srv'}),resultsLabel:toolLabel({note:'',script:'native-search:results'}),resultsCommand:commandText({note:'',script:'native-search:results'}),shellCommand:commandText({note:'',script:'echo hello'})})");
+  const probe=vm.runInNewContext(renderer+";({startLabel:toolLabel({note:'native-search:start',script:'',cwd:'/srv'}),startCommand:commandText({note:'native-search:start',script:'',cwd:'/srv',toolMeta:{kind:'search',op:'start',searchType:'content',pattern:'Light Remote',filePattern:'README.md',path:'/srv/repo'}}),resultsLabel:toolLabel({note:'native-search:results',script:'',toolMeta:{kind:'search',op:'results',pattern:'Light Remote',filePattern:'README.md',path:'/srv/repo'}}),resultsCommand:commandText({note:'native-search:results',script:'',toolMeta:{kind:'search',op:'results',pattern:'Light Remote',filePattern:'README.md',path:'/srv/repo'}}),shellCommand:commandText({note:'',script:'echo hello'}),fsColor:groupBadgeClass({toolMeta:{kind:'fs',op:'read'}}),searchColor:groupBadgeClass({toolMeta:{kind:'search',op:'results'}}),runtimeColor:groupBadgeClass({toolMeta:{kind:'process',op:'list'}}),safeRisk:riskBadge({toolMeta:{kind:'search',op:'results'},script:'',requiredCapabilities:['filesystem']}),mutateRisk:riskBadge({toolMeta:{kind:'process',op:'input',processId:'lp_probe',inputBytes:4},script:'',requiredCapabilities:['filesystem']}),systemRisk:riskBadge({script:'npm test',requiredCapabilities:['build-test']}),dangerRisk:riskBadge({script:'sudo systemctl restart demo',requiredCapabilities:['sudo-on-demand','systemctl']}),syntaxHtml:shellSyntaxHtml('sudo systemctl restart demo && git status --short /tmp $HOME | grep foo'),stringHtml:shellSyntaxHtml('echo '+String.fromCharCode(34)+'foo'+String.fromCharCode(34))})");
   need(probe.startLabel==='SEARCH START'&&probe.startCommand.startsWith('search.start')&&!probe.startCommand.includes('native-search:'),'native_search_start_renderer_behavior_failed');
+  need(probe.startCommand.includes('Light Remote')&&probe.startCommand.includes('README.md')&&probe.startCommand.includes('/srv/repo'),'native_search_query_detail_missing');
   need(probe.resultsLabel==='SEARCH RESULTS'&&probe.resultsCommand.startsWith('search.results')&&!probe.resultsCommand.includes('native-search:'),'native_search_results_renderer_behavior_failed');
   need(probe.shellCommand==='echo hello','shell_script_renderer_regressed');
+  need(probe.fsColor==='op-fs'&&probe.searchColor==='op-search'&&probe.runtimeColor==='op-runtime','native_group_color_behavior_failed');
+  need(probe.safeRisk===null,'safe_operation_must_not_warn');
+  need(probe.mutateRisk?.label==='MUTATE'&&probe.mutateRisk?.cls==='risk-yellow','mutate_risk_badge_failed');
+  need(probe.systemRisk?.label==='SYSTEM'&&probe.systemRisk?.cls==='risk-yellow','system_risk_badge_failed');
+  need(probe.dangerRisk?.label==='DANGER'&&probe.dangerRisk?.cls==='risk-red','danger_risk_badge_failed');
+  for(const token of ['syn-danger-command','syn-command','syn-option','syn-path','syn-var','syn-op'])need(probe.syntaxHtml.includes(token),'terminal_syntax_class_missing:'+token);
+  need(probe.stringHtml.includes('syn-string'),'terminal_syntax_string_class_missing');
+  need(probe.syntaxHtml.includes('sudo')&&probe.syntaxHtml.includes('systemctl')&&probe.syntaxHtml.includes('git')&&probe.syntaxHtml.includes('grep'),'terminal_syntax_content_missing');
 }
 console.log('v10-terminal-plane-routing=PASS');
 console.log('v10-terminal-helper-policy=PASS');

@@ -5,6 +5,7 @@ import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import {fileURLToPath} from 'node:url';
 import {deviceChannelMessage} from '../lib/device-proof.mjs';
 import {runtimeVersion} from '../lib/runtime-version.mjs';
 import {loadLocalWallAuth,LOCAL_WALL_COOKIE} from './local-wall-auth.mjs';
@@ -14,6 +15,7 @@ import {updateSettingsHtml} from './update-settings-page.mjs';
 import {brandMarkSvg,brandTitleSvg,brandFaviconSvg,BRANDING_VERSION} from '../lib/brand.mjs';
 
 const VERSION=runtimeVersion({envNames:['LIGHT_REMOTE_FLEET_VERSION']});
+const CASCADIA_MONO_FONT=fileURLToPath(new URL('../assets/fonts/CascadiaMono.ttf',import.meta.url));
 const STATE_FILE=process.env.OPERATOR_AGENT_STATE||path.join(os.homedir(),'.config','gpt-operator-agent','device.json');
 const EXTERNAL_IDENTITY_FILE=String(process.env.OPERATOR_AGENT_IDENTITY_FILE||'').trim();
 const AUTH_FILE=process.env.OPERATOR_AGENT_WALL_AUTH_FILE||path.join(path.dirname(STATE_FILE),'wall-auth.json');
@@ -74,7 +76,7 @@ function jsonBody(req,limit=64*1024){return new Promise((resolve,reject)=>{let s
 function loginPage(message='',next='/',csrf=''){
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const note=message?`<div class="error">${esc(message)}</div>`:'';
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">${brandFaviconSvg()}<title>Light Remote — Fleet Wall login</title><style>:root{color-scheme:dark;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#080a0c;color:#d8dee7}body{margin:0;min-height:100vh;display:grid;place-items:center}.card{width:min(420px,calc(100vw - 32px));border:1px solid #252d36;border-radius:12px;background:#0a0e12;padding:22px}.brand-title{display:flex;align-items:center;gap:12px;margin-bottom:8px}.brand-title>span{display:flex;align-items:baseline;gap:7px}.brand-title strong{font-size:20px;color:#f3f4f6}.brand-title small{font-size:10px;letter-spacing:.16em;color:#718096}.brand-mark{flex:0 0 auto}.muted{color:#718096}.error{color:#ff8e8e;margin-top:12px}label{display:block;margin-top:14px}input,button{width:100%;margin-top:6px;border:1px solid #2b333d;background:#0e1216;color:#d8dee7;border-radius:7px;padding:10px;font:inherit;box-sizing:border-box}button{cursor:pointer;margin-top:18px}</style></head><body><main class="card">${brandTitleSvg(48)}<p class="muted">Fleet Wall · Main device</p>${note}<form method="post" action="/auth/login"><input type="hidden" name="next" value="${esc(safeNext(next))}"><input type="hidden" name="csrf" value="${esc(csrf)}"><label>Email / recovery username<input name="username" autocomplete="username" required autofocus></label><label>Password<input type="password" name="password" autocomplete="current-password" required></label><button type="submit">Sign in</button></form></main></body></html>`;
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">${brandFaviconSvg()}<title>Light Remote — Fleet Wall login</title><style>@font-face{font-family:'Cascadia Mono';src:url('/assets/fonts/CascadiaMono.ttf') format('truetype');font-style:normal;font-weight:200 700;font-display:swap}:root{color-scheme:dark;font-family:'Cascadia Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#080a0c;color:#d8dee7}body{margin:0;min-height:100vh;display:grid;place-items:center}.card{width:min(420px,calc(100vw - 32px));border:1px solid #252d36;border-radius:12px;background:#0a0e12;padding:22px}.brand-title{display:flex;align-items:center;gap:12px;margin-bottom:8px}.brand-title>span{display:flex;align-items:baseline;gap:7px}.brand-title strong{font-size:20px;color:#f3f4f6}.brand-title small{font-size:10px;letter-spacing:.16em;color:#718096}.brand-mark{flex:0 0 auto}.muted{color:#718096}.error{color:#ff8e8e;margin-top:12px}label{display:block;margin-top:14px}input,button{width:100%;margin-top:6px;border:1px solid #2b333d;background:#0e1216;color:#d8dee7;border-radius:7px;padding:10px;font:inherit;box-sizing:border-box}button{cursor:pointer;margin-top:18px}</style></head><body><main class="card">${brandTitleSvg(48)}<p class="muted">Fleet Wall · Main device</p>${note}<form method="post" action="/auth/login"><input type="hidden" name="next" value="${esc(safeNext(next))}"><input type="hidden" name="csrf" value="${esc(csrf)}"><label>Email / recovery username<input name="username" autocomplete="username" required autofocus></label><label>Password<input type="password" name="password" autocomplete="current-password" required></label><button type="submit">Sign in</button></form></main></body></html>`;
 }
 function pageHeaders(){return {'content-type':'text/html; charset=utf-8','cache-control':'no-store','x-frame-options':'DENY','referrer-policy':'no-referrer','content-security-policy':"default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"};}
 function accountAuthenticate(email,password){return channel('account-auth',{email:String(email||'').trim(),password:String(password||'')});}
@@ -103,6 +105,7 @@ async function start(){
   const mutationAllowed=req=>!auth.enabled||auth.verifyRequestCsrf(req,String(req.headers['x-light-remote-csrf']||''));
   server=http.createServer(async(req,res)=>{try{
     const url=new URL(req.url||'/','http://fleet.wall');
+    if(req.method==='GET'&&url.pathname==='/assets/fonts/CascadiaMono.ttf'){try{const data=fs.readFileSync(CASCADIA_MONO_FONT);res.writeHead(200,{'content-type':'font/ttf','content-length':data.length,'cache-control':'public, max-age=31536000, immutable','x-content-type-options':'nosniff'});res.end(data);}catch{return json(res,404,{ok:false,error:'font_not_found'});}return;}
     if(req.method==='GET'&&url.pathname==='/healthz')return json(res,200,{ok:true,service:'light-remote-fleet-wall',version:VERSION,brandingVersion:BRANDING_VERSION});
     if(auth.enabled&&req.method==='GET'&&url.pathname==='/login'){
       if(auth.identity(req)){res.writeHead(303,{location:safeNext(url.searchParams.get('next')),'cache-control':'no-store'});return res.end();}

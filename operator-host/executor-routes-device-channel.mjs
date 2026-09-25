@@ -276,7 +276,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       const stdout=String(result.stdout||''), stderr=String(result.stderr||'');
       if (Buffer.byteLength(stdout)>MAX_MEMORY_OUTPUT || Buffer.byteLength(stderr)>MAX_MEMORY_OUTPUT) throw new FleetError('remote_result_too_large',413);
       if(result.data!==undefined&&Buffer.byteLength(JSON.stringify(result.data))>MAX_MEMORY_OUTPUT)throw new FleetError('remote_result_data_too_large',413);
-      if(result.data!==undefined){job.resultData=result.data;if(job.toolMeta?.kind==='terminal')job.resultSummary=terminalResultSummary(result.data);}
+      if(result.data!==undefined){job.resultData=result.data;job.resultSummary='';}
       applyDeviceTelemetry(job,result.telemetry);
       const exitCode=Number(result.exitCode);
       if (!Number.isInteger(exitCode) || exitCode < 0 || exitCode > 255) throw new FleetError('invalid_remote_exit_code');

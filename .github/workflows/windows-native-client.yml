@@ -33,7 +33,7 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - 'client/core-files.json'
-      - 'assets/branding/**'
+      - 'assets/**'
       - '.github/workflows/windows-native-client.yml'
   workflow_dispatch:
   workflow_call:

@@ -12,6 +12,7 @@ on:
       - 'operator-host/**'
       - 'device-agent/**'
       - 'lib/**'
+      - 'assets/**'
       - 'deploy/server-linux/**'
       - 'deploy/scripts/install-host.sh'
       - 'deploy/scripts/build-fleet-wall-module.sh'

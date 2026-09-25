@@ -106,6 +106,14 @@
       "destination": "lib/update-helper-reconcile.mjs"
     },
     {
+      "source": "assets/fonts/CascadiaMono.ttf",
+      "destination": "assets/fonts/CascadiaMono.ttf"
+    },
+    {
+      "source": "assets/fonts/CascadiaMono-OFL.txt",
+      "destination": "assets/fonts/CascadiaMono-OFL.txt"
+    },
+    {
       "source": "assets/branding/light-remote-mark.svg",
       "destination": "assets/branding/light-remote-mark.svg"
     },
