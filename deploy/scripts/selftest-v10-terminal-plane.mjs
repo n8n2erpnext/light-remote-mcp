@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import vm from 'node:vm';
 import {readOperatorSourceSurface} from './test-source-surface.mjs';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
@@ -31,7 +32,15 @@ need(host.includes('terminalWallMeta(request)')&&host.includes('script:toolMeta.
 for(const surface of [wall,dashboard]){
   need(surface.includes('function toolLabel(j)')&&surface.includes('terminalHandle(j)')&&surface.includes('resultSummary')&&surface.includes('opbadge'),'terminal_wall_observability_ui_missing');
   for(const token of ["search:'SEARCH'","process:'PROCESS'","scp:'SCP'","desktop:'DESKTOP'",'function toolIdentity(j)','function toolCommand(j)'])need(surface.includes(token),'native_group_wall_observability_missing:'+token);
+  for(const token of ['LEGACY_TOOL_PREFIXES','native-search:','String(j.script||\'\')','syntheticToolScript(j)'])if(!surface.includes(token))throw new Error('legacy_native_prefix_script_fallback:'+token);
   need(surface.includes('filter cwd / command / output / PTY'),'terminal_wall_filter_hint_missing');
+  const start=surface.indexOf('function fsCommand(j)'),end=surface.indexOf('function jobText(j)',start);
+  need(start>=0&&end>start,'native_group_renderer_probe_slice_missing');
+  const renderer=surface.slice(start,end);
+  const probe=vm.runInNewContext(renderer+";({startLabel:toolLabel({note:'native-search:start',script:'',cwd:'/srv'}),startCommand:commandText({note:'native-search:start',script:'',cwd:'/srv'}),resultsLabel:toolLabel({note:'',script:'native-search:results'}),resultsCommand:commandText({note:'',script:'native-search:results'}),shellCommand:commandText({note:'',script:'echo hello'})})");
+  need(probe.startLabel==='SEARCH START'&&probe.startCommand.startsWith('search.start')&&!probe.startCommand.includes('native-search:'),'native_search_start_renderer_behavior_failed');
+  need(probe.resultsLabel==='SEARCH RESULTS'&&probe.resultsCommand.startsWith('search.results')&&!probe.resultsCommand.includes('native-search:'),'native_search_results_renderer_behavior_failed');
+  need(probe.shellCommand==='echo hello','shell_script_renderer_regressed');
 }
 console.log('v10-terminal-plane-routing=PASS');
 console.log('v10-terminal-helper-policy=PASS');

@@ -28,6 +28,7 @@ import { LightScpRegistry } from '../lib/light-scp-registry.mjs';
 import { normalizeUpdateReport } from '../lib/update-contract.mjs';
 import { clientCompatibility } from '../lib/version-compat.mjs';
 import { runtimeVersion } from '../lib/runtime-version.mjs';
+import { restoreActivityRing } from '../lib/activity-ring.mjs';
 import { createPlatformAdapter } from '../device-agent/platform-adapters/index.mjs';
 import { handleAccountRoutes } from './executor-routes-account.mjs';
 import { handleDeviceChannelRoutes } from './executor-routes-device-channel.mjs';
@@ -52,7 +53,7 @@ const LICENSE_STATE_FILE = path.join(STATE_DIR, 'license-keys.json');
 const FLEET_AUTHORITY_TTL_MS = Number(process.env.OPERATOR_FLEET_AUTHORITY_TTL_MS || 10 * 60 * 1000);
 const RING_HARD_CAP_BYTES = 10 * 1024 * 1024;
 const MAX_RING_BYTES = Math.max(1024 * 1024, Math.min(Number(process.env.OPERATOR_RING_BYTES || 8 * 1024 * 1024), RING_HARD_CAP_BYTES));
-const MAX_RING_AGE_MS = Math.max(60000, Math.min(Number(process.env.OPERATOR_RING_AGE_MS || 15 * 60 * 1000), 3600000));
+const MAX_RING_AGE_MS = Math.max(60000, Math.min(Number(process.env.OPERATOR_RING_AGE_MS || 60 * 60 * 1000), 3600000));
 const DISK_FLUSH_MS = Math.max(10, Math.min(Number(process.env.OPERATOR_DISK_FLUSH_MS || 50), 1000));
 const DISK_BATCH_BYTES = Math.max(16384, Math.min(Number(process.env.OPERATOR_DISK_BATCH_BYTES || 262144), 1048576));
 const MAX_RING_EVENTS = Number(process.env.OPERATOR_RING_EVENTS || 5000);
@@ -150,6 +151,14 @@ function queueDiskRecord(event){const line=serializedDiskRecord(event);diskQueue
   try { usage.ingest(event); } catch (error) { console.error('[usage] ingest failed', error?.message || error); }
   queueDiskRecord(event);
   return event;
+}
+const restoredActivity=restoreActivityRing({files:logFilesOldestFirst(),readText:readLogText,now:Date.now(),maxAgeMs:MAX_RING_AGE_MS,maxEvents:MAX_RING_EVENTS,maxBytes:MAX_RING_BYTES});
+if(restoredActivity.ring.length){
+  const current=[...ring];ring.length=0;ring.push(...restoredActivity.ring,...current);
+  ring.sort((a,b)=>a.atMs-b.atMs||Number(a.event?.id||0)-Number(b.event?.id||0));
+  ringBytes=ring.reduce((sum,item)=>sum+item.bytes,0);
+  sequence=Math.max(sequence,restoredActivity.sequence);
+  pruneRing();
 }
 if (devices.loadError) pushEvent({ type:'device_registry_load_error', status:'error', detail:redact(devices.loadError) });
 if (enrollments.loadError) pushEvent({ type:'enrollment_registry_load_error', status:'error', detail:redact(enrollments.loadError) });
