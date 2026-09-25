@@ -217,19 +217,26 @@ jobs:
                 $rrBrowserAttachLine = $rr.StandardOutput.ReadLine()
                 $rrBrowserAttach = $rrBrowserAttachLine | ConvertFrom-Json
                 if (-not $rrBrowserAttach.ok -or $rrBrowserAttach.result.provider -ne 'browser-cdp' -or [string]::IsNullOrWhiteSpace($rrBrowserAttach.result.semanticSessionId) -or $rrBrowserAttach.result.nodeCount -lt 1) { throw "Real Remote browser semantic attach invalid: $rrBrowserAttachLine" }
-                $button = @($rrBrowserAttach.result.nodes | Where-Object { $_.role -eq 'button' -and $_.name -eq 'Continue' })
-                if ($button.Count -lt 1) { throw "Real Remote browser semantic button missing: $rrBrowserAttachLine" }
-
                 $browserSemId = [string]$rrBrowserAttach.result.semanticSessionId
-                $rr.StandardInput.WriteLine((@{id='ci-browser-snapshot';op='semantic-snapshot';args=@{semanticSessionId=$browserSemId}} | ConvertTo-Json -Compress -Depth 4))
-                $rr.StandardInput.Flush()
-                $rrBrowserSnapshotLine = $rr.StandardOutput.ReadLine()
-                $rrBrowserSnapshot = $rrBrowserSnapshotLine | ConvertFrom-Json
-                if (-not $rrBrowserSnapshot.ok -or $rrBrowserSnapshot.result.provider -ne 'browser-cdp' -or $rrBrowserSnapshot.result.semanticSessionId -ne $browserSemId -or $rrBrowserSnapshot.result.stateSeq -lt $rrBrowserAttach.result.stateSeq) { throw "Real Remote browser semantic snapshot invalid: $rrBrowserSnapshotLine" }
+                $browserReadyDeadline = [DateTime]::UtcNow.AddSeconds(5)
+                $browserReadyAttempt = 0
+                $rrBrowserSnapshot = $null
+                $rrBrowserSnapshotLine = ''
+                $snapshotButton = @()
+                do {
+                  $browserReadyAttempt++
+                  $rr.StandardInput.WriteLine((@{id=("ci-browser-snapshot-" + $browserReadyAttempt);op='semantic-snapshot';args=@{semanticSessionId=$browserSemId}} | ConvertTo-Json -Compress -Depth 4))
+                  $rr.StandardInput.Flush()
+                  $rrBrowserSnapshotLine = $rr.StandardOutput.ReadLine()
+                  $rrBrowserSnapshot = $rrBrowserSnapshotLine | ConvertFrom-Json
+                  if (-not $rrBrowserSnapshot.ok -or $rrBrowserSnapshot.result.provider -ne 'browser-cdp' -or $rrBrowserSnapshot.result.semanticSessionId -ne $browserSemId -or $rrBrowserSnapshot.result.stateSeq -lt $rrBrowserAttach.result.stateSeq) { throw "Real Remote browser semantic snapshot invalid: $rrBrowserSnapshotLine" }
+                  $snapshotButton = @($rrBrowserSnapshot.result.nodes | Where-Object { $_.role -eq 'button' -and $_.name -eq 'Continue' })
+                  if ($snapshotButton.Count -ge 1 -and $null -ne $snapshotButton[0].center) { break }
+                  Start-Sleep -Milliseconds 100
+                } while ([DateTime]::UtcNow -lt $browserReadyDeadline)
+                if ($snapshotButton.Count -lt 1 -or $null -eq $snapshotButton[0].center) { throw "Real Remote browser semantic center missing after readiness wait: $rrBrowserSnapshotLine" }
 
                 $browserAfter = [long]$rrBrowserSnapshot.result.stateSeq
-                $snapshotButton = @($rrBrowserSnapshot.result.nodes | Where-Object { $_.role -eq 'button' -and $_.name -eq 'Continue' })
-                if ($snapshotButton.Count -lt 1 -or $null -eq $snapshotButton[0].center) { throw "Real Remote browser semantic center missing: $rrBrowserSnapshotLine" }
                 $browserX = [int][Math]::Round([double]$snapshotButton[0].center.x)
                 $browserY = [int][Math]::Round([double]$snapshotButton[0].center.y)
                 $rr.StandardInput.WriteLine((@{id='ci-browser-input-ack';op='input';args=@{events=@(@{type='move';x=$browserX;y=$browserY});semanticSessionId=$browserSemId;afterSeq=$browserAfter;settleMs=0}} | ConvertTo-Json -Compress -Depth 7))

@@ -65,11 +65,18 @@ try{
 
   $attach=Invoke-Rr 'accept-attach' 'semantic-attach' @{provider='browser-cdp';cdpEndpoint=$endpoint;urlMatch='real-remote-browser-os-input.html';maxDepth=8;maxNodes=600}
   $sem=[string]$attach.semanticSessionId;if($attach.provider -ne 'browser-cdp' -or [string]::IsNullOrWhiteSpace($sem)){throw 'browser-cdp attach failed'}
-  $before=Invoke-Rr 'accept-before' 'semantic-snapshot' @{semanticSessionId=$sem}
-  if($before.provider -ne 'browser-cdp' -or -not $before.viewport.screenEstimateAvailable){throw 'No browser screen estimate'}
-  $nodes=@($before.nodes|Where-Object { $_.role -eq 'button' -and $_.name -eq 'Light Remote OS Input' })
-  if($nodes.Count -ne 1){throw "Acceptance button count=$($nodes.Count)"}
-  $button=$nodes[0];if($button.coordinateSpace -ne 'screen-dip-estimate' -or $null -eq $button.center){throw "Bad coordinate space: $($button.coordinateSpace)"}
+  $readyDeadline=[DateTime]::UtcNow.AddSeconds([Math]::Min($TimeoutSeconds,10));$readyAttempt=0;$before=$null;$nodes=@()
+  do{
+    $readyAttempt++
+    $before=Invoke-Rr ("accept-before-"+$readyAttempt) 'semantic-snapshot' @{semanticSessionId=$sem}
+    if($before.provider -ne 'browser-cdp'){throw 'browser-cdp snapshot provider mismatch'}
+    $nodes=@($before.nodes|Where-Object { $_.role -eq 'button' -and $_.name -eq 'Light Remote OS Input' })
+    if($nodes.Count -eq 1 -and $before.viewport.screenEstimateAvailable -and $nodes[0].coordinateSpace -eq 'screen-dip-estimate' -and $null -ne $nodes[0].center){break}
+    Start-Sleep -Milliseconds 100
+  }while([DateTime]::UtcNow -lt $readyDeadline)
+  if($nodes.Count -ne 1){throw "Acceptance button count=$($nodes.Count) after readiness wait"}
+  if(-not $before.viewport.screenEstimateAvailable){throw 'No browser screen estimate'}
+  $button=$nodes[0];if($button.coordinateSpace -ne 'screen-dip-estimate' -or $null -eq $button.center){throw "Bad coordinate space after readiness wait: $($button.coordinateSpace)"}
   $x=[int][Math]::Round([double]$button.center.x);$y=[int][Math]::Round([double]$button.center.y);$beforeSeq=[long]$before.stateSeq
 
   $ack=Invoke-Rr 'accept-os-click' 'input' @{events=@(@{type='move';x=$x;y=$y},@{type='click';button='left';count=1});semanticSessionId=$sem;afterSeq=$beforeSeq;settleMs=150}
