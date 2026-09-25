@@ -45,6 +45,8 @@ need(script.includes('return $r.result'),'windows_acceptance_powershell_return_m
 need(script.includes('$readyDeadline=[DateTime]::UtcNow.AddSeconds([Math]::Min($TimeoutSeconds,10))'),'windows_acceptance_readiness_wait_missing');
 need(script.includes('$clickAttempt -lt 2')&&script.includes('$observeDeadline=[DateTime]::UtcNow.AddMilliseconds(900)'),'windows_acceptance_bounded_click_retry_missing');
 need(script.includes('[LightRemoteAcceptanceWindow]::Focus($hwnd);Start-Sleep -Milliseconds 100'),'windows_acceptance_click_refocus_missing');
+need(!script.includes('$clickAttempt:'),'windows_acceptance_click_attempt_scope_parse_forbidden');
+need(script.includes('${clickAttempt}:'),'windows_acceptance_click_attempt_braced_variable_missing');
 need(workflow.includes('$browserReadyDeadline = [DateTime]::UtcNow.AddSeconds(5)'),'windows_hidden_smoke_readiness_wait_missing');
 need(workflow.includes('$browserStartAttempt -lt 2')&&workflow.includes('windows-real-remote-browser-start-retry attempt=$browserStartAttempt'),'windows_hidden_smoke_browser_start_retry_missing');
 need(!workflow.includes('& taskkill.exe /PID $browser.Id /T /F'),'windows_hidden_smoke_native_taskkill_exit_leak_forbidden');

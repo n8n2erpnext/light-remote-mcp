@@ -86,7 +86,7 @@ try{
       $nodes=@($before.nodes|Where-Object { $_.role -eq 'button' -and $_.name -eq 'Light Remote OS Input' })
       if($nodes.Count -ne 1){throw "Acceptance button count=$($nodes.Count) before click retry $clickAttempt"}
     }
-    $button=$nodes[0];if($button.coordinateSpace -ne 'screen-dip-estimate' -or $null -eq $button.center){throw "Bad coordinate space on click attempt $clickAttempt: $($button.coordinateSpace)"}
+    $button=$nodes[0];if($button.coordinateSpace -ne 'screen-dip-estimate' -or $null -eq $button.center){throw "Bad coordinate space on click attempt ${clickAttempt}: $($button.coordinateSpace)"}
     $x=[int][Math]::Round([double]$button.center.x);$y=[int][Math]::Round([double]$button.center.y);$beforeSeq=[long]$before.stateSeq
     [LightRemoteAcceptanceWindow]::Focus($hwnd);Start-Sleep -Milliseconds 100
     $ack=Invoke-Rr ("accept-os-click-"+$clickAttempt) 'input' @{events=@(@{type='move';x=$x;y=$y},@{type='click';button='left';count=1});semanticSessionId=$sem;afterSeq=$beforeSeq;settleMs=150}
