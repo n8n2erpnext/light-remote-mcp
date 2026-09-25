@@ -120,7 +120,7 @@ for(const token of ['EnumWindows','GetForegroundWindow','GetCursorPos','Screen.A
 assert.ok(helper.includes('"input" => Input(args)'),'Windows hidden helper input opcode missing');
 for(const token of ['"semantic-attach" => SemanticAttach(args)','"semantic-snapshot" => SemanticSnapshot(args)','"semantic-detach" => SemanticDetach(args)'])assert.ok(helper.includes(token),`Windows semantic opcode missing: ${token}`);
 for(const token of ['AutomationElement','TreeWalker.ControlViewWalker','semanticSessionId','epoch','stateSeq','password','MaxNodes'])assert.ok(semanticHelper.includes(token),`Windows semantic contract missing: ${token}`);
-for(const token of ['UIAutomationClient','UIAutomationTypes','WindowsBase'])assert.ok(windowsProject.includes(token),`Windows UIA reference missing: ${token}`);
+assert.ok(windowsProject.includes('<UseWPF>true</UseWPF>'),'Windows UIA reference pack must come from WindowsDesktop/WPF SDK support');
 for(const token of ['SendInput(','SetCursorPos(','desktop_input_blocked','desktop_input_invalid_event_count','Keyboard(ushort vk,ushort scan,uint flags)'])assert.ok(inputHelper.includes(token),`Windows input contract missing: ${token}`);
 assert.ok(!inputHelper.includes('mouse_event('),'legacy mouse_event must not be used');
 assert.ok(!read('lib/real-remote-input.cjs').includes("type==='raw'"),'raw arbitrary INPUT packets must not be exposed');
