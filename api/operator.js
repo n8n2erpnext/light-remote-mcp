@@ -4,6 +4,7 @@ const { sealOperatorPayload } = require('../lib/operator-crypto');
 const { aid, field, jobId, normalizeDeviceHeartbeat, normalizeDevicePolicy, normalizeDeviceRevoke, normalizeEnrollmentApprove, normalizeEnrollmentCancel, normalizeEnrollmentBegin, normalizeEnrollmentPoll, normalizeNodeDrain, normalizeShellId, normalizeExecPayload, normalizeSessionOpenPayload, payloadFor, sid } = require('../lib/operator-request');
 const { toolHelperHint, toolHelperView } = require('../lib/plus-tool-helper');
 const { inspectPlusExecPayload } = require('../lib/plus-batch-policy.cjs');
+const { callWithClientContinuity } = require('../lib/plus-client-continuity.cjs');
 
 function enrollmentSourceHash(req){ const ip=String(req.headers?.["x-forwarded-for"]||"unknown").split(",")[0].trim().slice(0,128); return crypto.createHash("sha256").update("v07-enrollment:"+ip).digest("hex"); }
 function requestOrigin(req){
@@ -61,7 +62,21 @@ module.exports=async function handler(req,res){
   const compactPlusResponse=()=>plus&&(action==='connection-helper'||action==='connect'||action==='connect-poll'||(plusClientValid&&compactClientActions.has(action)));
   const call=(path,options={})=>callOperator(path,{...options,bridgeSession});
   const plusCall=(path,options={})=>callOperator(path,{...options,plusSession});
-  const clientCall=(path,options={})=>{const body=options.body&&typeof options.body==='object'&&!Array.isArray(options.body)?{...options.body,bridgeReceivedAt:started}:options.body;return callOperator(path,{...options,...(body===undefined?{}:{body}),plusClient});};
+  const clientCall=(path,options={})=>{
+    const body=options.body&&typeof options.body==='object'&&!Array.isArray(options.body)?{...options.body,bridgeReceivedAt:started}:options.body;
+    const deployment=String(process.env.VERCEL_GIT_COMMIT_SHA||process.env.VERCEL_DEPLOYMENT_ID||'unknown').slice(0,16);
+    return callWithClientContinuity(
+      ()=>callOperator(path,{...options,...(body===undefined?{}:{body}),plusClient}),
+      {
+        client:plusClient,
+        onEvent:event=>{
+          const row={event:event.type,action,path,attempt:event.attempt||0,delayMs:event.delayMs||0,clientFingerprint:event.fingerprint,deployment};
+          if(event.type==='client_continuity_recovered')console.log(JSON.stringify(row));
+          else console.warn(JSON.stringify(row));
+        }
+      }
+    );
+  };
   const clientDevice=value=>{const v=String(value||'').trim();if(!/^[A-Za-z0-9._:-]{1,128}$/.test(v)){const e=new Error('invalid_plus_device_id');e.status=400;throw e;}return v;};
   const helperOrigin=requestOrigin(req);
   try {
