@@ -5,11 +5,19 @@ const { aid, field, jobId, normalizeDeviceHeartbeat, normalizeDevicePolicy, norm
 const { toolHelperHint, toolHelperView } = require('./plus-tool-helper.cjs');
 
 function enrollmentSourceHash(req){ const ip=String(req.headers?.["x-forwarded-for"]||"unknown").split(",")[0].trim().slice(0,128); return crypto.createHash("sha256").update("v07-enrollment:"+ip).digest("hex"); }
-
-function connectionHelperView(value={}) {
+function requestOrigin(req){
+  const proto=String(req.headers?.['x-forwarded-proto']||'https').split(',')[0].trim().toLowerCase()==='http'?'http':'https';
+  const host=String(req.headers?.['x-forwarded-host']||req.headers?.host||'').split(',')[0].trim();
+  return /^[A-Za-z0-9.-]+(?::\d{1,5})?$/.test(host)?`${proto}://${host}`:'';
+}
+function connectionHelperView(value={},origin='') {
   const status=String(value.status||'need_a_code');
   const base={protocol:'light-remote-plus-v1',endpoint:'/api/operator?via=plus&action=connection-helper',status};
-  if(status==='approval_required') return {...value,helper:{...base,nextAction:'owner_approve_b_then_poll',instruction:'Ask the owner to enter the returned B code on the exact Wall that produced A, approve it, then call connection-helper again with nextPayload.',nextPayload:{continuation:value.continuation}}};
+  if(status==='approval_required'){
+    const nextPayload={continuation:value.continuation};
+    const nextPath=`${base.endpoint}&p=${Buffer.from(JSON.stringify(nextPayload)).toString('base64url')}`;
+    return {...value,helper:{...base,nextAction:'owner_approve_b_then_poll',instruction:'Ask the owner to enter the returned B code on the exact Wall that produced A and approve it. Then replay helper.nextUrl exactly through @Vercel web_fetch_vercel_url; do not rebuild or expose the continuation.',nextPayload,nextUrl:origin?`${origin}${nextPath}`:nextPath}};
+  }
   if(status==='ready') return {...value,helper:{...base,nextAction:'load_tool_helper',instruction:'Connection and working context are ready. Keep the opaque client token private; reuse the returned context and immediately load the Tool Helper instead of reading repo source for tool syntax.',toolHelper:toolHelperHint(),rules:['Reuse context.deviceId/context.sessionId after READY.','Pair each additional device independently with its own A/B flow.','Never expose client/continuation capabilities to the user.']}};
   return {...value,helper:{...base,nextAction:'provide_a_code',instruction:'Get a fresh A code from the target Local Wall, then call connection-helper with {aCode,agentId,label}. Do not send client on the first pairing.'}};
 }
@@ -54,24 +62,25 @@ module.exports=async function handler(req,res){
   const plusCall=(path,options={})=>callOperator(path,{...options,plusSession});
   const clientCall=(path,options={})=>{const body=options.body&&typeof options.body==='object'&&!Array.isArray(options.body)?{...options.body,bridgeReceivedAt:started}:options.body;return callOperator(path,{...options,...(body===undefined?{}:{body}),plusClient});};
   const clientDevice=value=>{const v=String(value||'').trim();if(!/^[A-Za-z0-9._:-]{1,128}$/.test(v)){const e=new Error('invalid_plus_device_id');e.status=400;throw e;}return v;};
+  const helperOrigin=requestOrigin(req);
   try {
     let upstream;
     if(plus){
       if(action==='connection-helper') {
-        if(!String(req.query?.p||'').trim()) upstream=connectionHelperView({ok:false,status:'need_a_code',error:'pairing_code_required'});
+        if(!String(req.query?.p||'').trim()) upstream=connectionHelperView({ok:false,status:'need_a_code',error:'pairing_code_required'},helperOrigin);
         else {
           const d=payloadFor(req);
           if(d.continuation){
             const continuation=String(d.continuation||'').trim();
             if(!/^o1\.pair\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(continuation)){const e=new Error('invalid_pairing_continuation');e.status=400;throw e;}
-            upstream=connectionHelperView(await pollPairing(continuation));
+            upstream=connectionHelperView(await pollPairing(continuation),helperOrigin);
           } else {
             const raw=String(d.aCode||'').trim().toUpperCase().replace(/-/g,'');
-            if(!/^[A-Z2-9]{8}$/.test(raw)){upstream=connectionHelperView({ok:false,status:'need_a_code',error:raw?'invalid_pairing_code':'pairing_code_required'});}
+            if(!/^[A-Z2-9]{8}$/.test(raw)){upstream=connectionHelperView({ok:false,status:'need_a_code',error:raw?'invalid_pairing_code':'pairing_code_required'},helperOrigin);}
             else {
               const agentId=aid(d.agentId),label=String(d.label||'ChatGPT').trim().slice(0,120);
               let client=null;if(d.client!=null&&String(d.client).trim()){client=String(d.client).trim();if(!/^o1\.client\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(client)){const e=new Error('invalid_agent_client');e.status=400;throw e;}}
-              upstream=connectionHelperView(await callOperator('/plus/connect/begin',{method:'POST',body:{aCode:`${raw.slice(0,4)}-${raw.slice(4)}`,agentId,label,client}}));
+              upstream=connectionHelperView(await callOperator('/plus/connect/begin',{method:'POST',body:{aCode:`${raw.slice(0,4)}-${raw.slice(4)}`,agentId,label,client}}),helperOrigin);
             }
           }
         }

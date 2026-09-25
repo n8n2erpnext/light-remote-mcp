@@ -279,10 +279,10 @@ Trong cuộc chat có connector Vercel đã kết nối, mở **Local Wall** c�
 ```text
 Light Remote connection request
 A code: ABCD-EFGH
-Agent: use @Vercel and action=connection-helper. First call payload {aCode,agentId,label}; do not enumerate devices and do not send client on first pairing. Follow helper.nextAction/helper.nextPayload. Keep continuation/client private.
+Agent: use @Vercel web_fetch_vercel_url directly. Do not search for a Vercel connector action named connection-helper; connection-helper is the Light Remote HTTP action inside the URL. First call payload {aCode,agentId,label}; encode it as base64url(JSON) in ?p= on https://lightremote.thaiduy.digital/api/operator?via=plus&action=connection-helper. Do not enumerate devices and do not send client on first pairing. Follow helper.nextAction; when helper.nextUrl is present, replay that URL exactly through @Vercel. Keep continuation/client private.
 ```
 
-Agent phải đi theo response của Connection Helper thay vì tự đoán protocol:
+Agent phải đi theo response của Connection Helper thay vì tự đoán protocol; sau khi Approve B, ưu tiên replay nguyên `helper.nextUrl` tới `READY` (`helper.nextPayload` chỉ là fallback private contract):
 
 1. A hợp lệ → server tạo request và trả **B code / approval_required**.
 2. Trên **chính Local Wall đã tạo A**, mở **Approve B**, nhập B và kiểm tra label Agent.

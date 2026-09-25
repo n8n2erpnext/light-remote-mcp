@@ -6,12 +6,17 @@ function expect(value,message){if(!value)throw new Error(message);}
 function response(){return {statusCode:200,body:null,status(n){this.statusCode=n;return this;},json(v){this.body=v;return this;},type(){return this;},send(v){this.body=v;return this;},set(){return this;}};}
 
 const api=text('api/operator.js');
+const netlifyApi=text('netlify/functions/_shared/operator-handler.cjs');
+const wall=text('device-agent/local-wall.mjs');
 const server=text('gateway/server.mjs');
 const security=text('gateway/security.mjs');
 const opReq=text('lib/operator-request.js');
 expect(opReq.includes('const MAX_GET_PAYLOAD_CHARS = 12000;'),'plus_get_payload_cap_must_be_12k');
 expect(api.includes("const plus=wantsPlus && req.method==='GET'"),'plus_bridge_must_be_get_only');
 expect(api.includes("action==='connection-helper'")&&api.includes('connectionHelperView')&&api.includes('toolHelperHint')&&api.includes("nextAction:'load_tool_helper'"),'plus_connection_helper_missing');
+expect(api.includes('requestOrigin(req)')&&api.includes('nextUrl')&&api.includes("Buffer.from(JSON.stringify(nextPayload)).toString('base64url')"),'plus_connection_helper_next_url_missing');
+expect(netlifyApi.includes('requestOrigin(req)')&&netlifyApi.includes('nextUrl')&&netlifyApi.includes("Buffer.from(JSON.stringify(nextPayload)).toString('base64url')"),'netlify_connection_helper_next_url_missing');
+expect(wall.includes('web_fetch_vercel_url directly')&&wall.includes('Do not search for a Vercel connector action named connection-helper')&&wall.includes('helper.nextUrl'),'local_wall_pairing_capsule_tool_selection_missing');
 expect(api.includes('pairingRecovery')&&api.includes("'/plus/connect/recover'")&&server.includes("app.post('/plus/connect/recover'"),'plus_pairing_recovery_missing');
 expect(api.includes("if(error.status===401&&recovery)return callOperator('/plus/connect/recover'"),'plus_pairing_recovery_must_not_depend_on_error_payload_string');
 expect(server.includes("plusRateLimit=createRateLimit('plus'")&&server.includes('plusRateIdentity')&&!server.includes("app.post('/plus/connect/begin', softRateLimit"),'plus_scoped_rate_limit_missing');

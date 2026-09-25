@@ -247,10 +247,10 @@ In a chat where your Vercel connector is available, open **Local Wall** on the e
 ```text
 Light Remote connection request
 A code: ABCD-EFGH
-Agent: use @Vercel and action=connection-helper. First call payload {aCode,agentId,label}; do not enumerate devices and do not send client on first pairing. Follow helper.nextAction/helper.nextPayload. Keep continuation/client private.
+Agent: use @Vercel web_fetch_vercel_url directly. Do not search for a Vercel connector action named connection-helper; connection-helper is the Light Remote HTTP action inside the URL. First call payload {aCode,agentId,label}; encode it as base64url(JSON) in ?p= on https://lightremote.thaiduy.digital/api/operator?via=plus&action=connection-helper. Do not enumerate devices and do not send client on first pairing. Follow helper.nextAction; when helper.nextUrl is present, replay that URL exactly through @Vercel. Keep continuation/client private.
 ```
 
-The Agent must follow Connection Helper responses rather than inventing protocol calls: A produces `approval_required` and B; approve B on the same Wall; the Agent polls with `helper.nextPayload` until `READY`; then it keeps the opaque client private and immediately loads Tool Helper.
+The Agent must follow Connection Helper responses rather than inventing protocol calls: A produces `approval_required` and B; approve B on the same Wall; the Agent replays `helper.nextUrl` exactly until `READY` (`helper.nextPayload` remains a private fallback contract); then it keeps the opaque client private and immediately loads Tool Helper.
 
 From there you can ask naturally: “inspect this repo and fix the failing test”, “check Docker on the VPS”, “open a terminal for this TUI”, “copy this file to the Windows machine”, or “follow the build process”.
 
