@@ -167,6 +167,16 @@ async function executeDesktopCommand(state,p){
     const input=normalizeDesktopInput({events:request.events});
     return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('input',input,{timeoutMs:10000})};
   }
+  if(op==='semantic-attach'){
+    const depth=Number(request.maxDepth),nodes=Number(request.maxNodes);
+    return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('semantic-attach',{
+      scope:request.scope==='desktop'?'desktop':'foreground',
+      maxDepth:Math.max(0,Math.min(Number.isFinite(depth)?depth:6,12)),
+      maxNodes:Math.max(1,Math.min(Number.isFinite(nodes)?nodes:400,1500))
+    },{timeoutMs:15000})};
+  }
+  if(op==='semantic-snapshot')return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('semantic-snapshot',{semanticSessionId:String(request.semanticSessionId||'')},{timeoutMs:15000})};
+  if(op==='semantic-detach')return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('semantic-detach',{semanticSessionId:String(request.semanticSessionId||'')},{timeoutMs:10000})};
   throw new Error('desktop_operation_unsupported');
 }
 

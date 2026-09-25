@@ -100,4 +100,13 @@ desktop.frame remains a control-plane proof, not the final Real Remote video tra
 
 Windows input uses SetCursorPos and SendInput from the existing GptOperator.Client.exe hidden helper. Windows UIPI and secure-desktop boundaries remain in force; Real Remote does not elevate around them.
 
-The next milestone moves frame delivery to a persistent live data plane and adds attach/detach lifecycle before browser/form acceptance.
+V0.4-A adds the semantic foundation without changing the existing pixel or input paths:
+- desktop-semantic-attach opens a bounded Windows UI Automation session and returns semanticSessionId, epoch and stateSeq=1;
+- desktop-semantic-snapshot refreshes that same bounded semantic tree and advances stateSeq;
+- desktop-semantic-detach closes the session;
+- scope defaults to the foreground window, with desktop root available explicitly;
+- maxDepth is bounded to 0..12 and maxNodes to 1..1500;
+- nodes expose role/name/AutomationId/class/framework, process/window identity, bounds/center, focus/enabled/offscreen/password flags and supported UIA interaction patterns;
+- V0.4-A deliberately does not read ValuePattern/TextPattern contents, including password contents.
+
+The next milestone is V0.4-B: UIA event journal + coalesced diffs + input ACK/stateSeq so the Agent can stay synchronized continuously and only request a new frame when semantic state needs visual resync.

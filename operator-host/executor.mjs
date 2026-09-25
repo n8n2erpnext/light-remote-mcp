@@ -561,14 +561,14 @@ async function startDesktopOperation(payload,requestId){
   const agentId=String(payload.agentId||'').trim(),session=sessions.ensure(String(payload.sessionId||''),{agentId});requireDeviceConnection(session.deviceId);
   if(payload.nodeId!=null&&String(payload.nodeId)!==session.nodeId)throw new SessionError('session_target_mismatch',409);
   let request=payload.desktop&&typeof payload.desktop==='object'&&!Array.isArray(payload.desktop)?payload.desktop:null;if(!request)throw new Error('desktop_request_required');
-  const op=String(request.op||'');if(!['status','windows','frame','input'].includes(op))throw new Error('desktop_operation_unsupported');
+  const op=String(request.op||'');if(!['status','windows','frame','input','semantic-attach','semantic-snapshot','semantic-detach'].includes(op))throw new Error('desktop_operation_unsupported');
   if(op==='input')request={op,...normalizeDesktopInput({events:request.events})};
   const remote=session.nodeId!==NODE_ID,requiredCapabilities=op==='input'?['desktop','desktop-input']:['desktop'];
   if(!remote)throw new DeviceError('desktop_local_host_not_supported',409);
   const route=targetRoute(session.nodeId);if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(requiredCapabilities.some(cap=>!route.capabilities.includes(cap)))throw new FleetError('target_node_capability_missing',409);
   const fingerprint=crypto.createHash('sha256').update(JSON.stringify({request,sessionId:session.id,nodeId:session.nodeId})).digest('hex'),existing=operationDedupe.get(operationId);
   if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
-  const toolMeta={kind:'desktop',op,label:op==='status'?'Desktop status':op==='windows'?'Desktop windows':op==='frame'?'Desktop frame':'Desktop input'};
+  const toolMeta={kind:'desktop',op,label:op==='status'?'Desktop status':op==='windows'?'Desktop windows':op==='frame'?'Desktop frame':op==='input'?'Desktop input':op==='semantic-attach'?'Semantic attach':op==='semantic-snapshot'?'Semantic snapshot':'Semantic detach'};
   const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-desktop:${op}`,cwd:'',script:toolMeta.label,status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote:true,commandId:null,requiredCapabilities,resultData:null,resultSummary:'',toolMeta};
   jobs.set(job.id,job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
   pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:'outbound-leaf',requiredCapabilities,note:job.note,toolMeta});

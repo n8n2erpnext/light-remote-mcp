@@ -67,6 +67,9 @@ internal static partial class RealRemoteHelper
                     "windows" => Windows(Limit(args)),
                     "frame" => Frame(args),
                     "input" => Input(args),
+                    "semantic-attach" => SemanticAttach(args),
+                    "semantic-snapshot" => SemanticSnapshot(args),
+                    "semantic-detach" => SemanticDetach(args),
                     _ => throw new InvalidOperationException($"desktop_operation_unsupported:{op}")
                 };
                 output.WriteLine(JsonSerializer.Serialize(new { id, ok = true, result }));

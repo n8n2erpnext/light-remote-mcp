@@ -146,6 +146,30 @@ jobs:
             if ($rrInput.ok -or $rrInput.error -like 'desktop_operation_unsupported*') { throw "Real Remote input opcode negative probe invalid: $rrInputLine" }
             Write-Host "windows-real-remote-input-negative=PASS error=$($rrInput.error)"
 
+            if ($rrStatus.result.interactive) {
+              $rr.StandardInput.WriteLine('{"id":"ci-sem-attach","op":"semantic-attach","args":{"scope":"desktop","maxDepth":0,"maxNodes":1}}')
+              $rr.StandardInput.Flush()
+              $rrSemAttachLine = $rr.StandardOutput.ReadLine()
+              $rrSemAttach = $rrSemAttachLine | ConvertFrom-Json
+              if (-not $rrSemAttach.ok -or $rrSemAttach.result.provider -ne 'windows-uia' -or $rrSemAttach.result.stateSeq -ne 1 -or [string]::IsNullOrWhiteSpace($rrSemAttach.result.semanticSessionId)) { throw "Real Remote semantic attach invalid: $rrSemAttachLine" }
+
+              $semId = [string]$rrSemAttach.result.semanticSessionId
+              $rr.StandardInput.WriteLine((@{id='ci-sem-snapshot';op='semantic-snapshot';args=@{semanticSessionId=$semId}} | ConvertTo-Json -Compress -Depth 4))
+              $rr.StandardInput.Flush()
+              $rrSemSnapshotLine = $rr.StandardOutput.ReadLine()
+              $rrSemSnapshot = $rrSemSnapshotLine | ConvertFrom-Json
+              if (-not $rrSemSnapshot.ok -or $rrSemSnapshot.result.stateSeq -ne 2 -or $rrSemSnapshot.result.semanticSessionId -ne $semId) { throw "Real Remote semantic snapshot invalid: $rrSemSnapshotLine" }
+
+              $rr.StandardInput.WriteLine((@{id='ci-sem-detach';op='semantic-detach';args=@{semanticSessionId=$semId}} | ConvertTo-Json -Compress -Depth 4))
+              $rr.StandardInput.Flush()
+              $rrSemDetachLine = $rr.StandardOutput.ReadLine()
+              $rrSemDetach = $rrSemDetachLine | ConvertFrom-Json
+              if (-not $rrSemDetach.ok -or -not $rrSemDetach.result.detached -or $rrSemDetach.result.semanticSessionId -ne $semId) { throw "Real Remote semantic detach invalid: $rrSemDetachLine" }
+              Write-Host "windows-real-remote-semantic=PASS nodes=$($rrSemAttach.result.nodeCount) seq=$($rrSemSnapshot.result.stateSeq)"
+            } else {
+              Write-Host 'windows-real-remote-semantic=SKIP no-interactive-session'
+            }
+
             if ($rrStatus.result.interactive -and $rrStatus.result.screens.Count -gt 0) {
               $rr.StandardInput.WriteLine('{"id":"ci-frame","op":"frame","args":{"maxWidth":320,"maxHeight":180,"quality":30}}')
               $rr.StandardInput.Flush()

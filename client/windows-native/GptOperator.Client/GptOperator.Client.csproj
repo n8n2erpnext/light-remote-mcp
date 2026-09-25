@@ -20,6 +20,11 @@
     <DebugSymbols>false</DebugSymbols>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="UIAutomationClient" />
+    <Reference Include="UIAutomationTypes" />
+    <Reference Include="WindowsBase" />
+  </ItemGroup>
+  <ItemGroup>
     <Compile Remove="MainForm.cs;ConnectionSwitch.cs;ConnectionSettingsDialog.cs" />
     <EmbeddedResource Include="Assets\light-remote-mark.png" LogicalName="LightRemoteMark.png" />
     <Content Include="Assets\light-remote.ico">
