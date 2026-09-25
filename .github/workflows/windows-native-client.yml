@@ -197,17 +197,28 @@ jobs:
               )
               $browserExe = $browserCandidates | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
               if (-not $browserExe) { throw 'Chromium browser missing for Real Remote CDP smoke' }
-              $browserProfile = Join-Path $env:RUNNER_TEMP ('real-remote-cdp-' + [Guid]::NewGuid().ToString('N'))
+              $browserProfile = $null
               $browserHtml = Join-Path $env:RUNNER_TEMP 'real-remote-cdp.html'
-              New-Item -ItemType Directory -Force -Path $browserProfile | Out-Null
               Set-Content -Path $browserHtml -Encoding UTF8 -Value '<!doctype html><html><head><title>Real Remote CDP CI</title></head><body><main><h1>Real Remote Browser</h1><button id="continue" class="primary">Continue</button><input id="account" aria-label="Account" value="not-read"/></main></body></html>'
               $browserUrl = ([System.Uri]::new($browserHtml)).AbsoluteUri
-              $browser = Start-Process -FilePath $browserExe -ArgumentList @('--headless=new','--remote-debugging-port=0','--remote-allow-origins=*','--disable-background-networking','--disable-default-apps','--no-first-run','--no-default-browser-check',("--user-data-dir=$browserProfile"),$browserUrl) -PassThru
+              $browser = $null
+              $browserStartAttempt = 0
               try {
-                $portFile = Join-Path $browserProfile 'DevToolsActivePort'
-                $deadline = [DateTime]::UtcNow.AddSeconds(15)
-                while (-not (Test-Path $portFile) -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 100 }
-                if (-not (Test-Path $portFile)) { throw 'Chromium DevToolsActivePort was not created' }
+                do {
+                  $browserStartAttempt++
+                  $browserProfile = Join-Path $env:RUNNER_TEMP ('real-remote-cdp-' + [Guid]::NewGuid().ToString('N'))
+                  New-Item -ItemType Directory -Force -Path $browserProfile | Out-Null
+                  $browser = Start-Process -FilePath $browserExe -ArgumentList @('--headless=new','--remote-debugging-port=0','--remote-allow-origins=*','--disable-background-networking','--disable-default-apps','--no-first-run','--no-default-browser-check',("--user-data-dir=$browserProfile"),$browserUrl) -PassThru
+                  $portFile = Join-Path $browserProfile 'DevToolsActivePort'
+                  $deadline = [DateTime]::UtcNow.AddSeconds(15)
+                  while (-not (Test-Path $portFile) -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 100 }
+                  if (Test-Path $portFile) { break }
+                  Write-Warning "windows-real-remote-browser-start-retry attempt=$browserStartAttempt"
+                  if ($browser -and -not $browser.HasExited) { $null=Start-Process -FilePath 'taskkill.exe' -ArgumentList @('/PID',[string]$browser.Id,'/T','/F') -Wait -WindowStyle Hidden -ErrorAction SilentlyContinue }
+                  Remove-Item $browserProfile -Recurse -Force -ErrorAction SilentlyContinue
+                  $browser = $null
+                } while ($browserStartAttempt -lt 2)
+                if (-not (Test-Path $portFile)) { throw "Chromium DevToolsActivePort was not created after $browserStartAttempt attempts" }
                 $cdpPort = [int]((Get-Content $portFile -TotalCount 1).Trim())
                 if ($cdpPort -lt 1 -or $cdpPort -gt 65535) { throw "Chromium DevTools port invalid: $cdpPort" }
                 $cdpEndpoint = "http://127.0.0.1:$cdpPort"
@@ -262,8 +273,8 @@ jobs:
                 Write-Host "windows-real-remote-browser-cdp=PASS nodes=$($rrBrowserAttach.result.nodeCount) seq=$($rrBrowserSnapshot.result.stateSeq) events=$($rrBrowserEvents.result.events.Count)"
               }
               finally {
-                if ($browser -and -not $browser.HasExited) { & taskkill.exe /PID $browser.Id /T /F 2>$null | Out-Null }
-                Remove-Item $browserProfile -Recurse -Force -ErrorAction SilentlyContinue
+                if ($browser -and -not $browser.HasExited) { $null=Start-Process -FilePath 'taskkill.exe' -ArgumentList @('/PID',[string]$browser.Id,'/T','/F') -Wait -WindowStyle Hidden -ErrorAction SilentlyContinue }
+                if ($browserProfile) { Remove-Item $browserProfile -Recurse -Force -ErrorAction SilentlyContinue }
                 Remove-Item $browserHtml -Force -ErrorAction SilentlyContinue
               }
             } else {
