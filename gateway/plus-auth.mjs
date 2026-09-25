@@ -13,6 +13,22 @@ function accessOf(value) { return value?.access || value; }
 function grantOf(value) { return value?.grant || accessOf(value)?.grant || null; }
 function pairingCode(value){const raw=String(value||'').trim().toUpperCase().replace(/-/g,'');if(!/^[A-Z2-9]{8}$/.test(raw))throw new Error('invalid_pairing_code');return `${raw.slice(0,4)}-${raw.slice(4)}`;}
 
+function clientTokenFromRequest(req){
+  const header=String(req.get?.('x-light-client')||req.headers?.['x-light-client']||'').trim();
+  if(header)return {token:header,transport:'header'};
+  const cookie=String(req.headers?.cookie||'');
+  for(const part of cookie.split(';')){
+    const i=part.indexOf('=');
+    if(i<1)continue;
+    const name=part.slice(0,i).trim();
+    if(name!=='light_remote_client')continue;
+    let value=part.slice(i+1).trim();
+    try{value=decodeURIComponent(value);}catch{}
+    if(value)return {token:value,transport:'cookie'};
+  }
+  return {token:'',transport:'missing'};
+}
+
 function brandedErrorPage(message){return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">${brandFaviconSvg()}<title>Light Remote MCP</title><style>:root{color-scheme:dark;font-family:system-ui;background:#080a0c;color:#e5e7eb}body{margin:0;min-height:100vh;display:grid;place-items:center}.card{width:min(520px,calc(100vw - 32px));border:1px solid #29313a;border-radius:14px;padding:22px;background:#0b0f13}.brand-title{display:flex;align-items:center;gap:12px;margin-bottom:12px}.brand-title>span{display:flex;align-items:baseline;gap:7px}.brand-title small{color:#8b98a8}.muted{color:#8b98a8}</style></head><body><main class="card">${brandTitleSvg(44)}<p class="muted">${esc(message)}</p></main></body></html>`;}
 
 export function createPlusAuth(wallAuth, options = {}) {
@@ -73,9 +89,9 @@ export function createPlusAuth(wallAuth, options = {}) {
     }catch(error){const denied=error.message==='plus_authorization_denied',expired=['plus_authorization_expired','agent_client_expired'].includes(error.message);return res.status(Number(error.status)||400).json({ok:false,status:expired?'approval_expired':denied?'access_revoked':'error',error:error.message||'pairing_recovery_failed'});}
   }
   async function requireClient(req,res,next){
-    const ctx=clientContext(req.get('x-light-client')||'');
-    if(!ctx)return res.status(401).json({ok:false,error:'agent_client_required'});
-    req.plusClient=ctx;return next();
+    const credential=clientTokenFromRequest(req),ctx=clientContext(credential.token);
+    if(!ctx)return res.status(401).json({ok:false,error:'agent_client_required',detail:credential.token?'invalid':'missing'});
+    req.plusClient=ctx;req.plusClientTransport=credential.transport;return next();
   }
   async function listDevices(req,res){
     try{const value=await listClientDevices(req.plusClient.clientSessionId,req.plusClient.agentId);return res.json({ok:true,devices:(value?.devices||[]).map(d=>({id:d.deviceId,name:d.name||d.deviceId,state:d.state||'unknown'}))});}

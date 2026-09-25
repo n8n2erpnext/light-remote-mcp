@@ -24,6 +24,9 @@ assert.throws(()=>reg.resolve(first.clientSessionId,{agentId:'agent-client-test-
 assert.equal(reg.resolve(first.clientSessionId,{agentId:'agent-client-test-0001',deviceId:'dev-b'}).grantId,grantB.grantId);
 const reloaded=new AgentClientRegistry({stateFile:file,now:()=>now,ttlMs:60*60*1000});
 assert.equal(reloaded.view(first.clientSessionId,{agentId:'agent-client-test-0001'}).bindings.length,1);
+// registry_reload_on_miss
+reloaded.rows.delete(first.clientSessionId);
+assert.equal(reloaded.view(first.clientSessionId,{agentId:'agent-client-test-0001'}).clientSessionId,first.clientSessionId);
 now+=60*60*1000+1;
 assert.throws(()=>reloaded.view(first.clientSessionId,{agentId:'agent-client-test-0001'}),/agent_client_expired/);
 fs.rmSync(file,{force:true});

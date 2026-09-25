@@ -30,8 +30,19 @@ export class AgentClientRegistry {
     try{const parsed=JSON.parse(fs.readFileSync(this.stateFile,'utf8'));for(const row of Array.isArray(parsed.clients)?parsed.clients:[])if(row?.clientSessionId)this.rows.set(String(row.clientSessionId),row);}
     catch(error){this.rows.clear();this.loadError=error?.message||'invalid_agent_client_state';}
   }
+  _reloadOne(clientSessionId){
+    if(!this.stateFile||!fs.existsSync(this.stateFile))return null;
+    try{
+      const parsed=JSON.parse(fs.readFileSync(this.stateFile,'utf8'));
+      const row=(Array.isArray(parsed.clients)?parsed.clients:[]).find(item=>String(item?.clientSessionId||'')===String(clientSessionId));
+      if(row?.clientSessionId&&!row.closedAt){this.rows.set(String(row.clientSessionId),row);this.loadError=null;return row;}
+    }catch(error){this.loadError=error?.message||'invalid_agent_client_state';}
+    return null;
+  }
   _row(clientSessionId,{agentId=null,accountId=null,touch=false}={}){
-    const id=validId(clientSessionId,'invalid_agent_client_id'),row=this.rows.get(id),now=this.now();
+    const id=validId(clientSessionId,'invalid_agent_client_id'),now=this.now();
+    let row=this.rows.get(id);
+    if(!row)row=this._reloadOne(id);
     if(!row||row.closedAt)throw new AgentClientRegistryError('agent_client_required',401);
     if(now>=Number(row.expiresAt||0)){this.close(id,'expired');throw new AgentClientRegistryError('agent_client_expired',401);}
     if(agentId!=null&&row.agentId!==String(agentId))throw new AgentClientRegistryError('agent_client_agent_mismatch',403);
