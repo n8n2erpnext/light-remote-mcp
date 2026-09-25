@@ -1,23 +1,21 @@
 {
   "schema": 1,
-  "id": "primary-vercel",
-  "role": "primary",
-  "canonicalBranch": "main",
-  "transport": "vercel",
-  "developmentAuthority": true,
-  "inheritsFrom": null,
+  "id": "reviewer-direct",
+  "role": "reviewer",
+  "canonicalBranch": "reviewer/openai",
+  "transport": "direct-mcp",
+  "developmentAuthority": false,
+  "inheritsFrom": "main",
   "requiredPaths": [
-    "api/operator.js",
-    "deploy/vercel/README.md",
-    "gateway/server.mjs",
+    "plugin-server/server.mjs",
+    "plugin.json",
+    "mcp.json",
+    "deploy/reviewer/README.md",
+    "docs/plugin/OPENAI_SUBMISSION.md",
     "operator-host/executor.mjs"
   ],
   "forbiddenPaths": [
     "netlify",
-    "netlify.toml",
-    "plugin-server",
-    "plugin.json",
-    "mcp.json",
-    "deploy/reviewer"
+    "netlify.toml"
   ]
 }
