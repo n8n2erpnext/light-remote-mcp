@@ -21,7 +21,7 @@ sudo install -m 0644 "$ROOT_DIR/device-agent/update-settings-page.mjs" /opt/gpt-
 sudo install -m 0644 "$ROOT_DIR/device-agent/fleet-component-manager.mjs" /opt/gpt-operator-agent/device-agent/fleet-component-manager.mjs
 sudo install -m 0644 "$ROOT_DIR/device-agent/fleet-component-supervisor.mjs" /opt/gpt-operator-agent/device-agent/fleet-component-supervisor.mjs
 sudo install -m 0644 "$ROOT_DIR"/device-agent/platform-adapters/*.mjs /opt/gpt-operator-agent/device-agent/platform-adapters/
-for lib in device-proof.mjs native-fs.mjs native-process.mjs native-search.mjs light-scp-file.mjs light-scp-registry.mjs update-contract.mjs; do
+for lib in device-proof.mjs native-fs.mjs native-process.mjs native-terminal.mjs native-desktop.mjs real-remote-policy.mjs real-remote-input.cjs native-search.mjs light-scp-file.mjs light-scp-registry.mjs update-contract.mjs runtime-version.mjs brand.mjs; do
   sudo install -m 0644 "$ROOT_DIR/lib/$lib" "/opt/gpt-operator-agent/lib/$lib"
 done
 sudo install -m 0644 "$ROOT_DIR/assets/branding/light-remote-mark.svg" /opt/gpt-operator-agent/assets/branding/light-remote-mark.svg

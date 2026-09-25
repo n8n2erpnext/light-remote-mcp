@@ -12,7 +12,7 @@ const windowsWorkflow=read('.github/workflows/windows-native-client.yml');
 const macWorkflow=read('.github/workflows/macos-client-build.yml');
 
 const agentModules=['operator-agent.mjs','local-wall.mjs','local-wall-auth.mjs','update-settings-page.mjs','fleet-component-manager.mjs','fleet-component-supervisor.mjs'];
-const libModules=['device-proof.mjs','native-fs.mjs','native-process.mjs','native-search.mjs','light-scp-file.mjs','light-scp-registry.mjs','update-contract.mjs'];
+const libModules=['device-proof.mjs','native-fs.mjs','native-process.mjs','native-terminal.mjs','native-desktop.mjs','real-remote-policy.mjs','real-remote-input.cjs','native-search.mjs','light-scp-file.mjs','light-scp-registry.mjs','update-contract.mjs'];
 for(const file of agentModules){
   assert.ok(linux.includes(file),`linux_missing_agent_module:${file}`);
   assert.ok(windows.includes(file),`windows_missing_agent_module:${file}`);

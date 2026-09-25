@@ -44,7 +44,7 @@ foreach ($agentModule in @('local-wall.mjs','local-wall-auth.mjs','update-settin
   Copy-Item (Join-Path $RootDir "device-agent\$agentModule") (Join-Path $AgentDir $agentModule) -Force
 }
 Copy-Item (Join-Path $RootDir 'device-agent\platform-adapters\*.mjs') $AdapterDir -Force
-foreach ($lib in @('device-proof.mjs','native-fs.mjs','native-process.mjs','native-search.mjs','light-scp-file.mjs','light-scp-registry.mjs','update-contract.mjs')) {
+foreach ($lib in @('device-proof.mjs','native-fs.mjs','native-process.mjs','native-terminal.mjs','native-desktop.mjs','real-remote-policy.mjs','real-remote-input.cjs','native-search.mjs','light-scp-file.mjs','light-scp-registry.mjs','update-contract.mjs','runtime-version.mjs','brand.mjs')) {
   Copy-Item (Join-Path $RootDir "lib\$lib") (Join-Path $LibDir $lib) -Force
 }
 Copy-Item (Join-Path $RootDir 'assets\branding\light-remote-mark.svg') (Join-Path $AssetDir 'light-remote-mark.svg') -Force
