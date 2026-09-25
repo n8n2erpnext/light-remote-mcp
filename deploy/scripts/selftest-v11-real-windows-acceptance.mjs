@@ -3,6 +3,7 @@ import fs from 'node:fs';
 const script=fs.readFileSync('client/windows-native/acceptance/real-remote-browser-os-input.ps1','utf8');
 const fixture=fs.readFileSync('client/windows-native/acceptance/real-remote-browser-os-input.html','utf8');
 const workflow=fs.readFileSync('.github/workflows/windows-native-client.yml','utf8');
+const inputHelper=fs.readFileSync('client/windows-native/GptOperator.Client/RealRemoteInput.cs','utf8');
 
 function need(value,message){if(!value)throw new Error(message);}
 for(const token of [
@@ -16,7 +17,12 @@ for(const token of [
   'windows-real-remote-os-input=PASS',
   'windows-real-remote-cdp-ack=PASS',
   'windows-real-remote-browser-state-change=PASS',
-  'windows-real-remote-browser-os-input-acceptance=PASS'
+  'windows-real-remote-browser-os-input-acceptance=PASS',
+  "$unicodeText='Tiếng Việt ✓'",
+  "@{type='text';text=$unicodeText}",
+  'windows-real-remote-unicode-text=PASS',
+  'windows-real-remote-text-cdp-ack=PASS',
+  'windows-real-remote-text-state-change=PASS'
 ])need(script.includes(token),'windows_acceptance_contract_missing:'+token);
 
 need(!script.includes('[hashtable]$Args'),'windows_acceptance_powershell_args_shadow_forbidden');
@@ -32,6 +38,10 @@ need(fixture.includes('aria-pressed="false"'),'windows_acceptance_fixture_initia
 need(fixture.includes("setAttribute('aria-pressed','true')"),'windows_acceptance_fixture_pressed_change_missing');
 need(fixture.includes("setAttribute('aria-label','Light Remote Accepted')"),'windows_acceptance_fixture_name_change_missing');
 need(fixture.includes("addEventListener('click'"),'windows_acceptance_fixture_click_handler_missing');
+need(fixture.includes('aria-label="Light Remote Text Input"'),'windows_acceptance_fixture_textbox_missing');
+need(fixture.includes("const expectedText='Tiếng Việt ✓';"),'windows_acceptance_fixture_unicode_expected_missing');
+need(fixture.includes("setAttribute('aria-label','Light Remote Text Accepted')"),'windows_acceptance_fixture_unicode_state_change_missing');
+need(inputHelper.includes('KeyUnicode=0x0004')&&inputHelper.includes('Keyboard(0,(ushort)ch,KeyUnicode)'),'windows_acceptance_unicode_sendinput_contract_missing');
 need(!fixture.match(/https?:\/\//i),'windows_acceptance_fixture_must_be_offline');
 
 const step='- name: Real Windows OS input acceptance';
