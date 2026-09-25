@@ -17,13 +17,16 @@ output{display:block;margin-top:24px;font-size:18px}
 <h1>Light Remote Real Windows E2E</h1>
 <button id="accept" type="button" aria-label="Light Remote OS Input" aria-pressed="false">Light Remote OS Input</button>
 <input id="text" type="text" aria-label="Light Remote Text Input" autocomplete="off" spellcheck="false">
+<button id="keyboard" type="button" aria-label="Light Remote Keyboard Target">Keyboard Target</button>
 <output id="state" role="status" aria-label="Light Remote Text Waiting">waiting</output>
 </main>
 <script>
 const button=document.getElementById('accept');
 const textInput=document.getElementById('text');
+const keyboard=document.getElementById('keyboard');
 const state=document.getElementById('state');
 const expectedText='Tiếng Việt ✓';
+const ctrlAText='CTRL+A OK';
 button.addEventListener('click',()=>{
   button.setAttribute('aria-pressed','true');
   button.setAttribute('aria-label','Light Remote Accepted');
@@ -38,6 +41,29 @@ textInput.addEventListener('input',()=>{
     state.textContent=expectedText;
     document.title='Light Remote Text Accepted';
   }
+  if(textInput.value===ctrlAText){
+    textInput.setAttribute('aria-label','Light Remote CtrlA Accepted');
+    state.setAttribute('aria-label','Light Remote CtrlA Accepted');
+    state.textContent=ctrlAText;
+    document.title='Light Remote CtrlA Accepted';
+  }
+});
+keyboard.addEventListener('focus',()=>{
+  keyboard.setAttribute('aria-label','Light Remote Tab Accepted');
+  state.setAttribute('aria-label','Light Remote Tab Accepted');
+});
+keyboard.addEventListener('keydown',(event)=>{
+  if(event.key==='ArrowRight'){
+    event.preventDefault();
+    keyboard.setAttribute('aria-label','Light Remote Right Accepted');
+    state.setAttribute('aria-label','Light Remote Right Accepted');
+  }
+});
+keyboard.addEventListener('click',()=>{
+  keyboard.setAttribute('aria-label','Light Remote Enter Accepted');
+  state.setAttribute('aria-label','Light Remote Enter Accepted');
+  state.textContent='keyboard accepted';
+  document.title='Light Remote Keyboard Accepted';
 });
 </script>
 </body>

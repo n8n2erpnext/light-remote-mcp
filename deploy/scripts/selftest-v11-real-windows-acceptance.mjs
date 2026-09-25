@@ -22,7 +22,16 @@ for(const token of [
   "@{type='text';text=$unicodeText}",
   'windows-real-remote-unicode-text=PASS',
   'windows-real-remote-text-cdp-ack=PASS',
-  'windows-real-remote-text-state-change=PASS'
+  'windows-real-remote-text-state-change=PASS',
+  "@{type='key';key='A';modifiers=@('CTRL')}",
+  "@{type='key';key='TAB';modifiers=@()}",
+  "@{type='key';key='RIGHT';modifiers=@()}",
+  "@{type='key';key='ENTER';modifiers=@()}",
+  'windows-real-remote-ctrl-a=PASS',
+  'windows-real-remote-tab=PASS',
+  'windows-real-remote-right=PASS',
+  'windows-real-remote-enter=PASS',
+  'windows-real-remote-keyboard-navigation=PASS'
 ])need(script.includes(token),'windows_acceptance_contract_missing:'+token);
 
 need(!script.includes('[hashtable]$Args'),'windows_acceptance_powershell_args_shadow_forbidden');
@@ -41,6 +50,11 @@ need(fixture.includes("addEventListener('click'"),'windows_acceptance_fixture_cl
 need(fixture.includes('aria-label="Light Remote Text Input"'),'windows_acceptance_fixture_textbox_missing');
 need(fixture.includes("const expectedText='Tiếng Việt ✓';"),'windows_acceptance_fixture_unicode_expected_missing');
 need(fixture.includes("setAttribute('aria-label','Light Remote Text Accepted')"),'windows_acceptance_fixture_unicode_state_change_missing');
+need(fixture.includes('aria-label="Light Remote Keyboard Target"'),'windows_acceptance_fixture_keyboard_target_missing');
+need(fixture.includes("const ctrlAText='CTRL+A OK';")&&fixture.includes("setAttribute('aria-label','Light Remote CtrlA Accepted')"),'windows_acceptance_fixture_ctrl_a_state_missing');
+need(fixture.includes("addEventListener('focus'")&&fixture.includes("setAttribute('aria-label','Light Remote Tab Accepted')"),'windows_acceptance_fixture_tab_state_missing');
+need(fixture.includes("event.key==='ArrowRight'")&&fixture.includes("setAttribute('aria-label','Light Remote Right Accepted')"),'windows_acceptance_fixture_right_state_missing');
+need(fixture.includes("setAttribute('aria-label','Light Remote Enter Accepted')"),'windows_acceptance_fixture_enter_state_missing');
 need(inputHelper.includes('KeyUnicode=0x0004')&&inputHelper.includes('Keyboard(0,(ushort)ch,KeyUnicode)'),'windows_acceptance_unicode_sendinput_contract_missing');
 need(!fixture.match(/https?:\/\//i),'windows_acceptance_fixture_must_be_offline');
 
