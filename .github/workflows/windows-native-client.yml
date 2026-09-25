@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - 'codex/**'
+      - 'feature/real-remote'
     tags:
       - 'v0.9.*'
     paths:
@@ -16,6 +17,7 @@ on:
       - 'lib/native-process.mjs'
       - 'lib/native-terminal.mjs'
       - 'lib/native-search.mjs'
+      - 'lib/native-desktop.mjs'
       - 'lib/light-scp-file.mjs'
       - 'lib/light-scp-registry.mjs'
       - 'lib/update-contract.mjs'
