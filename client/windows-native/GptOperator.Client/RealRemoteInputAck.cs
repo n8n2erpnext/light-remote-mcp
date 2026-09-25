@@ -109,15 +109,18 @@ internal static partial class RealRemoteHelper
         bool scopeChanged;
         bool hasMore;
         bool eventsAvailable;
+        bool eventResyncRecommended;
 
         lock (session.Gate)
         {
             inputSeq = ++session.InputSeq;
             stateSeq = session.StateSeq;
             var remaining = 0;
+            eventResyncRecommended = false;
             foreach (var item in session.Journal)
             {
                 if (item.Seq <= context.AfterSeq) continue;
+                if (item.ResyncRecommended) eventResyncRecommended = true;
                 if (events.Count >= 100) { remaining++; continue; }
                 events.Add(new
                 {
@@ -159,7 +162,7 @@ internal static partial class RealRemoteHelper
             droppedBeforeSeq,
             gap,
             scopeChanged,
-            resyncRecommended = gap || scopeChanged,
+            resyncRecommended = gap || scopeChanged || eventResyncRecommended,
             eventsAvailable,
             observation = "cdp-snapshot+journal",
             hasMore,

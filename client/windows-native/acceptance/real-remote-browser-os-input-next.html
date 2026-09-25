@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Light Remote Navigation Acceptance</title>
+<style>
+html,body{height:100%;margin:0}body{display:grid;place-items:center;background:#101418;color:#f2f2f2;font:24px system-ui,sans-serif}
+main{text-align:center}button{font:inherit;padding:28px 44px;min-width:420px;border-radius:16px;border:2px solid #3a96dd;background:#18222d;color:#fff}
+button[aria-pressed="true"]{border-color:#16c60c;background:#12331a}
+output{display:block;margin-top:24px;font-size:18px}
+</style>
+</head>
+<body>
+<main>
+<h1>Light Remote Navigation E2E</h1>
+<button id="next" type="button" aria-label="Light Remote Next Page" aria-pressed="false">Next Page Action</button>
+<output id="state" role="status" aria-label="Light Remote Navigation Ready">navigation ready</output>
+</main>
+<script>
+const next=document.getElementById('next');
+const state=document.getElementById('state');
+next.addEventListener('click',()=>{
+  next.setAttribute('aria-pressed','true');
+  next.setAttribute('aria-label','Light Remote Next Accepted');
+  next.textContent='Light Remote Next Accepted';
+  state.setAttribute('aria-label','Light Remote Navigation Continued');
+  state.textContent='continued';
+  document.title='Light Remote Navigation Continued';
+});
+</script>
+</body>
+</html>

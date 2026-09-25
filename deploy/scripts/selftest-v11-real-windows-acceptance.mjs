@@ -2,6 +2,7 @@ import fs from 'node:fs';
 
 const script=fs.readFileSync('client/windows-native/acceptance/real-remote-browser-os-input.ps1','utf8');
 const fixture=fs.readFileSync('client/windows-native/acceptance/real-remote-browser-os-input.html','utf8');
+const navigationFixture=fs.readFileSync('client/windows-native/acceptance/real-remote-browser-os-input-next.html','utf8');
 const workflow=fs.readFileSync('.github/workflows/windows-native-client.yml','utf8');
 const inputHelper=fs.readFileSync('client/windows-native/GptOperator.Client/RealRemoteInput.cs','utf8');
 
@@ -34,7 +35,13 @@ for(const token of [
   'windows-real-remote-keyboard-navigation=PASS',
   "@{type='wheel';delta=-1200}",
   'windows-real-remote-wheel=PASS',
-  'windows-real-remote-scroll-closed-loop=PASS'
+  'windows-real-remote-scroll-closed-loop=PASS',
+  "'Light Remote Navigate'",
+  "'Light Remote Next Page'",
+  'windows-real-remote-navigation-resync=PASS',
+  'windows-real-remote-navigation-same-session=PASS',
+  'windows-real-remote-navigation-continued-input=PASS',
+  'windows-real-remote-navigation-closed-loop=PASS'
 ])need(script.includes(token),'windows_acceptance_contract_missing:'+token);
 
 need(!script.includes('[hashtable]$Args'),'windows_acceptance_powershell_args_shadow_forbidden');
@@ -70,6 +77,10 @@ need(fixture.includes("setAttribute('aria-label','Light Remote Enter Accepted')"
 need(fixture.includes('role="region" aria-label="Light Remote Scroll Region"'),'windows_acceptance_fixture_scroll_region_missing');
 need(fixture.includes('#scrollbox{position:fixed;right:24px;bottom:24px'),'windows_acceptance_fixture_scroll_layout_isolation_missing');
 need(fixture.includes("addEventListener('scroll'")&&fixture.includes("scrollbox.scrollTop>0")&&fixture.includes("setAttribute('aria-label','Light Remote Scroll Accepted')"),'windows_acceptance_fixture_scroll_state_missing');
+need(fixture.includes('href="real-remote-browser-os-input-next.html"')&&fixture.includes('aria-label="Light Remote Navigate"'),'windows_acceptance_fixture_navigation_link_missing');
+need(navigationFixture.includes('aria-label="Light Remote Next Page"'),'windows_acceptance_navigation_target_missing');
+need(navigationFixture.includes("setAttribute('aria-label','Light Remote Next Accepted')"),'windows_acceptance_navigation_state_change_missing');
+need(!navigationFixture.match(/https?:\/\//i),'windows_acceptance_navigation_fixture_must_be_offline');
 need(inputHelper.includes('KeyUnicode=0x0004')&&inputHelper.includes('Keyboard(0,(ushort)ch,KeyUnicode)'),'windows_acceptance_unicode_sendinput_contract_missing');
 need(!fixture.match(/https?:\/\//i),'windows_acceptance_fixture_must_be_offline');
 

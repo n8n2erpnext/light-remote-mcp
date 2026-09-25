@@ -179,6 +179,43 @@ try{
   Write-Host "windows-real-remote-wheel=PASS delta=-1200 sentInputs=$($scrollAck.sentInputs) x=$scrollX y=$scrollY inputSeq=$($scrollAck.inputSeq) seq=$($scrollAfter.stateSeq)"
   Write-Host 'windows-real-remote-scroll-closed-loop=PASS'
 
+  $navLinks=@($scrollAfter.nodes|Where-Object { $_.role -eq 'link' -and $_.name -eq 'Light Remote Navigate' })
+  if($navLinks.Count -ne 1 -or $null -eq $navLinks[0].center){throw "Navigation link semantic center missing count=$($navLinks.Count)"}
+  $navX=[int][Math]::Round([double]$navLinks[0].center.x);$navY=[int][Math]::Round([double]$navLinks[0].center.y);$navBeforeSeq=[long]$scrollAfter.stateSeq
+  $navAck=Invoke-Rr 'accept-os-navigation' 'input' @{events=@(@{type='move';x=$navX;y=$navY},@{type='click';button='left';count=1});semanticSessionId=$sem;afterSeq=$navBeforeSeq;settleMs=250}
+  if([int]$navAck.appliedEvents -ne 2 -or [int]$navAck.sentInputs -lt 2){throw "Navigation SendInput proof missing applied=$($navAck.appliedEvents) sent=$($navAck.sentInputs)"}
+  $navResyncEvents=@($navAck.events|Where-Object { $_.resyncRecommended -and ($_.kind -eq 'navigation' -or $_.kind -eq 'structure' -or $_.kind -eq 'accessibility') })
+  if(-not $navAck.resyncRecommended -or $navResyncEvents.Count -lt 1){throw "Navigation ACK failed to propagate resync events=$($navResyncEvents.Count) resync=$($navAck.resyncRecommended)"}
+  Write-Host "windows-real-remote-navigation-resync=PASS events=$($navResyncEvents.Count) inputSeq=$($navAck.inputSeq) seq=$($navAck.stateSeq)"
+
+  $navDeadline=[DateTime]::UtcNow.AddSeconds(5);$navAttempt=0;$nextAfter=$null;$nextButtons=@()
+  do{
+    $navAttempt++
+    try{
+      $candidate=Invoke-Rr ("accept-navigation-snapshot-"+$navAttempt) 'semantic-snapshot' @{semanticSessionId=$sem}
+      $candidateButtons=@($candidate.nodes|Where-Object { $_.role -eq 'button' -and $_.name -eq 'Light Remote Next Page' })
+      if($candidateButtons.Count -eq 1 -and $null -ne $candidateButtons[0].center){$nextAfter=$candidate;$nextButtons=$candidateButtons;break}
+    }catch{}
+    Start-Sleep -Milliseconds 100
+  }while([DateTime]::UtcNow -lt $navDeadline)
+  if($null -eq $nextAfter -or $nextButtons.Count -ne 1){throw 'Same semantic session did not observe navigation target page'}
+  if([string]$nextAfter.semanticSessionId -ne $sem){throw "Semantic session changed across navigation: $($nextAfter.semanticSessionId)"}
+  Write-Host "windows-real-remote-navigation-same-session=PASS semanticSessionId=$sem seq=$($nextAfter.stateSeq) targetUrl=$($nextAfter.target.url)"
+
+  Start-Sleep -Milliseconds 250
+  $nextStable=Invoke-Rr 'accept-navigation-stable' 'semantic-snapshot' @{semanticSessionId=$sem}
+  $nextButtons=@($nextStable.nodes|Where-Object { $_.role -eq 'button' -and $_.name -eq 'Light Remote Next Page' })
+  if($nextButtons.Count -ne 1 -or $null -eq $nextButtons[0].center){throw 'Navigation target button disappeared during resync'}
+  $nextX=[int][Math]::Round([double]$nextButtons[0].center.x);$nextY=[int][Math]::Round([double]$nextButtons[0].center.y);$nextBeforeSeq=[long]$nextStable.stateSeq
+  $nextAck=Invoke-Rr 'accept-os-navigation-continued' 'input' @{events=@(@{type='move';x=$nextX;y=$nextY},@{type='click';button='left';count=1});semanticSessionId=$sem;afterSeq=$nextBeforeSeq;settleMs=150}
+  if([int]$nextAck.appliedEvents -ne 2 -or [int]$nextAck.sentInputs -lt 2){throw "Post-navigation SendInput proof missing applied=$($nextAck.appliedEvents) sent=$($nextAck.sentInputs)"}
+  $nextDone=Invoke-Rr 'accept-navigation-continued-after' 'semantic-snapshot' @{semanticSessionId=$sem}
+  $nextAccepted=@($nextDone.nodes|Where-Object { $_.role -eq 'button' -and $_.name -eq 'Light Remote Next Accepted' })
+  if($nextAccepted.Count -ne 1){throw 'Same semantic session could not continue OS input after navigation'}
+  if([string]$nextDone.semanticSessionId -ne $sem){throw 'Semantic session changed after continued navigation input'}
+  Write-Host "windows-real-remote-navigation-continued-input=PASS sentInputs=$($nextAck.sentInputs) inputSeq=$($nextAck.inputSeq) seq=$($nextDone.stateSeq)"
+  Write-Host 'windows-real-remote-navigation-closed-loop=PASS'
+
   $d=Invoke-Rr 'accept-detach' 'semantic-detach' @{semanticSessionId=$sem};if(-not $d.detached -or $d.provider -ne 'browser-cdp'){throw 'Detach failed'};$detached=$true
   Write-Host 'windows-real-remote-browser-os-input-acceptance=PASS'
 }finally{

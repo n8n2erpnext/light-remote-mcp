@@ -155,9 +155,11 @@ internal static partial class RealRemoteHelper
         {
             var events = new List<object>(Math.Min(limit, session.Journal.Count));
             var remaining = 0;
+            var eventResyncRecommended = false;
             foreach (var item in session.Journal)
             {
                 if (item.Seq <= afterSeq) continue;
+                if (item.ResyncRecommended) eventResyncRecommended = true;
                 if (events.Count >= limit) { remaining++; continue; }
                 events.Add(new
                 {
@@ -185,7 +187,7 @@ internal static partial class RealRemoteHelper
                 droppedBeforeSeq = session.DroppedBeforeSeq,
                 gap,
                 scopeChanged = session.ScopeChanged,
-                resyncRecommended = gap || session.ScopeChanged,
+                resyncRecommended = gap || session.ScopeChanged || eventResyncRecommended,
                 eventsAvailable = session.EventsAvailable,
                 subscriptions = new { accessibility = true, dom = true, page = true },
                 hasMore = remaining > 0,
