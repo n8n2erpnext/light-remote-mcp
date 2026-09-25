@@ -89,7 +89,7 @@ internal sealed class MainForm : Form
             Image = BrandAssets.Mark, SizeMode = PictureBoxSizeMode.Zoom, TabStop = false
         };
         var product = new Label { Text = ProductName, AutoSize = true, ForeColor = UiTheme.Text, Font = UiTheme.Font(11.5f, FontStyle.Bold), Location = new Point(72, 12) };
-        var subtitle = new Label { Text = "Secure remote MCP agent", AutoSize = true, ForeColor = UiTheme.Muted, Font = UiTheme.Font(8.5f), Location = new Point(72, 38) };
+        var subtitle = new Label { Text = "Secure remote agent", AutoSize = true, ForeColor = UiTheme.Muted, Font = UiTheme.Font(8.5f), Location = new Point(72, 38) };
         _more.Anchor = AnchorStyles.Top | AnchorStyles.Right;
         _more.Location = new Point(header.Width - 58, 11);
         _updateDot.Anchor = AnchorStyles.Top | AnchorStyles.Right;
@@ -440,6 +440,7 @@ internal sealed class MainForm : Form
         {
             using var key = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run");
             key?.DeleteValue("GPT Operator", throwOnMissingValue: false);
+            key?.DeleteValue("Light Remote MCP", throwOnMissingValue: false);
             key?.SetValue(ProductName, $"\"{Application.ExecutablePath}\" --background", RegistryValueKind.String);
         }
         catch { }

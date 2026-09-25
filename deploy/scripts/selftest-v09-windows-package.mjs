@@ -29,7 +29,8 @@ expect(workflow.includes('windows-independent-update-signature=PASS')&&workflow.
 expect(workflow.includes('stage-client-core.mjs $agentRoot')&&workflow.includes('install-windows-task.ps1')&&coreSources.has('device-agent/local-wall.mjs')&&coreSources.has('device-agent/local-wall-auth.mjs'),'windows_runtime_not_packaged');
 expect(project.includes('<UseWindowsForms>true</UseWindowsForms>')&&project.includes('net8.0-windows10.0.17763.0'),'windows_client_target_missing');
 expect(project.includes('<AssemblyName>LightRemote.Client</AssemblyName>')&&manifest.includes('name=\"LightRemote.Client\"'),'windows_client_binary_brand_missing');
-expect(mainForm.includes('ProductName = "Light Remote"')&&!mainForm.includes('"Light Remote MCP"'),'windows_display_brand_main_missing');
+expect(mainForm.includes('ProductName = "Light Remote"')&&mainForm.includes('Text = "Secure remote agent"')&&!mainForm.includes('Secure remote MCP agent'),'windows_display_brand_main_missing');
+expect(mainForm.includes('DeleteValue("Light Remote MCP", throwOnMissingValue: false)')&&mainForm.includes('DeleteValue("GPT Operator", throwOnMissingValue: false)'),'windows_runtime_legacy_autostart_cleanup_missing');
 expect(settingsDialog.includes('Light Remote — Server settings')&&!settingsDialog.includes('Light Remote MCP'),'windows_display_brand_settings_missing');
 expect(installer.includes('AppName=Light Remote')&&installer.includes('DefaultDirName={localappdata}\\Programs\\Light Remote')&&installer.includes('DefaultGroupName=Light Remote')&&installer.includes('UsePreviousAppDir=yes'),'windows_installer_display_brand_missing');
 expect(installer.includes('ValueName: "Light Remote"')&&installer.includes('Name: "{group}\\Light Remote"')&&installer.includes('Name: "{userdesktop}\\Light Remote"'),'windows_installer_visible_name_missing');
