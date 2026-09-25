@@ -109,4 +109,12 @@ V0.4-A adds the semantic foundation without changing the existing pixel or input
 - nodes expose role/name/AutomationId/class/framework, process/window identity, bounds/center, focus/enabled/offscreen/password flags and supported UIA interaction patterns;
 - V0.4-A deliberately does not read ValuePattern/TextPattern contents, including password contents.
 
-The next milestone is V0.4-B: UIA event journal + coalesced diffs + input ACK/stateSeq so the Agent can stay synchronized continuously and only request a new frame when semantic state needs visual resync.
+V0.4-B adds continuous local semantic observation:
+- the persistent Windows helper subscribes to UIA focus, structure and safe metadata-property events;
+- events are kept in a 512-record in-memory journal and adjacent bursts are coalesced within 75 ms;
+- desktop-semantic-events reads only entries newer than afterSeq, up to 200 at a time;
+- stateSeq is shared by snapshots and journal entries, so a consumer can detect ordering and resume from its last acknowledged state;
+- journal overflow reports gap/droppedBeforeSeq; focus leaving a foreground-scoped root reports scopeChanged/resyncRecommended;
+- event subscriptions deliberately exclude ValuePattern.ValueProperty and text contents.
+
+V0.4-C will close the loop: desktop-input will accept semanticSessionId/expectedStateSeq and return inputSeq plus the resulting cursor/focus/semantic diff, with stale-state detection before mutation.

@@ -31,8 +31,10 @@ for await (const line of rl){
             ? {protocolVersion:1,helperPid:process.pid,provider:'windows-uia',semanticSessionId:'sem_fake',epoch:'ep_fake',stateSeq:1,nodeCount:2,nodes:[{id:'uia_1',role:'Window'},{id:'uia_2',parentId:'uia_1',role:'Button',name:'Login'}]}
             : request.op==='semantic-snapshot'
               ? {protocolVersion:1,helperPid:process.pid,provider:'windows-uia',semanticSessionId:request.args.semanticSessionId,epoch:'ep_fake',stateSeq:2,nodeCount:2,nodes:[{id:'uia_1',role:'Window'},{id:'uia_2',parentId:'uia_1',role:'Button',name:'Login'}]}
-              : request.op==='semantic-detach'
-                ? {protocolVersion:1,helperPid:process.pid,provider:'windows-uia',semanticSessionId:request.args.semanticSessionId,epoch:'ep_fake',stateSeq:2,detached:true}
+              : request.op==='semantic-events'
+                ? {protocolVersion:1,helperPid:process.pid,provider:'windows-uia',semanticSessionId:request.args.semanticSessionId,epoch:'ep_fake',afterSeq:request.args.afterSeq,stateSeq:3,gap:false,resyncRecommended:false,eventsAvailable:true,events:[{seq:3,kind:'focus',element:{id:'uia_2',role:'Button',name:'Login'}}]}
+                : request.op==='semantic-detach'
+                  ? {protocolVersion:1,helperPid:process.pid,provider:'windows-uia',semanticSessionId:request.args.semanticSessionId,epoch:'ep_fake',stateSeq:3,detached:true}
                 : {helperPid:process.pid,echo:request};
   process.stdout.write(JSON.stringify({id:request.id,ok:true,result})+'\\n');
 }
@@ -76,6 +78,7 @@ try{
   const input=await bridge.request('input',normalizedInput);
   const semanticAttach=await bridge.request('semantic-attach',{scope:'foreground',maxDepth:4,maxNodes:100});
   const semanticSnapshot=await bridge.request('semantic-snapshot',{semanticSessionId:semanticAttach.semanticSessionId});
+  const semanticEvents=await bridge.request('semantic-events',{semanticSessionId:semanticAttach.semanticSessionId,afterSeq:semanticSnapshot.stateSeq,limit:100});
   const semanticDetach=await bridge.request('semantic-detach',{semanticSessionId:semanticAttach.semanticSessionId});
   assert.equal(status.protocolVersion,1);
   assert.equal(status.interactive,true);
@@ -94,6 +97,11 @@ try{
   assert.equal(semanticAttach.stateSeq,1);
   assert.equal(semanticSnapshot.stateSeq,2);
   assert.equal(semanticSnapshot.semanticSessionId,semanticAttach.semanticSessionId);
+  assert.equal(semanticEvents.stateSeq,3);
+  assert.equal(semanticEvents.events.length,1);
+  assert.equal(semanticEvents.events[0].seq,3);
+  assert.equal(semanticEvents.gap,false);
+  assert.equal(semanticEvents.resyncRecommended,false);
   assert.equal(semanticDetach.detached,true);
   assert.equal(status.helperPid,semanticAttach.helperPid,'semantic session must use the same persistent helper');
   await assert.rejects(()=>bridge.request('fail'),/fake_failure/);
@@ -112,14 +120,18 @@ const program=read('client/windows-native/GptOperator.Client/Program.cs');
 const helper=read('client/windows-native/GptOperator.Client/RealRemoteHelper.cs');
 const inputHelper=read('client/windows-native/GptOperator.Client/RealRemoteInput.cs');
 const semanticHelper=read('client/windows-native/GptOperator.Client/RealRemoteSemantic.cs');
+const semanticEventsHelper=read('client/windows-native/GptOperator.Client/RealRemoteSemanticEvents.cs');
 const windowsProject=read('client/windows-native/GptOperator.Client/GptOperator.Client.csproj');
 const supervisor=read('client/windows-native/GptOperator.Client/AgentSupervisor.cs');
 const host=read('client/windows-native/GptOperator.Client/AgentHost.cs');
 assert.ok(program.includes('--real-remote-helper')&&program.includes('RealRemoteHelper.Run()'),'Windows app hidden helper mode missing');
 for(const token of ['EnumWindows','GetForegroundWindow','GetCursorPos','Screen.AllScreens','CopyFromScreen','ImageFormat.Jpeg','desktop_frame_too_large','Console.OpenStandardInput','Console.OpenStandardOutput'])assert.ok(helper.includes(token),`Windows helper contract missing: ${token}`);
 assert.ok(helper.includes('"input" => Input(args)'),'Windows hidden helper input opcode missing');
-for(const token of ['"semantic-attach" => SemanticAttach(args)','"semantic-snapshot" => SemanticSnapshot(args)','"semantic-detach" => SemanticDetach(args)'])assert.ok(helper.includes(token),`Windows semantic opcode missing: ${token}`);
+for(const token of ['"semantic-attach" => SemanticAttach(args)','"semantic-snapshot" => SemanticSnapshot(args)','"semantic-events" => SemanticEvents(args)','"semantic-detach" => SemanticDetach(args)'])assert.ok(helper.includes(token),`Windows semantic opcode missing: ${token}`);
 for(const token of ['AutomationElement','TreeWalker.ControlViewWalker','semanticSessionId','epoch','stateSeq','password','MaxNodes'])assert.ok(semanticHelper.includes(token),`Windows semantic contract missing: ${token}`);
+for(const token of ['AddAutomationFocusChangedEventHandler','AddStructureChangedEventHandler','AddAutomationPropertyChangedEventHandler','SemanticJournalLimit = 512','SemanticCoalesceMs = 75','droppedBeforeSeq','resyncRecommended'])assert.ok(semanticEventsHelper.includes(token),`Windows semantic event contract missing: ${token}`);
+assert.ok(!semanticEventsHelper.includes('ValuePattern.ValueProperty'),'semantic journal must not subscribe textbox Value contents');
+assert.ok(!semanticEventsHelper.includes('TextPattern.'),'semantic journal must not subscribe text contents');
 assert.ok(windowsProject.includes('<UseWPF>true</UseWPF>'),'Windows UIA reference pack must come from WindowsDesktop/WPF SDK support');
 for(const token of ['SendInput(','SetCursorPos(','desktop_input_blocked','desktop_input_invalid_event_count','Keyboard(ushort vk,ushort scan,uint flags)'])assert.ok(inputHelper.includes(token),`Windows input contract missing: ${token}`);
 assert.ok(!inputHelper.includes('mouse_event('),'legacy mouse_event must not be used');
@@ -137,7 +149,7 @@ assert.ok(agent.includes("NATIVE_DESKTOP.request('status'"));
 assert.ok(agent.includes("NATIVE_DESKTOP.request('windows'"));
 assert.ok(agent.includes("NATIVE_DESKTOP.request('frame'"));
 assert.ok(agent.includes("NATIVE_DESKTOP.request('input'")&&agent.includes("local capability denied: desktop-input"));
-assert.ok(agent.includes("NATIVE_DESKTOP.request('semantic-attach'")&&agent.includes("NATIVE_DESKTOP.request('semantic-snapshot'")&&agent.includes("NATIVE_DESKTOP.request('semantic-detach'"));
+assert.ok(agent.includes("NATIVE_DESKTOP.request('semantic-attach'")&&agent.includes("NATIVE_DESKTOP.request('semantic-snapshot'")&&agent.includes("NATIVE_DESKTOP.request('semantic-events'")&&agent.includes("NATIVE_DESKTOP.request('semantic-detach'"));
 
 const executor=read('operator-host/executor.mjs');
 const routes=read('operator-host/executor-routes-runtime.mjs');
@@ -145,12 +157,12 @@ const api=read('api/operator.js');
 const toolHelper=read('lib/plus-tool-helper.js');
 const wall=read('device-agent/local-wall.mjs');
 const windowsWorkflow=read('.github/workflows/windows-native-client.yml');
-assert.ok(executor.includes('async function startDesktopOperation(')&&executor.includes("payload:{type:'desktop'")&&executor.includes("op==='input'?['desktop','desktop-input']:['desktop']")&&executor.includes("'semantic-attach'")&&executor.includes("'semantic-snapshot'")&&executor.includes("'semantic-detach'"));
+assert.ok(executor.includes('async function startDesktopOperation(')&&executor.includes("payload:{type:'desktop'")&&executor.includes("op==='input'?['desktop','desktop-input']:['desktop']")&&executor.includes("'semantic-attach'")&&executor.includes("'semantic-snapshot'")&&executor.includes("'semantic-events'")&&executor.includes("'semantic-detach'"));
 assert.ok(routes.includes("'desktop'].includes(payload.action)")&&routes.includes("payload.action==='desktop'?await startDesktopOperation"));
-assert.ok(api.includes("action.startsWith('desktop-')")&&api.includes("'status','windows','frame','input','semantic-attach','semantic-snapshot','semantic-detach'")&&api.includes("normalizeDesktopInput")&&api.includes("semanticSessionId")&&api.includes("action:'desktop'"));
-assert.ok(toolHelper.includes("desktop-status")&&toolHelper.includes("desktop-windows")&&toolHelper.includes("desktop-frame")&&toolHelper.includes("desktop-semantic-attach")&&toolHelper.includes("desktop-semantic-snapshot")&&toolHelper.includes("desktop-semantic-detach")&&toolHelper.includes("desktop-input")&&toolHelper.includes("capabilities:['desktop','desktop-input']"));
+assert.ok(api.includes("action.startsWith('desktop-')")&&api.includes("'status','windows','frame','input','semantic-attach','semantic-snapshot','semantic-events','semantic-detach'")&&api.includes("normalizeDesktopInput")&&api.includes("semanticSessionId")&&api.includes("afterSeq")&&api.includes("action:'desktop'"));
+assert.ok(toolHelper.includes("desktop-status")&&toolHelper.includes("desktop-windows")&&toolHelper.includes("desktop-frame")&&toolHelper.includes("desktop-semantic-attach")&&toolHelper.includes("desktop-semantic-snapshot")&&toolHelper.includes("desktop-semantic-events")&&toolHelper.includes("desktop-semantic-detach")&&toolHelper.includes("desktop-input")&&toolHelper.includes("capabilities:['desktop','desktop-input']"));
 assert.ok(wall.includes("'desktop':['Desktop view'")&&wall.includes("'desktop-input':['Desktop input'")&&wall.includes("locally blocked by default"));
-assert.ok(windowsWorkflow.includes('- name: Real Remote hidden helper smoke')&&windowsWorkflow.includes('timeout-minutes: 1')&&windowsWorkflow.includes('--real-remote-helper')&&windowsWorkflow.includes('windows-real-remote-helper=PASS')&&windowsWorkflow.includes('windows-real-remote-input-negative=PASS')&&windowsWorkflow.includes('windows-real-remote-semantic=PASS'));
+assert.ok(windowsWorkflow.includes('- name: Real Remote hidden helper smoke')&&windowsWorkflow.includes('timeout-minutes: 1')&&windowsWorkflow.includes('--real-remote-helper')&&windowsWorkflow.includes('windows-real-remote-helper=PASS')&&windowsWorkflow.includes('windows-real-remote-input-negative=PASS')&&windowsWorkflow.includes('windows-real-remote-semantic=PASS')&&windowsWorkflow.includes('windows-real-remote-semantic-events=PASS'));
 
 console.log('v11-real-remote-jsonl-bridge=PASS');
 console.log('v11-real-remote-same-app-windows-helper=PASS');
@@ -159,3 +171,4 @@ console.log('v11-real-remote-frame-visual-proof=PASS');
 console.log('v11-real-remote-input-default-deny=PASS');
 console.log('v11-real-remote-bounded-input=PASS');
 console.log('v11-real-remote-semantic-session=PASS');
+console.log('v11-real-remote-semantic-event-journal=PASS');

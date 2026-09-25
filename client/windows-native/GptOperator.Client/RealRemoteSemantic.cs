@@ -15,7 +15,18 @@ internal static partial class RealRemoteHelper
         public required int MaxDepth { get; init; }
         public required int MaxNodes { get; init; }
         public required long AttachedAt { get; init; }
+        public required AutomationElement Root { get; init; }
+        public object Gate { get; } = new();
+        public List<SemanticEventRecord> Journal { get; } = new();
         public long StateSeq;
+        public long DroppedBeforeSeq;
+        public bool ScopeChanged;
+        public bool FocusSubscribed;
+        public bool StructureSubscribed;
+        public bool PropertySubscribed;
+        public AutomationFocusChangedEventHandler? FocusHandler;
+        public StructureChangedEventHandler? StructureHandler;
+        public AutomationPropertyChangedEventHandler? PropertyHandler;
     }
 
     private static readonly object SemanticLock = new();
@@ -24,16 +35,19 @@ internal static partial class RealRemoteHelper
     private static object SemanticAttach(JsonElement args)
     {
         EnsureSemanticInteractive();
+        var scope = SemanticScope(args);
         var session = new SemanticSession
         {
             Id = "sem_" + Guid.NewGuid().ToString("N"),
             Epoch = "ep_" + Guid.NewGuid().ToString("N"),
-            Scope = SemanticScope(args),
+            Scope = scope,
             MaxDepth = SemanticInt(args, "maxDepth", 6, 0, 12),
             MaxNodes = SemanticInt(args, "maxNodes", 400, 1, 1500),
-            AttachedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+            AttachedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+            Root = SemanticRoot(scope)
         };
         lock (SemanticLock) SemanticSessions[session.Id] = session;
+        SubscribeSemantic(session);
         return SemanticSnapshotCore(session, true);
     }
 
@@ -59,6 +73,7 @@ internal static partial class RealRemoteHelper
             if (!SemanticSessions.Remove(id, out session!))
                 throw new InvalidOperationException("semantic_session_not_found");
         }
+        UnsubscribeSemantic(session);
         return new
         {
             protocolVersion = ProtocolVersion,
@@ -74,8 +89,12 @@ internal static partial class RealRemoteHelper
     {
         var rows = new List<Dictionary<string, object?>>(Math.Min(session.MaxNodes, 512));
         var truncated = false;
-        WalkSemantic(SemanticRoot(session.Scope), null, 0, "0", session, rows, ref truncated);
-        var stateSeq = Interlocked.Increment(ref session.StateSeq);
+        long stateSeq;
+        lock (session.Gate)
+        {
+            WalkSemantic(session.Root, null, 0, "0", session, rows, ref truncated);
+            stateSeq = ++session.StateSeq;
+        }
         var cursor = GetCursorPos(out var point) ? new { x = point.X, y = point.Y } : null;
         return new
         {
@@ -94,6 +113,10 @@ internal static partial class RealRemoteHelper
             truncated,
             cursor,
             foreground = WindowInfo(GetForegroundWindow()),
+            eventsAvailable = session.FocusSubscribed || session.StructureSubscribed || session.PropertySubscribed,
+            subscriptions = new { focus = session.FocusSubscribed, structure = session.StructureSubscribed, property = session.PropertySubscribed },
+            droppedBeforeSeq = session.DroppedBeforeSeq,
+            scopeChanged = session.ScopeChanged,
             nodes = rows
         };
     }

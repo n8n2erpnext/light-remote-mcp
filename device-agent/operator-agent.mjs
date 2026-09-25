@@ -176,6 +176,14 @@ async function executeDesktopCommand(state,p){
     },{timeoutMs:15000})};
   }
   if(op==='semantic-snapshot')return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('semantic-snapshot',{semanticSessionId:String(request.semanticSessionId||'')},{timeoutMs:15000})};
+  if(op==='semantic-events'){
+    const afterSeq=Number(request.afterSeq),limit=Number(request.limit);
+    return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('semantic-events',{
+      semanticSessionId:String(request.semanticSessionId||''),
+      afterSeq:Number.isFinite(afterSeq)?Math.max(0,Math.floor(afterSeq)):0,
+      limit:Math.max(1,Math.min(Number.isFinite(limit)?Math.floor(limit):100,200))
+    },{timeoutMs:10000})};
+  }
   if(op==='semantic-detach')return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('semantic-detach',{semanticSessionId:String(request.semanticSessionId||'')},{timeoutMs:10000})};
   throw new Error('desktop_operation_unsupported');
 }

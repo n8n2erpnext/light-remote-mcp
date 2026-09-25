@@ -158,7 +158,15 @@ jobs:
               $rr.StandardInput.Flush()
               $rrSemSnapshotLine = $rr.StandardOutput.ReadLine()
               $rrSemSnapshot = $rrSemSnapshotLine | ConvertFrom-Json
-              if (-not $rrSemSnapshot.ok -or $rrSemSnapshot.result.stateSeq -ne 2 -or $rrSemSnapshot.result.semanticSessionId -ne $semId) { throw "Real Remote semantic snapshot invalid: $rrSemSnapshotLine" }
+              if (-not $rrSemSnapshot.ok -or $rrSemSnapshot.result.stateSeq -lt 2 -or $rrSemSnapshot.result.semanticSessionId -ne $semId) { throw "Real Remote semantic snapshot invalid: $rrSemSnapshotLine" }
+
+              $afterSeq = [long]$rrSemSnapshot.result.stateSeq
+              $rr.StandardInput.WriteLine((@{id='ci-sem-events';op='semantic-events';args=@{semanticSessionId=$semId;afterSeq=$afterSeq;limit=20}} | ConvertTo-Json -Compress -Depth 4))
+              $rr.StandardInput.Flush()
+              $rrSemEventsLine = $rr.StandardOutput.ReadLine()
+              $rrSemEvents = $rrSemEventsLine | ConvertFrom-Json
+              if (-not $rrSemEvents.ok -or $rrSemEvents.result.provider -ne 'windows-uia' -or $rrSemEvents.result.semanticSessionId -ne $semId -or $rrSemEvents.result.stateSeq -lt $afterSeq -or -not $rrSemEvents.result.eventsAvailable -or $null -eq $rrSemEvents.result.events) { throw "Real Remote semantic events invalid: $rrSemEventsLine" }
+              Write-Host "windows-real-remote-semantic-events=PASS count=$($rrSemEvents.result.events.Count) seq=$($rrSemEvents.result.stateSeq) resync=$($rrSemEvents.result.resyncRecommended)"
 
               $rr.StandardInput.WriteLine((@{id='ci-sem-detach';op='semantic-detach';args=@{semanticSessionId=$semId}} | ConvertTo-Json -Compress -Depth 4))
               $rr.StandardInput.Flush()

@@ -69,6 +69,7 @@ internal static partial class RealRemoteHelper
                     "input" => Input(args),
                     "semantic-attach" => SemanticAttach(args),
                     "semantic-snapshot" => SemanticSnapshot(args),
+                    "semantic-events" => SemanticEvents(args),
                     "semantic-detach" => SemanticDetach(args),
                     _ => throw new InvalidOperationException($"desktop_operation_unsupported:{op}")
                 };
