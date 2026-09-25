@@ -168,6 +168,20 @@ jobs:
               if (-not $rrSemEvents.ok -or $rrSemEvents.result.provider -ne 'windows-uia' -or $rrSemEvents.result.semanticSessionId -ne $semId -or $rrSemEvents.result.stateSeq -lt $afterSeq -or -not $rrSemEvents.result.eventsAvailable -or $null -eq $rrSemEvents.result.events) { throw "Real Remote semantic events invalid: $rrSemEventsLine" }
               Write-Host "windows-real-remote-semantic-events=PASS count=$($rrSemEvents.result.events.Count) seq=$($rrSemEvents.result.stateSeq) resync=$($rrSemEvents.result.resyncRecommended)"
 
+              if ($null -ne $rrStatus.result.cursor) {
+                $ackAfter = [long]$rrSemEvents.result.stateSeq
+                $cursorX = [int]$rrStatus.result.cursor.x
+                $cursorY = [int]$rrStatus.result.cursor.y
+                $rr.StandardInput.WriteLine((@{id='ci-input-ack';op='input';args=@{events=@(@{type='move';x=$cursorX;y=$cursorY});semanticSessionId=$semId;afterSeq=$ackAfter;settleMs=0}} | ConvertTo-Json -Compress -Depth 6))
+                $rr.StandardInput.Flush()
+                $rrAckLine = $rr.StandardOutput.ReadLine()
+                $rrAck = $rrAckLine | ConvertFrom-Json
+                if (-not $rrAck.ok -or $rrAck.result.semanticSessionId -ne $semId -or $rrAck.result.inputSeq -lt 1 -or $rrAck.result.stateSeq -lt $ackAfter -or $rrAck.result.appliedEvents -ne 1 -or $null -eq $rrAck.result.cursor) { throw "Real Remote input ACK invalid: $rrAckLine" }
+                Write-Host "windows-real-remote-input-ack=PASS inputSeq=$($rrAck.result.inputSeq) stateSeq=$($rrAck.result.stateSeq) events=$($rrAck.result.events.Count)"
+              } else {
+                Write-Host 'windows-real-remote-input-ack=SKIP cursor-unavailable'
+              }
+
               $rr.StandardInput.WriteLine((@{id='ci-sem-detach';op='semantic-detach';args=@{semanticSessionId=$semId}} | ConvertTo-Json -Compress -Depth 4))
               $rr.StandardInput.Flush()
               $rrSemDetachLine = $rr.StandardOutput.ReadLine()

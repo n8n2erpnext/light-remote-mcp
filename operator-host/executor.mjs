@@ -562,7 +562,7 @@ async function startDesktopOperation(payload,requestId){
   if(payload.nodeId!=null&&String(payload.nodeId)!==session.nodeId)throw new SessionError('session_target_mismatch',409);
   let request=payload.desktop&&typeof payload.desktop==='object'&&!Array.isArray(payload.desktop)?payload.desktop:null;if(!request)throw new Error('desktop_request_required');
   const op=String(request.op||'');if(!['status','windows','frame','input','semantic-attach','semantic-snapshot','semantic-events','semantic-detach'].includes(op))throw new Error('desktop_operation_unsupported');
-  if(op==='input')request={op,...normalizeDesktopInput({events:request.events})};
+  if(op==='input')request={op,...normalizeDesktopInput(request)};
   const remote=session.nodeId!==NODE_ID,requiredCapabilities=op==='input'?['desktop','desktop-input']:['desktop'];
   if(!remote)throw new DeviceError('desktop_local_host_not_supported',409);
   const route=targetRoute(session.nodeId);if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(requiredCapabilities.some(cap=>!route.capabilities.includes(cap)))throw new FleetError('target_node_capability_missing',409);

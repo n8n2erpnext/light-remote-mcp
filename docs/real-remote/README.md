@@ -117,4 +117,11 @@ V0.4-B adds continuous local semantic observation:
 - journal overflow reports gap/droppedBeforeSeq; focus leaving a foreground-scoped root reports scopeChanged/resyncRecommended;
 - event subscriptions deliberately exclude ValuePattern.ValueProperty and text contents.
 
-V0.4-C will close the loop: desktop-input will accept semanticSessionId/expectedStateSeq and return inputSeq plus the resulting cursor/focus/semantic diff, with stale-state detection before mutation.
+V0.4-C closes the input loop without adding a second mutation tool:
+- desktop-input optionally accepts semanticSessionId, afterSeq and settleMs while keeping the legacy non-semantic response compatible;
+- the semantic session is validated before any mouse/keyboard mutation, and an afterSeq ahead of the current journal state is rejected;
+- successful semantic input increments inputSeq and returns the current stateSeq, cursor, foreground window, focused semantic element and journal events newer than afterSeq;
+- the ACK carries gap, droppedBeforeSeq, scopeChanged, focusOutsideScope, resyncRecommended and hasMore so the controller knows whether to continue immediately, drain late events or take a semantic/visual resync;
+- settleMs defaults to 90 ms and is bounded to 0..250 ms; events arriving later remain available through desktop-semantic-events from the returned state sequence.
+
+This makes the normal control loop: semantic state -> bounded OS input -> semantic ACK -> next decision. Pixel frames remain checkpoint/resync evidence rather than the per-action transport.

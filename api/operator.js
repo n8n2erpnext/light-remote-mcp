@@ -187,7 +187,7 @@ module.exports=async function handler(req,res){
           const desktop={op};
           if(op==='windows')desktop.limit=Math.max(1,Math.min(Number(d.limit)||100,200));
           if(op==='frame'){desktop.screen=d.screen==null?-1:Math.max(-1,Math.min(Number(d.screen)||0,31));desktop.maxWidth=Math.max(320,Math.min(Number(d.maxWidth)||960,1280));desktop.maxHeight=Math.max(180,Math.min(Number(d.maxHeight)||540,720));desktop.quality=Math.max(25,Math.min(Number(d.quality)||50,70));}
-          if(op==='input')Object.assign(desktop,normalizeDesktopInput({events:d.events}));
+          if(op==='input')Object.assign(desktop,normalizeDesktopInput({events:d.events,semanticSessionId:d.semanticSessionId,afterSeq:d.afterSeq,settleMs:d.settleMs}));
           if(op==='semantic-attach'){const depth=Number(d.maxDepth),nodes=Number(d.maxNodes);desktop.scope=d.scope==='desktop'?'desktop':'foreground';desktop.maxDepth=Math.max(0,Math.min(Number.isFinite(depth)?depth:6,12));desktop.maxNodes=Math.max(1,Math.min(Number.isFinite(nodes)?nodes:400,1500));}
           if(op==='semantic-snapshot'||op==='semantic-events'||op==='semantic-detach')desktop.semanticSessionId=String(d.semanticSessionId||'');
           if(op==='semantic-events'){const afterSeq=Number(d.afterSeq),limit=Number(d.limit);desktop.afterSeq=Number.isFinite(afterSeq)?Math.max(0,Math.floor(afterSeq)):0;desktop.limit=Math.max(1,Math.min(Number.isFinite(limit)?Math.floor(limit):100,200));}

@@ -44,6 +44,7 @@ internal static partial class RealRemoteHelper
             throw new InvalidOperationException("desktop_input_events_required");
         var count=events.GetArrayLength();
         if(count<1||count>64) throw new InvalidOperationException("desktop_input_invalid_event_count");
+        var semanticInput=BeginSemanticInput(args);
         var applied=0; var sent=0;
         foreach(var item in events.EnumerateArray())
         {
@@ -60,8 +61,7 @@ internal static partial class RealRemoteHelper
             }
             applied++;
         }
-        var cursor=GetCursorPos(out var point)?new{x=point.X,y=point.Y}:null;
-        return new{protocolVersion=ProtocolVersion,appliedEvents=applied,sentInputs=sent,cursor};
+        return CompleteSemanticInput(semanticInput,applied,sent);
     }
 
     private static void MoveCursor(JsonElement item,bool required)

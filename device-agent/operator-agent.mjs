@@ -164,7 +164,7 @@ async function executeDesktopCommand(state,p){
   },{timeoutMs:10000})};
   if(op==='input'){
     if(!effective.includes(REAL_REMOTE_INPUT_CAPABILITY))throw new Error('local capability denied: desktop-input');
-    const input=normalizeDesktopInput({events:request.events});
+    const input=normalizeDesktopInput(request);
     return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('input',input,{timeoutMs:10000})};
   }
   if(op==='semantic-attach'){

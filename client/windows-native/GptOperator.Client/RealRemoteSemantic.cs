@@ -19,6 +19,7 @@ internal static partial class RealRemoteHelper
         public object Gate { get; } = new();
         public List<SemanticEventRecord> Journal { get; } = new();
         public long StateSeq;
+        public long InputSeq;
         public long DroppedBeforeSeq;
         public bool ScopeChanged;
         public bool FocusSubscribed;
