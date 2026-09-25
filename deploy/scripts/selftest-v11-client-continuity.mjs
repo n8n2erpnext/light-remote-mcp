@@ -21,12 +21,16 @@ const tokenFor=exp=>'o1.client.'+Buffer.from(JSON.stringify({
 })).toString('base64url')+'.sig';
 const valid=tokenFor(now+60000);
 const expired=tokenFor(now-1);
-const invalidError=()=>{
+const client401=detail=>{
   const e=new Error('operator_http_401');
   e.status=401;
-  e.payload={ok:false,error:'agent_client_required',detail:'invalid'};
+  e.payload={ok:false,error:'agent_client_required'};
+  if(detail!==undefined)e.payload.detail=detail;
   return e;
 };
+const invalidError=()=>client401('invalid');
+const legacyNoDetailError=()=>client401(undefined);
+const missingCredentialError=()=>client401('missing');
 
 assert.equal(decodeClientCapability(valid,{now})?.clientSessionId,'lrc_continuity_selftest_0001');
 assert.equal(decodeClientCapability(expired,{now}),null);
@@ -48,6 +52,22 @@ const recovered=await callWithClientContinuity(async()=>{
 assert.deepEqual(recovered,{ok:true,value:'recovered'});
 assert.equal(calls,3);
 assert.deepEqual(events.map(x=>x.type),['client_continuity_retry','client_continuity_retry','client_continuity_recovered']);
+
+calls=0;
+const legacyRecovered=await callWithClientContinuity(async()=>{
+  calls+=1;
+  if(calls===1)throw legacyNoDetailError();
+  return {ok:true,value:'legacy-recovered'};
+},{client:valid,delaysMs:[0],sleep:async()=>{},now:()=>now});
+assert.deepEqual(legacyRecovered,{ok:true,value:'legacy-recovered'});
+assert.equal(calls,2);
+
+calls=0;
+await assert.rejects(
+  ()=>callWithClientContinuity(async()=>{calls+=1;throw missingCredentialError();},{client:valid,delaysMs:[0,0],sleep:async()=>{},now:()=>now}),
+  error=>error?.payload?.detail==='missing'
+);
+assert.equal(calls,1);
 
 calls=0;
 let exhausted=null;
