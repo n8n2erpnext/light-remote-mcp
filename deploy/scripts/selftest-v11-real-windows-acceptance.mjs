@@ -56,6 +56,7 @@ need(!script.includes('$clickAttempt:'),'windows_acceptance_click_attempt_scope_
 need(script.includes('${clickAttempt}:'),'windows_acceptance_click_attempt_braced_variable_missing');
 need(workflow.includes('$browserReadyDeadline = [DateTime]::UtcNow.AddSeconds(5)'),'windows_hidden_smoke_readiness_wait_missing');
 need(workflow.includes('$browserStartAttempt -lt 2')&&workflow.includes('windows-real-remote-browser-start-retry attempt=$browserStartAttempt'),'windows_hidden_smoke_browser_start_retry_missing');
+need(workflow.includes('$browserAttachAttempt -lt 3')&&workflow.includes('windows-real-remote-browser-attach-retry attempt=$browserAttachAttempt'),'windows_hidden_smoke_browser_attach_retry_missing');
 need(!workflow.includes('& taskkill.exe /PID $browser.Id /T /F'),'windows_hidden_smoke_native_taskkill_exit_leak_forbidden');
 need(workflow.includes("Start-Process -FilePath 'taskkill.exe' -ArgumentList @('/PID',[string]$browser.Id,'/T','/F')"),'windows_hidden_smoke_safe_taskkill_cleanup_missing');
 for(const forbidden of ['Input.dispatch','Runtime.evaluate','Runtime.callFunctionOn','DOM.resolveNode']){

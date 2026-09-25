@@ -223,11 +223,20 @@ jobs:
                 if ($cdpPort -lt 1 -or $cdpPort -gt 65535) { throw "Chromium DevTools port invalid: $cdpPort" }
                 $cdpEndpoint = "http://127.0.0.1:$cdpPort"
 
-                $rr.StandardInput.WriteLine((@{id='ci-browser-attach';op='semantic-attach';args=@{provider='browser-cdp';cdpEndpoint=$cdpEndpoint;urlMatch='real-remote-cdp.html';maxDepth=8;maxNodes=300}} | ConvertTo-Json -Compress -Depth 6))
-                $rr.StandardInput.Flush()
-                $rrBrowserAttachLine = $rr.StandardOutput.ReadLine()
-                $rrBrowserAttach = $rrBrowserAttachLine | ConvertFrom-Json
-                if (-not $rrBrowserAttach.ok -or $rrBrowserAttach.result.provider -ne 'browser-cdp' -or [string]::IsNullOrWhiteSpace($rrBrowserAttach.result.semanticSessionId) -or $rrBrowserAttach.result.nodeCount -lt 1) { throw "Real Remote browser semantic attach invalid: $rrBrowserAttachLine" }
+                $browserAttachAttempt = 0
+                $rrBrowserAttach = $null
+                $rrBrowserAttachLine = ''
+                do {
+                  $browserAttachAttempt++
+                  $rr.StandardInput.WriteLine((@{id=("ci-browser-attach-" + $browserAttachAttempt);op='semantic-attach';args=@{provider='browser-cdp';cdpEndpoint=$cdpEndpoint;urlMatch='real-remote-cdp.html';maxDepth=8;maxNodes=300}} | ConvertTo-Json -Compress -Depth 6))
+                  $rr.StandardInput.Flush()
+                  $rrBrowserAttachLine = $rr.StandardOutput.ReadLine()
+                  $rrBrowserAttach = $rrBrowserAttachLine | ConvertFrom-Json
+                  if ($rrBrowserAttach.ok -and $rrBrowserAttach.result.provider -eq 'browser-cdp' -and -not [string]::IsNullOrWhiteSpace($rrBrowserAttach.result.semanticSessionId) -and $rrBrowserAttach.result.nodeCount -ge 1) { break }
+                  Write-Warning "windows-real-remote-browser-attach-retry attempt=$browserAttachAttempt response=$rrBrowserAttachLine"
+                  Start-Sleep -Milliseconds 300
+                } while ($browserAttachAttempt -lt 3)
+                if (-not $rrBrowserAttach.ok -or $rrBrowserAttach.result.provider -ne 'browser-cdp' -or [string]::IsNullOrWhiteSpace($rrBrowserAttach.result.semanticSessionId) -or $rrBrowserAttach.result.nodeCount -lt 1) { throw "Real Remote browser semantic attach invalid after $browserAttachAttempt attempts: $rrBrowserAttachLine" }
                 $browserSemId = [string]$rrBrowserAttach.result.semanticSessionId
                 $browserReadyDeadline = [DateTime]::UtcNow.AddSeconds(5)
                 $browserReadyAttempt = 0
