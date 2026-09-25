@@ -46,7 +46,7 @@ ArchiveExtraction=full
 WizardStyle=modern
 CloseApplications=yes
 RestartApplications=no
-UninstallDisplayIcon={app}\GptOperator.Client.exe
+UninstallDisplayIcon={app}\LightRemote.Client.exe
 SetupIconFile={#StageDir}\Assets\light-remote.ico
 AppMutex=Local\GPT_OPERATOR_CLIENT_V09
 [Files]
@@ -55,19 +55,22 @@ Source: "{#StageDir}\VERSION"; DestDir: "{app}"; Flags: ignoreversion; AfterInst
 #endif
 Source: "{#StageDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
+[InstallDelete]
+Type: files; Name: "{app}\GptOperator.Client.exe"
+
 [Registry]
-Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "Light Remote MCP"; ValueData: """{app}\GptOperator.Client.exe"" --background"; Flags: uninsdeletevalue
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "Light Remote MCP"; ValueData: """{app}\LightRemote.Client.exe"" --background"; Flags: uninsdeletevalue
 
 [Icons]
-Name: "{group}\Light Remote MCP"; Filename: "{app}\GptOperator.Client.exe"; Parameters: "--launch"
-Name: "{userdesktop}\Light Remote MCP"; Filename: "{app}\GptOperator.Client.exe"; Parameters: "--launch"; Tasks: desktopicon
+Name: "{group}\Light Remote MCP"; Filename: "{app}\LightRemote.Client.exe"; Parameters: "--launch"
+Name: "{userdesktop}\Light Remote MCP"; Filename: "{app}\LightRemote.Client.exe"; Parameters: "--launch"; Tasks: desktopicon
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional icons:"; Flags: unchecked
 
 [Run]
 Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File ""{app}\agent\device-agent\install-windows-task.ps1"" -InstallRoot ""{app}"""; Flags: runhidden waituntilterminated
-Filename: "{app}\GptOperator.Client.exe"; Description: "Start Light Remote tray"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\LightRemote.Client.exe"; Description: "Start Light Remote tray"; Flags: nowait postinstall skipifsilent
 
 [Code]
 #ifdef CompactNodeBootstrap
@@ -141,29 +144,30 @@ end;
 
 procedure QuiesceInstalledRuntime();
 var
-  ScriptFile, ScriptText, AppExe, NodeExe, Args: String;
+  ScriptFile, ScriptText, AppExe, LegacyAppExe, NodeExe, Args: String;
   ResultCode: Integer;
 begin
-  AppExe := ExpandConstant('{app}\GptOperator.Client.exe');
+  AppExe := ExpandConstant('{app}\LightRemote.Client.exe');
+  LegacyAppExe := ExpandConstant('{app}\GptOperator.Client.exe');
   NodeExe := ExpandConstant('{app}\runtime\node.exe');
   ScriptFile := ExpandConstant('{tmp}\light-remote-preinstall-quiesce.ps1');
   ScriptText :=
-    'param([string]$AppExe,[string]$NodeExe)' + #13#10 +
+    'param([string]$AppExe,[string]$LegacyAppExe,[string]$NodeExe)' + #13#10 +
     '$ErrorActionPreference=''SilentlyContinue''' + #13#10 +
-    '$targets=@($AppExe,$NodeExe)' + #13#10 +
+    '$targets=@($AppExe,$LegacyAppExe,$NodeExe)' + #13#10 +
     '$deadline=(Get-Date).AddSeconds(10)' + #13#10 +
     'do {' + #13#10 +
-    '  $p=@(Get-Process -Name ''GptOperator.Client'',''node'' -ErrorAction SilentlyContinue | Where-Object { try { $targets -contains $_.Path } catch { $false } })' + #13#10 +
+    '  $p=@(Get-Process -Name ''LightRemote.Client'',''GptOperator.Client'',''node'' -ErrorAction SilentlyContinue | Where-Object { try { $targets -contains $_.Path } catch { $false } })' + #13#10 +
     '  if(-not $p){ exit 0 }' + #13#10 +
     '  $p | Stop-Process -Force -ErrorAction SilentlyContinue' + #13#10 +
     '  Start-Sleep -Milliseconds 200' + #13#10 +
     '} while((Get-Date) -lt $deadline)' + #13#10 +
-    '$left=@(Get-Process -Name ''GptOperator.Client'',''node'' -ErrorAction SilentlyContinue | Where-Object { try { $targets -contains $_.Path } catch { $false } })' + #13#10 +
+    '$left=@(Get-Process -Name ''LightRemote.Client'',''GptOperator.Client'',''node'' -ErrorAction SilentlyContinue | Where-Object { try { $targets -contains $_.Path } catch { $false } })' + #13#10 +
     'if($left){ exit 41 }' + #13#10 +
     'exit 0' + #13#10;
   if not SaveStringToFile(ScriptFile, ScriptText, False) then
     RaiseException('Unable to stage Light Remote runtime quiesce helper');
-  Args := '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + ScriptFile + '" -AppExe "' + AppExe + '" -NodeExe "' + NodeExe + '"';
+  Args := '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"' + ScriptFile + '\" -AppExe \"' + AppExe + '\" -LegacyAppExe \"' + LegacyAppExe + '\" -NodeExe \"' + NodeExe + '\"';
   if (not Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'), Args, '', SW_HIDE, ewWaitUntilTerminated, ResultCode)) or (ResultCode <> 0) then
     RaiseException('Unable to stop the installed Light Remote runtime before replacement (exit ' + IntToStr(ResultCode) + ')');
   Log('light-remote-runtime-quiesced');

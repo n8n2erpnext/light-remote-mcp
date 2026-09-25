@@ -26,6 +26,7 @@ expect(workflow.includes('windows-independent-updater-selftest=PASS')&&workflow.
 expect(workflow.includes('windows-independent-update-signature=PASS')&&workflow.includes('windows-independent-update-rollback=PASS'),'windows_updater_recovery_ci_missing');
 expect(workflow.includes('stage-client-core.mjs $agentRoot')&&workflow.includes('install-windows-task.ps1')&&coreSources.has('device-agent/local-wall.mjs')&&coreSources.has('device-agent/local-wall-auth.mjs'),'windows_runtime_not_packaged');
 expect(project.includes('<UseWindowsForms>true</UseWindowsForms>')&&project.includes('net8.0-windows10.0.17763.0'),'windows_client_target_missing');
+expect(project.includes('<AssemblyName>LightRemote.Client</AssemblyName>')&&manifest.includes('name=\"LightRemote.Client\"'),'windows_client_binary_brand_missing');
 expect(project.includes('<Compile Remove="MainForm.cs;ConnectionSwitch.cs;ConnectionSettingsDialog.cs" />'),'native_window_not_removed');
 expect(program.includes('Application.Run(new TrayApplicationContext())'),'tray_context_not_entrypoint');
 expect(program.includes('--open-wall')&&program.includes('--launch')&&program.includes('--agent-host'),'windows_tray_modes_missing');
@@ -43,6 +44,7 @@ expect(project.includes('<DebugType>none</DebugType>')&&updaterProject.includes(
 expect(updaterProgram.includes('--scheduled-update')&&updaterProgram.includes('--apply-update')&&updaterProgram.includes('--verify-update-fixture'),'updater_modes_missing');
 expect(updater.includes('VerifySignedManifest')&&updater.includes('CryptographicOperations.FixedTimeEquals'),'windows_signed_update_verification_missing');
 expect(applier.includes('rollback_success')&&applier.includes('--self-test-output'),'windows_rollback_health_gate_missing');
+expect(applier.includes('LightRemote.Client.exe')&&applier.includes('GptOperator.Client.exe')&&applier.includes('ResolveInstalledClient'),'windows_client_rename_rollback_compat_missing');
 expect(recovery.includes('"Light Remote", "Updater"')&&recovery.includes('RollbackDir')&&recovery.includes('UpdateLog'),'updater_recovery_root_missing');
 expect(!installer.includes('UpdaterStageDir'),'duplicate_updater_payload_remains');
 expect(workflow.includes("Copy-Item (Join-Path $updaterStage '*') $helperCandidate -Recurse -Force"),'helper_candidate_not_packaged');
@@ -51,11 +53,13 @@ expect(workflow.includes('windows-size-tray-bytes=')&&workflow.includes('windows
 expect(installer.includes('Light-Remote-MCP-Setup-{#AppVersion}-x64.exe'),'independent_rollback_cache_missing');
 expect(installer.includes('PrivilegesRequired=lowest')&&installer.includes('Parameters: "--launch"'),'windows_installer_contract_missing');
 expect(installer.includes('LightRemoteDeviceAgent')&&installer.includes('LightRemoteUpdater'),'windows_task_cleanup_missing');
-expect(installer.includes('procedure QuiesceInstalledRuntime()')&&installer.includes("$targets=@($AppExe,$NodeExe)")&&installer.includes("$targets -contains $_.Path")&&installer.includes('light-remote-runtime-quiesced')&&installer.includes('StopAndRemoveLegacyTask();\n  QuiesceInstalledRuntime();'),'windows_reinstall_runtime_quiesce_missing');
+expect(installer.includes('LightRemote.Client.exe')&&installer.includes('[InstallDelete]')&&installer.includes('GptOperator.Client.exe'),'windows_installer_client_rename_missing');
+expect(installer.includes('procedure QuiesceInstalledRuntime()')&&installer.includes("$targets=@($AppExe,$LegacyAppExe,$NodeExe)")&&installer.includes("$targets -contains $_.Path")&&installer.includes('light-remote-runtime-quiesced')&&installer.includes('StopAndRemoveLegacyTask();\n  QuiesceInstalledRuntime();'),'windows_reinstall_runtime_quiesce_missing');
 expect(!/LocalSystem/i.test(installer+taskInstaller),'windows_must_not_use_localsystem');
 expect(taskInstaller.includes("$UpdaterRoot=Join-Path $env:LOCALAPPDATA 'Light Remote\\Updater'")&&taskInstaller.includes("$Updater=Join-Path $UpdaterRoot 'LightRemote.Updater.exe'"),'updater_recovery_path_missing');
 expect(taskInstaller.includes('-Execute $Updater')&&taskInstaller.includes('--scheduled-update --install-dir'),'windows_updater_task_not_independent');
 expect(taskInstaller.includes('-Execute $Tray')&&taskInstaller.includes("-Argument '--agent-host'"),'windows_agent_task_must_use_hidden_native_host');
+expect(taskInstaller.includes("$Tray=Join-Path $InstallRoot 'LightRemote.Client.exe'"),'windows_agent_task_client_name_missing');
 expect(!taskInstaller.includes("-Execute $Node -Argument"),'windows_agent_task_must_not_launch_node_directly');
 expect(agentHost.includes('CreateNoWindow = true')&&agentHost.includes('RedirectStandardOutput = true'),'windows_agent_host_not_hidden');
 expect(manifest.includes('PerMonitorV2'),'windows_dpi_manifest_missing');

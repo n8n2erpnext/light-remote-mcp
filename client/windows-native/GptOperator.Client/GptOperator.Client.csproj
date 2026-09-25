@@ -6,7 +6,7 @@
     <UseWPF>true</UseWPF>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <AssemblyName>GptOperator.Client</AssemblyName>
+    <AssemblyName>LightRemote.Client</AssemblyName>
     <RootNamespace>GptOperator.Client</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\light-remote.ico</ApplicationIcon>

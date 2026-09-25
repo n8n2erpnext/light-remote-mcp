@@ -99,7 +99,7 @@ jobs:
           Copy-Item NOTICE (Join-Path $stage 'NOTICE')
           Copy-Item THIRD_PARTY_DISTRIBUTION_NOTICES.md (Join-Path $stage 'THIRD_PARTY_DISTRIBUTION_NOTICES.md')
           Copy-Item VERSION (Join-Path $stage 'VERSION')
-          $trayBytes=(Get-Item (Join-Path $stage 'GptOperator.Client.exe')).Length
+          $trayBytes=(Get-Item (Join-Path $stage 'LightRemote.Client.exe')).Length
           $helperBytes=(Get-Item (Join-Path $updaterStage 'LightRemote.Updater.exe')).Length
           $stageBytes=(Get-ChildItem $stage -File -Recurse | Measure-Object Length -Sum).Sum
           $helperStageBytes=(Get-ChildItem $updaterStage -File -Recurse | Measure-Object Length -Sum).Sum
@@ -109,7 +109,7 @@ jobs:
         shell: pwsh
         run: |
           $stage = Join-Path $PWD 'dist\windows\stage'
-          $exe = Join-Path $stage 'GptOperator.Client.exe'
+          $exe = Join-Path $stage 'LightRemote.Client.exe'
           if (-not (Test-Path $exe)) { throw 'Real Remote helper executable missing after publish' }
 
           $rrPsi = [System.Diagnostics.ProcessStartInfo]::new()
@@ -277,7 +277,7 @@ jobs:
         run: |
           $stage = Join-Path $PWD 'dist\windows\stage'
           $result = Join-Path $env:RUNNER_TEMP 'gpt-native-selftest.json'
-          $exe = Join-Path $stage 'GptOperator.Client.exe'
+          $exe = Join-Path $stage 'LightRemote.Client.exe'
           $node = Join-Path $stage 'runtime\node.exe'
           $agent = Join-Path $stage 'agent\device-agent\operator-agent.mjs'
           $agentRoot = Join-Path $stage 'agent'
@@ -395,7 +395,7 @@ jobs:
           Start-ScheduledTask -TaskName $legacyName
           Start-Sleep -Milliseconds 500
 
-          $installDir = Join-Path $env:RUNNER_TEMP 'GPT Operator Installed'
+          $installDir = Join-Path $env:RUNNER_TEMP 'Light Remote Installed'
           $dirArg = '/DIR="' + $installDir + '"'
           $args = @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',$dirArg)
           Write-Host "windows-native-install-start dir=$installDir"
@@ -403,7 +403,7 @@ jobs:
           if (-not $p.WaitForExit(120000)) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; throw 'installer timed out after 120s' }
           if ($p.ExitCode -ne 0) { throw "installer exit=$($p.ExitCode)" }
           if (Get-ScheduledTask -TaskName $legacyName -ErrorAction SilentlyContinue) { throw 'legacy scheduled task survived native install' }
-          $exe = Join-Path $installDir 'GptOperator.Client.exe'
+          $exe = Join-Path $installDir 'LightRemote.Client.exe'
           if (-not (Test-Path $exe)) { throw "installed client missing: $exe" }
           foreach ($notice in @('LICENSE','NOTICE','THIRD_PARTY_DISTRIBUTION_NOTICES.md','licenses\node\LICENSE','licenses\dotnet\LICENSE.txt','licenses\dotnet\ThirdPartyNotices.txt','THIRD_PARTY_NOTICES.txt')) {
             $noticePath = Join-Path $installDir $notice
@@ -431,7 +431,7 @@ jobs:
           if ($updateAction.Arguments -notmatch '--scheduled-update' -or $updateAction.Arguments -notmatch '--install-dir') { throw "updater task arguments invalid: $($updateAction.Arguments)" }
           if ([IO.Path]::GetFullPath($updaterExe).StartsWith([IO.Path]::GetFullPath($installDir), [StringComparison]::OrdinalIgnoreCase)) { throw 'updater executable lives inside replaceable app tree' }
           $agentAction = @($agentTask.Actions)[0]
-          if ([IO.Path]::GetFileName($agentAction.Execute) -ne 'GptOperator.Client.exe') { throw "agent task must use hidden native host, got $($agentAction.Execute)" }
+          if ([IO.Path]::GetFileName($agentAction.Execute) -ne 'LightRemote.Client.exe') { throw "agent task must use hidden native host, got $($agentAction.Execute)" }
           if ($agentAction.Arguments -notmatch '--agent-host') { throw "agent task missing --agent-host: $($agentAction.Arguments)" }
           if (-not (Test-NetConnection -ComputerName 127.0.0.1 -Port 5491 -InformationLevel Quiet)) { throw 'Local Wall 5491 not listening after install' }
           $runtimeNode = Join-Path $installDir 'runtime\node.exe'
@@ -459,10 +459,10 @@ jobs:
             Start-Sleep -Milliseconds 250
           } while ((Get-Date) -lt $taskStopDeadline)
           if ($agentTaskState -eq 'Running') { throw 'agent scheduled task did not stop for updater independence probe' }
-          Get-Process -Name 'GptOperator.Client','node' -ErrorAction SilentlyContinue | Where-Object { try { $_.Path -eq $exe -or $_.Path -eq $runtimeNode } catch { $false } } | Stop-Process -Force -ErrorAction SilentlyContinue
+          Get-Process -Name 'LightRemote.Client','GptOperator.Client','node' -ErrorAction SilentlyContinue | Where-Object { try { $_.Path -eq $exe -or $_.Path -eq $runtimeNode } catch { $false } } | Stop-Process -Force -ErrorAction SilentlyContinue
           $agentExitDeadline = (Get-Date).AddSeconds(10)
           do {
-            $runtimeStillRunning = @(Get-Process -Name 'GptOperator.Client','node' -ErrorAction SilentlyContinue | Where-Object { try { $_.Path -eq $exe -or $_.Path -eq $runtimeNode } catch { $false } })
+            $runtimeStillRunning = @(Get-Process -Name 'LightRemote.Client','GptOperator.Client','node' -ErrorAction SilentlyContinue | Where-Object { try { $_.Path -eq $exe -or $_.Path -eq $runtimeNode } catch { $false } })
             if (-not $runtimeStillRunning) { break }
             Start-Sleep -Milliseconds 250
           } while ((Get-Date) -lt $agentExitDeadline)
@@ -543,9 +543,9 @@ jobs:
         run: |
           Stop-ScheduledTask -TaskName 'LightRemoteDeviceAgent' -ErrorAction SilentlyContinue
           if ($env:WINDOWS_INSTALL_DIR) {
-            $fullExe = Join-Path $env:WINDOWS_INSTALL_DIR 'GptOperator.Client.exe'
+            $fullExe = Join-Path $env:WINDOWS_INSTALL_DIR 'LightRemote.Client.exe'
             $fullNode = Join-Path $env:WINDOWS_INSTALL_DIR 'runtime\node.exe'
-            Get-Process -Name 'GptOperator.Client','node' -ErrorAction SilentlyContinue | Where-Object { try { $_.Path -eq $fullExe -or $_.Path -eq $fullNode } catch { $false } } | Stop-Process -Force -ErrorAction SilentlyContinue
+            Get-Process -Name 'LightRemote.Client','GptOperator.Client','node' -ErrorAction SilentlyContinue | Where-Object { try { $_.Path -eq $fullExe -or $_.Path -eq $fullNode } catch { $false } } | Stop-Process -Force -ErrorAction SilentlyContinue
           }
           Get-Process -Name 'LightRemote.Updater','light-remote-update-helper' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
           Unregister-ScheduledTask -TaskName 'GPTOperatorDeviceAgent' -Confirm:$false -ErrorAction SilentlyContinue
@@ -592,7 +592,7 @@ jobs:
           if (-not $p2.WaitForExit(180000)) { Stop-Process -Id $p2.Id -Force -ErrorAction SilentlyContinue; throw 'compact cache reinstall timed out after 180s' }
           if ($p2.ExitCode -ne 0) { if(Test-Path $log2){Get-Content $log2 -Raw|Write-Host}; throw "compact cache reinstall exit=$($p2.ExitCode)" }
           if ((Get-Content $log2 -Raw) -notmatch 'compact-node-source=cache') { throw 'compact reinstall did not reuse verified Node cache' }
-          $exe = Join-Path $installDir 'GptOperator.Client.exe'
+          $exe = Join-Path $installDir 'LightRemote.Client.exe'
           $result = Join-Path $env:RUNNER_TEMP 'compact-installed-selftest.json'
           $self = Start-Process -FilePath $exe -ArgumentList @('--self-test-output',$result) -PassThru -Wait
           if ($self.ExitCode -ne 0) { throw "compact installed self-test failed exit=$($self.ExitCode)" }
@@ -621,9 +621,9 @@ jobs:
           Stop-ScheduledTask -TaskName 'LightRemoteDeviceAgent' -ErrorAction SilentlyContinue
           $compactDir = $env:WINDOWS_COMPACT_INSTALL_DIR
           if ([string]::IsNullOrWhiteSpace($compactDir)) { $compactDir = Join-Path $env:RUNNER_TEMP 'Light Remote Compact Installed' }
-          $compactExe = Join-Path $compactDir 'GptOperator.Client.exe'
+          $compactExe = Join-Path $compactDir 'LightRemote.Client.exe'
           $compactNode = Join-Path $compactDir 'runtime\node.exe'
-          Get-Process -Name 'GptOperator.Client','node' -ErrorAction SilentlyContinue | Where-Object { try { $_.Path -eq $compactExe -or $_.Path -eq $compactNode } catch { $false } } | Stop-Process -Force -ErrorAction SilentlyContinue
+          Get-Process -Name 'LightRemote.Client','GptOperator.Client','node' -ErrorAction SilentlyContinue | Where-Object { try { $_.Path -eq $compactExe -or $_.Path -eq $compactNode } catch { $false } } | Stop-Process -Force -ErrorAction SilentlyContinue
           Get-Process -Name 'LightRemote.Updater' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
           Unregister-ScheduledTask -TaskName 'LightRemoteDeviceAgent' -Confirm:$false -ErrorAction SilentlyContinue
           Unregister-ScheduledTask -TaskName 'LightRemoteUpdater' -Confirm:$false -ErrorAction SilentlyContinue

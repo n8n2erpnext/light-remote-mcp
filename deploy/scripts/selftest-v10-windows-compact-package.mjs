@@ -18,6 +18,7 @@ expect(installer.includes('Light-Remote-MCP-Setup-{#AppVersion}-x64.exe'),'compa
 expect(workflow.includes('Build compact web installer')&&workflow.includes('windows-compact-vs-full-bytes='),'compact_ci_build_missing');
 expect(workflow.includes("$nodeVersion -ne 'v22.23.2'")&&workflow.includes(sha),'compact_ci_runtime_verify_missing');expect(workflow.includes('compact-node-source=download')&&workflow.includes('compact-node-source=cache'),'compact_ci_cache_reuse_missing');
 expect(workflow.includes('windows-compact-installed-selftest=PASS')&&workflow.includes('windows-compact-installer-roundtrip=PASS'),'compact_ci_roundtrip_missing');
+expect(workflow.includes('LightRemote.Client.exe'),'compact_ci_light_remote_client_name_missing');
 expect(task.includes('Stop-ScheduledTask -TaskName $taskName')&&task.includes('[IO.Path]::GetFullPath($_.Path) -eq $nodeFull'),'compact_reinstall_stale_node_cleanup_missing');
 expect(task.includes('Stale Light Remote Node runtime survived task cleanup'),'compact_reinstall_stale_node_guard_missing');
 expect(task.includes('$startDeadline=(Get-Date).AddSeconds(10);$stableSince=$null')&&task.includes('TotalSeconds -ge 2')&&task.includes('failed stable-start gate'),'compact_agent_start_health_gate_missing');
