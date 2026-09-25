@@ -228,6 +228,19 @@ jobs:
                 if (-not $rrBrowserSnapshot.ok -or $rrBrowserSnapshot.result.provider -ne 'browser-cdp' -or $rrBrowserSnapshot.result.semanticSessionId -ne $browserSemId -or $rrBrowserSnapshot.result.stateSeq -lt $rrBrowserAttach.result.stateSeq) { throw "Real Remote browser semantic snapshot invalid: $rrBrowserSnapshotLine" }
 
                 $browserAfter = [long]$rrBrowserSnapshot.result.stateSeq
+                $snapshotButton = @($rrBrowserSnapshot.result.nodes | Where-Object { $_.role -eq 'button' -and $_.name -eq 'Continue' })
+                if ($snapshotButton.Count -lt 1 -or $null -eq $snapshotButton[0].center) { throw "Real Remote browser semantic center missing: $rrBrowserSnapshotLine" }
+                $browserX = [int][Math]::Round([double]$snapshotButton[0].center.x)
+                $browserY = [int][Math]::Round([double]$snapshotButton[0].center.y)
+                $rr.StandardInput.WriteLine((@{id='ci-browser-input-ack';op='input';args=@{events=@(@{type='move';x=$browserX;y=$browserY});semanticSessionId=$browserSemId;afterSeq=$browserAfter;settleMs=0}} | ConvertTo-Json -Compress -Depth 7))
+                $rr.StandardInput.Flush()
+                $rrBrowserInputLine = $rr.StandardOutput.ReadLine()
+                $rrBrowserInput = $rrBrowserInputLine | ConvertFrom-Json
+                if (-not $rrBrowserInput.ok -or $rrBrowserInput.result.provider -ne 'browser-cdp' -or $rrBrowserInput.result.semanticSessionId -ne $browserSemId -or $rrBrowserInput.result.appliedEvents -ne 1 -or $rrBrowserInput.result.sentInputs -ne 0 -or $rrBrowserInput.result.inputSeq -lt 1 -or $rrBrowserInput.result.stateSeq -le $browserAfter -or $rrBrowserInput.result.observation -ne 'cdp-snapshot+journal') { throw "Real Remote browser input ACK invalid: $rrBrowserInputLine" }
+                if ($null -eq $rrBrowserInput.result.cursor -or [int]$rrBrowserInput.result.cursor.x -ne $browserX -or [int]$rrBrowserInput.result.cursor.y -ne $browserY) { throw "Real Remote browser input cursor ACK invalid: $rrBrowserInputLine" }
+                $browserAfter = [long]$rrBrowserInput.result.stateSeq
+                Write-Host "windows-real-remote-browser-input-ack=PASS x=$browserX y=$browserY inputSeq=$($rrBrowserInput.result.inputSeq) seq=$browserAfter"
+
                 $rr.StandardInput.WriteLine((@{id='ci-browser-events';op='semantic-events';args=@{semanticSessionId=$browserSemId;afterSeq=$browserAfter;limit=20}} | ConvertTo-Json -Compress -Depth 4))
                 $rr.StandardInput.Flush()
                 $rrBrowserEventsLine = $rr.StandardOutput.ReadLine()
