@@ -1,7 +1,7 @@
-Light Remote MCP — Third-Party Notices
+Light Remote — Third-Party Notices
 
 NetBird client UI reference
-Portions of the desktop UI structure and interaction patterns in Light Remote MCP were adapted from the NetBird client project:
+Portions of the desktop UI structure and interaction patterns in Light Remote were adapted from the NetBird client project:
 https://github.com/netbirdio/netbird
 
 BSD 3-Clause License
@@ -21,4 +21,4 @@ Their upstream license/notice files are installed alongside the application at:
 - licenses\dotnet\LICENSE.txt
 - licenses\dotnet\ThirdPartyNotices.txt
 
-These runtime notices remain separate from the Light Remote MCP project license.
+These runtime notices remain separate from the Light Remote project license.

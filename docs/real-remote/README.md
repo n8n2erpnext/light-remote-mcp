@@ -98,7 +98,7 @@ The read path requires the desktop capability. Mutation additionally requires de
 
 desktop.frame remains a control-plane proof, not the final Real Remote video transport. It defaults to at most 960x540 JPEG quality 50 and is hard bounded to 1280x720, quality 25..70 and roughly 650 KiB encoded JPEG bytes before base64. Input batches are limited to 64 normalized events and do not expose arbitrary raw INPUT packets.
 
-Windows input uses SetCursorPos and SendInput from the existing GptOperator.Client.exe hidden helper. Windows UIPI and secure-desktop boundaries remain in force; Real Remote does not elevate around them.
+Windows input uses SetCursorPos and SendInput from the existing LightRemote.Client.exe hidden helper. Windows UIPI and secure-desktop boundaries remain in force; Real Remote does not elevate around them.
 
 V0.4-A adds the semantic foundation without changing the existing pixel or input paths:
 - desktop-semantic-attach opens a bounded Windows UI Automation session and returns semanticSessionId, epoch and stateSeq=1;
@@ -137,4 +137,4 @@ V0.5-A adds a read-only Chromium semantic provider while preserving the same des
 - Page/DOM/Accessibility changes are retained in a bounded 512-event journal using the same epoch/stateSeq resume model;
 - the browser semantic provider does not use Runtime.evaluate, does not inject page script, and does not mutate the DOM.
 
-Mouse and keyboard mutation remains desktop-input through Windows SetCursorPos/SendInput. V0.5-A is semantic observation only; browser-cdp sessions are not yet accepted by the closed-loop desktop-input ACK until the next browser-input integration milestone.
+Mouse and keyboard mutation remains desktop-input through Windows SetCursorPos/SendInput. V0.5-B accepts browser-cdp semantic sessions in the closed-loop desktop-input ACK: semantic coordinates drive OS input, then CDP refreshes the semantic snapshot/journal as observation-only ACK evidence. CDP does not dispatch mouse/keyboard input or inject page script.

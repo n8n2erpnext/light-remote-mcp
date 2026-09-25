@@ -27,11 +27,12 @@
 
 [Setup]
 AppId={{A8D073F5-9792-4FA6-96A6-13C565F255F3}
-AppName=Light Remote MCP
+AppName=Light Remote
 AppVersion={#AppVersion}
 AppPublisher=Thai Duy
-DefaultDirName={localappdata}\Programs\Light Remote MCP
-DefaultGroupName=Light Remote MCP
+DefaultDirName={localappdata}\Programs\Light Remote
+UsePreviousAppDir=yes
+DefaultGroupName=Light Remote
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
@@ -59,11 +60,11 @@ Source: "{#StageDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs c
 Type: files; Name: "{app}\GptOperator.Client.exe"
 
 [Registry]
-Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "Light Remote MCP"; ValueData: """{app}\LightRemote.Client.exe"" --background"; Flags: uninsdeletevalue
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "Light Remote"; ValueData: """{app}\LightRemote.Client.exe"" --background"; Flags: uninsdeletevalue
 
 [Icons]
-Name: "{group}\Light Remote MCP"; Filename: "{app}\LightRemote.Client.exe"; Parameters: "--launch"
-Name: "{userdesktop}\Light Remote MCP"; Filename: "{app}\LightRemote.Client.exe"; Parameters: "--launch"; Tasks: desktopicon
+Name: "{group}\Light Remote"; Filename: "{app}\LightRemote.Client.exe"; Parameters: "--launch"
+Name: "{userdesktop}\Light Remote"; Filename: "{app}\LightRemote.Client.exe"; Parameters: "--launch"; Tasks: desktopicon
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional icons:"; Flags: unchecked
@@ -128,6 +129,7 @@ end;
 procedure RemoveLegacyAutostart();
 begin
   RegDeleteValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Run', 'GPT Operator');
+  RegDeleteValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Run', 'Light Remote MCP');
 end;
 
 procedure StopAndRemoveLegacyTask();
