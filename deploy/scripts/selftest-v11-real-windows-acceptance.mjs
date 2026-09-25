@@ -19,6 +19,7 @@ for(const token of [
   'windows-real-remote-browser-os-input-acceptance=PASS'
 ])need(script.includes(token),'windows_acceptance_contract_missing:'+token);
 
+need(!script.includes('[hashtable]$Args'),'windows_acceptance_powershell_args_shadow_forbidden');
 for(const forbidden of ['Input.dispatch','Runtime.evaluate','Runtime.callFunctionOn','DOM.resolveNode']){
   need(!script.includes(forbidden),'windows_acceptance_cdp_mutation_forbidden:'+forbidden);
 }

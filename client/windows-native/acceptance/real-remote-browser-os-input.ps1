@@ -36,8 +36,8 @@ public static class LightRemoteAcceptanceWindow{
 }
 
 $browser=$null;$rr=$null;$sem=$null;$detached=$false
-function Invoke-Rr([string]$Id,[string]$Op,[hashtable]$Args=@{}){
-  $script:rr.StandardInput.WriteLine((@{id=$Id;op=$Op;args=$Args}|ConvertTo-Json -Compress -Depth 12));$script:rr.StandardInput.Flush()
+function Invoke-Rr([string]$Id,[string]$Op,[hashtable]$RequestArgs=@{}){
+  $script:rr.StandardInput.WriteLine((@{id=$Id;op=$Op;args=$RequestArgs}|ConvertTo-Json -Compress -Depth 12));$script:rr.StandardInput.Flush()
   $task=$script:rr.StandardOutput.ReadLineAsync()
   if(-not $task.Wait([TimeSpan]::FromSeconds($TimeoutSeconds))){throw "Helper timeout: $Op"}
   $line=$task.Result;if([string]::IsNullOrWhiteSpace($line)){throw "Empty helper response: $Op"}
