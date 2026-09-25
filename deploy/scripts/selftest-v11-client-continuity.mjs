@@ -4,6 +4,7 @@ import fs from 'node:fs';
 
 const require=createRequire(import.meta.url);
 const {
+  classifyClientCapability,
   decodeClientCapability,
   clientFingerprint,
   callWithClientContinuity
@@ -34,6 +35,12 @@ const missingCredentialError=()=>client401('missing');
 
 assert.equal(decodeClientCapability(valid,{now})?.clientSessionId,'lrc_continuity_selftest_0001');
 assert.equal(decodeClientCapability(expired,{now}),null);
+assert.equal(classifyClientCapability(valid,{now}).reason,'eligible');
+assert.equal(classifyClientCapability(expired,{now}).reason,'expired');
+assert.equal(classifyClientCapability('',{now}).reason,'missing');
+assert.equal(classifyClientCapability('lr1.Y2xpZW50.YWdlbnQ.sig',{now}).reason,'client_ref');
+assert.equal(classifyClientCapability('o1.client.'+Buffer.from('not-json').toString('base64url')+'.sig',{now}).reason,'json');
+assert.equal(classifyClientCapability(tokenFor('not-a-number'),{now}).reason,'exp_type');
 assert.match(clientFingerprint(valid),/^[a-f0-9]{16}$/);
 
 let calls=0;
@@ -98,6 +105,14 @@ try{
 assert.equal(calls,1);
 assert.equal(expiredError?.status,401);
 assert.equal(expiredError?.payload?.error,'agent_client_required');
+
+calls=0;
+const clientRef='lr1.Y2xpZW50.YWdlbnQ.sig';
+await assert.rejects(
+  ()=>callWithClientContinuity(async()=>{calls+=1;throw invalidError();},{client:clientRef,delaysMs:[0,0,0],sleep:async()=>{},now:()=>now}),
+  error=>error?.status===401
+);
+assert.equal(calls,1);
 
 const other401=Object.assign(new Error('operator_http_401'),{status:401,payload:{ok:false,error:'unauthorized_plus_bridge_call'}});
 calls=0;

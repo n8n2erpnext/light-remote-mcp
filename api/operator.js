@@ -4,7 +4,7 @@ const { sealOperatorPayload } = require('../lib/operator-crypto');
 const { aid, field, jobId, normalizeDeviceHeartbeat, normalizeDevicePolicy, normalizeDeviceRevoke, normalizeEnrollmentApprove, normalizeEnrollmentCancel, normalizeEnrollmentBegin, normalizeEnrollmentPoll, normalizeNodeDrain, normalizeShellId, normalizeExecPayload, normalizeSessionOpenPayload, payloadFor, sid } = require('../lib/operator-request');
 const { toolHelperHint, toolHelperView } = require('../lib/plus-tool-helper');
 const { inspectPlusExecPayload } = require('../lib/plus-batch-policy.cjs');
-const { callWithClientContinuity } = require('../lib/plus-client-continuity.cjs');
+const { callWithClientContinuity, classifyClientCapability, clientFingerprint } = require('../lib/plus-client-continuity.cjs');
 const { normalizeDesktopInput } = require('../lib/real-remote-input.cjs');
 
 function enrollmentSourceHash(req){ const ip=String(req.headers?.["x-forwarded-for"]||"unknown").split(",")[0].trim().slice(0,128); return crypto.createHash("sha256").update("v07-enrollment:"+ip).digest("hex"); }
@@ -12,6 +12,10 @@ function requestOrigin(req){
   const proto=String(req.headers?.['x-forwarded-proto']||'https').split(',')[0].trim().toLowerCase()==='http'?'http':'https';
   const host=String(req.headers?.['x-forwarded-host']||req.headers?.host||'').split(',')[0].trim();
   return /^[A-Za-z0-9.-]+(?::\d{1,5})?$/.test(host)?`${proto}://${host}`:'';
+}
+function validPlusClientCredential(value){
+  const text=String(value||'').trim();
+  return /^o1\.client\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(text)||/^lr1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(text);
 }
 function connectionHelperView(value={},origin='') {
   const status=String(value.status||'need_a_code');
@@ -21,7 +25,12 @@ function connectionHelperView(value={},origin='') {
     const nextPath=`${base.endpoint}&p=${Buffer.from(JSON.stringify(nextPayload)).toString('base64url')}`;
     return {...value,helper:{...base,nextAction:'owner_approve_b_then_poll',instruction:'Ask the owner to enter the returned B code on the exact Wall that produced A and approve it. Then replay helper.nextUrl exactly through @Vercel web_fetch_vercel_url; do not rebuild or expose the continuation.',nextPayload,nextUrl:origin?`${origin}${nextPath}`:nextPath}};
   }
-  if(status==='ready') return {...value,helper:{...base,nextAction:'load_tool_helper',instruction:'Connection and working context are ready. Keep the opaque client token private; reuse the returned context and immediately load the Tool Helper instead of reading repo source for tool syntax.',toolHelper:toolHelperHint(),rules:['Reuse context.deviceId/context.sessionId after READY.','Pair each additional device independently with its own A/B flow.','Never expose client/continuation capabilities to the user.']}};
+  if(status==='ready'){
+    const client=String(value.client||'').trim();
+    const nextPath=client?`/api/operator?via=plus&action=tool-helper&client=${encodeURIComponent(client)}`:'';
+    const nextUrl=nextPath?(origin?`${origin}${nextPath}`:nextPath):null;
+    return {...value,helper:{...base,nextAction:'load_tool_helper',instruction:nextUrl?'Connection and working context are ready. Keep the opaque client private and replay helper.nextUrl exactly through @Vercel web_fetch_vercel_url; do not rebuild the URL or client.':'Connection and working context are ready. Keep the opaque client token private; reuse the returned context and immediately load the Tool Helper instead of reading repo source for tool syntax.',...(nextUrl?{nextUrl}:{}),toolHelper:toolHelperHint(),rules:['Reuse context.deviceId/context.sessionId after READY.','Pair each additional device independently with its own A/B flow.','Never expose client/continuation capabilities to the user.']}};
+  }
   return {...value,helper:{...base,nextAction:'provide_a_code',instruction:'Get a fresh A code from the target Local Wall, then call connection-helper with {aCode,agentId,label}. Do not send client on the first pairing.'}};
 }
 
@@ -47,6 +56,7 @@ async function pollPairing(continuation){
 
 module.exports=async function handler(req,res){
   const started=Date.now();
+  const traceId=crypto.randomUUID();
   res.setHeader('Cache-Control','no-store');
   res.setHeader('X-Robots-Tag','noindex, nofollow, noarchive');
   res.setHeader('Referrer-Policy','no-referrer');
@@ -58,20 +68,22 @@ module.exports=async function handler(req,res){
   const bridgeSession=String(req.headers?.['x-bridge-session']||'');
   const plusSession=String(field(req,'ps','')).trim();
   const plusClient=String(field(req,'client','')).trim();
-  const plusClientValid=/^o1\.client\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(plusClient);
+  const plusClientValid=validPlusClientCredential(plusClient);
+  const plusClientClassification=classifyClientCapability(plusClient,{now:started});
+  const plusClientFingerprint=plusClient?clientFingerprint(plusClient):null;
+  const deployment=String(process.env.VERCEL_GIT_COMMIT_SHA||process.env.VERCEL_DEPLOYMENT_ID||'unknown').slice(0,16);
   const compactClientActions=new Set(['tool-helper','context','list-devices','session-open','session-resume','session-hold','session-close','session','exec','fs','process-start','process-input','process-output','process-list','process-stop','search-start','search-results','search-cancel','scp','transfer-begin','transfer-chunk','transfer-status','transfer-commit','transfer-cancel','job','output']);
   const compactPlusResponse=()=>plus&&(action==='connection-helper'||action==='connect'||action==='connect-poll'||(plusClientValid&&compactClientActions.has(action)));
   const call=(path,options={})=>callOperator(path,{...options,bridgeSession});
   const plusCall=(path,options={})=>callOperator(path,{...options,plusSession});
   const clientCall=(path,options={})=>{
     const body=options.body&&typeof options.body==='object'&&!Array.isArray(options.body)?{...options.body,bridgeReceivedAt:started}:options.body;
-    const deployment=String(process.env.VERCEL_GIT_COMMIT_SHA||process.env.VERCEL_DEPLOYMENT_ID||'unknown').slice(0,16);
     return callWithClientContinuity(
-      ()=>callOperator(path,{...options,...(body===undefined?{}:{body}),plusClient}),
+      ()=>callOperator(path,{...options,...(body===undefined?{}:{body}),plusClient,traceId}),
       {
         client:plusClient,
         onEvent:event=>{
-          const row={event:event.type,action,path,attempt:event.attempt||0,delayMs:event.delayMs||0,clientFingerprint:event.fingerprint,deployment};
+          const row={event:event.type,traceId,action,path,attempt:event.attempt||0,delayMs:event.delayMs||0,clientFingerprint:event.fingerprint,decodeReason:event.decodeReason||plusClientClassification.reason,deployment};
           if(event.type==='client_continuity_recovered')console.log(JSON.stringify(row));
           else console.warn(JSON.stringify(row));
         }
@@ -96,7 +108,7 @@ module.exports=async function handler(req,res){
             if(!/^[A-Z2-9]{8}$/.test(raw)){upstream=connectionHelperView({ok:false,status:'need_a_code',error:raw?'invalid_pairing_code':'pairing_code_required'},helperOrigin);}
             else {
               const agentId=aid(d.agentId),label=String(d.label||'ChatGPT').trim().slice(0,120);
-              let client=null;if(d.client!=null&&String(d.client).trim()){client=String(d.client).trim();if(!/^o1\.client\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(client)){const e=new Error('invalid_agent_client');e.status=400;throw e;}}
+              let client=null;if(d.client!=null&&String(d.client).trim()){client=String(d.client).trim();if(!validPlusClientCredential(client)){const e=new Error('invalid_agent_client');e.status=400;throw e;}}
               upstream=connectionHelperView(await callOperator('/plus/connect/begin',{method:'POST',body:{aCode:`${raw.slice(0,4)}-${raw.slice(4)}`,agentId,label,client}}),helperOrigin);
             }
           }
@@ -108,7 +120,7 @@ module.exports=async function handler(req,res){
         if(!raw){const e=new Error('pairing_code_required');e.status=428;e.payload={ok:false,status:'need_a_code',error:e.message};throw e;}
         if(!/^[A-Z2-9]{8}$/.test(raw)){const e=new Error('invalid_pairing_code');e.status=400;e.payload={ok:false,status:'need_a_code',error:e.message};throw e;}
         const agentId=aid(d.agentId),label=String(d.label||'ChatGPT').trim().slice(0,120);
-        let client=null;if(d.client!=null&&String(d.client).trim()){client=String(d.client).trim();if(!/^o1\.client\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(client)){const e=new Error('invalid_agent_client');e.status=400;throw e;}}
+        let client=null;if(d.client!=null&&String(d.client).trim()){client=String(d.client).trim();if(!validPlusClientCredential(client)){const e=new Error('invalid_agent_client');e.status=400;throw e;}}
         upstream=await callOperator('/plus/connect/begin',{method:'POST',body:{aCode:`${raw.slice(0,4)}-${raw.slice(4)}`,agentId,label,client}});
       }
       else if(action==='connect-poll') {
@@ -294,13 +306,16 @@ module.exports=async function handler(req,res){
     }
     const sessionId=field(req,'sid','')||upstream?.session?.sessionId||upstream?.job?.sessionId||null;
     const agentId=field(req,'aid','')||upstream?.session?.agentId||upstream?.job?.agentId||null;
-    console.log(JSON.stringify({event:'operator_bridge',method:req.method,action,sessionId,agentId,nodeId:upstream?.session?.nodeId||upstream?.job?.nodeId||'arm',status:200,durationMs:Date.now()-started}));
+    console.log(JSON.stringify({event:'operator_bridge',traceId,method:req.method,action,sessionId,agentId,nodeId:upstream?.session?.nodeId||upstream?.job?.nodeId||'arm',status:200,durationMs:Date.now()-started}));
     if(compactPlusResponse()) return res.status(200).json(upstream);
     return res.status(200).json({ok:true,bridge:'vercel',action,upstream});
   } catch(e){
     const status=e.status||400;
-    if(compactPlusResponse()&&e.payload&&typeof e.payload==='object')return res.status(status).json(e.payload);
-    console.warn(JSON.stringify({event:'operator_bridge',method:req.method,action,status,error:e.message,durationMs:Date.now()-started}));
+    if(compactPlusResponse()&&e.payload&&typeof e.payload==='object'){
+      console.warn(JSON.stringify({event:'operator_bridge_compact_error',traceId,method:req.method,action,status,deployment,clientFingerprint:plusClientFingerprint,clientLength:plusClient.length,decodeReason:plusClientClassification.reason,upstreamError:String(e.payload?.error||''),upstreamDetail:String(e.payload?.detail||''),durationMs:Date.now()-started}));
+      return res.status(status).json(e.payload);
+    }
+    console.warn(JSON.stringify({event:'operator_bridge',traceId,method:req.method,action,status,error:e.message,durationMs:Date.now()-started}));
     return res.status(status).json({ok:false,error:e.message,upstream:e.payload||null});
   }
 };
