@@ -88,6 +88,7 @@ if (!Number.isFinite(DEVICE_PRESENCE_TTL_MS) || DEVICE_PRESENCE_TTL_MS < 10_000)
 if (!Number.isFinite(DEVICE_HEARTBEAT_MS) || DEVICE_HEARTBEAT_MS < 5_000 || DEVICE_HEARTBEAT_MS >= DEVICE_PRESENCE_TTL_MS) throw new Error('invalid_device_heartbeat');
 const HOST_CAPABILITIES = ['filesystem', 'git', 'build-test', 'docker', 'lxd', 'systemctl', 'sudo-on-demand', 'terminal'];
 const VERSION = runtimeVersion({envNames:['LIGHT_REMOTE_VERSION','OPERATOR_VERSION']});
+const FLEET_WALL_PORT=Math.max(1,Math.min(Number(process.env.OPERATOR_FLEET_WALL_PORT)||5492,65535));
 const CLIENT_BACKWARD_RELEASES=Math.max(0,Math.min(Number(process.env.OPERATOR_CLIENT_BACKWARD_RELEASES)||3,20));
 const MIN_SUPPORTED_CLIENT_VERSION=String(process.env.OPERATOR_MIN_SUPPORTED_CLIENT_VERSION||'').trim()||null;
 const compatibilityFor=device=>clientCompatibility(VERSION,device?.agentVersion,{backwardReleases:CLIENT_BACKWARD_RELEASES,explicit:MIN_SUPPORTED_CLIENT_VERSION});
@@ -879,7 +880,7 @@ function verifiedLeafCapabilities(value,binding,reportedRevision=0) {
 const routeDeps=()=>({
   ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,
   DEVICE_ID,DeviceAccessGrantError,DeviceConnectionError,DevicePairingRegistryError,EnrollmentError,
-  FleetAuthorityError,FleetError,MAX_ACTIVE_SESSIONS,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,
+  FleetAuthorityError,FleetError,FLEET_WALL_PORT,MAX_ACTIVE_SESSIONS,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,
   MIN_SUPPORTED_CLIENT_VERSION,NODE_ID,SESSION_GRACE_PRESETS,SESSION_IDLE_MS,SESSION_MAX_IDLE_MS,
   SESSION_MIN_IDLE_MS,VERSION,accessGrants,accountSessionToken,accounts,
   agentClients,allDeviceViews,applyDeviceTelemetry,assertDiskJobOwner,capabilities,

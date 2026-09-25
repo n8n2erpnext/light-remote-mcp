@@ -1,7 +1,7 @@
 const crypto = require("node:crypto");
 const { callOperator, execOperator } = require('./operator-netlify.cjs');
 const { sealOperatorPayload } = require('./operator-crypto-netlify.cjs');
-const { aid, field, jobId, normalizeDeviceHeartbeat, normalizeDevicePolicy, normalizeDeviceRevoke, normalizeEnrollmentApprove, normalizeEnrollmentCancel, normalizeEnrollmentBegin, normalizeEnrollmentPoll, normalizeNodeDrain, normalizeShellId, normalizeExecPayload, normalizeSessionOpenPayload, payloadFor, sid } = require('./operator-request.cjs');
+const { aid, opid, field, jobId, normalizeDeviceHeartbeat, normalizeDevicePolicy, normalizeDeviceRevoke, normalizeEnrollmentApprove, normalizeEnrollmentCancel, normalizeEnrollmentBegin, normalizeEnrollmentPoll, normalizeNodeDrain, normalizeShellId, normalizeExecPayload, normalizeSessionOpenPayload, payloadFor, sid } = require('./operator-request.cjs');
 const { toolHelperHint, toolHelperView } = require('./plus-tool-helper.cjs');
 
 function enrollmentSourceHash(req){ const ip=String(req.headers?.["x-forwarded-for"]||"unknown").split(",")[0].trim().slice(0,128); return crypto.createHash("sha256").update("v07-enrollment:"+ip).digest("hex"); }
@@ -127,7 +127,7 @@ module.exports=async function handler(req,res){
         else if(usingClient&&action==='fs'){
           const d=payloadFor(req),deviceId=clientDevice(d.deviceId||d.device),fs=d.fs;
           if(!fs||typeof fs!=='object'||Array.isArray(fs)){const e=new Error('invalid_fs_payload');e.status=400;throw e;}
-          const payload={action:'fs',operationId:aid(d.operationId),sessionId:sid(d.sessionId),agentId:aid(d.agentId),nodeId:d.nodeId==null?undefined:clientDevice(d.nodeId),fs,waitMs:Math.max(0,Math.min(Number(d.waitMs)||7000,8000))};
+          const payload={action:'fs',operationId:opid(d.operationId),sessionId:sid(d.sessionId),agentId:aid(d.agentId),nodeId:d.nodeId==null?undefined:clientDevice(d.nodeId),fs,waitMs:Math.max(0,Math.min(Number(d.waitMs)||7000,8000))};
           upstream=await clientCall('/plus/client/execute',{method:'POST',body:{deviceId,envelope:sealOperatorPayload(payload)},timeoutMs:9500});
         }
         else if(usingClient&&action.startsWith('process-')){
@@ -139,7 +139,7 @@ module.exports=async function handler(req,res){
           if(op==='input'){process.processId=String(d.processId||'');process.data=String(d.data||'');process.eof=Boolean(d.eof);}
           if(op==='output'){process.processId=String(d.processId||'');process.stream=d.stream==='stderr'?'stderr':'stdout';process.offset=Math.max(0,Number(d.offset)||0);process.limit=Math.max(1,Math.min(Number(d.limit)||262144,1048576));}
           if(op==='stop'){process.processId=String(d.processId||'');process.force=Boolean(d.force);}
-          const payload={action:'process',operationId:aid(d.operationId),sessionId:sid(d.sessionId),agentId:aid(d.agentId),nodeId:d.nodeId==null?undefined:clientDevice(d.nodeId),process,waitMs:Math.max(0,Math.min(Number(d.waitMs)||7000,8000))};
+          const payload={action:'process',operationId:opid(d.operationId),sessionId:sid(d.sessionId),agentId:aid(d.agentId),nodeId:d.nodeId==null?undefined:clientDevice(d.nodeId),process,waitMs:Math.max(0,Math.min(Number(d.waitMs)||7000,8000))};
           upstream=await clientCall('/plus/client/execute',{method:'POST',body:{deviceId,envelope:sealOperatorPayload(payload)},timeoutMs:9500});
         }
         else if(usingClient&&action.startsWith('terminal-')){
@@ -152,7 +152,7 @@ module.exports=async function handler(req,res){
           if(op==='resize'){terminal.terminalId=String(d.terminalId||'');terminal.cols=Math.max(20,Math.min(Number(d.cols)||120,500));terminal.rows=Math.max(5,Math.min(Number(d.rows)||32,200));}
           if(op==='signal'){terminal.terminalId=String(d.terminalId||'');terminal.signal=String(d.signal||'interrupt').toLowerCase();}
           if(op==='stop'){terminal.terminalId=String(d.terminalId||'');terminal.force=Boolean(d.force);}
-          const payload={action:'terminal',operationId:aid(d.operationId),sessionId:sid(d.sessionId),agentId:aid(d.agentId),nodeId:d.nodeId==null?undefined:clientDevice(d.nodeId),terminal,waitMs:Math.max(0,Math.min(Number(d.waitMs)||7000,8000))};
+          const payload={action:'terminal',operationId:opid(d.operationId),sessionId:sid(d.sessionId),agentId:aid(d.agentId),nodeId:d.nodeId==null?undefined:clientDevice(d.nodeId),terminal,waitMs:Math.max(0,Math.min(Number(d.waitMs)||7000,8000))};
           upstream=await clientCall('/plus/client/execute',{method:'POST',body:{deviceId,envelope:sealOperatorPayload(payload)},timeoutMs:9500});
         }
         else if(usingClient&&action.startsWith('search-')){
@@ -162,13 +162,13 @@ module.exports=async function handler(req,res){
           if(op==='start'){search.path=String(d.path||'');search.searchType=d.searchType==='files'?'files':'content';search.pattern=String(d.pattern||'');search.literalSearch=Boolean(d.literalSearch);search.ignoreCase=d.ignoreCase!==false;search.filePattern=d.filePattern==null?'':String(d.filePattern);search.contextLines=Math.max(0,Math.min(Number(d.contextLines)||0,20));search.maxResults=Math.max(1,Math.min(Number(d.maxResults)||200,1000));}
           if(op==='results'){search.searchId=String(d.searchId||'');search.offset=Math.max(0,Number(d.offset)||0);search.limit=Math.max(1,Math.min(Number(d.limit)||100,500));}
           if(op==='cancel')search.searchId=String(d.searchId||'');
-          const payload={action:'search',operationId:aid(d.operationId),sessionId:sid(d.sessionId),agentId:aid(d.agentId),nodeId:d.nodeId==null?undefined:clientDevice(d.nodeId),search,waitMs:Math.max(0,Math.min(Number(d.waitMs)||7000,8000))};
+          const payload={action:'search',operationId:opid(d.operationId),sessionId:sid(d.sessionId),agentId:aid(d.agentId),nodeId:d.nodeId==null?undefined:clientDevice(d.nodeId),search,waitMs:Math.max(0,Math.min(Number(d.waitMs)||7000,8000))};
           upstream=await clientCall('/plus/client/execute',{method:'POST',body:{deviceId,envelope:sealOperatorPayload(payload)},timeoutMs:9500});
         }
         else if(usingClient&&action==='scp'){
           const d=payloadFor(req),deviceId=clientDevice(d.deviceId||d.device),scp=d.scp;
           if(!scp||typeof scp!=='object'||Array.isArray(scp)){const e=new Error('invalid_scp_payload');e.status=400;throw e;}
-          const payload={action:'scp',operationId:aid(d.operationId),sessionId:sid(d.sessionId),agentId:aid(d.agentId),nodeId:d.nodeId==null?undefined:clientDevice(d.nodeId),scp,waitMs:Math.max(0,Math.min(Number(d.waitMs)||7000,8000))};
+          const payload={action:'scp',operationId:opid(d.operationId),sessionId:sid(d.sessionId),agentId:aid(d.agentId),nodeId:d.nodeId==null?undefined:clientDevice(d.nodeId),scp,waitMs:Math.max(0,Math.min(Number(d.waitMs)||7000,8000))};
           upstream=await clientCall('/plus/client/execute',{method:'POST',body:{deviceId,envelope:sealOperatorPayload(payload)},timeoutMs:9500});
         }
         else if(usingClient&&action.startsWith('transfer-')){

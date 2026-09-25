@@ -1,5 +1,5 @@
 export async function handleAccountRoutes(req,res,url,deps){
-  const {ACCOUNT_ID,AccountError,DEVICE_ID,accountSessionToken,accounts,allDeviceViews,capabilities,clearMainIfMatches,closeRuntimeForAccount,compatibilityFor,devices,enrollments,fleetAuthority,licenses,planEntitlements,queueHelperUpdate,readJson,removeRuntimeForDevice,requireAccount,revokeRuntimeForDevice,sendJson,usage,wakeDeviceChannelForDevice}=deps;
+  const {ACCOUNT_ID,AccountError,DEVICE_ID,FLEET_WALL_PORT=5492,accountSessionToken,accounts,allDeviceViews,capabilities,clearMainIfMatches,closeRuntimeForAccount,compatibilityFor,devices,enrollments,fleetAuthority,licenses,planEntitlements,queueHelperUpdate,readJson,removeRuntimeForDevice,requireAccount,revokeRuntimeForDevice,sendJson,usage,wakeDeviceChannelForDevice}=deps;
     if (req.method === 'GET' && url.pathname === '/v1/admin/licenses') {
       return sendJson(res,200,{ok:true,licenses:licenses.list()});
     }
@@ -30,7 +30,7 @@ export async function handleAccountRoutes(req,res,url,deps){
       const compatibility=compatibilityFor(device);if(!compatibility.supported)throw new AccountError(compatibility.status,409);
       const prior=accounts.account(accountId).mainDeviceId||null;if(prior&&prior!==device.deviceId)fleetAuthority.invalidateDevice(prior,'main_device_changed');
       fleetAuthority.invalidateDevice(device.deviceId,'main_device_changed');let account=accounts.setMainDevice(accountId,device.deviceId),entitlements=planEntitlements(account);
-      account=accounts.setFleetProvisioning(accountId,{deviceId:device.deviceId,state:entitlements.fleetWall&&entitlements.multiDeviceConsole?'starting':'failed',reason:entitlements.fleetWall&&entitlements.multiDeviceConsole?'main_device_selected':'fleet_entitlement_required',port:5492});
+      account=accounts.setFleetProvisioning(accountId,{deviceId:device.deviceId,state:entitlements.fleetWall&&entitlements.multiDeviceConsole?'starting':'failed',reason:entitlements.fleetWall&&entitlements.multiDeviceConsole?'main_device_selected':'fleet_entitlement_required',port:FLEET_WALL_PORT});
       if(prior&&prior!==device.deviceId)wakeDeviceChannelForDevice(prior);wakeDeviceChannelForDevice(device.deviceId);
       return sendJson(res,200,{ok:true,account,entitlements,mainDevice:device});
     }
@@ -79,7 +79,7 @@ export async function handleAccountRoutes(req,res,url,deps){
       const priorMain=identity.account.mainDeviceId||null;if(priorMain&&priorMain!==device.deviceId)fleetAuthority.invalidateDevice(priorMain,'main_device_changed');
       fleetAuthority.invalidateDevice(device.deviceId,'main_device_changed');
       let account=accounts.setMainDevice(identity.account.accountId,device.deviceId),entitlements=planEntitlements(account);
-      account=accounts.setFleetProvisioning(account.accountId,{deviceId:device.deviceId,state:entitlements.fleetWall&&entitlements.multiDeviceConsole?'starting':'failed',reason:entitlements.fleetWall&&entitlements.multiDeviceConsole?'main_device_selected':'fleet_entitlement_required',port:5492});
+      account=accounts.setFleetProvisioning(account.accountId,{deviceId:device.deviceId,state:entitlements.fleetWall&&entitlements.multiDeviceConsole?'starting':'failed',reason:entitlements.fleetWall&&entitlements.multiDeviceConsole?'main_device_selected':'fleet_entitlement_required',port:FLEET_WALL_PORT});
       if(priorMain&&priorMain!==device.deviceId)wakeDeviceChannelForDevice(priorMain);wakeDeviceChannelForDevice(device.deviceId);
       return sendJson(res,200,{ok:true,account,entitlements,mainDevice:device});
     }

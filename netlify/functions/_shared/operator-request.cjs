@@ -14,6 +14,7 @@ function validId(value, pattern, message) {
 }
 function sid(value){ return validId(value,/^[A-Za-z0-9._:-]{1,128}$/,'invalid_session_id'); }
 function aid(value){ return validId(value,/^[A-Za-z0-9._:-]{16,128}$/,'invalid_agent_id'); }
+function opid(value){ return validId(value,/^[A-Za-z0-9._:-]{16,128}$/,'invalid_operation_id'); }
 function jobId(value){ return validId(value,/^[0-9a-f-]{20,}$/i,'invalid_job_id'); }
 function normalizeShellId(value){
   const shell=String(value==null?'default':value).trim().toLowerCase();
@@ -45,7 +46,7 @@ function normalizeExecPayload(d) {
   if (!d || typeof d !== 'object' || Array.isArray(d)) throw httpError('invalid_payload');
   if (typeof d.script !== 'string' || !d.script.trim()) throw httpError('invalid_script');
   if (Buffer.byteLength(d.script) > MAX_SCRIPT_BYTES) throw httpError('script_too_large', 413);
-  const operationId = validId(d.operationId,/^[A-Za-z0-9._:-]{16,128}$/,'invalid_operation_id');
+  const operationId = opid(d.operationId);
   return {
     action:'exec_batch', operationId, script:d.script, cwd:d.cwd==null?undefined:String(d.cwd), shell:normalizeShellId(d.shell),
     timeoutMs:Math.max(1000,Math.min(Number(d.timeoutMs)||600000,7200000)),
@@ -139,6 +140,7 @@ function field(req, key, fallback = '') {
 module.exports = {
   MAX_GET_PAYLOAD_CHARS,
   aid,
+  opid,
   decodeLegacyPayload,
   field,
   jobId,
