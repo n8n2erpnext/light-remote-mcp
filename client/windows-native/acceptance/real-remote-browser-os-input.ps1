@@ -170,6 +170,6 @@ try{
     if($sem -and -not $detached -and -not $rr.HasExited){try{$null=Invoke-Rr 'accept-detach-finally' 'semantic-detach' @{semanticSessionId=$sem}}catch{}}
     try{$rr.StandardInput.Close()}catch{};try{if(-not $rr.WaitForExit(3000)){$rr.Kill($true)}}catch{};$rr.Dispose()
   }
-  if($browser){try{if(-not $browser.HasExited){& taskkill.exe /PID $browser.Id /T /F 2>$null|Out-Null}}catch{}}
+  if($browser){try{if(-not $browser.HasExited){$null=Start-Process -FilePath 'taskkill.exe' -ArgumentList @('/PID',[string]$browser.Id,'/T','/F') -Wait -WindowStyle Hidden -ErrorAction SilentlyContinue}}catch{}}
   Remove-Item -LiteralPath $profile -Recurse -Force -ErrorAction SilentlyContinue
 }

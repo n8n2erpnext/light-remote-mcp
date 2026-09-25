@@ -39,6 +39,8 @@ for(const token of [
 
 need(!script.includes('[hashtable]$Args'),'windows_acceptance_powershell_args_shadow_forbidden');
 need(!script.includes('return$r.result'),'windows_acceptance_powershell_return_spacing_forbidden');
+need(!script.includes('& taskkill.exe'),'windows_acceptance_native_taskkill_exit_leak_forbidden');
+need(script.includes("Start-Process -FilePath 'taskkill.exe'"),'windows_acceptance_safe_taskkill_cleanup_missing');
 need(script.includes('return $r.result'),'windows_acceptance_powershell_return_missing');
 need(script.includes('$readyDeadline=[DateTime]::UtcNow.AddSeconds([Math]::Min($TimeoutSeconds,10))'),'windows_acceptance_readiness_wait_missing');
 need(workflow.includes('$browserReadyDeadline = [DateTime]::UtcNow.AddSeconds(5)'),'windows_hidden_smoke_readiness_wait_missing');
