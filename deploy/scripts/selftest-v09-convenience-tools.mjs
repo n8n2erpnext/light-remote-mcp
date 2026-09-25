@@ -20,7 +20,7 @@ if(!tool.includes("operationId:opId")||!tool.includes("annotations:ann(false,tru
 if(!tool.includes('sealOperatorPayload(payload)')) throw new Error('convenience_encrypted_exec_missing');
 if(!tool.includes("action:'process'")||tool.includes("registerTool('light_remote_kill_process'")) throw new Error('native_process_tool_contract_missing');
 if(!tool.includes("action:'search'")||tool.includes("registerTool('light_remote_search_text'")) throw new Error('native_search_tool_contract_missing');
-if(!executor.includes("['exec_batch','fs','process','terminal','search','scp'].includes(payload.action)")) throw new Error('device_access_search_allowlist_missing');
+if(!executor.includes("['exec_batch','fs','process','terminal','search','scp','desktop'].includes(payload.action)")) throw new Error('device_access_search_allowlist_missing');
 if(!vercel.includes("action.startsWith('search-')")||!vercel.includes("['start','results','cancel'].includes(op)")) throw new Error('vercel_search_surface_missing');
 if(!server.includes("registerConvenienceTools(server, tracked, identity)")) throw new Error('convenience_server_registration_missing');
 if(!docker.includes('COPY gateway/*.mjs ./')) throw new Error('convenience_docker_packaging_missing');

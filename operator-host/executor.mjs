@@ -553,6 +553,27 @@ async function executeLocalTerminalRequest(job,request){
   throw new Error('terminal_operation_unsupported');
 }
 
+async function startDesktopOperation(payload,requestId){
+  const operationId=String(payload.operationId||'').trim();if(!/^[A-Za-z0-9._:-]{16,128}$/.test(operationId))throw new Error('invalid_operation_id');
+  const agentId=String(payload.agentId||'').trim(),session=sessions.ensure(String(payload.sessionId||''),{agentId});requireDeviceConnection(session.deviceId);
+  if(payload.nodeId!=null&&String(payload.nodeId)!==session.nodeId)throw new SessionError('session_target_mismatch',409);
+  const request=payload.desktop&&typeof payload.desktop==='object'&&!Array.isArray(payload.desktop)?payload.desktop:null;if(!request)throw new Error('desktop_request_required');
+  const op=String(request.op||'');if(!['status','windows'].includes(op))throw new Error('desktop_operation_unsupported');
+  const remote=session.nodeId!==NODE_ID,requiredCapabilities=['desktop'];
+  if(!remote)throw new DeviceError('desktop_local_host_not_supported',409);
+  const route=targetRoute(session.nodeId);if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(!route.capabilities.includes('desktop'))throw new FleetError('target_node_capability_missing',409);
+  const fingerprint=crypto.createHash('sha256').update(JSON.stringify({request,sessionId:session.id,nodeId:session.nodeId})).digest('hex'),existing=operationDedupe.get(operationId);
+  if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
+  const toolMeta={kind:'desktop',op,label:op==='status'?'Desktop status':'Desktop windows'};
+  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-desktop:${op}`,cwd:'',script:toolMeta.label,status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote:true,commandId:null,requiredCapabilities,resultData:null,resultSummary:'',toolMeta};
+  jobs.set(job.id,job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
+  pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:'outbound-leaf',requiredCapabilities,note:job.note,toolMeta});
+  const command=fleet.enqueue({accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'desktop',operationId,sessionId:job.sessionId,agentId:job.agentId,desktop:request}});
+  job.commandId=command.commandId;
+  job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},30000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();
+  return job;
+}
+
 async function startSearchOperation(payload,requestId){
   const operationId=String(payload.operationId||'').trim();if(!/^[A-Za-z0-9._:-]{16,128}$/.test(operationId))throw new Error('invalid_operation_id');
   const agentId=String(payload.agentId||'').trim(),session=sessions.ensure(String(payload.sessionId||''),{agentId});requireDeviceConnection(session.deviceId);
@@ -893,7 +914,7 @@ const routeDeps=()=>({
   removeRuntimeForDevice,requireAccount,requireDeviceConnection,revokeRuntimeForDevice,ring,
   ringBytes,sendJson,sessionStatsFromDisk,sessions,sseClients,
   startFsOperation,startJob,startProcessOperation,startScpOperation,startSearchOperation,
-  startTerminalOperation,targetRoute,terminalResultSummary,usage,verifiedChannelContext,
+  startDesktopOperation,startTerminalOperation,targetRoute,terminalResultSummary,usage,verifiedChannelContext,
   verifiedFleetContext,verifiedLeafCapabilities,waitForJob,wakeDeviceChannelForDevice,
 });
 

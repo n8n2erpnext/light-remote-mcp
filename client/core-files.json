@@ -62,6 +62,10 @@
       "destination": "lib/native-terminal.mjs"
     },
     {
+      "source": "lib/native-desktop.mjs",
+      "destination": "lib/native-desktop.mjs"
+    },
+    {
       "source": "lib/native-search.mjs",
       "destination": "lib/native-search.mjs"
     },

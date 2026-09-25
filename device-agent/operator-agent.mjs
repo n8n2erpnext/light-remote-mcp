@@ -15,6 +15,7 @@ import { executeNativeFs, filesystemPolicy } from '../lib/native-fs.mjs';
 import { NativeProcessRegistry } from '../lib/native-process.mjs';
 import { NativeTerminalRegistry } from '../lib/native-terminal.mjs';
 import { NativeSearchRegistry } from '../lib/native-search.mjs';
+import { NativeDesktopBridge, realRemoteAvailable } from '../lib/native-desktop.mjs';
 import { LightScpRegistry } from '../lib/light-scp-registry.mjs';
 import { normalizeUpdateReport, normalizeUpdateStatus } from '../lib/update-contract.mjs';
 import { runtimeVersion } from '../lib/runtime-version.mjs';
@@ -26,6 +27,8 @@ const PLATFORM_ADAPTER=createPlatformAdapter();
 const NATIVE_PROCESSES=new NativeProcessRegistry();
 const NATIVE_TERMINALS=new NativeTerminalRegistry({emit:event=>console.log(JSON.stringify(event))});
 const NATIVE_SEARCHES=new NativeSearchRegistry();
+const REAL_REMOTE_AVAILABLE=realRemoteAvailable();
+const NATIVE_DESKTOP=new NativeDesktopBridge();
 const LIGHT_SCP=new LightScpRegistry();
 const DEFAULT_BASE=process.env.OPERATOR_AGENT_BASE_URL || 'https://light-remote-mcp.vercel.app';
 const DEFAULT_HUB=process.env.OPERATOR_AGENT_HUB_URL || 'https://mcp.dashboard.thaiduy.store';
@@ -56,7 +59,7 @@ async function flushPendingUpdateReport(state,hub){const raw=readJsonFile(UPDATE
 let externalIdentityCache=null;
 function externalIdentity(){if(!EXTERNAL_IDENTITY_FILE)return null;if(externalIdentityCache)return externalIdentityCache;const row=JSON.parse(fs.readFileSync(EXTERNAL_IDENTITY_FILE,'utf8')),privateKey=crypto.createPrivateKey({key:Buffer.from(row.privateKey,'base64'),format:'der',type:'pkcs8'}),publicKey=crypto.createPublicKey({key:Buffer.from(row.publicKey||row.publicIdentityKey,'base64'),format:'der',type:'spki'});if(privateKey.asymmetricKeyType!=='ed25519'||publicKey.asymmetricKeyType!=='ed25519')throw new Error('invalid_external_device_identity');const publicIdentityKey=publicKey.export({format:'der',type:'spki'}).toString('base64');externalIdentityCache={privateKey,publicIdentityKey,publicKeySha256:sha256(Buffer.from(publicIdentityKey,'base64')),createdAt:Number(row.createdAt)||Date.now()};return externalIdentityCache;}
 function ensureIdentity(state={}){if(state.identity?.publicIdentityKey&&(state.identity?.privateKey||EXTERNAL_IDENTITY_FILE))return state;const external=externalIdentity();if(external)return {...state,identity:{algorithm:'Ed25519',publicIdentityKey:external.publicIdentityKey,publicKeySha256:external.publicKeySha256,createdAt:external.createdAt}};const {publicKey,privateKey}=crypto.generateKeyPairSync('ed25519');const publicIdentityKey=publicKey.export({format:'der',type:'spki'}).toString('base64');return {...state,identity:{algorithm:'Ed25519',privateKey:privateKey.export({format:'der',type:'pkcs8'}).toString('base64'),publicIdentityKey,publicKeySha256:sha256(Buffer.from(publicIdentityKey,'base64')),createdAt:Date.now()}};}
-function discoverCapabilities(){return PLATFORM_ADAPTER.discoverCapabilities();}
+function discoverCapabilities(){const caps=PLATFORM_ADAPTER.discoverCapabilities();if(REAL_REMOTE_AVAILABLE)caps.push('desktop');return [...new Set(caps)].sort();}
 function effectiveCapabilities(approved,denied){const deny=new Set(denied||[]);return (approved||[]).filter(x=>!deny.has(x)).sort();}
 function isTrustedHostState(state){return String(state?.enrollment?.enrollmentId||'')==='trusted-host';}
 function policyBaseCapabilities(state){return normalizeDeviceCapabilities(isTrustedHostState(state)?(state?.enrollment?.grantableCapabilities||[]):(state?.enrollment?.approvedCapabilities||[]));}
@@ -143,6 +146,16 @@ async function executeSearchCommand(state,p){
   throw new Error('search_operation_unsupported');
 }
 
+async function executeDesktopCommand(state,p){
+  const request=p.desktop&&typeof p.desktop==='object'&&!Array.isArray(p.desktop)?p.desktop:{};
+  const op=String(request.op||''),effective=effectiveCapabilitiesForState(state);
+  if(!effective.includes('desktop'))throw new Error('local capability denied: desktop');
+  if(!REAL_REMOTE_AVAILABLE)throw new Error('real_remote_unavailable');
+  if(op==='status')return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('status',{})};
+  if(op==='windows')return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('windows',{limit:Math.max(1,Math.min(Number(request.limit)||100,200))})};
+  throw new Error('desktop_operation_unsupported');
+}
+
 async function executeScpCommand(state,p){
   const request=p.scp&&typeof p.scp==='object'&&!Array.isArray(p.scp)?p.scp:{};
   const op=String(request.op||''),owner={accountId:state.enrollment.accountId,deviceId:state.enrollment.deviceId,sessionId:String(p.sessionId||''),agentId:String(p.agentId||'')};
@@ -181,6 +194,11 @@ async function executeCommand(state,command){
       const result={commandId:command.commandId,status:'error',exitCode:1,stdout:'',stderr:String(error?.message||error)+'\n',durationMs:Date.now()-startedAt,data:{ok:false,error:String(error?.message||error),status:Number(error?.status)||500}};
       writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;
     }
+  }
+  if(p.type==='desktop'){
+    const startedAt=Date.now();writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'running',startedAt});
+    try{const data=await executeDesktopCommand(state,p);const result={commandId:command.commandId,status:'ok',exitCode:0,stdout:'',stderr:'',durationMs:Date.now()-startedAt,data};writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;}
+    catch(error){const result={commandId:command.commandId,status:'error',exitCode:1,stdout:'',stderr:String(error?.message||error)+'\n',durationMs:Date.now()-startedAt,data:{ok:false,error:String(error?.message||error),status:Number(error?.status)||500}};writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;}
   }
   if(p.type==='search'){
     const startedAt=Date.now();writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'running',startedAt});

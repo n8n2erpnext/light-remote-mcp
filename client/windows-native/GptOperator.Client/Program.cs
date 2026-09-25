@@ -16,6 +16,7 @@ internal static class Program
             return;
         }
 
+        if (args.Contains("--real-remote-helper", StringComparer.OrdinalIgnoreCase)) { Environment.ExitCode = RealRemoteHelper.Run(); return; }
         if (args.Contains("--agent-host", StringComparer.OrdinalIgnoreCase)) { Environment.ExitCode = AgentHost.Run(); return; }
         if (args.Contains("--open-wall", StringComparer.OrdinalIgnoreCase)) { OpenWall(); return; }
         var launcher = args.Contains("--launch", StringComparer.OrdinalIgnoreCase);

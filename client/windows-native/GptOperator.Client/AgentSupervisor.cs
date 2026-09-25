@@ -177,6 +177,8 @@ internal sealed class AgentSupervisor : IDisposable
             WorkingDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
         };
         psi.Environment["OPERATOR_AGENT_STATE"] = AppPaths.StateFile;
+        psi.Environment["LIGHT_REMOTE_CLIENT_EXE"] = Environment.ProcessPath ?? Path.Combine(AppPaths.Root, "GptOperator.Client.exe");
+        psi.Environment["LIGHT_REMOTE_REAL_REMOTE"] = "1";
         psi.Environment["HOME"] = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         var connection = ConnectionConfig.Load();
         psi.Environment["OPERATOR_AGENT_BASE_URL"] = connection.BridgeUrl;
