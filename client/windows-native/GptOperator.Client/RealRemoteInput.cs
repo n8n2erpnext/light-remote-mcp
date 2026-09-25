@@ -104,8 +104,8 @@ internal static partial class RealRemoteHelper
         var inputs=new List<INPUT>(value.Length*2);
         foreach(var ch in value)
         {
-            inputs.Add(Keyboard(0,ch,KeyUnicode));
-            inputs.Add(Keyboard(0,ch,KeyUnicode|KeyUp));
+            inputs.Add(Keyboard(0,(ushort)ch,KeyUnicode));
+            inputs.Add(Keyboard(0,(ushort)ch,KeyUnicode|KeyUp));
         }
         return Dispatch(inputs.ToArray());
     }
@@ -144,7 +144,7 @@ internal static partial class RealRemoteHelper
         U=new INPUTUNION{mi=new MOUSEINPUT{mouseData=data,dwFlags=flags}}
     };
 
-    private static INPUT Keyboard(ushort vk,char scan,uint flags)=>new()
+    private static INPUT Keyboard(ushort vk,ushort scan,uint flags)=>new()
     {
         type=InputKeyboard,
         U=new INPUTUNION{ki=new KEYBDINPUT{wVk=vk,wScan=scan,dwFlags=flags}}

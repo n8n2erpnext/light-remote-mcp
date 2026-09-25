@@ -101,7 +101,7 @@ const host=read('client/windows-native/GptOperator.Client/AgentHost.cs');
 assert.ok(program.includes('--real-remote-helper')&&program.includes('RealRemoteHelper.Run()'),'Windows app hidden helper mode missing');
 for(const token of ['EnumWindows','GetForegroundWindow','GetCursorPos','Screen.AllScreens','CopyFromScreen','ImageFormat.Jpeg','desktop_frame_too_large','Console.OpenStandardInput','Console.OpenStandardOutput'])assert.ok(helper.includes(token),`Windows helper contract missing: ${token}`);
 assert.ok(helper.includes('"input" => Input(args)'),'Windows hidden helper input opcode missing');
-for(const token of ['SendInput(','SetCursorPos(','desktop_input_blocked','desktop_input_invalid_event_count'])assert.ok(inputHelper.includes(token),`Windows input contract missing: ${token}`);
+for(const token of ['SendInput(','SetCursorPos(','desktop_input_blocked','desktop_input_invalid_event_count','Keyboard(ushort vk,ushort scan,uint flags)'])assert.ok(inputHelper.includes(token),`Windows input contract missing: ${token}`);
 assert.ok(!inputHelper.includes('mouse_event('),'legacy mouse_event must not be used');
 assert.ok(!read('lib/real-remote-input.cjs').includes("type==='raw'"),'raw arbitrary INPUT packets must not be exposed');
 for(const source of [supervisor,host]){
