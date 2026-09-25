@@ -2,6 +2,7 @@ import fs from 'node:fs';
 
 const script=fs.readFileSync('client/windows-native/acceptance/real-remote-browser-os-input.ps1','utf8');
 const fixture=fs.readFileSync('client/windows-native/acceptance/real-remote-browser-os-input.html','utf8');
+const workflow=fs.readFileSync('.github/workflows/windows-native-client.yml','utf8');
 
 function need(value,message){if(!value)throw new Error(message);}
 for(const token of [
@@ -28,6 +29,14 @@ need(fixture.includes("setAttribute('aria-label','Light Remote Accepted')"),'win
 need(fixture.includes("addEventListener('click'"),'windows_acceptance_fixture_click_handler_missing');
 need(!fixture.match(/https?:\/\//i),'windows_acceptance_fixture_must_be_offline');
 
+const step='- name: Real Windows OS input acceptance';
+need(workflow.includes(step),'windows_acceptance_workflow_step_missing');
+need(workflow.includes('real-remote-browser-os-input.ps1 -ClientExe $exe -TimeoutSeconds 30'),'windows_acceptance_workflow_invocation_missing');
+const stepStart=workflow.indexOf(step),stepEnd=workflow.indexOf('\n      - name:',stepStart+step.length);
+const stepBody=workflow.slice(stepStart,stepEnd<0?workflow.length:stepEnd);
+need(!stepBody.includes('continue-on-error'),'windows_acceptance_workflow_must_be_hard_gate');
+
 console.log('v11-real-windows-os-input-contract=PASS');
 console.log('v11-real-windows-cdp-observation-only=PASS');
 console.log('v11-real-windows-state-change-fixture=PASS');
+console.log('v11-real-windows-workflow-hard-gate=PASS');
