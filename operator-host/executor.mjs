@@ -403,6 +403,35 @@ function startJob(payload, requestId) {
   job.timer.unref();
   return job;
 }
+function fsActivityMeta(request={}){
+  const op=String(request.op||'unknown'),meta={kind:'fs',op};
+  if(request.path!=null)meta.path=String(request.path);
+  if(Array.isArray(request.paths)){meta.paths=request.paths.slice(0,4).map(value=>String(value));meta.pathCount=request.paths.length;}
+  if(request.source!=null)meta.source=String(request.source);
+  if(request.destination!=null)meta.destination=String(request.destination);
+  if(op==='write'){meta.bytes=Buffer.byteLength(String(request.content||''),'utf8');meta.mode=String(request.mode||'rewrite');meta.atomic=request.atomic!==false;meta.createParents=request.createParents===true;}
+  if(op==='edit'){meta.oldBytes=Buffer.byteLength(String(request.oldText||''),'utf8');meta.newBytes=Buffer.byteLength(String(request.newText||''),'utf8');if(request.expectedReplacements!=null)meta.expectedReplacements=Number(request.expectedReplacements);}
+  if(op==='read'){for(const key of ['startLine','maxLines','tailLines','maxBytes'])if(request[key]!=null)meta[key]=Number(request[key]);}
+  if(op==='readMany'){if(request.maxLines!=null)meta.maxLines=Number(request.maxLines);if(request.maxBytesPerFile!=null)meta.maxBytesPerFile=Number(request.maxBytesPerFile);}
+  if(op==='list'){if(request.maxEntries!=null)meta.maxEntries=Number(request.maxEntries);if(request.maxDepth!=null)meta.maxDepth=Number(request.maxDepth);}
+  if(op==='mkdir')meta.parents=request.parents===true;
+  if(op==='copy'||op==='move')meta.overwrite=request.overwrite===true;
+  if(op==='delete')meta.recursive=request.recursive===true;
+  return meta;
+}
+function fsActivityResult(meta,data){
+  if(!data||data.ok===false)return '';
+  const op=String(meta?.op||data.operation||'');
+  if(op==='write')return `wrote ${Number(data.writtenBytes??meta?.bytes??0)} B`;
+  if(op==='edit'){const count=Number(data.replacements||0);return `${count} replacement${count===1?'':'s'}`;}
+  if(op==='read'){const bytes=Buffer.byteLength(String(data.text||''),'utf8');return `read ${bytes} B${data.truncated?' (truncated)':''}`;}
+  if(op==='readMany')return `${Array.isArray(data.files)?data.files.length:Number(meta?.pathCount||0)} files`;
+  if(op==='list')return `${Array.isArray(data.entries)?data.entries.length:0} entries${data.truncated?' (truncated)':''}`;
+  if(op==='stat')return `${String(data.type||'item')}${Number.isFinite(Number(data.size))?' '+Number(data.size)+' B':''}`;
+  if(op==='copy'||op==='move'||op==='mkdir'||op==='delete')return 'completed';
+  return '';
+}
+
 async function startFsOperation(payload,requestId){
   const operationId=String(payload.operationId||'').trim();
   if(!/^[A-Za-z0-9._:-]{16,128}$/.test(operationId))throw new Error('invalid_operation_id');
@@ -417,11 +446,12 @@ async function startFsOperation(payload,requestId){
   const fingerprint=crypto.createHash('sha256').update(JSON.stringify({fsRequest,sessionId:session.id,nodeId:session.nodeId})).digest('hex');
   const existing=operationDedupe.get(operationId);
   if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
-  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-fs:${String(fsRequest.op||'unknown')}`,cwd:'',script:'',status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null};
+  const toolMeta=fsActivityMeta(fsRequest);
+  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-fs:${String(fsRequest.op||'unknown')}`,cwd:'',script:'',status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null,resultSummary:'',toolMeta};
   jobs.set(job.id,job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
-  pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:remote?'outbound-leaf':'local',requiredCapabilities,note:job.note});
+  pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:remote?'outbound-leaf':'local',requiredCapabilities,note:job.note,toolMeta:job.toolMeta});
   if(remote){const command=fleet.enqueue({accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'fs',operationId,sessionId:job.sessionId,agentId:job.agentId,fs:fsRequest}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},60000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();return job;}
-  Promise.resolve().then(()=>executeNativeFs(fsRequest,{policy:filesystemPolicy()})).then(data=>{job.resultData=data;finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n'));finishJob(job,1,null);});
+  Promise.resolve().then(()=>executeNativeFs(fsRequest,{policy:filesystemPolicy()})).then(data=>{job.resultData=data;job.resultSummary=fsActivityResult(job.toolMeta,data);finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};job.resultSummary=String(error?.message||error);emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n','utf8'));finishJob(job,1,null);});
   return job;
 }
 
