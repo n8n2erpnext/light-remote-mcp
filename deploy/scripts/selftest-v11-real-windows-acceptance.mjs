@@ -20,6 +20,8 @@ for(const token of [
 ])need(script.includes(token),'windows_acceptance_contract_missing:'+token);
 
 need(!script.includes('[hashtable]$Args'),'windows_acceptance_powershell_args_shadow_forbidden');
+need(!script.includes('return$r.result'),'windows_acceptance_powershell_return_spacing_forbidden');
+need(script.includes('return $r.result'),'windows_acceptance_powershell_return_missing');
 for(const forbidden of ['Input.dispatch','Runtime.evaluate','Runtime.callFunctionOn','DOM.resolveNode']){
   need(!script.includes(forbidden),'windows_acceptance_cdp_mutation_forbidden:'+forbidden);
 }

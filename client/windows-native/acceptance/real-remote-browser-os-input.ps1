@@ -41,7 +41,7 @@ function Invoke-Rr([string]$Id,[string]$Op,[hashtable]$RequestArgs=@{}){
   $task=$script:rr.StandardOutput.ReadLineAsync()
   if(-not $task.Wait([TimeSpan]::FromSeconds($TimeoutSeconds))){throw "Helper timeout: $Op"}
   $line=$task.Result;if([string]::IsNullOrWhiteSpace($line)){throw "Empty helper response: $Op"}
-  $r=$line|ConvertFrom-Json;if(-not $r.ok){throw "Helper error $Op : $($r.error)"};return$r.result
+  $r=$line|ConvertFrom-Json;if(-not $r.ok){throw "Helper error $Op : $($r.error)"};return $r.result
 }
 
 try{
