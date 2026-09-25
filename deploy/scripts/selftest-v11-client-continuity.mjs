@@ -4,6 +4,7 @@ import fs from 'node:fs';
 
 const require=createRequire(import.meta.url);
 const {
+  classifyClientCapability,
   decodeClientCapability,
   clientFingerprint,
   callWithClientContinuity
@@ -34,6 +35,11 @@ const missingCredentialError=()=>client401('missing');
 
 assert.equal(decodeClientCapability(valid,{now})?.clientSessionId,'lrc_continuity_selftest_0001');
 assert.equal(decodeClientCapability(expired,{now}),null);
+assert.equal(classifyClientCapability(valid,{now}).reason,'eligible');
+assert.equal(classifyClientCapability(expired,{now}).reason,'expired');
+assert.equal(classifyClientCapability('',{now}).reason,'missing');
+assert.equal(classifyClientCapability('o1.client.'+Buffer.from('not-json').toString('base64url')+'.sig',{now}).reason,'json');
+assert.equal(classifyClientCapability(tokenFor('not-a-number'),{now}).reason,'exp_type');
 assert.match(clientFingerprint(valid),/^[a-f0-9]{16}$/);
 
 let calls=0;

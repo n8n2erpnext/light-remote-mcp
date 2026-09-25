@@ -52,14 +52,19 @@ function signScopedToken(secret, kind, payload) {
   const sig = crypto.createHmac('sha256', Buffer.from(secret, 'base64url')).update(`scoped:${kind}:${body}`).digest('base64url');
   return `o1.${kind}.${body}.${sig}`;
 }
-function verifyScopedToken(secret, kind, token) {
+function inspectScopedToken(secret, kind, token) {
   const parts = String(token || '').split('.');
-  if (parts.length !== 4 || parts[0] !== 'o1' || parts[1] !== kind) return null;
+  if (parts.length !== 4 || parts[0] !== 'o1' || parts[1] !== kind) return {ok:false,reason:'shape'};
   const expected = crypto.createHmac('sha256', Buffer.from(secret, 'base64url')).update(`scoped:${kind}:${parts[2]}`).digest('base64url');
-  if (!safeEqual(expected, parts[3])) return null;
-  let payload; try { payload = JSON.parse(fromB64url(parts[2])); } catch { return null; }
-  if (payload?.exp != null && (!Number.isSafeInteger(payload.exp) || payload.exp <= Date.now())) return null;
-  return payload;
+  if (!safeEqual(expected, parts[3])) return {ok:false,reason:'signature'};
+  let payload; try { payload = JSON.parse(fromB64url(parts[2])); } catch { return {ok:false,reason:'json'}; }
+  if (payload?.exp != null && !Number.isSafeInteger(payload.exp)) return {ok:false,reason:'exp_type'};
+  if (payload?.exp != null && payload.exp <= Date.now()) return {ok:false,reason:'expired'};
+  return {ok:true,reason:'valid',payload};
+}
+function verifyScopedToken(secret, kind, token) {
+  const inspected=inspectScopedToken(secret,kind,token);
+  return inspected.ok?inspected.payload:null;
 }
 
 function signSession(secret, username, expiresAt) {
@@ -137,6 +142,7 @@ export function createWallAuth(options = {}) {
     return value && safeEqual(value.username, config.username) ? value : null;
   };
   const signOAuthToken = (kind, payload) => signScopedToken(config.cookieSecret, kind, payload);
+  const inspectOAuthToken = (kind, token) => inspectScopedToken(config.cookieSecret, kind, token);
   const verifyOAuthToken = (kind, token) => verifyScopedToken(config.cookieSecret, kind, token);
   const mintBridgeSession = (ttlSeconds = bridgeTtlSeconds) => {
     const ttl = Math.max(300, Math.min(Number(ttlSeconds) || bridgeTtlSeconds, 3600));
@@ -212,7 +218,7 @@ export function createWallAuth(options = {}) {
     return res.redirect(303, '/login');
   }
   return { loginPage, login, logout, requirePage, requireApi, identity, bridgeLogin, requireBridgeSession, bridgeIdentity,
-    verifyCredentials:credentialsOk, verifyBridgeToken, mintBridgeSession, signOAuthToken, verifyOAuthToken,
+    verifyCredentials:credentialsOk, verifyBridgeToken, mintBridgeSession, signOAuthToken, inspectOAuthToken, verifyOAuthToken,
     info: () => ({ mode:config.mode, username:config.username, sessionTtlSeconds:config.sessionTtlSeconds, bridgeSessionTtlSeconds:bridgeTtlSeconds, cookieSecure, cookieName }) };
 }
 

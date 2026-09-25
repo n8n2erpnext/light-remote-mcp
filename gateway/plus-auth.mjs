@@ -53,7 +53,18 @@ export function createPlusAuth(wallAuth, options = {}) {
     const payload={scope:'agent-client',clientSessionId:client.clientSessionId,agentId:client.agentId,iat:Date.now(),exp:Number(client.expiresAt),jti:crypto.randomUUID()};
     return wallAuth.signOAuthToken('client',payload);
   }
-  function clientContext(token){const value=wallAuth.verifyOAuthToken('client',String(token||''));return value&&value.scope==='agent-client'&&value.clientSessionId&&value.agentId?value:null;}
+  function inspectClientContext(token){
+    const raw=String(token||'');
+    if(!raw)return {context:null,reason:'missing'};
+    const inspected=typeof wallAuth.inspectOAuthToken==='function'?wallAuth.inspectOAuthToken('client',raw):null;
+    const value=inspected?(inspected.ok?inspected.payload:null):wallAuth.verifyOAuthToken('client',raw);
+    if(!value)return {context:null,reason:inspected?.reason||'invalid'};
+    if(value.scope!=='agent-client')return {context:null,reason:'scope'};
+    if(!value.clientSessionId)return {context:null,reason:'missing_client_id'};
+    if(!value.agentId)return {context:null,reason:'missing_agent_id'};
+    return {context:value,reason:'valid'};
+  }
+  function clientContext(token){return inspectClientContext(token).context;}
   async function connectBegin(req,res){
     try{
       const body=req.body||{},aCode=pairingCode(body.aCode),agentId=safeId(body.agentId,/^[A-Za-z0-9._:-]{16,128}$/,'invalid_plus_agent_id'),label=String(body.label||'ChatGPT').trim().slice(0,120);
@@ -89,8 +100,12 @@ export function createPlusAuth(wallAuth, options = {}) {
     }catch(error){const denied=error.message==='plus_authorization_denied',expired=['plus_authorization_expired','agent_client_expired'].includes(error.message);return res.status(Number(error.status)||400).json({ok:false,status:expired?'approval_expired':denied?'access_revoked':'error',error:error.message||'pairing_recovery_failed'});}
   }
   async function requireClient(req,res,next){
-    const credential=clientTokenFromRequest(req),ctx=clientContext(credential.token);
-    if(!ctx)return res.status(401).json({ok:false,error:'agent_client_required',detail:credential.token?'invalid':'missing'});
+    const credential=clientTokenFromRequest(req),inspection=inspectClientContext(credential.token),ctx=inspection.context;
+    if(!ctx){
+      const token=String(credential.token||''),traceId=String(req.get?.('x-light-trace')||req.headers?.['x-light-trace']||'').slice(0,80);
+      console.warn(JSON.stringify({event:'agent_client_rejected',traceId:traceId||null,transport:credential.transport,clientFingerprint:token?crypto.createHash('sha256').update(token).digest('hex').slice(0,16):null,clientLength:token.length,reason:inspection.reason}));
+      return res.status(401).json({ok:false,error:'agent_client_required',detail:credential.token?'invalid':'missing'});
+    }
     req.plusClient=ctx;req.plusClientTransport=credential.transport;return next();
   }
   async function listDevices(req,res){
