@@ -49,11 +49,12 @@ function Wait-Button([string]$SessionId,[string]$Name,[string]$Prefix){
 try{
   $appATitle='Light Remote UIA App A';$appBTitle='Light Remote UIA App B'
   $appAButton='Light Remote App A Action';$appBButton='Light Remote App B Action'
-  $appA=Start-Fixture $appATitle $appAButton 120 100
   $appB=Start-Fixture $appBTitle $appBButton 680 160
-  $hwndA=Wait-Window $appATitle;$hwndB=Wait-Window $appBTitle
-  [LightRemoteUiaAcceptanceWindow]::Focus($hwndB);Start-Sleep -Milliseconds 150
-  [LightRemoteUiaAcceptanceWindow]::Focus($hwndA);Start-Sleep -Milliseconds 250
+  $hwndB=Wait-Window $appBTitle
+  Start-Sleep -Milliseconds 150
+  $appA=Start-Fixture $appATitle $appAButton 120 100
+  $hwndA=Wait-Window $appATitle
+  Start-Sleep -Milliseconds 300
   $psi=[Diagnostics.ProcessStartInfo]::new();$psi.FileName=$ClientExe;$psi.UseShellExecute=$false;$psi.CreateNoWindow=$true
   $psi.RedirectStandardInput=$true;$psi.RedirectStandardOutput=$true;$psi.RedirectStandardError=$true;$psi.ArgumentList.Add('--real-remote-helper')
   $rr=[Diagnostics.Process]::new();$rr.StartInfo=$psi;if(-not $rr.Start()){throw 'Helper start failed'}
