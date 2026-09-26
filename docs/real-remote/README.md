@@ -185,10 +185,12 @@ V0.6-E adds a Windows CI hard gate for the Local Wall viewer against the real na
 - this acceptance is intentionally read-only. Mouse and keyboard mutation remain covered by the separate desktop-input Windows acceptance suite;
 - the workflow step is a hard gate immediately after the hidden-helper smoke and before OS-input acceptance.
 
-V0.6-F makes capability additions after an upgrade visible and re-authorizable instead of silently inheriting an old enrollment ceiling:
-- agent status compares capabilities discovered by the installed runtime with the current enrollment grantable/approved set and reports discoveredCapabilities, missingCapabilities, capabilityUpgradeAvailable and capabilityUpgradePending;
-- existing enrollment policy remains fail-closed: newly discovered capabilities are not added to grantable/effective capabilities before server approval;
-- Permissions shows a New capabilities available notice when an enrolled non-Main device has capability drift, names the missing capabilities and offers Re-authorize device;
-- re-authorization uses the existing enrollment-begin/poll flow and the existing device identity. Existing effective permissions remain active while approval is pending;
-- after approval the page reloads against the new policy ceiling; Real Remote desktop-input still follows the existing explicit local-owner decision/default-deny rule;
-- Windows CI now simulates a legacy enrollment against a Real Remote-capable installed runtime and requires desktop plus desktop-input to appear only as missing capabilities before re-authorization.
+V0.6-F separates device authorization from runtime permissions so a normal version upgrade never requires re-authorization:
+- authorization binds the device identity/key and Device ID; upgrading the installed binary does not replace or re-enroll that identity;
+- signed heartbeats now carry effective capabilities and a separate supportedCapabilities set. Older agents remain compatible with the legacy heartbeat shape;
+- when the same authorized Device ID reports newly supported capabilities, the server refreshes that binding's grantable set and signed policy revision instead of treating the change as a new enrollment;
+- Local Wall Permissions renders capabilities supported by the installed runtime. Capabilities that did not exist in the previous runtime baseline are added to the local deny list by default, so they appear OFF after upgrade;
+- the owner enables a new feature such as Desktop view, Desktop input or Interactive terminal only by checking it in Permissions and saving local policy. No enrollment code, account approval or Re-authorize flow is involved;
+- server policy remains an independent remote-routing boundary and may still narrow a capability after runtime discovery; local policy remains the final deny boundary;
+- legacy agents that do not send signed supportedCapabilities keep the prior capability-escalation guard;
+- revoke remains an identity/trust action and may require authorization again; remove/delete remains a new-device enrollment case. Neither rule is used for ordinary version upgrades.

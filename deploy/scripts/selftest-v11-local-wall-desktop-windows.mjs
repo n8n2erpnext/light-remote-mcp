@@ -5,7 +5,7 @@ import { startLocalWall } from '../../device-agent/local-wall.mjs';
 import { NativeDesktopBridge } from '../../lib/native-desktop.mjs';
 
 const exe=String(process.argv[2]||process.env.LIGHT_REMOTE_CLIENT_EXE||'').trim();
-if(process.platform!=='win32')throw new Error('windows_only');
+if(process.platform!=='win32'){console.log('windows-local-wall-desktop=SKIP windows-only');process.exit(0);}
 if(!exe||!fs.existsSync(exe))throw new Error('real_remote_helper_missing');
 
 const port=28500+(process.pid%2000);

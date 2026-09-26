@@ -312,14 +312,14 @@ jobs:
             $rr.Dispose()
           }
 
-      - name: Capability upgrade discovery acceptance
+      - name: Capability refresh without reauthorization acceptance
         timeout-minutes: 1
         shell: pwsh
         run: |
           $stage = Join-Path $PWD 'dist\windows\stage'
           $exe = Join-Path $stage 'LightRemote.Client.exe'
           if (-not (Test-Path $exe)) { throw 'Real Remote helper executable missing before capability upgrade acceptance' }
-          node deploy/scripts/selftest-v11-capability-upgrade-windows.mjs $exe
+          node deploy/scripts/selftest-v11-capability-refresh-windows.mjs $exe
 
       - name: Local Wall desktop viewer native acceptance
         timeout-minutes: 2

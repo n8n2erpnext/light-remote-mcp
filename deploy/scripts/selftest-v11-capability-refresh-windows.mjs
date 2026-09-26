@@ -5,7 +5,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const exe=String(process.argv[2]||process.env.LIGHT_REMOTE_CLIENT_EXE||'').trim();
-if(process.platform!=='win32')throw new Error('windows_only');
+if(process.platform!=='win32'){console.log('windows-capability-refresh=SKIP windows-only');process.exit(0);}
 if(!exe||!fs.existsSync(exe))throw new Error('real_remote_helper_missing');
 
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'lr-cap-upgrade-'));
@@ -33,16 +33,17 @@ try{
   if(run.error)throw run.error;
   if(run.status!==0)throw new Error('capability_upgrade_status_failed:'+String(run.stderr||run.stdout||''));
   let view;try{view=JSON.parse(String(run.stdout||''));}catch{throw new Error('capability_upgrade_status_json_invalid:'+String(run.stdout||''));}
-  const discovered=new Set(view.discoveredCapabilities||[]),missing=new Set(view.missingCapabilities||[]);
-  for(const cap of ['desktop','desktop-input']){
-    if(!discovered.has(cap))throw new Error('capability_upgrade_discovery_missing:'+cap);
-    if(!missing.has(cap))throw new Error('capability_upgrade_drift_missing:'+cap);
+  const supported=new Set(view.supportedCapabilities||[]),grantable=new Set(view.grantableCapabilities||[]),denied=new Set(view.deniedCapabilities||[]),effective=new Set(view.effectiveCapabilities||[]);
+  for(const cap of ['terminal','desktop','desktop-input']){
+    if(!supported.has(cap))throw new Error('capability_refresh_support_missing:'+cap);
+    if(!grantable.has(cap))throw new Error('capability_refresh_permission_missing:'+cap);
+    if(!denied.has(cap))throw new Error('capability_refresh_new_permission_must_default_off:'+cap);
+    if(effective.has(cap))throw new Error('capability_refresh_new_permission_auto_enabled:'+cap);
   }
-  if(view.capabilityUpgradeAvailable!==true)throw new Error('capability_upgrade_flag_missing');
-  if(view.capabilityUpgradePending!==false)throw new Error('capability_upgrade_pending_unexpected');
-  if((view.grantableCapabilities||[]).includes('desktop')||(view.effectiveCapabilities||[]).includes('desktop'))throw new Error('capability_upgrade_must_fail_closed_before_reauth');
-  console.log('windows-capability-upgrade-discovery=PASS missing='+[...missing].join(','));
-  console.log('windows-capability-upgrade-fail-closed=PASS');
+  if(view.deviceId!==state.enrollment.deviceId)throw new Error('capability_refresh_device_identity_changed');
+  if('capabilityUpgradeAvailable' in view||'missingCapabilities' in view)throw new Error('capability_refresh_must_not_use_reauthorization_model');
+  console.log('windows-capability-refresh-same-identity=PASS deviceId='+view.deviceId);
+  console.log('windows-capability-refresh-default-off=PASS new=terminal,desktop,desktop-input');
 }finally{
   fs.rmSync(dir,{recursive:true,force:true});
 }

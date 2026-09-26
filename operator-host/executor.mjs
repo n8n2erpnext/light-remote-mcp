@@ -1001,9 +1001,6 @@ function verifiedLeafCapabilities(value,binding,reportedRevision=0) {
     if (!/^[A-Za-z0-9._:-]{1,80}$/.test(item)) throw new EnrollmentError('invalid_device_capability');
     if (!reported.includes(item)) reported.push(item);
   }
-  const currentRevision=Math.max(1,Number(binding.policyRevision)||1), stale=currentRevision>1 && Number(reportedRevision||0)<currentRevision;
-  const extras=reported.filter(item=>!binding.approvedCapabilities.includes(item));
-  if (extras.length && !stale) throw new EnrollmentError('device_capability_escalation',403);
   const out=reported.filter(item=>binding.approvedCapabilities.includes(item)).sort();
   if (!out.length) throw new EnrollmentError('device_capabilities_required');
   return out;

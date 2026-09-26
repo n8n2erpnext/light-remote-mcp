@@ -35,6 +35,18 @@ const nonce2=crypto.randomBytes(18).toString('base64url');
 const badCaps=['docker'];
 const badSig=crypto.sign(null,Buffer.from(deviceHeartbeatMessage({deviceId:polled.deviceId,timestamp,nonce:nonce2,capabilities:badCaps})),privateKey).toString('base64url');
 try{registry.verifyHeartbeat({deviceId:polled.deviceId,timestamp,nonce:nonce2,capabilities:badCaps,signature:badSig});throw new Error('heartbeat_capability_escalation_accepted');}catch(e){if(e.status!==403)throw e;}
+const upgradeNonce=crypto.randomBytes(18).toString('base64url');
+const supportedCapabilities=['docker','git','terminal'];
+const upgradeCapabilities=['git'];
+const upgradeSignature=crypto.sign(null,Buffer.from(deviceHeartbeatMessage({deviceId:polled.deviceId,timestamp,nonce:upgradeNonce,capabilities:upgradeCapabilities,supportedCapabilities})),privateKey).toString('base64url');
+const upgradeProof=registry.verifyHeartbeat({deviceId:polled.deviceId,timestamp,nonce:upgradeNonce,capabilities:upgradeCapabilities,supportedCapabilities,signature:upgradeSignature,policyRevision:1});
+if(upgradeProof.binding.deviceId!==polled.deviceId||!upgradeProof.binding.grantableCapabilities.includes('terminal')||!upgradeProof.binding.approvedCapabilities.includes('terminal')||upgradeProof.binding.approvedCapabilities.includes('docker'))throw new Error('heartbeat_supported_capability_refresh_failed');
+if(upgradeProof.binding.policyRevision!==2)throw new Error('heartbeat_supported_capability_revision_failed');
+const enableNonce=crypto.randomBytes(18).toString('base64url');
+const enabledCapabilities=['git','terminal'];
+const enableSignature=crypto.sign(null,Buffer.from(deviceHeartbeatMessage({deviceId:polled.deviceId,timestamp,nonce:enableNonce,capabilities:enabledCapabilities,supportedCapabilities})),privateKey).toString('base64url');
+const enabledProof=registry.verifyHeartbeat({deviceId:polled.deviceId,timestamp,nonce:enableNonce,capabilities:enabledCapabilities,supportedCapabilities,signature:enableSignature,policyRevision:2});
+if(!enabledProof.effectiveCapabilities.includes('terminal')||enabledProof.binding.deviceId!==polled.deviceId)throw new Error('heartbeat_new_capability_enable_without_reauth_failed');
 now+=61_000;
 const nonce3=crypto.randomBytes(18).toString('base64url');
 const oldSig=crypto.sign(null,Buffer.from(deviceHeartbeatMessage({deviceId:polled.deviceId,timestamp,nonce:nonce3,capabilities})),privateKey).toString('base64url');
@@ -53,13 +65,13 @@ const trustedFirst=registry.ensureTrustedBinding({accountId:'self-hosted-local',
 const trustedRevision=trustedFirst.policyRevision;
 const trustedUpdated=registry.ensureTrustedBinding({accountId:'self-hosted-local',deviceId:'trusted-host-test',publicIdentityKey:trustedPublic,capabilities:['filesystem','git','terminal'],policyProfile:'infra'});
 if(!trustedUpdated.grantableCapabilities.includes('terminal'))throw new Error('trusted_host_new_capability_not_grantable');
-if(trustedUpdated.approvedCapabilities.includes('terminal'))throw new Error('trusted_host_new_capability_auto_approved');
+if(!trustedUpdated.approvedCapabilities.includes('terminal'))throw new Error('trusted_host_new_capability_not_auto_synced');
 if(trustedUpdated.policyRevision!==trustedRevision+1)throw new Error('trusted_host_capability_policy_revision_not_incremented');
 const trustedEnvelope=registry.policyEnvelope('trusted-host-test');
 const trustedSigner=crypto.createPublicKey({key:Buffer.from(trustedEnvelope.signer.publicKey,'base64'),format:'der',type:'spki'});
 const trustedMessage=devicePolicyMessage({deviceId:trustedEnvelope.policy.deviceId,accountId:trustedEnvelope.policy.accountId,revision:trustedEnvelope.policy.policyRevision,approvedCapabilities:trustedEnvelope.policy.approvedCapabilities,grantableCapabilities:trustedEnvelope.policy.grantableCapabilities,policyProfile:trustedEnvelope.policy.policyProfile,updatedAt:trustedEnvelope.policy.policyUpdatedAt});
 if(!crypto.verify(null,Buffer.from(trustedMessage),trustedSigner,Buffer.from(trustedEnvelope.signature,'base64url')))throw new Error('trusted_host_capability_policy_signature_invalid');
-console.log('trusted-host-capability-refresh-fail-closed=PASS');
+console.log('trusted-host-capability-refresh-no-reauthorize=PASS');
 
 const cancelKeys=crypto.generateKeyPairSync('ed25519');
 const cancellable=registry.begin({publicIdentityKey:cancelKeys.publicKey.export({format:'der',type:'spki'}).toString('base64'),displayName:'Cancel Device',platform:'linux',architecture:'arm64',capabilities:['git'],sourceHash:'b'.repeat(64)});
@@ -69,6 +81,7 @@ try{registry.approve({code:cancellable.deviceCode,accountId:'self-hosted-local',
 console.log('enrollment-cancel=PASS');
 console.log('device-heartbeat-proof-replay=PASS');
 console.log('device-heartbeat-no-escalation=PASS');
+console.log('device-heartbeat-capability-refresh-no-reauthorize=PASS');
 const limitDir=fs.mkdtempSync(path.join(os.tmpdir(),'gpt-enrollment-source-limit-'));
 const limited=new EnrollmentRegistry({stateFile:path.join(limitDir,'state.json'),signerFile:path.join(limitDir,'signer.json'),ttlMs:600000,now:()=>now});
 for(let i=0;i<3;i++){const kp=crypto.generateKeyPairSync('ed25519');limited.begin({publicIdentityKey:kp.publicKey.export({format:'der',type:'spki'}).toString('base64'),displayName:`Source ${i}`,platform:'linux',architecture:'x64',capabilities:['git'],sourceHash:'a'.repeat(64)});}
