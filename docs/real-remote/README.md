@@ -201,3 +201,9 @@ V0.6-G fixes upgrade migration after the capability refresh model change:
 - capability permission model version 2 migrates once from the authorization-era certificate baseline, so newly introduced runtime capabilities are locally OFF until the owner enables them;
 - a polluted intermediate knownCapabilities list cannot auto-enable new runtime permissions during migration;
 - fresh enrollment and subsequent permission saves stamp the new permission model explicitly.
+
+V0.6-H tightens Local Wall responsiveness and short-lived pairing UX:
+- expired Local Wall A codes rotate immediately instead of requesting the current challenge again;
+- device/session activity coalesces status refreshes and enforces a small minimum refresh gap so event bursts cannot create overlapping remote-status fetches and repeated DOM rebuilds;
+- outbound leaf long-poll defaults to 2.5 seconds instead of 8 seconds, bounding interactive command pickup latency when an otherwise valid server-side wake is missed by transport/proxy timing;
+- all values remain environment-overridable and existing connection/policy boundaries are unchanged.
