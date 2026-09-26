@@ -177,3 +177,10 @@ V0.6-D exposes the pull session through the existing Local Wall instead of intro
 - hidden tabs stop polling, visible tabs resume the existing session, expired/stale/missing sessions re-attach, and page unload makes a best-effort detach request;
 - the page uses the same Wall login and per-render mutation CSRF. Unauthenticated page/API access and mutation without CSRF are rejected by the existing Wall boundary;
 - the viewer module is included in core-files plus Windows and Linux install paths so installed clients do not lose the page after update.
+
+V0.6-E adds a Windows CI hard gate for the Local Wall viewer against the real native helper:
+- the acceptance starts the existing Local Wall on loopback and routes /api/desktop into NativeDesktopBridge using the staged LightRemote.Client.exe --real-remote-helper;
+- it proves the rendered Desktop page is present, native desktop status exposes an interactive screen, and a real visual session can attach to that screen;
+- it captures a bounded JPEG through the Local Wall API, verifies displayTopologyId and inputMapping, then resumes and detaches the same desktopSessionId;
+- this acceptance is intentionally read-only. Mouse and keyboard mutation remain covered by the separate desktop-input Windows acceptance suite;
+- the workflow step is a hard gate immediately after the hidden-helper smoke and before OS-input acceptance.

@@ -286,6 +286,7 @@ const wallDesktopPage=read('device-agent/local-wall-desktop-page.mjs');
 const coreFiles=read('client/core-files.json');
 const windowsInstaller=read('device-agent/install-windows-service.ps1');
 const linuxInstaller=read('device-agent/install-linux-service.sh');
+const windowsWallAcceptance=read('deploy/scripts/selftest-v11-local-wall-desktop-windows.mjs');
 const windowsWorkflow=read('.github/workflows/windows-native-client.yml');
 assert.ok(executor.includes('async function startDesktopOperation(')&&executor.includes("payload:{type:'desktop'")&&executor.includes("op==='input'?['desktop','desktop-input']:['desktop']")&&executor.includes("normalizeDesktopInput(request)")&&executor.includes("'attach'")&&executor.includes("'resume'")&&executor.includes("'detach'")&&executor.includes("'semantic-attach'")&&executor.includes("'semantic-snapshot'")&&executor.includes("'semantic-events'")&&executor.includes("'semantic-detach'"));
 assert.ok(routes.includes("'desktop'].includes(payload.action)")&&routes.includes("payload.action==='desktop'?await startDesktopOperation"));
@@ -297,6 +298,8 @@ assert.ok(wall.includes("import { desktopPage } from './local-wall-desktop-page.
 for(const token of ['/api/desktop','desktop-input','inputMapping','displayTopologyId','retryAfterMs','omitUnchanged:true','beforeunload'])assert.ok(wallDesktopPage.includes(token),`Local Wall desktop viewer contract missing: ${token}`);
 for(const source of [coreFiles,windowsInstaller,linuxInstaller])assert.ok(source.includes('local-wall-desktop-page.mjs'),'Local Wall desktop viewer must be packaged on every supported install path');
 assert.ok(agent.includes("desktopAction:async data=>{const current=readState();if(!current)throw new Error('device_not_enrolled');return executeDesktopCommand(current,{desktop:data});}"),'Local Wall desktop callback must reuse executeDesktopCommand policy boundary');
+for(const token of ['startLocalWall','NativeDesktopBridge',"op:'status'","op:'attach'","op:'frame'","op:'resume'","op:'detach'",'windows-local-wall-desktop-native-frame=PASS'])assert.ok(windowsWallAcceptance.includes(token),'Windows Local Wall native acceptance missing: '+token);
+assert.ok(windowsWorkflow.includes('- name: Local Wall desktop viewer native acceptance')&&windowsWorkflow.includes('selftest-v11-local-wall-desktop-windows.mjs $exe')&&!windowsWorkflow.slice(windowsWorkflow.indexOf('- name: Local Wall desktop viewer native acceptance'),windowsWorkflow.indexOf('- name: Real Windows OS input acceptance')).includes('continue-on-error'),'Windows Local Wall viewer acceptance must be a hard gate');
 assert.ok(windowsWorkflow.includes('- name: Real Remote hidden helper smoke')&&windowsWorkflow.includes('timeout-minutes: 1')&&windowsWorkflow.includes('--real-remote-helper')&&windowsWorkflow.includes('windows-real-remote-helper=PASS')&&windowsWorkflow.includes('windows-real-remote-input-negative=PASS')&&windowsWorkflow.includes('windows-real-remote-semantic=PASS')&&windowsWorkflow.includes('windows-real-remote-semantic-events=PASS')&&windowsWorkflow.includes('windows-real-remote-input-ack=PASS')&&windowsWorkflow.includes('windows-real-remote-browser-cdp=PASS')&&windowsWorkflow.includes('windows-real-remote-browser-input-ack=PASS'));
 
 console.log('v11-real-remote-jsonl-bridge=PASS');
@@ -311,3 +314,4 @@ console.log('v11-real-remote-closed-loop-input-ack=PASS');
 console.log('v11-real-remote-browser-cdp-semantic=PASS');
 console.log('v11-real-remote-browser-input-ack=PASS');
 console.log('v11-real-remote-local-wall-viewer=PASS');
+console.log('v11-real-remote-local-wall-windows-acceptance=PASS');
