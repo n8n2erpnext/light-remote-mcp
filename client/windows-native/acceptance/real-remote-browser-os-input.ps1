@@ -299,6 +299,58 @@ try{
   Write-Host "windows-real-remote-close-tab-continued-input=PASS sentInputs=$($returnAck.sentInputs) inputSeq=$($returnAck.inputSeq) seq=$($returnDone.stateSeq)"
   Write-Host 'windows-real-remote-close-tab-closed-loop=PASS'
 
+  $popupOpenButtons=@($returnDone.nodes|Where-Object { $_.role -eq 'button' -and $_.name -eq 'Light Remote Open Popup' })
+  if($popupOpenButtons.Count -ne 1 -or $null -eq $popupOpenButtons[0].center){throw "Popup-open semantic center missing count=$($popupOpenButtons.Count)"}
+  $popupOpenX=[int][Math]::Round([double]$popupOpenButtons[0].center.x);$popupOpenY=[int][Math]::Round([double]$popupOpenButtons[0].center.y)
+  $popupBeforeSeq=[long]$returnDone.stateSeq
+  [LightRemoteAcceptanceWindow]::Focus($hwnd);Start-Sleep -Milliseconds 100
+  $popupOpenAck=Invoke-Rr 'accept-os-open-popup-window' 'input' @{events=@(@{type='move';x=$popupOpenX;y=$popupOpenY},@{type='click';button='left';count=1});semanticSessionId=$sem;afterSeq=$popupBeforeSeq;settleMs=250}
+  if([int]$popupOpenAck.appliedEvents -ne 2 -or [int]$popupOpenAck.sentInputs -lt 2){throw "Popup-open SendInput proof missing applied=$($popupOpenAck.appliedEvents) sent=$($popupOpenAck.sentInputs)"}
+  if([string]$popupOpenAck.semanticSessionId -ne $sem){throw 'Semantic session changed while opening popup window'}
+
+  $popupHwnd=[IntPtr]::Zero;$popupWindowDeadline=[DateTime]::UtcNow.AddSeconds(5)
+  while($popupHwnd -eq [IntPtr]::Zero -and [DateTime]::UtcNow -lt $popupWindowDeadline){
+    $popupHwnd=[LightRemoteAcceptanceWindow]::Find('Light Remote Popup Acceptance')
+    if($popupHwnd -eq [IntPtr]::Zero){Start-Sleep -Milliseconds 100}
+  }
+  if($popupHwnd -eq [IntPtr]::Zero){throw 'Visible popup Chromium window missing'}
+  if($popupHwnd -eq $hwnd){throw 'Popup acceptance did not create a distinct Chromium HWND'}
+  [LightRemoteAcceptanceWindow]::Focus($popupHwnd);Start-Sleep -Milliseconds 150
+
+  $popupDeadline=[DateTime]::UtcNow.AddSeconds(5);$popupAttempt=0;$popupStable=$null;$popupButtons=@()
+  do{
+    $popupAttempt++
+    try{
+      $candidate=Invoke-Rr ("accept-popup-snapshot-"+$popupAttempt) 'semantic-snapshot' @{semanticSessionId=$sem}
+      $candidateButtons=@($candidate.nodes|Where-Object { $_.role -eq 'button' -and $_.name -eq 'Light Remote Popup Target' })
+      if([string]$candidate.target.id -ne $oldTargetId -and $candidateButtons.Count -eq 1 -and $null -ne $candidateButtons[0].center){$popupStable=$candidate;$popupButtons=$candidateButtons;break}
+    }catch{}
+    Start-Sleep -Milliseconds 100
+  }while([DateTime]::UtcNow -lt $popupDeadline)
+  if($null -eq $popupStable -or $popupButtons.Count -ne 1){throw 'Same semantic session did not hand off to popup window target'}
+  if([string]$popupStable.semanticSessionId -ne $sem){throw 'Semantic session changed during popup-window handoff'}
+  $popupTargetId=[string]$popupStable.target.id
+  if($popupTargetId -eq $oldTargetId){throw 'Popup target id did not change'}
+  if([string]$popupStable.target.url -notlike '*real-remote-browser-os-input-popup.html'){throw "Popup target URL mismatch: $($popupStable.target.url)"}
+  if([string]$popupStable.target.title -ne 'Light Remote Popup Acceptance'){throw "Popup target title mismatch: $($popupStable.target.title)"}
+
+  $popupEvents=Invoke-Rr 'accept-popup-events' 'semantic-events' @{semanticSessionId=$sem;afterSeq=$popupBeforeSeq;limit=100}
+  $popupHandoffs=@($popupEvents.events|Where-Object { $_.kind -eq 'target' -and $_.property -eq 'targetId' -and $_.change -eq ("handoff:"+$oldTargetId+"->"+$popupTargetId) -and $_.resyncRecommended })
+  if($popupHandoffs.Count -lt 1){throw "Popup-window handoff resync event missing count=$($popupHandoffs.Count)"}
+  Write-Host "windows-real-remote-popup-window-handoff=PASS sourceHwnd=$hwnd popupHwnd=$popupHwnd oldTarget=$oldTargetId popupTarget=$popupTargetId events=$($popupHandoffs.Count) semanticSessionId=$sem"
+
+  $popupButton=$popupButtons[0]
+  $popupX=[int][Math]::Round([double]$popupButton.center.x);$popupY=[int][Math]::Round([double]$popupButton.center.y);$popupActionBefore=[long]$popupStable.stateSeq
+  [LightRemoteAcceptanceWindow]::Focus($popupHwnd);Start-Sleep -Milliseconds 100
+  $popupActionAck=Invoke-Rr 'accept-os-popup-window-action' 'input' @{events=@(@{type='move';x=$popupX;y=$popupY},@{type='click';button='left';count=1});semanticSessionId=$sem;afterSeq=$popupActionBefore;settleMs=150}
+  if([int]$popupActionAck.appliedEvents -ne 2 -or [int]$popupActionAck.sentInputs -lt 2){throw "Popup continued SendInput proof missing applied=$($popupActionAck.appliedEvents) sent=$($popupActionAck.sentInputs)"}
+  $popupDone=Invoke-Rr 'accept-popup-window-action-after' 'semantic-snapshot' @{semanticSessionId=$sem}
+  $popupAccepted=@($popupDone.nodes|Where-Object { $_.role -eq 'button' -and $_.name -eq 'Light Remote Popup Accepted' })
+  if($popupAccepted.Count -ne 1){throw 'OS input did not continue after popup-window handoff'}
+  if([string]$popupDone.semanticSessionId -ne $sem -or [string]$popupDone.target.id -ne $popupTargetId){throw 'Popup target/session changed during continued input'}
+  Write-Host "windows-real-remote-popup-window-continued-input=PASS sentInputs=$($popupActionAck.sentInputs) inputSeq=$($popupActionAck.inputSeq) seq=$($popupDone.stateSeq)"
+  Write-Host 'windows-real-remote-popup-window-closed-loop=PASS'
+
   $d=Invoke-Rr 'accept-detach' 'semantic-detach' @{semanticSessionId=$sem};if(-not $d.detached -or $d.provider -ne 'browser-cdp'){throw 'Detach failed'};$detached=$true
   Write-Host 'windows-real-remote-browser-os-input-acceptance=PASS'
 }finally{

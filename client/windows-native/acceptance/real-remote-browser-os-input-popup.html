@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Light Remote Popup Acceptance</title>
+<style>
+html,body{height:100%;margin:0}body{display:grid;place-items:center;background:#111820;color:#f2f2f2;font:24px system-ui,sans-serif}
+main{text-align:center}button{font:inherit;padding:28px 44px;min-width:420px;border-radius:16px;border:2px solid #3a96dd;background:#18222d;color:#fff}
+button[aria-pressed="true"]{border-color:#16c60c;background:#12331a}
+output{display:block;margin-top:24px;font-size:18px}
+</style>
+</head>
+<body>
+<main>
+<h1>Light Remote Popup E2E</h1>
+<button id="popup-target" type="button" aria-label="Light Remote Popup Target" aria-pressed="false">Popup Action</button>
+<output id="state" role="status" aria-label="Light Remote Popup Ready">popup ready</output>
+</main>
+<script>
+const target=document.getElementById('popup-target');
+const state=document.getElementById('state');
+target.addEventListener('click',()=>{
+  target.setAttribute('aria-pressed','true');
+  target.setAttribute('aria-label','Light Remote Popup Accepted');
+  target.textContent='Light Remote Popup Accepted';
+  state.setAttribute('aria-label','Light Remote Popup Continued');
+  state.textContent='popup continued';
+  document.title='Light Remote Popup Accepted';
+});
+</script>
+</body>
+</html>

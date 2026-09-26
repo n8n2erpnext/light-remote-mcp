@@ -17,12 +17,14 @@ output{display:block;margin-top:24px;font-size:18px}
 <button id="next" type="button" aria-label="Light Remote Next Page" aria-pressed="false">Next Page Action</button>
 <a id="newtab" href="real-remote-browser-os-input-new-tab.html" target="_blank" rel="noopener" aria-label="Light Remote Open New Tab">Open new tab</a>
 <button id="return-target" type="button" aria-label="Light Remote Return Target" aria-pressed="false">Return Target Action</button>
+<button id="popup-open" type="button" aria-label="Light Remote Open Popup" aria-pressed="false">Open Popup Window</button>
 <output id="state" role="status" aria-label="Light Remote Navigation Ready">navigation ready</output>
 </main>
 <script>
 const next=document.getElementById('next');
 const state=document.getElementById('state');
 const returnTarget=document.getElementById('return-target');
+const popupOpen=document.getElementById('popup-open');
 next.addEventListener('click',()=>{
   next.setAttribute('aria-pressed','true');
   next.setAttribute('aria-label','Light Remote Next Accepted');
@@ -38,6 +40,12 @@ returnTarget.addEventListener('click',()=>{
   state.setAttribute('aria-label','Light Remote Return Continued');
   state.textContent='return continued';
   document.title='Light Remote Return Accepted';
+});
+popupOpen.addEventListener('click',()=>{
+  const popup=window.open('real-remote-browser-os-input-popup.html','lightRemotePopup','popup,width=680,height=520,left=160,top=120');
+  popupOpen.setAttribute('aria-pressed',popup?'true':'false');
+  state.setAttribute('aria-label',popup?'Light Remote Popup Requested':'Light Remote Popup Blocked');
+  state.textContent=popup?'popup requested':'popup blocked';
 });
 </script>
 </body>
