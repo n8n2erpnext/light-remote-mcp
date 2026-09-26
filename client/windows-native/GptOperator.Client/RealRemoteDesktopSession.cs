@@ -16,7 +16,9 @@ internal static partial class RealRemoteHelper
         public required int Quality { get; init; }
         public required int MinIntervalMs { get; init; }
         public required bool OmitUnchanged { get; init; }
+        public required int IdleTimeoutMs { get; init; }
         public required long AttachedAt { get; init; }
+        public long LastActivityAt;
         public object Gate { get; } = new();
         public long FrameSeq;
         public long ContentSeq;
@@ -46,10 +48,13 @@ internal static partial class RealRemoteHelper
             Quality = IntArg(args, "quality", 50, 25, 70),
             MinIntervalMs = IntArg(args, "minIntervalMs", 250, 0, 5000),
             OmitUnchanged = DesktopBoolArg(args, "omitUnchanged", true),
-            AttachedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+            IdleTimeoutMs = IntArg(args, "idleTimeoutMs", 120000, 250, 900000),
+            AttachedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+            LastActivityAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
         };
         lock (DesktopSessionLock)
         {
+            PruneDesktopSessionsLocked(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
             if (DesktopSessions.Count >= DesktopSessionLimit) throw new InvalidOperationException("desktop_session_limit");
             DesktopSessions[session.Id] = session;
         }
@@ -83,6 +88,9 @@ internal static partial class RealRemoteHelper
             contentSeq = Interlocked.Read(ref session.ContentSeq),
             lastCapturedAt = Interlocked.Read(ref session.LastCapturedAt),
             lastFrameSha256 = session.LastFrameSha256,
+            idleTimeoutMs = session.IdleTimeoutMs,
+            lastActivityAt = Interlocked.Read(ref session.LastActivityAt),
+            expiresAt = Interlocked.Read(ref session.LastActivityAt) + session.IdleTimeoutMs,
             attachedAt = session.AttachedAt,
             detached = true
         };
@@ -114,6 +122,9 @@ internal static partial class RealRemoteHelper
             contentSeq = Interlocked.Read(ref session.ContentSeq),
             lastCapturedAt = Interlocked.Read(ref session.LastCapturedAt),
             lastFrameSha256 = session.LastFrameSha256,
+            idleTimeoutMs = session.IdleTimeoutMs,
+            lastActivityAt = Interlocked.Read(ref session.LastActivityAt),
+            expiresAt = Interlocked.Read(ref session.LastActivityAt) + session.IdleTimeoutMs,
             frame = new { maxWidth = session.MaxWidth, maxHeight = session.MaxHeight, quality = session.Quality, minIntervalMs = session.MinIntervalMs, omitUnchanged = session.OmitUnchanged },
             screen = new
             {
@@ -129,19 +140,27 @@ internal static partial class RealRemoteHelper
     private static void ValidateDesktopSessionTopology(DesktopSession session)
     {
         var screens = Screen.AllScreens;
-        if (!string.Equals(session.DisplayTopologyId, DisplayTopologyId(screens), StringComparison.Ordinal))
-            throw new InvalidOperationException("desktop_session_stale_topology");
-        if (session.Screen < 0 || session.Screen >= screens.Length)
-            throw new InvalidOperationException("desktop_session_stale_topology");
+        var stale = !string.Equals(session.DisplayTopologyId, DisplayTopologyId(screens), StringComparison.Ordinal)
+            || session.Screen < 0 || session.Screen >= screens.Length;
+        if (!stale) return;
+        lock (DesktopSessionLock) DesktopSessions.Remove(session.Id);
+        throw new InvalidOperationException("desktop_session_stale_topology");
     }
 
     private static DesktopSession DesktopSessionRequired(JsonElement args)
     {
         var id = DesktopSessionId(args);
+        var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         lock (DesktopSessionLock)
         {
             if (!DesktopSessions.TryGetValue(id, out var session))
                 throw new InvalidOperationException("desktop_session_not_found");
+            if (DesktopSessionExpired(session, now))
+            {
+                DesktopSessions.Remove(id);
+                throw new InvalidOperationException("desktop_session_expired");
+            }
+            Interlocked.Exchange(ref session.LastActivityAt, now);
             return session;
         }
     }
@@ -154,6 +173,20 @@ internal static partial class RealRemoteHelper
         if (!id.StartsWith("desk_", StringComparison.Ordinal) || id.Length < 20 || id.Length > 80)
             throw new InvalidOperationException("desktop_session_id_invalid");
         return id;
+    }
+
+    private static bool DesktopSessionExpired(DesktopSession session, long now)
+    {
+        var lastActivityAt = Interlocked.Read(ref session.LastActivityAt);
+        return lastActivityAt > 0 && now - lastActivityAt >= session.IdleTimeoutMs;
+    }
+
+    private static void PruneDesktopSessionsLocked(long now)
+    {
+        var expired = new List<string>();
+        foreach (var pair in DesktopSessions)
+            if (DesktopSessionExpired(pair.Value, now)) expired.Add(pair.Key);
+        foreach (var id in expired) DesktopSessions.Remove(id);
     }
 
     private static int DesktopFrameRetryAfter(DesktopSession session)
@@ -174,6 +207,7 @@ internal static partial class RealRemoteHelper
             if (!unchanged) session.ContentSeq++;
             session.LastFrameSha256 = sha256;
             session.LastCapturedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            Interlocked.Exchange(ref session.LastActivityAt, session.LastCapturedAt);
             return (session.FrameSeq, session.ContentSeq, unchanged, session.LastCapturedAt);
         }
     }
@@ -190,6 +224,9 @@ internal static partial class RealRemoteHelper
             contentSeq = Interlocked.Read(ref session.ContentSeq),
             lastCapturedAt = Interlocked.Read(ref session.LastCapturedAt),
             lastFrameSha256 = session.LastFrameSha256,
+            idleTimeoutMs = session.IdleTimeoutMs,
+            lastActivityAt = Interlocked.Read(ref session.LastActivityAt),
+            expiresAt = Interlocked.Read(ref session.LastActivityAt) + session.IdleTimeoutMs,
             throttled = true,
             retryAfterMs,
             unchanged = false,

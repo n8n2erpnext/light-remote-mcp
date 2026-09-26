@@ -160,3 +160,10 @@ V0.6-B makes that JPEG pull loop practical over the existing Plus/Vercel control
 - every completed capture returns frameSha256; when omitUnchanged=true and the hash matches the previous frame, the response keeps frameSeq/contentSeq/hash metadata but returns data=null and dataBytes=0 instead of retransmitting the same JPEG;
 - changed frames still carry the bounded JPEG, inputMapping and topology pin, so the same response can drive screen-local input;
 - the caller owns polling cadence and backpressure. This is still a bounded JPEG pull transport, not the final continuous video codec/stream.
+
+V0.6-C gives visual desktop sessions a bounded idle lease so abandoned controllers cannot consume helper slots indefinitely:
+- desktop-attach accepts idleTimeoutMs=250..900000, default 120000 ms, and returns lastActivityAt/expiresAt lease metadata;
+- successful desktop-frame polls, throttled polls and desktop-resume renew the lease; the response reports the renewed lease deadline;
+- access after the idle deadline removes that session and returns desktop_session_expired;
+- a display topology/DPI mismatch removes that session before returning desktop_session_stale_topology, so a stale screen binding cannot be resumed later;
+- desktop-attach prunes all expired sessions before enforcing the eight-session helper limit, allowing capacity to recover even when a controller disappears without desktop-detach.

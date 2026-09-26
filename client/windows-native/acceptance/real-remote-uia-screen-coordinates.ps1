@@ -134,6 +134,29 @@ try{
   $gone=Invoke-RrRaw 'screen-desktop-resume-after-detach' 'resume' @{desktopSessionId=$desk}
   if($gone.ok -or [string]$gone.error -ne 'desktop_session_not_found'){throw "Detached visual session remained resumable: $($gone.error)"}
   Write-Host 'windows-real-remote-desktop-session-detach-negative=PASS'
+
+  $leaseIds=@()
+  for($leaseIndex=0;$leaseIndex -lt 8;$leaseIndex++){
+    $lease=Invoke-Rr ("screen-lease-"+$leaseIndex) 'attach' @{screen=$screenIndex;maxWidth=320;maxHeight=180;quality=25;minIntervalMs=0;idleTimeoutMs=2000;omitUnchanged=$true}
+    if([int]$lease.idleTimeoutMs -ne 2000){throw 'Visual desktop idle timeout config mismatch'}
+    $leaseIds+=([string]$lease.desktopSessionId)
+  }
+  $limitHit=Invoke-RrRaw 'screen-lease-limit' 'attach' @{screen=$screenIndex;maxWidth=320;maxHeight=180;quality=25;minIntervalMs=0;idleTimeoutMs=2000}
+  if($limitHit.ok -or [string]$limitHit.error -ne 'desktop_session_limit'){throw "Visual desktop session limit was not enforced: $($limitHit.error)"}
+  Start-Sleep -Milliseconds 2300
+  $expiredLease=Invoke-RrRaw 'screen-lease-expired' 'resume' @{desktopSessionId=$leaseIds[0]}
+  if($expiredLease.ok -or [string]$expiredLease.error -ne 'desktop_session_expired'){throw "Expired visual desktop session was not rejected: $($expiredLease.error)"}
+  $replacement=Invoke-Rr 'screen-lease-prune-replacement' 'attach' @{screen=$screenIndex;maxWidth=320;maxHeight=180;quality=25;minIntervalMs=0;idleTimeoutMs=2000}
+  $replacementId=[string]$replacement.desktopSessionId
+  if([string]::IsNullOrWhiteSpace($replacementId)){throw 'Visual desktop prune replacement attach failed'}
+  $replacement2=Invoke-Rr 'screen-lease-prune-replacement-2' 'attach' @{screen=$screenIndex;maxWidth=320;maxHeight=180;quality=25;minIntervalMs=0;idleTimeoutMs=2000}
+  $replacement2Id=[string]$replacement2.desktopSessionId
+  if([string]::IsNullOrWhiteSpace($replacement2Id)){throw 'Visual desktop second prune replacement attach failed'}
+  $replacementDetach=Invoke-Rr 'screen-lease-prune-detach' 'detach' @{desktopSessionId=$replacementId}
+  $replacement2Detach=Invoke-Rr 'screen-lease-prune-detach-2' 'detach' @{desktopSessionId=$replacement2Id}
+  if(-not $replacementDetach.detached -or -not $replacement2Detach.detached){throw 'Visual desktop prune replacement detach failed'}
+  Write-Host "windows-real-remote-desktop-session-lease=PASS limit=8 expired=$($leaseIds[0]) replacements=$replacementId,$replacement2Id"
+
   $d=Invoke-Rr 'screen-detach' 'semantic-detach' @{semanticSessionId=$sem};if(-not $d.detached -or $d.provider -ne 'windows-uia'){throw 'Screen coordinate detach failed'};$detached=$true
 }finally{
   if($rr){
