@@ -31,7 +31,7 @@ internal sealed class UpdateClient
 
     public async Task<string> DownloadAndVerifyAsync(UpdateInfo update,CancellationToken cancellationToken=default)
     {
-        RecoveryPaths.EnsureDirectories();var file=Path.Combine(RecoveryPaths.CacheDir,$"Light-Remote-MCP-Setup-{update.Version}-x64.exe");
+        RecoveryPaths.EnsureDirectories();var file=Path.Combine(RecoveryPaths.CacheDir,$"Light-Remote-Setup-{update.Version}-x64.exe");
         using var response=await _http.GetAsync(update.Artifact.Url,HttpCompletionOption.ResponseHeadersRead,cancellationToken);response.EnsureSuccessStatusCode();
         await using(var input=await response.Content.ReadAsStreamAsync(cancellationToken))await using(var output=new FileStream(file,FileMode.Create,FileAccess.Write,FileShare.None))await input.CopyToAsync(output,cancellationToken);
         var info=new FileInfo(file);if(update.Artifact.Size>0&&info.Length!=update.Artifact.Size){File.Delete(file);throw new InvalidOperationException("Update size mismatch.");}

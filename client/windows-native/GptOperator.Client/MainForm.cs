@@ -5,7 +5,7 @@ namespace GptOperator.Client;
 
 internal sealed class MainForm : Form
 {
-    private const string ProductName = "Light Remote MCP";
+    private const string ProductName = "Light Remote";
     private readonly AgentSupervisor _agent = new();
     private readonly UpdateClient _updates = new();
     private readonly System.Windows.Forms.Timer _refreshTimer = new() { Interval = 3000 };
@@ -89,7 +89,7 @@ internal sealed class MainForm : Form
             Image = BrandAssets.Mark, SizeMode = PictureBoxSizeMode.Zoom, TabStop = false
         };
         var product = new Label { Text = ProductName, AutoSize = true, ForeColor = UiTheme.Text, Font = UiTheme.Font(11.5f, FontStyle.Bold), Location = new Point(72, 12) };
-        var subtitle = new Label { Text = "Secure remote MCP agent", AutoSize = true, ForeColor = UiTheme.Muted, Font = UiTheme.Font(8.5f), Location = new Point(72, 38) };
+        var subtitle = new Label { Text = "Secure remote agent", AutoSize = true, ForeColor = UiTheme.Muted, Font = UiTheme.Font(8.5f), Location = new Point(72, 38) };
         _more.Anchor = AnchorStyles.Top | AnchorStyles.Right;
         _more.Location = new Point(header.Width - 58, 11);
         _updateDot.Anchor = AnchorStyles.Top | AnchorStyles.Right;
@@ -208,7 +208,7 @@ internal sealed class MainForm : Form
         _menuConnection.Click += async (_, _) => await ShowConnectionSettingsAsync();
         var wall = new ToolStripMenuItem("Open Local Wall", null, (_, _) => OpenLocalWall());
         var logs = new ToolStripMenuItem("Open log folder", null, (_, _) => OpenLogs());
-        var about = new ToolStripMenuItem("About Light Remote MCP", null, (_, _) => ShowAbout());
+        var about = new ToolStripMenuItem("About Light Remote", null, (_, _) => ShowAbout());
         var exit = new ToolStripMenuItem("Exit", null, (_, _) => ExitApplication());
         menu.Items.AddRange(new ToolStripItem[] { _menuUpdate, _menuConnection, new ToolStripSeparator(), _menuDetails, wall, logs, new ToolStripSeparator(), about, exit });
         return menu;
@@ -218,7 +218,7 @@ internal sealed class MainForm : Form
     {
         var menu = new ContextMenuStrip();
         UiTheme.StyleMenu(menu);
-        var open = new ToolStripMenuItem("Open Light Remote MCP", null, (_, _) => ShowWindow());
+        var open = new ToolStripMenuItem("Open Light Remote", null, (_, _) => ShowWindow());
         _trayConnect.Click += async (_, _) => await SetConnectionAsync(!(_lastStatus?.CloudDesiredConnected == true && string.Equals(_lastStatus.CloudState, "connected", StringComparison.OrdinalIgnoreCase)));
         _trayUpdate.Click += async (_, _) => await CheckUpdateAsync(interactive: true);
         var wall = new ToolStripMenuItem("Open Local Wall", null, (_, _) => OpenLocalWall());
@@ -387,15 +387,15 @@ internal sealed class MainForm : Form
             UpdateUpdateUi();
             if (update is null)
             {
-                if (interactive) MessageBox.Show(this, "Light Remote MCP is up to date.", ProductName, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                if (interactive) MessageBox.Show(this, "Light Remote is up to date.", ProductName, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
             if (!interactive)
             {
-                _tray.ShowBalloonTip(6000, "Light Remote MCP update", $"Version {update.Version} is available.", ToolTipIcon.Info);
+                _tray.ShowBalloonTip(6000, "Light Remote update", $"Version {update.Version} is available.", ToolTipIcon.Info);
                 return;
             }
-            var answer = MessageBox.Show(this, $"Install Light Remote MCP {update.Version} now?\r\n\r\n{update.Notes}", "Update available", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+            var answer = MessageBox.Show(this, $"Install Light Remote {update.Version} now?\r\n\r\n{update.Notes}", "Update available", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
             if (answer != DialogResult.Yes) return;
             _menuUpdate.Enabled = false;
             _menuUpdate.Text = "Downloading update…";
@@ -408,7 +408,7 @@ internal sealed class MainForm : Form
         {
             _availableUpdate = null;
             UpdateUpdateUi();
-            if (interactive) MessageBox.Show(this, ex.Message, "Light Remote MCP update", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            if (interactive) MessageBox.Show(this, ex.Message, "Light Remote update", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
         catch (Exception ex)
         {
@@ -440,6 +440,7 @@ internal sealed class MainForm : Form
         {
             using var key = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run");
             key?.DeleteValue("GPT Operator", throwOnMissingValue: false);
+            key?.DeleteValue("Light Remote MCP", throwOnMissingValue: false);
             key?.SetValue(ProductName, $"\"{Application.ExecutablePath}\" --background", RegistryValueKind.String);
         }
         catch { }
@@ -466,8 +467,8 @@ internal sealed class MainForm : Form
     private void ShowAbout()
     {
         MessageBox.Show(this,
-            $"Light Remote MCP\r\n\r\nClient {ClientVersion.Display}\r\nAgent {_lastStatus?.Version ?? "unknown"}\r\n\r\nSecure outbound remote MCP for your own machines.",
-            "About Light Remote MCP", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            $"Light Remote\r\n\r\nClient {ClientVersion.Display}\r\nAgent {_lastStatus?.Version ?? "unknown"}\r\n\r\nSecure outbound remote control for your own machines.",
+            "About Light Remote", MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
     private void UpdateTrayIcon(bool connected, bool enrolled)

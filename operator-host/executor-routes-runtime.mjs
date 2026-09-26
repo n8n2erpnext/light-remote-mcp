@@ -1,5 +1,5 @@
 export async function handleRuntimeRoutes(req,res,url,deps){
-  const {ACCOUNT_ID,DEVICE_ID,DeviceAccessGrantError,DeviceConnectionError,EnrollmentError,FleetError,MAX_ACTIVE_SESSIONS,MAX_MEMORY_OUTPUT,NODE_ID,SESSION_GRACE_PRESETS,SESSION_IDLE_MS,SESSION_MAX_IDLE_MS,SESSION_MIN_IDLE_MS,VERSION,accessGrants,agentClients,allDeviceViews,assertDiskJobOwner,capabilities,clearMainIfMatches,connectionSpec,connectionViewForDevice,connections,decryptEnvelope,deviceView,devices,enrollments,fleet,flushDiskRecords,fs,fullOutputFromDisk,ingressTelemetry,jobView,jobs,pairingCodes,pruneRing,pushEvent,queueSignedUpdate,readJson,recentEvents,redact,revokeRuntimeForDevice,ring,ringBytes,sendJson,sessionStatsFromDisk,sessions,sseClients,startFsOperation,startJob,startProcessOperation,startScpOperation,startSearchOperation,startTerminalOperation,targetRoute,waitForJob}=deps;
+  const {ACCOUNT_ID,DEVICE_ID,DeviceAccessGrantError,DeviceConnectionError,EnrollmentError,FleetError,MAX_ACTIVE_SESSIONS,MAX_MEMORY_OUTPUT,NODE_ID,SESSION_GRACE_PRESETS,SESSION_IDLE_MS,SESSION_MAX_IDLE_MS,SESSION_MIN_IDLE_MS,VERSION,accessGrants,agentClients,allDeviceViews,assertDiskJobOwner,capabilities,clearMainIfMatches,connectionSpec,connectionViewForDevice,connections,decryptEnvelope,deviceView,devices,enrollments,fleet,flushDiskRecords,fs,fullOutputFromDisk,ingressTelemetry,jobView,jobs,pairingCodes,pruneRing,pushEvent,queueSignedUpdate,readJson,recentEvents,redact,revokeRuntimeForDevice,ring,ringBytes,sendJson,sessionStatsFromDisk,sessions,sseClients,startDesktopOperation,startFsOperation,startJob,startProcessOperation,startScpOperation,startSearchOperation,startTerminalOperation,targetRoute,waitForJob}=deps;
     if (req.method === 'GET' && url.pathname === '/v1/devices') {
       return sendJson(res, 200, { ok:true, currentDeviceId:DEVICE_ID, devices:allDeviceViews() });
     }
@@ -109,10 +109,10 @@ export async function handleRuntimeRoutes(req,res,url,deps){
       const connection=connections.assertConnected(grant.deviceId);
       accessGrants.assert(grant.grantId,{deviceId:grant.deviceId,connectionId:connection.connectionId});
       const {payload,requestId,aad,kid}=decryptEnvelope(body.envelope||{});
-      if(!['exec_batch','fs','process','terminal','search','scp'].includes(payload.action))throw new Error('unsupported_action');
+      if(!['exec_batch','fs','process','terminal','search','scp','desktop'].includes(payload.action))throw new Error('unsupported_action');
       const session=sessions.ensure(String(payload.sessionId||''),{agentId:String(payload.agentId||'')});
       if(session.deviceId!==grant.deviceId)throw new DeviceAccessGrantError('device_access_grant_session_mismatch',403);
-      const job=payload.action==='fs'?await startFsOperation(payload,requestId):payload.action==='process'?await startProcessOperation(payload,requestId):payload.action==='terminal'?await startTerminalOperation(payload,requestId):payload.action==='search'?await startSearchOperation(payload,requestId):payload.action==='scp'?await startScpOperation(payload,requestId):startJob(payload,requestId);
+      const job=payload.action==='desktop'?await startDesktopOperation(payload,requestId):payload.action==='fs'?await startFsOperation(payload,requestId):payload.action==='process'?await startProcessOperation(payload,requestId):payload.action==='terminal'?await startTerminalOperation(payload,requestId):payload.action==='search'?await startSearchOperation(payload,requestId):payload.action==='scp'?await startScpOperation(payload,requestId):startJob(payload,requestId);
       if(!job.telemetry?.operatorAcceptedAt){job.telemetry={...(job.telemetry||{}),...ingressTelemetry(body.telemetry,operatorAcceptedAt),dispatchAt:job.startedAt};if(!job.remote)job.telemetry.deviceReceivedAt=job.startedAt;}
       const waitMs=Math.max(0,Math.min(Number(payload.waitMs)||0,8000));
       await waitForJob(job,waitMs);

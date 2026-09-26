@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Light Remote Navigation Acceptance</title>
+<style>
+html,body{height:100%;margin:0}body{display:grid;place-items:center;background:#101418;color:#f2f2f2;font:24px system-ui,sans-serif}
+main{text-align:center}button{font:inherit;padding:28px 44px;min-width:420px;border-radius:16px;border:2px solid #3a96dd;background:#18222d;color:#fff}
+button[aria-pressed="true"]{border-color:#16c60c;background:#12331a}
+#popup-open{position:fixed;right:24px;bottom:24px;min-width:auto;padding:12px 18px}
+a{display:block;width:max-content;margin:20px auto 0;padding:12px 18px;border:2px solid #3a96dd;border-radius:10px;color:#fff;text-decoration:none;background:#162330}a:focus{outline:3px solid #fff;outline-offset:3px}
+output{display:block;margin-top:24px;font-size:18px}
+</style>
+</head>
+<body>
+<main>
+<h1>Light Remote Navigation E2E</h1>
+<button id="next" type="button" aria-label="Light Remote Next Page" aria-pressed="false">Next Page Action</button>
+<a id="newtab" href="real-remote-browser-os-input-new-tab.html" target="_blank" rel="noopener" aria-label="Light Remote Open New Tab">Open new tab</a>
+<button id="return-target" type="button" aria-label="Light Remote Return Target" aria-pressed="false">Return Target Action</button>
+<button id="popup-open" type="button" aria-label="Light Remote Open Popup" aria-pressed="false">Open Popup Window</button>
+<output id="state" role="status" aria-label="Light Remote Navigation Ready">navigation ready</output>
+</main>
+<script>
+const next=document.getElementById('next');
+const state=document.getElementById('state');
+const returnTarget=document.getElementById('return-target');
+const popupOpen=document.getElementById('popup-open');
+next.addEventListener('click',()=>{
+  next.setAttribute('aria-pressed','true');
+  next.setAttribute('aria-label','Light Remote Next Accepted');
+  next.textContent='Light Remote Next Accepted';
+  state.setAttribute('aria-label','Light Remote Navigation Continued');
+  state.textContent='continued';
+  document.title='Light Remote Navigation Continued';
+});
+returnTarget.addEventListener('click',()=>{
+  returnTarget.setAttribute('aria-pressed','true');
+  returnTarget.setAttribute('aria-label','Light Remote Return Accepted');
+  returnTarget.textContent='Light Remote Return Accepted';
+  state.setAttribute('aria-label','Light Remote Return Continued');
+  state.textContent='return continued';
+  document.title='Light Remote Return Accepted';
+});
+popupOpen.addEventListener('click',()=>{
+  const popup=window.open('real-remote-browser-os-input-popup.html','lightRemotePopup','popup,width=680,height=520,left=160,top=120');
+  popupOpen.setAttribute('aria-pressed',popup?'true':'false');
+  state.setAttribute('aria-label',popup?'Light Remote Popup Requested':'Light Remote Popup Blocked');
+  state.textContent=popup?'popup requested':'popup blocked';
+});
+</script>
+</body>
+</html>

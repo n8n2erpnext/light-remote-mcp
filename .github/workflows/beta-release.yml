@@ -43,10 +43,10 @@ jobs:
           find artifacts -type f -name 'Light-Remote-*.pkg' -exec cp {} release-assets/ \;
           find artifacts -type f -name 'Light-Remote-MCP-Server-Linux-*.tar.gz' -exec cp {} release-assets/ \;
           find artifacts -type f -name 'Light-Remote-MCP-Vercel-Bridge-*.tar.gz' -exec cp {} release-assets/ \;
-          win="$(find artifacts -type f -name 'Light-Remote-MCP-Setup-x64.exe' -print -quit)"
-          test -n "$win"; cp "$win" "release-assets/Light-Remote-MCP-Setup-x64-${VERSION}.exe"
-          compact="$(find artifacts -type f -name 'Light-Remote-MCP-Compact-Setup-x64.exe' -print -quit)"
-          test -n "$compact"; cp "$compact" "release-assets/Light-Remote-MCP-Compact-Setup-x64-${VERSION}.exe"
+          win="$(find artifacts -type f -name 'Light-Remote-Setup-x64.exe' -print -quit)"
+          test -n "$win"; cp "$win" "release-assets/Light-Remote-Setup-x64-${VERSION}.exe"
+          compact="$(find artifacts -type f -name 'Light-Remote-Compact-Setup-x64.exe' -print -quit)"
+          test -n "$compact"; cp "$compact" "release-assets/Light-Remote-Compact-Setup-x64-${VERSION}.exe"
           installer="$(find artifacts -type f -name 'install.sh' -print -quit)"
           test -n "$installer"; cp "$installer" release-assets/install-linux-client.sh
           chmod 0755 release-assets/install-linux-client.sh

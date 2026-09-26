@@ -26,7 +26,7 @@ $Args=@(
   "/DStageDir=$CompactStage",
   "/DOutputDir=$OutputDir",
   "/DAppVersion=$AppVersion",
-  '/DOutputBaseName=Light-Remote-MCP-Compact-Setup-x64',
+  '/DOutputBaseName=Light-Remote-Compact-Setup-x64',
   '/DCompactNodeBootstrap=1',
   "/DNodeZipName=$NodeZip",
   "/DNodeFolder=$NodeFolder",
@@ -36,7 +36,7 @@ $Args=@(
 )
 & $Iscc @Args
 if($LASTEXITCODE -ne 0){throw 'Compact Inno Setup build failed'}
-$Installer=Join-Path $OutputDir 'Light-Remote-MCP-Compact-Setup-x64.exe'
+$Installer=Join-Path $OutputDir 'Light-Remote-Compact-Setup-x64.exe'
 if(-not(Test-Path $Installer)){throw "compact installer missing: $Installer"}
 $InstallerBytes=(Get-Item $Installer).Length
 Write-Host "windows-compact-stage-bytes=$CompactStageBytes full-stage-bytes=$FullStageBytes removed-node-bytes=$NodeBytes"

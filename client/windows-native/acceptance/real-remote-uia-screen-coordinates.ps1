@@ -1,0 +1,168 @@
+param([Parameter(Mandatory=$true)][string]$ClientExe,[int]$TimeoutSeconds=20)
+$ErrorActionPreference='Stop'
+if(-not(Test-Path -LiteralPath $ClientExe)){throw "Client missing: $ClientExe"}
+$ClientExe=(Resolve-Path -LiteralPath $ClientExe).Path
+$fixture=(Resolve-Path -LiteralPath (Join-Path $PSScriptRoot 'real-remote-uia-fixture.ps1')).Path
+if(-not('LightRemoteScreenWindow' -as [type])){
+Add-Type -TypeDefinition @'
+using System;using System.Runtime.InteropServices;using System.Text;
+public static class LightRemoteScreenWindow{
+ delegate bool P(IntPtr h,IntPtr p);
+ [DllImport("user32.dll")]static extern bool EnumWindows(P p,IntPtr x);
+ [DllImport("user32.dll")]static extern bool IsWindowVisible(IntPtr h);
+ [DllImport("user32.dll",CharSet=CharSet.Unicode)]static extern int GetWindowText(IntPtr h,StringBuilder s,int n);
+ [DllImport("user32.dll")]static extern bool ShowWindow(IntPtr h,int c);
+ [DllImport("user32.dll")]static extern bool SetForegroundWindow(IntPtr h);
+ public static IntPtr Find(string n){IntPtr f=IntPtr.Zero;EnumWindows((h,_)=>{if(!IsWindowVisible(h))return true;var s=new StringBuilder(1024);GetWindowText(h,s,s.Capacity);if(string.Equals(s.ToString(),n,StringComparison.Ordinal)){f=h;return false;}return true;},IntPtr.Zero);return f;}
+ public static void Focus(IntPtr h){if(h!=IntPtr.Zero){ShowWindow(h,5);SetForegroundWindow(h);}}
+}
+'@
+}
+function Wait-Window([string]$Title){$d=[DateTime]::UtcNow.AddSeconds($TimeoutSeconds);$h=[IntPtr]::Zero;while($h -eq [IntPtr]::Zero -and [DateTime]::UtcNow -lt $d){$h=[LightRemoteScreenWindow]::Find($Title);if($h -eq [IntPtr]::Zero){Start-Sleep -Milliseconds 100}};if($h -eq [IntPtr]::Zero){throw "Window missing: $Title"};return $h}
+$rr=$null;$app=$null;$sem=$null;$detached=$false;$desk=$null;$deskDetached=$false
+function Invoke-RrRaw([string]$Id,[string]$Op,[hashtable]$RequestArgs=@{}){
+  $script:rr.StandardInput.WriteLine((@{id=$Id;op=$Op;args=$RequestArgs}|ConvertTo-Json -Compress -Depth 12));$script:rr.StandardInput.Flush()
+  $task=$script:rr.StandardOutput.ReadLineAsync();if(-not $task.Wait([TimeSpan]::FromSeconds($TimeoutSeconds))){throw "Helper timeout: $Op"}
+  $line=$task.Result;if([string]::IsNullOrWhiteSpace($line)){throw "Empty helper response: $Op"};return ($line|ConvertFrom-Json)
+}
+function Invoke-Rr([string]$Id,[string]$Op,[hashtable]$RequestArgs=@{}){$r=Invoke-RrRaw $Id $Op $RequestArgs;if(-not $r.ok){throw "Helper error $Op : $($r.error)"};return $r.result}
+function Wait-Node([string]$Name,[string]$Prefix){
+  $d=[DateTime]::UtcNow.AddSeconds(5);$i=0
+  do{$i++;$snap=Invoke-Rr ($Prefix+'-'+$i) 'semantic-snapshot' @{semanticSessionId=$sem};$n=@($snap.nodes|Where-Object{$_.name -eq $Name});if($n.Count -eq 1 -and $null -ne $n[0].center){return [pscustomobject]@{snapshot=$snap;node=$n[0]}};Start-Sleep -Milliseconds 100}while([DateTime]::UtcNow -lt $d)
+  throw "UIA node not found: $Name"
+}
+try{
+  $title='Light Remote UIA Screen Coordinates';$button='Light Remote Screen Target'
+  $psi=[Diagnostics.ProcessStartInfo]::new();$psi.FileName=(Get-Command pwsh).Source;$psi.UseShellExecute=$false;$psi.CreateNoWindow=$true
+  foreach($a in @('-NoProfile','-STA','-File',$fixture,'-Title',$title,'-ButtonName',$button,'-X','160','-Y','120')){$psi.ArgumentList.Add($a)}
+  $app=[Diagnostics.Process]::new();$app.StartInfo=$psi;if(-not $app.Start()){throw 'Fixture start failed'}
+  $hwnd=Wait-Window $title;[LightRemoteScreenWindow]::Focus($hwnd);Start-Sleep -Milliseconds 250
+  $rpsi=[Diagnostics.ProcessStartInfo]::new();$rpsi.FileName=$ClientExe;$rpsi.UseShellExecute=$false;$rpsi.CreateNoWindow=$true
+  $rpsi.RedirectStandardInput=$true;$rpsi.RedirectStandardOutput=$true;$rpsi.RedirectStandardError=$true;$rpsi.ArgumentList.Add('--real-remote-helper')
+  $rr=[Diagnostics.Process]::new();$rr.StartInfo=$rpsi;if(-not $rr.Start()){throw 'Helper start failed'}
+  $status=Invoke-Rr 'screen-status' 'status'
+  $topology=[string]$status.displayTopologyId
+  if($topology -notmatch '^[a-f0-9]{64}$'){throw "Invalid display topology id: $topology"}
+  if([string]$status.dpiAwareness -ne 'PerMonitorV2'){throw "Unexpected DPI awareness: $($status.dpiAwareness)"}
+  $attach=Invoke-Rr 'screen-attach' 'semantic-attach' @{provider='windows-uia';scope='foreground';maxDepth=7;maxNodes=500}
+  $sem=[string]$attach.semanticSessionId;if([string]::IsNullOrWhiteSpace($sem)){throw 'Screen coordinate semantic attach failed'}
+  $ready=Wait-Node $button 'screen-ready'
+  $gx=[int][Math]::Round([double]$ready.node.center.x);$gy=[int][Math]::Round([double]$ready.node.center.y)
+  $screens=@($status.screens);if($screens.Count -lt 1){throw 'No screens in helper status'}
+  $screen=@($screens|Where-Object{$b=$_.bounds;$gx -ge [int]$b.x -and $gx -lt ([int]$b.x+[int]$b.width) -and $gy -ge [int]$b.y -and $gy -lt ([int]$b.y+[int]$b.height)})|Select-Object -First 1
+  if($null -eq $screen){throw "Target center not contained by any screen: $gx,$gy"}
+  $screenIndex=[int]$screen.index;$bounds=$screen.bounds
+  if($screenIndex -lt 0){throw 'Screen index missing from status'}
+  if([int]$screen.dpi.x -lt 1 -or [int]$screen.dpi.y -lt 1){throw 'Screen DPI missing from status'}
+  $visual=Invoke-Rr 'screen-desktop-attach' 'attach' @{screen=$screenIndex;maxWidth=480;maxHeight=320;quality=35;minIntervalMs=400;omitUnchanged=$true}
+  $desk=[string]$visual.desktopSessionId;$deskEpoch=[string]$visual.epoch
+  if($desk -notmatch '^desk_[a-f0-9]{32}$' -or $deskEpoch -notmatch '^dep_[a-f0-9]{32}$'){throw 'Visual desktop attach ids invalid'}
+  if([long]$visual.frameSeq -ne 0 -or [long]$visual.contentSeq -ne 0 -or [string]$visual.displayTopologyId -ne $topology -or [int]$visual.screen.index -ne $screenIndex -or [int]$visual.frame.minIntervalMs -ne 400 -or -not [bool]$visual.frame.omitUnchanged){throw 'Visual desktop attach state invalid'}
+  Write-Host "windows-real-remote-desktop-session-attach=PASS desktopSessionId=$desk epoch=$deskEpoch frameSeq=$($visual.frameSeq)"
+  $lx=$gx-[int]$bounds.x;$ly=$gy-[int]$bounds.y
+  $frame=Invoke-Rr 'screen-frame' 'frame' @{desktopSessionId=$desk}
+  if([string]$frame.displayTopologyId -ne $topology){throw 'Frame/status display topology mismatch'}
+  if([string]$frame.desktopSessionId -ne $desk -or [string]$frame.desktopEpoch -ne $deskEpoch -or [long]$frame.frameSeq -ne 1 -or [long]$frame.contentSeq -ne 1 -or [bool]$frame.throttled -or [bool]$frame.unchanged -or [string]$frame.frameSha256 -notmatch '^[a-f0-9]{64}$' -or [string]::IsNullOrWhiteSpace([string]$frame.data)){throw 'Visual desktop first frame sequence/content invalid'}
+  if([int]$frame.screen.index -ne $screenIndex){throw "Frame screen index mismatch: $($frame.screen.index)"}
+  if([int]$frame.screen.bounds.x -ne [int]$bounds.x -or [int]$frame.screen.bounds.y -ne [int]$bounds.y){throw 'Frame/status screen bounds mismatch'}
+  if([int]$frame.screen.dpi.x -ne [int]$screen.dpi.x -or [int]$frame.screen.dpi.y -ne [int]$screen.dpi.y){throw 'Frame/status screen DPI mismatch'}
+  $map=$frame.inputMapping
+  if([string]$map.coordinateSpace -ne 'screen-local' -or [int]$map.screen -ne $screenIndex -or [string]$map.displayTopologyId -ne $topology){throw 'Frame input mapping identity mismatch'}
+  if([int]$map.frameWidth -ne [int]$frame.width -or [int]$map.frameHeight -ne [int]$frame.height -or [int]$map.screenWidth -ne [int]$bounds.width -or [int]$map.screenHeight -ne [int]$bounds.height){throw 'Frame input mapping dimensions mismatch'}
+  if([string]$map.rounding -ne 'nearest' -or [double]$map.xScale -le 0 -or [double]$map.yScale -le 0){throw 'Frame input mapping scale invalid'}
+  $frameX=[int][Math]::Round($lx/[double]$map.xScale);$frameY=[int][Math]::Round($ly/[double]$map.yScale)
+  $frameX=[Math]::Max(0,[Math]::Min($frameX,[int]$frame.width-1));$frameY=[Math]::Max(0,[Math]::Min($frameY,[int]$frame.height-1))
+  $mappedX=[int][Math]::Round($frameX*[double]$map.xScale);$mappedY=[int][Math]::Round($frameY*[double]$map.yScale)
+  if([Math]::Abs($mappedX-$lx) -gt 2 -or [Math]::Abs($mappedY-$ly) -gt 2){throw "Frame input mapping quantization too large source=$lx,$ly mapped=$mappedX,$mappedY"}
+  Write-Host "windows-real-remote-screen-topology=PASS index=$screenIndex bounds=$($bounds.x),$($bounds.y),$($bounds.width),$($bounds.height) dpi=$($screen.dpi.x)x$($screen.dpi.y)"
+  Write-Host "windows-real-remote-frame-input-map=PASS frame=$frameX,$frameY local=$mappedX,$mappedY source=$lx,$ly scale=$($map.xScale),$($map.yScale)"
+  $throttle=Invoke-Rr 'screen-frame-throttle' 'frame' @{desktopSessionId=$desk}
+  if(-not [bool]$throttle.throttled -or [int]$throttle.retryAfterMs -lt 1 -or [long]$throttle.frameSeq -ne 1 -or [long]$throttle.contentSeq -ne 1 -or $null -ne $throttle.data){throw 'Visual desktop cadence throttle invalid'}
+  Write-Host "windows-real-remote-desktop-session-throttle=PASS retryAfterMs=$($throttle.retryAfterMs) frameSeq=$($throttle.frameSeq) contentSeq=$($throttle.contentSeq)"
+  Start-Sleep -Milliseconds ([int]$throttle.retryAfterMs+20)
+  $resumed=Invoke-Rr 'screen-desktop-resume' 'resume' @{desktopSessionId=$desk}
+  if([string]$resumed.desktopSessionId -ne $desk -or [string]$resumed.epoch -ne $deskEpoch -or [long]$resumed.frameSeq -ne 1 -or [long]$resumed.contentSeq -ne 1 -or [string]$resumed.state -ne 'resumed'){throw 'Visual desktop resume state invalid'}
+  Write-Host "windows-real-remote-desktop-session-resume=PASS desktopSessionId=$desk frameSeq=$($resumed.frameSeq)"
+
+  $ack=Invoke-Rr 'screen-local-click' 'input' @{displayTopologyId=$topology;events=@(
+    @{type='move';screen=$screenIndex;x=$mappedX;y=$mappedY},
+    @{type='click';screen=$screenIndex;x=$mappedX;y=$mappedY;button='left';count=1}
+  );semanticSessionId=$sem;afterSeq=[long]$ready.snapshot.stateSeq;settleMs=160}
+  if([int]$ack.appliedEvents -ne 2 -or [int]$ack.sentInputs -lt 2){throw 'Screen-local click SendInput proof missing'}
+  if([string]$ack.displayTopologyId -ne $topology){throw 'Input ACK display topology mismatch'}
+  $expectedMappedGlobalX=[int]$bounds.x+$mappedX;$expectedMappedGlobalY=[int]$bounds.y+$mappedY
+  if([int]$ack.cursor.x -ne $expectedMappedGlobalX -or [int]$ack.cursor.y -ne $expectedMappedGlobalY){throw "Frame-mapped cursor translation mismatch actual=$($ack.cursor.x),$($ack.cursor.y) expected=$expectedMappedGlobalX,$expectedMappedGlobalY"}
+  $accepted=Wait-Node "$button Accepted" 'screen-accepted'
+  if([string]$accepted.snapshot.semanticSessionId -ne $sem){throw 'Screen-local click changed semantic session'}
+  Write-Host "windows-real-remote-screen-local-click=PASS screen=$screenIndex local=$mappedX,$mappedY global=$expectedMappedGlobalX,$expectedMappedGlobalY inputSeq=$($ack.inputSeq)"
+  $frame2=Invoke-Rr 'screen-frame-after-click' 'frame' @{desktopSessionId=$desk}
+  if([string]$frame2.desktopSessionId -ne $desk -or [long]$frame2.frameSeq -ne 2 -or [long]$frame2.contentSeq -ne 2 -or [bool]$frame2.throttled -or [bool]$frame2.unchanged -or [string]::IsNullOrWhiteSpace([string]$frame2.data) -or [string]$frame2.displayTopologyId -ne $topology){throw 'Visual desktop second frame sequence/content invalid'}
+  if([string]$frame2.inputMapping.displayTopologyId -ne $topology -or [int]$frame2.inputMapping.screen -ne $screenIndex){throw 'Visual desktop second frame mapping invalid'}
+  Write-Host "windows-real-remote-desktop-session-frame-seq=PASS desktopSessionId=$desk first=$($frame.frameSeq) second=$($frame2.frameSeq) contentSeq=$($frame2.contentSeq)"
+  $throttle2=Invoke-Rr 'screen-frame-throttle-after-click' 'frame' @{desktopSessionId=$desk}
+  if(-not [bool]$throttle2.throttled -or [long]$throttle2.frameSeq -ne 2 -or [long]$throttle2.contentSeq -ne 2 -or [int]$throttle2.retryAfterMs -lt 1){throw 'Visual desktop post-change throttle invalid'}
+  Start-Sleep -Milliseconds ([int]$throttle2.retryAfterMs+20)
+  $frame3=Invoke-Rr 'screen-frame-unchanged' 'frame' @{desktopSessionId=$desk}
+  if([long]$frame3.frameSeq -ne 3 -or [long]$frame3.contentSeq -ne 2 -or -not [bool]$frame3.unchanged -or [bool]$frame3.throttled -or $null -ne $frame3.data -or [int]$frame3.dataBytes -ne 0 -or [string]$frame3.frameSha256 -ne [string]$frame2.frameSha256){throw 'Visual desktop unchanged-frame suppression invalid'}
+  Write-Host "windows-real-remote-desktop-session-unchanged=PASS frameSeq=$($frame3.frameSeq) contentSeq=$($frame3.contentSeq) sha256=$($frame3.frameSha256)"
+
+  $dragToLx=[Math]::Min($lx+4,[int]$bounds.width-1);$dragToLy=[Math]::Min($ly+4,[int]$bounds.height-1)
+  $dragAck=Invoke-Rr 'screen-local-drag' 'input' @{displayTopologyId=$topology;events=@(
+    @{type='drag';screen=$screenIndex;x=$lx;y=$ly;toScreen=$screenIndex;toX=$dragToLx;toY=$dragToLy;button='left';steps=3;durationMs=60}
+  );semanticSessionId=$sem;afterSeq=[long]$accepted.snapshot.stateSeq;settleMs=80}
+  $expectedDragX=[int]$bounds.x+$dragToLx;$expectedDragY=[int]$bounds.y+$dragToLy
+  if([int]$dragAck.sentInputs -lt 2 -or [int]$dragAck.cursor.x -ne $expectedDragX -or [int]$dragAck.cursor.y -ne $expectedDragY){throw 'Screen-local drag translation mismatch'}
+  if([string]$dragAck.displayTopologyId -ne $topology){throw 'Drag ACK display topology mismatch'}
+  Write-Host "windows-real-remote-screen-local-drag=PASS screen=$screenIndex local=$lx,$ly->$dragToLx,$dragToLy global=$gx,$gy->$expectedDragX,$expectedDragY"
+
+  $staleTopology=('0'*64)
+  if($staleTopology -eq $topology){$staleTopology=('f'*64)}
+  $stale=Invoke-RrRaw 'screen-stale-topology' 'input' @{displayTopologyId=$staleTopology;events=@(@{type='move';screen=$screenIndex;x=$lx;y=$ly})}
+  if($stale.ok -or [string]$stale.error -ne 'desktop_input_stale_topology'){throw "Stale display topology was not rejected: $($stale.error)"}
+  Write-Host "windows-real-remote-screen-topology-pin=PASS topology=$topology"
+
+  $badScreen=Invoke-RrRaw 'screen-invalid-index' 'input' @{events=@(@{type='move';screen=$screens.Count;x=0;y=0})}
+  if($badScreen.ok -or [string]$badScreen.error -ne 'desktop_input_screen_out_of_range'){throw "Invalid screen index was not rejected: $($badScreen.error)"}
+  $badBounds=Invoke-RrRaw 'screen-invalid-bounds' 'input' @{events=@(@{type='move';screen=$screenIndex;x=[int]$bounds.width;y=0})}
+  if($badBounds.ok -or [string]$badBounds.error -ne 'desktop_input_invalid_screen_coordinates'){throw "Out-of-bounds screen coordinate was not rejected: $($badBounds.error)"}
+  Write-Host 'windows-real-remote-screen-local-negative=PASS'
+  Write-Host 'windows-real-remote-screen-local-closed-loop=PASS'
+
+  $vd=Invoke-Rr 'screen-desktop-detach' 'detach' @{desktopSessionId=$desk}
+  if(-not $vd.detached -or [string]$vd.desktopSessionId -ne $desk -or [long]$vd.frameSeq -ne 3 -or [long]$vd.contentSeq -ne 2){throw 'Visual desktop detach state invalid'};$deskDetached=$true
+  Write-Host "windows-real-remote-desktop-session-detach=PASS desktopSessionId=$desk frameSeq=$($vd.frameSeq)"
+  $gone=Invoke-RrRaw 'screen-desktop-resume-after-detach' 'resume' @{desktopSessionId=$desk}
+  if($gone.ok -or [string]$gone.error -ne 'desktop_session_not_found'){throw "Detached visual session remained resumable: $($gone.error)"}
+  Write-Host 'windows-real-remote-desktop-session-detach-negative=PASS'
+
+  $leaseIds=@()
+  for($leaseIndex=0;$leaseIndex -lt 8;$leaseIndex++){
+    $lease=Invoke-Rr ("screen-lease-"+$leaseIndex) 'attach' @{screen=$screenIndex;maxWidth=320;maxHeight=180;quality=25;minIntervalMs=0;idleTimeoutMs=2000;omitUnchanged=$true}
+    if([int]$lease.idleTimeoutMs -ne 2000){throw 'Visual desktop idle timeout config mismatch'}
+    $leaseIds+=([string]$lease.desktopSessionId)
+  }
+  $limitHit=Invoke-RrRaw 'screen-lease-limit' 'attach' @{screen=$screenIndex;maxWidth=320;maxHeight=180;quality=25;minIntervalMs=0;idleTimeoutMs=2000}
+  if($limitHit.ok -or [string]$limitHit.error -ne 'desktop_session_limit'){throw "Visual desktop session limit was not enforced: $($limitHit.error)"}
+  Start-Sleep -Milliseconds 2300
+  $expiredLease=Invoke-RrRaw 'screen-lease-expired' 'resume' @{desktopSessionId=$leaseIds[0]}
+  if($expiredLease.ok -or [string]$expiredLease.error -ne 'desktop_session_expired'){throw "Expired visual desktop session was not rejected: $($expiredLease.error)"}
+  $replacement=Invoke-Rr 'screen-lease-prune-replacement' 'attach' @{screen=$screenIndex;maxWidth=320;maxHeight=180;quality=25;minIntervalMs=0;idleTimeoutMs=2000}
+  $replacementId=[string]$replacement.desktopSessionId
+  if([string]::IsNullOrWhiteSpace($replacementId)){throw 'Visual desktop prune replacement attach failed'}
+  $replacement2=Invoke-Rr 'screen-lease-prune-replacement-2' 'attach' @{screen=$screenIndex;maxWidth=320;maxHeight=180;quality=25;minIntervalMs=0;idleTimeoutMs=2000}
+  $replacement2Id=[string]$replacement2.desktopSessionId
+  if([string]::IsNullOrWhiteSpace($replacement2Id)){throw 'Visual desktop second prune replacement attach failed'}
+  $replacementDetach=Invoke-Rr 'screen-lease-prune-detach' 'detach' @{desktopSessionId=$replacementId}
+  $replacement2Detach=Invoke-Rr 'screen-lease-prune-detach-2' 'detach' @{desktopSessionId=$replacement2Id}
+  if(-not $replacementDetach.detached -or -not $replacement2Detach.detached){throw 'Visual desktop prune replacement detach failed'}
+  Write-Host "windows-real-remote-desktop-session-lease=PASS limit=8 expired=$($leaseIds[0]) replacements=$replacementId,$replacement2Id"
+
+  $d=Invoke-Rr 'screen-detach' 'semantic-detach' @{semanticSessionId=$sem};if(-not $d.detached -or $d.provider -ne 'windows-uia'){throw 'Screen coordinate detach failed'};$detached=$true
+}finally{
+  if($rr){
+    if($desk -and -not $deskDetached -and -not $rr.HasExited){try{$null=Invoke-Rr 'screen-desktop-detach-finally' 'detach' @{desktopSessionId=$desk}}catch{}}
+    if($sem -and -not $detached -and -not $rr.HasExited){try{$null=Invoke-Rr 'screen-detach-finally' 'semantic-detach' @{semanticSessionId=$sem}}catch{}}
+    try{$rr.StandardInput.Close()}catch{};try{if(-not $rr.WaitForExit(3000)){$rr.Kill($true)}}catch{};try{$rr.Dispose()}catch{}
+  }
+  if($app){try{if(-not $app.HasExited){$app.Kill($true);$null=$app.WaitForExit(3000)}}catch{};try{$app.Dispose()}catch{}}
+}

@@ -1,15 +1,17 @@
 {
   "schema": 1,
-  "id": "primary-vercel",
-  "role": "primary",
-  "canonicalBranch": "main",
+  "id": "feature-real-remote",
+  "role": "experimental-feature",
+  "canonicalBranch": "feature/real-remote",
   "transport": "vercel",
-  "developmentAuthority": true,
-  "inheritsFrom": null,
+  "developmentAuthority": false,
+  "inheritsFrom": "main",
   "requiredPaths": [
+    "docs/real-remote/README.md",
+    "lib/native-desktop.mjs",
+    "client/windows-native/GptOperator.Client/RealRemoteHelper.cs",
     "api/operator.js",
-    "deploy/vercel/README.md",
-    "gateway/server.mjs",
+    "device-agent/operator-agent.mjs",
     "operator-host/executor.mjs"
   ],
   "forbiddenPaths": [

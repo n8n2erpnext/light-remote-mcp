@@ -5,6 +5,8 @@ on:
     branches:
       - main
       - 'codex/**'
+      - 'feature/real-remote'
+      - 'feature/rm-computer-use-runtime'
     tags:
       - 'v0.9.*'
     paths:
@@ -16,6 +18,9 @@ on:
       - 'lib/native-process.mjs'
       - 'lib/native-terminal.mjs'
       - 'lib/native-search.mjs'
+      - 'lib/native-desktop.mjs'
+      - 'lib/real-remote-policy.mjs'
+      - 'lib/real-remote-input.cjs'
       - 'lib/light-scp-file.mjs'
       - 'lib/light-scp-registry.mjs'
       - 'lib/update-contract.mjs'
@@ -26,10 +31,11 @@ on:
       - 'deploy/scripts/stage-client-core.mjs'
       - 'deploy/scripts/stage-terminal-runtime.mjs'
       - 'deploy/scripts/terminal-runtime-smoke.mjs'
+      - 'deploy/scripts/selftest-v11-*.mjs'
       - 'package.json'
       - 'package-lock.json'
       - 'client/core-files.json'
-      - 'assets/branding/**'
+      - 'assets/**'
       - '.github/workflows/windows-native-client.yml'
   workflow_dispatch:
   workflow_call:
@@ -95,18 +101,333 @@ jobs:
           Copy-Item NOTICE (Join-Path $stage 'NOTICE')
           Copy-Item THIRD_PARTY_DISTRIBUTION_NOTICES.md (Join-Path $stage 'THIRD_PARTY_DISTRIBUTION_NOTICES.md')
           Copy-Item VERSION (Join-Path $stage 'VERSION')
-          $trayBytes=(Get-Item (Join-Path $stage 'GptOperator.Client.exe')).Length
+          $trayBytes=(Get-Item (Join-Path $stage 'LightRemote.Client.exe')).Length
           $helperBytes=(Get-Item (Join-Path $updaterStage 'LightRemote.Updater.exe')).Length
           $stageBytes=(Get-ChildItem $stage -File -Recurse | Measure-Object Length -Sum).Sum
           $helperStageBytes=(Get-ChildItem $updaterStage -File -Recurse | Measure-Object Length -Sum).Sum
           Write-Host "windows-size-tray-bytes=$trayBytes helper-bytes=$helperBytes node-bytes=$nodeBytes stage-bytes=$stageBytes helper-stage-bytes=$helperStageBytes"
+      - name: Real Remote hidden helper smoke
+        timeout-minutes: 1
+        shell: pwsh
+        run: |
+          $stage = Join-Path $PWD 'dist\windows\stage'
+          $exe = Join-Path $stage 'LightRemote.Client.exe'
+          if (-not (Test-Path $exe)) { throw 'Real Remote helper executable missing after publish' }
+
+          $rrPsi = [System.Diagnostics.ProcessStartInfo]::new()
+          $rrPsi.FileName = $exe
+          $rrPsi.UseShellExecute = $false
+          $rrPsi.CreateNoWindow = $true
+          $rrPsi.RedirectStandardInput = $true
+          $rrPsi.RedirectStandardOutput = $true
+          $rrPsi.RedirectStandardError = $true
+          $rrPsi.ArgumentList.Add('--real-remote-helper')
+          $rr = [System.Diagnostics.Process]::new()
+          $rr.StartInfo = $rrPsi
+          if (-not $rr.Start()) { throw 'Real Remote helper did not start' }
+
+          try {
+            $rr.StandardInput.WriteLine('{"id":"ci-status","op":"status","args":{}}')
+            $rr.StandardInput.WriteLine('{"id":"ci-windows","op":"windows","args":{"limit":5}}')
+            $rr.StandardInput.Flush()
+
+            $rrStatusLine = $rr.StandardOutput.ReadLine()
+            $rrWindowsLine = $rr.StandardOutput.ReadLine()
+            if ([string]::IsNullOrWhiteSpace($rrStatusLine) -or [string]::IsNullOrWhiteSpace($rrWindowsLine)) { throw 'Real Remote helper returned empty JSONL' }
+
+            $rrStatus = $rrStatusLine | ConvertFrom-Json
+            $rrWindows = $rrWindowsLine | ConvertFrom-Json
+            if (-not $rrStatus.ok -or $rrStatus.result.protocolVersion -ne 1 -or $rrStatus.result.platform -ne 'win32') { throw "Real Remote status invalid: $rrStatusLine" }
+            if (-not $rrWindows.ok -or $rrWindows.result.protocolVersion -ne 1 -or $rrWindows.result.count -lt 0) { throw "Real Remote windows invalid: $rrWindowsLine" }
+            Write-Host "windows-real-remote-helper=PASS pid=$($rrStatus.result.processId) interactive=$($rrStatus.result.interactive) screens=$($rrStatus.result.screens.Count)"
+
+            $rr.StandardInput.WriteLine('{"id":"ci-input-negative","op":"input","args":{"events":[]}}')
+            $rr.StandardInput.Flush()
+            $rrInputLine = $rr.StandardOutput.ReadLine()
+            $rrInput = $rrInputLine | ConvertFrom-Json
+            if ($rrInput.ok -or $rrInput.error -like 'desktop_operation_unsupported*') { throw "Real Remote input opcode negative probe invalid: $rrInputLine" }
+            Write-Host "windows-real-remote-input-negative=PASS error=$($rrInput.error)"
+
+            if ($rrStatus.result.interactive) {
+              $rr.StandardInput.WriteLine('{"id":"ci-sem-attach","op":"semantic-attach","args":{"scope":"desktop","maxDepth":0,"maxNodes":1}}')
+              $rr.StandardInput.Flush()
+              $rrSemAttachLine = $rr.StandardOutput.ReadLine()
+              $rrSemAttach = $rrSemAttachLine | ConvertFrom-Json
+              if (-not $rrSemAttach.ok -or $rrSemAttach.result.provider -ne 'windows-uia' -or $rrSemAttach.result.stateSeq -ne 1 -or [string]::IsNullOrWhiteSpace($rrSemAttach.result.semanticSessionId)) { throw "Real Remote semantic attach invalid: $rrSemAttachLine" }
+
+              $semId = [string]$rrSemAttach.result.semanticSessionId
+              $rr.StandardInput.WriteLine((@{id='ci-sem-snapshot';op='semantic-snapshot';args=@{semanticSessionId=$semId}} | ConvertTo-Json -Compress -Depth 4))
+              $rr.StandardInput.Flush()
+              $rrSemSnapshotLine = $rr.StandardOutput.ReadLine()
+              $rrSemSnapshot = $rrSemSnapshotLine | ConvertFrom-Json
+              if (-not $rrSemSnapshot.ok -or $rrSemSnapshot.result.stateSeq -lt 2 -or $rrSemSnapshot.result.semanticSessionId -ne $semId) { throw "Real Remote semantic snapshot invalid: $rrSemSnapshotLine" }
+
+              $afterSeq = [long]$rrSemSnapshot.result.stateSeq
+              $rr.StandardInput.WriteLine((@{id='ci-sem-events';op='semantic-events';args=@{semanticSessionId=$semId;afterSeq=$afterSeq;limit=20}} | ConvertTo-Json -Compress -Depth 4))
+              $rr.StandardInput.Flush()
+              $rrSemEventsLine = $rr.StandardOutput.ReadLine()
+              $rrSemEvents = $rrSemEventsLine | ConvertFrom-Json
+              if (-not $rrSemEvents.ok -or $rrSemEvents.result.provider -ne 'windows-uia' -or $rrSemEvents.result.semanticSessionId -ne $semId -or $rrSemEvents.result.stateSeq -lt $afterSeq -or -not $rrSemEvents.result.eventsAvailable -or $null -eq $rrSemEvents.result.events) { throw "Real Remote semantic events invalid: $rrSemEventsLine" }
+              Write-Host "windows-real-remote-semantic-events=PASS count=$($rrSemEvents.result.events.Count) seq=$($rrSemEvents.result.stateSeq) resync=$($rrSemEvents.result.resyncRecommended)"
+
+              if ($null -ne $rrStatus.result.cursor) {
+                $ackAfter = [long]$rrSemEvents.result.stateSeq
+                $cursorX = [int]$rrStatus.result.cursor.x
+                $cursorY = [int]$rrStatus.result.cursor.y
+                $rr.StandardInput.WriteLine((@{id='ci-input-ack';op='input';args=@{events=@(@{type='move';x=$cursorX;y=$cursorY});semanticSessionId=$semId;afterSeq=$ackAfter;settleMs=0}} | ConvertTo-Json -Compress -Depth 6))
+                $rr.StandardInput.Flush()
+                $rrAckLine = $rr.StandardOutput.ReadLine()
+                $rrAck = $rrAckLine | ConvertFrom-Json
+                if (-not $rrAck.ok -or $rrAck.result.semanticSessionId -ne $semId -or $rrAck.result.inputSeq -lt 1 -or $rrAck.result.stateSeq -lt $ackAfter -or $rrAck.result.appliedEvents -ne 1 -or $null -eq $rrAck.result.cursor) { throw "Real Remote input ACK invalid: $rrAckLine" }
+                Write-Host "windows-real-remote-input-ack=PASS inputSeq=$($rrAck.result.inputSeq) stateSeq=$($rrAck.result.stateSeq) events=$($rrAck.result.events.Count)"
+              } else {
+                Write-Host 'windows-real-remote-input-ack=SKIP cursor-unavailable'
+              }
+
+              $rr.StandardInput.WriteLine((@{id='ci-sem-detach';op='semantic-detach';args=@{semanticSessionId=$semId}} | ConvertTo-Json -Compress -Depth 4))
+              $rr.StandardInput.Flush()
+              $rrSemDetachLine = $rr.StandardOutput.ReadLine()
+              $rrSemDetach = $rrSemDetachLine | ConvertFrom-Json
+              if (-not $rrSemDetach.ok -or -not $rrSemDetach.result.detached -or $rrSemDetach.result.semanticSessionId -ne $semId) { throw "Real Remote semantic detach invalid: $rrSemDetachLine" }
+              Write-Host "windows-real-remote-semantic=PASS nodes=$($rrSemAttach.result.nodeCount) seq=$($rrSemSnapshot.result.stateSeq)"
+
+              $browserCandidates = @(
+                (Join-Path $env:ProgramFiles 'Google\Chrome\Application\chrome.exe'),
+                (Join-Path $env:ProgramFiles 'Microsoft\Edge\Application\msedge.exe'),
+                (Join-Path ([Environment]::GetFolderPath('ProgramFilesX86')) 'Google\Chrome\Application\chrome.exe'),
+                (Join-Path ([Environment]::GetFolderPath('ProgramFilesX86')) 'Microsoft\Edge\Application\msedge.exe')
+              )
+              $browserExe = $browserCandidates | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+              if (-not $browserExe) { throw 'Chromium browser missing for Real Remote CDP smoke' }
+              $browserProfile = $null
+              $browserHtml = Join-Path $env:RUNNER_TEMP 'real-remote-cdp.html'
+              Set-Content -Path $browserHtml -Encoding UTF8 -Value '<!doctype html><html><head><title>Real Remote CDP CI</title></head><body><main><h1>Real Remote Browser</h1><button id="continue" class="primary">Continue</button><input id="account" aria-label="Account" value="not-read"/></main></body></html>'
+              $browserUrl = ([System.Uri]::new($browserHtml)).AbsoluteUri
+              $browser = $null
+              $browserStartAttempt = 0
+              try {
+                do {
+                  $browserStartAttempt++
+                  $browserProfile = Join-Path $env:RUNNER_TEMP ('real-remote-cdp-' + [Guid]::NewGuid().ToString('N'))
+                  New-Item -ItemType Directory -Force -Path $browserProfile | Out-Null
+                  $browser = Start-Process -FilePath $browserExe -ArgumentList @('--headless=new','--remote-debugging-port=0','--remote-allow-origins=*','--disable-background-networking','--disable-default-apps','--no-first-run','--no-default-browser-check',("--user-data-dir=$browserProfile"),$browserUrl) -PassThru
+                  $portFile = Join-Path $browserProfile 'DevToolsActivePort'
+                  $deadline = [DateTime]::UtcNow.AddSeconds(15)
+                  while (-not (Test-Path $portFile) -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 100 }
+                  if (Test-Path $portFile) { break }
+                  Write-Warning "windows-real-remote-browser-start-retry attempt=$browserStartAttempt"
+                  if ($browser -and -not $browser.HasExited) { $null=Start-Process -FilePath 'taskkill.exe' -ArgumentList @('/PID',[string]$browser.Id,'/T','/F') -Wait -WindowStyle Hidden -ErrorAction SilentlyContinue }
+                  Remove-Item $browserProfile -Recurse -Force -ErrorAction SilentlyContinue
+                  $browser = $null
+                } while ($browserStartAttempt -lt 2)
+                if (-not (Test-Path $portFile)) { throw "Chromium DevToolsActivePort was not created after $browserStartAttempt attempts" }
+                $cdpPort = [int]((Get-Content $portFile -TotalCount 1).Trim())
+                if ($cdpPort -lt 1 -or $cdpPort -gt 65535) { throw "Chromium DevTools port invalid: $cdpPort" }
+                $cdpEndpoint = "http://127.0.0.1:$cdpPort"
+
+                $browserAttachAttempt = 0
+                $rrBrowserAttach = $null
+                $rrBrowserAttachLine = ''
+                do {
+                  $browserAttachAttempt++
+                  $rr.StandardInput.WriteLine((@{id=("ci-browser-attach-" + $browserAttachAttempt);op='semantic-attach';args=@{provider='browser-cdp';cdpEndpoint=$cdpEndpoint;urlMatch='real-remote-cdp.html';maxDepth=8;maxNodes=300}} | ConvertTo-Json -Compress -Depth 6))
+                  $rr.StandardInput.Flush()
+                  $rrBrowserAttachLine = $rr.StandardOutput.ReadLine()
+                  $rrBrowserAttach = $rrBrowserAttachLine | ConvertFrom-Json
+                  if ($rrBrowserAttach.ok -and $rrBrowserAttach.result.provider -eq 'browser-cdp' -and -not [string]::IsNullOrWhiteSpace($rrBrowserAttach.result.semanticSessionId) -and $rrBrowserAttach.result.nodeCount -ge 1) { break }
+                  Write-Warning "windows-real-remote-browser-attach-retry attempt=$browserAttachAttempt response=$rrBrowserAttachLine"
+                  Start-Sleep -Milliseconds 300
+                } while ($browserAttachAttempt -lt 3)
+                if (-not $rrBrowserAttach.ok -or $rrBrowserAttach.result.provider -ne 'browser-cdp' -or [string]::IsNullOrWhiteSpace($rrBrowserAttach.result.semanticSessionId) -or $rrBrowserAttach.result.nodeCount -lt 1) { throw "Real Remote browser semantic attach invalid after $browserAttachAttempt attempts: $rrBrowserAttachLine" }
+                $browserSemId = [string]$rrBrowserAttach.result.semanticSessionId
+                $browserReadyDeadline = [DateTime]::UtcNow.AddSeconds(5)
+                $browserReadyAttempt = 0
+                $rrBrowserSnapshot = $null
+                $rrBrowserSnapshotLine = ''
+                $snapshotButton = @()
+                do {
+                  $browserReadyAttempt++
+                  $rr.StandardInput.WriteLine((@{id=("ci-browser-snapshot-" + $browserReadyAttempt);op='semantic-snapshot';args=@{semanticSessionId=$browserSemId}} | ConvertTo-Json -Compress -Depth 4))
+                  $rr.StandardInput.Flush()
+                  $rrBrowserSnapshotLine = $rr.StandardOutput.ReadLine()
+                  $rrBrowserSnapshot = $rrBrowserSnapshotLine | ConvertFrom-Json
+                  if (-not $rrBrowserSnapshot.ok -or $rrBrowserSnapshot.result.provider -ne 'browser-cdp' -or $rrBrowserSnapshot.result.semanticSessionId -ne $browserSemId -or $rrBrowserSnapshot.result.stateSeq -lt $rrBrowserAttach.result.stateSeq) { throw "Real Remote browser semantic snapshot invalid: $rrBrowserSnapshotLine" }
+                  $snapshotButton = @($rrBrowserSnapshot.result.nodes | Where-Object { $_.role -eq 'button' -and $_.name -eq 'Continue' })
+                  if ($snapshotButton.Count -ge 1 -and $null -ne $snapshotButton[0].center) { break }
+                  Start-Sleep -Milliseconds 100
+                } while ([DateTime]::UtcNow -lt $browserReadyDeadline)
+                if ($snapshotButton.Count -lt 1 -or $null -eq $snapshotButton[0].center) { throw "Real Remote browser semantic center missing after readiness wait: $rrBrowserSnapshotLine" }
+
+                $browserAfter = [long]$rrBrowserSnapshot.result.stateSeq
+                $browserX = [int][Math]::Round([double]$snapshotButton[0].center.x)
+                $browserY = [int][Math]::Round([double]$snapshotButton[0].center.y)
+                $rr.StandardInput.WriteLine((@{id='ci-browser-input-ack';op='input';args=@{events=@(@{type='move';x=$browserX;y=$browserY});semanticSessionId=$browserSemId;afterSeq=$browserAfter;settleMs=0}} | ConvertTo-Json -Compress -Depth 7))
+                $rr.StandardInput.Flush()
+                $rrBrowserInputLine = $rr.StandardOutput.ReadLine()
+                $rrBrowserInput = $rrBrowserInputLine | ConvertFrom-Json
+                if (-not $rrBrowserInput.ok -or $rrBrowserInput.result.provider -ne 'browser-cdp' -or $rrBrowserInput.result.semanticSessionId -ne $browserSemId -or $rrBrowserInput.result.appliedEvents -ne 1 -or $rrBrowserInput.result.sentInputs -ne 0 -or $rrBrowserInput.result.inputSeq -lt 1 -or $rrBrowserInput.result.stateSeq -le $browserAfter -or $rrBrowserInput.result.observation -ne 'cdp-snapshot+journal') { throw "Real Remote browser input ACK invalid: $rrBrowserInputLine" }
+                if ($null -eq $rrBrowserInput.result.cursor -or [int]$rrBrowserInput.result.cursor.x -ne $browserX -or [int]$rrBrowserInput.result.cursor.y -ne $browserY) { throw "Real Remote browser input cursor ACK invalid: $rrBrowserInputLine" }
+                $browserAfter = [long]$rrBrowserInput.result.stateSeq
+                Write-Host "windows-real-remote-browser-input-ack=PASS x=$browserX y=$browserY inputSeq=$($rrBrowserInput.result.inputSeq) seq=$browserAfter"
+
+                $rr.StandardInput.WriteLine((@{id='ci-browser-events';op='semantic-events';args=@{semanticSessionId=$browserSemId;afterSeq=$browserAfter;limit=20}} | ConvertTo-Json -Compress -Depth 4))
+                $rr.StandardInput.Flush()
+                $rrBrowserEventsLine = $rr.StandardOutput.ReadLine()
+                $rrBrowserEvents = $rrBrowserEventsLine | ConvertFrom-Json
+                if (-not $rrBrowserEvents.ok -or $rrBrowserEvents.result.provider -ne 'browser-cdp' -or $rrBrowserEvents.result.semanticSessionId -ne $browserSemId -or -not $rrBrowserEvents.result.eventsAvailable -or $null -eq $rrBrowserEvents.result.events) { throw "Real Remote browser semantic events invalid: $rrBrowserEventsLine" }
+
+                $rr.StandardInput.WriteLine((@{id='ci-browser-detach';op='semantic-detach';args=@{semanticSessionId=$browserSemId}} | ConvertTo-Json -Compress -Depth 4))
+                $rr.StandardInput.Flush()
+                $rrBrowserDetachLine = $rr.StandardOutput.ReadLine()
+                $rrBrowserDetach = $rrBrowserDetachLine | ConvertFrom-Json
+                if (-not $rrBrowserDetach.ok -or $rrBrowserDetach.result.provider -ne 'browser-cdp' -or -not $rrBrowserDetach.result.detached) { throw "Real Remote browser semantic detach invalid: $rrBrowserDetachLine" }
+                Write-Host "windows-real-remote-browser-cdp=PASS nodes=$($rrBrowserAttach.result.nodeCount) seq=$($rrBrowserSnapshot.result.stateSeq) events=$($rrBrowserEvents.result.events.Count)"
+              }
+              finally {
+                if ($browser -and -not $browser.HasExited) { $null=Start-Process -FilePath 'taskkill.exe' -ArgumentList @('/PID',[string]$browser.Id,'/T','/F') -Wait -WindowStyle Hidden -ErrorAction SilentlyContinue }
+                if ($browserProfile) { Remove-Item $browserProfile -Recurse -Force -ErrorAction SilentlyContinue }
+                Remove-Item $browserHtml -Force -ErrorAction SilentlyContinue
+              }
+            } else {
+              Write-Host 'windows-real-remote-semantic=SKIP no-interactive-session'
+            }
+
+            if ($rrStatus.result.interactive -and $rrStatus.result.screens.Count -gt 0) {
+              $rr.StandardInput.WriteLine('{"id":"ci-frame","op":"frame","args":{"maxWidth":320,"maxHeight":180,"quality":30}}')
+              $rr.StandardInput.Flush()
+              $rrFrameLine = $rr.StandardOutput.ReadLine()
+              $rrFrame = $rrFrameLine | ConvertFrom-Json
+              if ($rrFrame.ok) {
+                if ($rrFrame.result.mime -ne 'image/jpeg' -or $rrFrame.result.encoding -ne 'base64' -or $rrFrame.result.bytes -le 0 -or $rrFrame.result.bytes -gt 665600) { throw "Real Remote frame contract invalid: $rrFrameLine" }
+                Write-Host "windows-real-remote-frame-probe=PASS width=$($rrFrame.result.width) height=$($rrFrame.result.height) bytes=$($rrFrame.result.bytes)"
+              } else {
+                Write-Warning "windows-real-remote-frame-probe=SKIP error=$($rrFrame.error)"
+              }
+            } else {
+              Write-Host 'windows-real-remote-frame-probe=SKIP no-interactive-screen'
+            }
+          }
+          finally {
+            try { $rr.StandardInput.Close() } catch {}
+            if (-not $rr.WaitForExit(5000)) { Stop-Process -Id $rr.Id -Force -ErrorAction SilentlyContinue }
+            $rr.Dispose()
+          }
+
+      - name: Capability refresh without reauthorization acceptance
+        timeout-minutes: 1
+        shell: pwsh
+        run: |
+          $stage = Join-Path $PWD 'dist\windows\stage'
+          $exe = Join-Path $stage 'LightRemote.Client.exe'
+          if (-not (Test-Path $exe)) { throw 'Real Remote helper executable missing before capability upgrade acceptance' }
+          node deploy/scripts/selftest-v11-capability-refresh-windows.mjs $exe
+
+      - name: Local Wall RM permissions-only acceptance
+        timeout-minutes: 2
+        shell: pwsh
+        run: |
+          $stage = Join-Path $PWD 'dist\windows\stage'
+          $exe = Join-Path $stage 'LightRemote.Client.exe'
+          if (-not (Test-Path $exe)) { throw 'Real Remote helper executable missing before Local Wall RM permissions acceptance' }
+          node deploy/scripts/selftest-v11-local-wall-desktop-windows.mjs $exe
+
+      - name: Real Windows semantic observe-act acceptance
+        timeout-minutes: 2
+        shell: pwsh
+        run: |
+          $stage = Join-Path $PWD 'dist\windows\stage'
+          $exe = Join-Path $stage 'LightRemote.Client.exe'
+          if (-not (Test-Path $exe)) { throw 'Real Remote helper executable missing before semantic observe-act acceptance' }
+          & ./client/windows-native/acceptance/real-remote-uia-semantic-act.ps1 -ClientExe $exe -TimeoutSeconds 20
+
+      - name: Real Windows OS input acceptance
+        timeout-minutes: 2
+        shell: pwsh
+        run: |
+          $stage = Join-Path $PWD 'dist\windows\stage'
+          $exe = Join-Path $stage 'LightRemote.Client.exe'
+          if (-not (Test-Path $exe)) { throw 'Real Remote helper executable missing before OS input acceptance' }
+          & ./client/windows-native/acceptance/real-remote-browser-os-input.ps1 -ClientExe $exe -TimeoutSeconds 30
+
+      - name: Real Windows UIA app switch acceptance
+        timeout-minutes: 2
+        shell: pwsh
+        run: |
+          $stage = Join-Path $PWD 'dist\windows\stage'
+          $exe = Join-Path $stage 'LightRemote.Client.exe'
+          if (-not (Test-Path $exe)) { throw 'Real Remote helper executable missing before UIA app switch acceptance' }
+          & ./client/windows-native/acceptance/real-remote-uia-app-switch.ps1 -ClientExe $exe -TimeoutSeconds 20
+
+      - name: Real Windows UIA modal handoff acceptance
+        timeout-minutes: 2
+        shell: pwsh
+        run: |
+          $stage = Join-Path $PWD 'dist\windows\stage'
+          $exe = Join-Path $stage 'LightRemote.Client.exe'
+          if (-not (Test-Path $exe)) { throw 'Real Remote helper executable missing before UIA modal acceptance' }
+          & ./client/windows-native/acceptance/real-remote-uia-modal.ps1 -ClientExe $exe -TimeoutSeconds 20
+
+      - name: Real Windows UIA file picker handoff acceptance
+        timeout-minutes: 2
+        shell: pwsh
+        run: |
+          $stage = Join-Path $PWD 'dist\windows\stage'
+          $exe = Join-Path $stage 'LightRemote.Client.exe'
+          if (-not (Test-Path $exe)) { throw 'Real Remote helper executable missing before UIA file picker acceptance' }
+          & ./client/windows-native/acceptance/real-remote-uia-file-picker.ps1 -ClientExe $exe -TimeoutSeconds 20
+
+      - name: Real Windows UIA clipboard acceptance
+        timeout-minutes: 2
+        shell: pwsh
+        run: |
+          $stage = Join-Path $PWD 'dist\windows\stage'
+          $exe = Join-Path $stage 'LightRemote.Client.exe'
+          if (-not (Test-Path $exe)) { throw 'Real Remote helper executable missing before UIA clipboard acceptance' }
+          & ./client/windows-native/acceptance/real-remote-uia-clipboard.ps1 -ClientExe $exe -TimeoutSeconds 20
+
+      - name: Real Windows UIA drag drop acceptance
+        timeout-minutes: 2
+        shell: pwsh
+        run: |
+          $stage = Join-Path $PWD 'dist\windows\stage'
+          $exe = Join-Path $stage 'LightRemote.Client.exe'
+          if (-not (Test-Path $exe)) { throw 'Real Remote helper executable missing before UIA drag drop acceptance' }
+          & ./client/windows-native/acceptance/real-remote-uia-drag-drop.ps1 -ClientExe $exe -TimeoutSeconds 20
+
+      - name: Real Windows UIA mouse buttons acceptance
+        timeout-minutes: 2
+        shell: pwsh
+        run: |
+          $stage = Join-Path $PWD 'dist\windows\stage'
+          $exe = Join-Path $stage 'LightRemote.Client.exe'
+          if (-not (Test-Path $exe)) { throw 'Real Remote helper executable missing before UIA mouse buttons acceptance' }
+          & ./client/windows-native/acceptance/real-remote-uia-mouse-buttons.ps1 -ClientExe $exe -TimeoutSeconds 20
+
+      - name: Real Windows screen-local coordinates acceptance
+        timeout-minutes: 2
+        shell: pwsh
+        run: |
+          $stage = Join-Path $PWD 'dist\windows\stage'
+          $exe = Join-Path $stage 'LightRemote.Client.exe'
+          if (-not (Test-Path $exe)) { throw 'Real Remote helper executable missing before screen-local coordinate acceptance' }
+          & ./client/windows-native/acceptance/real-remote-uia-screen-coordinates.ps1 -ClientExe $exe -TimeoutSeconds 20
+
+      - name: Real Windows UIA window lifecycle acceptance
+        timeout-minutes: 2
+        shell: pwsh
+        run: |
+          $stage = Join-Path $PWD 'dist\windows\stage'
+          $exe = Join-Path $stage 'LightRemote.Client.exe'
+          if (-not (Test-Path $exe)) { throw 'Real Remote helper executable missing before UIA window lifecycle acceptance' }
+          & ./client/windows-native/acceptance/real-remote-uia-window-lifecycle.ps1 -ClientExe $exe -TimeoutSeconds 20
+
       - name: Native client bundled runtime smoke
         timeout-minutes: 3
         shell: pwsh
         run: |
           $stage = Join-Path $PWD 'dist\windows\stage'
           $result = Join-Path $env:RUNNER_TEMP 'gpt-native-selftest.json'
-          $exe = Join-Path $stage 'GptOperator.Client.exe'
+          $exe = Join-Path $stage 'LightRemote.Client.exe'
           $node = Join-Path $stage 'runtime\node.exe'
           $agent = Join-Path $stage 'agent\device-agent\operator-agent.mjs'
           $agentRoot = Join-Path $stage 'agent'
@@ -117,7 +438,7 @@ jobs:
           if (-not (Test-Path (Join-Path $agentRoot 'client-core.json'))) { throw 'client core metadata missing' }
           if (-not (Test-Path $updater)) { throw 'independent updater publish missing' }
           foreach ($fleetFile in @('agent\device-agent\fleet-component-manager.mjs','agent\device-agent\fleet-component-supervisor.mjs')) { if (-not (Test-Path (Join-Path $stage $fleetFile))) { throw "fleet base module missing: $fleetFile" } }
-          foreach ($lib in @('agent\lib\device-proof.mjs','agent\lib\native-fs.mjs','agent\lib\native-process.mjs','agent\lib\native-terminal.mjs','agent\lib\native-search.mjs','agent\lib\light-scp-file.mjs','agent\lib\light-scp-registry.mjs','agent\lib\update-contract.mjs','agent\lib\runtime-version.mjs')) { if (-not (Test-Path (Join-Path $stage $lib))) { throw "agent runtime lib missing: $lib" } }
+          foreach ($lib in @('agent\lib\device-proof.mjs','agent\lib\native-fs.mjs','agent\lib\native-process.mjs','agent\lib\native-terminal.mjs','agent\lib\native-search.mjs','agent\lib\native-desktop.mjs','agent\lib\real-remote-policy.mjs','agent\lib\real-remote-input.cjs','agent\lib\light-scp-file.mjs','agent\lib\light-scp-registry.mjs','agent\lib\update-contract.mjs','agent\lib\runtime-version.mjs')) { if (-not (Test-Path (Join-Path $stage $lib))) { throw "agent runtime lib missing: $lib" } }
           foreach ($notice in @('LICENSE','NOTICE','THIRD_PARTY_DISTRIBUTION_NOTICES.md','licenses\node\LICENSE','licenses\dotnet\LICENSE.txt','licenses\dotnet\ThirdPartyNotices.txt','THIRD_PARTY_NOTICES.txt')) {
             $noticePath = Join-Path $stage $notice
             if (-not (Test-Path $noticePath) -or (Get-Item $noticePath).Length -lt 100) { throw "bundled notice missing/empty: $notice" }
@@ -145,6 +466,7 @@ jobs:
           if ($json.clientVersion -ne $expectedVersion) { throw "client version mismatch: $($json.clientVersion) expected=$expectedVersion" }
           if ($json.agentVersion -ne $expectedVersion) { throw "bundled agent version mismatch: $($json.agentVersion) expected=$expectedVersion" }
           Write-Host "windows-tray-selftest=PASS agent=$($json.agentVersion) adapter=$($json.platformAdapter)"
+
           $updaterSelfResult = Join-Path $env:RUNNER_TEMP 'updater-selftest.json'
           $updaterSelf = Start-Process -FilePath $updater -ArgumentList @('--self-test-output',$updaterSelfResult,$stage) -PassThru
           if (-not $updaterSelf.WaitForExit(30000)) { Stop-Process -Id $updaterSelf.Id -Force -ErrorAction SilentlyContinue; throw 'independent updater self-test timed out after 30s' }
@@ -191,7 +513,7 @@ jobs:
           $version = (Get-Content VERSION -Raw).Trim()
           & $env:ISCC "/DStageDir=$stage" "/DOutputDir=$out" "/DAppVersion=$version" client/windows-native/installer/GptOperator.iss
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup build failed' }
-          $installer = Join-Path $out 'Light-Remote-MCP-Setup-x64.exe'
+          $installer = Join-Path $out 'Light-Remote-Setup-x64.exe'
           if (-not (Test-Path $installer)) { throw 'installer missing' }
           $installerBytes=(Get-Item $installer).Length
           Write-Host "windows-size-installer-bytes=$installerBytes"
@@ -223,7 +545,7 @@ jobs:
           Start-ScheduledTask -TaskName $legacyName
           Start-Sleep -Milliseconds 500
 
-          $installDir = Join-Path $env:RUNNER_TEMP 'GPT Operator Installed'
+          $installDir = Join-Path $env:RUNNER_TEMP 'Light Remote Installed'
           $dirArg = '/DIR="' + $installDir + '"'
           $args = @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',$dirArg)
           Write-Host "windows-native-install-start dir=$installDir"
@@ -231,7 +553,7 @@ jobs:
           if (-not $p.WaitForExit(120000)) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; throw 'installer timed out after 120s' }
           if ($p.ExitCode -ne 0) { throw "installer exit=$($p.ExitCode)" }
           if (Get-ScheduledTask -TaskName $legacyName -ErrorAction SilentlyContinue) { throw 'legacy scheduled task survived native install' }
-          $exe = Join-Path $installDir 'GptOperator.Client.exe'
+          $exe = Join-Path $installDir 'LightRemote.Client.exe'
           if (-not (Test-Path $exe)) { throw "installed client missing: $exe" }
           foreach ($notice in @('LICENSE','NOTICE','THIRD_PARTY_DISTRIBUTION_NOTICES.md','licenses\node\LICENSE','licenses\dotnet\LICENSE.txt','licenses\dotnet\ThirdPartyNotices.txt','THIRD_PARTY_NOTICES.txt')) {
             $noticePath = Join-Path $installDir $notice
@@ -242,7 +564,7 @@ jobs:
           $updaterRoot = Join-Path $env:LOCALAPPDATA 'Light Remote\Updater'
           $updaterExe = Join-Path $updaterRoot 'LightRemote.Updater.exe'
           if (-not (Test-Path $updaterExe)) { throw "independent updater missing: $updaterExe" }
-          $rollback = Join-Path $updaterRoot ("rollback\Light-Remote-MCP-Setup-$version-x64.exe")
+          $rollback = Join-Path $updaterRoot ("rollback\Light-Remote-Setup-$version-x64.exe")
           if (-not (Test-Path $rollback)) { throw "rollback installer cache missing: $rollback" }
           "WINDOWS_INSTALL_DIR=$installDir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           "WINDOWS_INSTALLED_EXE=$exe" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
@@ -259,7 +581,7 @@ jobs:
           if ($updateAction.Arguments -notmatch '--scheduled-update' -or $updateAction.Arguments -notmatch '--install-dir') { throw "updater task arguments invalid: $($updateAction.Arguments)" }
           if ([IO.Path]::GetFullPath($updaterExe).StartsWith([IO.Path]::GetFullPath($installDir), [StringComparison]::OrdinalIgnoreCase)) { throw 'updater executable lives inside replaceable app tree' }
           $agentAction = @($agentTask.Actions)[0]
-          if ([IO.Path]::GetFileName($agentAction.Execute) -ne 'GptOperator.Client.exe') { throw "agent task must use hidden native host, got $($agentAction.Execute)" }
+          if ([IO.Path]::GetFileName($agentAction.Execute) -ne 'LightRemote.Client.exe') { throw "agent task must use hidden native host, got $($agentAction.Execute)" }
           if ($agentAction.Arguments -notmatch '--agent-host') { throw "agent task missing --agent-host: $($agentAction.Arguments)" }
           if (-not (Test-NetConnection -ComputerName 127.0.0.1 -Port 5491 -InformationLevel Quiet)) { throw 'Local Wall 5491 not listening after install' }
           $runtimeNode = Join-Path $installDir 'runtime\node.exe'
@@ -287,10 +609,10 @@ jobs:
             Start-Sleep -Milliseconds 250
           } while ((Get-Date) -lt $taskStopDeadline)
           if ($agentTaskState -eq 'Running') { throw 'agent scheduled task did not stop for updater independence probe' }
-          Get-Process -Name 'GptOperator.Client','node' -ErrorAction SilentlyContinue | Where-Object { try { $_.Path -eq $exe -or $_.Path -eq $runtimeNode } catch { $false } } | Stop-Process -Force -ErrorAction SilentlyContinue
+          Get-Process -Name 'LightRemote.Client','GptOperator.Client','node' -ErrorAction SilentlyContinue | Where-Object { try { $_.Path -eq $exe -or $_.Path -eq $runtimeNode } catch { $false } } | Stop-Process -Force -ErrorAction SilentlyContinue
           $agentExitDeadline = (Get-Date).AddSeconds(10)
           do {
-            $runtimeStillRunning = @(Get-Process -Name 'GptOperator.Client','node' -ErrorAction SilentlyContinue | Where-Object { try { $_.Path -eq $exe -or $_.Path -eq $runtimeNode } catch { $false } })
+            $runtimeStillRunning = @(Get-Process -Name 'LightRemote.Client','GptOperator.Client','node' -ErrorAction SilentlyContinue | Where-Object { try { $_.Path -eq $exe -or $_.Path -eq $runtimeNode } catch { $false } })
             if (-not $runtimeStillRunning) { break }
             Start-Sleep -Milliseconds 250
           } while ((Get-Date) -lt $agentExitDeadline)
@@ -345,6 +667,11 @@ jobs:
           $psi.ArgumentList.Add($badInstaller)
           $psi.ArgumentList.Add($env:WINDOWS_INSTALL_DIR)
           $currentVersion = (Get-Content VERSION -Raw).Trim()
+          $legacyRollback = $env:WINDOWS_ROLLBACK -replace 'Light-Remote-Setup-', 'Light-Remote-MCP-Setup-'
+          Copy-Item $env:WINDOWS_ROLLBACK $legacyRollback -Force
+          Remove-Item $env:WINDOWS_ROLLBACK -Force
+          if (Test-Path $env:WINDOWS_ROLLBACK) { throw 'new rollback cache must be absent during legacy fallback smoke' }
+          if (-not (Test-Path $legacyRollback)) { throw "legacy rollback fixture missing: $legacyRollback" }
           $psi.ArgumentList.Add($currentVersion)
           $psi.ArgumentList.Add('0')
           $psi.ArgumentList.Add('99.0.0')
@@ -361,6 +688,8 @@ jobs:
           $expected = 'apply_start current=' + [regex]::Escape($currentVersion)
           if ($updateText -notmatch $expected) { throw 'rollback helper argv were not preserved' }
           if ($updateText -notmatch 'rollback_success') { throw 'rollback success marker missing' }
+          if ($updateText -notmatch 'rollback_source path=.*Light-Remote-MCP-Setup-') { throw 'legacy rollback path was not selected' }
+          Write-Host 'windows-legacy-rollback-name-fallback=PASS'
           if (-not (Test-Path $env:WINDOWS_INSTALLED_EXE)) { throw 'installed client missing after rollback' }
           Write-Host 'windows-independent-update-rollback=PASS'
 
@@ -371,9 +700,9 @@ jobs:
         run: |
           Stop-ScheduledTask -TaskName 'LightRemoteDeviceAgent' -ErrorAction SilentlyContinue
           if ($env:WINDOWS_INSTALL_DIR) {
-            $fullExe = Join-Path $env:WINDOWS_INSTALL_DIR 'GptOperator.Client.exe'
+            $fullExe = Join-Path $env:WINDOWS_INSTALL_DIR 'LightRemote.Client.exe'
             $fullNode = Join-Path $env:WINDOWS_INSTALL_DIR 'runtime\node.exe'
-            Get-Process -Name 'GptOperator.Client','node' -ErrorAction SilentlyContinue | Where-Object { try { $_.Path -eq $fullExe -or $_.Path -eq $fullNode } catch { $false } } | Stop-Process -Force -ErrorAction SilentlyContinue
+            Get-Process -Name 'LightRemote.Client','GptOperator.Client','node' -ErrorAction SilentlyContinue | Where-Object { try { $_.Path -eq $fullExe -or $_.Path -eq $fullNode } catch { $false } } | Stop-Process -Force -ErrorAction SilentlyContinue
           }
           Get-Process -Name 'LightRemote.Updater','light-remote-update-helper' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
           Unregister-ScheduledTask -TaskName 'GPTOperatorDeviceAgent' -Confirm:$false -ErrorAction SilentlyContinue
@@ -420,7 +749,7 @@ jobs:
           if (-not $p2.WaitForExit(180000)) { Stop-Process -Id $p2.Id -Force -ErrorAction SilentlyContinue; throw 'compact cache reinstall timed out after 180s' }
           if ($p2.ExitCode -ne 0) { if(Test-Path $log2){Get-Content $log2 -Raw|Write-Host}; throw "compact cache reinstall exit=$($p2.ExitCode)" }
           if ((Get-Content $log2 -Raw) -notmatch 'compact-node-source=cache') { throw 'compact reinstall did not reuse verified Node cache' }
-          $exe = Join-Path $installDir 'GptOperator.Client.exe'
+          $exe = Join-Path $installDir 'LightRemote.Client.exe'
           $result = Join-Path $env:RUNNER_TEMP 'compact-installed-selftest.json'
           $self = Start-Process -FilePath $exe -ArgumentList @('--self-test-output',$result) -PassThru -Wait
           if ($self.ExitCode -ne 0) { throw "compact installed self-test failed exit=$($self.ExitCode)" }
@@ -449,9 +778,9 @@ jobs:
           Stop-ScheduledTask -TaskName 'LightRemoteDeviceAgent' -ErrorAction SilentlyContinue
           $compactDir = $env:WINDOWS_COMPACT_INSTALL_DIR
           if ([string]::IsNullOrWhiteSpace($compactDir)) { $compactDir = Join-Path $env:RUNNER_TEMP 'Light Remote Compact Installed' }
-          $compactExe = Join-Path $compactDir 'GptOperator.Client.exe'
+          $compactExe = Join-Path $compactDir 'LightRemote.Client.exe'
           $compactNode = Join-Path $compactDir 'runtime\node.exe'
-          Get-Process -Name 'GptOperator.Client','node' -ErrorAction SilentlyContinue | Where-Object { try { $_.Path -eq $compactExe -or $_.Path -eq $compactNode } catch { $false } } | Stop-Process -Force -ErrorAction SilentlyContinue
+          Get-Process -Name 'LightRemote.Client','GptOperator.Client','node' -ErrorAction SilentlyContinue | Where-Object { try { $_.Path -eq $compactExe -or $_.Path -eq $compactNode } catch { $false } } | Stop-Process -Force -ErrorAction SilentlyContinue
           Get-Process -Name 'LightRemote.Updater' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
           Unregister-ScheduledTask -TaskName 'LightRemoteDeviceAgent' -Confirm:$false -ErrorAction SilentlyContinue
           Unregister-ScheduledTask -TaskName 'LightRemoteUpdater' -Confirm:$false -ErrorAction SilentlyContinue
@@ -471,7 +800,7 @@ jobs:
           $fullHash = (Get-FileHash $env:WINDOWS_INSTALLER -Algorithm SHA256).Hash.ToLowerInvariant()
           $compactHash = (Get-FileHash $env:WINDOWS_COMPACT_INSTALLER -Algorithm SHA256).Hash.ToLowerInvariant()
           $sum = Join-Path (Split-Path $env:WINDOWS_INSTALLER -Parent) 'SHA256SUMS.txt'
-          @("$fullHash  Light-Remote-MCP-Setup-x64.exe","$compactHash  Light-Remote-MCP-Compact-Setup-x64.exe") | Set-Content -LiteralPath $sum -Encoding ascii
+          @("$fullHash  Light-Remote-Setup-x64.exe","$compactHash  Light-Remote-Compact-Setup-x64.exe") | Set-Content -LiteralPath $sum -Encoding ascii
           Write-Host "windows-native-installer-sha256=$fullHash"
           Write-Host "windows-compact-installer-sha256=$compactHash"
 
@@ -480,8 +809,8 @@ jobs:
         with:
           name: light-remote-windows-x64-${{ github.sha }}
           path: |
-            dist/windows/installer/Light-Remote-MCP-Setup-x64.exe
-            dist/windows/installer/Light-Remote-MCP-Compact-Setup-x64.exe
+            dist/windows/installer/Light-Remote-Setup-x64.exe
+            dist/windows/installer/Light-Remote-Compact-Setup-x64.exe
             dist/windows/installer/SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 14

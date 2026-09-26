@@ -137,8 +137,9 @@ export class EnrollmentRegistry {
     if(prior){
       if(prior.accountId!==accountId||prior.publicKeySha256!==publicKey.fingerprint||prior.publicIdentityKey!==publicKey.encoded)throw new EnrollmentError('trusted_device_binding_conflict',409);
       if(prior.revokedAt)throw new EnrollmentError('device_revoked',403);
-      const grantable=[...capabilities],approved=cleanCapabilities(prior.approvedCapabilities||[]).filter(cap=>grantable.includes(cap));
-      const grantableChanged=JSON.stringify(cleanCapabilities(prior.grantableCapabilities||prior.approvedCapabilities||[]))!==JSON.stringify(grantable);
+      const previousGrantable=cleanCapabilities(prior.grantableCapabilities||prior.approvedCapabilities||[]),grantable=[...capabilities],additions=grantable.filter(cap=>!previousGrantable.includes(cap)),approved=cleanCapabilities(prior.approvedCapabilities||[]).filter(cap=>grantable.includes(cap));
+      for(const cap of additions)if(!approved.includes(cap))approved.push(cap);approved.sort();
+      const grantableChanged=JSON.stringify(previousGrantable)!==JSON.stringify(grantable);
       const approvedChanged=JSON.stringify(cleanCapabilities(prior.approvedCapabilities||[]))!==JSON.stringify(approved);
       if(grantableChanged||approvedChanged){
         prior.grantableCapabilities=grantable;prior.approvedCapabilities=approved;prior.policyRevision=Math.max(1,Number(prior.policyRevision)||1)+1;prior.policyUpdatedAt=this.now();
@@ -294,16 +295,39 @@ export class EnrollmentRegistry {
     const replayKey=`${binding.deviceId}:${nonce}`;
     if (this.nonces.has(replayKey)) throw new EnrollmentError('device_proof_replay',409);
     const reportedCapabilities=cleanCapabilities(input.capabilities);
-    const message=deviceHeartbeatMessage({ deviceId:binding.deviceId, timestamp, nonce, capabilities:reportedCapabilities });
+    const supportedCapabilities=Array.isArray(input.supportedCapabilities)?cleanCapabilities(input.supportedCapabilities):null;
+    if(supportedCapabilities&&reportedCapabilities.some(item=>!supportedCapabilities.includes(item)))throw new EnrollmentError('device_effective_capability_not_supported');
+    const message=deviceHeartbeatMessage({ deviceId:binding.deviceId, timestamp, nonce, capabilities:reportedCapabilities, ...(supportedCapabilities?{supportedCapabilities}: {}) });
     let ok=false;
     try { const key=crypto.createPublicKey({key:Buffer.from(binding.publicIdentityKey,'base64'),format:'der',type:'spki'}); ok=crypto.verify(null,Buffer.from(message),key,Buffer.from(signature,'base64url')); } catch { ok=false; }
     if (!ok) throw new EnrollmentError('invalid_device_proof',401);
-    const currentRevision=Math.max(1,Number(binding.policyRevision)||1), stale=currentRevision>1 && Math.max(0,Number(input.policyRevision)||0)<currentRevision;
-    const extras=reportedCapabilities.filter(item=>!binding.approvedCapabilities.includes(item));
-    if(extras.length&&!stale)throw new EnrollmentError('device_capability_escalation',403);
+    if(supportedCapabilities){
+      const previousGrantable=cleanCapabilities(binding.grantableCapabilities||binding.approvedCapabilities||[]);
+      const previousApproved=cleanCapabilities(binding.approvedCapabilities||[]);
+      const additions=supportedCapabilities.filter(item=>!previousGrantable.includes(item));
+      const approved=previousApproved.filter(item=>supportedCapabilities.includes(item));
+      for(const item of additions)if(!approved.includes(item))approved.push(item);
+      approved.sort();
+      const grantableChanged=JSON.stringify(previousGrantable)!==JSON.stringify(supportedCapabilities);
+      const approvedChanged=JSON.stringify(previousApproved)!==JSON.stringify(approved);
+      if(grantableChanged||approvedChanged){
+        binding.grantableCapabilities=[...supportedCapabilities];
+        binding.approvedCapabilities=[...approved];
+        binding.policyRevision=Math.max(1,Number(binding.policyRevision)||1)+1;
+        binding.policyUpdatedAt=this.now();
+        if(approvedChanged){binding.certificate=certificateBody(binding);binding.certificateSignature=crypto.sign(null,Buffer.from(canonicalCertificate(binding)),this.signer.privateKey).toString('base64url');}
+        this._persist();
+        this.emit({type:'device_capabilities_updated',deviceId:binding.deviceId,accountId:binding.accountId,status:'updated',policyRevision:binding.policyRevision,grantableCapabilities:[...binding.grantableCapabilities],approvedCapabilities:[...binding.approvedCapabilities],addedCapabilities:[...additions]});
+      }
+    }
+    if(!supportedCapabilities){
+      const currentRevision=Math.max(1,Number(binding.policyRevision)||1),stale=currentRevision>1&&Math.max(0,Number(input.policyRevision)||0)<currentRevision;
+      const extras=reportedCapabilities.filter(item=>!binding.approvedCapabilities.includes(item));
+      if(extras.length&&!stale)throw new EnrollmentError('device_capability_escalation',403);
+    }
     const effectiveCapabilities=reportedCapabilities.filter(item=>binding.approvedCapabilities.includes(item));
     if(!effectiveCapabilities.length)throw new EnrollmentError('device_capabilities_required');
     this.nonces.set(replayKey,this.now()+120_000);
-    return { binding, effectiveCapabilities, reportedPolicyRevision:Math.max(0,Number(input.policyRevision)||0), proof:{timestamp,nonce} };
+    return { binding, effectiveCapabilities, supportedCapabilities:supportedCapabilities||null, reportedPolicyRevision:Math.max(0,Number(input.policyRevision)||0), proof:{timestamp,nonce} };
   }
 }

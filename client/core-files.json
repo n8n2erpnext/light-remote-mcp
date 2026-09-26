@@ -62,6 +62,18 @@
       "destination": "lib/native-terminal.mjs"
     },
     {
+      "source": "lib/native-desktop.mjs",
+      "destination": "lib/native-desktop.mjs"
+    },
+    {
+      "source": "lib/real-remote-policy.mjs",
+      "destination": "lib/real-remote-policy.mjs"
+    },
+    {
+      "source": "lib/real-remote-input.cjs",
+      "destination": "lib/real-remote-input.cjs"
+    },
+    {
       "source": "lib/native-search.mjs",
       "destination": "lib/native-search.mjs"
     },
@@ -92,6 +104,14 @@
     {
       "source": "lib/update-helper-reconcile.mjs",
       "destination": "lib/update-helper-reconcile.mjs"
+    },
+    {
+      "source": "assets/fonts/CascadiaMono.ttf",
+      "destination": "assets/fonts/CascadiaMono.ttf"
+    },
+    {
+      "source": "assets/fonts/CascadiaMono-OFL.txt",
+      "destination": "assets/fonts/CascadiaMono-OFL.txt"
     },
     {
       "source": "assets/branding/light-remote-mark.svg",

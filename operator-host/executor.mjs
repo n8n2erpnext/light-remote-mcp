@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import crypto from 'node:crypto';
+import { StringDecoder } from 'node:string_decoder';
 import { decryptEnvelope as decryptSealedEnvelope } from './crypto.mjs';
 import { spawn } from 'node:child_process';
 import { SessionRegistry, SessionError, SESSION_GRACE_PRESETS } from './session-manager.mjs';
@@ -23,10 +24,12 @@ import { executeNativeFs, filesystemPolicy } from '../lib/native-fs.mjs';
 import { NativeProcessRegistry } from '../lib/native-process.mjs';
 import { NativeTerminalRegistry } from '../lib/native-terminal.mjs';
 import { NativeSearchRegistry } from '../lib/native-search.mjs';
+import realRemoteInputPolicy from '../lib/real-remote-input.cjs';
 import { LightScpRegistry } from '../lib/light-scp-registry.mjs';
 import { normalizeUpdateReport } from '../lib/update-contract.mjs';
 import { clientCompatibility } from '../lib/version-compat.mjs';
 import { runtimeVersion } from '../lib/runtime-version.mjs';
+import { restoreActivityRing } from '../lib/activity-ring.mjs';
 import { createPlatformAdapter } from '../device-agent/platform-adapters/index.mjs';
 import { handleAccountRoutes } from './executor-routes-account.mjs';
 import { handleDeviceChannelRoutes } from './executor-routes-device-channel.mjs';
@@ -51,7 +54,7 @@ const LICENSE_STATE_FILE = path.join(STATE_DIR, 'license-keys.json');
 const FLEET_AUTHORITY_TTL_MS = Number(process.env.OPERATOR_FLEET_AUTHORITY_TTL_MS || 10 * 60 * 1000);
 const RING_HARD_CAP_BYTES = 10 * 1024 * 1024;
 const MAX_RING_BYTES = Math.max(1024 * 1024, Math.min(Number(process.env.OPERATOR_RING_BYTES || 8 * 1024 * 1024), RING_HARD_CAP_BYTES));
-const MAX_RING_AGE_MS = Math.max(60000, Math.min(Number(process.env.OPERATOR_RING_AGE_MS || 15 * 60 * 1000), 3600000));
+const MAX_RING_AGE_MS = Math.max(60000, Math.min(Number(process.env.OPERATOR_RING_AGE_MS || 60 * 60 * 1000), 3600000));
 const DISK_FLUSH_MS = Math.max(10, Math.min(Number(process.env.OPERATOR_DISK_FLUSH_MS || 50), 1000));
 const DISK_BATCH_BYTES = Math.max(16384, Math.min(Number(process.env.OPERATOR_DISK_BATCH_BYTES || 262144), 1048576));
 const MAX_RING_EVENTS = Number(process.env.OPERATOR_RING_EVENTS || 5000);
@@ -150,6 +153,14 @@ function queueDiskRecord(event){const line=serializedDiskRecord(event);diskQueue
   queueDiskRecord(event);
   return event;
 }
+const restoredActivity=restoreActivityRing({files:logFilesOldestFirst(),readText:readLogText,now:Date.now(),maxAgeMs:MAX_RING_AGE_MS,maxEvents:MAX_RING_EVENTS,maxBytes:MAX_RING_BYTES});
+if(restoredActivity.ring.length){
+  const current=[...ring];ring.length=0;ring.push(...restoredActivity.ring,...current);
+  ring.sort((a,b)=>a.atMs-b.atMs||Number(a.event?.id||0)-Number(b.event?.id||0));
+  ringBytes=ring.reduce((sum,item)=>sum+item.bytes,0);
+  sequence=Math.max(sequence,restoredActivity.sequence);
+  pruneRing();
+}
 if (devices.loadError) pushEvent({ type:'device_registry_load_error', status:'error', detail:redact(devices.loadError) });
 if (enrollments.loadError) pushEvent({ type:'enrollment_registry_load_error', status:'error', detail:redact(enrollments.loadError) });
 if (connections.loadError) pushEvent({ type:'device_connection_registry_load_error', status:'error', detail:redact(connections.loadError) });
@@ -198,6 +209,32 @@ function decryptEnvelope(envelope) {
   return result;
 }
 
+function likelyBinaryBytes(value) {
+  const buf=Buffer.isBuffer(value)?value:Buffer.from(value);
+  if(!buf.length)return false;
+  if(buf.length>=4){
+    if(buf[0]===0x1f&&buf[1]===0x8b)return true;
+    if(buf[0]===0x50&&buf[1]===0x4b&&[0x03,0x05,0x07].includes(buf[2]))return true;
+    if(buf[0]===0x7f&&buf[1]===0x45&&buf[2]===0x4c&&buf[3]===0x46)return true;
+    if(buf[0]===0x00&&buf[1]===0x01&&buf[2]===0x00&&buf[3]===0x00)return true;
+    const magic=buf.subarray(0,4).toString('ascii');if(magic==='wOFF'||magic==='wOF2')return true;
+  }
+  const sample=buf.subarray(0,Math.min(buf.length,8192));let controls=0;
+  for(const byte of sample){if(byte===0)return true;if(byte<32&&byte!==9&&byte!==10&&byte!==13)controls++;}
+  return controls>=8&&controls/sample.length>0.01;
+}
+function streamState(job,stream){
+  job.outputStates ||= {};
+  return job.outputStates[stream] ||= {decoder:new StringDecoder('utf8'),binary:false,binaryBytes:0,finished:false};
+}
+function appendStreamText(job,stream,text){
+  if(!text)return;
+  job[stream].add(text);
+  for(let i=0;i<text.length;i+=16384)pushEvent({type:stream,jobId:job.id,requestId:job.requestId,operationId:job.operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',chunk:redact(text.slice(i,i+16384))});
+}
+function flushOutputStates(job){
+  for(const stream of ['stdout','stderr']){const state=job.outputStates?.[stream];if(!state||state.finished)continue;state.finished=true;if(state.binary){appendStreamText(job,stream,'[binary '+stream+' suppressed · '+state.binaryBytes+' bytes]\n');continue;}appendStreamText(job,stream,state.decoder.end());}
+}
 function createAccumulator(limit = MAX_MEMORY_OUTPUT) {
   let total = 0;
   let full = '';
@@ -291,23 +328,22 @@ function finishJob(job, exitCode, signal) {
   job.exitCode = exitCode;
   job.signal = signal || null;
   job.status = exitCode === 0 ? 'ok' : job.timedOut ? 'timeout' : 'error';
+  flushOutputStates(job);
+  if(!job.resultSummary&&job.resultData)job.resultSummary=nativeActivityResult(job.toolMeta,job.resultData);
   clearTimeout(job.timer);
   sessions.finishJob(job.sessionId, job.id, job.status);
   if (job.autoCloseSession) { try { sessions.close(job.sessionId, job.agentId); } catch {} }
   pushEvent({ type: 'job_finished', jobId: job.id, requestId: job.requestId, operationId: job.operationId, accountId:job.accountId, deviceId:job.deviceId, sessionId: job.sessionId, agentId:job.agentId, nodeId:job.nodeId,
-    status: job.status, exitCode, signal: signal || null, durationMs: job.finishedAt - job.startedAt, resultSummary:redact(job.resultSummary||''), toolMeta:job.toolMeta||null, latency:latencyView(job) });
+    status: job.status, exitCode, signal: signal || null, durationMs: job.finishedAt - job.startedAt, requiredCapabilities:job.requiredCapabilities||[], cwd:job.cwd||'', script:redact(job.script||''), note:redact(job.note||''), resultSummary:redact(job.resultSummary||''), toolMeta:job.toolMeta||null, latency:latencyView(job) });
   for (const resolve of job.waiters.splice(0)) resolve();
   pruneJobs(job.finishedAt);
 }
 
 function emitStream(job, stream, data) {
   const now=Date.now();if(!job.firstOutputAt){job.firstOutputAt=now;job.telemetry={...(job.telemetry||{}),firstOutputAt:job.telemetry?.firstOutputAt||now};}
-  const text = data.toString('utf8');
-  job[stream].add(text);
-  for (let i = 0; i < text.length; i += 16384) {
-    pushEvent({ type: stream, jobId: job.id, requestId: job.requestId, operationId: job.operationId, accountId:job.accountId, deviceId:job.deviceId, sessionId: job.sessionId, agentId:job.agentId, nodeId:job.nodeId,
-      status: 'running', chunk: redact(text.slice(i, i + 16384)) });
-  }
+  const buf=Buffer.isBuffer(data)?data:Buffer.from(data);const state=streamState(job,stream);
+  if(state.binary||likelyBinaryBytes(buf)){state.binary=true;state.binaryBytes+=buf.length;return;}
+  appendStreamText(job,stream,state.decoder.write(buf));
 }
 
 function startJob(payload, requestId) {
@@ -432,6 +468,46 @@ function fsActivityResult(meta,data){
   return '';
 }
 
+function shortNativeId(value){const text=String(value||'');return text.length>18?text.slice(0,18)+'…':text;}
+function scpActivityMeta(request={}){
+  const op=String(request.op||'unknown').toLowerCase(),meta={kind:'scp',op};
+  if(request.source!=null)meta.source=String(request.source);
+  if(request.destination!=null)meta.destination=String(request.destination);
+  if(request.transferId!=null)meta.transferId=String(request.transferId);
+  if(request.offset!=null)meta.offset=Number(request.offset);
+  if(request.index!=null)meta.index=Number(request.index);
+  if(request.totalBytes!=null)meta.totalBytes=Number(request.totalBytes);
+  if(request.chunkBytes!=null)meta.chunkBytes=Number(request.chunkBytes);
+  if(request.overwrite!=null)meta.overwrite=request.overwrite===true;
+  if(request.createParents!=null)meta.createParents=request.createParents===true;
+  if(request.data!=null)meta.bytes=Buffer.byteLength(String(request.data),'utf8');
+  return meta;
+}
+function processActivityMeta(request={}){
+  const op=String(request.op||'unknown').toLowerCase(),meta={kind:'process',op};
+  if(request.processId!=null)meta.processId=String(request.processId);
+  if(request.cwd!=null)meta.cwd=String(request.cwd);
+  if(request.shell!=null)meta.shell=String(request.shell);
+  if(request.timeoutMs!=null)meta.timeoutMs=Number(request.timeoutMs);
+  if(op==='input'){meta.inputBytes=Buffer.byteLength(String(request.data||''),'utf8');meta.eof=request.eof===true;}
+  if(op==='output'){meta.stream=String(request.stream||'stdout');meta.offset=Math.max(0,Number(request.offset)||0);meta.limit=Math.max(1,Number(request.limit)||262144);}
+  if(op==='stop')meta.force=request.force===true;
+  return meta;
+}
+function searchActivityMeta(request={}){
+  const op=String(request.op||'unknown').toLowerCase(),meta={kind:'search',op};
+  if(request.path!=null)meta.path=String(request.path);
+  if(request.searchType!=null)meta.searchType=String(request.searchType);
+  if(request.pattern!=null)meta.pattern=redact(String(request.pattern)).slice(0,180);
+  if(request.filePattern!=null)meta.filePattern=String(request.filePattern);
+  if(request.searchId!=null)meta.searchId=String(request.searchId);
+  if(request.offset!=null)meta.offset=Math.max(0,Number(request.offset)||0);
+  if(request.limit!=null)meta.limit=Math.max(1,Number(request.limit)||0);
+  if(request.maxResults!=null)meta.maxResults=Math.max(1,Number(request.maxResults)||0);
+  return meta;
+}
+function nativeActivityResult(meta,data){if(!data||typeof data!=='object')return '';if(data.ok===false)return 'error · '+redact(String(data.error||'operation failed'));const kind=String(meta?.kind||''),op=String(meta?.op||data.operation||'');if(kind==='fs')return fsActivityResult(meta,data);if(kind==='terminal')return terminalResultSummary(data);if(kind==='search'){const v=data.search&&typeof data.search==='object'?data.search:data,p=[];if(v.state)p.push(String(v.state));if(Number.isFinite(Number(v.returned)))p.push(String(Number(v.returned))+' returned');if(Number.isFinite(Number(v.resultCount)))p.push(String(Number(v.resultCount))+' result'+(Number(v.resultCount)===1?'':'s'));if(Number.isFinite(Number(v.scannedFiles)))p.push(String(Number(v.scannedFiles))+' files scanned');if(Number.isFinite(Number(v.scannedDirs)))p.push(String(Number(v.scannedDirs))+' dirs');if(v.hasMore===true)p.push('more available');return p.join(' · ')||'completed';}if(kind==='process'){if(op==='list'&&Array.isArray(data.processes)){const r=data.processes.filter(x=>x?.state==='running').length;return data.processes.length+' process'+(data.processes.length===1?'':'es')+' · '+r+' running';}const v=data.process&&typeof data.process==='object'?data.process:data,p=[];if(v.state)p.push(String(v.state));if(v.processId)p.push(shortNativeId(v.processId));if(v.pid)p.push('pid '+String(v.pid));if(Number.isFinite(Number(v.exitCode)))p.push('exit '+String(v.exitCode));if(Number.isFinite(Number(v.stdoutBytes)))p.push('stdout '+String(v.stdoutBytes)+' B');if(Number.isFinite(Number(v.stderrBytes)))p.push('stderr '+String(v.stderrBytes)+' B');if(data.output&&Number.isFinite(Number(data.output.returnedBytes)))p.push(String(data.output.returnedBytes)+' B returned');return p.join(' · ')||'completed';}if(kind==='scp'){const v=data.transfer&&typeof data.transfer==='object'?data.transfer:data.result&&typeof data.result==='object'?data.result:data.chunk&&typeof data.chunk==='object'?data.chunk:data,p=[];if(v.mode)p.push(String(v.mode));if(v.path)p.push(String(v.path));if(Number.isFinite(Number(v.progressBytes))&&Number.isFinite(Number(v.totalBytes)))p.push(String(v.progressBytes)+'/'+String(v.totalBytes)+' B');else if(Number.isFinite(Number(v.bytes)))p.push(String(v.bytes)+' B');else if(Number.isFinite(Number(v.totalBytes)))p.push(String(v.totalBytes)+' B');if(Number.isFinite(Number(v.progressChunks))&&Number.isFinite(Number(v.totalChunks)))p.push(String(v.progressChunks)+'/'+String(v.totalChunks)+' chunks');if(v.complete===true)p.push('complete');if(v.cancelled===true)p.push('cancelled');return p.join(' · ')||'completed';}if(kind==='desktop'){const v=data.desktop&&typeof data.desktop==='object'?data.desktop:data,p=[];if(Array.isArray(v.windows))p.push(String(v.windows.length)+' windows');if(v.semanticSessionId)p.push('semantic '+shortNativeId(v.semanticSessionId));if(Number.isFinite(Number(v.width))&&Number.isFinite(Number(v.height)))p.push(String(v.width)+'×'+String(v.height));if(Number.isFinite(Number(v.stateSeq)))p.push('state '+String(v.stateSeq));return p.join(' · ')||'completed';}return '';}
+
 async function startFsOperation(payload,requestId){
   const operationId=String(payload.operationId||'').trim();
   if(!/^[A-Za-z0-9._:-]{16,128}$/.test(operationId))throw new Error('invalid_operation_id');
@@ -464,11 +540,12 @@ async function startScpOperation(payload,requestId){
   if(remote){const route=targetRoute(session.nodeId);if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(!route.capabilities.includes('filesystem'))throw new FleetError('target_node_capability_missing',409);}else if(!hostEffectiveCapabilities().includes('filesystem'))throw new DeviceError('local_host_capability_missing',409);
   const fingerprint=crypto.createHash('sha256').update(JSON.stringify({request,sessionId:session.id,nodeId:session.nodeId})).digest('hex'),existing=operationDedupe.get(operationId);
   if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
-  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`light-scp:${String(request.op||'unknown')}`,cwd:String(request.destination||request.source||''),script:'',status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null};
+  const toolMeta=scpActivityMeta(request);
+  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`light-scp:${toolMeta.op}`,cwd:String(request.destination||request.source||''),script:'',status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null,resultSummary:'',toolMeta};
   jobs.set(job.id,job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
-  pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:remote?'outbound-leaf':'local',requiredCapabilities,note:job.note});
+  pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:remote?'outbound-leaf':'local',requiredCapabilities,note:job.note,toolMeta:job.toolMeta});
   if(remote){const command=fleet.enqueue({accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'scp',operationId,sessionId:job.sessionId,agentId:job.agentId,scp:request}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},60000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();return job;}
-  Promise.resolve().then(()=>executeLocalScpRequest(job,request)).then(data=>{job.resultData=data;finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n'));finishJob(job,1,null);});return job;
+  Promise.resolve().then(()=>executeLocalScpRequest(job,request)).then(data=>{job.resultData=data;job.resultSummary=nativeActivityResult(job.toolMeta,data);finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n'));finishJob(job,1,null);});return job;
 }
 
 async function executeLocalScpRequest(job,request){
@@ -492,11 +569,12 @@ async function startProcessOperation(payload,requestId){
   if(remote){const route=targetRoute(session.nodeId);if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(!route.capabilities.includes('filesystem'))throw new FleetError('target_node_capability_missing',409);}else if(!hostEffectiveCapabilities().includes('filesystem'))throw new DeviceError('local_host_capability_missing',409);
   const fingerprint=crypto.createHash('sha256').update(JSON.stringify({request,sessionId:session.id,nodeId:session.nodeId})).digest('hex'),existing=operationDedupe.get(operationId);
   if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
-  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-process:${String(request.op||'unknown')}`,cwd:String(request.cwd||''),script:String(request.script||''),status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null};
+  const toolMeta=processActivityMeta(request);
+  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-process:${toolMeta.op}`,cwd:String(request.cwd||''),script:String(request.script||''),status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null,resultSummary:'',toolMeta};
   jobs.set(job.id,job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
-  pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:remote?'outbound-leaf':'local',requiredCapabilities,note:job.note});
+  pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:remote?'outbound-leaf':'local',requiredCapabilities,note:job.note,toolMeta:job.toolMeta});
   if(remote){const command=fleet.enqueue({accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'process',operationId,sessionId:job.sessionId,agentId:job.agentId,process:request}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},30000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();return job;}
-  Promise.resolve().then(()=>executeLocalProcessRequest(job,request)).then(data=>{job.resultData=data;finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n'));finishJob(job,1,null);});return job;
+  Promise.resolve().then(()=>executeLocalProcessRequest(job,request)).then(data=>{job.resultData=data;job.resultSummary=nativeActivityResult(job.toolMeta,data);finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n'));finishJob(job,1,null);});return job;
 }
 
 async function executeLocalProcessRequest(job,request){
@@ -583,6 +661,30 @@ async function executeLocalTerminalRequest(job,request){
   throw new Error('terminal_operation_unsupported');
 }
 
+const {normalizeDesktopInput}=realRemoteInputPolicy;
+
+async function startDesktopOperation(payload,requestId){
+  const operationId=String(payload.operationId||'').trim();if(!/^[A-Za-z0-9._:-]{16,128}$/.test(operationId))throw new Error('invalid_operation_id');
+  const agentId=String(payload.agentId||'').trim(),session=sessions.ensure(String(payload.sessionId||''),{agentId});requireDeviceConnection(session.deviceId);
+  if(payload.nodeId!=null&&String(payload.nodeId)!==session.nodeId)throw new SessionError('session_target_mismatch',409);
+  let request=payload.desktop&&typeof payload.desktop==='object'&&!Array.isArray(payload.desktop)?payload.desktop:null;if(!request)throw new Error('desktop_request_required');
+  const op=String(request.op||'');if(!['status','attach','resume','detach','windows','frame','input','observe','act','semantic-attach','semantic-snapshot','semantic-events','semantic-detach'].includes(op))throw new Error('desktop_operation_unsupported');
+  if(op==='input'||(op==='act'&&Array.isArray(request.events)))request={op,...normalizeDesktopInput(request)};
+  const remote=session.nodeId!==NODE_ID,requiredCapabilities=(op==='input'||op==='act')?['desktop','desktop-input']:['desktop'];
+  if(!remote)throw new DeviceError('desktop_local_host_not_supported',409);
+  const route=targetRoute(session.nodeId);if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(requiredCapabilities.some(cap=>!route.capabilities.includes(cap)))throw new FleetError('target_node_capability_missing',409);
+  const fingerprint=crypto.createHash('sha256').update(JSON.stringify({request,sessionId:session.id,nodeId:session.nodeId})).digest('hex'),existing=operationDedupe.get(operationId);
+  if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
+  const toolMeta={kind:'desktop',op,label:op==='status'?'Desktop status':op==='attach'?'Desktop attach':op==='resume'?'Desktop resume':op==='detach'?'Desktop detach':op==='windows'?'Desktop windows':op==='frame'?'Desktop frame':op==='input'?'Desktop input':op==='observe'?'Computer observe':op==='act'?'Computer act':op==='semantic-attach'?'Semantic attach':op==='semantic-snapshot'?'Semantic snapshot':op==='semantic-events'?'Semantic events':'Semantic detach'};
+  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-desktop:${op}`,cwd:'',script:toolMeta.label,status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote:true,commandId:null,requiredCapabilities,resultData:null,resultSummary:'',toolMeta};
+  jobs.set(job.id,job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
+  pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:'outbound-leaf',requiredCapabilities,note:job.note,toolMeta});
+  const command=fleet.enqueue({accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'desktop',operationId,sessionId:job.sessionId,agentId:job.agentId,desktop:request}});
+  job.commandId=command.commandId;
+  job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},30000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();
+  return job;
+}
+
 async function startSearchOperation(payload,requestId){
   const operationId=String(payload.operationId||'').trim();if(!/^[A-Za-z0-9._:-]{16,128}$/.test(operationId))throw new Error('invalid_operation_id');
   const agentId=String(payload.agentId||'').trim(),session=sessions.ensure(String(payload.sessionId||''),{agentId});requireDeviceConnection(session.deviceId);
@@ -592,11 +694,12 @@ async function startSearchOperation(payload,requestId){
   if(remote){const route=targetRoute(session.nodeId);if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(!route.capabilities.includes('filesystem'))throw new FleetError('target_node_capability_missing',409);}else if(!hostEffectiveCapabilities().includes('filesystem'))throw new DeviceError('local_host_capability_missing',409);
   const fingerprint=crypto.createHash('sha256').update(JSON.stringify({request,sessionId:session.id,nodeId:session.nodeId})).digest('hex'),existing=operationDedupe.get(operationId);
   if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
-  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-search:${String(request.op||'unknown')}`,cwd:String(request.path||''),script:'',status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null};
+  const toolMeta=searchActivityMeta(request);
+  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-search:${toolMeta.op}`,cwd:String(request.path||''),script:'',status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null,resultSummary:'',toolMeta};
   jobs.set(job.id,job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
-  pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:remote?'outbound-leaf':'local',requiredCapabilities,note:job.note});
+  pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:remote?'outbound-leaf':'local',requiredCapabilities,note:job.note,toolMeta:job.toolMeta});
   if(remote){const command=fleet.enqueue({accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'search',operationId,sessionId:job.sessionId,agentId:job.agentId,search:request}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},30000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();return job;}
-  Promise.resolve().then(()=>executeLocalSearchRequest(job,request)).then(data=>{job.resultData=data;finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n'));finishJob(job,1,null);});return job;
+  Promise.resolve().then(()=>executeLocalSearchRequest(job,request)).then(data=>{job.resultData=data;const v=data?.search||data;if(v&&typeof v==='object'){for(const key of ['path','searchType','pattern','filePattern'])if(v[key]!=null&&!job.toolMeta[key])job.toolMeta[key]=key==='pattern'?redact(String(v[key])).slice(0,180):String(v[key]);}job.resultSummary=nativeActivityResult(job.toolMeta,data);finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n'));finishJob(job,1,null);});return job;
 }
 
 async function executeLocalSearchRequest(job,request){
@@ -898,9 +1001,6 @@ function verifiedLeafCapabilities(value,binding,reportedRevision=0) {
     if (!/^[A-Za-z0-9._:-]{1,80}$/.test(item)) throw new EnrollmentError('invalid_device_capability');
     if (!reported.includes(item)) reported.push(item);
   }
-  const currentRevision=Math.max(1,Number(binding.policyRevision)||1), stale=currentRevision>1 && Number(reportedRevision||0)<currentRevision;
-  const extras=reported.filter(item=>!binding.approvedCapabilities.includes(item));
-  if (extras.length && !stale) throw new EnrollmentError('device_capability_escalation',403);
   const out=reported.filter(item=>binding.approvedCapabilities.includes(item)).sort();
   if (!out.length) throw new EnrollmentError('device_capabilities_required');
   return out;
@@ -923,7 +1023,7 @@ const routeDeps=()=>({
   removeRuntimeForDevice,requireAccount,requireDeviceConnection,revokeRuntimeForDevice,ring,
   ringBytes,sendJson,sessionStatsFromDisk,sessions,sseClients,
   startFsOperation,startJob,startProcessOperation,startScpOperation,startSearchOperation,
-  startTerminalOperation,targetRoute,terminalResultSummary,usage,verifiedChannelContext,
+  startDesktopOperation,startTerminalOperation,targetRoute,terminalResultSummary,usage,verifiedChannelContext,
   verifiedFleetContext,verifiedLeafCapabilities,waitForJob,wakeDeviceChannelForDevice,
 });
 

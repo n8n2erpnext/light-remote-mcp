@@ -11,7 +11,7 @@ const parsedVersion=parseVersion(version);if(!parsedVersion)throw new Error('pro
 const rcIndex=parsedVersion.pre[0]==='rc'&&/^\d+$/.test(parsedVersion.pre[1]||'')?Number(parsedVersion.pre[1]):null;
 const newerVersion=rcIndex!=null?`${parsedVersion.core.join('.')}-rc.${rcIndex+1}`:`${parsedVersion.core[0]}.${parsedVersion.core[1]}.${parsedVersion.core[2]+1}`;
 const need=(v,m)=>{if(!v)throw new Error(m);},assets=path.join(tmp,'assets');fs.mkdirSync(assets);
-const names=[`Light-Remote-MCP-Setup-x64-${version}.exe`,`Light-Remote-Client-macOS-x64-${version}.tar.gz`,`Light-Remote-Client-macOS-arm64-${version}.tar.gz`,`Light-Remote-MCP-Client-Linux-x64-${version}.tar.gz`,`Light-Remote-MCP-Client-Linux-arm64-${version}.tar.gz`];
+const names=[`Light-Remote-Setup-x64-${version}.exe`,`Light-Remote-Client-macOS-x64-${version}.tar.gz`,`Light-Remote-Client-macOS-arm64-${version}.tar.gz`,`Light-Remote-MCP-Client-Linux-x64-${version}.tar.gz`,`Light-Remote-MCP-Client-Linux-arm64-${version}.tar.gz`];
 for(const [i,name] of names.entries())fs.writeFileSync(path.join(assets,name),`promotion-artifact-${i}-${name}\n`);
 const manifest=path.join(tmp,'incoming.json'),signature=`${manifest}.sig`,channel=path.join(tmp,'channel');
 const build=spawnSync(process.execPath,[path.join(root,'deploy/scripts/build-client-update-manifest.mjs'),assets,`https://github.com/test/light-remote/releases/download/v${version}`,manifest],{cwd:root,encoding:'utf8'});need(build.status===0,build.stderr);

@@ -1,6 +1,6 @@
 # Third-party distribution notices
 
-Updated: 2026-09-10
+Updated: 2026-09-25
 
 This file records the notice files that must accompany Light Remote MCP binary packages. It does not grant a license to Light Remote MCP itself; the project-wide root license is a separate owner decision.
 
@@ -28,6 +28,13 @@ The Windows client contains UI/layout work derived from the NetBird desktop clie
 
 Upstream reference: https://github.com/netbirdio/netbird
 
+
+## Cascadia Mono font
+Light Remote bundles assets/fonts/CascadiaMono.ttf for an offline, consistent terminal UI across Windows, Linux and macOS. Cascadia Mono is from Microsoft Cascadia Code and is licensed under the SIL Open Font License 1.1.
+
+The complete font license is distributed as assets/fonts/CascadiaMono-OFL.txt.
+
+Upstream references: https://github.com/microsoft/cascadia-code and https://github.com/microsoft/terminal
 
 ## PTY / ConPTY terminal runtime
 Light Remote packages a native pseudo-terminal backend for SSH-class interactive terminal sessions.

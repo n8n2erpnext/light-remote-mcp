@@ -36,5 +36,15 @@ internal static class RecoveryPaths
     }
 
     public static string RollbackInstaller(string version)
+        => Path.Combine(RollbackDir, $"Light-Remote-Setup-{version}-x64.exe");
+
+    public static string LegacyRollbackInstaller(string version)
         => Path.Combine(RollbackDir, $"Light-Remote-MCP-Setup-{version}-x64.exe");
+
+    public static string? ResolveRollbackInstaller(string version)
+    {
+        foreach(var candidate in new[]{RollbackInstaller(version),LegacyRollbackInstaller(version)})
+            if(File.Exists(candidate))return candidate;
+        return null;
+    }
 }
