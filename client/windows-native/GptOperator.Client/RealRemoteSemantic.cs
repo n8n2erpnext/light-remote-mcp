@@ -20,6 +20,8 @@ internal static partial class RealRemoteHelper
         public object Gate { get; } = new();
         public List<SemanticEventRecord> Journal { get; } = new();
         public Dictionary<string, AutomationElement> NodeIndex { get; } = new(StringComparer.Ordinal);
+        public Dictionary<string, string> SnapshotJson { get; } = new(StringComparer.Ordinal);
+        public long SnapshotStateSeq;
         public long StateSeq;
         public long InputSeq;
         public long DroppedBeforeSeq;
@@ -30,6 +32,15 @@ internal static partial class RealRemoteHelper
         public AutomationFocusChangedEventHandler? FocusHandler;
         public StructureChangedEventHandler? StructureHandler;
         public AutomationPropertyChangedEventHandler? PropertyHandler;
+    }
+
+    private sealed class SemanticCapture
+    {
+        public required List<Dictionary<string, object?>> Rows { get; init; }
+        public required bool Truncated { get; init; }
+        public required long StateSeq { get; init; }
+        public required bool ScopeChanged { get; init; }
+        public object? Patch { get; init; }
     }
 
     private static readonly object SemanticLock = new();
@@ -96,19 +107,7 @@ internal static partial class RealRemoteHelper
 
     private static object SemanticSnapshotCore(SemanticSession session, bool attached)
     {
-        _ = RefreshSemanticForegroundRoot(session);
-        var rows = new List<Dictionary<string, object?>>(Math.Min(session.MaxNodes, 512));
-        var truncated = false;
-        long stateSeq;
-        bool scopeChanged;
-        lock (session.Gate)
-        {
-            session.NodeIndex.Clear();
-            WalkSemantic(session.Root, null, 0, "0", session, rows, ref truncated);
-            stateSeq = ++session.StateSeq;
-            scopeChanged = session.ScopeChanged;
-            session.ScopeChanged = false;
-        }
+        var capture = CaptureSemanticState(session);
         var cursor = GetCursorPos(out var point) ? new { x = point.X, y = point.Y } : null;
         return new
         {
@@ -116,23 +115,103 @@ internal static partial class RealRemoteHelper
             provider = "windows-uia",
             semanticSessionId = session.Id,
             epoch = session.Epoch,
-            stateSeq,
+            stateSeq = capture.StateSeq,
             attached,
             attachedAt = session.AttachedAt,
             capturedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
             scope = session.Scope,
             maxDepth = session.MaxDepth,
             maxNodes = session.MaxNodes,
-            nodeCount = rows.Count,
-            truncated,
+            nodeCount = capture.Rows.Count,
+            truncated = capture.Truncated,
             cursor,
             foreground = WindowInfo(GetForegroundWindow()),
             eventsAvailable = session.FocusSubscribed || session.StructureSubscribed || session.PropertySubscribed,
             subscriptions = new { focus = session.FocusSubscribed, structure = session.StructureSubscribed, property = session.PropertySubscribed },
             droppedBeforeSeq = session.DroppedBeforeSeq,
-            scopeChanged,
-            nextObservation = new { mode = "events", afterSeq = stateSeq, reason = "snapshot-ready" },
-            nodes = rows
+            scopeChanged = capture.ScopeChanged,
+            patch = capture.Patch,
+            nextObservation = new { mode = "events", afterSeq = capture.StateSeq, reason = "snapshot-ready" },
+            nodes = capture.Rows
+        };
+    }
+
+    private static SemanticCapture CaptureSemanticState(SemanticSession session)
+    {
+        _ = RefreshSemanticForegroundRoot(session);
+        var rows = new List<Dictionary<string, object?>>(Math.Min(session.MaxNodes, 512));
+        var truncated = false;
+        long stateSeq;
+        bool scopeChanged;
+        object? patch;
+        lock (session.Gate)
+        {
+            session.NodeIndex.Clear();
+            WalkSemantic(session.Root, null, 0, "0", session, rows, ref truncated);
+            stateSeq = ++session.StateSeq;
+            scopeChanged = session.ScopeChanged;
+            session.ScopeChanged = false;
+            patch = UpdateSemanticSnapshotCacheLocked(session, rows, stateSeq);
+        }
+        return new SemanticCapture
+        {
+            Rows = rows,
+            Truncated = truncated,
+            StateSeq = stateSeq,
+            ScopeChanged = scopeChanged,
+            Patch = patch
+        };
+    }
+
+    private static object? UpdateSemanticSnapshotCacheLocked(
+        SemanticSession session,
+        List<Dictionary<string, object?>> rows,
+        long stateSeq)
+    {
+        var hadSnapshot = session.SnapshotStateSeq > 0;
+        var baseStateSeq = session.SnapshotStateSeq;
+        var current = new Dictionary<string, string>(StringComparer.Ordinal);
+        var added = new List<Dictionary<string, object?>>();
+        var updated = new List<Dictionary<string, object?>>();
+        var removed = new List<string>();
+
+        foreach (var node in rows)
+        {
+            if (!node.TryGetValue("id", out var idValue) || idValue is not string id || string.IsNullOrWhiteSpace(id))
+                continue;
+            var json = JsonSerializer.Serialize(node);
+            current[id] = json;
+            if (!hadSnapshot) continue;
+            if (!session.SnapshotJson.TryGetValue(id, out var previous))
+                added.Add(node);
+            else if (!string.Equals(previous, json, StringComparison.Ordinal))
+                updated.Add(node);
+        }
+
+        if (hadSnapshot)
+        {
+            foreach (var id in session.SnapshotJson.Keys)
+                if (!current.ContainsKey(id))
+                    removed.Add(id);
+        }
+
+        session.SnapshotJson.Clear();
+        foreach (var pair in current)
+            session.SnapshotJson[pair.Key] = pair.Value;
+        session.SnapshotStateSeq = stateSeq;
+
+        if (!hadSnapshot) return null;
+        return new
+        {
+            baseStateSeq,
+            stateSeq,
+            changed = added.Count > 0 || updated.Count > 0 || removed.Count > 0,
+            addedCount = added.Count,
+            updatedCount = updated.Count,
+            removedCount = removed.Count,
+            added,
+            updated,
+            removed
         };
     }
 
