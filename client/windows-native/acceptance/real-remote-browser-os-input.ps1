@@ -287,7 +287,7 @@ try{
   $newTabLinks=@($nextDone.nodes|Where-Object { $_.role -eq 'link' -and $_.name -eq 'Light Remote Open New Tab' })
   if($newTabLinks.Count -ne 1 -or $null -eq $newTabLinks[0].center){throw "New-tab link semantic center missing count=$($newTabLinks.Count)"}
   $newTabX=[int][Math]::Round([double]$newTabLinks[0].center.x);$newTabY=[int][Math]::Round([double]$newTabLinks[0].center.y)
-  $oldTargetId=[string]$nextDone.target.id;$newTabBeforeSeq=[long]$nextDone.stateSeq
+  $oldTargetId=[string]$nextDone.target.id;$survivorTitle=[string]$nextDone.target.title;$survivorUrl=[string]$nextDone.target.url;$newTabBeforeSeq=[long]$nextDone.stateSeq
   [LightRemoteAcceptanceWindow]::Focus($hwnd);Start-Sleep -Milliseconds 100
   $newTabAck=Invoke-Rr 'accept-os-new-tab' 'input' @{events=@(@{type='move';x=$newTabX;y=$newTabY},@{type='click';button='left';count=1});semanticSessionId=$sem;afterSeq=$newTabBeforeSeq;settleMs=250}
   if([int]$newTabAck.appliedEvents -ne 2 -or [int]$newTabAck.sentInputs -lt 2){throw "New-tab SendInput proof missing applied=$($newTabAck.appliedEvents) sent=$($newTabAck.sentInputs)"}
@@ -343,8 +343,8 @@ try{
   if($null -eq $returnStable -or $returnButtons.Count -ne 1){throw 'Same semantic session did not recover surviving foreground tab after close'}
   if([string]$returnStable.semanticSessionId -ne $sem){throw 'Semantic session changed during close-tab recovery'}
   if([string]$returnStable.target.id -ne $oldTargetId){throw "Close-tab recovery target mismatch: $($returnStable.target.id)"}
-  if([string]$returnStable.target.url -notlike '*real-remote-browser-os-input-next.html'){throw "Close-tab recovery URL mismatch: $($returnStable.target.url)"}
-  if([string]$returnStable.target.title -ne 'Light Remote Navigation Continued'){throw "Close-tab recovery title mismatch: $($returnStable.target.title)"}
+  if([string]$returnStable.target.url -ne $survivorUrl){throw "Close-tab recovery URL mismatch: actual=$($returnStable.target.url) expected=$survivorUrl"}
+  if([string]$returnStable.target.title -ne $survivorTitle){throw "Close-tab recovery title mismatch: actual=$($returnStable.target.title) expected=$survivorTitle"}
 
   $closeEvents=Invoke-Rr 'accept-close-tab-events' 'semantic-events' @{semanticSessionId=$sem;afterSeq=$closeBeforeSeq;limit=100}
   $closeHandoffs=@($closeEvents.events|Where-Object { $_.kind -eq 'target' -and $_.property -eq 'targetId' -and $_.change -eq ("handoff:"+$newTabTargetId+"->"+$oldTargetId) -and $_.resyncRecommended })
