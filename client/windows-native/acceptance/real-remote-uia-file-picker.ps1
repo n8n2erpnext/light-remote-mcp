@@ -76,13 +76,21 @@ try{
   if([int]$openAck.appliedEvents -ne 2 -or [int]$openAck.sentInputs -lt 2){throw 'File-picker open SendInput proof missing'}
   $dialogHwnd=Wait-Window $dialogTitle
   if($dialogHwnd -eq $parentHwnd){throw 'Native file picker did not create a distinct HWND'}
+  $dialogForegroundDeadline=[DateTime]::UtcNow.AddSeconds(5);$dialogStatus=$null
+  do{
+    $dialogStatus=Invoke-Rr 'picker-dialog-status' 'status'
+    if([string]$dialogStatus.foreground.title -eq $dialogTitle){break}
+    Start-Sleep -Milliseconds 100
+  }while([DateTime]::UtcNow -lt $dialogForegroundDeadline)
+  if([string]$dialogStatus.foreground.title -ne $dialogTitle){throw "Native file-picker did not become foreground: $($dialogStatus.foreground.title)"}
+
   $handoffAck=$openAck
-  if(-not $handoffAck.resyncRecommended){
+  if(-not $handoffAck.resyncRecommended -or [string]$handoffAck.foreground.title -ne $dialogTitle){
     $probeX=[int]$openAck.cursor.x;$probeY=[int]$openAck.cursor.y
     $handoffAck=Invoke-Rr 'picker-open-handoff-probe' 'input' @{events=@(@{type='move';x=$probeX;y=$probeY});semanticSessionId=$sem;afterSeq=[long]$openAck.stateSeq;settleMs=50}
   }
   if(-not $handoffAck.resyncRecommended){throw 'Native file-picker open must recommend UIA resync'}
-  if([string]$handoffAck.foreground.title -ne $dialogTitle){throw "Native file-picker foreground mismatch: $($handoffAck.foreground.title)"}
+  if([string]$handoffAck.foreground.title -ne $dialogTitle){throw "Native file-picker foreground mismatch after handoff probe: $($handoffAck.foreground.title)"}
 
   $dialog=Wait-Root $sem $dialogTitle $dialogHwnd 'picker-dialog-root'
   $dialogRootHwnd=[string]$dialog.root.hwnd;$dialogPid=[int]$dialog.root.processId
