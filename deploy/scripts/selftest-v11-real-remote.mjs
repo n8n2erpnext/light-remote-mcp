@@ -142,6 +142,7 @@ const inputAckHelper=read('client/windows-native/GptOperator.Client/RealRemoteIn
 const browserCdpHelper=read('client/windows-native/GptOperator.Client/RealRemoteBrowserCdp.cs');
 const browserSnapshotHelper=read('client/windows-native/GptOperator.Client/RealRemoteBrowserSnapshot.cs');
 const browserAcceptance=read('client/windows-native/acceptance/real-remote-browser-os-input.ps1');
+const browserCrossOriginServer=read('client/windows-native/acceptance/real-remote-browser-cross-origin-server.cjs');
 const windowsProject=read('client/windows-native/GptOperator.Client/GptOperator.Client.csproj');
 const supervisor=read('client/windows-native/GptOperator.Client/AgentSupervisor.cs');
 const host=read('client/windows-native/GptOperator.Client/AgentHost.cs');
@@ -168,6 +169,9 @@ assert.ok(browserAcceptance.includes('windows-real-remote-close-tab-handoff=PASS
 assert.ok(browserAcceptance.includes('windows-real-remote-popup-window-handoff=PASS')&&browserAcceptance.includes('windows-real-remote-popup-window-continued-input=PASS')&&browserAcceptance.includes('windows-real-remote-popup-window-closed-loop=PASS'),'Real Windows acceptance must prove popup-window handoff and continued OS input');
 assert.ok(browserAcceptance.includes('windows-real-remote-target-identity-title-collision=PASS')&&browserAcceptance.includes('FindDifferent'),'Real Windows acceptance must prove same-title cross-window target identity');
 assert.ok(browserAcceptance.includes('windows-real-remote-history-back=PASS')&&browserAcceptance.includes('windows-real-remote-history-forward=PASS')&&browserAcceptance.includes('windows-real-remote-reload=PASS')&&browserAcceptance.includes('windows-real-remote-history-reload-closed-loop=PASS'),'Real Windows acceptance must prove browser history and reload through OS input');
+assert.ok(browserAcceptance.includes('windows-real-remote-cross-origin-a=PASS')&&browserAcceptance.includes('windows-real-remote-cross-origin-transition=PASS')&&browserAcceptance.includes('windows-real-remote-cross-origin-continued-input=PASS')&&browserAcceptance.includes('windows-real-remote-cross-origin-closed-loop=PASS'),'Real Windows acceptance must prove cross-origin navigation and continued OS input');
+assert.ok(browserAcceptance.includes("key='L';modifiers=@('CTRL')")&&browserAcceptance.includes("type='text';text=$originAUrl"),'Cross-origin navigation must use OS address-bar input');
+assert.ok(browserCrossOriginServer.includes("serverA.listen(0,'127.0.0.1'")&&browserCrossOriginServer.includes("serverB.listen(0,'127.0.0.1'")&&browserCrossOriginServer.includes('/origin-a')&&browserCrossOriginServer.includes('/origin-b'),'Cross-origin fixture must use two distinct loopback origins');
 assert.ok(!browserCdpHelper.includes('Input.dispatch')&&!browserSnapshotHelper.includes('Input.dispatch')&&!inputAckHelper.includes('Input.dispatch'),'Browser CDP must remain observation-only for input');
 assert.ok(!browserCdpHelper.includes('Runtime.evaluate')&&!browserSnapshotHelper.includes('Runtime.evaluate')&&!inputAckHelper.includes('Runtime.evaluate'),'Browser CDP must not inject page script for ACK');
 for(const token of ['SemanticProvider(args)','browser-cdp','BrowserSemanticAttach(args)','BrowserSemanticSnapshot(args)','BrowserSemanticDetach(args)'])assert.ok(semanticHelper.includes(token),`Browser semantic provider routing missing: ${token}`);

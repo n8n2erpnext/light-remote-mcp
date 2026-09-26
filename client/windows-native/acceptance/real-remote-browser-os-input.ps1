@@ -36,7 +36,7 @@ public static class LightRemoteAcceptanceWindow{
 '@
 }
 
-$browser=$null;$rr=$null;$sem=$null;$detached=$false
+$browser=$null;$rr=$null;$sem=$null;$detached=$false;$originServer=$null;$originAUrl='';$originBUrl=''
 function Invoke-Rr([string]$Id,[string]$Op,[hashtable]$RequestArgs=@{}){
   $script:rr.StandardInput.WriteLine((@{id=$Id;op=$Op;args=$RequestArgs}|ConvertTo-Json -Compress -Depth 12));$script:rr.StandardInput.Flush()
   $task=$script:rr.StandardOutput.ReadLineAsync()
@@ -46,6 +46,21 @@ function Invoke-Rr([string]$Id,[string]$Op,[hashtable]$RequestArgs=@{}){
 }
 
 try{
+  $node=(Get-Command node -ErrorAction Stop).Source
+  $originServerScript=(Resolve-Path -LiteralPath (Join-Path $PSScriptRoot 'real-remote-browser-cross-origin-server.cjs')).Path
+  $originPortFile=Join-Path $profile 'cross-origin-ports.json'
+  $originServer=Start-Process -FilePath $node -ArgumentList @($originServerScript,$originPortFile) -PassThru -WindowStyle Hidden
+  $originDeadline=[DateTime]::UtcNow.AddSeconds([Math]::Min($TimeoutSeconds,10))
+  while(-not(Test-Path -LiteralPath $originPortFile) -and [DateTime]::UtcNow -lt $originDeadline){
+    if($originServer.HasExited){throw "Cross-origin server exited early: $($originServer.ExitCode)"}
+    Start-Sleep -Milliseconds 100
+  }
+  if(-not(Test-Path -LiteralPath $originPortFile)){throw 'Cross-origin server ports missing'}
+  $originPorts=Get-Content -LiteralPath $originPortFile -Raw|ConvertFrom-Json
+  if([int]$originPorts.a -lt 1 -or [int]$originPorts.b -lt 1 -or [int]$originPorts.a -eq [int]$originPorts.b){throw 'Cross-origin server ports invalid'}
+  $originAUrl="http://127.0.0.1:$([int]$originPorts.a)/origin-a"
+  $originBUrl="http://127.0.0.1:$([int]$originPorts.b)/origin-b"
+
   $args=@('--remote-debugging-port=0','--remote-allow-origins=*','--disable-background-networking','--disable-default-apps','--no-first-run','--no-default-browser-check','--new-window','--start-maximized',"--user-data-dir=$profile",$fixtureUrl)
   $browser=Start-Process -FilePath $BrowserExe -ArgumentList $args -PassThru
   $portFile=Join-Path $profile 'DevToolsActivePort';$deadline=[DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
@@ -416,6 +431,62 @@ try{
   Write-Host "windows-real-remote-popup-window-continued-input=PASS sentInputs=$($popupActionAck.sentInputs) inputSeq=$($popupActionAck.inputSeq) seq=$($popupDone.stateSeq)"
   Write-Host 'windows-real-remote-popup-window-closed-loop=PASS'
 
+  $crossTargetId=[string]$popupDone.target.id;$crossBeforeSeq=[long]$popupDone.stateSeq
+  [LightRemoteAcceptanceWindow]::Focus($popupHwnd);Start-Sleep -Milliseconds 100
+  $originAAck=Invoke-Rr 'accept-os-cross-origin-a' 'input' @{events=@(@{type='key';key='L';modifiers=@('CTRL')},@{type='text';text=$originAUrl},@{type='key';key='ENTER'});semanticSessionId=$sem;afterSeq=$crossBeforeSeq;settleMs=300}
+  $originAExpectedInputs=6+($originAUrl.Length*2)
+  if([int]$originAAck.appliedEvents -ne 3 -or [int]$originAAck.sentInputs -lt $originAExpectedInputs){throw "Origin-A address-bar SendInput proof missing applied=$($originAAck.appliedEvents) sent=$($originAAck.sentInputs) expected=$originAExpectedInputs"}
+  if([string]$originAAck.semanticSessionId -ne $sem){throw 'Semantic session changed while navigating address bar to origin A'}
+
+  $originADeadline=[DateTime]::UtcNow.AddSeconds(5);$originAAttempt=0;$originAStable=$null;$originALinks=@()
+  do{
+    $originAAttempt++
+    try{
+      $candidate=Invoke-Rr ("accept-cross-origin-a-snapshot-"+$originAAttempt) 'semantic-snapshot' @{semanticSessionId=$sem}
+      $candidateLinks=@($candidate.nodes|Where-Object { $_.role -eq 'link' -and $_.name -eq 'Light Remote Cross Origin Navigate' })
+      if([string]$candidate.target.url -eq $originAUrl -and [string]$candidate.target.title -eq 'Light Remote Cross Origin A' -and $candidateLinks.Count -eq 1 -and $null -ne $candidateLinks[0].center){$originAStable=$candidate;$originALinks=$candidateLinks;break}
+    }catch{}
+    Start-Sleep -Milliseconds 100
+  }while([DateTime]::UtcNow -lt $originADeadline)
+  if($null -eq $originAStable -or $originALinks.Count -ne 1){throw 'OS address-bar navigation did not reach origin A'}
+  if([string]$originAStable.semanticSessionId -ne $sem -or [string]$originAStable.target.id -ne $crossTargetId){throw 'Origin-A navigation changed semantic session or target identity'}
+  Write-Host "windows-real-remote-cross-origin-a=PASS target=$crossTargetId url=$($originAStable.target.url) sentInputs=$($originAAck.sentInputs)"
+
+  $originALink=$originALinks[0]
+  $originAX=[int][Math]::Round([double]$originALink.center.x);$originAY=[int][Math]::Round([double]$originALink.center.y);$originABeforeSeq=[long]$originAStable.stateSeq
+  [LightRemoteAcceptanceWindow]::Focus($popupHwnd);Start-Sleep -Milliseconds 100
+  $originBAck=Invoke-Rr 'accept-os-cross-origin-b' 'input' @{events=@(@{type='move';x=$originAX;y=$originAY},@{type='click';button='left';count=1});semanticSessionId=$sem;afterSeq=$originABeforeSeq;settleMs=250}
+  if([int]$originBAck.appliedEvents -ne 2 -or [int]$originBAck.sentInputs -lt 2){throw "Origin-B click SendInput proof missing applied=$($originBAck.appliedEvents) sent=$($originBAck.sentInputs)"}
+  if([string]$originBAck.semanticSessionId -ne $sem){throw 'Semantic session changed while crossing origins'}
+
+  $originBDeadline=[DateTime]::UtcNow.AddSeconds(5);$originBAttempt=0;$originBStable=$null;$originBButtons=@()
+  do{
+    $originBAttempt++
+    try{
+      $candidate=Invoke-Rr ("accept-cross-origin-b-snapshot-"+$originBAttempt) 'semantic-snapshot' @{semanticSessionId=$sem}
+      $candidateButtons=@($candidate.nodes|Where-Object { $_.role -eq 'button' -and $_.name -eq 'Light Remote Cross Origin Target' })
+      if([string]$candidate.target.url -eq $originBUrl -and [string]$candidate.target.title -eq 'Light Remote Cross Origin B' -and $candidateButtons.Count -eq 1 -and $null -ne $candidateButtons[0].center){$originBStable=$candidate;$originBButtons=$candidateButtons;break}
+    }catch{}
+    Start-Sleep -Milliseconds 100
+  }while([DateTime]::UtcNow -lt $originBDeadline)
+  if($null -eq $originBStable -or $originBButtons.Count -ne 1){throw 'OS click did not navigate from origin A to origin B'}
+  if([string]$originBStable.semanticSessionId -ne $sem -or [string]$originBStable.target.id -ne $crossTargetId){throw 'Cross-origin navigation changed semantic session or target identity'}
+  if($originAUrl -eq $originBUrl){throw 'Cross-origin acceptance accidentally used one origin'}
+  Write-Host "windows-real-remote-cross-origin-transition=PASS target=$crossTargetId from=$originAUrl to=$originBUrl sentInputs=$($originBAck.sentInputs)"
+
+  $originBButton=$originBButtons[0]
+  $originBX=[int][Math]::Round([double]$originBButton.center.x);$originBY=[int][Math]::Round([double]$originBButton.center.y);$originBBeforeSeq=[long]$originBStable.stateSeq
+  [LightRemoteAcceptanceWindow]::Focus($popupHwnd);Start-Sleep -Milliseconds 100
+  $originBActionAck=Invoke-Rr 'accept-os-cross-origin-action' 'input' @{events=@(@{type='move';x=$originBX;y=$originBY},@{type='click';button='left';count=1});semanticSessionId=$sem;afterSeq=$originBBeforeSeq;settleMs=150}
+  if([int]$originBActionAck.appliedEvents -ne 2 -or [int]$originBActionAck.sentInputs -lt 2){throw "Cross-origin continued SendInput proof missing applied=$($originBActionAck.appliedEvents) sent=$($originBActionAck.sentInputs)"}
+  $originBDone=Invoke-Rr 'accept-cross-origin-action-after' 'semantic-snapshot' @{semanticSessionId=$sem}
+  $originBAccepted=@($originBDone.nodes|Where-Object { $_.role -eq 'button' -and $_.name -eq 'Light Remote Cross Origin Accepted' })
+  if($originBAccepted.Count -ne 1){throw 'OS input did not continue after cross-origin navigation'}
+  if([string]$originBDone.semanticSessionId -ne $sem -or [string]$originBDone.target.id -ne $crossTargetId){throw 'Cross-origin target/session changed during continued input'}
+  if([string]$originBDone.target.url -ne $originBUrl -or [string]$originBDone.target.title -ne 'Light Remote Cross Origin Accepted'){throw "Cross-origin accepted metadata mismatch title=$($originBDone.target.title) url=$($originBDone.target.url)"}
+  Write-Host "windows-real-remote-cross-origin-continued-input=PASS sentInputs=$($originBActionAck.sentInputs) inputSeq=$($originBActionAck.inputSeq) seq=$($originBDone.stateSeq)"
+  Write-Host 'windows-real-remote-cross-origin-closed-loop=PASS'
+
   $d=Invoke-Rr 'accept-detach' 'semantic-detach' @{semanticSessionId=$sem};if(-not $d.detached -or $d.provider -ne 'browser-cdp'){throw 'Detach failed'};$detached=$true
   Write-Host 'windows-real-remote-browser-os-input-acceptance=PASS'
 }finally{
@@ -424,5 +495,6 @@ try{
     try{$rr.StandardInput.Close()}catch{};try{if(-not $rr.WaitForExit(3000)){$rr.Kill($true)}}catch{};$rr.Dispose()
   }
   if($browser){try{if(-not $browser.HasExited){$null=Start-Process -FilePath 'taskkill.exe' -ArgumentList @('/PID',[string]$browser.Id,'/T','/F') -Wait -WindowStyle Hidden -ErrorAction SilentlyContinue}}catch{}}
+  if($originServer){try{if(-not $originServer.HasExited){$originServer.Kill($true);$null=$originServer.WaitForExit(2000)}}catch{};try{$originServer.Dispose()}catch{}}
   Remove-Item -LiteralPath $profile -Recurse -Force -ErrorAction SilentlyContinue
 }
