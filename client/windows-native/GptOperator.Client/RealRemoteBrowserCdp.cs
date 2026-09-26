@@ -506,21 +506,25 @@ internal static partial class RealRemoteHelper
         }
 
         var titleMatches = targets.Where(t => BrowserTargetTitleMatches(t, foregroundTitle)).ToList();
+        var currentTarget = targets.FirstOrDefault(t => string.Equals(t.Id, currentId, StringComparison.Ordinal));
+        var currentPresent = currentTarget is not null;
         BrowserTarget? selected = null;
 
-        if (titleMatches.Count > 1 && foreground != IntPtr.Zero)
+        var newlySeen = titleMatches.Where(t => !known.Contains(t.Id)).ToList();
+        if (newlySeen.Count == 1) selected = newlySeen[0];
+
+        // Window identity outranks a temporarily stale Win32 caption after page title changes.
+        // New-target detection stays first so a newly opened same-title tab in the same HWND can still win.
+        if (selected is null && currentTarget is not null && foreground != IntPtr.Zero &&
+            BrowserTargetMatchesForegroundWindow(session, currentTarget, foreground))
+            selected = currentTarget;
+
+        if (selected is null && titleMatches.Count > 1 && foreground != IntPtr.Zero)
         {
             var windowMatches = titleMatches.Where(t => BrowserTargetMatchesForegroundWindow(session, t, foreground)).ToList();
             if (windowMatches.Count == 1) selected = windowMatches[0];
         }
 
-        if (selected is null)
-        {
-            var newlySeen = titleMatches.Where(t => !known.Contains(t.Id)).ToList();
-            if (newlySeen.Count == 1) selected = newlySeen[0];
-        }
-
-        var currentPresent = targets.Any(t => string.Equals(t.Id, currentId, StringComparison.Ordinal));
         if (selected is null && !currentPresent)
         {
             for (var i = history.Length - 1; i >= 0; i--)
