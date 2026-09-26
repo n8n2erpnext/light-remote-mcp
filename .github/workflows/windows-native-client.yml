@@ -331,6 +331,15 @@ jobs:
           if (-not (Test-Path $exe)) { throw 'Real Remote helper executable missing before Local Wall RM permissions acceptance' }
           node deploy/scripts/selftest-v11-local-wall-desktop-windows.mjs $exe
 
+      - name: Real Windows semantic observe-act acceptance
+        timeout-minutes: 2
+        shell: pwsh
+        run: |
+          $stage = Join-Path $PWD 'dist\windows\stage'
+          $exe = Join-Path $stage 'LightRemote.Client.exe'
+          if (-not (Test-Path $exe)) { throw 'Real Remote helper executable missing before semantic observe-act acceptance' }
+          & ./client/windows-native/acceptance/real-remote-uia-semantic-act.ps1 -ClientExe $exe -TimeoutSeconds 20
+
       - name: Real Windows OS input acceptance
         timeout-minutes: 2
         shell: pwsh

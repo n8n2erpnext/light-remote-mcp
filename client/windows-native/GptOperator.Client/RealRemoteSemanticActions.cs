@@ -83,7 +83,7 @@ internal static partial class RealRemoteHelper
             nodeId,
             action,
             method,
-            ack = CompleteSemanticInput(context, 1, 0)
+            ack = CompleteSemanticInput(context, 1, action == "click" ? 2 : 0)
         };
     }
 
