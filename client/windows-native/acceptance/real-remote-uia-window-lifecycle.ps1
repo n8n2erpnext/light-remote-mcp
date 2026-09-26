@@ -62,6 +62,17 @@ try{
   $psi=[Diagnostics.ProcessStartInfo]::new();$psi.FileName=$ClientExe;$psi.UseShellExecute=$false;$psi.CreateNoWindow=$true
   $psi.RedirectStandardInput=$true;$psi.RedirectStandardOutput=$true;$psi.RedirectStandardError=$true;$psi.ArgumentList.Add('--real-remote-helper')
   $rr=[Diagnostics.Process]::new();$rr.StartInfo=$psi;if(-not $rr.Start()){throw 'Helper start failed'}
+
+  $foregroundDeadline=[DateTime]::UtcNow.AddSeconds(5);$foregroundAttempt=0;$preAttachStatus=$null
+  do{
+    $foregroundAttempt++
+    [LightRemoteLifecycleWindow]::Focus($hwndA);Start-Sleep -Milliseconds 100
+    $preAttachStatus=Invoke-Rr ("lifecycle-pre-attach-status-"+$foregroundAttempt) 'status'
+    if([string]$preAttachStatus.foreground.title -eq $titleA){break}
+  }while([DateTime]::UtcNow -lt $foregroundDeadline)
+  if([string]$preAttachStatus.foreground.title -ne $titleA){throw "Window A did not become foreground before attach: $($preAttachStatus.foreground.title)"}
+  Write-Host "windows-real-remote-uia-window-pre-attach-foreground=PASS hwndA=$hwndA attempts=$foregroundAttempt"
+
   $attach=Invoke-Rr 'lifecycle-attach' 'semantic-attach' @{provider='windows-uia';scope='foreground';maxDepth=7;maxNodes=600}
   $sem=[string]$attach.semanticSessionId
   if($attach.provider -ne 'windows-uia' -or [string]::IsNullOrWhiteSpace($sem)){throw 'UIA window lifecycle attach failed'}
