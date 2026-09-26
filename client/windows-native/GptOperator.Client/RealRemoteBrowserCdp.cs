@@ -29,6 +29,8 @@ internal static partial class RealRemoteHelper
         public ConcurrentDictionary<long, TaskCompletionSource<JsonElement>> Pending { get; } = new();
         public CancellationTokenSource Cancellation { get; } = new();
         public List<BrowserSemanticEventRecord> Journal { get; } = new();
+        public HashSet<string> KnownTargetIds { get; } = new(StringComparer.Ordinal);
+        public List<string> TargetHistory { get; } = new();
         public Task? Receiver { get; set; }
         public long ConnectionGeneration;
         public long NextCommandId;
@@ -97,6 +99,13 @@ internal static partial class RealRemoteHelper
             Socket = socket,
             ConnectionGeneration = 1
         };
+        session.KnownTargetIds.Add(target.Id);
+        try
+        {
+            foreach (var knownTarget in BrowserListTargets(endpoint))
+                session.KnownTargetIds.Add(knownTarget.Id);
+        }
+        catch { }
         session.Receiver = Task.Run(() => BrowserReceiveLoop(session, socket, session.ConnectionGeneration));
 
         try
@@ -437,19 +446,113 @@ internal static partial class RealRemoteHelper
         return targets;
     }
 
+    private static bool BrowserTargetTitleMatches(BrowserTarget target, string foregroundTitle) =>
+        !string.IsNullOrWhiteSpace(target.Title) &&
+        !string.IsNullOrWhiteSpace(foregroundTitle) &&
+        (foregroundTitle.Contains(target.Title, StringComparison.OrdinalIgnoreCase) ||
+         target.Title.Contains(foregroundTitle, StringComparison.OrdinalIgnoreCase));
+
     private static BrowserTarget? BrowserForegroundTarget(Uri endpoint)
     {
         var foregroundTitle = WindowText(GetForegroundWindow());
         if (string.IsNullOrWhiteSpace(foregroundTitle)) return null;
-        return BrowserListTargets(endpoint).FirstOrDefault(t =>
-            !string.IsNullOrWhiteSpace(t.Title) &&
-            (foregroundTitle.Contains(t.Title, StringComparison.OrdinalIgnoreCase) || t.Title.Contains(foregroundTitle, StringComparison.OrdinalIgnoreCase)));
+        return BrowserListTargets(endpoint).FirstOrDefault(t => BrowserTargetTitleMatches(t, foregroundTitle));
+    }
+
+    private static bool BrowserTargetMatchesForegroundWindow(BrowserSemanticSession session, BrowserTarget target, IntPtr foreground)
+    {
+        if (foreground == IntPtr.Zero || !GetWindowRect(foreground, out var rect)) return false;
+        try
+        {
+            var window = BrowserCdpCommand(session, "Browser.getWindowForTarget", new { targetId = target.Id });
+            if (!window.TryGetProperty("bounds", out var bounds) || bounds.ValueKind != JsonValueKind.Object) return false;
+            var left = BrowserJsonNumber(bounds, "left");
+            var top = BrowserJsonNumber(bounds, "top");
+            var width = BrowserJsonNumber(bounds, "width");
+            var height = BrowserJsonNumber(bounds, "height");
+            if (width <= 0 || height <= 0) return false;
+
+            var fgWidth = Math.Max(1, rect.Right - rect.Left);
+            var fgHeight = Math.Max(1, rect.Bottom - rect.Top);
+            var fgCenterX = rect.Left + fgWidth / 2d;
+            var fgCenterY = rect.Top + fgHeight / 2d;
+            var targetCenterX = left + width / 2d;
+            var targetCenterY = top + height / 2d;
+            var centerToleranceX = Math.Max(96d, fgWidth * 0.18d);
+            var centerToleranceY = Math.Max(96d, fgHeight * 0.18d);
+            return Math.Abs(targetCenterX - fgCenterX) <= centerToleranceX &&
+                   Math.Abs(targetCenterY - fgCenterY) <= centerToleranceY &&
+                   Math.Abs(width - fgWidth) <= Math.Max(160d, fgWidth * 0.25d) &&
+                   Math.Abs(height - fgHeight) <= Math.Max(160d, fgHeight * 0.25d);
+        }
+        catch { return false; }
+    }
+
+    private static BrowserTarget? BrowserForegroundTarget(BrowserSemanticSession session)
+    {
+        var targets = BrowserListTargets(session.Endpoint);
+        if (targets.Count == 0) return null;
+
+        var foreground = GetForegroundWindow();
+        var foregroundTitle = WindowText(foreground);
+        string currentId;
+        HashSet<string> known;
+        string[] history;
+        lock (session.Gate)
+        {
+            currentId = session.TargetId;
+            known = new HashSet<string>(session.KnownTargetIds, StringComparer.Ordinal);
+            history = session.TargetHistory.ToArray();
+        }
+
+        var titleMatches = targets.Where(t => BrowserTargetTitleMatches(t, foregroundTitle)).ToList();
+        BrowserTarget? selected = null;
+
+        if (titleMatches.Count > 1 && foreground != IntPtr.Zero)
+        {
+            var windowMatches = titleMatches.Where(t => BrowserTargetMatchesForegroundWindow(session, t, foreground)).ToList();
+            if (windowMatches.Count == 1) selected = windowMatches[0];
+        }
+
+        if (selected is null)
+        {
+            var newlySeen = titleMatches.Where(t => !known.Contains(t.Id)).ToList();
+            if (newlySeen.Count == 1) selected = newlySeen[0];
+        }
+
+        var currentPresent = targets.Any(t => string.Equals(t.Id, currentId, StringComparison.Ordinal));
+        if (selected is null && !currentPresent)
+        {
+            for (var i = history.Length - 1; i >= 0; i--)
+            {
+                selected = titleMatches.FirstOrDefault(t => string.Equals(t.Id, history[i], StringComparison.Ordinal));
+                if (selected is not null) break;
+            }
+        }
+
+        if (selected is null && titleMatches.Count == 1) selected = titleMatches[0];
+        if (selected is null && currentPresent)
+            selected = targets.First(t => string.Equals(t.Id, currentId, StringComparison.Ordinal));
+        if (selected is null && titleMatches.Count > 0) selected = titleMatches[0];
+
+        lock (session.Gate)
+        {
+            foreach (var target in targets)
+            {
+                if (selected is not null &&
+                    !string.Equals(selected.Id, currentId, StringComparison.Ordinal) &&
+                    string.Equals(target.Id, selected.Id, StringComparison.Ordinal))
+                    continue;
+                session.KnownTargetIds.Add(target.Id);
+            }
+        }
+        return selected;
     }
 
     private static bool BrowserMaybeHandoffToForegroundTarget(BrowserSemanticSession session)
     {
         BrowserTarget? target;
-        try { target = BrowserForegroundTarget(session.Endpoint); }
+        try { target = BrowserForegroundTarget(session); }
         catch { return false; }
         if (target is null) return false;
 
@@ -504,6 +607,14 @@ internal static partial class RealRemoteHelper
             return false;
         }
 
+        lock (session.Gate)
+        {
+            session.KnownTargetIds.Add(oldTargetId);
+            session.KnownTargetIds.Add(target.Id);
+            session.TargetHistory.RemoveAll(id => string.Equals(id, oldTargetId, StringComparison.Ordinal));
+            session.TargetHistory.Add(oldTargetId);
+            while (session.TargetHistory.Count > 16) session.TargetHistory.RemoveAt(0);
+        }
         BrowserEnqueueEvent(session, "target", "targetId", $"handoff:{oldTargetId}->{target.Id}", true);
         BrowserCloseSocket(oldSocket);
         return true;

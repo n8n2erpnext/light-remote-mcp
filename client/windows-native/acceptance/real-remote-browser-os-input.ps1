@@ -1,4 +1,3 @@
-# CI rerun marker: popup-window acceptance behavior unchanged.
 param(
   [Parameter(Mandatory=$true)][string]$ClientExe,
   [string]$BrowserExe='',
@@ -31,6 +30,7 @@ public static class LightRemoteAcceptanceWindow{
  [DllImport("user32.dll")]static extern bool ShowWindow(IntPtr h,int c);
  [DllImport("user32.dll")]static extern bool SetForegroundWindow(IntPtr h);
  public static IntPtr Find(string n){IntPtr f=IntPtr.Zero;EnumWindows((h,_)=>{if(!IsWindowVisible(h))return true;var s=new StringBuilder(1024);GetWindowText(h,s,s.Capacity);if(s.ToString().IndexOf(n,StringComparison.OrdinalIgnoreCase)>=0){f=h;return false;}return true;},IntPtr.Zero);return f;}
+ public static IntPtr FindDifferent(string n,IntPtr exclude){IntPtr f=IntPtr.Zero;EnumWindows((h,_)=>{if(h==exclude||!IsWindowVisible(h))return true;var s=new StringBuilder(1024);GetWindowText(h,s,s.Capacity);if(s.ToString().IndexOf(n,StringComparison.OrdinalIgnoreCase)>=0){f=h;return false;}return true;},IntPtr.Zero);return f;}
  public static void Focus(IntPtr h){if(h!=IntPtr.Zero){ShowWindow(h,3);SetForegroundWindow(h);}}
 }
 '@
@@ -299,6 +299,7 @@ try{
   if([string]$returnDone.semanticSessionId -ne $sem -or [string]$returnDone.target.id -ne $oldTargetId){throw 'Close-tab recovery target/session changed during continued input'}
   Write-Host "windows-real-remote-close-tab-continued-input=PASS sentInputs=$($returnAck.sentInputs) inputSeq=$($returnAck.inputSeq) seq=$($returnDone.stateSeq)"
   Write-Host 'windows-real-remote-close-tab-closed-loop=PASS'
+  if([string]$returnDone.target.title -ne 'Light Remote Return Accepted'){throw "Source title not ready for collision proof: $($returnDone.target.title)"}
 
   $popupOpenButtons=@($returnDone.nodes|Where-Object { $_.role -eq 'button' -and $_.name -eq 'Light Remote Open Popup' })
   if($popupOpenButtons.Count -ne 1 -or $null -eq $popupOpenButtons[0].center){throw "Popup-open semantic center missing count=$($popupOpenButtons.Count)"}
@@ -311,7 +312,7 @@ try{
 
   $popupHwnd=[IntPtr]::Zero;$popupWindowDeadline=[DateTime]::UtcNow.AddSeconds(5)
   while($popupHwnd -eq [IntPtr]::Zero -and [DateTime]::UtcNow -lt $popupWindowDeadline){
-    $popupHwnd=[LightRemoteAcceptanceWindow]::Find('Light Remote Popup Acceptance')
+    $popupHwnd=[LightRemoteAcceptanceWindow]::FindDifferent('Light Remote Return Accepted',$hwnd)
     if($popupHwnd -eq [IntPtr]::Zero){Start-Sleep -Milliseconds 100}
   }
   if($popupHwnd -eq [IntPtr]::Zero){throw 'Visible popup Chromium window missing'}
@@ -333,12 +334,13 @@ try{
   $popupTargetId=[string]$popupStable.target.id
   if($popupTargetId -eq $oldTargetId){throw 'Popup target id did not change'}
   if([string]$popupStable.target.url -notlike '*real-remote-browser-os-input-popup.html'){throw "Popup target URL mismatch: $($popupStable.target.url)"}
-  if([string]$popupStable.target.title -ne 'Light Remote Popup Acceptance'){throw "Popup target title mismatch: $($popupStable.target.title)"}
+  if([string]$popupStable.target.title -ne 'Light Remote Return Accepted'){throw "Popup target title collision mismatch: $($popupStable.target.title)"}
 
   $popupEvents=Invoke-Rr 'accept-popup-events' 'semantic-events' @{semanticSessionId=$sem;afterSeq=$popupBeforeSeq;limit=100}
   $popupHandoffs=@($popupEvents.events|Where-Object { $_.kind -eq 'target' -and $_.property -eq 'targetId' -and $_.change -eq ("handoff:"+$oldTargetId+"->"+$popupTargetId) -and $_.resyncRecommended })
   if($popupHandoffs.Count -lt 1){throw "Popup-window handoff resync event missing count=$($popupHandoffs.Count)"}
   Write-Host "windows-real-remote-popup-window-handoff=PASS sourceHwnd=$hwnd popupHwnd=$popupHwnd oldTarget=$oldTargetId popupTarget=$popupTargetId events=$($popupHandoffs.Count) semanticSessionId=$sem"
+  Write-Host "windows-real-remote-target-identity-title-collision=PASS sourceHwnd=$hwnd popupHwnd=$popupHwnd title=Light Remote Return Accepted sourceTarget=$oldTargetId popupTarget=$popupTargetId"
 
   $popupButton=$popupButtons[0]
   $popupX=[int][Math]::Round([double]$popupButton.center.x);$popupY=[int][Math]::Round([double]$popupButton.center.y);$popupActionBefore=[long]$popupStable.stateSeq
