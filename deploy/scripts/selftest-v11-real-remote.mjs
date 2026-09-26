@@ -27,14 +27,16 @@ for await (const line of rl){
         ? {protocolVersion:1,helperPid:process.pid,mime:'image/jpeg',encoding:'base64',width:320,height:180,bytes:4,data:'AQIDBA=='}
         : request.op==='input'
           ? request.args.semanticSessionId
-            ? {protocolVersion:1,helperPid:process.pid,appliedEvents:request.args.events.length,sentInputs:2,inputSeq:1,semanticSessionId:request.args.semanticSessionId,epoch:'ep_fake',afterSeq:request.args.afterSeq??2,stateSeq:3,cursor:{x:120,y:80},focused:{id:'uia_2',role:'Button',name:'Login'},gap:false,resyncRecommended:false,hasMore:false,events:[{seq:3,kind:'focus',element:{id:'uia_2',role:'Button',name:'Login'}}]}
+            ? {protocolVersion:1,helperPid:process.pid,appliedEvents:request.args.events.length,sentInputs:2,inputSeq:1,semanticSessionId:request.args.semanticSessionId,epoch:'ep_fake',afterSeq:request.args.afterSeq??2,stateSeq:3,startedAt:10,ackAt:12,elapsedMs:2,cursor:{x:120,y:80},focused:{id:'uia_2',role:'Button',name:'Login'},gap:false,resyncRecommended:false,hasMore:false,nextObservation:{mode:'events',afterSeq:3,reason:'continue-events'},events:[{seq:3,kind:'focus',element:{id:'uia_2',role:'Button',name:'Login'}}]}
             : {protocolVersion:1,helperPid:process.pid,appliedEvents:request.args.events.length,sentInputs:2}
           : request.op==='semantic-attach'
-            ? {protocolVersion:1,helperPid:process.pid,provider:'windows-uia',semanticSessionId:'sem_fake',epoch:'ep_fake',stateSeq:1,nodeCount:2,nodes:[{id:'uia_1',role:'Window'},{id:'uia_2',parentId:'uia_1',role:'Button',name:'Login'}]}
+            ? {protocolVersion:1,helperPid:process.pid,provider:'windows-uia',semanticSessionId:'sem_fake',epoch:'ep_fake',stateSeq:1,nodeCount:2,nextObservation:{mode:'events',afterSeq:1,reason:'snapshot-ready'},nodes:[{id:'uia_1',role:'Window'},{id:'uia_2',parentId:'uia_1',role:'Button',name:'Login'}]}
             : request.op==='semantic-snapshot'
-              ? {protocolVersion:1,helperPid:process.pid,provider:'windows-uia',semanticSessionId:request.args.semanticSessionId,epoch:'ep_fake',stateSeq:2,nodeCount:2,nodes:[{id:'uia_1',role:'Window'},{id:'uia_2',parentId:'uia_1',role:'Button',name:'Login'}]}
+              ? {protocolVersion:1,helperPid:process.pid,provider:'windows-uia',semanticSessionId:request.args.semanticSessionId,epoch:'ep_fake',stateSeq:2,nodeCount:2,nextObservation:{mode:'events',afterSeq:2,reason:'snapshot-ready'},nodes:[{id:'uia_1',role:'Window'},{id:'uia_2',parentId:'uia_1',role:'Button',name:'Login'}]}
               : request.op==='semantic-events'
-                ? {protocolVersion:1,helperPid:process.pid,provider:'windows-uia',semanticSessionId:request.args.semanticSessionId,epoch:'ep_fake',afterSeq:request.args.afterSeq,stateSeq:4,gap:false,resyncRecommended:false,eventsAvailable:true,events:[{seq:4,kind:'property',property:'AutomationElement.NameProperty',element:{id:'uia_2',role:'Button',name:'Continue'}}]}
+                ? (request.args.limit===1 && request.args.afterSeq<=2
+                    ? {protocolVersion:1,helperPid:process.pid,provider:'windows-uia',semanticSessionId:request.args.semanticSessionId,epoch:'ep_fake',afterSeq:request.args.afterSeq,stateSeq:4,gap:false,resyncRecommended:false,eventsAvailable:true,hasMore:true,nextObservation:{mode:'events',afterSeq:3,reason:'drain-events'},events:[{seq:3,kind:'property',property:'AutomationElement.NameProperty',element:{id:'uia_2',role:'Button',name:'Pending'}}]}
+                    : {protocolVersion:1,helperPid:process.pid,provider:'windows-uia',semanticSessionId:request.args.semanticSessionId,epoch:'ep_fake',afterSeq:request.args.afterSeq,stateSeq:4,gap:false,resyncRecommended:false,eventsAvailable:true,hasMore:false,nextObservation:{mode:'events',afterSeq:4,reason:'continue-events'},events:[{seq:4,kind:'property',property:'AutomationElement.NameProperty',element:{id:'uia_2',role:'Button',name:'Continue'}}]})
                 : request.op==='semantic-detach'
                   ? {protocolVersion:1,helperPid:process.pid,provider:'windows-uia',semanticSessionId:request.args.semanticSessionId,epoch:'ep_fake',stateSeq:4,detached:true}
                 : {helperPid:process.pid,echo:request};
@@ -106,6 +108,8 @@ try{
   const semanticAttach=await bridge.request('semantic-attach',{scope:'foreground',maxDepth:4,maxNodes:100});
   const semanticSnapshot=await bridge.request('semantic-snapshot',{semanticSessionId:semanticAttach.semanticSessionId});
   const semanticAckInput=await bridge.request('input',{events:[{type:'move',x:120,y:80}],semanticSessionId:semanticAttach.semanticSessionId,afterSeq:semanticSnapshot.stateSeq,settleMs:0});
+  const semanticEventsPage1=await bridge.request('semantic-events',{semanticSessionId:semanticAttach.semanticSessionId,afterSeq:semanticSnapshot.stateSeq,limit:1});
+  const semanticEventsPage2=await bridge.request('semantic-events',{semanticSessionId:semanticAttach.semanticSessionId,afterSeq:semanticEventsPage1.nextObservation.afterSeq,limit:1});
   const semanticEvents=await bridge.request('semantic-events',{semanticSessionId:semanticAttach.semanticSessionId,afterSeq:semanticAckInput.stateSeq,limit:100});
   const semanticDetach=await bridge.request('semantic-detach',{semanticSessionId:semanticAttach.semanticSessionId});
   assert.equal(status.protocolVersion,1);
@@ -123,8 +127,10 @@ try{
   assert.equal(status.helperPid,input.helperPid,'desktop input must use the same persistent helper');
   assert.equal(semanticAttach.provider,'windows-uia');
   assert.equal(semanticAttach.stateSeq,1);
+  assert.deepEqual(semanticAttach.nextObservation,{mode:'events',afterSeq:1,reason:'snapshot-ready'});
   assert.equal(semanticSnapshot.stateSeq,2);
   assert.equal(semanticSnapshot.semanticSessionId,semanticAttach.semanticSessionId);
+  assert.deepEqual(semanticSnapshot.nextObservation,{mode:'events',afterSeq:2,reason:'snapshot-ready'});
   assert.equal(semanticAckInput.inputSeq,1);
   assert.equal(semanticAckInput.semanticSessionId,semanticAttach.semanticSessionId);
   assert.equal(semanticAckInput.afterSeq,semanticSnapshot.stateSeq);
@@ -132,11 +138,23 @@ try{
   assert.equal(semanticAckInput.focused.id,'uia_2');
   assert.equal(semanticAckInput.events[0].seq,3);
   assert.equal(semanticAckInput.resyncRecommended,false);
+  assert.equal(semanticAckInput.elapsedMs,2);
+  assert.equal(semanticAckInput.ackAt-semanticAckInput.startedAt,semanticAckInput.elapsedMs);
+  assert.deepEqual(semanticAckInput.nextObservation,{mode:'events',afterSeq:3,reason:'continue-events'});
+  assert.equal(semanticEventsPage1.stateSeq,4);
+  assert.equal(semanticEventsPage1.hasMore,true);
+  assert.equal(semanticEventsPage1.events[0].seq,3);
+  assert.deepEqual(semanticEventsPage1.nextObservation,{mode:'events',afterSeq:3,reason:'drain-events'});
+  assert.equal(semanticEventsPage2.hasMore,false);
+  assert.equal(semanticEventsPage2.events[0].seq,4);
+  assert.deepEqual(semanticEventsPage2.nextObservation,{mode:'events',afterSeq:4,reason:'continue-events'});
   assert.equal(semanticEvents.stateSeq,4);
   assert.equal(semanticEvents.events.length,1);
   assert.equal(semanticEvents.events[0].seq,4);
   assert.equal(semanticEvents.gap,false);
   assert.equal(semanticEvents.resyncRecommended,false);
+  assert.equal(semanticEvents.hasMore,false);
+  assert.deepEqual(semanticEvents.nextObservation,{mode:'events',afterSeq:4,reason:'continue-events'});
   assert.equal(semanticDetach.detached,true);
   assert.equal(status.helperPid,semanticAttach.helperPid,'semantic session must use the same persistent helper');
   await assert.rejects(()=>bridge.request('fail'),/fake_failure/);
@@ -189,8 +207,8 @@ for(const token of ['"attach" => DesktopAttach(args)','"resume" => DesktopResume
 for(const token of ['frameSha256','contentSeq = sessionFrame?.ContentSeq','throttled = false','retryAfterMs = 0','dataBytes = omitData ? 0'])assert.ok(helper.includes(token),`Windows live pull frame contract missing: ${token}`);
 for(const token of ['DesktopSessions','DesktopSessionLimit = 8','desktopSessionId','FrameSeq','ContentSeq','MinIntervalMs','OmitUnchanged','IdleTimeoutMs','LastActivityAt','desktop_session_expired','desktop_session_stale_topology','PruneDesktopSessionsLocked','DesktopFrameRetryAfter','RecordDesktopFrame','DesktopFrameThrottled'])assert.ok(desktopSessionHelper.includes(token),`Windows visual desktop session contract missing: ${token}`);
 for(const token of ['"semantic-attach" => SemanticAttach(args)','"semantic-snapshot" => SemanticSnapshot(args)','"semantic-events" => SemanticEvents(args)','"semantic-detach" => SemanticDetach(args)'])assert.ok(helper.includes(token),`Windows semantic opcode missing: ${token}`);
-for(const token of ['AutomationElement','TreeWalker.ControlViewWalker','semanticSessionId','epoch','stateSeq','password','MaxNodes'])assert.ok(semanticHelper.includes(token),`Windows semantic contract missing: ${token}`);
-for(const token of ['AddAutomationFocusChangedEventHandler','AddStructureChangedEventHandler','AddAutomationPropertyChangedEventHandler','SemanticJournalLimit = 512','SemanticCoalesceMs = 75','droppedBeforeSeq','resyncRecommended'])assert.ok(semanticEventsHelper.includes(token),`Windows semantic event contract missing: ${token}`);
+for(const token of ['AutomationElement','TreeWalker.ControlViewWalker','semanticSessionId','epoch','stateSeq','password','MaxNodes','nextObservation','snapshot-ready'])assert.ok(semanticHelper.includes(token),`Windows semantic contract missing: ${token}`);
+for(const token of ['AddAutomationFocusChangedEventHandler','AddStructureChangedEventHandler','AddAutomationPropertyChangedEventHandler','SemanticJournalLimit = 512','SemanticCoalesceMs = 75','droppedBeforeSeq','resyncRecommended','lastReturnedSeq','nextObservation','drain-events','continue-events'])assert.ok(semanticEventsHelper.includes(token),`Windows semantic event contract missing: ${token}`);
 assert.ok(!semanticEventsHelper.includes('ValuePattern.ValueProperty'),'semantic journal must not subscribe textbox Value contents');
 assert.ok(!semanticEventsHelper.includes('TextPattern.'),'semantic journal must not subscribe text contents');
 assert.ok(windowsProject.includes('<UseWPF>true</UseWPF>'),'Windows UIA reference pack must come from WindowsDesktop/WPF SDK support');
@@ -203,15 +221,17 @@ assert.ok(clientManifest.includes('<dpiAwareness')&&clientManifest.includes('Per
 assert.ok(inputAckHelper.includes('displayTopologyId = DisplayTopologyId(Screen.AllScreens)'),'Windows input ACK must return the applied display topology');
 for(const token of ['case "drag"','private static int Drag(JsonElement item)','MouseButtonPair','IntRequired','finally','Mouse(pair.Up,0)'])assert.ok(inputHelper.includes(token),`Windows atomic drag contract missing: ${token}`);
 assert.ok(inputHelper.includes('"right" => (MouseRightDown,MouseRightUp)')&&inputHelper.includes('"middle" => (MouseMiddleDown,MouseMiddleUp)'),'Windows mouse-button mapping must preserve right and middle SendInput pairs');
-for(const token of ['SemanticInputContext','InputSeq','afterSeq','settleMs','focusOutsideScope','resyncRecommended','hasMore'])assert.ok(inputAckHelper.includes(token),`Windows closed-loop input ACK missing: ${token}`);
+for(const token of ['SemanticInputContext','InputSeq','afterSeq','settleMs','focusOutsideScope','resyncRecommended','hasMore','StartedAt','startedAt','ackAt','elapsedMs','lastReturnedSeq','nextObservation','drain-events','continue-events'])assert.ok(inputAckHelper.includes(token),`Windows closed-loop input ACK missing: ${token}`);
 assert.ok(inputAckHelper.includes('RefreshSemanticForegroundRoot(session)'),'Windows UIA input ACK must refresh foreground semantic root after OS input settles');
 for(const token of ['BrowserSession','CompleteBrowserSemanticInput','BrowserSemanticSnapshotCore','provider = "browser-cdp"','observation = "cdp-snapshot+journal"'])assert.ok(inputAckHelper.includes(token),'Browser closed-loop input ACK missing: '+token);
 assert.ok(inputAckHelper.includes('eventResyncRecommended')&&inputAckHelper.includes('gap || scopeChanged || eventResyncRecommended'),'Browser input ACK must propagate event-level resync to top-level');
 assert.ok(browserCdpHelper.includes('eventResyncRecommended')&&browserCdpHelper.includes('gap || session.ScopeChanged || eventResyncRecommended'),'Browser semantic-events must propagate event-level resync to top-level');
+assert.ok(browserCdpHelper.includes('lastReturnedSeq')&&browserCdpHelper.includes('nextObservation')&&browserCdpHelper.includes('drain-events')&&browserCdpHelper.includes('continue-events'),'Browser semantic-events must expose deterministic nextObservation continuation');
 assert.ok(browserCdpHelper.includes('TargetId { get; set; }')&&browserCdpHelper.includes('TargetTitle { get; set; }')&&browserCdpHelper.includes('TargetUrl { get; set; }'),'Browser target metadata must refresh and hand off across targets');
 for(const token of ['OperationGate','ConnectionGeneration','BrowserMaybeHandoffToForegroundTarget','BrowserForegroundTarget','BrowserEnqueueEvent(session, "target", "targetId"'])assert.ok(browserCdpHelper.includes(token),'Browser target handoff contract missing: '+token);
 for(const token of ['KnownTargetIds','TargetHistory','BrowserTargetTitleMatches','BrowserTargetMatchesForegroundWindow','Browser.getWindowForTarget','newlySeen','currentPresent'])assert.ok(browserCdpHelper.includes(token),'Browser target identity hardening missing: '+token);
 assert.ok(browserSnapshotHelper.includes('Page.getNavigationHistory')&&browserSnapshotHelper.includes('BrowserRefreshTargetMetadata')&&browserSnapshotHelper.includes('BrowserMaybeHandoffToForegroundTarget'),'Browser snapshot must refresh metadata and hand off foreground targets observation-only');
+assert.ok(browserSnapshotHelper.includes('nextObservation')&&browserSnapshotHelper.includes('snapshot-ready'),'Browser snapshot must hand the agent an events continuation cursor');
 assert.ok(browserAcceptance.includes('windows-real-remote-new-tab-handoff=PASS')&&browserAcceptance.includes('windows-real-remote-new-tab-continued-input=PASS')&&browserAcceptance.includes('windows-real-remote-new-tab-closed-loop=PASS'),'Real Windows acceptance must prove new-tab handoff and continued OS input');
 assert.ok(browserAcceptance.includes('windows-real-remote-close-tab-handoff=PASS')&&browserAcceptance.includes('windows-real-remote-close-tab-continued-input=PASS')&&browserAcceptance.includes('windows-real-remote-close-tab-closed-loop=PASS'),'Real Windows acceptance must prove close-tab recovery and continued OS input');
 assert.ok(browserAcceptance.includes('windows-real-remote-popup-window-handoff=PASS')&&browserAcceptance.includes('windows-real-remote-popup-window-continued-input=PASS')&&browserAcceptance.includes('windows-real-remote-popup-window-closed-loop=PASS'),'Real Windows acceptance must prove popup-window handoff and continued OS input');
@@ -304,7 +324,7 @@ assert.ok(semanticCore.includes('NodeIndex')&&semanticCore.includes('session.Nod
 assert.ok(semanticEvents.includes('session.NodeIndex[id] = element'),'Semantic event nodes must remain directly actionable without a full resnapshot');
 for(const token of ['private static object Observe','private static object Act','private static object SemanticAct','InvokePattern.Pattern','TogglePattern.Pattern','ValuePattern.Pattern','SelectionItemPattern.Pattern','ExpandCollapsePattern.Pattern','"click" => ClickElement(element)','sendinput.click','semantic_action_provider_observation_only'])assert.ok(semanticActions.includes(token),'Computer-use semantic action contract missing: '+token);
 assert.ok(api.includes("desktop.minIntervalMs=Math.max(0,Math.min(Number.isFinite(Number(d.minIntervalMs))?Math.floor(Number(d.minIntervalMs)):250,5000))")&&api.includes("desktop.omitUnchanged=d.omitUnchanged!==false")&&api.includes("desktop.idleTimeoutMs=Math.max(250,Math.min(Number.isFinite(Number(d.idleTimeoutMs))?Math.floor(Number(d.idleTimeoutMs)):120000,900000))"));
-assert.ok(toolHelper.includes("desktop-observe")&&toolHelper.includes("desktop-act")&&toolHelper.includes("Virtual UI DOM")&&toolHelper.includes("semanticSessionId?,nodeId?,action?,value?,events?")&&toolHelper.includes("desktop-status")&&toolHelper.includes("desktop-attach")&&toolHelper.includes("desktop-resume")&&toolHelper.includes("desktop-detach")&&toolHelper.includes("desktop-windows")&&toolHelper.includes("desktop-frame")&&toolHelper.includes("minIntervalMs?")&&toolHelper.includes("omitUnchanged?")&&toolHelper.includes("idleTimeoutMs?")&&toolHelper.includes("desktopSessionId?")&&toolHelper.includes("desktop_session_expired")&&toolHelper.includes("contentSeq")&&toolHelper.includes("throttled=true")&&toolHelper.includes("retryAfterMs")&&toolHelper.includes("frameSha256")&&toolHelper.includes("desktop-semantic-attach")&&toolHelper.includes("desktop-semantic-snapshot")&&toolHelper.includes("desktop-semantic-events")&&toolHelper.includes("desktop-semantic-detach")&&toolHelper.includes("desktop-input")&&toolHelper.includes("provider?,scope?")&&toolHelper.includes("cdpEndpoint?,targetId?,urlMatch?")&&toolHelper.includes("browser-cdp")&&toolHelper.includes("loopback Chromium DevTools")&&toolHelper.includes("displayTopologyId?")&&toolHelper.includes("afterSeq?,settleMs?")&&toolHelper.includes("toScreen?")&&toolHelper.includes('type:"drag"')&&toolHelper.includes("desktop_input_stale_topology")&&toolHelper.includes("inputMapping")&&toolHelper.includes("localX=round(frameX*xScale)")&&toolHelper.includes("windows-uia or browser-cdp")&&toolHelper.includes("inputSeq")&&toolHelper.includes("capabilities:['desktop','desktop-input']"));
+assert.ok(toolHelper.includes("nextObservation")&&toolHelper.includes("startedAt/ackAt/elapsedMs")&&toolHelper.includes("desktop-observe")&&toolHelper.includes("desktop-act")&&toolHelper.includes("Virtual UI DOM")&&toolHelper.includes("semanticSessionId?,nodeId?,action?,value?,events?")&&toolHelper.includes("desktop-status")&&toolHelper.includes("desktop-attach")&&toolHelper.includes("desktop-resume")&&toolHelper.includes("desktop-detach")&&toolHelper.includes("desktop-windows")&&toolHelper.includes("desktop-frame")&&toolHelper.includes("minIntervalMs?")&&toolHelper.includes("omitUnchanged?")&&toolHelper.includes("idleTimeoutMs?")&&toolHelper.includes("desktopSessionId?")&&toolHelper.includes("desktop_session_expired")&&toolHelper.includes("contentSeq")&&toolHelper.includes("throttled=true")&&toolHelper.includes("retryAfterMs")&&toolHelper.includes("frameSha256")&&toolHelper.includes("desktop-semantic-attach")&&toolHelper.includes("desktop-semantic-snapshot")&&toolHelper.includes("desktop-semantic-events")&&toolHelper.includes("desktop-semantic-detach")&&toolHelper.includes("desktop-input")&&toolHelper.includes("provider?,scope?")&&toolHelper.includes("cdpEndpoint?,targetId?,urlMatch?")&&toolHelper.includes("browser-cdp")&&toolHelper.includes("loopback Chromium DevTools")&&toolHelper.includes("displayTopologyId?")&&toolHelper.includes("afterSeq?,settleMs?")&&toolHelper.includes("toScreen?")&&toolHelper.includes('type:"drag"')&&toolHelper.includes("desktop_input_stale_topology")&&toolHelper.includes("inputMapping")&&toolHelper.includes("localX=round(frameX*xScale)")&&toolHelper.includes("windows-uia or browser-cdp")&&toolHelper.includes("inputSeq")&&toolHelper.includes("capabilities:['desktop','desktop-input']"));
 assert.ok(wall.includes("'desktop':['Enable Real Remote'")&&wall.includes("'desktop-input':['Allow Remote control'")&&wall.includes("locally blocked"));
 assert.ok(!wall.includes("import { desktopPage } from './local-wall-desktop-page.mjs'")&&!wall.includes("url.pathname==='/desktop'")&&!wall.includes("url.pathname==='/api/desktop'")&&!wall.includes('desktopAction'),'Local Wall must remain permissions/audit only; desktop viewer/control belongs to the Agent Helper path');
 assert.ok(!fs.existsSync(path.join(root,'device-agent/local-wall-desktop-page.mjs')),'Legacy Local Wall desktop viewer source must be removed');

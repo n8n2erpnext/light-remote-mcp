@@ -13,6 +13,7 @@ internal static partial class RealRemoteHelper
         public required string Provider { get; init; }
         public required long AfterSeq { get; init; }
         public required int SettleMs { get; init; }
+        public required long StartedAt { get; init; }
     }
 
     private static SemanticInputContext? BeginSemanticInput(JsonElement args)
@@ -56,7 +57,8 @@ internal static partial class RealRemoteHelper
             BrowserSession = browserSession,
             Provider = browserSession is null ? "windows-uia" : "browser-cdp",
             AfterSeq = afterSeq,
-            SettleMs = SemanticInt(args, "settleMs", 90, 0, 250)
+            SettleMs = SemanticInt(args, "settleMs", 90, 0, 250),
+            StartedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
         };
     }
 
@@ -114,6 +116,7 @@ internal static partial class RealRemoteHelper
         bool hasMore;
         bool eventsAvailable;
         bool eventResyncRecommended;
+        long lastReturnedSeq;
         string targetId;
         string targetTitle;
         string targetUrl;
@@ -124,11 +127,13 @@ internal static partial class RealRemoteHelper
             stateSeq = session.StateSeq;
             var remaining = 0;
             eventResyncRecommended = false;
+            lastReturnedSeq = context.AfterSeq;
             foreach (var item in session.Journal)
             {
                 if (item.Seq <= context.AfterSeq) continue;
                 if (item.ResyncRecommended) eventResyncRecommended = true;
                 if (events.Count >= 100) { remaining++; continue; }
+                lastReturnedSeq = item.Seq;
                 events.Add(new
                 {
                     seq = item.Seq,
@@ -152,6 +157,9 @@ internal static partial class RealRemoteHelper
             targetUrl = session.TargetUrl;
         }
 
+        var ackAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        var resyncRecommended = gap || scopeChanged || eventResyncRecommended;
+        var nextAfterSeq = hasMore ? lastReturnedSeq : stateSeq;
         return new
         {
             protocolVersion = ProtocolVersion,
@@ -164,7 +172,9 @@ internal static partial class RealRemoteHelper
             epoch = session.Epoch,
             afterSeq = context.AfterSeq,
             stateSeq,
-            ackAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+            startedAt = context.StartedAt,
+            ackAt,
+            elapsedMs = Math.Max(0, ackAt - context.StartedAt),
             settleMs = context.SettleMs,
             cursor,
             foreground = WindowInfo(GetForegroundWindow()),
@@ -173,10 +183,11 @@ internal static partial class RealRemoteHelper
             droppedBeforeSeq,
             gap,
             scopeChanged,
-            resyncRecommended = gap || scopeChanged || eventResyncRecommended,
+            resyncRecommended,
             eventsAvailable,
             observation = "cdp-snapshot+journal",
             hasMore,
+            nextObservation = new { mode = resyncRecommended ? "snapshot" : "events", afterSeq = nextAfterSeq, reason = resyncRecommended ? "resync-recommended" : hasMore ? "drain-events" : "continue-events" },
             events
         };
     }
@@ -198,16 +209,19 @@ internal static partial class RealRemoteHelper
         bool gap;
         bool scopeChanged;
         bool hasMore;
+        long lastReturnedSeq;
 
         lock (session.Gate)
         {
             inputSeq = ++session.InputSeq;
             stateSeq = session.StateSeq;
             var remaining = 0;
+            lastReturnedSeq = context.AfterSeq;
             foreach (var item in session.Journal)
             {
                 if (item.Seq <= context.AfterSeq) continue;
                 if (events.Count >= 100) { remaining++; continue; }
+                lastReturnedSeq = item.Seq;
                 events.Add(new
                 {
                     seq = item.Seq,
@@ -227,6 +241,9 @@ internal static partial class RealRemoteHelper
             hasMore = remaining > 0;
         }
 
+        var ackAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        var resyncRecommended = gap || scopeChanged || focusOutsideScope;
+        var nextAfterSeq = hasMore ? lastReturnedSeq : stateSeq;
         return new
         {
             protocolVersion = ProtocolVersion,
@@ -238,7 +255,9 @@ internal static partial class RealRemoteHelper
             epoch = session.Epoch,
             afterSeq = context.AfterSeq,
             stateSeq,
-            ackAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+            startedAt = context.StartedAt,
+            ackAt,
+            elapsedMs = Math.Max(0, ackAt - context.StartedAt),
             settleMs = context.SettleMs,
             cursor,
             foreground = WindowInfo(GetForegroundWindow()),
@@ -248,8 +267,9 @@ internal static partial class RealRemoteHelper
             droppedBeforeSeq,
             gap,
             scopeChanged,
-            resyncRecommended = gap || scopeChanged || focusOutsideScope,
+            resyncRecommended,
             hasMore,
+            nextObservation = new { mode = resyncRecommended ? "snapshot" : "events", afterSeq = nextAfterSeq, reason = resyncRecommended ? "resync-recommended" : hasMore ? "drain-events" : "continue-events" },
             events
         };
     }

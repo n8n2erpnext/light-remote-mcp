@@ -53,16 +53,21 @@ function Run-Case([string]$Case,[string]$Action,[string]$ExpectedMethod,[int]$Ex
     $obs=Invoke-Rr ("$Case-observe-open") 'observe' @{provider='windows-uia';scope='foreground';maxDepth=7;maxNodes=400}
     $sem=[string]$obs.semanticSessionId
     if($obs.provider -ne 'windows-uia' -or [string]::IsNullOrWhiteSpace($sem)){throw "$Case observe attach failed"}
+    if([string]$obs.nextObservation.mode -ne 'events' -or [long]$obs.nextObservation.afterSeq -ne [long]$obs.stateSeq){throw "$Case observe nextObservation mismatch"}
     $found=Wait-Node $sem $button "$Case-ready";$n=$found.node
     if([string]::IsNullOrWhiteSpace([string]$n.id)-or [string]$n.label -ne $button){throw "$Case node identity missing"}
     if(-not(@($n.actions) -contains $Action)){throw "$Case action not advertised: $Action"}
     $before=[long]$found.snapshot.stateSeq
     $act=Invoke-Rr ("$Case-act") 'act' @{semanticSessionId=$sem;nodeId=[string]$n.id;action=$Action;afterSeq=$before;settleMs=150}
     if($act.method -ne $ExpectedMethod -or $act.action -ne $Action -or [int]$act.ack.appliedEvents -ne 1 -or [int]$act.ack.sentInputs -ne $ExpectedSent){throw "$Case action ACK mismatch"}
-    $diff=Wait-Diff $sem $before "$Case-diff"
+    if([long]$act.ack.startedAt -le 0 -or [long]$act.ack.ackAt -lt [long]$act.ack.startedAt -or [long]$act.ack.elapsedMs -ne ([long]$act.ack.ackAt-[long]$act.ack.startedAt)){throw "$Case action local timing mismatch"}
+    if($act.ack.resyncRecommended -or $act.ack.hasMore -or [string]$act.ack.nextObservation.mode -ne 'events' -or [long]$act.ack.nextObservation.afterSeq -ne [long]$act.ack.stateSeq){throw "$Case action nextObservation mismatch"}
+    $diff=$act.ack
+    $late=Invoke-Rr ("$Case-late") 'observe' @{semanticSessionId=$sem;afterSeq=[long]$act.ack.nextObservation.afterSeq;limit=100}
+    if($late.resyncRecommended -or [string]$late.nextObservation.mode -ne 'events'){throw "$Case late event continuation mismatch"}
     $done=Wait-Node $sem ($button+' Accepted') "$Case-accepted"
     if([string]$done.snapshot.semanticSessionId -ne $sem){throw "$Case semantic session changed"}
-    Write-Host "windows-real-remote-semantic-$($Action)=PASS method=$($act.method) events=$(@($diff.events).Count) seq=$($done.snapshot.stateSeq)"
+    Write-Host "windows-real-remote-semantic-$($Action)=PASS method=$($act.method) events=$(@($diff.events).Count) localMs=$($act.ack.elapsedMs) next=$($act.ack.nextObservation.mode):$($act.ack.nextObservation.afterSeq) seq=$($done.snapshot.stateSeq)"
     $d=Invoke-Rr ("$Case-detach") 'semantic-detach' @{semanticSessionId=$sem};if(-not $d.detached){throw "$Case detach failed"};$sem=$null
   }finally{
     if($sem -and $rr -and -not $rr.HasExited){try{$null=Invoke-Rr ("$Case-detach-finally") 'semantic-detach' @{semanticSessionId=$sem}}catch{}}
