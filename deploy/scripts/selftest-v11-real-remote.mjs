@@ -298,6 +298,8 @@ assert.ok(api.includes("action.startsWith('desktop-')")&&api.includes("'status',
 const desktopRoute=api.slice(api.indexOf("else if(usingClient&&action.startsWith('desktop-'))"),api.indexOf("else if(usingClient&&action.startsWith('search-'))"));
 assert.ok(desktopRoute.includes("desktop.nodeId=String(d.nodeId||'')"),'desktop-act must keep semantic nodeId inside the desktop request');
 assert.ok(!desktopRoute.includes("nodeId:d.nodeId==null?undefined:clientDevice(d.nodeId)"),'desktop semantic nodeId must never be promoted to the target node envelope');
+assert.ok(desktopRoute.includes("const payload={action:'desktop'"),'desktop route must declare the sealed operator payload');
+assert.ok(!desktopRoute.includes("\\n          const payload"),'desktop payload declaration must not be swallowed by a line comment');
 assert.ok(semanticCore.includes('NodeIndex')&&semanticCore.includes('session.NodeIndex.Clear()')&&semanticCore.includes('session.NodeIndex[(string)node["id"]!] = element;')&&semanticCore.includes('["label"]')&&semanticCore.includes('["actions"]'));
 assert.ok(semanticEvents.includes('session.NodeIndex[id] = element'),'Semantic event nodes must remain directly actionable without a full resnapshot');
 for(const token of ['private static object Observe','private static object Act','private static object SemanticAct','InvokePattern.Pattern','TogglePattern.Pattern','ValuePattern.Pattern','SelectionItemPattern.Pattern','ExpandCollapsePattern.Pattern','"click" => ClickElement(element)','sendinput.click','semantic_action_provider_observation_only'])assert.ok(semanticActions.includes(token),'Computer-use semantic action contract missing: '+token);
