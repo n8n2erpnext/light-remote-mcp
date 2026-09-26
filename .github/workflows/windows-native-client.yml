@@ -320,6 +320,15 @@ jobs:
           if (-not (Test-Path $exe)) { throw 'Real Remote helper executable missing before OS input acceptance' }
           & ./client/windows-native/acceptance/real-remote-browser-os-input.ps1 -ClientExe $exe -TimeoutSeconds 30
 
+      - name: Real Windows UIA app switch acceptance
+        timeout-minutes: 2
+        shell: pwsh
+        run: |
+          $stage = Join-Path $PWD 'dist\windows\stage'
+          $exe = Join-Path $stage 'LightRemote.Client.exe'
+          if (-not (Test-Path $exe)) { throw 'Real Remote helper executable missing before UIA app switch acceptance' }
+          & ./client/windows-native/acceptance/real-remote-uia-app-switch.ps1 -ClientExe $exe -TimeoutSeconds 20
+
       - name: Native client bundled runtime smoke
         timeout-minutes: 3
         shell: pwsh

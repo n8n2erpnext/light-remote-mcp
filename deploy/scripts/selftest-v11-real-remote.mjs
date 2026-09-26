@@ -143,6 +143,9 @@ const browserCdpHelper=read('client/windows-native/GptOperator.Client/RealRemote
 const browserSnapshotHelper=read('client/windows-native/GptOperator.Client/RealRemoteBrowserSnapshot.cs');
 const browserAcceptance=read('client/windows-native/acceptance/real-remote-browser-os-input.ps1');
 const browserCrossOriginServer=read('client/windows-native/acceptance/real-remote-browser-cross-origin-server.cjs');
+const uiaAcceptance=read('client/windows-native/acceptance/real-remote-uia-app-switch.ps1');
+const uiaFixture=read('client/windows-native/acceptance/real-remote-uia-fixture.ps1');
+const uiaWindowsWorkflow=read('.github/workflows/windows-native-client.yml');
 const windowsProject=read('client/windows-native/GptOperator.Client/GptOperator.Client.csproj');
 const supervisor=read('client/windows-native/GptOperator.Client/AgentSupervisor.cs');
 const host=read('client/windows-native/GptOperator.Client/AgentHost.cs');
@@ -173,6 +176,9 @@ assert.ok(browserAcceptance.includes('windows-real-remote-cross-origin-a=PASS')&
 assert.ok(browserAcceptance.includes('windows-real-remote-popup-window-close-recovery=PASS')&&browserAcceptance.includes("key='W';modifiers=@('CTRL')"),'Cross-origin acceptance must recover the main browser window after closing the popup with OS input');
 assert.ok(browserAcceptance.includes("key='L';modifiers=@('CTRL')")&&browserAcceptance.includes("type='text';text=$originAUrl"),'Cross-origin navigation must use OS address-bar input');
 assert.ok(browserAcceptance.includes('windows-real-remote-browser-crash-event=PASS')&&browserAcceptance.includes('windows-real-remote-browser-crash-error=PASS')&&browserAcceptance.includes('windows-real-remote-browser-crash-detach=PASS')&&browserAcceptance.includes('windows-real-remote-browser-restart-attach=PASS')&&browserAcceptance.includes('windows-real-remote-browser-restart-continued-input=PASS')&&browserAcceptance.includes('windows-real-remote-browser-crash-recovery-closed-loop=PASS'),'Real Windows acceptance must prove structured browser crash handling and clean restart recovery');
+assert.ok(uiaAcceptance.includes('windows-real-remote-uia-app-a-input=PASS')&&uiaAcceptance.includes('windows-real-remote-uia-alt-tab-handoff=PASS')&&uiaAcceptance.includes('windows-real-remote-uia-app-b-input=PASS')&&uiaAcceptance.includes('windows-real-remote-uia-alt-tab-return=PASS')&&uiaAcceptance.includes('windows-real-remote-uia-app-switch-closed-loop=PASS'),'Real Windows UIA acceptance must prove Alt+Tab foreground handoff and continued OS input');
+assert.ok(uiaAcceptance.includes("key='TAB';modifiers=@('ALT')")&&uiaFixture.includes('[System.Windows.Forms.Application]::Run($form)'),'UIA app-switch acceptance must use OS Alt+Tab between visible WinForms processes');
+assert.ok(uiaWindowsWorkflow.includes('Real Windows UIA app switch acceptance')&&uiaWindowsWorkflow.includes('real-remote-uia-app-switch.ps1'),'Windows workflow must run the UIA app-switch acceptance');
 assert.ok(browserCrossOriginServer.includes("serverA.listen(0,'127.0.0.1'")&&browserCrossOriginServer.includes("serverB.listen(0,'127.0.0.1'")&&browserCrossOriginServer.includes('/origin-a')&&browserCrossOriginServer.includes('/origin-b'),'Cross-origin fixture must use two distinct loopback origins');
 assert.ok(!browserCdpHelper.includes('Input.dispatch')&&!browserSnapshotHelper.includes('Input.dispatch')&&!inputAckHelper.includes('Input.dispatch'),'Browser CDP must remain observation-only for input');
 assert.ok(!browserCdpHelper.includes('Runtime.evaluate')&&!browserSnapshotHelper.includes('Runtime.evaluate')&&!inputAckHelper.includes('Runtime.evaluate'),'Browser CDP must not inject page script for ACK');
