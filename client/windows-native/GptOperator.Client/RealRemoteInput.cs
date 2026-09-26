@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using System.Windows.Forms;
 
 namespace GptOperator.Client;
 
@@ -67,12 +68,9 @@ internal static partial class RealRemoteHelper
 
     private static void MoveCursor(JsonElement item,bool required)
     {
-        var hasX=item.TryGetProperty("x",out var xNode);
-        var hasY=item.TryGetProperty("y",out var yNode);
-        if(!hasX&&!hasY){if(required)throw new InvalidOperationException("desktop_input_coordinates_required");return;}
-        if(!hasX||!hasY||!xNode.TryGetInt32(out var x)||!yNode.TryGetInt32(out var y)||x< -100000||x>100000||y< -100000||y>100000)
-            throw new InvalidOperationException("desktop_input_invalid_coordinates");
-        if(!SetCursorPos(x,y)) throw Win32InputError("desktop_input_cursor_blocked");
+        var point=ResolvePoint(item,"x","y","screen",required,null);
+        if(!point.HasValue) return;
+        if(!SetCursorPos(point.Value.X,point.Value.Y)) throw Win32InputError("desktop_input_cursor_blocked");
     }
 
     private static int Click(JsonElement item)
@@ -86,10 +84,10 @@ internal static partial class RealRemoteHelper
 
     private static int Drag(JsonElement item)
     {
-        var startX=IntRequired(item,"x",-100000,100000);
-        var startY=IntRequired(item,"y",-100000,100000);
-        var targetX=IntRequired(item,"toX",-100000,100000);
-        var targetY=IntRequired(item,"toY",-100000,100000);
+        var start=ResolvePoint(item,"x","y","screen",true,null)!.Value;
+        var target=ResolvePoint(item,"toX","toY","toScreen",true,start.Screen)!.Value;
+        var startX=start.X; var startY=start.Y;
+        var targetX=target.X; var targetY=target.Y;
         var steps=IntStrict(item,"steps",8,1,32);
         var durationMs=IntStrict(item,"durationMs",120,0,1000);
         var pair=MouseButtonPair(item);
@@ -201,6 +199,38 @@ internal static partial class RealRemoteHelper
 
     private static Exception Win32InputError(string name)=>
         new InvalidOperationException($"{name}:{Marshal.GetLastWin32Error()}");
+
+    private readonly record struct ResolvedPoint(int X,int Y,int? Screen);
+
+    private static ResolvedPoint? ResolvePoint(JsonElement item,string xName,string yName,string screenName,bool required,int? fallbackScreen)
+    {
+        var hasX=item.TryGetProperty(xName,out var xNode);
+        var hasY=item.TryGetProperty(yName,out var yNode);
+        var hasScreen=item.TryGetProperty(screenName,out var screenNode);
+        if(!hasX&&!hasY&&!hasScreen&&!fallbackScreen.HasValue)
+        {
+            if(required) throw new InvalidOperationException("desktop_input_coordinates_required");
+            return null;
+        }
+        if(!hasX||!hasY||!xNode.TryGetInt32(out var x)||!yNode.TryGetInt32(out var y)||x< -100000||x>100000||y< -100000||y>100000)
+            throw new InvalidOperationException("desktop_input_invalid_coordinates");
+
+        int? screenIndex=fallbackScreen;
+        if(hasScreen)
+        {
+            if(!screenNode.TryGetInt32(out var parsedScreen)||parsedScreen<0||parsedScreen>255)
+                throw new InvalidOperationException($"desktop_input_invalid_{screenName}");
+            screenIndex=parsedScreen;
+        }
+
+        if(!screenIndex.HasValue) return new ResolvedPoint(x,y,null);
+        var screens=Screen.AllScreens;
+        if(screenIndex.Value>=screens.Length) throw new InvalidOperationException("desktop_input_screen_out_of_range");
+        var bounds=screens[screenIndex.Value].Bounds;
+        if(x<0||y<0||x>=bounds.Width||y>=bounds.Height)
+            throw new InvalidOperationException("desktop_input_invalid_screen_coordinates");
+        return new ResolvedPoint(bounds.Left+x,bounds.Top+y,screenIndex);
+    }
 
     private static int IntStrict(JsonElement item,string name,int fallback,int min,int max)
     {

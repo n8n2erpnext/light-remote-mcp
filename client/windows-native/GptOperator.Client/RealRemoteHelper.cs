@@ -95,8 +95,9 @@ internal static partial class RealRemoteHelper
         var foreground = WindowInfo(GetForegroundWindow());
         var cursor = GetCursorPos(out var point) ? new { x = point.X, y = point.Y } : null;
         var virtualScreen = SystemInformation.VirtualScreen;
-        var screens = Screen.AllScreens.Select(screen => new
+        var screens = Screen.AllScreens.Select((screen, index) => new
         {
+            index,
             name = screen.DeviceName,
             primary = screen.Primary,
             bounds = Box(screen.Bounds.Left, screen.Bounds.Top, screen.Bounds.Width, screen.Bounds.Height),
@@ -126,12 +127,19 @@ internal static partial class RealRemoteHelper
 
         var requestedScreen = IntArg(args, "screen", -1, -1, Math.Max(0, screens.Length - 1));
         Screen screen;
+        int screenIndex;
         if (requestedScreen >= 0)
         {
             if (requestedScreen >= screens.Length) throw new InvalidOperationException("desktop_screen_out_of_range");
-            screen = screens[requestedScreen];
+            screenIndex = requestedScreen;
+            screen = screens[screenIndex];
         }
-        else screen = Screen.PrimaryScreen ?? screens[0];
+        else
+        {
+            screen = Screen.PrimaryScreen ?? screens[0];
+            screenIndex = Array.FindIndex(screens, candidate => string.Equals(candidate.DeviceName, screen.DeviceName, StringComparison.OrdinalIgnoreCase));
+            if (screenIndex < 0) screenIndex = 0;
+        }
 
         var maxWidth = IntArg(args, "maxWidth", 960, 320, 1280);
         var maxHeight = IntArg(args, "maxHeight", 540, 180, 720);
@@ -173,7 +181,7 @@ internal static partial class RealRemoteHelper
             width,
             height,
             bytes = bytes.Length,
-            screen = new { name = screen.DeviceName, primary = screen.Primary, bounds = Box(bounds.Left, bounds.Top, bounds.Width, bounds.Height) },
+            screen = new { index = screenIndex, name = screen.DeviceName, primary = screen.Primary, bounds = Box(bounds.Left, bounds.Top, bounds.Width, bounds.Height) },
             data = Convert.ToBase64String(bytes)
         };
     }

@@ -69,6 +69,16 @@ const normalizedInput=normalizeDesktopInput({events:[
 assert.equal(normalizedInput.events.length,6);
 assert.deepEqual(normalizedInput.events[3],{type:'drag',x:120,y:80,toX:320,toY:180,button:'left',steps:6,durationMs:90});
 assert.deepEqual(normalizedInput.events[5],{type:'key',key:'ENTER',modifiers:['CTRL']});
+const normalizedScreenInput=normalizeDesktopInput({events:[
+  {type:'move',x:10,y:20,screen:0},
+  {type:'click',x:30,y:40,screen:1,button:'left'},
+  {type:'drag',x:5,y:6,toX:15,toY:16,screen:2,button:'left'}
+]});
+assert.deepEqual(normalizedScreenInput.events[0],{type:'move',x:10,y:20,screen:0});
+assert.deepEqual(normalizedScreenInput.events[1],{type:'click',button:'left',count:1,x:30,y:40,screen:1});
+assert.deepEqual(normalizedScreenInput.events[2],{type:'drag',x:5,y:6,screen:2,toX:15,toY:16,toScreen:2,button:'left',steps:8,durationMs:120});
+assert.throws(()=>normalizeDesktopInput({events:[{type:'move',x:-1,y:0,screen:0}]}),/desktop_input_invalid_screen_coordinates/);
+assert.throws(()=>normalizeDesktopInput({events:[{type:'move',x:0,y:0,screen:256}]}),/desktop_input_invalid_screen/);
 assert.throws(()=>normalizeDesktopInput({events:[{type:'move'}]}),/desktop_input_coordinates_required/);
 assert.throws(()=>normalizeDesktopInput({events:[{type:'drag',x:1,y:1,toY:2}]}),/desktop_input_invalid_to_x/);
 assert.throws(()=>normalizeDesktopInput({events:[{type:'drag',x:1,y:1,toX:2,toY:2,steps:33}]}),/desktop_input_invalid_steps/);
@@ -159,6 +169,7 @@ const uiaDragDropAcceptance=read('client/windows-native/acceptance/real-remote-u
 const uiaDragDropFixture=read('client/windows-native/acceptance/real-remote-uia-drag-drop-fixture.ps1');
 const uiaMouseButtonsAcceptance=read('client/windows-native/acceptance/real-remote-uia-mouse-buttons.ps1');
 const uiaMouseButtonsFixture=read('client/windows-native/acceptance/real-remote-uia-mouse-buttons-fixture.ps1');
+const uiaScreenCoordinatesAcceptance=read('client/windows-native/acceptance/real-remote-uia-screen-coordinates.ps1');
 const uiaWindowLifecycleAcceptance=read('client/windows-native/acceptance/real-remote-uia-window-lifecycle.ps1');
 const uiaWindowLifecycleFixture=read('client/windows-native/acceptance/real-remote-uia-window-lifecycle-fixture.ps1');
 const uiaWindowsWorkflow=read('.github/workflows/windows-native-client.yml');
@@ -175,6 +186,8 @@ assert.ok(!semanticEventsHelper.includes('ValuePattern.ValueProperty'),'semantic
 assert.ok(!semanticEventsHelper.includes('TextPattern.'),'semantic journal must not subscribe text contents');
 assert.ok(windowsProject.includes('<UseWPF>true</UseWPF>'),'Windows UIA reference pack must come from WindowsDesktop/WPF SDK support');
 for(const token of ['SendInput(','SetCursorPos(','desktop_input_blocked','desktop_input_invalid_event_count','Keyboard(ushort vk,ushort scan,uint flags)','BeginSemanticInput(args)','CompleteSemanticInput(semanticInput,applied,sent)'])assert.ok(inputHelper.includes(token),`Windows input contract missing: ${token}`);
+for(const token of ['ResolvePoint(item,"x","y","screen"','ResolvePoint(item,"toX","toY","toScreen"','desktop_input_screen_out_of_range','desktop_input_invalid_screen_coordinates'])assert.ok(inputHelper.includes(token),`Windows screen-local input contract missing: ${token}`);
+assert.ok(helper.includes('Select((screen, index) => new')&&helper.includes('int screenIndex')&&helper.includes('index = screenIndex'),'Windows screen topology/frame responses must expose stable screen indexes');
 for(const token of ['case "drag"','private static int Drag(JsonElement item)','MouseButtonPair','IntRequired','finally','Mouse(pair.Up,0)'])assert.ok(inputHelper.includes(token),`Windows atomic drag contract missing: ${token}`);
 assert.ok(inputHelper.includes('"right" => (MouseRightDown,MouseRightUp)')&&inputHelper.includes('"middle" => (MouseMiddleDown,MouseMiddleUp)'),'Windows mouse-button mapping must preserve right and middle SendInput pairs');
 for(const token of ['SemanticInputContext','InputSeq','afterSeq','settleMs','focusOutsideScope','resyncRecommended','hasMore'])assert.ok(inputAckHelper.includes(token),`Windows closed-loop input ACK missing: ${token}`);
@@ -212,6 +225,9 @@ assert.ok(uiaWindowsWorkflow.includes('Real Windows UIA drag drop acceptance')&&
 assert.ok(uiaMouseButtonsAcceptance.includes('windows-real-remote-uia-right-click-context-open=PASS')&&uiaMouseButtonsAcceptance.includes('windows-real-remote-uia-context-menu-select=PASS')&&uiaMouseButtonsAcceptance.includes('windows-real-remote-uia-middle-click=PASS')&&uiaMouseButtonsAcceptance.includes('windows-real-remote-uia-double-click=PASS')&&uiaMouseButtonsAcceptance.includes('windows-real-remote-uia-mouse-buttons-closed-loop=PASS'),'Real Windows UIA mouse-button acceptance must prove right-click context menu and middle-click closed loop');
 assert.ok(uiaMouseButtonsAcceptance.includes("button='right'")&&uiaMouseButtonsAcceptance.includes("button='middle'")&&uiaMouseButtonsAcceptance.includes("count=2")&&uiaMouseButtonsFixture.includes('[System.Windows.Forms.ContextMenuStrip]::new()'),'UIA mouse-button fixture must use native context menu and OS right/middle buttons');
 assert.ok(uiaWindowsWorkflow.includes('Real Windows UIA mouse buttons acceptance')&&uiaWindowsWorkflow.includes('real-remote-uia-mouse-buttons.ps1'),'Windows workflow must run the UIA mouse-button acceptance');
+assert.ok(uiaScreenCoordinatesAcceptance.includes('windows-real-remote-screen-topology=PASS')&&uiaScreenCoordinatesAcceptance.includes('windows-real-remote-screen-local-click=PASS')&&uiaScreenCoordinatesAcceptance.includes('windows-real-remote-screen-local-drag=PASS')&&uiaScreenCoordinatesAcceptance.includes('windows-real-remote-screen-local-negative=PASS')&&uiaScreenCoordinatesAcceptance.includes('windows-real-remote-screen-local-closed-loop=PASS'),'Screen-local acceptance must prove topology translation, click, drag and rejection paths');
+assert.ok(uiaScreenCoordinatesAcceptance.includes('screen=$screenIndex')&&uiaScreenCoordinatesAcceptance.includes('toScreen=$screenIndex')&&uiaScreenCoordinatesAcceptance.includes('desktop_input_screen_out_of_range'),'Screen-local acceptance must exercise explicit screen/toScreen coordinates and native screen bounds');
+assert.ok(uiaWindowsWorkflow.includes('Real Windows screen-local coordinates acceptance')&&uiaWindowsWorkflow.includes('real-remote-uia-screen-coordinates.ps1'),'Windows workflow must run screen-local coordinate acceptance');
 assert.ok(uiaWindowLifecycleAcceptance.includes('windows-real-remote-uia-window-maximize=PASS')&&uiaWindowLifecycleAcceptance.includes('windows-real-remote-uia-window-restore=PASS')&&uiaWindowLifecycleAcceptance.includes('windows-real-remote-uia-window-close-handoff=PASS')&&uiaWindowLifecycleAcceptance.includes('windows-real-remote-uia-window-close-continued-input=PASS')&&uiaWindowLifecycleAcceptance.includes('windows-real-remote-uia-window-lifecycle-closed-loop=PASS'),'Real Windows UIA window lifecycle acceptance must prove maximize/restore/close handoff and continued input');
 assert.ok(uiaWindowLifecycleAcceptance.includes("key='UP';modifiers=@('WIN')")&&uiaWindowLifecycleAcceptance.includes("key='DOWN';modifiers=@('WIN')")&&uiaWindowLifecycleAcceptance.includes("key='F4';modifiers=@('ALT')")&&uiaWindowLifecycleFixture.includes("$form.FormBorderStyle='Sizable'"),'UIA window lifecycle acceptance must use OS window-management keys on a sizable native window');
 assert.ok(uiaWindowLifecycleAcceptance.includes("'windows'")&&uiaWindowLifecycleAcceptance.includes('bounds.width')&&uiaWindowLifecycleAcceptance.includes('foreground_handoff:*'),'UIA window lifecycle acceptance must verify actual window bounds and root-handoff journal state');
