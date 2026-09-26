@@ -261,6 +261,44 @@ try{
   Write-Host "windows-real-remote-new-tab-continued-input=PASS sentInputs=$($newTabActionAck.sentInputs) inputSeq=$($newTabActionAck.inputSeq) seq=$($newTabDone.stateSeq)"
   Write-Host 'windows-real-remote-new-tab-closed-loop=PASS'
 
+  $newTabTargetId=[string]$newTabDone.target.id;$closeBeforeSeq=[long]$newTabDone.stateSeq
+  [LightRemoteAcceptanceWindow]::Focus($hwnd);Start-Sleep -Milliseconds 100
+  $closeAck=Invoke-Rr 'accept-os-close-current-tab' 'input' @{events=@(@{type='key';key='W';modifiers=@('CTRL')});semanticSessionId=$sem;afterSeq=$closeBeforeSeq;settleMs=300}
+  if([int]$closeAck.appliedEvents -ne 1 -or [int]$closeAck.sentInputs -lt 4){throw "Close-tab SendInput proof missing applied=$($closeAck.appliedEvents) sent=$($closeAck.sentInputs)"}
+  if([string]$closeAck.semanticSessionId -ne $sem){throw 'Semantic session changed while closing current tab'}
+
+  $closeDeadline=[DateTime]::UtcNow.AddSeconds(5);$closeAttempt=0;$returnStable=$null;$returnButtons=@()
+  do{
+    $closeAttempt++
+    try{
+      $candidate=Invoke-Rr ("accept-close-tab-snapshot-"+$closeAttempt) 'semantic-snapshot' @{semanticSessionId=$sem}
+      $candidateButtons=@($candidate.nodes|Where-Object { $_.role -eq 'button' -and $_.name -eq 'Light Remote Return Target' })
+      if([string]$candidate.target.id -eq $oldTargetId -and $candidateButtons.Count -eq 1 -and $null -ne $candidateButtons[0].center){$returnStable=$candidate;$returnButtons=$candidateButtons;break}
+    }catch{}
+    Start-Sleep -Milliseconds 100
+  }while([DateTime]::UtcNow -lt $closeDeadline)
+  if($null -eq $returnStable -or $returnButtons.Count -ne 1){throw 'Same semantic session did not recover surviving foreground tab after close'}
+  if([string]$returnStable.semanticSessionId -ne $sem){throw 'Semantic session changed during close-tab recovery'}
+  if([string]$returnStable.target.id -ne $oldTargetId){throw "Close-tab recovery target mismatch: $($returnStable.target.id)"}
+  if([string]$returnStable.target.url -notlike '*real-remote-browser-os-input-next.html'){throw "Close-tab recovery URL mismatch: $($returnStable.target.url)"}
+  if([string]$returnStable.target.title -ne 'Light Remote Navigation Continued'){throw "Close-tab recovery title mismatch: $($returnStable.target.title)"}
+
+  $closeEvents=Invoke-Rr 'accept-close-tab-events' 'semantic-events' @{semanticSessionId=$sem;afterSeq=$closeBeforeSeq;limit=100}
+  $closeHandoffs=@($closeEvents.events|Where-Object { $_.kind -eq 'target' -and $_.property -eq 'targetId' -and $_.change -eq ("handoff:"+$newTabTargetId+"->"+$oldTargetId) -and $_.resyncRecommended })
+  if($closeHandoffs.Count -lt 1){throw "Close-tab handoff resync event missing count=$($closeHandoffs.Count)"}
+  Write-Host "windows-real-remote-close-tab-handoff=PASS closedTarget=$newTabTargetId recoveredTarget=$oldTargetId events=$($closeHandoffs.Count) semanticSessionId=$sem"
+
+  $returnButton=$returnButtons[0]
+  $returnX=[int][Math]::Round([double]$returnButton.center.x);$returnY=[int][Math]::Round([double]$returnButton.center.y);$returnBeforeSeq=[long]$returnStable.stateSeq
+  $returnAck=Invoke-Rr 'accept-os-close-tab-continued' 'input' @{events=@(@{type='move';x=$returnX;y=$returnY},@{type='click';button='left';count=1});semanticSessionId=$sem;afterSeq=$returnBeforeSeq;settleMs=150}
+  if([int]$returnAck.appliedEvents -ne 2 -or [int]$returnAck.sentInputs -lt 2){throw "Post-close SendInput proof missing applied=$($returnAck.appliedEvents) sent=$($returnAck.sentInputs)"}
+  $returnDone=Invoke-Rr 'accept-close-tab-continued-after' 'semantic-snapshot' @{semanticSessionId=$sem}
+  $returnAccepted=@($returnDone.nodes|Where-Object { $_.role -eq 'button' -and $_.name -eq 'Light Remote Return Accepted' })
+  if($returnAccepted.Count -ne 1){throw 'OS input did not continue after close-tab recovery'}
+  if([string]$returnDone.semanticSessionId -ne $sem -or [string]$returnDone.target.id -ne $oldTargetId){throw 'Close-tab recovery target/session changed during continued input'}
+  Write-Host "windows-real-remote-close-tab-continued-input=PASS sentInputs=$($returnAck.sentInputs) inputSeq=$($returnAck.inputSeq) seq=$($returnDone.stateSeq)"
+  Write-Host 'windows-real-remote-close-tab-closed-loop=PASS'
+
   $d=Invoke-Rr 'accept-detach' 'semantic-detach' @{semanticSessionId=$sem};if(-not $d.detached -or $d.provider -ne 'browser-cdp'){throw 'Detach failed'};$detached=$true
   Write-Host 'windows-real-remote-browser-os-input-acceptance=PASS'
 }finally{

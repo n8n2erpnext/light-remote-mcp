@@ -16,11 +16,13 @@ output{display:block;margin-top:24px;font-size:18px}
 <h1>Light Remote Navigation E2E</h1>
 <button id="next" type="button" aria-label="Light Remote Next Page" aria-pressed="false">Next Page Action</button>
 <a id="newtab" href="real-remote-browser-os-input-new-tab.html" target="_blank" rel="noopener" aria-label="Light Remote Open New Tab">Open new tab</a>
+<button id="return-target" type="button" aria-label="Light Remote Return Target" aria-pressed="false">Return Target Action</button>
 <output id="state" role="status" aria-label="Light Remote Navigation Ready">navigation ready</output>
 </main>
 <script>
 const next=document.getElementById('next');
 const state=document.getElementById('state');
+const returnTarget=document.getElementById('return-target');
 next.addEventListener('click',()=>{
   next.setAttribute('aria-pressed','true');
   next.setAttribute('aria-label','Light Remote Next Accepted');
@@ -28,6 +30,14 @@ next.addEventListener('click',()=>{
   state.setAttribute('aria-label','Light Remote Navigation Continued');
   state.textContent='continued';
   document.title='Light Remote Navigation Continued';
+});
+returnTarget.addEventListener('click',()=>{
+  returnTarget.setAttribute('aria-pressed','true');
+  returnTarget.setAttribute('aria-label','Light Remote Return Accepted');
+  returnTarget.textContent='Light Remote Return Accepted';
+  state.setAttribute('aria-label','Light Remote Return Continued');
+  state.textContent='return continued';
+  document.title='Light Remote Return Accepted';
 });
 </script>
 </body>
