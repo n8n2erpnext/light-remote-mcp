@@ -19,6 +19,11 @@ public static class LightRemoteLifecycleWindow{
 '@
 }
 function Wait-Window([string]$Title){$deadline=[DateTime]::UtcNow.AddSeconds($TimeoutSeconds);$h=[IntPtr]::Zero;while($h -eq [IntPtr]::Zero -and [DateTime]::UtcNow -lt $deadline){$h=[LightRemoteLifecycleWindow]::Find($Title);if($h -eq [IntPtr]::Zero){Start-Sleep -Milliseconds 100}};if($h -eq [IntPtr]::Zero){throw "Window missing: $Title"};return $h}
+function Start-Fixture([string]$Title,[string]$Button,[int]$X,[int]$Y){
+  $psi=[Diagnostics.ProcessStartInfo]::new();$psi.FileName=(Get-Command pwsh).Source;$psi.UseShellExecute=$false;$psi.CreateNoWindow=$true
+  foreach($arg in @('-NoProfile','-STA','-File',$fixture,'-Title',$Title,'-ButtonName',$Button,'-X',[string]$X,'-Y',[string]$Y)){$psi.ArgumentList.Add($arg)}
+  $p=[Diagnostics.Process]::new();$p.StartInfo=$psi;if(-not $p.Start()){throw "Fixture start failed: $Title"};return $p
+}
 $rr=$null;$appA=$null;$appB=$null;$sem=$null;$detached=$false
 function Invoke-Rr([string]$Id,[string]$Op,[hashtable]$RequestArgs=@{}){
   $script:rr.StandardInput.WriteLine((@{id=$Id;op=$Op;args=$RequestArgs}|ConvertTo-Json -Compress -Depth 12));$script:rr.StandardInput.Flush()
@@ -47,10 +52,9 @@ function Wait-Button([string]$SessionId,[string]$Name,[string]$Prefix){
 try{
   $titleA='Light Remote Window Lifecycle A';$buttonA='Light Remote Window A Action'
   $titleB='Light Remote Window Lifecycle B';$buttonB='Light Remote Window B Action'
-  $pwsh=(Get-Command pwsh).Source
-  $appB=Start-Process -FilePath $pwsh -ArgumentList @('-NoProfile','-STA','-File',$fixture,'-Title',$titleB,'-ButtonName',$buttonB,'-X','90','-Y','90') -PassThru
+  $appB=Start-Fixture $titleB $buttonB 90 90
   $hwndB=Wait-Window $titleB;Start-Sleep -Milliseconds 150
-  $appA=Start-Process -FilePath $pwsh -ArgumentList @('-NoProfile','-STA','-File',$fixture,'-Title',$titleA,'-ButtonName',$buttonA,'-X','180','-Y','140') -PassThru
+  $appA=Start-Fixture $titleA $buttonA 180 140
   $hwndA=Wait-Window $titleA
   [LightRemoteLifecycleWindow]::Focus($hwndB);Start-Sleep -Milliseconds 120
   [LightRemoteLifecycleWindow]::Focus($hwndA);Start-Sleep -Milliseconds 250
