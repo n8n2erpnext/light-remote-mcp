@@ -431,8 +431,27 @@ try{
   Write-Host "windows-real-remote-popup-window-continued-input=PASS sentInputs=$($popupActionAck.sentInputs) inputSeq=$($popupActionAck.inputSeq) seq=$($popupDone.stateSeq)"
   Write-Host 'windows-real-remote-popup-window-closed-loop=PASS'
 
-  $crossTargetId=[string]$popupDone.target.id;$crossBeforeSeq=[long]$popupDone.stateSeq
+  $popupCloseBeforeSeq=[long]$popupDone.stateSeq
   [LightRemoteAcceptanceWindow]::Focus($popupHwnd);Start-Sleep -Milliseconds 100
+  $popupCloseAck=Invoke-Rr 'accept-os-close-popup-window' 'input' @{events=@(@{type='key';key='W';modifiers=@('CTRL')});semanticSessionId=$sem;afterSeq=$popupCloseBeforeSeq;settleMs=300}
+  if([int]$popupCloseAck.appliedEvents -ne 1 -or [int]$popupCloseAck.sentInputs -lt 4){throw "Popup-close SendInput proof missing applied=$($popupCloseAck.appliedEvents) sent=$($popupCloseAck.sentInputs)"}
+
+  $popupRecoverDeadline=[DateTime]::UtcNow.AddSeconds(5);$popupRecoverAttempt=0;$sourceRecovered=$null;$sourceButtons=@()
+  do{
+    $popupRecoverAttempt++
+    try{
+      $candidate=Invoke-Rr ("accept-popup-close-recovery-"+$popupRecoverAttempt) 'semantic-snapshot' @{semanticSessionId=$sem}
+      $candidateButtons=@($candidate.nodes|Where-Object { $_.role -eq 'button' -and $_.name -eq 'Light Remote Return Accepted' })
+      if([string]$candidate.target.id -eq $oldTargetId -and $candidateButtons.Count -eq 1){$sourceRecovered=$candidate;$sourceButtons=$candidateButtons;break}
+    }catch{}
+    Start-Sleep -Milliseconds 100
+  }while([DateTime]::UtcNow -lt $popupRecoverDeadline)
+  if($null -eq $sourceRecovered -or $sourceButtons.Count -ne 1){throw 'Semantic session did not recover source window after popup close'}
+  if([string]$sourceRecovered.semanticSessionId -ne $sem -or [string]$sourceRecovered.target.id -ne $oldTargetId){throw 'Popup-close recovery changed semantic session or source target identity'}
+  Write-Host "windows-real-remote-popup-window-close-recovery=PASS closedTarget=$popupTargetId recoveredTarget=$oldTargetId semanticSessionId=$sem"
+
+  $crossTargetId=[string]$sourceRecovered.target.id;$crossBeforeSeq=[long]$sourceRecovered.stateSeq
+  [LightRemoteAcceptanceWindow]::Focus($hwnd);Start-Sleep -Milliseconds 150
   $originAFocusAck=Invoke-Rr 'accept-os-cross-origin-focus-address' 'input' @{events=@(@{type='key';key='L';modifiers=@('CTRL')});semanticSessionId=$sem;afterSeq=$crossBeforeSeq;settleMs=120}
   if([int]$originAFocusAck.appliedEvents -ne 1 -or [int]$originAFocusAck.sentInputs -lt 4){throw "Origin-A Ctrl+L SendInput proof missing applied=$($originAFocusAck.appliedEvents) sent=$($originAFocusAck.sentInputs)"}
   $originATextAck=Invoke-Rr 'accept-os-cross-origin-type-address' 'input' @{events=@(@{type='text';text=$originAUrl});semanticSessionId=$sem;afterSeq=[long]$originAFocusAck.stateSeq;settleMs=80}
@@ -460,7 +479,7 @@ try{
 
   $originALink=$originALinks[0]
   $originAX=[int][Math]::Round([double]$originALink.center.x);$originAY=[int][Math]::Round([double]$originALink.center.y);$originABeforeSeq=[long]$originAStable.stateSeq
-  [LightRemoteAcceptanceWindow]::Focus($popupHwnd);Start-Sleep -Milliseconds 100
+  [LightRemoteAcceptanceWindow]::Focus($hwnd);Start-Sleep -Milliseconds 100
   $originBAck=Invoke-Rr 'accept-os-cross-origin-b' 'input' @{events=@(@{type='move';x=$originAX;y=$originAY},@{type='click';button='left';count=1});semanticSessionId=$sem;afterSeq=$originABeforeSeq;settleMs=250}
   if([int]$originBAck.appliedEvents -ne 2 -or [int]$originBAck.sentInputs -lt 2){throw "Origin-B click SendInput proof missing applied=$($originBAck.appliedEvents) sent=$($originBAck.sentInputs)"}
   if([string]$originBAck.semanticSessionId -ne $sem){throw 'Semantic session changed while crossing origins'}
@@ -482,7 +501,7 @@ try{
 
   $originBButton=$originBButtons[0]
   $originBX=[int][Math]::Round([double]$originBButton.center.x);$originBY=[int][Math]::Round([double]$originBButton.center.y);$originBBeforeSeq=[long]$originBStable.stateSeq
-  [LightRemoteAcceptanceWindow]::Focus($popupHwnd);Start-Sleep -Milliseconds 100
+  [LightRemoteAcceptanceWindow]::Focus($hwnd);Start-Sleep -Milliseconds 100
   $originBActionAck=Invoke-Rr 'accept-os-cross-origin-action' 'input' @{events=@(@{type='move';x=$originBX;y=$originBY},@{type='click';button='left';count=1});semanticSessionId=$sem;afterSeq=$originBBeforeSeq;settleMs=150}
   if([int]$originBActionAck.appliedEvents -ne 2 -or [int]$originBActionAck.sentInputs -lt 2){throw "Cross-origin continued SendInput proof missing applied=$($originBActionAck.appliedEvents) sent=$($originBActionAck.sentInputs)"}
   $originBDone=Invoke-Rr 'accept-cross-origin-action-after' 'semantic-snapshot' @{semanticSessionId=$sem}
