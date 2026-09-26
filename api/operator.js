@@ -231,7 +231,7 @@ module.exports=async function handler(req,res){
           }
           if(op==='semantic-snapshot'||op==='semantic-events'||op==='semantic-detach')desktop.semanticSessionId=String(d.semanticSessionId||'');
           if(op==='semantic-events'){const afterSeq=Number(d.afterSeq),limit=Number(d.limit);desktop.afterSeq=Number.isFinite(afterSeq)?Math.max(0,Math.floor(afterSeq)):0;desktop.limit=Math.max(1,Math.min(Number.isFinite(limit)?Math.floor(limit):100,200));}
-          const payload={action:'desktop',operationId:aid(d.operationId),sessionId:sid(d.sessionId),agentId:aid(d.agentId),nodeId:d.nodeId==null?undefined:clientDevice(d.nodeId),desktop,waitMs:Math.max(0,Math.min(Number(d.waitMs)||7000,8000))};
+          // Desktop semantic nodeId belongs inside desktop.act. The target machine is already session-bound; promoting d.nodeId here would turn a UI node id into a target node id and fail session validation.\n          const payload={action:'desktop',operationId:aid(d.operationId),sessionId:sid(d.sessionId),agentId:aid(d.agentId),desktop,waitMs:Math.max(0,Math.min(Number(d.waitMs)||7000,8000))};
           upstream=await clientCall('/plus/client/execute',{method:'POST',body:{deviceId,envelope:sealOperatorPayload(payload)},timeoutMs:9500});
         }
         else if(usingClient&&action.startsWith('search-')){
