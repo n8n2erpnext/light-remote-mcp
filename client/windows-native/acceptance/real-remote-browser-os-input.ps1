@@ -555,10 +555,18 @@ try{
   $restartArgs=@('--remote-debugging-port=0','--remote-allow-origins=*','--disable-background-networking','--disable-default-apps','--no-first-run','--no-default-browser-check','--new-window','--start-maximized',"--user-data-dir=$profile",$fixtureUrl)
   $browser=Start-Process -FilePath $BrowserExe -ArgumentList $restartArgs -PassThru
   if($browser.Id -eq $deadBrowserPid){throw 'Restarted browser reused dead process id unexpectedly'}
-  $portFile=Join-Path $profile 'DevToolsActivePort';$restartDeadline=[DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
-  while(-not (Test-Path -LiteralPath $portFile) -and [DateTime]::UtcNow -lt $restartDeadline){Start-Sleep -Milliseconds 100}
-  if(-not(Test-Path -LiteralPath $portFile)){throw 'Restarted browser DevToolsActivePort missing'}
-  $port=[int]((Get-Content -LiteralPath $portFile -TotalCount 1).Trim());if($port -lt 1 -or $port -gt 65535){throw "Restarted browser CDP port invalid: $port"}
+  $portFile=Join-Path $profile 'DevToolsActivePort';$restartDeadline=[DateTime]::UtcNow.AddSeconds($TimeoutSeconds);$port=0
+  do{
+    if(Test-Path -LiteralPath $portFile){
+      try{
+        $rawPort=(Get-Content -LiteralPath $portFile -TotalCount 1 -ErrorAction Stop)
+        $candidate=0
+        if($rawPort -and [int]::TryParse($rawPort.Trim(),[ref]$candidate) -and $candidate -ge 1 -and $candidate -le 65535){$port=$candidate;break}
+      }catch{}
+    }
+    Start-Sleep -Milliseconds 100
+  }while([DateTime]::UtcNow -lt $restartDeadline)
+  if($port -lt 1 -or $port -gt 65535){throw 'Restarted browser DevToolsActivePort unreadable or invalid'}
   $endpoint="http://127.0.0.1:$port"
 
   $hwnd=[IntPtr]::Zero;$restartWindowDeadline=[DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
