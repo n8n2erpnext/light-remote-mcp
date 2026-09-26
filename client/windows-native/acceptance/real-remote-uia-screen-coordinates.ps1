@@ -54,15 +54,15 @@ try{
   $screenIndex=[int]$screen.index;$bounds=$screen.bounds
   if($screenIndex -lt 0){throw 'Screen index missing from status'}
   if([int]$screen.dpi.x -lt 1 -or [int]$screen.dpi.y -lt 1){throw 'Screen DPI missing from status'}
-  $visual=Invoke-Rr 'screen-desktop-attach' 'attach' @{screen=$screenIndex;maxWidth=480;maxHeight=320;quality=35}
+  $visual=Invoke-Rr 'screen-desktop-attach' 'attach' @{screen=$screenIndex;maxWidth=480;maxHeight=320;quality=35;minIntervalMs=400;omitUnchanged=$true}
   $desk=[string]$visual.desktopSessionId;$deskEpoch=[string]$visual.epoch
   if($desk -notmatch '^desk_[a-f0-9]{32}$' -or $deskEpoch -notmatch '^dep_[a-f0-9]{32}$'){throw 'Visual desktop attach ids invalid'}
-  if([long]$visual.frameSeq -ne 0 -or [string]$visual.displayTopologyId -ne $topology -or [int]$visual.screen.index -ne $screenIndex){throw 'Visual desktop attach state invalid'}
+  if([long]$visual.frameSeq -ne 0 -or [long]$visual.contentSeq -ne 0 -or [string]$visual.displayTopologyId -ne $topology -or [int]$visual.screen.index -ne $screenIndex -or [int]$visual.frame.minIntervalMs -ne 400 -or -not [bool]$visual.frame.omitUnchanged){throw 'Visual desktop attach state invalid'}
   Write-Host "windows-real-remote-desktop-session-attach=PASS desktopSessionId=$desk epoch=$deskEpoch frameSeq=$($visual.frameSeq)"
   $lx=$gx-[int]$bounds.x;$ly=$gy-[int]$bounds.y
   $frame=Invoke-Rr 'screen-frame' 'frame' @{desktopSessionId=$desk}
   if([string]$frame.displayTopologyId -ne $topology){throw 'Frame/status display topology mismatch'}
-  if([string]$frame.desktopSessionId -ne $desk -or [string]$frame.desktopEpoch -ne $deskEpoch -or [long]$frame.frameSeq -ne 1){throw 'Visual desktop first frame sequence invalid'}
+  if([string]$frame.desktopSessionId -ne $desk -or [string]$frame.desktopEpoch -ne $deskEpoch -or [long]$frame.frameSeq -ne 1 -or [long]$frame.contentSeq -ne 1 -or [bool]$frame.throttled -or [bool]$frame.unchanged -or [string]$frame.frameSha256 -notmatch '^[a-f0-9]{64}$' -or [string]::IsNullOrWhiteSpace([string]$frame.data)){throw 'Visual desktop first frame sequence/content invalid'}
   if([int]$frame.screen.index -ne $screenIndex){throw "Frame screen index mismatch: $($frame.screen.index)"}
   if([int]$frame.screen.bounds.x -ne [int]$bounds.x -or [int]$frame.screen.bounds.y -ne [int]$bounds.y){throw 'Frame/status screen bounds mismatch'}
   if([int]$frame.screen.dpi.x -ne [int]$screen.dpi.x -or [int]$frame.screen.dpi.y -ne [int]$screen.dpi.y){throw 'Frame/status screen DPI mismatch'}
@@ -76,8 +76,12 @@ try{
   if([Math]::Abs($mappedX-$lx) -gt 2 -or [Math]::Abs($mappedY-$ly) -gt 2){throw "Frame input mapping quantization too large source=$lx,$ly mapped=$mappedX,$mappedY"}
   Write-Host "windows-real-remote-screen-topology=PASS index=$screenIndex bounds=$($bounds.x),$($bounds.y),$($bounds.width),$($bounds.height) dpi=$($screen.dpi.x)x$($screen.dpi.y)"
   Write-Host "windows-real-remote-frame-input-map=PASS frame=$frameX,$frameY local=$mappedX,$mappedY source=$lx,$ly scale=$($map.xScale),$($map.yScale)"
+  $throttle=Invoke-Rr 'screen-frame-throttle' 'frame' @{desktopSessionId=$desk}
+  if(-not [bool]$throttle.throttled -or [int]$throttle.retryAfterMs -lt 1 -or [long]$throttle.frameSeq -ne 1 -or [long]$throttle.contentSeq -ne 1 -or $null -ne $throttle.data){throw 'Visual desktop cadence throttle invalid'}
+  Write-Host "windows-real-remote-desktop-session-throttle=PASS retryAfterMs=$($throttle.retryAfterMs) frameSeq=$($throttle.frameSeq) contentSeq=$($throttle.contentSeq)"
+  Start-Sleep -Milliseconds ([int]$throttle.retryAfterMs+20)
   $resumed=Invoke-Rr 'screen-desktop-resume' 'resume' @{desktopSessionId=$desk}
-  if([string]$resumed.desktopSessionId -ne $desk -or [string]$resumed.epoch -ne $deskEpoch -or [long]$resumed.frameSeq -ne 1 -or [string]$resumed.state -ne 'resumed'){throw 'Visual desktop resume state invalid'}
+  if([string]$resumed.desktopSessionId -ne $desk -or [string]$resumed.epoch -ne $deskEpoch -or [long]$resumed.frameSeq -ne 1 -or [long]$resumed.contentSeq -ne 1 -or [string]$resumed.state -ne 'resumed'){throw 'Visual desktop resume state invalid'}
   Write-Host "windows-real-remote-desktop-session-resume=PASS desktopSessionId=$desk frameSeq=$($resumed.frameSeq)"
 
   $ack=Invoke-Rr 'screen-local-click' 'input' @{displayTopologyId=$topology;events=@(
@@ -92,9 +96,15 @@ try{
   if([string]$accepted.snapshot.semanticSessionId -ne $sem){throw 'Screen-local click changed semantic session'}
   Write-Host "windows-real-remote-screen-local-click=PASS screen=$screenIndex local=$mappedX,$mappedY global=$expectedMappedGlobalX,$expectedMappedGlobalY inputSeq=$($ack.inputSeq)"
   $frame2=Invoke-Rr 'screen-frame-after-click' 'frame' @{desktopSessionId=$desk}
-  if([string]$frame2.desktopSessionId -ne $desk -or [long]$frame2.frameSeq -ne 2 -or [string]$frame2.displayTopologyId -ne $topology){throw 'Visual desktop second frame sequence invalid'}
+  if([string]$frame2.desktopSessionId -ne $desk -or [long]$frame2.frameSeq -ne 2 -or [long]$frame2.contentSeq -ne 2 -or [bool]$frame2.throttled -or [bool]$frame2.unchanged -or [string]::IsNullOrWhiteSpace([string]$frame2.data) -or [string]$frame2.displayTopologyId -ne $topology){throw 'Visual desktop second frame sequence/content invalid'}
   if([string]$frame2.inputMapping.displayTopologyId -ne $topology -or [int]$frame2.inputMapping.screen -ne $screenIndex){throw 'Visual desktop second frame mapping invalid'}
-  Write-Host "windows-real-remote-desktop-session-frame-seq=PASS desktopSessionId=$desk first=$($frame.frameSeq) second=$($frame2.frameSeq)"
+  Write-Host "windows-real-remote-desktop-session-frame-seq=PASS desktopSessionId=$desk first=$($frame.frameSeq) second=$($frame2.frameSeq) contentSeq=$($frame2.contentSeq)"
+  $throttle2=Invoke-Rr 'screen-frame-throttle-after-click' 'frame' @{desktopSessionId=$desk}
+  if(-not [bool]$throttle2.throttled -or [long]$throttle2.frameSeq -ne 2 -or [long]$throttle2.contentSeq -ne 2 -or [int]$throttle2.retryAfterMs -lt 1){throw 'Visual desktop post-change throttle invalid'}
+  Start-Sleep -Milliseconds ([int]$throttle2.retryAfterMs+20)
+  $frame3=Invoke-Rr 'screen-frame-unchanged' 'frame' @{desktopSessionId=$desk}
+  if([long]$frame3.frameSeq -ne 3 -or [long]$frame3.contentSeq -ne 2 -or -not [bool]$frame3.unchanged -or [bool]$frame3.throttled -or $null -ne $frame3.data -or [int]$frame3.dataBytes -ne 0 -or [string]$frame3.frameSha256 -ne [string]$frame2.frameSha256){throw 'Visual desktop unchanged-frame suppression invalid'}
+  Write-Host "windows-real-remote-desktop-session-unchanged=PASS frameSeq=$($frame3.frameSeq) contentSeq=$($frame3.contentSeq) sha256=$($frame3.frameSha256)"
 
   $dragToLx=[Math]::Min($lx+4,[int]$bounds.width-1);$dragToLy=[Math]::Min($ly+4,[int]$bounds.height-1)
   $dragAck=Invoke-Rr 'screen-local-drag' 'input' @{displayTopologyId=$topology;events=@(
@@ -119,7 +129,7 @@ try{
   Write-Host 'windows-real-remote-screen-local-closed-loop=PASS'
 
   $vd=Invoke-Rr 'screen-desktop-detach' 'detach' @{desktopSessionId=$desk}
-  if(-not $vd.detached -or [string]$vd.desktopSessionId -ne $desk -or [long]$vd.frameSeq -ne 2){throw 'Visual desktop detach state invalid'};$deskDetached=$true
+  if(-not $vd.detached -or [string]$vd.desktopSessionId -ne $desk -or [long]$vd.frameSeq -ne 3 -or [long]$vd.contentSeq -ne 2){throw 'Visual desktop detach state invalid'};$deskDetached=$true
   Write-Host "windows-real-remote-desktop-session-detach=PASS desktopSessionId=$desk frameSeq=$($vd.frameSeq)"
   $gone=Invoke-RrRaw 'screen-desktop-resume-after-detach' 'resume' @{desktopSessionId=$desk}
   if($gone.ok -or [string]$gone.error -ne 'desktop_session_not_found'){throw "Detached visual session remained resumable: $($gone.error)"}

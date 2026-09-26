@@ -161,7 +161,9 @@ async function executeDesktopCommand(state,p){
     screen:request.screen==null?-1:Math.max(-1,Math.min(Number(request.screen)||0,31)),
     maxWidth:Math.max(320,Math.min(Number(request.maxWidth)||960,1280)),
     maxHeight:Math.max(180,Math.min(Number(request.maxHeight)||540,720)),
-    quality:Math.max(25,Math.min(Number(request.quality)||50,70))
+    quality:Math.max(25,Math.min(Number(request.quality)||50,70)),
+    minIntervalMs:Math.max(0,Math.min(Number.isFinite(Number(request.minIntervalMs))?Math.floor(Number(request.minIntervalMs)):250,5000)),
+    omitUnchanged:request.omitUnchanged!==false
   },{timeoutMs:10000})};
   if(op==='resume'||op==='detach')return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request(op,{desktopSessionId:String(request.desktopSessionId||'')},{timeoutMs:10000})};
   if(op==='windows')return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('windows',{limit:Math.max(1,Math.min(Number(request.limit)||100,200))})};

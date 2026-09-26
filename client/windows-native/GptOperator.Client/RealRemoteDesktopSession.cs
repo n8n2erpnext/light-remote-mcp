@@ -14,8 +14,14 @@ internal static partial class RealRemoteHelper
         public required int MaxWidth { get; init; }
         public required int MaxHeight { get; init; }
         public required int Quality { get; init; }
+        public required int MinIntervalMs { get; init; }
+        public required bool OmitUnchanged { get; init; }
         public required long AttachedAt { get; init; }
+        public object Gate { get; } = new();
         public long FrameSeq;
+        public long ContentSeq;
+        public long LastCapturedAt;
+        public string LastFrameSha256 = "";
     }
 
     private const int DesktopSessionLimit = 8;
@@ -38,6 +44,8 @@ internal static partial class RealRemoteHelper
             MaxWidth = IntArg(args, "maxWidth", 960, 320, 1280),
             MaxHeight = IntArg(args, "maxHeight", 540, 180, 720),
             Quality = IntArg(args, "quality", 50, 25, 70),
+            MinIntervalMs = IntArg(args, "minIntervalMs", 250, 0, 5000),
+            OmitUnchanged = DesktopBoolArg(args, "omitUnchanged", true),
             AttachedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
         };
         lock (DesktopSessionLock)
@@ -72,6 +80,9 @@ internal static partial class RealRemoteHelper
             displayTopologyId = session.DisplayTopologyId,
             screen = session.Screen,
             frameSeq = Interlocked.Read(ref session.FrameSeq),
+            contentSeq = Interlocked.Read(ref session.ContentSeq),
+            lastCapturedAt = Interlocked.Read(ref session.LastCapturedAt),
+            lastFrameSha256 = session.LastFrameSha256,
             attachedAt = session.AttachedAt,
             detached = true
         };
@@ -84,8 +95,6 @@ internal static partial class RealRemoteHelper
         ValidateDesktopSessionTopology(session);
         return session;
     }
-
-    private static long NextDesktopFrameSeq(DesktopSession session) => Interlocked.Increment(ref session.FrameSeq);
 
     private static object DesktopSessionView(DesktopSession session, string state)
     {
@@ -102,7 +111,10 @@ internal static partial class RealRemoteHelper
             attachedAt = session.AttachedAt,
             displayTopologyId = session.DisplayTopologyId,
             frameSeq = Interlocked.Read(ref session.FrameSeq),
-            frame = new { maxWidth = session.MaxWidth, maxHeight = session.MaxHeight, quality = session.Quality },
+            contentSeq = Interlocked.Read(ref session.ContentSeq),
+            lastCapturedAt = Interlocked.Read(ref session.LastCapturedAt),
+            lastFrameSha256 = session.LastFrameSha256,
+            frame = new { maxWidth = session.MaxWidth, maxHeight = session.MaxHeight, quality = session.Quality, minIntervalMs = session.MinIntervalMs, omitUnchanged = session.OmitUnchanged },
             screen = new
             {
                 index = session.Screen,
@@ -142,6 +154,57 @@ internal static partial class RealRemoteHelper
         if (!id.StartsWith("desk_", StringComparison.Ordinal) || id.Length < 20 || id.Length > 80)
             throw new InvalidOperationException("desktop_session_id_invalid");
         return id;
+    }
+
+    private static int DesktopFrameRetryAfter(DesktopSession session)
+    {
+        if (session.MinIntervalMs <= 0) return 0;
+        var last = Interlocked.Read(ref session.LastCapturedAt);
+        if (last <= 0) return 0;
+        var elapsed = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - last;
+        return elapsed >= session.MinIntervalMs ? 0 : Math.Max(1, session.MinIntervalMs - (int)Math.Max(0, elapsed));
+    }
+
+    private static (long FrameSeq, long ContentSeq, bool Unchanged, long CapturedAt) RecordDesktopFrame(DesktopSession session, string sha256)
+    {
+        lock (session.Gate)
+        {
+            var unchanged = !string.IsNullOrEmpty(session.LastFrameSha256) && string.Equals(session.LastFrameSha256, sha256, StringComparison.Ordinal);
+            session.FrameSeq++;
+            if (!unchanged) session.ContentSeq++;
+            session.LastFrameSha256 = sha256;
+            session.LastCapturedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            return (session.FrameSeq, session.ContentSeq, unchanged, session.LastCapturedAt);
+        }
+    }
+
+    private static object DesktopFrameThrottled(DesktopSession session, int retryAfterMs)
+    {
+        return new
+        {
+            protocolVersion = ProtocolVersion,
+            desktopSessionId = session.Id,
+            desktopEpoch = session.Epoch,
+            displayTopologyId = session.DisplayTopologyId,
+            frameSeq = Interlocked.Read(ref session.FrameSeq),
+            contentSeq = Interlocked.Read(ref session.ContentSeq),
+            lastCapturedAt = Interlocked.Read(ref session.LastCapturedAt),
+            lastFrameSha256 = session.LastFrameSha256,
+            throttled = true,
+            retryAfterMs,
+            unchanged = false,
+            data = (string?)null
+        };
+    }
+
+    private static bool DesktopBoolArg(JsonElement args, string name, bool fallback)
+    {
+        if (args.ValueKind == JsonValueKind.Object && args.TryGetProperty(name, out var node))
+        {
+            if (node.ValueKind == JsonValueKind.True) return true;
+            if (node.ValueKind == JsonValueKind.False) return false;
+        }
+        return fallback;
     }
 
     private static int DesktopRequestedScreen(JsonElement args, Screen[] screens)

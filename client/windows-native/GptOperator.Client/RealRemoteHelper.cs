@@ -174,6 +174,11 @@ internal static partial class RealRemoteHelper
     {
         if (!Environment.UserInteractive) throw new InvalidOperationException("desktop_session_not_interactive");
         var desktopSession = DesktopFrameSession(args);
+        if (desktopSession is not null)
+        {
+            var retryAfterMs = DesktopFrameRetryAfter(desktopSession);
+            if (retryAfterMs > 0) return DesktopFrameThrottled(desktopSession, retryAfterMs);
+        }
         var screens = Screen.AllScreens;
         if (screens.Length == 0) throw new InvalidOperationException("desktop_screen_unavailable");
         var displayTopologyId = DisplayTopologyId(screens);
@@ -229,16 +234,25 @@ internal static partial class RealRemoteHelper
             if (bytes.Length <= 650 * 1024) break;
         }
         if (bytes is null || bytes.Length > 650 * 1024) throw new InvalidOperationException("desktop_frame_too_large");
-        var frameSeq = desktopSession is null ? (long?)null : NextDesktopFrameSeq(desktopSession);
+        var frameSha256 = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+        (long FrameSeq, long ContentSeq, bool Unchanged, long CapturedAt)? sessionFrame =
+            desktopSession is null ? null : RecordDesktopFrame(desktopSession, frameSha256);
+        var omitData = desktopSession is not null && desktopSession.OmitUnchanged && sessionFrame?.Unchanged == true;
+        var capturedAt = sessionFrame?.CapturedAt ?? DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
         return new
         {
             protocolVersion = ProtocolVersion,
             desktopSessionId = desktopSession?.Id,
             desktopEpoch = desktopSession?.Epoch,
-            frameSeq,
+            frameSeq = sessionFrame?.FrameSeq,
+            contentSeq = sessionFrame?.ContentSeq,
+            unchanged = sessionFrame?.Unchanged ?? false,
+            throttled = false,
+            retryAfterMs = 0,
+            frameSha256,
             displayTopologyId,
-            capturedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+            capturedAt,
             mime = "image/jpeg",
             encoding = "base64",
             width,
@@ -265,7 +279,8 @@ internal static partial class RealRemoteHelper
                 yScale = inputScaleY,
                 rounding = "nearest"
             },
-            data = Convert.ToBase64String(bytes)
+            dataBytes = omitData ? 0 : bytes.Length,
+            data = omitData ? null : Convert.ToBase64String(bytes)
         };
     }
 
