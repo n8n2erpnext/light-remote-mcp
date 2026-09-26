@@ -184,3 +184,11 @@ V0.6-E adds a Windows CI hard gate for the Local Wall viewer against the real na
 - it captures a bounded JPEG through the Local Wall API, verifies displayTopologyId and inputMapping, then resumes and detaches the same desktopSessionId;
 - this acceptance is intentionally read-only. Mouse and keyboard mutation remain covered by the separate desktop-input Windows acceptance suite;
 - the workflow step is a hard gate immediately after the hidden-helper smoke and before OS-input acceptance.
+
+V0.6-F makes capability additions after an upgrade visible and re-authorizable instead of silently inheriting an old enrollment ceiling:
+- agent status compares capabilities discovered by the installed runtime with the current enrollment grantable/approved set and reports discoveredCapabilities, missingCapabilities, capabilityUpgradeAvailable and capabilityUpgradePending;
+- existing enrollment policy remains fail-closed: newly discovered capabilities are not added to grantable/effective capabilities before server approval;
+- Permissions shows a New capabilities available notice when an enrolled non-Main device has capability drift, names the missing capabilities and offers Re-authorize device;
+- re-authorization uses the existing enrollment-begin/poll flow and the existing device identity. Existing effective permissions remain active while approval is pending;
+- after approval the page reloads against the new policy ceiling; Real Remote desktop-input still follows the existing explicit local-owner decision/default-deny rule;
+- Windows CI now simulates a legacy enrollment against a Real Remote-capable installed runtime and requires desktop plus desktop-input to appear only as missing capabilities before re-authorization.
