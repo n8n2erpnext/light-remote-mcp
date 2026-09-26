@@ -45,6 +45,7 @@ internal static partial class RealRemoteHelper
             throw new InvalidOperationException("desktop_input_events_required");
         var count=events.GetArrayLength();
         if(count<1||count>64) throw new InvalidOperationException("desktop_input_invalid_event_count");
+        ValidateDisplayTopology(args);
         var semanticInput=BeginSemanticInput(args);
         var applied=0; var sent=0;
         foreach(var item in events.EnumerateArray())
@@ -199,6 +200,18 @@ internal static partial class RealRemoteHelper
 
     private static Exception Win32InputError(string name)=>
         new InvalidOperationException($"{name}:{Marshal.GetLastWin32Error()}");
+
+    private static void ValidateDisplayTopology(JsonElement args)
+    {
+        if(args.ValueKind!=JsonValueKind.Object||!args.TryGetProperty("displayTopologyId",out var node)) return;
+        if(node.ValueKind!=JsonValueKind.String) throw new InvalidOperationException("desktop_input_invalid_display_topology_id");
+        var expected=(node.GetString()??"").Trim().ToLowerInvariant();
+        if(expected.Length!=64||expected.Any(ch=>!Uri.IsHexDigit(ch)))
+            throw new InvalidOperationException("desktop_input_invalid_display_topology_id");
+        var actual=DisplayTopologyId(Screen.AllScreens);
+        if(!string.Equals(expected,actual,StringComparison.Ordinal))
+            throw new InvalidOperationException("desktop_input_stale_topology");
+    }
 
     private readonly record struct ResolvedPoint(int X,int Y,int? Screen);
 

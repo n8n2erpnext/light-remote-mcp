@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Windows.Automation;
+using System.Windows.Forms;
 
 namespace GptOperator.Client;
 
@@ -154,6 +155,7 @@ internal static partial class RealRemoteHelper
         return new
         {
             protocolVersion = ProtocolVersion,
+            displayTopologyId = DisplayTopologyId(Screen.AllScreens),
             provider = "browser-cdp",
             appliedEvents = applied,
             sentInputs = sent,
@@ -228,6 +230,7 @@ internal static partial class RealRemoteHelper
         return new
         {
             protocolVersion = ProtocolVersion,
+            displayTopologyId = DisplayTopologyId(Screen.AllScreens),
             appliedEvents = applied,
             sentInputs = sent,
             inputSeq,

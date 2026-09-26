@@ -41,6 +41,9 @@ try{
   $rpsi.RedirectStandardInput=$true;$rpsi.RedirectStandardOutput=$true;$rpsi.RedirectStandardError=$true;$rpsi.ArgumentList.Add('--real-remote-helper')
   $rr=[Diagnostics.Process]::new();$rr.StartInfo=$rpsi;if(-not $rr.Start()){throw 'Helper start failed'}
   $status=Invoke-Rr 'screen-status' 'status'
+  $topology=[string]$status.displayTopologyId
+  if($topology -notmatch '^[a-f0-9]{64}$'){throw "Invalid display topology id: $topology"}
+  if([string]$status.dpiAwareness -ne 'PerMonitorV2'){throw "Unexpected DPI awareness: $($status.dpiAwareness)"}
   $attach=Invoke-Rr 'screen-attach' 'semantic-attach' @{provider='windows-uia';scope='foreground';maxDepth=7;maxNodes=500}
   $sem=[string]$attach.semanticSessionId;if([string]::IsNullOrWhiteSpace($sem)){throw 'Screen coordinate semantic attach failed'}
   $ready=Wait-Node $button 'screen-ready'
@@ -50,29 +53,40 @@ try{
   if($null -eq $screen){throw "Target center not contained by any screen: $gx,$gy"}
   $screenIndex=[int]$screen.index;$bounds=$screen.bounds
   if($screenIndex -lt 0){throw 'Screen index missing from status'}
+  if([int]$screen.dpi.x -lt 1 -or [int]$screen.dpi.y -lt 1){throw 'Screen DPI missing from status'}
   $lx=$gx-[int]$bounds.x;$ly=$gy-[int]$bounds.y
   $frame=Invoke-Rr 'screen-frame' 'frame' @{screen=$screenIndex;maxWidth=480;maxHeight=320;quality=35}
+  if([string]$frame.displayTopologyId -ne $topology){throw 'Frame/status display topology mismatch'}
   if([int]$frame.screen.index -ne $screenIndex){throw "Frame screen index mismatch: $($frame.screen.index)"}
   if([int]$frame.screen.bounds.x -ne [int]$bounds.x -or [int]$frame.screen.bounds.y -ne [int]$bounds.y){throw 'Frame/status screen bounds mismatch'}
-  Write-Host "windows-real-remote-screen-topology=PASS index=$screenIndex bounds=$($bounds.x),$($bounds.y),$($bounds.width),$($bounds.height)"
+  if([int]$frame.screen.dpi.x -ne [int]$screen.dpi.x -or [int]$frame.screen.dpi.y -ne [int]$screen.dpi.y){throw 'Frame/status screen DPI mismatch'}
+  Write-Host "windows-real-remote-screen-topology=PASS index=$screenIndex bounds=$($bounds.x),$($bounds.y),$($bounds.width),$($bounds.height) dpi=$($screen.dpi.x)x$($screen.dpi.y)"
 
-  $ack=Invoke-Rr 'screen-local-click' 'input' @{events=@(
+  $ack=Invoke-Rr 'screen-local-click' 'input' @{displayTopologyId=$topology;events=@(
     @{type='move';screen=$screenIndex;x=$lx;y=$ly},
     @{type='click';screen=$screenIndex;x=$lx;y=$ly;button='left';count=1}
   );semanticSessionId=$sem;afterSeq=[long]$ready.snapshot.stateSeq;settleMs=160}
   if([int]$ack.appliedEvents -ne 2 -or [int]$ack.sentInputs -lt 2){throw 'Screen-local click SendInput proof missing'}
+  if([string]$ack.displayTopologyId -ne $topology){throw 'Input ACK display topology mismatch'}
   if([int]$ack.cursor.x -ne $gx -or [int]$ack.cursor.y -ne $gy){throw "Screen-local cursor translation mismatch actual=$($ack.cursor.x),$($ack.cursor.y) expected=$gx,$gy"}
   $accepted=Wait-Node "$button Accepted" 'screen-accepted'
   if([string]$accepted.snapshot.semanticSessionId -ne $sem){throw 'Screen-local click changed semantic session'}
   Write-Host "windows-real-remote-screen-local-click=PASS screen=$screenIndex local=$lx,$ly global=$gx,$gy inputSeq=$($ack.inputSeq)"
 
   $dragToLx=[Math]::Min($lx+4,[int]$bounds.width-1);$dragToLy=[Math]::Min($ly+4,[int]$bounds.height-1)
-  $dragAck=Invoke-Rr 'screen-local-drag' 'input' @{events=@(
+  $dragAck=Invoke-Rr 'screen-local-drag' 'input' @{displayTopologyId=$topology;events=@(
     @{type='drag';screen=$screenIndex;x=$lx;y=$ly;toScreen=$screenIndex;toX=$dragToLx;toY=$dragToLy;button='left';steps=3;durationMs=60}
   );semanticSessionId=$sem;afterSeq=[long]$accepted.snapshot.stateSeq;settleMs=80}
   $expectedDragX=[int]$bounds.x+$dragToLx;$expectedDragY=[int]$bounds.y+$dragToLy
   if([int]$dragAck.sentInputs -lt 2 -or [int]$dragAck.cursor.x -ne $expectedDragX -or [int]$dragAck.cursor.y -ne $expectedDragY){throw 'Screen-local drag translation mismatch'}
+  if([string]$dragAck.displayTopologyId -ne $topology){throw 'Drag ACK display topology mismatch'}
   Write-Host "windows-real-remote-screen-local-drag=PASS screen=$screenIndex local=$lx,$ly->$dragToLx,$dragToLy global=$gx,$gy->$expectedDragX,$expectedDragY"
+
+  $staleTopology=('0'*64)
+  if($staleTopology -eq $topology){$staleTopology=('f'*64)}
+  $stale=Invoke-RrRaw 'screen-stale-topology' 'input' @{displayTopologyId=$staleTopology;events=@(@{type='move';screen=$screenIndex;x=$lx;y=$ly})}
+  if($stale.ok -or [string]$stale.error -ne 'desktop_input_stale_topology'){throw "Stale display topology was not rejected: $($stale.error)"}
+  Write-Host "windows-real-remote-screen-topology-pin=PASS topology=$topology"
 
   $badScreen=Invoke-RrRaw 'screen-invalid-index' 'input' @{events=@(@{type='move';screen=$screens.Count;x=0;y=0})}
   if($badScreen.ok -or [string]$badScreen.error -ne 'desktop_input_screen_out_of_range'){throw "Invalid screen index was not rejected: $($badScreen.error)"}

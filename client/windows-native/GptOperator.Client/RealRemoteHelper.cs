@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
@@ -44,6 +45,15 @@ internal static partial class RealRemoteHelper
 
     [DllImport("user32.dll")]
     private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromPoint(POINT point, uint flags);
+
+    [DllImport("shcore.dll")]
+    private static extern int GetDpiForMonitor(IntPtr monitor, int dpiType, out uint dpiX, out uint dpiY);
+
+    private const uint MonitorDefaultToNearest = 2;
+    private const int MonitorDpiEffective = 0;
 
     public static int Run()
     {
@@ -90,24 +100,62 @@ internal static partial class RealRemoteHelper
         return 100;
     }
 
+    private static (uint X,uint Y) ScreenDpi(Screen screen)
+    {
+        try
+        {
+            var bounds=screen.Bounds;
+            var point=new POINT { X=bounds.Left+Math.Max(0,bounds.Width/2), Y=bounds.Top+Math.Max(0,bounds.Height/2) };
+            var monitor=MonitorFromPoint(point,MonitorDefaultToNearest);
+            if(monitor!=IntPtr.Zero&&GetDpiForMonitor(monitor,MonitorDpiEffective,out var x,out var y)==0&&x>0&&y>0)
+                return (x,y);
+        }
+        catch { }
+        return (96,96);
+    }
+
+    private static string DisplayTopologyId(Screen[] screens)
+    {
+        var text=new StringBuilder();
+        for(var i=0;i<screens.Length;i++)
+        {
+            var screen=screens[i];
+            var bounds=screen.Bounds; var work=screen.WorkingArea; var dpi=ScreenDpi(screen);
+            text.Append(i).Append('|').Append(screen.DeviceName).Append('|').Append(screen.Primary?1:0).Append('|')
+                .Append(bounds.Left).Append(',').Append(bounds.Top).Append(',').Append(bounds.Width).Append(',').Append(bounds.Height).Append('|')
+                .Append(work.Left).Append(',').Append(work.Top).Append(',').Append(work.Width).Append(',').Append(work.Height).Append('|')
+                .Append(dpi.X).Append(',').Append(dpi.Y).Append(';');
+        }
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text.ToString()))).ToLowerInvariant();
+    }
+
     private static object Status()
     {
         var foreground = WindowInfo(GetForegroundWindow());
         var cursor = GetCursorPos(out var point) ? new { x = point.X, y = point.Y } : null;
         var virtualScreen = SystemInformation.VirtualScreen;
-        var screens = Screen.AllScreens.Select((screen, index) => new
+        var allScreens = Screen.AllScreens;
+        var displayTopologyId = DisplayTopologyId(allScreens);
+        var screens = allScreens.Select((screen, index) =>
         {
-            index,
-            name = screen.DeviceName,
-            primary = screen.Primary,
-            bounds = Box(screen.Bounds.Left, screen.Bounds.Top, screen.Bounds.Width, screen.Bounds.Height),
-            workingArea = Box(screen.WorkingArea.Left, screen.WorkingArea.Top, screen.WorkingArea.Width, screen.WorkingArea.Height)
+            var dpi=ScreenDpi(screen);
+            return new
+            {
+                index,
+                name = screen.DeviceName,
+                primary = screen.Primary,
+                bounds = Box(screen.Bounds.Left, screen.Bounds.Top, screen.Bounds.Width, screen.Bounds.Height),
+                workingArea = Box(screen.WorkingArea.Left, screen.WorkingArea.Top, screen.WorkingArea.Width, screen.WorkingArea.Height),
+                dpi = new { x = dpi.X, y = dpi.Y, scaleX = dpi.X / 96d, scaleY = dpi.Y / 96d }
+            };
         }).ToArray();
 
         return new
         {
             protocolVersion = ProtocolVersion,
             platform = "win32",
+            dpiAwareness = "PerMonitorV2",
+            displayTopologyId,
             interactive = Environment.UserInteractive,
             user = Environment.UserName,
             sessionId = Process.GetCurrentProcess().SessionId,
@@ -124,6 +172,7 @@ internal static partial class RealRemoteHelper
         if (!Environment.UserInteractive) throw new InvalidOperationException("desktop_session_not_interactive");
         var screens = Screen.AllScreens;
         if (screens.Length == 0) throw new InvalidOperationException("desktop_screen_unavailable");
+        var displayTopologyId = DisplayTopologyId(screens);
 
         var requestedScreen = IntArg(args, "screen", -1, -1, Math.Max(0, screens.Length - 1));
         Screen screen;
@@ -145,6 +194,7 @@ internal static partial class RealRemoteHelper
         var maxHeight = IntArg(args, "maxHeight", 540, 180, 720);
         var quality = IntArg(args, "quality", 50, 25, 70);
         var bounds = screen.Bounds;
+        var screenDpi = ScreenDpi(screen);
         if (bounds.Width <= 0 || bounds.Height <= 0) throw new InvalidOperationException("desktop_screen_invalid");
 
         using var source = new Bitmap(bounds.Width, bounds.Height, PixelFormat.Format24bppRgb);
@@ -175,13 +225,21 @@ internal static partial class RealRemoteHelper
         return new
         {
             protocolVersion = ProtocolVersion,
+            displayTopologyId,
             capturedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
             mime = "image/jpeg",
             encoding = "base64",
             width,
             height,
             bytes = bytes.Length,
-            screen = new { index = screenIndex, name = screen.DeviceName, primary = screen.Primary, bounds = Box(bounds.Left, bounds.Top, bounds.Width, bounds.Height) },
+            screen = new
+            {
+                index = screenIndex,
+                name = screen.DeviceName,
+                primary = screen.Primary,
+                bounds = Box(bounds.Left, bounds.Top, bounds.Width, bounds.Height),
+                dpi = new { x = screenDpi.X, y = screenDpi.Y, scaleX = screenDpi.X / 96d, scaleY = screenDpi.Y / 96d }
+            },
             data = Convert.ToBase64String(bytes)
         };
     }
