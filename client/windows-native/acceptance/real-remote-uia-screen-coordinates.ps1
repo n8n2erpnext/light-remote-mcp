@@ -20,12 +20,12 @@ public static class LightRemoteScreenWindow{
 }
 function Wait-Window([string]$Title){$d=[DateTime]::UtcNow.AddSeconds($TimeoutSeconds);$h=[IntPtr]::Zero;while($h -eq [IntPtr]::Zero -and [DateTime]::UtcNow -lt $d){$h=[LightRemoteScreenWindow]::Find($Title);if($h -eq [IntPtr]::Zero){Start-Sleep -Milliseconds 100}};if($h -eq [IntPtr]::Zero){throw "Window missing: $Title"};return $h}
 $rr=$null;$app=$null;$sem=$null;$detached=$false
-function Invoke-RrRaw([string]$Id,[string]$Op,[hashtable]$Args=@{}){
-  $script:rr.StandardInput.WriteLine((@{id=$Id;op=$Op;args=$Args}|ConvertTo-Json -Compress -Depth 12));$script:rr.StandardInput.Flush()
+function Invoke-RrRaw([string]$Id,[string]$Op,[hashtable]$RequestArgs=@{}){
+  $script:rr.StandardInput.WriteLine((@{id=$Id;op=$Op;args=$RequestArgs}|ConvertTo-Json -Compress -Depth 12));$script:rr.StandardInput.Flush()
   $task=$script:rr.StandardOutput.ReadLineAsync();if(-not $task.Wait([TimeSpan]::FromSeconds($TimeoutSeconds))){throw "Helper timeout: $Op"}
   $line=$task.Result;if([string]::IsNullOrWhiteSpace($line)){throw "Empty helper response: $Op"};return ($line|ConvertFrom-Json)
 }
-function Invoke-Rr([string]$Id,[string]$Op,[hashtable]$Args=@{}){$r=Invoke-RrRaw $Id $Op $Args;if(-not $r.ok){throw "Helper error $Op : $($r.error)"};return $r.result}
+function Invoke-Rr([string]$Id,[string]$Op,[hashtable]$RequestArgs=@{}){$r=Invoke-RrRaw $Id $Op $RequestArgs;if(-not $r.ok){throw "Helper error $Op : $($r.error)"};return $r.result}
 function Wait-Node([string]$Name,[string]$Prefix){
   $d=[DateTime]::UtcNow.AddSeconds(5);$i=0
   do{$i++;$snap=Invoke-Rr ($Prefix+'-'+$i) 'semantic-snapshot' @{semanticSessionId=$sem};$n=@($snap.nodes|Where-Object{$_.name -eq $Name});if($n.Count -eq 1 -and $null -ne $n[0].center){return [pscustomobject]@{snapshot=$snap;node=$n[0]}};Start-Sleep -Milliseconds 100}while([DateTime]::UtcNow -lt $d)
