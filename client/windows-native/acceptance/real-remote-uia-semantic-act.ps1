@@ -62,12 +62,18 @@ function Run-Case([string]$Case,[string]$Action,[string]$ExpectedMethod,[int]$Ex
     if($act.method -ne $ExpectedMethod -or $act.action -ne $Action -or [int]$act.ack.appliedEvents -ne 1 -or [int]$act.ack.sentInputs -ne $ExpectedSent){throw "$Case action ACK mismatch"}
     if([long]$act.ack.startedAt -le 0 -or [long]$act.ack.ackAt -lt [long]$act.ack.startedAt -or [long]$act.ack.elapsedMs -ne ([long]$act.ack.ackAt-[long]$act.ack.startedAt)){throw "$Case action local timing mismatch"}
     if($act.ack.resyncRecommended -or $act.ack.hasMore -or [string]$act.ack.nextObservation.mode -ne 'events' -or [long]$act.ack.nextObservation.afterSeq -ne [long]$act.ack.stateSeq){throw "$Case action nextObservation mismatch"}
+    if([string]$act.ack.observation -ne 'local-diff+journal' -or $null -eq $act.ack.patch -or -not $act.ack.patch.changed){throw "$Case action patch missing"}
+    $patchNodes=@($act.ack.patch.added)+@($act.ack.patch.updated)
+    $patchAccepted=@($patchNodes | Where-Object {[string]$_.label -eq ($button+' Accepted')})
+    if($patchAccepted.Count -lt 1){throw "$Case accepted node missing from action patch"}
+    if(@($act.ack.events).Count -gt 24){throw "$Case action event evidence exceeded compact bound"}
+    if([int]$act.ack.eventCount -gt @($act.ack.events).Count -and -not $act.ack.eventsCompacted){throw "$Case action event compaction flag mismatch"}
     $diff=$act.ack
     $late=Invoke-Rr ("$Case-late") 'observe' @{semanticSessionId=$sem;afterSeq=[long]$act.ack.nextObservation.afterSeq;limit=100}
     if($late.resyncRecommended -or [string]$late.nextObservation.mode -ne 'events'){throw "$Case late event continuation mismatch"}
     $done=Wait-Node $sem ($button+' Accepted') "$Case-accepted"
     if([string]$done.snapshot.semanticSessionId -ne $sem){throw "$Case semantic session changed"}
-    Write-Host "windows-real-remote-semantic-$($Action)=PASS method=$($act.method) events=$(@($diff.events).Count) localMs=$($act.ack.elapsedMs) next=$($act.ack.nextObservation.mode):$($act.ack.nextObservation.afterSeq) seq=$($done.snapshot.stateSeq)"
+    Write-Host "windows-real-remote-semantic-$($Action)=PASS method=$($act.method) patch=$($act.ack.patch.addedCount)/$($act.ack.patch.updatedCount)/$($act.ack.patch.removedCount) events=$(@($diff.events).Count)/$($act.ack.eventCount) localMs=$($act.ack.elapsedMs) next=$($act.ack.nextObservation.mode):$($act.ack.nextObservation.afterSeq) seq=$($done.snapshot.stateSeq)"
     $d=Invoke-Rr ("$Case-detach") 'semantic-detach' @{semanticSessionId=$sem};if(-not $d.detached){throw "$Case detach failed"};$sem=$null
   }finally{
     if($sem -and $rr -and -not $rr.HasExited){try{$null=Invoke-Rr ("$Case-detach-finally") 'semantic-detach' @{semanticSessionId=$sem}}catch{}}

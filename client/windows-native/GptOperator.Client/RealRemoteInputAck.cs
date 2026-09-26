@@ -75,9 +75,10 @@ internal static partial class RealRemoteHelper
             return CompleteBrowserSemanticInput(context, applied, sent, cursor);
 
         var session = context.Session!;
-        // After OS input settles, foreground-scoped UIA sessions must follow the
-        // current HWND before the ACK computes focus/scope and resync state.
-        _ = RefreshSemanticForegroundRoot(session);
+        // Refresh the bounded semantic tree locally after input. This updates NodeIndex
+        // for newly-created controls and produces a compact diff against the previous
+        // snapshot without another Agent round trip.
+        var capture = CaptureSemanticState(session);
         Dictionary<string, object?>? focused = null;
         var focusOutsideScope = false;
         try
@@ -92,7 +93,7 @@ internal static partial class RealRemoteHelper
         catch (ElementNotAvailableException) { }
         catch (InvalidOperationException) { }
 
-        return CompleteSemanticInputLocked(context, applied, sent, cursor, focused, focusOutsideScope);
+        return CompleteSemanticInputLocked(context, applied, sent, cursor, focused, focusOutsideScope, capture);
     }
 
     private static object CompleteBrowserSemanticInput(
@@ -198,30 +199,32 @@ internal static partial class RealRemoteHelper
         int sent,
         object? cursor,
         Dictionary<string, object?>? focused,
-        bool focusOutsideScope)
+        bool focusOutsideScope,
+        SemanticCapture capture)
     {
         var session = context.Session!;
-        var events = new List<object>(100);
+        var events = new List<object>(24);
         long inputSeq;
-        long stateSeq;
         long oldestAvailableSeq;
         long droppedBeforeSeq;
         bool gap;
-        bool scopeChanged;
-        bool hasMore;
-        long lastReturnedSeq;
+        int eventCount;
+        bool eventsCompacted;
 
         lock (session.Gate)
         {
             inputSeq = ++session.InputSeq;
-            stateSeq = session.StateSeq;
-            var remaining = 0;
-            lastReturnedSeq = context.AfterSeq;
+            var eligible = new List<SemanticEventRecord>();
             foreach (var item in session.Journal)
             {
-                if (item.Seq <= context.AfterSeq) continue;
-                if (events.Count >= 100) { remaining++; continue; }
-                lastReturnedSeq = item.Seq;
+                if (item.Seq <= context.AfterSeq || item.Seq > capture.StateSeq) continue;
+                eligible.Add(item);
+            }
+            eventCount = eligible.Count;
+            var start = Math.Max(0, eligible.Count - 24);
+            for (var index = start; index < eligible.Count; index++)
+            {
+                var item = eligible[index];
                 events.Add(new
                 {
                     seq = item.Seq,
@@ -234,16 +237,14 @@ internal static partial class RealRemoteHelper
                     coalesced = item.Coalesced
                 });
             }
-            oldestAvailableSeq = session.Journal.Count > 0 ? session.Journal[0].Seq : stateSeq + 1;
+            eventsCompacted = eventCount > events.Count;
+            oldestAvailableSeq = session.Journal.Count > 0 ? session.Journal[0].Seq : capture.StateSeq + 1;
             droppedBeforeSeq = session.DroppedBeforeSeq;
             gap = droppedBeforeSeq > 0 && context.AfterSeq < droppedBeforeSeq;
-            scopeChanged = session.ScopeChanged;
-            hasMore = remaining > 0;
         }
 
         var ackAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        var resyncRecommended = gap || scopeChanged || focusOutsideScope;
-        var nextAfterSeq = hasMore ? lastReturnedSeq : stateSeq;
+        var resyncRecommended = gap || capture.ScopeChanged || focusOutsideScope || capture.Patch is null;
         return new
         {
             protocolVersion = ProtocolVersion,
@@ -254,7 +255,7 @@ internal static partial class RealRemoteHelper
             semanticSessionId = session.Id,
             epoch = session.Epoch,
             afterSeq = context.AfterSeq,
-            stateSeq,
+            stateSeq = capture.StateSeq,
             startedAt = context.StartedAt,
             ackAt,
             elapsedMs = Math.Max(0, ackAt - context.StartedAt),
@@ -266,10 +267,16 @@ internal static partial class RealRemoteHelper
             oldestAvailableSeq,
             droppedBeforeSeq,
             gap,
-            scopeChanged,
+            scopeChanged = capture.ScopeChanged,
             resyncRecommended,
-            hasMore,
-            nextObservation = new { mode = resyncRecommended ? "snapshot" : "events", afterSeq = nextAfterSeq, reason = resyncRecommended ? "resync-recommended" : hasMore ? "drain-events" : "continue-events" },
+            observation = "local-diff+journal",
+            snapshotNodeCount = capture.Rows.Count,
+            snapshotTruncated = capture.Truncated,
+            patch = capture.Patch,
+            eventCount,
+            eventsCompacted,
+            hasMore = false,
+            nextObservation = new { mode = resyncRecommended ? "snapshot" : "events", afterSeq = capture.StateSeq, reason = resyncRecommended ? "resync-recommended" : "patch-applied" },
             events
         };
     }
