@@ -128,7 +128,7 @@ This makes the normal control loop: semantic state -> bounded OS input -> semant
 
 Current Windows coordinate safety adds monitor-aware control without changing legacy global coordinates:
 - desktop-status reports the virtual screen plus indexed screens, PerMonitorV2 awareness, per-screen effective DPI and a SHA-256 displayTopologyId derived from screen order/device/bounds/working-area/DPI;
-- desktop-frame returns the selected screen index, physical bounds, effective DPI and the same displayTopologyId;
+- desktop-frame returns the selected screen index, physical bounds, effective DPI and the same displayTopologyId plus inputMapping; its xScale/yScale convert preview-frame pixels to screen-local pixels with nearest rounding;
 - desktop-input without screen keeps legacy desktop-global x/y; when screen is supplied, x/y are local to that monitor; drag supports toScreen and defaults it to screen;
 - callers can pin displayTopologyId from status/frame into desktop-input; a topology/DPI change rejects the request as desktop_input_stale_topology before SendInput, and successful closed-loop ACKs echo the applied displayTopologyId;
 - the Plus/Vercel operator projection preserves displayTopologyId end to end.

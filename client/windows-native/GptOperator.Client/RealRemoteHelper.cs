@@ -204,6 +204,8 @@ internal static partial class RealRemoteHelper
         var scale = Math.Min(1d, Math.Min((double)maxWidth / bounds.Width, (double)maxHeight / bounds.Height));
         var width = Math.Max(1, (int)Math.Round(bounds.Width * scale));
         var height = Math.Max(1, (int)Math.Round(bounds.Height * scale));
+        var inputScaleX = width > 1 && bounds.Width > 1 ? (bounds.Width - 1d) / (width - 1d) : 0d;
+        var inputScaleY = height > 1 && bounds.Height > 1 ? (bounds.Height - 1d) / (height - 1d) : 0d;
         using var frame = width == source.Width && height == source.Height
             ? new Bitmap(source)
             : Resize(source, width, height);
@@ -239,6 +241,19 @@ internal static partial class RealRemoteHelper
                 primary = screen.Primary,
                 bounds = Box(bounds.Left, bounds.Top, bounds.Width, bounds.Height),
                 dpi = new { x = screenDpi.X, y = screenDpi.Y, scaleX = screenDpi.X / 96d, scaleY = screenDpi.Y / 96d }
+            },
+            inputMapping = new
+            {
+                coordinateSpace = "screen-local",
+                screen = screenIndex,
+                displayTopologyId,
+                frameWidth = width,
+                frameHeight = height,
+                screenWidth = bounds.Width,
+                screenHeight = bounds.Height,
+                xScale = inputScaleX,
+                yScale = inputScaleY,
+                rounding = "nearest"
             },
             data = Convert.ToBase64String(bytes)
         };

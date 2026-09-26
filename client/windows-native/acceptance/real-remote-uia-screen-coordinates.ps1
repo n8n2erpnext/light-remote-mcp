@@ -60,18 +60,28 @@ try{
   if([int]$frame.screen.index -ne $screenIndex){throw "Frame screen index mismatch: $($frame.screen.index)"}
   if([int]$frame.screen.bounds.x -ne [int]$bounds.x -or [int]$frame.screen.bounds.y -ne [int]$bounds.y){throw 'Frame/status screen bounds mismatch'}
   if([int]$frame.screen.dpi.x -ne [int]$screen.dpi.x -or [int]$frame.screen.dpi.y -ne [int]$screen.dpi.y){throw 'Frame/status screen DPI mismatch'}
+  $map=$frame.inputMapping
+  if([string]$map.coordinateSpace -ne 'screen-local' -or [int]$map.screen -ne $screenIndex -or [string]$map.displayTopologyId -ne $topology){throw 'Frame input mapping identity mismatch'}
+  if([int]$map.frameWidth -ne [int]$frame.width -or [int]$map.frameHeight -ne [int]$frame.height -or [int]$map.screenWidth -ne [int]$bounds.width -or [int]$map.screenHeight -ne [int]$bounds.height){throw 'Frame input mapping dimensions mismatch'}
+  if([string]$map.rounding -ne 'nearest' -or [double]$map.xScale -le 0 -or [double]$map.yScale -le 0){throw 'Frame input mapping scale invalid'}
+  $frameX=[int][Math]::Round($lx/[double]$map.xScale);$frameY=[int][Math]::Round($ly/[double]$map.yScale)
+  $frameX=[Math]::Max(0,[Math]::Min($frameX,[int]$frame.width-1));$frameY=[Math]::Max(0,[Math]::Min($frameY,[int]$frame.height-1))
+  $mappedX=[int][Math]::Round($frameX*[double]$map.xScale);$mappedY=[int][Math]::Round($frameY*[double]$map.yScale)
+  if([Math]::Abs($mappedX-$lx) -gt 2 -or [Math]::Abs($mappedY-$ly) -gt 2){throw "Frame input mapping quantization too large source=$lx,$ly mapped=$mappedX,$mappedY"}
   Write-Host "windows-real-remote-screen-topology=PASS index=$screenIndex bounds=$($bounds.x),$($bounds.y),$($bounds.width),$($bounds.height) dpi=$($screen.dpi.x)x$($screen.dpi.y)"
+  Write-Host "windows-real-remote-frame-input-map=PASS frame=$frameX,$frameY local=$mappedX,$mappedY source=$lx,$ly scale=$($map.xScale),$($map.yScale)"
 
   $ack=Invoke-Rr 'screen-local-click' 'input' @{displayTopologyId=$topology;events=@(
-    @{type='move';screen=$screenIndex;x=$lx;y=$ly},
-    @{type='click';screen=$screenIndex;x=$lx;y=$ly;button='left';count=1}
+    @{type='move';screen=$screenIndex;x=$mappedX;y=$mappedY},
+    @{type='click';screen=$screenIndex;x=$mappedX;y=$mappedY;button='left';count=1}
   );semanticSessionId=$sem;afterSeq=[long]$ready.snapshot.stateSeq;settleMs=160}
   if([int]$ack.appliedEvents -ne 2 -or [int]$ack.sentInputs -lt 2){throw 'Screen-local click SendInput proof missing'}
   if([string]$ack.displayTopologyId -ne $topology){throw 'Input ACK display topology mismatch'}
-  if([int]$ack.cursor.x -ne $gx -or [int]$ack.cursor.y -ne $gy){throw "Screen-local cursor translation mismatch actual=$($ack.cursor.x),$($ack.cursor.y) expected=$gx,$gy"}
+  $expectedMappedGlobalX=[int]$bounds.x+$mappedX;$expectedMappedGlobalY=[int]$bounds.y+$mappedY
+  if([int]$ack.cursor.x -ne $expectedMappedGlobalX -or [int]$ack.cursor.y -ne $expectedMappedGlobalY){throw "Frame-mapped cursor translation mismatch actual=$($ack.cursor.x),$($ack.cursor.y) expected=$expectedMappedGlobalX,$expectedMappedGlobalY"}
   $accepted=Wait-Node "$button Accepted" 'screen-accepted'
   if([string]$accepted.snapshot.semanticSessionId -ne $sem){throw 'Screen-local click changed semantic session'}
-  Write-Host "windows-real-remote-screen-local-click=PASS screen=$screenIndex local=$lx,$ly global=$gx,$gy inputSeq=$($ack.inputSeq)"
+  Write-Host "windows-real-remote-screen-local-click=PASS screen=$screenIndex local=$mappedX,$mappedY global=$expectedMappedGlobalX,$expectedMappedGlobalY inputSeq=$($ack.inputSeq)"
 
   $dragToLx=[Math]::Min($lx+4,[int]$bounds.width-1);$dragToLy=[Math]::Min($ly+4,[int]$bounds.height-1)
   $dragAck=Invoke-Rr 'screen-local-drag' 'input' @{displayTopologyId=$topology;events=@(
