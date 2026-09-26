@@ -72,6 +72,9 @@ internal static partial class RealRemoteHelper
             return CompleteBrowserSemanticInput(context, applied, sent, cursor);
 
         var session = context.Session!;
+        // After OS input settles, foreground-scoped UIA sessions must follow the
+        // current HWND before the ACK computes focus/scope and resync state.
+        _ = RefreshSemanticForegroundRoot(session);
         Dictionary<string, object?>? focused = null;
         var focusOutsideScope = false;
         try
