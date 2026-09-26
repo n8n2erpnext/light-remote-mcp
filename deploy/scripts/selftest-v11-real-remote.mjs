@@ -147,6 +147,8 @@ const uiaAcceptance=read('client/windows-native/acceptance/real-remote-uia-app-s
 const uiaFixture=read('client/windows-native/acceptance/real-remote-uia-fixture.ps1');
 const uiaModalAcceptance=read('client/windows-native/acceptance/real-remote-uia-modal.ps1');
 const uiaModalFixture=read('client/windows-native/acceptance/real-remote-uia-modal-fixture.ps1');
+const uiaFilePickerAcceptance=read('client/windows-native/acceptance/real-remote-uia-file-picker.ps1');
+const uiaFilePickerFixture=read('client/windows-native/acceptance/real-remote-uia-file-picker-fixture.ps1');
 const uiaWindowsWorkflow=read('.github/workflows/windows-native-client.yml');
 const windowsProject=read('client/windows-native/GptOperator.Client/GptOperator.Client.csproj');
 const supervisor=read('client/windows-native/GptOperator.Client/AgentSupervisor.cs');
@@ -183,6 +185,9 @@ assert.ok(uiaAcceptance.includes('windows-real-remote-uia-app-a-input=PASS')&&ui
 assert.ok(uiaModalAcceptance.includes('windows-real-remote-uia-modal-open-handoff=PASS')&&uiaModalAcceptance.includes('windows-real-remote-uia-modal-action=PASS')&&uiaModalAcceptance.includes('windows-real-remote-uia-modal-close-handoff=PASS')&&uiaModalAcceptance.includes('windows-real-remote-uia-modal-closed-loop=PASS'),'Real Windows UIA modal acceptance must prove same-process HWND handoff and return');
 assert.ok(uiaModalFixture.includes('ShowDialog($main)')&&uiaModalAcceptance.includes('modalPid -ne $parentPid')&&uiaModalAcceptance.includes('modalRootHwnd -eq $parentRootHwnd'),'UIA modal acceptance must prove same-process distinct-HWND behavior');
 assert.ok(uiaWindowsWorkflow.includes('Real Windows UIA modal handoff acceptance')&&uiaWindowsWorkflow.includes('real-remote-uia-modal.ps1'),'Windows workflow must run the UIA modal acceptance');
+assert.ok(uiaFilePickerAcceptance.includes('windows-real-remote-uia-file-picker-open-handoff=PASS')&&uiaFilePickerAcceptance.includes('windows-real-remote-uia-file-picker-semantic=PASS')&&uiaFilePickerAcceptance.includes('windows-real-remote-uia-file-picker-close-handoff=PASS')&&uiaFilePickerAcceptance.includes('windows-real-remote-uia-file-picker-closed-loop=PASS'),'Real Windows UIA file-picker acceptance must prove native common-dialog handoff and return');
+assert.ok(uiaFilePickerFixture.includes('[System.Windows.Forms.OpenFileDialog]::new()')&&uiaFilePickerFixture.includes("$picker.ShowDialog($main)")&&uiaFilePickerAcceptance.includes("key='ESC'"),'UIA file-picker fixture must use native OpenFileDialog and close through OS ESC input');
+assert.ok(uiaWindowsWorkflow.includes('Real Windows UIA file picker handoff acceptance')&&uiaWindowsWorkflow.includes('real-remote-uia-file-picker.ps1'),'Windows workflow must run the UIA file-picker acceptance');
 for(const token of ['RootHwnd { get; set; }','RefreshSemanticForegroundRoot','foreground_handoff:0x','session.ScopeChanged = false'])assert.ok(semanticHelper.includes(token),'Windows UIA foreground handoff contract missing: '+token);
 assert.ok(uiaAcceptance.includes("key='TAB';modifiers=@('ALT')")&&uiaFixture.includes('[System.Windows.Forms.Application]::Run($form)'),'UIA app-switch acceptance must use OS Alt+Tab between visible WinForms processes');
 assert.ok(uiaWindowsWorkflow.includes('Real Windows UIA app switch acceptance')&&uiaWindowsWorkflow.includes('real-remote-uia-app-switch.ps1'),'Windows workflow must run the UIA app-switch acceptance');
