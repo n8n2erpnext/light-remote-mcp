@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
 const exe=String(process.argv[2]||process.env.LIGHT_REMOTE_CLIENT_EXE||'').trim();
 if(process.platform!=='win32')throw new Error('windows_only');
@@ -9,7 +10,7 @@ if(!exe||!fs.existsSync(exe))throw new Error('real_remote_helper_missing');
 
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'lr-cap-upgrade-'));
 const stateFile=path.join(dir,'device.json');
-const agent=new URL('../../device-agent/operator-agent.mjs',import.meta.url).pathname;
+const agent=fileURLToPath(new URL('../../device-agent/operator-agent.mjs',import.meta.url));
 const state={
   enrollment:{
     enrollmentId:'en_legacy_real_remote_test',
