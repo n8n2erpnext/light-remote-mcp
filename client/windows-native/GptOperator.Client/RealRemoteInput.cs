@@ -55,6 +55,7 @@ internal static partial class RealRemoteHelper
                 case "move": MoveCursor(item,true); break;
                 case "click": MoveCursor(item,false); sent+=Click(item); break;
                 case "wheel": MoveCursor(item,false); sent+=Wheel(item); break;
+                case "drag": sent+=Drag(item); break;
                 case "text": sent+=Text(item); break;
                 case "key": sent+=Key(item); break;
                 default: throw new InvalidOperationException("desktop_input_event_unsupported");
@@ -76,18 +77,66 @@ internal static partial class RealRemoteHelper
 
     private static int Click(JsonElement item)
     {
-        var button=item.TryGetProperty("button",out var node)?(node.GetString()??"left").ToLowerInvariant():"left";
+        var pair=MouseButtonPair(item);
         var count=IntStrict(item,"count",1,1,3);
-        var pair=button switch
+        var inputs=new List<INPUT>(count*2);
+        for(var i=0;i<count;i++){inputs.Add(Mouse(pair.Down,0));inputs.Add(Mouse(pair.Up,0));}
+        return Dispatch(inputs.ToArray());
+    }
+
+    private static int Drag(JsonElement item)
+    {
+        var startX=IntRequired(item,"x",-100000,100000);
+        var startY=IntRequired(item,"y",-100000,100000);
+        var targetX=IntRequired(item,"toX",-100000,100000);
+        var targetY=IntRequired(item,"toY",-100000,100000);
+        var steps=IntStrict(item,"steps",8,1,32);
+        var durationMs=IntStrict(item,"durationMs",120,0,1000);
+        var pair=MouseButtonPair(item);
+        if(!SetCursorPos(startX,startY)) throw Win32InputError("desktop_input_cursor_blocked");
+
+        var sent=0;
+        Exception? failure=null;
+        var down=false;
+        try
+        {
+            sent+=Dispatch(new[]{Mouse(pair.Down,0)});
+            down=true;
+            var delay=steps>0?durationMs/steps:0;
+            for(var i=1;i<=steps;i++)
+            {
+                var x=startX+(int)Math.Round((targetX-startX)*(i/(double)steps));
+                var y=startY+(int)Math.Round((targetY-startY)*(i/(double)steps));
+                if(!SetCursorPos(x,y)) throw Win32InputError("desktop_input_cursor_blocked");
+                if(delay>0) System.Threading.Thread.Sleep(delay);
+            }
+        }
+        catch(Exception ex)
+        {
+            failure=ex;
+        }
+        finally
+        {
+            if(down)
+            {
+                try { sent+=Dispatch(new[]{Mouse(pair.Up,0)}); }
+                catch(Exception releaseError) { failure??=releaseError; }
+            }
+        }
+        if(failure is not null) throw failure;
+        return sent;
+    }
+
+    private static (uint Down,uint Up) MouseButtonPair(JsonElement item)
+    {
+        var button=item.TryGetProperty("button",out var node)?(node.GetString()??"left").ToLowerInvariant():"left";
+        return button switch
         {
             "left" => (MouseLeftDown,MouseLeftUp),
             "right" => (MouseRightDown,MouseRightUp),
             "middle" => (MouseMiddleDown,MouseMiddleUp),
             _ => throw new InvalidOperationException("desktop_input_invalid_button")
         };
-        var inputs=new List<INPUT>(count*2);
-        for(var i=0;i<count;i++){inputs.Add(Mouse(pair.Item1,0));inputs.Add(Mouse(pair.Item2,0));}
-        return Dispatch(inputs.ToArray());
     }
 
     private static int Wheel(JsonElement item)
@@ -158,6 +207,13 @@ internal static partial class RealRemoteHelper
         var value=fallback;
         if(item.TryGetProperty(name,out var node)&&!node.TryGetInt32(out value)) throw new InvalidOperationException($"desktop_input_invalid_{name}");
         if(value<min||value>max) throw new InvalidOperationException($"desktop_input_invalid_{name}");
+        return value;
+    }
+
+    private static int IntRequired(JsonElement item,string name,int min,int max)
+    {
+        if(!item.TryGetProperty(name,out var node)||!node.TryGetInt32(out var value)||value<min||value>max)
+            throw new InvalidOperationException($"desktop_input_invalid_{name}");
         return value;
     }
 

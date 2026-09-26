@@ -62,12 +62,16 @@ const normalizedInput=normalizeDesktopInput({events:[
   {type:'move',x:120,y:80},
   {type:'click',button:'left',count:1},
   {type:'wheel',delta:-120},
+  {type:'drag',x:120,y:80,toX:320,toY:180,button:'left',steps:6,durationMs:90},
   {type:'text',text:'Light Remote'},
   {type:'key',key:'ENTER',modifiers:['CTRL']}
 ]});
-assert.equal(normalizedInput.events.length,5);
-assert.deepEqual(normalizedInput.events[4],{type:'key',key:'ENTER',modifiers:['CTRL']});
+assert.equal(normalizedInput.events.length,6);
+assert.deepEqual(normalizedInput.events[3],{type:'drag',x:120,y:80,toX:320,toY:180,button:'left',steps:6,durationMs:90});
+assert.deepEqual(normalizedInput.events[5],{type:'key',key:'ENTER',modifiers:['CTRL']});
 assert.throws(()=>normalizeDesktopInput({events:[{type:'move'}]}),/desktop_input_coordinates_required/);
+assert.throws(()=>normalizeDesktopInput({events:[{type:'drag',x:1,y:1,toY:2}]}),/desktop_input_invalid_to_x/);
+assert.throws(()=>normalizeDesktopInput({events:[{type:'drag',x:1,y:1,toX:2,toY:2,steps:33}]}),/desktop_input_invalid_steps/);
 assert.throws(()=>normalizeDesktopInput({events:[{type:'key',key:'RAW_SCANCODE'}]}),/desktop_input_invalid_key/);
 assert.throws(()=>normalizeDesktopInput({events:Array.from({length:65},()=>({type:'click'}))}),/desktop_input_invalid_event_count/);
 const normalizedAckInput=normalizeDesktopInput({events:[{type:'move',x:120,y:80}],semanticSessionId:'sem_12345678',afterSeq:2,settleMs:25});
@@ -101,7 +105,7 @@ try{
   assert.equal(frame.height,180);
   assert.equal(status.helperPid,windows.helperPid,'desktop helper must stay persistent across requests');
   assert.equal(status.helperPid,frame.helperPid,'desktop frame must use the same persistent helper');
-  assert.equal(input.appliedEvents,5);
+  assert.equal(input.appliedEvents,6);
   assert.equal(status.helperPid,input.helperPid,'desktop input must use the same persistent helper');
   assert.equal(semanticAttach.provider,'windows-uia');
   assert.equal(semanticAttach.stateSeq,1);
@@ -151,6 +155,8 @@ const uiaFilePickerAcceptance=read('client/windows-native/acceptance/real-remote
 const uiaFilePickerFixture=read('client/windows-native/acceptance/real-remote-uia-file-picker-fixture.ps1');
 const uiaClipboardAcceptance=read('client/windows-native/acceptance/real-remote-uia-clipboard.ps1');
 const uiaClipboardFixture=read('client/windows-native/acceptance/real-remote-uia-clipboard-fixture.ps1');
+const uiaDragDropAcceptance=read('client/windows-native/acceptance/real-remote-uia-drag-drop.ps1');
+const uiaDragDropFixture=read('client/windows-native/acceptance/real-remote-uia-drag-drop-fixture.ps1');
 const uiaWindowsWorkflow=read('.github/workflows/windows-native-client.yml');
 const windowsProject=read('client/windows-native/GptOperator.Client/GptOperator.Client.csproj');
 const supervisor=read('client/windows-native/GptOperator.Client/AgentSupervisor.cs');
@@ -165,6 +171,7 @@ assert.ok(!semanticEventsHelper.includes('ValuePattern.ValueProperty'),'semantic
 assert.ok(!semanticEventsHelper.includes('TextPattern.'),'semantic journal must not subscribe text contents');
 assert.ok(windowsProject.includes('<UseWPF>true</UseWPF>'),'Windows UIA reference pack must come from WindowsDesktop/WPF SDK support');
 for(const token of ['SendInput(','SetCursorPos(','desktop_input_blocked','desktop_input_invalid_event_count','Keyboard(ushort vk,ushort scan,uint flags)','BeginSemanticInput(args)','CompleteSemanticInput(semanticInput,applied,sent)'])assert.ok(inputHelper.includes(token),`Windows input contract missing: ${token}`);
+for(const token of ['case "drag"','private static int Drag(JsonElement item)','MouseButtonPair','IntRequired','finally','Mouse(pair.Up,0)'])assert.ok(inputHelper.includes(token),`Windows atomic drag contract missing: ${token}`);
 for(const token of ['SemanticInputContext','InputSeq','afterSeq','settleMs','focusOutsideScope','resyncRecommended','hasMore'])assert.ok(inputAckHelper.includes(token),`Windows closed-loop input ACK missing: ${token}`);
 assert.ok(inputAckHelper.includes('RefreshSemanticForegroundRoot(session)'),'Windows UIA input ACK must refresh foreground semantic root after OS input settles');
 for(const token of ['BrowserSession','CompleteBrowserSemanticInput','BrowserSemanticSnapshotCore','provider = "browser-cdp"','observation = "cdp-snapshot+journal"'])assert.ok(inputAckHelper.includes(token),'Browser closed-loop input ACK missing: '+token);
@@ -194,6 +201,9 @@ assert.ok(uiaClipboardAcceptance.includes('windows-real-remote-uia-clipboard-cop
 assert.ok(uiaClipboardAcceptance.includes("key='C';modifiers=@('CTRL')")&&uiaClipboardAcceptance.includes("key='V';modifiers=@('CTRL')")&&uiaClipboardFixture.includes('[System.Windows.Forms.Clipboard]::Clear()'),'UIA clipboard acceptance must use OS Ctrl+C/Ctrl+V and clear test clipboard after proof');
 assert.ok(!uiaClipboardAcceptance.includes('.value'),'UIA clipboard acceptance must not read textbox Value contents');
 assert.ok(uiaWindowsWorkflow.includes('Real Windows UIA clipboard acceptance')&&uiaWindowsWorkflow.includes('real-remote-uia-clipboard.ps1'),'Windows workflow must run the UIA clipboard acceptance');
+assert.ok(uiaDragDropAcceptance.includes('windows-real-remote-uia-drag-drop=PASS')&&uiaDragDropAcceptance.includes('windows-real-remote-uia-drag-drop-closed-loop=PASS'),'Real Windows UIA drag/drop acceptance must prove atomic OS drag closed loop');
+assert.ok(uiaDragDropAcceptance.includes("type='drag'")&&uiaDragDropAcceptance.includes('sentInputs -ne 2')&&uiaDragDropFixture.includes('$source.Capture=$true')&&uiaDragDropFixture.includes('$source.Capture=$false'),'UIA drag/drop fixture must prove held-button movement and release');
+assert.ok(uiaWindowsWorkflow.includes('Real Windows UIA drag drop acceptance')&&uiaWindowsWorkflow.includes('real-remote-uia-drag-drop.ps1'),'Windows workflow must run the UIA drag/drop acceptance');
 for(const token of ['RootHwnd { get; set; }','RefreshSemanticForegroundRoot','foreground_handoff:0x','session.ScopeChanged = false'])assert.ok(semanticHelper.includes(token),'Windows UIA foreground handoff contract missing: '+token);
 assert.ok(uiaAcceptance.includes("key='TAB';modifiers=@('ALT')")&&uiaFixture.includes('[System.Windows.Forms.Application]::Run($form)'),'UIA app-switch acceptance must use OS Alt+Tab between visible WinForms processes');
 assert.ok(uiaWindowsWorkflow.includes('Real Windows UIA app switch acceptance')&&uiaWindowsWorkflow.includes('real-remote-uia-app-switch.ps1'),'Windows workflow must run the UIA app-switch acceptance');
