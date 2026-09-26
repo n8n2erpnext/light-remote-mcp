@@ -167,3 +167,13 @@ V0.6-C gives visual desktop sessions a bounded idle lease so abandoned controlle
 - access after the idle deadline removes that session and returns desktop_session_expired;
 - a display topology/DPI mismatch removes that session before returning desktop_session_stale_topology, so a stale screen binding cannot be resumed later;
 - desktop-attach prunes all expired sessions before enforcing the eight-session helper limit, allowing capacity to recover even when a controller disappears without desktop-detach.
+
+V0.6-D exposes the pull session through the existing Local Wall instead of introducing a separate remote-desktop service:
+- the authenticated Local Wall adds a Desktop page and a CSRF-protected /api/desktop route;
+- that route delegates back to executeDesktopCommand, so desktop view still requires the local desktop capability and every mouse/keyboard mutation still requires the separately owner-enabled desktop-input capability;
+- the viewer can choose an indexed monitor, frame cadence and JPEG quality, then drives attach/frame/resume/detach while honoring retryAfterMs and keeping the previous image when an unchanged frame suppresses JPEG data;
+- clicking, dragging, right-clicking and wheel input are converted from the rendered image through frame inputMapping and sent with the frame displayTopologyId pin;
+- text and bounded named-key input use the same desktop-input path; disabling desktop-input leaves the viewer read-only;
+- hidden tabs stop polling, visible tabs resume the existing session, expired/stale/missing sessions re-attach, and page unload makes a best-effort detach request;
+- the page uses the same Wall login and per-render mutation CSRF. Unauthenticated page/API access and mutation without CSRF are rejected by the existing Wall boundary;
+- the viewer module is included in core-files plus Windows and Linux install paths so installed clients do not lose the page after update.

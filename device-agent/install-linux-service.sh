@@ -16,6 +16,7 @@ fi
 sudo install -d -m 0755 /opt/gpt-operator-agent/device-agent /opt/gpt-operator-agent/device-agent/platform-adapters /opt/gpt-operator-agent/lib /opt/gpt-operator-agent/assets/branding /opt/gpt-operator-agent/assets/fonts
 sudo install -m 0755 "$ROOT_DIR/device-agent/operator-agent.mjs" /opt/gpt-operator-agent/device-agent/operator-agent.mjs
 sudo install -m 0644 "$ROOT_DIR/device-agent/local-wall.mjs" /opt/gpt-operator-agent/device-agent/local-wall.mjs
+sudo install -m 0644 "$ROOT_DIR/device-agent/local-wall-desktop-page.mjs" /opt/gpt-operator-agent/device-agent/local-wall-desktop-page.mjs
 sudo install -m 0644 "$ROOT_DIR/device-agent/local-wall-auth.mjs" /opt/gpt-operator-agent/device-agent/local-wall-auth.mjs
 sudo install -m 0644 "$ROOT_DIR/device-agent/update-settings-page.mjs" /opt/gpt-operator-agent/device-agent/update-settings-page.mjs
 sudo install -m 0644 "$ROOT_DIR/device-agent/fleet-component-manager.mjs" /opt/gpt-operator-agent/device-agent/fleet-component-manager.mjs

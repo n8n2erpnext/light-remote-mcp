@@ -282,6 +282,10 @@ const routes=read('operator-host/executor-routes-runtime.mjs');
 const api=read('api/operator.js');
 const toolHelper=read('lib/plus-tool-helper.js');
 const wall=read('device-agent/local-wall.mjs');
+const wallDesktopPage=read('device-agent/local-wall-desktop-page.mjs');
+const coreFiles=read('client/core-files.json');
+const windowsInstaller=read('device-agent/install-windows-service.ps1');
+const linuxInstaller=read('device-agent/install-linux-service.sh');
 const windowsWorkflow=read('.github/workflows/windows-native-client.yml');
 assert.ok(executor.includes('async function startDesktopOperation(')&&executor.includes("payload:{type:'desktop'")&&executor.includes("op==='input'?['desktop','desktop-input']:['desktop']")&&executor.includes("normalizeDesktopInput(request)")&&executor.includes("'attach'")&&executor.includes("'resume'")&&executor.includes("'detach'")&&executor.includes("'semantic-attach'")&&executor.includes("'semantic-snapshot'")&&executor.includes("'semantic-events'")&&executor.includes("'semantic-detach'"));
 assert.ok(routes.includes("'desktop'].includes(payload.action)")&&routes.includes("payload.action==='desktop'?await startDesktopOperation"));
@@ -289,6 +293,10 @@ assert.ok(api.includes("action.startsWith('desktop-')")&&api.includes("'status',
 assert.ok(api.includes("desktop.minIntervalMs=Math.max(0,Math.min(Number.isFinite(Number(d.minIntervalMs))?Math.floor(Number(d.minIntervalMs)):250,5000))")&&api.includes("desktop.omitUnchanged=d.omitUnchanged!==false")&&api.includes("desktop.idleTimeoutMs=Math.max(250,Math.min(Number.isFinite(Number(d.idleTimeoutMs))?Math.floor(Number(d.idleTimeoutMs)):120000,900000))"));
 assert.ok(toolHelper.includes("desktop-status")&&toolHelper.includes("desktop-attach")&&toolHelper.includes("desktop-resume")&&toolHelper.includes("desktop-detach")&&toolHelper.includes("desktop-windows")&&toolHelper.includes("desktop-frame")&&toolHelper.includes("minIntervalMs?")&&toolHelper.includes("omitUnchanged?")&&toolHelper.includes("idleTimeoutMs?")&&toolHelper.includes("desktopSessionId?")&&toolHelper.includes("desktop_session_expired")&&toolHelper.includes("contentSeq")&&toolHelper.includes("throttled=true")&&toolHelper.includes("retryAfterMs")&&toolHelper.includes("frameSha256")&&toolHelper.includes("desktop-semantic-attach")&&toolHelper.includes("desktop-semantic-snapshot")&&toolHelper.includes("desktop-semantic-events")&&toolHelper.includes("desktop-semantic-detach")&&toolHelper.includes("desktop-input")&&toolHelper.includes("provider?,scope?")&&toolHelper.includes("cdpEndpoint?,targetId?,urlMatch?")&&toolHelper.includes("browser-cdp")&&toolHelper.includes("loopback Chromium DevTools")&&toolHelper.includes("displayTopologyId?")&&toolHelper.includes("semanticSessionId?,afterSeq?,settleMs?")&&toolHelper.includes("toScreen?")&&toolHelper.includes('type:"drag"')&&toolHelper.includes("desktop_input_stale_topology")&&toolHelper.includes("inputMapping")&&toolHelper.includes("localX=round(frameX*xScale)")&&toolHelper.includes("windows-uia or browser-cdp")&&toolHelper.includes("inputSeq")&&toolHelper.includes("capabilities:['desktop','desktop-input']"));
 assert.ok(wall.includes("'desktop':['Desktop view'")&&wall.includes("'desktop-input':['Desktop input'")&&wall.includes("locally blocked by default"));
+assert.ok(wall.includes("import { desktopPage } from './local-wall-desktop-page.mjs'")&&wall.includes("url.pathname==='/desktop'")&&wall.includes("url.pathname==='/api/desktop'")&&wall.includes("desktopAction"));
+for(const token of ['/api/desktop','desktop-input','inputMapping','displayTopologyId','retryAfterMs','omitUnchanged:true','beforeunload'])assert.ok(wallDesktopPage.includes(token),`Local Wall desktop viewer contract missing: ${token}`);
+for(const source of [coreFiles,windowsInstaller,linuxInstaller])assert.ok(source.includes('local-wall-desktop-page.mjs'),'Local Wall desktop viewer must be packaged on every supported install path');
+assert.ok(agent.includes("desktopAction:async data=>{const current=readState();if(!current)throw new Error('device_not_enrolled');return executeDesktopCommand(current,{desktop:data});}"),'Local Wall desktop callback must reuse executeDesktopCommand policy boundary');
 assert.ok(windowsWorkflow.includes('- name: Real Remote hidden helper smoke')&&windowsWorkflow.includes('timeout-minutes: 1')&&windowsWorkflow.includes('--real-remote-helper')&&windowsWorkflow.includes('windows-real-remote-helper=PASS')&&windowsWorkflow.includes('windows-real-remote-input-negative=PASS')&&windowsWorkflow.includes('windows-real-remote-semantic=PASS')&&windowsWorkflow.includes('windows-real-remote-semantic-events=PASS')&&windowsWorkflow.includes('windows-real-remote-input-ack=PASS')&&windowsWorkflow.includes('windows-real-remote-browser-cdp=PASS')&&windowsWorkflow.includes('windows-real-remote-browser-input-ack=PASS'));
 
 console.log('v11-real-remote-jsonl-bridge=PASS');
@@ -302,3 +310,4 @@ console.log('v11-real-remote-semantic-event-journal=PASS');
 console.log('v11-real-remote-closed-loop-input-ack=PASS');
 console.log('v11-real-remote-browser-cdp-semantic=PASS');
 console.log('v11-real-remote-browser-input-ack=PASS');
+console.log('v11-real-remote-local-wall-viewer=PASS');
