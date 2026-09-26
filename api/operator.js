@@ -199,7 +199,7 @@ module.exports=async function handler(req,res){
           const desktop={op};
           if(op==='windows')desktop.limit=Math.max(1,Math.min(Number(d.limit)||100,200));
           if(op==='frame'){desktop.screen=d.screen==null?-1:Math.max(-1,Math.min(Number(d.screen)||0,31));desktop.maxWidth=Math.max(320,Math.min(Number(d.maxWidth)||960,1280));desktop.maxHeight=Math.max(180,Math.min(Number(d.maxHeight)||540,720));desktop.quality=Math.max(25,Math.min(Number(d.quality)||50,70));}
-          if(op==='input')Object.assign(desktop,normalizeDesktopInput({events:d.events,semanticSessionId:d.semanticSessionId,afterSeq:d.afterSeq,settleMs:d.settleMs}));
+          if(op==='input')Object.assign(desktop,normalizeDesktopInput({events:d.events,displayTopologyId:d.displayTopologyId,semanticSessionId:d.semanticSessionId,afterSeq:d.afterSeq,settleMs:d.settleMs}));
           if(op==='semantic-attach'){
             const provider=String(d.provider||'windows-uia').trim().toLowerCase();if(!['windows-uia','browser-cdp'].includes(provider)){const e=new Error('invalid_semantic_provider');e.status=400;throw e;}
             const depth=Number(d.maxDepth),nodes=Number(d.maxNodes);desktop.provider=provider;
