@@ -365,6 +365,15 @@ jobs:
           if (-not (Test-Path $exe)) { throw 'Real Remote helper executable missing before UIA drag drop acceptance' }
           & ./client/windows-native/acceptance/real-remote-uia-drag-drop.ps1 -ClientExe $exe -TimeoutSeconds 20
 
+      - name: Real Windows UIA window lifecycle acceptance
+        timeout-minutes: 2
+        shell: pwsh
+        run: |
+          $stage = Join-Path $PWD 'dist\windows\stage'
+          $exe = Join-Path $stage 'LightRemote.Client.exe'
+          if (-not (Test-Path $exe)) { throw 'Real Remote helper executable missing before UIA window lifecycle acceptance' }
+          & ./client/windows-native/acceptance/real-remote-uia-window-lifecycle.ps1 -ClientExe $exe -TimeoutSeconds 20
+
       - name: Native client bundled runtime smoke
         timeout-minutes: 3
         shell: pwsh

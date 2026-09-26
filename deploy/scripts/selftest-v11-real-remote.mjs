@@ -157,6 +157,8 @@ const uiaClipboardAcceptance=read('client/windows-native/acceptance/real-remote-
 const uiaClipboardFixture=read('client/windows-native/acceptance/real-remote-uia-clipboard-fixture.ps1');
 const uiaDragDropAcceptance=read('client/windows-native/acceptance/real-remote-uia-drag-drop.ps1');
 const uiaDragDropFixture=read('client/windows-native/acceptance/real-remote-uia-drag-drop-fixture.ps1');
+const uiaWindowLifecycleAcceptance=read('client/windows-native/acceptance/real-remote-uia-window-lifecycle.ps1');
+const uiaWindowLifecycleFixture=read('client/windows-native/acceptance/real-remote-uia-window-lifecycle-fixture.ps1');
 const uiaWindowsWorkflow=read('.github/workflows/windows-native-client.yml');
 const windowsProject=read('client/windows-native/GptOperator.Client/GptOperator.Client.csproj');
 const supervisor=read('client/windows-native/GptOperator.Client/AgentSupervisor.cs');
@@ -204,6 +206,10 @@ assert.ok(uiaWindowsWorkflow.includes('Real Windows UIA clipboard acceptance')&&
 assert.ok(uiaDragDropAcceptance.includes('windows-real-remote-uia-drag-drop=PASS')&&uiaDragDropAcceptance.includes('windows-real-remote-uia-drag-drop-closed-loop=PASS'),'Real Windows UIA drag/drop acceptance must prove atomic OS drag closed loop');
 assert.ok(uiaDragDropAcceptance.includes("type='drag'")&&uiaDragDropAcceptance.includes('sentInputs -ne 2')&&uiaDragDropFixture.includes('$source.Capture=$true')&&uiaDragDropFixture.includes('$source.Capture=$false'),'UIA drag/drop fixture must prove held-button movement and release');
 assert.ok(uiaWindowsWorkflow.includes('Real Windows UIA drag drop acceptance')&&uiaWindowsWorkflow.includes('real-remote-uia-drag-drop.ps1'),'Windows workflow must run the UIA drag/drop acceptance');
+assert.ok(uiaWindowLifecycleAcceptance.includes('windows-real-remote-uia-window-maximize=PASS')&&uiaWindowLifecycleAcceptance.includes('windows-real-remote-uia-window-restore=PASS')&&uiaWindowLifecycleAcceptance.includes('windows-real-remote-uia-window-close-handoff=PASS')&&uiaWindowLifecycleAcceptance.includes('windows-real-remote-uia-window-close-continued-input=PASS')&&uiaWindowLifecycleAcceptance.includes('windows-real-remote-uia-window-lifecycle-closed-loop=PASS'),'Real Windows UIA window lifecycle acceptance must prove maximize/restore/close handoff and continued input');
+assert.ok(uiaWindowLifecycleAcceptance.includes("key='UP';modifiers=@('WIN')")&&uiaWindowLifecycleAcceptance.includes("key='DOWN';modifiers=@('WIN')")&&uiaWindowLifecycleAcceptance.includes("key='F4';modifiers=@('ALT')")&&uiaWindowLifecycleFixture.includes("$form.FormBorderStyle='Sizable'"),'UIA window lifecycle acceptance must use OS window-management keys on a sizable native window');
+assert.ok(uiaWindowLifecycleAcceptance.includes("'windows'")&&uiaWindowLifecycleAcceptance.includes('bounds.width')&&uiaWindowLifecycleAcceptance.includes('foreground_handoff:*'),'UIA window lifecycle acceptance must verify actual window bounds and root-handoff journal state');
+assert.ok(uiaWindowsWorkflow.includes('Real Windows UIA window lifecycle acceptance')&&uiaWindowsWorkflow.includes('real-remote-uia-window-lifecycle.ps1'),'Windows workflow must run the UIA window lifecycle acceptance');
 for(const token of ['RootHwnd { get; set; }','RefreshSemanticForegroundRoot','foreground_handoff:0x','session.ScopeChanged = false'])assert.ok(semanticHelper.includes(token),'Windows UIA foreground handoff contract missing: '+token);
 assert.ok(uiaAcceptance.includes("key='TAB';modifiers=@('ALT')")&&uiaFixture.includes('[System.Windows.Forms.Application]::Run($form)'),'UIA app-switch acceptance must use OS Alt+Tab between visible WinForms processes');
 assert.ok(uiaWindowsWorkflow.includes('Real Windows UIA app switch acceptance')&&uiaWindowsWorkflow.includes('real-remote-uia-app-switch.ps1'),'Windows workflow must run the UIA app-switch acceptance');
