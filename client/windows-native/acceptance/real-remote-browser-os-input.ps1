@@ -222,6 +222,68 @@ try{
   Write-Host "windows-real-remote-navigation-continued-input=PASS sentInputs=$($nextAck.sentInputs) inputSeq=$($nextAck.inputSeq) seq=$($nextDone.stateSeq)"
   Write-Host 'windows-real-remote-navigation-closed-loop=PASS'
 
+  $historyTargetId=[string]$nextDone.target.id;$backBeforeSeq=[long]$nextDone.stateSeq
+  [LightRemoteAcceptanceWindow]::Focus($hwnd);Start-Sleep -Milliseconds 100
+  $backAck=Invoke-Rr 'accept-os-history-back' 'input' @{events=@(@{type='key';key='LEFT';modifiers=@('ALT')});semanticSessionId=$sem;afterSeq=$backBeforeSeq;settleMs=250}
+  if([int]$backAck.appliedEvents -ne 1 -or [int]$backAck.sentInputs -lt 4){throw "ALT+LEFT SendInput proof missing applied=$($backAck.appliedEvents) sent=$($backAck.sentInputs)"}
+  if([string]$backAck.semanticSessionId -ne $sem){throw 'Semantic session changed during ALT+LEFT'}
+
+  $backDeadline=[DateTime]::UtcNow.AddSeconds(5);$backAttempt=0;$backStable=$null;$backLinks=@()
+  do{
+    $backAttempt++
+    try{
+      $candidate=Invoke-Rr ("accept-history-back-snapshot-"+$backAttempt) 'semantic-snapshot' @{semanticSessionId=$sem}
+      $candidateLinks=@($candidate.nodes|Where-Object { $_.role -eq 'link' -and $_.name -eq 'Light Remote Navigate' })
+      if([string]$candidate.target.url -like '*real-remote-browser-os-input.html' -and $candidateLinks.Count -eq 1){$backStable=$candidate;$backLinks=$candidateLinks;break}
+    }catch{}
+    Start-Sleep -Milliseconds 100
+  }while([DateTime]::UtcNow -lt $backDeadline)
+  if($null -eq $backStable -or $backLinks.Count -ne 1){throw 'ALT+LEFT did not restore initial browser history entry'}
+  if([string]$backStable.semanticSessionId -ne $sem -or [string]$backStable.target.id -ne $historyTargetId){throw 'ALT+LEFT changed semantic session or target identity'}
+  Write-Host "windows-real-remote-history-back=PASS sentInputs=$($backAck.sentInputs) inputSeq=$($backAck.inputSeq) seq=$($backStable.stateSeq) target=$historyTargetId url=$($backStable.target.url)"
+
+  $forwardBeforeSeq=[long]$backStable.stateSeq
+  [LightRemoteAcceptanceWindow]::Focus($hwnd);Start-Sleep -Milliseconds 100
+  $forwardAck=Invoke-Rr 'accept-os-history-forward' 'input' @{events=@(@{type='key';key='RIGHT';modifiers=@('ALT')});semanticSessionId=$sem;afterSeq=$forwardBeforeSeq;settleMs=250}
+  if([int]$forwardAck.appliedEvents -ne 1 -or [int]$forwardAck.sentInputs -lt 4){throw "ALT+RIGHT SendInput proof missing applied=$($forwardAck.appliedEvents) sent=$($forwardAck.sentInputs)"}
+  if([string]$forwardAck.semanticSessionId -ne $sem){throw 'Semantic session changed during ALT+RIGHT'}
+
+  $forwardDeadline=[DateTime]::UtcNow.AddSeconds(5);$forwardAttempt=0;$forwardStable=$null;$forwardLinks=@()
+  do{
+    $forwardAttempt++
+    try{
+      $candidate=Invoke-Rr ("accept-history-forward-snapshot-"+$forwardAttempt) 'semantic-snapshot' @{semanticSessionId=$sem}
+      $candidateLinks=@($candidate.nodes|Where-Object { $_.role -eq 'link' -and $_.name -eq 'Light Remote Open New Tab' })
+      if([string]$candidate.target.url -like '*real-remote-browser-os-input-next.html' -and $candidateLinks.Count -eq 1){$forwardStable=$candidate;$forwardLinks=$candidateLinks;break}
+    }catch{}
+    Start-Sleep -Milliseconds 100
+  }while([DateTime]::UtcNow -lt $forwardDeadline)
+  if($null -eq $forwardStable -or $forwardLinks.Count -ne 1){throw 'ALT+RIGHT did not restore next browser history entry'}
+  if([string]$forwardStable.semanticSessionId -ne $sem -or [string]$forwardStable.target.id -ne $historyTargetId){throw 'ALT+RIGHT changed semantic session or target identity'}
+  Write-Host "windows-real-remote-history-forward=PASS sentInputs=$($forwardAck.sentInputs) inputSeq=$($forwardAck.inputSeq) seq=$($forwardStable.stateSeq) target=$historyTargetId url=$($forwardStable.target.url)"
+
+  $reloadBeforeSeq=[long]$forwardStable.stateSeq
+  [LightRemoteAcceptanceWindow]::Focus($hwnd);Start-Sleep -Milliseconds 100
+  $reloadAck=Invoke-Rr 'accept-os-history-reload' 'input' @{events=@(@{type='key';key='R';modifiers=@('CTRL')});semanticSessionId=$sem;afterSeq=$reloadBeforeSeq;settleMs=300}
+  if([int]$reloadAck.appliedEvents -ne 1 -or [int]$reloadAck.sentInputs -lt 4){throw "CTRL+R SendInput proof missing applied=$($reloadAck.appliedEvents) sent=$($reloadAck.sentInputs)"}
+  if([string]$reloadAck.semanticSessionId -ne $sem){throw 'Semantic session changed during CTRL+R'}
+
+  $reloadDeadline=[DateTime]::UtcNow.AddSeconds(5);$reloadAttempt=0;$reloadStable=$null;$reloadButtons=@()
+  do{
+    $reloadAttempt++
+    try{
+      $candidate=Invoke-Rr ("accept-history-reload-snapshot-"+$reloadAttempt) 'semantic-snapshot' @{semanticSessionId=$sem}
+      $candidateButtons=@($candidate.nodes|Where-Object { $_.role -eq 'button' -and $_.name -eq 'Light Remote Next Page' })
+      if([string]$candidate.target.url -like '*real-remote-browser-os-input-next.html' -and [string]$candidate.target.title -eq 'Light Remote Navigation Acceptance' -and $candidateButtons.Count -eq 1){$reloadStable=$candidate;$reloadButtons=$candidateButtons;break}
+    }catch{}
+    Start-Sleep -Milliseconds 100
+  }while([DateTime]::UtcNow -lt $reloadDeadline)
+  if($null -eq $reloadStable -or $reloadButtons.Count -ne 1){throw 'CTRL+R did not restore fresh next-page semantic state'}
+  if([string]$reloadStable.semanticSessionId -ne $sem -or [string]$reloadStable.target.id -ne $historyTargetId){throw 'CTRL+R changed semantic session or target identity'}
+  Write-Host "windows-real-remote-reload=PASS sentInputs=$($reloadAck.sentInputs) inputSeq=$($reloadAck.inputSeq) seq=$($reloadStable.stateSeq) target=$historyTargetId title=$($reloadStable.target.title)"
+  Write-Host 'windows-real-remote-history-reload-closed-loop=PASS keys=ALT+LEFT,ALT+RIGHT,CTRL+R'
+  $nextDone=$reloadStable
+
   $newTabLinks=@($nextDone.nodes|Where-Object { $_.role -eq 'link' -and $_.name -eq 'Light Remote Open New Tab' })
   if($newTabLinks.Count -ne 1 -or $null -eq $newTabLinks[0].center){throw "New-tab link semantic center missing count=$($newTabLinks.Count)"}
   $newTabX=[int][Math]::Round([double]$newTabLinks[0].center.x);$newTabY=[int][Math]::Round([double]$newTabLinks[0].center.y)
