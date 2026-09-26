@@ -19,10 +19,13 @@ const state={
     accountId:'self-hosted-local',
     grantableCapabilities:['filesystem','git'],
     approvedCapabilities:['filesystem','git'],
-    policyProfile:'full'
+    policyProfile:'full',
+    certificate:{approvedCapabilities:['filesystem','git']}
   },
-  policy:{deniedCapabilities:[],serverPolicyRevision:3,localFinalDenyBoundary:true},
-  effectiveCapabilities:['filesystem','git']
+  policy:{knownCapabilities:['filesystem','git','terminal','desktop','desktop-input'],deniedCapabilities:[],serverPolicyRevision:3,localFinalDenyBoundary:true},
+  pendingEnrollment:{enrollmentId:'en_stale_reauth_test',pollToken:'stale-token-aaaaaaaaaaaaaaaaaaaa',requestedCapabilities:['filesystem','git','terminal','desktop','desktop-input']},
+  cloud:{desiredConnected:false,state:'dormant',lastError:null},
+  effectiveCapabilities:['filesystem','git','terminal','desktop','desktop-input']
 };
 fs.writeFileSync(stateFile,JSON.stringify(state,null,2));
 try{
@@ -41,9 +44,15 @@ try{
     if(effective.has(cap))throw new Error('capability_refresh_new_permission_auto_enabled:'+cap);
   }
   if(view.deviceId!==state.enrollment.deviceId)throw new Error('capability_refresh_device_identity_changed');
+  if(view.pendingEnrollmentId!==null)throw new Error('capability_refresh_stale_pending_not_cleared');
   if('capabilityUpgradeAvailable' in view||'missingCapabilities' in view)throw new Error('capability_refresh_must_not_use_reauthorization_model');
+  const migrated=JSON.parse(fs.readFileSync(stateFile,'utf8'));
+  if(migrated.pendingEnrollment)throw new Error('capability_refresh_stale_pending_persisted');
+  if(Number(migrated.policy?.capabilityPermissionModelVersion)!==2)throw new Error('capability_refresh_policy_model_not_migrated');
+  for(const cap of ['terminal','desktop','desktop-input'])if(!migrated.policy?.deniedCapabilities?.includes(cap))throw new Error('capability_refresh_migration_not_default_off:'+cap);
   console.log('windows-capability-refresh-same-identity=PASS deviceId='+view.deviceId);
   console.log('windows-capability-refresh-default-off=PASS new=terminal,desktop,desktop-input');
+  console.log('windows-capability-refresh-stale-pending-cleared=PASS');
 }finally{
   fs.rmSync(dir,{recursive:true,force:true});
 }

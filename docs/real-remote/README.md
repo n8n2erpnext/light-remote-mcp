@@ -194,3 +194,10 @@ V0.6-F separates device authorization from runtime permissions so a normal versi
 - server policy remains an independent remote-routing boundary and may still narrow a capability after runtime discovery; local policy remains the final deny boundary;
 - legacy agents that do not send signed supportedCapabilities keep the prior capability-escalation guard;
 - revoke remains an identity/trust action and may require authorization again; remove/delete remains a new-device enrollment case. Neither rule is used for ordinary version upgrades.
+
+V0.6-G fixes upgrade migration after the capability refresh model change:
+- an already-authorized, non-revoked device never needs re-authorization just because the runtime gained capabilities;
+- stale local pending-enrollment state from the temporary reauthorization design is cleared automatically and cannot disable Connect;
+- capability permission model version 2 migrates once from the authorization-era certificate baseline, so newly introduced runtime capabilities are locally OFF until the owner enables them;
+- a polluted intermediate knownCapabilities list cannot auto-enable new runtime permissions during migration;
+- fresh enrollment and subsequent permission saves stamp the new permission model explicitly.
