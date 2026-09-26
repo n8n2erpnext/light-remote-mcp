@@ -73,7 +73,7 @@ module.exports=async function handler(req,res){
   const plusClientFingerprint=plusClient?clientFingerprint(plusClient):null;
   const deployment=String(process.env.VERCEL_GIT_COMMIT_SHA||process.env.VERCEL_DEPLOYMENT_ID||'unknown').slice(0,16);
   const compactClientActions=new Set(['tool-helper','context','list-devices','session-open','session-resume','session-hold','session-close','session','exec','fs','process-start','process-input','process-output','process-list','process-stop','search-start','search-results','search-cancel','scp','transfer-begin','transfer-chunk','transfer-status','transfer-commit','transfer-cancel','job','output']);
-  const compactPlusResponse=()=>plus&&(action==='connection-helper'||action==='connect'||action==='connect-poll'||(plusClientValid&&compactClientActions.has(action)));
+  const compactPlusResponse=()=>plus&&(action==='connection-helper'||action==='connect'||action==='connect-poll'||(plusClientValid&&(compactClientActions.has(action)||action.startsWith('desktop-'))));
   const call=(path,options={})=>callOperator(path,{...options,bridgeSession});
   const plusCall=(path,options={})=>callOperator(path,{...options,plusSession});
   const clientCall=(path,options={})=>{
@@ -195,10 +195,12 @@ module.exports=async function handler(req,res){
         }
         else if(usingClient&&action.startsWith('desktop-')){
           const d=payloadFor(req),deviceId=clientDevice(d.deviceId||d.device),op=action.slice('desktop-'.length);
-          if(!['status','windows','frame','input','semantic-attach','semantic-snapshot','semantic-events','semantic-detach'].includes(op)){const e=new Error('invalid_desktop_action');e.status=400;throw e;}
+          if(!['status','attach','resume','detach','windows','frame','input','semantic-attach','semantic-snapshot','semantic-events','semantic-detach'].includes(op)){const e=new Error('invalid_desktop_action');e.status=400;throw e;}
           const desktop={op};
+          if(op==='attach'){desktop.screen=d.screen==null?-1:Math.max(-1,Math.min(Number(d.screen)||0,31));desktop.maxWidth=Math.max(320,Math.min(Number(d.maxWidth)||960,1280));desktop.maxHeight=Math.max(180,Math.min(Number(d.maxHeight)||540,720));desktop.quality=Math.max(25,Math.min(Number(d.quality)||50,70));}
+          if(op==='resume'||op==='detach')desktop.desktopSessionId=String(d.desktopSessionId||'');
           if(op==='windows')desktop.limit=Math.max(1,Math.min(Number(d.limit)||100,200));
-          if(op==='frame'){desktop.screen=d.screen==null?-1:Math.max(-1,Math.min(Number(d.screen)||0,31));desktop.maxWidth=Math.max(320,Math.min(Number(d.maxWidth)||960,1280));desktop.maxHeight=Math.max(180,Math.min(Number(d.maxHeight)||540,720));desktop.quality=Math.max(25,Math.min(Number(d.quality)||50,70));}
+          if(op==='frame'){if(d.desktopSessionId!=null)desktop.desktopSessionId=String(d.desktopSessionId);desktop.screen=d.screen==null?-1:Math.max(-1,Math.min(Number(d.screen)||0,31));desktop.maxWidth=Math.max(320,Math.min(Number(d.maxWidth)||960,1280));desktop.maxHeight=Math.max(180,Math.min(Number(d.maxHeight)||540,720));desktop.quality=Math.max(25,Math.min(Number(d.quality)||50,70));}
           if(op==='input')Object.assign(desktop,normalizeDesktopInput({events:d.events,displayTopologyId:d.displayTopologyId,semanticSessionId:d.semanticSessionId,afterSeq:d.afterSeq,settleMs:d.settleMs}));
           if(op==='semantic-attach'){
             const provider=String(d.provider||'windows-uia').trim().toLowerCase();if(!['windows-uia','browser-cdp'].includes(provider)){const e=new Error('invalid_semantic_provider');e.status=400;throw e;}

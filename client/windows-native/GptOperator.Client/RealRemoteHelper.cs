@@ -74,6 +74,9 @@ internal static partial class RealRemoteHelper
                 object result = op switch
                 {
                     "status" => Status(),
+                    "attach" => DesktopAttach(args),
+                    "resume" => DesktopResume(args),
+                    "detach" => DesktopDetach(args),
                     "windows" => Windows(Limit(args)),
                     "frame" => Frame(args),
                     "input" => Input(args),
@@ -170,11 +173,14 @@ internal static partial class RealRemoteHelper
     private static object Frame(JsonElement args)
     {
         if (!Environment.UserInteractive) throw new InvalidOperationException("desktop_session_not_interactive");
+        var desktopSession = DesktopFrameSession(args);
         var screens = Screen.AllScreens;
         if (screens.Length == 0) throw new InvalidOperationException("desktop_screen_unavailable");
         var displayTopologyId = DisplayTopologyId(screens);
 
-        var requestedScreen = IntArg(args, "screen", -1, -1, Math.Max(0, screens.Length - 1));
+        var requestedScreen = desktopSession is null
+            ? IntArg(args, "screen", -1, -1, Math.Max(0, screens.Length - 1))
+            : desktopSession.Screen;
         Screen screen;
         int screenIndex;
         if (requestedScreen >= 0)
@@ -190,9 +196,9 @@ internal static partial class RealRemoteHelper
             if (screenIndex < 0) screenIndex = 0;
         }
 
-        var maxWidth = IntArg(args, "maxWidth", 960, 320, 1280);
-        var maxHeight = IntArg(args, "maxHeight", 540, 180, 720);
-        var quality = IntArg(args, "quality", 50, 25, 70);
+        var maxWidth = desktopSession?.MaxWidth ?? IntArg(args, "maxWidth", 960, 320, 1280);
+        var maxHeight = desktopSession?.MaxHeight ?? IntArg(args, "maxHeight", 540, 180, 720);
+        var quality = desktopSession?.Quality ?? IntArg(args, "quality", 50, 25, 70);
         var bounds = screen.Bounds;
         var screenDpi = ScreenDpi(screen);
         if (bounds.Width <= 0 || bounds.Height <= 0) throw new InvalidOperationException("desktop_screen_invalid");
@@ -223,10 +229,14 @@ internal static partial class RealRemoteHelper
             if (bytes.Length <= 650 * 1024) break;
         }
         if (bytes is null || bytes.Length > 650 * 1024) throw new InvalidOperationException("desktop_frame_too_large");
+        var frameSeq = desktopSession is null ? (long?)null : NextDesktopFrameSeq(desktopSession);
 
         return new
         {
             protocolVersion = ProtocolVersion,
+            desktopSessionId = desktopSession?.Id,
+            desktopEpoch = desktopSession?.Epoch,
+            frameSeq,
             displayTopologyId,
             capturedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
             mime = "image/jpeg",

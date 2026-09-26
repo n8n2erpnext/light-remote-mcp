@@ -19,7 +19,7 @@ public static class LightRemoteScreenWindow{
 '@
 }
 function Wait-Window([string]$Title){$d=[DateTime]::UtcNow.AddSeconds($TimeoutSeconds);$h=[IntPtr]::Zero;while($h -eq [IntPtr]::Zero -and [DateTime]::UtcNow -lt $d){$h=[LightRemoteScreenWindow]::Find($Title);if($h -eq [IntPtr]::Zero){Start-Sleep -Milliseconds 100}};if($h -eq [IntPtr]::Zero){throw "Window missing: $Title"};return $h}
-$rr=$null;$app=$null;$sem=$null;$detached=$false
+$rr=$null;$app=$null;$sem=$null;$detached=$false;$desk=$null;$deskDetached=$false
 function Invoke-RrRaw([string]$Id,[string]$Op,[hashtable]$RequestArgs=@{}){
   $script:rr.StandardInput.WriteLine((@{id=$Id;op=$Op;args=$RequestArgs}|ConvertTo-Json -Compress -Depth 12));$script:rr.StandardInput.Flush()
   $task=$script:rr.StandardOutput.ReadLineAsync();if(-not $task.Wait([TimeSpan]::FromSeconds($TimeoutSeconds))){throw "Helper timeout: $Op"}
@@ -54,9 +54,15 @@ try{
   $screenIndex=[int]$screen.index;$bounds=$screen.bounds
   if($screenIndex -lt 0){throw 'Screen index missing from status'}
   if([int]$screen.dpi.x -lt 1 -or [int]$screen.dpi.y -lt 1){throw 'Screen DPI missing from status'}
+  $visual=Invoke-Rr 'screen-desktop-attach' 'attach' @{screen=$screenIndex;maxWidth=480;maxHeight=320;quality=35}
+  $desk=[string]$visual.desktopSessionId;$deskEpoch=[string]$visual.epoch
+  if($desk -notmatch '^desk_[a-f0-9]{32}$' -or $deskEpoch -notmatch '^dep_[a-f0-9]{32}$'){throw 'Visual desktop attach ids invalid'}
+  if([long]$visual.frameSeq -ne 0 -or [string]$visual.displayTopologyId -ne $topology -or [int]$visual.screen.index -ne $screenIndex){throw 'Visual desktop attach state invalid'}
+  Write-Host "windows-real-remote-desktop-session-attach=PASS desktopSessionId=$desk epoch=$deskEpoch frameSeq=$($visual.frameSeq)"
   $lx=$gx-[int]$bounds.x;$ly=$gy-[int]$bounds.y
-  $frame=Invoke-Rr 'screen-frame' 'frame' @{screen=$screenIndex;maxWidth=480;maxHeight=320;quality=35}
+  $frame=Invoke-Rr 'screen-frame' 'frame' @{desktopSessionId=$desk}
   if([string]$frame.displayTopologyId -ne $topology){throw 'Frame/status display topology mismatch'}
+  if([string]$frame.desktopSessionId -ne $desk -or [string]$frame.desktopEpoch -ne $deskEpoch -or [long]$frame.frameSeq -ne 1){throw 'Visual desktop first frame sequence invalid'}
   if([int]$frame.screen.index -ne $screenIndex){throw "Frame screen index mismatch: $($frame.screen.index)"}
   if([int]$frame.screen.bounds.x -ne [int]$bounds.x -or [int]$frame.screen.bounds.y -ne [int]$bounds.y){throw 'Frame/status screen bounds mismatch'}
   if([int]$frame.screen.dpi.x -ne [int]$screen.dpi.x -or [int]$frame.screen.dpi.y -ne [int]$screen.dpi.y){throw 'Frame/status screen DPI mismatch'}
@@ -70,6 +76,9 @@ try{
   if([Math]::Abs($mappedX-$lx) -gt 2 -or [Math]::Abs($mappedY-$ly) -gt 2){throw "Frame input mapping quantization too large source=$lx,$ly mapped=$mappedX,$mappedY"}
   Write-Host "windows-real-remote-screen-topology=PASS index=$screenIndex bounds=$($bounds.x),$($bounds.y),$($bounds.width),$($bounds.height) dpi=$($screen.dpi.x)x$($screen.dpi.y)"
   Write-Host "windows-real-remote-frame-input-map=PASS frame=$frameX,$frameY local=$mappedX,$mappedY source=$lx,$ly scale=$($map.xScale),$($map.yScale)"
+  $resumed=Invoke-Rr 'screen-desktop-resume' 'resume' @{desktopSessionId=$desk}
+  if([string]$resumed.desktopSessionId -ne $desk -or [string]$resumed.epoch -ne $deskEpoch -or [long]$resumed.frameSeq -ne 1 -or [string]$resumed.state -ne 'resumed'){throw 'Visual desktop resume state invalid'}
+  Write-Host "windows-real-remote-desktop-session-resume=PASS desktopSessionId=$desk frameSeq=$($resumed.frameSeq)"
 
   $ack=Invoke-Rr 'screen-local-click' 'input' @{displayTopologyId=$topology;events=@(
     @{type='move';screen=$screenIndex;x=$mappedX;y=$mappedY},
@@ -82,6 +91,10 @@ try{
   $accepted=Wait-Node "$button Accepted" 'screen-accepted'
   if([string]$accepted.snapshot.semanticSessionId -ne $sem){throw 'Screen-local click changed semantic session'}
   Write-Host "windows-real-remote-screen-local-click=PASS screen=$screenIndex local=$mappedX,$mappedY global=$expectedMappedGlobalX,$expectedMappedGlobalY inputSeq=$($ack.inputSeq)"
+  $frame2=Invoke-Rr 'screen-frame-after-click' 'frame' @{desktopSessionId=$desk}
+  if([string]$frame2.desktopSessionId -ne $desk -or [long]$frame2.frameSeq -ne 2 -or [string]$frame2.displayTopologyId -ne $topology){throw 'Visual desktop second frame sequence invalid'}
+  if([string]$frame2.inputMapping.displayTopologyId -ne $topology -or [int]$frame2.inputMapping.screen -ne $screenIndex){throw 'Visual desktop second frame mapping invalid'}
+  Write-Host "windows-real-remote-desktop-session-frame-seq=PASS desktopSessionId=$desk first=$($frame.frameSeq) second=$($frame2.frameSeq)"
 
   $dragToLx=[Math]::Min($lx+4,[int]$bounds.width-1);$dragToLy=[Math]::Min($ly+4,[int]$bounds.height-1)
   $dragAck=Invoke-Rr 'screen-local-drag' 'input' @{displayTopologyId=$topology;events=@(
@@ -105,9 +118,16 @@ try{
   Write-Host 'windows-real-remote-screen-local-negative=PASS'
   Write-Host 'windows-real-remote-screen-local-closed-loop=PASS'
 
+  $vd=Invoke-Rr 'screen-desktop-detach' 'detach' @{desktopSessionId=$desk}
+  if(-not $vd.detached -or [string]$vd.desktopSessionId -ne $desk -or [long]$vd.frameSeq -ne 2){throw 'Visual desktop detach state invalid'};$deskDetached=$true
+  Write-Host "windows-real-remote-desktop-session-detach=PASS desktopSessionId=$desk frameSeq=$($vd.frameSeq)"
+  $gone=Invoke-RrRaw 'screen-desktop-resume-after-detach' 'resume' @{desktopSessionId=$desk}
+  if($gone.ok -or [string]$gone.error -ne 'desktop_session_not_found'){throw "Detached visual session remained resumable: $($gone.error)"}
+  Write-Host 'windows-real-remote-desktop-session-detach-negative=PASS'
   $d=Invoke-Rr 'screen-detach' 'semantic-detach' @{semanticSessionId=$sem};if(-not $d.detached -or $d.provider -ne 'windows-uia'){throw 'Screen coordinate detach failed'};$detached=$true
 }finally{
   if($rr){
+    if($desk -and -not $deskDetached -and -not $rr.HasExited){try{$null=Invoke-Rr 'screen-desktop-detach-finally' 'detach' @{desktopSessionId=$desk}}catch{}}
     if($sem -and -not $detached -and -not $rr.HasExited){try{$null=Invoke-Rr 'screen-detach-finally' 'semantic-detach' @{semanticSessionId=$sem}}catch{}}
     try{$rr.StandardInput.Close()}catch{};try{if(-not $rr.WaitForExit(3000)){$rr.Kill($true)}}catch{};try{$rr.Dispose()}catch{}
   }
