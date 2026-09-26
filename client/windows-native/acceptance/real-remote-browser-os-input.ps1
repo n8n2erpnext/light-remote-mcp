@@ -433,24 +433,30 @@ try{
 
   $crossTargetId=[string]$popupDone.target.id;$crossBeforeSeq=[long]$popupDone.stateSeq
   [LightRemoteAcceptanceWindow]::Focus($popupHwnd);Start-Sleep -Milliseconds 100
-  $originAAck=Invoke-Rr 'accept-os-cross-origin-a' 'input' @{events=@(@{type='key';key='L';modifiers=@('CTRL')},@{type='text';text=$originAUrl},@{type='key';key='ENTER'});semanticSessionId=$sem;afterSeq=$crossBeforeSeq;settleMs=300}
-  $originAExpectedInputs=6+($originAUrl.Length*2)
-  if([int]$originAAck.appliedEvents -ne 3 -or [int]$originAAck.sentInputs -lt $originAExpectedInputs){throw "Origin-A address-bar SendInput proof missing applied=$($originAAck.appliedEvents) sent=$($originAAck.sentInputs) expected=$originAExpectedInputs"}
-  if([string]$originAAck.semanticSessionId -ne $sem){throw 'Semantic session changed while navigating address bar to origin A'}
+  $originAFocusAck=Invoke-Rr 'accept-os-cross-origin-focus-address' 'input' @{events=@(@{type='key';key='L';modifiers=@('CTRL')});semanticSessionId=$sem;afterSeq=$crossBeforeSeq;settleMs=120}
+  if([int]$originAFocusAck.appliedEvents -ne 1 -or [int]$originAFocusAck.sentInputs -lt 4){throw "Origin-A Ctrl+L SendInput proof missing applied=$($originAFocusAck.appliedEvents) sent=$($originAFocusAck.sentInputs)"}
+  $originATextAck=Invoke-Rr 'accept-os-cross-origin-type-address' 'input' @{events=@(@{type='text';text=$originAUrl});semanticSessionId=$sem;afterSeq=[long]$originAFocusAck.stateSeq;settleMs=80}
+  $originATextExpected=$originAUrl.Length*2
+  if([int]$originATextAck.appliedEvents -ne 1 -or [int]$originATextAck.sentInputs -lt $originATextExpected){throw "Origin-A text SendInput proof missing applied=$($originATextAck.appliedEvents) sent=$($originATextAck.sentInputs) expected=$originATextExpected"}
+  $originAEnterAck=Invoke-Rr 'accept-os-cross-origin-enter-address' 'input' @{events=@(@{type='key';key='ENTER'});semanticSessionId=$sem;afterSeq=[long]$originATextAck.stateSeq;settleMs=350}
+  if([int]$originAEnterAck.appliedEvents -ne 1 -or [int]$originAEnterAck.sentInputs -lt 2){throw "Origin-A Enter SendInput proof missing applied=$($originAEnterAck.appliedEvents) sent=$($originAEnterAck.sentInputs)"}
+  if([string]$originAFocusAck.semanticSessionId -ne $sem -or [string]$originATextAck.semanticSessionId -ne $sem -or [string]$originAEnterAck.semanticSessionId -ne $sem){throw 'Semantic session changed while navigating address bar to origin A'}
+  $originAAddressSent=[int]$originAFocusAck.sentInputs+[int]$originATextAck.sentInputs+[int]$originAEnterAck.sentInputs
 
-  $originADeadline=[DateTime]::UtcNow.AddSeconds(5);$originAAttempt=0;$originAStable=$null;$originALinks=@()
+  $originADeadline=[DateTime]::UtcNow.AddSeconds(5);$originAAttempt=0;$originAStable=$null;$originALinks=@();$originALastUrl='';$originALastTitle=''
   do{
     $originAAttempt++
     try{
       $candidate=Invoke-Rr ("accept-cross-origin-a-snapshot-"+$originAAttempt) 'semantic-snapshot' @{semanticSessionId=$sem}
+      $originALastUrl=[string]$candidate.target.url;$originALastTitle=[string]$candidate.target.title
       $candidateLinks=@($candidate.nodes|Where-Object { $_.role -eq 'link' -and $_.name -eq 'Light Remote Cross Origin Navigate' })
       if([string]$candidate.target.url -eq $originAUrl -and [string]$candidate.target.title -eq 'Light Remote Cross Origin A' -and $candidateLinks.Count -eq 1 -and $null -ne $candidateLinks[0].center){$originAStable=$candidate;$originALinks=$candidateLinks;break}
     }catch{}
     Start-Sleep -Milliseconds 100
   }while([DateTime]::UtcNow -lt $originADeadline)
-  if($null -eq $originAStable -or $originALinks.Count -ne 1){throw 'OS address-bar navigation did not reach origin A'}
+  if($null -eq $originAStable -or $originALinks.Count -ne 1){throw "OS address-bar navigation did not reach origin A lastTitle=$originALastTitle lastUrl=$originALastUrl expected=$originAUrl"}
   if([string]$originAStable.semanticSessionId -ne $sem -or [string]$originAStable.target.id -ne $crossTargetId){throw 'Origin-A navigation changed semantic session or target identity'}
-  Write-Host "windows-real-remote-cross-origin-a=PASS target=$crossTargetId url=$($originAStable.target.url) sentInputs=$($originAAck.sentInputs)"
+  Write-Host "windows-real-remote-cross-origin-a=PASS target=$crossTargetId url=$($originAStable.target.url) sentInputs=$originAAddressSent"
 
   $originALink=$originALinks[0]
   $originAX=[int][Math]::Round([double]$originALink.center.x);$originAY=[int][Math]::Round([double]$originALink.center.y);$originABeforeSeq=[long]$originAStable.stateSeq
