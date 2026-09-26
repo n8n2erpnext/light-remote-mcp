@@ -6,6 +6,7 @@ on:
       - main
       - 'codex/**'
       - 'feature/real-remote'
+      - 'feature/rm-computer-use-runtime'
     tags:
       - 'v0.9.*'
     paths:
@@ -321,13 +322,13 @@ jobs:
           if (-not (Test-Path $exe)) { throw 'Real Remote helper executable missing before capability upgrade acceptance' }
           node deploy/scripts/selftest-v11-capability-refresh-windows.mjs $exe
 
-      - name: Local Wall desktop viewer native acceptance
+      - name: Local Wall RM permissions-only acceptance
         timeout-minutes: 2
         shell: pwsh
         run: |
           $stage = Join-Path $PWD 'dist\windows\stage'
           $exe = Join-Path $stage 'LightRemote.Client.exe'
-          if (-not (Test-Path $exe)) { throw 'Real Remote helper executable missing before Local Wall viewer acceptance' }
+          if (-not (Test-Path $exe)) { throw 'Real Remote helper executable missing before Local Wall RM permissions acceptance' }
           node deploy/scripts/selftest-v11-local-wall-desktop-windows.mjs $exe
 
       - name: Real Windows OS input acceptance

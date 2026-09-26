@@ -42,11 +42,11 @@ try{
   r=await req('POST','/auth/login',{body:new URLSearchParams({username:'operator',password,next:'/',csrf}).toString(),headers:{host:'10.123.45.67:5491'}});assert.equal(r.status,303);
   const cookie=String(r.headers['set-cookie']?.[0]||'').split(';')[0];assert.match(cookie,/^lr_wall_session=/);assert.match(String(r.headers['set-cookie']),/HttpOnly/);assert.match(String(r.headers['set-cookie']),/SameSite=Strict/);assert.doesNotMatch(String(r.headers['set-cookie']),/; Secure/);
   r=await req('GET','/',{headers:{cookie,host:'10.123.45.67:5491'}});assert.equal(r.status,200);assert.match(r.text,/LIVE OPERATOR STREAM/);const mutation=mutationCsrf(r.text);
-  r=await req('GET','/desktop',{headers:{cookie,host:'10.123.45.67:5491'}});assert.equal(r.status,200);assert.match(r.text,/Real Remote Desktop - Local Wall/);const desktopMutation=mutationCsrf(r.text);assert.notEqual(desktopMutation,mutation);
+  r=await req('GET','/desktop',{headers:{cookie,host:'10.123.45.67:5491'}});assert.equal(r.status,404);
   r=await req('POST','/api/pairing-code',{headers:{cookie,host:'10.123.45.67:5491','x-light-remote-csrf':mutation,'content-type':'application/json'},body:'{}'});assert.equal(r.status,200);assert.equal(pairingCalls,1);assert.match(r.text,/ABCD-EFGH/);
   r=await req('POST','/api/pairing-code',{headers:{cookie,host:'192.168.1.50:5491','content-type':'application/json'},body:'{}'});assert.equal(r.status,403);assert.equal(pairingCalls,1);assert.match(r.text,/csrf_invalid/);
-  r=await req('POST','/api/desktop',{headers:{cookie,host:'10.123.45.67:5491','content-type':'application/json'},body:'{\"op\":\"status\"}'});assert.equal(r.status,403);assert.equal(desktopCalls,0);assert.match(r.text,/csrf_invalid/);
-  r=await req('POST','/api/desktop',{headers:{cookie,host:'10.123.45.67:5491','content-type':'application/json','x-light-remote-csrf':desktopMutation},body:'{\"op\":\"status\"}'});assert.equal(r.status,200);assert.equal(desktopCalls,1);assert.match(r.text,/\"echo\":\"status\"/);
+  r=await req('POST','/api/desktop',{headers:{cookie,host:'10.123.45.67:5491','content-type':'application/json'},body:'{\"op\":\"status\"}'});assert.equal(r.status,404);assert.equal(desktopCalls,0);
+  r=await req('POST','/api/desktop',{headers:{cookie,host:'10.123.45.67:5491','content-type':'application/json','x-light-remote-csrf':mutation},body:'{\"op\":\"status\"}'});assert.equal(r.status,404);assert.equal(desktopCalls,0);
   r=await req('POST','/api/pairing-code',{headers:{cookie,'x-light-remote-csrf':csrf,'content-type':'application/json'},body:'{}'});assert.equal(r.status,403);assert.equal(pairingCalls,1);
   r=await req('POST','/api/pairing-code',{headers:{cookie,host:'wall.example.test','x-light-remote-csrf':mutation,'content-type':'application/json'},body:'{}'});assert.equal(r.status,200);assert.equal(pairingCalls,2);
   r=await req('POST','/api/pairing-code',{headers:{'content-type':'application/json','x-light-remote-csrf':mutation},body:'{}'});assert.equal(r.status,401);assert.equal(pairingCalls,2);
@@ -66,6 +66,6 @@ try{
   console.log('v09-local-wall-auth-raw-netbird-host=PASS');
   console.log('v09-local-wall-auth-rfc1918-host=PASS');
   console.log('v09-local-wall-auth-session-csrf=PASS');
-  console.log('v09-local-wall-desktop-auth-csrf=PASS');
+  console.log('v09-local-wall-rm-viewer-route-denied=PASS');
   console.log('v09-local-wall-auth-secret-cookie=PASS');
 } finally {await wall.close();fs.rmSync(dir,{recursive:true,force:true});}
