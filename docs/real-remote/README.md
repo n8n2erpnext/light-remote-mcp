@@ -207,3 +207,9 @@ V0.6-H tightens Local Wall responsiveness and short-lived pairing UX:
 - device/session activity coalesces status refreshes and enforces a small minimum refresh gap so event bursts cannot create overlapping remote-status fetches and repeated DOM rebuilds;
 - outbound leaf long-poll defaults to 2.5 seconds instead of 8 seconds, bounding interactive command pickup latency when an otherwise valid server-side wake is missed by transport/proxy timing;
 - all values remain environment-overridable and existing connection/policy boundaries are unchanged.
+
+V0.6-I fixes Local Wall permission persistence and first-paint responsiveness:
+- daemon-mode permission saves mutate the live daemon state, persist the explicit allowed capability set, and immediately refresh device capability policy with the server without reauthorization;
+- explicit owner permission choices are separated from capability-discovery migration so a saved allow decision cannot be reinterpreted as a newly discovered default deny;
+- Local Wall status is local-first with a short-lived remote cache; diagnostics/approval may request a fresh remote status explicitly;
+- initial activity history is bounded and deferred until after first paint, and the shared SSE activity pump runs at a reduced cadence with a smaller bounded fetch.

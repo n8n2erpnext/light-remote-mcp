@@ -70,6 +70,11 @@ function runtimeSupportedCapabilities(){return normalizeDeviceCapabilities(disco
 function policyBaseCapabilities(state){return state?.enrollment?.deviceId?runtimeSupportedCapabilities():[];}
 function localDeniedCapabilitiesForState(state){
   const supported=policyBaseCapabilities(state);
+  const explicitAllowed=Array.isArray(state?.policy?.allowedCapabilities)?normalizeDeviceCapabilities(state.policy.allowedCapabilities):null;
+  if(explicitAllowed){
+    const allow=new Set(explicitAllowed.filter(cap=>supported.includes(cap)));
+    return supported.filter(cap=>!allow.has(cap)).sort();
+  }
   const baseline=normalizeDeviceCapabilities(state?.policy?.knownCapabilities||state?.enrollment?.grantableCapabilities||state?.enrollment?.approvedCapabilities||[]);
   const denied=normalizeDeviceCapabilities(state?.policy?.deniedCapabilities||[]).filter(cap=>supported.includes(cap));
   for(const cap of supported)if(!baseline.includes(cap)&&!denied.includes(cap))denied.push(cap);
@@ -444,19 +449,20 @@ async function denyDeviceAccess(requestId,hub=DEFAULT_HUB,reason='owner_denied')
   const response=await channelRequest(state,hub,'access-deny',{requestId:id,reason:String(reason||'owner_denied').slice(0,80)});
   return response.authorization||response;
 }
-function setLocalPermissions(allowedCapabilities,profile='custom'){
-  const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
+function setLocalPermissionsForState(state,allowedCapabilities,profile='custom'){
+  if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
   syncRuntimeCapabilityPolicy(state,{persist:false});
   const grantable=runtimeSupportedCapabilities();
   const allowed=normalizeDeviceCapabilities(Array.isArray(allowedCapabilities)?allowedCapabilities:[]);
   if(allowed.some(cap=>!grantable.includes(cap)))throw new Error('local_permission_not_grantable');
   const localProfile=/^(safe|developer|infra|full|custom)$/.test(String(profile||''))?String(profile):'custom';
   const denied=grantable.filter(cap=>!allowed.includes(cap));
-  state.policy=realRemotePolicyAfterSave({...(state.policy||{}),capabilityPermissionModelVersion:2,knownCapabilities:[...grantable],deniedCapabilities:denied,localProfile,localFinalDenyBoundary:true,localPolicyUpdatedAt:Date.now()},{grantable,allowed});
+  state.policy=realRemotePolicyAfterSave({...(state.policy||{}),capabilityPermissionModelVersion:2,knownCapabilities:[...grantable],allowedCapabilities:[...allowed],deniedCapabilities:denied,localProfile,localFinalDenyBoundary:true,localPolicyUpdatedAt:Date.now()},{grantable,allowed});
   state.effectiveCapabilities=effectiveCapabilities(grantable,denied);
   writeState(state);
   return {profile:localProfile,policyAuthority:isTrustedHostState(state)?'local-main':'local-device',grantableCapabilities:grantable,serverApprovedCapabilities:[...(state.enrollment.approvedCapabilities||[])],localAllowedCapabilities:allowed,deniedCapabilities:denied,effectiveCapabilities:[...state.effectiveCapabilities],updatedAt:state.policy.localPolicyUpdatedAt};
 }
+function setLocalPermissions(allowedCapabilities,profile='custom'){return setLocalPermissionsForState(readState(),allowedCapabilities,profile);}
 function statusView(state=readState()){
   if(state){expireLocalHardLease(state);syncRuntimeCapabilityPolicy(state,{persist:true});}
   const supported=runtimeSupportedCapabilities();
@@ -480,7 +486,7 @@ async function daemon(args){
   const wait=ms=>new Promise(resolve=>{const timer=setTimeout(()=>{wake=null;resolve();},ms);wake=()=>{clearTimeout(timer);wake=null;resolve();};});
   if(state.enrollment?.deviceId&&!fs.existsSync(LOCAL_WALL_AUTH_FILE))writeAccountOnlyWallAuthConfig(LOCAL_WALL_AUTH_FILE,{username:'account'});
   const wallAuth=loadLocalWallAuth(LOCAL_WALL_AUTH_FILE,{required:!['127.0.0.1','::1','localhost'].includes(String(LOCAL_WALL_HOST))});
-  localWall=startLocalWall({host:LOCAL_WALL_HOST,port:LOCAL_WALL_PORT,brandSvgPath:LOCAL_WALL_BRAND,auth:wallAuth,getLocalStatus:async()=>({...statusView(),fleetWall:await localFleetStatus()}),getRemoteStatus:async()=>{const remote=await remoteDeviceStatus(hub);return remote;},getRemoteActivity:async limit=>remoteDeviceActivity(hub,limit),connect:async data=>connectCloud({hub,graceMinutes:data.graceMinutes,leaseHours:data.leaseHours,silent:true}),disconnect:async data=>disconnectCloud({hub,reason:data.reason||'local_wall_disconnect',silent:true}),setGrace:async data=>setConnectionGrace({hub,minutes:data.minutes,silent:true}),setPermissions:async data=>setLocalPermissions(data?.allowedCapabilities,data?.profile),beginEnrollment:async()=>beginWallEnrollment(base),pollEnrollment:async()=>pollWallEnrollment(base),accountAuthenticate:async data=>authenticateWallAccount(data?.username,data?.password,hub),pairingCode:async data=>rotatePairingCode(hub,data),ownerProofCode:async()=>accountOwnerProofCode(hub),accessApprove:async requestId=>approveDeviceAccess(requestId,hub),accessDeny:async(requestId,data)=>denyDeviceAccess(requestId,hub,data?.reason||'owner_denied'),closeSession:async data=>closeWallSession(hub,data),desktopAction:async data=>{const current=readState();if(!current)throw new Error('device_not_enrolled');return executeDesktopCommand(current,{desktop:data});},requestUpdate:async data=>requestLocalUpdate('local-wall',data?.mode||'apply')});
+  localWall=startLocalWall({host:LOCAL_WALL_HOST,port:LOCAL_WALL_PORT,brandSvgPath:LOCAL_WALL_BRAND,auth:wallAuth,getLocalStatus:async()=>({...statusView(state),fleetWall:await localFleetStatus()}),getRemoteStatus:async()=>{const remote=await remoteDeviceStatus(hub);return remote;},getRemoteActivity:async limit=>remoteDeviceActivity(hub,limit),connect:async data=>connectCloud({hub,graceMinutes:data.graceMinutes,leaseHours:data.leaseHours,silent:true}),disconnect:async data=>disconnectCloud({hub,reason:data.reason||'local_wall_disconnect',silent:true}),setGrace:async data=>setConnectionGrace({hub,minutes:data.minutes,silent:true}),setPermissions:async data=>{const value=setLocalPermissionsForState(state,data?.allowedCapabilities,data?.profile);try{await heartbeat(state,base,{persist:true});}catch(error){console.error(JSON.stringify({event:'local_permission_heartbeat_failed',error:error.message,status:error.status||null}));}return {...value,serverApprovedCapabilities:[...(state.enrollment?.approvedCapabilities||[])],effectiveCapabilities:effectiveCapabilitiesForState(state)};},beginEnrollment:async()=>beginWallEnrollment(base),pollEnrollment:async()=>pollWallEnrollment(base),accountAuthenticate:async data=>authenticateWallAccount(data?.username,data?.password,hub),pairingCode:async data=>rotatePairingCode(hub,data),ownerProofCode:async()=>accountOwnerProofCode(hub),accessApprove:async requestId=>approveDeviceAccess(requestId,hub),accessDeny:async(requestId,data)=>denyDeviceAccess(requestId,hub,data?.reason||'owner_denied'),closeSession:async data=>closeWallSession(hub,data),desktopAction:async data=>{const current=readState();if(!current)throw new Error('device_not_enrolled');return executeDesktopCommand(current,{desktop:data});},requestUpdate:async data=>requestLocalUpdate('local-wall',data?.mode||'apply')});
   console.log(JSON.stringify({event:'local_wall_started',url:localWall.url,deviceId:state.enrollment?.deviceId||null}));
   console.log(JSON.stringify({event:'device_agent_started',mode:'always-alive-service',platformAdapter:PLATFORM_ADAPTER.id,deviceId:state.enrollment?.deviceId||null,nodeId:state.enrollment?.nodeId||null,sessionCeiling,waitMs,dormantPollMs,localWallUrl:localWall.url}));
   acknowledgeCoreUpdateHealth();
