@@ -37,12 +37,16 @@ public static class LightRemoteAcceptanceWindow{
 }
 
 $browser=$null;$rr=$null;$sem=$null;$detached=$false;$originServer=$null;$originAUrl='';$originBUrl=''
-function Invoke-Rr([string]$Id,[string]$Op,[hashtable]$RequestArgs=@{}){
+function Invoke-RrRaw([string]$Id,[string]$Op,[hashtable]$RequestArgs=@{},[int]$WaitSeconds=$TimeoutSeconds){
   $script:rr.StandardInput.WriteLine((@{id=$Id;op=$Op;args=$RequestArgs}|ConvertTo-Json -Compress -Depth 12));$script:rr.StandardInput.Flush()
   $task=$script:rr.StandardOutput.ReadLineAsync()
-  if(-not $task.Wait([TimeSpan]::FromSeconds($TimeoutSeconds))){throw "Helper timeout: $Op"}
+  if(-not $task.Wait([TimeSpan]::FromSeconds($WaitSeconds))){throw "Helper timeout: $Op"}
   $line=$task.Result;if([string]::IsNullOrWhiteSpace($line)){throw "Empty helper response: $Op"}
-  $r=$line|ConvertFrom-Json;if(-not $r.ok){throw "Helper error $Op : $($r.error)"};return $r.result
+  return ($line|ConvertFrom-Json)
+}
+function Invoke-Rr([string]$Id,[string]$Op,[hashtable]$RequestArgs=@{}){
+  $r=Invoke-RrRaw $Id $Op $RequestArgs
+  if(-not $r.ok){throw "Helper error $Op : $($r.error)"};return $r.result
 }
 
 try{
@@ -512,7 +516,86 @@ try{
   Write-Host "windows-real-remote-cross-origin-continued-input=PASS sentInputs=$($originBActionAck.sentInputs) inputSeq=$($originBActionAck.inputSeq) seq=$($originBDone.stateSeq)"
   Write-Host 'windows-real-remote-cross-origin-closed-loop=PASS'
 
+  $crashBeforeSeq=[long]$originBDone.stateSeq;$deadSem=$sem;$deadBrowserPid=$browser.Id
+  $null=Start-Process -FilePath 'taskkill.exe' -ArgumentList @('/PID',[string]$deadBrowserPid,'/T','/F') -Wait -WindowStyle Hidden -ErrorAction Stop
+  try{$null=$browser.WaitForExit(5000)}catch{}
+  Start-Sleep -Milliseconds 250
+
+  $crashDeadline=[DateTime]::UtcNow.AddSeconds(5);$crashEvents=$null;$closedEvents=@()
+  do{
+    try{
+      $crashEvents=Invoke-Rr 'accept-browser-crash-events' 'semantic-events' @{semanticSessionId=$deadSem;afterSeq=$crashBeforeSeq;limit=100}
+      $closedEvents=@($crashEvents.events|Where-Object { $_.kind -eq 'connection' -and $_.change -eq 'closed' -and $_.resyncRecommended })
+      if($closedEvents.Count -gt 0){break}
+    }catch{}
+    Start-Sleep -Milliseconds 100
+  }while([DateTime]::UtcNow -lt $crashDeadline)
+  if($closedEvents.Count -lt 1){throw 'Browser crash did not publish connection-closed resync event'}
+  Write-Host "windows-real-remote-browser-crash-event=PASS pid=$deadBrowserPid events=$($closedEvents.Count) semanticSessionId=$deadSem"
+
+  $crashWatch=[Diagnostics.Stopwatch]::StartNew()
+  $crashRaw=Invoke-RrRaw 'accept-browser-crash-snapshot' 'semantic-snapshot' @{semanticSessionId=$deadSem} 5
+  $crashWatch.Stop()
+  if($crashRaw.ok){throw 'Browser snapshot unexpectedly succeeded after Chromium crash'}
+  if([string]$crashRaw.error -notlike 'browser_cdp_*'){throw "Browser crash returned unstructured error: $($crashRaw.error)"}
+  if($crashWatch.ElapsedMilliseconds -gt 4500){throw "Browser crash snapshot error was too slow: $($crashWatch.ElapsedMilliseconds)ms"}
+  Write-Host "windows-real-remote-browser-crash-error=PASS error=$($crashRaw.error) latencyMs=$($crashWatch.ElapsedMilliseconds)"
+
+  $deadDetach=Invoke-Rr 'accept-browser-crash-detach' 'semantic-detach' @{semanticSessionId=$deadSem}
+  if(-not $deadDetach.detached -or $deadDetach.provider -ne 'browser-cdp'){throw 'Dead browser semantic detach failed'}
+  $detached=$true
+  Write-Host "windows-real-remote-browser-crash-detach=PASS semanticSessionId=$deadSem"
+
+  try{$browser.Dispose()}catch{};$browser=$null
+  $oldProfile=$profile
+  Remove-Item -LiteralPath $oldProfile -Recurse -Force -ErrorAction SilentlyContinue
+  $profile=Join-Path $env:TEMP ('light-remote-real-windows-restart-'+[Guid]::NewGuid().ToString('N'))
+  New-Item -ItemType Directory -Force -Path $profile|Out-Null
+
+  $restartArgs=@('--remote-debugging-port=0','--remote-allow-origins=*','--disable-background-networking','--disable-default-apps','--no-first-run','--no-default-browser-check','--new-window','--start-maximized',"--user-data-dir=$profile",$fixtureUrl)
+  $browser=Start-Process -FilePath $BrowserExe -ArgumentList $restartArgs -PassThru
+  if($browser.Id -eq $deadBrowserPid){throw 'Restarted browser reused dead process id unexpectedly'}
+  $portFile=Join-Path $profile 'DevToolsActivePort';$restartDeadline=[DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
+  while(-not (Test-Path -LiteralPath $portFile) -and [DateTime]::UtcNow -lt $restartDeadline){Start-Sleep -Milliseconds 100}
+  if(-not(Test-Path -LiteralPath $portFile)){throw 'Restarted browser DevToolsActivePort missing'}
+  $port=[int]((Get-Content -LiteralPath $portFile -TotalCount 1).Trim());if($port -lt 1 -or $port -gt 65535){throw "Restarted browser CDP port invalid: $port"}
+  $endpoint="http://127.0.0.1:$port"
+
+  $hwnd=[IntPtr]::Zero;$restartWindowDeadline=[DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
+  while($hwnd -eq [IntPtr]::Zero -and [DateTime]::UtcNow -lt $restartWindowDeadline){$hwnd=[LightRemoteAcceptanceWindow]::Find('Light Remote OS Input Acceptance');if($hwnd -eq [IntPtr]::Zero){Start-Sleep -Milliseconds 100}}
+  if($hwnd -eq [IntPtr]::Zero){throw 'Restarted browser acceptance window missing'}
+  [LightRemoteAcceptanceWindow]::Focus($hwnd);Start-Sleep -Milliseconds 400
+
+  $restartAttach=Invoke-Rr 'accept-browser-restart-attach' 'semantic-attach' @{provider='browser-cdp';cdpEndpoint=$endpoint;urlMatch='real-remote-browser-os-input.html';maxDepth=8;maxNodes=600}
+  $sem=[string]$restartAttach.semanticSessionId;$detached=$false
+  if($restartAttach.provider -ne 'browser-cdp' -or [string]::IsNullOrWhiteSpace($sem)){throw 'Restarted browser semantic attach failed'}
+  if($sem -eq $deadSem){throw 'Restarted browser reused dead semantic session id'}
+  Write-Host "windows-real-remote-browser-restart-attach=PASS oldSemanticSessionId=$deadSem newSemanticSessionId=$sem oldPid=$deadBrowserPid newPid=$($browser.Id) port=$port"
+
+  $restartReadyDeadline=[DateTime]::UtcNow.AddSeconds(5);$restartAttempt=0;$restartBefore=$restartAttach;$restartButtons=@()
+  do{
+    $restartAttempt++
+    $restartButtons=@($restartBefore.nodes|Where-Object { $_.role -eq 'button' -and $_.name -eq 'Light Remote OS Input' })
+    if($restartButtons.Count -eq 1 -and $null -ne $restartButtons[0].center){break}
+    Start-Sleep -Milliseconds 100
+    $restartBefore=Invoke-Rr ("accept-browser-restart-snapshot-"+$restartAttempt) 'semantic-snapshot' @{semanticSessionId=$sem}
+  }while([DateTime]::UtcNow -lt $restartReadyDeadline)
+  if($restartButtons.Count -ne 1 -or $null -eq $restartButtons[0].center){throw 'Restarted browser semantic button missing'}
+
+  $restartButton=$restartButtons[0]
+  $restartX=[int][Math]::Round([double]$restartButton.center.x);$restartY=[int][Math]::Round([double]$restartButton.center.y);$restartBeforeSeq=[long]$restartBefore.stateSeq
+  [LightRemoteAcceptanceWindow]::Focus($hwnd);Start-Sleep -Milliseconds 100
+  $restartAck=Invoke-Rr 'accept-browser-restart-os-input' 'input' @{events=@(@{type='move';x=$restartX;y=$restartY},@{type='click';button='left';count=1});semanticSessionId=$sem;afterSeq=$restartBeforeSeq;settleMs=150}
+  if([int]$restartAck.appliedEvents -ne 2 -or [int]$restartAck.sentInputs -lt 2){throw "Restarted browser SendInput proof missing applied=$($restartAck.appliedEvents) sent=$($restartAck.sentInputs)"}
+  $restartAfter=Invoke-Rr 'accept-browser-restart-after' 'semantic-snapshot' @{semanticSessionId=$sem}
+  $restartAccepted=@($restartAfter.nodes|Where-Object { $_.role -eq 'button' -and $_.name -eq 'Light Remote Accepted' })
+  if($restartAccepted.Count -ne 1){throw 'OS input did not continue after browser restart'}
+  if([string]$restartAfter.semanticSessionId -ne $sem){throw 'Restarted browser semantic session changed during continued input'}
+  Write-Host "windows-real-remote-browser-restart-continued-input=PASS sentInputs=$($restartAck.sentInputs) inputSeq=$($restartAck.inputSeq) seq=$($restartAfter.stateSeq)"
+  Write-Host 'windows-real-remote-browser-crash-recovery-closed-loop=PASS'
+
   $d=Invoke-Rr 'accept-detach' 'semantic-detach' @{semanticSessionId=$sem};if(-not $d.detached -or $d.provider -ne 'browser-cdp'){throw 'Detach failed'};$detached=$true
+
   Write-Host 'windows-real-remote-browser-os-input-acceptance=PASS'
 }finally{
   if($rr){
