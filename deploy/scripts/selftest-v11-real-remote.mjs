@@ -149,6 +149,8 @@ const uiaModalAcceptance=read('client/windows-native/acceptance/real-remote-uia-
 const uiaModalFixture=read('client/windows-native/acceptance/real-remote-uia-modal-fixture.ps1');
 const uiaFilePickerAcceptance=read('client/windows-native/acceptance/real-remote-uia-file-picker.ps1');
 const uiaFilePickerFixture=read('client/windows-native/acceptance/real-remote-uia-file-picker-fixture.ps1');
+const uiaClipboardAcceptance=read('client/windows-native/acceptance/real-remote-uia-clipboard.ps1');
+const uiaClipboardFixture=read('client/windows-native/acceptance/real-remote-uia-clipboard-fixture.ps1');
 const uiaWindowsWorkflow=read('.github/workflows/windows-native-client.yml');
 const windowsProject=read('client/windows-native/GptOperator.Client/GptOperator.Client.csproj');
 const supervisor=read('client/windows-native/GptOperator.Client/AgentSupervisor.cs');
@@ -188,6 +190,10 @@ assert.ok(uiaWindowsWorkflow.includes('Real Windows UIA modal handoff acceptance
 assert.ok(uiaFilePickerAcceptance.includes('windows-real-remote-uia-file-picker-open-handoff=PASS')&&uiaFilePickerAcceptance.includes('windows-real-remote-uia-file-picker-semantic=PASS')&&uiaFilePickerAcceptance.includes('windows-real-remote-uia-file-picker-close-handoff=PASS')&&uiaFilePickerAcceptance.includes('windows-real-remote-uia-file-picker-closed-loop=PASS'),'Real Windows UIA file-picker acceptance must prove native common-dialog handoff and return');
 assert.ok(uiaFilePickerFixture.includes('[System.Windows.Forms.OpenFileDialog]::new()')&&uiaFilePickerFixture.includes("$picker.ShowDialog($main)")&&uiaFilePickerAcceptance.includes("key='ESC'"),'UIA file-picker fixture must use native OpenFileDialog and close through OS ESC input');
 assert.ok(uiaWindowsWorkflow.includes('Real Windows UIA file picker handoff acceptance')&&uiaWindowsWorkflow.includes('real-remote-uia-file-picker.ps1'),'Windows workflow must run the UIA file-picker acceptance');
+assert.ok(uiaClipboardAcceptance.includes('windows-real-remote-uia-clipboard-copy=PASS')&&uiaClipboardAcceptance.includes('windows-real-remote-uia-clipboard-paste=PASS')&&uiaClipboardAcceptance.includes('windows-real-remote-uia-clipboard-closed-loop=PASS'),'Real Windows UIA clipboard acceptance must prove OS copy/paste closed loop');
+assert.ok(uiaClipboardAcceptance.includes("key='C';modifiers=@('CTRL')")&&uiaClipboardAcceptance.includes("key='V';modifiers=@('CTRL')")&&uiaClipboardFixture.includes('[System.Windows.Forms.Clipboard]::Clear()'),'UIA clipboard acceptance must use OS Ctrl+C/Ctrl+V and clear test clipboard after proof');
+assert.ok(!uiaClipboardAcceptance.includes('.value'),'UIA clipboard acceptance must not read textbox Value contents');
+assert.ok(uiaWindowsWorkflow.includes('Real Windows UIA clipboard acceptance')&&uiaWindowsWorkflow.includes('real-remote-uia-clipboard.ps1'),'Windows workflow must run the UIA clipboard acceptance');
 for(const token of ['RootHwnd { get; set; }','RefreshSemanticForegroundRoot','foreground_handoff:0x','session.ScopeChanged = false'])assert.ok(semanticHelper.includes(token),'Windows UIA foreground handoff contract missing: '+token);
 assert.ok(uiaAcceptance.includes("key='TAB';modifiers=@('ALT')")&&uiaFixture.includes('[System.Windows.Forms.Application]::Run($form)'),'UIA app-switch acceptance must use OS Alt+Tab between visible WinForms processes');
 assert.ok(uiaWindowsWorkflow.includes('Real Windows UIA app switch acceptance')&&uiaWindowsWorkflow.includes('real-remote-uia-app-switch.ps1'),'Windows workflow must run the UIA app-switch acceptance');

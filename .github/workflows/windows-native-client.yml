@@ -347,6 +347,15 @@ jobs:
           if (-not (Test-Path $exe)) { throw 'Real Remote helper executable missing before UIA file picker acceptance' }
           & ./client/windows-native/acceptance/real-remote-uia-file-picker.ps1 -ClientExe $exe -TimeoutSeconds 20
 
+      - name: Real Windows UIA clipboard acceptance
+        timeout-minutes: 2
+        shell: pwsh
+        run: |
+          $stage = Join-Path $PWD 'dist\windows\stage'
+          $exe = Join-Path $stage 'LightRemote.Client.exe'
+          if (-not (Test-Path $exe)) { throw 'Real Remote helper executable missing before UIA clipboard acceptance' }
+          & ./client/windows-native/acceptance/real-remote-uia-clipboard.ps1 -ClientExe $exe -TimeoutSeconds 20
+
       - name: Native client bundled runtime smoke
         timeout-minutes: 3
         shell: pwsh
