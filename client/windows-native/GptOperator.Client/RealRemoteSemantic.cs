@@ -15,7 +15,8 @@ internal static partial class RealRemoteHelper
         public required int MaxDepth { get; init; }
         public required int MaxNodes { get; init; }
         public required long AttachedAt { get; init; }
-        public required AutomationElement Root { get; init; }
+        public required AutomationElement Root { get; set; }
+        public required IntPtr RootHwnd { get; set; }
         public object Gate { get; } = new();
         public List<SemanticEventRecord> Journal { get; } = new();
         public long StateSeq;
@@ -39,6 +40,7 @@ internal static partial class RealRemoteHelper
         if (provider == "browser-cdp") return BrowserSemanticAttach(args);
         EnsureSemanticInteractive();
         var scope = SemanticScope(args);
+        var root = SemanticRoot(scope, out var rootHwnd);
         var session = new SemanticSession
         {
             Id = "sem_" + Guid.NewGuid().ToString("N"),
@@ -47,7 +49,8 @@ internal static partial class RealRemoteHelper
             MaxDepth = SemanticInt(args, "maxDepth", 6, 0, 12),
             MaxNodes = SemanticInt(args, "maxNodes", 400, 1, 1500),
             AttachedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-            Root = SemanticRoot(scope)
+            Root = root,
+            RootHwnd = rootHwnd
         };
         lock (SemanticLock) SemanticSessions[session.Id] = session;
         SubscribeSemantic(session);
@@ -92,13 +95,17 @@ internal static partial class RealRemoteHelper
 
     private static object SemanticSnapshotCore(SemanticSession session, bool attached)
     {
+        _ = RefreshSemanticForegroundRoot(session);
         var rows = new List<Dictionary<string, object?>>(Math.Min(session.MaxNodes, 512));
         var truncated = false;
         long stateSeq;
+        bool scopeChanged;
         lock (session.Gate)
         {
             WalkSemantic(session.Root, null, 0, "0", session, rows, ref truncated);
             stateSeq = ++session.StateSeq;
+            scopeChanged = session.ScopeChanged;
+            session.ScopeChanged = false;
         }
         var cursor = GetCursorPos(out var point) ? new { x = point.X, y = point.Y } : null;
         return new
@@ -121,17 +128,44 @@ internal static partial class RealRemoteHelper
             eventsAvailable = session.FocusSubscribed || session.StructureSubscribed || session.PropertySubscribed,
             subscriptions = new { focus = session.FocusSubscribed, structure = session.StructureSubscribed, property = session.PropertySubscribed },
             droppedBeforeSeq = session.DroppedBeforeSeq,
-            scopeChanged = session.ScopeChanged,
+            scopeChanged,
             nodes = rows
         };
     }
 
-    private static AutomationElement SemanticRoot(string scope)
+    private static AutomationElement SemanticRoot(string scope, out IntPtr hwnd)
     {
-        if (scope == "desktop") return AutomationElement.RootElement;
-        var hwnd = GetForegroundWindow();
+        if (scope == "desktop")
+        {
+            hwnd = IntPtr.Zero;
+            return AutomationElement.RootElement;
+        }
+        hwnd = GetForegroundWindow();
         if (hwnd == IntPtr.Zero) throw new InvalidOperationException("semantic_foreground_unavailable");
         return AutomationElement.FromHandle(hwnd);
+    }
+
+    private static bool RefreshSemanticForegroundRoot(SemanticSession session)
+    {
+        if (session.Scope != "foreground") return false;
+        var hwnd = GetForegroundWindow();
+        if (hwnd == IntPtr.Zero) throw new InvalidOperationException("semantic_foreground_unavailable");
+
+        IntPtr oldHwnd;
+        lock (session.Gate) oldHwnd = session.RootHwnd;
+        if (oldHwnd == hwnd) return false;
+
+        var root = AutomationElement.FromHandle(hwnd);
+        UnsubscribeSemantic(session);
+        lock (session.Gate)
+        {
+            session.Root = root;
+            session.RootHwnd = hwnd;
+            session.ScopeChanged = true;
+        }
+        SubscribeSemantic(session);
+        EnqueueSemantic(session, "scope", root, null, $"foreground_handoff:0x{oldHwnd.ToInt64():X}->0x{hwnd.ToInt64():X}", true);
+        return true;
     }
 
     private static void WalkSemantic(AutomationElement element, string? parentId, int depth, string path, SemanticSession session, List<Dictionary<string, object?>> rows, ref bool truncated)
