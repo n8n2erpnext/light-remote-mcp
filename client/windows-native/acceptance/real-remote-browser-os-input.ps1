@@ -1,3 +1,4 @@
+# CI rerun marker: popup-window acceptance behavior unchanged.
 param(
   [Parameter(Mandatory=$true)][string]$ClientExe,
   [string]$BrowserExe='',
