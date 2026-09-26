@@ -56,8 +56,7 @@ try{
   $hwndB=Wait-Window $titleB;Start-Sleep -Milliseconds 150
   $appA=Start-Fixture $titleA $buttonA 180 140
   $hwndA=Wait-Window $titleA
-  [LightRemoteLifecycleWindow]::Focus($hwndB);Start-Sleep -Milliseconds 120
-  [LightRemoteLifecycleWindow]::Focus($hwndA);Start-Sleep -Milliseconds 250
+  Start-Sleep -Milliseconds 300
 
   $psi=[Diagnostics.ProcessStartInfo]::new();$psi.FileName=$ClientExe;$psi.UseShellExecute=$false;$psi.CreateNoWindow=$true
   $psi.RedirectStandardInput=$true;$psi.RedirectStandardOutput=$true;$psi.RedirectStandardError=$true;$psi.ArgumentList.Add('--real-remote-helper')
