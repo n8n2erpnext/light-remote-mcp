@@ -145,6 +145,8 @@ const browserAcceptance=read('client/windows-native/acceptance/real-remote-brows
 const browserCrossOriginServer=read('client/windows-native/acceptance/real-remote-browser-cross-origin-server.cjs');
 const uiaAcceptance=read('client/windows-native/acceptance/real-remote-uia-app-switch.ps1');
 const uiaFixture=read('client/windows-native/acceptance/real-remote-uia-fixture.ps1');
+const uiaModalAcceptance=read('client/windows-native/acceptance/real-remote-uia-modal.ps1');
+const uiaModalFixture=read('client/windows-native/acceptance/real-remote-uia-modal-fixture.ps1');
 const uiaWindowsWorkflow=read('.github/workflows/windows-native-client.yml');
 const windowsProject=read('client/windows-native/GptOperator.Client/GptOperator.Client.csproj');
 const supervisor=read('client/windows-native/GptOperator.Client/AgentSupervisor.cs');
@@ -177,6 +179,9 @@ assert.ok(browserAcceptance.includes('windows-real-remote-popup-window-close-rec
 assert.ok(browserAcceptance.includes("key='L';modifiers=@('CTRL')")&&browserAcceptance.includes("type='text';text=$originAUrl"),'Cross-origin navigation must use OS address-bar input');
 assert.ok(browserAcceptance.includes('windows-real-remote-browser-crash-event=PASS')&&browserAcceptance.includes('windows-real-remote-browser-crash-error=PASS')&&browserAcceptance.includes('windows-real-remote-browser-crash-detach=PASS')&&browserAcceptance.includes('windows-real-remote-browser-restart-attach=PASS')&&browserAcceptance.includes('windows-real-remote-browser-restart-continued-input=PASS')&&browserAcceptance.includes('windows-real-remote-browser-crash-recovery-closed-loop=PASS'),'Real Windows acceptance must prove structured browser crash handling and clean restart recovery');
 assert.ok(uiaAcceptance.includes('windows-real-remote-uia-app-a-input=PASS')&&uiaAcceptance.includes('windows-real-remote-uia-alt-tab-handoff=PASS')&&uiaAcceptance.includes('windows-real-remote-uia-app-b-input=PASS')&&uiaAcceptance.includes('windows-real-remote-uia-alt-tab-return=PASS')&&uiaAcceptance.includes('windows-real-remote-uia-app-switch-closed-loop=PASS'),'Real Windows UIA acceptance must prove Alt+Tab foreground handoff and continued OS input');
+assert.ok(uiaModalAcceptance.includes('windows-real-remote-uia-modal-open-handoff=PASS')&&uiaModalAcceptance.includes('windows-real-remote-uia-modal-action=PASS')&&uiaModalAcceptance.includes('windows-real-remote-uia-modal-close-handoff=PASS')&&uiaModalAcceptance.includes('windows-real-remote-uia-modal-closed-loop=PASS'),'Real Windows UIA modal acceptance must prove same-process HWND handoff and return');
+assert.ok(uiaModalFixture.includes('ShowDialog($main)')&&uiaModalAcceptance.includes('modalPid -ne $parentPid')&&uiaModalAcceptance.includes('modalRootHwnd -eq $parentRootHwnd'),'UIA modal acceptance must prove same-process distinct-HWND behavior');
+assert.ok(uiaWindowsWorkflow.includes('Real Windows UIA modal handoff acceptance')&&uiaWindowsWorkflow.includes('real-remote-uia-modal.ps1'),'Windows workflow must run the UIA modal acceptance');
 for(const token of ['RootHwnd { get; set; }','RefreshSemanticForegroundRoot','foreground_handoff:0x','session.ScopeChanged = false'])assert.ok(semanticHelper.includes(token),'Windows UIA foreground handoff contract missing: '+token);
 assert.ok(uiaAcceptance.includes("key='TAB';modifiers=@('ALT')")&&uiaFixture.includes('[System.Windows.Forms.Application]::Run($form)'),'UIA app-switch acceptance must use OS Alt+Tab between visible WinForms processes');
 assert.ok(uiaWindowsWorkflow.includes('Real Windows UIA app switch acceptance')&&uiaWindowsWorkflow.includes('real-remote-uia-app-switch.ps1'),'Windows workflow must run the UIA app-switch acceptance');
