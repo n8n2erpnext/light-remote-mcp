@@ -221,6 +221,46 @@ try{
   Write-Host "windows-real-remote-navigation-continued-input=PASS sentInputs=$($nextAck.sentInputs) inputSeq=$($nextAck.inputSeq) seq=$($nextDone.stateSeq)"
   Write-Host 'windows-real-remote-navigation-closed-loop=PASS'
 
+  $newTabLinks=@($nextDone.nodes|Where-Object { $_.role -eq 'link' -and $_.name -eq 'Light Remote Open New Tab' })
+  if($newTabLinks.Count -ne 1 -or $null -eq $newTabLinks[0].center){throw "New-tab link semantic center missing count=$($newTabLinks.Count)"}
+  $newTabX=[int][Math]::Round([double]$newTabLinks[0].center.x);$newTabY=[int][Math]::Round([double]$newTabLinks[0].center.y)
+  $oldTargetId=[string]$nextDone.target.id;$newTabBeforeSeq=[long]$nextDone.stateSeq
+  [LightRemoteAcceptanceWindow]::Focus($hwnd);Start-Sleep -Milliseconds 100
+  $newTabAck=Invoke-Rr 'accept-os-new-tab' 'input' @{events=@(@{type='move';x=$newTabX;y=$newTabY},@{type='click';button='left';count=1});semanticSessionId=$sem;afterSeq=$newTabBeforeSeq;settleMs=250}
+  if([int]$newTabAck.appliedEvents -ne 2 -or [int]$newTabAck.sentInputs -lt 2){throw "New-tab SendInput proof missing applied=$($newTabAck.appliedEvents) sent=$($newTabAck.sentInputs)"}
+
+  $newTabDeadline=[DateTime]::UtcNow.AddSeconds(5);$newTabAttempt=0;$newTabStable=$null;$newTabButtons=@()
+  do{
+    $newTabAttempt++
+    try{
+      $candidate=Invoke-Rr ("accept-new-tab-snapshot-"+$newTabAttempt) 'semantic-snapshot' @{semanticSessionId=$sem}
+      $candidateButtons=@($candidate.nodes|Where-Object { $_.role -eq 'button' -and $_.name -eq 'Light Remote New Tab Target' })
+      if([string]$candidate.target.id -ne $oldTargetId -and $candidateButtons.Count -eq 1 -and $null -ne $candidateButtons[0].center){$newTabStable=$candidate;$newTabButtons=$candidateButtons;break}
+    }catch{}
+    Start-Sleep -Milliseconds 100
+  }while([DateTime]::UtcNow -lt $newTabDeadline)
+  if($null -eq $newTabStable -or $newTabButtons.Count -ne 1){throw 'Same semantic session did not hand off to foreground new-tab target'}
+  if([string]$newTabStable.semanticSessionId -ne $sem){throw 'Semantic session changed during new-tab target handoff'}
+  if([string]$newTabStable.target.id -eq $oldTargetId){throw 'New-tab target id did not change'}
+  if([string]$newTabStable.target.url -notlike '*real-remote-browser-os-input-new-tab.html'){throw "New-tab target URL mismatch: $($newTabStable.target.url)"}
+  if([string]$newTabStable.target.title -ne 'Light Remote New Tab Acceptance'){throw "New-tab target title mismatch: $($newTabStable.target.title)"}
+
+  $handoffEvents=Invoke-Rr 'accept-new-tab-events' 'semantic-events' @{semanticSessionId=$sem;afterSeq=$newTabBeforeSeq;limit=100}
+  $targetHandoffs=@($handoffEvents.events|Where-Object { $_.kind -eq 'target' -and $_.property -eq 'targetId' -and $_.change -like 'handoff:*' -and $_.resyncRecommended })
+  if($targetHandoffs.Count -lt 1){throw "New-tab handoff resync event missing count=$($targetHandoffs.Count)"}
+  Write-Host "windows-real-remote-new-tab-handoff=PASS oldTarget=$oldTargetId newTarget=$($newTabStable.target.id) events=$($targetHandoffs.Count) semanticSessionId=$sem"
+
+  $newTabButton=$newTabButtons[0]
+  $newTabButtonX=[int][Math]::Round([double]$newTabButton.center.x);$newTabButtonY=[int][Math]::Round([double]$newTabButton.center.y);$newTabActionBefore=[long]$newTabStable.stateSeq
+  $newTabActionAck=Invoke-Rr 'accept-os-new-tab-action' 'input' @{events=@(@{type='move';x=$newTabButtonX;y=$newTabButtonY},@{type='click';button='left';count=1});semanticSessionId=$sem;afterSeq=$newTabActionBefore;settleMs=150}
+  if([int]$newTabActionAck.appliedEvents -ne 2 -or [int]$newTabActionAck.sentInputs -lt 2){throw "New-tab continued SendInput proof missing applied=$($newTabActionAck.appliedEvents) sent=$($newTabActionAck.sentInputs)"}
+  $newTabDone=Invoke-Rr 'accept-new-tab-action-after' 'semantic-snapshot' @{semanticSessionId=$sem}
+  $newTabAccepted=@($newTabDone.nodes|Where-Object { $_.role -eq 'button' -and $_.name -eq 'Light Remote New Tab Accepted' })
+  if($newTabAccepted.Count -ne 1){throw 'OS input did not continue after new-tab target handoff'}
+  if([string]$newTabDone.semanticSessionId -ne $sem -or [string]$newTabDone.target.id -ne [string]$newTabStable.target.id){throw 'New-tab target/session changed during continued input'}
+  Write-Host "windows-real-remote-new-tab-continued-input=PASS sentInputs=$($newTabActionAck.sentInputs) inputSeq=$($newTabActionAck.inputSeq) seq=$($newTabDone.stateSeq)"
+  Write-Host 'windows-real-remote-new-tab-closed-loop=PASS'
+
   $d=Invoke-Rr 'accept-detach' 'semantic-detach' @{semanticSessionId=$sem};if(-not $d.detached -or $d.provider -ne 'browser-cdp'){throw 'Detach failed'};$detached=$true
   Write-Host 'windows-real-remote-browser-os-input-acceptance=PASS'
 }finally{

@@ -16,19 +16,21 @@ internal static partial class RealRemoteHelper
         public required string Id { get; init; }
         public required string Epoch { get; init; }
         public required Uri Endpoint { get; init; }
-        public required string TargetId { get; init; }
+        public required string TargetId { get; set; }
         public required string TargetTitle { get; set; }
         public required string TargetUrl { get; set; }
         public required int MaxDepth { get; init; }
         public required int MaxNodes { get; init; }
         public required long AttachedAt { get; init; }
-        public required ClientWebSocket Socket { get; init; }
+        public required ClientWebSocket Socket { get; set; }
         public object Gate { get; } = new();
         public SemaphoreSlim SendGate { get; } = new(1, 1);
+        public SemaphoreSlim OperationGate { get; } = new(1, 1);
         public ConcurrentDictionary<long, TaskCompletionSource<JsonElement>> Pending { get; } = new();
         public CancellationTokenSource Cancellation { get; } = new();
         public List<BrowserSemanticEventRecord> Journal { get; } = new();
         public Task? Receiver { get; set; }
+        public long ConnectionGeneration;
         public long NextCommandId;
         public long StateSeq;
         public long InputSeq;
@@ -51,6 +53,7 @@ internal static partial class RealRemoteHelper
             try { Socket.Dispose(); } catch { }
             try { Cancellation.Dispose(); } catch { }
             try { SendGate.Dispose(); } catch { }
+            try { OperationGate.Dispose(); } catch { }
         }
     }
 
@@ -78,10 +81,7 @@ internal static partial class RealRemoteHelper
         EnsureSemanticInteractive();
         var endpoint = BrowserCdpEndpoint(args);
         var target = BrowserSelectTarget(endpoint, args);
-        var socket = new ClientWebSocket();
-        socket.Options.Proxy = null;
-        using (var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5)))
-            socket.ConnectAsync(target.WebSocketUrl, timeout.Token).GetAwaiter().GetResult();
+        var socket = BrowserConnectSocket(target.WebSocketUrl);
 
         var session = new BrowserSemanticSession
         {
@@ -94,16 +94,14 @@ internal static partial class RealRemoteHelper
             MaxDepth = SemanticInt(args, "maxDepth", 8, 0, 12),
             MaxNodes = SemanticInt(args, "maxNodes", 600, 1, 1500),
             AttachedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-            Socket = socket
+            Socket = socket,
+            ConnectionGeneration = 1
         };
-        session.Receiver = Task.Run(() => BrowserReceiveLoop(session));
+        session.Receiver = Task.Run(() => BrowserReceiveLoop(session, socket, session.ConnectionGeneration));
 
         try
         {
-            _ = BrowserCdpCommand(session, "Accessibility.enable");
-            _ = BrowserCdpCommand(session, "DOM.enable");
-            _ = BrowserCdpCommand(session, "Page.enable");
-            try { _ = BrowserCdpCommand(session, "Page.setLifecycleEventsEnabled", new { enabled = true }); } catch { }
+            BrowserEnableDomains(session);
             session.EventsAvailable = true;
             lock (SemanticLock) BrowserSemanticSessions[session.Id] = session;
             return BrowserSemanticSnapshotCore(session, true);
@@ -207,18 +205,18 @@ internal static partial class RealRemoteHelper
         }
     }
 
-    private static async Task BrowserReceiveLoop(BrowserSemanticSession session)
+    private static async Task BrowserReceiveLoop(BrowserSemanticSession session, ClientWebSocket socket, long generation)
     {
         var buffer = new byte[64 * 1024];
         try
         {
-            while (!session.Cancellation.IsCancellationRequested && session.Socket.State == WebSocketState.Open)
+            while (!session.Cancellation.IsCancellationRequested && socket.State == WebSocketState.Open)
             {
                 using var stream = new MemoryStream();
                 WebSocketReceiveResult result;
                 do
                 {
-                    result = await session.Socket.ReceiveAsync(new ArraySegment<byte>(buffer), session.Cancellation.Token);
+                    result = await socket.ReceiveAsync(new ArraySegment<byte>(buffer), session.Cancellation.Token);
                     if (result.MessageType == WebSocketMessageType.Close) throw new InvalidOperationException("browser_cdp_closed");
                     if (result.Count > 0) stream.Write(buffer, 0, result.Count);
                     if (stream.Length > 4 * 1024 * 1024) throw new InvalidOperationException("browser_cdp_message_too_large");
@@ -227,6 +225,7 @@ internal static partial class RealRemoteHelper
 
                 using var document = JsonDocument.Parse(stream.ToArray());
                 var root = document.RootElement.Clone();
+                if (!BrowserConnectionCurrent(session, socket, generation)) continue;
                 if (root.TryGetProperty("id", out var idNode) && idNode.TryGetInt64(out var id))
                 {
                     if (session.Pending.TryRemove(id, out var pending)) pending.TrySetResult(root);
@@ -239,15 +238,24 @@ internal static partial class RealRemoteHelper
         catch (OperationCanceledException) when (session.Cancellation.IsCancellationRequested) { }
         catch (Exception ex)
         {
+            if (!BrowserConnectionCurrent(session, socket, generation)) return;
             foreach (var pair in session.Pending)
                 if (session.Pending.TryRemove(pair.Key, out var pending)) pending.TrySetException(new InvalidOperationException($"browser_cdp_receive_failed:{ex.Message}"));
             BrowserEnqueueEvent(session, "connection", null, "closed", true);
         }
     }
 
+    private static bool BrowserConnectionCurrent(BrowserSemanticSession session, ClientWebSocket socket, long generation)
+    {
+        lock (session.Gate)
+            return session.ConnectionGeneration == generation && ReferenceEquals(session.Socket, socket);
+    }
+
     private static JsonElement BrowserCdpCommand(BrowserSemanticSession session, string method, object? parameters = null)
     {
-        if (session.Socket.State != WebSocketState.Open) throw new InvalidOperationException("browser_cdp_not_connected");
+        ClientWebSocket socket;
+        lock (session.Gate) socket = session.Socket;
+        if (socket.State != WebSocketState.Open) throw new InvalidOperationException("browser_cdp_not_connected");
         var id = Interlocked.Increment(ref session.NextCommandId);
         var pending = new TaskCompletionSource<JsonElement>(TaskCreationOptions.RunContinuationsAsynchronously);
         if (!session.Pending.TryAdd(id, pending)) throw new InvalidOperationException("browser_cdp_command_collision");
@@ -262,7 +270,7 @@ internal static partial class RealRemoteHelper
             session.SendGate.Wait(timeout.Token);
             try
             {
-                session.Socket.SendAsync(new ArraySegment<byte>(payload), WebSocketMessageType.Text, true, timeout.Token).GetAwaiter().GetResult();
+                socket.SendAsync(new ArraySegment<byte>(payload), WebSocketMessageType.Text, true, timeout.Token).GetAwaiter().GetResult();
             }
             finally { session.SendGate.Release(); }
 
@@ -386,7 +394,30 @@ internal static partial class RealRemoteHelper
         return IPAddress.TryParse(host, out var address) && IPAddress.IsLoopback(address);
     }
 
-    private static BrowserTarget BrowserSelectTarget(Uri endpoint, JsonElement args)
+    private static ClientWebSocket BrowserConnectSocket(Uri endpoint)
+    {
+        var socket = new ClientWebSocket();
+        socket.Options.Proxy = null;
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        socket.ConnectAsync(endpoint, timeout.Token).GetAwaiter().GetResult();
+        return socket;
+    }
+
+    private static void BrowserCloseSocket(ClientWebSocket socket)
+    {
+        try { socket.Abort(); } catch { }
+        try { socket.Dispose(); } catch { }
+    }
+
+    private static void BrowserEnableDomains(BrowserSemanticSession session)
+    {
+        _ = BrowserCdpCommand(session, "Accessibility.enable");
+        _ = BrowserCdpCommand(session, "DOM.enable");
+        _ = BrowserCdpCommand(session, "Page.enable");
+        try { _ = BrowserCdpCommand(session, "Page.setLifecycleEventsEnabled", new { enabled = true }); } catch { }
+    }
+
+    private static List<BrowserTarget> BrowserListTargets(Uri endpoint)
     {
         var root = BrowserHttpJson(new Uri(endpoint, "/json/list"));
         if (root.ValueKind != JsonValueKind.Array) throw new InvalidOperationException("browser_cdp_target_list_invalid");
@@ -403,6 +434,84 @@ internal static partial class RealRemoteHelper
             if (url.StartsWith("devtools://", StringComparison.OrdinalIgnoreCase)) continue;
             targets.Add(new BrowserTarget(id, type, LimitSemanticText(title, 512) ?? "", LimitSemanticText(url, 2048) ?? "", BrowserValidateWebSocketEndpoint(ws)));
         }
+        return targets;
+    }
+
+    private static BrowserTarget? BrowserForegroundTarget(Uri endpoint)
+    {
+        var foregroundTitle = WindowText(GetForegroundWindow());
+        if (string.IsNullOrWhiteSpace(foregroundTitle)) return null;
+        return BrowserListTargets(endpoint).FirstOrDefault(t =>
+            !string.IsNullOrWhiteSpace(t.Title) &&
+            (foregroundTitle.Contains(t.Title, StringComparison.OrdinalIgnoreCase) || t.Title.Contains(foregroundTitle, StringComparison.OrdinalIgnoreCase)));
+    }
+
+    private static bool BrowserMaybeHandoffToForegroundTarget(BrowserSemanticSession session)
+    {
+        BrowserTarget? target;
+        try { target = BrowserForegroundTarget(session.Endpoint); }
+        catch { return false; }
+        if (target is null) return false;
+
+        string currentId;
+        lock (session.Gate) currentId = session.TargetId;
+        if (string.Equals(currentId, target.Id, StringComparison.Ordinal)) return false;
+
+        ClientWebSocket newSocket;
+        try { newSocket = BrowserConnectSocket(target.WebSocketUrl); }
+        catch { return false; }
+
+        ClientWebSocket oldSocket;
+        string oldTargetId;
+        string oldTargetTitle;
+        string oldTargetUrl;
+        long oldGeneration;
+        long newGeneration;
+        lock (session.Gate)
+        {
+            oldSocket = session.Socket;
+            oldTargetId = session.TargetId;
+            oldTargetTitle = session.TargetTitle;
+            oldTargetUrl = session.TargetUrl;
+            oldGeneration = session.ConnectionGeneration;
+            session.Socket = newSocket;
+            session.TargetId = target.Id;
+            session.TargetTitle = target.Title;
+            session.TargetUrl = target.Url;
+            newGeneration = oldGeneration + 1;
+            session.ConnectionGeneration = newGeneration;
+        }
+
+        session.Receiver = Task.Run(() => BrowserReceiveLoop(session, newSocket, newGeneration));
+        try
+        {
+            BrowserEnableDomains(session);
+        }
+        catch
+        {
+            lock (session.Gate)
+            {
+                if (ReferenceEquals(session.Socket, newSocket))
+                {
+                    session.Socket = oldSocket;
+                    session.TargetId = oldTargetId;
+                    session.TargetTitle = oldTargetTitle;
+                    session.TargetUrl = oldTargetUrl;
+                    session.ConnectionGeneration = oldGeneration;
+                }
+            }
+            BrowserCloseSocket(newSocket);
+            return false;
+        }
+
+        BrowserEnqueueEvent(session, "target", "targetId", $"handoff:{oldTargetId}->{target.Id}", true);
+        BrowserCloseSocket(oldSocket);
+        return true;
+    }
+
+    private static BrowserTarget BrowserSelectTarget(Uri endpoint, JsonElement args)
+    {
+        var targets = BrowserListTargets(endpoint);
         if (targets.Count == 0) throw new InvalidOperationException("browser_cdp_target_not_found");
 
         var targetId = BrowserOptionalArg(args, "targetId", 256);
@@ -415,15 +524,7 @@ internal static partial class RealRemoteHelper
             return targets.FirstOrDefault(t => t.Url.Contains(urlMatch, StringComparison.OrdinalIgnoreCase))
                 ?? throw new InvalidOperationException("browser_cdp_target_not_found");
 
-        var foregroundTitle = WindowText(GetForegroundWindow());
-        if (!string.IsNullOrWhiteSpace(foregroundTitle))
-        {
-            var matched = targets.FirstOrDefault(t =>
-                !string.IsNullOrWhiteSpace(t.Title) &&
-                (foregroundTitle.Contains(t.Title, StringComparison.OrdinalIgnoreCase) || t.Title.Contains(foregroundTitle, StringComparison.OrdinalIgnoreCase)));
-            if (matched is not null) return matched;
-        }
-        return targets[0];
+        return BrowserForegroundTarget(endpoint) ?? targets[0];
     }
 
     private static JsonElement BrowserHttpJson(Uri uri)

@@ -110,6 +110,9 @@ internal static partial class RealRemoteHelper
         bool hasMore;
         bool eventsAvailable;
         bool eventResyncRecommended;
+        string targetId;
+        string targetTitle;
+        string targetUrl;
 
         lock (session.Gate)
         {
@@ -140,6 +143,9 @@ internal static partial class RealRemoteHelper
             scopeChanged = session.ScopeChanged;
             hasMore = remaining > 0;
             eventsAvailable = session.EventsAvailable;
+            targetId = session.TargetId;
+            targetTitle = session.TargetTitle;
+            targetUrl = session.TargetUrl;
         }
 
         return new
@@ -157,7 +163,7 @@ internal static partial class RealRemoteHelper
             settleMs = context.SettleMs,
             cursor,
             foreground = WindowInfo(GetForegroundWindow()),
-            target = new { id = session.TargetId, title = session.TargetTitle, url = session.TargetUrl },
+            target = new { id = targetId, title = targetTitle, url = targetUrl },
             oldestAvailableSeq,
             droppedBeforeSeq,
             gap,

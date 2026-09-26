@@ -141,6 +141,7 @@ const semanticEventsHelper=read('client/windows-native/GptOperator.Client/RealRe
 const inputAckHelper=read('client/windows-native/GptOperator.Client/RealRemoteInputAck.cs');
 const browserCdpHelper=read('client/windows-native/GptOperator.Client/RealRemoteBrowserCdp.cs');
 const browserSnapshotHelper=read('client/windows-native/GptOperator.Client/RealRemoteBrowserSnapshot.cs');
+const browserAcceptance=read('client/windows-native/acceptance/real-remote-browser-os-input.ps1');
 const windowsProject=read('client/windows-native/GptOperator.Client/GptOperator.Client.csproj');
 const supervisor=read('client/windows-native/GptOperator.Client/AgentSupervisor.cs');
 const host=read('client/windows-native/GptOperator.Client/AgentHost.cs');
@@ -158,8 +159,10 @@ for(const token of ['SemanticInputContext','InputSeq','afterSeq','settleMs','foc
 for(const token of ['BrowserSession','CompleteBrowserSemanticInput','BrowserSemanticSnapshotCore','provider = "browser-cdp"','observation = "cdp-snapshot+journal"'])assert.ok(inputAckHelper.includes(token),'Browser closed-loop input ACK missing: '+token);
 assert.ok(inputAckHelper.includes('eventResyncRecommended')&&inputAckHelper.includes('gap || scopeChanged || eventResyncRecommended'),'Browser input ACK must propagate event-level resync to top-level');
 assert.ok(browserCdpHelper.includes('eventResyncRecommended')&&browserCdpHelper.includes('gap || session.ScopeChanged || eventResyncRecommended'),'Browser semantic-events must propagate event-level resync to top-level');
-assert.ok(browserCdpHelper.includes('TargetTitle { get; set; }')&&browserCdpHelper.includes('TargetUrl { get; set; }'),'Browser target metadata must refresh after navigation');
-assert.ok(browserSnapshotHelper.includes('Page.getNavigationHistory')&&browserSnapshotHelper.includes('BrowserRefreshTargetMetadata'),'Browser snapshot must refresh target metadata with read-only CDP history');
+assert.ok(browserCdpHelper.includes('TargetId { get; set; }')&&browserCdpHelper.includes('TargetTitle { get; set; }')&&browserCdpHelper.includes('TargetUrl { get; set; }'),'Browser target metadata must refresh and hand off across targets');
+for(const token of ['OperationGate','ConnectionGeneration','BrowserMaybeHandoffToForegroundTarget','BrowserForegroundTarget','BrowserEnqueueEvent(session, "target", "targetId"'])assert.ok(browserCdpHelper.includes(token),'Browser target handoff contract missing: '+token);
+assert.ok(browserSnapshotHelper.includes('Page.getNavigationHistory')&&browserSnapshotHelper.includes('BrowserRefreshTargetMetadata')&&browserSnapshotHelper.includes('BrowserMaybeHandoffToForegroundTarget'),'Browser snapshot must refresh metadata and hand off foreground targets observation-only');
+assert.ok(browserAcceptance.includes('windows-real-remote-new-tab-handoff=PASS')&&browserAcceptance.includes('windows-real-remote-new-tab-continued-input=PASS')&&browserAcceptance.includes('windows-real-remote-new-tab-closed-loop=PASS'),'Real Windows acceptance must prove new-tab handoff and continued OS input');
 assert.ok(!browserCdpHelper.includes('Input.dispatch')&&!browserSnapshotHelper.includes('Input.dispatch')&&!inputAckHelper.includes('Input.dispatch'),'Browser CDP must remain observation-only for input');
 assert.ok(!browserCdpHelper.includes('Runtime.evaluate')&&!browserSnapshotHelper.includes('Runtime.evaluate')&&!inputAckHelper.includes('Runtime.evaluate'),'Browser CDP must not inject page script for ACK');
 for(const token of ['SemanticProvider(args)','browser-cdp','BrowserSemanticAttach(args)','BrowserSemanticSnapshot(args)','BrowserSemanticDetach(args)'])assert.ok(semanticHelper.includes(token),`Browser semantic provider routing missing: ${token}`);

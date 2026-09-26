@@ -37,7 +37,11 @@ internal static partial class RealRemoteHelper
 
     private static object BrowserSemanticSnapshotCore(BrowserSemanticSession session, bool attached)
     {
-        var ax = BrowserCdpCommand(session, "Accessibility.getFullAXTree", new { depth = session.MaxDepth });
+        session.OperationGate.Wait();
+        try
+        {
+            _ = BrowserMaybeHandoffToForegroundTarget(session);
+            var ax = BrowserCdpCommand(session, "Accessibility.getFullAXTree", new { depth = session.MaxDepth });
         var dom = default(JsonElement);
         try
         {
@@ -55,11 +59,13 @@ internal static partial class RealRemoteHelper
         BrowserRefreshTargetMetadata(session);
 
         long stateSeq;
+        string targetId;
         string targetTitle;
         string targetUrl;
         lock (session.Gate)
         {
             stateSeq = ++session.StateSeq;
+            targetId = session.TargetId;
             targetTitle = session.TargetTitle;
             targetUrl = session.TargetUrl;
         }
@@ -78,7 +84,7 @@ internal static partial class RealRemoteHelper
             maxNodes = session.MaxNodes,
             nodeCount = rows.Count,
             truncated,
-            target = new { id = session.TargetId, title = targetTitle, url = targetUrl },
+            target = new { id = targetId, title = targetTitle, url = targetUrl },
             viewport = new
             {
                 pageX = RoundInt(viewport.PageX),
@@ -94,6 +100,11 @@ internal static partial class RealRemoteHelper
             scopeChanged = session.ScopeChanged,
             nodes = rows
         };
+        }
+        finally
+        {
+            session.OperationGate.Release();
+        }
     }
 
     private static void BrowserRefreshTargetMetadata(BrowserSemanticSession session)
