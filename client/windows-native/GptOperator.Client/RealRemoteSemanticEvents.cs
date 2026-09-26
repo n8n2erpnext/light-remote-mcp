@@ -190,10 +190,12 @@ internal static partial class RealRemoteHelper
         {
             var events = new List<object>(Math.Min(limit, session.Journal.Count));
             var remaining = 0;
+            var lastReturnedSeq = afterSeq;
             foreach (var item in session.Journal)
             {
                 if (item.Seq <= afterSeq) continue;
                 if (events.Count >= limit) { remaining++; continue; }
+                lastReturnedSeq = item.Seq;
                 events.Add(new
                 {
                     seq = item.Seq,
@@ -209,6 +211,8 @@ internal static partial class RealRemoteHelper
 
             var oldestAvailableSeq = session.Journal.Count > 0 ? session.Journal[0].Seq : session.StateSeq + 1;
             var gap = session.DroppedBeforeSeq > 0 && afterSeq < session.DroppedBeforeSeq;
+            var resyncRecommended = gap || session.ScopeChanged;
+            var nextAfterSeq = remaining > 0 ? lastReturnedSeq : session.StateSeq;
             return new
             {
                 protocolVersion = ProtocolVersion,
@@ -221,10 +225,11 @@ internal static partial class RealRemoteHelper
                 droppedBeforeSeq = session.DroppedBeforeSeq,
                 gap,
                 scopeChanged = session.ScopeChanged,
-                resyncRecommended = gap || session.ScopeChanged,
+                resyncRecommended,
                 eventsAvailable = session.FocusSubscribed || session.StructureSubscribed || session.PropertySubscribed,
                 subscriptions = new { focus = session.FocusSubscribed, structure = session.StructureSubscribed, property = session.PropertySubscribed },
                 hasMore = remaining > 0,
+                nextObservation = new { mode = resyncRecommended ? "snapshot" : "events", afterSeq = nextAfterSeq, reason = resyncRecommended ? "resync-recommended" : remaining > 0 ? "drain-events" : "continue-events" },
                 events
             };
         }

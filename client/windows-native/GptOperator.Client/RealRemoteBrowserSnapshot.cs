@@ -98,6 +98,7 @@ internal static partial class RealRemoteHelper
             subscriptions = new { accessibility = true, dom = true, page = true },
             droppedBeforeSeq = session.DroppedBeforeSeq,
             scopeChanged = session.ScopeChanged,
+            nextObservation = new { mode = "events", afterSeq = stateSeq, reason = "snapshot-ready" },
             nodes = rows
         };
         }
