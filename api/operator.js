@@ -195,13 +195,33 @@ module.exports=async function handler(req,res){
         }
         else if(usingClient&&action.startsWith('desktop-')){
           const d=payloadFor(req),deviceId=clientDevice(d.deviceId||d.device),op=action.slice('desktop-'.length);
-          if(!['status','attach','resume','detach','windows','frame','input','semantic-attach','semantic-snapshot','semantic-events','semantic-detach'].includes(op)){const e=new Error('invalid_desktop_action');e.status=400;throw e;}
+          if(!['status','attach','resume','detach','windows','frame','input','observe','act','semantic-attach','semantic-snapshot','semantic-events','semantic-detach'].includes(op)){const e=new Error('invalid_desktop_action');e.status=400;throw e;}
           const desktop={op};
           if(op==='attach'){desktop.screen=d.screen==null?-1:Math.max(-1,Math.min(Number(d.screen)||0,31));desktop.maxWidth=Math.max(320,Math.min(Number(d.maxWidth)||960,1280));desktop.maxHeight=Math.max(180,Math.min(Number(d.maxHeight)||540,720));desktop.quality=Math.max(25,Math.min(Number(d.quality)||50,70));desktop.minIntervalMs=Math.max(0,Math.min(Number.isFinite(Number(d.minIntervalMs))?Math.floor(Number(d.minIntervalMs)):250,5000));desktop.omitUnchanged=d.omitUnchanged!==false;desktop.idleTimeoutMs=Math.max(250,Math.min(Number.isFinite(Number(d.idleTimeoutMs))?Math.floor(Number(d.idleTimeoutMs)):120000,900000));}
           if(op==='resume'||op==='detach')desktop.desktopSessionId=String(d.desktopSessionId||'');
           if(op==='windows')desktop.limit=Math.max(1,Math.min(Number(d.limit)||100,200));
           if(op==='frame'){if(d.desktopSessionId!=null)desktop.desktopSessionId=String(d.desktopSessionId);desktop.screen=d.screen==null?-1:Math.max(-1,Math.min(Number(d.screen)||0,31));desktop.maxWidth=Math.max(320,Math.min(Number(d.maxWidth)||960,1280));desktop.maxHeight=Math.max(180,Math.min(Number(d.maxHeight)||540,720));desktop.quality=Math.max(25,Math.min(Number(d.quality)||50,70));}
           if(op==='input')Object.assign(desktop,normalizeDesktopInput({events:d.events,displayTopologyId:d.displayTopologyId,semanticSessionId:d.semanticSessionId,afterSeq:d.afterSeq,settleMs:d.settleMs}));
+          if(op==='observe'){
+            if(d.semanticSessionId!=null&&String(d.semanticSessionId).trim()){
+              desktop.semanticSessionId=String(d.semanticSessionId);
+              if(d.afterSeq!=null){const afterSeq=Number(d.afterSeq),limit=Number(d.limit);desktop.afterSeq=Number.isFinite(afterSeq)?Math.max(0,Math.floor(afterSeq)):0;desktop.limit=Math.max(1,Math.min(Number.isFinite(limit)?Math.floor(limit):100,200));}
+            }else{
+              const provider=String(d.provider||'windows-uia').trim().toLowerCase();if(!['windows-uia','browser-cdp'].includes(provider)){const e=new Error('invalid_semantic_provider');e.status=400;throw e;}
+              const depth=Number(d.maxDepth),nodes=Number(d.maxNodes);desktop.provider=provider;
+              desktop.maxDepth=Math.max(0,Math.min(Number.isFinite(depth)?depth:(provider==='browser-cdp'?8:6),12));desktop.maxNodes=Math.max(1,Math.min(Number.isFinite(nodes)?nodes:(provider==='browser-cdp'?600:400),1500));
+              if(provider==='windows-uia')desktop.scope=d.scope==='desktop'?'desktop':'foreground';
+              else{if(d.cdpEndpoint!=null)desktop.cdpEndpoint=String(d.cdpEndpoint).slice(0,256);if(d.targetId!=null)desktop.targetId=String(d.targetId).slice(0,256);if(d.urlMatch!=null)desktop.urlMatch=String(d.urlMatch).slice(0,512);}
+            }
+          }
+          if(op==='act'){
+            if(Array.isArray(d.events))Object.assign(desktop,normalizeDesktopInput({events:d.events,displayTopologyId:d.displayTopologyId,semanticSessionId:d.semanticSessionId,afterSeq:d.afterSeq,settleMs:d.settleMs}));
+            else{
+              desktop.semanticSessionId=String(d.semanticSessionId||'');desktop.nodeId=String(d.nodeId||'');desktop.action=String(d.action||'');
+              const afterSeq=Number(d.afterSeq),settleMs=Number(d.settleMs);desktop.afterSeq=Number.isFinite(afterSeq)?Math.max(0,Math.floor(afterSeq)):0;desktop.settleMs=Math.max(0,Math.min(Number.isFinite(settleMs)?Math.floor(settleMs):90,250));
+              if(d.value!=null)desktop.value=String(d.value).slice(0,4096);
+            }
+          }
           if(op==='semantic-attach'){
             const provider=String(d.provider||'windows-uia').trim().toLowerCase();if(!['windows-uia','browser-cdp'].includes(provider)){const e=new Error('invalid_semantic_provider');e.status=400;throw e;}
             const depth=Number(d.maxDepth),nodes=Number(d.maxNodes);desktop.provider=provider;

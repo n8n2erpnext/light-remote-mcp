@@ -119,7 +119,15 @@ internal static partial class RealRemoteHelper
 
     private static Dictionary<string, object?>? SafeSemanticEventNode(SemanticSession session, AutomationElement element)
     {
-        try { return SemanticNode(element, null, -1, "event", session.Epoch); }
+        try
+        {
+            var node = SemanticNode(element, null, -1, "event", session.Epoch);
+            if (node.TryGetValue("id", out var rawId) && rawId is string id)
+            {
+                lock (session.Gate) session.NodeIndex[id] = element;
+            }
+            return node;
+        }
         catch (ElementNotAvailableException) { return null; }
         catch (InvalidOperationException) { return null; }
     }

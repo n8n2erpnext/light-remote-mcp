@@ -80,6 +80,8 @@ internal static partial class RealRemoteHelper
                     "windows" => Windows(Limit(args)),
                     "frame" => Frame(args),
                     "input" => Input(args),
+                    "observe" => Observe(args),
+                    "act" => Act(args),
                     "semantic-attach" => SemanticAttach(args),
                     "semantic-snapshot" => SemanticSnapshot(args),
                     "semantic-events" => SemanticEvents(args),

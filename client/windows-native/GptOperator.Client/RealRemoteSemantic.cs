@@ -19,6 +19,7 @@ internal static partial class RealRemoteHelper
         public required IntPtr RootHwnd { get; set; }
         public object Gate { get; } = new();
         public List<SemanticEventRecord> Journal { get; } = new();
+        public Dictionary<string, AutomationElement> NodeIndex { get; } = new(StringComparer.Ordinal);
         public long StateSeq;
         public long InputSeq;
         public long DroppedBeforeSeq;
@@ -102,6 +103,7 @@ internal static partial class RealRemoteHelper
         bool scopeChanged;
         lock (session.Gate)
         {
+            session.NodeIndex.Clear();
             WalkSemantic(session.Root, null, 0, "0", session, rows, ref truncated);
             stateSeq = ++session.StateSeq;
             scopeChanged = session.ScopeChanged;
@@ -161,6 +163,7 @@ internal static partial class RealRemoteHelper
         {
             session.Root = root;
             session.RootHwnd = hwnd;
+            session.NodeIndex.Clear();
             session.ScopeChanged = true;
         }
         SubscribeSemantic(session);
@@ -176,6 +179,7 @@ internal static partial class RealRemoteHelper
         catch (ElementNotAvailableException) { return; }
         catch (InvalidOperationException) { return; }
         rows.Add(node);
+        session.NodeIndex[(string)node["id"]!] = element;
         if (depth >= session.MaxDepth) return;
 
         AutomationElement? child;
@@ -209,6 +213,14 @@ internal static partial class RealRemoteHelper
         object? center = null;
         if (!bounds.IsEmpty && bounds.Width > 0 && bounds.Height > 0)
             center = new { x = (int)Math.Round(bounds.X + bounds.Width / 2d), y = (int)Math.Round(bounds.Y + bounds.Height / 2d) };
+        var actions = new List<string>(8);
+        if (patterns.Contains("invoke")) actions.Add("invoke");
+        if (patterns.Contains("toggle")) actions.Add("toggle");
+        if (patterns.Contains("value")) actions.Add("set-value");
+        if (patterns.Contains("selectionItem")) actions.Add("select");
+        if (patterns.Contains("expandCollapse")) { actions.Add("expand"); actions.Add("collapse"); }
+        if (current.IsKeyboardFocusable) actions.Add("focus");
+        if (current.IsEnabled && !current.IsOffscreen && center is not null) actions.Add("click");
 
         return new Dictionary<string, object?>
         {
@@ -217,6 +229,7 @@ internal static partial class RealRemoteHelper
             ["depth"] = depth,
             ["role"] = role,
             ["name"] = LimitSemanticText(current.Name, 512),
+            ["label"] = LimitSemanticText(current.Name, 512),
             ["automationId"] = LimitSemanticText(current.AutomationId, 256),
             ["className"] = LimitSemanticText(current.ClassName, 256),
             ["frameworkId"] = LimitSemanticText(current.FrameworkId, 64),
@@ -230,6 +243,7 @@ internal static partial class RealRemoteHelper
             ["bounds"] = bounds.IsEmpty ? null : new { x = (int)Math.Round(bounds.X), y = (int)Math.Round(bounds.Y), width = (int)Math.Round(bounds.Width), height = (int)Math.Round(bounds.Height) },
             ["center"] = center,
             ["patterns"] = patterns,
+            ["actions"] = actions,
             ["runtimeId"] = runtime
         };
     }

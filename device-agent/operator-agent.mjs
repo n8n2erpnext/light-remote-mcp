@@ -220,6 +220,44 @@ async function executeDesktopCommand(state,p){
     const input=normalizeDesktopInput(request);
     return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('input',input,{timeoutMs:10000})};
   }
+  if(op==='observe'){
+    const observe={};
+    if(request.semanticSessionId!=null&&String(request.semanticSessionId).trim()){
+      observe.semanticSessionId=String(request.semanticSessionId);
+      if(request.afterSeq!=null){
+        const afterSeq=Number(request.afterSeq),limit=Number(request.limit);
+        observe.afterSeq=Number.isFinite(afterSeq)?Math.max(0,Math.floor(afterSeq)):0;
+        observe.limit=Math.max(1,Math.min(Number.isFinite(limit)?Math.floor(limit):100,200));
+      }
+    }else{
+      const provider=String(request.provider||'windows-uia').trim().toLowerCase();
+      if(!['windows-uia','browser-cdp'].includes(provider))throw new Error('invalid_semantic_provider');
+      const depth=Number(request.maxDepth),nodes=Number(request.maxNodes);
+      observe.provider=provider;
+      observe.maxDepth=Math.max(0,Math.min(Number.isFinite(depth)?depth:(provider==='browser-cdp'?8:6),12));
+      observe.maxNodes=Math.max(1,Math.min(Number.isFinite(nodes)?nodes:(provider==='browser-cdp'?600:400),1500));
+      if(provider==='windows-uia')observe.scope=request.scope==='desktop'?'desktop':'foreground';
+      else{if(request.cdpEndpoint!=null)observe.cdpEndpoint=String(request.cdpEndpoint).slice(0,256);if(request.targetId!=null)observe.targetId=String(request.targetId).slice(0,256);if(request.urlMatch!=null)observe.urlMatch=String(request.urlMatch).slice(0,512);}
+    }
+    return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('observe',observe,{timeoutMs:15000})};
+  }
+  if(op==='act'){
+    if(!effective.includes(REAL_REMOTE_INPUT_CAPABILITY))throw new Error('local capability denied: desktop-input');
+    if(Array.isArray(request.events)){
+      const input=normalizeDesktopInput(request);
+      return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('act',input,{timeoutMs:10000})};
+    }
+    const afterSeq=Number(request.afterSeq),settleMs=Number(request.settleMs);
+    const action={
+      semanticSessionId:String(request.semanticSessionId||''),
+      nodeId:String(request.nodeId||''),
+      action:String(request.action||''),
+      afterSeq:Number.isFinite(afterSeq)?Math.max(0,Math.floor(afterSeq)):0,
+      settleMs:Math.max(0,Math.min(Number.isFinite(settleMs)?Math.floor(settleMs):90,250))
+    };
+    if(request.value!=null)action.value=String(request.value).slice(0,4096);
+    return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('act',action,{timeoutMs:10000})};
+  }
   if(op==='semantic-attach'){
     const provider=String(request.provider||'windows-uia').trim().toLowerCase();
     if(!['windows-uia','browser-cdp'].includes(provider))throw new Error('invalid_semantic_provider');
