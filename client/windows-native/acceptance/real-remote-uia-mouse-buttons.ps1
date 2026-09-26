@@ -73,6 +73,12 @@ try{
   $middleAccepted=Wait-Node $sem 'Light Remote Middle Accepted' 'middle-accepted' $true
   if([string]$middleAccepted.snapshot.semanticSessionId -ne $sem -or [string]$middleAccepted.snapshot.nodes[0].hwnd -ne $rootHwnd){throw 'Middle click changed semantic session/root'}
   Write-Host "windows-real-remote-uia-middle-click=PASS sentInputs=$($middleAck.sentInputs) inputSeq=$($middleAck.inputSeq) seq=$($middleAccepted.snapshot.stateSeq)"
+  $dx=[int][Math]::Round([double]$middleAccepted.node.center.x);$dy=[int][Math]::Round([double]$middleAccepted.node.center.y)
+  $doubleAck=Invoke-Rr 'mouse-double-click' 'input' @{events=@(@{type='click';button='left';count=2;x=$dx;y=$dy});semanticSessionId=$sem;afterSeq=[long]$middleAccepted.snapshot.stateSeq;settleMs=180}
+  if([int]$doubleAck.appliedEvents -ne 1 -or [int]$doubleAck.sentInputs -lt 4){throw "Double-click SendInput proof missing applied=$($doubleAck.appliedEvents) sent=$($doubleAck.sentInputs)"}
+  $doubleAccepted=Wait-Node $sem 'Light Remote Double Accepted' 'double-accepted' $true
+  if([string]$doubleAccepted.snapshot.semanticSessionId -ne $sem -or [string]$doubleAccepted.snapshot.nodes[0].hwnd -ne $rootHwnd){throw 'Double click changed semantic session/root'}
+  Write-Host "windows-real-remote-uia-double-click=PASS sentInputs=$($doubleAck.sentInputs) inputSeq=$($doubleAck.inputSeq) seq=$($doubleAccepted.snapshot.stateSeq)"
   Write-Host 'windows-real-remote-uia-mouse-buttons-closed-loop=PASS'
 
   $d=Invoke-Rr 'mouse-buttons-detach' 'semantic-detach' @{semanticSessionId=$sem}

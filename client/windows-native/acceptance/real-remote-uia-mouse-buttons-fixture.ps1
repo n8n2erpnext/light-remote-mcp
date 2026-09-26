@@ -16,6 +16,8 @@ $contextAction.Add_Click({$target.Text='Context Accepted';$target.AccessibleName
 $menu.Items.Add($contextAction)|Out-Null
 $menu.Add_Opened({$status.Text='context open';$status.AccessibleName='Light Remote Context Open'})
 $target.ContextMenuStrip=$menu
+$target.Tag=[int]0
 $target.Add_MouseDown({param($sender,$eventArgs);if($eventArgs.Button -eq [System.Windows.Forms.MouseButtons]::Middle){$target.Text='Middle Accepted';$target.AccessibleName='Light Remote Middle Accepted';$status.Text='middle accepted';$status.AccessibleName='Light Remote Middle Accepted Status'}})
+$target.Add_Click({$target.Tag=[int]$target.Tag+1;if([int]$target.Tag -ge 2){$target.Text='Double Accepted';$target.AccessibleName='Light Remote Double Accepted';$status.Text='double accepted';$status.AccessibleName='Light Remote Double Accepted Status'}})
 $form.Controls.AddRange(@($label,$target,$status));$form.Add_Shown({$form.Activate()})
 [System.Windows.Forms.Application]::Run($form)
