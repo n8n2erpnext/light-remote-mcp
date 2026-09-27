@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import crypto from 'node:crypto';
 import { DevicePairingRegistry } from '../../operator-host/device-pairing-registry.mjs';
 import { DeviceAccessGrantRegistry } from '../../operator-host/device-access-grant-registry.mjs';
 import { AgentClientRegistry } from '../../operator-host/agent-client-registry.mjs';
 import { createPlusAuth } from '../../gateway/plus-auth.mjs';
 
+const agentSource=fs.readFileSync(new URL('../../device-agent/operator-agent.mjs',import.meta.url),'utf8');
+assert.ok(agentSource.includes("accessApprove:async requestId=>{await connectCloud({hub,silent:true});if(wake)wake();return approveDeviceAccess(requestId,hub);}"),'owner approval must reconnect and wake a dormant device channel before granting access');
 const now=()=>Date.now(), events=[];
 const pairing=new DevicePairingRegistry({emit:e=>events.push(e),now,ttlMs:3*60*1000});
 const access=new DeviceAccessGrantRegistry({emit:e=>events.push(e),now});
