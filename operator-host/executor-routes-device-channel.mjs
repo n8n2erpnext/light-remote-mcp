@@ -1,5 +1,5 @@
 export async function handleDeviceChannelRoutes(req,res,url,deps){
-  const {ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,DeviceAccessGrantError,DevicePairingRegistryError,EnrollmentError,FleetAuthorityError,FleetError,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,MIN_SUPPORTED_CLIENT_VERSION,NODE_ID,VERSION,abandonedCommandReceiptFromDisk,accessGrants,accounts,agentClients,allDeviceViews,applyDeviceTelemetry,capabilities,clientCompatibility,connectionSpec,connections,deviceView,devices,emitStream,enrollments,finishJob,fleet,fleetAuthority,fleetEligibility,fleetTarget,jobView,jobs,normalizeUpdateReport,pairingCodes,planEntitlements,pushEvent,queueHelperUpdate,readJson,reapAccessGrants,recentEvents,requireDeviceConnection,sendJson,sessions,targetRoute,terminalResultSummary,verifiedChannelContext,verifiedFleetContext,verifiedLeafCapabilities}=deps;
+  const {ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,DeviceAccessGrantError,DevicePairingRegistryError,EnrollmentError,FleetAuthorityError,FleetError,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,MIN_SUPPORTED_CLIENT_VERSION,NODE_ID,VERSION,abandonedCommandReceiptFromDisk,accessGrants,accounts,agentClients,allDeviceViews,applyDeviceTelemetry,capabilities,clientCompatibility,connectionSpec,connections,deviceView,devices,emitStream,enrollments,finishJob,fleet,fleetAuthority,fleetEligibility,fleetTarget,jobView,jobs,normalizeUpdateReport,pairingCodes,planEntitlements,pushEvent,queueHelperUpdate,readJson,reapAccessGrants,realRemoteLive,recentEvents,requireDeviceConnection,sendJson,sessions,targetRoute,terminalResultSummary,verifiedChannelContext,verifiedFleetContext,verifiedLeafCapabilities}=deps;
     if (req.method === 'POST' && url.pathname === '/v1/enrollments/begin') {
       const body = await readJson(req);
       return sendJson(res, 200, { ok:true, enrollment:enrollments.begin(body) });
@@ -135,6 +135,14 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/grace') {
       const body=await readJson(req), ctx=verifiedChannelContext(body,'grace');
       return sendJson(res,200,{ok:true,connection:connections.setGrace(ctx.device.deviceId,ctx.payload.reconnectGraceMs)});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/device-channel/desktop-live-push') {
+      const body=await readJson(req),ctx=verifiedChannelContext(body,'desktop-live-push');
+      requireDeviceConnection(ctx.device.deviceId);
+      const payload=ctx.payload,session=sessions.ensure(String(payload.sessionId||''),{agentId:String(payload.agentId||'')});
+      if(session.deviceId!==ctx.device.deviceId)throw new DeviceAccessGrantError('device_access_grant_session_mismatch',403);
+      const live=realRemoteLive.push({deviceId:ctx.device.deviceId,sessionId:session.id,agentId:session.agentId,semanticSessionId:payload.semanticSessionId,stateSeq:payload.stateSeq,events:payload.events,snapshot:payload.snapshot,displayTopologyId:payload.displayTopologyId,cursor:payload.cursor,foreground:payload.foreground,resyncRecommended:payload.resyncRecommended,closed:payload.closed,heartbeat:payload.heartbeat,updatedAt:Date.now()});
+      return sendJson(res,200,{ok:true,live});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/account-auth') {
       const body=await readJson(req), ctx=verifiedChannelContext(body,'account-auth');

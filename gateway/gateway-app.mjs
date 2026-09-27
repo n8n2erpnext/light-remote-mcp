@@ -7,7 +7,7 @@ export function createLightRemoteGatewayApp({host='127.0.0.1',allowedHosts,devic
   const app=express(),regularJson=express.json(),deviceResultJson=express.json({limit:deviceResultLimit});
   app.use((req,res,next)=>{
     const pathname=String(req.path||new URL(req.originalUrl||req.url||'/','http://light.remote').pathname);
-    const parser=req.method==='POST'&&pathname==='/device-channel/result'?deviceResultJson:regularJson;
+    const parser=req.method==='POST'&&['/device-channel/result','/device-channel/desktop-live-push'].includes(pathname)?deviceResultJson:regularJson;
     return parser(req,res,next);
   });
   app.use(createMcpExpressApp({host,allowedHosts}));

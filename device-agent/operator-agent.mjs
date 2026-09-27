@@ -61,7 +61,7 @@ function writeState(state){writeJson0600(STATE_FILE,state);}
 function readJsonFile(file){try{return JSON.parse(fs.readFileSync(file,'utf8'));}catch{return null;}}
 function clearRealRemoteActivity(){try{fs.rmSync(REAL_REMOTE_ACTIVITY_FILE,{force:true});}catch{}}
 function recordRealRemoteActivity(p,op){
-  const viewOps=new Set(['attach','resume','windows','frame','observe','semantic-attach','semantic-snapshot','semantic-events']);
+  const viewOps=new Set(['attach','resume','windows','frame','observe','semantic-attach','semantic-snapshot','semantic-events','live-open']);
   const controlOps=new Set(['input','act']);
   if(!viewOps.has(op)&&!controlOps.has(op))return;
   const now=Date.now(),current=readJsonFile(REAL_REMOTE_ACTIVITY_FILE)||{};
@@ -75,6 +75,82 @@ function realRemoteActivityView(effective=[]){
   const controlling=controlAllowed&&lastControlAt>0&&now-lastControlAt<=REAL_REMOTE_CONTROL_TTL_MS,viewing=enabled&&lastViewAt>0&&now-lastViewAt<=REAL_REMOTE_VIEW_TTL_MS,mode=controlling?'controlling':viewing?'viewing':'idle';
   return {available:REAL_REMOTE_AVAILABLE,enabled,controlAllowed,active:mode!=='idle',mode,agentId:mode==='idle'?null:String(row.agentId||'')||null,sessionId:mode==='idle'?null:String(row.sessionId||'')||null,lastViewAt:lastViewAt||null,lastControlAt:lastControlAt||null,viewTtlMs:REAL_REMOTE_VIEW_TTL_MS,controlTtlMs:REAL_REMOTE_CONTROL_TTL_MS};
 }
+const REAL_REMOTE_LIVE_LOOPS=new Map();
+const REAL_REMOTE_LIVE_POLL_MS=300;
+const REAL_REMOTE_LIVE_HEARTBEAT_MS=2000;
+const REAL_REMOTE_LIVE_SNAPSHOT_DEBOUNCE_MS=1000;
+
+function realRemoteLiveLoop(semanticSessionId){return REAL_REMOTE_LIVE_LOOPS.get(String(semanticSessionId||''))||null;}
+function touchRealRemoteLiveLoop(semanticSessionId){
+  const row=realRemoteLiveLoop(semanticSessionId);if(row)row.expiresAt=Math.max(row.expiresAt,Date.now()+row.idleTimeoutMs);
+}
+async function pushRealRemoteLive(state,hub,p,row,value={}){
+  const current=readState()||state;
+  return channelRequest(current,hub,'desktop-live-push',{
+    sessionId:String(p.sessionId||''),agentId:String(p.agentId||''),semanticSessionId:row.semanticSessionId,
+    stateSeq:Number(value.stateSeq)||row.afterSeq||0,events:Array.isArray(value.events)?value.events:[],
+    snapshot:value.snapshot||null,displayTopologyId:value.displayTopologyId||row.displayTopologyId||null,
+    cursor:value.cursor||null,foreground:value.foreground||null,resyncRecommended:Boolean(value.resyncRecommended),
+    heartbeat:Boolean(value.heartbeat),closed:Boolean(value.closed)
+  });
+}
+async function stopRealRemoteLiveLoop(state,hub,p,semanticSessionId,{detach=true,notify=true}={}){
+  const id=String(semanticSessionId||''),row=REAL_REMOTE_LIVE_LOOPS.get(id);if(row){row.stopped=true;REAL_REMOTE_LIVE_LOOPS.delete(id);}
+  let detached=null;
+  if(detach){try{detached=await NATIVE_DESKTOP.request('semantic-detach',{semanticSessionId:id},{timeoutMs:10000});}catch(error){if(error?.message!=='semantic_session_not_found')throw error;}}
+  if(notify&&id){try{await pushRealRemoteLive(state,hub,p,row||{semanticSessionId:id,afterSeq:0,displayTopologyId:null},{closed:true});}catch{}}
+  return detached;
+}
+function startRealRemoteLiveLoop(state,hub,p,initial,idleTimeoutMs){
+  const semanticSessionId=String(initial?.semanticSessionId||'');if(!semanticSessionId)throw new Error('semantic_session_not_found');
+  const existing=REAL_REMOTE_LIVE_LOOPS.get(semanticSessionId);if(existing)existing.stopped=true;
+  const row={semanticSessionId,afterSeq:Math.max(0,Number(initial?.stateSeq)||0),displayTopologyId:String(initial?.displayTopologyId||''),idleTimeoutMs:Math.max(15000,Math.min(Number(idleTimeoutMs)||300000,900000)),expiresAt:Date.now()+Math.max(15000,Math.min(Number(idleTimeoutMs)||300000,900000)),lastPushAt:Date.now(),lastSnapshotAt:Date.now(),stopped:false};
+  REAL_REMOTE_LIVE_LOOPS.set(semanticSessionId,row);
+  void (async()=>{
+    try{
+      let failures=0;
+      while(!row.stopped&&Date.now()<row.expiresAt){
+        let observed;
+        try{observed=await NATIVE_DESKTOP.request('semantic-events',{semanticSessionId,afterSeq:row.afterSeq,limit:200},{timeoutMs:10000});failures=0;}
+        catch(error){
+          failures++;const message=String(error?.message||error);
+          console.error(JSON.stringify({event:'real_remote_live_observe_retry',semanticSessionId,error:message,failures}));
+          if(message==='semantic_session_not_found'||failures>=5)break;
+          await new Promise(resolve=>setTimeout(resolve,Math.min(1500,200*failures)));continue;
+        }
+        if(row.stopped)break;
+        const events=Array.isArray(observed?.events)?observed.events:[],now=Date.now();
+        let snapshot=null;
+        if(observed?.resyncRecommended&&now-row.lastSnapshotAt>=REAL_REMOTE_LIVE_SNAPSHOT_DEBOUNCE_MS){
+          try{snapshot=await NATIVE_DESKTOP.request('semantic-snapshot',{semanticSessionId},{timeoutMs:15000});row.lastSnapshotAt=Date.now();}catch{}
+        }
+        const nextSeq=Math.max(row.afterSeq,Number(observed?.nextObservation?.afterSeq)||0,Number(observed?.stateSeq)||0,Number(snapshot?.stateSeq)||0);
+        const shouldPush=events.length>0||snapshot||now-row.lastPushAt>=REAL_REMOTE_LIVE_HEARTBEAT_MS;
+        if(shouldPush){
+          try{
+            await pushRealRemoteLive(state,hub,p,row,{stateSeq:nextSeq,events,snapshot,displayTopologyId:snapshot?.displayTopologyId||observed?.displayTopologyId,resyncRecommended:Boolean(observed?.resyncRecommended&&!snapshot),heartbeat:events.length===0&&!snapshot});
+            row.lastPushAt=Date.now();failures=0;recordRealRemoteActivity(p,'live-open');
+          }catch(error){
+            failures++;const message=String(error?.message||error);
+            console.error(JSON.stringify({event:'real_remote_live_push_retry',semanticSessionId,error:message,status:error?.status||null,failures}));
+            if(['device_binding_not_found','device_not_found','device_connection_required','device_connection_expired','device_revoked'].includes(message)||failures>=5)break;
+            await new Promise(resolve=>setTimeout(resolve,Math.min(1500,250*failures)));
+          }
+        }
+        row.afterSeq=nextSeq;
+        if(observed?.hasMore)continue;
+        await new Promise(resolve=>setTimeout(resolve,REAL_REMOTE_LIVE_POLL_MS));
+      }
+    }catch(error){
+      console.error(JSON.stringify({event:'real_remote_live_loop_failed',semanticSessionId,error:error?.message||String(error)}));
+    }finally{
+      if(REAL_REMOTE_LIVE_LOOPS.get(semanticSessionId)===row)REAL_REMOTE_LIVE_LOOPS.delete(semanticSessionId);
+      if(!row.stopped){try{await NATIVE_DESKTOP.request('semantic-detach',{semanticSessionId},{timeoutMs:10000});}catch{}try{await pushRealRemoteLive(state,hub,p,row,{closed:true});}catch{}}
+    }
+  })();
+  return row;
+}
+
 function updateStatusView(){const report=readJsonFile(UPDATE_REPORT_FILE);if(UPDATE_MODE==='server-managed')return {state:'managed',currentVersion:VERSION,targetVersion:null,helperVersion:'server-managed',code:null,updatedAt:null,mode:UPDATE_MODE,pendingReport:null};const status=normalizeUpdateStatus(readJsonFile(UPDATE_STATUS_FILE)||{});return {...status,currentVersion:status.currentVersion||VERSION,mode:UPDATE_MODE,pendingReport:report?{outcome:String(report.outcome||''),code:String(report.code||'')||null,targetVersion:String(report.targetVersion||'')||null,at:Number(report.at)||null}:null};}
 function acknowledgeCoreUpdateHealth(){const tx=readJsonFile(UPDATE_TRANSACTION_FILE);if(!tx||String(tx.targetVersion||'')!==VERSION||!/^ut_[A-Za-z0-9_-]{12,80}$/.test(String(tx.txId||'')))return false;writeJson0600(UPDATE_ACK_FILE,{schemaVersion:1,txId:tx.txId,version:VERSION,healthy:true,pid:process.pid,at:Date.now()});return true;}
 async function requestLocalUpdate(source='local-wall',mode='apply'){if(UPDATE_MODE==='server-managed')throw new Error('update_managed_by_server_deployment');const action=mode==='check'?'check':'apply';if(process.platform==='win32'){const updater=path.join(process.env.LOCALAPPDATA||os.homedir(),'Light Remote','Updater','LightRemote.Updater.exe'),installRoot=fileURLToPath(new URL('../../',import.meta.url));if(!fs.existsSync(updater))throw new Error('independent_updater_missing');const args=[action==='check'?'--check-update':'--apply-update-now','--install-dir',installRoot],child=spawn(updater,args,{windowsHide:true,detached:true,stdio:'ignore'});child.unref();return {accepted:true,source,mode:action,transport:'independent-updater',requestedAt:Date.now()};}const target=action==='check'?UPDATE_CHECK_REQUEST_FILE:UPDATE_REQUEST_FILE;writeJson0600(target,{schemaVersion:1,requestId:`uq_${crypto.randomBytes(12).toString('base64url')}`,source:String(source||'local-wall').slice(0,40),mode:action,currentVersion:VERSION,requestedAt:Date.now()});return {accepted:true,source,mode:action,transport:'helper-trigger',requestedAt:Date.now()};}
@@ -210,12 +286,32 @@ async function executeSearchCommand(state,p){
   throw new Error('search_operation_unsupported');
 }
 
-async function executeDesktopCommand(state,p){
+async function executeDesktopCommand(state,p,{hub=DEFAULT_HUB}={}){
   const request=p.desktop&&typeof p.desktop==='object'&&!Array.isArray(p.desktop)?p.desktop:{};
   const op=String(request.op||''),effective=effectiveCapabilitiesForState(state);
   if(!effective.includes('desktop'))throw new Error('local capability denied: desktop');
   if(!REAL_REMOTE_AVAILABLE)throw new Error('real_remote_unavailable');
   if(op==='status')return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('status',{})};
+  if(op==='live-open'){
+    const provider=String(request.provider||'windows-uia').trim().toLowerCase();
+    if(!['windows-uia','browser-cdp'].includes(provider))throw new Error('invalid_semantic_provider');
+    const depth=Number(request.maxDepth),nodes=Number(request.maxNodes),idleTimeoutMs=Math.max(15000,Math.min(Number(request.idleTimeoutMs)||300000,900000));
+    const observe={provider,maxDepth:Math.max(0,Math.min(Number.isFinite(depth)?depth:(provider==='browser-cdp'?8:6),12)),maxNodes:Math.max(1,Math.min(Number.isFinite(nodes)?nodes:(provider==='browser-cdp'?600:400),1500))};
+    if(provider==='windows-uia')observe.scope=request.scope==='desktop'?'desktop':'foreground';
+    else{if(request.cdpEndpoint!=null)observe.cdpEndpoint=String(request.cdpEndpoint).slice(0,256);if(request.targetId!=null)observe.targetId=String(request.targetId).slice(0,256);if(request.urlMatch!=null)observe.urlMatch=String(request.urlMatch).slice(0,512);}
+    const initial=await NATIVE_DESKTOP.request('observe',observe,{timeoutMs:15000}),semanticSessionId=String(initial?.semanticSessionId||'');
+    if(!semanticSessionId)throw new Error('semantic_session_not_found');
+    const seed={semanticSessionId,afterSeq:Math.max(0,Number(initial?.stateSeq)||0),displayTopologyId:String(initial?.displayTopologyId||'')};
+    await pushRealRemoteLive(state,hub,p,seed,{stateSeq:seed.afterSeq,snapshot:initial,displayTopologyId:seed.displayTopologyId});
+    const loop=startRealRemoteLiveLoop(state,hub,p,initial,idleTimeoutMs);
+    return {ok:true,operation:op,desktop:{...initial,live:{active:true,transport:'semantic-push-cache',pollMs:REAL_REMOTE_LIVE_POLL_MS,heartbeatMs:REAL_REMOTE_LIVE_HEARTBEAT_MS,idleTimeoutMs:loop.idleTimeoutMs}}};
+  }
+  if(op==='live-close'){
+    const semanticSessionId=String(request.semanticSessionId||'');
+    const detached=await stopRealRemoteLiveLoop(state,hub,p,semanticSessionId,{detach:true,notify:true});
+    clearRealRemoteActivity();
+    return {ok:true,operation:op,desktop:{semanticSessionId,closed:true,detached}};
+  }
   if(op==='attach')return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('attach',{
     screen:request.screen==null?-1:Math.max(-1,Math.min(Number(request.screen)||0,31)),
     maxWidth:Math.max(320,Math.min(Number(request.maxWidth)||960,1280)),
@@ -236,8 +332,9 @@ async function executeDesktopCommand(state,p){
   },{timeoutMs:10000})};
   if(op==='input'){
     if(!effective.includes(REAL_REMOTE_INPUT_CAPABILITY))throw new Error('local capability denied: desktop-input');
-    const input=normalizeDesktopInput(request);
-    return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('input',input,{timeoutMs:10000})};
+    const input=normalizeDesktopInput(request),desktop=await NATIVE_DESKTOP.request('input',input,{timeoutMs:10000});
+    touchRealRemoteLiveLoop(input.semanticSessionId);
+    return {ok:true,operation:op,desktop};
   }
   if(op==='observe'){
     const observe={};
@@ -263,8 +360,9 @@ async function executeDesktopCommand(state,p){
   if(op==='act'){
     if(!effective.includes(REAL_REMOTE_INPUT_CAPABILITY))throw new Error('local capability denied: desktop-input');
     if(Array.isArray(request.events)){
-      const input=normalizeDesktopInput(request);
-      return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('act',input,{timeoutMs:10000})};
+      const input=normalizeDesktopInput(request),desktop=await NATIVE_DESKTOP.request('act',input,{timeoutMs:10000});
+      touchRealRemoteLiveLoop(input.semanticSessionId);
+      return {ok:true,operation:op,desktop};
     }
     const afterSeq=Number(request.afterSeq),settleMs=Number(request.settleMs);
     const action={
@@ -275,7 +373,9 @@ async function executeDesktopCommand(state,p){
       settleMs:Math.max(0,Math.min(Number.isFinite(settleMs)?Math.floor(settleMs):90,250))
     };
     if(request.value!=null)action.value=String(request.value).slice(0,4096);
-    return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('act',action,{timeoutMs:10000})};
+    const desktop=await NATIVE_DESKTOP.request('act',action,{timeoutMs:10000});
+    touchRealRemoteLiveLoop(action.semanticSessionId);
+    return {ok:true,operation:op,desktop};
   }
   if(op==='semantic-attach'){
     const provider=String(request.provider||'windows-uia').trim().toLowerCase();
@@ -314,7 +414,7 @@ async function executeScpCommand(state,p){
   throw new Error('scp_operation_unsupported');
 }
 
-async function executeCommand(state,command){
+async function executeCommand(state,command,{hub=DEFAULT_HUB}={}){
   const existing=readCommand(command.commandId);
   if(existing?.state==='finished'&&existing.result)return existing.result;
   if(existing?.state==='running'){
@@ -342,7 +442,7 @@ async function executeCommand(state,command){
     const startedAt=Date.now(),remoteEffective=remoteEffectiveCapabilitiesForState(state),desktopOp=String(p.desktop?.op||''),required=(desktopOp==='input'||desktopOp==='act')?['desktop','desktop-input']:['desktop'],missing=required.filter(cap=>!remoteEffective.includes(cap));
     if(missing.length){const result={commandId:command.commandId,status:'error',exitCode:126,stdout:'',stderr:`remote capability denied: ${missing.join(',')}\n`,durationMs:0};writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});return result;}
     writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'running',startedAt});
-    try{const data=await executeDesktopCommand(state,p);recordRealRemoteActivity(p,desktopOp);const result={commandId:command.commandId,status:'ok',exitCode:0,stdout:'',stderr:'',durationMs:Date.now()-startedAt,data};writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;}
+    try{const data=await executeDesktopCommand(state,p,{hub});recordRealRemoteActivity(p,desktopOp);const result={commandId:command.commandId,status:'ok',exitCode:0,stdout:'',stderr:'',durationMs:Date.now()-startedAt,data};writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;}
     catch(error){const result={commandId:command.commandId,status:'error',exitCode:1,stdout:'',stderr:String(error?.message||error)+'\n',durationMs:Date.now()-startedAt,data:{ok:false,error:String(error?.message||error),status:Number(error?.status)||500}};writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;}
   }
   if(p.type==='search'){
@@ -568,7 +668,7 @@ async function daemon(args){
       const command=response.channel?.command;
       if(command){
         const deviceReceivedAt=Date.now();
-        let result=await executeCommand(state,command);const completedAt=Date.now();
+        let result=await executeCommand(state,command,{hub});const completedAt=Date.now();
         const reportedFirst=Number(result.telemetry?.firstOutputAt);
         result.telemetry={...(result.telemetry||{}),deviceReceivedAt,firstOutputAt:Number.isSafeInteger(reportedFirst)&&reportedFirst>0?reportedFirst:completedAt,completedAt};
         let delivered=false,resultFailures=0;
