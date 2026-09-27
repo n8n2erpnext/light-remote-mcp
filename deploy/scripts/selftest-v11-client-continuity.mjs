@@ -123,9 +123,10 @@ await assert.rejects(
 assert.equal(calls,1);
 
 const helper=toolHelperView({context:{deviceId:'arm-local',sessionId:'s_test',agentId:'agent-test',platform:'linux'}});
-assert.ok(helper.transport.continuity.includes('retry the same action'));
-assert.ok(helper.transport.continuity.includes('Do not start a new A/B pairing'));
-assert.ok(helper.safety.some(x=>x.includes('agent_client_temporarily_unavailable')&&x.includes('same client/target')));
+assert.equal(helper.kind,'light-remote-tool-helper-overview');
+assert.ok(helper.transport.continuity.includes('retry'));
+assert.ok(helper.transport.continuity.includes('Do not re-pair'));
+assert.ok(helper.selection.some(x=>x.includes('Never silently switch devices')));
 
 const api=fs.readFileSync(new URL('../../api/operator.js',import.meta.url),'utf8');
 assert.ok(api.includes("require('../lib/plus-client-continuity.cjs')"));

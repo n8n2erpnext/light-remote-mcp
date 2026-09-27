@@ -145,7 +145,8 @@ module.exports=async function handler(req,res){
         if(action==='tool-helper'){
           if(!usingClient){const e=new Error('agent_client_required');e.status=401;throw e;}
           const current=await clientCall('/plus/client/context',{method:'POST',body:{}});
-          upstream=toolHelperView(current);
+          const group=String(req.query?.group||'').trim().toLowerCase();
+          upstream=toolHelperView(current,{group});
         }
         else if(action==='context'){
           if(!usingClient){const e=new Error('agent_client_required');e.status=401;throw e;}

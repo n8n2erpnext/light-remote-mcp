@@ -533,6 +533,12 @@ jobs:
           Write-Host "windows-compact-vs-full-bytes=$compactBytes/$fullBytes"
           "WINDOWS_COMPACT_INSTALLER=$compact" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
+      - name: Single Windows client RM size budget
+        shell: pwsh
+        run: |
+          node deploy/scripts/selftest-v11-single-client-package.mjs $env:WINDOWS_INSTALLER $env:WINDOWS_COMPACT_INSTALLER
+          if ($LASTEXITCODE -ne 0) { throw 'single Windows client RM size budget failed' }
+
       - name: Install tray, background agent and updater tasks
         timeout-minutes: 4
         shell: pwsh
