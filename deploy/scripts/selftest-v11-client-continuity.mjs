@@ -123,7 +123,8 @@ await assert.rejects(
 assert.equal(calls,1);
 
 const helper=toolHelperView({context:{deviceId:'arm-local',sessionId:'s_test',agentId:'agent-test',platform:'linux'}});
-assert.equal(helper.kind,'light-remote-tool-helper-overview');
+assert.equal(helper.kind,'light-remote-tool-helper');
+assert.equal(helper.helperMode,'full');
 assert.ok(helper.transport.continuity.includes('retry'));
 assert.ok(helper.transport.continuity.includes('Do not re-pair'));
 assert.ok(helper.selection.some(x=>x.includes('Never silently switch devices')));
