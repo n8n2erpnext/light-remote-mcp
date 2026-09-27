@@ -133,7 +133,7 @@ try{
   $textboxes=@($after.nodes|Where-Object { $_.role -eq 'textbox' -and $_.name -eq 'Light Remote Text Input' })
   if($textboxes.Count -ne 1 -or $null -eq $textboxes[0].center){throw "Text input semantic center missing count=$($textboxes.Count)"}
   $textX=[int][Math]::Round([double]$textboxes[0].center.x);$textY=[int][Math]::Round([double]$textboxes[0].center.y);$textBeforeSeq=[long]$after.stateSeq
-  $textAck=Invoke-Rr 'accept-os-text' 'input' @{events=@(@{type='move';x=$textX;y=$textY},@{type='click';button='left';count=1},@{type='text';text=$unicodeText});semanticSessionId=$sem;afterSeq=$textBeforeSeq;settleMs=150}
+  $textAck=Invoke-Rr 'accept-os-text' 'input' @{events=@(@{type='move';x=$textX;y=$textY},@{type='click';button='left';count=1},@{type='text';text=$unicodeText;intervalMs=12});semanticSessionId=$sem;afterSeq=$textBeforeSeq;settleMs=150}
   if($textAck.provider -ne 'browser-cdp' -or $textAck.observation -ne 'cdp-snapshot+journal'){throw 'Unicode text CDP ACK contract mismatch'}
   $expectedTextInputs=2+($unicodeText.Length*2)
   if([int]$textAck.appliedEvents -ne 3 -or [int]$textAck.sentInputs -lt $expectedTextInputs){throw "Unicode SendInput proof missing applied=$($textAck.appliedEvents) sent=$($textAck.sentInputs) expected=$expectedTextInputs"}
@@ -142,7 +142,7 @@ try{
   $textAccepted=@($textAfter.nodes|Where-Object { $_.role -eq 'textbox' -and $_.name -eq 'Light Remote Text Accepted' })
   if($textAccepted.Count -ne 1){throw 'Unicode OS text did not change browser semantic state'}
   if([long]$textAfter.stateSeq -le [long]$textAck.stateSeq){throw 'Post-text stateSeq did not advance'}
-  Write-Host "windows-real-remote-unicode-text=PASS text=$unicodeText sentInputs=$($textAck.sentInputs) x=$textX y=$textY"
+  Write-Host "windows-real-remote-unicode-text=PASS text=$unicodeText sentInputs=$($textAck.sentInputs) intervalMs=12 x=$textX y=$textY"
   Write-Host "windows-real-remote-text-cdp-ack=PASS inputSeq=$($textAck.inputSeq) beforeSeq=$textBeforeSeq ackSeq=$($textAck.stateSeq)"
   Write-Host "windows-real-remote-text-state-change=PASS name=Light Remote Text Accepted seq=$($textAfter.stateSeq)"
 

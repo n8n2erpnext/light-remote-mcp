@@ -149,13 +149,33 @@ internal static partial class RealRemoteHelper
     {
         var value=StringArg(item,"text");
         if(value.Length<1||value.Length>4096) throw new InvalidOperationException("desktop_input_invalid_text");
-        var inputs=new List<INPUT>(value.Length*2);
-        foreach(var ch in value)
+        var intervalMs=IntStrict(item,"intervalMs",12,0,100);
+        var sent=0;
+        for(var i=0;i<value.Length;i++)
         {
-            inputs.Add(Keyboard(0,(ushort)ch,KeyUnicode));
-            inputs.Add(Keyboard(0,(ushort)ch,KeyUnicode|KeyUp));
+            var ch=value[i];
+            if(char.IsHighSurrogate(ch)&&i+1<value.Length&&char.IsLowSurrogate(value[i+1]))
+            {
+                var low=value[++i];
+                sent+=Dispatch(new[]
+                {
+                    Keyboard(0,ch,KeyUnicode),
+                    Keyboard(0,ch,KeyUnicode|KeyUp),
+                    Keyboard(0,low,KeyUnicode),
+                    Keyboard(0,low,KeyUnicode|KeyUp)
+                });
+            }
+            else
+            {
+                sent+=Dispatch(new[]
+                {
+                    Keyboard(0,ch,KeyUnicode),
+                    Keyboard(0,ch,KeyUnicode|KeyUp)
+                });
+            }
+            if(intervalMs>0&&i<value.Length-1) System.Threading.Thread.Sleep(intervalMs);
         }
-        return Dispatch(inputs.ToArray());
+        return sent;
     }
 
     private static int Key(JsonElement item)

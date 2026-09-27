@@ -70,7 +70,10 @@ const normalizedInput=normalizeDesktopInput({events:[
 ]});
 assert.equal(normalizedInput.events.length,6);
 assert.deepEqual(normalizedInput.events[3],{type:'drag',x:120,y:80,toX:320,toY:180,button:'left',steps:6,durationMs:90});
+assert.deepEqual(normalizedInput.events[4],{type:'text',text:'Light Remote',intervalMs:12});
 assert.deepEqual(normalizedInput.events[5],{type:'key',key:'ENTER',modifiers:['CTRL']});
+assert.deepEqual(normalizeDesktopInput({events:[{type:'text',text:'paced',intervalMs:24}]}).events[0],{type:'text',text:'paced',intervalMs:24});
+assert.throws(()=>normalizeDesktopInput({events:[{type:'text',text:'too-fast?',intervalMs:101}]}),/desktop_input_invalid_interval_ms/);
 const normalizedScreenInput=normalizeDesktopInput({events:[
   {type:'move',x:10,y:20,screen:0},
   {type:'click',x:30,y:40,screen:1,button:'left'},
@@ -217,7 +220,7 @@ for(const token of ['AddAutomationFocusChangedEventHandler','AddStructureChanged
 assert.ok(!semanticEventsHelper.includes('ValuePattern.ValueProperty'),'semantic journal must not subscribe textbox Value contents');
 assert.ok(!semanticEventsHelper.includes('TextPattern.'),'semantic journal must not subscribe text contents');
 assert.ok(windowsProject.includes('<UseWPF>true</UseWPF>'),'Windows UIA reference pack must come from WindowsDesktop/WPF SDK support');
-for(const token of ['SendInput(','SetCursorPos(','desktop_input_blocked','desktop_input_invalid_event_count','Keyboard(ushort vk,ushort scan,uint flags)','BeginSemanticInput(args)','CompleteSemanticInput(semanticInput,applied,sent)'])assert.ok(inputHelper.includes(token),`Windows input contract missing: ${token}`);
+for(const token of ['SendInput(','SetCursorPos(','desktop_input_blocked','desktop_input_invalid_event_count','Keyboard(ushort vk,ushort scan,uint flags)','BeginSemanticInput(args)','CompleteSemanticInput(semanticInput,applied,sent)','IntStrict(item,"intervalMs",12,0,100)','Thread.Sleep(intervalMs)','char.IsHighSurrogate','char.IsLowSurrogate'])assert.ok(inputHelper.includes(token),`Windows input contract missing: ${token}`);
 for(const token of ['ResolvePoint(item,"x","y","screen"','ResolvePoint(item,"toX","toY","toScreen"','desktop_input_screen_out_of_range','desktop_input_invalid_screen_coordinates','ValidateDisplayTopology(args)','desktop_input_stale_topology'])assert.ok(inputHelper.includes(token),`Windows screen-local input contract missing: ${token}`);
 assert.ok(helper.includes('allScreens.Select((screen, index) =>')&&helper.includes('int screenIndex')&&helper.includes('index = screenIndex'),'Windows screen topology/frame responses must expose stable screen indexes');
 for(const token of ['DisplayTopologyId(Screen[] screens)','GetDpiForMonitor','displayTopologyId','dpiAwareness = "PerMonitorV2"'])assert.ok(helper.includes(token),'Windows DPI/topology contract missing: '+token);
