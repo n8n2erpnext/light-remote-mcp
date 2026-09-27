@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import express from 'express';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
+import { createLightRemoteGatewayApp } from './gateway-app.mjs';
 import { z } from 'zod';
 import { recordActivity, recentActivity, attachActivitySse } from './activity.mjs';
 import { dashboardHtml } from './dashboard.mjs';
@@ -138,9 +138,10 @@ const DEFAULT_ALLOWED_HOSTS = [
   'localhost', 'localhost:8080', '127.0.0.1', '127.0.0.1:8080'
 ];
 const EXTRA_ALLOWED_HOSTS = String(process.env.MCP_ALLOWED_HOSTS || '').split(',').map(value => value.trim()).filter(Boolean);
-const app = createMcpExpressApp({
+const app = createLightRemoteGatewayApp({
   host: '0.0.0.0',
-  allowedHosts: [...new Set([...DEFAULT_ALLOWED_HOSTS, ...EXTRA_ALLOWED_HOSTS])]
+  allowedHosts: [...new Set([...DEFAULT_ALLOWED_HOSTS, ...EXTRA_ALLOWED_HOSTS])],
+  deviceResultLimit: process.env.LIGHT_REMOTE_DEVICE_RESULT_BODY_LIMIT || '8mb'
 });
 
 app.disable('x-powered-by');

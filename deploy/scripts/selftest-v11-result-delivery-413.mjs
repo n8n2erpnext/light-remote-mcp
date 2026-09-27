@@ -1,0 +1,10 @@
+import fs from 'node:fs';
+import { compactResultAfter413, isCompacted413Result } from '../../device-agent/result-delivery.mjs';
+const original={commandId:'cmd_result_413_regression_1234567890',status:'ok',exitCode:0,stdout:'',stderr:'',durationMs:10400,data:{tree:'x'.repeat(220*1024)},telemetry:{deviceReceivedAt:1,completedAt:2}};
+const compact=compactResultAfter413(original);
+if(Buffer.byteLength(JSON.stringify(original))<200*1024)throw new Error('fixture_not_large');
+if(Buffer.byteLength(JSON.stringify(compact))>4096)throw new Error('compacted_result_too_large');
+if(compact.commandId!==original.commandId||compact.status!=='error'||compact.exitCode!==1||!compact.outputTruncated||!isCompacted413Result(compact)||compact.data.originalBytes<200*1024)throw new Error('compacted_result_contract_failed');
+const agent=fs.readFileSync(new URL('../../device-agent/operator-agent.mjs',import.meta.url),'utf8');
+for(const token of ['Number(error.status)===413','compactResultAfter413(result)','device_result_compacted_after_413','device_result_delivery_abandoned_after_compaction'])if(!agent.includes(token))throw new Error('agent_413_recovery_missing:'+token);
+console.log('v11-device-result-413-compaction=PASS');

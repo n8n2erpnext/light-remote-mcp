@@ -150,5 +150,19 @@ export function startLocalWall({host='127.0.0.1',port=5491,brandSvgPath,fontPath
     const access=url.pathname.match(/^\/api\/access\/(pa_[A-Za-z0-9_-]{20,80})\/(approve|deny)$/);if(req.method==='POST'&&access){if(!mutationAllowed(req))return json(res,403,{ok:false,error:'csrf_invalid'});const data=await body(req);const fn=access[2]==='approve'?accessApprove:accessDeny;if(typeof fn!=='function')return json(res,501,{ok:false,error:'access_control_unavailable'});const value=await fn(access[1],data||{});return json(res,200,{ok:true,authorization:value});}
     return json(res,404,{ok:false,error:'not_found'});
   }catch(error){return json(res,Number(error.status)||400,{ok:false,error:error.message||'local_wall_error'});}});
-  server.listen(Number(port),host);return{server,host,port:Number(port),url:`http://${host}:${Number(port)}/`,close:()=>{shutdownActivityPump();return new Promise(resolve=>server.close(()=>resolve()));}};
+  let bindClosed=false,retryTimer=null,bindAttempts=0;
+  const bind=()=>{if(bindClosed||server.listening)return;try{server.listen(Number(port),host);}catch(error){onListenError(error);}};
+  const onListenError=error=>{
+    if(bindClosed)return;
+    if(error?.code==='EADDRINUSE'){
+      bindAttempts++;
+      if(bindAttempts===1||bindAttempts%10===0)console.error(JSON.stringify({event:'local_wall_bind_retry',host,port:Number(port),code:error.code,attempt:bindAttempts}));
+      if(!retryTimer){const delay=Math.min(1000,100+bindAttempts*50);retryTimer=setTimeout(()=>{retryTimer=null;bind();},delay);retryTimer.unref?.();}
+      return;
+    }
+    console.error(JSON.stringify({event:'local_wall_listen_failed',host,port:Number(port),code:error?.code||null,error:error?.message||String(error)}));
+  };
+  server.on('error',onListenError);server.on('listening',()=>{bindAttempts=0;});
+  bind();
+  return{server,host,port:Number(port),url:`http://${host}:${Number(port)}/`,close:()=>{bindClosed=true;if(retryTimer){clearTimeout(retryTimer);retryTimer=null;}shutdownActivityPump();return new Promise(resolve=>{if(!server.listening)return resolve();server.close(()=>resolve());});}};
 }
