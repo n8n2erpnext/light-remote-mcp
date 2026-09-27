@@ -46,7 +46,13 @@ assert.equal(desktop.group,'desktop');
 assert.ok(desktop.tools.desktop&&desktop.tools.desktopInput);
 assert.ok(JSON.stringify(desktop).includes('semanticSessionId'));
 assert.ok(JSON.stringify(desktop).includes('browser-cdp'));
-assert.ok(JSON.stringify(desktop).includes('intervalMs=12'));
+const desktopJson=JSON.stringify(desktop);
+assert.ok(desktopJson.includes('intervalMs defaults 12'));
+assert.ok(desktopJson.includes('F1-F12')&&desktopJson.includes('ENTER')&&desktopJson.includes('TAB')&&desktopJson.includes('ESC'));
+assert.ok(desktopJson.includes('CTRL')&&desktopJson.includes('ALT')&&desktopJson.includes('SHIFT')&&desktopJson.includes('WIN'));
+assert.ok(desktopJson.includes('1..4096 UTF-16 code units')&&desktopJson.includes('Unicode Windows SendInput per character'));
+assert.ok(desktopJson.includes('±120 per normal notch')&&desktopJson.includes('durationMs'));
+assert.ok(desktop.tools.desktopInput.inputRecipes?.multiline&&desktop.tools.desktopInput.inputRecipes?.selectAllReplace);
 assert.match(desktop.rule,/only for real computer use/i);
 assert.throws(()=>toolHelperGroup(context,'unknown'),/invalid_tool_helper_group/);
 
