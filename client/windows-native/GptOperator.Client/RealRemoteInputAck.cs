@@ -105,7 +105,25 @@ internal static partial class RealRemoteHelper
         var session = context.BrowserSession ?? throw new InvalidOperationException("semantic_session_not_found");
 
         // Observation only: CDP refreshes semantic state after OS SendInput. It never injects input.
-        _ = BrowserSemanticSnapshotCore(session, false);
+        // A post-input CDP timeout must never make the caller retry physical input blindly:
+        // retry observation once, then return a degraded ACK that explicitly requests resync.
+        string? observationError = null;
+        try
+        {
+            _ = BrowserSemanticSnapshotCore(session, false);
+        }
+        catch (InvalidOperationException ex) when (ex.Message == "browser_cdp_timeout")
+        {
+            System.Threading.Thread.Sleep(80);
+            try
+            {
+                _ = BrowserSemanticSnapshotCore(session, false);
+            }
+            catch (InvalidOperationException retry) when (retry.Message == "browser_cdp_timeout")
+            {
+                observationError = retry.Message;
+            }
+        }
 
         var events = new List<object>(100);
         long inputSeq;
@@ -159,7 +177,7 @@ internal static partial class RealRemoteHelper
         }
 
         var ackAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        var resyncRecommended = gap || scopeChanged || eventResyncRecommended;
+        var resyncRecommended = observationError is not null || gap || scopeChanged || eventResyncRecommended;
         var nextAfterSeq = hasMore ? lastReturnedSeq : stateSeq;
         return new
         {
@@ -186,9 +204,10 @@ internal static partial class RealRemoteHelper
             scopeChanged,
             resyncRecommended,
             eventsAvailable,
-            observation = "cdp-snapshot+journal",
+            observation = observationError is null ? "cdp-snapshot+journal" : "cdp-journal-degraded",
+            observationError,
             hasMore,
-            nextObservation = new { mode = resyncRecommended ? "snapshot" : "events", afterSeq = nextAfterSeq, reason = resyncRecommended ? "resync-recommended" : hasMore ? "drain-events" : "continue-events" },
+            nextObservation = new { mode = resyncRecommended ? "snapshot" : "events", afterSeq = nextAfterSeq, reason = observationError is not null ? "post-input-observation-timeout" : resyncRecommended ? "resync-recommended" : hasMore ? "drain-events" : "continue-events" },
             events
         };
     }
