@@ -18,8 +18,8 @@ public static class LightRemoteEventStormWindow{
 '@
 }
 $title='Light Remote UIA Event Storm';$p=$null;$rr=$null;$sem=$null
-function Invoke-Rr([string]$Id,[string]$Op,[hashtable]$Args=@{}){
-  $script:rr.StandardInput.WriteLine((@{id=$Id;op=$Op;args=$Args}|ConvertTo-Json -Compress -Depth 12));$script:rr.StandardInput.Flush()
+function Invoke-Rr([string]$Id,[string]$Op,[hashtable]$RequestArgs=@{}){
+  $script:rr.StandardInput.WriteLine((@{id=$Id;op=$Op;args=$RequestArgs}|ConvertTo-Json -Compress -Depth 12));$script:rr.StandardInput.Flush()
   $task=$script:rr.StandardOutput.ReadLineAsync();if(-not $task.Wait([TimeSpan]::FromSeconds($TimeoutSeconds))){throw "Helper timeout: $Op"}
   $line=$task.Result;if([string]::IsNullOrWhiteSpace($line)){throw "Empty helper response: $Op"}
   $r=$line|ConvertFrom-Json;if(-not $r.ok){throw "Helper error $Op : $($r.error)"};return $r.result
