@@ -1,24 +1,25 @@
-param([string]$Title='Light Remote UIA Event Storm')
+param([string]$Title='Light Remote UIA Event Storm',[Parameter(Mandatory=$true)][string]$TriggerPath)
 $ErrorActionPreference='Stop'
-Add-Type -AssemblyName System.Windows.Forms
-Add-Type -AssemblyName System.Drawing
-[System.Windows.Forms.Application]::EnableVisualStyles()
-$form=[System.Windows.Forms.Form]::new();$form.Text=$Title;$form.StartPosition='CenterScreen';$form.Size=[System.Drawing.Size]::new(720,520)
-$burst=[System.Windows.Forms.Button]::new();$burst.Text='Burst Structure Events';$burst.AccessibleName='Burst Structure Events';$burst.Size=[System.Drawing.Size]::new(260,54);$burst.Location=[System.Drawing.Point]::new(20,20)
-$status=[System.Windows.Forms.Label]::new();$status.Text='Ready';$status.AccessibleName='Event Storm Ready';$status.AutoSize=$true;$status.Location=[System.Drawing.Point]::new(310,38)
-$panel=[System.Windows.Forms.FlowLayoutPanel]::new();$panel.Location=[System.Drawing.Point]::new(20,92);$panel.Size=[System.Drawing.Size]::new(660,360);$panel.AutoScroll=$true
-$burst.Add_Click({
-  $burst.Enabled=$false
-  for($i=0;$i -lt 90;$i++){
-    $c=[System.Windows.Forms.Label]::new();$c.Text=('Dynamic '+$i);$c.AccessibleName=('Dynamic '+$i);$c.AutoSize=$true;$c.Margin=[System.Windows.Forms.Padding]::new(3)
-    $panel.Controls.Add($c)
-  }
-  [System.Windows.Forms.Application]::DoEvents()
-  for($i=0;$i -lt 70;$i++){if($panel.Controls.Count -gt 0){$c=$panel.Controls[$panel.Controls.Count-1];$panel.Controls.Remove($c);$c.Dispose()}}
-  for($i=0;$i -lt 30;$i++){
-    $c=[System.Windows.Forms.Button]::new();$c.Text=('New '+$i);$c.AccessibleName=('New '+$i);$c.AutoSize=$true;$panel.Controls.Add($c)
-  }
-  $status.Text='Burst Complete';$status.AccessibleName='Event Storm Complete';$burst.Enabled=$true
+Add-Type -AssemblyName PresentationFramework
+Add-Type -AssemblyName PresentationCore
+Add-Type -AssemblyName WindowsBase
+$window=[System.Windows.Window]::new();$window.Title=$Title;$window.Width=760;$window.Height=560;$window.WindowStartupLocation='CenterScreen'
+$root=[System.Windows.Controls.DockPanel]::new()
+$header=[System.Windows.Controls.TextBlock]::new();$header.Text='UIA Structure Event Storm Fixture';$header.FontSize=20;$header.Margin='14'
+[System.Windows.Controls.DockPanel]::SetDock($header,'Top');$root.Children.Add($header)|Out-Null
+$status=[System.Windows.Controls.TextBlock]::new();$status.Text='Ready';$status.Margin='14';[System.Windows.Controls.DockPanel]::SetDock($status,'Bottom');$root.Children.Add($status)|Out-Null
+$scroll=[System.Windows.Controls.ScrollViewer]::new();$items=[System.Windows.Controls.WrapPanel]::new();$scroll.Content=$items;$root.Children.Add($scroll)|Out-Null
+$window.Content=$root
+$done=$false
+$timer=[System.Windows.Threading.DispatcherTimer]::new();$timer.Interval=[TimeSpan]::FromMilliseconds(50)
+$timer.Add_Tick({
+  if($done -or -not(Test-Path -LiteralPath $TriggerPath)){return}
+  $script:done=$true;$timer.Stop();Remove-Item -LiteralPath $TriggerPath -Force -ErrorAction SilentlyContinue
+  for($i=0;$i -lt 100;$i++){ $b=[System.Windows.Controls.Button]::new();$b.Content=('Dynamic '+$i);$b.Margin='2';$items.Children.Add($b)|Out-Null }
+  $window.Dispatcher.Invoke([action]{},[System.Windows.Threading.DispatcherPriority]::Render)
+  for($i=0;$i -lt 75;$i++){if($items.Children.Count -gt 0){$items.Children.RemoveAt($items.Children.Count-1)}}
+  for($i=0;$i -lt 35;$i++){ $t=[System.Windows.Controls.TextBlock]::new();$t.Text=('New '+$i);$t.Margin='2';$items.Children.Add($t)|Out-Null }
+  $status.Text='Burst Complete'
 })
-$form.Controls.Add($burst);$form.Controls.Add($status);$form.Controls.Add($panel)
-[System.Windows.Forms.Application]::Run($form)
+$timer.Start()
+$null=$window.ShowDialog()

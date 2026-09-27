@@ -12,5 +12,5 @@ assert.ok(!structure.includes('SafeSemanticEventNode'),'Structure burst must not
 const workflow=fs.readFileSync(new URL('../../.github/workflows/windows-native-client.yml',import.meta.url),'utf8');
 const acceptance=fs.readFileSync(new URL('../../client/windows-native/acceptance/real-remote-uia-event-storm.ps1',import.meta.url),'utf8');
 assert.ok(workflow.includes('Real Windows UIA event storm acceptance')&&workflow.includes('real-remote-uia-event-storm.ps1'),'Windows workflow must hard-gate UIA event storm acceptance');
-for(const token of ['Burst Structure Events','subtree-changed','resyncRecommended','coalesced'])assert.ok(acceptance.includes(token),'UIA event storm acceptance missing: '+token);
+for(const token of ['TriggerPath','storm-events-','subtree-changed','resyncRecommended','coalesced'])assert.ok(acceptance.includes(token),'UIA event storm acceptance missing: '+token);
 console.log('v11-uia-event-storm-guard=PASS');

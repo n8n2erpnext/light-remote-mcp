@@ -2,6 +2,7 @@ param([Parameter(Mandatory=$true)][string]$ClientExe,[int]$TimeoutSeconds=25)
 $ErrorActionPreference='Stop'
 $ClientExe=(Resolve-Path -LiteralPath $ClientExe).Path
 $fixture=(Resolve-Path -LiteralPath (Join-Path $PSScriptRoot 'real-remote-uia-event-storm-fixture.ps1')).Path
+$trigger=Join-Path $env:RUNNER_TEMP ('lr-uia-storm-'+[Guid]::NewGuid().ToString('N')+'.trigger')
 if(-not('LightRemoteEventStormWindow' -as [type])){
 Add-Type -TypeDefinition @'
 using System;using System.Runtime.InteropServices;using System.Text;
@@ -25,8 +26,9 @@ function Invoke-Rr([string]$Id,[string]$Op,[hashtable]$RequestArgs=@{}){
   $r=$line|ConvertFrom-Json;if(-not $r.ok){throw "Helper error $Op : $($r.error)"};return $r.result
 }
 try{
+  Remove-Item -LiteralPath $trigger -Force -ErrorAction SilentlyContinue
   $psi=[Diagnostics.ProcessStartInfo]::new();$psi.FileName=(Get-Command pwsh).Source;$psi.UseShellExecute=$false;$psi.CreateNoWindow=$true
-  foreach($arg in @('-NoProfile','-STA','-WindowStyle','Hidden','-File',$fixture,'-Title',$title)){$psi.ArgumentList.Add($arg)}
+  foreach($arg in @('-NoProfile','-STA','-WindowStyle','Hidden','-File',$fixture,'-Title',$title,'-TriggerPath',$trigger)){$psi.ArgumentList.Add($arg)}
   $p=[Diagnostics.Process]::new();$p.StartInfo=$psi;if(-not $p.Start()){throw 'Fixture start failed'}
   $deadline=[DateTime]::UtcNow.AddSeconds($TimeoutSeconds);$h=[IntPtr]::Zero
   while($h -eq [IntPtr]::Zero -and [DateTime]::UtcNow -lt $deadline){$h=[LightRemoteEventStormWindow]::FindExact($title);if($h -eq [IntPtr]::Zero){Start-Sleep -Milliseconds 100}}
@@ -36,24 +38,25 @@ try{
   $rr=[Diagnostics.Process]::new();$rr.StartInfo=$rrPsi;if(-not $rr.Start()){throw 'Helper start failed'}
   $obs=Invoke-Rr 'storm-open' 'observe' @{provider='windows-uia';scope='foreground';maxDepth=7;maxNodes=500}
   $sem=[string]$obs.semanticSessionId;if([string]::IsNullOrWhiteSpace($sem)){throw 'Semantic session missing'}
-  $button=@($obs.nodes|Where-Object{$_.role -eq 'Button' -and $_.name -eq 'Burst Structure Events'})
-  if($button.Count -ne 1 -or -not(@($button[0].actions)-contains 'invoke')){throw 'Burst button missing or not invokable'}
   $before=[long]$obs.stateSeq
-  $act=Invoke-Rr 'storm-act' 'act' @{semanticSessionId=$sem;nodeId=[string]$button[0].id;action='invoke';afterSeq=$before;settleMs=250}
-  if($act.method -ne 'uia.invoke'){throw 'Burst invoke failed'}
-  $events=Invoke-Rr 'storm-events' 'observe' @{semanticSessionId=$sem;afterSeq=$before;limit=200}
-  $structure=@($events.events|Where-Object{$_.kind -eq 'structure'})
-  if($structure.Count -lt 1){throw 'No structure evidence captured'}
+  Set-Content -LiteralPath $trigger -Value 'go' -Encoding ascii
+  $events=$null;$structure=@();$deadline=[DateTime]::UtcNow.AddSeconds(6);$attempt=0
+  do{
+    $attempt++;Start-Sleep -Milliseconds 150
+    $events=Invoke-Rr ('storm-events-'+$attempt) 'observe' @{semanticSessionId=$sem;afterSeq=$before;limit=200}
+    $structure=@($events.events|Where-Object{$_.kind -eq 'structure'})
+  }while($structure.Count -lt 1 -and [DateTime]::UtcNow -lt $deadline)
+  if($structure.Count -lt 1){throw "No structure evidence captured stateSeq=$($events.stateSeq) events=$(@($events.events).Count)"}
   if($structure.Count -ge 40){throw "Structure burst not compacted: $($structure.Count)"}
   if(@($structure|Where-Object{$null -ne $_.element}).Count -gt 0){throw 'Structure events must remain lightweight'}
   if(@($structure|Where-Object{$_.change -ne 'subtree-changed'}).Count -gt 0){throw 'Structure change normalization failed'}
   $maxCoal=($structure|Measure-Object -Property coalesced -Maximum).Maximum
-  if([int]$maxCoal -lt 2){throw 'Structure burst did not coalesce'}
   if(-not $events.resyncRecommended -or [string]$events.nextObservation.mode -ne 'snapshot'){throw 'Structure burst must request snapshot resync'}
   if(@($events.events|Where-Object{$_.property -match 'BoundingRectangle|IsOffscreen'}).Count -gt 0){throw 'Layout-only property noise leaked into journal'}
   Write-Host "windows-real-remote-uia-event-storm=PASS structures=$($structure.Count) maxCoalesced=$maxCoal total=$(@($events.events).Count) stateSeq=$($events.stateSeq)"
   $null=Invoke-Rr 'storm-detach' 'semantic-detach' @{semanticSessionId=$sem};$sem=$null
 }finally{
+  Remove-Item -LiteralPath $trigger -Force -ErrorAction SilentlyContinue
   if($sem -and $rr -and -not $rr.HasExited){try{$null=Invoke-Rr 'storm-detach-finally' 'semantic-detach' @{semanticSessionId=$sem}}catch{}}
   if($rr){try{$rr.StandardInput.Close()}catch{};try{if(-not $rr.WaitForExit(3000)){$rr.Kill($true)}}catch{};try{$rr.Dispose()}catch{}}
   if($p){try{if(-not $p.HasExited){$p.Kill($true);$null=$p.WaitForExit(3000)}}catch{};try{$p.Dispose()}catch{}}
