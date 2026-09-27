@@ -20,7 +20,7 @@ for(const token of [
   'windows-real-remote-browser-state-change=PASS',
   'windows-real-remote-browser-os-input-acceptance=PASS',
   "$unicodeText='Tiếng Việt ✓'",
-  "@{type='text';text=$unicodeText}",
+  "@{type='text';text=$unicodeText;intervalMs=12}",
   'windows-real-remote-unicode-text=PASS',
   'windows-real-remote-text-cdp-ack=PASS',
   'windows-real-remote-text-state-change=PASS',
@@ -83,7 +83,7 @@ need(fixture.includes('href="real-remote-browser-os-input-next.html"')&&fixture.
 need(navigationFixture.includes('aria-label="Light Remote Next Page"'),'windows_acceptance_navigation_target_missing');
 need(navigationFixture.includes("setAttribute('aria-label','Light Remote Next Accepted')"),'windows_acceptance_navigation_state_change_missing');
 need(!navigationFixture.match(/https?:\/\//i),'windows_acceptance_navigation_fixture_must_be_offline');
-need(inputHelper.includes('KeyUnicode=0x0004')&&inputHelper.includes('Keyboard(0,(ushort)ch,KeyUnicode)'),'windows_acceptance_unicode_sendinput_contract_missing');
+need(inputHelper.includes('KeyUnicode=0x0004')&&inputHelper.includes('char.IsHighSurrogate(ch)')&&inputHelper.includes('char.IsLowSurrogate(value[i+1])')&&inputHelper.includes('Keyboard(0,ch,KeyUnicode)')&&inputHelper.includes('Keyboard(0,low,KeyUnicode)')&&inputHelper.includes('KeyUnicode|KeyUp'),'windows_acceptance_unicode_sendinput_contract_missing');
 need(!fixture.match(/https?:\/\//i),'windows_acceptance_fixture_must_be_offline');
 
 const step='- name: Real Windows OS input acceptance';
