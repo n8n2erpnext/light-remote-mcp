@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+const source=fs.readFileSync(new URL('../../client/windows-native/GptOperator.Client/RealRemoteSemanticEvents.cs',import.meta.url),'utf8');
+for(const token of ['SemanticStructureCoalesceMs = 250','EnqueueSemanticStructure(session)','subtree-changed','ResyncRecommended = true','eventResyncRecommended','gap || session.ScopeChanged || eventResyncRecommended','TrimSemanticJournalLocked'])assert.ok(source.includes(token),'UIA journal storm guard missing: '+token);
+assert.ok(!source.includes('AutomationElement.BoundingRectangleProperty'),'BoundingRectangle journal noise must stay unsubscribed');
+assert.ok(!source.includes('AutomationElement.IsOffscreenProperty'),'IsOffscreen journal noise must stay unsubscribed');
+const structureStart=source.indexOf('private static void EnqueueSemanticStructure');
+const structureEnd=source.indexOf('private static void EnqueueSemantic(',structureStart);
+const structure=source.slice(structureStart,structureEnd);
+assert.ok(structure.includes('Element = null'),'Structure burst records must stay lightweight');
+assert.ok(!structure.includes('SafeSemanticEventNode'),'Structure burst must not synchronously read full UIA node metadata');
+const workflow=fs.readFileSync(new URL('../../.github/workflows/windows-native-client.yml',import.meta.url),'utf8');
+const acceptance=fs.readFileSync(new URL('../../client/windows-native/acceptance/real-remote-uia-event-storm.ps1',import.meta.url),'utf8');
+assert.ok(workflow.includes('Real Windows UIA event storm acceptance')&&workflow.includes('real-remote-uia-event-storm.ps1'),'Windows workflow must hard-gate UIA event storm acceptance');
+for(const token of ['Burst Structure Events','subtree-changed','resyncRecommended','coalesced'])assert.ok(acceptance.includes(token),'UIA event storm acceptance missing: '+token);
+console.log('v11-uia-event-storm-guard=PASS');

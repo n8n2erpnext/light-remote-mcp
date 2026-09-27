@@ -340,6 +340,15 @@ jobs:
           if (-not (Test-Path $exe)) { throw 'Real Remote helper executable missing before semantic observe-act acceptance' }
           & ./client/windows-native/acceptance/real-remote-uia-semantic-act.ps1 -ClientExe $exe -TimeoutSeconds 20
 
+      - name: Real Windows UIA event storm acceptance
+        timeout-minutes: 2
+        shell: pwsh
+        run: |
+          $stage = Join-Path $PWD 'dist\windows\stage'
+          $exe = Join-Path $stage 'LightRemote.Client.exe'
+          if (-not (Test-Path $exe)) { throw 'Real Remote helper executable missing before UIA event storm acceptance' }
+          & ./client/windows-native/acceptance/real-remote-uia-event-storm.ps1 -ClientExe $exe -TimeoutSeconds 25
+
       - name: Real Windows OS input acceptance
         timeout-minutes: 2
         shell: pwsh

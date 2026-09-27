@@ -7,6 +7,7 @@ internal static partial class RealRemoteHelper
 {
     private const int SemanticJournalLimit = 512;
     private const long SemanticCoalesceMs = 75;
+    private const long SemanticStructureCoalesceMs = 250;
 
     private sealed class SemanticEventRecord
     {
@@ -47,8 +48,11 @@ internal static partial class RealRemoteHelper
 
         session.StructureHandler = (sender, args) =>
         {
-            if (sender is not AutomationElement element) return;
-            EnqueueSemantic(session, "structure", element, null, args.StructureChangeType.ToString(), false);
+            // UIA providers such as Chromium can emit hundreds of child-level
+            // callbacks for one DOM/layout refresh. A structure event is already
+            // a subtree invalidation signal, so do not synchronously read a full
+            // SemanticNode for every changed child.
+            EnqueueSemanticStructure(session);
         };
         try
         {
@@ -71,9 +75,7 @@ internal static partial class RealRemoteHelper
                 session.PropertyHandler,
                 AutomationElement.NameProperty,
                 AutomationElement.AutomationIdProperty,
-                AutomationElement.BoundingRectangleProperty,
                 AutomationElement.IsEnabledProperty,
-                AutomationElement.IsOffscreenProperty,
                 AutomationElement.HasKeyboardFocusProperty);
             session.PropertySubscribed = true;
         }
@@ -132,6 +134,38 @@ internal static partial class RealRemoteHelper
         catch (InvalidOperationException) { return null; }
     }
 
+    private static void EnqueueSemanticStructure(SemanticSession session)
+    {
+        var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        const string key = "structure|-|-|subtree-changed";
+
+        lock (session.Gate)
+        {
+            if (session.Journal.Count > 0)
+            {
+                var last = session.Journal[^1];
+                if (last.Key == key && now - last.Timestamp <= SemanticStructureCoalesceMs)
+                {
+                    last.Timestamp = now;
+                    last.Coalesced++;
+                    return;
+                }
+            }
+
+            session.Journal.Add(new SemanticEventRecord
+            {
+                Seq = ++session.StateSeq,
+                Timestamp = now,
+                Key = key,
+                Kind = "structure",
+                Change = "subtree-changed",
+                Element = null,
+                ResyncRecommended = true
+            });
+            TrimSemanticJournalLocked(session);
+        }
+    }
+
     private static void EnqueueSemantic(SemanticSession session, string kind, AutomationElement? element, string? property, string? change, bool resyncRecommended)
     {
         var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
@@ -165,11 +199,16 @@ internal static partial class RealRemoteHelper
                 ResyncRecommended = resyncRecommended
             };
             session.Journal.Add(record);
-            while (session.Journal.Count > SemanticJournalLimit)
-            {
-                session.DroppedBeforeSeq = Math.Max(session.DroppedBeforeSeq, session.Journal[0].Seq);
-                session.Journal.RemoveAt(0);
-            }
+            TrimSemanticJournalLocked(session);
+        }
+    }
+
+    private static void TrimSemanticJournalLocked(SemanticSession session)
+    {
+        while (session.Journal.Count > SemanticJournalLimit)
+        {
+            session.DroppedBeforeSeq = Math.Max(session.DroppedBeforeSeq, session.Journal[0].Seq);
+            session.Journal.RemoveAt(0);
         }
     }
 
@@ -191,9 +230,11 @@ internal static partial class RealRemoteHelper
             var events = new List<object>(Math.Min(limit, session.Journal.Count));
             var remaining = 0;
             var lastReturnedSeq = afterSeq;
+            var eventResyncRecommended = false;
             foreach (var item in session.Journal)
             {
                 if (item.Seq <= afterSeq) continue;
+                if (item.ResyncRecommended) eventResyncRecommended = true;
                 if (events.Count >= limit) { remaining++; continue; }
                 lastReturnedSeq = item.Seq;
                 events.Add(new
@@ -211,7 +252,7 @@ internal static partial class RealRemoteHelper
 
             var oldestAvailableSeq = session.Journal.Count > 0 ? session.Journal[0].Seq : session.StateSeq + 1;
             var gap = session.DroppedBeforeSeq > 0 && afterSeq < session.DroppedBeforeSeq;
-            var resyncRecommended = gap || session.ScopeChanged;
+            var resyncRecommended = gap || session.ScopeChanged || eventResyncRecommended;
             var nextAfterSeq = remaining > 0 ? lastReturnedSeq : session.StateSeq;
             return new
             {
