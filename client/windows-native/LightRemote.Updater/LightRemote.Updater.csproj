@@ -7,7 +7,7 @@
     <AssemblyName>LightRemote.Updater</AssemblyName>
     <RootNamespace>LightRemote.Updater</RootNamespace>
     <ApplicationIcon>..\GptOperator.Client\Assets\light-remote.ico</ApplicationIcon>
-    <Version>0.9.1-beta.1</Version>
+    <Version>0.9.1-beta.2</Version>
     <FileVersion>0.9.1.0</FileVersion>
     <AssemblyVersion>0.9.1.0</AssemblyVersion>
     <PublishSingleFile>true</PublishSingleFile>

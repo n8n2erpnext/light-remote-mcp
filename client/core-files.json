@@ -6,6 +6,10 @@
       "destination": "device-agent/operator-agent.mjs"
     },
     {
+      "source": "device-agent/result-delivery.mjs",
+      "destination": "device-agent/result-delivery.mjs"
+    },
+    {
       "source": "device-agent/local-wall.mjs",
       "destination": "device-agent/local-wall.mjs"
     },

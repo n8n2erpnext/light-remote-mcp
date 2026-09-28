@@ -13,7 +13,7 @@ c=clientCompatibility(current,'0.9.0-rc.25',{explicit:floor});
 need(c.supported===false&&c.updateRequired===true&&c.status==='client_update_required'&&c.minimumSupportedVersion===floor,'pre_floor_client_not_blocked');
 c=clientCompatibility(current,current,{explicit:floor});
 need(c.supported===true&&c.updateRequired===false,'current_client_not_supported');
-c=clientCompatibility(current,'0.9.1-beta.2',{explicit:floor});
+c=clientCompatibility(current,'0.9.1-beta.3',{explicit:floor});
 need(c.supported===false&&c.updateRequired===false&&c.status==='server_update_required','newer_client_not_server_blocked');
 c=clientCompatibility(current,'0.9-test',{explicit:floor});
 need(c.supported===false&&c.updateRequired===true&&c.reason==='client_version_invalid','invalid_client_not_blocked');
