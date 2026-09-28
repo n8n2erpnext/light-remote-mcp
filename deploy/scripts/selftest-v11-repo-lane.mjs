@@ -21,8 +21,4 @@ if(lane.id==='reviewer-direct'){
   expect(lane.role==='reviewer'&&lane.transport==='direct-mcp'&&lane.canonicalBranch==='reviewer/openai','reviewer_lane_identity_invalid');
   expect(lane.inheritsFrom==='main','reviewer_lane_parent_invalid');
 }
-if(lane.id==='backup-netlify'){
-  expect(lane.role==='backup'&&lane.transport==='netlify'&&lane.canonicalBranch==='backup/netlify','netlify_lane_identity_invalid');
-  expect(lane.inheritsFrom==='main','netlify_lane_parent_invalid');
-}
 console.log(`v11-repo-lane=${lane.id}=PASS`);

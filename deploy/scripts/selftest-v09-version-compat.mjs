@@ -1,28 +1,25 @@
 import fs from 'node:fs';
-import {clientCompatibility,minimumSupportedVersion,compareVersion,parseVersion} from '../../lib/version-compat.mjs';
+import {clientCompatibility,releaseCompatibilityFloor,compareVersion,parseVersion} from '../../lib/version-compat.mjs';
 
 const need=(condition,name)=>{if(!condition)throw new Error(name);};
-const current=fs.readFileSync(new URL('../../VERSION',import.meta.url),'utf8').trim(),parsed=parseVersion(current);
+const current=fs.readFileSync(new URL('../../VERSION',import.meta.url),'utf8').trim(),parsed=parseVersion(current),floor=releaseCompatibilityFloor();
 need(parsed,'current_version_invalid');
-const rc=parsed.pre[0]==='rc'&&/^\d+$/.test(parsed.pre[1]||'')?Number(parsed.pre[1]):null;
-need(rc!=null&&rc>3,'current_version_not_supported_by_rc_window_test');
-const core=parsed.core.join('.'),minimum=`${core}-rc.${rc-3}`,newer=`${core}-rc.${rc+1}`;
-need(minimumSupportedVersion(current,{backwardReleases:3})===minimum,'current_minimum_window_wrong');
-for(let n=rc-3;n<=rc;n++){
-  const v=`${core}-rc.${n}`,c=clientCompatibility(current,v,{backwardReleases:3});
-  need(c.supported===true&&c.updateRequired===false&&c.status==='supported',`supported_window_failed:${v}`);
-}
-let c=clientCompatibility(current,`${core}-rc.${rc-4}`,{backwardReleases:3});
-need(c.supported===false&&c.updateRequired===true&&c.status==='client_update_required'&&c.minimumSupportedVersion===minimum,'too_old_client_not_blocked');
-c=clientCompatibility(current,`${core}-rc.6`,{backwardReleases:3});
-need(c.supported===false&&c.updateRequired===true&&c.reason==='client_version_too_old'&&c.minimumSupportedVersion===minimum,'legacy_rc6_force_update_failed');
-c=clientCompatibility(current,newer,{backwardReleases:3});
+need(floor==='0.9.0-rc.26','release_compatibility_floor_wrong');
+need(compareVersion(current,floor)>0,'release_floor_not_older_than_current');
+
+let c=clientCompatibility(current,'0.9.0-rc.26',{explicit:floor});
+need(c.supported===true&&c.updateRequired===false&&c.status==='supported','rc26_transition_client_not_supported');
+c=clientCompatibility(current,'0.9.0-rc.25',{explicit:floor});
+need(c.supported===false&&c.updateRequired===true&&c.status==='client_update_required'&&c.minimumSupportedVersion===floor,'pre_floor_client_not_blocked');
+c=clientCompatibility(current,current,{explicit:floor});
+need(c.supported===true&&c.updateRequired===false,'current_client_not_supported');
+c=clientCompatibility(current,'0.9.1-beta.2',{explicit:floor});
 need(c.supported===false&&c.updateRequired===false&&c.status==='server_update_required','newer_client_not_server_blocked');
-c=clientCompatibility(current,'0.9-test',{backwardReleases:3});
+c=clientCompatibility(current,'0.9-test',{explicit:floor});
 need(c.supported===false&&c.updateRequired===true&&c.reason==='client_version_invalid','invalid_client_not_blocked');
-const explicit=`${core}-rc.${rc-2}`;
-need(minimumSupportedVersion(current,{backwardReleases:3,explicit})===explicit,'explicit_minimum_ignored');
-need(compareVersion(current,minimum)>0&&compareVersion('0.9.0','0.9.0-rc.99')>0,'semver_order_wrong');
-console.log(`v09-version-compat-window=PASS current=${current} minimum=${minimum}`);
-console.log('v09-version-compat-legacy-rc6-force-update=PASS');
+need(compareVersion('0.9.1-beta.1','0.9.0-rc.99')>0&&compareVersion('0.9.0','0.9.0-rc.99')>0,'semver_order_wrong');
+
+console.log(`v09-version-compat-transition=PASS current=${current} floor=${floor}`);
+console.log('v09-version-compat-rc26-supported=PASS');
+console.log('v09-version-compat-pre-floor-blocked=PASS');
 console.log('v09-version-compat-newer-server-update=PASS');

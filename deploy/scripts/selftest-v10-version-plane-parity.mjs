@@ -2,8 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..'),read=rel=>fs.readFileSync(path.join(root,rel),'utf8'),need=(v,m)=>{if(!v)throw new Error(m);};
-const version=read('VERSION').trim(),pkg=JSON.parse(read('package.json')),gatewayPkg=JSON.parse(read('gateway/package.json'));
-need(pkg.version===version&&gatewayPkg.version===version,'root_package_version_drift');
+const version=read('VERSION').trim(),pkg=JSON.parse(read('package.json')),lock=JSON.parse(read('package-lock.json')),gatewayPkg=JSON.parse(read('gateway/package.json')),gatewayLock=JSON.parse(read('gateway/package-lock.json'));
+need(pkg.version===version&&lock.version===version&&lock.packages?.['']?.version===version&&gatewayPkg.version===version&&gatewayLock.version===version&&gatewayLock.packages?.['']?.version===version,'root_package_version_drift');
 for(const [file,token] of [['operator-host/executor.mjs','runtimeVersion({envNames:'],['gateway/server.mjs','runtimeVersion({envNames:'],['device-agent/operator-agent.mjs','runtimeVersion({envNames:']])need(read(file).includes(token),`runtime_version_source_not_shared:${file}`);
 const fleet=read('device-agent/fleet-wall-runtime.mjs');need(fleet.includes("envNames:['LIGHT_REMOTE_FLEET_VERSION']")&&!fleet.includes("envNames:['LIGHT_REMOTE_VERSION']"),'fleet_component_version_coupled_to_core');
 const guide=read('api/guide.js');need(guide.includes('version:currentVersion()')&&!guide.includes("version:'0.9.0-rc.6'"),'vercel_guide_version_hardcoded');
@@ -11,4 +11,14 @@ const gatewayDocker=read('gateway/Dockerfile'),gatewaySync=read('deploy/scripts/
 const serverBuild=read('deploy/server-linux/build-bundle.sh'),vercelBuild=read('deploy/vercel/build-bundle.sh');need(serverBuild.includes('cp -a "$ROOT_DIR/lib"')&&serverBuild.includes('LICENSE NOTICE VERSION'),'server_bundle_version_plane_missing');need(vercelBuild.includes('cp -a "$ROOT_DIR/lib"')&&vercelBuild.includes('"$ROOT_DIR/VERSION"'),'vercel_bundle_version_plane_missing');
 const serverInstall=read('deploy/server-linux/install.sh');need(serverInstall.includes('BUNDLE_VERSION=')&&!serverInstall.includes('0.9.0-beta.1'),'server_installer_stale_version_fallback');
 const win=read('client/windows-native/GptOperator.Client/ClientVersion.cs'),iss=read('client/windows-native/installer/GptOperator.iss');need(win.includes('0.9.0-dev')&&!win.includes('0.9.0-rc.6'),'windows_client_stale_version_fallback');need(iss.includes('0.9.0-dev')&&!iss.includes('#define AppVersion "0.9.0-rc.6"'),'windows_installer_stale_version_fallback');
+const base=version.split('-')[0],numeric=base+'.0';
+for(const file of ['client/windows-native/GptOperator.Client/GptOperator.Client.csproj','client/windows-native/LightRemote.Updater/LightRemote.Updater.csproj']){
+  const text=read(file);need(text.includes(`<Version>${version}</Version>`)&&text.includes(`<FileVersion>${numeric}</FileVersion>`)&&text.includes(`<AssemblyVersion>${numeric}</AssemblyVersion>`),`windows_binary_version_drift:${file}`);
+}
+const macBuild=read('client/macos/build-pkg.sh');need(macBuild.includes('BASH_REMATCH[1]')&&macBuild.includes('1000 +')&&macBuild.includes('2000 +')&&macBuild.includes('BUILD_VERSION=3000'),'macos_prerelease_build_version_policy_missing');
+const fleetBuild=read('deploy/scripts/build-fleet-wall-module.sh');need(fleetBuild.includes('\"gitSha\": \"$GIT_SHA\"'),'fleet_artifact_git_sha_missing');
+const stableScope=read('deploy/scripts/selftest-v091-stable-scope.mjs');need(stableScope.includes('no-realremote-no-netlify'),'stable_scope_gate_missing');
+const compatibilityFloor=read('CLIENT_COMPATIBILITY_FLOOR').trim();need(compatibilityFloor==='0.9.0-rc.26','release_compatibility_floor_drift');need(serverBuild.includes('CLIENT_COMPATIBILITY_FLOOR'),'server_bundle_compatibility_floor_missing');
+console.log('v10-release-binary-version-parity=PASS');
+
 console.log(`v10-version-plane-parity=PASS version=${version}`);console.log('v10-fleet-component-version-isolation=PASS');console.log('v10-server-vercel-bundle-version-source=PASS');

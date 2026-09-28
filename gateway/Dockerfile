@@ -6,6 +6,7 @@ RUN npm ci --omit=dev
 COPY gateway/*.mjs ./
 COPY lib/runtime-version.mjs lib/brand.mjs /app/lib/
 COPY assets/branding/light-remote-mark.svg /app/assets/branding/light-remote-mark.svg
+COPY assets/fonts/CascadiaMono.ttf assets/fonts/CascadiaMono-OFL.txt /app/assets/fonts/
 COPY VERSION /app/VERSION
 USER node
 EXPOSE 8080 8081

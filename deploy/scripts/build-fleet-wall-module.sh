@@ -3,9 +3,10 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 OUT="${1:-$ROOT/dist/fleet-wall}"
 VERSION="$(tr -d '\r\n' < "$ROOT/VERSION")"
+GIT_SHA="$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"
 WORK="$OUT/work"
 PKG="$WORK/fleet-wall"
-rm -rf "$WORK"; mkdir -p "$PKG/device-agent" "$PKG/lib" "$PKG/gateway" "$PKG/assets/branding" "$OUT"
+rm -rf "$WORK"; mkdir -p "$PKG/device-agent" "$PKG/lib" "$PKG/gateway" "$PKG/assets/branding" "$PKG/assets/fonts" "$OUT"
 cp "$ROOT/device-agent/fleet-wall-runtime.mjs" "$PKG/device-agent/"
 cp "$ROOT/device-agent/update-settings-page.mjs" "$PKG/device-agent/"
 cp "$ROOT/device-agent/local-wall-auth.mjs" "$PKG/device-agent/"
@@ -14,10 +15,12 @@ cp "$ROOT/gateway/dashboard.mjs" "$PKG/gateway/"
 cp "$ROOT/gateway/device-policy-page.mjs" "$PKG/gateway/"
 cp "$ROOT/gateway/brand.mjs" "$PKG/gateway/"
 cp "$ROOT/assets/branding/light-remote-mark.svg" "$PKG/assets/branding/"
+cp "$ROOT/assets/fonts/CascadiaMono.ttf" "$ROOT/assets/fonts/CascadiaMono-OFL.txt" "$PKG/assets/fonts/"
 cat > "$PKG/manifest.json" <<JSON
 {
   "component": "fleet-wall",
   "version": "$VERSION",
+  "gitSha": "$GIT_SHA",
   "universal": true,
   "runtime": "node>=22",
   "port": 5492
@@ -34,6 +37,7 @@ cat > "$OUT/fleet-wall-module-metadata.json" <<JSON
   "schemaVersion": 1,
   "component": "fleet-wall",
   "version": "$VERSION",
+  "gitSha": "$GIT_SHA",
   "artifact": {
     "filename": "$(basename "$ART")",
     "sha256": "$SHA",
