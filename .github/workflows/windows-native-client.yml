@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - 'codex/**'
+      - 'build/windows-ui-golden-rc26'
     tags:
       - 'v0.9.*'
     paths:
