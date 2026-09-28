@@ -30,6 +30,10 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
+      - name: Verify stable scope
+        run: node deploy/scripts/selftest-v091-stable-scope.mjs
+      - name: Verify canonical version plane
+        run: node deploy/scripts/selftest-v10-version-plane-parity.mjs
       - name: Assemble release assets
         shell: bash
         run: |
@@ -43,10 +47,13 @@ jobs:
           find artifacts -type f -name 'Light-Remote-*.pkg' -exec cp {} release-assets/ \;
           find artifacts -type f -name 'Light-Remote-MCP-Server-Linux-*.tar.gz' -exec cp {} release-assets/ \;
           find artifacts -type f -name 'Light-Remote-MCP-Vercel-Bridge-*.tar.gz' -exec cp {} release-assets/ \;
-          win="$(find artifacts -type f -name 'Light-Remote-Setup-x64.exe' -print -quit)"
-          test -n "$win"; cp "$win" "release-assets/Light-Remote-Setup-x64-${VERSION}.exe"
-          compact="$(find artifacts -type f -name 'Light-Remote-Compact-Setup-x64.exe' -print -quit)"
-          test -n "$compact"; cp "$compact" "release-assets/Light-Remote-Compact-Setup-x64-${VERSION}.exe"
+          find artifacts -type f -name 'Light-Remote-Fleet-Wall-*.tar.gz' -exec cp {} release-assets/ \;
+          fleet_meta="$(find artifacts -type f -name 'fleet-wall-module-metadata.json' -print -quit)"
+          test -n "$fleet_meta"; cp "$fleet_meta" release-assets/fleet-wall-module-metadata.json
+          win="$(find artifacts -type f -name 'Light-Remote-MCP-Setup-x64.exe' -print -quit)"
+          test -n "$win"; cp "$win" "release-assets/Light-Remote-MCP-Setup-x64-${VERSION}.exe"
+          compact="$(find artifacts -type f -name 'Light-Remote-MCP-Compact-Setup-x64.exe' -print -quit)"
+          test -n "$compact"; cp "$compact" "release-assets/Light-Remote-MCP-Compact-Setup-x64-${VERSION}.exe"
           installer="$(find artifacts -type f -name 'install.sh' -print -quit)"
           test -n "$installer"; cp "$installer" release-assets/install-linux-client.sh
           chmod 0755 release-assets/install-linux-client.sh
@@ -54,6 +61,9 @@ jobs:
           test "$(find release-assets -maxdepth 1 -type f -name 'light-remote_*.deb' | wc -l)" -eq 2
           test "$(find release-assets -maxdepth 1 -type f -name 'Light-Remote-Client-macOS-*.tar.gz' | wc -l)" -eq 2
           test "$(find release-assets -maxdepth 1 -type f -name 'Light-Remote-*.pkg' | wc -l)" -eq 2
+          test "$(find release-assets -maxdepth 1 -type f -name 'Light-Remote-Fleet-Wall-*.tar.gz' | wc -l)" -eq 1
+          cp docs/releases/RELEASE_BOM_0_9_1_BETA_1.md release-assets/RELEASE-BOM.md
+          node -e 'const fs=require("fs");const version=process.argv[1];const row={schemaVersion:1,version,gitSha:process.env.GITHUB_SHA,baseCommit:"bf20fc01fd5585cff15618f78d26587517665ff0",uiPatchset:["8546864","40dca94","fea2097","95f32b9","57e6411"],containsFixes:{staleLease410:"c21df07",client401Transport:"05c3bb1",connectionHelperDeterminism:"5d70192",clientContinuity:"bf20fc0"},excluded:{realRemote:true,netlifyBackup:true}};fs.writeFileSync("release-assets/release-provenance.json",JSON.stringify(row,null,2)+"\n");' "$VERSION"
           BASE_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}"
           node deploy/scripts/build-client-update-manifest.mjs release-assets "$BASE_URL" release-assets/client-update-unsigned.json
           cat > release-assets/UPDATE-SIGNING-REQUIRED.txt <<EOF
@@ -73,7 +83,8 @@ jobs:
           set -euo pipefail
           NOTES_FILE="docs/releases/RELEASE_NOTES_V0_9_0_RC.md"
           case "$GITHUB_REF_NAME" in
-            *-beta.*) NOTES_FILE="docs/releases/RELEASE_NOTES_V0_9_0_BETA_1.md" ;;
+            v0.9.1-beta.1) NOTES_FILE="docs/releases/RELEASE_NOTES_V0_9_1_BETA_1.md" ;;
+            *-beta.*) echo "No release notes mapping for $GITHUB_REF_NAME" >&2; exit 2 ;;
           esac
           gh release create "$GITHUB_REF_NAME" release-assets/* \
             --repo "$GITHUB_REPOSITORY" \

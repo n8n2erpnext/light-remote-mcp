@@ -6,10 +6,6 @@
       "destination": "device-agent/operator-agent.mjs"
     },
     {
-      "source": "device-agent/result-delivery.mjs",
-      "destination": "device-agent/result-delivery.mjs"
-    },
-    {
       "source": "device-agent/local-wall.mjs",
       "destination": "device-agent/local-wall.mjs"
     },
@@ -64,18 +60,6 @@
     {
       "source": "lib/native-terminal.mjs",
       "destination": "lib/native-terminal.mjs"
-    },
-    {
-      "source": "lib/native-desktop.mjs",
-      "destination": "lib/native-desktop.mjs"
-    },
-    {
-      "source": "lib/real-remote-policy.mjs",
-      "destination": "lib/real-remote-policy.mjs"
-    },
-    {
-      "source": "lib/real-remote-input.cjs",
-      "destination": "lib/real-remote-input.cjs"
     },
     {
       "source": "lib/native-search.mjs",

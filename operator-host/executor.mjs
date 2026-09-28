@@ -24,17 +24,15 @@ import { executeNativeFs, filesystemPolicy } from '../lib/native-fs.mjs';
 import { NativeProcessRegistry } from '../lib/native-process.mjs';
 import { NativeTerminalRegistry } from '../lib/native-terminal.mjs';
 import { NativeSearchRegistry } from '../lib/native-search.mjs';
-import realRemoteInputPolicy from '../lib/real-remote-input.cjs';
 import { LightScpRegistry } from '../lib/light-scp-registry.mjs';
 import { normalizeUpdateReport } from '../lib/update-contract.mjs';
-import { clientCompatibility } from '../lib/version-compat.mjs';
+import { clientCompatibility, releaseCompatibilityFloor } from '../lib/version-compat.mjs';
 import { runtimeVersion } from '../lib/runtime-version.mjs';
 import { restoreActivityRing } from '../lib/activity-ring.mjs';
 import { createPlatformAdapter } from '../device-agent/platform-adapters/index.mjs';
 import { handleAccountRoutes } from './executor-routes-account.mjs';
 import { handleDeviceChannelRoutes } from './executor-routes-device-channel.mjs';
 import { handleRuntimeRoutes } from './executor-routes-runtime.mjs';
-import { RealRemoteLiveRegistry } from './real-remote-live-registry.mjs';
 
 const SOCKET_PATH = process.env.OPERATOR_SOCKET || '/run/gpt-vps-operator/operator.sock';
 const KEY_FILE = process.env.OPERATOR_KEY_FILE || '/home/ubuntu/.config/gpt-vps-operator/operator.private.json';
@@ -93,7 +91,7 @@ if (!Number.isFinite(DEVICE_HEARTBEAT_MS) || DEVICE_HEARTBEAT_MS < 5_000 || DEVI
 const HOST_CAPABILITIES = ['filesystem', 'git', 'build-test', 'docker', 'lxd', 'systemctl', 'sudo-on-demand', 'terminal'];
 const VERSION = runtimeVersion({envNames:['LIGHT_REMOTE_VERSION','OPERATOR_VERSION']});
 const CLIENT_BACKWARD_RELEASES=Math.max(0,Math.min(Number(process.env.OPERATOR_CLIENT_BACKWARD_RELEASES)||3,20));
-const MIN_SUPPORTED_CLIENT_VERSION=String(process.env.OPERATOR_MIN_SUPPORTED_CLIENT_VERSION||'').trim()||null;
+const MIN_SUPPORTED_CLIENT_VERSION=String(process.env.OPERATOR_MIN_SUPPORTED_CLIENT_VERSION||'').trim()||releaseCompatibilityFloor()||null;
 const compatibilityFor=device=>clientCompatibility(VERSION,device?.agentVersion,{backwardReleases:CLIENT_BACKWARD_RELEASES,explicit:MIN_SUPPORTED_CLIENT_VERSION});
 const HOST_PLATFORM_ADAPTER=createPlatformAdapter({platform:process.platform});
 const NATIVE_PROCESSES=new NativeProcessRegistry();
@@ -121,7 +119,6 @@ const agentClients = new AgentClientRegistry({ stateFile:AGENT_CLIENT_STATE_FILE
 const accounts = new AccountRegistry({ stateFile:ACCOUNT_STATE_FILE, bootstrapAccountId:ACCOUNT_ID, emit:event => pushEvent(event) });
 const licenses = new LicenseKeyRegistry({ stateFile:LICENSE_STATE_FILE, emit:event => pushEvent(event) });
 const fleetAuthority = new FleetAuthorityRegistry({ ttlMs:FLEET_AUTHORITY_TTL_MS, emit:event => pushEvent(event) });
-const realRemoteLive = new RealRemoteLiveRegistry();
 const hostIdentity = loadOrCreateHostDeviceIdentity(HOST_DEVICE_IDENTITY_FILE);
 
 fs.mkdirSync(LOG_DIR, { recursive: true });
@@ -508,7 +505,7 @@ function searchActivityMeta(request={}){
   if(request.maxResults!=null)meta.maxResults=Math.max(1,Number(request.maxResults)||0);
   return meta;
 }
-function nativeActivityResult(meta,data){if(!data||typeof data!=='object')return '';if(data.ok===false)return 'error · '+redact(String(data.error||'operation failed'));const kind=String(meta?.kind||''),op=String(meta?.op||data.operation||'');if(kind==='fs')return fsActivityResult(meta,data);if(kind==='terminal')return terminalResultSummary(data);if(kind==='search'){const v=data.search&&typeof data.search==='object'?data.search:data,p=[];if(v.state)p.push(String(v.state));if(Number.isFinite(Number(v.returned)))p.push(String(Number(v.returned))+' returned');if(Number.isFinite(Number(v.resultCount)))p.push(String(Number(v.resultCount))+' result'+(Number(v.resultCount)===1?'':'s'));if(Number.isFinite(Number(v.scannedFiles)))p.push(String(Number(v.scannedFiles))+' files scanned');if(Number.isFinite(Number(v.scannedDirs)))p.push(String(Number(v.scannedDirs))+' dirs');if(v.hasMore===true)p.push('more available');return p.join(' · ')||'completed';}if(kind==='process'){if(op==='list'&&Array.isArray(data.processes)){const r=data.processes.filter(x=>x?.state==='running').length;return data.processes.length+' process'+(data.processes.length===1?'':'es')+' · '+r+' running';}const v=data.process&&typeof data.process==='object'?data.process:data,p=[];if(v.state)p.push(String(v.state));if(v.processId)p.push(shortNativeId(v.processId));if(v.pid)p.push('pid '+String(v.pid));if(Number.isFinite(Number(v.exitCode)))p.push('exit '+String(v.exitCode));if(Number.isFinite(Number(v.stdoutBytes)))p.push('stdout '+String(v.stdoutBytes)+' B');if(Number.isFinite(Number(v.stderrBytes)))p.push('stderr '+String(v.stderrBytes)+' B');if(data.output&&Number.isFinite(Number(data.output.returnedBytes)))p.push(String(data.output.returnedBytes)+' B returned');return p.join(' · ')||'completed';}if(kind==='scp'){const v=data.transfer&&typeof data.transfer==='object'?data.transfer:data.result&&typeof data.result==='object'?data.result:data.chunk&&typeof data.chunk==='object'?data.chunk:data,p=[];if(v.mode)p.push(String(v.mode));if(v.path)p.push(String(v.path));if(Number.isFinite(Number(v.progressBytes))&&Number.isFinite(Number(v.totalBytes)))p.push(String(v.progressBytes)+'/'+String(v.totalBytes)+' B');else if(Number.isFinite(Number(v.bytes)))p.push(String(v.bytes)+' B');else if(Number.isFinite(Number(v.totalBytes)))p.push(String(v.totalBytes)+' B');if(Number.isFinite(Number(v.progressChunks))&&Number.isFinite(Number(v.totalChunks)))p.push(String(v.progressChunks)+'/'+String(v.totalChunks)+' chunks');if(v.complete===true)p.push('complete');if(v.cancelled===true)p.push('cancelled');return p.join(' · ')||'completed';}if(kind==='desktop'){const v=data.desktop&&typeof data.desktop==='object'?data.desktop:data,p=[];if(Array.isArray(v.windows))p.push(String(v.windows.length)+' windows');if(v.semanticSessionId)p.push('semantic '+shortNativeId(v.semanticSessionId));if(Number.isFinite(Number(v.width))&&Number.isFinite(Number(v.height)))p.push(String(v.width)+'×'+String(v.height));if(Number.isFinite(Number(v.stateSeq)))p.push('state '+String(v.stateSeq));return p.join(' · ')||'completed';}return '';}
+function nativeActivityResult(meta,data){if(!data||typeof data!=='object')return '';if(data.ok===false)return 'error · '+redact(String(data.error||'operation failed'));const kind=String(meta?.kind||''),op=String(meta?.op||data.operation||'');if(kind==='fs')return fsActivityResult(meta,data);if(kind==='terminal')return terminalResultSummary(data);if(kind==='search'){const v=data.search&&typeof data.search==='object'?data.search:data,p=[];if(v.state)p.push(String(v.state));if(Number.isFinite(Number(v.returned)))p.push(String(Number(v.returned))+' returned');if(Number.isFinite(Number(v.resultCount)))p.push(String(Number(v.resultCount))+' result'+(Number(v.resultCount)===1?'':'s'));if(Number.isFinite(Number(v.scannedFiles)))p.push(String(Number(v.scannedFiles))+' files scanned');if(Number.isFinite(Number(v.scannedDirs)))p.push(String(Number(v.scannedDirs))+' dirs');if(v.hasMore===true)p.push('more available');return p.join(' · ')||'completed';}if(kind==='process'){if(op==='list'&&Array.isArray(data.processes)){const r=data.processes.filter(x=>x?.state==='running').length;return data.processes.length+' process'+(data.processes.length===1?'':'es')+' · '+r+' running';}const v=data.process&&typeof data.process==='object'?data.process:data,p=[];if(v.state)p.push(String(v.state));if(v.processId)p.push(shortNativeId(v.processId));if(v.pid)p.push('pid '+String(v.pid));if(Number.isFinite(Number(v.exitCode)))p.push('exit '+String(v.exitCode));if(Number.isFinite(Number(v.stdoutBytes)))p.push('stdout '+String(v.stdoutBytes)+' B');if(Number.isFinite(Number(v.stderrBytes)))p.push('stderr '+String(v.stderrBytes)+' B');if(data.output&&Number.isFinite(Number(data.output.returnedBytes)))p.push(String(data.output.returnedBytes)+' B returned');return p.join(' · ')||'completed';}if(kind==='scp'){const v=data.transfer&&typeof data.transfer==='object'?data.transfer:data.result&&typeof data.result==='object'?data.result:data.chunk&&typeof data.chunk==='object'?data.chunk:data,p=[];if(v.mode)p.push(String(v.mode));if(v.path)p.push(String(v.path));if(Number.isFinite(Number(v.progressBytes))&&Number.isFinite(Number(v.totalBytes)))p.push(String(v.progressBytes)+'/'+String(v.totalBytes)+' B');else if(Number.isFinite(Number(v.bytes)))p.push(String(v.bytes)+' B');else if(Number.isFinite(Number(v.totalBytes)))p.push(String(v.totalBytes)+' B');if(Number.isFinite(Number(v.progressChunks))&&Number.isFinite(Number(v.totalChunks)))p.push(String(v.progressChunks)+'/'+String(v.totalChunks)+' chunks');if(v.complete===true)p.push('complete');if(v.cancelled===true)p.push('cancelled');return p.join(' · ')||'completed';}return '';}
 
 async function startFsOperation(payload,requestId){
   const operationId=String(payload.operationId||'').trim();
@@ -663,30 +660,6 @@ async function executeLocalTerminalRequest(job,request){
   throw new Error('terminal_operation_unsupported');
 }
 
-const {normalizeDesktopInput}=realRemoteInputPolicy;
-
-async function startDesktopOperation(payload,requestId){
-  const operationId=String(payload.operationId||'').trim();if(!/^[A-Za-z0-9._:-]{16,128}$/.test(operationId))throw new Error('invalid_operation_id');
-  const agentId=String(payload.agentId||'').trim(),session=sessions.ensure(String(payload.sessionId||''),{agentId});requireDeviceConnection(session.deviceId);
-  if(payload.nodeId!=null&&String(payload.nodeId)!==session.nodeId)throw new SessionError('session_target_mismatch',409);
-  let request=payload.desktop&&typeof payload.desktop==='object'&&!Array.isArray(payload.desktop)?payload.desktop:null;if(!request)throw new Error('desktop_request_required');
-  const op=String(request.op||'');if(!['status','attach','resume','detach','windows','frame','input','observe','act','semantic-attach','semantic-snapshot','semantic-events','semantic-detach','live-open','live-close'].includes(op))throw new Error('desktop_operation_unsupported');
-  if(op==='input'||(op==='act'&&Array.isArray(request.events)))request={op,...normalizeDesktopInput(request)};
-  const remote=session.nodeId!==NODE_ID,requiredCapabilities=(op==='input'||op==='act')?['desktop','desktop-input']:['desktop'];
-  if(!remote)throw new DeviceError('desktop_local_host_not_supported',409);
-  const route=targetRoute(session.nodeId);if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(requiredCapabilities.some(cap=>!route.capabilities.includes(cap)))throw new FleetError('target_node_capability_missing',409);
-  const fingerprint=crypto.createHash('sha256').update(JSON.stringify({request,sessionId:session.id,nodeId:session.nodeId})).digest('hex'),existing=operationDedupe.get(operationId);
-  if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
-  const toolMeta={kind:'desktop',op,label:op==='status'?'Desktop status':op==='attach'?'Desktop attach':op==='resume'?'Desktop resume':op==='detach'?'Desktop detach':op==='windows'?'Desktop windows':op==='frame'?'Desktop frame':op==='input'?'Desktop input':op==='observe'?'Computer observe':op==='act'?'Computer act':op==='semantic-attach'?'Semantic attach':op==='semantic-snapshot'?'Semantic snapshot':op==='semantic-events'?'Semantic events':op==='live-open'?'Real Remote live open':op==='live-close'?'Real Remote live close':'Semantic detach'};
-  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-desktop:${op}`,cwd:'',script:toolMeta.label,status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote:true,commandId:null,requiredCapabilities,resultData:null,resultSummary:'',toolMeta};
-  jobs.set(job.id,job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
-  pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:'outbound-leaf',requiredCapabilities,note:job.note,toolMeta});
-  const command=fleet.enqueue({accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'desktop',operationId,sessionId:job.sessionId,agentId:job.agentId,desktop:request}});
-  job.commandId=command.commandId;
-  job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},30000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();
-  return job;
-}
-
 async function startSearchOperation(payload,requestId){
   const operationId=String(payload.operationId||'').trim();if(!/^[A-Za-z0-9._:-]{16,128}$/.test(operationId))throw new Error('invalid_operation_id');
   const agentId=String(payload.agentId||'').trim(),session=sessions.ensure(String(payload.sessionId||''),{agentId});requireDeviceConnection(session.deviceId);
@@ -749,23 +722,6 @@ function assertDiskJobOwner(jobId, agentId) {
   if (!owner) return null;
   if (!agentId || owner.agentId !== agentId) throw new SessionError('session_owner_mismatch',409);
   return owner;
-}
-function abandonedCommandReceiptFromDisk(commandId,{maxAgeMs=24*60*60*1000,now=Date.now()}={}) {
-  const id=String(commandId||'').trim();
-  if(!/^cmd_[A-Za-z0-9._:-]{20,128}$/.test(id))return null;
-  const cutoff=now-Math.max(10*60_000,Math.min(Number(maxAgeMs)||24*60*60*1000,7*24*60*60*1000));
-  for(const file of [...logFilesOldestFirst()].reverse()){
-    const lines=readLogText(file).split('\n');
-    for(let i=lines.length-1;i>=0;i--){
-      const line=lines[i];if(!line||!line.includes(id)||!line.includes('node_command_abandoned'))continue;
-      let event;try{event=JSON.parse(line);}catch{continue;}
-      if(event.type!=='node_command_abandoned'||event.commandId!==id)continue;
-      const at=Date.parse(event.at||event.ts||0);if(!Number.isFinite(at)||at<cutoff)return null;
-      if(!event.accountId||!event.deviceId||!event.nodeId||!event.jobId)return null;
-      return {commandId:id,jobId:String(event.jobId),accountId:String(event.accountId),deviceId:String(event.deviceId),nodeId:String(event.nodeId),abandoned:true,abandonReason:String(event.reason||'abandoned'),abandonedAt:at,duplicate:true,recoveredFromDisk:true};
-    }
-  }
-  return null;
 }
 
 function fullOutputFromDisk(jobId, stream) {
@@ -969,7 +925,7 @@ class DeviceChannelRateLimitError extends Error {
 }
 function trustedChannelLane(action){
   if(['poll','result','update-report'].includes(action))return 'runtime';
-  if(['status','activity','desktop-live-push','fleet-intent','fleet-authority','fleet-status','fleet-devices','fleet-sessions','fleet-activity'].includes(action))return 'observer';
+  if(['status','activity','fleet-intent','fleet-authority','fleet-status','fleet-devices','fleet-sessions','fleet-activity'].includes(action))return 'observer';
   return 'control';
 }
 function enforceTrustedChannelRate(deviceId,action,now=Date.now()){
@@ -1020,6 +976,9 @@ function verifiedLeafCapabilities(value,binding,reportedRevision=0) {
     if (!/^[A-Za-z0-9._:-]{1,80}$/.test(item)) throw new EnrollmentError('invalid_device_capability');
     if (!reported.includes(item)) reported.push(item);
   }
+  const currentRevision=Math.max(1,Number(binding.policyRevision)||1), stale=currentRevision>1 && Number(reportedRevision||0)<currentRevision;
+  const extras=reported.filter(item=>!binding.approvedCapabilities.includes(item));
+  if (extras.length && !stale) throw new EnrollmentError('device_capability_escalation',403);
   const out=reported.filter(item=>binding.approvedCapabilities.includes(item)).sort();
   if (!out.length) throw new EnrollmentError('device_capabilities_required');
   return out;
@@ -1031,18 +990,18 @@ const routeDeps=()=>({
   FleetAuthorityError,FleetError,MAX_ACTIVE_SESSIONS,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,
   MIN_SUPPORTED_CLIENT_VERSION,NODE_ID,SESSION_GRACE_PRESETS,SESSION_IDLE_MS,SESSION_MAX_IDLE_MS,
   SESSION_MIN_IDLE_MS,VERSION,accessGrants,accountSessionToken,accounts,
-  abandonedCommandReceiptFromDisk,agentClients,allDeviceViews,applyDeviceTelemetry,assertDiskJobOwner,capabilities,
+  agentClients,allDeviceViews,applyDeviceTelemetry,assertDiskJobOwner,capabilities,
   clearMainIfMatches,clientCompatibility,closeRuntimeForAccount,compatibilityFor,connectionSpec,
   connectionViewForDevice,connections,decryptEnvelope,deviceView,devices,
   emitStream,enrollments,finishJob,fleet,fleetAuthority,
   fleetEligibility,fleetTarget,flushDiskRecords,fs,fullOutputFromDisk,
   ingressTelemetry,jobView,jobs,licenses,normalizeUpdateReport,
   pairingCodes,planEntitlements,pruneRing,pushEvent,queueHelperUpdate,
-  queueSignedUpdate,readJson,reapAccessGrants,realRemoteLive,recentEvents,redact,
+  queueSignedUpdate,readJson,reapAccessGrants,recentEvents,redact,
   removeRuntimeForDevice,requireAccount,requireDeviceConnection,revokeRuntimeForDevice,ring,
   ringBytes,sendJson,sessionStatsFromDisk,sessions,sseClients,
   startFsOperation,startJob,startProcessOperation,startScpOperation,startSearchOperation,
-  startDesktopOperation,startTerminalOperation,targetRoute,terminalResultSummary,usage,verifiedChannelContext,
+  startTerminalOperation,targetRoute,terminalResultSummary,usage,verifiedChannelContext,
   verifiedFleetContext,verifiedLeafCapabilities,waitForJob,wakeDeviceChannelForDevice,
 });
 

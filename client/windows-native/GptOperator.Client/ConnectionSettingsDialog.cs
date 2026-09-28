@@ -7,7 +7,7 @@ internal sealed class ConnectionSettingsDialog : Form
 
     public ConnectionSettingsDialog(ConnectionSettings current, bool enrolled)
     {
-        Text = "Light Remote — Server settings";
+        Text = "Light Remote MCP — Server settings";
         ClientSize = new Size(560, 290);
         MinimumSize = new Size(560, 290);
         MaximumSize = new Size(760, 360);

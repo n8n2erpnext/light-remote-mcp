@@ -75,6 +75,17 @@ jobs:
           ART="Light-Remote-Fleet-Wall-$(cat VERSION).tar.gz"
           cmp "$A/$ART" "$B/$ART"
           echo "fleet-module-reproducible=PASS sha256=$(sha256sum "$A/$ART" | awk '{print $1}')"
+      - name: Build Fleet Wall release module
+        if: matrix.arch == 'x64'
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash deploy/scripts/build-fleet-wall-module.sh dist/fleet-wall
+          VERSION="$(cat VERSION)"
+          test -s "dist/fleet-wall/Light-Remote-Fleet-Wall-${VERSION}.tar.gz"
+          test -s dist/fleet-wall/fleet-wall-module-metadata.json
+          (cd dist/fleet-wall && sha256sum -c SHA256SUMS.txt)
+
       - name: Legacy live-host parity smoke
         run: node deploy/scripts/selftest-host-install-layout.mjs
       - name: Gateway canonical image smoke
@@ -137,5 +148,8 @@ jobs:
           path: |
             dist/server-linux/${{ matrix.arch }}/Light-Remote-MCP-Server-Linux-${{ matrix.arch }}-*.tar.gz
             dist/server-linux/${{ matrix.arch }}/SHA256SUMS.txt
+            dist/fleet-wall/Light-Remote-Fleet-Wall-*.tar.gz
+            dist/fleet-wall/fleet-wall-module-metadata.json
+            dist/fleet-wall/SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 14

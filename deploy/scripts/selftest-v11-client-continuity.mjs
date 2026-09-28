@@ -4,7 +4,6 @@ import fs from 'node:fs';
 
 const require=createRequire(import.meta.url);
 const {
-  classifyClientCapability,
   decodeClientCapability,
   clientFingerprint,
   callWithClientContinuity
@@ -22,25 +21,15 @@ const tokenFor=exp=>'o1.client.'+Buffer.from(JSON.stringify({
 })).toString('base64url')+'.sig';
 const valid=tokenFor(now+60000);
 const expired=tokenFor(now-1);
-const client401=detail=>{
+const invalidError=()=>{
   const e=new Error('operator_http_401');
   e.status=401;
-  e.payload={ok:false,error:'agent_client_required'};
-  if(detail!==undefined)e.payload.detail=detail;
+  e.payload={ok:false,error:'agent_client_required',detail:'invalid'};
   return e;
 };
-const invalidError=()=>client401('invalid');
-const legacyNoDetailError=()=>client401(undefined);
-const missingCredentialError=()=>client401('missing');
 
 assert.equal(decodeClientCapability(valid,{now})?.clientSessionId,'lrc_continuity_selftest_0001');
 assert.equal(decodeClientCapability(expired,{now}),null);
-assert.equal(classifyClientCapability(valid,{now}).reason,'eligible');
-assert.equal(classifyClientCapability(expired,{now}).reason,'expired');
-assert.equal(classifyClientCapability('',{now}).reason,'missing');
-assert.equal(classifyClientCapability('lr1.Y2xpZW50.YWdlbnQ.sig',{now}).reason,'client_ref');
-assert.equal(classifyClientCapability('o1.client.'+Buffer.from('not-json').toString('base64url')+'.sig',{now}).reason,'json');
-assert.equal(classifyClientCapability(tokenFor('not-a-number'),{now}).reason,'exp_type');
 assert.match(clientFingerprint(valid),/^[a-f0-9]{16}$/);
 
 let calls=0;
@@ -59,22 +48,6 @@ const recovered=await callWithClientContinuity(async()=>{
 assert.deepEqual(recovered,{ok:true,value:'recovered'});
 assert.equal(calls,3);
 assert.deepEqual(events.map(x=>x.type),['client_continuity_retry','client_continuity_retry','client_continuity_recovered']);
-
-calls=0;
-const legacyRecovered=await callWithClientContinuity(async()=>{
-  calls+=1;
-  if(calls===1)throw legacyNoDetailError();
-  return {ok:true,value:'legacy-recovered'};
-},{client:valid,delaysMs:[0],sleep:async()=>{},now:()=>now});
-assert.deepEqual(legacyRecovered,{ok:true,value:'legacy-recovered'});
-assert.equal(calls,2);
-
-calls=0;
-await assert.rejects(
-  ()=>callWithClientContinuity(async()=>{calls+=1;throw missingCredentialError();},{client:valid,delaysMs:[0,0],sleep:async()=>{},now:()=>now}),
-  error=>error?.payload?.detail==='missing'
-);
-assert.equal(calls,1);
 
 calls=0;
 let exhausted=null;
@@ -106,14 +79,6 @@ assert.equal(calls,1);
 assert.equal(expiredError?.status,401);
 assert.equal(expiredError?.payload?.error,'agent_client_required');
 
-calls=0;
-const clientRef='lr1.Y2xpZW50.YWdlbnQ.sig';
-await assert.rejects(
-  ()=>callWithClientContinuity(async()=>{calls+=1;throw invalidError();},{client:clientRef,delaysMs:[0,0,0],sleep:async()=>{},now:()=>now}),
-  error=>error?.status===401
-);
-assert.equal(calls,1);
-
 const other401=Object.assign(new Error('operator_http_401'),{status:401,payload:{ok:false,error:'unauthorized_plus_bridge_call'}});
 calls=0;
 await assert.rejects(
@@ -123,11 +88,9 @@ await assert.rejects(
 assert.equal(calls,1);
 
 const helper=toolHelperView({context:{deviceId:'arm-local',sessionId:'s_test',agentId:'agent-test',platform:'linux'}});
-assert.equal(helper.kind,'light-remote-tool-helper');
-assert.equal(helper.helperMode,'full');
-assert.ok(helper.transport.continuity.includes('retry'));
-assert.ok(helper.transport.continuity.includes('Do not re-pair'));
-assert.ok(helper.selection.some(x=>x.includes('Never silently switch devices')));
+assert.ok(helper.transport.continuity.includes('retry the same action'));
+assert.ok(helper.transport.continuity.includes('Do not start a new A/B pairing'));
+assert.ok(helper.safety.some(x=>x.includes('agent_client_temporarily_unavailable')&&x.includes('same client/target')));
 
 const api=fs.readFileSync(new URL('../../api/operator.js',import.meta.url),'utf8');
 assert.ok(api.includes("require('../lib/plus-client-continuity.cjs')"));

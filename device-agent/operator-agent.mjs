@@ -16,13 +16,9 @@ import { executeNativeFs, filesystemPolicy } from '../lib/native-fs.mjs';
 import { NativeProcessRegistry } from '../lib/native-process.mjs';
 import { NativeTerminalRegistry } from '../lib/native-terminal.mjs';
 import { NativeSearchRegistry } from '../lib/native-search.mjs';
-import { NativeDesktopBridge, realRemoteAvailable } from '../lib/native-desktop.mjs';
-import { withRealRemoteCapabilities, defaultRealRemoteDenied, realRemotePolicyAfterSave, REAL_REMOTE_INPUT_CAPABILITY } from '../lib/real-remote-policy.mjs';
-import realRemoteInputPolicy from '../lib/real-remote-input.cjs';
 import { LightScpRegistry } from '../lib/light-scp-registry.mjs';
 import { normalizeUpdateReport, normalizeUpdateStatus } from '../lib/update-contract.mjs';
 import { runtimeVersion } from '../lib/runtime-version.mjs';
-import { compactResultAfter413, isCompacted413Result } from './result-delivery.mjs';
 
 const VERSION=runtimeVersion({envNames:['LIGHT_REMOTE_VERSION','OPERATOR_AGENT_VERSION']});
 const CORE_ROOT=fileURLToPath(new URL('../',import.meta.url));
@@ -31,15 +27,10 @@ const PLATFORM_ADAPTER=createPlatformAdapter();
 const NATIVE_PROCESSES=new NativeProcessRegistry();
 const NATIVE_TERMINALS=new NativeTerminalRegistry({emit:event=>console.log(JSON.stringify(event))});
 const NATIVE_SEARCHES=new NativeSearchRegistry();
-const REAL_REMOTE_AVAILABLE=realRemoteAvailable();
-const NATIVE_DESKTOP=new NativeDesktopBridge();
-const {normalizeDesktopInput}=realRemoteInputPolicy;
 const LIGHT_SCP=new LightScpRegistry();
 const DEFAULT_BASE=process.env.OPERATOR_AGENT_BASE_URL || 'https://light-remote-mcp.vercel.app';
 const DEFAULT_HUB=process.env.OPERATOR_AGENT_HUB_URL || 'https://mcp.dashboard.thaiduy.store';
 const STATE_FILE=process.env.OPERATOR_AGENT_STATE || path.join(os.homedir(),'.config','gpt-operator-agent','device.json');
-const REAL_REMOTE_ACTIVITY_FILE=process.env.LIGHT_REMOTE_REAL_REMOTE_ACTIVITY_FILE || path.join(path.dirname(STATE_FILE),'real-remote-activity.json');
-const REAL_REMOTE_VIEW_TTL_MS=30000,REAL_REMOTE_CONTROL_TTL_MS=8000;
 const EXTERNAL_IDENTITY_FILE=String(process.env.OPERATOR_AGENT_IDENTITY_FILE||'').trim();
 const COMMAND_DIR=process.env.OPERATOR_AGENT_COMMAND_DIR || path.join(path.dirname(STATE_FILE),'commands');
 const LOCAL_WALL_HOST=process.env.OPERATOR_AGENT_WALL_HOST || '127.0.0.1';
@@ -59,98 +50,6 @@ function readState(){try{return JSON.parse(fs.readFileSync(STATE_FILE,'utf8'));}
 function writeJson0600(file,value){const dir=path.dirname(file);fs.mkdirSync(dir,{recursive:true,mode:0o700});const tmp=`${file}.${process.pid}.tmp`;fs.writeFileSync(tmp,`${JSON.stringify(value,null,2)}\n`,{mode:0o600});fs.chmodSync(tmp,0o600);fs.renameSync(tmp,file);}
 function writeState(state){writeJson0600(STATE_FILE,state);}
 function readJsonFile(file){try{return JSON.parse(fs.readFileSync(file,'utf8'));}catch{return null;}}
-function clearRealRemoteActivity(){try{fs.rmSync(REAL_REMOTE_ACTIVITY_FILE,{force:true});}catch{}}
-function recordRealRemoteActivity(p,op){
-  const viewOps=new Set(['attach','resume','windows','frame','observe','semantic-attach','semantic-snapshot','semantic-events','live-open']);
-  const controlOps=new Set(['input','act']);
-  if(!viewOps.has(op)&&!controlOps.has(op))return;
-  const now=Date.now(),current=readJsonFile(REAL_REMOTE_ACTIVITY_FILE)||{};
-  const next={schemaVersion:1,agentId:String(p?.agentId||current.agentId||'').slice(0,128),sessionId:String(p?.sessionId||current.sessionId||'').slice(0,128),lastViewAt:Number(current.lastViewAt)||0,lastControlAt:Number(current.lastControlAt)||0,updatedAt:now};
-  if(viewOps.has(op))next.lastViewAt=now;
-  if(controlOps.has(op)){next.lastControlAt=now;next.lastViewAt=now;}
-  writeJson0600(REAL_REMOTE_ACTIVITY_FILE,next);
-}
-function realRemoteActivityView(effective=[]){
-  const caps=new Set(effective||[]),enabled=REAL_REMOTE_AVAILABLE&&caps.has('desktop'),controlAllowed=enabled&&caps.has(REAL_REMOTE_INPUT_CAPABILITY),row=readJsonFile(REAL_REMOTE_ACTIVITY_FILE)||{},now=Date.now(),lastViewAt=Math.max(0,Number(row.lastViewAt)||0),lastControlAt=Math.max(0,Number(row.lastControlAt)||0);
-  const controlling=controlAllowed&&lastControlAt>0&&now-lastControlAt<=REAL_REMOTE_CONTROL_TTL_MS,viewing=enabled&&lastViewAt>0&&now-lastViewAt<=REAL_REMOTE_VIEW_TTL_MS,mode=controlling?'controlling':viewing?'viewing':'idle';
-  return {available:REAL_REMOTE_AVAILABLE,enabled,controlAllowed,active:mode!=='idle',mode,agentId:mode==='idle'?null:String(row.agentId||'')||null,sessionId:mode==='idle'?null:String(row.sessionId||'')||null,lastViewAt:lastViewAt||null,lastControlAt:lastControlAt||null,viewTtlMs:REAL_REMOTE_VIEW_TTL_MS,controlTtlMs:REAL_REMOTE_CONTROL_TTL_MS};
-}
-const REAL_REMOTE_LIVE_LOOPS=new Map();
-const REAL_REMOTE_LIVE_POLL_MS=300;
-const REAL_REMOTE_LIVE_HEARTBEAT_MS=2000;
-const REAL_REMOTE_LIVE_SNAPSHOT_DEBOUNCE_MS=1000;
-
-function realRemoteLiveLoop(semanticSessionId){return REAL_REMOTE_LIVE_LOOPS.get(String(semanticSessionId||''))||null;}
-function touchRealRemoteLiveLoop(semanticSessionId){
-  const row=realRemoteLiveLoop(semanticSessionId);if(row)row.expiresAt=Math.max(row.expiresAt,Date.now()+row.idleTimeoutMs);
-}
-async function pushRealRemoteLive(state,hub,p,row,value={}){
-  const current=readState()||state;
-  return channelRequest(current,hub,'desktop-live-push',{
-    sessionId:String(p.sessionId||''),agentId:String(p.agentId||''),semanticSessionId:row.semanticSessionId,
-    stateSeq:Number(value.stateSeq)||row.afterSeq||0,events:Array.isArray(value.events)?value.events:[],
-    snapshot:value.snapshot||null,displayTopologyId:value.displayTopologyId||row.displayTopologyId||null,
-    cursor:value.cursor||null,foreground:value.foreground||null,resyncRecommended:Boolean(value.resyncRecommended),
-    heartbeat:Boolean(value.heartbeat),closed:Boolean(value.closed)
-  });
-}
-async function stopRealRemoteLiveLoop(state,hub,p,semanticSessionId,{detach=true,notify=true}={}){
-  const id=String(semanticSessionId||''),row=REAL_REMOTE_LIVE_LOOPS.get(id);if(row){row.stopped=true;REAL_REMOTE_LIVE_LOOPS.delete(id);}
-  let detached=null;
-  if(detach){try{detached=await NATIVE_DESKTOP.request('semantic-detach',{semanticSessionId:id},{timeoutMs:10000});}catch(error){if(error?.message!=='semantic_session_not_found')throw error;}}
-  if(notify&&id){try{await pushRealRemoteLive(state,hub,p,row||{semanticSessionId:id,afterSeq:0,displayTopologyId:null},{closed:true});}catch{}}
-  return detached;
-}
-function startRealRemoteLiveLoop(state,hub,p,initial,idleTimeoutMs){
-  const semanticSessionId=String(initial?.semanticSessionId||'');if(!semanticSessionId)throw new Error('semantic_session_not_found');
-  const existing=REAL_REMOTE_LIVE_LOOPS.get(semanticSessionId);if(existing)existing.stopped=true;
-  const row={semanticSessionId,afterSeq:Math.max(0,Number(initial?.stateSeq)||0),displayTopologyId:String(initial?.displayTopologyId||''),idleTimeoutMs:Math.max(15000,Math.min(Number(idleTimeoutMs)||300000,900000)),expiresAt:Date.now()+Math.max(15000,Math.min(Number(idleTimeoutMs)||300000,900000)),lastPushAt:Date.now(),lastSnapshotAt:Date.now(),stopped:false};
-  REAL_REMOTE_LIVE_LOOPS.set(semanticSessionId,row);
-  void (async()=>{
-    try{
-      let failures=0;
-      while(!row.stopped&&Date.now()<row.expiresAt){
-        let observed;
-        try{observed=await NATIVE_DESKTOP.request('semantic-events',{semanticSessionId,afterSeq:row.afterSeq,limit:200},{timeoutMs:10000});failures=0;}
-        catch(error){
-          failures++;const message=String(error?.message||error);
-          console.error(JSON.stringify({event:'real_remote_live_observe_retry',semanticSessionId,error:message,failures}));
-          if(message==='semantic_session_not_found'||failures>=5)break;
-          await new Promise(resolve=>setTimeout(resolve,Math.min(1500,200*failures)));continue;
-        }
-        if(row.stopped)break;
-        const events=Array.isArray(observed?.events)?observed.events:[],now=Date.now();
-        let snapshot=null;
-        if(observed?.resyncRecommended&&now-row.lastSnapshotAt>=REAL_REMOTE_LIVE_SNAPSHOT_DEBOUNCE_MS){
-          try{snapshot=await NATIVE_DESKTOP.request('semantic-snapshot',{semanticSessionId},{timeoutMs:15000});row.lastSnapshotAt=Date.now();}catch{}
-        }
-        const nextSeq=Math.max(row.afterSeq,Number(observed?.nextObservation?.afterSeq)||0,Number(observed?.stateSeq)||0,Number(snapshot?.stateSeq)||0);
-        const shouldPush=events.length>0||snapshot||now-row.lastPushAt>=REAL_REMOTE_LIVE_HEARTBEAT_MS;
-        if(shouldPush){
-          try{
-            await pushRealRemoteLive(state,hub,p,row,{stateSeq:nextSeq,events,snapshot,displayTopologyId:snapshot?.displayTopologyId||observed?.displayTopologyId,resyncRecommended:Boolean(observed?.resyncRecommended&&!snapshot),heartbeat:events.length===0&&!snapshot});
-            row.lastPushAt=Date.now();failures=0;recordRealRemoteActivity(p,'live-open');
-          }catch(error){
-            failures++;const message=String(error?.message||error);
-            console.error(JSON.stringify({event:'real_remote_live_push_retry',semanticSessionId,error:message,status:error?.status||null,failures}));
-            if(['device_binding_not_found','device_not_found','device_connection_required','device_connection_expired','device_revoked'].includes(message)||failures>=5)break;
-            await new Promise(resolve=>setTimeout(resolve,Math.min(1500,250*failures)));
-          }
-        }
-        row.afterSeq=nextSeq;
-        if(observed?.hasMore)continue;
-        await new Promise(resolve=>setTimeout(resolve,REAL_REMOTE_LIVE_POLL_MS));
-      }
-    }catch(error){
-      console.error(JSON.stringify({event:'real_remote_live_loop_failed',semanticSessionId,error:error?.message||String(error)}));
-    }finally{
-      if(REAL_REMOTE_LIVE_LOOPS.get(semanticSessionId)===row)REAL_REMOTE_LIVE_LOOPS.delete(semanticSessionId);
-      if(!row.stopped){try{await NATIVE_DESKTOP.request('semantic-detach',{semanticSessionId},{timeoutMs:10000});}catch{}try{await pushRealRemoteLive(state,hub,p,row,{closed:true});}catch{}}
-    }
-  })();
-  return row;
-}
-
 function updateStatusView(){const report=readJsonFile(UPDATE_REPORT_FILE);if(UPDATE_MODE==='server-managed')return {state:'managed',currentVersion:VERSION,targetVersion:null,helperVersion:'server-managed',code:null,updatedAt:null,mode:UPDATE_MODE,pendingReport:null};const status=normalizeUpdateStatus(readJsonFile(UPDATE_STATUS_FILE)||{});return {...status,currentVersion:status.currentVersion||VERSION,mode:UPDATE_MODE,pendingReport:report?{outcome:String(report.outcome||''),code:String(report.code||'')||null,targetVersion:String(report.targetVersion||'')||null,at:Number(report.at)||null}:null};}
 function acknowledgeCoreUpdateHealth(){const tx=readJsonFile(UPDATE_TRANSACTION_FILE);if(!tx||String(tx.targetVersion||'')!==VERSION||!/^ut_[A-Za-z0-9_-]{12,80}$/.test(String(tx.txId||'')))return false;writeJson0600(UPDATE_ACK_FILE,{schemaVersion:1,txId:tx.txId,version:VERSION,healthy:true,pid:process.pid,at:Date.now()});return true;}
 async function requestLocalUpdate(source='local-wall',mode='apply'){if(UPDATE_MODE==='server-managed')throw new Error('update_managed_by_server_deployment');const action=mode==='check'?'check':'apply';if(process.platform==='win32'){const updater=path.join(process.env.LOCALAPPDATA||os.homedir(),'Light Remote','Updater','LightRemote.Updater.exe'),installRoot=fileURLToPath(new URL('../../',import.meta.url));if(!fs.existsSync(updater))throw new Error('independent_updater_missing');const args=[action==='check'?'--check-update':'--apply-update-now','--install-dir',installRoot],child=spawn(updater,args,{windowsHide:true,detached:true,stdio:'ignore'});child.unref();return {accepted:true,source,mode:action,transport:'independent-updater',requestedAt:Date.now()};}const target=action==='check'?UPDATE_CHECK_REQUEST_FILE:UPDATE_REQUEST_FILE;writeJson0600(target,{schemaVersion:1,requestId:`uq_${crypto.randomBytes(12).toString('base64url')}`,source:String(source||'local-wall').slice(0,40),mode:action,currentVersion:VERSION,requestedAt:Date.now()});return {accepted:true,source,mode:action,transport:'helper-trigger',requestedAt:Date.now()};}
@@ -158,51 +57,11 @@ async function flushPendingUpdateReport(state,hub){const raw=readJsonFile(UPDATE
 let externalIdentityCache=null;
 function externalIdentity(){if(!EXTERNAL_IDENTITY_FILE)return null;if(externalIdentityCache)return externalIdentityCache;const row=JSON.parse(fs.readFileSync(EXTERNAL_IDENTITY_FILE,'utf8')),privateKey=crypto.createPrivateKey({key:Buffer.from(row.privateKey,'base64'),format:'der',type:'pkcs8'}),publicKey=crypto.createPublicKey({key:Buffer.from(row.publicKey||row.publicIdentityKey,'base64'),format:'der',type:'spki'});if(privateKey.asymmetricKeyType!=='ed25519'||publicKey.asymmetricKeyType!=='ed25519')throw new Error('invalid_external_device_identity');const publicIdentityKey=publicKey.export({format:'der',type:'spki'}).toString('base64');externalIdentityCache={privateKey,publicIdentityKey,publicKeySha256:sha256(Buffer.from(publicIdentityKey,'base64')),createdAt:Number(row.createdAt)||Date.now()};return externalIdentityCache;}
 function ensureIdentity(state={}){if(state.identity?.publicIdentityKey&&(state.identity?.privateKey||EXTERNAL_IDENTITY_FILE))return state;const external=externalIdentity();if(external)return {...state,identity:{algorithm:'Ed25519',publicIdentityKey:external.publicIdentityKey,publicKeySha256:external.publicKeySha256,createdAt:external.createdAt}};const {publicKey,privateKey}=crypto.generateKeyPairSync('ed25519');const publicIdentityKey=publicKey.export({format:'der',type:'spki'}).toString('base64');return {...state,identity:{algorithm:'Ed25519',privateKey:privateKey.export({format:'der',type:'pkcs8'}).toString('base64'),publicIdentityKey,publicKeySha256:sha256(Buffer.from(publicIdentityKey,'base64')),createdAt:Date.now()}};}
-function discoverCapabilities(){return withRealRemoteCapabilities(PLATFORM_ADAPTER.discoverCapabilities(),{available:REAL_REMOTE_AVAILABLE});}
+function discoverCapabilities(){return PLATFORM_ADAPTER.discoverCapabilities();}
 function effectiveCapabilities(approved,denied){const deny=new Set(denied||[]);return (approved||[]).filter(x=>!deny.has(x)).sort();}
 function isTrustedHostState(state){return String(state?.enrollment?.enrollmentId||'')==='trusted-host';}
-function runtimeSupportedCapabilities(){return normalizeDeviceCapabilities(discoverCapabilities());}
-function policyBaseCapabilities(state){return state?.enrollment?.deviceId?runtimeSupportedCapabilities():[];}
-function localDeniedCapabilitiesForState(state){
-  const supported=policyBaseCapabilities(state);
-  const explicitAllowed=Array.isArray(state?.policy?.allowedCapabilities)?normalizeDeviceCapabilities(state.policy.allowedCapabilities):null;
-  if(explicitAllowed){
-    const allow=new Set(explicitAllowed.filter(cap=>supported.includes(cap)));
-    return supported.filter(cap=>!allow.has(cap)).sort();
-  }
-  const baseline=normalizeDeviceCapabilities(state?.policy?.knownCapabilities||state?.enrollment?.grantableCapabilities||state?.enrollment?.approvedCapabilities||[]);
-  const denied=normalizeDeviceCapabilities(state?.policy?.deniedCapabilities||[]).filter(cap=>supported.includes(cap));
-  for(const cap of supported)if(!baseline.includes(cap)&&!denied.includes(cap))denied.push(cap);
-  return denied.sort();
-}
-function effectiveCapabilitiesForState(state){return effectiveCapabilities(policyBaseCapabilities(state),localDeniedCapabilitiesForState(state));}
-function remoteEffectiveCapabilitiesForState(state){
-  const local=effectiveCapabilitiesForState(state);
-  if(isTrustedHostState(state))return local;
-  const serverApproved=new Set(normalizeDeviceCapabilities(state?.enrollment?.approvedCapabilities||[]));
-  return local.filter(cap=>serverApproved.has(cap));
-}
-function syncRuntimeCapabilityPolicy(state,{persist=true}={}){
-  if(!state?.enrollment?.deviceId)return {changed:false,addedCapabilities:[],supportedCapabilities:runtimeSupportedCapabilities(),deniedCapabilities:[],clearedPendingEnrollment:false};
-  const supported=runtimeSupportedCapabilities(),policy=state.policy||{},modelVersion=Math.max(0,Number(policy.capabilityPermissionModelVersion)||0),revoked=String(state.cloud?.lastError||'')==='device_revoked';
-  const certificateBaseline=normalizeDeviceCapabilities(state?.enrollment?.certificate?.approvedCapabilities||[]);
-  const enrollmentBaseline=normalizeDeviceCapabilities(state?.enrollment?.grantableCapabilities||state?.enrollment?.approvedCapabilities||[]);
-  const priorKnown=normalizeDeviceCapabilities(policy.knownCapabilities||[]);
-  const baseline=modelVersion<2?(certificateBaseline.length?certificateBaseline:enrollmentBaseline):(priorKnown.length?priorKnown:enrollmentBaseline);
-  const denied=normalizeDeviceCapabilities(policy.deniedCapabilities||[]).filter(cap=>supported.includes(cap));
-  const addedCapabilities=supported.filter(cap=>!baseline.includes(cap));
-  for(const cap of addedCapabilities)if(!denied.includes(cap))denied.push(cap);
-  denied.sort();
-  const clearedPendingEnrollment=Boolean(state.pendingEnrollment&&!revoked);
-  if(clearedPendingEnrollment)delete state.pendingEnrollment;
-  const changed=clearedPendingEnrollment||modelVersion!==2||JSON.stringify(priorKnown)!==JSON.stringify(supported)||JSON.stringify(normalizeDeviceCapabilities(policy.deniedCapabilities||[]).filter(cap=>supported.includes(cap)))!==JSON.stringify(denied);
-  if(changed){
-    state.policy={...policy,capabilityPermissionModelVersion:2,knownCapabilities:[...supported],deniedCapabilities:[...denied],localFinalDenyBoundary:true,localPolicyUpdatedAt:Number(policy.localPolicyUpdatedAt)||Date.now()};
-    state.effectiveCapabilities=effectiveCapabilities(supported,denied);
-    if(persist)writeState(state);
-  }
-  return {changed,addedCapabilities,supportedCapabilities:supported,deniedCapabilities:denied,clearedPendingEnrollment};
-}
+function policyBaseCapabilities(state){return normalizeDeviceCapabilities(isTrustedHostState(state)?(state?.enrollment?.grantableCapabilities||[]):(state?.enrollment?.approvedCapabilities||[]));}
+function effectiveCapabilitiesForState(state){return effectiveCapabilities(policyBaseCapabilities(state),state?.policy?.deniedCapabilities);}
 function responseRetryAfterMs(response,json){const header=String(response.headers?.get?.('retry-after')||'').trim(),bodySeconds=Number(json?.retryAfterSeconds);let value=Number.isFinite(bodySeconds)&&bodySeconds>0?bodySeconds*1000:0;if(/^\d+$/.test(header))value=Math.max(value,Number(header)*1000);else if(header){const at=Date.parse(header);if(Number.isFinite(at))value=Math.max(value,at-Date.now());}return Math.max(0,Math.min(value,5*60*1000));}
 async function parseResponse(response){const text=await response.text();let json;try{json=JSON.parse(text)}catch{json={raw:text}}if(!response.ok||!json.ok){const e=new Error(json.error||json.upstream?.error||`http_${response.status}`);e.status=response.status;e.payload=json;e.retryAfterMs=responseRetryAfterMs(response,json);throw e;}return json;}
 async function operator(base,action,payload){const response=await fetch(`${base.replace(/\/$/,'')}/api/operator`,{method:'POST',headers:{'content-type':'application/json','accept':'application/json'},body:JSON.stringify({action,payload}),signal:AbortSignal.timeout(15000)});return (await parseResponse(response)).upstream;}
@@ -222,14 +81,14 @@ function applyPolicyEnvelope(state,envelope){
   const current=Math.max(0,Number(state.policy?.serverPolicyRevision)||0);if(revision<current)return false;
   state.enrollment.grantableCapabilities=grantable;state.enrollment.approvedCapabilities=approved;state.enrollment.policyProfile=String(policy.policyProfile||'default');
   state.policy={...(state.policy||{}),serverPolicyRevision:revision,serverPolicyUpdatedAt:Number(policy.policyUpdatedAt)||Date.now(),localFinalDenyBoundary:true};
-  state.effectiveCapabilities=effectiveCapabilitiesForState(state);writeState(state);return revision>current;
+  state.effectiveCapabilities=effectiveCapabilities(approved,state.policy?.deniedCapabilities);writeState(state);return revision>current;
 }
-async function heartbeat(state,base,{persist=true}={}){if(!state.enrollment?.deviceId)throw new Error('device_not_enrolled');syncRuntimeCapabilityPolicy(state,{persist:false});const capabilities=effectiveCapabilitiesForState(state),supportedCapabilities=runtimeSupportedCapabilities();const timestamp=Date.now(),nonce=crypto.randomBytes(18).toString('base64url');const message=deviceHeartbeatMessage({deviceId:state.enrollment.deviceId,timestamp,nonce,capabilities,supportedCapabilities});const signature=crypto.sign(null,Buffer.from(message),privateKey(state)).toString('base64url');const upstream=await operator(base,'device-heartbeat',{deviceId:state.enrollment.deviceId,timestamp,nonce,capabilities,supportedCapabilities,signature,policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0)});applyPolicyEnvelope(state,upstream.policy);state.lastHeartbeatAt=Date.now();state.effectiveCapabilities=effectiveCapabilitiesForState(state);if(persist)writeState(state);return upstream.device;}
+async function heartbeat(state,base,{persist=true}={}){if(!state.enrollment?.deviceId)throw new Error('device_not_enrolled');const capabilities=effectiveCapabilitiesForState(state);const timestamp=Date.now(),nonce=crypto.randomBytes(18).toString('base64url');const message=deviceHeartbeatMessage({deviceId:state.enrollment.deviceId,timestamp,nonce,capabilities});const signature=crypto.sign(null,Buffer.from(message),privateKey(state)).toString('base64url');const upstream=await operator(base,'device-heartbeat',{deviceId:state.enrollment.deviceId,timestamp,nonce,capabilities,signature,policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0)});applyPolicyEnvelope(state,upstream.policy);state.lastHeartbeatAt=Date.now();state.effectiveCapabilities=effectiveCapabilitiesForState(state);if(persist)writeState(state);return upstream.device;}
 async function channelRequest(state,hubBase,action,payload){if(!state.enrollment?.deviceId)throw new Error('device_not_enrolled');const deviceId=state.enrollment.deviceId,timestamp=Date.now(),nonce=crypto.randomBytes(18).toString('base64url');const signature=crypto.sign(null,Buffer.from(deviceChannelMessage({deviceId,action,timestamp,nonce,payload})),privateKey(state)).toString('base64url');const response=await fetch(`${hubBase.replace(/\/$/,'')}/device-channel/${action}`,{method:'POST',headers:{'content-type':'application/json','accept':'application/json'},body:JSON.stringify({deviceId,timestamp,nonce,signature,payload}),signal:AbortSignal.timeout(action==='poll'?25000:15000)});return parseResponse(response);}
-async function finishEnrollment(state,base,{wait=false}={}){const pending=state.pendingEnrollment;if(!pending?.enrollmentId||!pending?.pollToken)throw new Error('no_pending_enrollment');do{const upstream=await operator(base,'enrollment-poll',{enrollmentId:pending.enrollmentId,pollToken:pending.pollToken});const e=upstream.enrollment;if(e.state==='approved'){verifyEnrollment(state,e);state.enrollment={enrollmentId:e.enrollmentId,deviceId:e.deviceId,nodeId:e.deviceId,accountId:e.accountId,grantableCapabilities:[...(pending.requestedCapabilities||e.approvedCapabilities||[])],approvedCapabilities:e.approvedCapabilities,policyProfile:e.policyProfile,certificate:e.certificate,certificateSignature:e.certificateSignature,signer:e.signer,enrolledAt:Date.now()};const enrolledKnown=normalizeDeviceCapabilities(pending.requestedCapabilities||e.approvedCapabilities||[]);state.policy={...(state.policy||{}),capabilityPermissionModelVersion:2,knownCapabilities:enrolledKnown,serverPolicyRevision:1,localFinalDenyBoundary:true};state.effectiveCapabilities=effectiveCapabilities(enrolledKnown,state.policy?.deniedCapabilities);state.cloud={...(state.cloud||{}),desiredConnected:false,state:'dormant',connectionId:null,hardExpiresAt:null,lastError:null,lastDisconnectedAt:Date.now()};delete state.pendingEnrollment;writeState(state);const device=await heartbeat(state,base);return {state:'approved',device,effectiveCapabilities:[...(state.effectiveCapabilities||[])]};}if(e.state==='expired'||e.state==='replaced'||e.state==='cancelled'){delete state.pendingEnrollment;writeState(state);return {state:e.state};}if(!wait)return {state:e.state,expiresAt:e.expiresAt};if(Date.now()>=pending.expiresAt){delete state.pendingEnrollment;writeState(state);return {state:'expired'};}await sleep(3000);}while(true);}
-async function beginWallEnrollment(base=DEFAULT_BASE){let state=readState()||{};if(state.identityResetRequired)throw new Error('external_identity_rotation_required');state=ensureIdentity(state);const discovered=discoverCapabilities();if(!discovered.length)throw new Error('device_capabilities_required');const denied=defaultRealRemoteDenied({discovered,denied:normalizeDeviceCapabilities(state.policy?.deniedCapabilities||[]),inputDecision:state.policy?.realRemoteInputDecision});const hostname=os.hostname(),hadEnrollment=Boolean(state.enrollment?.deviceId),revoked=String(state.cloud?.lastError||'')==='device_revoked';const policyProfile=String(state.enrollment?.policyProfile||state.pendingEnrollment?.requestedPolicy||'default');const upstream=await operator(base,'enrollment-begin',{publicIdentityKey:state.identity.publicIdentityKey,displayName:hostname,platform:os.platform(),architecture:os.arch(),agentVersion:VERSION,fingerprintSummary:`${hostname} / ${os.platform()} ${os.arch()} / key ${state.identity.publicKeySha256.slice(0,12)}`,capabilities:discovered,policyProfile});const e=upstream.enrollment;state.policy={...(state.policy||{}),deniedCapabilities:denied,localFinalDenyBoundary:true};state.pendingEnrollment={enrollmentId:e.enrollmentId,pollToken:e.pollToken,activationUrl:e.activationUrl,expiresAt:e.expiresAt,requestedCapabilities:e.requestedCapabilities||discovered,requestedPolicy:e.requestedPolicy||policyProfile};writeState(state);return {state:'pending',mode:hadEnrollment||revoked?'reenroll':'link',deviceCode:e.deviceCode,activationUrl:e.activationUrl,expiresAt:e.expiresAt,expiresInSeconds:e.expiresInSeconds,deniedCapabilities:[...denied]};}
+async function finishEnrollment(state,base,{wait=false}={}){const pending=state.pendingEnrollment;if(!pending?.enrollmentId||!pending?.pollToken)throw new Error('no_pending_enrollment');do{const upstream=await operator(base,'enrollment-poll',{enrollmentId:pending.enrollmentId,pollToken:pending.pollToken});const e=upstream.enrollment;if(e.state==='approved'){verifyEnrollment(state,e);state.enrollment={enrollmentId:e.enrollmentId,deviceId:e.deviceId,nodeId:e.deviceId,accountId:e.accountId,grantableCapabilities:[...(pending.requestedCapabilities||e.approvedCapabilities||[])],approvedCapabilities:e.approvedCapabilities,policyProfile:e.policyProfile,certificate:e.certificate,certificateSignature:e.certificateSignature,signer:e.signer,enrolledAt:Date.now()};state.policy={...(state.policy||{}),serverPolicyRevision:1,localFinalDenyBoundary:true};state.effectiveCapabilities=effectiveCapabilities(e.approvedCapabilities,state.policy?.deniedCapabilities);state.cloud={...(state.cloud||{}),desiredConnected:false,state:'dormant',connectionId:null,hardExpiresAt:null,lastError:null,lastDisconnectedAt:Date.now()};delete state.pendingEnrollment;writeState(state);const device=await heartbeat(state,base);return {state:'approved',device,effectiveCapabilities:[...(state.effectiveCapabilities||[])]};}if(e.state==='expired'||e.state==='replaced'||e.state==='cancelled'){delete state.pendingEnrollment;writeState(state);return {state:e.state};}if(!wait)return {state:e.state,expiresAt:e.expiresAt};if(Date.now()>=pending.expiresAt){delete state.pendingEnrollment;writeState(state);return {state:'expired'};}await sleep(3000);}while(true);}
+async function beginWallEnrollment(base=DEFAULT_BASE){let state=readState()||{};if(state.identityResetRequired)throw new Error('external_identity_rotation_required');state=ensureIdentity(state);const discovered=discoverCapabilities();if(!discovered.length)throw new Error('device_capabilities_required');const denied=normalizeDeviceCapabilities(state.policy?.deniedCapabilities||[]).filter(cap=>discovered.includes(cap));const hostname=os.hostname(),hadEnrollment=Boolean(state.enrollment?.deviceId),revoked=String(state.cloud?.lastError||'')==='device_revoked';const policyProfile=String(state.enrollment?.policyProfile||state.pendingEnrollment?.requestedPolicy||'default');const upstream=await operator(base,'enrollment-begin',{publicIdentityKey:state.identity.publicIdentityKey,displayName:hostname,platform:os.platform(),architecture:os.arch(),agentVersion:VERSION,fingerprintSummary:`${hostname} / ${os.platform()} ${os.arch()} / key ${state.identity.publicKeySha256.slice(0,12)}`,capabilities:discovered,policyProfile});const e=upstream.enrollment;state.policy={...(state.policy||{}),deniedCapabilities:denied,localFinalDenyBoundary:true};state.pendingEnrollment={enrollmentId:e.enrollmentId,pollToken:e.pollToken,activationUrl:e.activationUrl,expiresAt:e.expiresAt,requestedCapabilities:e.requestedCapabilities||discovered,requestedPolicy:e.requestedPolicy||policyProfile};writeState(state);return {state:'pending',mode:hadEnrollment||revoked?'reenroll':'link',deviceCode:e.deviceCode,activationUrl:e.activationUrl,expiresAt:e.expiresAt,expiresInSeconds:e.expiresInSeconds,deniedCapabilities:[...denied]};}
 async function pollWallEnrollment(base=DEFAULT_BASE){const state=readState();if(!state?.pendingEnrollment?.enrollmentId)throw new Error('no_pending_enrollment');return finishEnrollment(state,base,{wait:false});}
-async function login(args){const base=args.base||DEFAULT_BASE;let state=ensureIdentity(readState()||{});if(state.enrollment?.deviceId&&!args.reenroll){const device=await heartbeat(state,base);console.log(JSON.stringify({ok:true,alreadyEnrolled:true,deviceId:state.enrollment.deviceId,nodeId:state.enrollment.nodeId||state.enrollment.deviceId,state:device.state,effectiveCapabilities:state.effectiveCapabilities},null,2));return;}const discovered=discoverCapabilities();if(!discovered.length)throw new Error('device_capabilities_required');const requestedDenied=args.deny==null&&args.reenroll?normalizeDeviceCapabilities(state.policy?.deniedCapabilities||[]):normalizeDeviceCapabilities(String(args.deny||'').split(',').map(x=>x.trim()).filter(Boolean));const denied=defaultRealRemoteDenied({discovered,denied:requestedDenied,inputDecision:state.policy?.realRemoteInputDecision});state.policy={...(state.policy||{}),deniedCapabilities:denied,localFinalDenyBoundary:true};const hostname=os.hostname(),policyProfile=String(args.policy||state.enrollment?.policyProfile||state.pendingEnrollment?.requestedPolicy||'default');const upstream=await operator(base,'enrollment-begin',{publicIdentityKey:state.identity.publicIdentityKey,displayName:args.name||hostname,platform:os.platform(),architecture:os.arch(),agentVersion:VERSION,fingerprintSummary:`${hostname} / ${os.platform()} ${os.arch()} / key ${state.identity.publicKeySha256.slice(0,12)}`,capabilities:discovered,policyProfile});const e=upstream.enrollment;state.pendingEnrollment={enrollmentId:e.enrollmentId,pollToken:e.pollToken,activationUrl:e.activationUrl,expiresAt:e.expiresAt,requestedCapabilities:e.requestedCapabilities||discovered,requestedPolicy:e.requestedPolicy||policyProfile};writeState(state);console.log(`Activation URL: ${e.activationUrl}`);console.log(`Device code: ${e.deviceCode}`);console.log(`Expires in: ${e.expiresInSeconds}s`);if(args['no-wait'])return;console.log('Waiting for approval…');const result=await finishEnrollment(state,base,{wait:true});console.log(JSON.stringify({ok:result.state==='approved',enrollment:result.state,deviceId:state.enrollment?.deviceId||null,nodeId:state.enrollment?.nodeId||null,state:result.device?.state||null,effectiveCapabilities:state.effectiveCapabilities||[]},null,2));}
+async function login(args){const base=args.base||DEFAULT_BASE;let state=ensureIdentity(readState()||{});if(state.enrollment?.deviceId&&!args.reenroll){const device=await heartbeat(state,base);console.log(JSON.stringify({ok:true,alreadyEnrolled:true,deviceId:state.enrollment.deviceId,nodeId:state.enrollment.nodeId||state.enrollment.deviceId,state:device.state,effectiveCapabilities:state.effectiveCapabilities},null,2));return;}const discovered=discoverCapabilities();if(!discovered.length)throw new Error('device_capabilities_required');const denied=args.deny==null&&args.reenroll?normalizeDeviceCapabilities(state.policy?.deniedCapabilities||[]).filter(cap=>discovered.includes(cap)):normalizeDeviceCapabilities(String(args.deny||'').split(',').map(x=>x.trim()).filter(Boolean)).filter(cap=>discovered.includes(cap));state.policy={...(state.policy||{}),deniedCapabilities:denied,localFinalDenyBoundary:true};const hostname=os.hostname(),policyProfile=String(args.policy||state.enrollment?.policyProfile||state.pendingEnrollment?.requestedPolicy||'default');const upstream=await operator(base,'enrollment-begin',{publicIdentityKey:state.identity.publicIdentityKey,displayName:args.name||hostname,platform:os.platform(),architecture:os.arch(),agentVersion:VERSION,fingerprintSummary:`${hostname} / ${os.platform()} ${os.arch()} / key ${state.identity.publicKeySha256.slice(0,12)}`,capabilities:discovered,policyProfile});const e=upstream.enrollment;state.pendingEnrollment={enrollmentId:e.enrollmentId,pollToken:e.pollToken,activationUrl:e.activationUrl,expiresAt:e.expiresAt,requestedCapabilities:e.requestedCapabilities||discovered,requestedPolicy:e.requestedPolicy||policyProfile};writeState(state);console.log(`Activation URL: ${e.activationUrl}`);console.log(`Device code: ${e.deviceCode}`);console.log(`Expires in: ${e.expiresInSeconds}s`);if(args['no-wait'])return;console.log('Waiting for approval…');const result=await finishEnrollment(state,base,{wait:true});console.log(JSON.stringify({ok:result.state==='approved',enrollment:result.state,deviceId:state.enrollment?.deviceId||null,nodeId:state.enrollment?.nodeId||null,state:result.device?.state||null,effectiveCapabilities:state.effectiveCapabilities||[]},null,2));}
 function commandFile(commandId){if(!/^cmd_[A-Za-z0-9-]{20,}$/.test(String(commandId||'')))throw new Error('invalid_command_id');return path.join(COMMAND_DIR,`${commandId}.json`);}
 function readCommand(commandId){try{return JSON.parse(fs.readFileSync(commandFile(commandId),'utf8'));}catch{return null;}}
 function writeCommand(commandId,value){fs.mkdirSync(COMMAND_DIR,{recursive:true,mode:0o700});writeJson0600(commandFile(commandId),value);}
@@ -240,7 +99,7 @@ async function executeProcessCommand(state,p){
   const request=p.process&&typeof p.process==='object'&&!Array.isArray(p.process)?p.process:{};
   const op=String(request.op||'');
   const owner={accountId:state.enrollment.accountId,deviceId:state.enrollment.deviceId,sessionId:String(p.sessionId||''),agentId:String(p.agentId||'')};
-  const effective=remoteEffectiveCapabilitiesForState(state);
+  const effective=effectiveCapabilitiesForState(state);
   if(op==='start'){
     const script=String(request.script||'');if(!script.trim())throw new Error('process_script_required');
     const required=[...new Set([...(Array.isArray(request.requiredCapabilities)?request.requiredCapabilities:[]),...PLATFORM_ADAPTER.inferRequiredCapabilities(script,{shell:request.shell})])].sort();
@@ -260,7 +119,7 @@ async function executeProcessCommand(state,p){
 async function executeTerminalCommand(state,p){
   const request=p.terminal&&typeof p.terminal==='object'&&!Array.isArray(p.terminal)?p.terminal:{};
   const op=String(request.op||''),owner={accountId:state.enrollment.accountId,deviceId:state.enrollment.deviceId,sessionId:String(p.sessionId||''),agentId:String(p.agentId||'')};
-  const effective=remoteEffectiveCapabilitiesForState(state);
+  const effective=effectiveCapabilitiesForState(state);
   if(!effective.includes('terminal'))throw new Error('local capability denied: terminal');
   if(op==='start'){
     const cwd=String(request.cwd||os.homedir());let stat;try{stat=fs.statSync(cwd);}catch{}if(!stat?.isDirectory())throw new Error('cwd_not_directory');
@@ -279,130 +138,17 @@ async function executeTerminalCommand(state,p){
 async function executeSearchCommand(state,p){
   const request=p.search&&typeof p.search==='object'&&!Array.isArray(p.search)?p.search:{};
   const op=String(request.op||''),owner={accountId:state.enrollment.accountId,deviceId:state.enrollment.deviceId,sessionId:String(p.sessionId||''),agentId:String(p.agentId||'')};
-  const effective=remoteEffectiveCapabilitiesForState(state);if(!effective.includes('filesystem'))throw new Error('local capability denied: filesystem');
+  const effective=effectiveCapabilitiesForState(state);if(!effective.includes('filesystem'))throw new Error('local capability denied: filesystem');
   if(op==='start'){const policy=filesystemPolicy();return {ok:true,operation:'start',search:await NATIVE_SEARCHES.start({...owner,path:request.path,searchType:request.searchType,pattern:request.pattern,literalSearch:Boolean(request.literalSearch),ignoreCase:request.ignoreCase!==false,filePattern:request.filePattern,contextLines:request.contextLines,maxResults:request.maxResults,readRoots:policy.readRoots})};}
   if(op==='results')return {ok:true,operation:'results',...NATIVE_SEARCHES.results(request.searchId,owner,{offset:request.offset,limit:request.limit})};
   if(op==='cancel')return {ok:true,operation:'cancel',search:NATIVE_SEARCHES.cancel(request.searchId,owner)};
   throw new Error('search_operation_unsupported');
 }
 
-async function executeDesktopCommand(state,p,{hub=DEFAULT_HUB}={}){
-  const request=p.desktop&&typeof p.desktop==='object'&&!Array.isArray(p.desktop)?p.desktop:{};
-  const op=String(request.op||''),effective=effectiveCapabilitiesForState(state);
-  if(!effective.includes('desktop'))throw new Error('local capability denied: desktop');
-  if(!REAL_REMOTE_AVAILABLE)throw new Error('real_remote_unavailable');
-  if(op==='status')return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('status',{})};
-  if(op==='live-open'){
-    const provider=String(request.provider||'windows-uia').trim().toLowerCase();
-    if(!['windows-uia','browser-cdp'].includes(provider))throw new Error('invalid_semantic_provider');
-    const depth=Number(request.maxDepth),nodes=Number(request.maxNodes),idleTimeoutMs=Math.max(15000,Math.min(Number(request.idleTimeoutMs)||300000,900000));
-    const observe={provider,maxDepth:Math.max(0,Math.min(Number.isFinite(depth)?depth:(provider==='browser-cdp'?8:6),12)),maxNodes:Math.max(1,Math.min(Number.isFinite(nodes)?nodes:(provider==='browser-cdp'?600:400),1500))};
-    if(provider==='windows-uia')observe.scope=request.scope==='desktop'?'desktop':'foreground';
-    else{if(request.cdpEndpoint!=null)observe.cdpEndpoint=String(request.cdpEndpoint).slice(0,256);if(request.targetId!=null)observe.targetId=String(request.targetId).slice(0,256);if(request.urlMatch!=null)observe.urlMatch=String(request.urlMatch).slice(0,512);}
-    const initial=await NATIVE_DESKTOP.request('observe',observe,{timeoutMs:15000}),semanticSessionId=String(initial?.semanticSessionId||'');
-    if(!semanticSessionId)throw new Error('semantic_session_not_found');
-    const seed={semanticSessionId,afterSeq:Math.max(0,Number(initial?.stateSeq)||0),displayTopologyId:String(initial?.displayTopologyId||'')};
-    await pushRealRemoteLive(state,hub,p,seed,{stateSeq:seed.afterSeq,snapshot:initial,displayTopologyId:seed.displayTopologyId});
-    const loop=startRealRemoteLiveLoop(state,hub,p,initial,idleTimeoutMs);
-    return {ok:true,operation:op,desktop:{...initial,live:{active:true,transport:'semantic-push-cache',pollMs:REAL_REMOTE_LIVE_POLL_MS,heartbeatMs:REAL_REMOTE_LIVE_HEARTBEAT_MS,idleTimeoutMs:loop.idleTimeoutMs}}};
-  }
-  if(op==='live-close'){
-    const semanticSessionId=String(request.semanticSessionId||'');
-    const detached=await stopRealRemoteLiveLoop(state,hub,p,semanticSessionId,{detach:true,notify:true});
-    clearRealRemoteActivity();
-    return {ok:true,operation:op,desktop:{semanticSessionId,closed:true,detached}};
-  }
-  if(op==='attach')return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('attach',{
-    screen:request.screen==null?-1:Math.max(-1,Math.min(Number(request.screen)||0,31)),
-    maxWidth:Math.max(320,Math.min(Number(request.maxWidth)||960,1280)),
-    maxHeight:Math.max(180,Math.min(Number(request.maxHeight)||540,720)),
-    quality:Math.max(25,Math.min(Number(request.quality)||50,70)),
-    minIntervalMs:Math.max(0,Math.min(Number.isFinite(Number(request.minIntervalMs))?Math.floor(Number(request.minIntervalMs)):250,5000)),
-    omitUnchanged:request.omitUnchanged!==false,
-    idleTimeoutMs:Math.max(250,Math.min(Number.isFinite(Number(request.idleTimeoutMs))?Math.floor(Number(request.idleTimeoutMs)):120000,900000))
-  },{timeoutMs:10000})};
-  if(op==='resume'||op==='detach')return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request(op,{desktopSessionId:String(request.desktopSessionId||'')},{timeoutMs:10000})};
-  if(op==='windows')return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('windows',{limit:Math.max(1,Math.min(Number(request.limit)||100,200))})};
-  if(op==='frame')return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('frame',{
-    desktopSessionId:request.desktopSessionId==null?undefined:String(request.desktopSessionId),
-    screen:request.screen==null?-1:Math.max(-1,Math.min(Number(request.screen)||0,31)),
-    maxWidth:Math.max(320,Math.min(Number(request.maxWidth)||960,1280)),
-    maxHeight:Math.max(180,Math.min(Number(request.maxHeight)||540,720)),
-    quality:Math.max(25,Math.min(Number(request.quality)||50,70))
-  },{timeoutMs:10000})};
-  if(op==='input'){
-    if(!effective.includes(REAL_REMOTE_INPUT_CAPABILITY))throw new Error('local capability denied: desktop-input');
-    const input=normalizeDesktopInput(request),desktop=await NATIVE_DESKTOP.request('input',input,{timeoutMs:10000});
-    touchRealRemoteLiveLoop(input.semanticSessionId);
-    return {ok:true,operation:op,desktop};
-  }
-  if(op==='observe'){
-    const observe={};
-    if(request.semanticSessionId!=null&&String(request.semanticSessionId).trim()){
-      observe.semanticSessionId=String(request.semanticSessionId);
-      if(request.afterSeq!=null){
-        const afterSeq=Number(request.afterSeq),limit=Number(request.limit);
-        observe.afterSeq=Number.isFinite(afterSeq)?Math.max(0,Math.floor(afterSeq)):0;
-        observe.limit=Math.max(1,Math.min(Number.isFinite(limit)?Math.floor(limit):100,200));
-      }
-    }else{
-      const provider=String(request.provider||'windows-uia').trim().toLowerCase();
-      if(!['windows-uia','browser-cdp'].includes(provider))throw new Error('invalid_semantic_provider');
-      const depth=Number(request.maxDepth),nodes=Number(request.maxNodes);
-      observe.provider=provider;
-      observe.maxDepth=Math.max(0,Math.min(Number.isFinite(depth)?depth:(provider==='browser-cdp'?8:6),12));
-      observe.maxNodes=Math.max(1,Math.min(Number.isFinite(nodes)?nodes:(provider==='browser-cdp'?600:400),1500));
-      if(provider==='windows-uia')observe.scope=request.scope==='desktop'?'desktop':'foreground';
-      else{if(request.cdpEndpoint!=null)observe.cdpEndpoint=String(request.cdpEndpoint).slice(0,256);if(request.targetId!=null)observe.targetId=String(request.targetId).slice(0,256);if(request.urlMatch!=null)observe.urlMatch=String(request.urlMatch).slice(0,512);}
-    }
-    return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('observe',observe,{timeoutMs:15000})};
-  }
-  if(op==='act'){
-    if(!effective.includes(REAL_REMOTE_INPUT_CAPABILITY))throw new Error('local capability denied: desktop-input');
-    if(Array.isArray(request.events)){
-      const input=normalizeDesktopInput(request),desktop=await NATIVE_DESKTOP.request('act',input,{timeoutMs:10000});
-      touchRealRemoteLiveLoop(input.semanticSessionId);
-      return {ok:true,operation:op,desktop};
-    }
-    const afterSeq=Number(request.afterSeq),settleMs=Number(request.settleMs);
-    const action={
-      semanticSessionId:String(request.semanticSessionId||''),
-      nodeId:String(request.nodeId||''),
-      action:String(request.action||''),
-      afterSeq:Number.isFinite(afterSeq)?Math.max(0,Math.floor(afterSeq)):0,
-      settleMs:Math.max(0,Math.min(Number.isFinite(settleMs)?Math.floor(settleMs):90,250))
-    };
-    if(request.value!=null)action.value=String(request.value).slice(0,4096);
-    const desktop=await NATIVE_DESKTOP.request('act',action,{timeoutMs:10000});
-    touchRealRemoteLiveLoop(action.semanticSessionId);
-    return {ok:true,operation:op,desktop};
-  }
-  if(op==='semantic-attach'){
-    const provider=String(request.provider||'windows-uia').trim().toLowerCase();
-    if(!['windows-uia','browser-cdp'].includes(provider))throw new Error('invalid_semantic_provider');
-    const depth=Number(request.maxDepth),nodes=Number(request.maxNodes);
-    const semantic={provider,maxDepth:Math.max(0,Math.min(Number.isFinite(depth)?depth:(provider==='browser-cdp'?8:6),12)),maxNodes:Math.max(1,Math.min(Number.isFinite(nodes)?nodes:(provider==='browser-cdp'?600:400),1500))};
-    if(provider==='windows-uia')semantic.scope=request.scope==='desktop'?'desktop':'foreground';
-    else{if(request.cdpEndpoint!=null)semantic.cdpEndpoint=String(request.cdpEndpoint).slice(0,256);if(request.targetId!=null)semantic.targetId=String(request.targetId).slice(0,256);if(request.urlMatch!=null)semantic.urlMatch=String(request.urlMatch).slice(0,512);}
-    return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('semantic-attach',semantic,{timeoutMs:15000})};
-  }
-  if(op==='semantic-snapshot')return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('semantic-snapshot',{semanticSessionId:String(request.semanticSessionId||'')},{timeoutMs:15000})};
-  if(op==='semantic-events'){
-    const afterSeq=Number(request.afterSeq),limit=Number(request.limit);
-    return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('semantic-events',{
-      semanticSessionId:String(request.semanticSessionId||''),
-      afterSeq:Number.isFinite(afterSeq)?Math.max(0,Math.floor(afterSeq)):0,
-      limit:Math.max(1,Math.min(Number.isFinite(limit)?Math.floor(limit):100,200))
-    },{timeoutMs:10000})};
-  }
-  if(op==='semantic-detach')return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('semantic-detach',{semanticSessionId:String(request.semanticSessionId||'')},{timeoutMs:10000})};
-  throw new Error('desktop_operation_unsupported');
-}
-
 async function executeScpCommand(state,p){
   const request=p.scp&&typeof p.scp==='object'&&!Array.isArray(p.scp)?p.scp:{};
   const op=String(request.op||''),owner={accountId:state.enrollment.accountId,deviceId:state.enrollment.deviceId,sessionId:String(p.sessionId||''),agentId:String(p.agentId||'')};
-  const effective=remoteEffectiveCapabilitiesForState(state);
+  const effective=effectiveCapabilitiesForState(state);
   if(!effective.includes('filesystem'))throw new Error('local capability denied: filesystem');
   if(op==='upload-begin')return {ok:true,operation:op,transfer:await LIGHT_SCP.beginUpload(owner,request)};
   if(op==='upload-chunk')return {ok:true,operation:op,transfer:await LIGHT_SCP.putUploadChunk(owner,request.transferId,request)};
@@ -414,7 +160,7 @@ async function executeScpCommand(state,p){
   throw new Error('scp_operation_unsupported');
 }
 
-async function executeCommand(state,command,{hub=DEFAULT_HUB}={}){
+async function executeCommand(state,command){
   const existing=readCommand(command.commandId);
   if(existing?.state==='finished'&&existing.result)return existing.result;
   if(existing?.state==='running'){
@@ -438,13 +184,6 @@ async function executeCommand(state,command,{hub=DEFAULT_HUB}={}){
       writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;
     }
   }
-  if(p.type==='desktop'){
-    const startedAt=Date.now(),remoteEffective=remoteEffectiveCapabilitiesForState(state),desktopOp=String(p.desktop?.op||''),required=(desktopOp==='input'||desktopOp==='act')?['desktop','desktop-input']:['desktop'],missing=required.filter(cap=>!remoteEffective.includes(cap));
-    if(missing.length){const result={commandId:command.commandId,status:'error',exitCode:126,stdout:'',stderr:`remote capability denied: ${missing.join(',')}\n`,durationMs:0};writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});return result;}
-    writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'running',startedAt});
-    try{const data=await executeDesktopCommand(state,p,{hub});recordRealRemoteActivity(p,desktopOp);const result={commandId:command.commandId,status:'ok',exitCode:0,stdout:'',stderr:'',durationMs:Date.now()-startedAt,data};writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;}
-    catch(error){const result={commandId:command.commandId,status:'error',exitCode:1,stdout:'',stderr:String(error?.message||error)+'\n',durationMs:Date.now()-startedAt,data:{ok:false,error:String(error?.message||error),status:Number(error?.status)||500}};writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;}
-  }
   if(p.type==='search'){
     const startedAt=Date.now();writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'running',startedAt});
     try{const data=await executeSearchCommand(state,p);const result={commandId:command.commandId,status:'ok',exitCode:0,stdout:'',stderr:'',durationMs:Date.now()-startedAt,data};writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;}
@@ -467,7 +206,7 @@ async function executeCommand(state,command,{hub=DEFAULT_HUB}={}){
     }
   }
   if(p.type==='fs'){
-    const effective=remoteEffectiveCapabilitiesForState(state);
+    const effective=effectiveCapabilitiesForState(state);
     const startedAt=Date.now();
     if(!effective.includes('filesystem')){
       const result={commandId:command.commandId,status:'error',exitCode:126,stdout:'',stderr:'local capability denied: filesystem\n',durationMs:0};
@@ -485,7 +224,7 @@ async function executeCommand(state,command,{hub=DEFAULT_HUB}={}){
   }
   if(p.type!=='exec')throw new Error('unsupported_leaf_command');
   const script=String(p.script||'');
-  const effective=remoteEffectiveCapabilitiesForState(state);
+  const effective=effectiveCapabilitiesForState(state);
   const inferred=PLATFORM_ADAPTER.inferRequiredCapabilities(script,{shell:p.shell});
   const required=[...new Set([...(Array.isArray(p.requiredCapabilities)?p.requiredCapabilities:[]),...inferred])].sort();
   const policyDeny=PLATFORM_ADAPTER.hardDeny?.(script)||null;
@@ -606,37 +345,31 @@ async function denyDeviceAccess(requestId,hub=DEFAULT_HUB,reason='owner_denied')
   const response=await channelRequest(state,hub,'access-deny',{requestId:id,reason:String(reason||'owner_denied').slice(0,80)});
   return response.authorization||response;
 }
-function setLocalPermissionsForState(state,allowedCapabilities,profile='custom'){
-  if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
-  syncRuntimeCapabilityPolicy(state,{persist:false});
-  const grantable=runtimeSupportedCapabilities();
+function setLocalPermissions(allowedCapabilities,profile='custom'){
+  const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
+  const grantable=normalizeDeviceCapabilities(state.enrollment.grantableCapabilities||state.enrollment.approvedCapabilities||[]);
   const allowed=normalizeDeviceCapabilities(Array.isArray(allowedCapabilities)?allowedCapabilities:[]);
   if(allowed.some(cap=>!grantable.includes(cap)))throw new Error('local_permission_not_grantable');
   const localProfile=/^(safe|developer|infra|full|custom)$/.test(String(profile||''))?String(profile):'custom';
   const denied=grantable.filter(cap=>!allowed.includes(cap));
-  state.policy=realRemotePolicyAfterSave({...(state.policy||{}),capabilityPermissionModelVersion:2,knownCapabilities:[...grantable],allowedCapabilities:[...allowed],deniedCapabilities:denied,localProfile,localFinalDenyBoundary:true,localPolicyUpdatedAt:Date.now()},{grantable,allowed});
-  state.effectiveCapabilities=effectiveCapabilities(grantable,denied);
+  state.policy={...(state.policy||{}),deniedCapabilities:denied,localProfile,localFinalDenyBoundary:true,localPolicyUpdatedAt:Date.now()};
+  state.effectiveCapabilities=effectiveCapabilitiesForState(state);
   writeState(state);
-  if(!allowed.includes('desktop'))clearRealRemoteActivity();
-  return {profile:localProfile,policyAuthority:isTrustedHostState(state)?'local-main':'local-device',grantableCapabilities:grantable,serverApprovedCapabilities:[...(state.enrollment.approvedCapabilities||[])],localAllowedCapabilities:allowed,deniedCapabilities:denied,effectiveCapabilities:[...state.effectiveCapabilities],updatedAt:state.policy.localPolicyUpdatedAt};
+  return {profile:localProfile,policyAuthority:isTrustedHostState(state)?'local-main':'server-and-local',grantableCapabilities:grantable,serverApprovedCapabilities:[...(state.enrollment.approvedCapabilities||[])],localAllowedCapabilities:allowed,deniedCapabilities:denied,effectiveCapabilities:[...state.effectiveCapabilities],updatedAt:state.policy.localPolicyUpdatedAt};
 }
-function setLocalPermissions(allowedCapabilities,profile='custom'){return setLocalPermissionsForState(readState(),allowedCapabilities,profile);}
 function statusView(state=readState()){
-  if(state){expireLocalHardLease(state);syncRuntimeCapabilityPolicy(state,{persist:true});}
-  const supported=runtimeSupportedCapabilities();
-  if(!state)return {ok:true,version:VERSION,platformAdapter:PLATFORM_ADAPTER.id,enrolled:false,deviceId:null,deviceName:os.hostname(),accountId:null,cloudDesiredConnected:false,cloudState:'dormant',connectionId:null,hardExpiresAt:null,reconnectGraceMs:null,connectionPlan:null,stateFile:STATE_FILE,localWallUrl:`http://${LOCAL_WALL_HOST}:${LOCAL_WALL_PORT}/`,supportedCapabilities:supported,grantableCapabilities:supported,approvedCapabilities:[],deniedCapabilities:[],effectiveCapabilities:[],realRemote:realRemoteActivityView([]),update:updateStatusView()};
-  const denied=localDeniedCapabilitiesForState(state),effective=effectiveCapabilities(supported,denied);
-  return {ok:true,version:VERSION,platformAdapter:PLATFORM_ADAPTER.id,enrolled:Boolean(state.enrollment?.deviceId),deviceId:state.enrollment?.deviceId||null,deviceName:state.enrollment?.displayName||os.hostname(),nodeId:state.enrollment?.nodeId||state.enrollment?.deviceId||null,accountId:state.enrollment?.accountId||null,pendingEnrollmentId:state.pendingEnrollment?.enrollmentId||null,publicKeySha256:state.identity?.publicKeySha256||null,policyProfile:state.enrollment?.policyProfile||state.pendingEnrollment?.requestedPolicy||null,localPolicyProfile:state.policy?.localProfile||(denied.length?'custom':'full'),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),policyAuthority:isTrustedHostState(state)?'local-main':'local-device',supportedCapabilities:supported,grantableCapabilities:supported,approvedCapabilities:state.enrollment?.approvedCapabilities||[],serverApprovedCapabilities:state.enrollment?.approvedCapabilities||[],deniedCapabilities:denied,effectiveCapabilities:effective,realRemote:realRemoteActivityView(effective),draining:Boolean(state.routing?.draining),cloudDesiredConnected:cloudDesired(state),cloudState:state.cloud?.state||(cloudDesired(state)?'legacy-connected':'dormant'),connectionId:state.cloud?.connectionId||null,hardExpiresAt:state.cloud?.hardExpiresAt||null,reconnectGraceMs:state.cloud?.reconnectGraceMs||null,connectionPlan:state.cloud?.plan||null,lastCloudError:state.cloud?.lastError||null,lastHeartbeatAt:state.lastHeartbeatAt||null,stateFile:STATE_FILE,commandDir:COMMAND_DIR,localWallUrl:`http://${LOCAL_WALL_HOST}:${LOCAL_WALL_PORT}/`,privateKeyStoredLocally:Boolean(state.identity?.privateKey),update:updateStatusView()};
+  if(state)expireLocalHardLease(state);
+  if(!state)return {ok:true,version:VERSION,platformAdapter:PLATFORM_ADAPTER.id,enrolled:false,deviceId:null,deviceName:os.hostname(),accountId:null,cloudDesiredConnected:false,cloudState:'dormant',connectionId:null,hardExpiresAt:null,reconnectGraceMs:null,connectionPlan:null,stateFile:STATE_FILE,localWallUrl:`http://${LOCAL_WALL_HOST}:${LOCAL_WALL_PORT}/`,update:updateStatusView()};
+  return {ok:true,version:VERSION,platformAdapter:PLATFORM_ADAPTER.id,enrolled:Boolean(state.enrollment?.deviceId),deviceId:state.enrollment?.deviceId||null,deviceName:state.enrollment?.displayName||os.hostname(),nodeId:state.enrollment?.nodeId||state.enrollment?.deviceId||null,accountId:state.enrollment?.accountId||null,pendingEnrollmentId:state.pendingEnrollment?.enrollmentId||null,publicKeySha256:state.identity?.publicKeySha256||null,policyProfile:state.enrollment?.policyProfile||state.pendingEnrollment?.requestedPolicy||null,localPolicyProfile:state.policy?.localProfile||((state.policy?.deniedCapabilities||[]).length?'custom':'full'),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),policyAuthority:isTrustedHostState(state)?'local-main':'server-and-local',grantableCapabilities:state.enrollment?.grantableCapabilities||state.enrollment?.approvedCapabilities||[],approvedCapabilities:state.enrollment?.approvedCapabilities||[],deniedCapabilities:state.policy?.deniedCapabilities||[],effectiveCapabilities:state.effectiveCapabilities||[],draining:Boolean(state.routing?.draining),cloudDesiredConnected:cloudDesired(state),cloudState:state.cloud?.state||(cloudDesired(state)?'legacy-connected':'dormant'),connectionId:state.cloud?.connectionId||null,hardExpiresAt:state.cloud?.hardExpiresAt||null,reconnectGraceMs:state.cloud?.reconnectGraceMs||null,connectionPlan:state.cloud?.plan||null,lastCloudError:state.cloud?.lastError||null,lastHeartbeatAt:state.lastHeartbeatAt||null,stateFile:STATE_FILE,commandDir:COMMAND_DIR,localWallUrl:`http://${LOCAL_WALL_HOST}:${LOCAL_WALL_PORT}/`,privateKeyStoredLocally:Boolean(state.identity?.privateKey),update:updateStatusView()};
 }
 async function daemon(args){
   const hub=args.hub||DEFAULT_HUB,base=args.base||DEFAULT_BASE;let state=readState()||{};
   if(state.enrollment?.deviceId){
     state.enrollment.nodeId=state.enrollment.nodeId||state.enrollment.deviceId;
-    syncRuntimeCapabilityPolicy(state,{persist:true});
     state.effectiveCapabilities=effectiveCapabilitiesForState(state);
   }
   const sessionCeiling=Math.max(1,Math.min(Number(process.env.OPERATOR_AGENT_MAX_SESSIONS)||2,100));
-  const waitMs=Math.max(1000,Math.min(Number(process.env.OPERATOR_AGENT_CHANNEL_WAIT_MS)||2500,15000));
+  const waitMs=Math.max(1000,Math.min(Number(process.env.OPERATOR_AGENT_CHANNEL_WAIT_MS)||8000,15000));
   const dormantPollMs=Math.max(1000,Math.min(Number(process.env.OPERATOR_AGENT_DORMANT_CHECK_MS)||2000,30000));
   let stopped=false,wake=null,failures=0,localWall=null,fleetTimer=null,fleetReconciling=false;
   const fleetManager=new FleetComponentManager(),fleetSupervisor=new FleetComponentSupervisor({manager:fleetManager,stateProvider:()=>readState(),requestIntent:async current=>{const local=await localFleetStatus();const response=await channelRequest(current,hub,'fleet-intent',{agentVersion:VERSION,moduleVersion:fleetManager.current()?.version||null,fleetHealthy:local.healthy===true,fleetPort:local.port});return response.fleet;},env:{OPERATOR_AGENT_STATE:STATE_FILE,OPERATOR_AGENT_IDENTITY_FILE:EXTERNAL_IDENTITY_FILE,OPERATOR_AGENT_WALL_AUTH_FILE:LOCAL_WALL_AUTH_FILE,OPERATOR_AGENT_HUB_URL:hub,OPERATOR_FLEET_WALL_HOST:FLEET_WALL_HOST,OPERATOR_FLEET_WALL_PORT:String(FLEET_WALL_PORT),OPERATOR_FLEET_WALL_PUBLIC_URL:FLEET_WALL_PUBLIC_URL},emit:event=>console.log(JSON.stringify(event))});
@@ -644,7 +377,7 @@ async function daemon(args){
   const wait=ms=>new Promise(resolve=>{const timer=setTimeout(()=>{wake=null;resolve();},ms);wake=()=>{clearTimeout(timer);wake=null;resolve();};});
   if(state.enrollment?.deviceId&&!fs.existsSync(LOCAL_WALL_AUTH_FILE))writeAccountOnlyWallAuthConfig(LOCAL_WALL_AUTH_FILE,{username:'account'});
   const wallAuth=loadLocalWallAuth(LOCAL_WALL_AUTH_FILE,{required:!['127.0.0.1','::1','localhost'].includes(String(LOCAL_WALL_HOST))});
-  localWall=startLocalWall({host:LOCAL_WALL_HOST,port:LOCAL_WALL_PORT,brandSvgPath:LOCAL_WALL_BRAND,auth:wallAuth,getLocalStatus:async()=>({...statusView(state),fleetWall:await localFleetStatus()}),getRemoteStatus:async()=>{const remote=await remoteDeviceStatus(hub);return remote;},getRemoteActivity:async limit=>remoteDeviceActivity(hub,limit),connect:async data=>connectCloud({hub,graceMinutes:data.graceMinutes,leaseHours:data.leaseHours,silent:true}),disconnect:async data=>disconnectCloud({hub,reason:data.reason||'local_wall_disconnect',silent:true}),setGrace:async data=>setConnectionGrace({hub,minutes:data.minutes,silent:true}),setPermissions:async data=>{const value=setLocalPermissionsForState(state,data?.allowedCapabilities,data?.profile);try{await heartbeat(state,base,{persist:true});}catch(error){console.error(JSON.stringify({event:'local_permission_heartbeat_failed',error:error.message,status:error.status||null}));}return {...value,serverApprovedCapabilities:[...(state.enrollment?.approvedCapabilities||[])],effectiveCapabilities:effectiveCapabilitiesForState(state)};},beginEnrollment:async()=>beginWallEnrollment(base),pollEnrollment:async()=>pollWallEnrollment(base),accountAuthenticate:async data=>authenticateWallAccount(data?.username,data?.password,hub),pairingCode:async data=>rotatePairingCode(hub,data),ownerProofCode:async()=>accountOwnerProofCode(hub),accessApprove:async requestId=>approveDeviceAccess(requestId,hub),accessDeny:async(requestId,data)=>denyDeviceAccess(requestId,hub,data?.reason||'owner_denied'),closeSession:async data=>closeWallSession(hub,data),requestUpdate:async data=>requestLocalUpdate('local-wall',data?.mode||'apply')});
+  localWall=startLocalWall({host:LOCAL_WALL_HOST,port:LOCAL_WALL_PORT,brandSvgPath:LOCAL_WALL_BRAND,auth:wallAuth,getLocalStatus:async()=>({...statusView(),fleetWall:await localFleetStatus()}),getRemoteStatus:async()=>{const remote=await remoteDeviceStatus(hub);return remote;},getRemoteActivity:async limit=>remoteDeviceActivity(hub,limit),connect:async data=>connectCloud({hub,graceMinutes:data.graceMinutes,leaseHours:data.leaseHours,silent:true}),disconnect:async data=>disconnectCloud({hub,reason:data.reason||'local_wall_disconnect',silent:true}),setGrace:async data=>setConnectionGrace({hub,minutes:data.minutes,silent:true}),setPermissions:async data=>setLocalPermissions(data?.allowedCapabilities,data?.profile),beginEnrollment:async()=>beginWallEnrollment(base),pollEnrollment:async()=>pollWallEnrollment(base),accountAuthenticate:async data=>authenticateWallAccount(data?.username,data?.password,hub),pairingCode:async data=>rotatePairingCode(hub,data),ownerProofCode:async()=>accountOwnerProofCode(hub),accessApprove:async requestId=>approveDeviceAccess(requestId,hub),accessDeny:async(requestId,data)=>denyDeviceAccess(requestId,hub,data?.reason||'owner_denied'),closeSession:async data=>closeWallSession(hub,data),requestUpdate:async data=>requestLocalUpdate('local-wall',data?.mode||'apply')});
   console.log(JSON.stringify({event:'local_wall_started',url:localWall.url,deviceId:state.enrollment?.deviceId||null}));
   console.log(JSON.stringify({event:'device_agent_started',mode:'always-alive-service',platformAdapter:PLATFORM_ADAPTER.id,deviceId:state.enrollment?.deviceId||null,nodeId:state.enrollment?.nodeId||null,sessionCeiling,waitMs,dormantPollMs,localWallUrl:localWall.url}));
   acknowledgeCoreUpdateHealth();
@@ -657,7 +390,7 @@ async function daemon(args){
     if(!state.enrollment?.deviceId||!cloudDesired(state)){await wait(dormantPollMs);continue;}
     try{
       await flushPendingUpdateReport(state,hub).catch(error=>console.error(JSON.stringify({event:'update_report_delivery_failed',error:error.message,status:error.status||null})));
-      const payload={nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling,draining:Boolean(state.routing?.draining),capabilities:remoteEffectiveCapabilitiesForState(state),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView(),waitMs};
+      const payload={nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling,draining:Boolean(state.routing?.draining),capabilities:effectiveCapabilitiesForState(state),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView(),waitMs};
       const response=await channelRequest(state,hub,'poll',payload);
       // A Local Wall connect/disconnect can update device.json while this long-poll is in flight.
       // Re-read before persisting the poll result so the daemon never clobbers newer lease metadata.
@@ -668,7 +401,7 @@ async function daemon(args){
       const command=response.channel?.command;
       if(command){
         const deviceReceivedAt=Date.now();
-        let result=await executeCommand(state,command,{hub});const completedAt=Date.now();
+        const result=await executeCommand(state,command),completedAt=Date.now();
         const reportedFirst=Number(result.telemetry?.firstOutputAt);
         result.telemetry={...(result.telemetry||{}),deviceReceivedAt,firstOutputAt:Number.isSafeInteger(reportedFirst)&&reportedFirst>0?reportedFirst:completedAt,completedAt};
         let delivered=false,resultFailures=0;
@@ -676,10 +409,6 @@ async function daemon(args){
           try{const ack=await channelRequest(state,hub,'result',result);delivered=Boolean(ack.accepted);resultFailures=0;}
           catch(error){
             if(['device_binding_not_found','device_not_found'].includes(error.message)){markDeviceRemoved(state,error.message);break;}if(['device_connection_required','device_connection_expired','device_revoked'].includes(error.message)){markCloudState(state,{desiredConnected:false,state:'dormant',connectionId:null,hardExpiresAt:null,lastError:error.message,lastDisconnectedAt:Date.now()});break;}
-            if(Number(error.status)===413){
-              if(isCompacted413Result(result)){console.error(JSON.stringify({event:'device_result_delivery_abandoned_after_compaction',deviceId:state.enrollment.deviceId,commandId:command.commandId,error:error.message,status:413}));break;}
-              const compacted=compactResultAfter413(result);console.error(JSON.stringify({event:'device_result_compacted_after_413',deviceId:state.enrollment.deviceId,commandId:command.commandId,originalBytes:compacted.data.originalBytes,status:413}));result=compacted;resultFailures=0;continue;
-            }
             resultFailures++;const retryInMs=Math.min(Math.max(1000*(2**Math.min(resultFailures,5)),Number(error.retryAfterMs)||0),300000);console.error(JSON.stringify({event:'device_result_delivery_failed',deviceId:state.enrollment.deviceId,commandId:command.commandId,error:error.message,status:error.status||null,failures:resultFailures,retryInMs}));await wait(retryInMs);
           }
         }
@@ -699,7 +428,7 @@ async function daemon(args){
   if(Object.keys(state).length)writeState(state);console.log(JSON.stringify({event:'device_agent_stopped',deviceId:state.enrollment?.deviceId||null,nodeId:state.enrollment?.nodeId||null}));
 }
 async function wallOnly(args){
-  const hub=args.hub||DEFAULT_HUB,state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');syncRuntimeCapabilityPolicy(state,{persist:true});
+  const hub=args.hub||DEFAULT_HUB,state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
   if(!fs.existsSync(LOCAL_WALL_AUTH_FILE))writeAccountOnlyWallAuthConfig(LOCAL_WALL_AUTH_FILE,{username:'account'});
   const wallAuth=loadLocalWallAuth(LOCAL_WALL_AUTH_FILE,{required:!['127.0.0.1','::1','localhost'].includes(String(LOCAL_WALL_HOST))});
   const fleetManager=new FleetComponentManager(),fleetSupervisor=new FleetComponentSupervisor({manager:fleetManager,stateProvider:()=>readState(),requestIntent:async current=>{const local=await localFleetStatus();const response=await channelRequest(current,hub,'fleet-intent',{agentVersion:VERSION,moduleVersion:fleetManager.current()?.version||null,fleetHealthy:local.healthy===true,fleetPort:local.port});return response.fleet;},env:{OPERATOR_AGENT_STATE:STATE_FILE,OPERATOR_AGENT_IDENTITY_FILE:EXTERNAL_IDENTITY_FILE,OPERATOR_AGENT_WALL_AUTH_FILE:LOCAL_WALL_AUTH_FILE,OPERATOR_AGENT_HUB_URL:hub,OPERATOR_FLEET_WALL_HOST:FLEET_WALL_HOST,OPERATOR_FLEET_WALL_PORT:String(FLEET_WALL_PORT),OPERATOR_FLEET_WALL_PUBLIC_URL:FLEET_WALL_PUBLIC_URL},emit:event=>console.log(JSON.stringify(event))});
@@ -711,7 +440,7 @@ async function wallOnly(args){
   await stopped;clearInterval(timer);try{await fleetSupervisor.close();}catch{}try{await localWall.close();}catch{}console.log(JSON.stringify({event:'host_wall_companion_stopped',deviceId:state.enrollment.deviceId}));
 }
 
-async function setDrain(args,draining){const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');state.routing={...(state.routing||{}),draining:Boolean(draining),changedAt:Date.now()};writeState(state);const payload={nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling:Math.max(1,Math.min(Number(process.env.OPERATOR_AGENT_MAX_SESSIONS)||2,100)),draining:Boolean(draining),capabilities:remoteEffectiveCapabilitiesForState(state),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),waitMs:0};const response=await channelRequest(state,args.hub||DEFAULT_HUB,'poll',payload);applyPolicyEnvelope(state,response.policy);console.log(JSON.stringify({ok:true,deviceId:state.enrollment.deviceId,nodeId:payload.nodeId,draining:Boolean(draining),channelState:response.channel?.node?.state||null},null,2));}
+async function setDrain(args,draining){const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');state.routing={...(state.routing||{}),draining:Boolean(draining),changedAt:Date.now()};writeState(state);const payload={nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling:Math.max(1,Math.min(Number(process.env.OPERATOR_AGENT_MAX_SESSIONS)||2,100)),draining:Boolean(draining),capabilities:effectiveCapabilitiesForState(state),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),waitMs:0};const response=await channelRequest(state,args.hub||DEFAULT_HUB,'poll',payload);applyPolicyEnvelope(state,response.policy);console.log(JSON.stringify({ok:true,deviceId:state.enrollment.deviceId,nodeId:payload.nodeId,draining:Boolean(draining),channelState:response.channel?.node?.state||null},null,2));}
 async function status(){console.log(JSON.stringify(statusView(),null,2));}
 async function initWallAuth(args){const password=fs.readFileSync(0,'utf8').replace(/[\r\n]+$/,'');if(password.length<12)throw new Error('local_wall_password_too_short');const result=writeLocalWallAuthConfig(LOCAL_WALL_AUTH_FILE,{username:args.username||'operator',password});console.log(JSON.stringify({ok:true,wallAuth:'configured',file:result.file,username:result.username,passwordEchoed:false},null,2));}
 const args=parseArgs(process.argv.slice(2)),command=args._[0]||'status';

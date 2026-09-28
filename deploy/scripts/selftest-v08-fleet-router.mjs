@@ -33,23 +33,9 @@ now+=5_100;
 polled=fleet.poll({accountId:'self-hosted-local',deviceId,nodeId,sessionCeiling:2,capabilities:['filesystem','git']});
 if(polled.command?.commandId!==command.commandId||polled.command.attempts!==2)throw new Error('fleet_redelivery_failed');
 fleet.complete({accountId:'self-hosted-local',deviceId,nodeId,commandId:command.commandId});
-now+=19_500;
-if(fleet.view(nodeId).state!=='online')throw new Error('fleet_complete_presence_refresh_failed');
+polled=fleet.poll({accountId:'self-hosted-local',deviceId,nodeId,sessionCeiling:2,capabilities:['filesystem','git']});
+if(polled.state!=='idle')throw new Error('fleet_completion_failed');
 console.log('v08-command-lease-redelivery=PASS');
-console.log('v11-fleet-complete-refreshes-presence=PASS');
-
-const late=fleet.enqueue({accountId:'self-hosted-local',deviceId,nodeId,jobId:'job_late_1234567890',payload:{type:'desktop',desktop:{op:'observe'}}});
-polled=fleet.poll({accountId:'self-hosted-local',deviceId,nodeId,sessionCeiling:2,capabilities:['filesystem','git']});
-if(polled.command?.commandId!==late.commandId)throw new Error('fleet_late_dispatch_failed');
-now+=20_100;
-if(fleet.view(nodeId).state!=='online')throw new Error('fleet_inflight_presence_lost');
-const abandoned=fleet.abandon(late.commandId,'remote_result_timeout'),receipt=fleet.receipt(late.commandId);
-if(!abandoned?.abandoned||!receipt?.duplicate||!receipt?.abandoned||receipt.abandonReason!=='remote_result_timeout')throw new Error('fleet_abandoned_receipt_missing');
-if(fleet.view(nodeId).state!=='offline')throw new Error('fleet_abandoned_stale_node_should_be_offline');
-polled=fleet.poll({accountId:'self-hosted-local',deviceId,nodeId,sessionCeiling:2,capabilities:['filesystem','git']});
-if(polled.state!=='idle'||polled.node.state!=='online')throw new Error('fleet_repoll_after_abandon_failed');
-console.log('v11-fleet-inflight-presence=PASS');
-console.log('v11-fleet-late-result-receipt=PASS');
 
 fleet.setOwnerDrain(nodeId,true);
 try{fleet.enqueue({accountId:'self-hosted-local',deviceId,nodeId,jobId:'job_test_2234567890',payload:{}});throw new Error('drain_enqueue_accepted');}catch(e){if(!(e instanceof FleetError)||e.message!=='target_node_draining')throw e;}

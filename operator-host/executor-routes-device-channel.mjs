@@ -1,5 +1,5 @@
 export async function handleDeviceChannelRoutes(req,res,url,deps){
-  const {ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,DeviceAccessGrantError,DevicePairingRegistryError,EnrollmentError,FleetAuthorityError,FleetError,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,MIN_SUPPORTED_CLIENT_VERSION,NODE_ID,VERSION,abandonedCommandReceiptFromDisk,accessGrants,accounts,agentClients,allDeviceViews,applyDeviceTelemetry,capabilities,clientCompatibility,connectionSpec,connections,deviceView,devices,emitStream,enrollments,finishJob,fleet,fleetAuthority,fleetEligibility,fleetTarget,jobView,jobs,normalizeUpdateReport,pairingCodes,planEntitlements,pushEvent,queueHelperUpdate,readJson,reapAccessGrants,realRemoteLive,recentEvents,requireDeviceConnection,sendJson,sessions,targetRoute,terminalResultSummary,verifiedChannelContext,verifiedFleetContext,verifiedLeafCapabilities}=deps;
+  const {ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,DeviceAccessGrantError,DevicePairingRegistryError,EnrollmentError,FleetAuthorityError,FleetError,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,MIN_SUPPORTED_CLIENT_VERSION,NODE_ID,VERSION,accessGrants,accounts,agentClients,allDeviceViews,applyDeviceTelemetry,capabilities,clientCompatibility,connectionSpec,connections,deviceView,devices,emitStream,enrollments,finishJob,fleet,fleetAuthority,fleetEligibility,fleetTarget,jobView,jobs,normalizeUpdateReport,pairingCodes,planEntitlements,pushEvent,queueHelperUpdate,readJson,reapAccessGrants,recentEvents,requireDeviceConnection,sendJson,sessions,targetRoute,terminalResultSummary,verifiedChannelContext,verifiedFleetContext,verifiedLeafCapabilities}=deps;
     if (req.method === 'POST' && url.pathname === '/v1/enrollments/begin') {
       const body = await readJson(req);
       return sendJson(res, 200, { ok:true, enrollment:enrollments.begin(body) });
@@ -136,14 +136,6 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       const body=await readJson(req), ctx=verifiedChannelContext(body,'grace');
       return sendJson(res,200,{ok:true,connection:connections.setGrace(ctx.device.deviceId,ctx.payload.reconnectGraceMs)});
     }
-    if (req.method === 'POST' && url.pathname === '/v1/device-channel/desktop-live-push') {
-      const body=await readJson(req),ctx=verifiedChannelContext(body,'desktop-live-push');
-      requireDeviceConnection(ctx.device.deviceId);
-      const payload=ctx.payload,session=sessions.ensure(String(payload.sessionId||''),{agentId:String(payload.agentId||'')});
-      if(session.deviceId!==ctx.device.deviceId)throw new DeviceAccessGrantError('device_access_grant_session_mismatch',403);
-      const live=realRemoteLive.push({deviceId:ctx.device.deviceId,sessionId:session.id,agentId:session.agentId,semanticSessionId:payload.semanticSessionId,stateSeq:payload.stateSeq,events:payload.events,snapshot:payload.snapshot,displayTopologyId:payload.displayTopologyId,cursor:payload.cursor,foreground:payload.foreground,resyncRecommended:payload.resyncRecommended,closed:payload.closed,heartbeat:payload.heartbeat,updatedAt:Date.now()});
-      return sendJson(res,200,{ok:true,live});
-    }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/account-auth') {
       const body=await readJson(req), ctx=verifiedChannelContext(body,'account-auth');
       const account=accounts.verifyCredentials({email:ctx.payload.email,password:ctx.payload.password},{recordLogin:true,eventType:'account_wall_login'});
@@ -272,7 +264,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       try { command=fleet.command(result.commandId); }
       catch(error) {
         if(error?.message!=='command_not_found')throw error;
-        const receipt=fleet.receipt(result.commandId)||abandonedCommandReceiptFromDisk?.(result.commandId);
+        const receipt=fleet.receipt(result.commandId);
         if(!receipt)throw error;
         if(receipt.accountId!==ACCOUNT_ID || receipt.deviceId!==ctx.device.deviceId || receipt.nodeId!==ctx.device.nodeId)throw new FleetError('command_device_mismatch',403);
         const prior=jobs.get(receipt.jobId);

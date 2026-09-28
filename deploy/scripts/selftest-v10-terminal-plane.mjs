@@ -31,7 +31,7 @@ need(stage.includes("'spawn-helper'")&&stage.includes('fs.chmodSync(helperPath,0
 need(host.includes('terminalWallMeta(request)')&&host.includes('script:toolMeta.label')&&host.includes('resultSummary=terminalResultSummary'),'terminal_wall_activity_metadata_missing');
 for(const surface of [wall,dashboard]){
   need(surface.includes('function toolLabel(j)')&&surface.includes('terminalHandle(j)')&&surface.includes('resultSummary')&&surface.includes('opbadge'),'terminal_wall_observability_ui_missing');
-  for(const token of ["search:'SEARCH'","process:'PROCESS'","scp:'SCP'","desktop:'DESKTOP'",'function toolIdentity(j)','function toolCommand(j)'])need(surface.includes(token),'native_group_wall_observability_missing:'+token);
+  for(const token of ["search:'SEARCH'","process:'PROCESS'","scp:'SCP'",'function toolIdentity(j)','function toolCommand(j)'])need(surface.includes(token),'native_group_wall_observability_missing:'+token);
   for(const token of ['LEGACY_TOOL_PREFIXES','native-search:','String(j.script||\'\')','syntheticToolScript(j)'])if(!surface.includes(token))throw new Error('legacy_native_prefix_script_fallback:'+token);
   need(surface.includes('filter cwd / command / output / PTY'),'terminal_wall_filter_hint_missing');
   const start=surface.indexOf('function fsCommand(j)'),end=surface.indexOf('function jobText(j)',start);

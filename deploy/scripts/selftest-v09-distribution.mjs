@@ -9,7 +9,7 @@ const text=file=>fs.readFileSync(path.join(root,file),'utf8');
 function expect(value,message){if(!value)throw new Error(message);}
 
 const version=text('VERSION').trim();
-expect(/^0\.9\.0-(?:beta|rc)\.[0-9]+$/.test(version),'prerelease_version_file_invalid');
+expect(/^0\.9\.[0-9]+-(?:beta|rc)\.[0-9]+$/.test(version),'prerelease_version_file_invalid');
 expect(JSON.parse(text('package.json')).version===version,'package_version_mismatch');
 expect(text('LICENSE').includes('Apache License')&&text('LICENSE').includes('Version 2.0'),'apache_license_missing');
 expect(text('NOTICE').includes('Light Remote MCP'),'notice_missing');

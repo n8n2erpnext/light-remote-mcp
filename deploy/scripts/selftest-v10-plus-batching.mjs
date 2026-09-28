@@ -18,20 +18,17 @@ assert.doesNotThrow(()=>inspectPlusExecPayload(medium,{transport:'transfer'}),'d
 const huge={...base,operationId:'plus-batch-selftest-0003',script:'x'.repeat(PLUS_BATCH_POLICY.maxExecScriptBytes+1)};
 assert.throws(()=>inspectPlusExecPayload(huge,{transport:'transfer'}),/plus_exec_batch_too_large_split_required/);
 
-const shellHelper=toolHelperView({context:{deviceId:'dev',sessionId:'sid',agentId:'aid',platform:'linux'}},{group:'shell'});
-assert.equal(shellHelper.batching.directPayloadBytes,6000);
-assert.equal(shellHelper.batching.maxExecScriptBytes,32*1024);
-assert.equal(shellHelper.batching.recommendedMaxSteps,8);
-assert.ok(shellHelper.batching.rules.some(x=>x.includes('Duration alone is not a reason to split')));
-assert.ok(!('maxExecTimeoutMs' in shellHelper.batching));
-assert.ok(!shellHelper.tools.process.when.includes('Long-running'));
-assert.ok(shellHelper.tools.process.when.includes('stdin/stdout'));
-assert.ok(shellHelper.tools.exec.when.includes('One logical shell'));
-assert.ok(!JSON.stringify(shellHelper).includes('upload-chunk'),'shell helper must not preload transfer schemas');
-const transferHelper=toolHelperView({context:{deviceId:'dev',sessionId:'sid',agentId:'aid',platform:'linux'}},{group:'transfer'});
-assert.equal(transferHelper.batching.transferChunkBytes,3072);
-assert.ok(transferHelper.tools.bridgeTransfer.recipe.length>=3);
-assert.ok(JSON.stringify(transferHelper).includes('upload-chunk'));
+const helper=toolHelperView({context:{deviceId:'dev',sessionId:'sid',agentId:'aid',platform:'linux'}});
+assert.equal(helper.batching.directPayloadBytes,6000);
+assert.equal(helper.batching.maxExecScriptBytes,32*1024);
+assert.equal(helper.batching.recommendedMaxSteps,8);
+assert.equal(helper.batching.transferChunkBytes,3072);
+assert.ok(helper.batching.rules.some(x=>x.includes('Do not split because a command may run for minutes')));
+assert.ok(!('maxExecTimeoutMs' in helper.batching));
+assert.ok(!helper.tools.process.when.includes('Long-running'));
+assert.ok(helper.tools.process.when.includes('stdin/stdout'));
+assert.ok(helper.chooseTool.some(x=>x.includes('one logical shell job')));
+assert.ok(helper.tools.bridgeTransfer.recipe.length>=5);
 
 const sha=v=>crypto.createHash('sha256').update(v).digest('hex');
 const registry=new ChunkTransferRegistry({maxTransferBytes:1024*1024,maxChunkBytes:PLUS_BATCH_POLICY.recommendedTransferChunkBytes});

@@ -27,7 +27,7 @@ export class FleetRouter {
     this.maxQueuedPerNode=Math.max(1,Math.min(Number(maxQueuedPerNode)||64,1024));
     this.nodes=new Map(); this.commands=new Map(); this.completed=new Map(); this.waiters=new Map();
   }
-  _state(node, now=this.now()) { return node.inFlight.size>0 || now-node.lastSeenAt<=this.channelTtlMs ? 'online':'offline'; }
+  _state(node, now=this.now()) { return now-node.lastSeenAt<=this.channelTtlMs ? 'online':'offline'; }
   _view(node, now=this.now()) {
     return { accountId:node.accountId, deviceId:node.deviceId, nodeId:node.nodeId, state:this._state(node,now), draining:Boolean(node.agentDraining||node.ownerDraining),
       agentDraining:Boolean(node.agentDraining), ownerDraining:Boolean(node.ownerDraining), sessionCeiling:node.sessionCeiling,
@@ -128,12 +128,11 @@ export class FleetRouter {
   abandon(commandId, reason='abandoned') {
     const command=this.commands.get(validId(commandId,'command_id'));
     if(!command) return null;
-    const now=this.now(), abandonReason=String(reason||'abandoned').slice(0,80), node=this.nodes.get(command.nodeId);
+    const node=this.nodes.get(command.nodeId);
     if(node) { node.inFlight.delete(command.commandId); node.queue=node.queue.filter(id=>id!==command.commandId); }
     this.commands.delete(command.commandId);
-    this.completed.set(command.commandId,{command:{...command,abandoned:true,abandonReason},expiresAt:now+Math.max(10*60_000,this.channelTtlMs*30)});
-    this.emit({type:'node_command_abandoned',accountId:command.accountId,deviceId:command.deviceId,nodeId:command.nodeId,jobId:command.jobId,commandId:command.commandId,status:'error',reason:abandonReason});
-    return {...command,abandoned:true,abandonReason};
+    this.emit({type:'node_command_abandoned',accountId:command.accountId,deviceId:command.deviceId,nodeId:command.nodeId,jobId:command.jobId,commandId:command.commandId,status:'error',reason:String(reason||'abandoned').slice(0,80)});
+    return {...command};
   }
 
   complete(input={}) {
@@ -142,8 +141,8 @@ export class FleetRouter {
     if(input.accountId && command.accountId!==input.accountId) throw new FleetError('command_account_mismatch',403);
     if(input.deviceId && command.deviceId!==input.deviceId) throw new FleetError('command_device_mismatch',403);
     if(input.nodeId && command.nodeId!==input.nodeId) throw new FleetError('command_node_mismatch',409);
-    const now=this.now(), node=this.node(command.nodeId); node.inFlight.delete(commandId); node.lastSeenAt=now; this.commands.delete(commandId);
-    this.completed.set(commandId,{command:{...command},expiresAt:now+Math.max(120_000,this.channelTtlMs*6)});
+    const node=this.node(command.nodeId); node.inFlight.delete(commandId); this.commands.delete(commandId);
+    this.completed.set(commandId,{command:{...command},expiresAt:this.now()+Math.max(120_000,this.channelTtlMs*6)});
     this.emit({type:'node_command_completed',accountId:command.accountId,deviceId:command.deviceId,nodeId:command.nodeId,jobId:command.jobId,commandId,status:'completed'});
     return {...command,duplicate:false};
   }

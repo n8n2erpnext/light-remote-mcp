@@ -14,7 +14,14 @@ m=json.load(open(sys.argv[1])); print(m['version'],m['platform'])
 PY
 )
 case "$PLATFORM" in macos-x64) ARCH=x86_64;; macos-arm64) ARCH=arm64;; *) echo "unsupported platform: $PLATFORM" >&2; exit 2;; esac
-SHORT_VERSION="${VERSION%%-*}"; BUILD_VERSION="$(printf '%s' "$VERSION" | sed -nE 's/.*-rc\.([0-9]+).*/\1/p')"; BUILD_VERSION="${BUILD_VERSION:-1}"
+SHORT_VERSION="${VERSION%%-*}"
+if [[ "$VERSION" =~ -beta\.([0-9]+)$ ]]; then
+  BUILD_VERSION="$((1000 + ${BASH_REMATCH[1]}))"
+elif [[ "$VERSION" =~ -rc\.([0-9]+)$ ]]; then
+  BUILD_VERSION="$((2000 + ${BASH_REMATCH[1]}))"
+else
+  BUILD_VERSION=3000
+fi
 ROOT_STAGE="$TMP/root"; SCRIPTS="$TMP/scripts"; APP_ROOT="$ROOT_STAGE/Library/Application Support/Light Remote"
 APP="$ROOT_STAGE/Applications/Light Remote.app"
 mkdir -p "$APP_ROOT/releases/$VERSION" "$APP_ROOT/update-runtime" "$ROOT_STAGE/Library/LaunchAgents" "$ROOT_STAGE/Library/LaunchDaemons" "$APP/Contents/MacOS" "$APP/Contents/Resources" "$SCRIPTS" "$OUT"
