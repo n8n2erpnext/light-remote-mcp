@@ -211,8 +211,8 @@ procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if CurStep = ssPostInstall then
   begin
-    InstallBackgroundTasksOrFail();
     CacheRollbackInstaller();
+    InstallBackgroundTasksOrFail();
   end;
 end;
 

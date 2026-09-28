@@ -7,7 +7,7 @@ const need=(v,n)=>{if(!v)throw new Error(n);};
 const brand=new URL('../../assets/branding/light-remote-mark.svg',import.meta.url).pathname;
 const wall=startLocalWall({
  host:'127.0.0.1',port:0,brandSvgPath:brand,auth:{enabled:false},
- getLocalStatus:async()=>({deviceName:'golden-test',deviceId:'golden-test',cloudDesiredConnected:false,cloudState:'dormant',version:'0.9.1-beta.3',effectiveCapabilities:[],fleetWall:{healthy:false}}),
+ getLocalStatus:async()=>({deviceName:'golden-test',deviceId:'golden-test',cloudDesiredConnected:false,cloudState:'dormant',version:'0.9.1-beta.4',effectiveCapabilities:[],fleetWall:{healthy:false}}),
  getRemoteStatus:async()=>null,getRemoteActivity:async()=>({events:[]}),
  connect:async()=>({}),disconnect:async()=>({}),setGrace:async()=>({}),setPermissions:async()=>({}),
  pairingCode:async()=>({code:'ABCD-EFGH',expiresAt:Date.now()+60000}),

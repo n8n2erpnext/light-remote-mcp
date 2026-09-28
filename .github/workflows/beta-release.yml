@@ -64,8 +64,8 @@ jobs:
           test "$(find release-assets -maxdepth 1 -type f -name 'Light-Remote-Client-macOS-*.tar.gz' | wc -l)" -eq 2
           test "$(find release-assets -maxdepth 1 -type f -name 'Light-Remote-*.pkg' | wc -l)" -eq 2
           test "$(find release-assets -maxdepth 1 -type f -name 'Light-Remote-Fleet-Wall-*.tar.gz' | wc -l)" -eq 1
-          cp docs/releases/RELEASE_BOM_0_9_1_BETA_3.md release-assets/RELEASE-BOM.md
-          node -e 'const fs=require("fs");const version=process.argv[1];const row={schemaVersion:2,version,gitSha:process.env.GITHUB_SHA,goldenBaseline:{bomSha256:"17c9dea9bfc7db912fd301130ff53fc2b23dbd59ee727b62a6f2183ca5134596",vercelCommit:"3b2e2e67e099277da0eaca19746bc360a04503ed",wallAnchor:"57e641167572e4de9b794f9c783cc491aea42698",agentClientRegistryAnchor:"05c3bb1eb38121fb3b9ae0efee9682d02c884b4b",validatedWindowsBaseline:"0.9.1-beta.1@6b58ce1535d3054265626da622c0f152868f1c4e"},containsFixes:{lateResult410:"33ff0b4e69b919d920f053c87843dc5fd03c4267",lr1ClientContinuity:true,manualSessionCleanup:true,wallPolish:true,settingsClientCrashFix:true,windowsTaskMigrationFailClosed:true},compatibilityFloor:"0.9.0-rc.26",excluded:{computerUseRuntime:true,legacyNetlify:true}};fs.writeFileSync("release-assets/release-provenance.json",JSON.stringify(row,null,2)+"\n");' "$VERSION"
+          cp docs/releases/RELEASE_BOM_0_9_1_BETA_4.md release-assets/RELEASE-BOM.md
+          node -e 'const fs=require("fs");const version=process.argv[1];const row={schemaVersion:2,version,gitSha:process.env.GITHUB_SHA,goldenBaseline:{bomSha256:"17c9dea9bfc7db912fd301130ff53fc2b23dbd59ee727b62a6f2183ca5134596",vercelCommit:"3b2e2e67e099277da0eaca19746bc360a04503ed",wallAnchor:"57e641167572e4de9b794f9c783cc491aea42698",agentClientRegistryAnchor:"05c3bb1eb38121fb3b9ae0efee9682d02c884b4b",validatedWindowsBaseline:"0.9.1-beta.1@6b58ce1535d3054265626da622c0f152868f1c4e"},containsFixes:{lateResult410:"33ff0b4e69b919d920f053c87843dc5fd03c4267",lr1ClientContinuity:true,manualSessionCleanup:true,wallPolish:true,settingsClientCrashFix:true,windowsTaskMigrationFailClosed:true,rollbackCacheBeforeTaskBootstrap:true},compatibilityFloor:"0.9.0-rc.26",excluded:{computerUseRuntime:true,legacyNetlify:true}};fs.writeFileSync("release-assets/release-provenance.json",JSON.stringify(row,null,2)+"\n");' "$VERSION"
           BASE_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}"
           node deploy/scripts/build-client-update-manifest.mjs release-assets "$BASE_URL" release-assets/client-update-unsigned.json
           cat > release-assets/UPDATE-SIGNING-REQUIRED.txt <<EOF
@@ -85,6 +85,7 @@ jobs:
           set -euo pipefail
           NOTES_FILE="docs/releases/RELEASE_NOTES_V0_9_0_RC.md"
           case "$GITHUB_REF_NAME" in
+            v0.9.1-beta.4) NOTES_FILE="docs/releases/RELEASE_NOTES_V0_9_1_BETA_4.md" ;;
             v0.9.1-beta.3) NOTES_FILE="docs/releases/RELEASE_NOTES_V0_9_1_BETA_3.md" ;;
             v0.9.1-beta.2) NOTES_FILE="docs/releases/RELEASE_NOTES_V0_9_1_BETA_2.md" ;;
             v0.9.1-beta.1) NOTES_FILE="docs/releases/RELEASE_NOTES_V0_9_1_BETA_1.md" ;;
