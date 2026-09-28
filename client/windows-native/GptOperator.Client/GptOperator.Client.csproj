@@ -9,7 +9,7 @@
     <RootNamespace>GptOperator.Client</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\light-remote.ico</ApplicationIcon>
-    <Version>0.9.1-beta.4</Version>
+    <Version>0.9.1-beta.5</Version>
     <FileVersion>0.9.1.0</FileVersion>
     <AssemblyVersion>0.9.1.0</AssemblyVersion>
     <PublishSingleFile>true</PublishSingleFile>
