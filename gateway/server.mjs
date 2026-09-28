@@ -1,6 +1,5 @@
 import os from 'node:os';
 import crypto from 'node:crypto';
-import { fileURLToPath } from 'node:url';
 import express from 'express';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
@@ -27,7 +26,6 @@ const PORT = Number(process.env.PORT || 8080);
 const WALL_PORT = Number(process.env.WALL_PORT || 8081);
 const OPERATOR_ACCOUNT_ID = String(process.env.OPERATOR_ACCOUNT_ID || 'self-hosted-local');
 const VERSION = runtimeVersion({envNames:['LIGHT_REMOTE_VERSION']});
-const CASCADIA_MONO_FONT=fileURLToPath(new URL('../assets/fonts/CascadiaMono.ttf',import.meta.url));
 const RootSchema = z.string().min(1).max(64).refine(value => rootNames().includes(value), 'unknown_root');
 
 function textResult(value) {
@@ -159,7 +157,7 @@ function clientAddress(req){return String(req.ip||req.socket.remoteAddress||'unk
 function accountRateIdentity(req){const token=String(req.get('x-light-account-session')||'').trim();return token?`session:${rateIdentity(token)}`:`ip:${clientAddress(req)}`;}
 function plusRateIdentity(req){
   const client=String(req.headers['x-light-client']||'').trim();
-  if(/^o1\.client\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(client))return `client:${rateIdentity(client)}`;
+  if(/^o1\.client\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(client)||/^lr1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(client))return `client:${rateIdentity(client)}`;
   const session=String(req.headers['x-plus-session']||'').trim();
   if(/^o1\.plus\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(session))return `session:${rateIdentity(session)}`;
   const agent=String(req.body?.agentId||'').trim();
@@ -444,7 +442,6 @@ wallApp.use((_req, res, next) => {
   res.set('Cache-Control', 'no-store');
   next();
 });
-wallApp.get('/assets/fonts/CascadiaMono.ttf', (_req,res)=>{res.set('Cache-Control','public, max-age=31536000, immutable');res.type('font/ttf').sendFile(CASCADIA_MONO_FONT);});
 wallApp.get('/login', accountWallAuth.loginPage);
 wallApp.post('/auth/login', accountWallAuth.login);
 wallApp.post('/auth/logout', accountWallAuth.logout);

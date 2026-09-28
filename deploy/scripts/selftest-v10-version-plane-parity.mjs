@@ -17,7 +17,7 @@ for(const file of ['client/windows-native/GptOperator.Client/GptOperator.Client.
 }
 const macBuild=read('client/macos/build-pkg.sh');need(macBuild.includes('BASH_REMATCH[1]')&&macBuild.includes('1000 +')&&macBuild.includes('2000 +')&&macBuild.includes('BUILD_VERSION=3000'),'macos_prerelease_build_version_policy_missing');
 const fleetBuild=read('deploy/scripts/build-fleet-wall-module.sh');need(fleetBuild.includes('\"gitSha\": \"$GIT_SHA\"'),'fleet_artifact_git_sha_missing');
-const stableScope=read('deploy/scripts/selftest-v091-stable-scope.mjs');need(stableScope.includes('no-realremote-no-netlify'),'stable_scope_gate_missing');
+const stableScope=read('deploy/scripts/selftest-v091-golden-release-scope.mjs');need(stableScope.includes('v091-golden-release-scope=PASS'),'golden_release_scope_gate_missing');
 const compatibilityFloor=read('CLIENT_COMPATIBILITY_FLOOR').trim();need(compatibilityFloor==='0.9.0-rc.26','release_compatibility_floor_drift');need(serverBuild.includes('CLIENT_COMPATIBILITY_FLOOR'),'server_bundle_compatibility_floor_missing');
 console.log('v10-release-binary-version-parity=PASS');
 
