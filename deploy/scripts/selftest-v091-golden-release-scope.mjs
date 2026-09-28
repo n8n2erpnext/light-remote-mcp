@@ -7,7 +7,7 @@ const need=(v,m)=>{if(!v)throw new Error(m);};
 const read=rel=>fs.readFileSync(path.join(root,rel),'utf8');
 function walk(dir){const out=[];for(const e of fs.readdirSync(dir,{withFileTypes:true})){if(['node_modules','.git','bin','obj'].includes(e.name))continue;const p=path.join(dir,e.name);if(e.isDirectory())out.push(...walk(p));else out.push(p);}return out;}
 
-need(read('VERSION').trim()==='0.9.1-beta.2','wrong_release_version');
+need(read('VERSION').trim()==='0.9.1-beta.3','wrong_release_version');
 for(const forbiddenPath of ['netlify','netlify.toml'])need(!fs.existsSync(path.join(root,forbiddenPath)),'active_netlify_path_present:'+forbiddenPath);
 
 const roots=['device-agent','operator-host','gateway','client','api','lib','.github/workflows'];

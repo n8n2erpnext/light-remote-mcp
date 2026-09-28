@@ -66,7 +66,6 @@ Name: "{userdesktop}\Light Remote MCP"; Filename: "{app}\GptOperator.Client.exe"
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional icons:"; Flags: unchecked
 
 [Run]
-Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File ""{app}\agent\device-agent\install-windows-task.ps1"" -InstallRoot ""{app}"""; Flags: runhidden waituntilterminated
 Filename: "{app}\GptOperator.Client.exe"; Description: "Start Light Remote tray"; Flags: nowait postinstall skipifsilent
 
 [Code]
@@ -196,10 +195,25 @@ begin
   Result := '';
 end;
 
+procedure InstallBackgroundTasksOrFail();
+var
+  ScriptPath, Args: String;
+  ResultCode: Integer;
+begin
+  ScriptPath := ExpandConstant('{app}\agent\device-agent\install-windows-task.ps1');
+  Args := '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + ScriptPath + '" -InstallRoot "' + ExpandConstant('{app}') + '"';
+  if (not Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'), Args, '', SW_HIDE, ewWaitUntilTerminated, ResultCode)) or (ResultCode <> 0) then
+    RaiseException('Unable to install Light Remote background tasks (exit ' + IntToStr(ResultCode) + ')');
+  Log('light-remote-background-tasks-ready');
+end;
+
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if CurStep = ssPostInstall then
+  begin
+    InstallBackgroundTasksOrFail();
     CacheRollbackInstaller();
+  end;
 end;
 
 [UninstallRun]

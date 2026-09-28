@@ -16,6 +16,12 @@ foreach($f in @($Node,$Agent,$Tray,$Updater,$UpdaterKey)){if(-not(Test-Path $f))
 foreach($taskName in @($Legacy,$AgentTask,$UpdateTask)){
   Stop-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
   Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction SilentlyContinue
+  if(Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue){
+    & (Join-Path $env:SystemRoot 'System32\schtasks.exe') /End /TN $taskName 2>$null | Out-Null
+    & (Join-Path $env:SystemRoot 'System32\schtasks.exe') /Delete /TN $taskName /F 2>$null | Out-Null
+    Start-Sleep -Milliseconds 200
+  }
+  if(Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue){throw "Unable to remove existing scheduled task: $taskName"}
 }
 $nodeFull=[IO.Path]::GetFullPath($Node)
 $staleNodes=@(Get-Process -Name node -ErrorAction SilentlyContinue|Where-Object{try{[IO.Path]::GetFullPath($_.Path) -eq $nodeFull}catch{$false}})
@@ -30,6 +36,9 @@ $agentTrigger=New-ScheduledTaskTrigger -AtLogOn -User $account
 $principal=New-ScheduledTaskPrincipal -UserId $account -LogonType Interactive -RunLevel Limited
 $settings=New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -RestartCount 20 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit ([TimeSpan]::Zero) -MultipleInstances IgnoreNew
 Register-ScheduledTask -TaskName $AgentTask -Action $agentAction -Trigger $agentTrigger -Principal $principal -Settings $settings -Description 'Light Remote always-alive per-user background agent and Local Wall.' -Force|Out-Null
+$registeredAgent=Get-ScheduledTask -TaskName $AgentTask -ErrorAction Stop
+$registeredAction=@($registeredAgent.Actions)[0]
+if([string]$registeredAction.Execute -ne $Tray -or [string]$registeredAction.Arguments -ne '--agent-host'){throw "Light Remote background task action mismatch: execute=$($registeredAction.Execute) args=$($registeredAction.Arguments)"}
 $updaterArgs='--scheduled-update --install-dir "'+$InstallRoot+'"'
 $updaterAction=New-ScheduledTaskAction -Execute $Updater -Argument $updaterArgs -WorkingDirectory $UpdaterRoot
 $first=(Get-Date).AddMinutes(5);$updaterTrigger=New-ScheduledTaskTrigger -Once -At $first -RepetitionInterval (New-TimeSpan -Hours 6)
