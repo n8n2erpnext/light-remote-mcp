@@ -44,7 +44,7 @@ internal sealed class RobotContext : ApplicationContext
             "session.close" => CloseSession(),
             _ => throw new InvalidOperationException("operation_not_supported")
         };
-        return Task.FromResult(result);
+        return Task.FromResult<object?>(result);
     }
 
     private object Status() => new {
