@@ -136,12 +136,23 @@ internal static class NativeInput
     {
         var mods=modifiers.Select(VirtualKey).Distinct().Take(4).ToArray();
         var keyVk=VirtualKey(key);
-        var inputs=new List<INPUT>(mods.Length*2+2);
-        foreach(var vk in mods) inputs.Add(KeyInput(vk,false));
-        inputs.Add(KeyInput(keyVk,false));
-        inputs.Add(KeyInput(keyVk,true));
-        for(var i=mods.Length-1;i>=0;i--) inputs.Add(KeyInput(mods[i],true));
-        Send(inputs.ToArray());
+
+        if(mods.Length>0)
+        {
+            Send(mods.Select(vk=>KeyInput(vk,false)).ToArray());
+            Thread.Sleep(10);
+        }
+
+        try
+        {
+            Send(new[]{KeyInput(keyVk,false),KeyInput(keyVk,true)});
+            if(mods.Length>0) Thread.Sleep(10);
+        }
+        finally
+        {
+            if(mods.Length>0)
+                Send(mods.Reverse().Select(vk=>KeyInput(vk,true)).ToArray());
+        }
     }
 
     private static (uint Down,uint Up) MouseFlags(string button)
