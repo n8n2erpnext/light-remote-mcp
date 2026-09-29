@@ -186,20 +186,24 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'could not fetch Golden base for isolation check' }
           $changed = @(git diff --name-only "$base" HEAD)
           if ($LASTEXITCODE -ne 0) { throw 'Golden isolation diff failed' }
-          $allowed = @(
+          $allowedPrefixes = @(
             'client/windows-native/GptOperator.RealRemoteV2/',
-            'docs/real-remote-v2/',
-            '.github/workflows/windows-native-client.yml'
+            'docs/real-remote-v2/'
+          )
+          $allowedExact = @(
+            '.github/workflows/windows-native-client.yml',
+            'lib/native-desktop.mjs',
+            'client/windows-native/GptOperator.Client/AgentHost.cs'
           )
           $forbidden = @($changed | Where-Object {
             $path = $_
-            -not ($allowed | Where-Object { $path.StartsWith($_) })
+            -not (($allowedExact -contains $path) -or ($allowedPrefixes | Where-Object { $path.StartsWith($_) }))
           })
           if ($forbidden.Count -gt 0) {
             $forbidden | ForEach-Object { Write-Host "forbidden-core-change=$_" }
-            throw 'Real Remote V2 changed Golden Core files'
+            throw 'Real Remote V2 changed files outside the explicit M5 broker surface'
           }
-          Write-Host 'rmv2-golden-core-isolation=PASS'
+          Write-Host 'rmv2-golden-core-isolation=PASS m5-broker-whitelist=PASS'
 
       - name: Publish isolated Real Remote V2 companion
         if: github.ref_name == 'feature/real-remote-v2-golden'
@@ -266,6 +270,46 @@ jobs:
           finally {
             if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue }
           }
+
+      - name: Stage Real Remote V2 lazy companion
+        if: github.ref_name == 'feature/real-remote-v2-golden'
+        shell: pwsh
+        run: |
+          $stage = Join-Path $PWD 'dist\windows\stage'
+          $dest = Join-Path $stage 'realremote-v2'
+          New-Item -ItemType Directory -Force -Path $dest | Out-Null
+          Copy-Item (Join-Path (Split-Path $env:RMV2_EXE -Parent) '*') $dest -Recurse -Force
+          $stageExe = Join-Path $dest 'GptOperator.RealRemoteV2.exe'
+          if (-not (Test-Path $stageExe)) { throw 'staged RM V2 companion missing' }
+          "RMV2_STAGE_EXE=$stageExe" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host "rmv2-lazy-stage=PASS bytes=$((Get-Item $stageExe).Length)"
+
+      - name: Real Remote V2 lazy broker smoke
+        if: github.ref_name == 'feature/real-remote-v2-golden'
+        shell: pwsh
+        run: |
+          $env:LIGHT_REMOTE_REAL_REMOTE = '1'
+          $env:LIGHT_REMOTE_CLIENT_EXE = $env:RMV2_STAGE_EXE
+          $env:LIGHT_REMOTE_RMV2_IDLE_MS = '1200'
+          if (Get-Process -Name 'GptOperator.RealRemoteV2' -ErrorAction SilentlyContinue) { throw 'RM V2 process exists before first broker request' }
+          $probe = Join-Path $PWD '.rmv2-broker-smoke.mjs'
+          @'
+          import {NativeDesktopBridge,realRemoteAvailable} from './lib/native-desktop.mjs';
+          if(!realRemoteAvailable()) throw new Error('rmv2_not_available');
+          const bridge=new NativeDesktopBridge({idleMs:1200,timeoutMs:8000});
+          if(bridge.running) throw new Error('rmv2_spawned_before_request');
+          await new Promise(r=>setTimeout(r,150));
+          if(bridge.running) throw new Error('rmv2_spawned_while_idle');
+          const status=await bridge.request('status',{},{timeoutMs:8000});
+          if(status?.runtime!=='real-remote-v2') throw new Error('rmv2_status_invalid');
+          if(!bridge.running) throw new Error('rmv2_not_running_after_request');
+          await new Promise(r=>setTimeout(r,2800));
+          if(bridge.running) throw new Error('rmv2_idle_shutdown_failed');
+          '@ | Set-Content -LiteralPath $probe -Encoding utf8
+          try { node $probe } finally { Remove-Item $probe -Force -ErrorAction SilentlyContinue }
+          Start-Sleep -Milliseconds 500
+          if (Get-Process -Name 'GptOperator.RealRemoteV2' -ErrorAction SilentlyContinue) { throw 'RM V2 process survived broker idle shutdown' }
+          Write-Host 'rmv2-lazy-broker=PASS idle-zero=PASS on-demand-spawn=PASS idle-shutdown=PASS'
 
       - name: Upload Real Remote V2 companion
         if: github.ref_name == 'feature/real-remote-v2-golden'
@@ -335,6 +379,10 @@ jobs:
           if (Get-ScheduledTask -TaskName $legacyName -ErrorAction SilentlyContinue) { throw 'legacy scheduled task survived native install' }
           $exe = Join-Path $installDir 'GptOperator.Client.exe'
           if (-not (Test-Path $exe)) { throw "installed client missing: $exe" }
+          $rmv2Installed = Join-Path $installDir 'realremote-v2\GptOperator.RealRemoteV2.exe'
+          if (-not (Test-Path $rmv2Installed)) { throw "installed RM V2 companion missing: $rmv2Installed" }
+          if (Get-Process -Name 'GptOperator.RealRemoteV2' -ErrorAction SilentlyContinue) { throw 'installed RM V2 companion spawned while Core was idle' }
+          Write-Host 'windows-rmv2-installed-idle-zero=PASS'
           foreach ($notice in @('LICENSE','NOTICE','THIRD_PARTY_DISTRIBUTION_NOTICES.md','licenses\node\LICENSE','licenses\dotnet\LICENSE.txt','licenses\dotnet\ThirdPartyNotices.txt','THIRD_PARTY_NOTICES.txt')) {
             $noticePath = Join-Path $installDir $notice
             if (-not (Test-Path $noticePath) -or (Get-Item $noticePath).Length -lt 100) { throw "installed notice missing/empty: $notice" }
