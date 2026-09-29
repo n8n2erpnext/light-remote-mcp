@@ -1,0 +1,114 @@
+name: Real Remote V2 Companion
+
+on:
+  push:
+    branches:
+      - 'feature/real-remote-v2-golden'
+    paths:
+      - 'client/windows-native/GptOperator.RealRemoteV2/**'
+      - 'docs/real-remote-v2/**'
+      - '.github/workflows/real-remote-v2-windows.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-companion:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Enforce Golden Core isolation
+        shell: pwsh
+        run: |
+          $base = 'd748d4bdcf501c072daf554b23011ecd96a4f1e9'
+          $changed = @(git diff --name-only "$base...HEAD")
+          $allowed = @(
+            'client/windows-native/GptOperator.RealRemoteV2/',
+            'docs/real-remote-v2/',
+            '.github/workflows/real-remote-v2-windows.yml'
+          )
+          $forbidden = @($changed | Where-Object {
+            $path = $_
+            -not ($allowed | Where-Object { $path.StartsWith($_) })
+          })
+          if ($forbidden.Count -gt 0) {
+            $forbidden | ForEach-Object { Write-Host "forbidden-core-change=$_" }
+            throw 'Real Remote V2 changed Golden Core files'
+          }
+          Write-Host 'golden-core-isolation=PASS'
+
+      - name: Publish Real Remote V2 companion
+        shell: pwsh
+        run: |
+          $out = Join-Path $PWD 'dist\realremote-v2'
+          dotnet publish client/windows-native/GptOperator.RealRemoteV2/GptOperator.RealRemoteV2.csproj -c Release -r win-x64 --self-contained true -o $out
+          if ($LASTEXITCODE -ne 0) { throw 'Real Remote V2 publish failed' }
+          $exe = Join-Path $out 'GptOperator.RealRemoteV2.exe'
+          if (-not (Test-Path $exe)) { throw 'Real Remote V2 executable missing' }
+          "RMV2_EXE=$exe" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Companion self test
+        shell: pwsh
+        run: |
+          $result = Join-Path $env:RUNNER_TEMP 'rmv2-selftest.json'
+          & $env:RMV2_EXE --self-test-output $result
+          if ($LASTEXITCODE -ne 0) { throw 'Real Remote V2 self test failed' }
+          $json = Get-Content $result -Raw | ConvertFrom-Json
+          if (-not $json.ok -or $json.runtime -ne 'real-remote-v2-companion') { throw "invalid self test: $(Get-Content $result -Raw)" }
+          Get-Content $result -Raw | Write-Host
+
+      - name: Full duplex pipe lifecycle
+        shell: pwsh
+        run: |
+          $pipeName = "lightremote-rmv2-ci-$PID"
+          $p = Start-Process -FilePath $env:RMV2_EXE -ArgumentList @('--pipe',$pipeName) -PassThru
+          try {
+            $pipe = [System.IO.Pipes.NamedPipeClientStream]::new('.', $pipeName, [System.IO.Pipes.PipeDirection]::InOut)
+            $pipe.Connect(8000)
+            $reader = [IO.StreamReader]::new($pipe)
+            $writer = [IO.StreamWriter]::new($pipe)
+            $writer.AutoFlush = $true
+            function Read-Response([string]$id) {
+              for ($i = 0; $i -lt 50; $i++) {
+                $row = $reader.ReadLine() | ConvertFrom-Json
+                if ($row.type -eq 'response' -and $row.id -eq $id) { return $row }
+              }
+              throw "response not found: $id"
+            }
+
+            $ready = $reader.ReadLine() | ConvertFrom-Json
+            if ($ready.type -ne 'event' -or $ready.eventName -ne 'robot.ready') { throw 'robot.ready missing' }
+
+            $writer.WriteLine('{"id":"ci-ping","op":"ping"}')
+            $ping = Read-Response "ci-ping"
+            if (-not $ping.ok -or -not $ping.data.pong) { throw 'pipe ping failed' }
+
+            $writer.WriteLine('{"id":"ci-status","op":"status"}')
+            $status = Read-Response "ci-status"
+            if (-not $status.ok -or $status.data.runtime -ne 'real-remote-v2') { throw 'pipe status failed' }
+
+            $writer.WriteLine('{"id":"ci-close","op":"session.close"}')
+            $close = Read-Response "ci-close"
+            if (-not $close.ok -or -not $close.data.closing) { throw 'session close failed' }
+
+            $writer.Dispose(); $reader.Dispose(); $pipe.Dispose()
+            if (-not $p.WaitForExit(8000)) { throw 'companion did not exit after session close' }
+            Write-Host 'rmv2-full-duplex-lifecycle=PASS'
+          }
+          finally {
+            if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue }
+          }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: real-remote-v2-golden-${{ github.sha }}
+          path: dist/realremote-v2/
+          retention-days: 14
