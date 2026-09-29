@@ -3,6 +3,17 @@ namespace GptOperator.RealRemoteV2;
 internal sealed class SemanticSessionManager : IDisposable
 {
     private const int MaxSessions=8;
+    private const int SignalDebounceMs=40;
+
+    private sealed record PendingSignal(
+        string SemanticSessionId,
+        string Epoch,
+        long StateSeq,
+        string EventKind,
+        bool ScopeChanged,
+        bool ResyncRecommended,
+        long At
+    );
 
     private sealed class Session
     {
@@ -19,13 +30,22 @@ internal sealed class SemanticSessionManager : IDisposable
     private readonly UiSensor _sensor;
     private readonly object _gate=new();
     private readonly Dictionary<string,Session> _sessions=new(StringComparer.Ordinal);
+    private readonly Dictionary<string,PendingSignal> _pendingSignals=new(StringComparer.Ordinal);
+    private readonly System.Threading.Timer _signalTimer;
+    private bool _signalScheduled;
     private bool _disposed;
 
     public event Action<object>? Changed;
 
+    public bool HasSessions
+    {
+        get { lock(_gate) return !_disposed && _sessions.Count>0; }
+    }
+
     public SemanticSessionManager(UiSensor sensor)
     {
         _sensor=sensor;
+        _signalTimer=new System.Threading.Timer(_=>FlushSignals(),null,Timeout.Infinite,Timeout.Infinite);
         _sensor.Changed+=OnUiChanged;
     }
 
@@ -223,17 +243,54 @@ internal sealed class SemanticSessionManager : IDisposable
                 scopeChanged
             );
 
+            QueueSignal(session,entry);
+        }
+    }
+
+    private void QueueSignal(Session session,SemanticJournalEntry entry)
+    {
+        lock(_gate)
+        {
+            if(_disposed) return;
+            _pendingSignals[session.Id]=new PendingSignal(
+                session.Id,
+                session.Epoch,
+                entry.Seq,
+                entry.Kind,
+                entry.ScopeChanged,
+                entry.ResyncRecommended,
+                entry.At
+            );
+            if(_signalScheduled) return;
+            _signalScheduled=true;
+            _signalTimer.Change(SignalDebounceMs,Timeout.Infinite);
+        }
+    }
+
+    private void FlushSignals()
+    {
+        PendingSignal[] pending;
+        lock(_gate)
+        {
+            if(_disposed) return;
+            pending=_pendingSignals.Values.ToArray();
+            _pendingSignals.Clear();
+            _signalScheduled=false;
+        }
+
+        foreach(var signal in pending)
+        {
             try
             {
                 Changed?.Invoke(new {
                     kind="semantic.changed",
-                    semanticSessionId=session.Id,
-                    epoch=session.Epoch,
-                    stateSeq=entry.Seq,
-                    eventKind=entry.Kind,
-                    scopeChanged=entry.ScopeChanged,
-                    resyncRecommended=entry.ResyncRecommended,
-                    at=entry.At
+                    semanticSessionId=signal.SemanticSessionId,
+                    epoch=signal.Epoch,
+                    stateSeq=signal.StateSeq,
+                    eventKind=signal.EventKind,
+                    scopeChanged=signal.ScopeChanged,
+                    resyncRecommended=signal.ResyncRecommended,
+                    at=signal.At
                 });
             }
             catch {}
@@ -250,6 +307,12 @@ internal sealed class SemanticSessionManager : IDisposable
         if(_disposed) return;
         _disposed=true;
         _sensor.Changed-=OnUiChanged;
-        lock(_gate) _sessions.Clear();
+        _signalTimer.Dispose();
+        lock(_gate)
+        {
+            _sessions.Clear();
+            _pendingSignals.Clear();
+            _signalScheduled=false;
+        }
     }
 }

@@ -26,8 +26,10 @@ internal sealed class RobotContext : ApplicationContext
 
         _rpc=new RobotRpcServer(pipeName,HandleAsync,OnPipeDisconnected);
         _semantic=new SemanticSessionManager(_sensor);
-        _sensor.Changed+=value=>_rpc.PublishEvent(value);
-        _semantic.Changed+=value=>_rpc.PublishEvent(value);
+        _sensor.Changed+=value=>{
+            if(!_semantic.HasSessions) _rpc.PublishEvent("ui.changed",value);
+        };
+        _semantic.Changed+=value=>_rpc.PublishEvent("semantic.changed",value);
         _=Task.Run(_rpc.RunAsync);
     }
 

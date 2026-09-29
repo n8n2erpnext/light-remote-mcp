@@ -64,11 +64,13 @@ internal sealed class RobotRpcServer : IDisposable
         }
     }
 
-    public void PublishEvent(object value)
+    public void PublishEvent(object value) => PublishEvent("ui.changed",value);
+
+    public void PublishEvent(string eventName,object value)
     {
         if(_writer is null||_disposed) return;
         _=Task.Run(async()=>{
-            try { await SendAsync(new {type="event",eventName="ui.changed",data=value}); } catch {}
+            try { await SendAsync(new {type="event",eventName,data=value}); } catch {}
         });
     }
 
