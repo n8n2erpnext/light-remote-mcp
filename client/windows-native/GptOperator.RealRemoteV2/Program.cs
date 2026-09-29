@@ -40,7 +40,8 @@ internal static class Program
             var status = NativeInput.ReadStatus();
             var result = new
             {
-                ok = status.Screens.Length > 0,
+                ok = true,
+                interactiveDesktopAvailable = status.Screens.Length > 0,
                 runtime = "real-remote-v2-companion",
                 processId = Environment.ProcessId,
                 screens = status.Screens.Length,
