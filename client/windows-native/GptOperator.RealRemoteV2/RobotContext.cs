@@ -10,6 +10,7 @@ internal sealed class RobotContext : ApplicationContext
     private readonly NotifyIcon _tray;
     private readonly System.Windows.Forms.Timer _haloTimer=new(){Interval=16};
     private readonly UiSensor _sensor=new();
+    private readonly SemanticSessionManager _semantic;
     private readonly RobotRpcServer _rpc;
     private readonly Stopwatch _uptime=Stopwatch.StartNew();
     private bool _closing;
@@ -24,7 +25,9 @@ internal sealed class RobotContext : ApplicationContext
         _haloTimer.Start();
 
         _rpc=new RobotRpcServer(pipeName,HandleAsync,OnPipeDisconnected);
+        _semantic=new SemanticSessionManager(_sensor);
         _sensor.Changed+=value=>_rpc.PublishEvent(value);
+        _semantic.Changed+=value=>_rpc.PublishEvent(value);
         _=Task.Run(_rpc.RunAsync);
     }
 
@@ -45,8 +48,12 @@ internal sealed class RobotContext : ApplicationContext
             "key.press" => PressKey(request),
             "key.hotkey" => Hotkey(request),
             "uia.snapshot" => _sensor.Snapshot(Int(request,"maxDepth",4),Int(request,"maxNodes",250)),
+            "desktop.semantic.attach" or "desktop-semantic-attach" => _semantic.Attach(Int(request,"maxDepth",6),Int(request,"maxNodes",500)),
+            "desktop.semantic.snapshot" or "desktop-semantic-snapshot" => _semantic.Snapshot(Text(request,"semanticSessionId")),
+            "desktop.semantic.events" or "desktop-semantic-events" => _semantic.Events(Text(request,"semanticSessionId"),Long(request,"afterSeq",0),Int(request,"limit",100)),
+            "desktop.semantic.detach" or "desktop-semantic-detach" => _semantic.Detach(Text(request,"semanticSessionId")),
             "batch.run" => RunBatch(request,32),
-            "desktop.input" => RunBatch(request,64),
+            "desktop.input" => DesktopInput(request),
             "session.close" => CloseSession(),
             _ => throw new InvalidOperationException("operation_not_supported")
         };
@@ -119,6 +126,18 @@ internal sealed class RobotContext : ApplicationContext
         return new {applied=true,key,modifiers,native=NativeInput.ReadStatus()};
     }
 
+    private object DesktopInput(JsonElement r)
+    {
+        var semanticSessionId=Text(r,"semanticSessionId","");
+        if(semanticSessionId.Length==0) return RunBatch(r,64);
+
+        var afterSeq=Long(r,"afterSeq",0);
+        var settleMs=Math.Clamp(Int(r,"settleMs",90),0,250);
+        _semantic.ValidateInput(semanticSessionId,afterSeq);
+        var mutation=RunBatch(r,64);
+        return _semantic.AcknowledgeInput(semanticSessionId,afterSeq,settleMs,mutation);
+    }
+
     private object RunBatch(JsonElement r,int maxCount)
     {
         JsonElement actions;
@@ -182,6 +201,9 @@ internal sealed class RobotContext : ApplicationContext
     private static int Int(JsonElement node,string name,int fallback=0)
         => node.TryGetProperty(name,out var value)&&value.TryGetInt32(out var n)?n:fallback;
 
+    private static long Long(JsonElement node,string name,long fallback=0)
+        => node.TryGetProperty(name,out var value)&&value.TryGetInt64(out var n)?n:fallback;
+
     private static bool Bool(JsonElement node,string name,bool fallback=false)
         => node.TryGetProperty(name,out var value)&&value.ValueKind is JsonValueKind.True or JsonValueKind.False?value.GetBoolean():fallback;
 
@@ -202,6 +224,7 @@ internal sealed class RobotContext : ApplicationContext
         _closing=true;
         _haloTimer.Stop();
         _haloTimer.Dispose();
+        _semantic.Dispose();
         _sensor.Dispose();
         _rpc.Dispose();
         _tray.Visible=false;

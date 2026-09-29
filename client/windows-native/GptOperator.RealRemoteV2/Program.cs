@@ -37,17 +37,19 @@ internal static class Program
     {
         try
         {
+            var semanticJournalOk=SemanticJournal.SelfTest();
             var result = new
             {
-                ok = true,
+                ok = semanticJournalOk,
                 runtime = "real-remote-v2-companion",
                 processId = Environment.ProcessId,
                 userInteractive = Environment.UserInteractive,
                 os = Environment.OSVersion.VersionString,
-                architecture = System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString()
+                architecture = System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString(),
+                semanticJournalOk
             };
             File.WriteAllText(output, JsonSerializer.Serialize(result));
-            return true;
+            return semanticJournalOk;
         }
         catch (Exception ex)
         {
