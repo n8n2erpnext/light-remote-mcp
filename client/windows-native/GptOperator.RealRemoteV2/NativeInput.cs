@@ -15,6 +15,7 @@ internal static class NativeInput
     private const uint KEYEVENTF_EXTENDEDKEY = 0x0001;
     private const uint KEYEVENTF_KEYUP = 0x0002;
     private const uint KEYEVENTF_UNICODE = 0x0004;
+    private const uint KEYEVENTF_SCANCODE = 0x0008;
     private const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
     private const uint MOUSEEVENTF_LEFTUP = 0x0004;
     private const uint MOUSEEVENTF_RIGHTDOWN = 0x0008;
@@ -195,12 +196,18 @@ internal static class NativeInput
     private static void ChordKey(ushort vk,bool up)
     {
         const uint MAPVK_VK_TO_VSC_EX=4;
-        if(vk>byte.MaxValue) throw new InvalidOperationException("hotkey_key_invalid");
         var mapped=MapVirtualKey(vk,MAPVK_VK_TO_VSC_EX);
         if(mapped==0) throw new InvalidOperationException("hotkey_scan_invalid");
-        uint flags=up?KEYEVENTF_KEYUP:0u;
+        var flags=KEYEVENTF_SCANCODE | (up?KEYEVENTF_KEYUP:0u);
         if((mapped&0xFF00u)!=0) flags|=KEYEVENTF_EXTENDEDKEY;
-        keybd_event((byte)vk,(byte)(mapped&0xFFu),flags,UIntPtr.Zero);
+        Send(new[]{new INPUT{
+            type=INPUT_KEYBOARD,
+            U=new INPUTUNION{ki=new KEYBDINPUT{
+                wVk=0,
+                wScan=(ushort)(mapped&0xFFu),
+                dwFlags=flags
+            }}
+        }});
     }
 
     private static void SendKey(ushort vk,bool up)
