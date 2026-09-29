@@ -204,6 +204,28 @@ jobs:
             throw 'Real Remote V2 changed files outside the explicit M5 broker surface'
           }
           Write-Host 'rmv2-golden-core-isolation=PASS m5-broker-whitelist=PASS'
+      - name: Golden Local Wall UI and pairing regression
+        shell: pwsh
+        run: |
+          $wall = Get-Content 'device-agent/local-wall.mjs' -Raw
+          $required = @(
+            "materialIcon('settings')",
+            'toastHost',
+            'function notify',
+            'confirmOverlay',
+            'sessionActions',
+            '/api/session-close',
+            '#refreshA.spinning',
+            'Agent instructions - execute immediately:',
+            'Do NOT inspect memory, enumerate devices, test agent configuration',
+            'It does NOT need to be a UUID',
+            'replay that URL EXACTLY'
+          )
+          foreach ($needle in $required) {
+            if (-not $wall.Contains($needle)) { throw "Golden Local Wall regression: missing $needle" }
+          }
+          if ($wall.Contains("settingsLink=document.createElement('a')")) { throw 'Golden Local Wall regression: degraded Settings fallback returned' }
+          Write-Host 'golden-local-wall-ui=PASS pairing-fast-path=PASS'
 
       - name: Publish isolated Real Remote V2 companion
         if: github.ref_name == 'feature/real-remote-v2-golden'
