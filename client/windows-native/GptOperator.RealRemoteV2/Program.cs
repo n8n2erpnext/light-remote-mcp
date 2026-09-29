@@ -40,7 +40,8 @@ internal static class Program
             var semanticJournalOk=SemanticJournal.SelfTest();
             var visualLeasePolicyOk=VisualSessionManager.SelfTest();
             var browserLoopbackPolicyOk=BrowserSemanticProvider.SelfTest();
-            var allOk=semanticJournalOk && visualLeasePolicyOk && browserLoopbackPolicyOk;
+            var rectSanitizationOk=UiSensor.RectSanitizationSelfTest();
+            var allOk=semanticJournalOk && visualLeasePolicyOk && browserLoopbackPolicyOk && rectSanitizationOk;
             var result = new
             {
                 ok = allOk,
@@ -51,7 +52,8 @@ internal static class Program
                 architecture = System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString(),
                 semanticJournalOk,
                 visualLeasePolicyOk,
-                browserLoopbackPolicyOk
+                browserLoopbackPolicyOk,
+                rectSanitizationOk
             };
             File.WriteAllText(output, JsonSerializer.Serialize(result));
             return allOk;

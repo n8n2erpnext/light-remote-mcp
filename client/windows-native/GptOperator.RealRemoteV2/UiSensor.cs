@@ -136,6 +136,7 @@ internal sealed class UiSensor : IDisposable
             {
                 var c=item.El.Current;
                 var r=c.BoundingRectangle;
+                var bounds=SafeRect(r.X,r.Y,r.Width,r.Height);
                 nodes.Add(new {
                     index,
                     parent=item.Parent,
@@ -147,7 +148,7 @@ internal sealed class UiSensor : IDisposable
                     enabled=c.IsEnabled,
                     offscreen=c.IsOffscreen,
                     focused=c.HasKeyboardFocus,
-                    bounds=new { x=r.X,y=r.Y,width=r.Width,height=r.Height }
+                    bounds=new { x=bounds.X,y=bounds.Y,width=bounds.Width,height=bounds.Height }
                 });
             }
             catch { continue; }
@@ -225,6 +226,7 @@ internal sealed class UiSensor : IDisposable
     {
         var c=el.Current;
         var r=c.BoundingRectangle;
+        var bounds=SafeRect(r.X,r.Y,r.Width,r.Height);
         string[] patterns;
         try
         {
@@ -255,10 +257,34 @@ internal sealed class UiSensor : IDisposable
             c.IsOffscreen,
             c.HasKeyboardFocus,
             c.IsPassword,
-            new UiRect(r.X,r.Y,r.Width,r.Height),
-            new UiPoint(r.X+r.Width/2d,r.Y+r.Height/2d),
+            bounds,
+            SafeCenter(bounds),
             patterns
         );
+    }
+
+    private static UiRect SafeRect(double x,double y,double width,double height)
+    {
+        if(!double.IsFinite(x)||!double.IsFinite(y)||!double.IsFinite(width)||!double.IsFinite(height))
+            return new UiRect(0d,0d,0d,0d);
+        return new UiRect(x,y,Math.Max(0d,width),Math.Max(0d,height));
+    }
+
+    private static UiPoint SafeCenter(UiRect bounds)
+    {
+        var x=bounds.X+bounds.Width/2d;
+        var y=bounds.Y+bounds.Height/2d;
+        return new UiPoint(double.IsFinite(x)?x:0d,double.IsFinite(y)?y:0d);
+    }
+
+    internal static bool RectSanitizationSelfTest()
+    {
+        var empty=SafeRect(double.PositiveInfinity,double.PositiveInfinity,double.NegativeInfinity,double.NegativeInfinity);
+        var normal=SafeRect(10d,20d,100d,40d);
+        var center=SafeCenter(normal);
+        return empty==new UiRect(0d,0d,0d,0d)
+            && normal==new UiRect(10d,20d,100d,40d)
+            && center==new UiPoint(60d,40d);
     }
 
     private static string ReadWindowTitle(nint hwnd)
