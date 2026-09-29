@@ -135,17 +135,13 @@ internal static class NativeInput
     public static void Hotkey(IEnumerable<string> modifiers,string key)
     {
         var mods=modifiers.Select(VirtualKey).Distinct().Take(4).ToArray();
-        foreach(var vk in mods) SendKey(vk,false);
-        try
-        {
-            var keyVk=VirtualKey(key);
-            SendKey(keyVk,false);
-            SendKey(keyVk,true);
-        }
-        finally
-        {
-            for(var i=mods.Length-1;i>=0;i--) SendKey(mods[i],true);
-        }
+        var keyVk=VirtualKey(key);
+        var inputs=new List<INPUT>(mods.Length*2+2);
+        foreach(var vk in mods) inputs.Add(KeyInput(vk,false));
+        inputs.Add(KeyInput(keyVk,false));
+        inputs.Add(KeyInput(keyVk,true));
+        for(var i=mods.Length-1;i>=0;i--) inputs.Add(KeyInput(mods[i],true));
+        Send(inputs.ToArray());
     }
 
     private static (uint Down,uint Up) MouseFlags(string button)
@@ -171,11 +167,14 @@ internal static class NativeInput
         };
     }
 
-    private static void SendKey(ushort vk,bool up)
-        => Send(new[]{new INPUT{type=INPUT_KEYBOARD,U=new INPUTUNION{ki=new KEYBDINPUT{
+    private static INPUT KeyInput(ushort vk,bool up)
+        => new INPUT{type=INPUT_KEYBOARD,U=new INPUTUNION{ki=new KEYBDINPUT{
             wVk=vk,
             dwFlags=up?KEYEVENTF_KEYUP:0
-        }}}});
+        }}};
+
+    private static void SendKey(ushort vk,bool up)
+        => Send(new[]{KeyInput(vk,up)});
 
     private static void SendMouse(uint down,uint up)
     {
