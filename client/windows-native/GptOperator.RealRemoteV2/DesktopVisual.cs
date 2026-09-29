@@ -43,13 +43,23 @@ internal static class DesktopVisual
             };
         }).ToArray();
         var v=SystemInformation.VirtualScreen;
-        var raw=string.Join("|",screens.Select(s=>$"{s.index}:{s.deviceName}:{s.primary}:{s.bounds.x},{s.bounds.y},{s.bounds.width},{s.bounds.height}:{s.dpiX},{s.dpiY}"));
-        var topologyId=Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(raw))).ToLowerInvariant();
+        var topologyId=ReadTopologyId();
         return new {
             displayTopologyId=topologyId,
             virtualScreen=new {x=v.X,y=v.Y,width=v.Width,height=v.Height},
             screens
         };
+    }
+
+    public static int ReadScreenCount() => Screen.AllScreens.Length;
+
+    public static string ReadTopologyId()
+    {
+        var raw=string.Join("|",Screen.AllScreens.Select((screen,index)=>{
+            var dpi=ReadDpi(screen);
+            return $"{index}:{screen.DeviceName}:{screen.Primary}:{screen.Bounds.X},{screen.Bounds.Y},{screen.Bounds.Width},{screen.Bounds.Height}:{dpi.X},{dpi.Y}";
+        }));
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(raw))).ToLowerInvariant();
     }
 
     public static object[] ListWindows(int maxWindows=100)
@@ -113,7 +123,7 @@ internal static class DesktopVisual
         if(bytes.Length>650*1024) throw new InvalidOperationException("frame_too_large");
 
         var dpi=ReadDpi(screen);
-        var topology=ReadTopology();
+        var topologyId=ReadTopologyId();
         var hash=Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
         return new {
             screen=screenIndex,
@@ -121,7 +131,7 @@ internal static class DesktopVisual
             frame=new {width=output.Width,height=output.Height,quality=appliedQuality},
             dpiX=dpi.X,
             dpiY=dpi.Y,
-            displayTopologyId=topology.GetType().GetProperty("displayTopologyId")?.GetValue(topology),
+            displayTopologyId=topologyId,
             frameSha256=hash,
             dataBytes=bytes.Length,
             mime="image/jpeg",

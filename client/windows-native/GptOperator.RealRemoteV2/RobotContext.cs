@@ -11,6 +11,7 @@ internal sealed class RobotContext : ApplicationContext
     private readonly System.Windows.Forms.Timer _haloTimer=new(){Interval=16};
     private readonly UiSensor _sensor=new();
     private readonly SemanticSessionManager _semantic;
+    private readonly VisualSessionManager _visual;
     private readonly RobotRpcServer _rpc;
     private readonly Stopwatch _uptime=Stopwatch.StartNew();
     private bool _closing;
@@ -26,6 +27,7 @@ internal sealed class RobotContext : ApplicationContext
 
         _rpc=new RobotRpcServer(pipeName,HandleAsync,OnPipeDisconnected);
         _semantic=new SemanticSessionManager(_sensor);
+        _visual=new VisualSessionManager();
         _sensor.Changed+=value=>{
             if(!_semantic.HasSessions) _rpc.PublishEvent("ui.changed",value);
         };
@@ -54,6 +56,32 @@ internal sealed class RobotContext : ApplicationContext
             "desktop.semantic.snapshot" or "desktop-semantic-snapshot" => _semantic.Snapshot(Text(request,"semanticSessionId")),
             "desktop.semantic.events" or "desktop-semantic-events" => _semantic.Events(Text(request,"semanticSessionId"),Long(request,"afterSeq",0),Int(request,"limit",100)),
             "desktop.semantic.detach" or "desktop-semantic-detach" => _semantic.Detach(Text(request,"semanticSessionId")),
+            "desktop.visual.attach" or "desktop-visual-attach" => _visual.Attach(
+                Int(request,"screen",0),
+                Int(request,"maxWidth",960),
+                Int(request,"maxHeight",540),
+                Int(request,"quality",50),
+                Int(request,"leaseMs",30_000),
+                Text(request,"owner","")
+            ),
+            "desktop.visual.resume" or "desktop-visual-resume" => _visual.Resume(
+                Text(request,"visualSessionId"),
+                Text(request,"leaseToken"),
+                Int(request,"leaseMs",0)
+            ),
+            "desktop.visual.keepalive" or "desktop-visual-keepalive" => _visual.KeepAlive(
+                Text(request,"visualSessionId"),
+                Text(request,"leaseToken"),
+                Int(request,"leaseMs",0)
+            ),
+            "desktop.visual.frame" or "desktop-visual-frame" => _visual.Frame(
+                Text(request,"visualSessionId"),
+                Text(request,"leaseToken")
+            ),
+            "desktop.visual.detach" or "desktop-visual-detach" => _visual.Detach(
+                Text(request,"visualSessionId"),
+                Text(request,"leaseToken")
+            ),
             "batch.run" => RunBatch(request,32),
             "desktop.input" => DesktopInput(request),
             "session.close" => CloseSession(),
@@ -67,7 +95,8 @@ internal sealed class RobotContext : ApplicationContext
         pid=Environment.ProcessId,
         uptimeMs=_uptime.ElapsedMilliseconds,
         native=NativeInput.ReadStatus(),
-        topology=DesktopVisual.ReadTopology()
+        topology=DesktopVisual.ReadTopology(),
+        visualSessions=_visual.ActiveSessions
     };
 
     private static object Move(JsonElement r)
@@ -130,14 +159,24 @@ internal sealed class RobotContext : ApplicationContext
 
     private object DesktopInput(JsonElement r)
     {
+        var visualSessionId=Text(r,"visualSessionId","");
+        object? visualReceipt=null;
+        if(visualSessionId.Length>0)
+            visualReceipt=_visual.ValidateInput(visualSessionId,Text(r,"leaseToken"));
+
         var semanticSessionId=Text(r,"semanticSessionId","");
-        if(semanticSessionId.Length==0) return RunBatch(r,64);
+        if(semanticSessionId.Length==0)
+        {
+            var mutation=RunBatch(r,64);
+            return visualReceipt is null?mutation:new {visual=visualReceipt,mutation};
+        }
 
         var afterSeq=Long(r,"afterSeq",0);
         var settleMs=Math.Clamp(Int(r,"settleMs",90),0,250);
         _semantic.ValidateInput(semanticSessionId,afterSeq);
-        var mutation=RunBatch(r,64);
-        return _semantic.AcknowledgeInput(semanticSessionId,afterSeq,settleMs,mutation);
+        var semanticMutation=RunBatch(r,64);
+        var semanticAck=_semantic.AcknowledgeInput(semanticSessionId,afterSeq,settleMs,semanticMutation);
+        return visualReceipt is null?semanticAck:new {visual=visualReceipt,semantic=semanticAck};
     }
 
     private object RunBatch(JsonElement r,int maxCount)
@@ -226,6 +265,7 @@ internal sealed class RobotContext : ApplicationContext
         _closing=true;
         _haloTimer.Stop();
         _haloTimer.Dispose();
+        _visual.Dispose();
         _semantic.Dispose();
         _sensor.Dispose();
         _rpc.Dispose();

@@ -38,18 +38,21 @@ internal static class Program
         try
         {
             var semanticJournalOk=SemanticJournal.SelfTest();
+            var visualLeasePolicyOk=VisualSessionManager.SelfTest();
+            var allOk=semanticJournalOk && visualLeasePolicyOk;
             var result = new
             {
-                ok = semanticJournalOk,
+                ok = allOk,
                 runtime = "real-remote-v2-companion",
                 processId = Environment.ProcessId,
                 userInteractive = Environment.UserInteractive,
                 os = Environment.OSVersion.VersionString,
                 architecture = System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString(),
-                semanticJournalOk
+                semanticJournalOk,
+                visualLeasePolicyOk
             };
             File.WriteAllText(output, JsonSerializer.Serialize(result));
-            return semanticJournalOk;
+            return allOk;
         }
         catch (Exception ex)
         {
