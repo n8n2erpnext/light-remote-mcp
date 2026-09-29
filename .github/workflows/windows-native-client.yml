@@ -217,11 +217,17 @@ jobs:
         shell: pwsh
         run: |
           $result = Join-Path $env:RUNNER_TEMP 'rmv2-selftest.json'
-          & $env:RMV2_EXE --self-test-output $result
-          if ($LASTEXITCODE -ne 0) { throw 'Real Remote V2 self test failed' }
+          Remove-Item $result -Force -ErrorAction SilentlyContinue
+          $self = Start-Process -FilePath $env:RMV2_EXE -ArgumentList @('--self-test-output',$result) -PassThru
+          if (-not $self.WaitForExit(10000)) {
+            Stop-Process -Id $self.Id -Force -ErrorAction SilentlyContinue
+            throw 'Real Remote V2 self test timed out'
+          }
+          if (Test-Path $result) { Get-Content $result -Raw | Write-Host }
+          if ($self.ExitCode -ne 0) { throw "Real Remote V2 self test failed exit=$($self.ExitCode)" }
+          if (-not (Test-Path $result)) { throw 'Real Remote V2 self test result missing' }
           $json = Get-Content $result -Raw | ConvertFrom-Json
           if (-not $json.ok -or $json.runtime -ne 'real-remote-v2-companion') { throw "invalid self test: $(Get-Content $result -Raw)" }
-          Get-Content $result -Raw | Write-Host
 
       - name: Real Remote V2 full duplex lifecycle
         if: github.ref_name == 'feature/real-remote-v2-golden'
