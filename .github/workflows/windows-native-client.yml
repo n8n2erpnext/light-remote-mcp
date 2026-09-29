@@ -182,7 +182,10 @@ jobs:
         shell: pwsh
         run: |
           $base = 'd748d4bdcf501c072daf554b23011ecd96a4f1e9'
+          git fetch --no-tags --depth=1 origin $base
+          if ($LASTEXITCODE -ne 0) { throw 'could not fetch Golden base for isolation check' }
           $changed = @(git diff --name-only "$base...HEAD")
+          if ($LASTEXITCODE -ne 0) { throw 'Golden isolation diff failed' }
           $allowed = @(
             'client/windows-native/GptOperator.RealRemoteV2/',
             'docs/real-remote-v2/',
