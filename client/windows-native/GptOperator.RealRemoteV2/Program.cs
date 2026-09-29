@@ -37,24 +37,21 @@ internal static class Program
     {
         try
         {
-            var status = NativeInput.ReadStatus();
             var result = new
             {
                 ok = true,
-                interactiveDesktopAvailable = status.Screens.Length > 0,
                 runtime = "real-remote-v2-companion",
                 processId = Environment.ProcessId,
-                screens = status.Screens.Length,
-                cursor = status.Cursor,
-                foreground = status.Foreground
+                userInteractive = Environment.UserInteractive,
+                os = Environment.OSVersion.VersionString,
+                architecture = System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString()
             };
             File.WriteAllText(output, JsonSerializer.Serialize(result));
-            return result.ok;
+            return true;
         }
         catch (Exception ex)
         {
-            File.WriteAllText(output, JsonSerializer.Serialize(new { ok = false, error = ex.Message }));
+            try { File.WriteAllText(output, JsonSerializer.Serialize(new { ok = false, error = ex.Message })); } catch { }
             return false;
         }
-    }
-}
+    }}
