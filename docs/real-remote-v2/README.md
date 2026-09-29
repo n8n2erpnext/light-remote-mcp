@@ -35,3 +35,14 @@ This implementation is rebuilt from the stable Golden Core. The previous feature
 ## Next integration boundary
 
 After standalone Windows acceptance, add one minimal lazy launcher/broker to Golden Core. That broker may start the companion only on an explicit desktop.open request and must not add idle work to the Agent or Wall.
+
+
+## Browser semantic provider M4
+
+- desktop.browser.attach accepts only an explicit loopback CDP endpoint.
+- desktop.browser.snapshot reads target metadata and the Accessibility tree.
+- desktop.browser.events returns bounded navigation/DOM/accessibility deltas by stateSeq.
+- desktop.browser.detach closes the local read-only CDP session.
+- browser.semantic.changed is debounce-pushed on the existing duplex pipe.
+- The provider never launches/kills a browser and exposes no CDP mutation/evaluate path.
+- Mouse and keyboard actions remain on the OS robot input path.

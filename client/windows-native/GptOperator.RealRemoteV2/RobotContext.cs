@@ -12,6 +12,7 @@ internal sealed class RobotContext : ApplicationContext
     private readonly UiSensor _sensor=new();
     private readonly SemanticSessionManager _semantic;
     private readonly VisualSessionManager _visual;
+    private readonly BrowserSemanticProvider _browser;
     private readonly RobotRpcServer _rpc;
     private readonly Stopwatch _uptime=Stopwatch.StartNew();
     private bool _closing;
@@ -28,10 +29,12 @@ internal sealed class RobotContext : ApplicationContext
         _rpc=new RobotRpcServer(pipeName,HandleAsync,OnPipeDisconnected);
         _semantic=new SemanticSessionManager(_sensor);
         _visual=new VisualSessionManager();
+        _browser=new BrowserSemanticProvider();
         _sensor.Changed+=value=>{
             if(!_semantic.HasSessions) _rpc.PublishEvent("ui.changed",value);
         };
         _semantic.Changed+=value=>_rpc.PublishEvent("semantic.changed",value);
+        _browser.Changed+=value=>_rpc.PublishEvent("browser.semantic.changed",value);
         _=Task.Run(_rpc.RunAsync);
     }
 
@@ -56,6 +59,15 @@ internal sealed class RobotContext : ApplicationContext
             "desktop.semantic.snapshot" or "desktop-semantic-snapshot" => _semantic.Snapshot(Text(request,"semanticSessionId")),
             "desktop.semantic.events" or "desktop-semantic-events" => _semantic.Events(Text(request,"semanticSessionId"),Long(request,"afterSeq",0),Int(request,"limit",100)),
             "desktop.semantic.detach" or "desktop-semantic-detach" => _semantic.Detach(Text(request,"semanticSessionId")),
+            "desktop.browser.attach" or "desktop-browser-attach" => _browser.Attach(
+                Text(request,"cdpEndpoint"), Text(request,"targetId"), Text(request,"urlMatch"),
+                Int(request,"maxDepth",8), Int(request,"maxNodes",600)
+            ),
+            "desktop.browser.snapshot" or "desktop-browser-snapshot" => _browser.Snapshot(Text(request,"browserSessionId")),
+            "desktop.browser.events" or "desktop-browser-events" => _browser.Events(
+                Text(request,"browserSessionId"), Long(request,"afterSeq",0), Int(request,"limit",100)
+            ),
+            "desktop.browser.detach" or "desktop-browser-detach" => _browser.Detach(Text(request,"browserSessionId")),
             "desktop.visual.attach" or "desktop-visual-attach" => _visual.Attach(
                 Int(request,"screen",0),
                 Int(request,"maxWidth",960),
@@ -266,6 +278,7 @@ internal sealed class RobotContext : ApplicationContext
         _haloTimer.Stop();
         _haloTimer.Dispose();
         _visual.Dispose();
+        _browser.Dispose();
         _semantic.Dispose();
         _sensor.Dispose();
         _rpc.Dispose();

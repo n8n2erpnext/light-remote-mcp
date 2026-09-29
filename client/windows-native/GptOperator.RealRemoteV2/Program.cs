@@ -39,7 +39,8 @@ internal static class Program
         {
             var semanticJournalOk=SemanticJournal.SelfTest();
             var visualLeasePolicyOk=VisualSessionManager.SelfTest();
-            var allOk=semanticJournalOk && visualLeasePolicyOk;
+            var browserLoopbackPolicyOk=BrowserSemanticProvider.SelfTest();
+            var allOk=semanticJournalOk && visualLeasePolicyOk && browserLoopbackPolicyOk;
             var result = new
             {
                 ok = allOk,
@@ -49,7 +50,8 @@ internal static class Program
                 os = Environment.OSVersion.VersionString,
                 architecture = System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString(),
                 semanticJournalOk,
-                visualLeasePolicyOk
+                visualLeasePolicyOk,
+                browserLoopbackPolicyOk
             };
             File.WriteAllText(output, JsonSerializer.Serialize(result));
             return allOk;
