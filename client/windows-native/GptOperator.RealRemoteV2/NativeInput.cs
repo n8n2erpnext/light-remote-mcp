@@ -20,6 +20,8 @@ internal static class NativeInput
     private const uint MOUSEEVENTF_RIGHTUP = 0x0010;
     private const uint MOUSEEVENTF_MIDDLEDOWN = 0x0020;
     private const uint MOUSEEVENTF_MIDDLEUP = 0x0040;
+    private const uint MOUSEEVENTF_WHEEL = 0x0800;
+    private const uint MOUSEEVENTF_HWHEEL = 0x1000;
 
     [StructLayout(LayoutKind.Sequential)] internal struct POINT { public int X; public int Y; }
     [StructLayout(LayoutKind.Sequential)] private struct MOUSEINPUT { public int dx,dy; public uint mouseData,dwFlags,time; public nint dwExtraInfo; }
@@ -61,13 +63,47 @@ internal static class NativeInput
     public static void Click(string button="left",int count=1)
     {
         count=Math.Clamp(count,1,3);
-        var flags=button.ToLowerInvariant() switch {
-            "left" => (MOUSEEVENTF_LEFTDOWN,MOUSEEVENTF_LEFTUP),
-            "right" => (MOUSEEVENTF_RIGHTDOWN,MOUSEEVENTF_RIGHTUP),
-            "middle" => (MOUSEEVENTF_MIDDLEDOWN,MOUSEEVENTF_MIDDLEUP),
-            _ => throw new InvalidOperationException("mouse_button_invalid")
-        };
-        for(var i=0;i<count;i++) SendMouse(flags.Item1,flags.Item2);
+        var flags=MouseFlags(button);
+        for(var i=0;i<count;i++) SendMouse(flags.Down,flags.Up);
+    }
+
+    public static void Wheel(int delta,bool horizontal=false)
+    {
+        delta=Math.Clamp(delta,-2400,2400);
+        if(delta==0) return;
+        Send(new[]{new INPUT{
+            type=INPUT_MOUSE,
+            U=new INPUTUNION{mi=new MOUSEINPUT{
+                mouseData=unchecked((uint)delta),
+                dwFlags=horizontal?MOUSEEVENTF_HWHEEL:MOUSEEVENTF_WHEEL
+            }}
+        }});
+    }
+
+    public static void Drag(int fromX,int fromY,int toX,int toY,string button="left",int durationMs=250,int steps=12)
+    {
+        durationMs=Math.Clamp(durationMs,0,5000);
+        steps=Math.Clamp(steps,2,120);
+        var flags=MouseFlags(button);
+        Move(fromX,fromY);
+        SendMouseFlag(flags.Down);
+        try
+        {
+            var delay=steps>0?durationMs/steps:0;
+            for(var i=1;i<=steps;i++)
+            {
+                var t=(double)i/steps;
+                Move(
+                    (int)Math.Round(fromX+(toX-fromX)*t),
+                    (int)Math.Round(fromY+(toY-fromY)*t)
+                );
+                if(delay>0) Thread.Sleep(delay);
+            }
+        }
+        finally
+        {
+            SendMouseFlag(flags.Up);
+        }
     }
 
     public static void WriteText(string text,int intervalMs=0)
@@ -92,31 +128,66 @@ internal static class NativeInput
     public static void PressKey(string key)
     {
         var vk=VirtualKey(key);
-        var down=new INPUT{type=INPUT_KEYBOARD,U=new INPUTUNION{ki=new KEYBDINPUT{wVk=vk}}};
-        var up=new INPUT{type=INPUT_KEYBOARD,U=new INPUTUNION{ki=new KEYBDINPUT{wVk=vk,dwFlags=KEYEVENTF_KEYUP}}};
-        Send(new[]{down,up});
+        SendKey(vk,false);
+        SendKey(vk,true);
     }
+
+    public static void Hotkey(IEnumerable<string> modifiers,string key)
+    {
+        var mods=modifiers.Select(VirtualKey).Distinct().Take(4).ToArray();
+        foreach(var vk in mods) SendKey(vk,false);
+        try
+        {
+            var keyVk=VirtualKey(key);
+            SendKey(keyVk,false);
+            SendKey(keyVk,true);
+        }
+        finally
+        {
+            for(var i=mods.Length-1;i>=0;i--) SendKey(mods[i],true);
+        }
+    }
+
+    private static (uint Down,uint Up) MouseFlags(string button)
+        => button.ToLowerInvariant() switch {
+            "left" => (MOUSEEVENTF_LEFTDOWN,MOUSEEVENTF_LEFTUP),
+            "right" => (MOUSEEVENTF_RIGHTDOWN,MOUSEEVENTF_RIGHTUP),
+            "middle" => (MOUSEEVENTF_MIDDLEDOWN,MOUSEEVENTF_MIDDLEUP),
+            _ => throw new InvalidOperationException("mouse_button_invalid")
+        };
 
     private static ushort VirtualKey(string key)
     {
         var k=key.Trim().ToUpperInvariant();
         if(k.Length==1 && k[0]>='A' && k[0]<='Z') return (ushort)k[0];
         if(k.Length==1 && k[0]>='0' && k[0]<='9') return (ushort)k[0];
+        if(k.StartsWith("F") && int.TryParse(k[1..],out var fn) && fn is >=1 and <=24) return (ushort)(0x70+fn-1);
         return k switch {
             "ENTER"=>0x0D,"TAB"=>0x09,"ESC"=>0x1B,"ESCAPE"=>0x1B,"BACKSPACE"=>0x08,
-            "DELETE"=>0x2E,"LEFT"=>0x25,"UP"=>0x26,"RIGHT"=>0x27,"DOWN"=>0x28,
+            "DELETE"=>0x2E,"INSERT"=>0x2D,"LEFT"=>0x25,"UP"=>0x26,"RIGHT"=>0x27,"DOWN"=>0x28,
             "HOME"=>0x24,"END"=>0x23,"PAGEUP"=>0x21,"PAGEDOWN"=>0x22,"SPACE"=>0x20,
+            "CTRL"=>0x11,"CONTROL"=>0x11,"SHIFT"=>0x10,"ALT"=>0x12,"WIN"=>0x5B,"WINDOWS"=>0x5B,
             _=>throw new InvalidOperationException("key_invalid")
         };
     }
 
+    private static void SendKey(ushort vk,bool up)
+        => Send(new[]{new INPUT{type=INPUT_KEYBOARD,U=new INPUTUNION{ki=new KEYBDINPUT{
+            wVk=vk,
+            dwFlags=up?KEYEVENTF_KEYUP:0
+        }}}});
+
     private static void SendMouse(uint down,uint up)
     {
-        Send(new[]{
-            new INPUT{type=INPUT_MOUSE,U=new INPUTUNION{mi=new MOUSEINPUT{dwFlags=down}}},
-            new INPUT{type=INPUT_MOUSE,U=new INPUTUNION{mi=new MOUSEINPUT{dwFlags=up}}}
-        });
+        SendMouseFlag(down);
+        SendMouseFlag(up);
     }
+
+    private static void SendMouseFlag(uint flags,uint mouseData=0)
+        => Send(new[]{new INPUT{type=INPUT_MOUSE,U=new INPUTUNION{mi=new MOUSEINPUT{
+            mouseData=mouseData,
+            dwFlags=flags
+        }}}});
 
     private static void Send(INPUT[] items)
     {

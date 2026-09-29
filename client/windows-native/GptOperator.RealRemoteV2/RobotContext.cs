@@ -33,14 +33,20 @@ internal sealed class RobotContext : ApplicationContext
         var op=Text(request,"op");
         object? result=op switch {
             "ping" => new {pong=true,pid=Environment.ProcessId},
-            "status" => Status(),
+            "status" or "desktop.status" => Status(),
+            "desktop.windows" => DesktopVisual.ListWindows(Int(request,"maxWindows",100)),
+            "desktop.frame" => DesktopVisual.Capture(Int(request,"screen",0),Int(request,"maxWidth",960),Int(request,"maxHeight",540),Int(request,"quality",50)),
             "cursor.move" => Move(request),
             "cursor.click" => Click(request),
+            "cursor.wheel" => Wheel(request),
+            "cursor.drag" => Drag(request),
             "text.write" => WriteText(request),
             "text.delete" => DeleteText(request),
             "key.press" => PressKey(request),
+            "key.hotkey" => Hotkey(request),
             "uia.snapshot" => _sensor.Snapshot(Int(request,"maxDepth",4),Int(request,"maxNodes",250)),
-            "batch.run" => RunBatch(request),
+            "batch.run" => RunBatch(request,32),
+            "desktop.input" => RunBatch(request,64),
             "session.close" => CloseSession(),
             _ => throw new InvalidOperationException("operation_not_supported")
         };
@@ -51,7 +57,8 @@ internal sealed class RobotContext : ApplicationContext
         runtime="real-remote-v2",
         pid=Environment.ProcessId,
         uptimeMs=_uptime.ElapsedMilliseconds,
-        native=NativeInput.ReadStatus()
+        native=NativeInput.ReadStatus(),
+        topology=DesktopVisual.ReadTopology()
     };
 
     private static object Move(JsonElement r)
@@ -63,6 +70,23 @@ internal sealed class RobotContext : ApplicationContext
     private static object Click(JsonElement r)
     {
         NativeInput.Click(Text(r,"button","left"),Int(r,"count",1));
+        return new {applied=true,native=NativeInput.ReadStatus()};
+    }
+
+    private static object Wheel(JsonElement r)
+    {
+        var delta=Int(r,"delta",0);
+        var horizontal=Bool(r,"horizontal",false);
+        NativeInput.Wheel(delta,horizontal);
+        return new {applied=true,delta,horizontal,native=NativeInput.ReadStatus()};
+    }
+
+    private static object Drag(JsonElement r)
+    {
+        NativeInput.Drag(
+            Int(r,"fromX"),Int(r,"fromY"),Int(r,"toX"),Int(r,"toY"),
+            Text(r,"button","left"),Int(r,"durationMs",250),Int(r,"steps",12)
+        );
         return new {applied=true,native=NativeInput.ReadStatus()};
     }
 
@@ -87,12 +111,22 @@ internal sealed class RobotContext : ApplicationContext
         return new {applied=true,key,native=NativeInput.ReadStatus()};
     }
 
-    private object RunBatch(JsonElement r)
+    private static object Hotkey(JsonElement r)
     {
-        if(!r.TryGetProperty("actions",out var actions)||actions.ValueKind!=JsonValueKind.Array)
-            throw new InvalidOperationException("actions_required");
+        var key=Text(r,"key");
+        var modifiers=Strings(r,"modifiers");
+        NativeInput.Hotkey(modifiers,key);
+        return new {applied=true,key,modifiers,native=NativeInput.ReadStatus()};
+    }
+
+    private object RunBatch(JsonElement r,int maxCount)
+    {
+        JsonElement actions;
+        if(r.TryGetProperty("actions",out var a) && a.ValueKind==JsonValueKind.Array) actions=a;
+        else if(r.TryGetProperty("events",out var e) && e.ValueKind==JsonValueKind.Array) actions=e;
+        else throw new InvalidOperationException("actions_required");
         var count=actions.GetArrayLength();
-        if(count<1||count>32) throw new InvalidOperationException("actions_count_invalid");
+        if(count<1||count>maxCount) throw new InvalidOperationException("actions_count_invalid");
         var applied=0;
         foreach(var action in actions.EnumerateArray())
         {
@@ -101,11 +135,14 @@ internal sealed class RobotContext : ApplicationContext
                 throw new InvalidOperationException("guard_foreground_mismatch");
             var op=Text(action,"op");
             _=op switch {
-                "cursor.move" => Move(action),
-                "cursor.click" => Click(action),
-                "text.write" => WriteText(action),
-                "text.delete" => DeleteText(action),
-                "key.press" => PressKey(action),
+                "cursor.move" or "move" => Move(action),
+                "cursor.click" or "click" => Click(action),
+                "cursor.wheel" or "wheel" => Wheel(action),
+                "cursor.drag" or "drag" => Drag(action),
+                "text.write" or "text" => WriteText(action),
+                "text.delete" or "delete" => DeleteText(action),
+                "key.press" or "key" => PressKey(action),
+                "key.hotkey" or "hotkey" => Hotkey(action),
                 _ => throw new InvalidOperationException("batch_operation_not_supported")
             };
             applied++;
@@ -144,6 +181,18 @@ internal sealed class RobotContext : ApplicationContext
 
     private static int Int(JsonElement node,string name,int fallback=0)
         => node.TryGetProperty(name,out var value)&&value.TryGetInt32(out var n)?n:fallback;
+
+    private static bool Bool(JsonElement node,string name,bool fallback=false)
+        => node.TryGetProperty(name,out var value)&&value.ValueKind is JsonValueKind.True or JsonValueKind.False?value.GetBoolean():fallback;
+
+    private static string stringText(JsonElement node,string fallback="")
+        => node.ValueKind==JsonValueKind.String?node.GetString()??fallback:fallback;
+
+    private static string[] Strings(JsonElement node,string name)
+    {
+        if(!node.TryGetProperty(name,out var value)||value.ValueKind!=JsonValueKind.Array) return Array.Empty<string>();
+        return value.EnumerateArray().Select(v=>stringText(v)).Where(s=>s.Length>0).Take(4).ToArray();
+    }
 
     private static string Text(JsonElement node,string name,string fallback="")
         => node.TryGetProperty(name,out var value)&&value.ValueKind==JsonValueKind.String?value.GetString()??fallback:fallback;
