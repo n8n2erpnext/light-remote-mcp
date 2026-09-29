@@ -12,8 +12,10 @@ internal static class NativeInput
 {
     private const uint INPUT_MOUSE = 0;
     private const uint INPUT_KEYBOARD = 1;
+    private const uint KEYEVENTF_EXTENDEDKEY = 0x0001;
     private const uint KEYEVENTF_KEYUP = 0x0002;
     private const uint KEYEVENTF_UNICODE = 0x0004;
+    private const uint KEYEVENTF_SCANCODE = 0x0008;
     private const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
     private const uint MOUSEEVENTF_LEFTUP = 0x0004;
     private const uint MOUSEEVENTF_RIGHTDOWN = 0x0008;
@@ -39,6 +41,7 @@ internal static class NativeInput
     [DllImport("user32.dll")] private static extern nint GetForegroundWindow();
     [DllImport("user32.dll", CharSet=CharSet.Unicode)] private static extern int GetWindowText(nint hwnd,StringBuilder text,int count);
     [DllImport("user32.dll", SetLastError=true)] private static extern uint SendInput(uint count, INPUT[] inputs, int size);
+    [DllImport("user32.dll")] private static extern uint MapVirtualKey(uint code,uint mapType);
     [DllImport("user32.dll")] private static extern void keybd_event(byte virtualKey, byte scanCode, uint flags, UIntPtr extraInfo);
 
     public static NativeStatus ReadStatus()
@@ -138,26 +141,21 @@ internal static class NativeInput
         var mods=modifiers.Select(VirtualKey).Distinct().Take(4).ToArray();
         var keyVk=VirtualKey(key);
 
-        foreach(var vk in mods)
+        if(mods.Length>0)
         {
-            ChordKey(vk,false);
+            Send(mods.Select(vk=>PhysicalKeyInput(vk,false)).ToArray());
             Thread.Sleep(10);
         }
 
         try
         {
-            ChordKey(keyVk,false);
-            Thread.Sleep(15);
-            ChordKey(keyVk,true);
-            Thread.Sleep(10);
+            Send(new[]{PhysicalKeyInput(keyVk,false),PhysicalKeyInput(keyVk,true)});
+            if(mods.Length>0) Thread.Sleep(10);
         }
         finally
         {
-            for(var i=mods.Length-1;i>=0;i--)
-            {
-                ChordKey(mods[i],true);
-                if(i>0) Thread.Sleep(10);
-            }
+            if(mods.Length>0)
+                Send(mods.Reverse().Select(vk=>PhysicalKeyInput(vk,true)).ToArray());
         }
     }
 
@@ -182,6 +180,20 @@ internal static class NativeInput
             "CTRL"=>0x11,"CONTROL"=>0x11,"SHIFT"=>0x10,"ALT"=>0x12,"WIN"=>0x5B,"WINDOWS"=>0x5B,
             _=>throw new InvalidOperationException("key_invalid")
         };
+    }
+
+    private static INPUT PhysicalKeyInput(ushort vk,bool up)
+    {
+        const uint MAPVK_VK_TO_VSC_EX=4;
+        var mapped=MapVirtualKey(vk,MAPVK_VK_TO_VSC_EX);
+        if(mapped==0) throw new InvalidOperationException("scan_code_invalid");
+        var flags=KEYEVENTF_SCANCODE | (up?KEYEVENTF_KEYUP:0);
+        if((mapped&0xFF00u)!=0) flags|=KEYEVENTF_EXTENDEDKEY;
+        return new INPUT{type=INPUT_KEYBOARD,U=new INPUTUNION{ki=new KEYBDINPUT{
+            wVk=0,
+            wScan=(ushort)(mapped&0xFFu),
+            dwFlags=flags
+        }}};
     }
 
     private static INPUT KeyInput(ushort vk,bool up)
