@@ -39,6 +39,7 @@ internal static class NativeInput
     [DllImport("user32.dll")] private static extern nint GetForegroundWindow();
     [DllImport("user32.dll", CharSet=CharSet.Unicode)] private static extern int GetWindowText(nint hwnd,StringBuilder text,int count);
     [DllImport("user32.dll", SetLastError=true)] private static extern uint SendInput(uint count, INPUT[] inputs, int size);
+    [DllImport("user32.dll")] private static extern void keybd_event(byte virtualKey, byte scanCode, uint flags, UIntPtr extraInfo);
 
     public static NativeStatus ReadStatus()
     {
@@ -137,21 +138,26 @@ internal static class NativeInput
         var mods=modifiers.Select(VirtualKey).Distinct().Take(4).ToArray();
         var keyVk=VirtualKey(key);
 
-        if(mods.Length>0)
+        foreach(var vk in mods)
         {
-            Send(mods.Select(vk=>KeyInput(vk,false)).ToArray());
+            ChordKey(vk,false);
             Thread.Sleep(10);
         }
 
         try
         {
-            Send(new[]{KeyInput(keyVk,false),KeyInput(keyVk,true)});
-            if(mods.Length>0) Thread.Sleep(10);
+            ChordKey(keyVk,false);
+            Thread.Sleep(15);
+            ChordKey(keyVk,true);
+            Thread.Sleep(10);
         }
         finally
         {
-            if(mods.Length>0)
-                Send(mods.Reverse().Select(vk=>KeyInput(vk,true)).ToArray());
+            for(var i=mods.Length-1;i>=0;i--)
+            {
+                ChordKey(mods[i],true);
+                if(i>0) Thread.Sleep(10);
+            }
         }
     }
 
@@ -183,6 +189,12 @@ internal static class NativeInput
             wVk=vk,
             dwFlags=up?KEYEVENTF_KEYUP:0
         }}};
+
+    private static void ChordKey(ushort vk,bool up)
+    {
+        if(vk>byte.MaxValue) throw new InvalidOperationException("hotkey_key_invalid");
+        keybd_event((byte)vk,0,up?KEYEVENTF_KEYUP:0,UIntPtr.Zero);
+    }
 
     private static void SendKey(ushort vk,bool up)
         => Send(new[]{KeyInput(vk,up)});
