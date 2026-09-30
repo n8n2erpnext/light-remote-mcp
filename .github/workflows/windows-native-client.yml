@@ -235,8 +235,8 @@ jobs:
         run: |
           $native = Get-Content 'lib/native-desktop.mjs' -Raw
           $agent = Get-Content 'device-agent/operator-agent.mjs' -Raw
-          $nativeRequired = @('onEvent(listener)','retain(){','_emitEvent(message)',"eventName:'robot.closed'")
-          $agentRequired = @("if(op==='live-open')","if(op==='live-close')","'desktop-live-push'","name!=='semantic.changed'&&name!=='browser.semantic.changed'","name==='robot.closed'",'eventDriven:true','NATIVE_DESKTOP.retain()')
+          $nativeRequired = @('onEvent(listener)','closeIfIdle(){','retain(){','_emitEvent(message)',"eventName:'robot.closed'")
+          $agentRequired = @("if(op==='live-open')","if(op==='live-close')","'desktop-live-push'","name!=='semantic.changed'&&name!=='browser.semantic.changed'","name==='robot.closed'",'eventDriven:true','NATIVE_DESKTOP.retain()','NATIVE_DESKTOP.closeIfIdle()')
           foreach ($needle in $nativeRequired) { if (-not $native.Contains($needle)) { throw "RM V2 live push regression: native missing $needle" } }
           foreach ($needle in $agentRequired) { if (-not $agent.Contains($needle)) { throw "RM V2 live push regression: agent missing $needle" } }
           if ($agent.Contains('REAL_REMOTE_LIVE_POLL_MS')) { throw 'RM V2 live push regression: polling loop returned' }
@@ -369,16 +369,17 @@ jobs:
             await new Promise(r=>setTimeout(r,2500));
             if(!bridge.running) throw new Error('rmv2_retain_failed');
             release();
-            await new Promise(r=>setTimeout(r,2500));
-            if(bridge.running) throw new Error('rmv2_release_idle_shutdown_failed');
+            if(!bridge.closeIfIdle()) throw new Error('rmv2_close_if_idle_rejected');
             await new Promise(r=>setTimeout(r,250));
+            if(bridge.running) throw new Error('rmv2_close_if_idle_failed');
+
             if(!seen.includes('robot.closed')) throw new Error('rmv2_robot_closed_event_missing');
           }finally{off();bridge.close();}
           '@ | Set-Content -LiteralPath $probe -Encoding utf8
           try { node $probe } finally { Remove-Item $probe -Force -ErrorAction SilentlyContinue }
           Start-Sleep -Milliseconds 500
           if (Get-Process -Name 'GptOperator.RealRemoteV2' -ErrorAction SilentlyContinue) { throw 'RM V2 process survived push bridge smoke' }
-          Write-Host 'rmv2-push-bridge=PASS event-forward=PASS retain=PASS release-idle=PASS'
+          Write-Host 'rmv2-push-bridge=PASS event-forward=PASS retain=PASS close-if-idle=PASS'
       - name: Upload Real Remote V2 companion
         if: github.ref_name == 'feature/real-remote-v2-golden'
         uses: actions/upload-artifact@v4

@@ -111,7 +111,9 @@ async function stopRealRemoteLive(row,{detach=true,notify=true}={}){
   row.stopping=(async()=>{row.stopped=true;REAL_REMOTE_LIVE.delete(row.semanticSessionId);if(row.timer){clearTimeout(row.timer);row.timer=null;}let detached=null;
     if(detach){try{detached=await NATIVE_DESKTOP.request('semantic-detach',{semanticSessionId:row.semanticSessionId},{timeoutMs:10000});}catch(error){if(!/session_(missing|not_found)/.test(String(error?.message||error)))console.error(JSON.stringify({event:'real_remote_live_detach_failed',semanticSessionId:row.semanticSessionId,error:String(error?.message||error)}));}}
     if(notify){try{await pushRealRemoteLive(row,{closed:true});}catch{}}
-    try{row.release?.();}catch{}return detached;})();
+    try{row.release?.();}catch{}
+    if(REAL_REMOTE_LIVE.size===0)NATIVE_DESKTOP.closeIfIdle();
+    return detached;})();
   return row.stopping;
 }
 async function drainRealRemoteLive(row){
