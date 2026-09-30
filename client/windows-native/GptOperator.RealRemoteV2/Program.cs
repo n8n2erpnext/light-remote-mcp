@@ -41,7 +41,9 @@ internal static class Program
             var visualLeasePolicyOk=VisualSessionManager.SelfTest();
             var browserLoopbackPolicyOk=BrowserSemanticProvider.SelfTest();
             var rectSanitizationOk=UiSensor.RectSanitizationSelfTest();
-            var allOk=semanticJournalOk && visualLeasePolicyOk && browserLoopbackPolicyOk && rectSanitizationOk;
+            var semanticScopeOk=SemanticSessionManager.ScopeSelfTest();
+            var smoothMoveMathOk=NativeInput.SmoothMoveMathSelfTest();
+            var allOk=semanticJournalOk && visualLeasePolicyOk && browserLoopbackPolicyOk && rectSanitizationOk && semanticScopeOk && smoothMoveMathOk;
             var result = new
             {
                 ok = allOk,
@@ -53,7 +55,9 @@ internal static class Program
                 semanticJournalOk,
                 visualLeasePolicyOk,
                 browserLoopbackPolicyOk,
-                rectSanitizationOk
+                rectSanitizationOk,
+                semanticScopeOk,
+                smoothMoveMathOk
             };
             File.WriteAllText(output, JsonSerializer.Serialize(result));
             return allOk;

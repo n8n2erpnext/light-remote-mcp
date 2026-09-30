@@ -132,14 +132,37 @@ async function drainRealRemoteLive(row){
   })().catch(async error=>{row.failures++;console.error(JSON.stringify({event:'real_remote_live_drain_failed',semanticSessionId:row.semanticSessionId,error:String(error?.message||error),failures:row.failures}));await stopRealRemoteLive(row,{notify:true});}).finally(()=>{row.draining=null;if(again&&!row.stopped)queueMicrotask(()=>void drainRealRemoteLive(row));});
   return row.draining;
 }
+async function pushDirectRealRemoteDelta(row,data){
+  if(!row||row.stopped)return;
+  const events=Array.isArray(data?.events)?data.events:[];
+  let snapshot=null;
+  const now=Date.now();
+  if(data?.resyncRecommended&&now-row.lastSnapshotAt>=REAL_REMOTE_LIVE_SNAPSHOT_DEBOUNCE_MS){
+    try{snapshot=await NATIVE_DESKTOP.request('semantic-snapshot',{semanticSessionId:row.semanticSessionId},{timeoutMs:15000});row.lastSnapshotAt=Date.now();}catch{}
+  }
+  const nextSeq=Math.max(row.afterSeq,Number(data?.stateSeq)||0,Number(snapshot?.stateSeq)||0);
+  await pushRealRemoteLive(row,{
+    stateSeq:nextSeq,events,snapshot,
+    foreground:data?.foreground||null,focused:data?.focused||null,
+    scope:data?.scope||null,rootHwnd:data?.rootHwnd||null,rootTitle:data?.rootTitle||null,rootEpoch:Number(data?.rootEpoch)||0,
+    resyncRecommended:Boolean(data?.resyncRecommended&&!snapshot)
+  });
+  row.afterSeq=nextSeq;row.failures=0;row.lastPushAt=Date.now();
+}
 function onRealRemoteLiveEvent(message){
   const name=String(message?.eventName||'');
   if(name==='robot.closed'){for(const row of [...REAL_REMOTE_LIVE.values()])void stopRealRemoteLive(row,{detach:false,notify:true});return;}
   if(name!=='semantic.changed'&&name!=='browser.semantic.changed')return;
-  const id=realRemoteLiveId(message?.data||{}),row=REAL_REMOTE_LIVE.get(id);if(!row||row.stopped)return;
+  const data=message?.data||{},id=realRemoteLiveId(data),row=REAL_REMOTE_LIVE.get(id);if(!row||row.stopped)return;
+  if(name==='semantic.changed'&&Array.isArray(data.events)){
+    row.directQueue=(row.directQueue||Promise.resolve()).then(()=>pushDirectRealRemoteDelta(row,data)).catch(async error=>{
+      row.failures++;console.error(JSON.stringify({event:'real_remote_live_direct_push_failed',semanticSessionId:row.semanticSessionId,error:String(error?.message||error),failures:row.failures}));
+      if(row.failures>=5)await stopRealRemoteLive(row,{notify:true});
+    });
+    return;
+  }
   row.dirty=true;void drainRealRemoteLive(row);
-}
-NATIVE_DESKTOP.onEvent(onRealRemoteLiveEvent);
+}NATIVE_DESKTOP.onEvent(onRealRemoteLiveEvent);
 async function finishEnrollment(state,base,{wait=false}={}){const pending=state.pendingEnrollment;if(!pending?.enrollmentId||!pending?.pollToken)throw new Error('no_pending_enrollment');do{const upstream=await operator(base,'enrollment-poll',{enrollmentId:pending.enrollmentId,pollToken:pending.pollToken});const e=upstream.enrollment;if(e.state==='approved'){verifyEnrollment(state,e);state.enrollment={enrollmentId:e.enrollmentId,deviceId:e.deviceId,nodeId:e.deviceId,accountId:e.accountId,grantableCapabilities:[...(pending.requestedCapabilities||e.approvedCapabilities||[])],approvedCapabilities:e.approvedCapabilities,policyProfile:e.policyProfile,certificate:e.certificate,certificateSignature:e.certificateSignature,signer:e.signer,enrolledAt:Date.now()};state.policy={...(state.policy||{}),serverPolicyRevision:1,localFinalDenyBoundary:true};state.effectiveCapabilities=effectiveCapabilities(e.approvedCapabilities,state.policy?.deniedCapabilities);state.cloud={...(state.cloud||{}),desiredConnected:false,state:'dormant',connectionId:null,hardExpiresAt:null,lastError:null,lastDisconnectedAt:Date.now()};delete state.pendingEnrollment;writeState(state);const device=await heartbeat(state,base);return {state:'approved',device,effectiveCapabilities:[...(state.effectiveCapabilities||[])]};}if(e.state==='expired'||e.state==='replaced'||e.state==='cancelled'){delete state.pendingEnrollment;writeState(state);return {state:e.state};}if(!wait)return {state:e.state,expiresAt:e.expiresAt};if(Date.now()>=pending.expiresAt){delete state.pendingEnrollment;writeState(state);return {state:'expired'};}await sleep(3000);}while(true);}
 async function beginWallEnrollment(base=DEFAULT_BASE){let state=readState()||{};if(state.identityResetRequired)throw new Error('external_identity_rotation_required');state=ensureIdentity(state);const discovered=discoverCapabilities();if(!discovered.length)throw new Error('device_capabilities_required');const denied=defaultRealRemoteDenied({discovered,denied:normalizeDeviceCapabilities(state.policy?.deniedCapabilities||[]),inputDecision:state.policy?.realRemoteInputDecision});const hostname=os.hostname(),hadEnrollment=Boolean(state.enrollment?.deviceId),revoked=String(state.cloud?.lastError||'')==='device_revoked';const policyProfile=String(state.enrollment?.policyProfile||state.pendingEnrollment?.requestedPolicy||'default');const upstream=await operator(base,'enrollment-begin',{publicIdentityKey:state.identity.publicIdentityKey,displayName:hostname,platform:os.platform(),architecture:os.arch(),agentVersion:VERSION,fingerprintSummary:`${hostname} / ${os.platform()} ${os.arch()} / key ${state.identity.publicKeySha256.slice(0,12)}`,capabilities:discovered,policyProfile});const e=upstream.enrollment;state.policy={...(state.policy||{}),deniedCapabilities:denied,localFinalDenyBoundary:true};state.pendingEnrollment={enrollmentId:e.enrollmentId,pollToken:e.pollToken,activationUrl:e.activationUrl,expiresAt:e.expiresAt,requestedCapabilities:e.requestedCapabilities||discovered,requestedPolicy:e.requestedPolicy||policyProfile};writeState(state);return {state:'pending',mode:hadEnrollment||revoked?'reenroll':'link',deviceCode:e.deviceCode,activationUrl:e.activationUrl,expiresAt:e.expiresAt,expiresInSeconds:e.expiresInSeconds,deniedCapabilities:[...denied]};}
 async function pollWallEnrollment(base=DEFAULT_BASE){const state=readState();if(!state?.pendingEnrollment?.enrollmentId)throw new Error('no_pending_enrollment');return finishEnrollment(state,base,{wait:false});}
@@ -211,12 +234,12 @@ async function executeDesktopCommand(state,p,{hub=DEFAULT_HUB}={}){
     if(!['windows-uia','browser-cdp'].includes(provider))throw new Error('invalid_semantic_provider');
     const depth=Number(request.maxDepth),nodes=Number(request.maxNodes),idleTimeoutMs=Math.max(15000,Math.min(Number(request.idleTimeoutMs)||300000,900000));
     const semantic={provider,maxDepth:Math.max(1,Math.min(Number.isFinite(depth)?depth:(provider==='browser-cdp'?8:6),16)),maxNodes:Math.max(1,Math.min(Number.isFinite(nodes)?nodes:(provider==='browser-cdp'?600:400),1500))};
-    if(provider==='windows-uia')semantic.scope=request.scope==='desktop'?'desktop':'foreground';
+    if(provider==='windows-uia')semantic.scope=request.scope==='foreground'?'foreground':'desktop';
     else{if(request.cdpEndpoint!=null)semantic.cdpEndpoint=String(request.cdpEndpoint).slice(0,256);if(request.targetId!=null)semantic.targetId=String(request.targetId).slice(0,256);if(request.urlMatch!=null)semantic.urlMatch=String(request.urlMatch).slice(0,512);}
     for(const existing of [...REAL_REMOTE_LIVE.values()])if(existing.sessionId===String(p.sessionId||'')&&existing.agentId===String(p.agentId||''))await stopRealRemoteLive(existing);
     const initial=await NATIVE_DESKTOP.request('semantic-attach',semantic,{timeoutMs:15000}),semanticSessionId=realRemoteLiveId(initial);
     if(!semanticSessionId)throw new Error('semantic_session_not_found');
-    const row={semanticSessionId,provider,state,hub,sessionId:String(p.sessionId||''),agentId:String(p.agentId||''),afterSeq:Math.max(0,Number(initial?.stateSeq)||0),displayTopologyId:String(initial?.displayTopologyId||''),idleTimeoutMs,expiresAt:Date.now()+idleTimeoutMs,lastPushAt:0,lastSnapshotAt:Date.now(),failures:0,dirty:false,draining:null,stopped:false,stopping:null,timer:null,release:NATIVE_DESKTOP.retain()};
+    const row={semanticSessionId,provider,state,hub,sessionId:String(p.sessionId||''),agentId:String(p.agentId||''),afterSeq:Math.max(0,Number(initial?.stateSeq)||0),displayTopologyId:String(initial?.displayTopologyId||''),idleTimeoutMs,expiresAt:Date.now()+idleTimeoutMs,lastPushAt:0,lastSnapshotAt:Date.now(),failures:0,dirty:false,draining:null,directQueue:Promise.resolve(),stopped:false,stopping:null,timer:null,release:NATIVE_DESKTOP.retain()};
     REAL_REMOTE_LIVE.set(semanticSessionId,row);
     try{await pushRealRemoteLive(row,{stateSeq:row.afterSeq,snapshot:{...initial,semanticSessionId},displayTopologyId:row.displayTopologyId});scheduleRealRemoteLive(row);}
     catch(error){await stopRealRemoteLive(row,{notify:false});throw error;}
@@ -239,7 +262,13 @@ async function executeDesktopCommand(state,p,{hub=DEFAULT_HUB}={}){
     maxHeight:Math.max(180,Math.min(Number(request.maxHeight)||540,720)),
     quality:Math.max(25,Math.min(Number(request.quality)||50,70))
   },{timeoutMs:10000})};
-  if(op==='input'){
+  if(op==='run'){
+    if(!effective.includes(REAL_REMOTE_INPUT_CAPABILITY))throw new Error('local capability denied: desktop-input');
+    const input=normalizeDesktopInput(request),wait=request.await&&typeof request.await==='object'&&!Array.isArray(request.await)?request.await:null;
+    const desktop=await NATIVE_DESKTOP.request('run',{...input,...(wait?{await:wait}:{})},{timeoutMs:20000});
+    touchRealRemoteLive(input.semanticSessionId);
+    return {ok:true,operation:op,desktop};
+  }  if(op==='input'){
     if(!effective.includes(REAL_REMOTE_INPUT_CAPABILITY))throw new Error('local capability denied: desktop-input');
     const input=normalizeDesktopInput(request),desktop=await NATIVE_DESKTOP.request('input',input,{timeoutMs:10000});
     touchRealRemoteLive(input.semanticSessionId);

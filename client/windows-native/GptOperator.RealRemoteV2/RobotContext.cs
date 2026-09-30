@@ -38,7 +38,7 @@ internal sealed class RobotContext : ApplicationContext
         _=Task.Run(_rpc.RunAsync);
     }
 
-    private Task<object?> HandleAsync(JsonElement request)
+    private async Task<object?> HandleAsync(JsonElement request)
     {
         var op=Text(request,"op");
         object? result=op switch {
@@ -55,7 +55,7 @@ internal sealed class RobotContext : ApplicationContext
             "key.press" => PressKey(request),
             "key.hotkey" => Hotkey(request),
             "uia.snapshot" => _sensor.Snapshot(Int(request,"maxDepth",4),Int(request,"maxNodes",250)),
-            "desktop.semantic.attach" or "desktop-semantic-attach" => _semantic.Attach(Int(request,"maxDepth",6),Int(request,"maxNodes",500)),
+            "desktop.semantic.attach" or "desktop-semantic-attach" => _semantic.Attach(Text(request,"scope","foreground"),Int(request,"maxDepth",6),Int(request,"maxNodes",500)),
             "desktop.semantic.snapshot" or "desktop-semantic-snapshot" => _semantic.Snapshot(Text(request,"semanticSessionId")),
             "desktop.semantic.events" or "desktop-semantic-events" => _semantic.Events(Text(request,"semanticSessionId"),Long(request,"afterSeq",0),Int(request,"limit",100)),
             "desktop.semantic.detach" or "desktop-semantic-detach" => _semantic.Detach(Text(request,"semanticSessionId")),
@@ -95,11 +95,12 @@ internal sealed class RobotContext : ApplicationContext
                 Text(request,"leaseToken")
             ),
             "batch.run" => RunBatch(request,32),
+            "desktop.run" => await RunPlanAsync(request),
             "desktop.input" => DesktopInput(request),
             "session.close" => CloseSession(),
             _ => throw new InvalidOperationException("operation_not_supported")
         };
-        return Task.FromResult<object?>(result);
+        return result;
     }
 
     private object Status() => new {
@@ -113,7 +114,7 @@ internal sealed class RobotContext : ApplicationContext
 
     private static object Move(JsonElement r)
     {
-        NativeInput.Move(Int(r,"x"),Int(r,"y"));
+        NativeInput.Move(Int(r,"x"),Int(r,"y"),Int(r,"durationMs",90),Int(r,"steps",8));
         return new {applied=true,native=NativeInput.ReadStatus()};
     }
 
@@ -224,6 +225,73 @@ internal sealed class RobotContext : ApplicationContext
         return new {applied,native=NativeInput.ReadStatus()};
     }
 
+    private async Task<object> RunPlanAsync(JsonElement r)
+    {
+        var semanticSessionId=Text(r,"semanticSessionId","");
+        var afterSeq=Long(r,"afterSeq",0);
+        if(semanticSessionId.Length>0) _semantic.ValidateInput(semanticSessionId,afterSeq);
+
+        var mutation=RunBatch(r,64);
+        object waitReceipt=new {matched=true,waited=false,elapsedMs=0L,foreground=NativeInput.ReadForeground(),focused=_sensor.FocusedSemantic()};
+        if(r.TryGetProperty("await",out var waitNode) && waitNode.ValueKind==JsonValueKind.Object)
+            waitReceipt=await AwaitUiAsync(waitNode);
+
+        if(semanticSessionId.Length==0)
+            return new {mutation,wait=waitReceipt};
+
+        var semantic=_semantic.AcknowledgeInput(semanticSessionId,afterSeq,0,mutation);
+        return new {mutation,wait=waitReceipt,semantic};
+    }
+
+    private async Task<object> AwaitUiAsync(JsonElement node)
+    {
+        var foregroundTitleContains=Text(node,"foregroundTitleContains","");
+        var foregroundTitleEquals=Text(node,"foregroundTitleEquals","");
+        var focusedNameContains=Text(node,"focusedNameContains","");
+        if(foregroundTitleContains.Length==0 && foregroundTitleEquals.Length==0 && focusedNameContains.Length==0)
+            throw new InvalidOperationException("await_condition_required");
+
+        var timeoutMs=Math.Clamp(Int(node,"timeoutMs",3000),50,15000);
+        var started=Stopwatch.StartNew();
+        bool Matches()
+        {
+            var fg=NativeInput.ReadForeground();
+            var focused=_sensor.FocusedSemantic();
+            if(foregroundTitleContains.Length>0 && !fg.Title.Contains(foregroundTitleContains,StringComparison.OrdinalIgnoreCase)) return false;
+            if(foregroundTitleEquals.Length>0 && !String.Equals(fg.Title,foregroundTitleEquals,StringComparison.OrdinalIgnoreCase)) return false;
+            if(focusedNameContains.Length>0 && !(focused?.Name??"").Contains(focusedNameContains,StringComparison.OrdinalIgnoreCase)) return false;
+            return true;
+        }
+
+        object Receipt(bool matched)=>new {
+            matched,
+            waited=started.ElapsedMilliseconds>0,
+            timedOut=!matched,
+            elapsedMs=started.ElapsedMilliseconds,
+            foreground=NativeInput.ReadForeground(),
+            focused=_sensor.FocusedSemantic()
+        };
+
+        if(Matches()) return Receipt(true);
+
+        var signal=new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        void OnChanged(UiChangeEvent _)
+        {
+            try { if(Matches()) signal.TrySetResult(true); } catch {}
+        }
+
+        _sensor.Changed+=OnChanged;
+        try
+        {
+            if(Matches()) return Receipt(true);
+            var completed=await Task.WhenAny(signal.Task,Task.Delay(timeoutMs));
+            return Receipt(completed==signal.Task && signal.Task.IsCompletedSuccessfully && signal.Task.Result);
+        }
+        finally
+        {
+            _sensor.Changed-=OnChanged;
+        }
+    }
     private object CloseSession()
     {
         if(!_closing)

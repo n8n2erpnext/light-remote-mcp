@@ -5,22 +5,29 @@ internal sealed class SemanticSessionManager : IDisposable
     private const int MaxSessions=8;
     private const int SignalDebounceMs=40;
 
-    private sealed record PendingSignal(
-        string SemanticSessionId,
-        string Epoch,
-        long StateSeq,
-        string EventKind,
-        bool ScopeChanged,
-        bool ResyncRecommended,
-        long At
-    );
+    private sealed class PendingSignal
+    {
+        public required string SemanticSessionId { get; init; }
+        public required string Epoch { get; init; }
+        public required string Scope { get; set; }
+        public long RootHwnd { get; set; }
+        public string RootTitle { get; set; }="";
+        public long RootEpoch { get; set; }
+        public long StateSeq { get; set; }
+        public bool ScopeChanged { get; set; }
+        public bool ResyncRecommended { get; set; }
+        public long At { get; set; }
+        public List<SemanticJournalEntry> Events { get; }=new();
+    }
 
     private sealed class Session
     {
         public required string Id { get; init; }
         public required string Epoch { get; init; }
-        public required long RootHwnd { get; init; }
-        public required string RootTitle { get; init; }
+        public required string Scope { get; init; }
+        public long RootHwnd { get; set; }
+        public string RootTitle { get; set; }="";
+        public long RootEpoch { get; set; }=1;
         public required int MaxDepth { get; init; }
         public required int MaxNodes { get; init; }
         public required long AttachedAt { get; init; }
@@ -49,9 +56,10 @@ internal sealed class SemanticSessionManager : IDisposable
         _sensor.Changed+=OnUiChanged;
     }
 
-    public object Attach(int maxDepth=6,int maxNodes=500)
+    public object Attach(string scope="foreground",int maxDepth=6,int maxNodes=500)
     {
         ThrowIfDisposed();
+        scope=NormalizeScope(scope);
         maxDepth=Math.Clamp(maxDepth,0,12);
         maxNodes=Math.Clamp(maxNodes,1,1500);
 
@@ -67,6 +75,7 @@ internal sealed class SemanticSessionManager : IDisposable
         var session=new Session {
             Id="sem_"+Guid.NewGuid().ToString("N"),
             Epoch="epoch_"+Guid.NewGuid().ToString("N"),
+            Scope=scope,
             RootHwnd=fg.Hwnd,
             RootTitle=fg.Title,
             MaxDepth=maxDepth,
@@ -83,9 +92,10 @@ internal sealed class SemanticSessionManager : IDisposable
         return new {
             semanticSessionId=session.Id,
             epoch=session.Epoch,
-            scope="foreground",
+            scope=session.Scope,
             rootHwnd=session.RootHwnd,
             rootTitle=session.RootTitle,
+            rootEpoch=session.RootEpoch,
             stateSeq=session.Journal.StateSeq,
             inputSeq=session.Journal.InputSeq,
             maxDepth=session.MaxDepth,
@@ -98,18 +108,21 @@ internal sealed class SemanticSessionManager : IDisposable
     public object Snapshot(string semanticSessionId)
     {
         var session=Get(semanticSessionId);
+        RefreshTaskRoot(session);
         var snapshot=_sensor.SemanticSnapshot(session.RootHwnd,session.MaxDepth,session.MaxNodes);
         var stateSeq=session.Journal.AdvanceSnapshot();
         var foreground=NativeInput.ReadForeground();
-        var focusOutsideScope=foreground.Hwnd!=session.RootHwnd;
+        var focusOutsideScope=session.Scope=="foreground" && foreground.Hwnd!=session.RootHwnd;
 
         return new {
             semanticSessionId=session.Id,
             epoch=session.Epoch,
             stateSeq,
             inputSeq=session.Journal.InputSeq,
-            scope="foreground",
+            scope=session.Scope,
             rootHwnd=session.RootHwnd,
+            rootTitle=session.RootTitle,
+            rootEpoch=session.RootEpoch,
             foreground,
             focusOutsideScope,
             resyncRecommended=focusOutsideScope,
@@ -120,9 +133,10 @@ internal sealed class SemanticSessionManager : IDisposable
     public object Events(string semanticSessionId,long afterSeq,int limit=100)
     {
         var session=Get(semanticSessionId);
+        RefreshTaskRoot(session);
         var read=session.Journal.Read(afterSeq,limit);
         var foreground=NativeInput.ReadForeground();
-        var focusOutsideScope=foreground.Hwnd!=session.RootHwnd;
+        var focusOutsideScope=session.Scope=="foreground" && foreground.Hwnd!=session.RootHwnd;
         var scopeChanged=read.Events.Any(e=>e.ScopeChanged);
         var resyncRecommended=read.Gap || scopeChanged || focusOutsideScope || read.Events.Any(e=>e.ResyncRecommended);
 
@@ -134,6 +148,10 @@ internal sealed class SemanticSessionManager : IDisposable
             afterSeq,
             gap=read.Gap,
             droppedBeforeSeq=read.DroppedBeforeSeq,
+            scope=session.Scope,
+            rootHwnd=session.RootHwnd,
+            rootTitle=session.RootTitle,
+            rootEpoch=session.RootEpoch,
             scopeChanged,
             focusOutsideScope,
             resyncRecommended,
@@ -148,6 +166,11 @@ internal sealed class SemanticSessionManager : IDisposable
         var session=Get(semanticSessionId);
         session.Journal.ValidateAfterSeq(afterSeq);
         var foreground=NativeInput.ReadForeground();
+        if(session.Scope=="desktop")
+        {
+            AdoptTaskRoot(session,foreground);
+            return;
+        }
         if(foreground.Hwnd!=session.RootHwnd)
             throw new InvalidOperationException("semantic_scope_changed");
     }
@@ -158,10 +181,11 @@ internal sealed class SemanticSessionManager : IDisposable
         settleMs=Math.Clamp(settleMs,0,250);
         if(settleMs>0) Thread.Sleep(settleMs);
 
+        RefreshTaskRoot(session);
         var inputSeq=session.Journal.NextInputSeq();
         var read=session.Journal.Read(afterSeq,SemanticJournal.MaxRead);
         var foreground=NativeInput.ReadForeground();
-        var focusOutsideScope=foreground.Hwnd!=session.RootHwnd;
+        var focusOutsideScope=session.Scope=="foreground" && foreground.Hwnd!=session.RootHwnd;
         var scopeChanged=read.Events.Any(e=>e.ScopeChanged);
         var focused=_sensor.FocusedSemantic();
         var resyncRecommended=read.Gap || scopeChanged || focusOutsideScope || read.Events.Any(e=>e.ResyncRecommended);
@@ -169,6 +193,10 @@ internal sealed class SemanticSessionManager : IDisposable
         return new {
             semanticSessionId=session.Id,
             epoch=session.Epoch,
+            scope=session.Scope,
+            rootHwnd=session.RootHwnd,
+            rootTitle=session.RootTitle,
+            rootEpoch=session.RootEpoch,
             inputSeq,
             stateSeq=read.StateSeq,
             afterSeq,
@@ -194,11 +222,14 @@ internal sealed class SemanticSessionManager : IDisposable
         {
             if(!_sessions.Remove(semanticSessionId,out session) || session is null)
                 throw new InvalidOperationException("semantic_session_missing");
+            _pendingSignals.Remove(semanticSessionId);
         }
 
         return new {
             semanticSessionId=session.Id,
             epoch=session.Epoch,
+            scope=session.Scope,
+            rootEpoch=session.RootEpoch,
             detached=true,
             finalStateSeq=session.Journal.StateSeq,
             finalInputSeq=session.Journal.InputSeq
@@ -217,6 +248,34 @@ internal sealed class SemanticSessionManager : IDisposable
         throw new InvalidOperationException("semantic_session_missing");
     }
 
+    private static string NormalizeScope(string value)
+    {
+        var scope=String.IsNullOrWhiteSpace(value)?"foreground":value.Trim().ToLowerInvariant();
+        return scope switch {
+            "foreground"=>"foreground",
+            "desktop" or "task"=>"desktop",
+            _=>throw new InvalidOperationException("semantic_scope_invalid")
+        };
+    }
+
+    private void RefreshTaskRoot(Session session)
+    {
+        if(session.Scope!="desktop") return;
+        AdoptTaskRoot(session,NativeInput.ReadForeground());
+    }
+
+    private void AdoptTaskRoot(Session session,ForegroundInfo foreground)
+    {
+        if(session.Scope!="desktop" || foreground.Hwnd==0 || foreground.Hwnd==session.RootHwnd) return;
+        lock(_gate)
+        {
+            if(session.RootHwnd==foreground.Hwnd) return;
+            session.RootHwnd=foreground.Hwnd;
+            session.RootTitle=foreground.Title;
+            session.RootEpoch++;
+        }
+    }
+
     private void OnUiChanged(UiChangeEvent evt)
     {
         Session[] sessions;
@@ -228,8 +287,18 @@ internal sealed class SemanticSessionManager : IDisposable
 
         foreach(var session in sessions)
         {
+            var rootChanged=false;
+            if(session.Scope=="desktop" && evt.Kind=="foreground" && evt.Hwnd!=0)
+            {
+                var before=session.RootHwnd;
+                AdoptTaskRoot(session,new ForegroundInfo(evt.Hwnd,evt.Title));
+                rootChanged=before!=session.RootHwnd;
+            }
+
             var within=_sensor.IsWithinRoot(evt.Hwnd,session.RootHwnd);
-            var scopeChanged=evt.Kind=="foreground" && !within;
+            var scopeChanged=session.Scope=="foreground"
+                ? evt.Kind=="foreground" && !within
+                : rootChanged;
             if(!within && !scopeChanged) continue;
 
             var entry=session.Journal.Append(
@@ -252,15 +321,28 @@ internal sealed class SemanticSessionManager : IDisposable
         lock(_gate)
         {
             if(_disposed) return;
-            _pendingSignals[session.Id]=new PendingSignal(
-                session.Id,
-                session.Epoch,
-                entry.Seq,
-                entry.Kind,
-                entry.ScopeChanged,
-                entry.ResyncRecommended,
-                entry.At
-            );
+            if(!_pendingSignals.TryGetValue(session.Id,out var pending))
+            {
+                pending=new PendingSignal {
+                    SemanticSessionId=session.Id,
+                    Epoch=session.Epoch,
+                    Scope=session.Scope,
+                    RootHwnd=session.RootHwnd,
+                    RootTitle=session.RootTitle,
+                    RootEpoch=session.RootEpoch
+                };
+                _pendingSignals[session.Id]=pending;
+            }
+            pending.Scope=session.Scope;
+            pending.RootHwnd=session.RootHwnd;
+            pending.RootTitle=session.RootTitle;
+            pending.RootEpoch=session.RootEpoch;
+            pending.StateSeq=Math.Max(pending.StateSeq,entry.Seq);
+            pending.ScopeChanged|=entry.ScopeChanged;
+            pending.ResyncRecommended|=entry.ResyncRecommended;
+            pending.At=Math.Max(pending.At,entry.At);
+            pending.Events.Add(entry);
+            if(pending.Events.Count>64) pending.Events.RemoveRange(0,pending.Events.Count-64);
             if(_signalScheduled) return;
             _signalScheduled=true;
             _signalTimer.Change(SignalDebounceMs,Timeout.Infinite);
@@ -283,11 +365,17 @@ internal sealed class SemanticSessionManager : IDisposable
             try
             {
                 Changed?.Invoke(new {
-                    kind="semantic.changed",
+                    kind="semantic.delta",
                     semanticSessionId=signal.SemanticSessionId,
                     epoch=signal.Epoch,
+                    scope=signal.Scope,
+                    rootHwnd=signal.RootHwnd,
+                    rootTitle=signal.RootTitle,
+                    rootEpoch=signal.RootEpoch,
                     stateSeq=signal.StateSeq,
-                    eventKind=signal.EventKind,
+                    events=signal.Events.ToArray(),
+                    foreground=NativeInput.ReadForeground(),
+                    focused=_sensor.FocusedSemantic(),
                     scopeChanged=signal.ScopeChanged,
                     resyncRecommended=signal.ResyncRecommended,
                     at=signal.At
@@ -295,6 +383,18 @@ internal sealed class SemanticSessionManager : IDisposable
             }
             catch {}
         }
+    }
+
+    internal static bool ScopeSelfTest()
+    {
+        try
+        {
+            return NormalizeScope("")=="foreground"
+                && NormalizeScope("foreground")=="foreground"
+                && NormalizeScope("desktop")=="desktop"
+                && NormalizeScope("task")=="desktop";
+        }
+        catch { return false; }
     }
 
     private void ThrowIfDisposed()

@@ -59,9 +59,45 @@ internal static class NativeInput
         return new ForegroundInfo(hwnd.ToInt64(),b.ToString());
     }
 
-    public static void Move(int x,int y)
+    public static void Move(int x,int y,int durationMs=90,int steps=8)
+    {
+        durationMs=Math.Clamp(durationMs,0,500);
+        steps=Math.Clamp(steps,1,32);
+        if(durationMs==0 || steps==1 || !GetCursorPos(out var start))
+        {
+            MoveImmediate(x,y);
+            return;
+        }
+
+        var delay=Math.Max(0,durationMs/steps);
+        for(var i=1;i<=steps;i++)
+        {
+            var point=SmoothPoint(start.X,start.Y,x,y,i,steps);
+            MoveImmediate(point.X,point.Y);
+            if(delay>0 && i<steps) Thread.Sleep(delay);
+        }
+    }
+
+    private static CursorPoint SmoothPoint(int fromX,int fromY,int toX,int toY,int step,int steps)
+    {
+        var t=Math.Clamp((double)step/Math.Max(1,steps),0d,1d);
+        var eased=1d-Math.Pow(1d-t,3d);
+        return new CursorPoint(
+            (int)Math.Round(fromX+(toX-fromX)*eased),
+            (int)Math.Round(fromY+(toY-fromY)*eased)
+        );
+    }
+
+    private static void MoveImmediate(int x,int y)
     {
         if(!SetCursorPos(x,y)) throw new InvalidOperationException("cursor_move_failed");
+    }
+
+    internal static bool SmoothMoveMathSelfTest()
+    {
+        var first=SmoothPoint(0,0,100,50,1,4);
+        var last=SmoothPoint(0,0,100,50,4,4);
+        return first.X>0 && first.X<100 && first.Y>0 && first.Y<50 && last==new CursorPoint(100,50);
     }
 
     public static void Click(string button="left",int count=1)
@@ -89,7 +125,7 @@ internal static class NativeInput
         durationMs=Math.Clamp(durationMs,0,5000);
         steps=Math.Clamp(steps,2,120);
         var flags=MouseFlags(button);
-        Move(fromX,fromY);
+        MoveImmediate(fromX,fromY);
         SendMouseFlag(flags.Down);
         try
         {
@@ -97,7 +133,7 @@ internal static class NativeInput
             for(var i=1;i<=steps;i++)
             {
                 var t=(double)i/steps;
-                Move(
+                MoveImmediate(
                     (int)Math.Round(fromX+(toX-fromX)*t),
                     (int)Math.Round(fromY+(toY-fromY)*t)
                 );
