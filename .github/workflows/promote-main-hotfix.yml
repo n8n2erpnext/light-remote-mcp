@@ -1,0 +1,41 @@
+name: Promote Main Vercel Hotfix
+
+on:
+  push:
+    branches:
+      - hotfix/vercel-desktop-input-guard
+    paths:
+      - .github/workflows/promote-main-hotfix.yml
+
+permissions:
+  contents: read
+
+jobs:
+  promote-main:
+    if: github.event.head_commit.message == 'ops: promote main vercel hotfix'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify exact Main target
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'scope=MAIN_ONLY project=light-remote-mcp deployment=5dea78b'
+      - name: Promote exact preview without rebuild
+        shell: bash
+        env:
+          VERCEL_TOKEN_PRIMARY: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_TOKEN_FALLBACK: ${{ secrets.VERCEL_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          TOKEN="${VERCEL_TOKEN_PRIMARY:-${VERCEL_TOKEN_FALLBACK:-}}"
+          if [ -z "$TOKEN" ]; then
+            echo '::error::No Vercel token secret configured.'
+            exit 2
+          fi
+          CODE="$(curl -sS -o /tmp/body -w '%{http_code}' -X POST -H "Authorization: Bearer $TOKEN" 'https://api.vercel.com/v10/projects/prj_RZzd5F1FgngUepiWuyhJ2bEdwAVN/promote/dpl_AXc7yFp878dxAxKbLmXyvFscjAh2?teamId=team_JZ6FyPy0EqGPuvA2J53i33Ib')"
+          cat /tmp/body || true
+          case "$CODE" in
+            201|202) echo "promote=accepted http=$CODE" ;;
+            *) echo "::error::Vercel promote failed with HTTP $CODE"; exit 3 ;;
+          esac
