@@ -1,4 +1,6 @@
 import fs from 'node:fs';
+import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url);
 const read=p=>fs.readFileSync(new URL(`../../${p}`,import.meta.url),'utf8');
 const need=(ok,name)=>{if(!ok)throw new Error(name);console.log(`${name}=PASS`);};
 const csproj=read('client/windows-native/GptOperator.Client/GptOperator.Client.csproj');
@@ -20,6 +22,8 @@ const macPkg=read('client/macos/build-pkg.sh');
 const macTrayPlist=read('client/macos/launchd/com.lightremote.tray.plist');
 const macFlow=read('.github/workflows/macos-client-build.yml');
 const adapter=read('device-agent/platform-adapters/index.mjs');
+const realRemoteInput=require('../../lib/real-remote-input.cjs');
+const nativeDesktop=read('lib/native-desktop.mjs');
 need(csproj.includes('<Compile Remove="MainForm.cs;ConnectionSwitch.cs;ConnectionSettingsDialog.cs"'),'desktop-no-native-window');
 need(csproj.includes('net8.0-windows10.0.17763.0'),'windows-10-11-target');
 need(winTray.includes('Open Local Wall')&&winTray.includes('Quit tray')&&winTray.includes('Stop Light Remote'),'windows-tray-controls');
@@ -42,4 +46,10 @@ need(macUpdate.includes('invalid_manifest_signature')&&macUpdate.includes('updat
 need(macFlow.includes('x86_64-apple-macos11.0')&&macFlow.includes('arm64-apple-macos11.0'),'macos-big-sur-both-arches');
 need(adapter.includes("platform==='darwin'")&&adapter.includes('createMacOSAdapter'),'macos-agent-adapter');
 need(winTray.includes('ExitThreadCore')&&!winTray.includes('StopServiceAsync'),'quit-tray-does-not-stop-agent');
+const guarded=realRemoteInput.normalizeDesktopInput({events:[{type:'move',x:10,y:20,guardTitleContains:'Device Wall'}]});
+need(guarded.events[0].guardTitleContains==='Device Wall','rmv2-input-guard-normalized');
+let guardRejected=false;
+try{realRemoteInput.normalizeDesktopInput({events:[{type:'move',x:10,y:20,guardTitleContains:'x'.repeat(257)}]});}catch(error){guardRejected=error?.message==='desktop_input_invalid_guard_title';}
+need(guardRejected,'rmv2-input-guard-bounded');
+need(nativeDesktop.includes('guardTitleContains:guard')&&nativeDesktop.includes('guarded([{op:'),'rmv2-input-guard-forwarded');
 console.log('V10_DESKTOP_PRODUCTIZATION_GATE=PASS');

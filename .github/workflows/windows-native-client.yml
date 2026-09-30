@@ -243,6 +243,8 @@ jobs:
           foreach ($needle in $agentRequired) { if (-not $agent.Contains($needle)) { throw "RM V2 live push regression: agent missing $needle" } }
           if ($agent.Contains('REAL_REMOTE_LIVE_POLL_MS')) { throw 'RM V2 live push regression: polling loop returned' }
           Write-Host 'rmv2-live-push-contract=PASS polling=ABSENT'
+          node deploy/scripts/selftest-v10-desktop-productization.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'RM V2 guarded input contract failed' }
 
       - name: Publish isolated Real Remote V2 companion
         if: github.ref_name == 'feature/real-remote-v2-golden'
