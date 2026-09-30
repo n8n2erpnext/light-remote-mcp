@@ -1,19 +1,31 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace GptOperator.Client;
 
 internal static class AgentHost
 {
+    private const uint JobObjectLimitKillOnJobClose = 0x00002000;
+    private const int JobObjectExtendedLimitInformation = 9;
     private static readonly object LogGate = new();
 
     public static int Run()
     {
         AppPaths.EnsureDirectories();
+        using var singleton = new Mutex(true, @"Local\LightRemoteDeviceAgentHost", out var createdNew);
+        if (!createdNew)
+        {
+            Log("SYS", "duplicate agent host suppressed");
+            return 0;
+        }
+
         Process? child = null;
         EventHandler? exitHandler = null;
+        IntPtr job = IntPtr.Zero;
         try
         {
+            job = CreateKillOnCloseJob();
             var psi = CreateStartInfo();
             child = new Process { StartInfo = psi, EnableRaisingEvents = true };
             child.OutputDataReceived += (_, e) => { if (e.Data is not null) Log("OUT", e.Data); };
@@ -21,17 +33,24 @@ internal static class AgentHost
             exitHandler = (_, _) => StopChild(child);
             AppDomain.CurrentDomain.ProcessExit += exitHandler;
             if (!child.Start()) return 2;
+            if (!AssignProcessToJobObject(job, child.Handle))
+            {
+                var error = Marshal.GetLastWin32Error();
+                Log("ERR", $"failed to bind child to kill-on-close job win32={error} child={child.Id}");
+                StopChild(child);
+                return 3;
+            }
             child.BeginOutputReadLine();
             child.BeginErrorReadLine();
-            Log("SYS", $"agent host started child={child.Id}");
+            Log("SYS", $"agent host started host={Environment.ProcessId} child={child.Id} job=kill-on-close");
             child.WaitForExit();
             var code = child.ExitCode;
-            Log("SYS", $"agent child exited code={code}");
+            Log("SYS", $"agent child exited code={code} child={child.Id}");
             return code;
         }
         catch (Exception ex)
         {
-            Log("ERR", $"agent host failed: {ex.Message}");
+            Log("ERR", $"agent host failed: {ex}");
             return 1;
         }
         finally
@@ -39,7 +58,32 @@ internal static class AgentHost
             if (exitHandler is not null) AppDomain.CurrentDomain.ProcessExit -= exitHandler;
             StopChild(child);
             child?.Dispose();
+            if (job != IntPtr.Zero) CloseHandle(job);
         }
+    }
+
+    private static IntPtr CreateKillOnCloseJob()
+    {
+        var job = CreateJobObject(IntPtr.Zero, null);
+        if (job == IntPtr.Zero) throw new InvalidOperationException($"CreateJobObject failed: {Marshal.GetLastWin32Error()}");
+        var info = new JobObjectExtendedLimitInformation
+        {
+            BasicLimitInformation = new JobObjectBasicLimitInformation { LimitFlags = JobObjectLimitKillOnJobClose }
+        };
+        var size = Marshal.SizeOf<JobObjectExtendedLimitInformation>();
+        var ptr = Marshal.AllocHGlobal(size);
+        try
+        {
+            Marshal.StructureToPtr(info, ptr, false);
+            if (!SetInformationJobObject(job, JobObjectExtendedLimitInformation, ptr, (uint)size))
+            {
+                var error = Marshal.GetLastWin32Error();
+                CloseHandle(job);
+                throw new InvalidOperationException($"SetInformationJobObject failed: {error}");
+            }
+            return job;
+        }
+        finally { Marshal.FreeHGlobal(ptr); }
     }
 
     private static ProcessStartInfo CreateStartInfo()
@@ -74,20 +118,85 @@ internal static class AgentHost
     private static void StopChild(Process? child)
     {
         if (child is null) return;
-        try { if (!child.HasExited) child.Kill(entireProcessTree: true); } catch { }
+        try
+        {
+            if (!child.HasExited)
+            {
+                Log("SYS", $"stopping agent child={child.Id}");
+                child.Kill(entireProcessTree: true);
+                child.WaitForExit(5000);
+            }
+        }
+        catch (Exception ex) { Log("ERR", $"stop child failed: {ex.Message}"); }
     }
 
     private static void Log(string kind, string message)
     {
+        var line = $"{DateTimeOffset.UtcNow:o} [{kind}] {message}{Environment.NewLine}";
+        lock (LogGate)
+        {
+            Append(AppPaths.AgentLog, line);
+            var installAgentLog = Path.Combine(AppContext.BaseDirectory, "logs", "agent.log");
+            if (!string.Equals(AppPaths.AgentLog, installAgentLog, StringComparison.OrdinalIgnoreCase))
+                Append(installAgentLog, line);
+        }
+    }
+
+    private static void Append(string path, string line)
+    {
         try
         {
-            lock (LogGate)
-            {
-                File.AppendAllText(AppPaths.AgentLog,
-                    $"{DateTimeOffset.UtcNow:o} [{kind}] {message}{Environment.NewLine}",
-                    new UTF8Encoding(false));
-            }
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.AppendAllText(path, line, new UTF8Encoding(false));
         }
         catch { }
     }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct JobObjectBasicLimitInformation
+    {
+        public long PerProcessUserTimeLimit;
+        public long PerJobUserTimeLimit;
+        public uint LimitFlags;
+        public UIntPtr MinimumWorkingSetSize;
+        public UIntPtr MaximumWorkingSetSize;
+        public uint ActiveProcessLimit;
+        public UIntPtr Affinity;
+        public uint PriorityClass;
+        public uint SchedulingClass;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct IoCounters
+    {
+        public ulong ReadOperationCount;
+        public ulong WriteOperationCount;
+        public ulong OtherOperationCount;
+        public ulong ReadTransferCount;
+        public ulong WriteTransferCount;
+        public ulong OtherTransferCount;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct JobObjectExtendedLimitInformation
+    {
+        public JobObjectBasicLimitInformation BasicLimitInformation;
+        public IoCounters IoInfo;
+        public UIntPtr ProcessMemoryLimit;
+        public UIntPtr JobMemoryLimit;
+        public UIntPtr PeakProcessMemoryUsed;
+        public UIntPtr PeakJobMemoryUsed;
+    }
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern IntPtr CreateJobObject(IntPtr lpJobAttributes, string? lpName);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool SetInformationJobObject(IntPtr hJob, int infoClass, IntPtr lpJobObjectInfo, uint cbJobObjectInfoLength);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool AssignProcessToJobObject(IntPtr hJob, IntPtr hProcess);
+
+    [DllImport("kernel32.dll")]
+    private static extern bool CloseHandle(IntPtr hObject);
 }

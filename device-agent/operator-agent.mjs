@@ -90,7 +90,14 @@ function applyPolicyEnvelope(state,envelope){
   state.effectiveCapabilities=effectiveCapabilities(approved,state.policy?.deniedCapabilities);writeState(state);return revision>current;
 }
 async function heartbeat(state,base,{persist=true}={}){if(!state.enrollment?.deviceId)throw new Error('device_not_enrolled');const capabilities=effectiveCapabilitiesForState(state);const timestamp=Date.now(),nonce=crypto.randomBytes(18).toString('base64url');const message=deviceHeartbeatMessage({deviceId:state.enrollment.deviceId,timestamp,nonce,capabilities});const signature=crypto.sign(null,Buffer.from(message),privateKey(state)).toString('base64url');const upstream=await operator(base,'device-heartbeat',{deviceId:state.enrollment.deviceId,timestamp,nonce,capabilities,signature,policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0)});applyPolicyEnvelope(state,upstream.policy);state.lastHeartbeatAt=Date.now();state.effectiveCapabilities=effectiveCapabilitiesForState(state);if(persist)writeState(state);return upstream.device;}
-async function channelRequest(state,hubBase,action,payload){if(!state.enrollment?.deviceId)throw new Error('device_not_enrolled');const deviceId=state.enrollment.deviceId,timestamp=Date.now(),nonce=crypto.randomBytes(18).toString('base64url');const signature=crypto.sign(null,Buffer.from(deviceChannelMessage({deviceId,action,timestamp,nonce,payload})),privateKey(state)).toString('base64url');const response=await fetch(`${hubBase.replace(/\/$/,'')}/device-channel/${action}`,{method:'POST',headers:{'content-type':'application/json','accept':'application/json'},body:JSON.stringify({deviceId,timestamp,nonce,signature,payload}),signal:AbortSignal.timeout(action==='poll'?25000:15000)});return parseResponse(response);}
+let observerChannelTail=Promise.resolve(),observerChannelNextAt=0;
+function clientChannelLane(action){return ['status','activity','desktop-live-push','fleet-intent','fleet-authority','fleet-status','fleet-devices','fleet-sessions','fleet-activity'].includes(action)?'observer':'direct';}
+async function channelRequestDirect(state,hubBase,action,payload){if(!state.enrollment?.deviceId)throw new Error('device_not_enrolled');const deviceId=state.enrollment.deviceId,timestamp=Date.now(),nonce=crypto.randomBytes(18).toString('base64url');const signature=crypto.sign(null,Buffer.from(deviceChannelMessage({deviceId,action,timestamp,nonce,payload})),privateKey(state)).toString('base64url');const response=await fetch(hubBase.replace(/\/$/,'')+'/device-channel/'+action,{method:'POST',headers:{'content-type':'application/json','accept':'application/json'},body:JSON.stringify({deviceId,timestamp,nonce,signature,payload}),signal:AbortSignal.timeout(action==='poll'?25000:15000)});return parseResponse(response);}
+async function channelRequest(state,hubBase,action,payload){
+  if(clientChannelLane(action)!=='observer')return channelRequestDirect(state,hubBase,action,payload);
+  const run=async()=>{const delay=Math.max(0,observerChannelNextAt-Date.now());if(delay)await new Promise(resolve=>setTimeout(resolve,delay));observerChannelNextAt=Date.now()+350;return channelRequestDirect(state,hubBase,action,payload);};
+  const next=observerChannelTail.then(run,run);observerChannelTail=next.catch(()=>{});return next;
+}
 const REAL_REMOTE_LIVE=new Map();
 const REAL_REMOTE_LIVE_HEARTBEAT_MS=Math.max(1000,Math.min(Number(process.env.LIGHT_REMOTE_RMV2_LIVE_HEARTBEAT_MS)||60000,240000));
 const REAL_REMOTE_LIVE_SNAPSHOT_DEBOUNCE_MS=1000;
@@ -528,6 +535,7 @@ async function daemon(args){
   const sessionCeiling=Math.max(1,Math.min(Number(process.env.OPERATOR_AGENT_MAX_SESSIONS)||2,100));
   const waitMs=Math.max(1000,Math.min(Number(process.env.OPERATOR_AGENT_CHANNEL_WAIT_MS)||8000,15000));
   const dormantPollMs=Math.max(1000,Math.min(Number(process.env.OPERATOR_AGENT_DORMANT_CHECK_MS)||2000,30000));
+  const commandHeartbeatMs=Math.max(2000,Math.min(Number(process.env.OPERATOR_AGENT_COMMAND_HEARTBEAT_MS)||5000,15000));
   let stopped=false,wake=null,failures=0,localWall=null,fleetTimer=null,fleetReconciling=false;
   const fleetManager=new FleetComponentManager(),fleetSupervisor=new FleetComponentSupervisor({manager:fleetManager,stateProvider:()=>readState(),requestIntent:async current=>{const local=await localFleetStatus();const response=await channelRequest(current,hub,'fleet-intent',{agentVersion:VERSION,moduleVersion:fleetManager.current()?.version||null,fleetHealthy:local.healthy===true,fleetPort:local.port});return response.fleet;},env:{OPERATOR_AGENT_STATE:STATE_FILE,OPERATOR_AGENT_IDENTITY_FILE:EXTERNAL_IDENTITY_FILE,OPERATOR_AGENT_WALL_AUTH_FILE:LOCAL_WALL_AUTH_FILE,OPERATOR_AGENT_HUB_URL:hub,OPERATOR_FLEET_WALL_HOST:FLEET_WALL_HOST,OPERATOR_FLEET_WALL_PORT:String(FLEET_WALL_PORT),OPERATOR_FLEET_WALL_PUBLIC_URL:FLEET_WALL_PUBLIC_URL},emit:event=>console.log(JSON.stringify(event))});
   const stop=()=>{stopped=true;if(wake)wake();if(fleetTimer){clearInterval(fleetTimer);fleetTimer=null;}fleetSupervisor.close().catch(()=>{});try{localWall?.server.close();}catch{}};process.on('SIGTERM',stop);process.on('SIGINT',stop);
@@ -558,7 +566,12 @@ async function daemon(args){
       const command=response.channel?.command;
       if(command){
         const deviceReceivedAt=Date.now();
-        const result=await executeCommand(state,command,{hub}),completedAt=Date.now();
+        let commandPulseTimer=null,commandPulseBusy=false;
+        const commandPulse=async()=>{if(stopped||commandPulseBusy)return;commandPulseBusy=true;try{const current=readState()||state;if(!current?.enrollment?.deviceId||!cloudDesired(current))return;await channelRequest(current,hub,'poll',{nodeId:current.enrollment.nodeId||current.enrollment.deviceId,agentVersion:VERSION,sessionCeiling,draining:true,capabilities:effectiveCapabilitiesForState(current),policyRevision:Math.max(0,Number(current.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView(),waitMs:0});}catch(error){console.error(JSON.stringify({event:'device_command_liveness_failed',deviceId:state.enrollment?.deviceId||null,commandId:command.commandId,error:error.message,status:error.status||null}));}finally{commandPulseBusy=false;}};
+        await commandPulse();commandPulseTimer=setInterval(()=>void commandPulse(),commandHeartbeatMs);commandPulseTimer.unref?.();
+        let result;
+        try{result=await executeCommand(state,command,{hub});}finally{if(commandPulseTimer)clearInterval(commandPulseTimer);}
+        const completedAt=Date.now();
         const reportedFirst=Number(result.telemetry?.firstOutputAt);
         result.telemetry={...(result.telemetry||{}),deviceReceivedAt,firstOutputAt:Number.isSafeInteger(reportedFirst)&&reportedFirst>0?reportedFirst:completedAt,completedAt};
         let delivered=false,resultFailures=0;
