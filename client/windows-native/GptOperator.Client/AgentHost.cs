@@ -7,7 +7,7 @@ namespace GptOperator.Client;
 internal static class AgentHost
 {
     private const uint JobObjectLimitKillOnJobClose = 0x00002000;
-    private const int JobObjectExtendedLimitInformation = 9;
+    private const int JobObjectExtendedLimitInformationClass = 9;
     private static readonly object LogGate = new();
 
     public static int Run()
@@ -75,7 +75,7 @@ internal static class AgentHost
         try
         {
             Marshal.StructureToPtr(info, ptr, false);
-            if (!SetInformationJobObject(job, JobObjectExtendedLimitInformation, ptr, (uint)size))
+            if (!SetInformationJobObject(job, JobObjectExtendedLimitInformationClass, ptr, (uint)size))
             {
                 var error = Marshal.GetLastWin32Error();
                 CloseHandle(job);
