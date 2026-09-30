@@ -192,6 +192,7 @@ jobs:
           )
           $allowedExact = @(
             '.github/workflows/windows-native-client.yml',
+            'VERSION',
             'lib/native-desktop.mjs',
             'lib/real-remote-input.cjs',
             'deploy/scripts/selftest-v10-desktop-productization.mjs',
