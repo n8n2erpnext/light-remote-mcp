@@ -193,7 +193,8 @@ jobs:
           $allowedExact = @(
             '.github/workflows/windows-native-client.yml',
             'lib/native-desktop.mjs',
-            'client/windows-native/GptOperator.Client/AgentHost.cs'
+            'client/windows-native/GptOperator.Client/AgentHost.cs',
+            'device-agent/local-wall.mjs'
           )
           $forbidden = @($changed | Where-Object {
             $path = $_
