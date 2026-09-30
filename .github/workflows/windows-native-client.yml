@@ -193,6 +193,8 @@ jobs:
           $allowedExact = @(
             '.github/workflows/windows-native-client.yml',
             'lib/native-desktop.mjs',
+            'lib/real-remote-input.cjs',
+            'deploy/scripts/selftest-v10-desktop-productization.mjs',
             'client/windows-native/GptOperator.Client/AgentHost.cs',
             'device-agent/local-wall.mjs',
             'device-agent/operator-agent.mjs',
