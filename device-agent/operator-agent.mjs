@@ -91,6 +91,53 @@ function applyPolicyEnvelope(state,envelope){
 }
 async function heartbeat(state,base,{persist=true}={}){if(!state.enrollment?.deviceId)throw new Error('device_not_enrolled');const capabilities=effectiveCapabilitiesForState(state);const timestamp=Date.now(),nonce=crypto.randomBytes(18).toString('base64url');const message=deviceHeartbeatMessage({deviceId:state.enrollment.deviceId,timestamp,nonce,capabilities});const signature=crypto.sign(null,Buffer.from(message),privateKey(state)).toString('base64url');const upstream=await operator(base,'device-heartbeat',{deviceId:state.enrollment.deviceId,timestamp,nonce,capabilities,signature,policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0)});applyPolicyEnvelope(state,upstream.policy);state.lastHeartbeatAt=Date.now();state.effectiveCapabilities=effectiveCapabilitiesForState(state);if(persist)writeState(state);return upstream.device;}
 async function channelRequest(state,hubBase,action,payload){if(!state.enrollment?.deviceId)throw new Error('device_not_enrolled');const deviceId=state.enrollment.deviceId,timestamp=Date.now(),nonce=crypto.randomBytes(18).toString('base64url');const signature=crypto.sign(null,Buffer.from(deviceChannelMessage({deviceId,action,timestamp,nonce,payload})),privateKey(state)).toString('base64url');const response=await fetch(`${hubBase.replace(/\/$/,'')}/device-channel/${action}`,{method:'POST',headers:{'content-type':'application/json','accept':'application/json'},body:JSON.stringify({deviceId,timestamp,nonce,signature,payload}),signal:AbortSignal.timeout(action==='poll'?25000:15000)});return parseResponse(response);}
+const REAL_REMOTE_LIVE=new Map();
+const REAL_REMOTE_LIVE_HEARTBEAT_MS=Math.max(1000,Math.min(Number(process.env.LIGHT_REMOTE_RMV2_LIVE_HEARTBEAT_MS)||60000,240000));
+const REAL_REMOTE_LIVE_SNAPSHOT_DEBOUNCE_MS=1000;
+function realRemoteLiveId(value={}){return String(value?.semanticSessionId||value?.browserSessionId||'');}
+function touchRealRemoteLive(id){const row=REAL_REMOTE_LIVE.get(String(id||''));if(!row||row.stopped)return;row.expiresAt=Date.now()+row.idleTimeoutMs;scheduleRealRemoteLive(row);}
+async function pushRealRemoteLive(row,value={}){
+  const current=readState()||row.state;
+  return channelRequest(current,row.hub,'desktop-live-push',{sessionId:row.sessionId,agentId:row.agentId,semanticSessionId:row.semanticSessionId,stateSeq:Math.max(0,Number(value.stateSeq)||row.afterSeq||0),events:Array.isArray(value.events)?value.events:[],snapshot:value.snapshot||null,displayTopologyId:value.displayTopologyId||row.displayTopologyId||null,cursor:value.cursor||null,foreground:value.foreground||null,resyncRecommended:Boolean(value.resyncRecommended),heartbeat:Boolean(value.heartbeat),closed:Boolean(value.closed)});
+}
+function scheduleRealRemoteLive(row){
+  if(row.timer){clearTimeout(row.timer);row.timer=null;}if(row.stopped)return;
+  const delay=Math.max(250,Math.min(Math.max(0,row.expiresAt-Date.now()),REAL_REMOTE_LIVE_HEARTBEAT_MS));
+  row.timer=setTimeout(async()=>{row.timer=null;if(row.stopped)return;if(Date.now()>=row.expiresAt){await stopRealRemoteLive(row);return;}try{await pushRealRemoteLive(row,{heartbeat:true});row.failures=0;}catch(error){row.failures++;console.error(JSON.stringify({event:'real_remote_live_heartbeat_failed',semanticSessionId:row.semanticSessionId,error:String(error?.message||error),failures:row.failures}));if(row.failures>=5){await stopRealRemoteLive(row,{notify:false});return;}}scheduleRealRemoteLive(row);},delay);
+  row.timer.unref?.();
+}
+async function stopRealRemoteLive(row,{detach=true,notify=true}={}){
+  if(!row)return null;if(row.stopping)return row.stopping;
+  row.stopping=(async()=>{row.stopped=true;REAL_REMOTE_LIVE.delete(row.semanticSessionId);if(row.timer){clearTimeout(row.timer);row.timer=null;}let detached=null;
+    if(detach){try{detached=await NATIVE_DESKTOP.request('semantic-detach',{semanticSessionId:row.semanticSessionId},{timeoutMs:10000});}catch(error){if(!/session_(missing|not_found)/.test(String(error?.message||error)))console.error(JSON.stringify({event:'real_remote_live_detach_failed',semanticSessionId:row.semanticSessionId,error:String(error?.message||error)}));}}
+    if(notify){try{await pushRealRemoteLive(row,{closed:true});}catch{}}
+    try{row.release?.();}catch{}return detached;})();
+  return row.stopping;
+}
+async function drainRealRemoteLive(row){
+  if(!row||row.stopped)return;if(row.draining){row.dirty=true;return row.draining;}let again=false;
+  row.draining=(async()=>{
+    for(let pass=0;pass<8&&!row.stopped;pass++){
+      row.dirty=false;
+      const observed=await NATIVE_DESKTOP.request('semantic-events',{semanticSessionId:row.semanticSessionId,afterSeq:row.afterSeq,limit:200},{timeoutMs:10000});
+      const events=Array.isArray(observed?.events)?observed.events:[],now=Date.now();let snapshot=null;
+      if(observed?.resyncRecommended&&now-row.lastSnapshotAt>=REAL_REMOTE_LIVE_SNAPSHOT_DEBOUNCE_MS){try{snapshot=await NATIVE_DESKTOP.request('semantic-snapshot',{semanticSessionId:row.semanticSessionId},{timeoutMs:15000});row.lastSnapshotAt=Date.now();}catch{}}
+      const nextSeq=Math.max(row.afterSeq,Number(observed?.stateSeq)||0,Number(snapshot?.stateSeq)||0);
+      if(events.length||snapshot){await pushRealRemoteLive(row,{stateSeq:nextSeq,events,snapshot,displayTopologyId:snapshot?.displayTopologyId||observed?.displayTopologyId,foreground:observed?.foreground||null,resyncRecommended:Boolean(observed?.resyncRecommended&&!snapshot)});row.failures=0;row.lastPushAt=Date.now();}
+      row.afterSeq=nextSeq;if(observed?.hasMore)row.dirty=true;if(!row.dirty)break;
+    }
+    again=row.dirty&&!row.stopped;
+  })().catch(async error=>{row.failures++;console.error(JSON.stringify({event:'real_remote_live_drain_failed',semanticSessionId:row.semanticSessionId,error:String(error?.message||error),failures:row.failures}));await stopRealRemoteLive(row,{notify:true});}).finally(()=>{row.draining=null;if(again&&!row.stopped)queueMicrotask(()=>void drainRealRemoteLive(row));});
+  return row.draining;
+}
+function onRealRemoteLiveEvent(message){
+  const name=String(message?.eventName||'');
+  if(name==='robot.closed'){for(const row of [...REAL_REMOTE_LIVE.values()])void stopRealRemoteLive(row,{detach:false,notify:true});return;}
+  if(name!=='semantic.changed'&&name!=='browser.semantic.changed')return;
+  const id=realRemoteLiveId(message?.data||{}),row=REAL_REMOTE_LIVE.get(id);if(!row||row.stopped)return;
+  row.dirty=true;void drainRealRemoteLive(row);
+}
+NATIVE_DESKTOP.onEvent(onRealRemoteLiveEvent);
 async function finishEnrollment(state,base,{wait=false}={}){const pending=state.pendingEnrollment;if(!pending?.enrollmentId||!pending?.pollToken)throw new Error('no_pending_enrollment');do{const upstream=await operator(base,'enrollment-poll',{enrollmentId:pending.enrollmentId,pollToken:pending.pollToken});const e=upstream.enrollment;if(e.state==='approved'){verifyEnrollment(state,e);state.enrollment={enrollmentId:e.enrollmentId,deviceId:e.deviceId,nodeId:e.deviceId,accountId:e.accountId,grantableCapabilities:[...(pending.requestedCapabilities||e.approvedCapabilities||[])],approvedCapabilities:e.approvedCapabilities,policyProfile:e.policyProfile,certificate:e.certificate,certificateSignature:e.certificateSignature,signer:e.signer,enrolledAt:Date.now()};state.policy={...(state.policy||{}),serverPolicyRevision:1,localFinalDenyBoundary:true};state.effectiveCapabilities=effectiveCapabilities(e.approvedCapabilities,state.policy?.deniedCapabilities);state.cloud={...(state.cloud||{}),desiredConnected:false,state:'dormant',connectionId:null,hardExpiresAt:null,lastError:null,lastDisconnectedAt:Date.now()};delete state.pendingEnrollment;writeState(state);const device=await heartbeat(state,base);return {state:'approved',device,effectiveCapabilities:[...(state.effectiveCapabilities||[])]};}if(e.state==='expired'||e.state==='replaced'||e.state==='cancelled'){delete state.pendingEnrollment;writeState(state);return {state:e.state};}if(!wait)return {state:e.state,expiresAt:e.expiresAt};if(Date.now()>=pending.expiresAt){delete state.pendingEnrollment;writeState(state);return {state:'expired'};}await sleep(3000);}while(true);}
 async function beginWallEnrollment(base=DEFAULT_BASE){let state=readState()||{};if(state.identityResetRequired)throw new Error('external_identity_rotation_required');state=ensureIdentity(state);const discovered=discoverCapabilities();if(!discovered.length)throw new Error('device_capabilities_required');const denied=defaultRealRemoteDenied({discovered,denied:normalizeDeviceCapabilities(state.policy?.deniedCapabilities||[]),inputDecision:state.policy?.realRemoteInputDecision});const hostname=os.hostname(),hadEnrollment=Boolean(state.enrollment?.deviceId),revoked=String(state.cloud?.lastError||'')==='device_revoked';const policyProfile=String(state.enrollment?.policyProfile||state.pendingEnrollment?.requestedPolicy||'default');const upstream=await operator(base,'enrollment-begin',{publicIdentityKey:state.identity.publicIdentityKey,displayName:hostname,platform:os.platform(),architecture:os.arch(),agentVersion:VERSION,fingerprintSummary:`${hostname} / ${os.platform()} ${os.arch()} / key ${state.identity.publicKeySha256.slice(0,12)}`,capabilities:discovered,policyProfile});const e=upstream.enrollment;state.policy={...(state.policy||{}),deniedCapabilities:denied,localFinalDenyBoundary:true};state.pendingEnrollment={enrollmentId:e.enrollmentId,pollToken:e.pollToken,activationUrl:e.activationUrl,expiresAt:e.expiresAt,requestedCapabilities:e.requestedCapabilities||discovered,requestedPolicy:e.requestedPolicy||policyProfile};writeState(state);return {state:'pending',mode:hadEnrollment||revoked?'reenroll':'link',deviceCode:e.deviceCode,activationUrl:e.activationUrl,expiresAt:e.expiresAt,expiresInSeconds:e.expiresInSeconds,deniedCapabilities:[...denied]};}
 async function pollWallEnrollment(base=DEFAULT_BASE){const state=readState();if(!state?.pendingEnrollment?.enrollmentId)throw new Error('no_pending_enrollment');return finishEnrollment(state,base,{wait:false});}
@@ -151,12 +198,38 @@ async function executeSearchCommand(state,p){
   throw new Error('search_operation_unsupported');
 }
 
-async function executeDesktopCommand(state,p){
+async function executeDesktopCommand(state,p,{hub=DEFAULT_HUB}={}){
   const request=p.desktop&&typeof p.desktop==='object'&&!Array.isArray(p.desktop)?p.desktop:{};
   const op=String(request.op||''),effective=effectiveCapabilitiesForState(state);
   if(!effective.includes('desktop'))throw new Error('local capability denied: desktop');
   if(!REAL_REMOTE_AVAILABLE)throw new Error('real_remote_unavailable');
   if(op==='status')return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('status',{})};
+  if(op==='live-open'){
+    const provider=String(request.provider||'windows-uia').trim().toLowerCase();
+    if(!['windows-uia','browser-cdp'].includes(provider))throw new Error('invalid_semantic_provider');
+    const depth=Number(request.maxDepth),nodes=Number(request.maxNodes),idleTimeoutMs=Math.max(15000,Math.min(Number(request.idleTimeoutMs)||300000,900000));
+    const semantic={provider,maxDepth:Math.max(1,Math.min(Number.isFinite(depth)?depth:(provider==='browser-cdp'?8:6),16)),maxNodes:Math.max(1,Math.min(Number.isFinite(nodes)?nodes:(provider==='browser-cdp'?600:400),1500))};
+    if(provider==='windows-uia')semantic.scope=request.scope==='desktop'?'desktop':'foreground';
+    else{if(request.cdpEndpoint!=null)semantic.cdpEndpoint=String(request.cdpEndpoint).slice(0,256);if(request.targetId!=null)semantic.targetId=String(request.targetId).slice(0,256);if(request.urlMatch!=null)semantic.urlMatch=String(request.urlMatch).slice(0,512);}
+    for(const existing of [...REAL_REMOTE_LIVE.values()])if(existing.sessionId===String(p.sessionId||'')&&existing.agentId===String(p.agentId||''))await stopRealRemoteLive(existing);
+    const initial=await NATIVE_DESKTOP.request('semantic-attach',semantic,{timeoutMs:15000}),semanticSessionId=realRemoteLiveId(initial);
+    if(!semanticSessionId)throw new Error('semantic_session_not_found');
+    const row={semanticSessionId,provider,state,hub,sessionId:String(p.sessionId||''),agentId:String(p.agentId||''),afterSeq:Math.max(0,Number(initial?.stateSeq)||0),displayTopologyId:String(initial?.displayTopologyId||''),idleTimeoutMs,expiresAt:Date.now()+idleTimeoutMs,lastPushAt:0,lastSnapshotAt:Date.now(),failures:0,dirty:false,draining:null,stopped:false,stopping:null,timer:null,release:NATIVE_DESKTOP.retain()};
+    REAL_REMOTE_LIVE.set(semanticSessionId,row);
+    try{await pushRealRemoteLive(row,{stateSeq:row.afterSeq,snapshot:{...initial,semanticSessionId},displayTopologyId:row.displayTopologyId});scheduleRealRemoteLive(row);}
+    catch(error){await stopRealRemoteLive(row,{notify:false});throw error;}
+    return {ok:true,operation:op,desktop:{...initial,semanticSessionId,live:{active:true,transport:'semantic-push-cache',eventDriven:true,heartbeatMs:REAL_REMOTE_LIVE_HEARTBEAT_MS,idleTimeoutMs}}};
+  }
+  if(op==='live-close'){
+    const semanticSessionId=String(request.semanticSessionId||'');if(!semanticSessionId)throw new Error('semantic_session_id_required');
+    const row=REAL_REMOTE_LIVE.get(semanticSessionId);let detached=null;
+    if(row)detached=await stopRealRemoteLive(row,{detach:true,notify:true});
+    else{
+      try{detached=await NATIVE_DESKTOP.request('semantic-detach',{semanticSessionId},{timeoutMs:10000});}catch(error){if(!/session_(missing|not_found)/.test(String(error?.message||error)))throw error;}
+      try{await channelRequest(readState()||state,hub,'desktop-live-push',{sessionId:String(p.sessionId||''),agentId:String(p.agentId||''),semanticSessionId,stateSeq:0,events:[],snapshot:null,heartbeat:false,closed:true});}catch{}
+    }
+    return {ok:true,operation:op,desktop:{semanticSessionId,closed:true,detached}};
+  }
   if(op==='windows')return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('windows',{limit:Math.max(1,Math.min(Number(request.limit)||100,200))})};
   if(op==='frame')return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('frame',{
     screen:request.screen==null?-1:Math.max(-1,Math.min(Number(request.screen)||0,31)),
@@ -166,8 +239,9 @@ async function executeDesktopCommand(state,p){
   },{timeoutMs:10000})};
   if(op==='input'){
     if(!effective.includes(REAL_REMOTE_INPUT_CAPABILITY))throw new Error('local capability denied: desktop-input');
-    const input=normalizeDesktopInput(request);
-    return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('input',input,{timeoutMs:10000})};
+    const input=normalizeDesktopInput(request),desktop=await NATIVE_DESKTOP.request('input',input,{timeoutMs:10000});
+    touchRealRemoteLive(input.semanticSessionId);
+    return {ok:true,operation:op,desktop};
   }
   if(op==='semantic-attach'){
     const provider=String(request.provider||'windows-uia').trim().toLowerCase();
@@ -206,7 +280,7 @@ async function executeScpCommand(state,p){
   throw new Error('scp_operation_unsupported');
 }
 
-async function executeCommand(state,command){
+async function executeCommand(state,command,{hub=DEFAULT_HUB}={}){
   const existing=readCommand(command.commandId);
   if(existing?.state==='finished'&&existing.result)return existing.result;
   if(existing?.state==='running'){
@@ -232,7 +306,7 @@ async function executeCommand(state,command){
   }
   if(p.type==='desktop'){
     const startedAt=Date.now();writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'running',startedAt});
-    try{const data=await executeDesktopCommand(state,p);const result={commandId:command.commandId,status:'ok',exitCode:0,stdout:'',stderr:'',durationMs:Date.now()-startedAt,data};writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;}
+    try{const data=await executeDesktopCommand(state,p,{hub});const result={commandId:command.commandId,status:'ok',exitCode:0,stdout:'',stderr:'',durationMs:Date.now()-startedAt,data};writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;}
     catch(error){const result={commandId:command.commandId,status:'error',exitCode:1,stdout:'',stderr:String(error?.message||error)+'\n',durationMs:Date.now()-startedAt,data:{ok:false,error:String(error?.message||error),status:Number(error?.status)||500}};writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;}
   }
   if(p.type==='search'){
@@ -452,7 +526,7 @@ async function daemon(args){
       const command=response.channel?.command;
       if(command){
         const deviceReceivedAt=Date.now();
-        const result=await executeCommand(state,command),completedAt=Date.now();
+        const result=await executeCommand(state,command,{hub}),completedAt=Date.now();
         const reportedFirst=Number(result.telemetry?.firstOutputAt);
         result.telemetry={...(result.telemetry||{}),deviceReceivedAt,firstOutputAt:Number.isSafeInteger(reportedFirst)&&reportedFirst>0?reportedFirst:completedAt,completedAt};
         let delivered=false,resultFailures=0;
