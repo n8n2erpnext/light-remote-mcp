@@ -200,13 +200,24 @@ module.exports=async function handler(req,res){
         }
         else if(usingClient&&action.startsWith('desktop-')){
           const d=payloadFor(req),deviceId=clientDevice(d.deviceId||d.device),op=action.slice('desktop-'.length);
-          if(!['status','attach','resume','detach','windows','frame','input','observe','act','semantic-attach','semantic-snapshot','semantic-events','semantic-detach','live-open','live-close'].includes(op)){const e=new Error('invalid_desktop_action');e.status=400;throw e;}
+          if(!['status','attach','resume','detach','windows','frame','input','run','observe','act','semantic-attach','semantic-snapshot','semantic-events','semantic-detach','live-open','live-close'].includes(op)){const e=new Error('invalid_desktop_action');e.status=400;throw e;}
           const desktop={op};
           if(op==='attach'){desktop.screen=d.screen==null?-1:Math.max(-1,Math.min(Number(d.screen)||0,31));desktop.maxWidth=Math.max(320,Math.min(Number(d.maxWidth)||960,1280));desktop.maxHeight=Math.max(180,Math.min(Number(d.maxHeight)||540,720));desktop.quality=Math.max(25,Math.min(Number(d.quality)||50,70));desktop.minIntervalMs=Math.max(0,Math.min(Number.isFinite(Number(d.minIntervalMs))?Math.floor(Number(d.minIntervalMs)):250,5000));desktop.omitUnchanged=d.omitUnchanged!==false;desktop.idleTimeoutMs=Math.max(250,Math.min(Number.isFinite(Number(d.idleTimeoutMs))?Math.floor(Number(d.idleTimeoutMs)):120000,900000));}
           if(op==='resume'||op==='detach')desktop.desktopSessionId=String(d.desktopSessionId||'');
           if(op==='windows')desktop.limit=Math.max(1,Math.min(Number(d.limit)||100,200));
           if(op==='frame'){if(d.desktopSessionId!=null)desktop.desktopSessionId=String(d.desktopSessionId);desktop.screen=d.screen==null?-1:Math.max(-1,Math.min(Number(d.screen)||0,31));desktop.maxWidth=Math.max(320,Math.min(Number(d.maxWidth)||960,1280));desktop.maxHeight=Math.max(180,Math.min(Number(d.maxHeight)||540,720));desktop.quality=Math.max(25,Math.min(Number(d.quality)||50,70));}
           if(op==='input')Object.assign(desktop,normalizeDesktopInput({events:d.events,displayTopologyId:d.displayTopologyId,semanticSessionId:d.semanticSessionId,afterSeq:d.afterSeq,settleMs:d.settleMs}));
+          if(op==='run'){
+            Object.assign(desktop,normalizeDesktopInput({events:d.events,displayTopologyId:d.displayTopologyId,semanticSessionId:d.semanticSessionId,afterSeq:d.afterSeq,settleMs:d.settleMs}));
+            if(d.await!=null){
+              if(!d.await||typeof d.await!=='object'||Array.isArray(d.await)){const e=new Error('invalid_desktop_await');e.status=400;throw e;}
+              const wait={};
+              for(const key of ['foregroundTitleContains','foregroundTitleEquals','focusedNameContains'])if(d.await[key]!=null){const value=String(d.await[key]).trim();if(!value||value.length>256){const e=new Error('invalid_desktop_await');e.status=400;throw e;}wait[key]=value;}
+              if(!Object.keys(wait).length){const e=new Error('desktop_await_condition_required');e.status=400;throw e;}
+              wait.timeoutMs=Math.max(50,Math.min(Number.isFinite(Number(d.await.timeoutMs))?Math.floor(Number(d.await.timeoutMs)):3000,15000));
+              desktop.await=wait;
+            }
+          }
           if(op==='observe'){
             if(d.semanticSessionId!=null&&String(d.semanticSessionId).trim()){
               desktop.semanticSessionId=String(d.semanticSessionId);

@@ -59,10 +59,15 @@ assert.ok(desktopJson.includes('CTRL')&&desktopJson.includes('ALT')&&desktopJson
 assert.ok(desktopJson.includes('1..4096 UTF-16 code units')&&desktopJson.includes('Unicode Windows SendInput per character'));
 assert.ok(desktopJson.includes('±120 per normal notch')&&desktopJson.includes('durationMs'));
 assert.ok(desktop.tools.desktopInput.inputRecipes?.multiline&&desktop.tools.desktopInput.inputRecipes?.selectAllReplace);
+assert.ok(HELPER_GROUPS.desktop.actions.includes('desktop-run'));
+assert.ok(desktop.tools.desktopInput.actions.includes('desktop-run'));
+assert.equal(desktop.tools.desktopInput.run?.action,'desktop-run');
+assert.ok(desktopJson.includes('foregroundTitleContains')&&desktopJson.includes('focusedNameContains'));
 assert.match(desktop.rule,/only for real computer use/i);
 assert.throws(()=>toolHelperGroup(context,'unknown'),/invalid_tool_helper_group/);
 
 const api=text('api/operator.js'),guide=text('api/guide.js');
+assert.ok(api.includes("'input','run','observe'")&&api.includes("if(op==='run')")&&api.includes('desktop.await=wait'));
 assert.ok(api.includes("action==='tool-helper'")&&api.includes("req.query?.group")&&api.includes("toolHelperView(current,{group})"));
 assert.ok(api.includes("'tool-helper','context'")&&api.includes("'search-cancel','scp','transfer-begin'"));
 assert.ok(guide.includes('complete current tool contract')&&guide.includes('group=<workspace|files|shell|transfer|desktop>')&&guide.includes('optional'));
