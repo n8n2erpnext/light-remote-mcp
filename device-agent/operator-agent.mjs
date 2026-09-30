@@ -53,7 +53,8 @@ const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 function sha256(value){return crypto.createHash('sha256').update(value).digest('hex');}
 function parseArgs(argv){const out={_:[]};for(let i=0;i<argv.length;i++){const v=argv[i];if(!v.startsWith('--'))out._.push(v);else{const k=v.slice(2);if(['no-wait','reenroll'].includes(k))out[k]=true;else out[k]=argv[++i];}}return out;}
 function readState(){try{return JSON.parse(fs.readFileSync(STATE_FILE,'utf8'));}catch{return null;}}
-function writeJson0600(file,value){const dir=path.dirname(file);fs.mkdirSync(dir,{recursive:true,mode:0o700});const tmp=`${file}.${process.pid}.tmp`;fs.writeFileSync(tmp,`${JSON.stringify(value,null,2)}\n`,{mode:0o600});fs.chmodSync(tmp,0o600);fs.renameSync(tmp,file);}
+function sleepSync(ms){const sab=new SharedArrayBuffer(4);Atomics.wait(new Int32Array(sab),0,0,Math.max(1,ms));}
+function writeJson0600(file,value){const dir=path.dirname(file);fs.mkdirSync(dir,{recursive:true,mode:0o700});const lock=`${file}.lock`,deadline=Date.now()+2500;let lockFd=null;while(lockFd===null){try{lockFd=fs.openSync(lock,'wx',0o600);}catch(error){if(error?.code!=='EEXIST'||Date.now()>=deadline)throw error;sleepSync(20);}}const tmp=`${file}.${process.pid}.${Date.now()}.${crypto.randomBytes(4).toString('hex')}.tmp`;try{fs.writeFileSync(tmp,`${JSON.stringify(value,null,2)}\n`,{mode:0o600});fs.chmodSync(tmp,0o600);for(let attempt=0;;attempt++){try{fs.renameSync(tmp,file);break;}catch(error){if(process.platform==='win32'&&['EPERM','EACCES','EEXIST'].includes(error?.code)&&attempt<6){sleepSync(25*(attempt+1));continue;}if(process.platform==='win32'&&['EPERM','EACCES','EEXIST'].includes(error?.code)){fs.copyFileSync(tmp,file);fs.rmSync(tmp,{force:true});break;}throw error;}}}finally{try{if(fs.existsSync(tmp))fs.rmSync(tmp,{force:true});}catch{}try{if(lockFd!==null)fs.closeSync(lockFd);}catch{}try{fs.rmSync(lock,{force:true});}catch{}}}
 function writeState(state){writeJson0600(STATE_FILE,state);}
 function readJsonFile(file){try{return JSON.parse(fs.readFileSync(file,'utf8'));}catch{return null;}}
 function updateStatusView(){const report=readJsonFile(UPDATE_REPORT_FILE);if(UPDATE_MODE==='server-managed')return {state:'managed',currentVersion:VERSION,targetVersion:null,helperVersion:'server-managed',code:null,updatedAt:null,mode:UPDATE_MODE,pendingReport:null};const status=normalizeUpdateStatus(readJsonFile(UPDATE_STATUS_FILE)||{});return {...status,currentVersion:status.currentVersion||VERSION,mode:UPDATE_MODE,pendingReport:report?{outcome:String(report.outcome||''),code:String(report.code||'')||null,targetVersion:String(report.targetVersion||'')||null,at:Number(report.at)||null}:null};}
@@ -90,13 +91,20 @@ function applyPolicyEnvelope(state,envelope){
   state.effectiveCapabilities=effectiveCapabilities(approved,state.policy?.deniedCapabilities);writeState(state);return revision>current;
 }
 async function heartbeat(state,base,{persist=true}={}){if(!state.enrollment?.deviceId)throw new Error('device_not_enrolled');const capabilities=effectiveCapabilitiesForState(state);const timestamp=Date.now(),nonce=crypto.randomBytes(18).toString('base64url');const message=deviceHeartbeatMessage({deviceId:state.enrollment.deviceId,timestamp,nonce,capabilities});const signature=crypto.sign(null,Buffer.from(message),privateKey(state)).toString('base64url');const upstream=await operator(base,'device-heartbeat',{deviceId:state.enrollment.deviceId,timestamp,nonce,capabilities,signature,policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0)});applyPolicyEnvelope(state,upstream.policy);state.lastHeartbeatAt=Date.now();state.effectiveCapabilities=effectiveCapabilitiesForState(state);if(persist)writeState(state);return upstream.device;}
-let observerChannelTail=Promise.resolve(),observerChannelNextAt=0;
-function clientChannelLane(action){return ['status','activity','desktop-live-push','fleet-intent','fleet-authority','fleet-status','fleet-devices','fleet-sessions','fleet-activity'].includes(action)?'observer':'direct';}
+let observerChannelTail=Promise.resolve(),observerChannelNextAt=0,rmLiveChannelTail=Promise.resolve(),rmLiveChannelNextAt=0;
+function clientChannelLane(action){
+  if(action==='desktop-live-push')return 'rm-live';
+  return ['status','activity','fleet-intent','fleet-authority','fleet-status','fleet-devices','fleet-sessions','fleet-activity'].includes(action)?'observer':'direct';
+}
 async function channelRequestDirect(state,hubBase,action,payload){if(!state.enrollment?.deviceId)throw new Error('device_not_enrolled');const deviceId=state.enrollment.deviceId,timestamp=Date.now(),nonce=crypto.randomBytes(18).toString('base64url');const signature=crypto.sign(null,Buffer.from(deviceChannelMessage({deviceId,action,timestamp,nonce,payload})),privateKey(state)).toString('base64url');const response=await fetch(hubBase.replace(/\/$/,'')+'/device-channel/'+action,{method:'POST',headers:{'content-type':'application/json','accept':'application/json'},body:JSON.stringify({deviceId,timestamp,nonce,signature,payload}),signal:AbortSignal.timeout(action==='poll'?25000:15000)});return parseResponse(response);}
 async function channelRequest(state,hubBase,action,payload){
-  if(clientChannelLane(action)!=='observer')return channelRequestDirect(state,hubBase,action,payload);
-  const run=async()=>{const delay=Math.max(0,observerChannelNextAt-Date.now());if(delay)await new Promise(resolve=>setTimeout(resolve,delay));observerChannelNextAt=Date.now()+350;return channelRequestDirect(state,hubBase,action,payload);};
-  const next=observerChannelTail.then(run,run);observerChannelTail=next.catch(()=>{});return next;
+  const lane=clientChannelLane(action);
+  if(lane==='direct')return channelRequestDirect(state,hubBase,action,payload);
+  const rm=lane==='rm-live',nextAt=rm?rmLiveChannelNextAt:observerChannelNextAt,minGap=rm?40:350;
+  const run=async()=>{const delay=Math.max(0,nextAt-Date.now());if(delay)await new Promise(resolve=>setTimeout(resolve,delay));if(rm)rmLiveChannelNextAt=Date.now()+minGap;else observerChannelNextAt=Date.now()+minGap;return channelRequestDirect(state,hubBase,action,payload);};
+  const tail=rm?rmLiveChannelTail:observerChannelTail,next=tail.then(run,run);
+  if(rm)rmLiveChannelTail=next.catch(()=>{});else observerChannelTail=next.catch(()=>{});
+  return next;
 }
 const REAL_REMOTE_LIVE=new Map();
 const REAL_REMOTE_LIVE_HEARTBEAT_MS=Math.max(1000,Math.min(Number(process.env.LIGHT_REMOTE_RMV2_LIVE_HEARTBEAT_MS)||60000,240000));
