@@ -373,7 +373,17 @@ internal sealed class SemanticSessionManager : IDisposable
                     rootTitle=signal.RootTitle,
                     rootEpoch=signal.RootEpoch,
                     stateSeq=signal.StateSeq,
-                    events=signal.Events.ToArray(),
+                    events=signal.Events.Select(entry=>new {
+                        seq=entry.Seq,
+                        kind=entry.Kind,
+                        hwnd=entry.Hwnd,
+                        title=entry.Title,
+                        objectId=entry.ObjectId,
+                        childId=entry.ChildId,
+                        at=entry.At,
+                        scopeChanged=entry.ScopeChanged,
+                        resyncRecommended=entry.ResyncRecommended
+                    }).ToArray(),
                     foreground=NativeInput.ReadForeground(),
                     focused=_sensor.FocusedSemantic(),
                     scopeChanged=signal.ScopeChanged,
