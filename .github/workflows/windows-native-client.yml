@@ -195,7 +195,9 @@ jobs:
             'lib/native-desktop.mjs',
             'client/windows-native/GptOperator.Client/AgentHost.cs',
             'device-agent/local-wall.mjs',
-            'device-agent/operator-agent.mjs'
+            'device-agent/operator-agent.mjs',
+            'client/windows-native/LightRemote.Updater/Program.cs',
+            'client/windows-native/LightRemote.Updater/UpdateApplier.cs'
           )
           $forbidden = @($changed | Where-Object {
             $path = $_
@@ -546,6 +548,37 @@ jobs:
           if ($json.agentVersion -ne $expectedVersion) { throw "installed agent version mismatch: $($json.agentVersion) expected=$expectedVersion" }
           Write-Host 'windows-native-installed-selftest=PASS'
 
+      - name: Independent updater staged helper promotion smoke
+        shell: pwsh
+        run: |
+          $source = Get-Content 'client/windows-native/LightRemote.Updater/UpdateApplier.cs' -Raw
+          if ($source.Contains('FinalizeHelperCandidateAsync')) { throw 'legacy in-process helper finalizer returned' }
+          foreach ($needle in @('LaunchHelperPromotionAsync','PromoteHelperStageAsync','helper_promotion_pending')) { if (-not $source.Contains($needle)) { throw "staged helper promoter missing: $needle" } }
+          $installDir = $env:WINDOWS_INSTALL_DIR
+          $candidate = Join-Path $installDir 'helper-candidate'
+          $stage = Join-Path $env:RUNNER_TEMP 'helper-promotion-stage'
+          Remove-Item $stage -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          Copy-Item (Join-Path $candidate '*') $stage -Recurse -Force
+          $stageExe = Join-Path $stage 'LightRemote.Updater.exe'
+          $version = (Get-Content VERSION -Raw).Trim()
+          $parent = Start-Process -FilePath 'powershell.exe' -ArgumentList @('-NoProfile','-Command','Start-Sleep -Seconds 2') -PassThru
+          $psi = [Diagnostics.ProcessStartInfo]::new($stageExe); $psi.UseShellExecute=$false; $psi.CreateNoWindow=$true
+          foreach ($arg in @('--promote-helper-stage',$stage,$installDir,$parent.Id.ToString(),$version,$version)) { [void]$psi.ArgumentList.Add($arg) }
+          $sw=[Diagnostics.Stopwatch]::StartNew(); $p=[Diagnostics.Process]::Start($psi)
+          if (-not $p.WaitForExit(30000)) { try{$p.Kill()}catch{}; throw 'helper promoter timed out' }
+          $sw.Stop(); if ($p.ExitCode -ne 0) { throw "helper promoter exit=$($p.ExitCode)" }
+          if ($sw.ElapsedMilliseconds -lt 1000) { throw 'helper promoter did not wait for parent exit' }
+          $root = Join-Path $env:LOCALAPPDATA 'Light Remote\Updater'
+          $rootExe = Join-Path $root 'LightRemote.Updater.exe'
+          $health = Join-Path $env:RUNNER_TEMP 'helper-promotion-root-health.json'; Remove-Item $health -Force -ErrorAction SilentlyContinue
+          $hpsi=[Diagnostics.ProcessStartInfo]::new($rootExe);$hpsi.UseShellExecute=$false;$hpsi.CreateNoWindow=$true;foreach($arg in @('--self-test-output',$health,$installDir)){[void]$hpsi.ArgumentList.Add($arg)}
+          $hp=[Diagnostics.Process]::Start($hpsi);if(-not $hp.WaitForExit(15000)){try{$hp.Kill()}catch{};throw 'promoted helper self-test timeout'}
+          $hj=Get-Content $health -Raw|ConvertFrom-Json;if($hp.ExitCode -ne 0 -or -not $hj.ok -or -not $hj.updaterOutsideApp){throw 'promoted helper self-test failed'}
+          $status=Get-Content (Join-Path $root 'state\status.json') -Raw|ConvertFrom-Json;if($status.state -ne 'success'){throw "helper promoter status=$($status.state)"}
+          $log=Get-Content (Join-Path $root 'logs\update.log') -Raw;if($log -notmatch 'helper_promotion_success'){throw 'helper promotion success log missing'}
+          Remove-Item $stage -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Host "windows-updater-staged-helper-promotion=PASS wait-ms=$($sw.ElapsedMilliseconds)"
       - name: Broken update rollback smoke
         timeout-minutes: 5
         shell: pwsh
