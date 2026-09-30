@@ -73,6 +73,17 @@ assert.deepEqual(normalizedInput.events[3],{type:'drag',x:120,y:80,toX:320,toY:1
 assert.deepEqual(normalizedInput.events[4],{type:'text',text:'Light Remote',intervalMs:12});
 assert.deepEqual(normalizedInput.events[5],{type:'key',key:'ENTER',modifiers:['CTRL']});
 assert.deepEqual(normalizeDesktopInput({events:[{type:'text',text:'paced',intervalMs:24}]}).events[0],{type:'text',text:'paced',intervalMs:24});
+const guardedInput=normalizeDesktopInput({events:[
+  {type:'move',x:1,y:2,guardTitleContains:'ChatGPT'},
+  {type:'click',button:'left',count:1,guardTitleContains:'ChatGPT'},
+  {type:'wheel',delta:120,guardTitleContains:'ChatGPT'},
+  {type:'drag',x:1,y:2,toX:3,toY:4,guardTitleContains:'ChatGPT'},
+  {type:'text',text:'guarded',guardTitleContains:'ChatGPT'},
+  {type:'key',key:'ENTER',guardTitleContains:'ChatGPT'}
+]});
+assert.equal(guardedInput.events.length,6);
+assert.ok(guardedInput.events.every(event=>event.guardTitleContains==='ChatGPT'),'foreground title guard must survive bridge normalization for every desktop input event');
+assert.throws(()=>normalizeDesktopInput({events:[{type:'move',x:1,y:2,guardTitleContains:'x'.repeat(257)}]}),/desktop_input_invalid_guard_title/);
 assert.throws(()=>normalizeDesktopInput({events:[{type:'text',text:'too-fast?',intervalMs:101}]}),/desktop_input_invalid_interval_ms/);
 const normalizedScreenInput=normalizeDesktopInput({events:[
   {type:'move',x:10,y:20,screen:0},
@@ -323,7 +334,7 @@ const windowsSemanticActAcceptance=read('client/windows-native/acceptance/real-r
 const windowsWorkflow=read('.github/workflows/windows-native-client.yml');
 assert.ok(executor.includes('async function startDesktopOperation(')&&executor.includes("payload:{type:'desktop'")&&executor.includes("(op==='input'||op==='act')?['desktop','desktop-input']:['desktop']")&&executor.includes("normalizeDesktopInput(request)")&&executor.includes("'attach'")&&executor.includes("'resume'")&&executor.includes("'detach'")&&executor.includes("'semantic-attach'")&&executor.includes("'semantic-snapshot'")&&executor.includes("'semantic-events'")&&executor.includes("'semantic-detach'"));
 assert.ok(routes.includes("'desktop'].includes(payload.action)")&&routes.includes("payload.action==='desktop'?await startDesktopOperation"));
-assert.ok(api.includes("action.startsWith('desktop-')")&&api.includes("'status','attach','resume','detach','windows','frame','input','observe','act','semantic-attach','semantic-snapshot','semantic-events','semantic-detach'")&&api.includes("desktop.desktopSessionId=String(d.desktopSessionId")&&api.includes("compactClientActions.has(action)||action.startsWith('desktop-')")&&api.includes("normalizeDesktopInput")&&api.includes("semanticSessionId:d.semanticSessionId")&&api.includes("afterSeq:d.afterSeq")&&api.includes("settleMs:d.settleMs")&&api.includes("displayTopologyId:d.displayTopologyId")&&api.includes("'browser-cdp'")&&api.includes("desktop.cdpEndpoint")&&api.includes("desktop.targetId")&&api.includes("desktop.urlMatch")&&api.includes("action:'desktop'"));
+assert.ok(api.includes("action.startsWith('desktop-')")&&api.includes("'status','attach','resume','detach','windows','frame','input','observe','act','semantic-attach','semantic-snapshot','semantic-events','semantic-detach'")&&api.includes("desktop.desktopSessionId=String(d.desktopSessionId")&&api.includes("compactClientActions.has(action)||action.startsWith('desktop-')")&&api.includes("normalizeDesktopInput({events:d.events")&&api.includes("semanticSessionId:d.semanticSessionId")&&api.includes("afterSeq:d.afterSeq")&&api.includes("settleMs:d.settleMs")&&api.includes("displayTopologyId:d.displayTopologyId")&&api.includes("'browser-cdp'")&&api.includes("desktop.cdpEndpoint")&&api.includes("desktop.targetId")&&api.includes("desktop.urlMatch")&&api.includes("action:'desktop'"));
 const desktopRoute=api.slice(api.indexOf("else if(usingClient&&action.startsWith('desktop-'))"),api.indexOf("else if(usingClient&&action.startsWith('search-'))"));
 assert.ok(desktopRoute.includes("desktop.nodeId=String(d.nodeId||'')"),'desktop-act must keep semantic nodeId inside the desktop request');
 assert.ok(!desktopRoute.includes("nodeId:d.nodeId==null?undefined:clientDevice(d.nodeId)"),'desktop semantic nodeId must never be promoted to the target node envelope');
