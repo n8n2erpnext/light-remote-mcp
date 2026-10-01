@@ -80,6 +80,7 @@ var
   InstallerTxnVersionFile: String;
   InstallerTxnWatchdogScript: String;
   InstallerTxnWatchdogLog: String;
+  InstallerTxnWatchdogTask: String;
 
 function GetCurrentProcessId(): Cardinal;
 external 'GetCurrentProcessId@kernel32.dll stdcall';
@@ -157,7 +158,8 @@ procedure PrepareInstallerTransaction();
 var
   SourceVersion, TempWatchdog: String;
 begin
-  InstallerTxnDir := ExpandConstant('{localappdata}\\Light Remote\\Updater\\state\\installer-txn');
+  InstallerTxnDir := ExpandConstant('{localappdata}\\Light Remote\\Updater\\state\\installer-txn') + '\\' + IntToStr(GetCurrentProcessId());
+  InstallerTxnWatchdogTask := 'LightRemoteInstallWatchdog-' + IntToStr(GetCurrentProcessId());
   ForceDirectories(InstallerTxnDir);
   InstallerTxnCommitMarker := InstallerTxnDir + '\\commit.ok';
   InstallerTxnVersionFile := InstallerTxnDir + '\\previous-version.txt';
@@ -190,7 +192,8 @@ begin
     '" -TaskXml "' + AgentTaskRecoveryXml +
     '" -VersionFile "' + InstallerTxnVersionFile +
     '" -InstallRoot "' + ExpandConstant('{app}') +
-    '" -LogPath "' + InstallerTxnWatchdogLog + '"';
+    '" -LogPath "' + InstallerTxnWatchdogLog + '"' +
+    ' -WatchdogTask "' + InstallerTxnWatchdogTask + '"';
   if (not Exec(ExpandConstant('{sys}\\WindowsPowerShell\\v1.0\\powershell.exe'), Args, '', SW_HIDE, ewWaitUntilTerminated, ResultCode)) or (ResultCode <> 0) then
     RaiseException('Unable to arm Light Remote installer watchdog (exit ' + IntToStr(ResultCode) + ')');
   Log('light-remote-install-transaction-watchdog-armed');
@@ -325,10 +328,10 @@ begin
   if CurStep = ssPostInstall then
   begin
     RunAgentInstallTransaction();
-    CacheRollbackInstaller();
     if not SaveStringToFile(InstallerTxnCommitMarker, 'commit', False) then
       RaiseException('Unable to commit Light Remote installer transaction');
     InstallTransactionCommitted := True;
+    CacheRollbackInstaller();
     Log('light-remote-install-transaction-committed');
   end;
 end;

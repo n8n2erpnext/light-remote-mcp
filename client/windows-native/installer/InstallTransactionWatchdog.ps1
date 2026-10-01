@@ -48,11 +48,6 @@ try{
   }
   if(Test-Path $CommitMarker){Log 'commit_observed_after_exit';return}
   Log 'recovery_begin'
-  if(Test-Path $TaskXml){
-    & "$env:WINDIR\System32\schtasks.exe" /Create /TN $TaskName /XML $TaskXml /F|Out-Null
-    & "$env:WINDIR\System32\schtasks.exe" /Run /TN $TaskName|Out-Null
-  }
-  if(WaitWall 15){Log 'task_restore_wall_healthy';return}
   $version=if(Test-Path $VersionFile){(Get-Content $VersionFile -Raw).Trim()}else{''}
   $root=Join-Path $env:LOCALAPPDATA 'Light Remote\Updater\rollback'
   $rb=Get-ChildItem $root -Filter ("Light-Remote-MCP-Setup-"+$version+"*-x64.exe") -File -ErrorAction SilentlyContinue|Sort-Object LastWriteTime -Descending|Select-Object -First 1
@@ -61,10 +56,15 @@ try{
     & "$env:WINDIR\System32\schtasks.exe" /End /TN $TaskName 2>$null|Out-Null
     $p=Start-Process $rb.FullName -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-' -PassThru -Wait
     Log ("rollback_exit "+$p.ExitCode)
-    & "$env:WINDIR\System32\schtasks.exe" /Run /TN $TaskName 2>$null|Out-Null
-    if(WaitWall 20){Log 'rollback_wall_healthy';return}
+  }else{
+    Log ("rollback_missing version="+$version)
   }
-  throw 'wall_recovery_failed'
+  if(Test-Path $TaskXml){
+    & "$env:WINDIR\System32\schtasks.exe" /Create /TN $TaskName /XML $TaskXml /F|Out-Null
+  }
+  & "$env:WINDIR\System32\schtasks.exe" /Run /TN $TaskName 2>$null|Out-Null
+  if(WaitWall 20){Log 'rollback_restore_wall_healthy';return}
+  throw 'rollback_restore_wall_failed'
 }catch{Log ("watchdog_failed "+$_.Exception.Message);$exitCode=32}
 finally{Unregister-ScheduledTask -TaskName $WatchdogTask -Confirm:$false -ErrorAction SilentlyContinue}
 exit $exitCode

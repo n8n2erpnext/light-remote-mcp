@@ -22,6 +22,13 @@ const seq=[
   '  InstallTransactionStarted := True;','  StopAndRemoveLegacyTask();','  QuiesceInstalledRuntime();'
 ].map(x=>installer.indexOf(x));
 expect(seq.every((x,i)=>x>=0&&(i===0||x>seq[i-1])),'watchdog_must_arm_before_quiesce');
+expect(installer.includes("InstallerTxnWatchdogTask: String;"),'per_pid_watchdog_task_var_required');
+expect(installer.includes("LightRemoteInstallWatchdog-"),'per_pid_watchdog_task_name_required');
+expect(installer.includes("IntToStr(GetCurrentProcessId())"),'per_pid_transaction_state_required');
+expect(installer.includes("-WatchdogTask"),'watchdog_task_name_must_be_explicit');
+const commitPos=installer.indexOf("SaveStringToFile(InstallerTxnCommitMarker, 'commit', False)");
+const cachePos=installer.indexOf('CacheRollbackInstaller();',commitPos);
+expect(commitPos>=0&&cachePos>commitPos,'rollback_anchor_must_refresh_only_after_commit');
 
 const deinit=(installer.match(/procedure DeinitializeSetup\(\);([\s\S]*?)\[UninstallRun\]/)||[])[1]||'';
 expect(!deinit.includes('RestoreAgentTaskRecovery();'),'installer_process_must_not_own_abort_recovery');
@@ -32,7 +39,7 @@ expect(!stop.includes('/Delete /TN "LightRemoteDeviceAgent"'),'current_task_must
 
 for(const token of [
   'Register-ScheduledTask','Start-ScheduledTask','InstallerPid','CommitMarker','TaskXml',
-  'recovery_begin','WaitWall 15','Light-Remote-MCP-Setup-','rollback_wall_healthy',
+  'recovery_begin','Light-Remote-MCP-Setup-','rollback_begin','rollback_restore_wall_healthy',
   'Unregister-ScheduledTask'
 ])expect(watchdog.includes(token),`watchdog_contract_missing:${token}`);
 
