@@ -13,9 +13,11 @@ if(-not(Test-Path $Updater)){
   New-Item -ItemType Directory -Force -Path $UpdaterRoot|Out-Null;Copy-Item (Join-Path $HelperCandidate '*') $UpdaterRoot -Recurse -Force
 }
 foreach($f in @($Node,$Agent,$Tray,$Updater,$UpdaterKey)){if(-not(Test-Path $f)){throw "Required Light Remote file missing: $f"}}
-foreach($taskName in @($Legacy,$AgentTask,$UpdateTask)){
+Stop-ScheduledTask -TaskName $Legacy -ErrorAction SilentlyContinue
+Unregister-ScheduledTask -TaskName $Legacy -Confirm:$false -ErrorAction SilentlyContinue
+foreach($taskName in @($AgentTask,$UpdateTask)){
   Stop-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
-  Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction SilentlyContinue
+
 }
 $nodeFull=[IO.Path]::GetFullPath($Node)
 $staleNodes=@(Get-Process -Name node -ErrorAction SilentlyContinue|Where-Object{try{[IO.Path]::GetFullPath($_.Path) -eq $nodeFull}catch{$false}})
