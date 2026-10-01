@@ -1,5 +1,49 @@
+import { DEVICE_DUPLEX_PROTOCOL } from './device-duplex-transport.mjs';
+import { handleDeviceDuplexSession } from './device-duplex-session.mjs';
+
+
 export async function handleDeviceChannelRoutes(req,res,url,deps){
   const {ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,DeviceAccessGrantError,DevicePairingRegistryError,EnrollmentError,FleetAuthorityError,FleetError,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,MIN_SUPPORTED_CLIENT_VERSION,NODE_ID,VERSION,abandonedCommandReceiptFromDisk,accessGrants,accounts,agentClients,allDeviceViews,applyDeviceTelemetry,capabilities,clientCompatibility,connectionSpec,connections,deviceView,devices,emitStream,enrollments,finishJob,fleet,fleetAuthority,fleetEligibility,fleetTarget,jobView,jobs,normalizeUpdateReport,pairingCodes,planEntitlements,pushEvent,queueHelperUpdate,readJson,reapAccessGrants,realRemoteLive,recentEvents,requireDeviceConnection,sendJson,sessions,targetRoute,terminalResultSummary,verifiedChannelContext,verifiedFleetContext,verifiedLeafCapabilities}=deps;
+  const acceptDesktopLivePush=(ctx,payload=ctx.payload)=>{
+    requireDeviceConnection(ctx.device.deviceId);
+    const session=sessions.ensure(String(payload.sessionId||''),{agentId:String(payload.agentId||'')});
+    if(session.deviceId!==ctx.device.deviceId)throw new DeviceAccessGrantError('device_access_grant_session_mismatch',403);
+    const live=realRemoteLive.push({
+      deviceId:ctx.device.deviceId,sessionId:session.id,agentId:session.agentId,
+      semanticSessionId:payload.semanticSessionId,stateSeq:payload.stateSeq,inputSeq:payload.inputSeq,rootEpoch:payload.rootEpoch,
+      events:payload.events,snapshot:payload.snapshot,displayTopologyId:payload.displayTopologyId,cursor:payload.cursor,foreground:payload.foreground,
+      resyncRecommended:payload.resyncRecommended,closed:payload.closed,heartbeat:payload.heartbeat,updatedAt:Date.now()
+    });
+    return {ok:true,live};
+  };
+  const acceptDeviceResult=(ctx,result)=>{
+    let command;
+    try{command=fleet.command(result.commandId);}
+    catch(error){
+      if(error?.message!=='command_not_found')throw error;
+      const receipt=fleet.receipt(result.commandId)||abandonedCommandReceiptFromDisk?.(result.commandId);
+      if(!receipt)throw error;
+      if(receipt.accountId!==ACCOUNT_ID||receipt.deviceId!==ctx.device.deviceId||receipt.nodeId!==ctx.device.nodeId)throw new FleetError('command_device_mismatch',403);
+      const prior=jobs.get(receipt.jobId);
+      return {ok:true,accepted:true,duplicate:true,job:prior?jobView(prior):null};
+    }
+    if(command.accountId!==ACCOUNT_ID||command.deviceId!==ctx.device.deviceId||command.nodeId!==ctx.device.nodeId)throw new FleetError('command_device_mismatch',403);
+    const job=jobs.get(command.jobId);
+    if(!job||job.commandId!==command.commandId)throw new FleetError('remote_job_not_found',404);
+    const stdout=String(result.stdout||''),stderr=String(result.stderr||'');
+    if(Buffer.byteLength(stdout)>MAX_MEMORY_OUTPUT||Buffer.byteLength(stderr)>MAX_MEMORY_OUTPUT)throw new FleetError('remote_result_too_large',413);
+    if(result.data!==undefined&&Buffer.byteLength(JSON.stringify(result.data))>MAX_MEMORY_OUTPUT)throw new FleetError('remote_result_data_too_large',413);
+    if(result.data!==undefined){job.resultData=result.data;job.resultSummary='';}
+    applyDeviceTelemetry(job,result.telemetry);
+    const exitCode=Number(result.exitCode);
+    if(!Number.isInteger(exitCode)||exitCode<0||exitCode>255)throw new FleetError('invalid_remote_exit_code');
+    if(stdout)emitStream(job,'stdout',Buffer.from(stdout));
+    if(stderr)emitStream(job,'stderr',Buffer.from(stderr));
+    job.timedOut=String(result.status||'')==='timeout';
+    fleet.complete({accountId:ACCOUNT_ID,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,commandId:command.commandId});
+    finishJob(job,exitCode,null);
+    return {ok:true,accepted:true,duplicate:false,job:jobView(job)};
+  };
     if (req.method === 'POST' && url.pathname === '/v1/enrollments/begin') {
       const body = await readJson(req);
       return sendJson(res, 200, { ok:true, enrollment:enrollments.begin(body) });
@@ -138,11 +182,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/desktop-live-push') {
       const body=await readJson(req),ctx=verifiedChannelContext(body,'desktop-live-push');
-      requireDeviceConnection(ctx.device.deviceId);
-      const payload=ctx.payload,session=sessions.ensure(String(payload.sessionId||''),{agentId:String(payload.agentId||'')});
-      if(session.deviceId!==ctx.device.deviceId)throw new DeviceAccessGrantError('device_access_grant_session_mismatch',403);
-      const live=realRemoteLive.push({deviceId:ctx.device.deviceId,sessionId:session.id,agentId:session.agentId,semanticSessionId:payload.semanticSessionId,stateSeq:payload.stateSeq,events:payload.events,snapshot:payload.snapshot,displayTopologyId:payload.displayTopologyId,cursor:payload.cursor,foreground:payload.foreground,resyncRecommended:payload.resyncRecommended,closed:payload.closed,heartbeat:payload.heartbeat,updatedAt:Date.now()});
-      return sendJson(res,200,{ok:true,live});
+      return sendJson(res,200,acceptDesktopLivePush(ctx,ctx.payload));
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/account-auth') {
       const body=await readJson(req), ctx=verifiedChannelContext(body,'account-auth');
@@ -254,6 +294,45 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       const limit=Math.max(1,Math.min(Number(ctx.payload.limit)||500,5000));
       return sendJson(res,200,{ok:true,deviceId:ctx.device.deviceId,events:recentEvents(limit,ctx.device.deviceId)});
     }
+    if (req.method === 'POST' && url.pathname === '/v1/device-channel/stream') {
+      return handleDeviceDuplexSession(req,res,{
+        authorizeHello:async body=>{
+          const ctx=verifiedChannelContext(body,'stream'),payload=ctx.payload;
+          if(String(payload.protocol||'')!==DEVICE_DUPLEX_PROTOCOL)throw new FleetError('duplex_protocol_mismatch',409);
+          if(payload.nodeId!=null&&String(payload.nodeId)!==ctx.device.nodeId)throw new EnrollmentError('device_node_mismatch',409);
+          const reportedRevision=Math.max(0,Number(payload.policyRevision)||0);
+          const capabilities=verifiedLeafCapabilities(payload.capabilities,ctx.binding,reportedRevision);
+          requireDeviceConnection(ctx.device.deviceId);
+          devices.heartbeat(ctx.device.deviceId,{capabilities,agentVersion:payload.agentVersion,updateStatus:payload.updateStatus});
+          const touchInput={accountId:ACCOUNT_ID,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,sessionCeiling:payload.sessionCeiling,draining:Boolean(payload.draining),capabilities};
+          fleet.touch(touchInput);
+          const policy=reportedRevision===Math.max(1,Number(ctx.binding.policyRevision)||1)?null:enrollments.policyEnvelope(ctx.device.deviceId);
+          const transportEpoch=String(payload.transportEpoch||'').trim();
+          if(!transportEpoch||transportEpoch.length>128)throw new FleetError('invalid_duplex_transport_epoch',400);
+          return {
+            deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,transportEpoch,
+            context:{ctx,touchInput,reportedRevision,capabilities},
+            helloAck:{node:fleet.view(ctx.device.nodeId),policy,access:{pending:accessGrants.pendingForDevice(ctx.device.deviceId),activeGrant:accessGrants.activeForDevice(ctx.device.deviceId,connections.get(ctx.device.deviceId)?.connectionId)}}
+          };
+        },
+        resume:async authorized=>{fleet.resume(authorized.nodeId);},
+        poll:async(authorized,wait)=>fleet.waitPoll(authorized.context.touchInput,wait),
+        onResult:async(authorized,result)=>acceptDeviceResult(authorized.context.ctx,result),
+        onLive:async(authorized,payload)=>acceptDesktopLivePush(authorized.context.ctx,payload),
+        onHeartbeat:async(authorized,payload)=>{
+          const state=authorized.context,ctx=state.ctx;
+          const reportedRevision=Math.max(0,Number(payload.policyRevision??state.reportedRevision)||0);
+          const capabilities=verifiedLeafCapabilities(Array.isArray(payload.capabilities)?payload.capabilities:state.capabilities,ctx.binding,reportedRevision);
+          state.reportedRevision=reportedRevision;state.capabilities=capabilities;
+          state.touchInput={...state.touchInput,sessionCeiling:payload.sessionCeiling??state.touchInput.sessionCeiling,draining:payload.draining==null?state.touchInput.draining:Boolean(payload.draining),capabilities};
+          devices.heartbeat(ctx.device.deviceId,{capabilities,agentVersion:payload.agentVersion||ctx.device.agentVersion,updateStatus:payload.updateStatus});
+          const node=fleet.touch(state.touchInput);
+          const policy=reportedRevision===Math.max(1,Number(ctx.binding.policyRevision)||1)?null:enrollments.policyEnvelope(ctx.device.deviceId);
+          return {node,policy};
+        },
+        onEvent:event=>pushEvent({accountId:ACCOUNT_ID,nodeId:(()=>{try{return devices.get(event.deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)}).nodeId;}catch{return null;}})(),status:event.type==='device_duplex_error'?'error':'ok',...event})
+      });
+    }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/poll') {
       const body=await readJson(req), ctx=verifiedChannelContext(body,'poll');
       if (ctx.payload.nodeId!=null && String(ctx.payload.nodeId)!==ctx.device.nodeId) throw new EnrollmentError('device_node_mismatch',409);
@@ -267,33 +346,8 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       return sendJson(res,200,{ok:true,channel,policy,access:{pending:accessGrants.pendingForDevice(ctx.device.deviceId),activeGrant:accessGrants.activeForDevice(ctx.device.deviceId,connections.get(ctx.device.deviceId)?.connectionId)}});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/result') {
-      const body=await readJson(req), ctx=verifiedChannelContext(body,'result'), result=ctx.payload;
-      let command;
-      try { command=fleet.command(result.commandId); }
-      catch(error) {
-        if(error?.message!=='command_not_found')throw error;
-        const receipt=fleet.receipt(result.commandId)||abandonedCommandReceiptFromDisk?.(result.commandId);
-        if(!receipt)throw error;
-        if(receipt.accountId!==ACCOUNT_ID || receipt.deviceId!==ctx.device.deviceId || receipt.nodeId!==ctx.device.nodeId)throw new FleetError('command_device_mismatch',403);
-        const prior=jobs.get(receipt.jobId);
-        return sendJson(res,200,{ok:true,accepted:true,duplicate:true,job:prior?jobView(prior):null});
-      }
-      if (command.accountId!==ACCOUNT_ID || command.deviceId!==ctx.device.deviceId || command.nodeId!==ctx.device.nodeId) throw new FleetError('command_device_mismatch',403);
-      const job=jobs.get(command.jobId);
-      if (!job || job.commandId!==command.commandId) throw new FleetError('remote_job_not_found',404);
-      const stdout=String(result.stdout||''), stderr=String(result.stderr||'');
-      if (Buffer.byteLength(stdout)>MAX_MEMORY_OUTPUT || Buffer.byteLength(stderr)>MAX_MEMORY_OUTPUT) throw new FleetError('remote_result_too_large',413);
-      if(result.data!==undefined&&Buffer.byteLength(JSON.stringify(result.data))>MAX_MEMORY_OUTPUT)throw new FleetError('remote_result_data_too_large',413);
-      if(result.data!==undefined){job.resultData=result.data;job.resultSummary='';}
-      applyDeviceTelemetry(job,result.telemetry);
-      const exitCode=Number(result.exitCode);
-      if (!Number.isInteger(exitCode) || exitCode < 0 || exitCode > 255) throw new FleetError('invalid_remote_exit_code');
-      if (stdout) emitStream(job,'stdout',Buffer.from(stdout));
-      if (stderr) emitStream(job,'stderr',Buffer.from(stderr));
-      job.timedOut=String(result.status||'')==='timeout';
-      fleet.complete({accountId:ACCOUNT_ID,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,commandId:command.commandId});
-      finishJob(job,exitCode,null);
-      return sendJson(res,200,{ok:true,accepted:true,duplicate:false,job:jobView(job)});
+      const body=await readJson(req),ctx=verifiedChannelContext(body,'result');
+      return sendJson(res,200,acceptDeviceResult(ctx,ctx.payload));
     }
 
 }

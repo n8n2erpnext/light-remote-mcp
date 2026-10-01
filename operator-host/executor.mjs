@@ -970,7 +970,7 @@ class DeviceChannelRateLimitError extends Error {
   constructor(lane,retryAfterSeconds){super('rate_limited');this.status=429;this.scope=`device-channel-${lane}`;this.retryAfterSeconds=retryAfterSeconds;}
 }
 function trustedChannelLane(action){
-  if(['poll','result','update-report'].includes(action))return 'runtime';
+  if(['poll','result','update-report','stream'].includes(action))return 'runtime';
   if(action==='desktop-live-push')return 'rm-live';
   if(['status','activity','fleet-intent','fleet-authority','fleet-status','fleet-devices','fleet-sessions','fleet-activity'].includes(action))return 'observer';
   return 'control';

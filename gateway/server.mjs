@@ -12,7 +12,7 @@ import { enrollmentApprovalHtml } from './enrollment-page.mjs';
 import { devicePolicyHtml } from './device-policy-page.mjs';
 import { createWallAuth, createAccountWallAuth } from './wall-auth.mjs';
 import { authenticateVercel, authenticateVercelPlusBridge, isToolCall, securityInfo } from './security.mjs';
-import { callOperatorJson, proxyOperatorJson, proxyOperatorSse } from './operator-proxy.mjs';
+import { callOperatorJson, proxyOperatorJson, proxyOperatorSse, proxyOperatorDuplex } from './operator-proxy.mjs';
 import { rootNames, listWorkspace, readWorkspaceText, searchWorkspace, gitStatus, gitDiff } from './workspace.mjs';
 import { registerRemoteTools } from './remote-tools.mjs';
 import { registerConvenienceTools } from './remote-convenience-tools.mjs';
@@ -322,6 +322,7 @@ app.post('/device-channel/update-report', deviceChannelEdgeRateLimit, (req, res)
 app.post('/device-channel/poll', deviceChannelEdgeRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/poll', req.body || {}));
 app.post('/device-channel/result', deviceChannelEdgeRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/result', req.body || {}));
 app.post('/device-channel/desktop-live-push', deviceChannelEdgeRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/desktop-live-push', req.body || {}));
+app.post('/device-channel/stream', deviceChannelEdgeRateLimit, (req,res)=>proxyOperatorDuplex(req,res,'/v1/device-channel/stream'));
 app.post('/account/register', softRateLimit, requireVercelIdentity, (req,res)=>{
   const ownerCode=String(req.body?.ownerCode||'').trim();
   if(ownerCode)return proxyOperatorJson(res,'POST','/v1/accounts/register',{email:req.body?.email,password:req.body?.password,ownerCode});

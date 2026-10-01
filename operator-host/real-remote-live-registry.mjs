@@ -13,14 +13,14 @@ export class RealRemoteLiveRegistry{
   _prune(now=Date.now()){
     for(const [k,row] of this.rows)if(now-row.updatedAt>this.ttlMs)this.rows.delete(k);
   }
-  push({deviceId,sessionId,agentId,semanticSessionId,stateSeq=0,events=[],snapshot=null,displayTopologyId=null,cursor=null,foreground=null,resyncRecommended=false,closed=false,heartbeat=false,updatedAt=Date.now()}={}){
+  push({deviceId,sessionId,agentId,semanticSessionId,stateSeq=0,inputSeq=0,rootEpoch=0,events=[],snapshot=null,displayTopologyId=null,cursor=null,foreground=null,resyncRecommended=false,closed=false,heartbeat=false,updatedAt=Date.now()}={}){
     this._prune(updatedAt);
     const did=cleanText(deviceId,160),sid=cleanText(sessionId,160),aid=cleanText(agentId,160),sem=cleanText(semanticSessionId,160);
     if(!did||!sid||!aid||!sem)throw new Error('real_remote_live_identity_required');
     const k=key(did,sem),current=this.rows.get(k);
     if(current&&(current.sessionId!==sid||current.agentId!==aid))throw new Error('real_remote_live_owner_mismatch');
     if(closed){this.rows.delete(k);return {closed:true,semanticSessionId:sem};}
-    const row=current||{deviceId:did,sessionId:sid,agentId:aid,semanticSessionId:sem,openedAt:updatedAt,events:[],snapshot:null,snapshotSeq:0,stateSeq:0,displayTopologyId:null,cursor:null,foreground:null,resyncRecommended:false,updatedAt};
+    const row=current||{deviceId:did,sessionId:sid,agentId:aid,semanticSessionId:sem,openedAt:updatedAt,events:[],snapshot:null,snapshotSeq:0,stateSeq:0,inputSeq:0,rootEpoch:0,displayTopologyId:null,cursor:null,foreground:null,resyncRecommended:false,updatedAt};
     const incoming=Array.isArray(events)?events:[];
     for(const event of incoming){
       const seq=Math.max(0,Number(event?.seq)||0);
@@ -29,7 +29,7 @@ export class RealRemoteLiveRegistry{
       if(seq>row.stateSeq)row.stateSeq=seq;
     }
     if(row.events.length>this.maxEvents)row.events.splice(0,row.events.length-this.maxEvents);
-    const explicitSeq=Math.max(0,Number(stateSeq)||0);if(explicitSeq>row.stateSeq)row.stateSeq=explicitSeq;
+    const explicitSeq=Math.max(0,Number(stateSeq)||0);if(explicitSeq>row.stateSeq)row.stateSeq=explicitSeq;row.inputSeq=Math.max(row.inputSeq,Math.max(0,Number(inputSeq)||0));row.rootEpoch=Math.max(row.rootEpoch,Math.max(0,Number(rootEpoch)||0));
     if(snapshot&&typeof snapshot==='object'){row.snapshot=snapshot;row.snapshotSeq=Math.max(row.snapshotSeq,Math.max(0,Number(snapshot.stateSeq)||row.stateSeq));}
     if(displayTopologyId!=null)row.displayTopologyId=cleanText(displayTopologyId,256);
     if(cursor&&typeof cursor==='object')row.cursor=cursor;
@@ -50,7 +50,7 @@ export class RealRemoteLiveRegistry{
     const events=pending.slice(0,cap),lastReturned=events.length?Math.max(...events.map(event=>Math.max(0,Number(event?.seq)||0))):after;
     const hasMore=pending.length>events.length;
     const snapshot=includeSnapshot&&row.snapshot&&row.snapshotSeq>after?row.snapshot:null;
-    return {deviceId:row.deviceId,sessionId:row.sessionId,agentId:row.agentId,semanticSessionId:row.semanticSessionId,stateSeq:row.stateSeq,updatedAt:row.updatedAt,ageMs:Math.max(0,Date.now()-row.updatedAt),displayTopologyId:row.displayTopologyId,cursor:row.cursor,foreground:row.foreground,resyncRecommended:row.resyncRecommended,events,hasMore,nextAfterSeq:hasMore?lastReturned:row.stateSeq,snapshot};
+    return {deviceId:row.deviceId,sessionId:row.sessionId,agentId:row.agentId,semanticSessionId:row.semanticSessionId,stateSeq:row.stateSeq,inputSeq:row.inputSeq,rootEpoch:row.rootEpoch,updatedAt:row.updatedAt,ageMs:Math.max(0,Date.now()-row.updatedAt),displayTopologyId:row.displayTopologyId,cursor:row.cursor,foreground:row.foreground,resyncRecommended:row.resyncRecommended,events,hasMore,nextAfterSeq:hasMore?lastReturned:row.stateSeq,snapshot};
   }
   close({deviceId,sessionId,agentId,semanticSessionId}={}){
     return this.push({deviceId,sessionId,agentId,semanticSessionId,closed:true});
