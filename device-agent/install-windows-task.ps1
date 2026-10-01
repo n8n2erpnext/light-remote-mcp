@@ -66,8 +66,12 @@ if((Test-Path $CandidateUpdater)-and(Test-Path $CandidateVersionFile)-and(-not(T
   if(-not $helperNewer -and (($candidateVersion -ne $helperVersion)-or($candidateHash -ne $helperHash))){
     $stage=Join-Path $UpdaterRoot ('cache\helper-manual-'+[guid]::NewGuid().ToString('N'));$health=Join-Path $UpdaterRoot ('cache\helper-health-'+[guid]::NewGuid().ToString('N')+'.json')
     New-Item -ItemType Directory -Force -Path $stage|Out-Null;Copy-Item (Join-Path $HelperCandidate '*') $stage -Recurse -Force
-    $stageUpdater=Join-Path $stage 'LightRemote.Updater.exe';& $stageUpdater --self-test-output $health $InstallRoot
-    if($LASTEXITCODE -ne 0 -or -not(Test-Path $health)){Remove-Item $stage -Recurse -Force -ErrorAction SilentlyContinue;throw 'Independent updater candidate self-test failed after Core health gate.'}
+    $stageUpdater=Join-Path $stage 'LightRemote.Updater.exe'
+    $selfArgs='--self-test-output "'+$health+'" "'+$InstallRoot+'"'
+    $selfProcess=Start-Process -FilePath $stageUpdater -ArgumentList $selfArgs -PassThru -WindowStyle Hidden
+    if(-not $selfProcess.WaitForExit(30000)){Stop-Process -Id $selfProcess.Id -Force -ErrorAction SilentlyContinue;Remove-Item $stage -Recurse -Force -ErrorAction SilentlyContinue;throw 'Independent updater candidate self-test timed out after Core health gate.'}
+    $selfExit=$selfProcess.ExitCode
+    if($selfExit -ne 0 -or -not(Test-Path $health)){Remove-Item $stage -Recurse -Force -ErrorAction SilentlyContinue;throw ('Independent updater candidate self-test failed after Core health gate: exit='+$selfExit)}
     $healthState=Get-Content $health -Raw|ConvertFrom-Json;if(-not $healthState.ok){Remove-Item $stage -Recurse -Force -ErrorAction SilentlyContinue;Remove-Item $health -Force -ErrorAction SilentlyContinue;throw 'Independent updater candidate health result rejected.'}
     Stop-ScheduledTask -TaskName $UpdateTask -ErrorAction SilentlyContinue;Copy-Item (Join-Path $stage '*') $UpdaterRoot -Recurse -Force
     Remove-Item $stage -Recurse -Force -ErrorAction SilentlyContinue;Remove-Item $health -Force -ErrorAction SilentlyContinue
