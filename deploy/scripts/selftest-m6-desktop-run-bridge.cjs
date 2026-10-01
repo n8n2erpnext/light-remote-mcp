@@ -1,5 +1,6 @@
 const assert=require('node:assert/strict');
 const path=require('node:path');
+const fs=require('node:fs');
 
 const root=path.resolve(__dirname,'..','..');
 const operatorModule=path.join(root,'lib','operator.js');
@@ -96,6 +97,14 @@ const res={
   });
   assert.ok(view.tools.desktopInput.actions.includes('desktop-run'));
   assert.equal(view.tools.desktopInput.runAwait.action,'desktop-run');
+
+  const executor=fs.readFileSync(path.join(root,'operator-host','executor.mjs'),'utf8');
+  assert.ok(executor.includes("const DEVICE_CHANNEL_RM_LIVE_LIMIT = Math.max(1, Number(process.env.OPERATOR_DEVICE_CHANNEL_RM_LIVE_LIMIT || 1800));"));
+  assert.ok(executor.includes("if(action==='desktop-live-push')return 'rm-live';"));
+  assert.ok(executor.includes("'frame','input','run','observe'"));
+  assert.ok(executor.includes("if(op==='run'){const normalized={op,...normalizeDesktopInput(request)"));
+  assert.ok(executor.includes("requiredCapabilities=(op==='input'||op==='run'||op==='act')"));
+  assert.ok(executor.includes("op==='run'?'Desktop run'"));
 
   console.log('M6_DESKTOP_RUN_BRIDGE_GATE=PASS');
 })().catch(error=>{console.error(error);process.exitCode=1;});
