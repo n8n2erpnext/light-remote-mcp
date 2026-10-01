@@ -24,7 +24,7 @@ expect(workflow.includes('windows-tray-selftest=PASS'),'windows_tray_ci_missing'
 expect(workflow.includes("$agentRoot = Join-Path $stage 'agent'")&&workflow.includes('stage-client-core.mjs --verify $agentRoot'),'windows_core_verify_target_missing');
 expect(workflow.includes('windows-independent-updater-selftest=PASS')&&workflow.includes('windows-updater-survives-app-missing=PASS'),'windows_updater_independence_ci_missing');
 expect(workflow.includes('windows-independent-update-signature=PASS')&&workflow.includes('windows-independent-update-rollback=PASS'),'windows_updater_recovery_ci_missing');
-expect(workflow.includes('stage-client-core.mjs $agentRoot')&&workflow.includes('install-windows-task.ps1')&&coreSources.has('device-agent/local-wall.mjs')&&coreSources.has('device-agent/local-wall-auth.mjs'),'windows_runtime_not_packaged');
+expect(workflow.includes('stage-client-core.mjs $agentRoot')&&workflow.includes('install-windows-task.ps1')&&coreSources.has('device-agent/local-wall.mjs')&&coreSources.has('device-agent/local-wall-auth.mjs')&&coreSources.has('device-agent/install-windows-task.ps1'),'windows_runtime_not_packaged');
 expect(project.includes('<UseWindowsForms>true</UseWindowsForms>')&&project.includes('net8.0-windows10.0.17763.0'),'windows_client_target_missing');
 expect(project.includes('<Compile Remove="MainForm.cs;ConnectionSwitch.cs;ConnectionSettingsDialog.cs" />'),'native_window_not_removed');
 expect(program.includes('Application.Run(new TrayApplicationContext())'),'tray_context_not_entrypoint');
@@ -51,7 +51,7 @@ expect(workflow.includes('windows-size-tray-bytes=')&&workflow.includes('windows
 expect(installer.includes('Light-Remote-MCP-Setup-{#AppVersion}-x64.exe'),'independent_rollback_cache_missing');
 expect(installer.includes('PrivilegesRequired=lowest')&&installer.includes('Parameters: "--launch"'),'windows_installer_contract_missing');
 expect(installer.includes('LightRemoteDeviceAgent')&&installer.includes('LightRemoteUpdater'),'windows_task_cleanup_missing');
-expect(installer.includes('procedure QuiesceInstalledRuntime()')&&installer.includes("$targets=@($AppExe,$NodeExe)")&&installer.includes("$targets -contains $_.Path")&&installer.includes('light-remote-runtime-quiesced')&&installer.includes('StopAndRemoveLegacyTask();\n  QuiesceInstalledRuntime();'),'windows_reinstall_runtime_quiesce_missing');
+expect(installer.includes('procedure QuiesceInstalledRuntime()')&&installer.includes("$targets=@($AppExe,$NodeExe)")&&installer.includes("$targets -contains $_.Path")&&installer.includes('light-remote-runtime-quiesced')&&/CaptureAgentTaskRecovery\(\);\s+InstallTransactionStarted := True;\s+StopAndRemoveLegacyTask\(\);\s+QuiesceInstalledRuntime\(\);/.test(installer),'windows_reinstall_runtime_quiesce_missing');
 expect(!/LocalSystem/i.test(installer+taskInstaller),'windows_must_not_use_localsystem');
 expect(taskInstaller.includes("$UpdaterRoot=Join-Path $env:LOCALAPPDATA 'Light Remote\\Updater'")&&taskInstaller.includes("$Updater=Join-Path $UpdaterRoot 'LightRemote.Updater.exe'"),'updater_recovery_path_missing');
 expect(taskInstaller.includes('-Execute $Updater')&&taskInstaller.includes('--scheduled-update --install-dir'),'windows_updater_task_not_independent');

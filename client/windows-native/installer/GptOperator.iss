@@ -66,10 +66,15 @@ Name: "{userdesktop}\Light Remote MCP"; Filename: "{app}\GptOperator.Client.exe"
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional icons:"; Flags: unchecked
 
 [Run]
-Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File ""{app}\agent\device-agent\install-windows-task.ps1"" -InstallRoot ""{app}"""; Flags: runhidden waituntilterminated
 Filename: "{app}\GptOperator.Client.exe"; Description: "Start Light Remote tray"; Flags: nowait postinstall skipifsilent
 
 [Code]
+var
+  InstallTransactionStarted: Boolean;
+  InstallTransactionCommitted: Boolean;
+  HadAgentTaskBeforeInstall: Boolean;
+  AgentTaskRecoveryXml: String;
+
 #ifdef CompactNodeBootstrap
 function CompactNodeCacheDir(): String;
 begin
@@ -139,6 +144,69 @@ begin
 
 end;
 
+procedure CaptureAgentTaskRecovery();
+var
+  ScriptFile, ScriptText, Args: String;
+  ResultCode: Integer;
+begin
+  AgentTaskRecoveryXml := ExpandConstant('{tmp}\\light-remote-agent-task-before-install.xml');
+  DeleteFile(AgentTaskRecoveryXml);
+  ScriptFile := ExpandConstant('{tmp}\\light-remote-capture-agent-task.ps1');
+  ScriptText :=
+    'param([string]$Out)' + #13#10 +
+    '$ErrorActionPreference=''Stop''' + #13#10 +
+    '$t=Get-ScheduledTask -TaskName ''LightRemoteDeviceAgent'' -ErrorAction SilentlyContinue' + #13#10 +
+    'if($null -eq $t){ exit 3 }' + #13#10 +
+    'Export-ScheduledTask -TaskName ''LightRemoteDeviceAgent'' | Set-Content -LiteralPath $Out -Encoding Unicode' + #13#10 +
+    'exit 0' + #13#10;
+  if not SaveStringToFile(ScriptFile, ScriptText, False) then
+    RaiseException('Unable to stage Light Remote task recovery capture helper');
+  Args := '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + ScriptFile + '" -Out "' + AgentTaskRecoveryXml + '"';
+  if not Exec(ExpandConstant('{sys}\\WindowsPowerShell\\v1.0\\powershell.exe'), Args, '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+    RaiseException('Unable to inspect existing Light Remote background task');
+  if ResultCode = 0 then
+    HadAgentTaskBeforeInstall := True
+  else if ResultCode = 3 then
+    HadAgentTaskBeforeInstall := False
+  else
+    RaiseException('Unable to capture existing Light Remote background task (exit ' + IntToStr(ResultCode) + ')');
+  Log('light-remote-install-transaction-captured-task hadTask=' + IntToStr(Ord(HadAgentTaskBeforeInstall)));
+end;
+
+procedure RestoreAgentTaskRecovery();
+var
+  ResultCode: Integer;
+begin
+  if HadAgentTaskBeforeInstall and FileExists(AgentTaskRecoveryXml) then
+  begin
+    Exec(ExpandConstant('{sys}\\schtasks.exe'), '/Create /TN "LightRemoteDeviceAgent" /XML "' + AgentTaskRecoveryXml + '" /F', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    if ResultCode <> 0 then
+      Log('light-remote-install-transaction-task-restore-failed exit=' + IntToStr(ResultCode));
+    Exec(ExpandConstant('{sys}\\schtasks.exe'), '/Run /TN "LightRemoteDeviceAgent"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    Log('light-remote-install-transaction-task-restart exit=' + IntToStr(ResultCode));
+  end
+  else
+  begin
+    Exec(ExpandConstant('{sys}\\schtasks.exe'), '/End /TN "LightRemoteDeviceAgent"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    Exec(ExpandConstant('{sys}\\schtasks.exe'), '/Delete /TN "LightRemoteDeviceAgent" /F', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    Log('light-remote-install-transaction-partial-task-cleaned');
+  end;
+end;
+
+procedure RunAgentInstallTransaction();
+var
+  ScriptFile, Args: String;
+  ResultCode: Integer;
+begin
+  ScriptFile := ExpandConstant('{app}\\agent\\device-agent\\install-windows-task.ps1');
+  Args := '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + ScriptFile + '" -InstallRoot "' + ExpandConstant('{app}') + '"';
+  if (not Exec(ExpandConstant('{sys}\\WindowsPowerShell\\v1.0\\powershell.exe'), Args, '', SW_HIDE, ewWaitUntilTerminated, ResultCode)) or (ResultCode <> 0) then
+    RaiseException('Light Remote post-install task/health gate failed (exit ' + IntToStr(ResultCode) + ')');
+#ifdef InstallerTxnFailpoint
+  RaiseException('Light Remote installer transaction self-test failpoint');
+#endif
+end;
+
 procedure QuiesceInstalledRuntime();
 var
   ScriptFile, ScriptText, AppExe, NodeExe, Args: String;
@@ -190,6 +258,8 @@ begin
     Exit;
   end;
 #endif
+  CaptureAgentTaskRecovery();
+  InstallTransactionStarted := True;
   StopAndRemoveLegacyTask();
   QuiesceInstalledRuntime();
   RemoveLegacyAutostart();
@@ -199,7 +269,21 @@ end;
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if CurStep = ssPostInstall then
+  begin
+    RunAgentInstallTransaction();
     CacheRollbackInstaller();
+    InstallTransactionCommitted := True;
+    Log('light-remote-install-transaction-committed');
+  end;
+end;
+
+procedure DeinitializeSetup();
+begin
+  if InstallTransactionStarted and (not InstallTransactionCommitted) then
+  begin
+    Log('light-remote-install-transaction-abort-recovery');
+    RestoreAgentTaskRecovery();
+  end;
 end;
 
 [UninstallRun]

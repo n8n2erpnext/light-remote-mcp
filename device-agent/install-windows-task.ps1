@@ -50,6 +50,18 @@ if($task.State -ne 'Running' -or $null -eq $stableSince -or ((Get-Date)-$stableS
   $taskInfo=Get-ScheduledTaskInfo -TaskName $AgentTask -ErrorAction SilentlyContinue
   throw "Light Remote background task failed stable-start gate: state=$($task.State) result=$($taskInfo.LastTaskResult)"
 }
+$wallDeadline=(Get-Date).AddSeconds(12);$wallStable=0;$wallLast='not_checked'
+while((Get-Date)-lt $wallDeadline){
+  try{
+    $wall=Invoke-WebRequest -UseBasicParsing 'http://127.0.0.1:5491/' -TimeoutSec 2
+    $wallLast=[string]$wall.StatusCode
+    if($wall.StatusCode -eq 200){$wallStable++}else{$wallStable=0}
+    if($wallStable -ge 2){break}
+  }catch{$wallLast=$_.Exception.Message;$wallStable=0}
+  Start-Sleep -Milliseconds 250
+}
+if($wallStable -lt 2){throw "Light Remote Local Wall health gate failed: $wallLast"}
+Write-Host 'Light Remote Local Wall health gate: PASS'
 function Compare-LightRemoteVersion([string]$A,[string]$B){
   $re='^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$';$ma=[regex]::Match($A,$re);$mb=[regex]::Match($B,$re);if(-not $ma.Success -or -not $mb.Success){return $null}
   foreach($i in 1..3){$av=[int]$ma.Groups[$i].Value;$bv=[int]$mb.Groups[$i].Value;if($av -gt $bv){return 1};if($av -lt $bv){return -1}}
