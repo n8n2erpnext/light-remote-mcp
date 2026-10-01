@@ -57,7 +57,9 @@ try{realRemoteInput.normalizeDesktopInput({events:[{type:'move',x:10,y:20,guardT
 need(guardRejected,'rmv2-input-guard-bounded');
 need(nativeDesktop.includes('guardTitleContains:guard')&&nativeDesktop.includes('guarded([{op:'),'rmv2-input-guard-forwarded');
 need(nativeDesktop.includes("if(operation==='run')")&&nativeDesktop.includes("op:'desktop.run'")&&nativeDesktop.includes("scope:String(args.scope||'foreground')"),'rmv2-m6-native-task-run-forwarded');
+need(nativeDesktop.includes("durationMs:boundedInt(event.durationMs,90,0,500)")&&nativeDesktop.includes("steps:boundedInt(event.steps,8,1,32)"),'rmv2-m6-smooth-mouse-forwarded');
 need(operatorAgent.includes("if(op==='run')")&&operatorAgent.includes('pushDirectRealRemoteDelta')&&operatorAgent.includes('Array.isArray(data.events)')&&operatorAgent.includes("request.scope==='foreground'?'foreground':'desktop'"),'rmv2-m6-agent-direct-delta-task-scope');
 need(semanticManager.includes('RootEpoch')&&semanticManager.includes('kind="semantic.delta"')&&semanticManager.includes('"desktop" or "task"=>"desktop"'),'rmv2-m6-persistent-task-semantic');
+need(semanticManager.includes('scopeChanged && session.Scope!="desktop"')&&!semanticManager.includes('read.Gap || scopeChanged || focusOutsideScope'),'rmv2-m6-task-root-transition-no-resync');
 need(nativeInput.includes('durationMs=90')&&nativeInput.includes('SmoothMoveMathSelfTest')&&nativeInput.includes('MoveImmediate'),'rmv2-m6-smooth-mouse');
 need(robotContext.includes('"desktop.run" => await RunPlanAsync(request)')&&robotContext.includes('AwaitUiAsync')&&robotContext.includes('_sensor.Changed+=OnChanged'),'rmv2-m6-local-action-await');console.log('V10_DESKTOP_PRODUCTIZATION_GATE=PASS');

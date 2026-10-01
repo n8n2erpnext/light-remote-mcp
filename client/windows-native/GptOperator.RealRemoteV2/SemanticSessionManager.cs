@@ -138,7 +138,7 @@ internal sealed class SemanticSessionManager : IDisposable
         var foreground=NativeInput.ReadForeground();
         var focusOutsideScope=session.Scope=="foreground" && foreground.Hwnd!=session.RootHwnd;
         var scopeChanged=read.Events.Any(e=>e.ScopeChanged);
-        var resyncRecommended=read.Gap || scopeChanged || focusOutsideScope || read.Events.Any(e=>e.ResyncRecommended);
+        var resyncRecommended=read.Gap || focusOutsideScope || read.Events.Any(e=>e.ResyncRecommended);
 
         return new {
             semanticSessionId=session.Id,
@@ -188,7 +188,7 @@ internal sealed class SemanticSessionManager : IDisposable
         var focusOutsideScope=session.Scope=="foreground" && foreground.Hwnd!=session.RootHwnd;
         var scopeChanged=read.Events.Any(e=>e.ScopeChanged);
         var focused=_sensor.FocusedSemantic();
-        var resyncRecommended=read.Gap || scopeChanged || focusOutsideScope || read.Events.Any(e=>e.ResyncRecommended);
+        var resyncRecommended=read.Gap || focusOutsideScope || read.Events.Any(e=>e.ResyncRecommended);
 
         return new {
             semanticSessionId=session.Id,
@@ -309,7 +309,7 @@ internal sealed class SemanticSessionManager : IDisposable
                 evt.ChildId,
                 evt.At,
                 scopeChanged,
-                scopeChanged
+                scopeChanged && session.Scope!="desktop"
             );
 
             QueueSignal(session,entry);
