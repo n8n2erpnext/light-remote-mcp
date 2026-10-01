@@ -22,6 +22,7 @@ import realRemoteInputPolicy from '../lib/real-remote-input.cjs';
 import { LightScpRegistry } from '../lib/light-scp-registry.mjs';
 import { normalizeUpdateReport, normalizeUpdateStatus } from '../lib/update-contract.mjs';
 import { runtimeVersion } from '../lib/runtime-version.mjs';
+import { DeviceDuplexClient, DEVICE_DUPLEX_PROTOCOL } from '../lib/device-duplex-client.mjs';
 
 const VERSION=runtimeVersion({envNames:['LIGHT_REMOTE_VERSION','OPERATOR_AGENT_VERSION']});
 const CORE_ROOT=fileURLToPath(new URL('../',import.meta.url));
@@ -96,7 +97,8 @@ function clientChannelLane(action){
   if(action==='desktop-live-push')return 'rm-live';
   return ['status','activity','fleet-intent','fleet-authority','fleet-status','fleet-devices','fleet-sessions','fleet-activity'].includes(action)?'observer':'direct';
 }
-async function channelRequestDirect(state,hubBase,action,payload){if(!state.enrollment?.deviceId)throw new Error('device_not_enrolled');const deviceId=state.enrollment.deviceId,timestamp=Date.now(),nonce=crypto.randomBytes(18).toString('base64url');const signature=crypto.sign(null,Buffer.from(deviceChannelMessage({deviceId,action,timestamp,nonce,payload})),privateKey(state)).toString('base64url');const response=await fetch(hubBase.replace(/\/$/,'')+'/device-channel/'+action,{method:'POST',headers:{'content-type':'application/json','accept':'application/json'},body:JSON.stringify({deviceId,timestamp,nonce,signature,payload}),signal:AbortSignal.timeout(action==='poll'?25000:15000)});return parseResponse(response);}
+function signedChannelEnvelope(state,action,payload){if(!state.enrollment?.deviceId)throw new Error('device_not_enrolled');const deviceId=state.enrollment.deviceId,timestamp=Date.now(),nonce=crypto.randomBytes(18).toString('base64url');const signature=crypto.sign(null,Buffer.from(deviceChannelMessage({deviceId,action,timestamp,nonce,payload})),privateKey(state)).toString('base64url');return {deviceId,timestamp,nonce,signature,payload};}
+async function channelRequestDirect(state,hubBase,action,payload){const response=await fetch(hubBase.replace(/\/$/,'')+'/device-channel/'+action,{method:'POST',headers:{'content-type':'application/json','accept':'application/json'},body:JSON.stringify(signedChannelEnvelope(state,action,payload)),signal:AbortSignal.timeout(action==='poll'?25000:15000)});return parseResponse(response);}
 async function channelRequest(state,hubBase,action,payload){
   const lane=clientChannelLane(action);
   if(lane==='direct')return channelRequestDirect(state,hubBase,action,payload);
@@ -107,13 +109,70 @@ async function channelRequest(state,hubBase,action,payload){
   return next;
 }
 const REAL_REMOTE_LIVE=new Map();
+let DEVICE_DUPLEX=null,DEVICE_DUPLEX_IDLE_DEADLINE=0,DEVICE_DUPLEX_IDLE_TIMER=null;
+const DEVICE_DUPLEX_IDLE_CLOSE_MS=Math.max(500,Math.min(Number(process.env.LIGHT_REMOTE_DEVICE_DUPLEX_IDLE_CLOSE_MS)||1500,10000));
+function deviceDuplexStatus(){return DEVICE_DUPLEX?.status?.()||{active:false,ready:false};}
+function cancelDeviceDuplexIdleClose(){DEVICE_DUPLEX_IDLE_DEADLINE=0;if(DEVICE_DUPLEX_IDLE_TIMER){clearTimeout(DEVICE_DUPLEX_IDLE_TIMER);DEVICE_DUPLEX_IDLE_TIMER=null;}}
+function scheduleDeviceDuplexIdleClose(){
+  if(!DEVICE_DUPLEX)return;
+  cancelDeviceDuplexIdleClose();
+  DEVICE_DUPLEX_IDLE_DEADLINE=Date.now()+DEVICE_DUPLEX_IDLE_CLOSE_MS;
+  DEVICE_DUPLEX_IDLE_TIMER=setTimeout(async()=>{DEVICE_DUPLEX_IDLE_TIMER=null;if(REAL_REMOTE_LIVE.size||!DEVICE_DUPLEX||Date.now()<DEVICE_DUPLEX_IDLE_DEADLINE)return;const current=DEVICE_DUPLEX;DEVICE_DUPLEX=null;DEVICE_DUPLEX_IDLE_DEADLINE=0;try{await current.close('real_remote_idle');}catch{}console.log(JSON.stringify({event:'device_duplex_idle_closed'}));},DEVICE_DUPLEX_IDLE_CLOSE_MS);
+  DEVICE_DUPLEX_IDLE_TIMER.unref?.();
+}
+function duplexHelloPayload(state,meta={}){
+  return {protocol:DEVICE_DUPLEX_PROTOCOL,transportEpoch:meta.transportEpoch,resumeClientSeq:Math.max(0,Number(meta.resumeClientSeq)||0),clientSeq:Math.max(0,Number(meta.clientSeq)||0),nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling:Math.max(1,Math.min(Number(process.env.OPERATOR_AGENT_MAX_SESSIONS)||2,100)),draining:Boolean(state.routing?.draining),capabilities:effectiveCapabilitiesForState(state),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView()};
+}
+function duplexHeartbeatPayload(){
+  const state=readState();if(!state?.enrollment?.deviceId||!cloudDesired(state))return null;
+  return {nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling:Math.max(1,Math.min(Number(process.env.OPERATOR_AGENT_MAX_SESSIONS)||2,100)),draining:Boolean(state.routing?.draining),capabilities:effectiveCapabilitiesForState(state),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView()};
+}
+async function duplexExecuteCommand(command,hub){
+  const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
+  const deviceReceivedAt=Date.now(),result=await executeCommand(state,command,{hub}),completedAt=Date.now(),reportedFirst=Number(result.telemetry?.firstOutputAt);
+  result.telemetry={...(result.telemetry||{}),deviceReceivedAt,firstOutputAt:Number.isSafeInteger(reportedFirst)&&reportedFirst>0?reportedFirst:completedAt,completedAt,deviceTransport:'duplex-v1'};
+  return result;
+}
+async function resyncLiveAfterDuplexEpochChange(){
+  for(const row of REAL_REMOTE_LIVE.values()){
+    if(row.stopped)continue;
+    try{const snapshot=await NATIVE_DESKTOP.request('semantic-snapshot',{semanticSessionId:row.semanticSessionId},{timeoutMs:15000});row.lastSnapshotAt=Date.now();row.afterSeq=Math.max(row.afterSeq,Number(snapshot?.stateSeq)||0);row.inputSeq=Math.max(row.inputSeq||0,Number(snapshot?.inputSeq)||0);row.rootEpoch=Math.max(row.rootEpoch||0,Number(snapshot?.rootEpoch)||0);await pushRealRemoteLive(row,{stateSeq:row.afterSeq,inputSeq:row.inputSeq,rootEpoch:row.rootEpoch,snapshot,displayTopologyId:snapshot?.displayTopologyId||row.displayTopologyId,resyncRecommended:false});}catch(error){console.error(JSON.stringify({event:'device_duplex_resync_failed',semanticSessionId:row.semanticSessionId,error:String(error?.message||error)}));}
+  }
+}
+async function ensureDeviceDuplex(state,hub){
+  cancelDeviceDuplexIdleClose();
+  if(DEVICE_DUPLEX&&DEVICE_DUPLEX.hub!==String(hub||'').replace(/\/$/,'')){const prior=DEVICE_DUPLEX;DEVICE_DUPLEX=null;try{await prior.close('hub_changed');}catch{}}
+  if(!DEVICE_DUPLEX){
+    DEVICE_DUPLEX=new DeviceDuplexClient({
+      hub,
+      hello:meta=>{const current=readState()||state;return signedChannelEnvelope(current,'stream',duplexHelloPayload(current,meta));},
+      onCommand:command=>duplexExecuteCommand(command,hub),
+      onHelloAck:async(frame,info)=>{const current=readState();if(current){applyPolicyEnvelope(current,frame.policy);current.cloud={...(current.cloud||{}),desiredConnected:true,state:'connected',lastServerActivityAt:Date.now(),lastError:null};writeState(current);}if(info?.serverEpochChanged)queueMicrotask(()=>void resyncLiveAfterDuplexEpochChange());},
+      onHeartbeatAck:async frame=>{const current=readState();if(current&&frame.policy)applyPolicyEnvelope(current,frame.policy);},
+      heartbeatPayload:duplexHeartbeatPayload,
+      heartbeatMs:5000,
+      maxPending:128,
+      log:event=>console.log(JSON.stringify(event))
+    });
+    DEVICE_DUPLEX.start();
+  }
+  const ready=await DEVICE_DUPLEX.waitReady(1800);
+  return Boolean(ready&&deviceDuplexStatus().ready);
+}
+
 const REAL_REMOTE_LIVE_HEARTBEAT_MS=Math.max(1000,Math.min(Number(process.env.LIGHT_REMOTE_RMV2_LIVE_HEARTBEAT_MS)||60000,240000));
 const REAL_REMOTE_LIVE_SNAPSHOT_DEBOUNCE_MS=1000;
 function realRemoteLiveId(value={}){return String(value?.semanticSessionId||value?.browserSessionId||'');}
 function touchRealRemoteLive(id){const row=REAL_REMOTE_LIVE.get(String(id||''));if(!row||row.stopped)return;row.expiresAt=Date.now()+row.idleTimeoutMs;scheduleRealRemoteLive(row);}
 async function pushRealRemoteLive(row,value={}){
-  const current=readState()||row.state;
-  return channelRequest(current,row.hub,'desktop-live-push',{sessionId:row.sessionId,agentId:row.agentId,semanticSessionId:row.semanticSessionId,stateSeq:Math.max(0,Number(value.stateSeq)||row.afterSeq||0),events:Array.isArray(value.events)?value.events:[],snapshot:value.snapshot||null,displayTopologyId:value.displayTopologyId||row.displayTopologyId||null,cursor:value.cursor||null,foreground:value.foreground||null,resyncRecommended:Boolean(value.resyncRecommended),heartbeat:Boolean(value.heartbeat),closed:Boolean(value.closed)});
+  const current=readState()||row.state,snapshot=value.snapshot||null;
+  const payload={sessionId:row.sessionId,agentId:row.agentId,semanticSessionId:row.semanticSessionId,stateSeq:Math.max(0,Number(value.stateSeq)||row.afterSeq||0),inputSeq:Math.max(0,Number(value.inputSeq??snapshot?.inputSeq??row.inputSeq)||0),rootEpoch:Math.max(0,Number(value.rootEpoch??snapshot?.rootEpoch??row.rootEpoch)||0),events:Array.isArray(value.events)?value.events:[],snapshot,displayTopologyId:value.displayTopologyId||row.displayTopologyId||null,cursor:value.cursor||null,foreground:value.foreground||null,resyncRecommended:Boolean(value.resyncRecommended),heartbeat:Boolean(value.heartbeat),closed:Boolean(value.closed)};
+  row.inputSeq=Math.max(row.inputSeq||0,payload.inputSeq);row.rootEpoch=Math.max(row.rootEpoch||0,payload.rootEpoch);
+  if(deviceDuplexStatus().ready){
+    try{if(await DEVICE_DUPLEX.sendLive(payload))return {ok:true,accepted:true,transport:'device-duplex-v1'};}
+    catch(error){console.error(JSON.stringify({event:'device_duplex_live_fallback',semanticSessionId:row.semanticSessionId,error:String(error?.message||error)}));}
+  }
+  return channelRequest(current,row.hub,'desktop-live-push',payload);
 }
 function scheduleRealRemoteLive(row){
   if(row.timer){clearTimeout(row.timer);row.timer=null;}if(row.stopped)return;
@@ -127,7 +186,7 @@ async function stopRealRemoteLive(row,{detach=true,notify=true}={}){
     if(detach){try{detached=await NATIVE_DESKTOP.request('semantic-detach',{semanticSessionId:row.semanticSessionId},{timeoutMs:10000});}catch(error){if(!/session_(missing|not_found)/.test(String(error?.message||error)))console.error(JSON.stringify({event:'real_remote_live_detach_failed',semanticSessionId:row.semanticSessionId,error:String(error?.message||error)}));}}
     if(notify){try{await pushRealRemoteLive(row,{closed:true});}catch{}}
     try{row.release?.();}catch{}
-    if(REAL_REMOTE_LIVE.size===0)NATIVE_DESKTOP.closeIfIdle();
+    if(REAL_REMOTE_LIVE.size===0){NATIVE_DESKTOP.closeIfIdle();scheduleDeviceDuplexIdleClose();}
     return detached;})();
   return row.stopping;
 }
@@ -158,7 +217,7 @@ async function pushDirectRealRemoteDelta(row,data){
   const nextSeq=Math.max(row.afterSeq,Number(data?.stateSeq)||0,Number(snapshot?.stateSeq)||0);
   await pushRealRemoteLive(row,{
     stateSeq:nextSeq,events,snapshot,
-    foreground:data?.foreground||null,focused:data?.focused||null,
+    foreground:data?.foreground||null,focused:data?.focused||null,inputSeq:Number(data?.inputSeq)||0,
     scope:data?.scope||null,rootHwnd:data?.rootHwnd||null,rootTitle:data?.rootTitle||null,rootEpoch:Number(data?.rootEpoch)||0,
     resyncRecommended:Boolean(data?.resyncRecommended&&!snapshot)
   });
@@ -255,11 +314,14 @@ async function executeDesktopCommand(state,p,{hub=DEFAULT_HUB}={}){
     for(const existing of [...REAL_REMOTE_LIVE.values()])if(existing.sessionId===String(p.sessionId||'')&&existing.agentId===String(p.agentId||''))await stopRealRemoteLive(existing);
     const initial=await NATIVE_DESKTOP.request('semantic-attach',semantic,{timeoutMs:15000}),semanticSessionId=realRemoteLiveId(initial);
     if(!semanticSessionId)throw new Error('semantic_session_not_found');
-    const row={semanticSessionId,provider,state,hub,sessionId:String(p.sessionId||''),agentId:String(p.agentId||''),afterSeq:Math.max(0,Number(initial?.stateSeq)||0),displayTopologyId:String(initial?.displayTopologyId||''),idleTimeoutMs,expiresAt:Date.now()+idleTimeoutMs,lastPushAt:0,lastSnapshotAt:Date.now(),failures:0,dirty:false,draining:null,directQueue:Promise.resolve(),stopped:false,stopping:null,timer:null,release:NATIVE_DESKTOP.retain()};
+    const row={semanticSessionId,provider,state,hub,sessionId:String(p.sessionId||''),agentId:String(p.agentId||''),afterSeq:Math.max(0,Number(initial?.stateSeq)||0),inputSeq:Math.max(0,Number(initial?.inputSeq)||0),rootEpoch:Math.max(0,Number(initial?.rootEpoch)||0),displayTopologyId:String(initial?.displayTopologyId||''),idleTimeoutMs,expiresAt:Date.now()+idleTimeoutMs,lastPushAt:0,lastSnapshotAt:Date.now(),failures:0,dirty:false,draining:null,directQueue:Promise.resolve(),stopped:false,stopping:null,timer:null,release:NATIVE_DESKTOP.retain()};
     REAL_REMOTE_LIVE.set(semanticSessionId,row);
-    try{await pushRealRemoteLive(row,{stateSeq:row.afterSeq,snapshot:{...initial,semanticSessionId},displayTopologyId:row.displayTopologyId});scheduleRealRemoteLive(row);}
+    let duplexReady=false;
+    try{duplexReady=await ensureDeviceDuplex(state,hub);}
+    catch(error){console.error(JSON.stringify({event:'device_duplex_open_failed',error:String(error?.message||error)}));}
+    try{await pushRealRemoteLive(row,{stateSeq:row.afterSeq,inputSeq:row.inputSeq,rootEpoch:row.rootEpoch,snapshot:{...initial,semanticSessionId},displayTopologyId:row.displayTopologyId});scheduleRealRemoteLive(row);}
     catch(error){await stopRealRemoteLive(row,{notify:false});throw error;}
-    return {ok:true,operation:op,desktop:{...initial,semanticSessionId,live:{active:true,transport:'semantic-push-cache',eventDriven:true,heartbeatMs:REAL_REMOTE_LIVE_HEARTBEAT_MS,idleTimeoutMs}}};
+    return {ok:true,operation:op,desktop:{...initial,semanticSessionId,live:{active:true,transport:duplexReady?'device-duplex-v1':'semantic-push-cache',eventDriven:true,heartbeatMs:REAL_REMOTE_LIVE_HEARTBEAT_MS,idleTimeoutMs,duplex:deviceDuplexStatus()}}};
   }
   if(op==='live-close'){
     const semanticSessionId=String(request.semanticSessionId||'');if(!semanticSessionId)throw new Error('semantic_session_id_required');
@@ -267,8 +329,11 @@ async function executeDesktopCommand(state,p,{hub=DEFAULT_HUB}={}){
     if(row)detached=await stopRealRemoteLive(row,{detach:true,notify:true});
     else{
       try{detached=await NATIVE_DESKTOP.request('semantic-detach',{semanticSessionId},{timeoutMs:10000});}catch(error){if(!/session_(missing|not_found)/.test(String(error?.message||error)))throw error;}
-      try{await channelRequest(readState()||state,hub,'desktop-live-push',{sessionId:String(p.sessionId||''),agentId:String(p.agentId||''),semanticSessionId,stateSeq:0,events:[],snapshot:null,heartbeat:false,closed:true});}catch{}
+      const closePayload={sessionId:String(p.sessionId||''),agentId:String(p.agentId||''),semanticSessionId,stateSeq:0,inputSeq:0,rootEpoch:0,events:[],snapshot:null,heartbeat:false,closed:true};
+      let sent=false;if(deviceDuplexStatus().ready){try{sent=await DEVICE_DUPLEX.sendLive(closePayload);}catch{}}
+      if(!sent){try{await channelRequest(readState()||state,hub,'desktop-live-push',closePayload);}catch{}}
     }
+    if(REAL_REMOTE_LIVE.size===0)scheduleDeviceDuplexIdleClose();
     return {ok:true,operation:op,desktop:{semanticSessionId,closed:true,detached}};
   }
   if(op==='windows')return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('windows',{limit:Math.max(1,Math.min(Number(request.limit)||100,200))})};
@@ -531,8 +596,8 @@ function setLocalPermissions(allowedCapabilities,profile='custom'){
 }
 function statusView(state=readState()){
   if(state)expireLocalHardLease(state);
-  if(!state)return {ok:true,version:VERSION,platformAdapter:PLATFORM_ADAPTER.id,enrolled:false,deviceId:null,deviceName:os.hostname(),accountId:null,cloudDesiredConnected:false,cloudState:'dormant',connectionId:null,hardExpiresAt:null,reconnectGraceMs:null,connectionPlan:null,stateFile:STATE_FILE,localWallUrl:`http://${LOCAL_WALL_HOST}:${LOCAL_WALL_PORT}/`,update:updateStatusView()};
-  return {ok:true,version:VERSION,platformAdapter:PLATFORM_ADAPTER.id,enrolled:Boolean(state.enrollment?.deviceId),deviceId:state.enrollment?.deviceId||null,deviceName:state.enrollment?.displayName||os.hostname(),nodeId:state.enrollment?.nodeId||state.enrollment?.deviceId||null,accountId:state.enrollment?.accountId||null,pendingEnrollmentId:state.pendingEnrollment?.enrollmentId||null,publicKeySha256:state.identity?.publicKeySha256||null,policyProfile:state.enrollment?.policyProfile||state.pendingEnrollment?.requestedPolicy||null,localPolicyProfile:state.policy?.localProfile||((state.policy?.deniedCapabilities||[]).length?'custom':'full'),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),policyAuthority:isTrustedHostState(state)?'local-main':'server-and-local',grantableCapabilities:state.enrollment?.grantableCapabilities||state.enrollment?.approvedCapabilities||[],approvedCapabilities:state.enrollment?.approvedCapabilities||[],deniedCapabilities:state.policy?.deniedCapabilities||[],effectiveCapabilities:state.effectiveCapabilities||[],draining:Boolean(state.routing?.draining),cloudDesiredConnected:cloudDesired(state),cloudState:state.cloud?.state||(cloudDesired(state)?'legacy-connected':'dormant'),connectionId:state.cloud?.connectionId||null,hardExpiresAt:state.cloud?.hardExpiresAt||null,reconnectGraceMs:state.cloud?.reconnectGraceMs||null,connectionPlan:state.cloud?.plan||null,lastCloudError:state.cloud?.lastError||null,lastHeartbeatAt:state.lastHeartbeatAt||null,stateFile:STATE_FILE,commandDir:COMMAND_DIR,localWallUrl:`http://${LOCAL_WALL_HOST}:${LOCAL_WALL_PORT}/`,privateKeyStoredLocally:Boolean(state.identity?.privateKey),update:updateStatusView()};
+  if(!state)return {ok:true,version:VERSION,platformAdapter:PLATFORM_ADAPTER.id,enrolled:false,deviceId:null,deviceName:os.hostname(),accountId:null,cloudDesiredConnected:false,cloudState:'dormant',connectionId:null,hardExpiresAt:null,reconnectGraceMs:null,connectionPlan:null,stateFile:STATE_FILE,localWallUrl:`http://${LOCAL_WALL_HOST}:${LOCAL_WALL_PORT}/`,deviceDuplex:deviceDuplexStatus(),realRemoteLiveSessions:REAL_REMOTE_LIVE.size,update:updateStatusView()};
+  return {ok:true,version:VERSION,platformAdapter:PLATFORM_ADAPTER.id,enrolled:Boolean(state.enrollment?.deviceId),deviceId:state.enrollment?.deviceId||null,deviceName:state.enrollment?.displayName||os.hostname(),nodeId:state.enrollment?.nodeId||state.enrollment?.deviceId||null,accountId:state.enrollment?.accountId||null,pendingEnrollmentId:state.pendingEnrollment?.enrollmentId||null,publicKeySha256:state.identity?.publicKeySha256||null,policyProfile:state.enrollment?.policyProfile||state.pendingEnrollment?.requestedPolicy||null,localPolicyProfile:state.policy?.localProfile||((state.policy?.deniedCapabilities||[]).length?'custom':'full'),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),policyAuthority:isTrustedHostState(state)?'local-main':'server-and-local',grantableCapabilities:state.enrollment?.grantableCapabilities||state.enrollment?.approvedCapabilities||[],approvedCapabilities:state.enrollment?.approvedCapabilities||[],deniedCapabilities:state.policy?.deniedCapabilities||[],effectiveCapabilities:state.effectiveCapabilities||[],draining:Boolean(state.routing?.draining),cloudDesiredConnected:cloudDesired(state),cloudState:state.cloud?.state||(cloudDesired(state)?'legacy-connected':'dormant'),connectionId:state.cloud?.connectionId||null,hardExpiresAt:state.cloud?.hardExpiresAt||null,reconnectGraceMs:state.cloud?.reconnectGraceMs||null,connectionPlan:state.cloud?.plan||null,lastCloudError:state.cloud?.lastError||null,lastHeartbeatAt:state.lastHeartbeatAt||null,stateFile:STATE_FILE,commandDir:COMMAND_DIR,localWallUrl:`http://${LOCAL_WALL_HOST}:${LOCAL_WALL_PORT}/`,privateKeyStoredLocally:Boolean(state.identity?.privateKey),deviceDuplex:deviceDuplexStatus(),realRemoteLiveSessions:REAL_REMOTE_LIVE.size,update:updateStatusView()};
 }
 async function daemon(args){
   const hub=args.hub||DEFAULT_HUB,base=args.base||DEFAULT_BASE;let state=readState()||{};
@@ -563,6 +628,7 @@ async function daemon(args){
     if(!state.enrollment?.deviceId||!cloudDesired(state)){await wait(dormantPollMs);continue;}
     try{
       await flushPendingUpdateReport(state,hub).catch(error=>console.error(JSON.stringify({event:'update_report_delivery_failed',error:error.message,status:error.status||null})));
+      if(deviceDuplexStatus().ready){failures=0;await wait(500);continue;}
       const payload={nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling,draining:Boolean(state.routing?.draining),capabilities:effectiveCapabilitiesForState(state),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView(),waitMs};
       const response=await channelRequest(state,hub,'poll',payload);
       // A Local Wall connect/disconnect can update device.json while this long-poll is in flight.
@@ -601,6 +667,7 @@ async function daemon(args){
       failures++;const retryInMs=Math.min(Math.max(1000*(2**Math.min(failures,5)),Number(error.retryAfterMs)||0),300000);console.error(JSON.stringify({event:'device_channel_failed',deviceId:state.enrollment.deviceId,error:error.message,status:error.status||null,failures,retryInMs}));if(!stopped)await wait(retryInMs);
     }
   }
+  cancelDeviceDuplexIdleClose();if(DEVICE_DUPLEX){const duplex=DEVICE_DUPLEX;DEVICE_DUPLEX=null;try{await duplex.close('daemon_stop');}catch{}}
   try{await fleetSupervisor.close();}catch{}
   try{await localWall?.close();}catch{}
   if(Object.keys(state).length)writeState(state);console.log(JSON.stringify({event:'device_agent_stopped',deviceId:state.enrollment?.deviceId||null,nodeId:state.enrollment?.nodeId||null}));
