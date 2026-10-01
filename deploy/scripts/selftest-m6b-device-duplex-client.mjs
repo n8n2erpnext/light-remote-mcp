@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import http from 'node:http';
+import fs from 'node:fs';
 import { DeviceDuplexClient, DEVICE_DUPLEX_PROTOCOL } from '../../lib/device-duplex-client.mjs';
+
+const packageManifest=JSON.parse(fs.readFileSync(new URL('../../client/core-files.json',import.meta.url),'utf8'));
+assert.ok(packageManifest.files.some(row=>row.source==='lib/device-duplex-client.mjs'&&row.destination==='lib/device-duplex-client.mjs'),'device_duplex_client_not_packaged');
 
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function waitFor(fn,ms=4000){const d=Date.now()+ms;while(Date.now()<d){const v=fn();if(v)return v;await sleep(20);}throw new Error('wait_timeout');}

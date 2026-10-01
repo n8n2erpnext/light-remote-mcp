@@ -61,6 +61,7 @@
                       "source":  "lib/device-proof.mjs",
                       "destination":  "lib/device-proof.mjs"
                   },
+                  {                       "source":  "lib/device-duplex-client.mjs",                       "destination":  "lib/device-duplex-client.mjs"                   },
                   {
                       "source":  "lib/light-scp-file.mjs",
                       "destination":  "lib/light-scp-file.mjs"
