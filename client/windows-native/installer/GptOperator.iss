@@ -50,6 +50,7 @@ UninstallDisplayIcon={app}\GptOperator.Client.exe
 SetupIconFile={#StageDir}\Assets\light-remote.ico
 
 [Files]
+Source: "{#SourcePath}\InstallTransactionWatchdog.ps1"; Flags: dontcopy
 #ifdef CompactNodeBootstrap
 Source: "{#StageDir}\VERSION"; DestDir: "{app}"; Flags: ignoreversion; AfterInstall: InstallCompactNodeRuntime
 #endif
@@ -74,6 +75,14 @@ var
   InstallTransactionCommitted: Boolean;
   HadAgentTaskBeforeInstall: Boolean;
   AgentTaskRecoveryXml: String;
+  InstallerTxnDir: String;
+  InstallerTxnCommitMarker: String;
+  InstallerTxnVersionFile: String;
+  InstallerTxnWatchdogScript: String;
+  InstallerTxnWatchdogLog: String;
+
+function GetCurrentProcessId(): Cardinal;
+external 'GetCurrentProcessId@kernel32.dll stdcall';
 
 #ifdef CompactNodeBootstrap
 function CompactNodeCacheDir(): String;
@@ -144,12 +153,55 @@ begin
 
 end;
 
+procedure PrepareInstallerTransaction();
+var
+  SourceVersion, TempWatchdog: String;
+begin
+  InstallerTxnDir := ExpandConstant('{localappdata}\\Light Remote\\Updater\\state\\installer-txn');
+  ForceDirectories(InstallerTxnDir);
+  InstallerTxnCommitMarker := InstallerTxnDir + '\\commit.ok';
+  InstallerTxnVersionFile := InstallerTxnDir + '\\previous-version.txt';
+  InstallerTxnWatchdogScript := InstallerTxnDir + '\\InstallTransactionWatchdog.ps1';
+  InstallerTxnWatchdogLog := InstallerTxnDir + '\\watchdog.log';
+  DeleteFile(InstallerTxnCommitMarker);
+  DeleteFile(InstallerTxnWatchdogLog);
+  ExtractTemporaryFile('InstallTransactionWatchdog.ps1');
+  TempWatchdog := ExpandConstant('{tmp}\\InstallTransactionWatchdog.ps1');
+  if not CopyFile(TempWatchdog, InstallerTxnWatchdogScript, False) then
+    RaiseException('Unable to stage Light Remote installer watchdog');
+  SourceVersion := ExpandConstant('{app}\\VERSION');
+  if FileExists(SourceVersion) then
+  begin
+    if not CopyFile(SourceVersion, InstallerTxnVersionFile, False) then
+      RaiseException('Unable to capture installed Light Remote version');
+  end
+  else
+    SaveStringToFile(InstallerTxnVersionFile, '', False);
+end;
+
+procedure StartInstallerWatchdog();
+var
+  Args: String;
+  ResultCode: Integer;
+begin
+  Args := '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + InstallerTxnWatchdogScript +
+    '" -Register -InstallerPid ' + IntToStr(GetCurrentProcessId()) +
+    ' -CommitMarker "' + InstallerTxnCommitMarker +
+    '" -TaskXml "' + AgentTaskRecoveryXml +
+    '" -VersionFile "' + InstallerTxnVersionFile +
+    '" -InstallRoot "' + ExpandConstant('{app}') +
+    '" -LogPath "' + InstallerTxnWatchdogLog + '"';
+  if (not Exec(ExpandConstant('{sys}\\WindowsPowerShell\\v1.0\\powershell.exe'), Args, '', SW_HIDE, ewWaitUntilTerminated, ResultCode)) or (ResultCode <> 0) then
+    RaiseException('Unable to arm Light Remote installer watchdog (exit ' + IntToStr(ResultCode) + ')');
+  Log('light-remote-install-transaction-watchdog-armed');
+end;
+
 procedure CaptureAgentTaskRecovery();
 var
   ScriptFile, ScriptText, Args: String;
   ResultCode: Integer;
 begin
-  AgentTaskRecoveryXml := ExpandConstant('{tmp}\\light-remote-agent-task-before-install.xml');
+  AgentTaskRecoveryXml := InstallerTxnDir + '\LightRemoteDeviceAgent.xml';
   DeleteFile(AgentTaskRecoveryXml);
   ScriptFile := ExpandConstant('{tmp}\\light-remote-capture-agent-task.ps1');
   ScriptText :=
@@ -258,7 +310,9 @@ begin
     Exit;
   end;
 #endif
+  PrepareInstallerTransaction();
   CaptureAgentTaskRecovery();
+  StartInstallerWatchdog();
   InstallTransactionStarted := True;
   StopAndRemoveLegacyTask();
   QuiesceInstalledRuntime();
@@ -272,6 +326,8 @@ begin
   begin
     RunAgentInstallTransaction();
     CacheRollbackInstaller();
+    if not SaveStringToFile(InstallerTxnCommitMarker, 'commit', False) then
+      RaiseException('Unable to commit Light Remote installer transaction');
     InstallTransactionCommitted := True;
     Log('light-remote-install-transaction-committed');
   end;
@@ -281,8 +337,7 @@ procedure DeinitializeSetup();
 begin
   if InstallTransactionStarted and (not InstallTransactionCommitted) then
   begin
-    Log('light-remote-install-transaction-abort-recovery');
-    RestoreAgentTaskRecovery();
+    Log('light-remote-install-transaction-abort-watchdog-armed');
   end;
 end;
 
