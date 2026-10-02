@@ -123,9 +123,9 @@ await assert.rejects(
 assert.equal(calls,1);
 
 const helper=toolHelperView({context:{deviceId:'arm-local',sessionId:'s_test',agentId:'agent-test',platform:'linux'}});
-assert.ok(helper.transport.continuity.includes('retry the same action'));
-assert.ok(helper.transport.continuity.includes('Do not start a new A/B pairing'));
-assert.ok(helper.safety.some(x=>x.includes('agent_client_temporarily_unavailable')&&x.includes('same client/target')));
+assert.ok(helper.transport.continuity.includes('same client')&&helper.transport.continuity.includes('exact target')&&helper.transport.continuity.includes('retryAfterMs'));
+assert.ok(helper.transport.continuity.includes('Do not re-pair solely for this error'));
+assert.ok(helper.safety.some(x=>x.includes('agent_client_temporarily_unavailable')&&x.includes('same client and target')&&x.includes('do not re-pair')));
 
 const api=fs.readFileSync(new URL('../../api/operator.js',import.meta.url),'utf8');
 assert.ok(api.includes("require('../lib/plus-client-continuity.cjs')"));

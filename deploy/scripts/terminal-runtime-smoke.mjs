@@ -10,11 +10,11 @@ const registry=new NativeTerminalRegistry({maxTerminals:2});
 let shellSpec,command;
 if(process.platform==='win32'){
   shellSpec={file:'powershell.exe',args:['-NoLogo','-NoProfile'],shell:'powershell'};
-  command="Write-Output 'LIGHT_REMOTE_PTY_OK'\r\n";
+  command="Write-Output 'LIGHT_REMOTE_PTY_OK'; exit\r\n";
 }else{
   const file=process.platform==='darwin'?'/bin/zsh':'/bin/bash';
   shellSpec={file,args:['-l'],shell:path.basename(file)};
-  command="printf 'LIGHT_REMOTE_PTY_OK\\n'\n";
+  command="printf 'LIGHT_REMOTE_PTY_OK\\n'; exit\n";
 }
 const terminal=registry.start({...owner,shellSpec,cwd:process.cwd(),cols:90,rows:28});
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -33,8 +33,11 @@ try{
     await sleep(100);
   }
   if(!text.includes('LIGHT_REMOTE_PTY_OK'))throw new Error('terminal_runtime_smoke_output_missing:state='+lastState+':output='+JSON.stringify(text));
+  const exitDeadline=Date.now()+3000;
+  while(Date.now()<exitDeadline&&registry.view(terminal.terminalId,owner).state==='running')await sleep(50);
+  if(registry.view(terminal.terminalId,owner).state==='running')throw new Error('terminal_runtime_smoke_shell_did_not_exit');
   console.log('terminal-runtime-smoke=PASS platform='+process.platform+' arch='+process.arch);
 } finally {
-  try{registry.stop(terminal.terminalId,owner,{force:true});}catch{}
+  try{if(registry.view(terminal.terminalId,owner).state==='running')registry.stop(terminal.terminalId,owner,{force:true});}catch{}
   registry.close();
 }
