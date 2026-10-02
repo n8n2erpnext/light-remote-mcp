@@ -25,7 +25,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
     private const string LocalFleetUrl = "http://127.0.0.1:5492/";
 
     private readonly NotifyIcon _tray;
-    private readonly ToolStripMenuItem _state = new("Starting\u2026") { Enabled = false };
+    private readonly ToolStripMenuItem _state = new("Starting...") { Enabled = false };
     private readonly ToolStripMenuItem _openWall = new("Open Local Wall");
     private readonly ToolStripMenuItem _openFleet = new("Open Fleet") { Visible = false, Enabled = false };
     private readonly ToolStripMenuItem _account = new("Manage Account");
@@ -336,9 +336,9 @@ internal sealed class TrayApplicationContext : ApplicationContext
         var connected = status.CloudDesiredConnected
             && status.CloudState.Equals("connected", StringComparison.OrdinalIgnoreCase);
         if (connected)
-            return "Connected" + (string.IsNullOrWhiteSpace(status.Plan) ? "" : " · " + status.Plan.ToUpperInvariant());
+            return "Connected" + (string.IsNullOrWhiteSpace(status.Plan) ? "" : " | " + status.Plan.ToUpperInvariant());
         if (!status.CloudDesiredConnected || status.CloudState.Equals("dormant", StringComparison.OrdinalIgnoreCase))
-            return "Wall online \u00B7 Cloud dormant";
+            return "Wall online | Cloud dormant";
         return "Disconnected";
     }
 
@@ -416,7 +416,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
             _openFleet.Visible = _fleetUrl is not null;
             _openFleet.Enabled = _fleetUrl is not null;
 
-            var title = TrimTrayText("Light Remote \u2014 " + label);
+            var title = TrimTrayText("Light Remote - " + label);
             _tray.Text = title;
             var old = _tray.Icon;
             _tray.Icon = TrayIconFactory.Create(visual);
@@ -499,14 +499,14 @@ internal sealed class TrayApplicationContext : ApplicationContext
         _busy = true;
         try
         {
-            SetActionStatus("Restarting Light Remote\u2026", 20);
+            SetActionStatus("Restarting Light Remote...", 20);
             var outcome = await Task.Run(RestartAgentTransactional);
             if (outcome.Ok) SetActionStatus("Light Remote restarted", 5);
-            else SetActionStatus("Restart failed \u2014 see logs", 10);
+            else SetActionStatus("Restart failed - see logs", 10);
         }
         catch (Exception ex)
         {
-            SetActionStatus("Restart failed \u2014 see logs", 10);
+            SetActionStatus("Restart failed - see logs", 10);
             ClientEvent("restart_failed", new { error = ex.Message });
         }
         finally
@@ -546,7 +546,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
         {
             if (!WallPortListening())
             {
-                SetActionStatus("Starting Light Remote…", 15);
+                SetActionStatus("Starting Light Remote...", 15);
                 var started = await Task.Run(StartAgentTaskVerified);
                 if (!started.Ok)
                 {
@@ -586,8 +586,8 @@ internal sealed class TrayApplicationContext : ApplicationContext
             && VisualFor(true, true, true, true, "connected") == TrayVisualState.Connected
             && VisualFor(true, true, true, false, "dormant") == TrayVisualState.Dormant
             && VisualFor(true, true, true, true, "error") == TrayVisualState.Disconnected
-            && LabelFor(true, true, connected) == "Connected · VIP"
-            && LabelFor(true, true, dormant) == "Wall online \u00B7 Cloud dormant"
+            && LabelFor(true, true, connected) == "Connected | VIP"
+            && LabelFor(true, true, dormant) == "Wall online | Cloud dormant"
             && LabelFor(true, true, disconnected) == "Disconnected"
             && FleetUrl(connected) == "https://fleet.example/"
             && FleetUrl(connected with { FleetUrl = null }) == LocalFleetUrl

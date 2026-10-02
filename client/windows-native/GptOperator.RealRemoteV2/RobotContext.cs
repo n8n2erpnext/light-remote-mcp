@@ -29,7 +29,7 @@ internal sealed class RobotContext : ApplicationContext
 
     public RobotContext(string pipeName)
     {
-        _tray=new NotifyIcon{Visible=true,Text="Agent \u0111ang remote",Icon=LoadAppIcon()};
+        _tray=new NotifyIcon{Visible=true,Text="Agent Remote Active",Icon=LoadAppIcon()};
         SystemCursorOverride.Acquire();
 
         _rpc=new RobotRpcServer(pipeName,HandleAsync,OnPipeDisconnected);
