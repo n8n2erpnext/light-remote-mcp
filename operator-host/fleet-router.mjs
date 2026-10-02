@@ -74,6 +74,15 @@ export class FleetRouter {
     return this.poll(input);
   }
   wake(nodeId) { this._notify(validId(nodeId,'node_id')); }
+  resume(nodeId) {
+    const node=this.node(validId(nodeId,'node_id'));
+    for(const commandId of node.inFlight.keys()){
+      const command=this.commands.get(commandId);
+      if(command)command.dispatchedAt=0;
+    }
+    this._notify(node.nodeId);
+    return this._view(node);
+  }
   setOwnerDrain(nodeId, draining=true) {
     const node=this.node(nodeId), before=Boolean(node.agentDraining||node.ownerDraining); node.ownerDraining=Boolean(draining); const after=Boolean(node.agentDraining||node.ownerDraining);
     if(before!==after)this.emit({type:'node_drain_changed',accountId:node.accountId,deviceId:node.deviceId,nodeId:node.nodeId,status:after?'draining':'online',draining:after});

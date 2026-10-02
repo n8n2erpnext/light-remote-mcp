@@ -52,6 +52,32 @@ export async function proxyOperatorJson(res, method, targetPath, body = null, he
   }
 }
 
+export function proxyOperatorDuplex(req,res,targetPath='/v1/device-channel/stream') {
+  let settled=false;
+  const upstream=http.request({
+    socketPath:SOCKET_PATH,method:'POST',path:targetPath,
+    headers:{'content-type':req.headers['content-type']||'application/x-ndjson','accept':'application/x-ndjson','cache-control':'no-store'}
+  },source=>{
+    res.status(source.statusCode||502);
+    res.set({
+      'Content-Type':source.headers['content-type']||'application/x-ndjson; charset=utf-8',
+      'Cache-Control':'no-store',Connection:'keep-alive','X-Accel-Buffering':'no'
+    });
+    res.flushHeaders?.();
+    source.pipe(res);
+    source.on('end',()=>{settled=true;});
+    source.on('error',()=>{if(!res.writableEnded)res.end();});
+  });
+  upstream.on('error',()=>{
+    if(!res.headersSent)res.status(502).json({ok:false,error:'operator_unavailable'});
+    else if(!res.writableEnded)res.end();
+  });
+  req.on('aborted',()=>upstream.destroy());
+  req.on('error',()=>upstream.destroy());
+  res.on('close',()=>{if(!settled)upstream.destroy();});
+  req.pipe(upstream);
+}
+
 export function proxyOperatorSse(_req, res) {
   const upstream = http.request({ socketPath: SOCKET_PATH, method: 'GET', path: '/v1/events', headers: { accept: 'text/event-stream' } }, source => {
     res.status(source.statusCode || 502);

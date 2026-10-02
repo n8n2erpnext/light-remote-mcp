@@ -125,8 +125,9 @@ internal sealed class RobotContext : ApplicationContext
     private object Move(JsonElement r)
     {
         var durationMs=Int(r,"durationMs",90);
+        var point=InputPoint(r,"x","y","screen");
         _cursor.MarkMove(durationMs);
-        NativeInput.Move(Int(r,"x"),Int(r,"y"),durationMs,Int(r,"steps",8));
+        NativeInput.Move(point.X,point.Y,durationMs,Int(r,"steps",8));
         return new {applied=true,native=NativeInput.ReadStatus(),cursorVisual=_cursor.Status()};
     }
 
@@ -151,9 +152,12 @@ internal sealed class RobotContext : ApplicationContext
     private object Drag(JsonElement r)
     {
         var durationMs=Int(r,"durationMs",250);
+        var sourceScreen=OptionalInt(r,"screen");
+        var from=InputPoint(r,"fromX","fromY","screen");
+        var to=InputPoint(r,"toX","toY","toScreen",sourceScreen);
         _cursor.MarkDrag(durationMs);
         NativeInput.Drag(
-            Int(r,"fromX"),Int(r,"fromY"),Int(r,"toX"),Int(r,"toY"),
+            from.X,from.Y,to.X,to.Y,
             Text(r,"button","left"),durationMs,Int(r,"steps",12)
         );
         return new {applied=true,native=NativeInput.ReadStatus(),cursorVisual=_cursor.Status()};
@@ -190,7 +194,7 @@ internal sealed class RobotContext : ApplicationContext
 
     private object DesktopInput(JsonElement r)
     {
-        var visualSessionId=Text(r,"visualSessionId","");
+        ValidateDisplayTopology(r);        var visualSessionId=Text(r,"visualSessionId","");
         object? visualReceipt=null;
         if(visualSessionId.Length>0)
             visualReceipt=_visual.ValidateInput(visualSessionId,Text(r,"leaseToken"));
@@ -245,9 +249,10 @@ internal sealed class RobotContext : ApplicationContext
 
     private async Task<object> RunPlanAsync(JsonElement r)
     {
+        ValidateDisplayTopology(r);
         var semanticSessionId=Text(r,"semanticSessionId","");
         var afterSeq=Long(r,"afterSeq",0);
-        if(semanticSessionId.Length>0) _semantic.ValidateInput(semanticSessionId,afterSeq);
+        var settleMs=Math.Clamp(Int(r,"settleMs",90),0,250);        if(semanticSessionId.Length>0) _semantic.ValidateInput(semanticSessionId,afterSeq);
 
         var mutation=RunBatch(r,64);
         object waitReceipt=new {matched=true,waited=false,elapsedMs=0L,foreground=NativeInput.ReadForeground(),focused=_sensor.FocusedSemantic()};
@@ -257,7 +262,7 @@ internal sealed class RobotContext : ApplicationContext
         if(semanticSessionId.Length==0)
             return new {mutation,wait=waitReceipt};
 
-        var semantic=_semantic.AcknowledgeInput(semanticSessionId,afterSeq,0,mutation);
+        var semantic=_semantic.AcknowledgeInput(semanticSessionId,afterSeq,settleMs,mutation);
         return new {mutation,wait=waitReceipt,semantic};
     }
 
@@ -335,6 +340,29 @@ internal sealed class RobotContext : ApplicationContext
             else ExitThread();
         }
         catch { ExitThread(); }
+    }
+
+    private static int? OptionalInt(JsonElement node,string name)
+    {
+        if(!node.TryGetProperty(name,out var value)) return null;
+        if(!value.TryGetInt32(out var result)) throw new InvalidOperationException("screen_invalid");
+        return result;
+    }
+
+    private static (int X,int Y) InputPoint(JsonElement node,string xName,string yName,string screenName,int? fallbackScreen=null)
+    {
+        var x=Int(node,xName);
+        var y=Int(node,yName);
+        var screen=OptionalInt(node,screenName)??fallbackScreen;
+        return screen.HasValue?DesktopVisual.LocalToVirtualPoint(screen.Value,x,y):(x,y);
+    }
+
+    private static void ValidateDisplayTopology(JsonElement node)
+    {
+        var expected=Text(node,"displayTopologyId","").Trim();
+        if(expected.Length==0) return;
+        if(!String.Equals(expected,DesktopVisual.ReadTopologyId(),StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("display_topology_mismatch");
     }
 
     private static int Int(JsonElement node,string name,int fallback=0)

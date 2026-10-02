@@ -5,6 +5,7 @@ const { aid, field, jobId, normalizeDeviceHeartbeat, normalizeDevicePolicy, norm
 const { toolHelperHint, toolHelperView } = require('../lib/plus-tool-helper');
 const { inspectPlusExecPayload } = require('../lib/plus-batch-policy.cjs');
 const { callWithClientContinuity, classifyClientCapability, clientFingerprint } = require('../lib/plus-client-continuity.cjs');
+const { normalizeDesktopInput } = require('../lib/real-remote-input.cjs');
 
 function enrollmentSourceHash(req){ const ip=String(req.headers?.["x-forwarded-for"]||"unknown").split(",")[0].trim().slice(0,128); return crypto.createHash("sha256").update("v07-enrollment:"+ip).digest("hex"); }
 function requestOrigin(req){
@@ -190,6 +191,68 @@ module.exports=async function handler(req,res){
           if(op==='signal'){terminal.terminalId=String(d.terminalId||'');terminal.signal=String(d.signal||'interrupt').toLowerCase();}
           if(op==='stop'){terminal.terminalId=String(d.terminalId||'');terminal.force=Boolean(d.force);}
           const payload={action:'terminal',operationId:aid(d.operationId),sessionId:sid(d.sessionId),agentId:aid(d.agentId),nodeId:d.nodeId==null?undefined:clientDevice(d.nodeId),terminal,waitMs:Math.max(0,Math.min(Number(d.waitMs)||7000,8000))};
+          upstream=await clientCall('/plus/client/execute',{method:'POST',body:{deviceId,envelope:sealOperatorPayload(payload)},timeoutMs:9500});
+        }
+        else if(usingClient&&action==='desktop-live-read'){
+          const d=payloadFor(req),deviceId=clientDevice(d.deviceId||d.device),afterSeq=Number(d.afterSeq),limit=Number(d.limit);
+          upstream=await clientCall('/plus/client/desktop-live/read',{method:'POST',body:{deviceId,sessionId:sid(d.sessionId),semanticSessionId:String(d.semanticSessionId||''),afterSeq:Number.isFinite(afterSeq)?Math.max(0,Math.floor(afterSeq)):0,limit:Math.max(1,Math.min(Number.isFinite(limit)?Math.floor(limit):200,500)),includeSnapshot:d.includeSnapshot!==false},timeoutMs:4000});
+        }
+        else if(usingClient&&action.startsWith('desktop-')){
+          const d=payloadFor(req),deviceId=clientDevice(d.deviceId||d.device),op=action.slice('desktop-'.length);
+          if(!['status','attach','resume','detach','windows','frame','input','run','observe','act','semantic-attach','semantic-snapshot','semantic-events','semantic-detach','live-open','live-close'].includes(op)){const e=new Error('invalid_desktop_action');e.status=400;throw e;}
+          const desktop={op};
+          if(op==='attach'){desktop.screen=d.screen==null?-1:Math.max(-1,Math.min(Number(d.screen)||0,31));desktop.maxWidth=Math.max(320,Math.min(Number(d.maxWidth)||960,1280));desktop.maxHeight=Math.max(180,Math.min(Number(d.maxHeight)||540,720));desktop.quality=Math.max(25,Math.min(Number(d.quality)||50,70));desktop.minIntervalMs=Math.max(0,Math.min(Number.isFinite(Number(d.minIntervalMs))?Math.floor(Number(d.minIntervalMs)):250,5000));desktop.omitUnchanged=d.omitUnchanged!==false;desktop.idleTimeoutMs=Math.max(250,Math.min(Number.isFinite(Number(d.idleTimeoutMs))?Math.floor(Number(d.idleTimeoutMs)):120000,900000));}
+          if(op==='resume'||op==='detach')desktop.desktopSessionId=String(d.desktopSessionId||'');
+          if(op==='windows')desktop.limit=Math.max(1,Math.min(Number(d.limit)||100,200));
+          if(op==='frame'){if(d.desktopSessionId!=null)desktop.desktopSessionId=String(d.desktopSessionId);desktop.screen=d.screen==null?-1:Math.max(-1,Math.min(Number(d.screen)||0,31));desktop.maxWidth=Math.max(320,Math.min(Number(d.maxWidth)||960,1280));desktop.maxHeight=Math.max(180,Math.min(Number(d.maxHeight)||540,720));desktop.quality=Math.max(25,Math.min(Number(d.quality)||50,70));}
+          if(op==='input')Object.assign(desktop,normalizeDesktopInput({events:d.events,displayTopologyId:d.displayTopologyId,semanticSessionId:d.semanticSessionId,afterSeq:d.afterSeq,settleMs:d.settleMs}));
+          if(op==='run'){
+            Object.assign(desktop,normalizeDesktopInput({events:d.events,displayTopologyId:d.displayTopologyId,semanticSessionId:d.semanticSessionId,afterSeq:d.afterSeq,settleMs:d.settleMs}));
+            if(d.await&&typeof d.await==='object'&&!Array.isArray(d.await)){
+              const wait={};
+              for(const key of ['foregroundTitleContains','foregroundTitleEquals','focusedNameContains']){
+                if(d.await[key]!=null){const value=String(d.await[key]).trim();if(value)wait[key]=value.slice(0,512);}
+              }
+              const timeoutMs=Number(d.await.timeoutMs);wait.timeoutMs=Math.max(50,Math.min(Number.isFinite(timeoutMs)?Math.floor(timeoutMs):3000,15000));
+              desktop.await=wait;
+            }
+          }
+          if(op==='observe'){
+            if(d.semanticSessionId!=null&&String(d.semanticSessionId).trim()){
+              desktop.semanticSessionId=String(d.semanticSessionId);
+              if(d.afterSeq!=null){const afterSeq=Number(d.afterSeq),limit=Number(d.limit);desktop.afterSeq=Number.isFinite(afterSeq)?Math.max(0,Math.floor(afterSeq)):0;desktop.limit=Math.max(1,Math.min(Number.isFinite(limit)?Math.floor(limit):100,200));}
+            }else{
+              const provider=String(d.provider||'windows-uia').trim().toLowerCase();if(!['windows-uia','browser-cdp'].includes(provider)){const e=new Error('invalid_semantic_provider');e.status=400;throw e;}
+              const depth=Number(d.maxDepth),nodes=Number(d.maxNodes);desktop.provider=provider;
+              desktop.maxDepth=Math.max(0,Math.min(Number.isFinite(depth)?depth:(provider==='browser-cdp'?8:6),12));desktop.maxNodes=Math.max(1,Math.min(Number.isFinite(nodes)?nodes:(provider==='browser-cdp'?600:400),1500));
+              if(provider==='windows-uia')desktop.scope=d.scope==='desktop'?'desktop':'foreground';
+              else{if(d.cdpEndpoint!=null)desktop.cdpEndpoint=String(d.cdpEndpoint).slice(0,256);if(d.targetId!=null)desktop.targetId=String(d.targetId).slice(0,256);if(d.urlMatch!=null)desktop.urlMatch=String(d.urlMatch).slice(0,512);}
+            }
+          }
+          if(op==='act'){
+            if(Array.isArray(d.events))Object.assign(desktop,normalizeDesktopInput({events:d.events,displayTopologyId:d.displayTopologyId,semanticSessionId:d.semanticSessionId,afterSeq:d.afterSeq,settleMs:d.settleMs}));
+            else{
+              desktop.semanticSessionId=String(d.semanticSessionId||'');desktop.nodeId=String(d.nodeId||'');desktop.action=String(d.action||'');
+              const afterSeq=Number(d.afterSeq),settleMs=Number(d.settleMs);desktop.afterSeq=Number.isFinite(afterSeq)?Math.max(0,Math.floor(afterSeq)):0;desktop.settleMs=Math.max(0,Math.min(Number.isFinite(settleMs)?Math.floor(settleMs):90,250));
+              if(d.value!=null)desktop.value=String(d.value).slice(0,4096);
+            }
+          }
+          if(op==='semantic-attach'){
+            const provider=String(d.provider||'windows-uia').trim().toLowerCase();if(!['windows-uia','browser-cdp'].includes(provider)){const e=new Error('invalid_semantic_provider');e.status=400;throw e;}
+            const depth=Number(d.maxDepth),nodes=Number(d.maxNodes);desktop.provider=provider;
+            desktop.maxDepth=Math.max(0,Math.min(Number.isFinite(depth)?depth:(provider==='browser-cdp'?8:6),12));desktop.maxNodes=Math.max(1,Math.min(Number.isFinite(nodes)?nodes:(provider==='browser-cdp'?600:400),1500));
+            if(provider==='windows-uia')desktop.scope=d.scope==='desktop'?'desktop':'foreground';
+            else{if(d.cdpEndpoint!=null)desktop.cdpEndpoint=String(d.cdpEndpoint).slice(0,256);if(d.targetId!=null)desktop.targetId=String(d.targetId).slice(0,256);if(d.urlMatch!=null)desktop.urlMatch=String(d.urlMatch).slice(0,512);}
+          }
+          if(op==='semantic-snapshot'||op==='semantic-events'||op==='semantic-detach')desktop.semanticSessionId=String(d.semanticSessionId||'');
+          if(op==='live-open'){
+            const provider=String(d.provider||'windows-uia').trim().toLowerCase();if(!['windows-uia','browser-cdp'].includes(provider)){const e=new Error('invalid_semantic_provider');e.status=400;throw e;}
+            const depth=Number(d.maxDepth),nodes=Number(d.maxNodes);desktop.provider=provider;desktop.maxDepth=Math.max(0,Math.min(Number.isFinite(depth)?depth:(provider==='browser-cdp'?8:6),12));desktop.maxNodes=Math.max(1,Math.min(Number.isFinite(nodes)?nodes:(provider==='browser-cdp'?600:400),1500));desktop.idleTimeoutMs=Math.max(15000,Math.min(Number.isFinite(Number(d.idleTimeoutMs))?Math.floor(Number(d.idleTimeoutMs)):300000,900000));
+            if(provider==='windows-uia')desktop.scope=d.scope==='desktop'?'desktop':'foreground';else{if(d.cdpEndpoint!=null)desktop.cdpEndpoint=String(d.cdpEndpoint).slice(0,256);if(d.targetId!=null)desktop.targetId=String(d.targetId).slice(0,256);if(d.urlMatch!=null)desktop.urlMatch=String(d.urlMatch).slice(0,512);}
+          }
+          if(op==='live-close')desktop.semanticSessionId=String(d.semanticSessionId||'');
+          if(op==='semantic-events'){const afterSeq=Number(d.afterSeq),limit=Number(d.limit);desktop.afterSeq=Number.isFinite(afterSeq)?Math.max(0,Math.floor(afterSeq)):0;desktop.limit=Math.max(1,Math.min(Number.isFinite(limit)?Math.floor(limit):100,200));}
+          /* Desktop semantic nodeId belongs inside desktop.act; the target machine is already session-bound. */ const payload={action:'desktop',operationId:aid(d.operationId),sessionId:sid(d.sessionId),agentId:aid(d.agentId),desktop,waitMs:Math.max(0,Math.min(Number(d.waitMs)||7000,8000))};
           upstream=await clientCall('/plus/client/execute',{method:'POST',body:{deviceId,envelope:sealOperatorPayload(payload)},timeoutMs:9500});
         }
         else if(usingClient&&action.startsWith('search-')){

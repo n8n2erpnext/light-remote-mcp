@@ -24,6 +24,7 @@ import { executeNativeFs, filesystemPolicy } from '../lib/native-fs.mjs';
 import { NativeProcessRegistry } from '../lib/native-process.mjs';
 import { NativeTerminalRegistry } from '../lib/native-terminal.mjs';
 import { NativeSearchRegistry } from '../lib/native-search.mjs';
+import realRemoteInputPolicy from '../lib/real-remote-input.cjs';
 import { LightScpRegistry } from '../lib/light-scp-registry.mjs';
 import { normalizeUpdateReport } from '../lib/update-contract.mjs';
 import { clientCompatibility, releaseCompatibilityFloor } from '../lib/version-compat.mjs';
@@ -33,6 +34,7 @@ import { createPlatformAdapter } from '../device-agent/platform-adapters/index.m
 import { handleAccountRoutes } from './executor-routes-account.mjs';
 import { handleDeviceChannelRoutes } from './executor-routes-device-channel.mjs';
 import { handleRuntimeRoutes } from './executor-routes-runtime.mjs';
+import { RealRemoteLiveRegistry } from './real-remote-live-registry.mjs';
 
 const SOCKET_PATH = process.env.OPERATOR_SOCKET || '/run/gpt-vps-operator/operator.sock';
 const KEY_FILE = process.env.OPERATOR_KEY_FILE || '/home/ubuntu/.config/gpt-vps-operator/operator.private.json';
@@ -86,6 +88,7 @@ const FLEET_MAX_QUEUED_PER_NODE = Number(process.env.OPERATOR_FLEET_MAX_QUEUED_P
 const DEVICE_CHANNEL_RUNTIME_LIMIT = Math.max(1, Number(process.env.OPERATOR_DEVICE_CHANNEL_RUNTIME_LIMIT || 240));
 const DEVICE_CHANNEL_OBSERVER_LIMIT = Math.max(1, Number(process.env.OPERATOR_DEVICE_CHANNEL_OBSERVER_LIMIT || 240));
 const DEVICE_CHANNEL_CONTROL_LIMIT = Math.max(1, Number(process.env.OPERATOR_DEVICE_CHANNEL_CONTROL_LIMIT || 120));
+const DEVICE_CHANNEL_RM_LIVE_LIMIT = Math.max(1, Number(process.env.OPERATOR_DEVICE_CHANNEL_RM_LIVE_LIMIT || 1800));
 if (!Number.isFinite(DEVICE_PRESENCE_TTL_MS) || DEVICE_PRESENCE_TTL_MS < 10_000) throw new Error('invalid_device_presence_ttl');
 if (!Number.isFinite(DEVICE_HEARTBEAT_MS) || DEVICE_HEARTBEAT_MS < 5_000 || DEVICE_HEARTBEAT_MS >= DEVICE_PRESENCE_TTL_MS) throw new Error('invalid_device_heartbeat');
 const HOST_CAPABILITIES = ['filesystem', 'git', 'build-test', 'docker', 'lxd', 'systemctl', 'sudo-on-demand', 'terminal'];
@@ -119,6 +122,7 @@ const agentClients = new AgentClientRegistry({ stateFile:AGENT_CLIENT_STATE_FILE
 const accounts = new AccountRegistry({ stateFile:ACCOUNT_STATE_FILE, bootstrapAccountId:ACCOUNT_ID, emit:event => pushEvent(event) });
 const licenses = new LicenseKeyRegistry({ stateFile:LICENSE_STATE_FILE, emit:event => pushEvent(event) });
 const fleetAuthority = new FleetAuthorityRegistry({ ttlMs:FLEET_AUTHORITY_TTL_MS, emit:event => pushEvent(event) });
+const realRemoteLive = new RealRemoteLiveRegistry();
 const hostIdentity = loadOrCreateHostDeviceIdentity(HOST_DEVICE_IDENTITY_FILE);
 
 fs.mkdirSync(LOG_DIR, { recursive: true });
@@ -660,6 +664,31 @@ async function executeLocalTerminalRequest(job,request){
   throw new Error('terminal_operation_unsupported');
 }
 
+const {normalizeDesktopInput}=realRemoteInputPolicy;
+
+async function startDesktopOperation(payload,requestId){
+  const operationId=String(payload.operationId||'').trim();if(!/^[A-Za-z0-9._:-]{16,128}$/.test(operationId))throw new Error('invalid_operation_id');
+  const agentId=String(payload.agentId||'').trim(),session=sessions.ensure(String(payload.sessionId||''),{agentId});requireDeviceConnection(session.deviceId);
+  if(payload.nodeId!=null&&String(payload.nodeId)!==session.nodeId)throw new SessionError('session_target_mismatch',409);
+  let request=payload.desktop&&typeof payload.desktop==='object'&&!Array.isArray(payload.desktop)?payload.desktop:null;if(!request)throw new Error('desktop_request_required');
+  const op=String(request.op||'');if(!['status','attach','resume','detach','windows','frame','input','run','observe','act','semantic-attach','semantic-snapshot','semantic-events','semantic-detach','live-open','live-close'].includes(op))throw new Error('desktop_operation_unsupported');
+  if(op==='input'||(op==='act'&&Array.isArray(request.events)))request={op,...normalizeDesktopInput(request)};
+  if(op==='run'){const normalized={op,...normalizeDesktopInput(request)},rawWait=request.await&&typeof request.await==='object'&&!Array.isArray(request.await)?request.await:null;if(rawWait){const wait={};for(const key of ['foregroundTitleContains','foregroundTitleEquals','focusedNameContains']){if(rawWait[key]!=null){const value=String(rawWait[key]).trim();if(value)wait[key]=value.slice(0,512);}}const timeoutMs=Number(rawWait.timeoutMs);wait.timeoutMs=Math.max(50,Math.min(Number.isFinite(timeoutMs)?Math.floor(timeoutMs):3000,15000));normalized.await=wait;}request=normalized;}
+  const remote=session.nodeId!==NODE_ID,requiredCapabilities=(op==='input'||op==='run'||op==='act')?['desktop','desktop-input']:['desktop'];
+  if(!remote)throw new DeviceError('desktop_local_host_not_supported',409);
+  const route=targetRoute(session.nodeId);if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(requiredCapabilities.some(cap=>!route.capabilities.includes(cap)))throw new FleetError('target_node_capability_missing',409);
+  const fingerprint=crypto.createHash('sha256').update(JSON.stringify({request,sessionId:session.id,nodeId:session.nodeId})).digest('hex'),existing=operationDedupe.get(operationId);
+  if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
+  const toolMeta={kind:'desktop',op,label:op==='status'?'Desktop status':op==='attach'?'Desktop attach':op==='resume'?'Desktop resume':op==='detach'?'Desktop detach':op==='windows'?'Desktop windows':op==='frame'?'Desktop frame':op==='input'?'Desktop input':op==='run'?'Desktop run':op==='observe'?'Computer observe':op==='act'?'Computer act':op==='semantic-attach'?'Semantic attach':op==='semantic-snapshot'?'Semantic snapshot':op==='semantic-events'?'Semantic events':op==='live-open'?'Real Remote live open':op==='live-close'?'Real Remote live close':'Semantic detach'};
+  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-desktop:${op}`,cwd:'',script:toolMeta.label,status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote:true,commandId:null,requiredCapabilities,resultData:null,resultSummary:'',toolMeta};
+  jobs.set(job.id,job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
+  pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:'outbound-leaf',requiredCapabilities,note:job.note,toolMeta});
+  const command=fleet.enqueue({accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'desktop',operationId,sessionId:job.sessionId,agentId:job.agentId,desktop:request}});
+  job.commandId=command.commandId;
+  job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},30000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();
+  return job;
+}
+
 async function startSearchOperation(payload,requestId){
   const operationId=String(payload.operationId||'').trim();if(!/^[A-Za-z0-9._:-]{16,128}$/.test(operationId))throw new Error('invalid_operation_id');
   const agentId=String(payload.agentId||'').trim(),session=sessions.ensure(String(payload.sessionId||''),{agentId});requireDeviceConnection(session.deviceId);
@@ -941,12 +970,13 @@ class DeviceChannelRateLimitError extends Error {
   constructor(lane,retryAfterSeconds){super('rate_limited');this.status=429;this.scope=`device-channel-${lane}`;this.retryAfterSeconds=retryAfterSeconds;}
 }
 function trustedChannelLane(action){
-  if(['poll','result','update-report'].includes(action))return 'runtime';
+  if(['poll','result','update-report','stream'].includes(action))return 'runtime';
+  if(action==='desktop-live-push')return 'rm-live';
   if(['status','activity','fleet-intent','fleet-authority','fleet-status','fleet-devices','fleet-sessions','fleet-activity'].includes(action))return 'observer';
   return 'control';
 }
 function enforceTrustedChannelRate(deviceId,action,now=Date.now()){
-  const lane=trustedChannelLane(action),limit=lane==='runtime'?DEVICE_CHANNEL_RUNTIME_LIMIT:lane==='observer'?DEVICE_CHANNEL_OBSERVER_LIMIT:DEVICE_CHANNEL_CONTROL_LIMIT;
+  const lane=trustedChannelLane(action),limit=lane==='runtime'?DEVICE_CHANNEL_RUNTIME_LIMIT:lane==='observer'?DEVICE_CHANNEL_OBSERVER_LIMIT:lane==='rm-live'?DEVICE_CHANNEL_RM_LIVE_LIMIT:DEVICE_CHANNEL_CONTROL_LIMIT;
   const minute=Math.floor(now/60000),key=`${lane}:${deviceId}`,current=trustedChannelRateBuckets.get(key),state=current?.minute===minute?current:{minute,count:0};
   state.count++;trustedChannelRateBuckets.set(key,state);
   if(state.count>limit)throw new DeviceChannelRateLimitError(lane,Math.max(1,60-Math.floor((now%60000)/1000)));
@@ -1014,10 +1044,10 @@ const routeDeps=()=>({
   fleetEligibility,fleetTarget,flushDiskRecords,fs,fullOutputFromDisk,
   ingressTelemetry,jobView,jobs,licenses,normalizeUpdateReport,
   pairingCodes,planEntitlements,pruneRing,pushEvent,queueHelperUpdate,
-  queueSignedUpdate,readJson,reapAccessGrants,recentEvents,redact,
+  queueSignedUpdate,readJson,reapAccessGrants,realRemoteLive,recentEvents,redact,
   removeRuntimeForDevice,requireAccount,requireDeviceConnection,revokeRuntimeForDevice,ring,
   ringBytes,sendJson,sessionStatsFromDisk,sessions,sseClients,
-  startFsOperation,startJob,startProcessOperation,startScpOperation,startSearchOperation,
+  startDesktopOperation,startFsOperation,startJob,startProcessOperation,startScpOperation,startSearchOperation,
   startTerminalOperation,targetRoute,terminalResultSummary,usage,verifiedChannelContext,
   verifiedFleetContext,verifiedLeafCapabilities,waitForJob,wakeDeviceChannelForDevice,
 });

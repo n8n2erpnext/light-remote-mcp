@@ -53,6 +53,15 @@ internal static class DesktopVisual
 
     public static int ReadScreenCount() => Screen.AllScreens.Length;
 
+    public static (int X,int Y) LocalToVirtualPoint(int screenIndex,int x,int y)
+    {
+        var all=Screen.AllScreens;
+        if(screenIndex<0||screenIndex>=all.Length) throw new InvalidOperationException("screen_invalid");
+        var bounds=all[screenIndex].Bounds;
+        if(x<0||y<0||x>=bounds.Width||y>=bounds.Height) throw new InvalidOperationException("screen_coordinates_invalid");
+        return (bounds.X+x,bounds.Y+y);
+    }
+
     public static string ReadTopologyId()
     {
         var raw=string.Join("|",Screen.AllScreens.Select((screen,index)=>{

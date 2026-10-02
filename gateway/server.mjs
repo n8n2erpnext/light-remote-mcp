@@ -11,7 +11,7 @@ import { enrollmentApprovalHtml } from './enrollment-page.mjs';
 import { devicePolicyHtml } from './device-policy-page.mjs';
 import { createWallAuth, createAccountWallAuth } from './wall-auth.mjs';
 import { authenticateVercel, authenticateVercelPlusBridge, isToolCall, securityInfo } from './security.mjs';
-import { callOperatorJson, proxyOperatorJson, proxyOperatorSse } from './operator-proxy.mjs';
+import { callOperatorJson, proxyOperatorJson, proxyOperatorDuplex, proxyOperatorSse } from './operator-proxy.mjs';
 import { rootNames, listWorkspace, readWorkspaceText, searchWorkspace, gitStatus, gitDiff } from './workspace.mjs';
 import { registerRemoteTools } from './remote-tools.mjs';
 import { registerConvenienceTools } from './remote-convenience-tools.mjs';
@@ -314,8 +314,10 @@ app.post('/device-channel/access-approve', deviceChannelEdgeRateLimit, (req, res
 app.post('/device-channel/access-deny', deviceChannelEdgeRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/access-deny', req.body || {}));
 app.post('/device-channel/status', deviceChannelEdgeRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/status', req.body || {}));
 app.post('/device-channel/session-close', deviceChannelEdgeRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/session-close', req.body || {}));
+app.post('/device-channel/desktop-live-push', deviceChannelEdgeRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/desktop-live-push', req.body || {}));
 app.post('/device-channel/activity', deviceChannelEdgeRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/activity', req.body || {}));
 app.post('/device-channel/update-report', deviceChannelEdgeRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/update-report', req.body || {}));
+app.post('/device-channel/stream', deviceChannelEdgeRateLimit, (req,res)=>proxyOperatorDuplex(req,res,'/v1/device-channel/stream'));
 app.post('/device-channel/poll', deviceChannelEdgeRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/poll', req.body || {}));
 app.post('/device-channel/result', deviceChannelEdgeRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/result', req.body || {}));
 app.post('/account/register', softRateLimit, requireVercelIdentity, (req,res)=>{
