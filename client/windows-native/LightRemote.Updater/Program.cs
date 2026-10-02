@@ -10,6 +10,7 @@ internal static class Program
         {
             var apply=Array.IndexOf(args,"--apply-update");if(apply>=0&&apply+6<args.Length){_=int.TryParse(args[apply+4],out var parentPid);return await UpdateApplier.ApplyAsync(args[apply+1],args[apply+2],args[apply+3],parentPid,args[apply+5],args[apply+6]);}
             var promote=Array.IndexOf(args,"--promote-helper-stage");if(promote>=0&&promote+5<args.Length){_=int.TryParse(args[promote+3],out var parentPid);return await UpdateApplier.PromoteHelperStageAsync(args[promote+1],args[promote+2],parentPid,args[promote+4],args[promote+5]);}
+            var restart=Array.IndexOf(args,"--restart-agent-only");if(restart>=0&&restart+2<args.Length&&string.Equals(args[restart+1],"--install-dir",StringComparison.OrdinalIgnoreCase))return await UpdateApplier.RestartAgentOnlyAsync(args[restart+2]);
             var verify=Array.IndexOf(args,"--verify-update-fixture");if(verify>=0&&verify+3<args.Length)return VerifyFixture(args[verify+1],args[verify+2],args[verify+3])?0:1;
             var self=Array.IndexOf(args,"--self-test-output");if(self>=0&&self+2<args.Length)return SelfTest(args[self+1],args[self+2])?0:1;
             var check=Array.IndexOf(args,"--check-update");if(check>=0&&check+2<args.Length&&string.Equals(args[check+1],"--install-dir",StringComparison.OrdinalIgnoreCase))return await RunCheckUpdateAsync(args[check+2]);

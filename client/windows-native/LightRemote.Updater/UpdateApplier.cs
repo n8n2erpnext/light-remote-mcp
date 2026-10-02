@@ -32,6 +32,39 @@ internal static class UpdateApplier
             Log($"apply_exception {ex.GetType().Name}: {ex.Message}");try{return await RollbackAsync(installDir,currentVersion,targetVersion,"LRU199",ex.Message);}catch(Exception rollbackEx){Log($"rollback_exception {rollbackEx.GetType().Name}: {rollbackEx.Message}");WriteStatus("failed",currentVersion,targetVersion,"LRU141");WriteReport("failed","LRU141","rollback",currentVersion,targetVersion,currentVersion,true,false,rollbackEx.Message);TryRestartBackgroundAgentTask();return 22;}
         }
     }
+    internal static async Task<int> RestartAgentOnlyAsync(string installDir)
+    {
+        RecoveryPaths.EnsureDirectories();
+        if(!Path.IsPathFullyQualified(installDir)||!File.Exists(Path.Combine(installDir,"GptOperator.Client.exe"))){Log("restart_agent_invalid_install");return 31;}
+        Log($"restart_agent_begin helper={Environment.ProcessId}");
+        try
+        {
+            await EndScheduledTaskAsync("LightRemoteDeviceAgent");
+            var released=await WaitForWallStateAsync(false,TimeSpan.FromSeconds(12));
+            if(!released){Log("restart_agent_release_timeout");await StopInstalledRuntimeAsync(installDir);released=await WaitForWallStateAsync(false,TimeSpan.FromSeconds(8));}
+            if(!released){EnsureInstalledTray(installDir);Log("restart_agent_release_failed");return 32;}
+            for(var attempt=1;attempt<=5;attempt++)
+            {
+                TryRestartBackgroundAgentTask();Log($"restart_agent_start_attempt attempt={attempt}");
+                if(await WaitForWallStateAsync(true,TimeSpan.FromSeconds(6))){EnsureInstalledTray(installDir);Log($"restart_agent_success attempt={attempt}");return 0;}
+                await Task.Delay(400);
+            }
+            EnsureInstalledTray(installDir);Log("restart_agent_start_failed");return 33;
+        }
+        catch(Exception ex){EnsureInstalledTray(installDir);Log($"restart_agent_exception {ex.GetType().Name}: {ex.Message}");return 34;}
+    }
+    private static bool WallPortListening(){try{return System.Net.NetworkInformation.IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners().Any(ep=>ep.Port==5491);}catch{return false;}}
+    private static async Task<bool> WaitForWallStateAsync(bool listening,TimeSpan timeout)
+    {
+        var deadline=DateTimeOffset.UtcNow+timeout;
+        while(DateTimeOffset.UtcNow<deadline){if(WallPortListening()==listening){await Task.Delay(150);if(WallPortListening()==listening)return true;}await Task.Delay(120);}
+        return WallPortListening()==listening;
+    }
+    private static void EnsureInstalledTray(string installDir)
+    {
+        try{var exe=Path.Combine(installDir,"GptOperator.Client.exe");if(!File.Exists(exe))return;Process.Start(new ProcessStartInfo(exe,"--background"){UseShellExecute=true})?.Dispose();Log("restart_agent_tray_ensure_requested");}
+        catch(Exception ex){Log($"restart_agent_tray_ensure_failed {ex.GetType().Name}: {ex.Message}");}
+    }
     private static async Task<int> RollbackAsync(string installDir,string currentVersion,string targetVersion,string code,string detail)
     {
         WriteStatus("rolling_back",currentVersion,targetVersion,code);var rollback=RecoveryPaths.RollbackInstaller(currentVersion);if(!File.Exists(rollback)){Log($"rollback_missing path={rollback}");WriteReport("failed","LRU140","rollback",currentVersion,targetVersion,currentVersion,true,false,"rollback installer missing");ClearTransaction();TryRestartBackgroundAgentTask();return 20;}

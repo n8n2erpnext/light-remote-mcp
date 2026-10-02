@@ -276,27 +276,24 @@ internal sealed class TrayApplicationContext : ApplicationContext
     private static (bool Ok, string Message) RestartAgentTransactional()
     {
         ClientEvent("restart_requested");
-        var stopped = StopAgentTaskVerified();
-        if (!stopped.Ok)
+        var helper=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Light Remote","Updater","LightRemote.Updater.exe");
+        if(!File.Exists(helper)){ClientEvent("restart_broker_missing",new { helper });return (false,"Light Remote restart helper is missing.");}
+        try
         {
-            ClientEvent("restart_stop_failed", new { stopped.Message, wall = WallPortListening(), task = TaskRunning() });
-            return stopped;
+            var psi=new ProcessStartInfo(helper){UseShellExecute=false,CreateNoWindow=true};
+            psi.ArgumentList.Add("--restart-agent-only");
+            psi.ArgumentList.Add("--install-dir");
+            psi.ArgumentList.Add(AppPaths.Root);
+            using var process=Process.Start(psi);
+            if(process is null)return (false,"Light Remote restart helper could not start.");
+            ClientEvent("restart_broker_launched",new { pid=process.Id });
+            if(!process.WaitForExit(50000)){ClientEvent("restart_broker_timeout",new { pid=process.Id });return (false,"Light Remote restart helper timed out.");}
+            var wall=WallPortListening();
+            var ok=process.ExitCode==0&&wall;
+            ClientEvent("restart_broker_completed",new { pid=process.Id,exitCode=process.ExitCode,wall });
+            return ok?(true,""):(false,$"Light Remote restart helper failed with exit {process.ExitCode}.");
         }
-
-        var started = StartAgentTaskVerified();
-        if (started.Ok)
-        {
-            ClientEvent("restart_completed", new { wall = true, task = TaskRunning() });
-            return started;
-        }
-
-        // Recovery is intentionally start-only: never leave a successful stop as a dead Wall.
-        _ = Schtasks("/Run", "/TN", AgentTask);
-        var recovered = WaitForWall(true, 8000);
-        ClientEvent("restart_recovery", new { recovered, task = TaskRunning() });
-        return recovered
-            ? (true, "")
-            : (false, "Restart failed and the automatic recovery start did not restore Local Wall.");
+        catch(Exception ex){ClientEvent("restart_broker_failed",new { error=ex.Message });return (false,"Light Remote restart helper failed.");}
     }
 
     private static void ClientEvent(string name, object? data = null)
