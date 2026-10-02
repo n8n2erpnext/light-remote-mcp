@@ -49,7 +49,7 @@ try{
   const accountForm=new URLSearchParams({username:'owner@example.test',password:'account-password-123',next:'/',csrf}).toString();
   r=await req('POST','/auth/login',{body:accountForm,headers:{host:'192.168.1.50:5491','x-forwarded-proto':'https'}});assert.equal(r.status,303);assert.equal(accountAuthCalls,1);
   const accountCookie=String(r.headers['set-cookie']?.[0]||'').split(';')[0];assert.match(accountCookie,/^lr_wall_session=/);assert.match(String(r.headers['set-cookie']),/Secure/);
-  r=await req('GET','/',{headers:{cookie:accountCookie}});assert.equal(r.status,200);assert.match(r.text,/Logout/);assert.match(r.text,/owner@example\.test/);assert.match(r.text,/Account profile/);
+  r=await req('GET','/',{headers:{cookie:accountCookie}});assert.equal(r.status,200);assert.match(r.text,/Logout/);assert.doesNotMatch(r.text,/owner@example\.test/);assert.doesNotMatch(r.text,/Account profile|Account session/);
   r=await req('GET','/login');csrf=loginCsrf(r.text);
   const badAccountForm=new URLSearchParams({username:'owner@example.test',password:'wrong-account-password',next:'/',csrf}).toString();
   r=await req('POST','/auth/login',{body:badAccountForm});assert.equal(r.status,401);assert.equal(accountAuthCalls,2);
