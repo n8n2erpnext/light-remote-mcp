@@ -6,9 +6,9 @@ namespace GptOperator.RealRemoteV2;
 
 internal sealed class RobotContext : ApplicationContext
 {
-    private readonly HaloForm _halo=new();
+    private readonly AgentCursorForm _cursor=new();
     private readonly NotifyIcon _tray;
-    private readonly System.Windows.Forms.Timer _haloTimer=new(){Interval=16};
+    private readonly System.Windows.Forms.Timer _cursorTimer=new(){Interval=16};
     private readonly UiSensor _sensor=new();
     private readonly SemanticSessionManager _semantic;
     private readonly VisualSessionManager _visual;
@@ -31,10 +31,10 @@ internal sealed class RobotContext : ApplicationContext
     public RobotContext(string pipeName)
     {
         _tray=new NotifyIcon{Visible=true,Text="Agent \u0111ang remote",Icon=LoadAppIcon()};
-        _haloTimer.Tick+=(_,_)=>_halo.FollowCursor();
-        _halo.FollowCursor();
-        _halo.Show();
-        _haloTimer.Start();
+        _cursorTimer.Tick+=(_,_)=>_cursor.FollowCursor();
+        _cursor.Show();
+        _cursor.FollowCursor(true);
+        _cursorTimer.Start();
 
         _rpc=new RobotRpcServer(pipeName,HandleAsync,OnPipeDisconnected);
         _semantic=new SemanticSessionManager(_sensor);
@@ -119,36 +119,45 @@ internal sealed class RobotContext : ApplicationContext
         uptimeMs=_uptime.ElapsedMilliseconds,
         native=NativeInput.ReadStatus(),
         topology=DesktopVisual.ReadTopology(),
-        visualSessions=_visual.ActiveSessions
+        visualSessions=_visual.ActiveSessions,
+        cursorVisual=_cursor.Status()
     };
 
-    private static object Move(JsonElement r)
+    private object Move(JsonElement r)
     {
-        NativeInput.Move(Int(r,"x"),Int(r,"y"),Int(r,"durationMs",90),Int(r,"steps",8));
-        return new {applied=true,native=NativeInput.ReadStatus()};
+        var durationMs=Int(r,"durationMs",90);
+        _cursor.MarkMove(durationMs);
+        NativeInput.Move(Int(r,"x"),Int(r,"y"),durationMs,Int(r,"steps",8));
+        return new {applied=true,native=NativeInput.ReadStatus(),cursorVisual=_cursor.Status()};
     }
 
-    private static object Click(JsonElement r)
+    private object Click(JsonElement r)
     {
-        NativeInput.Click(Text(r,"button","left"),Int(r,"count",1));
-        return new {applied=true,native=NativeInput.ReadStatus()};
+        var button=Text(r,"button","left");
+        var count=Int(r,"count",1);
+        _cursor.MarkClick(button,count);
+        NativeInput.Click(button,count);
+        return new {applied=true,native=NativeInput.ReadStatus(),cursorVisual=_cursor.Status()};
     }
 
-    private static object Wheel(JsonElement r)
+    private object Wheel(JsonElement r)
     {
         var delta=Int(r,"delta",0);
         var horizontal=Bool(r,"horizontal",false);
+        _cursor.MarkScroll();
         NativeInput.Wheel(delta,horizontal);
-        return new {applied=true,delta,horizontal,native=NativeInput.ReadStatus()};
+        return new {applied=true,delta,horizontal,native=NativeInput.ReadStatus(),cursorVisual=_cursor.Status()};
     }
 
-    private static object Drag(JsonElement r)
+    private object Drag(JsonElement r)
     {
+        var durationMs=Int(r,"durationMs",250);
+        _cursor.MarkDrag(durationMs);
         NativeInput.Drag(
             Int(r,"fromX"),Int(r,"fromY"),Int(r,"toX"),Int(r,"toY"),
-            Text(r,"button","left"),Int(r,"durationMs",250),Int(r,"steps",12)
+            Text(r,"button","left"),durationMs,Int(r,"steps",12)
         );
-        return new {applied=true,native=NativeInput.ReadStatus()};
+        return new {applied=true,native=NativeInput.ReadStatus(),cursorVisual=_cursor.Status()};
     }
 
     private static object WriteText(JsonElement r)
@@ -323,7 +332,7 @@ internal sealed class RobotContext : ApplicationContext
     {
         try
         {
-            if(_halo.IsHandleCreated) _halo.BeginInvoke(new Action(ExitThread));
+            if(_cursor.IsHandleCreated) _cursor.BeginInvoke(new Action(ExitThread));
             else ExitThread();
         }
         catch { ExitThread(); }
@@ -353,8 +362,8 @@ internal sealed class RobotContext : ApplicationContext
     protected override void ExitThreadCore()
     {
         _closing=true;
-        _haloTimer.Stop();
-        _haloTimer.Dispose();
+        _cursorTimer.Stop();
+        _cursorTimer.Dispose();
         _visual.Dispose();
         _browser.Dispose();
         _semantic.Dispose();
@@ -363,8 +372,8 @@ internal sealed class RobotContext : ApplicationContext
         _tray.Visible=false;
         _tray.Icon?.Dispose();
         _tray.Dispose();
-        _halo.Close();
-        _halo.Dispose();
+        _cursor.Close();
+        _cursor.Dispose();
         base.ExitThreadCore();
     }
 }
