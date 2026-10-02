@@ -110,9 +110,9 @@ internal sealed class AgentCursorVisualState
 
 internal sealed class AgentCursorForm : Form
 {
-    private const int CanvasSize = 78;
-    private const int TipX = 20;
-    private const int TipY = 16;
+    private const int CanvasSize = 64;
+    private const int TipX = 18;
+    private const int TipY = 20;
 
     private readonly AgentCursorVisualState _state = new();
     private Point _lastCursor = new(Int32.MinValue, Int32.MinValue);
@@ -157,6 +157,8 @@ internal sealed class AgentCursorForm : Form
     {
         if (IsDisposed || !IsHandleCreated) return;
 
+        ReassertTopMost();
+
         var cursor = Cursor.Position;
         var state = _state.Snapshot(Environment.TickCount64);
         var pulseBucket = (int)Math.Round(state.ClickPulse * 12d);
@@ -195,6 +197,7 @@ internal sealed class AgentCursorForm : Form
         }
 
         UpdateLayered(cursor, bitmap);
+        ReassertTopMost();
     }
 
     private static void DrawCodexGlow(Graphics g, float intensity)
@@ -210,9 +213,9 @@ internal sealed class AgentCursorForm : Form
         using var middle = new SolidBrush(glowMid);
         using var core = new SolidBrush(glowCore);
 
-        g.FillEllipse(outer, TipX - 21, TipY - 21, 42, 42);
-        g.FillEllipse(middle, TipX - 15, TipY - 15, 30, 30);
-        g.FillEllipse(core, TipX - 9, TipY - 9, 18, 18);
+        g.FillEllipse(outer, TipX - 16, TipY - 16, 32, 32);
+        g.FillEllipse(middle, TipX - 11, TipY - 11, 22, 22);
+        g.FillEllipse(core, TipX - 7, TipY - 7, 14, 14);
     }
 
     private static void DrawPointer(Graphics g, string phase)
@@ -221,12 +224,12 @@ internal sealed class AgentCursorForm : Form
         path.AddPolygon(new[]
         {
             new PointF(TipX, TipY),
-            new PointF(TipX + 3.8f, TipY + 31.5f),
-            new PointF(TipX + 11.2f, TipY + 24.5f),
-            new PointF(TipX + 18.4f, TipY + 39.2f),
-            new PointF(TipX + 24.2f, TipY + 36.3f),
-            new PointF(TipX + 16.7f, TipY + 22.0f),
-            new PointF(TipX + 27.6f, TipY + 21.1f)
+            new PointF(TipX + 3.2f, TipY + 27.0f),
+            new PointF(TipX + 9.8f, TipY + 21.2f),
+            new PointF(TipX + 16.1f, TipY + 33.4f),
+            new PointF(TipX + 21.2f, TipY + 31.0f),
+            new PointF(TipX + 14.5f, TipY + 18.8f),
+            new PointF(TipX + 24.2f, TipY + 18.2f)
         });
         path.CloseFigure();
 
@@ -236,11 +239,11 @@ internal sealed class AgentCursorForm : Form
         shadowPath.Transform(shift);
 
         using var shadow = new SolidBrush(Color.FromArgb(115, 0, 0, 0));
-        using var accent = new Pen(Color.FromArgb(180, 104, 255, 162), phase == "dragging" ? 4.2f : 3.2f)
+        using var accent = new Pen(Color.FromArgb(180, 104, 255, 162), phase == "dragging" ? 3.4f : 2.6f)
         {
             LineJoin = LineJoin.Round
         };
-        using var edge = new Pen(Color.FromArgb(245, 244, 247, 246), 1.35f)
+        using var edge = new Pen(Color.FromArgb(245, 244, 247, 246), 1.15f)
         {
             LineJoin = LineJoin.Round
         };
@@ -255,12 +258,23 @@ internal sealed class AgentCursorForm : Form
     private static void DrawClickPulse(Graphics g, double pulse)
     {
         var expand = 1d - pulse;
-        var radius = 7f + (float)(13d * expand);
+        var radius = 5f + (float)(10d * expand);
         var alpha = Math.Clamp((int)Math.Round(185d * pulse), 0, 255);
-        using var pen = new Pen(Color.FromArgb(alpha, 105, 255, 165), 2.1f);
+        using var pen = new Pen(Color.FromArgb(alpha, 105, 255, 165), 1.7f);
         g.DrawEllipse(pen, TipX - radius, TipY - radius, radius * 2f, radius * 2f);
     }
 
+    private void ReassertTopMost()
+    {
+        if (!IsHandleCreated || IsDisposed) return;
+
+        const uint SWP_NOSIZE = 0x0001;
+        const uint SWP_NOMOVE = 0x0002;
+        const uint SWP_NOACTIVATE = 0x0010;
+        const uint SWP_SHOWWINDOW = 0x0040;
+        var flags = SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE | SWP_SHOWWINDOW;
+        _ = SetWindowPos(Handle, new IntPtr(-1), 0, 0, 0, 0, flags);
+    }
     private void UpdateLayered(Point cursor, Bitmap bitmap)
     {
         var screenDc = GetDC(IntPtr.Zero);
@@ -303,7 +317,36 @@ internal sealed class AgentCursorForm : Form
     }
 
     internal static bool StateSelfTest()
-        => AgentCursorVisualState.SelfTest();
+        => AgentCursorVisualState.SelfTest() && GeometrySelfTest();
+
+    private static bool GeometrySelfTest()
+    {
+        const float margin = 1.0f;
+
+        var glowLeft = TipX - 16f;
+        var glowTop = TipY - 16f;
+        var glowRight = TipX + 16f;
+        var glowBottom = TipY + 16f;
+
+        var pointerRight = TipX + 24.2f + 3.4f;
+        var pointerBottom = TipY + 33.4f + 3.4f;
+
+        var pulseLeft = TipX - 15f - 1.7f;
+        var pulseTop = TipY - 15f - 1.7f;
+        var pulseRight = TipX + 15f + 1.7f;
+        var pulseBottom = TipY + 15f + 1.7f;
+
+        return glowLeft >= margin
+            && glowTop >= margin
+            && glowRight <= CanvasSize - margin
+            && glowBottom <= CanvasSize - margin
+            && pointerRight <= CanvasSize - margin
+            && pointerBottom <= CanvasSize - margin
+            && pulseLeft >= margin
+            && pulseTop >= margin
+            && pulseRight <= CanvasSize - margin
+            && pulseBottom <= CanvasSize - margin;
+    }
 
     [StructLayout(LayoutKind.Sequential)]
     private struct NativePoint
@@ -330,6 +373,16 @@ internal sealed class AgentCursorForm : Form
         public byte AlphaFormat;
     }
 
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool SetWindowPos(
+        IntPtr hWnd,
+        IntPtr hWndInsertAfter,
+        int X,
+        int Y,
+        int cx,
+        int cy,
+        uint uFlags
+    );
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool UpdateLayeredWindow(
         IntPtr hwnd,
