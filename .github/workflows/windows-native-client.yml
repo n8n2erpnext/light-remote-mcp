@@ -257,7 +257,7 @@ jobs:
           $out = Join-Path $PWD 'dist\realremote-v2'
           dotnet publish client/windows-native/GptOperator.RealRemoteV2/GptOperator.RealRemoteV2.csproj -c Release -r win-x64 --self-contained true -o $out
           if ($LASTEXITCODE -ne 0) { throw 'Real Remote V2 publish failed' }
-          $exe = Join-Path $out 'GptOperator.RealRemoteV2.exe'
+          $exe = Join-Path $out 'LightRemote.RM.exe'
           if (-not (Test-Path $exe)) { throw 'Real Remote V2 executable missing' }
           "RMV2_EXE=$exe" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
@@ -324,7 +324,7 @@ jobs:
           $dest = Join-Path $stage 'realremote-v2'
           New-Item -ItemType Directory -Force -Path $dest | Out-Null
           Copy-Item (Join-Path (Split-Path $env:RMV2_EXE -Parent) '*') $dest -Recurse -Force
-          $stageExe = Join-Path $dest 'GptOperator.RealRemoteV2.exe'
+          $stageExe = Join-Path $dest 'LightRemote.RM.exe'
           if (-not (Test-Path $stageExe)) { throw 'staged RM V2 companion missing' }
           "RMV2_STAGE_EXE=$stageExe" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           Write-Host "rmv2-lazy-stage=PASS bytes=$((Get-Item $stageExe).Length)"
@@ -336,7 +336,7 @@ jobs:
           $env:LIGHT_REMOTE_REAL_REMOTE = '1'
           $env:LIGHT_REMOTE_CLIENT_EXE = $env:RMV2_STAGE_EXE
           $env:LIGHT_REMOTE_RMV2_IDLE_MS = '1200'
-          if (Get-Process -Name 'GptOperator.RealRemoteV2' -ErrorAction SilentlyContinue) { throw 'RM V2 process exists before first broker request' }
+          if (Get-Process -Name 'LightRemote.RM' -ErrorAction SilentlyContinue) { throw 'RM V2 process exists before first broker request' }
           $probe = Join-Path $PWD '.rmv2-broker-smoke.mjs'
           @'
           import {NativeDesktopBridge,realRemoteAvailable} from './lib/native-desktop.mjs';
@@ -353,7 +353,7 @@ jobs:
           '@ | Set-Content -LiteralPath $probe -Encoding utf8
           try { node $probe } finally { Remove-Item $probe -Force -ErrorAction SilentlyContinue }
           Start-Sleep -Milliseconds 500
-          if (Get-Process -Name 'GptOperator.RealRemoteV2' -ErrorAction SilentlyContinue) { throw 'RM V2 process survived broker idle shutdown' }
+          if (Get-Process -Name 'LightRemote.RM' -ErrorAction SilentlyContinue) { throw 'RM V2 process survived broker idle shutdown' }
           Write-Host 'rmv2-lazy-broker=PASS idle-zero=PASS on-demand-spawn=PASS idle-shutdown=PASS'
 
       - name: Real Remote V2 push bridge smoke
@@ -363,7 +363,7 @@ jobs:
           $env:LIGHT_REMOTE_REAL_REMOTE = '1'
           $env:LIGHT_REMOTE_CLIENT_EXE = $env:RMV2_STAGE_EXE
           $env:LIGHT_REMOTE_RMV2_IDLE_MS = '1200'
-          if (Get-Process -Name 'GptOperator.RealRemoteV2' -ErrorAction SilentlyContinue) { throw 'RM V2 process exists before push bridge smoke' }
+          if (Get-Process -Name 'LightRemote.RM' -ErrorAction SilentlyContinue) { throw 'RM V2 process exists before push bridge smoke' }
           $probe = Join-Path $PWD '.rmv2-push-bridge-smoke.mjs'
           @'
           import {NativeDesktopBridge} from './lib/native-desktop.mjs';
@@ -386,7 +386,7 @@ jobs:
           '@ | Set-Content -LiteralPath $probe -Encoding utf8
           try { node $probe } finally { Remove-Item $probe -Force -ErrorAction SilentlyContinue }
           Start-Sleep -Milliseconds 500
-          if (Get-Process -Name 'GptOperator.RealRemoteV2' -ErrorAction SilentlyContinue) { throw 'RM V2 process survived push bridge smoke' }
+          if (Get-Process -Name 'LightRemote.RM' -ErrorAction SilentlyContinue) { throw 'RM V2 process survived push bridge smoke' }
           Write-Host 'rmv2-push-bridge=PASS event-forward=PASS retain=PASS close-if-idle=PASS'
       - name: Upload Real Remote V2 companion
         if: github.ref_name == 'feature/real-remote-v2-golden' || github.ref_name == 'feature/real-remote-v2-m6-persistent-duplex'
@@ -456,9 +456,9 @@ jobs:
           if (Get-ScheduledTask -TaskName $legacyName -ErrorAction SilentlyContinue) { throw 'legacy scheduled task survived native install' }
           $exe = Join-Path $installDir 'GptOperator.Client.exe'
           if (-not (Test-Path $exe)) { throw "installed client missing: $exe" }
-          $rmv2Installed = Join-Path $installDir 'realremote-v2\GptOperator.RealRemoteV2.exe'
+          $rmv2Installed = Join-Path $installDir 'realremote-v2\LightRemote.RM.exe'
           if (-not (Test-Path $rmv2Installed)) { throw "installed RM V2 companion missing: $rmv2Installed" }
-          if (Get-Process -Name 'GptOperator.RealRemoteV2' -ErrorAction SilentlyContinue) { throw 'installed RM V2 companion spawned while Core was idle' }
+          if (Get-Process -Name 'LightRemote.RM' -ErrorAction SilentlyContinue) { throw 'installed RM V2 companion spawned while Core was idle' }
           Write-Host 'windows-rmv2-installed-idle-zero=PASS'
           foreach ($notice in @('LICENSE','NOTICE','THIRD_PARTY_DISTRIBUTION_NOTICES.md','licenses\node\LICENSE','licenses\dotnet\LICENSE.txt','licenses\dotnet\ThirdPartyNotices.txt','THIRD_PARTY_NOTICES.txt')) {
             $noticePath = Join-Path $installDir $notice

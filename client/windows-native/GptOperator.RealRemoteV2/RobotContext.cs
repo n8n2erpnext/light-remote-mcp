@@ -17,10 +17,21 @@ internal sealed class RobotContext : ApplicationContext
     private readonly Stopwatch _uptime=Stopwatch.StartNew();
     private bool _closing;
 
+    private static Icon LoadAppIcon()
+    {
+        try
+        {
+            var path=Environment.ProcessPath ?? Application.ExecutablePath;
+            var icon=Icon.ExtractAssociatedIcon(path);
+            return icon is null ? (Icon)SystemIcons.Application.Clone() : (Icon)icon.Clone();
+        }
+        catch { return (Icon)SystemIcons.Application.Clone(); }
+    }
+
     public RobotContext(string pipeName)
     {
-        _tray=new NotifyIcon{Visible=true,Text="Light Remote - Agent remote active",Icon=SystemIcons.Application};
-        _tray.ShowBalloonTip(2500,"Light Remote","Agent remote session active",ToolTipIcon.Info);
+        _tray=new NotifyIcon{Visible=true,Text="Light Remote RM - Remote active",Icon=LoadAppIcon()};
+        _tray.ShowBalloonTip(2500,"Light Remote RM","Real Remote session active",ToolTipIcon.Info);
         _haloTimer.Tick+=(_,_)=>_halo.FollowCursor();
         _halo.FollowCursor();
         _halo.Show();

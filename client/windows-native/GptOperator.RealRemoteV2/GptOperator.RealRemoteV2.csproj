@@ -7,8 +7,13 @@
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <AssemblyName>GptOperator.RealRemoteV2</AssemblyName>
+    <AssemblyName>LightRemote.RM</AssemblyName>
     <RootNamespace>GptOperator.RealRemoteV2</RootNamespace>
+    <Product>Light Remote RM</Product>
+    <AssemblyTitle>Light Remote RM</AssemblyTitle>
+    <Description>Light Remote Real Remote companion</Description>
+    <Company>Light Remote</Company>
+    <ApplicationIcon>Assets\light-remote-rm.ico</ApplicationIcon>
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
     <PublishTrimmed>false</PublishTrimmed>

@@ -105,7 +105,7 @@ internal static class AgentHost
         var connection = ConnectionConfig.Load();
         psi.Environment["OPERATOR_AGENT_BASE_URL"] = connection.BridgeUrl;
         psi.Environment["OPERATOR_AGENT_HUB_URL"] = connection.HubUrl;
-        var realRemoteV2 = Path.Combine(AppContext.BaseDirectory, "realremote-v2", "GptOperator.RealRemoteV2.exe");
+        var realRemoteV2 = Path.Combine(AppContext.BaseDirectory, "realremote-v2", "LightRemote.RM.exe");
         if (File.Exists(realRemoteV2))
         {
             psi.Environment["LIGHT_REMOTE_REAL_REMOTE"] = "1";
