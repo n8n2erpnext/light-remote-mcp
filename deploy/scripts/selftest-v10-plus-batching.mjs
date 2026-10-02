@@ -23,12 +23,16 @@ assert.equal(helper.batching.directPayloadBytes,6000);
 assert.equal(helper.batching.maxExecScriptBytes,32*1024);
 assert.equal(helper.batching.recommendedMaxSteps,8);
 assert.equal(helper.batching.transferChunkBytes,3072);
-assert.ok(helper.batching.rules.some(x=>x.includes('Do not split because a command may run for minutes')));
+assert.ok(helper.batching.rules.some(x=>x.includes('Duration alone is not a reason to split')));
 assert.ok(!('maxExecTimeoutMs' in helper.batching));
 assert.ok(!helper.tools.process.when.includes('Long-running'));
 assert.ok(helper.tools.process.when.includes('stdin/stdout'));
 assert.ok(helper.chooseTool.some(x=>x.includes('one logical shell job')));
-assert.ok(helper.tools.bridgeTransfer.recipe.length>=5);
+assert.deepEqual(helper.tools.bridgeTransfer.actions,['transfer-begin','transfer-chunk','transfer-status','transfer-commit','transfer-cancel']);
+assert.ok(helper.tools.bridgeTransfer.recipe.some(x=>x.includes('whole-payload sha256')));
+assert.ok(helper.tools.bridgeTransfer.recipe.some(x=>x.includes('hash each chunk')));
+assert.ok(helper.tools.bridgeTransfer.recipe.some(x=>x.includes('transfer-commit')));
+assert.match(helper.tools.bridgeTransfer.rule,/Transport-size solution only/);
 
 const sha=v=>crypto.createHash('sha256').update(v).digest('hex');
 const registry=new ChunkTransferRegistry({maxTransferBytes:1024*1024,maxChunkBytes:PLUS_BATCH_POLICY.recommendedTransferChunkBytes});

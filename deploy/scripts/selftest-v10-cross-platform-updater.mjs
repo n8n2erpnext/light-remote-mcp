@@ -16,7 +16,7 @@ const macAgent=read('client/macos/launchd/com.lightremote.agent.plist');
 const macPkg=read('client/macos/build-pkg.sh');
 const linuxInstall=read('client/linux/install.sh');
 assert.ok(winProgram.includes('--check-update')&&winProgram.includes('--apply-update-now'),'windows_owner_update_modes_missing');
-assert.ok(winApply.includes('WaitForCoreAckAsync')&&winApply.includes('FinalizeHelperCandidateAsync'),'windows_two_phase_gate_missing');
+assert.ok(winApply.includes('WaitForCoreAckAsync')&&winApply.includes('LaunchHelperPromotionAsync')&&winApply.includes('PromoteHelperStageAsync')&&winApply.includes('ClearTransaction()'),'windows_two_phase_gate_missing');
 assert.ok(winWorkflow.includes("helper-candidate")&&winWorkflow.includes("Copy-Item VERSION (Join-Path $updaterStage 'VERSION')"),'windows_helper_candidate_missing');
 assert.ok(!winInstaller.includes('UpdaterStageDir'),'windows_duplicate_helper_payload_remains');
 assert.ok(winTask.includes('if(-not(Test-Path $Updater))')&&winTask.includes("$HelperCandidate=Join-Path $InstallRoot 'helper-candidate'")&&winTask.includes("Copy-Item (Join-Path $HelperCandidate '*') $UpdaterRoot -Recurse -Force"),'windows_helper_bootstrap_must_not_overwrite');

@@ -7,7 +7,7 @@ const need=(v,n)=>{if(!v)throw new Error(n);};
 const brand=new URL('../../assets/branding/light-remote-mark.svg',import.meta.url).pathname;
 const wall=startLocalWall({
  host:'127.0.0.1',port:0,brandSvgPath:brand,auth:{enabled:false},
- getLocalStatus:async()=>({deviceName:'golden-test',deviceId:'golden-test',cloudDesiredConnected:false,cloudState:'dormant',version:'0.9.1-beta.2',effectiveCapabilities:[],fleetWall:{healthy:false}}),
+ getLocalStatus:async()=>({deviceName:'golden-test',deviceId:'golden-test',cloudDesiredConnected:false,cloudState:'dormant',version:'0.9.0-rc.30',effectiveCapabilities:[],fleetWall:{healthy:false}}),
  getRemoteStatus:async()=>null,getRemoteActivity:async()=>({events:[]}),
  connect:async()=>({}),disconnect:async()=>({}),setGrace:async()=>({}),setPermissions:async()=>({}),
  pairingCode:async()=>({code:'ABCD-EFGH',expiresAt:Date.now()+60000}),
@@ -39,6 +39,6 @@ need(!/(^|[^A-Za-z])confirm\s*\(/.test(main),'browser_confirm_present_in_main_wa
 
 const source=fs.readFileSync(new URL('../../device-agent/local-wall.mjs',import.meta.url),'utf8');
 need(source.includes("url.pathname==='/api/session-close'")&&source.includes('closeSession,requestUpdate'),'session_close_backend_missing');
-need(source.includes("settingsLink.innerHTML=materialIcon('settings')"),'settings_icon_source_missing');
+need(source.includes("settings:'m370-80")&&source.includes("${materialIcon('settings')}"),'settings_icon_source_missing');
 need(source.includes("background:#d7dbe0;color:#0a0c0f"),'neutral_badge_palette_wrong');
 console.log('v091-golden-wall-polish=PASS');
