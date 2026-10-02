@@ -73,4 +73,5 @@ need(robotContext.includes('Light Remote RM - Remote active')&&robotContext.incl
 need(agentHost.includes('"LightRemote.RM.exe"'),'rm-branding-agent-host-path');
 need(windowsWorkflow.includes('LightRemote.RM.exe')&&!windowsWorkflow.includes('GptOperator.RealRemoteV2.exe'),'rm-branding-workflow-path');
 need(windowsInstaller.includes('[InstallDelete]')&&windowsInstaller.includes('{app}\\realremote-v2\\GptOperator.RealRemoteV2.*'),'rm-branding-obsolete-binary-cleanup');
+need(operatorAgent.includes("if(NATIVE_DESKTOP.running){try{detached=await NATIVE_DESKTOP.request('semantic-detach'")&&operatorAgent.includes("if(REAL_REMOTE_LIVE.size===0){NATIVE_DESKTOP.closeIfIdle();scheduleDeviceDuplexIdleClose();}"),'rmv2-stale-live-close-no-helper-spawn');
 console.log('V10_DESKTOP_PRODUCTIZATION_GATE=PASS');

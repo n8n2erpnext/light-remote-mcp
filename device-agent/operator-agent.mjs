@@ -331,12 +331,12 @@ async function executeDesktopCommand(state,p,{hub=DEFAULT_HUB}={}){
     const row=REAL_REMOTE_LIVE.get(semanticSessionId);let detached=null;
     if(row)detached=await stopRealRemoteLive(row,{detach:true,notify:true});
     else{
-      try{detached=await NATIVE_DESKTOP.request('semantic-detach',{semanticSessionId},{timeoutMs:10000});}catch(error){if(!/session_(missing|not_found)/.test(String(error?.message||error)))throw error;}
+      if(NATIVE_DESKTOP.running){try{detached=await NATIVE_DESKTOP.request('semantic-detach',{semanticSessionId},{timeoutMs:10000});}catch(error){if(!/session_(missing|not_found)/.test(String(error?.message||error)))throw error;}}
       const closePayload={sessionId:String(p.sessionId||''),agentId:String(p.agentId||''),semanticSessionId,stateSeq:0,inputSeq:0,rootEpoch:0,events:[],snapshot:null,heartbeat:false,closed:true};
       let sent=false;if(deviceDuplexStatus().ready){try{sent=await DEVICE_DUPLEX.sendLive(closePayload);}catch{}}
       if(!sent){try{await channelRequest(readState()||state,hub,'desktop-live-push',closePayload);}catch{}}
     }
-    if(REAL_REMOTE_LIVE.size===0)scheduleDeviceDuplexIdleClose();
+    if(REAL_REMOTE_LIVE.size===0){NATIVE_DESKTOP.closeIfIdle();scheduleDeviceDuplexIdleClose();}
     return {ok:true,operation:op,desktop:{semanticSessionId,closed:true,detached}};
   }
   if(op==='windows')return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('windows',{limit:Math.max(1,Math.min(Number(request.limit)||100,200))})};
