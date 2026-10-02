@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import fs from 'node:fs';
-import { DeviceDuplexClient, DEVICE_DUPLEX_PROTOCOL } from '../../lib/device-duplex-client.mjs';
+import { CommandExecutionCoordinator, DeviceDuplexClient, DEVICE_DUPLEX_PROTOCOL } from '../../lib/device-duplex-client.mjs';
 
 const packageManifest=JSON.parse(fs.readFileSync(new URL('../../client/core-files.json',import.meta.url),'utf8'));
 assert.ok(packageManifest.files.some(row=>row.source==='lib/device-duplex-client.mjs'&&row.destination==='lib/device-duplex-client.mjs'),'device_duplex_client_not_packaged');
@@ -53,3 +53,27 @@ assert.equal(closeFrame.type,'close');
 assert.equal(duplex.status().active,false);
 server.close();
 console.log(JSON.stringify({gate:'M6B_DEVICE_DUPLEX_CLIENT',status:'PASS',connections,epochChanges,metrics:duplex.status()}));
+
+
+const coordinator=new CommandExecutionCoordinator();
+let coordinatedExecutions=0,releaseCoordinated;
+const coordinatedGate=new Promise(resolve=>{releaseCoordinated=resolve;});
+const pollOwner=coordinator.run('cmd_transport_race','poll',async()=>{coordinatedExecutions++;await coordinatedGate;return {commandId:'cmd_transport_race',status:'ok',exitCode:0};});
+const duplexDuplicate=coordinator.run('cmd_transport_race','duplex',async()=>{coordinatedExecutions++;return {commandId:'cmd_transport_race',status:'wrong'};});
+await waitFor(()=>coordinatedExecutions===1,1000);
+releaseCoordinated();
+const [ownerClaim,duplicateClaim]=await Promise.all([pollOwner,duplexDuplicate]);
+assert.equal(coordinatedExecutions,1);
+assert.equal(ownerClaim.owner,true);
+assert.equal(ownerClaim.transport,'poll');
+assert.equal(duplicateClaim.owner,false);
+assert.equal(duplicateClaim.transport,'poll');
+assert.deepEqual(duplicateClaim.result,ownerClaim.result);
+assert.equal(coordinator.size(),0);
+
+const suppressClient=new DeviceDuplexClient({onCommand:async()=>undefined});
+suppressClient.ready=true;
+await suppressClient._runCommand({commandId:'cmd_suppress_nonowner'});
+assert.equal(suppressClient.status().suppressedResults,1);
+assert.equal(suppressClient.status().results,0);
+console.log('M6B_COMMAND_TRANSPORT_OWNERSHIP=PASS');

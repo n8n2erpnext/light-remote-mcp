@@ -22,7 +22,7 @@ import realRemoteInputPolicy from '../lib/real-remote-input.cjs';
 import { LightScpRegistry } from '../lib/light-scp-registry.mjs';
 import { normalizeUpdateReport, normalizeUpdateStatus } from '../lib/update-contract.mjs';
 import { runtimeVersion } from '../lib/runtime-version.mjs';
-import { DeviceDuplexClient, DEVICE_DUPLEX_PROTOCOL } from '../lib/device-duplex-client.mjs';
+import { CommandExecutionCoordinator, DeviceDuplexClient, DEVICE_DUPLEX_PROTOCOL } from '../lib/device-duplex-client.mjs';
 
 const VERSION=runtimeVersion({envNames:['LIGHT_REMOTE_VERSION','OPERATOR_AGENT_VERSION']});
 const CORE_ROOT=fileURLToPath(new URL('../',import.meta.url));
@@ -109,6 +109,7 @@ async function channelRequest(state,hubBase,action,payload){
   return next;
 }
 const REAL_REMOTE_LIVE=new Map();
+const COMMAND_EXECUTIONS=new CommandExecutionCoordinator();
 let DEVICE_DUPLEX=null,DEVICE_DUPLEX_IDLE_DEADLINE=0,DEVICE_DUPLEX_IDLE_TIMER=null;
 const DEVICE_DUPLEX_IDLE_CLOSE_MS=Math.max(500,Math.min(Number(process.env.LIGHT_REMOTE_DEVICE_DUPLEX_IDLE_CLOSE_MS)||1500,10000));
 function deviceDuplexStatus(){return DEVICE_DUPLEX?.status?.()||{active:false,ready:false};}
@@ -129,7 +130,9 @@ function duplexHeartbeatPayload(){
 }
 async function duplexExecuteCommand(command,hub){
   const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
-  const deviceReceivedAt=Date.now(),result=await executeCommand(state,command,{hub}),completedAt=Date.now(),reportedFirst=Number(result.telemetry?.firstOutputAt);
+  const deviceReceivedAt=Date.now(),claim=await COMMAND_EXECUTIONS.run(command.commandId,'duplex',()=>executeCommand(state,command,{hub}));
+  if(!claim.owner){console.log(JSON.stringify({event:'device_command_duplicate_suppressed',commandId:command.commandId,ownerTransport:claim.transport,duplicateTransport:'duplex'}));return undefined;}
+  const result=claim.result,completedAt=Date.now(),reportedFirst=Number(result.telemetry?.firstOutputAt);
   result.telemetry={...(result.telemetry||{}),deviceReceivedAt,firstOutputAt:Number.isSafeInteger(reportedFirst)&&reportedFirst>0?reportedFirst:completedAt,completedAt,deviceTransport:'duplex-v1'};
   return result;
 }
@@ -643,8 +646,9 @@ async function daemon(args){
         let commandPulseTimer=null,commandPulseBusy=false;
         const commandPulse=async()=>{if(stopped||commandPulseBusy)return;commandPulseBusy=true;try{const current=readState()||state;if(!current?.enrollment?.deviceId||!cloudDesired(current))return;await channelRequest(current,hub,'poll',{nodeId:current.enrollment.nodeId||current.enrollment.deviceId,agentVersion:VERSION,sessionCeiling,draining:true,capabilities:effectiveCapabilitiesForState(current),policyRevision:Math.max(0,Number(current.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView(),waitMs:0});}catch(error){console.error(JSON.stringify({event:'device_command_liveness_failed',deviceId:state.enrollment?.deviceId||null,commandId:command.commandId,error:error.message,status:error.status||null}));}finally{commandPulseBusy=false;}};
         await commandPulse();commandPulseTimer=setInterval(()=>void commandPulse(),commandHeartbeatMs);commandPulseTimer.unref?.();
-        let result;
-        try{result=await executeCommand(state,command,{hub});}finally{if(commandPulseTimer)clearInterval(commandPulseTimer);}
+        let result,claim;
+        try{claim=await COMMAND_EXECUTIONS.run(command.commandId,'poll',()=>executeCommand(state,command,{hub}));result=claim.result;}finally{if(commandPulseTimer)clearInterval(commandPulseTimer);}
+        if(!claim.owner){console.log(JSON.stringify({event:'device_command_duplicate_suppressed',commandId:command.commandId,ownerTransport:claim.transport,duplicateTransport:'poll'}));continue;}
         const completedAt=Date.now();
         const reportedFirst=Number(result.telemetry?.firstOutputAt);
         result.telemetry={...(result.telemetry||{}),deviceReceivedAt,firstOutputAt:Number.isSafeInteger(reportedFirst)&&reportedFirst>0?reportedFirst:completedAt,completedAt};
