@@ -7,9 +7,14 @@ const root=fs.mkdtempSync(path.join(os.tmpdir(),'lr-native-fs-'));
 const policy={readRoots:[root],writeRoots:[root]};
 const call=input=>executeNativeFs(input,{policy});
 const file=path.join(root,'a.txt'),copy=path.join(root,'copy.txt'),moved=path.join(root,'moved.txt');
+const utf8File=path.join(root,'đường-dẫn-🐸.txt'),utf8Text='Xin chào Việt Nam 🐸\nDòng hai: café · 日本語 · 🚀\n';
 
 let r=await call({op:'write',path:file,content:'one\ntwo\nthree\n',atomic:true});
 if(!r.ok||r.writtenBytes!==14)throw new Error('write_failed');
+r=await call({op:'write',path:utf8File,content:utf8Text,atomic:true});
+if(!r.ok||r.writtenBytes!==Buffer.byteLength(utf8Text,'utf8'))throw new Error('utf8_write_bytes_failed');
+r=await call({op:'read',path:utf8File,maxLines:10});
+if(!r.text.includes('Xin chào Việt Nam 🐸')||!r.text.includes('café · 日本語 · 🚀'))throw new Error('utf8_roundtrip_failed');
 r=await call({op:'read',path:file,startLine:2,maxLines:1});
 if(r.text!=='two')throw new Error('line_read_failed');
 r=await call({op:'read',path:file,tailLines:2});
@@ -32,5 +37,9 @@ denied=false;try{await call({op:'read',path:'/etc/hosts'});}catch(e){denied=e.st
 if(!denied)throw new Error('root_boundary_failed');
 const final=await call({op:'read',path:file,maxLines:10});
 if(!final.text.includes('TWO'))throw new Error('final_content_wrong');
+const executor=fs.readFileSync(new URL('../../operator-host/executor.mjs',import.meta.url),'utf8');
+if(!executor.includes('function fsActivityMeta')||!executor.includes("toolMeta:job.toolMeta")||!executor.includes('fsActivityResult(job.toolMeta,data)'))throw new Error('native_fs_activity_metadata_missing');
 fs.rmSync(root,{recursive:true,force:true});
+console.log('v10-native-fs-utf8=PASS');
+console.log('v10-native-fs-activity-meta=PASS');
 console.log('v10-native-fs=PASS');

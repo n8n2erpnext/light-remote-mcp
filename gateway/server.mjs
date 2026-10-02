@@ -157,7 +157,7 @@ function clientAddress(req){return String(req.ip||req.socket.remoteAddress||'unk
 function accountRateIdentity(req){const token=String(req.get('x-light-account-session')||'').trim();return token?`session:${rateIdentity(token)}`:`ip:${clientAddress(req)}`;}
 function plusRateIdentity(req){
   const client=String(req.headers['x-light-client']||'').trim();
-  if(/^o1\.client\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(client))return `client:${rateIdentity(client)}`;
+  if(/^o1\.client\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(client)||/^lr1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(client))return `client:${rateIdentity(client)}`;
   const session=String(req.headers['x-plus-session']||'').trim();
   if(/^o1\.plus\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(session))return `session:${rateIdentity(session)}`;
   const agent=String(req.body?.agentId||'').trim();

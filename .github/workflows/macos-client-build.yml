@@ -27,7 +27,7 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - 'client/core-files.json'
-      - 'assets/branding/**'
+      - 'assets/**'
       - '.github/workflows/macos-client-build.yml'
   workflow_dispatch:
   workflow_call:

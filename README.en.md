@@ -278,6 +278,7 @@ Private device keys and the private update-signing key are not sent in client pa
 
 Public `main` keeps the current code and release contracts clean. Pre-Beta handoffs/plans are frozen on [`before-beta`](https://github.com/n8n2erpnext/light-remote-mcp/tree/before-beta).
 - Development/test guide: [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)
+- Repository lanes: [`REPO_LANES.md`](REPO_LANES.md)
 - Vercel bridge: [`deploy/vercel/README.md`](deploy/vercel/README.md)
 - Host executor: [`operator-host/README.md`](operator-host/README.md)
 - Signed Beta channel: [`channels/beta/README.md`](channels/beta/README.md)

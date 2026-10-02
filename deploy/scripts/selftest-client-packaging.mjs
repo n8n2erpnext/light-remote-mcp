@@ -18,6 +18,9 @@ expect(linuxWorkflow.includes('stage-client-core.mjs "$PKG"')&&coreSources.has('
 expect(coreSources.has('device-agent/local-wall-auth.mjs'),'linux_local_wall_auth_not_bundled');
 expect(coreSources.has('assets/branding/light-remote-mark.svg'),'linux_local_wall_brand_not_bundled');
 expect(coreSources.has('assets/branding/light-remote-mark-256.png'),'linux_tray_brand_png_not_bundled');
+expect(coreSources.has('assets/fonts/CascadiaMono.ttf'),'linux_offline_terminal_font_not_bundled');
+expect(coreSources.has('assets/fonts/CascadiaMono-OFL.txt'),'linux_offline_terminal_font_license_not_bundled');
+expect(linuxWorkflow.includes("'assets/**'"),'linux_asset_workflow_trigger_too_narrow');
 expect(linuxWorkflow.includes('test -s "$PKG/LICENSE"')&&linuxWorkflow.includes('test -s "$PKG/NOTICE"'),'linux_project_license_not_verified');
 expect(linuxWorkflow.includes('actions/upload-artifact@v4'),'linux_artifact_upload_missing');
 expect(linuxWorkflow.includes('(cd "$OUT" && sha256sum "Light-Remote-MCP-Client-Linux-${TARGET_ARCH}-${VERSION}.tar.gz")'),'linux_checksum_not_portable');

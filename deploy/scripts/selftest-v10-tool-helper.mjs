@@ -10,6 +10,7 @@ assert.match(hint.instruction,/canonical runtime tool contract/);
 const view=toolHelperView({context:{deviceId:'dev1',sessionId:'s_1234567890123456',agentId:'a_1234567890123456',nodeId:'node1',workspace:'/tmp'}});
 assert.equal(view.kind,'light-remote-tool-helper');
 assert.equal(view.target.deviceId,'dev1');
+assert.match(view.transport.payload,/UTF-8 JSON/);
 assert.ok(view.tools.fs&&view.tools.search&&view.tools.process&&view.tools.exec&&view.tools.scp&&view.tools.bridgeTransfer&&view.tools.durable);
 assert.match(view.tools.scp.when,/binary or large files/i);
 for(const op of ['upload-begin','upload-chunk','upload-commit','download-begin','download-chunk','status','cancel'])assert.ok(JSON.stringify(view.tools.scp.ops).includes(op),`missing_scp_op:${op}`);

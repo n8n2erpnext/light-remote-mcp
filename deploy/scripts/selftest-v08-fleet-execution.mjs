@@ -54,6 +54,11 @@ const accepted=await request('POST','/v1/device-channel/result',signed('result',
 if(accepted.status!==200||accepted.json.duplicate!==false||accepted.json.job?.status!=='ok')throw new Error(`remote_result_failed:${accepted.status}:${accepted.json.error}`);
 const duplicate=await request('POST','/v1/device-channel/result',signed('result',result));
 if(duplicate.status!==200||duplicate.json.duplicate!==true)throw new Error(`duplicate_result_not_idempotent:${duplicate.status}:${duplicate.json.error}`);
+const recoveredCommandId='cmd_late_result_recovery_1234567890';
+fs.appendFileSync(path.join(logDir,'operations.jsonl'),JSON.stringify({at:new Date().toISOString(),type:'node_command_abandoned',accountId:'self-hosted-local',deviceId,nodeId,jobId:'job_late_result_recovery_1234567890',commandId:recoveredCommandId,status:'error',reason:'remote_result_timeout'})+'\n');
+const recovered=await request('POST','/v1/device-channel/result',signed('result',{commandId:recoveredCommandId,status:'ok',exitCode:0,stdout:'late\n',stderr:'',durationMs:70000}));
+if(recovered.status!==200||recovered.json.accepted!==true||recovered.json.duplicate!==true)throw new Error(`persisted_abandon_receipt_failed:${recovered.status}:${recovered.json.error}`);
+console.log('v11-persisted-abandon-late-result-ack=PASS');
 const output=await request('GET',`/v1/output/${jobId}?agentId=${agent1}&stream=stdout&full=1&limit=1048576`);
 if(output.status!==200||output.json.output!=='leaf-ok\n')throw new Error(`remote_output_wrong:${JSON.stringify(output.json.output)}`);
 const policyChanged=await request('POST',`/v1/devices/${deviceId}/policy`,{deviceId,accountId:'self-hosted-local',approvedCapabilities:['filesystem'],policyProfile:'restricted'});

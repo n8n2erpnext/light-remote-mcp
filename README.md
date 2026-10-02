@@ -287,7 +287,7 @@ Agent phải đi theo response của Connection Helper thay vì tự đoán prot
 1. A hợp lệ → server tạo request và trả **B code / approval_required**.
 2. Trên **chính Local Wall đã tạo A**, mở **Approve B**, nhập B và kiểm tra label Agent.
 3. Bấm **Approve**.
-4. ChatGPT gọi lại `connection-helper` bằng `helper.nextPayload` cho tới khi nhận `READY`.
+4. ChatGPT replay nguyên `helper.nextUrl` qua `@Vercel web_fetch_vercel_url` cho tới khi nhận `READY`; chỉ dùng `helper.nextPayload` như fallback private contract.
 5. Sau READY, Agent giữ opaque client ở nội bộ, nạp `tool-helper` và dùng exact context được trả về.
 
 Từ đây bạn có thể nói tự nhiên như: “vào repo này xem test fail”, “kiểm Docker trên VPS”, “mở terminal chạy TUI”, “copy file này sang máy Windows”, hoặc “theo dõi process build”. Agent sẽ chọn tool phù hợp theo Tool Helper và quyền bạn đã bật trên Wall.
@@ -326,6 +326,7 @@ Xem [`SECURITY.md`](SECURITY.md) trước khi public Hub/Wall hoặc cấp quy�
 Public `main` giữ code/release contracts sạch; lịch sử handoff/plan trước Beta được đóng băng ở branch [`before-beta`](https://github.com/n8n2erpnext/light-remote-mcp/tree/before-beta).
 
 - Hướng dẫn phát triển/test: [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)
+- Repository lanes: [`REPO_LANES.md`](REPO_LANES.md)
 - Vercel bridge: [`deploy/vercel/README.md`](deploy/vercel/README.md)
 - Host executor: [`operator-host/README.md`](operator-host/README.md)
 - Signed Beta channel: [`channels/beta/README.md`](channels/beta/README.md)

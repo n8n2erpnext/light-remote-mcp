@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "id": "primary-vercel",
+  "role": "primary",
+  "canonicalBranch": "main",
+  "transport": "vercel",
+  "developmentAuthority": true,
+  "inheritsFrom": null,
+  "requiredPaths": [
+    "api/operator.js",
+    "deploy/vercel/README.md",
+    "gateway/server.mjs",
+    "operator-host/executor.mjs"
+  ],
+  "forbiddenPaths": [
+    "netlify",
+    "netlify.toml",
+    "plugin-server",
+    "plugin.json",
+    "mcp.json",
+    "deploy/reviewer"
+  ]
+}

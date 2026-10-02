@@ -1,3 +1,6 @@
+import plusBatchPolicy from '../lib/plus-batch-policy.cjs';
+const { inspectPlusExecPayload } = plusBatchPolicy;
+
 function transferOwner(req){
   return {
     clientSessionId:req.plusClient?.clientSessionId,
@@ -50,6 +53,7 @@ export function createPlusTransferHandlers(deps){
       if(!payload||typeof payload!=='object'||Array.isArray(payload)){const error=new Error('transfer_payload_invalid');error.status=400;throw error;}
       const allowed=new Set(['exec_batch','fs','process','search','scp']);
       if(!allowed.has(String(payload.action||''))){const error=new Error('transfer_payload_action_not_allowed');error.status=400;throw error;}
+      if(String(payload.action||'')==='exec_batch')inspectPlusExecPayload(payload,{transport:'transfer'});
       const agentId=String(req.plusClient?.agentId||'').trim();
       const nodeId=String(req.plusClientDevice?.device?.nodeId||'').trim();
       if(!agentId){const error=new Error('transfer_agent_identity_missing');error.status=401;throw error;}

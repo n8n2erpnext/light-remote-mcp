@@ -9,7 +9,7 @@ const text=file=>fs.readFileSync(path.join(root,file),'utf8');
 function expect(value,message){if(!value)throw new Error(message);}
 
 const version=text('VERSION').trim();
-expect(/^0\.9\.0-(?:beta|rc)\.[0-9]+$/.test(version),'prerelease_version_file_invalid');
+expect(/^0\.9\.[0-9]+-(?:beta|rc)\.[0-9]+$/.test(version),'prerelease_version_file_invalid');
 expect(JSON.parse(text('package.json')).version===version,'package_version_mismatch');
 expect(text('LICENSE').includes('Apache License')&&text('LICENSE').includes('Version 2.0'),'apache_license_missing');
 expect(text('NOTICE').includes('Light Remote MCP'),'notice_missing');
@@ -29,7 +29,7 @@ expect(!linuxClientWorkflow.includes('GPT-Operator-Agent-Linux-${{ matrix.arch }
 expect(text('.github/workflows/vercel-bridge-package.yml').includes('vercel-bridge-package-contract=PASS'),'vercel_bundle_ci_missing');
 expect(text('lib/operator-crypto.js').includes('OPERATOR_PUBLIC_KEYS_JSON'),'vercel_public_key_env_override_missing');
 const readmeVi=text('README.md'),readmeEn=text('README.en.md');
-expect(readmeVi.includes('## Quick start cho người ít kinh nghiệm')&&readmeVi.includes('### Bước 5 — cho ChatGPT Web kết nối tới đúng máy'),'readme_vi_user_quickstart_missing');
+expect(readmeVi.includes('## Quick start')&&readmeVi.includes('### Bước 5 — cho ChatGPT Web kết nối tới đúng máy'),'readme_vi_user_quickstart_missing');
 expect(readmeEn.includes('## Quick start for low-tech users')&&readmeEn.includes('### Step 5 — connect ChatGPT Web to the exact machine'),'readme_en_user_quickstart_missing');
 expect(readmeVi.includes('connection-helper')&&readmeVi.includes('Vercel bridge URL'),'readme_connection_helper_vercel_path_missing');
 expect(text('api/guide.js').includes("directMcp:'Business/Enterprise/Edu test/future Plugin lane only'"),'direct_mcp_boundary_contract_missing');
