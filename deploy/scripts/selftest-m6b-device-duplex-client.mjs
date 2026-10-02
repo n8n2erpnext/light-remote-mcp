@@ -80,4 +80,8 @@ suppressClient.ready=true;
 await suppressClient._runCommand({commandId:'cmd_suppress_nonowner'});
 assert.equal(suppressClient.status().suppressedResults,1);
 assert.equal(suppressClient.status().results,0);
+const operatorAgent=fs.readFileSync(new URL('../../device-agent/operator-agent.mjs',import.meta.url),'utf8');
+assert.ok(operatorAgent.includes("event:'device_command_duplicate_replayed'"),'duplex_duplicate_replay_event_missing');
+assert.ok(operatorAgent.includes("const source=claim.result;if(!source||typeof source!=='object'||Array.isArray(source))return source;"),'duplex_duplicate_cached_result_missing');
+assert.ok(!operatorAgent.includes("duplicateTransport:'duplex'}));return undefined;"),'duplex_duplicate_result_still_suppressed');
 console.log('M6B_COMMAND_TRANSPORT_OWNERSHIP=PASS');

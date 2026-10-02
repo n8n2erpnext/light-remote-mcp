@@ -131,9 +131,10 @@ function duplexHeartbeatPayload(){
 async function duplexExecuteCommand(command,hub){
   const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
   const deviceReceivedAt=Date.now(),claim=await COMMAND_EXECUTIONS.run(command.commandId,'duplex',()=>executeCommand(state,command,{hub}));
-  if(!claim.owner){console.log(JSON.stringify({event:'device_command_duplicate_suppressed',commandId:command.commandId,ownerTransport:claim.transport,duplicateTransport:'duplex'}));return undefined;}
-  const result=claim.result,completedAt=Date.now(),reportedFirst=Number(result.telemetry?.firstOutputAt);
-  result.telemetry={...(result.telemetry||{}),deviceReceivedAt,firstOutputAt:Number.isSafeInteger(reportedFirst)&&reportedFirst>0?reportedFirst:completedAt,completedAt,deviceTransport:'duplex-v1'};
+  if(!claim.owner)console.log(JSON.stringify({event:'device_command_duplicate_replayed',commandId:command.commandId,ownerTransport:claim.transport,duplicateTransport:'duplex'}));
+  const source=claim.result;if(!source||typeof source!=='object'||Array.isArray(source))return source;
+  const result={...source,telemetry:{...(source.telemetry||{})}},completedAt=Date.now(),reportedFirst=Number(result.telemetry?.firstOutputAt);
+  result.telemetry={...(result.telemetry||{}),deviceReceivedAt,firstOutputAt:Number.isSafeInteger(reportedFirst)&&reportedFirst>0?reportedFirst:completedAt,completedAt,deviceTransport:'duplex-v1',duplicateTransport:claim.owner?null:'duplex'};
   return result;
 }
 async function resyncLiveAfterDuplexEpochChange(){
