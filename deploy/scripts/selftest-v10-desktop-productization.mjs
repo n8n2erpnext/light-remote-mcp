@@ -31,6 +31,7 @@ const robotContext=read('client/windows-native/GptOperator.RealRemoteV2/RobotCon
 const rmProject=read('client/windows-native/GptOperator.RealRemoteV2/GptOperator.RealRemoteV2.csproj');
 const agentHost=read('client/windows-native/GptOperator.Client/AgentHost.cs');
 const windowsWorkflow=read('.github/workflows/windows-native-client.yml');
+const windowsInstaller=read('client/windows-native/installer/GptOperator.iss');
 need(csproj.includes('<Compile Remove="MainForm.cs;ConnectionSwitch.cs;ConnectionSettingsDialog.cs"'),'desktop-no-native-window');
 need(csproj.includes('net8.0-windows10.0.17763.0'),'windows-10-11-target');
 need(winTray.includes('Open Local Wall')&&winTray.includes('Quit tray')&&winTray.includes('Stop Light Remote'),'windows-tray-controls');
@@ -71,4 +72,5 @@ need(rmProject.includes('<AssemblyName>LightRemote.RM</AssemblyName>')&&rmProjec
 need(robotContext.includes('Light Remote RM - Remote active')&&robotContext.includes('ShowBalloonTip(2500,"Light Remote RM"')&&robotContext.includes('Icon.ExtractAssociatedIcon'),'rm-branding-notify-icon');
 need(agentHost.includes('"LightRemote.RM.exe"'),'rm-branding-agent-host-path');
 need(windowsWorkflow.includes('LightRemote.RM.exe')&&!windowsWorkflow.includes('GptOperator.RealRemoteV2.exe'),'rm-branding-workflow-path');
+need(windowsInstaller.includes('[InstallDelete]')&&windowsInstaller.includes('{app}\\realremote-v2\\GptOperator.RealRemoteV2.*'),'rm-branding-obsolete-binary-cleanup');
 console.log('V10_DESKTOP_PRODUCTIZATION_GATE=PASS');

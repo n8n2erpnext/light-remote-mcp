@@ -56,6 +56,9 @@ Source: "{#StageDir}\VERSION"; DestDir: "{app}"; Flags: ignoreversion; AfterInst
 #endif
 Source: "{#StageDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
+[InstallDelete]
+Type: files; Name: "{app}\realremote-v2\GptOperator.RealRemoteV2.*"
+
 [Registry]
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "Light Remote MCP"; ValueData: """{app}\GptOperator.Client.exe"" --background"; Flags: uninsdeletevalue
 
