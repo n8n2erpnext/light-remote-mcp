@@ -7,16 +7,18 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { deviceHeartbeatMessage } from '../../lib/device-proof.mjs';
+import { createOperatorCryptoFixture } from './selftest-crypto-fixture.mjs';
+import { ipcEndpoint, removeIpcEndpoint, waitForIpc } from './selftest-ipc.mjs';
 
 const root=fileURLToPath(new URL('../..',import.meta.url)), run=`${process.pid}-${Date.now()}`;
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'gpt-enrollment-endpoints-'));
-const socketPath=path.join(dir,'operator.sock'), logDir=path.join(dir,'log'), stateDir=path.join(dir,'state');
+const socketPath=ipcEndpoint('gpt-enrollment-endpoints'), logDir=path.join(dir,'log'), stateDir=path.join(dir,'state');
 fs.mkdirSync(logDir,{recursive:true}); fs.mkdirSync(stateDir,{recursive:true});
-const child=spawn(process.execPath,[`${root}/operator-host/executor.mjs`],{cwd:root,env:{...process.env,OPERATOR_SOCKET:socketPath,OPERATOR_LOG_DIR:logDir,OPERATOR_STATE_DIR:stateDir,OPERATOR_KEY_FILE:'/home/ubuntu/.config/gpt-vps-operator/operator.private.json',OPERATOR_DEVICE_PRESENCE_TTL_MS:'90000',OPERATOR_DEVICE_HEARTBEAT_MS:'30000'},stdio:['ignore','pipe','pipe']});
+const cryptoFixture=createOperatorCryptoFixture(stateDir);
+const child=spawn(process.execPath,[`${root}/operator-host/executor.mjs`],{cwd:root,env:{...process.env,OPERATOR_SOCKET:socketPath,OPERATOR_LOG_DIR:logDir,OPERATOR_STATE_DIR:stateDir,OPERATOR_KEY_FILE:cryptoFixture.privateFile,OPERATOR_DEVICE_PRESENCE_TTL_MS:'90000',OPERATOR_DEVICE_HEARTBEAT_MS:'30000'},stdio:['ignore','pipe','pipe']});
 let stderr=''; child.stderr.on('data',c=>stderr+=c);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-for(let i=0;i<100&&!fs.existsSync(socketPath);i++)await sleep(40);
-if(!fs.existsSync(socketPath))throw new Error(`executor_not_ready:${stderr}`);
+await waitForIpc(socketPath,{attempts:100,delayMs:40,error:'executor_not_ready',details:()=>stderr});
 function request(method,target,body){return new Promise((resolve,reject)=>{const payload=body==null?null:Buffer.from(JSON.stringify(body));const req=http.request({socketPath,method,path:target,headers:payload?{'content-type':'application/json','content-length':payload.length}:{}},res=>{let text='';res.on('data',c=>text+=c);res.on('end',()=>{let json;try{json=JSON.parse(text)}catch{json={raw:text}}resolve({status:res.statusCode,json});});});req.on('error',reject);if(payload)req.write(payload);req.end();});}
 const executorSource=readOperatorSourceSurface(root);
 for(const token of ["revokeRuntimeForDevice(device.deviceId,'account_owner_revoked')","revokeRuntimeForDevice(device.deviceId,'account_owner_revoke_all')","revokeRuntimeForDevice(revokeMatch[1],body.reason||'owner_revoked')","connections.disconnect(deviceId,why)"]){if(!executorSource.includes(token))throw new Error('revoke_cascade_contract_missing:'+token);}
@@ -68,4 +70,4 @@ if(reapproved.status!==200||reapproved.json.approval?.deviceId!==deviceId||reapp
 const stateText=fs.readFileSync(path.join(stateDir,'enrollments.json'),'utf8');
 if(stateText.includes(e.deviceCode)||stateText.includes(privateKey.export({format:'der',type:'pkcs8'}).toString('base64')))throw new Error('host_state_secret_leak');
 console.log(JSON.stringify({ok:true,version:caps.json.version,enrollmentId:e.enrollmentId,deviceId,approvedState:approved.json.device.state,heartbeatState:heart.json.device.state,capabilities:heart.json.device.capabilities,replay:replay.json.error,revoked:revoked.json.device.state,revokeClosedLease:true,usageClockClosed:true,reenrolled:reapproved.json.device.state},null,2));
-child.kill('SIGTERM'); await sleep(100); fs.rmSync(dir,{recursive:true,force:true});
+child.kill('SIGTERM'); await sleep(100); removeIpcEndpoint(socketPath); fs.rmSync(dir,{recursive:true,force:true});

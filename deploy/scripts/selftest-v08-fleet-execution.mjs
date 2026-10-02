@@ -7,17 +7,19 @@ import crypto from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { createOperatorCryptoFixture } from './selftest-crypto-fixture.mjs';
 import { deviceChannelMessage } from '../../lib/device-proof.mjs';
+import { ipcEndpoint, removeIpcEndpoint, waitForIpc } from './selftest-ipc.mjs';
 
 const root=fileURLToPath(new URL('../..',import.meta.url));
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'gpt-v08-fleet-exec-'));
-const socketPath=path.join(dir,'operator.sock'),logDir=path.join(dir,'log'),stateDir=path.join(dir,'state');
+const socketPath=ipcEndpoint('gpt-v08-fleet-exec'),logDir=path.join(dir,'log'),stateDir=path.join(dir,'state');
 fs.mkdirSync(logDir,{recursive:true});fs.mkdirSync(stateDir,{recursive:true});
 const cryptoFixture=createOperatorCryptoFixture(stateDir);
 const child=spawn(process.execPath,[`${root}/operator-host/executor.mjs`],{cwd:root,env:{...process.env,OPERATOR_SOCKET:socketPath,OPERATOR_LOG_DIR:logDir,OPERATOR_STATE_DIR:stateDir,OPERATOR_KEY_FILE:cryptoFixture.privateFile,OPERATOR_DEVICE_PRESENCE_TTL_MS:'90000',OPERATOR_DEVICE_HEARTBEAT_MS:'30000',OPERATOR_FLEET_CHANNEL_TTL_MS:'5000',OPERATOR_FLEET_COMMAND_LEASE_MS:'2000'},stdio:['ignore','pipe','pipe']});
 let stderr='';child.stderr.on('data',c=>stderr+=c);
+const cleanupChild=()=>{try{if(child.exitCode==null)child.kill('SIGTERM');}catch{}};process.on('exit',cleanupChild);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-for(let i=0;i<100&&!fs.existsSync(socketPath);i++)await sleep(40);
-if(!fs.existsSync(socketPath))throw new Error(`executor_not_ready:${stderr}`);
+await waitForIpc(socketPath,{attempts:100,delayMs:40,error:'executor_not_ready',details:()=>stderr});
+
 function request(method,target,body){return new Promise((resolve,reject)=>{const payload=body==null?null:Buffer.from(JSON.stringify(body));const req=http.request({socketPath,method,path:target,headers:payload?{'content-type':'application/json','content-length':payload.length}:{}},res=>{let text='';res.on('data',c=>text+=c);res.on('end',()=>{let json;try{json=JSON.parse(text)}catch{json={raw:text}}resolve({status:res.statusCode,json});});});req.on('error',reject);if(payload)req.write(payload);req.end();});}
 const {publicKey,privateKey}=crypto.generateKeyPairSync('ed25519');
 const publicIdentityKey=publicKey.export({format:'der',type:'spki'}).toString('base64');
@@ -85,4 +87,4 @@ for(const token of ['node_channel_online','node_command_queued','node_command_di
 if(!audit.includes(`\"nodeId\":\"${nodeId}\"`))throw new Error('audit_node_attribution_missing');
 console.log(JSON.stringify({ok:true,version:(await request('GET','/v1/capabilities')).json.version,nodeId,sessionId,jobId,route:started.json.job.route,duplicateAck:duplicate.json.duplicate,output:output.json.output.trim(),drainBlocked:blocked.json.error},null,2));
 console.log('v08-fleet-execution=PASS');
-child.kill('SIGTERM');await sleep(100);fs.rmSync(dir,{recursive:true,force:true});
+cleanupChild();await sleep(100);removeIpcEndpoint(socketPath);fs.rmSync(dir,{recursive:true,force:true});

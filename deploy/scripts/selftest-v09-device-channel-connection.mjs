@@ -6,13 +6,14 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { createOperatorCryptoFixture } from './selftest-crypto-fixture.mjs';
+import { ipcEndpoint, waitForIpc } from './selftest-ipc.mjs';
 import { deviceChannelMessage } from '../../lib/device-proof.mjs';
 
 const root=fileURLToPath(new URL('../..',import.meta.url)),currentVersion=fs.readFileSync(`${root}/VERSION`,'utf8').trim(),dir=fs.mkdtempSync(path.join(os.tmpdir(),'lr-channel-lease-'));
-const socket=path.join(dir,'operator.sock'),logDir=path.join(dir,'log'),stateDir=path.join(dir,'state');fs.mkdirSync(logDir,{recursive:true});fs.mkdirSync(stateDir,{recursive:true});
+const socket=ipcEndpoint('lr-channel-lease'),logDir=path.join(dir,'log'),stateDir=path.join(dir,'state');fs.mkdirSync(logDir,{recursive:true});fs.mkdirSync(stateDir,{recursive:true});
 const fixture=createOperatorCryptoFixture(stateDir);
 const child=spawn(process.execPath,[`${root}/operator-host/executor.mjs`],{cwd:root,env:{...process.env,OPERATOR_SOCKET:socket,OPERATOR_LOG_DIR:logDir,OPERATOR_STATE_DIR:stateDir,OPERATOR_KEY_FILE:fixture.privateFile,OPERATOR_CONNECTION_LEASE_ENFORCE:'1',OPERATOR_ACCOUNT_PLAN:'free'},stdio:['ignore','pipe','pipe']});
-const sleep=ms=>new Promise(r=>setTimeout(r,ms));for(let i=0;i<100&&!fs.existsSync(socket);i++)await sleep(40);if(!fs.existsSync(socket))throw new Error('executor_not_ready');
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));await waitForIpc(socket,{attempts:100,delayMs:40,error:'executor_not_ready'});
 function request(method,target,body,extraHeaders={}){return new Promise((resolve,reject)=>{const payload=body==null?null:Buffer.from(JSON.stringify(body)),headers={...extraHeaders};if(payload){headers['content-type']='application/json';headers['content-length']=payload.length;}const req=http.request({socketPath:socket,method,path:target,headers},res=>{let text='';res.on('data',c=>text+=c);res.on('end',()=>{let json;try{json=JSON.parse(text)}catch{json={raw:text}}resolve({status:res.statusCode,json});});});req.on('error',reject);if(payload)req.write(payload);req.end();});}
 const accountEmail=`wall-${crypto.randomBytes(4).toString('hex')}@example.test`,accountPassword=`Wall-${crypto.randomBytes(18).toString('base64url')}`;
 let r=await request('POST','/v1/accounts/register',{email:accountEmail,password:accountPassword,ownerProofVerified:true});
