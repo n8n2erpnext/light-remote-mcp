@@ -25,8 +25,10 @@ internal static class Program
     private static string CurrentVersion(string installDir){if(!Path.IsPathFullyQualified(installDir))throw new InvalidOperationException("Install directory must be absolute.");var file=Path.Combine(installDir,"VERSION");if(!File.Exists(file))throw new FileNotFoundException("Installed VERSION file is missing.",file);return File.ReadAllText(file).Trim();}
     private static void WriteJson(string file,JsonObject value){RecoveryPaths.EnsureDirectories();var tmp=file+"."+Environment.ProcessId+".tmp";File.WriteAllText(tmp,value.ToJsonString());File.Move(tmp,file,true);}
     private static void WriteStatus(string state,string currentVersion,string? targetVersion=null,string? code=null)=>WriteJson(RecoveryPaths.StatusFile,new JsonObject{{"state",state},{"currentVersion",currentVersion},{"targetVersion",targetVersion},{"helperVersion",RecoveryPaths.HelperVersion()},{"code",code},{"updatedAt",DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}});
+    private static bool TryConsumeRestartRequest(){try{RecoveryPaths.EnsureDirectories();var f=RecoveryPaths.RestartRequestFile;if(!File.Exists(f))return false;var fresh=(DateTime.UtcNow-File.GetLastWriteTimeUtc(f))<TimeSpan.FromMinutes(2);File.Delete(f);if(!fresh){UpdateApplier.Log("restart_request_stale_ignored");return false;}return true;}catch(Exception ex){UpdateApplier.Log($"restart_request_consume_failed {ex.GetType().Name}: {ex.Message}");return false;}}
     private static async Task<int> RunCheckUpdateAsync(string installDir)
     {
+        if(TryConsumeRestartRequest()){UpdateApplier.Log("restart_request_consumed");return await UpdateApplier.RestartAgentOnlyAsync(installDir);}
         var current=CurrentVersion(installDir);WriteStatus("checking",current);try{var update=await new UpdateClient().CheckAsync(current);WriteStatus(update is null?"idle":"available",current,update?.Version);return 0;}catch(FileNotFoundException){WriteStatus("idle",current);return 0;}catch{WriteStatus("failed",current,null,"LRU100");throw;}
     }
     private static async Task<int> RunApplyUpdateNowAsync(string installDir)

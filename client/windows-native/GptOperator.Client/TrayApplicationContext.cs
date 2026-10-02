@@ -276,24 +276,30 @@ internal sealed class TrayApplicationContext : ApplicationContext
     private static (bool Ok, string Message) RestartAgentTransactional()
     {
         ClientEvent("restart_requested");
-        var helper=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Light Remote","Updater","LightRemote.Updater.exe");
-        if(!File.Exists(helper)){ClientEvent("restart_broker_missing",new { helper });return (false,"Light Remote restart helper is missing.");}
+        var stateDir=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Light Remote","Updater","state");
+        var request=Path.Combine(stateDir,"restart-request.json");
         try
         {
-            var psi=new ProcessStartInfo(helper){UseShellExecute=false,CreateNoWindow=true};
-            psi.ArgumentList.Add("--restart-agent-only");
-            psi.ArgumentList.Add("--install-dir");
-            psi.ArgumentList.Add(AppPaths.Root);
-            using var process=Process.Start(psi);
-            if(process is null)return (false,"Light Remote restart helper could not start.");
-            ClientEvent("restart_broker_launched",new { pid=process.Id });
-            if(!process.WaitForExit(50000)){ClientEvent("restart_broker_timeout",new { pid=process.Id });return (false,"Light Remote restart helper timed out.");}
-            var wall=WallPortListening();
-            var ok=process.ExitCode==0&&wall;
-            ClientEvent("restart_broker_completed",new { pid=process.Id,exitCode=process.ExitCode,wall });
-            return ok?(true,""):(false,$"Light Remote restart helper failed with exit {process.ExitCode}.");
+            Directory.CreateDirectory(stateDir);
+            File.WriteAllText(request,JsonSerializer.Serialize(new { requestedAt=DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),pid=Environment.ProcessId }));
+            var exitCode=Schtasks("/Run","/TN",UpdateTask);
+            ClientEvent("restart_updater_task_requested",new { exitCode });
+            if(exitCode!=0)
+            {
+                try{File.Delete(request);}catch{}
+                return (false,$"Light Remote updater task could not start (exit {exitCode}).");
+            }
+            var sawDown=WaitForWall(false,20000);
+            var back=WaitForWall(true,45000);
+            ClientEvent("restart_updater_task_observed",new { sawDown,back });
+            return back?(true,""):(false,"Light Remote did not return after restart.");
         }
-        catch(Exception ex){ClientEvent("restart_broker_failed",new { error=ex.Message });return (false,"Light Remote restart helper failed.");}
+        catch(Exception ex)
+        {
+            try{File.Delete(request);}catch{}
+            ClientEvent("restart_updater_task_failed",new { error=ex.Message });
+            return (false,"Light Remote restart request failed.");
+        }
     }
 
     private static void ClientEvent(string name, object? data = null)
