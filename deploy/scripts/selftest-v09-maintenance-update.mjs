@@ -6,11 +6,12 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { createOperatorCryptoFixture } from './selftest-crypto-fixture.mjs';
+import { ipcEndpoint, waitForIpc } from './selftest-ipc.mjs';
 import { deviceChannelMessage } from '../../lib/device-proof.mjs';
 
 const root=fileURLToPath(new URL('../..',import.meta.url));
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'lrm-maintenance-update-'));
-const socketPath=path.join(dir,'operator.sock'),logDir=path.join(dir,'log'),stateDir=path.join(dir,'state');
+const socketPath=ipcEndpoint('lrm-maintenance-update'),logDir=path.join(dir,'log'),stateDir=path.join(dir,'state');
 fs.mkdirSync(logDir,{recursive:true});fs.mkdirSync(stateDir,{recursive:true});
 const cryptoFixture=createOperatorCryptoFixture(stateDir);
 const child=spawn(process.execPath,[`${root}/operator-host/executor.mjs`],{cwd:root,env:{...process.env,OPERATOR_SOCKET:socketPath,OPERATOR_LOG_DIR:logDir,OPERATOR_STATE_DIR:stateDir,OPERATOR_KEY_FILE:cryptoFixture.privateFile,OPERATOR_DEVICE_PRESENCE_TTL_MS:'90000',OPERATOR_FLEET_CHANNEL_TTL_MS:'5000',OPERATOR_FLEET_COMMAND_LEASE_MS:'2000'},stdio:['ignore','pipe','pipe']});
@@ -18,8 +19,8 @@ const cleanupChild=()=>{try{if(!child.killed)child.kill('SIGTERM');}catch{}};
 process.on('exit',cleanupChild);
 let stderr='';child.stderr.on('data',c=>stderr+=c);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-for(let i=0;i<100&&!fs.existsSync(socketPath);i++)await sleep(40);
-if(!fs.existsSync(socketPath))throw new Error(`executor_not_ready:${stderr}`);
+await waitForIpc(socketPath,{attempts:100,delayMs:40,error:'executor_not_ready',details:()=>stderr});
+
 function request(method,target,body){return new Promise((resolve,reject)=>{const payload=body==null?null:Buffer.from(JSON.stringify(body));const req=http.request({socketPath,method,path:target,headers:payload?{'content-type':'application/json','content-length':payload.length}:{}},res=>{let text='';res.on('data',c=>text+=c);res.on('end',()=>{let json;try{json=JSON.parse(text)}catch{json={raw:text}}resolve({status:res.statusCode,json});});});req.on('error',reject);if(payload)req.write(payload);req.end();});}
 const {publicKey,privateKey}=crypto.generateKeyPairSync('ed25519');
 const publicIdentityKey=publicKey.export({format:'der',type:'spki'}).toString('base64');

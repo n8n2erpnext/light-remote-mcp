@@ -3,15 +3,15 @@ import fs from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
-import net from 'node:net';
 import { spawn } from 'node:child_process';
 import { createOperatorCryptoFixture } from './selftest-crypto-fixture.mjs';
+import { ipcEndpoint, removeIpcEndpoint, waitForIpc } from './selftest-ipc.mjs';
 const root = fileURLToPath(new URL('../..',import.meta.url));
 const run = `${process.pid}-${Date.now()}`;
-const socketPath = process.platform==='win32' ? '\\\\.\\pipe\\gpt-vps-operator-selftest-' + run : path.join(os.tmpdir(),'gpt-vps-operator-selftest-'+run+'.sock');
+const socketPath = ipcEndpoint('gpt-vps-operator-selftest');
 const logDir = path.join(os.tmpdir(),'gpt-vps-operator-selftest-'+run+'-log');
 const stateDir = path.join(os.tmpdir(),'gpt-vps-operator-selftest-'+run+'-state');
-fs.rmSync(socketPath, { force:true });
+removeIpcEndpoint(socketPath);
 fs.rmSync(logDir, { recursive:true, force:true });
 fs.mkdirSync(logDir, { recursive:true });
 const cryptoFixture=createOperatorCryptoFixture(stateDir);
@@ -22,10 +22,7 @@ const child = spawn(process.execPath, [`${root}/operator-host/executor.mjs`], {
   stdio:['ignore','pipe','pipe']
 });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-async function ipcReady(endpoint){return await new Promise(resolve=>{const socket=net.createConnection(endpoint);let settled=false;const done=value=>{if(settled)return;settled=true;socket.destroy();resolve(value);};socket.once('connect',()=>done(true));socket.once('error',()=>done(false));});}
-let ready=false;
-for (let i=0; i<80 && !ready; i++) { ready=await ipcReady(socketPath); if(!ready) await sleep(50); }
-if (!ready) throw new Error('executor_socket_not_ready');
+await waitForIpc(socketPath,{attempts:80,delayMs:50,error:'executor_socket_not_ready'});
 function request(method, target, body) {
   return new Promise((resolve,reject) => {
     const payload = body == null ? null : Buffer.from(JSON.stringify(body));
@@ -65,4 +62,4 @@ console.log(JSON.stringify({ ok:true, execute:first.status, replay:replay.json.e
   tamper:bad.json.error, output:out.json.output.trim(), cache:caps.json.limits }, null, 2));
 child.kill('SIGTERM');
 await sleep(100);
-fs.rmSync(socketPath,{force:true}); fs.rmSync(logDir,{recursive:true,force:true}); fs.rmSync(stateDir,{recursive:true,force:true});
+removeIpcEndpoint(socketPath); fs.rmSync(logDir,{recursive:true,force:true}); fs.rmSync(stateDir,{recursive:true,force:true});

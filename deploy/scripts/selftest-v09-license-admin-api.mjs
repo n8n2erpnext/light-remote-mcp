@@ -5,13 +5,14 @@ import path from 'node:path';
 import http from 'node:http';
 import crypto from 'node:crypto';
 import {spawn,spawnSync} from 'node:child_process';
+import { ipcEndpoint, waitForIpc } from './selftest-ipc.mjs';
 
 const root=path.resolve(fileURLToPath(new URL('../..',import.meta.url))),tmp=fs.mkdtempSync(path.join(os.tmpdir(),'light-remote-license-admin-'));
-const socket=path.join(tmp,'operator.sock'),state=path.join(tmp,'state'),log=path.join(tmp,'log');fs.mkdirSync(state);fs.mkdirSync(log);
+const socket=ipcEndpoint('light-remote-license-admin'),state=path.join(tmp,'state'),log=path.join(tmp,'log');fs.mkdirSync(state);fs.mkdirSync(log);
 const child=spawn(process.execPath,[path.join(root,'operator-host/executor.mjs')],{env:{...process.env,OPERATOR_SOCKET:socket,OPERATOR_STATE_DIR:state,OPERATOR_LOG_DIR:log,OPERATOR_DEVICE_ID:'arm-admin-test',OPERATOR_NODE_ID:'arm-admin-test-node',OPERATOR_DEVICE_NAME:'ADMIN-TEST',OPERATOR_ACCOUNT_ID:'self-hosted-local',OPERATOR_CONNECTION_LEASE_ENFORCE:'1'},stdio:['ignore','pipe','pipe']});
 let childLog='';child.stdout.on('data',d=>childLog+=d);child.stderr.on('data',d=>childLog+=d);
 function request(method,target,body=null,token=''){return new Promise((resolve,reject)=>{const payload=body==null?null:Buffer.from(JSON.stringify(body)),headers={accept:'application/json'};if(payload){headers['content-type']='application/json';headers['content-length']=payload.length;}if(token)headers['x-light-account-session']=token;const req=http.request({socketPath:socket,method,path:target,headers},res=>{let text='';res.on('data',d=>text+=d);res.on('end',()=>{let json;try{json=JSON.parse(text)}catch{json={raw:text}}resolve({status:res.statusCode,json});});});req.on('error',reject);if(payload)req.write(payload);req.end();});}
-async function waitSocket(){for(let i=0;i<100;i++){if(fs.existsSync(socket))return;await new Promise(r=>setTimeout(r,40));}throw new Error('operator_socket_timeout:'+childLog);}
+async function waitSocket(){await waitForIpc(socket,{attempts:100,delayMs:40,error:'operator_socket_timeout',details:()=>childLog});}
 function cli(...args){const r=spawnSync(process.execPath,[path.join(root,'deploy/scripts/light-remote-license-admin.mjs'),...args],{cwd:root,encoding:'utf8',env:{...process.env,OPERATOR_SOCKET:socket}});if(r.status!==0)throw new Error(`cli_failed:${args[0]}:${r.stderr}`);return JSON.parse(r.stdout);}
 const email=`license-admin-${crypto.randomBytes(4).toString('hex')}@example.test`,password=`T-${crypto.randomBytes(18).toString('base64url')}`;
 try{

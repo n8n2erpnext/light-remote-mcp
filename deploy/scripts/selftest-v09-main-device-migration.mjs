@@ -6,6 +6,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import {spawn} from 'node:child_process';
 import {createOperatorCryptoFixture} from './selftest-crypto-fixture.mjs';
+import { ipcEndpoint, waitForIpc } from './selftest-ipc.mjs';
 import {deviceChannelMessage} from '../../lib/device-proof.mjs';
 
 const root=fileURLToPath(new URL('../..',import.meta.url)),currentVersion=fs.readFileSync(`${root}/VERSION`,'utf8').trim();
@@ -13,13 +14,13 @@ const agentSource=fs.readFileSync(`${root}/device-agent/operator-agent.mjs`,'utf
 if(!agentSource.includes('if(state.identity?.privateKey){delete state.identity')||!agentSource.includes('external_identity_rotation_required'))throw new Error('hard_remove_identity_rotation_missing');
 if(!agentSource.includes('fleetHealthy:local.healthy===true')||!agentSource.includes('fleetPort:local.port'))throw new Error('fleet_intent_local_health_probe_missing');
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'lr-main-migration-'));
-const socket=path.join(dir,'operator.sock'),stateDir=path.join(dir,'state'),logDir=path.join(dir,'log');
+const socket=ipcEndpoint('lr-main-migration'),stateDir=path.join(dir,'state'),logDir=path.join(dir,'log');
 fs.mkdirSync(stateDir,{recursive:true});fs.mkdirSync(logDir,{recursive:true});
 const fixture=createOperatorCryptoFixture(stateDir);
 const child=spawn(process.execPath,[`${root}/operator-host/executor.mjs`],{cwd:root,env:{...process.env,OPERATOR_SOCKET:socket,OPERATOR_STATE_DIR:stateDir,OPERATOR_LOG_DIR:logDir,OPERATOR_KEY_FILE:fixture.privateFile,OPERATOR_ACCOUNT_PLAN:'free'},stdio:['ignore','pipe','pipe']});
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-for(let i=0;i<100&&!fs.existsSync(socket);i++)await sleep(40);
-if(!fs.existsSync(socket))throw new Error('executor_not_ready');function request(method,target,body,headers={}){return new Promise((resolve,reject)=>{
+await waitForIpc(socket,{attempts:100,delayMs:40,error:'executor_not_ready'});
+function request(method,target,body,headers={}){return new Promise((resolve,reject)=>{
   const data=body==null?null:Buffer.from(JSON.stringify(body)),h={...headers};
   if(data){h['content-type']='application/json';h['content-length']=data.length;}
   const req=http.request({socketPath:socket,method,path:target,headers:h},res=>{let text='';res.on('data',c=>text+=c);res.on('end',()=>{let json={};try{json=JSON.parse(text)}catch{}resolve({status:res.statusCode,json});});});

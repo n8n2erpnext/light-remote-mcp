@@ -6,6 +6,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { createOperatorCryptoFixture } from './selftest-crypto-fixture.mjs';
+import { ipcEndpoint, waitForIpc } from './selftest-ipc.mjs';
 import { deviceChannelMessage } from '../../lib/device-proof.mjs';
 
 const root=fileURLToPath(new URL('../..',import.meta.url)),currentVersion=fs.readFileSync(`${root}/VERSION`,'utf8').trim();
@@ -13,13 +14,13 @@ const gatewaySource=fs.readFileSync(`${root}/gateway/server.mjs`,'utf8');
 if(gatewaySource.includes('deviceRateIdentity')||gatewaySource.includes('deviceChannelRateLimit'))throw new Error('gateway_unsigned_device_quota_remains');
 if(!gatewaySource.includes("createRateLimit('device-channel-edge',2400"))throw new Error('gateway_edge_rate_limit_missing');
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'lr-rate-lanes-'));
-const socket=path.join(dir,'operator.sock'),logDir=path.join(dir,'log'),stateDir=path.join(dir,'state');
+const socket=ipcEndpoint('lr-rate-lanes'),logDir=path.join(dir,'log'),stateDir=path.join(dir,'state');
 fs.mkdirSync(logDir,{recursive:true});fs.mkdirSync(stateDir,{recursive:true});
 const fixture=createOperatorCryptoFixture(stateDir);
 const child=spawn(process.execPath,[`${root}/operator-host/executor.mjs`],{cwd:root,env:{...process.env,OPERATOR_SOCKET:socket,OPERATOR_LOG_DIR:logDir,OPERATOR_STATE_DIR:stateDir,OPERATOR_KEY_FILE:fixture.privateFile,OPERATOR_CONNECTION_LEASE_ENFORCE:'1',OPERATOR_DEVICE_CHANNEL_RUNTIME_LIMIT:'1',OPERATOR_DEVICE_CHANNEL_OBSERVER_LIMIT:'1',OPERATOR_DEVICE_CHANNEL_CONTROL_LIMIT:'10'},stdio:['ignore','pipe','pipe']});
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-for(let i=0;i<100&&!fs.existsSync(socket);i++)await sleep(40);
-if(!fs.existsSync(socket))throw new Error('executor_not_ready');
+await waitForIpc(socket,{attempts:100,delayMs:40,error:'executor_not_ready'});
+
 function request(method,target,body){return new Promise((resolve,reject)=>{const payload=body==null?null:Buffer.from(JSON.stringify(body)),headers={};if(payload){headers['content-type']='application/json';headers['content-length']=payload.length;}const req=http.request({socketPath:socket,method,path:target,headers},res=>{let text='';res.on('data',c=>text+=c);res.on('end',()=>{let json;try{json=JSON.parse(text)}catch{json={raw:text}}resolve({status:res.statusCode,headers:res.headers,json});});});req.on('error',reject);if(payload)req.write(payload);req.end();});}
 async function enroll(label){
   const {publicKey,privateKey}=crypto.generateKeyPairSync('ed25519');

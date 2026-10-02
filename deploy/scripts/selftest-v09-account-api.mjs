@@ -6,14 +6,15 @@ import http from 'node:http';
 import crypto from 'node:crypto';
 import {spawn} from 'node:child_process';
 import {LicenseKeyRegistry} from '../../operator-host/license-key-registry.mjs';
+import { ipcEndpoint, waitForIpc } from './selftest-ipc.mjs';
 
 const root=path.resolve(fileURLToPath(new URL('../..',import.meta.url))),tmp=fs.mkdtempSync(path.join(os.tmpdir(),'light-remote-account-api-'));
-const socket=path.join(tmp,'operator.sock'),state=path.join(tmp,'state'),log=path.join(tmp,'log');fs.mkdirSync(state);fs.mkdirSync(log);
+const socket=ipcEndpoint('light-remote-account-api'),state=path.join(tmp,'state'),log=path.join(tmp,'log');fs.mkdirSync(state);fs.mkdirSync(log);
 const issued=new LicenseKeyRegistry({stateFile:path.join(state,'license-keys.json')}).issue({plan:'pro',durationDays:30,label:'account-api-test'});
 const child=spawn(process.execPath,[path.join(root,'operator-host/executor.mjs')],{env:{...process.env,OPERATOR_SOCKET:socket,OPERATOR_STATE_DIR:state,OPERATOR_LOG_DIR:log,OPERATOR_DEVICE_ID:'arm-test',OPERATOR_NODE_ID:'arm-test-node',OPERATOR_DEVICE_NAME:'ACCOUNT-TEST',OPERATOR_ACCOUNT_ID:'self-hosted-local'},stdio:['ignore','pipe','pipe']});
 let childLog='';child.stdout.on('data',d=>childLog+=d);child.stderr.on('data',d=>childLog+=d);
 function request(method,target,body=null,token=''){return new Promise((resolve,reject)=>{const payload=body==null?null:Buffer.from(JSON.stringify(body));const headers={accept:'application/json'};if(payload){headers['content-type']='application/json';headers['content-length']=payload.length;}if(token)headers['x-light-account-session']=token;const req=http.request({socketPath:socket,method,path:target,headers},res=>{let text='';res.on('data',d=>text+=d);res.on('end',()=>{let json;try{json=JSON.parse(text)}catch{json={raw:text}}resolve({status:res.statusCode,json});});});req.on('error',reject);if(payload)req.write(payload);req.end();});}
-async function waitSocket(){for(let i=0;i<80;i++){if(fs.existsSync(socket))return;await new Promise(r=>setTimeout(r,50));}throw new Error('test_operator_socket_timeout:'+childLog);}
+async function waitSocket(){await waitForIpc(socket,{attempts:80,delayMs:50,error:'test_operator_socket_timeout',details:()=>childLog});}
 const email=`integration-${crypto.randomBytes(4).toString('hex')}@example.test`;
 const secret=`T-${crypto.randomBytes(18).toString('base64url')}`;
 try{
