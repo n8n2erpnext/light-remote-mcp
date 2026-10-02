@@ -113,7 +113,7 @@ internal static class Program
             var rectSanitizationOk=UiSensor.RectSanitizationSelfTest();
             var semanticScopeOk=SemanticSessionManager.ScopeSelfTest();
             var smoothMoveMathOk=NativeInput.SmoothMoveMathSelfTest();
-            var agentCursorVisualOk=AgentCursorForm.StateSelfTest();
+            var agentCursorVisualOk=AgentCursorVisualState.SelfTest();
             var systemCursorOverrideOk=SystemCursorOverride.SelfTest();
             var allOk=semanticJournalOk && visualLeasePolicyOk && browserLoopbackPolicyOk && rectSanitizationOk && semanticScopeOk && smoothMoveMathOk && agentCursorVisualOk && systemCursorOverrideOk;
             var result = new

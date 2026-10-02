@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
 const read=p=>fs.readFileSync(new URL(`../../${p}`,import.meta.url),'utf8');
+const exists=p=>fs.existsSync(new URL(`../../${p}`,import.meta.url));
 const need=(ok,name)=>{if(!ok)throw new Error(name);console.log(`${name}=PASS`);};
 const csproj=read('client/windows-native/GptOperator.Client/GptOperator.Client.csproj');
 const winTray=read('client/windows-native/GptOperator.Client/TrayApplicationContext.cs');
@@ -34,7 +35,7 @@ const rmProject=read('client/windows-native/GptOperator.RealRemoteV2/GptOperator
 const agentHost=read('client/windows-native/GptOperator.Client/AgentHost.cs');
 const windowsWorkflow=read('.github/workflows/windows-native-client.yml');
 const windowsInstaller=read('client/windows-native/installer/GptOperator.iss');
-need(csproj.includes('<Compile Remove="MainForm.cs;ConnectionSwitch.cs;ConnectionSettingsDialog.cs"'),'desktop-no-native-window');
+need(!exists('client/windows-native/GptOperator.Client/MainForm.cs')&&!exists('client/windows-native/GptOperator.Client/ConnectionSwitch.cs')&&!exists('client/windows-native/GptOperator.Client/ConnectionSettingsDialog.cs')&&!csproj.includes('<Compile Remove='),'desktop-no-native-window');
 need(csproj.includes('net8.0-windows10.0.17763.0'),'windows-10-11-target');
 need(winTray.includes('Open Local Wall')&&winTray.includes('Exit Tray UI')&&winTray.includes('Stop Light Remote'),'windows-tray-controls');
 need(winInstall.includes("LightRemoteDeviceAgent")&&winInstall.includes("LightRemoteUpdater")&&winInstall.includes('-Execute $Updater')&&winInstall.includes('Light Remote\\Updater'),'windows-independent-runtime-updater');

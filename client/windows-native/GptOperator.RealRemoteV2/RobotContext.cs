@@ -6,7 +6,7 @@ namespace GptOperator.RealRemoteV2;
 
 internal sealed class RobotContext : ApplicationContext
 {
-    private readonly AgentCursorForm _cursor=new();
+    private readonly AgentCursorVisualState _cursorState=new();
     private readonly NotifyIcon _tray;
     private readonly UiSensor _sensor=new();
     private readonly SemanticSessionManager _semantic;
@@ -116,7 +116,7 @@ internal sealed class RobotContext : ApplicationContext
         native=NativeInput.ReadStatus(),
         topology=DesktopVisual.ReadTopology(),
         visualSessions=_visual.ActiveSessions,
-        cursorVisual=_cursor.Status(),
+        cursorVisual=_cursorState.Status(),
         osCursorHidden=false,
         osCursorOverridden=SystemCursorOverride.IsActive,
         cursorRenderer="native-system"
@@ -126,27 +126,27 @@ internal sealed class RobotContext : ApplicationContext
     {
         var durationMs=Int(r,"durationMs",90);
         var point=InputPoint(r,"x","y","screen");
-        _cursor.MarkMove(durationMs);
+        _cursorState.MarkMove(durationMs);
         NativeInput.Move(point.X,point.Y,durationMs,Int(r,"steps",8));
-        return new {applied=true,native=NativeInput.ReadStatus(),cursorVisual=_cursor.Status()};
+        return new {applied=true,native=NativeInput.ReadStatus(),cursorVisual=_cursorState.Status()};
     }
 
     private object Click(JsonElement r)
     {
         var button=Text(r,"button","left");
         var count=Int(r,"count",1);
-        _cursor.MarkClick(button,count);
+        _cursorState.MarkClick(button,count);
         NativeInput.Click(button,count);
-        return new {applied=true,native=NativeInput.ReadStatus(),cursorVisual=_cursor.Status()};
+        return new {applied=true,native=NativeInput.ReadStatus(),cursorVisual=_cursorState.Status()};
     }
 
     private object Wheel(JsonElement r)
     {
         var delta=Int(r,"delta",0);
         var horizontal=Bool(r,"horizontal",false);
-        _cursor.MarkScroll();
+        _cursorState.MarkScroll();
         NativeInput.Wheel(delta,horizontal);
-        return new {applied=true,delta,horizontal,native=NativeInput.ReadStatus(),cursorVisual=_cursor.Status()};
+        return new {applied=true,delta,horizontal,native=NativeInput.ReadStatus(),cursorVisual=_cursorState.Status()};
     }
 
     private object Drag(JsonElement r)
@@ -155,12 +155,12 @@ internal sealed class RobotContext : ApplicationContext
         var sourceScreen=OptionalInt(r,"screen");
         var from=InputPoint(r,"fromX","fromY","screen");
         var to=InputPoint(r,"toX","toY","toScreen",sourceScreen);
-        _cursor.MarkDrag(durationMs);
+        _cursorState.MarkDrag(durationMs);
         NativeInput.Drag(
             from.X,from.Y,to.X,to.Y,
             Text(r,"button","left"),durationMs,Int(r,"steps",12)
         );
-        return new {applied=true,native=NativeInput.ReadStatus(),cursorVisual=_cursor.Status()};
+        return new {applied=true,native=NativeInput.ReadStatus(),cursorVisual=_cursorState.Status()};
     }
 
     private static object WriteText(JsonElement r)
@@ -334,12 +334,8 @@ internal sealed class RobotContext : ApplicationContext
 
     private void TryExit()
     {
-        try
-        {
-            if(_cursor.IsHandleCreated) _cursor.BeginInvoke(new Action(ExitThread));
-            else ExitThread();
-        }
-        catch { ExitThread(); }
+        try { ExitThread(); }
+        catch { }
     }
 
     private static int? OptionalInt(JsonElement node,string name)
@@ -397,8 +393,6 @@ internal sealed class RobotContext : ApplicationContext
         _tray.Visible=false;
         _tray.Icon?.Dispose();
         _tray.Dispose();
-        _cursor.Close();
-        _cursor.Dispose();
         SystemCursorOverride.Release();
         base.ExitThreadCore();
     }

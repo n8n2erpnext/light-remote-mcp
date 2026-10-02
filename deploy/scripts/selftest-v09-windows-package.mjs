@@ -26,13 +26,13 @@ expect(workflow.includes('windows-independent-updater-selftest=PASS')&&workflow.
 expect(workflow.includes('windows-independent-update-signature=PASS')&&workflow.includes('windows-independent-update-rollback=PASS'),'windows_updater_recovery_ci_missing');
 expect(workflow.includes('stage-client-core.mjs $agentRoot')&&workflow.includes('install-windows-task.ps1')&&coreSources.has('device-agent/local-wall.mjs')&&coreSources.has('device-agent/local-wall-auth.mjs')&&coreSources.has('device-agent/install-windows-task.ps1'),'windows_runtime_not_packaged');
 expect(project.includes('<UseWindowsForms>true</UseWindowsForms>')&&project.includes('net8.0-windows10.0.17763.0'),'windows_client_target_missing');
-expect(project.includes('<Compile Remove="MainForm.cs;ConnectionSwitch.cs;ConnectionSettingsDialog.cs" />'),'native_window_not_removed');
+expect(!exists('client/windows-native/GptOperator.Client/MainForm.cs')&&!exists('client/windows-native/GptOperator.Client/ConnectionSwitch.cs')&&!exists('client/windows-native/GptOperator.Client/ConnectionSettingsDialog.cs')&&!project.includes('<Compile Remove='),'legacy_native_window_sources_remain');
 expect(program.includes('Application.Run(new TrayApplicationContext())'),'tray_context_not_entrypoint');
 expect(program.includes('--open-wall')&&program.includes('--launch')&&program.includes('--agent-host'),'windows_tray_modes_missing');
 expect(!program.includes('--scheduled-update')&&!program.includes('--apply-update')&&!program.includes('--verify-update-fixture'),'replaceable_app_still_owns_updater');
 expect(!exists('client/windows-native/GptOperator.Client/UpdateClient.cs')&&!exists('client/windows-native/GptOperator.Client/UpdateApplier.cs'),'legacy_app_updater_sources_remain');
 expect(program.includes('if (!firstInstance) { if (launcher) OpenWall(); return; }'),'desktop_launcher_contract_missing');
-for(const token of ['NotifyIcon','Open Local Wall','Restart Light Remote','Check for updates','Stop Light Remote','Quit tray','LightRemoteDeviceAgent','LightRemoteUpdater'])expect(tray.includes(token),`tray_contract_missing:${token}`);
+for(const token of ['NotifyIcon','Open Local Wall','Restart Light Remote','Check for updates','Stop Light Remote','Exit Tray UI','LightRemoteDeviceAgent','LightRemoteUpdater'])expect(tray.includes(token),`tray_contract_missing:${token}`);
 expect(tray.includes('ExitThread()')&&!tray.includes('StopServiceAsync'),'quit_tray_must_not_stop_agent');
 expect(trayIcon.includes('BrandAssets.Mark'),'tray_brand_mark_missing');
 expect(updaterProject.includes('<AssemblyName>LightRemote.Updater</AssemblyName>')&&updaterProject.includes('<OutputType>WinExe</OutputType>'),'independent_updater_project_missing');
@@ -58,7 +58,7 @@ expect(taskInstaller.includes('-Execute $Updater')&&taskInstaller.includes('--sc
 expect(taskInstaller.includes('-Execute $Tray')&&taskInstaller.includes("-Argument '--agent-host'"),'windows_agent_task_must_use_hidden_native_host');
 expect(!taskInstaller.includes("-Execute $Node -Argument"),'windows_agent_task_must_not_launch_node_directly');
 expect(agentHost.includes('CreateNoWindow = true')&&agentHost.includes('RedirectStandardOutput = true'),'windows_agent_host_not_hidden');
-expect(manifest.includes('PerMonitorV2'),'windows_dpi_manifest_missing');
+expect(project.includes('<ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>')&&!manifest.includes('dpiAwareness')&&!manifest.includes('dpiAware'),'windows_dpi_configuration_drift');
 expect(exists('client/windows-native/GptOperator.Client/Assets/light-remote.ico'),'windows_icon_missing');
 expect(project.includes('<ApplicationIcon>Assets\\light-remote.ico</ApplicationIcon>'),'windows_app_icon_contract_missing');
 expect(updaterProject.includes('<ApplicationIcon>..\\GptOperator.Client\\Assets\\light-remote.ico</ApplicationIcon>'),'windows_updater_icon_contract_missing');

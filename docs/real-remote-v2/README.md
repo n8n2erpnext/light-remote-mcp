@@ -19,7 +19,7 @@ This implementation is rebuilt from the stable Golden Core. The previous feature
 
 ## Current standalone surface
 
-- cursor halo while remote companion is active
+- native system agent cursor while remote companion is active
 - remote-active tray notification/icon owned by the companion
 - cursor move
 - single/right/middle click
