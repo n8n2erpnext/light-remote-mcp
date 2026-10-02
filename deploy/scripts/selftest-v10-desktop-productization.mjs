@@ -28,6 +28,7 @@ const operatorAgent=read('device-agent/operator-agent.mjs');
 const semanticManager=read('client/windows-native/GptOperator.RealRemoteV2/SemanticSessionManager.cs');
 const nativeInput=read('client/windows-native/GptOperator.RealRemoteV2/NativeInput.cs');
 const robotContext=read('client/windows-native/GptOperator.RealRemoteV2/RobotContext.cs');
+const haloForm=read('client/windows-native/GptOperator.RealRemoteV2/HaloForm.cs');
 const rmProject=read('client/windows-native/GptOperator.RealRemoteV2/GptOperator.RealRemoteV2.csproj');
 const agentHost=read('client/windows-native/GptOperator.Client/AgentHost.cs');
 const windowsWorkflow=read('.github/workflows/windows-native-client.yml');
@@ -69,7 +70,8 @@ need(semanticManager.includes('scopeChanged && session.Scope!="desktop"')&&!sema
 need(nativeInput.includes('durationMs=90')&&nativeInput.includes('SmoothMoveMathSelfTest')&&nativeInput.includes('MoveImmediate'),'rmv2-m6-smooth-mouse');
 need(robotContext.includes('"desktop.run" => await RunPlanAsync(request)')&&robotContext.includes('AwaitUiAsync')&&robotContext.includes('_sensor.Changed+=OnChanged'),'rmv2-m6-local-action-await');
 need(rmProject.includes('<AssemblyName>LightRemote.RM</AssemblyName>')&&rmProject.includes('<Product>Light Remote RM</Product>')&&rmProject.includes('<ApplicationIcon>Assets\\light-remote-rm.ico</ApplicationIcon>'),'rm-branding-project');
-need(robotContext.includes('Light Remote RM - Remote active')&&robotContext.includes('ShowBalloonTip(2500,"Light Remote RM"')&&robotContext.includes('Icon.ExtractAssociatedIcon'),'rm-branding-notify-icon');
+need(robotContext.includes('Text="Agent \\u0111ang remote"')&&!robotContext.includes('ShowBalloonTip(')&&robotContext.includes('Icon.ExtractAssociatedIcon'),'rm-branding-tray-tooltip');
+need(haloForm.includes('Color.FromArgb(248, 191, 10)')&&haloForm.includes('DrawArc(shine')&&haloForm.includes('glowOuter'),'rm-cursor-halo-glow-shine');
 need(agentHost.includes('"LightRemote.RM.exe"'),'rm-branding-agent-host-path');
 need(windowsWorkflow.includes('LightRemote.RM.exe')&&!windowsWorkflow.includes('GptOperator.RealRemoteV2.exe'),'rm-branding-workflow-path');
 need(windowsInstaller.includes('[InstallDelete]')&&windowsInstaller.includes('{app}\\realremote-v2\\GptOperator.RealRemoteV2.*'),'rm-branding-obsolete-binary-cleanup');

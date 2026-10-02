@@ -5,7 +5,7 @@ namespace GptOperator.RealRemoteV2;
 
 internal sealed class HaloForm : Form
 {
-    private const int SizePx = 42;
+    private const int SizePx = 48;
 
     public HaloForm()
     {
@@ -43,7 +43,20 @@ internal sealed class HaloForm : Form
     protected override void OnPaint(PaintEventArgs e)
     {
         e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-        using var pen = new Pen(Color.FromArgb(225, 0, 210, 255), 3f);
-        e.Graphics.DrawEllipse(pen, 4, 4, Width - 9, Height - 9);
+        e.Graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+
+        using var glowOuter = new Pen(Color.FromArgb(168, 126, 0), 1.2f);
+        using var glowInner = new Pen(Color.FromArgb(232, 176, 0), 1.8f);
+        using var halo = new Pen(Color.FromArgb(248, 191, 10), 3.0f);
+        using var shine = new Pen(Color.FromArgb(255, 239, 161), 1.8f)
+        {
+            StartCap = LineCap.Round,
+            EndCap = LineCap.Round
+        };
+
+        e.Graphics.DrawEllipse(glowOuter, 3, 3, Width - 7, Height - 7);
+        e.Graphics.DrawEllipse(glowInner, 5, 5, Width - 11, Height - 11);
+        e.Graphics.DrawEllipse(halo, 7, 7, Width - 15, Height - 15);
+        e.Graphics.DrawArc(shine, 7, 7, Width - 15, Height - 15, 200, 70);
     }
 }

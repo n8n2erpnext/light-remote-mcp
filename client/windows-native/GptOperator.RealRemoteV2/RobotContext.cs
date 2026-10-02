@@ -22,7 +22,7 @@ internal sealed class RobotContext : ApplicationContext
         try
         {
             var path=Environment.ProcessPath ?? Application.ExecutablePath;
-            var icon=Icon.ExtractAssociatedIcon(path);
+            using var icon=Icon.ExtractAssociatedIcon(path);
             return icon is null ? (Icon)SystemIcons.Application.Clone() : (Icon)icon.Clone();
         }
         catch { return (Icon)SystemIcons.Application.Clone(); }
@@ -30,8 +30,7 @@ internal sealed class RobotContext : ApplicationContext
 
     public RobotContext(string pipeName)
     {
-        _tray=new NotifyIcon{Visible=true,Text="Light Remote RM - Remote active",Icon=LoadAppIcon()};
-        _tray.ShowBalloonTip(2500,"Light Remote RM","Real Remote session active",ToolTipIcon.Info);
+        _tray=new NotifyIcon{Visible=true,Text="Agent \u0111ang remote",Icon=LoadAppIcon()};
         _haloTimer.Tick+=(_,_)=>_halo.FollowCursor();
         _halo.FollowCursor();
         _halo.Show();
