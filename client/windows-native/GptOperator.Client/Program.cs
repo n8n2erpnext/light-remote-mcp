@@ -43,9 +43,13 @@ internal static class Program
                 && SemanticVersion.IsNewer("0.9.0", "0.9.0-rc.9")
                 && !SemanticVersion.IsNewer("0.9.0-beta.1", "0.9.0-beta.1")
                 && !SemanticVersion.IsNewer("0.9.0-beta.1", "0.9.0-rc.1");
+            var trayLogicOk = TrayApplicationContext.SelfTest();
+            var trayIconOk = TrayIconFactory.SelfTest();
             var result = new {
-                ok = File.Exists(AppPaths.NodeExe) && File.Exists(AppPaths.AgentScript) && File.Exists(AppPaths.UpdatePublicKey) && semverOk,
+                ok = File.Exists(AppPaths.NodeExe) && File.Exists(AppPaths.AgentScript) && File.Exists(AppPaths.UpdatePublicKey) && semverOk && trayLogicOk && trayIconOk,
                 semanticVersion = semverOk ? "pass" : "fail",
+                trayLogic = trayLogicOk ? "pass" : "fail",
+                trayIcons = trayIconOk ? "pass" : "fail",
                 clientVersion = ClientVersion.Display,
                 agentVersion = status.Version,
                 platformAdapter = status.PlatformAdapter,

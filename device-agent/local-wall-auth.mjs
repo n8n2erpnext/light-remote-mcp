@@ -56,13 +56,26 @@ export function loadLocalWallAuth(file,{required=false}={}){
   if(mode==='local'&&!row.passwordHash)throw new Error('invalid_local_wall_auth_config');
   const ttlSeconds=Math.max(300,Math.min(Number(row.sessionTtlSeconds)||DEFAULT_TTL_SECONDS,7*24*60*60));
   const rawSession=req=>parseLocalWallCookies(req.headers.cookie)[LOCAL_WALL_COOKIE]||'';
-  const identity=req=>{const token=rawSession(req),value=verifySession(row.cookieSecret,token);return value&&safeEqual(value.username,row.username)?value:null;};
+  const sessionIdentity=value=>{
+    if(!value)return null;
+    const username=String(value.username||'').trim();
+    if(!username||username.length>254)return null;
+    if(mode==='local'&&!safeEqual(username,row.username)&&!username.includes('@'))return null;
+    return{...value,username};
+  };
+  const identity=req=>sessionIdentity(verifySession(row.cookieSecret,rawSession(req)));
   const verifyCredentials=(username,password)=>mode==='local'&&safeEqual(username,row.username)&&verifyPassword(password,row.passwordHash);
-  const issue=()=>{const expiresAt=Date.now()+ttlSeconds*1000;return{token:signSession(row.cookieSecret,row.username,expiresAt),expiresAt,ttlSeconds};};
+  const issue=(usernameOverride=null)=>{
+    const requested=String(usernameOverride||'').trim();
+    const username=requested||row.username;
+    if(!username||username.length>254)throw new Error('invalid_local_wall_session_identity');
+    const expiresAt=Date.now()+ttlSeconds*1000;
+    return{token:signSession(row.cookieSecret,username,expiresAt),expiresAt,ttlSeconds,username};
+  };
   const issueLoginCsrf=()=>signCsrf(row.cookieSecret,'login',Date.now()+10*60*1000);
   const verifyLoginCsrf=token=>verifyCsrf(row.cookieSecret,token,'login');
-  const csrfForRequest=req=>{const token=rawSession(req),value=verifySession(row.cookieSecret,token);if(!value||!safeEqual(value.username,row.username))return null;return signCsrf(row.cookieSecret,'mutation',Math.min(value.expiresAt,Date.now()+ttlSeconds*1000),token);};
-  const verifyRequestCsrf=(req,token)=>{const session=rawSession(req),value=verifySession(row.cookieSecret,session);return Boolean(value&&safeEqual(value.username,row.username)&&verifyCsrf(row.cookieSecret,token,'mutation',session));};
+  const csrfForRequest=req=>{const token=rawSession(req),value=sessionIdentity(verifySession(row.cookieSecret,token));if(!value)return null;return signCsrf(row.cookieSecret,'mutation',Math.min(value.expiresAt,Date.now()+ttlSeconds*1000),token);};
+  const verifyRequestCsrf=(req,token)=>{const session=rawSession(req),value=sessionIdentity(verifySession(row.cookieSecret,session));return Boolean(value&&verifyCsrf(row.cookieSecret,token,'mutation',session));};
   return{enabled:true,mode,recoveryEnabled:mode==='local',username:row.username,ttlSeconds,identity,verifyCredentials,issue,issueLoginCsrf,verifyLoginCsrf,csrfForRequest,verifyRequestCsrf};
 }
 export function writeLocalWallAuthConfig(file,{username='operator',password,cookieSecret=crypto.randomBytes(32).toString('base64url'),sessionTtlSeconds=DEFAULT_TTL_SECONDS,passwordHash=null}={}){

@@ -9,7 +9,7 @@ import { writeLocalWallAuthConfig, loadLocalWallAuth } from '../../device-agent/
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'lr-wall-auth-')),file=path.join(dir,'wall-auth.json');
 const password='selftest-wall-password-123';
 writeLocalWallAuthConfig(file,{username:'operator',password,sessionTtlSeconds:3600});
-assert.equal(fs.statSync(file).mode & 0o777,0o600);
+if(process.platform!=='win32')assert.equal(fs.statSync(file).mode & 0o777,0o600);
 const stored=fs.readFileSync(file,'utf8');assert.ok(!stored.includes(password));assert.match(stored,/scrypt\$/);
 assert.throws(()=>writeLocalWallAuthConfig(path.join(dir,'weak.json'),{username:'operator',password:'short'}),/local_wall_password_too_short/);
 const auth=loadLocalWallAuth(file,{required:true});assert.equal(auth.enabled,true);assert.equal(auth.username,'operator');
@@ -49,7 +49,7 @@ try{
   const accountForm=new URLSearchParams({username:'owner@example.test',password:'account-password-123',next:'/',csrf}).toString();
   r=await req('POST','/auth/login',{body:accountForm,headers:{host:'192.168.1.50:5491','x-forwarded-proto':'https'}});assert.equal(r.status,303);assert.equal(accountAuthCalls,1);
   const accountCookie=String(r.headers['set-cookie']?.[0]||'').split(';')[0];assert.match(accountCookie,/^lr_wall_session=/);assert.match(String(r.headers['set-cookie']),/Secure/);
-  r=await req('GET','/',{headers:{cookie:accountCookie}});assert.equal(r.status,200);assert.match(r.text,/Logout/);
+  r=await req('GET','/',{headers:{cookie:accountCookie}});assert.equal(r.status,200);assert.match(r.text,/Logout/);assert.match(r.text,/owner@example\.test/);assert.match(r.text,/Account profile/);
   r=await req('GET','/login');csrf=loginCsrf(r.text);
   const badAccountForm=new URLSearchParams({username:'owner@example.test',password:'wrong-account-password',next:'/',csrf}).toString();
   r=await req('POST','/auth/login',{body:badAccountForm});assert.equal(r.status,401);assert.equal(accountAuthCalls,2);
