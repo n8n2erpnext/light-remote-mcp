@@ -8,7 +8,6 @@ internal sealed class RobotContext : ApplicationContext
 {
     private readonly AgentCursorForm _cursor=new();
     private readonly NotifyIcon _tray;
-    private readonly System.Windows.Forms.Timer _cursorTimer=new(){Interval=16};
     private readonly UiSensor _sensor=new();
     private readonly SemanticSessionManager _semantic;
     private readonly VisualSessionManager _visual;
@@ -32,10 +31,6 @@ internal sealed class RobotContext : ApplicationContext
     {
         _tray=new NotifyIcon{Visible=true,Text="Agent \u0111ang remote",Icon=LoadAppIcon()};
         SystemCursorOverride.Acquire();
-        _cursorTimer.Tick+=(_,_)=>_cursor.FollowCursor();
-        _cursor.Show();
-        _cursor.FollowCursor(true);
-        _cursorTimer.Start();
 
         _rpc=new RobotRpcServer(pipeName,HandleAsync,OnPipeDisconnected);
         _semantic=new SemanticSessionManager(_sensor);
@@ -122,7 +117,9 @@ internal sealed class RobotContext : ApplicationContext
         topology=DesktopVisual.ReadTopology(),
         visualSessions=_visual.ActiveSessions,
         cursorVisual=_cursor.Status(),
-        osCursorHidden=SystemCursorOverride.IsActive
+        osCursorHidden=false,
+        osCursorOverridden=SystemCursorOverride.IsActive,
+        cursorRenderer="native-system"
     };
 
     private object Move(JsonElement r)
@@ -364,8 +361,6 @@ internal sealed class RobotContext : ApplicationContext
     protected override void ExitThreadCore()
     {
         _closing=true;
-        _cursorTimer.Stop();
-        _cursorTimer.Dispose();
         _visual.Dispose();
         _browser.Dispose();
         _semantic.Dispose();
