@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -6,7 +7,7 @@ import crypto from 'node:crypto';
 import {spawn} from 'node:child_process';
 import {deviceChannelMessage} from '../../lib/device-proof.mjs';
 
-const root=new URL('../..',import.meta.url).pathname;
+const root=fileURLToPath(new URL('../..',import.meta.url));
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'lr-host-wall-'));
 const stateFile=path.join(dir,'device.json'),authFile=path.join(dir,'wall-auth.json');
 const {publicKey,privateKey}=crypto.generateKeyPairSync('ed25519');

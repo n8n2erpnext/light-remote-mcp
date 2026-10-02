@@ -1,9 +1,10 @@
+import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 import {startLocalWall} from '../../device-agent/local-wall.mjs';
 
-const root=path.resolve(new URL('../..',import.meta.url).pathname);
+const root=path.resolve(fileURLToPath(new URL('../..',import.meta.url)));
 const brand=path.join(root,'assets/branding/light-remote-mark.svg');
 const port=26000+(process.pid%8000);
 let checks=0,updates=0;

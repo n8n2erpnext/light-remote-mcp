@@ -1,10 +1,11 @@
+import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import {spawn} from 'node:child_process';
 import {createOperatorCryptoFixture} from './selftest-crypto-fixture.mjs';
-const root=new URL('../..',import.meta.url).pathname,dir=fs.mkdtempSync(path.join(os.tmpdir(),'lr-host-exec-infer-')),socket=path.join(dir,'operator.sock'),logDir=path.join(dir,'log'),stateDir=path.join(dir,'state');
+const root=fileURLToPath(new URL('../..',import.meta.url)),dir=fs.mkdtempSync(path.join(os.tmpdir(),'lr-host-exec-infer-')),socket=path.join(dir,'operator.sock'),logDir=path.join(dir,'log'),stateDir=path.join(dir,'state');
 fs.mkdirSync(logDir,{recursive:true});const cryptoFixture=createOperatorCryptoFixture(stateDir);
 const child=spawn(process.execPath,[`${root}/operator-host/executor.mjs`],{cwd:root,env:{...process.env,OPERATOR_SOCKET:socket,OPERATOR_LOG_DIR:logDir,OPERATOR_STATE_DIR:stateDir,OPERATOR_KEY_FILE:cryptoFixture.privateFile},stdio:['ignore','pipe','pipe']});
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));for(let i=0;i<100&&!fs.existsSync(socket);i++)await sleep(40);if(!fs.existsSync(socket))throw new Error('operator_not_ready');

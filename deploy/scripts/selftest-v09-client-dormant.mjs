@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
@@ -5,7 +6,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { spawn } from 'node:child_process';
 
-const root=new URL('../..',import.meta.url).pathname;
+const root=fileURLToPath(new URL('../..',import.meta.url));
 const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'lr-dormant-'));
 const stateFile=path.join(tmp,'device.json');
 const {publicKey,privateKey}=crypto.generateKeyPairSync('ed25519');

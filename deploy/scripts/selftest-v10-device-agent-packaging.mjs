@@ -1,8 +1,9 @@
+import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 
-const root=path.resolve(new URL('../..',import.meta.url).pathname);
+const root=path.resolve(fileURLToPath(new URL('../..',import.meta.url)));
 const read=rel=>fs.readFileSync(path.join(root,rel),'utf8');
 const linux=read('device-agent/install-linux-service.sh');
 const windows=read('device-agent/install-windows-service.ps1');

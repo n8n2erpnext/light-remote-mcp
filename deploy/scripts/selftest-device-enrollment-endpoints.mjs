@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import {readOperatorSourceSurface} from './test-source-surface.mjs';
 import http from 'node:http';
@@ -7,7 +8,7 @@ import crypto from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { deviceHeartbeatMessage } from '../../lib/device-proof.mjs';
 
-const root=new URL('../..',import.meta.url).pathname, run=`${process.pid}-${Date.now()}`;
+const root=fileURLToPath(new URL('../..',import.meta.url)), run=`${process.pid}-${Date.now()}`;
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'gpt-enrollment-endpoints-'));
 const socketPath=path.join(dir,'operator.sock'), logDir=path.join(dir,'log'), stateDir=path.join(dir,'state');
 fs.mkdirSync(logDir,{recursive:true}); fs.mkdirSync(stateDir,{recursive:true});

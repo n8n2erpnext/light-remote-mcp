@@ -1,9 +1,10 @@
+import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import http from 'node:http';
 import { spawn } from 'node:child_process';
 import { createOperatorCryptoFixture } from './selftest-crypto-fixture.mjs';
 
-const root=new URL('../..',import.meta.url).pathname;
+const root=fileURLToPath(new URL('../..',import.meta.url));
 const run=`${process.pid}-${Date.now()}`;
 const socketPath=`/tmp/lr-connection-endpoints-${run}.sock`;
 const logDir=`/tmp/lr-connection-endpoints-${run}-log`;

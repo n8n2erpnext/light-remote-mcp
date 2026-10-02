@@ -1,6 +1,7 @@
+import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import path from 'node:path';
-const root=path.resolve(new URL('../..',import.meta.url).pathname);
+const root=path.resolve(fileURLToPath(new URL('../..',import.meta.url)));
 const read=f=>fs.readFileSync(path.join(root,f),'utf8');
 const need=(v,m)=>{if(!v)throw new Error(m)};
 const canonical=read('assets/branding/light-remote-mark.svg');

@@ -1,8 +1,9 @@
+import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import http from 'node:http';
 import { spawn } from 'node:child_process';
 import { createOperatorCryptoFixture } from './selftest-crypto-fixture.mjs';
-const root=new URL('../..',import.meta.url).pathname, run=`${process.pid}-${Date.now()}`, socket=`/tmp/gpt-vps-idem-${run}.sock`, logDir=`/tmp/gpt-vps-idem-${run}-log`, marker=`/tmp/gpt-vps-idem-${run}-marker`, stateDir=`/tmp/gpt-vps-idem-${run}-state`;
+const root=fileURLToPath(new URL('../..',import.meta.url)), run=`${process.pid}-${Date.now()}`, socket=`/tmp/gpt-vps-idem-${run}.sock`, logDir=`/tmp/gpt-vps-idem-${run}-log`, marker=`/tmp/gpt-vps-idem-${run}-marker`, stateDir=`/tmp/gpt-vps-idem-${run}-state`;
 for(const p of [socket,marker]) fs.rmSync(p,{force:true}); fs.rmSync(logDir,{recursive:true,force:true}); fs.mkdirSync(logDir,{recursive:true});
 const cryptoFixture=createOperatorCryptoFixture(stateDir);
 const child=spawn(process.execPath,[`${root}/operator-host/executor.mjs`],{cwd:root,env:{...process.env,OPERATOR_SOCKET:socket,OPERATOR_LOG_DIR:logDir,OPERATOR_STATE_DIR:stateDir,OPERATOR_KEY_FILE:cryptoFixture.privateFile},stdio:['ignore','pipe','pipe']});

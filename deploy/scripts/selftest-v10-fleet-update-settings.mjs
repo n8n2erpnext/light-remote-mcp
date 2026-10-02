@@ -1,7 +1,8 @@
+import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import path from 'node:path';
 
-const root=path.resolve(new URL('../..',import.meta.url).pathname);
+const root=path.resolve(fileURLToPath(new URL('../..',import.meta.url)));
 const read=rel=>fs.readFileSync(path.join(root,rel),'utf8');
 const fleet=read('device-agent/fleet-wall-runtime.mjs');
 const dashboard=read('gateway/dashboard.mjs');

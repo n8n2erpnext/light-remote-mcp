@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
@@ -7,7 +8,7 @@ import { spawn } from 'node:child_process';
 import { createOperatorCryptoFixture } from './selftest-crypto-fixture.mjs';
 import { deviceChannelMessage } from '../../lib/device-proof.mjs';
 
-const root=new URL('../..',import.meta.url).pathname;
+const root=fileURLToPath(new URL('../..',import.meta.url));
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'gpt-v08-fleet-exec-'));
 const socketPath=path.join(dir,'operator.sock'),logDir=path.join(dir,'log'),stateDir=path.join(dir,'state');
 fs.mkdirSync(logDir,{recursive:true});fs.mkdirSync(stateDir,{recursive:true});

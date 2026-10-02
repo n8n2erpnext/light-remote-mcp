@@ -1,7 +1,8 @@
+import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import http from 'node:http';
 import { spawn } from 'node:child_process';
-const root=new URL('../..',import.meta.url).pathname;
+const root=fileURLToPath(new URL('../..',import.meta.url));
 const run=`${process.pid}-${Date.now()}`, socket=`/tmp/gpt-vps-device-endpoints-${run}.sock`;
 const logDir=`/tmp/gpt-vps-device-endpoints-${run}-log`, stateDir=`/tmp/gpt-vps-device-endpoints-${run}-state`;
 fs.rmSync(socket,{force:true}); fs.rmSync(logDir,{recursive:true,force:true}); fs.rmSync(stateDir,{recursive:true,force:true});

@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -6,7 +7,7 @@ import crypto from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {FleetComponentManager,fleetVersionCanReplace} from '../../device-agent/fleet-component-manager.mjs';
 
-const root=path.resolve(new URL('../..',import.meta.url).pathname),tmp=fs.mkdtempSync(path.join(os.tmpdir(),'lr-fleet-component-'));
+const root=path.resolve(fileURLToPath(new URL('../..',import.meta.url))),tmp=fs.mkdtempSync(path.join(os.tmpdir(),'lr-fleet-component-'));
 if(fleetVersionCanReplace("0.9.0-rc.6.brand1","0.9.0-rc.6.main1"))throw new Error("fleet_same_train_switch_allowed");
 if(fleetVersionCanReplace("0.9.0-rc.24","0.9.0-rc.6.main1"))throw new Error("fleet_downgrade_allowed");
 if(!fleetVersionCanReplace("0.9.0-rc.6.brand1","0.9.0-rc.24"))throw new Error("fleet_newer_rc_rejected");

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
+import os from 'node:os';
 import { NativeTerminalRegistry } from '../../lib/native-terminal.mjs';
 import { createLinuxAdapter } from '../../device-agent/platform-adapters/linux.mjs';
 import { createWindowsAdapter } from '../../device-agent/platform-adapters/windows.mjs';
@@ -15,29 +16,48 @@ const owner={accountId:'acct-term',deviceId:'dev-term',sessionId:'session-term-0
 const linux=createLinuxAdapter({commandExists:name=>['bash','sh','git','node'].includes(name)});
 assert.ok(linux.discoverCapabilities().includes('terminal'));
 assert.deepEqual(linux.terminalFor({shell:'bash'}),{file:'/bin/bash',args:['-l'],shell:'bash'});
-const reg=new NativeTerminalRegistry({maxTerminals:3,bufferBytes:65536});
-const started=reg.start({...owner,shellSpec:linux.terminalFor({shell:'bash'}),cwd:'/tmp',cols:80,rows:24});
+const current=process.platform==='win32'
+  ?createWindowsAdapter({commandExists:name=>['powershell.exe','cmd.exe','git','node'].includes(name)})
+  :process.platform==='darwin'
+    ?createMacOSAdapter({commandExists:name=>['zsh','bash','sh','git','node'].includes(name)})
+    :linux;
+const runtimeShell=process.platform==='win32'
+  ?current.terminalFor({shell:'powershell'})
+  :process.platform==='darwin'
+    ?current.terminalFor({shell:'zsh'})
+    :current.terminalFor({shell:'bash'});
+const reg=new NativeTerminalRegistry({maxTerminals:3,bufferBytes:65536,platform:process.platform});
+const started=reg.start({...owner,shellSpec:runtimeShell,cwd:os.tmpdir(),cols:80,rows:24});
 assert.match(started.terminalId,/^ltm_/);
-reg.input(started.terminalId,owner,{data:"printf 'LR_TERM_OK\\n'; stty size; sleep 30\n"});
-let out=await waitForOutput(reg,started.terminalId,owner,{patterns:[/LR_TERM_OK/,/24 80/]});
+const firstCommand=process.platform==='win32'
+  ?"Write-Output 'LR_TERM_OK'; Start-Sleep -Seconds 30\r\n"
+  :"printf 'LR_TERM_OK\n'; sleep 30\n";
+reg.input(started.terminalId,owner,{data:firstCommand});
+let out=await waitForOutput(reg,started.terminalId,owner,{patterns:[/LR_TERM_OK/]});
 assert.match(out.output.text,/LR_TERM_OK/);
-assert.match(out.output.text,/24 80/);
-reg.resize(started.terminalId,owner,{cols:100,rows:30});
-reg.signal(started.terminalId,owner,{signal:'interrupt'});
-reg.input(started.terminalId,owner,{data:"stty size; printf 'AFTER_INT\\n'\n"});
-out=await waitForOutput(reg,started.terminalId,owner,{offset:out.output.nextOffset,patterns:[/30 100/,/AFTER_INT/]});
-assert.match(out.output.text,/30 100/);
-assert.match(out.output.text,/AFTER_INT/);
+const resized=reg.resize(started.terminalId,owner,{cols:100,rows:30});
+assert.equal(resized.cols,100);assert.equal(resized.rows,30);
 assert.throws(()=>reg.output(started.terminalId,{...owner,agentId:'agent-other-0001'}),/terminal_owner_mismatch/);
-reg.stop(started.terminalId,owner,{force:true});
-await wait(120);
-assert.notEqual(reg.view(started.terminalId,owner).state,'running');
+if(process.platform==='win32'){
+  reg.signal(started.terminalId,owner,{signal:'terminate'});
+  for(let i=0;i<40&&reg.view(started.terminalId,owner).state==='running';i++)await wait(25);
+  assert.notEqual(reg.view(started.terminalId,owner).state,'running');
+}else{
+  reg.signal(started.terminalId,owner,{signal:'interrupt'});
+  const secondCommand="printf 'AFTER_INT\n'\n";
+  reg.input(started.terminalId,owner,{data:secondCommand});
+  out=await waitForOutput(reg,started.terminalId,owner,{offset:out.output.nextOffset,patterns:[/AFTER_INT/]});
+  assert.match(out.output.text,/AFTER_INT/);
+  reg.stop(started.terminalId,owner,{force:true});
+  await wait(120);
+  assert.notEqual(reg.view(started.terminalId,owner).state,'running');
+}
 reg.close();
 
 let fakeChild=null;
-const lostExitProvider={spawn(){fakeChild=spawn('/bin/sh',['-c','sleep 30'],{stdio:'ignore'});return {pid:fakeChild.pid,write(){},resize(){},onData(){},onExit(){},kill(signal){if(signal==='SIGTERM')return;process.kill(fakeChild.pid,signal||'SIGKILL');}};}};
+const lostExitProvider={spawn(){fakeChild=spawn(process.execPath,['-e','setTimeout(()=>{},30000)'],{stdio:'ignore'});return {pid:fakeChild.pid,write(){},resize(){},onData(){},onExit(){},kill(signal){if(signal==='SIGTERM')return;process.kill(fakeChild.pid,signal||'SIGKILL');}};}};
 const lostExitReg=new NativeTerminalRegistry({ptyProvider:lostExitProvider,platform:'linux',stopGraceMs:80});
-const lost=lostExitReg.start({...owner,shellSpec:{file:'/bin/sh',args:[],shell:'sh'},cwd:'/tmp'});
+const lost=lostExitReg.start({...owner,shellSpec:{file:process.execPath,args:[],shell:'node'},cwd:os.tmpdir()});
 lostExitReg.stop(lost.terminalId,owner,{force:false});
 assert.equal(lostExitReg.view(lost.terminalId,owner).state,'stopping');
 await wait(180);

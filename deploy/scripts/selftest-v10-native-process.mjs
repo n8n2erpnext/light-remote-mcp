@@ -1,17 +1,18 @@
 import assert from 'node:assert/strict';
+import os from 'node:os';
 import { NativeProcessRegistry } from '../../lib/native-process.mjs';
 
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const owner={accountId:'acct-test',deviceId:'dev-test',sessionId:'session-process-0001',agentId:'agent-process-test-0001'};
 const reg=new NativeProcessRegistry({maxProcesses:4,bufferBytes:65536});
-const spawnSpec=script=>({file:'/bin/bash',args:['-lc',script]});
+const spawnSpec=script=>({file:process.execPath,args:['-e',script]});
 
 const startedAt=Date.now();
-let p=reg.start({...owner,script:'read x; echo got:$x; sleep 0.05; echo done',cwd:'/tmp',spawnSpec});
+let p=reg.start({...owner,script:"process.stdin.setEncoding('utf8');process.stdin.once('data',d=>{process.stdout.write('got:'+d.trim()+'\\n');setTimeout(()=>console.log('done'),50);});",cwd:os.tmpdir(),spawnSpec});
 assert.ok(p.processId.startsWith('lp_'));
 assert.equal(p.state,'running');
 assert.ok(Date.now()-startedAt<500,'start should return before process completion');
-reg.input(p.processId,owner,{data:'hello\n'});
+reg.input(p.processId,owner,{data:'hello\n',eof:true});
 let out=null,settled=null;
 for(let i=0;i<80;i++){
   out=reg.output(p.processId,owner,{stream:'stdout',offset:0,limit:4096});
@@ -27,7 +28,7 @@ assert.ok(['finished','error'].includes(p.state));
 assert.equal(p.exitCode,0);
 assert.ok(p.firstOutputAt>=p.startedAt);
 
-const sleepy=reg.start({...owner,script:'sleep 30',cwd:'/tmp',spawnSpec});
+const sleepy=reg.start({...owner,script:'setTimeout(()=>{},30000)',cwd:os.tmpdir(),spawnSpec});
 assert.equal(reg.list(owner).filter(x=>x.state==='running').length,1);
 reg.stop(sleepy.processId,owner,{force:true});
 await wait(50);

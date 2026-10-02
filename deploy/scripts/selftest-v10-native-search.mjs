@@ -26,7 +26,8 @@ assert.equal(page.returned,1);assert.equal(page.nextOffset,2);assert.equal(page.
 assert.throws(()=>reg.results(s.searchId,other),/search_owner_mismatch/);
 s=await reg.start({...owner,path:root,searchType:'files',pattern:'\\.md$',literalSearch:false,ignoreCase:true,maxResults:10,readRoots:[root]});
 r=await wait(s.searchId);assert.equal(r.resultCount,1);assert.equal(r.results[0].relativePath,'README.md');
-let denied=false;try{await reg.start({...owner,path:'/etc',searchType:'files',pattern:'hosts',literalSearch:true,readRoots:[root]});}catch(e){denied=e.status===403;}
+const outsideDir=process.platform==='win32'?path.dirname(path.join(process.env.SystemRoot||'C:\\Windows','System32','drivers','etc','hosts')):'/etc';
+let denied=false;try{await reg.start({...owner,path:outsideDir,searchType:'files',pattern:'hosts',literalSearch:true,readRoots:[root]});}catch(e){denied=e.status===403;}
 assert.ok(denied,'search_root_boundary_failed');
 s=await reg.start({...owner,path:root,searchType:'content',pattern:'a',literalSearch:true,maxResults:100,readRoots:[root]});
 reg.cancel(s.searchId,owner);r=await wait(s.searchId);assert.equal(r.state,'cancelled');
@@ -36,5 +37,7 @@ console.log('v10-native-search-pagination-boundary=PASS');
 console.log('v10-native-search-cancel-owner=PASS');
 
 const executor=fs.readFileSync(new URL('../../operator-host/executor.mjs',import.meta.url),'utf8');
-for(const token of ["kind:'search'","kind:'process'","kind:'scp'",'searchActivityMeta(request)','processActivityMeta(request)','scpActivityMeta(request)','function nativeActivityResult(meta,data)','requiredCapabilities:job.requiredCapabilities','script:redact(job.script','note:redact(job.note'])if(!executor.includes(token))throw new Error('native_activity_meta_missing:'+token);
+const activity=fs.readFileSync(new URL('../../operator-host/executor-native-activity.mjs',import.meta.url),'utf8');
+for(const token of ["kind:'search'","kind:'process'","kind:'scp'",'function searchActivityMeta','function processActivityMeta','function scpActivityMeta','function nativeActivityResult'])if(!activity.includes(token))throw new Error('native_activity_meta_missing:'+token);
+for(const token of ['searchActivityMeta(request)','processActivityMeta(request)','scpActivityMeta(request)','requiredCapabilities:job.requiredCapabilities','script:redact(job.script','note:redact(job.note'])if(!executor.includes(token))throw new Error('native_activity_job_meta_missing:'+token);
 console.log('v10-native-activity-wall-meta=PASS');

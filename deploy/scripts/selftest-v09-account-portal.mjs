@@ -1,7 +1,8 @@
+import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import path from 'node:path';
 import {readOperatorSourceSurface} from './test-source-surface.mjs';
-const root=path.resolve(new URL('../..',import.meta.url).pathname);
+const root=path.resolve(fileURLToPath(new URL('../..',import.meta.url)));
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 const home=read('index.html'),login=read('login/index.html'),register=read('register/index.html');
 const auth=read('api/auth.js'),web=read('lib/account-web.js'),css=read('assets/light-remote-portal.css'),usage=read('usage/index.html'),settings=read('settings/index.html');

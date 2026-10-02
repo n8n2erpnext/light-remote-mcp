@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -6,7 +7,7 @@ import crypto from 'node:crypto';
 import {spawn} from 'node:child_process';
 import {LicenseKeyRegistry} from '../../operator-host/license-key-registry.mjs';
 
-const root=path.resolve(new URL('../..',import.meta.url).pathname),tmp=fs.mkdtempSync(path.join(os.tmpdir(),'light-remote-account-api-'));
+const root=path.resolve(fileURLToPath(new URL('../..',import.meta.url))),tmp=fs.mkdtempSync(path.join(os.tmpdir(),'light-remote-account-api-'));
 const socket=path.join(tmp,'operator.sock'),state=path.join(tmp,'state'),log=path.join(tmp,'log');fs.mkdirSync(state);fs.mkdirSync(log);
 const issued=new LicenseKeyRegistry({stateFile:path.join(state,'license-keys.json')}).issue({plan:'pro',durationDays:30,label:'account-api-test'});
 const child=spawn(process.execPath,[path.join(root,'operator-host/executor.mjs')],{env:{...process.env,OPERATOR_SOCKET:socket,OPERATOR_STATE_DIR:state,OPERATOR_LOG_DIR:log,OPERATOR_DEVICE_ID:'arm-test',OPERATOR_NODE_ID:'arm-test-node',OPERATOR_DEVICE_NAME:'ACCOUNT-TEST',OPERATOR_ACCOUNT_ID:'self-hosted-local'},stdio:['ignore','pipe','pipe']});

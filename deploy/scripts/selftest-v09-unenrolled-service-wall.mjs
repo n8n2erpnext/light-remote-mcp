@@ -1,10 +1,11 @@
+import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 
-const root=new URL('../..',import.meta.url).pathname,dir=fs.mkdtempSync(path.join(os.tmpdir(),'lr-unenrolled-wall-'));
+const root=fileURLToPath(new URL('../..',import.meta.url)),dir=fs.mkdtempSync(path.join(os.tmpdir(),'lr-unenrolled-wall-'));
 const state=path.join(dir,'device.json'),port=26000+(process.pid%8000),agent=`${root}/device-agent/operator-agent.mjs`;
 const child=spawn(process.execPath,[agent,'daemon'],{cwd:root,env:{...process.env,OPERATOR_AGENT_STATE:state,OPERATOR_AGENT_WALL_PORT:String(port),OPERATOR_AGENT_DORMANT_CHECK_MS:'200'},stdio:['ignore','pipe','pipe']});
 let out='',err='';child.stdout.on('data',c=>out+=c);child.stderr.on('data',c=>err+=c);

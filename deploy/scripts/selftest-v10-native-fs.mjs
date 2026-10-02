@@ -33,12 +33,14 @@ if(!denied)throw new Error('copy_overwrite_guard_failed');
 await call({op:'move',source:copy,destination:moved,overwrite:false});
 r=await call({op:'stat',path:moved});if(r.type!=='file')throw new Error('stat_failed');
 await call({op:'delete',path:moved});
-denied=false;try{await call({op:'read',path:'/etc/hosts'});}catch(e){denied=e.status===403;}
+const outside=process.platform==='win32'?path.join(process.env.SystemRoot||'C:\\Windows','System32','drivers','etc','hosts'):'/etc/hosts';
+denied=false;try{await call({op:'read',path:outside});}catch(e){denied=e.status===403;}
 if(!denied)throw new Error('root_boundary_failed');
 const final=await call({op:'read',path:file,maxLines:10});
 if(!final.text.includes('TWO'))throw new Error('final_content_wrong');
 const executor=fs.readFileSync(new URL('../../operator-host/executor.mjs',import.meta.url),'utf8');
-if(!executor.includes('function fsActivityMeta')||!executor.includes("toolMeta:job.toolMeta")||!executor.includes('fsActivityResult(job.toolMeta,data)'))throw new Error('native_fs_activity_metadata_missing');
+const activity=fs.readFileSync(new URL('../../operator-host/executor-native-activity.mjs',import.meta.url),'utf8');
+if(!activity.includes('function fsActivityMeta')||!executor.includes("toolMeta:job.toolMeta")||!executor.includes('fsActivityResult(job.toolMeta,data)'))throw new Error('native_fs_activity_metadata_missing');
 fs.rmSync(root,{recursive:true,force:true});
 console.log('v10-native-fs-utf8=PASS');
 console.log('v10-native-fs-activity-meta=PASS');

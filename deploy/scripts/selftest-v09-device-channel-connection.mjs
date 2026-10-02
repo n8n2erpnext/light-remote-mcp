@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
@@ -7,7 +8,7 @@ import { spawn } from 'node:child_process';
 import { createOperatorCryptoFixture } from './selftest-crypto-fixture.mjs';
 import { deviceChannelMessage } from '../../lib/device-proof.mjs';
 
-const root=new URL('../..',import.meta.url).pathname,currentVersion=fs.readFileSync(`${root}/VERSION`,'utf8').trim(),dir=fs.mkdtempSync(path.join(os.tmpdir(),'lr-channel-lease-'));
+const root=fileURLToPath(new URL('../..',import.meta.url)),currentVersion=fs.readFileSync(`${root}/VERSION`,'utf8').trim(),dir=fs.mkdtempSync(path.join(os.tmpdir(),'lr-channel-lease-'));
 const socket=path.join(dir,'operator.sock'),logDir=path.join(dir,'log'),stateDir=path.join(dir,'state');fs.mkdirSync(logDir,{recursive:true});fs.mkdirSync(stateDir,{recursive:true});
 const fixture=createOperatorCryptoFixture(stateDir);
 const child=spawn(process.execPath,[`${root}/operator-host/executor.mjs`],{cwd:root,env:{...process.env,OPERATOR_SOCKET:socket,OPERATOR_LOG_DIR:logDir,OPERATOR_STATE_DIR:stateDir,OPERATOR_KEY_FILE:fixture.privateFile,OPERATOR_CONNECTION_LEASE_ENFORCE:'1',OPERATOR_ACCOUNT_PLAN:'free'},stdio:['ignore','pipe','pipe']});

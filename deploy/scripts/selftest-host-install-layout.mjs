@@ -1,7 +1,8 @@
+import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import path from 'node:path';
 
-const root=path.resolve(new URL('../..',import.meta.url).pathname);
+const root=path.resolve(fileURLToPath(new URL('../..',import.meta.url)));
 const installer=fs.readFileSync(path.join(root,'deploy/scripts/install-host.sh'),'utf8');
 const unit=fs.readFileSync(path.join(root,'deploy/systemd/gpt-vps-operator.service'),'utf8');
 const executor=fs.readFileSync(path.join(root,'operator-host/executor.mjs'),'utf8');

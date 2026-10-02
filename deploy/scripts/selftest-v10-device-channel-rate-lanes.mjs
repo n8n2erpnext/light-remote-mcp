@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
@@ -7,7 +8,7 @@ import { spawn } from 'node:child_process';
 import { createOperatorCryptoFixture } from './selftest-crypto-fixture.mjs';
 import { deviceChannelMessage } from '../../lib/device-proof.mjs';
 
-const root=new URL('../..',import.meta.url).pathname,currentVersion=fs.readFileSync(`${root}/VERSION`,'utf8').trim();
+const root=fileURLToPath(new URL('../..',import.meta.url)),currentVersion=fs.readFileSync(`${root}/VERSION`,'utf8').trim();
 const gatewaySource=fs.readFileSync(`${root}/gateway/server.mjs`,'utf8');
 if(gatewaySource.includes('deviceRateIdentity')||gatewaySource.includes('deviceChannelRateLimit'))throw new Error('gateway_unsigned_device_quota_remains');
 if(!gatewaySource.includes("createRateLimit('device-channel-edge',2400"))throw new Error('gateway_edge_rate_limit_missing');

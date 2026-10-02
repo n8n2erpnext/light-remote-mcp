@@ -1,25 +1,31 @@
+import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import http from 'node:http';
+import os from 'node:os';
+import path from 'node:path';
+import net from 'node:net';
 import { spawn } from 'node:child_process';
 import { createOperatorCryptoFixture } from './selftest-crypto-fixture.mjs';
-const root = new URL('../..', import.meta.url).pathname;
+const root = fileURLToPath(new URL('../..',import.meta.url));
 const run = `${process.pid}-${Date.now()}`;
-const socketPath = `/tmp/gpt-vps-operator-selftest-${run}.sock`;
-const logDir = `/tmp/gpt-vps-operator-selftest-${run}-log`;
-const stateDir = `/tmp/gpt-vps-operator-selftest-${run}-state`;
+const socketPath = process.platform==='win32' ? '\\\\.\\pipe\\gpt-vps-operator-selftest-' + run : path.join(os.tmpdir(),'gpt-vps-operator-selftest-'+run+'.sock');
+const logDir = path.join(os.tmpdir(),'gpt-vps-operator-selftest-'+run+'-log');
+const stateDir = path.join(os.tmpdir(),'gpt-vps-operator-selftest-'+run+'-state');
 fs.rmSync(socketPath, { force:true });
 fs.rmSync(logDir, { recursive:true, force:true });
 fs.mkdirSync(logDir, { recursive:true });
 const cryptoFixture=createOperatorCryptoFixture(stateDir);
 const child = spawn(process.execPath, [`${root}/operator-host/executor.mjs`], {
   cwd: root,
-  env: { ...process.env, OPERATOR_SOCKET:socketPath, OPERATOR_LOG_DIR:logDir,OPERATOR_STATE_DIR:'/tmp/gpt-vps-operator-selftest-state',
+  env: { ...process.env, OPERATOR_SOCKET:socketPath, OPERATOR_LOG_DIR:logDir,
     OPERATOR_KEY_FILE:cryptoFixture.privateFile, OPERATOR_STATE_DIR:stateDir },
   stdio:['ignore','pipe','pipe']
 });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-for (let i=0; i<80 && !fs.existsSync(socketPath); i++) await sleep(50);
-if (!fs.existsSync(socketPath)) throw new Error('executor_socket_not_ready');
+async function ipcReady(endpoint){return await new Promise(resolve=>{const socket=net.createConnection(endpoint);let settled=false;const done=value=>{if(settled)return;settled=true;socket.destroy();resolve(value);};socket.once('connect',()=>done(true));socket.once('error',()=>done(false));});}
+let ready=false;
+for (let i=0; i<80 && !ready; i++) { ready=await ipcReady(socketPath); if(!ready) await sleep(50); }
+if (!ready) throw new Error('executor_socket_not_ready');
 function request(method, target, body) {
   return new Promise((resolve,reject) => {
     const payload = body == null ? null : Buffer.from(JSON.stringify(body));
@@ -39,9 +45,9 @@ const agentId='agent-selftest-operator-v05-aaaaaaaa';
 const opened=await request('POST','/v1/sessions/open',{agentId,openId:'selftest-operator-open-v05',label:'operator regression'});
 if(opened.status!==200) throw new Error('session_open_failed'); const sessionId=opened.json.session.sessionId;
 const envelope = cryptoFixture.seal({ action:'exec_batch', operationId:'selftest-operator-v05', cwd:root,
-  script:"printf 'selftest-ok\\n'", sessionId, agentId, note:'encrypted regression', waitMs:5000, timeoutMs:10000 });
+  script:process.platform==='win32'?"Write-Output 'selftest-ok'":"printf 'selftest-ok\\n'", sessionId, agentId, note:'encrypted regression', waitMs:5000, timeoutMs:10000 });
 const first = await request('POST','/v1/execute',envelope);
-if (first.status !== 200 || first.json.job?.exitCode !== 0) throw new Error('execute_failed');
+if (first.status !== 200 || first.json.job?.exitCode !== 0) throw new Error('execute_failed:'+JSON.stringify({status:first.status,error:first.json.error,job:first.json.job}));
 const jobId = first.json.job.jobId;
 const replay = await request('POST','/v1/execute',envelope);
 if (replay.status !== 401 || replay.json.error !== 'replay_detected') throw new Error('replay_guard_failed');

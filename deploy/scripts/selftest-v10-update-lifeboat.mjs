@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -31,7 +32,7 @@ try{
   console.log('v10-update-helper-build-identity=PASS');
 } finally {fs.rmSync(tmp,{recursive:true,force:true});}
 
-const repo=path.resolve(new URL('../..',import.meta.url).pathname);
+const repo=path.resolve(fileURLToPath(new URL('../..',import.meta.url)));
 const install=fs.readFileSync(path.join(repo,'client/linux/install.sh'),'utf8');
 const updater=fs.readFileSync(path.join(repo,'client/linux/updater.mjs'),'utf8');
 if(!install.includes('gpt-operator-agent-update-check.service')||!install.includes('Unit=gpt-operator-agent-update-check.service'))throw new Error('periodic_check_only_service_missing');

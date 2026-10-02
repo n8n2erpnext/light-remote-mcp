@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
@@ -7,7 +8,7 @@ import {spawn} from 'node:child_process';
 import {createOperatorCryptoFixture} from './selftest-crypto-fixture.mjs';
 import {deviceChannelMessage} from '../../lib/device-proof.mjs';
 
-const root=new URL('../..',import.meta.url).pathname,currentVersion=fs.readFileSync(`${root}/VERSION`,'utf8').trim();
+const root=fileURLToPath(new URL('../..',import.meta.url)),currentVersion=fs.readFileSync(`${root}/VERSION`,'utf8').trim();
 const agentSource=fs.readFileSync(`${root}/device-agent/operator-agent.mjs`,'utf8');
 if(!agentSource.includes('if(state.identity?.privateKey){delete state.identity')||!agentSource.includes('external_identity_rotation_required'))throw new Error('hard_remove_identity_rotation_missing');
 if(!agentSource.includes('fleetHealthy:local.healthy===true')||!agentSource.includes('fleetPort:local.port'))throw new Error('fleet_intent_local_health_probe_missing');

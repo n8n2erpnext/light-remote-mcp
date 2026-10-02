@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import http from 'node:http';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -11,7 +12,7 @@ import {deviceChannelMessage} from '../../lib/device-proof.mjs';
 const isPrivate=ip=>{const p=String(ip).split('.').map(Number);return p.length===4&&(p[0]===10||(p[0]===172&&p[1]>=16&&p[1]<=31)||(p[0]===192&&p[1]===168)||(p[0]===100&&p[1]>=64&&p[1]<=127));};
 const addresses=Object.values(os.networkInterfaces()).flat().filter(x=>x?.family==='IPv4'&&!x.internal&&isPrivate(x.address)).map(x=>x.address);
 const host=addresses.find(x=>x.startsWith('100.'))||addresses[0];if(!host)throw new Error('private_interface_required_for_homelab_test');
-const root=new URL('../..',import.meta.url).pathname,dir=fs.mkdtempSync(path.join(os.tmpdir(),'lr-homelab-wall-'));
+const root=fileURLToPath(new URL('../..',import.meta.url)),dir=fs.mkdtempSync(path.join(os.tmpdir(),'lr-homelab-wall-'));
 const authFile=path.join(dir,'wall-auth.json'),password='homelab-wall-password-123';writeLocalWallAuthConfig(authFile,{username:'operator',password});
 const auth=loadLocalWallAuth(authFile,{required:true});
 const listen=(server,bind=host)=>new Promise((resolve,reject)=>server.once('error',reject).listen(0,bind,()=>resolve(server.address().port)));

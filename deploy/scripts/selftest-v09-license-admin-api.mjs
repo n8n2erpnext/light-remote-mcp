@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -5,7 +6,7 @@ import http from 'node:http';
 import crypto from 'node:crypto';
 import {spawn,spawnSync} from 'node:child_process';
 
-const root=path.resolve(new URL('../..',import.meta.url).pathname),tmp=fs.mkdtempSync(path.join(os.tmpdir(),'light-remote-license-admin-'));
+const root=path.resolve(fileURLToPath(new URL('../..',import.meta.url))),tmp=fs.mkdtempSync(path.join(os.tmpdir(),'light-remote-license-admin-'));
 const socket=path.join(tmp,'operator.sock'),state=path.join(tmp,'state'),log=path.join(tmp,'log');fs.mkdirSync(state);fs.mkdirSync(log);
 const child=spawn(process.execPath,[path.join(root,'operator-host/executor.mjs')],{env:{...process.env,OPERATOR_SOCKET:socket,OPERATOR_STATE_DIR:state,OPERATOR_LOG_DIR:log,OPERATOR_DEVICE_ID:'arm-admin-test',OPERATOR_NODE_ID:'arm-admin-test-node',OPERATOR_DEVICE_NAME:'ADMIN-TEST',OPERATOR_ACCOUNT_ID:'self-hosted-local',OPERATOR_CONNECTION_LEASE_ENFORCE:'1'},stdio:['ignore','pipe','pipe']});
 let childLog='';child.stdout.on('data',d=>childLog+=d);child.stderr.on('data',d=>childLog+=d);
