@@ -81,6 +81,9 @@ need(robotContext.includes('Text="Agent Remote Active"')&&!robotContext.includes
 need(systemCursor.includes('SetSystemCursor')&&systemCursor.includes('CreateCodexCursor')&&systemCursor.includes('SPI_SETCURSORS'),'rm-native-system-cursor');
 need(agentHost.includes('"LightRemote.RM.exe"'),'rm-branding-agent-host-path');
 need(windowsWorkflow.includes('LightRemote.RM.exe')&&!windowsWorkflow.includes('GptOperator.RealRemoteV2.exe'),'rm-branding-workflow-path');
+const rmMainWorkflowSteps=['RM V2 push live lane contract','Publish isolated Real Remote V2 companion','Real Remote V2 self test','Real Remote V2 full duplex lifecycle','Stage Real Remote V2 lazy companion','Real Remote V2 lazy broker smoke','Real Remote V2 push bridge smoke'];
+for(const step of rmMainWorkflowSteps){const marker='- name: '+step;const at=windowsWorkflow.indexOf(marker);need(at>=0&&!windowsWorkflow.slice(at,at+260).includes("if: github.ref_name == 'feature/real-remote-v2-golden'"),'rmv2-main-workflow-unconditional:'+step);}
+need(windowsWorkflow.includes("$dest = Join-Path $stage 'realremote-v2'")&&windowsWorkflow.includes("Copy-Item (Join-Path (Split-Path $env:RMV2_EXE -Parent) '*') $dest -Recurse -Force"),'rmv2-main-installer-stage');
 need(windowsInstaller.includes('[InstallDelete]')&&windowsInstaller.includes('{app}\\realremote-v2\\GptOperator.RealRemoteV2.*'),'rm-branding-obsolete-binary-cleanup');
 need(operatorAgent.includes("if(NATIVE_DESKTOP.running){try{detached=await NATIVE_DESKTOP.request('semantic-detach'")&&operatorAgent.includes("if(REAL_REMOTE_LIVE.size===0){NATIVE_DESKTOP.closeIfIdle();scheduleDeviceDuplexIdleClose();}"),'rmv2-stale-live-close-no-helper-spawn');
 console.log('V10_DESKTOP_PRODUCTIZATION_GATE=PASS');

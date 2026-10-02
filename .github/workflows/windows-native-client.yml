@@ -236,7 +236,6 @@ jobs:
           Write-Host 'golden-local-wall-ui=PASS pairing-fast-path=PASS'
 
       - name: RM V2 push live lane contract
-        if: github.ref_name == 'feature/real-remote-v2-golden' || github.ref_name == 'feature/real-remote-v2-m6-persistent-duplex'
         shell: pwsh
         run: |
           $native = Get-Content 'lib/native-desktop.mjs' -Raw
@@ -251,7 +250,6 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'RM V2 guarded input contract failed' }
 
       - name: Publish isolated Real Remote V2 companion
-        if: github.ref_name == 'feature/real-remote-v2-golden' || github.ref_name == 'feature/real-remote-v2-m6-persistent-duplex'
         shell: pwsh
         run: |
           $out = Join-Path $PWD 'dist\realremote-v2'
@@ -262,7 +260,6 @@ jobs:
           "RMV2_EXE=$exe" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Real Remote V2 self test
-        if: github.ref_name == 'feature/real-remote-v2-golden' || github.ref_name == 'feature/real-remote-v2-m6-persistent-duplex'
         shell: pwsh
         run: |
           $result = Join-Path $env:RUNNER_TEMP 'rmv2-selftest.json'
@@ -279,7 +276,6 @@ jobs:
           if (-not $json.ok -or $json.runtime -ne 'real-remote-v2-companion') { throw "invalid self test: $(Get-Content $result -Raw)" }
 
       - name: Real Remote V2 full duplex lifecycle
-        if: github.ref_name == 'feature/real-remote-v2-golden' || github.ref_name == 'feature/real-remote-v2-m6-persistent-duplex'
         shell: pwsh
         run: |
           $pipeName = "lightremote-rmv2-ci-$PID"
@@ -317,7 +313,6 @@ jobs:
           }
 
       - name: Stage Real Remote V2 lazy companion
-        if: github.ref_name == 'feature/real-remote-v2-golden' || github.ref_name == 'feature/real-remote-v2-m6-persistent-duplex'
         shell: pwsh
         run: |
           $stage = Join-Path $PWD 'dist\windows\stage'
@@ -330,7 +325,6 @@ jobs:
           Write-Host "rmv2-lazy-stage=PASS bytes=$((Get-Item $stageExe).Length)"
 
       - name: Real Remote V2 lazy broker smoke
-        if: github.ref_name == 'feature/real-remote-v2-golden' || github.ref_name == 'feature/real-remote-v2-m6-persistent-duplex'
         shell: pwsh
         run: |
           $env:LIGHT_REMOTE_REAL_REMOTE = '1'
@@ -357,7 +351,6 @@ jobs:
           Write-Host 'rmv2-lazy-broker=PASS idle-zero=PASS on-demand-spawn=PASS idle-shutdown=PASS'
 
       - name: Real Remote V2 push bridge smoke
-        if: github.ref_name == 'feature/real-remote-v2-golden' || github.ref_name == 'feature/real-remote-v2-m6-persistent-duplex'
         shell: pwsh
         run: |
           $env:LIGHT_REMOTE_REAL_REMOTE = '1'
