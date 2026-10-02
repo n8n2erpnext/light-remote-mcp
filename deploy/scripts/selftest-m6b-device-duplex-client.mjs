@@ -5,6 +5,10 @@ import { CommandExecutionCoordinator, DeviceDuplexClient, DEVICE_DUPLEX_PROTOCOL
 
 const packageManifest=JSON.parse(fs.readFileSync(new URL('../../client/core-files.json',import.meta.url),'utf8'));
 assert.ok(packageManifest.files.some(row=>row.source==='lib/device-duplex-client.mjs'&&row.destination==='lib/device-duplex-client.mjs'),'device_duplex_client_not_packaged');
+const installHost=fs.readFileSync(new URL('./install-host.sh',import.meta.url),'utf8');
+for(const lib of ['device-duplex-client.mjs','native-desktop.mjs','real-remote-policy.mjs','real-remote-input.cjs']){
+  assert.ok(installHost.split(lib).length-1>=2,'install_host_missing_runtime_dependency:'+lib);
+}
 
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function waitFor(fn,ms=4000){const d=Date.now()+ms;while(Date.now()<d){const v=fn();if(v)return v;await sleep(20);}throw new Error('wait_timeout');}
