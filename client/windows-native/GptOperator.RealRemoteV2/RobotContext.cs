@@ -31,6 +31,7 @@ internal sealed class RobotContext : ApplicationContext
     public RobotContext(string pipeName)
     {
         _tray=new NotifyIcon{Visible=true,Text="Agent \u0111ang remote",Icon=LoadAppIcon()};
+        SystemCursorOverride.Acquire();
         _cursorTimer.Tick+=(_,_)=>_cursor.FollowCursor();
         _cursor.Show();
         _cursor.FollowCursor(true);
@@ -120,7 +121,8 @@ internal sealed class RobotContext : ApplicationContext
         native=NativeInput.ReadStatus(),
         topology=DesktopVisual.ReadTopology(),
         visualSessions=_visual.ActiveSessions,
-        cursorVisual=_cursor.Status()
+        cursorVisual=_cursor.Status(),
+        osCursorHidden=SystemCursorOverride.IsActive
     };
 
     private object Move(JsonElement r)
@@ -374,6 +376,7 @@ internal sealed class RobotContext : ApplicationContext
         _tray.Dispose();
         _cursor.Close();
         _cursor.Dispose();
+        SystemCursorOverride.Release();
         base.ExitThreadCore();
     }
 }
