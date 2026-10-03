@@ -20,4 +20,18 @@ try{await waitForIpc(socket,{attempts:100,delayMs:40,error:'executor_not_ready',
  const access=await request('POST','/v1/device-access/request',{accountId:accountB,agentId:aid,deviceId,label:'Tenant B Agent'});if(access.status!==201||access.json.access?.request?.accountId!==accountB)throw new Error('tenant_b_access_failed:'+JSON.stringify(access));
  const wrong=await request('POST','/v1/device-access/request',{agentId:'agent-default-wrong-tenant-aa',deviceId,label:'Wrong Tenant'});if(wrong.status!==403||wrong.json.error!=='device_access_account_mismatch')throw new Error('default_account_access_not_denied');
  console.log(JSON.stringify({ok:true,accountB,deviceId,crossTenantStatus:denied.status,accessAccount:access.json.access.accountId},null,2));
-}finally{child.kill('SIGTERM');removeIpcEndpoint(socket);fs.rmSync(dir,{recursive:true,force:true});}
+}finally{
+  if(child.exitCode==null){
+    try{child.kill('SIGTERM');}catch{}
+    await Promise.race([
+      new Promise(resolve=>child.once('exit',resolve)),
+      new Promise(resolve=>setTimeout(resolve,1000))
+    ]);
+  }
+  if(child.exitCode==null){try{child.kill('SIGKILL');}catch{}}
+  removeIpcEndpoint(socket);
+  for(let i=0;i<20;i++){
+    try{fs.rmSync(dir,{recursive:true,force:true});break;}
+    catch(error){if(i===19)throw error;await new Promise(resolve=>setTimeout(resolve,25));}
+  }
+}
