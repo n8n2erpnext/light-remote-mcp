@@ -36,8 +36,8 @@ export class SessionRegistry {
   _id() { return `s_${this.now().toString(36)}_${crypto.randomBytes(8).toString('hex')}`; }
   _validId(id) { return /^[A-Za-z0-9._:-]{1,128}$/.test(String(id || '')); }
   _validAgent(id) { return /^[A-Za-z0-9._:-]{16,128}$/.test(String(id || '')); }
-  _laneKey(deviceId, agentId) { return `${String(deviceId)}\u0000${String(agentId)}`; }
-  _openKey(deviceId, openId) { return `${String(deviceId)}\u0000${String(openId)}`; }
+  _laneKey(accountId, deviceId, agentId) { return `${String(accountId)}\u0000${String(deviceId)}\u0000${String(agentId)}`; }
+  _openKey(accountId, deviceId, openId) { return `${String(accountId)}\u0000${String(deviceId)}\u0000${String(openId)}`; }
 
   _grace(value) {
     if (value == null || value === '') return this.idleMs;
@@ -59,7 +59,7 @@ export class SessionRegistry {
   }
 
   _unlinkLane(s) {
-    const key=this._laneKey(s.deviceId,s.agentId);
+    const key=this._laneKey(s.accountId,s.deviceId,s.agentId);
     if (this.agentDeviceSessions.get(key) === s.id) this.agentDeviceSessions.delete(key);
   }
 
@@ -106,7 +106,7 @@ export class SessionRegistry {
       const state=this._state(s,now), terminalAt=s.closedAt||s.expiredAt;
       if ((state==='closed'||state==='expired') && terminalAt && now-terminalAt>this.historyMs) {
         this.sessions.delete(id);
-        if (s.openId) this.openDedupe.delete(this._openKey(s.deviceId,s.openId));
+        if (s.openId) this.openDedupe.delete(this._openKey(s.accountId,s.deviceId,s.openId));
         this._unlinkLane(s);
       }
     }
@@ -129,11 +129,13 @@ export class SessionRegistry {
     return n;
   }
 
-  open({ id=null, openId=null, agentId, label='', workspace='', implicit=false,
+  open({ id=null, openId=null, accountId=null, agentId, label='', workspace='', implicit=false,
     graceMs=null, gracePreset=null, leaseMs=null, leasePreset=null, nodeId=null, deviceId=null, maxActiveForNode=null }={}) {
     this.prune();
     const aid=String(agentId||'').trim();
     if (!this._validAgent(aid)) throw new SessionError('invalid_agent_id');
+    const targetAccountId=String(accountId||this.accountId).trim();
+    if (!this._validId(targetAccountId)) throw new SessionError('invalid_account_id');
     const targetNodeId=String(nodeId||this.nodeId).trim(), targetDeviceId=String(deviceId||this.deviceId).trim();
     if (!this._validId(targetNodeId)) throw new SessionError('invalid_node_id');
     if (!this._validId(targetDeviceId)) throw new SessionError('invalid_device_id');
@@ -142,7 +144,7 @@ export class SessionRegistry {
       nodeCeiling=Number(maxActiveForNode);
       if (!Number.isInteger(nodeCeiling)||nodeCeiling<1||nodeCeiling>1000) throw new SessionError('invalid_node_session_capacity');
     }
-    const laneKey=this._laneKey(targetDeviceId,aid), liveId=this.agentDeviceSessions.get(laneKey), live=liveId?this.sessions.get(liveId):null;
+    const laneKey=this._laneKey(targetAccountId,targetDeviceId,aid), liveId=this.agentDeviceSessions.get(laneKey), live=liveId?this.sessions.get(liveId):null;
     if (live&&['active','hold'].includes(this._state(live))) {
       if (live.nodeId!==targetNodeId) throw new SessionError('agent_session_target_conflict',409);
       this.emit({type:'session_reused_for_agent',accountId:live.accountId,deviceId:live.deviceId,sessionId:live.id,agentId:aid,nodeId:live.nodeId,status:this._state(live)});
@@ -152,7 +154,7 @@ export class SessionRegistry {
     const stableOpenId=openId==null||openId===''?null:String(openId);
     if (stableOpenId&&!/^[A-Za-z0-9._:-]{16,128}$/.test(stableOpenId)) throw new SessionError('invalid_session_open_id');
     if (stableOpenId) {
-      const openKey=this._openKey(targetDeviceId,stableOpenId), priorId=this.openDedupe.get(openKey), prior=priorId?this.sessions.get(priorId):null;
+      const openKey=this._openKey(targetAccountId,targetDeviceId,stableOpenId), priorId=this.openDedupe.get(openKey), prior=priorId?this.sessions.get(priorId):null;
       if (prior) {
         this._owner(prior,aid);
         const state=this._state(prior);
@@ -168,13 +170,13 @@ export class SessionRegistry {
     if (this.sessions.has(sessionId)) throw new SessionError('session_already_exists',409);
     const requestedGrace=graceMs??leaseMs, requestedPreset=gracePreset??leasePreset;
     const graceSpec=this._graceSpec(requestedGrace,requestedPreset), now=this.now();
-    const s={id:sessionId,accountId:this.accountId,deviceId:targetDeviceId,agentId:aid,nodeId:targetNodeId,openId:stableOpenId,
+    const s={id:sessionId,accountId:targetAccountId,deviceId:targetDeviceId,agentId:aid,nodeId:targetNodeId,openId:stableOpenId,
       label:String(label||'').slice(0,120),workspace:String(workspace||'').slice(0,512),implicit:Boolean(implicit),
       graceMs:graceSpec.graceMs,gracePreset:graceSpec.gracePreset,createdAt:now,lastSeenAt:now,closedAt:null,expiredAt:null,
       holdReason:null,activeJobs:new Set(),connectCount:1,reconnectCount:0,
       stats:{toolCalls:0,execCalls:0,jobsStarted:0,jobsFinished:0,outputReads:0,jobReads:0,errors:0}};
     this.sessions.set(sessionId,s); this.agentDeviceSessions.set(laneKey,sessionId);
-    if (stableOpenId) this.openDedupe.set(this._openKey(targetDeviceId,stableOpenId),sessionId);    this.emit({type:'session_opened',accountId:s.accountId,deviceId:s.deviceId,sessionId,agentId:aid,nodeId:s.nodeId,openId:stableOpenId,status:'active',label:s.label,workspace:s.workspace,implicit:s.implicit,graceMs:s.graceMs,gracePreset:s.gracePreset});
+    if (stableOpenId) this.openDedupe.set(this._openKey(targetAccountId,targetDeviceId,stableOpenId),sessionId);    this.emit({type:'session_opened',accountId:s.accountId,deviceId:s.deviceId,sessionId,agentId:aid,nodeId:s.nodeId,openId:stableOpenId,status:'active',label:s.label,workspace:s.workspace,implicit:s.implicit,graceMs:s.graceMs,gracePreset:s.gracePreset});
     return this._view(s,now);
   }
 
