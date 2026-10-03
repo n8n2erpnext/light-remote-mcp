@@ -1,0 +1,34 @@
+[Unit]
+Description=Light Remote Direct Operator
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=lightremote
+Group=lightremote
+WorkingDirectory=/opt/light-remote-direct/current
+EnvironmentFile=/etc/light-remote-direct/operator.env
+RuntimeDirectory=light-remote-direct
+RuntimeDirectoryMode=0750
+StateDirectory=light-remote-direct
+StateDirectoryMode=0750
+LogsDirectory=light-remote-direct
+LogsDirectoryMode=0750
+ExecStart=/opt/light-remote-direct/current/runtime/node /opt/light-remote-direct/current/operator-host/executor.mjs
+Restart=always
+RestartSec=2
+TimeoutStopSec=15
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target
