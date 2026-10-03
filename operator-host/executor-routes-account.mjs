@@ -56,6 +56,48 @@ export async function handleAccountRoutes(req,res,url,deps){
       const body=await readJson(req),account=accounts.verifyCredentials({email:body.email,password:body.password},{recordLogin:false});
       return sendJson(res,200,{ok:true,account,entitlements:planEntitlements(account)});
     }
+    const pluginAccountMatch=url.pathname.match(/^\/v1\/plugin\/accounts\/([A-Za-z0-9._:-]+)$/);
+    if(req.method==='GET'&&pluginAccountMatch){
+      const account=accounts.account(pluginAccountMatch[1]);
+      return sendJson(res,200,{ok:true,account,entitlements:planEntitlements(account)});
+    }
+    const pluginDevicesMatch=url.pathname.match(/^\/v1\/plugin\/accounts\/([A-Za-z0-9._:-]+)\/devices$/);
+    if(req.method==='GET'&&pluginDevicesMatch){
+      const accountId=pluginDevicesMatch[1],account=accounts.account(accountId),owned=allDeviceViews().filter(device=>device.accountId===accountId);
+      return sendJson(res,200,{ok:true,account,entitlements:planEntitlements(account),devices:owned});
+    }
+    const pluginMainMatch=url.pathname.match(/^\/v1\/plugin\/accounts\/([A-Za-z0-9._:-]+)\/main-device$/);
+    if(req.method==='POST'&&pluginMainMatch){
+      const body=await readJson(req),accountId=pluginMainMatch[1],device=devices.get(body.deviceId);
+      if(device.accountId!==accountId)throw new AccountError('account_device_mismatch',403);
+      if(device.state==='revoked')throw new AccountError('main_device_revoked',409);
+      if(device.state!=='online')throw new AccountError('main_device_offline',409);
+      const compatibility=compatibilityFor(device);if(!compatibility.supported)throw new AccountError(compatibility.status,409);
+      const prior=accounts.account(accountId).mainDeviceId||null;if(prior&&prior!==device.deviceId)fleetAuthority.invalidateDevice(prior,'main_device_changed');
+      fleetAuthority.invalidateDevice(device.deviceId,'main_device_changed');
+      let account=accounts.setMainDevice(accountId,device.deviceId),entitlements=planEntitlements(account);
+      account=accounts.setFleetProvisioning(accountId,{deviceId:device.deviceId,state:entitlements.fleetWall&&entitlements.multiDeviceConsole?'starting':'failed',reason:entitlements.fleetWall&&entitlements.multiDeviceConsole?'main_device_selected':'fleet_entitlement_required',port:5492});
+      if(prior&&prior!==device.deviceId)wakeDeviceChannelForDevice(prior);wakeDeviceChannelForDevice(device.deviceId);
+      return sendJson(res,200,{ok:true,account,entitlements,mainDevice:device});
+    }
+    const pluginDeviceAction=url.pathname.match(/^\/v1\/plugin\/accounts\/([A-Za-z0-9._:-]+)\/devices\/([A-Za-z0-9._:-]+)\/(revoke|remove)$/);
+    if(req.method==='POST'&&pluginDeviceAction){
+      const body=await readJson(req),accountId=pluginDeviceAction[1],device=devices.get(pluginDeviceAction[2]),action=pluginDeviceAction[3];
+      if(device.accountId!==accountId)throw new AccountError('account_device_mismatch',403);
+      if(device.deviceId===DEVICE_ID)throw new AccountError(action==='remove'?'integrated_hub_device_not_removable':'integrated_hub_device_not_revocable',409);
+      const reason=String(body.reason||('plugin_owner_'+action+'d')).slice(0,120);
+      if(action==='revoke'){
+        const binding=enrollments.revoke({deviceId:device.deviceId,accountId,reason}),revoked=devices.revoke(device.deviceId,reason);
+        revokeRuntimeForDevice(device.deviceId,reason);
+        const account=clearMainIfMatches(accountId,device.deviceId,'main_device_revoked')||accounts.account(accountId);
+        return sendJson(res,200,{ok:true,binding,device:revoked,account,entitlements:planEntitlements(account)});
+      }
+      const account=clearMainIfMatches(accountId,device.deviceId,'main_device_removed')||accounts.account(accountId);
+      removeRuntimeForDevice(device.deviceId,reason);
+      let binding={deviceId:device.deviceId,removed:false};try{binding=enrollments.remove({deviceId:device.deviceId,accountId,reason});}catch(error){if(error.message!=='device_binding_not_found')throw error;}
+      const removed=devices.remove(device.deviceId,reason);wakeDeviceChannelForDevice(device.deviceId);
+      return sendJson(res,200,{ok:true,removed,binding,account,entitlements:planEntitlements(account)});
+    }
     if (req.method === 'POST' && url.pathname === '/v1/accounts/register') {
       const body=await readJson(req);
       if(body.ownerCode) accounts.consumeOwnerProof(body.ownerCode);

@@ -58,16 +58,16 @@ export async function handleRuntimeRoutes(req,res,url,deps){
     if (connectionMatch) {
       const deviceId=connectionMatch[1], action=connectionMatch[2] || 'get';
       const device=devices.get(deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
+      const body=req.method==='POST'?await readJson(req):null;
       const accountId=String(body?.accountId||device.accountId);
       if (device.accountId!==accountId) throw new DeviceConnectionError('device_connection_account_mismatch',403);
       if (req.method==='GET' && action==='get') return sendJson(res,200,{ok:true,connection:connectionViewForDevice(deviceId)});
       if (req.method==='POST' && action==='connect') {
-        const body=await readJson(req);
         const spec=connectionSpec(accountId,body.requestedLeaseMs),connection=connections.connect({accountId,deviceId,plan:spec.plan,requestedLeaseMs:spec.requestedLeaseMs,reconnectGraceMs:body.reconnectGraceMs});
         return sendJson(res,200,{ok:true,connection});
       }
       if (req.method==='POST' && action==='disconnect') {
-        const body=await readJson(req), connection=connections.disconnect(deviceId,body.reason||'user_disconnect');
+        const connection=connections.disconnect(deviceId,body.reason||'user_disconnect');
         accessGrants.closeByDevice(deviceId,connection.closeReason||'device_connection_closed');
         pairingCodes.invalidateDevice(deviceId,connection.closeReason||'device_connection_closed');
         agentClients.removeDevice(deviceId,connection.closeReason||'device_connection_closed');
@@ -75,11 +75,9 @@ export async function handleRuntimeRoutes(req,res,url,deps){
         return sendJson(res,200,{ok:true,connection});
       }
       if (req.method==='POST' && action==='grace') {
-        const body=await readJson(req);
         return sendJson(res,200,{ok:true,connection:connections.setGrace(deviceId,body.reconnectGraceMs)});
       }
       if (req.method==='POST' && action==='activity') {
-        const body=await readJson(req);
         return sendJson(res,200,{ok:true,connection:connections.touch(deviceId,body.reason||'activity')});
       }
     }
@@ -104,6 +102,13 @@ export async function handleRuntimeRoutes(req,res,url,deps){
       if (req.method === 'POST' && action === 'close') return sendJson(res, 200, { ok:true, session:sessions.close(sid, aid) });
       if (req.method === 'POST' && action === 'touch') return sendJson(res, 200, { ok:true, session:sessions.touch(sid, aid, body?.action || 'tool') });
     }
+    if (req.method === 'POST' && url.pathname === '/v1/plugin/desktop-live/read') {
+      const body=await readJson(req),accountId=String(body.accountId||''),session=sessions.ensure(String(body.sessionId||''),{agentId:String(body.agentId||'')});
+      if(!accountId||session.accountId!==accountId)throw new DeviceAccessGrantError('plugin_desktop_session_account_mismatch',403);
+      const live=realRemoteLive.read({deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,semanticSessionId:String(body.semanticSessionId||''),afterSeq:body.afterSeq,limit:body.limit,includeSnapshot:body.includeSnapshot!==false});
+      sessions.touch(session.id,session.agentId,'desktop-live-read');
+      return sendJson(res,200,{ok:true,live});
+    }
     if (req.method === 'POST' && url.pathname === '/v1/device-access/desktop-live/read') {
       const body=await readJson(req),grant=accessGrants.assert(body.grantId),connection=connections.assertConnected(grant.deviceId);
       accessGrants.assert(grant.grantId,{deviceId:grant.deviceId,connectionId:connection.connectionId});
@@ -125,6 +130,15 @@ export async function handleRuntimeRoutes(req,res,url,deps){
       const job=payload.action==='desktop'?await startDesktopOperation(payload,requestId):payload.action==='fs'?await startFsOperation(payload,requestId):payload.action==='process'?await startProcessOperation(payload,requestId):payload.action==='terminal'?await startTerminalOperation(payload,requestId):payload.action==='search'?await startSearchOperation(payload,requestId):payload.action==='scp'?await startScpOperation(payload,requestId):startJob(payload,requestId);
       if(!job.telemetry?.operatorAcceptedAt){job.telemetry={...(job.telemetry||{}),...ingressTelemetry(body.telemetry,operatorAcceptedAt),dispatchAt:job.startedAt};if(!job.remote)job.telemetry.deviceReceivedAt=job.startedAt;}
       const waitMs=Math.max(0,Math.min(Number(payload.waitMs)||0,8000));
+      await waitForJob(job,waitMs);
+      return sendJson(res,200,{ok:job.finishedAt?job.exitCode===0:true,encryptedByKid:kid,aad,job:jobView(job),data:job.resultData});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/desktop') {
+      const envelope=await readJson(req);
+      const {payload,requestId,aad,kid}=decryptEnvelope(envelope);
+      if(payload.action!=='desktop')throw new Error('unsupported_action');
+      const job=await startDesktopOperation(payload,requestId);
+      const waitMs=Math.max(0,Math.min(Number(payload.waitMs)||7000,8000));
       await waitForJob(job,waitMs);
       return sendJson(res,200,{ok:job.finishedAt?job.exitCode===0:true,encryptedByKid:kid,aad,job:jobView(job),data:job.resultData});
     }
