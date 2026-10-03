@@ -38,6 +38,7 @@ expect(stop.includes('/End /TN "LightRemoteDeviceAgent"'),'current_task_must_sto
 expect(!stop.includes('/Delete /TN "LightRemoteDeviceAgent"'),'current_task_must_survive_precommit');
 expect(stop.includes('legacy-task-delete attempt=')&&stop.includes('/Delete /TN "GPTOperatorDeviceAgent" /F'),'legacy_task_preclean_retry_required');
 expect(task.includes('windows-legacy-task-neutralized=PASS')&&task.includes('$legacyActionExpected')&&task.includes('$LegacyLauncher'),'legacy_task_acl_tombstone_guard_required');
+expect(task.includes("Start-Process -FilePath $schtasks -ArgumentList @('/Delete','/TN',$Legacy,'/F') -WindowStyle Hidden -Wait -PassThru")&&task.includes('$legacyDeleteExit=$legacyDeleteProcess.ExitCode'),'legacy_task_acl_delete_must_capture_exit_without_native_stderr_abort');
 
 for(const token of [
   'Register-ScheduledTask','Start-ScheduledTask','InstallerPid','CommitMarker','TaskXml',

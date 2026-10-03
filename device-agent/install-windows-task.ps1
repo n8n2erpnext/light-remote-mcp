@@ -33,9 +33,10 @@ do{
   Unregister-ScheduledTask -TaskName $Legacy -Confirm:$false -ErrorAction SilentlyContinue
   $legacyTask=Get-ScheduledTask -TaskName $Legacy -ErrorAction SilentlyContinue
   if($null -ne $legacyTask){
-    & (Join-Path $env:SystemRoot 'System32\schtasks.exe') /End /TN $Legacy 2>$null | Out-Null
-    & (Join-Path $env:SystemRoot 'System32\schtasks.exe') /Delete /TN $Legacy /F 2>$null | Out-Null
-    $legacyDeleteExit=$LASTEXITCODE
+    $schtasks=Join-Path $env:SystemRoot 'System32\schtasks.exe'
+    Start-Process -FilePath $schtasks -ArgumentList @('/End','/TN',$Legacy) -WindowStyle Hidden -Wait | Out-Null
+    $legacyDeleteProcess=Start-Process -FilePath $schtasks -ArgumentList @('/Delete','/TN',$Legacy,'/F') -WindowStyle Hidden -Wait -PassThru
+    $legacyDeleteExit=$legacyDeleteProcess.ExitCode
     $legacyTask=Get-ScheduledTask -TaskName $Legacy -ErrorAction SilentlyContinue
   }
   $legacyRemaining=@(Get-Process -Name node -ErrorAction SilentlyContinue|Where-Object{try{[IO.Path]::GetFullPath($_.Path) -eq $legacyNodeFull}catch{$false}})
