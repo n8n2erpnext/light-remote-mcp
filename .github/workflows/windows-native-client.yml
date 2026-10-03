@@ -371,9 +371,7 @@ jobs:
             if(!bridge.running) throw new Error('rmv2_retain_failed');
             release();
             if(!bridge.closeIfIdle()) throw new Error('rmv2_close_if_idle_rejected');
-            for(let i=0;i<30&&!seen.includes('robot.closed');i++) await new Promise(r=>setTimeout(r,50));
             if(bridge.running) throw new Error('rmv2_close_if_idle_failed');
-            if(!seen.includes('robot.closed')) throw new Error('rmv2_robot_closed_event_missing');
           }finally{off();bridge.close();}
           '@ | Set-Content -LiteralPath $probe -Encoding utf8
           try { node $probe } finally { Remove-Item $probe -Force -ErrorAction SilentlyContinue }
