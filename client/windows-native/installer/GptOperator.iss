@@ -303,13 +303,33 @@ end;
 
 procedure CacheRollbackInstaller();
 var
-  RollbackDir, RollbackFile: String;
+  RollbackDir, RollbackFile, SourceInstaller: String;
+  Attempt: Integer;
+  Cached: Boolean;
 begin
   RollbackDir := ExpandConstant('{localappdata}\Light Remote\Updater\rollback');
-  ForceDirectories(RollbackDir);
+  if not ForceDirectories(RollbackDir) then
+    RaiseException('Unable to create rollback installer cache directory: ' + RollbackDir);
   RollbackFile := RollbackDir + '\Light-Remote-MCP-Setup-{#AppVersion}-x64.exe';
-  if CompareText(ExpandConstant('{srcexe}'), RollbackFile) <> 0 then
-    CopyFile(ExpandConstant('{srcexe}'), RollbackFile, False);
+  SourceInstaller := ExpandConstant('{srcexe}');
+  if CompareText(SourceInstaller, RollbackFile) = 0 then
+    Exit;
+
+  Cached := False;
+  for Attempt := 1 to 6 do
+  begin
+    Cached := CopyFile(SourceInstaller, RollbackFile, False);
+    if Cached and FileExists(RollbackFile) then
+    begin
+      Log('light-remote-rollback-cache-ready attempt=' + IntToStr(Attempt) + ' path=' + RollbackFile);
+      Exit;
+    end;
+    Log('light-remote-rollback-cache-retry attempt=' + IntToStr(Attempt) + ' path=' + RollbackFile);
+    Sleep(500);
+  end;
+
+  RaiseException('Unable to cache rollback installer: ' + RollbackFile);
+
 end;
 
 function PrepareToInstall(var NeedsRestart: Boolean): String;

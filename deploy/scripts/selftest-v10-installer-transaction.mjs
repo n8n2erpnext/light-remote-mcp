@@ -29,6 +29,10 @@ expect(installer.includes("-WatchdogTask"),'watchdog_task_name_must_be_explicit'
 const commitPos=installer.indexOf("SaveStringToFile(InstallerTxnCommitMarker, 'commit', False)");
 const cachePos=installer.indexOf('CacheRollbackInstaller();',commitPos);
 expect(commitPos>=0&&cachePos>commitPos,'rollback_anchor_must_refresh_only_after_commit');
+const cacheStart=installer.indexOf('procedure CacheRollbackInstaller();');
+const cacheEnd=installer.indexOf('function PrepareToInstall',cacheStart);
+const cache=cacheStart>=0&&cacheEnd>cacheStart?installer.slice(cacheStart,cacheEnd):'';
+expect(cache.includes('for Attempt := 1 to 6 do')&&cache.includes('Cached := CopyFile(SourceInstaller, RollbackFile, False)')&&cache.includes('Cached and FileExists(RollbackFile)')&&cache.includes('light-remote-rollback-cache-retry')&&cache.includes('light-remote-rollback-cache-ready')&&cache.includes('Unable to cache rollback installer'),'rollback_cache_must_retry_verify_and_fail_closed');
 
 const deinit=(installer.match(/procedure DeinitializeSetup\(\);([\s\S]*?)\[UninstallRun\]/)||[])[1]||'';
 expect(!deinit.includes('RestoreAgentTaskRecovery();'),'installer_process_must_not_own_abort_recovery');
