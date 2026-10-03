@@ -476,6 +476,11 @@ jobs:
           $rollback = Join-Path $updaterRoot ("rollback\Light-Remote-MCP-Setup-$version-x64.exe")
           if (-not (Test-Path $rollback)) {
             Write-Host '=== rollback cache diagnostics ==='
+            $installDiag = Join-Path $env:LOCALAPPDATA 'LightRemoteMCP\install-windows-task.log'
+            if (Test-Path $installDiag) { Write-Host '--- install-windows-task.log ---'; Get-Content $installDiag | ForEach-Object { Write-Host $_ } } else { Write-Host "install task diag missing: $installDiag" }
+            if (Test-Path $setupLog) { Write-Host '--- setup log tail ---'; Get-Content $setupLog -Tail 180 | ForEach-Object { Write-Host $_ } }
+            $txnRoot = Join-Path $updaterRoot 'state\installer-txn'
+            if (Test-Path $txnRoot) { Get-ChildItem $txnRoot -Recurse -Filter 'watchdog.log' -File | ForEach-Object { Write-Host ("--- watchdog " + $_.FullName + " ---"); Get-Content $_.FullName | ForEach-Object { Write-Host $_ } } }
             if (Test-Path $setupLog) {
               Select-String -Path $setupLog -Pattern 'rollback-cache|install-transaction|watchdog|RunAgentInstallTransaction' -CaseSensitive:$false | ForEach-Object { Write-Host $_.Line }
             } else { Write-Host "setup log missing: $setupLog" }
