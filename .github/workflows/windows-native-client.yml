@@ -445,9 +445,11 @@ jobs:
           if (-not $legacyBefore) { throw 'legacy Node fixture failed to start' }
 
           $installDir = Join-Path $env:RUNNER_TEMP 'GPT Operator Installed'
+          $setupLog = Join-Path $env:RUNNER_TEMP 'light-remote-full-install.log'
           $dirArg = '/DIR="' + $installDir + '"'
-          $args = @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',$dirArg)
-          Write-Host "windows-native-install-start dir=$installDir"
+          $logArg = '/LOG="' + $setupLog + '"'
+          $args = @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',$dirArg,$logArg)
+          Write-Host "windows-native-install-start dir=$installDir log=$setupLog"
           $p = Start-Process -FilePath $env:WINDOWS_INSTALLER -ArgumentList $args -PassThru
           if (-not $p.WaitForExit(120000)) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; throw 'installer timed out after 120s' }
           if ($p.ExitCode -ne 0) { throw "installer exit=$($p.ExitCode)" }
@@ -472,7 +474,14 @@ jobs:
           $updaterExe = Join-Path $updaterRoot 'LightRemote.Updater.exe'
           if (-not (Test-Path $updaterExe)) { throw "independent updater missing: $updaterExe" }
           $rollback = Join-Path $updaterRoot ("rollback\Light-Remote-MCP-Setup-$version-x64.exe")
-          if (-not (Test-Path $rollback)) { throw "rollback installer cache missing: $rollback" }
+          if (-not (Test-Path $rollback)) {
+            Write-Host '=== rollback cache diagnostics ==='
+            if (Test-Path $setupLog) {
+              Select-String -Path $setupLog -Pattern 'rollback-cache|install-transaction|watchdog|RunAgentInstallTransaction' -CaseSensitive:$false | ForEach-Object { Write-Host $_.Line }
+            } else { Write-Host "setup log missing: $setupLog" }
+            if (Test-Path $updaterRoot) { Get-ChildItem $updaterRoot -Recurse -Force | ForEach-Object { Write-Host ("UPDATER_TREE " + $_.FullName) } } else { Write-Host "updater root missing: $updaterRoot" }
+            throw "rollback installer cache missing: $rollback"
+          }
           "WINDOWS_INSTALL_DIR=$installDir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           "WINDOWS_INSTALLED_EXE=$exe" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           "WINDOWS_ROLLBACK=$rollback" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
