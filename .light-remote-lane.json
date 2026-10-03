@@ -1,23 +1,26 @@
 {
   "schema": 1,
-  "id": "primary-vercel",
-  "role": "primary",
-  "canonicalBranch": "main",
-  "transport": "vercel",
+  "id": "direct-migration",
+  "role": "migration",
+  "canonicalBranch": "feature/direct-plugin-migration",
+  "transport": "direct-mcp",
   "developmentAuthority": true,
-  "inheritsFrom": null,
+  "inheritsFrom": "main",
   "requiredPaths": [
     "api/operator.js",
     "deploy/vercel/README.md",
     "gateway/server.mjs",
-    "operator-host/executor.mjs"
+    "operator-host/executor.mjs",
+    "plugin-server/server.mjs",
+    "plugin-server/tools.mjs",
+    "plugin-server/operator-adapter.mjs",
+    "plugin.json",
+    "mcp.json",
+    ".codex-plugin/plugin.json"
   ],
   "forbiddenPaths": [
     "netlify",
     "netlify.toml",
-    "plugin-server",
-    "plugin.json",
-    "mcp.json",
     "deploy/reviewer"
   ]
 }

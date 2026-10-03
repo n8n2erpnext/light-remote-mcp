@@ -21,4 +21,8 @@ if(lane.id==='reviewer-direct'){
   expect(lane.role==='reviewer'&&lane.transport==='direct-mcp'&&lane.canonicalBranch==='reviewer/openai','reviewer_lane_identity_invalid');
   expect(lane.inheritsFrom==='main','reviewer_lane_parent_invalid');
 }
+if(lane.id==='direct-migration'){
+  expect(lane.role==='migration'&&lane.transport==='direct-mcp'&&lane.canonicalBranch==='feature/direct-plugin-migration','direct_migration_lane_identity_invalid');
+  expect(lane.developmentAuthority===true&&lane.inheritsFrom==='main','direct_migration_lane_authority_invalid');
+}
 console.log(`v11-repo-lane=${lane.id}=PASS`);
