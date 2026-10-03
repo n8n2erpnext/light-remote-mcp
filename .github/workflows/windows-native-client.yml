@@ -432,12 +432,20 @@ jobs:
         shell: pwsh
         run: |
           $legacyName = 'GPTOperatorDeviceAgent'
-          $legacyAction = New-ScheduledTaskAction -Execute (Join-Path $env:SystemRoot 'System32\cmd.exe') -Argument '/c ping 127.0.0.1 -t'
+          $legacyRoot = Join-Path $env:LOCALAPPDATA 'GPTOperatorAgent'
+          $legacyRuntime = Join-Path $legacyRoot 'runtime'
+          $legacyNode = Join-Path $legacyRuntime 'node.exe'
+          New-Item -ItemType Directory -Force -Path $legacyRuntime | Out-Null
+          Copy-Item (Get-Command node).Source $legacyNode -Force
+          $legacyAction = New-ScheduledTaskAction -Execute $legacyNode -Argument '-e "setInterval(()=>{},1000)"' -WorkingDirectory $legacyRoot
           $legacyTrigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddHours(1)
           $legacyPrincipal = New-ScheduledTaskPrincipal -UserId ([System.Security.Principal.WindowsIdentity]::GetCurrent().Name) -LogonType Interactive -RunLevel Limited
           Register-ScheduledTask -TaskName $legacyName -Action $legacyAction -Trigger $legacyTrigger -Principal $legacyPrincipal -Force | Out-Null
           Start-ScheduledTask -TaskName $legacyName
-          Start-Sleep -Milliseconds 500
+          Start-Sleep -Milliseconds 700
+          $legacyNodeFull = [IO.Path]::GetFullPath($legacyNode)
+          $legacyBefore = @(Get-Process -Name node -ErrorAction SilentlyContinue | Where-Object { try { [IO.Path]::GetFullPath($_.Path) -eq $legacyNodeFull } catch { $false } })
+          if (-not $legacyBefore) { throw 'legacy Node fixture failed to start' }
 
           $installDir = Join-Path $env:RUNNER_TEMP 'GPT Operator Installed'
           $dirArg = '/DIR="' + $installDir + '"'
@@ -447,6 +455,10 @@ jobs:
           if (-not $p.WaitForExit(120000)) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; throw 'installer timed out after 120s' }
           if ($p.ExitCode -ne 0) { throw "installer exit=$($p.ExitCode)" }
           if (Get-ScheduledTask -TaskName $legacyName -ErrorAction SilentlyContinue) { throw 'legacy scheduled task survived native install' }
+          $legacyAfter = @(Get-Process -Name node -ErrorAction SilentlyContinue | Where-Object { try { [IO.Path]::GetFullPath($_.Path) -eq $legacyNodeFull } catch { $false } })
+          if ($legacyAfter) { throw 'legacy Node runtime survived native install' }
+          Remove-Item $legacyRoot -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Host 'windows-legacy-agent-cleanup=PASS'
           $exe = Join-Path $installDir 'GptOperator.Client.exe'
           if (-not (Test-Path $exe)) { throw "installed client missing: $exe" }
           $rmv2Installed = Join-Path $installDir 'realremote-v2\LightRemote.RM.exe'

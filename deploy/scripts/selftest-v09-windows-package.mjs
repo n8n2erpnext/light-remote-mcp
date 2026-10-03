@@ -23,6 +23,7 @@ expect(workflow.includes("dotnet-version: '8.0.x'")&&workflow.includes("node-ver
 expect(workflow.includes('windows-tray-selftest=PASS'),'windows_tray_ci_missing');
 expect(workflow.includes("$agentRoot = Join-Path $stage 'agent'")&&workflow.includes('stage-client-core.mjs --verify $agentRoot'),'windows_core_verify_target_missing');
 expect(workflow.includes('windows-independent-updater-selftest=PASS')&&workflow.includes('windows-updater-survives-app-missing=PASS'),'windows_updater_independence_ci_missing');
+expect(workflow.includes("$legacyRoot = Join-Path $env:LOCALAPPDATA 'GPTOperatorAgent'")&&workflow.includes("$legacyNode = Join-Path $legacyRuntime 'node.exe'")&&workflow.includes('legacy Node runtime survived native install')&&workflow.includes('windows-legacy-agent-cleanup=PASS'),'windows_legacy_runtime_ci_fixture_missing');
 expect(workflow.includes('windows-independent-update-signature=PASS')&&workflow.includes('windows-independent-update-rollback=PASS'),'windows_updater_recovery_ci_missing');
 expect(workflow.includes('stage-client-core.mjs $agentRoot')&&workflow.includes('install-windows-task.ps1')&&coreSources.has('device-agent/local-wall.mjs')&&coreSources.has('device-agent/local-wall-auth.mjs')&&coreSources.has('device-agent/install-windows-task.ps1'),'windows_runtime_not_packaged');
 expect(project.includes('<UseWindowsForms>true</UseWindowsForms>')&&project.includes('net8.0-windows10.0.17763.0'),'windows_client_target_missing');
@@ -54,6 +55,7 @@ expect(installer.includes('LightRemoteDeviceAgent')&&installer.includes('LightRe
 expect(installer.includes('procedure QuiesceInstalledRuntime()')&&installer.includes("$targets=@($AppExe,$NodeExe)")&&installer.includes("$targets -contains $_.Path")&&installer.includes('light-remote-runtime-quiesced')&&/PrepareInstallerTransaction\(\);\s+CaptureAgentTaskRecovery\(\);\s+StartInstallerWatchdog\(\);\s+InstallTransactionStarted := True;\s+StopAndRemoveLegacyTask\(\);\s+QuiesceInstalledRuntime\(\);/.test(installer),'windows_reinstall_runtime_quiesce_missing');
 expect(!/LocalSystem/i.test(installer+taskInstaller),'windows_must_not_use_localsystem');
 expect(taskInstaller.includes("$UpdaterRoot=Join-Path $env:LOCALAPPDATA 'Light Remote\\Updater'")&&taskInstaller.includes("$Updater=Join-Path $UpdaterRoot 'LightRemote.Updater.exe'"),'updater_recovery_path_missing');
+expect(taskInstaller.includes("$LegacyRoot=Join-Path $env:LOCALAPPDATA 'GPTOperatorAgent'")&&taskInstaller.includes("$LegacyNode=Join-Path $LegacyRoot 'runtime\\node.exe'")&&taskInstaller.includes('Legacy Light Remote scheduled task survived cleanup')&&taskInstaller.includes('Legacy Light Remote Node runtime survived cleanup'),'windows_legacy_agent_cleanup_not_failclosed');
 expect(taskInstaller.includes('-Execute $Updater')&&taskInstaller.includes('--scheduled-update --install-dir'),'windows_updater_task_not_independent');
 expect(taskInstaller.includes('-Execute $Tray')&&taskInstaller.includes("-Argument '--agent-host'"),'windows_agent_task_must_use_hidden_native_host');
 expect(!taskInstaller.includes("-Execute $Node -Argument"),'windows_agent_task_must_not_launch_node_directly');
