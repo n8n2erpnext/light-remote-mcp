@@ -43,6 +43,8 @@ expect(!stop.includes('/Delete /TN "LightRemoteDeviceAgent"'),'current_task_must
 expect(stop.includes('legacy-task-delete attempt=')&&stop.includes('/Delete /TN "GPTOperatorDeviceAgent" /F'),'legacy_task_preclean_retry_required');
 expect(task.includes('windows-legacy-task-neutralized=PASS')&&task.includes('$legacyActionExpected')&&task.includes('$LegacyLauncher'),'legacy_task_acl_tombstone_guard_required');
 expect(task.includes("Start-Process -FilePath $schtasks -ArgumentList @('/Delete','/TN',$Legacy,'/F') -WindowStyle Hidden -Wait -PassThru")&&task.includes('$legacyDeleteExit=$legacyDeleteProcess.ExitCode'),'legacy_task_acl_delete_must_capture_exit_without_native_stderr_abort');
+expect(task.includes('function Get-LightRemoteFileSha256')&&task.includes('[System.Security.Cryptography.SHA256]::Create()')&&task.includes('Get-LightRemoteFileSha256 $CandidateUpdater')&&!task.includes('Get-FileHash'),'installer_task_hashing_must_not_depend_on_optional_powershell_module');
+expect(watchdog.includes('$rawVersion=if(Test-Path $VersionFile){Get-Content $VersionFile -Raw}else{$null}')&&watchdog.includes("$version=if($null -eq $rawVersion){''}else{([string]$rawVersion).Trim()}"),'watchdog_empty_previous_version_must_be_null_safe');
 
 for(const token of [
   'Register-ScheduledTask','Start-ScheduledTask','InstallerPid','CommitMarker','TaskXml',

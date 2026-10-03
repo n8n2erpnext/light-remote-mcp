@@ -5,6 +5,12 @@ $DiagRoot=Join-Path $env:LOCALAPPDATA 'LightRemoteMCP'
 New-Item -ItemType Directory -Force -Path $DiagRoot|Out-Null
 $DiagFile=Join-Path $DiagRoot 'install-windows-task.log'
 function Write-InstallDiag([string]$Message){Add-Content -LiteralPath $DiagFile -Value ((Get-Date).ToString('o')+' '+$Message)}
+function Get-LightRemoteFileSha256([string]$Path){
+  $sha=[System.Security.Cryptography.SHA256]::Create()
+  $stream=[System.IO.File]::OpenRead($Path)
+  try{return ([System.BitConverter]::ToString($sha.ComputeHash($stream))).Replace('-','')}
+  finally{$stream.Dispose();$sha.Dispose()}
+}
 Set-Content -LiteralPath $DiagFile -Value ((Get-Date).ToString('o')+' BEGIN install-windows-task')
 trap{Write-InstallDiag ('ERROR line='+$_.InvocationInfo.ScriptLineNumber+' message='+$_.Exception.Message);exit 1}
 if($env:OS -ne 'Windows_NT'){throw 'This installer must run on Windows.'}
@@ -117,7 +123,7 @@ $TransactionFile=Join-Path $UpdaterRoot 'state\transaction.json'
 $CandidateUpdater=Join-Path $HelperCandidate 'LightRemote.Updater.exe';$CandidateVersionFile=Join-Path $HelperCandidate 'VERSION';$HelperVersionFile=Join-Path $UpdaterRoot 'VERSION'
 if((Test-Path $CandidateUpdater)-and(Test-Path $CandidateVersionFile)-and(-not(Test-Path $TransactionFile))){
   $candidateVersion=(Get-Content $CandidateVersionFile -Raw).Trim();$helperVersion=if(Test-Path $HelperVersionFile){(Get-Content $HelperVersionFile -Raw).Trim()}else{''};$versionCmp=if($helperVersion){Compare-LightRemoteVersion $helperVersion $candidateVersion}else{$null}
-  $candidateHash=(Get-FileHash $CandidateUpdater -Algorithm SHA256).Hash;$helperHash=if(Test-Path $Updater){(Get-FileHash $Updater -Algorithm SHA256).Hash}else{''}
+  $candidateHash=Get-LightRemoteFileSha256 $CandidateUpdater;$helperHash=if(Test-Path $Updater){Get-LightRemoteFileSha256 $Updater}else{''}
   $helperNewer=($null -ne $versionCmp -and $versionCmp -gt 0)
   if(-not $helperNewer -and (($candidateVersion -ne $helperVersion)-or($candidateHash -ne $helperHash))){
     $stage=Join-Path $UpdaterRoot ('cache\helper-manual-'+[guid]::NewGuid().ToString('N'));$health=Join-Path $UpdaterRoot ('cache\helper-health-'+[guid]::NewGuid().ToString('N')+'.json')

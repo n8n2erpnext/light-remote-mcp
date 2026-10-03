@@ -48,7 +48,8 @@ try{
   }
   if(Test-Path $CommitMarker){Log 'commit_observed_after_exit';return}
   Log 'recovery_begin'
-  $version=if(Test-Path $VersionFile){(Get-Content $VersionFile -Raw).Trim()}else{''}
+  $rawVersion=if(Test-Path $VersionFile){Get-Content $VersionFile -Raw}else{$null}
+  $version=if($null -eq $rawVersion){''}else{([string]$rawVersion).Trim()}
   $root=Join-Path $env:LOCALAPPDATA 'Light Remote\Updater\rollback'
   $rb=Get-ChildItem $root -Filter ("Light-Remote-MCP-Setup-"+$version+"*-x64.exe") -File -ErrorAction SilentlyContinue|Sort-Object LastWriteTime -Descending|Select-Object -First 1
   if($rb){
