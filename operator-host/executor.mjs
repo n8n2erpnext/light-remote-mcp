@@ -888,9 +888,8 @@ function verifiedChannelContext(body, action) {
   const payload=body?.payload;
   if (!payload || typeof payload!=='object' || Array.isArray(payload)) throw new EnrollmentError('invalid_device_channel_payload');
   const proof=enrollments.verifyChannel(body,action,payload), binding=proof.binding;
-  if (binding.accountId!==ACCOUNT_ID) throw new EnrollmentError('device_account_mismatch',403);
   const device=devices.get(binding.deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
-  if (device.accountId!==ACCOUNT_ID || device.publicIdentityKey!==binding.publicIdentityKey) throw new EnrollmentError('device_binding_mismatch',403);
+  if (device.accountId!==binding.accountId || device.publicIdentityKey!==binding.publicIdentityKey) throw new EnrollmentError('device_binding_mismatch',403);
   enforceTrustedChannelRate(device.deviceId,action);
   return {payload,proof,binding,device};
 }

@@ -7,7 +7,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
   const acceptDesktopLivePush=(ctx,payload=ctx.payload)=>{
     requireDeviceConnection(ctx.device.deviceId);
     const session=sessions.ensure(String(payload.sessionId||''),{agentId:String(payload.agentId||'')});
-    if(session.deviceId!==ctx.device.deviceId)throw new DeviceAccessGrantError('device_access_grant_session_mismatch',403);
+    if(session.deviceId!==ctx.device.deviceId||session.accountId!==ctx.binding.accountId)throw new DeviceAccessGrantError('device_access_grant_session_mismatch',403);
     const live=realRemoteLive.push({
       deviceId:ctx.device.deviceId,sessionId:session.id,agentId:session.agentId,
       semanticSessionId:payload.semanticSessionId,stateSeq:payload.stateSeq,inputSeq:payload.inputSeq,rootEpoch:payload.rootEpoch,
@@ -23,11 +23,11 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       if(error?.message!=='command_not_found')throw error;
       const receipt=fleet.receipt(result.commandId)||abandonedCommandReceiptFromDisk?.(result.commandId);
       if(!receipt)throw error;
-      if(receipt.accountId!==ACCOUNT_ID||receipt.deviceId!==ctx.device.deviceId||receipt.nodeId!==ctx.device.nodeId)throw new FleetError('command_device_mismatch',403);
+      if(receipt.accountId!==ctx.binding.accountId||receipt.deviceId!==ctx.device.deviceId||receipt.nodeId!==ctx.device.nodeId)throw new FleetError('command_device_mismatch',403);
       const prior=jobs.get(receipt.jobId);
       return {ok:true,accepted:true,duplicate:true,job:prior?jobView(prior):null};
     }
-    if(command.accountId!==ACCOUNT_ID||command.deviceId!==ctx.device.deviceId||command.nodeId!==ctx.device.nodeId)throw new FleetError('command_device_mismatch',403);
+    if(command.accountId!==ctx.binding.accountId||command.deviceId!==ctx.device.deviceId||command.nodeId!==ctx.device.nodeId)throw new FleetError('command_device_mismatch',403);
     const job=jobs.get(command.jobId);
     if(!job||job.commandId!==command.commandId)throw new FleetError('remote_job_not_found',404);
     const stdout=String(result.stdout||''),stderr=String(result.stderr||'');
@@ -40,7 +40,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
     if(stdout)emitStream(job,'stdout',Buffer.from(stdout));
     if(stderr)emitStream(job,'stderr',Buffer.from(stderr));
     job.timedOut=String(result.status||'')==='timeout';
-    fleet.complete({accountId:ACCOUNT_ID,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,commandId:command.commandId});
+    fleet.complete({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,commandId:command.commandId});
     finishJob(job,exitCode,null);
     return {ok:true,accepted:true,duplicate:false,job:jobView(job)};
   };
@@ -77,10 +77,11 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
     if (req.method === 'POST' && url.pathname === '/v1/device-access/request') {
       const body=await readJson(req), deviceId=String(body.deviceId||'');
       const device=devices.get(deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
-      if(device.accountId!==ACCOUNT_ID) throw new DeviceAccessGrantError('device_access_account_mismatch',403);
+      const accountId=String(body.accountId||ACCOUNT_ID);
+      if(device.accountId!==accountId) throw new DeviceAccessGrantError('device_access_account_mismatch',403);
       const connection=connections.assertConnected(deviceId);
       reapAccessGrants();
-      const access=accessGrants.request({accountId:ACCOUNT_ID,deviceId,connectionId:connection.connectionId,connectionExpiresAt:connection.hardExpiresAt,agentId:body.agentId,label:body.label});
+      const access=accessGrants.request({accountId,deviceId,connectionId:connection.connectionId,connectionExpiresAt:connection.hardExpiresAt,agentId:body.agentId,label:body.label});
       return sendJson(res,access.state==='approved'?200:201,{ok:true,access});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-access/poll') {
@@ -149,12 +150,12 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       try{
         const grant=accessGrants.assert(binding.grantId,{deviceId:binding.deviceId,connectionId:binding.connectionId}),connection=connections.assertConnected(binding.deviceId);
         if(connection.connectionId!==binding.connectionId)throw new AgentClientRegistryError('agent_client_device_connection_mismatch',409);
-        const device=devices.get(binding.deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)}),route=targetRoute(device.nodeId);
+        const device=devices.get(binding.deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)}),route=targetRoute(device.nodeId,{accountId:grant.accountId});
         const workspace=body.workspace==null?String(binding.workingContext?.workspace||''):String(body.workspace||'').slice(0,512);
         const gracePreset=String(body.gracePreset||binding.workingContext?.gracePreset||'60m');
         let session=null;
         if(binding.workingContext?.sessionId){try{const prior=sessions.get(binding.workingContext.sessionId,binding.agentId);if(['active','hold'].includes(prior.state))session=prior;}catch{}}
-        if(!session)session=sessions.open({agentId:binding.agentId,label:'ChatGPT Light Remote',workspace,gracePreset,nodeId:device.nodeId,deviceId:device.deviceId,maxActiveForNode:route.sessionCeiling});
+        if(!session)session=sessions.open({accountId:grant.accountId,agentId:binding.agentId,label:'ChatGPT Light Remote',workspace,gracePreset,nodeId:device.nodeId,deviceId:device.deviceId,maxActiveForNode:route.sessionCeiling});
         if(workspace!==session.workspace)session=sessions.setWorkspace(session.sessionId,binding.agentId,workspace);
         const context=agentClients.setWorkingContext(binding.clientSessionId,{agentId:binding.agentId,deviceId:device.deviceId,sessionId:session.sessionId,workspace:session.workspace,gracePreset:session.gracePreset});
         return sendJson(res,200,{ok:true,context:{...context,nodeId:device.nodeId,displayName:device.displayName,platform:device.platform,architecture:device.architecture,deviceState:device.state,connectionState:connection.state},session});
@@ -304,7 +305,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
           const capabilities=verifiedLeafCapabilities(payload.capabilities,ctx.binding,reportedRevision);
           requireDeviceConnection(ctx.device.deviceId);
           devices.heartbeat(ctx.device.deviceId,{capabilities,agentVersion:payload.agentVersion,updateStatus:payload.updateStatus});
-          const touchInput={accountId:ACCOUNT_ID,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,sessionCeiling:payload.sessionCeiling,draining:Boolean(payload.draining),capabilities};
+          const touchInput={accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,sessionCeiling:payload.sessionCeiling,draining:Boolean(payload.draining),capabilities};
           fleet.touch(touchInput);
           const policy=reportedRevision===Math.max(1,Number(ctx.binding.policyRevision)||1)?null:enrollments.policyEnvelope(ctx.device.deviceId);
           const transportEpoch=String(payload.transportEpoch||'').trim();
@@ -330,7 +331,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
           const policy=reportedRevision===Math.max(1,Number(ctx.binding.policyRevision)||1)?null:enrollments.policyEnvelope(ctx.device.deviceId);
           return {node,policy};
         },
-        onEvent:event=>pushEvent({accountId:ACCOUNT_ID,nodeId:(()=>{try{return devices.get(event.deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)}).nodeId;}catch{return null;}})(),status:event.type==='device_duplex_error'?'error':'ok',...event})
+        onEvent:event=>pushEvent({accountId:(()=>{try{return devices.get(event.deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)}).accountId;}catch{return ACCOUNT_ID;}})(),nodeId:(()=>{try{return devices.get(event.deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)}).nodeId;}catch{return null;}})(),status:event.type==='device_duplex_error'?'error':'ok',...event})
       });
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/poll') {
@@ -341,7 +342,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       requireDeviceConnection(ctx.device.deviceId);
       devices.heartbeat(ctx.device.deviceId,{capabilities,agentVersion:ctx.payload.agentVersion,updateStatus:ctx.payload.updateStatus});
       const waitMs=Math.max(0,Math.min(Number(ctx.payload.waitMs)||8000,15000));
-      const channel=await fleet.waitPoll({accountId:ACCOUNT_ID,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,sessionCeiling:ctx.payload.sessionCeiling,draining:Boolean(ctx.payload.draining),capabilities},waitMs);
+      const channel=await fleet.waitPoll({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,sessionCeiling:ctx.payload.sessionCeiling,draining:Boolean(ctx.payload.draining),capabilities},waitMs);
       const policy=reportedRevision===Math.max(1,Number(ctx.binding.policyRevision)||1)?null:enrollments.policyEnvelope(ctx.device.deviceId);
       return sendJson(res,200,{ok:true,channel,policy,access:{pending:accessGrants.pendingForDevice(ctx.device.deviceId),activeGrant:accessGrants.activeForDevice(ctx.device.deviceId,connections.get(ctx.device.deviceId)?.connectionId)}});
     }
