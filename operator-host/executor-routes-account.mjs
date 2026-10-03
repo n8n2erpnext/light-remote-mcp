@@ -48,6 +48,14 @@ export async function handleAccountRoutes(req,res,url,deps){
       const proof=accounts.issueOwnerProof({accountId:ACCOUNT_ID,deviceId:DEVICE_ID});
       return sendJson(res,200,{ok:true,proof});
     }
+    if (req.method === 'POST' && url.pathname === '/v1/plugin/accounts/register') {
+      const body=await readJson(req),created=accounts.registerHosted({email:body.email,password:body.password},{issueSession:body.issueSession!==false});
+      return sendJson(res,201,{ok:true,...created,entitlements:planEntitlements(created.account)});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/plugin/auth/verify') {
+      const body=await readJson(req),account=accounts.verifyCredentials({email:body.email,password:body.password},{recordLogin:false});
+      return sendJson(res,200,{ok:true,account,entitlements:planEntitlements(account)});
+    }
     if (req.method === 'POST' && url.pathname === '/v1/accounts/register') {
       const body=await readJson(req);
       if(body.ownerCode) accounts.consumeOwnerProof(body.ownerCode);

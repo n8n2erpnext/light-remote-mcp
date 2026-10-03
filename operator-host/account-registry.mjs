@@ -92,6 +92,25 @@ export class AccountRegistry{
     this.ownerProofs.delete(hash);this.emit({type:'account_owner_proof_consumed',accountId:row.accountId,deviceId:row.deviceId,status:'consumed'});
     return {...row};
   }
+  _createAccount({accountId,email,password,plan='free',source='hosted'}={}){
+    const normalizedEmail=normalizeEmail(email),rawPassword=String(password||''),aid=String(accountId||'').trim();
+    if(!ACCOUNT_RE.test(aid))throw new AccountError('invalid_account_id');
+    if(!EMAIL_RE.test(normalizedEmail)||normalizedEmail.length>254)throw new AccountError('invalid_email');
+    if(rawPassword.length<10||rawPassword.length>1024)throw new AccountError('invalid_password');
+    if(this.byEmail.has(normalizedEmail))throw new AccountError('account_email_exists',409);
+    if(this.accounts.has(aid))throw new AccountError('account_id_exists',409);
+    const now=this.now(),row={accountId:aid,email:normalizedEmail,passwordHash:passwordHash(rawPassword),plan:normalizePlan(plan),mainDeviceId:null,status:'active',createdAt:now,lastLoginAt:now};
+    this.accounts.set(aid,row);this.byEmail.set(normalizedEmail,aid);this._persist();
+    this.emit({type:'account_registered',accountId:aid,status:'active',source:String(source||'hosted').slice(0,40)});
+    return row;
+  }
+  registerHosted(input={},{issueSession=true}={}){
+    let accountId='';
+    for(let i=0;i<8;i++){const candidate=`acct_${crypto.randomUUID()}`;if(!this.accounts.has(candidate)){accountId=candidate;break;}}
+    if(!accountId)throw new AccountError('account_id_generation_failed',500);
+    const row=this._createAccount({accountId,email:input.email,password:input.password,plan:'free',source:'hosted'});
+    return issueSession?this._issue(row):{account:this._viewAccount(row)};
+  }
   register(input={}){
     const email=normalizeEmail(input.email),password=String(input.password||'');
     if(!EMAIL_RE.test(email)||email.length>254)throw new AccountError('invalid_email');
@@ -99,8 +118,8 @@ export class AccountRegistry{
     if(this.byEmail.has(email))throw new AccountError('account_email_exists',409);
     if(this.accounts.size>0)throw new AccountError('account_registration_closed',409);
     const accountId=this.bootstrapAccountId;
-    const now=this.now(),row={accountId,email,passwordHash:passwordHash(password),plan:normalizePlan(input.plan||'free'),mainDeviceId:null,status:'active',createdAt:now,lastLoginAt:now};
-    this.accounts.set(accountId,row);this.byEmail.set(email,accountId);this._persist();this.emit({type:'account_registered',accountId,status:'active'});return this._issue(row);
+    const row=this._createAccount({accountId,email,password,plan:input.plan||'free',source:'bootstrap'});
+    return this._issue(row);
   }
   verifyCredentials(input={}, {recordLogin=false, eventType='account_login'}={}){
     const email=normalizeEmail(input.email),password=String(input.password||''),accountId=this.byEmail.get(email),row=accountId?this.accounts.get(accountId):null;
