@@ -34,6 +34,7 @@ import { createPlatformAdapter } from '../device-agent/platform-adapters/index.m
 import { handleAccountRoutes } from './executor-routes-account.mjs';
 import { handleDeviceChannelRoutes } from './executor-routes-device-channel.mjs';
 import { handleRuntimeRoutes } from './executor-routes-runtime.mjs';
+import { handlePluginRoutes } from './executor-routes-plugin.mjs';
 import { RealRemoteLiveRegistry } from './real-remote-live-registry.mjs';
 import { createNativeActivityFormatter } from './executor-native-activity.mjs';
 
@@ -963,6 +964,8 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && url.pathname === '/v1/capabilities') {
       return sendJson(res, 200, { ok: true, ...capabilities() });
     }
+    await handlePluginRoutes(req,res,url,routeDeps());
+    if(res.headersSent)return;
     await handleAccountRoutes(req,res,url,routeDeps());
     if(res.headersSent)return;
     await handleDeviceChannelRoutes(req,res,url,routeDeps());
