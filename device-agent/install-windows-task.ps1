@@ -1,11 +1,17 @@
 [CmdletBinding()]
 param([string]$InstallRoot)
 $ErrorActionPreference='Stop'
+$DiagRoot=Join-Path $env:LOCALAPPDATA 'LightRemoteMCP'
+New-Item -ItemType Directory -Force -Path $DiagRoot|Out-Null
+$DiagFile=Join-Path $DiagRoot 'install-windows-task.log'
+function Write-InstallDiag([string]$Message){Add-Content -LiteralPath $DiagFile -Value ((Get-Date).ToString('o')+' '+$Message)}
+Set-Content -LiteralPath $DiagFile -Value ((Get-Date).ToString('o')+' BEGIN install-windows-task')
+trap{Write-InstallDiag ('ERROR line='+$_.InvocationInfo.ScriptLineNumber+' message='+$_.Exception.Message);exit 1}
 if($env:OS -ne 'Windows_NT'){throw 'This installer must run on Windows.'}
 if([string]::IsNullOrWhiteSpace($InstallRoot)){$InstallRoot=(Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path}
 $Node=Join-Path $InstallRoot 'runtime\node.exe';$Agent=Join-Path $InstallRoot 'agent\device-agent\operator-agent.mjs';$Tray=Join-Path $InstallRoot 'GptOperator.Client.exe'
 $UpdaterRoot=Join-Path $env:LOCALAPPDATA 'Light Remote\Updater';$Updater=Join-Path $UpdaterRoot 'LightRemote.Updater.exe';$UpdaterKey=Join-Path $UpdaterRoot 'config\client-update-public.pem'
-$AgentTask='LightRemoteDeviceAgent';$UpdateTask='LightRemoteUpdater';$Legacy='GPTOperatorDeviceAgent';$LegacyRoot=Join-Path $env:LOCALAPPDATA 'GPTOperatorAgent';$LegacyNode=Join-Path $LegacyRoot 'runtime\node.exe';$account=[System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+$AgentTask='LightRemoteDeviceAgent';$UpdateTask='LightRemoteUpdater';$Legacy='GPTOperatorDeviceAgent';$LegacyRoot=Join-Path $env:LOCALAPPDATA 'GPTOperatorAgent';$LegacyNode=Join-Path $LegacyRoot 'runtime\node.exe';$LegacyLauncher=Join-Path $LegacyRoot 'run-device-agent.ps1';$LegacyAgent=Join-Path $LegacyRoot 'device-agent\operator-agent.mjs';$account=[System.Security.Principal.WindowsIdentity]::GetCurrent().Name
 $HelperCandidate=Join-Path $InstallRoot 'helper-candidate'
 if(-not(Test-Path $Updater)){
   $CandidateUpdater=Join-Path $HelperCandidate 'LightRemote.Updater.exe';$CandidateKey=Join-Path $HelperCandidate 'config\client-update-public.pem'
@@ -13,8 +19,10 @@ if(-not(Test-Path $Updater)){
   New-Item -ItemType Directory -Force -Path $UpdaterRoot|Out-Null;Copy-Item (Join-Path $HelperCandidate '*') $UpdaterRoot -Recurse -Force
 }
 foreach($f in @($Node,$Agent,$Tray,$Updater,$UpdaterKey)){if(-not(Test-Path $f)){throw "Required Light Remote file missing: $f"}}
+Write-InstallDiag 'FILES_OK'
 $legacyNodeFull=[IO.Path]::GetFullPath($LegacyNode)
 $legacyDeadline=(Get-Date).AddSeconds(8)
+$legacyDeleteExit=$null
 do{
   Stop-ScheduledTask -TaskName $Legacy -ErrorAction SilentlyContinue
   $legacyNodes=@(Get-Process -Name node -ErrorAction SilentlyContinue|Where-Object{try{[IO.Path]::GetFullPath($_.Path) -eq $legacyNodeFull}catch{$false}})
@@ -24,13 +32,31 @@ do{
   }
   Unregister-ScheduledTask -TaskName $Legacy -Confirm:$false -ErrorAction SilentlyContinue
   $legacyTask=Get-ScheduledTask -TaskName $Legacy -ErrorAction SilentlyContinue
+  if($null -ne $legacyTask){
+    & (Join-Path $env:SystemRoot 'System32\schtasks.exe') /End /TN $Legacy 2>$null | Out-Null
+    & (Join-Path $env:SystemRoot 'System32\schtasks.exe') /Delete /TN $Legacy /F 2>$null | Out-Null
+    $legacyDeleteExit=$LASTEXITCODE
+    $legacyTask=Get-ScheduledTask -TaskName $Legacy -ErrorAction SilentlyContinue
+  }
   $legacyRemaining=@(Get-Process -Name node -ErrorAction SilentlyContinue|Where-Object{try{[IO.Path]::GetFullPath($_.Path) -eq $legacyNodeFull}catch{$false}})
   if($null -eq $legacyTask -and -not $legacyRemaining){break}
   Start-Sleep -Milliseconds 250
 }while((Get-Date)-lt $legacyDeadline)
-if($null -ne (Get-ScheduledTask -TaskName $Legacy -ErrorAction SilentlyContinue)){throw "Legacy Light Remote scheduled task survived cleanup: $Legacy"}
+$legacyTask=Get-ScheduledTask -TaskName $Legacy -ErrorAction SilentlyContinue
+if($null -ne $legacyTask){
+  $legacyActions=@($legacyTask.Actions)
+  $legacyActionExpected=$legacyActions.Count -eq 1 -and ([string]$legacyActions[0].Execute -match '(?i)powershell(\.exe)?$') -and ([string]$legacyActions[0].Arguments).Contains($LegacyLauncher)
+  if(-not $legacyActionExpected){throw "Legacy Light Remote scheduled task survived cleanup with unexpected action: $Legacy schtasksExit=$legacyDeleteExit"}
+  Remove-Item $LegacyLauncher -Force -ErrorAction SilentlyContinue
+  Remove-Item $LegacyNode -Force -ErrorAction SilentlyContinue
+  Remove-Item $LegacyAgent -Force -ErrorAction SilentlyContinue
+  $legacyRunnable=@($LegacyLauncher,$LegacyNode,$LegacyAgent)|Where-Object{Test-Path $_}
+  if($legacyRunnable){throw "Legacy Light Remote task could not be neutralized: $($legacyRunnable -join ', ')"}
+  Write-Output "windows-legacy-task-neutralized=PASS task=$Legacy schtasksExit=$legacyDeleteExit"
+}
 $legacyRemaining=@(Get-Process -Name node -ErrorAction SilentlyContinue|Where-Object{try{[IO.Path]::GetFullPath($_.Path) -eq $legacyNodeFull}catch{$false}})
 if($legacyRemaining){throw "Legacy Light Remote Node runtime survived cleanup: $legacyNodeFull"}
+Write-InstallDiag 'LEGACY_OK'
 foreach($taskName in @($AgentTask,$UpdateTask)){
   Stop-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
 
@@ -43,6 +69,7 @@ if($staleNodes){
 }
 $remainingNodes=@(Get-Process -Name node -ErrorAction SilentlyContinue|Where-Object{try{[IO.Path]::GetFullPath($_.Path) -eq $nodeFull}catch{$false}})
 if($remainingNodes){throw "Stale Light Remote Node runtime survived task cleanup: $nodeFull"}
+Write-InstallDiag 'CURRENT_QUIESCED'
 $agentAction=New-ScheduledTaskAction -Execute $Tray -Argument '--agent-host' -WorkingDirectory $InstallRoot
 $agentTrigger=New-ScheduledTaskTrigger -AtLogOn -User $account
 $principal=New-ScheduledTaskPrincipal -UserId $account -LogonType Interactive -RunLevel Limited

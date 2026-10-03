@@ -36,6 +36,8 @@ expect(!deinit.includes('RestoreAgentTaskRecovery();'),'installer_process_must_n
 const stop=(installer.match(/procedure StopAndRemoveLegacyTask\(\);([\s\S]*?)procedure PrepareInstallerTransaction\(\);/)||[])[1]||'';
 expect(stop.includes('/End /TN "LightRemoteDeviceAgent"'),'current_task_must_stop');
 expect(!stop.includes('/Delete /TN "LightRemoteDeviceAgent"'),'current_task_must_survive_precommit');
+expect(stop.includes('legacy-task-delete attempt=')&&stop.includes('/Delete /TN "GPTOperatorDeviceAgent" /F'),'legacy_task_preclean_retry_required');
+expect(task.includes('windows-legacy-task-neutralized=PASS')&&task.includes('$legacyActionExpected')&&task.includes('$LegacyLauncher'),'legacy_task_acl_tombstone_guard_required');
 
 for(const token of [
   'Register-ScheduledTask','Start-ScheduledTask','InstallerPid','CommitMarker','TaskXml',

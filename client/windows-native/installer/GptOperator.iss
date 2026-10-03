@@ -147,14 +147,20 @@ end;
 
 procedure StopAndRemoveLegacyTask();
 var
-  ResultCode: Integer;
+  ResultCode, Attempt: Integer;
 begin
-  Exec(ExpandConstant('{sys}\schtasks.exe'), '/End /TN "GPTOperatorDeviceAgent"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-  Exec(ExpandConstant('{sys}\schtasks.exe'), '/Delete /TN "GPTOperatorDeviceAgent" /F', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  for Attempt := 1 to 4 do
+  begin
+    Exec(ExpandConstant('{sys}\schtasks.exe'), '/End /TN "GPTOperatorDeviceAgent"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    Log('legacy-task-end attempt=' + IntToStr(Attempt) + ' exit=' + IntToStr(ResultCode));
+    Exec(ExpandConstant('{sys}\schtasks.exe'), '/Delete /TN "GPTOperatorDeviceAgent" /F', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    Log('legacy-task-delete attempt=' + IntToStr(Attempt) + ' exit=' + IntToStr(ResultCode));
+    if ResultCode = 0 then
+      Break;
+    Sleep(250);
+  end;
   Exec(ExpandConstant('{sys}\schtasks.exe'), '/End /TN "LightRemoteDeviceAgent"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-
   Exec(ExpandConstant('{sys}\schtasks.exe'), '/End /TN "LightRemoteUpdater"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-
 end;
 
 procedure PrepareInstallerTransaction();
