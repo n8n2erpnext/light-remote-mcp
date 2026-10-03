@@ -58,11 +58,12 @@ export async function handleRuntimeRoutes(req,res,url,deps){
     if (connectionMatch) {
       const deviceId=connectionMatch[1], action=connectionMatch[2] || 'get';
       const device=devices.get(deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
-      if (device.accountId!==ACCOUNT_ID) throw new DeviceConnectionError('device_connection_account_mismatch',403);
+      const accountId=String(body?.accountId||device.accountId);
+      if (device.accountId!==accountId) throw new DeviceConnectionError('device_connection_account_mismatch',403);
       if (req.method==='GET' && action==='get') return sendJson(res,200,{ok:true,connection:connectionViewForDevice(deviceId)});
       if (req.method==='POST' && action==='connect') {
         const body=await readJson(req);
-        const spec=connectionSpec(ACCOUNT_ID,body.requestedLeaseMs),connection=connections.connect({accountId:ACCOUNT_ID,deviceId,plan:spec.plan,requestedLeaseMs:spec.requestedLeaseMs,reconnectGraceMs:body.reconnectGraceMs});
+        const spec=connectionSpec(accountId,body.requestedLeaseMs),connection=connections.connect({accountId,deviceId,plan:spec.plan,requestedLeaseMs:spec.requestedLeaseMs,reconnectGraceMs:body.reconnectGraceMs});
         return sendJson(res,200,{ok:true,connection});
       }
       if (req.method==='POST' && action==='disconnect') {
@@ -83,8 +84,8 @@ export async function handleRuntimeRoutes(req,res,url,deps){
       }
     }
     if (req.method === 'POST' && url.pathname === '/v1/sessions/open') {
-      const body = await readJson(req), route=targetRoute(body.nodeId);
-      return sendJson(res, 200, { ok:true, route, session:sessions.open({ openId:body.openId, agentId:body.agentId, label:body.label, workspace:body.workspace, graceMs:body.graceMs, gracePreset:body.gracePreset, leaseMs:body.leaseMs, leasePreset:body.leasePreset, nodeId:route.nodeId, deviceId:route.deviceId, maxActiveForNode:route.sessionCeiling }) });
+      const body=await readJson(req), accountId=String(body.accountId||ACCOUNT_ID), route=targetRoute(body.nodeId,{accountId});
+      return sendJson(res, 200, { ok:true, route, session:sessions.open({ accountId, openId:body.openId, agentId:body.agentId, label:body.label, workspace:body.workspace, graceMs:body.graceMs, gracePreset:body.gracePreset, leaseMs:body.leaseMs, leasePreset:body.leasePreset, nodeId:route.nodeId, deviceId:route.deviceId, maxActiveForNode:route.sessionCeiling }) });
     }
     if (req.method === 'GET' && url.pathname === '/v1/sessions') {
       return sendJson(res, 200, { ok:true, active:sessions.activeCount(), maxActive:MAX_ACTIVE_SESSIONS, defaultGraceMs:SESSION_IDLE_MS, minGraceMs:SESSION_MIN_IDLE_MS, maxGraceMs:SESSION_MAX_IDLE_MS, gracePresets:SESSION_GRACE_PRESETS, sessions:sessions.list() });
@@ -107,7 +108,7 @@ export async function handleRuntimeRoutes(req,res,url,deps){
       const body=await readJson(req),grant=accessGrants.assert(body.grantId),connection=connections.assertConnected(grant.deviceId);
       accessGrants.assert(grant.grantId,{deviceId:grant.deviceId,connectionId:connection.connectionId});
       const session=sessions.ensure(String(body.sessionId||''),{agentId:String(body.agentId||'')});
-      if(session.deviceId!==grant.deviceId)throw new DeviceAccessGrantError('device_access_grant_session_mismatch',403);
+      if(session.deviceId!==grant.deviceId||session.accountId!==grant.accountId)throw new DeviceAccessGrantError('device_access_grant_session_mismatch',403);
       const live=realRemoteLive.read({deviceId:grant.deviceId,sessionId:session.id,agentId:session.agentId,semanticSessionId:String(body.semanticSessionId||''),afterSeq:body.afterSeq,limit:body.limit,includeSnapshot:body.includeSnapshot!==false});
       sessions.touch(session.id,session.agentId,'desktop-live-read');
       return sendJson(res,200,{ok:true,live});
@@ -120,7 +121,7 @@ export async function handleRuntimeRoutes(req,res,url,deps){
       const {payload,requestId,aad,kid}=decryptEnvelope(body.envelope||{});
       if(!['exec_batch','fs','process','terminal','search','scp','desktop'].includes(payload.action))throw new Error('unsupported_action');
       const session=sessions.ensure(String(payload.sessionId||''),{agentId:String(payload.agentId||'')});
-      if(session.deviceId!==grant.deviceId)throw new DeviceAccessGrantError('device_access_grant_session_mismatch',403);
+      if(session.deviceId!==grant.deviceId||session.accountId!==grant.accountId)throw new DeviceAccessGrantError('device_access_grant_session_mismatch',403);
       const job=payload.action==='desktop'?await startDesktopOperation(payload,requestId):payload.action==='fs'?await startFsOperation(payload,requestId):payload.action==='process'?await startProcessOperation(payload,requestId):payload.action==='terminal'?await startTerminalOperation(payload,requestId):payload.action==='search'?await startSearchOperation(payload,requestId):payload.action==='scp'?await startScpOperation(payload,requestId):startJob(payload,requestId);
       if(!job.telemetry?.operatorAcceptedAt){job.telemetry={...(job.telemetry||{}),...ingressTelemetry(body.telemetry,operatorAcceptedAt),dispatchAt:job.startedAt};if(!job.remote)job.telemetry.deviceReceivedAt=job.startedAt;}
       const waitMs=Math.max(0,Math.min(Number(payload.waitMs)||0,8000));
