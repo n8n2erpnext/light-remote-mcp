@@ -19,6 +19,7 @@ on:
       - 'lib/light-scp-file.mjs'
       - 'lib/light-scp-registry.mjs'
       - 'lib/update-contract.mjs'
+      - 'lib/public-endpoint.mjs'
       - 'lib/runtime-version.mjs'
       - 'lib/version-compat.mjs'
       - 'lib/brand.mjs'

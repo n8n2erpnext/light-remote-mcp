@@ -5,8 +5,8 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-Environment=OPERATOR_AGENT_BASE_URL=https://light-remote-mcp.vercel.app
-Environment=OPERATOR_AGENT_HUB_URL=https://mcp.dashboard.thaiduy.store
+Environment=OPERATOR_AGENT_BASE_URL=https://light-remote.thaiduy.digital
+Environment=OPERATOR_AGENT_HUB_URL=https://light-remote.thaiduy.digital
 ExecStart=/opt/gpt-operator-agent/current/runtime/node /opt/gpt-operator-agent/current/device-agent/operator-agent.mjs daemon
 Restart=always
 RestartSec=5

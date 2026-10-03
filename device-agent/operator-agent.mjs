@@ -22,6 +22,7 @@ import realRemoteInputPolicy from '../lib/real-remote-input.cjs';
 import { LightScpRegistry } from '../lib/light-scp-registry.mjs';
 import { normalizeUpdateReport, normalizeUpdateStatus } from '../lib/update-contract.mjs';
 import { runtimeVersion } from '../lib/runtime-version.mjs';
+import { migrateLegacyEndpoint } from '../lib/public-endpoint.mjs';
 import { CommandExecutionCoordinator, DeviceDuplexClient, DEVICE_DUPLEX_PROTOCOL } from '../lib/device-duplex-client.mjs';
 
 const VERSION=runtimeVersion({envNames:['LIGHT_REMOTE_VERSION','OPERATOR_AGENT_VERSION']});
@@ -35,8 +36,8 @@ const REAL_REMOTE_AVAILABLE=realRemoteAvailable();
 const NATIVE_DESKTOP=new NativeDesktopBridge();
 const {normalizeDesktopInput}=realRemoteInputPolicy;
 const LIGHT_SCP=new LightScpRegistry();
-const DEFAULT_BASE=process.env.OPERATOR_AGENT_BASE_URL || 'https://light-remote-mcp.vercel.app';
-const DEFAULT_HUB=process.env.OPERATOR_AGENT_HUB_URL || 'https://mcp.dashboard.thaiduy.store';
+const DEFAULT_BASE=migrateLegacyEndpoint(process.env.OPERATOR_AGENT_BASE_URL,{kind:'base'});
+const DEFAULT_HUB=migrateLegacyEndpoint(process.env.OPERATOR_AGENT_HUB_URL,{kind:'hub'});
 const STATE_FILE=process.env.OPERATOR_AGENT_STATE || path.join(os.homedir(),'.config','gpt-operator-agent','device.json');
 const EXTERNAL_IDENTITY_FILE=String(process.env.OPERATOR_AGENT_IDENTITY_FILE||'').trim();
 const COMMAND_DIR=process.env.OPERATOR_AGENT_COMMAND_DIR || path.join(path.dirname(STATE_FILE),'commands');
@@ -52,7 +53,7 @@ const UPDATE_REQUEST_FILE=path.join(UPDATE_RUNTIME_DIR,'request.json'),UPDATE_CH
 const MAX_OUTPUT=4*1024*1024;
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 function sha256(value){return crypto.createHash('sha256').update(value).digest('hex');}
-function parseArgs(argv){const out={_:[]};for(let i=0;i<argv.length;i++){const v=argv[i];if(!v.startsWith('--'))out._.push(v);else{const k=v.slice(2);if(['no-wait','reenroll'].includes(k))out[k]=true;else out[k]=argv[++i];}}return out;}
+function parseArgs(argv){const out={_:[]};for(let i=0;i<argv.length;i++){const v=argv[i];if(!v.startsWith('--'))out._.push(v);else{const k=v.slice(2);if(['no-wait','reenroll'].includes(k))out[k]=true;else{const raw=argv[++i];out[k]=k==='base'?migrateLegacyEndpoint(raw,{kind:'base'}):k==='hub'?migrateLegacyEndpoint(raw,{kind:'hub'}):raw;}}}return out;}
 function readState(){try{return JSON.parse(fs.readFileSync(STATE_FILE,'utf8'));}catch{return null;}}
 function sleepSync(ms){const sab=new SharedArrayBuffer(4);Atomics.wait(new Int32Array(sab),0,0,Math.max(1,ms));}
 function writeJson0600(file,value){const dir=path.dirname(file);fs.mkdirSync(dir,{recursive:true,mode:0o700});const lock=`${file}.lock`,deadline=Date.now()+2500;let lockFd=null;while(lockFd===null){try{lockFd=fs.openSync(lock,'wx',0o600);}catch(error){if(error?.code!=='EEXIST'||Date.now()>=deadline)throw error;sleepSync(20);}}const tmp=`${file}.${process.pid}.${Date.now()}.${crypto.randomBytes(4).toString('hex')}.tmp`;try{fs.writeFileSync(tmp,`${JSON.stringify(value,null,2)}\n`,{mode:0o600});fs.chmodSync(tmp,0o600);for(let attempt=0;;attempt++){try{fs.renameSync(tmp,file);break;}catch(error){if(process.platform==='win32'&&['EPERM','EACCES','EEXIST'].includes(error?.code)&&attempt<6){sleepSync(25*(attempt+1));continue;}if(process.platform==='win32'&&['EPERM','EACCES','EEXIST'].includes(error?.code)){fs.copyFileSync(tmp,file);fs.rmSync(tmp,{force:true});break;}throw error;}}}finally{try{if(fs.existsSync(tmp))fs.rmSync(tmp,{force:true});}catch{}try{if(lockFd!==null)fs.closeSync(lockFd);}catch{}try{fs.rmSync(lock,{force:true});}catch{}}}

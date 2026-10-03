@@ -102,6 +102,10 @@
       "destination": "lib/real-remote-policy.mjs"
     },
     {
+      "source": "lib/public-endpoint.mjs",
+      "destination": "lib/public-endpoint.mjs"
+    },
+    {
       "source": "lib/runtime-version.mjs",
       "destination": "lib/runtime-version.mjs"
     },

@@ -16,6 +16,7 @@ expect(linuxWorkflow.includes('test -s "$PKG/licenses/node/LICENSE"'),'linux_nod
 expect(linuxWorkflow.includes('cp LICENSE NOTICE THIRD_PARTY_DISTRIBUTION_NOTICES.md "$PKG/"'),'linux_project_license_not_bundled');
 expect(linuxWorkflow.includes('stage-client-core.mjs "$PKG"')&&coreSources.has('device-agent/local-wall.mjs'),'linux_local_wall_not_bundled');
 expect(coreSources.has('device-agent/local-wall-auth.mjs'),'linux_local_wall_auth_not_bundled');
+expect(coreSources.has('lib/public-endpoint.mjs'),'linux_public_endpoint_migration_not_bundled');
 expect(coreSources.has('assets/branding/light-remote-mark.svg'),'linux_local_wall_brand_not_bundled');
 expect(coreSources.has('assets/branding/light-remote-mark-256.png'),'linux_tray_brand_png_not_bundled');
 expect(coreSources.has('assets/fonts/CascadiaMono.ttf'),'linux_offline_terminal_font_not_bundled');
