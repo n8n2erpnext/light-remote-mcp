@@ -274,25 +274,34 @@ Tải `.pkg` đúng kiến trúc (`x86_64` hoặc `arm64`), cài package rồi d
 Beta package macOS có thể phụ thuộc external Apple signing/notarization credentials của release pipeline. Nếu macOS báo package không được tin cậy, hãy kiểm checksum/release provenance trước; không nên tắt Gatekeeper chỉ để ép cài một binary bạn chưa xác minh.
 
 ### Bước 5 — cho ChatGPT Web kết nối tới đúng máy
-Trong cuộc chat có connector Vercel đã kết nối, mở **Local Wall** của đúng máy bạn muốn cho Agent dùng, bấm hiển thị/copy **A code**, rồi gửi nguyên capsule mà Wall tạo cho ChatGPT. Nội dung có dạng:
+Trong cuộc chat có **official Light Remote plugin** đã kết nối, mở **Local Wall** của đúng máy bạn muốn cho Agent dùng, bấm hiển thị/copy **A code**, rồi gửi nguyên capsule mà Wall tạo cho ChatGPT. Nội dung có dạng:
 
 ```text
 Light Remote connection request
 A code: ABCD-EFGH
-Agent: use @Vercel web_fetch_vercel_url directly. Do not search for a Vercel connector action named connection-helper; connection-helper is the Light Remote HTTP action inside the URL. First call payload {aCode,agentId,label}; encode it as base64url(JSON) in ?p= on https://lightremote.thaiduy.digital/api/operator?via=plus&action=connection-helper. Do not enumerate devices and do not send client on first pairing. Follow helper.nextAction; when helper.nextUrl is present, replay that URL exactly through @Vercel. Keep continuation/client private.
+Agent instructions - execute immediately:
+
+1. Use the connected official Light Remote plugin directly.
+2. Call light_remote_connection_helper immediately with this A code.
+3. Do NOT enumerate devices, inspect account topology, or run preflight checks before pairing.
+4. If the helper returns approval_required, show only the B code to the owner and wait.
+5. The owner must enter B at this same Local Wall /approve and choose Approve.
+6. After approval, call light_remote_connection_helper again with the exact continuation returned by the first call.
+7. Keep continuation, session capabilities, and internal identifiers private.
+8. Continue only after the helper returns ready for this target device.
 ```
 
-Agent phải đi theo response của Connection Helper thay vì tự đoán protocol; sau khi Approve B, ưu tiên replay nguyên `helper.nextUrl` tới `READY` (`helper.nextPayload` chỉ là fallback private contract):
+Agent phải đi theo response của official Connection Helper thay vì tự đoán protocol:
 
-1. A hợp lệ → server tạo request và trả **B code / approval_required**.
+1. A hợp lệ → plugin trả **B code / approval_required**.
 2. Trên **chính Local Wall đã tạo A**, mở **Approve B**, nhập B và kiểm tra label Agent.
 3. Bấm **Approve**.
-4. ChatGPT replay nguyên `helper.nextUrl` qua `@Vercel web_fetch_vercel_url` cho tới khi nhận `READY`; chỉ dùng `helper.nextPayload` như fallback private contract.
-5. Sau READY, Agent giữ opaque client ở nội bộ, nạp `tool-helper` và dùng exact context được trả về.
+4. Sau khi owner xác nhận, ChatGPT gọi lại `light_remote_connection_helper` với exact continuation đã nhận ở bước đầu.
+5. Khi helper trả `ready`, Agent dùng exact working context/session được trả về. Helper mặc định chỉ trả **menu nhóm lệnh**; khi cần cú pháp chi tiết thì gọi lại với `helperGroup=workspace|files|shell|transfer|desktop`.
 
 Từ đây bạn có thể nói tự nhiên như: “vào repo này xem test fail”, “kiểm Docker trên VPS”, “mở terminal chạy TUI”, “copy file này sang máy Windows”, hoặc “theo dõi process build”. Agent sẽ chọn tool phù hợp theo Tool Helper và quyền bạn đã bật trên Wall.
 
-> **Không gửi opaque client/continuation lên chat để copy tay.** Đây là capability nội bộ ngắn hạn dành cho Agent runtime.
+> **Không gửi continuation/session capability lên chat để copy tay.** Đây là capability nội bộ ngắn hạn dành cho Agent runtime.
 
 ### Bước 6 — thêm máy thứ hai
 

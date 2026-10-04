@@ -226,9 +226,10 @@ jobs:
             '/api/session-close',
             '#refreshA.spinning',
             'Agent instructions - execute immediately:',
-            'Do NOT inspect memory, enumerate devices, test agent configuration',
-            'It does NOT need to be a UUID',
-            'replay that URL EXACTLY'
+            'Use the connected official Light Remote plugin directly.',
+            'light_remote_connection_helper immediately with this A code.',
+            'same Local Wall /approve',
+            'Keep continuation, session capabilities, and internal identifiers private.'
           )
           foreach ($needle in $required) {
             if (-not $wall.Contains($needle)) { throw "Golden Local Wall regression: missing $needle" }
