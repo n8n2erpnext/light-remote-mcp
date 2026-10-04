@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import { SignJWT, jwtVerify } from 'jose';
-import { MCP_RESOURCE, OAUTH_SECRET_FILE, PUBLIC_ORIGIN } from './config.mjs';
+import { MCP_RESOURCE, OAUTH_LEGACY_CLIENTS_FILE, OAUTH_SECRET_FILE, PUBLIC_ORIGIN } from './config.mjs';
 import { callOperatorJson } from './operator-client.mjs';
 
 const ACCESS_TTL=3600,CODE_TTL=120,REFRESH_TTL=30*24*3600;
@@ -16,7 +16,25 @@ function secret(){if(process.env.LIGHT_REMOTE_PLUGIN_OAUTH_SECRET)return Buffer.
 async function mint(type,claims,ttl,audience=MCP_RESOURCE){return new SignJWT({...claims,token_use:type}).setProtectedHeader({alg:'HS256',typ:'JWT'}).setIssuer(PUBLIC_ORIGIN).setAudience(audience).setIssuedAt().setExpirationTime(now()+ttl).setJti(crypto.randomUUID()).sign(secret());}
 async function verify(token,type,audience=MCP_RESOURCE){const {payload}=await jwtVerify(String(token||''),secret(),{issuer:PUBLIC_ORIGIN,audience});if(payload.token_use!==type)throw new Error('invalid_token_use');return payload;}
 async function mintClient(claims){return new SignJWT({...claims,token_use:'client'}).setProtectedHeader({alg:'HS256',typ:'JWT'}).setIssuer(PUBLIC_ORIGIN).setAudience(`${PUBLIC_ORIGIN}/oauth/register`).setIssuedAt().setJti(crypto.randomUUID()).sign(secret());}
-async function clientFromId(id){try{const {payload}=await jwtVerify(String(id||''),secret(),{issuer:PUBLIC_ORIGIN,audience:`${PUBLIC_ORIGIN}/oauth/register`});return payload.token_use==='client'&&Array.isArray(payload.redirect_uris)?payload:null;}catch{return null;}}
+function legacyClientFromId(id){
+  try{
+    if(!fs.existsSync(OAUTH_LEGACY_CLIENTS_FILE))return null;
+    const registry=JSON.parse(fs.readFileSync(OAUTH_LEGACY_CLIENTS_FILE,'utf8'));
+    if(registry?.schemaVersion!==1||!Array.isArray(registry.clients))return null;
+    const raw=String(id||''),digest=crypto.createHash('sha256').update(raw).digest('hex');
+    const row=registry.clients.find(item=>item?.disabled!==true&&String(item?.clientIdSha256||'')===digest);
+    if(!row)return null;
+    const parts=raw.split('.');if(parts.length!==3)return null;
+    const payload=JSON.parse(Buffer.from(parts[1],'base64url').toString('utf8'));
+    const redirects=Array.isArray(row.redirect_uris)?row.redirect_uris.map(String):[];
+    if(payload?.token_use!=='client'||payload?.iss!==PUBLIC_ORIGIN||payload?.aud!==`${PUBLIC_ORIGIN}/oauth/register`)return null;
+    if(!redirects.length||redirects.some(x=>!validRedirect(x))||!Array.isArray(payload.redirect_uris)||payload.redirect_uris.length!==redirects.length)return null;
+    if(payload.redirect_uris.some((value,index)=>String(value)!==redirects[index]))return null;
+    if(row.client_name&&String(payload.client_name||'')!==String(row.client_name))return null;
+    return {...payload,redirect_uris:redirects,legacyClient:true};
+  }catch{return null;}
+}
+export async function clientFromId(id){try{const {payload}=await jwtVerify(String(id||''),secret(),{issuer:PUBLIC_ORIGIN,audience:`${PUBLIC_ORIGIN}/oauth/register`});return payload.token_use==='client'&&Array.isArray(payload.redirect_uris)?payload:null;}catch{return legacyClientFromId(id);}}
 const pkce=v=>crypto.createHash('sha256').update(String(v||'')).digest('base64url');
 const requesterKey=req=>String(req.ip||req.socket?.remoteAddress||'unknown');
 function tooMany(req){const k=requesterKey(req),t=Date.now(),rows=(failures.get(k)||[]).filter(x=>t-x<600000);failures.set(k,rows);return rows.length>=12;}
