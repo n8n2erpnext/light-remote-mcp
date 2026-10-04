@@ -50,10 +50,11 @@ function sendPortal(res,name,type='html'){
   return res.type(type).send(fs.readFileSync(portalFile(name)));
 }
 
+function accountAudit(action,status,error=''){console.log(JSON.stringify({event:'account_portal',action,status,...(error?{error:String(error).slice(0,80)}:{})}));}
 async function accountApi(req,res){
   const action=String(req.query?.action||'').trim();
   const mutations=new Set(['register','login','logout','enrollment-approve','device-revoke','device-remove','device-update','devices-revoke-all','redeem-license','main-device','main-device-clear']);
-  if(mutations.has(action)&&!sameOriginMutation(req))return res.status(403).json({ok:false,error:'cross_site_request_denied'});
+  if(mutations.has(action)&&!sameOriginMutation(req)){accountAudit(action,'cross_site_denied');return res.status(403).json({ok:false,error:'cross_site_request_denied'});}
   try{
     if(action==='register'||action==='login'){
       if(!method(req,res,'POST'))return;
@@ -63,6 +64,7 @@ async function accountApi(req,res){
         ownerCode:req.body?.ownerCode
       });
       setSessionCookie(res,upstream.token,upstream.session?.expiresAt);
+      accountAudit(action,'success');
       return res.status(action==='register'?201:200).json({ok:true,account:upstream.account,session:upstream.session});
     }
     if(action==='me'||action==='devices'||action==='usage'){
@@ -110,7 +112,7 @@ async function accountApi(req,res){
       return res.status(200).json(await callOperatorJson('POST','/v1/accounts/redeem-license',{key:req.body?.key},headers(token)));
     }
     return res.status(400).json({ok:false,error:'unknown_account_action'});
-  }catch(error){return fail(res,error);}
+  }catch(error){if(action==='login'||action==='register')accountAudit(action,'error',error?.payload?.error||error?.message||'account_unavailable');return fail(res,error);}
 }
 
 export function registerAccountPortal(app){
