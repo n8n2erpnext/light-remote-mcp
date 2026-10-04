@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { PUBLIC_ORIGIN } from './config.mjs';
 
-const CONFIG_FILE=String(process.env.LIGHT_REMOTE_GOOGLE_OAUTH_FILE||'/etc/light-remote-direct/google-oauth.json');
+const CONFIG_FILE=String(process.env.LIGHT_REMOTE_GOOGLE_OAUTH_FILE||'/var/lib/light-remote-direct/google-oauth.json');
 const flows=new Map();
 const jwks=createRemoteJWKSet(new URL('https://www.googleapis.com/oauth2/v3/certs'));
 
@@ -16,7 +16,16 @@ function config(){
   }catch{return null;}
 }
 function prune(){const now=Date.now();for(const [k,v] of flows)if(v.expiresAt<=now)flows.delete(k);}
-export function googleAuthStatus(){return {configured:Boolean(config()),redirectUri:`${PUBLIC_ORIGIN}/account/google/callback`};}
+export function googleAuthStatus(){return {configured:Boolean(config()),origin:PUBLIC_ORIGIN,redirectUri:`${PUBLIC_ORIGIN}/account/google/callback`};}
+export function saveGoogleAuthConfig({clientId,clientSecret}={}){
+  const id=String(clientId||'').trim(),secret=String(clientSecret||'').trim();
+  if(!/^[A-Za-z0-9._-]{20,220}\.apps\.googleusercontent\.com$/.test(id))throw Object.assign(new Error('invalid_google_client_id'),{status:400});
+  if(secret.length<16||secret.length>512||/\s/.test(secret))throw Object.assign(new Error('invalid_google_client_secret'),{status:400});
+  const dir=new URL('.',`file://${CONFIG_FILE}`).pathname;fs.mkdirSync(dir,{recursive:true,mode:0o750});
+  const payload={schemaVersion:1,clientId:id,clientSecret:secret,redirectUri:`${PUBLIC_ORIGIN}/account/google/callback`},tmp=`${CONFIG_FILE}.${process.pid}.tmp`;
+  fs.writeFileSync(tmp,`${JSON.stringify(payload,null,2)}\n`,{mode:0o600});fs.chmodSync(tmp,0o600);fs.renameSync(tmp,CONFIG_FILE);
+  return googleAuthStatus();
+}
 export function beginGoogleAuth(){
   const c=config();if(!c)throw Object.assign(new Error('google_oauth_not_configured'),{status:503});
   prune();

@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { callOperatorJson } from './operator-client.mjs';
 import { PUBLIC_ORIGIN } from './config.mjs';
 import { mailConfig, sendLicense, sendUpgradeActivated, verifyMail } from './mailer.mjs';
-import { googleAuthStatus } from './google-auth.mjs';
+import { googleAuthStatus, saveGoogleAuthConfig } from './google-auth.mjs';
 
 const COOKIE='__Host-light_remote_account';
 const ADMIN_ACCOUNT_ID=String(process.env.LIGHT_REMOTE_ADMIN_ACCOUNT_ID||'direct-production-local');
@@ -23,7 +23,7 @@ export function registerAdminPortal(app){
   app.all('/admin/api',async(req,res)=>{
     const admin=await requireAdmin(req,res);if(!admin)return;
     const action=String(req.query?.action||'').trim();
-    const mutations=new Set(['set-plan','issue-license','revoke-license','resolve-upgrade','mail-test']);
+    const mutations=new Set(['set-plan','issue-license','revoke-license','resolve-upgrade','mail-test','google-config']);
     if(mutations.has(action)&&!sameOrigin(req))return res.status(403).json({ok:false,error:'cross_site_request_denied'});
     try{
       if(action==='overview'&&req.method==='GET')return res.json(await callOperatorJson('GET','/v1/admin/overview'));
@@ -32,6 +32,7 @@ export function registerAdminPortal(app){
       if(action==='upgrades'&&req.method==='GET')return res.json(await callOperatorJson('GET','/v1/admin/upgrades'));
       if(action==='mail-status'&&req.method==='GET')return res.json({ok:true,configured:Boolean(mailConfig()),google:googleAuthStatus()});
       if(action==='mail-test'&&req.method==='POST'){const verified=await verifyMail();return res.status(verified?200:503).json({ok:verified,verified});}
+      if(action==='google-config'&&req.method==='POST'){const google=saveGoogleAuthConfig({clientId:req.body?.clientId,clientSecret:req.body?.clientSecret});return res.status(200).json({ok:true,google});}
       if(action==='set-plan'&&req.method==='POST'){
         const id=String(req.body?.accountId||''),plan=String(req.body?.plan||'');
         const out=await callOperatorJson('POST','/v1/admin/accounts/'+encodeURIComponent(id)+'/entitlement',{plan,durationDays:req.body?.durationDays??null,sourceRef:'web-admin'});
