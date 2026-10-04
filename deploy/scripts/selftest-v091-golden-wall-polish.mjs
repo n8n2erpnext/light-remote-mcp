@@ -39,6 +39,6 @@ need(!/(^|[^A-Za-z])confirm\s*\(/.test(main),'browser_confirm_present_in_main_wa
 
 const source=fs.readFileSync(new URL('../../device-agent/local-wall.mjs',import.meta.url),'utf8');
 need(source.includes("url.pathname==='/api/session-close'")&&source.includes('closeSession,requestUpdate'),'session_close_backend_missing');
-need(source.includes("settings:'m370-80")&&source.includes("${materialIcon('settings')}"),'settings_icon_source_missing');
+need(source.includes("import { materialIcon } from '../lib/material-icon.mjs';")&&source.includes("${materialIcon('settings')}")&&fs.existsSync(new URL('../../assets/icons/material/settings.svg',import.meta.url)),'settings_icon_source_missing');
 need(source.includes("background:#d7dbe0;color:#0a0c0f"),'neutral_badge_palette_wrong');
 console.log('v091-golden-wall-polish=PASS');
