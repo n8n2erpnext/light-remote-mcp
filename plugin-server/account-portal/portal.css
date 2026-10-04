@@ -56,3 +56,8 @@ html[data-theme="light"] .admin-nav-list button.active{background:#fff8d5;color:
 html[data-theme="light"] .admin-account-row{border-color:#dde4ea}
 html[data-theme="light"] .admin-account-actions select,html[data-theme="light"] .admin-form select,html[data-theme="light"] .admin-form input{background:#fff;color:#17202b;border-color:#cbd5df}
 @media(max-width:850px){.download-grid{grid-template-columns:1fr}.install-steps{grid-template-columns:1fr}.install-steps>div{border-right:0;border-bottom:1px solid #232a31}.install-steps>div:last-child{border-bottom:0}.admin-account-row{align-items:flex-start;flex-direction:column}.admin-account-actions{flex-wrap:wrap}.admin-form{grid-template-columns:1fr}}
+
+.app-icon.chatgpt-icon{background:#fff;border-color:#d9dde3}
+.app-icon.chatgpt-icon img{width:24px;height:24px;display:block}
+html[data-theme="light"] .app-icon.chatgpt-icon{background:#fff;border-color:#cfd7df}
+.where-row .link:hover{text-decoration:underline;text-underline-offset:3px}

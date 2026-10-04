@@ -181,6 +181,7 @@ export function registerAccountPortal(app){
   app.get('/account/assets/portal.css',(_q,r)=>sendPortal(r,'portal.css','text/css'));
   app.get('/account/assets/theme.js',(_q,r)=>sendPortal(r,'theme.js','application/javascript'));
   app.get('/account/assets/light-remote-mark.svg',(_q,r)=>sendPortal(r,'light-remote-mark.svg','image/svg+xml'));
+  app.get('/account/assets/chatgpt-logo.svg',(_q,r)=>sendPortal(r,'chatgpt-logo.svg','image/svg+xml'));
   app.get('/account/assets/light-remote.ico',(_q,r)=>sendPortal(r,'light-remote.ico','image/x-icon'));
   app.all('/account/api',accountApi);
 }
