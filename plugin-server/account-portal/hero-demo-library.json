@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "rowsPerVisit": 8,
+  "commands": [
+    {"badge":"SEARCH START","tone":"search","command":"search.start · content · \"LIGHT_REMOTE\" · *.mjs · /srv/app","detail":"running · 0 results · 0 files scanned · 0 dirs","action":"Copy cmd"},
+    {"badge":"SEARCH RESULTS","tone":"search","command":"search.results · \"LIGHT_REMOTE\" · *.mjs · /srv/app","detail":"finished · 4 returned · 18 files scanned · 6 dirs","action":"Copy output"},
+    {"badge":"SEARCH CANCEL","tone":"search","command":"search.cancel · \"TODO\" · *.ts · /workspace","detail":"finished · 2 results · 12 files scanned","action":"Copy output"},
+    {"badge":"FS LIST","tone":"fs","command":"fs.list /srv/app · depth 2","detail":"24 entries","action":"Copy output"},
+    {"badge":"FS READ","tone":"fs","command":"fs.read /srv/app/package.json · max 80 lines","detail":"read 2.1 KB","action":"Copy output"},
+    {"badge":"FS READ","tone":"fs","command":"fs.read /etc/os-release · max 30 lines","detail":"read 386 B","action":"Copy output"},
+    {"badge":"FS WRITE","tone":"fs","risk":"MUTATE","command":"fs.write /tmp/light-remote-demo.txt · 24 B · rewrite","detail":"wrote 24 B","action":"Copy cmd"},
+    {"badge":"FS EDIT","tone":"fs","risk":"MUTATE","command":"fs.edit /srv/app/config.mjs · 2.3 KB → 2.3 KB · expect 1","detail":"1 replacement","action":"Copy cmd"},
+    {"badge":"FS MKDIR","tone":"fs","risk":"MUTATE","command":"fs.mkdir /srv/app/.cache/light-remote · parents","detail":"created directory","action":"Copy cmd"},
+    {"badge":"PTY START","tone":"runtime","risk":"MUTATE","command":"pty.start · bash · 100×30 · /srv/app","detail":"running · terminal ready","action":"Copy cmd"},
+    {"badge":"PTY INPUT","tone":"runtime","risk":"MUTATE","command":"pty.input · npm test","detail":"running · buffer 9 B","action":"Copy cmd"},
+    {"badge":"PTY OUTPUT","tone":"runtime","command":"pty.output · stdout · offset 0 · limit 8192 B","detail":"136 PASS · 0 FAIL · 1 skip","action":"Copy output"},
+    {"badge":"PTY LIST","tone":"runtime","command":"pty.list","detail":"2 terminals · 0 running","action":"Copy output"},
+    {"badge":"PROCESS LIST","tone":"runtime","command":"process.list","detail":"7 managed jobs · 1 running","action":"Copy output"},
+    {"badge":"GIT","tone":"command","command":"git status --short","detail":"working tree clean","action":"Copy cmd"},
+    {"badge":"GIT","tone":"command","command":"git log -1 --oneline","detail":"HEAD · current release","action":"Copy output"},
+    {"badge":"CONTAINER","tone":"system","command":"docker ps --format \"table {{.Names}}\\t{{.Status}}\"","detail":"3 containers running","action":"Copy output"},
+    {"badge":"SYSTEMCTL","tone":"system","command":"systemctl is-active light-remote-direct-plugin.service","detail":"active","action":"Copy output"},
+    {"badge":"JOURNAL","tone":"system","command":"journalctl -u light-remote-direct-plugin.service -n 20","detail":"20 lines · no errors","action":"Copy output"},
+    {"badge":"PACKAGE","tone":"system","risk":"SYSTEM","command":"npm run test","detail":"portable selftests complete","action":"Copy output"}
+  ]
+}

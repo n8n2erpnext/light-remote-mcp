@@ -247,6 +247,8 @@ export function registerAccountPortal(app){
   app.post('/account/recover',accountRecovery);
   app.get('/account/assets/portal.css',(_q,r)=>sendPortal(r,'portal.css','text/css'));
   app.get('/account/assets/theme.js',(_q,r)=>sendPortal(r,'theme.js','application/javascript'));
+  app.get('/account/assets/home-demo.js',(_q,r)=>sendPortal(r,'home-demo.js','application/javascript'));
+  app.get('/account/assets/hero-demo-library.json',(_q,r)=>sendPortal(r,'hero-demo-library.json','application/json'));
   app.get('/account/assets/light-remote-mark.svg',(_q,r)=>sendPortal(r,'light-remote-mark.svg','image/svg+xml'));
   app.get('/account/assets/chatgpt-logo.svg',(_q,r)=>sendPortal(r,'chatgpt-logo.svg','image/svg+xml'));
   app.get('/account/assets/google-g.svg',(_q,r)=>sendPortal(r,'google-g.svg','image/svg+xml'));
