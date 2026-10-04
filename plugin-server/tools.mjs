@@ -173,8 +173,8 @@ export function registerPluginTools(server,identity){
   }));
 
   add(server,'light_remote_desktop',{
-    title:'Observe or manage a Real Remote V2 semantic lane',
-    description:'Read the real interactive desktop using RC.30 semantic observation. Prefer live-open/live-read and semantic deltas; use full frame only for bootstrap or resync.',
+    title:'Observe the remote desktop',
+    description:'Read the authorized remote desktop using semantic snapshots, events, windows, and frames. Prefer live semantic updates; use a full frame only for bootstrap or resync.',
     inputSchema:{sessionId:id,operationId:opId,operation:z.enum(['status','attach','resume','detach','windows','frame','observe','semantic-attach','semantic-snapshot','semantic-events','semantic-detach','live-open','live-close']),desktopSessionId:z.string().max(160).optional(),semanticSessionId:z.string().max(160).optional(),afterSeq:z.number().int().min(0).optional(),limit:z.number().int().min(1).max(1000).optional(),screen:z.number().int().min(0).max(32).optional(),maxWidth:z.number().int().min(64).max(7680).optional(),maxHeight:z.number().int().min(64).max(4320).optional(),quality:z.number().int().min(1).max(100).optional(),minIntervalMs:z.number().int().min(0).max(5000).optional(),omitUnchanged:z.boolean().optional(),idleTimeoutMs:z.number().int().min(250).max(900000).optional(),provider:z.string().max(80).optional(),scope:z.string().max(160).optional(),maxDepth:z.number().int().min(1).max(64).optional(),maxNodes:z.number().int().min(1).max(20000).optional(),waitMs:z.number().int().min(0).max(7000).optional()},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,false)
   },guarded(identity,['remote:read'],async(a,x)=>{
     const desktop={op:x.operation};Object.assign(desktop,pick(x,['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','maxDepth','maxNodes']));
