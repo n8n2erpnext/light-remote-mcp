@@ -1,8 +1,16 @@
 {
   "schemaVersion": 2,
   "visibleRows": 8,
-  "streamDelayMs": 900,
-  "streamJitterMs": 520,
+  "timing": {
+    "logicalGapsSeconds": [1, 2, 5, 8],
+    "initialLagSeconds": [85, 135],
+    "visualDelayMs": {
+      "1": [1200, 1650],
+      "2": [1650, 2300],
+      "5": [2400, 3300],
+      "8": [3400, 4300]
+    }
+  },
   "scenarios": [
     {
       "id": "linux-release",

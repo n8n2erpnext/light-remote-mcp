@@ -9,9 +9,39 @@
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   const code = (n) => Array.from({length:n}, () => alphabet[Math.floor(Math.random()*alphabet.length)]).join('');
   const pick = (items) => items[Math.floor(Math.random()*items.length)];
+  const randomInt = (min, max) => Math.floor(min + Math.random() * (Math.max(min, max) - min + 1));
   const waitVisible = async () => {
     while (document.hidden) await sleep(800);
   };
+
+  function logicalGapSeconds(row) {
+    const badge = String(row.badge || '').toUpperCase();
+    const command = String(row.command || '').toLowerCase();
+
+    if (/docker build|npm ci|npm run test|build-windows|scp\.(?:upload|download)|restart-service|systemctl (?:restart|reload)|install -m|caddy validate/.test(command)) {
+      return Math.random() < 0.68 ? 5 : 8;
+    }
+    if (/journalctl|get-winevent|search\.results|search\.start|lxc exec|get-filehash|test-netconnection|invoke-webrequest/.test(command)) {
+      return Math.random() < 0.7 ? 2 : 5;
+    }
+    if (row.risk === 'DANGER' || row.risk === 'SYSTEM') {
+      return Math.random() < 0.72 ? 2 : 5;
+    }
+    if (row.risk === 'MUTATE' || /FS WRITE|FS EDIT|FS MKDIR|PTY START|PTY INPUT|PROCESS START|DESKTOP INPUT/.test(badge)) {
+      return Math.random() < 0.72 ? 2 : 5;
+    }
+    return Math.random() < 0.72 ? 1 : 2;
+  }
+
+  function visualDelayMs(timing, logicalGap) {
+    const map = timing?.visualDelayMs || {};
+    const range = Array.isArray(map[String(logicalGap)]) ? map[String(logicalGap)] : [1500, 2400];
+    return randomInt(Number(range[0] || 1500), Number(range[1] || range[0] || 2400));
+  }
+
+  function formatDemoTime(value) {
+    return new Date(value).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  }
 
   function syntaxHtml(command, shell) {
     const input = String(command || '');
@@ -36,15 +66,14 @@
     }).join('');
   }
 
-  function rowHtml(row, shell, totalJobs) {
+  function rowHtml(row, shell, totalJobs, timestamp) {
     const riskClass = row.risk === 'DANGER' ? ' danger' : row.risk === 'SYSTEM' ? ' system' : '';
     const risk = row.risk ? '<span class="demo-risk' + riskClass + '">' + esc(row.risk) + '</span>' : '';
     const effectiveShell = row.shell || shell;
     const command = ['bash','powershell','cmd'].includes(effectiveShell) ? syntaxHtml(row.command, effectiveShell) : esc(row.command);
-    const now = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
     return '<div class="demo-stream-row is-entering">' +
       '<span class="demo-row-status">ok</span>' +
-      '<span class="demo-row-time">' + now + '</span>' +
+      '<span class="demo-row-time">' + formatDemoTime(timestamp) + '</span>' +
       '<div class="demo-row-main">' +
         '<div class="demo-row-command"><span class="demo-badge ' + esc(row.tone || 'command') + '">' + esc(row.badge) + '</span>' + risk + '<span class="demo-command-text">' + command + '</span></div>' +
         '<div class="demo-row-detail">' + esc(row.detail || ('job ' + totalJobs + ' finished')) + '</div>' +
@@ -98,13 +127,14 @@
     const host = $('.demo-stream-list');
     const counter = $('[data-stream-count]');
     const maxVisible = Math.max(4, Math.min(Number(library.visibleRows || 8), 10));
-    const baseDelay = Math.max(450, Number(library.streamDelayMs || 900));
-    const jitter = Math.max(0, Number(library.streamJitterMs || 500));
+    const timing = library.timing || {};
+    const lagRange = Array.isArray(timing.initialLagSeconds) ? timing.initialLagSeconds : [85, 135];
     const steps = Array.isArray(scenario.steps) ? scenario.steps : [];
     const loop = Array.isArray(scenario.loop) && scenario.loop.length ? scenario.loop : steps;
     let stepIndex = 0;
     let loopIndex = 0;
     let totalJobs = 0;
+    let virtualTime = Date.now() - randomInt(Number(lagRange[0] || 85), Number(lagRange[1] || 135)) * 1000;
 
     host.innerHTML = '';
     if (counter) counter.textContent = '0 visible / 0 jobs';
@@ -113,8 +143,12 @@
       await waitVisible();
       const row = stepIndex < steps.length ? steps[stepIndex++] : loop[loopIndex++ % loop.length];
       if (!row) return;
+      const logicalGap = logicalGapSeconds(row);
+      if (totalJobs > 0) {
+        virtualTime = Math.min(virtualTime + logicalGap * 1000, Date.now() - 1000);
+      }
       totalJobs += 1;
-      host.insertAdjacentHTML('beforeend', rowHtml(row, scenario.shell, totalJobs));
+      host.insertAdjacentHTML('beforeend', rowHtml(row, scenario.shell, totalJobs, virtualTime));
       const newest = host.lastElementChild;
       requestAnimationFrame(() => newest?.classList.remove('is-entering'));
 
@@ -127,7 +161,7 @@
 
       const visible = Math.min(totalJobs, maxVisible);
       if (counter) counter.textContent = visible + ' visible / ' + totalJobs + ' jobs';
-      await sleep(baseDelay + Math.floor(Math.random() * jitter));
+      await sleep(visualDelayMs(timing, logicalGap));
     }
   }
 
