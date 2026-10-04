@@ -1,7 +1,13 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
+const root=path.resolve(fileURLToPath(new URL('../..',import.meta.url)));
+const googleSource=fs.readFileSync(path.join(root,'plugin-server/google-auth.mjs'),'utf8');
+const pluginUnit=fs.readFileSync(path.join(root,'deploy/direct-linux/light-remote-direct-plugin.service'),'utf8');
+if(!googleSource.includes("/var/lib/light-remote-direct/plugin-state/google-oauth.json"))throw new Error('google_default_state_path_not_isolated');
+if(!pluginUnit.includes('ProtectSystem=strict')||!pluginUnit.includes('ReadWritePaths=/var/lib/light-remote-direct/plugin-state'))throw new Error('google_state_systemd_write_path_missing');
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'lr-google-auth-'));
 const file=path.join(dir,'google-oauth.json');
 process.env.LIGHT_REMOTE_GOOGLE_OAUTH_FILE=file;

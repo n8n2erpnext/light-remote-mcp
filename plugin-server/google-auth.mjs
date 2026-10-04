@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { PUBLIC_ORIGIN } from './config.mjs';
 
-const CONFIG_FILE=String(process.env.LIGHT_REMOTE_GOOGLE_OAUTH_FILE||'/var/lib/light-remote-direct/google-oauth.json');
+const CONFIG_FILE=String(process.env.LIGHT_REMOTE_GOOGLE_OAUTH_FILE||'/var/lib/light-remote-direct/plugin-state/google-oauth.json');
 const flows=new Map();
 const jwks=createRemoteJWKSet(new URL('https://www.googleapis.com/oauth2/v3/certs'));
 
