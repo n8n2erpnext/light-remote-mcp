@@ -50,6 +50,18 @@ export class AgentClientRegistry {
     if(touch){row.lastActivityAt=now;this._persist();}
     return row;
   }
+  findActive({accountId,agentId,touch=false}={}){
+    const aid=validId(accountId,'invalid_agent_client_account'),agent=validId(agentId,'invalid_agent_client_agent'),now=this.now();
+    let found=null;
+    for(const row of this.rows.values()){
+      if(row.closedAt||row.accountId!==aid||row.agentId!==agent)continue;
+      if(now>=Number(row.expiresAt||0)){this.close(row.clientSessionId,'expired');continue;}
+      if(!found||Number(row.lastActivityAt||0)>Number(found.lastActivityAt||0))found=row;
+    }
+    if(!found)throw new AgentClientRegistryError('agent_client_required',401);
+    if(touch){found.lastActivityAt=now;this._persist();}
+    return this.viewUnsafe(found);
+  }
   attach({clientSessionId=null,accountId,agentId,grant,pairingRequestId=null}={}){
     const aid=validId(accountId,'invalid_agent_client_account'),agent=validId(agentId,'invalid_agent_client_agent');
     if(!grant?.grantId||!grant?.deviceId||!grant?.connectionId)throw new AgentClientRegistryError('invalid_agent_client_grant');

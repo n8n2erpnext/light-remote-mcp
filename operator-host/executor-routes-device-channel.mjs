@@ -69,6 +69,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
     if (req.method === 'POST' && url.pathname === '/v1/device-pair/begin') {
       const body=await readJson(req);
       const paired=pairingCodes.redeem(body.aCode,{connectionForDevice:deviceId=>connections.get(deviceId)});
+      if(body.accountId!=null&&String(body.accountId)!==paired.accountId)throw new DevicePairingRegistryError('pairing_account_mismatch',403);
       const connection=connections.assertConnected(paired.deviceId);
       if(connection.connectionId!==paired.connectionId) throw new DevicePairingRegistryError('device_connection_changed',409);
       const access=accessGrants.request({accountId:paired.accountId,deviceId:paired.deviceId,connectionId:paired.connectionId,connectionExpiresAt:connection.hardExpiresAt,agentId:body.agentId,label:body.label,forceApproval:true,requestTtlMs:5*60*1000,pairingId:paired.pairingId});
@@ -114,6 +115,11 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       accessGrants.assert(grant.grantId,{deviceId:grant.deviceId,connectionId:connection.connectionId});
       const device=devices.get(grant.deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
       return sendJson(res,200,{ok:true,grant,device:{deviceId:device.deviceId,nodeId:device.nodeId,displayName:device.displayName,platform:device.platform,architecture:device.architecture},connection:connections.get(grant.deviceId)});
+    }
+    if (req.method === 'GET' && url.pathname === '/v1/agent-client/by-agent') {
+      const accountId=String(url.searchParams.get('accountId')||''),agentId=String(url.searchParams.get('agentId')||'');
+      const client=agentClients.findActive({accountId,agentId,touch:true});
+      return sendJson(res,200,{ok:true,client:{clientSessionId:client.clientSessionId,accountId:client.accountId,agentId:client.agentId,expiresAt:client.expiresAt,defaultDeviceId:client.defaultDeviceId,bindings:client.bindings}});
     }
     if (req.method === 'POST' && url.pathname === '/v1/agent-client/attach') {
       const body=await readJson(req), grant=accessGrants.assert(body.grantId,{touch:false});

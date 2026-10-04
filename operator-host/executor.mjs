@@ -80,6 +80,7 @@ const DEVICE_ID = String(process.env.OPERATOR_DEVICE_ID || 'arm-local');
 const NODE_ID = String(process.env.OPERATOR_NODE_ID || 'arm');
 const DEVICE_NAME = String(process.env.OPERATOR_DEVICE_NAME || os.hostname());
 const DEVICE_POLICY_PROFILE = String(process.env.OPERATOR_DEVICE_POLICY_PROFILE || 'self-hosted-owner');
+const INTEGRATED_HOST_ENABLED = !['0','false','no','off'].includes(String(process.env.OPERATOR_INTEGRATED_HOST || '1').trim().toLowerCase());
 const DEVICE_PRESENCE_TTL_MS = Number(process.env.OPERATOR_DEVICE_PRESENCE_TTL_MS || 90 * 1000);
 const DEVICE_HEARTBEAT_MS = Number(process.env.OPERATOR_DEVICE_HEARTBEAT_MS || 30 * 1000);
 const ENROLLMENT_TTL_MS = Number(process.env.OPERATOR_ENROLLMENT_TTL_MS || 10 * 60 * 1000);
@@ -125,7 +126,7 @@ const accounts = new AccountRegistry({ stateFile:ACCOUNT_STATE_FILE, bootstrapAc
 const licenses = new LicenseKeyRegistry({ stateFile:LICENSE_STATE_FILE, emit:event => pushEvent(event) });
 const fleetAuthority = new FleetAuthorityRegistry({ ttlMs:FLEET_AUTHORITY_TTL_MS, emit:event => pushEvent(event) });
 const realRemoteLive = new RealRemoteLiveRegistry();
-const hostIdentity = loadOrCreateHostDeviceIdentity(HOST_DEVICE_IDENTITY_FILE);
+const hostIdentity = INTEGRATED_HOST_ENABLED ? loadOrCreateHostDeviceIdentity(HOST_DEVICE_IDENTITY_FILE) : null;
 
 fs.mkdirSync(LOG_DIR, { recursive: true });
 function redact(value) {
@@ -174,11 +175,14 @@ if (agentClients.loadError) pushEvent({ type:'agent_client_registry_load_error',
 if (accounts.loadError) pushEvent({ type:'account_registry_load_error', status:'error', detail:redact(accounts.loadError) });
 if (licenses.loadError) pushEvent({ type:'license_registry_load_error', status:'error', detail:redact(licenses.loadError) });
 if (usage.loadError) pushEvent({ type:'usage_registry_load_error', status:'error', detail:redact(usage.loadError) });
-const hostBinding=enrollments.ensureTrustedBinding({accountId:ACCOUNT_ID,deviceId:DEVICE_ID,publicIdentityKey:hostIdentity.publicKey,displayName:DEVICE_NAME,platform:os.platform(),architecture:os.arch(),agentVersion:VERSION,fingerprintSummary:`integrated hub / ${os.platform()} ${os.arch()} / key ${hostIdentity.publicKeySha256.slice(0,12)}`,capabilities:HOST_CAPABILITIES,policyProfile:DEVICE_POLICY_PROFILE});
-ensureHostCompanionState(HOST_COMPANION_STATE_FILE,{identity:hostIdentity,binding:hostBinding,signer:enrollments.signerInfo(),nodeId:NODE_ID});
-devices.register({ accountId:ACCOUNT_ID, deviceId:DEVICE_ID, nodeId:NODE_ID, displayName:DEVICE_NAME, platform:os.platform(), architecture:os.arch(), agentVersion:VERSION, publicIdentityKey:hostBinding.publicIdentityKey, capabilities:HOST_CAPABILITIES, policyProfile:DEVICE_POLICY_PROFILE });
-const deviceHeartbeat = setInterval(() => { try { devices.heartbeat(DEVICE_ID); } catch (error) { console.error('[device] heartbeat failed', error?.message || error); } }, DEVICE_HEARTBEAT_MS);
-deviceHeartbeat.unref();
+let hostBinding=null,deviceHeartbeat=null;
+if(INTEGRATED_HOST_ENABLED){
+  hostBinding=enrollments.ensureTrustedBinding({accountId:ACCOUNT_ID,deviceId:DEVICE_ID,publicIdentityKey:hostIdentity.publicKey,displayName:DEVICE_NAME,platform:os.platform(),architecture:os.arch(),agentVersion:VERSION,fingerprintSummary:`integrated hub / ${os.platform()} ${os.arch()} / key ${hostIdentity.publicKeySha256.slice(0,12)}`,capabilities:HOST_CAPABILITIES,policyProfile:DEVICE_POLICY_PROFILE});
+  ensureHostCompanionState(HOST_COMPANION_STATE_FILE,{identity:hostIdentity,binding:hostBinding,signer:enrollments.signerInfo(),nodeId:NODE_ID});
+  devices.register({ accountId:ACCOUNT_ID, deviceId:DEVICE_ID, nodeId:NODE_ID, displayName:DEVICE_NAME, platform:os.platform(), architecture:os.arch(), agentVersion:VERSION, publicIdentityKey:hostBinding.publicIdentityKey, capabilities:HOST_CAPABILITIES, policyProfile:DEVICE_POLICY_PROFILE });
+  deviceHeartbeat=setInterval(() => { try { devices.heartbeat(DEVICE_ID); } catch (error) { console.error('[device] heartbeat failed', error?.message || error); } }, DEVICE_HEARTBEAT_MS);
+  deviceHeartbeat.unref();
+}
 function reapAccessGrants(){
   return accessGrants.reap({connectionForDevice:deviceId=>connections.get(deviceId),liveSessionsForDevice:deviceId=>sessions.activeCountByDevice(deviceId)});
 }

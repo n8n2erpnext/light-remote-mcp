@@ -129,6 +129,13 @@ if [[ "$CLEAR_CAPABILITY_BOUNDING_SET" == "true" ]]; then
 else
   CAPABILITY_BOUNDING_SET_LINE="# CapabilityBoundingSet left at the system default for approved sudo-on-demand"
 fi
+IDENTITY_FILE="$TARGET_HOME/.config/gpt-operator-agent/identity.json"
+IDENTITY_ENV_LINE="# No external device identity file; private identity is stored in device state"
+if [[ -f "$IDENTITY_FILE" ]]; then
+  sudo chown "$TARGET_USER":"$(id -gn "$TARGET_USER")" "$IDENTITY_FILE"
+  sudo chmod 0600 "$IDENTITY_FILE"
+  IDENTITY_ENV_LINE="Environment=OPERATOR_AGENT_IDENTITY_FILE=$IDENTITY_FILE"
+fi
 
 sudo tee /etc/systemd/system/gpt-operator-device-agent.service >/dev/null <<UNIT
 [Unit]
@@ -144,6 +151,7 @@ Environment=HOME=$TARGET_HOME
 Environment=LIGHT_REMOTE_UPDATE_STATE_DIR=$UPDATE_STATE_DIR
 Environment=OPERATOR_AGENT_BASE_URL=$BASE_URL
 Environment=OPERATOR_AGENT_HUB_URL=$HUB_URL
+$IDENTITY_ENV_LINE
 ExecStart=$ROOT/current/runtime/node $ROOT/current/device-agent/operator-agent.mjs daemon
 Restart=always
 RestartSec=5

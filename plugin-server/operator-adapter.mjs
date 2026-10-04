@@ -4,7 +4,7 @@ import { sealOperatorPayload } from '../gateway/operator-crypto.mjs';
 import { redactRestrictedText } from './response-sanitizer.mjs';
 
 const opId=p=>`${p}-${crypto.randomUUID()}`;
-const cleanDevice=d=>({deviceId:d.deviceId,name:d.displayName,platform:d.platform,architecture:d.architecture,state:d.state,capabilities:[...(d.effectiveCapabilities||d.capabilities||d.approvedCapabilities||[])]});
+const cleanDevice=d=>({deviceId:d.deviceId,name:d.displayName||d.name||d.deviceId,platform:d.platform,architecture:d.architecture,state:d.state,capabilities:[...(d.effectiveCapabilities||d.capabilities||d.approvedCapabilities||[])]});
 const cleanSession=s=>({sessionId:s.sessionId,deviceId:s.deviceId,state:s.state,workspace:s.workspace||'',gracePreset:s.gracePreset||null});
 const cleanJob=j=>({jobId:j.jobId,state:j.state||null,running:!j.finishedAt,exitCode:j.exitCode??null});
 const PRODUCT_CAPABILITIES=Object.freeze([
@@ -30,21 +30,52 @@ function safePolicy(d={}){const p=d.policy||{},mode=String(d.routing?.mode||'');
 function cleanActivityEvent(e={}){const out={type:String(e.type||'activity'),status:e.status||null,route:e.route||null};if(e.requiredCapabilities)out.requiredCapabilities=[...e.requiredCapabilities];if(e.cwd)out.cwd=redactRestrictedText(String(e.cwd).slice(0,1024));if(e.note)out.note=redactRestrictedText(String(e.note).slice(0,1024));if(e.toolMeta&&typeof e.toolMeta==='object')out.tool={kind:e.toolMeta.kind||null,operation:e.toolMeta.op||null,label:e.toolMeta.label?redactRestrictedText(String(e.toolMeta.label).slice(0,512)):null};return out;}
 
 export class AccountOperatorAdapter{
-  constructor(identity){if(!identity?.accountId)throw new Error('plugin_identity_required');this.identity=identity;this.agentId=stableAgentId(identity);}
-  async inventoryRaw(){return callOperatorJson('GET',`/v1/plugin/accounts/${encodeURIComponent(this.identity.accountId)}/devices`);}
-  async ownedDevicesRaw(){const row=await this.inventoryRaw();return (row.devices||[]).filter(d=>d.accountId===this.identity.accountId&&d.state!=='revoked');}
-  async devices(){return (await this.ownedDevicesRaw()).map(cleanDevice);}
+  constructor(identity){if(!identity?.accountId||!identity?.clientId)throw new Error('plugin_identity_required');this.identity=identity;this.agentId=stableAgentId(identity);}
   async accountRaw(){const row=await callOperatorJson('GET',`/v1/plugin/accounts/${encodeURIComponent(this.identity.accountId)}`);if(!row?.account)throw new Error('account_not_found');return row.account;}
-  async deviceRaw(deviceId){const row=await callOperatorJson('GET',`/v1/devices/${encodeURIComponent(deviceId)}`),d=row.device;if(!d||d.accountId!==this.identity.accountId||d.state==='revoked')throw Object.assign(new Error('device_not_available'),{status:404});return d;}
-  async connectionHelper(){const account=await this.accountRaw(),devices=await this.ownedDevicesRaw(),mainId=account.mainDeviceId||null;return {product:'Light Remote',purpose:'Governed remote computing for AI agents on explicitly authorized user-owned devices.',account:safeAccount(account),productCapabilities:[...PRODUCT_CAPABILITIES],onboarding:{normalFlow:['Install Light Remote on the device.','Open the device-local Local Wall and obtain the one-time A code.','Use the remote connection flow to exchange the A code and create the B/approval request.','Approve the request from the Local Wall.','Only then can the authorized account target the device.'],trustBoundary:'The remote MCP cannot mint its own A code or bypass Local Wall approval. This account may already contain enrolled devices so work can start after sign-in.'},topology:devices.map(d=>({deviceId:d.deviceId,name:d.displayName,role:d.deviceId===mainId?'main':'device',platform:d.platform,architecture:d.architecture,state:d.state,routing:safeRouting(d.routing||{}),effectiveCapabilities:[...(d.effectiveCapabilities||d.capabilities||[])]})),governance:{explicitTargetRequired:true,silentFallback:false,localPolicyFinalDeny:true,credentialsMustRemainLocal:true}};}
+  async clientRaw({required=false,touch=true}={}){
+    const q=new URLSearchParams({accountId:this.identity.accountId,agentId:this.agentId});
+    try{const row=await callOperatorJson('GET',`/v1/agent-client/by-agent?${q}`);return row.client||null;}
+    catch(error){if(!required&&Number(error.status)===401)return null;throw error;}
+  }
+  async pairBegin(aCode,label='ChatGPT'){
+    const row=await callOperatorJson('POST','/v1/device-pair/begin',{aCode:String(aCode||'').trim(),accountId:this.identity.accountId,agentId:this.agentId,label:String(label||'ChatGPT').slice(0,120)}),access=row.access;
+    if(access?.state!=='pending'||!access?.request?.requestId||!access?.pollToken)throw new Error('invalid_pairing_access_request');
+    if(access.request.accountId!==this.identity.accountId)throw Object.assign(new Error('pairing_account_mismatch'),{status:403});
+    return {requestId:access.request.requestId,pollToken:access.pollToken,userCode:access.request.userCode,expiresAt:access.request.expiresAt,deviceId:access.request.deviceId};
+  }
+  async pairPoll({requestId,pollToken}={}){
+    const row=await callOperatorJson('POST','/v1/device-access/poll',{requestId,pollToken}),access=row.access;
+    if(access?.state!=='approved')return {state:'pending',request:access?.request||null};
+    const grant=access.grant;if(!grant||grant.accountId!==this.identity.accountId)throw Object.assign(new Error('pairing_account_mismatch'),{status:403});
+    const prior=await this.clientRaw({required:false,touch:false});
+    const attached=await callOperatorJson('POST','/v1/agent-client/attach',{clientSessionId:prior?.clientSessionId||null,agentId:this.agentId,grantId:grant.grantId,pairingRequestId:requestId});
+    return {state:'approved',client:attached.client,device:attached.device};
+  }
+  async authorizedDevicesRaw(){
+    const client=await this.clientRaw({required:false});if(!client)return [];
+    const q=new URLSearchParams({agentId:this.agentId}),row=await callOperatorJson('GET',`/v1/agent-client/${encodeURIComponent(client.clientSessionId)}/devices?${q}`);
+    return row.devices||[];
+  }
+  async devices(){return (await this.authorizedDevicesRaw()).map(cleanDevice);}
+  async deviceRaw(deviceId){
+    const client=await this.clientRaw({required:true});
+    await callOperatorJson('POST','/v1/agent-client/resolve',{clientSessionId:client.clientSessionId,agentId:this.agentId,deviceId});
+    const row=await callOperatorJson('GET',`/v1/devices/${encodeURIComponent(deviceId)}`),d=row.device;
+    if(!d||d.accountId!==this.identity.accountId||d.state==='revoked')throw Object.assign(new Error('device_not_available'),{status:404});
+    return d;
+  }
+  async connectionHelper(){
+    const account=await this.accountRaw(),client=await this.clientRaw({required:false}),devices=client?await this.authorizedDevicesRaw():[],mainId=account.mainDeviceId||null,ready=devices.length>0;
+    return {product:'Light Remote',status:ready?'ready':'need_a_code',purpose:'Governed remote computing for AI agents on explicitly authorized user-owned devices.',account:safeAccount(account),productCapabilities:[...PRODUCT_CAPABILITIES],onboarding:{nextAction:ready?'use_explicit_authorized_device':'ask_owner_for_local_wall_a_code',normalFlow:['Open the target device Local Wall and copy the one-time A code.','Call this helper with that A code to create the B approval request.','Show only the B code to the owner.','The owner enters B at that same Local Wall /approve and chooses Approve.','Call this helper again with the returned continuation. Only then is the device available to this plugin client.'],trustBoundary:'OAuth signs the user into the account, but it does not authorize a device. Every target device must be A/B-approved into this plugin client. The MCP cannot mint A or bypass Local Wall /approve.'},topology:devices.map(d=>({deviceId:d.deviceId,name:d.displayName||d.name||d.deviceId,role:d.deviceId===mainId?'main':'device',platform:d.platform,architecture:d.architecture,state:d.state,routing:safeRouting(d.routing||{}),effectiveCapabilities:[...(d.effectiveCapabilities||d.capabilities||[])]})),governance:{explicitTargetRequired:true,silentFallback:false,localPolicyFinalDeny:true,credentialsMustRemainLocal:true,deviceAuthorization:'local-wall-a-b'}};}
+
   async inspectDevice(deviceId){const [d,a]=await Promise.all([this.deviceRaw(deviceId),this.accountRaw()]);return {device:cleanDevice(d),role:a.mainDeviceId===d.deviceId?'main':'device',routing:safeRouting(d.routing||{}),connection:safeConnection(d.connection||{}),policy:safePolicy(d),update:safeUpdate(d.updateStatus||{}),fleet:{accountPlan:String(a.plan||'free'),mainDeviceId:a.mainDeviceId||null,provisioning:a.fleetProvisioning?{state:a.fleetProvisioning.state||null,deviceId:a.fleetProvisioning.deviceId||null,moduleVersion:a.fleetProvisioning.moduleVersion||null}:null}};}
   async recentActivity(deviceId,limit=50){await this.deviceRaw(deviceId);const n=Math.max(1,Math.min(Number(limit)||50,200)),row=await callOperatorJson('GET',`/v1/activity?deviceId=${encodeURIComponent(deviceId)}&limit=${n}`);return {deviceId,events:(row.events||[]).map(cleanActivityEvent)};}
   async setMainDevice(deviceId){await this.deviceRaw(deviceId);const row=await callOperatorJson('POST',`/v1/plugin/accounts/${encodeURIComponent(this.identity.accountId)}/main-device`,{deviceId});return {account:safeAccount(row.account),mainDevice:cleanDevice(row.mainDevice)};}
   async revokeDevice(deviceId,reason='plugin_owner_revoked'){await this.deviceRaw(deviceId);const row=await callOperatorJson('POST',`/v1/plugin/accounts/${encodeURIComponent(this.identity.accountId)}/devices/${encodeURIComponent(deviceId)}/revoke`,{reason:String(reason||'plugin_owner_revoked').slice(0,120)});return {deviceId:row.device?.deviceId||deviceId,state:row.device?.state||'revoked',revoked:true};}
-  async removeDevice(deviceId,reason='plugin_owner_removed'){const d=await callOperatorJson('GET',`/v1/devices/${encodeURIComponent(deviceId)}`).then(x=>x.device);if(!d||d.accountId!==this.identity.accountId)throw Object.assign(new Error('device_not_available'),{status:404});const row=await callOperatorJson('POST',`/v1/plugin/accounts/${encodeURIComponent(this.identity.accountId)}/devices/${encodeURIComponent(deviceId)}/remove`,{reason:String(reason||'plugin_owner_removed').slice(0,120)});return {deviceId,removed:Boolean(row.removed?.removed||row.binding?.removed||row.removed===true)};}
-  async openSession({deviceId,workspace='',gracePreset='60m'}={}){const d=await this.deviceRaw(deviceId);if(d.state!=='online')throw new Error('device_offline');const row=await callOperatorJson('POST','/v1/plugin/sessions/open',{accountId:this.identity.accountId,agentId:this.agentId,label:'ChatGPT Light Remote',workspace:String(workspace||'').slice(0,512),nodeId:d.nodeId,gracePreset});if(row?.session?.accountId!==this.identity.accountId||row?.session?.deviceId!==d.deviceId)throw new Error('session_target_mismatch');return cleanSession(row.session);}
+  async removeDevice(deviceId,reason='plugin_owner_removed'){await this.deviceRaw(deviceId);const row=await callOperatorJson('POST',`/v1/plugin/accounts/${encodeURIComponent(this.identity.accountId)}/devices/${encodeURIComponent(deviceId)}/remove`,{reason:String(reason||'plugin_owner_removed').slice(0,120)});return {deviceId,removed:Boolean(row.removed?.removed||row.binding?.removed||row.removed===true)};}
+  async openSession({deviceId,workspace='',gracePreset='60m'}={}){const d=await this.deviceRaw(deviceId);if(d.state!=='online')throw new Error('device_offline');const client=await this.clientRaw({required:true}),row=await callOperatorJson('POST','/v1/agent-client/context',{clientSessionId:client.clientSessionId,agentId:this.agentId,deviceId:d.deviceId,workspace:String(workspace||'').slice(0,512),gracePreset});if(row?.session?.accountId!==this.identity.accountId||row?.session?.deviceId!==d.deviceId)throw new Error('session_target_mismatch');return cleanSession(row.session);}
   async sessionRaw(sessionId){const q=new URLSearchParams({accountId:this.identity.accountId,agentId:this.agentId}),row=await callOperatorJson('GET',`/v1/plugin/sessions/${encodeURIComponent(sessionId)}?${q}`),s=row.session;if(!s||s.accountId!==this.identity.accountId)throw Object.assign(new Error('session_not_found'),{status:404});await this.deviceRaw(s.deviceId);return s;}
-  async sessions(){const owned=new Set((await this.ownedDevicesRaw()).map(d=>d.deviceId)),q=new URLSearchParams({accountId:this.identity.accountId}),row=await callOperatorJson('GET',`/v1/plugin/sessions?${q}`);return (row.sessions||[]).filter(s=>s.accountId===this.identity.accountId&&s.agentId===this.agentId&&owned.has(s.deviceId)).map(cleanSession);}
+  async sessions(){const owned=new Set((await this.authorizedDevicesRaw()).map(d=>d.deviceId)),q=new URLSearchParams({accountId:this.identity.accountId}),row=await callOperatorJson('GET',`/v1/plugin/sessions?${q}`);return (row.sessions||[]).filter(s=>s.accountId===this.identity.accountId&&s.agentId===this.agentId&&owned.has(s.deviceId)).map(cleanSession);}
   async closeSession(sessionId){await this.sessionRaw(sessionId);const row=await callOperatorJson('POST',`/v1/plugin/sessions/${encodeURIComponent(sessionId)}/close`,{accountId:this.identity.accountId,agentId:this.agentId});return cleanSession(row.session);}
   async fs(sessionId,fs,operationId=opId('fs'),waitMs=7000){const s=await this.sessionRaw(sessionId),payload={action:'fs',operationId,sessionId,agentId:this.agentId,nodeId:s.nodeId,fs,waitMs};return callOperatorJson('POST','/v1/fs',sealOperatorPayload(payload));}
   async search(sessionId,search,operationId=opId('search'),waitMs=7000){const s=await this.sessionRaw(sessionId),payload={action:'search',operationId,sessionId,agentId:this.agentId,nodeId:s.nodeId,search,waitMs};return callOperatorJson('POST','/v1/search',sealOperatorPayload(payload));}

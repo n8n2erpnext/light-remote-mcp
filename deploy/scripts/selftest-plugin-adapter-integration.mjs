@@ -76,7 +76,22 @@ async function createDevice(accountId,label){
   const pollSignature=crypto.sign(null,Buffer.from(deviceChannelMessage({deviceId,action:'poll',timestamp:pollTimestamp,nonce:pollNonce,payload:pollPayload})),privateKey).toString('base64url');
   r=await request('POST','/v1/device-channel/poll',{deviceId,timestamp:pollTimestamp,nonce:pollNonce,signature:pollSignature,payload:pollPayload});
   assert.equal(r.status,200,`poll_${label}`);
-  return deviceId;
+  return {deviceId,privateKey,version};
+}
+async function issuePairingCode(device){
+  const timestamp=Date.now(),nonce=crypto.randomBytes(18).toString('base64url'),payload={nodeId:device.deviceId,agentVersion:device.version,rotate:true};
+  const signature=crypto.sign(null,Buffer.from(deviceChannelMessage({deviceId:device.deviceId,action:'pairing-code',timestamp,nonce,payload})),device.privateKey).toString('base64url');
+  const r=await request('POST','/v1/device-channel/pairing-code',{deviceId:device.deviceId,timestamp,nonce,signature,payload});
+  assert.equal(r.status,200,'pairing_code_issue');return r.json.pairing.code;
+}
+async function approveAdapterPair(adapter,device){
+  const aCode=await issuePairingCode(device),pending=await adapter.pairBegin(aCode,'Plugin adapter test');
+  assert.match(pending.userCode,/^[A-Z2-9]{4}-[A-Z2-9]{4}$/,'pairing_b_code');
+  const r=await request('POST',`/v1/device-access/requests/${encodeURIComponent(pending.requestId)}/approve`,{});
+  assert.equal(r.status,200,'pairing_b_approve');
+  const ready=await adapter.pairPoll({requestId:pending.requestId,pollToken:pending.pollToken});
+  assert.equal(ready.state,'approved','pairing_ready');assert.equal(ready.device.deviceId,device.deviceId,'pairing_device');
+  return ready;
 }
 
 try{
@@ -103,12 +118,16 @@ try{
   const adapterA=new AccountOperatorAdapter({accountId:accountA,clientId:'integration-client-a'});
   const adapterB=new AccountOperatorAdapter({accountId:accountB,clientId:'integration-client-b'});
 
+  assert.deepEqual(await adapterA.devices(),[],'adapter_a_pre_pair_hidden');
+  assert.deepEqual(await adapterB.devices(),[],'adapter_b_pre_pair_hidden');
+  await assert.rejects(()=>adapterA.openSession({deviceId:deviceA.deviceId,workspace:'A'}),e=>e?.message==='agent_client_required','pre_pair_session_denied');
+  await approveAdapterPair(adapterA,deviceA);await approveAdapterPair(adapterB,deviceB);
   const devicesA=await adapterA.devices(),devicesB=await adapterB.devices();
-  assert.deepEqual(devicesA.map(x=>x.deviceId),[deviceA],'adapter_a_device_scope');
-  assert.deepEqual(devicesB.map(x=>x.deviceId),[deviceB],'adapter_b_device_scope');
+  assert.deepEqual(devicesA.map(x=>x.deviceId),[deviceA.deviceId],'adapter_a_device_scope');
+  assert.deepEqual(devicesB.map(x=>x.deviceId),[deviceB.deviceId],'adapter_b_device_scope');
 
-  const sessionA=await adapterA.openSession({deviceId:deviceA,workspace:'A',gracePreset:'60m'});
-  const sessionB=await adapterB.openSession({deviceId:deviceB,workspace:'B',gracePreset:'60m'});
+  const sessionA=await adapterA.openSession({deviceId:deviceA.deviceId,workspace:'A',gracePreset:'60m'});
+  const sessionB=await adapterB.openSession({deviceId:deviceB.deviceId,workspace:'B',gracePreset:'60m'});
   assert.notEqual(sessionA.sessionId,sessionB.sessionId,'session_ids_unique');
   assert.deepEqual((await adapterA.sessions()).map(x=>x.sessionId),[sessionA.sessionId],'adapter_a_session_scope');
   assert.deepEqual((await adapterB.sessions()).map(x=>x.sessionId),[sessionB.sessionId],'adapter_b_session_scope');

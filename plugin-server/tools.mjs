@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { AccountOperatorAdapter } from './operator-adapter.mjs';
-import { requireScopes } from './oauth.mjs';
+import { mintPairingContinuation, requireScopes, verifyPairingContinuation } from './oauth.mjs';
 import { redactRestrictedText, sanitizeForMcp } from './response-sanitizer.mjs';
 
 const id=z.string().regex(/^[A-Za-z0-9._:-]{1,160}$/);
@@ -37,14 +37,28 @@ function pick(source,keys){const out={};for(const key of keys)if(source[key]!==u
 
 export function registerPluginTools(server,identity){
   add(server,'light_remote_connection_helper',{
-    title:'Understand this Light Remote account',
-    description:'Start here. Returns the authenticated account topology, Main/Fleet state, current device capabilities, local-first A/B enrollment boundary, and routing rules. It never authorizes a new device by itself.',
-    securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
-  },guarded(identity,['remote:read'],a=>a.connectionHelper()));
+    title:'Connect Light Remote with A/B approval',
+    description:'Start here. With no input, reports whether this plugin client needs an A code. With an A code from the target Local Wall, creates the B approval request. After the owner approves B at that same Wall /approve, call again with the exact continuation to finish pairing. OAuth account login alone never authorizes a device.',
+    inputSchema:{aCode:z.string().regex(/^[A-Za-z2-9]{4}-?[A-Za-z2-9]{4}$/).optional(),continuation:z.string().min(20).max(8192).optional(),label:z.string().min(1).max(120).optional()},
+    securitySchemes:security(['remote:read']),annotations:annotations(false,false,false,false)
+  },guarded(identity,['remote:read'],async(a,x)=>{
+    if(x.aCode&&x.continuation)throw new Error('pairing_input_conflict');
+    if(x.aCode){
+      const pending=await a.pairBegin(x.aCode,x.label||'ChatGPT'),continuation=await mintPairingContinuation(identity,{requestId:pending.requestId,pollToken:pending.pollToken,agentId:a.agentId,expiresAt:pending.expiresAt});
+      return {status:'approval_required',code:pending.userCode,continuation,expiresInSeconds:Math.max(0,Math.ceil((Number(pending.expiresAt)-Date.now())/1000)),approvalPath:'/approve'};
+    }
+    if(x.continuation){
+      const ctx=await verifyPairingContinuation(identity,x.continuation);if(ctx.agentId!==a.agentId)throw new Error('pairing_continuation_agent_mismatch');
+      const paired=await a.pairPoll(ctx);
+      if(paired.state!=='approved')return {status:'approval_required',continuation:x.continuation,expiresInSeconds:Math.max(0,Math.ceil((Number(paired.request?.expiresAt||Date.now())-Date.now())/1000)),approvalPath:'/approve'};
+      const helper=await a.connectionHelper();return {...helper,status:'ready',pairedDevice:paired.device?.displayName||paired.device?.deviceId||null};
+    }
+    return a.connectionHelper();
+  }));
 
   add(server,'light_remote_list_devices',{
-    title:'List enrolled Light Remote devices',
-    description:'List devices owned by the authenticated account. Targeting remains explicit; no silent fallback.',
+    title:'List A/B-authorized Light Remote devices',
+    description:'List only devices that this plugin client has explicitly paired through Local Wall A/B approval. Targeting remains explicit; no silent fallback.',
     securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
   },guarded(identity,['remote:read'],a=>a.devices()));
 
