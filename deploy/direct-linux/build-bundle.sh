@@ -30,6 +30,7 @@ cp "node-v${NODE_VERSION}-linux-${TARGET_ARCH}/LICENSE" "$PKG/licenses/node/LICE
 cp -a "$ROOT_DIR/operator-host" "$PKG/operator-host"
 cp -a "$ROOT_DIR/gateway" "$PKG/gateway"
 cp -a "$ROOT_DIR/lib" "$PKG/lib"
+cp -a "$ROOT_DIR/assets" "$PKG/assets"
 cp -a "$ROOT_DIR/plugin-server" "$PKG/plugin-server"
 cp "$ROOT_DIR/plugin.json" "$PKG/plugin.json"
 cp "$ROOT_DIR/mcp.json" "$PKG/mcp.json"

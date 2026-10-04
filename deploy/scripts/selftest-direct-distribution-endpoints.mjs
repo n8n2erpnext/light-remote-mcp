@@ -14,6 +14,7 @@ const linuxDesktop=read('client/linux-debian/systemd/light-remote-agent.service'
 const linuxServer=read('client/linux/install.sh');
 const hostWall=read('deploy/systemd/light-remote-host-wall.service');
 const runtimeRoutes=read('operator-host/executor-routes-runtime.mjs');
+const directBuild=read('deploy/direct-linux/build-bundle.sh');
 
 assert.ok(windowsConfig.includes(`StablePublicEndpoint = "${stable}"`),'windows stable endpoint');
 assert.ok(windowsTray.includes(`AccountUrl = "${stable}/account"`),'windows account endpoint');
@@ -30,6 +31,7 @@ for(const [name,text] of Object.entries({windowsTray,macLaunchd,macTray,linuxDes
   assert.ok(!text.includes('https://lightremote.thaiduy.digital'),name+' legacy no-dash endpoint leaked');
 }
 
+assert.ok(directBuild.includes('cp -a "$ROOT_DIR/assets" "$PKG/assets"'),'direct bundle web assets missing');
 assert.ok(runtimeRoutes.includes("url.pathname === '/v1/terminal'"),'official terminal route missing');
 assert.ok(runtimeRoutes.includes("startTerminalOperation(payload,requestId)"),'official terminal operation dispatch missing');
 
