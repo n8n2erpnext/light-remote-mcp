@@ -1,8 +1,10 @@
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { callOperatorJson } from './operator-client.mjs';
 
 const COOKIE='__Host-light_remote_account';
+const RECOVERY_FILE=String(process.env.LIGHT_REMOTE_ACCOUNT_RECOVERY_FILE||'/etc/light-remote-direct/account-recovery.json');
 const portalFile=name=>fileURLToPath(new URL(`./account-portal/${name}`,import.meta.url));
 
 function parseCookies(header=''){
@@ -48,6 +50,47 @@ function fail(res,error){
 }
 function sendPortal(res,name,type='html'){
   return res.type(type).send(fs.readFileSync(portalFile(name)));
+}
+function esc(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
+function recoveryRecord(token){
+  try{
+    if(!token||!fs.existsSync(RECOVERY_FILE))return null;
+    const row=JSON.parse(fs.readFileSync(RECOVERY_FILE,'utf8'));
+    if(row?.schemaVersion!==1||row?.used===true||Number(row?.expiresAt)<=Date.now())return null;
+    const got=crypto.createHash('sha256').update(String(token)).digest('hex');
+    const want=String(row?.tokenSha256||'');
+    const a=Buffer.from(got),b=Buffer.from(want);
+    if(a.length!==b.length||!crypto.timingSafeEqual(a,b))return null;
+    return row;
+  }catch{return null;}
+}
+function recoveryHtml(row,token,message=''){
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow,noarchive"><title>Recover Light Remote account</title><link rel="stylesheet" href="/account/assets/portal.css"></head><body><main class="auth-shell"><section class="auth-card"><div class="auth-brand"><img src="/account/assets/light-remote-mark.svg" alt=""><div><strong>Light Remote</strong><div class="muted">Remote MCP</div></div></div><h1>Recover Direct account</h1><p>Set the password that Light Remote Direct should use for this account.</p>${message?`<div class="auth-error">${esc(message)}</div>`:''}<form method="post" action="/account/recover"><input type="hidden" name="token" value="${esc(token)}"><label class="field"><span>Email</span><input type="email" value="${esc(row.email)}" readonly></label><label class="field"><span>New password</span><input type="password" name="password" autocomplete="new-password" minlength="10" required autofocus></label><label class="field"><span>Confirm password</span><input type="password" name="confirm" autocomplete="new-password" minlength="10" required></label><div class="auth-actions"><button class="btn btn-primary" type="submit">Update Direct password</button></div></form><div class="auth-switch">This link is single-use and expires automatically.</div></section></main></body></html>`;
+}
+async function accountRecovery(req,res){
+  res.set('Cache-Control','no-store');
+  res.set('Pragma','no-cache');
+  res.set('Content-Security-Policy',"default-src 'none'; style-src 'self'; img-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
+  const token=String((req.method==='GET'?req.query?.token:req.body?.token)||'');
+  const row=recoveryRecord(token);
+  if(!row)return res.status(404).type('text').send('Recovery link invalid or expired.');
+  if(req.method==='GET')return res.type('html').send(recoveryHtml(row,token));
+  if(req.method!=='POST')return res.status(405).type('text').send('Method not allowed.');
+  if(!sameOriginMutation(req))return res.status(403).type('text').send('Cross-site request denied.');
+  const password=String(req.body?.password||''),confirm=String(req.body?.confirm||'');
+  if(password.length<10||password.length>1024)return res.status(400).type('html').send(recoveryHtml(row,token,'Password must be between 10 and 1024 characters.'));
+  if(password!==confirm)return res.status(400).type('html').send(recoveryHtml(row,token,'Passwords do not match.'));
+  try{
+    await callOperatorJson('POST',`/v1/admin/accounts/${encodeURIComponent(row.accountId)}/password-reset`,{password});
+    const logged=await callOperatorJson('POST','/v1/accounts/login',{email:row.email,password});
+    setSessionCookie(res,logged.token,logged.session?.expiresAt);
+    fs.unlinkSync(RECOVERY_FILE);
+    accountAudit('recover','success');
+    return res.redirect(303,'/account');
+  }catch(error){
+    accountAudit('recover','error',error?.payload?.error||error?.message||'recovery_failed');
+    return res.status(Number(error?.status)||500).type('html').send(recoveryHtml(row,token,'Recovery failed. Please retry.'));
+  }
 }
 
 function accountAudit(action,status,error=''){console.log(JSON.stringify({event:'account_portal',action,status,...(error?{error:String(error).slice(0,80)}:{})}));}
@@ -121,6 +164,8 @@ export function registerAccountPortal(app){
   app.get(['/account/settings','/account/settings/'],(_q,r)=>sendPortal(r,'settings.html'));
   app.get(['/account/login','/account/login/'],(_q,r)=>sendPortal(r,'login.html'));
   app.get(['/account/register','/account/register/'],(_q,r)=>sendPortal(r,'register.html'));
+  app.get('/account/recover',accountRecovery);
+  app.post('/account/recover',accountRecovery);
   app.get('/account/assets/portal.css',(_q,r)=>sendPortal(r,'portal.css','text/css'));
   app.get('/account/assets/light-remote-mark.svg',(_q,r)=>sendPortal(r,'light-remote-mark.svg','image/svg+xml'));
   app.get('/account/assets/light-remote.ico',(_q,r)=>sendPortal(r,'light-remote.ico','image/x-icon'));

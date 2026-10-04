@@ -132,6 +132,14 @@ export class AccountRegistry{
     const account=this.verifyCredentials(input,{recordLogin:true,eventType:'account_login'}),row=this.accounts.get(account.accountId);
     return this._issue(row);
   }
+  resetPassword(accountId,password,{invalidateSessions=true}={}){
+    const row=this.accounts.get(String(accountId||''));if(!row)throw new AccountError('account_not_found',404);
+    const raw=String(password||'');if(raw.length<10||raw.length>1024)throw new AccountError('invalid_password');
+    row.passwordHash=passwordHash(raw);row.lastLoginAt=this.now();
+    if(invalidateSessions){for(const [hash,session] of this.sessions)if(session.accountId===row.accountId)this.sessions.delete(hash);}
+    this._persist();this.emit({type:'account_password_reset',accountId:row.accountId,status:'ok'});
+    return this._viewAccount(row);
+  }
   authenticate(token,{touch=true}={}){
     this._prune();const hash=sha256(token),session=this.sessions.get(hash);
     if(!session)throw new AccountError('account_session_required',401);

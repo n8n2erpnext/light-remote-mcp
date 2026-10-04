@@ -14,6 +14,11 @@ export async function handleAccountRoutes(req,res,url,deps){
     }
     const adminAccountMatch=url.pathname.match(/^\/v1\/admin\/accounts\/([A-Za-z0-9._:-]+)$/);
     if (req.method === 'GET' && adminAccountMatch) return sendJson(res,200,{ok:true,account:accounts.account(adminAccountMatch[1])});
+    const adminPasswordReset=url.pathname.match(/^\/v1\/admin\/accounts\/([A-Za-z0-9._:-]+)\/password-reset$/);
+    if(req.method==='POST'&&adminPasswordReset){
+      const body=await readJson(req),account=accounts.resetPassword(adminPasswordReset[1],body.password,{invalidateSessions:true});
+      return sendJson(res,200,{ok:true,account});
+    }
     const adminEntitlementMatch=url.pathname.match(/^\/v1\/admin\/accounts\/([A-Za-z0-9._:-]+)\/entitlement$/);
     if (req.method === 'POST' && adminEntitlementMatch) {
       const body=await readJson(req),durationMs=body.durationDays==null?null:Number(body.durationDays)*86400000;
