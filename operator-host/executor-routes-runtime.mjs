@@ -160,6 +160,15 @@ export async function handleRuntimeRoutes(req,res,url,deps){
       await waitForJob(job,waitMs);
       return sendJson(res,200,{ok:job.finishedAt?job.exitCode===0:true,encryptedByKid:kid,aad,job:jobView(job),data:job.resultData});
     }
+    if (req.method === 'POST' && url.pathname === '/v1/terminal') {
+      const envelope=await readJson(req);
+      const {payload,requestId,aad,kid}=decryptEnvelope(envelope);
+      if(payload.action!=='terminal')throw new Error('unsupported_action');
+      const job=await startTerminalOperation(payload,requestId);
+      const waitMs=Math.max(0,Math.min(Number(payload.waitMs)||7000,8000));
+      await waitForJob(job,waitMs);
+      return sendJson(res,200,{ok:job.finishedAt?job.exitCode===0:true,encryptedByKid:kid,aad,job:jobView(job),data:job.resultData});
+    }
     if (req.method === 'POST' && url.pathname === '/v1/search') {
       const envelope=await readJson(req);
       const {payload,requestId,aad,kid}=decryptEnvelope(envelope);

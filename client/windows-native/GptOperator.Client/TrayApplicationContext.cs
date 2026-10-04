@@ -20,8 +20,8 @@ internal sealed class TrayApplicationContext : ApplicationContext
     private const string AgentTask = "LightRemoteDeviceAgent";
     private const string UpdateTask = "LightRemoteUpdater";
     private const string WallUrl = "http://127.0.0.1:5491/";
-    private const string AccountUrl = "https://lightremote.thaiduy.digital/settings/";
-    private const string FleetPortalUrl = "https://lightremote.thaiduy.digital/";
+    private const string AccountUrl = "https://light-remote.thaiduy.digital/settings/";
+    private const string FleetPortalUrl = "https://light-remote.thaiduy.digital/";
     private const string LocalFleetUrl = "http://127.0.0.1:5492/";
 
     private readonly NotifyIcon _tray;

@@ -11,7 +11,7 @@ Group=ubuntu
 WorkingDirectory=/opt/gpt-vps-operator/host-wall
 Environment=OPERATOR_AGENT_STATE=/var/lib/gpt-vps-operator/host-companion-device.json
 Environment=OPERATOR_AGENT_IDENTITY_FILE=/var/lib/gpt-vps-operator/host-device-identity.json
-Environment=OPERATOR_AGENT_HUB_URL=https://mcp.dashboard.thaiduy.store
+Environment=OPERATOR_AGENT_HUB_URL=https://light-remote.thaiduy.digital
 Environment=OPERATOR_AGENT_WALL_HOST=127.0.0.1
 Environment=OPERATOR_AGENT_WALL_PORT=5491
 Environment=OPERATOR_AGENT_WALL_AUTH_FILE=/home/ubuntu/.config/gpt-vps-operator/host-wall-auth.json
