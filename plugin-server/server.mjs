@@ -6,6 +6,7 @@ import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js
 import { PUBLIC_ALLOWED_HOSTS, PUBLIC_HOST, PUBLIC_ORIGIN, PUBLIC_PORT, OPENAI_CHALLENGE_FILE, VERSION } from './config.mjs';
 import { authenticateAccess, registerOAuth } from './oauth.mjs';
 import { registerPublicDeviceRoutes, prunePublicRateState } from './device-public.mjs';
+import { registerAccountPortal } from './account-portal.mjs';
 import { PUBLIC_PAGE_BODIES } from './public-pages.mjs';
 import { PLUGIN_TOOL_SECURITY, registerPluginTools } from './tools.mjs';
 import { installOpenAiToolSecurityCompat } from './openai-security-compat.mjs';
@@ -27,6 +28,7 @@ app.use((_req,res,next)=>{
 });
 
 registerOAuth(app);
+registerAccountPortal(app);
 registerPublicDeviceRoutes(app);
 const pruner=setInterval(()=>prunePublicRateState(),60_000);pruner.unref?.();
 
