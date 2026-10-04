@@ -25,4 +25,9 @@ try{
  const denied=await request('POST','/v1/sessions/open',{accountId:'acct-other',nodeId:'node-bootstrap',agentId:'agent-routing-denied-aaaa',openId:'open-routing-denied-aaaa'});
  if(denied.status!==403||denied.json.error!=='target_node_account_mismatch')throw new Error('cross_account_local_route_not_denied:'+JSON.stringify(denied));
  console.log(JSON.stringify({ok:true,defaultAccount:d.json.session.accountId,crossAccountStatus:denied.status},null,2));
-}finally{child.kill('SIGTERM');removeIpcEndpoint(socketPath);fs.rmSync(dir,{recursive:true,force:true});}
+}finally{
+ if(child.exitCode==null){try{child.kill('SIGTERM')}catch{};await Promise.race([new Promise(resolve=>child.once('exit',resolve)),new Promise(resolve=>setTimeout(resolve,1000))]);}
+ if(child.exitCode==null){try{child.kill('SIGKILL')}catch{}}
+ removeIpcEndpoint(socketPath);
+ for(let i=0;i<20;i++){try{fs.rmSync(dir,{recursive:true,force:true});break}catch(error){if(i===19)throw error;await new Promise(resolve=>setTimeout(resolve,25));}}
+}

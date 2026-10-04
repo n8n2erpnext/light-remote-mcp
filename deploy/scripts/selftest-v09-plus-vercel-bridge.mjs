@@ -22,7 +22,7 @@ expect(api.includes("const plus=wantsPlus && req.method==='GET'"),'plus_bridge_m
 expect(api.includes("action==='connection-helper'")&&api.includes('connectionHelperView')&&api.includes('toolHelperHint')&&api.includes("nextAction:'load_tool_helper'"),'plus_connection_helper_missing');
 expect(api.includes('requestOrigin(req)')&&api.includes('nextUrl')&&api.includes("Buffer.from(JSON.stringify(nextPayload)).toString('base64url')"),'plus_connection_helper_next_url_missing');
 expect(api.includes('encodeURIComponent(client)')&&api.includes('replay helper.nextUrl exactly')&&api.includes("nextAction:'load_tool_helper'"),'plus_ready_exact_tool_helper_url_missing');
-expect(wall.includes('web_fetch_vercel_url directly')&&wall.includes('Do NOT search for a connector/action/tool named connection-helper')&&wall.includes('helper.nextUrl'),'local_wall_pairing_capsule_tool_selection_missing');
+expect(wall.includes('Use the connected official Light Remote plugin directly')&&wall.includes('light_remote_connection_helper immediately with this A code')&&wall.includes('same Local Wall /approve')&&!wall.includes('web_fetch_vercel_url directly'),'local_wall_pairing_capsule_tool_selection_missing');
 expect(api.includes('pairingRecovery')&&api.includes("'/plus/connect/recover'")&&server.includes("app.post('/plus/connect/recover'"),'plus_pairing_recovery_missing');
 expect(api.includes("if(error.status===401&&recovery)return callOperator('/plus/connect/recover'"),'plus_pairing_recovery_must_not_depend_on_error_payload_string');
 expect(server.includes("plusRateLimit=createRateLimit('plus'")&&server.includes('plusRateIdentity')&&!server.includes("app.post('/plus/connect/begin', softRateLimit"),'plus_scoped_rate_limit_missing');

@@ -38,11 +38,12 @@ function pick(source,keys){const out={};for(const key of keys)if(source[key]!==u
 export function registerPluginTools(server,identity){
   add(server,'light_remote_connection_helper',{
     title:'Connect Light Remote with A/B approval',
-    description:'Start here. With no input, reports whether this plugin client needs an A code. With an A code from the target Local Wall, creates the B approval request. After the owner approves B at that same Wall /approve, call again with the exact continuation to finish pairing. OAuth account login alone never authorizes a device.',
-    inputSchema:{aCode:z.string().regex(/^[A-Za-z2-9]{4}-?[A-Za-z2-9]{4}$/).optional(),continuation:z.string().min(20).max(8192).optional(),label:z.string().min(1).max(120).optional()},
+    description:'Start here. Handles Local Wall A/B pairing and, when ready, returns/reuses the working context plus a compact tool-family menu. Call again with helperGroup=workspace|files|shell|transfer|desktop only when detailed syntax for that family is needed. OAuth account login alone never authorizes a device.',
+    inputSchema:{aCode:z.string().regex(/^[A-Za-z2-9]{4}-?[A-Za-z2-9]{4}$/).optional(),continuation:z.string().min(20).max(8192).optional(),label:z.string().min(1).max(120).optional(),helperGroup:z.enum(['workspace','files','shell','transfer','desktop']).optional()},
     securitySchemes:security(['remote:read']),annotations:annotations(false,false,false,false)
   },guarded(identity,['remote:read'],async(a,x)=>{
     if(x.aCode&&x.continuation)throw new Error('pairing_input_conflict');
+    if(x.helperGroup&&(x.aCode||x.continuation))throw new Error('helper_group_pairing_conflict');
     if(x.aCode){
       const pending=await a.pairBegin(x.aCode,x.label||'ChatGPT'),continuation=await mintPairingContinuation(identity,{requestId:pending.requestId,pollToken:pending.pollToken,agentId:a.agentId,expiresAt:pending.expiresAt});
       return {status:'approval_required',code:pending.userCode,continuation,expiresInSeconds:Math.max(0,Math.ceil((Number(pending.expiresAt)-Date.now())/1000)),approvalPath:'/approve'};
@@ -53,7 +54,7 @@ export function registerPluginTools(server,identity){
       if(paired.state!=='approved')return {status:'approval_required',continuation:x.continuation,expiresInSeconds:Math.max(0,Math.ceil((Number(paired.request?.expiresAt||Date.now())-Date.now())/1000)),approvalPath:'/approve'};
       const helper=await a.connectionHelper();return {...helper,status:'ready',pairedDevice:paired.device?.displayName||paired.device?.deviceId||null};
     }
-    return a.connectionHelper();
+    return a.connectionHelper(x.helperGroup||null);
   }));
 
   add(server,'light_remote_list_devices',{
@@ -61,6 +62,13 @@ export function registerPluginTools(server,identity){
     description:'List only devices that this plugin client has explicitly paired through Local Wall A/B approval. Targeting remains explicit; no silent fallback.',
     securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
   },guarded(identity,['remote:read'],a=>a.devices()));
+
+  add(server,'light_remote_context',{
+    title:'Recover or change the working Light Remote context',
+    description:'Reuse or create the durable working session for one A/B-authorized device, optionally changing workspace or grace. Never silently switches to an unauthorized target.',
+    inputSchema:{deviceId:id.optional(),workspace:z.string().max(512).optional(),gracePreset:z.enum(['15m','30m','45m','60m']).optional()},
+    securitySchemes:security(['remote:write']),annotations:annotations(false,false,false,true)
+  },guarded(identity,['remote:write'],(a,x)=>a.workingContext(x)));
 
   add(server,'light_remote_inspect_device',{
     title:'Inspect a Light Remote device',
@@ -95,14 +103,21 @@ export function registerPluginTools(server,identity){
   add(server,'light_remote_open_session',{
     title:'Open or reuse a durable session',
     description:'Bind work to one explicit owned device and this MCP client.',
-    inputSchema:{deviceId:id,workspace:z.string().max(512).optional(),gracePreset:z.enum(['15m','30m','45m','60m']).optional()},securitySchemes:security(['remote:write']),annotations:annotations(false,false,false,true)
+    inputSchema:{deviceId:id,openId:z.string().regex(/^[A-Za-z0-9._:-]{16,160}$/).optional(),workspace:z.string().max(512).optional(),gracePreset:z.enum(['15m','30m','45m','60m']).optional()},securitySchemes:security(['remote:write']),annotations:annotations(false,false,false,true)
   },guarded(identity,['remote:write'],(a,x)=>a.openSession(x)));
 
   add(server,'light_remote_list_sessions',{
     title:'List durable sessions',
-    description:'List account-scoped sessions owned by this MCP connection for recovery and continuation.',
-    securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
-  },guarded(identity,['remote:read'],a=>a.sessions()));
+    description:'List account-scoped sessions owned by this MCP connection for recovery and continuation. Supply sessionId to read one exact session.',
+    inputSchema:{sessionId:id.optional()},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
+  },guarded(identity,['remote:read'],(a,x)=>x.sessionId?a.session(x.sessionId):a.sessions()));
+
+  add(server,'light_remote_session_control',{
+    title:'Resume or hold a durable session',
+    description:'Resume an existing durable session or explicitly place it on hold during a transport interruption.',
+    inputSchema:{sessionId:id,operation:z.enum(['resume','hold']),reason:z.string().max(80).optional()},
+    securitySchemes:security(['remote:write']),annotations:annotations(false,false,false,true)
+  },guarded(identity,['remote:write'],(a,x)=>x.operation==='resume'?a.resumeSession(x.sessionId):a.holdSession(x.sessionId,x.reason)));
 
   add(server,'light_remote_close_session',{
     title:'Close a durable session',
@@ -125,19 +140,32 @@ export function registerPluginTools(server,identity){
   add(server,'light_remote_search_files',{
     title:'Search remote files',
     description:'Start, read, or cancel bounded native file-name/content search.',
-    inputSchema:{sessionId:id,operation:z.enum(['start','results','cancel']),operationId:opId,path:pathText.optional(),searchId:z.string().max(160).optional(),searchType:z.enum(['content','files']).optional(),pattern:z.string().max(4096).optional(),literalSearch:z.boolean().optional(),ignoreCase:z.boolean().optional(),filePattern:z.string().max(1024).optional(),offset:z.number().int().min(0).optional(),limit:z.number().int().min(1).max(500).optional()},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,false)
+    inputSchema:{sessionId:id,operation:z.enum(['start','results','cancel']),operationId:opId,path:pathText.optional(),searchId:z.string().max(160).optional(),searchType:z.enum(['content','files']).optional(),pattern:z.string().max(4096).optional(),literalSearch:z.boolean().optional(),ignoreCase:z.boolean().optional(),filePattern:z.string().max(1024).optional(),contextLines:z.number().int().min(0).max(20).optional(),maxResults:z.number().int().min(1).max(1000).optional(),offset:z.number().int().min(0).optional(),limit:z.number().int().min(1).max(500).optional()},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,false)
   },guarded(identity,['remote:read'],async(a,x)=>{
-    const search=x.operation==='start'?{op:'start',path:x.path,searchType:x.searchType||'content',pattern:x.pattern,literalSearch:Boolean(x.literalSearch),ignoreCase:x.ignoreCase!==false,filePattern:x.filePattern||'',maxResults:500}:x.operation==='results'?{op:'results',searchId:x.searchId,offset:x.offset||0,limit:x.limit||100}:{op:'cancel',searchId:x.searchId};
+    const search=x.operation==='start'?{op:'start',path:x.path,searchType:x.searchType||'content',pattern:x.pattern,literalSearch:Boolean(x.literalSearch),ignoreCase:x.ignoreCase!==false,filePattern:x.filePattern||'',contextLines:x.contextLines||0,maxResults:x.maxResults||200}:x.operation==='results'?{op:'results',searchId:x.searchId,offset:x.offset||0,limit:x.limit||100}:{op:'cancel',searchId:x.searchId};
     return operationView(await a.search(x.sessionId,search,x.operationId));
   }));
+
+  add(server,'light_remote_read_multiple_files',{
+    title:'Read multiple remote text files',
+    description:'Read bounded text from multiple allowed files in one structured read-only operation.',
+    inputSchema:{sessionId:id,paths:z.array(pathText).min(1).max(100),maxLines:z.number().int().min(1).max(5000).optional(),maxBytesPerFile:z.number().int().min(1).max(8_000_000).optional()},
+    securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
+  },guarded(identity,['remote:read'],async(a,x)=>operationView(await a.fs(x.sessionId,{op:'readMany',paths:x.paths,maxLines:x.maxLines,maxBytesPerFile:x.maxBytesPerFile}))));
+
+  add(server,'light_remote_stat_path',{
+    title:'Stat a remote path',
+    description:'Read bounded metadata for one allowed path without requiring write scope.',
+    inputSchema:{sessionId:id,path:pathText},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
+  },guarded(identity,['remote:read'],async(a,x)=>operationView(await a.fs(x.sessionId,{op:'stat',path:x.path}))));
 
   add(server,'light_remote_filesystem',{
     title:'Perform a structured filesystem operation',
     description:'Use structured filesystem operations instead of shell commands. Device allowed roots and policy remain final deny boundaries.',
-    inputSchema:{sessionId:id,operationId:opId,operation:z.enum(['stat','mkdir','copy','move','delete','readMany']),path:pathText.optional(),paths:z.array(pathText).max(100).optional(),source:pathText.optional(),destination:pathText.optional(),parents:z.boolean().optional(),recursive:z.boolean().optional(),overwrite:z.boolean().optional(),maxLines:z.number().int().min(1).max(5000).optional(),maxBytesPerFile:z.number().int().min(1).max(8_000_000).optional()},securitySchemes:security(['remote:write']),annotations:annotations(false,true,false,false)
+    inputSchema:{sessionId:id,operationId:opId,operation:z.enum(['mkdir','copy','move','delete']),path:pathText.optional(),source:pathText.optional(),destination:pathText.optional(),parents:z.boolean().optional(),recursive:z.boolean().optional(),overwrite:z.boolean().optional()},securitySchemes:security(['remote:write']),annotations:annotations(false,true,false,false)
   },guarded(identity,['remote:write'],async(a,x)=>{
     const fs={op:x.operation};
-    Object.assign(fs,pick(x,['path','paths','source','destination','parents','recursive','overwrite','maxLines','maxBytesPerFile']));
+    Object.assign(fs,pick(x,['path','source','destination','parents','recursive','overwrite']));
     return operationView(await a.fs(x.sessionId,fs,x.operationId));
   }));
 
@@ -156,42 +184,52 @@ export function registerPluginTools(server,identity){
   add(server,'light_remote_exec',{
     title:'Execute one bounded remote command job',
     description:'Run one logical shell/PowerShell job. Prefer structured tools first; device policy re-infers capabilities before spawn.',
-    inputSchema:{sessionId:id,operationId:opId,script:z.string().min(1).max(1_000_000),cwd:pathText.optional(),timeoutMs:z.number().int().min(1000).max(7_200_000).optional(),waitMs:z.number().int().min(0).max(7000).optional()},securitySchemes:security(['remote:execute']),annotations:annotations(false,true,true,false)
-  },guarded(identity,['remote:execute'],async(a,x)=>operationView(await a.exec(x.sessionId,x.script,{cwd:x.cwd,operationId:x.operationId,timeoutMs:x.timeoutMs,waitMs:x.waitMs}))));
+    inputSchema:{sessionId:id,operationId:opId,script:z.string().min(1).max(1_000_000),shell:z.string().max(80).optional(),cwd:pathText.optional(),timeoutMs:z.number().int().min(1000).max(7_200_000).optional(),waitMs:z.number().int().min(0).max(7000).optional(),requiredCapabilities:z.array(z.string().min(1).max(80)).max(32).optional()},securitySchemes:security(['remote:execute']),annotations:annotations(false,true,true,false)
+  },guarded(identity,['remote:execute'],async(a,x)=>operationView(await a.exec(x.sessionId,x.script,{shell:x.shell,cwd:x.cwd,operationId:x.operationId,timeoutMs:x.timeoutMs,waitMs:x.waitMs,requiredCapabilities:x.requiredCapabilities}))));
 
   add(server,'light_remote_process',{
     title:'Control a managed remote process',
     description:'Start or control a persistent non-PTY process with explicit stdin/stdout lifecycle.',
-    inputSchema:{sessionId:id,operation:z.enum(['start','input','output','list','stop']),operationId:opId,processId:z.string().max(160).optional(),script:z.string().max(1_000_000).optional(),cwd:pathText.optional(),data:z.string().max(1_048_576).optional(),eof:z.boolean().optional(),stream:z.enum(['stdout','stderr']).optional(),offset:z.number().int().min(0).optional(),limit:z.number().int().min(1).max(1_048_576).optional(),force:z.boolean().optional(),timeoutMs:z.number().int().min(0).max(86_400_000).optional()},securitySchemes:security(['remote:execute']),annotations:annotations(false,true,true,false)
+    inputSchema:{sessionId:id,operation:z.enum(['start','input','output','list','stop']),operationId:opId,processId:z.string().max(160).optional(),script:z.string().max(1_000_000).optional(),shell:z.string().max(80).optional(),cwd:pathText.optional(),data:z.string().max(1_048_576).optional(),eof:z.boolean().optional(),stream:z.enum(['stdout','stderr']).optional(),offset:z.number().int().min(0).optional(),limit:z.number().int().min(1).max(1_048_576).optional(),force:z.boolean().optional(),timeoutMs:z.number().int().min(0).max(86_400_000).optional(),requiredCapabilities:z.array(z.string().min(1).max(80)).max(32).optional()},securitySchemes:security(['remote:execute']),annotations:annotations(false,true,true,false)
   },guarded(identity,['remote:execute'],async(a,x)=>{
-    const process=x.operation==='start'?{op:'start',script:x.script,cwd:x.cwd,timeoutMs:x.timeoutMs}:x.operation==='input'?{op:'input',processId:x.processId,data:x.data||'',eof:Boolean(x.eof)}:x.operation==='output'?{op:'output',processId:x.processId,stream:x.stream||'stdout',offset:x.offset||0,limit:x.limit||262144}:x.operation==='list'?{op:'list'}:{op:'stop',processId:x.processId,force:Boolean(x.force)};
+    const process=x.operation==='start'?{op:'start',script:x.script,shell:x.shell,cwd:x.cwd,timeoutMs:x.timeoutMs,requiredCapabilities:x.requiredCapabilities}:x.operation==='input'?{op:'input',processId:x.processId,data:x.data||'',eof:Boolean(x.eof)}:x.operation==='output'?{op:'output',processId:x.processId,stream:x.stream||'stdout',offset:x.offset||0,limit:x.limit||262144}:x.operation==='list'?{op:'list'}:{op:'stop',processId:x.processId,force:Boolean(x.force)};
     return operationView(await a.process(x.sessionId,process,x.operationId));
   }));
 
   add(server,'light_remote_terminal',{
     title:'Control a real PTY/ConPTY terminal',
     description:'Use for interactive programs, persistent shells, Ctrl-C, resize, and terminal input. Local policy remains authoritative.',
-    inputSchema:{sessionId:id,operation:z.enum(['start','input','output','resize','signal','list','stop']),operationId:opId,terminalId:z.string().max(160).optional(),shell:z.string().max(80).optional(),cwd:pathText.optional(),data:z.string().max(1_048_576).optional(),offset:z.number().int().min(0).optional(),limit:z.number().int().min(1).max(1_048_576).optional(),cols:z.number().int().min(20).max(400).optional(),rows:z.number().int().min(5).max(200).optional(),signal:z.enum(['interrupt','terminate','kill']).optional(),force:z.boolean().optional()},securitySchemes:security(['remote:terminal']),annotations:annotations(false,true,true,false)
+    inputSchema:{sessionId:id,operation:z.enum(['start','input','output','resize','signal','list','stop']),operationId:opId,terminalId:z.string().max(160).optional(),shell:z.string().max(80).optional(),cwd:pathText.optional(),term:z.string().max(64).optional(),data:z.string().max(1_048_576).optional(),offset:z.number().int().min(0).optional(),limit:z.number().int().min(1).max(1_048_576).optional(),cols:z.number().int().min(20).max(500).optional(),rows:z.number().int().min(5).max(200).optional(),signal:z.enum(['interrupt','terminate','kill']).optional(),force:z.boolean().optional()},securitySchemes:security(['remote:terminal']),annotations:annotations(false,true,true,false)
   },guarded(identity,['remote:terminal'],async(a,x)=>{
-    const terminal={op:x.operation};Object.assign(terminal,pick(x,['terminalId','shell','cwd','data','offset','limit','cols','rows','signal','force']));
+    const terminal={op:x.operation};Object.assign(terminal,pick(x,['terminalId','shell','cwd','term','data','offset','limit','cols','rows','signal','force']));
     return operationView(await a.terminal(x.sessionId,terminal,x.operationId));
   }));
 
+  add(server,'light_remote_scp_download',{
+    title:'Download a large or binary file',
+    description:'Use the resumable Light SCP read plane. Download chunks and whole-file integrity are SHA-256 verified.',
+    inputSchema:{sessionId:id,operationId:opId,operation:z.enum(['download-begin','download-chunk','status','cancel']),transferId:z.string().max(160).optional(),source:pathText.optional(),chunkBytes:z.number().int().min(64*1024).max(4*1024*1024).optional(),index:z.number().int().min(0).optional()},
+    securitySchemes:security(['remote:read']),annotations:annotations(false,false,false,false)
+  },guarded(identity,['remote:read'],async(a,x)=>{
+    const scp={op:x.operation};Object.assign(scp,pick(x,['transferId','source','chunkBytes','index']));
+    return operationView(await a.scp(x.sessionId,scp,x.operationId));
+  }));
+
   add(server,'light_remote_scp',{
-    title:'Transfer a large or binary file',
-    description:'Use the resumable Light SCP plane for binary/large files. Upload and download integrity are verified by SHA-256. This mixed read/write surface requires remote:write.',
-    inputSchema:{sessionId:id,operationId:opId,operation:z.enum(['upload-begin','upload-chunk','upload-commit','download-begin','download-chunk','status','cancel']),transferId:z.string().max(160).optional(),destination:pathText.optional(),source:pathText.optional(),totalBytes:z.number().int().min(0).optional(),sha256:z.string().regex(/^[a-f0-9]{64}$/i).optional(),chunkBytes:z.number().int().min(64*1024).max(4*1024*1024).optional(),index:z.number().int().min(0).optional(),data:z.string().max(6_000_000).optional(),overwrite:z.boolean().optional(),createParents:z.boolean().optional()},securitySchemes:security(['remote:write']),annotations:annotations(false,true,false,false)
+    title:'Upload a large or binary file',
+    description:'Use the resumable Light SCP upload plane for binary/large files. Upload integrity is verified by SHA-256 and requires remote:write.',
+    inputSchema:{sessionId:id,operationId:opId,operation:z.enum(['upload-begin','upload-chunk','upload-commit','status','cancel']),transferId:z.string().max(160).optional(),destination:pathText.optional(),source:pathText.optional(),totalBytes:z.number().int().min(0).optional(),sha256:z.string().regex(/^[a-f0-9]{64}$/i).optional(),chunkBytes:z.number().int().min(64*1024).max(4*1024*1024).optional(),index:z.number().int().min(0).optional(),data:z.string().max(6_000_000).optional(),overwrite:z.boolean().optional(),createParents:z.boolean().optional()},securitySchemes:security(['remote:write']),annotations:annotations(false,true,false,false)
   },guarded(identity,['remote:write'],async(a,x)=>{
-    const scp={op:x.operation};Object.assign(scp,pick(x,['transferId','destination','source','totalBytes','sha256','chunkBytes','index','data','overwrite','createParents']));
+    const scp={op:x.operation};Object.assign(scp,pick(x,['transferId','destination','totalBytes','sha256','chunkBytes','index','data','overwrite','createParents']));
     return operationView(await a.scp(x.sessionId,scp,x.operationId));
   }));
 
   add(server,'light_remote_desktop',{
     title:'Observe the remote desktop',
     description:'Read the authorized remote desktop using semantic snapshots, events, windows, and frames. Prefer live semantic updates; use a full frame only for bootstrap or resync.',
-    inputSchema:{sessionId:id,operationId:opId,operation:z.enum(['status','attach','resume','detach','windows','frame','observe','semantic-attach','semantic-snapshot','semantic-events','semantic-detach','live-open','live-close']),desktopSessionId:z.string().max(160).optional(),semanticSessionId:z.string().max(160).optional(),afterSeq:z.number().int().min(0).optional(),limit:z.number().int().min(1).max(1000).optional(),screen:z.number().int().min(0).max(32).optional(),maxWidth:z.number().int().min(64).max(7680).optional(),maxHeight:z.number().int().min(64).max(4320).optional(),quality:z.number().int().min(1).max(100).optional(),minIntervalMs:z.number().int().min(0).max(5000).optional(),omitUnchanged:z.boolean().optional(),idleTimeoutMs:z.number().int().min(250).max(900000).optional(),provider:z.string().max(80).optional(),scope:z.string().max(160).optional(),maxDepth:z.number().int().min(1).max(64).optional(),maxNodes:z.number().int().min(1).max(20000).optional(),waitMs:z.number().int().min(0).max(7000).optional()},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,false)
+    inputSchema:{sessionId:id,operationId:opId,operation:z.enum(['status','attach','resume','detach','windows','frame','observe','semantic-attach','semantic-snapshot','semantic-events','semantic-detach','live-open','live-close']),desktopSessionId:z.string().max(160).optional(),semanticSessionId:z.string().max(160).optional(),afterSeq:z.number().int().min(0).optional(),limit:z.number().int().min(1).max(1000).optional(),screen:z.number().int().min(-1).max(31).optional(),maxWidth:z.number().int().min(64).max(7680).optional(),maxHeight:z.number().int().min(64).max(4320).optional(),quality:z.number().int().min(1).max(100).optional(),minIntervalMs:z.number().int().min(0).max(5000).optional(),omitUnchanged:z.boolean().optional(),idleTimeoutMs:z.number().int().min(250).max(900000).optional(),provider:z.enum(['windows-uia','browser-cdp']).optional(),scope:z.string().max(160).optional(),cdpEndpoint:z.string().max(256).optional(),targetId:z.string().max(256).optional(),urlMatch:z.string().max(512).optional(),maxDepth:z.number().int().min(1).max(64).optional(),maxNodes:z.number().int().min(1).max(20000).optional(),waitMs:z.number().int().min(0).max(7000).optional()},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,false)
   },guarded(identity,['remote:read'],async(a,x)=>{
-    const desktop={op:x.operation};Object.assign(desktop,pick(x,['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','maxDepth','maxNodes']));
+    const desktop={op:x.operation};Object.assign(desktop,pick(x,['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes']));
     return operationView(await a.desktop(x.sessionId,desktop,x.operationId,x.waitMs));
   }));
 
@@ -219,6 +257,6 @@ export function registerPluginTools(server,identity){
   add(server,'light_remote_output',{
     title:'Read durable job output',
     description:'Read bounded stdout/stderr by byte offset.',
-    inputSchema:{jobId:id,stream:z.enum(['stdout','stderr']).optional(),offset:z.number().int().min(0).optional(),limit:z.number().int().min(1).max(1_048_576).optional()},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
-  },guarded(identity,['remote:read'],(a,x)=>a.output(x.jobId,x.stream,x.offset,x.limit)));
+    inputSchema:{jobId:id,stream:z.enum(['stdout','stderr']).optional(),offset:z.number().int().min(0).optional(),limit:z.number().int().min(1).max(8_388_608).optional(),full:z.boolean().optional()},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
+  },guarded(identity,['remote:read'],(a,x)=>a.output(x.jobId,x.stream,x.offset,x.limit,x.full)));
 }

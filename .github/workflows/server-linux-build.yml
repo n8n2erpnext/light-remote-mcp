@@ -9,6 +9,10 @@ on:
       - 'v0.9.*'
     paths:
       - 'gateway/**'
+      - 'plugin-server/**'
+      - 'plugin.json'
+      - '.codex-plugin/**'
+      - 'mcp.json'
       - 'operator-host/**'
       - 'device-agent/**'
       - 'lib/**'
