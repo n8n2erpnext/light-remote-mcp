@@ -1,0 +1,51 @@
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import nodemailer from 'nodemailer';
+import { PUBLIC_ORIGIN } from './config.mjs';
+
+const MAIL_FILE=String(process.env.LIGHT_REMOTE_MAIL_ENV_FILE||'/etc/light-remote-direct/mail.env');
+const LOGO_PATH=fileURLToPath(new URL('../assets/branding/light-remote-mark-256.png',import.meta.url));
+
+function parseEnv(text=''){
+  const out={};
+  for(const raw of String(text).split(/\r?\n/)){
+    const line=raw.trim();
+    if(!line||line.startsWith('#'))continue;
+    const i=line.indexOf('=');
+    if(i<1)continue;
+    out[line.slice(0,i).trim()]=line.slice(i+1).trim().replace(/^['"]|['"]$/g,'');
+  }
+  return out;
+}
+function senderEmail(value=''){
+  const v=String(value).trim(),m=v.match(/<([^>]+)>/);
+  return String(m?m[1]:v).trim();
+}
+export function mailConfig(){
+  try{
+    const env=parseEnv(fs.readFileSync(MAIL_FILE,'utf8'));
+    const host=String(env.SMTP_HOST||''),user=String(env.SMTP_USER||''),password=String(env.SMTP_PASSWORD||''),fromEmail=senderEmail(env.SMTP_FROM||'');
+    if(!host||!user||!password||!fromEmail)return null;
+    return {host,port:Number(env.SMTP_PORT||587),secure:String(env.SMTP_SECURE||'false').toLowerCase()==='true',user,password,fromEmail,fromName:'Light Remote',replyTo:fromEmail};
+  }catch{return null;}
+}
+function transport(){
+  const c=mailConfig();if(!c)return null;
+  return {c,tx:nodemailer.createTransport({host:c.host,port:c.port,secure:c.secure,auth:{user:c.user,pass:c.password}})};
+}
+function esc(v){return String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
+function shell({preheader='',eyebrow='LIGHT REMOTE',title,body,ctaLabel='',ctaUrl='',code=''}) {
+  return `<!doctype html><html><body style="margin:0;background:#f4f6f8;color:#111827;font-family:Arial,sans-serif"><div style="display:none;max-height:0;overflow:hidden">${esc(preheader)}</div><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f4f6f8;padding:28px 14px"><tr><td align="center"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;background:#fff;border:1px solid #e5e7eb;border-radius:18px;overflow:hidden"><tr><td style="background:#0b0c0e;padding:24px 28px"><table role="presentation" cellspacing="0" cellpadding="0"><tr><td><img src="cid:lr-logo" width="42" height="42" alt="LR" style="display:block;border-radius:10px"></td><td style="padding-left:12px;color:#fff"><div style="font-size:18px;font-weight:700">Light Remote</div><div style="font-size:12px;color:#b9bec7">Governed remote computing for AI</div></td></tr></table></td></tr><tr><td style="padding:32px 30px"><div style="font-size:11px;font-weight:700;letter-spacing:.12em;color:#6b7280">${esc(eyebrow)}</div><h1 style="margin:8px 0 14px;font-size:26px;line-height:1.2;color:#111827">${esc(title)}</h1><div style="font-size:15px;line-height:1.7;color:#4b5563">${body}</div>${code?`<div style="margin:22px 0;padding:18px;background:#f8fafc;border:1px solid #dbe2ea;border-radius:12px"><div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#6b7280">Credential</div><div style="margin-top:8px;font-family:monospace;font-size:16px;word-break:break-all;color:#111827">${esc(code)}</div></div>`:''}${ctaLabel&&ctaUrl?`<p style="margin:24px 0 0"><a href="${esc(ctaUrl)}" style="display:inline-block;background:#ffd400;color:#0b0c0e;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:10px">${esc(ctaLabel)}</a></p>`:''}</td></tr><tr><td style="padding:18px 30px;background:#f8fafc;color:#6b7280;font-size:12px;line-height:1.6">Light Remote · <a href="${PUBLIC_ORIGIN}/support" style="color:#111827">Support</a> · <a href="${PUBLIC_ORIGIN}/account" style="color:#111827">Account</a><br>This is a transactional message about your Light Remote account.</td></tr></table></td></tr></table></body></html>`;
+}
+async function send({to,subject,text,html}){
+  const row=transport();if(!row)return {sent:false,reason:'mailer_disabled'};
+  const info=await row.tx.sendMail({from:`Light Remote <${row.c.fromEmail}>`,replyTo:row.c.replyTo,to,subject,text,html,attachments:[{filename:'light-remote.png',path:LOGO_PATH,cid:'lr-logo'}]});
+  return {sent:true,messageId:String(info.messageId||'')};
+}
+export async function verifyMail(){const row=transport();if(!row)return false;return Boolean(await row.tx.verify());}
+export async function sendWelcome({to}){return send({to,subject:'Welcome to Light Remote',text:`Your Light Remote account is ready.\n\nManage devices: ${PUBLIC_ORIGIN}/account`,html:shell({preheader:'Your Light Remote account is ready.',title:'Account created',body:'<p>Your Light Remote account is ready. Add a device, approve it locally, then connect through ChatGPT or another supported MCP client.</p>',ctaLabel:'Open Light Remote',ctaUrl:`${PUBLIC_ORIGIN}/account`})});}
+export async function sendPasswordReset({to,resetUrl}){return send({to,subject:'Reset your Light Remote password',text:`Open this one-time password reset link within 30 minutes:\n\n${resetUrl}\n\nIf you did not request this, ignore this email.`,html:shell({preheader:'Reset your Light Remote password.',title:'Reset your password',body:'<p>Use the button below to set a new password. The link is one-time and expires in 30 minutes.</p><p>If you did not request this, you can ignore this email.</p>',ctaLabel:'Reset password',ctaUrl:resetUrl})});}
+export async function sendMagicLogin({to,loginUrl}){return send({to,subject:'Your one-time Light Remote sign-in link',text:`Open this one-time sign-in link within 20 minutes:\n\n${loginUrl}`,html:shell({preheader:'One-time sign-in link.',title:'One-time sign in',body:'<p>This link signs you in once and expires in 20 minutes. It cannot be reused.</p>',ctaLabel:'Sign in to Light Remote',ctaUrl:loginUrl})});}
+export async function sendLicense({to,plan,key,durationDays=null,expiresAt=null}){const p=String(plan||'pro').toUpperCase(),duration=Number(durationDays);const durationText=Number.isFinite(duration)&&duration>0?` Entitlement duration after redemption: ${Math.round(duration)} days.`:'';return send({to,subject:`Your Light Remote ${p} key`,text:`Your Light Remote ${p} key:\n\n${key}${durationText}${expiresAt?`\n\nKey valid until: ${new Date(expiresAt).toISOString()}`:''}\n\nRedeem it at ${PUBLIC_ORIGIN}/account/billing`,html:shell({eyebrow:`${p} ENTITLEMENT`,preheader:`Your Light Remote ${p} key.`,title:`${p} license key`,body:`<p>Use this key to activate a <strong>${esc(p)}</strong> entitlement on the account of your choice.${Number.isFinite(duration)&&duration>0?` The entitlement runs for <strong>${esc(Math.round(duration))} days</strong> after redemption.`:''}${expiresAt?` This key can be redeemed until <strong>${esc(new Date(expiresAt).toISOString().slice(0,10))}</strong>.`:''}</p>`,code:key,ctaLabel:'Open Plan & billing',ctaUrl:`${PUBLIC_ORIGIN}/account/billing`})});}
+export async function sendUpgradeRequested({to,plan}){const p=String(plan||'pro').toUpperCase();return send({to,subject:`Light Remote ${p} upgrade request received`,text:`Your ${p} upgrade request has been received. You do not need a license key. We will apply the entitlement directly to this account once approved.`,html:shell({eyebrow:'ACCOUNT UPGRADE',title:'Upgrade request received',body:`<p>Your request for <strong>${esc(p)}</strong> has been recorded. No license key is required; the entitlement will be applied directly to this account when approved.</p>`,ctaLabel:'View billing',ctaUrl:`${PUBLIC_ORIGIN}/account/billing`})});}
+export async function sendUpgradeActivated({to,plan,validUntil=null}){const p=String(plan||'pro').toUpperCase();return send({to,subject:`Light Remote ${p} is active`,text:`Your Light Remote account is now ${p}.${validUntil?` Valid until ${new Date(validUntil).toISOString()}.`:''}`,html:shell({eyebrow:'PLAN ACTIVATED',title:`${p} is active`,body:`<p>Your account has been upgraded to <strong>${esc(p)}</strong>.${validUntil?` Your current entitlement is valid until <strong>${esc(new Date(validUntil).toISOString().slice(0,10))}</strong>.`:''}</p>`,ctaLabel:'Open account',ctaUrl:`${PUBLIC_ORIGIN}/account`})});}

@@ -40,30 +40,33 @@ export class AccountRegistry{
   constructor({stateFile=null,bootstrapAccountId='self-hosted-local',sessionTtlMs=7*24*60*60*1000,now=()=>Date.now(),emit=()=>{}}={}){
     if(!ACCOUNT_RE.test(String(bootstrapAccountId||'')))throw new AccountError('invalid_bootstrap_account_id');
     this.stateFile=stateFile;this.bootstrapAccountId=String(bootstrapAccountId);this.sessionTtlMs=Math.max(30*60*1000,Math.min(Number(sessionTtlMs)||7*24*60*60*1000,30*24*60*60*1000));
-    this.now=now;this.emit=emit;this.accounts=new Map();this.byEmail=new Map();this.sessions=new Map();this.ownerProofs=new Map();this.loadError=null;this._load();
+    this.now=now;this.emit=emit;this.accounts=new Map();this.byEmail=new Map();this.sessions=new Map();this.ownerProofs=new Map();this.oneTimeTokens=new Map();this.upgradeRequests=new Map();this.loadError=null;this._load();
   }
   _persist(){
     if(!this.stateFile)return;
     const dir=path.dirname(this.stateFile);fs.mkdirSync(dir,{recursive:true,mode:0o750});
-    const payload={schemaVersion:1,accounts:[...this.accounts.values()],sessions:[...this.sessions.values()]};
+    const payload={schemaVersion:2,accounts:[...this.accounts.values()],sessions:[...this.sessions.values()],oneTimeTokens:[...this.oneTimeTokens.values()],upgradeRequests:[...this.upgradeRequests.values()]};
     const tmp=`${this.stateFile}.${process.pid}.tmp`;fs.writeFileSync(tmp,`${JSON.stringify(payload,null,2)}\n`,{mode:0o600});fs.chmodSync(tmp,0o600);fs.renameSync(tmp,this.stateFile);
   }
   _load(){
     if(!this.stateFile||!fs.existsSync(this.stateFile))return;
     try{
       const data=JSON.parse(fs.readFileSync(this.stateFile,'utf8'));
-      if(data?.schemaVersion!==1||!Array.isArray(data.accounts)||!Array.isArray(data.sessions))throw new Error('invalid_schema');
+      if(![1,2].includes(Number(data?.schemaVersion))||!Array.isArray(data.accounts)||!Array.isArray(data.sessions))throw new Error('invalid_schema');
       for(const row of data.accounts){if(!ACCOUNT_RE.test(String(row.accountId||''))||!EMAIL_RE.test(String(row.email||''))||!row.passwordHash)throw new Error('invalid_account');this.accounts.set(row.accountId,row);this.byEmail.set(normalizeEmail(row.email),row.accountId);}
       for(const row of data.sessions)if(row?.tokenHash&&this.accounts.has(row.accountId))this.sessions.set(row.tokenHash,row);
+      for(const row of Array.isArray(data.oneTimeTokens)?data.oneTimeTokens:[])if(row?.tokenHash&&this.accounts.has(row.accountId))this.oneTimeTokens.set(row.tokenHash,row);
+      for(const row of Array.isArray(data.upgradeRequests)?data.upgradeRequests:[])if(row?.requestId&&this.accounts.has(row.accountId))this.upgradeRequests.set(row.requestId,row);
       this._prune(false);
-    }catch(error){this.accounts.clear();this.byEmail.clear();this.sessions.clear();this.loadError=error?.message||'invalid_account_state';}
+    }catch(error){this.accounts.clear();this.byEmail.clear();this.sessions.clear();this.oneTimeTokens.clear();this.upgradeRequests.clear();this.loadError=error?.message||'invalid_account_state';}
   }
   _prune(persist=true){
     const now=this.now();let changed=false;
     for(const [hash,row] of this.sessions)if(row.expiresAt<=now||!this.accounts.has(row.accountId)){this.sessions.delete(hash);changed=true;}
+    for(const [hash,row] of this.oneTimeTokens)if(row.expiresAt<=now||!this.accounts.has(row.accountId)){this.oneTimeTokens.delete(hash);changed=true;}
     if(changed&&persist)this._persist();return changed;
   }
-  _viewAccount(row){const entitlement=entitlementView(row,this.now()),fleetProvisioning=row.fleetProvisioning&&FLEET_PROVISION_STATES.has(row.fleetProvisioning.state)?{...row.fleetProvisioning}:null;return {accountId:row.accountId,email:row.email,plan:entitlement.plan,entitlement,mainDeviceId:row.mainDeviceId||null,fleetProvisioning,status:row.status||'active',createdAt:row.createdAt,lastLoginAt:row.lastLoginAt||null};}
+  _viewAccount(row){const entitlement=entitlementView(row,this.now()),fleetProvisioning=row.fleetProvisioning&&FLEET_PROVISION_STATES.has(row.fleetProvisioning.state)?{...row.fleetProvisioning}:null,providers=[];if(row.passwordEnabled!==false)providers.push('password');if(row.googleSub)providers.push('google');return {accountId:row.accountId,email:row.email,emailVerified:Boolean(row.emailVerified),authProviders:providers,plan:entitlement.plan,entitlement,mainDeviceId:row.mainDeviceId||null,fleetProvisioning,status:row.status||'active',createdAt:row.createdAt,lastLoginAt:row.lastLoginAt||null};}
   _issue(account){
     this._prune(false);
     const token=crypto.randomBytes(32).toString('base64url'),tokenHash=sha256(token),now=this.now();
@@ -92,14 +95,14 @@ export class AccountRegistry{
     this.ownerProofs.delete(hash);this.emit({type:'account_owner_proof_consumed',accountId:row.accountId,deviceId:row.deviceId,status:'consumed'});
     return {...row};
   }
-  _createAccount({accountId,email,password,plan='free',source='hosted'}={}){
+  _createAccount({accountId,email,password,plan='free',source='hosted',emailVerified=false,googleSub=null,passwordEnabled=true}={}){
     const normalizedEmail=normalizeEmail(email),rawPassword=String(password||''),aid=String(accountId||'').trim();
     if(!ACCOUNT_RE.test(aid))throw new AccountError('invalid_account_id');
     if(!EMAIL_RE.test(normalizedEmail)||normalizedEmail.length>254)throw new AccountError('invalid_email');
     if(rawPassword.length<10||rawPassword.length>1024)throw new AccountError('invalid_password');
     if(this.byEmail.has(normalizedEmail))throw new AccountError('account_email_exists',409);
     if(this.accounts.has(aid))throw new AccountError('account_id_exists',409);
-    const now=this.now(),row={accountId:aid,email:normalizedEmail,passwordHash:passwordHash(rawPassword),plan:normalizePlan(plan),mainDeviceId:null,status:'active',createdAt:now,lastLoginAt:now};
+    const now=this.now(),row={accountId:aid,email:normalizedEmail,passwordHash:passwordHash(rawPassword),passwordEnabled:Boolean(passwordEnabled),emailVerified:Boolean(emailVerified),googleSub:googleSub?String(googleSub).slice(0,256):null,plan:normalizePlan(plan),mainDeviceId:null,status:'active',createdAt:now,lastLoginAt:now};
     this.accounts.set(aid,row);this.byEmail.set(normalizedEmail,aid);this._persist();
     this.emit({type:'account_registered',accountId:aid,status:'active',source:String(source||'hosted').slice(0,40)});
     return row;
@@ -123,7 +126,7 @@ export class AccountRegistry{
   }
   verifyCredentials(input={}, {recordLogin=false, eventType='account_login'}={}){
     const email=normalizeEmail(input.email),password=String(input.password||''),accountId=this.byEmail.get(email),row=accountId?this.accounts.get(accountId):null;
-    if(!row||!safeEqual(row.email,email)||!verifyPassword(password,row.passwordHash))throw new AccountError('invalid_account_credentials',401);
+    if(!row||row.passwordEnabled===false||!safeEqual(row.email,email)||!verifyPassword(password,row.passwordHash))throw new AccountError('invalid_account_credentials',401);
     if((row.status||'active')!=='active')throw new AccountError('account_disabled',403);
     if(recordLogin){row.lastLoginAt=this.now();this._persist();this.emit({type:eventType,accountId:row.accountId,status:'ok'});}
     return this._viewAccount(row);
@@ -132,13 +135,39 @@ export class AccountRegistry{
     const account=this.verifyCredentials(input,{recordLogin:true,eventType:'account_login'}),row=this.accounts.get(account.accountId);
     return this._issue(row);
   }
+  issueOneTimeToken(kind,email,{ttlMs}={}){
+    const type=String(kind||'');if(!['password_reset','magic_login'].includes(type))throw new AccountError('invalid_account_token_kind');
+    this._prune(false);const aid=this.byEmail.get(normalizeEmail(email)),row=aid?this.accounts.get(aid):null;if(!row)return {issued:false};
+    for(const [hash,item] of this.oneTimeTokens)if(item.accountId===row.accountId&&item.kind===type)this.oneTimeTokens.delete(hash);
+    const token=crypto.randomBytes(32).toString('base64url'),tokenHash=sha256(token),now=this.now(),expiresAt=now+Math.max(60_000,Math.min(Number(ttlMs)||20*60_000,60*60_000));
+    this.oneTimeTokens.set(tokenHash,{tokenHash,kind:type,accountId:row.accountId,createdAt:now,expiresAt});this._persist();
+    this.emit({type:'account_one_time_token_issued',accountId:row.accountId,status:'pending',kind:type,expiresAt});return {issued:true,token,expiresAt,account:this._viewAccount(row)};
+  }
+  consumeOneTimeToken(kind,token){
+    const type=String(kind||''),hash=sha256(token),item=this.oneTimeTokens.get(hash),now=this.now();
+    if(!item||item.kind!==type||item.expiresAt<=now){if(item)this.oneTimeTokens.delete(hash);throw new AccountError('account_one_time_token_invalid',401);}
+    const row=this.accounts.get(item.accountId);this.oneTimeTokens.delete(hash);this._persist();if(!row)throw new AccountError('account_not_found',404);
+    this.emit({type:'account_one_time_token_consumed',accountId:row.accountId,status:'ok',kind:type});return this._viewAccount(row);
+  }
   resetPassword(accountId,password,{invalidateSessions=true}={}){
     const row=this.accounts.get(String(accountId||''));if(!row)throw new AccountError('account_not_found',404);
     const raw=String(password||'');if(raw.length<10||raw.length>1024)throw new AccountError('invalid_password');
-    row.passwordHash=passwordHash(raw);row.lastLoginAt=this.now();
+    row.passwordHash=passwordHash(raw);row.passwordEnabled=true;row.lastLoginAt=this.now();
     if(invalidateSessions){for(const [hash,session] of this.sessions)if(session.accountId===row.accountId)this.sessions.delete(hash);}
     this._persist();this.emit({type:'account_password_reset',accountId:row.accountId,status:'ok'});
     return this._viewAccount(row);
+  }
+  loginWithOneTimeToken(token){
+    const account=this.consumeOneTimeToken('magic_login',token),row=this.accounts.get(account.accountId);row.lastLoginAt=this.now();this._persist();this.emit({type:'account_magic_login',accountId:row.accountId,status:'ok'});return this._issue(row);
+  }
+  loginOrRegisterGoogle(input={}){
+    const sub=String(input.sub||'').trim(),email=normalizeEmail(input.email),verified=input.emailVerified===true;
+    if(!sub||sub.length>256||!verified||!EMAIL_RE.test(email))throw new AccountError('invalid_google_identity',401);
+    let row=[...this.accounts.values()].find(x=>x.googleSub===sub)||null,created=false;
+    if(row&&normalizeEmail(row.email)!==email)throw new AccountError('google_identity_email_mismatch',409);
+    if(!row){const aid=this.byEmail.get(email);row=aid?this.accounts.get(aid):null;if(row?.googleSub&&row.googleSub!==sub)throw new AccountError('google_identity_conflict',409);}
+    if(!row){let accountId='';for(let i=0;i<8;i++){const candidate=`acct_${crypto.randomUUID()}`;if(!this.accounts.has(candidate)){accountId=candidate;break;}}if(!accountId)throw new AccountError('account_id_generation_failed',500);row=this._createAccount({accountId,email,password:crypto.randomBytes(32).toString('base64url'),plan:'free',source:'google',emailVerified:true,googleSub:sub,passwordEnabled:false});created=true;}
+    row.googleSub=sub;row.emailVerified=true;row.lastLoginAt=this.now();this._persist();this.emit({type:'account_google_login',accountId:row.accountId,status:'ok'});return {...this._issue(row),created};
   }
   authenticate(token,{touch=true}={}){
     this._prune();const hash=sha256(token),session=this.sessions.get(hash);
@@ -159,6 +188,23 @@ export class AccountRegistry{
     const prior=current.plan,entitlementId=String(input.entitlementId||`ent_${crypto.randomUUID()}`);
     row.plan=next;row.entitlement={entitlementId,plan:next,source,sourceRef,validFrom:now,validUntil,grantedAt:now};this._persist();
     this.emit({type:'account_entitlement_changed',accountId:row.accountId,status:'ok',fromPlan:prior,toPlan:next,source,validUntil});return this._viewAccount(row);
+  }
+  requestUpgrade(accountId,plan){
+    const row=this.accounts.get(String(accountId||''));if(!row)throw new AccountError('account_not_found',404);
+    const target=normalizePlan(plan);if(target==='free')throw new AccountError('invalid_upgrade_plan');
+    const current=entitlementView(row,this.now());if(PLAN_RANK[current.plan]>=PLAN_RANK[target])throw new AccountError('account_plan_already_sufficient',409);
+    const pending=[...this.upgradeRequests.values()].find(x=>x.accountId===row.accountId&&x.plan===target&&x.status==='pending');if(pending)return {...pending};
+    const now=this.now(),request={requestId:`upg_${crypto.randomUUID()}`,accountId:row.accountId,plan:target,status:'pending',createdAt:now,resolvedAt:null,resolution:null};
+    this.upgradeRequests.set(request.requestId,request);this._persist();this.emit({type:'account_upgrade_requested',accountId:row.accountId,status:'pending',plan:target,requestId:request.requestId});return {...request};
+  }
+  listUpgradeRequests({status=null,accountId=null}={}){
+    let rows=[...this.upgradeRequests.values()];if(status)rows=rows.filter(x=>x.status===status);if(accountId)rows=rows.filter(x=>x.accountId===String(accountId));return rows.sort((a,b)=>b.createdAt-a.createdAt).map(x=>({...x}));
+  }
+  resolveUpgradeRequest(requestId,{decision='approve',durationMs=null,sourceRef=null}={}){
+    const req=this.upgradeRequests.get(String(requestId||''));if(!req)throw new AccountError('upgrade_request_not_found',404);if(req.status!=='pending')throw new AccountError('upgrade_request_already_resolved',409);
+    const action=String(decision||'approve');if(!['approve','reject'].includes(action))throw new AccountError('invalid_upgrade_resolution');let account=this.account(req.accountId);
+    if(action==='approve')account=this.applyEntitlement(req.accountId,{plan:req.plan,durationMs,source:'direct_upgrade',sourceRef:sourceRef||req.requestId});
+    req.status=action==='approve'?'approved':'rejected';req.resolution=action;req.resolvedAt=this.now();this._persist();this.emit({type:'account_upgrade_resolved',accountId:req.accountId,status:req.status,plan:req.plan,requestId:req.requestId});return {request:{...req},account};
   }
   setFleetProvisioning(accountId,input={}){
     const row=this.accounts.get(String(accountId||''));if(!row)throw new AccountError('account_not_found',404);

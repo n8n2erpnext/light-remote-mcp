@@ -12,6 +12,15 @@ export async function handleAccountRoutes(req,res,url,deps){
     if (req.method === 'GET' && url.pathname === '/v1/admin/licenses') {
       return sendJson(res,200,{ok:true,licenses:licenses.list()});
     }
+    if (req.method === 'GET' && url.pathname === '/v1/admin/upgrades') {
+      return sendJson(res,200,{ok:true,upgrades:accounts.listUpgradeRequests().map(request=>({request,account:accounts.account(request.accountId)}))});
+    }
+    const adminUpgradeResolve=url.pathname.match(/^\/v1\/admin\/upgrades\/(upg_[A-Za-z0-9-]+)\/resolve$/);
+    if(req.method==='POST'&&adminUpgradeResolve){
+      const body=await readJson(req),durationMs=body.durationDays==null?null:Number(body.durationDays)*86400000;
+      const out=accounts.resolveUpgradeRequest(adminUpgradeResolve[1],{decision:body.decision||'approve',durationMs,sourceRef:String(body.sourceRef||'web-admin')});
+      return sendJson(res,200,{ok:true,...out,entitlements:planEntitlements(out.account)});
+    }
     if (req.method === 'POST' && url.pathname === '/v1/admin/licenses/issue') {
       const body=await readJson(req),issued=licenses.issue(body);
       return sendJson(res,201,{ok:true,...issued});
@@ -69,6 +78,25 @@ export async function handleAccountRoutes(req,res,url,deps){
     if (req.method === 'POST' && url.pathname === '/v1/plugin/auth/verify') {
       const body=await readJson(req),account=accounts.verifyCredentials({email:body.email,password:body.password},{recordLogin:false});
       return sendJson(res,200,{ok:true,account,entitlements:planEntitlements(account)});
+    }
+    if(req.method==='POST'&&url.pathname==='/v1/plugin/accounts/password-reset/request'){
+      const body=await readJson(req),issued=accounts.issueOneTimeToken('password_reset',body.email,{ttlMs:30*60_000});
+      return sendJson(res,200,{ok:true,...issued});
+    }
+    if(req.method==='POST'&&url.pathname==='/v1/plugin/accounts/magic/request'){
+      const body=await readJson(req),issued=accounts.issueOneTimeToken('magic_login',body.email,{ttlMs:20*60_000});
+      return sendJson(res,200,{ok:true,...issued});
+    }
+    if(req.method==='POST'&&url.pathname==='/v1/plugin/accounts/password-reset/consume'){
+      const body=await readJson(req),password=String(body.password||'');if(password.length<10||password.length>1024)throw new AccountError('invalid_password');
+      const account=accounts.consumeOneTimeToken('password_reset',body.token);accounts.resetPassword(account.accountId,password,{invalidateSessions:true});const logged=accounts.login({email:account.email,password});
+      return sendJson(res,200,{ok:true,...logged,entitlements:planEntitlements(logged.account)});
+    }
+    if(req.method==='POST'&&url.pathname==='/v1/plugin/accounts/magic/consume'){
+      const body=await readJson(req),logged=accounts.loginWithOneTimeToken(body.token);return sendJson(res,200,{ok:true,...logged,entitlements:planEntitlements(logged.account)});
+    }
+    if(req.method==='POST'&&url.pathname==='/v1/plugin/auth/google'){
+      const body=await readJson(req),logged=accounts.loginOrRegisterGoogle({sub:body.sub,email:body.email,emailVerified:body.emailVerified===true});return sendJson(res,200,{ok:true,...logged,entitlements:planEntitlements(logged.account)});
     }
     const pluginAccountMatch=url.pathname.match(/^\/v1\/plugin\/accounts\/([A-Za-z0-9._:-]+)$/);
     if(req.method==='GET'&&pluginAccountMatch){
@@ -162,6 +190,13 @@ export async function handleAccountRoutes(req,res,url,deps){
     if (req.method === 'GET' && url.pathname === '/v1/accounts/usage') {
       const identity=requireAccount(req,{touch:false}),months=Math.max(1,Math.min(Number(url.searchParams.get('months'))||6,24));
       return sendJson(res,200,{ok:true,account:identity.account,entitlements:planEntitlements(identity.account),usage:usage.summary(identity.account.accountId,{months})});
+    }
+    if(req.method==='GET'&&url.pathname==='/v1/accounts/upgrade-request'){
+      const identity=requireAccount(req,{touch:false});return sendJson(res,200,{ok:true,requests:accounts.listUpgradeRequests({accountId:identity.account.accountId}),account:identity.account,entitlements:planEntitlements(identity.account)});
+    }
+    if(req.method==='POST'&&url.pathname==='/v1/accounts/upgrade-request'){
+      const identity=requireAccount(req),body=await readJson(req),request=accounts.requestUpgrade(identity.account.accountId,body.plan||'pro'),account=accounts.account(identity.account.accountId);
+      return sendJson(res,201,{ok:true,request,account,entitlements:planEntitlements(account)});
     }
     if (req.method === 'POST' && url.pathname === '/v1/accounts/redeem-license') {
       const identity=requireAccount(req),body=await readJson(req),candidate=licenses.inspect(body.key);

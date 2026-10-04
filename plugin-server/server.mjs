@@ -40,7 +40,7 @@ registerPublicDeviceRoutes(app);
 const pruner=setInterval(()=>prunePublicRateState(),60_000);pruner.unref?.();
 
 function html(title,body){return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><style>${WEB_FONT_FACE_CSS}body{font-family:${WEB_UI_FONT};font-size:16px;max-width:820px;margin:48px auto;padding:0 20px;line-height:1.6;color:#1f2937}h1,h2{line-height:1.2}code{font-family:${WEB_CODE_FONT};background:#f3f4f6;padding:2px 5px;border-radius:4px}a{color:#1d4ed8}</style></head><body>${body}</body></html>`;}
-app.get('/',(_q,r)=>r.type('html').send(html('Light Remote',PUBLIC_PAGE_BODIES.home)));
+app.get('/',(_q,r)=>r.type('html').send(fs.readFileSync(new URL('./public-home.html',import.meta.url),'utf8')));
 app.get('/support',(_q,r)=>r.type('html').send(html('Light Remote Support',PUBLIC_PAGE_BODIES.support)));
 app.get('/privacy',(_q,r)=>r.type('html').send(html('Light Remote Privacy Policy',PUBLIC_PAGE_BODIES.privacy)));
 app.get('/terms',(_q,r)=>r.type('html').send(html('Light Remote Terms of Service',PUBLIC_PAGE_BODIES.terms)));

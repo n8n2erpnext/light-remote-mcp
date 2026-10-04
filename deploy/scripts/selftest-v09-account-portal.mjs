@@ -1,29 +1,37 @@
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import path from 'node:path';
-import {readOperatorSourceSurface} from './test-source-surface.mjs';
+
 const root=path.resolve(fileURLToPath(new URL('../..',import.meta.url)));
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
-const home=read('index.html'),login=read('login/index.html'),register=read('register/index.html');
-const auth=read('api/auth.js'),web=read('lib/account-web.js'),css=read('assets/light-remote-portal.css'),usage=read('usage/index.html'),settings=read('settings/index.html');
-function need(ok,name){if(!ok)throw new Error(`account_portal_contract_failed:${name}`);console.log(`${name}=PASS`);}
-need(home.includes('Light Remote')&&home.includes('Devices')&&home.includes('Usage')&&home.includes('Settings'),'account-portal-shell');
-need(home.includes('Add a device')&&home.includes('Revoke all')&&home.includes('Remove')&&home.includes('Type REMOVE')&&home.includes('Where you use it')&&home.includes('New install')&&home.includes('Revoked device')&&home.includes('Link device')&&home.includes('Re-enroll device'),'account-portal-device-actions');
-need(home.includes('ChatGPT')&&home.includes('Claude')&&home.includes('Any MCP client'),'account-portal-client-lanes');
-need(login.includes('/api/auth?action=login')&&register.includes('/api/auth?action=register')&&register.includes('Owner proof code')&&register.includes('ownerCode'),'account-portal-auth-actions');
-need(home.includes('/api/auth?action=devices')&&home.includes('/api/auth?action=enrollment-approve'),'account-portal-device-api');
-need(home.includes('Starting setup')&&home.includes('Configuring Fleet')&&home.includes('Configuration complete')&&home.includes('Fleet online'),'account-portal-fleet-provisioning-status');
-need(home.includes('retryAfterSeconds')&&home.includes('Too many requests. Please wait'),'account-portal-rate-limit-feedback');
-need(!home.includes('/api/account-')&&!login.includes('/api/account-')&&!register.includes('/api/account-'),'account-portal-single-function-budget');
-need(usage.includes('/api/auth?action=usage')&&settings.includes('/api/auth?action=me')&&settings.includes('/api/auth?action=redeem-license')&&!usage.includes('/api/account-me')&&!settings.includes('/api/account-me'),'account-portal-subpage-auth-router');
-need(auth.includes("action==='register'")&&auth.includes('ownerCode')&&auth.includes('ownerPassword')&&auth.includes("action==='device-revoke'")&&auth.includes("action==='device-remove'")&&auth.includes("action==='device-update'")&&auth.includes("action==='devices-revoke-all'")&&auth.includes("action==='redeem-license'"),'account-auth-router');
-const gateway=read('gateway/server.mjs'),operator=readOperatorSourceSurface(root);need(gateway.includes('/account/devices/:id/remove'),'account-device-remove-route');need(gateway.includes('/account/devices/:id/update')&&operator.includes('accountUpdateMatch')&&operator.includes("source:'account-portal'")&&home.includes('Force update now')&&home.includes('device-update'),'account-device-force-update-route');need(home.includes('Device must be online to become Main')&&home.includes('main_device_offline')&&operator.includes("new AccountError('main_device_offline',409)"),'account-portal-main-online-only');need(gateway.includes('deviceChannelEdgeRateLimit')&&!gateway.includes('deviceRateIdentity')&&gateway.includes('mainDeviceRateLimit')&&operator.includes('trustedChannelLane')&&operator.includes('DeviceChannelRateLimitError'),'gateway-scoped-rate-limits');need(gateway.includes('ownerCode')&&gateway.includes('owner_migration_proof_required')&&gateway.includes('wallAuth.verifyCredentials'),'account-owner-migration-proof');
-need(auth.includes("action==='usage'")&&gateway.includes("/account/usage"),'account-usage-router');
-need(settings.includes('Activate PRO / VIP')&&settings.includes('Redeem key')&&gateway.includes('/account/redeem-license'),'account-license-redeem-ui');
-need(web.includes('__Host-light_remote_account')&&web.includes('HttpOnly')&&web.includes('Secure')&&web.includes('SameSite=Strict'),'account-cookie-security');
-need(css.includes('.sidebar')&&css.includes('.device-row')&&css.includes('.auth-card'),'account-portal-style');
-console.log('ACCOUNT_PORTAL_GATE=PASS');
+const account=read('plugin-server/account-portal.mjs');
+const home=read('plugin-server/account-portal/index.html');
+const login=read('plugin-server/account-portal/login.html');
+const register=read('plugin-server/account-portal/register.html');
+const reset=read('plugin-server/account-portal/reset.html');
+const billing=read('plugin-server/account-portal/billing.html');
+const settings=read('plugin-server/account-portal/settings.html');
+const admin=read('plugin-server/admin-portal/index.html');
+const publicHome=read('plugin-server/public-home.html');
+const operator=read('operator-host/executor-routes-account.mjs');
+const registry=read('operator-host/account-registry.mjs');
+const css=read('plugin-server/account-portal/portal.css');
 
-if(!register.includes('Owner proof code')||!register.includes('ownerCode'))throw new Error('account_owner_code_ui_missing');
-if(!auth.includes('ownerCode:req.body?.ownerCode'))throw new Error('account_owner_code_forward_missing');
-console.log('account-owner-proof-code-ui=PASS');
+function need(ok,name){if(!ok)throw new Error(`account_portal_contract_failed:${name}`);console.log(`${name}=PASS`);}
+
+need(home.includes('Your devices')&&home.includes('Add a device')&&home.includes('Official Plugin'),'account-portal-shell');
+need(home.includes('Link device')&&home.includes('Re-enroll device')&&home.includes('main-device'),'account-device-lifecycle');
+need(register.includes('Create free account')&&!register.includes('Owner proof code')&&!register.includes('ownerCode'),'hosted-public-signup');
+need(account.includes("'/v1/plugin/accounts/register'")&&operator.includes('/v1/plugin/accounts/register')&&operator.includes('registerHosted'),'hosted-signup-authority');
+need(login.includes('Continue with Google')&&login.includes('one-time sign-in link')&&account.includes('finishGoogleAuth'),'account-modern-auth');
+need(reset.includes('password-reset-request')&&reset.includes('password-reset-complete')&&operator.includes('password-reset/consume'),'password-reset-flow');
+need(registry.includes('oneTimeTokens')&&registry.includes("password_reset")&&registry.includes("magic_login"),'one-time-token-registry');
+need(billing.includes('10,000 tool calls per month')&&billing.includes('Request Pro upgrade')&&billing.includes('No license key required'),'free-and-direct-upgrade-ui');
+need(operator.includes('/v1/accounts/upgrade-request')&&registry.includes('requestUpgrade')&&registry.includes('resolveUpgradeRequest'),'direct-upgrade-authority');
+need(admin.includes('Upgrade requests')&&admin.includes('Recipient email')&&admin.includes('Verify SMTP'),'admin-commerce-mail');
+need(settings.includes('Change password')&&settings.includes('Appearance'),'settings-password-theme');
+need(publicHome.includes('Your AI.')&&publicHome.includes('Your machine.')&&publicHome.includes('Your approval.'),'public-home-hero');
+need(publicHome.includes('10K')&&publicHome.includes('A/B')&&publicHome.includes('Direct'),'public-home-trust');
+need(account.includes('__Host-light_remote_account')&&account.includes('HttpOnly')&&account.includes('Secure')&&account.includes('SameSite=Strict'),'account-cookie-security');
+need(css.includes('.sidebar')&&css.includes('.auth-card')&&css.includes('.home-hero'),'account-public-style');
+console.log('ACCOUNT_PORTAL_GATE=PASS');
