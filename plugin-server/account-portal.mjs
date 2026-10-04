@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { callOperatorJson } from './operator-client.mjs';
+import { PUBLIC_ORIGIN } from './config.mjs';
 
 const COOKIE='__Host-light_remote_account';
 const RECOVERY_FILE=String(process.env.LIGHT_REMOTE_ACCOUNT_RECOVERY_FILE||'/etc/light-remote-direct/account-recovery.json');
@@ -25,9 +26,11 @@ function clearSessionCookie(res){res.set('Set-Cookie',`${COOKIE}=; Path=/; Max-A
 function sameOriginMutation(req){
   const site=String(req.headers?.['sec-fetch-site']||'').toLowerCase();
   if(site==='cross-site')return false;
-  const origin=String(req.headers?.origin||'');
+  if(site==='same-origin')return true;
+  const origin=String(req.headers?.origin||'').trim();
   if(!origin)return true;
   try{
+    if(new URL(origin).origin===PUBLIC_ORIGIN)return true;
     const host=String(req.headers?.['x-forwarded-host']||req.headers?.host||'').split(',')[0].trim();
     return new URL(origin).host===host;
   }catch{return false;}
