@@ -19,8 +19,11 @@ expect(coreSources.has('device-agent/local-wall-auth.mjs'),'linux_local_wall_aut
 expect(coreSources.has('lib/public-endpoint.mjs'),'linux_public_endpoint_migration_not_bundled');
 expect(coreSources.has('assets/branding/light-remote-mark.svg'),'linux_local_wall_brand_not_bundled');
 expect(coreSources.has('assets/branding/light-remote-mark-256.png'),'linux_tray_brand_png_not_bundled');
-expect(coreSources.has('assets/fonts/CascadiaMono.ttf'),'linux_offline_terminal_font_not_bundled');
-expect(coreSources.has('assets/fonts/CascadiaMono-OFL.txt'),'linux_offline_terminal_font_license_not_bundled');
+expect(coreSources.has('assets/fonts/web/GoogleSans-Variable.ttf'),'web_google_sans_not_bundled');
+expect(coreSources.has('assets/fonts/web/CascadiaCode.ttf'),'web_cascadia_code_not_bundled');
+expect(coreSources.has('lib/material-icon.mjs'),'material_icon_helper_not_bundled');
+expect(coreSources.has('lib/web-typography.mjs'),'web_typography_helper_not_bundled');
+expect(coreSources.has('assets/icons/material/content_copy.svg'),'material_icons_not_bundled');
 expect(linuxWorkflow.includes("'assets/**'"),'linux_asset_workflow_trigger_too_narrow');
 expect(linuxWorkflow.includes('test -s "$PKG/LICENSE"')&&linuxWorkflow.includes('test -s "$PKG/NOTICE"'),'linux_project_license_not_verified');
 expect(linuxWorkflow.includes('actions/upload-artifact@v4'),'linux_artifact_upload_missing');

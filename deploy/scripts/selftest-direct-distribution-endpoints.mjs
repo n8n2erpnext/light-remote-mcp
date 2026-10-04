@@ -16,10 +16,10 @@ const hostWall=read('deploy/systemd/light-remote-host-wall.service');
 const runtimeRoutes=read('operator-host/executor-routes-runtime.mjs');
 
 assert.ok(windowsConfig.includes(`StablePublicEndpoint = "${stable}"`),'windows stable endpoint');
-assert.ok(windowsTray.includes(`AccountUrl = "${stable}/settings/"`),'windows account endpoint');
-assert.ok(windowsTray.includes(`FleetPortalUrl = "${stable}/"`),'windows fleet endpoint');
+assert.ok(windowsTray.includes(`AccountUrl = "${stable}/account"`),'windows account endpoint');
+assert.ok(windowsTray.includes(`FleetPortalUrl = "${stable}/account"`),'windows fleet endpoint');
 assert.ok(macLaunchd.includes(`<string>${stable}</string>`),'macos launchd endpoint');
-assert.ok(macTray.includes(`let accountPortal = "${stable}/"`),'macos tray endpoint');
+assert.ok(macTray.includes(`let accountPortal = "${stable}/account"`),'macos tray endpoint');
 assert.ok(linuxDesktop.includes(`OPERATOR_AGENT_BASE_URL=${stable}`)&&linuxDesktop.includes(`OPERATOR_AGENT_HUB_URL=${stable}`),'linux desktop endpoint');
 assert.ok(linuxServer.includes(`BASE_URL="\${OPERATOR_AGENT_BASE_URL:-${stable}}"`)&&linuxServer.includes(`HUB_URL="\${OPERATOR_AGENT_HUB_URL:-${stable}}"`),'linux server endpoint');
 assert.ok(hostWall.includes(`OPERATOR_AGENT_HUB_URL=${stable}`),'linux server host-wall endpoint');

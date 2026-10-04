@@ -13,7 +13,7 @@ if [[ "$CLEAR_CAPABILITY_BOUNDING_SET" == "true" ]]; then
 else
   CAPABILITY_BOUNDING_SET_LINE="# CapabilityBoundingSet left at the system default for approved sudo-on-demand"
 fi
-sudo install -d -m 0755 /opt/gpt-operator-agent/device-agent /opt/gpt-operator-agent/device-agent/platform-adapters /opt/gpt-operator-agent/lib /opt/gpt-operator-agent/assets/branding /opt/gpt-operator-agent/assets/fonts
+sudo install -d -m 0755 /opt/gpt-operator-agent/device-agent /opt/gpt-operator-agent/device-agent/platform-adapters /opt/gpt-operator-agent/lib /opt/gpt-operator-agent/assets/branding /opt/gpt-operator-agent/assets/fonts/web /opt/gpt-operator-agent/assets/icons/material
 sudo install -m 0755 "$ROOT_DIR/device-agent/operator-agent.mjs" /opt/gpt-operator-agent/device-agent/operator-agent.mjs
 sudo install -m 0644 "$ROOT_DIR/device-agent/local-wall.mjs" /opt/gpt-operator-agent/device-agent/local-wall.mjs
 sudo install -m 0644 "$ROOT_DIR/device-agent/local-wall-auth.mjs" /opt/gpt-operator-agent/device-agent/local-wall-auth.mjs
@@ -21,11 +21,12 @@ sudo install -m 0644 "$ROOT_DIR/device-agent/update-settings-page.mjs" /opt/gpt-
 sudo install -m 0644 "$ROOT_DIR/device-agent/fleet-component-manager.mjs" /opt/gpt-operator-agent/device-agent/fleet-component-manager.mjs
 sudo install -m 0644 "$ROOT_DIR/device-agent/fleet-component-supervisor.mjs" /opt/gpt-operator-agent/device-agent/fleet-component-supervisor.mjs
 sudo install -m 0644 "$ROOT_DIR"/device-agent/platform-adapters/*.mjs /opt/gpt-operator-agent/device-agent/platform-adapters/
-for lib in device-proof.mjs native-fs.mjs native-process.mjs native-search.mjs light-scp-file.mjs light-scp-registry.mjs update-contract.mjs; do
+for lib in brand.mjs material-icon.mjs web-typography.mjs device-proof.mjs native-fs.mjs native-process.mjs native-search.mjs light-scp-file.mjs light-scp-registry.mjs update-contract.mjs; do
   sudo install -m 0644 "$ROOT_DIR/lib/$lib" "/opt/gpt-operator-agent/lib/$lib"
 done
 sudo install -m 0644 "$ROOT_DIR/assets/branding/light-remote-mark.svg" /opt/gpt-operator-agent/assets/branding/light-remote-mark.svg
-sudo install -m 0644 "$ROOT_DIR/assets/fonts/CascadiaMono.ttf" "$ROOT_DIR/assets/fonts/CascadiaMono-OFL.txt" /opt/gpt-operator-agent/assets/fonts/
+sudo install -m 0644 "$ROOT_DIR/assets/fonts/web/GoogleSans-Variable.ttf" "$ROOT_DIR/assets/fonts/web/CascadiaCode.ttf" /opt/gpt-operator-agent/assets/fonts/web/
+sudo install -m 0644 "$ROOT_DIR"/assets/icons/material/*.svg /opt/gpt-operator-agent/assets/icons/material/
 unit="$(mktemp)"
 trap 'rm -f "$unit"' EXIT
 cat > "$unit" <<UNIT

@@ -12,12 +12,14 @@ internal static class ConnectionConfig
 
     private static readonly string[] LegacyBridgeUrls =
     [
-        "https://light-remote-mcp.vercel.app"
+        "https://light-remote-mcp.vercel.app",
+        "https://lightremote.thaiduy.digital"
     ];
 
     private static readonly string[] LegacyHubUrls =
     [
-        "https://mcp.dashboard.thaiduy.store"
+        "https://mcp.dashboard.thaiduy.store",
+        "https://lightremote.thaiduy.digital"
     ];
 
     public static ConnectionSettings Load()

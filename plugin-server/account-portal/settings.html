@@ -10,10 +10,10 @@
 <aside class="sidebar">
   <div class="brand"><img src="/account/assets/light-remote-mark.svg" alt=""><span><strong>Light Remote</strong><small>Remote MCP</small></span></div>
   <nav class="nav">
-    <a href="/account"><span class="icon">▣</span>Devices</a>
-    <a href="/account/usage"><span class="icon">▥</span>Usage</a>
-    <a href="/account/billing"><span class="icon">▤</span>Plan & billing</a>
-    <a class="active" href="/account/settings"><span class="icon">⚙</span>Settings</a>
+    <a href="/account"><span class="icon"><img class="material-icon" src="/assets/icons/material/devices.svg" alt=""></span>Devices</a>
+    <a href="/account/usage"><span class="icon"><img class="material-icon" src="/assets/icons/material/bar_chart.svg" alt=""></span>Usage</a>
+    <a href="/account/billing"><span class="icon"><img class="material-icon" src="/assets/icons/material/credit_card.svg" alt=""></span>Plan & billing</a>
+    <a class="active" href="/account/settings"><span class="icon"><img class="material-icon" src="/assets/icons/material/settings.svg" alt=""></span>Settings</a>
   </nav>
   <div class="account-foot"><div id="footEmail" class="account-email">…</div><div id="footPlan" class="account-meta">…</div><div class="footer-links"><a href="/terms">Terms</a><a href="/privacy">Privacy</a><button id="logout" class="footer-logout">Logout</button></div></div>
 </aside>
@@ -37,7 +37,7 @@
 
 <div id="passwordModal" class="modal hide">
   <div class="modal-card">
-    <div class="modal-head"><div><h2>Change password</h2><p>Changing it signs out other account sessions.</p></div><button id="closePassword" class="icon-btn" aria-label="Close">×</button></div>
+    <div class="modal-head"><div><h2>Change password</h2><p>Changing it signs out other account sessions.</p></div><button id="closePassword" class="icon-btn" aria-label="Close"><img class="material-icon" src="/assets/icons/material/close.svg" alt=""></button></div>
     <form id="passwordForm">
       <label class="field"><span>Current password</span><input id="currentPassword" type="password" autocomplete="current-password" minlength="10" required></label>
       <label class="field"><span>New password</span><input id="newPassword" type="password" autocomplete="new-password" minlength="10" required></label>

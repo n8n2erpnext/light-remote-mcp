@@ -1,5 +1,6 @@
 import os from 'node:os';
 import crypto from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 import express from 'express';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
@@ -26,6 +27,7 @@ const PORT = Number(process.env.PORT || 8080);
 const WALL_PORT = Number(process.env.WALL_PORT || 8081);
 const OPERATOR_ACCOUNT_ID = String(process.env.OPERATOR_ACCOUNT_ID || 'self-hosted-local');
 const VERSION = runtimeVersion({envNames:['LIGHT_REMOTE_VERSION']});
+const WEB_FONT_DIR=fileURLToPath(new URL('../assets/fonts/web/',import.meta.url));
 const RootSchema = z.string().min(1).max(64).refine(value => rootNames().includes(value), 'unknown_root');
 
 function textResult(value) {
@@ -434,6 +436,9 @@ for (const method of ['get', 'delete']) app[method]('/mcp', (_req, res) => res.s
 
 const wallApp = express();
 wallApp.disable('x-powered-by');
+const webFontStatic=express.static(WEB_FONT_DIR,{immutable:true,maxAge:'1y',fallthrough:false});
+app.use('/assets/fonts',webFontStatic);
+wallApp.use('/assets/fonts',webFontStatic);
 wallApp.set('trust proxy', 'loopback, linklocal, uniquelocal');
 wallApp.use(express.urlencoded({ extended:false, limit:'4kb' }));
 wallApp.use(express.json({ limit:'16kb' }));
@@ -451,16 +456,16 @@ wallApp.get('/plus-authorize', accountWallAuth.requirePage, plusAuth.page);
 wallApp.get('/api/plus-authorizations', accountWallAuth.requireApi, plusAuth.list);
 wallApp.get('/enroll', accountWallAuth.requirePage, (req, res) => {
   const enrollmentId = String(req.query.id || '').replace(/[^A-Za-z0-9._:-]/g,'').slice(0,128);
-  res.set('Content-Security-Policy', "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
+  res.set('Content-Security-Policy', "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; font-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
   res.type('html').send(enrollmentApprovalHtml(enrollmentId));
 });
 wallApp.get('/device-policy', accountWallAuth.requirePage, (req, res) => {
   const deviceId=String(req.query.id||'').replace(/[^A-Za-z0-9._:-]/g,'').slice(0,128);
-  res.set('Content-Security-Policy', "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
+  res.set('Content-Security-Policy', "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; font-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
   res.type('html').send(devicePolicyHtml(deviceId));
 });
 wallApp.get('/', accountWallAuth.requirePage, (_req, res) => {
-  res.set('Content-Security-Policy', "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; img-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
+  res.set('Content-Security-Policy', "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; font-src 'self'; connect-src 'self'; img-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
   res.type('html').send(dashboardHtml());
 });
 wallApp.post('/api/account-owner-proof', accountWallAuth.requireApi, (_req,res)=>proxyOperatorJson(res,'POST','/v1/accounts/owner-proof',{ownerProofVerified:true}));

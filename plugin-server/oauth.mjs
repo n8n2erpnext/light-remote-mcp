@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import { SignJWT, jwtVerify } from 'jose';
 import { MCP_RESOURCE, OAUTH_LEGACY_CLIENTS_FILE, OAUTH_SECRET_FILE, PUBLIC_ORIGIN } from './config.mjs';
 import { callOperatorJson } from './operator-client.mjs';
+import { WEB_FONT_FACE_CSS, WEB_UI_FONT } from '../lib/web-typography.mjs';
 
 const ACCESS_TTL=3600,CODE_TTL=120,REFRESH_TTL=30*24*3600;
 const ALLOWED_SCOPES=new Set(['remote:read','remote:write','remote:execute','remote:terminal','offline_access','openid','email']);
@@ -42,7 +43,7 @@ function recordFailure(req){const k=requesterKey(req),rows=failures.get(k)||[];r
 function authHtml(p,msg=''){
   const hidden=Object.entries(p).map(([k,v])=>`<input type="hidden" name="${esc(k)}" value="${esc(v)}">`).join('');
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow,noarchive"><title>Light Remote authorization</title><style>
-:root{color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#080a0c;color:#edf2f7}
+${WEB_FONT_FACE_CSS}:root{color-scheme:dark;font-family:${WEB_UI_FONT};background:#080a0c;color:#edf2f7}
 *{box-sizing:border-box}body{margin:0;background:#080a0c;color:#edf2f7}.auth-shell{min-height:100vh;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 20% 10%,#17170a 0,#080a0c 34%)}.auth-card{width:min(430px,100%);border:1px solid #2b323a;border-radius:16px;background:#0c1014;padding:28px}.auth-brand{display:flex;align-items:center;gap:12px;margin-bottom:24px}.auth-brand img{width:48px;height:48px}.auth-brand strong{display:block;font-size:18px}.muted{color:#8995a4}.auth-card h1{margin:0 0 8px;font-size:28px}.auth-card p{margin:0 0 22px;color:#8d98a7}.permissions{border:1px solid #293038;border-radius:10px;background:#0a0e12;padding:12px 13px;color:#9aa7b6;font-size:13px;line-height:1.5;margin-bottom:18px}.field{display:block;margin:14px 0}.field span{display:block;font-size:13px;margin-bottom:7px}.field input{width:100%;border:1px solid #34404b;border-radius:9px;background:#0a0e12;color:#edf2f7;padding:11px 12px;font:inherit}.auth-actions{margin-top:18px}.btn{width:100%;border:1px solid #ffcc00;background:#ffcc00;color:#0a0b0c;border-radius:9px;padding:11px 14px;cursor:pointer;font:inherit;font-weight:700}.btn:hover{filter:brightness(1.04)}.error{color:#ff9ca5;font-size:13px;margin:0 0 14px}.auth-switch{margin-top:18px;text-align:center;color:#8d98a7;font-size:13px}
 </style></head><body><main class="auth-shell"><section class="auth-card"><div class="auth-brand"><img src="/account/assets/light-remote-mark.svg" alt=""><div><strong>Light Remote</strong><div class="muted">Remote MCP</div></div></div><h1>Authorize ChatGPT</h1><p>Sign in to allow ChatGPT to use your explicitly authorized Light Remote devices.</p>${msg?`<div class="error">${esc(msg)}</div>`:''}<div class="permissions"><strong>Requested permissions:</strong> ${esc(p.scope||'')}</div><form method="post" action="/oauth/authorize">${hidden}<label class="field"><span>Email</span><input type="email" name="email" autocomplete="email" required autofocus></label><label class="field"><span>Password</span><input type="password" name="password" autocomplete="current-password" required></label><div class="auth-actions"><button class="btn" type="submit">Authorize</button></div></form><div class="auth-switch">Account access is provisioned by Light Remote.</div></section></main></body></html>`;
 }
@@ -64,7 +65,7 @@ export async function verifyPairingContinuation(identity,token){
   if(String(p.sub||'')!==String(identity.accountId)||String(p.client_id||'')!==String(identity.clientId)||!p.requestId||!p.pollToken||!p.agentId)throw new Error('pairing_continuation_invalid');
   return {requestId:String(p.requestId),pollToken:String(p.pollToken),agentId:String(p.agentId)};
 }
-function setAuthCsp(res){res.set('Content-Security-Policy',"default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; form-action 'self' https://chatgpt.com; frame-ancestors 'none'; base-uri 'none'");}
+function setAuthCsp(res){res.set('Content-Security-Policy',"default-src 'none'; style-src 'unsafe-inline'; font-src 'self'; img-src 'self'; form-action 'self' https://chatgpt.com; frame-ancestors 'none'; base-uri 'none'");}
 function oauthAudit(event,detail={}){console.log(JSON.stringify({event,...detail}));}
 export function registerOAuth(app){
   app.get('/.well-known/oauth-authorization-server',(_q,r)=>r.json(oauthMetadata()));

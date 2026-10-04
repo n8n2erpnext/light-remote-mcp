@@ -144,6 +144,150 @@
     {
       "source": "device-agent/result-delivery.mjs",
       "destination": "device-agent/result-delivery.mjs"
+    },
+    {
+      "source": "lib/material-icon.mjs",
+      "destination": "lib/material-icon.mjs"
+    },
+    {
+      "source": "lib/web-typography.mjs",
+      "destination": "lib/web-typography.mjs"
+    },
+    {
+      "source": "assets/fonts/web/GoogleSans-Variable.ttf",
+      "destination": "assets/fonts/web/GoogleSans-Variable.ttf"
+    },
+    {
+      "source": "assets/fonts/web/CascadiaCode.ttf",
+      "destination": "assets/fonts/web/CascadiaCode.ttf"
+    },
+    {
+      "source": "assets/icons/material/add.svg",
+      "destination": "assets/icons/material/add.svg"
+    },
+    {
+      "source": "assets/icons/material/arrow_back.svg",
+      "destination": "assets/icons/material/arrow_back.svg"
+    },
+    {
+      "source": "assets/icons/material/bar_chart.svg",
+      "destination": "assets/icons/material/bar_chart.svg"
+    },
+    {
+      "source": "assets/icons/material/check_circle.svg",
+      "destination": "assets/icons/material/check_circle.svg"
+    },
+    {
+      "source": "assets/icons/material/close.svg",
+      "destination": "assets/icons/material/close.svg"
+    },
+    {
+      "source": "assets/icons/material/computer.svg",
+      "destination": "assets/icons/material/computer.svg"
+    },
+    {
+      "source": "assets/icons/material/content_copy.svg",
+      "destination": "assets/icons/material/content_copy.svg"
+    },
+    {
+      "source": "assets/icons/material/credit_card.svg",
+      "destination": "assets/icons/material/credit_card.svg"
+    },
+    {
+      "source": "assets/icons/material/dashboard.svg",
+      "destination": "assets/icons/material/dashboard.svg"
+    },
+    {
+      "source": "assets/icons/material/delete.svg",
+      "destination": "assets/icons/material/delete.svg"
+    },
+    {
+      "source": "assets/icons/material/devices.svg",
+      "destination": "assets/icons/material/devices.svg"
+    },
+    {
+      "source": "assets/icons/material/download.svg",
+      "destination": "assets/icons/material/download.svg"
+    },
+    {
+      "source": "assets/icons/material/edit.svg",
+      "destination": "assets/icons/material/edit.svg"
+    },
+    {
+      "source": "assets/icons/material/folder.svg",
+      "destination": "assets/icons/material/folder.svg"
+    },
+    {
+      "source": "assets/icons/material/group.svg",
+      "destination": "assets/icons/material/group.svg"
+    },
+    {
+      "source": "assets/icons/material/hub.svg",
+      "destination": "assets/icons/material/hub.svg"
+    },
+    {
+      "source": "assets/icons/material/key.svg",
+      "destination": "assets/icons/material/key.svg"
+    },
+    {
+      "source": "assets/icons/material/link.svg",
+      "destination": "assets/icons/material/link.svg"
+    },
+    {
+      "source": "assets/icons/material/logout.svg",
+      "destination": "assets/icons/material/logout.svg"
+    },
+    {
+      "source": "assets/icons/material/pause.svg",
+      "destination": "assets/icons/material/pause.svg"
+    },
+    {
+      "source": "assets/icons/material/person.svg",
+      "destination": "assets/icons/material/person.svg"
+    },
+    {
+      "source": "assets/icons/material/power.svg",
+      "destination": "assets/icons/material/power.svg"
+    },
+    {
+      "source": "assets/icons/material/refresh.svg",
+      "destination": "assets/icons/material/refresh.svg"
+    },
+    {
+      "source": "assets/icons/material/search.svg",
+      "destination": "assets/icons/material/search.svg"
+    },
+    {
+      "source": "assets/icons/material/security.svg",
+      "destination": "assets/icons/material/security.svg"
+    },
+    {
+      "source": "assets/icons/material/settings.svg",
+      "destination": "assets/icons/material/settings.svg"
+    },
+    {
+      "source": "assets/icons/material/smart_toy.svg",
+      "destination": "assets/icons/material/smart_toy.svg"
+    },
+    {
+      "source": "assets/icons/material/star.svg",
+      "destination": "assets/icons/material/star.svg"
+    },
+    {
+      "source": "assets/icons/material/support_agent.svg",
+      "destination": "assets/icons/material/support_agent.svg"
+    },
+    {
+      "source": "assets/icons/material/terminal.svg",
+      "destination": "assets/icons/material/terminal.svg"
+    },
+    {
+      "source": "assets/icons/material/visibility.svg",
+      "destination": "assets/icons/material/visibility.svg"
+    },
+    {
+      "source": "assets/icons/material/visibility_off.svg",
+      "destination": "assets/icons/material/visibility_off.svg"
     }
   ]
 }
