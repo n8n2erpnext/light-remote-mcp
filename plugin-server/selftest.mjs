@@ -53,7 +53,10 @@ const execTool=listed.result.tools.find(t=>t.name==='light_remote_exec'),termToo
 for(const tool of [execTool,termTool]){assert.equal(tool.annotations.readOnlyHint,false);assert.equal(tool.annotations.destructiveHint,true);assert.equal(tool.annotations.openWorldHint,true)}
 assert.equal(helperTool.annotations.readOnlyHint,false);assert.equal(helperTool.annotations.destructiveHint,false);assert.equal(helperTool.annotations.openWorldHint,false);
 assert.equal(desktopTool.annotations.readOnlyHint,true);assert.equal(desktopTool.securitySchemes[0].scopes[0],'remote:read');
+assert.deepEqual(desktopTool.inputSchema?.properties?.operation?.enum,['status','attach','resume','detach','windows','frame','observe','semantic-attach','semantic-snapshot','semantic-events','semantic-detach','live-open','live-close']);
 assert.equal(desktopInputTool.annotations.destructiveHint,true);assert.equal(desktopInputTool.securitySchemes[0].scopes[0],'remote:execute');
+assert.deepEqual(desktopInputTool.inputSchema?.properties?.operation?.enum,['act','input','run']);
+const liveReadTool=listed.result.tools.find(t=>t.name==='light_remote_desktop_live_read');assert.equal(liveReadTool.annotations.readOnlyHint,true);assert.equal(liveReadTool.securitySchemes[0].scopes[0],'remote:read');
 assert.equal(scpTool.annotations.destructiveHint,true);assert.equal(scpTool.securitySchemes[0].scopes[0],'remote:write');
 assert.equal(mainTool.annotations.readOnlyHint,false);assert.equal(mainTool.annotations.destructiveHint,false);
 for(const tool of [revokeTool,removeTool]){assert.equal(tool.annotations.readOnlyHint,false);assert.equal(tool.annotations.destructiveHint,true);assert.equal(tool.annotations.openWorldHint,false)}
