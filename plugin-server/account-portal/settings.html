@@ -1,6 +1,64 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Light Remote — Settings</title><link rel="icon" href="/account/assets/light-remote.ico" sizes="any"><link rel="icon" type="image/svg+xml" href="/account/assets/light-remote-mark.svg"><link rel="stylesheet" href="/account/assets/portal.css"></head><body><div class="app"><aside class="sidebar"><div class="brand"><img src="/account/assets/light-remote-mark.svg"><span><strong>Light Remote</strong><small>Remote MCP</small></span></div><nav class="nav"><a href="/account">▣ Devices</a><a href="/account/usage">▥ Usage</a><a class="active" href="/account/settings">⚙ Settings</a></nav></aside><main class="main"><div class="page-head"><div><h1>Settings</h1><p>Account identity, plan and activation.</p></div></div><div class="settings-grid"><section class="panel"><div class="panel-head"><h2>Account</h2><span id="planBadge" class="badge">…</span></div><div class="settings-body"><div class="setting-label">Email</div><div id="email" class="setting-value">Loading…</div><div class="setting-label">Plan</div><div id="plan" class="setting-value">—</div><div class="setting-label">Entitlement</div><div id="entitlement" class="setting-value muted">—</div></div></section><section class="panel"><div class="panel-head"><h2>Activate PRO / VIP</h2></div><div class="settings-body"><p class="muted">Redeem keys only on this official account portal. The key is attached to your account and is never stored on your devices.</p><form id="redeemForm" class="license-form"><input id="licenseKey" autocomplete="off" spellcheck="false" placeholder="LR-XXXX-XXXX-XXXX-XXXX-XXXX" maxlength="80" required><button class="btn primary" type="submit">Redeem key</button></form><div id="redeemMsg" class="setting-note"></div></div></section></div></main></div><script>
-const clean=v=>String(v??'');const fmtDate=v=>v?new Date(v).toLocaleString():'No expiry';
-function render(a){email.textContent=a.email||'';plan.textContent=(a.plan||'free').toUpperCase();planBadge.textContent=(a.plan||'free').toUpperCase();const e=a.entitlement||{};entitlement.textContent=(e.source||'default')+(e.validUntil?' · valid until '+fmtDate(e.validUntil):' · no expiry');}
-async function load(){const r=await fetch('/account/api?action=me',{cache:'no-store'});if(r.status===401){location.href='/account/login';return;}const j=await r.json();if(!r.ok)throw new Error(j.error||'account_unavailable');render(j.account);}
-redeemForm.onsubmit=async ev=>{ev.preventDefault();redeemMsg.className='setting-note muted';redeemMsg.textContent='Redeeming…';const key=licenseKey.value.trim();try{const r=await fetch('/account/api?action=redeem-license',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({key})});const j=await r.json();if(r.status===401){location.href='/account/login';return;}if(!r.ok)throw new Error(j.error||'license_redeem_failed');render(j.account);licenseKey.value='';redeemMsg.className='setting-note ok';redeemMsg.textContent='Activated '+String(j.account?.plan||'').toUpperCase()+(j.account?.entitlement?.validUntil?' until '+fmtDate(j.account.entitlement.validUntil):'');}catch(e){redeemMsg.className='setting-note error';redeemMsg.textContent=e.message;}};load().catch(e=>{redeemMsg.className='setting-note error';redeemMsg.textContent=e.message;});
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+  <title>Light Remote — Settings</title>
+  <link rel="icon" href="/account/assets/light-remote.ico" sizes="any"><link rel="icon" type="image/svg+xml" href="/account/assets/light-remote-mark.svg">
+  <script src="/account/assets/theme.js"></script><link rel="stylesheet" href="/account/assets/portal.css">
+</head>
+<body><div class="app">
+<aside class="sidebar">
+  <div class="brand"><img src="/account/assets/light-remote-mark.svg" alt=""><span><strong>Light Remote</strong><small>Remote MCP</small></span></div>
+  <nav class="nav">
+    <a href="/account"><span class="icon">▣</span>Devices</a>
+    <a href="/account/usage"><span class="icon">▥</span>Usage</a>
+    <a href="/account/billing"><span class="icon">▤</span>Plan & billing</a>
+    <a class="active" href="/account/settings"><span class="icon">⚙</span>Settings</a>
+  </nav>
+  <div class="account-foot"><div id="footEmail" class="account-email">…</div><div id="footPlan" class="account-meta">…</div><div class="footer-links"><a href="/terms">Terms</a><a href="/privacy">Privacy</a><button id="logout" class="footer-logout">Logout</button></div></div>
+</aside>
+<main class="main narrow-main">
+  <div class="page-head"><div><h1>Settings</h1><p>Account and appearance.</p></div></div>
+  <div class="settings-stack">
+    <section class="panel setting-row">
+      <div><h2>Profile</h2><div class="profile-line"><div id="avatar" class="avatar">LR</div><div><strong id="email">Loading…</strong><div class="muted">Signed in to Light Remote</div></div></div></div>
+      <button id="signoutTop" class="btn">Sign out</button>
+    </section>
+    <section class="panel setting-row">
+      <div><h2>Change password</h2><div class="muted">Update the password you use to sign in.</div></div>
+      <button id="openPassword" class="btn">Change password</button>
+    </section>
+    <section class="panel setting-row">
+      <div><h2>Appearance</h2><div class="muted">Match the rest of your tooling.</div></div>
+      <div class="segmented"><button id="darkMode" class="btn">Dark</button><button id="lightMode" class="btn">Light</button></div>
+    </section>
+  </div>
+</main></div>
+
+<div id="passwordModal" class="modal hide">
+  <div class="modal-card">
+    <div class="modal-head"><div><h2>Change password</h2><p>Changing it signs out other account sessions.</p></div><button id="closePassword" class="icon-btn" aria-label="Close">×</button></div>
+    <form id="passwordForm">
+      <label class="field"><span>Current password</span><input id="currentPassword" type="password" autocomplete="current-password" minlength="10" required></label>
+      <label class="field"><span>New password</span><input id="newPassword" type="password" autocomplete="new-password" minlength="10" required></label>
+      <label class="field"><span>Confirm new password</span><input id="confirmPassword" type="password" autocomplete="new-password" minlength="10" required></label>
+      <div id="passwordMsg" class="setting-note"></div>
+      <div class="modal-actions"><button type="button" id="cancelPassword" class="btn">Cancel</button><button type="submit" class="btn primary">Update password</button></div>
+    </form>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+async function api(action,options={}){const r=await fetch('/account/api?action='+encodeURIComponent(action),{cache:'no-store',...options,headers:{'content-type':'application/json',...(options.headers||{})}});let j={};try{j=await r.json()}catch{}if(r.status===401){location.href='/account/login';throw new Error('login_required')}if(!r.ok)throw new Error(j.error||('HTTP '+r.status));return j}
+function initials(email){const p=String(email||'LR').split('@')[0].replace(/[^a-z0-9]+/gi,' ').trim().split(/s+/).filter(Boolean);return (p.slice(0,2).map(x=>x[0]).join('')||'LR').toUpperCase()}
+function syncTheme(){const t=LightRemoteTheme.get();$('darkMode').classList.toggle('active',t==='dark');$('lightMode').classList.toggle('active',t==='light')}
+async function load(){const me=await api('me');$('email').textContent=me.account.email;$('footEmail').textContent=me.account.email;$('footPlan').textContent=(me.account.plan||'free').toUpperCase()+' plan';$('avatar').textContent=initials(me.account.email);syncTheme()}
+async function logout(){try{await fetch('/account/api?action=logout',{method:'POST',headers:{'content-type':'application/json'},body:'{}'})}finally{location.href='/account/login'}}
+$('logout').onclick=logout;$('signoutTop').onclick=logout;
+$('darkMode').onclick=()=>{LightRemoteTheme.set('dark');syncTheme()};$('lightMode').onclick=()=>{LightRemoteTheme.set('light');syncTheme()};
+const modal=$('passwordModal');function closeModal(){modal.classList.add('hide');$('passwordForm').reset();$('passwordMsg').textContent='';}
+$('openPassword').onclick=()=>{modal.classList.remove('hide');$('currentPassword').focus()};$('closePassword').onclick=closeModal;$('cancelPassword').onclick=closeModal;
+$('passwordForm').onsubmit=async ev=>{ev.preventDefault();const cur=$('currentPassword').value,nw=$('newPassword').value,confirm=$('confirmPassword').value,msg=$('passwordMsg');if(nw!==confirm){msg.className='setting-note error';msg.textContent='New passwords do not match.';return}if(nw.length<10){msg.className='setting-note error';msg.textContent='Password must be at least 10 characters.';return}const btn=ev.submitter;btn.disabled=true;msg.className='setting-note muted';msg.textContent='Updating…';try{await api('password-change',{method:'POST',body:JSON.stringify({currentPassword:cur,newPassword:nw})});msg.className='setting-note ok';msg.textContent='Password updated. Other account sessions were signed out.';setTimeout(closeModal,900)}catch(e){msg.className='setting-note error';msg.textContent=e.message==='invalid_account_credentials'?'Current password is incorrect.':e.message}finally{btn.disabled=false}};
+load().catch(e=>{if(e.message!=='login_required')console.error(e)});
 </script></body></html>

@@ -99,7 +99,7 @@ async function accountRecovery(req,res){
 function accountAudit(action,status,error=''){console.log(JSON.stringify({event:'account_portal',action,status,...(error?{error:String(error).slice(0,80)}:{})}));}
 async function accountApi(req,res){
   const action=String(req.query?.action||'').trim();
-  const mutations=new Set(['register','login','logout','enrollment-approve','device-revoke','device-remove','device-update','devices-revoke-all','redeem-license','main-device','main-device-clear']);
+  const mutations=new Set(['register','login','logout','password-change','enrollment-approve','device-revoke','device-remove','device-update','devices-revoke-all','redeem-license','main-device','main-device-clear']);
   if(mutations.has(action)&&!sameOriginMutation(req)){accountAudit(action,'cross_site_denied');return res.status(403).json({ok:false,error:'cross_site_request_denied'});}
   try{
     if(action==='register'||action==='login'){
@@ -127,6 +127,14 @@ async function accountApi(req,res){
       if(token)await callOperatorJson('POST','/v1/accounts/logout',{},headers(token)).catch(()=>{});
       clearSessionCookie(res);
       return res.status(200).json({ok:true,loggedOut:true});
+    }
+    if(action==='password-change'){
+      if(!method(req,res,'POST'))return;
+      const token=requireAccount(req,res);if(!token)return;
+      const upstream=await callOperatorJson('POST','/v1/accounts/password',{currentPassword:req.body?.currentPassword,newPassword:req.body?.newPassword},headers(token));
+      setSessionCookie(res,upstream.token,upstream.session?.expiresAt);
+      accountAudit(action,'success');
+      return res.status(200).json({ok:true,account:upstream.account,session:upstream.session});
     }
     const token=requireAccount(req,res);if(!token)return;
     if(action==='enrollment-approve'){
@@ -164,12 +172,14 @@ async function accountApi(req,res){
 export function registerAccountPortal(app){
   app.get(['/account','/account/'],(_q,r)=>sendPortal(r,'index.html'));
   app.get(['/account/usage','/account/usage/'],(_q,r)=>sendPortal(r,'usage.html'));
+  app.get(['/account/billing','/account/billing/'],(_q,r)=>sendPortal(r,'billing.html'));
   app.get(['/account/settings','/account/settings/'],(_q,r)=>sendPortal(r,'settings.html'));
   app.get(['/account/login','/account/login/'],(_q,r)=>sendPortal(r,'login.html'));
   app.get(['/account/register','/account/register/'],(_q,r)=>sendPortal(r,'register.html'));
   app.get('/account/recover',accountRecovery);
   app.post('/account/recover',accountRecovery);
   app.get('/account/assets/portal.css',(_q,r)=>sendPortal(r,'portal.css','text/css'));
+  app.get('/account/assets/theme.js',(_q,r)=>sendPortal(r,'theme.js','application/javascript'));
   app.get('/account/assets/light-remote-mark.svg',(_q,r)=>sendPortal(r,'light-remote-mark.svg','image/svg+xml'));
   app.get('/account/assets/light-remote.ico',(_q,r)=>sendPortal(r,'light-remote.ico','image/x-icon'));
   app.all('/account/api',accountApi);

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+  <title>Light Remote — Admin</title>
+  <link rel="icon" href="/account/assets/light-remote.ico" sizes="any">
+  <script src="/account/assets/theme.js"></script><link rel="stylesheet" href="/account/assets/portal.css">
+</head>
+<body><div class="app admin-app">
+<aside class="sidebar">
+  <div class="brand"><img src="/account/assets/light-remote-mark.svg" alt=""><span><strong>Light Remote</strong><small>Admin</small></span></div>
+  <nav class="nav admin-nav-list">
+    <button class="admin-nav active" data-view="overview">▦ Overview</button>
+    <button class="admin-nav" data-view="accounts">◎ Accounts</button>
+    <button class="admin-nav" data-view="licenses">◇ Licenses</button>
+    <a href="/account">← Account portal</a>
+  </nav>
+  <div class="account-foot"><div class="account-email">Administrator</div><div class="account-meta">Owner control plane</div></div>
+</aside>
+<main class="main">
+  <section id="view-overview" class="admin-view">
+    <div class="page-head"><div><h1>Overview</h1><p>Account, device and monthly usage state.</p></div><button id="refreshAdmin" class="btn">Refresh</button></div>
+    <div id="adminMetrics" class="usage-grid"></div>
+    <section class="panel"><div class="panel-head"><h2>Plan mix</h2></div><div id="planMix" class="settings-body"></div></section>
+  </section>
+  <section id="view-accounts" class="admin-view hide">
+    <div class="page-head"><div><h1>Accounts</h1><p>Plan, usage and device ownership.</p></div></div>
+    <section class="panel"><div id="adminAccounts"><div class="empty">Loading accounts…</div></div></section>
+  </section>
+  <section id="view-licenses" class="admin-view hide">
+    <div class="page-head"><div><h1>Licenses</h1><p>Issue or revoke entitlement keys.</p></div></div>
+    <section class="panel">
+      <div class="panel-head"><h2>Issue key</h2></div>
+      <form id="issueLicense" class="admin-form settings-body">
+        <label>Plan<select id="licensePlan"><option value="pro">PRO</option><option value="vip">VIP</option></select></label>
+        <label>Duration days<input id="licenseDays" type="number" min="1" max="3650" value="30"></label>
+        <label>Max redemptions<input id="licenseMax" type="number" min="1" max="1000" value="1"></label>
+        <button class="btn primary" type="submit">Issue license</button>
+      </form>
+      <div id="issuedKey" class="setting-note settings-body"></div>
+      <div class="panel-head"><h2>Existing licenses</h2></div>
+      <div id="licenseRows"><div class="empty">Loading licenses…</div></div>
+    </section>
+  </section>
+</main></div>
+<script>
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=n=>new Intl.NumberFormat().format(Number(n)||0);
+async function api(action,options={}){
+  const r=await fetch('/admin/api?action='+encodeURIComponent(action),{cache:'no-store',...options,headers:{'content-type':'application/json',...(options.headers||{})}});
+  let j={};try{j=await r.json()}catch{}
+  if(r.status===401){location.href='/account/login';throw new Error('login_required')}
+  if(!r.ok)throw new Error(j.error||('HTTP '+r.status));
+  return j;
+}
+function show(view){
+  document.querySelectorAll('.admin-view').forEach(x=>x.classList.add('hide'));
+  document.getElementById('view-'+view).classList.remove('hide');
+  document.querySelectorAll('.admin-nav').forEach(x=>x.classList.toggle('active',x.dataset.view===view));
+}
+document.querySelectorAll('.admin-nav').forEach(b=>b.onclick=()=>show(b.dataset.view));
+function metric(label,value,note){return '<article class="metric-card"><div class="metric-label">'+esc(label)+'</div><div class="metric-value">'+esc(value)+'</div><div class="metric-note">'+esc(note)+'</div></article>'}
+async function loadOverview(){
+  const r=await api('overview'),o=r.overview||{};
+  adminMetrics.innerHTML=metric('Accounts',fmt(o.accounts),'Registered account records')+metric('Devices',fmt(o.devices),'Owned device identities')+metric('Online devices',fmt(o.onlineDevices),'Currently online')+metric('Tool calls this month',fmt(o.toolCallsThisMonth),'Across all accounts');
+  planMix.innerHTML=Object.entries(o.plans||{}).map(([k,v])=>'<span class="badge admin-plan-badge">'+esc(k.toUpperCase())+' · '+fmt(v)+'</span>').join('')||'<span class="muted">No accounts.</span>';
+}
+function accountRow(row){
+  const a=row.account||{},u=row.usage||{},ds=row.devices||[];let options='';
+  for(const p of ['free','pro','vip'])options+='<option value="'+p+'"'+(a.plan===p?' selected':'')+'>'+p.toUpperCase()+'</option>';
+  return '<div class="admin-account-row"><div><div class="device-name">'+esc(a.email)+'</div><div class="device-sub">'+esc(a.accountId)+' · '+fmt(u.toolCallsThisMonth)+' calls this month · '+fmt(ds.length)+' devices</div></div><div class="admin-account-actions"><span class="badge">'+esc(String(a.plan||'free').toUpperCase())+'</span><select data-plan="'+esc(a.accountId)+'">'+options+'</select><button class="btn" data-apply-plan="'+esc(a.accountId)+'">Apply</button></div></div>';
+}
+async function loadAccounts(){
+  const r=await api('accounts'),rows=r.accounts||[];adminAccounts.innerHTML=rows.map(accountRow).join('')||'<div class="empty">No accounts.</div>';
+  document.querySelectorAll('[data-apply-plan]').forEach(btn=>btn.onclick=async()=>{const id=btn.dataset.applyPlan,sel=document.querySelector('[data-plan="'+CSS.escape(id)+'"]');btn.disabled=true;try{await api('set-plan',{method:'POST',body:JSON.stringify({accountId:id,plan:sel.value})});await Promise.all([loadAccounts(),loadOverview()])}catch(e){alert(e.message)}finally{btn.disabled=false}});
+}
+function licenseRow(x){return '<div class="admin-account-row"><div><div class="device-name">'+esc(x.licenseId)+'</div><div class="device-sub">'+esc(String(x.plan||'').toUpperCase())+' · '+fmt((x.redemptions||[]).length)+'/'+fmt(x.maxRedemptions)+' redeemed'+(x.revokedAt?' · revoked':'')+'</div></div>'+(x.revokedAt?'':'<button class="btn danger" data-revoke-license="'+esc(x.licenseId)+'">Revoke</button>')+'</div>'}
+async function loadLicenses(){
+  const r=await api('licenses'),rows=r.licenses||[];licenseRows.innerHTML=rows.map(licenseRow).join('')||'<div class="empty">No licenses issued.</div>';
+  document.querySelectorAll('[data-revoke-license]').forEach(btn=>btn.onclick=async()=>{if(!confirm('Revoke this license?'))return;await api('revoke-license',{method:'POST',body:JSON.stringify({licenseId:btn.dataset.revokeLicense})});await loadLicenses()});
+}
+issueLicense.onsubmit=async ev=>{
+  ev.preventDefault();
+  try{const r=await api('issue-license',{method:'POST',body:JSON.stringify({plan:licensePlan.value,durationDays:Number(licenseDays.value),maxRedemptions:Number(licenseMax.value)})});issuedKey.className='setting-note ok settings-body';issuedKey.textContent='Issued: '+String(r.key||'')+' — copy it now; it is shown only at issue time.';await loadLicenses()}
+  catch(e){issuedKey.className='setting-note error settings-body';issuedKey.textContent=e.message}
+};
+refreshAdmin.onclick=()=>Promise.all([loadOverview(),loadAccounts(),loadLicenses()]);
+Promise.all([loadOverview(),loadAccounts(),loadLicenses()]).catch(e=>{document.querySelector('.main').insertAdjacentHTML('beforeend','<div class="error">'+esc(e.message)+'</div>')});
+</script></body></html>

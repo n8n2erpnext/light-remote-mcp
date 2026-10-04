@@ -1,5 +1,14 @@
 export async function handleAccountRoutes(req,res,url,deps){
   const {ACCOUNT_ID,AccountError,DEVICE_ID,accountSessionToken,accounts,allDeviceViews,capabilities,clearMainIfMatches,closeRuntimeForAccount,compatibilityFor,devices,enrollments,fleetAuthority,licenses,planEntitlements,queueHelperUpdate,readJson,removeRuntimeForDevice,requireAccount,revokeRuntimeForDevice,sendJson,usage,wakeDeviceChannelForDevice}=deps;
+    if (req.method === 'GET' && url.pathname === '/v1/admin/overview') {
+      const accountRows=accounts.list(),deviceRows=allDeviceViews(),current=accountRows.map(account=>({account,entitlements:planEntitlements(account),usage:usage.summary(account.accountId,{months:1})}));
+      const toolCallsThisMonth=current.reduce((sum,row)=>sum+(Number(row.usage.toolCallsThisMonth)||0),0),plans=current.reduce((out,row)=>{const key=String(row.account.plan||'free');out[key]=(out[key]||0)+1;return out;},{});
+      return sendJson(res,200,{ok:true,overview:{accounts:accountRows.length,devices:deviceRows.length,onlineDevices:deviceRows.filter(d=>d.state==='online').length,toolCallsThisMonth,plans}});
+    }
+    if (req.method === 'GET' && url.pathname === '/v1/admin/accounts') {
+      const deviceRows=allDeviceViews();
+      return sendJson(res,200,{ok:true,accounts:accounts.list().map(account=>({account,entitlements:planEntitlements(account),usage:usage.summary(account.accountId,{months:1}),devices:deviceRows.filter(d=>d.accountId===account.accountId).map(d=>({deviceId:d.deviceId,displayName:d.displayName,state:d.state,platform:d.platform,architecture:d.architecture}))}))});
+    }
     if (req.method === 'GET' && url.pathname === '/v1/admin/licenses') {
       return sendJson(res,200,{ok:true,licenses:licenses.list()});
     }
@@ -120,6 +129,13 @@ export async function handleAccountRoutes(req,res,url,deps){
     }
     if (req.method === 'POST' && url.pathname === '/v1/accounts/logout') {
       return sendJson(res,200,{ok:true,...accounts.logout(accountSessionToken(req))});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/accounts/password') {
+      const identity=requireAccount(req),body=await readJson(req),currentPassword=String(body.currentPassword||''),newPassword=String(body.newPassword||'');
+      accounts.verifyCredentials({email:identity.account.email,password:currentPassword},{recordLogin:false});
+      accounts.resetPassword(identity.account.accountId,newPassword,{invalidateSessions:true});
+      const logged=accounts.login({email:identity.account.email,password:newPassword});
+      return sendJson(res,200,{ok:true,account:logged.account,session:logged.session,token:logged.token});
     }
     if (req.method === 'GET' && url.pathname === '/v1/accounts/devices') {
       const identity=requireAccount(req),owned=allDeviceViews().filter(device=>device.accountId===identity.account.accountId).map(device=>({...device,removable:device.deviceId!==DEVICE_ID,revocable:device.deviceId!==DEVICE_ID&&device.state!=='revoked',helperUpdatable:device.deviceId!==DEVICE_ID&&device.state!=='revoked'}));

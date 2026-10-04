@@ -7,6 +7,8 @@ import { PUBLIC_ALLOWED_HOSTS, PUBLIC_HOST, PUBLIC_ORIGIN, PUBLIC_PORT, OPENAI_C
 import { authenticateAccess, registerOAuth } from './oauth.mjs';
 import { registerPublicDeviceRoutes, prunePublicRateState } from './device-public.mjs';
 import { registerAccountPortal } from './account-portal.mjs';
+import { registerDistributionPortal } from './distribution-portal.mjs';
+import { registerAdminPortal } from './admin-portal.mjs';
 import { PUBLIC_PAGE_BODIES } from './public-pages.mjs';
 import { PLUGIN_TOOL_SECURITY, registerPluginTools } from './tools.mjs';
 import { installOpenAiToolSecurityCompat } from './openai-security-compat.mjs';
@@ -29,6 +31,8 @@ app.use((_req,res,next)=>{
 
 registerOAuth(app);
 registerAccountPortal(app);
+registerDistributionPortal(app);
+registerAdminPortal(app);
 registerPublicDeviceRoutes(app);
 const pruner=setInterval(()=>prunePublicRateState(),60_000);pruner.unref?.();
 

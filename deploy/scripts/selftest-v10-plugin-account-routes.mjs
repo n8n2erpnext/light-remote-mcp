@@ -13,4 +13,9 @@ try{await waitForIpc(socket,{attempts:100,delayMs:40,error:'executor_not_ready',
  const afterVerify=JSON.parse(fs.readFileSync(stateFile,'utf8')).sessions.length;if(afterVerify!==sessionsBefore)throw new Error('plugin_verify_created_session');
  r=await request('POST','/v1/plugin/auth/verify',{email:'hosted@example.test',password:'wrong password'});if(r.status!==401||r.json.error!=='invalid_account_credentials')throw new Error('plugin_verify_wrong_password_not_rejected');
  console.log(JSON.stringify({ok:true,bootstrapPreserved:true,hostedAccountId:accountId,verifyNoPortalSession:true},null,2));
-}finally{child.kill('SIGTERM');removeIpcEndpoint(socket);fs.rmSync(dir,{recursive:true,force:true});}
+}finally{
+ if(child.exitCode==null){try{child.kill('SIGTERM')}catch{};await Promise.race([new Promise(resolve=>child.once('exit',resolve)),new Promise(resolve=>setTimeout(resolve,1000))]);}
+ if(child.exitCode==null){try{child.kill('SIGKILL')}catch{}}
+ removeIpcEndpoint(socket);
+ for(let i=0;i<20;i++){try{fs.rmSync(dir,{recursive:true,force:true});break}catch(error){if(i===19)throw error;await new Promise(resolve=>setTimeout(resolve,25));}}
+}

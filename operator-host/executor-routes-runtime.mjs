@@ -1,5 +1,5 @@
 export async function handleRuntimeRoutes(req,res,url,deps){
-  const {ACCOUNT_ID,DEVICE_ID,DeviceAccessGrantError,DeviceConnectionError,EnrollmentError,FleetError,MAX_ACTIVE_SESSIONS,MAX_MEMORY_OUTPUT,NODE_ID,SESSION_GRACE_PRESETS,SESSION_IDLE_MS,SESSION_MAX_IDLE_MS,SESSION_MIN_IDLE_MS,VERSION,accessGrants,agentClients,allDeviceViews,assertDiskJobOwner,capabilities,clearMainIfMatches,connectionSpec,connectionViewForDevice,connections,decryptEnvelope,deviceView,devices,enrollments,fleet,flushDiskRecords,fs,fullOutputFromDisk,ingressTelemetry,jobView,jobs,pairingCodes,pruneRing,pushEvent,queueSignedUpdate,readJson,realRemoteLive,recentEvents,redact,revokeRuntimeForDevice,ring,ringBytes,sendJson,sessionStatsFromDisk,sessions,sseClients,startDesktopOperation,startFsOperation,startJob,startProcessOperation,startScpOperation,startSearchOperation,startTerminalOperation,targetRoute,waitForJob}=deps;
+  const {ACCOUNT_ID,DEVICE_ID,DeviceAccessGrantError,DeviceConnectionError,EnrollmentError,FleetError,MAX_ACTIVE_SESSIONS,MAX_MEMORY_OUTPUT,NODE_ID,SESSION_GRACE_PRESETS,SESSION_IDLE_MS,SESSION_MAX_IDLE_MS,SESSION_MIN_IDLE_MS,VERSION,accessGrants,agentClients,allDeviceViews,assertDiskJobOwner,assertToolCallQuota,capabilities,clearMainIfMatches,connectionSpec,connectionViewForDevice,connections,decryptEnvelope,deviceView,devices,enrollments,fleet,flushDiskRecords,fs,fullOutputFromDisk,ingressTelemetry,jobView,jobs,pairingCodes,pruneRing,pushEvent,queueSignedUpdate,readJson,realRemoteLive,recentEvents,redact,revokeRuntimeForDevice,ring,ringBytes,sendJson,sessionStatsFromDisk,sessions,sseClients,startDesktopOperation,startFsOperation,startJob,startProcessOperation,startScpOperation,startSearchOperation,startTerminalOperation,targetRoute,waitForJob}=deps;
     if (req.method === 'GET' && url.pathname === '/v1/devices') {
       return sendJson(res, 200, { ok:true, currentDeviceId:DEVICE_ID, devices:allDeviceViews() });
     }
@@ -105,8 +105,9 @@ export async function handleRuntimeRoutes(req,res,url,deps){
     if (req.method === 'POST' && url.pathname === '/v1/plugin/desktop-live/read') {
       const body=await readJson(req),accountId=String(body.accountId||''),session=sessions.ensure(String(body.sessionId||''),{agentId:String(body.agentId||'')});
       if(!accountId||session.accountId!==accountId)throw new DeviceAccessGrantError('plugin_desktop_session_account_mismatch',403);
+      assertToolCallQuota(session.accountId);
       const live=realRemoteLive.read({deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,semanticSessionId:String(body.semanticSessionId||''),afterSeq:body.afterSeq,limit:body.limit,includeSnapshot:body.includeSnapshot!==false});
-      sessions.touch(session.id,session.agentId,'desktop-live-read');
+      sessions.record(session.id,'toolCalls');sessions.touch(session.id,session.agentId,'desktop-live-read');
       return sendJson(res,200,{ok:true,live});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-access/desktop-live/read') {
@@ -114,8 +115,9 @@ export async function handleRuntimeRoutes(req,res,url,deps){
       accessGrants.assert(grant.grantId,{deviceId:grant.deviceId,connectionId:connection.connectionId});
       const session=sessions.ensure(String(body.sessionId||''),{agentId:String(body.agentId||'')});
       if(session.deviceId!==grant.deviceId||session.accountId!==grant.accountId)throw new DeviceAccessGrantError('device_access_grant_session_mismatch',403);
+      assertToolCallQuota(session.accountId);
       const live=realRemoteLive.read({deviceId:grant.deviceId,sessionId:session.id,agentId:session.agentId,semanticSessionId:String(body.semanticSessionId||''),afterSeq:body.afterSeq,limit:body.limit,includeSnapshot:body.includeSnapshot!==false});
-      sessions.touch(session.id,session.agentId,'desktop-live-read');
+      sessions.record(session.id,'toolCalls');sessions.touch(session.id,session.agentId,'desktop-live-read');
       return sendJson(res,200,{ok:true,live});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-access/execute') {
@@ -200,7 +202,7 @@ export async function handleRuntimeRoutes(req,res,url,deps){
     if (req.method === 'GET' && jobMatch) {
       const job = jobs.get(jobMatch[1]);
       const aid = url.searchParams.get('agentId');
-      if (job) { sessions.ensure(job.sessionId, { agentId:aid }); sessions.record(job.sessionId, 'toolCalls'); sessions.record(job.sessionId, 'jobReads'); }
+      if (job) { const session=sessions.ensure(job.sessionId, { agentId:aid }); assertToolCallQuota(session.accountId); sessions.record(job.sessionId, 'toolCalls'); sessions.record(job.sessionId, 'jobReads'); }
       return job ? sendJson(res, 200, { ok: true, job: jobView(job) }) : sendJson(res, 404, { ok: false, error: 'job_not_found' });
     }
     const outputMatch = url.pathname.match(/^\/v1\/output\/([0-9a-f-]+)$/i);
@@ -211,7 +213,7 @@ export async function handleRuntimeRoutes(req,res,url,deps){
       const limit = Math.max(1, Math.min(Number(url.searchParams.get('limit')) || MAX_MEMORY_OUTPUT, 8 * 1024 * 1024));
       const job = jobs.get(outputMatch[1]);
       const aid = url.searchParams.get('agentId');
-      if (job) { sessions.ensure(job.sessionId, { agentId:aid }); sessions.record(job.sessionId, 'toolCalls'); sessions.record(job.sessionId, 'outputReads'); }
+      if (job) { const session=sessions.ensure(job.sessionId, { agentId:aid }); assertToolCallQuota(session.accountId); sessions.record(job.sessionId, 'toolCalls'); sessions.record(job.sessionId, 'outputReads'); }
       else assertDiskJobOwner(outputMatch[1], aid);
       let text;
       if (full) { await flushDiskRecords(); text = fullOutputFromDisk(outputMatch[1], stream); }
