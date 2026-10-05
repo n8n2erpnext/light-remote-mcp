@@ -23,7 +23,7 @@ import { LightScpRegistry } from '../lib/light-scp-registry.mjs';
 import { normalizeUpdateReport, normalizeUpdateStatus } from '../lib/update-contract.mjs';
 import { runtimeVersion } from '../lib/runtime-version.mjs';
 import { migrateLegacyEndpoint } from '../lib/public-endpoint.mjs';
-import { compactResultAfter413, isCompacted413Result } from './result-delivery.mjs';
+import { compactResultAfter413, fitResultForDelivery, isCompacted413Result } from './result-delivery.mjs';
 import { CommandExecutionCoordinator, DeviceDuplexClient, DEVICE_DUPLEX_PROTOCOL } from '../lib/device-duplex-client.mjs';
 
 const VERSION=runtimeVersion({envNames:['LIGHT_REMOTE_VERSION','OPERATOR_AGENT_VERSION']});
@@ -227,7 +227,7 @@ async function duplexExecuteCommand(command,hub){
   const source=claim.result;if(!source||typeof source!=='object'||Array.isArray(source))return source;
   const result={...source,telemetry:{...(source.telemetry||{})}},completedAt=Date.now(),reportedFirst=Number(result.telemetry?.firstOutputAt);
   result.telemetry={...(result.telemetry||{}),deviceReceivedAt,firstOutputAt:Number.isSafeInteger(reportedFirst)&&reportedFirst>0?reportedFirst:completedAt,completedAt,deviceTransport:'duplex-v1',duplicateTransport:claim.owner?null:'duplex'};
-  return result;
+  return fitResultForDelivery(result);
 }
 async function resyncLiveAfterDuplexEpochChange(){
   for(const row of REAL_REMOTE_LIVE.values()){
@@ -797,6 +797,7 @@ async function daemon(args){
           const completedAt=Date.now();
           const reportedFirst=Number(result.telemetry?.firstOutputAt);
           result.telemetry={...(result.telemetry||{}),deviceReceivedAt,firstOutputAt:Number.isSafeInteger(reportedFirst)&&reportedFirst>0?reportedFirst:completedAt,completedAt};
+          result=fitResultForDelivery(result);
           let delivered=false,resultFailures=0;
           while(!stopped&&!delivered){
             try{const ack=await channelRequest(state,hub,'result',result);delivered=Boolean(ack.accepted);resultFailures=0;}
@@ -804,7 +805,7 @@ async function daemon(args){
               if(['device_binding_not_found','device_not_found'].includes(error.message)){markDeviceRemoved(state,error.message);break;}if(['device_connection_required','device_connection_expired','device_revoked'].includes(error.message)){markCloudState(state,{desiredConnected:false,state:'dormant',connectionId:null,hardExpiresAt:null,lastError:error.message,lastDisconnectedAt:Date.now()});break;}if(error.message==='command_not_found'){console.error(JSON.stringify({event:'device_result_orphaned',deviceId:state.enrollment.deviceId,commandId:command.commandId,reason:error.message,status:error.status||null}));delivered=true;break;}
               if(Number(error.status)===413){
                 if(isCompacted413Result(result)){console.error(JSON.stringify({event:'device_result_delivery_abandoned_after_compaction',deviceId:state.enrollment.deviceId,commandId:command.commandId,error:error.message,status:413}));break;}
-                const compacted=compactResultAfter413(result);console.error(JSON.stringify({event:'device_result_compacted_after_413',deviceId:state.enrollment.deviceId,commandId:command.commandId,originalBytes:compacted.data.originalBytes,status:413}));result=compacted;resultFailures=0;continue;
+                const compacted=compactResultAfter413(result);console.error(JSON.stringify({event:'device_result_compacted_after_413',deviceId:state.enrollment.deviceId,commandId:command.commandId,originalBytes:compacted.deliveryOriginalBytes,status:413,preservedStatus:compacted.status,preservedExitCode:compacted.exitCode}));result=compacted;resultFailures=0;continue;
               }
               resultFailures++;const retryInMs=Math.min(Math.max(1000*(2**Math.min(resultFailures,5)),Number(error.retryAfterMs)||0),300000);console.error(JSON.stringify({event:'device_result_delivery_failed',deviceId:state.enrollment.deviceId,commandId:command.commandId,error:error.message,status:error.status||null,failures:resultFailures,retryInMs}));await wait(retryInMs);
             }
