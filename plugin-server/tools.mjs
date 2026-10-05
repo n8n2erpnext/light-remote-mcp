@@ -112,7 +112,7 @@ export async function callLegacyMultiplexedTool(identity,name,input={}){
 export function registerPluginTools(server,identity){
   add(server,'light_remote_connection_helper',{
     title:'Connect Light Remote with A/B approval',
-    description:'Use this for Local Wall A/B device authorization and working-context recovery. OAuth account login alone never authorizes a device; each target requires owner approval at that device.',
+    description:'Start here. Handles Local Wall A/B pairing and, when ready, returns/reuses the working context plus a compact tool-family menu. Call again with helperGroup=workspace|files|shell|transfer|desktop only when detailed syntax for that family is needed. OAuth account login alone never authorizes a device.',
     inputSchema:{aCode:z.string().regex(/^[A-Za-z2-9]{4}-?[A-Za-z2-9]{4}$/).optional(),continuation:z.string().min(20).max(8192).optional(),label:z.string().min(1).max(120).optional(),helperGroup:z.enum(['workspace','files','shell','transfer','desktop']).optional()},
     securitySchemes:security(['remote:read']),annotations:annotations(false,false,false,false)
   },guarded(identity,['remote:read'],async(a,x)=>{
