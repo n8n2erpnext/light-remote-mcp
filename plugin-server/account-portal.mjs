@@ -3,10 +3,12 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { callOperatorJson } from './operator-client.mjs';
 import { PUBLIC_ORIGIN } from './config.mjs';
-import { mailConfig, sendMagicLogin, sendPasswordReset, sendUpgradeRequested, sendWelcome } from './mailer.mjs';
+import { mailConfig, sendMagicLogin, sendPasswordReset, sendUpgradeRequested, sendWelcomeVerification } from './mailer.mjs';
 import { beginGoogleAuth, finishGoogleAuth, googleAuthStatus } from './google-auth.mjs';
 
 const COOKIE='__Host-light_remote_account';
+const GOOGLE_SIGNUP_COOKIE='__Host-light_remote_google_signup';
+const PENDING_COOKIE='__Host-light_remote_pending';
 const RECOVERY_FILE=String(process.env.LIGHT_REMOTE_ACCOUNT_RECOVERY_FILE||'/etc/light-remote-direct/account-recovery.json');
 const portalFile=name=>fileURLToPath(new URL(`./account-portal/${name}`,import.meta.url));
 const publicAuthRate=new Map();
@@ -29,6 +31,14 @@ function setSessionCookie(res,token,expiresAt){
   res.set('Set-Cookie',`${COOKIE}=${encodeURIComponent(token)}; Path=/; Max-Age=${maxAge}; HttpOnly; Secure; SameSite=Strict; Priority=High`);
 }
 function clearSessionCookie(res){res.set('Set-Cookie',`${COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict; Priority=High`);}
+function setOpaqueCookie(res,name,value,expiresAt){const maxAge=Math.max(60,Math.floor((Number(expiresAt)-Date.now())/1000));res.append('Set-Cookie',name+'='+encodeURIComponent(value)+'; Path=/; Max-Age='+maxAge+'; HttpOnly; Secure; SameSite=Strict; Priority=High');}
+function clearOpaqueCookie(res,name){res.append('Set-Cookie',name+'=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict; Priority=High');}
+function opaqueCookie(req,name){return String(parseCookies(req.headers?.cookie||'')[name]||'');}
+async function sendRegistrationVerification(challenge){
+  if(!challenge?.token||!challenge?.pin||!challenge?.pending?.email)return {sent:false,reason:'challenge_not_issued'};
+  const verifyUrl=PUBLIC_ORIGIN+'/account/verify-email?token='+encodeURIComponent(challenge.token);
+  return sendWelcomeVerification({to:challenge.pending.email,verifyUrl,pin:challenge.pin,challengeExpiresAt:challenge.pending.challengeExpiresAt,pendingExpiresAt:challenge.pending.expiresAt}).catch(error=>({sent:false,reason:error?.message||'mail_failed'}));
+}
 function sameOriginMutation(req){
   const site=String(req.headers?.['sec-fetch-site']||'').toLowerCase();
   if(site==='cross-site')return false;
@@ -105,18 +115,26 @@ async function accountRecovery(req,res){
 function accountAudit(action,status,error=''){console.log(JSON.stringify({event:'account_portal',action,status,...(error?{error:String(error).slice(0,80)}:{})}));}
 async function accountApi(req,res){
   const action=String(req.query?.action||'').trim();
-  const mutations=new Set(['register','login','logout','password-change','password-reset-request','password-reset-complete','magic-request','enrollment-approve','device-revoke','device-remove','device-update','devices-revoke-all','redeem-license','main-device','main-device-clear','upgrade-request']);
+  const mutations=new Set(['register','login','logout','password-change','password-reset-request','password-reset-complete','magic-request','verification-resend','verification-verify','enrollment-approve','device-revoke','device-remove','device-update','devices-revoke-all','redeem-license','main-device','main-device-clear','upgrade-request']);
   if(mutations.has(action)&&!sameOriginMutation(req)){accountAudit(action,'cross_site_denied');return res.status(403).json({ok:false,error:'cross_site_request_denied'});}
   try{
-    if(action==='register'||action==='login'){
+    if(action==='register'){
       if(!method(req,res,'POST'))return;
-      const allowed=allowPublicAuth(req,action,action==='register'?{limit:4,windowMs:60*60_000}:{limit:12,windowMs:15*60_000});if(!allowed)return res.status(429).json({ok:false,error:'account_rate_limited'});
-      const target=action==='register'?'/v1/plugin/accounts/register':'/v1/accounts/login';
-      const upstream=await callOperatorJson('POST',target,{email:req.body?.email,password:req.body?.password,issueSession:true});
-      setSessionCookie(res,upstream.token,upstream.session?.expiresAt);
-      if(action==='register')sendWelcome({to:upstream.account?.email}).catch(error=>accountAudit('welcome-mail','error',error?.message||'mail_failed'));
-      accountAudit(action,'success');
-      return res.status(action==='register'?201:200).json({ok:true,account:upstream.account,session:upstream.session});
+      if(!allowPublicAuth(req,action,{limit:4,windowMs:60*60_000}))return res.status(429).json({ok:false,error:'account_rate_limited'});
+      const googleSignupToken=opaqueCookie(req,GOOGLE_SIGNUP_COOKIE);
+      const upstream=await callOperatorJson('POST','/v1/plugin/accounts/register',{email:req.body?.email,password:req.body?.password,googleSignupToken});
+      const pending=upstream.pending;if(!pending?.pendingId)throw Object.assign(new Error('pending_registration_missing'),{status:502});
+      setOpaqueCookie(res,PENDING_COOKIE,pending.pendingId,pending.expiresAt);clearOpaqueCookie(res,GOOGLE_SIGNUP_COOKIE);
+      const mail=upstream.existing?{sent:false,reason:'already_pending'}:await sendRegistrationVerification(upstream);
+      accountAudit('register','pending');
+      return res.status(201).json({ok:true,pending,existing:Boolean(upstream.existing),mail});
+    }
+    if(action==='login'){
+      if(!method(req,res,'POST'))return;
+      if(!allowPublicAuth(req,action,{limit:12,windowMs:15*60_000}))return res.status(429).json({ok:false,error:'account_rate_limited'});
+      const upstream=await callOperatorJson('POST','/v1/accounts/login',{email:req.body?.email,password:req.body?.password});
+      setSessionCookie(res,upstream.token,upstream.session?.expiresAt);accountAudit('login','success');
+      return res.status(200).json({ok:true,account:upstream.account,session:upstream.session});
     }
     if(action==='password-reset-request'){
       if(!method(req,res,'POST'))return;
@@ -147,6 +165,31 @@ async function accountApi(req,res){
     if(action==='auth-capabilities'){
       if(!method(req,res,'GET'))return;
       return res.status(200).json({ok:true,google:googleAuthStatus(),mailConfigured:Boolean(mailConfig())});
+    }
+    if(action==='google-signup-status'){
+      if(!method(req,res,'GET'))return;
+      const googleSignupToken=opaqueCookie(req,GOOGLE_SIGNUP_COOKIE);if(!googleSignupToken)return res.status(200).json({ok:true,active:false});
+      try{const out=await callOperatorJson('POST','/v1/plugin/auth/google-signup/inspect',{token:googleSignupToken});return res.status(200).json({ok:true,active:true,...out.intent});}
+      catch{clearOpaqueCookie(res,GOOGLE_SIGNUP_COOKIE);return res.status(200).json({ok:true,active:false});}
+    }
+    if(action==='verification-status'){
+      if(!method(req,res,'GET'))return;
+      const pendingId=opaqueCookie(req,PENDING_COOKIE);if(!pendingId)return res.status(200).json({ok:true,pending:null});
+      try{return res.status(200).json(await callOperatorJson('POST','/v1/plugin/accounts/registration/status',{pendingId}));}
+      catch(error){if(Number(error?.status)===404||Number(error?.status)===410)clearOpaqueCookie(res,PENDING_COOKIE);throw error;}
+    }
+    if(action==='verification-resend'){
+      if(!method(req,res,'POST'))return;
+      if(!allowPublicAuth(req,action,{limit:8,windowMs:60*60_000}))return res.status(429).json({ok:false,error:'account_rate_limited'});
+      const pendingId=opaqueCookie(req,PENDING_COOKIE);if(!pendingId)return res.status(404).json({ok:false,error:'pending_registration_not_found'});
+      const challenge=await callOperatorJson('POST','/v1/plugin/accounts/registration/resend',{pendingId}),mail=await sendRegistrationVerification(challenge);
+      accountAudit('verification-resend',mail.sent?'success':'mail_error',mail.sent?'':mail.reason);return res.status(200).json({ok:true,pending:challenge.pending,mail});
+    }
+    if(action==='verification-verify'){
+      if(!method(req,res,'POST'))return;
+      const pendingId=opaqueCookie(req,PENDING_COOKIE),upstream=await callOperatorJson('POST','/v1/plugin/accounts/registration/verify',{pendingId,pin:req.body?.pin||'',token:req.body?.token||''});
+      setSessionCookie(res,upstream.token,upstream.session?.expiresAt);clearOpaqueCookie(res,PENDING_COOKIE);clearOpaqueCookie(res,GOOGLE_SIGNUP_COOKIE);
+      accountAudit('verification-verify','success');return res.status(200).json({ok:true,account:upstream.account,session:upstream.session});
     }
     if(action==='me'||action==='devices'||action==='usage'){
       if(!method(req,res,'GET'))return;
@@ -208,7 +251,7 @@ async function accountApi(req,res){
       return res.status(200).json(await callOperatorJson('POST','/v1/accounts/redeem-license',{key:req.body?.key},headers(token)));
     }
     return res.status(400).json({ok:false,error:'unknown_account_action'});
-  }catch(error){if(action==='login'||action==='register')accountAudit(action,'error',error?.payload?.error||error?.message||'account_unavailable');return fail(res,error);}
+  }catch(error){if(['login','register','verification-resend','verification-verify'].includes(action))accountAudit(action,'error',error?.payload?.error||error?.message||'account_unavailable');return fail(res,error);}
 }
 
 async function accountMagic(req,res){
@@ -226,9 +269,10 @@ async function accountGoogleCallback(req,res){
   try{
     const identity=await finishGoogleAuth({state:req.query?.state,code:req.query?.code});
     const upstream=await callOperatorJson('POST','/v1/plugin/auth/google',identity);
-    setSessionCookie(res,upstream.token,upstream.session?.expiresAt);
-    if(upstream.created)sendWelcome({to:upstream.account?.email}).catch(error=>accountAudit('welcome-mail','error',error?.message||'mail_failed'));
-    accountAudit('google-login','success');return res.redirect(303,'/account');
+    if(upstream.registrationRequired){
+      setOpaqueCookie(res,GOOGLE_SIGNUP_COOKIE,upstream.googleSignupToken,upstream.expiresAt);accountAudit('google-signup-intent','success');return res.redirect(303,'/account/register?google=1');
+    }
+    setSessionCookie(res,upstream.token,upstream.session?.expiresAt);accountAudit('google-login','success');return res.redirect(303,'/account');
   }catch(error){accountAudit('google-login','error',error?.payload?.error||error?.message||'google_login_failed');return res.redirect(303,'/account/login?error=google_login_failed');}
 }
 
@@ -239,6 +283,7 @@ export function registerAccountPortal(app){
   app.get(['/account/settings','/account/settings/'],(_q,r)=>sendPortal(r,'settings.html'));
   app.get(['/account/login','/account/login/'],(_q,r)=>sendPortal(r,'login.html'));
   app.get(['/account/register','/account/register/'],(_q,r)=>sendPortal(r,'register.html'));
+  app.get(['/account/verify-email','/account/verify-email/'],(_q,r)=>sendPortal(r,'verify-email.html'));
   app.get(['/account/reset','/account/reset/'],(_q,r)=>sendPortal(r,'reset.html'));
   app.get('/account/magic',accountMagic);
   app.get('/account/google',accountGoogleBegin);

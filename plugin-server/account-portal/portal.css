@@ -149,3 +149,33 @@ html[data-theme="light"] .home-body{background:#f5f7fa;color:#17202b}html[data-t
 @media(max-width:1180px){.demo-stream-head small{display:none}.demo-stream-list{height:330px;min-height:330px}}
 @media(max-width:600px){.demo-stream-list{height:300px;min-height:300px}}
 @media(prefers-reduced-motion:reduce){.demo-stream-row{transition:none}.demo-stream-row.is-entering{opacity:1;transform:none}.demo-stream-row.is-leaving{display:none}}
+
+/* registration verification + admin groups */
+.provider-confirmed{display:flex;align-items:center;gap:12px;padding:12px 14px;margin:0 0 18px;border:1px solid #244b39;border-radius:12px;background:#0d1d17}
+.provider-dot{width:10px;height:10px;border-radius:50%;background:#35e879;box-shadow:0 0 16px rgba(53,232,121,.35)}
+.verification-card{max-width:560px}
+.pin-input{font-family:'Cascadia Code',monospace;font-size:28px!important;font-weight:800;letter-spacing:.28em;text-align:center}
+.verification-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0}
+.verification-meta>div{padding:12px;border:1px solid var(--line,#26313a);border-radius:10px;background:#0c1115}
+.verification-meta span{display:block;color:#738292;font-size:10px;text-transform:uppercase;letter-spacing:.08em}
+.verification-meta strong{display:block;margin-top:5px;font-family:'Cascadia Code',monospace;font-size:12px;color:#dce5ec}
+.verification-resend{display:grid;gap:8px;margin:14px 0}
+.verification-success{text-align:center;padding:10px 0 4px}
+.success-orb{display:grid;place-items:center;width:54px;height:54px;margin:0 auto 18px;border-radius:50%;background:#39e884;color:#07130d;font-size:28px;font-weight:900;box-shadow:0 0 32px rgba(57,232,132,.18)}
+.success-orb.expired{background:#ffcc00;color:#12100a}
+.admin-head-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.admin-group-filter{min-width:180px}
+.admin-group-manager{margin-bottom:14px}
+.admin-group-toolbar{display:flex;align-items:end;gap:10px;flex-wrap:wrap;padding:16px}
+.admin-group-toolbar label{display:grid;gap:7px;min-width:220px;color:#8d9aaa;font-size:12px}
+.admin-group-toolbar input,.admin-group-toolbar select{width:100%}
+.admin-group-grid{display:flex;gap:8px;flex-wrap:wrap;padding:0 16px 16px}
+.admin-group-chip{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid #28323a;border-radius:10px;background:#0c1115}
+.admin-group-chip strong{font-size:12px}
+.admin-group-chip span{font-family:'Cascadia Code',monospace;color:#7e8c99;font-size:10px}
+.admin-group-chip button{padding:4px 7px;font-size:10px}
+.admin-account-actions{flex-wrap:wrap}
+.admin-account-actions select{min-width:108px}
+.pending-email{font-weight:700}
+.pending-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:5px;color:#738292;font-family:'Cascadia Code',monospace;font-size:10px}
+@media(max-width:700px){.verification-meta{grid-template-columns:1fr}.admin-head-actions{width:100%}.admin-search,.admin-group-filter{width:100%}}

@@ -100,9 +100,9 @@ try{
   assert.equal(r.status,201,'bootstrap_register');
 
   r=await request('POST','/v1/plugin/accounts/register',{email:'adapter-a@example.test',password:'Adapter A password 12345'});
-  assert.equal(r.status,201,'tenant_a_register');const accountA=r.json.account.accountId;
+  assert.equal(r.status,201,'tenant_a_pending');r=await request('POST','/v1/plugin/accounts/registration/verify',{pendingId:r.json.pending.pendingId,token:r.json.token,issueSession:false});assert.equal(r.status,200,'tenant_a_verify');const accountA=r.json.account.accountId;
   r=await request('POST','/v1/plugin/accounts/register',{email:'adapter-b@example.test',password:'Adapter B password 12345'});
-  assert.equal(r.status,201,'tenant_b_register');const accountB=r.json.account.accountId;
+  assert.equal(r.status,201,'tenant_b_pending');r=await request('POST','/v1/plugin/accounts/registration/verify',{pendingId:r.json.pending.pendingId,token:r.json.token,issueSession:false});assert.equal(r.status,200,'tenant_b_verify');const accountB=r.json.account.accountId;
   assert.notEqual(accountA,accountB,'hosted_ids_unique');
 
   const stateFile=path.join(stateDir,'accounts.json');

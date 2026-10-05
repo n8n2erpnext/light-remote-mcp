@@ -23,11 +23,13 @@ export function registerAdminPortal(app){
   app.all('/admin/api',async(req,res)=>{
     const admin=await requireAdmin(req,res);if(!admin)return;
     const action=String(req.query?.action||'').trim();
-    const mutations=new Set(['set-plan','issue-license','revoke-license','resolve-upgrade','mail-test','google-config']);
+    const mutations=new Set(['set-plan','set-group','create-group','rename-group','delete-group','cancel-pending','issue-license','revoke-license','resolve-upgrade','mail-test','google-config']);
     if(mutations.has(action)&&!sameOrigin(req))return res.status(403).json({ok:false,error:'cross_site_request_denied'});
     try{
       if(action==='overview'&&req.method==='GET')return res.json(await callOperatorJson('GET','/v1/admin/overview'));
       if(action==='accounts'&&req.method==='GET')return res.json(await callOperatorJson('GET','/v1/admin/accounts'));
+      if(action==='groups'&&req.method==='GET')return res.json(await callOperatorJson('GET','/v1/admin/groups'));
+      if(action==='pending'&&req.method==='GET')return res.json(await callOperatorJson('GET','/v1/admin/pending-registrations'));
       if(action==='licenses'&&req.method==='GET')return res.json(await callOperatorJson('GET','/v1/admin/licenses'));
       if(action==='upgrades'&&req.method==='GET')return res.json(await callOperatorJson('GET','/v1/admin/upgrades'));
       if(action==='mail-status'&&req.method==='GET')return res.json({ok:true,configured:Boolean(mailConfig()),google:googleAuthStatus()});
@@ -39,6 +41,11 @@ export function registerAdminPortal(app){
         if(['pro','vip'].includes(String(out.account?.plan||'')))sendUpgradeActivated({to:out.account?.email,plan:out.account.plan,validUntil:out.account?.entitlement?.validUntil||null}).catch(()=>{});
         return res.json(out);
       }
+      if(action==='set-group'&&req.method==='POST'){const id=String(req.body?.accountId||''),groupId=String(req.body?.groupId||'');return res.json(await callOperatorJson('POST','/v1/admin/accounts/'+encodeURIComponent(id)+'/group',{groupId}));}
+      if(action==='create-group'&&req.method==='POST')return res.status(201).json(await callOperatorJson('POST','/v1/admin/groups',{name:req.body?.name}));
+      if(action==='rename-group'&&req.method==='POST'){const id=String(req.body?.groupId||'');return res.json(await callOperatorJson('POST','/v1/admin/groups/'+encodeURIComponent(id),{name:req.body?.name}));}
+      if(action==='delete-group'&&req.method==='POST'){const id=String(req.body?.groupId||'');return res.json(await callOperatorJson('DELETE','/v1/admin/groups/'+encodeURIComponent(id),{moveTo:req.body?.moveTo||'grp_default'}));}
+      if(action==='cancel-pending'&&req.method==='POST'){const id=String(req.body?.pendingId||'');return res.json(await callOperatorJson('POST','/v1/admin/pending-registrations/'+encodeURIComponent(id)+'/cancel',{reason:'web_admin'}));}
       if(action==='issue-license'&&req.method==='POST'){
         const out=await callOperatorJson('POST','/v1/admin/licenses/issue',{plan:req.body?.plan,durationDays:req.body?.durationDays,maxRedemptions:req.body?.maxRedemptions,label:req.body?.label||''});
         let mail={sent:false,reason:'recipient_not_provided'};const recipient=String(req.body?.recipient||'').trim();

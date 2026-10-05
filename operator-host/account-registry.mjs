@@ -11,6 +11,18 @@ const OWNER_PROOF_TTL_MS=5*60*1000;
 const ACCOUNT_PLANS=new Set(['free','pro','vip']);
 const PLAN_RANK=Object.freeze({free:0,pro:1,vip:2});
 const FLEET_PROVISION_STATES=new Set(['starting','configuring','ready','online','update_required','failed']);
+const PENDING_REG_TTL_MS=24*60*60*1000;
+const VERIFICATION_TTL_MS=30*60*1000;
+const VERIFICATION_RESEND_BACKOFF_MS=[60_000,120_000,5*60_000,15*60_000];
+const MAX_VERIFICATION_SENDS=5;
+const MAX_PIN_ATTEMPTS=3;
+const DEFAULT_GROUPS=Object.freeze([
+  {groupId:'grp_default',name:'Default',protected:true},
+  {groupId:'grp_internal',name:'Internal',protected:false},
+  {groupId:'grp_reviewer',name:'Reviewer',protected:false},
+  {groupId:'grp_customers',name:'Customers',protected:false},
+  {groupId:'grp_partners',name:'Partners',protected:false}
+]);
 function normalizePlan(value){const plan=String(value||'free').trim().toLowerCase();if(!ACCOUNT_PLANS.has(plan))throw new AccountError('invalid_account_plan');return plan;}
 function entitlementView(row,now){
   const e=row.entitlement;
@@ -40,12 +52,12 @@ export class AccountRegistry{
   constructor({stateFile=null,bootstrapAccountId='self-hosted-local',sessionTtlMs=7*24*60*60*1000,now=()=>Date.now(),emit=()=>{}}={}){
     if(!ACCOUNT_RE.test(String(bootstrapAccountId||'')))throw new AccountError('invalid_bootstrap_account_id');
     this.stateFile=stateFile;this.bootstrapAccountId=String(bootstrapAccountId);this.sessionTtlMs=Math.max(30*60*1000,Math.min(Number(sessionTtlMs)||7*24*60*60*1000,30*24*60*60*1000));
-    this.now=now;this.emit=emit;this.accounts=new Map();this.byEmail=new Map();this.sessions=new Map();this.ownerProofs=new Map();this.oneTimeTokens=new Map();this.upgradeRequests=new Map();this.loadError=null;this._load();
+    this.now=now;this.emit=emit;this.accounts=new Map();this.byEmail=new Map();this.sessions=new Map();this.ownerProofs=new Map();this.oneTimeTokens=new Map();this.upgradeRequests=new Map();this.pendingRegistrations=new Map();this.googleSignupIntents=new Map();this.groups=new Map();this.loadError=null;this._load();this._ensureGroups();this._prune();
   }
   _persist(){
     if(!this.stateFile)return;
     const dir=path.dirname(this.stateFile);fs.mkdirSync(dir,{recursive:true,mode:0o750});
-    const payload={schemaVersion:2,accounts:[...this.accounts.values()],sessions:[...this.sessions.values()],oneTimeTokens:[...this.oneTimeTokens.values()],upgradeRequests:[...this.upgradeRequests.values()]};
+    const payload={schemaVersion:2,accounts:[...this.accounts.values()],sessions:[...this.sessions.values()],oneTimeTokens:[...this.oneTimeTokens.values()],upgradeRequests:[...this.upgradeRequests.values()],pendingRegistrations:[...this.pendingRegistrations.values()],googleSignupIntents:[...this.googleSignupIntents.values()],groups:[...this.groups.values()]};
     const tmp=`${this.stateFile}.${process.pid}.tmp`;fs.writeFileSync(tmp,`${JSON.stringify(payload,null,2)}\n`,{mode:0o600});fs.chmodSync(tmp,0o600);fs.renameSync(tmp,this.stateFile);
   }
   _load(){
@@ -57,16 +69,41 @@ export class AccountRegistry{
       for(const row of data.sessions)if(row?.tokenHash&&this.accounts.has(row.accountId))this.sessions.set(row.tokenHash,row);
       for(const row of Array.isArray(data.oneTimeTokens)?data.oneTimeTokens:[])if(row?.tokenHash&&this.accounts.has(row.accountId))this.oneTimeTokens.set(row.tokenHash,row);
       for(const row of Array.isArray(data.upgradeRequests)?data.upgradeRequests:[])if(row?.requestId&&this.accounts.has(row.accountId))this.upgradeRequests.set(row.requestId,row);
+      for(const row of Array.isArray(data.pendingRegistrations)?data.pendingRegistrations:[])if(row?.pendingId&&row?.email&&row?.passwordHash)this.pendingRegistrations.set(row.pendingId,row);
+      for(const row of Array.isArray(data.googleSignupIntents)?data.googleSignupIntents:[])if(row?.tokenHash&&row?.email&&row?.sub)this.googleSignupIntents.set(row.tokenHash,row);
+      for(const row of Array.isArray(data.groups)?data.groups:[])if(row?.groupId&&row?.name)this.groups.set(row.groupId,row);
       this._prune(false);
-    }catch(error){this.accounts.clear();this.byEmail.clear();this.sessions.clear();this.oneTimeTokens.clear();this.upgradeRequests.clear();this.loadError=error?.message||'invalid_account_state';}
+    }catch(error){this.accounts.clear();this.byEmail.clear();this.sessions.clear();this.oneTimeTokens.clear();this.upgradeRequests.clear();this.pendingRegistrations.clear();this.googleSignupIntents.clear();this.groups.clear();this.loadError=error?.message||'invalid_account_state';}
+  }
+  _ensureGroups(){
+    let changed=false;
+    for(const g of DEFAULT_GROUPS)if(!this.groups.has(g.groupId)){this.groups.set(g.groupId,{...g,createdAt:this.now()});changed=true;}
+    for(const row of this.accounts.values()){
+      if(row.groupId&&this.groups.has(row.groupId))continue;
+      const email=normalizeEmail(row.email),aid=String(row.accountId||'').toLowerCase();
+      row.groupId=(aid.includes('reviewer')||email.includes('reviewer'))?'grp_reviewer':(aid===String(this.bootstrapAccountId).toLowerCase()||aid.includes('production')||aid.includes('bootstrap'))?'grp_internal':'grp_customers';changed=true;
+    }
+    if(changed)this._persist();
   }
   _prune(persist=true){
     const now=this.now();let changed=false;
     for(const [hash,row] of this.sessions)if(row.expiresAt<=now||!this.accounts.has(row.accountId)){this.sessions.delete(hash);changed=true;}
     for(const [hash,row] of this.oneTimeTokens)if(row.expiresAt<=now||!this.accounts.has(row.accountId)){this.oneTimeTokens.delete(hash);changed=true;}
+    for(const [id,row] of this.pendingRegistrations)if(Number(row.expiresAt)<=now){this.pendingRegistrations.delete(id);changed=true;this.emit({type:'account_pending_registration_expired',pendingId:id,status:'expired'});}
+    for(const [hash,row] of this.googleSignupIntents)if(Number(row.expiresAt)<=now){this.googleSignupIntents.delete(hash);changed=true;}
     if(changed&&persist)this._persist();return changed;
   }
-  _viewAccount(row){const entitlement=entitlementView(row,this.now()),fleetProvisioning=row.fleetProvisioning&&FLEET_PROVISION_STATES.has(row.fleetProvisioning.state)?{...row.fleetProvisioning}:null,providers=[];if(row.passwordEnabled!==false)providers.push('password');if(row.googleSub)providers.push('google');return {accountId:row.accountId,email:row.email,emailVerified:Boolean(row.emailVerified),authProviders:providers,plan:entitlement.plan,entitlement,mainDeviceId:row.mainDeviceId||null,fleetProvisioning,status:row.status||'active',createdAt:row.createdAt,lastLoginAt:row.lastLoginAt||null};}
+  _groupFor(row){return this.groups.get(row.groupId)||this.groups.get('grp_default')||{groupId:'grp_default',name:'Default'};}
+  _viewAccount(row){const entitlement=entitlementView(row,this.now()),fleetProvisioning=row.fleetProvisioning&&FLEET_PROVISION_STATES.has(row.fleetProvisioning.state)?{...row.fleetProvisioning}:null,providers=[],group=this._groupFor(row);if(row.passwordEnabled!==false)providers.push('password');if(row.googleSub)providers.push('google');return {accountId:row.accountId,email:row.email,emailVerified:Boolean(row.emailVerified),authProviders:providers,plan:entitlement.plan,entitlement,groupId:group.groupId,groupName:group.name,mainDeviceId:row.mainDeviceId||null,fleetProvisioning,status:row.status||'active',createdAt:row.createdAt,lastLoginAt:row.lastLoginAt||null};}
+  _viewPending(row){return {pendingId:row.pendingId,email:row.email,maskedEmail:String(row.email).replace(/^(.{1,2}).*(@.*)$/,'$1••••$2'),provider:row.provider,createdAt:row.createdAt,expiresAt:row.expiresAt,challengeExpiresAt:row.challengeExpiresAt||null,sendCount:Number(row.sendCount)||0,maxSends:MAX_VERIFICATION_SENDS,resendAvailableAt:row.resendAvailableAt||null,pinAttempts:Number(row.pinAttempts)||0,maxPinAttempts:MAX_PIN_ATTEMPTS,challengeLocked:Boolean(row.challengeLocked)};}
+  _newPendingChallenge(row){
+    const now=this.now();if((Number(row.sendCount)||0)>=MAX_VERIFICATION_SENDS)throw new AccountError('verification_send_limit_reached',429);
+    const token=crypto.randomBytes(32).toString('base64url'),pin=String(crypto.randomInt(0,1_000_000)).padStart(6,'0');
+    row.verificationTokenHash=sha256(token);row.verificationPinHash=passwordHash(pin);row.challengeExpiresAt=now+VERIFICATION_TTL_MS;row.pinAttempts=0;row.challengeLocked=false;row.sendCount=(Number(row.sendCount)||0)+1;row.lastSentAt=now;
+    row.resendAvailableAt=row.sendCount<MAX_VERIFICATION_SENDS?now+VERIFICATION_RESEND_BACKOFF_MS[Math.min(row.sendCount-1,VERIFICATION_RESEND_BACKOFF_MS.length-1)]:null;
+    this._persist();this.emit({type:'account_verification_challenge_issued',pendingId:row.pendingId,status:'pending',sendCount:row.sendCount,challengeExpiresAt:row.challengeExpiresAt});
+    return {pending:this._viewPending(row),token,pin};
+  }
   _issue(account){
     this._prune(false);
     const token=crypto.randomBytes(32).toString('base64url'),tokenHash=sha256(token),now=this.now();
@@ -102,7 +139,7 @@ export class AccountRegistry{
     if(rawPassword.length<10||rawPassword.length>1024)throw new AccountError('invalid_password');
     if(this.byEmail.has(normalizedEmail))throw new AccountError('account_email_exists',409);
     if(this.accounts.has(aid))throw new AccountError('account_id_exists',409);
-    const now=this.now(),row={accountId:aid,email:normalizedEmail,passwordHash:passwordHash(rawPassword),passwordEnabled:Boolean(passwordEnabled),emailVerified:Boolean(emailVerified),googleSub:googleSub?String(googleSub).slice(0,256):null,plan:normalizePlan(plan),mainDeviceId:null,status:'active',createdAt:now,lastLoginAt:now};
+    const now=this.now(),row={accountId:aid,email:normalizedEmail,passwordHash:passwordHash(rawPassword),passwordEnabled:Boolean(passwordEnabled),emailVerified:Boolean(emailVerified),googleSub:googleSub?String(googleSub).slice(0,256):null,plan:normalizePlan(plan),groupId:source==='bootstrap'?'grp_internal':'grp_customers',mainDeviceId:null,status:'active',createdAt:now,lastLoginAt:now};
     this.accounts.set(aid,row);this.byEmail.set(normalizedEmail,aid);this._persist();
     this.emit({type:'account_registered',accountId:aid,status:'active',source:String(source||'hosted').slice(0,40)});
     return row;
@@ -169,6 +206,77 @@ export class AccountRegistry{
     if(!row){let accountId='';for(let i=0;i<8;i++){const candidate=`acct_${crypto.randomUUID()}`;if(!this.accounts.has(candidate)){accountId=candidate;break;}}if(!accountId)throw new AccountError('account_id_generation_failed',500);row=this._createAccount({accountId,email,password:crypto.randomBytes(32).toString('base64url'),plan:'free',source:'google',emailVerified:true,googleSub:sub,passwordEnabled:false});created=true;}
     row.googleSub=sub;row.emailVerified=true;row.lastLoginAt=this.now();this._persist();this.emit({type:'account_google_login',accountId:row.accountId,status:'ok'});return {...this._issue(row),created};
   }
+  googleLoginOrSignupIntent(input={}){
+    this._prune();const sub=String(input.sub||'').trim(),email=normalizeEmail(input.email),verified=input.emailVerified===true;
+    if(!sub||sub.length>256||!verified||!EMAIL_RE.test(email))throw new AccountError('invalid_google_identity',401);
+    let row=[...this.accounts.values()].find(x=>x.googleSub===sub)||null;
+    if(row&&normalizeEmail(row.email)!==email)throw new AccountError('google_identity_email_mismatch',409);
+    if(!row){const aid=this.byEmail.get(email);row=aid?this.accounts.get(aid):null;if(row?.googleSub&&row.googleSub!==sub)throw new AccountError('google_identity_conflict',409);}
+    if(row){row.googleSub=sub;row.emailVerified=true;row.lastLoginAt=this.now();this._persist();this.emit({type:'account_google_login',accountId:row.accountId,status:'ok'});return {registrationRequired:false,...this._issue(row)};}
+    for(const [hash,item] of this.googleSignupIntents)if(item.sub===sub||item.email===email)this.googleSignupIntents.delete(hash);
+    const token=crypto.randomBytes(32).toString('base64url'),tokenHash=sha256(token),now=this.now(),expiresAt=now+15*60_000;
+    this.googleSignupIntents.set(tokenHash,{tokenHash,sub,email,createdAt:now,expiresAt});this._persist();
+    this.emit({type:'account_google_signup_intent',status:'pending',expiresAt});return {registrationRequired:true,googleSignupToken:token,email,expiresAt};
+  }
+  googleSignupIntent(token){
+    this._prune();const item=this.googleSignupIntents.get(sha256(token));if(!item||item.expiresAt<=this.now())throw new AccountError('google_signup_intent_invalid',401);
+    return {email:item.email,expiresAt:item.expiresAt};
+  }
+  beginPendingRegistration(input={}){
+    this._prune();let email=normalizeEmail(input.email),googleSub=null,provider='password';
+    const rawPassword=String(input.password||'');if(rawPassword.length<10||rawPassword.length>1024)throw new AccountError('invalid_password');
+    if(input.googleSignupToken){const hash=sha256(input.googleSignupToken),intent=this.googleSignupIntents.get(hash);if(!intent||intent.expiresAt<=this.now())throw new AccountError('google_signup_intent_invalid',401);email=intent.email;googleSub=intent.sub;provider='google';}
+    if(!EMAIL_RE.test(email)||email.length>254)throw new AccountError('invalid_email');
+    if(this.byEmail.has(email))throw new AccountError('account_email_exists',409);
+    const existing=[...this.pendingRegistrations.values()].find(x=>x.email===email&&x.expiresAt>this.now());
+    if(existing)return {existing:true,pending:this._viewPending(existing)};
+    const now=this.now(),pendingId='preg_'+crypto.randomUUID(),row={pendingId,email,passwordHash:passwordHash(rawPassword),googleSub,provider,createdAt:now,expiresAt:now+PENDING_REG_TTL_MS,sendCount:0,challengeExpiresAt:null,resendAvailableAt:null,pinAttempts:0,challengeLocked:false};
+    this.pendingRegistrations.set(pendingId,row);
+    if(input.googleSignupToken)this.googleSignupIntents.delete(sha256(input.googleSignupToken));
+    const challenge=this._newPendingChallenge(row);this.emit({type:'account_pending_registration_created',pendingId,status:'pending',provider,expiresAt:row.expiresAt});return {existing:false,...challenge};
+  }
+  pendingRegistration(pendingId){this._prune();const row=this.pendingRegistrations.get(String(pendingId||''));if(!row)throw new AccountError('pending_registration_not_found',404);return this._viewPending(row);}
+  resendPendingVerification(pendingId){
+    this._prune();const row=this.pendingRegistrations.get(String(pendingId||''));if(!row)throw new AccountError('pending_registration_not_found',404);
+    if(row.sendCount>=MAX_VERIFICATION_SENDS)throw new AccountError('verification_send_limit_reached',429);
+    if(row.resendAvailableAt&&row.resendAvailableAt>this.now())throw new AccountError('verification_resend_cooldown',429);
+    return this._newPendingChallenge(row);
+  }
+  verifyPendingRegistration({pendingId='',pin='',token='',issueSession=true}={}){
+    this._prune();let row=pendingId?this.pendingRegistrations.get(String(pendingId)):null;
+    if(!row&&token){const h=sha256(token);row=[...this.pendingRegistrations.values()].find(x=>x.verificationTokenHash===h)||null;}
+    if(!row)throw new AccountError('pending_registration_not_found',404);
+    const now=this.now();if(row.expiresAt<=now){this.pendingRegistrations.delete(row.pendingId);this._persist();throw new AccountError('pending_registration_expired',410);}
+    if(row.challengeLocked)throw new AccountError('verification_challenge_locked',423);
+    if(!row.challengeExpiresAt||row.challengeExpiresAt<=now)throw new AccountError('verification_challenge_expired',410);
+    let valid=false;
+    if(token)valid=safeEqual(row.verificationTokenHash,sha256(token));
+    else if(/^\d{6}$/.test(String(pin||'')))valid=verifyPassword(String(pin),row.verificationPinHash);
+    else throw new AccountError('verification_pin_invalid',401);
+    if(!valid){
+      if(token){this.emit({type:'account_verification_failed',pendingId:row.pendingId,status:'invalid_link'});throw new AccountError('verification_link_invalid',401);}
+      row.pinAttempts=(Number(row.pinAttempts)||0)+1;
+      if(row.pinAttempts>=MAX_PIN_ATTEMPTS)row.challengeLocked=true;
+      this._persist();this.emit({type:'account_verification_failed',pendingId:row.pendingId,status:row.challengeLocked?'locked':'invalid',pinAttempts:row.pinAttempts});
+      throw new AccountError(row.challengeLocked?'verification_challenge_locked':'verification_pin_invalid',row.challengeLocked?423:401);
+    }
+    if(this.byEmail.has(row.email))throw new AccountError('account_email_exists',409);
+    let accountId='';for(let i=0;i<8;i++){const candidate='acct_'+crypto.randomUUID();if(!this.accounts.has(candidate)){accountId=candidate;break;}}if(!accountId)throw new AccountError('account_id_generation_failed',500);
+    const account={accountId,email:row.email,passwordHash:row.passwordHash,passwordEnabled:true,emailVerified:true,googleSub:row.googleSub?String(row.googleSub):null,plan:'free',groupId:'grp_customers',mainDeviceId:null,status:'active',createdAt:now,lastLoginAt:now};
+    this.accounts.set(accountId,account);this.byEmail.set(row.email,accountId);this.pendingRegistrations.delete(row.pendingId);this._persist();
+    this.emit({type:'account_registered',accountId,status:'active',source:row.provider||'verified'});this.emit({type:'account_email_verified',accountId,status:'ok'});
+    return issueSession?this._issue(account):{account:this._viewAccount(account),token:null,session:null};
+  }
+  cancelPendingRegistration(pendingId,{reason='admin_cancelled'}={}){
+    this._prune();const id=String(pendingId||''),row=this.pendingRegistrations.get(id);if(!row)throw new AccountError('pending_registration_not_found',404);
+    this.pendingRegistrations.delete(id);this._persist();this.emit({type:'account_pending_registration_cancelled',pendingId:id,status:'cancelled',reason:String(reason).slice(0,80)});return this._viewPending(row);
+  }
+  listPendingRegistrations(){this._prune();return [...this.pendingRegistrations.values()].map(row=>this._viewPending(row)).sort((a,b)=>a.createdAt-b.createdAt);}
+  listGroups(){const counts=new Map();for(const row of this.accounts.values())counts.set(row.groupId,(counts.get(row.groupId)||0)+1);return [...this.groups.values()].map(g=>({...g,accountCount:counts.get(g.groupId)||0})).sort((a,b)=>a.name.localeCompare(b.name));}
+  createGroup(name){const value=String(name||'').trim();if(value.length<1||value.length>50)throw new AccountError('invalid_group_name');if([...this.groups.values()].some(g=>g.name.toLowerCase()===value.toLowerCase()))throw new AccountError('group_name_exists',409);const row={groupId:'grp_'+crypto.randomUUID(),name:value,protected:false,createdAt:this.now()};this.groups.set(row.groupId,row);this._persist();return {...row,accountCount:0};}
+  renameGroup(groupId,name){const row=this.groups.get(String(groupId||''));if(!row)throw new AccountError('group_not_found',404);const value=String(name||'').trim();if(value.length<1||value.length>50)throw new AccountError('invalid_group_name');if([...this.groups.values()].some(g=>g.groupId!==row.groupId&&g.name.toLowerCase()===value.toLowerCase()))throw new AccountError('group_name_exists',409);row.name=value;this._persist();return {...row};}
+  deleteGroup(groupId,{moveTo='grp_default'}={}){const id=String(groupId||''),row=this.groups.get(id);if(!row)throw new AccountError('group_not_found',404);if(row.protected)throw new AccountError('group_protected',409);const target=this.groups.get(String(moveTo||'grp_default'));if(!target||target.groupId===id)throw new AccountError('invalid_group_target');let moved=0;for(const account of this.accounts.values())if(account.groupId===id){account.groupId=target.groupId;moved++;}this.groups.delete(id);this._persist();return {deleted:id,movedTo:target.groupId,moved};}
+  setAccountGroup(accountId,groupId){const row=this.accounts.get(String(accountId||''));if(!row)throw new AccountError('account_not_found',404);const group=this.groups.get(String(groupId||''));if(!group)throw new AccountError('group_not_found',404);row.groupId=group.groupId;this._persist();return this._viewAccount(row);}
   authenticate(token,{touch=true}={}){
     this._prune();const hash=sha256(token),session=this.sessions.get(hash);
     if(!session)throw new AccountError('account_session_required',401);

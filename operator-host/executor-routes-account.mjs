@@ -3,11 +3,32 @@ export async function handleAccountRoutes(req,res,url,deps){
     if (req.method === 'GET' && url.pathname === '/v1/admin/overview') {
       const accountRows=accounts.list(),deviceRows=allDeviceViews(),current=accountRows.map(account=>({account,entitlements:planEntitlements(account),usage:usage.summary(account.accountId,{months:1})}));
       const toolCallsThisMonth=current.reduce((sum,row)=>sum+(Number(row.usage.toolCallsThisMonth)||0),0),plans=current.reduce((out,row)=>{const key=String(row.account.plan||'free');out[key]=(out[key]||0)+1;return out;},{});
-      return sendJson(res,200,{ok:true,overview:{accounts:accountRows.length,devices:deviceRows.length,onlineDevices:deviceRows.filter(d=>d.state==='online').length,toolCallsThisMonth,plans}});
+      return sendJson(res,200,{ok:true,overview:{accounts:accountRows.length,pendingRegistrations:accounts.listPendingRegistrations().length,groups:accounts.listGroups().length,devices:deviceRows.length,onlineDevices:deviceRows.filter(d=>d.state==='online').length,toolCallsThisMonth,plans}});
     }
     if (req.method === 'GET' && url.pathname === '/v1/admin/accounts') {
       const deviceRows=allDeviceViews();
       return sendJson(res,200,{ok:true,accounts:accounts.list().map(account=>({account,entitlements:planEntitlements(account),usage:usage.summary(account.accountId,{months:1}),devices:deviceRows.filter(d=>d.accountId===account.accountId).map(d=>({deviceId:d.deviceId,displayName:d.displayName,state:d.state,platform:d.platform,architecture:d.architecture}))}))});
+    }
+    if (req.method === 'GET' && url.pathname === '/v1/admin/pending-registrations') {
+      return sendJson(res,200,{ok:true,pending:accounts.listPendingRegistrations()});
+    }
+    const adminPendingCancel=url.pathname.match(/^\/v1\/admin\/pending-registrations\/(preg_[A-Za-z0-9-]+)\/cancel$/);
+    if(req.method==='POST'&&adminPendingCancel){
+      const body=await readJson(req),pending=accounts.cancelPendingRegistration(adminPendingCancel[1],{reason:body.reason||'web_admin'});
+      return sendJson(res,200,{ok:true,pending});
+    }
+    if (req.method === 'GET' && url.pathname === '/v1/admin/groups') {
+      return sendJson(res,200,{ok:true,groups:accounts.listGroups()});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/admin/groups') {
+      const body=await readJson(req),group=accounts.createGroup(body.name);return sendJson(res,201,{ok:true,group});
+    }
+    const adminGroupMatch=url.pathname.match(/^\/v1\/admin\/groups\/(grp_[A-Za-z0-9-]+)$/);
+    if(req.method==='POST'&&adminGroupMatch){
+      const body=await readJson(req),group=accounts.renameGroup(adminGroupMatch[1],body.name);return sendJson(res,200,{ok:true,group});
+    }
+    if(req.method==='DELETE'&&adminGroupMatch){
+      const body=await readJson(req),result=accounts.deleteGroup(adminGroupMatch[1],{moveTo:body.moveTo||'grp_default'});return sendJson(res,200,{ok:true,result});
     }
     if (req.method === 'GET' && url.pathname === '/v1/admin/licenses') {
       return sendJson(res,200,{ok:true,licenses:licenses.list()});
@@ -36,6 +57,10 @@ export async function handleAccountRoutes(req,res,url,deps){
     if(req.method==='POST'&&adminPasswordReset){
       const body=await readJson(req),account=accounts.resetPassword(adminPasswordReset[1],body.password,{invalidateSessions:true});
       return sendJson(res,200,{ok:true,account});
+    }
+    const adminGroupAssign=url.pathname.match(/^\/v1\/admin\/accounts\/([A-Za-z0-9._:-]+)\/group$/);
+    if(req.method==='POST'&&adminGroupAssign){
+      const body=await readJson(req),account=accounts.setAccountGroup(adminGroupAssign[1],body.groupId);return sendJson(res,200,{ok:true,account});
     }
     const adminEntitlementMatch=url.pathname.match(/^\/v1\/admin\/accounts\/([A-Za-z0-9._:-]+)\/entitlement$/);
     if (req.method === 'POST' && adminEntitlementMatch) {
@@ -72,8 +97,20 @@ export async function handleAccountRoutes(req,res,url,deps){
       return sendJson(res,200,{ok:true,proof});
     }
     if (req.method === 'POST' && url.pathname === '/v1/plugin/accounts/register') {
-      const body=await readJson(req),created=accounts.registerHosted({email:body.email,password:body.password},{issueSession:body.issueSession!==false});
-      return sendJson(res,201,{ok:true,...created,entitlements:planEntitlements(created.account)});
+      const body=await readJson(req),pending=accounts.beginPendingRegistration({email:body.email,password:body.password,googleSignupToken:body.googleSignupToken||''});
+      return sendJson(res,201,{ok:true,...pending});
+    }
+    if(req.method==='POST'&&url.pathname==='/v1/plugin/accounts/registration/status'){
+      const body=await readJson(req),pending=accounts.pendingRegistration(body.pendingId);return sendJson(res,200,{ok:true,pending});
+    }
+    if(req.method==='POST'&&url.pathname==='/v1/plugin/accounts/registration/resend'){
+      const body=await readJson(req),challenge=accounts.resendPendingVerification(body.pendingId);return sendJson(res,200,{ok:true,...challenge});
+    }
+    if(req.method==='POST'&&url.pathname==='/v1/plugin/accounts/registration/verify'){
+      const body=await readJson(req),logged=accounts.verifyPendingRegistration({pendingId:body.pendingId||'',pin:body.pin||'',token:body.token||'',issueSession:body.issueSession!==false});return sendJson(res,200,{ok:true,...logged,entitlements:planEntitlements(logged.account)});
+    }
+    if(req.method==='POST'&&url.pathname==='/v1/plugin/auth/google-signup/inspect'){
+      const body=await readJson(req),intent=accounts.googleSignupIntent(body.token);return sendJson(res,200,{ok:true,intent});
     }
     if (req.method === 'POST' && url.pathname === '/v1/plugin/auth/verify') {
       const body=await readJson(req),account=accounts.verifyCredentials({email:body.email,password:body.password},{recordLogin:false});
@@ -96,7 +133,9 @@ export async function handleAccountRoutes(req,res,url,deps){
       const body=await readJson(req),logged=accounts.loginWithOneTimeToken(body.token);return sendJson(res,200,{ok:true,...logged,entitlements:planEntitlements(logged.account)});
     }
     if(req.method==='POST'&&url.pathname==='/v1/plugin/auth/google'){
-      const body=await readJson(req),logged=accounts.loginOrRegisterGoogle({sub:body.sub,email:body.email,emailVerified:body.emailVerified===true});return sendJson(res,200,{ok:true,...logged,entitlements:planEntitlements(logged.account)});
+      const body=await readJson(req),out=accounts.googleLoginOrSignupIntent({sub:body.sub,email:body.email,emailVerified:body.emailVerified===true});
+      if(out.registrationRequired)return sendJson(res,200,{ok:true,...out});
+      return sendJson(res,200,{ok:true,...out,entitlements:planEntitlements(out.account)});
     }
     const pluginAccountMatch=url.pathname.match(/^\/v1\/plugin\/accounts\/([A-Za-z0-9._:-]+)$/);
     if(req.method==='GET'&&pluginAccountMatch){

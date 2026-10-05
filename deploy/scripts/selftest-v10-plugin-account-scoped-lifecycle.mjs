@@ -54,11 +54,15 @@ try{
   if(r.status!==201)throw new Error('bootstrap_register_failed:'+JSON.stringify(r));
 
   r=await request('POST','/v1/plugin/accounts/register',{email:'tenant-a@example.test',password:'Tenant A route password 12345'});
-  if(r.status!==201)throw new Error('tenant_a_register_failed:'+JSON.stringify(r));
+  if(r.status!==201||!r.json.pending?.pendingId||!r.json.token)throw new Error('tenant_a_pending_failed:'+JSON.stringify(r));
+  r=await request('POST','/v1/plugin/accounts/registration/verify',{pendingId:r.json.pending.pendingId,token:r.json.token,issueSession:false});
+  if(r.status!==200)throw new Error('tenant_a_verify_failed:'+JSON.stringify(r));
   const accountA=r.json.account.accountId;
 
   r=await request('POST','/v1/plugin/accounts/register',{email:'tenant-b@example.test',password:'Tenant B route password 12345'});
-  if(r.status!==201)throw new Error('tenant_b_register_failed:'+JSON.stringify(r));
+  if(r.status!==201||!r.json.pending?.pendingId||!r.json.token)throw new Error('tenant_b_pending_failed:'+JSON.stringify(r));
+  r=await request('POST','/v1/plugin/accounts/registration/verify',{pendingId:r.json.pending.pendingId,token:r.json.token,issueSession:false});
+  if(r.status!==200)throw new Error('tenant_b_verify_failed:'+JSON.stringify(r));
   const accountB=r.json.account.accountId;
   if(accountA===accountB)throw new Error('hosted_account_ids_not_unique');
 
