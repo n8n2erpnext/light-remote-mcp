@@ -40,9 +40,11 @@ jobs:
           test -s "dist/fleet-wall-release/Light-Remote-Fleet-Wall-$FLEET_VERSION.tar.gz"
           test -s dist/fleet-wall-release/fleet-wall-module-metadata.json
           (cd dist/fleet-wall-release && sha256sum -c SHA256SUMS.txt)
-          tar -tzf "dist/fleet-wall-release/Light-Remote-Fleet-Wall-$FLEET_VERSION.tar.gz" | grep -q 'fleet-wall/assets/fonts/CascadiaMono.ttf'
-          tar -tzf "dist/fleet-wall-release/Light-Remote-Fleet-Wall-$FLEET_VERSION.tar.gz" | grep -q 'fleet-wall/assets/fonts/web/CascadiaCode.ttf'
-          if tar -tzf "dist/fleet-wall-release/Light-Remote-Fleet-Wall-$FLEET_VERSION.tar.gz" | grep -q 'GoogleSans-Variable.ttf'; then
+          ARCHIVE="dist/fleet-wall-release/Light-Remote-Fleet-Wall-$FLEET_VERSION.tar.gz"
+          tar -tzf "$ARCHIVE" > "$RUNNER_TEMP/fleet-wall-contents.txt"
+          grep -q 'fleet-wall/assets/fonts/CascadiaMono.ttf' "$RUNNER_TEMP/fleet-wall-contents.txt"
+          grep -q 'fleet-wall/assets/fonts/web/CascadiaCode.ttf' "$RUNNER_TEMP/fleet-wall-contents.txt"
+          if grep -q 'GoogleSans-Variable.ttf' "$RUNNER_TEMP/fleet-wall-contents.txt"; then
             echo 'Google Sans leaked into Fleet component' >&2
             exit 1
           fi
