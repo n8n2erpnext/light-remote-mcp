@@ -3,7 +3,7 @@ import express from 'express';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
-import { PUBLIC_ALLOWED_HOSTS, PUBLIC_HOST, PUBLIC_ORIGIN, PUBLIC_PORT, OPENAI_CHALLENGE_FILE, VERSION } from './config.mjs';
+import { PUBLIC_ALLOWED_HOSTS, PUBLIC_HOST, PUBLIC_ORIGIN, PUBLIC_PORT, OPENAI_CHALLENGE_FILE, VERSION, MCP_SURFACE_VERSION } from './config.mjs';
 import { authenticateAccess, registerOAuth } from './oauth.mjs';
 import { registerPublicDeviceRoutes, prunePublicRateState } from './device-public.mjs';
 import { registerAccountPortal } from './account-portal.mjs';
@@ -44,14 +44,14 @@ app.get('/',(_q,r)=>r.type('html').send(fs.readFileSync(new URL('./public-home.h
 app.get('/support',(_q,r)=>r.type('html').send(html('Light Remote Support',PUBLIC_PAGE_BODIES.support)));
 app.get('/privacy',(_q,r)=>r.type('html').send(html('Light Remote Privacy Policy',PUBLIC_PAGE_BODIES.privacy)));
 app.get('/terms',(_q,r)=>r.type('html').send(html('Light Remote Terms of Service',PUBLIC_PAGE_BODIES.terms)));
-app.get('/healthz',(_q,r)=>r.json({ok:true,service:'light-remote-direct-plugin',version:VERSION,transport:'direct'}));
+app.get('/healthz',(_q,r)=>r.json({ok:true,service:'light-remote-direct-plugin',version:VERSION,mcpSurfaceVersion:MCP_SURFACE_VERSION,transport:'direct'}));
 app.get('/.well-known/openai-apps-challenge',(_q,r)=>{
   try{const token=fs.readFileSync(OPENAI_CHALLENGE_FILE,'utf8').trim();if(!token)return r.sendStatus(404);return r.type('text/plain').send(token);}
   catch{return r.sendStatus(404);}
 });
 
 function mcpServer(identity){
-  const server=new McpServer({name:'light-remote',version:VERSION},{instructions:INSTRUCTIONS});
+  const server=new McpServer({name:'light-remote',version:MCP_SURFACE_VERSION},{instructions:INSTRUCTIONS});
   registerPluginTools(server,identity);
   installOpenAiToolSecurityCompat(server,PLUGIN_TOOL_SECURITY);
   return server;
