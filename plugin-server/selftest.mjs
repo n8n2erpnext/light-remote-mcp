@@ -47,31 +47,72 @@ async function waitReady(){for(let i=0;i<80;i++){try{const r=await fetch(`${env.
 await waitReady();
 const postMcp=async(body,token='')=>{const r=await fetch(`${env.LIGHT_REMOTE_PLUGIN_ORIGIN}/mcp`,{method:'POST',headers:{'content-type':'application/json','accept':'application/json, text/event-stream',...(token?{authorization:`Bearer ${token}`}:{})},body:JSON.stringify(body)});const text=await r.text();assert.ok(r.status<500,`mcp_http_${r.status}:${text}`);return JSON.parse(text)};
 const init=await postMcp({jsonrpc:'2.0',id:1,method:'initialize',params:{protocolVersion:'2025-06-18',capabilities:{},clientInfo:{name:'selftest',version:'1'}}});
-assert.equal(init.result.serverInfo.name,'light-remote');assert.equal(init.result.serverInfo.version,'0.1.3');
-assert.match(init.result.instructions,/explicit device/i);
+assert.equal(init.result.serverInfo.name,'light-remote');assert.equal(init.result.serverInfo.version,'0.1.4');
+assert.match(init.result.instructions,/A\/B approval authorizes each exact device/i);
+assert.doesNotMatch(init.result.instructions,/helperGroup=|tool-family menu|detailed syntax/i);
 const listed=await postMcp({jsonrpc:'2.0',id:2,method:'tools/list',params:{}});
-assert.equal(listed.result.tools.length,30);
+assert.equal(listed.result.tools.length,67);
 const toolNames=new Set(listed.result.tools.map(t=>t.name));
-for(const name of ['light_remote_context','light_remote_session_control','light_remote_read_multiple_files','light_remote_stat_path','light_remote_filesystem','light_remote_scp_download','light_remote_scp','light_remote_desktop','light_remote_desktop_live_read','light_remote_desktop_input']) assert.ok(toolNames.has(name),name+'_present');
-for(const tool of listed.result.tools){assert.ok(Array.isArray(tool.securitySchemes)&&tool.securitySchemes.length===1,`${tool.name}_securitySchemes`);assert.equal(tool.securitySchemes[0].type,'oauth2');assert.ok(tool.annotations,`${tool.name}_annotations`)}
-const execTool=listed.result.tools.find(t=>t.name==='light_remote_exec'),processTool=listed.result.tools.find(t=>t.name==='light_remote_process'),termTool=listed.result.tools.find(t=>t.name==='light_remote_terminal'),searchTool=listed.result.tools.find(t=>t.name==='light_remote_search_files'),outputTool=listed.result.tools.find(t=>t.name==='light_remote_output'),helperTool=listed.result.tools.find(t=>t.name==='light_remote_connection_helper'),mainTool=listed.result.tools.find(t=>t.name==='light_remote_set_main_device'),revokeTool=listed.result.tools.find(t=>t.name==='light_remote_revoke_device'),removeTool=listed.result.tools.find(t=>t.name==='light_remote_remove_device'),scpDownloadTool=listed.result.tools.find(t=>t.name==='light_remote_scp_download'),scpTool=listed.result.tools.find(t=>t.name==='light_remote_scp'),desktopTool=listed.result.tools.find(t=>t.name==='light_remote_desktop'),desktopInputTool=listed.result.tools.find(t=>t.name==='light_remote_desktop_input');
-for(const tool of [execTool,termTool]){assert.equal(tool.annotations.readOnlyHint,false);assert.equal(tool.annotations.destructiveHint,true);assert.equal(tool.annotations.openWorldHint,true)}
+for(const name of [
+  'light_remote_context','light_remote_session_control','light_remote_hold_session',
+  'light_remote_search_files','light_remote_search_results','light_remote_cancel_search',
+  'light_remote_filesystem','light_remote_copy_path','light_remote_move_path','light_remote_delete_path',
+  'light_remote_process','light_remote_process_input','light_remote_process_output','light_remote_list_processes','light_remote_stop_process',
+  'light_remote_terminal','light_remote_terminal_input','light_remote_terminal_output','light_remote_resize_terminal','light_remote_signal_terminal','light_remote_list_terminals','light_remote_stop_terminal',
+  'light_remote_scp_download','light_remote_scp_download_chunk','light_remote_scp_download_status','light_remote_scp_download_cancel',
+  'light_remote_scp','light_remote_scp_upload_chunk','light_remote_scp_upload_commit','light_remote_scp_upload_status','light_remote_scp_upload_cancel',
+  'light_remote_desktop','light_remote_desktop_attach','light_remote_desktop_resume','light_remote_desktop_detach','light_remote_desktop_windows','light_remote_desktop_frame','light_remote_desktop_observe',
+  'light_remote_semantic_attach','light_remote_semantic_snapshot','light_remote_semantic_events','light_remote_semantic_detach',
+  'light_remote_desktop_live_open','light_remote_desktop_live_read','light_remote_desktop_live_close',
+  'light_remote_desktop_input','light_remote_desktop_input_batch','light_remote_desktop_action_await'
+])assert.ok(toolNames.has(name),name+'_present');
+for(const tool of listed.result.tools){
+  assert.ok(Array.isArray(tool.securitySchemes)&&tool.securitySchemes.length===1,tool.name+'_securitySchemes');
+  assert.equal(tool.securitySchemes[0].type,'oauth2');
+  assert.ok(tool.annotations,tool.name+'_annotations');
+  for(const hint of ['readOnlyHint','destructiveHint','openWorldHint'])assert.equal(typeof tool.annotations[hint],'boolean',tool.name+'_'+hint+'_boolean');
+  assert.equal(tool.inputSchema?.properties?.operation,undefined,tool.name+'_must_not_multiplex_operations');
+}
+const execTool=listed.result.tools.find(t=>t.name==='light_remote_exec');
+const processTool=listed.result.tools.find(t=>t.name==='light_remote_process');
+const processOutputTool=listed.result.tools.find(t=>t.name==='light_remote_process_output');
+const termTool=listed.result.tools.find(t=>t.name==='light_remote_terminal');
+const termInputTool=listed.result.tools.find(t=>t.name==='light_remote_terminal_input');
+const searchTool=listed.result.tools.find(t=>t.name==='light_remote_search_files');
+const outputTool=listed.result.tools.find(t=>t.name==='light_remote_output');
+const helperTool=listed.result.tools.find(t=>t.name==='light_remote_connection_helper');
+const mainTool=listed.result.tools.find(t=>t.name==='light_remote_set_main_device');
+const revokeTool=listed.result.tools.find(t=>t.name==='light_remote_revoke_device');
+const removeTool=listed.result.tools.find(t=>t.name==='light_remote_remove_device');
+const scpDownloadTool=listed.result.tools.find(t=>t.name==='light_remote_scp_download');
+const scpTool=listed.result.tools.find(t=>t.name==='light_remote_scp');
+const scpCommitTool=listed.result.tools.find(t=>t.name==='light_remote_scp_upload_commit');
+const desktopTool=listed.result.tools.find(t=>t.name==='light_remote_desktop');
+const desktopAttachTool=listed.result.tools.find(t=>t.name==='light_remote_desktop_attach');
+const desktopFrameTool=listed.result.tools.find(t=>t.name==='light_remote_desktop_frame');
+const semanticAttachTool=listed.result.tools.find(t=>t.name==='light_remote_semantic_attach');
+const desktopInputTool=listed.result.tools.find(t=>t.name==='light_remote_desktop_input');
+const desktopInputBatchTool=listed.result.tools.find(t=>t.name==='light_remote_desktop_input_batch');
+for(const tool of [execTool,processTool,termInputTool]){assert.equal(tool.annotations.readOnlyHint,false);assert.equal(tool.annotations.destructiveHint,true);assert.equal(tool.annotations.openWorldHint,true)}
+assert.equal(termTool.annotations.readOnlyHint,false);assert.equal(termTool.annotations.destructiveHint,false);assert.equal(termTool.annotations.openWorldHint,false);
+assert.equal(processOutputTool.annotations.readOnlyHint,true);assert.equal(processOutputTool.annotations.destructiveHint,false);assert.equal(processOutputTool.annotations.openWorldHint,false);
 assert.equal(helperTool.annotations.readOnlyHint,false);assert.equal(helperTool.annotations.destructiveHint,false);assert.equal(helperTool.annotations.openWorldHint,false);
 assert.deepEqual(helperTool.inputSchema?.properties?.helperGroup?.enum,['workspace','files','shell','transfer','desktop']);
-for(const key of ['shell','requiredCapabilities'])assert.ok(execTool.inputSchema?.properties?.[key],`exec_${key}_present`);
-for(const key of ['shell','requiredCapabilities'])assert.ok(processTool.inputSchema?.properties?.[key],`process_${key}_present`);
+for(const key of ['shell','requiredCapabilities'])assert.ok(execTool.inputSchema?.properties?.[key],'exec_'+key+'_present');
+for(const key of ['shell','requiredCapabilities'])assert.ok(processTool.inputSchema?.properties?.[key],'process_'+key+'_present');
 assert.ok(termTool.inputSchema?.properties?.term,'terminal_term_present');
-for(const key of ['contextLines','maxResults'])assert.ok(searchTool.inputSchema?.properties?.[key],`search_${key}_present`);
+for(const key of ['contextLines','maxResults'])assert.ok(searchTool.inputSchema?.properties?.[key],'search_'+key+'_present');
 assert.ok(outputTool.inputSchema?.properties?.full,'output_full_present');
 assert.equal(outputTool.inputSchema?.properties?.limit?.maximum,8388608);
 assert.equal(desktopTool.annotations.readOnlyHint,true);assert.equal(desktopTool.securitySchemes[0].scopes[0],'remote:read');
-assert.deepEqual(desktopTool.inputSchema?.properties?.operation?.enum,['status','attach','resume','detach','windows','frame','observe','semantic-attach','semantic-snapshot','semantic-events','semantic-detach','live-open','live-close']);
-assert.equal(desktopTool.inputSchema?.properties?.screen?.minimum,-1);for(const key of ['cdpEndpoint','targetId','urlMatch'])assert.ok(desktopTool.inputSchema?.properties?.[key],`desktop_${key}_present`);
-assert.equal(desktopInputTool.annotations.destructiveHint,true);assert.equal(desktopInputTool.securitySchemes[0].scopes[0],'remote:execute');
-assert.deepEqual(desktopInputTool.inputSchema?.properties?.operation?.enum,['act','input','run']);
+assert.equal(desktopAttachTool.annotations.readOnlyHint,false);assert.equal(desktopAttachTool.annotations.destructiveHint,false);
+assert.equal(desktopFrameTool.inputSchema?.properties?.screen?.minimum,-1);
+for(const key of ['cdpEndpoint','targetId','urlMatch'])assert.ok(semanticAttachTool.inputSchema?.properties?.[key],'semantic_attach_'+key+'_present');
+for(const tool of [desktopInputTool,desktopInputBatchTool]){assert.equal(tool.annotations.destructiveHint,true);assert.equal(tool.annotations.openWorldHint,true);assert.equal(tool.securitySchemes[0].scopes[0],'remote:execute')}
 const liveReadTool=listed.result.tools.find(t=>t.name==='light_remote_desktop_live_read');assert.equal(liveReadTool.annotations.readOnlyHint,true);assert.equal(liveReadTool.securitySchemes[0].scopes[0],'remote:read');
-assert.equal(scpDownloadTool.annotations.readOnlyHint,false);assert.equal(scpDownloadTool.securitySchemes[0].scopes[0],'remote:read');
-assert.equal(scpTool.annotations.destructiveHint,true);assert.equal(scpTool.securitySchemes[0].scopes[0],'remote:write');
+assert.equal(scpDownloadTool.annotations.readOnlyHint,false);assert.equal(scpDownloadTool.annotations.destructiveHint,false);assert.equal(scpDownloadTool.securitySchemes[0].scopes[0],'remote:read');
+assert.equal(scpTool.annotations.destructiveHint,false);assert.equal(scpTool.securitySchemes[0].scopes[0],'remote:write');
+assert.equal(scpCommitTool.annotations.destructiveHint,true);
 assert.equal(mainTool.annotations.readOnlyHint,false);assert.equal(mainTool.annotations.destructiveHint,false);
 for(const tool of [revokeTool,removeTool]){assert.equal(tool.annotations.readOnlyHint,false);assert.equal(tool.annotations.destructiveHint,true);assert.equal(tool.annotations.openWorldHint,false)}
 console.log('plugin_tool_metadata=PASS');
@@ -103,8 +144,10 @@ const tokenResp=await fetch(`${env.LIGHT_REMOTE_PLUGIN_ORIGIN}/oauth/token`,{met
 const authDevices=await postMcp({jsonrpc:'2.0',id:4,method:'tools/call',params:{name:'light_remote_list_devices',arguments:{}}},tokens.access_token);assert.equal(authDevices.result.isError,undefined);assert.equal(authDevices.result.structuredContent.items.length,1);assert.equal(authDevices.result.structuredContent.items[0].name,'review-demo');assert.equal(authDevices.result.structuredContent.items[0].accountId,undefined);
 const helper=await postMcp({jsonrpc:'2.0',id:5,method:'tools/call',params:{name:'light_remote_connection_helper',arguments:{}}},tokens.access_token);assert.equal(helper.result.structuredContent.product,'Light Remote');assert.equal(helper.result.structuredContent.account.plan,'vip');assert.equal(helper.result.structuredContent.topology[0].role,'main');assert.equal(helper.result.structuredContent.topology[0].accountId,undefined);assert.equal(helper.result.structuredContent.context.sessionId,'s_review');assert.equal(helper.result.structuredContent.toolHelper.helperMode,'index-only');assert.deepEqual(Object.keys(helper.result.structuredContent.toolHelper.groups),['workspace','files','shell','transfer','desktop']);
 const filesHelper=await postMcp({jsonrpc:'2.0',id:51,method:'tools/call',params:{name:'light_remote_connection_helper',arguments:{helperGroup:'files'}}},tokens.access_token);assert.equal(filesHelper.result.structuredContent.toolHelper.helperMode,'group-detail');assert.equal(filesHelper.result.structuredContent.toolHelper.group,'files');assert.equal(filesHelper.result.structuredContent.toolHelper.tools.read_many.name,'light_remote_read_multiple_files');
-const held=await postMcp({jsonrpc:'2.0',id:52,method:'tools/call',params:{name:'light_remote_session_control',arguments:{sessionId:'s_review',operation:'hold',reason:'selftest'}}},tokens.access_token);assert.equal(held.result.isError,undefined);assert.equal(held.result.structuredContent.state,'hold');assert.equal(held.result.structuredContent.holdReason,'selftest');
-const resumed=await postMcp({jsonrpc:'2.0',id:53,method:'tools/call',params:{name:'light_remote_session_control',arguments:{sessionId:'s_review',operation:'resume'}}},tokens.access_token);assert.equal(resumed.result.isError,undefined);assert.equal(resumed.result.structuredContent.state,'active');assert.equal(resumed.result.structuredContent.holdReason,null);console.log('plugin_session_control_hold_resume=PASS');
+const legacyHeld=await postMcp({jsonrpc:'2.0',id:52,method:'tools/call',params:{name:'light_remote_session_control',arguments:{sessionId:'s_review',operation:'hold',reason:'legacy-selftest'}}},tokens.access_token);assert.equal(legacyHeld.result.isError,undefined);assert.equal(legacyHeld.result.structuredContent.state,'hold');assert.equal(legacyHeld.result.structuredContent.holdReason,'legacy-selftest');
+const resumed=await postMcp({jsonrpc:'2.0',id:53,method:'tools/call',params:{name:'light_remote_session_control',arguments:{sessionId:'s_review'}}},tokens.access_token);assert.equal(resumed.result.isError,undefined);assert.equal(resumed.result.structuredContent.state,'active');assert.equal(resumed.result.structuredContent.holdReason,null);
+const held=await postMcp({jsonrpc:'2.0',id:54,method:'tools/call',params:{name:'light_remote_hold_session',arguments:{sessionId:'s_review',reason:'focused-selftest'}}},tokens.access_token);assert.equal(held.result.isError,undefined);assert.equal(held.result.structuredContent.state,'hold');assert.equal(held.result.structuredContent.holdReason,'focused-selftest');
+const legacyResumed=await postMcp({jsonrpc:'2.0',id:55,method:'tools/call',params:{name:'light_remote_session_control',arguments:{sessionId:'s_review',operation:'resume'}}},tokens.access_token);assert.equal(legacyResumed.result.isError,undefined);assert.equal(legacyResumed.result.structuredContent.state,'active');console.log('plugin_session_control_focused_and_legacy=PASS');
 const inspected=await postMcp({jsonrpc:'2.0',id:6,method:'tools/call',params:{name:'light_remote_inspect_device',arguments:{deviceId:'dev_review'}}},tokens.access_token);assert.equal(inspected.result.structuredContent.device.name,'review-demo');assert.equal(inspected.result.structuredContent.policy.localFinalDeny,true);
 const activity=await postMcp({jsonrpc:'2.0',id:7,method:'tools/call',params:{name:'light_remote_recent_activity',arguments:{deviceId:'dev_review',limit:10}}},tokens.access_token);assert.equal(activity.result.structuredContent.events[0].type,'job_started');assert.equal(activity.result.structuredContent.events[0].jobId,undefined);
 console.log('plugin_product_discovery=PASS');

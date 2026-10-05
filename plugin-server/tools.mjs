@@ -35,10 +35,84 @@ function guarded(identity,scopes,fn){
 }
 function pick(source,keys){const out={};for(const key of keys)if(source[key]!==undefined)out[key]=source[key];return out;}
 
+async function searchOperation(a,x,operation){
+  const search=operation==='start'
+    ?{op:'start',path:x.path,searchType:x.searchType||'content',pattern:x.pattern,literalSearch:Boolean(x.literalSearch),ignoreCase:x.ignoreCase!==false,filePattern:x.filePattern||'',contextLines:x.contextLines||0,maxResults:x.maxResults||200}
+    :operation==='results'
+      ?{op:'results',searchId:x.searchId,offset:x.offset||0,limit:x.limit||100}
+      :{op:'cancel',searchId:x.searchId};
+  return operationView(await a.search(x.sessionId,search,x.operationId));
+}
+async function filesystemOperation(a,x,operation){
+  const fs={op:operation};Object.assign(fs,pick(x,['path','source','destination','parents','recursive','overwrite']));
+  return operationView(await a.fs(x.sessionId,fs,x.operationId));
+}
+async function processOperation(a,x,operation){
+  const process=operation==='start'
+    ?{op:'start',script:x.script,shell:x.shell,cwd:x.cwd,timeoutMs:x.timeoutMs,requiredCapabilities:x.requiredCapabilities}
+    :operation==='input'
+      ?{op:'input',processId:x.processId,data:x.data||'',eof:Boolean(x.eof)}
+      :operation==='output'
+        ?{op:'output',processId:x.processId,stream:x.stream||'stdout',offset:x.offset||0,limit:x.limit||262144}
+        :operation==='list'?{op:'list'}:{op:'stop',processId:x.processId,force:Boolean(x.force)};
+  return operationView(await a.process(x.sessionId,process,x.operationId));
+}
+async function terminalOperation(a,x,operation){
+  const terminal={op:operation};Object.assign(terminal,pick(x,['terminalId','shell','cwd','term','data','offset','limit','cols','rows','signal','force']));
+  return operationView(await a.terminal(x.sessionId,terminal,x.operationId));
+}
+async function scpOperation(a,x,operation,fields){
+  const scp={op:operation};Object.assign(scp,pick(x,fields));
+  return operationView(await a.scp(x.sessionId,scp,x.operationId));
+}
+async function desktopOperation(a,x,operation,fields){
+  const desktop={op:operation};Object.assign(desktop,pick(x,fields));
+  return operationView(await a.desktop(x.sessionId,desktop,x.operationId,x.waitMs));
+}
+
+const legacySchemas={
+  light_remote_session_control:z.object({sessionId:id,operation:z.enum(['resume','hold']),reason:z.string().max(80).optional()}),
+  light_remote_search_files:z.object({sessionId:id,operation:z.enum(['start','results','cancel']),operationId:opId,path:pathText.optional(),searchId:z.string().max(160).optional(),searchType:z.enum(['content','files']).optional(),pattern:z.string().max(4096).optional(),literalSearch:z.boolean().optional(),ignoreCase:z.boolean().optional(),filePattern:z.string().max(1024).optional(),contextLines:z.number().int().min(0).max(20).optional(),maxResults:z.number().int().min(1).max(1000).optional(),offset:z.number().int().min(0).optional(),limit:z.number().int().min(1).max(500).optional()}),
+  light_remote_filesystem:z.object({sessionId:id,operationId:opId,operation:z.enum(['mkdir','copy','move','delete']),path:pathText.optional(),source:pathText.optional(),destination:pathText.optional(),parents:z.boolean().optional(),recursive:z.boolean().optional(),overwrite:z.boolean().optional()}),
+  light_remote_process:z.object({sessionId:id,operation:z.enum(['start','input','output','list','stop']),operationId:opId,processId:z.string().max(160).optional(),script:z.string().max(1_000_000).optional(),shell:z.string().max(80).optional(),cwd:pathText.optional(),data:z.string().max(1_048_576).optional(),eof:z.boolean().optional(),stream:z.enum(['stdout','stderr']).optional(),offset:z.number().int().min(0).optional(),limit:z.number().int().min(1).max(1_048_576).optional(),force:z.boolean().optional(),timeoutMs:z.number().int().min(0).max(86_400_000).optional(),requiredCapabilities:z.array(z.string().min(1).max(80)).max(32).optional()}),
+  light_remote_terminal:z.object({sessionId:id,operation:z.enum(['start','input','output','resize','signal','list','stop']),operationId:opId,terminalId:z.string().max(160).optional(),shell:z.string().max(80).optional(),cwd:pathText.optional(),term:z.string().max(64).optional(),data:z.string().max(1_048_576).optional(),offset:z.number().int().min(0).optional(),limit:z.number().int().min(1).max(1_048_576).optional(),cols:z.number().int().min(20).max(500).optional(),rows:z.number().int().min(5).max(200).optional(),signal:z.enum(['interrupt','terminate','kill']).optional(),force:z.boolean().optional()}),
+  light_remote_scp_download:z.object({sessionId:id,operationId:opId,operation:z.enum(['download-begin','download-chunk','status','cancel']),transferId:z.string().max(160).optional(),source:pathText.optional(),chunkBytes:z.number().int().min(64*1024).max(4*1024*1024).optional(),index:z.number().int().min(0).optional()}),
+  light_remote_scp:z.object({sessionId:id,operationId:opId,operation:z.enum(['upload-begin','upload-chunk','upload-commit','status','cancel']),transferId:z.string().max(160).optional(),destination:pathText.optional(),source:pathText.optional(),totalBytes:z.number().int().min(0).optional(),sha256:z.string().regex(/^[a-f0-9]{64}$/i).optional(),chunkBytes:z.number().int().min(64*1024).max(4*1024*1024).optional(),index:z.number().int().min(0).optional(),data:z.string().max(6_000_000).optional(),overwrite:z.boolean().optional(),createParents:z.boolean().optional()}),
+  light_remote_desktop:z.object({sessionId:id,operationId:opId,operation:z.enum(['status','attach','resume','detach','windows','frame','observe','semantic-attach','semantic-snapshot','semantic-events','semantic-detach','live-open','live-close']),desktopSessionId:z.string().max(160).optional(),semanticSessionId:z.string().max(160).optional(),afterSeq:z.number().int().min(0).optional(),limit:z.number().int().min(1).max(1000).optional(),screen:z.number().int().min(-1).max(31).optional(),maxWidth:z.number().int().min(64).max(7680).optional(),maxHeight:z.number().int().min(64).max(4320).optional(),quality:z.number().int().min(1).max(100).optional(),minIntervalMs:z.number().int().min(0).max(5000).optional(),omitUnchanged:z.boolean().optional(),idleTimeoutMs:z.number().int().min(250).max(900000).optional(),provider:z.enum(['windows-uia','browser-cdp']).optional(),scope:z.string().max(160).optional(),cdpEndpoint:z.string().max(256).optional(),targetId:z.string().max(256).optional(),urlMatch:z.string().max(512).optional(),maxDepth:z.number().int().min(1).max(64).optional(),maxNodes:z.number().int().min(1).max(20000).optional(),waitMs:z.number().int().min(0).max(7000).optional()}),
+  light_remote_desktop_input:z.object({sessionId:id,operationId:opId,operation:z.enum(['act','input','run']),semanticSessionId:z.string().max(160).optional(),nodeId:z.string().max(512).optional(),action:z.string().max(80).optional(),value:z.any().optional(),events:z.array(jsonObject).max(128).optional(),displayTopologyId:z.string().max(160).optional(),afterSeq:z.number().int().min(0).optional(),settleMs:z.number().int().min(0).max(15000).optional(),await:z.object({foregroundTitleContains:z.string().max(512).optional(),foregroundTitleEquals:z.string().max(512).optional(),focusedNameContains:z.string().max(512).optional(),timeoutMs:z.number().int().min(50).max(15000).optional()}).optional(),waitMs:z.number().int().min(0).max(7000).optional()})
+};
+const legacyScopes={
+  light_remote_session_control:['remote:write'],light_remote_search_files:['remote:read'],light_remote_filesystem:['remote:write'],
+  light_remote_process:['remote:execute'],light_remote_terminal:['remote:terminal'],light_remote_scp_download:['remote:read'],
+  light_remote_scp:['remote:write'],light_remote_desktop:['remote:read'],light_remote_desktop_input:['remote:execute']
+};
+export const LEGACY_MULTIPLEXED_TOOL_NAMES=new Set(Object.keys(legacySchemas));
+export async function callLegacyMultiplexedTool(identity,name,input={}){
+  const schema=legacySchemas[name];if(!schema||!input||typeof input.operation!=='string')return null;
+  const parsed=schema.safeParse(input);
+  if(!parsed.success)return {content:[{type:'text',text:'Invalid legacy Light Remote tool arguments.'}],isError:true};
+  const x=parsed.data,denied=requireScopes(identity,legacyScopes[name]||[]);
+  if(denied)return denied;
+  try{
+    const a=new AccountOperatorAdapter(identity);let value;
+    if(name==='light_remote_session_control')value=x.operation==='resume'?await a.resumeSession(x.sessionId):await a.holdSession(x.sessionId,x.reason);
+    else if(name==='light_remote_search_files')value=await searchOperation(a,x,x.operation);
+    else if(name==='light_remote_filesystem')value=await filesystemOperation(a,x,x.operation);
+    else if(name==='light_remote_process')value=await processOperation(a,x,x.operation);
+    else if(name==='light_remote_terminal')value=await terminalOperation(a,x,x.operation);
+    else if(name==='light_remote_scp_download')value=await scpOperation(a,x,x.operation,['transferId','source','chunkBytes','index']);
+    else if(name==='light_remote_scp')value=await scpOperation(a,x,x.operation,['transferId','destination','totalBytes','sha256','chunkBytes','index','data','overwrite','createParents']);
+    else if(name==='light_remote_desktop')value=await desktopOperation(a,x,x.operation,['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes']);
+    else if(name==='light_remote_desktop_input')value=await desktopOperation(a,x,x.operation,['semanticSessionId','nodeId','action','value','events','displayTopologyId','afterSeq','settleMs','await']);
+    else return null;
+    return result(value);
+  }catch(error){return {content:[{type:'text',text:redactRestrictedText(error?.message||'Light Remote operation failed.')}],isError:true};}
+}
+
 export function registerPluginTools(server,identity){
   add(server,'light_remote_connection_helper',{
     title:'Connect Light Remote with A/B approval',
-    description:'Start here. Handles Local Wall A/B pairing and, when ready, returns/reuses the working context plus a compact tool-family menu. Call again with helperGroup=workspace|files|shell|transfer|desktop only when detailed syntax for that family is needed. OAuth account login alone never authorizes a device.',
+    description:'Use this for Local Wall A/B device authorization and working-context recovery. OAuth account login alone never authorizes a device; each target requires owner approval at that device.',
     inputSchema:{aCode:z.string().regex(/^[A-Za-z2-9]{4}-?[A-Za-z2-9]{4}$/).optional(),continuation:z.string().min(20).max(8192).optional(),label:z.string().min(1).max(120).optional(),helperGroup:z.enum(['workspace','files','shell','transfer','desktop']).optional()},
     securitySchemes:security(['remote:read']),annotations:annotations(false,false,false,false)
   },guarded(identity,['remote:read'],async(a,x)=>{
@@ -113,11 +187,16 @@ export function registerPluginTools(server,identity){
   },guarded(identity,['remote:read'],(a,x)=>x.sessionId?a.session(x.sessionId):a.sessions()));
 
   add(server,'light_remote_session_control',{
-    title:'Resume or hold a durable session',
-    description:'Resume an existing durable session or explicitly place it on hold during a transport interruption.',
-    inputSchema:{sessionId:id,operation:z.enum(['resume','hold']),reason:z.string().max(80).optional()},
-    securitySchemes:security(['remote:write']),annotations:annotations(false,false,false,true)
-  },guarded(identity,['remote:write'],(a,x)=>x.operation==='resume'?a.resumeSession(x.sessionId):a.holdSession(x.sessionId,x.reason)));
+    title:'Resume a durable session',
+    description:'Resume one existing durable session that is on hold. This changes session state but does not switch devices or authorize a new target.',
+    inputSchema:{sessionId:id},securitySchemes:security(['remote:write']),annotations:annotations(false,false,false,true)
+  },guarded(identity,['remote:write'],(a,x)=>a.resumeSession(x.sessionId)));
+
+  add(server,'light_remote_hold_session',{
+    title:'Hold a durable session',
+    description:'Place one existing durable session on hold during an intentional transport interruption. The session can be resumed later.',
+    inputSchema:{sessionId:id,reason:z.string().max(80).optional()},securitySchemes:security(['remote:write']),annotations:annotations(false,false,false,true)
+  },guarded(identity,['remote:write'],(a,x)=>a.holdSession(x.sessionId,x.reason)));
 
   add(server,'light_remote_close_session',{
     title:'Close a durable session',
@@ -138,13 +217,22 @@ export function registerPluginTools(server,identity){
   },guarded(identity,['remote:read'],async(a,x)=>operationView(await a.fs(x.sessionId,{op:'read',path:x.path,startLine:x.startLine,maxLines:x.maxLines,tailLines:x.tailLines,maxBytes:x.maxBytes}))));
 
   add(server,'light_remote_search_files',{
-    title:'Search remote files',
-    description:'Start, read, or cancel bounded native file-name/content search.',
-    inputSchema:{sessionId:id,operation:z.enum(['start','results','cancel']),operationId:opId,path:pathText.optional(),searchId:z.string().max(160).optional(),searchType:z.enum(['content','files']).optional(),pattern:z.string().max(4096).optional(),literalSearch:z.boolean().optional(),ignoreCase:z.boolean().optional(),filePattern:z.string().max(1024).optional(),contextLines:z.number().int().min(0).max(20).optional(),maxResults:z.number().int().min(1).max(1000).optional(),offset:z.number().int().min(0).optional(),limit:z.number().int().min(1).max(500).optional()},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,false)
-  },guarded(identity,['remote:read'],async(a,x)=>{
-    const search=x.operation==='start'?{op:'start',path:x.path,searchType:x.searchType||'content',pattern:x.pattern,literalSearch:Boolean(x.literalSearch),ignoreCase:x.ignoreCase!==false,filePattern:x.filePattern||'',contextLines:x.contextLines||0,maxResults:x.maxResults||200}:x.operation==='results'?{op:'results',searchId:x.searchId,offset:x.offset||0,limit:x.limit||100}:{op:'cancel',searchId:x.searchId};
-    return operationView(await a.search(x.sessionId,search,x.operationId));
-  }));
+    title:'Start a remote file search',
+    description:'Start one bounded file-name or text-content search inside an allowed path on the selected device. Use the returned search identifier with the results tool.',
+    inputSchema:{sessionId:id,operationId:opId,path:pathText,searchType:z.enum(['content','files']).optional(),pattern:z.string().max(4096),literalSearch:z.boolean().optional(),ignoreCase:z.boolean().optional(),filePattern:z.string().max(1024).optional(),contextLines:z.number().int().min(0).max(20).optional(),maxResults:z.number().int().min(1).max(1000).optional()},securitySchemes:security(['remote:read']),annotations:annotations(false,false,false,false)
+  },guarded(identity,['remote:read'],(a,x)=>searchOperation(a,x,'start')));
+
+  add(server,'light_remote_search_results',{
+    title:'Read remote search results',
+    description:'Read a bounded page of results from an existing remote file search without changing files.',
+    inputSchema:{sessionId:id,operationId:opId,searchId:z.string().min(1).max(160),offset:z.number().int().min(0).optional(),limit:z.number().int().min(1).max(500).optional()},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
+  },guarded(identity,['remote:read'],(a,x)=>searchOperation(a,x,'results')));
+
+  add(server,'light_remote_cancel_search',{
+    title:'Cancel a remote file search',
+    description:'Cancel one in-progress remote file search. This stops that search job but does not modify user files.',
+    inputSchema:{sessionId:id,operationId:opId,searchId:z.string().min(1).max(160)},securitySchemes:security(['remote:read']),annotations:annotations(false,true,false,true)
+  },guarded(identity,['remote:read'],(a,x)=>searchOperation(a,x,'cancel')));
 
   add(server,'light_remote_read_multiple_files',{
     title:'Read multiple remote text files',
@@ -160,14 +248,28 @@ export function registerPluginTools(server,identity){
   },guarded(identity,['remote:read'],async(a,x)=>operationView(await a.fs(x.sessionId,{op:'stat',path:x.path}))));
 
   add(server,'light_remote_filesystem',{
-    title:'Perform a structured filesystem operation',
-    description:'Use structured filesystem operations instead of shell commands. Device allowed roots and policy remain final deny boundaries.',
-    inputSchema:{sessionId:id,operationId:opId,operation:z.enum(['mkdir','copy','move','delete']),path:pathText.optional(),source:pathText.optional(),destination:pathText.optional(),parents:z.boolean().optional(),recursive:z.boolean().optional(),overwrite:z.boolean().optional()},securitySchemes:security(['remote:write']),annotations:annotations(false,true,false,false)
-  },guarded(identity,['remote:write'],async(a,x)=>{
-    const fs={op:x.operation};
-    Object.assign(fs,pick(x,['path','source','destination','parents','recursive','overwrite']));
-    return operationView(await a.fs(x.sessionId,fs,x.operationId));
-  }));
+    title:'Create a remote directory',
+    description:'Create one directory inside the device allowed roots. Local device policy remains the final authorization boundary.',
+    inputSchema:{sessionId:id,operationId:opId,path:pathText,parents:z.boolean().optional()},securitySchemes:security(['remote:write']),annotations:annotations(false,false,false,true)
+  },guarded(identity,['remote:write'],(a,x)=>filesystemOperation(a,x,'mkdir')));
+
+  add(server,'light_remote_copy_path',{
+    title:'Copy a remote filesystem path',
+    description:'Copy one allowed file or directory to another allowed path. Overwrite can replace destination data when explicitly requested.',
+    inputSchema:{sessionId:id,operationId:opId,source:pathText,destination:pathText,recursive:z.boolean().optional(),overwrite:z.boolean().optional()},securitySchemes:security(['remote:write']),annotations:annotations(false,true,false,false)
+  },guarded(identity,['remote:write'],(a,x)=>filesystemOperation(a,x,'copy')));
+
+  add(server,'light_remote_move_path',{
+    title:'Move a remote filesystem path',
+    description:'Move or rename one allowed file or directory. The source path is removed as part of the move.',
+    inputSchema:{sessionId:id,operationId:opId,source:pathText,destination:pathText,overwrite:z.boolean().optional()},securitySchemes:security(['remote:write']),annotations:annotations(false,true,false,false)
+  },guarded(identity,['remote:write'],(a,x)=>filesystemOperation(a,x,'move')));
+
+  add(server,'light_remote_delete_path',{
+    title:'Delete a remote filesystem path',
+    description:'Delete one allowed file or directory. Recursive deletion must be explicitly requested and can be irreversible.',
+    inputSchema:{sessionId:id,operationId:opId,path:pathText,recursive:z.boolean().optional()},securitySchemes:security(['remote:write']),annotations:annotations(false,true,false,false)
+  },guarded(identity,['remote:write'],(a,x)=>filesystemOperation(a,x,'delete')));
 
   add(server,'light_remote_write_file',{
     title:'Write a remote text file',
@@ -188,50 +290,208 @@ export function registerPluginTools(server,identity){
   },guarded(identity,['remote:execute'],async(a,x)=>operationView(await a.exec(x.sessionId,x.script,{shell:x.shell,cwd:x.cwd,operationId:x.operationId,timeoutMs:x.timeoutMs,waitMs:x.waitMs,requiredCapabilities:x.requiredCapabilities}))));
 
   add(server,'light_remote_process',{
-    title:'Control a managed remote process',
-    description:'Start or control a persistent non-PTY process with explicit stdin/stdout lifecycle.',
-    inputSchema:{sessionId:id,operation:z.enum(['start','input','output','list','stop']),operationId:opId,processId:z.string().max(160).optional(),script:z.string().max(1_000_000).optional(),shell:z.string().max(80).optional(),cwd:pathText.optional(),data:z.string().max(1_048_576).optional(),eof:z.boolean().optional(),stream:z.enum(['stdout','stderr']).optional(),offset:z.number().int().min(0).optional(),limit:z.number().int().min(1).max(1_048_576).optional(),force:z.boolean().optional(),timeoutMs:z.number().int().min(0).max(86_400_000).optional(),requiredCapabilities:z.array(z.string().min(1).max(80)).max(32).optional()},securitySchemes:security(['remote:execute']),annotations:annotations(false,true,true,false)
-  },guarded(identity,['remote:execute'],async(a,x)=>{
-    const process=x.operation==='start'?{op:'start',script:x.script,shell:x.shell,cwd:x.cwd,timeoutMs:x.timeoutMs,requiredCapabilities:x.requiredCapabilities}:x.operation==='input'?{op:'input',processId:x.processId,data:x.data||'',eof:Boolean(x.eof)}:x.operation==='output'?{op:'output',processId:x.processId,stream:x.stream||'stdout',offset:x.offset||0,limit:x.limit||262144}:x.operation==='list'?{op:'list'}:{op:'stop',processId:x.processId,force:Boolean(x.force)};
-    return operationView(await a.process(x.sessionId,process,x.operationId));
-  }));
+    title:'Start a managed remote process',
+    description:'Start one persistent non-PTY process on the selected device. The command may change local or external state according to the script and device policy.',
+    inputSchema:{sessionId:id,operationId:opId,script:z.string().min(1).max(1_000_000),shell:z.string().max(80).optional(),cwd:pathText.optional(),timeoutMs:z.number().int().min(0).max(86_400_000).optional(),requiredCapabilities:z.array(z.string().min(1).max(80)).max(32).optional()},securitySchemes:security(['remote:execute']),annotations:annotations(false,true,true,false)
+  },guarded(identity,['remote:execute'],(a,x)=>processOperation(a,x,'start')));
+
+  add(server,'light_remote_process_input',{
+    title:'Send input to a managed process',
+    description:'Send bounded stdin data to one existing managed process. Input can cause the process to change local or external state.',
+    inputSchema:{sessionId:id,operationId:opId,processId:z.string().min(1).max(160),data:z.string().max(1_048_576).optional(),eof:z.boolean().optional()},securitySchemes:security(['remote:execute']),annotations:annotations(false,true,true,false)
+  },guarded(identity,['remote:execute'],(a,x)=>processOperation(a,x,'input')));
+
+  add(server,'light_remote_process_output',{
+    title:'Read managed process output',
+    description:'Read a bounded stdout or stderr range from one existing managed process without changing the process.',
+    inputSchema:{sessionId:id,operationId:opId,processId:z.string().min(1).max(160),stream:z.enum(['stdout','stderr']).optional(),offset:z.number().int().min(0).optional(),limit:z.number().int().min(1).max(1_048_576).optional()},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
+  },guarded(identity,['remote:read'],(a,x)=>processOperation(a,x,'output')));
+
+  add(server,'light_remote_list_processes',{
+    title:'List managed remote processes',
+    description:'List managed non-PTY processes owned by the current Light Remote session without changing them.',
+    inputSchema:{sessionId:id,operationId:opId},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
+  },guarded(identity,['remote:read'],(a,x)=>processOperation(a,x,'list')));
+
+  add(server,'light_remote_stop_process',{
+    title:'Stop a managed remote process',
+    description:'Stop one managed process. Force mode may terminate it immediately and can discard in-process work.',
+    inputSchema:{sessionId:id,operationId:opId,processId:z.string().min(1).max(160),force:z.boolean().optional()},securitySchemes:security(['remote:execute']),annotations:annotations(false,true,false,false)
+  },guarded(identity,['remote:execute'],(a,x)=>processOperation(a,x,'stop')));
 
   add(server,'light_remote_terminal',{
-    title:'Control a real PTY/ConPTY terminal',
-    description:'Use for interactive programs, persistent shells, Ctrl-C, resize, and terminal input. Local policy remains authoritative.',
-    inputSchema:{sessionId:id,operation:z.enum(['start','input','output','resize','signal','list','stop']),operationId:opId,terminalId:z.string().max(160).optional(),shell:z.string().max(80).optional(),cwd:pathText.optional(),term:z.string().max(64).optional(),data:z.string().max(1_048_576).optional(),offset:z.number().int().min(0).optional(),limit:z.number().int().min(1).max(1_048_576).optional(),cols:z.number().int().min(20).max(500).optional(),rows:z.number().int().min(5).max(200).optional(),signal:z.enum(['interrupt','terminate','kill']).optional(),force:z.boolean().optional()},securitySchemes:security(['remote:terminal']),annotations:annotations(false,true,true,false)
-  },guarded(identity,['remote:terminal'],async(a,x)=>{
-    const terminal={op:x.operation};Object.assign(terminal,pick(x,['terminalId','shell','cwd','term','data','offset','limit','cols','rows','signal','force']));
-    return operationView(await a.terminal(x.sessionId,terminal,x.operationId));
-  }));
+    title:'Start a remote PTY or ConPTY terminal',
+    description:'Start one interactive terminal session on the selected device. Starting the terminal changes session state but does not itself execute user commands.',
+    inputSchema:{sessionId:id,operationId:opId,shell:z.string().max(80).optional(),cwd:pathText.optional(),term:z.string().max(64).optional(),cols:z.number().int().min(20).max(500).optional(),rows:z.number().int().min(5).max(200).optional()},securitySchemes:security(['remote:terminal']),annotations:annotations(false,false,false,false)
+  },guarded(identity,['remote:terminal'],(a,x)=>terminalOperation(a,x,'start')));
+
+  add(server,'light_remote_terminal_input',{
+    title:'Send input to a remote terminal',
+    description:'Send bounded text or control input to one existing PTY/ConPTY terminal. Input can execute commands that change local or external state.',
+    inputSchema:{sessionId:id,operationId:opId,terminalId:z.string().min(1).max(160),data:z.string().max(1_048_576)},securitySchemes:security(['remote:terminal']),annotations:annotations(false,true,true,false)
+  },guarded(identity,['remote:terminal'],(a,x)=>terminalOperation(a,x,'input')));
+
+  add(server,'light_remote_terminal_output',{
+    title:'Read remote terminal output',
+    description:'Read a bounded output range from one existing PTY/ConPTY terminal without sending input.',
+    inputSchema:{sessionId:id,operationId:opId,terminalId:z.string().min(1).max(160),offset:z.number().int().min(0).optional(),limit:z.number().int().min(1).max(1_048_576).optional()},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
+  },guarded(identity,['remote:read'],(a,x)=>terminalOperation(a,x,'output')));
+
+  add(server,'light_remote_resize_terminal',{
+    title:'Resize a remote terminal',
+    description:'Change the rows and columns of one existing PTY/ConPTY terminal without executing a command.',
+    inputSchema:{sessionId:id,operationId:opId,terminalId:z.string().min(1).max(160),cols:z.number().int().min(20).max(500),rows:z.number().int().min(5).max(200)},securitySchemes:security(['remote:terminal']),annotations:annotations(false,false,false,true)
+  },guarded(identity,['remote:terminal'],(a,x)=>terminalOperation(a,x,'resize')));
+
+  add(server,'light_remote_signal_terminal',{
+    title:'Signal a remote terminal process',
+    description:'Send interrupt, terminate, or kill to the process group owned by one terminal. Terminate or kill can discard running work.',
+    inputSchema:{sessionId:id,operationId:opId,terminalId:z.string().min(1).max(160),signal:z.enum(['interrupt','terminate','kill'])},securitySchemes:security(['remote:terminal']),annotations:annotations(false,true,false,false)
+  },guarded(identity,['remote:terminal'],(a,x)=>terminalOperation(a,x,'signal')));
+
+  add(server,'light_remote_list_terminals',{
+    title:'List remote terminals',
+    description:'List PTY/ConPTY terminals owned by the current Light Remote session without changing them.',
+    inputSchema:{sessionId:id,operationId:opId},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
+  },guarded(identity,['remote:read'],(a,x)=>terminalOperation(a,x,'list')));
+
+  add(server,'light_remote_stop_terminal',{
+    title:'Stop a remote terminal',
+    description:'Stop one PTY/ConPTY terminal. Force mode may terminate its process group immediately and can discard running work.',
+    inputSchema:{sessionId:id,operationId:opId,terminalId:z.string().min(1).max(160),force:z.boolean().optional()},securitySchemes:security(['remote:terminal']),annotations:annotations(false,true,false,false)
+  },guarded(identity,['remote:terminal'],(a,x)=>terminalOperation(a,x,'stop')));
 
   add(server,'light_remote_scp_download',{
-    title:'Download a large or binary file',
-    description:'Use the resumable Light SCP read plane. Download chunks and whole-file integrity are SHA-256 verified.',
-    inputSchema:{sessionId:id,operationId:opId,operation:z.enum(['download-begin','download-chunk','status','cancel']),transferId:z.string().max(160).optional(),source:pathText.optional(),chunkBytes:z.number().int().min(64*1024).max(4*1024*1024).optional(),index:z.number().int().min(0).optional()},
-    securitySchemes:security(['remote:read']),annotations:annotations(false,false,false,false)
-  },guarded(identity,['remote:read'],async(a,x)=>{
-    const scp={op:x.operation};Object.assign(scp,pick(x,['transferId','source','chunkBytes','index']));
-    return operationView(await a.scp(x.sessionId,scp,x.operationId));
-  }));
+    title:'Begin a large or binary file download',
+    description:'Begin one resumable Light SCP download from an allowed remote path and return transfer metadata with SHA-256 integrity information.',
+    inputSchema:{sessionId:id,operationId:opId,source:pathText,chunkBytes:z.number().int().min(64*1024).max(4*1024*1024).optional()},securitySchemes:security(['remote:read']),annotations:annotations(false,false,false,false)
+  },guarded(identity,['remote:read'],(a,x)=>scpOperation(a,x,'download-begin',['source','chunkBytes'])));
+
+  add(server,'light_remote_scp_download_chunk',{
+    title:'Read a download chunk',
+    description:'Read one indexed chunk from an existing Light SCP download without changing the source file.',
+    inputSchema:{sessionId:id,operationId:opId,transferId:z.string().min(1).max(160),index:z.number().int().min(0)},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
+  },guarded(identity,['remote:read'],(a,x)=>scpOperation(a,x,'download-chunk',['transferId','index'])));
+
+  add(server,'light_remote_scp_download_status',{
+    title:'Read download status',
+    description:'Read status and integrity metadata for one existing Light SCP download.',
+    inputSchema:{sessionId:id,operationId:opId,transferId:z.string().min(1).max(160)},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
+  },guarded(identity,['remote:read'],(a,x)=>scpOperation(a,x,'status',['transferId'])));
+
+  add(server,'light_remote_scp_download_cancel',{
+    title:'Cancel a file download',
+    description:'Cancel one in-progress Light SCP download and discard its transfer state without modifying the remote source file.',
+    inputSchema:{sessionId:id,operationId:opId,transferId:z.string().min(1).max(160)},securitySchemes:security(['remote:read']),annotations:annotations(false,true,false,true)
+  },guarded(identity,['remote:read'],(a,x)=>scpOperation(a,x,'cancel',['transferId'])));
 
   add(server,'light_remote_scp',{
-    title:'Upload a large or binary file',
-    description:'Use the resumable Light SCP upload plane for binary/large files. Upload integrity is verified by SHA-256 and requires remote:write.',
-    inputSchema:{sessionId:id,operationId:opId,operation:z.enum(['upload-begin','upload-chunk','upload-commit','status','cancel']),transferId:z.string().max(160).optional(),destination:pathText.optional(),source:pathText.optional(),totalBytes:z.number().int().min(0).optional(),sha256:z.string().regex(/^[a-f0-9]{64}$/i).optional(),chunkBytes:z.number().int().min(64*1024).max(4*1024*1024).optional(),index:z.number().int().min(0).optional(),data:z.string().max(6_000_000).optional(),overwrite:z.boolean().optional(),createParents:z.boolean().optional()},securitySchemes:security(['remote:write']),annotations:annotations(false,true,false,false)
-  },guarded(identity,['remote:write'],async(a,x)=>{
-    const scp={op:x.operation};Object.assign(scp,pick(x,['transferId','destination','totalBytes','sha256','chunkBytes','index','data','overwrite','createParents']));
-    return operationView(await a.scp(x.sessionId,scp,x.operationId));
-  }));
+    title:'Begin a large or binary file upload',
+    description:'Begin one resumable Light SCP upload to an allowed destination. Data is staged until commit and integrity is verified with SHA-256.',
+    inputSchema:{sessionId:id,operationId:opId,destination:pathText,totalBytes:z.number().int().min(0),sha256:z.string().regex(/^[a-f0-9]{64}$/i),chunkBytes:z.number().int().min(64*1024).max(4*1024*1024).optional(),overwrite:z.boolean().optional(),createParents:z.boolean().optional()},securitySchemes:security(['remote:write']),annotations:annotations(false,false,false,false)
+  },guarded(identity,['remote:write'],(a,x)=>scpOperation(a,x,'upload-begin',['destination','totalBytes','sha256','chunkBytes','overwrite','createParents'])));
+
+  add(server,'light_remote_scp_upload_chunk',{
+    title:'Write an upload chunk',
+    description:'Stage one indexed data chunk for an existing Light SCP upload. This changes transfer state but does not commit the destination file.',
+    inputSchema:{sessionId:id,operationId:opId,transferId:z.string().min(1).max(160),index:z.number().int().min(0),data:z.string().max(6_000_000)},securitySchemes:security(['remote:write']),annotations:annotations(false,false,false,false)
+  },guarded(identity,['remote:write'],(a,x)=>scpOperation(a,x,'upload-chunk',['transferId','index','data'])));
+
+  add(server,'light_remote_scp_upload_commit',{
+    title:'Commit a file upload',
+    description:'Verify and commit one completed Light SCP upload to its destination. If overwrite was requested, existing destination data can be replaced.',
+    inputSchema:{sessionId:id,operationId:opId,transferId:z.string().min(1).max(160)},securitySchemes:security(['remote:write']),annotations:annotations(false,true,false,false)
+  },guarded(identity,['remote:write'],(a,x)=>scpOperation(a,x,'upload-commit',['transferId'])));
+
+  add(server,'light_remote_scp_upload_status',{
+    title:'Read upload status',
+    description:'Read status and integrity metadata for one existing Light SCP upload.',
+    inputSchema:{sessionId:id,operationId:opId,transferId:z.string().min(1).max(160)},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
+  },guarded(identity,['remote:read'],(a,x)=>scpOperation(a,x,'status',['transferId'])));
+
+  add(server,'light_remote_scp_upload_cancel',{
+    title:'Cancel a file upload',
+    description:'Cancel one in-progress Light SCP upload and discard staged transfer data before commit.',
+    inputSchema:{sessionId:id,operationId:opId,transferId:z.string().min(1).max(160)},securitySchemes:security(['remote:write']),annotations:annotations(false,true,false,true)
+  },guarded(identity,['remote:write'],(a,x)=>scpOperation(a,x,'cancel',['transferId'])));
 
   add(server,'light_remote_desktop',{
-    title:'Observe the remote desktop',
-    description:'Read the authorized remote desktop using semantic snapshots, events, windows, and frames. Prefer live semantic updates; use a full frame only for bootstrap or resync.',
-    inputSchema:{sessionId:id,operationId:opId,operation:z.enum(['status','attach','resume','detach','windows','frame','observe','semantic-attach','semantic-snapshot','semantic-events','semantic-detach','live-open','live-close']),desktopSessionId:z.string().max(160).optional(),semanticSessionId:z.string().max(160).optional(),afterSeq:z.number().int().min(0).optional(),limit:z.number().int().min(1).max(1000).optional(),screen:z.number().int().min(-1).max(31).optional(),maxWidth:z.number().int().min(64).max(7680).optional(),maxHeight:z.number().int().min(64).max(4320).optional(),quality:z.number().int().min(1).max(100).optional(),minIntervalMs:z.number().int().min(0).max(5000).optional(),omitUnchanged:z.boolean().optional(),idleTimeoutMs:z.number().int().min(250).max(900000).optional(),provider:z.enum(['windows-uia','browser-cdp']).optional(),scope:z.string().max(160).optional(),cdpEndpoint:z.string().max(256).optional(),targetId:z.string().max(256).optional(),urlMatch:z.string().max(512).optional(),maxDepth:z.number().int().min(1).max(64).optional(),maxNodes:z.number().int().min(1).max(20000).optional(),waitMs:z.number().int().min(0).max(7000).optional()},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,false)
-  },guarded(identity,['remote:read'],async(a,x)=>{
-    const desktop={op:x.operation};Object.assign(desktop,pick(x,['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes']));
-    return operationView(await a.desktop(x.sessionId,desktop,x.operationId,x.waitMs));
-  }));
+    title:'Read remote desktop status',
+    description:'Read Real Remote V2 desktop session status for the selected Light Remote session without attaching or sending input.',
+    inputSchema:{sessionId:id,operationId:opId},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
+  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'status',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
+
+  add(server,'light_remote_desktop_attach',{
+    title:'Attach remote desktop observation',
+    description:'Attach a bounded Real Remote V2 desktop observation session. This creates observation state but does not send keyboard or pointer input.',
+    inputSchema:{sessionId:id,operationId:opId,screen:z.number().int().min(-1).max(31).optional(),maxWidth:z.number().int().min(64).max(7680).optional(),maxHeight:z.number().int().min(64).max(4320).optional(),quality:z.number().int().min(1).max(100).optional(),minIntervalMs:z.number().int().min(0).max(5000).optional(),omitUnchanged:z.boolean().optional(),idleTimeoutMs:z.number().int().min(250).max(900000).optional()},securitySchemes:security(['remote:read']),annotations:annotations(false,false,false,false)
+  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'attach',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
+
+  add(server,'light_remote_desktop_resume',{
+    title:'Resume remote desktop observation',
+    description:'Resume one existing Real Remote V2 desktop observation session without sending user input.',
+    inputSchema:{sessionId:id,operationId:opId,desktopSessionId:z.string().min(1).max(160)},securitySchemes:security(['remote:read']),annotations:annotations(false,false,false,true)
+  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'resume',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
+
+  add(server,'light_remote_desktop_detach',{
+    title:'Detach remote desktop observation',
+    description:'Detach one existing Real Remote V2 desktop observation session. This stops observation state and does not alter desktop content.',
+    inputSchema:{sessionId:id,operationId:opId,desktopSessionId:z.string().min(1).max(160)},securitySchemes:security(['remote:read']),annotations:annotations(false,false,false,true)
+  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'detach',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
+
+  add(server,'light_remote_desktop_windows',{
+    title:'List remote desktop windows',
+    description:'Read the visible window inventory from the authorized remote desktop without sending input.',
+    inputSchema:{sessionId:id,operationId:opId,desktopSessionId:z.string().max(160).optional()},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
+  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'windows',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
+
+  add(server,'light_remote_desktop_frame',{
+    title:'Read a remote desktop frame',
+    description:'Read one bounded desktop frame for bootstrap or resynchronization without sending keyboard or pointer input.',
+    inputSchema:{sessionId:id,operationId:opId,desktopSessionId:z.string().max(160).optional(),screen:z.number().int().min(-1).max(31).optional(),maxWidth:z.number().int().min(64).max(7680).optional(),maxHeight:z.number().int().min(64).max(4320).optional(),quality:z.number().int().min(1).max(100).optional()},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
+  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'frame',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
+
+  add(server,'light_remote_desktop_observe',{
+    title:'Observe remote desktop state',
+    description:'Read one bounded Real Remote V2 observation from an authorized desktop without sending input.',
+    inputSchema:{sessionId:id,operationId:opId,desktopSessionId:z.string().max(160).optional(),screen:z.number().int().min(-1).max(31).optional(),maxWidth:z.number().int().min(64).max(7680).optional(),maxHeight:z.number().int().min(64).max(4320).optional(),quality:z.number().int().min(1).max(100).optional(),omitUnchanged:z.boolean().optional(),waitMs:z.number().int().min(0).max(7000).optional()},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,false)
+  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'observe',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
+
+  add(server,'light_remote_semantic_attach',{
+    title:'Attach semantic desktop observation',
+    description:'Attach a bounded semantic desktop provider for structured UI observation. This creates observation state and does not send input.',
+    inputSchema:{sessionId:id,operationId:opId,provider:z.enum(['windows-uia','browser-cdp']).optional(),scope:z.string().max(160).optional(),cdpEndpoint:z.string().max(256).optional(),targetId:z.string().max(256).optional(),urlMatch:z.string().max(512).optional(),maxDepth:z.number().int().min(1).max(64).optional(),maxNodes:z.number().int().min(1).max(20000).optional(),idleTimeoutMs:z.number().int().min(250).max(900000).optional()},securitySchemes:security(['remote:read']),annotations:annotations(false,false,false,false)
+  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'semantic-attach',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
+
+  add(server,'light_remote_semantic_snapshot',{
+    title:'Read a semantic desktop snapshot',
+    description:'Read one structured semantic UI snapshot from an existing authorized semantic observation session.',
+    inputSchema:{sessionId:id,operationId:opId,semanticSessionId:z.string().min(1).max(160),maxDepth:z.number().int().min(1).max(64).optional(),maxNodes:z.number().int().min(1).max(20000).optional()},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
+  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'semantic-snapshot',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
+
+  add(server,'light_remote_semantic_events',{
+    title:'Read semantic desktop events',
+    description:'Read bounded semantic UI events after a sequence number without changing the remote desktop.',
+    inputSchema:{sessionId:id,operationId:opId,semanticSessionId:z.string().min(1).max(160),afterSeq:z.number().int().min(0).optional(),limit:z.number().int().min(1).max(1000).optional()},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
+  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'semantic-events',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
+
+  add(server,'light_remote_semantic_detach',{
+    title:'Detach semantic desktop observation',
+    description:'Detach one semantic observation session. This stops observation state and does not alter desktop content.',
+    inputSchema:{sessionId:id,operationId:opId,semanticSessionId:z.string().min(1).max(160)},securitySchemes:security(['remote:read']),annotations:annotations(false,false,false,true)
+  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'semantic-detach',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
+
+  add(server,'light_remote_desktop_live_open',{
+    title:'Open live semantic desktop observation',
+    description:'Open a bounded live semantic observation lane for an authorized desktop. This creates observation state and sends no keyboard or pointer input.',
+    inputSchema:{sessionId:id,operationId:opId,provider:z.enum(['windows-uia','browser-cdp']).optional(),scope:z.string().max(160).optional(),cdpEndpoint:z.string().max(256).optional(),targetId:z.string().max(256).optional(),urlMatch:z.string().max(512).optional(),maxDepth:z.number().int().min(1).max(64).optional(),maxNodes:z.number().int().min(1).max(20000).optional(),idleTimeoutMs:z.number().int().min(250).max(900000).optional()},securitySchemes:security(['remote:read']),annotations:annotations(false,false,false,false)
+  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'live-open',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
+
+  add(server,'light_remote_desktop_live_close',{
+    title:'Close live semantic desktop observation',
+    description:'Close one live semantic observation lane. This stops observation state and does not alter desktop content.',
+    inputSchema:{sessionId:id,operationId:opId,semanticSessionId:z.string().min(1).max(160)},securitySchemes:security(['remote:read']),annotations:annotations(false,false,false,true)
+  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'live-close',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
 
   add(server,'light_remote_desktop_live_read',{
     title:'Read buffered Real Remote V2 live state',
@@ -240,13 +500,22 @@ export function registerPluginTools(server,identity){
   },guarded(identity,['remote:read'],(a,x)=>a.desktopLiveRead(x.sessionId,x)));
 
   add(server,'light_remote_desktop_input',{
-    title:'Control the real desktop through Real Remote V2',
-    description:'Perform bounded semantic action, OS input batch, or action-and-await run. Requires target desktop and desktop-input capability; Windows security boundaries remain in force.',
-    inputSchema:{sessionId:id,operationId:opId,operation:z.enum(['act','input','run']),semanticSessionId:z.string().max(160).optional(),nodeId:z.string().max(512).optional(),action:z.string().max(80).optional(),value:z.any().optional(),events:z.array(jsonObject).max(128).optional(),displayTopologyId:z.string().max(160).optional(),afterSeq:z.number().int().min(0).optional(),settleMs:z.number().int().min(0).max(15000).optional(),await:z.object({foregroundTitleContains:z.string().max(512).optional(),foregroundTitleEquals:z.string().max(512).optional(),focusedNameContains:z.string().max(512).optional(),timeoutMs:z.number().int().min(50).max(15000).optional()}).optional(),waitMs:z.number().int().min(0).max(7000).optional()},securitySchemes:security(['remote:execute']),annotations:annotations(false,true,true,false)
-  },guarded(identity,['remote:execute'],async(a,x)=>{
-    const desktop={op:x.operation};Object.assign(desktop,pick(x,['semanticSessionId','nodeId','action','value','events','displayTopologyId','afterSeq','settleMs','await']));
-    return operationView(await a.desktop(x.sessionId,desktop,x.operationId,x.waitMs));
-  }));
+    title:'Perform a semantic desktop action',
+    description:'Perform one bounded semantic UI action on an explicitly authorized remote desktop. The action can cause external or irreversible effects in the active application.',
+    inputSchema:{sessionId:id,operationId:opId,semanticSessionId:z.string().min(1).max(160),nodeId:z.string().min(1).max(512),action:z.string().min(1).max(80),value:z.any().optional(),waitMs:z.number().int().min(0).max(7000).optional()},securitySchemes:security(['remote:execute']),annotations:annotations(false,true,true,false)
+  },guarded(identity,['remote:execute'],(a,x)=>desktopOperation(a,x,'act',['semanticSessionId','nodeId','action','value'])));
+
+  add(server,'light_remote_desktop_input_batch',{
+    title:'Send bounded desktop input',
+    description:'Send one bounded batch of pointer, keyboard, wheel, drag, text, or key events to an authorized remote desktop. Input can cause external or irreversible effects.',
+    inputSchema:{sessionId:id,operationId:opId,events:z.array(jsonObject).min(1).max(128),displayTopologyId:z.string().max(160).optional(),waitMs:z.number().int().min(0).max(7000).optional()},securitySchemes:security(['remote:execute']),annotations:annotations(false,true,true,false)
+  },guarded(identity,['remote:execute'],(a,x)=>desktopOperation(a,x,'input',['events','displayTopologyId'])));
+
+  add(server,'light_remote_desktop_action_await',{
+    title:'Perform a desktop action and await state',
+    description:'Perform one bounded desktop action and wait for a declared UI state condition. The action can cause external or irreversible effects in the active application.',
+    inputSchema:{sessionId:id,operationId:opId,semanticSessionId:z.string().max(160).optional(),nodeId:z.string().max(512).optional(),action:z.string().max(80).optional(),value:z.any().optional(),events:z.array(jsonObject).max(128).optional(),displayTopologyId:z.string().max(160).optional(),afterSeq:z.number().int().min(0).optional(),settleMs:z.number().int().min(0).max(15000).optional(),await:z.object({foregroundTitleContains:z.string().max(512).optional(),foregroundTitleEquals:z.string().max(512).optional(),focusedNameContains:z.string().max(512).optional(),timeoutMs:z.number().int().min(50).max(15000).optional()}),waitMs:z.number().int().min(0).max(7000).optional()},securitySchemes:security(['remote:execute']),annotations:annotations(false,true,true,false)
+  },guarded(identity,['remote:execute'],(a,x)=>desktopOperation(a,x,'run',['semanticSessionId','nodeId','action','value','events','displayTopologyId','afterSeq','settleMs','await'])));
 
   add(server,'light_remote_job',{
     title:'Read durable job status',

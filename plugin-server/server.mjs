@@ -13,9 +13,10 @@ import { registerWebAssets } from './web-assets.mjs';
 import { PUBLIC_PAGE_BODIES } from './public-pages.mjs';
 import { PLUGIN_TOOL_SECURITY, registerPluginTools } from './tools.mjs';
 import { installOpenAiToolSecurityCompat } from './openai-security-compat.mjs';
+import { installLegacyToolCallCompat } from './legacy-tool-call-compat.mjs';
 import { WEB_FONT_FACE_CSS, WEB_UI_FONT, WEB_CODE_FONT } from '../lib/web-typography.mjs';
 
-const INSTRUCTIONS='Start with light_remote_connection_helper. OAuth authenticates the account but does not authorize any device. If the helper returns need_a_code, ask only for the A code shown on the intended device Local Wall; do not enumerate account devices or run preflight probes. When the user supplies A, call light_remote_connection_helper immediately with that A code. If it returns approval_required, show only the B code from code and wait for the owner to approve B at that same Local Wall /approve. Keep continuation private. After the owner says approval is done, call light_remote_connection_helper again with the exact continuation. Only a ready result authorizes that device for this plugin client. A ready helper result includes a working context and an index-only tool-family menu. Do not preload detailed chapters: before first use of an unfamiliar family, call light_remote_connection_helper again with helperGroup=workspace, files, shell, transfer, or desktop, then reuse that chapter and the same context. Keep every durable session bound to one explicit device that this plugin client has A/B-authorized and one authenticated account; never silently switch targets or tenants. Prefer structured file/process tools over generic command execution, and use PTY/ConPTY only for interactive software. If an operation returns a running job, read job/output instead of repeating it. Device-local policy is authoritative. Never request, reveal, echo, or transmit passwords, MFA/OTP codes, API keys, private keys, bearer tokens, continuations, or other authentication secrets. The MCP cannot mint its own A code or bypass Local Wall /approve.';
+const INSTRUCTIONS='OAuth authenticates the account; Local Wall A/B approval authorizes each exact device. For an unpaired target, use light_remote_connection_helper with the owner-provided A code, show only the returned B code, wait for approval at that same Local Wall, then continue with the returned continuation. Keep device and session targets explicit and never silently switch them. Use each focused tool directly for its named action. Device-local policy is final authority. Never request, reveal, echo, or transmit passwords, MFA/OTP codes, API keys, private keys, bearer tokens, continuations, or other authentication secrets. The MCP cannot mint an A code or bypass Local Wall /approve.';
 
 const app=createMcpExpressApp({host:PUBLIC_HOST,allowedHosts:PUBLIC_ALLOWED_HOSTS});
 app.disable('x-powered-by');
@@ -53,6 +54,7 @@ app.get('/.well-known/openai-apps-challenge',(_q,r)=>{
 function mcpServer(identity){
   const server=new McpServer({name:'light-remote',version:MCP_SURFACE_VERSION},{instructions:INSTRUCTIONS});
   registerPluginTools(server,identity);
+  installLegacyToolCallCompat(server,identity);
   installOpenAiToolSecurityCompat(server,PLUGIN_TOOL_SECURITY);
   return server;
 }

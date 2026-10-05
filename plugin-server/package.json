@@ -1,6 +1,6 @@
 {
   "name": "light-remote-direct-plugin-server",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "private": true,
   "type": "module",
   "description": "Direct MCP/OAuth facade for Light Remote RC.30+.",
