@@ -15,6 +15,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 10
 
       - name: Resolve successful Windows build for tagged commit
         id: resolve
@@ -23,15 +25,30 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          RUN_ID="$(gh api "/repos/$GITHUB_REPOSITORY/actions/workflows/windows-native-client.yml/runs?head_sha=$GITHUB_SHA&status=success&per_page=20" --jq '.workflow_runs[0].id // empty')"
+          SOURCE_SHA="$GITHUB_SHA"
+          RUN_ID=""
+          for _ in 1 2 3 4 5; do
+            RUN_ID="$(gh api "/repos/$GITHUB_REPOSITORY/actions/workflows/windows-native-client.yml/runs?head_sha=$SOURCE_SHA&status=success&per_page=20" --jq '.workflow_runs[0].id // empty')"
+            if [ -n "$RUN_ID" ]; then break; fi
+            PARENT="$(git rev-parse "$SOURCE_SHA^")"
+            CHANGED="$(git diff --name-only "$PARENT" "$SOURCE_SHA")"
+            if [ "$CHANGED" != ".github/workflows/windows-client-hotfix-release.yml" ]; then
+              echo "No successful Windows build for $SOURCE_SHA and fallback crossed product changes:" >&2
+              printf '%s\n' "$CHANGED" >&2
+              exit 2
+            fi
+            echo "workflow-only commit $SOURCE_SHA has no Windows run; trying parent $PARENT"
+            SOURCE_SHA="$PARENT"
+          done
           test -n "$RUN_ID"
           echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
-          echo "windows_source_run=$RUN_ID"
+          echo "source_sha=$SOURCE_SHA" >> "$GITHUB_OUTPUT"
+          echo "windows_source_run=$RUN_ID source_sha=$SOURCE_SHA"
 
       - name: Download exact Windows artifact
         uses: actions/download-artifact@v4
         with:
-          name: light-remote-windows-x64-${{ github.sha }}
+          name: light-remote-windows-x64-${{ steps.resolve.outputs.source_sha }}
           path: windows-artifact
           github-token: ${{ github.token }}
           repository: ${{ github.repository }}
@@ -67,4 +84,4 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh release create "$GITHUB_REF_NAME" release-assets/*             --repo "$GITHUB_REPOSITORY"             --title "Light Remote Windows hotfix ${{ steps.stage.outputs.version }}"             --notes "Windows-only RC.30 hotfix built from $GITHUB_SHA. Restores Wall Cascadia typography and fixes Tray Open Fleet routing. Core semantic version remains ${{ steps.stage.outputs.version }} for same-version signed update reconciliation."             --prerelease             --verify-tag
+          gh release create "$GITHUB_REF_NAME" release-assets/*             --repo "$GITHUB_REPOSITORY"             --title "Light Remote Windows hotfix ${{ steps.stage.outputs.version }}"             --notes "Windows-only RC.30 hotfix built from ${{ steps.resolve.outputs.source_sha }}. Restores Wall Cascadia typography and fixes Tray Open Fleet routing. Core semantic version remains ${{ steps.stage.outputs.version }} for same-version signed update reconciliation."             --prerelease             --verify-tag
