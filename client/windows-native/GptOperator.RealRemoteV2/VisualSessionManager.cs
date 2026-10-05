@@ -5,7 +5,7 @@ internal sealed class VisualSessionManager : IDisposable
     private const int MaxSessions=4;
     private const int DefaultLeaseMs=30_000;
     private const int MinLeaseMs=1_000;
-    private const int MaxLeaseMs=300_000;
+    private const int MaxLeaseMs=900_000;
 
     private sealed class Session
     {

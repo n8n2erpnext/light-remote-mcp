@@ -110,6 +110,91 @@ async function channelRequest(state,hubBase,action,payload){
   return next;
 }
 const REAL_REMOTE_LIVE=new Map();
+const REAL_REMOTE_VISUAL=new Map();
+function visualPublicView(row,value={}){
+  const source=value&&typeof value==='object'&&!Array.isArray(value)?value:{};
+  const {leaseToken,visualSessionId,...rest}=source;
+  return {desktopSessionId:row.desktopSessionId,...rest};
+}
+function visualOwner(p){return {sessionId:String(p.sessionId||''),agentId:String(p.agentId||'')};}
+function requireRealRemoteVisual(p,desktopSessionId){
+  const id=String(desktopSessionId||''),row=REAL_REMOTE_VISUAL.get(id);
+  if(!row)throw new Error('desktop_session_missing');
+  const owner=visualOwner(p);
+  if(row.sessionId!==owner.sessionId||row.agentId!==owner.agentId)throw new Error('desktop_session_owner_mismatch');
+  if(Date.now()>=row.expiresAt){void stopRealRemoteVisual(row);throw new Error('desktop_session_expired');}
+  return row;
+}
+function armRealRemoteVisual(row){
+  if(row.timer){clearTimeout(row.timer);row.timer=null;}
+  row.expiresAt=Date.now()+row.idleTimeoutMs;
+  row.timer=setTimeout(()=>{row.timer=null;void stopRealRemoteVisual(row);},row.idleTimeoutMs);
+  row.timer.unref?.();
+}
+async function stopRealRemoteVisual(row,{detach=true}={}){
+  if(!row||row.stopping)return row?.stopping||null;
+  row.stopping=(async()=>{
+    REAL_REMOTE_VISUAL.delete(row.desktopSessionId);
+    if(row.timer){clearTimeout(row.timer);row.timer=null;}
+    let detached=null;
+    if(detach){
+      try{detached=await NATIVE_DESKTOP.request('visual-detach',{visualSessionId:row.visualSessionId,leaseToken:row.leaseToken},{timeoutMs:10000});}
+      catch(error){if(!/visual_(session_missing|lease_expired)|real_remote_helper_(closed|exited)/.test(String(error?.message||error)))throw error;}
+    }
+    try{row.release?.();}catch{}
+    NATIVE_DESKTOP.closeIfIdle();
+    return detached;
+  })().finally(()=>{row.stopping=null;});
+  return row.stopping;
+}
+async function attachRealRemoteVisual(p,request){
+  const owner=visualOwner(p),idleTimeoutMs=Math.max(1000,Math.min(Number(request.idleTimeoutMs)||120000,900000));
+  const native=await NATIVE_DESKTOP.request('visual-attach',{
+    screen:request.screen==null||Number(request.screen)<0?0:Math.max(0,Math.min(Number(request.screen)||0,31)),
+    maxWidth:Math.max(160,Math.min(Number(request.maxWidth)||960,1280)),
+    maxHeight:Math.max(90,Math.min(Number(request.maxHeight)||540,720)),
+    quality:Math.max(25,Math.min(Number(request.quality)||50,70)),
+    leaseMs:idleTimeoutMs,
+    owner:(owner.sessionId+':'+owner.agentId).slice(0,80)
+  },{timeoutMs:10000});
+  const desktopSessionId='desk_'+crypto.randomBytes(12).toString('base64url');
+  const row={desktopSessionId,visualSessionId:String(native.visualSessionId||''),leaseToken:String(native.leaseToken||''),...owner,
+    idleTimeoutMs,minIntervalMs:Math.max(0,Math.min(Number(request.minIntervalMs)||250,5000)),omitUnchanged:request.omitUnchanged!==false,
+    lastFrameSha:null,lastObservedAt:0,expiresAt:0,timer:null,release:NATIVE_DESKTOP.retain(),stopping:null};
+  if(!row.visualSessionId||!row.leaseToken){try{row.release();}catch{};throw new Error('desktop_visual_attach_invalid');}
+  REAL_REMOTE_VISUAL.set(desktopSessionId,row);armRealRemoteVisual(row);
+  return visualPublicView(row,native);
+}
+async function resumeRealRemoteVisual(p,request){
+  const row=requireRealRemoteVisual(p,request.desktopSessionId);
+  const native=await NATIVE_DESKTOP.request('visual-resume',{visualSessionId:row.visualSessionId,leaseToken:row.leaseToken,leaseMs:row.idleTimeoutMs},{timeoutMs:10000});
+  armRealRemoteVisual(row);return visualPublicView(row,native);
+}
+async function detachRealRemoteVisual(p,request){
+  const row=requireRealRemoteVisual(p,request.desktopSessionId),native=await stopRealRemoteVisual(row,{detach:true});
+  return visualPublicView(row,native||{detached:true});
+}
+async function frameRealRemoteVisual(p,request,{observe=false}={}){
+  const id=String(request.desktopSessionId||'');
+  if(!id){
+    return NATIVE_DESKTOP.request('frame',{
+      screen:request.screen==null||Number(request.screen)<0?0:Math.max(0,Math.min(Number(request.screen)||0,31)),
+      maxWidth:Math.max(160,Math.min(Number(request.maxWidth)||960,1280)),
+      maxHeight:Math.max(90,Math.min(Number(request.maxHeight)||540,720)),
+      quality:Math.max(25,Math.min(Number(request.quality)||50,70))
+    },{timeoutMs:10000});
+  }
+  const row=requireRealRemoteVisual(p,id),now=Date.now(),remaining=Math.max(0,row.minIntervalMs-(now-row.lastObservedAt));
+  if(observe&&remaining>0){armRealRemoteVisual(row);return {desktopSessionId:id,unchanged:true,throttled:true,retryAfterMs:remaining,frameSeq:null,expiresAt:row.expiresAt};}
+  const native=await NATIVE_DESKTOP.request('visual-frame',{visualSessionId:row.visualSessionId,leaseToken:row.leaseToken},{timeoutMs:10000});
+  row.lastObservedAt=Date.now();armRealRemoteVisual(row);
+  const capture=native?.frame&&typeof native.frame==='object'?native.frame:null,hash=String(capture?.frameSha256||'');
+  const unchanged=Boolean(observe&&row.omitUnchanged&&hash&&row.lastFrameSha===hash);
+  if(hash)row.lastFrameSha=hash;
+  if(!unchanged)return visualPublicView(row,native);
+  const safeCapture={...capture};delete safeCapture.data;
+  return visualPublicView(row,{...native,frame:safeCapture,unchanged:true});
+}
 const COMMAND_EXECUTIONS=new CommandExecutionCoordinator();
 let DEVICE_DUPLEX=null,DEVICE_DUPLEX_IDLE_DEADLINE=0,DEVICE_DUPLEX_IDLE_TIMER=null;
 const DEVICE_DUPLEX_IDLE_CLOSE_MS=Math.max(500,Math.min(Number(process.env.LIGHT_REMOTE_DEVICE_DUPLEX_IDLE_CLOSE_MS)||1500,10000));
@@ -230,7 +315,7 @@ async function pushDirectRealRemoteDelta(row,data){
 }
 function onRealRemoteLiveEvent(message){
   const name=String(message?.eventName||'');
-  if(name==='robot.closed'){for(const row of [...REAL_REMOTE_LIVE.values()])void stopRealRemoteLive(row,{detach:false,notify:true});return;}
+  if(name==='robot.closed'){for(const row of [...REAL_REMOTE_LIVE.values()])void stopRealRemoteLive(row,{detach:false,notify:true});for(const row of [...REAL_REMOTE_VISUAL.values()]){REAL_REMOTE_VISUAL.delete(row.desktopSessionId);if(row.timer)clearTimeout(row.timer);try{row.release?.();}catch{}}return;}
   if(name!=='semantic.changed'&&name!=='browser.semantic.changed')return;
   const data=message?.data||{},id=realRemoteLiveId(data),row=REAL_REMOTE_LIVE.get(id);if(!row||row.stopped)return;
   if(name==='semantic.changed'&&Array.isArray(data.events)){
@@ -341,23 +426,72 @@ async function executeDesktopCommand(state,p,{hub=DEFAULT_HUB}={}){
     if(REAL_REMOTE_LIVE.size===0){NATIVE_DESKTOP.closeIfIdle();scheduleDeviceDuplexIdleClose();}
     return {ok:true,operation:op,desktop:{semanticSessionId,closed:true,detached}};
   }
+  if(op==='attach')return {ok:true,operation:op,desktop:await attachRealRemoteVisual(p,request)};
+  if(op==='resume')return {ok:true,operation:op,desktop:await resumeRealRemoteVisual(p,request)};
+  if(op==='detach')return {ok:true,operation:op,desktop:await detachRealRemoteVisual(p,request)};
   if(op==='windows')return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('windows',{limit:Math.max(1,Math.min(Number(request.limit)||100,200))})};
-  if(op==='frame')return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('frame',{
-    screen:request.screen==null?-1:Math.max(-1,Math.min(Number(request.screen)||0,31)),
-    maxWidth:Math.max(320,Math.min(Number(request.maxWidth)||960,1280)),
-    maxHeight:Math.max(180,Math.min(Number(request.maxHeight)||540,720)),
-    quality:Math.max(25,Math.min(Number(request.quality)||50,70))
-  },{timeoutMs:10000})};
+  if(op==='frame')return {ok:true,operation:op,desktop:await frameRealRemoteVisual(p,request,{observe:false})};
+  if(op==='observe'){
+    const semanticSessionId=String(request.semanticSessionId||'').trim();
+    const semanticRequested=Boolean(semanticSessionId||request.provider||request.cdpEndpoint||request.targetId||request.urlMatch);
+    if(semanticRequested){
+      if(semanticSessionId){
+        if(request.afterSeq!=null){
+          const afterSeq=Number(request.afterSeq),limit=Number(request.limit);
+          return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('semantic-events',{
+            semanticSessionId,
+            afterSeq:Number.isFinite(afterSeq)?Math.max(0,Math.floor(afterSeq)):0,
+            limit:Math.max(1,Math.min(Number.isFinite(limit)?Math.floor(limit):100,200))
+          },{timeoutMs:10000})};
+        }
+        return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('semantic-snapshot',{semanticSessionId},{timeoutMs:15000})};
+      }
+      const provider=String(request.provider||'windows-uia').trim().toLowerCase();
+      if(!['windows-uia','browser-cdp'].includes(provider))throw new Error('invalid_semantic_provider');
+      const depth=Number(request.maxDepth),nodes=Number(request.maxNodes),semantic={provider,maxDepth:Math.max(0,Math.min(Number.isFinite(depth)?depth:(provider==='browser-cdp'?8:6),12)),maxNodes:Math.max(1,Math.min(Number.isFinite(nodes)?nodes:(provider==='browser-cdp'?600:400),1500))};
+      if(provider==='windows-uia')semantic.scope=request.scope==='desktop'?'desktop':'foreground';
+      else{if(request.cdpEndpoint!=null)semantic.cdpEndpoint=String(request.cdpEndpoint).slice(0,256);if(request.targetId!=null)semantic.targetId=String(request.targetId).slice(0,256);if(request.urlMatch!=null)semantic.urlMatch=String(request.urlMatch).slice(0,512);}
+      return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('semantic-attach',semantic,{timeoutMs:15000})};
+    }
+    return {ok:true,operation:op,desktop:await frameRealRemoteVisual(p,request,{observe:true})};
+  }
   if(op==='run'){
     if(!effective.includes(REAL_REMOTE_INPUT_CAPABILITY))throw new Error('local capability denied: desktop-input');
-    const input=normalizeDesktopInput(request),wait=request.await&&typeof request.await==='object'&&!Array.isArray(request.await)?request.await:null;
-    const desktop=await NATIVE_DESKTOP.request('run',{...input,...(wait?{await:wait}:{})},{timeoutMs:20000});
-    touchRealRemoteLive(input.semanticSessionId);
+    const wait=request.await&&typeof request.await==='object'&&!Array.isArray(request.await)?request.await:null;
+    let payload,semanticSessionId='';
+    if(String(request.nodeId||'').trim()&&String(request.action||'').trim()&&!Array.isArray(request.events)){
+      semanticSessionId=String(request.semanticSessionId||'');
+      if(!semanticSessionId)throw new Error('semantic_session_id_required');
+      payload={semanticSessionId,nodeId:String(request.nodeId),action:String(request.action),afterSeq:Math.max(0,Number(request.afterSeq)||0),settleMs:Math.max(0,Math.min(Number(request.settleMs)||90,250))};
+      if(request.value!=null)payload.value=String(request.value).slice(0,4096);
+      if(wait)payload.await=wait;
+    }else{
+      payload=normalizeDesktopInput(request);semanticSessionId=String(payload.semanticSessionId||'');
+      if(wait)payload.await=wait;
+    }
+    const desktop=await NATIVE_DESKTOP.request('run',payload,{timeoutMs:20000});
+    touchRealRemoteLive(semanticSessionId);
     return {ok:true,operation:op,desktop};
-  }  if(op==='input'){
+  }
+  if(op==='input'){
     if(!effective.includes(REAL_REMOTE_INPUT_CAPABILITY))throw new Error('local capability denied: desktop-input');
     const input=normalizeDesktopInput(request),desktop=await NATIVE_DESKTOP.request('input',input,{timeoutMs:10000});
     touchRealRemoteLive(input.semanticSessionId);
+    return {ok:true,operation:op,desktop};
+  }
+  if(op==='act'){
+    if(!effective.includes(REAL_REMOTE_INPUT_CAPABILITY))throw new Error('local capability denied: desktop-input');
+    if(Array.isArray(request.events)){
+      const input=normalizeDesktopInput(request),desktop=await NATIVE_DESKTOP.request('input',input,{timeoutMs:10000});
+      touchRealRemoteLive(input.semanticSessionId);
+      return {ok:true,operation:op,desktop};
+    }
+    const semanticSessionId=String(request.semanticSessionId||'');
+    if(!semanticSessionId)throw new Error('semantic_session_id_required');
+    const action={semanticSessionId,nodeId:String(request.nodeId||''),action:String(request.action||''),afterSeq:Math.max(0,Number(request.afterSeq)||0),settleMs:Math.max(0,Math.min(Number(request.settleMs)||90,250))};
+    if(request.value!=null)action.value=String(request.value).slice(0,4096);
+    const desktop=await NATIVE_DESKTOP.request('semantic-act',action,{timeoutMs:10000});
+    touchRealRemoteLive(semanticSessionId);
     return {ok:true,operation:op,desktop};
   }
   if(op==='semantic-attach'){

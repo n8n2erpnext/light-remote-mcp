@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text;
 using System.Windows.Automation;
 
@@ -17,6 +18,7 @@ internal sealed record UiPoint(double X,double Y);
 internal sealed record UiRect(double X,double Y,double Width,double Height);
 
 internal sealed record SemanticNodeData(
+    string NodeId,
     int Index,
     int Parent,
     int Depth,
@@ -33,7 +35,8 @@ internal sealed record SemanticNodeData(
     bool Password,
     UiRect Bounds,
     UiPoint Center,
-    string[] Patterns
+    string[] Patterns,
+    string[] Actions
 );
 
 internal sealed record SemanticSnapshotData(
@@ -165,7 +168,7 @@ internal sealed class UiSensor : IDisposable
         return new { foreground=fg, nodes, truncated=q.Count>0, capturedAt=DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() };
     }
 
-    public SemanticSnapshotData SemanticSnapshot(long rootHwnd,int maxDepth=6,int maxNodes=500)
+    public SemanticSnapshotData SemanticSnapshot(long rootHwnd,int maxDepth=6,int maxNodes=500,string epoch="")
     {
         maxDepth=Math.Clamp(maxDepth,0,12);
         maxNodes=Math.Clamp(maxNodes,1,1500);
@@ -176,8 +179,8 @@ internal sealed class UiSensor : IDisposable
         catch { throw new InvalidOperationException("semantic_root_unavailable"); }
 
         var nodes=new List<SemanticNodeData>(Math.Min(maxNodes,512));
-        var q=new Queue<(AutomationElement El,int Parent,int Depth)>();
-        q.Enqueue((root,-1,0));
+        var q=new Queue<(AutomationElement El,int Parent,int Depth,string Path)>();
+        q.Enqueue((root,-1,0,"0"));
         var walker=TreeWalker.ControlViewWalker;
 
         while(q.Count>0 && nodes.Count<maxNodes)
@@ -185,17 +188,19 @@ internal sealed class UiSensor : IDisposable
             var item=q.Dequeue();
             var index=nodes.Count;
             SemanticNodeData? node;
-            try { node=ReadSemanticNode(item.El,index,item.Parent,item.Depth); }
+            try { node=ReadSemanticNode(item.El,index,item.Parent,item.Depth,SemanticNodeId(epoch,item.El,item.Path)); }
             catch { node=null; }
             if(node is null) continue;
             nodes.Add(node);
 
             if(item.Depth>=maxDepth) continue;
             AutomationElement? child=null;
+            var childIndex=0;
             try { child=walker.GetFirstChild(item.El); } catch {}
             while(child is not null && q.Count+nodes.Count<maxNodes)
             {
-                q.Enqueue((child,index,item.Depth+1));
+                q.Enqueue((child,index,item.Depth+1,item.Path+"."+childIndex));
+                childIndex++;
                 try { child=walker.GetNextSibling(child); } catch { child=null; }
             }
         }
@@ -209,12 +214,53 @@ internal sealed class UiSensor : IDisposable
         );
     }
 
+    public AutomationElement ResolveSemanticElement(long rootHwnd,int maxDepth,int maxNodes,string epoch,string nodeId)
+    {
+        maxDepth=Math.Clamp(maxDepth,0,12);
+        maxNodes=Math.Clamp(maxNodes,1,1500);
+        if(rootHwnd==0) throw new InvalidOperationException("semantic_root_missing");
+        nodeId=(nodeId??"").Trim();
+        if(nodeId.Length==0) throw new InvalidOperationException("semantic_node_id_required");
+        var numeric=int.TryParse(nodeId,out var requestedIndex)&&requestedIndex>=0;
+
+        AutomationElement root;
+        try { root=AutomationElement.FromHandle(new nint(rootHwnd)); }
+        catch { throw new InvalidOperationException("semantic_root_unavailable"); }
+
+        var q=new Queue<(AutomationElement El,int Depth,string Path)>();
+        q.Enqueue((root,0,"0"));
+        var walker=TreeWalker.ControlViewWalker;
+        var index=0;
+        while(q.Count>0 && index<maxNodes)
+        {
+            var item=q.Dequeue();
+            var currentIndex=index++;
+            string currentId;
+            try { currentId=SemanticNodeId(epoch,item.El,item.Path); }
+            catch { currentId=""; }
+            if((numeric&&currentIndex==requestedIndex)||String.Equals(currentId,nodeId,StringComparison.Ordinal))
+                return item.El;
+
+            if(item.Depth>=maxDepth) continue;
+            AutomationElement? child=null;
+            var childIndex=0;
+            try { child=walker.GetFirstChild(item.El); } catch {}
+            while(child is not null && q.Count+index<maxNodes)
+            {
+                q.Enqueue((child,item.Depth+1,item.Path+"."+childIndex));
+                childIndex++;
+                try { child=walker.GetNextSibling(child); } catch { child=null; }
+            }
+        }
+        throw new InvalidOperationException("semantic_node_stale_or_not_found");
+    }
+
     public SemanticNodeData? FocusedSemantic()
     {
         try
         {
             var focused=AutomationElement.FocusedElement;
-            return focused is null?null:ReadSemanticNode(focused,-1,-1,0);
+            return focused is null?null:ReadSemanticNode(focused,-1,-1,0,"focused");
         }
         catch
         {
@@ -222,7 +268,7 @@ internal sealed class UiSensor : IDisposable
         }
     }
 
-    private static SemanticNodeData ReadSemanticNode(AutomationElement el,int index,int parent,int depth)
+    private static SemanticNodeData ReadSemanticNode(AutomationElement el,int index,int parent,int depth,string nodeId)
     {
         var c=el.Current;
         var r=c.BoundingRectangle;
@@ -241,8 +287,18 @@ internal sealed class UiSensor : IDisposable
             patterns=Array.Empty<string>();
         }
 
+        var actions=new List<string>(8);
+        if(patterns.Contains(InvokePattern.Pattern.ProgrammaticName??"")) actions.Add("invoke");
+        if(patterns.Contains(TogglePattern.Pattern.ProgrammaticName??"")) actions.Add("toggle");
+        if(patterns.Contains(ValuePattern.Pattern.ProgrammaticName??"")) actions.Add("value");
+        if(patterns.Contains(SelectionItemPattern.Pattern.ProgrammaticName??"")) actions.Add("select");
+        if(patterns.Contains(ExpandCollapsePattern.Pattern.ProgrammaticName??"")) { actions.Add("expand"); actions.Add("collapse"); }
+        if(c.IsKeyboardFocusable) actions.Add("focus");
+        if(c.IsEnabled&&!c.IsOffscreen&&bounds.Width>0&&bounds.Height>0) actions.Add("click");
+
         var role=(c.ControlType?.ProgrammaticName??"").Replace("ControlType.","",StringComparison.Ordinal);
         return new SemanticNodeData(
+            nodeId,
             index,
             parent,
             depth,
@@ -259,8 +315,24 @@ internal sealed class UiSensor : IDisposable
             c.IsPassword,
             bounds,
             SafeCenter(bounds),
-            patterns
+            patterns,
+            actions.ToArray()
         );
+    }
+
+    private static string SemanticNodeId(string epoch,AutomationElement element,string path)
+    {
+        var c=element.Current;
+        string? runtimeId=null;
+        try
+        {
+            var runtime=element.GetRuntimeId();
+            if(runtime is { Length: > 0 }) runtimeId=String.Join(".",runtime);
+        }
+        catch {}
+        var material=$"{epoch}|{c.ProcessId}|{c.NativeWindowHandle}|{runtimeId??path}";
+        var hash=SHA256.HashData(Encoding.UTF8.GetBytes(material));
+        return "uia_"+Convert.ToHexString(hash.AsSpan(0,10)).ToLowerInvariant();
     }
 
     private static UiRect SafeRect(double x,double y,double width,double height)

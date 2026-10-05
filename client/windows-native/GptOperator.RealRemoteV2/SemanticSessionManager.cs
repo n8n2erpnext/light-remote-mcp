@@ -1,3 +1,5 @@
+using System.Windows.Automation;
+
 namespace GptOperator.RealRemoteV2;
 
 internal sealed class SemanticSessionManager : IDisposable
@@ -71,7 +73,6 @@ internal sealed class SemanticSessionManager : IDisposable
             if(_sessions.Count>=MaxSessions) throw new InvalidOperationException("semantic_session_limit");
         }
 
-        var snapshot=_sensor.SemanticSnapshot(fg.Hwnd,maxDepth,maxNodes);
         var session=new Session {
             Id="sem_"+Guid.NewGuid().ToString("N"),
             Epoch="epoch_"+Guid.NewGuid().ToString("N"),
@@ -82,6 +83,7 @@ internal sealed class SemanticSessionManager : IDisposable
             MaxNodes=maxNodes,
             AttachedAt=DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
         };
+        var snapshot=_sensor.SemanticSnapshot(fg.Hwnd,maxDepth,maxNodes,session.Epoch);
 
         lock(_gate)
         {
@@ -109,7 +111,7 @@ internal sealed class SemanticSessionManager : IDisposable
     {
         var session=Get(semanticSessionId);
         RefreshTaskRoot(session);
-        var snapshot=_sensor.SemanticSnapshot(session.RootHwnd,session.MaxDepth,session.MaxNodes);
+        var snapshot=_sensor.SemanticSnapshot(session.RootHwnd,session.MaxDepth,session.MaxNodes,session.Epoch);
         var stateSeq=session.Journal.AdvanceSnapshot();
         var foreground=NativeInput.ReadForeground();
         var focusOutsideScope=session.Scope=="foreground" && foreground.Hwnd!=session.RootHwnd;
@@ -164,7 +166,12 @@ internal sealed class SemanticSessionManager : IDisposable
     public void ValidateInput(string semanticSessionId,long afterSeq)
     {
         var session=Get(semanticSessionId);
-        session.Journal.ValidateAfterSeq(afterSeq);
+        if(afterSeq>0) session.Journal.ValidateAfterSeq(afterSeq);
+        ValidateScope(session);
+    }
+
+    private void ValidateScope(Session session)
+    {
         var foreground=NativeInput.ReadForeground();
         if(session.Scope=="desktop")
         {
@@ -213,6 +220,120 @@ internal sealed class SemanticSessionManager : IDisposable
             hasMore=read.HasMore,
             events=read.Events
         };
+    }
+
+    public object ActMutation(string semanticSessionId,string nodeId,string action,string? value=null,long afterSeq=0)
+    {
+        var session=Get(semanticSessionId);
+        if(afterSeq>0) session.Journal.ValidateAfterSeq(afterSeq);
+        ValidateScope(session);
+        RefreshTaskRoot(session);
+        var element=_sensor.ResolveSemanticElement(session.RootHwnd,session.MaxDepth,session.MaxNodes,session.Epoch,nodeId);
+        action=(action??"").Trim().ToLowerInvariant();
+        if(action.Length==0) throw new InvalidOperationException("semantic_action_required");
+
+        string method;
+        try
+        {
+            method=action switch
+            {
+                "invoke"=>InvokeElement(element),
+                "toggle"=>ToggleElement(element),
+                "set-value" or "value"=>SetElementValue(element,value??""),
+                "select"=>SelectElement(element),
+                "expand"=>ExpandElement(element,true),
+                "collapse"=>ExpandElement(element,false),
+                "focus"=>FocusElement(element),
+                "click"=>ClickElement(element),
+                _=>throw new InvalidOperationException("semantic_action_unsupported")
+            };
+        }
+        catch(ElementNotAvailableException)
+        {
+            throw new InvalidOperationException("semantic_node_stale_or_not_found");
+        }
+
+        return new {
+            applied=true,
+            provider="windows-uia",
+            semanticSessionId=session.Id,
+            nodeId,
+            action,
+            method
+        };
+    }
+
+    public object Act(string semanticSessionId,string nodeId,string action,string? value=null,long afterSeq=0,int settleMs=90)
+    {
+        var mutation=ActMutation(semanticSessionId,nodeId,action,value,afterSeq);
+        var ack=AcknowledgeInput(semanticSessionId,afterSeq,settleMs,mutation);
+        return new {
+            provider="windows-uia",
+            semanticSessionId,
+            nodeId,
+            action=(action??"").Trim().ToLowerInvariant(),
+            mutation,
+            ack
+        };
+    }
+
+    private static string InvokeElement(AutomationElement element)
+    {
+        if(!element.TryGetCurrentPattern(InvokePattern.Pattern,out var raw)||raw is not InvokePattern pattern)
+            throw new InvalidOperationException("semantic_action_pattern_unavailable:invoke");
+        pattern.Invoke();
+        return "uia.invoke";
+    }
+
+    private static string ToggleElement(AutomationElement element)
+    {
+        if(!element.TryGetCurrentPattern(TogglePattern.Pattern,out var raw)||raw is not TogglePattern pattern)
+            throw new InvalidOperationException("semantic_action_pattern_unavailable:toggle");
+        pattern.Toggle();
+        return "uia.toggle";
+    }
+
+    private static string SetElementValue(AutomationElement element,string value)
+    {
+        if(!element.TryGetCurrentPattern(ValuePattern.Pattern,out var raw)||raw is not ValuePattern pattern)
+            throw new InvalidOperationException("semantic_action_pattern_unavailable:value");
+        if(pattern.Current.IsReadOnly) throw new InvalidOperationException("semantic_action_value_read_only");
+        pattern.SetValue(value);
+        return "uia.value";
+    }
+
+    private static string SelectElement(AutomationElement element)
+    {
+        if(!element.TryGetCurrentPattern(SelectionItemPattern.Pattern,out var raw)||raw is not SelectionItemPattern pattern)
+            throw new InvalidOperationException("semantic_action_pattern_unavailable:selectionItem");
+        pattern.Select();
+        return "uia.selectionItem";
+    }
+
+    private static string ExpandElement(AutomationElement element,bool expand)
+    {
+        if(!element.TryGetCurrentPattern(ExpandCollapsePattern.Pattern,out var raw)||raw is not ExpandCollapsePattern pattern)
+            throw new InvalidOperationException("semantic_action_pattern_unavailable:expandCollapse");
+        if(expand) pattern.Expand(); else pattern.Collapse();
+        return expand?"uia.expand":"uia.collapse";
+    }
+
+    private static string FocusElement(AutomationElement element)
+    {
+        element.SetFocus();
+        return "uia.focus";
+    }
+
+    private static string ClickElement(AutomationElement element)
+    {
+        var bounds=element.Current.BoundingRectangle;
+        if(bounds.IsEmpty||bounds.Width<=0||bounds.Height<=0)
+            throw new InvalidOperationException("semantic_action_click_bounds_unavailable");
+        var x=(int)Math.Round(bounds.X+bounds.Width/2d);
+        var y=(int)Math.Round(bounds.Y+bounds.Height/2d);
+        NativeInput.Move(x,y,60,6);
+        NativeInput.Click("left",1);
+        return "sendinput.click";
     }
 
     public object Detach(string semanticSessionId)

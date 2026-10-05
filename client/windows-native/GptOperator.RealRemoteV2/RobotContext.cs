@@ -65,6 +65,7 @@ internal sealed class RobotContext : ApplicationContext
             "desktop.semantic.snapshot" or "desktop-semantic-snapshot" => _semantic.Snapshot(Text(request,"semanticSessionId")),
             "desktop.semantic.events" or "desktop-semantic-events" => _semantic.Events(Text(request,"semanticSessionId"),Long(request,"afterSeq",0),Int(request,"limit",100)),
             "desktop.semantic.detach" or "desktop-semantic-detach" => _semantic.Detach(Text(request,"semanticSessionId")),
+            "desktop.semantic.act" or "desktop-semantic-act" => SemanticAct(request),
             "desktop.browser.attach" or "desktop-browser-attach" => _browser.Attach(
                 Text(request,"cdpEndpoint"), Text(request,"targetId"), Text(request,"urlMatch"),
                 Int(request,"maxDepth",8), Int(request,"maxNodes",600)
@@ -214,6 +215,19 @@ internal sealed class RobotContext : ApplicationContext
         return visualReceipt is null?semanticAck:new {visual=visualReceipt,semantic=semanticAck};
     }
 
+    private object SemanticAct(JsonElement r)
+    {
+        var semanticSessionId=Text(r,"semanticSessionId","");
+        if(semanticSessionId.StartsWith("bsem_",StringComparison.Ordinal))
+            throw new InvalidOperationException("semantic_action_provider_observation_only");
+        var nodeId=Text(r,"nodeId","");
+        var action=Text(r,"action","");
+        var value=Text(r,"value","");
+        var afterSeq=Long(r,"afterSeq",0);
+        var settleMs=Math.Clamp(Int(r,"settleMs",90),0,250);
+        return _semantic.Act(semanticSessionId,nodeId,action,value,afterSeq,settleMs);
+    }
+
     private object RunBatch(JsonElement r,int maxCount)
     {
         JsonElement actions;
@@ -252,9 +266,21 @@ internal sealed class RobotContext : ApplicationContext
         ValidateDisplayTopology(r);
         var semanticSessionId=Text(r,"semanticSessionId","");
         var afterSeq=Long(r,"afterSeq",0);
-        var settleMs=Math.Clamp(Int(r,"settleMs",90),0,250);        if(semanticSessionId.Length>0) _semantic.ValidateInput(semanticSessionId,afterSeq);
+        var settleMs=Math.Clamp(Int(r,"settleMs",90),0,250);
+        if(semanticSessionId.Length>0) _semantic.ValidateInput(semanticSessionId,afterSeq);
 
-        var mutation=RunBatch(r,64);
+        object mutation;
+        var nodeId=Text(r,"nodeId","");
+        var action=Text(r,"action","");
+        if(nodeId.Length>0||action.Length>0)
+        {
+            if(semanticSessionId.Length==0) throw new InvalidOperationException("semantic_session_id_required");
+            if(nodeId.Length==0) throw new InvalidOperationException("semantic_node_id_required");
+            if(action.Length==0) throw new InvalidOperationException("semantic_action_required");
+            mutation=_semantic.ActMutation(semanticSessionId,nodeId,action,Text(r,"value",""),afterSeq);
+        }
+        else mutation=RunBatch(r,64);
+
         object waitReceipt=new {matched=true,waited=false,elapsedMs=0L,foreground=NativeInput.ReadForeground(),focused=_sensor.FocusedSemantic()};
         if(r.TryGetProperty("await",out var waitNode) && waitNode.ValueKind==JsonValueKind.Object)
             waitReceipt=await AwaitUiAsync(waitNode);
