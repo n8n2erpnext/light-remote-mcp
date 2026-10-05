@@ -2,8 +2,8 @@ export async function handleAccountRoutes(req,res,url,deps){
   const {ACCOUNT_ID,AccountError,DEVICE_ID,accountSessionToken,accounts,allDeviceViews,capabilities,clearMainIfMatches,closeRuntimeForAccount,compatibilityFor,devices,enrollments,fleetAuthority,licenses,planEntitlements,queueHelperUpdate,readJson,removeRuntimeForDevice,requireAccount,revokeRuntimeForDevice,sendJson,usage,wakeDeviceChannelForDevice}=deps;
     if (req.method === 'GET' && url.pathname === '/v1/admin/overview') {
       const accountRows=accounts.list(),deviceRows=allDeviceViews(),current=accountRows.map(account=>({account,entitlements:planEntitlements(account),usage:usage.summary(account.accountId,{months:1})}));
-      const toolCallsThisMonth=current.reduce((sum,row)=>sum+(Number(row.usage.toolCallsThisMonth)||0),0),plans=current.reduce((out,row)=>{const key=String(row.account.plan||'free');out[key]=(out[key]||0)+1;return out;},{});
-      return sendJson(res,200,{ok:true,overview:{accounts:accountRows.length,pendingRegistrations:accounts.listPendingRegistrations().length,groups:accounts.listGroups().length,devices:deviceRows.length,onlineDevices:deviceRows.filter(d=>d.state==='online').length,toolCallsThisMonth,plans}});
+      const toolCallsThisMonth=current.reduce((sum,row)=>sum+(Number(row.usage.toolCallsThisMonth)||0),0),plans=current.reduce((out,row)=>{const key=String(row.account.plan||'free');out[key]=(out[key]||0)+1;return out;},{}),statuses=current.reduce((out,row)=>{const key=String(row.account.status||'active');out[key]=(out[key]||0)+1;return out;},{});
+      return sendJson(res,200,{ok:true,overview:{accounts:accountRows.length,pendingRegistrations:accounts.listPendingRegistrations().length,groups:accounts.listGroups().length,devices:deviceRows.length,onlineDevices:deviceRows.filter(d=>d.state==='online').length,toolCallsThisMonth,plans,statuses}});
     }
     if (req.method === 'GET' && url.pathname === '/v1/admin/accounts') {
       const deviceRows=allDeviceViews();
@@ -50,6 +50,24 @@ export async function handleAccountRoutes(req,res,url,deps){
     if (req.method === 'POST' && adminLicenseRevoke) {
       const body=await readJson(req),license=licenses.revoke(adminLicenseRevoke[1],body.reason||'admin_revoked');
       return sendJson(res,200,{ok:true,license});
+    }
+    if(req.method==='POST'&&url.pathname==='/v1/admin/dormancy/scan'){
+      const deviceRows=allDeviceViews(),facts={};
+      for(const account of accounts.list()){
+        const owned=deviceRows.filter(d=>d.accountId===account.accountId&&d.state!=='revoked'),summary=usage.summary(account.accountId,{months:6});
+        facts[account.accountId]={deviceCount:owned.length,lastToolCallAt:summary.lastToolCallAt||null,lastDeviceAddedAt:owned.reduce((m,d)=>Math.max(m,Number(d.firstSeenAt)||0),0)||account.lastDeviceAddedAt||null};
+      }
+      const result=accounts.evaluateDormancy(facts);
+      for(const item of result.transitions||[]){closeRuntimeForAccount(item.account.accountId,'account_auto_dormant');fleetAuthority.invalidateAccount(item.account.accountId,'account_auto_dormant');}
+      return sendJson(res,200,{ok:true,...result});
+    }
+    const adminDormancyAck=url.pathname.match(/^\/v1\/admin\/accounts\/([A-Za-z0-9._:-]+)\/dormancy-notice\/(14d|3d)\/ack$/);
+    if(req.method==='POST'&&adminDormancyAck){const account=accounts.acknowledgeDormancyNotice(adminDormancyAck[1],adminDormancyAck[2]);return sendJson(res,200,{ok:true,account});}
+    const adminStatusMatch=url.pathname.match(/^\/v1\/admin\/accounts\/([A-Za-z0-9._:-]+)\/status$/);
+    if(req.method==='POST'&&adminStatusMatch){
+      const body=await readJson(req),accountId=adminStatusMatch[1],account=accounts.setAdminStatus(accountId,{status:body.status,by:String(body.by||'web_admin'),reason:String(body.reason||'')});
+      let closedDevices=[];if(account.status==='admin_disabled'){closedDevices=closeRuntimeForAccount(accountId,'account_admin_disabled');fleetAuthority.invalidateAccount(accountId,'account_admin_disabled');}
+      return sendJson(res,200,{ok:true,account,closedDevices});
     }
     const adminAccountMatch=url.pathname.match(/^\/v1\/admin\/accounts\/([A-Za-z0-9._:-]+)$/);
     if (req.method === 'GET' && adminAccountMatch) return sendJson(res,200,{ok:true,account:accounts.account(adminAccountMatch[1])});
@@ -144,12 +162,12 @@ export async function handleAccountRoutes(req,res,url,deps){
     }
     const pluginDevicesMatch=url.pathname.match(/^\/v1\/plugin\/accounts\/([A-Za-z0-9._:-]+)\/devices$/);
     if(req.method==='GET'&&pluginDevicesMatch){
-      const accountId=pluginDevicesMatch[1],account=accounts.account(accountId),owned=allDeviceViews().filter(device=>device.accountId===accountId);
+      const accountId=pluginDevicesMatch[1],account=accounts.assertOperational(accountId),owned=allDeviceViews().filter(device=>device.accountId===accountId);
       return sendJson(res,200,{ok:true,account,entitlements:planEntitlements(account),devices:owned});
     }
     const pluginMainMatch=url.pathname.match(/^\/v1\/plugin\/accounts\/([A-Za-z0-9._:-]+)\/main-device$/);
     if(req.method==='POST'&&pluginMainMatch){
-      const body=await readJson(req),accountId=pluginMainMatch[1],device=devices.get(body.deviceId);
+      const body=await readJson(req),accountId=pluginMainMatch[1];accounts.assertOperational(accountId);const device=devices.get(body.deviceId);
       if(device.accountId!==accountId)throw new AccountError('account_device_mismatch',403);
       if(device.state==='revoked')throw new AccountError('main_device_revoked',409);
       if(device.state!=='online')throw new AccountError('main_device_offline',409);
@@ -163,7 +181,7 @@ export async function handleAccountRoutes(req,res,url,deps){
     }
     const pluginDeviceAction=url.pathname.match(/^\/v1\/plugin\/accounts\/([A-Za-z0-9._:-]+)\/devices\/([A-Za-z0-9._:-]+)\/(revoke|remove)$/);
     if(req.method==='POST'&&pluginDeviceAction){
-      const body=await readJson(req),accountId=pluginDeviceAction[1],device=devices.get(pluginDeviceAction[2]),action=pluginDeviceAction[3];
+      const body=await readJson(req),accountId=pluginDeviceAction[1];accounts.assertOperational(accountId);const device=devices.get(pluginDeviceAction[2]),action=pluginDeviceAction[3];
       if(device.accountId!==accountId)throw new AccountError('account_device_mismatch',403);
       if(device.deviceId===DEVICE_ID)throw new AccountError(action==='remove'?'integrated_hub_device_not_removable':'integrated_hub_device_not_revocable',409);
       const reason=String(body.reason||('plugin_owner_'+action+'d')).slice(0,120);
@@ -193,6 +211,10 @@ export async function handleAccountRoutes(req,res,url,deps){
     if (req.method === 'GET' && url.pathname === '/v1/accounts/me') {
       const identity=requireAccount(req);
       return sendJson(res,200,{ok:true,...identity,entitlements:planEntitlements(identity.account)});
+    }
+    if(req.method==='POST'&&url.pathname==='/v1/accounts/reactivate'){
+      const identity=requireAccount(req),account=accounts.reactivateDormant(identity.account.accountId,{source:'self'});
+      return sendJson(res,200,{ok:true,account,entitlements:planEntitlements(account)});
     }
     if (req.method === 'POST' && url.pathname === '/v1/accounts/logout') {
       return sendJson(res,200,{ok:true,...accounts.logout(accountSessionToken(req))});
@@ -244,8 +266,9 @@ export async function handleAccountRoutes(req,res,url,deps){
       return sendJson(res,200,{ok:true,account,entitlements:planEntitlements(account),license:consumed.license});
     }
     if(req.method==='POST'&&url.pathname==='/v1/accounts/enrollments/approve'){
-      const identity=requireAccount(req),body=await readJson(req),approval=enrollments.approve({...body,accountId:identity.account.accountId});
+      const identity=requireAccount(req);accounts.assertOperational(identity.account.accountId);const body=await readJson(req),approval=enrollments.approve({...body,accountId:identity.account.accountId});
       const binding=enrollments.binding(approval.deviceId),device=devices.enroll({accountId:binding.accountId,deviceId:binding.deviceId,nodeId:binding.deviceId,displayName:binding.displayName,platform:binding.platform,architecture:binding.architecture,agentVersion:binding.agentVersion,publicIdentityKey:binding.publicIdentityKey,capabilities:binding.approvedCapabilities,policyProfile:binding.policyProfile});
+      accounts.recordDeviceAdded(identity.account.accountId,device.firstSeenAt||Date.now());
       return sendJson(res,200,{ok:true,approval,device});
     }
     const accountUpdateMatch=url.pathname.match(/^\/v1\/accounts\/devices\/([A-Za-z0-9._:-]+)\/update$/);

@@ -16,6 +16,11 @@ const VERIFICATION_TTL_MS=30*60*1000;
 const VERIFICATION_RESEND_BACKOFF_MS=[60_000,120_000,5*60_000,15*60_000];
 const MAX_VERIFICATION_SENDS=5;
 const MAX_PIN_ATTEMPTS=3;
+const ACCOUNT_STATUSES=new Set(['active','dormant','admin_disabled']);
+const AUTO_DORMANT_AFTER_MS=90*24*60*60*1000;
+const DORMANCY_WARN_14_MS=76*24*60*60*1000;
+const DORMANCY_WARN_3_MS=87*24*60*60*1000;
+const AUTO_DORMANT_EXEMPT_GROUPS=new Set(['grp_internal','grp_reviewer']);
 const DEFAULT_GROUPS=Object.freeze([
   {groupId:'grp_default',name:'Default',protected:true},
   {groupId:'grp_internal',name:'Internal',protected:false},
@@ -94,7 +99,29 @@ export class AccountRegistry{
     if(changed&&persist)this._persist();return changed;
   }
   _groupFor(row){return this.groups.get(row.groupId)||this.groups.get('grp_default')||{groupId:'grp_default',name:'Default'};}
-  _viewAccount(row){const entitlement=entitlementView(row,this.now()),fleetProvisioning=row.fleetProvisioning&&FLEET_PROVISION_STATES.has(row.fleetProvisioning.state)?{...row.fleetProvisioning}:null,providers=[],group=this._groupFor(row);if(row.passwordEnabled!==false)providers.push('password');if(row.googleSub)providers.push('google');return {accountId:row.accountId,email:row.email,emailVerified:Boolean(row.emailVerified),authProviders:providers,plan:entitlement.plan,entitlement,groupId:group.groupId,groupName:group.name,mainDeviceId:row.mainDeviceId||null,fleetProvisioning,status:row.status||'active',createdAt:row.createdAt,lastLoginAt:row.lastLoginAt||null};}
+  _status(row){const raw=String(row.status||'active');return raw==='disabled'?'admin_disabled':ACCOUNT_STATUSES.has(raw)?raw:'active';}
+  _viewAccount(row){const entitlement=entitlementView(row,this.now()),fleetProvisioning=row.fleetProvisioning&&FLEET_PROVISION_STATES.has(row.fleetProvisioning.state)?{...row.fleetProvisioning}:null,providers=[],group=this._groupFor(row),status=this._status(row);if(row.passwordEnabled!==false)providers.push('password');if(row.googleSub)providers.push('google');return {accountId:row.accountId,email:row.email,emailVerified:Boolean(row.emailVerified),authProviders:providers,plan:entitlement.plan,entitlement,groupId:group.groupId,groupName:group.name,disableProtected:row.accountId===this.bootstrapAccountId,mainDeviceId:row.mainDeviceId||null,fleetProvisioning,status,statusReason:row.statusReason||null,dormantAt:row.dormantAt||null,disabledAt:row.disabledAt||null,disabledBy:row.disabledBy||null,disableReason:row.disableReason||null,reactivatedAt:row.reactivatedAt||null,lastDeviceAddedAt:row.lastDeviceAddedAt||null,createdAt:row.createdAt,lastLoginAt:row.lastLoginAt||null};}
+  _invalidateAccountSessions(accountId){let count=0;for(const [hash,session] of this.sessions)if(session.accountId===accountId){this.sessions.delete(hash);count++;}for(const [hash,item] of this.oneTimeTokens)if(item.accountId===accountId)this.oneTimeTokens.delete(hash);return count;}
+  assertOperational(accountId){const row=this.accounts.get(String(accountId||''));if(!row)throw new AccountError('account_not_found',404);const status=this._status(row);if(status==='admin_disabled')throw new AccountError('account_admin_disabled',403);if(status==='dormant')throw new AccountError('account_dormant',403);return this._viewAccount(row);}
+  recordDeviceAdded(accountId,at=this.now()){const row=this.accounts.get(String(accountId||''));if(!row)throw new AccountError('account_not_found',404);const ts=Number(at)||this.now();row.lastDeviceAddedAt=Math.max(Number(row.lastDeviceAddedAt)||0,ts);row.dormancyNoticeAnchor=null;row.dormancyNotice14At=null;row.dormancyNotice3At=null;this._persist();return this._viewAccount(row);}
+  reactivateDormant(accountId,{source='self'}={}){const row=this.accounts.get(String(accountId||''));if(!row)throw new AccountError('account_not_found',404);const status=this._status(row);if(status==='admin_disabled')throw new AccountError('account_admin_disabled',403);if(status!=='dormant')return this._viewAccount(row);const now=this.now();row.status='active';row.statusReason=null;row.dormantAt=null;row.reactivatedAt=now;row.dormancyNoticeAnchor=null;row.dormancyNotice14At=null;row.dormancyNotice3At=null;this._persist();this.emit({type:'account_reactivated',accountId:row.accountId,status:'active',source:String(source||'self').slice(0,40)});return this._viewAccount(row);}
+  setAdminStatus(accountId,{status='active',by='admin',reason=''}={}){const row=this.accounts.get(String(accountId||''));if(!row)throw new AccountError('account_not_found',404);const next=String(status||'');if(!['active','admin_disabled'].includes(next))throw new AccountError('invalid_account_status');if(row.accountId===this.bootstrapAccountId&&next==='admin_disabled')throw new AccountError('account_disable_protected',409);const prior=this._status(row),now=this.now();if(next==='admin_disabled'){row.status='admin_disabled';row.statusReason='admin_disabled';row.disabledAt=now;row.disabledBy=String(by||'admin').slice(0,80);row.disableReason=String(reason||'').slice(0,240);this._invalidateAccountSessions(row.accountId);}else{row.status='active';row.statusReason=null;row.disabledAt=null;row.disabledBy=null;row.disableReason=null;row.dormantAt=null;row.reactivatedAt=now;row.dormancyNoticeAnchor=null;row.dormancyNotice14At=null;row.dormancyNotice3At=null;}this._persist();this.emit({type:'account_status_changed',accountId:row.accountId,status:next,fromStatus:prior,reason:String(reason||'').slice(0,120),by:String(by||'admin').slice(0,80)});return this._viewAccount(row);}
+  evaluateDormancy(factsByAccount={}){
+    const now=this.now(),notices=[],transitions=[];let changed=false;
+    for(const row of this.accounts.values()){
+      const status=this._status(row),entitlement=entitlementView(row,now),facts=factsByAccount[row.accountId]||{},deviceCount=Math.max(0,Number(facts.deviceCount)||0);
+      if(status!=='active'||entitlement.plan!=='free'||row.accountId===this.bootstrapAccountId||AUTO_DORMANT_EXEMPT_GROUPS.has(String(row.groupId||''))||deviceCount>0)continue;
+      const anchor=Math.max(Number(row.createdAt)||0,Number(row.reactivatedAt)||0,Number(row.lastDeviceAddedAt)||0,Number(facts.lastDeviceAddedAt)||0,Number(facts.lastToolCallAt)||0);
+      if(!anchor)continue;
+      if(Number(row.dormancyNoticeAnchor)!==anchor){row.dormancyNoticeAnchor=anchor;row.dormancyNotice14At=null;row.dormancyNotice3At=null;changed=true;}
+      const idleMs=now-anchor,dormantAt=anchor+AUTO_DORMANT_AFTER_MS;
+      if(idleMs>=AUTO_DORMANT_AFTER_MS){row.status='dormant';row.statusReason='inactive_90d';row.dormantAt=now;row.disabledAt=null;row.disabledBy=null;row.disableReason=null;transitions.push({account:this._viewAccount(row),idleSince:anchor,dormantAt:now});changed=true;this.emit({type:'account_auto_dormant',accountId:row.accountId,status:'dormant',idleSince:anchor});continue;}
+      if(idleMs>=DORMANCY_WARN_3_MS&&!row.dormancyNotice3At)notices.push({account:this._viewAccount(row),kind:'3d',daysRemaining:3,idleSince:anchor,dormantAt});
+      else if(idleMs>=DORMANCY_WARN_14_MS&&!row.dormancyNotice14At)notices.push({account:this._viewAccount(row),kind:'14d',daysRemaining:14,idleSince:anchor,dormantAt});
+    }
+    if(changed)this._persist();return {notices,transitions};
+  }
+  acknowledgeDormancyNotice(accountId,kind){const row=this.accounts.get(String(accountId||''));if(!row)throw new AccountError('account_not_found',404);const k=String(kind||'');if(!['14d','3d'].includes(k))throw new AccountError('invalid_dormancy_notice');const field=k==='14d'?'dormancyNotice14At':'dormancyNotice3At';row[field]=this.now();this._persist();this.emit({type:'account_dormancy_notice_sent',accountId:row.accountId,status:'sent',kind:k});return this._viewAccount(row);}
   _viewPending(row){return {pendingId:row.pendingId,email:row.email,maskedEmail:String(row.email).replace(/^(.{1,2}).*(@.*)$/,'$1••••$2'),provider:row.provider,createdAt:row.createdAt,expiresAt:row.expiresAt,challengeExpiresAt:row.challengeExpiresAt||null,sendCount:Number(row.sendCount)||0,maxSends:MAX_VERIFICATION_SENDS,resendAvailableAt:row.resendAvailableAt||null,pinAttempts:Number(row.pinAttempts)||0,maxPinAttempts:MAX_PIN_ATTEMPTS,challengeLocked:Boolean(row.challengeLocked)};}
   _newPendingChallenge(row){
     const now=this.now();if((Number(row.sendCount)||0)>=MAX_VERIFICATION_SENDS)throw new AccountError('verification_send_limit_reached',429);
@@ -105,7 +132,7 @@ export class AccountRegistry{
     return {pending:this._viewPending(row),token,pin};
   }
   _issue(account){
-    this._prune(false);
+    this._prune(false);if(this._status(account)==='admin_disabled')throw new AccountError('account_admin_disabled',403);
     const token=crypto.randomBytes(32).toString('base64url'),tokenHash=sha256(token),now=this.now();
     const row={sessionId:`acctsess_${crypto.randomUUID()}`,tokenHash,accountId:account.accountId,createdAt:now,lastSeenAt:now,expiresAt:now+this.sessionTtlMs};
     this.sessions.set(tokenHash,row);
@@ -164,7 +191,7 @@ export class AccountRegistry{
   verifyCredentials(input={}, {recordLogin=false, eventType='account_login'}={}){
     const email=normalizeEmail(input.email),password=String(input.password||''),accountId=this.byEmail.get(email),row=accountId?this.accounts.get(accountId):null;
     if(!row||row.passwordEnabled===false||!safeEqual(row.email,email)||!verifyPassword(password,row.passwordHash))throw new AccountError('invalid_account_credentials',401);
-    if((row.status||'active')!=='active')throw new AccountError('account_disabled',403);
+    if(this._status(row)==='admin_disabled')throw new AccountError('account_admin_disabled',403);
     if(recordLogin){row.lastLoginAt=this.now();this._persist();this.emit({type:eventType,accountId:row.accountId,status:'ok'});}
     return this._viewAccount(row);
   }
@@ -174,7 +201,7 @@ export class AccountRegistry{
   }
   issueOneTimeToken(kind,email,{ttlMs}={}){
     const type=String(kind||'');if(!['password_reset','magic_login'].includes(type))throw new AccountError('invalid_account_token_kind');
-    this._prune(false);const aid=this.byEmail.get(normalizeEmail(email)),row=aid?this.accounts.get(aid):null;if(!row)return {issued:false};
+    this._prune(false);const aid=this.byEmail.get(normalizeEmail(email)),row=aid?this.accounts.get(aid):null;if(!row||this._status(row)==='admin_disabled')return {issued:false};
     for(const [hash,item] of this.oneTimeTokens)if(item.accountId===row.accountId&&item.kind===type)this.oneTimeTokens.delete(hash);
     const token=crypto.randomBytes(32).toString('base64url'),tokenHash=sha256(token),now=this.now(),expiresAt=now+Math.max(60_000,Math.min(Number(ttlMs)||20*60_000,60*60_000));
     this.oneTimeTokens.set(tokenHash,{tokenHash,kind:type,accountId:row.accountId,createdAt:now,expiresAt});this._persist();
@@ -183,7 +210,7 @@ export class AccountRegistry{
   consumeOneTimeToken(kind,token){
     const type=String(kind||''),hash=sha256(token),item=this.oneTimeTokens.get(hash),now=this.now();
     if(!item||item.kind!==type||item.expiresAt<=now){if(item)this.oneTimeTokens.delete(hash);throw new AccountError('account_one_time_token_invalid',401);}
-    const row=this.accounts.get(item.accountId);this.oneTimeTokens.delete(hash);this._persist();if(!row)throw new AccountError('account_not_found',404);
+    const row=this.accounts.get(item.accountId);this.oneTimeTokens.delete(hash);this._persist();if(!row)throw new AccountError('account_not_found',404);if(this._status(row)==='admin_disabled')throw new AccountError('account_admin_disabled',403);
     this.emit({type:'account_one_time_token_consumed',accountId:row.accountId,status:'ok',kind:type});return this._viewAccount(row);
   }
   resetPassword(accountId,password,{invalidateSessions=true}={}){
@@ -212,7 +239,7 @@ export class AccountRegistry{
     let row=[...this.accounts.values()].find(x=>x.googleSub===sub)||null;
     if(row&&normalizeEmail(row.email)!==email)throw new AccountError('google_identity_email_mismatch',409);
     if(!row){const aid=this.byEmail.get(email);row=aid?this.accounts.get(aid):null;if(row?.googleSub&&row.googleSub!==sub)throw new AccountError('google_identity_conflict',409);}
-    if(row){row.googleSub=sub;row.emailVerified=true;row.lastLoginAt=this.now();this._persist();this.emit({type:'account_google_login',accountId:row.accountId,status:'ok'});return {registrationRequired:false,...this._issue(row)};}
+    if(row){if(this._status(row)==='admin_disabled')throw new AccountError('account_admin_disabled',403);row.googleSub=sub;row.emailVerified=true;row.lastLoginAt=this.now();this._persist();this.emit({type:'account_google_login',accountId:row.accountId,status:'ok'});return {registrationRequired:false,...this._issue(row)};}
     for(const [hash,item] of this.googleSignupIntents)if(item.sub===sub||item.email===email)this.googleSignupIntents.delete(hash);
     const token=crypto.randomBytes(32).toString('base64url'),tokenHash=sha256(token),now=this.now(),expiresAt=now+15*60_000;
     this.googleSignupIntents.set(tokenHash,{tokenHash,sub,email,createdAt:now,expiresAt});this._persist();
@@ -280,7 +307,7 @@ export class AccountRegistry{
   authenticate(token,{touch=true}={}){
     this._prune();const hash=sha256(token),session=this.sessions.get(hash);
     if(!session)throw new AccountError('account_session_required',401);
-    const account=this.accounts.get(session.accountId);if(!account||account.status==='disabled')throw new AccountError('account_session_invalid',401);
+    const account=this.accounts.get(session.accountId);if(!account)throw new AccountError('account_session_invalid',401);if(this._status(account)==='admin_disabled')throw new AccountError('account_admin_disabled',403);
     if(touch){const now=this.now();if(now-session.lastSeenAt>=60_000){session.lastSeenAt=now;this._persist();}}
     return {account:this._viewAccount(account),session:{sessionId:session.sessionId,createdAt:session.createdAt,lastSeenAt:session.lastSeenAt,expiresAt:session.expiresAt}};
   }
@@ -298,7 +325,7 @@ export class AccountRegistry{
     this.emit({type:'account_entitlement_changed',accountId:row.accountId,status:'ok',fromPlan:prior,toPlan:next,source,validUntil});return this._viewAccount(row);
   }
   requestUpgrade(accountId,plan){
-    const row=this.accounts.get(String(accountId||''));if(!row)throw new AccountError('account_not_found',404);
+    const row=this.accounts.get(String(accountId||''));if(!row)throw new AccountError('account_not_found',404);this.assertOperational(row.accountId);
     const target=normalizePlan(plan);if(target==='free')throw new AccountError('invalid_upgrade_plan');
     const current=entitlementView(row,this.now());if(PLAN_RANK[current.plan]>=PLAN_RANK[target])throw new AccountError('account_plan_already_sufficient',409);
     const pending=[...this.upgradeRequests.values()].find(x=>x.accountId===row.accountId&&x.plan===target&&x.status==='pending');if(pending)return {...pending};

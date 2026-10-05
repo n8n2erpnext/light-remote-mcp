@@ -34,6 +34,8 @@ need(billing.includes('10,000 tool calls per month')&&billing.includes('Request 
 need(operator.includes('/v1/accounts/upgrade-request')&&registry.includes('requestUpgrade')&&registry.includes('resolveUpgradeRequest'),'direct-upgrade-authority');
 need(admin.includes('Upgrade requests')&&admin.includes('Recipient email')&&admin.includes('Verify SMTP'),'admin-commerce-mail');
 need(admin.includes('Pending registrations')&&admin.includes('Groups')&&admin.includes('set-group')&&operator.includes('/v1/admin/groups')&&registry.includes('setAccountGroup'),'admin-account-groups');
+need(home.includes('Reactivate account')&&account.includes("action==='reactivate'")&&operator.includes('/v1/accounts/reactivate')&&registry.includes('reactivateDormant'),'account-dormancy-reactivation');
+need(admin.includes('data-disable-account')&&admin.includes('data-enable-account')&&operator.includes('/v1/admin/dormancy/scan')&&registry.includes('evaluateDormancy')&&mailer.includes('sendDormancyWarning')&&mailer.includes('sendDormantNotice'),'account-dormancy-admin-policy');
 need(settings.includes('Change password')&&settings.includes('Appearance'),'settings-password-theme');
 need(publicHome.includes('Your AI.')&&publicHome.includes('Your machine.')&&publicHome.includes('Your approval.'),'public-home-hero');
 need(publicHome.includes('10K')&&publicHome.includes('A/B')&&publicHome.includes('Direct'),'public-home-trust');

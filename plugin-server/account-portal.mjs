@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { callOperatorJson } from './operator-client.mjs';
 import { PUBLIC_ORIGIN } from './config.mjs';
-import { mailConfig, sendMagicLogin, sendPasswordReset, sendUpgradeRequested, sendWelcomeVerification } from './mailer.mjs';
+import { mailConfig, sendDormancyWarning, sendDormantNotice, sendMagicLogin, sendPasswordReset, sendUpgradeRequested, sendWelcomeVerification } from './mailer.mjs';
 import { beginGoogleAuth, finishGoogleAuth, googleAuthStatus } from './google-auth.mjs';
 
 const COOKIE='__Host-light_remote_account';
@@ -12,6 +12,8 @@ const PENDING_COOKIE='__Host-light_remote_pending';
 const RECOVERY_FILE=String(process.env.LIGHT_REMOTE_ACCOUNT_RECOVERY_FILE||'/etc/light-remote-direct/account-recovery.json');
 const portalFile=name=>fileURLToPath(new URL(`./account-portal/${name}`,import.meta.url));
 const publicAuthRate=new Map();
+const DORMANCY_SCAN_INTERVAL_MS=6*60*60*1000;
+let dormancyScanRunning=false;
 function clientIp(req){return String(req.headers?.['x-forwarded-for']||req.socket?.remoteAddress||'unknown').split(',')[0].trim().slice(0,96);}
 function allowPublicAuth(req,action,{limit=5,windowMs=15*60_000}={}){prunePublicAuthRate();const now=Date.now(),key=`${action}:${clientIp(req)}`,prior=publicAuthRate.get(key);if(!prior||prior.resetAt<=now){publicAuthRate.set(key,{count:1,resetAt:now+windowMs});return true;}if(prior.count>=limit)return false;prior.count++;return true;}
 function prunePublicAuthRate(){const now=Date.now();for(const [k,v] of publicAuthRate)if(v.resetAt<=now)publicAuthRate.delete(k);}
@@ -113,9 +115,25 @@ async function accountRecovery(req,res){
 }
 
 function accountAudit(action,status,error=''){console.log(JSON.stringify({event:'account_portal',action,status,...(error?{error:String(error).slice(0,80)}:{})}));}
+async function runDormancyScan(){
+  if(dormancyScanRunning)return;dormancyScanRunning=true;
+  try{
+    const out=await callOperatorJson('POST','/v1/admin/dormancy/scan',{});
+    for(const item of out.notices||[]){
+      const mail=await sendDormancyWarning({to:item.account?.email,daysRemaining:item.daysRemaining,dormantAt:item.dormantAt}).catch(error=>({sent:false,reason:error?.message||'mail_failed'}));
+      if(mail?.sent)await callOperatorJson('POST','/v1/admin/accounts/'+encodeURIComponent(item.account.accountId)+'/dormancy-notice/'+encodeURIComponent(item.kind)+'/ack',{});
+      accountAudit('dormancy-warning',mail?.sent?'success':'mail_error',mail?.sent?'':mail?.reason||'mail_failed');
+    }
+    for(const item of out.transitions||[]){
+      const mail=await sendDormantNotice({to:item.account?.email}).catch(error=>({sent:false,reason:error?.message||'mail_failed'}));
+      accountAudit('auto-dormant',mail?.sent?'success':'mail_error',mail?.sent?'':mail?.reason||'mail_failed');
+    }
+  }catch(error){accountAudit('dormancy-scan','error',error?.payload?.error||error?.message||'scan_failed');}
+  finally{dormancyScanRunning=false;}
+}
 async function accountApi(req,res){
   const action=String(req.query?.action||'').trim();
-  const mutations=new Set(['register','login','logout','password-change','password-reset-request','password-reset-complete','magic-request','verification-resend','verification-verify','enrollment-approve','device-revoke','device-remove','device-update','devices-revoke-all','redeem-license','main-device','main-device-clear','upgrade-request']);
+  const mutations=new Set(['register','login','logout','password-change','password-reset-request','password-reset-complete','magic-request','verification-resend','verification-verify','reactivate','enrollment-approve','device-revoke','device-remove','device-update','devices-revoke-all','redeem-license','main-device','main-device-clear','upgrade-request']);
   if(mutations.has(action)&&!sameOriginMutation(req)){accountAudit(action,'cross_site_denied');return res.status(403).json({ok:false,error:'cross_site_request_denied'});}
   try{
     if(action==='register'){
@@ -199,6 +217,11 @@ async function accountApi(req,res){
         :`/v1/accounts/${action}`;
       return res.status(200).json(await callOperatorJson('GET',target,null,headers(token)));
     }
+    if(action==='reactivate'){
+      if(!method(req,res,'POST'))return;
+      const token=requireAccount(req,res);if(!token)return;
+      return res.status(200).json(await callOperatorJson('POST','/v1/accounts/reactivate',{},headers(token)));
+    }
     if(action==='logout'){
       if(!method(req,res,'POST'))return;
       const token=sessionToken(req);
@@ -273,10 +296,12 @@ async function accountGoogleCallback(req,res){
       setOpaqueCookie(res,GOOGLE_SIGNUP_COOKIE,upstream.googleSignupToken,upstream.expiresAt);accountAudit('google-signup-intent','success');return res.redirect(303,'/account/register?google=1');
     }
     setSessionCookie(res,upstream.token,upstream.session?.expiresAt);accountAudit('google-login','success');return res.redirect(303,'/account');
-  }catch(error){accountAudit('google-login','error',error?.payload?.error||error?.message||'google_login_failed');return res.redirect(303,'/account/login?error=google_login_failed');}
+  }catch(error){const code=error?.payload?.error||error?.message||'google_login_failed';accountAudit('google-login','error',code);return res.redirect(303,code==='account_admin_disabled'?'/account/login?error=account_admin_disabled':'/account/login?error=google_login_failed');}
 }
 
 export function registerAccountPortal(app){
+  const firstScan=setTimeout(()=>void runDormancyScan(),30_000);firstScan.unref?.();
+  const dormancyTimer=setInterval(()=>void runDormancyScan(),DORMANCY_SCAN_INTERVAL_MS);dormancyTimer.unref?.();
   app.get(['/account','/account/'],(_q,r)=>sendPortal(r,'index.html'));
   app.get(['/account/usage','/account/usage/'],(_q,r)=>sendPortal(r,'usage.html'));
   app.get(['/account/billing','/account/billing/'],(_q,r)=>sendPortal(r,'billing.html'));

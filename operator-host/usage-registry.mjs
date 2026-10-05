@@ -18,8 +18,9 @@ export class UsageRegistry{
     try{
       const d=JSON.parse(fs.readFileSync(this.stateFile,'utf8'));
       if(d?.schemaVersion!==1||typeof d.accounts!=='object'||!Array.isArray(d.openConnections))throw new Error('invalid_usage_schema');
-      this.accounts=d.accounts||{};this.trackingSince=Number(d.trackingSince)||this.trackingSince;
-      for(const row of d.openConnections)if(row?.connectionId&&row?.accountId&&row?.deviceId)this.openConnections.set(String(row.connectionId),row);
+      this.accounts=d.accounts||{};this.trackingSince=Number(d.trackingSince)||this.trackingSince;let migrated=false;
+      for(const row of Object.values(this.accounts)){if(!row||typeof row!=='object')continue;if(!Number(row.lastToolCallAt)){const calls=Object.values(row.months||{}).reduce((sum,b)=>sum+(Number(b?.toolCalls)||0),0);if(calls>0){row.lastToolCallAt=this.now();migrated=true;}}}
+      for(const row of d.openConnections)if(row?.connectionId&&row?.accountId&&row?.deviceId)this.openConnections.set(String(row.connectionId),row);if(migrated)this._persist();
     }catch(error){this.accounts={};this.openConnections.clear();this.loadError=error?.message||'invalid_usage_state';}
   }
   _persist(){
@@ -29,7 +30,7 @@ export class UsageRegistry{
     const tmp=`${this.stateFile}.${process.pid}.tmp`;fs.writeFileSync(tmp,`${JSON.stringify(data,null,2)}\n`,{mode:0o600});fs.chmodSync(tmp,0o600);fs.renameSync(tmp,this.stateFile);
   }
   isEmpty(){return !Object.keys(this.accounts).length&&!this.openConnections.size;}
-  _account(accountId){const id=String(accountId||'');if(!ID_RE.test(id))return null;return this.accounts[id]||(this.accounts[id]={months:{}});}
+  _account(accountId){const id=String(accountId||'');if(!ID_RE.test(id))return null;return this.accounts[id]||(this.accounts[id]={months:{},lastToolCallAt:null});}
   _bucket(accountId,key){const a=this._account(accountId);if(!a)return null;return a.months[key]||(a.months[key]=emptyBucket());}
   _device(bucket,deviceId){const id=String(deviceId||'unknown');return bucket.devices[id]||(bucket.devices[id]=emptyDevice());}
   _addOnline(accountId,deviceId,start,end){
@@ -40,7 +41,7 @@ export class UsageRegistry{
   _accrue(row,to){const limit=Math.min(Number(to)||this.now(),Number(row.hardExpiresAt)||Infinity),from=Number(row.lastAccruedAt)||Number(row.openedAt)||limit;if(limit<=from)return false;this._addOnline(row.accountId,row.deviceId,from,limit);row.lastAccruedAt=limit;return true;}
   ingest(event,{persist=true}={}){
     const e=event||{},at=atMs(e.at,this.now());let changed=false;
-    if(e.type==='session_activity'&&e.action==='toolCalls'&&e.accountId){const b=this._bucket(e.accountId,monthKey(at));if(b){b.toolCalls++;this._device(b,e.deviceId).toolCalls++;changed=true;}}
+    if(e.type==='session_activity'&&e.action==='toolCalls'&&e.accountId){const a=this._account(e.accountId),b=this._bucket(e.accountId,monthKey(at));if(b&&a){b.toolCalls++;this._device(b,e.deviceId).toolCalls++;a.lastToolCallAt=Math.max(Number(a.lastToolCallAt)||0,at);changed=true;}}
     else if(e.type==='device_connection_opened'&&e.accountId&&e.connectionId&&e.deviceId){
       for(const [id,row] of this.openConnections)if(row.deviceId===e.deviceId&&id!==e.connectionId){this._accrue(row,at);this.openConnections.delete(id);changed=true;}
       this.openConnections.set(String(e.connectionId),{connectionId:String(e.connectionId),accountId:String(e.accountId),deviceId:String(e.deviceId),openedAt:at,lastAccruedAt:at,hardExpiresAt:Number(e.hardExpiresAt)||null});changed=true;
@@ -54,6 +55,6 @@ export class UsageRegistry{
     this._accrueOpen();const aid=String(accountId||''),a=this.accounts[aid]||{months:{}},now=this.now(),count=Math.max(1,Math.min(Number(months)||6,24)),current=monthKey(now),keys=[];let y=new Date(now).getUTCFullYear(),m=new Date(now).getUTCMonth();for(let i=0;i<count;i++){keys.unshift(`${y}-${String(m+1).padStart(2,'0')}`);m--;if(m<0){m=11;y--;}}
     const series=keys.map(key=>{const b=a.months?.[key]||emptyBucket();return {month:key,toolCalls:Number(b.toolCalls)||0,onlineMs:Number(b.onlineMs)||0,onlineHours:(Number(b.onlineMs)||0)/3600000};});
     const b=a.months?.[current]||emptyBucket(),daysElapsed=Math.max(1,new Date(now).getUTCDate()),devices=Object.entries(b.devices||{}).map(([deviceId,row])=>({deviceId,toolCalls:Number(row.toolCalls)||0,onlineMs:Number(row.onlineMs)||0,onlineHours:(Number(row.onlineMs)||0)/3600000})).sort((x,y)=>y.toolCalls-x.toolCalls||y.onlineMs-x.onlineMs);
-    return {accountId:aid,trackingSince:this.trackingSince,currentMonth:current,daysElapsed,toolCallsThisMonth:Number(b.toolCalls)||0,onlineMsThisMonth:Number(b.onlineMs)||0,onlineHoursThisMonth:(Number(b.onlineMs)||0)/3600000,dailyAverageCalls:(Number(b.toolCalls)||0)/daysElapsed,dailyAverageOnlineHours:((Number(b.onlineMs)||0)/3600000)/daysElapsed,series,devices};
+    return {accountId:aid,trackingSince:this.trackingSince,lastToolCallAt:Number(a.lastToolCallAt)||null,currentMonth:current,daysElapsed,toolCallsThisMonth:Number(b.toolCalls)||0,onlineMsThisMonth:Number(b.onlineMs)||0,onlineHoursThisMonth:(Number(b.onlineMs)||0)/3600000,dailyAverageCalls:(Number(b.toolCalls)||0)/daysElapsed,dailyAverageOnlineHours:((Number(b.onlineMs)||0)/3600000)/daysElapsed,series,devices};
   }
 }

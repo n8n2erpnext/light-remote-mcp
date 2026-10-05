@@ -23,7 +23,7 @@ export function registerAdminPortal(app){
   app.all('/admin/api',async(req,res)=>{
     const admin=await requireAdmin(req,res);if(!admin)return;
     const action=String(req.query?.action||'').trim();
-    const mutations=new Set(['set-plan','set-group','create-group','rename-group','delete-group','cancel-pending','issue-license','revoke-license','resolve-upgrade','mail-test','google-config']);
+    const mutations=new Set(['set-plan','set-group','set-status','create-group','rename-group','delete-group','cancel-pending','issue-license','revoke-license','resolve-upgrade','mail-test','google-config']);
     if(mutations.has(action)&&!sameOrigin(req))return res.status(403).json({ok:false,error:'cross_site_request_denied'});
     try{
       if(action==='overview'&&req.method==='GET')return res.json(await callOperatorJson('GET','/v1/admin/overview'));
@@ -42,6 +42,7 @@ export function registerAdminPortal(app){
         return res.json(out);
       }
       if(action==='set-group'&&req.method==='POST'){const id=String(req.body?.accountId||''),groupId=String(req.body?.groupId||'');return res.json(await callOperatorJson('POST','/v1/admin/accounts/'+encodeURIComponent(id)+'/group',{groupId}));}
+      if(action==='set-status'&&req.method==='POST'){const id=String(req.body?.accountId||''),status=String(req.body?.status||''),reason=String(req.body?.reason||'');return res.json(await callOperatorJson('POST','/v1/admin/accounts/'+encodeURIComponent(id)+'/status',{status,reason,by:'web_admin'}));}
       if(action==='create-group'&&req.method==='POST')return res.status(201).json(await callOperatorJson('POST','/v1/admin/groups',{name:req.body?.name}));
       if(action==='rename-group'&&req.method==='POST'){const id=String(req.body?.groupId||'');return res.json(await callOperatorJson('POST','/v1/admin/groups/'+encodeURIComponent(id),{name:req.body?.name}));}
       if(action==='delete-group'&&req.method==='POST'){const id=String(req.body?.groupId||'');return res.json(await callOperatorJson('DELETE','/v1/admin/groups/'+encodeURIComponent(id),{moveTo:req.body?.moveTo||'grp_default'}));}
