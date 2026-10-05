@@ -20,6 +20,7 @@ sudo install -m 0644 "$ROOT_DIR/device-agent/local-wall-auth.mjs" /opt/gpt-opera
 sudo install -m 0644 "$ROOT_DIR/device-agent/update-settings-page.mjs" /opt/gpt-operator-agent/device-agent/update-settings-page.mjs
 sudo install -m 0644 "$ROOT_DIR/device-agent/fleet-component-manager.mjs" /opt/gpt-operator-agent/device-agent/fleet-component-manager.mjs
 sudo install -m 0644 "$ROOT_DIR/device-agent/fleet-component-supervisor.mjs" /opt/gpt-operator-agent/device-agent/fleet-component-supervisor.mjs
+sudo install -m 0644 "$ROOT_DIR/device-agent/result-delivery.mjs" /opt/gpt-operator-agent/device-agent/result-delivery.mjs
 sudo install -m 0644 "$ROOT_DIR"/device-agent/platform-adapters/*.mjs /opt/gpt-operator-agent/device-agent/platform-adapters/
 for lib in brand.mjs material-icon.mjs web-typography.mjs device-proof.mjs native-fs.mjs native-process.mjs native-search.mjs light-scp-file.mjs light-scp-registry.mjs update-contract.mjs; do
   sudo install -m 0644 "$ROOT_DIR/lib/$lib" "/opt/gpt-operator-agent/lib/$lib"

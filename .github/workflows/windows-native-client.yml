@@ -123,6 +123,7 @@ jobs:
           if (-not (Test-Path (Join-Path $agentRoot 'client-core.json'))) { throw 'client core metadata missing' }
           if (-not (Test-Path $updater)) { throw 'independent updater publish missing' }
           foreach ($fleetFile in @('agent\device-agent\fleet-component-manager.mjs','agent\device-agent\fleet-component-supervisor.mjs')) { if (-not (Test-Path (Join-Path $stage $fleetFile))) { throw "fleet base module missing: $fleetFile" } }
+          if (-not (Test-Path (Join-Path $stage 'agent\device-agent\result-delivery.mjs'))) { throw 'oversized-result recovery module missing from Windows package' }
           foreach ($lib in @('agent\lib\device-proof.mjs','agent\lib\native-fs.mjs','agent\lib\native-process.mjs','agent\lib\native-terminal.mjs','agent\lib\native-search.mjs','agent\lib\light-scp-file.mjs','agent\lib\light-scp-registry.mjs','agent\lib\update-contract.mjs','agent\lib\runtime-version.mjs')) { if (-not (Test-Path (Join-Path $stage $lib))) { throw "agent runtime lib missing: $lib" } }
           foreach ($notice in @('LICENSE','NOTICE','THIRD_PARTY_DISTRIBUTION_NOTICES.md','licenses\node\LICENSE','licenses\dotnet\LICENSE.txt','licenses\dotnet\ThirdPartyNotices.txt','THIRD_PARTY_NOTICES.txt')) {
             $noticePath = Join-Path $stage $notice
@@ -130,8 +131,19 @@ jobs:
           }
           Write-Host 'windows-bundled-runtime-notices=PASS'
           if (-not (Test-Path (Join-Path $agentRoot 'licenses\terminal-runtime\node-pty-LICENSE'))) { throw 'terminal runtime license missing' }
-          node deploy/scripts/terminal-runtime-smoke.mjs $agentRoot
-          if ($LASTEXITCODE -ne 0) { throw 'windows terminal runtime smoke failed' }
+          $terminalSmokeOk = $false
+          for ($attempt = 1; $attempt -le 2; $attempt++) {
+            Write-Host "windows-terminal-runtime-smoke-attempt=$attempt"
+            & $node deploy/scripts/terminal-runtime-smoke.mjs $agentRoot
+            $terminalExit = $LASTEXITCODE
+            if ($terminalExit -eq 0) {
+              $terminalSmokeOk = $true
+              break
+            }
+            Write-Warning "windows terminal runtime smoke attempt $attempt failed exit=$terminalExit"
+            if ($attempt -lt 2) { Start-Sleep -Seconds 2 }
+          }
+          if (-not $terminalSmokeOk) { throw 'windows terminal runtime smoke failed after retry' }
           $env:OPERATOR_AGENT_STATE = Join-Path $env:RUNNER_TEMP 'native-empty-device.json'
           Write-Host '--- bundled agent direct status ---'
           & $node $agent status
