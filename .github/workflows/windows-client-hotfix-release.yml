@@ -1,0 +1,70 @@
+name: Windows Client Hotfix Release
+
+on:
+  push:
+    tags:
+      - 'client-hotfix-*'
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve successful Windows build for tagged commit
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          RUN_ID="$(gh api "/repos/$GITHUB_REPOSITORY/actions/workflows/windows-native-client.yml/runs?head_sha=$GITHUB_SHA&status=success&per_page=20" --jq '.workflow_runs[0].id // empty')"
+          test -n "$RUN_ID"
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+          echo "windows_source_run=$RUN_ID"
+
+      - name: Download exact Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: light-remote-windows-x64-${{ github.sha }}
+          path: windows-artifact
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.resolve.outputs.run_id }}
+
+      - name: Verify and stage public hotfix asset
+        id: stage
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="$(tr -d '\r\n' < VERSION)"
+          FULL="windows-artifact/Light-Remote-MCP-Setup-x64.exe"
+          SUMS="windows-artifact/SHA256SUMS.txt"
+          test -s "$FULL"
+          test -s "$SUMS"
+          EXPECTED="$(awk '$2=="Light-Remote-MCP-Setup-x64.exe"{print $1}' "$SUMS")"
+          test "$EXPECTED" = "$(sha256sum "$FULL" | awk '{print $1}')"
+          mkdir -p release-assets
+          OUT="release-assets/Light-Remote-MCP-Setup-x64-$VERSION.exe"
+          cp "$FULL" "$OUT"
+          SIZE="$(stat -c %s "$OUT")"
+          SHA="$(sha256sum "$OUT" | awk '{print $1}')"
+          printf '%s  %s\n' "$SHA" "$(basename "$OUT")" > release-assets/SHA256SUMS.txt
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "sha256=$SHA" >> "$GITHUB_OUTPUT"
+          echo "size=$SIZE" >> "$GITHUB_OUTPUT"
+          echo "asset=$(basename "$OUT")" >> "$GITHUB_OUTPUT"
+          echo "windows_hotfix_asset_verify=PASS version=$VERSION size=$SIZE sha256=$SHA"
+
+      - name: Create immutable Windows hotfix prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release create "$GITHUB_REF_NAME" release-assets/*             --repo "$GITHUB_REPOSITORY"             --title "Light Remote Windows hotfix ${{ steps.stage.outputs.version }}"             --notes "Windows-only RC.30 hotfix built from $GITHUB_SHA. Restores Wall Cascadia typography and fixes Tray Open Fleet routing. Core semantic version remains ${{ steps.stage.outputs.version }} for same-version signed update reconciliation."             --prerelease             --verify-tag
