@@ -64,7 +64,7 @@ jobs:
           SUMS="windows-artifact/SHA256SUMS.txt"
           test -s "$FULL"
           test -s "$SUMS"
-          EXPECTED="$(awk '$2=="Light-Remote-MCP-Setup-x64.exe"{print $1}' "$SUMS")"
+          EXPECTED="$(tr -d '\r' < "$SUMS" | awk '$2=="Light-Remote-MCP-Setup-x64.exe"{print $1}')"
           test "$EXPECTED" = "$(sha256sum "$FULL" | awk '{print $1}')"
           mkdir -p release-assets
           OUT="release-assets/Light-Remote-MCP-Setup-x64-$VERSION.exe"
