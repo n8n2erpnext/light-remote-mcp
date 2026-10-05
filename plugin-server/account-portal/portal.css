@@ -202,3 +202,87 @@ html[data-theme="light"] .home-body{background:#f5f7fa;color:#17202b}html[data-t
 .admin-apply-btn .material-icon{width:15px;height:15px}
 @media(max-width:1180px){.admin-account-actions{flex-wrap:wrap}.admin-account-row{align-items:flex-start}}
 @media(max-width:850px){.admin-account-actions{width:100%;justify-content:flex-start}.admin-control-group{flex:1 1 auto}.admin-control-group select{flex:1;max-width:none}}
+
+
+/* Downloads: tabbed OS install flow */
+.download-install-shell{border:1px solid #29313a;border-radius:16px;background:#0c1014;overflow:hidden;box-shadow:0 18px 60px rgba(0,0,0,.16)}
+.download-os-tabs{display:flex;align-items:stretch;gap:0;border-bottom:1px solid #29313a;padding:0 18px;overflow-x:auto;scrollbar-width:thin}
+.download-os-tab{appearance:none;border:0;border-bottom:2px solid transparent;background:transparent;color:#798693;padding:18px 17px 16px;display:inline-flex;align-items:center;justify-content:center;gap:8px;font:inherit;font-size:14px;white-space:nowrap;cursor:pointer;transition:color .16s ease,border-color .16s ease,background .16s ease}
+.download-os-tab:hover{color:#d6dde5;background:rgba(255,255,255,.018)}
+.download-os-tab.active{color:#ffcc00;border-bottom-color:#ffcc00;background:rgba(255,204,0,.025)}
+.download-platform-icon{width:16px;height:16px;display:inline-block;flex:0 0 16px;background:currentColor;-webkit-mask:var(--platform-icon) center/contain no-repeat;mask:var(--platform-icon) center/contain no-repeat}
+.download-platform-icon.github{width:18px;height:18px;flex-basis:18px;color:#d8dee6}
+.download-platform-content{max-width:860px;margin:0 auto;padding:38px 42px 34px}
+.download-platform-head{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;padding-bottom:20px}
+.download-platform-head h2{font-size:27px;letter-spacing:-.02em;margin:5px 0 7px}
+.download-platform-head p{margin:0;color:#8d99a7;line-height:1.55;max-width:620px}
+.download-version-line{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;color:#7f8b98;font:12px 'Cascadia Code',ui-monospace,SFMono-Regular,Menlo,monospace;white-space:nowrap}
+.download-warning-badge{border-color:#6c5221!important;color:#ffcb63!important;background:#211a0d!important}
+.download-alert{display:grid;gap:5px;border:1px solid #695225;background:#18140c;border-radius:12px;padding:14px 16px;margin:0 0 18px}
+.download-alert strong{color:#ffd265;font-size:13px}
+.download-alert span{color:#ab9b77;font-size:12px;line-height:1.55}
+.download-steps{border-top:1px solid #252d35}
+.download-step{display:grid;grid-template-columns:38px 1fr;gap:18px;padding:23px 0;border-bottom:1px solid #252d35}
+.download-step-number{width:28px;height:28px;margin:1px auto 0;border-radius:50%;background:#252c33;color:#9ba7b5;display:grid;place-items:center;font:600 13px 'Cascadia Code',ui-monospace,monospace}
+.download-step-body{min-width:0}
+.download-step-body h3{font-size:15px;margin:0 0 12px;color:#dbe2e9}
+.download-step-body>p{margin:0;color:#8f9ba8;line-height:1.6;font-size:14px}
+.download-code-row{display:flex;align-items:stretch;border:1px solid #343d46;border-radius:8px;overflow:hidden;background:#272e36;max-width:720px}
+.download-code-row code{flex:1;min-width:0;padding:12px 14px;color:#dbe2e9;font-size:13px;overflow:auto;white-space:nowrap}
+.download-copy{width:46px;border:0;border-left:1px solid #3a444f;background:#272e36;display:grid;place-items:center;cursor:pointer}
+.download-copy:hover,.download-copy.copied{background:#313a44}
+.download-copy img{width:18px;height:18px;filter:invert(77%) sepia(9%) saturate(316%) hue-rotate(171deg)}
+.download-primary-row{display:flex;align-items:center;gap:12px;max-width:600px}
+.download-select-like{width:160px;min-height:42px;border:1px solid #3b454f;border-radius:8px;background:#2c333b;color:#d2dae2;display:flex;align-items:center;padding:0 14px;font-size:14px}
+.download-primary-row .btn.primary{min-height:42px;justify-content:center}
+.download-button-icon{width:17px;height:17px;filter:brightness(0)}
+.download-arch-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-width:640px}
+.download-arch-grid .btn{justify-content:center;min-height:42px}
+.download-option-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.download-option{border:1px solid #303842;border-radius:10px;background:#10151a;padding:12px 13px;display:grid;gap:5px}
+.download-option strong{font-size:13px;color:#d6dee6}
+.download-option span{font-size:11px;color:#7d8997;line-height:1.5}
+.download-secondary{border-bottom:1px solid #29313a}
+.download-secondary summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:20px;padding:19px 4px;color:#d5dde5;font-size:14px;font-weight:600}
+.download-secondary summary::-webkit-details-marker{display:none}
+.download-summary-title{display:flex;align-items:center;gap:10px}
+.download-summary-icon{width:17px;height:17px;filter:invert(87%) sepia(8%) saturate(236%) hue-rotate(172deg)}
+.download-summary-caret{font-size:18px;color:#80909e;transition:transform .18s ease}
+.download-secondary[open] .download-summary-caret{transform:rotate(180deg)}
+.download-secondary-body{padding:0 4px 21px 32px}
+.download-secondary-body p{color:#7f8c9a;font-size:12px;line-height:1.6;margin:12px 0 0}
+.download-fallback-links{display:flex;gap:9px;flex-wrap:wrap}
+.download-fallback-links .btn{min-height:38px}
+.download-text-link{display:inline-block;color:#ffcc00;font-size:12px;margin-top:14px;text-decoration:none}
+.download-text-link:hover{text-decoration:underline}
+.download-footnote{color:#6f7b88;font-size:12px;line-height:1.6;padding:20px 4px 2px}
+.download-footnote a{color:#ffcc00;text-decoration:none}
+.download-coming{min-height:230px;border-top:1px solid #29313a;display:grid;place-content:center;text-align:center;gap:8px;color:#82909e;padding:32px}
+.download-coming strong{font-size:18px;color:#cfd7df}
+.download-coming span{max-width:480px;line-height:1.6;font-size:13px}
+html[data-theme="light"] .download-install-shell{background:#fff;border-color:#d9e0e7;box-shadow:0 18px 60px rgba(31,41,55,.06)}
+html[data-theme="light"] .download-os-tabs,html[data-theme="light"] .download-steps,html[data-theme="light"] .download-step,html[data-theme="light"] .download-secondary,html[data-theme="light"] .download-coming{border-color:#dbe2e8}
+html[data-theme="light"] .download-os-tab{color:#758190}
+html[data-theme="light"] .download-os-tab:hover{color:#303b47;background:#f8fafb}
+html[data-theme="light"] .download-os-tab.active{color:#9a7600;background:#fffbeb}
+html[data-theme="light"] .download-platform-head p,html[data-theme="light"] .download-step-body>p,html[data-theme="light"] .download-secondary-body p,html[data-theme="light"] .download-footnote,html[data-theme="light"] .download-coming{color:#687687}
+html[data-theme="light"] .download-step-body h3,html[data-theme="light"] .download-secondary summary,html[data-theme="light"] .download-option strong,html[data-theme="light"] .download-coming strong{color:#27313b}
+html[data-theme="light"] .download-step-number{background:#edf1f4;color:#697685}
+html[data-theme="light"] .download-code-row,html[data-theme="light"] .download-copy{background:#f1f4f6;border-color:#d8dfe5}
+html[data-theme="light"] .download-code-row code{color:#303b46}
+html[data-theme="light"] .download-select-like{background:#f4f6f8;border-color:#d5dde4;color:#34404c}
+html[data-theme="light"] .download-option{background:#fafbfc;border-color:#dce2e8}
+html[data-theme="light"] .download-alert{background:#fff8e6;border-color:#efce7e}
+html[data-theme="light"] .download-alert span{color:#806b3a}
+@media(max-width:760px){
+  .download-main{padding-left:16px;padding-right:16px}
+  .download-platform-content{padding:28px 20px 24px}
+  .download-os-tabs{padding:0 5px}
+  .download-os-tab{padding:16px 13px 14px}
+  .download-platform-head{flex-direction:column}
+  .download-version-line{justify-content:flex-start}
+  .download-option-grid,.download-arch-grid{grid-template-columns:1fr}
+  .download-primary-row{align-items:stretch;flex-direction:column}
+  .download-select-like{width:auto}
+  .download-step{grid-template-columns:32px 1fr;gap:12px}
+}

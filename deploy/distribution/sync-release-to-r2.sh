@@ -110,14 +110,15 @@ while IFS=$'\t' read -r name _; do
   put "$TMP/$name" "$VERSION_KEY/$name" 'public, max-age=31536000, immutable'
 done < "$TMP/assets.tsv"
 
-python3 - "$TMP" "$VERSION" "$PUBLIC_ROOT/$VERSION_KEY" > "$TMP/manifest.json" <<'PY'
+python3 - "$TMP" "$VERSION" "$PUBLIC_ROOT/$VERSION_KEY" "$REPO" > "$TMP/manifest.json" <<'PY'
 import hashlib,json,os,sys,datetime
-root,version,base=sys.argv[1:4]
+root,version,base,repo=sys.argv[1:5]
+release_page=f'https://github.com/{repo}/releases/tag/v{version}'
 def info(name):
     p=os.path.join(root,name)
     if not os.path.isfile(p): return None
     b=open(p,'rb').read()
-    return {'file':name,'url':f'{base}/{name}','sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b)}
+    return {'file':name,'url':f'{base}/{name}','githubUrl':f'https://github.com/{repo}/releases/download/v{version}/{name}','sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b)}
 win=info(f'Light-Remote-MCP-Setup-x64-{version}.exe')
 compact=info(f'Light-Remote-MCP-Compact-Setup-x64-{version}.exe')
 linux_x64=info(f'Light-Remote-MCP-Client-Linux-x64-{version}.tar.gz')
@@ -125,27 +126,38 @@ linux_arm64=info(f'Light-Remote-MCP-Client-Linux-arm64-{version}.tar.gz')
 deb_x64=info(f'light-remote_{version}_amd64.deb')
 deb_arm64=info(f'light-remote_{version}_arm64.deb')
 installer=info('install-linux-client.sh')
+mac_x64=info(f'Light-Remote-{version}-x86_64.pkg')
+mac_arm64=info(f'Light-Remote-{version}-arm64.pkg')
+mac_tar_x64=info(f'Light-Remote-Client-macOS-x64-{version}.tar.gz')
+mac_tar_arm64=info(f'Light-Remote-Client-macOS-arm64-{version}.tar.gz')
 releases=[
   {
     'id':'windows','label':'Windows x64','kind':'desktop','version':version,
     'description':'Tray client + Local Wall + Real Remote V2.',
     'available':bool(win),'file':win['file'] if win else None,'url':win['url'] if win else None,
     'sha256':win['sha256'] if win else None,'bytes':win['bytes'] if win else None,
-    'compact':compact,'storage':'r2',
+    'compact':compact,'storage':'r2','githubReleaseUrl':release_page,
     'installHint':'Run the installer, then reopen Local Wall to link or resume the device.'
   },
   {
     'id':'macos','label':'macOS','kind':'desktop','version':version,
     'description':'Native desktop launcher + Light Remote agent.',
-    'available':False,'file':None,
-    'installHint':'Signed/notarized package will appear here when published.'
+    'available':bool(mac_x64 or mac_arm64),
+    'file':mac_arm64['file'] if mac_arm64 else (mac_x64['file'] if mac_x64 else None),
+    'url':mac_arm64['url'] if mac_arm64 else (mac_x64['url'] if mac_x64 else None),
+    'sha256':mac_arm64['sha256'] if mac_arm64 else (mac_x64['sha256'] if mac_x64 else None),
+    'bytes':mac_arm64['bytes'] if mac_arm64 else (mac_x64['bytes'] if mac_x64 else None),
+    'assets':{'x64':mac_x64,'arm64':mac_arm64},'archives':{'x64':mac_tar_x64,'arm64':mac_tar_arm64},
+    'storage':'r2','githubReleaseUrl':release_page,'signed':False,'notarized':False,
+    'warning':'Unsigned / Not notarized',
+    'installHint':'This prerelease package is unsigned and not notarized. macOS may show a security warning before first launch.'
   },
   {
     'id':'linux-desktop','label':'Linux Desktop ARM64','kind':'desktop','version':version,
     'description':'Debian package with Local Wall and terminal runtime.',
     'available':bool(deb_arm64),'file':deb_arm64['file'] if deb_arm64 else None,'url':deb_arm64['url'] if deb_arm64 else None,
     'sha256':deb_arm64['sha256'] if deb_arm64 else None,'bytes':deb_arm64['bytes'] if deb_arm64 else None,
-    'assets':{'x64':deb_x64,'arm64':deb_arm64},'storage':'r2',
+    'assets':{'x64':deb_x64,'arm64':deb_arm64},'storage':'r2','githubReleaseUrl':release_page,
     'installHint':'Install the .deb package, then open Local Wall to link the device.'
   },
   {
@@ -155,7 +167,7 @@ releases=[
     'file':linux_arm64['file'] if linux_arm64 else None,'url':linux_arm64['url'] if linux_arm64 else None,
     'sha256':linux_arm64['sha256'] if linux_arm64 else None,'bytes':linux_arm64['bytes'] if linux_arm64 else None,
     'assets':{'x64':linux_x64,'arm64':linux_arm64},
-    'installer':installer,'storage':'r2',
+    'installer':installer,'storage':'r2','githubReleaseUrl':release_page,
     'installCommand':'curl -fsSL https://light-remote.thaiduy.digital/downloads/install.sh | bash',
     'installHint':'The installer verifies the release, then lets you choose install/update/remove and Local Wall binding. Loopback is the safe default. After a fresh install, run light-remote up to enroll.'
   }

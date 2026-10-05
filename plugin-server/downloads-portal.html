@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Light Remote — Downloads</title>
+  <script src="/account/assets/theme.js"></script>
+  <link rel="stylesheet" href="/account/assets/portal.css">
+</head>
+<body>
+<div class="download-shell">
+  <header class="download-head">
+    <a class="brand download-brand" href="/">
+      <img src="/account/assets/light-remote-mark.svg" alt="">
+      <span><strong>Light Remote</strong><small>Distribution</small></span>
+    </a>
+    <div class="download-actions">
+      <a class="btn" href="/account">Account</a>
+      <a class="btn" href="/support">Support</a>
+    </div>
+  </header>
+
+  <main class="download-main">
+    <section class="download-hero">
+      <span class="eyebrow" id="releaseChannel">RC · OFFICIAL DIRECT ENDPOINT</span>
+      <h1>Install Light Remote</h1>
+      <p>Every client connects directly to <code>https://light-remote.thaiduy.digital</code>. Install the client for your platform, then link the local device to your Light Remote account.</p>
+    </section>
+
+    <section class="download-install-shell">
+      <nav class="download-os-tabs" role="tablist" aria-label="Operating system">
+        <button class="download-os-tab" data-os="linux" role="tab">
+          <span class="download-platform-icon" style="--platform-icon:url('/assets/icons/platform/linux.svg')"></span>Linux
+        </button>
+        <button class="download-os-tab" data-os="windows" role="tab">
+          <span class="download-platform-icon" style="--platform-icon:url('/assets/icons/platform/windows.svg')"></span>Windows
+        </button>
+        <button class="download-os-tab" data-os="macos" role="tab">
+          <span class="download-platform-icon" style="--platform-icon:url('/assets/icons/platform/apple.svg')"></span>macOS
+        </button>
+        <button class="download-os-tab" data-os="ios" role="tab">
+          <span class="download-platform-icon" style="--platform-icon:url('/assets/icons/platform/ios.svg')"></span>iOS
+        </button>
+        <button class="download-os-tab" data-os="android" role="tab">
+          <span class="download-platform-icon" style="--platform-icon:url('/assets/icons/platform/android.svg')"></span>Android
+        </button>
+        <button class="download-os-tab" data-os="docker" role="tab">
+          <span class="download-platform-icon" style="--platform-icon:url('/assets/icons/platform/docker.svg')"></span>Docker
+        </button>
+      </nav>
+      <div id="platformContent" class="download-platform-content"><div class="empty">Loading release data…</div></div>
+    </section>
+  </main>
+</div>
+
+<script>
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const icons={
+  github:'/assets/icons/platform/github.svg',
+  copy:'/assets/icons/material/content_copy.svg',
+  download:'/assets/icons/material/download.svg',
+  terminal:'/assets/icons/material/terminal.svg'
+};
+const platformContent=document.getElementById('platformContent');
+const releaseChannel=document.getElementById('releaseChannel');
+let currentManifest=null;
+function release(id){return (currentManifest?.releases||[]).find(x=>x.id===id)||{}}
+function channelLabel(v){return String(v||'RC').replace(/^0\.9\.0-/i,'').toUpperCase()}
+function primaryUrl(asset){return asset?.file?'/downloads/files/'+encodeURIComponent(asset.file):asset?.url||'#'}
+function assetAnchor(asset,label,cls){
+  const klass=cls||'btn primary';
+  if(!asset?.file)return '<button class="'+klass+'" disabled>Not published yet</button>';
+  return '<a class="'+klass+'" href="'+esc(primaryUrl(asset))+'"><img class="download-button-icon" src="'+icons.download+'" alt="">'+esc(label)+'</a>';
+}
+function githubItems(rel,items){
+  const valid=(items||[]).filter(x=>x?.asset?.githubUrl);
+  if(!rel?.githubReleaseUrl&&!valid.length)return '';
+  return '<details class="download-secondary">'+
+    '<summary><span class="download-summary-title"><span class="download-platform-icon github" style="--platform-icon:url(&quot;'+icons.github+'&quot;)"></span>Download from GitHub Release</span><span class="download-summary-caret">⌄</span></summary>'+
+    '<div class="download-secondary-body">'+
+      (valid.length?'<div class="download-fallback-links">'+valid.map(x=>'<a class="btn" href="'+esc(x.asset.githubUrl)+'" target="_blank" rel="noopener noreferrer">'+esc(x.label)+'</a>').join('')+'</div>':'')+
+      (rel?.githubReleaseUrl?'<a class="download-text-link" href="'+esc(rel.githubReleaseUrl)+'" target="_blank" rel="noopener noreferrer">Open full GitHub Release →</a>':'')+
+      '<p>GitHub is the fallback source. The primary download above is served from Light Remote R2.</p>'+
+    '</div>'+
+  '</details>';
+}
+function codeRow(command){
+  return '<div class="download-code-row"><code>'+esc(command)+'</code><button class="download-copy" type="button" data-copy="'+esc(command)+'" aria-label="Copy command"><img src="'+icons.copy+'" alt=""></button></div>';
+}
+function step(n,title,body){
+  return '<div class="download-step"><span class="download-step-number">'+n+'</span><div class="download-step-body"><h3>'+esc(title)+'</h3>'+body+'</div></div>';
+}
+function optionCards(rows){
+  return '<div class="download-option-grid">'+rows.map(x=>'<div class="download-option"><strong>'+esc(x.title)+'</strong><span>'+esc(x.note)+'</span></div>').join('')+'</div>';
+}
+function versionLine(rel){
+  return '<div class="download-version-line"><span>'+esc(rel.version||currentManifest?.channel||'')+'</span>'+(rel.warning?'<span class="badge download-warning-badge">'+esc(rel.warning)+'</span>':'')+'</div>';
+}
+function linuxView(){
+  const server=release('linux-server'),desktop=release('linux-desktop');
+  const cmd=server.installCommand||'curl -fsSL https://light-remote.thaiduy.digital/downloads/install.sh | bash';
+  const desktopItems=[
+    {label:'Linux Desktop x64 (.deb)',asset:desktop.assets?.x64},
+    {label:'Linux Desktop ARM64 (.deb)',asset:desktop.assets?.arm64}
+  ];
+  const fallback=[
+    {label:'Server x64',asset:server.assets?.x64},
+    {label:'Server ARM64',asset:server.assets?.arm64},
+    {label:'Desktop x64 (.deb)',asset:desktop.assets?.x64},
+    {label:'Desktop ARM64 (.deb)',asset:desktop.assets?.arm64}
+  ];
+  return '<div class="download-platform-head"><div><span class="download-kind">LINUX</span><h2>Install on Linux</h2><p>Server/terminal install is command-line first. Desktop Debian packages are available below.</p></div>'+versionLine(server)+'</div>'+
+    '<div class="download-steps">'+
+      step(1,'Install with Command-line',codeRow(cmd))+
+      step(2,'Choose action',optionCards([
+        {title:'Install',note:'Fresh installation; loopback Local Wall is the safe default.'},
+        {title:'Re-install / update',note:'Upgrade or reinstall while preserving enrollment and the current bind unless changed.'},
+        {title:'Uninstall / remove',note:'Remove runtime and services; local enrollment state is preserved unless --purge is used.'}
+      ]))+
+      step(3,'Choose Local Wall binding',optionCards([
+        {title:'No bind / local only',note:'127.0.0.1:5491 — default'},
+        {title:'Bind host LAN',note:'Choose a detected RFC1918 LAN address.'},
+        {title:'Bind NetBird',note:'Choose a detected 100.64.0.0/10 NetBird address and see the detected NetBird version.'}
+      ]))+
+      step(4,'Enroll device',codeRow('light-remote up'))+
+    '</div>'+
+    '<details class="download-secondary">'+
+      '<summary><span class="download-summary-title"><img class="download-summary-icon" src="'+icons.terminal+'" alt="">Install Linux Desktop package</span><span class="download-summary-caret">⌄</span></summary>'+
+      '<div class="download-secondary-body"><p>Use a Debian package when you want the desktop launcher and Local Wall on a Linux workstation.</p><div class="download-fallback-links">'+desktopItems.filter(x=>x.asset?.file).map(x=>assetAnchor(x.asset,x.label,'btn')).join('')+'</div></div>'+
+    '</details>'+
+    githubItems(server,fallback)+
+    '<div class="download-footnote">After enrollment, Local Wall and the background agent follow the binding and lifecycle choices made during install. <a href="/support">Installation Guide →</a></div>';
+}
+function windowsView(){
+  const rel=release('windows'),full=rel.file?rel:null,compact=rel.compact;
+  return '<div class="download-platform-head"><div><span class="download-kind">WINDOWS</span><h2>Install on Windows</h2><p>Native tray client, Local Wall and Real Remote V2.</p></div>'+versionLine(rel)+'</div>'+
+    '<div class="download-steps">'+
+      step(1,'Download and run Windows Installer','<div class="download-primary-row"><div class="download-select-like">64-Bit</div>'+assetAnchor(full,'Download Light Remote')+'</div>')+
+      step(2,'Open Local Wall','<p>Launch Light Remote from the tray and open the local Device Wall.</p>')+
+      step(3,'Link the device','<p>Choose Link device, then approve the one-time enrollment request in your Light Remote account.</p>')+
+    '</div>'+
+    (compact?.file?'<details class="download-secondary"><summary><span class="download-summary-title">Alternative installer</span><span class="download-summary-caret">⌄</span></summary><div class="download-secondary-body"><p>The compact installer uses the same account and device identity model with a smaller setup package.</p>'+assetAnchor(compact,'Download compact installer','btn')+'</div></details>':'')+
+    githubItems(rel,[{label:'Full x64 installer',asset:full},{label:'Compact x64 installer',asset:compact}])+
+    '<div class="download-footnote">After install, use the same Light Remote account to link or resume the device. <a href="/support">Installation Guide →</a></div>';
+}
+function macView(){
+  const rel=release('macos'),x64=rel.assets?.x64,arm=rel.assets?.arm64;
+  return '<div class="download-platform-head"><div><span class="download-kind">MACOS</span><h2>Install on macOS</h2><p>Native desktop launcher + Light Remote agent.</p></div>'+versionLine(rel)+'</div>'+
+    '<div class="download-alert"><strong>Unsigned / Not notarized prerelease</strong><span>This package is available now, but it is not Apple-signed or notarized yet. macOS may show a security warning on first launch.</span></div>'+
+    '<div class="download-steps">'+
+      step(1,'Download and run macOS package','<div class="download-arch-grid">'+
+        (arm?.file?assetAnchor(arm,'Apple Silicon (ARM64)'):'')+
+        (x64?.file?assetAnchor(x64,'Intel x64'):'')+
+      '</div>')+
+      step(2,'Open Light Remote','<p>Launch Light Remote after installation. If macOS blocks the unsigned prerelease, review the system security prompt before proceeding.</p>')+
+      step(3,'Link the device','<p>Open Local Wall and link this Mac to your Light Remote account.</p>')+
+    '</div>'+
+    githubItems(rel,[{label:'Apple Silicon .pkg',asset:arm},{label:'Intel x64 .pkg',asset:x64}])+
+    '<div class="download-footnote">The GitHub lane is a fallback source and carries the same unsigned prerelease packages. <a href="/support">Installation Guide →</a></div>';
+}
+function comingView(os,title,copy){
+  return '<div class="download-platform-head"><div><span class="download-kind">'+esc(os.toUpperCase())+'</span><h2>'+esc(title)+'</h2><p>'+esc(copy)+'</p></div><span class="badge">Coming soon</span></div>'+
+    '<div class="download-coming"><strong>Not published yet</strong><span>This platform does not have a public Light Remote artifact in the current release, so no download or GitHub fallback is shown.</span></div>';
+}
+function viewFor(os){
+  if(os==='linux')return linuxView();
+  if(os==='windows')return windowsView();
+  if(os==='macos')return macView();
+  if(os==='ios')return comingView('iOS','Light Remote for iOS','Mobile client packaging is not published yet.');
+  if(os==='android')return comingView('Android','Light Remote for Android','Mobile client packaging is not published yet.');
+  return comingView('Docker','Light Remote for Docker','Container packaging is not published yet.');
+}
+function detectedOs(){
+  const hash=location.hash.replace('#','').toLowerCase();
+  if(['linux','linux-desktop','linux-server'].includes(hash))return 'linux';
+  if(['windows','macos','ios','android','docker'].includes(hash))return hash;
+  const ua=(navigator.userAgent||'').toLowerCase();
+  if(ua.includes('windows'))return 'windows';
+  if(ua.includes('mac os')||ua.includes('macintosh'))return 'macos';
+  if(ua.includes('iphone')||ua.includes('ipad'))return 'ios';
+  if(ua.includes('android'))return 'android';
+  return 'linux';
+}
+function render(os){
+  document.querySelectorAll('.download-os-tab').forEach(btn=>{
+    const active=btn.dataset.os===os;
+    btn.classList.toggle('active',active);
+    btn.setAttribute('aria-selected',active?'true':'false');
+  });
+  platformContent.innerHTML=viewFor(os);
+  document.querySelectorAll('[data-copy]').forEach(btn=>btn.onclick=async()=>{
+    try{
+      await navigator.clipboard.writeText(btn.dataset.copy);
+      btn.classList.add('copied');
+      setTimeout(()=>btn.classList.remove('copied'),900);
+    }catch{}
+  });
+}
+async function load(){
+  const r=await fetch('/downloads/manifest.json',{cache:'no-store'});
+  if(!r.ok)throw new Error('release_manifest_unavailable');
+  currentManifest=await r.json();
+  releaseChannel.textContent=channelLabel(currentManifest.channel)+' · OFFICIAL DIRECT ENDPOINT';
+  render(detectedOs());
+}
+document.querySelectorAll('.download-os-tab').forEach(btn=>btn.onclick=()=>{
+  const os=btn.dataset.os;
+  history.replaceState(null,'','#'+os);
+  render(os);
+});
+load().catch(e=>platformContent.innerHTML='<div class="empty error">'+esc(e.message)+'</div>');
+</script>
+</body>
+</html>
