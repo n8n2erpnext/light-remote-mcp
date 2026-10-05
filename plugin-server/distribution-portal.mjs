@@ -12,7 +12,7 @@ const FALLBACK={
     {id:'windows',label:'Windows x64',kind:'desktop',description:'Tray client + Local Wall + Real Remote V2.',available:false,file:null,installHint:'Windows RC.32 is built and validated; permanent public asset publishing is being wired next.'},
     {id:'macos',label:'macOS',kind:'desktop',description:'Native desktop launcher + Light Remote agent.',available:false,file:null,installHint:'Signed/notarized package will appear here when published.'},
     {id:'linux-desktop',label:'Linux Desktop ARM64',kind:'desktop',description:'Debian package with Local Wall and terminal runtime.',available:false,file:null,installHint:'Install the .deb package, then open Local Wall to link the device.'},
-    {id:'linux-server',label:'Linux Server / Terminal',kind:'server',description:'Headless Light Remote device agent for Linux servers and VPS terminals.',available:false,file:null,installCommand:'curl -fsSL https://light-remote.thaiduy.digital/downloads/install.sh | bash',installHint:'The install script auto-detects x64/ARM64 and verifies SHA256. After install, run light-remote up to enroll and start the always-alive service.'}
+    {id:'linux-server',label:'Linux Server / Terminal',kind:'server',description:'Headless Light Remote device agent for Linux servers and VPS terminals.',available:false,file:null,installCommand:'curl -fsSL https://light-remote.thaiduy.digital/downloads/install.sh | bash',installHint:'The installer verifies the release, then lets you choose install/update/remove and Local Wall binding. Loopback is the safe default. After a fresh install, run light-remote up to enroll.'}
   ]
 };
 

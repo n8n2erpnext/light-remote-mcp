@@ -32,3 +32,12 @@ This is a prerelease candidate. It is not a claim of stable/general-availability
 - fresh headless installs no longer block waiting for account approval during `curl | bash`;
 - new `light-remote` Linux server CLI provides up/status/connect/disconnect/drain/undrain/wall commands;
 - release-to-R2 polling is installed as a system-level timer suitable for headless/rebooted ARM production hosts.
+
+
+## RC.33 changes
+- Linux Server/Terminal bootstrap now offers Install, Re-install/Update, and Uninstall/Remove modes;
+- Local Wall binding is owner-selected: loopback (default), detected RFC1918 LAN, or detected NetBird CGNAT address with NetBird version shown;
+- update/reinstall preserves the existing Local Wall binding unless the owner chooses a new one;
+- uninstall removes runtime/services/CLI while preserving enrollment identity by default; --purge removes local identity/state;
+- Linux CLI status/up/wall now honor the persisted Local Wall bind instead of assuming 127.0.0.1;
+- Direct systemd units no longer allow stale environment files to pin an older server version than the current release.

@@ -9,6 +9,11 @@ HUB_URL="${OPERATOR_AGENT_HUB_URL:-https://light-remote.thaiduy.digital}"
 BUNDLE=""
 DEV_BUNDLE=0
 DEFER_ENROLLMENT=0
+ACTION="install"
+WALL_MODE=""
+WALL_HOST_ARG=""
+ASSUME_YES=0
+PURGE=0
 TARGET_USER="${SUDO_USER:-${USER:-}}"
 
 while [[ $# -gt 0 ]]; do
@@ -18,6 +23,12 @@ while [[ $# -gt 0 ]]; do
     --base-url) BASE_URL="${2%/}"; shift 2;;
     --hub-url) HUB_URL="${2%/}"; shift 2;;
     --defer-enrollment) DEFER_ENROLLMENT=1; shift;;
+    --action) ACTION="$2"; shift 2;;
+    --wall) WALL_MODE="$2"; shift 2;;
+    --wall-host) WALL_HOST_ARG="$2"; shift 2;;
+    --yes|-y) ASSUME_YES=1; shift;;
+    --purge) PURGE=1; shift;;
+    install|reinstall|update|uninstall|remove) ACTION="$1"; shift;;
     *) echo "Unknown argument: $1" >&2; exit 2;;
   esac
 done
@@ -52,6 +63,157 @@ as_user() {
 }
 TARGET_HOME="$(getent passwd "$TARGET_USER" | cut -d: -f6)"
 [[ -n "$TARGET_HOME" ]] || { echo "Unable to determine home for $TARGET_USER" >&2; exit 2; }
+
+has_tty(){ ( : </dev/tty ) >/dev/null 2>&1; }
+ask_tty(){
+  local __name="$1" __prompt="$2" __value=""
+  printf '%s' "$__prompt" >/dev/tty
+  IFS= read -r __value </dev/tty || true
+  printf -v "$__name" '%s' "$__value"
+}
+is_ipv4(){
+  local ip="$1" a b c d
+  IFS=. read -r a b c d <<<"$ip"
+  [[ "$a" =~ ^[0-9]+$ && "$b" =~ ^[0-9]+$ && "$c" =~ ^[0-9]+$ && "$d" =~ ^[0-9]+$ ]] || return 1
+  (( a>=0 && a<=255 && b>=0 && b<=255 && c>=0 && c<=255 && d>=0 && d<=255 ))
+}
+is_netbird_ipv4(){
+  local ip="$1" a b _ _
+  is_ipv4 "$ip" || return 1
+  IFS=. read -r a b _ _ <<<"$ip"
+  (( a==100 && b>=64 && b<=127 ))
+}
+is_lan_ipv4(){
+  local ip="$1" a b _ _
+  is_ipv4 "$ip" || return 1
+  IFS=. read -r a b _ _ <<<"$ip"
+  (( a==10 || (a==172 && b>=16 && b<=31) || (a==192 && b==168) ))
+}
+valid_wall_host(){
+  [[ "$1" == "127.0.0.1" ]] || is_lan_ipv4 "$1" || is_netbird_ipv4 "$1"
+}
+CURRENT_WALL_HOST="127.0.0.1"
+CURRENT_SERVICE_ENV="$(systemctl show gpt-operator-device-agent.service --property=Environment --value 2>/dev/null || true)"
+for item in $CURRENT_SERVICE_ENV; do
+  case "$item" in
+    OPERATOR_AGENT_WALL_HOST=*) CURRENT_WALL_HOST="${item#*=}";;
+  esac
+done
+CURRENT_WALL_HOST="${CURRENT_WALL_HOST%\"}"; CURRENT_WALL_HOST="${CURRENT_WALL_HOST#\"}"
+LAN_ROWS=()
+NETBIRD_ROWS=()
+NETBIRD_VERSION=""
+detect_wall_candidates(){
+  LAN_ROWS=(); NETBIRD_ROWS=(); NETBIRD_VERSION=""
+  if command -v netbird >/dev/null 2>&1; then NETBIRD_VERSION="$(netbird version 2>/dev/null | head -n1 | tr -d '\r' || true)"; fi
+  command -v ip >/dev/null 2>&1 || return 0
+  local iface cidr addr
+  while read -r iface cidr; do
+    [[ -n "$iface" && -n "$cidr" ]] || continue
+    addr="${cidr%%/*}"
+    if is_netbird_ipv4 "$addr"; then
+      [[ -n "$NETBIRD_VERSION" ]] && NETBIRD_ROWS+=("$iface|$addr")
+      continue
+    fi
+    if is_lan_ipv4 "$addr" && [[ ! "$iface" =~ ^(docker|br-|veth|lxc|virbr|podman|cni|flannel|tailscale) ]]; then
+      LAN_ROWS+=("$iface|$addr")
+    fi
+  done < <(ip -4 -o addr show scope global 2>/dev/null | awk '{print $2, $4}')
+}
+pick_candidate(){
+  local array_name="$1" label="$2" choice="" i row
+  local -n rows="$array_name"
+  ((${#rows[@]})) || { echo "No $label address detected." >&2; return 2; }
+  if ((${#rows[@]}==1)) || ! has_tty || [[ "$ASSUME_YES" == "1" ]]; then
+    printf '%s\n' "${rows[0]#*|}"
+    return 0
+  fi
+  printf '\nDetected %s addresses:\n' "$label" >/dev/tty
+  for i in "${!rows[@]}"; do row="${rows[$i]}"; printf '  %d) %s (%s)\n' "$((i+1))" "${row#*|}" "${row%%|*}" >/dev/tty; done
+  ask_tty choice "Choose [1]: "
+  choice="${choice:-1}"
+  [[ "$choice" =~ ^[0-9]+$ ]] && (( choice>=1 && choice<=${#rows[@]} )) || { echo "Invalid $label selection." >&2; return 2; }
+  printf '%s\n' "${rows[$((choice-1))]#*|}"
+}
+choose_wall_host(){
+  detect_wall_candidates
+  local default_host="127.0.0.1" choice="" lan_hint="not detected" nb_hint="not detected"
+  if [[ "$ACTION" == "update" || "$ACTION" == "reinstall" ]]; then
+    valid_wall_host "$CURRENT_WALL_HOST" && default_host="$CURRENT_WALL_HOST"
+  fi
+  if ((${#LAN_ROWS[@]})); then lan_hint="${LAN_ROWS[0]#*|} (${LAN_ROWS[0]%%|*})"; fi
+  if ((${#NETBIRD_ROWS[@]})); then nb_hint="${NETBIRD_ROWS[0]#*|} (${NETBIRD_ROWS[0]%%|*})"; fi
+  [[ -n "$NETBIRD_VERSION" ]] && nb_hint="$nb_hint · $NETBIRD_VERSION"
+
+  if [[ -n "$WALL_HOST_ARG" ]]; then
+    valid_wall_host "$WALL_HOST_ARG" || { echo "--wall-host must be loopback, RFC1918 LAN, or NetBird CGNAT IPv4" >&2; exit 2; }
+    WALL_HOST="$WALL_HOST_ARG"
+  elif [[ -n "$WALL_MODE" ]]; then
+    case "$WALL_MODE" in
+      loopback|local|none) WALL_HOST="127.0.0.1";;
+      lan) WALL_HOST="$(pick_candidate LAN_ROWS LAN)" || exit $?;;
+      netbird) WALL_HOST="$(pick_candidate NETBIRD_ROWS NetBird)" || exit $?;;
+      *) echo "--wall must be loopback, lan, or netbird" >&2; exit 2;;
+    esac
+  elif ! has_tty || [[ "$ASSUME_YES" == "1" ]]; then
+    WALL_HOST="$default_host"
+  else
+    cat >/dev/tty <<EOF
+
+Local Wall binding
+  1) No bind / local only — 127.0.0.1:5491
+  2) Bind host LAN       — $lan_hint:5491
+  3) Bind NetBird        — $nb_hint:5491
+Current/default: $default_host:5491
+EOF
+    ask_tty choice "Choose [Enter keeps current/default]: "
+    case "$choice" in
+      "") WALL_HOST="$default_host";;
+      1) WALL_HOST="127.0.0.1";;
+      2) WALL_HOST="$(pick_candidate LAN_ROWS LAN)" || exit $?;;
+      3) WALL_HOST="$(pick_candidate NETBIRD_ROWS NetBird)" || exit $?;;
+      *) echo "Invalid Local Wall binding choice." >&2; exit 2;;
+    esac
+  fi
+  WALL_PORT=5491
+  printf 'Local Wall bind selected: %s:%s\n' "$WALL_HOST" "$WALL_PORT"
+}
+uninstall_local(){
+  local confirm=""
+  if [[ "$ASSUME_YES" != "1" && has_tty ]]; then
+    echo "This removes Light Remote runtime, CLI, and systemd units."
+    echo "Enrollment identity is preserved unless --purge is supplied."
+    ask_tty confirm "Continue? [y/N]: "
+    [[ "$confirm" =~ ^[Yy]$ ]] || { echo "Cancelled."; exit 0; }
+  fi
+  for unit in gpt-operator-device-agent.service gpt-operator-agent-update.service gpt-operator-agent-update-check.service gpt-operator-agent-update.timer gpt-operator-agent-update.path gpt-operator-agent-update-check.path; do
+    as_root systemctl disable --now "$unit" >/dev/null 2>&1 || true
+  done
+  as_root rm -f /etc/systemd/system/gpt-operator-device-agent.service /etc/systemd/system/gpt-operator-agent-update.service /etc/systemd/system/gpt-operator-agent-update-check.service /etc/systemd/system/gpt-operator-agent-update.timer /etc/systemd/system/gpt-operator-agent-update.path /etc/systemd/system/gpt-operator-agent-update-check.path /usr/local/bin/light-remote
+  as_root rm -rf "$ROOT"
+  as_root systemctl daemon-reload
+  as_root systemctl reset-failed >/dev/null 2>&1 || true
+  if [[ "$PURGE" == "1" ]]; then
+    as_root rm -rf "$TARGET_HOME/.config/gpt-operator-agent"
+    echo "Light Remote removed; local enrollment state purged."
+  else
+    echo "Light Remote removed; local enrollment state preserved."
+  fi
+  exit 0
+}
+
+case "$ACTION" in
+  uninstall|remove) uninstall_local;;
+  install)
+    if [[ -L "$ROOT/current" || -f /etc/systemd/system/gpt-operator-device-agent.service ]]; then
+      echo "Light Remote is already installed. Use update or reinstall." >&2
+      exit 3
+    fi
+    ;;
+  update|reinstall) ;;
+  *) echo "Unsupported action: $ACTION" >&2; exit 2;;
+esac
+choose_wall_host
 
 for cmd in curl openssl python3 tar sha256sum systemctl; do command -v "$cmd" >/dev/null || { echo "Missing required command: $cmd" >&2; exit 2; }; done
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
@@ -182,6 +344,8 @@ Environment=HOME=$TARGET_HOME
 Environment=LIGHT_REMOTE_UPDATE_STATE_DIR=$UPDATE_STATE_DIR
 Environment=OPERATOR_AGENT_BASE_URL=$BASE_URL
 Environment=OPERATOR_AGENT_HUB_URL=$HUB_URL
+Environment=OPERATOR_AGENT_WALL_HOST=$WALL_HOST
+Environment=OPERATOR_AGENT_WALL_PORT=$WALL_PORT
 $IDENTITY_ENV_LINE
 ExecStart=$ROOT/current/runtime/node $ROOT/current/device-agent/operator-agent.mjs daemon
 Restart=always

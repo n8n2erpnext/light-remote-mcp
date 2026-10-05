@@ -32,19 +32,25 @@ run_as_target(){
 
 BASE_URL="https://light-remote.thaiduy.digital"
 HUB_URL="$BASE_URL"
+WALL_HOST="127.0.0.1"
+WALL_PORT="5491"
 SERVICE_ENV="$(systemctl show "$SERVICE" --property=Environment --value 2>/dev/null || true)"
 for item in $SERVICE_ENV; do
   case "$item" in
     OPERATOR_AGENT_BASE_URL=*) BASE_URL="${item#*=}";;
     OPERATOR_AGENT_HUB_URL=*) HUB_URL="${item#*=}";;
+    OPERATOR_AGENT_WALL_HOST=*) WALL_HOST="${item#*=}";;
+    OPERATOR_AGENT_WALL_PORT=*) WALL_PORT="${item#*=}";;
   esac
 done
 BASE_URL="${BASE_URL%\"}"; BASE_URL="${BASE_URL#\"}"
 HUB_URL="${HUB_URL%\"}"; HUB_URL="${HUB_URL#\"}"
+WALL_HOST="${WALL_HOST%\"}"; WALL_HOST="${WALL_HOST#\"}"
+WALL_PORT="${WALL_PORT%\"}"; WALL_PORT="${WALL_PORT#\"}"
 
 agent(){
   [[ -x "$NODE" && -f "$AGENT" ]] || die "Light Remote runtime is not installed"
-  run_as_target env HOME="$TARGET_HOME" OPERATOR_AGENT_STATE="$STATE_FILE" OPERATOR_AGENT_BASE_URL="$BASE_URL" OPERATOR_AGENT_HUB_URL="$HUB_URL" "$NODE" "$AGENT" "$@"
+  run_as_target env HOME="$TARGET_HOME" OPERATOR_AGENT_STATE="$STATE_FILE" OPERATOR_AGENT_BASE_URL="$BASE_URL" OPERATOR_AGENT_HUB_URL="$HUB_URL" OPERATOR_AGENT_WALL_HOST="$WALL_HOST" OPERATOR_AGENT_WALL_PORT="$WALL_PORT" "$NODE" "$AGENT" "$@"
 }
 
 refresh_service_policy(){
@@ -74,12 +80,12 @@ refresh_service_policy(){
 }
 
 wall_health(){
-  local host=127.0.0.1 port=5491 code pid
+  local code pid
   for _ in {1..40}; do
     pid="$(systemctl show "$SERVICE" -p MainPID --value 2>/dev/null || echo 0)"
-    code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 1 "http://$host:$port/" 2>/dev/null || true)"
+    code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 1 "http://$WALL_HOST:$WALL_PORT/" 2>/dev/null || true)"
     if systemctl is-active --quiet "$SERVICE" && [[ "$pid" =~ ^[1-9][0-9]*$ ]] && [[ "$code" =~ ^(200|303|401)$ ]]; then
-      printf 'Local Wall: http://%s:%s/\n' "$host" "$port"
+      printf 'Local Wall: http://%s:%s/\n' "$WALL_HOST" "$WALL_PORT"
       return 0
     fi
     sleep .5
@@ -119,7 +125,7 @@ case "$cmd" in
     agent disconnect "$@"
     ;;
   wall)
-    printf 'http://127.0.0.1:5491/\n'
+    printf 'http://%s:%s/\n' "$WALL_HOST" "$WALL_PORT"
     ;;
   *)
     cat <<'EOF'

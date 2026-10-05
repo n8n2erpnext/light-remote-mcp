@@ -9,6 +9,7 @@ User=lightremote
 Group=lightremote
 WorkingDirectory=/opt/light-remote-direct/current
 EnvironmentFile=/etc/light-remote-direct/operator.env
+UnsetEnvironment=LIGHT_REMOTE_VERSION OPERATOR_VERSION
 RuntimeDirectory=light-remote-direct
 RuntimeDirectoryMode=0750
 StateDirectory=light-remote-direct

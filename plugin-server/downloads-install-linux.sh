@@ -7,13 +7,97 @@ MANIFEST_URL="${LIGHT_REMOTE_DOWNLOAD_MANIFEST:-$BASE_URL/downloads/manifest.jso
 ENDPOINT="${LIGHT_REMOTE_ENDPOINT:-https://light-remote.thaiduy.digital}"
 PROTO_HTTPS="=https"
 VERIFY_ONLY=0
+ACTION=""
+PURGE=0
+ASSUME_YES=0
 INSTALL_ARGS=()
-for arg in "$@"; do
-  if [[ "$arg" == "--verify-only" ]]; then VERIFY_ONLY=1; else INSTALL_ARGS+=("$arg"); fi
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --verify-only) VERIFY_ONLY=1; shift;;
+    --action)
+      [[ $# -ge 2 ]] || { echo "Light Remote install: --action requires a value" >&2; exit 2; }
+      ACTION="$2"; shift 2;;
+    install|reinstall|update|uninstall|remove)
+      [[ -z "$ACTION" ]] || { echo "Light Remote install: action specified more than once" >&2; exit 2; }
+      ACTION="$1"; shift;;
+    --purge) PURGE=1; shift;;
+    --yes|-y) ASSUME_YES=1; INSTALL_ARGS+=("--yes"); shift;;
+    *) INSTALL_ARGS+=("$1"); shift;;
+  esac
 done
 
 say(){ printf '%s\n' "$*"; }
 die(){ printf 'Light Remote install: %s\n' "$*" >&2; exit 2; }
+has_tty(){ ( : </dev/tty ) >/dev/null 2>&1; }
+ask_tty(){
+  local __name="$1" __prompt="$2" __value=""
+  printf '%s' "$__prompt" >/dev/tty
+  IFS= read -r __value </dev/tty || true
+  printf -v "$__name" '%s' "$__value"
+}
+as_root(){
+  if [[ $EUID -eq 0 ]]; then "$@"; else command -v sudo >/dev/null 2>&1 || die "sudo is required"; sudo "$@"; fi
+}
+installed_now(){ [[ -L /opt/gpt-operator-agent/current || -f /etc/systemd/system/gpt-operator-device-agent.service ]]; }
+choose_action(){
+  [[ "$VERIFY_ONLY" == "1" ]] && { ACTION=install; return; }
+  [[ -n "$ACTION" ]] && return
+  local default=1 choice=""
+  installed_now && default=2
+  if ! has_tty; then
+    ACTION=$([[ "$default" == 2 ]] && echo update || echo install)
+    return
+  fi
+  cat >/dev/tty <<EOF
+
+Light Remote Linux Server
+  1) Install
+  2) Re-install / update
+  3) Uninstall / remove
+EOF
+  ask_tty choice "Choose [$default]: "
+  choice="${choice:-$default}"
+  case "$choice" in
+    1) ACTION=install;;
+    2) ACTION=update;;
+    3) ACTION=uninstall;;
+    *) die "invalid action choice";;
+  esac
+}
+uninstall_local(){
+  local service_user state_home confirm=""
+  service_user="$(systemctl show gpt-operator-device-agent.service -p User --value 2>/dev/null || true)"
+  [[ -n "$service_user" ]] || service_user="${SUDO_USER:-${USER:-root}}"
+  state_home="$(getent passwd "$service_user" | cut -d: -f6)"
+  if [[ "$ASSUME_YES" != "1" && has_tty ]]; then
+    say "This removes Light Remote runtime, CLI, and systemd units."
+    say "Enrollment identity is preserved unless --purge is supplied."
+    ask_tty confirm "Continue? [y/N]: "
+    [[ "$confirm" =~ ^[Yy]$ ]] || { say "Cancelled."; exit 0; }
+  fi
+  for unit in gpt-operator-device-agent.service gpt-operator-agent-update.service gpt-operator-agent-update-check.service gpt-operator-agent-update.timer gpt-operator-agent-update.path gpt-operator-agent-update-check.path; do
+    as_root systemctl disable --now "$unit" >/dev/null 2>&1 || true
+  done
+  as_root rm -f     /etc/systemd/system/gpt-operator-device-agent.service     /etc/systemd/system/gpt-operator-agent-update.service     /etc/systemd/system/gpt-operator-agent-update-check.service     /etc/systemd/system/gpt-operator-agent-update.timer     /etc/systemd/system/gpt-operator-agent-update.path     /etc/systemd/system/gpt-operator-agent-update-check.path     /usr/local/bin/light-remote
+  as_root rm -rf /opt/gpt-operator-agent
+  as_root systemctl daemon-reload
+  as_root systemctl reset-failed >/dev/null 2>&1 || true
+  if [[ "$PURGE" == "1" && -n "$state_home" ]]; then
+    as_root rm -rf "$state_home/.config/gpt-operator-agent"
+    say "Light Remote removed; local enrollment state purged."
+  else
+    say "Light Remote removed; local enrollment state preserved."
+    say "Use --purge to remove local identity/state as well."
+  fi
+  exit 0
+}
+
+choose_action
+case "$ACTION" in
+  uninstall|remove) uninstall_local;;
+  install|reinstall|update) ;;
+  *) die "unsupported action: $ACTION";;
+esac
 
 command -v curl >/dev/null 2>&1 || die "curl is required"
 command -v python3 >/dev/null 2>&1 || die "python3 is required"
@@ -87,5 +171,5 @@ if [[ "$VERIFY_ONLY" == "1" ]]; then
   exit 0
 fi
 
-say "Light Remote: verified release; starting install..."
-exec bash "$TMP/install-linux-client.sh" --bundle "$TMP/package.tar.gz" --base-url "$ENDPOINT" --hub-url "$ENDPOINT" --defer-enrollment "${INSTALL_ARGS[@]}"
+say "Light Remote: verified release; starting $ACTION..."
+exec bash "$TMP/install-linux-client.sh" --bundle "$TMP/package.tar.gz" --base-url "$ENDPOINT" --hub-url "$ENDPOINT" --defer-enrollment --action "$ACTION" "${INSTALL_ARGS[@]}"

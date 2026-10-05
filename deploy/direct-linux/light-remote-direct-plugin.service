@@ -10,6 +10,7 @@ User=lightremote
 Group=lightremote
 WorkingDirectory=/opt/light-remote-direct/current/plugin-server
 EnvironmentFile=/etc/light-remote-direct/plugin.env
+UnsetEnvironment=LIGHT_REMOTE_VERSION OPERATOR_VERSION
 ExecStart=/opt/light-remote-direct/current/runtime/node /opt/light-remote-direct/current/plugin-server/server.mjs
 Restart=always
 RestartSec=2

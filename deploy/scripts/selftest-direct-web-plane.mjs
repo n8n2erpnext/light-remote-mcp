@@ -19,6 +19,12 @@ const distribution=read('plugin-server/distribution-portal.mjs');
 const admin=read('plugin-server/admin-portal.mjs');
 const adminHtml=read('plugin-server/admin-portal/index.html');
 const server=read('plugin-server/server.mjs');
+const directOperatorUnit=read('deploy/direct-linux/light-remote-direct-operator.service');
+const directPluginUnit=read('deploy/direct-linux/light-remote-direct-plugin.service');
+
+for(const [name,unit] of [['operator',directOperatorUnit],['plugin',directPluginUnit]]){
+  assert.ok(unit.includes('UnsetEnvironment=LIGHT_REMOTE_VERSION OPERATOR_VERSION'),`direct_${name}_must_follow_current_release_version`);
+}
 
 assert.ok(executor.includes("free:{fleetWall:false,multiDeviceConsole:false,toolCallLimit:10_000}"));
 assert.ok(executor.includes("pro:{fleetWall:true,multiDeviceConsole:true,toolCallLimit:null}"));

@@ -21,6 +21,6 @@ export const OPERATOR_SOCKET = String(process.env.OPERATOR_SOCKET || '/run/gpt-v
 export const OAUTH_SECRET_FILE = String(process.env.LIGHT_REMOTE_PLUGIN_OAUTH_SECRET_FILE || path.join(os.homedir(), '.config/light-remote/plugin-oauth-secret'));
 export const OAUTH_LEGACY_CLIENTS_FILE = String(process.env.LIGHT_REMOTE_PLUGIN_OAUTH_LEGACY_CLIENTS_FILE || path.join(path.dirname(OAUTH_SECRET_FILE), 'legacy-oauth-clients.json'));
 export const OPENAI_CHALLENGE_FILE = String(process.env.LIGHT_REMOTE_OPENAI_CHALLENGE_FILE || path.join(os.homedir(), '.config/light-remote/openai-apps-challenge'));
-export const VERSION = String(process.env.LIGHT_REMOTE_VERSION || '0.9.0-rc.32');
+export const VERSION = String(process.env.LIGHT_REMOTE_VERSION || '0.9.0-rc.33');
 export const MCP_SURFACE_VERSION = String(process.env.LIGHT_REMOTE_MCP_SURFACE_VERSION || '0.1.5');
 export const MAX_PROXY_BODY = Math.max(1024 * 1024, Math.min(Number(process.env.LIGHT_REMOTE_PLUGIN_MAX_PROXY_BODY) || 12 * 1024 * 1024, 64 * 1024 * 1024));
