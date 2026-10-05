@@ -59,8 +59,8 @@ expect(task.includes('function Get-LightRemoteFileSha256')&&task.includes('[Syst
 expect(watchdogProject.includes('<OutputType>WinExe</OutputType>'),'watchdog_must_be_no_console_winexe');
 expect(watchdogProject.includes('<PublishAot>true</PublishAot>'),'watchdog_must_be_native_aot');
 for(const token of [
-  'static int Register(','schtasks.exe','/SC DAILY','/RL LIMITED','watchdog_registered',
-  'installer-pid','commit-marker','task-xml','version-file','watchdog-task',
+  'static int Register(','schtasks.exe','watchdog-task.xml','InteractiveToken','LeastPrivilege','watchdog_registered',
+  'RunProcessArgs(','ArgumentList.Add(','installer-pid','commit-marker','task-xml','version-file','watchdog-task',
   'recovery_begin','Light-Remote-MCP-Setup-','rollback_begin','rollback_restore_wall_healthy',
   'CreateNoWindow = true','WindowStyle = ProcessWindowStyle.Hidden'
 ])expect(watchdog.includes(token),`native_watchdog_contract_missing:${token}`);

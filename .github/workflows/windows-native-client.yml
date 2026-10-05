@@ -492,7 +492,18 @@ jobs:
           Write-Host "windows-native-install-start dir=$installDir log=$setupLog"
           $p = Start-Process -FilePath $env:WINDOWS_INSTALLER -ArgumentList $args -PassThru
           if (-not $p.WaitForExit(120000)) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; throw 'installer timed out after 120s' }
-          if ($p.ExitCode -ne 0) { throw "installer exit=$($p.ExitCode)" }
+          if ($p.ExitCode -ne 0) {
+            Write-Host '=== installer failure diagnostics ==='
+            if (Test-Path $setupLog) { Get-Content $setupLog -Tail 220 | ForEach-Object { Write-Host $_ } }
+            $txnRoot = Join-Path $env:LOCALAPPDATA 'Light Remote\Updater\state\installer-txn'
+            if (Test-Path $txnRoot) {
+              Get-ChildItem $txnRoot -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -in @('watchdog.log','watchdog-task.xml') } | ForEach-Object {
+                Write-Host ("--- " + $_.FullName + " ---")
+                Get-Content $_.FullName -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_ }
+              }
+            }
+            throw "installer exit=$($p.ExitCode)"
+          }
           if (Get-ScheduledTask -TaskName $legacyName -ErrorAction SilentlyContinue) { throw 'legacy scheduled task survived native install' }
           $legacyAfter = @(Get-Process -Name node -ErrorAction SilentlyContinue | Where-Object { try { [IO.Path]::GetFullPath($_.Path) -eq $legacyNodeFull } catch { $false } })
           if ($legacyAfter) { throw 'legacy Node runtime survived native install' }

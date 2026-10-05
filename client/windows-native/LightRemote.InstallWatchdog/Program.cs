@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using System.Net;
+using System.Security.Principal;
+using System.Text;
 
 static class Program
 {
@@ -48,14 +50,68 @@ static class Program
             childArgs.Add(Quote(value));
         }
 
-        var action = Quote(exe) + " " + string.Join(" ", childArgs);
-        var start = DateTime.Now.AddMinutes(5).ToString("HH:mm");
-        var createArgs = $"/Create /TN \"{task}\" /TR \"{EscapeForTask(action)}\" /SC DAILY /ST {start} /RL LIMITED /F";
-        var create = RunProcess("schtasks.exe", createArgs, wait: true, timeoutMs: 30000);
+        var actionArgs = string.Join(" ", childArgs);
+        var taskXml = Path.Combine(Path.GetDirectoryName(logPath)!, "watchdog-task.xml");
+        var sid = WindowsIdentity.GetCurrent().User?.Value
+            ?? throw new InvalidOperationException("watchdog_user_sid_missing");
+        var startBoundary = DateTimeOffset.Now.AddHours(1).ToString("yyyy-MM-dd'T'HH:mm:ss");
+        var xml = $"""
+<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Description>Light Remote installer transaction watchdog</Description>
+  </RegistrationInfo>
+  <Triggers>
+    <TimeTrigger>
+      <StartBoundary>{WebUtility.HtmlEncode(startBoundary)}</StartBoundary>
+      <Enabled>true</Enabled>
+    </TimeTrigger>
+  </Triggers>
+  <Principals>
+    <Principal id="Author">
+      <UserId>{WebUtility.HtmlEncode(sid)}</UserId>
+      <LogonType>InteractiveToken</LogonType>
+      <RunLevel>LeastPrivilege</RunLevel>
+    </Principal>
+  </Principals>
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <AllowHardTerminate>true</AllowHardTerminate>
+    <StartWhenAvailable>false</StartWhenAvailable>
+    <RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable>
+    <AllowStartOnDemand>true</AllowStartOnDemand>
+    <Enabled>true</Enabled>
+    <Hidden>true</Hidden>
+    <RunOnlyIfIdle>false</RunOnlyIfIdle>
+    <WakeToRun>false</WakeToRun>
+    <ExecutionTimeLimit>PT10M</ExecutionTimeLimit>
+    <Priority>7</Priority>
+  </Settings>
+  <Actions Context="Author">
+    <Exec>
+      <Command>{WebUtility.HtmlEncode(exe)}</Command>
+      <Arguments>{WebUtility.HtmlEncode(actionArgs)}</Arguments>
+    </Exec>
+  </Actions>
+</Task>
+""";
+        File.WriteAllText(taskXml, xml, Encoding.Unicode);
+
+        var create = RunProcessArgs(
+            "schtasks.exe",
+            ["/Create", "/TN", task, "/XML", taskXml, "/F"],
+            wait: true,
+            timeoutMs: 30000);
         if (create != 0)
             throw new InvalidOperationException("watchdog_task_create_failed:" + create);
 
-        var run = RunProcess("schtasks.exe", $"/Run /TN \"{task}\"", wait: true, timeoutMs: 30000);
+        var run = RunProcessArgs(
+            "schtasks.exe",
+            ["/Run", "/TN", task],
+            wait: true,
+            timeoutMs: 30000);
         if (run != 0)
             throw new InvalidOperationException("watchdog_task_start_failed:" + run);
 
@@ -205,6 +261,31 @@ static class Program
             WindowStyle = ProcessWindowStyle.Hidden
         }) ?? throw new InvalidOperationException("process_start_failed:" + file);
 
+        if (!wait)
+            return 0;
+
+        if (!p.WaitForExit(timeoutMs))
+        {
+            try { p.Kill(entireProcessTree: true); } catch { }
+            throw new TimeoutException("process_timeout:" + file);
+        }
+
+        return p.ExitCode;
+    }
+
+    static int RunProcessArgs(string file, IEnumerable<string> arguments, bool wait, int timeoutMs)
+    {
+        var psi = new ProcessStartInfo
+        {
+            FileName = file,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            WindowStyle = ProcessWindowStyle.Hidden
+        };
+        foreach (var argument in arguments)
+            psi.ArgumentList.Add(argument);
+
+        using var p = Process.Start(psi) ?? throw new InvalidOperationException("process_start_failed:" + file);
         if (!wait)
             return 0;
 
