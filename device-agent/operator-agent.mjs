@@ -122,13 +122,13 @@ function requireRealRemoteVisual(p,desktopSessionId){
   if(!row)throw new Error('desktop_session_missing');
   const owner=visualOwner(p);
   if(row.sessionId!==owner.sessionId||row.agentId!==owner.agentId)throw new Error('desktop_session_owner_mismatch');
-  if(Date.now()>=row.expiresAt){void stopRealRemoteVisual(row);throw new Error('desktop_session_expired');}
+  if(Date.now()>=row.expiresAt){void stopRealRemoteVisual(row).catch(error=>console.error(JSON.stringify({event:'desktop_visual_cleanup_failed',desktopSessionId:id,error:String(error?.message||error)})));throw new Error('desktop_session_expired');}
   return row;
 }
 function armRealRemoteVisual(row){
   if(row.timer){clearTimeout(row.timer);row.timer=null;}
   row.expiresAt=Date.now()+row.idleTimeoutMs;
-  row.timer=setTimeout(()=>{row.timer=null;void stopRealRemoteVisual(row);},row.idleTimeoutMs);
+  row.timer=setTimeout(()=>{row.timer=null;void stopRealRemoteVisual(row).catch(error=>console.error(JSON.stringify({event:'desktop_visual_cleanup_failed',desktopSessionId:row.desktopSessionId,error:String(error?.message||error)})));},row.idleTimeoutMs);
   row.timer.unref?.();
 }
 async function stopRealRemoteVisual(row,{detach=true}={}){
@@ -136,13 +136,16 @@ async function stopRealRemoteVisual(row,{detach=true}={}){
   row.stopping=(async()=>{
     REAL_REMOTE_VISUAL.delete(row.desktopSessionId);
     if(row.timer){clearTimeout(row.timer);row.timer=null;}
-    let detached=null;
+    let detached=null,detachError=null;
     if(detach){
       try{detached=await NATIVE_DESKTOP.request('visual-detach',{visualSessionId:row.visualSessionId,leaseToken:row.leaseToken},{timeoutMs:10000});}
-      catch(error){if(!/visual_(session_missing|lease_expired)|real_remote_helper_(closed|exited)/.test(String(error?.message||error)))throw error;}
+      catch(error){
+        if(!/visual_(session_missing|lease_expired)|real_remote_helper_(closed|exited|timeout)/.test(String(error?.message||error)))detachError=error;
+      }
     }
     try{row.release?.();}catch{}
-    NATIVE_DESKTOP.closeIfIdle();
+    try{NATIVE_DESKTOP.closeIfIdle();}catch{}
+    if(detachError)throw detachError;
     return detached;
   })().finally(()=>{row.stopping=null;});
   return row.stopping;
@@ -186,7 +189,9 @@ async function frameRealRemoteVisual(p,request,{observe=false}={}){
   }
   const row=requireRealRemoteVisual(p,id),now=Date.now(),remaining=Math.max(0,row.minIntervalMs-(now-row.lastObservedAt));
   if(observe&&remaining>0){armRealRemoteVisual(row);return {desktopSessionId:id,unchanged:true,throttled:true,retryAfterMs:remaining,frameSeq:null,expiresAt:row.expiresAt};}
-  const native=await NATIVE_DESKTOP.request('visual-frame',{visualSessionId:row.visualSessionId,leaseToken:row.leaseToken},{timeoutMs:10000});
+  let native;
+  try{native=await NATIVE_DESKTOP.request('visual-frame',{visualSessionId:row.visualSessionId,leaseToken:row.leaseToken},{timeoutMs:10000});}
+  catch(error){await stopRealRemoteVisual(row,{detach:false}).catch(()=>{});throw error;}
   row.lastObservedAt=Date.now();armRealRemoteVisual(row);
   const capture=native?.frame&&typeof native.frame==='object'?native.frame:null,hash=String(capture?.frameSha256||'');
   const unchanged=Boolean(observe&&row.omitUnchanged&&hash&&row.lastFrameSha===hash);

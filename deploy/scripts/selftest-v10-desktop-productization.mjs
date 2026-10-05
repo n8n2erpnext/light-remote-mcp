@@ -85,6 +85,8 @@ need(uiSensor.includes('ResolveSemanticElement')&&uiSensor.includes('SemanticNod
 need(semanticManager.includes('ActMutation')&&semanticManager.includes('InvokePattern.Pattern')&&semanticManager.includes('TogglePattern.Pattern')&&semanticManager.includes('ExpandCollapsePattern.Pattern')&&semanticManager.includes('NativeInput.Click("left",1)'),'rmv2-semantic-action-runtime');
 need(robotContext.includes('"desktop.semantic.act" or "desktop-semantic-act" => SemanticAct(request)')&&robotContext.includes('mutation=_semantic.ActMutation')&&visualManager.includes('MaxLeaseMs=900_000'),'rmv2-focused-run-await-and-lease');
 need(!read('plugin-server/tools.mjs').includes('leaseToken:z.')&&!read('plugin-server/tools.mjs').includes('visualSessionId:z.'),'rmv2-visual-lease-private');
+need(nativeDesktop.includes("const error=new Error('real_remote_helper_timeout');")&&nativeDesktop.includes("try{this.close();}catch{}"),'rmv2-helper-timeout-hard-reset');
+need(operatorAgent.includes("desktop_visual_cleanup_failed")&&operatorAgent.includes("stopRealRemoteVisual(row).catch")&&operatorAgent.includes("stopRealRemoteVisual(row,{detach:false}).catch"),'rmv2-visual-cleanup-rejection-contained');
 need(rmProject.includes('<AssemblyName>LightRemote.RM</AssemblyName>')&&rmProject.includes('<Product>Light Remote RM</Product>')&&rmProject.includes('<ApplicationIcon>Assets\\light-remote-rm.ico</ApplicationIcon>'),'rm-branding-project');
 need(robotContext.includes('Text="Agent Remote Active"')&&!robotContext.includes('ShowBalloonTip(')&&robotContext.includes('Icon.ExtractAssociatedIcon'),'rm-branding-tray-tooltip');
 need(systemCursor.includes('SetSystemCursor')&&systemCursor.includes('CreateCodexCursor')&&systemCursor.includes('SPI_SETCURSORS'),'rm-native-system-cursor');
