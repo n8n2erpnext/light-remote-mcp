@@ -73,8 +73,8 @@ for(const token of [
   "full:full?'1':'0'",'8*1024*1024'
 ])assert.ok(adapter.includes(token),'adapter parity missing '+token);
 
-assert.match(server,/Use each focused tool directly for its named action/);
-assert.doesNotMatch(server,/index-only tool-family menu|helperGroup=workspace, files, shell, transfer, or desktop|Do not preload detailed chapters/);
+assert.doesNotMatch(server,/const INSTRUCTIONS=|instructions:INSTRUCTIONS/);
+assert.match(server,/new McpServer\(\{name:'light-remote',version:MCP_SURFACE_VERSION\}\)/);
 
 console.log('official_rc30_focused_tool_contract=PASS');
 console.log('official_rc30_legacy_call_compat=PASS');

@@ -16,7 +16,6 @@ import { installOpenAiToolSecurityCompat } from './openai-security-compat.mjs';
 import { installLegacyToolCallCompat } from './legacy-tool-call-compat.mjs';
 import { WEB_FONT_FACE_CSS, WEB_UI_FONT, WEB_CODE_FONT } from '../lib/web-typography.mjs';
 
-const INSTRUCTIONS='OAuth authenticates the account; Local Wall A/B approval authorizes each exact device. For an unpaired target, use light_remote_connection_helper with the owner-provided A code, show only the returned B code, wait for approval at that same Local Wall, then continue with the returned continuation. Keep device and session targets explicit and never silently switch them. Use each focused tool directly for its named action. Device-local policy is final authority. Never request, reveal, echo, or transmit passwords, MFA/OTP codes, API keys, private keys, bearer tokens, continuations, or other authentication secrets. The MCP cannot mint an A code or bypass Local Wall /approve.';
 
 const app=createMcpExpressApp({host:PUBLIC_HOST,allowedHosts:PUBLIC_ALLOWED_HOSTS});
 app.disable('x-powered-by');
@@ -52,7 +51,7 @@ app.get('/.well-known/openai-apps-challenge',(_q,r)=>{
 });
 
 function mcpServer(identity){
-  const server=new McpServer({name:'light-remote',version:MCP_SURFACE_VERSION},{instructions:INSTRUCTIONS});
+  const server=new McpServer({name:'light-remote',version:MCP_SURFACE_VERSION});
   registerPluginTools(server,identity);
   installLegacyToolCallCompat(server,identity);
   installOpenAiToolSecurityCompat(server,PLUGIN_TOOL_SECURITY);

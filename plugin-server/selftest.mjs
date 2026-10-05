@@ -47,9 +47,8 @@ async function waitReady(){for(let i=0;i<80;i++){try{const r=await fetch(`${env.
 await waitReady();
 const postMcp=async(body,token='')=>{const r=await fetch(`${env.LIGHT_REMOTE_PLUGIN_ORIGIN}/mcp`,{method:'POST',headers:{'content-type':'application/json','accept':'application/json, text/event-stream',...(token?{authorization:`Bearer ${token}`}:{})},body:JSON.stringify(body)});const text=await r.text();assert.ok(r.status<500,`mcp_http_${r.status}:${text}`);return JSON.parse(text)};
 const init=await postMcp({jsonrpc:'2.0',id:1,method:'initialize',params:{protocolVersion:'2025-06-18',capabilities:{},clientInfo:{name:'selftest',version:'1'}}});
-assert.equal(init.result.serverInfo.name,'light-remote');assert.equal(init.result.serverInfo.version,'0.1.4');
-assert.match(init.result.instructions,/A\/B approval authorizes each exact device/i);
-assert.doesNotMatch(init.result.instructions,/helperGroup=|tool-family menu|detailed syntax/i);
+assert.equal(init.result.serverInfo.name,'light-remote');assert.equal(init.result.serverInfo.version,'0.1.5');
+assert.equal(init.result.instructions,undefined);
 const listed=await postMcp({jsonrpc:'2.0',id:2,method:'tools/list',params:{}});
 assert.equal(listed.result.tools.length,67);
 const toolNames=new Set(listed.result.tools.map(t=>t.name));
