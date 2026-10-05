@@ -102,7 +102,9 @@ const res={
   assert.ok(executor.includes("const DEVICE_CHANNEL_RM_LIVE_LIMIT = Math.max(1, Number(process.env.OPERATOR_DEVICE_CHANNEL_RM_LIVE_LIMIT || 1800));"));
   assert.ok(executor.includes("if(action==='desktop-live-push')return 'rm-live';"));
   assert.ok(executor.includes("'frame','input','run','observe'"));
-  assert.ok(executor.includes("if(op==='run'){const normalized={op,...normalizeDesktopInput(request)"));
+  assert.ok(executor.includes("const semanticAction=Boolean(String(request.nodeId||'').trim()&&String(request.action||'').trim()&&!Array.isArray(request.events))"));
+  assert.ok(executor.includes("}else normalized={op,...normalizeDesktopInput(request)};"));
+  assert.ok(executor.includes("semanticSessionId:String(request.semanticSessionId||'')"));
   assert.ok(executor.includes("requiredCapabilities=(op==='input'||op==='run'||op==='act')"));
   assert.ok(executor.includes("op==='run'?'Desktop run'"));
 

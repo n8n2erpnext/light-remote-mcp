@@ -581,7 +581,33 @@ async function startDesktopOperation(payload,requestId){
   let request=payload.desktop&&typeof payload.desktop==='object'&&!Array.isArray(payload.desktop)?payload.desktop:null;if(!request)throw new Error('desktop_request_required');
   const op=String(request.op||'');if(!['status','attach','resume','detach','windows','frame','input','run','observe','act','semantic-attach','semantic-snapshot','semantic-events','semantic-detach','live-open','live-close'].includes(op))throw new Error('desktop_operation_unsupported');
   if(op==='input'||(op==='act'&&Array.isArray(request.events)))request={op,...normalizeDesktopInput(request)};
-  if(op==='run'){const normalized={op,...normalizeDesktopInput(request)},rawWait=request.await&&typeof request.await==='object'&&!Array.isArray(request.await)?request.await:null;if(rawWait){const wait={};for(const key of ['foregroundTitleContains','foregroundTitleEquals','focusedNameContains']){if(rawWait[key]!=null){const value=String(rawWait[key]).trim();if(value)wait[key]=value.slice(0,512);}}const timeoutMs=Number(rawWait.timeoutMs);wait.timeoutMs=Math.max(50,Math.min(Number.isFinite(timeoutMs)?Math.floor(timeoutMs):3000,15000));normalized.await=wait;}request=normalized;}
+  if(op==='run'){
+    const semanticAction=Boolean(String(request.nodeId||'').trim()&&String(request.action||'').trim()&&!Array.isArray(request.events));
+    let normalized;
+    if(semanticAction){
+      const afterSeq=Number(request.afterSeq),settleMs=Number(request.settleMs);
+      normalized={
+        op,
+        semanticSessionId:String(request.semanticSessionId||''),
+        nodeId:String(request.nodeId||'').slice(0,512),
+        action:String(request.action||'').slice(0,80),
+        afterSeq:Number.isFinite(afterSeq)?Math.max(0,Math.floor(afterSeq)):0,
+        settleMs:Math.max(0,Math.min(Number.isFinite(settleMs)?Math.floor(settleMs):90,250))
+      };
+      if(request.value!=null)normalized.value=String(request.value).slice(0,4096);
+    }else normalized={op,...normalizeDesktopInput(request)};
+    const rawWait=request.await&&typeof request.await==='object'&&!Array.isArray(request.await)?request.await:null;
+    if(rawWait){
+      const wait={};
+      for(const key of ['foregroundTitleContains','foregroundTitleEquals','focusedNameContains']){
+        if(rawWait[key]!=null){const value=String(rawWait[key]).trim();if(value)wait[key]=value.slice(0,512);}
+      }
+      const timeoutMs=Number(rawWait.timeoutMs);
+      wait.timeoutMs=Math.max(50,Math.min(Number.isFinite(timeoutMs)?Math.floor(timeoutMs):3000,15000));
+      normalized.await=wait;
+    }
+    request=normalized;
+  }
   const remote=session.nodeId!==NODE_ID,requiredCapabilities=(op==='input'||op==='run'||op==='act')?['desktop','desktop-input']:['desktop'];
   if(!remote)throw new DeviceError('desktop_local_host_not_supported',409);
   const route=targetRoute(session.nodeId,{accountId:session.accountId});if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(requiredCapabilities.some(cap=>!route.capabilities.includes(cap)))throw new FleetError('target_node_capability_missing',409);
