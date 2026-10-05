@@ -47,6 +47,32 @@ agent(){
   run_as_target env HOME="$TARGET_HOME" OPERATOR_AGENT_STATE="$STATE_FILE" OPERATOR_AGENT_BASE_URL="$BASE_URL" OPERATOR_AGENT_HUB_URL="$HUB_URL" "$NODE" "$AGENT" "$@"
 }
 
+refresh_service_policy(){
+  local helper="$ROOT/current/device-agent/linux-service-policy.mjs"
+  local unit="/etc/systemd/system/$SERVICE"
+  local no_new restrict_suid clear_caps cap_line
+  [[ -f "$STATE_FILE" ]] || die "device enrollment state is missing"
+  [[ -f "$helper" && -f "$unit" ]] || die "Linux service policy files are missing"
+  no_new="$("$NODE" "$helper" "$STATE_FILE" noNewPrivileges)"
+  restrict_suid="$("$NODE" "$helper" "$STATE_FILE" restrictSuidSgid)"
+  clear_caps="$("$NODE" "$helper" "$STATE_FILE" clearCapabilityBoundingSet)"
+  for value in "$no_new" "$restrict_suid" "$clear_caps"; do
+    [[ "$value" == "true" || "$value" == "false" ]] || die "invalid Linux service policy helper output"
+  done
+  if [[ "$clear_caps" == "true" ]]; then
+    cap_line='CapabilityBoundingSet='
+  else
+    cap_line='# CapabilityBoundingSet left at the system default for approved sudo-on-demand'
+  fi
+  as_root sed -i -E \
+    -e "s|^NoNewPrivileges=.*|NoNewPrivileges=$no_new|" \
+    -e "s|^RestrictSUIDSGID=.*|RestrictSUIDSGID=$restrict_suid|" \
+    -e "s|^(# )?CapabilityBoundingSet.*|$cap_line|" \
+    "$unit"
+  grep -q "^NoNewPrivileges=$no_new$" "$unit" || die "failed to refresh NoNewPrivileges"
+  grep -q "^RestrictSUIDSGID=$restrict_suid$" "$unit" || die "failed to refresh RestrictSUIDSGID"
+}
+
 wall_health(){
   local host=127.0.0.1 port=5491 code pid
   for _ in {1..40}; do
@@ -75,6 +101,7 @@ case "$cmd" in
         agent login "$@"
       fi
     fi
+    refresh_service_policy
     as_root systemctl daemon-reload
     as_root systemctl enable --now "$SERVICE"
     as_root systemctl enable --now gpt-operator-agent-update.timer gpt-operator-agent-update.path gpt-operator-agent-update-check.path

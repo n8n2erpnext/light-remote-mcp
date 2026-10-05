@@ -39,6 +39,10 @@ expect(install.includes("Next step: light-remote up")&&install.includes('/usr/lo
 expect(linuxWorkflow.includes('install -m 0755 client/linux/light-remote'),'linux_cli_not_bundled');
 expect(linuxWorkflow.includes('test -x "$PKG/client/linux/light-remote"'),'linux_cli_not_verified');
 expect(linuxCli.includes('up|login')&&linuxCli.includes('agent login')&&linuxCli.includes('enable --now "$SERVICE"'),'linux_cli_up_contract_missing');
+expect(linuxCli.includes('refresh_service_policy')&&linuxCli.includes('linux-service-policy.mjs'),'linux_cli_post_enrollment_policy_refresh_missing');
+expect(linuxCli.includes('NoNewPrivileges=$no_new')&&linuxCli.includes('RestrictSUIDSGID=$restrict_suid')&&linuxCli.includes('CapabilityBoundingSet'),'linux_cli_systemd_policy_refresh_missing');
+const linuxUpBlock=linuxCli.slice(linuxCli.indexOf('  up|login)'),linuxCli.indexOf('  status)',linuxCli.indexOf('  up|login)')));
+expect(linuxUpBlock.includes('refresh_service_policy')&&linuxUpBlock.indexOf('refresh_service_policy')<linuxUpBlock.indexOf('systemctl daemon-reload'),'linux_cli_policy_refresh_must_precede_daemon_reload');
 expect(linuxCli.includes('status)')&&linuxCli.includes('service=%s'),'linux_cli_status_contract_missing');
 expect(install.includes('openssl dgst -sha256 -verify'),'linux_manifest_signature_verify_missing');
 expect(updater.includes("crypto.verify('sha256'"),'linux_update_signature_verify_missing');
