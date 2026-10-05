@@ -26,10 +26,32 @@ if [[ "${HUB_URL%/}" == "https://mcp.dashboard.thaiduy.store" ]]; then HUB_URL="
 [[ -n "$TARGET_USER" ]] || { echo "Unable to determine target user" >&2; exit 2; }
 [[ "$BASE_URL" == https://* ]] || { echo "--base-url must be HTTPS" >&2; exit 2; }
 [[ "$HUB_URL" == https://* ]] || { echo "--hub-url must be HTTPS" >&2; exit 2; }
+
+as_root() {
+  if [[ $EUID -eq 0 ]]; then
+    "$@"
+  else
+    command -v sudo >/dev/null 2>&1 || { echo "sudo is required when not running as root" >&2; return 2; }
+    sudo "$@"
+  fi
+}
+as_user() {
+  local user="$1"; shift
+  if [[ "$(id -un)" == "$user" ]]; then
+    "$@"
+  elif command -v sudo >/dev/null 2>&1; then
+    sudo -u "$user" "$@"
+  elif [[ $EUID -eq 0 ]] && command -v runuser >/dev/null 2>&1; then
+    runuser -u "$user" -- "$@"
+  else
+    echo "Unable to run command as $user; install sudo or run as that user" >&2
+    return 2
+  fi
+}
 TARGET_HOME="$(getent passwd "$TARGET_USER" | cut -d: -f6)"
 [[ -n "$TARGET_HOME" ]] || { echo "Unable to determine home for $TARGET_USER" >&2; exit 2; }
 
-for cmd in curl openssl python3 tar sha256sum sudo systemctl; do command -v "$cmd" >/dev/null || { echo "Missing required command: $cmd" >&2; exit 2; }; done
+for cmd in curl openssl python3 tar sha256sum systemctl; do command -v "$cmd" >/dev/null || { echo "Missing required command: $cmd" >&2; exit 2; }; done
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 AGENT_WAS_ACTIVE=0
 if systemctl is-active --quiet gpt-operator-device-agent.service 2>/dev/null; then AGENT_WAS_ACTIVE=1; fi
@@ -84,38 +106,38 @@ PY
 )"
 [[ "$PACKAGE_VERSION" == "$VERSION" ]] || { echo "Package version mismatch" >&2; exit 2; }
 
-sudo install -d -m 0755 "$ROOT/releases/$VERSION"
-sudo rm -rf "$ROOT/releases/$VERSION"
-sudo install -d -m 0755 "$ROOT/releases/$VERSION"
-sudo cp -a --no-preserve=ownership "$TMP/package/." "$ROOT/releases/$VERSION/"
-sudo chown -R root:root "$ROOT/releases/$VERSION"
-sudo chmod -R go-w "$ROOT/releases/$VERSION"
-sudo install -m 0644 "$TMP/update-public.pem" "$ROOT/update-public.pem"
-sudo ln -sfn "$ROOT/releases/$VERSION" "$ROOT/current.next"
-sudo mv -Tf "$ROOT/current.next" "$ROOT/current"
+as_root install -d -m 0755 "$ROOT/releases/$VERSION"
+as_root rm -rf "$ROOT/releases/$VERSION"
+as_root install -d -m 0755 "$ROOT/releases/$VERSION"
+as_root cp -a --no-preserve=ownership "$TMP/package/." "$ROOT/releases/$VERSION/"
+as_root chown -R root:root "$ROOT/releases/$VERSION"
+as_root chmod -R go-w "$ROOT/releases/$VERSION"
+as_root install -m 0644 "$TMP/update-public.pem" "$ROOT/update-public.pem"
+as_root ln -sfn "$ROOT/releases/$VERSION" "$ROOT/current.next"
+as_root mv -Tf "$ROOT/current.next" "$ROOT/current"
 STATE_FILE="$TARGET_HOME/.config/gpt-operator-agent/device.json"
 if [[ ! -f "$STATE_FILE" ]]; then
   echo
   echo "This Linux user is not enrolled yet. Starting device enrollment..."
-  sudo -u "$TARGET_USER" env HOME="$TARGET_HOME" OPERATOR_AGENT_BASE_URL="$BASE_URL" OPERATOR_AGENT_HUB_URL="$HUB_URL" "$ROOT/current/runtime/node" "$ROOT/current/device-agent/operator-agent.mjs" login
+  as_user "$TARGET_USER" env HOME="$TARGET_HOME" OPERATOR_AGENT_BASE_URL="$BASE_URL" OPERATOR_AGENT_HUB_URL="$HUB_URL" "$ROOT/current/runtime/node" "$ROOT/current/device-agent/operator-agent.mjs" login
 fi
 [[ -f "$STATE_FILE" ]] || { echo "Device enrollment did not produce state" >&2; exit 2; }
 UPDATE_STATE_DIR="$TARGET_HOME/.config/gpt-operator-agent/update-runtime"
 UPDATE_REQUEST_FILE="$UPDATE_STATE_DIR/request.json"
 UPDATE_CHECK_REQUEST_FILE="$UPDATE_STATE_DIR/check-request.json"
-sudo -u "$TARGET_USER" install -d -m 0700 "$UPDATE_STATE_DIR"
+as_user "$TARGET_USER" install -d -m 0700 "$UPDATE_STATE_DIR"
 UPDATER_ROOT="$ROOT/updater"
 if [[ ! -x "$UPDATER_ROOT/current/runtime/node" ]]; then
   UPDATER_RELEASE="$UPDATER_ROOT/releases/$VERSION"
-  sudo rm -rf "$UPDATER_RELEASE"
-  sudo install -d -m 0755 "$UPDATER_RELEASE/runtime" "$UPDATER_RELEASE/client/linux" "$UPDATER_RELEASE/lib"
-  sudo install -m 0755 "$ROOT/current/runtime/node" "$UPDATER_RELEASE/runtime/node"
-  sudo install -m 0644 "$ROOT/current/client/linux/updater.mjs" "$UPDATER_RELEASE/client/linux/updater.mjs"
-  sudo install -m 0644 "$ROOT/current/client/linux/update-lifeboat.mjs" "$UPDATER_RELEASE/client/linux/update-lifeboat.mjs"
-  sudo install -m 0644 "$ROOT/current/lib/update-contract.mjs" "$UPDATER_RELEASE/lib/update-contract.mjs"
-  sudo install -m 0644 "$ROOT/current/manifest.json" "$UPDATER_RELEASE/manifest.json"
-  sudo ln -sfn "$UPDATER_RELEASE" "$UPDATER_ROOT/current.next"
-  sudo mv -Tf "$UPDATER_ROOT/current.next" "$UPDATER_ROOT/current"
+  as_root rm -rf "$UPDATER_RELEASE"
+  as_root install -d -m 0755 "$UPDATER_RELEASE/runtime" "$UPDATER_RELEASE/client/linux" "$UPDATER_RELEASE/lib"
+  as_root install -m 0755 "$ROOT/current/runtime/node" "$UPDATER_RELEASE/runtime/node"
+  as_root install -m 0644 "$ROOT/current/client/linux/updater.mjs" "$UPDATER_RELEASE/client/linux/updater.mjs"
+  as_root install -m 0644 "$ROOT/current/client/linux/update-lifeboat.mjs" "$UPDATER_RELEASE/client/linux/update-lifeboat.mjs"
+  as_root install -m 0644 "$ROOT/current/lib/update-contract.mjs" "$UPDATER_RELEASE/lib/update-contract.mjs"
+  as_root install -m 0644 "$ROOT/current/manifest.json" "$UPDATER_RELEASE/manifest.json"
+  as_root ln -sfn "$UPDATER_RELEASE" "$UPDATER_ROOT/current.next"
+  as_root mv -Tf "$UPDATER_ROOT/current.next" "$UPDATER_ROOT/current"
 fi
 POLICY_HELPER="$ROOT/current/device-agent/linux-service-policy.mjs"
 NO_NEW_PRIVILEGES="$("$ROOT/current/runtime/node" "$POLICY_HELPER" "$STATE_FILE" noNewPrivileges)"
@@ -132,12 +154,12 @@ fi
 IDENTITY_FILE="$TARGET_HOME/.config/gpt-operator-agent/identity.json"
 IDENTITY_ENV_LINE="# No external device identity file; private identity is stored in device state"
 if [[ -f "$IDENTITY_FILE" ]]; then
-  sudo chown "$TARGET_USER":"$(id -gn "$TARGET_USER")" "$IDENTITY_FILE"
-  sudo chmod 0600 "$IDENTITY_FILE"
+  as_root chown "$TARGET_USER":"$(id -gn "$TARGET_USER")" "$IDENTITY_FILE"
+  as_root chmod 0600 "$IDENTITY_FILE"
   IDENTITY_ENV_LINE="Environment=OPERATOR_AGENT_IDENTITY_FILE=$IDENTITY_FILE"
 fi
 
-sudo tee /etc/systemd/system/gpt-operator-device-agent.service >/dev/null <<UNIT
+as_root tee /etc/systemd/system/gpt-operator-device-agent.service >/dev/null <<UNIT
 [Unit]
 Description=Light Remote outbound device agent
 After=network-online.target
@@ -172,7 +194,7 @@ ReadWritePaths=$TARGET_HOME/.config/gpt-operator-agent
 WantedBy=multi-user.target
 UNIT
 
-sudo tee /etc/systemd/system/gpt-operator-agent-update.service >/dev/null <<UNIT
+as_root tee /etc/systemd/system/gpt-operator-agent-update.service >/dev/null <<UNIT
 [Unit]
 Description=Update Light Remote client from signed release manifest
 After=network-online.target
@@ -185,7 +207,7 @@ Environment=GPT_OPERATOR_UPDATE_SIGNATURE_URL=$SIGNATURE_URL
 Environment=LIGHT_REMOTE_UPDATE_STATE_DIR=$UPDATE_STATE_DIR
 ExecStart=$ROOT/updater/current/runtime/node $ROOT/updater/current/client/linux/updater.mjs
 UNIT
-sudo tee /etc/systemd/system/gpt-operator-agent-update-check.service >/dev/null <<UNIT
+as_root tee /etc/systemd/system/gpt-operator-agent-update-check.service >/dev/null <<UNIT
 [Unit]
 Description=Check signed Light Remote client update availability
 After=network-online.target
@@ -198,7 +220,7 @@ Environment=GPT_OPERATOR_UPDATE_SIGNATURE_URL=$SIGNATURE_URL
 Environment=LIGHT_REMOTE_UPDATE_STATE_DIR=$UPDATE_STATE_DIR
 ExecStart=$ROOT/updater/current/runtime/node $ROOT/updater/current/client/linux/updater.mjs --check-only
 UNIT
-sudo tee /etc/systemd/system/gpt-operator-agent-update.path >/dev/null <<UNIT
+as_root tee /etc/systemd/system/gpt-operator-agent-update.path >/dev/null <<UNIT
 [Unit]
 Description=Wake Light Remote updater on owner request
 
@@ -209,7 +231,7 @@ Unit=gpt-operator-agent-update.service
 [Install]
 WantedBy=multi-user.target
 UNIT
-sudo tee /etc/systemd/system/gpt-operator-agent-update-check.path >/dev/null <<UNIT
+as_root tee /etc/systemd/system/gpt-operator-agent-update-check.path >/dev/null <<UNIT
 [Unit]
 Description=Wake Light Remote update checker on owner request
 
@@ -220,7 +242,7 @@ Unit=gpt-operator-agent-update-check.service
 [Install]
 WantedBy=multi-user.target
 UNIT
-sudo tee /etc/systemd/system/gpt-operator-agent-update.timer >/dev/null <<'UNIT'
+as_root tee /etc/systemd/system/gpt-operator-agent-update.timer >/dev/null <<'UNIT'
 [Unit]
 Description=Periodic Light Remote signed client update check
 
@@ -235,12 +257,12 @@ Persistent=true
 WantedBy=timers.target
 UNIT
 
-sudo systemctl daemon-reload
-sudo systemctl enable --now gpt-operator-device-agent.service
-sudo systemctl enable --now gpt-operator-agent-update.timer
-sudo systemctl enable --now gpt-operator-agent-update.path
-sudo systemctl enable --now gpt-operator-agent-update-check.path
-if [[ "$AGENT_WAS_ACTIVE" == "1" ]]; then sudo systemctl restart gpt-operator-device-agent.service; fi
+as_root systemctl daemon-reload
+as_root systemctl enable --now gpt-operator-device-agent.service
+as_root systemctl enable --now gpt-operator-agent-update.timer
+as_root systemctl enable --now gpt-operator-agent-update.path
+as_root systemctl enable --now gpt-operator-agent-update-check.path
+if [[ "$AGENT_WAS_ACTIVE" == "1" ]]; then as_root systemctl restart gpt-operator-device-agent.service; fi
 WALL_HOST="127.0.0.1"
 WALL_PORT="5491"
 SERVICE_ENV="$(systemctl show gpt-operator-device-agent.service --property=Environment --value 2>/dev/null || true)"
@@ -266,7 +288,7 @@ if [[ "$AGENT_HEALTHY" != "1" ]]; then
   echo 'Light Remote Core failed post-install health gate; updater Helper was not changed.' >&2
   exit 37
 fi
-sudo env LIGHT_REMOTE_UPDATE_STATE_DIR="$UPDATE_STATE_DIR" "$ROOT/current/runtime/node" "$ROOT/current/lib/update-helper-reconcile.mjs" \
+as_root env LIGHT_REMOTE_UPDATE_STATE_DIR="$UPDATE_STATE_DIR" "$ROOT/current/runtime/node" "$ROOT/current/lib/update-helper-reconcile.mjs" \
   --platform linux --version "$VERSION" --core-root "$ROOT/current" --install-root "$ROOT" --state-dir "$UPDATE_STATE_DIR"
 systemctl --no-pager --full status gpt-operator-device-agent.service | sed -n '1,12p'
 echo

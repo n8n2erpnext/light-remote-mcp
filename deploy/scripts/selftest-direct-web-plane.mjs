@@ -53,8 +53,18 @@ assert.ok(devices.includes('/downloads#linux-server'));
 assert.ok(distribution.includes("LIGHT_REMOTE_DISTRIBUTION_DIR"));
 assert.ok(distribution.includes("app.get(['/downloads','/downloads/']"));
 assert.ok(distribution.includes("app.get('/downloads/files/:name'"));
+assert.ok(distribution.includes("app.get('/downloads/install.sh'"));
+assert.ok(distribution.includes("manifest().installScriptUrl"),'R2-backed install script redirect missing');
+assert.ok(distribution.includes("if(row.url)return res.redirect(302,row.url)"),'R2-backed distribution redirect missing');
+assert.ok(distribution.includes("x.installCommand?"),'Linux one-line install command missing');
 assert.ok(distribution.includes("release=m.releases.find"));
 assert.ok(distribution.includes("base!==name"),'distribution path traversal guard');
+const linuxBootstrap=read('plugin-server/downloads-install-linux.sh');
+assert.ok(linuxBootstrap.includes('linux-server')&&linuxBootstrap.includes('--verify-only'));
+assert.ok(linuxBootstrap.includes('sha256sum')&&linuxBootstrap.includes('LIGHT_REMOTE_DOWNLOAD_MANIFEST'));
+const r2Sync=read('deploy/distribution/sync-release-to-r2.sh');
+assert.ok(r2Sync.includes('light-remote/release')&&r2Sync.includes('R2_PUBLIC_URL')&&r2Sync.includes('--aws-sigv4'));
+assert.ok(r2Sync.includes("! -name manifest.json -delete"),'large distribution binaries must leave production LXD after R2 publish');
 
 assert.ok(accountRoutes.includes("url.pathname === '/v1/admin/overview'"));
 assert.ok(accountRoutes.includes("url.pathname === '/v1/admin/accounts'"));

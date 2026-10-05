@@ -10,6 +10,9 @@
 #ifndef OutputBaseName
   #define OutputBaseName "Light-Remote-MCP-Setup-x64"
 #endif
+#ifndef WatchdogExe
+  #error WatchdogExe must be defined
+#endif
 #ifdef CompactNodeBootstrap
   #ifndef NodeZipName
     #error NodeZipName must be defined for compact installer
@@ -50,7 +53,7 @@ UninstallDisplayIcon={app}\GptOperator.Client.exe
 SetupIconFile={#StageDir}\Assets\light-remote.ico
 
 [Files]
-Source: "{#SourcePath}\InstallTransactionWatchdog.ps1"; Flags: dontcopy
+Source: "{#WatchdogExe}"; DestName: "LightRemote.InstallWatchdog.exe"; Flags: dontcopy
 #ifdef CompactNodeBootstrap
 Source: "{#StageDir}\VERSION"; DestDir: "{app}"; Flags: ignoreversion; AfterInstall: InstallCompactNodeRuntime
 #endif
@@ -81,7 +84,7 @@ var
   InstallerTxnDir: String;
   InstallerTxnCommitMarker: String;
   InstallerTxnVersionFile: String;
-  InstallerTxnWatchdogScript: String;
+  InstallerTxnWatchdogExe: String;
   InstallerTxnWatchdogLog: String;
   InstallerTxnWatchdogTask: String;
 
@@ -172,14 +175,14 @@ begin
   ForceDirectories(InstallerTxnDir);
   InstallerTxnCommitMarker := InstallerTxnDir + '\\commit.ok';
   InstallerTxnVersionFile := InstallerTxnDir + '\\previous-version.txt';
-  InstallerTxnWatchdogScript := InstallerTxnDir + '\\InstallTransactionWatchdog.ps1';
+  InstallerTxnWatchdogExe := InstallerTxnDir + '\\LightRemote.InstallWatchdog.exe';
   InstallerTxnWatchdogLog := InstallerTxnDir + '\\watchdog.log';
   DeleteFile(InstallerTxnCommitMarker);
   DeleteFile(InstallerTxnWatchdogLog);
-  ExtractTemporaryFile('InstallTransactionWatchdog.ps1');
-  TempWatchdog := ExpandConstant('{tmp}\\InstallTransactionWatchdog.ps1');
-  if not CopyFile(TempWatchdog, InstallerTxnWatchdogScript, False) then
-    RaiseException('Unable to stage Light Remote installer watchdog');
+  ExtractTemporaryFile('LightRemote.InstallWatchdog.exe');
+  TempWatchdog := ExpandConstant('{tmp}\\LightRemote.InstallWatchdog.exe');
+  if not CopyFile(TempWatchdog, InstallerTxnWatchdogExe, False) then
+    RaiseException('Unable to stage Light Remote native installer watchdog');
   SourceVersion := ExpandConstant('{app}\\VERSION');
   if FileExists(SourceVersion) then
   begin
@@ -195,17 +198,17 @@ var
   Args: String;
   ResultCode: Integer;
 begin
-  Args := '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + InstallerTxnWatchdogScript +
-    '" -Register -InstallerPid ' + IntToStr(GetCurrentProcessId()) +
-    ' -CommitMarker "' + InstallerTxnCommitMarker +
-    '" -TaskXml "' + AgentTaskRecoveryXml +
-    '" -VersionFile "' + InstallerTxnVersionFile +
-    '" -InstallRoot "' + ExpandConstant('{app}') +
-    '" -LogPath "' + InstallerTxnWatchdogLog + '"' +
-    ' -WatchdogTask "' + InstallerTxnWatchdogTask + '"';
-  if (not Exec(ExpandConstant('{sys}\\WindowsPowerShell\\v1.0\\powershell.exe'), Args, '', SW_HIDE, ewWaitUntilTerminated, ResultCode)) or (ResultCode <> 0) then
-    RaiseException('Unable to arm Light Remote installer watchdog (exit ' + IntToStr(ResultCode) + ')');
-  Log('light-remote-install-transaction-watchdog-armed');
+  Args := '--register --installer-pid ' + IntToStr(GetCurrentProcessId()) +
+    ' --commit-marker "' + InstallerTxnCommitMarker +
+    '" --task-xml "' + AgentTaskRecoveryXml +
+    '" --version-file "' + InstallerTxnVersionFile +
+    '" --install-root "' + ExpandConstant('{app}') +
+    '" --log-path "' + InstallerTxnWatchdogLog +
+    '" --task-name "LightRemoteDeviceAgent"' +
+    ' --watchdog-task "' + InstallerTxnWatchdogTask + '"';
+  if (not Exec(InstallerTxnWatchdogExe, Args, '', SW_HIDE, ewWaitUntilTerminated, ResultCode)) or (ResultCode <> 0) then
+    RaiseException('Unable to arm Light Remote native installer watchdog (exit ' + IntToStr(ResultCode) + ')');
+  Log('light-remote-install-transaction-native-watchdog-armed');
 end;
 
 procedure CaptureAgentTaskRecovery();

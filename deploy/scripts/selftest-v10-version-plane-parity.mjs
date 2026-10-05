@@ -12,7 +12,7 @@ const serverBuild=read('deploy/server-linux/build-bundle.sh'),vercelBuild=read('
 const serverInstall=read('deploy/server-linux/install.sh');need(serverInstall.includes('BUNDLE_VERSION=')&&!serverInstall.includes('0.9.0-beta.1'),'server_installer_stale_version_fallback');
 const win=read('client/windows-native/GptOperator.Client/ClientVersion.cs'),iss=read('client/windows-native/installer/GptOperator.iss');need(win.includes('0.9.0-dev')&&!win.includes('0.9.0-rc.6'),'windows_client_stale_version_fallback');need(iss.includes('0.9.0-dev')&&!iss.includes('#define AppVersion "0.9.0-rc.6"'),'windows_installer_stale_version_fallback');
 const base=version.split('-')[0],numeric=base+'.0';
-for(const file of ['client/windows-native/GptOperator.Client/GptOperator.Client.csproj','client/windows-native/LightRemote.Updater/LightRemote.Updater.csproj']){
+for(const file of ['client/windows-native/GptOperator.Client/GptOperator.Client.csproj','client/windows-native/LightRemote.Updater/LightRemote.Updater.csproj','client/windows-native/GptOperator.RealRemoteV2/GptOperator.RealRemoteV2.csproj']){
   const text=read(file);need(text.includes(`<Version>${version}</Version>`)&&text.includes(`<FileVersion>${numeric}</FileVersion>`)&&text.includes(`<AssemblyVersion>${numeric}</AssemblyVersion>`),`windows_binary_version_drift:${file}`);
 }
 const macBuild=read('client/macos/build-pkg.sh');need(macBuild.includes('BASH_REMATCH[1]')&&macBuild.includes('1000 +')&&macBuild.includes('2000 +')&&macBuild.includes('BUILD_VERSION=3000'),'macos_prerelease_build_version_policy_missing');

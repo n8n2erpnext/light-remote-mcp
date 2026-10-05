@@ -2,7 +2,8 @@ param(
   [Parameter(Mandatory=$true)][string]$StageDir,
   [Parameter(Mandatory=$true)][string]$OutputDir,
   [Parameter(Mandatory=$true)][string]$AppVersion,
-  [Parameter(Mandatory=$true)][string]$Iscc
+  [Parameter(Mandatory=$true)][string]$Iscc,
+  [Parameter(Mandatory=$true)][string]$WatchdogExe
 )
 $ErrorActionPreference='Stop'
 $NodeVersion='22.23.2'
@@ -26,6 +27,7 @@ $Args=@(
   "/DStageDir=$CompactStage",
   "/DOutputDir=$OutputDir",
   "/DAppVersion=$AppVersion",
+  "/DWatchdogExe=$WatchdogExe",
   '/DOutputBaseName=Light-Remote-MCP-Compact-Setup-x64',
   '/DCompactNodeBootstrap=1',
   "/DNodeZipName=$NodeZip",

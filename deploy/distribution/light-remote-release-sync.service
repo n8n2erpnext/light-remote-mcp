@@ -1,0 +1,10 @@
+[Unit]
+Description=Sync latest Light Remote GitHub release to Cloudflare R2
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+Environment=LIGHT_REMOTE_R2_ENV_FILE=%h/.config/lightbi-backup-r2.env
+Environment=LIGHT_REMOTE_R2_PREFIX=light-remote/release
+ExecStart=%h/light-remote-dev/deploy/distribution/sync-release-to-r2.sh

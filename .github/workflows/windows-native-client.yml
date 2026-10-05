@@ -60,13 +60,30 @@ jobs:
         run: |
           $stage = Join-Path $PWD 'dist\windows\stage'
           $updaterStage = Join-Path $PWD 'dist\windows\updater'
-          New-Item -ItemType Directory -Force -Path $stage,$updaterStage | Out-Null
+          $watchdogStage = Join-Path $PWD 'dist\windows\install-watchdog'
+          New-Item -ItemType Directory -Force -Path $stage,$updaterStage,$watchdogStage | Out-Null
           dotnet publish client/windows-native/GptOperator.Client/GptOperator.Client.csproj `
             -c Release -r win-x64 --self-contained true -o $stage
           if ($LASTEXITCODE -ne 0) { throw 'dotnet publish client failed' }
           dotnet publish client/windows-native/LightRemote.Updater/LightRemote.Updater.csproj `
             -c Release -r win-x64 --self-contained true -o $updaterStage
           if ($LASTEXITCODE -ne 0) { throw 'dotnet publish updater failed' }
+          dotnet publish client/windows-native/LightRemote.InstallWatchdog/LightRemote.InstallWatchdog.csproj `
+            -c Release -r win-x64 -o $watchdogStage
+          if ($LASTEXITCODE -ne 0) { throw 'dotnet publish native install watchdog failed' }
+          $watchdogExe = Join-Path $watchdogStage 'LightRemote.InstallWatchdog.exe'
+          if (-not (Test-Path $watchdogExe)) { throw 'native install watchdog publish missing' }
+          $stream=[IO.File]::OpenRead($watchdogExe)
+          try {
+            $reader=[IO.BinaryReader]::new($stream)
+            $stream.Position=0x3c
+            $pe=$reader.ReadInt32()
+            $stream.Position=$pe+24+68
+            $subsystem=$reader.ReadUInt16()
+          } finally { if($reader){$reader.Dispose()}else{$stream.Dispose()} }
+          if ($subsystem -ne 2) { throw "native install watchdog must be Windows GUI/no-console subsystem, got=$subsystem" }
+          Write-Host "windows-install-watchdog-no-console=PASS subsystem=$subsystem bytes=$((Get-Item $watchdogExe).Length)"
+          "WINDOWS_INSTALL_WATCHDOG=$watchdogExe" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           $updaterConfig = Join-Path $updaterStage 'config'
           New-Item -ItemType Directory -Force -Path $updaterConfig | Out-Null
           Copy-Item client/update-public.pem (Join-Path $updaterConfig 'client-update-public.pem')
@@ -416,7 +433,7 @@ jobs:
           $out = Join-Path $PWD 'dist\windows\installer'
           New-Item -ItemType Directory -Force -Path $out | Out-Null
           $version = (Get-Content VERSION -Raw).Trim()
-          & $env:ISCC "/DStageDir=$stage" "/DOutputDir=$out" "/DAppVersion=$version" client/windows-native/installer/GptOperator.iss
+          & $env:ISCC "/DStageDir=$stage" "/DOutputDir=$out" "/DAppVersion=$version" "/DWatchdogExe=$env:WINDOWS_INSTALL_WATCHDOG" client/windows-native/installer/GptOperator.iss
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup build failed' }
           $installer = Join-Path $out 'Light-Remote-MCP-Setup-x64.exe'
           if (-not (Test-Path $installer)) { throw 'installer missing' }
@@ -430,7 +447,7 @@ jobs:
           $stage = (Resolve-Path 'dist\windows\stage').Path
           $out = Join-Path $PWD 'dist\windows\installer'
           $version = (Get-Content VERSION -Raw).Trim()
-          $compact = & client/windows-native/installer/build-compact.ps1 -StageDir $stage -OutputDir $out -AppVersion $version -Iscc $env:ISCC | Select-Object -Last 1
+          $compact = & client/windows-native/installer/build-compact.ps1 -StageDir $stage -OutputDir $out -AppVersion $version -Iscc $env:ISCC -WatchdogExe $env:WINDOWS_INSTALL_WATCHDOG | Select-Object -Last 1
           if (-not (Test-Path $compact)) { throw "compact installer missing: $compact" }
           $compactBytes=(Get-Item $compact).Length
           $fullBytes=(Get-Item $env:WINDOWS_INSTALLER).Length
