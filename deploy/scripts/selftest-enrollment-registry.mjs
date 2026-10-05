@@ -15,11 +15,13 @@ const publicIdentityKey=publicKey.export({format:'der',type:'spki'}).toString('b
 const begin=registry.begin({publicIdentityKey,displayName:'Test Device',platform:'linux',architecture:'arm64',agentVersion:'0.7.0-test',fingerprintSummary:'test/linux/arm64',capabilities:['git','docker'],policyProfile:'owner-test'});
 if(!/^[A-Z2-9]{4}-[A-Z2-9]{4}$/.test(begin.deviceCode)) throw new Error('device_code_format_failed');
 if(begin.activationUrl.includes(begin.deviceCode)||!begin.activationUrl.includes(begin.enrollmentId)) throw new Error('activation_url_leaks_code_or_misses_id');
+if(!begin.activationUrl.startsWith('https://light-remote.thaiduy.digital/enroll?id=')) throw new Error('activation_url_not_public_control_plane');
 const disk=fs.readFileSync(stateFile,'utf8');
 if(disk.includes(begin.deviceCode)||disk.includes('PRIVATE KEY')) throw new Error('enrollment_state_contains_secret_material');
 try{registry.approve({code:begin.deviceCode,accountId:'self-hosted-local',approvedCapabilities:[],policyProfile:'owner-test'});throw new Error('empty_capabilities_accepted');}catch(e){if(!(e instanceof EnrollmentError)||e.message!=='approved_capability_not_requested')throw e;}
 try{registry.approve({code:begin.deviceCode,accountId:'self-hosted-local',approvedCapabilities:['sudo-on-demand'],policyProfile:'owner-test'});throw new Error('capability_escalation_accepted');}catch(e){if(e.message!=='approved_capability_not_requested')throw e;}
-const approval=registry.approve({code:begin.deviceCode,accountId:'self-hosted-local',approvedCapabilities:['git'],policyProfile:'owner-test'});
+try{registry.approve({enrollmentId:'enr_wrong-request',code:begin.deviceCode,accountId:'self-hosted-local',approvedCapabilities:['git'],policyProfile:'owner-test'});throw new Error('mismatched_enrollment_id_accepted');}catch(e){if(e.message!=='device_code_not_found_or_used'||e.status!==404)throw e;}
+const approval=registry.approve({enrollmentId:begin.enrollmentId,code:begin.deviceCode,accountId:'self-hosted-local',approvedCapabilities:['git'],policyProfile:'owner-test'});
 try{registry.approve({code:begin.deviceCode,accountId:'self-hosted-local',approvedCapabilities:['git']});throw new Error('device_code_reused');}catch(e){if(e.status!==404)throw e;}
 try{registry.poll({enrollmentId:begin.enrollmentId,pollToken:'wrong-token-aaaaaaaaaaaaaaaaaaaaaa'});throw new Error('wrong_poll_token_accepted');}catch(e){if(e.status!==401)throw e;}
 const polled=registry.poll({enrollmentId:begin.enrollmentId,pollToken:begin.pollToken});

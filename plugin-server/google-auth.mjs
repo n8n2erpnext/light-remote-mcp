@@ -26,12 +26,12 @@ export function saveGoogleAuthConfig({clientId,clientSecret}={}){
   fs.writeFileSync(tmp,`${JSON.stringify(payload,null,2)}\n`,{mode:0o600});fs.chmodSync(tmp,0o600);fs.renameSync(tmp,CONFIG_FILE);
   return googleAuthStatus();
 }
-export function beginGoogleAuth(){
+export function beginGoogleAuth({returnTo='/account'}={}){
   const c=config();if(!c)throw Object.assign(new Error('google_oauth_not_configured'),{status:503});
   prune();
   const state=crypto.randomBytes(24).toString('base64url'),nonce=crypto.randomBytes(24).toString('base64url'),verifier=crypto.randomBytes(48).toString('base64url');
   const challenge=crypto.createHash('sha256').update(verifier).digest('base64url');
-  flows.set(state,{state,nonce,verifier,expiresAt:Date.now()+10*60_000,redirectUri:c.redirectUri,clientId:c.clientId});
+  flows.set(state,{state,nonce,verifier,expiresAt:Date.now()+10*60_000,redirectUri:c.redirectUri,clientId:c.clientId,returnTo:String(returnTo||'/account')});
   const url=new URL('https://accounts.google.com/o/oauth2/v2/auth');
   url.search=new URLSearchParams({client_id:c.clientId,redirect_uri:c.redirectUri,response_type:'code',scope:'openid email profile',state,nonce,code_challenge:challenge,code_challenge_method:'S256',prompt:'select_account'}).toString();
   return {url:url.toString()};
@@ -44,5 +44,5 @@ export async function finishGoogleAuth({state,code}={}){
   const tokens=await response.json().catch(()=>({}));if(!response.ok||!tokens.id_token)throw Object.assign(new Error('google_oauth_token_exchange_failed'),{status:401});
   const {payload}=await jwtVerify(tokens.id_token,jwks,{issuer:['https://accounts.google.com','accounts.google.com'],audience:c.clientId});
   if(payload.nonce!==flow.nonce||payload.email_verified!==true||!payload.sub||!payload.email)throw Object.assign(new Error('google_identity_invalid'),{status:401});
-  return {sub:String(payload.sub),email:String(payload.email).toLowerCase(),emailVerified:true};
+  return {sub:String(payload.sub),email:String(payload.email).toLowerCase(),emailVerified:true,returnTo:String(flow.returnTo||'/account')};
 }

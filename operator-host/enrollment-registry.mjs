@@ -54,7 +54,7 @@ function certificateBody(binding) {
 function canonicalCertificate(binding) { return JSON.stringify(certificateBody(binding)); }
 
 export class EnrollmentRegistry {
-  constructor({ stateFile = null, signerFile = null, activationBaseUrl = 'https://wall.dashboard.thaiduy.store/enroll', ttlMs = 10 * 60 * 1000, certificateTtlMs = 365 * 24 * 60 * 60 * 1000, maxPending = 50, now = () => Date.now(), emit = () => {} } = {}) {
+  constructor({ stateFile = null, signerFile = null, activationBaseUrl = 'https://light-remote.thaiduy.digital/enroll', ttlMs = 10 * 60 * 1000, certificateTtlMs = 365 * 24 * 60 * 60 * 1000, maxPending = 50, now = () => Date.now(), emit = () => {} } = {}) {
     if (!Number.isFinite(ttlMs) || ttlMs < 60_000 || ttlMs > 60 * 60 * 1000) throw new EnrollmentError('invalid_enrollment_ttl');
     this.stateFile = stateFile;
     this.signerFile = signerFile;
@@ -188,7 +188,14 @@ export class EnrollmentRegistry {
     this._prune();
     const normalizedCode = String(input.code || '').toUpperCase().replace(/[^A-Z0-9]/g,'');
     if (normalizedCode.length !== 8) throw new EnrollmentError('invalid_device_code');
-    const row = [...this.pending.values()].find(candidate => candidate.state === 'pending' && candidate.expiresAt > this.now() && safeEqualHex(candidate.codeHash,codeHash(normalizedCode,candidate.codeSalt)));
+    const enrollmentId = String(input.enrollmentId || '').trim();
+    let row = null;
+    if (enrollmentId) {
+      const candidate = this.pending.get(enrollmentId);
+      if (candidate?.state === 'pending' && candidate.expiresAt > this.now() && safeEqualHex(candidate.codeHash,codeHash(normalizedCode,candidate.codeSalt))) row = candidate;
+    } else {
+      row = [...this.pending.values()].find(candidate => candidate.state === 'pending' && candidate.expiresAt > this.now() && safeEqualHex(candidate.codeHash,codeHash(normalizedCode,candidate.codeSalt)));
+    }
     if (!row) throw new EnrollmentError('device_code_not_found_or_used',404);
     const accountId = bounded(input.accountId,128);
     if (!ID_RE.test(accountId)) throw new EnrollmentError('invalid_account_id');

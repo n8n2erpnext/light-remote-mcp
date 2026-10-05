@@ -64,6 +64,10 @@ function requireAccount(req,res){
   return token;
 }
 function headers(token){return token?{'x-light-account-session':token}:{};}
+function safeReturnTo(value){
+  const next=String(value||'/account').trim();
+  return next.startsWith('/')&&!next.startsWith('//')?next:'/account';
+}
 function fail(res,error){
   const status=Number(error?.status)||502;
   const message=error?.payload?.error||error?.message||'account_unavailable';
@@ -255,7 +259,7 @@ async function accountApi(req,res){
     }
     if(action==='enrollment-approve'){
       if(!method(req,res,'POST'))return;
-      return res.status(200).json(await callOperatorJson('POST','/v1/accounts/enrollments/approve',{code:req.body?.code},headers(token)));
+      return res.status(200).json(await callOperatorJson('POST','/v1/accounts/enrollments/approve',{code:req.body?.code,enrollmentId:req.body?.enrollmentId},headers(token)));
     }
     if(action==='device-update'||action==='device-revoke'||action==='device-remove'){
       if(!method(req,res,'POST'))return;
@@ -292,24 +296,26 @@ async function accountMagic(req,res){
     setSessionCookie(res,upstream.token,upstream.session?.expiresAt);accountAudit('magic-login','success');return res.redirect(303,'/account');
   }catch(error){accountAudit('magic-login','error',error?.payload?.error||error?.message||'magic_login_failed');return res.redirect(303,'/account/login?error=magic_link_invalid');}
 }
-function accountGoogleBegin(_req,res){
-  try{return res.redirect(302,beginGoogleAuth().url);}
+function accountGoogleBegin(req,res){
+  try{return res.redirect(302,beginGoogleAuth({returnTo:safeReturnTo(req.query?.next)}).url);}
   catch(error){accountAudit('google-begin','error',error?.message||'google_oauth_unavailable');return res.redirect(303,'/account/login?error=google_unavailable');}
 }
 async function accountGoogleCallback(req,res){
   try{
-    const identity=await finishGoogleAuth({state:req.query?.state,code:req.query?.code});
+    const finished=await finishGoogleAuth({state:req.query?.state,code:req.query?.code});
+    const {returnTo,...identity}=finished;
     const upstream=await callOperatorJson('POST','/v1/plugin/auth/google',identity);
     if(upstream.registrationRequired){
       setOpaqueCookie(res,GOOGLE_SIGNUP_COOKIE,upstream.googleSignupToken,upstream.expiresAt);accountAudit('google-signup-intent','success');return res.redirect(303,'/account/register?google=1');
     }
-    setSessionCookie(res,upstream.token,upstream.session?.expiresAt);accountAudit('google-login','success');return res.redirect(303,'/account');
+    setSessionCookie(res,upstream.token,upstream.session?.expiresAt);accountAudit('google-login','success');return res.redirect(303,safeReturnTo(returnTo));
   }catch(error){const code=error?.payload?.error||error?.message||'google_login_failed';accountAudit('google-login','error',code);return res.redirect(303,code==='account_admin_disabled'?'/account/login?error=account_admin_disabled':'/account/login?error=google_login_failed');}
 }
 
 export function registerAccountPortal(app){
   const firstScan=setTimeout(()=>void runDormancyScan(),30_000);firstScan.unref?.();
   const dormancyTimer=setInterval(()=>void runDormancyScan(),DORMANCY_SCAN_INTERVAL_MS);dormancyTimer.unref?.();
+  app.get('/enroll',(_q,r)=>sendPortal(r,'enroll.html'));
   app.get(['/account','/account/'],(_q,r)=>sendPortal(r,'index.html'));
   app.get(['/account/usage','/account/usage/'],(_q,r)=>sendPortal(r,'usage.html'));
   app.get(['/account/billing','/account/billing/'],(_q,r)=>sendPortal(r,'billing.html'));
