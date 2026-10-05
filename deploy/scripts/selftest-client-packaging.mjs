@@ -2,6 +2,7 @@ import fs from 'node:fs';
 
 const linuxWorkflow=fs.readFileSync(new URL('../../.github/workflows/linux-client-build.yml',import.meta.url),'utf8');
 const install=fs.readFileSync(new URL('../../client/linux/install.sh',import.meta.url),'utf8');
+const linuxCli=fs.readFileSync(new URL('../../client/linux/light-remote',import.meta.url),'utf8');
 const updater=fs.readFileSync(new URL('../../client/linux/updater.mjs',import.meta.url),'utf8');
 const signer=fs.readFileSync(new URL('../../client/sign-update-manifest.mjs',import.meta.url),'utf8');
 const verifier=fs.readFileSync(new URL('../../client/verify-update-manifest.mjs',import.meta.url),'utf8');
@@ -33,6 +34,12 @@ expect(install.includes('gpt-operator-device-agent.service'),'linux_agent_servic
 expect(install.includes('gpt-operator-agent-update.timer'),'linux_update_timer_missing');
 expect(install.includes('OnUnitActiveSec=6h'),'linux_update_cadence_missing');
 expect(install.includes('The terminal can now be closed'),'foreground_dependency_warning_missing');
+expect(install.includes('--defer-enrollment')&&install.includes('FRESH_UNENROLLED=1'),'linux_headless_deferred_enrollment_missing');
+expect(install.includes("Next step: light-remote up")&&install.includes('/usr/local/bin/light-remote'),'linux_headless_next_step_missing');
+expect(linuxWorkflow.includes('install -m 0755 client/linux/light-remote'),'linux_cli_not_bundled');
+expect(linuxWorkflow.includes('test -x "$PKG/client/linux/light-remote"'),'linux_cli_not_verified');
+expect(linuxCli.includes('up|login')&&linuxCli.includes('agent login')&&linuxCli.includes('enable --now "$SERVICE"'),'linux_cli_up_contract_missing');
+expect(linuxCli.includes('status)')&&linuxCli.includes('service=%s'),'linux_cli_status_contract_missing');
 expect(install.includes('openssl dgst -sha256 -verify'),'linux_manifest_signature_verify_missing');
 expect(updater.includes("crypto.verify('sha256'"),'linux_update_signature_verify_missing');
 expect(updater.includes('timingSafeEqual'),'linux_artifact_hash_verify_missing');

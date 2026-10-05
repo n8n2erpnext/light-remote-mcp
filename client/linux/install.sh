@@ -8,6 +8,7 @@ BASE_URL="${OPERATOR_AGENT_BASE_URL:-https://light-remote.thaiduy.digital}"
 HUB_URL="${OPERATOR_AGENT_HUB_URL:-https://light-remote.thaiduy.digital}"
 BUNDLE=""
 DEV_BUNDLE=0
+DEFER_ENROLLMENT=0
 TARGET_USER="${SUDO_USER:-${USER:-}}"
 
 while [[ $# -gt 0 ]]; do
@@ -16,6 +17,7 @@ while [[ $# -gt 0 ]]; do
     --user) TARGET_USER="$2"; shift 2;;
     --base-url) BASE_URL="${2%/}"; shift 2;;
     --hub-url) HUB_URL="${2%/}"; shift 2;;
+    --defer-enrollment) DEFER_ENROLLMENT=1; shift;;
     *) echo "Unknown argument: $1" >&2; exit 2;;
   esac
 done
@@ -115,13 +117,20 @@ as_root chmod -R go-w "$ROOT/releases/$VERSION"
 as_root install -m 0644 "$TMP/update-public.pem" "$ROOT/update-public.pem"
 as_root ln -sfn "$ROOT/releases/$VERSION" "$ROOT/current.next"
 as_root mv -Tf "$ROOT/current.next" "$ROOT/current"
+[[ -x "$ROOT/current/client/linux/light-remote" ]] || { echo "Linux CLI missing from package" >&2; exit 2; }
+as_root install -m 0755 "$ROOT/current/client/linux/light-remote" /usr/local/bin/light-remote
 STATE_FILE="$TARGET_HOME/.config/gpt-operator-agent/device.json"
+FRESH_UNENROLLED=0
 if [[ ! -f "$STATE_FILE" ]]; then
-  echo
-  echo "This Linux user is not enrolled yet. Starting device enrollment..."
-  as_user "$TARGET_USER" env HOME="$TARGET_HOME" OPERATOR_AGENT_BASE_URL="$BASE_URL" OPERATOR_AGENT_HUB_URL="$HUB_URL" "$ROOT/current/runtime/node" "$ROOT/current/device-agent/operator-agent.mjs" login
+  if [[ "$DEFER_ENROLLMENT" == "1" ]]; then
+    FRESH_UNENROLLED=1
+  else
+    echo
+    echo "This Linux user is not enrolled yet. Starting device enrollment..."
+    as_user "$TARGET_USER" env HOME="$TARGET_HOME" OPERATOR_AGENT_BASE_URL="$BASE_URL" OPERATOR_AGENT_HUB_URL="$HUB_URL" "$ROOT/current/runtime/node" "$ROOT/current/device-agent/operator-agent.mjs" login
+    [[ -f "$STATE_FILE" ]] || { echo "Device enrollment did not produce state" >&2; exit 2; }
+  fi
 fi
-[[ -f "$STATE_FILE" ]] || { echo "Device enrollment did not produce state" >&2; exit 2; }
 UPDATE_STATE_DIR="$TARGET_HOME/.config/gpt-operator-agent/update-runtime"
 UPDATE_REQUEST_FILE="$UPDATE_STATE_DIR/request.json"
 UPDATE_CHECK_REQUEST_FILE="$UPDATE_STATE_DIR/check-request.json"
@@ -258,10 +267,19 @@ WantedBy=timers.target
 UNIT
 
 as_root systemctl daemon-reload
-as_root systemctl enable --now gpt-operator-device-agent.service
 as_root systemctl enable --now gpt-operator-agent-update.timer
 as_root systemctl enable --now gpt-operator-agent-update.path
 as_root systemctl enable --now gpt-operator-agent-update-check.path
+if [[ "$FRESH_UNENROLLED" == "1" ]]; then
+  as_root systemctl disable --now gpt-operator-device-agent.service >/dev/null 2>&1 || true
+  echo
+  printf 'Light Remote MCP client installed: version=%s user=%s\n' "$VERSION" "$TARGET_USER"
+  echo 'Enrollment is intentionally deferred for headless/server installation.'
+  echo 'Next step: light-remote up'
+  echo 'After approval, systemd will own the always-alive local service.'
+  exit 0
+fi
+as_root systemctl enable --now gpt-operator-device-agent.service
 if [[ "$AGENT_WAS_ACTIVE" == "1" ]]; then as_root systemctl restart gpt-operator-device-agent.service; fi
 WALL_HOST="127.0.0.1"
 WALL_PORT="5491"

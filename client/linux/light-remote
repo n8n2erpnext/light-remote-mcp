@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="${LIGHT_REMOTE_ROOT:-/opt/gpt-operator-agent}"
+SERVICE="${LIGHT_REMOTE_SERVICE:-gpt-operator-device-agent.service}"
+AGENT="$ROOT/current/device-agent/operator-agent.mjs"
+NODE="$ROOT/current/runtime/node"
+
+die(){ printf 'Light Remote: %s\n' "$*" >&2; exit 2; }
+as_root(){
+  if [[ $EUID -eq 0 ]]; then "$@";
+  else command -v sudo >/dev/null 2>&1 || die "sudo is required for service changes"; sudo "$@"; fi
+}
+
+TARGET_USER="$(systemctl show "$SERVICE" --property=User --value 2>/dev/null || true)"
+[[ -n "$TARGET_USER" ]] || TARGET_USER="${SUDO_USER:-${USER:-$(id -un)}}"
+TARGET_HOME="$(getent passwd "$TARGET_USER" | cut -d: -f6)"
+[[ -n "$TARGET_HOME" ]] || die "unable to determine home for $TARGET_USER"
+STATE_FILE="$TARGET_HOME/.config/gpt-operator-agent/device.json"
+
+run_as_target(){
+  if [[ "$(id -un)" == "$TARGET_USER" ]]; then
+    "$@"
+  elif [[ $EUID -eq 0 ]] && command -v runuser >/dev/null 2>&1; then
+    runuser -u "$TARGET_USER" -- "$@"
+  elif command -v sudo >/dev/null 2>&1; then
+    sudo -u "$TARGET_USER" "$@"
+  else
+    die "run this command as $TARGET_USER or install sudo"
+  fi
+}
+
+BASE_URL="https://light-remote.thaiduy.digital"
+HUB_URL="$BASE_URL"
+SERVICE_ENV="$(systemctl show "$SERVICE" --property=Environment --value 2>/dev/null || true)"
+for item in $SERVICE_ENV; do
+  case "$item" in
+    OPERATOR_AGENT_BASE_URL=*) BASE_URL="${item#*=}";;
+    OPERATOR_AGENT_HUB_URL=*) HUB_URL="${item#*=}";;
+  esac
+done
+BASE_URL="${BASE_URL%\"}"; BASE_URL="${BASE_URL#\"}"
+HUB_URL="${HUB_URL%\"}"; HUB_URL="${HUB_URL#\"}"
+
+agent(){
+  [[ -x "$NODE" && -f "$AGENT" ]] || die "Light Remote runtime is not installed"
+  run_as_target env HOME="$TARGET_HOME" OPERATOR_AGENT_STATE="$STATE_FILE" OPERATOR_AGENT_BASE_URL="$BASE_URL" OPERATOR_AGENT_HUB_URL="$HUB_URL" "$NODE" "$AGENT" "$@"
+}
+
+wall_health(){
+  local host=127.0.0.1 port=5491 code pid
+  for _ in {1..40}; do
+    pid="$(systemctl show "$SERVICE" -p MainPID --value 2>/dev/null || echo 0)"
+    code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 1 "http://$host:$port/" 2>/dev/null || true)"
+    if systemctl is-active --quiet "$SERVICE" && [[ "$pid" =~ ^[1-9][0-9]*$ ]] && [[ "$code" =~ ^(200|303|401)$ ]]; then
+      printf 'Local Wall: http://%s:%s/\n' "$host" "$port"
+      return 0
+    fi
+    sleep .5
+  done
+  systemctl --no-pager --full status "$SERVICE" | sed -n '1,24p' >&2 || true
+  die "service failed post-enrollment health gate"
+}
+
+cmd="${1:-status}"
+shift || true
+case "$cmd" in
+  up|login)
+    if [[ ! -f "$STATE_FILE" ]]; then
+      printf 'Starting Light Remote device enrollment for %s...\n' "$TARGET_USER"
+      agent login "$@"
+    else
+      enrolled="$(agent status 2>/dev/null | python3 -c 'import json,sys; print("true" if json.load(sys.stdin).get("enrolled") else "false")' 2>/dev/null || echo false)"
+      if [[ "$enrolled" != "true" ]]; then
+        agent login "$@"
+      fi
+    fi
+    as_root systemctl daemon-reload
+    as_root systemctl enable --now "$SERVICE"
+    as_root systemctl enable --now gpt-operator-agent-update.timer gpt-operator-agent-update.path gpt-operator-agent-update-check.path
+    wall_health
+    agent status
+    ;;
+  status)
+    agent status
+    printf 'service=%s\n' "$(systemctl is-active "$SERVICE" 2>/dev/null || true)"
+    ;;
+  connect|disconnect|drain|undrain)
+    agent "$cmd" "$@"
+    ;;
+  down)
+    agent disconnect "$@"
+    ;;
+  wall)
+    printf 'http://127.0.0.1:5491/\n'
+    ;;
+  *)
+    cat <<'EOF'
+Light Remote Linux Server CLI
+
+Usage:
+  light-remote up          Enroll this server and start the background agent
+  light-remote status      Show enrollment/cloud/service status
+  light-remote connect     Connect the enrolled device to the cloud
+  light-remote disconnect  Return the enrolled device to dormant state
+  light-remote drain       Stop accepting new remote sessions
+  light-remote undrain     Resume accepting remote sessions
+  light-remote wall        Print the Local Wall URL
+EOF
+    exit 2
+    ;;
+esac

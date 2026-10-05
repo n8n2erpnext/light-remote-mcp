@@ -157,7 +157,7 @@ releases=[
     'assets':{'x64':linux_x64,'arm64':linux_arm64},
     'installer':installer,'storage':'r2',
     'installCommand':'curl -fsSL https://light-remote.thaiduy.digital/downloads/install.sh | bash',
-    'installHint':'The install script auto-detects x64/ARM64, verifies SHA256, installs the systemd service, then starts Local Wall.'
+    'installHint':'The install script auto-detects x64/ARM64 and verifies SHA256. After install, run light-remote up to enroll and start the always-alive service.'
   }
 ]
 m={

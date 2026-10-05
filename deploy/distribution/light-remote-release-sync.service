@@ -1,10 +1,17 @@
 [Unit]
 Description=Sync latest Light Remote GitHub release to Cloudflare R2
-After=network-online.target
+After=network-online.target snap.lxd.daemon.service
 Wants=network-online.target
 
 [Service]
 Type=oneshot
-Environment=LIGHT_REMOTE_R2_ENV_FILE=%h/.config/lightbi-backup-r2.env
+User=ubuntu
+Group=ubuntu
+SupplementaryGroups=lxd
+Environment=HOME=/home/ubuntu
+Environment=LIGHT_REMOTE_R2_ENV_FILE=/home/ubuntu/.config/lightbi-backup-r2.env
 Environment=LIGHT_REMOTE_R2_PREFIX=light-remote/release
-ExecStart=%h/light-remote-dev/deploy/distribution/sync-release-to-r2.sh
+WorkingDirectory=/home/ubuntu/light-remote-dev
+ExecStart=/home/ubuntu/light-remote-dev/deploy/distribution/sync-release-to-r2.sh
+NoNewPrivileges=true
+PrivateTmp=true

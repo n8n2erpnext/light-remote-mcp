@@ -88,4 +88,4 @@ if [[ "$VERIFY_ONLY" == "1" ]]; then
 fi
 
 say "Light Remote: verified release; starting install..."
-exec bash "$TMP/install-linux-client.sh" --bundle "$TMP/package.tar.gz" --base-url "$ENDPOINT" --hub-url "$ENDPOINT" "${INSTALL_ARGS[@]}"
+exec bash "$TMP/install-linux-client.sh" --bundle "$TMP/package.tar.gz" --base-url "$ENDPOINT" --hub-url "$ENDPOINT" --defer-enrollment "${INSTALL_ARGS[@]}"

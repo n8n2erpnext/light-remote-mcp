@@ -61,6 +61,7 @@ assert.ok(distribution.includes("release=m.releases.find"));
 assert.ok(distribution.includes("base!==name"),'distribution path traversal guard');
 const linuxBootstrap=read('plugin-server/downloads-install-linux.sh');
 assert.ok(linuxBootstrap.includes('linux-server')&&linuxBootstrap.includes('--verify-only'));
+assert.ok(linuxBootstrap.includes('--defer-enrollment'),'public Linux bootstrap must defer enrollment like NetBird install/up flow');
 assert.ok(linuxBootstrap.includes('sha256sum')&&linuxBootstrap.includes('LIGHT_REMOTE_DOWNLOAD_MANIFEST'));
 const r2Sync=read('deploy/distribution/sync-release-to-r2.sh');
 assert.ok(r2Sync.includes('light-remote/release')&&r2Sync.includes('R2_PUBLIC_URL')&&r2Sync.includes('--aws-sigv4'));

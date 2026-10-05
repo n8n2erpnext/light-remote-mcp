@@ -25,3 +25,10 @@ This is a prerelease candidate. It is not a claim of stable/general-availability
 - oversized device results are budgeted before delivery while preserving command outcome and liveness;
 - Cloudflare R2-backed release distribution, removing large binaries from the production VPS;
 - one-line Linux terminal/server bootstrap with architecture detection and SHA256 verification.
+
+
+## RC.32 changes
+- Linux Server/Terminal one-line installer now follows a NetBird-style two-phase flow: install first, then `light-remote up` for enrollment;
+- fresh headless installs no longer block waiting for account approval during `curl | bash`;
+- new `light-remote` Linux server CLI provides up/status/connect/disconnect/drain/undrain/wall commands;
+- release-to-R2 polling is installed as a system-level timer suitable for headless/rebooted ARM production hosts.
