@@ -2,7 +2,11 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 OUT="${1:-$ROOT/dist/fleet-wall}"
-VERSION="$(tr -d '\r\n' < "$ROOT/VERSION")"
+VERSION="${LIGHT_REMOTE_FLEET_VERSION:-$(tr -d '\r\n' < "$ROOT/VERSION")}"
+if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+  echo "invalid fleet component version: $VERSION" >&2
+  exit 2
+fi
 GIT_SHA="$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"
 WORK="$OUT/work"
 PKG="$WORK/fleet-wall"
@@ -15,7 +19,8 @@ cp "$ROOT/gateway/dashboard.mjs" "$PKG/gateway/"
 cp "$ROOT/gateway/device-policy-page.mjs" "$PKG/gateway/"
 cp "$ROOT/gateway/brand.mjs" "$PKG/gateway/"
 cp "$ROOT/assets/branding/light-remote-mark.svg" "$PKG/assets/branding/"
-cp "$ROOT/assets/fonts/web/GoogleSans-Variable.ttf" "$ROOT/assets/fonts/web/CascadiaCode.ttf" "$PKG/assets/fonts/web/"
+cp "$ROOT/assets/fonts/CascadiaMono.ttf" "$PKG/assets/fonts/"
+cp "$ROOT/assets/fonts/web/CascadiaCode.ttf" "$PKG/assets/fonts/web/"
 cp "$ROOT"/assets/icons/material/*.svg "$PKG/assets/icons/material/"
 cat > "$PKG/manifest.json" <<JSON
 {

@@ -1,0 +1,55 @@
+name: Fleet Wall Component Release
+
+on:
+  push:
+    tags:
+      - 'fleet-wall-v0.9.0-rc.*'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Derive Fleet version
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$GITHUB_REF_NAME" in
+            fleet-wall-v*) ;;
+            *) echo "invalid Fleet release tag: $GITHUB_REF_NAME" >&2; exit 2 ;;
+          esac
+          FLEET_VERSION="${GITHUB_REF_NAME#fleet-wall-v}"
+          printf 'FLEET_VERSION=%s\n' "$FLEET_VERSION" >> "$GITHUB_ENV"
+      - name: Verify Fleet source contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts
+          node deploy/scripts/selftest-v10-surface-typography-fleet-route.mjs
+          node deploy/scripts/selftest-v09-fleet-component-manager.mjs
+          node deploy/scripts/selftest-v10-fleet-update-settings.mjs
+      - name: Build isolated Fleet component
+        shell: bash
+        run: |
+          set -euo pipefail
+          LIGHT_REMOTE_FLEET_VERSION="$FLEET_VERSION" bash deploy/scripts/build-fleet-wall-module.sh dist/fleet-wall-release
+          test -s "dist/fleet-wall-release/Light-Remote-Fleet-Wall-$FLEET_VERSION.tar.gz"
+          test -s dist/fleet-wall-release/fleet-wall-module-metadata.json
+          (cd dist/fleet-wall-release && sha256sum -c SHA256SUMS.txt)
+          tar -tzf "dist/fleet-wall-release/Light-Remote-Fleet-Wall-$FLEET_VERSION.tar.gz" | grep -q 'fleet-wall/assets/fonts/CascadiaMono.ttf'
+          tar -tzf "dist/fleet-wall-release/Light-Remote-Fleet-Wall-$FLEET_VERSION.tar.gz" | grep -q 'fleet-wall/assets/fonts/web/CascadiaCode.ttf'
+          if tar -tzf "dist/fleet-wall-release/Light-Remote-Fleet-Wall-$FLEET_VERSION.tar.gz" | grep -q 'GoogleSans-Variable.ttf'; then
+            echo 'Google Sans leaked into Fleet component' >&2
+            exit 1
+          fi
+      - name: Publish Fleet component prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release create "$GITHUB_REF_NAME"             "dist/fleet-wall-release/Light-Remote-Fleet-Wall-$FLEET_VERSION.tar.gz"             "dist/fleet-wall-release/fleet-wall-module-metadata.json"             "dist/fleet-wall-release/SHA256SUMS.txt"             --repo "$GITHUB_REPOSITORY"             --title "Light Remote Fleet Wall $FLEET_VERSION"             --notes "Fleet Wall component hotfix for Light Remote Core 0.9.0-rc.30. Core version is unchanged."             --prerelease             --verify-tag

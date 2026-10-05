@@ -48,7 +48,7 @@ export class FleetComponentManager{
   _validatePackage(dir,version){
     const file=path.join(dir,'manifest.json');if(!fs.existsSync(file))fail('fleet_component_manifest_missing');const m=JSON.parse(fs.readFileSync(file,'utf8'));
     if(m.component!=='fleet-wall'||m.version!==version)fail('fleet_component_manifest_mismatch');
-    for(const rel of ['device-agent/fleet-wall-runtime.mjs','device-agent/local-wall-auth.mjs','lib/device-proof.mjs','lib/runtime-version.mjs','lib/brand.mjs','lib/material-icon.mjs','lib/web-typography.mjs','gateway/dashboard.mjs','gateway/device-policy-page.mjs','gateway/brand.mjs','assets/branding/light-remote-mark.svg','assets/fonts/web/GoogleSans-Variable.ttf','assets/fonts/web/CascadiaCode.ttf','assets/icons/material/content_copy.svg','assets/icons/material/pause.svg','assets/icons/material/logout.svg','assets/icons/material/security.svg'])if(!fs.existsSync(path.join(dir,rel)))fail(`fleet_component_file_missing:${rel}`);
+    for(const rel of ['device-agent/fleet-wall-runtime.mjs','device-agent/local-wall-auth.mjs','lib/device-proof.mjs','lib/runtime-version.mjs','lib/brand.mjs','lib/material-icon.mjs','lib/web-typography.mjs','gateway/dashboard.mjs','gateway/device-policy-page.mjs','gateway/brand.mjs','assets/branding/light-remote-mark.svg','assets/fonts/CascadiaMono.ttf','assets/fonts/web/CascadiaCode.ttf','assets/icons/material/content_copy.svg','assets/icons/material/pause.svg','assets/icons/material/logout.svg','assets/icons/material/security.svg'])if(!fs.existsSync(path.join(dir,rel)))fail(`fleet_component_file_missing:${rel}`);
     return m;
   }
   _prepareRoot(){

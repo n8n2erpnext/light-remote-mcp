@@ -18,7 +18,7 @@ const directBuild=read('deploy/direct-linux/build-bundle.sh');
 
 assert.ok(windowsConfig.includes(`StablePublicEndpoint = "${stable}"`),'windows stable endpoint');
 assert.ok(windowsTray.includes(`AccountUrl = "${stable}/account"`),'windows account endpoint');
-assert.ok(windowsTray.includes(`FleetPortalUrl = "${stable}/account"`),'windows fleet endpoint');
+assert.ok(windowsTray.includes('LocalFleetUrl = "http://127.0.0.1:5492/"')&&!windowsTray.includes('FleetPortalUrl'),'windows fleet local endpoint only');
 assert.ok(macLaunchd.includes(`<string>${stable}</string>`),'macos launchd endpoint');
 assert.ok(macTray.includes(`let accountPortal = "${stable}/account"`),'macos tray endpoint');
 assert.ok(linuxDesktop.includes(`OPERATOR_AGENT_BASE_URL=${stable}`)&&linuxDesktop.includes(`OPERATOR_AGENT_HUB_URL=${stable}`),'linux desktop endpoint');

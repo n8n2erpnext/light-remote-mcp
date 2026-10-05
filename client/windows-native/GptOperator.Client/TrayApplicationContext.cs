@@ -21,7 +21,6 @@ internal sealed class TrayApplicationContext : ApplicationContext
     private const string UpdateTask = "LightRemoteUpdater";
     private const string WallUrl = "http://127.0.0.1:5491/";
     private const string AccountUrl = "https://light-remote.thaiduy.digital/account";
-    private const string FleetPortalUrl = "https://light-remote.thaiduy.digital/account";
     private const string LocalFleetUrl = "http://127.0.0.1:5492/";
 
     private readonly NotifyIcon _tray;
@@ -351,8 +350,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
     private static string? FleetUrl(TrayAgentSnapshot status)
     {
         if (!status.StatusAvailable || !status.Enrolled) return null;
-        if (status.FleetHealthy) return string.IsNullOrWhiteSpace(status.FleetUrl) ? LocalFleetUrl : status.FleetUrl;
-        return FleetPortalUrl;
+        return status.FleetHealthy ? (string.IsNullOrWhiteSpace(status.FleetUrl) ? LocalFleetUrl : status.FleetUrl) : null;
     }
 
     private static async Task<TrayAgentSnapshot> ReadSnapshotAsync()
@@ -594,7 +592,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
             && LabelFor(true, true, disconnected) == "Disconnected"
             && FleetUrl(connected) == "https://fleet.example/"
             && FleetUrl(connected with { FleetUrl = null }) == LocalFleetUrl
-            && FleetUrl(connected with { FleetHealthy = false }) == FleetPortalUrl
+            && FleetUrl(connected with { FleetHealthy = false }) is null
             && FleetUrl(connected with { Enrolled = false, FleetHealthy = false }) is null;
     }
 

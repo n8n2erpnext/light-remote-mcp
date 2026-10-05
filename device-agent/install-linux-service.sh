@@ -25,7 +25,8 @@ for lib in brand.mjs material-icon.mjs web-typography.mjs device-proof.mjs nativ
   sudo install -m 0644 "$ROOT_DIR/lib/$lib" "/opt/gpt-operator-agent/lib/$lib"
 done
 sudo install -m 0644 "$ROOT_DIR/assets/branding/light-remote-mark.svg" /opt/gpt-operator-agent/assets/branding/light-remote-mark.svg
-sudo install -m 0644 "$ROOT_DIR/assets/fonts/web/GoogleSans-Variable.ttf" "$ROOT_DIR/assets/fonts/web/CascadiaCode.ttf" /opt/gpt-operator-agent/assets/fonts/web/
+sudo install -m 0644 "$ROOT_DIR/assets/fonts/CascadiaMono.ttf" /opt/gpt-operator-agent/assets/fonts/CascadiaMono.ttf
+sudo install -m 0644 "$ROOT_DIR/assets/fonts/web/CascadiaCode.ttf" /opt/gpt-operator-agent/assets/fonts/web/CascadiaCode.ttf
 sudo install -m 0644 "$ROOT_DIR"/assets/icons/material/*.svg /opt/gpt-operator-agent/assets/icons/material/
 unit="$(mktemp)"
 trap 'rm -f "$unit"' EXIT
