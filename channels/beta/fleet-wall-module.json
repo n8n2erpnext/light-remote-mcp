@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
   "component": "fleet-wall",
-  "version": "0.9.0-rc.30",
+  "version": "0.9.0-rc.31",
   "artifact": {
-    "url": "https://github.com/n8n2erpnext/light-remote-mcp/releases/download/v0.9.0-rc.30/Light-Remote-Fleet-Wall-0.9.0-rc.30.tar.gz",
-    "sha256": "011f18f53c3885898125d2375739e6f0461518a662e13239ee4563c78a6d81be",
-    "size": 2431831
+    "url": "https://github.com/n8n2erpnext/light-remote-mcp/releases/download/fleet-wall-v0.9.0-rc.31/Light-Remote-Fleet-Wall-0.9.0-rc.31.tar.gz",
+    "sha256": "bc8a90c66dfeafb087fafb0c21272209a08990f8c6b4a18f12d86a0c13e5fac4",
+    "size": 643351
   }
 }

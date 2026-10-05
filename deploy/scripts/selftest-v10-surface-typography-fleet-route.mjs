@@ -26,19 +26,25 @@ wall(dashboardHtml({surface:'fleet'}),'fleet dashboard');
 wall(devicePolicyHtml('dev_test',{surface:'fleet'}),'fleet policy');
 wall(updateSettingsHtml({surface:'local'}),'local update');
 wall(updateSettingsHtml({surface:'fleet'}),'fleet update');
-web(dashboardHtml(),'hosted dashboard');
-web(devicePolicyHtml('dev_test'),'hosted policy');
+wall(dashboardHtml(),'operator wall');
+wall(devicePolicyHtml('dev_test'),'operator policy');
 
 const agent=read('device-agent/operator-agent.mjs');
 const tray=read('client/windows-native/GptOperator.Client/TrayApplicationContext.cs');
 const fleetBuild=read('deploy/scripts/build-fleet-wall-module.sh');
 const fleetRelease=read('.github/workflows/fleet-wall-component-release.yml');
+const portalCss=read('plugin-server/account-portal/portal.css');
+const gatewayServer=read('gateway/server.mjs');
+const gatewayDocker=read('gateway/Dockerfile');
 assert.ok(agent.includes('fleetWall:await localFleetStatus()'),'agent status must expose Fleet Wall health');
 assert.ok(tray.includes('LocalFleetUrl = "http://127.0.0.1:5492/"'),'tray must target local Fleet Wall');
 assert.ok(!tray.includes('FleetPortalUrl'),'tray must not fall back Open Fleet to account portal');
 assert.ok(tray.includes('status.FleetHealthy ?')&&tray.includes(': null;'),'tray must hide Open Fleet when Fleet is unhealthy');
 assert.ok(fleetBuild.includes('LIGHT_REMOTE_FLEET_VERSION:-'),'Fleet build must support isolated component versioning');
 assert.ok(fleetRelease.includes("fleet-wall-v0.9.0-rc.*")&&fleetRelease.includes('LIGHT_REMOTE_FLEET_VERSION="$FLEET_VERSION"'),'Fleet release workflow must remain isolated from Core VERSION');
+assert.ok(portalCss.includes("font-family:'Google Sans'")&&!portalCss.includes("font-family:'Cascadia Mono'"),'Account/Distribution web must keep Google Sans');
+assert.ok(gatewayServer.includes("const FONT_DIR=fileURLToPath(new URL('../assets/fonts/',import.meta.url));")&&gatewayServer.includes("app.use('/assets/fonts',fontStatic,webFontStatic)")&&gatewayServer.includes("wallApp.use('/assets/fonts',fontStatic,webFontStatic)"),'Operator Wall must serve Cascadia Mono and web code fonts');
+assert.ok(gatewayDocker.includes('COPY assets/fonts/CascadiaMono.ttf /app/assets/fonts/CascadiaMono.ttf'),'Gateway image must include Cascadia Mono');
 
 console.log('surface-typography-web-google-sans=PASS');
 console.log('surface-typography-wall-cascadia=PASS');

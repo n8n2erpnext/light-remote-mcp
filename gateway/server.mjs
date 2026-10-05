@@ -27,6 +27,7 @@ const PORT = Number(process.env.PORT || 8080);
 const WALL_PORT = Number(process.env.WALL_PORT || 8081);
 const OPERATOR_ACCOUNT_ID = String(process.env.OPERATOR_ACCOUNT_ID || 'self-hosted-local');
 const VERSION = runtimeVersion({envNames:['LIGHT_REMOTE_VERSION']});
+const FONT_DIR=fileURLToPath(new URL('../assets/fonts/',import.meta.url));
 const WEB_FONT_DIR=fileURLToPath(new URL('../assets/fonts/web/',import.meta.url));
 const RootSchema = z.string().min(1).max(64).refine(value => rootNames().includes(value), 'unknown_root');
 
@@ -436,9 +437,10 @@ for (const method of ['get', 'delete']) app[method]('/mcp', (_req, res) => res.s
 
 const wallApp = express();
 wallApp.disable('x-powered-by');
+const fontStatic=express.static(FONT_DIR,{immutable:true,maxAge:'1y',fallthrough:true});
 const webFontStatic=express.static(WEB_FONT_DIR,{immutable:true,maxAge:'1y',fallthrough:false});
-app.use('/assets/fonts',webFontStatic);
-wallApp.use('/assets/fonts',webFontStatic);
+app.use('/assets/fonts',fontStatic,webFontStatic);
+wallApp.use('/assets/fonts',fontStatic,webFontStatic);
 wallApp.set('trust proxy', 'loopback, linklocal, uniquelocal');
 wallApp.use(express.urlencoded({ extended:false, limit:'4kb' }));
 wallApp.use(express.json({ limit:'16kb' }));

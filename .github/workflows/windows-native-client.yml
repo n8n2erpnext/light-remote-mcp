@@ -441,10 +441,19 @@ jobs:
           $legacyPrincipal = New-ScheduledTaskPrincipal -UserId ([System.Security.Principal.WindowsIdentity]::GetCurrent().Name) -LogonType Interactive -RunLevel Limited
           Register-ScheduledTask -TaskName $legacyName -Action $legacyAction -Trigger $legacyTrigger -Principal $legacyPrincipal -Force | Out-Null
           Start-ScheduledTask -TaskName $legacyName
-          Start-Sleep -Milliseconds 700
           $legacyNodeFull = [IO.Path]::GetFullPath($legacyNode)
-          $legacyBefore = @(Get-Process -Name node -ErrorAction SilentlyContinue | Where-Object { try { [IO.Path]::GetFullPath($_.Path) -eq $legacyNodeFull } catch { $false } })
-          if (-not $legacyBefore) { throw 'legacy Node fixture failed to start' }
+          $legacyBefore = @()
+          for ($i = 0; $i -lt 40 -and -not $legacyBefore; $i++) {
+            Start-Sleep -Milliseconds 250
+            $legacyBefore = @(Get-Process -Name node -ErrorAction SilentlyContinue | Where-Object { try { [IO.Path]::GetFullPath($_.Path) -eq $legacyNodeFull } catch { $false } })
+          }
+          if (-not $legacyBefore) {
+            $task = Get-ScheduledTask -TaskName $legacyName -ErrorAction SilentlyContinue
+            $info = Get-ScheduledTaskInfo -TaskName $legacyName -ErrorAction SilentlyContinue
+            Write-Host "legacy-fixture-task-state=$($task.State) last-result=$($info.LastTaskResult) last-run=$($info.LastRunTime)"
+            throw 'legacy Node fixture failed to start within 10s'
+          }
+          Write-Host "legacy-node-fixture-start=PASS pid=$($legacyBefore[0].Id)"
 
           $installDir = Join-Path $env:RUNNER_TEMP 'GPT Operator Installed'
           $setupLog = Join-Path $env:RUNNER_TEMP 'light-remote-full-install.log'
