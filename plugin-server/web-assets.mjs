@@ -6,6 +6,7 @@ const ASSET_ROOT=fileURLToPath(new URL('../assets/',import.meta.url));
 const FONT_ROOT=path.join(ASSET_ROOT,'fonts','web');
 const ICON_ROOT=path.join(ASSET_ROOT,'icons','material');
 const PLATFORM_ICON_ROOT=path.join(ASSET_ROOT,'icons','platform');
+const BRAND_ROOT=path.join(ASSET_ROOT,'brand');
 
 const fontMap=Object.freeze({
   'GoogleSans-Variable.ttf':'GoogleSans-Variable.ttf',
@@ -19,6 +20,7 @@ function safeAsset(root,name){
 }
 function safeIcon(name){return safeAsset(ICON_ROOT,name);}
 function safePlatformIcon(name){return safeAsset(PLATFORM_ICON_ROOT,name);}
+function safeBrandAsset(name){return safeAsset(BRAND_ROOT,name);}
 export function registerWebAssets(app){
   app.get('/assets/fonts/:name',(req,res)=>{
     const fileName=fontMap[String(req.params.name||'')];
@@ -38,6 +40,13 @@ export function registerWebAssets(app){
   });
   app.get('/assets/icons/platform/:name',(req,res)=>{
     const file=safePlatformIcon(String(req.params.name||''));
+    if(!file)return res.status(404).end();
+    res.set('Cache-Control','public, max-age=31536000, immutable');
+    res.set('X-Content-Type-Options','nosniff');
+    return res.type('image/svg+xml').sendFile(file);
+  });
+  app.get('/assets/brand/:name',(req,res)=>{
+    const file=safeBrandAsset(String(req.params.name||''));
     if(!file)return res.status(404).end();
     res.set('Cache-Control','public, max-age=31536000, immutable');
     res.set('X-Content-Type-Options','nosniff');

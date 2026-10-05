@@ -1,0 +1,14 @@
+{
+  "lightbi": {
+    "repository": "n8n2erpnext/lightbi",
+    "path": "apps/desktop/public/branding/lightbi-icon.svg",
+    "blobSha": "32b9d2b60b22e9305a4f1a609382c8bee8e6945f",
+    "source": "https://github.com/n8n2erpnext/lightbi/blob/main/apps/desktop/public/branding/lightbi-icon.svg"
+  },
+  "thaiduy": {
+    "repository": "n8n2erpnext/thaiduy.digital",
+    "path": "public/brand-mark.svg",
+    "blobSha": "9cf25b11e607b0926bfc60232d01acc76772eb16",
+    "source": "https://github.com/n8n2erpnext/thaiduy.digital/blob/main/public/brand-mark.svg"
+  }
+}

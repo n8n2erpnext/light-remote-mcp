@@ -3,7 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Light Remote — Downloads</title>
+  <title>Download Light Remote for Windows, Linux & macOS</title>
+  <meta name="description" content="Download Light Remote for Windows, Linux and macOS. Connect ChatGPT and MCP-capable AI agents to devices you explicitly authorize with Local Wall approval and device-local policy.">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <meta name="theme-color" content="#080a0c">
+  <link rel="canonical" href="https://light-remote.thaiduy.digital/downloads">
+  <link rel="icon" href="/account/assets/light-remote.ico" sizes="any"><link rel="manifest" href="/site.webmanifest">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Light Remote">
+  <meta property="og:title" content="Download Light Remote">
+  <meta property="og:description" content="Install Light Remote for Windows, Linux and macOS with explicit local approval and device-local policy.">
+  <meta property="og:url" content="https://light-remote.thaiduy.digital/downloads">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Download Light Remote">
+  <meta name="twitter:description" content="Install Light Remote for Windows, Linux and macOS.">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Light Remote","applicationCategory":"DeveloperApplication","operatingSystem":"Windows, Linux, macOS","url":"https://light-remote.thaiduy.digital/","downloadUrl":"https://light-remote.thaiduy.digital/downloads","publisher":{"@type":"Organization","name":"thaiduy.digital","url":"https://thaiduy.digital/"},"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
   <script src="/account/assets/theme.js"></script>
   <link rel="stylesheet" href="/account/assets/portal.css">
 </head>
@@ -50,7 +64,20 @@
       </nav>
       <div id="platformContent" class="download-platform-content"><div class="empty">Loading release data…</div></div>
     </section>
+    <section class="download-ecosystem" aria-label="More products">
+      <a class="download-product-card" href="https://lightbi.app/" target="_blank" rel="noopener">
+        <img src="/assets/brand/lightbi-icon.svg" alt="LightBI">
+        <span><small>More from thaiduy.digital</small><strong>LightBI</strong><em>Local-first data cleanup and trusted metrics for BI workflows.</em></span>
+        <b>Explore LightBI →</b>
+      </a>
+    </section>
   </main>
+  <footer class="download-footer">
+    <a class="download-powered" href="https://thaiduy.digital/" target="_blank" rel="noopener">
+      <span>Powered by</span><img src="/assets/brand/thaiduy-mark.svg" alt=""><strong>thaiduy.digital</strong>
+    </a>
+    <nav><a href="/">Home</a><a href="/downloads">Downloads</a><a href="/support">Support</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></nav>
+  </footer>
 </div>
 
 <script>
@@ -59,7 +86,8 @@ const icons={
   github:'/assets/icons/platform/github.svg',
   copy:'/assets/icons/material/content_copy.svg',
   download:'/assets/icons/material/download.svg',
-  terminal:'/assets/icons/material/terminal.svg'
+  terminal:'/assets/icons/material/terminal.svg',
+  expand:'/assets/icons/material/expand_more.svg'
 };
 const platformContent=document.getElementById('platformContent');
 const releaseChannel=document.getElementById('releaseChannel');
@@ -76,7 +104,7 @@ function githubItems(rel,items){
   const valid=(items||[]).filter(x=>x?.asset?.githubUrl);
   if(!rel?.githubReleaseUrl&&!valid.length)return '';
   return '<details class="download-secondary">'+
-    '<summary><span class="download-summary-title"><span class="download-platform-icon github" style="--platform-icon:url(&quot;'+icons.github+'&quot;)"></span>Download from GitHub Release</span><span class="download-summary-caret">⌄</span></summary>'+
+    '<summary><span class="download-summary-title"><span class="download-platform-icon github" style="--platform-icon:url(&quot;'+icons.github+'&quot;)"></span>Download from GitHub Release</span><span class="download-summary-caret"><img src="'+icons.expand+'" alt=""></span></summary>'+
     '<div class="download-secondary-body">'+
       (valid.length?'<div class="download-fallback-links">'+valid.map(x=>'<a class="btn" href="'+esc(x.asset.githubUrl)+'" target="_blank" rel="noopener noreferrer">'+esc(x.label)+'</a>').join('')+'</div>':'')+
       (rel?.githubReleaseUrl?'<a class="download-text-link" href="'+esc(rel.githubReleaseUrl)+'" target="_blank" rel="noopener noreferrer">Open full GitHub Release →</a>':'')+
@@ -125,7 +153,7 @@ function linuxView(){
       step(4,'Enroll device',codeRow('light-remote up'))+
     '</div>'+
     '<details class="download-secondary">'+
-      '<summary><span class="download-summary-title"><img class="download-summary-icon" src="'+icons.terminal+'" alt="">Install Linux Desktop package</span><span class="download-summary-caret">⌄</span></summary>'+
+      '<summary><span class="download-summary-title"><img class="download-summary-icon" src="'+icons.terminal+'" alt="">Install Linux Desktop package</span><span class="download-summary-caret"><img src="'+icons.expand+'" alt=""></span></summary>'+
       '<div class="download-secondary-body"><p>Use a Debian package when you want the desktop launcher and Local Wall on a Linux workstation.</p><div class="download-fallback-links">'+desktopItems.filter(x=>x.asset?.file).map(x=>assetAnchor(x.asset,x.label,'btn')).join('')+'</div></div>'+
     '</details>'+
     githubItems(server,fallback)+
@@ -139,7 +167,7 @@ function windowsView(){
       step(2,'Open Local Wall','<p>Launch Light Remote from the tray and open the local Device Wall.</p>')+
       step(3,'Link the device','<p>Choose Link device, then approve the one-time enrollment request in your Light Remote account.</p>')+
     '</div>'+
-    (compact?.file?'<details class="download-secondary"><summary><span class="download-summary-title">Alternative installer</span><span class="download-summary-caret">⌄</span></summary><div class="download-secondary-body"><p>The compact installer uses the same account and device identity model with a smaller setup package.</p>'+assetAnchor(compact,'Download compact installer','btn')+'</div></details>':'')+
+    (compact?.file?'<details class="download-secondary"><summary><span class="download-summary-title">Alternative installer</span><span class="download-summary-caret"><img src="'+icons.expand+'" alt=""></span></summary><div class="download-secondary-body"><p>The compact installer uses the same account and device identity model with a smaller setup package.</p>'+assetAnchor(compact,'Download compact installer','btn')+'</div></details>':'')+
     githubItems(rel,[{label:'Full x64 installer',asset:full},{label:'Compact x64 installer',asset:compact}])+
     '<div class="download-footnote">After install, use the same Light Remote account to link or resume the device. <a href="/support">Installation Guide →</a></div>';
 }
