@@ -208,6 +208,10 @@ export async function handleAccountRoutes(req,res,url,deps){
       const body=await readJson(req),logged=accounts.login(body);
       return sendJson(res,200,{ok:true,account:logged.account,session:logged.session,token:logged.token});
     }
+    if (req.method === 'POST' && url.pathname === '/v1/accounts/password-verify') {
+      const body=await readJson(req),account=accounts.verifyCredentials(body,{recordLogin:true,eventType:'account_wall_login'});
+      return sendJson(res,200,{ok:true,account,entitlements:planEntitlements(account)});
+    }
     if (req.method === 'GET' && url.pathname === '/v1/accounts/me') {
       const identity=requireAccount(req);
       return sendJson(res,200,{ok:true,...identity,entitlements:planEntitlements(identity.account)});
@@ -222,6 +226,15 @@ export async function handleAccountRoutes(req,res,url,deps){
     if (req.method === 'POST' && url.pathname === '/v1/accounts/password') {
       const identity=requireAccount(req),body=await readJson(req),currentPassword=String(body.currentPassword||''),newPassword=String(body.newPassword||'');
       accounts.verifyCredentials({email:identity.account.email,password:currentPassword},{recordLogin:false});
+      accounts.resetPassword(identity.account.accountId,newPassword,{invalidateSessions:true});
+      const logged=accounts.login({email:identity.account.email,password:newPassword});
+      return sendJson(res,200,{ok:true,account:logged.account,session:logged.session,token:logged.token});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/accounts/password/setup') {
+      const identity=requireAccount(req),providers=Array.isArray(identity.account.authProviders)?identity.account.authProviders:[];
+      if(providers.includes('password'))throw new AccountError('account_password_already_enabled',409);
+      if(!providers.includes('google'))throw new AccountError('account_password_setup_unavailable',409);
+      const body=await readJson(req),newPassword=String(body.newPassword||'');
       accounts.resetPassword(identity.account.accountId,newPassword,{invalidateSessions:true});
       const logged=accounts.login({email:identity.account.email,password:newPassword});
       return sendJson(res,200,{ok:true,account:logged.account,session:logged.session,token:logged.token});

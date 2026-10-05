@@ -25,7 +25,7 @@
       <button id="signoutTop" class="btn">Sign out</button>
     </section>
     <section class="panel setting-row">
-      <div><h2>Change password</h2><div class="muted">Update the password you use to sign in.</div></div>
+      <div><h2 id="passwordTitle">Change password</h2><div id="passwordHint" class="muted">Update the password you use to sign in.</div></div>
       <button id="openPassword" class="btn">Change password</button>
     </section>
     <section class="panel setting-row">
@@ -37,13 +37,13 @@
 
 <div id="passwordModal" class="modal hide">
   <div class="modal-card">
-    <div class="modal-head"><div><h2>Change password</h2><p>Changing it signs out other account sessions.</p></div><button id="closePassword" class="icon-btn" aria-label="Close"><img class="material-icon" src="/assets/icons/material/close.svg" alt=""></button></div>
+    <div class="modal-head"><div><h2 id="passwordModalTitle">Change password</h2><p id="passwordModalIntro">Changing it signs out other account sessions.</p></div><button id="closePassword" class="icon-btn" aria-label="Close"><img class="material-icon" src="/assets/icons/material/close.svg" alt=""></button></div>
     <form id="passwordForm">
-      <label class="field"><span>Current password</span><input id="currentPassword" type="password" autocomplete="current-password" minlength="10" required></label>
+      <label id="currentPasswordField" class="field"><span>Current password</span><input id="currentPassword" type="password" autocomplete="current-password" minlength="10" required></label>
       <label class="field"><span>New password</span><input id="newPassword" type="password" autocomplete="new-password" minlength="10" required></label>
       <label class="field"><span>Confirm new password</span><input id="confirmPassword" type="password" autocomplete="new-password" minlength="10" required></label>
       <div id="passwordMsg" class="setting-note"></div>
-      <div class="modal-actions"><button type="button" id="cancelPassword" class="btn">Cancel</button><button type="submit" class="btn primary">Update password</button></div>
+      <div class="modal-actions"><button type="button" id="cancelPassword" class="btn">Cancel</button><button id="passwordSubmit" type="submit" class="btn primary">Update password</button></div>
     </form>
   </div>
 </div>
@@ -53,12 +53,12 @@ const $=id=>document.getElementById(id);
 async function api(action,options={}){const r=await fetch('/account/api?action='+encodeURIComponent(action),{cache:'no-store',...options,headers:{'content-type':'application/json',...(options.headers||{})}});let j={};try{j=await r.json()}catch{}if(r.status===401){location.href='/account/login';throw new Error('login_required')}if(!r.ok)throw new Error(j.error||('HTTP '+r.status));return j}
 function initials(email){const p=String(email||'LR').split('@')[0].replace(/[^a-z0-9]+/gi,' ').trim().split(/s+/).filter(Boolean);return (p.slice(0,2).map(x=>x[0]).join('')||'LR').toUpperCase()}
 function syncTheme(){const t=LightRemoteTheme.get();$('darkMode').classList.toggle('active',t==='dark');$('lightMode').classList.toggle('active',t==='light')}
-async function load(){const me=await api('me');$('email').textContent=me.account.email;$('footEmail').textContent=me.account.email;$('footPlan').textContent=(me.account.plan||'free').toUpperCase()+' plan';$('avatar').textContent=initials(me.account.email);syncTheme()}
+let accountState=null,hasAccountPassword=true;async function load(){const me=await api('me');accountState=me.account;hasAccountPassword=(me.account.authProviders||[]).includes('password');$('email').textContent=me.account.email;$('footEmail').textContent=me.account.email;$('footPlan').textContent=(me.account.plan||'free').toUpperCase()+' plan';$('avatar').textContent=initials(me.account.email);if(hasAccountPassword){$('passwordTitle').textContent='Change password';$('passwordHint').textContent='Update the password you use to sign in.';$('openPassword').textContent='Change password';$('passwordModalTitle').textContent='Change password';$('passwordModalIntro').textContent='Changing it signs out other account sessions.';$('currentPasswordField').classList.remove('hide');$('currentPassword').required=true;$('passwordSubmit').textContent='Update password';}else{$('passwordTitle').textContent='Set password for Local Wall';$('passwordHint').textContent='Add a password so desktop clients and Local Wall can sign in without Google OAuth on localhost.';$('openPassword').textContent='Set password';$('passwordModalTitle').textContent='Set account password';$('passwordModalIntro').textContent='Your Google identity is already verified. This password is used by Local Wall and desktop clients.';$('currentPasswordField').classList.add('hide');$('currentPassword').required=false;$('passwordSubmit').textContent='Set password';}syncTheme()}
 async function logout(){try{await fetch('/account/api?action=logout',{method:'POST',headers:{'content-type':'application/json'},body:'{}'})}finally{location.href='/account/login'}}
 $('logout').onclick=logout;$('signoutTop').onclick=logout;
 $('darkMode').onclick=()=>{LightRemoteTheme.set('dark');syncTheme()};$('lightMode').onclick=()=>{LightRemoteTheme.set('light');syncTheme()};
 const modal=$('passwordModal');function closeModal(){modal.classList.add('hide');$('passwordForm').reset();$('passwordMsg').textContent='';}
-$('openPassword').onclick=()=>{modal.classList.remove('hide');$('currentPassword').focus()};$('closePassword').onclick=closeModal;$('cancelPassword').onclick=closeModal;
-$('passwordForm').onsubmit=async ev=>{ev.preventDefault();const cur=$('currentPassword').value,nw=$('newPassword').value,confirm=$('confirmPassword').value,msg=$('passwordMsg');if(nw!==confirm){msg.className='setting-note error';msg.textContent='New passwords do not match.';return}if(nw.length<10){msg.className='setting-note error';msg.textContent='Password must be at least 10 characters.';return}const btn=ev.submitter;btn.disabled=true;msg.className='setting-note muted';msg.textContent='Updating…';try{await api('password-change',{method:'POST',body:JSON.stringify({currentPassword:cur,newPassword:nw})});msg.className='setting-note ok';msg.textContent='Password updated. Other account sessions were signed out.';setTimeout(closeModal,900)}catch(e){msg.className='setting-note error';msg.textContent=e.message==='invalid_account_credentials'?'Current password is incorrect.':e.message}finally{btn.disabled=false}};
+$('openPassword').onclick=()=>{modal.classList.remove('hide');(hasAccountPassword?$('currentPassword'):$('newPassword')).focus()};$('closePassword').onclick=closeModal;$('cancelPassword').onclick=closeModal;
+$('passwordForm').onsubmit=async ev=>{ev.preventDefault();const cur=$('currentPassword').value,nw=$('newPassword').value,confirm=$('confirmPassword').value,msg=$('passwordMsg');if(nw!==confirm){msg.className='setting-note error';msg.textContent='New passwords do not match.';return}if(nw.length<10){msg.className='setting-note error';msg.textContent='Password must be at least 10 characters.';return}const btn=ev.submitter,action=hasAccountPassword?'password-change':'password-setup',body=hasAccountPassword?{currentPassword:cur,newPassword:nw}:{newPassword:nw};btn.disabled=true;msg.className='setting-note muted';msg.textContent=hasAccountPassword?'Updating…':'Setting password…';try{await api(action,{method:'POST',body:JSON.stringify(body)});hasAccountPassword=true;msg.className='setting-note ok';msg.textContent=action==='password-setup'?'Password set. You can now sign in to Local Wall and desktop clients.':'Password updated. Other account sessions were signed out.';await load();setTimeout(closeModal,1100)}catch(e){msg.className='setting-note error';msg.textContent=e.message==='invalid_account_credentials'?'Current password is incorrect.':e.message}finally{btn.disabled=false}};
 load().catch(e=>{if(e.message!=='login_required')console.error(e)});
 </script></body></html>

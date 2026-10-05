@@ -133,7 +133,7 @@ async function runDormancyScan(){
 }
 async function accountApi(req,res){
   const action=String(req.query?.action||'').trim();
-  const mutations=new Set(['register','login','logout','password-change','password-reset-request','password-reset-complete','magic-request','verification-resend','verification-verify','reactivate','enrollment-approve','device-revoke','device-remove','device-update','devices-revoke-all','redeem-license','main-device','main-device-clear','upgrade-request']);
+  const mutations=new Set(['register','login','logout','password-change','password-setup','password-reset-request','password-reset-complete','magic-request','verification-resend','verification-verify','reactivate','enrollment-approve','device-revoke','device-remove','device-update','devices-revoke-all','redeem-license','main-device','main-device-clear','upgrade-request']);
   if(mutations.has(action)&&!sameOriginMutation(req)){accountAudit(action,'cross_site_denied');return res.status(403).json({ok:false,error:'cross_site_request_denied'});}
   try{
     if(action==='register'){
@@ -233,6 +233,14 @@ async function accountApi(req,res){
       if(!method(req,res,'POST'))return;
       const token=requireAccount(req,res);if(!token)return;
       const upstream=await callOperatorJson('POST','/v1/accounts/password',{currentPassword:req.body?.currentPassword,newPassword:req.body?.newPassword},headers(token));
+      setSessionCookie(res,upstream.token,upstream.session?.expiresAt);
+      accountAudit(action,'success');
+      return res.status(200).json({ok:true,account:upstream.account,session:upstream.session});
+    }
+    if(action==='password-setup'){
+      if(!method(req,res,'POST'))return;
+      const token=requireAccount(req,res);if(!token)return;
+      const upstream=await callOperatorJson('POST','/v1/accounts/password/setup',{newPassword:req.body?.newPassword},headers(token));
       setSessionCookie(res,upstream.token,upstream.session?.expiresAt);
       accountAudit(action,'success');
       return res.status(200).json({ok:true,account:upstream.account,session:upstream.session});

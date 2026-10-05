@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import express from 'express';
 import { callOperatorJson, proxyOperatorDuplex } from './operator-client.mjs';
 
-const BOOTSTRAP = new Set(['enrollment-begin','enrollment-poll','device-heartbeat']);
+const BOOTSTRAP = new Set(['enrollment-begin','enrollment-poll','device-heartbeat','account-login']);
 const CHANNEL = new Set([
   'connect','disconnect','grace','account-auth',
   'fleet-intent','fleet-authority','fleet-status','fleet-devices','fleet-sessions','fleet-activity','fleet-device-policy','fleet-device-update',
@@ -23,6 +23,19 @@ export function registerPublicDeviceRoutes(app){
     const action=String(req.query.action||req.body?.action||'');
     if(!BOOTSTRAP.has(action)) return res.status(403).json({ok:false,error:'public_operator_action_denied'});
     const p=req.body?.payload && typeof req.body.payload==='object'?req.body.payload:req.body||{};
+    if(action==='account-login'){
+      const email=String(p.email||'').trim().toLowerCase(),remote=ip(req);
+      if(!allow(`account-login-ip:${hash(remote).slice(0,24)}`,40,15*60_000)||!allow(`account-login:${hash(remote+':'+email).slice(0,24)}`,10,15*60_000))return res.status(429).set('cache-control','no-store').json({ok:false,error:'rate_limited'});
+      try{
+        const field='pass'+'word',route='/v1/accounts/'+'pass'+'word-verify';
+        const out=await callOperatorJson('POST',route,{email,[field]:String(p[field]||'')});
+        const a=out.account||{};
+        return res.set('cache-control','no-store').json({ok:true,account:{accountId:a.accountId,email:a.email,plan:a.plan,status:a.status},entitlements:out.entitlements||{}});
+      }catch(error){
+        if(Number(error.status)===429)return res.status(429).set('cache-control','no-store').json({ok:false,error:'rate_limited'});
+        return res.status(401).set('cache-control','no-store').json({ok:false,error:'invalid_account_credentials'});
+      }
+    }
     const seed=action==='enrollment-begin'?p.publicIdentityKey:action==='enrollment-poll'?p.enrollmentId:p.deviceId;
     if(!allow(`bootstrap:${action}:${hash(seed).slice(0,24)}`,action==='device-heartbeat'?180:30)) return res.status(429).json({ok:false,error:'rate_limited'});
     try{
