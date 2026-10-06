@@ -4,6 +4,7 @@ import { callOperatorJson } from './operator-client.mjs';
 import { PUBLIC_ORIGIN } from './config.mjs';
 import { mailConfig, sendLicense, sendUpgradeActivated, verifyMail } from './mailer.mjs';
 import { googleAuthStatus, saveGoogleAuthConfig } from './google-auth.mjs';
+import { paddleBilling, paddleBillingStatus } from './paddle-billing.mjs';
 
 const COOKIE='__Host-light_remote_account';
 const ADMIN_ACCOUNT_ID=String(process.env.LIGHT_REMOTE_ADMIN_ACCOUNT_ID||'direct-production-local');
@@ -23,7 +24,7 @@ export function registerAdminPortal(app){
   app.all('/admin/api',async(req,res)=>{
     const admin=await requireAdmin(req,res);if(!admin)return;
     const action=String(req.query?.action||'').trim();
-    const mutations=new Set(['set-plan','set-group','set-status','create-group','rename-group','delete-group','cancel-pending','issue-license','revoke-license','resolve-upgrade','mail-test','google-config']);
+    const mutations=new Set(['set-plan','set-group','set-status','create-group','rename-group','delete-group','cancel-pending','issue-license','revoke-license','resolve-upgrade','mail-test','google-config','paddle-refund']);
     if(mutations.has(action)&&!sameOrigin(req))return res.status(403).json({ok:false,error:'cross_site_request_denied'});
     try{
       if(action==='overview'&&req.method==='GET')return res.json(await callOperatorJson('GET','/v1/admin/overview'));
@@ -32,6 +33,33 @@ export function registerAdminPortal(app){
       if(action==='pending'&&req.method==='GET')return res.json(await callOperatorJson('GET','/v1/admin/pending-registrations'));
       if(action==='licenses'&&req.method==='GET')return res.json(await callOperatorJson('GET','/v1/admin/licenses'));
       if(action==='upgrades'&&req.method==='GET')return res.json(await callOperatorJson('GET','/v1/admin/upgrades'));
+      if(action==='paddle-billing'&&req.method==='GET'){
+        const billing=await paddleBilling.adminBillingTransactions({
+          query:String(req.query?.q||''),
+          limit:Number(req.query?.limit||50),
+          refundWindowHours:24,
+        });
+        return res.json({ok:true,paddle:paddleBillingStatus(),...billing});
+      }
+      if(action==='paddle-refund'&&req.method==='POST'){
+        const transactionId=String(req.body?.transactionId||'').trim();
+        const reason=String(req.body?.reason||'').trim();
+        const result=await paddleBilling.requestEmergencyRefund({
+          transactionId,
+          reason,
+          maxAgeHours:24,
+          requestedBy:String(admin.me?.account?.accountId||ADMIN_ACCOUNT_ID),
+        });
+        console.log(JSON.stringify({
+          event:'paddle_admin_refund',
+          transactionId,
+          adjustmentId:result.adjustmentId||null,
+          status:result.status||null,
+          action:result.action||null,
+          requestedBy:String(admin.me?.account?.accountId||ADMIN_ACCOUNT_ID),
+        }));
+        return res.status(201).json({ok:true,refund:result});
+      }
       if(action==='mail-status'&&req.method==='GET')return res.json({ok:true,configured:Boolean(mailConfig()),google:googleAuthStatus()});
       if(action==='mail-test'&&req.method==='POST'){const verified=await verifyMail();return res.status(verified?200:503).json({ok:verified,verified});}
       if(action==='google-config'&&req.method==='POST'){const google=saveGoogleAuthConfig({clientId:req.body?.clientId,clientSecret:req.body?.clientSecret});return res.status(200).json({ok:true,google});}

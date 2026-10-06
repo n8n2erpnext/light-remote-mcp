@@ -31,6 +31,13 @@ const fakePaddle = {
       if (!refundTransaction) throw new Error('refund_transaction_not_configured');
       return structuredClone(refundTransaction);
     },
+    list() {
+      return {
+        async next() {
+          return refundTransaction ? [structuredClone(refundTransaction)] : [];
+        },
+      };
+    },
   },
   adjustments: {
     async create(body) {
@@ -222,18 +229,41 @@ refundTransaction = {
   id: refundTxn,
   status: 'completed',
   subscriptionId: refundSub,
+  currencyCode: 'USD',
   customData: {
     light_remote_account_id: 'acct_test',
+    light_remote_account_email: 'owner@example.test',
     light_remote_plan: 'pro',
   },
+  details: {
+    totals: {
+      subtotal: '2000',
+      tax: '500',
+      total: '2500',
+      grandTotal: '2500',
+      currencyCode: 'USD',
+    },
+  },
+  adjustments: [],
   payments: [{
     status: 'captured',
+    amount: '2500',
     capturedAt: new Date(1_800_000_000_000 - 60 * 60 * 1000).toISOString(),
   }],
   createdAt: new Date(1_800_000_000_000 - 2 * 60 * 60 * 1000).toISOString(),
   updatedAt: new Date(1_800_000_000_000 - 60 * 60 * 1000).toISOString(),
   billedAt: new Date(1_800_000_000_000 - 60 * 60 * 1000).toISOString(),
 };
+const adminBeforeRefund = await billing.adminBillingTransactions({
+  query: 'owner@example.test',
+  limit: 20,
+});
+assert.equal(adminBeforeRefund.transactions.length, 1);
+assert.equal(adminBeforeRefund.transactions[0].refundEligible, true);
+assert.equal(adminBeforeRefund.transactions[0].amountMinor, '2500');
+assert.equal(adminBeforeRefund.transactions[0].taxMinor, '500');
+assert.equal(adminBeforeRefund.transactions[0].currentPlan, 'pro');
+assert.equal(adminBeforeRefund.transactions[0].currentEntitlementSource, 'paddle');
 refundAdjustmentStatus = 'pending_approval';
 const refundPending = await billing.requestEmergencyRefund({
   transactionId: refundTxn,
@@ -245,6 +275,14 @@ assert.equal(account.plan, 'pro');
 assert.equal(canceledSubscriptions.includes(refundSub), false);
 assert.equal(refundRequests.at(-1).action, 'refund');
 assert.equal(refundRequests.at(-1).type, 'full');
+
+const adminAfterRefund = await billing.adminBillingTransactions({
+  query: refundTxn,
+  limit: 20,
+});
+assert.equal(adminAfterRefund.transactions.length, 1);
+assert.equal(adminAfterRefund.transactions[0].refundEligible, false);
+assert.equal(adminAfterRefund.transactions[0].refund.status, 'pending_approval');
 
 const refundApproved = await billing.processEvent({
   eventId: 'evt_' + 'j'.repeat(26),
@@ -299,3 +337,4 @@ console.log('paddle-vip-no-downgrade=PASS');
 console.log('paddle-cancel-revoke=PASS');
 console.log('paddle-refund-24h-window=PASS');
 console.log('paddle-refund-approval-gate=PASS');
+console.log('paddle-admin-refund-eligibility=PASS');

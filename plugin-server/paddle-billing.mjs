@@ -331,15 +331,140 @@ export class PaddleBilling {
     return Number.isFinite(parsed) ? parsed : null;
   }
 
+  async adminBillingTransactions({
+    query = '',
+    limit = 50,
+    refundWindowHours = 24,
+  } = {}) {
+    if (!this.paddle) {
+      return {
+        environment: this.config.environment,
+        refundWindowHours: 24,
+        transactions: [],
+      };
+    }
+
+    const pageLimit = Math.min(100, Math.max(1, Number(limit) || 50));
+    const windowHours = Math.min(24, Math.max(1, Number(refundWindowHours) || 24));
+    const windowMs = windowHours * 60 * 60 * 1000;
+    const q = text(query).toLowerCase();
+
+    const collection = this.paddle.transactions.list({
+      status: ['completed'],
+      perPage: 100,
+      include: ['adjustment'],
+    });
+    const page = await collection.next();
+    const rows = [];
+
+    for (const transaction of page) {
+      const custom = safeCustomData(transaction);
+      const accountId = text(custom.light_remote_account_id || custom.lightRemoteAccountId);
+      const email = text(custom.light_remote_account_email || custom.lightRemoteAccountEmail).toLowerCase();
+      const plan = text(custom.light_remote_plan || custom.lightRemotePlan || '').toLowerCase();
+      const subscriptionId = text(transaction?.subscriptionId || transaction?.subscription_id);
+
+      if (!accountId || !email || plan !== PRO_PLAN) continue;
+
+      const searchable = [
+        transaction.id,
+        subscriptionId,
+        accountId,
+        email,
+      ].join(' ').toLowerCase();
+      if (q && !searchable.includes(q)) continue;
+
+      const capturedMs = this.refundCaptureTime(transaction);
+      const ageMs = capturedMs == null ? null : this.now() - capturedMs;
+      const paddleAdjustments = (transaction?.adjustments || [])
+        .filter(row => text(row?.action).toLowerCase() === 'refund')
+        .map(row => ({
+          adjustmentId: text(row?.id) || null,
+          status: text(row?.status) || null,
+          type: text(row?.type) || null,
+        }));
+
+      const stateRefundEntry = Object.entries(this.state.refunds || {})
+        .filter(([, row]) => text(row?.transactionId) === text(transaction.id))
+        .sort((a, b) => Number(b[1]?.updatedAt || b[1]?.requestedAt || 0) - Number(a[1]?.updatedAt || a[1]?.requestedAt || 0))[0] || null;
+      const stateRefund = stateRefundEntry ? {
+        adjustmentId: stateRefundEntry[0],
+        status: text(stateRefundEntry[1]?.status) || null,
+        type: 'full',
+      } : null;
+
+      const refund = paddleAdjustments[0] || stateRefund || null;
+      const refundStatus = text(refund?.status).toLowerCase();
+      const hasOpenRefund = Boolean(refund && refundStatus !== 'rejected');
+      const withinWindow = ageMs != null && ageMs >= -5 * 60 * 1000 && ageMs <= windowMs;
+      const eligible = withinWindow && !hasOpenRefund;
+
+      const capturedPayment = (transaction?.payments || [])
+        .find(payment => text(payment?.status).toLowerCase() === 'captured');
+      const totals = transaction?.details?.totals || {};
+
+      rows.push({
+        transactionId: text(transaction.id),
+        subscriptionId: subscriptionId || null,
+        accountId,
+        email,
+        plan,
+        transactionStatus: text(transaction?.status) || null,
+        currency: text(transaction?.currencyCode || totals?.currencyCode || 'USD') || 'USD',
+        amountMinor: text(totals?.grandTotal || totals?.total || capturedPayment?.amount || '0'),
+        subtotalMinor: text(totals?.subtotal || '0'),
+        taxMinor: text(totals?.tax || '0'),
+        capturedAt: capturedMs == null ? null : new Date(capturedMs).toISOString(),
+        ageMs,
+        refundWindowHours: windowHours,
+        refundRemainingMs: eligible ? Math.max(0, windowMs - Math.max(0, ageMs)) : 0,
+        refundEligible: eligible,
+        refund: refund ? {
+          adjustmentId: refund.adjustmentId || null,
+          status: refund.status || null,
+          type: refund.type || null,
+        } : null,
+      });
+    }
+
+    rows.sort((a, b) => Date.parse(b.capturedAt || 0) - Date.parse(a.capturedAt || 0));
+    const limited = rows.slice(0, pageLimit);
+
+    const uniqueAccounts = [...new Set(limited.map(row => row.accountId))];
+    const accountPairs = await Promise.all(uniqueAccounts.map(async accountId => {
+      try {
+        return [accountId, await this.currentAccount(accountId)];
+      } catch {
+        return [accountId, null];
+      }
+    }));
+    const accounts = new Map(accountPairs);
+
+    return {
+      environment: this.config.environment,
+      refundWindowHours: windowHours,
+      transactions: limited.map(row => {
+        const current = accounts.get(row.accountId);
+        return {
+          ...row,
+          currentPlan: text(current?.plan || '') || null,
+          currentEntitlementSource: text(current?.entitlement?.source || '') || null,
+          currentEntitlementRef: text(current?.entitlement?.sourceRef || '') || null,
+        };
+      }),
+    };
+  }
+
   async requestEmergencyRefund({
     transactionId,
     reason,
     maxAgeHours = 24,
+    requestedBy = 'private_admin',
   } = {}) {
     const id = text(transactionId);
     const why = text(reason);
     const hours = Number(maxAgeHours);
-    if (!this.paddle || !id || !why) {
+    if (!this.paddle || !id || !why || why.length < 8) {
       const error = new Error('paddle_refund_request_invalid');
       error.status = 400;
       throw error;
@@ -392,6 +517,8 @@ export class PaddleBilling {
       accountId,
       subscriptionId: text(adjustment?.subscriptionId || transaction?.subscriptionId) || null,
       status: text(adjustment?.status) || null,
+      requestedBy: text(requestedBy) || 'private_admin',
+      reason: why,
       requestedAt: this.now(),
       updatedAt: this.now(),
       result,
