@@ -2,8 +2,10 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
 import { SupportOutbox } from '../../plugin-server/support-backoffice.mjs';
+import { renderSupportPage } from '../../plugin-server/support-page.mjs';
 
 const root=path.resolve(fileURLToPath(new URL('../..',import.meta.url)));
 const source=fs.readFileSync(path.join(root,'plugin-server/support-backoffice.mjs'),'utf8');
@@ -16,6 +18,11 @@ need(source.includes('redactRestrictedText')&&source.includes('support_contains_
 need(source.includes('x-light-account-session')&&source.includes("'/v1/accounts/me'"),'server-side-account-plan');
 need(source.includes('SupportOutbox')&&source.includes('nextAttemptAt')&&source.includes('backoffMs'),'durable-retry-outbox');
 need(page.includes('Open a private support case')&&page.includes('/support/api?action=eligibility')&&page.includes('Private case submission is available on PRO/VIP')&&page.includes('Open case in Support Portal')&&page.includes('https://support.thaiduy.digital/'),'support-form-ui');
+const renderedPage=renderSupportPage({origin:'https://light-remote.example.test',version:'test'});
+const inlineStart=renderedPage.lastIndexOf('<script>'),inlineEnd=renderedPage.indexOf('</script>',inlineStart);
+assert.ok(inlineStart>=0&&inlineEnd>inlineStart,'support inline script missing');
+new vm.Script(renderedPage.slice(inlineStart+8,inlineEnd),{filename:'rendered-support-inline.js'});
+console.log('support-inline-js-syntax=PASS');
 need(server.includes("registerSupportBackoffice(app)"),'support-route-registration');
 need(server.includes("invalid_json")&&server.includes("request_too_large"),'safe-http-parse-errors');
 

@@ -240,7 +240,7 @@ export function renderSupportPage({origin,version}){
         'Expected result: [fill in]',
         '',
         'REDACTED: passwords, MFA/OTP, tokens, cookies, private keys, A/B continuation, device secrets'
-      ].join('\n');
+      ].join('\\n');
     };
     build().then(t=>{if(diag)diag.textContent=t;});
     button?.addEventListener('click',async()=>{
