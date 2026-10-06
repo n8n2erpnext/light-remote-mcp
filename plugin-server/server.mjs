@@ -91,6 +91,17 @@ app.post('/mcp',async(req,res)=>{
 });
 for(const method of ['get','delete'])app[method]('/mcp',(_q,r)=>r.status(405).json({jsonrpc:'2.0',error:{code:-32000,message:'Method not allowed'},id:null}));
 
+app.use((error,req,res,_next)=>{
+  const type=String(error?.type||'');
+  const parseFailed=type==='entity.parse.failed'||(error instanceof SyntaxError&&Object.prototype.hasOwnProperty.call(error,'body'));
+  if(!res.headersSent){
+    if(parseFailed)return res.status(400).json({ok:false,error:'invalid_json'});
+    if(type==='entity.too.large'||Number(error?.status)===413)return res.status(413).json({ok:false,error:'request_too_large'});
+    console.error('[direct-http]',String(error?.message||error||'internal_error').slice(0,240));
+    return res.status(500).json({ok:false,error:'internal_error'});
+  }
+});
+
 const server=app.listen(PUBLIC_PORT,PUBLIC_HOST,()=>{
   console.log(JSON.stringify({event:'direct_plugin_listen',origin:PUBLIC_ORIGIN,host:PUBLIC_HOST,port:PUBLIC_PORT,version:VERSION}));
 });

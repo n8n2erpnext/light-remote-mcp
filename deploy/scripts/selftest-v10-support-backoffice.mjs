@@ -17,6 +17,7 @@ need(source.includes('x-light-account-session')&&source.includes("'/v1/accounts/
 need(source.includes('SupportOutbox')&&source.includes('nextAttemptAt')&&source.includes('backoffMs'),'durable-retry-outbox');
 need(page.includes('Open a private support case')&&page.includes('/support/api?action=eligibility')&&page.includes('Private case submission is available on PRO/VIP'),'support-form-ui');
 need(server.includes("registerSupportBackoffice(app)"),'support-route-registration');
+need(server.includes("invalid_json")&&server.includes("request_too_large"),'safe-http-parse-errors');
 
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'lr-support-outbox-'));
 const stateFile=path.join(dir,'outbox.json');
