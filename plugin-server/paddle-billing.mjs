@@ -48,7 +48,8 @@ function normalizeState(raw) {
   const state = raw && typeof raw === 'object' ? raw : {};
   const events = state.events && typeof state.events === 'object' ? state.events : {};
   const subscriptions = state.subscriptions && typeof state.subscriptions === 'object' ? state.subscriptions : {};
-  return { schemaVersion: 1, events, subscriptions };
+  const refunds = state.refunds && typeof state.refunds === 'object' ? state.refunds : {};
+  return { schemaVersion: 2, events, subscriptions, refunds };
 }
 
 function loadState(file) {
@@ -308,6 +309,211 @@ export class PaddleBilling {
     };
   }
 
+  refundCaptureTime(transaction) {
+    const captured = (transaction?.payments || [])
+      .filter(payment => text(payment?.status).toLowerCase() === 'captured')
+      .map(payment => text(payment?.capturedAt || payment?.captured_at || payment?.createdAt || payment?.created_at))
+      .filter(Boolean)
+      .map(value => Date.parse(value))
+      .filter(Number.isFinite)
+      .sort((a, b) => b - a);
+    if (captured.length) return captured[0];
+
+    const fallback = text(
+      transaction?.billedAt ||
+      transaction?.billed_at ||
+      transaction?.updatedAt ||
+      transaction?.updated_at ||
+      transaction?.createdAt ||
+      transaction?.created_at
+    );
+    const parsed = Date.parse(fallback);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  async requestEmergencyRefund({
+    transactionId,
+    reason,
+    maxAgeHours = 24,
+  } = {}) {
+    const id = text(transactionId);
+    const why = text(reason);
+    const hours = Number(maxAgeHours);
+    if (!this.paddle || !id || !why) {
+      const error = new Error('paddle_refund_request_invalid');
+      error.status = 400;
+      throw error;
+    }
+    if (!Number.isFinite(hours) || hours <= 0 || hours > 24) {
+      const error = new Error('paddle_refund_window_invalid');
+      error.status = 400;
+      throw error;
+    }
+
+    const transaction = await this.paddle.transactions.get(id);
+    if (text(transaction?.status).toLowerCase() !== 'completed') {
+      const error = new Error('paddle_refund_transaction_not_completed');
+      error.status = 409;
+      throw error;
+    }
+
+    const accountId = accountIdFrom(transaction);
+    const plan = planFrom(transaction);
+    if (!accountId || plan !== PRO_PLAN) {
+      const error = new Error('paddle_refund_transaction_not_light_remote');
+      error.status = 403;
+      throw error;
+    }
+
+    const capturedAt = this.refundCaptureTime(transaction);
+    if (!capturedAt) {
+      const error = new Error('paddle_refund_capture_time_missing');
+      error.status = 409;
+      throw error;
+    }
+    const ageMs = this.now() - capturedAt;
+    const maxAgeMs = hours * 60 * 60 * 1000;
+    if (ageMs < -5 * 60 * 1000 || ageMs > maxAgeMs) {
+      const error = new Error('paddle_refund_window_expired');
+      error.status = 409;
+      throw error;
+    }
+
+    const adjustment = await this.paddle.adjustments.create({
+      action: 'refund',
+      type: 'full',
+      transactionId: id,
+      reason: why,
+    });
+
+    const result = await this.processRefundAdjustment(adjustment);
+    this.state.refunds[adjustment.id] = {
+      transactionId: id,
+      accountId,
+      subscriptionId: text(adjustment?.subscriptionId || transaction?.subscriptionId) || null,
+      status: text(adjustment?.status) || null,
+      requestedAt: this.now(),
+      updatedAt: this.now(),
+      result,
+    };
+    saveState(this.config.stateFile, this.state);
+
+    return {
+      adjustmentId: adjustment.id,
+      transactionId: id,
+      accountId,
+      subscriptionId: text(adjustment?.subscriptionId || transaction?.subscriptionId) || null,
+      status: text(adjustment?.status) || null,
+      capturedAt: new Date(capturedAt).toISOString(),
+      ageHours: Math.max(0, ageMs) / 3600000,
+      action: result.action,
+    };
+  }
+
+  async processRefundAdjustment(data) {
+    if (text(data?.action).toLowerCase() !== 'refund') {
+      return { action: 'ignored', reason: 'adjustment_not_refund' };
+    }
+
+    const adjustmentId = text(data?.id);
+    const transactionId = text(data?.transactionId || data?.transaction_id);
+    const status = text(data?.status).toLowerCase();
+    const subscriptionId = text(data?.subscriptionId || data?.subscription_id);
+
+    if (!adjustmentId || !transactionId) {
+      return { action: 'ignored', reason: 'refund_metadata_missing' };
+    }
+
+    if (status !== 'approved') {
+      const result = {
+        action: status === 'rejected' ? 'refund_rejected' : 'refund_pending',
+        adjustmentId,
+        transactionId,
+        subscriptionId: subscriptionId || null,
+        status,
+      };
+      this.state.refunds[adjustmentId] = {
+        ...(this.state.refunds[adjustmentId] || {}),
+        transactionId,
+        subscriptionId: subscriptionId || null,
+        status,
+        updatedAt: this.now(),
+        result,
+      };
+      return result;
+    }
+
+    const transaction = await this.paddle.transactions.get(transactionId);
+    const accountId = accountIdFrom(transaction);
+    const effectiveSubscriptionId = subscriptionId || text(transaction?.subscriptionId);
+    if (!accountId || !effectiveSubscriptionId) {
+      return {
+        action: 'refund_approved_unmapped',
+        adjustmentId,
+        transactionId,
+        subscriptionId: effectiveSubscriptionId || null,
+      };
+    }
+
+    let cancellation = 'not_needed';
+    try {
+      const subscription = await this.paddle.subscriptions.get(effectiveSubscriptionId);
+      const subscriptionStatus = text(subscription?.status).toLowerCase();
+      if (subscriptionStatus !== 'canceled') {
+        await this.paddle.subscriptions.cancel(
+          effectiveSubscriptionId,
+          { effectiveFrom: 'immediately' },
+        );
+        cancellation = 'canceled';
+      } else {
+        cancellation = 'already_canceled';
+      }
+    } catch (error) {
+      const message = text(error?.message).toLowerCase();
+      if (message.includes('canceled') || message.includes('not found')) cancellation = 'already_unavailable';
+      else throw error;
+    }
+
+    const current = await this.currentAccount(accountId);
+    const entitlement = current?.entitlement || {};
+    let entitlementAction = 'unchanged';
+    if (
+      text(entitlement.source) === 'paddle' &&
+      text(entitlement.sourceRef) === effectiveSubscriptionId
+    ) {
+      const revoked = await this.operatorCall(
+        'POST',
+        `/v1/admin/accounts/${encodeURIComponent(accountId)}/entitlement/revoke`,
+        {
+          source: 'paddle',
+          reason: `paddle_refund:${adjustmentId}`,
+        },
+      );
+      entitlementAction = revoked?.account?.plan || 'free';
+    }
+
+    const result = {
+      action: 'refund_approved',
+      adjustmentId,
+      transactionId,
+      accountId,
+      subscriptionId: effectiveSubscriptionId,
+      cancellation,
+      entitlementAction,
+      status,
+    };
+    this.state.refunds[adjustmentId] = {
+      ...(this.state.refunds[adjustmentId] || {}),
+      transactionId,
+      accountId,
+      subscriptionId: effectiveSubscriptionId,
+      status,
+      updatedAt: this.now(),
+      result,
+    };
+    return result;
+  }
+
   async processEvent(event) {
     const eventType = safeEventType(event);
     const data = safeData(event);
@@ -336,6 +542,11 @@ export class PaddleBilling {
         accountId: accountIdFrom(data) || null,
         transactionId: text(data?.id) || null,
       };
+    } else if (
+      eventType === EventName.AdjustmentCreated ||
+      eventType === EventName.AdjustmentUpdated
+    ) {
+      result = await this.processRefundAdjustment(data);
     }
 
     const subscriptionId = sourceRefFrom(data);

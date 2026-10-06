@@ -10,6 +10,10 @@ const stateFile = path.join(tmp, 'state.json');
 const priceId = 'pri_' + 'a'.repeat(26);
 const calls = [];
 let createdBody = null;
+let refundTransaction = null;
+let refundAdjustmentStatus = 'pending_approval';
+const refundRequests = [];
+const canceledSubscriptions = [];
 let account = {
   accountId: 'acct_test',
   email: 'owner@example.test',
@@ -22,6 +26,35 @@ const fakePaddle = {
     async create(body) {
       createdBody = body;
       return { id: 'txn_' + 'b'.repeat(26), checkout: { url: 'https://sandbox.example/checkout' } };
+    },
+    async get() {
+      if (!refundTransaction) throw new Error('refund_transaction_not_configured');
+      return structuredClone(refundTransaction);
+    },
+  },
+  adjustments: {
+    async create(body) {
+      refundRequests.push(structuredClone(body));
+      return {
+        id: 'adj_' + 'r'.repeat(26),
+        action: 'refund',
+        type: 'full',
+        transactionId: body.transactionId,
+        subscriptionId: refundTransaction?.subscriptionId || null,
+        status: refundAdjustmentStatus,
+      };
+    },
+  },
+  subscriptions: {
+    async get(subscriptionId) {
+      return {
+        id: subscriptionId,
+        status: canceledSubscriptions.includes(subscriptionId) ? 'canceled' : 'active',
+      };
+    },
+    async cancel(subscriptionId, body) {
+      canceledSubscriptions.push(subscriptionId);
+      return { id: subscriptionId, status: 'canceled', effectiveFrom: body?.effectiveFrom || null };
     },
   },
   webhooks: {
@@ -178,6 +211,77 @@ const revoke = calls.find(x => x.target.endsWith('/entitlement/revoke'));
 assert.equal(revoke.body.source, 'paddle');
 assert.equal(revoke.body.reason, 'paddle:' + paddleSub);
 
+const refundSub = 'sub_' + 'q'.repeat(26);
+const refundTxn = 'txn_' + 'p'.repeat(26);
+account = {
+  ...account,
+  plan: 'pro',
+  entitlement: { plan: 'pro', source: 'paddle', sourceRef: refundSub, validUntil: null },
+};
+refundTransaction = {
+  id: refundTxn,
+  status: 'completed',
+  subscriptionId: refundSub,
+  customData: {
+    light_remote_account_id: 'acct_test',
+    light_remote_plan: 'pro',
+  },
+  payments: [{
+    status: 'captured',
+    capturedAt: new Date(1_800_000_000_000 - 60 * 60 * 1000).toISOString(),
+  }],
+  createdAt: new Date(1_800_000_000_000 - 2 * 60 * 60 * 1000).toISOString(),
+  updatedAt: new Date(1_800_000_000_000 - 60 * 60 * 1000).toISOString(),
+  billedAt: new Date(1_800_000_000_000 - 60 * 60 * 1000).toISOString(),
+};
+refundAdjustmentStatus = 'pending_approval';
+const refundPending = await billing.requestEmergencyRefund({
+  transactionId: refundTxn,
+  reason: 'exceptional customer recovery',
+});
+assert.equal(refundPending.status, 'pending_approval');
+assert.equal(refundPending.action, 'refund_pending');
+assert.equal(account.plan, 'pro');
+assert.equal(canceledSubscriptions.includes(refundSub), false);
+assert.equal(refundRequests.at(-1).action, 'refund');
+assert.equal(refundRequests.at(-1).type, 'full');
+
+const refundApproved = await billing.processEvent({
+  eventId: 'evt_' + 'j'.repeat(26),
+  eventType: EventName.AdjustmentUpdated,
+  data: {
+    id: 'adj_' + 'r'.repeat(26),
+    action: 'refund',
+    type: 'full',
+    transactionId: refundTxn,
+    subscriptionId: refundSub,
+    status: 'approved',
+  },
+});
+assert.equal(refundApproved.action, 'refund_approved');
+assert.equal(canceledSubscriptions.includes(refundSub), true);
+assert.equal(account.plan, 'free');
+
+account = {
+  ...account,
+  plan: 'pro',
+  entitlement: { plan: 'pro', source: 'paddle', sourceRef: refundSub, validUntil: null },
+};
+refundTransaction = {
+  ...refundTransaction,
+  payments: [{
+    status: 'captured',
+    capturedAt: new Date(1_800_000_000_000 - 25 * 60 * 60 * 1000).toISOString(),
+  }],
+};
+await assert.rejects(
+  () => billing.requestEmergencyRefund({
+    transactionId: refundTxn,
+    reason: 'too late',
+  }),
+  error => error?.message === 'paddle_refund_window_expired' && error?.status === 409,
+);
+
 const disabled = new PaddleBilling({
   config: { environment: 'sandbox', apiKey: '', clientToken: '', proPriceId: '', webhookSecret: '', stateFile: '' },
   paddleClient: null,
@@ -193,3 +297,5 @@ console.log('paddle-webhook-grant=PASS');
 console.log('paddle-webhook-idempotency=PASS');
 console.log('paddle-vip-no-downgrade=PASS');
 console.log('paddle-cancel-revoke=PASS');
+console.log('paddle-refund-24h-window=PASS');
+console.log('paddle-refund-approval-gate=PASS');
