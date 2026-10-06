@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import express from 'express';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
+import { hostHeaderValidation } from '@modelcontextprotocol/sdk/server/middleware/hostHeaderValidation.js';
 import { PUBLIC_ALLOWED_HOSTS, PUBLIC_HOST, PUBLIC_ORIGIN, PUBLIC_PORT, OPENAI_CHALLENGE_FILE, VERSION, MCP_SURFACE_VERSION } from './config.mjs';
 import { authenticateAccess, registerOAuth } from './oauth.mjs';
 import { registerPublicDeviceRoutes, prunePublicRateState } from './device-public.mjs';
@@ -17,7 +17,11 @@ import { installOpenAiToolSecurityCompat } from './openai-security-compat.mjs';
 import { installLegacyToolCallCompat } from './legacy-tool-call-compat.mjs';
 
 
-const app=createMcpExpressApp({host:PUBLIC_HOST,allowedHosts:PUBLIC_ALLOWED_HOSTS});
+const app=express();
+// createMcpExpressApp() installs express.json() with Express' default ~100 KB limit.
+// Device-channel result envelopes can legitimately exceed that even after client-side compaction,
+// so install host validation explicitly and apply the product body limit exactly once.
+app.use(hostHeaderValidation(PUBLIC_ALLOWED_HOSTS));
 app.disable('x-powered-by');
 app.set('trust proxy','loopback, linklocal, uniquelocal');
 app.use(express.json({limit:'12mb'}));
