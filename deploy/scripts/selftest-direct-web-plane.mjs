@@ -18,6 +18,7 @@ const css=read('plugin-server/account-portal/portal.css');
 const distribution=read('plugin-server/distribution-portal.mjs');
 const downloadsPortal=read('plugin-server/downloads-portal.html');
 const publicHome=read('plugin-server/public-home.html');
+const legalPages=read('plugin-server/legal-pages.mjs');
 const webAssets=read('plugin-server/web-assets.mjs');
 const admin=read('plugin-server/admin-portal.mjs');
 const adminHtml=read('plugin-server/admin-portal/index.html');
@@ -86,6 +87,9 @@ assert.ok(publicHome.includes('rel="canonical" href="https://light-remote.thaidu
 assert.ok(publicHome.includes('application/ld+json')&&publicHome.includes('SoftwareApplication'),'home structured data missing');
 assert.ok(publicHome.includes('https://lightbi.app/')&&publicHome.includes('https://thaiduy.digital/'),'home ecosystem backlinks missing');
 assert.ok(publicHome.includes('LIGHT REMOTE MCP · RC.33'),'home release label stale');
+for(const phrase of ['Terms of Service','Privacy Policy','Cookie Policy','Local Wall','A/B approval','Remote task data','__Host-light_remote_account'])assert.ok(legalPages.includes(phrase),`legal content missing:${phrase}`);
+assert.ok(server.includes("app.get('/cookies'")&&server.includes("'/cookies'"),'cookie policy route/indexing missing');
+assert.ok(server.includes("const urls=['/','/downloads','/support','/privacy','/terms','/cookies']"),'cookie policy sitemap missing');
 const linuxBootstrap=read('plugin-server/downloads-install-linux.sh');
 assert.ok(linuxBootstrap.includes('linux-server')&&linuxBootstrap.includes('--verify-only'));
 assert.ok(linuxBootstrap.includes('--defer-enrollment'),'public Linux bootstrap must defer enrollment like NetBird install/up flow');
