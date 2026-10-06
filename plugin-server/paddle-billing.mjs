@@ -161,9 +161,15 @@ export class PaddleBilling {
     }
     const accountId = text(account?.accountId);
     const email = text(account?.email).toLowerCase();
+    const accountPlan = text(account?.plan || 'free').toLowerCase();
     if (!accountId || !email) {
       const error = new Error('paddle_account_required');
       error.status = 400;
+      throw error;
+    }
+    if (accountPlan !== 'free') {
+      const error = new Error('paddle_account_already_paid');
+      error.status = 409;
       throw error;
     }
 
@@ -234,6 +240,16 @@ export class PaddleBilling {
       text(entitlement.sourceRef) === subscriptionId
     ) {
       return { action: 'already_active', accountId, subscriptionId, plan: PRO_PLAN };
+    }
+    if (currentPlan === PRO_PLAN && entitlement.source === 'paddle') {
+      return {
+        action: 'kept_existing_paddle',
+        reason: 'different_subscription_already_owns_entitlement',
+        accountId,
+        subscriptionId,
+        currentSubscriptionId: text(entitlement.sourceRef) || null,
+        plan: PRO_PLAN,
+      };
     }
 
     const out = await this.operatorCall(

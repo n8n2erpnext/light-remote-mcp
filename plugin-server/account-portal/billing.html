@@ -93,9 +93,14 @@ function render(){
   paddleMode.classList.toggle('hide',!paddleOn||!sandbox);
   if(paddleOn){
     upgradeHelp.textContent='Paddle checkout attaches PRO directly to this account. No license key is required.';
-    upgrade.textContent=sandbox?(plan==='free'?'Upgrade to Pro — Sandbox':'Test Paddle sandbox'):(plan==='free'?'Upgrade to Pro':'Current plan: '+plan.toUpperCase());
-    upgrade.disabled=!sandbox&&plan!=='free';
-    if(sandbox&&!upgradeNote.textContent){upgradeNote.className='setting-note muted';upgradeNote.textContent='Sandbox mode: Paddle test cards only. Existing VIP/PRO entitlements will not be downgraded.'}
+    upgrade.textContent=plan==='free'?(sandbox?'Upgrade to Pro — Sandbox':'Upgrade to Pro'):'Current plan: '+plan.toUpperCase();
+    upgrade.disabled=plan!=='free';
+    if(sandbox&&!upgradeNote.textContent){
+      upgradeNote.className='setting-note muted';
+      upgradeNote.textContent=plan==='free'
+        ?'Sandbox mode: Paddle test cards only. No real charge.'
+        :'Sandbox mode: this account is already on '+plan.toUpperCase()+'. A second subscription checkout is disabled.';
+    }
   }else{
     upgradeHelp.textContent='No license key required. Approved upgrades attach directly to this account.';
     const pending=(upgradeState?.requests||[]).find(x=>x.status==='pending');

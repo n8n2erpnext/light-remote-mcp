@@ -101,6 +101,11 @@ assert.equal(createdBody.customData.light_remote_account_id, 'acct_test');
 assert.equal(createdBody.customData.light_remote_plan, 'pro');
 assert.equal(createdBody.customData.light_remote_account_email, 'owner@example.test');
 
+await assert.rejects(
+  () => billing.createCheckout({ ...account, plan: 'pro' }),
+  error => error?.message === 'paddle_account_already_paid' && error?.status === 409,
+);
+
 const webhook = await billing.handleWebhook('raw-body', 'ts=1;h1=test');
 assert.equal(webhook.result.action, 'granted');
 assert.equal(account.plan, 'pro');
@@ -119,6 +124,20 @@ const duplicate = await billing.processEvent({
   },
 });
 assert.equal(duplicate.duplicate, true);
+assert.equal(calls.filter(x => x.target.endsWith('/entitlement')).length, 1);
+
+const duplicateSubscription = await billing.processEvent({
+  eventId: 'evt_' + 'z'.repeat(26),
+  eventType: EventName.SubscriptionCreated,
+  data: {
+    id: 'sub_' + 'y'.repeat(26),
+    status: 'active',
+    customData: { light_remote_account_id: 'acct_test', light_remote_plan: 'pro' },
+  },
+});
+assert.equal(duplicateSubscription.action, 'kept_existing_paddle');
+assert.equal(account.plan, 'pro');
+assert.match(account.entitlement.sourceRef, /^sub_/);
 assert.equal(calls.filter(x => x.target.endsWith('/entitlement')).length, 1);
 
 account = {
