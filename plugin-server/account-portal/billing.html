@@ -31,8 +31,8 @@
       <div class="tax-note">Plus VAT and other applicable taxes when billing is enabled.</div>
       <ul><li>Unlimited tool calls</li><li>Fleet / multi-device console</li><li>Priority support</li></ul>
       <button id="upgrade" class="btn primary wide">Request Pro upgrade</button>
-      <div class="tax-note">No license key required. Approved upgrades attach directly to this account.</div>
-      <div id="upgradeNote" class="setting-note"></div>
+      <div id="upgradeHelp" class="tax-note">No license key required. Approved upgrades attach directly to this account.</div>
+      <div id="paddleMode" class="tax-note hide">Paddle Sandbox · test payments only · no real charge.</div><div id="upgradeNote" class="setting-note"></div>
     </section>
   </div>
 
@@ -50,19 +50,78 @@
   </section>
 </main></div>
 <script>
-const fmt=n=>new Intl.NumberFormat().format(Number(n)||0);let me=null,usage=null,upgradeState=null;
+const fmt=n=>new Intl.NumberFormat().format(Number(n)||0);let me=null,usage=null,upgradeState=null,paddleConfig=null,paddleReady=false;
 async function api(action,options={}){const r=await fetch('/account/api?action='+encodeURIComponent(action),{cache:'no-store',...options,headers:{'content-type':'application/json',...(options.headers||{})}});let j={};try{j=await r.json()}catch{}if(r.status===401){location.href='/account/login';throw new Error('login_required')}if(!r.ok)throw new Error(j.error||('HTTP '+r.status));return j}
+let paddleScriptPromise=null;
+function ensurePaddleJs(){
+  if(window.Paddle)return Promise.resolve(window.Paddle);
+  if(paddleScriptPromise)return paddleScriptPromise;
+  paddleScriptPromise=new Promise((resolve,reject)=>{
+    const script=document.createElement('script');
+    script.src='https://cdn.paddle.com/paddle/v2/paddle.js';
+    script.async=true;
+    script.onload=()=>window.Paddle?resolve(window.Paddle):reject(new Error('paddle_js_unavailable'));
+    script.onerror=()=>reject(new Error('paddle_js_unavailable'));
+    document.head.appendChild(script);
+  });
+  return paddleScriptPromise;
+}
+async function initPaddle(){
+  if(!paddleConfig?.enabled||paddleReady)return;
+  await ensurePaddleJs();
+  if(paddleConfig.environment==='sandbox')Paddle.Environment.set('sandbox');
+  Paddle.Initialize({
+    token:paddleConfig.clientToken,
+    eventCallback:event=>{
+      if(event?.name==='checkout.completed'){
+        upgradeNote.className='setting-note ok';
+        upgradeNote.textContent='Sandbox payment completed. Waiting for the verified Paddle webhook to update entitlement…';
+        let tries=0;const poll=setInterval(async()=>{tries++;try{await load();const plan=String(me?.account?.plan||'free').toLowerCase();if(plan!=='free'||tries>=8)clearInterval(poll)}catch{if(tries>=8)clearInterval(poll)}},1500);
+      }else if(event?.name==='checkout.closed'){
+        upgrade.disabled=false;
+      }
+    }
+  });
+  paddleReady=true;
+}
 function render(){
   const plan=String(me.account?.plan||'free').toLowerCase(),ent=me.entitlements||{},used=Number(usage?.toolCallsThisMonth)||0,limit=ent.toolCallLimit==null?null:Number(ent.toolCallLimit);
   accountEmail.textContent=me.account.email||'';accountPlan.textContent=plan.toUpperCase()+' plan';
   freeCurrent.classList.toggle('hide',plan!=='free');proCurrent.classList.toggle('hide',plan!=='pro'&&plan!=='vip');
   freeCard.classList.toggle('current',plan==='free');proCard.classList.toggle('current',plan==='pro'||plan==='vip');
-  const pending=(upgradeState?.requests||[]).find(x=>x.status==='pending');upgrade.textContent=plan==='free'?(pending?'Pro upgrade pending':'Request Pro upgrade'):'Current plan: '+plan.toUpperCase();upgrade.disabled=plan!=='free'||Boolean(pending);if(pending){upgradeNote.className='setting-note ok';upgradeNote.textContent='Upgrade request received. PRO will be attached directly to this account when approved.'}
+  const paddleOn=Boolean(paddleConfig?.enabled),sandbox=paddleConfig?.environment==='sandbox';
+  paddleMode.classList.toggle('hide',!paddleOn||!sandbox);
+  if(paddleOn){
+    upgradeHelp.textContent='Paddle checkout attaches PRO directly to this account. No license key is required.';
+    upgrade.textContent=sandbox?(plan==='free'?'Upgrade to Pro — Sandbox':'Test Paddle sandbox'):(plan==='free'?'Upgrade to Pro':'Current plan: '+plan.toUpperCase());
+    upgrade.disabled=!sandbox&&plan!=='free';
+    if(sandbox&&!upgradeNote.textContent){upgradeNote.className='setting-note muted';upgradeNote.textContent='Sandbox mode: Paddle test cards only. Existing VIP/PRO entitlements will not be downgraded.'}
+  }else{
+    upgradeHelp.textContent='No license key required. Approved upgrades attach directly to this account.';
+    const pending=(upgradeState?.requests||[]).find(x=>x.status==='pending');
+    upgrade.textContent=plan==='free'?(pending?'Pro upgrade pending':'Request Pro upgrade'):'Current plan: '+plan.toUpperCase();
+    upgrade.disabled=plan!=='free'||Boolean(pending);
+    if(pending){upgradeNote.className='setting-note ok';upgradeNote.textContent='Upgrade request received. PRO will be attached directly to this account when approved.'}
+  }
   if(limit==null){planSummary.textContent='You are on '+plan.toUpperCase()+'. Tool calls are unlimited.';usageBadge.textContent='Unlimited';usageText.textContent=fmt(used)+' calls this month';usageRemaining.textContent='Unlimited';usageBar.style.width='100%';usageBar.classList.add('unlimited')}
   else {const remaining=Math.max(0,limit-used),pct=Math.min(100,used/Math.max(1,limit)*100);planSummary.textContent='You are on the Free plan. '+fmt(remaining)+' tool calls left this month.';usageBadge.textContent=Math.round(pct)+'%';usageText.textContent=fmt(used)+' of '+fmt(limit)+' calls';usageRemaining.textContent=fmt(remaining)+' remaining';usageBar.style.width=pct+'%';usageBar.classList.toggle('warn',pct>=85);usageBar.classList.toggle('danger-bar',pct>=100)}
 }
-async function load(){const [m,ur,up]=await Promise.all([api('me'),fetch('/account/api?action=usage&months=1',{cache:'no-store'}),api('upgrade-request')]);if(ur.status===401){location.href='/account/login';return}const u=await ur.json();if(!ur.ok)throw new Error(u.error||'usage_unavailable');me=m;usage=u.usage;upgradeState=up;render()}
-upgrade.onclick=async()=>{upgrade.disabled=true;upgradeNote.className='setting-note muted';upgradeNote.textContent='Submitting account-bound upgrade request…';try{upgradeState=await api('upgrade-request',{method:'POST',body:JSON.stringify({plan:'pro'})});upgradeNote.className='setting-note ok';upgradeNote.textContent='Request received. No key is needed; PRO will attach directly to this account when approved.';await load()}catch(e){upgradeNote.className='setting-note error';upgradeNote.textContent=e.message;upgrade.disabled=false}};
+async function load(){const [m,ur,up,pb]=await Promise.all([api('me'),fetch('/account/api?action=usage&months=1',{cache:'no-store'}),api('upgrade-request'),api('paddle-config')]);if(ur.status===401){location.href='/account/login';return}const u=await ur.json();if(!ur.ok)throw new Error(u.error||'usage_unavailable');me=m;usage=u.usage;upgradeState=up;paddleConfig=pb.paddle||null;if(paddleConfig?.enabled&&!paddleReady)await initPaddle();render()}
+upgrade.onclick=async()=>{
+  upgrade.disabled=true;
+  if(paddleConfig?.enabled){
+    upgradeNote.className='setting-note muted';upgradeNote.textContent='Creating secure Paddle sandbox checkout…';
+    try{
+      await initPaddle();
+      const r=await api('paddle-checkout',{method:'POST',body:'{}'});
+      Paddle.Checkout.open({transactionId:r.checkout.transactionId,settings:{displayMode:'overlay',theme:'dark',successUrl:location.origin+'/account/billing?paddle=success'}});
+      upgradeNote.className='setting-note muted';upgradeNote.textContent='Paddle sandbox checkout opened. No real charge will be made.';
+    }catch(e){upgradeNote.className='setting-note error';upgradeNote.textContent=e.message;upgrade.disabled=false}
+    return;
+  }
+  upgradeNote.className='setting-note muted';upgradeNote.textContent='Submitting account-bound upgrade request…';
+  try{upgradeState=await api('upgrade-request',{method:'POST',body:JSON.stringify({plan:'pro'})});upgradeNote.className='setting-note ok';upgradeNote.textContent='Request received. No key is needed; PRO will attach directly to this account when approved.';await load()}catch(e){upgradeNote.className='setting-note error';upgradeNote.textContent=e.message;upgrade.disabled=false}
+};
 redeemForm.onsubmit=async ev=>{ev.preventDefault();redeemMsg.className='setting-note muted';redeemMsg.textContent='Redeeming…';try{const r=await api('redeem-license',{method:'POST',body:JSON.stringify({key:licenseKey.value.trim()})});me.account=r.account;me.entitlements=r.entitlements||me.entitlements;licenseKey.value='';redeemMsg.className='setting-note ok';redeemMsg.textContent='Activated '+String(r.account?.plan||'').toUpperCase();render()}catch(e){redeemMsg.className='setting-note error';redeemMsg.textContent=e.message}};
 logout.onclick=async()=>{await fetch('/account/api?action=logout',{method:'POST',headers:{'content-type':'application/json'},body:'{}'});location.href='/account/login'};
 load().catch(e=>{if(e.message!=='login_required')upgradeNote.textContent=e.message});

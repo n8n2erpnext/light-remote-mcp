@@ -318,6 +318,7 @@ export class AccountRegistry{
     const next=normalizePlan(input.plan),now=this.now(),current=entitlementView(row,now),source=String(input.source||'admin').slice(0,40),sourceRef=input.sourceRef==null?null:String(input.sourceRef).slice(0,160),allowDowngrade=Boolean(input.allowDowngrade);
     if(!allowDowngrade&&PLAN_RANK[next]<PLAN_RANK[current.plan])throw new AccountError('account_entitlement_downgrade_not_allowed',409);
     const rawDuration=input.durationMs==null?null:Number(input.durationMs);if(rawDuration!=null&&(!Number.isFinite(rawDuration)||rawDuration<=0||rawDuration>10*365*86400000))throw new AccountError('invalid_entitlement_duration');
+    if(current.plan===next&&current.source===source&&String(current.sourceRef||'')===String(sourceRef||'')&&rawDuration==null&&current.validUntil==null)return this._viewAccount(row);
     if(!allowDowngrade&&current.plan===next&&current.validUntil==null&&current.plan!=='free')throw new AccountError('account_entitlement_permanent',409);
     let validUntil=null;if(rawDuration!=null){const base=current.plan===next&&current.validUntil&&current.validUntil>now?current.validUntil:now;validUntil=base+Math.round(rawDuration);}
     const prior=current.plan,entitlementId=String(input.entitlementId||`ent_${crypto.randomUUID()}`);

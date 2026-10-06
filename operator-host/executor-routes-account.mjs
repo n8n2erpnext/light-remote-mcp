@@ -82,8 +82,8 @@ export async function handleAccountRoutes(req,res,url,deps){
     }
     const adminEntitlementMatch=url.pathname.match(/^\/v1\/admin\/accounts\/([A-Za-z0-9._:-]+)\/entitlement$/);
     if (req.method === 'POST' && adminEntitlementMatch) {
-      const body=await readJson(req),durationMs=body.durationDays==null?null:Number(body.durationDays)*86400000;
-      const account=accounts.applyEntitlement(adminEntitlementMatch[1],{plan:body.plan,durationMs,source:'admin',sourceRef:String(body.sourceRef||'license-admin-cli'),allowDowngrade:true}),entitlements=planEntitlements(account);
+      const body=await readJson(req),durationMs=body.durationDays==null?null:Number(body.durationDays)*86400000,source=body.source==='paddle'?'paddle':'admin';
+      const account=accounts.applyEntitlement(adminEntitlementMatch[1],{plan:body.plan,durationMs,source,sourceRef:String(body.sourceRef||'license-admin-cli'),allowDowngrade:source==='admin'||body.allowDowngrade===true}),entitlements=planEntitlements(account);
       if(!entitlements.fleetWall)fleetAuthority.invalidateAccount(account.accountId,'fleet_entitlement_removed');
       return sendJson(res,200,{ok:true,account,entitlements});
     }
@@ -102,8 +102,8 @@ export async function handleAccountRoutes(req,res,url,deps){
     }
     const adminEntitlementRevoke=url.pathname.match(/^\/v1\/admin\/accounts\/([A-Za-z0-9._:-]+)\/entitlement\/revoke$/);
     if (req.method === 'POST' && adminEntitlementRevoke) {
-      const body=await readJson(req),accountId=adminEntitlementRevoke[1];
-      const account=accounts.applyEntitlement(accountId,{plan:'free',durationMs:null,source:'admin_revoke',sourceRef:String(body.reason||'license-admin-cli'),allowDowngrade:true});
+      const body=await readJson(req),accountId=adminEntitlementRevoke[1],source=body.source==='paddle'?'paddle_revoke':'admin_revoke';
+      const account=accounts.applyEntitlement(accountId,{plan:'free',durationMs:null,source,sourceRef:String(body.reason||'license-admin-cli'),allowDowngrade:true});
       const closedDevices=closeRuntimeForAccount(accountId,'account_entitlement_revoked');
       fleetAuthority.invalidateAccount(accountId,'fleet_entitlement_revoked');
       return sendJson(res,200,{ok:true,account,entitlements:planEntitlements(account),closedDevices});
