@@ -48,12 +48,12 @@ export function renderSupportPage({origin,version}){
     .callout{border:1px solid #493f18;background:#171508;border-radius:12px;padding:14px 16px;color:#cabb79;margin:16px 0}.callout strong{color:#ffe26a}.danger{border-color:#4a2b25;background:#180f0d;color:#d8aaa0}.danger strong{color:#ffb5a4}
     .support-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}.mini{border:1px solid #252d35;background:var(--panel2);border-radius:13px;padding:16px}.mini h3{font-size:14px;margin:0 0 8px}.mini p,.mini li{color:#84919e;font-size:13px}.mini p{margin:0}.mini ul{margin:8px 0 0;padding-left:18px}
     .error-table{width:100%;border-collapse:collapse;font-size:13px}.error-table th,.error-table td{border-top:1px solid #252d35;padding:12px 10px;text-align:left;vertical-align:top}.error-table th{color:#cbd4dd;font-size:11px;letter-spacing:.06em;text-transform:uppercase}.error-table td{color:#84919e}.error-table code{font-family:${WEB_CODE_FONT};color:#f2d968;background:#16150d;padding:2px 5px;border-radius:5px}
-    .diag{border:1px solid #303943;background:#090d10;border-radius:14px;padding:17px}.diag pre{white-space:pre-wrap;margin:12px 0 0;color:#aab4bf;font:12px/1.55 ${WEB_CODE_FONT};background:#060809;border:1px solid #20272e;border-radius:10px;padding:14px}.btn{border:1px solid #353e47;background:#11161b;color:#e7edf3;border-radius:10px;padding:10px 14px;font:600 13px ${WEB_UI_FONT};cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px}.btn:hover{border-color:#59636d;background:#151b21}.btn.primary{background:var(--yellow);border-color:var(--yellow);color:#111}.btn img{width:17px;height:17px}.contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.contact-card{border:1px solid #2b333c;background:#0b1014;border-radius:14px;padding:18px}.contact-card h3{margin:0 0 6px;font-size:15px}.contact-card p{margin:0 0 14px;color:#84919e;font-size:13px}
+    .diag{border:1px solid #303943;background:#090d10;border-radius:14px;padding:17px}.diag pre{white-space:pre-wrap;margin:12px 0 0;color:#aab4bf;font:12px/1.55 ${WEB_CODE_FONT};background:#060809;border:1px solid #20272e;border-radius:10px;padding:14px}.btn{border:1px solid #353e47;background:#11161b;color:#e7edf3;border-radius:10px;padding:10px 14px;font:600 13px ${WEB_UI_FONT};cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px}.btn:hover{border-color:#59636d;background:#151b21}.btn.primary{background:var(--yellow);border-color:var(--yellow);color:#111}.btn[disabled]{opacity:.55;cursor:not-allowed}.btn img{width:17px;height:17px}.case-panel{margin-top:14px;border:1px solid #303943;background:#0b1014;border-radius:14px;padding:18px}.case-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}.case-head h3{margin:0 0 5px;font-size:16px}.case-head p{margin:0;color:#84919e;font-size:13px}.case-badge{border:1px solid #353e47;border-radius:999px;padding:5px 9px;color:#9aa6b2;font-size:11px;font-weight:700}.case-gate{margin-top:14px;color:#9aa6b2;font-size:13px}.case-form{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:15px}.case-form.hide{display:none}.case-form label{display:grid;gap:6px;color:#cbd4dd;font-size:12px;font-weight:650}.case-form .wide{grid-column:1/-1}.case-form input,.case-form select,.case-form textarea{width:100%;border:1px solid #303943;background:#080c0f;color:#e7edf3;border-radius:9px;padding:10px 11px;font:13px ${WEB_UI_FONT};outline:none}.case-form textarea{min-height:90px;resize:vertical}.case-form input:focus,.case-form select:focus,.case-form textarea:focus{border-color:#707b86}.case-actions{grid-column:1/-1;display:flex;gap:10px;align-items:center;flex-wrap:wrap}.case-msg{color:#8d99a6;font-size:12px}.case-msg.ok{color:#9bd6a7}.case-msg.error{color:#ffad9a}.contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}.contact-card{border:1px solid #2b333c;background:#0b1014;border-radius:14px;padding:18px}.contact-card h3{margin:0 0 6px;font-size:15px}.contact-card p{margin:0 0 14px;color:#84919e;font-size:13px}
     details{border-top:1px solid #252d35}details:first-of-type{border-top:0}summary{cursor:pointer;padding:15px 0;font-weight:700;color:#dce3e9}details p{margin:0 0 15px;color:#8793a0;font-size:13px}
     .no-results{display:none;border:1px dashed #38424c;border-radius:14px;padding:24px;text-align:center;color:#7f8b97;margin:18px 0}.no-results.show{display:block}
     .support-footer{margin-top:54px;border-top:1px solid #20262c;padding-top:24px;display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;color:#6f7b87;font-size:12px}.support-footer nav{display:flex;gap:14px;flex-wrap:wrap}.support-footer a{text-decoration:none;color:#84919e}.support-footer a:hover{color:#fff}
     @media(max-width:980px){.support-hero{grid-template-columns:1fr}.quick-grid{grid-template-columns:repeat(2,1fr)}.support-layout{grid-template-columns:1fr}.support-side{position:static;display:flex;overflow:auto;gap:4px}.support-side .label{display:none}.support-side a{white-space:nowrap}.support-cols,.contact-grid{grid-template-columns:1fr}}
-    @media(max-width:620px){.support-main{padding:36px 16px 60px}.support-nav{padding:18px 16px}.support-nav nav a:not(:last-child){display:none}.support-hero h1{font-size:38px}.quick-grid{grid-template-columns:1fr}.support-section{padding:21px}.search-row{display:block}.support-cols{grid-template-columns:1fr}}
+    @media(max-width:620px){.support-main{padding:36px 16px 60px}.support-nav{padding:18px 16px}.support-nav nav a:not(:last-child){display:none}.support-hero h1{font-size:38px}.quick-grid{grid-template-columns:1fr}.support-section{padding:21px}.search-row{display:block}.support-cols,.case-form{grid-template-columns:1fr}.case-form .wide{grid-column:auto}}
   </style>
 </head>
 <body>
@@ -170,9 +170,25 @@ export function renderSupportPage({origin,version}){
               <a class="btn" href="/account"><img src="/assets/icons/material/settings.svg" alt="">Open account</a>
             </div>
           </div>
+          <div class="case-panel" id="casePanel">
+            <div class="case-head"><div><h3>Open a private support case</h3><p>Available to signed-in PRO and VIP accounts. The account email and plan are verified server-side; ERPNext delivery runs asynchronously through a durable outbox.</p></div><span id="caseBadge" class="case-badge">Checking account…</span></div>
+            <div id="caseGate" class="case-gate">Checking your Light Remote account…</div>
+            <form id="supportCaseForm" class="case-form hide">
+              <label>Problem area<select name="problemArea"><option value="install">Install</option><option value="approval">A/B approval</option><option value="remote">Real Remote</option><option value="account">Account</option><option value="update">Update</option><option value="billing">Billing</option><option value="security">Security</option><option value="other" selected>Other</option></select></label>
+              <label>Device status<select name="deviceStatus"><option value="unknown" selected>Unknown</option><option value="online">Online</option><option value="offline">Offline</option></select></label>
+              <label class="wide">Subject<input name="subject" maxlength="240" required placeholder="Short description of the issue"></label>
+              <label class="wide">What happened?<textarea name="description" maxlength="12000" required placeholder="Describe the symptom and what you were trying to do."></textarea></label>
+              <label>Target device OS / arch<input name="targetOsArch" maxlength="160" placeholder="e.g. Windows 11 x64"></label>
+              <label>Target client / Core version<input name="targetVersion" maxlength="120" placeholder="e.g. rc.34"></label>
+              <label class="wide">Exact sanitized error<textarea name="sanitizedError" maxlength="4000" placeholder="Paste only sanitized error text. Secret-like material is rejected server-side."></textarea></label>
+              <label class="wide">Steps immediately before failure<textarea name="steps" maxlength="6000"></textarea></label>
+              <label class="wide">Expected result<textarea name="expected" maxlength="3000"></textarea></label>
+              <div class="case-actions"><button id="submitCase" class="btn primary" type="submit"><img src="/assets/icons/material/support_agent.svg" alt="">Submit support case</button><span id="caseMsg" class="case-msg"></span></div>
+            </form>
+          </div>
           <div class="danger callout"><strong>Redact before sending.</strong> Never include passwords, OTP/MFA codes, bearer/API tokens, cookies, private keys, A/B continuation data, device secrets, or screenshots containing sensitive credentials.</div>
           <div class="contact-grid">
-            <div class="contact-card"><h3>Private account / billing / security issue</h3><p>Email Support when the report contains account identity, entitlement, or non-public operational details.</p><a class="btn" href="mailto:support@thaiduy.digital?subject=Light%20Remote%20Support">support@thaiduy.digital</a></div>
+            <div class="contact-card"><h3>Security disclosure</h3><p>If you cannot safely use the case form for a security report, email a minimal description first. Do not attach credentials, private keys, tokens, or approval material.</p><a class="btn" href="mailto:support@thaiduy.digital?subject=Light%20Remote%20Security">support@thaiduy.digital</a></div>
             <div class="contact-card"><h3>Public reproducible bug</h3><p>For bugs safe to discuss publicly, include minimal reproduction steps, platform, version, and sanitized error output.</p><a class="btn" href="https://github.com/n8n2erpnext/light-remote-mcp/issues" target="_blank" rel="noopener noreferrer">GitHub Issues</a></div>
           </div>
         </section>
@@ -231,6 +247,50 @@ export function renderSupportPage({origin,version}){
       try{await navigator.clipboard.writeText(text);button.textContent='Copied';setTimeout(()=>button.innerHTML='<img src="/assets/icons/material/content_copy.svg" alt="">Copy support template',1600);}
       catch{diag.textContent=text;button.textContent='Select and copy';}
     });
+
+    const caseForm=document.getElementById('supportCaseForm');
+    const caseGate=document.getElementById('caseGate');
+    const caseBadge=document.getElementById('caseBadge');
+    const caseMsg=document.getElementById('caseMsg');
+    const submitCase=document.getElementById('submitCase');
+    const showGate=(text,html='')=>{if(caseGate){if(html)caseGate.innerHTML=html;else caseGate.textContent=text;}};
+    const checkEligibility=async()=>{
+      try{
+        const r=await fetch('/support/api?action=eligibility',{cache:'no-store'}),j=await r.json();
+        if(!r.ok)throw new Error(j.error||'support_unavailable');
+        if(!j.signedIn){caseBadge.textContent='SIGN IN';showGate('', 'Sign in to your Light Remote account to check case eligibility. <a href="/account/login?next=%2Fsupport%23diagnostics">Sign in →</a>');return;}
+        caseBadge.textContent=String(j.account?.plan||'free').toUpperCase();
+        if(!j.eligible){showGate('', 'Free accounts can use all self-help guidance on this page. Private case submission is available on PRO/VIP. <a href="/account/billing">View plan options →</a>');return;}
+        showGate('Signed in as '+String(j.account?.email||'')+'. Your case is queued locally first, then delivered to the back office asynchronously.');
+        caseForm?.classList.remove('hide');
+      }catch(e){caseBadge.textContent='UNAVAILABLE';showGate('Account support status is temporarily unavailable. Self-help guidance remains available.');}
+    };
+    const pollCase=async eventId=>{
+      for(let i=0;i<8;i++){
+        await new Promise(r=>setTimeout(r,1500));
+        try{
+          const r=await fetch('/support/api?action=status&eventId='+encodeURIComponent(eventId),{cache:'no-store'}),j=await r.json();
+          if(r.ok&&j.event?.status==='sent'){caseMsg.className='case-msg ok';caseMsg.textContent='Delivered to Support Center · '+eventId;return;}
+        }catch{}
+      }
+      caseMsg.className='case-msg ok';caseMsg.textContent='Queued safely · '+eventId+' · delivery will retry automatically.';
+    };
+    caseForm?.addEventListener('submit',async ev=>{
+      ev.preventDefault();
+      submitCase.disabled=true;caseMsg.className='case-msg';caseMsg.textContent='Queueing case…';
+      const f=new FormData(caseForm),payload=Object.fromEntries(f.entries());
+      payload.browserPlatform=safePlatform();payload.browserUserAgent=navigator.userAgent;
+      try{
+        const r=await fetch('/support/api',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)}),j=await r.json();
+        if(!r.ok)throw new Error(j.error||'support_submit_failed');
+        const eventId=String(j.event?.eventId||'');
+        caseMsg.className='case-msg ok';caseMsg.textContent='Queued safely · '+eventId;
+        caseForm.reset();
+        if(eventId)void pollCase(eventId);
+      }catch(e){caseMsg.className='case-msg error';caseMsg.textContent=e.message==='support_contains_sensitive_material'?'Remove secret-like material before submitting.':e.message;}
+      finally{submitCase.disabled=false;}
+    });
+    void checkEligibility();
   })();
   </script>
 </body></html>`;

@@ -12,6 +12,7 @@ import { registerAdminPortal } from './admin-portal.mjs';
 import { registerWebAssets } from './web-assets.mjs';
 import { LEGAL_PAGES, renderLegalPage } from './legal-pages.mjs';
 import { renderSupportPage } from './support-page.mjs';
+import { registerSupportBackoffice } from './support-backoffice.mjs';
 import { PLUGIN_TOOL_SECURITY, registerPluginTools } from './tools.mjs';
 import { installOpenAiToolSecurityCompat } from './openai-security-compat.mjs';
 import { installLegacyToolCallCompat } from './legacy-tool-call-compat.mjs';
@@ -40,6 +41,7 @@ app.use((req,res,next)=>{
 registerOAuth(app);
 registerWebAssets(app);
 registerAccountPortal(app);
+registerSupportBackoffice(app);
 registerDistributionPortal(app);
 registerAdminPortal(app);
 registerPublicDeviceRoutes(app);
