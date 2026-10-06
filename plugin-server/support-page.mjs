@@ -146,7 +146,7 @@ export function renderSupportPage({origin,version}){
           </table></div>
         </section>
 
-        <section id="updates" class="support-section" data-support="update updater version rc33 beta prerelease unsigned notarized macos windows linux rollback compatibility">
+        <section id="updates" class="support-section" data-support="update updater version rc34 beta prerelease unsigned notarized macos windows linux rollback compatibility">
           <h2>Updates & compatibility</h2><p>Light Remote uses compatibility checks and health-gated recovery so a bad update does not need to become a permanent outage.</p>
           <div class="support-cols">
             <div class="mini"><h3>Before updating</h3><ul><li>Check the platform and architecture.</li><li>Keep the device online during the update.</li><li>Review prerelease or unsigned warnings shown by the platform.</li><li>Do not remove a working installation before confirming the new package is healthy.</li></ul></div>

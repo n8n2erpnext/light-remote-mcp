@@ -7,7 +7,7 @@ const MANIFEST_FILE=String(process.env.LIGHT_REMOTE_DISTRIBUTION_MANIFEST||path.
 const PORTAL_FILE=fileURLToPath(new URL('./downloads-portal.html',import.meta.url));
 const FALLBACK={
   schemaVersion:1,
-  channel:'0.9.0-rc.33',
+  channel:'0.9.0-rc.34',
   generatedAt:null,
   endpoint:'https://light-remote.thaiduy.digital',
   releases:[

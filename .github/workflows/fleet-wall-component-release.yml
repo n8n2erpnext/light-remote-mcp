@@ -54,4 +54,4 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh release create "$GITHUB_REF_NAME"             "dist/fleet-wall-release/Light-Remote-Fleet-Wall-$FLEET_VERSION.tar.gz"             "dist/fleet-wall-release/fleet-wall-module-metadata.json"             "dist/fleet-wall-release/SHA256SUMS.txt"             --repo "$GITHUB_REPOSITORY"             --title "Light Remote Fleet Wall $FLEET_VERSION"             --notes "Fleet Wall component hotfix for Light Remote Core 0.9.0-rc.33. Core version is unchanged."             --prerelease             --verify-tag
+          gh release create "$GITHUB_REF_NAME"             "dist/fleet-wall-release/Light-Remote-Fleet-Wall-$FLEET_VERSION.tar.gz"             "dist/fleet-wall-release/fleet-wall-module-metadata.json"             "dist/fleet-wall-release/SHA256SUMS.txt"             --repo "$GITHUB_REPOSITORY"             --title "Light Remote Fleet Wall $FLEET_VERSION"             --notes "Fleet Wall component hotfix for Light Remote Core 0.9.0-rc.34. Core version is unchanged."             --prerelease             --verify-tag

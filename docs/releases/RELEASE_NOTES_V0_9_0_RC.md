@@ -41,3 +41,8 @@ This is a prerelease candidate. It is not a claim of stable/general-availability
 - uninstall removes runtime/services/CLI while preserving enrollment identity by default; --purge removes local identity/state;
 - Linux CLI status/up/wall now honor the persisted Local Wall bind instead of assuming 127.0.0.1;
 - Direct systemd units no longer allow stale environment files to pin an older server version than the current release.
+
+
+## RC.34 changes
+- Local Wall copy actions now fall back to a user-gesture textarea copy path when the modern Clipboard API is unavailable or blocked, including HTTP access over private LAN/NetBird addresses;
+- secure-context Clipboard API remains the preferred path, with fallback cleanup and focus restoration covered by regression tests.

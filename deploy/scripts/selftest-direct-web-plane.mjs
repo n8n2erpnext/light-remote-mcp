@@ -89,7 +89,7 @@ assert.ok(downloadsPortal.includes("expand:'/assets/icons/material/expand_more.s
 assert.ok(publicHome.includes('rel="canonical" href="https://light-remote.thaiduy.digital/"'),'home canonical missing');
 assert.ok(publicHome.includes('application/ld+json')&&publicHome.includes('SoftwareApplication'),'home structured data missing');
 assert.ok(publicHome.includes('https://lightbi.app/')&&publicHome.includes('https://thaiduy.digital/'),'home ecosystem backlinks missing');
-assert.ok(publicHome.includes('LIGHT REMOTE MCP · RC.33'),'home release label stale');
+assert.ok(publicHome.includes('LIGHT REMOTE MCP · RC.34'),'home release label stale');
 for(const phrase of ['Terms of Service','Privacy Policy','Cookie Policy','Local Wall','A/B approval','Remote task data','__Host-light_remote_account'])assert.ok(legalPages.includes(phrase),`legal content missing:${phrase}`);
 assert.ok(server.includes("app.get('/cookies'")&&server.includes("'/cookies'"),'cookie policy route/indexing missing');
 assert.ok(server.includes("const urls=['/','/downloads','/support','/privacy','/terms','/cookies']"),'cookie policy sitemap missing');
