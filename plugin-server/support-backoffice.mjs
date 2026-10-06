@@ -56,6 +56,7 @@ function supportView(row){
     nextAttemptAt:row.nextAttemptAt||null,
     remoteStatus:row.remoteStatus||null,
     resultName:row.resultName||null,
+    statusCheckAttempts:Number(row.statusCheckAttempts||0),
     lastError:row.lastError||null,
   };
 }
@@ -133,6 +134,8 @@ export class SupportOutbox{
       deliveredAt:null,
       remoteStatus:null,
       resultName:null,
+      statusCheckAttempts:0,
+      nextStatusCheckAt:null,
       lastError:null,
     };
     this.rows.push(row);
@@ -165,7 +168,8 @@ export class SupportOutbox{
         this._compact();
         this._persist();
       }
-      return {ok:true,delivered,failed,pending:this.rows.filter(row=>row.status!=='sent').length};
+      const resolved=await this._refreshResults(config,{limit});
+      return {ok:true,delivered,failed,resolved,pending:this.rows.filter(row=>row.status!=='sent').length};
     }finally{this.pumping=false;}
   }
   async _deliver(row,config){
@@ -193,6 +197,73 @@ export class SupportOutbox{
     row.lastError=null;
     row.remoteStatus=String(message.status||'Received');
     row.resultName=message.result_name?String(message.result_name):null;
+    row.statusCheckAttempts=0;
+    row.nextStatusCheckAt=row.resultName?null:this.now();
+  }
+  _statusEndpoint(config,eventId){
+    const url=new URL(config.endpoint);
+    const method=config.authMode==='internal-network'
+      ?'get_support_case_status_internal'
+      :'get_event_status';
+    url.pathname=url.pathname.replace(/[^/]+$/,method);
+    url.search='';
+    url.searchParams.set('event_id',eventId);
+    return url.toString();
+  }
+  async _refreshOne(row,config){
+    const headers={'accept':'application/json'};
+    if(config.authMode==='token')headers.authorization=`token ${config.apiKey}:${config.apiSecret}`;
+    if(config.siteHost)headers.host=config.siteHost;
+    const response=await this.fetchImpl(this._statusEndpoint(config,row.eventId),{
+      method:'GET',
+      headers,
+      signal:AbortSignal.timeout(8_000),
+    });
+    const text=await response.text();
+    let body={};
+    try{body=text?JSON.parse(text):{};}catch{}
+    if(!response.ok)throw new Error(`backoffice_status_http_${response.status}:${body?.exception||body?.message||text.slice(0,180)}`);
+    const message=body?.message||body||{};
+    const remoteStatus=String(message.status||'');
+    if(!remoteStatus)throw new Error('backoffice_status_invalid');
+    row.remoteStatus=remoteStatus;
+    row.statusCheckAttempts=Number(row.statusCheckAttempts||0)+1;
+    if(message.result_name)row.resultName=String(message.result_name);
+    if(remoteStatus==='Succeeded'&&row.resultName){
+      row.nextStatusCheckAt=null;
+      row.lastError=null;
+      return true;
+    }
+    if(remoteStatus==='Failed'){
+      row.attempts=Number(row.attempts||0)+1;
+      row.status='queued';
+      row.nextAttemptAt=this.now()+backoffMs(row.attempts);
+      row.nextStatusCheckAt=null;
+      row.lastError='backoffice_processing_failed';
+      return false;
+    }
+    const statusDelay=Math.min(60_000,2_000*Math.max(1,row.statusCheckAttempts));
+    row.nextStatusCheckAt=this.now()+statusDelay;
+    return false;
+  }
+  async _refreshResults(config,{limit=8}={}){
+    const now=this.now();
+    const rows=this.rows
+      .filter(row=>row.status==='sent'&&!row.resultName&&Number(row.nextStatusCheckAt||0)<=now)
+      .slice(0,limit);
+    let resolved=0;
+    for(const row of rows){
+      try{
+        if(await this._refreshOne(row,config))resolved++;
+      }catch(error){
+        row.statusCheckAttempts=Number(row.statusCheckAttempts||0)+1;
+        row.nextStatusCheckAt=this.now()+Math.min(60_000,5_000*Math.max(1,row.statusCheckAttempts));
+        row.lastError=safeError(error);
+      }
+      this._compact();
+      this._persist();
+    }
+    return resolved;
   }
 }
 

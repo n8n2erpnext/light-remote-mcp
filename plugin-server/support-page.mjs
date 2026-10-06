@@ -168,6 +168,7 @@ export function renderSupportPage({origin,version}){
             <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
               <button id="copyDiag" class="btn primary" type="button"><img src="/assets/icons/material/content_copy.svg" alt="">Copy support template</button>
               <a class="btn" href="/account"><img src="/assets/icons/material/settings.svg" alt="">Open account</a>
+              <a class="btn" href="https://support.thaiduy.digital/" target="_blank" rel="noopener"><img src="/assets/icons/material/support_agent.svg" alt="">Support Portal</a>
             </div>
           </div>
           <div class="case-panel" id="casePanel">
@@ -266,14 +267,38 @@ export function renderSupportPage({origin,version}){
       }catch(e){caseBadge.textContent='UNAVAILABLE';showGate('Account support status is temporarily unavailable. Self-help guidance remains available.');}
     };
     const pollCase=async eventId=>{
-      for(let i=0;i<8;i++){
+      let delivered=false;
+      for(let i=0;i<20;i++){
         await new Promise(r=>setTimeout(r,1500));
         try{
           const r=await fetch('/support/api?action=status&eventId='+encodeURIComponent(eventId),{cache:'no-store'}),j=await r.json();
-          if(r.ok&&j.event?.status==='sent'){caseMsg.className='case-msg ok';caseMsg.textContent='Delivered to Support Center · '+eventId;return;}
+          if(!r.ok)continue;
+          const event=j.event||{};
+          if(event.resultName){
+            caseMsg.className='case-msg ok';
+            caseMsg.textContent='Helpdesk case '+event.resultName+' created · ';
+            const portalLink=document.createElement('a');
+            portalLink.href='https://support.thaiduy.digital/helpdesk/my-tickets/'+encodeURIComponent(event.resultName);
+            portalLink.textContent='Open case in Support Portal →';
+            portalLink.rel='noopener';
+            caseMsg.appendChild(portalLink);
+            return;
+          }
+          if(event.status==='sent'){
+            delivered=true;
+            caseMsg.className='case-msg ok';
+            caseMsg.textContent='Delivered to Support Center · creating your Helpdesk case…';
+          }
+          if(event.lastError==='backoffice_processing_failed'){
+            caseMsg.className='case-msg';
+            caseMsg.textContent='Case received · Helpdesk processing is retrying automatically.';
+          }
         }catch{}
       }
-      caseMsg.className='case-msg ok';caseMsg.textContent='Queued safely · '+eventId+' · delivery will retry automatically.';
+      caseMsg.className='case-msg ok';
+      caseMsg.textContent=delivered
+        ?'Delivered to Support Center · Helpdesk case creation continues in the background · '+eventId
+        :'Queued safely · '+eventId+' · delivery will retry automatically.';
     };
     caseForm?.addEventListener('submit',async ev=>{
       ev.preventDefault();
