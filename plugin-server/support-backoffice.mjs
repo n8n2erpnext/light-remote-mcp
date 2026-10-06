@@ -205,7 +205,9 @@ export class SupportOutbox{
     const method=config.authMode==='internal-network'
       ?'get_support_case_status_internal'
       :'get_event_status';
-    url.pathname=url.pathname.replace(/[^/]+$/,method);
+    const replaced=url.pathname.replace(/(light_backoffice\.api\.)[^/]+$/,`$1${method}`);
+    if(replaced===url.pathname)throw new Error('backoffice_status_endpoint_invalid');
+    url.pathname=replaced;
     url.search='';
     url.searchParams.set('event_id',eventId);
     return url.toString();
