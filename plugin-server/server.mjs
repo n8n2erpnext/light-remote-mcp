@@ -109,8 +109,13 @@ let shuttingDown=false;
 function shutdown(signal){
   if(shuttingDown)return;shuttingDown=true;clearInterval(pruner);
   console.log(JSON.stringify({event:'direct_plugin_shutdown',signal}));
-  server.close(()=>process.exit(0));
-  setTimeout(()=>process.exit(1),5000).unref();
+  server.closeIdleConnections?.();
+  const deadline=setTimeout(()=>{
+    server.closeAllConnections?.();
+    process.exit(0);
+  },4000);
+  deadline.unref();
+  server.close(()=>{clearTimeout(deadline);process.exit(0);});
 }
 process.once('SIGTERM',()=>shutdown('SIGTERM'));
 process.once('SIGINT',()=>shutdown('SIGINT'));
