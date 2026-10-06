@@ -90,6 +90,7 @@ const FLEET_COMMAND_LEASE_MS = Number(process.env.OPERATOR_FLEET_COMMAND_LEASE_M
 const FLEET_MAX_QUEUED_PER_NODE = Number(process.env.OPERATOR_FLEET_MAX_QUEUED_PER_NODE || 64);
 const DEVICE_CHANNEL_RUNTIME_LIMIT = Math.max(1, Number(process.env.OPERATOR_DEVICE_CHANNEL_RUNTIME_LIMIT || 240));
 const DEVICE_CHANNEL_OBSERVER_LIMIT = Math.max(1, Number(process.env.OPERATOR_DEVICE_CHANNEL_OBSERVER_LIMIT || 240));
+const DEVICE_CHANNEL_FLEET_LIMIT = Math.max(1, Number(process.env.OPERATOR_DEVICE_CHANNEL_FLEET_LIMIT || 600));
 const DEVICE_CHANNEL_CONTROL_LIMIT = Math.max(1, Number(process.env.OPERATOR_DEVICE_CHANNEL_CONTROL_LIMIT || 120));
 const DEVICE_CHANNEL_RM_LIVE_LIMIT = Math.max(1, Number(process.env.OPERATOR_DEVICE_CHANNEL_RM_LIVE_LIMIT || 1800));
 if (!Number.isFinite(DEVICE_PRESENCE_TTL_MS) || DEVICE_PRESENCE_TTL_MS < 10_000) throw new Error('invalid_device_presence_ttl');
@@ -909,11 +910,12 @@ class DeviceChannelRateLimitError extends Error {
 function trustedChannelLane(action){
   if(['poll','result','update-report','stream'].includes(action))return 'runtime';
   if(action==='desktop-live-push')return 'rm-live';
-  if(['status','activity','fleet-intent','fleet-authority','fleet-status','fleet-devices','fleet-sessions','fleet-activity'].includes(action))return 'observer';
+  if(['fleet-intent','fleet-authority','fleet-status','fleet-devices','fleet-sessions','fleet-activity'].includes(action))return 'fleet';
+  if(['status','activity'].includes(action))return 'observer';
   return 'control';
 }
 function enforceTrustedChannelRate(deviceId,action,now=Date.now()){
-  const lane=trustedChannelLane(action),limit=lane==='runtime'?DEVICE_CHANNEL_RUNTIME_LIMIT:lane==='observer'?DEVICE_CHANNEL_OBSERVER_LIMIT:lane==='rm-live'?DEVICE_CHANNEL_RM_LIVE_LIMIT:DEVICE_CHANNEL_CONTROL_LIMIT;
+  const lane=trustedChannelLane(action),limit=lane==='runtime'?DEVICE_CHANNEL_RUNTIME_LIMIT:lane==='observer'?DEVICE_CHANNEL_OBSERVER_LIMIT:lane==='fleet'?DEVICE_CHANNEL_FLEET_LIMIT:lane==='rm-live'?DEVICE_CHANNEL_RM_LIVE_LIMIT:DEVICE_CHANNEL_CONTROL_LIMIT;
   const minute=Math.floor(now/60000),key=`${lane}:${deviceId}`,current=trustedChannelRateBuckets.get(key),state=current?.minute===minute?current:{minute,count:0};
   state.count++;trustedChannelRateBuckets.set(key,state);
   if(state.count>limit)throw new DeviceChannelRateLimitError(lane,Math.max(1,60-Math.floor((now%60000)/1000)));

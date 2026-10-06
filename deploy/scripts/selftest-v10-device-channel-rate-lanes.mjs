@@ -17,7 +17,7 @@ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'lr-rate-lanes-'));
 const socket=ipcEndpoint('lr-rate-lanes'),logDir=path.join(dir,'log'),stateDir=path.join(dir,'state');
 fs.mkdirSync(logDir,{recursive:true});fs.mkdirSync(stateDir,{recursive:true});
 const fixture=createOperatorCryptoFixture(stateDir);
-const child=spawn(process.execPath,[`${root}/operator-host/executor.mjs`],{cwd:root,env:{...process.env,OPERATOR_SOCKET:socket,OPERATOR_LOG_DIR:logDir,OPERATOR_STATE_DIR:stateDir,OPERATOR_KEY_FILE:fixture.privateFile,OPERATOR_CONNECTION_LEASE_ENFORCE:'1',OPERATOR_DEVICE_CHANNEL_RUNTIME_LIMIT:'1',OPERATOR_DEVICE_CHANNEL_OBSERVER_LIMIT:'1',OPERATOR_DEVICE_CHANNEL_CONTROL_LIMIT:'10'},stdio:['ignore','pipe','pipe']});
+const child=spawn(process.execPath,[`${root}/operator-host/executor.mjs`],{cwd:root,env:{...process.env,OPERATOR_SOCKET:socket,OPERATOR_LOG_DIR:logDir,OPERATOR_STATE_DIR:stateDir,OPERATOR_KEY_FILE:fixture.privateFile,OPERATOR_CONNECTION_LEASE_ENFORCE:'1',OPERATOR_DEVICE_CHANNEL_RUNTIME_LIMIT:'1',OPERATOR_DEVICE_CHANNEL_OBSERVER_LIMIT:'1',OPERATOR_DEVICE_CHANNEL_FLEET_LIMIT:'1',OPERATOR_DEVICE_CHANNEL_CONTROL_LIMIT:'10'},stdio:['ignore','pipe','pipe']});
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 await waitForIpc(socket,{attempts:100,delayMs:40,error:'executor_not_ready'});
 
@@ -43,6 +43,10 @@ let r=await request('POST','/v1/device-channel/status',a.signed('status',statusP
 if(r.status!==200)throw new Error('observer_first_failed');
 r=await request('POST','/v1/device-channel/status',a.signed('status',statusPayload(a)));
 if(r.status!==429||r.json.scope!=='device-channel-observer'||!Number(r.json.retryAfterSeconds)||!r.headers['retry-after'])throw new Error(`observer_limit_contract_failed:${r.status}:${JSON.stringify(r.json)}`);
+r=await request('POST','/v1/device-channel/fleet-intent',a.signed('fleet-intent',{agentVersion:currentVersion,moduleVersion:'test',fleetHealthy:true,fleetPort:5492}));
+if(r.status===429)throw new Error('observer_starved_fleet');
+r=await request('POST','/v1/device-channel/fleet-intent',a.signed('fleet-intent',{agentVersion:currentVersion,moduleVersion:'test',fleetHealthy:true,fleetPort:5492}));
+if(r.status!==429||r.json.scope!=='device-channel-fleet')throw new Error(`fleet_limit_contract_failed:${r.status}:${JSON.stringify(r.json)}`);
 const pollPayload=dev=>({nodeId:dev.deviceId,agentVersion:currentVersion,sessionCeiling:2,draining:false,capabilities:['filesystem'],policyRevision:1,waitMs:0});
 await ensureMinuteBudget();
 r=await request('POST','/v1/device-channel/poll',a.signed('poll',pollPayload(a)));
@@ -62,6 +66,8 @@ r=await request('POST','/v1/device-channel/status',b.signed('status',statusPaylo
 if(r.status!==429)throw new Error('device_b_observer_limit_missing');
 r=await request('POST','/v1/device-channel/poll',b.signed('poll',pollPayload(b)));
 if(r.status!==200)throw new Error(`device_a_starved_device_b_runtime:${r.status}:${r.json.error}`);
+console.log('v10-device-channel-observer-fleet-isolation=PASS');
+console.log('v10-device-channel-fleet-limit-contract=PASS');
 console.log('v10-device-channel-observer-runtime-isolation=PASS');
 console.log('v10-device-channel-invalid-signature-no-quota=PASS');
 console.log('v10-device-channel-device-isolation=PASS');

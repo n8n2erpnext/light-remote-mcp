@@ -123,6 +123,9 @@ assert.ok(adminHtml.includes("action='+encodeURIComponent(action)"));
 
 assert.ok(server.includes("registerDistributionPortal(app)"));
 assert.ok(server.includes("registerAdminPortal(app)"));
+assert.ok(server.includes("const app=express();"),'direct plugin must own JSON parsing so device result envelopes are not capped by SDK default');
+assert.ok(server.includes("hostHeaderValidation(PUBLIC_ALLOWED_HOSTS)"),'direct plugin host validation must remain enabled');
+assert.ok(server.includes("express.json({limit:'12mb'})"),'direct plugin JSON body limit must exceed operator 8 MB ceiling');
 assert.ok(server.includes("PUBLIC_INDEXABLE_PATHS")&&server.includes("if(!indexable)res.set('X-Robots-Tag','noindex, nofollow, noarchive')"),'public/private robots header split missing');
 assert.ok(server.includes("app.get('/robots.txt'")&&server.includes("app.get('/sitemap.xml'")&&server.includes("app.get('/favicon.ico'"),'SEO discovery routes missing');
 assert.ok(server.includes("strict-origin-when-cross-origin")&&server.includes("no-referrer"),'public/private referrer policy split missing');
