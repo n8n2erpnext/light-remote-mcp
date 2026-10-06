@@ -3,7 +3,6 @@ import path from 'node:path';
 import { Environment, EventName, Paddle } from '@paddle/paddle-node-sdk';
 
 import { callOperatorJson } from './operator-client.mjs';
-import { PUBLIC_ORIGIN } from './config.mjs';
 
 const DEFAULT_STATE_FILE = '/var/lib/light-remote-direct/plugin-state/paddle-billing.json';
 const ACTIVE_SUBSCRIPTION_STATUSES = new Set(['active', 'trialing']);
@@ -176,7 +175,6 @@ export class PaddleBilling {
         light_remote_plan: PRO_PLAN,
         light_remote_environment: 'sandbox',
       },
-      checkout: { url: `${PUBLIC_ORIGIN}/account/billing` },
     });
 
     return {
