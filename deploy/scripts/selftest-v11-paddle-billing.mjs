@@ -328,6 +328,30 @@ const disabled = new PaddleBilling({
 assert.equal(disabled.status().checkoutEnabled, false);
 assert.equal(disabled.status().webhookEnabled, false);
 
+const paused = new PaddleBilling({
+  config: {
+    environment: 'sandbox',
+    checkoutAllowed: false,
+    apiKey: 'pdl_sdbx_apikey_test',
+    clientToken: 'test_client_token',
+    proPriceId: priceId,
+    webhookSecret: 'pdl_ntfset_test_secret',
+    stateFile: '',
+  },
+  paddleClient: fakePaddle,
+  operatorCall,
+});
+assert.equal(paused.status().configured, true);
+assert.equal(paused.status().checkoutAllowed, false);
+assert.equal(paused.status().checkoutEnabled, false);
+assert.equal(paused.status().webhookEnabled, true);
+assert.equal(paused.publicConfig().paused, true);
+assert.equal(paused.publicConfig().clientToken, null);
+await assert.rejects(
+  () => paused.createCheckout({ accountId: 'acct_test', email: 'owner@example.test', plan: 'free' }),
+  error => error?.message === 'paddle_checkout_not_configured' && error?.status === 503,
+);
+
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log('paddle-sandbox-config=PASS');
 console.log('paddle-server-checkout-metadata=PASS');
@@ -338,3 +362,4 @@ console.log('paddle-cancel-revoke=PASS');
 console.log('paddle-refund-24h-window=PASS');
 console.log('paddle-refund-approval-gate=PASS');
 console.log('paddle-admin-refund-eligibility=PASS');
+console.log('paddle-checkout-pause-flag=PASS');

@@ -78,8 +78,11 @@ function saveState(file, state) {
 
 function defaultConfig(env = process.env) {
   const environment = text(env.LIGHT_REMOTE_PADDLE_ENV || 'sandbox').toLowerCase();
+  const rawCheckoutEnabled = text(env.LIGHT_REMOTE_PADDLE_CHECKOUT_ENABLED || 'true').toLowerCase();
+  const checkoutAllowed = !['0', 'false', 'off', 'no'].includes(rawCheckoutEnabled);
   return {
     environment,
+    checkoutAllowed,
     apiKey: text(env.LIGHT_REMOTE_PADDLE_API_KEY),
     clientToken: text(env.LIGHT_REMOTE_PADDLE_CLIENT_TOKEN),
     proPriceId: text(env.LIGHT_REMOTE_PADDLE_PRO_PRICE_ID),
@@ -116,7 +119,16 @@ export class PaddleBilling {
   }
 
   status() {
+    const credentialsConfigured = Boolean(
+      this.validation.ok &&
+      this.paddle &&
+      this.config.clientToken &&
+      this.config.proPriceId &&
+      this.config.webhookSecret
+    );
+    const checkoutAllowed = this.config.checkoutAllowed !== false;
     const checkoutEnabled = Boolean(
+      checkoutAllowed &&
       this.validation.ok &&
       this.paddle &&
       this.config.clientToken &&
@@ -129,7 +141,8 @@ export class PaddleBilling {
     );
     return {
       environment: this.config.environment,
-      configured: checkoutEnabled && webhookEnabled,
+      configured: credentialsConfigured,
+      checkoutAllowed,
       checkoutEnabled,
       webhookEnabled,
       reason: this.validation.ok ? null : this.validation.reason,
@@ -142,14 +155,21 @@ export class PaddleBilling {
 
   publicConfig() {
     const status = this.status();
+    const paused = Boolean(status.configured && !status.checkoutAllowed);
     return {
       enabled: status.checkoutEnabled,
+      configured: status.configured,
+      paused,
       environment: status.environment,
       clientToken: status.checkoutEnabled ? this.config.clientToken : null,
       proPriceId: status.checkoutEnabled ? this.config.proPriceId : null,
       currency: 'USD',
       proMonthly: 20,
-      reason: status.checkoutEnabled ? null : status.reason || 'paddle_sandbox_not_configured',
+      reason: status.checkoutEnabled
+        ? null
+        : paused
+          ? 'paddle_checkout_paused'
+          : status.reason || 'paddle_sandbox_not_configured',
     };
   }
 
