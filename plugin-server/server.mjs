@@ -10,12 +10,11 @@ import { registerAccountPortal } from './account-portal.mjs';
 import { registerDistributionPortal } from './distribution-portal.mjs';
 import { registerAdminPortal } from './admin-portal.mjs';
 import { registerWebAssets } from './web-assets.mjs';
-import { PUBLIC_PAGE_BODIES } from './public-pages.mjs';
 import { LEGAL_PAGES, renderLegalPage } from './legal-pages.mjs';
+import { renderSupportPage } from './support-page.mjs';
 import { PLUGIN_TOOL_SECURITY, registerPluginTools } from './tools.mjs';
 import { installOpenAiToolSecurityCompat } from './openai-security-compat.mjs';
 import { installLegacyToolCallCompat } from './legacy-tool-call-compat.mjs';
-import { WEB_FONT_FACE_CSS, WEB_UI_FONT, WEB_CODE_FONT } from '../lib/web-typography.mjs';
 
 
 const app=createMcpExpressApp({host:PUBLIC_HOST,allowedHosts:PUBLIC_ALLOWED_HOSTS});
@@ -42,12 +41,8 @@ registerAdminPortal(app);
 registerPublicDeviceRoutes(app);
 const pruner=setInterval(()=>prunePublicRateState(),60_000);pruner.unref?.();
 
-function publicHtml({title,description,path:pagePath,body}){
-  const canonical=`${PUBLIC_ORIGIN}${pagePath}`;
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><meta name="description" content="${description}"><meta name="robots" content="index,follow"><meta name="theme-color" content="#080a0c"><link rel="canonical" href="${canonical}"><link rel="icon" href="/account/assets/light-remote.ico" sizes="any"><meta property="og:type" content="website"><meta property="og:site_name" content="Light Remote"><meta property="og:title" content="${title}"><meta property="og:description" content="${description}"><meta property="og:url" content="${canonical}"><meta name="twitter:card" content="summary"><style>${WEB_FONT_FACE_CSS}body{font-family:${WEB_UI_FONT};font-size:16px;max-width:820px;margin:48px auto;padding:0 20px;line-height:1.6;color:#1f2937}h1,h2{line-height:1.2}code{font-family:${WEB_CODE_FONT};background:#f3f4f6;padding:2px 5px;border-radius:4px}a{color:#1d4ed8}.public-footer{margin-top:52px;padding-top:22px;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;color:#667085;font-size:13px}.public-footer nav{display:flex;gap:14px;flex-wrap:wrap}.public-powered{display:inline-flex;align-items:center;gap:6px;color:#667085;text-decoration:none}.public-powered img{width:20px;height:20px}.public-powered strong{color:#344054}</style></head><body>${body}<footer class="public-footer"><a class="public-powered" href="https://thaiduy.digital/" rel="noopener"><span>Powered by</span><img src="/assets/brand/thaiduy-mark.svg?v=9cf25b11" alt=""><strong>thaiduy.digital</strong></a><nav><a href="/">Home</a><a href="/downloads">Downloads</a><a href="https://lightbi.app/" rel="noopener">LightBI</a><a href="/support">Support</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="/cookies">Cookies</a></nav></footer></body></html>`;
-}
 app.get('/',(_q,r)=>r.type('html').send(fs.readFileSync(new URL('./public-home.html',import.meta.url),'utf8')));
-app.get('/support',(_q,r)=>r.type('html').send(publicHtml({title:'Light Remote Support',description:'Support and troubleshooting guidance for Light Remote remote MCP devices, Local Wall approval, sessions and Real Remote.',path:'/support',body:PUBLIC_PAGE_BODIES.support})));
+app.get('/support',(_q,r)=>r.type('html').send(renderSupportPage({origin:PUBLIC_ORIGIN,version:VERSION})));
 app.get('/privacy',(_q,r)=>r.type('html').send(renderLegalPage({active:'privacy',origin:PUBLIC_ORIGIN,...LEGAL_PAGES.privacy})));
 app.get('/terms',(_q,r)=>r.type('html').send(renderLegalPage({active:'terms',origin:PUBLIC_ORIGIN,...LEGAL_PAGES.terms})));
 app.get('/cookies',(_q,r)=>r.type('html').send(renderLegalPage({active:'cookies',origin:PUBLIC_ORIGIN,...LEGAL_PAGES.cookies})));
