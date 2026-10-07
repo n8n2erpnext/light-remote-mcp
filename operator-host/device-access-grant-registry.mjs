@@ -157,10 +157,10 @@ export class DeviceAccessGrantRegistry {
   recoverPairing({accountId,agentId}={}){
     const aid=validId(accountId,'invalid_access_account_id'),agent=validId(agentId,'invalid_plus_agent_id'),now=this.now();
     const candidates=[...this.requests.values()]
-      .filter(row=>row.pairingRequired&&row.accountId===aid&&row.agentId===agent&&!row.consumedAt&&['pending','approved'].includes(row.state))
+      .filter(row=>row.pairingRequired&&row.accountId===aid&&row.agentId===agent)
       .sort((a,b)=>Number(b.createdAt||0)-Number(a.createdAt||0));
     const row=candidates[0];
-    if(!row)return null;
+    if(!row||row.consumedAt||!['pending','approved'].includes(row.state))return null;
     if(row.state==='pending'){
       if(row.expiresAt<=now){row.state='expired';row.consumedAt=now;this._persist();return null;}
       return {state:'pending',request:{requestId:row.requestId,deviceId:row.deviceId,connectionId:row.connectionId,label:row.label,userCode:row.userCode,expiresAt:row.expiresAt},grant:null};

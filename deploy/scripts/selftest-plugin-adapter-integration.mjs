@@ -94,17 +94,24 @@ async function approveAdapterPair(adapter,device){
   return ready;
 }
 async function approveAdapterPairViaRecovery(adapter,device){
+  const staleCode=await issuePairingCode(device),stale=await adapter.pairBegin(staleCode,'Plugin stale recovery test');
+  let r=await request('POST',`/v1/device-access/requests/${encodeURIComponent(stale.requestId)}/approve`,{});
+  assert.equal(r.status,200,'pairing_recovery_stale_b_approve');
   const aCode=await issuePairingCode(device),pending=await adapter.pairBegin(aCode,'Plugin recovery test');
   assert.match(pending.userCode,/^[A-Z2-9]{4}-[A-Z2-9]{4}$/,'pairing_recovery_b_code');
   const before=await adapter.pairRecover();
   assert.equal(before.state,'pending','pairing_recovery_pending_before_approval');
-  const r=await request('POST',`/v1/device-access/requests/${encodeURIComponent(pending.requestId)}/approve`,{});
+  assert.equal(before.request?.requestId,pending.requestId,'pairing_recovery_latest_intent');
+  r=await request('POST',`/v1/device-access/requests/${encodeURIComponent(pending.requestId)}/approve`,{});
   assert.equal(r.status,200,'pairing_recovery_b_approve');
   const ready=await adapter.pairRecover();
   assert.equal(ready.state,'approved','pairing_recovery_ready');
   assert.equal(ready.device.deviceId,device.deviceId,'pairing_recovery_device');
   const after=await adapter.pairRecover();
-  assert.equal(after,null,'pairing_recovery_consumed');
+  assert.equal(after,null,'pairing_recovery_consumed_no_stale_fallback');
+  r=await request('GET',`/v1/device-access/requests/${encodeURIComponent(stale.requestId)}`,null);
+  assert.equal(r.status,200,'pairing_recovery_stale_request_visible');
+  assert.equal(r.json.authorization?.consumedAt,null,'pairing_recovery_stale_remains_unconsumed_but_ignored');
   return ready;
 }
 
