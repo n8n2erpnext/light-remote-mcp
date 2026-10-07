@@ -61,6 +61,25 @@ cat > "$PKG/manifest.json" <<EOF
 }
 EOF
 
+# The production services run as the dedicated lightremote user, while bundles may
+# be built by a user with a restrictive umask (for example 0077). Normalize the
+# complete staged tree only after every runtime file has been created/copied.
+# This adds readability/traversal without removing any existing execute bit.
+chmod -R a+rX "$PKG"
+
+blocked_dir="$(find "$PKG" -type d ! -perm -0001 -print -quit)"
+if [[ -n "$blocked_dir" ]]; then
+  echo "direct_bundle_untraversable_directory:$blocked_dir" >&2
+  exit 1
+fi
+blocked_file="$(find "$PKG" -type f ! -perm -0004 -print -quit)"
+if [[ -n "$blocked_file" ]]; then
+  echo "direct_bundle_unreadable_runtime_file:$blocked_file" >&2
+  exit 1
+fi
+test -x "$PKG/runtime/node"
+test -r "$PKG/plugin-server/node_modules/express/package.json"
+
 test ! -e "$PKG/operator.private.json"
 test ! -e "$PKG/plugin-oauth-secret"
 find "$PKG" -type f -name '*.key' -print -quit | grep -q . && { echo "private_key_like_file_in_bundle" >&2; exit 1; } || true
