@@ -39,6 +39,11 @@ export class AgentClientRegistry {
     }catch(error){this.loadError=error?.message||'invalid_agent_client_state';}
     return null;
   }
+  _renew(row,now=this.now()){
+    row.lastActivityAt=now;
+    row.expiresAt=now+this.ttlMs;
+    return row;
+  }
   _row(clientSessionId,{agentId=null,accountId=null,touch=false}={}){
     const id=validId(clientSessionId,'invalid_agent_client_id'),now=this.now();
     let row=this.rows.get(id);
@@ -47,7 +52,7 @@ export class AgentClientRegistry {
     if(now>=Number(row.expiresAt||0)){this.close(id,'expired');throw new AgentClientRegistryError('agent_client_expired',401);}
     if(agentId!=null&&row.agentId!==String(agentId))throw new AgentClientRegistryError('agent_client_agent_mismatch',403);
     if(accountId!=null&&row.accountId!==String(accountId))throw new AgentClientRegistryError('agent_client_account_mismatch',403);
-    if(touch){row.lastActivityAt=now;this._persist();}
+    if(touch){this._renew(row,now);this._persist();}
     return row;
   }
   findActive({accountId,agentId,touch=false}={}){
@@ -59,7 +64,7 @@ export class AgentClientRegistry {
       if(!found||Number(row.lastActivityAt||0)>Number(found.lastActivityAt||0))found=row;
     }
     if(!found)throw new AgentClientRegistryError('agent_client_required',401);
-    if(touch){found.lastActivityAt=now;this._persist();}
+    if(touch){this._renew(found,now);this._persist();}
     return this.viewUnsafe(found);
   }
   attach({clientSessionId=null,accountId,agentId,grant,pairingRequestId=null}={}){
@@ -71,7 +76,7 @@ export class AgentClientRegistry {
     else if(requestId){for(const candidate of this.rows.values()){const prior=candidate.bindings?.[grant.deviceId];if(!candidate.closedAt&&candidate.accountId===aid&&candidate.agentId===agent&&prior?.pairingRequestId===requestId&&prior?.grantId===grant.grantId){row=candidate;break;}}}
     if(!row){const id=`lrc_${crypto.randomBytes(18).toString('base64url')}`;row={clientSessionId:id,accountId:aid,agentId:agent,createdAt:now,lastActivityAt:now,expiresAt:now+this.ttlMs,closedAt:null,closeReason:null,defaultDeviceId:null,bindings:{}};this.rows.set(id,row);this.emit({type:'agent_client_created',accountId:aid,agentId:agent,clientSessionId:id,status:'active'});}
     row.bindings=row.bindings&&typeof row.bindings==='object'?row.bindings:{};
-    const previous=row.bindings[grant.deviceId];row.bindings[grant.deviceId]={deviceId:grant.deviceId,grantId:grant.grantId,connectionId:grant.connectionId,boundAt:previous?.boundAt||now,lastActivityAt:now,pairingRequestId:requestId||previous?.pairingRequestId||null,workingContext:previous?.workingContext||null};row.defaultDeviceId=grant.deviceId;row.lastActivityAt=now;
+    const previous=row.bindings[grant.deviceId];row.bindings[grant.deviceId]={deviceId:grant.deviceId,grantId:grant.grantId,connectionId:grant.connectionId,boundAt:previous?.boundAt||now,lastActivityAt:now,pairingRequestId:requestId||previous?.pairingRequestId||null,workingContext:previous?.workingContext||null};row.defaultDeviceId=grant.deviceId;this._renew(row,now);
     this._persist();this.emit({type:'agent_client_device_bound',accountId:aid,agentId:agent,clientSessionId:row.clientSessionId,deviceId:grant.deviceId,connectionId:grant.connectionId,grantId:grant.grantId,status:'authorized'});
     return this.view(row.clientSessionId,{agentId:agent});
   }

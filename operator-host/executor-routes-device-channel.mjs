@@ -182,6 +182,14 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       devices.heartbeat(ctx.device.deviceId,{agentVersion:ctx.payload.agentVersion});
       return sendJson(res,200,{ok:true,connection});
     }
+    if (req.method === 'POST' && url.pathname === '/v1/device-channel/renew') {
+      const body=await readJson(req), ctx=verifiedChannelContext(body,'renew');
+      const spec=connectionSpec(ctx.binding.accountId,ctx.payload.requestedLeaseMs);
+      const connection=connections.renew(ctx.device.deviceId,{accountId:ctx.binding.accountId,plan:spec.plan,requestedLeaseMs:spec.requestedLeaseMs,reconnectGraceMs:ctx.payload.reconnectGraceMs});
+      accessGrants.renewConnection(ctx.device.deviceId,{connectionId:connection.connectionId,connectionExpiresAt:connection.hardExpiresAt});
+      devices.heartbeat(ctx.device.deviceId,{agentVersion:ctx.payload.agentVersion});
+      return sendJson(res,200,{ok:true,connection});
+    }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/disconnect') {
       const body=await readJson(req), ctx=verifiedChannelContext(body,'disconnect');
       const connection=connections.disconnect(ctx.device.deviceId,ctx.payload.reason||'client_disconnect');

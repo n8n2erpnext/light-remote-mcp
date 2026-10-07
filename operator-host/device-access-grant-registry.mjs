@@ -135,6 +135,18 @@ export class DeviceAccessGrantRegistry {
     if(touch!==false){row.lastActivityAt=now;this._persist();}
     return {...row};
   }
+  renewConnection(deviceId,{connectionId,connectionExpiresAt}={}){
+    const did=validId(deviceId,'invalid_access_device_id'),cid=validId(connectionId,'invalid_access_connection_id'),expiresAt=Number(connectionExpiresAt),now=this.now();
+    if(!Number.isFinite(expiresAt)||expiresAt<=now)throw new DeviceAccessGrantError('device_connection_expired',410);
+    let count=0;
+    for(const row of this.grants.values()){
+      if(row.closedAt||row.deviceId!==did||row.connectionId!==cid||now>=Number(row.expiresAt||0))continue;
+      row.expiresAt=expiresAt;count++;
+      this.emit({type:'device_access_renewed',accountId:row.accountId,deviceId:did,connectionId:cid,grantId:row.grantId,status:'approved',expiresAt});
+    }
+    if(count)this._persist();
+    return count;
+  }
   close(grantId,reason='closed'){
     const id=validId(grantId,'invalid_access_grant_id'),row=this.grants.get(id);
     if(!row)throw new DeviceAccessGrantError('device_access_grant_not_found',404);

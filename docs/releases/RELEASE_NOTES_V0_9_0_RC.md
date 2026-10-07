@@ -65,3 +65,11 @@ This is a prerelease candidate. It is not a claim of stable/general-availability
 - live credentials are fail-closed by prefix (pdl_live_apikey_, live_) and sandbox credentials remain environment-isolated;
 - Paddle Node SDK now selects Environment.production for production without weakening webhook/refund/accounting guards;
 - adds a production env template that keeps checkout disabled until the live cutover acceptance gate passes.
+
+## RC.41 changes
+- fixes a production continuity bug where plugin agent-client authorization expired exactly 24 hours after pairing even during active sessions and Real Remote use;
+- agent-client TTL is now sliding: legitimate client activity renews both lastActivityAt and expiresAt and persists the renewed lease;
+- inactive clients still expire normally after a full TTL with no activity;
+- adds a regression test that crosses the original expiry boundary, reloads persisted state, and verifies final idle expiry.
+- adds signed device-connection lease renewal that preserves connection identity and extends active access grants before plan hard-lease expiry;
+- the always-alive agent renews at half-life and also during long-running command liveness pulses, preventing Pro/VIP devices from going dormant at the 24h/72h cliff.

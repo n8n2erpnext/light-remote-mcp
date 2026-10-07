@@ -77,6 +77,18 @@ export class DeviceConnectionRegistry {
     this.emit({type:'device_connection_opened',accountId:aid,deviceId:did,connectionId:row.connectionId,status:'connected',plan:planName,hardExpiresAt:row.hardExpiresAt,reconnectGraceMs:row.reconnectGraceMs});
     return this._view(row,now);
   }
+  renew(deviceId,{accountId=null,plan=null,requestedLeaseMs=null,reconnectGraceMs=null}={}){
+    const did=validId(deviceId,'invalid_connection_device_id'),row=this.assertConnected(did),now=this.now();
+    if(accountId!=null&&row.accountId!==String(accountId))throw new DeviceConnectionError('device_connection_account_mismatch',403);
+    const {plan:planName,capMs}=this._cap(plan||row.plan);
+    const requested=requestedLeaseMs==null?capMs:Number(requestedLeaseMs);
+    if(!Number.isFinite(requested)||requested<=0||requested>capMs)throw new DeviceConnectionError('invalid_device_connection_lease');
+    row.plan=planName;row.planCapMs=capMs;row.hardExpiresAt=now+Math.round(requested);row.lastActivityAt=now;row.lastRenewedAt=now;
+    if(reconnectGraceMs!=null)row.reconnectGraceMs=this._grace(reconnectGraceMs);
+    this._persist();
+    this.emit({type:'device_connection_renewed',accountId:row.accountId,deviceId:row.deviceId,connectionId:row.connectionId,status:'connected',plan:planName,hardExpiresAt:row.hardExpiresAt,reconnectGraceMs:row.reconnectGraceMs});
+    return this._view(row,now);
+  }
   disconnect(deviceId,reason='user_disconnect'){
     const did=validId(deviceId,'invalid_connection_device_id'),row=this.connections.get(did);
     if(!row) throw new DeviceConnectionError('device_connection_not_found',404);

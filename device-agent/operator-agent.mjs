@@ -648,6 +648,23 @@ function expireLocalHardLease(state,{persist=true}={}){
   if(persist)writeState(state);
   return true;
 }
+function cloudLeaseWindowMs(state){
+  const hard=Number(state?.cloud?.hardExpiresAt),started=Number(state?.cloud?.lastRenewedAt||state?.cloud?.connectedAt);
+  return Number.isFinite(hard)&&Number.isFinite(started)&&hard>started?hard-started:0;
+}
+function cloudLeaseRenewalDue(state,now=Date.now()){
+  if(!cloudDesired(state)||state?.cloud?.state!=='connected')return false;
+  const hard=Number(state?.cloud?.hardExpiresAt),windowMs=cloudLeaseWindowMs(state);
+  if(!Number.isFinite(hard)||windowMs<=0)return false;
+  const margin=Math.max(15*60*1000,Math.floor(windowMs/2));
+  return hard-now<=margin;
+}
+async function renewCloudLease(state,hub=DEFAULT_HUB){
+  if(!cloudLeaseRenewalDue(state))return null;
+  const response=await channelRequest(state,hub,'renew',{nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION}),connection=response.connection,now=Date.now();
+  markCloudState(state,{desiredConnected:true,state:'connected',connectionId:connection?.connectionId||state.cloud?.connectionId||null,connectedAt:state.cloud?.connectedAt||connection?.connectedAt||now,lastRenewedAt:now,hardExpiresAt:connection?.hardExpiresAt||state.cloud?.hardExpiresAt||null,reconnectGraceMs:connection?.reconnectGraceMs||state.cloud?.reconnectGraceMs||null,plan:connection?.plan||state.cloud?.plan||null,lastError:null});
+  return connection;
+}
 function markCloudState(state,value){state.cloud={...(state.cloud||{}),...value,changedAt:Date.now()};writeState(state);return state.cloud;}
 function markDeviceRemoved(state,reason='device_removed'){const prior=state.enrollment?.deviceId||null;delete state.enrollment;delete state.pendingEnrollment;delete state.routing;state.effectiveCapabilities=[];if(state.identity?.privateKey){delete state.identity;delete state.identityResetRequired;}else if(EXTERNAL_IDENTITY_FILE){state.identityResetRequired=true;}state.cloud={...(state.cloud||{}),desiredConnected:false,state:'dormant',connectionId:null,hardExpiresAt:null,lastError:'device_removed',lastDisconnectedAt:Date.now(),changedAt:Date.now()};writeState(state);return prior;}
 async function connectCloud(args={}){
@@ -661,7 +678,7 @@ async function connectCloud(args={}){
   if(leaseHours!=null)payload.requestedLeaseMs=Math.round(leaseHours*60*60*1000);
   if(graceMinutes!=null)payload.reconnectGraceMs=Math.round(graceMinutes*60*1000);
   const response=await channelRequest(state,hub,'connect',payload),connection=response.connection;
-  markCloudState(state,{desiredConnected:true,state:'connected',connectionId:connection?.connectionId||null,connectedAt:connection?.connectedAt||Date.now(),hardExpiresAt:connection?.hardExpiresAt||null,reconnectGraceMs:connection?.reconnectGraceMs||null,plan:connection?.plan||null,lastError:null});
+  markCloudState(state,{desiredConnected:true,state:'connected',connectionId:connection?.connectionId||null,connectedAt:connection?.connectedAt||Date.now(),lastRenewedAt:Date.now(),hardExpiresAt:connection?.hardExpiresAt||null,reconnectGraceMs:connection?.reconnectGraceMs||null,plan:connection?.plan||null,lastError:null});
   if(!args.silent)console.log(JSON.stringify({ok:true,cloud:'connected',deviceId:state.enrollment.deviceId,connection},null,2));
   return connection;
 }
@@ -771,6 +788,10 @@ async function daemon(args){
   fleetTimer=setInterval(reconcileFleet,fleetReconcileMs);fleetTimer.unref?.();
   while(!stopped){
     const latest=readState();if(latest)state=latest;
+    if(state?.enrollment?.deviceId&&cloudLeaseRenewalDue(state)){
+      try{await renewCloudLease(state,hub);const renewed=readState();if(renewed)state=renewed;failures=0;}
+      catch(error){console.error(JSON.stringify({event:'device_connection_renew_failed',deviceId:state.enrollment.deviceId,error:error.message,status:error.status||null}));}
+    }
     expireLocalHardLease(state);
     if(!state.enrollment?.deviceId||!cloudDesired(state)){await wait(dormantPollMs);continue;}
     try{
@@ -788,7 +809,7 @@ async function daemon(args){
       if(command){
         const deviceReceivedAt=Date.now();
         let commandPulseTimer=null,commandPulseBusy=false;
-        const commandPulse=async()=>{if(stopped||commandPulseBusy)return;commandPulseBusy=true;try{const current=readState()||state;if(!current?.enrollment?.deviceId||!cloudDesired(current))return;await channelRequest(current,hub,'poll',{nodeId:current.enrollment.nodeId||current.enrollment.deviceId,agentVersion:VERSION,sessionCeiling,draining:true,capabilities:effectiveCapabilitiesForState(current),policyRevision:Math.max(0,Number(current.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView(),waitMs:0});}catch(error){console.error(JSON.stringify({event:'device_command_liveness_failed',deviceId:state.enrollment?.deviceId||null,commandId:command.commandId,error:error.message,status:error.status||null}));}finally{commandPulseBusy=false;}};
+        const commandPulse=async()=>{if(stopped||commandPulseBusy)return;commandPulseBusy=true;try{const current=readState()||state;if(!current?.enrollment?.deviceId||!cloudDesired(current))return;if(cloudLeaseRenewalDue(current))await renewCloudLease(current,hub);await channelRequest(current,hub,'poll',{nodeId:current.enrollment.nodeId||current.enrollment.deviceId,agentVersion:VERSION,sessionCeiling,draining:true,capabilities:effectiveCapabilitiesForState(current),policyRevision:Math.max(0,Number(current.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView(),waitMs:0});}catch(error){console.error(JSON.stringify({event:'device_command_liveness_failed',deviceId:state.enrollment?.deviceId||null,commandId:command.commandId,error:error.message,status:error.status||null}));}finally{commandPulseBusy=false;}};
         await commandPulse();commandPulseTimer=setInterval(()=>void commandPulse(),commandHeartbeatMs);commandPulseTimer.unref?.();
         let result,claim;
         try{
