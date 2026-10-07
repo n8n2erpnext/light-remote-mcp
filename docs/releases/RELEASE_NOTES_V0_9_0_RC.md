@@ -78,3 +78,9 @@ This is a prerelease candidate. It is not a claim of stable/general-availability
 - blocks the rc.41 candidate from promotion after audit found online-usage accounting did not extend across device connection renewal;
 - UsageRegistry now consumes device_connection_renewed, accrues usage to the renewal boundary, and carries the new hard expiry forward;
 - adds a regression test proving online-hours continue beyond the original lease expiry after renewal and still stop at the renewed expiry.
+
+## RC.43 changes
+- hardens signed updater-channel reads against transient CDN skew between client-update.json and client-update.json.sig;
+- signature mismatch remains fail-closed, but the updater now refetches the complete manifest/signature pair up to three times;
+- retry attempts use no-cache headers and per-pair cache-busting while preserving exact cryptographic verification before parsing or update selection;
+- adds a portable source-contract regression test for bounded retry and fail-closed behavior.

@@ -11,14 +11,15 @@ internal sealed class UpdateClient
 {
     private const string DefaultManifestUrl="https://raw.githubusercontent.com/n8n2erpnext/light-remote-mcp/main/channels/beta/client-update.json";
     private const string DefaultSignatureUrl="https://raw.githubusercontent.com/n8n2erpnext/light-remote-mcp/main/channels/beta/client-update.json.sig";
+    private const int ManifestPairAttempts=3;
     private readonly HttpClient _http=new(){Timeout=TimeSpan.FromSeconds(30)};
     private readonly string _manifestUrl=Environment.GetEnvironmentVariable("GPT_OPERATOR_UPDATE_MANIFEST_URL")??DefaultManifestUrl;
     private readonly string _signatureUrl=Environment.GetEnvironmentVariable("GPT_OPERATOR_UPDATE_SIGNATURE_URL")??DefaultSignatureUrl;
 
     public async Task<UpdateInfo?> CheckAsync(string currentVersion,CancellationToken cancellationToken=default)
     {
-        var manifestBytes=await DownloadRequiredAsync(_manifestUrl,cancellationToken);var signatureText=System.Text.Encoding.UTF8.GetString(await DownloadRequiredAsync(_signatureUrl,cancellationToken)).Trim();
-        VerifySignedManifest(manifestBytes,signatureText,RecoveryPaths.UpdatePublicKey);using var doc=JsonDocument.Parse(manifestBytes);var root=doc.RootElement;
+        var (manifestBytes,signatureText)=await DownloadVerifiedManifestPairAsync(cancellationToken);
+        using var doc=JsonDocument.Parse(manifestBytes);var root=doc.RootElement;
         if(root.GetProperty("schemaVersion").GetInt32()!=1)throw new InvalidOperationException("Unsupported update manifest schema.");
         var versionText=root.GetProperty("version").GetString()??throw new InvalidOperationException("Update version missing.");
         if(!SemanticVersion.TryParse(versionText,out var candidate)||candidate is null)throw new InvalidOperationException("Invalid update version.");
@@ -50,5 +51,35 @@ internal sealed class UpdateClient
         if(!File.Exists(publicKeyFile))throw new FileNotFoundException("Update public key is missing.",publicKeyFile);byte[] signature;try{signature=Convert.FromBase64String(signatureText);}catch{throw new InvalidOperationException("Update manifest signature encoding is invalid.");}
         using var ecdsa=ECDsa.Create();ecdsa.ImportFromPem(File.ReadAllText(publicKeyFile));if(!ecdsa.VerifyData(manifestBytes,signature,HashAlgorithmName.SHA256,DSASignatureFormat.Rfc3279DerSequence))throw new CryptographicException("Update manifest signature is invalid.");
     }
-    private async Task<byte[]> DownloadRequiredAsync(string url,CancellationToken cancellationToken){using var response=await _http.GetAsync(url,cancellationToken);if(response.StatusCode==System.Net.HttpStatusCode.NotFound)throw new FileNotFoundException("No update release manifest is published yet.");response.EnsureSuccessStatusCode();return await response.Content.ReadAsByteArrayAsync(cancellationToken);}
+    private async Task<(byte[] ManifestBytes,string SignatureText)> DownloadVerifiedManifestPairAsync(CancellationToken cancellationToken)
+    {
+        for(var attempt=1;attempt<=ManifestPairAttempts;attempt++)
+        {
+            var retry=attempt>1,nonce=$"{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}-{attempt}-{Guid.NewGuid():N}";
+            var manifestUrl=retry?WithCacheBuster(_manifestUrl,nonce):_manifestUrl;
+            var signatureUrl=retry?WithCacheBuster(_signatureUrl,nonce):_signatureUrl;
+            try
+            {
+                var manifestBytes=await DownloadRequiredAsync(manifestUrl,cancellationToken,retry);
+                var signatureText=System.Text.Encoding.UTF8.GetString(await DownloadRequiredAsync(signatureUrl,cancellationToken,retry)).Trim();
+                VerifySignedManifest(manifestBytes,signatureText,RecoveryPaths.UpdatePublicKey);
+                return (manifestBytes,signatureText);
+            }
+            catch(Exception ex) when(attempt<ManifestPairAttempts&&IsPairVerificationFailure(ex))
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(250*attempt),cancellationToken);
+            }
+        }
+        throw new CryptographicException("Update manifest signature verification exhausted.");
+    }
+    private static bool IsPairVerificationFailure(Exception error)=>error is CryptographicException||(error is InvalidOperationException&&error.Message=="Update manifest signature encoding is invalid.");
+    private static string WithCacheBuster(string url,string nonce)=>url+(url.Contains('?')?"&":"?")+"lrpair="+Uri.EscapeDataString(nonce);
+    private async Task<byte[]> DownloadRequiredAsync(string url,CancellationToken cancellationToken,bool noCache=false)
+    {
+        using var request=new HttpRequestMessage(HttpMethod.Get,url);
+        if(noCache){request.Headers.CacheControl=new System.Net.Http.Headers.CacheControlHeaderValue{NoCache=true,NoStore=true};request.Headers.Pragma.ParseAdd("no-cache");}
+        using var response=await _http.SendAsync(request,HttpCompletionOption.ResponseContentRead,cancellationToken);
+        if(response.StatusCode==System.Net.HttpStatusCode.NotFound)throw new FileNotFoundException("No update release manifest is published yet.");
+        response.EnsureSuccessStatusCode();return await response.Content.ReadAsByteArrayAsync(cancellationToken);
+    }
 }
