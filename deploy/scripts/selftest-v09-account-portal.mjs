@@ -15,13 +15,14 @@ const billing=read('plugin-server/account-portal/billing.html');
 const settings=read('plugin-server/account-portal/settings.html');
 const admin=read('plugin-server/admin-portal/index.html');
 const publicHome=read('plugin-server/public-home.html');
+const downloads=read('plugin-server/downloads-portal.html');
 const operator=read('operator-host/executor-routes-account.mjs');
 const registry=read('operator-host/account-registry.mjs');
 const css=read('plugin-server/account-portal/portal.css');
 
 function need(ok,name){if(!ok)throw new Error(`account_portal_contract_failed:${name}`);console.log(`${name}=PASS`);}
 
-need(home.includes('Your devices')&&home.includes('Add a device')&&home.includes('Official Plugin'),'account-portal-shell');
+need(home.includes('Your devices')&&home.includes('Add a device')&&home.includes('OFFICIAL CHATGPT PLUGIN')&&home.includes('Open official plugin'),'account-portal-shell');
 need(home.includes('Link device')&&home.includes('Re-enroll device')&&home.includes('main-device'),'account-device-lifecycle');
 need(register.includes('Create free account')&&!register.includes('Owner proof code')&&!register.includes('ownerCode'),'hosted-public-signup');
 need(account.includes("'/v1/plugin/accounts/register'")&&operator.includes('/v1/plugin/accounts/register')&&operator.includes('beginPendingRegistration'),'hosted-signup-authority');
@@ -38,6 +39,10 @@ need(home.includes('Reactivate account')&&account.includes("action==='reactivate
 need(admin.includes('data-disable-account')&&admin.includes('data-enable-account')&&operator.includes('/v1/admin/dormancy/scan')&&registry.includes('evaluateDormancy')&&mailer.includes('sendDormancyWarning')&&mailer.includes('sendDormantNotice'),'account-dormancy-admin-policy');
 need(settings.includes('Change password')&&settings.includes('Appearance'),'settings-password-theme');
 need(publicHome.includes('Your AI.')&&publicHome.includes('Your machine.')&&publicHome.includes('Your approval.'),'public-home-hero');
+const officialPlugin='https://chatgpt.com/plugins/plugin_asdk_app_6aab6c4bd7d88191a4108d8f4c5e4b4e';
+need(home.includes(officialPlugin)&&home.includes('Use Light Remote inside ChatGPT'),'official-plugin-account-onboarding');
+need(publicHome.includes(officialPlugin)&&publicHome.includes('Open official ChatGPT plugin')&&publicHome.includes('Light Remote runs from your ChatGPT conversation.'),'official-plugin-public-home-cta');
+need(downloads.includes(officialPlugin)&&downloads.includes('Next: open Light Remote in ChatGPT'),'official-plugin-download-cta');
 need(publicHome.includes('10K')&&publicHome.includes('A/B')&&publicHome.includes('Direct'),'public-home-trust');
 need(account.includes('__Host-light_remote_account')&&account.includes('HttpOnly')&&account.includes('Secure')&&account.includes('SameSite=Strict'),'account-cookie-security');
 need(css.includes('.sidebar')&&css.includes('.auth-card')&&css.includes('.home-hero'),'account-public-style');
