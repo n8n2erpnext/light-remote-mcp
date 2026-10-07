@@ -60,14 +60,26 @@ export class AccountOperatorAdapter{
     if(access.request.accountId!==this.identity.accountId)throw Object.assign(new Error('pairing_account_mismatch'),{status:403});
     return {requestId:access.request.requestId,pollToken:access.pollToken,userCode:access.request.userCode,expiresAt:access.request.expiresAt,deviceId:access.request.deviceId};
   }
-  async pairPoll({requestId,pollToken}={}){
-    const row=await callOperatorJson('POST','/v1/device-access/poll',{requestId,pollToken}),access=row.access;
-    if(access?.state!=='approved')return {state:'pending',request:access?.request||null};
-    const grant=access.grant;if(!grant||grant.accountId!==this.identity.accountId)throw Object.assign(new Error('pairing_account_mismatch'),{status:403});
+  async attachPairing({grant,requestId}={}){
+    if(!grant||grant.accountId!==this.identity.accountId)throw Object.assign(new Error('pairing_account_mismatch'),{status:403});
     const prior=await this.clientRaw({required:false,touch:false});
     const attached=await callOperatorJson('POST','/v1/agent-client/attach',{clientSessionId:prior?.clientSessionId||null,agentId:this.agentId,grantId:grant.grantId,pairingRequestId:requestId});
     const contextRow=await callOperatorJson('POST','/v1/agent-client/context',{clientSessionId:attached.client.clientSessionId,agentId:this.agentId,deviceId:attached.device.deviceId,workspace:'',gracePreset:'60m'});
     return {state:'approved',client:attached.client,device:attached.device,context:cleanContext(contextRow.context),session:cleanSession(contextRow.session)};
+  }
+  async pairPoll({requestId,pollToken}={}){
+    const row=await callOperatorJson('POST','/v1/device-access/poll',{requestId,pollToken}),access=row.access;
+    if(access?.state!=='approved')return {state:'pending',request:access?.request||null};
+    return this.attachPairing({grant:access.grant,requestId});
+  }
+  async pairRecover(){
+    const row=await callOperatorJson('POST','/v1/device-access/recover',{accountId:this.identity.accountId,agentId:this.agentId}),access=row.access;
+    if(!access)return null;
+    if(access.state!=='approved')return {state:'pending',request:access.request||null};
+    const requestId=access.request?.requestId;
+    const ready=await this.attachPairing({grant:access.grant,requestId});
+    if(requestId){try{await callOperatorJson('POST','/v1/device-access/recover-consume',{requestId,accountId:this.identity.accountId,agentId:this.agentId});}catch{}}
+    return ready;
   }
   async authorizedDevicesRaw(){
     const client=await this.clientRaw({required:false});if(!client)return [];

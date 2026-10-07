@@ -154,6 +154,29 @@ export class DeviceAccessGrantRegistry {
     this.emit({type:'device_access_purged',deviceId:did,status:'removed',reason:String(reason||'owner_removed').slice(0,80),grants,requests});
     return {deviceId:did,grants,requests};
   }
+  recoverPairing({accountId,agentId}={}){
+    const aid=validId(accountId,'invalid_access_account_id'),agent=validId(agentId,'invalid_plus_agent_id'),now=this.now();
+    const candidates=[...this.requests.values()]
+      .filter(row=>row.pairingRequired&&row.accountId===aid&&row.agentId===agent&&!row.consumedAt&&['pending','approved'].includes(row.state))
+      .sort((a,b)=>Number(b.createdAt||0)-Number(a.createdAt||0));
+    const row=candidates[0];
+    if(!row)return null;
+    if(row.state==='pending'){
+      if(row.expiresAt<=now){row.state='expired';row.consumedAt=now;this._persist();return null;}
+      return {state:'pending',request:{requestId:row.requestId,deviceId:row.deviceId,connectionId:row.connectionId,label:row.label,userCode:row.userCode,expiresAt:row.expiresAt},grant:null};
+    }
+    const active=this._activeGrant(row.deviceId,row.connectionId,now);
+    if(!active)return null;
+    return {state:'approved',request:{requestId:row.requestId,deviceId:row.deviceId,connectionId:row.connectionId,label:row.label,expiresAt:row.expiresAt},grant:{...active}};
+  }
+  consumeRecoveredPairing({requestId,accountId,agentId}={}){
+    const id=validId(requestId,'invalid_plus_request_id'),aid=validId(accountId,'invalid_access_account_id'),agent=validId(agentId,'invalid_plus_agent_id'),row=this.requests.get(id),now=this.now();
+    if(!row||!row.pairingRequired||row.accountId!==aid||row.agentId!==agent)throw new DeviceAccessGrantError('plus_authorization_not_found',404);
+    const active=this._activeGrant(row.deviceId,row.connectionId,now);
+    if(row.state!=='approved'||!active)throw new DeviceAccessGrantError('device_access_grant_required',401);
+    if(!row.consumedAt){row.consumedAt=now;this._persist();}
+    return {state:'approved',requestId:row.requestId,grant:{...active}};
+  }
   requestInfo(requestId){
     const id=validId(requestId,'invalid_plus_request_id'),row=this.requests.get(id);
     if(!row)throw new DeviceAccessGrantError('plus_authorization_not_found',404);

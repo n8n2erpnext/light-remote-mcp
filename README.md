@@ -286,7 +286,7 @@ Agent instructions - execute immediately:
 3. Do NOT enumerate devices, inspect account topology, or run preflight checks before pairing.
 4. If the helper returns approval_required, show only the B code to the owner and wait.
 5. The owner must enter B at this same Local Wall /approve and choose Approve.
-6. After approval, call light_remote_connection_helper again with the exact continuation returned by the first call.
+6. After approval, call light_remote_connection_helper again with no A code and no continuation. The server recovers the in-progress pairing for this exact account + agent.
 7. Keep continuation, session capabilities, and internal identifiers private.
 8. Continue only after the helper returns ready for this target device.
 ```
@@ -296,7 +296,7 @@ Agent phải đi theo response của official Connection Helper thay vì tự đ
 1. A hợp lệ → plugin trả **B code / approval_required**.
 2. Trên **chính Local Wall đã tạo A**, mở **Approve B**, nhập B và kiểm tra label Agent.
 3. Bấm **Approve**.
-4. Sau khi owner xác nhận, ChatGPT gọi lại `light_remote_connection_helper` với exact continuation đã nhận ở bước đầu.
+4. Sau khi owner xác nhận, ChatGPT gọi lại `light_remote_connection_helper` không kèm A code/continuation; server tự recover đúng pairing của account + agent này.
 5. Khi helper trả `ready`, Agent dùng exact working context/session được trả về. Helper mặc định chỉ trả **menu nhóm lệnh**; khi cần cú pháp chi tiết thì gọi lại với `helperGroup=workspace|files|shell|transfer|desktop`.
 
 Từ đây bạn có thể nói tự nhiên như: “vào repo này xem test fail”, “kiểm Docker trên VPS”, “mở terminal chạy TUI”, “copy file này sang máy Windows”, hoặc “theo dõi process build”. Agent sẽ chọn tool phù hợp theo Tool Helper và quyền bạn đã bật trên Wall.

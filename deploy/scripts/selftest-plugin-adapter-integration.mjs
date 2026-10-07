@@ -93,6 +93,20 @@ async function approveAdapterPair(adapter,device){
   assert.equal(ready.state,'approved','pairing_ready');assert.equal(ready.device.deviceId,device.deviceId,'pairing_device');
   return ready;
 }
+async function approveAdapterPairViaRecovery(adapter,device){
+  const aCode=await issuePairingCode(device),pending=await adapter.pairBegin(aCode,'Plugin recovery test');
+  assert.match(pending.userCode,/^[A-Z2-9]{4}-[A-Z2-9]{4}$/,'pairing_recovery_b_code');
+  const before=await adapter.pairRecover();
+  assert.equal(before.state,'pending','pairing_recovery_pending_before_approval');
+  const r=await request('POST',`/v1/device-access/requests/${encodeURIComponent(pending.requestId)}/approve`,{});
+  assert.equal(r.status,200,'pairing_recovery_b_approve');
+  const ready=await adapter.pairRecover();
+  assert.equal(ready.state,'approved','pairing_recovery_ready');
+  assert.equal(ready.device.deviceId,device.deviceId,'pairing_recovery_device');
+  const after=await adapter.pairRecover();
+  assert.equal(after,null,'pairing_recovery_consumed');
+  return ready;
+}
 
 try{
   await waitForIpc(socket,{attempts:100,delayMs:40,error:'executor_not_ready',details:()=>logs});
@@ -121,7 +135,7 @@ try{
   assert.deepEqual(await adapterA.devices(),[],'adapter_a_pre_pair_hidden');
   assert.deepEqual(await adapterB.devices(),[],'adapter_b_pre_pair_hidden');
   await assert.rejects(()=>adapterA.openSession({deviceId:deviceA.deviceId,workspace:'A'}),e=>e?.message==='agent_client_required','pre_pair_session_denied');
-  await approveAdapterPair(adapterA,deviceA);await approveAdapterPair(adapterB,deviceB);
+  await approveAdapterPairViaRecovery(adapterA,deviceA);await approveAdapterPair(adapterB,deviceB);
   const devicesA=await adapterA.devices(),devicesB=await adapterB.devices();
   assert.deepEqual(devicesA.map(x=>x.deviceId),[deviceA.deviceId],'adapter_a_device_scope');
   assert.deepEqual(devicesB.map(x=>x.deviceId),[deviceB.deviceId],'adapter_b_device_scope');
@@ -139,7 +153,7 @@ try{
 
   const closed=await adapterA.closeSession(sessionA.sessionId);
   assert.equal(closed.sessionId,sessionA.sessionId,'owner_close_session');
-  console.log(JSON.stringify({ok:true,accountIsolation:true,deviceIsolation:true,sessionIsolation:true,rmOwnershipGuard:true,oauthVerifyNoPortalSession:true},null,2));
+  console.log(JSON.stringify({ok:true,accountIsolation:true,deviceIsolation:true,sessionIsolation:true,rmOwnershipGuard:true,oauthVerifyNoPortalSession:true,pairingServerRecovery:true},null,2));
 } finally {
   await cleanup();
 }

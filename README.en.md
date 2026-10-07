@@ -254,12 +254,12 @@ Agent instructions - execute immediately:
 3. Do NOT enumerate devices, inspect account topology, or run preflight checks before pairing.
 4. If the helper returns approval_required, show only the B code to the owner and wait.
 5. The owner must enter B at this same Local Wall /approve and choose Approve.
-6. After approval, call light_remote_connection_helper again with the exact continuation returned by the first call.
+6. After approval, call light_remote_connection_helper again with no A code and no continuation. The server recovers the in-progress pairing for this exact account + agent.
 7. Keep continuation, session capabilities, and internal identifiers private.
 8. Continue only after the helper returns ready for this target device.
 ```
 
-The Agent must follow official Connection Helper responses rather than inventing protocol calls: a valid A produces `approval_required` and B; approve B on the same Wall; after owner confirmation the Agent calls `light_remote_connection_helper` again with the exact continuation; only `ready` authorizes the target. The ready response includes the working context/session and an index-only tool-family menu. Detailed syntax is loaded only when needed with `helperGroup=workspace|files|shell|transfer|desktop`.
+The Agent must follow official Connection Helper responses rather than inventing protocol calls: a valid A produces `approval_required` and B; approve B on the same Wall; after owner confirmation the Agent calls `light_remote_connection_helper` again without reusing the A code. Server-side recovery resumes the exact account + agent pairing, and only `ready` authorizes the target. The continuation argument remains supported for backward compatibility. The ready response includes the working context/session and an index-only tool-family menu. Detailed syntax is loaded only when needed with `helperGroup=workspace|files|shell|transfer|desktop`.
 
 From there you can ask naturally: “inspect this repo and fix the failing test”, “check Docker on the VPS”, “open a terminal for this TUI”, “copy this file to the Windows machine”, or “follow the build process”.
 

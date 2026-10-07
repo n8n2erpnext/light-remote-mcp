@@ -112,7 +112,7 @@ export async function callLegacyMultiplexedTool(identity,name,input={}){
 export function registerPluginTools(server,identity){
   add(server,'light_remote_connection_helper',{
     title:'Connect Light Remote with A/B approval',
-    description:'Start here. Handles Local Wall A/B pairing and, when ready, returns/reuses the working context plus a compact tool-family menu. Call again with helperGroup=workspace|files|shell|transfer|desktop only when detailed syntax for that family is needed. OAuth account login alone never authorizes a device.',
+    description:'Start here. Handles Local Wall A/B pairing and, when ready, returns/reuses the working context plus a compact tool-family menu. After the owner approves the B code, call this helper again with no A code; the server recovers the in-progress pairing for this exact account and agent. Never reuse an A code. The continuation argument remains supported for backward compatibility. Call again with helperGroup=workspace|files|shell|transfer|desktop only when detailed syntax for that family is needed. OAuth account login alone never authorizes a device.',
     inputSchema:{aCode:z.string().regex(/^[A-Za-z2-9]{4}-?[A-Za-z2-9]{4}$/).optional(),continuation:z.string().min(20).max(8192).optional(),label:z.string().min(1).max(120).optional(),helperGroup:z.enum(['workspace','files','shell','transfer','desktop']).optional()},
     securitySchemes:security(['remote:read']),annotations:annotations(false,false,false,false)
   },guarded(identity,['remote:read'],async(a,x)=>{
@@ -120,13 +120,18 @@ export function registerPluginTools(server,identity){
     if(x.helperGroup&&(x.aCode||x.continuation))throw new Error('helper_group_pairing_conflict');
     if(x.aCode){
       const pending=await a.pairBegin(x.aCode,x.label||'ChatGPT'),continuation=await mintPairingContinuation(identity,{requestId:pending.requestId,pollToken:pending.pollToken,agentId:a.agentId,expiresAt:pending.expiresAt});
-      return {status:'approval_required',code:pending.userCode,continuation,expiresInSeconds:Math.max(0,Math.ceil((Number(pending.expiresAt)-Date.now())/1000)),approvalPath:'/approve'};
+      return {status:'approval_required',code:pending.userCode,continuation,resumeMode:'call_same_helper_without_arguments',expiresInSeconds:Math.max(0,Math.ceil((Number(pending.expiresAt)-Date.now())/1000)),approvalPath:'/approve'};
     }
     if(x.continuation){
       const ctx=await verifyPairingContinuation(identity,x.continuation);if(ctx.agentId!==a.agentId)throw new Error('pairing_continuation_agent_mismatch');
       const paired=await a.pairPoll(ctx);
-      if(paired.state!=='approved')return {status:'approval_required',continuation:x.continuation,expiresInSeconds:Math.max(0,Math.ceil((Number(paired.request?.expiresAt||Date.now())-Date.now())/1000)),approvalPath:'/approve'};
+      if(paired.state!=='approved')return {status:'approval_required',continuation:x.continuation,resumeMode:'call_same_helper_without_arguments',expiresInSeconds:Math.max(0,Math.ceil((Number(paired.request?.expiresAt||Date.now())-Date.now())/1000)),approvalPath:'/approve'};
       const helper=await a.connectionHelper();return {...helper,status:'ready',pairedDevice:paired.device?.displayName||paired.device?.deviceId||null};
+    }
+    if(!x.helperGroup){
+      const recovered=await a.pairRecover();
+      if(recovered?.state==='pending')return {status:'approval_required',code:recovered.request?.userCode||null,resumeMode:'call_same_helper_without_arguments',expiresInSeconds:Math.max(0,Math.ceil((Number(recovered.request?.expiresAt||Date.now())-Date.now())/1000)),approvalPath:'/approve'};
+      if(recovered?.state==='approved'){const helper=await a.connectionHelper();return {...helper,status:'ready',pairedDevice:recovered.device?.displayName||recovered.device?.deviceId||null,recovered:true};}
     }
     return a.connectionHelper(x.helperGroup||null);
   }));

@@ -89,6 +89,15 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       const body=await readJson(req);
       return sendJson(res,200,{ok:true,access:accessGrants.poll(body)});
     }
+    if (req.method === 'POST' && url.pathname === '/v1/device-access/recover') {
+      const body=await readJson(req);
+      reapAccessGrants();
+      return sendJson(res,200,{ok:true,access:accessGrants.recoverPairing({accountId:body.accountId,agentId:body.agentId})});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/device-access/recover-consume') {
+      const body=await readJson(req);
+      return sendJson(res,200,{ok:true,access:accessGrants.consumeRecoveredPairing({requestId:body.requestId,accountId:body.accountId,agentId:body.agentId})});
+    }
     if (req.method === 'GET' && url.pathname === '/v1/device-access/requests') {
       return sendJson(res,200,{ok:true,pending:accessGrants.pendingAll()});
     }
