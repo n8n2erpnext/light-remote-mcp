@@ -54,3 +54,8 @@ This is a prerelease candidate. It is not a claim of stable/general-availability
 - Direct Linux bundle archives force service-readable/traversable modes and validate them at build time;
 - release-to-R2 sync is fail-closed when the production LXD manifest cannot be updated and permits the required Snap LXC privilege transition;
 - public Home and distribution fallback report the running release version instead of hardcoded RC.34.
+
+## RC.39 changes
+- restores the proven A/B Local Wall pairing capsule that replays the exact continuation returned by the first helper call and keeps continuation/session capabilities/internal identifiers private;
+- makes clean portable CI install Paddle SDK and Nodemailer from the root dependency plane so Paddle billing/refund selftests run on fresh runners;
+- preserves the rc.38 production lineage: Windows updater recovery, Direct routing/version coherence, fail-closed R2/LXD sync, and deterministic Direct bundle permissions.
