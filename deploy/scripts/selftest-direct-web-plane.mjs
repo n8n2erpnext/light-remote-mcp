@@ -55,6 +55,8 @@ assert.ok(billing.includes('Plan & billing'));
 assert.ok(billing.includes('10,000 tool calls per month'));
 assert.ok(billing.includes('Unlimited tool calls'));
 assert.ok(billing.includes('$20'));
+assert.ok(billing.includes('Taxes are included in the $20 price where applicable.'));
+assert.ok(!billing.includes('Plus VAT'));
 assert.ok(billing.includes('usage-progress'));
 
 for(const phrase of ['Install client','Get code','Verify','Link device','Re-enroll device','ChatGPT access still requires its separate Local Wall A/B approval'])assert.ok(devices.includes(phrase),phrase);
