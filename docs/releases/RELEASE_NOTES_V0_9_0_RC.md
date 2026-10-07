@@ -73,3 +73,8 @@ This is a prerelease candidate. It is not a claim of stable/general-availability
 - adds a regression test that crosses the original expiry boundary, reloads persisted state, and verifies final idle expiry.
 - adds signed device-connection lease renewal that preserves connection identity and extends active access grants before plan hard-lease expiry;
 - the always-alive agent renews at half-life and also during long-running command liveness pulses, preventing Pro/VIP devices from going dormant at the 24h/72h cliff.
+
+## RC.42 changes
+- blocks the rc.41 candidate from promotion after audit found online-usage accounting did not extend across device connection renewal;
+- UsageRegistry now consumes device_connection_renewed, accrues usage to the renewal boundary, and carries the new hard expiry forward;
+- adds a regression test proving online-hours continue beyond the original lease expiry after renewal and still stop at the renewed expiry.

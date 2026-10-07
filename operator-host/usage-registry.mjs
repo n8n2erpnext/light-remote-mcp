@@ -45,6 +45,10 @@ export class UsageRegistry{
     else if(e.type==='device_connection_opened'&&e.accountId&&e.connectionId&&e.deviceId){
       for(const [id,row] of this.openConnections)if(row.deviceId===e.deviceId&&id!==e.connectionId){this._accrue(row,at);this.openConnections.delete(id);changed=true;}
       this.openConnections.set(String(e.connectionId),{connectionId:String(e.connectionId),accountId:String(e.accountId),deviceId:String(e.deviceId),openedAt:at,lastAccruedAt:at,hardExpiresAt:Number(e.hardExpiresAt)||null});changed=true;
+    } else if(e.type==='device_connection_renewed'&&e.accountId&&e.connectionId&&e.deviceId){
+      const id=String(e.connectionId),hardExpiresAt=Number(e.hardExpiresAt)||null,row=this.openConnections.get(id);
+      if(row){this._accrue(row,at);row.hardExpiresAt=hardExpiresAt;changed=true;}
+      else{this.openConnections.set(id,{connectionId:id,accountId:String(e.accountId),deviceId:String(e.deviceId),openedAt:at,lastAccruedAt:at,hardExpiresAt});changed=true;}
     } else if(e.type==='device_connection_closed'&&e.connectionId){const row=this.openConnections.get(String(e.connectionId));if(row){this._accrue(row,at);this.openConnections.delete(String(e.connectionId));changed=true;}}
     if(changed&&persist)this._persist();return changed;
   }
