@@ -16,7 +16,10 @@ const refundRequests = [];
 const canceledSubscriptions = [];
 const purchaseRecords = [];
 const refundRecords = [];
+const purchaseMails = [];
+const portalSessions = [];
 const purchaseRecorder = async payload => { purchaseRecords.push(structuredClone(payload)); return { accepted: true, event_id: payload.event_id, status: 'Received' }; };
+const purchaseMailer = async payload => { purchaseMails.push(structuredClone(payload)); return { sent: true, messageId: 'msg_test' }; };
 const refundRecorder = async payload => { refundRecords.push(structuredClone(payload)); return { accepted: true, event_id: payload.event_id, status: 'Received' }; };
 let account = {
   accountId: 'acct_test',
@@ -43,6 +46,25 @@ const fakePaddle = {
       };
     },
   },
+  customers: {
+    list({ email = [] } = {}) {
+      return {
+        async next() {
+          return [{ id: 'ctm_test', email: email[0] || 'owner@example.test', status: 'active' }];
+        },
+      };
+    },
+  },
+  customerPortalSessions: {
+    async create(customerId, subscriptionIds) {
+      portalSessions.push({ customerId, subscriptionIds: structuredClone(subscriptionIds || []) });
+      return {
+        id: 'cpl_test',
+        customerId,
+        urls: { general: { overview: 'https://sandbox-customer-portal.example/overview?token=test' }, subscriptions: [] },
+      };
+    },
+  },
   adjustments: {
     async create(body) {
       refundRequests.push(structuredClone(body));
@@ -61,6 +83,10 @@ const fakePaddle = {
       return {
         id: subscriptionId,
         status: canceledSubscriptions.includes(subscriptionId) ? 'canceled' : 'active',
+        customerId: 'ctm_test',
+        billingCycle: { interval: 'month', frequency: 1 },
+        nextBilledAt: canceledSubscriptions.includes(subscriptionId) ? null : new Date(1_800_000_000_000 + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        items: [{ nextBilledAt: new Date(1_800_000_000_000 + 30 * 24 * 60 * 60 * 1000).toISOString() }],
       };
     },
     async cancel(subscriptionId, body) {
@@ -133,6 +159,7 @@ const billing = new PaddleBilling({
   operatorCall,
   purchaseRecorder,
   refundRecorder,
+  purchaseMailer,
   now: () => 1_800_000_000_000,
 });
 
@@ -235,7 +262,10 @@ refundTransaction = {
   id: refundTxn,
   status: 'completed',
   subscriptionId: refundSub,
+  customerId: 'ctm_test',
+  invoiceNumber: 'INV-TEST-0001',
   currencyCode: 'USD',
+  items: [{ price: { taxMode: 'location', billingCycle: { interval: 'month', frequency: 1 } } }],
   customData: {
     light_remote_account_id: 'acct_test',
     light_remote_account_email: 'owner@example.test',
@@ -294,6 +324,28 @@ assert.equal(purchaseRecords[0].tax_amount, 5);
 assert.equal(purchaseRecords[0].fee_amount, 1.75);
 assert.equal(purchaseRecords[0].earnings_amount, 18.25);
 assert.equal(purchaseRecords[0].source_reference, refundTxn);
+assert.equal(purchaseMails.length, 1);
+assert.equal(purchaseMails[0].to, 'owner@example.test');
+assert.equal(purchaseMails[0].total, 25);
+assert.equal(purchaseMails[0].tax, 5);
+assert.equal(purchaseMails[0].invoiceNumber, 'INV-TEST-0001');
+assert.equal(purchaseMails[0].taxInclusive, false);
+assert.equal(purchaseMails[0].billingCycle.interval, 'month');
+
+const billingSummary = await billing.accountBillingSummary(account);
+assert.equal(billingSummary.available, true);
+assert.equal(billingSummary.portalAvailable, true);
+assert.equal(billingSummary.transaction.transactionId, refundTxn);
+assert.equal(billingSummary.transaction.invoiceNumber, 'INV-TEST-0001');
+assert.equal(billingSummary.transaction.total, 25);
+assert.equal(billingSummary.subscription.subscriptionId, refundSub);
+assert.equal(billingSummary.subscription.status, 'active');
+assert.equal(billingSummary.subscription.billingCycle.interval, 'month');
+const portal = await billing.createCustomerPortal(account);
+assert.match(portal.url, /^https:\/\/sandbox-customer-portal\.example\//);
+assert.equal(portalSessions.length, 1);
+assert.equal(portalSessions[0].customerId, 'ctm_test');
+assert.deepEqual(portalSessions[0].subscriptionIds, [refundSub]);
 
 const adminBeforeRefund = await billing.adminBillingTransactions({
   query: 'owner@example.test',
@@ -412,4 +464,7 @@ console.log('paddle-cancel-revoke=PASS');
 console.log('paddle-refund-24h-window=PASS');
 console.log('paddle-refund-approval-gate=PASS');
 console.log('paddle-admin-refund-eligibility=PASS');
+console.log('paddle-purchase-confirmation-mail=PASS');
+console.log('paddle-account-billing-summary=PASS');
+console.log('paddle-customer-portal=PASS');
 console.log('paddle-checkout-pause-flag=PASS');

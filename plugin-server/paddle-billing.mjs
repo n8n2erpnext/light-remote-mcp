@@ -4,6 +4,7 @@ import { Environment, EventName, Paddle } from '@paddle/paddle-node-sdk';
 
 import { callOperatorJson } from './operator-client.mjs';
 import { recordPaddlePurchase, recordPaddleRefund } from './commerce-backoffice.mjs';
+import { sendPaddlePurchaseConfirmation } from './mailer.mjs';
 
 const DEFAULT_STATE_FILE = '/var/lib/light-remote-direct/plugin-state/paddle-billing.json';
 const ACTIVE_SUBSCRIPTION_STATUSES = new Set(['active', 'trialing']);
@@ -164,12 +165,14 @@ export class PaddleBilling {
     operatorCall = callOperatorJson,
     purchaseRecorder = recordPaddlePurchase,
     refundRecorder = recordPaddleRefund,
+    purchaseMailer = sendPaddlePurchaseConfirmation,
     now = () => Date.now(),
   } = {}) {
     this.config = config;
     this.operatorCall = operatorCall;
     this.purchaseRecorder = purchaseRecorder;
     this.refundRecorder = refundRecorder;
+    this.purchaseMailer = purchaseMailer;
     this.now = now;
     this.state = loadState(config.stateFile);
     this.validation = validateSandboxIdentifiers(config);
@@ -537,6 +540,134 @@ export class PaddleBilling {
     };
   }
 
+  async customerForAccount(account) {
+    if (!this.paddle) return null;
+    const email = text(account?.email).toLowerCase();
+    if (!email) return null;
+    const collection = this.paddle.customers.list({ email: [email], perPage: 10 });
+    const page = await collection.next();
+    const exact = [...page].filter(row => text(row?.email).toLowerCase() === email);
+    return exact.find(row => text(row?.status).toLowerCase() !== 'archived') || exact[0] || null;
+  }
+
+  async latestTransactionForAccount(account) {
+    if (!this.paddle) return null;
+    const accountId = text(account?.accountId);
+    const email = text(account?.email).toLowerCase();
+    if (!accountId && !email) return null;
+    const collection = this.paddle.transactions.list({
+      status: ['completed'],
+      perPage: 100,
+      include: ['adjustment'],
+    });
+    const page = await collection.next();
+    const rows = [...page].filter(transaction => {
+      const custom = safeCustomData(transaction);
+      const txAccountId = text(custom.light_remote_account_id || custom.lightRemoteAccountId);
+      const txEmail = text(custom.light_remote_account_email || custom.lightRemoteAccountEmail).toLowerCase();
+      return (accountId && txAccountId === accountId) || (email && txEmail === email);
+    });
+    rows.sort((a, b) => Number(this.refundCaptureTime(b) || 0) - Number(this.refundCaptureTime(a) || 0));
+    return rows[0] || null;
+  }
+
+  async accountBillingSummary(account) {
+    if (!this.paddle) {
+      return {
+        available: false,
+        environment: this.config.environment,
+        reason: 'paddle_not_configured',
+      };
+    }
+    const [customer, transaction] = await Promise.all([
+      this.customerForAccount(account),
+      this.latestTransactionForAccount(account),
+    ]);
+    const subscriptionId = text(
+      account?.entitlement?.source === 'paddle'
+        ? account?.entitlement?.sourceRef
+        : transaction?.subscriptionId || transaction?.subscription_id
+    );
+    let subscription = null;
+    if (subscriptionId) {
+      try { subscription = await this.paddle.subscriptions.get(subscriptionId); } catch {}
+    }
+    const accounting = transaction ? paddleAccounting(transaction) : null;
+    const transactionItem = transaction?.items?.[0] || null;
+    const subscriptionItem = subscription?.items?.[0] || null;
+    const billingCycle = subscription?.billingCycle || subscription?.billing_cycle || transactionItem?.price?.billingCycle || transactionItem?.price?.billing_cycle || null;
+    const nextBilledAt = text(
+      subscription?.nextBilledAt ||
+      subscription?.next_billed_at ||
+      subscriptionItem?.nextBilledAt ||
+      subscriptionItem?.next_billed_at
+    ) || null;
+    const purchasedAtMs = transaction ? this.refundCaptureTime(transaction) : null;
+    const taxMode = text(transactionItem?.price?.taxMode || transactionItem?.price?.tax_mode).toLowerCase() || null;
+    const refund = (transaction?.adjustments || []).find(row => text(row?.action).toLowerCase() === 'refund') || null;
+    return {
+      available: Boolean(customer || transaction),
+      environment: this.config.environment,
+      portalAvailable: Boolean(customer),
+      plan: text(account?.plan || 'free').toLowerCase(),
+      transaction: transaction ? {
+        transactionId: text(transaction.id),
+        status: text(transaction?.status) || null,
+        invoiceNumber: text(transaction?.invoiceNumber || transaction?.invoice_number) || null,
+        purchasedAt: purchasedAtMs == null ? null : new Date(purchasedAtMs).toISOString(),
+        currency: accounting?.currency || text(transaction?.currencyCode || transaction?.currency_code || 'USD').toUpperCase(),
+        subtotal: accounting?.subtotal ?? null,
+        tax: accounting?.tax ?? null,
+        total: accounting?.gross ?? null,
+        taxMode,
+        refund: refund ? {
+          adjustmentId: text(refund?.id) || null,
+          status: text(refund?.status) || null,
+        } : null,
+      } : null,
+      subscription: subscriptionId ? {
+        subscriptionId,
+        status: text(subscription?.status) || null,
+        billingCycle,
+        nextBilledAt,
+      } : null,
+    };
+  }
+
+  async createCustomerPortal(account) {
+    if (!this.paddle) {
+      const error = new Error('paddle_not_configured');
+      error.status = 503;
+      throw error;
+    }
+    const customer = await this.customerForAccount(account);
+    if (!customer?.id) {
+      const error = new Error('paddle_customer_not_found');
+      error.status = 404;
+      throw error;
+    }
+    const transaction = await this.latestTransactionForAccount(account);
+    const subscriptionId = text(
+      account?.entitlement?.source === 'paddle'
+        ? account?.entitlement?.sourceRef
+        : transaction?.subscriptionId || transaction?.subscription_id
+    );
+    const portal = await this.paddle.customerPortalSessions.create(
+      customer.id,
+      subscriptionId ? [subscriptionId] : undefined,
+    );
+    const url = text(portal?.urls?.general?.overview);
+    if (!url) {
+      const error = new Error('paddle_customer_portal_unavailable');
+      error.status = 502;
+      throw error;
+    }
+    return {
+      environment: this.config.environment,
+      url,
+    };
+  }
+
   async recordCompletedTransaction(data) {
     const transactionId = text(data?.id);
     if (!transactionId || !this.paddle) {
@@ -584,6 +715,40 @@ export class PaddleBilling {
       },
     };
     const backoffice = await this.purchaseRecorder(payload);
+    let subscription = null;
+    if (subscriptionId) {
+      try { subscription = await this.paddle.subscriptions.get(subscriptionId); } catch {}
+    }
+    const transactionItem = transaction?.items?.[0] || null;
+    const subscriptionItem = subscription?.items?.[0] || null;
+    const billingCycle = subscription?.billingCycle || subscription?.billing_cycle || transactionItem?.price?.billingCycle || transactionItem?.price?.billing_cycle || null;
+    const nextBilledAt = text(
+      subscription?.nextBilledAt ||
+      subscription?.next_billed_at ||
+      subscriptionItem?.nextBilledAt ||
+      subscriptionItem?.next_billed_at
+    ) || null;
+    const taxMode = text(transactionItem?.price?.taxMode || transactionItem?.price?.tax_mode).toLowerCase();
+    let mail = { sent: false, reason: 'purchase_mail_not_attempted' };
+    try {
+      mail = await this.purchaseMailer({
+        to: email,
+        plan,
+        purchasedAt: payload.purchased_at,
+        billingCycle,
+        nextBilledAt,
+        subtotal: accounting.subtotal,
+        tax: accounting.tax,
+        total: accounting.gross || accounting.subtotal,
+        currency: accounting.currency,
+        transactionId,
+        invoiceNumber: text(transaction?.invoiceNumber || transaction?.invoice_number) || null,
+        taxInclusive: taxMode === 'internal',
+        environment: this.config.environment,
+      });
+    } catch (error) {
+      mail = { sent: false, reason: text(error?.message) || 'purchase_mail_failed' };
+    }
     return {
       action: 'recorded',
       accountId,
@@ -592,6 +757,7 @@ export class PaddleBilling {
       backofficeStatus: text(backoffice?.status) || 'accepted',
       backofficeEventId: text(backoffice?.event_id) || payload.event_id,
       accounting,
+      mail,
     };
   }
 
@@ -947,6 +1113,14 @@ export function paddlePublicConfig() {
 
 export async function createPaddleCheckout(account) {
   return paddleBilling.createCheckout(account);
+}
+
+export async function paddleBillingSummary(account) {
+  return paddleBilling.accountBillingSummary(account);
+}
+
+export async function createPaddleCustomerPortal(account) {
+  return paddleBilling.createCustomerPortal(account);
 }
 
 export function registerPaddleWebhook(app, rawMiddleware) {

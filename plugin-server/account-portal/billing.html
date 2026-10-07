@@ -36,6 +36,20 @@
     </section>
   </div>
 
+  <section id="paddleBillingPanel" class="panel billing-details hide">
+    <div class="panel-head"><div><h2>Subscription & invoices</h2><div class="muted">Payments, invoices and subscription management are provided by Paddle.</div></div><span id="billingStatusBadge" class="badge">—</span></div>
+    <div class="settings-body">
+      <div class="status-line"><span class="muted">Last payment</span><strong id="billingLastPayment">—</strong></div>
+      <div class="status-line"><span class="muted">Purchase date</span><strong id="billingPurchaseDate">—</strong></div>
+      <div class="status-line"><span class="muted">Billing cycle</span><strong id="billingCycle">—</strong></div>
+      <div class="status-line"><span class="muted">Next renewal</span><strong id="billingNextRenewal">—</strong></div>
+      <div class="status-line"><span class="muted">Paddle invoice</span><strong id="billingInvoice">—</strong></div>
+      <div class="status-line"><span class="muted">Transaction</span><strong id="billingTransaction">—</strong></div>
+      <div class="auth-actions"><button id="manageBilling" class="btn primary" type="button">Manage subscription & invoices</button></div>
+      <div id="billingPortalNote" class="setting-note muted">Open Paddle to download invoices, update payment details, or manage the subscription.</div>
+    </div>
+  </section>
+
   <section class="panel billing-usage">
     <div class="panel-head"><div><h2>Current month</h2><div class="muted">Tool-call usage resets at the start of each UTC month.</div></div><span id="usageBadge" class="badge">…</span></div>
     <div class="billing-usage-body">
@@ -50,7 +64,7 @@
   </section>
 </main></div>
 <script>
-const fmt=n=>new Intl.NumberFormat().format(Number(n)||0);let me=null,usage=null,upgradeState=null,paddleConfig=null,paddleReady=false;
+const fmt=n=>new Intl.NumberFormat().format(Number(n)||0);const money=(n,c='USD')=>n==null?'—':new Intl.NumberFormat('en-US',{style:'currency',currency:String(c||'USD').toUpperCase(),minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(n)||0);const dateText=v=>{if(!v)return '—';const d=new Date(v);return Number.isNaN(d.getTime())?'—':new Intl.DateTimeFormat(undefined,{year:'numeric',month:'short',day:'numeric'}).format(d)};const cycleText=c=>{const i=String(c?.interval||'').toLowerCase(),f=Math.max(1,Number(c?.frequency)||1);if(!i)return '—';if(f===1)return i==='year'?'Yearly':i==='week'?'Weekly':i==='day'?'Daily':'Monthly';return 'Every '+f+' '+i+'s'};let me=null,usage=null,upgradeState=null,paddleConfig=null,billingSummary=null,paddleReady=false;
 async function api(action,options={}){const r=await fetch('/account/api?action='+encodeURIComponent(action),{cache:'no-store',...options,headers:{'content-type':'application/json',...(options.headers||{})}});let j={};try{j=await r.json()}catch{}if(r.status===401){location.href='/account/login';throw new Error('login_required')}if(!r.ok)throw new Error(j.error||('HTTP '+r.status));return j}
 let paddleScriptPromise=null;
 function ensurePaddleJs(){
@@ -91,6 +105,19 @@ function render(){
   freeCard.classList.toggle('current',plan==='free');proCard.classList.toggle('current',plan==='pro'||plan==='vip');
   const paddleOn=Boolean(paddleConfig?.enabled),paddlePaused=Boolean(paddleConfig?.paused),sandbox=paddleConfig?.environment==='sandbox';
   paddleMode.classList.toggle('hide',(!paddleOn&&!paddlePaused)||!sandbox);
+  const bill=billingSummary,tx=bill?.transaction,sub=bill?.subscription,refundStatus=String(tx?.refund?.status||'').toLowerCase(),billingStatus=refundStatus==='approved'?'Refunded':String(sub?.status||tx?.status||'Paddle');
+  paddleBillingPanel.classList.toggle('hide',!bill?.available);
+  if(bill?.available){
+    billingStatusBadge.textContent=billingStatus;
+    billingLastPayment.textContent=tx?money(tx.total,tx.currency)+(Number(tx.tax)>0?' · '+(tx.taxMode==='internal'?'includes ':'tax ')+money(tx.tax,tx.currency):''):'—';
+    billingPurchaseDate.textContent=dateText(tx?.purchasedAt);
+    billingCycle.textContent=cycleText(sub?.billingCycle);
+    billingNextRenewal.textContent=dateText(sub?.nextBilledAt);
+    billingInvoice.textContent=tx?.invoiceNumber||'Available in Paddle';
+    billingTransaction.textContent=tx?.transactionId||'—';
+    manageBilling.disabled=!bill.portalAvailable;
+    billingPortalNote.textContent=bill.portalAvailable?'Open Paddle to download invoices, update payment details, or manage the subscription.':'Paddle billing history is not available for this account yet.';
+  }
   if(paddlePaused){
     upgradeHelp.textContent='Paddle sandbox checkout is temporarily paused.';
     upgrade.textContent='Sandbox checkout paused';
@@ -117,7 +144,7 @@ function render(){
   if(limit==null){planSummary.textContent='You are on '+plan.toUpperCase()+'. Tool calls are unlimited.';usageBadge.textContent='Unlimited';usageText.textContent=fmt(used)+' calls this month';usageRemaining.textContent='Unlimited';usageBar.style.width='100%';usageBar.classList.add('unlimited')}
   else {const remaining=Math.max(0,limit-used),pct=Math.min(100,used/Math.max(1,limit)*100);planSummary.textContent='You are on the Free plan. '+fmt(remaining)+' tool calls left this month.';usageBadge.textContent=Math.round(pct)+'%';usageText.textContent=fmt(used)+' of '+fmt(limit)+' calls';usageRemaining.textContent=fmt(remaining)+' remaining';usageBar.style.width=pct+'%';usageBar.classList.toggle('warn',pct>=85);usageBar.classList.toggle('danger-bar',pct>=100)}
 }
-async function load(){const [m,ur,up,pb]=await Promise.all([api('me'),fetch('/account/api?action=usage&months=1',{cache:'no-store'}),api('upgrade-request'),api('paddle-config')]);if(ur.status===401){location.href='/account/login';return}const u=await ur.json();if(!ur.ok)throw new Error(u.error||'usage_unavailable');me=m;usage=u.usage;upgradeState=up;paddleConfig=pb.paddle||null;if(paddleConfig?.enabled&&!paddleReady)await initPaddle();render()}
+async function load(){const [m,ur,up,pb,bs]=await Promise.all([api('me'),fetch('/account/api?action=usage&months=1',{cache:'no-store'}),api('upgrade-request'),api('paddle-config'),api('paddle-summary').catch(()=>({billing:null}))]);if(ur.status===401){location.href='/account/login';return}const u=await ur.json();if(!ur.ok)throw new Error(u.error||'usage_unavailable');me=m;usage=u.usage;upgradeState=up;paddleConfig=pb.paddle||null;billingSummary=bs.billing||null;if(paddleConfig?.enabled&&!paddleReady)await initPaddle();render()}
 upgrade.onclick=async()=>{
   upgrade.disabled=true;
   if(paddleConfig?.enabled){
@@ -132,6 +159,11 @@ upgrade.onclick=async()=>{
   }
   upgradeNote.className='setting-note muted';upgradeNote.textContent='Submitting account-bound upgrade request…';
   try{upgradeState=await api('upgrade-request',{method:'POST',body:JSON.stringify({plan:'pro'})});upgradeNote.className='setting-note ok';upgradeNote.textContent='Request received. No key is needed; PRO will attach directly to this account when approved.';await load()}catch(e){upgradeNote.className='setting-note error';upgradeNote.textContent=e.message;upgrade.disabled=false}
+};
+manageBilling.onclick=async()=>{
+  manageBilling.disabled=true;billingPortalNote.className='setting-note muted';billingPortalNote.textContent='Opening secure Paddle billing portal…';
+  try{const r=await api('paddle-portal',{method:'POST',body:'{}'});if(!r.portal?.url)throw new Error('paddle_portal_unavailable');location.href=r.portal.url}
+  catch(e){billingPortalNote.className='setting-note error';billingPortalNote.textContent=e.message;manageBilling.disabled=false}
 };
 redeemForm.onsubmit=async ev=>{ev.preventDefault();redeemMsg.className='setting-note muted';redeemMsg.textContent='Redeeming…';try{const r=await api('redeem-license',{method:'POST',body:JSON.stringify({key:licenseKey.value.trim()})});me.account=r.account;me.entitlements=r.entitlements||me.entitlements;licenseKey.value='';redeemMsg.className='setting-note ok';redeemMsg.textContent='Activated '+String(r.account?.plan||'').toUpperCase();render()}catch(e){redeemMsg.className='setting-note error';redeemMsg.textContent=e.message}};
 logout.onclick=async()=>{await fetch('/account/api?action=logout',{method:'POST',headers:{'content-type':'application/json'},body:'{}'});location.href='/account/login'};

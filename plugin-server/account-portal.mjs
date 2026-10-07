@@ -5,7 +5,7 @@ import { callOperatorJson } from './operator-client.mjs';
 import { PUBLIC_ORIGIN } from './config.mjs';
 import { mailConfig, sendDormancyWarning, sendDormantNotice, sendMagicLogin, sendPasswordReset, sendUpgradeRequested, sendWelcomeVerification } from './mailer.mjs';
 import { beginGoogleAuth, finishGoogleAuth, googleAuthStatus } from './google-auth.mjs';
-import { createPaddleCheckout, paddlePublicConfig } from './paddle-billing.mjs';
+import { createPaddleCheckout, createPaddleCustomerPortal, paddleBillingSummary, paddlePublicConfig } from './paddle-billing.mjs';
 
 const COOKIE='__Host-light_remote_account';
 const GOOGLE_SIGNUP_COOKIE='__Host-light_remote_google_signup';
@@ -138,7 +138,7 @@ async function runDormancyScan(){
 }
 async function accountApi(req,res){
   const action=String(req.query?.action||'').trim();
-  const mutations=new Set(['register','login','logout','password-change','password-setup','password-reset-request','password-reset-complete','magic-request','verification-resend','verification-verify','reactivate','enrollment-approve','device-revoke','device-remove','device-update','devices-revoke-all','redeem-license','main-device','main-device-clear','upgrade-request','paddle-checkout']);
+  const mutations=new Set(['register','login','logout','password-change','password-setup','password-reset-request','password-reset-complete','magic-request','verification-resend','verification-verify','reactivate','enrollment-approve','device-revoke','device-remove','device-update','devices-revoke-all','redeem-license','main-device','main-device-clear','upgrade-request','paddle-checkout','paddle-portal']);
   if(mutations.has(action)&&!sameOriginMutation(req)){accountAudit(action,'cross_site_denied');return res.status(403).json({ok:false,error:'cross_site_request_denied'});}
   try{
     if(action==='register'){
@@ -227,6 +227,12 @@ async function accountApi(req,res){
       const token=requireAccount(req,res);if(!token)return;
       return res.status(200).json({ok:true,paddle:paddlePublicConfig()});
     }
+    if(action==='paddle-summary'){
+      if(!method(req,res,'GET'))return;
+      const token=requireAccount(req,res);if(!token)return;
+      const current=await callOperatorJson('GET','/v1/accounts/me',null,headers(token));
+      return res.status(200).json({ok:true,billing:await paddleBillingSummary(current.account)});
+    }
     if(action==='reactivate'){
       if(!method(req,res,'POST'))return;
       const token=requireAccount(req,res);if(!token)return;
@@ -262,6 +268,13 @@ async function accountApi(req,res){
       const checkout=await createPaddleCheckout(current.account);
       accountAudit('paddle-checkout','created');
       return res.status(201).json({ok:true,checkout});
+    }
+    if(action==='paddle-portal'){
+      if(!method(req,res,'POST'))return;
+      const current=await callOperatorJson('GET','/v1/accounts/me',null,headers(token));
+      const portal=await createPaddleCustomerPortal(current.account);
+      accountAudit('paddle-portal','created');
+      return res.status(200).json({ok:true,portal});
     }
     if(action==='upgrade-request'){
       if(req.method==='GET')return res.status(200).json(await callOperatorJson('GET','/v1/accounts/upgrade-request',null,headers(token)));
