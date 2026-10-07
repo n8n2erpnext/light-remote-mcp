@@ -12,6 +12,7 @@ const updater=read('client/windows-native/LightRemote.Updater/UpdateClient.cs');
 const applier=read('client/windows-native/LightRemote.Updater/UpdateApplier.cs');
 const recovery=read('client/windows-native/LightRemote.Updater/RecoveryPaths.cs');
 const installer=read('client/windows-native/installer/GptOperator.iss');
+const installWatchdog=read('client/windows-native/LightRemote.InstallWatchdog/Program.cs');
 const taskInstaller=read('device-agent/install-windows-task.ps1');
 const agentHost=read('client/windows-native/GptOperator.Client/AgentHost.cs');
 const manifest=read('client/windows-native/GptOperator.Client/app.manifest');
@@ -44,6 +45,10 @@ expect(project.includes('<DebugType>none</DebugType>')&&updaterProject.includes(
 expect(updaterProgram.includes('--scheduled-update')&&updaterProgram.includes('--apply-update')&&updaterProgram.includes('--verify-update-fixture'),'updater_modes_missing');
 expect(updater.includes('VerifySignedManifest')&&updater.includes('CryptographicOperations.FixedTimeEquals'),'windows_signed_update_verification_missing');
 expect(applier.includes('rollback_success')&&applier.includes('--self-test-output'),'windows_rollback_health_gate_missing');
+expect(applier.includes('apply_blocked rollback_preflight_missing')&&applier.includes('rollback installer missing; current Core was not stopped'),'windows_update_must_fail_closed_before_core_stop_without_rollback');
+expect(applier.includes('runtime_recovery_direct_agent_requested')&&applier.includes('"--agent-host"')&&applier.includes('runtime_recovery_direct_agent_success'),'windows_update_runtime_lifeboat_missing');
+expect(installWatchdog.includes('installer_deadline_exceeded_terminating')&&installWatchdog.includes('TryKillProcessTree(installerPid)'),'windows_install_watchdog_must_stop_stuck_installer_before_recovery');
+expect(installWatchdog.includes('direct_agent_recovery_requested')&&installWatchdog.includes('direct_agent_recovery_wall_healthy'),'windows_install_watchdog_direct_agent_lifeboat_missing');
 expect(recovery.includes('"Light Remote", "Updater"')&&recovery.includes('RollbackDir')&&recovery.includes('UpdateLog'),'updater_recovery_root_missing');
 expect(!installer.includes('UpdaterStageDir'),'duplicate_updater_payload_remains');
 expect(workflow.includes("Copy-Item (Join-Path $updaterStage '*') $helperCandidate -Recurse -Force"),'helper_candidate_not_packaged');

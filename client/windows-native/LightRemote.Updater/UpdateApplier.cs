@@ -12,6 +12,16 @@ internal static class UpdateApplier
         if(!Path.IsPathFullyQualified(installer)||!Path.IsPathFullyQualified(installDir)||!Version.TryParse(versionCore,out _)||string.IsNullOrWhiteSpace(targetVersion)||!txId.StartsWith("ut_",StringComparison.Ordinal)){Log("apply_invalid_args");return 23;}
         try
         {
+            var rollbackPreflight=RecoveryPaths.RollbackInstaller(currentVersion);
+            if(!File.Exists(rollbackPreflight)||new FileInfo(rollbackPreflight).Length<=0)
+            {
+                Log($"apply_blocked rollback_preflight_missing path={rollbackPreflight}");
+                WriteStatus("blocked",currentVersion,targetVersion,"LRU140");
+                WriteReport("failed","LRU140","preflight",currentVersion,targetVersion,currentVersion,false,false,"rollback installer missing; current Core was not stopped");
+                ClearTransaction();
+                return 20;
+            }
+            Log($"rollback_preflight_ready path={rollbackPreflight} bytes={new FileInfo(rollbackPreflight).Length}");
             await WaitForParentAsync(parentPid);await StopBackgroundAgentTaskAsync();Log($"apply_start current={currentVersion} target={targetVersion}");await StopInstalledRuntimeAsync(installDir);
             if(await TryInstallAndVerifyAsync(installer,installDir))
             {
@@ -29,7 +39,7 @@ internal static class UpdateApplier
         }
         catch(Exception ex)
         {
-            Log($"apply_exception {ex.GetType().Name}: {ex.Message}");try{return await RollbackAsync(installDir,currentVersion,targetVersion,"LRU199",ex.Message);}catch(Exception rollbackEx){Log($"rollback_exception {rollbackEx.GetType().Name}: {rollbackEx.Message}");WriteStatus("failed",currentVersion,targetVersion,"LRU141");WriteReport("failed","LRU141","rollback",currentVersion,targetVersion,currentVersion,true,false,rollbackEx.Message);TryRestartBackgroundAgentTask();return 22;}
+            Log($"apply_exception {ex.GetType().Name}: {ex.Message}");try{return await RollbackAsync(installDir,currentVersion,targetVersion,"LRU199",ex.Message);}catch(Exception rollbackEx){Log($"rollback_exception {rollbackEx.GetType().Name}: {rollbackEx.Message}");var recovered=await RecoverRuntimeAsync(installDir);WriteStatus(recovered?"recovered":"failed",currentVersion,targetVersion,"LRU141");WriteReport("failed","LRU141","rollback",currentVersion,targetVersion,currentVersion,true,false,$"{rollbackEx.Message}; runtimeRecovered={recovered}");return 22;}
         }
     }
     internal static async Task<int> RestartAgentOnlyAsync(string installDir)
@@ -67,9 +77,28 @@ internal static class UpdateApplier
     }
     private static async Task<int> RollbackAsync(string installDir,string currentVersion,string targetVersion,string code,string detail)
     {
-        WriteStatus("rolling_back",currentVersion,targetVersion,code);var rollback=RecoveryPaths.RollbackInstaller(currentVersion);if(!File.Exists(rollback)){Log($"rollback_missing path={rollback}");WriteReport("failed","LRU140","rollback",currentVersion,targetVersion,currentVersion,true,false,"rollback installer missing");ClearTransaction();TryRestartBackgroundAgentTask();return 20;}
-        await StopInstalledRuntimeAsync(installDir);if(!await TryInstallAndVerifyAsync(rollback,installDir)){Log("rollback_failed");WriteStatus("failed",currentVersion,targetVersion,"LRU141");WriteReport("failed","LRU141","rollback",currentVersion,targetVersion,currentVersion,true,false,"rollback install or health preflight failed");ClearTransaction();TryRestartBackgroundAgentTask();return 21;}
+        WriteStatus("rolling_back",currentVersion,targetVersion,code);var rollback=RecoveryPaths.RollbackInstaller(currentVersion);if(!File.Exists(rollback)){Log($"rollback_missing path={rollback}");var recovered=await RecoverRuntimeAsync(installDir);WriteStatus(recovered?"recovered":"failed",currentVersion,targetVersion,"LRU140");WriteReport("failed","LRU140","rollback",currentVersion,targetVersion,currentVersion,true,false,$"rollback installer missing; runtimeRecovered={recovered}");ClearTransaction();return 20;}
+        await StopInstalledRuntimeAsync(installDir);if(!await TryInstallAndVerifyAsync(rollback,installDir)){Log("rollback_failed");var recovered=await RecoverRuntimeAsync(installDir);WriteStatus(recovered?"recovered":"failed",currentVersion,targetVersion,"LRU141");WriteReport("failed","LRU141","rollback",currentVersion,targetVersion,currentVersion,true,false,$"rollback install or health preflight failed; runtimeRecovered={recovered}");ClearTransaction();return 21;}
         WriteStatus("rollback",currentVersion,targetVersion,code);WriteReport("rollback",code,"verify_core",currentVersion,targetVersion,currentVersion,true,true,detail);ClearTransaction();Log("rollback_success");StartInstalledClient(installDir);return 0;
+    }
+    private static async Task<bool> RecoverRuntimeAsync(string installDir)
+    {
+        TryRestartBackgroundAgentTask();
+        if(await WaitForWallStateAsync(true,TimeSpan.FromSeconds(8))){Log("runtime_recovery_task_success");return true;}
+        try
+        {
+            var exe=Path.Combine(installDir,"GptOperator.Client.exe");
+            if(File.Exists(exe))
+            {
+                var psi=new ProcessStartInfo(exe){UseShellExecute=false,CreateNoWindow=true};
+                psi.ArgumentList.Add("--agent-host");
+                Process.Start(psi)?.Dispose();
+                Log("runtime_recovery_direct_agent_requested");
+            }
+        }
+        catch(Exception ex){Log($"runtime_recovery_direct_agent_failed {ex.GetType().Name}: {ex.Message}");}
+        if(await WaitForWallStateAsync(true,TimeSpan.FromSeconds(12))){Log("runtime_recovery_direct_agent_success");EnsureInstalledTray(installDir);return true;}
+        EnsureInstalledTray(installDir);Log("runtime_recovery_failed");return false;
     }
     private static async Task StopBackgroundAgentTaskAsync(){try{await EndScheduledTaskAsync("LightRemoteDeviceAgent");await Task.Delay(350);Log("agent_task_stop");}catch(Exception ex){Log($"agent_task_stop_failed {ex.GetType().Name}: {ex.Message}");}}
     private static void TryRestartBackgroundAgentTask(){try{var psi=new ProcessStartInfo(Path.Combine(Environment.SystemDirectory,"schtasks.exe")){UseShellExecute=false,CreateNoWindow=true};psi.ArgumentList.Add("/Run");psi.ArgumentList.Add("/TN");psi.ArgumentList.Add("LightRemoteDeviceAgent");Process.Start(psi)?.Dispose();Log("agent_task_restart_requested");}catch(Exception ex){Log($"agent_task_restart_failed {ex.GetType().Name}: {ex.Message}");}}
