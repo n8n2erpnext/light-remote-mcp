@@ -37,9 +37,9 @@ function clearSessionCookie(res){res.set('Set-Cookie',`${COOKIE}=; Path=/; Max-A
 function setOpaqueCookie(res,name,value,expiresAt){const maxAge=Math.max(60,Math.floor((Number(expiresAt)-Date.now())/1000));res.append('Set-Cookie',name+'='+encodeURIComponent(value)+'; Path=/; Max-Age='+maxAge+'; HttpOnly; Secure; SameSite=Strict; Priority=High');}
 function clearOpaqueCookie(res,name){res.append('Set-Cookie',name+'=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict; Priority=High');}
 function opaqueCookie(req,name){return String(parseCookies(req.headers?.cookie||'')[name]||'');}
-async function sendRegistrationVerification(challenge){
+async function sendRegistrationVerification(challenge,returnTo='/account'){
   if(!challenge?.token||!challenge?.pin||!challenge?.pending?.email)return {sent:false,reason:'challenge_not_issued'};
-  const verifyUrl=PUBLIC_ORIGIN+'/account/verify-email?token='+encodeURIComponent(challenge.token);
+  const next=safeReturnTo(returnTo),verifyUrl=PUBLIC_ORIGIN+'/account/verify-email?token='+encodeURIComponent(challenge.token)+(next==='/account'?'':'&next='+encodeURIComponent(next));
   return sendWelcomeVerification({to:challenge.pending.email,verifyUrl,pin:challenge.pin,challengeExpiresAt:challenge.pending.challengeExpiresAt,pendingExpiresAt:challenge.pending.expiresAt}).catch(error=>({sent:false,reason:error?.message||'mail_failed'}));
 }
 function sameOriginMutation(req){
@@ -148,7 +148,7 @@ async function accountApi(req,res){
       const upstream=await callOperatorJson('POST','/v1/plugin/accounts/register',{email:req.body?.email,password:req.body?.password,googleSignupToken});
       const pending=upstream.pending;if(!pending?.pendingId)throw Object.assign(new Error('pending_registration_missing'),{status:502});
       setOpaqueCookie(res,PENDING_COOKIE,pending.pendingId,pending.expiresAt);clearOpaqueCookie(res,GOOGLE_SIGNUP_COOKIE);
-      const mail=upstream.existing?{sent:false,reason:'already_pending'}:await sendRegistrationVerification(upstream);
+      const mail=upstream.existing?{sent:false,reason:'already_pending'}:await sendRegistrationVerification(upstream,req.body?.next);
       accountAudit('register','pending');
       return res.status(201).json({ok:true,pending,existing:Boolean(upstream.existing),mail});
     }
@@ -180,7 +180,7 @@ async function accountApi(req,res){
       if(!allowPublicAuth(req,action,{limit:5,windowMs:30*60_000}))return res.status(429).json({ok:false,error:'account_rate_limited'});
       const issued=await callOperatorJson('POST','/v1/plugin/accounts/magic/request',{email:req.body?.email});
       if(issued?.issued&&issued?.token&&issued?.account?.email){
-        const loginUrl=`${PUBLIC_ORIGIN}/account/magic?token=${encodeURIComponent(issued.token)}`;
+        const next=safeReturnTo(req.body?.next),loginUrl=`${PUBLIC_ORIGIN}/account/magic?token=${encodeURIComponent(issued.token)}${next==='/account'?'':`&next=${encodeURIComponent(next)}`}`;
         await sendMagicLogin({to:issued.account.email,loginUrl}).catch(error=>accountAudit('magic-mail','error',error?.message||'mail_failed'));
       }
       return res.status(200).json({ok:true,accepted:true});
@@ -205,7 +205,7 @@ async function accountApi(req,res){
       if(!method(req,res,'POST'))return;
       if(!allowPublicAuth(req,action,{limit:8,windowMs:60*60_000}))return res.status(429).json({ok:false,error:'account_rate_limited'});
       const pendingId=opaqueCookie(req,PENDING_COOKIE);if(!pendingId)return res.status(404).json({ok:false,error:'pending_registration_not_found'});
-      const challenge=await callOperatorJson('POST','/v1/plugin/accounts/registration/resend',{pendingId}),mail=await sendRegistrationVerification(challenge);
+      const challenge=await callOperatorJson('POST','/v1/plugin/accounts/registration/resend',{pendingId}),mail=await sendRegistrationVerification(challenge,req.body?.next);
       accountAudit('verification-resend',mail.sent?'success':'mail_error',mail.sent?'':mail.reason);return res.status(200).json({ok:true,pending:challenge.pending,mail});
     }
     if(action==='verification-verify'){
@@ -306,7 +306,7 @@ async function accountMagic(req,res){
   try{
     const token=String(req.query?.token||'');if(!token)throw Object.assign(new Error('magic_token_required'),{status:400});
     const upstream=await callOperatorJson('POST','/v1/plugin/accounts/magic/consume',{token});
-    setSessionCookie(res,upstream.token,upstream.session?.expiresAt);accountAudit('magic-login','success');return res.redirect(303,'/account');
+    setSessionCookie(res,upstream.token,upstream.session?.expiresAt);accountAudit('magic-login','success');return res.redirect(303,safeReturnTo(req.query?.next));
   }catch(error){accountAudit('magic-login','error',error?.payload?.error||error?.message||'magic_login_failed');return res.redirect(303,'/account/login?error=magic_link_invalid');}
 }
 function accountGoogleBegin(req,res){
@@ -319,7 +319,7 @@ async function accountGoogleCallback(req,res){
     const {returnTo,...identity}=finished;
     const upstream=await callOperatorJson('POST','/v1/plugin/auth/google',identity);
     if(upstream.registrationRequired){
-      setOpaqueCookie(res,GOOGLE_SIGNUP_COOKIE,upstream.googleSignupToken,upstream.expiresAt);accountAudit('google-signup-intent','success');return res.redirect(303,'/account/register?google=1');
+      setOpaqueCookie(res,GOOGLE_SIGNUP_COOKIE,upstream.googleSignupToken,upstream.expiresAt);accountAudit('google-signup-intent','success');const next=safeReturnTo(returnTo);return res.redirect(303,'/account/register?google=1'+(next==='/account'?'':'&next='+encodeURIComponent(next)));
     }
     setSessionCookie(res,upstream.token,upstream.session?.expiresAt);accountAudit('google-login','success');return res.redirect(303,safeReturnTo(returnTo));
   }catch(error){const code=error?.payload?.error||error?.message||'google_login_failed';accountAudit('google-login','error',code);return res.redirect(303,code==='account_admin_disabled'?'/account/login?error=account_admin_disabled':'/account/login?error=google_login_failed');}
