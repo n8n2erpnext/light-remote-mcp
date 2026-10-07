@@ -9,6 +9,9 @@ R2_PREFIX="${LIGHT_REMOTE_R2_PREFIX:-light-remote/release}"
 STATE_FILE="${LIGHT_REMOTE_R2_SYNC_STATE:-$HOME/.local/state/light-remote-release-sync/version}"
 LXD_NAME="${LIGHT_REMOTE_DISTRIBUTION_LXD:-light-remote-direct}"
 LXD_DIST_DIR="${LIGHT_REMOTE_DISTRIBUTION_DIR:-/var/lib/light-remote-direct/distribution}"
+LXD_REQUIRED="${LIGHT_REMOTE_DISTRIBUTION_LXD_REQUIRED:-0}"
+LXD_RETRIES="${LIGHT_REMOTE_DISTRIBUTION_LXD_RETRIES:-5}"
+LXD_RETRY_DELAY="${LIGHT_REMOTE_DISTRIBUTION_LXD_RETRY_DELAY:-2}"
 VERSION_ARG="${1:-}"
 
 [[ -f "$ENV_FILE" ]] || { echo "R2 environment file not found: $ENV_FILE" >&2; exit 2; }
@@ -186,12 +189,26 @@ put "$TMP/manifest.json" "$VERSION_KEY/manifest.json" 'public, max-age=31536000,
 put "$TMP/manifest.json" "$OBJECT_PREFIX/latest/manifest.json" 'public, max-age=60'
 put "$REPO_ROOT/plugin-server/downloads-install-linux.sh" "$OBJECT_PREFIX/install.sh" 'public, max-age=300'
 
-if command -v lxc >/dev/null 2>&1 && lxc info "$LXD_NAME" >/dev/null 2>&1; then
+LXD_READY=0
+if command -v lxc >/dev/null 2>&1; then
+  for attempt in $(seq 1 "$LXD_RETRIES"); do
+    if lxc info "$LXD_NAME" >/dev/null 2>&1; then LXD_READY=1; break; fi
+    echo "light-remote-r2-sync=lxd-retry container=$LXD_NAME attempt=$attempt/$LXD_RETRIES" >&2
+    sleep "$LXD_RETRY_DELAY"
+  done
+fi
+if [[ "$LXD_READY" == 1 ]]; then
   lxc exec "$LXD_NAME" -- install -d -o lightremote -g lightremote -m 0755 "$LXD_DIST_DIR"
   lxc file push "$TMP/manifest.json" "$LXD_NAME$LXD_DIST_DIR/manifest.json"
   lxc exec "$LXD_NAME" -- chown lightremote:lightremote "$LXD_DIST_DIR/manifest.json"
   lxc exec "$LXD_NAME" -- chmod 0644 "$LXD_DIST_DIR/manifest.json"
   lxc exec "$LXD_NAME" -- find "$LXD_DIST_DIR" -maxdepth 1 -type f ! -name manifest.json -delete
+  echo "light-remote-r2-sync=lxd-manifest-updated container=$LXD_NAME"
+elif [[ "$LXD_REQUIRED" =~ ^(1|true|yes|on)$ ]]; then
+  echo "light-remote-r2-sync=lxd-manifest-required-but-unavailable container=$LXD_NAME" >&2
+  exit 6
+else
+  echo "light-remote-r2-sync=lxd-manifest-skipped container=$LXD_NAME" >&2
 fi
 
 printf '%s\n' "$VERSION" > "$STATE_FILE"

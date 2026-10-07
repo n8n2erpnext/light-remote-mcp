@@ -49,7 +49,7 @@ registerAdminPortal(app);
 registerPublicDeviceRoutes(app);
 const pruner=setInterval(()=>prunePublicRateState(),60_000);pruner.unref?.();
 
-app.get('/',(_q,r)=>r.type('html').send(fs.readFileSync(new URL('./public-home.html',import.meta.url),'utf8')));
+app.get('/',(_q,r)=>r.type('html').send(fs.readFileSync(new URL('./public-home.html',import.meta.url),'utf8').replaceAll('__LIGHT_REMOTE_VERSION__',VERSION)));
 app.get('/support',(_q,r)=>r.type('html').send(renderSupportPage({origin:PUBLIC_ORIGIN,version:VERSION})));
 app.get('/privacy',(_q,r)=>r.type('html').send(renderLegalPage({active:'privacy',origin:PUBLIC_ORIGIN,...LEGAL_PAGES.privacy})));
 app.get('/terms',(_q,r)=>r.type('html').send(renderLegalPage({active:'terms',origin:PUBLIC_ORIGIN,...LEGAL_PAGES.terms})));

@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import { isOutboundTarget } from '../../lib/operator-target-route.mjs';
 
 const cases=[
@@ -11,3 +12,9 @@ for(const [input,expected,label] of cases){
   if(actual!==expected)throw new Error(`${label}: expected ${expected} got ${actual}`);
 }
 console.log('v11-outbound-routing=PASS');
+
+const executor=fs.readFileSync(new URL('../../operator-host/executor.mjs',import.meta.url),'utf8');
+if(executor.includes('const remote=session.nodeId!==NODE_ID'))throw new Error('outbound_route_regressed_to_node_id_only');
+const routed=(executor.match(/isOutboundTarget\(\{integratedHostEnabled:INTEGRATED_HOST_ENABLED/g)||[]).length;
+if(routed<6)throw new Error(`outbound_route_helper_missing_from_operations:${routed}`);
+console.log(`v11-outbound-routing-callers=${routed}`);

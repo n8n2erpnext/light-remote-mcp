@@ -54,8 +54,11 @@ for(const page of [devices,usage,billing,settings])assert.ok(page.includes('href
 assert.ok(billing.includes('Plan & billing'));
 assert.ok(billing.includes('10,000 tool calls per month'));
 assert.ok(billing.includes('Unlimited tool calls'));
-assert.ok(billing.includes('$20'));
-assert.ok(billing.includes('Taxes are included in the $20 price where applicable.'));
+assert.ok(billing.includes('id="proPriceValue"'),'localized Paddle price target missing');
+assert.ok(billing.includes('Loading localized Paddle price'),'localized Paddle loading state missing');
+assert.ok(billing.includes('Paddle.PricePreview'),'localized Paddle price preview missing');
+assert.ok(billing.includes('Localized by Paddle · taxes included where applicable.'),'localized Paddle tax copy missing');
+assert.ok(billing.includes('paddle_price_preview_required'),'checkout must fail closed without localized Paddle price');
 assert.ok(!billing.includes('Plus VAT'));
 assert.ok(billing.includes('usage-progress'));
 
@@ -91,7 +94,8 @@ assert.ok(downloadsPortal.includes("expand:'/assets/icons/material/expand_more.s
 assert.ok(publicHome.includes('rel="canonical" href="https://light-remote.thaiduy.digital/"'),'home canonical missing');
 assert.ok(publicHome.includes('application/ld+json')&&publicHome.includes('SoftwareApplication'),'home structured data missing');
 assert.ok(publicHome.includes('https://lightbi.app/')&&publicHome.includes('https://thaiduy.digital/'),'home ecosystem backlinks missing');
-assert.ok(publicHome.includes('LIGHT REMOTE MCP · RC.34'),'home release label stale');
+assert.ok(publicHome.includes('LIGHT REMOTE MCP · __LIGHT_REMOTE_VERSION__'),'home release label must be runtime-rendered');
+assert.ok(server.includes("replaceAll('__LIGHT_REMOTE_VERSION__',VERSION)"),'home runtime version renderer missing');
 for(const phrase of ['Terms of Service','Privacy Policy','Cookie Policy','Local Wall','A/B approval','Remote task data','__Host-light_remote_account'])assert.ok(legalPages.includes(phrase),`legal content missing:${phrase}`);
 assert.ok(server.includes("app.get('/cookies'")&&server.includes("'/cookies'"),'cookie policy route/indexing missing');
 assert.ok(server.includes("const urls=['/','/downloads','/support','/privacy','/terms','/cookies']"),'cookie policy sitemap missing');
@@ -109,6 +113,10 @@ assert.ok(r2Sync.includes("'githubUrl':f'https://github.com/{repo}/releases/down
 assert.ok(r2Sync.includes("mac_x64=info(f'Light-Remote-{version}-x86_64.pkg')")&&r2Sync.includes("mac_arm64=info(f'Light-Remote-{version}-arm64.pkg')"),'macOS pkg assets missing from distribution manifest');
 assert.ok(r2Sync.includes("'available':bool(mac_x64 or mac_arm64)")&&r2Sync.includes("'warning':'Unsigned / Not notarized'"),'macOS unsigned prerelease publication contract missing');
 assert.ok(r2Sync.includes("! -name manifest.json -delete"),'large distribution binaries must leave production LXD after R2 publish');
+assert.ok(r2Sync.includes('LIGHT_REMOTE_DISTRIBUTION_LXD_REQUIRED')&&r2Sync.includes('lxd-manifest-required-but-unavailable'),'R2 sync must fail closed when production LXD manifest cannot be updated');
+const releaseSyncUnit=read('deploy/distribution/light-remote-release-sync.service');
+assert.ok(releaseSyncUnit.includes('Environment=LIGHT_REMOTE_DISTRIBUTION_LXD_REQUIRED=1'),'release sync unit must require LXD manifest update');
+assert.ok(releaseSyncUnit.includes('NoNewPrivileges=false'),'Snap-backed LXC requires privilege transition in release sync service');
 const inlineDownloadScripts=[...downloadsPortal.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m=>m[1]);
 assert.equal(inlineDownloadScripts.length,1,'downloads portal inline script count');
 new Function(inlineDownloadScripts[0]);

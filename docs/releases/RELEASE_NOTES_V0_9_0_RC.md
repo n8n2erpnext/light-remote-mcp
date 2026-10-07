@@ -46,3 +46,11 @@ This is a prerelease candidate. It is not a claim of stable/general-availability
 ## RC.34 changes
 - Local Wall copy actions now fall back to a user-gesture textarea copy path when the modern Clipboard API is unavailable or blocked, including HTTP access over private LAN/NetBird addresses;
 - secure-context Clipboard API remains the preferred path, with fallback cleanup and focus restoration covered by regression tests.
+
+## RC.38 changes
+- rebases the release candidate on the current production lineage, preserving Paddle/ERP commerce, OAuth/support, and Windows updater recovery changes through f2e0880;
+- Direct plugin runtime version now derives from the immutable release VERSION/manifest instead of a stale rc.34 fallback;
+- outbound-only integrated-host routing remains guarded by regression tests so Main ARM targets are never misclassified as local LXD paths;
+- Direct Linux bundle archives force service-readable/traversable modes and validate them at build time;
+- release-to-R2 sync is fail-closed when the production LXD manifest cannot be updated and permits the required Snap LXC privilege transition;
+- public Home and distribution fallback report the running release version instead of hardcoded RC.34.
