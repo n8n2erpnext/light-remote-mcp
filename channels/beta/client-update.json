@@ -1,33 +1,33 @@
 {
   "schemaVersion": 1,
   "channel": "beta",
-  "version": "0.9.0-rc.35",
+  "version": "0.9.0-rc.39",
   "artifacts": {
     "windows-x64": {
-      "url": "https://github.com/n8n2erpnext/light-remote-mcp/releases/download/v0.9.0-rc.35/Light-Remote-MCP-Setup-x64-0.9.0-rc.35.exe",
-      "sha256": "ba3c704cc59f7c36f5413fd14037719fab76f513f4c20f554552f7418e63402f",
-      "size": 175113446,
+      "url": "https://github.com/n8n2erpnext/light-remote-mcp/releases/download/v0.9.0-rc.39/Light-Remote-MCP-Setup-x64-0.9.0-rc.39.exe",
+      "sha256": "2afeb34fdf1722aef57a3bd8b35dffb47a6877bbc485a5b1cef1b8bad520c266",
+      "size": 175121667,
       "installerArgs": "/SILENT /NORESTART"
     },
     "macos-x64": {
-      "url": "https://github.com/n8n2erpnext/light-remote-mcp/releases/download/v0.9.0-rc.35/Light-Remote-Client-macOS-x64-0.9.0-rc.35.tar.gz",
-      "sha256": "f9f2206299dcd91b122c0a740429362c34aa0058ac03571277fd511c9f53ae8b",
-      "size": 41462767
+      "url": "https://github.com/n8n2erpnext/light-remote-mcp/releases/download/v0.9.0-rc.39/Light-Remote-Client-macOS-x64-0.9.0-rc.39.tar.gz",
+      "sha256": "4f7afb11268ab50992f47a59fa6a18486f3e7713f7dbc0c65dd3c8876f594adc",
+      "size": 41462966
     },
     "macos-arm64": {
-      "url": "https://github.com/n8n2erpnext/light-remote-mcp/releases/download/v0.9.0-rc.35/Light-Remote-Client-macOS-arm64-0.9.0-rc.35.tar.gz",
-      "sha256": "3d4f46519d6689e610fe9c0c7ef97d953c76bf0aa634e62576f42eb2a56f4771",
-      "size": 40238109
+      "url": "https://github.com/n8n2erpnext/light-remote-mcp/releases/download/v0.9.0-rc.39/Light-Remote-Client-macOS-arm64-0.9.0-rc.39.tar.gz",
+      "sha256": "620fcdbd96e9b9f572acb599ad314af2298b07c591a52c10d18173424f1770dd",
+      "size": 40238282
     },
     "linux-x64": {
-      "url": "https://github.com/n8n2erpnext/light-remote-mcp/releases/download/v0.9.0-rc.35/Light-Remote-MCP-Client-Linux-x64-0.9.0-rc.35.tar.gz",
-      "sha256": "3540b08a6cd14c5d07642b9cf7e8a3228f313bfb7329ea24d06185ab131a2b2f",
-      "size": 47277274
+      "url": "https://github.com/n8n2erpnext/light-remote-mcp/releases/download/v0.9.0-rc.39/Light-Remote-MCP-Client-Linux-x64-0.9.0-rc.39.tar.gz",
+      "sha256": "f2f86d95899ba4f1ca96e104ef07cdc70a69bb2bbb6f53877b11cbf3c66f111f",
+      "size": 47276588
     },
     "linux-arm64": {
-      "url": "https://github.com/n8n2erpnext/light-remote-mcp/releases/download/v0.9.0-rc.35/Light-Remote-MCP-Client-Linux-arm64-0.9.0-rc.35.tar.gz",
-      "sha256": "11a00a68ca7e83a57432aeb079c0c9744a61ef4b43eafe024ffbef6609619ba3",
-      "size": 47100806
+      "url": "https://github.com/n8n2erpnext/light-remote-mcp/releases/download/v0.9.0-rc.39/Light-Remote-MCP-Client-Linux-arm64-0.9.0-rc.39.tar.gz",
+      "sha256": "fc84c5b3f90a9afc112fa43cfa7b2ba48af32d623cf77ab19fd990e84d1831b9",
+      "size": 47098948
     }
   }
 }
