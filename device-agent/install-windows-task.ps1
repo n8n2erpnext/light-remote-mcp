@@ -85,7 +85,7 @@ Register-ScheduledTask -TaskName $AgentTask -Action $agentAction -Trigger $agent
 $updaterArgs='--scheduled-update --install-dir "'+$InstallRoot+'"'
 $updaterAction=New-ScheduledTaskAction -Execute $Updater -Argument $updaterArgs -WorkingDirectory $UpdaterRoot
 $first=(Get-Date).AddMinutes(5);$updaterTrigger=New-ScheduledTaskTrigger -Once -At $first -RepetitionInterval (New-TimeSpan -Hours 6)
-Register-ScheduledTask -TaskName $UpdateTask -Action $updaterAction -Trigger $updaterTrigger -Principal $principal -Settings (New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -MultipleInstances IgnoreNew) -Description 'Light Remote independent signed recovery updater.' -Force|Out-Null
+Register-ScheduledTask -TaskName $UpdateTask -Action $updaterAction -Trigger $updaterTrigger -Principal $principal -Settings (New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -MultipleInstances Queue) -Description 'Light Remote independent signed recovery updater.' -Force|Out-Null
 Start-ScheduledTask -TaskName $AgentTask
 $startDeadline=(Get-Date).AddSeconds(10);$stableSince=$null
 while((Get-Date)-lt $startDeadline){

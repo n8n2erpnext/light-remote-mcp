@@ -24,6 +24,7 @@ assert.ok(winApply.includes('WaitForCoreAckAsync')&&winApply.includes('LaunchHel
 assert.ok(winWorkflow.includes("helper-candidate")&&winWorkflow.includes("Copy-Item VERSION (Join-Path $updaterStage 'VERSION')"),'windows_helper_candidate_missing');
 assert.ok(!winInstaller.includes('UpdaterStageDir'),'windows_duplicate_helper_payload_remains');
 assert.ok(winTask.includes('if(-not(Test-Path $Updater))')&&winTask.includes("$HelperCandidate=Join-Path $InstallRoot 'helper-candidate'")&&winTask.includes("Copy-Item (Join-Path $HelperCandidate '*') $UpdaterRoot -Recurse -Force"),'windows_helper_bootstrap_must_not_overwrite');
+assert.ok(winTask.includes("Register-ScheduledTask -TaskName $UpdateTask")&&winTask.includes('-MultipleInstances Queue'),'windows_updater_task_must_queue_owner_requests');
 assert.ok(winPaths.includes('HelperVersion()')&&winProgram.includes('RecoveryPaths.HelperVersion()')&&winApply.includes('RecoveryPaths.HelperVersion()'),'windows_helper_semantic_version_missing');
 assert.ok(winTask.includes('Compare-LightRemoteVersion')&&winTask.includes('$helperNewer')&&winTask.includes("targetVersion=$null")&&winTask.includes('TransactionFile'),'windows_post_health_helper_reconcile_missing');
 assert.ok(macUpdater.includes('waitForCoreAck')&&macUpdater.includes('finalizeHelperFromCore'),'mac_two_phase_gate_missing');
