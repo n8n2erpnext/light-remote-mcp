@@ -481,6 +481,69 @@ assert.equal(missingEnvironment.status().checkoutEnabled, false);
 assert.equal(missingEnvironment.status().webhookEnabled, false);
 assert.equal(missingEnvironment.status().reason, 'paddle_environment_required');
 
+const liveConfigured = new PaddleBilling({
+  config: {
+    environment: 'production',
+    checkoutAllowed: true,
+    apiKey: 'pdl_live_apikey_test',
+    clientToken: 'live_client_token',
+    proPriceId: priceId,
+    webhookSecret: 'pdl_ntfset_live_secret',
+    stateFile: '',
+  },
+  paddleClient: fakePaddle,
+  operatorCall,
+});
+assert.equal(liveConfigured.status().configured, true);
+assert.equal(liveConfigured.status().checkoutEnabled, true);
+assert.equal(liveConfigured.status().webhookEnabled, true);
+assert.equal(liveConfigured.publicConfig().environment, 'production');
+
+const wrongLiveKey = new PaddleBilling({
+  config: {
+    environment: 'production',
+    checkoutAllowed: true,
+    apiKey: 'pdl_sdbx_apikey_test',
+    clientToken: 'live_client_token',
+    proPriceId: priceId,
+    webhookSecret: 'pdl_ntfset_live_secret',
+    stateFile: '',
+  },
+  paddleClient: null,
+  operatorCall,
+});
+assert.equal(wrongLiveKey.status().reason, 'paddle_live_api_key_required');
+
+const wrongLiveToken = new PaddleBilling({
+  config: {
+    environment: 'production',
+    checkoutAllowed: true,
+    apiKey: 'pdl_live_apikey_test',
+    clientToken: 'test_client_token',
+    proPriceId: priceId,
+    webhookSecret: 'pdl_ntfset_live_secret',
+    stateFile: '',
+  },
+  paddleClient: null,
+  operatorCall,
+});
+assert.equal(wrongLiveToken.status().reason, 'paddle_live_client_token_required');
+
+const invalidEnvironment = new PaddleBilling({
+  config: {
+    environment: 'live',
+    checkoutAllowed: true,
+    apiKey: 'pdl_live_apikey_test',
+    clientToken: 'live_client_token',
+    proPriceId: priceId,
+    webhookSecret: 'pdl_ntfset_live_secret',
+    stateFile: '',
+  },
+  paddleClient: null,
+  operatorCall,
+});
+assert.equal(invalidEnvironment.status().reason, 'paddle_environment_invalid');
+
 const paused = new PaddleBilling({
   config: {
     environment: 'sandbox',
@@ -506,7 +569,7 @@ await assert.rejects(
 );
 
 fs.rmSync(tmp, { recursive: true, force: true });
-console.log('paddle-sandbox-config=PASS');
+console.log('paddle-dual-environment-config=PASS');
 console.log('paddle-environment-fail-fast=PASS');
 console.log('paddle-server-checkout-metadata=PASS');
 console.log('paddle-webhook-grant=PASS');

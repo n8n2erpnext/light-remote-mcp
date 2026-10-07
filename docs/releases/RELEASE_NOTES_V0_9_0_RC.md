@@ -59,3 +59,9 @@ This is a prerelease candidate. It is not a claim of stable/general-availability
 - restores the proven A/B Local Wall pairing capsule that replays the exact continuation returned by the first helper call and keeps continuation/session capabilities/internal identifiers private;
 - makes clean portable CI install Paddle SDK and Nodemailer from the root dependency plane so Paddle billing/refund selftests run on fresh runners;
 - preserves the rc.38 production lineage: Windows updater recovery, Direct routing/version coherence, fail-closed R2/LXD sync, and deterministic Direct bundle permissions.
+
+## RC.40 changes
+- Paddle Billing now supports explicit sandbox and production environments;
+- live credentials are fail-closed by prefix (pdl_live_apikey_, live_) and sandbox credentials remain environment-isolated;
+- Paddle Node SDK now selects Environment.production for production without weakening webhook/refund/accounting guards;
+- adds a production env template that keeps checkout disabled until the live cutover acceptance gate passes.

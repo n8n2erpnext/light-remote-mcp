@@ -150,13 +150,36 @@ function defaultConfig(env = process.env) {
   };
 }
 
-function validateSandboxIdentifiers(config) {
+function validatePaddleIdentifiers(config) {
   if (!config.environment) return { ok: false, reason: 'paddle_environment_required' };
-  if (config.environment !== 'sandbox') return { ok: false, reason: 'paddle_sandbox_only' };
-  if (config.apiKey && !config.apiKey.includes('_sdbx_')) return { ok: false, reason: 'paddle_sandbox_api_key_required' };
-  if (config.clientToken && !config.clientToken.startsWith('test_')) return { ok: false, reason: 'paddle_sandbox_client_token_required' };
-  if (config.proPriceId && !/^pri_[a-z0-9]{26}$/.test(config.proPriceId)) return { ok: false, reason: 'paddle_price_id_invalid' };
+  if (!['sandbox', 'production'].includes(config.environment)) {
+    return { ok: false, reason: 'paddle_environment_invalid' };
+  }
+  const sandbox = config.environment === 'sandbox';
+  if (config.apiKey) {
+    if (sandbox && !config.apiKey.startsWith('pdl_sdbx_apikey_')) {
+      return { ok: false, reason: 'paddle_sandbox_api_key_required' };
+    }
+    if (!sandbox && !config.apiKey.startsWith('pdl_live_apikey_')) {
+      return { ok: false, reason: 'paddle_live_api_key_required' };
+    }
+  }
+  if (config.clientToken) {
+    if (sandbox && !config.clientToken.startsWith('test_')) {
+      return { ok: false, reason: 'paddle_sandbox_client_token_required' };
+    }
+    if (!sandbox && !config.clientToken.startsWith('live_')) {
+      return { ok: false, reason: 'paddle_live_client_token_required' };
+    }
+  }
+  if (config.proPriceId && !/^pri_[a-z0-9]{26}$/.test(config.proPriceId)) {
+    return { ok: false, reason: 'paddle_price_id_invalid' };
+  }
   return { ok: true, reason: null };
+}
+
+function paddleEnvironment(environment) {
+  return environment === 'sandbox' ? Environment.sandbox : Environment.production;
 }
 
 export class PaddleBilling {
@@ -176,10 +199,10 @@ export class PaddleBilling {
     this.purchaseMailer = purchaseMailer;
     this.now = now;
     this.state = loadState(config.stateFile);
-    this.validation = validateSandboxIdentifiers(config);
+    this.validation = validatePaddleIdentifiers(config);
     this.paddle = paddleClient || (
       this.validation.ok && config.apiKey
-        ? new Paddle(config.apiKey, { environment: Environment.sandbox })
+        ? new Paddle(config.apiKey, { environment: paddleEnvironment(config.environment) })
         : null
     );
   }
@@ -234,7 +257,7 @@ export class PaddleBilling {
         ? null
         : paused
           ? 'paddle_checkout_paused'
-          : status.reason || 'paddle_sandbox_not_configured',
+          : status.reason || 'paddle_not_configured',
     };
   }
 
