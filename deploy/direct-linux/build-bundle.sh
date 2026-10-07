@@ -67,7 +67,17 @@ find "$PKG" -type f -name '*.key' -print -quit | grep -q . && { echo "private_ke
 
 mkdir -p "$OUT"
 ARCHIVE="Light-Remote-Direct-Linux-${TARGET_ARCH}-${VERSION}-${SHORT_SHA}.tar.gz"
-tar -czf "$OUT/$ARCHIVE" -C "$WORK" package
+tar --numeric-owner --owner=0 --group=0 --mode='u+rwX,go+rX' -czf "$OUT/$ARCHIVE" -C "$WORK" package
+python3 - "$OUT/$ARCHIVE" <<'PY'
+import sys,tarfile
+with tarfile.open(sys.argv[1],'r:gz') as tf:
+    for m in tf.getmembers():
+        if m.isdir() and (m.mode & 0o005) != 0o005:
+            raise SystemExit(f'direct_archive_untraversable:{m.name}:{oct(m.mode)}')
+        if m.isfile() and (m.mode & 0o004) != 0o004:
+            raise SystemExit(f'direct_archive_unreadable:{m.name}:{oct(m.mode)}')
+print('direct_archive_permissions=PASS')
+PY
 (cd "$OUT" && sha256sum "$ARCHIVE" > SHA256SUMS.txt)
 echo "direct_bundle=$OUT/$ARCHIVE"
 echo "direct_bundle_sha256=$(cut -d' ' -f1 "$OUT/SHA256SUMS.txt")"

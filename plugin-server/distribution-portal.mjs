@@ -1,13 +1,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { VERSION } from './config.mjs';
 
 const DIST_DIR=String(process.env.LIGHT_REMOTE_DISTRIBUTION_DIR||'/var/lib/light-remote-direct/distribution');
 const MANIFEST_FILE=String(process.env.LIGHT_REMOTE_DISTRIBUTION_MANIFEST||path.join(DIST_DIR,'manifest.json'));
 const PORTAL_FILE=fileURLToPath(new URL('./downloads-portal.html',import.meta.url));
 const FALLBACK={
   schemaVersion:1,
-  channel:'0.9.0-rc.34',
+  channel:VERSION,
   generatedAt:null,
   endpoint:'https://light-remote.thaiduy.digital',
   releases:[

@@ -29,6 +29,7 @@ import { LightScpRegistry } from '../lib/light-scp-registry.mjs';
 import { normalizeUpdateReport } from '../lib/update-contract.mjs';
 import { clientCompatibility, releaseCompatibilityFloor } from '../lib/version-compat.mjs';
 import { runtimeVersion } from '../lib/runtime-version.mjs';
+import { isOutboundTarget } from '../lib/operator-target-route.mjs';
 import { restoreActivityRing } from '../lib/activity-ring.mjs';
 import { createPlatformAdapter } from '../device-agent/platform-adapters/index.mjs';
 import { handleAccountRoutes } from './executor-routes-account.mjs';
@@ -370,7 +371,7 @@ function startJob(payload, requestId) {
   const session = sessions.ensure(requestedSessionId, { agentId });
   requireDeviceConnection(session.deviceId);
   if (payload.nodeId != null && String(payload.nodeId) !== session.nodeId) throw new SessionError('session_target_mismatch',409);
-  const remote=session.nodeId!==NODE_ID;
+  const remote=isOutboundTarget({integratedHostEnabled:INTEGRATED_HOST_ENABLED,localNodeId:NODE_ID,targetNodeId:session.nodeId});
   let cwd=payload.cwd==null||String(payload.cwd)==='' ? (remote?'':'/home/ubuntu') : String(payload.cwd);
   if (cwd.length>1024 || cwd.includes('\0') || (!remote && !cwd)) throw new Error('invalid_cwd');
   if (!remote) {
@@ -460,7 +461,7 @@ async function startFsOperation(payload,requestId){
   if(payload.nodeId!=null&&String(payload.nodeId)!==session.nodeId)throw new SessionError('session_target_mismatch',409);
   const fsRequest=payload.fs&&typeof payload.fs==='object'&&!Array.isArray(payload.fs)?payload.fs:null;
   if(!fsRequest)throw new Error('filesystem_request_required');
-  const remote=session.nodeId!==NODE_ID,requiredCapabilities=['filesystem'];
+  const remote=isOutboundTarget({integratedHostEnabled:INTEGRATED_HOST_ENABLED,localNodeId:NODE_ID,targetNodeId:session.nodeId}),requiredCapabilities=['filesystem'];
   if(remote){const route=targetRoute(session.nodeId,{accountId:session.accountId});if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(!route.capabilities.includes('filesystem'))throw new FleetError('target_node_capability_missing',409);}
   else if(!hostEffectiveCapabilities().includes('filesystem'))throw new DeviceError('local_host_capability_missing',409);
   const fingerprint=crypto.createHash('sha256').update(JSON.stringify({fsRequest,sessionId:session.id,nodeId:session.nodeId})).digest('hex');
@@ -480,7 +481,7 @@ async function startScpOperation(payload,requestId){
   const agentId=String(payload.agentId||'').trim(),session=sessions.ensure(String(payload.sessionId||''),{agentId});requireDeviceConnection(session.deviceId);
   if(payload.nodeId!=null&&String(payload.nodeId)!==session.nodeId)throw new SessionError('session_target_mismatch',409);
   const request=payload.scp&&typeof payload.scp==='object'&&!Array.isArray(payload.scp)?payload.scp:null;if(!request)throw new Error('scp_request_required');
-  const remote=session.nodeId!==NODE_ID,requiredCapabilities=['filesystem'];
+  const remote=isOutboundTarget({integratedHostEnabled:INTEGRATED_HOST_ENABLED,localNodeId:NODE_ID,targetNodeId:session.nodeId}),requiredCapabilities=['filesystem'];
   if(remote){const route=targetRoute(session.nodeId,{accountId:session.accountId});if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(!route.capabilities.includes('filesystem'))throw new FleetError('target_node_capability_missing',409);}else if(!hostEffectiveCapabilities().includes('filesystem'))throw new DeviceError('local_host_capability_missing',409);
   const fingerprint=crypto.createHash('sha256').update(JSON.stringify({request,sessionId:session.id,nodeId:session.nodeId})).digest('hex'),existing=operationDedupe.get(operationId);
   if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
@@ -509,7 +510,7 @@ async function startProcessOperation(payload,requestId){
   const agentId=String(payload.agentId||'').trim(),session=sessions.ensure(String(payload.sessionId||''),{agentId});requireDeviceConnection(session.deviceId);
   if(payload.nodeId!=null&&String(payload.nodeId)!==session.nodeId)throw new SessionError('session_target_mismatch',409);
   const request=payload.process&&typeof payload.process==='object'&&!Array.isArray(payload.process)?payload.process:null;if(!request)throw new Error('process_request_required');
-  const remote=session.nodeId!==NODE_ID,requiredCapabilities=['filesystem'];
+  const remote=isOutboundTarget({integratedHostEnabled:INTEGRATED_HOST_ENABLED,localNodeId:NODE_ID,targetNodeId:session.nodeId}),requiredCapabilities=['filesystem'];
   if(remote){const route=targetRoute(session.nodeId,{accountId:session.accountId});if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(!route.capabilities.includes('filesystem'))throw new FleetError('target_node_capability_missing',409);}else if(!hostEffectiveCapabilities().includes('filesystem'))throw new DeviceError('local_host_capability_missing',409);
   const fingerprint=crypto.createHash('sha256').update(JSON.stringify({request,sessionId:session.id,nodeId:session.nodeId})).digest('hex'),existing=operationDedupe.get(operationId);
   if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
@@ -544,7 +545,7 @@ async function startTerminalOperation(payload,requestId){
   const agentId=String(payload.agentId||'').trim(),session=sessions.ensure(String(payload.sessionId||''),{agentId});requireDeviceConnection(session.deviceId);
   if(payload.nodeId!=null&&String(payload.nodeId)!==session.nodeId)throw new SessionError('session_target_mismatch',409);
   const request=payload.terminal&&typeof payload.terminal==='object'&&!Array.isArray(payload.terminal)?payload.terminal:null;if(!request)throw new Error('terminal_request_required');
-  const remote=session.nodeId!==NODE_ID,requiredCapabilities=['terminal'];
+  const remote=isOutboundTarget({integratedHostEnabled:INTEGRATED_HOST_ENABLED,localNodeId:NODE_ID,targetNodeId:session.nodeId}),requiredCapabilities=['terminal'];
   if(remote){const route=targetRoute(session.nodeId,{accountId:session.accountId});if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(!route.capabilities.includes('terminal'))throw new FleetError('target_node_capability_missing',409);}else if(!hostEffectiveCapabilities().includes('terminal'))throw new DeviceError('local_host_capability_missing',409);
   const fingerprint=crypto.createHash('sha256').update(JSON.stringify({request,sessionId:session.id,nodeId:session.nodeId})).digest('hex'),existing=operationDedupe.get(operationId);
   if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
@@ -609,7 +610,7 @@ async function startDesktopOperation(payload,requestId){
     }
     request=normalized;
   }
-  const remote=session.nodeId!==NODE_ID,requiredCapabilities=(op==='input'||op==='run'||op==='act')?['desktop','desktop-input']:['desktop'];
+  const remote=isOutboundTarget({integratedHostEnabled:INTEGRATED_HOST_ENABLED,localNodeId:NODE_ID,targetNodeId:session.nodeId}),requiredCapabilities=(op==='input'||op==='run'||op==='act')?['desktop','desktop-input']:['desktop'];
   if(!remote)throw new DeviceError('desktop_local_host_not_supported',409);
   const route=targetRoute(session.nodeId,{accountId:session.accountId});if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(requiredCapabilities.some(cap=>!route.capabilities.includes(cap)))throw new FleetError('target_node_capability_missing',409);
   const fingerprint=crypto.createHash('sha256').update(JSON.stringify({request,sessionId:session.id,nodeId:session.nodeId})).digest('hex'),existing=operationDedupe.get(operationId);
@@ -629,7 +630,7 @@ async function startSearchOperation(payload,requestId){
   const agentId=String(payload.agentId||'').trim(),session=sessions.ensure(String(payload.sessionId||''),{agentId});requireDeviceConnection(session.deviceId);
   if(payload.nodeId!=null&&String(payload.nodeId)!==session.nodeId)throw new SessionError('session_target_mismatch',409);
   const request=payload.search&&typeof payload.search==='object'&&!Array.isArray(payload.search)?payload.search:null;if(!request)throw new Error('search_request_required');
-  const remote=session.nodeId!==NODE_ID,requiredCapabilities=['filesystem'];
+  const remote=isOutboundTarget({integratedHostEnabled:INTEGRATED_HOST_ENABLED,localNodeId:NODE_ID,targetNodeId:session.nodeId}),requiredCapabilities=['filesystem'];
   if(remote){const route=targetRoute(session.nodeId,{accountId:session.accountId});if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(!route.capabilities.includes('filesystem'))throw new FleetError('target_node_capability_missing',409);}else if(!hostEffectiveCapabilities().includes('filesystem'))throw new DeviceError('local_host_capability_missing',409);
   const fingerprint=crypto.createHash('sha256').update(JSON.stringify({request,sessionId:session.id,nodeId:session.nodeId})).digest('hex'),existing=operationDedupe.get(operationId);
   if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}

@@ -46,3 +46,9 @@ This is a prerelease candidate. It is not a claim of stable/general-availability
 ## RC.34 changes
 - Local Wall copy actions now fall back to a user-gesture textarea copy path when the modern Clipboard API is unavailable or blocked, including HTTP access over private LAN/NetBird addresses;
 - secure-context Clipboard API remains the preferred path, with fallback cleanup and focus restoration covered by regression tests.
+
+## RC.37 changes
+- Direct plugin runtime version now derives from the immutable release VERSION/manifest instead of a stale rc.34 fallback;
+- outbound-only integrated-host routing is restored, preventing Main ARM targets from being misclassified as local LXD paths;
+- Direct Linux bundle archives force service-readable/traversable modes and validate them at build time;
+- distribution fallback reports the running release version instead of a hardcoded stale channel.

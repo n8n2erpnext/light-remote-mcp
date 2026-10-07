@@ -11,7 +11,8 @@ SupplementaryGroups=lxd
 Environment=HOME=/home/ubuntu
 Environment=LIGHT_REMOTE_R2_ENV_FILE=/home/ubuntu/.config/lightbi-backup-r2.env
 Environment=LIGHT_REMOTE_R2_PREFIX=light-remote/release
+Environment=LIGHT_REMOTE_DISTRIBUTION_LXD_REQUIRED=1
 WorkingDirectory=/home/ubuntu/light-remote-dev
 ExecStart=/home/ubuntu/light-remote-dev/deploy/distribution/sync-release-to-r2.sh
-NoNewPrivileges=true
+NoNewPrivileges=false
 PrivateTmp=true
