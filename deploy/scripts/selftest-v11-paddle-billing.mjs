@@ -18,6 +18,7 @@ const purchaseRecords = [];
 const refundRecords = [];
 const purchaseMails = [];
 const portalSessions = [];
+const paddleCustomers = [];
 const purchaseRecorder = async payload => { purchaseRecords.push(structuredClone(payload)); return { accepted: true, event_id: payload.event_id, status: 'Received' }; };
 const purchaseMailer = async payload => { purchaseMails.push(structuredClone(payload)); return { sent: true, messageId: 'msg_test' }; };
 const refundRecorder = async payload => { refundRecords.push(structuredClone(payload)); return { accepted: true, event_id: payload.event_id, status: 'Received' }; };
@@ -50,9 +51,15 @@ const fakePaddle = {
     list({ email = [] } = {}) {
       return {
         async next() {
-          return [{ id: 'ctm_test', email: email[0] || 'owner@example.test', status: 'active' }];
+          const wanted = String(email[0] || '').toLowerCase();
+          return paddleCustomers.filter(row => !wanted || String(row.email).toLowerCase() === wanted).map(row => structuredClone(row));
         },
       };
+    },
+    async create(body) {
+      const row = { id: 'ctm_test', email: String(body.email || '').toLowerCase(), status: 'active' };
+      paddleCustomers.push(row);
+      return structuredClone(row);
     },
   },
   customerPortalSessions: {
@@ -170,6 +177,9 @@ assert.equal(billing.publicConfig().clientToken, 'test_client_token');
 const checkout = await billing.createCheckout(account);
 assert.match(checkout.transactionId, /^txn_/);
 assert.equal(createdBody.items[0].priceId, priceId);
+assert.equal(paddleCustomers.length, 1);
+assert.equal(paddleCustomers[0].email, 'owner@example.test');
+assert.equal(createdBody.customerId, 'ctm_test');
 assert.equal(createdBody.customData.light_remote_account_id, 'acct_test');
 assert.equal(createdBody.customData.light_remote_plan, 'pro');
 assert.equal(createdBody.customData.light_remote_account_email, 'owner@example.test');

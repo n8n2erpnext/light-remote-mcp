@@ -259,8 +259,19 @@ export class PaddleBilling {
       throw error;
     }
 
+    let customer = await this.customerForAccount(account);
+    if (!customer?.id) {
+      customer = await this.paddle.customers.create({ email });
+    }
+    if (!customer?.id || text(customer?.email).toLowerCase() !== email) {
+      const error = new Error('paddle_customer_binding_failed');
+      error.status = 502;
+      throw error;
+    }
+
     const transaction = await this.paddle.transactions.create({
       items: [{ priceId: this.config.proPriceId, quantity: 1 }],
+      customerId: customer.id,
       customData: {
         light_remote_account_id: accountId,
         light_remote_account_email: email,
