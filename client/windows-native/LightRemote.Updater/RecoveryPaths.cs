@@ -16,6 +16,8 @@ internal static class RecoveryPaths
     public static readonly string TransactionFile = Path.Combine(StateDir, "transaction.json");
     public static readonly string AckFile = Path.Combine(StateDir, "core-health-ack.json");
     public static readonly string RestartRequestFile = Path.Combine(StateDir, "restart-request.json");
+    public static readonly string UpdateRequestFile = Path.Combine(StateDir, "request.json");
+    public static readonly string CheckRequestFile = Path.Combine(StateDir, "check-request.json");
 
     public static string HelperVersion()
     {

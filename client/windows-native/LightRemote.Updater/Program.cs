@@ -15,7 +15,7 @@ internal static class Program
             var self=Array.IndexOf(args,"--self-test-output");if(self>=0&&self+2<args.Length)return SelfTest(args[self+1],args[self+2])?0:1;
             var check=Array.IndexOf(args,"--check-update");if(check>=0&&check+2<args.Length&&string.Equals(args[check+1],"--install-dir",StringComparison.OrdinalIgnoreCase))return await RunCheckUpdateAsync(args[check+2]);
             var now=Array.IndexOf(args,"--apply-update-now");if(now>=0&&now+2<args.Length&&string.Equals(args[now+1],"--install-dir",StringComparison.OrdinalIgnoreCase))return await RunApplyUpdateNowAsync(args[now+2]);
-            var scheduled=Array.IndexOf(args,"--scheduled-update");if(scheduled>=0&&scheduled+2<args.Length&&string.Equals(args[scheduled+1],"--install-dir",StringComparison.OrdinalIgnoreCase))return await RunCheckUpdateAsync(args[scheduled+2]);
+            var scheduled=Array.IndexOf(args,"--scheduled-update");if(scheduled>=0&&scheduled+2<args.Length&&string.Equals(args[scheduled+1],"--install-dir",StringComparison.OrdinalIgnoreCase))return await RunScheduledUpdateAsync(args[scheduled+2]);
             return 2;
         }
         catch(FileNotFoundException){return 0;}
@@ -26,6 +26,24 @@ internal static class Program
     private static void WriteJson(string file,JsonObject value){RecoveryPaths.EnsureDirectories();var tmp=file+"."+Environment.ProcessId+".tmp";File.WriteAllText(tmp,value.ToJsonString());File.Move(tmp,file,true);}
     private static void WriteStatus(string state,string currentVersion,string? targetVersion=null,string? code=null)=>WriteJson(RecoveryPaths.StatusFile,new JsonObject{{"state",state},{"currentVersion",currentVersion},{"targetVersion",targetVersion},{"helperVersion",RecoveryPaths.HelperVersion()},{"code",code},{"updatedAt",DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}});
     private static bool TryConsumeRestartRequest(){try{RecoveryPaths.EnsureDirectories();var f=RecoveryPaths.RestartRequestFile;if(!File.Exists(f))return false;var fresh=(DateTime.UtcNow-File.GetLastWriteTimeUtc(f))<TimeSpan.FromMinutes(2);File.Delete(f);if(!fresh){UpdateApplier.Log("restart_request_stale_ignored");return false;}return true;}catch(Exception ex){UpdateApplier.Log($"restart_request_consume_failed {ex.GetType().Name}: {ex.Message}");return false;}}
+    private static bool TryConsumeUpdateRequest(string file,string label)
+    {
+        try
+        {
+            RecoveryPaths.EnsureDirectories();if(!File.Exists(file))return false;
+            var fresh=(DateTime.UtcNow-File.GetLastWriteTimeUtc(file))<TimeSpan.FromMinutes(2);File.Delete(file);
+            if(!fresh){UpdateApplier.Log($"scheduled_{label}_request_stale_ignored");return false;}
+            UpdateApplier.Log($"scheduled_{label}_request_consumed");return true;
+        }
+        catch(Exception ex){UpdateApplier.Log($"scheduled_{label}_request_consume_failed {ex.GetType().Name}: {ex.Message}");return false;}
+    }
+    private static async Task<int> RunScheduledUpdateAsync(string installDir)
+    {
+        if(TryConsumeRestartRequest()){UpdateApplier.Log("restart_request_consumed");return await UpdateApplier.RestartAgentOnlyAsync(installDir);}
+        if(TryConsumeUpdateRequest(RecoveryPaths.UpdateRequestFile,"apply"))return await RunApplyUpdateNowAsync(installDir);
+        _=TryConsumeUpdateRequest(RecoveryPaths.CheckRequestFile,"check");
+        return await RunCheckUpdateAsync(installDir);
+    }
     private static async Task<int> RunCheckUpdateAsync(string installDir)
     {
         if(TryConsumeRestartRequest()){UpdateApplier.Log("restart_request_consumed");return await UpdateApplier.RestartAgentOnlyAsync(installDir);}
