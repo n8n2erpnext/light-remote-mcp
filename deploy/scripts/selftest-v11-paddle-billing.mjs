@@ -184,6 +184,30 @@ assert.equal(createdBody.customData.light_remote_account_id, 'acct_test');
 assert.equal(createdBody.customData.light_remote_plan, 'pro');
 assert.equal(createdBody.customData.light_remote_account_email, 'owner@example.test');
 
+refundTransaction = {
+  id: 'txn_' + 'x'.repeat(26),
+  status: 'completed',
+  subscriptionId: 'sub_' + 'x'.repeat(26),
+  customData: {
+    light_remote_account_id: 'acct_test',
+    light_remote_account_email: 'owner@example.test',
+    light_remote_plan: 'pro',
+  },
+  adjustments: [],
+  payments: [{
+    status: 'captured',
+    capturedAt: new Date(1_800_000_000_000 - 5_000).toISOString(),
+  }],
+};
+await assert.rejects(
+  () => billing.createCheckout(account),
+  error => error?.message === 'paddle_active_purchase_exists' && error?.status === 409,
+);
+refundTransaction.adjustments = [{ action: 'refund', status: 'approved', type: 'full' }];
+const checkoutAfterRefund = await billing.createCheckout(account);
+assert.match(checkoutAfterRefund.transactionId, /^txn_/);
+refundTransaction = null;
+
 await assert.rejects(
   () => billing.createCheckout({ ...account, plan: 'pro' }),
   error => error?.message === 'paddle_account_already_paid' && error?.status === 409,

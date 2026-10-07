@@ -259,6 +259,32 @@ export class PaddleBilling {
       throw error;
     }
 
+    const latest = await this.latestTransactionForAccount(account);
+    if (latest && text(latest?.status).toLowerCase() === 'completed') {
+      const approvedFullRefund = (latest.adjustments || []).some(row =>
+        text(row?.action).toLowerCase() === 'refund' &&
+        text(row?.status).toLowerCase() === 'approved' &&
+        text(row?.type).toLowerCase() === 'full'
+      );
+      if (!approvedFullRefund) {
+        const subscriptionId = text(latest?.subscriptionId || latest?.subscription_id);
+        let subscriptionStatus = '';
+        if (subscriptionId) {
+          try {
+            subscriptionStatus = text((await this.paddle.subscriptions.get(subscriptionId))?.status).toLowerCase();
+          } catch {}
+        }
+        const blocksCheckout = !subscriptionId ||
+          !subscriptionStatus ||
+          ['active', 'trialing', 'past_due', 'paused'].includes(subscriptionStatus);
+        if (blocksCheckout) {
+          const error = new Error('paddle_active_purchase_exists');
+          error.status = 409;
+          throw error;
+        }
+      }
+    }
+
     let customer = await this.customerForAccount(account);
     if (!customer?.id) {
       customer = await this.paddle.customers.create({ email });

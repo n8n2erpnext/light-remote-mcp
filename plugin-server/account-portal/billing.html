@@ -64,7 +64,7 @@
   </section>
 </main></div>
 <script>
-const fmt=n=>new Intl.NumberFormat().format(Number(n)||0);const money=(n,c='USD')=>n==null?'—':new Intl.NumberFormat('en-US',{style:'currency',currency:String(c||'USD').toUpperCase(),minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(n)||0);const dateText=v=>{if(!v)return '—';const d=new Date(v);return Number.isNaN(d.getTime())?'—':new Intl.DateTimeFormat(undefined,{year:'numeric',month:'short',day:'numeric'}).format(d)};const cycleText=c=>{const i=String(c?.interval||'').toLowerCase(),f=Math.max(1,Number(c?.frequency)||1);if(!i)return '—';if(f===1)return i==='year'?'Yearly':i==='week'?'Weekly':i==='day'?'Daily':'Monthly';return 'Every '+f+' '+i+'s'};let me=null,usage=null,upgradeState=null,paddleConfig=null,billingSummary=null,paddleReady=false;
+const fmt=n=>new Intl.NumberFormat().format(Number(n)||0);const money=(n,c='USD')=>n==null?'—':new Intl.NumberFormat('en-US',{style:'currency',currency:String(c||'USD').toUpperCase(),minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(n)||0);const dateText=v=>{if(!v)return '—';const d=new Date(v);return Number.isNaN(d.getTime())?'—':new Intl.DateTimeFormat(undefined,{year:'numeric',month:'short',day:'numeric'}).format(d)};const cycleText=c=>{const i=String(c?.interval||'').toLowerCase(),f=Math.max(1,Number(c?.frequency)||1);if(!i)return '—';if(f===1)return i==='year'?'Yearly':i==='week'?'Weekly':i==='day'?'Daily':'Monthly';return 'Every '+f+' '+i+'s'};const paddleReturnSuccess=new URLSearchParams(location.search).get('paddle')==='success';let me=null,usage=null,upgradeState=null,paddleConfig=null,billingSummary=null,paddleReady=false,paddleSuccessSyncing=paddleReturnSuccess;
 async function api(action,options={}){const r=await fetch('/account/api?action='+encodeURIComponent(action),{cache:'no-store',...options,headers:{'content-type':'application/json',...(options.headers||{})}});let j={};try{j=await r.json()}catch{}if(r.status===401){location.href='/account/login';throw new Error('login_required')}if(!r.ok)throw new Error(j.error||('HTTP '+r.status));return j}
 let paddleScriptPromise=null;
 function ensurePaddleJs(){
@@ -88,11 +88,13 @@ async function initPaddle(){
     token:paddleConfig.clientToken,
     eventCallback:event=>{
       if(event?.name==='checkout.completed'){
+        paddleSuccessSyncing=true;
+        upgrade.disabled=true;
         upgradeNote.className='setting-note ok';
-        upgradeNote.textContent='Sandbox payment completed. Waiting for the verified Paddle webhook to update entitlement…';
-        let tries=0;const poll=setInterval(async()=>{tries++;try{await load();const plan=String(me?.account?.plan||'free').toLowerCase();if(plan!=='free'||tries>=8)clearInterval(poll)}catch{if(tries>=8)clearInterval(poll)}},1500);
+        upgradeNote.textContent='Payment received. Activating PRO from the verified Paddle webhook…';
+        let tries=0;const poll=setInterval(async()=>{tries++;try{await load();const plan=String(me?.account?.plan||'free').toLowerCase();if(plan!=='free'){paddleSuccessSyncing=false;clearInterval(poll);render()}else if(tries>=8)clearInterval(poll)}catch{if(tries>=8)clearInterval(poll)}},1500);
       }else if(event?.name==='checkout.closed'){
-        upgrade.disabled=false;
+        if(!paddleSuccessSyncing)upgrade.disabled=false;
       }
     }
   });
@@ -118,7 +120,13 @@ function render(){
     manageBilling.disabled=!bill.portalAvailable;
     billingPortalNote.textContent=bill.portalAvailable?'Open Paddle to download invoices, update payment details, or manage the subscription.':'Paddle billing history is not available for this account yet.';
   }
-  if(paddlePaused){
+  if(paddleSuccessSyncing&&plan==='free'){
+    upgradeHelp.textContent='Paddle payment was received. Light Remote is waiting for the verified webhook to activate PRO.';
+    upgrade.textContent='Payment received — activating PRO…';
+    upgrade.disabled=true;
+    upgradeNote.className='setting-note ok';
+    upgradeNote.textContent='Do not purchase again. Your payment is already being processed.';
+  }else if(paddlePaused){
     upgradeHelp.textContent='Paddle sandbox checkout is temporarily paused.';
     upgrade.textContent='Sandbox checkout paused';
     upgrade.disabled=true;
@@ -167,5 +175,26 @@ manageBilling.onclick=async()=>{
 };
 redeemForm.onsubmit=async ev=>{ev.preventDefault();redeemMsg.className='setting-note muted';redeemMsg.textContent='Redeeming…';try{const r=await api('redeem-license',{method:'POST',body:JSON.stringify({key:licenseKey.value.trim()})});me.account=r.account;me.entitlements=r.entitlements||me.entitlements;licenseKey.value='';redeemMsg.className='setting-note ok';redeemMsg.textContent='Activated '+String(r.account?.plan||'').toUpperCase();render()}catch(e){redeemMsg.className='setting-note error';redeemMsg.textContent=e.message}};
 logout.onclick=async()=>{await fetch('/account/api?action=logout',{method:'POST',headers:{'content-type':'application/json'},body:'{}'});location.href='/account/login'};
-load().catch(e=>{if(e.message!=='login_required')upgradeNote.textContent=e.message});
+async function syncPaddleReturn(){
+  if(!paddleReturnSuccess)return;
+  paddleSuccessSyncing=true;render();
+  for(let tries=0;tries<20;tries++){
+    const plan=String(me?.account?.plan||'free').toLowerCase();
+    if(plan!=='free'){
+      paddleSuccessSyncing=false;
+      history.replaceState(null,'',location.pathname);
+      upgradeNote.className='setting-note ok';
+      upgradeNote.textContent='Payment confirmed. PRO is active on this account.';
+      render();
+      return;
+    }
+    await new Promise(resolve=>setTimeout(resolve,1000));
+    await load();
+  }
+  upgrade.disabled=true;
+  upgradeNote.className='setting-note muted';
+  upgradeNote.textContent='Payment received. Activation is taking longer than usual; do not purchase again. Refresh later or contact support if PRO does not appear.';
+}
+async function boot(){await load();await syncPaddleReturn()}
+boot().catch(e=>{if(e.message!=='login_required')upgradeNote.textContent=e.message});
 </script></body></html>
