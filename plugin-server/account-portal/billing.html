@@ -27,8 +27,8 @@
       <div id="freeFooter" class="plan-footer muted">Free forever</div>
     </section>
     <section id="proCard" class="plan-card featured">
-      <div class="plan-card-head"><div><h2>Pro</h2><div class="price">$20 <span>/ month</span></div></div><span id="proCurrent" class="badge hide">Current plan</span></div>
-      <div class="tax-note">Taxes are included in the $20 price where applicable. Paddle handles tax at checkout.</div>
+      <div class="plan-card-head"><div><h2>Pro</h2><div class="price"><span id="proPriceValue">—</span> <span>/ month</span></div></div><span id="proCurrent" class="badge hide">Current plan</span></div>
+      <div id="proPriceMeta" class="tax-note">Loading localized Paddle price…</div>
       <ul><li>Unlimited tool calls</li><li>Fleet / multi-device console</li><li>Priority support</li></ul>
       <button id="upgrade" class="btn primary wide">Request Pro upgrade</button>
       <div id="upgradeHelp" class="tax-note">No license key required. Approved upgrades attach directly to this account.</div>
@@ -64,7 +64,7 @@
   </section>
 </main></div>
 <script>
-const fmt=n=>new Intl.NumberFormat().format(Number(n)||0);const money=(n,c='USD')=>n==null?'—':new Intl.NumberFormat('en-US',{style:'currency',currency:String(c||'USD').toUpperCase(),minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(n)||0);const dateText=v=>{if(!v)return '—';const d=new Date(v);return Number.isNaN(d.getTime())?'—':new Intl.DateTimeFormat(undefined,{year:'numeric',month:'short',day:'numeric'}).format(d)};const cycleText=c=>{const i=String(c?.interval||'').toLowerCase(),f=Math.max(1,Number(c?.frequency)||1);if(!i)return '—';if(f===1)return i==='year'?'Yearly':i==='week'?'Weekly':i==='day'?'Daily':'Monthly';return 'Every '+f+' '+i+'s'};const paddleReturnSuccess=new URLSearchParams(location.search).get('paddle')==='success';let me=null,usage=null,upgradeState=null,paddleConfig=null,billingSummary=null,paddleReady=false,paddleSuccessSyncing=paddleReturnSuccess;
+const fmt=n=>new Intl.NumberFormat().format(Number(n)||0);const money=(n,c='USD')=>n==null?'—':new Intl.NumberFormat('en-US',{style:'currency',currency:String(c||'USD').toUpperCase(),minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(n)||0);const dateText=v=>{if(!v)return '—';const d=new Date(v);return Number.isNaN(d.getTime())?'—':new Intl.DateTimeFormat(undefined,{year:'numeric',month:'short',day:'numeric'}).format(d)};const cycleText=c=>{const i=String(c?.interval||'').toLowerCase(),f=Math.max(1,Number(c?.frequency)||1);if(!i)return '—';if(f===1)return i==='year'?'Yearly':i==='week'?'Weekly':i==='day'?'Daily':'Monthly';return 'Every '+f+' '+i+'s'};const paddleReturnSuccess=new URLSearchParams(location.search).get('paddle')==='success';let me=null,usage=null,upgradeState=null,paddleConfig=null,billingSummary=null,paddleReady=false,paddlePricePreview=null,paddlePriceError=null,paddleSuccessSyncing=paddleReturnSuccess;
 async function api(action,options={}){const r=await fetch('/account/api?action='+encodeURIComponent(action),{cache:'no-store',...options,headers:{'content-type':'application/json',...(options.headers||{})}});let j={};try{j=await r.json()}catch{}if(r.status===401){location.href='/account/login';throw new Error('login_required')}if(!r.ok)throw new Error(j.error||('HTTP '+r.status));return j}
 let paddleScriptPromise=null;
 function ensurePaddleJs(){
@@ -99,6 +99,27 @@ async function initPaddle(){
     }
   });
   paddleReady=true;
+  await refreshPaddlePrice();
+}
+async function refreshPaddlePrice(){
+  if(!paddleConfig?.enabled||!paddleReady||!paddleConfig?.proPriceId)return;
+  paddlePriceError=null;
+  try{
+    const result=await Paddle.PricePreview({items:[{priceId:paddleConfig.proPriceId,quantity:1}]});
+    const details=result?.data?.details||{};
+    const line=details?.lineItems?.[0];
+    const formatted=line?.formattedTotals||{};
+    const total=String(formatted?.total||'').trim();
+    if(!total)throw new Error('paddle_price_preview_missing_total');
+    paddlePricePreview={total};
+    proPriceValue.textContent=total;
+    proPriceMeta.textContent='Localized by Paddle · taxes included where applicable.';
+  }catch(e){
+    paddlePricePreview=null;
+    paddlePriceError=e;
+    proPriceValue.textContent='Unavailable';
+    proPriceMeta.textContent='Localized price unavailable. Checkout is disabled until Paddle pricing can be loaded.';
+  }
 }
 function render(){
   const plan=String(me.account?.plan||'free').toLowerCase(),ent=me.entitlements||{},used=Number(usage?.toolCallsThisMonth)||0,limit=ent.toolCallLimit==null?null:Number(ent.toolCallLimit);
@@ -149,6 +170,10 @@ function render(){
     upgrade.disabled=plan!=='free'||Boolean(pending);
     if(pending){upgradeNote.className='setting-note ok';upgradeNote.textContent='Upgrade request received. PRO will be attached directly to this account when approved.'}
   }
+  if(paddleOn&&plan==='free'&&!paddleSuccessSyncing&&!paddlePricePreview){
+    upgrade.disabled=true;
+    if(paddlePriceError){upgradeNote.className='setting-note error';upgradeNote.textContent='Paddle pricing is temporarily unavailable. Checkout is disabled so the displayed price cannot differ from the charged price.'}
+  }
   if(limit==null){planSummary.textContent='You are on '+plan.toUpperCase()+'. Tool calls are unlimited.';usageBadge.textContent='Unlimited';usageText.textContent=fmt(used)+' calls this month';usageRemaining.textContent='Unlimited';usageBar.style.width='100%';usageBar.classList.add('unlimited')}
   else {const remaining=Math.max(0,limit-used),pct=Math.min(100,used/Math.max(1,limit)*100);planSummary.textContent='You are on the Free plan. '+fmt(remaining)+' tool calls left this month.';usageBadge.textContent=Math.round(pct)+'%';usageText.textContent=fmt(used)+' of '+fmt(limit)+' calls';usageRemaining.textContent=fmt(remaining)+' remaining';usageBar.style.width=pct+'%';usageBar.classList.toggle('warn',pct>=85);usageBar.classList.toggle('danger-bar',pct>=100)}
 }
@@ -159,8 +184,9 @@ upgrade.onclick=async()=>{
     upgradeNote.className='setting-note muted';upgradeNote.textContent='Creating secure Paddle sandbox checkout…';
     try{
       await initPaddle();
+      if(!paddlePricePreview?.total)throw new Error('paddle_price_preview_required');
       const r=await api('paddle-checkout',{method:'POST',body:'{}'});
-      Paddle.Checkout.open({transactionId:r.checkout.transactionId,settings:{displayMode:'overlay',theme:'dark',successUrl:location.origin+'/account/billing?paddle=success'}});
+      Paddle.Checkout.open({transactionId:r.checkout.transactionId,settings:{displayMode:'overlay',variant:'one-page',theme:'dark',successUrl:location.origin+'/account/billing?paddle=success'}});
       upgradeNote.className='setting-note muted';upgradeNote.textContent='Paddle sandbox checkout opened. No real charge will be made.';
     }catch(e){upgradeNote.className='setting-note error';upgradeNote.textContent=e.message;upgrade.disabled=false}
     return;

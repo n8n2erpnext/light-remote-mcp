@@ -136,7 +136,7 @@ function saveState(file, state) {
 }
 
 function defaultConfig(env = process.env) {
-  const environment = text(env.LIGHT_REMOTE_PADDLE_ENV || 'sandbox').toLowerCase();
+  const environment = text(env.LIGHT_REMOTE_PADDLE_ENV).toLowerCase();
   const rawCheckoutEnabled = text(env.LIGHT_REMOTE_PADDLE_CHECKOUT_ENABLED || 'true').toLowerCase();
   const checkoutAllowed = !['0', 'false', 'off', 'no'].includes(rawCheckoutEnabled);
   return {
@@ -151,6 +151,7 @@ function defaultConfig(env = process.env) {
 }
 
 function validateSandboxIdentifiers(config) {
+  if (!config.environment) return { ok: false, reason: 'paddle_environment_required' };
   if (config.environment !== 'sandbox') return { ok: false, reason: 'paddle_sandbox_only' };
   if (config.apiKey && !config.apiKey.includes('_sdbx_')) return { ok: false, reason: 'paddle_sandbox_api_key_required' };
   if (config.clientToken && !config.clientToken.startsWith('test_')) return { ok: false, reason: 'paddle_sandbox_client_token_required' };
@@ -229,7 +230,6 @@ export class PaddleBilling {
       clientToken: status.checkoutEnabled ? this.config.clientToken : null,
       proPriceId: status.checkoutEnabled ? this.config.proPriceId : null,
       currency: 'USD',
-      proMonthly: 20,
       reason: status.checkoutEnabled
         ? null
         : paused
@@ -302,14 +302,14 @@ export class PaddleBilling {
         light_remote_account_id: accountId,
         light_remote_account_email: email,
         light_remote_plan: PRO_PLAN,
-        light_remote_environment: 'sandbox',
+        light_remote_environment: this.config.environment,
       },
     });
 
     return {
       transactionId: transaction.id,
       checkoutUrl: transaction?.checkout?.url || null,
-      environment: 'sandbox',
+      environment: this.config.environment,
       plan: PRO_PLAN,
     };
   }

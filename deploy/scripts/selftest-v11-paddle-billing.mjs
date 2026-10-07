@@ -464,6 +464,23 @@ const disabled = new PaddleBilling({
 assert.equal(disabled.status().checkoutEnabled, false);
 assert.equal(disabled.status().webhookEnabled, false);
 
+const missingEnvironment = new PaddleBilling({
+  config: {
+    environment: '',
+    checkoutAllowed: true,
+    apiKey: 'pdl_sdbx_apikey_test',
+    clientToken: 'test_client_token',
+    proPriceId: priceId,
+    webhookSecret: 'pdl_ntfset_test_secret',
+    stateFile: '',
+  },
+  paddleClient: null,
+  operatorCall,
+});
+assert.equal(missingEnvironment.status().checkoutEnabled, false);
+assert.equal(missingEnvironment.status().webhookEnabled, false);
+assert.equal(missingEnvironment.status().reason, 'paddle_environment_required');
+
 const paused = new PaddleBilling({
   config: {
     environment: 'sandbox',
@@ -490,6 +507,7 @@ await assert.rejects(
 
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log('paddle-sandbox-config=PASS');
+console.log('paddle-environment-fail-fast=PASS');
 console.log('paddle-server-checkout-metadata=PASS');
 console.log('paddle-webhook-grant=PASS');
 console.log('paddle-webhook-idempotency=PASS');
