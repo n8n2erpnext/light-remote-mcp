@@ -84,3 +84,8 @@ This is a prerelease candidate. It is not a claim of stable/general-availability
 - signature mismatch remains fail-closed, but the updater now refetches the complete manifest/signature pair up to three times;
 - retry attempts use no-cache headers and per-pair cache-busting while preserving exact cryptographic verification before parsing or update selection;
 - adds a portable source-contract regression test for bounded retry and fail-closed behavior.
+
+## RC.44 changes
+- fixes the rc.43 Windows compile failure in the updater pair-retry implementation;
+- retains the bounded fail-closed manifest/signature pair retry behavior unchanged;
+- adds a pre-tag native Windows updater compile gate to the release procedure.

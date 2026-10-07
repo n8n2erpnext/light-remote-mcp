@@ -55,7 +55,8 @@ internal sealed class UpdateClient
     {
         for(var attempt=1;attempt<=ManifestPairAttempts;attempt++)
         {
-            var retry=attempt>1,nonce=$"{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}-{attempt}-{Guid.NewGuid():N}";
+            var retry=attempt>1;
+            var nonce=$"{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}-{attempt}-{Guid.NewGuid():N}";
             var manifestUrl=retry?WithCacheBuster(_manifestUrl,nonce):_manifestUrl;
             var signatureUrl=retry?WithCacheBuster(_signatureUrl,nonce):_signatureUrl;
             try
