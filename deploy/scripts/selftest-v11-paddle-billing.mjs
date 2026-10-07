@@ -14,6 +14,10 @@ let refundTransaction = null;
 let refundAdjustmentStatus = 'pending_approval';
 const refundRequests = [];
 const canceledSubscriptions = [];
+const purchaseRecords = [];
+const refundRecords = [];
+const purchaseRecorder = async payload => { purchaseRecords.push(structuredClone(payload)); return { accepted: true, event_id: payload.event_id, status: 'Received' }; };
+const refundRecorder = async payload => { refundRecords.push(structuredClone(payload)); return { accepted: true, event_id: payload.event_id, status: 'Received' }; };
 let account = {
   accountId: 'acct_test',
   email: 'owner@example.test',
@@ -127,6 +131,8 @@ const billing = new PaddleBilling({
   config,
   paddleClient: fakePaddle,
   operatorCall,
+  purchaseRecorder,
+  refundRecorder,
   now: () => 1_800_000_000_000,
 });
 
@@ -243,6 +249,18 @@ refundTransaction = {
       grandTotal: '2500',
       currencyCode: 'USD',
     },
+    payoutTotals: {
+      subtotal: '2000',
+      tax: '500',
+      total: '2500',
+      fee: '175',
+      earnings: '1825',
+      currencyCode: 'USD',
+    },
+    adjustedPayoutTotals: {
+      retainedFee: '-175',
+      currencyCode: 'USD',
+    },
   },
   adjustments: [],
   payments: [{
@@ -254,6 +272,29 @@ refundTransaction = {
   updatedAt: new Date(1_800_000_000_000 - 60 * 60 * 1000).toISOString(),
   billedAt: new Date(1_800_000_000_000 - 60 * 60 * 1000).toISOString(),
 };
+const purchaseSync = await billing.processEvent({
+  eventId: 'evt_' + 'k'.repeat(26),
+  eventType: EventName.TransactionCompleted,
+  data: {
+    id: refundTxn,
+    status: 'completed',
+    customData: {
+      light_remote_account_id: 'acct_test',
+      light_remote_account_email: 'owner@example.test',
+      light_remote_plan: 'pro',
+    },
+  },
+});
+assert.equal(purchaseSync.action, 'recorded');
+assert.equal(purchaseRecords.length, 1);
+assert.equal(purchaseRecords[0].event_id, 'paddle.purchase.' + refundTxn);
+assert.equal(purchaseRecords[0].amount, 20);
+assert.equal(purchaseRecords[0].gross_amount, 25);
+assert.equal(purchaseRecords[0].tax_amount, 5);
+assert.equal(purchaseRecords[0].fee_amount, 1.75);
+assert.equal(purchaseRecords[0].earnings_amount, 18.25);
+assert.equal(purchaseRecords[0].source_reference, refundTxn);
+
 const adminBeforeRefund = await billing.adminBillingTransactions({
   query: 'owner@example.test',
   limit: 20,
@@ -294,11 +335,20 @@ const refundApproved = await billing.processEvent({
     transactionId: refundTxn,
     subscriptionId: refundSub,
     status: 'approved',
+    currencyCode: 'USD',
+    totals: { subtotal: '2000', tax: '500', total: '2500', grandTotal: '2500' },
+    updatedAt: new Date(1_800_000_000_000).toISOString(),
   },
 });
 assert.equal(refundApproved.action, 'refund_approved');
 assert.equal(canceledSubscriptions.includes(refundSub), true);
 assert.equal(account.plan, 'free');
+assert.equal(refundRecords.length, 1);
+assert.equal(refundRecords[0].event_id, 'paddle.refund.' + 'adj_' + 'r'.repeat(26));
+assert.equal(refundRecords[0].amount, 20);
+assert.equal(refundRecords[0].gross_amount, 25);
+assert.equal(refundRecords[0].retained_fee, 1.75);
+assert.equal(refundRecords[0].source_reference, refundTxn);
 
 account = {
   ...account,

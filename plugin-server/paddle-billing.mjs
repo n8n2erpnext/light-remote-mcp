@@ -3,6 +3,7 @@ import path from 'node:path';
 import { Environment, EventName, Paddle } from '@paddle/paddle-node-sdk';
 
 import { callOperatorJson } from './operator-client.mjs';
+import { recordPaddlePurchase, recordPaddleRefund } from './commerce-backoffice.mjs';
 
 const DEFAULT_STATE_FILE = '/var/lib/light-remote-direct/plugin-state/paddle-billing.json';
 const ACTIVE_SUBSCRIPTION_STATUSES = new Set(['active', 'trialing']);
@@ -42,6 +43,63 @@ function planFrom(data) {
 
 function sourceRefFrom(data) {
   return text(data?.id || data?.subscriptionId || data?.subscription_id);
+}
+
+function accountEmailFrom(data) {
+  const custom = safeCustomData(data);
+  return text(custom.light_remote_account_email || custom.lightRemoteAccountEmail).toLowerCase();
+}
+
+function minorUnitDivisor(currency) {
+  return new Set(['JPY','KRW']).has(text(currency).toUpperCase()) ? 1 : 100;
+}
+
+function majorAmount(value, currency) {
+  const number = Number(value ?? 0);
+  if (!Number.isFinite(number)) return 0;
+  return number / minorUnitDivisor(currency);
+}
+
+function firstValue(...values) {
+  for (const value of values) {
+    if (value !== undefined && value !== null && value !== '') return value;
+  }
+  return 0;
+}
+
+function paddleAccounting(transaction) {
+  const details = transaction?.details || {};
+  const totals = details?.totals || {};
+  const payout = details?.payoutTotals || details?.payout_totals || {};
+  const adjustedPayout = details?.adjustedPayoutTotals || details?.adjusted_payout_totals || {};
+  const currency = text(
+    transaction?.currencyCode ||
+    transaction?.currency_code ||
+    totals?.currencyCode ||
+    totals?.currency_code ||
+    payout?.currencyCode ||
+    payout?.currency_code ||
+    'USD'
+  ).toUpperCase();
+  return {
+    currency,
+    subtotal: majorAmount(firstValue(totals?.subtotal), currency),
+    gross: majorAmount(firstValue(totals?.grandTotal, totals?.grand_total, totals?.total), currency),
+    tax: majorAmount(firstValue(totals?.tax), currency),
+    fee: majorAmount(firstValue(payout?.fee, totals?.fee), currency),
+    earnings: majorAmount(firstValue(payout?.earnings, totals?.earnings), currency),
+    retainedFee: majorAmount(
+      firstValue(
+        adjustedPayout?.retainedFee,
+        adjustedPayout?.retained_fee,
+        payout?.retainedFee,
+        payout?.retained_fee,
+        totals?.retainedFee,
+        totals?.retained_fee,
+      ),
+      currency,
+    ),
+  };
 }
 
 function normalizeState(raw) {
@@ -104,10 +162,14 @@ export class PaddleBilling {
     config = defaultConfig(),
     paddleClient = null,
     operatorCall = callOperatorJson,
+    purchaseRecorder = recordPaddlePurchase,
+    refundRecorder = recordPaddleRefund,
     now = () => Date.now(),
   } = {}) {
     this.config = config;
     this.operatorCall = operatorCall;
+    this.purchaseRecorder = purchaseRecorder;
+    this.refundRecorder = refundRecorder;
     this.now = now;
     this.state = loadState(config.stateFile);
     this.validation = validateSandboxIdentifiers(config);
@@ -475,6 +537,134 @@ export class PaddleBilling {
     };
   }
 
+  async recordCompletedTransaction(data) {
+    const transactionId = text(data?.id);
+    if (!transactionId || !this.paddle) {
+      return { action: 'ignored', reason: 'paddle_transaction_missing' };
+    }
+    const transaction = await this.paddle.transactions.get(transactionId);
+    const accountId = accountIdFrom(transaction) || accountIdFrom(data);
+    const email = accountEmailFrom(transaction) || accountEmailFrom(data);
+    const plan = planFrom(transaction) || planFrom(data);
+    if (!accountId || !email || plan !== PRO_PLAN) {
+      return {
+        action: 'ignored',
+        reason: 'paddle_metadata_missing',
+        accountId: accountId || null,
+        transactionId,
+      };
+    }
+
+    const accounting = paddleAccounting(transaction);
+    const fee = accounting.fee;
+    const earnings = accounting.earnings || Math.max(0, accounting.subtotal - fee);
+    const capturedAt = this.refundCaptureTime(transaction);
+    const subscriptionId = text(transaction?.subscriptionId || transaction?.subscription_id);
+    const payload = {
+      event_id: 'paddle.purchase.' + transactionId,
+      source_product: 'Light Remote',
+      plan_code: 'PRO',
+      customer_email: email,
+      account_id: accountId,
+      source_reference: transactionId,
+      external_order_id: subscriptionId,
+      payment_provider: 'Paddle',
+      payment_reference: transactionId,
+      amount: accounting.subtotal,
+      gross_amount: accounting.gross || accounting.subtotal,
+      tax_amount: accounting.tax,
+      fee_amount: fee,
+      earnings_amount: earnings,
+      currency: accounting.currency,
+      purchased_at: new Date(capturedAt || this.now()).toISOString(),
+      metadata: {
+        paddle_environment: this.config.environment,
+        subscription_id: subscriptionId || null,
+        transaction_status: text(transaction?.status) || null,
+      },
+    };
+    const backoffice = await this.purchaseRecorder(payload);
+    return {
+      action: 'recorded',
+      accountId,
+      transactionId,
+      subscriptionId: subscriptionId || null,
+      backofficeStatus: text(backoffice?.status) || 'accepted',
+      backofficeEventId: text(backoffice?.event_id) || payload.event_id,
+      accounting,
+    };
+  }
+
+  async recordApprovedRefund(adjustment, transaction) {
+    const adjustmentId = text(adjustment?.id);
+    const transactionId = text(
+      adjustment?.transactionId ||
+      adjustment?.transaction_id ||
+      transaction?.id
+    );
+    const accountId = accountIdFrom(transaction);
+    const email = accountEmailFrom(transaction);
+    if (!adjustmentId || !transactionId || !accountId || !email) {
+      return { action: 'backoffice_refund_unmapped' };
+    }
+    const accounting = paddleAccounting(transaction);
+    const adjustmentTotals = adjustment?.totals || {};
+    const adjustmentPayout = adjustment?.payoutTotals || adjustment?.payout_totals || {};
+    const currency = text(
+      adjustment?.currencyCode ||
+      adjustment?.currency_code ||
+      accounting.currency ||
+      'USD'
+    ).toUpperCase();
+    const grossRefund = majorAmount(
+      firstValue(
+        adjustmentTotals?.grandTotal,
+        adjustmentTotals?.grand_total,
+        adjustmentTotals?.total,
+      ),
+      currency,
+    ) || accounting.gross || accounting.subtotal;
+    const retainedFee = Math.abs(majorAmount(
+      firstValue(
+        adjustmentPayout?.retainedFee,
+        adjustmentPayout?.retained_fee,
+        adjustmentTotals?.retainedFee,
+        adjustmentTotals?.retained_fee,
+        transaction?.details?.adjustedPayoutTotals?.retainedFee,
+        transaction?.details?.adjustedPayoutTotals?.retained_fee,
+        transaction?.details?.adjusted_payout_totals?.retained_fee,
+      ),
+      currency,
+    ));
+    const payload = {
+      event_id: 'paddle.refund.' + adjustmentId,
+      source_product: 'Light Remote',
+      plan_code: 'PRO',
+      customer_email: email,
+      account_id: accountId,
+      source_reference: transactionId,
+      external_order_id: text(transaction?.subscriptionId || transaction?.subscription_id),
+      payment_provider: 'Paddle',
+      payment_reference: adjustmentId,
+      amount: accounting.subtotal,
+      gross_amount: grossRefund,
+      retained_fee: retainedFee,
+      currency,
+      refunded_at: text(adjustment?.updatedAt || adjustment?.updated_at || adjustment?.createdAt || adjustment?.created_at) || new Date(this.now()).toISOString(),
+      metadata: {
+        paddle_environment: this.config.environment,
+        adjustment_status: text(adjustment?.status) || null,
+        adjustment_type: text(adjustment?.type) || null,
+      },
+    };
+    const backoffice = await this.refundRecorder(payload);
+    return {
+      eventId: text(backoffice?.event_id) || payload.event_id,
+      status: text(backoffice?.status) || 'accepted',
+      retainedFee,
+    };
+  }
+
   async requestEmergencyRefund({
     transactionId,
     reason,
@@ -639,6 +829,7 @@ export class PaddleBilling {
       entitlementAction = revoked?.account?.plan || 'free';
     }
 
+    const backoffice = await this.recordApprovedRefund(data, transaction);
     const result = {
       action: 'refund_approved',
       adjustmentId,
@@ -648,6 +839,7 @@ export class PaddleBilling {
       cancellation,
       entitlementAction,
       status,
+      backoffice,
     };
     this.state.refunds[adjustmentId] = {
       ...(this.state.refunds[adjustmentId] || {}),
@@ -683,12 +875,7 @@ export class PaddleBilling {
     } else if (eventType === EventName.SubscriptionCanceled) {
       result = await this.revokeSubscription(data);
     } else if (eventType === EventName.TransactionCompleted) {
-      result = {
-        action: 'recorded',
-        eventType,
-        accountId: accountIdFrom(data) || null,
-        transactionId: text(data?.id) || null,
-      };
+      result = await this.recordCompletedTransaction(data);
     } else if (
       eventType === EventName.AdjustmentCreated ||
       eventType === EventName.AdjustmentUpdated
