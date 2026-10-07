@@ -149,6 +149,15 @@ static class Program
             return 0;
         }
 
+        if (ProcessAlive(installerPid))
+        {
+            Log(logPath, "installer_deadline_exceeded_terminating");
+            TryKillProcessTree(installerPid);
+            var stopDeadline = DateTimeOffset.UtcNow.AddSeconds(10);
+            while (DateTimeOffset.UtcNow < stopDeadline && ProcessAlive(installerPid))
+                Thread.Sleep(200);
+        }
+
         Log(logPath, "recovery_begin");
         var version = File.Exists(versionFile) ? File.ReadAllText(versionFile).Trim() : string.Empty;
         var rollbackRoot = Path.Combine(
@@ -196,7 +205,46 @@ static class Program
             return 0;
         }
 
+        var installRoot = Require(opt, "install-root");
+        var app = Path.Combine(installRoot, "GptOperator.Client.exe");
+        if (File.Exists(app))
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = app,
+                    Arguments = "--agent-host",
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    WindowStyle = ProcessWindowStyle.Hidden
+                })?.Dispose();
+                Log(logPath, "direct_agent_recovery_requested");
+            }
+            catch (Exception ex)
+            {
+                Log(logPath, "direct_agent_recovery_failed " + ex.Message);
+            }
+
+            if (WaitWall(TimeSpan.FromSeconds(20)))
+            {
+                Log(logPath, "direct_agent_recovery_wall_healthy");
+                return 0;
+            }
+        }
+
         throw new InvalidOperationException("rollback_restore_wall_failed");
+    }
+
+    static void TryKillProcessTree(int pid)
+    {
+        try
+        {
+            using var p = Process.GetProcessById(pid);
+            if (!p.HasExited)
+                p.Kill(entireProcessTree: true);
+        }
+        catch { }
     }
 
     static bool ProcessAlive(int pid)
