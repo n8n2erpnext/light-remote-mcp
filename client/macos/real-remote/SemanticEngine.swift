@@ -216,8 +216,10 @@ final class SemanticEngine {
         try trusted()
         let id=string(request["semanticSessionId"])
         guard var session=sessions[id] else {throw RemoteError.invalid("semantic_session_missing")}
-        if session.scope == "foreground" && (try frontmostPid()) != session.pid {
-            throw RemoteError.invalid("semantic_foreground_changed")
+        if session.scope == "foreground" {
+            guard try frontmostPid() == session.pid else {
+                throw RemoteError.invalid("semantic_foreground_changed")
+            }
         }
         let now=timestamp()
         if now-session.lastPolledAt>=250 {
