@@ -15,6 +15,7 @@ private func robotCursorStopSignal(_ signal: Int32) {
 
 final class RobotCursorIndicatorView: NSView {
     var pulse: CGFloat = 0 { didSet { needsDisplay=true } }
+    var drawsCustomArrow = false { didSet { if oldValue != drawsCustomArrow { needsDisplay=true } } }
     override var isOpaque: Bool { false }
 
     override func draw(_ dirtyRect: NSRect) {
@@ -34,6 +35,7 @@ final class RobotCursorIndicatorView: NSView {
             NSBezierPath(ovalIn:rect).fill()
         }
 
+        if drawsCustomArrow {
         // Same pointed arrow geometry/hotspot as the Windows RM V2 cursor.
         // AppKit Y points up, so the Windows path is vertically mirrored.
         let pointer = NSBezierPath()
@@ -61,6 +63,7 @@ final class RobotCursorIndicatorView: NSView {
         pointer.lineWidth=1.15
         NSColor.white.withAlphaComponent(0.97).setStroke()
         pointer.stroke()
+        }
 
         // Small glass-like AI label retained from the accepted Windows-style
         // user experience; the label stays offset from the arrow hotspot.
@@ -75,6 +78,22 @@ final class RobotCursorIndicatorView: NSView {
             .foregroundColor:NSColor.white
         ]).draw(at:NSPoint(x:51,y:27))
     }
+}
+
+// Optional DEV-ONLY compatibility probe. This is undocumented WindowServer
+// SPI and must remain disabled for release/notarization builds. Missing
+// symbols or a rejected property fail closed to the stock macOS cursor.
+private func setBackgroundCursorExperiment(_ enabled: Bool) -> Bool {
+    typealias ConnectionFn = @convention(c) () -> Int32
+    typealias PropertyFn = @convention(c) (Int32, Int32, CFString, CFTypeRef) -> Int32
+    guard let handle=UnsafeMutableRawPointer(bitPattern:-2),
+          let connectionSym=dlsym(handle,"CGSMainConnectionID"),
+          let propertySym=dlsym(handle,"CGSSetConnectionProperty")
+    else {return false}
+    let connection=unsafeBitCast(connectionSym,to:ConnectionFn.self)()
+    let propertyFn=unsafeBitCast(propertySym,to:PropertyFn.self)
+    let value:CFBoolean = enabled ? kCFBooleanTrue : kCFBooleanFalse
+    return propertyFn(connection,connection,"SetsCursorInBackground" as CFString,value) == 0
 }
 
 func runRobotCursorOverlay(args:[String]) throws {
@@ -102,7 +121,7 @@ func runRobotCursorOverlay(args:[String]) throws {
     panel.hasShadow=false
     panel.ignoresMouseEvents=true
     panel.hidesOnDeactivate=false
-    panel.level = .statusBar
+    panel.level = .screenSaver
     panel.title = "Light Remote AI Cursor"
     panel.collectionBehavior=[.canJoinAllSpaces,.fullScreenAuxiliary,.stationary]
     let indicator=RobotCursorIndicatorView(frame:NSRect(x:0,y:0,width:88,height:88))
@@ -122,7 +141,12 @@ func runRobotCursorOverlay(args:[String]) throws {
     // registered as a visible window. Otherwise a headless helper would
     // make the owner's pointer vanish without drawing the AI arrow.
     let display=CGMainDisplayID()
+    // Explicit canary opt-in only. The private SPI must not be enabled by
+    // published clients because macOS may change or reject it.
+    let backgroundCursorOptIn=ProcessInfo.processInfo.environment["LIGHT_REMOTE_RM_DEV_CURSOR_SPI"] == "1"
+    let backgroundHideEnabled=backgroundCursorOptIn && setBackgroundCursorExperiment(true)
     var systemCursorHidden=false
+    var suppressionAttempts=0
     func windowPresented() -> Bool {
         let windows=CGWindowListCopyWindowInfo([.optionIncludingWindow],CGWindowID(panel.windowNumber)) as? [[String:Any]] ?? []
         return panel.isVisible && !windows.isEmpty
@@ -137,7 +161,11 @@ func runRobotCursorOverlay(args:[String]) throws {
         let point=NSEvent.mouseLocation
         let report:[String:Any]=["active":active,"pid":Int(getpid()),
             "visible":active && panel.isVisible,"windowListed":windowPresented(),
-            "systemCursorHidden":active && systemCursorHidden,"renderTicks":ticks,
+            "systemCursorHidden":active && systemCursorHidden,
+            "osCursorActuallyVisible":CGCursorIsVisible() != 0,
+            "backgroundCursorSPIEnabled":backgroundHideEnabled,
+            "cursorSuppressionAttempts":suppressionAttempts,
+            "renderTicks":ticks,
             "mouseX":point.x,"mouseY":point.y,"expiresAtMs":expiry,
             "updatedAtMs":timestamp()]
         if let bytes=try? JSONSerialization.data(withJSONObject:report,options:[.sortedKeys]),
@@ -151,6 +179,8 @@ func runRobotCursorOverlay(args:[String]) throws {
         guard !cursorRestored else {return}
         cursorRestored=true
         if systemCursorHidden {_=CGDisplayShowCursor(display);systemCursorHidden=false}
+        if backgroundHideEnabled {_=setBackgroundCursorExperiment(false)}
+        indicator.drawsCustomArrow=false
         panel.orderOut(nil)
         publishStatus(false)
     }
@@ -184,12 +214,28 @@ func runRobotCursorOverlay(args:[String]) throws {
                 panel.displayIfNeeded()
             }
             let presented=windowPresented()
-            if presented && !systemCursorHidden {
-                systemCursorHidden = CGDisplayHideCursor(display) == .success
-            } else if !presented && systemCursorHidden {
+            let foregroundOwner=NSWorkspace.shared.frontmostApplication?.processIdentifier == getpid()
+            let canSuppress=foregroundOwner || backgroundHideEnabled
+            if presented && canSuppress && !systemCursorHidden && suppressionAttempts<3 {
+                suppressionAttempts += 1
+                let result=CGDisplayHideCursor(display)
+                if result == .success {
+                    if CGCursorIsVisible() == 0 {
+                        systemCursorHidden=true
+                    } else {
+                        // Background cursor hide wasn't honored. Balance its
+                        // hide count immediately and keep the native arrow.
+                        _=CGDisplayShowCursor(display)
+                    }
+                }
+            }
+            if systemCursorHidden && (!presented || CGCursorIsVisible() != 0) {
                 _=CGDisplayShowCursor(display)
                 systemCursorHidden=false
             }
+            // Never show two arrowheads. If Quartz cannot suppress the system
+            // cursor, keep its native hotspot and draw only glow + AI badge.
+            indicator.drawsCustomArrow=systemCursorHidden
         }
         let pt=NSEvent.mouseLocation
         // Track actual pointer every 35 ms, but avoid redrawing while idle.

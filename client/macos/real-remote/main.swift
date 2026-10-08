@@ -51,6 +51,7 @@ func windowList(_ limit: Int) -> [[String: Any]] {
         ["title":string(row[kCGWindowName as String]),"owner":string(row[kCGWindowOwnerName as String]),
          "processId":integer(row[kCGWindowOwnerPID as String],0),
          "windowId":integer(row[kCGWindowNumber as String],0),
+         "layer":integer(row[kCGWindowLayer as String],0),
          "bounds":row[kCGWindowBounds as String] ?? [:]]
     }
 }
