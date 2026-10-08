@@ -11,6 +11,10 @@ on:
       - 'device-agent/**'
       - 'lib/device-proof.mjs'
       - 'lib/native-fs.mjs'
+      - 'lib/native-desktop.mjs'
+      - 'deploy/scripts/selftest-macos-gui-optin.mjs'
+      - 'deploy/scripts/selftest-v12-macos-rmv2-bridge.mjs'
+      - 'deploy/scripts/macos-operator-native-*-e2e.mjs'
       - 'lib/native-process.mjs'
       - 'lib/native-terminal.mjs'
       - 'lib/native-search.mjs'
@@ -76,6 +80,8 @@ jobs:
           install -m 0755 "node-v${NODE_VERSION}-darwin-${NODE_ARCH}/bin/node" "$PKG/runtime/node"
           cp "node-v${NODE_VERSION}-darwin-${NODE_ARCH}/LICENSE" "$PKG/licenses/node/LICENSE"
           npm ci --ignore-scripts
+          node deploy/scripts/selftest-v12-macos-rmv2-bridge.mjs
+          node deploy/scripts/selftest-macos-gui-optin.mjs
           node deploy/scripts/stage-client-core.mjs "$PKG"
           node deploy/scripts/stage-terminal-runtime.mjs "$PKG" darwin "$TARGET_ARCH"
           cp client/macos/updater.mjs client/macos/update-lifeboat.mjs "$PKG/client/macos/"

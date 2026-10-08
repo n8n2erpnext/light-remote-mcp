@@ -33,6 +33,8 @@ assert.match(swift,/args.contains\("--request-screen-recording"\)/);
 assert.match(swift,/args.contains\("--request-accessibility"\)/);
 assert.match(swift,/args.contains\("--gui-tcc-probe"\)/);
 assert.match(swift,/gui-tcc-probe\.latest\.json/);
+assert.match(swift,/Darwin\.poll\(&waiter,1,12000\)/);
+assert.match(swift,/socket_accept_timeout/);
 assert.match(guiSidecar,/macos_gui_sidecar_experimental_app_required/);
 assert.match(guiSidecar,/LightRemoteRobotDev\.app/);
 assert.match(guiSidecar,/macos_gui_sidecar_unexpected_symlink/);

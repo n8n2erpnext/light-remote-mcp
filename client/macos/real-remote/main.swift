@@ -409,6 +409,13 @@ func run() throws {
     guard ok==0 else {throw RemoteError.invalid("socket_bind_failed")}
     chmod(address,0o600)
     guard Darwin.listen(fd,1)==0 else {throw RemoteError.invalid("socket_listen_failed")}
+    // A LaunchServices-started dev Robot must not remain orphaned if the
+    // operator fails to connect. The owning Unix socket is a bounded lease.
+    var waiter=pollfd(fd:fd,events:Int16(POLLIN),revents:0)
+    let ready=Darwin.poll(&waiter,1,12000)
+    guard ready>0 && (waiter.revents & Int16(POLLIN)) != 0 else {
+        throw RemoteError.invalid("socket_accept_timeout")
+    }
     let peer=Darwin.accept(fd,nil,nil)
     guard peer>=0 else {throw RemoteError.invalid("socket_accept_failed")}
     defer { Darwin.close(peer) }
