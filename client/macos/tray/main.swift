@@ -7,6 +7,8 @@ final class TrayDelegate: NSObject, NSApplicationDelegate {
     let stateItem = NSMenuItem(title: "Starting…", action: nil, keyEquivalent: "")
     let accountItem = NSMenuItem(title: "Sign in / Link device…", action: #selector(accountAction), keyEquivalent: "")
     let connectItem = NSMenuItem(title: "Connect", action: #selector(toggleConnection), keyEquivalent: "")
+    let openFleetItem = NSMenuItem(title: "Open Fleet", action: #selector(openFleet), keyEquivalent: "")
+    private var fleetURL: URL?
     var timer: Timer?
     var onboardingInFlight = false
     var enrollmentPollInFlight = false
@@ -22,7 +24,12 @@ final class TrayDelegate: NSObject, NSApplicationDelegate {
         if let button = statusItem.button { button.imagePosition = .imageOnly; button.imageScaling = .scaleProportionallyDown; button.title = ""; button.toolTip = "Light Remote" }; statusItem.isVisible = true
         let menu = NSMenu(); stateItem.isEnabled = false
         menu.addItem(stateItem); menu.addItem(.separator()); menu.addItem(accountItem)
-        menu.addItem(NSMenuItem(title: "Open Local Wall", action: #selector(openWall), keyEquivalent: "")); menu.addItem(connectItem)
+        menu.addItem(NSMenuItem(title: "Relink this Mac…", action: #selector(relinkAccount), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "Open Local Wall", action: #selector(openWall), keyEquivalent: ""))
+        openFleetItem.isHidden = true
+        openFleetItem.isEnabled = false
+        menu.addItem(openFleetItem)
+        menu.addItem(connectItem)
         menu.addItem(NSMenuItem(title: "Restart Light Remote", action: #selector(restartAgent), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Check for updates", action: #selector(checkUpdates), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Stop Light Remote", action: #selector(stopAgent), keyEquivalent: ""))
@@ -91,7 +98,21 @@ final class TrayDelegate: NSObject, NSApplicationDelegate {
         if enrolled { if let url = URL(string: accountPortal) { NSWorkspace.shared.open(url) }; return }
         beginAccountOnboarding(force: true)
     }
-    func beginAccountOnboarding(force: Bool = false) {
+    @objc func relinkAccount() {
+        if onboardingInFlight { return }
+        let s = status(), enrolled = (s["enrolled"] as? Bool) ?? false
+        if !enrolled { beginAccountOnboarding(force: true); return }
+        NSApp.activate(ignoringOtherApps: true)
+        let alert = NSAlert()
+        alert.messageText = "Relink this Mac to another account?"
+        alert.informativeText = "A new one-time device code will be issued. The existing device identity is preserved. The account link changes only after you sign in and approve this Mac in the browser."
+        alert.addButton(withTitle: "Relink this Mac")
+        alert.addButton(withTitle: "Cancel")
+        if alert.runModal() == .alertFirstButtonReturn {
+            beginAccountOnboarding(force: true, relink: true)
+        }
+    }
+    func beginAccountOnboarding(force: Bool = false, relink: Bool = false) {
         if onboardingInFlight { return }
         if !force {
             let defaults = UserDefaults.standard
@@ -100,7 +121,7 @@ final class TrayDelegate: NSObject, NSApplicationDelegate {
         }
         onboardingInFlight = true; accountItem.isEnabled = false
         DispatchQueue.global().async {
-            let result = self.agentRun(["login", "--no-wait"])
+            let result = relink ? self.agentRun(["login", "--reenroll", "--no-wait"]) : self.agentRun(["login", "--no-wait"])
             let activation = self.lineValue(result.1, prefix: "Activation URL:")
             let code = self.lineValue(result.1, prefix: "Device code:")
             DispatchQueue.main.async {
@@ -140,16 +161,38 @@ final class TrayDelegate: NSObject, NSApplicationDelegate {
         let desired = (s["cloudDesiredConnected"] as? Bool) ?? false
         let cloud = (s["cloudState"] as? String) ?? "dormant", connected = desired && cloud == "connected"
         let plan = ((s["connectionPlan"] as? String) ?? "").uppercased()
-        let label = !available ? "Status unavailable" : !enrolled ? (pendingId == nil ? "Sign in required · not linked" : "Waiting for account approval") : connected ? "Connected" + (plan.isEmpty ? "" : " · \(plan)") : "Running · dormant"
+        let label = !available ? "Status unavailable" : pendingId != nil ? "Waiting for account approval" : !enrolled ? "Sign in required · not linked" : connected ? "Connected" + (plan.isEmpty ? "" : " · \(plan)") : "Running · dormant"
         let visual: TrayVisualState = !available ? .unavailable : !enrolled ? .unlinked : connected ? .connected : .dormant
         stateItem.title = label; connectItem.title = connected ? "Disconnect" : "Connect"; connectItem.isEnabled = enrolled
         accountItem.title = enrolled ? "Account / Logout…" : pendingId == nil ? "Sign in / Link device…" : "Sign in / Approve device…"
         accountItem.isEnabled = !onboardingInFlight
+        fleetURL = available ? healthyFleetURL(s) : nil
+        openFleetItem.isHidden = fleetURL == nil
+        openFleetItem.isEnabled = fleetURL != nil
         setVisual(visual, label: label)
         if available && !enrolled && pendingId == nil { beginAccountOnboarding() }
-        if available && !enrolled { pollEnrollmentIfNeeded(pendingId) }
+        if available && pendingId != nil { pollEnrollmentIfNeeded(pendingId) }
     }
 
+    // Match the Windows tray: only offer Fleet while this enrolled device has a
+    // healthy Fleet Wall, never merely because the account is Fleet-eligible.
+    func healthyFleetURL(_ status: [String: Any]) -> URL? {
+        guard (status["enrolled"] as? Bool) == true,
+              let fleet = status["fleetWall"] as? [String: Any],
+              (fleet["healthy"] as? Bool) == true else { return nil }
+        let published = (fleet["publicUrl"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let port = (fleet["port"] as? Int).flatMap { (1024...65535).contains($0) ? $0 : nil } ?? 5492
+        let target = published.isEmpty ? "http://127.0.0.1:\(port)/" : published
+        guard let url = URL(string: target),
+              let scheme = url.scheme?.lowercased(),
+              scheme == "http" || scheme == "https",
+              url.host != nil, url.user == nil, url.password == nil else { return nil }
+        return url
+    }
+    @objc func openFleet() {
+        guard let url = fleetURL else { return }
+        NSWorkspace.shared.open(url)
+    }
     func wallReachable() -> Bool { run("/usr/bin/curl", ["-fsS", "--max-time", "1", "http://127.0.0.1:5491/"]).0 == 0 }
     @objc func openWall() {
         DispatchQueue.global().async {

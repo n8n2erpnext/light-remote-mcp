@@ -4,6 +4,8 @@ const linuxWorkflow=fs.readFileSync(new URL('../../.github/workflows/linux-clien
 const install=fs.readFileSync(new URL('../../client/linux/install.sh',import.meta.url),'utf8');
 const bootstrap=fs.readFileSync(new URL('../../plugin-server/downloads-install-linux.sh',import.meta.url),'utf8');
 const linuxCli=fs.readFileSync(new URL('../../client/linux/light-remote',import.meta.url),'utf8');
+const linuxCommands=fs.readFileSync(new URL('../../client/linux/cli-commands.sh',import.meta.url),'utf8');
+const linuxStatus=fs.readFileSync(new URL('../../client/linux/cli-status.mjs',import.meta.url),'utf8');
 const updater=fs.readFileSync(new URL('../../client/linux/updater.mjs',import.meta.url),'utf8');
 const signer=fs.readFileSync(new URL('../../client/sign-update-manifest.mjs',import.meta.url),'utf8');
 const verifier=fs.readFileSync(new URL('../../client/verify-update-manifest.mjs',import.meta.url),'utf8');
@@ -49,14 +51,14 @@ expect(install.includes('Environment=OPERATOR_AGENT_WALL_HOST=$WALL_HOST')&&inst
 expect(install.includes('--purge')&&install.includes('local enrollment state preserved'),'linux_uninstall_purge_contract_missing');
 expect(linuxWorkflow.includes('install -m 0755 client/linux/light-remote'),'linux_cli_not_bundled');
 expect(linuxWorkflow.includes('test -x "$PKG/client/linux/light-remote"'),'linux_cli_not_verified');
-expect(linuxCli.includes('up|login')&&linuxCli.includes('agent login')&&linuxCli.includes('enable --now "$SERVICE"'),'linux_cli_up_contract_missing');
+expect(linuxCommands.includes('up|login')&&linuxCommands.includes('agent login')&&linuxCommands.includes('enable --now "$SERVICE"'),'linux_cli_up_contract_missing');
 expect(linuxCli.includes('refresh_service_policy')&&linuxCli.includes('linux-service-policy.mjs'),'linux_cli_post_enrollment_policy_refresh_missing');
 expect(linuxCli.includes('NoNewPrivileges=$no_new')&&linuxCli.includes('RestrictSUIDSGID=$restrict_suid')&&linuxCli.includes('CapabilityBoundingSet'),'linux_cli_systemd_policy_refresh_missing');
-const linuxUpBlock=linuxCli.slice(linuxCli.indexOf('  up|login)'),linuxCli.indexOf('  status)',linuxCli.indexOf('  up|login)')));
+const linuxUpBlock=linuxCommands.slice(linuxCommands.indexOf('  up|login)'),linuxCommands.indexOf('  status)',linuxCommands.indexOf('  up|login)')));
 expect(linuxUpBlock.includes('refresh_service_policy')&&linuxUpBlock.indexOf('refresh_service_policy')<linuxUpBlock.indexOf('systemctl daemon-reload'),'linux_cli_policy_refresh_must_precede_daemon_reload');
-expect(linuxCli.includes('status)')&&linuxCli.includes('service=%s'),'linux_cli_status_contract_missing');
+expect(linuxCommands.includes('status)')&&linuxCommands.includes('show_summary')&&linuxStatus.includes('Local Wall:'),'linux_cli_status_contract_missing');
 expect(linuxCli.includes('OPERATOR_AGENT_WALL_HOST')&&linuxCli.includes('OPERATOR_AGENT_WALL_PORT'),'linux_cli_wall_binding_env_missing');
-expect(linuxCli.includes("printf 'http://%s:%s/\\n' \"$WALL_HOST\" \"$WALL_PORT\""),'linux_cli_wall_url_hardcoded');
+expect(linuxCommands.includes("printf 'http://%s:%s/\\n' \"$WALL_HOST\" \"$WALL_PORT\""),'linux_cli_wall_url_hardcoded');
 expect(install.includes('openssl dgst -sha256 -verify'),'linux_manifest_signature_verify_missing');
 expect(updater.includes("crypto.verify('sha256'"),'linux_update_signature_verify_missing');
 expect(updater.includes('timingSafeEqual'),'linux_artifact_hash_verify_missing');

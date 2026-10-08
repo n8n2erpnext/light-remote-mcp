@@ -27,7 +27,15 @@ const hub=http.createServer(async(req,res)=>{
   res.writeHead(404,{'content-type':'application/json'});res.end(JSON.stringify({ok:false,error:'not_found'}));
 });
 await new Promise(r=>hub.listen(0,'127.0.0.1',r));
-const hubUrl=`http://127.0.0.1:${hub.address().port}`,wallPort=26000+(process.pid%10000);
+const availablePort=()=>new Promise((resolve,reject)=>{
+  const probe=http.createServer();
+  probe.once('error',reject);
+  probe.listen(0,'127.0.0.1',()=>{
+    const port=probe.address().port;
+    probe.close(()=>resolve(port));
+  });
+});
+const hubUrl=`http://127.0.0.1:${hub.address().port}`,wallPort=await availablePort();
 const child=spawn(process.execPath,[`${root}/device-agent/operator-agent.mjs`,'wall-only'],{cwd:root,env:{...process.env,OPERATOR_AGENT_STATE:stateFile,OPERATOR_AGENT_WALL_AUTH_FILE:authFile,OPERATOR_AGENT_HUB_URL:hubUrl,OPERATOR_AGENT_WALL_HOST:'127.0.0.1',OPERATOR_AGENT_WALL_PORT:String(wallPort),OPERATOR_FLEET_RECONCILE_MS:'60000'},stdio:['ignore','pipe','pipe']});
 let stdout='',stderr='';child.stdout.on('data',d=>stdout+=d);child.stderr.on('data',d=>stderr+=d);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
