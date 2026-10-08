@@ -306,6 +306,19 @@ func run() throws {
         FileHandle.standardOutput.write(data);FileHandle.standardOutput.write(Data([10]))
         return
     }
+    // Owner-initiated opt-in only. The system prompt is asynchronous and the
+    // result is the current trust state, not a promise that consent was granted.
+    // Normal remote operations and --self-test never request TCC permission.
+    if args.contains("--request-accessibility") {
+        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+        let trusted = AXIsProcessTrustedWithOptions(options)
+        let value:[String:Any]=["ok":true,"permission":"accessibility",
+                               "trusted":trusted,"promptRequested":!trusted,
+                               "ownerActionRequired":!trusted]
+        let data=try JSONSerialization.data(withJSONObject:value)
+        FileHandle.standardOutput.write(data);FileHandle.standardOutput.write(Data([10]))
+        return
+    }
     if args.contains("--self-test") {
         let value:[String:Any]=["ok":true,"runtime":"real-remote-v2-macos","arch":"darwin",
                                "screenRecording":screenAllowed(),"accessibility":accessibilityAllowed()]

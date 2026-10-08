@@ -41,3 +41,14 @@ After downloading the canary x64 helper to `~/Library/Caches/LightRemote-RMV2-Ex
 "$HOME/Library/Caches/LightRemote-RMV2-Experimental/LightRemoteRealRemoteAX" --request-screen-recording
 ```
 Then open System Preferences → Security & Privacy → Privacy → Screen Recording / Accessibility and grant the helper if listed. Reopen the helper after macOS requests a restart. Screen Recording and Accessibility MUST both show true in `--self-test` before the test can proceed to screenshot and input. Do not request permissions or perform input automatically; owner explicitly approves all OS dialogs. Real Remote remains disabled in the regular launch agent.
+
+## macOS Big Sur TCC attribution diagnostic — 2026-10-08
+
+On the owner's Mac Intel 11.7.10 the same *unsigned*, isolated `LightRemoteRealRemoteAX` binary returned:
+
+- Locally under graphical Terminal: `screenRecording=true`, `accessibility=false`.
+- Spawned by the existing headless Light Remote Node LaunchAgent: `screenRecording=false`, `accessibility=false`.
+
+The owner had manually enabled permissions, but the AX trust check remained false. This confirms permissions are not transferable between the launching contexts. For a command-line test, the owner should check the **Terminal.app** entry in Accessibility as the responsible GUI application. Production launchd and the separate native helper need their own stable signed identity / responsible-process onboarding; **do not automatically grant, reset TCC, or use this unsigned canary for production**.
+
+The native canary source now accepts `--request-accessibility` exclusively as an explicit owner-initiated CLI request. It calls Apple's `AXIsProcessTrustedWithOptions` with `kAXTrustedCheckOptionPrompt=true` (asynchronous OS prompt) and returns the current trust value. It never requests permission in `--self-test`, background `status`, RPC/desktop action paths, or CI. This flag is **not in the old installed canary** until rebuilt and verified. Never call this flag from an unattended remote session.
