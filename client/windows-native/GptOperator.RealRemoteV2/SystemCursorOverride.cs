@@ -203,13 +203,18 @@ internal static class SystemCursorOverride
         const float tipX = 12f;
         const float tipY = 14f;
 
-        using (var outer = new SolidBrush(Color.FromArgb(32, 76, 255, 144)))
-        using (var middle = new SolidBrush(Color.FromArgb(52, 85, 255, 151)))
-        using (var core = new SolidBrush(Color.FromArgb(72, 111, 255, 169)))
+        // macOS RM V2 palette: restrained cyan / violet / amber glow,
+        // with a mint highlight. Keep the native system cursor hotspot.
+        // This is rendered only once per cursor install, not on every move.
+        using (var cyan = new SolidBrush(Color.FromArgb(24, 43, 201, 255)))
+        using (var violet = new SolidBrush(Color.FromArgb(33, 132, 96, 251)))
+        using (var amber = new SolidBrush(Color.FromArgb(51, 255, 191, 54)))
+        using (var mint = new SolidBrush(Color.FromArgb(74, 93, 251, 217)))
         {
-            g.FillEllipse(outer, tipX - 10f, tipY - 10f, 20f, 20f);
-            g.FillEllipse(middle, tipX - 7f, tipY - 7f, 14f, 14f);
-            g.FillEllipse(core, tipX - 4.5f, tipY - 4.5f, 9f, 9f);
+            g.FillEllipse(cyan, tipX - 11.5f, tipY - 11.5f, 23f, 23f);
+            g.FillEllipse(violet, tipX - 8.5f, tipY - 8.5f, 17f, 17f);
+            g.FillEllipse(amber, tipX - 6f, tipY - 6f, 12f, 12f);
+            g.FillEllipse(mint, tipX - 3.5f, tipY - 3.5f, 7f, 7f);
         }
 
         using var path = new GraphicsPath();
@@ -231,20 +236,44 @@ internal static class SystemCursorOverride
         shadowPath.Transform(shift);
 
         using var shadow = new SolidBrush(Color.FromArgb(108, 0, 0, 0));
-        using var accent = new Pen(Color.FromArgb(168, 104, 255, 162), 2.1f)
+        using var accent = new Pen(Color.FromArgb(172, 88, 243, 217), 2.1f)
         {
             LineJoin = LineJoin.Round
         };
-        using var edge = new Pen(Color.FromArgb(245, 244, 247, 246), 0.9f)
+        using var edge = new Pen(Color.FromArgb(247, 248, 250, 255), 0.9f)
         {
             LineJoin = LineJoin.Round
         };
-        using var fill = new SolidBrush(Color.FromArgb(248, 14, 16, 18));
+        using var fill = new SolidBrush(Color.FromArgb(249, 14, 19, 30));
 
         g.FillPath(shadow, shadowPath);
         g.DrawPath(accent, path);
         g.FillPath(fill, path);
         g.DrawPath(edge, path);
+
+        // Compact AI glass badge based on the owner-approved macOS cursor.
+        // Fit within 48x48 because Windows may clamp system cursors to 32px.
+        var badgeRect = new RectangleF(29f, 29.5f, 16.5f, 12.5f);
+        const float radius = 5f;
+        using var badgePath = new GraphicsPath();
+        badgePath.AddArc(badgeRect.Right - 2f * radius, badgeRect.Top, 2f * radius, 2f * radius, 270, 90);
+        badgePath.AddArc(badgeRect.Right - 2f * radius, badgeRect.Bottom - 2f * radius, 2f * radius, 2f * radius, 0, 90);
+        badgePath.AddArc(badgeRect.Left, badgeRect.Bottom - 2f * radius, 2f * radius, 2f * radius, 90, 90);
+        badgePath.AddArc(badgeRect.Left, badgeRect.Top, 2f * radius, 2f * radius, 180, 90);
+        badgePath.CloseFigure();
+        using var badgeFill = new SolidBrush(Color.FromArgb(243, 17, 25, 43));
+        using var badgeBorder = new Pen(Color.FromArgb(222, 249, 194, 52), 0.9f);
+        g.FillPath(badgeFill, badgePath);
+        g.DrawPath(badgeBorder, badgePath);
+        using var badgeText = new SolidBrush(Color.FromArgb(255, 255, 255, 255));
+        using var badgeFont = new Font("Segoe UI", 9f, FontStyle.Bold, GraphicsUnit.Pixel);
+        using var badgeFormat = new StringFormat
+        {
+            Alignment = StringAlignment.Center,
+            LineAlignment = StringAlignment.Center,
+            FormatFlags = StringFormatFlags.NoWrap
+        };
+        g.DrawString("AI", badgeFont, badgeText, badgeRect, badgeFormat);
 
         return bitmap;
     }
