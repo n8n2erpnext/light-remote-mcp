@@ -1,3 +1,11 @@
+## RC.46 — human-friendly Linux Server CLI and completed production audit
+
+- Linux Server `light-remote up` and `status` show concise version, service, cloud, Wall IP/bind, Fleet, and useful commands without dumping identity/session JSON; `light-remote status --json` retains full diagnostics.
+- `light-remote bind` supports interactive selection, loopback, LAN, NetBird and a validated local IPv4, with a restart/health-check/rollback path.
+- Linux x64 and ARM64 packages include CLI summary module and command helper; CI verifies both architectures.
+- Includes merged PR #1 security and reliability audit: Nodemailer 10.0.16, fail-closed R2 distribution sync, stabilized host Wall tests and macOS relink/Open Fleet.
+- Release keys remain on ARM and signed updater manifests are promoted separately from immutable GitHub release assets.
+
 ## RC.45 — macOS account relink, Open Fleet, and truthful Wall sign-in errors
 
 - macOS tray restores **Open Fleet** for an enrolled device with a healthy Fleet Wall, matching Windows behavior (server-advertised URL or local port 5492).
