@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import {fileURLToPath} from 'node:url';
-import {NativeDesktopBridge,realRemoteAvailable} from '../../lib/native-desktop.mjs';
+import {NativeDesktopBridge,realRemoteAvailable,macGuiSidecarAppPath} from '../../lib/native-desktop.mjs';
 
 const root=path.resolve(fileURLToPath(new URL('../..',import.meta.url)));
 const swift=fs.readFileSync(path.join(root,'client/macos/real-remote/main.swift'),'utf8');
@@ -21,6 +21,13 @@ assert.equal(realRemoteAvailable({platform:'darwin',env:{},exists:()=>true}),fal
 assert.equal(realRemoteAvailable({platform:'linux',env:{LIGHT_REMOTE_REAL_REMOTE:'1',LIGHT_REMOTE_CLIENT_EXE:'/dummy'},exists:()=>true}),false);
 assert.equal(realRemoteAvailable({platform:'darwin',env:{LIGHT_REMOTE_REAL_REMOTE:'1',LIGHT_REMOTE_CLIENT_EXE:'/dummy'},exists:()=>true}),true);
 assert.equal(realRemoteAvailable({platform:'win32',env:{LIGHT_REMOTE_REAL_REMOTE:'1',LIGHT_REMOTE_CLIENT_EXE:'/dummy'},exists:()=>true}),true);
+assert.equal(realRemoteAvailable({platform:'darwin',env:{LIGHT_REMOTE_REAL_REMOTE:'1',LIGHT_REMOTE_MACOS_GUI_SIDECAR:'1',LIGHT_REMOTE_MACOS_GUI_APP:'/tmp/unapproved.app',HOME:'/tmp/unused-home'},exists:()=>true}),false);
+assert.equal(realRemoteAvailable({platform:'win32',env:{LIGHT_REMOTE_REAL_REMOTE:'1',LIGHT_REMOTE_MACOS_GUI_SIDECAR:'1',LIGHT_REMOTE_CLIENT_EXE:'/dummy'},exists:()=>true}),true);
+console.log('macos-gui-optin-failclosed-windows-unchanged=PASS');
+assert.match(bridge,/macGuiSidecarRequested/);
+assert.match(bridge,/macGuiSidecarAppPath/);
+assert.match(bridge,/macos_gui_sidecar_launch_timeout/);
+assert.match(bridge,/this.guiApp\|\|\(this.child/);
 assert.match(swift,/macos_screen_recording_permission_required/);
 assert.match(swift,/args.contains\("--request-screen-recording"\)/);
 assert.match(swift,/args.contains\("--request-accessibility"\)/);
