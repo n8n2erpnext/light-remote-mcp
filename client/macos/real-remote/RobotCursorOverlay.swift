@@ -220,7 +220,7 @@ final class RobotCursorOverlayController {
     private func ensureHeartbeatLocked() {
         guard heartbeat == nil else {return}
         let timer=DispatchSource.makeTimerSource(queue:DispatchQueue.global(qos:.utility))
-        timer.schedule(deadline:.now()+.seconds(20),repeating:.seconds(20))
+        timer.schedule(deadline: DispatchTime.now() + .seconds(20), repeating: .seconds(20))
         timer.setEventHandler {[weak self] in
             guard let self else {return}
             self.lock.lock();defer{self.lock.unlock()}
