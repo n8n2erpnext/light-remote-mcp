@@ -2,7 +2,7 @@ name: macOS Client Packages
 
 on:
   push:
-    branches: [main, 'codex/**']
+    branches: [main, 'codex/**', 'feature/macos-rm-v2-scp']
     tags: ['v0.9.*']
     paths:
       - 'VERSION'
@@ -99,6 +99,21 @@ jobs:
           JSON
           tar -czf "$OUT/Light-Remote-Client-macOS-${TARGET_ARCH}-${VERSION}.tar.gz" -C "$OUT" package
           (cd "$OUT" && shasum -a 256 "Light-Remote-Client-macOS-${TARGET_ARCH}-${VERSION}.tar.gz") > "$OUT/SHA256SUMS.txt"
+      - name: Experimental macOS Real Remote app signing canary
+        if: github.ref == 'refs/heads/feature/macos-rm-v2-scp'
+        shell: bash
+        env:
+          TARGET_ARCH: ${{ matrix.arch }}
+        run: |
+          set -euo pipefail
+          PKG="$PWD/dist/macos/$TARGET_ARCH/package"
+          APP="$RUNNER_TEMP/LightRemoteRmv2Canary.app"
+          bash client/macos/real-remote/canary/build-canary.sh "$PKG/real-remote/LightRemoteRealRemote" "$APP"
+          "$APP/Contents/MacOS/LightRemoteRealRemote" --self-test | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["ok"] and d["runtime"]=="real-remote-v2-macos"'
+          OUT="$PWD/dist/macos/$TARGET_ARCH"
+          tar -czf "$OUT/LightRemoteRmv2Canary-$TARGET_ARCH.tar.gz" -C "$RUNNER_TEMP" LightRemoteRmv2Canary.app
+          shasum -a 256 "$OUT/LightRemoteRmv2Canary-$TARGET_ARCH.tar.gz"
+
       - name: Package contract and Big Sur target smoke
         shell: bash
         env:
@@ -183,5 +198,6 @@ jobs:
             dist/macos/${{ matrix.arch }}/Light-Remote-Client-macOS-${{ matrix.arch }}-*.tar.gz
             dist/macos/${{ matrix.arch }}/pkg/*.pkg
             dist/macos/${{ matrix.arch }}/SHA256SUMS.txt
+            dist/macos/${{ matrix.arch }}/LightRemoteRmv2Canary-*.tar.gz
           if-no-files-found: error
           retention-days: 14
