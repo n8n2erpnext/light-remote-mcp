@@ -159,11 +159,17 @@ func inputAction(_ action:[String:Any]) throws -> [String:Any] {
         }
     case "text.write":
         let value=string(action["text"]);guard value.utf16.count <= 4096 else { throw RemoteError.invalid("macos_text_too_long") }
-        var chars=Array(value.utf16)
-        for down in [true,false] {
-            guard let event=CGEvent(keyboardEventSource:nil,virtualKey:0,keyDown:down) else { throw RemoteError.invalid("macos_text_event_unavailable") }
-            event.keyboardSetUnicodeString(stringLength:chars.count,unicodeString:&chars)
-            event.post(tap:.cghidEventTap)
+        // macOS GUI text fields may retain ONLY the final scalar when a whole
+        // string is posted as one synthetic CGEvent. Send a key pair per scalar;
+        // preserve surrogate pairs (e.g. emoji) inside one event.
+        for scalar in value.unicodeScalars {
+            var units=Array(String(scalar).utf16)
+            for down in [true,false] {
+                guard let event=CGEvent(keyboardEventSource:nil,virtualKey:0,keyDown:down) else { throw RemoteError.invalid("macos_text_event_unavailable") }
+                event.keyboardSetUnicodeString(stringLength:units.count,unicodeString:&units)
+                event.post(tap:.cghidEventTap)
+            }
+            usleep(1200)
         }
     default:throw RemoteError.invalid("macos_input_operation_unsupported")
     }

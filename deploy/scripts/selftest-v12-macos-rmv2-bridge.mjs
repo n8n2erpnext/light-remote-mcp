@@ -22,6 +22,8 @@ assert.match(swift,/args.contains\("--request-screen-recording"\)/);
 assert.match(swift,/args.contains\("--request-accessibility"\)/);
 assert.match(swift,/AXIsProcessTrustedWithOptions\(options\)/);
 assert.match(swift,/macos_accessibility_permission_required/);
+assert.match(swift,/for scalar in value\.unicodeScalars/);
+assert.match(swift,/event\.keyboardSetUnicodeString\(stringLength:units\.count/);
 assert.match(swift,/glideRobotCursor\(to:coordinate\(action\)/);
 assert.match(swift,/cursorOverlay\.show\(expiresAt:lease\.expires\)/);
 assert.match(swift,/cursorOverlay\.hide\(\)/);
