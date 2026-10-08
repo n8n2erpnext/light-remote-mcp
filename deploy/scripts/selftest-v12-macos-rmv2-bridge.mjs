@@ -13,6 +13,9 @@ const semantic=fs.readFileSync(path.join(root,'client/macos/real-remote/Semantic
 const motion=fs.readFileSync(path.join(root,'client/macos/real-remote/RobotCursorMotion.swift'),'utf8');
 const overlay=fs.readFileSync(path.join(root,'client/macos/real-remote/RobotCursorOverlay.swift'),'utf8');
 const guiSidecar=fs.readFileSync(path.join(root,'client/macos/real-remote/canary/GuiSidecarBroker.mjs'),'utf8');
+const devPermissions=fs.readFileSync(path.join(root,'client/macos/real-remote/DevPermissions.swift'),'utf8');
+const devInfo=fs.readFileSync(path.join(root,'client/macos/real-remote/canary/DevInfo.plist'),'utf8');
+const devBuilder=fs.readFileSync(path.join(root,'client/macos/real-remote/canary/build-dev-app.sh'),'utf8');
 
 assert.equal(realRemoteAvailable({platform:'darwin',env:{},exists:()=>true}),false);
 assert.equal(realRemoteAvailable({platform:'linux',env:{LIGHT_REMOTE_REAL_REMOTE:'1',LIGHT_REMOTE_CLIENT_EXE:'/dummy'},exists:()=>true}),false);
@@ -27,6 +30,15 @@ assert.match(guiSidecar,/macos_gui_sidecar_experimental_app_required/);
 assert.match(guiSidecar,/\/usr\/bin\/open/);
 assert.match(guiSidecar,/lightremote-rmv2-gui-/);
 assert.match(guiSidecar,/socket\.destroy\(\)/);
+assert.match(swift,/runRobotDevPermissions\(\)/);
+assert.match(devPermissions,/CGRequestScreenCaptureAccess\(\)/);
+assert.match(devPermissions,/AXIsProcessTrustedWithOptions/);
+assert.match(devPermissions,/NOT GRANTED/);
+assert.match(devInfo,/digital\.thaiduy\.lightremote\.robot\.dev/);
+assert.match(devBuilder,/macos-robot-dev-unsigned-app=PASS/);
+assert.match(workflow,/real-remote\/DevPermissions\.swift/);
+assert.match(workflow,/LightRemoteRobotDev-\$TARGET_ARCH\.tar\.gz/);
+console.log('macos-unsigned-development-permission-ui-contract=PASS');
 assert.match(swift,/AXIsProcessTrustedWithOptions\(options\)/);
 assert.match(swift,/macos_accessibility_permission_required/);
 assert.match(swift,/for scalar in value\.unicodeScalars/);

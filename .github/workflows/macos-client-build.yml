@@ -82,7 +82,7 @@ jobs:
           cp LICENSE NOTICE THIRD_PARTY_DISTRIBUTION_NOTICES.md "$PKG/"
           xcrun swiftc -O -target "$SWIFT_TARGET" client/macos/tray/main.swift -o "$PKG/tray/LightRemoteTray"
           xcrun swiftc -O -target "$SWIFT_TARGET" client/macos/launcher/main.swift -o "$PKG/tray/LightRemoteLauncher"
-          xcrun swiftc -O -target "$SWIFT_TARGET" client/macos/real-remote/main.swift client/macos/real-remote/SemanticEngine.swift client/macos/real-remote/RobotCursorMotion.swift client/macos/real-remote/RobotCursorOverlay.swift -o "$PKG/real-remote/LightRemoteRealRemote"
+          xcrun swiftc -O -target "$SWIFT_TARGET" client/macos/real-remote/main.swift client/macos/real-remote/SemanticEngine.swift client/macos/real-remote/RobotCursorMotion.swift client/macos/real-remote/RobotCursorOverlay.swift client/macos/real-remote/DevPermissions.swift -o "$PKG/real-remote/LightRemoteRealRemote"
           if [[ "$GITHUB_REF" == "refs/heads/feature/macos-rm-v2-scp" ]]; then
             xcrun swiftc -O -target "$SWIFT_TARGET" client/macos/real-remote/canary/DragCanary.swift -o "$PKG/real-remote/LightRemoteDragCanary"
           fi
@@ -117,6 +117,13 @@ jobs:
           cp "$PKG/real-remote/LightRemoteDragCanary" "$RUNNER_TEMP/LightRemoteDragCanary"
           tar -czf "$OUT/LightRemoteRmv2Canary-$TARGET_ARCH.tar.gz" -C "$RUNNER_TEMP" LightRemoteRmv2Canary.app LightRemoteDragCanary
           shasum -a 256 "$OUT/LightRemoteRmv2Canary-$TARGET_ARCH.tar.gz"
+          # Unsigned development GUI is a separate artifact, not a release installer.
+          DEV_APP="$RUNNER_TEMP/LightRemoteRobotDev.app"
+          bash client/macos/real-remote/canary/build-dev-app.sh "$PKG/real-remote/LightRemoteRealRemote" "$DEV_APP"
+          "$DEV_APP/Contents/MacOS/LightRemoteRealRemote" --self-test | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["ok"] and d["runtime"]=="real-remote-v2-macos"'
+          tar -czf "$OUT/LightRemoteRobotDev-$TARGET_ARCH.tar.gz" -C "$RUNNER_TEMP" LightRemoteRobotDev.app
+          shasum -a 256 "$OUT/LightRemoteRobotDev-$TARGET_ARCH.tar.gz"
+
 
       - name: Package contract and Big Sur target smoke
         shell: bash
@@ -203,5 +210,6 @@ jobs:
             dist/macos/${{ matrix.arch }}/pkg/*.pkg
             dist/macos/${{ matrix.arch }}/SHA256SUMS.txt
             dist/macos/${{ matrix.arch }}/LightRemoteRmv2Canary-*.tar.gz
+            dist/macos/${{ matrix.arch }}/LightRemoteRobotDev-*.tar.gz
           if-no-files-found: error
           retention-days: 14

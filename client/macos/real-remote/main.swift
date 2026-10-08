@@ -344,6 +344,15 @@ func run() throws {
         _=chmod(destination.path,0o600)
         return
     }
+    // Stable development GUI: opens when the unsigned dev bundle is launched
+    // normally, or only when the owner explicitly requests its permissions UI.
+    // A --socket launch does NOT open this UI and never prompts for TCC.
+    let devBundle=(Bundle.main.bundleIdentifier=="digital.thaiduy.lightremote.robot.dev")
+    let hasOnlyFinderArgs=args.dropFirst().allSatisfy {$0.hasPrefix("-psn_")}
+    if args.contains("--dev-permissions") || (devBundle && hasOnlyFinderArgs) {
+        runRobotDevPermissions()
+        return
+    }
     // Only an explicit owner-launched command requests a TCC system prompt.
     // Never request screen permission from --self-test, status or a remote job.
     if args.contains("--cursor-overlay") {
