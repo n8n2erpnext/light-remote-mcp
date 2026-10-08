@@ -54,6 +54,51 @@ func windowList(_ limit: Int) -> [[String: Any]] {
          "bounds":row[kCGWindowBounds as String] ?? [:]]
     }
 }
+// Bounded UI await used only by desktop.run; never retries an input action.
+private func axWaitText(_ element:AXUIElement,_ key:CFString) -> String {
+    var raw:CFTypeRef?
+    guard AXUIElementCopyAttributeValue(element,key,&raw)==.success else {return ""}
+    return raw as? String ?? ""
+}
+private func axWaitFocused(_ app:NSRunningApplication,_ key:CFString) -> AXUIElement? {
+    let root=AXUIElementCreateApplication(pid_t(app.processIdentifier))
+    var raw:CFTypeRef?
+    guard AXUIElementCopyAttributeValue(root,key,&raw)==.success,
+          let value=raw,CFGetTypeID(value)==AXUIElementGetTypeID() else {return nil}
+    return unsafeBitCast(value,to:AXUIElement.self)
+}
+func awaitNativeUI(_ spec:[String:Any]) -> [String:Any] {
+    let titleContains=string(spec["foregroundTitleContains"])
+    let titleEquals=string(spec["foregroundTitleEquals"])
+    let focusedContains=string(spec["focusedNameContains"])
+    let timeout=clamp(integer(spec["timeoutMs"],3000),50,15000)
+    let began=timestamp()
+    guard !titleContains.isEmpty || !titleEquals.isEmpty || !focusedContains.isEmpty else {
+        return ["awaitSatisfied":false,"awaitReason":"no_condition","waitedMs":0]
+    }
+    repeat {
+        if let app=NSWorkspace.shared.frontmostApplication {
+            var windowTitle=app.localizedName ?? ""
+            var focusedName=""
+            if accessibilityAllowed() {
+                if let win=axWaitFocused(app,kAXFocusedWindowAttribute as CFString) {
+                    let title=axWaitText(win,kAXTitleAttribute as CFString)
+                    if !title.isEmpty {windowTitle=title}
+                }
+                if let focused=axWaitFocused(app,kAXFocusedUIElementAttribute as CFString) {
+                    focusedName=axWaitText(focused,kAXTitleAttribute as CFString)
+                    if focusedName.isEmpty {focusedName=axWaitText(focused,kAXDescriptionAttribute as CFString)}
+                }
+            }
+            let titleOK=(titleContains.isEmpty || windowTitle.localizedCaseInsensitiveContains(titleContains)) &&
+              (titleEquals.isEmpty || windowTitle.caseInsensitiveCompare(titleEquals)==.orderedSame)
+            let focusOK=focusedContains.isEmpty || focusedName.localizedCaseInsensitiveContains(focusedContains)
+            if titleOK && focusOK {return ["awaitSatisfied":true,"waitedMs":timestamp()-began]}
+        }
+        usleep(30000)
+    } while timestamp()-began<Int64(timeout)
+    return ["awaitSatisfied":false,"awaitReason":"timeout","waitedMs":timestamp()-began]
+}
 func snapshot(_ request: [String:Any]) throws -> [String:Any] {
     guard screenAllowed() else { throw RemoteError.invalid("macos_screen_recording_permission_required") }
     let items = displays()
@@ -207,15 +252,20 @@ final class Helper {
         case "desktop.windows":return windowList(integer(request["maxWindows"],100))
         case "desktop.frame":return try snapshot(request)
         case "desktop.input","desktop.run":
+            let waitSpec=op=="desktop.run" ? request["await"] as? [String:Any] : nil
             if op == "desktop.run", !string(request["nodeId"]).isEmpty {
-                return try semantic.act(request)
+                var result=try semantic.act(request)
+                if let wait=waitSpec {result.merge(awaitNativeUI(wait)) {$1}}
+                return result
             }
             let events=request["actions"] as? [[String:Any]] ?? []
             guard !events.isEmpty && events.count<=64 else {throw RemoteError.invalid("macos_actions_required")}
             if let expected=request["displayTopologyId"] as? String {
                 guard expected == topology()["displayTopologyId"] as? String else {throw RemoteError.invalid("display_topology_mismatch")}
             }
-            return ["applied":true,"results":try events.map { try inputAction($0) }]
+            var output:[String:Any]=["applied":true,"results":try events.map { try inputAction($0) }]
+            if let wait=waitSpec {output.merge(awaitNativeUI(wait)) {$1}}
+            return output
         case "desktop.visual.attach":
             guard screenAllowed() else {throw RemoteError.invalid("macos_screen_recording_permission_required")}
             sessions=sessions.filter{$0.value.expires>timestamp()}
