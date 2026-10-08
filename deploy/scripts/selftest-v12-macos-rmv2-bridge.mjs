@@ -92,7 +92,7 @@ assert.match(bridge,/type==='type'/);
 assert.match(motion,/CGWarpMouseCursorPosition/);
 assert.match(motion,/macos_cursor_did_not_move/);
 assert.match(overlay,/\.setActivationPolicy\(\.accessory\)/);
-assert.match(overlay,/panel\.level = \.screenSaver/);
+assert.match(overlay,/panel\.level = \.statusBar/);
 assert.match(workflow,/canary\/DragCanary.swift/);
 assert.match(workflow,/real-remote\/RobotCursorMotion.swift/);
 assert.match(workflow,/real-remote\/RobotCursorOverlay.swift/);

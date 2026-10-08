@@ -94,7 +94,7 @@ func runRobotCursorOverlay(args:[String]) throws {
     _=Darwin.signal(SIGINT,robotCursorStopSignal)
     let app=NSApplication.shared
     app.setActivationPolicy(.accessory)
-    app.finishLaunching()
+    // Let app.run() finish launching before the async orderFront request.
     let panel=NSPanel(contentRect:NSRect(x:0,y:0,width:88,height:88),
                       styleMask:[.borderless,.nonactivatingPanel],backing:.buffered,defer:false)
     panel.isOpaque=false
@@ -102,7 +102,7 @@ func runRobotCursorOverlay(args:[String]) throws {
     panel.hasShadow=false
     panel.ignoresMouseEvents=true
     panel.hidesOnDeactivate=false
-    panel.level = .screenSaver
+    panel.level = .statusBar
     panel.title = "Light Remote AI Cursor"
     panel.collectionBehavior=[.canJoinAllSpaces,.fullScreenAuxiliary,.stationary]
     let indicator=RobotCursorIndicatorView(frame:NSRect(x:0,y:0,width:88,height:88))
@@ -111,12 +111,22 @@ func runRobotCursorOverlay(args:[String]) throws {
     panel.setFrameOrigin(NSPoint(x:initial.x-25,y:initial.y-64))
     panel.orderFrontRegardless()
     panel.displayIfNeeded()
+    // WindowServer may not register an accessory panel until NSApp.run().
+    // Request ordering again from the live main runloop without activation.
+    DispatchQueue.main.asyncAfter(deadline:.now() + .milliseconds(100)) {
+        panel.orderFrontRegardless()
+        panel.displayIfNeeded()
+    }
 
-    // A separate process owns the OS cursor hide/show. The helper is still
-    // its parent watchdog: when parent exits, this process restores the arrow.
+    // NEVER hide the real OS pointer until the replacement is actually
+    // registered as a visible window. Otherwise a headless helper would
+    // make the owner's pointer vanish without drawing the AI arrow.
     let display=CGMainDisplayID()
-    let systemCursorHidden = CGDisplayHideCursor(display) == .success
-    let metadata=CGWindowListCopyWindowInfo([.optionIncludingWindow],CGWindowID(panel.windowNumber)) as? [[String:Any]] ?? []
+    var systemCursorHidden=false
+    func windowPresented() -> Bool {
+        let windows=CGWindowListCopyWindowInfo([.optionIncludingWindow],CGWindowID(panel.windowNumber)) as? [[String:Any]] ?? []
+        return panel.isVisible && !windows.isEmpty
+    }
     var expiry=initialExpiry
     var ticks=0
     let diagnosticsPath=FileManager.default.homeDirectoryForCurrentUser
@@ -126,7 +136,7 @@ func runRobotCursorOverlay(args:[String]) throws {
         // visibility, OS cursor state and frames, not a guessed RPC success.
         let point=NSEvent.mouseLocation
         let report:[String:Any]=["active":active,"pid":Int(getpid()),
-            "visible":active && panel.isVisible,"windowListed":!metadata.isEmpty,
+            "visible":active && panel.isVisible,"windowListed":windowPresented(),
             "systemCursorHidden":active && systemCursorHidden,"renderTicks":ticks,
             "mouseX":point.x,"mouseY":point.y,"expiresAtMs":expiry,
             "updatedAtMs":timestamp()]
@@ -140,13 +150,13 @@ func runRobotCursorOverlay(args:[String]) throws {
     func restoreSystemCursor() {
         guard !cursorRestored else {return}
         cursorRestored=true
-        if systemCursorHidden {_=CGDisplayShowCursor(display)}
+        if systemCursorHidden {_=CGDisplayShowCursor(display);systemCursorHidden=false}
         panel.orderOut(nil)
         publishStatus(false)
     }
     defer {restoreSystemCursor()}
 
-    fputs("robot_overlay_visible=\(panel.isVisible) cg_window=\(!metadata.isEmpty) system_cursor_hidden=\(systemCursorHidden)\n",stderr)
+    fputs("robot_overlay_visible=\(panel.isVisible) cg_window=\(windowPresented()) system_cursor_hidden=\(systemCursorHidden)\n",stderr)
     var previousPoint=initial
     let tick=Timer(timeInterval:0.035,repeats:true) { _ in
         ticks += 1
@@ -167,6 +177,19 @@ func runRobotCursorOverlay(args:[String]) throws {
             restoreSystemCursor()
             app.terminate(nil)
             return
+        }
+        if ticks % 7 == 0 {
+            if !panel.isVisible {
+                panel.orderFrontRegardless()
+                panel.displayIfNeeded()
+            }
+            let presented=windowPresented()
+            if presented && !systemCursorHidden {
+                systemCursorHidden = CGDisplayHideCursor(display) == .success
+            } else if !presented && systemCursorHidden {
+                _=CGDisplayShowCursor(display)
+                systemCursorHidden=false
+            }
         }
         let pt=NSEvent.mouseLocation
         // Track actual pointer every 35 ms, but avoid redrawing while idle.
