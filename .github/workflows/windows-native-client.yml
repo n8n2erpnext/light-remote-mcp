@@ -8,6 +8,7 @@ on:
       - 'build/windows-ui-golden-rc26'
       - 'feature/real-remote-v2-golden'
       - 'feature/real-remote-v2-m6-persistent-duplex'
+      - 'feature/windows-rm-ux-rc48'
     tags:
       - 'v0.9.*'
     paths:
