@@ -136,14 +136,10 @@ func inputAction(_ action:[String:Any]) throws -> [String:Any] {
         e.post(tap:.cghidEventTap)
     case "cursor.drag":
         let start=try coordinate(action,"fromX","fromY"),end=try coordinate(action,"toX","toY","toScreen")
-        try postMouse(.leftMouseDown,start)
-        let steps=clamp(integer(action["steps"],8),1,32)
-        for i in 1...steps {
-            let q=Double(i)/Double(steps)
-            let p=CGPoint(x:start.x+(end.x-start.x)*q,y:start.y+(end.y-start.y)*q)
-            try postMouse(.leftMouseDragged,p)
-        }
-        try postMouse(.leftMouseUp,end)
+        let steps=try dragRobotCursor(from:start,to:end,
+            requestedSteps:integer(action["steps"],16),
+            requestedDurationMs:integer(action["durationMs"],350))
+        return ["applied":true,"op":op,"dragSteps":steps,"dragTimed":true]
     case "key.press","key.hotkey":
         let name=string(action["key"])
         guard let key=keyCode(name) else { throw RemoteError.invalid("macos_key_unsupported") }

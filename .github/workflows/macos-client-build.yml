@@ -83,6 +83,9 @@ jobs:
           xcrun swiftc -O -target "$SWIFT_TARGET" client/macos/tray/main.swift -o "$PKG/tray/LightRemoteTray"
           xcrun swiftc -O -target "$SWIFT_TARGET" client/macos/launcher/main.swift -o "$PKG/tray/LightRemoteLauncher"
           xcrun swiftc -O -target "$SWIFT_TARGET" client/macos/real-remote/main.swift client/macos/real-remote/SemanticEngine.swift client/macos/real-remote/RobotCursorMotion.swift client/macos/real-remote/RobotCursorOverlay.swift -o "$PKG/real-remote/LightRemoteRealRemote"
+          if [[ "$GITHUB_REF" == "refs/heads/feature/macos-rm-v2-scp" ]]; then
+            xcrun swiftc -O -target "$SWIFT_TARGET" client/macos/real-remote/canary/DragCanary.swift -o "$PKG/real-remote/LightRemoteDragCanary"
+          fi
           chmod 0755 "$PKG/tray/LightRemoteTray" "$PKG/tray/LightRemoteLauncher" "$PKG/real-remote/LightRemoteRealRemote"
           CORE_DIGEST="$(node -e "const fs=require('fs');console.log(JSON.parse(fs.readFileSync(process.argv[1],'utf8')).digest)" "$PKG/client-core.json")"
           cat > "$PKG/manifest.json" <<JSON
@@ -111,7 +114,8 @@ jobs:
           bash client/macos/real-remote/canary/build-canary.sh "$PKG/real-remote/LightRemoteRealRemote" "$APP"
           "$APP/Contents/MacOS/LightRemoteRealRemote" --self-test | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["ok"] and d["runtime"]=="real-remote-v2-macos"'
           OUT="$PWD/dist/macos/$TARGET_ARCH"
-          tar -czf "$OUT/LightRemoteRmv2Canary-$TARGET_ARCH.tar.gz" -C "$RUNNER_TEMP" LightRemoteRmv2Canary.app
+          cp "$PKG/real-remote/LightRemoteDragCanary" "$RUNNER_TEMP/LightRemoteDragCanary"
+          tar -czf "$OUT/LightRemoteRmv2Canary-$TARGET_ARCH.tar.gz" -C "$RUNNER_TEMP" LightRemoteRmv2Canary.app LightRemoteDragCanary
           shasum -a 256 "$OUT/LightRemoteRmv2Canary-$TARGET_ARCH.tar.gz"
 
       - name: Package contract and Big Sur target smoke

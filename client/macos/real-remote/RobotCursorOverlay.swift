@@ -67,11 +67,15 @@ func runRobotCursorOverlay(args:[String]) throws {
 
 final class RobotCursorOverlayController {
     private var child:Process?
+    private var childDeadline:Int64=0
     var active:Bool {child?.isRunning ?? false}
     @discardableResult
     func show(expiresAt:Int64) -> Bool {
-        if active {return true}
-        guard expiresAt>timestamp() else {return false}
+        let now=timestamp()
+        guard expiresAt>now else {return false}
+        // Extend only near expiry; normal attach/frame/AX calls never flicker.
+        if active && childDeadline-now>20000 {return true}
+        if active {hide()}
         let process=Process()
         process.executableURL=URL(fileURLWithPath:CommandLine.arguments[0])
         process.arguments=["--cursor-overlay",String(getpid()),String(expiresAt)]
@@ -81,6 +85,7 @@ final class RobotCursorOverlayController {
         do {
             try process.run()
             child=process
+            childDeadline=expiresAt
             return true
         } catch {
             child=nil
@@ -90,6 +95,7 @@ final class RobotCursorOverlayController {
     func hide() {
         if let proc=child,proc.isRunning {proc.terminate()}
         child=nil
+        childDeadline=0
     }
     deinit {hide()}
 }

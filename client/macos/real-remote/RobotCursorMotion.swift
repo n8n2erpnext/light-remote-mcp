@@ -28,6 +28,33 @@ func glideRobotCursor(to end: CGPoint, steps requestedSteps: Int = 12, durationM
     return steps
 }
 
+// Drag is a timed HID gesture, not a burst of mouseDragged events.
+// Always release the button, including if an intermediate CGEvent fails.
+@discardableResult
+func dragRobotCursor(from start:CGPoint,to end:CGPoint,requestedSteps:Int,requestedDurationMs:Int) throws -> Int {
+    guard start.x.isFinite && start.y.isFinite && end.x.isFinite && end.y.isFinite else {
+        throw RemoteError.invalid("cursor_drag_target_invalid")
+    }
+    let steps=clamp(requestedSteps,6,48)
+    let duration=clamp(requestedDurationMs,90,1400)
+    try glideRobotCursor(to:start,steps:8,durationMs:85)
+    try postMouse(.leftMouseDown,start)
+    var released=false
+    defer {if !released {try? postMouse(.leftMouseUp,end)}}
+    let pause=useconds_t((duration*1000)/steps)
+    for i in 1...steps {
+        let t=Double(i)/Double(steps)
+        let eased=t*t*(3-2*t)
+        let point=CGPoint(x:start.x+(end.x-start.x)*eased,
+                          y:start.y+(end.y-start.y)*eased)
+        try postMouse(.leftMouseDragged,point)
+        if i<steps {usleep(pause)}
+    }
+    try postMouse(.leftMouseUp,end)
+    released=true
+    return steps
+}
+
 // For AX actions, a non-interactive visible glide precedes semantic invocation.
 // No click or keypress is fabricated, and off-screen/invalid geometry is skipped.
 func visualizeRobotSemanticTarget(_ element: AXUIElement, foregroundPid:pid_t) -> Bool {
