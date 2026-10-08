@@ -67,7 +67,7 @@ jobs:
           VERSION="$(tr -d '\r\n' < VERSION)"
           OUT="$PWD/dist/macos/$TARGET_ARCH"
           PKG="$OUT/package"
-          mkdir -p "$PKG/runtime" "$PKG/client/macos" "$PKG/licenses/node" "$PKG/tray"
+          mkdir -p "$PKG/runtime" "$PKG/client/macos" "$PKG/licenses/node" "$PKG/tray" "$PKG/real-remote"
           NODE_TAR="node-v${NODE_VERSION}-darwin-${NODE_ARCH}.tar.gz"
           curl -fsSLO "https://nodejs.org/dist/v${NODE_VERSION}/SHASUMS256.txt"
           curl -fsSLO "https://nodejs.org/dist/v${NODE_VERSION}/${NODE_TAR}"
@@ -82,7 +82,8 @@ jobs:
           cp LICENSE NOTICE THIRD_PARTY_DISTRIBUTION_NOTICES.md "$PKG/"
           xcrun swiftc -O -target "$SWIFT_TARGET" client/macos/tray/main.swift -o "$PKG/tray/LightRemoteTray"
           xcrun swiftc -O -target "$SWIFT_TARGET" client/macos/launcher/main.swift -o "$PKG/tray/LightRemoteLauncher"
-          chmod 0755 "$PKG/tray/LightRemoteTray" "$PKG/tray/LightRemoteLauncher"
+          xcrun swiftc -O -target "$SWIFT_TARGET" client/macos/real-remote/main.swift -o "$PKG/real-remote/LightRemoteRealRemote"
+          chmod 0755 "$PKG/tray/LightRemoteTray" "$PKG/tray/LightRemoteLauncher" "$PKG/real-remote/LightRemoteRealRemote"
           CORE_DIGEST="$(node -e "const fs=require('fs');console.log(JSON.parse(fs.readFileSync(process.argv[1],'utf8')).digest)" "$PKG/client-core.json")"
           cat > "$PKG/manifest.json" <<JSON
           {
@@ -111,6 +112,8 @@ jobs:
           test -x "$PKG/runtime/node"
           test -x "$PKG/tray/LightRemoteTray"
           test -x "$PKG/tray/LightRemoteLauncher"
+          test -x "$PKG/real-remote/LightRemoteRealRemote"
+          "$PKG/real-remote/LightRemoteRealRemote" --self-test | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["ok"] and d["runtime"]=="real-remote-v2-macos",d; print("macos-real-remote-native-helper-smoke=PASS")'
           test -f "$PKG/assets/branding/light-remote-mark-256.png"
           test -f assets/branding/light-remote-mark-512.png
           test -f "$PKG/device-agent/platform-adapters/macos.mjs"

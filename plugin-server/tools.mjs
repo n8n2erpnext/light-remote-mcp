@@ -399,8 +399,8 @@ export function registerPluginTools(server,identity){
   add(server,'light_remote_scp_upload_chunk',{
     title:'Write an upload chunk',
     description:'Stage one indexed data chunk for an existing Light SCP upload. This changes transfer state but does not commit the destination file.',
-    inputSchema:{sessionId:id,operationId:opId,transferId:z.string().min(1).max(160),index:z.number().int().min(0),data:z.string().max(6_000_000)},securitySchemes:security(['remote:write']),annotations:annotations(false,false,false,false)
-  },guarded(identity,['remote:write'],(a,x)=>scpOperation(a,x,'upload-chunk',['transferId','index','data'])));
+    inputSchema:{sessionId:id,operationId:opId,transferId:z.string().min(1).max(160),index:z.number().int().min(0),data:z.string().max(6_000_000),sha256:z.string().regex(/^[a-f0-9]{64}$/i).optional()},securitySchemes:security(['remote:write']),annotations:annotations(false,false,false,false)
+  },guarded(identity,['remote:write'],(a,x)=>scpOperation(a,x,'upload-chunk',['transferId','index','data','sha256'])));
 
   add(server,'light_remote_scp_upload_commit',{
     title:'Commit a file upload',
