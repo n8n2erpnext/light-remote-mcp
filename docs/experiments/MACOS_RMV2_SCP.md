@@ -66,3 +66,19 @@ Owner requests a **visible moving cursor** for Agent actions, including AX/DOM-l
 - Apple ServiceManagement SMAppService for bundled agents is macOS 13+ and CANNOT serve macOS 11.7.10 baseline; retain legacy LaunchAgent for the existing client. Do not alter current launchd service, TCC DB, or owner permissions silently.
 - New source test flag in native macOS Real Remote helper: --gui-tcc-probe (self-contained no socket): queries only CGPreflightScreenCaptureAccess/AXIsProcessTrusted and reports bundleIdentifier, PID, PPID and timestamp into owner-only ~/Library/Caches/LightRemote-RMV2-Experimental/gui-tcc-probe.latest.json (0600). It never calls request/prompt APIs, injects input, or captures pixels. Intended to run from LaunchServices via /usr/bin/open -na <isolated signed canary .app> --args --gui-tcc-probe, then read results via official Light Remote. This distinguishes GUI bundle TCC from Node spawn / Terminal.
 - Do not claim GUI TCC solved until real Mac experiment. Stable signing identity/permission and owner approval still required. Feature branch only.
+
+## GUI LaunchServices sidecar proof and Big Sur TCC owner handoff (2026-10-08)
+
+The macOS 11.x owner machine runs the installed Light Remote operator agent as a legacy `launchd` Node process. The current production process directly `spawn()`s the Swift native helper; its own TCC preflight reports Screen Recording **false**, Accessibility **false**. A Terminal-launched helper on the same machine reports true/true, but Terminal permission is not transferable.
+
+A dedicated ad-hoc signed **experimental** `LightRemoteRmv2Canary.app` with bundle ID `digital.thaiduy.lightremote.rmv2.canary` was launched by the *background agent* through LaunchServices (`open -n -a <canary.app> --args --gui-tcc-probe`). The native app wrote a private status report under the owner's Library/Caches/LightRemote-RMV2-Experimental (0600): its own bundle ID was recognized, parent process was launchd (PPID 1), and both TCC checks were false. It never prompted for permission or captured the screen. The owner must explicitly approve the signed app identity in macOS Security & Privacy before it can control the desktop.
+
+Feature-only `client/macos/real-remote/canary/GuiSidecarBroker.mjs` demonstrates the target architecture: **existing Node cloud session → LaunchServices GUI Robot.app → private Unix Socket RPC → native status/frames/AX/input**. It verifies the app path is inside the user's experimental cache and uses launchd/LaunchServices (not Terminal), random socket name, and read-only `desktop.status`. Real Mac smoke `GuiSidecarSmoke.mjs` PASS, reporting false/false TCC until permission approval. Closing the socket terminates the native helper; no orphan sidecar remained.
+
+### Explicit owner consent gate (no automatic permission changes)
+
+1. Freeze a **stable signed app path and signing identity** in the test cache. Ad-hoc signing is appropriate only for feature CI / canary; Developer ID + notarization is required for release-grade distribution. Changing signature may require re-approval.
+2. Show the **macOS-owned** Screen Recording and Accessibility consent flow associated with the actual GUI Robot app identity. The owner must click approval (no TCC database manipulation, scripted toggles, or privilege bypass).
+3. Restart the helper after approval. Re-run `--gui-tcc-probe` from LaunchServices and the real GUI sidecar smoke; only regard the GUI app as authorized when both checks independently report true.
+4. Then and only then conduct controlled read-only frame/AX and input tests through the **GUI sidecar**. Keep installed production Node/launchd client untouched until acceptance.
+5. macOS 11 compatibility requires legacy LaunchAgent packaging; Apple's `SMAppService` for bundled helpers requires macOS 13+. Do not silently raise the OS minimum or replace installed launchd labels. On macOS 13+, a separate modern pathway can be considered.

@@ -12,6 +12,7 @@ const workflow=fs.readFileSync(path.join(root,'.github/workflows/macos-client-bu
 const semantic=fs.readFileSync(path.join(root,'client/macos/real-remote/SemanticEngine.swift'),'utf8');
 const motion=fs.readFileSync(path.join(root,'client/macos/real-remote/RobotCursorMotion.swift'),'utf8');
 const overlay=fs.readFileSync(path.join(root,'client/macos/real-remote/RobotCursorOverlay.swift'),'utf8');
+const guiSidecar=fs.readFileSync(path.join(root,'client/macos/real-remote/canary/GuiSidecarBroker.mjs'),'utf8');
 
 assert.equal(realRemoteAvailable({platform:'darwin',env:{},exists:()=>true}),false);
 assert.equal(realRemoteAvailable({platform:'linux',env:{LIGHT_REMOTE_REAL_REMOTE:'1',LIGHT_REMOTE_CLIENT_EXE:'/dummy'},exists:()=>true}),false);
@@ -22,6 +23,10 @@ assert.match(swift,/args.contains\("--request-screen-recording"\)/);
 assert.match(swift,/args.contains\("--request-accessibility"\)/);
 assert.match(swift,/args.contains\("--gui-tcc-probe"\)/);
 assert.match(swift,/gui-tcc-probe\.latest\.json/);
+assert.match(guiSidecar,/macos_gui_sidecar_experimental_app_required/);
+assert.match(guiSidecar,/\/usr\/bin\/open/);
+assert.match(guiSidecar,/lightremote-rmv2-gui-/);
+assert.match(guiSidecar,/socket\.destroy\(\)/);
 assert.match(swift,/AXIsProcessTrustedWithOptions\(options\)/);
 assert.match(swift,/macos_accessibility_permission_required/);
 assert.match(swift,/for scalar in value\.unicodeScalars/);
