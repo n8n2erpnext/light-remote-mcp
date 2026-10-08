@@ -289,7 +289,11 @@ func inputAction(_ action:[String:Any]) throws -> [String:Any] {
         for down in [true,false] {
             guard let event=CGEvent(keyboardEventSource:nil,virtualKey:key,keyDown:down) else { throw RemoteError.invalid("macos_key_event_unavailable") }
             event.flags=flags;event.post(tap:.cghidEventTap)
+            // A posted HID event is asynchronous. Give the target app time to
+            // process key-down before key-up rather than treating post() as ACK.
+            usleep(down ? 8500 : 4500)
         }
+        usleep(25000)
     case "text.type":
         return try physicallyTypeVerified(action)
     case "text.write":
