@@ -57,13 +57,13 @@ func windowList(_ limit: Int) -> [[String: Any]] {
 // Bounded UI await used only by desktop.run; never retries an input action.
 private func axWaitText(_ element:AXUIElement,_ key:CFString) -> String {
     var raw:CFTypeRef?
-    guard AXUIElementCopyAttributeValue(element,key,&raw)==.success else {return ""}
+    guard AXUIElementCopyAttributeValue(element,key,&raw) == .success else {return ""}
     return raw as? String ?? ""
 }
 private func axWaitFocused(_ app:NSRunningApplication,_ key:CFString) -> AXUIElement? {
     let root=AXUIElementCreateApplication(pid_t(app.processIdentifier))
     var raw:CFTypeRef?
-    guard AXUIElementCopyAttributeValue(root,key,&raw)==.success,
+    guard AXUIElementCopyAttributeValue(root,key,&raw) == .success,
           let value=raw,CFGetTypeID(value)==AXUIElementGetTypeID() else {return nil}
     return unsafeBitCast(value,to:AXUIElement.self)
 }
@@ -91,7 +91,7 @@ func awaitNativeUI(_ spec:[String:Any]) -> [String:Any] {
                 }
             }
             let titleOK=(titleContains.isEmpty || windowTitle.localizedCaseInsensitiveContains(titleContains)) &&
-              (titleEquals.isEmpty || windowTitle.caseInsensitiveCompare(titleEquals)==.orderedSame)
+              (titleEquals.isEmpty || windowTitle.caseInsensitiveCompare(titleEquals) == .orderedSame)
             let focusOK=focusedContains.isEmpty || focusedName.localizedCaseInsensitiveContains(focusedContains)
             if titleOK && focusOK {return ["awaitSatisfied":true,"waitedMs":timestamp()-began]}
         }
