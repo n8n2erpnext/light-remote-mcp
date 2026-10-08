@@ -159,6 +159,9 @@ func inputAction(_ action:[String:Any]) throws -> [String:Any] {
         }
     case "text.write":
         let value=string(action["text"]);guard value.utf16.count <= 4096 else { throw RemoteError.invalid("macos_text_too_long") }
+        if try writeFocusedEmptyTextByAX(value) {
+            return ["applied":true,"op":op,"textMethod":"ax-verified"]
+        }
         // macOS GUI text fields may retain ONLY the final scalar when a whole
         // string is posted as one synthetic CGEvent. Send a key pair per scalar;
         // preserve surrogate pairs (e.g. emoji) inside one event.
@@ -171,6 +174,7 @@ func inputAction(_ action:[String:Any]) throws -> [String:Any] {
             }
             usleep(1200)
         }
+        return ["applied":true,"op":op,"textMethod":"cgevent-unverified"]
     default:throw RemoteError.invalid("macos_input_operation_unsupported")
     }
     return ["applied":true,"op":op]

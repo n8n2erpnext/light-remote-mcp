@@ -33,6 +33,24 @@ private func frontmostPid() throws -> pid_t {
     guard let app=NSWorkspace.shared.frontmostApplication else {throw RemoteError.invalid("semantic_foreground_missing")}
     return pid_t(app.processIdentifier)
 }
+func writeFocusedEmptyTextByAX(_ value:String) throws -> Bool {
+    guard accessibilityAllowed(),let foreground=NSWorkspace.shared.frontmostApplication else {return false}
+    let app=AXUIElementCreateApplication(pid_t(foreground.processIdentifier))
+    guard let raw=axAttribute(app,kAXFocusedUIElementAttribute),CFGetTypeID(raw)==AXUIElementGetTypeID() else {return false}
+    let el=unsafeBitCast(raw,to:AXUIElement.self)
+    let role=axString(el,kAXRoleAttribute)
+    guard role=="AXTextField" || role=="AXTextArea" else {return false}
+    let subrole=axString(el,kAXSubroleAttribute).lowercased()
+    guard !subrole.contains("secure"),axBoolean(el,kAXEnabledAttribute,true) else {return false}
+    guard let before=axAttribute(el,kAXValueAttribute) as? String,before.isEmpty else {return false}
+    guard AXUIElementSetAttributeValue(el,kAXValueAttribute as CFString,value as CFString) == .success else {return false}
+    guard let after=axAttribute(el,kAXValueAttribute) as? String,
+          after.precomposedStringWithCanonicalMapping==value.precomposedStringWithCanonicalMapping else {
+        throw RemoteError.invalid("macos_ax_text_verification_failed")
+    }
+    return true
+}
+
 struct AXSession {
     let id:String
     let epoch:String
