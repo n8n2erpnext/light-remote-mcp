@@ -191,8 +191,8 @@ func physicallyTypeVerified(_ action:[String:Any]) throws -> [String:Any] {
     }
     raw=nil
     guard AXUIElementCopyAttributeValue(element,kAXValueAttribute as CFString,&raw) == .success,
-          let before=raw as? String,before.isEmpty else {
-        throw RemoteError.invalid("physical_text_target_not_empty")
+          let before=raw as? String,before.utf16.count<=4096 else {
+        throw RemoteError.invalid("physical_text_target_unreadable")
     }
     let keys=value.map {physicalAsciiKey($0)}
     guard keys.allSatisfy({$0 != nil}) else {
@@ -217,9 +217,12 @@ func physicallyTypeVerified(_ action:[String:Any]) throws -> [String:Any] {
     raw=nil
     let readStatus=AXUIElementCopyAttributeValue(element,kAXValueAttribute as CFString,&raw)
     let after=raw as? String ?? ""
+    // Allow verified appends to a known focused field so long application
+    // answers can be typed in bounded (<10s) batches without clipboard/AX writes.
+    let expectedText=before+value
     if readStatus != .success ||
-       after.precomposedStringWithCanonicalMapping != value.precomposedStringWithCanonicalMapping {
-        let expected=Array(value.unicodeScalars),actual=Array(after.unicodeScalars)
+       after.precomposedStringWithCanonicalMapping != expectedText.precomposedStringWithCanonicalMapping {
+        let expected=Array(expectedText.unicodeScalars),actual=Array(after.unicodeScalars)
         var index=0
         while index<min(expected.count,actual.count) && expected[index]==actual[index] {index+=1}
         let found=index<actual.count ? Int(actual[index].value) : -1

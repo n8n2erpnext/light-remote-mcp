@@ -15,6 +15,7 @@ assert.match(bridge,/op:'text\.type'/);
 assert.match(swift,/case "text\.type":/);
 assert.match(swift,/hid-key-by-key-verified/);
 assert.match(swift,/physical_keyboard_readback_mismatch/);
+assert.match(swift,/let expectedText=before\+value/);
 assert.match(swift,/usleep\(down \? 8500 : 4500\)/);
 assert.match(swift,/usleep\(25000\)/);
 console.log('macos-physical-type-route=PASS');
