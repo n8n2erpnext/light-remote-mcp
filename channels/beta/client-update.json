@@ -1,33 +1,33 @@
 {
   "schemaVersion": 1,
   "channel": "beta",
-  "version": "0.9.0-rc.45",
+  "version": "0.9.0-rc.46",
   "artifacts": {
     "windows-x64": {
-      "url": "https://drive.thaiduy.store/light-remote/release/0.9.0-rc.45/Light-Remote-MCP-Setup-x64-0.9.0-rc.45.exe",
-      "sha256": "e500704f8474e25562d2e6761b95a7603557916c443100653fd4f2247a98e70f",
-      "size": 175122905,
+      "url": "https://drive.thaiduy.store/light-remote/release/0.9.0-rc.46/Light-Remote-MCP-Setup-x64-0.9.0-rc.46.exe",
+      "sha256": "c631d0e277032bd06de66bde6edc7627fb110bf117e7d479312cddf230f695b3",
+      "size": 175119797,
       "installerArgs": "/SILENT /NORESTART"
     },
     "macos-x64": {
-      "url": "https://drive.thaiduy.store/light-remote/release/0.9.0-rc.45/Light-Remote-Client-macOS-x64-0.9.0-rc.45.tar.gz",
-      "sha256": "c10c534a6cf7873a5d2bfae7a818f8b399f4a32a00c9c508e728e9b019c1c960",
-      "size": 41468579
+      "url": "https://drive.thaiduy.store/light-remote/release/0.9.0-rc.46/Light-Remote-Client-macOS-x64-0.9.0-rc.46.tar.gz",
+      "sha256": "234354b67c179a7e272cec6cb1be09ebdf48b230d195d0bc5f50ebf9afa79f91",
+      "size": 41468598
     },
     "macos-arm64": {
-      "url": "https://drive.thaiduy.store/light-remote/release/0.9.0-rc.45/Light-Remote-Client-macOS-arm64-0.9.0-rc.45.tar.gz",
-      "sha256": "a396cae28a3562f193570d637cdd613eb208dd670a72ca50757bb02acca050bd",
-      "size": 40247183
+      "url": "https://drive.thaiduy.store/light-remote/release/0.9.0-rc.46/Light-Remote-Client-macOS-arm64-0.9.0-rc.46.tar.gz",
+      "sha256": "710485d28f3b2c465eb9e3ced04dfbf52c3267612ae981556643314bed770ca6",
+      "size": 40247281
     },
     "linux-x64": {
-      "url": "https://drive.thaiduy.store/light-remote/release/0.9.0-rc.45/Light-Remote-MCP-Client-Linux-x64-0.9.0-rc.45.tar.gz",
-      "sha256": "eedb3aeb825829f58a7201d16ccdcfce0f0dbbf0105f73378eb282cdede813e2",
-      "size": 47278511
+      "url": "https://drive.thaiduy.store/light-remote/release/0.9.0-rc.46/Light-Remote-MCP-Client-Linux-x64-0.9.0-rc.46.tar.gz",
+      "sha256": "d827f3d4cfef6006230c9dafb20f9e2446af6e29d9399f15f79f47ffa4e71b4f",
+      "size": 47284013
     },
     "linux-arm64": {
-      "url": "https://drive.thaiduy.store/light-remote/release/0.9.0-rc.45/Light-Remote-MCP-Client-Linux-arm64-0.9.0-rc.45.tar.gz",
-      "sha256": "b71a3311dfeebe2e85e9316914b70c9d277991069f19ab8b9ae74ac1547da59b",
-      "size": 47095664
+      "url": "https://drive.thaiduy.store/light-remote/release/0.9.0-rc.46/Light-Remote-MCP-Client-Linux-arm64-0.9.0-rc.46.tar.gz",
+      "sha256": "205f7087d35a50773f6fd3d4df93e50b2be733625a6213ef7002f09ea055c243",
+      "size": 47101157
     }
   }
 }
