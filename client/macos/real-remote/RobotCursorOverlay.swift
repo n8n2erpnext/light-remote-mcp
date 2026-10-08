@@ -38,7 +38,7 @@ func runRobotCursorOverlay(args:[String]) throws {
     let now=timestamp()
     guard deadline>now && deadline<=now+900_000 else {throw RemoteError.invalid("cursor_overlay_deadline_invalid")}
     let app=NSApplication.shared
-    app.setActivationPolicy(.prohibited)
+    app.setActivationPolicy(.accessory)
     let panel=NSPanel(contentRect:NSRect(x:0,y:0,width:64,height:64),
                       styleMask:[.borderless,.nonactivatingPanel],backing:.buffered,defer:false)
     panel.isOpaque=false
@@ -46,9 +46,11 @@ func runRobotCursorOverlay(args:[String]) throws {
     panel.hasShadow=false
     panel.ignoresMouseEvents=true
     panel.hidesOnDeactivate=false
-    panel.level = .statusBar
+    panel.level = .screenSaver
+    panel.title = "Light Remote Robot Cursor"
     panel.collectionBehavior=[.canJoinAllSpaces,.fullScreenAuxiliary,.stationary]
     panel.contentView=RobotCursorIndicatorView(frame:NSRect(x:0,y:0,width:64,height:64))
+    panel.alphaValue=1.0
     panel.orderFrontRegardless()
     // Keep the marker beside the real pointer; do not steal focus.
     let tick=Timer(timeInterval:0.035,repeats:true) { _ in

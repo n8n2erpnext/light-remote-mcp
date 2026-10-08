@@ -155,6 +155,72 @@ func keyCode(_ name: String) -> CGKeyCode? {
         "o":31,"u":32,"i":34,"p":35,"l":37,"j":38,"k":40,"n":45,"m":46]
     return names[name.lowercased()]
 }
+// Visible keyboard input: one real CGEvent key-down/up pair per character.
+// Unlike AXValue assignment, this path cannot silently paste the full string.
+// The AX readback is verification ONLY; never used to enter or repair text.
+func physicalAsciiKey(_ char:Character) -> (CGKeyCode,Bool)? {
+    let value=String(char)
+    if value=="\n" {return (36,false)}
+    if value==" " {return (49,false)}
+    let lower=value.lowercased()
+    if value.unicodeScalars.count==1,let scalar=value.unicodeScalars.first,
+       scalar.value>=65 && scalar.value<=90, let code=keyCode(lower) {return (code,true)}
+    if value.unicodeScalars.count==1,let scalar=value.unicodeScalars.first,
+       scalar.value>=97 && scalar.value<=122,let code=keyCode(lower) {return (code,false)}
+    if value.count==1,let code=keyCode(value) {return (code,false)}
+    let plain:[String:CGKeyCode]=[".":47,",":43,"/":44,"-":27,"=":24,
+       ";":41,"'":39,"[":33,"]":30,"\\":42,"`":50]
+    let shift:[String:CGKeyCode]=[":":41,"!":18,"?":44,"_":27,"+":24,
+       "(":25,")":29,"@":19,"#":20,"$":21,"%":23,
+       "&":26,"*":28,"\"":39,"<":43,">":47,"{":33,"}":30,"|":42,"~":50]
+    if let code=plain[value] {return (code,false)}
+    if let code=shift[value] {return (code,true)}
+    return nil
+}
+func physicallyTypeVerified(_ action:[String:Any]) throws -> [String:Any] {
+    let value=string(action["text"])
+    guard !value.isEmpty && value.count<=320 else {throw RemoteError.invalid("physical_text_length_invalid")}
+    guard let front=NSWorkspace.shared.frontmostApplication,
+          let element=axWaitFocused(front,kAXFocusedUIElementAttribute as CFString) else {
+        throw RemoteError.invalid("physical_text_target_missing")
+    }
+    var raw:CFTypeRef?
+    guard AXUIElementCopyAttributeValue(element,kAXRoleAttribute as CFString,&raw) == .success,
+          let role=raw as? String,role=="AXTextArea" || role=="AXTextField" else {
+        throw RemoteError.invalid("physical_text_target_invalid")
+    }
+    raw=nil
+    guard AXUIElementCopyAttributeValue(element,kAXValueAttribute as CFString,&raw) == .success,
+          let before=raw as? String,before.isEmpty else {
+        throw RemoteError.invalid("physical_text_target_not_empty")
+    }
+    let keys=value.map {physicalAsciiKey($0)}
+    guard keys.allSatisfy({$0 != nil}) else {
+        throw RemoteError.invalid("physical_text_requires_ascii_layout")
+    }
+    let interval=clamp(integer(action["intervalMs"],48),25,100)
+    let source=CGEventSource(stateID:.hidSystemState)
+    for pair in keys {
+        guard let (code,shift)=pair else {continue}
+        for isDown in [true,false] {
+            guard let event=CGEvent(keyboardEventSource:source,virtualKey:code,keyDown:isDown)
+            else {throw RemoteError.invalid("physical_key_event_failed")}
+            if shift {event.flags = [.maskShift]}
+            event.post(tap:.cghidEventTap)
+            usleep(isDown ? 8500 : 4500)
+        }
+        usleep(useconds_t(interval*1000))
+    }
+    usleep(95000)
+    raw=nil
+    guard AXUIElementCopyAttributeValue(element,kAXValueAttribute as CFString,&raw) == .success,
+          let after=raw as? String,
+          after.precomposedStringWithCanonicalMapping==value.precomposedStringWithCanonicalMapping else {
+        throw RemoteError.invalid("physical_keyboard_readback_mismatch")
+    }
+    return ["applied":true,"op":"text.type","textMethod":"hid-key-by-key-verified",
+            "keyStrokes":keys.count,"intervalMs":interval,"verified":true]
+}
 func inputAction(_ action:[String:Any]) throws -> [String:Any] {
     guard accessibilityAllowed() else { throw RemoteError.invalid("macos_accessibility_permission_required") }
     let op=string(action["op"])
@@ -174,7 +240,15 @@ func inputAction(_ action:[String:Any]) throws -> [String:Any] {
         guard launched else {throw RemoteError.invalid("macos_app_launch_failed")}
         return ["applied":true,"op":op,"bundleId":bundle]
     case "cursor.move":
-        try glideRobotCursor(to:coordinate(action),steps:integer(action["steps"],12),durationMs:integer(action["durationMs"],170))
+        let before=CGEvent(source:nil)?.location ?? .zero
+        let target=try coordinate(action)
+        let steps=try glideRobotCursor(to:target,steps:integer(action["steps"],20),durationMs:integer(action["durationMs"],350))
+        let actual=CGEvent(source:nil)?.location ?? .zero
+        return ["applied":true,"op":op,"pointerVerified":hypot(actual.x-target.x,actual.y-target.y)<12,
+                "cursorMoved":hypot(actual.x-before.x,actual.y-before.y)>2,
+                "physicalDistance":Double(hypot(actual.x-before.x,actual.y-before.y)),
+                "steps":steps,"target":["x":Double(target.x),"y":Double(target.y)],
+                "actual":["x":Double(actual.x),"y":Double(actual.y)]]
     case "cursor.click":
         let point=CGEvent(source:nil)?.location ?? .zero
         let button=string(action["button"],"left")
@@ -208,6 +282,8 @@ func inputAction(_ action:[String:Any]) throws -> [String:Any] {
             guard let event=CGEvent(keyboardEventSource:nil,virtualKey:key,keyDown:down) else { throw RemoteError.invalid("macos_key_event_unavailable") }
             event.flags=flags;event.post(tap:.cghidEventTap)
         }
+    case "text.type":
+        return try physicallyTypeVerified(action)
     case "text.write":
         let value=string(action["text"]);guard value.utf16.count <= 4096 else { throw RemoteError.invalid("macos_text_too_long") }
         if try writeFocusedEmptyTextByAX(value) {

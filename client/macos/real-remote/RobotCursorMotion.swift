@@ -12,6 +12,8 @@ func glideRobotCursor(to end: CGPoint, steps requestedSteps: Int = 12, durationM
     let start=CGEvent(source:nil)?.location ?? end
     let distance=hypot(end.x-start.x,end.y-start.y)
     if distance < 1.5 {
+        // CGEvent.mouseMoved alone does not guarantee the OS cursor warps.
+        guard CGWarpMouseCursorPosition(end) == .success else {throw RemoteError.invalid("macos_cursor_warp_failed")}
         try postMouse(.mouseMoved,end)
         return 1
     }
@@ -22,8 +24,15 @@ func glideRobotCursor(to end: CGPoint, steps requestedSteps: Int = 12, durationM
         let progress=Double(index)/Double(steps)
         let eased=progress * progress * (3 - 2 * progress)
         let at=CGPoint(x:start.x+(end.x-start.x)*eased,y:start.y+(end.y-start.y)*eased)
+        guard CGWarpMouseCursorPosition(at) == .success else {throw RemoteError.invalid("macos_cursor_warp_failed")}
         try postMouse(.mouseMoved,at)
         if intervalUs>0 && index<steps {usleep(intervalUs)}
+    }
+    // Verify physical OS pointer location, not just successful event posting.
+    usleep(14000)
+    let actual=CGEvent(source:nil)?.location ?? .zero
+    guard hypot(actual.x-end.x,actual.y-end.y)<12 else {
+        throw RemoteError.invalid("macos_cursor_did_not_move")
     }
     return steps
 }
