@@ -114,6 +114,8 @@ assert.ok(r2Sync.includes("mac_x64=info(f'Light-Remote-{version}-x86_64.pkg')")&
 assert.ok(r2Sync.includes("'available':bool(mac_x64 or mac_arm64)")&&r2Sync.includes("'warning':'Unsigned / Not notarized'"),'macOS unsigned prerelease publication contract missing');
 assert.ok(r2Sync.includes("! -name manifest.json -delete"),'large distribution binaries must leave production LXD after R2 publish');
 assert.ok(r2Sync.includes('LIGHT_REMOTE_DISTRIBUTION_LXD_REQUIRED')&&r2Sync.includes('lxd-manifest-required-but-unavailable'),'R2 sync must fail closed when production LXD manifest cannot be updated');
+assert.ok(r2Sync.includes('LIGHT_REMOTE_RELEASE_STAGING_DIR')&&r2Sync.includes('STAGING_ROOT/light-remote-release.'),'R2 sync staging must be accessible to Snap LXD');
+assert.ok(r2Sync.indexOf('light-remote-r2-sync=lxd-manifest-updated') < r2Sync.lastIndexOf('"$OBJECT_PREFIX/latest/manifest.json"'),'latest R2 pointer must publish after LXD manifest update');
 const releaseSyncUnit=read('deploy/distribution/light-remote-release-sync.service');
 assert.ok(releaseSyncUnit.includes('Environment=LIGHT_REMOTE_DISTRIBUTION_LXD_REQUIRED=1'),'release sync unit must require LXD manifest update');
 assert.ok(releaseSyncUnit.includes('NoNewPrivileges=false'),'Snap-backed LXC requires privilege transition in release sync service');

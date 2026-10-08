@@ -30,7 +30,10 @@ BUCKET="${LIGHT_REMOTE_R2_BUCKET_ROOT:-${R2_BUCKET%%/*}}"
 OBJECT_PREFIX="${LIGHT_REMOTE_R2_OBJECT_PREFIX:-${R2_PREFIX#/}}"
 PUBLIC_ROOT="${R2_PUBLIC_URL%/}"
 ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
-TMP="$(mktemp -d "${TMPDIR:-/tmp}/light-remote-release.XXXXXXXXXX")"
+STAGING_ROOT="${LIGHT_REMOTE_RELEASE_STAGING_DIR:-$HOME/light-remote-release-staging}"
+mkdir -p "$STAGING_ROOT"
+chmod 0700 "$STAGING_ROOT"
+TMP="$(mktemp -d "$STAGING_ROOT/light-remote-release.XXXXXXXXXX")"
 trap 'rm -rf "$TMP"' EXIT
 
 api_get(){
@@ -186,9 +189,7 @@ print(json.dumps(m,indent=2))
 PY
 
 put "$TMP/manifest.json" "$VERSION_KEY/manifest.json" 'public, max-age=31536000, immutable'
-put "$TMP/manifest.json" "$OBJECT_PREFIX/latest/manifest.json" 'public, max-age=60'
-put "$REPO_ROOT/plugin-server/downloads-install-linux.sh" "$OBJECT_PREFIX/install.sh" 'public, max-age=300'
-
+# Fail closed: update the LXD distribution before publishing the moving R2 latest pointer.
 LXD_READY=0
 if command -v lxc >/dev/null 2>&1; then
   for attempt in $(seq 1 "$LXD_RETRIES"); do
@@ -210,6 +211,9 @@ elif [[ "$LXD_REQUIRED" =~ ^(1|true|yes|on)$ ]]; then
 else
   echo "light-remote-r2-sync=lxd-manifest-skipped container=$LXD_NAME" >&2
 fi
+
+put "$TMP/manifest.json" "$OBJECT_PREFIX/latest/manifest.json" 'public, max-age=60'
+put "$REPO_ROOT/plugin-server/downloads-install-linux.sh" "$OBJECT_PREFIX/install.sh" 'public, max-age=300'
 
 printf '%s\n' "$VERSION" > "$STATE_FILE"
 echo "light-remote-r2-sync=PASS version=$VERSION prefix=$VERSION_KEY"
