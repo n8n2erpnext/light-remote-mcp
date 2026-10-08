@@ -582,7 +582,15 @@ async function startDesktopOperation(payload,requestId){
   if(payload.nodeId!=null&&String(payload.nodeId)!==session.nodeId)throw new SessionError('session_target_mismatch',409);
   let request=payload.desktop&&typeof payload.desktop==='object'&&!Array.isArray(payload.desktop)?payload.desktop:null;if(!request)throw new Error('desktop_request_required');
   const op=String(request.op||'');if(!['status','attach','resume','detach','windows','frame','input','run','observe','act','semantic-attach','semantic-snapshot','semantic-events','semantic-detach','live-open','live-close'].includes(op))throw new Error('desktop_operation_unsupported');
-  if(op==='input'||(op==='act'&&Array.isArray(request.events)))request={op,...normalizeDesktopInput(request)};
+  // Resolve the enrolled target platform before validating physical typing.
+  // Never accept a caller-supplied platform: a Windows device must continue
+  // rejecting the macOS-only HID+AX verified `type` event.
+  const remote=isOutboundTarget({integratedHostEnabled:INTEGRATED_HOST_ENABLED,localNodeId:NODE_ID,targetNodeId:session.nodeId});
+  if(!remote)throw new DeviceError('desktop_local_host_not_supported',409);
+  const route=targetRoute(session.nodeId,{accountId:session.accountId});
+  if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);
+  const targetPlatform=route.platform==='darwin'?'darwin':'win32';
+  if(op==='input'||(op==='act'&&Array.isArray(request.events)))request={op,...normalizeDesktopInput(request,{platform:targetPlatform})};
   if(op==='run'){
     const semanticAction=Boolean(String(request.nodeId||'').trim()&&String(request.action||'').trim()&&!Array.isArray(request.events));
     let normalized;
@@ -597,7 +605,7 @@ async function startDesktopOperation(payload,requestId){
         settleMs:Math.max(0,Math.min(Number.isFinite(settleMs)?Math.floor(settleMs):90,250))
       };
       if(request.value!=null)normalized.value=String(request.value).slice(0,4096);
-    }else normalized={op,...normalizeDesktopInput(request)};
+    }else normalized={op,...normalizeDesktopInput(request,{platform:targetPlatform})};
     const rawWait=request.await&&typeof request.await==='object'&&!Array.isArray(request.await)?request.await:null;
     if(rawWait){
       const wait={};
@@ -610,9 +618,8 @@ async function startDesktopOperation(payload,requestId){
     }
     request=normalized;
   }
-  const remote=isOutboundTarget({integratedHostEnabled:INTEGRATED_HOST_ENABLED,localNodeId:NODE_ID,targetNodeId:session.nodeId}),requiredCapabilities=(op==='input'||op==='run'||op==='act')?['desktop','desktop-input']:['desktop'];
-  if(!remote)throw new DeviceError('desktop_local_host_not_supported',409);
-  const route=targetRoute(session.nodeId,{accountId:session.accountId});if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(requiredCapabilities.some(cap=>!route.capabilities.includes(cap)))throw new FleetError('target_node_capability_missing',409);
+  const requiredCapabilities=(op==='input'||op==='run'||op==='act')?['desktop','desktop-input']:['desktop'];
+  if(requiredCapabilities.some(cap=>!route.capabilities.includes(cap)))throw new FleetError('target_node_capability_missing',409);
   const fingerprint=crypto.createHash('sha256').update(JSON.stringify({request,sessionId:session.id,nodeId:session.nodeId})).digest('hex'),existing=operationDedupe.get(operationId);
   if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
   const toolMeta={kind:'desktop',op,label:op==='status'?'Desktop status':op==='attach'?'Desktop attach':op==='resume'?'Desktop resume':op==='detach'?'Desktop detach':op==='windows'?'Desktop windows':op==='frame'?'Desktop frame':op==='input'?'Desktop input':op==='run'?'Desktop run':op==='observe'?'Computer observe':op==='act'?'Computer act':op==='semantic-attach'?'Semantic attach':op==='semantic-snapshot'?'Semantic snapshot':op==='semantic-events'?'Semantic events':op==='live-open'?'Real Remote live open':op==='live-close'?'Real Remote live close':'Semantic detach'};
@@ -903,7 +910,7 @@ function targetRoute(requestedNodeId,{accountId:requestedAccountId=ACCOUNT_ID}={
   requireDeviceConnection(device.deviceId);
   const route=fleet.assertRoutable(nodeId,{accountId,deviceId:device.deviceId});
   const binding=enrollments.binding(device.deviceId), allowed=new Set(binding.approvedCapabilities||[]);
-  return { ...route, capabilities:(route.capabilities||[]).filter(cap=>allowed.has(cap)), mode:'outbound-leaf' };
+  return { ...route, platform:device.platform, capabilities:(route.capabilities||[]).filter(cap=>allowed.has(cap)), mode:'outbound-leaf' };
 }
 class DeviceChannelRateLimitError extends Error {
   constructor(lane,retryAfterSeconds){super('rate_limited');this.status=429;this.scope=`device-channel-${lane}`;this.retryAfterSeconds=retryAfterSeconds;}
