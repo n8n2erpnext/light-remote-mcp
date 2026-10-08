@@ -16,6 +16,19 @@ const up=await reg.beginUpload({destination:dest,totalBytes:content.length,chunk
 assert.equal(up.totalChunks,3);assert.equal(up.complete,false);
 async function put(index){const start=index*up.chunkBytes,end=Math.min(content.length,start+up.chunkBytes),chunk=content.subarray(start,end);return reg.putUploadChunk(up.id,{index,data:chunk.toString('base64url'),sha256:hash(chunk)});}
 await put(1);await put(0);await put(1);await put(2);
+// Client tool schema predating this fix dropped chunk.sha256 entirely.
+const fallback=Buffer.from('scp-upload-no-chunk-hash');
+const fallbackDest=path.join(root,'no-chunk-hash.bin');
+const fallbackUp=await reg.beginUpload({destination:fallbackDest,totalBytes:fallback.length,sha256:hash(fallback)});
+await reg.putUploadChunk(fallbackUp.id,{index:0,data:fallback.toString('base64url')});
+await reg.commitUpload(fallbackUp.id);
+assert.deepEqual(await fsp.readFile(fallbackDest),fallback);
+const mismatch=Buffer.from('sha-invalid-test');
+const mismatchUp=await reg.beginUpload({destination:path.join(root,'sha-invalid.bin'),totalBytes:mismatch.length,sha256:hash(mismatch)});
+await assert.rejects(reg.putUploadChunk(mismatchUp.id,{index:0,data:mismatch.toString('base64url'),sha256:'0'.repeat(64)}),/scp_chunk_hash_mismatch/);
+await reg.cancel(mismatchUp.id);
+console.log('scp_upload_schema_backward_compat_and_strict_hash=PASS');
+
 let status=await reg.status(up.id);assert.equal(status.complete,true);assert.equal(status.progressBytes,content.length);
 const committed=await reg.commitUpload(up.id);assert.equal(committed.sha256,hash(content));
 assert.deepEqual(await fsp.readFile(dest),content);
