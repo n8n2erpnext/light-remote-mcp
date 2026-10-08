@@ -85,7 +85,6 @@ wall_health(){
     pid="$(systemctl show "$SERVICE" -p MainPID --value 2>/dev/null || echo 0)"
     code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 1 "http://$WALL_HOST:$WALL_PORT/" 2>/dev/null || true)"
     if systemctl is-active --quiet "$SERVICE" && [[ "$pid" =~ ^[1-9][0-9]*$ ]] && [[ "$code" =~ ^(200|303|401)$ ]]; then
-      printf 'Local Wall: http://%s:%s/\n' "$WALL_HOST" "$WALL_PORT"
       return 0
     fi
     sleep .5
@@ -94,52 +93,8 @@ wall_health(){
   die "service failed post-enrollment health gate"
 }
 
-cmd="${1:-status}"
-shift || true
-case "$cmd" in
-  up|login)
-    if [[ ! -f "$STATE_FILE" ]]; then
-      printf 'Starting Light Remote device enrollment for %s...\n' "$TARGET_USER"
-      agent login "$@"
-    else
-      enrolled="$(agent status 2>/dev/null | python3 -c 'import json,sys; print("true" if json.load(sys.stdin).get("enrolled") else "false")' 2>/dev/null || echo false)"
-      if [[ "$enrolled" != "true" ]]; then
-        agent login "$@"
-      fi
-    fi
-    refresh_service_policy
-    as_root systemctl daemon-reload
-    as_root systemctl enable --now "$SERVICE"
-    as_root systemctl enable --now gpt-operator-agent-update.timer gpt-operator-agent-update.path gpt-operator-agent-update-check.path
-    wall_health
-    agent status
-    ;;
-  status)
-    agent status
-    printf 'service=%s\n' "$(systemctl is-active "$SERVICE" 2>/dev/null || true)"
-    ;;
-  connect|disconnect|drain|undrain)
-    agent "$cmd" "$@"
-    ;;
-  down)
-    agent disconnect "$@"
-    ;;
-  wall)
-    printf 'http://%s:%s/\n' "$WALL_HOST" "$WALL_PORT"
-    ;;
-  *)
-    cat <<'EOF'
-Light Remote Linux Server CLI
-
-Usage:
-  light-remote up          Enroll this server and start the background agent
-  light-remote status      Show enrollment/cloud/service status
-  light-remote connect     Connect the enrolled device to the cloud
-  light-remote disconnect  Return the enrolled device to dormant state
-  light-remote drain       Stop accepting new remote sessions
-  light-remote undrain     Resume accepting remote sessions
-  light-remote wall        Print the Local Wall URL
-EOF
-    exit 2
-    ;;
-esac
+# The separate CLI layer keeps device status JSON available for automation.
+CLI_COMMANDS="$ROOT/current/client/linux/cli-commands.sh"
+[[ -f "$CLI_COMMANDS" ]] || die "CLI commands missing from installed release"
+# shellcheck source=client/linux/cli-commands.sh
+source "$CLI_COMMANDS"
