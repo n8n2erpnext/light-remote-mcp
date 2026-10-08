@@ -5,7 +5,7 @@ import CoreGraphics
 
 // macOS AX semantic snapshots. Disabled until the owner grants Accessibility
 // to the native helper; never requests or bypasses TCC permissions.
-private func axAttribute(_ element:AXUIElement,_ name:String) -> Any? {
+private func axAttribute(_ element:AXUIElement,_ name:String) -> CFTypeRef? {
     var value:CFTypeRef?
     guard AXUIElementCopyAttributeValue(element,name as CFString,&value) == .success else {return nil}
     return value
@@ -18,11 +18,11 @@ private func axBoolean(_ element:AXUIElement,_ name:String,_ fallback:Bool=false
 }
 private func axRect(_ element:AXUIElement) -> [String:Any] {
     var origin=CGPoint.zero,size=CGSize.zero
-    if let pos=axAttribute(element,kAXPositionAttribute) as? AXValue {
-        _=AXValueGetValue(pos,.cgPoint,&origin)
+    if let raw=axAttribute(element,kAXPositionAttribute), CFGetTypeID(raw)==AXValueGetTypeID() {
+        _=AXValueGetValue(unsafeBitCast(raw,to:AXValue.self),.cgPoint,&origin)
     }
-    if let box=axAttribute(element,kAXSizeAttribute) as? AXValue {
-        _=AXValueGetValue(box,.cgSize,&size)
+    if let raw=axAttribute(element,kAXSizeAttribute), CFGetTypeID(raw)==AXValueGetTypeID() {
+        _=AXValueGetValue(unsafeBitCast(raw,to:AXValue.self),.cgSize,&size)
     }
     return ["x":origin.x,"y":origin.y,"width":max(0,size.width),"height":max(0,size.height)]
 }
@@ -53,7 +53,10 @@ final class SemanticEngine {
     private func root(_ s:AXSession) -> AXUIElement {
         let app=AXUIElementCreateApplication(s.pid)
         if s.scope == "foreground",
-           let window=axAttribute(app,kAXFocusedWindowAttribute) as? AXUIElement {return window}
+           let raw=axAttribute(app,kAXFocusedWindowAttribute),
+           CFGetTypeID(raw)==AXUIElementGetTypeID() {
+            return unsafeBitCast(raw,to:AXUIElement.self)
+        }
         return app
     }
     private func tree(_ session:inout AXSession) -> [String:Any] {
