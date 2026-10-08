@@ -205,7 +205,9 @@ func physicallyTypeVerified(_ action:[String:Any]) throws -> [String:Any] {
         for isDown in [true,false] {
             guard let event=CGEvent(keyboardEventSource:nil,virtualKey:code,keyDown:isDown)
             else {throw RemoteError.invalid("physical_key_event_failed")}
-            if shift {event.flags = [.maskShift]}
+            // Clear stale Cmd/Alt/Control from previous hotkeys on EVERY key event.
+            // Otherwise letters become shortcuts and the AX text stays empty.
+            event.flags = shift ? [.maskShift] : []
             event.post(tap:.cghidEventTap)
             usleep(isDown ? 8500 : 4500)
         }
