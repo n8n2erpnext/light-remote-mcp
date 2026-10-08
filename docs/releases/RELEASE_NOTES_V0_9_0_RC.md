@@ -1,3 +1,10 @@
+## RC.47 — Linux CLI symlink rendering fix and concise installer
+
+- Fixed rc.46 Linux CLI status, up, and default commands silently printing nothing after installation through the `current` release symlink.
+- Added an installed-layout regression using a real `current → releases/...` symlink; retains `status --json` for automation.
+- Successful Linux Server install/update now shows a concise readable summary instead of updater helper JSON and systemctl process tree. Reconciliation failures still display diagnostics and stop installation.
+- Preserves existing device enrollment, NetBird/LAN/loopback Wall binding, and signed update rollback.
+
 ## RC.46 — human-friendly Linux Server CLI and completed production audit
 
 - Linux Server `light-remote up` and `status` show concise version, service, cloud, Wall IP/bind, Fleet, and useful commands without dumping identity/session JSON; `light-remote status --json` retains full diagnostics.
