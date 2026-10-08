@@ -163,6 +163,16 @@ func inputAction(_ action:[String:Any]) throws -> [String:Any] {
         guard foreground.localizedCaseInsensitiveContains(guardTitle) else { throw RemoteError.invalid("desktop_guard_title_mismatch") }
     }
     switch op {
+    case "app.launch":
+        // Fixed, owner-visible desktop applications only. Never run a shell
+        // command or open a URL through this launch action.
+        let bundle=string(action["bundleId"])
+        let approved:Set<String>=["com.google.Chrome","com.apple.TextEdit","com.apple.finder","com.apple.calculator"]
+        guard approved.contains(bundle) else {throw RemoteError.invalid("macos_app_launch_denied")}
+        let launched=NSWorkspace.shared.launchApplication(withBundleIdentifier:bundle,
+            options:[],additionalEventParamDescriptor:nil,launchIdentifier:nil)
+        guard launched else {throw RemoteError.invalid("macos_app_launch_failed")}
+        return ["applied":true,"op":op,"bundleId":bundle]
     case "cursor.move":
         try glideRobotCursor(to:coordinate(action),steps:integer(action["steps"],12),durationMs:integer(action["durationMs"],170))
     case "cursor.click":
