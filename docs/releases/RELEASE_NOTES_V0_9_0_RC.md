@@ -1,4 +1,4 @@
-## RC.43 — macOS account relink and truthful Wall sign-in errors
+## RC.45 — macOS account relink, Open Fleet, and truthful Wall sign-in errors
 
 - macOS tray restores **Open Fleet** for an enrolled device with a healthy Fleet Wall, matching Windows behavior (server-advertised URL or local port 5492).
 - macOS tray offers an explicit **Relink this Mac…** flow. Changing the account requires local confirmation, a new one-time code, and account-owner approval. The local device identity is preserved until approval.
