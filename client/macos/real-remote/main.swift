@@ -88,8 +88,8 @@ func snapshot(_ request: [String:Any]) throws -> [String:Any] {
             "inputMapping":["xOffset":b.origin.x,"yOffset":b.origin.y,
                             "xScale":Double(b.width)/Double(outWidth),"yScale":Double(b.height)/Double(outHeight)]]
 }
-func coordinate(_ action: [String:Any], _ x: String = "x", _ y: String = "y") throws -> CGPoint {
-    let screen = integer(action["screen"],0), all = displays()
+func coordinate(_ action: [String:Any], _ x: String = "x", _ y: String = "y", _ screenKey: String = "screen") throws -> CGPoint {
+    let screen = integer(action[screenKey],integer(action["screen"],0)), all = displays()
     guard screen >= 0 && screen < all.count else { throw RemoteError.invalid("screen_invalid") }
     guard let px=action[x] as? NSNumber,let py=action[y] as? NSNumber else { throw RemoteError.invalid("coordinates_required") }
     let b=CGDisplayBounds(all[screen]), rx=px.doubleValue,ry=py.doubleValue
@@ -135,7 +135,7 @@ func inputAction(_ action:[String:Any]) throws -> [String:Any] {
         else { throw RemoteError.invalid("macos_scroll_event_unavailable") }
         e.post(tap:.cghidEventTap)
     case "cursor.drag":
-        let start=try coordinate(action),end=try coordinate(action,"toX","toY")
+        let start=try coordinate(action,"fromX","fromY"),end=try coordinate(action,"toX","toY","toScreen")
         try postMouse(.leftMouseDown,start)
         let steps=clamp(integer(action["steps"],8),1,32)
         for i in 1...steps {

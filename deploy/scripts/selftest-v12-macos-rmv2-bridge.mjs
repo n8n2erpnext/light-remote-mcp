@@ -18,6 +18,8 @@ assert.match(swift,/macos_screen_recording_permission_required/);
 assert.match(swift,/args.contains\("--request-screen-recording"\)/);
 assert.match(swift,/macos_accessibility_permission_required/);
 assert.match(swift,/visual_lease_invalid/);
+assert.match(swift,/coordinate\(action,\"fromX\",\"fromY\"\)/);
+assert.match(swift,/coordinate\(action,\"toX\",\"toY\",\"toScreen\"\)/);
 assert.match(swift,/SOCK_STREAM/);
 assert.match(swift,/chmod\(address,0o600\)/);
 assert.ok(bridge.includes("this.platform==='darwin'"));
@@ -35,7 +37,7 @@ const sock=process.argv[idx+1];
 const server=net.createServer(c=>{
   c.write(JSON.stringify({type:'event',eventName:'robot.ready',at:Date.now(),pid:process.pid})+'\\n');
   let buf='';
-  c.on('data',chunk=>{buf+=chunk;while(buf.includes('\\n')){let pos=buf.indexOf('\\n');let line=buf.slice(0,pos);buf=buf.slice(pos+1);if(!line)continue;let msg=JSON.parse(line);c.write(JSON.stringify({type:'response',id:msg.id,ok:true,data:{runtime:'mock-macos-rmv2',receivedOp:msg.op}})+'\\n');}});
+  c.on('data',chunk=>{buf+=chunk;while(buf.includes('\\n')){let pos=buf.indexOf('\\n');let line=buf.slice(0,pos);buf=buf.slice(pos+1);if(!line)continue;let msg=JSON.parse(line);c.write(JSON.stringify({type:'response',id:msg.id,ok:true,data:{runtime:'mock-macos-rmv2',receivedOp:msg.op,actions:msg.actions||[]}})+'\\n');}});
   c.on('end',()=>server.close());
 });
 server.listen(sock,()=>fs.chmodSync(sock,0o600));
@@ -49,6 +51,12 @@ try {
     assert.equal(status.runtime,'mock-macos-rmv2');
     assert.equal(status.receivedOp,'desktop.status');
     assert.equal(b.running,true);
+    const drag=await b.request('input',{events:[{type:'drag',x:21,y:32,toX:63,toY:74,screen:0,toScreen:1}]});
+    assert.equal(drag.receivedOp,'desktop.input');
+    assert.deepEqual(drag.actions.map(({op,fromX,fromY,toX,toY,screen,toScreen})=>({op,fromX,fromY,toX,toY,screen,toScreen})),[
+      {op:'cursor.drag',fromX:21,fromY:32,toX:63,toY:74,screen:0,toScreen:1}
+    ]);
+    console.log('macos-real-remote-drag-contract=PASS');
     console.log('macos-real-remote-unix-socket-duplex-rpc=PASS');
   }finally{b.close();}
 }finally{fs.rmSync(scratch,{recursive:true,force:true});}
