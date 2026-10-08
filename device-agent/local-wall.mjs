@@ -33,6 +33,15 @@ function secureRequest(req){return Boolean(req.socket?.encrypted)||String(req.he
 function sessionCookie(token,ttl,secure){return `${LOCAL_WALL_COOKIE}=${token}; Path=/; Max-Age=${ttl}; HttpOnly; ${secure?'Secure; ':''}SameSite=Strict; Priority=High`;}
 function clearSessionCookie(secure){return `${LOCAL_WALL_COOKIE}=; Path=/; Max-Age=0; HttpOnly; ${secure?'Secure; ':''}SameSite=Strict; Priority=High`;}
 function loginPage(brandSvg,message='',next='/',recoveryEnabled=true,csrf=''){const note=message?`<div class=\"error\">${String(message).replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[m]))}</div>`:'';const n=safeNext(next).replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[m]));return `<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">${brandFaviconSvg()}<title>Light Remote — Wall login</title><style>${WALL_FONT_FACE_CSS}:root{color-scheme:dark;font-family:${WALL_UI_FONT};background:#080a0c;color:#d8dee7}body{margin:0;min-height:100vh;display:grid;place-items:center}.card{width:min(420px,calc(100vw - 32px));border:1px solid #252d36;border-radius:12px;background:#0a0e12;padding:22px}.brand{display:flex;align-items:center;gap:12px}.brand svg{width:44px;height:44px}.muted{color:#718096}.error{color:#ff8e8e;margin-top:12px}label{display:block;margin-top:14px}input,button{width:100%;margin-top:6px;border:1px solid #2b333d;background:#0e1216;color:#d8dee7;border-radius:7px;padding:10px;font:inherit;box-sizing:border-box}button{cursor:pointer;margin-top:18px}</style></head><body><main class=\"card\"><div class=\"brand\"><span>${brandSvg}</span><div><b>Light Remote</b><div class=\"muted\">Device Wall login</div></div></div>${note}<form method=\"post\" action=\"/auth/login\"><input type=\"hidden\" name=\"next\" value=\"${n}\"><input type=\"hidden\" name=\"csrf\" value=\"${csrf}\"><label>Email / recovery username<input name=\"username\" autocomplete=\"username\" required autofocus></label>${recoveryEnabled?'<div class="muted" style="font-size:11px;margin-top:7px;line-height:1.4">Use your Light Remote account email. Recovery login remains available with the local device credential.</div>':'<div class="muted" style="font-size:11px;margin-top:7px;line-height:1.4">Use your Light Remote account email.</div>'}<label>Password<input type=\"password\" name=\"password\" autocomplete=\"current-password\" required></label><button type=\"submit\">Sign in</button></form></main></body></html>`;}
+export function classifyLocalWallLoginFailure(error) {
+  const code=String(error?.message||'');
+  const status=Number(error?.status)||0;
+  if(code==='device_account_mismatch') return {status:409,reason:'device_account_mismatch',credentialFailure:false,message:'This device is linked to a different Light Remote account. On this Mac, open the Light Remote menu and choose Relink this Mac. Approve the new device code using your account.'};
+  if(code==='rate_limited'||status===429) return {status:429,reason:'rate_limited',credentialFailure:false,retryAfterSeconds:900,message:'Too many sign-in attempts. Wait a few minutes before retrying.'};
+  if(code==='account_admin_disabled') return {status:403,reason:'account_admin_disabled',credentialFailure:false,message:'This account is disabled. Contact Light Remote support.'};
+  if(code==='invalid_account_credentials'||status===401) return {status:401,reason:'invalid_account_credentials',credentialFailure:true,message:'Invalid email or password.'};
+  return {status:503,reason:'account_service_unavailable',credentialFailure:false,message:'Account sign-in is temporarily unavailable. Check your network connection and try again.'};
+}
 function formBody(req,limit=16*1024){return new Promise((resolve,reject)=>{let size=0,chunks=[];req.on('data',c=>{size+=c.length;if(size>limit){reject(new Error('body_too_large'));req.destroy();return;}chunks.push(c);});req.on('end',()=>{try{resolve(Object.fromEntries(new URLSearchParams(Buffer.concat(chunks).toString('utf8'))));}catch{reject(new Error('invalid_form'));}});req.on('error',reject);});}
 
 
@@ -138,7 +147,45 @@ export function startLocalWall({host='127.0.0.1',port=5491,brandSvgPath,fontPath
     const url=new URL(req.url||'/','http://local.wall');
     if(req.method==='GET'&&(url.pathname==='/assets/fonts/CascadiaMono.ttf'||url.pathname==='/assets/fonts/CascadiaCode.ttf')){try{const file=url.pathname.endsWith('CascadiaMono.ttf')?(fontPath||cascadiaMonoFontPath):cascadiaCodeFontPath,data=fs.readFileSync(file);res.writeHead(200,{'content-type':'font/ttf','content-length':data.length,'cache-control':'public, max-age=31536000, immutable','x-content-type-options':'nosniff'});res.end(data);}catch{return json(res,404,{ok:false,error:'font_not_found'});}return;}
     if(auth?.enabled&&url.pathname==='/login'&&req.method==='GET'){if(auth.identity(req)){res.writeHead(303,{location:safeNext(url.searchParams.get('next')),'cache-control':'no-store'});return res.end();}res.writeHead(200,pageHeaders());res.end(loginPage(brandSvg,'',url.searchParams.get('next'),auth.recoveryEnabled!==false,auth.issueLoginCsrf()));return;}
-    if(auth?.enabled&&url.pathname==='/auth/login'&&req.method==='POST'){const data=await formBody(req);if(!auth.verifyLoginCsrf(data.csrf)){res.writeHead(403,pageHeaders());res.end(loginPage(brandSvg,'Login session expired. Reload and try again.',data.next,auth.recoveryEnabled!==false,auth.issueLoginCsrf()));return;}const key=String(req.socket.remoteAddress||'unknown'),now=Date.now(),recent=(loginFailures.get(key)||[]).filter(at=>now-at<10*60*1000);if(recent.length>=10){res.writeHead(429,{...pageHeaders(),'retry-after':'600'});res.end(loginPage(brandSvg,'Too many failed attempts. Try again later.','/',auth.recoveryEnabled!==false,auth.issueLoginCsrf()));return;}let accountIdentity=null;let verified=auth.verifyCredentials(data.username,data.password);if(!verified&&typeof accountAuthenticate==='function'&&String(data.username||'').includes('@')){try{const remote=await accountAuthenticate({username:data.username,password:data.password});verified=Boolean(remote?.account?.accountId);if(verified)accountIdentity=String(remote?.account?.email||data.username||'').trim();}catch{verified=false;}}if(!verified){recent.push(now);loginFailures.set(key,recent);res.writeHead(401,pageHeaders());res.end(loginPage(brandSvg,'Invalid email or password.',data.next,auth.recoveryEnabled!==false,auth.issueLoginCsrf()));return;}loginFailures.delete(key);const issued=auth.issue(accountIdentity);res.writeHead(303,{location:safeNext(data.next),'set-cookie':sessionCookie(issued.token,issued.ttlSeconds,secureRequest(req)),'cache-control':'no-store'});return res.end();}
+    if(auth?.enabled&&url.pathname==='/auth/login'&&req.method==='POST'){
+      const data=await formBody(req);
+      if(!auth.verifyLoginCsrf(data.csrf)){
+        res.writeHead(403,pageHeaders());
+        res.end(loginPage(brandSvg,'Login session expired. Reload and try again.',data.next,auth.recoveryEnabled!==false,auth.issueLoginCsrf()));
+        return;
+      }
+      const key=String(req.socket.remoteAddress||'unknown'),now=Date.now();
+      const recent=(loginFailures.get(key)||[]).filter(at=>now-at<10*60*1000);
+      if(recent.length>=10){
+        res.writeHead(429,{...pageHeaders(),'retry-after':'600'});
+        res.end(loginPage(brandSvg,'Too many failed attempts. Try again later.','/',auth.recoveryEnabled!==false,auth.issueLoginCsrf()));
+        return;
+      }
+      let accountIdentity=null,remoteFailure=null;
+      let verified=auth.verifyCredentials(data.username,data.password);
+      if(!verified&&typeof accountAuthenticate==='function'&&String(data.username||'').includes('@')){
+        try{
+          const remote=await accountAuthenticate({username:data.username,password:data.password});
+          verified=Boolean(remote?.account?.accountId);
+          if(verified)accountIdentity=String(remote?.account?.email||data.username||'').trim();
+        }catch(error){
+          remoteFailure=classifyLocalWallLoginFailure(error);
+          // Keep credential and account identifiers out of device logs.
+          console.warn(JSON.stringify({event:'local_wall_account_login_failed',reason:remoteFailure.reason,status:remoteFailure.status}));
+        }
+      }
+      if(!verified){
+        const failure=remoteFailure||classifyLocalWallLoginFailure({message:'invalid_account_credentials',status:401});
+        if(failure.credentialFailure){recent.push(now);loginFailures.set(key,recent);}
+        res.writeHead(failure.status,{...pageHeaders(),...(failure.retryAfterSeconds?{'retry-after':String(failure.retryAfterSeconds)}:{})});
+        res.end(loginPage(brandSvg,failure.message,data.next,auth.recoveryEnabled!==false,auth.issueLoginCsrf()));
+        return;
+      }
+      loginFailures.delete(key);
+      const issued=auth.issue(accountIdentity);
+      res.writeHead(303,{location:safeNext(data.next),'set-cookie':sessionCookie(issued.token,issued.ttlSeconds,secureRequest(req)),'cache-control':'no-store'});
+      return res.end();
+    }
     if(auth?.enabled&&url.pathname==='/auth/logout'&&req.method==='POST'){const data=await formBody(req);if(!auth.verifyRequestCsrf(req,data.csrf))return json(res,403,{ok:false,error:'csrf_invalid'});res.writeHead(303,{location:'/login','set-cookie':clearSessionCookie(secureRequest(req)),'cache-control':'no-store'});return res.end();}
     if(auth?.enabled&&!auth.identity(req)){if(url.pathname.startsWith('/api/')||url.pathname==='/events')return json(res,401,{ok:false,error:'wall_auth_required'});res.writeHead(303,{location:`/login?next=${encodeURIComponent(safeNext(req.url||'/'))}`,'cache-control':'no-store'});return res.end();}
     if(req.method==='GET'&&url.pathname==='/'){res.writeHead(200,pageHeaders());res.end(wallPage(brandSvg,Boolean(auth?.enabled),auth?.enabled?auth.csrfForRequest(req)||'':'',auth?.enabled?auth.identity(req):null));return;}
