@@ -116,15 +116,34 @@ func runRobotCursorOverlay(args:[String]) throws {
     // its parent watchdog: when parent exits, this process restores the arrow.
     let display=CGMainDisplayID()
     let systemCursorHidden = CGDisplayHideCursor(display) == .success
+    let metadata=CGWindowListCopyWindowInfo([.optionIncludingWindow],CGWindowID(panel.windowNumber)) as? [[String:Any]] ?? []
+    var expiry=initialExpiry
+    var ticks=0
+    let diagnosticsPath=FileManager.default.homeDirectoryForCurrentUser
+        .appendingPathComponent("Library/Caches/LightRemote-RMV2-Experimental/cursor-overlay.status.json")
+    func publishStatus(_ active:Bool) {
+        // Local-only diagnostics. The overlay itself reports actual window
+        // visibility, OS cursor state and frames, not a guessed RPC success.
+        let point=NSEvent.mouseLocation
+        let report:[String:Any]=["active":active,"pid":Int(getpid()),
+            "visible":active && panel.isVisible,"windowListed":!metadata.isEmpty,
+            "systemCursorHidden":active && systemCursorHidden,"renderTicks":ticks,
+            "mouseX":point.x,"mouseY":point.y,"expiresAtMs":expiry,
+            "updatedAtMs":timestamp()]
+        if let bytes=try? JSONSerialization.data(withJSONObject:report,options:[.sortedKeys]),
+           (try? bytes.write(to:diagnosticsPath,options:[.atomic])) != nil {
+            _=chmod(diagnosticsPath.path,0o600)
+        }
+    }
+    publishStatus(true)
     defer {
         if systemCursorHidden {_=CGDisplayShowCursor(display)}
         panel.orderOut(nil)
+        publishStatus(false)
     }
 
-    let metadata=CGWindowListCopyWindowInfo([.optionIncludingWindow],CGWindowID(panel.windowNumber)) as? [[String:Any]] ?? []
     fputs("robot_overlay_visible=\(panel.isVisible) cg_window=\(!metadata.isEmpty) system_cursor_hidden=\(systemCursorHidden)\n",stderr)
-    var expiry=initialExpiry
-    var ticks=0
+    var previousPoint=initial
     let tick=Timer(timeInterval:0.035,repeats:true) { _ in
         ticks += 1
         if ticks % 8 == 0 {
@@ -144,8 +163,16 @@ func runRobotCursorOverlay(args:[String]) throws {
             return
         }
         let pt=NSEvent.mouseLocation
-        panel.setFrameOrigin(NSPoint(x:pt.x-25,y:pt.y-64))
-        indicator.pulse=CGFloat(0.5+0.5*sin(Double(ticks)*0.085))
+        // Track actual pointer every 35 ms, but avoid redrawing while idle.
+        // A slow 7 Hz glow breath costs much less CPU than repainting at 28 Hz.
+        if hypot(pt.x-previousPoint.x,pt.y-previousPoint.y)>0.4 {
+            panel.setFrameOrigin(NSPoint(x:pt.x-25,y:pt.y-64))
+            previousPoint=pt
+        }
+        if ticks % 4 == 0 {
+            indicator.pulse=CGFloat(0.5+0.5*sin(Double(ticks)*0.085))
+        }
+        if ticks % 28 == 0 {publishStatus(true)}
     }
     RunLoop.main.add(tick,forMode:.common)
     app.run()
@@ -156,25 +183,71 @@ func runRobotCursorOverlay(args:[String]) throws {
 // indicator process observes this file instead of being killed/restarted on
 // each input/frame request. No network endpoint or owner permission is added.
 final class RobotCursorOverlayController {
+    private let lock=NSRecursiveLock()
     private var child:Process?
-    private var childDeadline:Int64=0
+    private var heartbeat:DispatchSourceTimer?
+    private var lastOwnerRequest:Int64=0
+    private let maxIdleMs:Int64=900_000
     private let leasePath="/tmp/lightremote-rmv2-cursor-\(getpid())-\(UUID().uuidString).lease"
-    var active:Bool {child?.isRunning ?? false}
+    var active:Bool {
+        lock.lock();defer{lock.unlock()}
+        return child?.isRunning ?? false
+    }
 
     private func publishLease(_ expiry:Int64) -> Bool {
         guard expiry>timestamp(),expiry<=timestamp()+900_000 else {return false}
         do {
             try Data(String(expiry).utf8).write(to:URL(fileURLWithPath:leasePath),options:.atomic)
             guard chmod(leasePath,0o600)==0 else {return false}
-            childDeadline=expiry
             return true
         } catch {return false}
     }
+    private func stopHeartbeatLocked() {
+        heartbeat?.setEventHandler {}
+        heartbeat?.cancel()
+        heartbeat=nil
+    }
+    private func hideLocked() {
+        stopHeartbeatLocked()
+        try? FileManager.default.removeItem(atPath:leasePath)
+        if let proc=child,proc.isRunning {proc.terminate()}
+        child=nil
+        lastOwnerRequest=0
+    }
+    // This timer runs on a background queue even when the native RPC reader
+    // blocks waiting for the next message. It cannot keep the arrow hidden
+    // indefinitely: owner inactivity >15m, detach, exit and failures restore it.
+    private func ensureHeartbeatLocked() {
+        guard heartbeat == nil else {return}
+        let timer=DispatchSource.makeTimerSource(queue:DispatchQueue.global(qos:.utility))
+        timer.schedule(deadline:.now()+.seconds(20),repeating:.seconds(20))
+        timer.setEventHandler {[weak self] in
+            guard let self else {return}
+            self.lock.lock();defer{self.lock.unlock()}
+            let now=timestamp()
+            guard self.child?.isRunning == true else {self.hideLocked();return}
+            if now-self.lastOwnerRequest>=self.maxIdleMs {
+                self.hideLocked()
+                return
+            }
+            let desired=min(now+120_000,self.lastOwnerRequest+self.maxIdleMs)
+            if desired<=now || !self.publishLease(desired) {self.hideLocked()}
+        }
+        heartbeat=timer
+        timer.resume()
+    }
     @discardableResult
     func show(expiresAt:Int64) -> Bool {
-        let desired=max(expiresAt,timestamp()+120000)
+        lock.lock();defer{lock.unlock()}
+        let now=timestamp()
+        let desired=max(expiresAt,now+120_000)
+        guard desired>now && desired<=now+maxIdleMs else {return false}
+        lastOwnerRequest=now
         guard publishLease(desired) else {return false}
-        if active {return true}
+        if child?.isRunning == true {
+            ensureHeartbeatLocked()
+            return true
+        }
         let process=Process()
         process.executableURL=URL(fileURLWithPath:CommandLine.arguments[0])
         process.arguments=["--cursor-overlay",String(getpid()),String(desired),leasePath]
@@ -184,18 +257,16 @@ final class RobotCursorOverlayController {
         do {
             try process.run()
             child=process
+            ensureHeartbeatLocked()
             return true
         } catch {
-            child=nil
-            try? FileManager.default.removeItem(atPath:leasePath)
+            hideLocked()
             return false
         }
     }
     func hide() {
-        try? FileManager.default.removeItem(atPath:leasePath)
-        if let proc=child,proc.isRunning {proc.terminate()}
-        child=nil
-        childDeadline=0
+        lock.lock();defer{lock.unlock()}
+        hideLocked()
     }
     deinit {hide()}
 }

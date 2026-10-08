@@ -351,10 +351,11 @@ final class Helper {
                     "screenRecording":screenAllowed(),"accessibility":accessibilityAllowed(),
                     "topology":topology(),"visualSessions":sessions.count,"cursorOverlayActive":cursorOverlay.active]
         case "desktop.windows":
-            _=cursorOverlay.show(expiresAt:timestamp()+120000)
+            // Read-only discovery must not take ownership of the OS cursor.
+            if cursorOverlay.active {_=cursorOverlay.show(expiresAt:timestamp()+120000)}
             return windowList(integer(request["maxWindows"],100))
         case "desktop.frame":
-            _=cursorOverlay.show(expiresAt:timestamp()+120000)
+            if cursorOverlay.active {_=cursorOverlay.show(expiresAt:timestamp()+120000)}
             return try snapshot(request)
         case "desktop.input","desktop.run":
             // Keep the custom cursor for all pointer/keyboard actions, not
