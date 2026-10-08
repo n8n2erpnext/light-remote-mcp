@@ -26,7 +26,9 @@ const builder=get('client/macos/real-remote/canary/build-dev-app.sh').toString()
 const plist=get('client/macos/real-remote/canary/DevInfo.plist').toString();
 assert.match(overlay,/CGDisplayHideCursor/);
 assert.match(overlay,/CGDisplayShowCursor/);
-assert.match(overlay,/app\.stop\(nil\)/);
+assert.match(overlay,/restoreSystemCursor\(\)/);
+assert.match(overlay,/app\.terminate\(nil\)/);
+assert.doesNotMatch(overlay,/app\.stop\(nil\)/);
 assert.match(overlay,/leasePath/);
 assert.match(overlay,/robotCursorStopRequested/);
 assert.match(overlay,/panel\.ignoresMouseEvents=true/);

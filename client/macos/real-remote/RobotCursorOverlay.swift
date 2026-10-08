@@ -136,11 +136,15 @@ func runRobotCursorOverlay(args:[String]) throws {
         }
     }
     publishStatus(true)
-    defer {
+    var cursorRestored=false
+    func restoreSystemCursor() {
+        guard !cursorRestored else {return}
+        cursorRestored=true
         if systemCursorHidden {_=CGDisplayShowCursor(display)}
         panel.orderOut(nil)
         publishStatus(false)
     }
+    defer {restoreSystemCursor()}
 
     fputs("robot_overlay_visible=\(panel.isVisible) cg_window=\(!metadata.isEmpty) system_cursor_hidden=\(systemCursorHidden)\n",stderr)
     var previousPoint=initial
@@ -157,9 +161,11 @@ func runRobotCursorOverlay(args:[String]) throws {
         }
         if robotCursorStopRequested != 0 || timestamp()>expiry ||
            (kill(rawPid,0) != 0 && errno == ESRCH) {
-            // stop() returns from app.run() so the defer block restores
-            // the real OS cursor even on TTL or owner-process expiry.
-            app.stop(nil)
+            // NSApplication.stop alone can leave a headless overlay's
+            // event loop alive indefinitely. Restore first, then terminate.
+            // This also covers SIGTERM, owner death and expiry.
+            restoreSystemCursor()
+            app.terminate(nil)
             return
         }
         let pt=NSEvent.mouseLocation
