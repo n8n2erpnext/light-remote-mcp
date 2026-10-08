@@ -211,7 +211,7 @@ internal static class SystemCursorOverride
         using (var amber = new SolidBrush(Color.FromArgb(51, 255, 191, 54)))
         using (var mint = new SolidBrush(Color.FromArgb(74, 93, 251, 217)))
         {
-            g.FillEllipse(cyan, tipX - 11.5f, tipY - 11.5f, 23f, 23f);
+            g.FillEllipse(cyan, tipX - 10f, tipY - 10f, 20f, 20f);
             g.FillEllipse(violet, tipX - 8.5f, tipY - 8.5f, 17f, 17f);
             g.FillEllipse(amber, tipX - 6f, tipY - 6f, 12f, 12f);
             g.FillEllipse(mint, tipX - 3.5f, tipY - 3.5f, 7f, 7f);
