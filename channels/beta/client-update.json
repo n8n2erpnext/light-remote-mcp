@@ -1,33 +1,33 @@
 {
   "schemaVersion": 1,
   "channel": "beta",
-  "version": "0.9.0-rc.42",
+  "version": "0.9.0-rc.45",
   "artifacts": {
     "windows-x64": {
-      "url": "https://github.com/n8n2erpnext/light-remote-mcp/releases/download/v0.9.0-rc.42/Light-Remote-MCP-Setup-x64-0.9.0-rc.42.exe",
-      "sha256": "daf8b28bdf2de5af90a32653c871b0ff0fb8b2c7a9dbabd3de8bb1ac3e296f8a",
-      "size": 175114961,
+      "url": "https://drive.thaiduy.store/light-remote/release/0.9.0-rc.45/Light-Remote-MCP-Setup-x64-0.9.0-rc.45.exe",
+      "sha256": "e500704f8474e25562d2e6761b95a7603557916c443100653fd4f2247a98e70f",
+      "size": 175122905,
       "installerArgs": "/SILENT /NORESTART"
     },
     "macos-x64": {
-      "url": "https://github.com/n8n2erpnext/light-remote-mcp/releases/download/v0.9.0-rc.42/Light-Remote-Client-macOS-x64-0.9.0-rc.42.tar.gz",
-      "sha256": "4ef098c9d6314906b874396b8a758de6708714dd3cca6455a53a33e97bbf98b1",
-      "size": 41463721
+      "url": "https://drive.thaiduy.store/light-remote/release/0.9.0-rc.45/Light-Remote-Client-macOS-x64-0.9.0-rc.45.tar.gz",
+      "sha256": "c10c534a6cf7873a5d2bfae7a818f8b399f4a32a00c9c508e728e9b019c1c960",
+      "size": 41468579
     },
     "macos-arm64": {
-      "url": "https://github.com/n8n2erpnext/light-remote-mcp/releases/download/v0.9.0-rc.42/Light-Remote-Client-macOS-arm64-0.9.0-rc.42.tar.gz",
-      "sha256": "b0e6abce6dcd135acdbc7e3dae3d2f3bbc00035677549dbd8b10781c878ca174",
-      "size": 40238958
+      "url": "https://drive.thaiduy.store/light-remote/release/0.9.0-rc.45/Light-Remote-Client-macOS-arm64-0.9.0-rc.45.tar.gz",
+      "sha256": "a396cae28a3562f193570d637cdd613eb208dd670a72ca50757bb02acca050bd",
+      "size": 40247183
     },
     "linux-x64": {
-      "url": "https://github.com/n8n2erpnext/light-remote-mcp/releases/download/v0.9.0-rc.42/Light-Remote-MCP-Client-Linux-x64-0.9.0-rc.42.tar.gz",
-      "sha256": "51dda830f4c35fff5fd58583732a635c53b22228ef44aef537c88354f0c458af",
-      "size": 47276250
+      "url": "https://drive.thaiduy.store/light-remote/release/0.9.0-rc.45/Light-Remote-MCP-Client-Linux-x64-0.9.0-rc.45.tar.gz",
+      "sha256": "eedb3aeb825829f58a7201d16ccdcfce0f0dbbf0105f73378eb282cdede813e2",
+      "size": 47278511
     },
     "linux-arm64": {
-      "url": "https://github.com/n8n2erpnext/light-remote-mcp/releases/download/v0.9.0-rc.42/Light-Remote-MCP-Client-Linux-arm64-0.9.0-rc.42.tar.gz",
-      "sha256": "5665d4a3c01ae723db601654045db6586d37c320b8fe69df9e553378f1d64254",
-      "size": 47097358
+      "url": "https://drive.thaiduy.store/light-remote/release/0.9.0-rc.45/Light-Remote-MCP-Client-Linux-arm64-0.9.0-rc.45.tar.gz",
+      "sha256": "b71a3311dfeebe2e85e9316914b70c9d277991069f19ab8b9ae74ac1547da59b",
+      "size": 47095664
     }
   }
 }
