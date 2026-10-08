@@ -27,6 +27,7 @@ console.log('macos-gui-optin-failclosed-windows-unchanged=PASS');
 assert.match(bridge,/macGuiSidecarRequested/);
 assert.match(bridge,/macGuiSidecarAppPath/);
 assert.match(bridge,/macos_gui_sidecar_launch_timeout/);
+assert.match(bridge,/\['-g','-n','-a',this\.guiApp,'--args','--socket',pipePath\]/, 'macOS GUI sidecar must not activate over target app');
 assert.match(bridge,/this.guiApp\|\|\(this.child/);
 assert.match(swift,/macos_screen_recording_permission_required/);
 assert.match(swift,/args.contains\("--request-screen-recording"\)/);
