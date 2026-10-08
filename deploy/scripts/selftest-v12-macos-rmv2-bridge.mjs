@@ -27,6 +27,8 @@ assert.match(swift,/args.contains\("--request-accessibility"\)/);
 assert.match(swift,/args.contains\("--gui-tcc-probe"\)/);
 assert.match(swift,/gui-tcc-probe\.latest\.json/);
 assert.match(guiSidecar,/macos_gui_sidecar_experimental_app_required/);
+assert.match(guiSidecar,/LightRemoteRobotDev\.app/);
+assert.match(guiSidecar,/macos_gui_sidecar_unexpected_symlink/);
 assert.match(guiSidecar,/\/usr\/bin\/open/);
 assert.match(guiSidecar,/lightremote-rmv2-gui-/);
 assert.match(guiSidecar,/socket\.destroy\(\)/);

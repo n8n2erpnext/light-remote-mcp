@@ -11,9 +11,17 @@ import {spawn} from 'node:child_process';
 export class MacGuiRobotSidecar {
   constructor({appPath,home=process.env.HOME,spawnImpl=spawn,timeoutMs=10000}={}){
     const root=path.join(String(home||''),'Library/Caches/LightRemote-RMV2-Experimental');
+    const devApp=path.join(String(home||''),'Applications','LightRemoteRobotDev.app');
     const app=path.resolve(String(appPath||''));
-    if(!app.startsWith(root+path.sep)||!app.endsWith('/LightRemoteRmv2Canary.app')){
+    const canary=app.startsWith(root+path.sep)&&app.endsWith('/LightRemoteRmv2Canary.app');
+    const development=app===devApp;
+    if(!canary&&!development){
       throw new Error('macos_gui_sidecar_experimental_app_required');
+    }
+    // Reject an app alias pointing outside the approved development directory.
+    const actual=fs.realpathSync(app);
+    if(!actual.startsWith(root+path.sep)&&actual!==devApp){
+      throw new Error('macos_gui_sidecar_unexpected_symlink');
     }
     if(!fs.existsSync(path.join(app,'Contents/MacOS/LightRemoteRealRemote'))){
       throw new Error('macos_gui_sidecar_helper_missing');
