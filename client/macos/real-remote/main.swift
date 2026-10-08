@@ -199,11 +199,11 @@ func physicallyTypeVerified(_ action:[String:Any]) throws -> [String:Any] {
         throw RemoteError.invalid("physical_text_requires_ascii_layout")
     }
     let interval=clamp(integer(action["intervalMs"],48),25,100)
-    let source=CGEventSource(stateID:.hidSystemState)
+    // Match the proven key.hotkey event source on macOS 11.
     for pair in keys {
         guard let (code,shift)=pair else {continue}
         for isDown in [true,false] {
-            guard let event=CGEvent(keyboardEventSource:source,virtualKey:code,keyDown:isDown)
+            guard let event=CGEvent(keyboardEventSource:nil,virtualKey:code,keyDown:isDown)
             else {throw RemoteError.invalid("physical_key_event_failed")}
             if shift {event.flags = [.maskShift]}
             event.post(tap:.cghidEventTap)
@@ -213,10 +213,17 @@ func physicallyTypeVerified(_ action:[String:Any]) throws -> [String:Any] {
     }
     usleep(95000)
     raw=nil
-    guard AXUIElementCopyAttributeValue(element,kAXValueAttribute as CFString,&raw) == .success,
-          let after=raw as? String,
-          after.precomposedStringWithCanonicalMapping==value.precomposedStringWithCanonicalMapping else {
-        throw RemoteError.invalid("physical_keyboard_readback_mismatch")
+    let readStatus=AXUIElementCopyAttributeValue(element,kAXValueAttribute as CFString,&raw)
+    let after=raw as? String ?? ""
+    if readStatus != .success ||
+       after.precomposedStringWithCanonicalMapping != value.precomposedStringWithCanonicalMapping {
+        let expected=Array(value.unicodeScalars),actual=Array(after.unicodeScalars)
+        var index=0
+        while index<min(expected.count,actual.count) && expected[index]==actual[index] {index+=1}
+        let found=index<actual.count ? Int(actual[index].value) : -1
+        throw RemoteError.invalid("physical_keyboard_readback_mismatch_expected_"+
+           String(expected.count)+"_observed_"+String(actual.count)+
+           "_at_"+String(index)+"_codepoint_"+String(found))
     }
     return ["applied":true,"op":"text.type","textMethod":"hid-key-by-key-verified",
             "keyStrokes":keys.count,"intervalMs":interval,"verified":true]

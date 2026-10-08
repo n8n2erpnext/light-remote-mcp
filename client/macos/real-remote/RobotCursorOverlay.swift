@@ -39,6 +39,7 @@ func runRobotCursorOverlay(args:[String]) throws {
     guard deadline>now && deadline<=now+900_000 else {throw RemoteError.invalid("cursor_overlay_deadline_invalid")}
     let app=NSApplication.shared
     app.setActivationPolicy(.accessory)
+    app.finishLaunching()
     let panel=NSPanel(contentRect:NSRect(x:0,y:0,width:64,height:64),
                       styleMask:[.borderless,.nonactivatingPanel],backing:.buffered,defer:false)
     panel.isOpaque=false
@@ -51,7 +52,12 @@ func runRobotCursorOverlay(args:[String]) throws {
     panel.collectionBehavior=[.canJoinAllSpaces,.fullScreenAuxiliary,.stationary]
     panel.contentView=RobotCursorIndicatorView(frame:NSRect(x:0,y:0,width:64,height:64))
     panel.alphaValue=1.0
+    let initial=NSEvent.mouseLocation
+    panel.setFrameOrigin(NSPoint(x:initial.x-18,y:initial.y-44))
     panel.orderFrontRegardless()
+    panel.displayIfNeeded()
+    let metadata=CGWindowListCopyWindowInfo([.optionIncludingWindow],CGWindowID(panel.windowNumber)) as? [[String:Any]] ?? []
+    fputs("robot_overlay_visible=\(panel.isVisible) cg_window=\(!metadata.isEmpty)\n",stderr)
     // Keep the marker beside the real pointer; do not steal focus.
     let tick=Timer(timeInterval:0.035,repeats:true) { _ in
         if timestamp()>deadline || (kill(rawPid,0) != 0 && errno == ESRCH) {
@@ -83,7 +89,8 @@ final class RobotCursorOverlayController {
         process.arguments=["--cursor-overlay",String(getpid()),String(expiresAt)]
         process.standardInput=FileHandle.nullDevice
         process.standardOutput=FileHandle.nullDevice
-        process.standardError=FileHandle.nullDevice
+        // Let the native bridge capture overlay startup errors for UAT.
+        process.standardError=FileHandle.standardError
         do {
             try process.run()
             child=process
