@@ -51,6 +51,22 @@ func writeFocusedEmptyTextByAX(_ value:String) throws -> Bool {
     return true
 }
 
+// A bounded fingerprint of AX metadata only: NEVER read a text field's value.
+private func axSignatures(_ snapshot:[String:Any]) -> [String:String] {
+    let nodes=snapshot["nodes"] as? [[String:Any]] ?? []
+    var signatures:[String:String]=[:]
+    for record in nodes {
+        guard let id=record["nodeId"] as? String else {continue}
+        let keys=["role","name","enabled","focused","offscreen","bounds","parent"]
+        var fingerprint:[String:Any]=[:]
+        for key in keys {if let value=record[key] {fingerprint[key]=value}}
+        if let data=try? JSONSerialization.data(withJSONObject:fingerprint,options:[.sortedKeys]) {
+            signatures[id]=String(decoding:data,as:UTF8.self)
+        }
+    }
+    return signatures
+}
+
 struct AXSession {
     let id:String
     let epoch:String
@@ -62,10 +78,43 @@ struct AXSession {
     var stateSeq:Int64=1
     var inputSeq:Int64=0
     var nodes:[String:AXUIElement]=[:]
+    var nodeSignatures:[String:String]=[:]
+    var eventJournal:[[String:Any]]=[]
+    var droppedBeforeSeq:Int64=0
+    var lastPolledAt:Int64=0
 }
 final class SemanticEngine {
     private var sessions:[String:AXSession]=[:]
     var activeSessionCount:Int {sessions.count}
+    // Poll-driven, bounded AX delta journal. Does not create a permanent
+    // AX observer, retain UI text values or run background OS event hooks.
+    private func updateJournal(_ session:inout AXSession,_ snapshot:[String:Any]) {
+        let next=axSignatures(snapshot)
+        let previous=session.nodeSignatures
+        let added=next.keys.filter {previous[$0] == nil}.sorted()
+        let removed=previous.keys.filter {next[$0] == nil}.sorted()
+        let changed=next.keys.filter {id in
+            guard let prior=previous[id],let now=next[id] else {return false}
+            return prior != now
+        }.sorted()
+        session.nodeSignatures=next
+        guard !added.isEmpty || !removed.isEmpty || !changed.isEmpty else {return}
+        session.stateSeq+=1
+        let count=added.count+removed.count+changed.count
+        session.eventJournal.append([
+            "type":"ax.delta","stateSeq":session.stateSeq,
+            "added":Array(added.prefix(80)),
+            "removed":Array(removed.prefix(80)),
+            "updated":Array(changed.prefix(80)),
+            "truncated":count>240,"at":timestamp()
+        ])
+        if session.eventJournal.count>100 {
+            let extra=session.eventJournal.count-100
+            let evicted=session.eventJournal[extra-1]
+            session.droppedBeforeSeq=evicted["stateSeq"] as? Int64 ?? session.droppedBeforeSeq
+            session.eventJournal.removeFirst(extra)
+        }
+    }
     private func trusted() throws {
         guard accessibilityAllowed() else {throw RemoteError.invalid("macos_accessibility_permission_required")}
     }
@@ -140,6 +189,8 @@ final class SemanticEngine {
                         attached:timestamp())
         var row=s
         let snapshot=tree(&row)
+        row.nodeSignatures=axSignatures(snapshot)
+        row.lastPolledAt=timestamp()
         sessions[id]=row
         return ["semanticSessionId":id,"epoch":epoch,"scope":scope,"rootHwnd":0,
                 "rootTitle":snapshot["rootTitle"] ?? "","rootEpoch":1,
@@ -153,6 +204,8 @@ final class SemanticEngine {
         guard var session=sessions[id] else {throw RemoteError.invalid("semantic_session_missing")}
         session.stateSeq+=1
         let result=tree(&session)
+        session.nodeSignatures=axSignatures(result)
+        session.lastPolledAt=timestamp()
         sessions[id]=session
         return ["semanticSessionId":id,"epoch":session.epoch,
                 "stateSeq":session.stateSeq,"inputSeq":session.inputSeq,"scope":session.scope,
@@ -162,11 +215,31 @@ final class SemanticEngine {
     func events(_ request:[String:Any]) throws -> [String:Any] {
         try trusted()
         let id=string(request["semanticSessionId"])
-        guard let session=sessions[id] else {throw RemoteError.invalid("semantic_session_missing")}
+        guard var session=sessions[id] else {throw RemoteError.invalid("semantic_session_missing")}
+        if session.scope == "foreground" && (try frontmostPid()) != session.pid {
+            throw RemoteError.invalid("semantic_foreground_changed")
+        }
+        let now=timestamp()
+        if now-session.lastPolledAt>=250 {
+            let snapshot=tree(&session)
+            updateJournal(&session,snapshot)
+            session.lastPolledAt=now
+        }
+        let after=Int64(max(0,integer(request["afterSeq"],0)))
+        let limit=clamp(integer(request["limit"],100),1,200)
+        let available=session.eventJournal.filter {
+            ($0["stateSeq"] as? Int64 ?? 0)>after
+        }
+        let selected=Array(available.prefix(limit))
+        let gap=after<session.droppedBeforeSeq
+        let truncated=selected.contains {$0["truncated"] as? Bool ?? false}
+        sessions[id]=session
         return ["semanticSessionId":id,"epoch":session.epoch,"stateSeq":session.stateSeq,
-                "inputSeq":session.inputSeq,"afterSeq":integer(request["afterSeq"],0),
-                "gap":false,"droppedBeforeSeq":0,"events":[],"hasMore":false,
-                "scope":session.scope,"resyncRecommended":true]
+                "inputSeq":session.inputSeq,"afterSeq":after,
+                "gap":gap,"droppedBeforeSeq":session.droppedBeforeSeq,
+                "events":selected,"hasMore":available.count>selected.count,
+                "scope":session.scope,"resyncRecommended":gap || truncated,
+                "journalMode":"poll-diff"]
     }
     func detach(_ request:[String:Any]) throws -> [String:Any] {
         let id=string(request["semanticSessionId"])
@@ -201,6 +274,19 @@ final class SemanticEngine {
         }
         guard result == .success else {throw RemoteError.invalid("macos_semantic_action_failed_"+String(result.rawValue))}
         session.inputSeq+=1
+        session.stateSeq+=1
+        // Record action metadata only, NEVER its text input value.
+        session.eventJournal.append([
+            "type":"ax.action","stateSeq":session.stateSeq,
+            "inputSeq":session.inputSeq,"nodeId":nodeId,
+            "action":action,"at":timestamp()
+        ])
+        if session.eventJournal.count>100 {
+            let extra=session.eventJournal.count-100
+            let evicted=session.eventJournal[extra-1]
+            session.droppedBeforeSeq=evicted["stateSeq"] as? Int64 ?? session.droppedBeforeSeq
+            session.eventJournal.removeFirst(extra)
+        }
         sessions[id]=session
         return ["applied":true,"nodeId":nodeId,"action":action,"cursorMoved":cursorMoved,
                 "semanticSessionId":id,"inputSeq":session.inputSeq]
