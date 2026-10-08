@@ -1,3 +1,12 @@
+## RC.45 — macOS account relink, Open Fleet, and truthful Wall sign-in errors
+
+- macOS tray restores **Open Fleet** for an enrolled device with a healthy Fleet Wall, matching Windows behavior (server-advertised URL or local port 5492).
+- macOS tray offers an explicit **Relink this Mac…** flow. Changing the account requires local confirmation, a new one-time code, and account-owner approval. The local device identity is preserved until approval.
+- Pending enrollment is polled even when the device is already enrolled, allowing self-service account relink from the tray.
+- Wall differentiates account binding mismatch, invalid password, temporary upstream failure, disabled account and rate limit. Neither stale enrollment nor server outage consumes local bad-password attempts.
+- Public account-login forwards infrastructure failure as 503 instead of falsely reporting invalid credentials.
+- Regression coverage protects new installs, stale enrollment, local approval, and credential-error handling.
+
 # Light Remote MCP v0.9.0 Release Candidate
 
 Release-candidate build of the governed cross-platform remote execution and control-plane architecture.
@@ -78,3 +87,14 @@ This is a prerelease candidate. It is not a claim of stable/general-availability
 - blocks the rc.41 candidate from promotion after audit found online-usage accounting did not extend across device connection renewal;
 - UsageRegistry now consumes device_connection_renewed, accrues usage to the renewal boundary, and carries the new hard expiry forward;
 - adds a regression test proving online-hours continue beyond the original lease expiry after renewal and still stop at the renewed expiry.
+
+## RC.43 changes
+- hardens signed updater-channel reads against transient CDN skew between client-update.json and client-update.json.sig;
+- signature mismatch remains fail-closed, but the updater now refetches the complete manifest/signature pair up to three times;
+- retry attempts use no-cache headers and per-pair cache-busting while preserving exact cryptographic verification before parsing or update selection;
+- adds a portable source-contract regression test for bounded retry and fail-closed behavior.
+
+## RC.44 changes
+- fixes the rc.43 Windows compile failure in the updater pair-retry implementation;
+- retains the bounded fail-closed manifest/signature pair retry behavior unchanged;
+- adds a pre-tag native Windows updater compile gate to the release procedure.
