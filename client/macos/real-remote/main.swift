@@ -221,9 +221,8 @@ func physicallyTypeVerified(_ action:[String:Any]) throws -> [String:Any] {
         var index=0
         while index<min(expected.count,actual.count) && expected[index]==actual[index] {index+=1}
         let found=index<actual.count ? Int(actual[index].value) : -1
-        throw RemoteError.invalid("physical_keyboard_readback_mismatch_expected_"+
-           String(expected.count)+"_observed_"+String(actual.count)+
-           "_at_"+String(index)+"_codepoint_"+String(found))
+        let diagnostic="physical_keyboard_readback_mismatch_expected_\(expected.count)_observed_\(actual.count)_at_\(index)_codepoint_\(found)"
+        throw RemoteError.invalid(diagnostic)
     }
     return ["applied":true,"op":"text.type","textMethod":"hid-key-by-key-verified",
             "keyStrokes":keys.count,"intervalMs":interval,"verified":true]
