@@ -36,7 +36,7 @@ function loginPage(brandSvg,message='',next='/',recoveryEnabled=true,csrf=''){co
 export function classifyLocalWallLoginFailure(error) {
   const code=String(error?.message||'');
   const status=Number(error?.status)||0;
-  if(code==='device_account_mismatch') return {status:409,reason:'device_account_mismatch',credentialFailure:false,message:'This device is linked to a different Light Remote account. On this Mac, open the Light Remote menu and choose Relink this Mac. Approve the new device code using your account.'};
+  if(code==='device_account_mismatch') return {status:409,reason:'device_account_mismatch',credentialFailure:false,message:'This device is linked to a different Light Remote account. Re-enroll the device using your Light Remote client; on macOS, choose Relink this Mac from the tray menu. Approve the new device code while signed in to your intended account.'};
   if(code==='rate_limited'||status===429) return {status:429,reason:'rate_limited',credentialFailure:false,retryAfterSeconds:900,message:'Too many sign-in attempts. Wait a few minutes before retrying.'};
   if(code==='account_admin_disabled') return {status:403,reason:'account_admin_disabled',credentialFailure:false,message:'This account is disabled. Contact Light Remote support.'};
   if(code==='invalid_account_credentials'||status===401) return {status:401,reason:'invalid_account_credentials',credentialFailure:true,message:'Invalid email or password.'};
