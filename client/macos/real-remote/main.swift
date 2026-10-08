@@ -119,7 +119,7 @@ func inputAction(_ action:[String:Any]) throws -> [String:Any] {
     }
     switch op {
     case "cursor.move":
-        try postMouse(.mouseMoved,coordinate(action))
+        try glideRobotCursor(to:coordinate(action),steps:integer(action["steps"],12),durationMs:integer(action["durationMs"],170))
     case "cursor.click":
         let point=CGEvent(source:nil)?.location ?? .zero
         let button=string(action["button"],"left")
@@ -187,7 +187,9 @@ struct VisualLease {
 final class Helper {
     private var sessions:[String:VisualLease]=[:]
     private let semantic=SemanticEngine()
+    private let cursorOverlay=RobotCursorOverlayController()
     private let started=timestamp()
+    deinit { cursorOverlay.hide() }
     func dispatch(_ request:[String:Any]) throws -> Any {
         let op=string(request["op"])
         switch op {
@@ -195,7 +197,7 @@ final class Helper {
         case "status","desktop.status":
             return ["runtime":"real-remote-v2-macos","pid":Int(getpid()),"uptimeMs":timestamp()-started,
                     "screenRecording":screenAllowed(),"accessibility":accessibilityAllowed(),
-                    "topology":topology(),"visualSessions":sessions.count]
+                    "topology":topology(),"visualSessions":sessions.count,"cursorOverlayActive":cursorOverlay.active]
         case "desktop.windows":return windowList(integer(request["maxWindows"],100))
         case "desktop.frame":return try snapshot(request)
         case "desktop.input","desktop.run":
@@ -224,7 +226,8 @@ final class Helper {
                 quality:clamp(integer(request["quality"],50),25,70),
                 created:now,leaseMs:ms,expires:now+Int64(ms))
             sessions[id]=lease
-            return ["visualSessionId":lease.id,"leaseToken":lease.token,"epoch":lease.epoch,
+            let indicator=cursorOverlay.show(expiresAt:lease.expires)
+            return ["cursorOverlayActive":indicator,"visualSessionId":lease.id,"leaseToken":lease.token,"epoch":lease.epoch,
                     "displayTopologyId":lease.topology,"screen":index,"frameSeq":0,
                     "maxWidth":lease.width,"maxHeight":lease.height,"quality":lease.quality,
                     "expiresAt":lease.expires,"leaseMs":lease.leaseMs,"attachedAt":now,"owner":lease.owner]
@@ -235,9 +238,11 @@ final class Helper {
             guard row.topology == topology()["displayTopologyId"] as? String else {throw RemoteError.invalid("visual_topology_changed")}
             if op == "desktop.visual.detach" {
                 sessions.removeValue(forKey:id)
+                if !sessions.values.contains(where:{$0.expires>timestamp()}) && semantic.activeSessionCount==0 {cursorOverlay.hide()}
                 return ["visualSessionId":id,"detached":true,"finalFrameSeq":row.seq,"displayTopologyId":row.topology,"epoch":row.epoch]
             }
             row.expires=timestamp()+Int64(row.leaseMs);sessions[id]=row
+            _=cursorOverlay.show(expiresAt:row.expires)
             if op != "desktop.visual.frame" {
                 return ["visualSessionId":id,"expiresAt":row.expires,"frameSeq":row.seq,"resumed":op == "desktop.visual.resume"]
             }
@@ -245,11 +250,25 @@ final class Helper {
             return ["visualSessionId":id,"epoch":row.epoch,"displayTopologyId":row.topology,
                     "frameSeq":row.seq,"expiresAt":row.expires,
                     "frame":try snapshot(["screen":row.screen,"maxWidth":row.width,"maxHeight":row.height,"quality":row.quality])]
-        case "desktop.semantic.attach":return try semantic.attach(request)
-        case "desktop.semantic.snapshot":return try semantic.snapshot(request)
+        case "desktop.semantic.attach":
+            let result=try semantic.attach(request)
+            _=cursorOverlay.show(expiresAt:timestamp()+120000)
+            return result
+        case "desktop.semantic.snapshot":
+            let result=try semantic.snapshot(request)
+            _=cursorOverlay.show(expiresAt:timestamp()+120000)
+            return result
         case "desktop.semantic.events":return try semantic.events(request)
-        case "desktop.semantic.detach":return try semantic.detach(request)
-        case "desktop.semantic.act":return try semantic.act(request)
+        case "desktop.semantic.detach":
+            let result=try semantic.detach(request)
+            if semantic.activeSessionCount==0 && !sessions.values.contains(where:{$0.expires>timestamp()}) {
+                cursorOverlay.hide()
+            }
+            return result
+        case "desktop.semantic.act":
+            let result=try semantic.act(request)
+            _=cursorOverlay.show(expiresAt:timestamp()+120000)
+            return result
         case "desktop.browser.attach","desktop.browser.snapshot","desktop.browser.events","desktop.browser.detach":
             throw RemoteError.invalid("macos_browser_cdp_backend_not_yet_implemented")
         default:throw RemoteError.invalid("macos_operation_not_supported")
@@ -298,6 +317,10 @@ func run() throws {
     let args=CommandLine.arguments
     // Only an explicit owner-launched command requests a TCC system prompt.
     // Never request screen permission from --self-test, status or a remote job.
+    if args.contains("--cursor-overlay") {
+        try runRobotCursorOverlay(args:args)
+        return
+    }
     if args.contains("--request-screen-recording") {
         let granted=CGRequestScreenCaptureAccess()
         let value:[String:Any]=["ok":granted,"permission":"screenRecording",

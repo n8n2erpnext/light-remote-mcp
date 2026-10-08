@@ -16,7 +16,7 @@ private func axString(_ element:AXUIElement,_ name:String) -> String {
 private func axBoolean(_ element:AXUIElement,_ name:String,_ fallback:Bool=false) -> Bool {
     return axAttribute(element,name) as? Bool ?? fallback
 }
-private func axRect(_ element:AXUIElement) -> [String:Any] {
+func axRect(_ element:AXUIElement) -> [String:Any] {
     var origin=CGPoint.zero,size=CGSize.zero
     if let raw=axAttribute(element,kAXPositionAttribute), CFGetTypeID(raw)==AXValueGetTypeID() {
         _=AXValueGetValue(unsafeBitCast(raw,to:AXValue.self),.cgPoint,&origin)
@@ -47,6 +47,7 @@ struct AXSession {
 }
 final class SemanticEngine {
     private var sessions:[String:AXSession]=[:]
+    var activeSessionCount:Int {sessions.count}
     private func trusted() throws {
         guard accessibilityAllowed() else {throw RemoteError.invalid("macos_accessibility_permission_required")}
     }
@@ -161,9 +162,14 @@ final class SemanticEngine {
             throw RemoteError.invalid("semantic_node_stale_or_not_found")
         }
         let action=string(request["action"]).lowercased()
+        // Session must still own the foreground before touching an AX target.
+        if session.scope == "foreground" {
+            guard try frontmostPid() == session.pid else {throw RemoteError.invalid("semantic_foreground_changed")}
+        }
         guard !axString(element,kAXRoleAttribute).localizedCaseInsensitiveContains("secure") else {
             throw RemoteError.invalid("semantic_secure_element_denied")
         }
+        let cursorMoved=visualizeRobotSemanticTarget(element,foregroundPid:session.pid)
         let result:AXError
         switch action {
         case "invoke","click":result=AXUIElementPerformAction(element,kAXPressAction as CFString)
@@ -178,7 +184,7 @@ final class SemanticEngine {
         guard result == .success else {throw RemoteError.invalid("macos_semantic_action_failed_"+String(result.rawValue))}
         session.inputSeq+=1
         sessions[id]=session
-        return ["applied":true,"nodeId":nodeId,"action":action,
+        return ["applied":true,"nodeId":nodeId,"action":action,"cursorMoved":cursorMoved,
                 "semanticSessionId":id,"inputSeq":session.inputSeq]
     }
 }
