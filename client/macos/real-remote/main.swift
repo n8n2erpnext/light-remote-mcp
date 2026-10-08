@@ -321,6 +321,29 @@ func serve(_ fd:Int32) {
 }
 func run() throws {
     let args=CommandLine.arguments
+    // Feature-only GUI LaunchServices TCC attribution probe. No permission
+    // prompts, screen pixels, desktop input, or privileged changes.
+    if args.contains("--gui-tcc-probe") {
+        let fm=FileManager.default
+        let base=fm.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/Caches/LightRemote-RMV2-Experimental",isDirectory:true)
+        try fm.createDirectory(at:base,withIntermediateDirectories:true)
+        let destination=base.appendingPathComponent("gui-tcc-probe.latest.json")
+        let report:[String:Any]=[
+            "ok":true,
+            "runtime":"real-remote-v2-macos",
+            "screenRecording":screenAllowed(),
+            "accessibility":accessibilityAllowed(),
+            "bundleIdentifier":Bundle.main.bundleIdentifier ?? "",
+            "pid":Int(getpid()),
+            "parentPid":Int(getppid()),
+            "timestampMs":timestamp()
+        ]
+        let data=try JSONSerialization.data(withJSONObject:report,options:[.sortedKeys])
+        try data.write(to:destination,options:[.atomic])
+        _=chmod(destination.path,0o600)
+        return
+    }
     // Only an explicit owner-launched command requests a TCC system prompt.
     // Never request screen permission from --self-test, status or a remote job.
     if args.contains("--cursor-overlay") {

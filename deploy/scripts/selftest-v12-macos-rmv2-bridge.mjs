@@ -20,6 +20,8 @@ assert.equal(realRemoteAvailable({platform:'win32',env:{LIGHT_REMOTE_REAL_REMOTE
 assert.match(swift,/macos_screen_recording_permission_required/);
 assert.match(swift,/args.contains\("--request-screen-recording"\)/);
 assert.match(swift,/args.contains\("--request-accessibility"\)/);
+assert.match(swift,/args.contains\("--gui-tcc-probe"\)/);
+assert.match(swift,/gui-tcc-probe\.latest\.json/);
 assert.match(swift,/AXIsProcessTrustedWithOptions\(options\)/);
 assert.match(swift,/macos_accessibility_permission_required/);
 assert.match(swift,/for scalar in value\.unicodeScalars/);
