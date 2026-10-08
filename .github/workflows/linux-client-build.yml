@@ -125,7 +125,7 @@ jobs:
           test -s "$PKG/client/linux/cli-status.mjs"
           bash -n "$PKG/client/linux/light-remote"
           bash -n "$PKG/client/linux/cli-commands.sh"
-          "$PKG/runtime/node" --check "$PKG/client/linux/cli-status.mjs"
+          node --check "$PKG/client/linux/cli-status.mjs"
           test -f "$PKG/client/linux-debian/updater-wrapper.mjs"
           test -f "$PKG/client/linux-debian/tray/light-remote-tray.py"
           test -f "$PKG/assets/branding/light-remote-mark.svg"
