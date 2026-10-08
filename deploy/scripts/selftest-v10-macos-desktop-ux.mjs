@@ -11,6 +11,10 @@ const uninstall=read('client/macos/uninstall.sh');
 need(tray.includes('agentRun(["login", "--no-wait"])')&&tray.includes('Activation URL:')&&tray.includes('Device code:'),'macos-first-run-account-enrollment');
 need(tray.includes('agentRun(["poll"])')&&tray.includes('state == "approved"')&&tray.includes('restartAgentNow()'),'macos-enrollment-poll-restart');
 need(tray.includes('Relink this Mac…')&&tray.includes('#selector(relinkAccount)')&&tray.includes('alert.runModal() == .alertFirstButtonReturn')&&tray.includes('agentRun(["login", "--reenroll", "--no-wait"])'),'macos-relink-requires-local-owner-confirmation');
+need(tray.includes('Open Fleet')&&tray.includes('#selector(openFleet)')&&tray.includes('openFleetItem.isHidden = fleetURL == nil')&&tray.includes('openFleetItem.isEnabled = fleetURL != nil'),'macos-fleet-tray-visibility-follows-agent-health');
+need(tray.includes('status["fleetWall"] as? [String: Any]')&&tray.includes('(fleet["healthy"] as? Bool) == true')&&tray.includes('127.0.0.1:')&&tray.includes('fleet["publicUrl"]')&&tray.includes('NSWorkspace.shared.open(url)'),'macos-fleet-tray-windows-url-parity');
+need(tray.includes('scheme == "http" || scheme == "https"')&&tray.includes('url.user == nil, url.password == nil'),'macos-fleet-tray-url-scheme-safety');
+
 need(tray.includes('if available && pendingId != nil { pollEnrollmentIfNeeded(pendingId) }')&&tray.includes('pendingId != nil ? "Waiting for account approval"'),'macos-relink-polls-even-when-already-enrolled');
 need(wall.includes('device_account_mismatch')&&wall.includes('Relink this Mac')&&wall.includes('classifyLocalWallLoginFailure'),'macos-wall-relink-guidance');
 
