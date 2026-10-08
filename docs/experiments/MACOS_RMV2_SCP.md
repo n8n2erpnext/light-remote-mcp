@@ -34,3 +34,10 @@ The original public tool `light_remote_scp_upload_chunk` declares and forwards `
 
 ## No deployment
 Do not deploy this branch to direct ARM or VPS-AMD. Do not edit /Library/Application Support/Light Remote/current on the owner's Mac during development.
+
+## Manual macOS 11 TCC setup (owner only)
+After downloading the canary x64 helper to `~/Library/Caches/LightRemote-RMV2-Experimental/LightRemoteRealRemoteAX`, the owner can **locally** run:
+```sh
+"$HOME/Library/Caches/LightRemote-RMV2-Experimental/LightRemoteRealRemoteAX" --request-screen-recording
+```
+Then open System Preferences → Security & Privacy → Privacy → Screen Recording / Accessibility and grant the helper if listed. Reopen the helper after macOS requests a restart. Screen Recording and Accessibility MUST both show true in `--self-test` before the test can proceed to screenshot and input. Do not request permissions or perform input automatically; owner explicitly approves all OS dialogs. Real Remote remains disabled in the regular launch agent.

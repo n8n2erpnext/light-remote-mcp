@@ -296,6 +296,16 @@ func serve(_ fd:Int32) {
 }
 func run() throws {
     let args=CommandLine.arguments
+    // Only an explicit owner-launched command requests a TCC system prompt.
+    // Never request screen permission from --self-test, status or a remote job.
+    if args.contains("--request-screen-recording") {
+        let granted=CGRequestScreenCaptureAccess()
+        let value:[String:Any]=["ok":granted,"permission":"screenRecording",
+                               "ownerActionRequired":!granted]
+        let data=try JSONSerialization.data(withJSONObject:value)
+        FileHandle.standardOutput.write(data);FileHandle.standardOutput.write(Data([10]))
+        return
+    }
     if args.contains("--self-test") {
         let value:[String:Any]=["ok":true,"runtime":"real-remote-v2-macos","arch":"darwin",
                                "screenRecording":screenAllowed(),"accessibility":accessibilityAllowed()]

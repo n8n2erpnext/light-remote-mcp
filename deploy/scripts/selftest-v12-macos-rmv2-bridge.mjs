@@ -15,6 +15,7 @@ assert.equal(realRemoteAvailable({platform:'linux',env:{LIGHT_REMOTE_REAL_REMOTE
 assert.equal(realRemoteAvailable({platform:'darwin',env:{LIGHT_REMOTE_REAL_REMOTE:'1',LIGHT_REMOTE_CLIENT_EXE:'/dummy'},exists:()=>true}),true);
 assert.equal(realRemoteAvailable({platform:'win32',env:{LIGHT_REMOTE_REAL_REMOTE:'1',LIGHT_REMOTE_CLIENT_EXE:'/dummy'},exists:()=>true}),true);
 assert.match(swift,/macos_screen_recording_permission_required/);
+assert.match(swift,/args.contains\("--request-screen-recording"\)/);
 assert.match(swift,/macos_accessibility_permission_required/);
 assert.match(swift,/visual_lease_invalid/);
 assert.match(swift,/SOCK_STREAM/);
