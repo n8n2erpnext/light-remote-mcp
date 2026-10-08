@@ -186,6 +186,7 @@ struct VisualLease {
 }
 final class Helper {
     private var sessions:[String:VisualLease]=[:]
+    private let semantic=SemanticEngine()
     private let started=timestamp()
     func dispatch(_ request:[String:Any]) throws -> Any {
         let op=string(request["op"])
@@ -198,6 +199,9 @@ final class Helper {
         case "desktop.windows":return windowList(integer(request["maxWindows"],100))
         case "desktop.frame":return try snapshot(request)
         case "desktop.input","desktop.run":
+            if op == "desktop.run", !string(request["nodeId"]).isEmpty {
+                return try semantic.act(request)
+            }
             let events=request["actions"] as? [[String:Any]] ?? []
             guard !events.isEmpty && events.count<=64 else {throw RemoteError.invalid("macos_actions_required")}
             if let expected=request["displayTopologyId"] as? String {
@@ -241,10 +245,13 @@ final class Helper {
             return ["visualSessionId":id,"epoch":row.epoch,"displayTopologyId":row.topology,
                     "frameSeq":row.seq,"expiresAt":row.expires,
                     "frame":try snapshot(["screen":row.screen,"maxWidth":row.width,"maxHeight":row.height,"quality":row.quality])]
-        case "desktop.semantic.attach","desktop.semantic.snapshot","desktop.semantic.events",
-             "desktop.semantic.detach","desktop.semantic.act",
-             "desktop.browser.attach","desktop.browser.snapshot","desktop.browser.events","desktop.browser.detach":
-            throw RemoteError.invalid("macos_semantic_backend_not_yet_implemented")
+        case "desktop.semantic.attach":return try semantic.attach(request)
+        case "desktop.semantic.snapshot":return try semantic.snapshot(request)
+        case "desktop.semantic.events":return try semantic.events(request)
+        case "desktop.semantic.detach":return try semantic.detach(request)
+        case "desktop.semantic.act":return try semantic.act(request)
+        case "desktop.browser.attach","desktop.browser.snapshot","desktop.browser.events","desktop.browser.detach":
+            throw RemoteError.invalid("macos_browser_cdp_backend_not_yet_implemented")
         default:throw RemoteError.invalid("macos_operation_not_supported")
         }
     }

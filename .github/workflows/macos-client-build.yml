@@ -82,7 +82,7 @@ jobs:
           cp LICENSE NOTICE THIRD_PARTY_DISTRIBUTION_NOTICES.md "$PKG/"
           xcrun swiftc -O -target "$SWIFT_TARGET" client/macos/tray/main.swift -o "$PKG/tray/LightRemoteTray"
           xcrun swiftc -O -target "$SWIFT_TARGET" client/macos/launcher/main.swift -o "$PKG/tray/LightRemoteLauncher"
-          xcrun swiftc -O -target "$SWIFT_TARGET" client/macos/real-remote/main.swift -o "$PKG/real-remote/LightRemoteRealRemote"
+          xcrun swiftc -O -target "$SWIFT_TARGET" client/macos/real-remote/main.swift client/macos/real-remote/SemanticEngine.swift -o "$PKG/real-remote/LightRemoteRealRemote"
           chmod 0755 "$PKG/tray/LightRemoteTray" "$PKG/tray/LightRemoteLauncher" "$PKG/real-remote/LightRemoteRealRemote"
           CORE_DIGEST="$(node -e "const fs=require('fs');console.log(JSON.parse(fs.readFileSync(process.argv[1],'utf8')).digest)" "$PKG/client-core.json")"
           cat > "$PKG/manifest.json" <<JSON

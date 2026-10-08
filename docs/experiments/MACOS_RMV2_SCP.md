@@ -21,7 +21,7 @@ The original public tool `light_remote_scp_upload_chunk` declares and forwards `
 - M3: macOS accessibility semantic tree, element actions, journal deltas and browser-CDP parity; app/window navigation E2E.
 - M4: Test signed/notarized artifacts and updater rollback in separate canary; merge only after explicit owner review.
 
-**Current stage:** M0 partial, M1 pending GitHub CI. Native semantic provider is explicitly not implemented; do not claim Full Support yet.
+**Current stage:** M0 and M1 native transport/compilation and TCC-denial E2E PASS on Mac Intel, initial M3 AX semantic snapshot/actions in code pending native CI. Browser-CDP semantic and continuous event journal are still pending; do not claim Full Support yet.
 
 ## Relevant files
 - `client/macos/real-remote/main.swift` native companion
