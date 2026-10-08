@@ -14,6 +14,7 @@ on:
       - 'lib/native-desktop.mjs'
       - 'deploy/scripts/selftest-macos-gui-optin.mjs'
       - 'deploy/scripts/selftest-v12-macos-rmv2-bridge.mjs'
+      - 'deploy/scripts/selftest-v12-macos-codex-cursor.mjs'
       - 'deploy/scripts/macos-operator-native-*-e2e.mjs'
       - 'lib/native-process.mjs'
       - 'lib/native-terminal.mjs'
@@ -81,6 +82,7 @@ jobs:
           cp "node-v${NODE_VERSION}-darwin-${NODE_ARCH}/LICENSE" "$PKG/licenses/node/LICENSE"
           npm ci --ignore-scripts
           node deploy/scripts/selftest-v12-macos-rmv2-bridge.mjs
+          node deploy/scripts/selftest-v12-macos-codex-cursor.mjs
           node deploy/scripts/selftest-macos-gui-optin.mjs
           node deploy/scripts/stage-client-core.mjs "$PKG"
           node deploy/scripts/stage-terminal-runtime.mjs "$PKG" darwin "$TARGET_ARCH"
@@ -126,6 +128,9 @@ jobs:
           # Unsigned development GUI is a separate artifact, not a release installer.
           DEV_APP="$RUNNER_TEMP/LightRemoteRobotDev.app"
           bash client/macos/real-remote/canary/build-dev-app.sh "$PKG/real-remote/LightRemoteRealRemote" "$DEV_APP"
+          test -s "$DEV_APP/Contents/Resources/LightRemoteRM.icns"
+          test -s "$DEV_APP/Contents/Resources/LightRemoteRM.svg"
+          grep -Fq 'LightRemoteRM' "$DEV_APP/Contents/Info.plist"
           "$DEV_APP/Contents/MacOS/LightRemoteRealRemote" --self-test | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["ok"] and d["runtime"]=="real-remote-v2-macos"'
           tar -czf "$OUT/LightRemoteRobotDev-$TARGET_ARCH.tar.gz" -C "$RUNNER_TEMP" LightRemoteRobotDev.app
           shasum -a 256 "$OUT/LightRemoteRobotDev-$TARGET_ARCH.tar.gz"

@@ -5,6 +5,7 @@
 <key>CFBundleName</key><string>LightRemoteRobotDev</string>
 <key>CFBundleDisplayName</key><string>Light Remote Robot Dev</string>
 <key>CFBundleExecutable</key><string>LightRemoteRealRemote</string>
+<key>CFBundleIconFile</key><string>LightRemoteRM</string>
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>CFBundleShortVersionString</key><string>0.9.0</string>
 <key>CFBundleVersion</key><string>1</string>

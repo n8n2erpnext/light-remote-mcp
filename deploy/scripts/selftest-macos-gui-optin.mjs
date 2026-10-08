@@ -23,9 +23,9 @@ console.log('macos_optin_gate_and_windows_regression=PASS');
 let launches=0,server=null,sidecarSocket=null,accepting=null,bridge=null;
 const spawnImpl=(command,args)=>{
  assert.equal(command,'/usr/bin/open');
- assert.deepEqual(args.slice(0,4),['-n','-a',app,'--args']);
- assert.equal(args[4],'--socket');
- const socketPath=args[5];
+ assert.deepEqual(args.slice(0,5),['-g','-n','-a',app,'--args']);
+ assert.equal(args[5],'--socket');
+ const socketPath=args[6];
  assert.ok(socketPath.startsWith('/tmp/lightremote-rmv2-'));
  launches++;
  const proc=new EventEmitter();

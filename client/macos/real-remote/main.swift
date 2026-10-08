@@ -350,9 +350,16 @@ final class Helper {
             return ["runtime":"real-remote-v2-macos","pid":Int(getpid()),"uptimeMs":timestamp()-started,
                     "screenRecording":screenAllowed(),"accessibility":accessibilityAllowed(),
                     "topology":topology(),"visualSessions":sessions.count,"cursorOverlayActive":cursorOverlay.active]
-        case "desktop.windows":return windowList(integer(request["maxWindows"],100))
-        case "desktop.frame":return try snapshot(request)
+        case "desktop.windows":
+            _=cursorOverlay.show(expiresAt:timestamp()+120000)
+            return windowList(integer(request["maxWindows"],100))
+        case "desktop.frame":
+            _=cursorOverlay.show(expiresAt:timestamp()+120000)
+            return try snapshot(request)
         case "desktop.input","desktop.run":
+            // Keep the custom cursor for all pointer/keyboard actions, not
+            // just the original semantic/visual attach. Lease is renewed.
+            _=cursorOverlay.show(expiresAt:timestamp()+120000)
             let waitSpec=op=="desktop.run" ? request["await"] as? [String:Any] : nil
             if op == "desktop.run", !string(request["nodeId"]).isEmpty {
                 var result=try semantic.act(request)
