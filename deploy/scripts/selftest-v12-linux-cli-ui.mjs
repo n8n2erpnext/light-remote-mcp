@@ -56,6 +56,26 @@ try {
   assert.equal(friendly.status,0,friendly.stderr);
   assert.match(friendly.stdout,/Light Remote  0\.9\.0-rc\.46/);
   assert.doesNotMatch(friendly.stdout,/publicKeySha256|deviceId|hardExpiresAt/);
+  // Reproduce the installed layout: current is a symlink to releases/rcXX.
+  // Node canonicalizes import.meta.url, while argv[1] retains current/.
+  // This caught rc.46 silently emitting zero bytes with exit status 0.
+  const versionDir=path.join(temp,'releases','rc47');
+  fs.mkdirSync(path.join(versionDir,'client/linux'),{recursive:true});
+  fs.mkdirSync(path.join(versionDir,'device-agent'),{recursive:true});
+  fs.mkdirSync(path.join(versionDir,'runtime'),{recursive:true});
+  fs.copyFileSync(cmd,path.join(versionDir,'client/linux/cli-commands.sh'));
+  fs.copyFileSync(renderer,path.join(versionDir,'client/linux/cli-status.mjs'));
+  fs.copyFileSync(agent,path.join(versionDir,'device-agent/operator-agent.mjs'));
+  fs.copyFileSync(bin,path.join(versionDir,'runtime/node'));
+  fs.rmSync(path.join(temp,'current'),{recursive:true,force:true});
+  fs.symlinkSync(versionDir,path.join(temp,'current'),'dir');
+  const linked=run(['status']);
+  assert.equal(linked.status,0,linked.stderr);
+  assert.match(linked.stdout,/Light Remote  0\.9\.0-rc\.46/,'installed current symlink must render summary');
+  assert.ok(linked.stdout.length>120,'installed symlink invocation must not silently exit');
+  console.log('linux-cli-installed-current-symlink-status=PASS');
+  const linkedUpHelp=run(['help']);
+  assert.equal(linkedUpHelp.status,0,linkedUpHelp.stderr);
   const raw=run(['status','--json']);
   assert.equal(raw.status,0,raw.stderr);
   assert.equal(JSON.parse(raw.stdout).deviceId,connected.deviceId);

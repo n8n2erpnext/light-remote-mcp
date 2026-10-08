@@ -34,6 +34,9 @@ expect(linuxWorkflow.includes('actions/upload-artifact@v4'),'linux_artifact_uplo
 expect(linuxWorkflow.includes('(cd "$OUT" && sha256sum "Light-Remote-MCP-Client-Linux-${TARGET_ARCH}-${VERSION}.tar.gz")'),'linux_checksum_not_portable');
 expect(linuxWorkflow.includes('(cd "$OUT" && sha256sum -c SHA256SUMS.txt)'),'linux_checksum_ci_verify_missing');
 expect(install.includes('gpt-operator-device-agent.service'),'linux_agent_service_missing');
+expect(install.includes('>"$TMP/updater-helper-reconcile.log" 2>&1')&&install.includes('if ! as_root env LIGHT_REMOTE_UPDATE_STATE_DIR='),'linux_installer_should_capture_helper_json_and_keep_failure_path');
+expect(install.includes('/usr/local/bin/light-remote status')&&!install.includes("systemctl --no-pager --full status gpt-operator-device-agent.service | sed -n '1,12p'"),'linux_installer_should_show_friendly_summary_not_systemctl_dump');
+
 expect(install.includes('gpt-operator-agent-update.timer'),'linux_update_timer_missing');
 expect(install.includes('OnUnitActiveSec=6h'),'linux_update_cadence_missing');
 expect(install.includes('The terminal can now be closed'),'foreground_dependency_warning_missing');

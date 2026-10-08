@@ -470,13 +470,20 @@ if [[ "$AGENT_HEALTHY" != "1" ]]; then
   echo 'Light Remote Core failed post-install health gate; updater Helper was not changed.' >&2
   exit 37
 fi
-as_root env LIGHT_REMOTE_UPDATE_STATE_DIR="$UPDATE_STATE_DIR" "$ROOT/current/runtime/node" "$ROOT/current/lib/update-helper-reconcile.mjs" \
-  --platform linux --version "$VERSION" --core-root "$ROOT/current" --install-root "$ROOT" --state-dir "$UPDATE_STATE_DIR"
-systemctl --no-pager --full status gpt-operator-device-agent.service | sed -n '1,12p'
+# The helper emits JSON diagnostics on stdout even on success. Save those
+# for troubleshooting instead of dumping them into the ordinary installer UI.
+if ! as_root env LIGHT_REMOTE_UPDATE_STATE_DIR="$UPDATE_STATE_DIR" "$ROOT/current/runtime/node" "$ROOT/current/lib/update-helper-reconcile.mjs" \
+  --platform linux --version "$VERSION" --core-root "$ROOT/current" --install-root "$ROOT" --state-dir "$UPDATE_STATE_DIR" \
+  >"$TMP/updater-helper-reconcile.log" 2>&1; then
+  echo 'Light Remote: updater Helper reconciliation failed.' >&2
+  tail -n 18 "$TMP/updater-helper-reconcile.log" >&2
+  exit 38
+fi
 echo
-printf 'Light Remote MCP client installed: version=%s user=%s\n' "$VERSION" "$TARGET_USER"
-printf 'Enrollment bridge: %s\n' "$BASE_URL"
-printf 'Device hub: %s\n' "$HUB_URL"
-echo 'The terminal can now be closed; systemd owns the always-alive local service.'
-printf 'Local Wall: http://%s:%s/ (cloud may be Connected or Dormant independently).\n' "$WALL_DISPLAY_HOST" "$WALL_PORT"
-echo 'Signed update availability checks run automatically every ~6 hours; installation remains owner-triggered.'
+printf 'Light Remote %s installed for %s.\n' "$VERSION" "$TARGET_USER"
+if ! as_user "$TARGET_USER" env HOME="$TARGET_HOME" /usr/local/bin/light-remote status; then
+  printf 'Service : active\nLocal Wall: http://%s:%s/\n' "$WALL_DISPLAY_HOST" "$WALL_PORT"
+  echo 'Tip: light-remote status --json for diagnostics.'
+fi
+echo 'Automatic update checks: every ~6 hours (installation needs approval).'
+echo 'The terminal can now be closed; systemd keeps Light Remote running.'
