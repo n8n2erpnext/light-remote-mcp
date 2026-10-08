@@ -26,7 +26,8 @@ const builder=get('client/macos/real-remote/canary/build-dev-app.sh').toString()
 const plist=get('client/macos/real-remote/canary/DevInfo.plist').toString();
 assert.match(overlay,/CGDisplayHideCursor/);
 assert.match(overlay,/if presented && canSuppress && !systemCursorHidden/);
-assert.match(overlay,/CGCursorIsVisible\(\)/);
+assert.match(overlay,/observedOSCursorVisibility\(\)/);
+assert.match(overlay,/dlsym\(handle,"CGCursorIsVisible"\)/);
 assert.match(overlay,/indicator\.drawsCustomArrow=systemCursorHidden/);
 assert.match(overlay,/LIGHT_REMOTE_RM_DEV_CURSOR_SPI/);
 assert.match(overlay,/setBackgroundCursorExperiment\(false\)/);

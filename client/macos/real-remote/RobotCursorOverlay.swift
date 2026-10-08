@@ -83,6 +83,15 @@ final class RobotCursorIndicatorView: NSView {
 // Optional DEV-ONLY compatibility probe. This is undocumented WindowServer
 // SPI and must remain disabled for release/notarization builds. Missing
 // symbols or a rejected property fail closed to the stock macOS cursor.
+// The macOS SDK removed the direct Swift declaration for this old Quartz
+// diagnostic. Resolve it optionally at runtime; nil means unknown, not hidden.
+private func observedOSCursorVisibility() -> Bool? {
+    typealias CursorVisibleFn = @convention(c) () -> Int32
+    guard let handle=UnsafeMutableRawPointer(bitPattern:-2),
+          let symbol=dlsym(handle,"CGCursorIsVisible") else {return nil}
+    return unsafeBitCast(symbol,to:CursorVisibleFn.self)() != 0
+}
+
 private func setBackgroundCursorExperiment(_ enabled: Bool) -> Bool {
     typealias ConnectionFn = @convention(c) () -> Int32
     typealias PropertyFn = @convention(c) (Int32, Int32, CFString, CFTypeRef) -> Int32
@@ -162,7 +171,7 @@ func runRobotCursorOverlay(args:[String]) throws {
         let report:[String:Any]=["active":active,"pid":Int(getpid()),
             "visible":active && panel.isVisible,"windowListed":windowPresented(),
             "systemCursorHidden":active && systemCursorHidden,
-            "osCursorActuallyVisible":CGCursorIsVisible() != 0,
+            "osCursorActuallyVisible":observedOSCursorVisibility() as Any? ?? NSNull(),
             "backgroundCursorSPIEnabled":backgroundHideEnabled,
             "cursorSuppressionAttempts":suppressionAttempts,
             "renderTicks":ticks,
@@ -220,7 +229,7 @@ func runRobotCursorOverlay(args:[String]) throws {
                 suppressionAttempts += 1
                 let result=CGDisplayHideCursor(display)
                 if result == .success {
-                    if CGCursorIsVisible() == 0 {
+                    if observedOSCursorVisibility() == false {
                         systemCursorHidden=true
                     } else {
                         // Background cursor hide wasn't honored. Balance its
@@ -229,7 +238,7 @@ func runRobotCursorOverlay(args:[String]) throws {
                     }
                 }
             }
-            if systemCursorHidden && (!presented || CGCursorIsVisible() != 0) {
+            if systemCursorHidden && (!presented || observedOSCursorVisibility() != false) {
                 _=CGDisplayShowCursor(display)
                 systemCursorHidden=false
             }
