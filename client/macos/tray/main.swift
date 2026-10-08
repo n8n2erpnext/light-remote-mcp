@@ -22,6 +22,7 @@ final class TrayDelegate: NSObject, NSApplicationDelegate {
         if let button = statusItem.button { button.imagePosition = .imageOnly; button.imageScaling = .scaleProportionallyDown; button.title = ""; button.toolTip = "Light Remote" }; statusItem.isVisible = true
         let menu = NSMenu(); stateItem.isEnabled = false
         menu.addItem(stateItem); menu.addItem(.separator()); menu.addItem(accountItem)
+        menu.addItem(NSMenuItem(title: "Relink this Mac…", action: #selector(relinkAccount), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Open Local Wall", action: #selector(openWall), keyEquivalent: "")); menu.addItem(connectItem)
         menu.addItem(NSMenuItem(title: "Restart Light Remote", action: #selector(restartAgent), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Check for updates", action: #selector(checkUpdates), keyEquivalent: ""))
@@ -91,7 +92,21 @@ final class TrayDelegate: NSObject, NSApplicationDelegate {
         if enrolled { if let url = URL(string: accountPortal) { NSWorkspace.shared.open(url) }; return }
         beginAccountOnboarding(force: true)
     }
-    func beginAccountOnboarding(force: Bool = false) {
+    @objc func relinkAccount() {
+        if onboardingInFlight { return }
+        let s = status(), enrolled = (s["enrolled"] as? Bool) ?? false
+        if !enrolled { beginAccountOnboarding(force: true); return }
+        NSApp.activate(ignoringOtherApps: true)
+        let alert = NSAlert()
+        alert.messageText = "Relink this Mac to another account?"
+        alert.informativeText = "A new one-time device code will be issued. The existing device identity is preserved. The account link changes only after you sign in and approve this Mac in the browser."
+        alert.addButton(withTitle: "Relink this Mac")
+        alert.addButton(withTitle: "Cancel")
+        if alert.runModal() == .alertFirstButtonReturn {
+            beginAccountOnboarding(force: true, relink: true)
+        }
+    }
+    func beginAccountOnboarding(force: Bool = false, relink: Bool = false) {
         if onboardingInFlight { return }
         if !force {
             let defaults = UserDefaults.standard
@@ -100,7 +115,7 @@ final class TrayDelegate: NSObject, NSApplicationDelegate {
         }
         onboardingInFlight = true; accountItem.isEnabled = false
         DispatchQueue.global().async {
-            let result = self.agentRun(["login", "--no-wait"])
+            let result = relink ? self.agentRun(["login", "--reenroll", "--no-wait"]) : self.agentRun(["login", "--no-wait"])
             let activation = self.lineValue(result.1, prefix: "Activation URL:")
             let code = self.lineValue(result.1, prefix: "Device code:")
             DispatchQueue.main.async {
@@ -140,14 +155,14 @@ final class TrayDelegate: NSObject, NSApplicationDelegate {
         let desired = (s["cloudDesiredConnected"] as? Bool) ?? false
         let cloud = (s["cloudState"] as? String) ?? "dormant", connected = desired && cloud == "connected"
         let plan = ((s["connectionPlan"] as? String) ?? "").uppercased()
-        let label = !available ? "Status unavailable" : !enrolled ? (pendingId == nil ? "Sign in required · not linked" : "Waiting for account approval") : connected ? "Connected" + (plan.isEmpty ? "" : " · \(plan)") : "Running · dormant"
+        let label = !available ? "Status unavailable" : pendingId != nil ? "Waiting for account approval" : !enrolled ? "Sign in required · not linked" : connected ? "Connected" + (plan.isEmpty ? "" : " · \(plan)") : "Running · dormant"
         let visual: TrayVisualState = !available ? .unavailable : !enrolled ? .unlinked : connected ? .connected : .dormant
         stateItem.title = label; connectItem.title = connected ? "Disconnect" : "Connect"; connectItem.isEnabled = enrolled
         accountItem.title = enrolled ? "Account / Logout…" : pendingId == nil ? "Sign in / Link device…" : "Sign in / Approve device…"
         accountItem.isEnabled = !onboardingInFlight
         setVisual(visual, label: label)
         if available && !enrolled && pendingId == nil { beginAccountOnboarding() }
-        if available && !enrolled { pollEnrollmentIfNeeded(pendingId) }
+        if available && pendingId != nil { pollEnrollmentIfNeeded(pendingId) }
     }
 
     func wallReachable() -> Bool { run("/usr/bin/curl", ["-fsS", "--max-time", "1", "http://127.0.0.1:5491/"]).0 == 0 }

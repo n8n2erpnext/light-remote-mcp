@@ -32,8 +32,13 @@ export function registerPublicDeviceRoutes(app){
         const a=out.account||{};
         return res.set('cache-control','no-store').json({ok:true,account:{accountId:a.accountId,email:a.email,plan:a.plan,status:a.status},entitlements:out.entitlements||{}});
       }catch(error){
-        if(Number(error.status)===429)return res.status(429).set('cache-control','no-store').json({ok:false,error:'rate_limited'});
-        return res.status(401).set('cache-control','no-store').json({ok:false,error:'invalid_account_credentials'});
+        const status=Number(error.status)||503;
+        if(status===429)return res.status(429).set('cache-control','no-store').json({ok:false,error:'rate_limited'});
+        if(status===401)return res.status(401).set('cache-control','no-store').json({ok:false,error:'invalid_account_credentials'});
+        if(status===403&&error.message==='account_admin_disabled')return res.status(403).set('cache-control','no-store').json({ok:false,error:'account_admin_disabled'});
+        // Infrastructure errors must never masquerade as invalid passwords.
+        console.warn(JSON.stringify({event:'public_account_login_backend_failure',upstreamStatus:status}));
+        return res.status(503).set('cache-control','no-store').json({ok:false,error:'account_service_unavailable'});
       }
     }
     const seed=action==='enrollment-begin'?p.publicIdentityKey:action==='enrollment-poll'?p.enrollmentId:p.deviceId;

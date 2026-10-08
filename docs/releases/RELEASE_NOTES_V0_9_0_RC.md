@@ -1,3 +1,11 @@
+## RC.43 — macOS account relink and truthful Wall sign-in errors
+
+- macOS tray offers an explicit **Relink this Mac…** flow. Changing the account requires local confirmation, a new one-time code, and account-owner approval. The local device identity is preserved until approval.
+- Pending enrollment is polled even when the device is already enrolled, allowing self-service account relink from the tray.
+- Wall differentiates account binding mismatch, invalid password, temporary upstream failure, disabled account and rate limit. Neither stale enrollment nor server outage consumes local bad-password attempts.
+- Public account-login forwards infrastructure failure as 503 instead of falsely reporting invalid credentials.
+- Regression coverage protects new installs, stale enrollment, local approval, and credential-error handling.
+
 # Light Remote MCP v0.9.0 Release Candidate
 
 Release-candidate build of the governed cross-platform remote execution and control-plane architecture.
