@@ -69,12 +69,23 @@ internal static class NativeInput
             return;
         }
 
-        var delay=Math.Max(0,durationMs/steps);
-        for(var i=1;i<=steps;i++)
+        // Actual Win32 cursor positions, NOT UIA/DOM actions. Pace by an
+        // absolute monotonic clock instead of accumulating Thread.Sleep()
+        // rounding (10-16ms timer quantum on some Windows installations).
+        var distance=Math.Sqrt(Math.Pow(x-start.X,2)+Math.Pow(y-start.Y,2));
+        var frameCount=Math.Clamp(Math.Max(steps,(int)Math.Ceiling(distance/36d)),steps,32);
+        var clock=System.Diagnostics.Stopwatch.StartNew();
+        for(var i=1;i<=frameCount;i++)
         {
-            var point=SmoothPoint(start.X,start.Y,x,y,i,steps);
+            var deadlineMs=durationMs*(double)i/frameCount;
+            while(clock.Elapsed.TotalMilliseconds<deadlineMs)
+            {
+                var remaining=deadlineMs-clock.Elapsed.TotalMilliseconds;
+                if(remaining>=3d) Thread.Sleep(Math.Max(1,(int)remaining-1));
+                else Thread.Yield();
+            }
+            var point=SmoothPoint(start.X,start.Y,x,y,i,frameCount);
             MoveImmediate(point.X,point.Y);
-            if(delay>0 && i<steps) Thread.Sleep(delay);
         }
     }
 

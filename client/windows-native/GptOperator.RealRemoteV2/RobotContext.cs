@@ -8,6 +8,7 @@ internal sealed class RobotContext : ApplicationContext
 {
     private readonly AgentCursorVisualState _cursorState=new();
     private readonly NotifyIcon _tray;
+    private readonly CursorGlowOverlay? _ambientGlow;
     private readonly UiSensor _sensor=new();
     private readonly SemanticSessionManager _semantic;
     private readonly VisualSessionManager _visual;
@@ -31,6 +32,15 @@ internal sealed class RobotContext : ApplicationContext
     {
         _tray=new NotifyIcon{Visible=true,Text="Agent Remote Active",Icon=LoadAppIcon()};
         SystemCursorOverride.Acquire();
+        // Owner-approved macOS-inspired live glow, isolated behind a canary
+        // switch until physical Windows UAT confirms visual/CPU behavior.
+        if(Environment.GetEnvironmentVariable("LIGHT_REMOTE_RM_ANIMATED_GLOW")=="1")
+        {
+            try {
+                _ambientGlow=new CursorGlowOverlay(_cursorState);
+                _ambientGlow.Show();
+            } catch { _ambientGlow?.Dispose(); _ambientGlow=null; }
+        }
 
         _rpc=new RobotRpcServer(pipeName,HandleAsync,OnPipeDisconnected);
         _semantic=new SemanticSessionManager(_sensor);
@@ -120,7 +130,8 @@ internal sealed class RobotContext : ApplicationContext
         cursorVisual=_cursorState.Status(),
         osCursorHidden=false,
         osCursorOverridden=SystemCursorOverride.IsActive,
-        cursorRenderer="native-system"
+        cursorRenderer=_ambientGlow is {IsDisposed:false}?"native-system+animated-glow":"native-system",
+        ambientGlowActive=_ambientGlow is {IsDisposed:false,Visible:true}
     };
 
     private object Move(JsonElement r)
@@ -419,6 +430,8 @@ internal sealed class RobotContext : ApplicationContext
         _tray.Visible=false;
         _tray.Icon?.Dispose();
         _tray.Dispose();
+        _ambientGlow?.Close();
+        _ambientGlow?.Dispose();
         SystemCursorOverride.Release();
         base.ExitThreadCore();
     }

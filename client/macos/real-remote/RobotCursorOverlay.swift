@@ -122,6 +122,21 @@ func runRobotCursorOverlay(args:[String]) throws {
     _=Darwin.signal(SIGINT,robotCursorStopSignal)
     let app=NSApplication.shared
     app.setActivationPolicy(.accessory)
+    // macOS menu-bar RM activity indicator: same RM V2 logo as Windows,
+    // visible only during an owned, live remote-control cursor lease.
+    // No Dock activation, menu-bar popover or mouse interception.
+    let rmStatusItem=NSStatusBar.system.statusItem(withLength:NSStatusItem.squareLength)
+    if let iconUrl=Bundle.main.url(forResource:"LightRemoteRM",withExtension:"icns"),
+       let icon=NSImage(contentsOf:iconUrl) {
+        icon.size=NSSize(width:18,height:18)
+        icon.isTemplate=false // preserve the Windows RM yellow/black palette
+        rmStatusItem.button?.image=icon
+    } else {
+        rmStatusItem.button?.title="RM"
+    }
+    rmStatusItem.button?.toolTip="Light Remote RM · Agent đang điều khiển"
+    // The indicator cannot start/stop remote control; the authorized session
+    // and lease remain the only authority. Removing it is guaranteed on exit.
     // Let app.run() finish launching before the async orderFront request.
     let panel=NSPanel(contentRect:NSRect(x:0,y:0,width:88,height:88),
                       styleMask:[.borderless,.nonactivatingPanel],backing:.buffered,defer:false)
@@ -191,6 +206,7 @@ func runRobotCursorOverlay(args:[String]) throws {
         if backgroundHideEnabled {_=setBackgroundCursorExperiment(false)}
         indicator.drawsCustomArrow=false
         panel.orderOut(nil)
+        NSStatusBar.system.removeStatusItem(rmStatusItem)
         publishStatus(false)
     }
     defer {restoreSystemCursor()}

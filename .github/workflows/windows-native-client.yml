@@ -39,6 +39,7 @@ on:
       - 'assets/**'
       - 'operator-host/executor.mjs'
       - 'deploy/scripts/selftest-v12-macos-physical-type-routing.mjs'
+      - 'deploy/scripts/selftest-v12-rm-cursor-effect-parity.mjs'
       - '.github/workflows/windows-native-client.yml'
   workflow_dispatch:
   workflow_call:
@@ -63,6 +64,8 @@ jobs:
         run: |
           node deploy/scripts/selftest-v12-macos-physical-type-routing.mjs
           if ($LASTEXITCODE -ne 0) { throw 'physical type routing contract failed' }
+          node deploy/scripts/selftest-v12-rm-cursor-effect-parity.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'cursor effect parity regression failed' }
       - name: Publish native tray client
         shell: pwsh
         run: |
