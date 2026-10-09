@@ -54,7 +54,17 @@ for(const forbidden of ['NativeInput.Move','NativeInput.Click','NativeInput.Drag
   assert.ok(!passivePreviewMethod.includes(forbidden),
     'passive preview must never touch the owner pointer: '+forbidden);
 }
-assert.ok(winContext.includes('_cursorLeaseActive || _passivePreviewActive'));
+assert.ok(winContext.includes('_cursorLeaseActive || _passivePreviewActive || _visualAttachCursorActive'));
+assert.ok(winContext.includes('"desktop.visual.attach" or "desktop-visual-attach" => AttachVisualWithCursor(request)'));
+assert.ok(winContext.includes('"desktop.visual.detach" or "desktop-visual-detach" => DetachVisualWithCursor(request)'));
+const attachedCursorMethod=winContext.split('private object AttachVisualWithCursor(JsonElement request)')[1]?.split('private object DetachVisualWithCursor(JsonElement request)')[0]||'';
+assert.ok(attachedCursorMethod.includes('SystemCursorOverride.Acquire()'));
+assert.ok(attachedCursorMethod.includes('_visualAttachCursorTimer.Change(VisualAttachCursorLeaseMs,Timeout.Infinite)'));
+for(const forbidden of ['NativeInput.Move(','NativeInput.Click(','NativeInput.Drag(','SetCursorPos(','SendInput(']){
+ assert.ok(!attachedCursorMethod.includes(forbidden),'attach may not inject pointer action '+forbidden);
+}
+assert.ok(winContext.includes('if(_visual.ActiveSessions==0)StopVisualAttachCursor();'));
+assert.ok(winContext.includes('_visualAttachCursorTimer.Dispose()'));
 
 assert.doesNotMatch(winGlow,/\b(?:SetCursorPos|SendInput|SetSystemCursor|SystemParametersInfo)\s*\(/);
 assert.match(winContext,/LIGHT_REMOTE_RM_ANIMATED_GLOW/);

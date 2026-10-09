@@ -20,9 +20,12 @@ internal sealed class RobotContext : ApplicationContext
     // Bridge hops can take seconds; bound the effect with a short renewable lease.
     private readonly System.Threading.Timer _cursorLeaseTimer;
     private readonly System.Threading.Timer _passivePreviewTimer;
+    private readonly System.Threading.Timer _visualAttachCursorTimer;
     private const int CursorActivityLeaseMs=5_000;
+    private const int VisualAttachCursorLeaseMs=30_000;
     private volatile bool _cursorLeaseActive;
     private volatile bool _passivePreviewActive;
+    private volatile bool _visualAttachCursorActive;
     private long _passivePreviewExpiresUtcMs;
     private bool _closing;
 
@@ -43,6 +46,8 @@ internal sealed class RobotContext : ApplicationContext
         _cursorLeaseTimer=new System.Threading.Timer(_=>ReleaseCursorActivity(),null,
             Timeout.Infinite,Timeout.Infinite);
         _passivePreviewTimer=new System.Threading.Timer(_=>StopPassivePreview(),null,
+            Timeout.Infinite,Timeout.Infinite);
+        _visualAttachCursorTimer=new System.Threading.Timer(_=>StopVisualAttachCursor(),null,
             Timeout.Infinite,Timeout.Infinite);
         // Pre-create the window handle on the GUI thread, but never display
         // glow or replace the OS cursor until authorized physical Agent input.
@@ -100,14 +105,7 @@ internal sealed class RobotContext : ApplicationContext
                 Text(request,"browserSessionId"), Long(request,"afterSeq",0), Int(request,"limit",100)
             ),
             "desktop.browser.detach" or "desktop-browser-detach" => _browser.Detach(Text(request,"browserSessionId")),
-            "desktop.visual.attach" or "desktop-visual-attach" => _visual.Attach(
-                Int(request,"screen",0),
-                Int(request,"maxWidth",960),
-                Int(request,"maxHeight",540),
-                Int(request,"quality",50),
-                Int(request,"leaseMs",30_000),
-                Text(request,"owner","")
-            ),
+            "desktop.visual.attach" or "desktop-visual-attach" => AttachVisualWithCursor(request),
             "desktop.visual.resume" or "desktop-visual-resume" => _visual.Resume(
                 Text(request,"visualSessionId"),
                 Text(request,"leaseToken"),
@@ -122,10 +120,7 @@ internal sealed class RobotContext : ApplicationContext
                 Text(request,"visualSessionId"),
                 Text(request,"leaseToken")
             ),
-            "desktop.visual.detach" or "desktop-visual-detach" => _visual.Detach(
-                Text(request,"visualSessionId"),
-                Text(request,"leaseToken")
-            ),
+            "desktop.visual.detach" or "desktop-visual-detach" => DetachVisualWithCursor(request),
             "batch.run" => RunBatch(request,32),
             "desktop.run" => await RunPlanAsync(request),
             "desktop.input" => DesktopInput(request),
@@ -146,10 +141,59 @@ internal sealed class RobotContext : ApplicationContext
                 // a hide just before a new input renews the cursor lease.
                 // A passive owner preview MUST NOT inject mouse input
                 // or replace Windows' system cursor.
-                if(_cursorLeaseActive || _passivePreviewActive)glow.Show();
+                if(_cursorLeaseActive || _passivePreviewActive || _visualAttachCursorActive)glow.Show();
                 else glow.Hide();
             }));
         } catch(ObjectDisposedException) {} catch(InvalidOperationException) {}
+    }
+
+    // Native Real Remote attach changes the arrow/glow ONCE; it never
+    // sends a move/click/drag. The owner keeps controlling the real mouse.
+    // Detach, process exit, or the bounded 30-second lease restores it.
+    private object AttachVisualWithCursor(JsonElement request)
+    {
+        var result=_visual.Attach(
+            Int(request,"screen",0),
+            Int(request,"maxWidth",960),
+            Int(request,"maxHeight",540),
+            Int(request,"quality",50),
+            Int(request,"leaseMs",30_000),
+            Text(request,"owner","")
+        );
+        lock(_cursorLeaseGate)
+        {
+            if(_closing)throw new InvalidOperationException("robot_closing");
+            if(!_visualAttachCursorActive)
+            {
+                SystemCursorOverride.Acquire();
+                _visualAttachCursorActive=true;
+            }
+            _visualAttachCursorTimer.Change(VisualAttachCursorLeaseMs,Timeout.Infinite);
+            UpdateGlowVisibility();
+        }
+        return result;
+    }
+
+    private object DetachVisualWithCursor(JsonElement request)
+    {
+        var result=_visual.Detach(
+            Text(request,"visualSessionId"),
+            Text(request,"leaseToken")
+        );
+        if(_visual.ActiveSessions==0)StopVisualAttachCursor();
+        return result;
+    }
+
+    private void StopVisualAttachCursor()
+    {
+        lock(_cursorLeaseGate)
+        {
+            _visualAttachCursorTimer.Change(Timeout.Infinite,Timeout.Infinite);
+            if(!_visualAttachCursorActive)return;
+            _visualAttachCursorActive=false;
+            UpdateGlowVisibility();
+            SystemCursorOverride.Release();
+        }
     }
 
     // Owner-controlled passive inspection: their own physical mouse
@@ -230,6 +274,7 @@ internal sealed class RobotContext : ApplicationContext
         cursorRenderer=_ambientGlow is {IsDisposed:false}?"native-system+animated-glow":"native-system",
         ambientGlowActive=_ambientGlow is {IsDisposed:false,Visible:true},
         passivePreviewActive=_passivePreviewActive,
+        visualAttachCursorActive=_visualAttachCursorActive,
         passivePreviewRemainingMs=_passivePreviewActive
             ?Math.Max(0,System.Threading.Volatile.Read(ref _passivePreviewExpiresUtcMs)
               -DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()) : 0,
@@ -555,6 +600,13 @@ internal sealed class RobotContext : ApplicationContext
             _passivePreviewExpiresUtcMs=0;
             _passivePreviewTimer.Change(Timeout.Infinite,Timeout.Infinite);
             _passivePreviewTimer.Dispose();
+            _visualAttachCursorTimer.Change(Timeout.Infinite,Timeout.Infinite);
+            _visualAttachCursorTimer.Dispose();
+            if(_visualAttachCursorActive)
+            {
+                _visualAttachCursorActive=false;
+                SystemCursorOverride.Release();
+            }
             _cursorLeaseActive=false;
             _cursorLeaseTimer.Change(Timeout.Infinite,Timeout.Infinite);
             _cursorLeaseTimer.Dispose();
