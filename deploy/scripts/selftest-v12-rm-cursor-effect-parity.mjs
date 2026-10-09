@@ -63,10 +63,10 @@ assert.ok(winGlow.includes('Interval=TimeSpan.FromMilliseconds(16)'));
 assert.doesNotMatch(winGlow,/SolidBrush\(Color\.FromArgb\(\(int\)\(32\*breathe/,
   'old cyan-violet bullseye must not return');
 const cursorSource=read('client/windows-native/GptOperator.RealRemoteV2/SystemCursorOverride.cs');
-assert.ok(cursorSource.includes('new SolidBrush(Color.FromArgb(255,249,251,255))'),
-  'preserve exact cursor renderer from owner-approved 0209722');
-assert.ok(cursorSource.includes('new Pen(Color.FromArgb(250,22,26,34),2.25f)'),
-  'preserve original arrow silhouette and edging');
+assert.ok(cursorSource.includes('new SolidBrush(Color.FromArgb(255,16,21,28))'),
+  'approved arrow must have a BLACK fill, never white');
+assert.ok(cursorSource.includes('new Pen(Color.FromArgb(255,243,246,251),1.55f)'),
+  'approved black pointer must keep its narrow light outline');
 assert.match(cursorSource,/CursorIds = \{ OCR_NORMAL \}/,
   'must not replace I-beam or Paint crosshair with AI arrow');
 assert.doesNotMatch(cursorSource,/DrawString\("AI"/,
@@ -89,12 +89,12 @@ assert.ok(winContext.includes('_cursorLeaseActive || _passivePreviewActive || _v
 assert.ok(winContext.includes('"desktop.visual.attach" or "desktop-visual-attach" => AttachVisualWithCursor(request)'));
 assert.ok(winContext.includes('"desktop.visual.detach" or "desktop-visual-detach" => DetachVisualWithCursor(request)'));
 const attachedCursorMethod=winContext.split('private object AttachVisualWithCursor(JsonElement request)')[1]?.split('private object DetachVisualWithCursor(JsonElement request)')[0]||'';
-assert.ok(!attachedCursorMethod.includes('SystemCursorOverride.Acquire()'),
-  'attach must preserve the owners actual Windows pointer');
+assert.ok(attachedCursorMethod.includes('SystemCursorOverride.Acquire()'),
+  'attach must install the approved BLACK RM arrow');
 assert.ok(attachedCursorMethod.includes('_visualAttachCursorTimer.Change(VisualAttachCursorLeaseMs,Timeout.Infinite)'));
 const detachCursorMethod=winContext.split('private void StopVisualAttachCursor()')[1]?.split('// Owner-controlled passive inspection')[0]||'';
-assert.ok(!detachCursorMethod.includes('SystemCursorOverride.Release()'),
-  'detach must not release a cursor override it never acquired');
+assert.ok(detachCursorMethod.includes('SystemCursorOverride.Release()'),
+  'detach must restore the Windows arrow');
 for(const forbidden of ['NativeInput.Move(','NativeInput.Click(','NativeInput.Drag(','SetCursorPos(','SendInput(']){
  assert.ok(!attachedCursorMethod.includes(forbidden),'attach may not inject pointer action '+forbidden);
 }

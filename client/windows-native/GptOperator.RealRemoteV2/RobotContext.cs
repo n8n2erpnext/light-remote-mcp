@@ -147,10 +147,10 @@ internal sealed class RobotContext : ApplicationContext
         } catch(ObjectDisposedException) {} catch(InvalidOperationException) {}
     }
 
-    // Attach shows only the glow. Keep the owner's current native OS
-    // cursor EXACTLY as configured (including their black pointer theme).
-    // Never synthesize a new arrow or inject pointer movement on attach.
-    // Detach, process exit or lease expiry hides the glow.
+    // The approved rc.48 dark cursor is installed only for a visual
+    // attach or physical agent input. Neither operation sends pointer
+    // movement merely by attaching; the owner keeps moving their mouse.
+    // Detach/lease expiry must restore the original system cursor.
     private object AttachVisualWithCursor(JsonElement request)
     {
         var result=_visual.Attach(
@@ -164,7 +164,11 @@ internal sealed class RobotContext : ApplicationContext
         lock(_cursorLeaseGate)
         {
             if(_closing)throw new InvalidOperationException("robot_closing");
-            _visualAttachCursorActive=true;
+            if(!_visualAttachCursorActive)
+            {
+                SystemCursorOverride.Acquire();
+                _visualAttachCursorActive=true;
+            }
             _visualAttachCursorTimer.Change(VisualAttachCursorLeaseMs,Timeout.Infinite);
             UpdateGlowVisibility();
         }
@@ -189,7 +193,7 @@ internal sealed class RobotContext : ApplicationContext
             if(!_visualAttachCursorActive)return;
             _visualAttachCursorActive=false;
             UpdateGlowVisibility();
-            // No cursor override was acquired for a visual attach.
+            SystemCursorOverride.Release();
         }
     }
 
@@ -602,7 +606,7 @@ internal sealed class RobotContext : ApplicationContext
             if(_visualAttachCursorActive)
             {
                 _visualAttachCursorActive=false;
-                // Visual attach never acquired a system cursor override.
+                SystemCursorOverride.Release();
             }
             _cursorLeaseActive=false;
             _cursorLeaseTimer.Change(Timeout.Infinite,Timeout.Infinite);

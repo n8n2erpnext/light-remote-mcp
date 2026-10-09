@@ -209,11 +209,11 @@ internal static class SystemCursorOverride
         shift.Translate(1.05f,1.25f);
         shadowPath.Transform(shift);
         using var shadow = new SolidBrush(Color.FromArgb(75,0,0,0));
-        using var outline = new Pen(Color.FromArgb(250,22,26,34),2.25f)
+        using var outline = new Pen(Color.FromArgb(255,243,246,251),1.55f)
         {
             LineJoin = LineJoin.Round
         };
-        using var fill = new SolidBrush(Color.FromArgb(255,249,251,255));
+        using var fill = new SolidBrush(Color.FromArgb(255,16,21,28));
         using var accent = new Pen(Color.FromArgb(220,249,186,51),1.1f)
         {
             LineJoin = LineJoin.Round
