@@ -29,8 +29,8 @@ internal sealed class CursorGlowOverlay : System.Windows.Window, IDisposable
     private nint _handle;
     private int _paintCount;
 
-    private const int SizePx=96;
-    private const int Anchor=48;
+    private const int SizePx=56;
+    private const int Anchor=28;
     private const int GWL_EXSTYLE=-20;
     private const int WS_EX_TRANSPARENT=0x20;
     private const int WS_EX_TOOLWINDOW=0x80;
@@ -85,11 +85,11 @@ internal sealed class CursorGlowOverlay : System.Windows.Window, IDisposable
         // Cyan supplies a bright center, blue stays distinct on white UI,
         // and a warm yellow outer ambience adds contrast on dark canvas.
         // Keep every circle mathematically centered, with NO direction/tail.
-        AddCenteredBloom(root,80,255,210,62,
+        AddCenteredBloom(root,40,255,210,62,
             (0.00,12),(0.36,47),(0.62,57),(0.82,26),(1.00,0)); // yellow
-        AddCenteredBloom(root,60,57,119,246,
+        AddCenteredBloom(root,30,57,119,246,
             (0.00,35),(0.35,83),(0.62,63),(0.85,22),(1.00,0)); // blue
-        AddCenteredBloom(root,36,35,232,249,
+        AddCenteredBloom(root,20,35,232,249,
             (0.00,95),(0.30,125),(0.67,52),(1.00,0)); // cyan
 
         _clickRing=new Ellipse{

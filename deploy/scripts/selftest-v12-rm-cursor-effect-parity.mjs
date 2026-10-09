@@ -34,14 +34,14 @@ assert.match(winGlow,/System\.Windows\.Forms\.Cursor\.Position/);
 assert.match(winGlow,/ClickPulse/);
 assert.match(winGlow,/Three superposed continuous radial blooms/);
 for(const circle of [
-  'AddCenteredBloom(root,80,255,210,62,',
-  'AddCenteredBloom(root,60,57,119,246,',
-  'AddCenteredBloom(root,36,35,232,249,'
+  'AddCenteredBloom(root,40,255,210,62,',
+  'AddCenteredBloom(root,30,57,119,246,',
+  'AddCenteredBloom(root,20,35,232,249,'
 ]) assert.ok(winGlow.includes(circle),'missing glow palette '+circle);
 assert.ok(winGlow.includes('Canvas.SetLeft(layer,Anchor-diameter/2)'));
 assert.ok(winGlow.includes('Canvas.SetTop(layer,Anchor-diameter/2)'));
-assert.match(winGlow,/private const int SizePx=96;/);
-assert.match(winGlow,/private const int Anchor=48;/);
+assert.match(winGlow,/private const int SizePx=56;/);
+assert.match(winGlow,/private const int Anchor=28;/);
 assert.match(winGlow,/Left=cursor.X\/dpi.DpiScaleX-Anchor;/,
   'hotspot must first convert physical cursor coords to WPF DIPs');
 assert.match(winGlow,/Top=cursor.Y\/dpi.DpiScaleY-Anchor;/);
@@ -50,7 +50,7 @@ assert.doesNotMatch(winGlow,/Left=\(cursor.X-Anchor\)\/dpi/,
 assert.doesNotMatch(winGlow,/Top=\(cursor.Y-Anchor\)\/dpi/);
 // DPI parity: WPF positions in DIPs; live cursor hotspot in physical pixels.
 for(const dpi of [1,1.25,1.5,2]){
-  const anchor=48,physicalX=764,physicalY=772;
+  const anchor=28,physicalX=764,physicalY=772;
   const winLeft=physicalX/dpi-anchor,winTop=physicalY/dpi-anchor;
   assert.ok(Math.abs((winLeft+anchor)*dpi-physicalX)<1e-7);
   assert.ok(Math.abs((winTop+anchor)*dpi-physicalY)<1e-7);
@@ -63,6 +63,10 @@ assert.ok(winGlow.includes('Interval=TimeSpan.FromMilliseconds(16)'));
 assert.doesNotMatch(winGlow,/SolidBrush\(Color\.FromArgb\(\(int\)\(32\*breathe/,
   'old cyan-violet bullseye must not return');
 const cursorSource=read('client/windows-native/GptOperator.RealRemoteV2/SystemCursorOverride.cs');
+assert.ok(cursorSource.includes('new SolidBrush(Color.FromArgb(255,16,21,28))'),
+  'pointer must stay charcoal-black, not white');
+assert.ok(cursorSource.includes('new Pen(Color.FromArgb(255,243,246,251),1.55f)'),
+  'black arrow requires a thin light edge for dark backgrounds');
 assert.match(cursorSource,/CursorIds = \{ OCR_NORMAL \}/,
   'must not replace I-beam or Paint crosshair with AI arrow');
 assert.doesNotMatch(cursorSource,/DrawString\("AI"/,
