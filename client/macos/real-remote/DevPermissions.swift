@@ -2,15 +2,17 @@ import AppKit
 import ApplicationServices
 import CoreGraphics
 import Foundation
+import WebKit
 
 // Local, owner-operated permission window for UNSIGNED development builds.
 // Never changes macOS privacy settings; the OS owns approval decisions.
-final class RobotDevPermissionsController: NSObject, NSApplicationDelegate, NSWindowDelegate {
+final class RobotDevPermissionsController: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNavigationDelegate {
     var isDevelopment = true
     private var requestRow: NSStackView?
     private var screenButton: NSButton?
     private var accessibilityButton: NSButton?
     private var window: NSWindow?
+    private var agentAccessWindow: NSWindow?
     private let captureState = NSTextField(labelWithString: "")
     private let axState = NSTextField(labelWithString: "")
     private let intro = NSTextField(wrappingLabelWithString:
@@ -30,7 +32,7 @@ final class RobotDevPermissionsController: NSObject, NSApplicationDelegate, NSWi
         // Embedded helper is a background/accessory app: no second Dock icon.
         app.setActivationPolicy(isDevelopment ? .regular : .accessory)
 
-        let frame = NSRect(x:0,y:0,width:550,height:280)
+        let frame = NSRect(x:0,y:0,width:660,height:290)
         let win = NSWindow(contentRect:frame,
                            styleMask:[.titled,.closable,.miniaturizable],
                            backing:.buffered,defer:false)
@@ -73,6 +75,7 @@ final class RobotDevPermissionsController: NSObject, NSApplicationDelegate, NSWi
 
         let navRow = NSStackView(views:[
             button("Refresh Status",action:#selector(refresh)),
+            button("Agent Access",action:#selector(openAgentAccess)),
             button("Open Privacy Settings",action:#selector(openPrivacy)),
             button(isDevelopment ? "Quit Dev Robot" : "Close Settings",action:#selector(quitApp))
         ])
@@ -121,6 +124,39 @@ final class RobotDevPermissionsController: NSObject, NSApplicationDelegate, NSWi
         screenButton?.isHidden = screen
         accessibilityButton?.isHidden = ax
         requestRow?.isHidden = screen && ax
+    }
+    // The owner can review both Apple's TCC grants and local Agent policy
+    // from Robot. WKWebView does not bypass Local Wall authentication/CSRF.
+    @objc private func openAgentAccess(_ sender:Any?) {
+        if let existing=agentAccessWindow, existing.isVisible {
+            existing.makeKeyAndOrderFront(nil)
+            NSApplication.shared.activate(ignoringOtherApps:true)
+            return
+        }
+        guard let url=URL(string:"http://127.0.0.1:5491/permissions") else { return }
+        let panel=NSWindow(contentRect:NSRect(x:0,y:0,width:930,height:680),
+                           styleMask:[.titled,.closable,.resizable,.miniaturizable],
+                           backing:.buffered,defer:false)
+        panel.title="Light Remote Robot — Agent Access"
+        panel.center()
+        panel.isReleasedWhenClosed=false
+        let browser=WKWebView(frame:NSRect(x:0,y:0,width:930,height:680))
+        browser.navigationDelegate=self
+        browser.load(URLRequest(url:url,cachePolicy:.reloadIgnoringLocalCacheData))
+        panel.contentView=browser
+        agentAccessWindow=panel
+        panel.makeKeyAndOrderFront(nil)
+        NSApplication.shared.activate(ignoringOtherApps:true)
+    }
+    // Only the owner-authenticated localhost Wall can render inside Robot.
+    func webView(_ webView:WKWebView,decidePolicyFor navigationAction:WKNavigationAction,
+                 decisionHandler:@escaping (WKNavigationActionPolicy)->Void) {
+        guard let url=navigationAction.request.url,
+              url.scheme=="http",url.host=="127.0.0.1",url.port==5491 else {
+            decisionHandler(.cancel)
+            return
+        }
+        decisionHandler(.allow)
     }
     @objc private func openPrivacy(_ sender:Any?) {
         guard let url=URL(string:"x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") else{return}
