@@ -1,0 +1,15 @@
+import {cloudRenewBackoffDelayMs as delay} from '../../lib/cloud-lease-renew-backoff.mjs';
+const test=(v,label)=>{if(!v)throw new Error(label);};
+const base=delay({failures:1,status:404,random:0.5});
+test(base===60_000,'404_base_must_be_60_seconds');
+test(delay({failures:2,status:404,random:0.5})===120_000,'404_exponential');
+test(delay({failures:20,status:404,random:0.5})===600_000,'bounded_max');
+test(delay({failures:1,status:502,random:0.5})===15_000,'transient_base');
+test(delay({failures:1,status:401,random:0.5})===120_000,'auth_failure_slowdown');
+test(delay({failures:1,status:429,retryAfterMs:180_000,random:0.5})===180_000,'respect_retry_after');
+test(delay({failures:8,status:404,hardExpiresAt:Date.now()+60_000,now:Date.now(),random:0.5})<=20_100,'retry_before_expiration');
+const code=await import('node:fs').then(fs=>fs.readFileSync(new URL('../../device-agent/operator-agent.mjs',import.meta.url),'utf8'));
+test(code.includes('await maybeRenewCloudLease(current)'), 'pulse_must_share_renew_gate');
+test(code.includes('await maybeRenewCloudLease(state)'), 'main_loop_must_share_renew_gate');
+test(!code.includes('if(cloudLeaseRenewalDue(current))await renewCloudLease(current,hub)'), 'pulse_ungated_renew_regression');
+console.log('cloud_lease_renew_backoff_no_storm=PASS');

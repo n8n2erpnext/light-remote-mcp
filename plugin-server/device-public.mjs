@@ -4,7 +4,7 @@ import { callOperatorJson, proxyOperatorDuplex } from './operator-client.mjs';
 
 const BOOTSTRAP = new Set(['enrollment-begin','enrollment-poll','device-heartbeat','account-login']);
 const CHANNEL = new Set([
-  'connect','disconnect','grace','account-auth',
+  'connect','renew','disconnect','grace','account-auth',
   'fleet-intent','fleet-authority','fleet-status','fleet-devices','fleet-sessions','fleet-activity','fleet-device-policy','fleet-device-update',
   'pairing-code','account-owner-proof','access-approve','access-deny','status','session-close','desktop-live-push','activity','update-report','poll','result'
 ]);

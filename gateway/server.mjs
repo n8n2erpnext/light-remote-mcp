@@ -300,6 +300,7 @@ async function requireClientJobDevice(req,res,next){
 }
 
 app.post('/device-channel/connect', deviceChannelEdgeRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/connect', req.body || {}));
+app.post('/device-channel/renew', deviceChannelEdgeRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/renew', req.body || {}));
 app.post('/device-channel/disconnect', deviceChannelEdgeRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/disconnect', req.body || {}));
 app.post('/device-channel/grace', deviceChannelEdgeRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/grace', req.body || {}));
 app.post('/device-channel/account-auth', deviceChannelEdgeRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/account-auth', req.body || {}));

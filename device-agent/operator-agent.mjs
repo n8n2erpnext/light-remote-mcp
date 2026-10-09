@@ -7,6 +7,7 @@ import { StringDecoder } from 'node:string_decoder';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { deviceChannelMessage, deviceHeartbeatMessage, devicePolicyMessage, normalizeDeviceCapabilities } from '../lib/device-proof.mjs';
+import { cloudRenewBackoffDelayMs } from '../lib/cloud-lease-renew-backoff.mjs';
 import { createPlatformAdapter } from './platform-adapters/index.mjs';
 import { startLocalWall } from './local-wall.mjs';
 import { loadLocalWallAuth, writeLocalWallAuthConfig, writeAccountOnlyWallAuthConfig } from './local-wall-auth.mjs';
@@ -774,6 +775,22 @@ async function daemon(args){
   const dormantPollMs=Math.max(1000,Math.min(Number(process.env.OPERATOR_AGENT_DORMANT_CHECK_MS)||2000,30000));
   const commandHeartbeatMs=Math.max(2000,Math.min(Number(process.env.OPERATOR_AGENT_COMMAND_HEARTBEAT_MS)||5000,15000));
   let stopped=false,wake=null,failures=0,localWall=null,fleetTimer=null,fleetReconciling=false;
+  let renewFailures=0,renewNextAttemptAt=0,renewInFlight=null;
+  const maybeRenewCloudLease=async current=>{
+    if(!cloudLeaseRenewalDue(current)||Date.now()<renewNextAttemptAt)return false;
+    if(renewInFlight)return renewInFlight;
+    renewInFlight=(async()=>{
+      try{await renewCloudLease(current,hub);renewFailures=0;renewNextAttemptAt=0;return true;}
+      catch(error){
+        renewFailures+=1;
+        const retryMs=cloudRenewBackoffDelayMs({failures:renewFailures,status:error.status,retryAfterMs:error.retryAfterMs,hardExpiresAt:current.cloud?.hardExpiresAt,now:Date.now(),random:Math.random()});
+        renewNextAttemptAt=Date.now()+retryMs;
+        console.error(JSON.stringify({event:'device_connection_renew_failed',deviceId:current.enrollment?.deviceId,error:error.message,status:error.status||null,retryInMs:retryMs,consecutiveFailures:renewFailures}));
+        return false;
+      }
+    })();
+    try{return await renewInFlight;}finally{renewInFlight=null;}
+  };
   const fleetManager=new FleetComponentManager(),fleetSupervisor=new FleetComponentSupervisor({manager:fleetManager,stateProvider:()=>readState(),requestIntent:async current=>{const local=await localFleetStatus();const response=await channelRequest(current,hub,'fleet-intent',{agentVersion:VERSION,moduleVersion:fleetManager.current()?.version||null,fleetHealthy:local.healthy===true,fleetPort:local.port});return response.fleet;},env:{OPERATOR_AGENT_STATE:STATE_FILE,OPERATOR_AGENT_IDENTITY_FILE:EXTERNAL_IDENTITY_FILE,OPERATOR_AGENT_WALL_AUTH_FILE:LOCAL_WALL_AUTH_FILE,OPERATOR_AGENT_HUB_URL:hub,OPERATOR_FLEET_WALL_HOST:FLEET_WALL_HOST,OPERATOR_FLEET_WALL_PORT:String(FLEET_WALL_PORT),OPERATOR_FLEET_WALL_PUBLIC_URL:FLEET_WALL_PUBLIC_URL},emit:event=>console.log(JSON.stringify(event))});
   const stop=()=>{stopped=true;if(wake)wake();if(fleetTimer){clearInterval(fleetTimer);fleetTimer=null;}fleetSupervisor.close().catch(()=>{});try{localWall?.server.close();}catch{}};process.on('SIGTERM',stop);process.on('SIGINT',stop);
   const wait=ms=>new Promise(resolve=>{const timer=setTimeout(()=>{wake=null;resolve();},ms);wake=()=>{clearTimeout(timer);wake=null;resolve();};});
@@ -789,8 +806,7 @@ async function daemon(args){
   while(!stopped){
     const latest=readState();if(latest)state=latest;
     if(state?.enrollment?.deviceId&&cloudLeaseRenewalDue(state)){
-      try{await renewCloudLease(state,hub);const renewed=readState();if(renewed)state=renewed;failures=0;}
-      catch(error){console.error(JSON.stringify({event:'device_connection_renew_failed',deviceId:state.enrollment.deviceId,error:error.message,status:error.status||null}));}
+      if(await maybeRenewCloudLease(state)){const renewed=readState();if(renewed)state=renewed;failures=0;}
     }
     expireLocalHardLease(state);
     if(!state.enrollment?.deviceId||!cloudDesired(state)){await wait(dormantPollMs);continue;}
@@ -809,7 +825,7 @@ async function daemon(args){
       if(command){
         const deviceReceivedAt=Date.now();
         let commandPulseTimer=null,commandPulseBusy=false;
-        const commandPulse=async()=>{if(stopped||commandPulseBusy)return;commandPulseBusy=true;try{const current=readState()||state;if(!current?.enrollment?.deviceId||!cloudDesired(current))return;if(cloudLeaseRenewalDue(current))await renewCloudLease(current,hub);await channelRequest(current,hub,'poll',{nodeId:current.enrollment.nodeId||current.enrollment.deviceId,agentVersion:VERSION,sessionCeiling,draining:true,capabilities:effectiveCapabilitiesForState(current),policyRevision:Math.max(0,Number(current.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView(),waitMs:0});}catch(error){console.error(JSON.stringify({event:'device_command_liveness_failed',deviceId:state.enrollment?.deviceId||null,commandId:command.commandId,error:error.message,status:error.status||null}));}finally{commandPulseBusy=false;}};
+        const commandPulse=async()=>{if(stopped||commandPulseBusy)return;commandPulseBusy=true;try{const current=readState()||state;if(!current?.enrollment?.deviceId||!cloudDesired(current))return;await maybeRenewCloudLease(current);await channelRequest(current,hub,'poll',{nodeId:current.enrollment.nodeId||current.enrollment.deviceId,agentVersion:VERSION,sessionCeiling,draining:true,capabilities:effectiveCapabilitiesForState(current),policyRevision:Math.max(0,Number(current.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView(),waitMs:0});}catch(error){console.error(JSON.stringify({event:'device_command_liveness_failed',deviceId:state.enrollment?.deviceId||null,commandId:command.commandId,error:error.message,status:error.status||null}));}finally{commandPulseBusy=false;}};
         await commandPulse();commandPulseTimer=setInterval(()=>void commandPulse(),commandHeartbeatMs);commandPulseTimer.unref?.();
         let result,claim;
         try{
