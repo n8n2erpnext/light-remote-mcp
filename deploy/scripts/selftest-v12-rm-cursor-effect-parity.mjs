@@ -16,11 +16,13 @@ assert.match(winInput,/Stopwatch\.StartNew\(\)/,'Windows cursor pacing uses mono
 assert.match(winInput,/SmoothPoint\(start\.X,start\.Y,x,y,i,frameCount\)/);
 assert.doesNotMatch(winInput,/var delay=Math\.Max\(0,durationMs\/steps\)/);
 assert.match(winGlow,/WS_EX_TRANSPARENT\|WS_EX_TOOLWINDOW\|WS_EX_NOACTIVATE/);
-assert.match(winGlow,/ShowWithoutActivation => true/);
-assert.match(winGlow,/TransparencyKey=_transparent/);
-assert.match(winGlow,/Cursor\.Position/);
+assert.match(winGlow,/AllowsTransparency=true/);
+assert.match(winGlow,/ShowActivated=false/);
+assert.doesNotMatch(winGlow,/TransparencyKey=/,'no GDI transparency-key bullseye');
+assert.match(winGlow,/new RadialGradientBrush/);
+assert.match(winGlow,/System\.Windows\.Forms\.Cursor\.Position/);
 assert.match(winGlow,/ClickPulse/);
-assert.match(winGlow,/Muted amber tail/,'glow must be a small offset tail');
+assert.match(winGlow,/Small warm light/,'glow must be a small offset tail');
 assert.doesNotMatch(winGlow,/SolidBrush\(Color\.FromArgb\(\(int\)\(32\*breathe/,
   'old cyan-violet bullseye must not return');
 const cursorSource=read('client/windows-native/GptOperator.RealRemoteV2/SystemCursorOverride.cs');
