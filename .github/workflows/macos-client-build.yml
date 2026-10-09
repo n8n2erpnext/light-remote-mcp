@@ -14,6 +14,8 @@ on:
       - 'lib/native-desktop.mjs'
       - 'deploy/scripts/selftest-macos-gui-optin.mjs'
       - 'deploy/scripts/selftest-v12-macos-rmv2-bridge.mjs'
+      - 'deploy/scripts/selftest-v12-macos-physical-type-routing.mjs'
+      - 'operator-host/executor.mjs'
       - 'deploy/scripts/selftest-v12-macos-codex-cursor.mjs'
       - 'deploy/scripts/macos-operator-native-*-e2e.mjs'
       - 'lib/native-process.mjs'
@@ -82,6 +84,7 @@ jobs:
           cp "node-v${NODE_VERSION}-darwin-${NODE_ARCH}/LICENSE" "$PKG/licenses/node/LICENSE"
           npm ci --ignore-scripts
           node deploy/scripts/selftest-v12-macos-rmv2-bridge.mjs
+          node deploy/scripts/selftest-v12-macos-physical-type-routing.mjs
           node deploy/scripts/selftest-v12-macos-codex-cursor.mjs
           node deploy/scripts/selftest-macos-gui-optin.mjs
           node deploy/scripts/stage-client-core.mjs "$PKG"

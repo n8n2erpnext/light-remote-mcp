@@ -37,6 +37,8 @@ on:
       - 'package-lock.json'
       - 'client/core-files.json'
       - 'assets/**'
+      - 'operator-host/executor.mjs'
+      - 'deploy/scripts/selftest-v12-macos-physical-type-routing.mjs'
       - '.github/workflows/windows-native-client.yml'
   workflow_dispatch:
   workflow_call:
@@ -56,6 +58,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22.23.2'
+      - name: Verify cross-platform physical typing route
+        shell: pwsh
+        run: |
+          node deploy/scripts/selftest-v12-macos-physical-type-routing.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'physical type routing contract failed' }
       - name: Publish native tray client
         shell: pwsh
         run: |
@@ -416,6 +423,17 @@ jobs:
         with:
           name: real-remote-v2-golden-${{ github.sha }}
           path: dist/realremote-v2/
+          retention-days: 14
+
+      # Portable UAT: self-contained RM companion without installer,
+      # Local Wall registration, Scheduled Tasks or production overwrite.
+      - name: Upload isolated Windows RM V2 UAT executable
+        if: github.ref_name == 'codex/rc48-candidate'
+        uses: actions/upload-artifact@v4
+        with:
+          name: rmv2-windows-uat-${{ github.sha }}
+          path: dist/realremote-v2/
+          if-no-files-found: error
           retention-days: 14
 
       - name: Install Inno Setup
