@@ -29,8 +29,8 @@ internal sealed class CursorGlowOverlay : System.Windows.Window, IDisposable
     private nint _handle;
     private int _paintCount;
 
-    private const int SizePx=128;
-    private const int Anchor=64;
+    private const int SizePx=96;
+    private const int Anchor=48;
     private const int GWL_EXSTYLE=-20;
     private const int WS_EX_TRANSPARENT=0x20;
     private const int WS_EX_TOOLWINDOW=0x80;
@@ -85,11 +85,11 @@ internal sealed class CursorGlowOverlay : System.Windows.Window, IDisposable
         // Cyan supplies a bright center, blue stays distinct on white UI,
         // and a warm yellow outer ambience adds contrast on dark canvas.
         // Keep every circle mathematically centered, with NO direction/tail.
-        AddCenteredBloom(root,112,255,210,62,
+        AddCenteredBloom(root,80,255,210,62,
             (0.00,12),(0.36,47),(0.62,57),(0.82,26),(1.00,0)); // yellow
-        AddCenteredBloom(root,82,57,119,246,
+        AddCenteredBloom(root,60,57,119,246,
             (0.00,35),(0.35,83),(0.62,63),(0.85,22),(1.00,0)); // blue
-        AddCenteredBloom(root,50,35,232,249,
+        AddCenteredBloom(root,36,35,232,249,
             (0.00,95),(0.30,125),(0.67,52),(1.00,0)); // cyan
 
         _clickRing=new Ellipse{
@@ -179,9 +179,13 @@ internal sealed class CursorGlowOverlay : System.Windows.Window, IDisposable
         if(cursor!=_lastPosition)
         {
             var dpi=VisualTreeHelper.GetDpi(this);
-            // Win32 Cursor.Position is physical pixels; WPF positions use DIPs.
-            Left=(cursor.X-Anchor)/dpi.DpiScaleX;
-            Top=(cursor.Y-Anchor)/dpi.DpiScaleY;
+            // The mouse hotspot is in physical screen pixels, while Left/Top
+            // and Anchor are WPF DIPs. Convert the pointer to DIPs FIRST,
+            // then subtract the centered glow offset in DIPs.
+            // (cursor.X-Anchor)/scale incorrectly adds Anchor*(scale-1)
+            // physical pixels to the glow's center on scaled monitors.
+            Left=cursor.X/dpi.DpiScaleX-Anchor;
+            Top=cursor.Y/dpi.DpiScaleY-Anchor;
             System.Threading.Volatile.Write(ref _lastScreenLeft,cursor.X-Anchor);
             System.Threading.Volatile.Write(ref _lastScreenTop,cursor.Y-Anchor);
             _lastPosition=cursor;
