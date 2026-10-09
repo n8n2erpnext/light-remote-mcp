@@ -19,6 +19,9 @@ final class TrayDelegate: NSObject, NSApplicationDelegate {
     var agent: String { root + "/current/device-agent/operator-agent.mjs" }
     var brandIcon: String { root + "/current/assets/branding/light-remote-mark-256.png" }
     let appIcon = "/Applications/Light Remote.app/Contents/Resources/LightRemote.icns"
+    // The Robot bundle is part of the main installer but keeps its own
+    // macOS Screen Recording / Accessibility consent identity.
+    let robotPreferencesApp = "/Applications/Light Remote.app/Contents/Helpers/Light Remote Robot.app"
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         if let button = statusItem.button { button.imagePosition = .imageOnly; button.imageScaling = .scaleProportionallyDown; button.title = ""; button.toolTip = "Light Remote" }; statusItem.isVisible = true
@@ -30,6 +33,14 @@ final class TrayDelegate: NSObject, NSApplicationDelegate {
         openFleetItem.isEnabled = false
         menu.addItem(openFleetItem)
         menu.addItem(connectItem)
+        let settings = NSMenuItem(title: "Settings", action: nil, keyEquivalent: "")
+        let settingsMenu = NSMenu(title: "Settings")
+        let privacy = NSMenuItem(title: "Real Remote → Privacy & Permissions…",
+                                 action: #selector(openRealRemotePermissions), keyEquivalent: "")
+        privacy.target = self
+        settingsMenu.addItem(privacy)
+        settings.submenu = settingsMenu
+        menu.addItem(settings)
         menu.addItem(NSMenuItem(title: "Restart Light Remote", action: #selector(restartAgent), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Check for updates", action: #selector(checkUpdates), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Stop Light Remote", action: #selector(stopAgent), keyEquivalent: ""))
@@ -46,6 +57,26 @@ final class TrayDelegate: NSObject, NSApplicationDelegate {
         return (p.terminationStatus,
                 String(data: o.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? "",
                 String(data: e.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? "")
+    }
+    // Open only on a deliberate owner click, never at client/agent startup.
+    // LaunchServices uses Robot's stable bundle identity for Apple TCC.
+    @objc func openRealRemotePermissions() {
+        let binary = robotPreferencesApp + "/Contents/MacOS/LightRemoteRealRemote"
+        guard FileManager.default.isExecutableFile(atPath: binary) else {
+            showAlert("Real Remote permissions unavailable",
+                      "The Robot companion is not installed. Update Light Remote before configuring Real Remote.")
+            return
+        }
+        let config = NSWorkspace.OpenConfiguration()
+        config.arguments = ["--permissions-ui"]
+        config.activates = true
+        NSWorkspace.shared.openApplication(at: URL(fileURLWithPath: robotPreferencesApp),
+                                           configuration: config) { [weak self] _, error in
+            guard let error else { return }
+            DispatchQueue.main.async {
+                self?.showAlert("Unable to open Real Remote settings", error.localizedDescription)
+            }
+        }
     }
     func agentRun(_ args: [String]) -> (Int32, String, String) { run(node, [agent] + args) }
     func status() -> [String: Any] {

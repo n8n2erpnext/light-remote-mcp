@@ -1,0 +1,42 @@
+#!/usr/bin/env node
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+const read=x=>fs.readFileSync(x,'utf8');
+const tray=read('client/macos/tray/main.swift');
+const permissions=read('client/macos/real-remote/DevPermissions.swift');
+const main=read('client/macos/real-remote/main.swift');
+const robot=read('client/macos/real-remote/RobotCursorOverlay.swift');
+const plist=read('client/macos/real-remote/robot-app/Info.plist');
+const builder=read('client/macos/real-remote/robot-app/build-robot-app.sh');
+const pkg=read('client/macos/build-pkg.sh');
+const bridge=read('lib/native-desktop.mjs');
+const installed='/Applications/Light Remote.app/Contents/Helpers/Light Remote Robot.app';
+const check=(value,message)=>assert.ok(value,message);
+check(tray.includes('Real Remote → Privacy & Permissions…'),'tray settings menu missing');
+check(tray.includes('action: #selector(openRealRemotePermissions)'),'menu action missing');
+check(tray.includes('privacy.target = self'),'menu action has no owner target');
+check(tray.includes(installed),'settings must open bundled Robot');
+check(tray.includes('config.arguments = ["--permissions-ui"]'),'settings must open explicit owner UI');
+check(main.includes('args.contains("--permissions-ui")'),'helper explicit settings mode missing');
+check(main.includes('robot_permissions_bundle_required'),'helper must reject wrong bundle identity');
+check(main.includes('runRobotPermissions(isDevelopment: devBundle)'),'helper settings UI missing');
+check(permissions.includes('app.setActivationPolicy(isDevelopment ? .regular : .accessory)'),
+ 'production helper must not create a second Dock app');
+check(permissions.includes('screenButton?.isHidden = screen'),'hide granted screen request');
+check(permissions.includes('accessibilityButton?.isHidden = ax'),'hide granted AX request');
+check(permissions.includes('requestRow?.isHidden = screen && ax'),'hide permission controls when granted');
+check(permissions.includes('Light Remote — Real Remote Permissions'),'integrated title missing');
+check(plist.includes('<string>com.lightremote.robot</string>'),'stable Robot bundle identity missing');
+check(plist.includes('<key>LSUIElement</key><true/>'),'Robot should be Dock-free');
+check(plist.includes('<key>LSMinimumSystemVersion</key><string>11.0</string>'),'macOS 11 minimum lost');
+check(plist.includes('<key>CFBundleIconFile</key><string>LightRemoteRM</string>'),'RM icon not declared');
+check(builder.includes('LightRemoteRM.icns'),'Robot icon must be packaged');
+check(pkg.includes('ROBOT_APP="$APP/Contents/Helpers/Light Remote Robot.app"'),'Robot not embedded');
+check(pkg.includes('codesign --force --options runtime --timestamp --sign "$MACOS_APP_SIGN_IDENTITY" "$ROBOT_APP"'),
+ 'nested Robot must be separately signed');
+check(bridge.includes(installed),'opt-in sidecar must recognize bundled path');
+check(robot.includes('NSStatusBar.system.statusItem'),'RM lease icon creation absent');
+check(robot.includes('NSStatusBar.system.removeStatusItem(rmStatusItem)'),'RM lease detach cleanup absent');
+check(!pkg.includes('CGRequestScreenCaptureAccess'),'installer must not prompt TCC');
+check(fs.existsSync('client/macos/real-remote/canary/DevInfo.plist'),'preserve existing dev bundle');
+console.log('macos_integrated_settings_tcc_identity_rm_icon_contract=PASS');

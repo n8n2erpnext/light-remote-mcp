@@ -59,7 +59,13 @@ make_icon 256 icon_256x256.png; make_icon 512 icon_256x256@2x.png
 make_icon 512 icon_512x512.png; make_icon 1024 icon_512x512@2x.png
 /usr/bin/iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/LightRemote.icns"
 /usr/bin/plutil -lint "$APP/Contents/Info.plist" >/dev/null
+# Ship Robot *inside* the main Light Remote product. TCC identity is
+# distinct; no second user-installed app, no extra daemon or Dock icon.
+ROBOT_APP="$APP/Contents/Helpers/Light Remote Robot.app"
+bash "$ROOT_DIR/client/macos/real-remote/robot-app/build-robot-app.sh" "$PKG/real-remote/LightRemoteRealRemote" "$ROBOT_APP"
 if [[ -n "${MACOS_APP_SIGN_IDENTITY:-}" ]]; then
+  /usr/bin/codesign --force --options runtime --timestamp --sign "$MACOS_APP_SIGN_IDENTITY" "$ROBOT_APP"
+  /usr/bin/codesign --verify --deep --strict "$ROBOT_APP"
   /usr/bin/codesign --force --options runtime --timestamp --sign "$MACOS_APP_SIGN_IDENTITY" "$APP"
   /usr/bin/codesign --verify --deep --strict "$APP"
   echo "macos_app_signing=signed"

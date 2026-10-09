@@ -509,8 +509,18 @@ func run() throws {
     // A --socket launch does NOT open this UI and never prompts for TCC.
     let devBundle=(Bundle.main.bundleIdentifier=="digital.thaiduy.lightremote.robot.dev")
     let hasOnlyFinderArgs=args.dropFirst().allSatisfy {$0.hasPrefix("-psn_")}
+    let bundledRobot=(Bundle.main.bundleIdentifier=="com.lightremote.robot")
+    if args.contains("--permissions-ui") {
+        // This is an owner-facing GUI only, never an RPC/agent auto-prompt.
+        guard bundledRobot || devBundle else {
+            throw RemoteError.invalid("robot_permissions_bundle_required")
+        }
+        runRobotPermissions(isDevelopment: devBundle)
+        return
+    }
     if args.contains("--dev-permissions") || (devBundle && hasOnlyFinderArgs) {
-        runRobotDevPermissions()
+        guard devBundle else { throw RemoteError.invalid("robot_dev_permissions_bundle_required") }
+        runRobotPermissions(isDevelopment:true)
         return
     }
     // Only an explicit owner-launched command requests a TCC system prompt.

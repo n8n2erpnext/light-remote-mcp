@@ -6,6 +6,10 @@ import Foundation
 // Local, owner-operated permission window for UNSIGNED development builds.
 // Never changes macOS privacy settings; the OS owns approval decisions.
 final class RobotDevPermissionsController: NSObject, NSApplicationDelegate {
+    var isDevelopment = true
+    private var requestRow: NSStackView?
+    private var screenButton: NSButton?
+    private var accessibilityButton: NSButton?
     private var window: NSWindow?
     private let captureState = NSTextField(labelWithString: "")
     private let axState = NSTextField(labelWithString: "")
@@ -23,13 +27,20 @@ final class RobotDevPermissionsController: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let app = NSApplication.shared
-        app.setActivationPolicy(.regular)
+        // Embedded helper is a background/accessory app: no second Dock icon.
+        app.setActivationPolicy(isDevelopment ? .regular : .accessory)
 
         let frame = NSRect(x:0,y:0,width:550,height:280)
         let win = NSWindow(contentRect:frame,
                            styleMask:[.titled,.closable,.miniaturizable],
                            backing:.buffered,defer:false)
-        win.title = "Light Remote Robot — Development Permissions"
+        win.title = isDevelopment ? "Light Remote Robot — Development Permissions"
+                                  : "Light Remote — Real Remote Permissions"
+        if !isDevelopment {
+            intro.stringValue = "Real Remote needs Apple Screen Recording and Accessibility permission. " +
+                "Approval belongs to this Light Remote Robot helper. Permissions are only requested " +
+                "when you press a button below; closing Settings does not change them."
+        }
         win.center()
         win.isReleasedWhenClosed = false
 
@@ -49,18 +60,20 @@ final class RobotDevPermissionsController: NSObject, NSApplicationDelegate {
         container.addArrangedSubview(captureState)
         container.addArrangedSubview(axState)
 
-        let reqRow = NSStackView(views:[
-            button("Request Screen Recording",action:#selector(requestScreen)),
-            button("Request Accessibility",action:#selector(requestAX))
-        ])
+        let screenControl = button("Request Screen Recording",action:#selector(requestScreen))
+        let axControl = button("Request Accessibility",action:#selector(requestAX))
+        screenButton = screenControl
+        accessibilityButton = axControl
+        let reqRow = NSStackView(views:[screenControl,axControl])
         reqRow.orientation = .horizontal
         reqRow.spacing = 8
+        requestRow = reqRow
         container.addArrangedSubview(reqRow)
 
         let navRow = NSStackView(views:[
             button("Refresh Status",action:#selector(refresh)),
             button("Open Privacy Settings",action:#selector(openPrivacy)),
-            button("Quit Dev Robot",action:#selector(quitApp))
+            button(isDevelopment ? "Quit Dev Robot" : "Close Settings",action:#selector(quitApp))
         ])
         navRow.orientation = .horizontal
         navRow.spacing = 8
@@ -102,6 +115,11 @@ final class RobotDevPermissionsController: NSObject, NSApplicationDelegate {
         axState.stringValue = "Accessibility:       "+(ax ? "GRANTED" : "NOT GRANTED")
         captureState.textColor = screen ? .systemGreen : .systemOrange
         axState.textColor = ax ? .systemGreen : .systemOrange
+        // Owner sees plain status when both already GRANTED; no redundant
+        // request controls until an Apple permission is missing.
+        screenButton?.isHidden = screen
+        accessibilityButton?.isHidden = ax
+        requestRow?.isHidden = screen && ax
     }
     @objc private func openPrivacy(_ sender:Any?) {
         guard let url=URL(string:"x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") else{return}
@@ -112,9 +130,10 @@ final class RobotDevPermissionsController: NSObject, NSApplicationDelegate {
     }
 }
 
-func runRobotDevPermissions() {
+func runRobotPermissions(isDevelopment:Bool) {
     let app = NSApplication.shared
     let controller = RobotDevPermissionsController()
+    controller.isDevelopment = isDevelopment
     app.delegate = controller
     app.run()
 }
