@@ -11,6 +11,9 @@ function assert(ok,message){if(!ok)throw new Error(message);}
 assert(/const CHANNEL\s*=\s*new Set\(\[([\s\S]*?)\]\)/.test(publicRoutes),'direct_channel_allowlist_missing');
 const allowlist=publicRoutes.match(/const CHANNEL\s*=\s*new Set\(\[([\s\S]*?)\]\)/)?.[1]||'';
 assert(/['"]renew['"]/.test(allowlist),'direct_renew_not_allowed');
+const allowedActions=new Set([...allowlist.matchAll(/'([a-z-]+)'/g)].map(m=>m[1]));
+const calledActions=[...agent.matchAll(/\bchannelRequest\(\s*(?:state|current),\s*hub,\s*'([a-z-]+)'/g)].map(m=>m[1]);
+for(const action of calledActions)assert(allowedActions.has(action),`agent_public_action_missing_from_direct_allowlist:${action}`);
 assert(!/['"]made-up-action['"]/.test(allowlist),'direct_allowlist_unexpected_bypass');
 assert(gateway.includes("app.post('/device-channel/renew', deviceChannelEdgeRateLimit"),'legacy_gateway_renew_route_missing');
 assert(gateway.includes("'/v1/device-channel/renew'"),'legacy_gateway_renew_target_missing');
