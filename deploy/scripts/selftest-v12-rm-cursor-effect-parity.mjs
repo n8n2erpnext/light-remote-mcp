@@ -32,7 +32,17 @@ assert.doesNotMatch(winGlow,/Bounds => new\(\(int\)Math.Round\(Left\)/,
 
 assert.match(winGlow,/System\.Windows\.Forms\.Cursor\.Position/);
 assert.match(winGlow,/ClickPulse/);
-assert.match(winGlow,/Small warm light/,'glow must be a small offset tail');
+assert.match(winGlow,/Three superposed continuous radial blooms/);
+for(const circle of [
+  'AddCenteredBloom(root,112,255,210,62,',
+  'AddCenteredBloom(root,82,57,119,246,',
+  'AddCenteredBloom(root,50,35,232,249,'
+]) assert.ok(winGlow.includes(circle),'missing glow palette '+circle);
+assert.ok(winGlow.includes('Canvas.SetLeft(layer,Anchor-diameter/2)'));
+assert.ok(winGlow.includes('Canvas.SetTop(layer,Anchor-diameter/2)'));
+assert.ok(!winGlow.includes('Canvas.SetLeft(_halo,Anchor+'),
+  'old asymmetrical tail may not return');
+assert.ok(winGlow.includes('Interval=TimeSpan.FromMilliseconds(16)'));
 assert.doesNotMatch(winGlow,/SolidBrush\(Color\.FromArgb\(\(int\)\(32\*breathe/,
   'old cyan-violet bullseye must not return');
 const cursorSource=read('client/windows-native/GptOperator.RealRemoteV2/SystemCursorOverride.cs');

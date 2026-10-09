@@ -22,7 +22,6 @@ internal sealed class CursorGlowOverlay : System.Windows.Window, IDisposable
     private readonly Dispatcher _uiDispatcher;
     private int _lastScreenLeft=-10000;
     private int _lastScreenTop=-10000;
-    private readonly Ellipse _halo;
     private readonly Ellipse _clickRing;
     private System.Drawing.Point _lastPosition=new(int.MinValue,int.MinValue);
     private volatile bool _disposed;
@@ -30,8 +29,8 @@ internal sealed class CursorGlowOverlay : System.Windows.Window, IDisposable
     private nint _handle;
     private int _paintCount;
 
-    private const int SizePx=76;
-    private const int Anchor=24;
+    private const int SizePx=128;
+    private const int Anchor=64;
     private const int GWL_EXSTYLE=-20;
     private const int WS_EX_TRANSPARENT=0x20;
     private const int WS_EX_TOOLWINDOW=0x80;
@@ -82,23 +81,20 @@ internal sealed class CursorGlowOverlay : System.Windows.Window, IDisposable
             Width=SizePx,Height=SizePx,IsHitTestVisible=false,
             Background=System.Windows.Media.Brushes.Transparent
         };
-        // Small warm light BEHIND the arrow, not a concentric bullseye.
-        var gradient=new RadialGradientBrush{
-            GradientOrigin=new System.Windows.Point(.40,.42),
-            Center=new System.Windows.Point(.5,.5),
-            RadiusX=.5,RadiusY=.5
-        };
-        gradient.GradientStops.Add(new GradientStop(System.Windows.Media.Color.FromArgb(52,255,197,93),0));
-        gradient.GradientStops.Add(new GradientStop(System.Windows.Media.Color.FromArgb(15,255,194,74),.48));
-        gradient.GradientStops.Add(new GradientStop(System.Windows.Media.Color.FromArgb(0,255,194,74),1));
-        _halo=new Ellipse{Width=32,Height=29,Fill=gradient,IsHitTestVisible=false};
-        Canvas.SetLeft(_halo,Anchor+2);
-        Canvas.SetTop(_halo,Anchor+8);
-        root.Children.Add(_halo);
+        // Three superposed continuous radial blooms around the pointer HOTSPOT.
+        // Cyan supplies a bright center, blue stays distinct on white UI,
+        // and a warm yellow outer ambience adds contrast on dark canvas.
+        // Keep every circle mathematically centered, with NO direction/tail.
+        AddCenteredBloom(root,112,255,210,62,
+            (0.00,12),(0.36,47),(0.62,57),(0.82,26),(1.00,0)); // yellow
+        AddCenteredBloom(root,82,57,119,246,
+            (0.00,35),(0.35,83),(0.62,63),(0.85,22),(1.00,0)); // blue
+        AddCenteredBloom(root,50,35,232,249,
+            (0.00,95),(0.30,125),(0.67,52),(1.00,0)); // cyan
 
         _clickRing=new Ellipse{
             Width=18,Height=18,Visibility=Visibility.Collapsed,
-            Stroke=new SolidColorBrush(System.Windows.Media.Color.FromArgb(155,250,190,75)),
+            Stroke=new SolidColorBrush(System.Windows.Media.Color.FromArgb(180,94,225,255)),
             StrokeThickness=1.2,IsHitTestVisible=false
         };
         Canvas.SetLeft(_clickRing,Anchor-9);
@@ -116,10 +112,32 @@ internal sealed class CursorGlowOverlay : System.Windows.Window, IDisposable
             _timer.Stop();
         };
         _timer=new DispatcherTimer(DispatcherPriority.Render,Dispatcher){
-            Interval=TimeSpan.FromMilliseconds(33)
+            Interval=TimeSpan.FromMilliseconds(16)
         };
         _timer.Tick+=(_,_)=>UpdateGlow();
         _timer.Start();
+    }
+
+    private static void AddCenteredBloom(Canvas canvas,double diameter,
+        byte red,byte green,byte blue,
+        params (double offset,byte alpha)[] stops)
+    {
+        var bloom=new RadialGradientBrush{
+            GradientOrigin=new System.Windows.Point(.5,.5),
+            Center=new System.Windows.Point(.5,.5),
+            RadiusX=.5,RadiusY=.5
+        };
+        foreach(var (offset,alpha) in stops)
+            bloom.GradientStops.Add(new GradientStop(
+                System.Windows.Media.Color.FromArgb(alpha,red,green,blue),offset));
+        bloom.Freeze();
+        var layer=new Ellipse{
+            Width=diameter,Height=diameter,
+            Fill=bloom,IsHitTestVisible=false
+        };
+        Canvas.SetLeft(layer,Anchor-diameter/2);
+        Canvas.SetTop(layer,Anchor-diameter/2);
+        canvas.Children.Add(layer);
     }
 
     public void BeginInvoke(Action action)
