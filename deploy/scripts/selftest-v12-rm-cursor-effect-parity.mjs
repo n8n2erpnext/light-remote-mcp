@@ -24,23 +24,37 @@ assert.match(winGlow,/WS_EX_TRANSPARENT\|WS_EX_TOOLWINDOW\|WS_EX_NOACTIVATE/);
 assert.match(winGlow,/AllowsTransparency=true/);
 assert.match(winGlow,/ShowActivated=false/);
 assert.doesNotMatch(winGlow,/TransparencyKey=/,'no GDI transparency-key bullseye');
-assert.match(winGlow,/new BlurEffect/);
-assert.ok(winGlow.includes('CreateArrowGeometry()'));
-assert.ok(winGlow.includes('AgentCursorShape.RelativeOutline'));
-for(const expected of [
- 'AddArrowAura(root,geometry,255,210,62,80,10)',
- 'AddArrowAura(root,geometry,57,119,246,105,6)',
- 'AddArrowAura(root,geometry,35,232,249,130,3.5)'])
- assert.ok(winGlow.includes(expected),'missing shape glow '+expected);
-assert.ok(winGlow.includes('_arrowScale.ScaleX=GetSystemMetrics(SM_CXCURSOR)'));
-assert.ok(winGlow.includes('_arrowScale.ScaleY=GetSystemMetrics(SM_CYCURSOR)'));
-assert.ok(!winGlow.includes('AddCenteredBloom('),
- 'reject previous detached circular spot renderer');
-assert.ok(winGlow.includes('Volatile.Read(ref _lastScreenLeft)'));
-assert.ok(winGlow.includes('Volatile.Read(ref _lastScreenTop)'));
-assert.ok(winGlow.includes('System.Windows.Forms.Cursor.Position'));
+assert.match(winGlow,/new RadialGradientBrush/);
+assert.match(winGlow,/Volatile.Read\(ref _lastScreenLeft\)/);
+assert.match(winGlow,/Volatile.Read\(ref _lastScreenTop\)/);
+assert.doesNotMatch(winGlow,/Bounds => new\(\(int\)Math.Round\(Left\)/,
+  'RPC status must never read WPF Window.Left from worker thread');
+
+assert.match(winGlow,/System\.Windows\.Forms\.Cursor\.Position/);
 assert.match(winGlow,/ClickPulse/);
-assert.match(winGlow,/private const int SizePx=72;/);
+assert.match(winGlow,/Soft aura along the approved black pointer silhouette/);
+for(const circle of [
+  'AddCenteredBloom(bloomLayer,40,255,210,62,',
+  'AddCenteredBloom(bloomLayer,30,57,119,246,',
+  'AddCenteredBloom(bloomLayer,20,35,232,249,'
+]) assert.ok(winGlow.includes(circle),'missing glow palette '+circle);
+assert.ok(winGlow.includes('Canvas.SetLeft(layer,Anchor-diameter/2)'));
+assert.ok(winGlow.includes('Canvas.SetTop(layer,Anchor-diameter/2)'));
+assert.match(winGlow,/ArrowBodyOffsetXPerCursorWidth=9\.0\/48\.0/);
+assert.match(winGlow,/ArrowBodyOffsetYPerCursorHeight=12\.5\/48\.0/);
+assert.ok(winGlow.includes('GetSystemMetrics(SM_CXCURSOR)'));
+assert.ok(winGlow.includes('GetSystemMetrics(SM_CYCURSOR)'));
+assert.ok(winGlow.includes('_bloomBodyOffset.X=GetSystemMetrics(SM_CXCURSOR)'));
+assert.ok(winGlow.includes('_bloomBodyOffset.Y=GetSystemMetrics(SM_CYCURSOR)'));
+assert.ok(winGlow.includes('bloomLayer.RenderTransform=_bloomBodyOffset'));
+assert.ok(winGlow.includes('root.Children.Add(bloomLayer)'));
+for(const dimension of [32,48,64]){
+ const dx=dimension*9/48,dy=dimension*12.5/48;
+ assert.ok(dx>0 && dx<dimension/3 && dy>0 && dy<dimension/3,
+  'glow must envelope approved black arrow silhouette');
+}
+
+assert.match(winGlow,/private const int SizePx=56;/);
 assert.match(winGlow,/private const int Anchor=28;/);
 assert.match(winGlow,/Left=cursor.X\/dpi.DpiScaleX-Anchor;/,
   'hotspot must first convert physical cursor coords to WPF DIPs');

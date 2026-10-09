@@ -4,7 +4,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
-using System.Windows.Media.Effects;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 
@@ -24,9 +23,13 @@ internal sealed class CursorGlowOverlay : System.Windows.Window, IDisposable
     private int _lastScreenLeft=-10000;
     private int _lastScreenTop=-10000;
     private readonly Ellipse _clickRing;
-    private readonly ScaleTransform _arrowScale=new();
-    // The aura follows the exact black cursor polygon, not circles around
-    // a guessed hotspot/centroid; one silhouette drives both renderers.
+    private readonly TranslateTransform _bloomBodyOffset;
+    // The approved black cursor bitmap is a 48-unit polygon with
+    // hotspot (12,14) and visible body centered near (21,26.5).
+    // Its glow belongs around the arrow BODY, never as a separate
+    // bullseye centered on the hotspot/tip.
+    private const double ArrowBodyOffsetXPerCursorWidth=9.0/48.0;
+    private const double ArrowBodyOffsetYPerCursorHeight=12.5/48.0;
     private const int SM_CXCURSOR=13;
     private const int SM_CYCURSOR=14;
     private System.Drawing.Point _lastPosition=new(int.MinValue,int.MinValue);
@@ -35,7 +38,7 @@ internal sealed class CursorGlowOverlay : System.Windows.Window, IDisposable
     private nint _handle;
     private int _paintCount;
 
-    private const int SizePx=72;
+    private const int SizePx=56;
     private const int Anchor=28;
     private const int GWL_EXSTYLE=-20;
     private const int WS_EX_TRANSPARENT=0x20;
@@ -90,14 +93,22 @@ internal sealed class CursorGlowOverlay : System.Windows.Window, IDisposable
             Width=SizePx,Height=SizePx,IsHitTestVisible=false,
             Background=System.Windows.Media.Brushes.Transparent
         };
-        // Reference #2: a soft three-color glow radiating from the
-        // SHAPE of the black arrow, not a detached orb/circular spotlight.
-        // Preserve cyan / blue / yellow palette and a compact 4–10 DIP
-        // feather beyond the arrow edges. The OS arrow is drawn above this.
-        var geometry=CreateArrowGeometry();
-        AddArrowAura(root,geometry,255,210,62,80,10); // soft yellow rim
-        AddArrowAura(root,geometry,57,119,246,105,6); // blue transition
-        AddArrowAura(root,geometry,35,232,249,130,3.5); // cyan core
+        // Soft aura along the approved black pointer silhouette, as in
+        // owner reference #2. Put all three existing colors around its
+        // visible BODY instead of the hotspot (which caused a detached dot).
+        // The layers keep the previous compact 40/30/20 sizes.
+        var bloomLayer=new Canvas{
+            Width=SizePx,Height=SizePx,IsHitTestVisible=false
+        };
+        _bloomBodyOffset=new TranslateTransform();
+        bloomLayer.RenderTransform=_bloomBodyOffset;
+        AddCenteredBloom(bloomLayer,40,255,210,62,
+            (0.00,9),(0.36,36),(0.62,47),(0.82,22),(1.00,0)); // yellow
+        AddCenteredBloom(bloomLayer,30,57,119,246,
+            (0.00,24),(0.35,76),(0.62,58),(0.85,20),(1.00,0)); // blue
+        AddCenteredBloom(bloomLayer,20,35,232,249,
+            (0.00,44),(0.30,105),(0.67,49),(1.00,0)); // cyan
+        root.Children.Add(bloomLayer);
 
         _clickRing=new Ellipse{
             Width=18,Height=18,Visibility=Visibility.Collapsed,
@@ -125,35 +136,26 @@ internal sealed class CursorGlowOverlay : System.Windows.Window, IDisposable
         _timer.Start();
     }
 
-    private static Geometry CreateArrowGeometry()
+    private static void AddCenteredBloom(Canvas canvas,double diameter,
+        byte red,byte green,byte blue,
+        params (double offset,byte alpha)[] stops)
     {
-        var geometry=new StreamGeometry();
-        var points=AgentCursorShape.RelativeOutline;
-        using(var ctx=geometry.Open())
-        {
-            ctx.BeginFigure(new System.Windows.Point(points[0].X,points[0].Y),true,true);
-            for(var i=1;i<points.Length;i++)
-                ctx.LineTo(new System.Windows.Point(points[i].X,points[i].Y),true,false);
-        }
-        geometry.Freeze();
-        return geometry;
-    }
-
-    private void AddArrowAura(Canvas root,Geometry silhouette,
-        byte red,byte green,byte blue,byte alpha,double blurRadius)
-    {
-        var aura=new System.Windows.Shapes.Path{
-            Data=silhouette,
-            Fill=new SolidColorBrush(System.Windows.Media.Color.FromArgb(alpha,red,green,blue)),
-            StrokeThickness=0,
-            Stretch=Stretch.None,
-            IsHitTestVisible=false,
-            Effect=new BlurEffect{Radius=blurRadius,KernelType=KernelType.Gaussian}
+        var bloom=new RadialGradientBrush{
+            GradientOrigin=new System.Windows.Point(.5,.5),
+            Center=new System.Windows.Point(.5,.5),
+            RadiusX=.5,RadiusY=.5
         };
-        Canvas.SetLeft(aura,Anchor);
-        Canvas.SetTop(aura,Anchor);
-        aura.RenderTransform=_arrowScale;
-        root.Children.Add(aura);
+        foreach(var (offset,alpha) in stops)
+            bloom.GradientStops.Add(new GradientStop(
+                System.Windows.Media.Color.FromArgb(alpha,red,green,blue),offset));
+        bloom.Freeze();
+        var layer=new Ellipse{
+            Width=diameter,Height=diameter,
+            Fill=bloom,IsHitTestVisible=false
+        };
+        Canvas.SetLeft(layer,Anchor-diameter/2);
+        Canvas.SetTop(layer,Anchor-diameter/2);
+        canvas.Children.Add(layer);
     }
 
     public void BeginInvoke(Action action)
@@ -202,12 +204,14 @@ internal sealed class CursorGlowOverlay : System.Windows.Window, IDisposable
             // physical pixels to the glow's center on scaled monitors.
             Left=cursor.X/dpi.DpiScaleX-Anchor;
             Top=cursor.Y/dpi.DpiScaleY-Anchor;
-            // Render the SAME source polygon and SAME hotspot as the
-            // native Win32 cursor, scaled from 48-unit art to screen DIPs.
-            _arrowScale.ScaleX=GetSystemMetrics(SM_CXCURSOR)
-                /AgentCursorShape.DesignSize/dpi.DpiScaleX;
-            _arrowScale.ScaleY=GetSystemMetrics(SM_CYCURSOR)
-                /AgentCursorShape.DesignSize/dpi.DpiScaleY;
+            // Windows scales the 48-unit arrow art to system cursor metrics.
+            // Map its silhouette centroid to WPF DIPs on the active screen.
+            // This makes the halo envelope the arrow (reference #2) instead
+            // of following the arrow tip as an independent luminous dot.
+            _bloomBodyOffset.X=GetSystemMetrics(SM_CXCURSOR)
+                *ArrowBodyOffsetXPerCursorWidth/dpi.DpiScaleX;
+            _bloomBodyOffset.Y=GetSystemMetrics(SM_CYCURSOR)
+                *ArrowBodyOffsetYPerCursorHeight/dpi.DpiScaleY;
             System.Threading.Volatile.Write(ref _lastScreenLeft,cursor.X-Anchor);
             System.Threading.Volatile.Write(ref _lastScreenTop,cursor.Y-Anchor);
             _lastPosition=cursor;

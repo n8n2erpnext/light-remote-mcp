@@ -431,7 +431,7 @@ jobs:
       # Portable UAT: self-contained RM companion without installer,
       # Local Wall registration, Scheduled Tasks or production overwrite.
       - name: Upload isolated Windows RM V2 UAT executable
-        if: github.ref_name == 'codex/rc48-candidate' || github.ref_name == 'codex/rc48-windows-cursor-lease' || github.ref_name == 'codex/rc48-windows-visual-typing-paint' || github.ref_name == 'codex/rc48-windows-passive-preview' || github.ref_name == 'codex/rc48-windows-centered-tricolor-glow' || github.ref_name == 'codex/rc48-restore-approved-arrow' || github.ref_name == 'codex/rc48-black-arrow-correct' || github.ref_name == 'codex/rc48-pointer-silhouette-glow' || github.ref_name == 'codex/rc48-arrow-halo-parity'
+        if: github.ref_name == 'codex/rc48-candidate' || github.ref_name == 'codex/rc48-windows-cursor-lease' || github.ref_name == 'codex/rc48-windows-visual-typing-paint' || github.ref_name == 'codex/rc48-windows-passive-preview' || github.ref_name == 'codex/rc48-windows-centered-tricolor-glow' || github.ref_name == 'codex/rc48-restore-approved-arrow' || github.ref_name == 'codex/rc48-black-arrow-correct' || github.ref_name == 'codex/rc48-pointer-silhouette-glow' || github.ref_name == 'codex/rc48-arrow-halo-parity' || github.ref_name == 'codex/rc48-arrow-current-previous-glow'
         uses: actions/upload-artifact@v4
         with:
           name: rmv2-windows-uat-${{ github.sha }}
