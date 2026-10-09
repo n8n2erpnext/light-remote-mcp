@@ -10,6 +10,7 @@ const plist=read('client/macos/real-remote/robot-app/Info.plist');
 const builder=read('client/macos/real-remote/robot-app/build-robot-app.sh');
 const pkg=read('client/macos/build-pkg.sh');
 const bridge=read('lib/native-desktop.mjs');
+const macAgent=read('client/macos/launchd/com.lightremote.agent.plist');
 const installed='/Applications/Light Remote.app/Contents/Helpers/Light Remote Robot.app';
 const check=(value,message)=>assert.ok(value,message);
 check(tray.includes('Real Remote → Privacy & Permissions…'),'tray settings menu missing');
@@ -35,6 +36,11 @@ check(pkg.includes('ROBOT_APP="$APP/Contents/Helpers/Light Remote Robot.app"'),'
 check(pkg.includes('codesign --force --options runtime --timestamp --sign "$MACOS_APP_SIGN_IDENTITY" "$ROBOT_APP"'),
  'nested Robot must be separately signed');
 check(bridge.includes(installed),'opt-in sidecar must recognize bundled path');
+check(macAgent.includes('LIGHT_REMOTE_REAL_REMOTE'),'macOS Agent launch option missing');
+check(macAgent.includes('LIGHT_REMOTE_MACOS_GUI_SIDECAR'),'macOS GUI sidecar option missing');
+check(macAgent.includes('LIGHT_REMOTE_MACOS_GUI_APP'),'macOS bundled Robot path option missing');
+check(tray.includes('environment: guiEnvironment'),'tray relink must discover bundled Robot capabilities');
+check(tray.includes('LIGHT_REMOTE_MACOS_GUI_SIDECAR'),'tray must propagate sidecar activation');
 check(robot.includes('NSStatusBar.system.statusItem'),'RM lease icon creation absent');
 check(robot.includes('NSStatusBar.system.removeStatusItem(rmStatusItem)'),'RM lease detach cleanup absent');
 check(!pkg.includes('CGRequestScreenCaptureAccess'),'installer must not prompt TCC');

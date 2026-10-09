@@ -50,8 +50,9 @@ final class TrayDelegate: NSObject, NSApplicationDelegate {
         refresh(); timer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in self?.refresh() }
     }
 
-    func run(_ launch: String, _ args: [String]) -> (Int32, String, String) {
+    func run(_ launch: String, _ args: [String], environment: [String: String] = [:]) -> (Int32, String, String) {
         let p = Process(); p.executableURL = URL(fileURLWithPath: launch); p.arguments = args
+        if !environment.isEmpty { p.environment = ProcessInfo.processInfo.environment.merging(environment) { _, replacement in replacement } }
         let o = Pipe(), e = Pipe(); p.standardOutput = o; p.standardError = e
         do { try p.run(); p.waitUntilExit() } catch { return (-1, "", error.localizedDescription) }
         return (p.terminationStatus,
@@ -78,7 +79,17 @@ final class TrayDelegate: NSObject, NSApplicationDelegate {
             }
         }
     }
-    func agentRun(_ args: [String]) -> (Int32, String, String) { run(node, [agent] + args) }
+    func agentRun(_ args: [String]) -> (Int32, String, String) {
+        // Tray-launched enrollment must advertise the same packaged Robot as
+        // the always-on Agent. Otherwise Relink silently loses desktop grants.
+        let robotBinary = robotPreferencesApp + "/Contents/MacOS/LightRemoteRealRemote"
+        let guiEnvironment: [String: String] = FileManager.default.isExecutableFile(atPath: robotBinary) ? [
+            "LIGHT_REMOTE_REAL_REMOTE": "1",
+            "LIGHT_REMOTE_MACOS_GUI_SIDECAR": "1",
+            "LIGHT_REMOTE_MACOS_GUI_APP": robotPreferencesApp
+        ] : [:]
+        return run(node, [agent] + args, environment: guiEnvironment)
+    }
     func status() -> [String: Any] {
         let r = agentRun(["status"])
         guard r.0 == 0, let d = r.1.data(using: .utf8),
