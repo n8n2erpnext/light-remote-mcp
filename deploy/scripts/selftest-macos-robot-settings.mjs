@@ -37,6 +37,9 @@ check(builder.includes('LightRemoteRM.icns'),'Robot icon must be packaged');
 check(pkg.includes('ROBOT_APP="$APP/Contents/Helpers/Light Remote Robot.app"'),'Robot not embedded');
 check(pkg.includes('codesign --force --options runtime --timestamp --sign "$MACOS_APP_SIGN_IDENTITY" "$ROBOT_APP"'),
  'nested Robot must be separately signed');
+check(pkg.includes('codesign --force --sign - "$ROBOT_APP"'),'local test Robot must not ship completely unsigned');
+check(pkg.includes('codesign --force --sign - "$APP"'),'local test parent app must not ship completely unsigned');
+check(pkg.includes('lsregister -f \'/Applications/Light Remote.app/Contents/Helpers/Light Remote Robot.app\''),'installer must register Robot with LaunchServices');
 check(bridge.includes(installed),'opt-in sidecar must recognize bundled path');
 check(macAgent.includes('LIGHT_REMOTE_REAL_REMOTE'),'macOS Agent launch option missing');
 check(macAgent.includes('LIGHT_REMOTE_MACOS_GUI_SIDECAR'),'macOS GUI sidecar option missing');

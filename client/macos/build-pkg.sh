@@ -70,7 +70,15 @@ if [[ -n "${MACOS_APP_SIGN_IDENTITY:-}" ]]; then
   /usr/bin/codesign --verify --deep --strict "$APP"
   echo "macos_app_signing=signed"
 else
-  echo "macos_app_signing=unsigned_external_identity_not_configured"
+  # A completely unsigned nested Robot is attributed by macOS TCC to the
+  # enclosing Light Remote.app and can never consume the Robot consent grant.
+  # Ad-hoc signing is for local UAT only; a stable Developer ID identity is
+  # required for production permissions to persist reliably across upgrades.
+  /usr/bin/codesign --force --sign - "$ROBOT_APP"
+  /usr/bin/codesign --verify --strict "$ROBOT_APP"
+  /usr/bin/codesign --force --sign - "$APP"
+  /usr/bin/codesign --verify --deep --strict "$APP"
+  echo "macos_app_signing=ad_hoc_local_testing_only"
 fi
 
 cat > "$SCRIPTS/preinstall" <<'PRE'
@@ -107,6 +115,7 @@ chmod -R go-w "\$ROOT" '/Applications/Light Remote.app'
 touch '/Applications/Light Remote.app'
 if [[ -x /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister ]]; then
   /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f '/Applications/Light Remote.app' >/dev/null 2>&1 || true
+  /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f '/Applications/Light Remote.app/Contents/Helpers/Light Remote Robot.app' >/dev/null 2>&1 || true
 fi
 launchctl bootout system/com.lightremote.updater >/dev/null 2>&1 || true
 launchctl bootstrap system /Library/LaunchDaemons/com.lightremote.updater.plist >/dev/null 2>&1 || true
