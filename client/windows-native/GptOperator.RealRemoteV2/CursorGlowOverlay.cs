@@ -19,6 +19,8 @@ internal sealed class CursorGlowOverlay : Form
     private Point _lastPosition=new(int.MinValue,int.MinValue);
     private long _lastRender;
     private bool _disposed;
+    private int _paintCount;
+    public int PaintCount => _paintCount;
 
     private const int SizePx=126;
     private const int Anchor=34;
@@ -46,7 +48,8 @@ internal sealed class CursorGlowOverlay : Form
         BackColor=_transparent;
         TransparencyKey=_transparent;
         TopMost=true;
-        Enabled=false; // completely ignore all mouse/keyboard input
+        // Keep painting enabled. Extended styles plus no-activation enforce
+        // click-through; disabling the Form prevents proper layered paints.
         SetStyle(ControlStyles.AllPaintingInWmPaint|ControlStyles.OptimizedDoubleBuffer|ControlStyles.UserPaint,true);
 
         _timer=new System.Windows.Forms.Timer{Interval=33};
@@ -80,6 +83,7 @@ internal sealed class CursorGlowOverlay : Form
 
     protected override void OnPaint(PaintEventArgs e)
     {
+        _paintCount++;
         // Do not clear to black or draw any rectangular hit-test surface.
         e.Graphics.Clear(_transparent);
         e.Graphics.SmoothingMode=SmoothingMode.AntiAlias;

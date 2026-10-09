@@ -131,7 +131,9 @@ internal sealed class RobotContext : ApplicationContext
         osCursorHidden=false,
         osCursorOverridden=SystemCursorOverride.IsActive,
         cursorRenderer=_ambientGlow is {IsDisposed:false}?"native-system+animated-glow":"native-system",
-        ambientGlowActive=_ambientGlow is {IsDisposed:false,Visible:true}
+        ambientGlowActive=_ambientGlow is {IsDisposed:false,Visible:true},
+        ambientGlowPaintCount=_ambientGlow?.PaintCount ?? 0,
+        ambientGlowBounds=_ambientGlow?.Bounds
     };
 
     private object Move(JsonElement r)
