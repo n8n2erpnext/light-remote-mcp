@@ -70,6 +70,10 @@ final class TrayDelegate: NSObject, NSApplicationDelegate {
         }
         let config = NSWorkspace.OpenConfiguration()
         config.arguments = ["--permissions-ui"]
+        // Accessory Robot can survive after its Settings window is closed.
+        // Reusing that headless process leaves the owner with no window.
+        // Always create a fresh owner-visible Settings instance.
+        config.createsNewApplicationInstance = true
         config.activates = true
         NSWorkspace.shared.openApplication(at: URL(fileURLWithPath: robotPreferencesApp),
                                            configuration: config) { [weak self] _, error in

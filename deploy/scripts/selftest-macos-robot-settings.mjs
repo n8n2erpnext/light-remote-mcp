@@ -18,6 +18,8 @@ check(tray.includes('action: #selector(openRealRemotePermissions)'),'menu action
 check(tray.includes('privacy.target = self'),'menu action has no owner target');
 check(tray.includes(installed),'settings must open bundled Robot');
 check(tray.includes('config.arguments = ["--permissions-ui"]'),'settings must open explicit owner UI');
+check(tray.includes('config.createsNewApplicationInstance = true'),'settings must reopen a visible helper after previous window closes');
+check(permissions.includes('func windowWillClose(_ notification: Notification)'),'closing settings must terminate standalone GUI helper');
 check(main.includes('args.contains("--permissions-ui")'),'helper explicit settings mode missing');
 check(main.includes('robot_permissions_bundle_required'),'helper must reject wrong bundle identity');
 check(main.includes('runRobotPermissions(isDevelopment: devBundle)'),'helper settings UI missing');

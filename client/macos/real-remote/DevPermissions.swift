@@ -5,7 +5,7 @@ import Foundation
 
 // Local, owner-operated permission window for UNSIGNED development builds.
 // Never changes macOS privacy settings; the OS owns approval decisions.
-final class RobotDevPermissionsController: NSObject, NSApplicationDelegate {
+final class RobotDevPermissionsController: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var isDevelopment = true
     private var requestRow: NSStackView?
     private var screenButton: NSButton?
@@ -43,6 +43,7 @@ final class RobotDevPermissionsController: NSObject, NSApplicationDelegate {
         }
         win.center()
         win.isReleasedWhenClosed = false
+        win.delegate = self
 
         let container = NSStackView()
         container.orientation = .vertical
@@ -124,6 +125,12 @@ final class RobotDevPermissionsController: NSObject, NSApplicationDelegate {
     @objc private func openPrivacy(_ sender:Any?) {
         guard let url=URL(string:"x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") else{return}
         NSWorkspace.shared.open(url)
+    }
+    func windowWillClose(_ notification: Notification) {
+        // The standalone permissions helper must not remain headless.
+        // RM transport runs in a different process and is unaffected.
+        refreshTimer?.invalidate()
+        NSApplication.shared.terminate(nil)
     }
     @objc private func quitApp(_ sender:Any?) {
         NSApplication.shared.terminate(nil)
