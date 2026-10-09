@@ -22,8 +22,8 @@ internal sealed class CursorGlowOverlay : Form
     private int _paintCount;
     public int PaintCount => _paintCount;
 
-    private const int SizePx=126;
-    private const int Anchor=34;
+    private const int SizePx=74;
+    private const int Anchor=23;
     private const int WS_EX_TRANSPARENT=0x20;
     private const int WS_EX_TOOLWINDOW=0x80;
     private const int WS_EX_NOACTIVATE=0x08000000;
@@ -89,25 +89,19 @@ internal sealed class CursorGlowOverlay : Form
         e.Graphics.SmoothingMode=SmoothingMode.AntiAlias;
         e.Graphics.CompositingQuality=CompositingQuality.HighQuality;
         var phase=_visual.Status();
-        var t=Environment.TickCount64/350d;
-        var breathe=(float)(0.8+0.2*Math.Sin(t));
         var click=(float)phase.ClickPulse;
-        var moving=phase.Phase is "moving" or "dragging";
-        var peak=moving?1.12f:1f;
-        using (var cyan=new SolidBrush(Color.FromArgb((int)(32*breathe*peak),40,204,255)))
-        using (var violet=new SolidBrush(Color.FromArgb((int)(48*breathe*peak),145,105,252)))
-        using (var amber=new SolidBrush(Color.FromArgb((int)(65*breathe*peak),255,190,65)))
-        using (var mint=new SolidBrush(Color.FromArgb((int)(88*breathe*peak),85,245,215)))
+        // Muted amber tail, offset BELOW the real cursor hotspot.
+        // Avoid the old bullseye of four centered cyan/violet/mint discs.
+        using (var outer=new SolidBrush(Color.FromArgb(13,255,196,66)))
+        using (var inner=new SolidBrush(Color.FromArgb(24,255,209,103)))
         {
-            e.Graphics.FillEllipse(cyan,Anchor-24,Anchor-24,54,54);
-            e.Graphics.FillEllipse(violet,Anchor-19,Anchor-19,40,40);
-            e.Graphics.FillEllipse(amber,Anchor-12,Anchor-12,27,27);
-            e.Graphics.FillEllipse(mint,Anchor-6,Anchor-6,14,14);
+            e.Graphics.FillEllipse(outer,Anchor+4,Anchor+9,30,26);
+            e.Graphics.FillEllipse(inner,Anchor+8,Anchor+12,18,16);
         }
         if(click>0)
         {
-            var radius=18f+(1-click)*23f;
-            using var ring=new Pen(Color.FromArgb((int)(190*click),255,198,78),1.2f+1.5f*click);
+            var radius=9f+(1f-click)*10f;
+            using var ring=new Pen(Color.FromArgb((int)(104*click),255,194,82),1f);
             e.Graphics.DrawEllipse(ring,Anchor-radius,Anchor-radius,2*radius,2*radius);
         }
     }

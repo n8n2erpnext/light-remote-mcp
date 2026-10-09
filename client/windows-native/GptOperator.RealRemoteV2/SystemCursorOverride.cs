@@ -27,23 +27,9 @@ internal static class SystemCursorOverride
     private const uint OCR_APPSTARTING = 32650;
     private const uint OCR_HELP = 32651;
 
-    private static readonly uint[] CursorIds =
-    {
-        OCR_NORMAL,
-        OCR_IBEAM,
-        OCR_WAIT,
-        OCR_CROSS,
-        OCR_UP,
-        OCR_SIZENWSE,
-        OCR_SIZENESW,
-        OCR_SIZEWE,
-        OCR_SIZENS,
-        OCR_SIZEALL,
-        OCR_NO,
-        OCR_HAND,
-        OCR_APPSTARTING,
-        OCR_HELP
-    };
+    // Only replace the normal arrow. Keep I-beam, crosshair, sizing,
+    // hand, forbidden and wait cursors native, especially inside Paint.
+    private static readonly uint[] CursorIds = { OCR_NORMAL };
 
     private static readonly object Sync = new();
     private static int _leases;
@@ -120,7 +106,7 @@ internal static class SystemCursorOverride
 
     internal static bool SelfTest()
     {
-        if (CursorIds.Length < 10) return false;
+        if (CursorIds.Length != 1 || CursorIds[0] != OCR_NORMAL) return false;
         if (CursorIds.Distinct().Count() != CursorIds.Length) return false;
 
         using var bitmap = RenderCodexCursorBitmap(48, 48);
@@ -203,20 +189,8 @@ internal static class SystemCursorOverride
         const float tipX = 12f;
         const float tipY = 14f;
 
-        // macOS RM V2 palette: restrained cyan / violet / amber glow,
-        // with a mint highlight. Keep the native system cursor hotspot.
-        // This is rendered only once per cursor install, not on every move.
-        using (var cyan = new SolidBrush(Color.FromArgb(24, 43, 201, 255)))
-        using (var violet = new SolidBrush(Color.FromArgb(33, 132, 96, 251)))
-        using (var amber = new SolidBrush(Color.FromArgb(51, 255, 191, 54)))
-        using (var mint = new SolidBrush(Color.FromArgb(74, 93, 251, 217)))
-        {
-            g.FillEllipse(cyan, tipX - 10f, tipY - 10f, 20f, 20f);
-            g.FillEllipse(violet, tipX - 8.5f, tipY - 8.5f, 17f, 17f);
-            g.FillEllipse(amber, tipX - 6f, tipY - 6f, 12f, 12f);
-            g.FillEllipse(mint, tipX - 3.5f, tipY - 3.5f, 7f, 7f);
-        }
-
+        // Crisp one-arrow silhouette. No luminous discs or micro AI
+        // badge: at Windows 32px cursor size both looked like pixel noise.
         using var path = new GraphicsPath();
         path.AddPolygon(new[]
         {
@@ -232,48 +206,22 @@ internal static class SystemCursorOverride
 
         using var shadowPath = (GraphicsPath)path.Clone();
         using var shift = new Matrix();
-        shift.Translate(1.5f, 1.8f);
+        shift.Translate(1.05f,1.25f);
         shadowPath.Transform(shift);
-
-        using var shadow = new SolidBrush(Color.FromArgb(108, 0, 0, 0));
-        using var accent = new Pen(Color.FromArgb(172, 88, 243, 217), 2.1f)
+        using var shadow = new SolidBrush(Color.FromArgb(75,0,0,0));
+        using var outline = new Pen(Color.FromArgb(250,22,26,34),2.25f)
         {
             LineJoin = LineJoin.Round
         };
-        using var edge = new Pen(Color.FromArgb(247, 248, 250, 255), 0.9f)
+        using var fill = new SolidBrush(Color.FromArgb(255,249,251,255));
+        using var accent = new Pen(Color.FromArgb(220,249,186,51),1.1f)
         {
             LineJoin = LineJoin.Round
         };
-        using var fill = new SolidBrush(Color.FromArgb(249, 14, 19, 30));
-
-        g.FillPath(shadow, shadowPath);
-        g.DrawPath(accent, path);
-        g.FillPath(fill, path);
-        g.DrawPath(edge, path);
-
-        // Compact AI glass badge based on the owner-approved macOS cursor.
-        // Fit within 48x48 because Windows may clamp system cursors to 32px.
-        var badgeRect = new RectangleF(29f, 29.5f, 16.5f, 12.5f);
-        const float radius = 5f;
-        using var badgePath = new GraphicsPath();
-        badgePath.AddArc(badgeRect.Right - 2f * radius, badgeRect.Top, 2f * radius, 2f * radius, 270, 90);
-        badgePath.AddArc(badgeRect.Right - 2f * radius, badgeRect.Bottom - 2f * radius, 2f * radius, 2f * radius, 0, 90);
-        badgePath.AddArc(badgeRect.Left, badgeRect.Bottom - 2f * radius, 2f * radius, 2f * radius, 90, 90);
-        badgePath.AddArc(badgeRect.Left, badgeRect.Top, 2f * radius, 2f * radius, 180, 90);
-        badgePath.CloseFigure();
-        using var badgeFill = new SolidBrush(Color.FromArgb(243, 17, 25, 43));
-        using var badgeBorder = new Pen(Color.FromArgb(222, 249, 194, 52), 0.9f);
-        g.FillPath(badgeFill, badgePath);
-        g.DrawPath(badgeBorder, badgePath);
-        using var badgeText = new SolidBrush(Color.FromArgb(255, 255, 255, 255));
-        using var badgeFont = new Font("Segoe UI", 9f, FontStyle.Bold, GraphicsUnit.Pixel);
-        using var badgeFormat = new StringFormat
-        {
-            Alignment = StringAlignment.Center,
-            LineAlignment = StringAlignment.Center,
-            FormatFlags = StringFormatFlags.NoWrap
-        };
-        g.DrawString("AI", badgeFont, badgeText, badgeRect, badgeFormat);
+        g.FillPath(shadow,shadowPath);
+        g.FillPath(fill,path);
+        g.DrawPath(outline,path);
+        g.DrawLine(accent,tipX+3.2f,tipY+5.6f,tipX+4.15f,tipY+15f);
 
         return bitmap;
     }

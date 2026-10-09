@@ -20,6 +20,18 @@ assert.match(winGlow,/ShowWithoutActivation => true/);
 assert.match(winGlow,/TransparencyKey=_transparent/);
 assert.match(winGlow,/Cursor\.Position/);
 assert.match(winGlow,/ClickPulse/);
+assert.match(winGlow,/Muted amber tail/,'glow must be a small offset tail');
+assert.doesNotMatch(winGlow,/SolidBrush\(Color\.FromArgb\(\(int\)\(32\*breathe/,
+  'old cyan-violet bullseye must not return');
+const cursorSource=read('client/windows-native/GptOperator.RealRemoteV2/SystemCursorOverride.cs');
+assert.match(cursorSource,/CursorIds = \{ OCR_NORMAL \}/,
+  'must not replace I-beam or Paint crosshair with AI arrow');
+assert.doesNotMatch(cursorSource,/DrawString\("AI"/,
+  'badge cannot remain legible after Win32 system cursor downscale');
+assert.match(winContext,/"text.type" => WriteText\(request,true\)/,
+  'Windows must support macOS-like physical paced typing');
+assert.match(winContext,/win32-unicode-key-events-per-character/);
+
 assert.doesNotMatch(winGlow,/\b(?:SetCursorPos|SendInput|SetSystemCursor|SystemParametersInfo)\s*\(/);
 assert.match(winContext,/LIGHT_REMOTE_RM_ANIMATED_GLOW/);
 assert.match(winContext,/\_ambientGlow\?\.Dispose\(\)/);

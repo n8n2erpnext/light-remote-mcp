@@ -74,6 +74,7 @@ internal sealed class RobotContext : ApplicationContext
             "cursor.wheel" => Wheel(request),
             "cursor.drag" => Drag(request),
             "text.write" => WriteText(request),
+            "text.type" => WriteText(request,true),
             "text.delete" => DeleteText(request),
             "key.press" => PressKey(request),
             "key.hotkey" => Hotkey(request),
@@ -230,11 +231,23 @@ internal sealed class RobotContext : ApplicationContext
         return new {applied=true,native=NativeInput.ReadStatus(),cursorVisual=_cursorState.Status()};
     }
 
-    private static object WriteText(JsonElement r)
+    private static object WriteText(JsonElement r,bool visibleTyping=false)
     {
         var text=Text(r,"text");
-        NativeInput.WriteText(text,Int(r,"intervalMs",0));
-        return new {applied=true,characters=text.Length,native=NativeInput.ReadStatus()};
+        // SendInput issues real Unicode key-down/key-up pairs per character.
+        // An unpaced burst was visually indistinguishable from paste.
+        // Short text gets visible fast typing; longer input is bounded
+        // so an agent operation remains responsive rather than timing out.
+        var requested=Int(r,"intervalMs",visibleTyping?25:14);
+        var intervalMs=requested<=0?(visibleTyping?25:14):Math.Clamp(requested,4,55);
+        if(text.Length>512)intervalMs=Math.Min(intervalMs,4);
+        else if(text.Length>180)intervalMs=Math.Min(intervalMs,8);
+        NativeInput.WriteText(text,intervalMs);
+        return new {
+            applied=true,characters=text.Length,intervalMs,
+            textMethod="win32-unicode-key-events-per-character",
+            keyStrokes=text.Length,native=NativeInput.ReadStatus()
+        };
     }
 
     private static object DeleteText(JsonElement r)
