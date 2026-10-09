@@ -19,8 +19,11 @@ internal sealed class RobotContext : ApplicationContext
     // Cursor visuals follow recent physical Agent activity, not passive status/frame reads.
     // Bridge hops can take seconds; bound the effect with a short renewable lease.
     private readonly System.Threading.Timer _cursorLeaseTimer;
+    private readonly System.Threading.Timer _passivePreviewTimer;
     private const int CursorActivityLeaseMs=5_000;
     private volatile bool _cursorLeaseActive;
+    private volatile bool _passivePreviewActive;
+    private long _passivePreviewExpiresUtcMs;
     private bool _closing;
 
     private static Icon LoadAppIcon()
@@ -38,6 +41,8 @@ internal sealed class RobotContext : ApplicationContext
     {
         _tray=new NotifyIcon{Visible=true,Text="Agent Remote Active",Icon=LoadAppIcon()};
         _cursorLeaseTimer=new System.Threading.Timer(_=>ReleaseCursorActivity(),null,
+            Timeout.Infinite,Timeout.Infinite);
+        _passivePreviewTimer=new System.Threading.Timer(_=>StopPassivePreview(),null,
             Timeout.Infinite,Timeout.Infinite);
         // Pre-create the window handle on the GUI thread, but never display
         // glow or replace the OS cursor until authorized physical Agent input.
@@ -67,6 +72,8 @@ internal sealed class RobotContext : ApplicationContext
         object? result=op switch {
             "ping" => new {pong=true,pid=Environment.ProcessId},
             "status" or "desktop.status" => Status(),
+            "cursor.preview.start" => StartPassivePreview(request),
+            "cursor.preview.stop" => StopPassivePreview(),
             "desktop.windows" => DesktopVisual.ListWindows(Int(request,"maxWindows",100)),
             "desktop.frame" => DesktopVisual.Capture(Int(request,"screen",0),Int(request,"maxWidth",960),Int(request,"maxHeight",540),Int(request,"quality",50)),
             "cursor.move" => Move(request),
@@ -137,10 +144,50 @@ internal sealed class RobotContext : ApplicationContext
                 if(glow.IsDisposed)return;
                 // Recheck after dispatch: a timer callback may have queued
                 // a hide just before a new input renews the cursor lease.
-                if(_cursorLeaseActive)glow.Show();
+                // A passive owner preview MUST NOT inject mouse input
+                // or replace Windows' system cursor.
+                if(_cursorLeaseActive || _passivePreviewActive)glow.Show();
                 else glow.Hide();
             }));
         } catch(ObjectDisposedException) {} catch(InvalidOperationException) {}
+    }
+
+    // Owner-controlled passive inspection: their own physical mouse
+    // stays fully usable. This path never calls SetCursorPos, SendInput
+    // or SystemCursorOverride.Acquire. It only shows the click-through
+    // WPF halo following Cursor.Position with an automatic expiry.
+    private object StartPassivePreview(JsonElement request)
+    {
+        if(_ambientGlow is null || _ambientGlow.IsDisposed)
+            throw new InvalidOperationException("passive_preview_glow_unavailable");
+        var seconds=Math.Clamp(Int(request,"durationSeconds",20),5,30);
+        lock(_cursorLeaseGate)
+        {
+            if(_closing)throw new InvalidOperationException("robot_closing");
+            if(_cursorLeaseActive)
+                throw new InvalidOperationException("passive_preview_requires_idle");
+            _passivePreviewExpiresUtcMs=DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()+seconds*1000L;
+            _passivePreviewActive=true;
+            _passivePreviewTimer.Change(seconds*1000,Timeout.Infinite);
+            UpdateGlowVisibility();
+        }
+        return new {
+            active=true,passive=true,durationSeconds=seconds,
+            mouseInjection=false,systemCursorReplacement=false,
+            ownerMouseControl=true
+        };
+    }
+
+    private object StopPassivePreview()
+    {
+        lock(_cursorLeaseGate)
+        {
+            _passivePreviewActive=false;
+            _passivePreviewExpiresUtcMs=0;
+            _passivePreviewTimer.Change(Timeout.Infinite,Timeout.Infinite);
+            UpdateGlowVisibility();
+        }
+        return new {active=false,passive=true,mouseInjection=false};
     }
 
     private void HoldCursorForPhysicalInput()
@@ -182,6 +229,10 @@ internal sealed class RobotContext : ApplicationContext
         osCursorOverridden=SystemCursorOverride.IsActive,
         cursorRenderer=_ambientGlow is {IsDisposed:false}?"native-system+animated-glow":"native-system",
         ambientGlowActive=_ambientGlow is {IsDisposed:false,Visible:true},
+        passivePreviewActive=_passivePreviewActive,
+        passivePreviewRemainingMs=_passivePreviewActive
+            ?Math.Max(0,System.Threading.Volatile.Read(ref _passivePreviewExpiresUtcMs)
+              -DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()) : 0,
         ambientGlowPaintCount=_ambientGlow?.PaintCount ?? 0,
         ambientGlowBounds=_ambientGlow?.Bounds
     };
@@ -500,6 +551,10 @@ internal sealed class RobotContext : ApplicationContext
         _tray.Dispose();
         lock(_cursorLeaseGate)
         {
+            _passivePreviewActive=false;
+            _passivePreviewExpiresUtcMs=0;
+            _passivePreviewTimer.Change(Timeout.Infinite,Timeout.Infinite);
+            _passivePreviewTimer.Dispose();
             _cursorLeaseActive=false;
             _cursorLeaseTimer.Change(Timeout.Infinite,Timeout.Infinite);
             _cursorLeaseTimer.Dispose();

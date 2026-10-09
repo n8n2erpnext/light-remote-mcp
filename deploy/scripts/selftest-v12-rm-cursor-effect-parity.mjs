@@ -43,6 +43,18 @@ assert.doesNotMatch(cursorSource,/DrawString\("AI"/,
 assert.match(winContext,/"text.type" => WriteText\(request,true\)/,
   'Windows must support macOS-like physical paced typing');
 assert.match(winContext,/win32-unicode-key-events-per-character/);
+assert.ok(winContext.includes('"cursor.preview.start" => StartPassivePreview(request)'));
+assert.ok(winContext.includes('"cursor.preview.stop" => StopPassivePreview()'));
+assert.ok(winContext.includes('passivePreviewRemainingMs'));
+const passivePreviewMethod=winContext.split('private object StartPassivePreview(JsonElement request)')[1]?.split('private object StopPassivePreview()')[0]||'';
+assert.ok(passivePreviewMethod.includes('Math.Clamp(Int(request,"durationSeconds",20),5,30)'));
+assert.ok(passivePreviewMethod.includes('_passivePreviewTimer.Change(seconds*1000,Timeout.Infinite)'));
+for(const forbidden of ['NativeInput.Move','NativeInput.Click','NativeInput.Drag',
+'NativeInput.Wheel','SystemCursorOverride.Acquire','SendInput(','SetCursorPos(']){
+  assert.ok(!passivePreviewMethod.includes(forbidden),
+    'passive preview must never touch the owner pointer: '+forbidden);
+}
+assert.ok(winContext.includes('_cursorLeaseActive || _passivePreviewActive'));
 
 assert.doesNotMatch(winGlow,/\b(?:SetCursorPos|SendInput|SetSystemCursor|SystemParametersInfo)\s*\(/);
 assert.match(winContext,/LIGHT_REMOTE_RM_ANIMATED_GLOW/);
