@@ -91,6 +91,7 @@ jobs:
           node deploy/scripts/selftest-v12-rm-cursor-effect-parity.mjs
           node deploy/scripts/selftest-macos-gui-optin.mjs
           node deploy/scripts/selftest-macos-robot-settings.mjs
+          node deploy/scripts/selftest-v10-version-plane-parity.mjs
           plutil -lint client/macos/real-remote/robot-app/Info.plist
           bash -n client/macos/real-remote/robot-app/build-robot-app.sh
           node deploy/scripts/stage-client-core.mjs "$PKG"
