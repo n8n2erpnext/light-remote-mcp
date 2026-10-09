@@ -19,6 +19,9 @@ internal sealed class CursorGlowOverlay : System.Windows.Window, IDisposable
 {
     private readonly AgentCursorVisualState _visual;
     private readonly DispatcherTimer _timer;
+    private readonly Dispatcher _uiDispatcher;
+    private int _lastScreenLeft=-10000;
+    private int _lastScreenTop=-10000;
     private readonly Ellipse _halo;
     private readonly Ellipse _clickRing;
     private System.Drawing.Point _lastPosition=new(int.MinValue,int.MinValue);
@@ -43,7 +46,11 @@ internal sealed class CursorGlowOverlay : System.Windows.Window, IDisposable
     public bool IsHandleCreated => _handle!=0;
     public bool Visible => _shown;
     public int PaintCount => System.Threading.Volatile.Read(ref _paintCount);
-    public System.Drawing.Rectangle Bounds => new((int)Math.Round(Left),(int)Math.Round(Top),SizePx,SizePx);
+    // Native RPC calls run off the WPF UI thread. Never read Window.Left/Top
+    // or any DependencyProperty inside the telemetry/status method.
+    public System.Drawing.Rectangle Bounds => new(
+        System.Threading.Volatile.Read(ref _lastScreenLeft),
+        System.Threading.Volatile.Read(ref _lastScreenTop),SizePx,SizePx);
 
     public nint Handle
     {
@@ -56,6 +63,7 @@ internal sealed class CursorGlowOverlay : System.Windows.Window, IDisposable
     public CursorGlowOverlay(AgentCursorVisualState visual)
     {
         _visual=visual;
+        _uiDispatcher=Dispatcher;
         Width=SizePx;
         Height=SizePx;
         Left=-10000;
@@ -117,7 +125,7 @@ internal sealed class CursorGlowOverlay : System.Windows.Window, IDisposable
     public void BeginInvoke(Action action)
     {
         if(_disposed)return;
-        _=Dispatcher.BeginInvoke(action,DispatcherPriority.Normal);
+        _=_uiDispatcher.BeginInvoke(action,DispatcherPriority.Normal);
     }
 
     public new void Show()
@@ -156,6 +164,8 @@ internal sealed class CursorGlowOverlay : System.Windows.Window, IDisposable
             // Win32 Cursor.Position is physical pixels; WPF positions use DIPs.
             Left=(cursor.X-Anchor)/dpi.DpiScaleX;
             Top=(cursor.Y-Anchor)/dpi.DpiScaleY;
+            System.Threading.Volatile.Write(ref _lastScreenLeft,cursor.X-Anchor);
+            System.Threading.Volatile.Write(ref _lastScreenTop,cursor.Y-Anchor);
             _lastPosition=cursor;
         }
 

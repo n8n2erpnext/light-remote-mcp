@@ -25,6 +25,11 @@ assert.match(winGlow,/AllowsTransparency=true/);
 assert.match(winGlow,/ShowActivated=false/);
 assert.doesNotMatch(winGlow,/TransparencyKey=/,'no GDI transparency-key bullseye');
 assert.match(winGlow,/new RadialGradientBrush/);
+assert.match(winGlow,/Volatile.Read\(ref _lastScreenLeft\)/);
+assert.match(winGlow,/Volatile.Read\(ref _lastScreenTop\)/);
+assert.doesNotMatch(winGlow,/Bounds => new\(\(int\)Math.Round\(Left\)/,
+  'RPC status must never read WPF Window.Left from worker thread');
+
 assert.match(winGlow,/System\.Windows\.Forms\.Cursor\.Position/);
 assert.match(winGlow,/ClickPulse/);
 assert.match(winGlow,/Small warm light/,'glow must be a small offset tail');
