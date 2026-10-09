@@ -23,6 +23,15 @@ internal sealed class CursorGlowOverlay : System.Windows.Window, IDisposable
     private int _lastScreenLeft=-10000;
     private int _lastScreenTop=-10000;
     private readonly Ellipse _clickRing;
+    private readonly TranslateTransform _bloomBodyOffset;
+    // The approved black cursor bitmap is a 48-unit polygon with
+    // hotspot (12,14) and visible body centered near (21,26.5).
+    // Its glow belongs around the arrow BODY, never as a separate
+    // bullseye centered on the hotspot/tip.
+    private const double ArrowBodyOffsetXPerCursorWidth=9.0/48.0;
+    private const double ArrowBodyOffsetYPerCursorHeight=12.5/48.0;
+    private const int SM_CXCURSOR=13;
+    private const int SM_CYCURSOR=14;
     private System.Drawing.Point _lastPosition=new(int.MinValue,int.MinValue);
     private volatile bool _disposed;
     private volatile bool _shown;
@@ -35,6 +44,9 @@ internal sealed class CursorGlowOverlay : System.Windows.Window, IDisposable
     private const int WS_EX_TRANSPARENT=0x20;
     private const int WS_EX_TOOLWINDOW=0x80;
     private const int WS_EX_NOACTIVATE=0x08000000;
+
+    [DllImport("user32.dll")]
+    private static extern int GetSystemMetrics(int index);
 
     [DllImport("user32.dll",EntryPoint="GetWindowLongW",SetLastError=true)]
     private static extern int GetWindowLong(nint hwnd,int index);
@@ -81,16 +93,22 @@ internal sealed class CursorGlowOverlay : System.Windows.Window, IDisposable
             Width=SizePx,Height=SizePx,IsHitTestVisible=false,
             Background=System.Windows.Media.Brushes.Transparent
         };
-        // Three superposed continuous radial blooms around the pointer HOTSPOT.
-        // Cyan supplies a bright center, blue stays distinct on white UI,
-        // and a warm yellow outer ambience adds contrast on dark canvas.
-        // Keep every circle mathematically centered, with NO direction/tail.
-        AddCenteredBloom(root,40,255,210,62,
-            (0.00,12),(0.36,47),(0.62,57),(0.82,26),(1.00,0)); // yellow
-        AddCenteredBloom(root,30,57,119,246,
-            (0.00,35),(0.35,83),(0.62,63),(0.85,22),(1.00,0)); // blue
-        AddCenteredBloom(root,20,35,232,249,
-            (0.00,95),(0.30,125),(0.67,52),(1.00,0)); // cyan
+        // Soft aura along the approved black pointer silhouette, as in
+        // owner reference #2. Put all three existing colors around its
+        // visible BODY instead of the hotspot (which caused a detached dot).
+        // The layers keep the previous compact 40/30/20 sizes.
+        var bloomLayer=new Canvas{
+            Width=SizePx,Height=SizePx,IsHitTestVisible=false
+        };
+        _bloomBodyOffset=new TranslateTransform();
+        bloomLayer.RenderTransform=_bloomBodyOffset;
+        AddCenteredBloom(bloomLayer,40,255,210,62,
+            (0.00,9),(0.36,36),(0.62,47),(0.82,22),(1.00,0)); // yellow
+        AddCenteredBloom(bloomLayer,30,57,119,246,
+            (0.00,24),(0.35,76),(0.62,58),(0.85,20),(1.00,0)); // blue
+        AddCenteredBloom(bloomLayer,20,35,232,249,
+            (0.00,44),(0.30,105),(0.67,49),(1.00,0)); // cyan
+        root.Children.Add(bloomLayer);
 
         _clickRing=new Ellipse{
             Width=18,Height=18,Visibility=Visibility.Collapsed,
@@ -186,6 +204,14 @@ internal sealed class CursorGlowOverlay : System.Windows.Window, IDisposable
             // physical pixels to the glow's center on scaled monitors.
             Left=cursor.X/dpi.DpiScaleX-Anchor;
             Top=cursor.Y/dpi.DpiScaleY-Anchor;
+            // Windows scales the 48-unit arrow art to system cursor metrics.
+            // Map its silhouette centroid to WPF DIPs on the active screen.
+            // This makes the halo envelope the arrow (reference #2) instead
+            // of following the arrow tip as an independent luminous dot.
+            _bloomBodyOffset.X=GetSystemMetrics(SM_CXCURSOR)
+                *ArrowBodyOffsetXPerCursorWidth/dpi.DpiScaleX;
+            _bloomBodyOffset.Y=GetSystemMetrics(SM_CYCURSOR)
+                *ArrowBodyOffsetYPerCursorHeight/dpi.DpiScaleY;
             System.Threading.Volatile.Write(ref _lastScreenLeft,cursor.X-Anchor);
             System.Threading.Volatile.Write(ref _lastScreenTop,cursor.Y-Anchor);
             _lastPosition=cursor;

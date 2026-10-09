@@ -32,14 +32,28 @@ assert.doesNotMatch(winGlow,/Bounds => new\(\(int\)Math.Round\(Left\)/,
 
 assert.match(winGlow,/System\.Windows\.Forms\.Cursor\.Position/);
 assert.match(winGlow,/ClickPulse/);
-assert.match(winGlow,/Three superposed continuous radial blooms/);
+assert.match(winGlow,/Soft aura along the approved black pointer silhouette/);
 for(const circle of [
-  'AddCenteredBloom(root,40,255,210,62,',
-  'AddCenteredBloom(root,30,57,119,246,',
-  'AddCenteredBloom(root,20,35,232,249,'
+  'AddCenteredBloom(bloomLayer,40,255,210,62,',
+  'AddCenteredBloom(bloomLayer,30,57,119,246,',
+  'AddCenteredBloom(bloomLayer,20,35,232,249,'
 ]) assert.ok(winGlow.includes(circle),'missing glow palette '+circle);
 assert.ok(winGlow.includes('Canvas.SetLeft(layer,Anchor-diameter/2)'));
 assert.ok(winGlow.includes('Canvas.SetTop(layer,Anchor-diameter/2)'));
+assert.match(winGlow,/ArrowBodyOffsetXPerCursorWidth=9\.0\/48\.0/);
+assert.match(winGlow,/ArrowBodyOffsetYPerCursorHeight=12\.5\/48\.0/);
+assert.ok(winGlow.includes('GetSystemMetrics(SM_CXCURSOR)'));
+assert.ok(winGlow.includes('GetSystemMetrics(SM_CYCURSOR)'));
+assert.ok(winGlow.includes('_bloomBodyOffset.X=GetSystemMetrics(SM_CXCURSOR)'));
+assert.ok(winGlow.includes('_bloomBodyOffset.Y=GetSystemMetrics(SM_CYCURSOR)'));
+assert.ok(winGlow.includes('bloomLayer.RenderTransform=_bloomBodyOffset'));
+assert.ok(winGlow.includes('root.Children.Add(bloomLayer)'));
+for(const dimension of [32,48,64]){
+ const dx=dimension*9/48,dy=dimension*12.5/48;
+ assert.ok(dx>0 && dx<dimension/3 && dy>0 && dy<dimension/3,
+  'glow must envelope approved black arrow silhouette');
+}
+
 assert.match(winGlow,/private const int SizePx=56;/);
 assert.match(winGlow,/private const int Anchor=28;/);
 assert.match(winGlow,/Left=cursor.X\/dpi.DpiScaleX-Anchor;/,
