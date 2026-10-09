@@ -159,8 +159,8 @@ internal static class SystemCursorOverride
             var iconInfo = new IconInfo
             {
                 fIcon = false,
-                xHotspot = (uint)Math.Round(12f * scaleX),
-                yHotspot = (uint)Math.Round(14f * scaleY),
+                xHotspot = (uint)Math.Round(AgentCursorShape.HotspotX * scaleX),
+                yHotspot = (uint)Math.Round(AgentCursorShape.HotspotY * scaleY),
                 hbmMask = hbmMask,
                 hbmColor = hbmColor
             };
@@ -186,42 +186,26 @@ internal static class SystemCursorOverride
 
         g.ScaleTransform(width / 48f, height / 48f);
 
-        const float tipX = 12f;
-        const float tipY = 14f;
-
-        // Crisp one-arrow silhouette. No luminous discs or micro AI
-        // badge: at Windows 32px cursor size both looked like pixel noise.
+        // Draw exactly the same silhouette used by the bloom overlay.
+        // The arrow matches owner screenshot #1: solid black, sharp,
+        // slender stem, thin light edge and discreet lower-right shadow.
         using var path = new GraphicsPath();
-        path.AddPolygon(new[]
-        {
-            new PointF(tipX, tipY),
-            new PointF(tipX + 2.4f, tipY + 20.25f),
-            new PointF(tipX + 7.35f, tipY + 15.9f),
-            new PointF(tipX + 12.1f, tipY + 25.05f),
-            new PointF(tipX + 15.9f, tipY + 23.25f),
-            new PointF(tipX + 10.9f, tipY + 14.1f),
-            new PointF(tipX + 18.15f, tipY + 13.65f)
-        });
+        path.AddPolygon(AgentCursorShape.BitmapOutline());
         path.CloseFigure();
 
         using var shadowPath = (GraphicsPath)path.Clone();
         using var shift = new Matrix();
         shift.Translate(1.05f,1.25f);
         shadowPath.Transform(shift);
-        using var shadow = new SolidBrush(Color.FromArgb(75,0,0,0));
-        using var outline = new Pen(Color.FromArgb(255,243,246,251),1.55f)
+        using var shadow = new SolidBrush(Color.FromArgb(65,0,0,0));
+        using var outline = new Pen(Color.FromArgb(255,245,247,250),1.55f)
         {
             LineJoin = LineJoin.Round
         };
-        using var fill = new SolidBrush(Color.FromArgb(255,16,21,28));
-        using var accent = new Pen(Color.FromArgb(220,249,186,51),1.1f)
-        {
-            LineJoin = LineJoin.Round
-        };
+        using var fill = new SolidBrush(Color.FromArgb(255,10,13,19));
         g.FillPath(shadow,shadowPath);
         g.FillPath(fill,path);
         g.DrawPath(outline,path);
-        g.DrawLine(accent,tipX+3.2f,tipY+5.6f,tipX+4.15f,tipY+15f);
 
         return bitmap;
     }
