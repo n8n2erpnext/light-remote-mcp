@@ -100,6 +100,11 @@ jobs:
             xcrun swiftc -O -target "$SWIFT_TARGET" client/macos/real-remote/canary/DragCanary.swift -o "$PKG/real-remote/LightRemoteDragCanary"
           fi
           chmod 0755 "$PKG/tray/LightRemoteTray" "$PKG/tray/LightRemoteLauncher" "$PKG/real-remote/LightRemoteRealRemote"
+          # Native RM active-indicator identity for bare-helper deployments.
+          # The separate Dev .app embeds its own .icns; production helpers
+          # load the identical RM logo from this adjacent package resource.
+          install -m 0644 client/macos/real-remote/Resources/LightRemoteRM-256.png "$PKG/real-remote/LightRemoteRM-256.png"
+          test -s "$PKG/real-remote/LightRemoteRM-256.png"
           CORE_DIGEST="$(node -e "const fs=require('fs');console.log(JSON.parse(fs.readFileSync(process.argv[1],'utf8')).digest)" "$PKG/client-core.json")"
           cat > "$PKG/manifest.json" <<JSON
           {

@@ -126,8 +126,16 @@ func runRobotCursorOverlay(args:[String]) throws {
     // visible only during an owned, live remote-control cursor lease.
     // No Dock activation, menu-bar popover or mouse interception.
     let rmStatusItem=NSStatusBar.system.statusItem(withLength:NSStatusItem.squareLength)
-    if let iconUrl=Bundle.main.url(forResource:"LightRemoteRM",withExtension:"icns"),
-       let icon=NSImage(contentsOf:iconUrl) {
+    // App bundle first; an installed RM helper may be a standalone binary
+    // inside a versioned package rather than its own .app. Both share the
+    // same Windows RM V2 logo, never the ordinary Light Remote tray icon.
+    let binaryDirectory=(Bundle.main.executableURL
+        ?? URL(fileURLWithPath:CommandLine.arguments[0])).deletingLastPathComponent()
+    let embeddedIcon=Bundle.main.url(forResource:"LightRemoteRM",withExtension:"icns")
+    let siblingLogo=binaryDirectory.appendingPathComponent("LightRemoteRM-256.png")
+    let iconImage=embeddedIcon.flatMap { NSImage(contentsOf:$0) }
+        ?? NSImage(contentsOf:siblingLogo)
+    if let icon=iconImage {
         icon.size=NSSize(width:18,height:18)
         icon.isTemplate=false // preserve the Windows RM yellow/black palette
         rmStatusItem.button?.image=icon
