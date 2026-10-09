@@ -115,7 +115,17 @@ internal static class NativeInput
     {
         count=Math.Clamp(count,1,3);
         var flags=MouseFlags(button);
-        for(var i=0;i<count;i++) SendMouse(flags.Down,flags.Up);
+        // Paint ribbon menus need the pointer hover to settle before down.
+        // A zero-time SendInput down/up burst was intermittently interpreted
+        // as hover only even though the RPC reported applied=true.
+        Thread.Sleep(35);
+        for(var i=0;i<count;i++)
+        {
+            SendMouseFlag(flags.Down);
+            Thread.Sleep(40);
+            SendMouseFlag(flags.Up);
+            if(i<count-1) Thread.Sleep(55);
+        }
     }
 
     public static void Wheel(int delta,bool horizontal=false)

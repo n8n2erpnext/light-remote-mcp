@@ -12,6 +12,11 @@ const mac=read('client/macos/real-remote/RobotCursorOverlay.swift');
 const macBuilder=read('client/macos/real-remote/canary/build-dev-app.sh');
 
 assert.match(winInput,/SetCursorPos\(x,y\)/,'Windows must move native OS cursor directly');
+assert.match(winInput,/Thread.Sleep\(35\)/,
+  'native cursor click requires a short hover settle to select Paint tools');
+assert.match(winInput,/SendMouseFlag\(flags.Down\);\s*Thread.Sleep\(40\);\s*SendMouseFlag\(flags.Up\);/,
+  'native cursor click must use distinct physical down/up events');
+
 assert.match(winInput,/Stopwatch\.StartNew\(\)/,'Windows cursor pacing uses monotonic timing');
 assert.match(winInput,/SmoothPoint\(start\.X,start\.Y,x,y,i,frameCount\)/);
 assert.doesNotMatch(winInput,/var delay=Math\.Max\(0,durationMs\/steps\)/);
