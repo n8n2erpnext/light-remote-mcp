@@ -24,6 +24,20 @@ assert.doesNotMatch(winGlow,/\b(?:SetCursorPos|SendInput|SetSystemCursor|SystemP
 assert.match(winContext,/LIGHT_REMOTE_RM_ANIMATED_GLOW/);
 assert.match(winContext,/\_ambientGlow\?\.Dispose\(\)/);
 assert.match(winContext,/SystemCursorOverride\.Release\(\)/);
+// An observational status or frame must never install an OS-wide cursor.
+const winCtor=winContext.split('public RobotContext(string pipeName)')[1]?.split('private async Task<object?> HandleAsync')[0]||'';
+assert.doesNotMatch(winCtor,/SystemCursorOverride\.Acquire\(\)/,
+  'read-only helper startup must not replace the system cursor');
+assert.doesNotMatch(winCtor,/_ambientGlow\.Show\(\)/,
+  'read-only helper startup must not show the animated glow');
+assert.match(winContext,/CursorActivityLeaseMs=5_000/);
+assert.match(winContext,/HoldCursorForPhysicalInput\(\)/);
+assert.match(winContext,/ReleaseCursorActivity\(\)/);
+for(const action of ['MarkMove','MarkClick','MarkScroll','MarkDrag']){
+  assert.match(winContext,new RegExp('HoldCursorForPhysicalInput\\(\\);\\s*_cursorState\\.'+action+'\\('),
+    'physical cursor lease missing for '+action);
+}
+
 assert.match(mac,/NSStatusBar\.system\.statusItem/);
 assert.match(mac,/url\(forResource:"LightRemoteRM",withExtension:"icns"\)/);
 assert.match(mac,/NSStatusBar\.system\.removeStatusItem\(rmStatusItem\)/);

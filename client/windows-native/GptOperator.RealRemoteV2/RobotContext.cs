@@ -15,6 +15,12 @@ internal sealed class RobotContext : ApplicationContext
     private readonly BrowserSemanticProvider _browser;
     private readonly RobotRpcServer _rpc;
     private readonly Stopwatch _uptime=Stopwatch.StartNew();
+    private readonly object _cursorLeaseGate=new();
+    // Cursor visuals follow recent physical Agent activity, not passive status/frame reads.
+    // Bridge hops can take seconds; bound the effect with a short renewable lease.
+    private readonly System.Threading.Timer _cursorLeaseTimer;
+    private const int CursorActivityLeaseMs=5_000;
+    private volatile bool _cursorLeaseActive;
     private bool _closing;
 
     private static Icon LoadAppIcon()
@@ -31,14 +37,15 @@ internal sealed class RobotContext : ApplicationContext
     public RobotContext(string pipeName)
     {
         _tray=new NotifyIcon{Visible=true,Text="Agent Remote Active",Icon=LoadAppIcon()};
-        SystemCursorOverride.Acquire();
-        // Owner-approved macOS-inspired live glow, isolated behind a canary
-        // switch until physical Windows UAT confirms visual/CPU behavior.
+        _cursorLeaseTimer=new System.Threading.Timer(_=>ReleaseCursorActivity(),null,
+            Timeout.Infinite,Timeout.Infinite);
+        // Pre-create the window handle on the GUI thread, but never display
+        // glow or replace the OS cursor until authorized physical Agent input.
         if(Environment.GetEnvironmentVariable("LIGHT_REMOTE_RM_ANIMATED_GLOW")=="1")
         {
             try {
                 _ambientGlow=new CursorGlowOverlay(_cursorState);
-                _ambientGlow.Show();
+                _=_ambientGlow.Handle;
             } catch { _ambientGlow?.Dispose(); _ambientGlow=null; }
         }
 
@@ -120,6 +127,48 @@ internal sealed class RobotContext : ApplicationContext
         return result;
     }
 
+    private void UpdateGlowVisibility()
+    {
+        var glow=_ambientGlow;
+        if(glow is null||glow.IsDisposed||!glow.IsHandleCreated)return;
+        try {
+            glow.BeginInvoke(new Action(()=>{
+                if(glow.IsDisposed)return;
+                // Recheck after dispatch: a timer callback may have queued
+                // a hide just before a new input renews the cursor lease.
+                if(_cursorLeaseActive)glow.Show();
+                else glow.Hide();
+            }));
+        } catch(ObjectDisposedException) {} catch(InvalidOperationException) {}
+    }
+
+    private void HoldCursorForPhysicalInput()
+    {
+        lock(_cursorLeaseGate)
+        {
+            if(_closing)throw new InvalidOperationException("robot_closing");
+            if(!_cursorLeaseActive)
+            {
+                SystemCursorOverride.Acquire();
+                _cursorLeaseActive=true;
+                UpdateGlowVisibility();
+            }
+            _cursorLeaseTimer.Change(CursorActivityLeaseMs,Timeout.Infinite);
+        }
+    }
+
+    private void ReleaseCursorActivity()
+    {
+        lock(_cursorLeaseGate)
+        {
+            if(!_cursorLeaseActive)return;
+            _cursorLeaseTimer.Change(Timeout.Infinite,Timeout.Infinite);
+            _cursorLeaseActive=false;
+            UpdateGlowVisibility();
+            SystemCursorOverride.Release();
+        }
+    }
+
     private object Status() => new {
         runtime="real-remote-v2",
         pid=Environment.ProcessId,
@@ -140,6 +189,7 @@ internal sealed class RobotContext : ApplicationContext
     {
         var durationMs=Int(r,"durationMs",90);
         var point=InputPoint(r,"x","y","screen");
+        HoldCursorForPhysicalInput();
         _cursorState.MarkMove(durationMs);
         NativeInput.Move(point.X,point.Y,durationMs,Int(r,"steps",8));
         return new {applied=true,native=NativeInput.ReadStatus(),cursorVisual=_cursorState.Status()};
@@ -149,6 +199,7 @@ internal sealed class RobotContext : ApplicationContext
     {
         var button=Text(r,"button","left");
         var count=Int(r,"count",1);
+        HoldCursorForPhysicalInput();
         _cursorState.MarkClick(button,count);
         NativeInput.Click(button,count);
         return new {applied=true,native=NativeInput.ReadStatus(),cursorVisual=_cursorState.Status()};
@@ -158,6 +209,7 @@ internal sealed class RobotContext : ApplicationContext
     {
         var delta=Int(r,"delta",0);
         var horizontal=Bool(r,"horizontal",false);
+        HoldCursorForPhysicalInput();
         _cursorState.MarkScroll();
         NativeInput.Wheel(delta,horizontal);
         return new {applied=true,delta,horizontal,native=NativeInput.ReadStatus(),cursorVisual=_cursorState.Status()};
@@ -169,6 +221,7 @@ internal sealed class RobotContext : ApplicationContext
         var sourceScreen=OptionalInt(r,"screen");
         var from=InputPoint(r,"fromX","fromY","screen");
         var to=InputPoint(r,"toX","toY","toScreen",sourceScreen);
+        HoldCursorForPhysicalInput();
         _cursorState.MarkDrag(durationMs);
         NativeInput.Drag(
             from.X,from.Y,to.X,to.Y,
@@ -432,9 +485,15 @@ internal sealed class RobotContext : ApplicationContext
         _tray.Visible=false;
         _tray.Icon?.Dispose();
         _tray.Dispose();
+        lock(_cursorLeaseGate)
+        {
+            _cursorLeaseActive=false;
+            _cursorLeaseTimer.Change(Timeout.Infinite,Timeout.Infinite);
+            _cursorLeaseTimer.Dispose();
+            SystemCursorOverride.Release();
+        }
         _ambientGlow?.Close();
         _ambientGlow?.Dispose();
-        SystemCursorOverride.Release();
         base.ExitThreadCore();
     }
 }
