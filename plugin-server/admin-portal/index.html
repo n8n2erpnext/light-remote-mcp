@@ -6,6 +6,7 @@
 <button class="admin-nav" data-view="upgrades"><img class="material-icon" src="/assets/icons/material/star.svg" alt="">Upgrade requests <span id="upgradeCount" class="nav-count">0</span></button>
 <button class="admin-nav" data-view="billing"><img class="material-icon" src="/assets/icons/material/credit_card.svg" alt="">Billing & refunds</button>
 <button class="admin-nav" data-view="licenses"><img class="material-icon" src="/assets/icons/material/key.svg" alt="">Licenses</button>
+<button class="admin-nav" data-view="announcements"><img class="material-icon" src="/assets/icons/material/notifications.svg" alt="">Announcements</button>
 <button class="admin-nav" data-view="system"><img class="material-icon" src="/assets/icons/material/settings.svg" alt="">System</button>
 <a href="/account"><span class="icon"><img class="material-icon" src="/assets/icons/material/arrow_back.svg" alt=""></span>Account portal</a></nav><div class="account-foot"><div class="account-email">Administrator</div><div class="account-meta">Owner authority</div></div></aside>
 <main class="main admin-main">
@@ -22,6 +23,29 @@
 <section class="panel"><div class="panel-head"><div><h2>Recent Paddle transactions</h2><div id="billingSummary" class="muted">Loading billing state…</div></div><span id="billingMode" class="badge">…</span></div><div id="billingRows"><div class="empty">Loading transactions…</div></div></section><div id="refundMsg" class="setting-note"></div></section>
 
 <section id="view-licenses" class="admin-view hide"><div class="page-head"><div><div class="eyebrow">ENTITLEMENTS</div><h1>Licenses</h1><p>Keys remain available for gifts, manual grants and VIP delivery.</p></div></div><section class="panel"><div class="panel-head"><div><h2>Issue key</h2><div class="muted">Optional recipient sends the key immediately using Light Remote transactional mail.</div></div></div><form id="issueLicense" class="admin-form admin-form-license settings-body"><label>Plan<select id="licensePlan"><option value="pro">PRO</option><option value="vip">VIP</option></select></label><label>Duration days<input id="licenseDays" type="number" min="1" max="3650" value="30"></label><label>Max redemptions<input id="licenseMax" type="number" min="1" max="1000" value="1"></label><label>Recipient email<input id="licenseRecipient" type="email" placeholder="optional@example.com"></label><button class="btn primary" type="submit">Issue key</button></form><div id="issuedKey" class="setting-note settings-body"></div><div class="panel-head"><h2>Existing licenses</h2></div><div id="licenseRows"><div class="empty">Loading licenses…</div></div></section></section>
+<section id="view-announcements" class="admin-view hide"><div class="page-head"><div><div class="eyebrow">SITE CONTENT</div><h1>Announcements</h1><p>Publish and schedule the slim notice bar seen on public pages.</p></div><button id="refreshAnnouncements" class="btn">Refresh</button></div>
+<section class="panel"><div class="panel-head"><div><h2>Create or edit announcement</h2><div class="muted">Colors and links are scoped to this banner. A higher-priority active notice wins.</div></div></div>
+<form id="announcementForm" class="admin-announcement-form settings-body"><input id="announcementId" type="hidden">
+<label>Heading <input id="announcementTitle" maxlength="110" placeholder="Service update"></label>
+<label>Message <input id="announcementMessage" maxlength="400" placeholder="Latest version is available"></label>
+<label>Link label <input id="announcementLinkLabel" maxlength="50" placeholder="Learn more"></label>
+<label>URL (HTTPS or local path) <input id="announcementLinkUrl" maxlength="600" placeholder="/downloads"></label>
+<label>Preset <select id="announcementTheme"><option value="brand">Brand yellow</option><option value="graphite">Graphite</option><option value="info">Info</option><option value="success">Success</option><option value="warning">Warning</option><option value="danger">Danger</option></select></label>
+<label>Background <input id="announcementBackground" type="color" value="#ffcc00"></label>
+<label>Text <input id="announcementColor" type="color" value="#111418"></label>
+<label>Link color <input id="announcementLinkColor" type="color" value="#111418"></label>
+<label>Priority <input id="announcementPriority" type="number" min="-100" max="100" value="0"></label>
+<label>Visible on <select id="announcementPages" multiple size="6"><option selected value="/">Home</option><option value="/downloads">Downloads</option><option value="/support">Support</option><option value="/ai-guide">AI Guide</option><option value="/privacy">Privacy</option><option value="/terms">Terms</option><option value="/cookies">Cookies</option><option value="/account">Account</option><option value="/account/login">Login</option><option value="/account/register">Register</option></select></label>
+<label>Delivery audience <select id="announcementAudience"><option value="site">Website only</option><option value="clients">Clients only</option><option value="both">Website + clients</option></select></label>
+<label>Client category <select id="announcementKind"><option value="feature">New feature</option><option value="update">New update</option><option value="maintenance">Maintenance</option><option value="service">Service notice</option></select></label>
+<label>Client platforms <select id="announcementPlatforms" multiple size="3"><option selected value="windows">Windows</option><option selected value="macos">macOS</option><option selected value="linux">Linux</option></select></label>
+<label>Start (optional) <input id="announcementStart" type="datetime-local"></label>
+<label>End (optional) <input id="announcementEnd" type="datetime-local"></label>
+<label class="admin-checkbox"><input id="announcementEnabled" type="checkbox"> Enabled</label>
+<label class="admin-checkbox"><input id="announcementDismissible" type="checkbox" checked> Dismissible</label>
+<div class="admin-announcement-buttons"><button type="submit" class="btn primary">Save announcement</button><button type="button" id="announcementReset" class="btn">New announcement</button></div>
+</form><div id="announcementPreview" class="admin-announcement-preview" role="status"></div><div id="announcementMessageStatus" class="setting-note"></div></section>
+<section class="panel"><div class="panel-head"><h2>Published & drafts</h2></div><div id="announcementRows" class="settings-body">Loading announcements…</div></section></section>
 <section id="view-system" class="admin-view hide"><div class="page-head"><div><div class="eyebrow">OPERATIONS</div><h1>System</h1><p>Transactional mail, authentication and public service configuration.</p></div></div><div class="settings-stack"><section class="panel setting-row"><div><h2>Transactional mail</h2><div id="mailSummary" class="muted">Checking configuration…</div></div><button id="verifyMail" class="btn">Verify SMTP</button></section><section class="panel google-system-panel"><div class="panel-head"><div><h2>Google Login</h2><div id="googleSummary" class="muted">Checking configuration…</div></div><span id="googleStatus" class="badge">…</span></div><div class="settings-body google-config-body"><div class="system-code-row"><span class="system-code-label">Authorized origin</span><code id="googleOrigin">—</code><button id="copyGoogleOrigin" class="icon-btn" title="Copy origin"><img class="material-icon" src="/assets/icons/material/content_copy.svg" alt=""></button></div><div class="system-code-row"><span class="system-code-label">Redirect URI</span><code id="googleRedirect">—</code><button id="copyGoogleRedirect" class="icon-btn" title="Copy redirect URI"><img class="material-icon" src="/assets/icons/material/content_copy.svg" alt=""></button></div><div class="google-setup-actions"><a class="btn" href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer">Open Google Cloud</a><span class="muted">Create credentials → OAuth client ID → Web application. Use the origin and redirect URI above exactly.</span></div><form id="googleConfigForm" class="google-config-form"><label>Client ID<input id="googleClientId" autocomplete="off" spellcheck="false" placeholder="…apps.googleusercontent.com" required></label><label>Client secret<input id="googleClientSecret" type="password" autocomplete="new-password" spellcheck="false" placeholder="Paste once — never shown again" required></label><button class="btn primary" type="submit">Save Google client</button></form></div></section><section class="panel setting-row"><div><h2>Public endpoint</h2><div class="muted">Official Direct MCP + Account portal</div></div><code>light-remote.thaiduy.digital</code></section></div><div id="systemMsg" class="setting-note"></div></section>
 </main></div>
 <script>
@@ -29,7 +53,7 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const money=(minor,currency='USD')=>{try{return new Intl.NumberFormat(undefined,{style:'currency',currency:String(currency||'USD')}).format((Number(minor)||0)/100)}catch{return String(minor||0)+' '+String(currency||'USD')}};
 let accountRows=[],groupRows=[],pendingCache=[],upgradeRowsCache=[],billingRowsCache=[],billingMeta={};
 async function api(action,options={}){const r=await fetch('/admin/api?action='+encodeURIComponent(action),{cache:'no-store',...options,headers:{'content-type':'application/json',...(options.headers||{})}});let j={};try{j=await r.json()}catch{}if(r.status===401){location.href='/account/login';throw new Error('login_required')}if(!r.ok)throw new Error(j.error||('HTTP '+r.status));return j}
-function show(view){document.querySelectorAll('.admin-view').forEach(x=>x.classList.add('hide'));document.getElementById('view-'+view).classList.remove('hide');document.querySelectorAll('.admin-nav').forEach(x=>x.classList.toggle('active',x.dataset.view===view))}
+function show(view){if(view==='announcements')loadAnnouncements().catch(()=>{});document.querySelectorAll('.admin-view').forEach(x=>x.classList.add('hide'));document.getElementById('view-'+view).classList.remove('hide');document.querySelectorAll('.admin-nav').forEach(x=>x.classList.toggle('active',x.dataset.view===view))}
 document.querySelectorAll('.admin-nav').forEach(b=>b.onclick=()=>show(b.dataset.view));
 function metric(label,value,note){return '<article class="metric-card"><div class="metric-label">'+esc(label)+'</div><div class="metric-value">'+esc(value)+'</div><div class="metric-note">'+esc(note)+'</div></article>'}
 async function loadOverview(){const [r,m]=await Promise.all([api('overview'),api('mail-status')]),o=r.overview||{},st=o.statuses||{};adminMetrics.innerHTML=metric('Accounts',fmt(o.accounts),'Verified identities')+metric('Pending',fmt(o.pendingRegistrations),'Awaiting email verification')+metric('Dormant',fmt(st.dormant),'Self-reactivatable FREE accounts')+metric('Disabled',fmt(st.admin_disabled),'Disabled by administrator')+metric('Groups',fmt(o.groups),'Account groups')+metric('Devices',fmt(o.devices),'Owned device identities')+metric('Online',fmt(o.onlineDevices),'Devices currently online')+metric('Tool calls',fmt(o.toolCallsThisMonth),'Current UTC month');planMix.innerHTML=Object.entries(o.plans||{}).map(([k,v])=>'<span class="badge admin-plan-badge">'+esc(k.toUpperCase())+' · '+fmt(v)+'</span>').join('')||'<span class="muted">No accounts.</span>';serviceStatus.innerHTML='<div class="status-line"><span>SMTP</span><span class="badge '+(m.configured?'online':'')+'">'+(m.configured?'Configured':'Not configured')+'</span></div><div class="status-line"><span>Google Login</span><span class="badge '+(m.google?.configured?'online':'')+'">'+(m.google?.configured?'Configured':'Waiting')+'</span></div><div class="status-line"><span>Direct MCP</span><span class="badge online">Online</span></div>'}
@@ -62,4 +86,94 @@ copyGoogleRedirect.onclick=async()=>{try{await navigator.clipboard.writeText(goo
 googleConfigForm.onsubmit=async ev=>{ev.preventDefault();const btn=ev.submitter;btn.disabled=true;systemMsg.className='setting-note muted';systemMsg.textContent='Saving Google OAuth client…';try{await api('google-config',{method:'POST',body:JSON.stringify({clientId:googleClientId.value.trim(),clientSecret:googleClientSecret.value.trim()})});googleClientId.value='';googleClientSecret.value='';systemMsg.className='setting-note ok';systemMsg.textContent='Google Login configured. Client secret is stored server-side and will not be shown again.';await Promise.all([loadSystem(),loadOverview()])}catch(e){systemMsg.className='setting-note error';systemMsg.textContent=e.message}finally{btn.disabled=false}};
 refreshAdmin.onclick=()=>Promise.all([loadOverview(),loadGroups(),loadAccounts(),loadPending(),loadUpgrades(),loadBilling(),loadLicenses(),loadSystem()]);
 Promise.all([loadOverview(),loadGroups(),loadAccounts(),loadPending(),loadUpgrades(),loadBilling(),loadLicenses(),loadSystem()]).catch(e=>{document.querySelector('.main').insertAdjacentHTML('beforeend','<div class="error">'+esc(e.message)+'</div>')});
+/* Admin V5: site announcements and privacy-preserving traffic aggregates. */
+let announcementsCache=[];
+const noticePresets={
+ brand:['#ffcc00','#111418','#111418'],
+ graphite:['#20252b','#ffffff','#ffcc00'],
+ info:['#ddedfb','#143b60','#175992'],
+ success:['#ddf6e9','#155535','#166d43'],
+ warning:['#fff4c9','#6d4a08','#785012'],
+ danger:['#ffe2e4','#821b2c','#932035']
+};
+function announcementSelectedPages(){return [...announcementPages.selectedOptions].map(o=>o.value)}
+function announcementEditorValues(){return{
+ id:announcementId.value||undefined,title:announcementTitle.value.trim(),
+ message:announcementMessage.value.trim(),linkLabel:announcementLinkLabel.value.trim(),
+ linkUrl:announcementLinkUrl.value.trim(),theme:announcementTheme.value,
+ background:announcementBackground.value,color:announcementColor.value,linkColor:announcementLinkColor.value,
+ priority:Number(announcementPriority.value)||0,pages:announcementSelectedPages(),
+ startAt:announcementStart.value?new Date(announcementStart.value).toISOString():'',
+ endAt:announcementEnd.value?new Date(announcementEnd.value).toISOString():'',
+ enabled:announcementEnabled.checked,dismissible:announcementDismissible.checked,
+ audience:announcementAudience.value,kind:announcementKind.value,
+ platforms:[...announcementPlatforms.selectedOptions].map(o=>o.value)
+}}
+function updateAnnouncementPreview(){
+ const v=announcementEditorValues();
+ announcementPreview.style.background=v.background;
+ announcementPreview.style.color=v.color;
+ announcementPreview.innerHTML='<strong>'+esc(v.title||'Announcement preview')+'</strong><span>'+esc(v.message||'')+'</span>'+
+ (v.linkUrl?'<a style="color:'+esc(v.linkColor)+'" href="'+esc(v.linkUrl)+'" target="_blank" rel="noopener noreferrer">'+esc(v.linkLabel||'Learn more')+'</a>':'');
+}
+function resetAnnouncementForm(){
+ announcementForm.reset();announcementId.value='';
+ announcementPages.querySelector('option[value="/"]').selected=true;
+ announcementTheme.value='brand';
+ [announcementBackground.value,announcementColor.value,announcementLinkColor.value]=noticePresets.brand;
+ announcementDismissible.checked=true;announcementAudience.value='site';announcementKind.value='feature';
+ for(const item of announcementPlatforms.options)item.selected=true;
+ updateAnnouncementPreview();
+}
+announcementTheme.onchange=()=>{
+ [announcementBackground.value,announcementColor.value,announcementLinkColor.value]=noticePresets[announcementTheme.value]||noticePresets.brand;updateAnnouncementPreview()
+};
+announcementForm.addEventListener('input',updateAnnouncementPreview);
+announcementReset.onclick=resetAnnouncementForm;
+function editAnnouncement(id){
+ const x=announcementsCache.find(a=>a.id===id);if(!x)return;
+ announcementId.value=x.id;announcementTitle.value=x.title||'';announcementMessage.value=x.message||'';
+ announcementLinkLabel.value=x.linkLabel||'';announcementLinkUrl.value=x.linkUrl||'';
+ announcementTheme.value=x.theme||'brand';announcementBackground.value=x.background;
+ announcementColor.value=x.color;announcementLinkColor.value=x.linkColor;
+ announcementPriority.value=String(x.priority||0);
+ for(const option of announcementPages.options)option.selected=(x.pages||[]).includes(option.value);
+ const localDate=v=>{if(!v)return '';const date=new Date(v);if(!Number.isFinite(date.getTime()))return '';const offset=date.getTimezoneOffset()*60000;return new Date(date.getTime()-offset).toISOString().slice(0,16)};
+ announcementStart.value=localDate(x.startAt);announcementEnd.value=localDate(x.endAt);
+ announcementEnabled.checked=x.enabled;announcementDismissible.checked=x.dismissible;
+ announcementAudience.value=x.audience||'site';announcementKind.value=x.kind||'feature';
+ for(const item of announcementPlatforms.options)item.selected=(x.platforms||['windows','macos','linux']).includes(item.value);
+ updateAnnouncementPreview();
+ announcementForm.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function renderAnnouncements(){
+ announcementRows.innerHTML=announcementsCache.map(a=>
+ '<div class="admin-announcement-item"><div><strong>'+esc(a.title||a.message.slice(0,65))+'</strong>'+
+ '<div class="muted">'+esc((a.enabled?'Enabled':'Draft')+' · '+(a.audience||'site')+' · priority '+a.priority+' · '+(a.pages||[]).join(', '))+'</div></div>'+
+ '<div class="admin-head-actions"><button class="btn" data-notice-edit="'+esc(a.id)+'">Edit</button>'+
+ '<button class="btn danger" data-notice-delete="'+esc(a.id)+'">Delete</button></div></div>'
+ ).join('')||'<div class="empty">No announcements yet. Create one above.</div>';
+ announcementRows.querySelectorAll('[data-notice-edit]').forEach(b=>b.onclick=()=>editAnnouncement(b.dataset.noticeEdit));
+ announcementRows.querySelectorAll('[data-notice-delete]').forEach(b=>b.onclick=async()=>{
+  if(!confirm('Delete this announcement permanently?'))return;
+  try{await api('announcement-delete',{method:'POST',body:JSON.stringify({id:b.dataset.noticeDelete})});await loadAnnouncements();announcementMessageStatus.textContent='Announcement deleted.'}
+  catch(e){announcementMessageStatus.textContent=e.message}
+ });
+}
+async function loadAnnouncements(){
+ const r=await api('announcements');announcementsCache=r.announcements||[];renderAnnouncements()
+}
+refreshAnnouncements.onclick=()=>loadAnnouncements().catch(e=>announcementMessageStatus.textContent=e.message);
+announcementForm.onsubmit=async event=>{
+ event.preventDefault();const button=event.submitter,record=announcementEditorValues();
+ if(record.audience!=='clients'&&!record.pages.length){announcementMessageStatus.textContent='Select a website destination.';return}
+ if(record.audience!=='site'&&!record.platforms.length){announcementMessageStatus.textContent='Select client platforms.';return}
+ button.disabled=true;
+ try{
+  await api(record.id?'announcement-update':'announcement-create',{method:'POST',body:JSON.stringify(record)});
+  announcementMessageStatus.textContent='Saved successfully.';
+  resetAnnouncementForm();await loadAnnouncements();
+ }catch(error){announcementMessageStatus.textContent=error.message}finally{button.disabled=false}
+};
+resetAnnouncementForm();
 </script></body></html>

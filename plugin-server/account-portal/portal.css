@@ -42,6 +42,23 @@ html[data-theme="light"] .auth-card p,html[data-theme="light"] .auth-switch{colo
 /* Distribution */
 .download-shell{min-height:100vh;background:#080a0c}.download-head{max-width:1180px;margin:0 auto;padding:22px 24px;display:flex;align-items:center;justify-content:space-between;gap:20px}.download-brand{padding:0}.download-actions{display:flex;gap:10px}.download-main{max-width:1180px;margin:0 auto;padding:42px 24px 72px}.download-hero{max-width:760px;margin-bottom:34px}.download-hero h1{font-size:46px;letter-spacing:-.04em;margin:10px 0 12px}.download-hero p{color:#98a4b3;font-size:17px;line-height:1.65}.download-hero code{font-family:'Cascadia Code',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#ffcc00}.eyebrow{text-transform:uppercase;letter-spacing:.12em;font-size:11px;color:#ffcc00}.download-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.download-card{border:1px solid #2b323a;border-radius:16px;background:#0c1014;padding:22px;display:flex;flex-direction:column;min-height:270px}.download-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}.download-card h2{margin:7px 0 0;font-size:20px}.download-kind{text-transform:uppercase;letter-spacing:.1em;color:#738191;font-size:10px}.download-card p{color:#94a0ae;line-height:1.55}.download-version{font-family:'Cascadia Code',ui-monospace,SFMono-Regular,Menlo,monospace;color:#84909d;font-size:12px;margin:auto 0 14px}.download-hint{font-size:12px;margin-top:10px;line-height:1.5}.install-flow{margin-top:28px}.install-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:0}.install-steps>div{padding:22px;border-right:1px solid #232a31;display:grid;gap:7px}.install-steps>div:last-child{border-right:0}.install-steps b{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:#ffcc00;color:#111}.install-steps span{color:#8794a2;font-size:13px;line-height:1.5}
 
+
+/* Announcement editor ported from the active Direct distribution; client targeting is opt-in. */
+.admin-announcement-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 16px}
+.admin-announcement-form label{display:flex;flex-direction:column;gap:7px;color:#9da8b6;font-size:12px;font-weight:650}
+.admin-announcement-form label>input,.admin-announcement-form label>select{width:100%;min-width:0;box-sizing:border-box;padding:10px 11px;background:#0d1116;border:1px solid #303840;border-radius:8px;color:#e4eaf1;font:inherit;font-size:13px}
+.admin-announcement-form label>input[type=color]{height:41px;padding:4px 6px}
+.admin-announcement-form label>input[type=checkbox]{width:auto}
+.admin-announcement-form .admin-checkbox{flex-direction:row;align-items:center}
+.admin-announcement-buttons{grid-column:1/-1;display:flex;gap:10px}
+.admin-announcement-preview{display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap;min-height:44px;padding:10px 14px;border-radius:8px;margin:0 22px 22px;text-align:center;font-size:12px}
+.admin-announcement-item{padding:15px 0;display:flex;justify-content:space-between;align-items:center;gap:14px;border-bottom:1px solid #2b323a}
+.admin-announcement-item:last-child{border-bottom:0}
+html[data-theme=light] .admin-announcement-form label{color:#657383}
+html[data-theme=light] .admin-announcement-form label>input,html[data-theme=light] .admin-announcement-form label>select{background:#fff;color:#17202b;border-color:#d9e0e7}
+@media(max-width:860px){.admin-announcement-form{grid-template-columns:1fr 1fr}}
+@media(max-width:520px){.admin-announcement-form{grid-template-columns:1fr}}
+
 /* Admin */
 .admin-nav-list button{width:100%;border:0;background:transparent;text-align:left;color:#9da8b6;padding:12px 14px;border-radius:9px;cursor:pointer;font:inherit;margin:4px 0}.admin-nav-list button:hover{background:#11161b;color:#fff}.admin-nav-list button.active{background:#101820;color:#ffcc00}.admin-account-row{padding:18px 22px;border-top:1px solid #232a31;display:flex;align-items:center;justify-content:space-between;gap:18px}.admin-account-row:first-child{border-top:0}.admin-account-actions{display:flex;align-items:center;gap:8px}.admin-account-actions select,.admin-form select,.admin-form input{border:1px solid #34404b;border-radius:8px;background:#0a0e12;color:#edf2f7;padding:9px 10px}.admin-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;gap:12px;align-items:end}.admin-form label{display:grid;gap:6px;color:#8d98a7;font-size:12px}.admin-plan-badge{display:inline-block}
 

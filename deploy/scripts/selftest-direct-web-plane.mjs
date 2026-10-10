@@ -36,7 +36,7 @@ assert.ok(executor.includes("free:{fleetWall:false,multiDeviceConsole:false,tool
 assert.ok(executor.includes("pro:{fleetWall:true,multiDeviceConsole:true,toolCallLimit:null}"));
 assert.ok(executor.includes("vip:{fleetWall:true,multiDeviceConsole:true,toolCallLimit:null}"));
 assert.ok(executor.includes("new AccountError('tool_call_quota_exceeded',429)"));
-assert.ok(executor.includes("assertToolCallQuota(job.accountId);jobs.set(job.id,job)"),'quota must preflight before native job insertion');
+assert.ok(executor.includes("assertToolCallQuota(job.accountId);sessions.record(job.sessionId,'toolCalls');jobs.set(job.id,job)"),'quota must reserve the call before native job insertion and never leave orphan jobs');
 assert.ok(runtime.includes("assertToolCallQuota(session.accountId)"),'read/recovery operations must honor quota');
 assert.ok(runtime.includes("sessions.record(job.sessionId, 'toolCalls')"),'job/output reads remain metered');
 

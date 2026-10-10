@@ -10,6 +10,7 @@ import { registerAccountPortal } from './account-portal.mjs';
 import { registerDistributionPortal } from './distribution-portal.mjs';
 import { registerAdminPortal } from './admin-portal.mjs';
 import { registerWebAssets } from './web-assets.mjs';
+import { installAnnouncements, registerClientAnnouncementFeed } from './site-announcements.mjs';
 import { LEGAL_PAGES, renderLegalPage } from './legal-pages.mjs';
 import { renderSupportPage } from './support-page.mjs';
 import { registerSupportBackoffice } from './support-backoffice.mjs';
@@ -42,6 +43,9 @@ app.use((req,res,next)=>{
 
 registerOAuth(app);
 registerWebAssets(app);
+// Preserve the existing public announcement bar and expose opt-in client broadcasts.
+installAnnouncements(app);
+registerClientAnnouncementFeed(app);
 registerAccountPortal(app);
 registerSupportBackoffice(app);
 registerDistributionPortal(app);
@@ -49,6 +53,8 @@ registerAdminPortal(app);
 registerPublicDeviceRoutes(app);
 const pruner=setInterval(()=>prunePublicRateState(),60_000);pruner.unref?.();
 
+app.get('/demo/maintenance',(_q,r)=>r.set('X-Robots-Tag','noindex, nofollow').type('html').send(fs.readFileSync(new URL('./demo/maintenance.html',import.meta.url),'utf8')));
+app.get('/demo/announcements',(_q,r)=>r.set('X-Robots-Tag','noindex, nofollow').type('html').send(fs.readFileSync(new URL('./demo/client-announcements.html',import.meta.url),'utf8')));
 app.get('/',(_q,r)=>r.type('html').send(fs.readFileSync(new URL('./public-home.html',import.meta.url),'utf8').replaceAll('__LIGHT_REMOTE_VERSION__',VERSION)));
 app.get('/support',(_q,r)=>r.type('html').send(renderSupportPage({origin:PUBLIC_ORIGIN,version:VERSION})));
 app.get('/privacy',(_q,r)=>r.type('html').send(renderLegalPage({active:'privacy',origin:PUBLIC_ORIGIN,...LEGAL_PAGES.privacy})));

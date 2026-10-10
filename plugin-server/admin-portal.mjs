@@ -5,6 +5,7 @@ import { PUBLIC_ORIGIN } from './config.mjs';
 import { mailConfig, sendLicense, sendUpgradeActivated, verifyMail } from './mailer.mjs';
 import { googleAuthStatus, saveGoogleAuthConfig } from './google-auth.mjs';
 import { paddleBilling, paddleBillingStatus } from './paddle-billing.mjs';
+import { listAnnouncements, mutateAnnouncement } from './site-announcements.mjs';
 
 const COOKIE='__Host-light_remote_account';
 const ADMIN_ACCOUNT_ID=String(process.env.LIGHT_REMOTE_ADMIN_ACCOUNT_ID||'direct-production-local');
@@ -24,9 +25,13 @@ export function registerAdminPortal(app){
   app.all('/admin/api',async(req,res)=>{
     const admin=await requireAdmin(req,res);if(!admin)return;
     const action=String(req.query?.action||'').trim();
-    const mutations=new Set(['set-plan','set-group','set-status','create-group','rename-group','delete-group','cancel-pending','issue-license','revoke-license','resolve-upgrade','mail-test','google-config','paddle-refund']);
+    const mutations=new Set(['announcement-create','announcement-update','announcement-delete','set-plan','set-group','set-status','create-group','rename-group','delete-group','cancel-pending','issue-license','revoke-license','resolve-upgrade','mail-test','google-config','paddle-refund']);
     if(mutations.has(action)&&!sameOrigin(req))return res.status(403).json({ok:false,error:'cross_site_request_denied'});
     try{
+      if(action==='announcements'&&req.method==='GET')return res.json({ok:true,announcements:listAnnouncements()});
+      if(action==='announcement-create'&&req.method==='POST')return res.status(201).json({ok:true,announcement:mutateAnnouncement('POST',null,req.body)});
+      if(action==='announcement-update'&&req.method==='POST')return res.json({ok:true,announcement:mutateAnnouncement('PUT',String(req.body?.id||''),req.body)});
+      if(action==='announcement-delete'&&req.method==='POST')return res.json({ok:true,announcement:mutateAnnouncement('DELETE',String(req.body?.id||''))});
       if(action==='overview'&&req.method==='GET')return res.json(await callOperatorJson('GET','/v1/admin/overview'));
       if(action==='accounts'&&req.method==='GET')return res.json(await callOperatorJson('GET','/v1/admin/accounts'));
       if(action==='groups'&&req.method==='GET')return res.json(await callOperatorJson('GET','/v1/admin/groups'));
