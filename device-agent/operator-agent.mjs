@@ -8,7 +8,7 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { deviceChannelMessage, deviceHeartbeatMessage, devicePolicyMessage, normalizeDeviceCapabilities } from '../lib/device-proof.mjs';
 import { cloudRenewBackoffDelayMs } from '../lib/cloud-lease-renew-backoff.mjs';
-import { DeviceWorkerLimiter,planWorkerLimit } from '../lib/device-worker-limiter.mjs';
+import { DeviceWorkerLimiter,planWorkerLimit,planSessionCeiling } from '../lib/device-worker-limiter.mjs';
 import { ClientAnnouncementInbox } from '../lib/client-announcement-inbox.mjs';
 import { createPlatformAdapter } from './platform-adapters/index.mjs';
 import { startLocalWall } from './local-wall.mjs';
@@ -209,6 +209,10 @@ async function frameRealRemoteVisual(p,request,{observe=false}={}){
 }
 const COMMAND_EXECUTIONS=new CommandExecutionCoordinator();
 const DEVICE_WORKERS=new DeviceWorkerLimiter({limit:()=>planWorkerLimit(readState()?.cloud?.plan,Number(process.env.OPERATOR_AGENT_MAX_WORKERS)||3)});
+function sessionCeilingForState(state){
+  return planSessionCeiling(state?.cloud?.plan||state?.cloud?.connectionPlan,process.env.OPERATOR_AGENT_MAX_SESSIONS);
+}
+
 let DEVICE_DUPLEX=null,DEVICE_DUPLEX_IDLE_DEADLINE=0,DEVICE_DUPLEX_IDLE_TIMER=null;
 const DEVICE_DUPLEX_IDLE_CLOSE_MS=Math.max(500,Math.min(Number(process.env.LIGHT_REMOTE_DEVICE_DUPLEX_IDLE_CLOSE_MS)||1500,10000));
 function deviceDuplexStatus(){return DEVICE_DUPLEX?.status?.()||{active:false,ready:false};}
@@ -221,11 +225,11 @@ function scheduleDeviceDuplexIdleClose(){
   DEVICE_DUPLEX_IDLE_TIMER.unref?.();
 }
 function duplexHelloPayload(state,meta={}){
-  return {protocol:DEVICE_DUPLEX_PROTOCOL,transportEpoch:meta.transportEpoch,resumeClientSeq:Math.max(0,Number(meta.resumeClientSeq)||0),clientSeq:Math.max(0,Number(meta.clientSeq)||0),nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling:Math.max(1,Math.min(Number(process.env.OPERATOR_AGENT_MAX_SESSIONS)||2,100)),draining:Boolean(state.routing?.draining),capabilities:effectiveCapabilitiesForState(state),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView()};
+  return {protocol:DEVICE_DUPLEX_PROTOCOL,transportEpoch:meta.transportEpoch,resumeClientSeq:Math.max(0,Number(meta.resumeClientSeq)||0),clientSeq:Math.max(0,Number(meta.clientSeq)||0),nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling:sessionCeilingForState(state),draining:Boolean(state.routing?.draining),capabilities:effectiveCapabilitiesForState(state),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView()};
 }
 function duplexHeartbeatPayload(){
   const state=readState();if(!state?.enrollment?.deviceId||!cloudDesired(state))return null;
-  return {nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling:Math.max(1,Math.min(Number(process.env.OPERATOR_AGENT_MAX_SESSIONS)||2,100)),draining:Boolean(state.routing?.draining),capabilities:effectiveCapabilitiesForState(state),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView()};
+  return {nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling:sessionCeilingForState(state),draining:Boolean(state.routing?.draining),capabilities:effectiveCapabilitiesForState(state),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView()};
 }
 async function duplexExecuteCommand(command,hub){
   const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
@@ -776,7 +780,7 @@ async function daemon(args){
     state.enrollment.nodeId=state.enrollment.nodeId||state.enrollment.deviceId;
     state.effectiveCapabilities=effectiveCapabilitiesForState(state);
   }
-  const sessionCeiling=Math.max(1,Math.min(Number(process.env.OPERATOR_AGENT_MAX_SESSIONS)||3,5));
+  const sessionCeiling=sessionCeilingForState(state);
   const maxWorkers=Math.max(1,Math.min(Number(process.env.OPERATOR_AGENT_MAX_WORKERS)||3,3));
   const activePollWorkers=new Set();
   let announcementTask=null,announcementNextAt=0,announcementFailures=0;
@@ -840,7 +844,7 @@ async function daemon(args){
     try{
       await flushPendingUpdateReport(state,hub).catch(error=>console.error(JSON.stringify({event:'update_report_delivery_failed',error:error.message,status:error.status||null})));
       if(deviceDuplexStatus().ready){failures=0;await wait(500);continue;}
-      const payload={nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling,draining:Boolean(state.routing?.draining),capabilities:effectiveCapabilitiesForState(state),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView(),waitMs};
+      const payload={nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling:sessionCeilingForState(state),draining:Boolean(state.routing?.draining),capabilities:effectiveCapabilitiesForState(state),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView(),waitMs};
       const response=await channelRequest(state,hub,'poll',payload);
       // A Local Wall connect/disconnect can update device.json while this long-poll is in flight.
       // Re-read before persisting the poll result so the daemon never clobbers newer lease metadata.
@@ -910,7 +914,7 @@ async function wallOnly(args){
   await stopped;clearInterval(timer);try{await fleetSupervisor.close();}catch{}try{await localWall.close();}catch{}console.log(JSON.stringify({event:'host_wall_companion_stopped',deviceId:state.enrollment.deviceId}));
 }
 
-async function setDrain(args,draining){const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');state.routing={...(state.routing||{}),draining:Boolean(draining),changedAt:Date.now()};writeState(state);const payload={nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling:Math.max(1,Math.min(Number(process.env.OPERATOR_AGENT_MAX_SESSIONS)||2,100)),draining:Boolean(draining),capabilities:effectiveCapabilitiesForState(state),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),waitMs:0};const response=await channelRequest(state,args.hub||DEFAULT_HUB,'poll',payload);applyPolicyEnvelope(state,response.policy);console.log(JSON.stringify({ok:true,deviceId:state.enrollment.deviceId,nodeId:payload.nodeId,draining:Boolean(draining),channelState:response.channel?.node?.state||null},null,2));}
+async function setDrain(args,draining){const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');state.routing={...(state.routing||{}),draining:Boolean(draining),changedAt:Date.now()};writeState(state);const payload={nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling:sessionCeilingForState(state),draining:Boolean(draining),capabilities:effectiveCapabilitiesForState(state),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),waitMs:0};const response=await channelRequest(state,args.hub||DEFAULT_HUB,'poll',payload);applyPolicyEnvelope(state,response.policy);console.log(JSON.stringify({ok:true,deviceId:state.enrollment.deviceId,nodeId:payload.nodeId,draining:Boolean(draining),channelState:response.channel?.node?.state||null},null,2));}
 async function status(){console.log(JSON.stringify({...statusView(),fleetWall:await localFleetStatus()},null,2));}
 async function initWallAuth(args){const password=fs.readFileSync(0,'utf8').replace(/[\r\n]+$/,'');if(password.length<12)throw new Error('local_wall_password_too_short');const result=writeLocalWallAuthConfig(LOCAL_WALL_AUTH_FILE,{username:args.username||'operator',password});console.log(JSON.stringify({ok:true,wallAuth:'configured',file:result.file,username:result.username,passwordEchoed:false},null,2));}
 const args=parseArgs(process.argv.slice(2)),command=args._[0]||'status';
