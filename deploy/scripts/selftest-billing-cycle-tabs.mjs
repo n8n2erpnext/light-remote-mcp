@@ -16,6 +16,9 @@ assert.match(page,/data-cycle="yearly"/);
 assert.match(page,/2 months free/);
 assert.match(page,/if\(pricingCycle!=='monthly'\)/,'yearly must be blocked at checkout action');
 assert.match(css,/billing-tabbed-plans\{grid-template-columns:repeat\(3/);
+assert.match(page,/<div class="app billing-app">/,'scoped responsive billing app');
+assert.match(css,/\.billing-app\{grid-template-columns:minmax\(0,1fr\)/,'mobile layout needs minmax 0 to prevent nav overflow');
+assert.match(css,/\.billing-app \.nav\{min-width:0;max-width:100vw;overflow-x:auto\}/);
 assert.match(css,/@media\(max-width:680px\).*?billing-tabbed-plans\{grid-template-columns:1fr\}/);
 const byId=new Map();
 function element(id){
