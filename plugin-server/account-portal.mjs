@@ -447,7 +447,9 @@ export function registerAccountPortal(app){
   app.get('/account/recover',accountRecovery);
   app.post('/account/recover',accountRecovery);
   app.get('/account/assets/portal.css',(_q,r)=>sendPortal(r,'portal.css','text/css'));
+  app.get('/account/assets/visual-system-v4.css',(_q,r)=>sendPortal(r,'visual-system-v4.css','text/css'));
   app.get('/account/assets/theme.js',(_q,r)=>sendPortal(r,'theme.js','application/javascript'));
+  app.get('/account/assets/ai-guide-actions.js',(_q,r)=>sendPortal(r,'ai-guide-actions.js','application/javascript'));
   app.get('/account/assets/notifications.js',(_q,r)=>sendPortal(r,'notifications.js','application/javascript'));
   app.get('/account/assets/home-demo.js',(_q,r)=>sendPortal(r,'home-demo.js','application/javascript'));
   app.get('/account/assets/hero-demo-library.json',(_q,r)=>sendPortal(r,'hero-demo-library.json','application/json'));

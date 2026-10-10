@@ -43,7 +43,7 @@ need(settings.includes('Change password')&&settings.includes('Appearance'),'sett
 need(publicHome.includes('Your AI.')&&publicHome.includes('Your machine.')&&publicHome.includes('Your approval.'),'public-home-hero');
 const officialPlugin='https://chatgpt.com/plugins/plugin_asdk_app_6aab6c4bd7d88191a4108d8f4c5e4b4e';
 need(home.includes(officialPlugin)&&home.includes('Use Light Remote inside ChatGPT'),'official-plugin-account-onboarding');
-need(publicHome.includes(officialPlugin)&&publicHome.includes('Open official ChatGPT plugin')&&publicHome.includes('Light Remote runs from your ChatGPT conversation.'),'official-plugin-public-home-cta');
+need(publicHome.includes(officialPlugin)&&publicHome.includes('Start free — connect a device')&&publicHome.includes('Connect your computer to ChatGPT')&&publicHome.includes('See the 4 setup steps'),'official-plugin-public-home-cta');
 need(downloads.includes(officialPlugin)&&downloads.includes('Next: open Light Remote in ChatGPT'),'official-plugin-download-cta');
 need(publicHome.includes('10K')&&publicHome.includes('A/B')&&publicHome.includes('Direct'),'public-home-trust');
 need(account.includes('__Host-light_remote_account')&&account.includes('HttpOnly')&&account.includes('Secure')&&account.includes('SameSite=Strict'),'account-cookie-security');
