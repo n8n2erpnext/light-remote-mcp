@@ -123,7 +123,7 @@ export function registerPluginTools(server,identity){
       return {status:'approval_required',code:pending.userCode,continuation,resumeMode:'call_same_helper_without_arguments',expiresInSeconds:Math.max(0,Math.ceil((Number(pending.expiresAt)-Date.now())/1000)),approvalPath:'/approve'};
     }
     if(x.continuation){
-      const ctx=await verifyPairingContinuation(identity,x.continuation);if(ctx.agentId!==a.agentId)throw new Error('pairing_continuation_agent_mismatch');
+      const ctx=await verifyPairingContinuation(identity,x.continuation);if(ctx.agentId!==a.agentId||ctx.flow!=='device-pairing')throw new Error('pairing_continuation_agent_or_flow_mismatch');
       const paired=await a.pairPoll(ctx);
       if(paired.state!=='approved')return {status:'approval_required',continuation:x.continuation,resumeMode:'call_same_helper_without_arguments',expiresInSeconds:Math.max(0,Math.ceil((Number(paired.request?.expiresAt||Date.now())-Date.now())/1000)),approvalPath:'/approve'};
       const helper=await a.connectionHelper();return {...helper,status:'ready',pairedDevice:paired.device?.displayName||paired.device?.deviceId||null};
@@ -146,7 +146,7 @@ export function registerPluginTools(server,identity){
     if(Boolean(x.deviceId)===Boolean(x.continuation))throw new Error('team_approval_device_or_continuation_required');
     if(x.continuation){
       const ctx=await verifyPairingContinuation(identity,x.continuation);
-      if(ctx.agentId!==a.agentId)throw new Error('team_approval_oauth_agent_mismatch');
+      if(ctx.agentId!==a.agentId||ctx.flow!=='team-member-approval')throw new Error('team_approval_oauth_agent_or_flow_mismatch');
       const outcome=await a.teamAccessPoll(ctx);
       return {status:outcome.state==='approved'?'owner_approved':'approval_required',
         deviceId:outcome.deviceId,continuation:outcome.state==='pending'?x.continuation:undefined,
@@ -156,7 +156,7 @@ export function registerPluginTools(server,identity){
     }
     const pending=await a.teamAccessBegin(x.deviceId,x.label);
     const continuation=await mintPairingContinuation(identity,{
-      requestId:pending.requestId,pollToken:pending.pollToken,agentId:a.agentId,expiresAt:pending.expiresAt
+      requestId:pending.requestId,pollToken:pending.pollToken,agentId:a.agentId,expiresAt:pending.expiresAt,flow:'team-member-approval'
     });
     return {status:'approval_required',code:pending.userCode,
       continuation,deviceId:pending.deviceId,

@@ -1,6 +1,7 @@
 import {verifyTeamMemberAuthorization} from './team-member-auth.mjs';
+import {authorizeTrustedTeamDispatch} from './team-dispatch-authority.mjs';
 export async function handleAccountRoutes(req,res,url,deps){
-  const {ACCOUNT_ID,AccountError,DEVICE_ID,accountSessionToken,accounts,allDeviceViews,capabilities,clearMainIfMatches,closeRuntimeForAccount,compatibilityFor,devices,enrollments,fleetAuthority,licenses,planEntitlements,proTeams,requestTeamMemberApproval,operationalAccount,accessGrants,connections,queueHelperUpdate,readJson,removeRuntimeForDevice,requireAccount,revokeRuntimeForDevice,sendJson,usage,wakeDeviceChannelForDevice}=deps;
+  const {ACCOUNT_ID,AccountError,DEVICE_ID,accountSessionToken,accounts,allDeviceViews,capabilities,clearMainIfMatches,closeRuntimeForAccount,compatibilityFor,devices,enrollments,fleetAuthority,licenses,planEntitlements,proTeams,requestTeamMemberApproval,operationalAccount,accessGrants,connections,targetRoute,queueHelperUpdate,readJson,removeRuntimeForDevice,requireAccount,revokeRuntimeForDevice,sendJson,usage,wakeDeviceChannelForDevice}=deps;
     if (req.method === 'GET' && url.pathname === '/v1/admin/overview') {
       const accountRows=accounts.list(),deviceRows=allDeviceViews(),current=accountRows.map(account=>({account,entitlements:planEntitlements(account),usage:usage.summary(account.accountId,{months:1})}));
       const toolCallsThisMonth=current.reduce((sum,row)=>sum+(Number(row.usage.toolCallsThisMonth)||0),0),plans=current.reduce((out,row)=>{const key=String(row.account.plan||'free');out[key]=(out[key]||0)+1;return out;},{}),statuses=current.reduce((out,row)=>{const key=String(row.account.status||'active');out[key]=(out[key]||0)+1;return out;},{});
@@ -307,6 +308,41 @@ export async function handleAccountRoutes(req,res,url,deps){
       return sendJson(res,200,{ok:true,approval:{state:'approved',deviceId:device.deviceId,
         accessExpiresAt:Math.min(polled.grant.expiresAt,polled.grant.absoluteExpiresAt),
         crossAccountExecutionEnabled:false}});
+    }
+    // OFF by default. Local Operator UAT-only decision preview: NO session,
+    // no Fleet enqueue, no metering, no command and no grant ID in response.
+    if(url.pathname==='/v1/plugin/team/dispatch/preflight' && req.method==='POST'){
+      if(process.env.LIGHT_REMOTE_PRO_TEAM_DISPATCH_UAT!=='1')
+        throw new AccountError('team_dispatch_preflight_not_enabled',404);
+      const body=await readJson(req);
+      if(!Array.isArray(body.requiredCapabilities)||!body.requiredCapabilities.length)
+        throw new AccountError('team_dispatch_capabilities_required',400);
+      const actorAccountId=operationalAccount(String(body.actorAccountId||'')).accountId,
+        agentId=String(body.agentId||''),
+        device=devices.get(String(body.deviceId||'')),
+        connection=connections.assertConnected(device.deviceId);
+      // All actual owner/device routing facts come from authoritative
+      // registry lookups, NOT member-supplied owner or billing identifiers.
+      const ownerRoute=targetRoute(device.nodeId,{accountId:device.accountId});
+      const enrollment=enrollments.binding(device.deviceId);
+      const decision=authorizeTrustedTeamDispatch({
+        authenticatedActorAccountId:actorAccountId,authenticatedAgentId:agentId,
+        device,connection,accessGrants,teamRegistry:proTeams,
+        planFor:id=>operationalAccount(id).plan,
+        approvedCapabilities:enrollment.approvedCapabilities,
+        routeCapabilities:ownerRoute.capabilities,operation:body.operation,
+        requiredCapabilities:body.requiredCapabilities
+      });
+      return sendJson(res,200,{ok:true,preflight:{
+        actorAccountId:decision.actorAccountId,
+        deviceOwnerAccountId:decision.deviceOwnerAccountId,
+        billedAccountId:decision.billedAccountId,
+        deviceId:decision.deviceId,
+        operation:decision.operation,
+        maxWorkers:decision.maxWorkers,
+        expiresAt:decision.accessExpiresAt,
+        previewOnly:true,crossAccountExecutionEnabled:false
+      }});
     }
     if(url.pathname==='/v1/accounts/team/accept' && req.method==='POST'){
       const memberAccountId=requireAccount(req).account.accountId;

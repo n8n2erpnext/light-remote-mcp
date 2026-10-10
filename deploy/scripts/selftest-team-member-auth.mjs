@@ -15,7 +15,7 @@ teamRegistry.shareDevice({ownerAccountId:'owner',deviceId:device.deviceId,device
 const agentId='chatgpt-member-agent-001';
 const req=accessGrants.request({accountId:'member',agentId,deviceId:device.deviceId,
   connectionId:connection.connectionId,connectionExpiresAt:now+AB_GRANT_MAX_LIFETIME_MS,
-  forceApproval:true});
+  forceApproval:true,purpose:'team-member'});
 const args={device,connection,actorAccountId:'member',agentId,accessGrantId:null,accessGrants,teamRegistry,planFor};
 assert.throws(()=>verifyTeamMemberAuthorization(args),/team_actor_approval_required/);
 const grant=accessGrants.approve(req.request.requestId,{deviceId:device.deviceId,connectionId:connection.connectionId,
@@ -28,6 +28,14 @@ assert.equal(decision.actorAccountId,'member');
 assert.equal(decision.maxWorkers,3);
 assert.equal(decision.sharedTeam,true);
 assert.throws(()=>verifyTeamMemberAuthorization({...args,agentId:'other-agent-999999'}),/device_access_grant_agent_mismatch/);
+// Device-owner-style A/B grant (even same agent/account) cannot authorize Team.
+const wrongPurposeRegistry=new DeviceAccessGrantRegistry({now:()=>now});
+const wrongPurposeRequest=wrongPurposeRegistry.request({accountId:'member',deviceId:device.deviceId,agentId,
+  connectionId:connection.connectionId,connectionExpiresAt:now+AB_GRANT_MAX_LIFETIME_MS,forceApproval:true});
+const wrongPurposeGrant=wrongPurposeRegistry.approve(wrongPurposeRequest.request.requestId,{
+  deviceId:device.deviceId,connectionId:connection.connectionId,connectionExpiresAt:now+AB_GRANT_MAX_LIFETIME_MS});
+assert.throws(()=>verifyTeamMemberAuthorization({...args,accessGrants:wrongPurposeRegistry,
+  accessGrantId:wrongPurposeGrant.grantId}),/team_member_grant_purpose_required/);
 // Legacy A/B grants without an agent binding must not authorize team execution.
 const legacyRegistry=new DeviceAccessGrantRegistry({now:()=>now});
 const genericReq=legacyRegistry.request({accountId:'member',deviceId:device.deviceId,

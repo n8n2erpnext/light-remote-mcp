@@ -132,6 +132,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
     }
     if (req.method === 'POST' && url.pathname === '/v1/agent-client/attach') {
       const body=await readJson(req), grant=accessGrants.assert(body.grantId,{touch:false});
+      if(grant.purpose==='team-member')throw new AgentClientRegistryError('team_member_grant_not_device_pairing',403);
       const connection=connections.assertConnected(grant.deviceId);
       if(connection.connectionId!==grant.connectionId)throw new AgentClientRegistryError('agent_client_device_connection_mismatch',409);
       const client=agentClients.attach({clientSessionId:body.clientSessionId||null,accountId:grant.accountId,agentId:body.agentId,grant,pairingRequestId:body.pairingRequestId||null});

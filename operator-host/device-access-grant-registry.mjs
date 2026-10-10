@@ -60,8 +60,8 @@ export class DeviceAccessGrantRegistry {
     return Math.round(grace);
   }
   _expiry(row){return Math.min(Number(row.expiresAt)||0,Number(row.absoluteExpiresAt)||Number(row.approvedAt)+AB_GRANT_MAX_LIFETIME_MS);}
-  _activeGrant(deviceId,connectionId,now=this.now(),agentId=null,accountId=null){
-    for(const row of this.grants.values())if(row.deviceId===deviceId&&row.connectionId===connectionId&&!row.closedAt&&now<this._expiry(row)&&(agentId==null||row.agentId===String(agentId))&&(accountId==null||row.accountId===String(accountId)))return row;
+  _activeGrant(deviceId,connectionId,now=this.now(),agentId=null,accountId=null,purpose='device'){
+    for(const row of this.grants.values())if(row.deviceId===deviceId&&row.connectionId===connectionId&&!row.closedAt&&now<this._expiry(row)&&(agentId==null||row.agentId===String(agentId))&&(accountId==null||row.accountId===String(accountId))&&(row.purpose||'device')===purpose)return row;
     return null;
   }
   request({accountId,deviceId,connectionId,connectionExpiresAt,agentId=null,label='ChatGPT Plus',forceApproval=false,requestTtlMs=REQUEST_TTL_MS,pairingId=null,purpose='device'}={}){
@@ -69,7 +69,7 @@ export class DeviceAccessGrantRegistry {
     if(!['device','team-member'].includes(purpose))throw new DeviceAccessGrantError('invalid_access_request_purpose',400);
     const now=this.now(),expiresAt=Number(connectionExpiresAt);
     if(!Number.isFinite(expiresAt)||expiresAt<=now)throw new DeviceAccessGrantError('device_connection_expired',410);
-    const active=this._activeGrant(did,cid,now,agentId,aid);
+    const active=this._activeGrant(did,cid,now,agentId,aid,purpose);
     if(active&&!forceApproval){active.lastActivityAt=now;this._persist();return {state:'approved',grant:{...active},request:null,pollToken:null};}
     const ttl=Math.max(30*1000,Math.min(Number(requestTtlMs)||REQUEST_TTL_MS,REQUEST_TTL_MS));
     const requestId=`pa_${crypto.randomBytes(18).toString('base64url')}`,pollToken=crypto.randomBytes(32).toString('base64url');
@@ -81,7 +81,7 @@ export class DeviceAccessGrantRegistry {
   poll({requestId,pollToken}={}){
     const id=validId(requestId,'invalid_plus_request_id'),row=this.requests.get(id),now=this.now();
     if(!row||!equalDigest(pollToken,row.pollHash))throw new DeviceAccessGrantError('plus_authorization_not_found',404);
-    const active=this._activeGrant(row.deviceId,row.connectionId,now,row.agentId,row.accountId);
+    const active=this._activeGrant(row.deviceId,row.connectionId,now,row.agentId,row.accountId,row.purpose||'device');
     if(row.consumedAt){
       if(row.state==='approved'&&active)return {state:'approved',grant:{...active}};
       if(row.state==='denied')throw new DeviceAccessGrantError('plus_authorization_denied',403);
@@ -108,9 +108,9 @@ export class DeviceAccessGrantRegistry {
     const cid=validId(connectionId,'invalid_access_connection_id'),expiresAt=Number(connectionExpiresAt);
     if(cid!==row.connectionId)throw new DeviceAccessGrantError('device_connection_changed',409);
     if(!Number.isFinite(expiresAt)||expiresAt<=now)throw new DeviceAccessGrantError('device_connection_expired',410);
-    const prior=this._activeGrant(row.deviceId,cid,now,row.agentId,row.accountId);
+    const prior=this._activeGrant(row.deviceId,cid,now,row.agentId,row.accountId,row.purpose||'device');
     if(prior&&row.pairingRequired)this.close(prior.grantId,'owner_reapproved');
-    const grant=prior&&!row.pairingRequired?prior:{grantId:`dag_${crypto.randomUUID()}`,accountId:row.accountId,agentId:row.agentId,deviceId:row.deviceId,connectionId:cid,approvedAt:now,lastActivityAt:now,idleGraceMs:row.pairingRequired?AB_GRANT_MAX_LIFETIME_MS:this._grace(idleGraceMs),absoluteExpiresAt:now+AB_GRANT_MAX_LIFETIME_MS,expiresAt:Math.min(expiresAt,now+AB_GRANT_MAX_LIFETIME_MS),closedAt:null,closeReason:null};
+    const grant=prior&&!row.pairingRequired?prior:{grantId:`dag_${crypto.randomUUID()}`,accountId:row.accountId,agentId:row.agentId,deviceId:row.deviceId,connectionId:cid,purpose:row.purpose||'device',approvedAt:now,lastActivityAt:now,idleGraceMs:row.pairingRequired?AB_GRANT_MAX_LIFETIME_MS:this._grace(idleGraceMs),absoluteExpiresAt:now+AB_GRANT_MAX_LIFETIME_MS,expiresAt:Math.min(expiresAt,now+AB_GRANT_MAX_LIFETIME_MS),closedAt:null,closeReason:null};
     if(prior&&!row.pairingRequired){grant.lastActivityAt=now;if(idleGraceMs!=null)grant.idleGraceMs=this._grace(idleGraceMs);}
     this.grants.set(grant.grantId,grant);
     row.state='approved';
@@ -183,14 +183,14 @@ export class DeviceAccessGrantRegistry {
       if(row.expiresAt<=now){row.state='expired';row.consumedAt=now;this._persist();return null;}
       return {state:'pending',request:{requestId:row.requestId,deviceId:row.deviceId,connectionId:row.connectionId,label:row.label,userCode:row.userCode,expiresAt:row.expiresAt},grant:null};
     }
-    const active=this._activeGrant(row.deviceId,row.connectionId,now,row.agentId,row.accountId);
+    const active=this._activeGrant(row.deviceId,row.connectionId,now,row.agentId,row.accountId,row.purpose||'device');
     if(!active)return null;
     return {state:'approved',request:{requestId:row.requestId,deviceId:row.deviceId,connectionId:row.connectionId,label:row.label,expiresAt:row.expiresAt},grant:{...active}};
   }
   consumeRecoveredPairing({requestId,accountId,agentId}={}){
     const id=validId(requestId,'invalid_plus_request_id'),aid=validId(accountId,'invalid_access_account_id'),agent=validId(agentId,'invalid_plus_agent_id'),row=this.requests.get(id),now=this.now();
     if(!row||!row.pairingRequired||!row.pairingId||row.purpose==='team-member'||row.accountId!==aid||row.agentId!==agent)throw new DeviceAccessGrantError('plus_authorization_not_found',404);
-    const active=this._activeGrant(row.deviceId,row.connectionId,now,row.agentId,row.accountId);
+    const active=this._activeGrant(row.deviceId,row.connectionId,now,row.agentId,row.accountId,row.purpose||'device');
     if(row.state!=='approved'||!active)throw new DeviceAccessGrantError('device_access_grant_required',401);
     if(!row.consumedAt){row.consumedAt=now;this._persist();}
     return {state:'approved',requestId:row.requestId,grant:{...active}};
@@ -207,6 +207,20 @@ export class DeviceAccessGrantRegistry {
   pendingForDevice(deviceId){
     const did=validId(deviceId,'invalid_access_device_id'),now=this.now();
     return [...this.requests.values()].filter(row=>row.deviceId===did&&row.state==='pending'&&!row.consumedAt&&row.expiresAt>now).map(row=>({requestId:row.requestId,accountId:row.accountId,deviceId:row.deviceId,connectionId:row.connectionId,agentId:row.agentId,label:row.label,userCode:row.userCode,createdAt:row.createdAt,expiresAt:row.expiresAt}));
+  }
+  // Server-only lookup for a member's exact OAuth client/device approval.
+  // Never select the owner's grant or a legacy unscoped device grant.
+  activeTeamGrant({accountId,agentId,deviceId,connectionId}={}){
+    const aid=validId(accountId,'invalid_access_account_id'),
+      agent=validId(agentId,'invalid_plus_agent_id'),
+      did=validId(deviceId,'invalid_access_device_id'),
+      cid=validId(connectionId,'invalid_access_connection_id'),
+      now=this.now();
+    const candidates=[...this.grants.values()].filter(row=>
+      row.purpose==='team-member'&&row.accountId===aid&&row.agentId===agent&&
+      row.deviceId===did&&row.connectionId===cid&&!row.closedAt&&now<this._expiry(row));
+    if(candidates.length!==1)throw new DeviceAccessGrantError('team_member_access_grant_required',403);
+    return {...candidates[0]};
   }
   activeForDevice(deviceId,connectionId=null){
     const did=validId(deviceId,'invalid_access_device_id'),now=this.now();

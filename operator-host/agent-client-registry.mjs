@@ -70,6 +70,7 @@ export class AgentClientRegistry {
   attach({clientSessionId=null,accountId,agentId,grant,pairingRequestId=null}={}){
     const aid=validId(accountId,'invalid_agent_client_account'),agent=validId(agentId,'invalid_agent_client_agent');
     if(!grant?.grantId||!grant?.deviceId||!grant?.connectionId)throw new AgentClientRegistryError('invalid_agent_client_grant');
+    if(grant.purpose==='team-member')throw new AgentClientRegistryError('team_member_grant_not_device_pairing',403);
     if(grant.accountId!=null&&grant.accountId!==aid)throw new AgentClientRegistryError('agent_client_grant_account_mismatch',403);
     if(grant.agentId!=null&&grant.agentId!==agent)throw new AgentClientRegistryError('agent_client_grant_agent_mismatch',403);
     const requestId=pairingRequestId?validId(pairingRequestId,'invalid_agent_client_pairing_request'):null;

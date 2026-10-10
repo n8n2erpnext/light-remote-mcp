@@ -33,6 +33,8 @@ export function verifyTeamMemberAuthorization({
   // single-owner clients. A team member must NEVER inherit such a grant.
   if(!grant.agentId||grant.agentId!==String(agentId))
     throw new TeamEntitlementError('team_agent_scoped_grant_required',403);
+  if(grant.purpose!=='team-member')
+    throw new TeamEntitlementError('team_member_grant_purpose_required',403);
 
   const entitlement=resolveTeamEntitlement({
     deviceOwnerAccountId:device.accountId,
