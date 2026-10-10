@@ -2,9 +2,10 @@ name: macOS Client Packages
 
 on:
   push:
-    branches: [main, 'codex/**', 'feature/macos-rm-v2-scp']
+    branches: [main, 'codex/**', 'feature/macos-rm-v2-scp', 'feature/free-benefit-pro-team-20261010']
     tags: ['v0.9.*']
     paths:
+      - '.github/workflows/macos-client-build.yml'
       - 'VERSION'
       - 'client/macos/**'
       - 'client/update-public.pem'

@@ -5,9 +5,11 @@ on:
     branches:
       - main
       - 'codex/**'
+      - 'feature/free-benefit-pro-team-20261010'
     tags:
       - 'v0.9.*'
     paths:
+      - '.github/workflows/linux-client-build.yml'
       - 'VERSION'
       - 'client/**'
       - 'device-agent/**'
