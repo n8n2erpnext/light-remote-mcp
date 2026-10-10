@@ -45,7 +45,7 @@ export function requestTeamMemberApproval({
    accountId:actor,agentId:agent,deviceId:did,
    connectionId:connection.connectionId,connectionExpiresAt:connection.hardExpiresAt,
    label:String(label||'Pro Team member approval').slice(0,120),
-   forceApproval:true,requestTtlMs:5*60_000
+   forceApproval:true,requestTtlMs:5*60_000,purpose:'team-member'
  });
  if(answer.state!=='pending'||!answer.request||!answer.pollToken)
    throw new TeamEntitlementError('team_approval_must_be_explicit',403);

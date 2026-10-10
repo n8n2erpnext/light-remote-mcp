@@ -1,3 +1,4 @@
+import {verifyTeamMemberAuthorization} from './team-member-auth.mjs';
 export async function handleAccountRoutes(req,res,url,deps){
   const {ACCOUNT_ID,AccountError,DEVICE_ID,accountSessionToken,accounts,allDeviceViews,capabilities,clearMainIfMatches,closeRuntimeForAccount,compatibilityFor,devices,enrollments,fleetAuthority,licenses,planEntitlements,proTeams,requestTeamMemberApproval,operationalAccount,accessGrants,connections,queueHelperUpdate,readJson,removeRuntimeForDevice,requireAccount,revokeRuntimeForDevice,sendJson,usage,wakeDeviceChannelForDevice}=deps;
     if (req.method === 'GET' && url.pathname === '/v1/admin/overview') {
@@ -266,14 +267,46 @@ export async function handleAccountRoutes(req,res,url,deps){
     // Team A/B is separate from the owner's existing approval. This endpoint
     // is account-session authenticated; it only creates a pending Local Wall request.
     if(url.pathname==='/v1/accounts/team/access/request' && req.method==='POST'){
-      const actorAccountId=requireAccount(req).account.accountId;
+      // Account cookies cannot prove a ChatGPT OAuth client identity.
+      requireAccount(req);
+      throw new AccountError('team_approval_requires_oauth_plugin',409);
+    }
+    // Only the OAuth-authenticated MCP adapter calls these local Operator APIs.
+    // No browser-supplied agent identity, no cross-account device execution.
+    if(url.pathname==='/v1/plugin/team/access/request' && req.method==='POST'){
       const body=await readJson(req);
+      const actorAccountId=operationalAccount(String(body.actorAccountId||'')).accountId;
       const approval=requestTeamMemberApproval({
         actorAccountId,deviceId:body.deviceId,agentId:body.agentId,label:body.label,
         devices,connections,accessGrants,teamRegistry:proTeams,
         planFor:id=>operationalAccount(id).plan
       });
       return sendJson(res,201,{ok:true,approval});
+    }
+    if(url.pathname==='/v1/plugin/team/access/poll' && req.method==='POST'){
+      const body=await readJson(req);
+      const actorAccountId=operationalAccount(String(body.actorAccountId||'')).accountId;
+      const agentId=String(body.agentId||''),request=accessGrants.requestInfo(body.requestId);
+      if(request.purpose!=='team-member'||request.accountId!==actorAccountId||request.agentId!==agentId)
+        throw new AccountError('team_oauth_agent_mismatch',403);
+      const device=devices.get(request.deviceId),connection=connections.assertConnected(request.deviceId);
+      if(connection.connectionId!==request.connectionId)
+        throw new AccountError('team_device_connection_changed',409);
+      if(device.accountId===actorAccountId||
+         !proTeams.authorize({deviceOwnerAccountId:device.accountId,actorAccountId,deviceId:device.deviceId})||
+         !['pro','vip'].includes(String(operationalAccount(device.accountId).plan||'').toLowerCase()))
+        throw new AccountError('pro_team_membership_required',403);
+      const polled=accessGrants.poll({requestId:body.requestId,pollToken:body.pollToken});
+      if(polled.state!=='approved')
+        return sendJson(res,200,{ok:true,approval:{state:'pending',deviceId:device.deviceId,
+          expiresAt:request.expiresAt,crossAccountExecutionEnabled:false}});
+      verifyTeamMemberAuthorization({
+        device,connection,actorAccountId,agentId,accessGrantId:polled.grant.grantId,
+        accessGrants,teamRegistry:proTeams,planFor:id=>operationalAccount(id).plan
+      });
+      return sendJson(res,200,{ok:true,approval:{state:'approved',deviceId:device.deviceId,
+        accessExpiresAt:Math.min(polled.grant.expiresAt,polled.grant.absoluteExpiresAt),
+        crossAccountExecutionEnabled:false}});
     }
     if(url.pathname==='/v1/accounts/team/accept' && req.method==='POST'){
       const memberAccountId=requireAccount(req).account.accountId;

@@ -229,11 +229,8 @@ async function accountApi(req,res){
     }
     if(action==='team-access-request'){
       if(!method(req,res,'POST'))return;
-      const token=requireAccount(req,res);if(!token)return;
-      const deviceId=String(req.body?.deviceId||'').trim(),agentId=String(req.body?.agentId||'').trim();
-      if(!/^[A-Za-z0-9._:-]{1,128}$/.test(deviceId)||!/^[A-Za-z0-9._:-]{1,160}$/.test(agentId))return res.status(400).json({ok:false,error:'invalid_team_approval_identity'});
-      // A/B request is *pending only*. Owner must approve it locally.
-      return res.status(201).json(await callOperatorJson('POST','/v1/accounts/team/access/request',{deviceId,agentId},headers(token)));
+      // Browser login does not authenticate the OAuth plugin clientId.
+      return res.status(409).json({ok:false,error:'team_approval_requires_oauth_plugin'});
     }
     if(action==='team-view'||action==='team-create'){
       if(!method(req,res,action==='team-view'?'GET':'POST'))return;

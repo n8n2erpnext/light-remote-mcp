@@ -136,6 +136,34 @@ export function registerPluginTools(server,identity){
     return a.connectionHelper(x.helperGroup||null);
   }));
 
+  // UAT only. Unavailable in default production MCP registration (80 tools).
+  if(process.env.LIGHT_REMOTE_PRO_TEAM_MCP_UAT==='1')add(server,'light_remote_team_member_approval',{
+    title:'Request owner A/B approval for a shared Pro Team device (UAT)',
+    description:'Request independent owner approval for an accepted Pro Team member. OAuth identity is verified by this plugin. This request cannot run commands or enable cross-account execution.',
+    inputSchema:{deviceId:id.optional(),continuation:z.string().min(20).max(8192).optional(),label:z.string().min(1).max(120).optional()},
+    securitySchemes:security(['remote:write']),annotations:annotations(false,false,false,false)
+  },guarded(identity,['remote:write'],async(a,x)=>{
+    if(Boolean(x.deviceId)===Boolean(x.continuation))throw new Error('team_approval_device_or_continuation_required');
+    if(x.continuation){
+      const ctx=await verifyPairingContinuation(identity,x.continuation);
+      if(ctx.agentId!==a.agentId)throw new Error('team_approval_oauth_agent_mismatch');
+      const outcome=await a.teamAccessPoll(ctx);
+      return {status:outcome.state==='approved'?'owner_approved':'approval_required',
+        deviceId:outcome.deviceId,continuation:outcome.state==='pending'?x.continuation:undefined,
+        expiresAt:outcome.state==='pending'?outcome.expiresAt:undefined,
+        accessExpiresAt:outcome.state==='approved'?outcome.accessExpiresAt:undefined,
+        crossAccountExecutionEnabled:false,approvalPath:'/approve'};
+    }
+    const pending=await a.teamAccessBegin(x.deviceId,x.label);
+    const continuation=await mintPairingContinuation(identity,{
+      requestId:pending.requestId,pollToken:pending.pollToken,agentId:a.agentId,expiresAt:pending.expiresAt
+    });
+    return {status:'approval_required',code:pending.userCode,
+      continuation,deviceId:pending.deviceId,
+      expiresInSeconds:Math.max(0,Math.ceil((Number(pending.expiresAt)-Date.now())/1000)),
+      approvalPath:'/approve',crossAccountExecutionEnabled:false};
+  }));
+
   add(server,'light_remote_list_devices',{
     title:'List A/B-authorized Light Remote devices',
     description:'List only devices that this plugin client has explicitly paired through Local Wall A/B approval. Targeting remains explicit; no silent fallback.',

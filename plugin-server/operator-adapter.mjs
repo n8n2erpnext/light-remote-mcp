@@ -35,7 +35,7 @@ function safePolicy(d={}){const p=d.policy||{},mode=String(d.routing?.mode||'');
 function cleanActivityEvent(e={}){const out={type:String(e.type||'activity'),status:e.status||null,route:e.route||null};if(e.requiredCapabilities)out.requiredCapabilities=[...e.requiredCapabilities];if(e.cwd)out.cwd=redactRestrictedText(String(e.cwd).slice(0,1024));if(e.note)out.note=redactRestrictedText(String(e.note).slice(0,1024));if(e.toolMeta&&typeof e.toolMeta==='object')out.tool={kind:e.toolMeta.kind||null,operation:e.toolMeta.op||null,label:e.toolMeta.label?redactRestrictedText(String(e.toolMeta.label).slice(0,512)):null};return out;}
 
 export class AccountOperatorAdapter{
-  constructor(identity){if(!identity?.accountId||!identity?.clientId)throw new Error('plugin_identity_required');this.identity=identity;this.agentId=stableAgentId(identity);}
+  constructor(identity,{teamOperatorCall=callOperatorJson}={}){if(!identity?.accountId||!identity?.clientId)throw new Error('plugin_identity_required');this.identity=identity;this.agentId=stableAgentId(identity);this.teamOperatorCall=teamOperatorCall;}
   async accountRaw(){const row=await callOperatorJson('GET',`/v1/plugin/accounts/${encodeURIComponent(this.identity.accountId)}`);if(!row?.account)throw new Error('account_not_found');return row.account;}
   async clientRaw({required=false,continuity=false}={}){
     const q=new URLSearchParams({accountId:this.identity.accountId,agentId:this.agentId});
@@ -53,6 +53,27 @@ export class AccountOperatorAdapter{
   async hasActiveSessionEvidence(){
     const q=new URLSearchParams({accountId:this.identity.accountId}),row=await callOperatorJson('GET',`/v1/plugin/sessions?${q}`);
     return (row.sessions||[]).some(s=>s.accountId===this.identity.accountId&&s.agentId===this.agentId&&['active','hold'].includes(s.state));
+  }
+  async teamAccessBegin(deviceId,label='ChatGPT Pro Team'){
+    const row=await this.teamOperatorCall('POST','/v1/plugin/team/access/request',{
+      actorAccountId:this.identity.accountId,agentId:this.agentId,
+      deviceId:String(deviceId||''),label:String(label||'ChatGPT Pro Team').slice(0,120)
+    });
+    const approval=row?.approval;
+    if(approval?.state!=='pending'||approval.agentId!==this.agentId||
+       !approval.pollToken||!approval.requestId||!approval.userCode||approval.crossAccountExecutionEnabled!==false)
+      throw new Error('invalid_team_approval_request');
+    return {requestId:approval.requestId,pollToken:approval.pollToken,
+      userCode:approval.userCode,expiresAt:approval.expiresAt,deviceId:approval.deviceId};
+  }
+  async teamAccessPoll({requestId,pollToken}={}){
+    const row=await this.teamOperatorCall('POST','/v1/plugin/team/access/poll',{
+      actorAccountId:this.identity.accountId,agentId:this.agentId,requestId,pollToken
+    });
+    if(!['pending','approved'].includes(row?.approval?.state)||
+       row?.approval?.crossAccountExecutionEnabled!==false)
+      throw new Error('invalid_team_approval_response');
+    return row.approval;
   }
   async pairBegin(aCode,label='ChatGPT'){
     const row=await callOperatorJson('POST','/v1/device-pair/begin',{aCode:String(aCode||'').trim(),accountId:this.identity.accountId,agentId:this.agentId,label:String(label||'ChatGPT').slice(0,120)}),access=row.access;

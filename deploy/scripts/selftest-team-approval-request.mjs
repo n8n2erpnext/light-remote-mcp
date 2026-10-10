@@ -22,12 +22,24 @@ const deps={
   proTeams:teamRegistry,accessGrants,devices,connections,
   operationalAccount:id=>({accountId:id,plan:id===owner?plan:'free'}),
   requestTeamMemberApproval,
+  operationalAccount:id=>({accountId:id,plan:id===owner?plan:'free'}),
   AccountError:class AccountError extends Error{constructor(message,status=403){super(message);this.status=status;}},
   readJson:async req=>req.body||{},
   requireAccount:req=>{const accountId=scope.get(req.headers.token);if(!accountId)throw Error('account_session_required');return {account:{accountId}};},
   sendJson:(res,status,data)=>{res.status=status;res.data=data;return true;}
 };
-async function post(token,body){const req={method:'POST',headers:{token},body},res={};await handleAccountRoutes(req,res,new URL('http://local/v1/accounts/team/access/request'),deps);return res;}
+async function post(token,body){
+  const actor=scope.get(token);
+  if(!actor)throw Error('oauth_plugin_identity_required');
+  const req={method:'POST',headers:{token},body:{...body,actorAccountId:actor}},res={};
+  await handleAccountRoutes(req,res,new URL('http://local/v1/plugin/team/access/request'),deps);
+  return res;
+}
+async function webPost(token,body){
+  const req={method:'POST',headers:{token},body},res={};
+  await handleAccountRoutes(req,res,new URL('http://local/v1/accounts/team/access/request'),deps);
+  return res;
+}
 try{
   fail({},/pro_team_membership_required/);
   teamRegistry.create({ownerAccountId:owner});
@@ -43,7 +55,9 @@ try{
   fail({devices:{get:()=>({...device,state:'revoked'})}},/team_device_unavailable/);
   await assert.rejects(()=>post('strangerToken',{deviceId,agentId}),/pro_team_membership_required/);
   await assert.rejects(()=>post('ownerToken',{deviceId,agentId}),/pro_team_membership_required/);
-  await assert.rejects(()=>post('invalidToken',{deviceId,agentId}),/account_session_required/);
+  await assert.rejects(()=>post('invalidToken',{deviceId,agentId}),/oauth_plugin_identity_required/);
+  await assert.rejects(()=>webPost('memberToken',{deviceId,agentId}),/team_approval_requires_oauth_plugin/);
+  await assert.rejects(()=>webPost('invalidToken',{deviceId,agentId}),/account_session_required/);
   const out=await post('memberToken',{deviceId,agentId});
   assert.equal(out.status,201);assert.equal(out.data.approval.state,'pending');
   assert.equal(out.data.approval.crossAccountExecutionEnabled,false);
@@ -71,16 +85,17 @@ try{
   teamRegistry.shareDevice({ownerAccountId:owner,deviceId,deviceOwnerAccountId:owner});
   plan='free';fail({},/pro_team_membership_required/);
   console.log('member_ab_request_requires_paid_owner_and_device_share=PASS');
-  console.log('member_ab_authenticated_account_session=PASS');
+  console.log('member_ab_verified_oauth_plugin_identity=PASS');
   console.log('member_ab_request_pending_until_local_approval=PASS');
   console.log('member_ab_unique_agent_and_owner_billed_entitlement=PASS');
   console.log('member_ab_no_authorization_after_unshare_or_downgrade=PASS');
   const portal=fs.readFileSync(new URL('../../plugin-server/account-portal.mjs',import.meta.url),'utf8');
   const wall=fs.readFileSync(new URL('../../device-agent/local-wall.mjs',import.meta.url),'utf8');
   assert(portal.includes("'team-access-request'"),'team request portal CSRF action missing');
-  assert(portal.includes("'/v1/accounts/team/access/request'"),'team request portal backend route missing');
+  assert(portal.includes("team_approval_requires_oauth_plugin"),'browser must not self-assert OAuth client agentId');
   assert(wall.includes("accountId:found.accountId"),'Local Wall must surface A/B requester account');
   assert(wall.includes("esc(current.accountId||'unknown')"),'owner must see account before approving');
   console.log('team_local_wall_shows_requester_account=PASS');
+  console.log('team_browser_agent_spoof_endpoint_disabled=PASS');
   console.log('team_cross_account_execution_remains_disabled=PASS');
 }finally{fs.rmSync(dir,{recursive:true,force:true});}
