@@ -101,6 +101,20 @@ export class AgentClientRegistry {
     this.emit({type:'agent_client_context_bound',accountId:row.accountId,agentId:row.agentId,clientSessionId:row.clientSessionId,deviceId:did,sessionId:sid,status:'ready'});
     return {...binding.workingContext,deviceId:did,clientSessionId:row.clientSessionId,agentId:row.agentId};
   }
+  // Invalidating one member's A/B grant must not revoke the owner's or other
+  // members' independent bindings for the same shared device.
+  removeBinding(clientSessionId,deviceId,reason='binding_invalid',{agentId=null}={}){
+    const row=this._row(clientSessionId,{agentId,touch:false});
+    const did=validId(deviceId,'invalid_agent_client_device');
+    if(!row.bindings?.[did])return false;
+    delete row.bindings[did];
+    if(row.defaultDeviceId===did)row.defaultDeviceId=Object.keys(row.bindings)[0]||null;
+    this._persist();
+    this.emit({type:'agent_client_device_unbound',accountId:row.accountId,agentId:row.agentId,
+      clientSessionId:row.clientSessionId,deviceId:did,status:'removed',
+      reason:String(reason||'removed').slice(0,80)});
+    return true;
+  }
   removeDevice(deviceId,reason='device_access_closed'){
     const did=validId(deviceId,'invalid_agent_client_device');let count=0;
     for(const row of this.rows.values())if(!row.closedAt&&row.bindings?.[did]){delete row.bindings[did];if(row.defaultDeviceId===did)row.defaultDeviceId=Object.keys(row.bindings||{})[0]||null;count++;this.emit({type:'agent_client_device_unbound',accountId:row.accountId,agentId:row.agentId,clientSessionId:row.clientSessionId,deviceId:did,status:'removed',reason:String(reason||'removed').slice(0,80)});}

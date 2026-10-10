@@ -147,7 +147,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
           if(connection.connectionId!==binding.connectionId)throw new AgentClientRegistryError('agent_client_device_connection_mismatch',409);
           const device=devices.get(binding.deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
           authorized.push({deviceId:device.deviceId,nodeId:device.nodeId,name:device.displayName,state:device.state,platform:device.platform,architecture:device.architecture,connection:{state:connection.state,remainingMs:connection.remainingMs||Math.max(0,connection.hardExpiresAt-Date.now())}});
-        }catch{agentClients.removeDevice(binding.deviceId,'binding_invalid');}
+        }catch{try{agentClients.removeBinding(client.clientSessionId,binding.deviceId,'binding_invalid',{agentId:client.agentId});}catch{}}
       }
       return sendJson(res,200,{ok:true,client:{clientSessionId:client.clientSessionId,agentId:client.agentId,expiresAt:client.expiresAt},devices:authorized});
     }
@@ -158,7 +158,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
         if(connection.connectionId!==binding.connectionId)throw new AgentClientRegistryError('agent_client_device_connection_mismatch',409);
         const device=devices.get(binding.deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
         return sendJson(res,200,{ok:true,binding,grant,device:{deviceId:device.deviceId,nodeId:device.nodeId,displayName:device.displayName,state:device.state,platform:device.platform,architecture:device.architecture},connection});
-      }catch(error){agentClients.removeDevice(binding.deviceId,'binding_invalid');throw error;}
+      }catch(error){try{agentClients.removeBinding(binding.clientSessionId,binding.deviceId,'binding_invalid',{agentId:binding.agentId});}catch{}throw error;}
     }
     if (req.method === 'POST' && url.pathname === '/v1/agent-client/context') {
       const body=await readJson(req),binding=agentClients.resolve(body.clientSessionId,{agentId:body.agentId,deviceId:body.deviceId||null,touch:true});
@@ -174,7 +174,12 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
         if(workspace!==session.workspace)session=sessions.setWorkspace(session.sessionId,binding.agentId,workspace);
         const context=agentClients.setWorkingContext(binding.clientSessionId,{agentId:binding.agentId,deviceId:device.deviceId,sessionId:session.sessionId,workspace:session.workspace,gracePreset:session.gracePreset});
         return sendJson(res,200,{ok:true,context:{...context,nodeId:device.nodeId,displayName:device.displayName,platform:device.platform,architecture:device.architecture,deviceState:device.state,connectionState:connection.state},session});
-      }catch(error){if(['agent_client_device_connection_mismatch','device_connection_closed','device_connection_expired'].includes(error.message))agentClients.removeDevice(binding.deviceId,'binding_invalid');throw error;}
+      }catch(error){
+        if(['agent_client_device_connection_mismatch','device_connection_closed','device_connection_expired'].includes(error.message)){
+          try{agentClients.removeBinding(binding.clientSessionId,binding.deviceId,'binding_invalid',{agentId:binding.agentId});}catch{}
+        }
+        throw error;
+      }
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/connect') {
       const body=await readJson(req), ctx=verifiedChannelContext(body,'connect');
