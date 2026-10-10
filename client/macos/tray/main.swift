@@ -1,4 +1,5 @@
 import Cocoa
+import UserNotifications
 
 enum TrayVisualState { case unavailable, unlinked, dormant, connected }
 
@@ -10,6 +11,7 @@ final class TrayDelegate: NSObject, NSApplicationDelegate {
     let openFleetItem = NSMenuItem(title: "Open Fleet", action: #selector(openFleet), keyEquivalent: "")
     private var fleetURL: URL?
     var timer: Timer?
+    let announcementReceiptKey = "LightRemoteLastAnnouncementReceipt"
     var onboardingInFlight = false
     var enrollmentPollInFlight = false
     let onboardingKey = "LightRemoteDidPresentAccountOnboarding"
@@ -33,6 +35,7 @@ final class TrayDelegate: NSObject, NSApplicationDelegate {
         openFleetItem.isEnabled = false
         menu.addItem(openFleetItem)
         menu.addItem(connectItem)
+        menu.addItem(NSMenuItem(title: "Announcements", action: #selector(openAnnouncements), keyEquivalent: ""))
         let settings = NSMenuItem(title: "Settings", action: nil, keyEquivalent: "")
         let settingsMenu = NSMenu(title: "Settings")
         let privacy = NSMenuItem(title: "Real Remote → Privacy & Permissions…",
@@ -216,6 +219,7 @@ final class TrayDelegate: NSObject, NSApplicationDelegate {
         openFleetItem.isHidden = fleetURL == nil
         openFleetItem.isEnabled = fleetURL != nil
         setVisual(visual, label: label)
+        deliverNewAnnouncement(s)
         if available && !enrolled && pendingId == nil { beginAccountOnboarding() }
         if available && pendingId != nil { pollEnrollmentIfNeeded(pendingId) }
     }
@@ -234,6 +238,35 @@ final class TrayDelegate: NSObject, NSApplicationDelegate {
               scheme == "http" || scheme == "https",
               url.host != nil, url.user == nil, url.password == nil else { return nil }
         return url
+    }
+    @objc func openAnnouncements() {
+        NSWorkspace.shared.open(URL(string: "http://127.0.0.1:5491/announcements")!)
+    }
+    func deliverNewAnnouncement(_ status: [String: Any]) {
+        guard let announcements=status["announcements"] as? [String: Any],
+              let entries=announcements["items"] as? [[String: Any]],
+              let latest=entries.first,let id=latest["id"] as? String,
+              let updatedAt=latest["updatedAt"] as? String else { return }
+        let key=id+"|"+updatedAt
+        guard UserDefaults.standard.string(forKey: announcementReceiptKey) != key else { return }
+        UserDefaults.standard.set(key,forKey:announcementReceiptKey)
+        let title=String((latest["title"] as? String ?? "Light Remote").prefix(110))
+        let body=String((latest["message"] as? String ?? "New announcement").prefix(400))
+        let center=UNUserNotificationCenter.current()
+        func send() {
+            let notice=UNMutableNotificationContent()
+            notice.title=title;notice.body=body
+            let request=UNNotificationRequest(identifier:id,content:notice,trigger:nil)
+            center.add(request,withCompletionHandler:nil)
+        }
+        center.getNotificationSettings { settings in
+            switch settings.authorizationStatus {
+            case .authorized,.provisional: send()
+            case .notDetermined:
+                center.requestAuthorization(options:[.alert,.badge]) { allowed,_ in if allowed { send() } }
+            default: break
+            }
+        }
     }
     @objc func openFleet() {
         guard let url = fleetURL else { return }

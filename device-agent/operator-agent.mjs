@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { deviceChannelMessage, deviceHeartbeatMessage, devicePolicyMessage, normalizeDeviceCapabilities } from '../lib/device-proof.mjs';
 import { cloudRenewBackoffDelayMs } from '../lib/cloud-lease-renew-backoff.mjs';
 import { DeviceWorkerLimiter,planWorkerLimit } from '../lib/device-worker-limiter.mjs';
+import { ClientAnnouncementInbox } from '../lib/client-announcement-inbox.mjs';
 import { createPlatformAdapter } from './platform-adapters/index.mjs';
 import { startLocalWall } from './local-wall.mjs';
 import { loadLocalWallAuth, writeLocalWallAuthConfig, writeAccountOnlyWallAuthConfig } from './local-wall-auth.mjs';
@@ -42,6 +43,9 @@ const LIGHT_SCP=new LightScpRegistry();
 const DEFAULT_BASE=migrateLegacyEndpoint(process.env.OPERATOR_AGENT_BASE_URL,{kind:'base'});
 const DEFAULT_HUB=migrateLegacyEndpoint(process.env.OPERATOR_AGENT_HUB_URL,{kind:'hub'});
 const STATE_FILE=process.env.OPERATOR_AGENT_STATE || path.join(os.homedir(),'.config','gpt-operator-agent','device.json');
+const ANNOUNCEMENT_FILE=process.env.LIGHT_REMOTE_ANNOUNCEMENTS_FILE||path.join(path.dirname(STATE_FILE),'announcements-inbox.json');
+const ANNOUNCEMENT_PLATFORM=process.platform==='win32'?'windows':process.platform==='darwin'?'macos':'linux';
+function announcementStatus(){const state=readJsonFile(ANNOUNCEMENT_FILE)||{};return {checkedAt:state.checkedAt||null,items:Array.isArray(state.items)?state.items.slice(0,25):[],count:Array.isArray(state.items)?state.items.length:0};}
 const EXTERNAL_IDENTITY_FILE=String(process.env.OPERATOR_AGENT_IDENTITY_FILE||'').trim();
 const COMMAND_DIR=process.env.OPERATOR_AGENT_COMMAND_DIR || path.join(path.dirname(STATE_FILE),'commands');
 const LOCAL_WALL_HOST=process.env.OPERATOR_AGENT_WALL_HOST || '127.0.0.1';
@@ -763,8 +767,8 @@ function setLocalPermissions(allowedCapabilities,profile='custom'){
 }
 function statusView(state=readState()){
   if(state)expireLocalHardLease(state);
-  if(!state)return {ok:true,version:VERSION,platformAdapter:PLATFORM_ADAPTER.id,enrolled:false,deviceId:null,deviceName:os.hostname(),accountId:null,cloudDesiredConnected:false,cloudState:'dormant',connectionId:null,hardExpiresAt:null,reconnectGraceMs:null,connectionPlan:null,stateFile:STATE_FILE,localWallUrl:`http://${LOCAL_WALL_HOST}:${LOCAL_WALL_PORT}/`,deviceDuplex:deviceDuplexStatus(),realRemoteLiveSessions:REAL_REMOTE_LIVE.size,update:updateStatusView()};
-  return {ok:true,version:VERSION,platformAdapter:PLATFORM_ADAPTER.id,enrolled:Boolean(state.enrollment?.deviceId),deviceId:state.enrollment?.deviceId||null,deviceName:state.enrollment?.displayName||os.hostname(),nodeId:state.enrollment?.nodeId||state.enrollment?.deviceId||null,accountId:state.enrollment?.accountId||null,pendingEnrollmentId:state.pendingEnrollment?.enrollmentId||null,publicKeySha256:state.identity?.publicKeySha256||null,policyProfile:state.enrollment?.policyProfile||state.pendingEnrollment?.requestedPolicy||null,localPolicyProfile:state.policy?.localProfile||((state.policy?.deniedCapabilities||[]).length?'custom':'full'),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),policyAuthority:isTrustedHostState(state)?'local-main':'server-and-local',grantableCapabilities:state.enrollment?.grantableCapabilities||state.enrollment?.approvedCapabilities||[],approvedCapabilities:state.enrollment?.approvedCapabilities||[],deniedCapabilities:state.policy?.deniedCapabilities||[],effectiveCapabilities:state.effectiveCapabilities||[],draining:Boolean(state.routing?.draining),cloudDesiredConnected:cloudDesired(state),cloudState:state.cloud?.state||(cloudDesired(state)?'legacy-connected':'dormant'),connectionId:state.cloud?.connectionId||null,hardExpiresAt:state.cloud?.hardExpiresAt||null,reconnectGraceMs:state.cloud?.reconnectGraceMs||null,connectionPlan:state.cloud?.plan||null,lastCloudError:state.cloud?.lastError||null,lastHeartbeatAt:state.lastHeartbeatAt||null,stateFile:STATE_FILE,commandDir:COMMAND_DIR,localWallUrl:`http://${LOCAL_WALL_HOST}:${LOCAL_WALL_PORT}/`,privateKeyStoredLocally:Boolean(state.identity?.privateKey),deviceDuplex:deviceDuplexStatus(),realRemoteLiveSessions:REAL_REMOTE_LIVE.size,update:updateStatusView()};
+  if(!state)return {ok:true,version:VERSION,platformAdapter:PLATFORM_ADAPTER.id,enrolled:false,deviceId:null,deviceName:os.hostname(),accountId:null,cloudDesiredConnected:false,cloudState:'dormant',connectionId:null,hardExpiresAt:null,reconnectGraceMs:null,connectionPlan:null,stateFile:STATE_FILE,localWallUrl:`http://${LOCAL_WALL_HOST}:${LOCAL_WALL_PORT}/`,deviceDuplex:deviceDuplexStatus(),realRemoteLiveSessions:REAL_REMOTE_LIVE.size,announcements:announcementStatus(),update:updateStatusView()};
+  return {ok:true,version:VERSION,platformAdapter:PLATFORM_ADAPTER.id,enrolled:Boolean(state.enrollment?.deviceId),deviceId:state.enrollment?.deviceId||null,deviceName:state.enrollment?.displayName||os.hostname(),nodeId:state.enrollment?.nodeId||state.enrollment?.deviceId||null,accountId:state.enrollment?.accountId||null,pendingEnrollmentId:state.pendingEnrollment?.enrollmentId||null,publicKeySha256:state.identity?.publicKeySha256||null,policyProfile:state.enrollment?.policyProfile||state.pendingEnrollment?.requestedPolicy||null,localPolicyProfile:state.policy?.localProfile||((state.policy?.deniedCapabilities||[]).length?'custom':'full'),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),policyAuthority:isTrustedHostState(state)?'local-main':'server-and-local',grantableCapabilities:state.enrollment?.grantableCapabilities||state.enrollment?.approvedCapabilities||[],approvedCapabilities:state.enrollment?.approvedCapabilities||[],deniedCapabilities:state.policy?.deniedCapabilities||[],effectiveCapabilities:state.effectiveCapabilities||[],draining:Boolean(state.routing?.draining),cloudDesiredConnected:cloudDesired(state),cloudState:state.cloud?.state||(cloudDesired(state)?'legacy-connected':'dormant'),connectionId:state.cloud?.connectionId||null,hardExpiresAt:state.cloud?.hardExpiresAt||null,reconnectGraceMs:state.cloud?.reconnectGraceMs||null,connectionPlan:state.cloud?.plan||null,lastCloudError:state.cloud?.lastError||null,lastHeartbeatAt:state.lastHeartbeatAt||null,stateFile:STATE_FILE,commandDir:COMMAND_DIR,localWallUrl:`http://${LOCAL_WALL_HOST}:${LOCAL_WALL_PORT}/`,privateKeyStoredLocally:Boolean(state.identity?.privateKey),deviceDuplex:deviceDuplexStatus(),realRemoteLiveSessions:REAL_REMOTE_LIVE.size,announcements:announcementStatus(),update:updateStatusView()};
 }
 async function daemon(args){
   const hub=args.hub||DEFAULT_HUB,base=args.base||DEFAULT_BASE;let state=readState()||{};
@@ -775,6 +779,20 @@ async function daemon(args){
   const sessionCeiling=Math.max(1,Math.min(Number(process.env.OPERATOR_AGENT_MAX_SESSIONS)||3,5));
   const maxWorkers=Math.max(1,Math.min(Number(process.env.OPERATOR_AGENT_MAX_WORKERS)||3,3));
   const activePollWorkers=new Set();
+  let announcementTask=null,announcementNextAt=0,announcementFailures=0;
+  const checkAnnouncements=()=>{
+    if(announcementTask||Date.now()<announcementNextAt)return;
+    if(!readState()?.enrollment?.deviceId)return;
+    announcementTask=(async()=>{
+      try{
+        const inbox=new ClientAnnouncementInbox({hub,platform:ANNOUNCEMENT_PLATFORM,storeFile:ANNOUNCEMENT_FILE,
+          onNew:item=>console.log(JSON.stringify({event:'client_announcement_received',announcementId:item.id,kind:item.kind,title:item.title}))});
+        const result=await inbox.poll();announcementFailures=0;announcementNextAt=Date.now()+300000;
+        if(result.newItems)console.log(JSON.stringify({event:'client_announcement_inbox_updated',newItems:result.newItems,total:result.received}));
+      }catch(error){announcementFailures++;announcementNextAt=Date.now()+Math.min(900000,60000*(2**Math.min(announcementFailures-1,4)));
+        if(announcementFailures===1||announcementFailures%5===0)console.error(JSON.stringify({event:'client_announcement_poll_failed',error:error.message,retryInMs:announcementNextAt-Date.now()}));}
+    })().finally(()=>{announcementTask=null;});
+  };
   const waitMs=Math.max(1000,Math.min(Number(process.env.OPERATOR_AGENT_CHANNEL_WAIT_MS)||8000,15000));
   const dormantPollMs=Math.max(1000,Math.min(Number(process.env.OPERATOR_AGENT_DORMANT_CHECK_MS)||2000,30000));
   const commandHeartbeatMs=Math.max(2000,Math.min(Number(process.env.OPERATOR_AGENT_COMMAND_HEARTBEAT_MS)||5000,15000));
@@ -807,6 +825,7 @@ async function daemon(args){
   const fleetReconcileMs=Math.max(500,Math.min(Number(process.env.OPERATOR_FLEET_RECONCILE_MS)||15000,300000));
   const reconcileFleet=async()=>{if(stopped||fleetReconciling)return;fleetReconciling=true;try{const current=readState();if(current)expireLocalHardLease(current);if(!current?.enrollment?.deviceId||!cloudDesired(current)||current.cloud?.state!=='connected'){await fleetSupervisor.stop('device_cloud_dormant');return;}await fleetSupervisor.reconcile();}catch(error){console.error(JSON.stringify({event:'fleet_component_reconcile_failed',error:error.message,status:error.status||null}));}finally{fleetReconciling=false;}};
   fleetTimer=setInterval(reconcileFleet,fleetReconcileMs);fleetTimer.unref?.();
+  const announcementTimer=setInterval(checkAnnouncements,30000);announcementTimer.unref?.();checkAnnouncements();
   while(!stopped){
     const latest=readState();if(latest)state=latest;
     if(state?.enrollment?.deviceId&&cloudLeaseRenewalDue(state)){
@@ -871,6 +890,7 @@ async function daemon(args){
       failures++;const retryInMs=Math.min(Math.max(1000*(2**Math.min(failures,5)),Number(error.retryAfterMs)||0),300000);console.error(JSON.stringify({event:'device_channel_failed',deviceId:state.enrollment.deviceId,error:error.message,status:error.status||null,failures,retryInMs}));if(!stopped)await wait(retryInMs);
     }
   }
+  clearInterval(announcementTimer);if(announcementTask)await announcementTask;
   if(activePollWorkers.size)await Promise.allSettled([...activePollWorkers]);
   cancelDeviceDuplexIdleClose();if(DEVICE_DUPLEX){const duplex=DEVICE_DUPLEX;DEVICE_DUPLEX=null;try{await duplex.close('daemon_stop');}catch{}}
   try{await fleetSupervisor.close();}catch{}
@@ -894,4 +914,4 @@ async function setDrain(args,draining){const state=readState();if(!state?.enroll
 async function status(){console.log(JSON.stringify({...statusView(),fleetWall:await localFleetStatus()},null,2));}
 async function initWallAuth(args){const password=fs.readFileSync(0,'utf8').replace(/[\r\n]+$/,'');if(password.length<12)throw new Error('local_wall_password_too_short');const result=writeLocalWallAuthConfig(LOCAL_WALL_AUTH_FILE,{username:args.username||'operator',password});console.log(JSON.stringify({ok:true,wallAuth:'configured',file:result.file,username:result.username,passwordEchoed:false},null,2));}
 const args=parseArgs(process.argv.slice(2)),command=args._[0]||'status';
-try{if(command==='login')await login(args);else if(command==='poll'){const state=readState();if(!state)throw new Error('no_device_state');console.log(JSON.stringify(await finishEnrollment(state,args.base||DEFAULT_BASE,{wait:false}),null,2));}else if(command==='heartbeat'){const state=readState();if(!state)throw new Error('no_device_state');console.log(JSON.stringify(await heartbeat(state,args.base||DEFAULT_BASE),null,2));}else if(command==='daemon')await daemon(args);else if(command==='wall-only')await wallOnly(args);else if(command==='connect')await connectCloud(args);else if(command==='disconnect')await disconnectCloud(args);else if(command==='set-grace')await setConnectionGrace(args);else if(command==='drain')await setDrain(args,true);else if(command==='undrain')await setDrain(args,false);else if(command==='status')await status();else if(command==='wall-auth-init')await initWallAuth(args);else throw new Error(`unknown_command:${command}`);}catch(error){console.error(JSON.stringify({ok:false,error:error.message,status:error.status||null},null,2));process.exitCode=1;}
+try{if(command==='login')await login(args);else if(command==='poll'){const state=readState();if(!state)throw new Error('no_device_state');console.log(JSON.stringify(await finishEnrollment(state,args.base||DEFAULT_BASE,{wait:false}),null,2));}else if(command==='heartbeat'){const state=readState();if(!state)throw new Error('no_device_state');console.log(JSON.stringify(await heartbeat(state,args.base||DEFAULT_BASE),null,2));}else if(command==='daemon')await daemon(args);else if(command==='wall-only')await wallOnly(args);else if(command==='connect')await connectCloud(args);else if(command==='disconnect')await disconnectCloud(args);else if(command==='set-grace')await setConnectionGrace(args);else if(command==='drain')await setDrain(args,true);else if(command==='undrain')await setDrain(args,false);else if(command==='status')await status();else if(command==='announcements')console.log(JSON.stringify({ok:true,...announcementStatus()},null,2));else if(command==='wall-auth-init')await initWallAuth(args);else throw new Error(`unknown_command:${command}`);}catch(error){console.error(JSON.stringify({ok:false,error:error.message,status:error.status||null},null,2));process.exitCode=1;}

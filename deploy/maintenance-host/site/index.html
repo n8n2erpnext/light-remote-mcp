@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#080A0C"><title>Maintenance · Light Remote</title>
+<link rel="icon" href="/assets/light-remote-mark.svg" sizes="any">
+
+<style>
+
+:root{font-family:"Google Sans",Inter,system-ui,-apple-system,sans-serif;color-scheme:dark;--bg:#080a0c;--panel:#101418;--panel2:#14191f;--line:#262e37;--txt:#f2f4f6;--muted:#93a0af;--gold:#ffcc00;--goldtext:#161814;--glow:rgba(255,204,0,.13)}
+:root[data-theme="light"]{color-scheme:light;--bg:#f6f7f8;--panel:#fff;--panel2:#f3f5f7;--line:#dce2e8;--txt:#18212c;--muted:#657383;--glow:rgba(255,204,0,.18)}
+*{box-sizing:border-box}html{min-height:100%;background:var(--bg)}body{margin:0;min-height:100vh;background:radial-gradient(ellipse 65% 40% at 50% 18%,var(--glow),transparent 78%),var(--bg);color:var(--txt)}
+a{color:inherit;text-decoration:none}button,select{font:inherit}button{cursor:pointer}header{height:88px;max-width:1170px;padding:0 30px;margin:auto;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}
+.brand{display:flex;gap:13px;align-items:center}.brand img{height:42px;width:42px;object-fit:contain}.brand strong{font-size:17px;font-weight:760;letter-spacing:-.03em}.brand span{display:block;font-size:11px;color:var(--muted);margin-top:2px}
+.header-actions{display:flex;align-items:center;gap:10px}.chip{border:1px solid var(--line);border-radius:100px;color:var(--muted);font-size:12px;padding:8px 13px;display:flex;align-items:center;gap:7px}.dot{height:7px;width:7px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 4px rgba(255,204,0,.12)}
+.tiny-button{padding:8px 13px;border-radius:9px;background:var(--panel);border:1px solid var(--line);color:var(--txt);font-size:12px;font-weight:700}
+main{max-width:930px;margin:auto;padding:92px 28px 50px;text-align:center}
+.eyebrow{font-size:12px;font-weight:800;letter-spacing:.18em;color:var(--gold);display:flex;align-items:center;justify-content:center;gap:10px}.eyebrow:before,.eyebrow:after{content:"";width:27px;height:1px;background:var(--gold);opacity:.7}
+h1{font-size:clamp(44px,7.5vw,78px);letter-spacing:-.066em;line-height:1.05;font-weight:760;margin:27px 0 20px}h1 em{font-style:normal;color:var(--gold)}
+.subtitle{font-size:17px;line-height:1.7;color:var(--muted);max-width:630px;margin:0 auto}
+.clock-label{margin-top:66px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:750}
+.clock{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;max-width:658px;margin:20px auto 0}.time-box{border:1px solid var(--line);border-radius:17px;background:linear-gradient(160deg,var(--panel2),var(--panel));padding:24px 8px 17px;box-shadow:0 14px 40px rgba(0,0,0,.06)}
+.time-value{font-size:clamp(39px,7vw,63px);font-weight:760;letter-spacing:-.06em;font-variant-numeric:tabular-nums;line-height:1}.time-unit{font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--muted);margin-top:14px}
+.eta{font-size:12px;color:var(--muted);margin-top:18px}.eta strong{font-weight:700;color:var(--txt)}
+.panel{margin:66px auto 0;max-width:710px;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:17px;padding:27px 31px}
+.panel-top{display:flex;gap:15px;align-items:center}.icon-frame{height:42px;width:42px;border-radius:12px;display:grid;place-items:center;background:rgba(255,204,0,.12);color:var(--gold);font-weight:800}.panel-title{font-size:16px;font-weight:750}.panel-detail{color:var(--muted);font-size:13px;line-height:1.55;margin-top:4px}
+.progress{margin:25px 0 19px;height:5px;background:var(--line);border-radius:8px;overflow:hidden}.progress div{height:100%;width:52%;background:var(--gold);border-radius:8px;transition:width .4s}.stages{display:flex;justify-content:space-between;gap:10px;font-size:11px;color:var(--muted)}.stages span.current{color:var(--txt);font-weight:730}
+.actions{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:12px;margin:36px 0}.btn{padding:12px 18px;border-radius:10px;font-size:13px;font-weight:750;border:1px solid var(--line);background:var(--panel);color:var(--txt)}.btn.gold{background:var(--gold);color:var(--goldtext);border-color:var(--gold)}
+footer{max-width:1170px;margin:40px auto 0;padding:22px 30px 35px;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:20px;color:var(--muted);font-size:12px}.powered{display:flex;align-items:center;gap:8px}.powered img{height:21px;width:21px}.powered strong{color:var(--txt)}
+.demo-toolbar{position:fixed;z-index:100;right:18px;bottom:18px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--panel);box-shadow:0 15px 45px rgba(0,0,0,.22);font-size:12px}.demo-toolbar b{color:var(--gold);font-size:10px;letter-spacing:.12em;margin:0 6px}.demo-toolbar select{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:7px;padding:6px 9px}
+@media(max-width:620px){header{height:73px;padding:0 17px}.brand img{height:33px;width:33px}.chip{display:none}main{padding:68px 17px 30px}.subtitle{font-size:15px}.clock{gap:7px}.time-box{border-radius:11px;padding:18px 4px 13px}.time-unit{font-size:9px;margin-top:8px}.clock-label{margin-top:45px}.panel{padding:22px 18px;margin-top:48px}.stages{font-size:10px}footer{padding:20px 17px 100px;flex-wrap:wrap}.demo-toolbar{left:10px;right:10px;bottom:10px;justify-content:center}}
+</style></head>
+<body>
+<header><a class="brand" href="/"><img src="/assets/light-remote-mark.svg" alt="Light Remote"><div><strong>Light Remote</strong><span>Remote MCP · Service status</span></div></a>
+<div class="header-actions"><span class="chip"><i class="dot"></i><span id="headerStatus">Scheduled maintenance</span></span><button id="themeToggle" class="tiny-button" type="button">☼ / ☾</button></div></header>
+<main><div class="eyebrow" id="eyebrow">SERVICE MAINTENANCE</div><h1 id="headline">A little downtime.<br><em>A better experience.</em></h1>
+<p class="subtitle" id="description">We're performing scheduled infrastructure maintenance to keep Light Remote fast, reliable, and secure. Your devices and account data remain intact.</p>
+<div class="clock-label" id="clockLabel">Estimated time until service resumes</div>
+<div class="clock" aria-live="off"><div class="time-box"><div class="time-value" id="days">00</div><div class="time-unit" id="daysLabel">DAYS</div></div><div class="time-box"><div class="time-value" id="hours">00</div><div class="time-unit" id="hoursLabel">HOURS</div></div><div class="time-box"><div class="time-value" id="minutes">00</div><div class="time-unit" id="minutesLabel">MINUTES</div></div><div class="time-box"><div class="time-value" id="seconds">00</div><div class="time-unit" id="secondsLabel">SECONDS</div></div></div>
+<p class="eta" id="eta"></p>
+<div class="panel"><div class="panel-top"><div class="icon-frame" aria-hidden="true">✳</div><div><div class="panel-title" id="panelTitle">What's happening?</div><div class="panel-detail" id="panelText">We're updating backend services and validating connections before reopening access. No action is required on your devices.</div></div></div><div class="progress"><div id="progressBar"></div></div><div class="stages"><span id="step1">01 · Preparation</span><span class="current" id="step2">02 · Maintenance</span><span id="step3">03 · Service restored</span></div></div>
+<div class="actions"><button class="btn gold" id="refreshButton" type="button">Refresh countdown ↻</button><a class="btn" href="https://thaiduy.digital/" target="_blank" rel="noopener">Thái Duy Digital ↗</a></div>
+</main><footer><div class="powered">Powered by <img src="/assets/thaiduy-mark.svg" alt=""><strong>thaiduy.digital</strong></div><div id="footerText">© Light Remote · support@thaiduy.digital</div></footer>
+<script>
+(()=>{'use strict';const $=id=>document.getElementById(id);
+const copy={en:{title:'A little downtime.',accent:'A better experience.',heading:'SERVICE MAINTENANCE',desc:'Light Remote is performing infrastructure maintenance. Your devices, local files and account data remain safe.',panel:'What is happening?',detail:'Our team is updating the infrastructure and validating security and connections. You do not need to change your device settings.',labels:['DAYS','HOURS','MINUTES','SECONDS'],steps:['01 · Preparation','02 · Maintenance','03 · Verification'],eta:'Expected return',pending:'We will announce the expected return time soon.',overdue:'The estimated time has elapsed; waiting for verified service restoration.',restored:'Maintenance completed',status:'Maintenance in progress'},
+vi:{title:'Tạm gián đoạn.',accent:'Để phục vụ tốt hơn.',heading:'BẢO TRÌ HỆ THỐNG',desc:'Light Remote đang bảo trì hạ tầng. Thiết bị, tệp cục bộ và dữ liệu tài khoản vẫn được giữ nguyên.',panel:'Đang thực hiện những gì?',detail:'Chúng tôi cập nhật máy chủ và kiểm tra bảo mật, kết nối trước khi khôi phục. Bạn không cần thay đổi thiết bị.',labels:['NGÀY','GIỜ','PHÚT','GIÂY'],steps:['01 · Chuẩn bị','02 · Bảo trì','03 · Kiểm tra'],eta:'Dự kiến trở lại',pending:'Thời gian khôi phục sẽ được công bố tại đây.',overdue:'Đã quá thời gian dự kiến; đang chờ xác nhận dịch vụ trở lại.',restored:'Bảo trì hoàn tất',status:'Đang bảo trì'}};
+const params=new URLSearchParams(location.search),locale=params.get('lang')==='vi'?'vi':'en',t=copy[locale];let data={mode:'standby',endAt:null};
+const preview=params.get('preview')==='1',previewEnd=Date.now()+90*60000;
+function render(){const end=preview?previewEnd:Date.parse(data.endAt||'');const hasEnd=Number.isFinite(end)&&end>0;const remaining=hasEnd?Math.max(0,end-Date.now()):0;const sec=Math.floor(remaining/1000),mode=preview?'active':data.mode;
+const pad=n=>String(n).padStart(2,'0'),title=$('headline');title.textContent='';const emphasis=document.createElement('em');emphasis.textContent=t.accent;title.append(document.createTextNode(t.title),document.createElement('br'),emphasis);
+$('eyebrow').textContent=t.heading;$('headerStatus').textContent=mode==='restored'?t.restored:mode==='standby'?'Maintenance standby':t.status;$('description').textContent=t.desc;
+[['days',Math.floor(sec/86400)],['hours',Math.floor(sec%86400/3600)],['minutes',Math.floor(sec%3600/60)],['seconds',sec%60]].forEach(([id,v])=>$(id).textContent=hasEnd?pad(v):'--');
+['daysLabel','hoursLabel','minutesLabel','secondsLabel'].forEach((id,i)=>$(id).textContent=t.labels[i]);
+$('eta').textContent=!hasEnd?t.pending:!remaining&&mode!=='restored'?t.overdue:t.eta+' · '+new Intl.DateTimeFormat(locale==='vi'?'vi-VN':'en-GB',{timeZone:'Asia/Ho_Chi_Minh',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}).format(end)+' ICT';
+$('panelTitle').textContent=t.panel;$('panelText').textContent=t.detail;$('step1').textContent=t.steps[0];$('step2').textContent=t.steps[1];$('step3').textContent=t.steps[2];$('progressBar').style.width=mode==='restored'?'100%':mode==='active'?'66%':mode==='scheduled'?'18%':'0%';
+$('footerText').textContent='© Light Remote · support@thaiduy.digital';$('refreshButton').textContent=locale==='vi'?'Làm mới thông tin ↻':'Refresh details ↻';document.documentElement.lang=locale;}
+async function load(){try{const r=await fetch('/maintenance.json?ts='+Date.now(),{cache:'no-store',signal:AbortSignal.timeout(4000)});if(r.ok){const d=await r.json();if(['standby','scheduled','active','restored'].includes(d.mode))data=d;}}catch{}render();}
+$('refreshButton').onclick=load;$('themeToggle').onclick=()=>{document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark'};
+load();setInterval(render,1000);setInterval(load,45000);
+})();
+</script></body></html>

@@ -101,6 +101,7 @@ Light Remote Linux Server
   light-remote up                 Enroll/start service
   light-remote down               Disconnect cloud session
   light-remote status             Friendly status summary
+  light-remote announcements      Read cached notices in this SSH terminal
   light-remote status --json      Full diagnostics (technical)
   light-remote wall               Show local Wall URL
   light-remote bind               Choose new Wall address
@@ -136,6 +137,10 @@ case "$cmd" in
     if [[ $# -eq 1 && "$1" == '--json' ]]; then agent status
     elif [[ $# -eq 0 ]]; then show_summary
     else die 'usage: light-remote status [--json]'; fi
+    ;;
+  announcements|notices)
+    [[ $# -eq 0 ]] || die 'usage: light-remote announcements'
+    agent announcements | "$NODE" "$ROOT/current/client/linux/cli-announcements.mjs"
     ;;
   bind) change_wall_bind "$@";;
   down)

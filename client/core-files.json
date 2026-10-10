@@ -1,6 +1,9 @@
 {
   "schemaVersion": 1,
   "files": [
+    {"source":"lib/cloud-lease-renew-backoff.mjs","destination":"lib/cloud-lease-renew-backoff.mjs"},
+    {"source":"lib/device-worker-limiter.mjs","destination":"lib/device-worker-limiter.mjs"},
+    {"source":"lib/client-announcement-inbox.mjs","destination":"lib/client-announcement-inbox.mjs"},
     {
       "source": "device-agent/fleet-component-manager.mjs",
       "destination": "device-agent/fleet-component-manager.mjs"

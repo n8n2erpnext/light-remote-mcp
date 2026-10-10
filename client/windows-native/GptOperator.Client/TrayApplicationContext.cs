@@ -12,7 +12,10 @@ internal sealed record TrayAgentSnapshot(
     string Plan,
     string LastCloudError,
     bool FleetHealthy,
-    string? FleetUrl
+    string? FleetUrl,
+    string? AnnouncementKey = null,
+    string? AnnouncementTitle = null,
+    string? AnnouncementBody = null
 );
 
 internal sealed class TrayApplicationContext : ApplicationContext
@@ -28,6 +31,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
     private readonly ToolStripMenuItem _openWall = new("Open Local Wall");
     private readonly ToolStripMenuItem _openFleet = new("Open Fleet") { Visible = false, Enabled = false };
     private readonly ToolStripMenuItem _account = new("Manage Account");
+    private readonly ToolStripMenuItem _announcements = new("Announcements");
     private readonly ToolStripMenuItem _connect = new("Connect");
     private readonly ToolStripMenuItem _restart = new("Restart Light Remote");
     private readonly ToolStripMenuItem _update = new("Check for updates");
@@ -39,6 +43,8 @@ internal sealed class TrayApplicationContext : ApplicationContext
     private string? _fleetUrl;
     private string? _actionStatus;
     private DateTimeOffset _actionStatusUntil;
+    private static readonly string AnnouncementReceiptFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Light Remote","announcement-receipt.txt");
+    private string _lastNotice = ReadNoticeReceipt();
 
     public TrayApplicationContext()
     {
@@ -51,6 +57,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
         menu.Items.Add(_openWall);
         menu.Items.Add(_openFleet);
         menu.Items.Add(_account);
+        menu.Items.Add(_announcements);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(_connect);
         menu.Items.Add(_restart);
@@ -62,6 +69,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
         _openWall.Click += async (_, _) => await OpenWallAsync();
         _openFleet.Click += (_, _) => OpenFleet();
         _account.Click += (_, _) => OpenUrl(AccountUrl, "account_open_failed");
+        _announcements.Click += (_, _) => OpenUrl(WallUrl+"announcements", "announcements_open_failed");
         _connect.Click += async (_, _) => await ToggleConnectionAsync();
         _restart.Click += async (_, _) => await RestartLightRemoteAsync();
         _serviceToggle.Click += async (_, _) => await ToggleServiceAsync();
@@ -373,7 +381,38 @@ internal sealed class TrayApplicationContext : ApplicationContext
             fleetHealthy = fw.TryGetProperty("healthy", out var fh) && fh.ValueKind == JsonValueKind.True;
             fleetUrl = fw.TryGetProperty("publicUrl", out var fu) && fu.ValueKind == JsonValueKind.String ? fu.GetString() : null;
         }
-        return new(true, enrolled, desired, cloudState, plan, lastError, fleetHealthy, fleetUrl);
+        string? key = null, title = null, body = null;
+        if(root.TryGetProperty("announcements",out var feed)&&feed.ValueKind==JsonValueKind.Object
+           &&feed.TryGetProperty("items",out var items)&&items.ValueKind==JsonValueKind.Array&&items.GetArrayLength()>0)
+        {
+            var recent = items[0];
+            key = (recent.TryGetProperty("id",out var id)?id.GetString():"") + "|" +
+                  (recent.TryGetProperty("updatedAt",out var update)?update.GetString():"");
+            title = recent.TryGetProperty("title",out var headline)?headline.GetString():null;
+            body = recent.TryGetProperty("message",out var message)?message.GetString():null;
+        }
+        return new(true, enrolled, desired, cloudState, plan, lastError, fleetHealthy, fleetUrl, key, title, body);
+    }
+
+    private static string ReadNoticeReceipt()
+    {
+        try { return File.Exists(AnnouncementReceiptFile) ? File.ReadAllText(AnnouncementReceiptFile).Trim() : ""; }
+        catch { return ""; }
+    }
+
+    private void DisplayNewAnnouncement(TrayAgentSnapshot status)
+    {
+        if(string.IsNullOrWhiteSpace(status.AnnouncementKey) || status.AnnouncementKey == _lastNotice)return;
+        // Persist before showing; restarting the tray must not spam users.
+        _lastNotice = status.AnnouncementKey;
+        try {
+            Directory.CreateDirectory(Path.GetDirectoryName(AnnouncementReceiptFile)!);
+            File.WriteAllText(AnnouncementReceiptFile, _lastNotice);
+        } catch { }
+        _tray.BalloonTipTitle = (status.AnnouncementTitle ?? "Light Remote").Trim();
+        _tray.BalloonTipText = (status.AnnouncementBody ?? "New announcement").Trim();
+        _tray.BalloonTipIcon = ToolTipIcon.Info;
+        _tray.ShowBalloonTip(9000);
     }
 
     private void SetActionStatus(string message, int seconds = 8)
@@ -422,6 +461,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
             var old = _tray.Icon;
             _tray.Icon = TrayIconFactory.Create(visual);
             old?.Dispose();
+            DisplayNewAnnouncement(status);
         }
         catch (Exception ex)
         {

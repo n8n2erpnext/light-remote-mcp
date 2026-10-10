@@ -1,0 +1,1 @@
+Host-independent Light Remote maintenance server.\nLocal: http://127.0.0.1:18081/?preview=1 ; config site/maintenance.json.\nDoes not alter NetBird Proxy live TLS ingress. To activate during LXD downtime, explicitly route only browser pages to this host; keep MCP/OAuth/API endpoints as HTTP 503.\n

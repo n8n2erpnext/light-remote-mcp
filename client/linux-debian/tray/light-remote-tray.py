@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import json, os, subprocess, webbrowser
+import json, os, subprocess, webbrowser, pathlib, shutil
 try:
     import gi
     gi.require_version('Gtk','3.0'); gi.require_version('AyatanaAppIndicator3','0.1')
@@ -22,18 +22,34 @@ def privileged_systemctl(action,unit):
 class Tray:
     def __init__(self):
         self.ind=AppIndicator.Indicator.new('light-remote',ICON,AppIndicator.IndicatorCategory.APPLICATION_STATUS);self.ind.set_status(AppIndicator.IndicatorStatus.ACTIVE);self.ind.set_title('Light Remote')
-        self.menu=Gtk.Menu();self.state_item=self.item('Starting…',None);self.menu.append(Gtk.SeparatorMenuItem());self.connect_item=self.item('Connect',self.toggle);self.item('Open Local Wall',lambda *_:webbrowser.open(WALL));self.item('Restart Light Remote',lambda *_:user_systemctl('restart',SERVICE));self.item('Check for updates',lambda *_:privileged_systemctl('start',UPDATE));self.item('Stop Light Remote',lambda *_:user_systemctl('stop',SERVICE));self.menu.append(Gtk.SeparatorMenuItem());self.item('Quit tray',lambda *_:Gtk.main_quit());self.menu.show_all();self.ind.set_menu(self.menu);self.refresh();GLib.timeout_add_seconds(5,self.refresh)
+        self.menu=Gtk.Menu();self.state_item=self.item('Starting…',None);self.menu.append(Gtk.SeparatorMenuItem());self.connect_item=self.item('Connect',self.toggle);self.item('Open Local Wall',lambda *_:webbrowser.open(WALL));self.item('Announcements',lambda *_:webbrowser.open(WALL+'announcements'));self.item('Restart Light Remote',lambda *_:user_systemctl('restart',SERVICE));self.item('Check for updates',lambda *_:privileged_systemctl('start',UPDATE));self.item('Stop Light Remote',lambda *_:user_systemctl('stop',SERVICE));self.menu.append(Gtk.SeparatorMenuItem());self.item('Quit tray',lambda *_:Gtk.main_quit());self.menu.show_all();self.ind.set_menu(self.menu);self.refresh();GLib.timeout_add_seconds(5,self.refresh)
     def item(self,label,cb):
         i=Gtk.MenuItem(label=label);i.set_sensitive(cb is not None)
         if cb:i.connect('activate',cb)
         self.menu.append(i);return i
     def toggle(self,*_):
         s=status();connected=bool(s.get('cloudDesiredConnected')) and s.get('cloudState')=='connected';agent('disconnect' if connected else 'connect');self.refresh()
+    def notify_announcements(self,s):
+        entries=s.get('announcements',{}).get('items',[])
+        if not entries: return
+        latest=entries[0]
+        key=str(latest.get('id',''))+'|'+str(latest.get('updatedAt',''))
+        if key=='|': return
+        store=pathlib.Path.home()/'.config'/'light-remote'/'notification-receipt'
+        try:
+            if store.exists() and store.read_text().strip()==key: return
+            store.parent.mkdir(parents=True,exist_ok=True)
+            store.write_text(key)
+            store.chmod(0o600)
+        except OSError: pass
+        if shutil.which('notify-send') and (os.environ.get('DISPLAY') or os.environ.get('WAYLAND_DISPLAY')):
+            try: subprocess.Popen(['notify-send','--app-name=Light Remote',str(latest.get('title') or 'Light Remote')[:110],str(latest.get('message') or '')[:400]],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+            except OSError: pass
     def refresh(self):
         s=status();connected=bool(s.get('cloudDesiredConnected')) and s.get('cloudState')=='connected';enrolled=bool(s.get('enrolled'));service=run(['systemctl','--user','is-active',SERVICE]).stdout.strip()
         if s.get('error'): label='Error · service '+(service or 'unknown')
         elif not enrolled: label='Running · not linked'
         elif connected: label='Connected · '+str(s.get('connectionPlan') or '').upper()
         else: label='Running · dormant'
-        self.state_item.set_label(label);self.connect_item.set_label('Disconnect' if connected else 'Connect');self.connect_item.set_sensitive(enrolled and service=='active');self.ind.set_title('Light Remote — '+label);return True
+        self.state_item.set_label(label);self.connect_item.set_label('Disconnect' if connected else 'Connect');self.connect_item.set_sensitive(enrolled and service=='active');self.ind.set_title('Light Remote — '+label);self.notify_announcements(s);return True
 if __name__=='__main__': Tray();Gtk.main()

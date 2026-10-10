@@ -22,12 +22,14 @@ export function renderLinuxStatus(data, {host = '127.0.0.1', port = '5491', serv
     'Local Wall: http://' + host + ':' + port + '/',
     'Bind      : ' + type + ' (' + host + ')',
     'Fleet     : ' + fleet,
+    'Notices   : ' + String(data.announcements?.count||0) + ' cached · light-remote announcements',
   ];
   if (update !== 'idle') lines.push('Update    : ' + update);
   lines.push(
     '',
     'Commands',
     '  light-remote status          Show this summary',
+    '  light-remote announcements   Read server notices in this terminal',
     '  light-remote up / down       Connect or disconnect',
     '  light-remote bind            Change Wall bind address',
     '  light-remote wall            Print Wall URL',
