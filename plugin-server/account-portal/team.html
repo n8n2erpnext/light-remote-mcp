@@ -108,7 +108,7 @@ async function load(){
  try{team=(await api('team-view')).team;}catch(err){team=null;if(err.message!=='team_not_found'&&err.message!=='pro_team_subscription_required'&&err.message!=='pro_team_addon_required')status(err.message,true)}
  $('teamAccessNotice').textContent=teamEntitlement?.active
    ?'PRO Team Access enabled for this owner. Team member budget: '+teamEntitlement.monthlyMemberCallBudget+' calls/month (UAT preview only).'
-   :'A regular PRO subscription does not include Team Access. Team requires a separate PRO+ entitlement. Pricing and real Team billing are not enabled yet.';
+   :'A Pro subscription does not include Team. Pro Team is a separate $55/month subscription (5 seats, 3 shared workers/device); sandbox checkout and commercial Team quota are not enabled yet.';
  render();
  if($('acceptCode').value.trim())status('Invitation ready. Signed in as '+(user?.email||'this account')+'. Click Accept invitation only if this is the invited email.');
 }
