@@ -20,6 +20,8 @@ import { UsageRegistry } from './usage-registry.mjs';
 import { FreeBenefitRegistry } from './free-benefit-registry.mjs';
 import { ProTeamRegistry, ProTeamError } from './pro-team-registry.mjs';
 import {requestTeamMemberApproval} from './team-approval-requests.mjs';
+import {TeamSessionUatRegistry} from './team-session-uat-registry.mjs';
+import {authorizeTrustedTeamDispatch} from './team-dispatch-authority.mjs';
 import {TeamEntitlementError} from './team-entitlement-policy.mjs';
 import { LicenseKeyRegistry, LicenseKeyError } from './license-key-registry.mjs';
 import { FleetAuthorityRegistry, FleetAuthorityError } from './fleet-authority-registry.mjs';
@@ -145,7 +147,29 @@ const accounts = new AccountRegistry({ stateFile:ACCOUNT_STATE_FILE, bootstrapAc
 // Team billing/seat policy is prepared but cross-account device routing remains disabled.
 const proTeams=new ProTeamRegistry({stateFile:PRO_TEAM_STATE_FILE,
   planFor:accountId=>operationalAccount(accountId).plan,
-  accountActive:accountId=>{try{return operationalAccount(accountId).status==='active';}catch{return false;}}});
+  accountActive:accountId=>{try{return operationalAccount(accountId).status==='active';}catch{return false;}},
+  onRevoke:({memberAccountId,deviceId,reason})=>
+    accessGrants.revokeTeamMember({accountId:memberAccountId,deviceId,reason})});
+// Private, separate source-only Team session plane. Must never share the
+// production session manager or process any real jobs. Default is DISABLED.
+const teamSessions=process.env.LIGHT_REMOTE_PRO_TEAM_SESSIONS_UAT==='1'
+  ?new TeamSessionUatRegistry({
+    maxActive:64,maxPerNode:5,
+    resolveAuthority:({authenticatedActorAccountId,authenticatedAgentId,
+      deviceId,operation,requiredCapabilities})=>{
+      const device=devices.get(deviceId),connection=connections.assertConnected(deviceId);
+      const route=targetRoute(device.nodeId,{accountId:device.accountId});
+      const binding=enrollments.binding(deviceId);
+      return authorizeTrustedTeamDispatch({
+        authenticatedActorAccountId,authenticatedAgentId,
+        device,connection,accessGrants,teamRegistry:proTeams,
+        planFor:id=>operationalAccount(id).plan,
+        approvedCapabilities:binding.approvedCapabilities,
+        routeCapabilities:route.capabilities,
+        operation,requiredCapabilities
+      });
+    }
+  }):null;
 const licenses = new LicenseKeyRegistry({ stateFile:LICENSE_STATE_FILE, emit:event => pushEvent(event) });
 const fleetAuthority = new FleetAuthorityRegistry({ ttlMs:FLEET_AUTHORITY_TTL_MS, emit:event => pushEvent(event) });
 const realRemoteLive = new RealRemoteLiveRegistry();
@@ -1023,7 +1047,7 @@ const routeDeps=()=>({
   fleetEligibility,fleetTarget,flushDiskRecords,fs,fullOutputFromDisk,
   ingressTelemetry,jobView,jobs,licenses,normalizeUpdateReport,
   pairingCodes,planEntitlements,pruneRing,pushEvent,queueHelperUpdate,
-  queueSignedUpdate,readJson,reapAccessGrants,realRemoteLive,recentEvents,redact,proTeams,requestTeamMemberApproval,operationalAccount,
+  queueSignedUpdate,readJson,reapAccessGrants,realRemoteLive,recentEvents,redact,proTeams,teamSessions,requestTeamMemberApproval,operationalAccount,
   removeRuntimeForDevice,requireAccount,requireDeviceConnection,revokeRuntimeForDevice,ring,
   ringBytes,sendJson,sessionStatsFromDisk,sessions,sseClients,
   startDesktopOperation,startFsOperation,startJob,startProcessOperation,startScpOperation,startSearchOperation,

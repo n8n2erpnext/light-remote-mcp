@@ -1,7 +1,7 @@
 import {verifyTeamMemberAuthorization} from './team-member-auth.mjs';
 import {authorizeTrustedTeamDispatch} from './team-dispatch-authority.mjs';
 export async function handleAccountRoutes(req,res,url,deps){
-  const {ACCOUNT_ID,AccountError,DEVICE_ID,accountSessionToken,accounts,allDeviceViews,capabilities,clearMainIfMatches,closeRuntimeForAccount,compatibilityFor,devices,enrollments,fleetAuthority,licenses,planEntitlements,proTeams,requestTeamMemberApproval,operationalAccount,accessGrants,connections,targetRoute,queueHelperUpdate,readJson,removeRuntimeForDevice,requireAccount,revokeRuntimeForDevice,sendJson,usage,wakeDeviceChannelForDevice}=deps;
+  const {ACCOUNT_ID,AccountError,DEVICE_ID,accountSessionToken,accounts,allDeviceViews,capabilities,clearMainIfMatches,closeRuntimeForAccount,compatibilityFor,devices,enrollments,fleetAuthority,licenses,planEntitlements,proTeams,teamSessions,requestTeamMemberApproval,operationalAccount,accessGrants,connections,targetRoute,queueHelperUpdate,readJson,removeRuntimeForDevice,requireAccount,revokeRuntimeForDevice,sendJson,usage,wakeDeviceChannelForDevice}=deps;
     if (req.method === 'GET' && url.pathname === '/v1/admin/overview') {
       const accountRows=accounts.list(),deviceRows=allDeviceViews(),current=accountRows.map(account=>({account,entitlements:planEntitlements(account),usage:usage.summary(account.accountId,{months:1})}));
       const toolCallsThisMonth=current.reduce((sum,row)=>sum+(Number(row.usage.toolCallsThisMonth)||0),0),plans=current.reduce((out,row)=>{const key=String(row.account.plan||'free');out[key]=(out[key]||0)+1;return out;},{}),statuses=current.reduce((out,row)=>{const key=String(row.account.status||'active');out[key]=(out[key]||0)+1;return out;},{});
@@ -343,6 +343,44 @@ export async function handleAccountRoutes(req,res,url,deps){
         expiresAt:decision.accessExpiresAt,
         previewOnly:true,crossAccountExecutionEnabled:false
       }});
+    }
+    // Internal Operator UAT route only; not registered as an MCP tool, not
+    // connected to the real session/job plane, and absent when the UAT flag
+    // is disabled. Caller identity MUST be derived by a trusted OAuth
+    // adapter before this is exposed beyond local test transport.
+    if(req.method==='POST'&&url.pathname==='/v1/plugin/team/sessions/uat/open'){
+      if(!teamSessions)throw new AccountError('team_session_uat_disabled',404);
+      const body=await readJson(req);
+      const session=teamSessions.open({
+        authenticatedActorAccountId:operationalAccount(String(body.actorAccountId||'')).accountId,
+        authenticatedAgentId:String(body.agentId||''),
+        deviceId:String(body.deviceId||''),
+        operation:String(body.operation||''),
+        requiredCapabilities:body.requiredCapabilities,
+        openId:body.openId,label:body.label,
+        workspace:body.workspace,gracePreset:body.gracePreset
+      });
+      return sendJson(res,200,{ok:true,session,previewOnly:true,
+        crossAccountExecutionEnabled:false});
+    }
+    const teamUatSessionMatch=url.pathname.match(
+      /^\/v1\/plugin\/team\/sessions\/uat\/([A-Za-z0-9._:-]+)\/(get|resume|hold|touch|close)$/
+    );
+    if(req.method==='POST'&&teamUatSessionMatch){
+      if(!teamSessions)throw new AccountError('team_session_uat_disabled',404);
+      const body=await readJson(req),
+        sessionId=teamUatSessionMatch[1],action=teamUatSessionMatch[2],
+        identity={
+          authenticatedActorAccountId:operationalAccount(String(body.actorAccountId||'')).accountId,
+          authenticatedAgentId:String(body.agentId||'')
+        };
+      const session=action==='get'?teamSessions.get(sessionId,identity)
+        :action==='resume'?teamSessions.resume(sessionId,identity)
+        :action==='hold'?teamSessions.hold(sessionId,identity,body.reason||'agent_inactive')
+        :action==='touch'?teamSessions.touch(sessionId,identity,body.action||'uat-preview')
+        :teamSessions.close(sessionId,identity);
+      return sendJson(res,200,{ok:true,session,previewOnly:true,
+        crossAccountExecutionEnabled:false});
     }
     if(url.pathname==='/v1/accounts/team/accept' && req.method==='POST'){
       const memberAccountId=requireAccount(req).account.accountId;

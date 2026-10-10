@@ -210,6 +210,26 @@ export class DeviceAccessGrantRegistry {
   }
   // Server-only lookup for a member's exact OAuth client/device approval.
   // Never select the owner's grant or a legacy unscoped device grant.
+  // Owner removes member or unshares a device. Revoke pending and approved
+  // member grants only; never terminate owner/other-device authorizations.
+  revokeTeamMember({accountId,deviceId,reason='team_access_revoked'}={}){
+    const aid=validId(accountId,'invalid_access_account_id'),
+      did=validId(deviceId,'invalid_access_device_id'),closed=[],denied=[];
+    for(const row of [...this.requests.values()]){
+      if(row.purpose!=='team-member'||row.accountId!==aid||row.deviceId!==did||
+         row.consumedAt||row.state!=='pending')continue;
+      this.deny(row.requestId,reason,{deviceId:did});
+      denied.push(row.requestId);
+    }
+    for(const row of [...this.grants.values()]){
+      if(row.purpose!=='team-member'||row.accountId!==aid||row.deviceId!==did||
+         row.closedAt)continue;
+      this.close(row.grantId,reason);
+      closed.push(row.grantId);
+    }
+    return {accountId:aid,deviceId:did,closed:closed.length,denied:denied.length};
+  }
+
   activeTeamGrant({accountId,agentId,deviceId,connectionId}={}){
     const aid=validId(accountId,'invalid_access_account_id'),
       agent=validId(agentId,'invalid_plus_agent_id'),

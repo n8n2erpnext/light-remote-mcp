@@ -9,8 +9,8 @@ const digest=v=>crypto.createHash('sha256').update(v).digest('hex');
 export class ProTeamError extends Error{constructor(message,status=403){super(message);this.status=status;}}
 function checkId(id){if(!valid(id))throw new ProTeamError('invalid_team_account',400);return String(id);}
 export class ProTeamRegistry {
-  constructor({stateFile=null,now=()=>Date.now(),planFor=()=> 'free',accountActive=()=>true}={}){
-    this.stateFile=stateFile;this.now=now;this.planFor=planFor;this.accountActive=accountActive;
+  constructor({stateFile=null,now=()=>Date.now(),planFor=()=> 'free',accountActive=()=>true,onRevoke=()=>{}}={}){
+    this.stateFile=stateFile;this.now=now;this.planFor=planFor;this.accountActive=accountActive;this.onRevoke=onRevoke;
     this.teams=new Map();this.invites=new Map();
     if(stateFile&&fs.existsSync(stateFile)){
       const parsed=JSON.parse(fs.readFileSync(stateFile,'utf8'));
@@ -32,8 +32,29 @@ export class ProTeamRegistry {
     const code=crypto.randomBytes(24).toString('base64url');const entry={hash:digest(code),ownerAccountId:owner,memberAccountId:member,expiresAt:this.now()+INVITE_TTL_MS};this.invites.set(entry.hash,entry);this._save();return {inviteCode:code,expiresAt:entry.expiresAt};}
   accept({memberAccountId,inviteCode}={}){const member=checkId(memberAccountId),key=digest(String(inviteCode||'')),entry=this.invites.get(key);if(!entry||entry.expiresAt<=this.now()||entry.memberAccountId!==member)throw new ProTeamError('team_invite_invalid',403);const team=this._team(entry.ownerAccountId);if(!this.accountActive(member))throw new ProTeamError('team_member_not_active');if(!team.members.includes(member)){if(team.members.length>=MAX_SEATS)throw new ProTeamError('team_seat_limit',429);team.members.push(member);}this.invites.delete(key);this._save();return this.view(entry.ownerAccountId);}
   shareDevice({ownerAccountId,deviceId,deviceOwnerAccountId}={}){const team=this._team(ownerAccountId);if(deviceOwnerAccountId!==team.ownerAccountId)throw new ProTeamError('team_cannot_share_foreign_device');const device=checkId(deviceId);if(!team.devices.includes(device))team.devices.push(device);this._save();return this.view(team.ownerAccountId);}
-  unshareDevice({ownerAccountId,deviceId}={}){const team=this._team(ownerAccountId);team.devices=team.devices.filter(x=>x!==String(deviceId));this._save();return this.view(team.ownerAccountId);}
-  remove({ownerAccountId,memberAccountId}={}){const team=this._team(ownerAccountId),member=checkId(memberAccountId);if(member===team.ownerAccountId)throw new ProTeamError('team_owner_cannot_remove_self');team.members=team.members.filter(x=>x!==member);this._save();return this.view(team.ownerAccountId);}
+  unshareDevice({ownerAccountId,deviceId}={}){
+    const team=this._team(ownerAccountId),did=checkId(deviceId),
+      wasShared=team.devices.includes(did);
+    team.devices=team.devices.filter(x=>x!==did);
+    this._save();
+    if(wasShared)for(const memberAccountId of team.members){
+      if(memberAccountId===team.ownerAccountId)continue;
+      this.onRevoke({ownerAccountId:team.ownerAccountId,memberAccountId,
+        deviceId:did,reason:'team_device_unshared'});
+    }
+    return this.view(team.ownerAccountId);
+  }
+  remove({ownerAccountId,memberAccountId}={}){
+    const team=this._team(ownerAccountId),member=checkId(memberAccountId);
+    if(member===team.ownerAccountId)throw new ProTeamError('team_owner_cannot_remove_self');
+    const wasMember=team.members.includes(member);
+    team.members=team.members.filter(x=>x!==member);
+    this._save();
+    if(wasMember)for(const deviceId of team.devices)
+      this.onRevoke({ownerAccountId:team.ownerAccountId,memberAccountId:member,
+        deviceId,reason:'team_member_removed'});
+    return this.view(team.ownerAccountId);
+  }
   memberships(memberAccountId){
     const member=checkId(memberAccountId),results=[];
     for(const team of this.teams.values()){
