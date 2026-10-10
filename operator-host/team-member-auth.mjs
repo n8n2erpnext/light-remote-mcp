@@ -29,6 +29,10 @@ export function verifyTeamMemberAuthorization({
   });
   if(!grant||grant.closedAt)
     throw new TeamEntitlementError('team_actor_approval_required',403);
+  // The generic grant registry permits legacy unscoped grants for older
+  // single-owner clients. A team member must NEVER inherit such a grant.
+  if(!grant.agentId||grant.agentId!==String(agentId))
+    throw new TeamEntitlementError('team_agent_scoped_grant_required',403);
 
   const entitlement=resolveTeamEntitlement({
     deviceOwnerAccountId:device.accountId,

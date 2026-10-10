@@ -28,6 +28,15 @@ assert.equal(decision.actorAccountId,'member');
 assert.equal(decision.maxWorkers,3);
 assert.equal(decision.sharedTeam,true);
 assert.throws(()=>verifyTeamMemberAuthorization({...args,agentId:'other-agent-999999'}),/device_access_grant_agent_mismatch/);
+// Legacy A/B grants without an agent binding must not authorize team execution.
+const legacyRegistry=new DeviceAccessGrantRegistry({now:()=>now});
+const genericReq=legacyRegistry.request({accountId:'member',deviceId:device.deviceId,
+  connectionId:connection.connectionId,connectionExpiresAt:now+AB_GRANT_MAX_LIFETIME_MS,
+  forceApproval:true});
+const genericGrant=legacyRegistry.approve(genericReq.request.requestId,{deviceId:device.deviceId,
+  connectionId:connection.connectionId,connectionExpiresAt:now+AB_GRANT_MAX_LIFETIME_MS});
+assert.throws(()=>verifyTeamMemberAuthorization({...args,accessGrants:legacyRegistry,accessGrantId:genericGrant.grantId}),
+  /team_agent_scoped_grant_required/);
 assert.throws(()=>verifyTeamMemberAuthorization({...args,actorAccountId:'outsider'}),/device_access_grant_account_mismatch/);
 assert.throws(()=>verifyTeamMemberAuthorization({...args,device:{...device,accountId:'outsider'}}),/pro_team_membership_required/);
 assert.throws(()=>verifyTeamMemberAuthorization({...args,device:{...device,state:'revoked'}}),/team_device_unavailable/);
