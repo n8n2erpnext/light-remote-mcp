@@ -138,7 +138,7 @@ async function runDormancyScan(){
 }
 async function accountApi(req,res){
   const action=String(req.query?.action||'').trim();
-  const mutations=new Set(['register','login','logout','password-change','password-setup','password-reset-request','password-reset-complete','magic-request','verification-resend','verification-verify','reactivate','enrollment-approve','device-revoke','device-remove','device-update','devices-revoke-all','redeem-license','main-device','main-device-clear','upgrade-request','paddle-checkout','paddle-portal']);
+  const mutations=new Set(['register','login','logout','password-change','password-setup','password-reset-request','password-reset-complete','magic-request','verification-resend','verification-verify','reactivate','enrollment-approve','device-revoke','device-remove','device-update','devices-revoke-all','redeem-license','main-device','main-device-clear','upgrade-request','paddle-checkout','paddle-portal','team-create','team-invite','team-accept','team-remove','team-device-share','team-device-unshare']);
   if(mutations.has(action)&&!sameOriginMutation(req)){accountAudit(action,'cross_site_denied');return res.status(403).json({ok:false,error:'cross_site_request_denied'});}
   try{
     if(action==='register'){
@@ -221,6 +221,28 @@ async function accountApi(req,res){
         ?`/v1/accounts/usage?months=${Math.max(1,Math.min(Number(req.query?.months)||6,24))}`
         :`/v1/accounts/${action}`;
       return res.status(200).json(await callOperatorJson('GET',target,null,headers(token)));
+    }
+    if(action==='team-view'||action==='team-create'){
+      if(!method(req,res,action==='team-view'?'GET':'POST'))return;
+      const token=requireAccount(req,res);if(!token)return;
+      return res.status(action==='team-create'?201:200).json(await callOperatorJson(
+        action==='team-view'?'GET':'POST','/v1/accounts/team',
+        action==='team-create'?{}:null,headers(token)));
+    }
+    const teamMutations={
+      'team-invite':{route:'invite',field:'memberAccountId'},
+      'team-accept':{route:'accept',field:'inviteCode'},
+      'team-remove':{route:'member/remove',field:'memberAccountId'},
+      'team-device-share':{route:'device/share',field:'deviceId'},
+      'team-device-unshare':{route:'device/unshare',field:'deviceId'}
+    };
+    if(Object.hasOwn(teamMutations,action)){
+      if(!method(req,res,'POST'))return;
+      const token=requireAccount(req,res);if(!token)return;
+      const config=teamMutations[action],value=String(req.body?.[config.field]||'').trim();
+      if(!value||value.length>256)return res.status(400).json({ok:false,error:'invalid_team_request'});
+      return res.status(action==='team-invite'?201:200).json(await callOperatorJson(
+        'POST','/v1/accounts/team/'+config.route,{[config.field]:value},headers(token)));
     }
     if(action==='paddle-config'){
       if(!method(req,res,'GET'))return;
@@ -343,6 +365,7 @@ export function registerAccountPortal(app){
   const dormancyTimer=setInterval(()=>void runDormancyScan(),DORMANCY_SCAN_INTERVAL_MS);dormancyTimer.unref?.();
   app.get('/enroll',(_q,r)=>sendPortal(r,'enroll.html'));
   app.get(['/account','/account/'],(_q,r)=>sendPortal(r,'index.html'));
+  app.get(['/account/team','/account/team/'],(_q,r)=>sendPortal(r,'team.html'));
   app.get(['/account/usage','/account/usage/'],(_q,r)=>sendPortal(r,'usage.html'));
   app.get(['/account/billing','/account/billing/'],(_q,r)=>sendPortal(r,'billing.html'));
   app.get(['/account/settings','/account/settings/'],(_q,r)=>sendPortal(r,'settings.html'));

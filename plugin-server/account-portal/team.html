@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en" data-theme="dark"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive"><title>Pro Team · Light Remote</title>
+<link rel="icon" href="/account/assets/light-remote.ico"><link rel="stylesheet" href="/account/assets/portal.css">
+<script src="/account/assets/theme.js"></script>
+<style>
+.team-main{max-width:1150px;padding:38px 35px 75px}.team-banner{border:1px solid var(--line,#303840);border-radius:16px;background:var(--panel,#12171d);padding:27px 30px;margin:23px 0}
+.team-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.team-card{border:1px solid var(--line,#303840);border-radius:14px;background:var(--panel,#11161c);padding:24px}
+.team-card h2{font-size:18px;margin:0 0 8px}.team-muted{opacity:.7;font-size:13px;line-height:1.65}
+.team-label{font-size:12px;font-weight:740;display:block;margin:16px 0 7px}.team-field{width:100%;box-sizing:border-box;padding:11px 12px;border-radius:9px;background:var(--surface,#0b1015);color:inherit;border:1px solid var(--line,#303840);font:inherit}
+.team-btn{font:inherit;font-size:13px;font-weight:750;cursor:pointer;border:1px solid var(--line,#303840);background:var(--surface,#181f27);color:inherit;border-radius:9px;padding:10px 15px}.team-btn.primary{background:#ffcc00;border-color:#ffcc00;color:#16191c}.team-btn:disabled{opacity:.45;cursor:not-allowed}
+.team-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:18px}.team-row{border-top:1px solid var(--line,#303840);padding:12px 0;display:flex;justify-content:space-between;gap:12px;align-items:center;font-size:13px}
+.team-pill{display:inline-flex;border:1px solid var(--line,#303840);border-radius:99px;padding:5px 10px;font-size:11px;opacity:.85}.team-pill.gold{background:#ffcc001c;border-color:#ffcc0066;color:#e6b900}
+.team-alert{border:1px solid #ffcc0052;border-radius:12px;background:#ffcc000c;padding:15px 18px;margin:16px 0;font-size:13px;line-height:1.7}
+.team-status{min-height:24px;font-size:13px;margin-top:12px}.team-status.error{color:#df786f}.team-status.good{color:#32b38a}
+.team-hidden{display:none!important}.team-code{overflow-wrap:anywhere;font-family:ui-monospace,SFMono-Regular,monospace;padding:11px;border:1px dashed var(--line,#303840);border-radius:8px;margin-top:10px;background:var(--surface,#0b1015);font-size:12px}
+@media(max-width:850px){.team-columns{grid-template-columns:1fr}.team-main{padding:25px 17px}.team-banner{padding:22px 18px}}
+</style></head><body>
+<div class="app"><aside class="sidebar">
+<div class="brand"><img src="/account/assets/light-remote-mark.svg" alt=""><span><strong>Light Remote</strong><small>Remote MCP</small></span></div>
+<nav class="nav">
+<a href="/account"><span class="icon"><img class="material-icon" src="/assets/icons/material/devices.svg" alt=""></span>Devices</a>
+<a class="active" href="/account/team"><span class="icon"><img class="material-icon" src="/assets/icons/material/groups.svg" alt=""></span>Pro Team</a>
+<a href="/account/usage"><span class="icon"><img class="material-icon" src="/assets/icons/material/bar_chart.svg" alt=""></span>Usage</a>
+<a href="/account/billing"><span class="icon"><img class="material-icon" src="/assets/icons/material/credit_card.svg" alt=""></span>Billing</a>
+<a href="/account/settings"><span class="icon"><img class="material-icon" src="/assets/icons/material/settings.svg" alt=""></span>Settings</a>
+</nav><div class="account-foot"><div class="account-email" id="email">Loading…</div><div class="account-meta" id="plan"></div><div class="footer-links"><a href="/support">Support</a><a href="/privacy">Privacy</a></div></div>
+</aside><main class="main team-main">
+<div class="eyebrow">LIGHT REMOTE · PRO TEAM</div><h1>Work together, securely.</h1>
+<p class="team-muted">Invite up to four colleagues and share only the machines you approve. Five seats include the paying team owner.</p>
+<div class="team-alert"><strong>Access rollout in progress.</strong> Team membership and device-sharing settings are available in this release candidate. Cross-account remote execution is <strong>not enabled</strong> until each member's independent Local Wall A/B approval and team billing checks pass security testing. No invitation bypasses local device policy.</div>
+<div class="team-banner"><div class="team-row"><strong>My account ID</strong><span id="myAccountId">Loading…</span></div>
+<div class="team-row"><strong>Plan</strong><span id="planDetail">—</span></div>
+<div class="team-row"><strong>Team seats</strong><span id="seatCounter" class="team-pill gold">— / 5</span></div>
+<div class="team-actions"><button id="createTeam" class="team-btn primary team-hidden">Create Pro Team</button><button id="reload" class="team-btn">Refresh</button></div>
+<div class="team-status" id="status" role="status" aria-live="polite"></div></div>
+<div class="team-columns">
+<section class="team-card"><h2>Members</h2><p class="team-muted">Invite existing Light Remote accounts by account ID. Invitations expire after 15 minutes and can be used only once.</p>
+<div id="members"><div class="team-muted">No team loaded.</div></div>
+<label class="team-label" for="memberId">Member account ID</label><input class="team-field" id="memberId" placeholder="Existing account ID" maxlength="128" autocomplete="off">
+<div class="team-actions"><button class="team-btn primary" id="invite">Create invite</button></div>
+<div id="inviteOutput" class="team-hidden"><div class="team-label">One-time invitation code (share privately)</div><div class="team-code" id="inviteCode"></div><button id="copyInvite" class="team-btn" type="button">Copy invite code</button></div>
+</section>
+<section class="team-card"><h2>Shared devices</h2><p class="team-muted">Only machines enrolled under your own account can be shared. Revoked devices are unavailable.</p>
+<div id="sharedDevices"><div class="team-muted">No devices shared.</div></div>
+<label class="team-label" for="deviceId">My device</label><select class="team-field" id="deviceId"></select>
+<div class="team-actions"><button id="shareDevice" class="team-btn primary">Share selected device</button></div>
+</section>
+<section class="team-card"><h2>Accept an invitation</h2><p class="team-muted">Sign in to the invited account before accepting. Accepting an invitation never approves desktop access.</p>
+<label class="team-label" for="acceptCode">One-time invitation code</label><input class="team-field" id="acceptCode" autocomplete="off" maxlength="160">
+<div class="team-actions"><button class="team-btn" id="accept">Accept invitation</button></div>
+</section>
+<section class="team-card"><h2>Team permissions</h2><div class="team-row"><span>Seats per paid owner</span><strong>5</strong></div><div class="team-row"><span>Concurrent workers per shared device</span><strong>3 maximum</strong></div><div class="team-row"><span>Member device approval</span><strong>Separate A/B required</strong></div><div class="team-row"><span>Billing for authorized team work</span><strong>Owner account</strong></div><p class="team-muted">These execution entitlements remain unavailable until the security rollout is complete. Free accounts cannot create paid teams.</p></section>
+</div>
+</main></div>
+<script>
+(()=>{'use strict';
+const $=id=>document.getElementById(id);let team=null;let user=null;let devices=[];
+const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+async function api(action,{method='GET',payload=null}={}){
+ const options={method,credentials:'same-origin',cache:'no-store',headers:{'accept':'application/json'}};
+ if(payload!==null){options.headers['content-type']='application/json';options.body=JSON.stringify(payload)}
+ const response=await fetch('/account/api?action='+encodeURIComponent(action),options);
+ if(response.status===401){location.href='/account/login?next=%2Faccount%2Fteam';throw Error('login_required')}
+ const data=await response.json().catch(()=>({}));
+ if(!response.ok)throw Error(data.error||'request_failed');return data;
+}
+function status(text,error=false){$('status').textContent=text;$('status').className='team-status '+(error?'error':'good')}
+function render(){
+ const memberList=team?.members||[];
+ $('seatCounter').textContent=memberList.length+' / 5';
+ $('members').innerHTML=memberList.length?memberList.map(id=>'<div class="team-row"><span>'+escapeHtml(id)+(id===team.ownerAccountId?' (owner)':'')+'</span>'+(id===team.ownerAccountId?'':'<button class="team-btn" data-remove="'+escapeHtml(id)+'">Remove</button>')+'</div>').join(''):'<p class="team-muted">Create a paid team to invite members.</p>';
+ $('sharedDevices').innerHTML=(team?.devices||[]).length?(team.devices.map(id=>'<div class="team-row"><span>'+escapeHtml(id)+'</span><button class="team-btn" data-unshare="'+escapeHtml(id)+'">Unshare</button></div>').join('')):'<p class="team-muted">No devices shared.</p>';
+ $('createTeam').classList.toggle('team-hidden',Boolean(team)||!['pro','vip'].includes(String(user?.plan).toLowerCase()));
+ for(const id of ['invite','shareDevice'])$(id).disabled=!team;
+ $('deviceId').innerHTML=devices.filter(d=>d.state!=='revoked').map(d=>'<option value="'+escapeHtml(d.deviceId)+'">'+escapeHtml(d.displayName||d.deviceId)+'</option>').join('');
+ $('shareDevice').disabled=!team||!$('deviceId').options.length;
+}
+async function load(){
+ const info=await api('me');user=info.account;
+ $('email').textContent=user.email||user.accountId;$('plan').textContent=(user.plan||'free').toUpperCase();
+ $('planDetail').textContent=(user.plan||'free').toUpperCase();$('myAccountId').textContent=user.accountId;
+ const owned=await api('devices');devices=owned.devices||[];
+ try{team=(await api('team-view')).team;}catch(err){team=null;if(err.message!=='team_not_found'&&err.message!=='pro_team_subscription_required')status(err.message,true)}
+ render();
+}
+async function run(label,task){try{status('Working…');await task();status(label);await load();}catch(err){status(err.message,true)}}
+$('createTeam').onclick=()=>run('Team created',async()=>{await api('team-create',{method:'POST',payload:{}})});
+$('reload').onclick=()=>run('Up to date',async()=>{});
+$('invite').onclick=()=>run('Invitation generated',async()=>{
+ const value=$('memberId').value.trim();if(!value)throw Error('Enter an account ID');
+ const out=await api('team-invite',{method:'POST',payload:{memberAccountId:value}});
+ $('inviteCode').textContent=out.invite.inviteCode;$('inviteOutput').classList.remove('team-hidden');
+});
+$('copyInvite').onclick=async()=>{try{await navigator.clipboard.writeText($('inviteCode').textContent);status('Invitation copied')}catch{status('Copy unavailable in this browser',true)}};
+$('accept').onclick=()=>run('Invitation accepted',async()=>{const code=$('acceptCode').value.trim();if(!code)throw Error('Enter the invitation code');await api('team-accept',{method:'POST',payload:{inviteCode:code}});$('acceptCode').value=''});
+$('shareDevice').onclick=()=>run('Device sharing updated',async()=>{await api('team-device-share',{method:'POST',payload:{deviceId:$('deviceId').value}})});
+$('members').onclick=event=>{const id=event.target.closest('[data-remove]')?.dataset.remove;if(id&&confirm('Remove team member?'))run('Member removed',async()=>{await api('team-remove',{method:'POST',payload:{memberAccountId:id}})})};
+$('sharedDevices').onclick=event=>{const id=event.target.closest('[data-unshare]')?.dataset.unshare;if(id&&confirm('Stop sharing this device?'))run('Device removed from sharing',async()=>{await api('team-device-unshare',{method:'POST',payload:{deviceId:id}})})};
+load().catch(err=>status(err.message,true));
+})();
+</script></body></html>

@@ -1,5 +1,5 @@
 export async function handleAccountRoutes(req,res,url,deps){
-  const {ACCOUNT_ID,AccountError,DEVICE_ID,accountSessionToken,accounts,allDeviceViews,capabilities,clearMainIfMatches,closeRuntimeForAccount,compatibilityFor,devices,enrollments,fleetAuthority,licenses,planEntitlements,queueHelperUpdate,readJson,removeRuntimeForDevice,requireAccount,revokeRuntimeForDevice,sendJson,usage,wakeDeviceChannelForDevice}=deps;
+  const {ACCOUNT_ID,AccountError,DEVICE_ID,accountSessionToken,accounts,allDeviceViews,capabilities,clearMainIfMatches,closeRuntimeForAccount,compatibilityFor,devices,enrollments,fleetAuthority,licenses,planEntitlements,proTeams,queueHelperUpdate,readJson,removeRuntimeForDevice,requireAccount,revokeRuntimeForDevice,sendJson,usage,wakeDeviceChannelForDevice}=deps;
     if (req.method === 'GET' && url.pathname === '/v1/admin/overview') {
       const accountRows=accounts.list(),deviceRows=allDeviceViews(),current=accountRows.map(account=>({account,entitlements:planEntitlements(account),usage:usage.summary(account.accountId,{months:1})}));
       const toolCallsThisMonth=current.reduce((sum,row)=>sum+(Number(row.usage.toolCallsThisMonth)||0),0),plans=current.reduce((out,row)=>{const key=String(row.account.plan||'free');out[key]=(out[key]||0)+1;return out;},{}),statuses=current.reduce((out,row)=>{const key=String(row.account.status||'active');out[key]=(out[key]||0)+1;return out;},{});
@@ -238,6 +238,53 @@ export async function handleAccountRoutes(req,res,url,deps){
       accounts.resetPassword(identity.account.accountId,newPassword,{invalidateSessions:true});
       const logged=accounts.login({email:identity.account.email,password:newPassword});
       return sendJson(res,200,{ok:true,account:logged.account,session:logged.session,token:logged.token});
+    }
+    // Pro Team management is authenticated by a REAL account session.
+    // It only manages membership/device sharing; cross-account job routes remain
+    // disabled until independent per-actor local A/B grants are implemented.
+    if(url.pathname==='/v1/accounts/team' && req.method==='GET'){
+      const ownerAccountId=requireAccount(req).account.accountId;
+      return sendJson(res,200,{ok:true,team:proTeams.view(ownerAccountId),crossAccountExecutionEnabled:false});
+    }
+    if(url.pathname==='/v1/accounts/team' && req.method==='POST'){
+      const ownerAccountId=requireAccount(req).account.accountId;
+      const team=proTeams.create({ownerAccountId});
+      return sendJson(res,201,{ok:true,team,crossAccountExecutionEnabled:false});
+    }
+    if(url.pathname==='/v1/accounts/team/invite' && req.method==='POST'){
+      const ownerAccountId=requireAccount(req).account.accountId;
+      const body=await readJson(req);
+      // Invitee must already have a registered, operational account.
+      const memberAccountId=accounts.assertOperational(String(body.memberAccountId||'')).accountId;
+      const invite=proTeams.invite({ownerAccountId,memberAccountId});
+      return sendJson(res,201,{ok:true,invite});
+    }
+    if(url.pathname==='/v1/accounts/team/accept' && req.method==='POST'){
+      const memberAccountId=requireAccount(req).account.accountId;
+      const body=await readJson(req);
+      const team=proTeams.accept({memberAccountId,inviteCode:body.inviteCode});
+      return sendJson(res,200,{ok:true,team});
+    }
+    if(url.pathname==='/v1/accounts/team/member/remove' && req.method==='POST'){
+      const ownerAccountId=requireAccount(req).account.accountId;
+      const body=await readJson(req);
+      const team=proTeams.remove({ownerAccountId,memberAccountId:body.memberAccountId});
+      return sendJson(res,200,{ok:true,team});
+    }
+    if(url.pathname==='/v1/accounts/team/device/share' && req.method==='POST'){
+      const ownerAccountId=requireAccount(req).account.accountId;
+      const body=await readJson(req);
+      const device=devices.get(String(body.deviceId||''));
+      if(device.accountId!==ownerAccountId)throw new AccountError('team_device_not_owned',403);
+      if(device.state==='revoked')throw new AccountError('team_device_revoked',409);
+      const team=proTeams.shareDevice({ownerAccountId,deviceId:device.deviceId,deviceOwnerAccountId:device.accountId});
+      return sendJson(res,200,{ok:true,team,crossAccountExecutionEnabled:false});
+    }
+    if(url.pathname==='/v1/accounts/team/device/unshare' && req.method==='POST'){
+      const ownerAccountId=requireAccount(req).account.accountId;
+      const body=await readJson(req);
+      const team=proTeams.unshareDevice({ownerAccountId,deviceId:body.deviceId});
+      return sendJson(res,200,{ok:true,team});
     }
     if (req.method === 'GET' && url.pathname === '/v1/accounts/devices') {
       const identity=requireAccount(req),owned=allDeviceViews().filter(device=>device.accountId===identity.account.accountId).map(device=>({...device,removable:device.deviceId!==DEVICE_ID,revocable:device.deviceId!==DEVICE_ID&&device.state!=='revoked',helperUpdatable:device.deviceId!==DEVICE_ID&&device.state!=='revoked'}));
