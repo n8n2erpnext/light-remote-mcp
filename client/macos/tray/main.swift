@@ -245,7 +245,8 @@ final class TrayDelegate: NSObject, NSApplicationDelegate {
     func deliverNewAnnouncement(_ status: [String: Any]) {
         guard let announcements=status["announcements"] as? [String: Any],
               let entries=announcements["items"] as? [[String: Any]],
-              let latest=entries.first,let id=latest["id"] as? String,
+              let latest=(announcements["latest"] as? [String:Any]) ?? entries.first,
+              let id=latest["id"] as? String,
               let updatedAt=latest["updatedAt"] as? String else { return }
         let key=id+"|"+updatedAt
         guard UserDefaults.standard.string(forKey: announcementReceiptKey) != key else { return }

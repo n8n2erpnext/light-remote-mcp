@@ -32,7 +32,7 @@ class Tray:
     def notify_announcements(self,s):
         entries=s.get('announcements',{}).get('items',[])
         if not entries: return
-        latest=entries[0]
+        latest=s.get('announcements',{}).get('latest') or entries[0]
         key=str(latest.get('id',''))+'|'+str(latest.get('updatedAt',''))
         if key=='|': return
         store=pathlib.Path.home()/'.config'/'light-remote'/'notification-receipt'

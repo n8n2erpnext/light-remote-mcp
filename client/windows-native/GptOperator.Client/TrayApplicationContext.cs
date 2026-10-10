@@ -385,7 +385,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
         if(root.TryGetProperty("announcements",out var feed)&&feed.ValueKind==JsonValueKind.Object
            &&feed.TryGetProperty("items",out var items)&&items.ValueKind==JsonValueKind.Array&&items.GetArrayLength()>0)
         {
-            var recent = items[0];
+            var recent = feed.TryGetProperty("latest",out var newest) && newest.ValueKind==JsonValueKind.Object ? newest : items[0];
             key = (recent.TryGetProperty("id",out var id)?id.GetString():"") + "|" +
                   (recent.TryGetProperty("updatedAt",out var update)?update.GetString():"");
             title = recent.TryGetProperty("title",out var headline)?headline.GetString():null;
@@ -409,8 +409,8 @@ internal sealed class TrayApplicationContext : ApplicationContext
             Directory.CreateDirectory(Path.GetDirectoryName(AnnouncementReceiptFile)!);
             File.WriteAllText(AnnouncementReceiptFile, _lastNotice);
         } catch { }
-        _tray.BalloonTipTitle = (status.AnnouncementTitle ?? "Light Remote").Trim();
-        _tray.BalloonTipText = (status.AnnouncementBody ?? "New announcement").Trim();
+        _tray.BalloonTipTitle = (status.AnnouncementTitle ?? "Light Remote").Trim()[..Math.Min(63, (status.AnnouncementTitle ?? "Light Remote").Trim().Length)];
+        _tray.BalloonTipText = (status.AnnouncementBody ?? "New announcement").Trim()[..Math.Min(240, (status.AnnouncementBody ?? "New announcement").Trim().Length)];
         _tray.BalloonTipIcon = ToolTipIcon.Info;
         _tray.ShowBalloonTip(9000);
     }

@@ -45,7 +45,7 @@ const DEFAULT_HUB=migrateLegacyEndpoint(process.env.OPERATOR_AGENT_HUB_URL,{kind
 const STATE_FILE=process.env.OPERATOR_AGENT_STATE || path.join(os.homedir(),'.config','gpt-operator-agent','device.json');
 const ANNOUNCEMENT_FILE=process.env.LIGHT_REMOTE_ANNOUNCEMENTS_FILE||path.join(path.dirname(STATE_FILE),'announcements-inbox.json');
 const ANNOUNCEMENT_PLATFORM=process.platform==='win32'?'windows':process.platform==='darwin'?'macos':'linux';
-function announcementStatus(){const state=readJsonFile(ANNOUNCEMENT_FILE)||{};return {checkedAt:state.checkedAt||null,items:Array.isArray(state.items)?state.items.slice(0,25):[],count:Array.isArray(state.items)?state.items.length:0};}
+function announcementStatus(){const state=readJsonFile(ANNOUNCEMENT_FILE)||{};return {checkedAt:state.checkedAt||null,latest:state.latest||null,items:Array.isArray(state.items)?state.items.slice(0,25):[],count:Array.isArray(state.items)?state.items.length:0};}
 const EXTERNAL_IDENTITY_FILE=String(process.env.OPERATOR_AGENT_IDENTITY_FILE||'').trim();
 const COMMAND_DIR=process.env.OPERATOR_AGENT_COMMAND_DIR || path.join(path.dirname(STATE_FILE),'commands');
 const LOCAL_WALL_HOST=process.env.OPERATOR_AGENT_WALL_HOST || '127.0.0.1';
