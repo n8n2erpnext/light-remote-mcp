@@ -299,7 +299,7 @@ export async function handleAccountRoutes(req,res,url,deps){
       return sendJson(res,200,{ok:true,grant});
     }
     if(teamGrant&&req.method==='DELETE'){
-      const revoked=proTeams.revokeTeamAccess(teamGrant[1]);
+      const body=await readJson(req);const revoked=proTeams.revokeTeamAccess(teamGrant[1],{expectedSource:body.expectedSource||null});
       return sendJson(res,200,{ok:true,revoked});
     }
     if(url.pathname==='/v1/accounts/team/memberships' && req.method==='GET'){

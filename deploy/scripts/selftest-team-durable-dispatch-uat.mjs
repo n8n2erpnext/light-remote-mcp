@@ -118,5 +118,5 @@ try{
  console.log('team_sqlite_multi_process_atomic_budget_limit=PASS');
  console.log('team_sqlite_cross_process_exact_retry_one_charge=PASS');
 }finally{
- fs.rmSync(folder,{force:true,recursive:true});
+ fs.rmSync(folder,{force:true,recursive:true,maxRetries:6,retryDelay:50});
 }

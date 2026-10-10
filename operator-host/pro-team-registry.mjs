@@ -39,8 +39,10 @@ export class ProTeamRegistry {
     this.teamGrants.set(owner,{ownerAccountId:owner,validUntil:end,monthlyMemberCallBudget:budget,source:String(source).slice(0,70)});
     this._save();return this.teamEntitlement(owner);
   }
-  revokeTeamAccess(ownerAccountId){
-    const owner=checkId(ownerAccountId),deleted=this.teamGrants.delete(owner);
+  revokeTeamAccess(ownerAccountId,{expectedSource=null}={}){
+    const owner=checkId(ownerAccountId),current=this.teamGrants.get(owner);
+    if(expectedSource!==null&&(!current||current.source!==expectedSource))return false;
+    const deleted=this.teamGrants.delete(owner);
     if(deleted)this._save();
     return deleted;
   }

@@ -5,7 +5,7 @@ import { callOperatorJson } from './operator-client.mjs';
 import { PUBLIC_ORIGIN } from './config.mjs';
 import { mailConfig, sendDormancyWarning, sendDormantNotice, sendMagicLogin, sendPasswordReset, sendTeamInvitation, sendUpgradeRequested, sendWelcomeVerification } from './mailer.mjs';
 import { beginGoogleAuth, finishGoogleAuth, googleAuthStatus } from './google-auth.mjs';
-import { createPaddleCheckout, createPaddleCustomerPortal, paddleBillingSummary, paddlePublicConfig } from './paddle-billing.mjs';
+import { createPaddleCheckout, createPaddleSandboxOfferCheckout, createPaddleCustomerPortal, paddleBillingSummary, paddlePublicConfig } from './paddle-billing.mjs';
 
 const COOKIE='__Host-light_remote_account';
 const GOOGLE_SIGNUP_COOKIE='__Host-light_remote_google_signup';
@@ -138,7 +138,7 @@ async function runDormancyScan(){
 }
 async function accountApi(req,res){
   const action=String(req.query?.action||'').trim();
-  const mutations=new Set(['register','login','logout','password-change','password-setup','password-reset-request','password-reset-complete','magic-request','verification-resend','verification-verify','reactivate','enrollment-approve','device-revoke','device-remove','device-update','devices-revoke-all','redeem-license','main-device','main-device-clear','upgrade-request','paddle-checkout','paddle-portal','team-create','team-invite','team-accept','team-inbox-read','team-inbox-accept','notifications-read','team-remove','team-device-share','team-device-unshare','team-access-request']);
+  const mutations=new Set(['register','login','logout','password-change','password-setup','password-reset-request','password-reset-complete','magic-request','verification-resend','verification-verify','reactivate','enrollment-approve','device-revoke','device-remove','device-update','devices-revoke-all','redeem-license','main-device','main-device-clear','upgrade-request','paddle-checkout','paddle-offer-checkout','paddle-portal','team-create','team-invite','team-accept','team-inbox-read','team-inbox-accept','notifications-read','team-remove','team-device-share','team-device-unshare','team-access-request']);
   if(mutations.has(action)&&!sameOriginMutation(req)){accountAudit(action,'cross_site_denied');return res.status(403).json({ok:false,error:'cross_site_request_denied'});}
   try{
     if(action==='register'){
@@ -343,6 +343,19 @@ async function accountApi(req,res){
       const current=await callOperatorJson('GET','/v1/accounts/me',null,headers(token));
       const checkout=await createPaddleCheckout(current.account);
       accountAudit('paddle-checkout','created');
+      return res.status(201).json({ok:true,checkout});
+    }
+    if(action==='paddle-offer-checkout'){
+      if(!method(req,res,'POST'))return;
+      const product=String(req.body?.product||'').trim(),
+        period=String(req.body?.period||'').trim();
+      if(!['pro','pro_team'].includes(product)||!['monthly','yearly'].includes(period))
+        return res.status(400).json({ok:false,error:'paddle_offer_invalid'});
+      // Authentication comes from the cookie-backed Operator principal; no
+      // account ID or Paddle price ID is accepted from browser payload.
+      const current=await callOperatorJson('GET','/v1/accounts/me',null,headers(token));
+      const checkout=await createPaddleSandboxOfferCheckout(current.account,{product,period});
+      accountAudit('paddle-offer-checkout','sandbox_created');
       return res.status(201).json({ok:true,checkout});
     }
     if(action==='paddle-portal'){
