@@ -19,6 +19,8 @@ import { AccountRegistry, AccountError } from './account-registry.mjs';
 import { UsageRegistry } from './usage-registry.mjs';
 import { FreeBenefitRegistry } from './free-benefit-registry.mjs';
 import { ProTeamRegistry, ProTeamError } from './pro-team-registry.mjs';
+import {requestTeamMemberApproval} from './team-approval-requests.mjs';
+import {TeamEntitlementError} from './team-entitlement-policy.mjs';
 import { LicenseKeyRegistry, LicenseKeyError } from './license-key-registry.mjs';
 import { FleetAuthorityRegistry, FleetAuthorityError } from './fleet-authority-registry.mjs';
 import { loadOrCreateHostDeviceIdentity, ensureHostCompanionState } from './host-device-identity.mjs';
@@ -1021,7 +1023,7 @@ const routeDeps=()=>({
   fleetEligibility,fleetTarget,flushDiskRecords,fs,fullOutputFromDisk,
   ingressTelemetry,jobView,jobs,licenses,normalizeUpdateReport,
   pairingCodes,planEntitlements,pruneRing,pushEvent,queueHelperUpdate,
-  queueSignedUpdate,readJson,reapAccessGrants,realRemoteLive,recentEvents,redact,proTeams,
+  queueSignedUpdate,readJson,reapAccessGrants,realRemoteLive,recentEvents,redact,proTeams,requestTeamMemberApproval,operationalAccount,
   removeRuntimeForDevice,requireAccount,requireDeviceConnection,revokeRuntimeForDevice,ring,
   ringBytes,sendJson,sessionStatsFromDisk,sessions,sseClients,
   startDesktopOperation,startFsOperation,startJob,startProcessOperation,startScpOperation,startSearchOperation,
@@ -1050,7 +1052,7 @@ const server = http.createServer(async (req, res) => {
   } catch (error) {
     const message = error?.message || 'internal_error';
     pushEvent({ type: 'executor_error', status: 'error', detail: redact(message) });
-    const status = error instanceof SessionError || error instanceof DeviceError || error instanceof EnrollmentError || error instanceof FleetError || error instanceof DeviceConnectionError || error instanceof DeviceAccessGrantError || error instanceof DevicePairingRegistryError || error instanceof AgentClientRegistryError || error instanceof AccountError || error instanceof ProTeamError || error instanceof LicenseKeyError || error instanceof FleetAuthorityError || error instanceof DeviceChannelRateLimitError ? error.status : ['invalid_envelope', 'expired_envelope', 'replay_detected', 'unknown_kid', 'invalid_envelope_auth', 'unsupported_action'].includes(message) ? 401 : message === 'operation_id_conflict' ? 409 : 400;
+    const status = error instanceof SessionError || error instanceof DeviceError || error instanceof EnrollmentError || error instanceof FleetError || error instanceof DeviceConnectionError || error instanceof DeviceAccessGrantError || error instanceof DevicePairingRegistryError || error instanceof AgentClientRegistryError || error instanceof AccountError || error instanceof ProTeamError || error instanceof TeamEntitlementError || error instanceof LicenseKeyError || error instanceof FleetAuthorityError || error instanceof DeviceChannelRateLimitError ? error.status : ['invalid_envelope', 'expired_envelope', 'replay_detected', 'unknown_kid', 'invalid_envelope_auth', 'unsupported_action'].includes(message) ? 401 : message === 'operation_id_conflict' ? 409 : 400;
     const limited=error instanceof DeviceChannelRateLimitError;
     return sendJson(res, status, { ok: false, error: message, ...(limited?{scope:error.scope,retryAfterSeconds:error.retryAfterSeconds}:{}) }, limited?{'retry-after':String(error.retryAfterSeconds)}:{});
   }

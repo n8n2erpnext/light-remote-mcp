@@ -205,7 +205,7 @@ export class DeviceAccessGrantRegistry {
   }
   pendingForDevice(deviceId){
     const did=validId(deviceId,'invalid_access_device_id'),now=this.now();
-    return [...this.requests.values()].filter(row=>row.deviceId===did&&row.state==='pending'&&!row.consumedAt&&row.expiresAt>now).map(row=>({requestId:row.requestId,deviceId:row.deviceId,connectionId:row.connectionId,agentId:row.agentId,label:row.label,userCode:row.userCode,createdAt:row.createdAt,expiresAt:row.expiresAt}));
+    return [...this.requests.values()].filter(row=>row.deviceId===did&&row.state==='pending'&&!row.consumedAt&&row.expiresAt>now).map(row=>({requestId:row.requestId,accountId:row.accountId,deviceId:row.deviceId,connectionId:row.connectionId,agentId:row.agentId,label:row.label,userCode:row.userCode,createdAt:row.createdAt,expiresAt:row.expiresAt}));
   }
   activeForDevice(deviceId,connectionId=null){
     const did=validId(deviceId,'invalid_access_device_id'),now=this.now();

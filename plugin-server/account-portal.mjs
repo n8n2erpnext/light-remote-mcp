@@ -138,7 +138,7 @@ async function runDormancyScan(){
 }
 async function accountApi(req,res){
   const action=String(req.query?.action||'').trim();
-  const mutations=new Set(['register','login','logout','password-change','password-setup','password-reset-request','password-reset-complete','magic-request','verification-resend','verification-verify','reactivate','enrollment-approve','device-revoke','device-remove','device-update','devices-revoke-all','redeem-license','main-device','main-device-clear','upgrade-request','paddle-checkout','paddle-portal','team-create','team-invite','team-accept','team-remove','team-device-share','team-device-unshare']);
+  const mutations=new Set(['register','login','logout','password-change','password-setup','password-reset-request','password-reset-complete','magic-request','verification-resend','verification-verify','reactivate','enrollment-approve','device-revoke','device-remove','device-update','devices-revoke-all','redeem-license','main-device','main-device-clear','upgrade-request','paddle-checkout','paddle-portal','team-create','team-invite','team-accept','team-remove','team-device-share','team-device-unshare','team-access-request']);
   if(mutations.has(action)&&!sameOriginMutation(req)){accountAudit(action,'cross_site_denied');return res.status(403).json({ok:false,error:'cross_site_request_denied'});}
   try{
     if(action==='register'){
@@ -226,6 +226,14 @@ async function accountApi(req,res){
       if(!method(req,res,'GET'))return;
       const token=requireAccount(req,res);if(!token)return;
       return res.status(200).json(await callOperatorJson('GET','/v1/accounts/team/memberships',null,headers(token)));
+    }
+    if(action==='team-access-request'){
+      if(!method(req,res,'POST'))return;
+      const token=requireAccount(req,res);if(!token)return;
+      const deviceId=String(req.body?.deviceId||'').trim(),agentId=String(req.body?.agentId||'').trim();
+      if(!/^[A-Za-z0-9._:-]{1,128}$/.test(deviceId)||!/^[A-Za-z0-9._:-]{1,160}$/.test(agentId))return res.status(400).json({ok:false,error:'invalid_team_approval_identity'});
+      // A/B request is *pending only*. Owner must approve it locally.
+      return res.status(201).json(await callOperatorJson('POST','/v1/accounts/team/access/request',{deviceId,agentId},headers(token)));
     }
     if(action==='team-view'||action==='team-create'){
       if(!method(req,res,action==='team-view'?'GET':'POST'))return;

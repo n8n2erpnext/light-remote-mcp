@@ -1,5 +1,5 @@
 export async function handleAccountRoutes(req,res,url,deps){
-  const {ACCOUNT_ID,AccountError,DEVICE_ID,accountSessionToken,accounts,allDeviceViews,capabilities,clearMainIfMatches,closeRuntimeForAccount,compatibilityFor,devices,enrollments,fleetAuthority,licenses,planEntitlements,proTeams,queueHelperUpdate,readJson,removeRuntimeForDevice,requireAccount,revokeRuntimeForDevice,sendJson,usage,wakeDeviceChannelForDevice}=deps;
+  const {ACCOUNT_ID,AccountError,DEVICE_ID,accountSessionToken,accounts,allDeviceViews,capabilities,clearMainIfMatches,closeRuntimeForAccount,compatibilityFor,devices,enrollments,fleetAuthority,licenses,planEntitlements,proTeams,requestTeamMemberApproval,operationalAccount,accessGrants,connections,queueHelperUpdate,readJson,removeRuntimeForDevice,requireAccount,revokeRuntimeForDevice,sendJson,usage,wakeDeviceChannelForDevice}=deps;
     if (req.method === 'GET' && url.pathname === '/v1/admin/overview') {
       const accountRows=accounts.list(),deviceRows=allDeviceViews(),current=accountRows.map(account=>({account,entitlements:planEntitlements(account),usage:usage.summary(account.accountId,{months:1})}));
       const toolCallsThisMonth=current.reduce((sum,row)=>sum+(Number(row.usage.toolCallsThisMonth)||0),0),plans=current.reduce((out,row)=>{const key=String(row.account.plan||'free');out[key]=(out[key]||0)+1;return out;},{}),statuses=current.reduce((out,row)=>{const key=String(row.account.status||'active');out[key]=(out[key]||0)+1;return out;},{});
@@ -262,6 +262,18 @@ export async function handleAccountRoutes(req,res,url,deps){
       const memberAccountId=accounts.assertOperational(String(body.memberAccountId||'')).accountId;
       const invite=proTeams.invite({ownerAccountId,memberAccountId});
       return sendJson(res,201,{ok:true,invite});
+    }
+    // Team A/B is separate from the owner's existing approval. This endpoint
+    // is account-session authenticated; it only creates a pending Local Wall request.
+    if(url.pathname==='/v1/accounts/team/access/request' && req.method==='POST'){
+      const actorAccountId=requireAccount(req).account.accountId;
+      const body=await readJson(req);
+      const approval=requestTeamMemberApproval({
+        actorAccountId,deviceId:body.deviceId,agentId:body.agentId,label:body.label,
+        devices,connections,accessGrants,teamRegistry:proTeams,
+        planFor:id=>operationalAccount(id).plan
+      });
+      return sendJson(res,201,{ok:true,approval});
     }
     if(url.pathname==='/v1/accounts/team/accept' && req.method==='POST'){
       const memberAccountId=requireAccount(req).account.accountId;
