@@ -412,3 +412,33 @@ html[data-theme="light"] .account-bell-heading{border-color:#d9e1e8}
 .notification-history-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .notification-history-actions .badge{text-transform:capitalize}
 @media(max-width:800px){.notification-time-grid{grid-template-columns:1fr}.notification-history-row{align-items:flex-start;flex-direction:column}}
+
+/* rc.50 tabbed pricing — only /account/billing; no global plan-card changes */
+.billing-pricing-main{max-width:1490px;width:100%;margin:0 auto;padding:44px clamp(20px,3vw,54px)}
+.billing-cycle-header{margin:10px 0 26px;display:flex;flex-direction:column;align-items:flex-start;gap:10px}
+.billing-cycle-tabs{display:inline-flex;align-items:stretch;gap:4px;padding:4px;border:1px solid #2e3943;background:#171d23;border-radius:12px}
+.billing-cycle-tab{display:flex;gap:10px;align-items:center;justify-content:center;border:0;border-radius:9px;background:transparent;color:#a6b1bf;padding:11px 17px;min-width:125px;font:inherit;font-size:13px;cursor:pointer}
+.billing-cycle-tab:hover{color:#fff}
+.billing-cycle-tab.active{background:#313b45;color:#fff;box-shadow:0 1px 5px #0004}
+.billing-cycle-tab:focus-visible{outline:2px solid #ffcc00;outline-offset:2px}
+.billing-save-chip{display:inline-block;border:1px solid #5d5023;border-radius:15px;padding:2px 7px;background:#241f0d;color:#ffdf72;font-size:10px;font-weight:700}
+.billing-cycle-subtext{margin:0;color:#98a4b3;font-size:13px}
+.billing-tabbed-plans{grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch;gap:16px}
+.billing-tabbed-plans .plan-card{min-width:0;min-height:405px}
+.billing-tabbed-plans .plan-card-head{gap:10px;flex-wrap:wrap}
+.billing-tabbed-plans .plan-card ul{line-height:1.55}
+.billing-tabbed-plans .tax-note{overflow-wrap:anywhere}
+.billing-tabbed-plans .plan-card .price{white-space:nowrap;font-size:34px}
+.billing-tabbed-plans .plan-card .price span{font-size:13px;white-space:nowrap}
+.billing-plan-saving{margin-top:10px;color:#ffda69;font-size:12px;font-weight:700}
+.billing-cycle-footnote{margin:18px 0 26px;color:#91a0ae;font-size:12px;line-height:1.55}
+html[data-theme="light"] .billing-cycle-tabs{background:#edf1f5;border-color:#d8e0e8}
+html[data-theme="light"] .billing-cycle-tab{color:#52616d}
+html[data-theme="light"] .billing-cycle-tab.active{background:#fff;color:#15232e}
+html[data-theme="light"] .billing-save-chip{color:#875a00;background:#fff4c9;border-color:#f2d48b}
+html[data-theme="light"] .billing-plan-saving{color:#805f08}
+@media(max-width:1220px){.billing-tabbed-plans{grid-template-columns:repeat(2,minmax(0,1fr))}.billing-tabbed-plans .plan-card{min-height:340px}}
+@media(max-width:680px){.billing-pricing-main{padding:28px 16px}.billing-tabbed-plans{grid-template-columns:1fr}.billing-tabbed-plans .plan-card{min-height:290px}.billing-cycle-tabs{max-width:100%}.billing-cycle-tab{min-width:0;padding:10px 12px}.billing-save-chip{font-size:9px}}
+
+.billing-tabbed-plans .plan-card .price > span:first-child{font-size:34px;color:inherit;font-weight:800;letter-spacing:-.04em}
+@media(max-width:680px){.billing-tabbed-plans .plan-card .price > span:first-child{font-size:32px}}

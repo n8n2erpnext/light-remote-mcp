@@ -4,6 +4,10 @@ import {LIGHT_REMOTE_PLAN_OFFERS as offers,validateOfferCatalog} from '../../lib
 assert.equal(validateOfferCatalog(),true);
 assert.equal(offers.pro.priceUSD,20);
 assert.equal(offers.proTeam.priceUSD,55);
+assert.equal(offers.pro.annualPriceUSD,200);
+assert.equal(offers.proTeam.annualPriceUSD,550);
+assert.equal(offers.pro.annualCheckoutEnabled,false);
+assert.equal(offers.proTeam.annualCheckoutEnabled,false);
 assert.equal(offers.proTeam.maxSeats,5);
 assert.equal(offers.proTeam.maxSharedWorkersPerDevice,3);
 assert.equal(offers.proTeam.teamQuotaCommercialized,false);

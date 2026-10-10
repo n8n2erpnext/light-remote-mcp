@@ -49,3 +49,16 @@ The rc.50 billing page shows the approved $55 and five-seat comparison as
 a catalog card only. The View Pro Team link is NOT a checkout button.
 Team Paddle checkout is not configured in staging yet. Pro Team is the only
 consumer-facing Team product name, NOT Pro+.
+
+## Annual pricing preview (rc.50 staging, NOT for checkout)
+
+UI period tabs: Monthly / Yearly. The annual comparison rates approved for
+this staging design are Pro USD 200/year and Pro Team USD 550/year: each is
+equivalent to ten months of the corresponding monthly rate (2 months free,
+16.67% saved). Free stays USD 0 on both tabs.
+
+These are pricing previews, not currently configured Paddle annual price IDs.
+Selecting Yearly never opens the existing monthly checkout. Annual actions
+remain disabled until distinct Paddle sandbox annual prices and all
+subscription/webhook/grant tests are completed. The monthly Pro checkout
+continues to follow the existing real Paddle preview when available.
