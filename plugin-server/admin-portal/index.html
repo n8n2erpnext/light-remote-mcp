@@ -7,6 +7,7 @@
 <button class="admin-nav" data-view="billing"><img class="material-icon" src="/assets/icons/material/credit_card.svg" alt="">Billing & refunds</button>
 <button class="admin-nav" data-view="licenses"><img class="material-icon" src="/assets/icons/material/key.svg" alt="">Licenses</button>
 <button class="admin-nav" data-view="announcements"><img class="material-icon" src="/assets/icons/material/notifications.svg" alt="">Announcements</button>
+<button class="admin-nav" data-view="notification-center"><img class="material-icon" src="/assets/icons/material/mark_email_unread.svg" alt="">Notification Center</button>
 <button class="admin-nav" data-view="system"><img class="material-icon" src="/assets/icons/material/settings.svg" alt="">System</button>
 <a href="/account"><span class="icon"><img class="material-icon" src="/assets/icons/material/arrow_back.svg" alt=""></span>Account portal</a></nav><div class="account-foot"><div class="account-email">Administrator</div><div class="account-meta">Owner authority</div></div></aside>
 <main class="main admin-main">
@@ -46,6 +47,24 @@
 <div class="admin-announcement-buttons"><button type="submit" class="btn primary">Save announcement</button><button type="button" id="announcementReset" class="btn">New announcement</button></div>
 </form><div id="announcementPreview" class="admin-announcement-preview" role="status"></div><div id="announcementMessageStatus" class="setting-note"></div></section>
 <section class="panel"><div class="panel-head"><h2>Published & drafts</h2></div><div id="announcementRows" class="settings-body">Loading announcements…</div></section></section>
+<section id="view-notification-center" class="admin-view hide">
+<div class="page-head"><div><div class="eyebrow">ACCOUNT MESSAGING</div><h1>Notification Center</h1><p>Publish to account inboxes. Schedule updates, feature news, offers, security and maintenance notices without bulk email.</p></div><button class="btn" id="notificationRefresh" type="button"><img class="material-icon" src="/assets/icons/material/refresh.svg" alt=""> Refresh</button></div>
+<section class="panel"><div class="panel-head"><div><h2>Compose notification</h2><div class="muted">Notification content is plain text. Account verification, invitations and critical transactional email remain separate.</div></div></div>
+<form id="notificationCompose" class="settings-body notification-editor">
+<label>Category <select id="notificationType"><option value="update">Product update</option><option value="feature">New feature</option><option value="promotion">Promotion / offer</option><option value="maintenance">Maintenance notice</option><option value="security">Security notice</option><option value="account">Account notice</option></select></label>
+<label>Title <input id="notificationTitle" maxlength="140" minlength="2" placeholder="What's new in Light Remote" required></label>
+<label>Message <textarea id="notificationBody" maxlength="2000" rows="4" placeholder="Write a short, useful notification…" required></textarea></label>
+<label>Internal link <input id="notificationLink" maxlength="400" value="/account/inbox" placeholder="/downloads" required></label>
+<label>Audience <select id="notificationAudience"><option value="all">All accounts</option><option value="account">One verified email</option><option value="plan">Plan: Free / PRO / VIP</option><option value="group">Account group</option></select></label>
+<label id="notificationTargetWrap" class="hide">Recipient <select id="notificationTarget"></select><input class="hide" id="notificationTargetEmail" type="email" placeholder="recipient@example.com" autocomplete="off"></label>
+<div class="notification-time-grid"><label>Start time (optional) <input id="notificationStart" type="datetime-local"></label><label>Expiry time (optional) <input id="notificationEnd" type="datetime-local"></label></div>
+<div class="admin-checkbox"><label><input id="notificationConfirm" type="checkbox" required> I have reviewed this notice and its audience; only internal Inbox messages will be created.</label></div>
+<div class="notification-preview" id="notificationPreview"><strong>Preview</strong><p>Write a message to preview it here.</p></div>
+<div class="notification-form-actions"><button type="submit" class="btn primary" id="notificationPublish">Publish or schedule</button><button type="button" class="btn" id="notificationReset">Clear</button></div>
+<div id="notificationStatus" class="setting-note" role="status" aria-live="polite"></div>
+</form></section>
+<section class="panel notification-history"><div class="panel-head"><div><h2>Notification history</h2><div class="muted">Scheduled messages appear when due. “Read” counts are not email deliveries.</div></div><div class="badge" id="notificationTotal">—</div></div><div id="notificationRows" class="settings-body">Loading…</div></section>
+</section>
 <section id="view-system" class="admin-view hide"><div class="page-head"><div><div class="eyebrow">OPERATIONS</div><h1>System</h1><p>Transactional mail, authentication and public service configuration.</p></div></div><div class="settings-stack"><section class="panel setting-row"><div><h2>Transactional mail</h2><div id="mailSummary" class="muted">Checking configuration…</div></div><button id="verifyMail" class="btn">Verify SMTP</button></section><section class="panel google-system-panel"><div class="panel-head"><div><h2>Google Login</h2><div id="googleSummary" class="muted">Checking configuration…</div></div><span id="googleStatus" class="badge">…</span></div><div class="settings-body google-config-body"><div class="system-code-row"><span class="system-code-label">Authorized origin</span><code id="googleOrigin">—</code><button id="copyGoogleOrigin" class="icon-btn" title="Copy origin"><img class="material-icon" src="/assets/icons/material/content_copy.svg" alt=""></button></div><div class="system-code-row"><span class="system-code-label">Redirect URI</span><code id="googleRedirect">—</code><button id="copyGoogleRedirect" class="icon-btn" title="Copy redirect URI"><img class="material-icon" src="/assets/icons/material/content_copy.svg" alt=""></button></div><div class="google-setup-actions"><a class="btn" href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer">Open Google Cloud</a><span class="muted">Create credentials → OAuth client ID → Web application. Use the origin and redirect URI above exactly.</span></div><form id="googleConfigForm" class="google-config-form"><label>Client ID<input id="googleClientId" autocomplete="off" spellcheck="false" placeholder="…apps.googleusercontent.com" required></label><label>Client secret<input id="googleClientSecret" type="password" autocomplete="new-password" spellcheck="false" placeholder="Paste once — never shown again" required></label><button class="btn primary" type="submit">Save Google client</button></form></div></section><section class="panel setting-row"><div><h2>Public endpoint</h2><div class="muted">Official Direct MCP + Account portal</div></div><code>light-remote.thaiduy.digital</code></section></div><div id="systemMsg" class="setting-note"></div></section>
 </main></div>
 <script>
@@ -176,4 +195,4 @@ announcementForm.onsubmit=async event=>{
  }catch(error){announcementMessageStatus.textContent=error.message}finally{button.disabled=false}
 };
 resetAnnouncementForm();
-</script></body></html>
+</script><script src="/admin/assets/notification-center.js" defer></script></body></html>

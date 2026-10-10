@@ -244,19 +244,29 @@ export async function handleAccountRoutes(req,res,url,deps){
     // Account notifications are resolved by authenticated identity; clients
     // cannot choose recipient, type, or broadcast audience.
     if(url.pathname==='/v1/accounts/notifications'&&req.method==='GET'){
-      const accountId=requireAccount(req).account.accountId;
-      return sendJson(res,200,{ok:true,...accountNotifications.inbox(accountId)});
+      const account=requireAccount(req).account;
+      return sendJson(res,200,{ok:true,...accountNotifications.inbox(account.accountId,account)});
     }
     if(url.pathname==='/v1/accounts/notifications/read'&&req.method==='POST'){
-      const accountId=requireAccount(req).account.accountId,body=await readJson(req);
-      return sendJson(res,200,accountNotifications.markRead(accountId,body.notificationId));
+      const account=requireAccount(req).account,body=await readJson(req);
+      return sendJson(res,200,accountNotifications.markRead(account.accountId,body.notificationId,account));
     }
+    if(url.pathname==='/v1/admin/notifications'&&req.method==='GET')
+      return sendJson(res,200,{ok:true,...accountNotifications.list()});
     if(url.pathname==='/v1/admin/notifications/publish'&&req.method==='POST'){
       const body=await readJson(req);
-      // This path is reachable only on the private Operator socket.
-      if(body.targetAccountId)accounts.assertOperational(body.targetAccountId);
-      const notification=accountNotifications.publish(body);
+      // Private Operator socket, additionally guarded by owner admin portal.
+      const kind=String(body.audienceType|| (body.targetAccountId?'account':'all'));
+      const value=String(body.audienceValue??body.targetAccountId??'');
+      if(kind==='account')accounts.assertOperational(value);
+      if(kind==='group'&&!accounts.listGroups().some(x=>x.groupId===value))
+        throw new AccountError('notification_group_not_found',404);
+      const notification=accountNotifications.publish({...body,publishedBy:'web_admin'});
       return sendJson(res,201,{ok:true,notification});
+    }
+    const cancelNotification=url.pathname.match(/^\/v1\/admin\/notifications\/(sys_[a-f0-9-]{36})\/cancel$/);
+    if(cancelNotification&&req.method==='POST'){
+      return sendJson(res,200,{ok:true,notification:accountNotifications.cancel(cancelNotification[1],{by:'web_admin'})});
     }
     // Pro Team management is authenticated by a REAL account session.
     // It only manages membership/device sharing; cross-account job routes remain
