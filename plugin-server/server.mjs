@@ -11,7 +11,7 @@ import { registerDistributionPortal } from './distribution-portal.mjs';
 import { registerAdminPortal } from './admin-portal.mjs';
 import { registerWebAssets } from './web-assets.mjs';
 import { installAnnouncements, registerClientAnnouncementFeed } from './site-announcements.mjs';
-import { renderAiGuidePage, renderLlmsIndex } from './ai-guide-page.mjs';
+import { renderAiGuidePage, renderLlmsIndex, embedAiGuideSource } from './ai-guide-page.mjs';
 import { LEGAL_PAGES, renderLegalPage } from './legal-pages.mjs';
 import { renderSupportPage } from './support-page.mjs';
 import { registerSupportBackoffice } from './support-backoffice.mjs';
@@ -31,7 +31,7 @@ app.set('trust proxy','loopback, linklocal, uniquelocal');
 registerPaddleWebhook(app,express.raw({type:'application/json',limit:'512kb'}));
 app.use(express.json({limit:'12mb'}));
 app.use(express.urlencoded({extended:false,limit:'128kb'}));
-const PUBLIC_INDEXABLE_PATHS=new Set(['/','/downloads','/downloads/','/support','/privacy','/terms','/cookies','/robots.txt','/sitemap.xml','/site.webmanifest','/favicon.ico']);
+const PUBLIC_INDEXABLE_PATHS=new Set(['/','/ai-guide','/ai-guide.md','/llms.txt','/llms-full.txt','/downloads','/downloads/','/support','/privacy','/terms','/cookies','/robots.txt','/sitemap.xml','/site.webmanifest','/favicon.ico']);
 app.use((req,res,next)=>{
   const indexable=PUBLIC_INDEXABLE_PATHS.has(req.path);
   res.set('X-Content-Type-Options','nosniff');
@@ -56,7 +56,7 @@ const pruner=setInterval(()=>prunePublicRateState(),60_000);pruner.unref?.();
 
 app.get('/demo/maintenance',(_q,r)=>r.set('X-Robots-Tag','noindex, nofollow').type('html').send(fs.readFileSync(new URL('./demo/maintenance.html',import.meta.url),'utf8')));
 app.get('/demo/announcements',(_q,r)=>r.set('X-Robots-Tag','noindex, nofollow').type('html').send(fs.readFileSync(new URL('./demo/client-announcements.html',import.meta.url),'utf8')));
-app.get('/',(_q,r)=>r.type('html').send(fs.readFileSync(new URL('./public-home.html',import.meta.url),'utf8').replaceAll('__LIGHT_REMOTE_VERSION__',VERSION)));
+app.get('/',(_q,r)=>r.type('html').send(embedAiGuideSource(fs.readFileSync(new URL('./public-home.html',import.meta.url),'utf8').replaceAll('__LIGHT_REMOTE_VERSION__',VERSION),fs.readFileSync(new URL('./ai-guide.md',import.meta.url),'utf8'))));
 app.get('/ai-guide',(_q,r)=>r.type('html').send(renderAiGuidePage(fs.readFileSync(new URL('./ai-guide.md',import.meta.url),'utf8'),{origin:PUBLIC_ORIGIN,version:VERSION})));
 app.get('/ai-guide.md',(_q,r)=>r.type('text/markdown').send(fs.readFileSync(new URL('./ai-guide.md',import.meta.url),'utf8')));
 app.get('/llms.txt',(_q,r)=>r.type('text/plain').send(renderLlmsIndex(PUBLIC_ORIGIN)));
