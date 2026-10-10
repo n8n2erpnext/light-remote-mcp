@@ -8,6 +8,7 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { deviceChannelMessage, deviceHeartbeatMessage, devicePolicyMessage, normalizeDeviceCapabilities } from '../lib/device-proof.mjs';
 import { cloudRenewBackoffDelayMs } from '../lib/cloud-lease-renew-backoff.mjs';
+import { DeviceWorkerLimiter,planWorkerLimit } from '../lib/device-worker-limiter.mjs';
 import { createPlatformAdapter } from './platform-adapters/index.mjs';
 import { startLocalWall } from './local-wall.mjs';
 import { loadLocalWallAuth, writeLocalWallAuthConfig, writeAccountOnlyWallAuthConfig } from './local-wall-auth.mjs';
@@ -203,6 +204,7 @@ async function frameRealRemoteVisual(p,request,{observe=false}={}){
   return visualPublicView(row,{...native,frame:safeCapture,unchanged:true});
 }
 const COMMAND_EXECUTIONS=new CommandExecutionCoordinator();
+const DEVICE_WORKERS=new DeviceWorkerLimiter({limit:()=>planWorkerLimit(readState()?.cloud?.plan,Number(process.env.OPERATOR_AGENT_MAX_WORKERS)||3)});
 let DEVICE_DUPLEX=null,DEVICE_DUPLEX_IDLE_DEADLINE=0,DEVICE_DUPLEX_IDLE_TIMER=null;
 const DEVICE_DUPLEX_IDLE_CLOSE_MS=Math.max(500,Math.min(Number(process.env.LIGHT_REMOTE_DEVICE_DUPLEX_IDLE_CLOSE_MS)||1500,10000));
 function deviceDuplexStatus(){return DEVICE_DUPLEX?.status?.()||{active:false,ready:false};}
@@ -223,7 +225,7 @@ function duplexHeartbeatPayload(){
 }
 async function duplexExecuteCommand(command,hub){
   const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
-  const deviceReceivedAt=Date.now(),claim=await COMMAND_EXECUTIONS.run(command.commandId,'duplex',()=>executeCommand(state,command,{hub}));
+  const deviceReceivedAt=Date.now(),claim=await COMMAND_EXECUTIONS.run(command.commandId,'duplex',()=>DEVICE_WORKERS.run(()=>executeCommand(state,command,{hub})));
   if(!claim.owner)console.log(JSON.stringify({event:'device_command_duplicate_replayed',commandId:command.commandId,ownerTransport:claim.transport,duplicateTransport:'duplex'}));
   const source=claim.result;if(!source||typeof source!=='object'||Array.isArray(source))return source;
   const result={...source,telemetry:{...(source.telemetry||{})}},completedAt=Date.now(),reportedFirst=Number(result.telemetry?.firstOutputAt);
@@ -770,7 +772,9 @@ async function daemon(args){
     state.enrollment.nodeId=state.enrollment.nodeId||state.enrollment.deviceId;
     state.effectiveCapabilities=effectiveCapabilitiesForState(state);
   }
-  const sessionCeiling=Math.max(1,Math.min(Number(process.env.OPERATOR_AGENT_MAX_SESSIONS)||2,100));
+  const sessionCeiling=Math.max(1,Math.min(Number(process.env.OPERATOR_AGENT_MAX_SESSIONS)||3,5));
+  const maxWorkers=Math.max(1,Math.min(Number(process.env.OPERATOR_AGENT_MAX_WORKERS)||3,3));
+  const activePollWorkers=new Set();
   const waitMs=Math.max(1000,Math.min(Number(process.env.OPERATOR_AGENT_CHANNEL_WAIT_MS)||8000,15000));
   const dormantPollMs=Math.max(1000,Math.min(Number(process.env.OPERATOR_AGENT_DORMANT_CHECK_MS)||2000,30000));
   const commandHeartbeatMs=Math.max(2000,Math.min(Number(process.env.OPERATOR_AGENT_COMMAND_HEARTBEAT_MS)||5000,15000));
@@ -810,6 +814,10 @@ async function daemon(args){
     }
     expireLocalHardLease(state);
     if(!state.enrollment?.deviceId||!cloudDesired(state)){await wait(dormantPollMs);continue;}
+    // Free cannot take advantage of multi-worker concurrent dispatch.
+    const plan=String(state.cloud?.plan||state.cloud?.connectionPlan||'free').toLowerCase();
+    const concurrentLimit=['pro','vip'].includes(plan)?maxWorkers:1;
+    if(activePollWorkers.size>=concurrentLimit){await wait(250);continue;}
     try{
       await flushPendingUpdateReport(state,hub).catch(error=>console.error(JSON.stringify({event:'update_report_delivery_failed',error:error.message,status:error.status||null})));
       if(deviceDuplexStatus().ready){failures=0;await wait(500);continue;}
@@ -823,14 +831,14 @@ async function daemon(args){
       void reconcileFleet();
       const command=response.channel?.command;
       if(command){
+        // Dispatch independent work without blocking the device's command poller.
+        // The device owner drain flag remains separate from worker occupancy.
+        const stateSnapshot=state;
+        const worker=(async()=>{
         const deviceReceivedAt=Date.now();
-        let commandPulseTimer=null,commandPulseBusy=false;
-        const commandPulse=async()=>{if(stopped||commandPulseBusy)return;commandPulseBusy=true;try{const current=readState()||state;if(!current?.enrollment?.deviceId||!cloudDesired(current))return;await maybeRenewCloudLease(current);await channelRequest(current,hub,'poll',{nodeId:current.enrollment.nodeId||current.enrollment.deviceId,agentVersion:VERSION,sessionCeiling,draining:true,capabilities:effectiveCapabilitiesForState(current),policyRevision:Math.max(0,Number(current.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView(),waitMs:0});}catch(error){console.error(JSON.stringify({event:'device_command_liveness_failed',deviceId:state.enrollment?.deviceId||null,commandId:command.commandId,error:error.message,status:error.status||null}));}finally{commandPulseBusy=false;}};
-        await commandPulse();commandPulseTimer=setInterval(()=>void commandPulse(),commandHeartbeatMs);commandPulseTimer.unref?.();
         let result,claim;
-        try{
-          claim=await COMMAND_EXECUTIONS.run(command.commandId,'poll',()=>executeCommand(state,command,{hub}));result=claim.result;
-          if(!claim.owner){console.log(JSON.stringify({event:'device_command_duplicate_suppressed',commandId:command.commandId,ownerTransport:claim.transport,duplicateTransport:'poll'}));continue;}
+        claim=await COMMAND_EXECUTIONS.run(command.commandId,'poll',()=>DEVICE_WORKERS.run(()=>executeCommand(stateSnapshot,command,{hub})));result=claim.result;
+          if(!claim.owner){console.log(JSON.stringify({event:'device_command_duplicate_suppressed',commandId:command.commandId,ownerTransport:claim.transport,duplicateTransport:'poll'}));return;}
           const completedAt=Date.now();
           const reportedFirst=Number(result.telemetry?.firstOutputAt);
           result.telemetry={...(result.telemetry||{}),deviceReceivedAt,firstOutputAt:Number.isSafeInteger(reportedFirst)&&reportedFirst>0?reportedFirst:completedAt,completedAt};
@@ -847,7 +855,11 @@ async function daemon(args){
               resultFailures++;const retryInMs=Math.min(Math.max(1000*(2**Math.min(resultFailures,5)),Number(error.retryAfterMs)||0),300000);console.error(JSON.stringify({event:'device_result_delivery_failed',deviceId:state.enrollment.deviceId,commandId:command.commandId,error:error.message,status:error.status||null,failures:resultFailures,retryInMs}));await wait(retryInMs);
             }
           }
-        }finally{if(commandPulseTimer)clearInterval(commandPulseTimer);}
+
+        })();
+        activePollWorkers.add(worker);
+        void worker.catch(error=>console.error(JSON.stringify({event:'device_poll_worker_failed',commandId:command.commandId,error:String(error?.message||error)})))
+          .finally(()=>activePollWorkers.delete(worker));
       }
     }catch(error){
       if(['device_binding_not_found','device_not_found'].includes(error.message)){const removedId=markDeviceRemoved(state,error.message);failures=0;try{await fleetSupervisor.stop('device_removed');}catch{}console.error(JSON.stringify({event:'device_removed_remote',deviceId:removedId,reason:error.message,status:error.status||null}));continue;}
@@ -859,6 +871,7 @@ async function daemon(args){
       failures++;const retryInMs=Math.min(Math.max(1000*(2**Math.min(failures,5)),Number(error.retryAfterMs)||0),300000);console.error(JSON.stringify({event:'device_channel_failed',deviceId:state.enrollment.deviceId,error:error.message,status:error.status||null,failures,retryInMs}));if(!stopped)await wait(retryInMs);
     }
   }
+  if(activePollWorkers.size)await Promise.allSettled([...activePollWorkers]);
   cancelDeviceDuplexIdleClose();if(DEVICE_DUPLEX){const duplex=DEVICE_DUPLEX;DEVICE_DUPLEX=null;try{await duplex.close('daemon_stop');}catch{}}
   try{await fleetSupervisor.close();}catch{}
   try{await localWall?.close();}catch{}
