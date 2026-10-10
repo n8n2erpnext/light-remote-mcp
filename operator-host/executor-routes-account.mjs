@@ -1,7 +1,7 @@
 import {verifyTeamMemberAuthorization} from './team-member-auth.mjs';
 import {authorizeTrustedTeamDispatch} from './team-dispatch-authority.mjs';
 export async function handleAccountRoutes(req,res,url,deps){
-  const {ACCOUNT_ID,AccountError,DEVICE_ID,accountSessionToken,accounts,allDeviceViews,capabilities,clearMainIfMatches,closeRuntimeForAccount,compatibilityFor,devices,enrollments,fleetAuthority,licenses,planEntitlements,proTeams,teamSessions,requestTeamMemberApproval,operationalAccount,accessGrants,connections,targetRoute,verifyTeamPrincipal,queueHelperUpdate,readJson,removeRuntimeForDevice,requireAccount,revokeRuntimeForDevice,sendJson,usage,wakeDeviceChannelForDevice}=deps;
+  const {ACCOUNT_ID,AccountError,DEVICE_ID,accountSessionToken,accounts,accountNotifications,allDeviceViews,capabilities,clearMainIfMatches,closeRuntimeForAccount,compatibilityFor,devices,enrollments,fleetAuthority,licenses,planEntitlements,proTeams,teamSessions,requestTeamMemberApproval,operationalAccount,accessGrants,connections,targetRoute,verifyTeamPrincipal,queueHelperUpdate,readJson,removeRuntimeForDevice,requireAccount,revokeRuntimeForDevice,sendJson,usage,wakeDeviceChannelForDevice}=deps;
     if (req.method === 'GET' && url.pathname === '/v1/admin/overview') {
       const accountRows=accounts.list(),deviceRows=allDeviceViews(),current=accountRows.map(account=>({account,entitlements:planEntitlements(account),usage:usage.summary(account.accountId,{months:1})}));
       const toolCallsThisMonth=current.reduce((sum,row)=>sum+(Number(row.usage.toolCallsThisMonth)||0),0),plans=current.reduce((out,row)=>{const key=String(row.account.plan||'free');out[key]=(out[key]||0)+1;return out;},{}),statuses=current.reduce((out,row)=>{const key=String(row.account.status||'active');out[key]=(out[key]||0)+1;return out;},{});
@@ -240,6 +240,23 @@ export async function handleAccountRoutes(req,res,url,deps){
       accounts.resetPassword(identity.account.accountId,newPassword,{invalidateSessions:true});
       const logged=accounts.login({email:identity.account.email,password:newPassword});
       return sendJson(res,200,{ok:true,account:logged.account,session:logged.session,token:logged.token});
+    }
+    // Account notifications are resolved by authenticated identity; clients
+    // cannot choose recipient, type, or broadcast audience.
+    if(url.pathname==='/v1/accounts/notifications'&&req.method==='GET'){
+      const accountId=requireAccount(req).account.accountId;
+      return sendJson(res,200,{ok:true,...accountNotifications.inbox(accountId)});
+    }
+    if(url.pathname==='/v1/accounts/notifications/read'&&req.method==='POST'){
+      const accountId=requireAccount(req).account.accountId,body=await readJson(req);
+      return sendJson(res,200,accountNotifications.markRead(accountId,body.notificationId));
+    }
+    if(url.pathname==='/v1/admin/notifications/publish'&&req.method==='POST'){
+      const body=await readJson(req);
+      // This path is reachable only on the private Operator socket.
+      if(body.targetAccountId)accounts.assertOperational(body.targetAccountId);
+      const notification=accountNotifications.publish(body);
+      return sendJson(res,201,{ok:true,notification});
     }
     // Pro Team management is authenticated by a REAL account session.
     // It only manages membership/device sharing; cross-account job routes remain

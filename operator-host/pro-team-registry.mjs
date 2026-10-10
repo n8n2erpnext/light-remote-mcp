@@ -89,7 +89,7 @@ export class ProTeamRegistry {
       try{this._eligible(entry.ownerAccountId);}catch{continue;}
       if(entry.ownerAccountId===member)continue;
       const read=this.notificationReads.get(member+':'+entry.hash);
-      notifications.push({notificationId:this._inviteId(entry),type:'team_invitation',ownerAccountId:entry.ownerAccountId,
+      notifications.push({notificationId:this._inviteId(entry),type:'team_invitation',ownerAccountId:entry.ownerAccountId,ownerEmail:this.emailFor(entry.ownerAccountId)||null,
         expiresAt:entry.expiresAt,createdAt:entry.expiresAt-(entry.memberEmail?EMAIL_INVITE_TTL_MS:INVITE_TTL_MS),
         inviteCode:this._decryptCode(entry.cipher),readAt:read?.readAt||null});
     }
@@ -118,7 +118,12 @@ export class ProTeamRegistry {
   }
   _team(owner){const team=this.teams.get(checkId(owner));if(!team)throw new ProTeamError('team_not_found',404);this._eligible(owner);return team;}
   create({ownerAccountId}={}){const owner=checkId(ownerAccountId);this._eligible(owner);if(this.teams.has(owner))return this.view(owner);this.teams.set(owner,{ownerAccountId:owner,members:[owner],devices:[],createdAt:this.now()});this._save();return this.view(owner);}
-  view(owner){const t=this._team(owner);return {ownerAccountId:t.ownerAccountId,seatLimit:MAX_SEATS,usedSeats:t.members.length,members:[...t.members],devices:[...t.devices]};}
+  view(owner){
+    const t=this._team(owner);
+    const memberEmails=Object.fromEntries(t.members.map(id=>[id,this.emailFor(id)||null]));
+    return {ownerAccountId:t.ownerAccountId,ownerEmail:memberEmails[t.ownerAccountId],
+      seatLimit:MAX_SEATS,usedSeats:t.members.length,members:[...t.members],memberEmails,devices:[...t.devices]};
+  }
   invite({ownerAccountId,memberAccountId}={}){const owner=checkId(ownerAccountId),member=checkId(memberAccountId),team=this._team(owner);if(member===owner||team.members.includes(member))throw new ProTeamError('team_member_already_joined',409);if(!this.accountActive(member))throw new ProTeamError('team_member_not_active');if(team.members.length>=MAX_SEATS)throw new ProTeamError('team_seat_limit',429);
     // Pending invites reserve remaining seats. Prune expired tokens and prevent invite flooding.
     for(const [hash,row] of this.invites)if(row.expiresAt<=this.now()||row.ownerAccountId===owner&&row.memberAccountId===member)this.invites.delete(hash);
@@ -182,7 +187,7 @@ export class ProTeamRegistry {
       if(!team.members.includes(member)||member===team.ownerAccountId)continue;
       try{this._eligible(team.ownerAccountId);}catch{continue;}
       if(!this.accountActive(member))continue;
-      results.push({ownerAccountId:team.ownerAccountId,seatLimit:MAX_SEATS,usedSeats:team.members.length,
+      results.push({ownerAccountId:team.ownerAccountId,ownerEmail:this.emailFor(team.ownerAccountId)||null,seatLimit:MAX_SEATS,usedSeats:team.members.length,
         sharedDevices:[...team.devices],crossAccountExecutionEnabled:false});
     }
     return results.sort((a,b)=>a.ownerAccountId.localeCompare(b.ownerAccountId));

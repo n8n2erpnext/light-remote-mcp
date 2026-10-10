@@ -17,6 +17,7 @@ import { DevicePairingRegistry, DevicePairingRegistryError } from './device-pair
 import { AgentClientRegistry, AgentClientRegistryError } from './agent-client-registry.mjs';
 import { AccountRegistry, AccountError } from './account-registry.mjs';
 import { UsageRegistry } from './usage-registry.mjs';
+import { AccountNotificationRegistry } from './account-notification-registry.mjs';
 import { FreeBenefitRegistry } from './free-benefit-registry.mjs';
 import { ProTeamRegistry, ProTeamError } from './pro-team-registry.mjs';
 import {requestTeamMemberApproval} from './team-approval-requests.mjs';
@@ -63,6 +64,7 @@ const ACCOUNT_STATE_FILE = path.join(STATE_DIR, 'accounts.json');
 const USAGE_STATE_FILE = path.join(STATE_DIR, 'usage.json');
 const FREE_BENEFIT_STATE_FILE = path.join(STATE_DIR, 'free-benefits.json');
 const PRO_TEAM_STATE_FILE = path.join(STATE_DIR, 'pro-teams.json');
+const NOTIFICATION_STATE_FILE = path.join(STATE_DIR, 'account-notifications.json');
 const LICENSE_STATE_FILE = path.join(STATE_DIR, 'license-keys.json');
 const FLEET_AUTHORITY_TTL_MS = Number(process.env.OPERATOR_FLEET_AUTHORITY_TTL_MS || 10 * 60 * 1000);
 const RING_HARD_CAP_BYTES = 10 * 1024 * 1024;
@@ -155,6 +157,7 @@ const verifyTeamPrincipal=(req,url,body)=>
   verifyTeamPrincipalRequest(req,url,body,teamPrincipalVerifier);
 const teamInviteSecretFile=String(process.env.OPERATOR_TEAM_INVITE_SECRET_FILE||'');
 const teamInviteSecret=teamInviteSecretFile?fs.readFileSync(teamInviteSecretFile):null;
+const accountNotifications=new AccountNotificationRegistry({stateFile:NOTIFICATION_STATE_FILE});
 const proTeams=new ProTeamRegistry({stateFile:PRO_TEAM_STATE_FILE,inviteKey:teamInviteSecret,
   planFor:accountId=>operationalAccount(accountId).plan,
   accountActive:accountId=>{try{return operationalAccount(accountId).status==='active';}catch{return false;}},
@@ -1058,7 +1061,7 @@ const routeDeps=()=>({
   fleetEligibility,fleetTarget,flushDiskRecords,fs,fullOutputFromDisk,
   ingressTelemetry,jobView,jobs,licenses,normalizeUpdateReport,
   pairingCodes,planEntitlements,pruneRing,pushEvent,queueHelperUpdate,
-  queueSignedUpdate,readJson,reapAccessGrants,realRemoteLive,recentEvents,redact,proTeams,teamSessions,requestTeamMemberApproval,operationalAccount,
+  queueSignedUpdate,readJson,reapAccessGrants,accountNotifications,realRemoteLive,recentEvents,redact,proTeams,teamSessions,requestTeamMemberApproval,operationalAccount,
   removeRuntimeForDevice,requireAccount,requireDeviceConnection,revokeRuntimeForDevice,ring,
   ringBytes,sendJson,sessionStatsFromDisk,sessions,sseClients,
   startDesktopOperation,startFsOperation,startJob,startProcessOperation,startScpOperation,startSearchOperation,

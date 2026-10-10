@@ -138,7 +138,7 @@ async function runDormancyScan(){
 }
 async function accountApi(req,res){
   const action=String(req.query?.action||'').trim();
-  const mutations=new Set(['register','login','logout','password-change','password-setup','password-reset-request','password-reset-complete','magic-request','verification-resend','verification-verify','reactivate','enrollment-approve','device-revoke','device-remove','device-update','devices-revoke-all','redeem-license','main-device','main-device-clear','upgrade-request','paddle-checkout','paddle-portal','team-create','team-invite','team-accept','team-inbox-read','team-inbox-accept','team-remove','team-device-share','team-device-unshare','team-access-request']);
+  const mutations=new Set(['register','login','logout','password-change','password-setup','password-reset-request','password-reset-complete','magic-request','verification-resend','verification-verify','reactivate','enrollment-approve','device-revoke','device-remove','device-update','devices-revoke-all','redeem-license','main-device','main-device-clear','upgrade-request','paddle-checkout','paddle-portal','team-create','team-invite','team-accept','team-inbox-read','team-inbox-accept','notifications-read','team-remove','team-device-share','team-device-unshare','team-access-request']);
   if(mutations.has(action)&&!sameOriginMutation(req)){accountAudit(action,'cross_site_denied');return res.status(403).json({ok:false,error:'cross_site_request_denied'});}
   try{
     if(action==='register'){
@@ -226,6 +226,18 @@ async function accountApi(req,res){
       if(!method(req,res,'GET'))return;
       const token=sessionToken(req);if(!token)return res.status(401).json({ok:false,error:'account_session_required'});
       return res.status(200).json(await callOperatorJson('GET','/v1/accounts/team/entitlement',null,headers(token)));
+    }
+    if(action==='notifications'){
+      if(!method(req,res,'GET'))return;
+      const token=sessionToken(req);if(!token)return res.status(401).json({ok:false,error:'account_session_required'});
+      return res.status(200).json(await callOperatorJson('GET','/v1/accounts/notifications',null,headers(token)));
+    }
+    if(action==='notifications-read'){
+      if(!method(req,res,'POST'))return;
+      const token=sessionToken(req);if(!token)return res.status(401).json({ok:false,error:'account_session_required'});
+      const notificationId=String(req.body?.notificationId||'').trim();
+      if(!/^sys_[a-f0-9-]{36}$/.test(notificationId))return res.status(400).json({ok:false,error:'invalid_notification_id'});
+      return res.status(200).json(await callOperatorJson('POST','/v1/accounts/notifications/read',{notificationId},headers(token)));
     }
     if(action==='team-inbox'){
       if(!method(req,res,'GET'))return;
@@ -423,6 +435,7 @@ export function registerAccountPortal(app){
   app.post('/account/recover',accountRecovery);
   app.get('/account/assets/portal.css',(_q,r)=>sendPortal(r,'portal.css','text/css'));
   app.get('/account/assets/theme.js',(_q,r)=>sendPortal(r,'theme.js','application/javascript'));
+  app.get('/account/assets/notifications.js',(_q,r)=>sendPortal(r,'notifications.js','application/javascript'));
   app.get('/account/assets/home-demo.js',(_q,r)=>sendPortal(r,'home-demo.js','application/javascript'));
   app.get('/account/assets/hero-demo-library.json',(_q,r)=>sendPortal(r,'hero-demo-library.json','application/json'));
   app.get('/account/assets/light-remote-mark.svg',(_q,r)=>sendPortal(r,'light-remote-mark.svg','image/svg+xml'));

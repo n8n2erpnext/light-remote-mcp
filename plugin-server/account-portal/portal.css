@@ -357,3 +357,34 @@ html[data-theme="light"] .home-lightbi-link strong,html[data-theme="light"] .hom
 @media(max-width:600px){.home-ecosystem{padding:20px}.home-lightbi-link{grid-template-columns:40px 1fr}.home-lightbi-link>b{grid-column:2}.home-footer{align-items:flex-start}}
 
 .chatgpt-onboarding{margin-bottom:28px;padding:22px;display:flex;align-items:center;justify-content:space-between;gap:24px;border-color:#4a4020;background:linear-gradient(135deg,#12140d,#0c1014 62%)}.chatgpt-onboarding-copy{display:flex;gap:16px;align-items:flex-start}.chatgpt-onboarding h2{margin:3px 0 7px;font-size:21px}.chatgpt-onboarding p{margin:0;color:#98a4b3;max-width:760px;line-height:1.5}.chatgpt-onboarding-steps{display:flex;gap:14px;flex-wrap:wrap;margin-top:13px;color:#b2bdc9;font-size:12px}.chatgpt-onboarding-steps span{display:flex;align-items:center;gap:6px}.chatgpt-onboarding-steps b{display:grid;place-items:center;width:19px;height:19px;border-radius:50%;background:#ffcc00;color:#090b0d;font-size:10px}.chatgpt-plugin-cta{display:flex;align-items:center;gap:9px;white-space:nowrap}.chatgpt-plugin-cta img{width:18px;height:18px}.home-chatgpt-bridge{max-width:1180px;margin:0 auto 18px;padding:20px 24px;border:1px solid #3b3a22;border-radius:16px;background:#10130d;display:flex;align-items:center;justify-content:space-between;gap:24px}.home-chatgpt-copy{display:flex;align-items:center;gap:16px}.home-chatgpt-bridge h2{margin:2px 0 5px;font-size:21px}.home-chatgpt-bridge p{margin:0;color:#8d98a7}.download-chatgpt-cta{margin-top:20px;display:flex;align-items:center;justify-content:space-between;gap:20px;border:1px solid #3b3a22;background:#10130d;border-radius:13px;padding:16px 18px}.download-chatgpt-copy{display:flex;align-items:center;gap:12px}.download-chatgpt-copy strong,.download-chatgpt-copy span{display:block}.download-chatgpt-copy span{margin-top:3px;color:#8d98a7;font-size:13px}@media(max-width:820px){.chatgpt-onboarding,.home-chatgpt-bridge,.download-chatgpt-cta{align-items:stretch;flex-direction:column}.chatgpt-plugin-cta,.download-chatgpt-cta .btn{justify-content:center;text-align:center}.home-chatgpt-copy{align-items:flex-start}}
+
+/* Self-hosted Material Icons and account notification bell */
+.nav .icon{display:inline-flex;align-items:center;justify-content:center;min-width:20px;flex:0 0 20px}
+.nav .icon img.material-icon{width:20px;height:20px;display:block}
+.account-bell-container{position:absolute;top:20px;right:28px;z-index:25}
+main.main{position:relative}
+.account-bell-button{display:grid;place-items:center;width:42px;height:42px;border:1px solid #34404b;border-radius:12px;background:#13191f;color:inherit;cursor:pointer;position:relative}
+.account-bell-button:hover,.account-bell-button:focus-visible{border-color:#ffcc00}
+.account-bell-button img{width:23px;height:23px}
+.account-bell-count{position:absolute;right:-7px;top:-7px;min-width:20px;height:20px;background:#ffcc00;border:2px solid #080a0c;border-radius:12px;color:#101419;font-size:10px;font-weight:800;text-align:center;line-height:16px;padding:0 3px}
+.account-bell-panel{position:absolute;right:0;top:52px;width:min(350px,calc(100vw - 32px));max-height:440px;overflow:auto;background:#11171d;border:1px solid #37414c;border-radius:14px;box-shadow:0 18px 45px #000a}
+.account-bell-panel[hidden],.account-bell-count[hidden]{display:none!important}
+.account-bell-heading{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #313943;font-size:14px}
+.account-bell-heading a{color:#ffcc00;font-size:12px}
+.account-bell-item{padding:12px 16px;display:block;border-bottom:1px solid #252d36;color:inherit}
+.account-bell-item:hover{background:#1b242e}
+.account-bell-item strong,.account-bell-item small{display:block;overflow-wrap:anywhere}
+.account-bell-item strong{font-size:13px}
+.account-bell-item small{color:#9aa6b4;font-size:12px;margin-top:5px;max-height:2.8em;overflow:hidden}
+.account-bell-new{font-size:10px;color:#e5c33d;font-style:normal}
+.account-bell-empty{padding:18px;color:#9aa6b4;font-size:13px}
+@media(max-width:850px){.account-bell-container{position:fixed;top:12px;right:12px}.account-bell-panel{top:48px}}
+
+.account-bell-button img.material-icon{filter:invert(92%)}
+html[data-theme="light"] .account-bell-button img.material-icon{filter:none}
+html[data-theme="light"] .account-bell-panel{background:#fff;border-color:#d9e1e8;box-shadow:0 18px 40px #28384730}
+html[data-theme="light"] .account-bell-item{border-bottom-color:#d9e1e8}
+html[data-theme="light"] .account-bell-item:hover{background:#f5f7fa}
+html[data-theme="light"] .account-bell-item small{color:#667788}
+html[data-theme="light"] .account-bell-button{background:#fff;border-color:#ced8e0}
+html[data-theme="light"] .account-bell-heading{border-color:#d9e1e8}

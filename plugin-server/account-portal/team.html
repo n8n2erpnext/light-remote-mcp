@@ -22,7 +22,7 @@
 <nav class="nav">
 <a href="/account"><span class="icon"><img class="material-icon" src="/assets/icons/material/devices.svg" alt=""></span>Devices</a>
 <a class="active" href="/account/team"><span class="icon"><img class="material-icon" src="/assets/icons/material/groups.svg" alt=""></span>Pro Team</a>
-<a href="/account/inbox"><span class="icon">✉</span> Inbox</a><a href="/account/usage"><span class="icon"><img class="material-icon" src="/assets/icons/material/bar_chart.svg" alt=""></span>Usage</a>
+<a href="/account/inbox"><span class="icon"><img class="material-icon" src="/assets/icons/material/mark_email_unread.svg" alt=""></span> Inbox</a><a href="/account/usage"><span class="icon"><img class="material-icon" src="/assets/icons/material/bar_chart.svg" alt=""></span>Usage</a>
 <a href="/account/billing"><span class="icon"><img class="material-icon" src="/assets/icons/material/credit_card.svg" alt=""></span>Billing</a>
 <a href="/account/settings"><span class="icon"><img class="material-icon" src="/assets/icons/material/settings.svg" alt=""></span>Settings</a>
 </nav><div class="account-foot"><div class="account-email" id="email">Loading…</div><div class="account-meta" id="plan"></div><div class="footer-links"><a href="/support">Support</a><a href="/privacy">Privacy</a></div></div>
@@ -30,7 +30,7 @@
 <div class="eyebrow">LIGHT REMOTE · PRO TEAM</div><h1>Work together, securely.</h1>
 <p class="team-muted">Invite up to four colleagues and share only the machines you approve. Five seats include the paying team owner.</p>
 <div class="team-alert"><strong>Access rollout in progress.</strong> Team membership and device-sharing settings are available in this release candidate. Cross-account remote execution is <strong>not enabled</strong> until each member's independent Local Wall A/B approval and team billing checks pass security testing. No invitation bypasses local device policy.</div>
-<div class="team-banner"><div class="team-row"><strong>My account ID</strong><span id="myAccountId">Loading…</span></div>
+<div class="team-banner"><div class="team-row"><strong>My account</strong><span id="myAccountId">Loading…</span></div>
 <div class="team-row"><strong>Plan</strong><span id="planDetail">—</span></div>
 <div class="team-row"><strong>Team seats</strong><span id="seatCounter" class="team-pill gold">— / 5</span></div>
 <div class="team-actions"><button id="createTeam" class="team-btn primary team-hidden">Create Pro Team</button><button id="reload" class="team-btn">Refresh</button></div>
@@ -89,9 +89,9 @@ async function api(action,{method='GET',payload=null}={}){
 function status(text,error=false){$('status').textContent=text;$('status').className='team-status '+(error?'error':'good')}
 function render(){
  const memberList=team?.members||[];
- $('joinedTeams').innerHTML=memberships.length?memberships.map(row=>'<div class="team-row"><div><strong>'+escapeHtml(row.ownerAccountId)+'</strong><div class="team-muted">Shared devices: '+row.sharedDevices.map(escapeHtml).join(', ')+' · Local A/B required before using</div></div><span class="team-pill">Member</span></div>').join(''):'<span class="team-muted">No active team memberships yet.</span>';
+ $('joinedTeams').innerHTML=memberships.length?memberships.map(row=>'<div class="team-row"><div><strong>'+escapeHtml(row.ownerEmail||'Team owner')+'</strong><div class="team-muted">Shared devices: '+row.sharedDevices.map(escapeHtml).join(', ')+' · Local A/B required before using</div></div><span class="team-pill">Member</span></div>').join(''):'<span class="team-muted">No active team memberships yet.</span>';
  $('seatCounter').textContent=memberList.length+' / 5';
- $('members').innerHTML=memberList.length?memberList.map(id=>'<div class="team-row"><span>'+escapeHtml(id)+(id===team.ownerAccountId?' (owner)':'')+'</span>'+(id===team.ownerAccountId?'':'<button class="team-btn" data-remove="'+escapeHtml(id)+'">Remove</button>')+'</div>').join(''):'<p class="team-muted">Create a paid team to invite members.</p>';
+ $('members').innerHTML=memberList.length?memberList.map(id=>'<div class="team-row"><span>'+escapeHtml(team.memberEmails?.[id]||'Team member')+(id===team.ownerAccountId?' (owner)':'')+'</span>'+(id===team.ownerAccountId?'':'<button class="team-btn" data-remove="'+escapeHtml(id)+'">Remove</button>')+'</div>').join(''):'<p class="team-muted">Create a paid team to invite members.</p>';
  $('sharedDevices').innerHTML=(team?.devices||[]).length?(team.devices.map(id=>'<div class="team-row"><span>'+escapeHtml(id)+'</span><button class="team-btn" data-unshare="'+escapeHtml(id)+'">Unshare</button></div>').join('')):'<p class="team-muted">No devices shared.</p>';
  $('createTeam').classList.toggle('team-hidden',Boolean(team)||!teamEntitlement?.active);
  for(const id of ['invite','shareDevice'])$(id).disabled=!team||!teamEntitlement?.active;
@@ -101,7 +101,7 @@ function render(){
 async function load(){
  const info=await api('me');user=info.account;
  $('email').textContent=user.email||user.accountId;$('plan').textContent=(user.plan||'free').toUpperCase();
- $('planDetail').textContent=(user.plan||'free').toUpperCase();$('myAccountId').textContent=user.accountId;
+ $('planDetail').textContent=(user.plan||'free').toUpperCase();$('myAccountId').textContent=user.email||'Account';
  teamEntitlement=(await api('team-entitlement')).teamEntitlement;
  const owned=await api('devices');devices=owned.devices||[];
  memberships=(await api('team-memberships')).memberships||[];
@@ -138,4 +138,4 @@ $('sharedDevices').onclick=event=>{const id=event.target.closest('[data-unshare]
 captureInvitation();
 load().catch(err=>status(err.message,true));
 })();
-</script></body></html>
+</script><script src="/account/assets/notifications.js" defer></script></body></html>
