@@ -1,0 +1,44 @@
+name: RC50 ESM Data Platform UAT
+on:
+  push:
+    branches: [feature/rc50-v2-platform]
+    paths: [platform-v2/**, .github/workflows/rc50-v2-platform.yml]
+  pull_request:
+    paths: [platform-v2/**, .github/workflows/rc50-v2-platform.yml]
+permissions:
+  contents: read
+jobs:
+  isolated-data-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Unit contracts (no external systems)
+        run: node --test platform-v2/test/storage.test.mjs
+      - name: Create CI-only secrets (never committed)
+        working-directory: platform-v2
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import secrets
+          d=Path('secrets');d.mkdir(mode=0o700)
+          (d/'postgres.env').write_text('POSTGRES_USER=lr_rc50_uat\nPOSTGRES_DB=light_remote_rc50_uat\nPOSTGRES_PASSWORD='+secrets.token_urlsafe(32)+'\nPOSTGRES_INITDB_ARGS=--auth-host=scram-sha-256\n')
+          (d/'redis.conf').write_text('bind 0.0.0.0\nprotected-mode yes\nappendonly yes\nmaxmemory 256mb\nmaxmemory-policy noeviction\nrequirepass '+secrets.token_urlsafe(32)+'\n')
+          (d/'postgres.env').chmod(0o600)
+          (d/'redis.conf').chmod(0o644)
+          PY
+      - name: Bring up private UAT database
+        working-directory: platform-v2
+        run: docker compose -p lightremote-rc50-v2 -f compose.yml up -d --wait
+      - name: PostgreSQL schema + rollback contracts
+        working-directory: platform-v2
+        run: |
+          docker compose -p lightremote-rc50-v2 -f compose.yml exec -T postgres psql -v ON_ERROR_STOP=1 -U lr_rc50_uat -d light_remote_rc50_uat -f /dev/stdin < sql/001_core.sql
+          docker compose -p lightremote-rc50-v2 -f compose.yml exec -T postgres psql -v ON_ERROR_STOP=1 -U lr_rc50_uat -d light_remote_rc50_uat -f /dev/stdin < sql/002_usage_monthly.sql
+          docker compose -p lightremote-rc50-v2 -f compose.yml exec -T postgres psql -v ON_ERROR_STOP=1 -U lr_rc50_uat -d light_remote_rc50_uat -f /dev/stdin < sql/test_core_rollback.sql
+      - name: Tear down only CI test stack
+        if: always()
+        working-directory: platform-v2
+        run: docker compose -p lightremote-rc50-v2 -f compose.yml down -v --remove-orphans
