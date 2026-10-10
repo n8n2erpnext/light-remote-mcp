@@ -5,6 +5,7 @@
 > Managed service: https://light-remote.thaiduy.digital
 > This is the managed product, not the historical Vercel bridge or self-hosted architecture described in older README versions.
 > Release channel: beta/release candidate. Check the official downloads page for the current build, checksum and supported features.
+> If you are reading this on rc50-mcp.thaiduy.digital, that is an isolated staging release candidate. The guide version does NOT prove the latest published production version. Do not invent an installer checksum or claim the Downloads page was verified if you could not read it.
 
 ## Instructions for the AI assistant: read this first
 

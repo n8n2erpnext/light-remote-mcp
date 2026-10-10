@@ -499,6 +499,9 @@ html[data-theme="light"] .setup-progress span{background:#f7f9fb;color:#576675;b
 .home-ai-guide h2{font-size:25px;letter-spacing:-.025em;margin:8px 0;color:#fff}
 .home-ai-guide p{font-size:14px;line-height:1.6;color:#bbc7d3;max-width:710px}
 .home-ai-guide .section-kicker{color:#ffda4b}
+.home-ai-guide-direct{overflow-wrap:anywhere;word-break:break-word}
+.home-ai-guide-direct a,.ai-guide-direct a{color:#ffda4b;text-decoration:underline;text-underline-offset:3px}
+.ai-guide-direct{overflow-wrap:anywhere;word-break:break-word;margin:12px 0}
 .home-ai-guide-actions{display:flex;gap:9px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
 .home-ai-guide-actions .btn{min-height:43px;display:inline-flex;align-items:center;justify-content:center}
 .home-ai-guide .btn.primary{background:#ffcc00;color:#111;border-color:#ffcc00}

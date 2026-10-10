@@ -16,8 +16,11 @@ for(const html of [embedAiGuideSource(home,guide),renderAiGuidePage(guide,{origi
  assert.equal(JSON.parse(json).markdown,guide);
  assert(!json.includes('</script>'),'unsafe script sentinel');
 }
-assert(home.includes('data-copy-ai="prompt">Copy Complete Guide'));
-assert(home.includes('data-copy-ai="url">Copy Link Only'));
+assert(home.includes('data-copy-ai="links">Copy AI Prompt + Markdown'));
+assert(home.includes('data-guide-direct-link'));
+assert(home.includes('data-copy-ai="prompt">Copy Full Guide (offline)'));
+assert(home.includes('href="/ai-guide.md"'));
+assert(source.includes("const linksPrompt=()=>["));
 for(const route of ['/ai-guide','/ai-guide.md','/llms.txt','/llms-full.txt'])
  assert(server.includes('PUBLIC_INDEXABLE_PATHS=new Set([')&&server.includes("'"+route+"'"),
    'AI document must not get blanket noindex: '+route);
@@ -37,11 +40,19 @@ await listener({target:{closest:()=>button}});
 assert(value.includes(guide));
 assert(value.includes('Do not depend on opening the URL.'));
 assert(target.textContent.includes('Web access is NOT required'));
+button.dataset.copyAi='links';
+await listener({target:{closest:()=>button}});
+assert(value.includes('https://rc50-mcp.thaiduy.digital/ai-guide.md'));
+assert(value.includes('https://rc50-mcp.thaiduy.digital/llms-full.txt'));
+assert(value.includes('say so clearly'));
+assert(value.includes('https://light-remote.thaiduy.digital/downloads'));
+assert(!value.includes(guide),'short prompt must not include full guide');
+assert(target.textContent.includes('AI prompt copied'));
 button.dataset.copyAi='url';
 await listener({target:{closest:()=>button}});
-assert.equal(value,'https://rc50-mcp.thaiduy.digital/ai-guide');
-assert(target.textContent.includes('Some AI tools cannot open URLs'));
+assert.equal(value,'https://rc50-mcp.thaiduy.digital/ai-guide.md');
+assert(target.textContent.includes('Direct Markdown URL copied'));
 console.log('ai_guide_complete_markdown_embedded_without_network=PASS');
 console.log('ai_guide_clipboard_contains_full_guide_without_external_fetch=PASS');
-console.log('ai_guide_link_only_warns_about_ai_web_access=PASS');
+console.log('ai_guide_prompt_contains_direct_markdown_txt_links=PASS');
 console.log('ai_guide_public_crawler_paths_explicitly_allowlisted=PASS');

@@ -8,7 +8,7 @@ const read=name=>fs.readFileSync(new URL(name,root),'utf8');
 const home=read('public-home.html'),v4=read('account-portal/visual-system-v4.css');
 const guide=read('ai-guide.md'),server=read('server.mjs'),portal=read('account-portal.mjs');
 const sha=data=>crypto.createHash('sha256').update(data).digest('hex');
-assert.equal(sha(home.replace(/<section class="home-ai-guide"[\s\S]*?<\/section>/,'').replace('ai-guide-actions.js?v=complete-guide-20261010','ai-guide-actions.js')),'379d57c96e59cdf6ee02011287ff67c3edbb832e42a7ebebbd65263bc2809e97','Production V4 sections except intentionally repaired AI Guide card must remain byte-identical');
+assert.equal(sha(home.replace(/<section class="home-ai-guide"[\s\S]*?<\/section>/,'').replace('ai-guide-actions.js?v=markdown-direct-20261010','ai-guide-actions.js')),'379d57c96e59cdf6ee02011287ff67c3edbb832e42a7ebebbd65263bc2809e97','Production V4 sections except intentionally repaired AI Guide card must remain byte-identical');
 assert.equal(sha(v4),'ace1051e15aea8961560dd5c9ccd20548698b8c4a6dfaf5263f153677c183501','V4 CSS must match production');
 for(const section of ['See the 4 setup steps','home-ai-guide','home-hero-guidance','how-it-works','/account/assets/visual-system-v4.css',
  '/account/assets/ai-guide-actions.js','/ai-guide','AI Guide','Start free — connect a device']){

@@ -51,16 +51,17 @@ export function renderAiGuidePage(markdown,{origin='https://light-remote.thaiduy
   '<body class="ai-guide-body"><header class="home-nav ai-guide-nav"><a class="home-brand" href="/"><img src="/account/assets/light-remote-mark.svg" alt="Light Remote logo"><span><strong>Light Remote</strong><small>Official AI Guide</small></span></a>',
   '<nav><a href="/">Home</a><a href="/downloads">Downloads</a><a href="/account">Account</a><a href="/support">Support</a></nav><div class="home-nav-actions"><a class="btn primary" href="/account/register">Start free</a></div></header>',
   '<main><section class="ai-guide-hero"><div class="section-kicker">OFFICIAL AI-READABLE DOCUMENTATION · '+escapeHtml(version)+'</div>',
-  '<h1>One guide.<br><span>Every next step.</span></h1><p>Share this guide with ChatGPT and ask any Light Remote question, from the very first installation step to advanced device workflows. The AI can guide you step by step.</p>',
-  '<div class="ai-guide-actions"><button class="btn primary" type="button" data-copy-ai="prompt">Copy complete guide for ChatGPT</button>',
-  '<button class="btn" type="button" data-copy-ai="url">Copy link only</button>',
-  '<a class="btn" href="/ai-guide.md">AI-readable Markdown →</a></div>',
-  '<p id="aiGuideCopyStatus" role="status" aria-live="polite">Copy complete guide to include the instructions in your AI chat even when the AI cannot open websites.</p></section>',
+  '<h1>One guide.<br><span>Every next step.</span></h1><p>Send the direct Markdown link to ChatGPT or Claude. If your AI cannot retrieve it, paste the full guide with one click.</p>',
+  '<div class="ai-guide-actions"><button class="btn primary" type="button" data-copy-ai="links">Copy AI prompt + Markdown link</button>',
+  '<button class="btn" type="button" data-copy-ai="prompt">Copy complete guide (offline)</button>',
+  '<a class="btn" href="/ai-guide.md">Open Markdown directly →</a></div>',
+  '<p class="ai-guide-direct">Direct Markdown: <a href="'+origin+'/ai-guide.md" data-guide-direct-link>'+origin+'/ai-guide.md</a></p>',
+  '<p id="aiGuideCopyStatus" role="status" aria-live="polite">Send the direct URL first. If your AI cannot open it, copy the full guide into the chat.</p></section>',
   '<div class="ai-guide-layout"><aside class="ai-guide-toc"><div class="section-kicker">CONTENTS</div>',
   toc.map(h=>'<a href="#'+h.id+'">'+escapeHtml(h.title)+'</a>').join(''),
   '</aside><article class="ai-guide-article">'+renderGuideMarkdown(markdown)+'</article></div></main>',
   '<footer class="home-footer ai-guide-footer"><a class="home-powered" href="https://thaiduy.digital" target="_blank" rel="noopener"><span>Powered by</span><strong>thaiduy.digital</strong></a><nav><a href="/">Home</a><a href="/downloads">Downloads</a><a href="/support">Support</a><a href="/privacy">Privacy</a></nav></footer>',
-  '<script src="/account/assets/ai-guide-actions.js?v=complete-guide-20261010" defer></script></body></html>'
+  '<script src="/account/assets/ai-guide-actions.js?v=markdown-direct-20261010" defer></script></body></html>'
  ].join('\n');
  return embedAiGuideSource(html,markdown);
 }

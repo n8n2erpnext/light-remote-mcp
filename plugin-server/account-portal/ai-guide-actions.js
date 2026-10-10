@@ -1,6 +1,9 @@
 (()=>{
   'use strict';
-  const link=()=>location.origin+'/ai-guide';
+  const link=()=>location.origin+'/ai-guide.md';
+  const textLink=()=>location.origin+'/llms-full.txt';
+  const webGuide=()=>location.origin+'/ai-guide';
+  document.querySelectorAll?.('[data-guide-direct-link]').forEach(anchor=>{anchor.textContent=link();anchor.href=link()});
   const source=document.getElementById('lightRemoteAiGuideSource');
   const markdown=(()=>{
     try {
@@ -8,13 +11,25 @@
       return typeof text==='string'&&text.startsWith('# Light Remote — Complete AI Guide')&&text.length>10000?text:null;
     } catch {return null;}
   })();
+  const linksPrompt=()=>[
+    'Read the official Light Remote AI Guide directly from this Markdown URL:',
+    link(),
+    'If Markdown is unavailable, try the full plain-text copy:',
+    textLink(),
+    'If you cannot retrieve either document, say so clearly and ask me to paste the complete guide. Do not claim you read content you could not access.',
+    'This rc.50 site is a staging environment. Verify the current production version and installer separately at https://light-remote.thaiduy.digital/downloads; never infer it from the guide title.',
+    'Help me step by step with installation, enrollment, Local Wall A/B pairing, tools, security or troubleshooting. Ask only the next missing question.',
+    'Never claim remote access or operate a device until the official Light Remote helper reports ready.'
+  ].join('\n');
   const prompt=()=>[
     'I am asking about Light Remote. The COMPLETE official AI Guide is included below.',
     'Read the embedded instructions and help me with installation, device enrollment, A/B pairing, tools, security or troubleshooting.',
     'Do not depend on opening the URL. Ask one relevant next question at a time.',
     'Never claim to control a device without an authorized connected Light Remote plugin and a successful Local Wall A/B approval.',
     'Check current official release details before giving version-specific instructions.',
-    'Source URL (optional reference only): '+link(),
+    'Direct Markdown URL (optional reference only): '+link(),
+    'Readable browser guide: '+webGuide(),
+    'Current production release and downloads: https://light-remote.thaiduy.digital/downloads',
     '\n===== BEGIN LIGHT REMOTE AI GUIDE =====\n',
     markdown,
     '\n===== END LIGHT REMOTE AI GUIDE ====='
@@ -52,20 +67,21 @@
     const btn=event.target.closest('[data-copy-ai]');
     if(!btn)return;
     const full=btn.dataset.copyAi==='prompt';
+    const links=btn.dataset.copyAi==='links';
     const target=btn.closest('.home-ai-guide')?.querySelector('.home-ai-guide-status')||
       document.getElementById('aiGuideCopyStatus');
     if(full&&!markdown){
       if(target)target.textContent='The complete guide is unavailable. Open AI-readable Markdown instead; no incomplete prompt was copied.';
       return;
     }
-    const value=full?prompt():link();
+    const value=full?prompt():(links?linksPrompt():link());
     const before=btn.textContent;btn.disabled=true;
     const ok=await copy(value);
     btn.disabled=false;
     if(ok){
       if(target)target.textContent=full
         ?'Complete guide copied ('+markdown.length.toLocaleString()+' characters). Paste it into ChatGPT or another AI. Web access is NOT required.'
-        :'Link copied. Some AI tools cannot open URLs; use Copy Complete Guide if your assistant cannot read the link.';
+        :(links?'AI prompt copied with direct Markdown and TXT URLs. Paste into ChatGPT or Claude; use Copy Full Guide if it cannot open those URLs.':'Direct Markdown URL copied. AI access varies; use Copy Full Guide if needed.');
       btn.textContent='Copied!';
       setTimeout(()=>btn.textContent=before,2200);
     }else{
