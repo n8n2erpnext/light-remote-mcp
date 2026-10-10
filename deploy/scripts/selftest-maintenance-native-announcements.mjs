@@ -20,6 +20,7 @@ const linux=read('client/linux-debian/tray/light-remote-tray.py');
 assert(linux.includes('notify-send')&&linux.includes('notification-receipt'));
 const shell=read('client/linux/cli-commands.sh'),workflow=read('.github/workflows/linux-client-build.yml');
 assert(shell.includes('announcements|notices')&&workflow.includes('cli-announcements.mjs'));
+assert(shell.includes('  restart)')&&shell.includes('systemctl restart "$SERVICE"')&&shell.includes('wall_health'),'linux restart must restart installed service and verify Wall health');
 const sample=JSON.stringify({items:[{kind:'maintenance',title:'Scheduled maintenance',message:'Restart at 08:00 UTC',linkUrl:'https://light-remote.thaiduy.digital/'}],checkedAt:Date.now()});
 const cli=spawnSync(process.execPath,[new URL('../../client/linux/cli-announcements.mjs',import.meta.url).pathname],{input:sample,encoding:'utf8'});
 assert.equal(cli.status,0,cli.stderr);

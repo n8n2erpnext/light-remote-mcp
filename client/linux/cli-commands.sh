@@ -100,6 +100,7 @@ Light Remote Linux Server
 
   light-remote up                 Enroll/start service
   light-remote down               Disconnect cloud session
+  light-remote restart            Restart Agent safely, check Local Wall and show status
   light-remote status             Friendly status summary
   light-remote announcements      Read cached notices in this SSH terminal
   light-remote status --json      Full diagnostics (technical)
@@ -145,6 +146,15 @@ case "$cmd" in
   bind) change_wall_bind "$@";;
   down)
     agent disconnect "$@" >/dev/null
+    show_summary
+    ;;
+  restart)
+    [[ $# -eq 0 ]] || die 'usage: light-remote restart'
+    [[ "$SERVICE" == 'gpt-operator-device-agent.service' ]] || die 'unsupported service name'
+    printf 'Restarting Light Remote Agent...\n'
+    as_root systemctl restart "$SERVICE" || die 'agent restart failed'
+    wall_health
+    printf 'Agent restarted successfully.\n'
     show_summary
     ;;
   connect|disconnect|drain|undrain) agent "$cmd" "$@";;
