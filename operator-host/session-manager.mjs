@@ -15,7 +15,7 @@ export class SessionError extends Error {
 export class SessionRegistry {
   constructor({ idleMs = 30 * 60 * 1000, minIdleMs = 15 * 60 * 1000, maxIdleMs = 60 * 60 * 1000,
     activeWindowMs = 60 * 1000, maxActive = 5, historyMs = 7 * 24 * 60 * 60 * 1000,
-    accountId = 'self-hosted-local', deviceId = 'arm-local', nodeId = 'arm', emit = () => {}, now = () => Date.now() } = {}) {
+    accountId = 'self-hosted-local', deviceId = 'arm-local', nodeId = 'arm', emit = () => {}, beforeRecord = () => {}, now = () => Date.now() } = {}) {
     this.idleMs = Number(idleMs);
     this.minIdleMs = Number(minIdleMs);
     this.maxIdleMs = Number(maxIdleMs);
@@ -27,6 +27,7 @@ export class SessionRegistry {
     this.deviceId = String(deviceId || 'arm-local');
     this.nodeId = String(nodeId || 'arm');
     this.emit = emit;
+    this.beforeRecord = beforeRecord;
     this.now = now;
     this.sessions = new Map();
     this.openDedupe = new Map();
@@ -258,13 +259,19 @@ export class SessionRegistry {
   }
 
   touch(id,agentId,action='tool') {
-    const s=this.ensure(id,{agentId}); s.stats.toolCalls++; s.lastSeenAt=this.now(); s.holdReason=null;
+    const s=this.ensure(id,{agentId});
+    this.beforeRecord({accountId:s.accountId,deviceId:s.deviceId,sessionId:s.id,agentId:s.agentId,chargeId:null});
+    s.stats.toolCalls++; s.lastSeenAt=this.now(); s.holdReason=null;
     this.emit({type:'session_activity',accountId:s.accountId,deviceId:s.deviceId,sessionId:s.id,agentId:s.agentId,nodeId:s.nodeId,action:'toolCalls',tool:String(action||'tool').slice(0,120),status:this._state(s)});
     return this._view(s);
   }
 
-  record(id,field) {
+  record(id,field,{chargeId=null}={}) {
     const s=this.sessions.get(String(id||'')); if (!s) return;
+    if (field==='toolCalls'){
+      const decision=this.beforeRecord({accountId:s.accountId,deviceId:s.deviceId,sessionId:s.id,agentId:s.agentId,chargeId});
+      if(decision?.idempotent)return;
+    }
     if (field in s.stats) s.stats[field]++;
     s.lastSeenAt=this.now(); s.holdReason=null;
     this.emit({type:'session_activity',accountId:s.accountId,deviceId:s.deviceId,sessionId:s.id,agentId:s.agentId,nodeId:s.nodeId,action:field,status:this._state(s)});

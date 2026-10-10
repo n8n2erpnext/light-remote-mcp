@@ -107,7 +107,7 @@ export async function handleRuntimeRoutes(req,res,url,deps){
       if(!accountId||session.accountId!==accountId)throw new DeviceAccessGrantError('plugin_desktop_session_account_mismatch',403);
       assertToolCallQuota(session.accountId);
       const live=realRemoteLive.read({deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,semanticSessionId:String(body.semanticSessionId||''),afterSeq:body.afterSeq,limit:body.limit,includeSnapshot:body.includeSnapshot!==false});
-      sessions.record(session.id,'toolCalls');sessions.touch(session.id,session.agentId,'desktop-live-read');
+      sessions.touch(session.id,session.agentId,'desktop-live-read');
       return sendJson(res,200,{ok:true,live});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-access/desktop-live/read') {
@@ -117,7 +117,7 @@ export async function handleRuntimeRoutes(req,res,url,deps){
       if(session.deviceId!==grant.deviceId||session.accountId!==grant.accountId)throw new DeviceAccessGrantError('device_access_grant_session_mismatch',403);
       assertToolCallQuota(session.accountId);
       const live=realRemoteLive.read({deviceId:grant.deviceId,sessionId:session.id,agentId:session.agentId,semanticSessionId:String(body.semanticSessionId||''),afterSeq:body.afterSeq,limit:body.limit,includeSnapshot:body.includeSnapshot!==false});
-      sessions.record(session.id,'toolCalls');sessions.touch(session.id,session.agentId,'desktop-live-read');
+      sessions.touch(session.id,session.agentId,'desktop-live-read');
       return sendJson(res,200,{ok:true,live});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-access/execute') {
