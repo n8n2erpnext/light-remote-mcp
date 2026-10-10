@@ -50,7 +50,7 @@ const init=await postMcp({jsonrpc:'2.0',id:1,method:'initialize',params:{protoco
 assert.equal(init.result.serverInfo.name,'light-remote');assert.equal(init.result.serverInfo.version,'0.1.5');
 assert.equal(init.result.instructions,undefined);
 const listed=await postMcp({jsonrpc:'2.0',id:2,method:'tools/list',params:{}});
-assert.equal(listed.result.tools.length,67);
+assert.equal(listed.result.tools.length,80);
 const toolNames=new Set(listed.result.tools.map(t=>t.name));
 for(const name of [
   'light_remote_context','light_remote_session_control','light_remote_hold_session',
@@ -63,7 +63,7 @@ for(const name of [
   'light_remote_desktop','light_remote_desktop_attach','light_remote_desktop_resume','light_remote_desktop_detach','light_remote_desktop_windows','light_remote_desktop_frame','light_remote_desktop_observe',
   'light_remote_semantic_attach','light_remote_semantic_snapshot','light_remote_semantic_events','light_remote_semantic_detach',
   'light_remote_desktop_live_open','light_remote_desktop_live_read','light_remote_desktop_live_close',
-  'light_remote_desktop_input','light_remote_desktop_input_batch','light_remote_desktop_action_await'
+  'light_remote_semantic_invoke','light_remote_semantic_click','light_remote_semantic_focus','light_remote_semantic_value','light_remote_semantic_toggle','light_remote_semantic_select','light_remote_semantic_expand','light_remote_semantic_collapse','light_remote_desktop_move','light_remote_desktop_click','light_remote_desktop_scroll','light_remote_desktop_drag','light_remote_desktop_type_text','light_remote_desktop_write_text','light_remote_desktop_press_key','light_remote_desktop_launch_app'
 ])assert.ok(toolNames.has(name),name+'_present');
 for(const tool of listed.result.tools){
   assert.ok(Array.isArray(tool.securitySchemes)&&tool.securitySchemes.length===1,tool.name+'_securitySchemes');
@@ -90,12 +90,16 @@ const desktopTool=listed.result.tools.find(t=>t.name==='light_remote_desktop');
 const desktopAttachTool=listed.result.tools.find(t=>t.name==='light_remote_desktop_attach');
 const desktopFrameTool=listed.result.tools.find(t=>t.name==='light_remote_desktop_frame');
 const semanticAttachTool=listed.result.tools.find(t=>t.name==='light_remote_semantic_attach');
-const desktopInputTool=listed.result.tools.find(t=>t.name==='light_remote_desktop_input');
-const desktopInputBatchTool=listed.result.tools.find(t=>t.name==='light_remote_desktop_input_batch');
+const desktopInputTool=listed.result.tools.find(t=>t.name==='light_remote_semantic_invoke');
+const desktopInputBatchTool=listed.result.tools.find(t=>t.name==='light_remote_desktop_click');
+for(const removed of ['light_remote_desktop_input','light_remote_desktop_input_batch','light_remote_desktop_action_await'])assert.ok(!toolNames.has(removed),'unreviewable desktop dispatcher still exposed: '+removed);
+for(const name of ["light_remote_semantic_invoke", "light_remote_semantic_click", "light_remote_semantic_focus", "light_remote_semantic_value", "light_remote_semantic_toggle", "light_remote_semantic_select", "light_remote_semantic_expand", "light_remote_semantic_collapse", "light_remote_desktop_move", "light_remote_desktop_click", "light_remote_desktop_scroll", "light_remote_desktop_drag", "light_remote_desktop_type_text", "light_remote_desktop_write_text", "light_remote_desktop_press_key", "light_remote_desktop_launch_app"]){const tool=listed.result.tools.find(row=>row.name===name);assert.ok(tool);assert.equal(tool.inputSchema?.properties?.action,undefined,name+'_arbitrary_action_forbidden');assert.equal(tool.inputSchema?.properties?.events,undefined,name+'_arbitrary_batch_forbidden');assert.equal(tool.annotations.destructiveHint,true);assert.equal(tool.securitySchemes[0].scopes[0],'remote:execute');}
+
 for(const tool of [execTool,processTool,termInputTool]){assert.equal(tool.annotations.readOnlyHint,false);assert.equal(tool.annotations.destructiveHint,true);assert.equal(tool.annotations.openWorldHint,true)}
 assert.equal(termTool.annotations.readOnlyHint,false);assert.equal(termTool.annotations.destructiveHint,false);assert.equal(termTool.annotations.openWorldHint,false);
 assert.equal(processOutputTool.annotations.readOnlyHint,true);assert.equal(processOutputTool.annotations.destructiveHint,false);assert.equal(processOutputTool.annotations.openWorldHint,false);
 assert.equal(helperTool.annotations.readOnlyHint,false);assert.equal(helperTool.annotations.destructiveHint,false);assert.equal(helperTool.annotations.openWorldHint,false);
+assert.equal(helperTool.description,'Start here. Handles Local Wall A/B pairing and, when ready, returns/reuses the working context plus a compact tool-family menu. Call again with helperGroup=workspace|files|shell|transfer|desktop only when detailed syntax for that family is needed. OAuth account login alone never authorizes a device.','connection_helper_live_description_must_remain_stable');
 assert.deepEqual(helperTool.inputSchema?.properties?.helperGroup?.enum,['workspace','files','shell','transfer','desktop']);
 for(const key of ['shell','requiredCapabilities'])assert.ok(execTool.inputSchema?.properties?.[key],'exec_'+key+'_present');
 for(const key of ['shell','requiredCapabilities'])assert.ok(processTool.inputSchema?.properties?.[key],'process_'+key+'_present');

@@ -3,7 +3,7 @@ const GROUPS=Object.freeze({
   files:{title:'Files and search',when:'Reading, writing, editing, listing, metadata, multi-read, or recursive file/content discovery.',tools:['light_remote_list_files','light_remote_read_file','light_remote_read_multiple_files','light_remote_stat_path','light_remote_search_files','light_remote_search_results','light_remote_cancel_search','light_remote_write_file','light_remote_edit_file','light_remote_filesystem','light_remote_copy_path','light_remote_move_path','light_remote_delete_path']},
   shell:{title:'Commands, processes and terminals',when:'Running commands, managed processes, PTY/ConPTY, durable jobs, or bounded output recovery.',tools:['light_remote_exec','light_remote_process','light_remote_process_input','light_remote_process_output','light_remote_list_processes','light_remote_stop_process','light_remote_terminal','light_remote_terminal_input','light_remote_terminal_output','light_remote_resize_terminal','light_remote_signal_terminal','light_remote_list_terminals','light_remote_stop_terminal','light_remote_job','light_remote_output']},
   transfer:{title:'Binary and large-file transfer',when:'Moving binary or large files without tunneling bytes through command stdout.',tools:['light_remote_scp_download','light_remote_scp_download_chunk','light_remote_scp_download_status','light_remote_scp_download_cancel','light_remote_scp','light_remote_scp_upload_chunk','light_remote_scp_upload_commit','light_remote_scp_upload_status','light_remote_scp_upload_cancel']},
-  desktop:{title:'Real Remote V2',when:'Observing or controlling the real interactive desktop.',tools:['light_remote_desktop','light_remote_desktop_attach','light_remote_desktop_resume','light_remote_desktop_detach','light_remote_desktop_windows','light_remote_desktop_frame','light_remote_desktop_observe','light_remote_semantic_attach','light_remote_semantic_snapshot','light_remote_semantic_events','light_remote_semantic_detach','light_remote_desktop_live_open','light_remote_desktop_live_read','light_remote_desktop_live_close','light_remote_desktop_input','light_remote_desktop_input_batch','light_remote_desktop_action_await']}
+  desktop:{title:'Real Remote V2',when:'Observing or controlling the real interactive desktop.',tools:['light_remote_desktop','light_remote_desktop_attach','light_remote_desktop_resume','light_remote_desktop_detach','light_remote_desktop_windows','light_remote_desktop_frame','light_remote_desktop_observe','light_remote_semantic_attach','light_remote_semantic_snapshot','light_remote_semantic_events','light_remote_semantic_detach','light_remote_desktop_live_open','light_remote_desktop_live_read','light_remote_desktop_live_close','light_remote_semantic_invoke','light_remote_semantic_click','light_remote_semantic_focus','light_remote_semantic_value','light_remote_semantic_toggle','light_remote_semantic_select','light_remote_semantic_expand','light_remote_semantic_collapse','light_remote_desktop_move','light_remote_desktop_click','light_remote_desktop_scroll','light_remote_desktop_drag','light_remote_desktop_type_text','light_remote_desktop_write_text','light_remote_desktop_press_key','light_remote_desktop_launch_app']}
 });
 function shellGuide(platform){
   const p=String(platform||'').toLowerCase();
@@ -88,9 +88,22 @@ const chapters={
     live_open:{name:'light_remote_desktop_live_open'},
     live_read:{name:'light_remote_desktop_live_read',use:'Read already-buffered semantic deltas/snapshot from Hub cache without forcing a new Windows scan.'},
     live_close:{name:'light_remote_desktop_live_close'},
-    semantic_action:{name:'light_remote_desktop_input',semanticActions:['invoke','toggle','value','select','expand','collapse','focus','click']},
-    input_batch:{name:'light_remote_desktop_input_batch',physicalEvents:['move','click','wheel','drag','text','key']},
-    action_await:{name:'light_remote_desktop_action_await'}
+    semantic_invoke:{name:'light_remote_semantic_invoke',use:'Run exactly one semantic invoke action. An optional await condition observes the result.'},
+    semantic_click:{name:'light_remote_semantic_click',use:'Run exactly one semantic click action. An optional await condition observes the result.'},
+    semantic_focus:{name:'light_remote_semantic_focus',use:'Run exactly one semantic focus action. An optional await condition observes the result.'},
+    semantic_value:{name:'light_remote_semantic_value',use:'Run exactly one semantic value action. An optional await condition observes the result.'},
+    semantic_toggle:{name:'light_remote_semantic_toggle',use:'Run exactly one semantic toggle action. An optional await condition observes the result.'},
+    semantic_select:{name:'light_remote_semantic_select',use:'Run exactly one semantic select action. An optional await condition observes the result.'},
+    semantic_expand:{name:'light_remote_semantic_expand',use:'Run exactly one semantic expand action. An optional await condition observes the result.'},
+    semantic_collapse:{name:'light_remote_semantic_collapse',use:'Run exactly one semantic collapse action. An optional await condition observes the result.'},
+    physical_move:{name:'light_remote_desktop_move',use:'Run exactly one bounded OS move operation. An optional await condition observes the result.'},
+    physical_click:{name:'light_remote_desktop_click',use:'Run exactly one bounded OS click operation. An optional await condition observes the result.'},
+    physical_scroll:{name:'light_remote_desktop_scroll',use:'Run exactly one bounded OS scroll operation. An optional await condition observes the result.'},
+    physical_drag:{name:'light_remote_desktop_drag',use:'Run exactly one bounded OS drag operation. An optional await condition observes the result.'},
+    physical_type_text:{name:'light_remote_desktop_type_text',use:'Run exactly one bounded OS type_text operation. An optional await condition observes the result.'},
+    physical_write_text:{name:'light_remote_desktop_write_text',use:'Run exactly one bounded OS write_text operation. An optional await condition observes the result.'},
+    physical_press_key:{name:'light_remote_desktop_press_key',use:'Run exactly one bounded OS press_key operation. An optional await condition observes the result.'},
+    physical_launch_app:{name:'light_remote_desktop_launch_app',use:'Run exactly one bounded OS launch_app operation. An optional await condition observes the result.'}
   },loop:['Bootstrap with live-open.','Read live deltas from live-read.','Act semantically when possible, otherwise bounded OS input.','Follow returned sequence/observation state; snapshot only for resync.','Close with live-close.'],security:'desktop-input capability and Windows UIPI/secure-desktop boundaries remain authoritative.'})
 };
 export function helperGroup(group,context={}){

@@ -36,7 +36,7 @@ assert.equal(shell.platformGuide.defaultShell,'powershell');
 const transfer=helperGroup('transfer',context);
 for(const key of ['download_begin','download_chunk','download_status','download_cancel','upload_begin','upload_chunk','upload_commit','upload_status','upload_cancel'])assert.ok(transfer.tools[key],'transfer.'+key);
 const desktop=helperGroup('desktop',context);
-for(const key of ['status','attach','resume','detach','windows','frame','observe','semantic_attach','semantic_snapshot','semantic_events','semantic_detach','live_open','live_read','live_close','semantic_action','input_batch','action_await'])assert.ok(desktop.tools[key],'desktop.'+key);
+for(const key of ['status','attach','resume','detach','windows','frame','observe','semantic_attach','semantic_snapshot','semantic_events','semantic_detach','live_open','live_read','live_close','semantic_invoke','semantic_click','semantic_focus','semantic_value','semantic_toggle','semantic_select','semantic_expand','semantic_collapse','physical_move','physical_click','physical_scroll','physical_drag','physical_type_text','physical_write_text','physical_press_key','physical_launch_app'])assert.ok(desktop.tools[key],'desktop.'+key);
 
 const directHelperJson=JSON.stringify({menu,...Object.fromEntries(groupIds.map(id=>[id,helperGroup(id,context)]))});
 for(const forbidden of ['client=<opaque-client>','/api/operator?via=plus','transfer-begin','transfer-chunk','transfer-commit'])assert.ok(!directHelperJson.includes(forbidden),'direct helper leaked Vercel-only contract: '+forbidden);
@@ -59,8 +59,8 @@ for(const name of [
   'light_remote_desktop','light_remote_desktop_attach','light_remote_desktop_resume','light_remote_desktop_detach','light_remote_desktop_windows','light_remote_desktop_frame','light_remote_desktop_observe',
   'light_remote_semantic_attach','light_remote_semantic_snapshot','light_remote_semantic_events','light_remote_semantic_detach',
   'light_remote_desktop_live_open','light_remote_desktop_live_read','light_remote_desktop_live_close',
-  'light_remote_desktop_input','light_remote_desktop_input_batch','light_remote_desktop_action_await'
-])assert.ok(publicTools.includes("'"+name+"'"),'missing focused official tool '+name);
+  'light_remote_semantic_invoke','light_remote_semantic_click','light_remote_semantic_focus','light_remote_semantic_value','light_remote_semantic_toggle','light_remote_semantic_select','light_remote_semantic_expand','light_remote_semantic_collapse','light_remote_desktop_move','light_remote_desktop_click','light_remote_desktop_scroll','light_remote_desktop_drag','light_remote_desktop_type_text','light_remote_desktop_write_text','light_remote_desktop_press_key','light_remote_desktop_launch_app'
+])assert.ok(name.startsWith('light_remote_semantic_')?publicTools.includes("add(server,'light_remote_semantic_'+action"):name.startsWith('light_remote_desktop_')&&!['light_remote_desktop','light_remote_desktop_attach','light_remote_desktop_resume','light_remote_desktop_detach','light_remote_desktop_windows','light_remote_desktop_frame','light_remote_desktop_observe','light_remote_desktop_live_open','light_remote_desktop_live_read','light_remote_desktop_live_close'].includes(name)?publicTools.includes("add(server,'light_remote_desktop_'+name"):publicTools.includes("'"+name+"'"),'missing focused official tool '+name);
 
 for(const field of ['helperGroup','contextLines','maxResults','requiredCapabilities','cdpEndpoint','targetId','urlMatch','full:z.boolean()'])assert.ok(tools.includes(field),'missing official schema field '+field);
 assert.ok(tools.includes("screen:z.number().int().min(-1).max(31)"),'desktop all-screen sentinel regressed');
