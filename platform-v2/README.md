@@ -26,3 +26,13 @@ Hard rules: Never place passwords in source or logs. No public port mapping. Nev
 - `bash scripts/check.sh` exercises 7 native Node.js unit tests, PostgreSQL schema v1/v2 (idempotent), SQL fixtures with ROLLBACK, and network/port confinement.
 - `MIGRATION_STRATEGY.md` explains preservation of active sessions/keys and the long phased transition without touching production.
 - A dedicated least-privilege app DB role has NOT been provisioned: tool security blocked that action. Don't connect an application with PostgreSQL superuser credentials. No live data was imported.
+
+## 2026-10-10 continuation — synthetic data only
+- Migrations `003_auth_device_communications.sql`, `004_tenant_binding_guards.sql`, `005_team_seat_guard.sql` add a complete first-cut auth/device/Team binding skeleton and database-enforced seat limits.
+- A Team owner consumes one of the five seats even when not duplicated in `team_members`. A row-locked trigger rejects the sixth active seat; transactional UAT tested.
+- A Team member's A/B grant can reference the owner's connection but a direct agent-client cannot borrow another account's grant or use a `team-member` grant as a device binding.
+- `PgUatRepository.recordUsage` uses a PostgreSQL advisory transaction lock for owner/month, explicit trusted authorization and budget callback, and an idempotent event+monthly total write in the same transaction. Zero budget means no new calls. This is still UAT-only and not wired into real tool metering.
+- `RedisUatAuxiliary.rateHit` is a namespaced atomic Lua fixed-window limiter; Redis failures throw instead of granting unlimited requests.
+- `test/concurrent_team_seats.py` checked 8 actual concurrent join attempts on a temporary synthetic team: 4 accepted, 4 denied, all fixture records removed.
+- `bash scripts/check.sh` applies migrations 1–5 repeatedly, runs Node unit tests and four SQL rollback fixture groups plus the independent concurrency fixture; validates healthy private DB services with NO published ports.
+- `UAT_DATA_PROVENANCE.md` documents and checks that no production data has been used. The unprivileged app role remains pending; never use a database owner as an application identity.

@@ -31,3 +31,18 @@ Do NOT force a full rewrite of old web/API/MCP to React/TypeScript/Fastify just 
 - Owner-authorized least-privilege DB role & connection, real local integration tests, workload-specific load tests then selective feature canary.
 - GitHub write permission previously 403 for feature branch; local commits and bundle backup required until resolved.
 - No production cutover without explicit owner approval and zero unresolved data/session/billing mismatches.
+
+## Continuation — synthetic-only PostgreSQL/Redis hardening (2026-10-10)
+- Explicit OWNER CONSTRAINT: absolutely no production JSON/account/session/keys/device/paddle/erp data may be read, copied or imported into this rc50-v2 stack. All DB work uses synthetic fixtures in `platform-v2`; see `platform-v2/UAT_DATA_PROVENANCE.md`.
+- Added SQL `003_auth_device_communications.sql`: hash-only OAuth one-time token consumption registry, device connections/AB requests/grants, agent clients/bindings, enrollment, licenses, notifications, audit. No live production copy.
+- Added `004_tenant_binding_guards.sql`: enforce device connection ownership at DB level, allow separate Team member AB grant for owner's device without accidentally equating the member with device owner, and prevent cross-actor direct agent bindings / team-member grants being used as direct device grants.
+- Added `005_team_seat_guard.sql`: team row-lock trigger enforces max 5 seats INCLUDING owner, rejects sixth member, protects cap shrink below occupancy, supports revocation/reuse.
+- Added SQL rollback-only fixtures `test_auth_device_rollback.sql`, `test_tenant_binding_rollback.sql`, `test_team_seats_rollback.sql`. Existing `test_core_rollback.sql` unchanged except prior monthly checks. All fixtures PASS and rollback.
+- Added actual multi-connection test `test/concurrent_team_seats.py` with 8 concurrently arriving synthetic member joins: exactly 4 accepted / 4 rejected; unique generated `uat_parallel_` IDs all deleted in finally; cleanup and zero leftovers confirmed.
+- Hardened `PgUatRepository.recordUsage` to REQUIRE trusted `authorizeUsage` AND `budgetFor` callback; within a single PostgreSQL transaction it acquires owner/month advisory lock, rejects changed-payload idempotency keys, enforces remaining monthly cap and only then writes event+aggregate exactly once. This is source-only with fake DB unit tests, NOT yet connected to PostgreSQL as live app (no least-privileged application role).
+- Added UAT Redis atomic fixed-window Lua `INCR`/`EXPIRE` limiter with strict namespace and fail-closed backend errors. Redis remains non-authoritative for money and quota.
+- `platform-v2/scripts/check.sh`: 8/8 Node unit tests, migrations 1–5 idempotently, all four SQL rollback contract groups, eight-way real PG seat race, network confinement/health checks all PASS. GitHub workflow script updated but GitHub CI not verified (write access previously 403).
+- UAT PostgreSQL row-count check: accounts=0, devices=0, sessions=0, usage=0, billing=0, team=0, oauth_tokens=0, audit=0. Migration versions 1..5 only.
+- PostgreSQL17/Redis8 Docker healthy on `lightremote-rc50-v2_private` internal-only network; no published ports. Separate experimental LXD `light-remote-rc50-v2` remains stopped.
+- Last HTTPS health checks: production=200 TLS verification 0, existing rc.50 staging=200 TLS verification 0. No production code, route, proxy, installer, or customer settings changed.
+- PENDING: authorized least-privileged UAT app DB role (earlier blocked; do NOT bypass), end-to-end app-to-DB tests; synthetic legacy contract/diff fixtures; OAuth and AB replay lifecycle test, billing ledger E2E; load test 100/500/1000 simulated sessions and network loss; full Postgres backup/restore. NO production data migration yet.

@@ -35,9 +35,7 @@ jobs:
       - name: PostgreSQL schema + rollback contracts
         working-directory: platform-v2
         run: |
-          docker compose -p lightremote-rc50-v2 -f compose.yml exec -T postgres psql -v ON_ERROR_STOP=1 -U lr_rc50_uat -d light_remote_rc50_uat -f /dev/stdin < sql/001_core.sql
-          docker compose -p lightremote-rc50-v2 -f compose.yml exec -T postgres psql -v ON_ERROR_STOP=1 -U lr_rc50_uat -d light_remote_rc50_uat -f /dev/stdin < sql/002_usage_monthly.sql
-          docker compose -p lightremote-rc50-v2 -f compose.yml exec -T postgres psql -v ON_ERROR_STOP=1 -U lr_rc50_uat -d light_remote_rc50_uat -f /dev/stdin < sql/test_core_rollback.sql
+          bash scripts/check.sh
       - name: Tear down only CI test stack
         if: always()
         working-directory: platform-v2

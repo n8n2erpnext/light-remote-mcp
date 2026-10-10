@@ -7,13 +7,14 @@ const IDENTIFIER=/^[A-Za-z0-9._:-]{1,160}$/;
 const EMAIL=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const check=(condition,code)=>{if(!condition)throw new Error(code);};
 export class PgUatRepository {
-  constructor({pool,allowUat=false,expectedDb='light_remote_rc50_uat',authorizeUsage}={}){
+  constructor({pool,allowUat=false,expectedDb='light_remote_rc50_uat',authorizeUsage,budgetFor}={}){
     check(allowUat===true,'pg_uat_mode_required');
     check(pool&&typeof pool.connect==='function'&&typeof pool.query==='function','pg_pool_required');
     check(expectedDb==='light_remote_rc50_uat','pg_uat_database_must_match');
     this.pool=pool;
     this.expectedDb=expectedDb;
     this.authorizeUsage=authorizeUsage;
+    this.budgetFor=budgetFor;
   }
   async verifyTarget(){
     const result=await this.pool.query("SELECT current_database() AS database, current_user AS role, (SELECT rolsuper FROM pg_roles WHERE rolname=current_user) AS superuser");
@@ -53,20 +54,51 @@ export class PgUatRepository {
     return rows[0];
   }
   /**
-   * Idempotent billable usage event. PostgreSQL owns the ledger, never Redis.
-   * This deliberately does not dispatch jobs or authorize device access.
+   * Staging-only owner-billed quota write. A single advisory transaction lock
+   * serializes all accepted charges for owner/month across PG connections.
+   * Trusted checks can consult the same transaction via {client}.
    */
   async recordUsage({eventId,ownerId,actorId,deviceId=null,jobId=null,monthKey,calls=1}){
     for(const id of [eventId,ownerId,actorId])check(IDENTIFIER.test(String(id||'')),'invalid_usage_identity');
+    for(const id of [deviceId,jobId])check(id===null||IDENTIFIER.test(String(id)),'invalid_usage_reference');
     check(/^\d{4}-(0[1-9]|1[0-2])$/.test(String(monthKey||'')),'invalid_month');
     check(Number.isSafeInteger(calls)&&calls>=0&&calls<=10000,'invalid_calls');
     check(typeof this.authorizeUsage==='function','usage_authority_callback_required');
-    check(await this.authorizeUsage({ownerId,actorId,deviceId,jobId,eventId,calls}), 'usage_authorization_denied');
+    check(typeof this.budgetFor==='function','usage_budget_callback_required');
+
     return this.tx(async client=>{
-      const {rows}=await client.query(
+      await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[ownerId+':'+monthKey]);
+      const existing=async()=>{
+        const result=await client.query(
+          'SELECT event_id,owner_account_id,actor_account_id,device_id,job_id,month_key,tool_calls FROM lr_usage_events WHERE event_id=$1 OR ($2::text IS NOT NULL AND job_id=$2) ORDER BY event_id LIMIT 1',
+          [eventId,jobId]);
+        return result.rows?.[0]||null;
+      };
+      const same=row=>row &&
+        row.owner_account_id===ownerId && row.actor_account_id===actorId &&
+        (row.device_id??null)===(deviceId??null) && (row.job_id??null)===(jobId??null) &&
+        String(row.month_key).trim()===monthKey && Number(row.tool_calls)===calls;
+      const prior=await existing();
+      if(prior){
+        check(same(prior),'usage_idempotency_payload_mismatch');
+        return {recorded:false,duplicate:true};
+      }
+      check(await this.authorizeUsage({ownerId,actorId,deviceId,jobId,eventId,calls,monthKey},{client}),'usage_authorization_denied');
+      const cap=await this.budgetFor({ownerId,actorId,monthKey},{client});
+      check(cap===Infinity||(Number.isSafeInteger(cap)&&cap>=0),'invalid_owner_budget');
+      const monthly=await client.query(
+        'SELECT tool_calls::text AS calls FROM lr_usage_monthly WHERE owner_account_id=$1 AND month_key=$2 FOR UPDATE',
+        [ownerId,monthKey]);
+      const used=BigInt(monthly.rows?.[0]?.calls||'0');
+      check(cap===Infinity||used+BigInt(calls)<=BigInt(cap),'monthly_call_quota_exceeded');
+      const inserted=await client.query(
         'INSERT INTO lr_usage_events(event_id,owner_account_id,actor_account_id,device_id,job_id,month_key,tool_calls) VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING RETURNING event_id',
         [eventId,ownerId,actorId,deviceId,jobId,monthKey,calls]);
-      if(!rows?.length)return {recorded:false,duplicate:true};
+      if(!inserted.rows?.length){
+        const conflict=await existing();
+        check(same(conflict),'usage_idempotency_payload_mismatch');
+        return {recorded:false,duplicate:true};
+      }
       await client.query(
         'INSERT INTO lr_usage_monthly(owner_account_id,month_key,tool_calls) VALUES($1,$2,$3) ON CONFLICT(owner_account_id,month_key) DO UPDATE SET tool_calls=lr_usage_monthly.tool_calls+EXCLUDED.tool_calls,updated_at=now()',
         [ownerId,monthKey,calls]);

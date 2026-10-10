@@ -45,23 +45,49 @@ test('account insertion is parameterized and rejects duplicate IDs, unsafe plan/
  const d=new PgUatRepository({pool:pool(),allowUat:true});
  await assert.rejects(()=>d.createAccount({accountId:'acc2',email:'ok@example.test'}),/account_exists/);
 });
-test('usage billing fails closed without an explicit trusted authority',async()=>{
+test('quota charging fails closed without trusted authorization AND budget',async()=>{
  const p=pool(),repo=new PgUatRepository({pool:p,allowUat:true});
- await assert.rejects(()=>repo.recordUsage({eventId:'evt1',ownerId:'owner',actorId:'actor',monthKey:'2026-10'}),/usage_authority_callback_required/);
+ const ev={eventId:'evt1',ownerId:'owner',actorId:'actor',monthKey:'2026-10'};
+ await assert.rejects(()=>repo.recordUsage(ev),/usage_authority_callback_required/);
+ const noBudget=new PgUatRepository({pool:p,allowUat:true,authorizeUsage:async()=>true});
+ await assert.rejects(()=>noBudget.recordUsage(ev),/usage_budget_callback_required/);
  assert.equal(p.queries.length,0);
- const forbidden=new PgUatRepository({pool:p,allowUat:true,authorizeUsage:async()=>false});
- await assert.rejects(()=>forbidden.recordUsage({eventId:'evt1',ownerId:'owner',actorId:'actor',monthKey:'2026-10'}),/usage_authorization_denied/);
- assert.equal(p.queries.length,0);
+ const forbidden=new PgUatRepository({pool:p,allowUat:true,authorizeUsage:async()=>false,budgetFor:async()=>50});
+ await assert.rejects(()=>forbidden.recordUsage(ev),/usage_authorization_denied/);
+ assert(p.queries.some(x=>x.sql==='ROLLBACK'));
+ assert(!p.queries.some(x=>x.sql.startsWith('INSERT INTO lr_usage_events')));
 });
-test('approved event insertion is idempotent and does not write Redis',async()=>{
- let attempts=0;const p=pool({response:sql=>sql.startsWith('INSERT INTO lr_usage_events')?{rows:++attempts===1?[{event_id:'e1'}]:[]}:{rows:[]}});
- const repo=new PgUatRepository({pool:p,allowUat:true,authorizeUsage:async()=>true});
- const input={eventId:'e1',ownerId:'owner',actorId:'actor',monthKey:'2026-10'};
- assert.deepEqual(await repo.recordUsage(input),{recorded:true,duplicate:false});
- assert.deepEqual(await repo.recordUsage(input),{recorded:false,duplicate:true});
- assert.equal(p.queries.filter(x=>x.sql.startsWith('INSERT INTO lr_usage_monthly')).length,1);
- assert.equal(p.queries.filter(x=>x.sql==='COMMIT').length,2);
- assert.equal(p.queries.filter(x=>x.sql.startsWith('INSERT INTO lr_usage_events')).length,2);
+test('owner/month quota is transactional, duplicate events do not double-charge',async()=>{
+ let total=0;
+ const events=new Map();
+ const p=pool({response:(sql,params)=>{
+   if(sql.startsWith('SELECT event_id,owner_account_id')) {
+     const found=events.get(params[0])||[...events.values()].find(x=>params[1]&&x.job_id===params[1]);
+     return {rows:found?[found]:[]};
+   }
+   if(sql.startsWith('SELECT tool_calls::text'))return {rows:[{calls:String(total)}]};
+   if(sql.startsWith('INSERT INTO lr_usage_events')){
+     const [event_id,owner_account_id,actor_account_id,device_id,job_id,month_key,tool_calls]=params;
+     if(events.has(event_id))return {rows:[]};
+     events.set(event_id,{event_id,owner_account_id,actor_account_id,device_id,job_id,month_key,tool_calls});
+     return {rows:[{event_id}]};
+   }
+   if(sql.startsWith('INSERT INTO lr_usage_monthly')){total+=params[2];return {rows:[]};}
+   return {rows:[]};
+ }});
+ const repo=new PgUatRepository({pool:p,allowUat:true,authorizeUsage:async()=>true,budgetFor:async()=>2});
+ const first={eventId:'evt1',ownerId:'owner',actorId:'actor',monthKey:'2026-10',calls:1};
+ assert.deepEqual(await repo.recordUsage(first),{recorded:true,duplicate:false});
+ assert.deepEqual(await repo.recordUsage(first),{recorded:false,duplicate:true});
+ assert.deepEqual(await repo.recordUsage({...first,eventId:'evt2'}),{recorded:true,duplicate:false});
+ await assert.rejects(()=>repo.recordUsage({...first,eventId:'evt3'}),/monthly_call_quota_exceeded/);
+ await assert.rejects(()=>repo.recordUsage({...first,calls:2}),/usage_idempotency_payload_mismatch/);
+ assert.equal(total,2);
+ assert.equal(events.size,2);
+ assert.equal(p.queries.filter(x=>x.sql.startsWith('INSERT INTO lr_usage_monthly')).length,2);
+ assert.equal(p.queries.filter(x=>x.sql.includes('pg_advisory_xact_lock')).length,5);
+ assert.equal(p.queries.filter(x=>x.sql==='COMMIT').length,3);
+ assert.equal(p.queries.filter(x=>x.sql==='ROLLBACK').length,2);
 });
 test('Redis adapter has isolated namespace and enforced TTL',async()=>{
  const m=new Map(),call=[];
@@ -77,4 +103,36 @@ test('Redis adapter has isolated namespace and enforced TTL',async()=>{
  assert.equal(await cache.cacheGet('device.x'),null);
  await assert.rejects(()=>cache.cachePut('../unsafe',{},{}),/invalid_cache_key/);
  await assert.rejects(()=>cache.cachePut('k',{x:1},{ttlSeconds:7200}),/cache_ttl_invalid/);
+});
+
+test('Redis fixed-window rate limiter is atomic and fails closed when unavailable',async()=>{
+ let count=0;
+ const events=[];
+ const client={
+   get:async()=>null,set:async()=> 'OK',del:async()=>1,
+   eval:async(script,options)=>{
+     events.push({script,options});
+     assert(script.includes("redis.call('INCR'"));
+     assert(script.includes("redis.call('EXPIRE'"));
+     assert.deepEqual(options.arguments,['60']);
+     return [++count,58];
+   }
+ };
+ const cache=new RedisUatAuxiliary({client,allowUat:true,prefix:'lr:rc50:uat:auth:'});
+ assert.deepEqual(await cache.rateHit('oauth-ip-1',{limit:2,windowSeconds:60}),
+   {allowed:true,remaining:1,count:1,retryAfterSeconds:0});
+ assert.deepEqual(await cache.rateHit('oauth-ip-1',{limit:2,windowSeconds:60}),
+   {allowed:true,remaining:0,count:2,retryAfterSeconds:0});
+ assert.deepEqual(await cache.rateHit('oauth-ip-1',{limit:2,windowSeconds:60}),
+   {allowed:false,remaining:0,count:3,retryAfterSeconds:58});
+ assert(events.every(x=>x.options.keys[0]==='lr:rc50:uat:auth:rate:oauth-ip-1'));
+ await assert.rejects(()=>cache.rateHit('bad/../../thing'),/invalid_cache_key/);
+ await assert.rejects(()=>cache.rateHit('k',{limit:0}),/invalid_rate_limit/);
+ const failure=new RedisUatAuxiliary({allowUat:true,client:{
+   get:async()=>null,set:async()=>null,del:async()=>0,
+   eval:async()=>{throw Error('redis_down')},
+ }});
+ await assert.rejects(()=>failure.rateHit('ip-1'),/rate_limit_backend_unavailable/);
+ const missing=new RedisUatAuxiliary({allowUat:true,client:{get:async()=>null,set:async()=>null,del:async()=>0}});
+ await assert.rejects(()=>missing.rateHit('ip-1'),/redis_atomic_eval_required/);
 });

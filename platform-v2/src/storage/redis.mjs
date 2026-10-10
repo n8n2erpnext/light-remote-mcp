@@ -23,4 +23,30 @@ export class RedisUatAuxiliary {
     return json===null?null:JSON.parse(json);
   }
   async cacheInvalidate(id){return this.client.del(this._key(id));}
+
+  /**
+   * Atomic fixed-window limiter for synthetic UAT tests.
+   * Redis failure MUST propagate as a rejection, never as unlimited access.
+   * Not a quota/billing counter; never use for authoritative plan usage.
+   */
+  async rateHit(id,{limit=12,windowSeconds=600}={}){
+    if(!Number.isSafeInteger(limit)||limit<1||limit>100000)throw new Error('invalid_rate_limit');
+    if(!Number.isSafeInteger(windowSeconds)||windowSeconds<1||windowSeconds>3600)throw new Error('invalid_rate_window');
+    if(typeof this.client.eval!=='function')throw new Error('redis_atomic_eval_required');
+    const key=this._key('rate:'+id);
+    const script=`local count = redis.call('INCR', KEYS[1])
+if count == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end
+return {count, redis.call('TTL', KEYS[1])}`;
+    let result;
+    try{
+      result=await this.client.eval(script,{keys:[key],arguments:[String(windowSeconds)]});
+    }catch(error){
+      throw new Error('rate_limit_backend_unavailable',{cause:error});
+    }
+    const [rawCount,rawTtl]=Array.isArray(result)?result:[];
+    const count=Number(rawCount),ttl=Number(rawTtl);
+    if(!Number.isSafeInteger(count)||count<1||!Number.isSafeInteger(ttl)||ttl<0)
+      throw new Error('rate_limit_invalid_backend_response');
+    return {allowed:count<=limit,remaining:Math.max(0,limit-count),count,retryAfterSeconds:count>limit?ttl:0};
+  }
 }
