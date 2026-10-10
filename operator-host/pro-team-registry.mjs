@@ -34,6 +34,17 @@ export class ProTeamRegistry {
   shareDevice({ownerAccountId,deviceId,deviceOwnerAccountId}={}){const team=this._team(ownerAccountId);if(deviceOwnerAccountId!==team.ownerAccountId)throw new ProTeamError('team_cannot_share_foreign_device');const device=checkId(deviceId);if(!team.devices.includes(device))team.devices.push(device);this._save();return this.view(team.ownerAccountId);}
   unshareDevice({ownerAccountId,deviceId}={}){const team=this._team(ownerAccountId);team.devices=team.devices.filter(x=>x!==String(deviceId));this._save();return this.view(team.ownerAccountId);}
   remove({ownerAccountId,memberAccountId}={}){const team=this._team(ownerAccountId),member=checkId(memberAccountId);if(member===team.ownerAccountId)throw new ProTeamError('team_owner_cannot_remove_self');team.members=team.members.filter(x=>x!==member);this._save();return this.view(team.ownerAccountId);}
+  memberships(memberAccountId){
+    const member=checkId(memberAccountId),results=[];
+    for(const team of this.teams.values()){
+      if(!team.members.includes(member))continue;
+      try{this._eligible(team.ownerAccountId);}catch{continue;}
+      if(!this.accountActive(member))continue;
+      results.push({ownerAccountId:team.ownerAccountId,seatLimit:MAX_SEATS,usedSeats:team.members.length,
+        sharedDevices:[...team.devices],crossAccountExecutionEnabled:false});
+    }
+    return results.sort((a,b)=>a.ownerAccountId.localeCompare(b.ownerAccountId));
+  }
   authorize({deviceOwnerAccountId,actorAccountId,deviceId}={}){const owner=checkId(deviceOwnerAccountId),actor=checkId(actorAccountId);if(owner===actor)return true;const team=this.teams.get(owner);if(!team)return false;try{this._eligible(owner)}catch{return false;}return team.members.includes(actor)&&team.devices.includes(String(deviceId))&&this.accountActive(actor);}
 }
 export const PRO_TEAM_MAX_SEATS=MAX_SEATS;

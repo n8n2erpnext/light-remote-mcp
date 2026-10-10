@@ -50,12 +50,15 @@ try{
   await rejects('POST','/v1/accounts/team/accept',{inviteCode:invitation.inviteCode},'tokenMember',/team_invite_invalid/);
   assert.equal((await call('POST','/v1/accounts/team/device/share',{deviceId:'dev_owner'})).data.team.devices[0],'dev_owner');
   assert.equal(proTeams.authorize({deviceOwnerAccountId:'owner',actorAccountId:'member1',deviceId:'dev_owner'}),true);
+  assert.deepEqual((await call('GET','/v1/accounts/team/memberships',{},'tokenMember')).data.memberships[0].sharedDevices,['dev_owner']);
+  assert.deepEqual((await call('GET','/v1/accounts/team/memberships',{},'tokenOutsider')).data.memberships,[]);
   assert.equal((await call('GET','/v1/accounts/team')).data.crossAccountExecutionEnabled,false);
   await rejects('POST','/v1/accounts/team/member/remove',{memberAccountId:'owner'},'tokenOwner',/team_owner_cannot_remove_self/);
   await rejects('POST','/v1/accounts/team/member/remove',{memberAccountId:'owner'},'tokenMember',/team_not_found/);
   await call('POST','/v1/accounts/team/member/remove',{memberAccountId:'member1'});
   assert.equal(proTeams.authorize({deviceOwnerAccountId:'owner',actorAccountId:'member1',deviceId:'dev_owner'}),false);
   plans.set('owner','free');
+  assert.deepEqual((await call('GET','/v1/accounts/team/memberships',{},'tokenMember')).data.memberships,[]);
   assert.equal(proTeams.authorize({deviceOwnerAccountId:'owner',actorAccountId:'member1',deviceId:'dev_owner'}),false);
   await rejects('POST','/v1/accounts/team/device/share',{deviceId:'dev_owner'},'tokenOwner',/pro_team_subscription_required/);
   const portal=fs.readFileSync(new URL('../../plugin-server/account-portal.mjs',import.meta.url),'utf8');

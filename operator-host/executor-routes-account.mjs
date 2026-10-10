@@ -242,6 +242,10 @@ export async function handleAccountRoutes(req,res,url,deps){
     // Pro Team management is authenticated by a REAL account session.
     // It only manages membership/device sharing; cross-account job routes remain
     // disabled until independent per-actor local A/B grants are implemented.
+    if(url.pathname==='/v1/accounts/team/memberships' && req.method==='GET'){
+      const memberAccountId=requireAccount(req).account.accountId;
+      return sendJson(res,200,{ok:true,memberships:proTeams.memberships(memberAccountId)});
+    }
     if(url.pathname==='/v1/accounts/team' && req.method==='GET'){
       const ownerAccountId=requireAccount(req).account.accountId;
       return sendJson(res,200,{ok:true,team:proTeams.view(ownerAccountId),crossAccountExecutionEnabled:false});

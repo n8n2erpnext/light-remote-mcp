@@ -222,6 +222,11 @@ async function accountApi(req,res){
         :`/v1/accounts/${action}`;
       return res.status(200).json(await callOperatorJson('GET',target,null,headers(token)));
     }
+    if(action==='team-memberships'){
+      if(!method(req,res,'GET'))return;
+      const token=requireAccount(req,res);if(!token)return;
+      return res.status(200).json(await callOperatorJson('GET','/v1/accounts/team/memberships',null,headers(token)));
+    }
     if(action==='team-view'||action==='team-create'){
       if(!method(req,res,action==='team-view'?'GET':'POST'))return;
       const token=requireAccount(req,res);if(!token)return;
