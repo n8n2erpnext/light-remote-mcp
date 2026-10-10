@@ -260,9 +260,13 @@ export async function handleAccountRoutes(req,res,url,deps){
     if(url.pathname==='/v1/accounts/team/invite' && req.method==='POST'){
       const ownerAccountId=requireAccount(req).account.accountId;
       const body=await readJson(req);
-      // Invitee must already have a registered, operational account.
-      const memberAccountId=accounts.assertOperational(String(body.memberAccountId||'')).accountId;
-      const invite=proTeams.invite({ownerAccountId,memberAccountId});
+      // Email invites are opaque, do not disclose whether the address is registered.
+      // A recipient must authenticate and have verified the invited email to accept.
+      if(body.memberEmail&&body.memberAccountId)throw new AccountError('invalid_team_invitee',400);
+      const invite=body.memberEmail
+        ?proTeams.inviteEmail({ownerAccountId,memberEmail:body.memberEmail})
+        :proTeams.invite({ownerAccountId,
+          memberAccountId:accounts.assertOperational(String(body.memberAccountId||'')).accountId});
       return sendJson(res,201,{ok:true,invite});
     }
     // Team A/B is separate from the owner's existing approval. This endpoint

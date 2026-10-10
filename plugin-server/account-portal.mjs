@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { callOperatorJson } from './operator-client.mjs';
 import { PUBLIC_ORIGIN } from './config.mjs';
-import { mailConfig, sendDormancyWarning, sendDormantNotice, sendMagicLogin, sendPasswordReset, sendUpgradeRequested, sendWelcomeVerification } from './mailer.mjs';
+import { mailConfig, sendDormancyWarning, sendDormantNotice, sendMagicLogin, sendPasswordReset, sendTeamInvitation, sendUpgradeRequested, sendWelcomeVerification } from './mailer.mjs';
 import { beginGoogleAuth, finishGoogleAuth, googleAuthStatus } from './google-auth.mjs';
 import { createPaddleCheckout, createPaddleCustomerPortal, paddleBillingSummary, paddlePublicConfig } from './paddle-billing.mjs';
 
@@ -239,8 +239,22 @@ async function accountApi(req,res){
         action==='team-view'?'GET':'POST','/v1/accounts/team',
         action==='team-create'?{}:null,headers(token)));
     }
+    if(action==='team-invite'){
+      if(!method(req,res,'POST'))return;
+      const token=sessionToken(req);if(!token)return res.status(401).json({ok:false,error:'account_session_required'});
+      if(!allowPublicAuth(req,'team-invite',{limit:8,windowMs:60*60_000}))
+        return res.status(429).json({ok:false,error:'team_invite_rate_limited'});
+      const memberEmail=String(req.body?.memberEmail||'').trim().toLowerCase();
+      if(memberEmail.length>254||!/^([^\s@]+)@([^\s@]+)\.([^\s@]+)$/.test(memberEmail))
+        return res.status(400).json({ok:false,error:'invalid_team_invite_email'});
+      const upstream=await callOperatorJson('POST','/v1/accounts/team/invite',{memberEmail},headers(token));
+      const mail=await sendTeamInvitation({to:memberEmail,inviteCode:upstream.invite.inviteCode,
+        expiresAt:upstream.invite.expiresAt}).catch(error=>({sent:false,reason:error?.code||'send_failed'}));
+      accountAudit('team-invite',mail?.sent?'success':'mail_error');
+      return res.status(201).json({ok:true,invite:upstream.invite,
+        mail:{sent:Boolean(mail?.sent),reason:mail?.sent?null:'email_delivery_failed'}});
+    }
     const teamMutations={
-      'team-invite':{route:'invite',field:'memberAccountId'},
       'team-accept':{route:'accept',field:'inviteCode'},
       'team-remove':{route:'member/remove',field:'memberAccountId'},
       'team-device-share':{route:'device/share',field:'deviceId'},

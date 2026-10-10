@@ -156,6 +156,7 @@ const verifyTeamPrincipal=(req,url,body)=>
 const proTeams=new ProTeamRegistry({stateFile:PRO_TEAM_STATE_FILE,
   planFor:accountId=>operationalAccount(accountId).plan,
   accountActive:accountId=>{try{return operationalAccount(accountId).status==='active';}catch{return false;}},
+  emailFor:accountId=>{try{const a=operationalAccount(accountId);return a.emailVerified===true?a.email:null;}catch{return null;}},
   onRevoke:({memberAccountId,deviceId,reason})=>
     accessGrants.revokeTeamMember({accountId:memberAccountId,deviceId,reason})});
 // Private, separate source-only Team session plane. Must never share the
