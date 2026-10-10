@@ -50,20 +50,22 @@ export async function sendWelcome({to}){return send({to,subject:'Welcome to Ligh
 export async function sendWelcomeVerification({to,verifyUrl,pin,challengeExpiresAt,pendingExpiresAt}){const challengeMinutes=Math.max(1,Math.round((Number(challengeExpiresAt)-Date.now())/60000)),pendingHours=Math.max(1,Math.round((Number(pendingExpiresAt)-Date.now())/3600000));return send({to,subject:'Welcome to Light Remote — verify your email',text:`Welcome to Light Remote.\n\nVerify your email to activate your account:\n${verifyUrl}\n\nOr enter this 6-digit PIN: ${pin}\n\nThis verification expires in about ${challengeMinutes} minutes. Your pending registration is removed after about ${pendingHours} hours if it is not verified.\n\nIf you do not see this message in your inbox, check Spam or Junk.`,html:shell({eyebrow:'WELCOME · VERIFY EMAIL',preheader:'Verify your Light Remote email to activate your account.',title:'Verify your email',body:`<p>Welcome to Light Remote. You are almost ready.</p><p>Verify this email address to activate your account. Use the button below or enter the 6-digit PIN on the verification page.</p><div style="margin:22px 0;padding:18px;background:#f8fafc;border:1px solid #dbe2ea;border-radius:12px;text-align:center"><div style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:#6b7280">Verification PIN</div><div style="margin-top:8px;font-family:monospace;font-size:28px;font-weight:800;letter-spacing:.22em;color:#111827">${esc(pin)}</div></div><p>This challenge expires in about <strong>${challengeMinutes} minutes</strong>. The pending registration is removed after about <strong>${pendingHours} hours</strong> if it is not verified.</p><p>If the message is not in your inbox, check <strong>Spam</strong> or <strong>Junk</strong>.</p>`,ctaLabel:'Verify email',ctaUrl:verifyUrl})});}
 export async function sendTeamInvitation({to,inviteCode,expiresAt}={}){
   if(!to||!inviteCode||!Number.isFinite(Number(expiresAt)))throw new Error('invalid_team_invitation');
-  const joinUrl=PUBLIC_ORIGIN+'/account/team';
-  const registerUrl=PUBLIC_ORIGIN+'/account/register';
+  // The fragment is client-only: the invite code is never sent to the web server
+  // during navigation and does not enter query-string access logs.
+  const joinUrl=PUBLIC_ORIGIN+'/account/team#invite='+encodeURIComponent(inviteCode);
+  const registerUrl=PUBLIC_ORIGIN+'/account/register?next='+encodeURIComponent('/account/team');
   const expires=new Date(Number(expiresAt)).toISOString().replace('T',' ').slice(0,16)+' UTC';
   return send({to,subject:'Light Remote Pro Team invitation',
     text:'You have been invited to a Light Remote Pro Team.\n'
       +'Sign in or register with this exact email address and verify it.\n'
-      +'Open '+joinUrl+' and enter this one-time invitation code:\n\n'
+      +'Open '+joinUrl+' to review and accept the invitation:\n\n'
       +inviteCode+'\n\nExpires: '+expires+'\n'
       +'Joining does not authorize device access; separate Local Wall A/B approval is required.',
     html:shell({eyebrow:'PRO TEAM · INVITATION',
       preheader:'You have a Light Remote Pro Team invitation.',
       title:'You are invited to a Pro Team',
-      body:'<p>Sign in using this email address, or <a href="'+esc(registerUrl)+'">create a free Light Remote account</a> and verify your email first.</p><p>Use this one-time invitation code to join the team:</p><p><strong>Expires: '+esc(expires)+'</strong></p><p>Joining a team does not grant access to any machine. Each device still requires separate owner approval and Local Wall A/B pairing.</p>',
-      code:inviteCode,ctaLabel:'Accept invitation',ctaUrl:joinUrl})});
+      body:'<p>Sign in using this email address, or <a href="'+esc(registerUrl)+'">create a free Light Remote account</a> and verify your email first.</p><p>The button below fills your invitation code. You must then explicitly press <strong>Accept invitation</strong> while signed into the invited email account.</p><p><strong>Expires: '+esc(expires)+'</strong></p><p>Joining a team does not grant access to any machine. Each device still requires separate owner approval and Local Wall A/B pairing.</p>',
+      code:inviteCode,ctaLabel:'Review & accept invitation',ctaUrl:joinUrl})});
 }
 export async function sendPasswordReset({to,resetUrl}){return send({to,subject:'Reset your Light Remote password',text:`Open this one-time password reset link within 30 minutes:\n\n${resetUrl}\n\nIf you did not request this, ignore this email.`,html:shell({preheader:'Reset your Light Remote password.',title:'Reset your password',body:'<p>Use the button below to set a new password. The link is one-time and expires in 30 minutes.</p><p>If you did not request this, you can ignore this email.</p>',ctaLabel:'Reset password',ctaUrl:resetUrl})});}
 export async function sendMagicLogin({to,loginUrl}){return send({to,subject:'Your one-time Light Remote sign-in link',text:`Open this one-time sign-in link within 20 minutes:\n\n${loginUrl}`,html:shell({preheader:'One-time sign-in link.',title:'One-time sign in',body:'<p>This link signs you in once and expires in 20 minutes. It cannot be reused.</p>',ctaLabel:'Sign in to Light Remote',ctaUrl:loginUrl})});}

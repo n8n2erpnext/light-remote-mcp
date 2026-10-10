@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en" data-theme="dark"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="robots" content="noindex,nofollow,noarchive"><title>Pro Team · Light Remote</title>
+<meta name="robots" content="noindex,nofollow,noarchive"><meta name="referrer" content="no-referrer"><title>Pro Team · Light Remote</title>
 <link rel="icon" href="/account/assets/light-remote.ico"><link rel="stylesheet" href="/account/assets/portal.css">
 <script src="/account/assets/theme.js"></script>
 <style>
@@ -48,7 +48,7 @@
 <label class="team-label" for="deviceId">My device</label><select class="team-field" id="deviceId"></select>
 <div class="team-actions"><button id="shareDevice" class="team-btn primary">Share selected device</button></div>
 </section>
-<section class="team-card"><h2>Accept an invitation</h2><p class="team-muted">Sign in to the invited account before accepting. Accepting an invitation never approves desktop access.</p>
+<section class="team-card"><h2>Accept an invitation</h2><p class="team-muted">Sign in using the exact email that received the invitation. Opening an email link fills the code automatically; you must confirm acceptance below. Joining does not authorize desktop access.</p>
 <label class="team-label" for="acceptCode">One-time invitation code</label><input class="team-field" id="acceptCode" autocomplete="off" maxlength="160">
 <div class="team-actions"><button class="team-btn" id="accept">Accept invitation</button></div>
 </section>
@@ -58,6 +58,25 @@
 <script>
 (()=>{'use strict';
 const $=id=>document.getElementById(id);let team=null;let user=null;let devices=[];let memberships=[];
+const INVITE_STORAGE_KEY='light_remote_team_pending_invite';
+function captureInvitation(){
+ const hash=String(location.hash||'');
+ if(hash.startsWith('#invite=')){
+   const raw=hash.slice('#invite='.length);
+   // Remove the invite from browser history immediately; fragments never reach the server.
+   history.replaceState(history.state,'',location.pathname+location.search);
+   let code='';
+   try{code=decodeURIComponent(raw)}catch{return status('Invalid invitation link',true)}
+   if(!/^[A-Za-z0-9_-]{20,160}$/.test(code))return status('Invalid invitation link',true);
+   $('acceptCode').value=code;
+   try{sessionStorage.setItem(INVITE_STORAGE_KEY,code)}catch{}
+ }else{
+   let stored='';
+   try{stored=sessionStorage.getItem(INVITE_STORAGE_KEY)||''}catch{}
+   if(/^[A-Za-z0-9_-]{20,160}$/.test(stored))$('acceptCode').value=stored;
+ }
+}
+
 const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 async function api(action,{method='GET',payload=null}={}){
  const options={method,credentials:'same-origin',cache:'no-store',headers:{'accept':'application/json'}};
@@ -87,6 +106,7 @@ async function load(){
  memberships=(await api('team-memberships')).memberships||[];
  try{team=(await api('team-view')).team;}catch(err){team=null;if(err.message!=='team_not_found'&&err.message!=='pro_team_subscription_required')status(err.message,true)}
  render();
+ if($('acceptCode').value.trim())status('Invitation ready. Signed in as '+(user?.email||'this account')+'. Click Accept invitation only if this is the invited email.');
 }
 async function run(label,task){try{status('Working…');const result=await task();status(typeof result==='string'?result:label);await load();}catch(err){status(err.message,true)}}
 $('createTeam').onclick=()=>run('Team created',async()=>{await api('team-create',{method:'POST',payload:{}})});
@@ -100,10 +120,18 @@ $('invite').onclick=()=>run('Invitation prepared',async()=>{
    :'Invite created but email delivery failed. Copy the one-time code to the recipient.';
 });
 $('copyInvite').onclick=async()=>{try{await navigator.clipboard.writeText($('inviteCode').textContent);status('Invitation copied')}catch{status('Copy unavailable in this browser',true)}};
-$('accept').onclick=()=>run('Invitation accepted',async()=>{const code=$('acceptCode').value.trim();if(!code)throw Error('Enter the invitation code');await api('team-accept',{method:'POST',payload:{inviteCode:code}});$('acceptCode').value=''});
+$('accept').onclick=()=>run('Invitation accepted',async()=>{
+ const code=$('acceptCode').value.trim();
+ if(!code)throw Error('Enter the invitation code');
+ await api('team-accept',{method:'POST',payload:{inviteCode:code}});
+ $('acceptCode').value='';
+ try{sessionStorage.removeItem(INVITE_STORAGE_KEY)}catch{}
+ return 'Invitation accepted. You have joined the team; device access still requires local A/B approval.';
+});
 $('shareDevice').onclick=()=>run('Device sharing updated',async()=>{await api('team-device-share',{method:'POST',payload:{deviceId:$('deviceId').value}})});
 $('members').onclick=event=>{const id=event.target.closest('[data-remove]')?.dataset.remove;if(id&&confirm('Remove team member?'))run('Member removed',async()=>{await api('team-remove',{method:'POST',payload:{memberAccountId:id}})})};
 $('sharedDevices').onclick=event=>{const id=event.target.closest('[data-unshare]')?.dataset.unshare;if(id&&confirm('Stop sharing this device?'))run('Device removed from sharing',async()=>{await api('team-device-unshare',{method:'POST',payload:{deviceId:id}})})};
+captureInvitation();
 load().catch(err=>status(err.message,true));
 })();
 </script></body></html>
