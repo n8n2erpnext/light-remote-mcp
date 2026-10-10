@@ -2,12 +2,14 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import {ProTeamRegistry} from '../../operator-host/pro-team-registry.mjs';
 import {DeviceAccessGrantRegistry} from '../../operator-host/device-access-grant-registry.mjs';
 import {requestTeamMemberApproval} from '../../operator-host/team-approval-requests.mjs';
 import {verifyTeamMemberAuthorization} from '../../operator-host/team-member-auth.mjs';
 import {handleAccountRoutes} from '../../operator-host/executor-routes-account.mjs';
-let plan='pro';const owner='owner',member='member',stranger='stranger',deviceId='dev_team_11',agentId='chatgpt-member-01';
+import {mintTeamPrincipalProof,TeamPrincipalProofVerifier,verifyTeamPrincipalRequest,teamOAuthAgentId} from '../../lib/team-oauth-principal-proof.mjs';
+let plan='pro';const owner='owner',member='member',stranger='stranger',deviceId='dev_team_11',agentId=teamOAuthAgentId({accountId:'member',clientId:'agent-default'});
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'lr-team-ab-route-'));
 const teamRegistry=new ProTeamRegistry({stateFile:path.join(dir,'teams.json'),planFor:id=>id===owner?plan:'free',accountActive:()=>true});
 const accessGrants=new DeviceAccessGrantRegistry({stateFile:path.join(dir,'grants.json')});
@@ -18,8 +20,11 @@ const connections={assertConnected:id=>id===deviceId?connection:(()=>{throw Erro
 const base={actorAccountId:member,deviceId,agentId,devices,connections,accessGrants,teamRegistry,planFor:()=>plan};
 const fail=(args,pattern)=>assert.throws(()=>requestTeamMemberApproval({...base,...args}),pattern);
 const scope=new Map([['ownerToken',owner],['memberToken',member],['strangerToken',stranger]]);
+const {privateKey,publicKey}=crypto.generateKeyPairSync('ed25519');
+const verifier=new TeamPrincipalProofVerifier({publicKey});
 const deps={
   proTeams:teamRegistry,accessGrants,devices,connections,
+  verifyTeamPrincipal:(req,url,body)=>verifyTeamPrincipalRequest(req,url,body,verifier),
   operationalAccount:id=>({accountId:id,plan:id===owner?plan:'free'}),
   requestTeamMemberApproval,
   operationalAccount:id=>({accountId:id,plan:id===owner?plan:'free'}),
@@ -31,8 +36,14 @@ const deps={
 async function post(token,body){
   const actor=scope.get(token);
   if(!actor)throw Error('oauth_plugin_identity_required');
-  const req={method:'POST',headers:{token},body:{...body,actorAccountId:actor}},res={};
-  await handleAccountRoutes(req,res,new URL('http://local/v1/plugin/team/access/request'),deps);
+  const route='/v1/plugin/team/access/request';
+  const cleanBody={deviceId:body.deviceId};
+  const proof=mintTeamPrincipalProof({
+    identity:{accountId:actor,clientId:body.agentId||'agent-default'},
+    method:'POST',targetPath:route,body:cleanBody,privateKey
+  });
+  const req={method:'POST',headers:{token,'x-light-remote-team-proof':proof},body:cleanBody},res={};
+  await handleAccountRoutes(req,res,new URL('http://local'+route),deps);
   return res;
 }
 async function webPost(token,body){
@@ -58,7 +69,7 @@ try{
   await assert.rejects(()=>post('invalidToken',{deviceId,agentId}),/oauth_plugin_identity_required/);
   await assert.rejects(()=>webPost('memberToken',{deviceId,agentId}),/team_approval_requires_oauth_plugin/);
   await assert.rejects(()=>webPost('invalidToken',{deviceId,agentId}),/account_session_required/);
-  const out=await post('memberToken',{deviceId,agentId});
+  const out=await post('memberToken',{deviceId});
   assert.equal(out.status,201);assert.equal(out.data.approval.state,'pending');
   assert.equal(out.data.approval.crossAccountExecutionEnabled,false);
   assert(out.data.approval.pollToken);

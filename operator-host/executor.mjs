@@ -22,6 +22,7 @@ import { ProTeamRegistry, ProTeamError } from './pro-team-registry.mjs';
 import {requestTeamMemberApproval} from './team-approval-requests.mjs';
 import {TeamSessionUatRegistry} from './team-session-uat-registry.mjs';
 import {authorizeTrustedTeamDispatch} from './team-dispatch-authority.mjs';
+import {TeamPrincipalProofVerifier,verifyTeamPrincipalRequest} from '../lib/team-oauth-principal-proof.mjs';
 import {TeamEntitlementError} from './team-entitlement-policy.mjs';
 import { LicenseKeyRegistry, LicenseKeyError } from './license-key-registry.mjs';
 import { FleetAuthorityRegistry, FleetAuthorityError } from './fleet-authority-registry.mjs';
@@ -145,6 +146,13 @@ const pairingCodes = new DevicePairingRegistry({ emit:event => pushEvent(event) 
 const agentClients = new AgentClientRegistry({ stateFile:AGENT_CLIENT_STATE_FILE, emit:event => pushEvent(event) });
 const accounts = new AccountRegistry({ stateFile:ACCOUNT_STATE_FILE, bootstrapAccountId:ACCOUNT_ID, emit:event => pushEvent(event) });
 // Team billing/seat policy is prepared but cross-account device routing remains disabled.
+// Separate staging key, never the public X25519 Operator encryption key.
+// Absent key => all Team-only internal routes fail closed by design.
+const teamVerifyFile=String(process.env.OPERATOR_TEAM_OAUTH_VERIFY_KEY_FILE||'');
+const teamPrincipalVerifier=teamVerifyFile
+  ?new TeamPrincipalProofVerifier({publicKey:fs.readFileSync(teamVerifyFile)}):null;
+const verifyTeamPrincipal=(req,url,body)=>
+  verifyTeamPrincipalRequest(req,url,body,teamPrincipalVerifier);
 const proTeams=new ProTeamRegistry({stateFile:PRO_TEAM_STATE_FILE,
   planFor:accountId=>operationalAccount(accountId).plan,
   accountActive:accountId=>{try{return operationalAccount(accountId).status==='active';}catch{return false;}},
@@ -1051,7 +1059,7 @@ const routeDeps=()=>({
   removeRuntimeForDevice,requireAccount,requireDeviceConnection,revokeRuntimeForDevice,ring,
   ringBytes,sendJson,sessionStatsFromDisk,sessions,sseClients,
   startDesktopOperation,startFsOperation,startJob,startProcessOperation,startScpOperation,startSearchOperation,
-  startTerminalOperation,targetRoute,terminalResultSummary,usage,verifiedChannelContext,
+  startTerminalOperation,targetRoute,verifyTeamPrincipal,terminalResultSummary,usage,verifiedChannelContext,
   verifiedFleetContext,verifiedLeafCapabilities,waitForJob,wakeDeviceChannelForDevice,
 });
 

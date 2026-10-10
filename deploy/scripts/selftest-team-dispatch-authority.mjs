@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import {AgentClientRegistry,AgentClientRegistryError} from '../../operator-host/agent-client-registry.mjs';
 import {handleDeviceChannelRoutes} from '../../operator-host/executor-routes-device-channel.mjs';
 import {handleAccountRoutes} from '../../operator-host/executor-routes-account.mjs';
+import {mintTeamPrincipalProof,TeamPrincipalProofVerifier,verifyTeamPrincipalRequest,teamOAuthAgentId} from '../../lib/team-oauth-principal-proof.mjs';
 import {ProTeamRegistry} from '../../operator-host/pro-team-registry.mjs';
 import {DeviceAccessGrantRegistry,AB_GRANT_MAX_LIFETIME_MS} from '../../operator-host/device-access-grant-registry.mjs';
 import {authorizeTeamDispatch,authorizeTrustedTeamDispatch,assertTeamBoundSession,TEAM_UAT_OPERATION_FAMILIES} from '../../operator-host/team-dispatch-authority.mjs';
@@ -16,7 +18,10 @@ teamRegistry.accept({memberAccountId:'member',inviteCode:invite.inviteCode});
 teamRegistry.shareDevice({ownerAccountId:'owner',deviceId:'dev-team',deviceOwnerAccountId:'owner'});
 const device={deviceId:'dev-team',nodeId:'node-team',accountId:'owner',state:'online'};
 const connection={accountId:'owner',connectionId:'conn-owner',state:'connected',hardExpiresAt:now+AB_GRANT_MAX_LIFETIME_MS};
-const agentId='plugin-member-agent-123';
+const oauthClientId='dispatch-client-123';
+const agentId=teamOAuthAgentId({accountId:'member',clientId:oauthClientId});
+const {privateKey,publicKey}=crypto.generateKeyPairSync('ed25519');
+const proofVerifier=new TeamPrincipalProofVerifier({publicKey});
 const request=accessGrants.request({accountId:'member',deviceId:'dev-team',agentId,
   connectionId:'conn-owner',connectionExpiresAt:connection.hardExpiresAt,forceApproval:true,purpose:'team-member'});
 const grant=accessGrants.approve(request.request.requestId,
@@ -80,6 +85,7 @@ const deps={
     return connection;
   }},
   accessGrants,proTeams:teamRegistry,
+  verifyTeamPrincipal:(req,url,body)=>verifyTeamPrincipalRequest(req,url,body,proofVerifier),
   operationalAccount:id=>{
     if(!['owner','member'].includes(id))throw Error('account_not_found');
     return {accountId:id,plan:id==='owner'?ownerPlan:'free'};
@@ -93,13 +99,13 @@ const deps={
   sendJson:(res,status,data)=>{res.status=status;res.data=data;return true;},
   fleet:{enqueue:()=>{queueCalls++;throw Error('unexpected_queue_call');}}
 };
-const callPreflight=async(overrides={})=>{
-  const req={method:'POST',body:{
-    actorAccountId:'member',agentId,deviceId:'dev-team',
-    operation:'exec',requiredCapabilities:['filesystem'],...overrides
-  }},res={};
-  await handleAccountRoutes(req,res,
-    new URL('http://local/v1/plugin/team/dispatch/preflight'),deps);
+const callPreflight=async(overrides={},identity={accountId:'member',clientId:oauthClientId})=>{
+  const method='POST',targetPath='/v1/plugin/team/dispatch/preflight';
+  const body={deviceId:'dev-team',operation:'exec',
+    requiredCapabilities:['filesystem'],...overrides};
+  const proof=mintTeamPrincipalProof({identity,method,targetPath,body,privateKey});
+  const req={method,body,headers:{'x-light-remote-team-proof':proof}},res={};
+  await handleAccountRoutes(req,res,new URL('http://local'+targetPath),deps);
   return res;
 };
 try{
@@ -115,8 +121,12 @@ try{
   assert.equal(preview.data.preflight.crossAccountExecutionEnabled,false);
   assert(!('grantId' in preview.data.preflight));
   assert(!('accessGrantId' in preview.data.preflight));
-  await assert.rejects(()=>callPreflight({agentId:'different-oauth-client'}),/team_member_access_grant_required/);
-  await assert.rejects(()=>callPreflight({actorAccountId:'owner'}),/team_member_access_grant_required/);
+  await assert.rejects(()=>callPreflight({agentId:'different-oauth-client'}),/team_caller_identity_fields_forbidden/);
+  await assert.rejects(()=>callPreflight({}, {accountId:'member',clientId:'other-client'}),
+    /team_member_access_grant_required/);
+  await assert.rejects(()=>callPreflight({actorAccountId:'owner'}),/team_caller_identity_fields_forbidden/);
+  await assert.rejects(()=>callPreflight({}, {accountId:'owner',clientId:'owner-client'}),
+    /team_member_access_grant_required/);
   await assert.rejects(()=>callPreflight({requiredCapabilities:[]}),/team_dispatch_capabilities_required/);
   await assert.rejects(()=>callPreflight({requiredCapabilities:['systemctl']}),/team_device_capability_denied/);
   await assert.rejects(()=>callPreflight({operation:'update'}),/team_operation_not_allowed/);

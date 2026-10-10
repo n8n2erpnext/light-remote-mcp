@@ -1,4 +1,6 @@
 import crypto from 'node:crypto';
+import fs from 'node:fs';
+import {mintTeamPrincipalProof,teamOAuthAgentId} from '../lib/team-oauth-principal-proof.mjs';
 import { callOperatorJson } from '../gateway/operator-proxy.mjs';
 import { sealOperatorPayload } from '../gateway/operator-crypto.mjs';
 import { redactRestrictedText } from './response-sanitizer.mjs';
@@ -26,7 +28,7 @@ const PRODUCT_CAPABILITIES=Object.freeze([
   'signed updates with an independent updater/helper and health-gated rollback'
 ]);
 
-function stableAgentId(identity){return `plugin-${crypto.createHash('sha256').update(`${identity.accountId}|${identity.clientId}`).digest('hex').slice(0,40)}`;}
+function stableAgentId(identity){return teamOAuthAgentId(identity);}
 function safeAccount(a={}){return {plan:String(a.plan||'free'),mainDeviceId:a.mainDeviceId||null,fleet:a.fleetProvisioning?{deviceId:a.fleetProvisioning.deviceId||null,state:a.fleetProvisioning.state||null,reason:a.fleetProvisioning.reason||null,moduleVersion:a.fleetProvisioning.moduleVersion||null,agentVersion:a.fleetProvisioning.agentVersion||null,port:Number(a.fleetProvisioning.port)||null}:null};}
 function safeRouting(r={}){return {mode:r.mode||null,state:r.state||null,draining:Boolean(r.draining),sessionCeiling:Number.isFinite(Number(r.sessionCeiling))?Number(r.sessionCeiling):null,queuedCommands:Number(r.queuedCommands)||0,inFlightCommands:Number(r.inFlightCommands)||0};}
 function safeConnection(c={}){return {state:c.state||null,plan:c.plan||null,enforced:Boolean(c.enforced),reconnectGraceMs:Number.isFinite(Number(c.reconnectGraceMs))?Number(c.reconnectGraceMs):null};}
@@ -35,7 +37,23 @@ function safePolicy(d={}){const p=d.policy||{},mode=String(d.routing?.mode||'');
 function cleanActivityEvent(e={}){const out={type:String(e.type||'activity'),status:e.status||null,route:e.route||null};if(e.requiredCapabilities)out.requiredCapabilities=[...e.requiredCapabilities];if(e.cwd)out.cwd=redactRestrictedText(String(e.cwd).slice(0,1024));if(e.note)out.note=redactRestrictedText(String(e.note).slice(0,1024));if(e.toolMeta&&typeof e.toolMeta==='object')out.tool={kind:e.toolMeta.kind||null,operation:e.toolMeta.op||null,label:e.toolMeta.label?redactRestrictedText(String(e.toolMeta.label).slice(0,512)):null};return out;}
 
 export class AccountOperatorAdapter{
-  constructor(identity,{teamOperatorCall=callOperatorJson}={}){if(!identity?.accountId||!identity?.clientId)throw new Error('plugin_identity_required');this.identity=identity;this.agentId=stableAgentId(identity);this.teamOperatorCall=teamOperatorCall;}
+  constructor(identity,{teamOperatorCall=callOperatorJson,teamProofSigner=null}={}){
+    if(!identity?.accountId||!identity?.clientId)throw new Error('plugin_identity_required');
+    this.identity=identity;this.agentId=stableAgentId(identity);
+    this.teamOperatorCall=teamOperatorCall;
+    this.teamProofSigner=teamProofSigner||((args)=>{
+      const file=String(process.env.LIGHT_REMOTE_TEAM_OAUTH_SIGNING_KEY_FILE||'');
+      if(!file)throw Object.assign(new Error('team_oauth_signing_not_configured'),{status:503});
+      return mintTeamPrincipalProof({...args,privateKey:fs.readFileSync(file)});
+    });
+  }
+  async signedTeamOperatorCall(targetPath,body){
+    if(!body||typeof body!=='object'||Object.hasOwn(body,'actorAccountId')||Object.hasOwn(body,'agentId'))
+      throw new Error('team_identity_must_be_proven_not_submitted');
+    const method='POST';
+    const proof=this.teamProofSigner({identity:this.identity,method,targetPath,body});
+    return this.teamOperatorCall(method,targetPath,body,{'x-light-remote-team-proof':proof});
+  }
   async accountRaw(){const row=await callOperatorJson('GET',`/v1/plugin/accounts/${encodeURIComponent(this.identity.accountId)}`);if(!row?.account)throw new Error('account_not_found');return row.account;}
   async clientRaw({required=false,continuity=false}={}){
     const q=new URLSearchParams({accountId:this.identity.accountId,agentId:this.agentId});
@@ -55,8 +73,7 @@ export class AccountOperatorAdapter{
     return (row.sessions||[]).some(s=>s.accountId===this.identity.accountId&&s.agentId===this.agentId&&['active','hold'].includes(s.state));
   }
   async teamAccessBegin(deviceId,label='ChatGPT Pro Team'){
-    const row=await this.teamOperatorCall('POST','/v1/plugin/team/access/request',{
-      actorAccountId:this.identity.accountId,agentId:this.agentId,
+    const row=await this.signedTeamOperatorCall('/v1/plugin/team/access/request',{
       deviceId:String(deviceId||''),label:String(label||'ChatGPT Pro Team').slice(0,120)
     });
     const approval=row?.approval;
@@ -67,13 +84,29 @@ export class AccountOperatorAdapter{
       userCode:approval.userCode,expiresAt:approval.expiresAt,deviceId:approval.deviceId};
   }
   async teamAccessPoll({requestId,pollToken}={}){
-    const row=await this.teamOperatorCall('POST','/v1/plugin/team/access/poll',{
-      actorAccountId:this.identity.accountId,agentId:this.agentId,requestId,pollToken
+    const row=await this.signedTeamOperatorCall('/v1/plugin/team/access/poll',{
+      requestId,pollToken
     });
     if(!['pending','approved'].includes(row?.approval?.state)||
        row?.approval?.crossAccountExecutionEnabled!==false)
       throw new Error('invalid_team_approval_response');
     return row.approval;
+  }
+  // Unpublished dev helper methods; live MCP definitions stay unchanged.
+  async teamDispatchPreview({deviceId,operation,requiredCapabilities}={}){
+    return this.signedTeamOperatorCall('/v1/plugin/team/dispatch/preflight',
+      {deviceId,operation,requiredCapabilities});
+  }
+  async teamUatSessionOpen({deviceId,operation,requiredCapabilities,openId,
+    label,workspace,gracePreset}={}){
+    return this.signedTeamOperatorCall('/v1/plugin/team/sessions/uat/open',
+      {deviceId,operation,requiredCapabilities,openId,label,workspace,gracePreset});
+  }
+  async teamUatSessionAction(sessionId,action,{reason,toolAction}={}){
+    if(!['get','resume','hold','touch','close'].includes(action))
+      throw new Error('team_uat_session_action_invalid');
+    const targetPath='/v1/plugin/team/sessions/uat/'+encodeURIComponent(sessionId)+'/'+action;
+    return this.signedTeamOperatorCall(targetPath,{reason,action:toolAction});
   }
   async pairBegin(aCode,label='ChatGPT'){
     const row=await callOperatorJson('POST','/v1/device-pair/begin',{aCode:String(aCode||'').trim(),accountId:this.identity.accountId,agentId:this.agentId,label:String(label||'ChatGPT').slice(0,120)}),access=row.access;

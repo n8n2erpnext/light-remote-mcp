@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
+import {mintTeamPrincipalProof,TeamPrincipalProofVerifier,verifyTeamPrincipalRequest,teamOAuthAgentId} from '../../lib/team-oauth-principal-proof.mjs';
 import {SessionRegistry} from '../../operator-host/session-manager.mjs';
 import {handleAccountRoutes} from '../../operator-host/executor-routes-account.mjs';
 import {TeamSessionUatRegistry} from '../../operator-host/team-session-uat-registry.mjs';
@@ -39,7 +41,11 @@ const renewMemberB=(id,agent)=>{
     connectionExpiresAt:connection.hardExpiresAt
   });
 };
-const actor1='member1',actor2='member2',agent1='oauth-agent-member1-a',agent2='oauth-agent-member2-b';
+const actor1='member1',actor2='member2',client1='member-client-one',client2='member-client-two',
+  agent1=teamOAuthAgentId({accountId:actor1,clientId:client1}),
+  agent2=teamOAuthAgentId({accountId:actor2,clientId:client2});
+const {privateKey,publicKey}=crypto.generateKeyPairSync('ed25519');
+const principalVerifier=new TeamPrincipalProofVerifier({publicKey,now:()=>now});
 const grant1=approveMember(actor1,agent1),grant2=approveMember(actor2,agent2);
 const authority=(p)=>{
   authChecks++;
@@ -104,6 +110,7 @@ const routes={
     constructor(message,status=403){super(message);this.status=status;}
   },
   teamSessions:routeUat,
+  verifyTeamPrincipal:(req,url,body)=>verifyTeamPrincipalRequest(req,url,body,principalVerifier),
   operationalAccount:id=>{
     if(!['member1','member2','owner'].includes(id))throw Error('account_not_found');
     return {accountId:id};
@@ -113,28 +120,33 @@ const routes={
   fleet:{enqueue:()=>queued++},
   usage:{record:()=>charged++}
 };
-const teamRoute=async(path,body,enabled=true)=>{
-  const dep={...routes,teamSessions:enabled?routeUat:null},res={};
-  await handleAccountRoutes({method:'POST',body},res,
-    new URL('http://local/v1/plugin/team/sessions/uat/'+path),dep);
+const teamRoute=async(path,body,enabled=true,
+  identity={accountId:actor1,clientId:client1})=>{
+  const dep={...routes,teamSessions:enabled?routeUat:null},res={},
+    method='POST',targetPath='/v1/plugin/team/sessions/uat/'+path;
+  const proof=mintTeamPrincipalProof({identity,method,targetPath,body,privateKey,now});
+  await handleAccountRoutes({method,body,
+    headers:{'x-light-remote-team-proof':proof}},res,
+    new URL('http://local'+targetPath),dep);
   return res;
 };
-await assert.rejects(()=>teamRoute('open',{...in1,actorAccountId:actor1,agentId:agent1},false),
+await assert.rejects(()=>teamRoute('open',{deviceId:device.deviceId},false),
   /team_session_uat_disabled/);
 const opened=(await teamRoute('open',{
-  actorAccountId:actor1,agentId:agent1,deviceId:device.deviceId,
-  operation:'exec',requiredCapabilities:['filesystem']
+  deviceId:device.deviceId,operation:'exec',requiredCapabilities:['filesystem']
 })).data.session;
 assert.equal(opened.accountId,'member1');
 assert.equal(opened.billedAccountId,'owner');
 assert(!('accessGrantId' in opened));
-const routeBody={actorAccountId:actor1,agentId:agent1};
+const routeBody={};
 assert.equal((await teamRoute(opened.sessionId+'/hold',routeBody)).data.session.state,'hold');
 assert.equal((await teamRoute(opened.sessionId+'/resume',routeBody)).data.session.state,'active');
 assert.equal((await teamRoute(opened.sessionId+'/touch',routeBody)).data.session.state,'active');
 assert.equal((await teamRoute(opened.sessionId+'/get',routeBody)).data.session.deviceOwnerAccountId,'owner');
+await assert.rejects(()=>teamRoute(opened.sessionId+'/get',routeBody,true,
+  {accountId:actor2,clientId:client2}),/team_session_oauth_actor_mismatch/);
 await assert.rejects(()=>teamRoute(opened.sessionId+'/get',
-  {actorAccountId:actor2,agentId:agent2}),/team_session_oauth_actor_mismatch/);
+  {actorAccountId:actor2}),/team_caller_identity_fields_forbidden/);
 assert.equal((await teamRoute(opened.sessionId+'/close',routeBody)).data.session.state,'closed');
 await assert.rejects(()=>teamRoute(opened.sessionId+'/get',routeBody),/team_session_not_found/);
 assert.equal(queued,0,'UAT API may not enqueue commands');

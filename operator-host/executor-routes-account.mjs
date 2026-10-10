@@ -1,7 +1,7 @@
 import {verifyTeamMemberAuthorization} from './team-member-auth.mjs';
 import {authorizeTrustedTeamDispatch} from './team-dispatch-authority.mjs';
 export async function handleAccountRoutes(req,res,url,deps){
-  const {ACCOUNT_ID,AccountError,DEVICE_ID,accountSessionToken,accounts,allDeviceViews,capabilities,clearMainIfMatches,closeRuntimeForAccount,compatibilityFor,devices,enrollments,fleetAuthority,licenses,planEntitlements,proTeams,teamSessions,requestTeamMemberApproval,operationalAccount,accessGrants,connections,targetRoute,queueHelperUpdate,readJson,removeRuntimeForDevice,requireAccount,revokeRuntimeForDevice,sendJson,usage,wakeDeviceChannelForDevice}=deps;
+  const {ACCOUNT_ID,AccountError,DEVICE_ID,accountSessionToken,accounts,allDeviceViews,capabilities,clearMainIfMatches,closeRuntimeForAccount,compatibilityFor,devices,enrollments,fleetAuthority,licenses,planEntitlements,proTeams,teamSessions,requestTeamMemberApproval,operationalAccount,accessGrants,connections,targetRoute,verifyTeamPrincipal,queueHelperUpdate,readJson,removeRuntimeForDevice,requireAccount,revokeRuntimeForDevice,sendJson,usage,wakeDeviceChannelForDevice}=deps;
     if (req.method === 'GET' && url.pathname === '/v1/admin/overview') {
       const accountRows=accounts.list(),deviceRows=allDeviceViews(),current=accountRows.map(account=>({account,entitlements:planEntitlements(account),usage:usage.summary(account.accountId,{months:1})}));
       const toolCallsThisMonth=current.reduce((sum,row)=>sum+(Number(row.usage.toolCallsThisMonth)||0),0),plans=current.reduce((out,row)=>{const key=String(row.account.plan||'free');out[key]=(out[key]||0)+1;return out;},{}),statuses=current.reduce((out,row)=>{const key=String(row.account.status||'active');out[key]=(out[key]||0)+1;return out;},{});
@@ -275,19 +275,21 @@ export async function handleAccountRoutes(req,res,url,deps){
     // Only the OAuth-authenticated MCP adapter calls these local Operator APIs.
     // No browser-supplied agent identity, no cross-account device execution.
     if(url.pathname==='/v1/plugin/team/access/request' && req.method==='POST'){
-      const body=await readJson(req);
-      const actorAccountId=operationalAccount(String(body.actorAccountId||'')).accountId;
+      const body=await readJson(req),
+        proof=verifyTeamPrincipal(req,url,body);
+      const actorAccountId=operationalAccount(proof.accountId).accountId;
       const approval=requestTeamMemberApproval({
-        actorAccountId,deviceId:body.deviceId,agentId:body.agentId,label:body.label,
+        actorAccountId,deviceId:body.deviceId,agentId:proof.agentId,label:body.label,
         devices,connections,accessGrants,teamRegistry:proTeams,
         planFor:id=>operationalAccount(id).plan
       });
       return sendJson(res,201,{ok:true,approval});
     }
     if(url.pathname==='/v1/plugin/team/access/poll' && req.method==='POST'){
-      const body=await readJson(req);
-      const actorAccountId=operationalAccount(String(body.actorAccountId||'')).accountId;
-      const agentId=String(body.agentId||''),request=accessGrants.requestInfo(body.requestId);
+      const body=await readJson(req),
+        proof=verifyTeamPrincipal(req,url,body);
+      const actorAccountId=operationalAccount(proof.accountId).accountId;
+      const agentId=proof.agentId,request=accessGrants.requestInfo(body.requestId);
       if(request.purpose!=='team-member'||request.accountId!==actorAccountId||request.agentId!==agentId)
         throw new AccountError('team_oauth_agent_mismatch',403);
       const device=devices.get(request.deviceId),connection=connections.assertConnected(request.deviceId);
@@ -314,11 +316,12 @@ export async function handleAccountRoutes(req,res,url,deps){
     if(url.pathname==='/v1/plugin/team/dispatch/preflight' && req.method==='POST'){
       if(process.env.LIGHT_REMOTE_PRO_TEAM_DISPATCH_UAT!=='1')
         throw new AccountError('team_dispatch_preflight_not_enabled',404);
-      const body=await readJson(req);
+      const body=await readJson(req),
+        proof=verifyTeamPrincipal(req,url,body);
       if(!Array.isArray(body.requiredCapabilities)||!body.requiredCapabilities.length)
         throw new AccountError('team_dispatch_capabilities_required',400);
-      const actorAccountId=operationalAccount(String(body.actorAccountId||'')).accountId,
-        agentId=String(body.agentId||''),
+      const actorAccountId=operationalAccount(proof.accountId).accountId,
+        agentId=proof.agentId,
         device=devices.get(String(body.deviceId||'')),
         connection=connections.assertConnected(device.deviceId);
       // All actual owner/device routing facts come from authoritative
@@ -350,10 +353,10 @@ export async function handleAccountRoutes(req,res,url,deps){
     // adapter before this is exposed beyond local test transport.
     if(req.method==='POST'&&url.pathname==='/v1/plugin/team/sessions/uat/open'){
       if(!teamSessions)throw new AccountError('team_session_uat_disabled',404);
-      const body=await readJson(req);
+      const body=await readJson(req),proof=verifyTeamPrincipal(req,url,body);
       const session=teamSessions.open({
-        authenticatedActorAccountId:operationalAccount(String(body.actorAccountId||'')).accountId,
-        authenticatedAgentId:String(body.agentId||''),
+        authenticatedActorAccountId:operationalAccount(proof.accountId).accountId,
+        authenticatedAgentId:proof.agentId,
         deviceId:String(body.deviceId||''),
         operation:String(body.operation||''),
         requiredCapabilities:body.requiredCapabilities,
@@ -369,10 +372,11 @@ export async function handleAccountRoutes(req,res,url,deps){
     if(req.method==='POST'&&teamUatSessionMatch){
       if(!teamSessions)throw new AccountError('team_session_uat_disabled',404);
       const body=await readJson(req),
+        proof=verifyTeamPrincipal(req,url,body),
         sessionId=teamUatSessionMatch[1],action=teamUatSessionMatch[2],
         identity={
-          authenticatedActorAccountId:operationalAccount(String(body.actorAccountId||'')).accountId,
-          authenticatedAgentId:String(body.agentId||'')
+          authenticatedActorAccountId:operationalAccount(proof.accountId).accountId,
+          authenticatedAgentId:proof.agentId
         };
       const session=action==='get'?teamSessions.get(sessionId,identity)
         :action==='resume'?teamSessions.resume(sessionId,identity)

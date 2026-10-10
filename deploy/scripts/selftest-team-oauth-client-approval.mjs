@@ -8,10 +8,14 @@ import {ProTeamRegistry} from '../../operator-host/pro-team-registry.mjs';
 import {DeviceAccessGrantRegistry} from '../../operator-host/device-access-grant-registry.mjs';
 import {requestTeamMemberApproval} from '../../operator-host/team-approval-requests.mjs';
 import {handleAccountRoutes} from '../../operator-host/executor-routes-account.mjs';
+import {mintTeamPrincipalProof,TeamPrincipalProofVerifier,verifyTeamPrincipalRequest} from '../../lib/team-oauth-principal-proof.mjs';
 
 let plan='pro';
 const deviceId='shared-device',owner='owner',member='member',clientId='oauth-client-member-01';
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'lr-team-oauth-'));
+const {privateKey,publicKey}=crypto.generateKeyPairSync('ed25519');
+const verifier=new TeamPrincipalProofVerifier({publicKey});
+const teamProofSigner=args=>mintTeamPrincipalProof({...args,privateKey});
 try{
   const teams=new ProTeamRegistry({stateFile:path.join(dir,'team.json'),
     planFor:()=>plan,accountActive:()=>true});
@@ -25,18 +29,21 @@ try{
       return {accountId:id,plan:id===owner?plan:'free'};
     },
     proTeams:teams,requestTeamMemberApproval,accessGrants:grants,
+    verifyTeamPrincipal:(req,url,body)=>verifyTeamPrincipalRequest(req,url,body,verifier),
     devices:{get:id=>id===deviceId?device:(()=>{throw Error('device_not_found')})()},
     connections:{assertConnected:id=>id===deviceId?connection:(()=>{throw Error('device_not_found')})()},
     readJson:async req=>req.body,sendJson:(res,status,data)=>{res.status=status;res.data=data;return true;}
   };
   const calls=[];
-  const call=async(method,route,body)=>{
-    calls.push({method,route,body});
+  const call=async(method,route,body,headers={})=>{
+    calls.push({method,route,body,headers});
     const res={};
-    await handleAccountRoutes({method,body},res,new URL('http://local'+route),deps);
+    await handleAccountRoutes({method,body,headers},res,new URL('http://local'+route),deps);
     return res.data;
   };
-  const adapter=new AccountOperatorAdapter({accountId:member,clientId,scopes:['remote:read','remote:write']},{teamOperatorCall:call});
+  const adapter=new AccountOperatorAdapter({accountId:member,clientId,scopes:['remote:read','remote:write']},{teamOperatorCall:call,teamProofSigner});
+  await assert.rejects(()=>adapter.signedTeamOperatorCall('/v1/plugin/team/access/request',
+    {actorAccountId:'owner',deviceId}),/team_identity_must_be_proven_not_submitted/);
   const expectedAgent='plugin-'+crypto.createHash('sha256').update(member+'|'+clientId).digest('hex').slice(0,40);
   assert.equal(adapter.agentId,expectedAgent,'OAuth stable agentId from authenticated account and OAuth client');
   await assert.rejects(()=>adapter.teamAccessBegin(deviceId),/pro_team_membership_required/);
@@ -47,8 +54,9 @@ try{
   teams.shareDevice({ownerAccountId:owner,deviceId,deviceOwnerAccountId:owner});
   const pending=await adapter.teamAccessBegin(deviceId,'OAuth member consent');
   assert(pending.requestId.startsWith('pa_')&&pending.pollToken&&pending.userCode);
-  assert.equal(calls.at(-1).body.actorAccountId,member);
-  assert.equal(calls.at(-1).body.agentId,expectedAgent);
+  assert(!('actorAccountId' in calls.at(-1).body));
+  assert(!('agentId' in calls.at(-1).body));
+  assert(calls.at(-1).headers['x-light-remote-team-proof'].includes('.'));
   assert.equal(grants.requestInfo(pending.requestId).purpose,'team-member');
   assert.equal(grants.pendingForDevice(deviceId)[0].accountId,member);
   assert.equal(grants.recoverPairing({accountId:member,agentId:expectedAgent}),null,
@@ -58,9 +66,9 @@ try{
   let status=await adapter.teamAccessPoll(pending);
   assert.equal(status.state,'pending');
   assert.equal(status.crossAccountExecutionEnabled,false);
-  const spoof=new AccountOperatorAdapter({accountId:'owner',clientId},{teamOperatorCall:call});
+  const spoof=new AccountOperatorAdapter({accountId:'owner',clientId},{teamOperatorCall:call,teamProofSigner});
   await assert.rejects(()=>spoof.teamAccessPoll(pending),/team_oauth_agent_mismatch/);
-  const otherClient=new AccountOperatorAdapter({accountId:member,clientId:'other-client'},{teamOperatorCall:call});
+  const otherClient=new AccountOperatorAdapter({accountId:member,clientId:'other-client'},{teamOperatorCall:call,teamProofSigner});
   assert.notEqual(otherClient.agentId,expectedAgent);
   await assert.rejects(()=>otherClient.teamAccessPoll(pending),/team_oauth_agent_mismatch/);
   const approved=grants.approve(pending.requestId,{deviceId,connectionId:connection.connectionId,
