@@ -143,7 +143,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       const agentId=String(url.searchParams.get('agentId')||''),client=agentClients.view(agentClientDevicesMatch[1],{agentId,touch:true}),authorized=[];
       for(const binding of client.bindings){
         try{
-          const grant=accessGrants.assert(binding.grantId,{deviceId:binding.deviceId,connectionId:binding.connectionId,touch:false}),connection=connections.assertConnected(binding.deviceId);
+          const grant=accessGrants.assert(binding.grantId,{agentId:client.agentId,accountId:client.accountId,deviceId:binding.deviceId,connectionId:binding.connectionId,touch:false}),connection=connections.assertConnected(binding.deviceId);
           if(connection.connectionId!==binding.connectionId)throw new AgentClientRegistryError('agent_client_device_connection_mismatch',409);
           const device=devices.get(binding.deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
           authorized.push({deviceId:device.deviceId,nodeId:device.nodeId,name:device.displayName,state:device.state,platform:device.platform,architecture:device.architecture,connection:{state:connection.state,remainingMs:connection.remainingMs||Math.max(0,connection.hardExpiresAt-Date.now())}});
@@ -154,7 +154,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
     if (req.method === 'POST' && url.pathname === '/v1/agent-client/resolve') {
       const body=await readJson(req),binding=agentClients.resolve(body.clientSessionId,{agentId:body.agentId,deviceId:body.deviceId||null,touch:true});
       try{
-        const grant=accessGrants.assert(binding.grantId,{deviceId:binding.deviceId,connectionId:binding.connectionId}),connection=connections.assertConnected(binding.deviceId);
+        const grant=accessGrants.assert(binding.grantId,{agentId:binding.agentId,accountId:binding.accountId,deviceId:binding.deviceId,connectionId:binding.connectionId}),connection=connections.assertConnected(binding.deviceId);
         if(connection.connectionId!==binding.connectionId)throw new AgentClientRegistryError('agent_client_device_connection_mismatch',409);
         const device=devices.get(binding.deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
         return sendJson(res,200,{ok:true,binding,grant,device:{deviceId:device.deviceId,nodeId:device.nodeId,displayName:device.displayName,state:device.state,platform:device.platform,architecture:device.architecture},connection});
@@ -163,7 +163,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
     if (req.method === 'POST' && url.pathname === '/v1/agent-client/context') {
       const body=await readJson(req),binding=agentClients.resolve(body.clientSessionId,{agentId:body.agentId,deviceId:body.deviceId||null,touch:true});
       try{
-        const grant=accessGrants.assert(binding.grantId,{deviceId:binding.deviceId,connectionId:binding.connectionId}),connection=connections.assertConnected(binding.deviceId);
+        const grant=accessGrants.assert(binding.grantId,{agentId:binding.agentId,accountId:binding.accountId,deviceId:binding.deviceId,connectionId:binding.connectionId}),connection=connections.assertConnected(binding.deviceId);
         if(connection.connectionId!==binding.connectionId)throw new AgentClientRegistryError('agent_client_device_connection_mismatch',409);
         const device=devices.get(binding.deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)}),route=targetRoute(device.nodeId,{accountId:grant.accountId});
         const workspace=body.workspace==null?String(binding.workingContext?.workspace||''):String(body.workspace||'').slice(0,512);

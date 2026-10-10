@@ -23,11 +23,11 @@ assert.equal(renewed.hardExpiresAt,now+24*HOUR);
 assert.ok(renewed.hardExpiresAt>originalExpiry);
 assert.equal(access.renewConnection('dev-renew',{connectionId:renewed.connectionId,connectionExpiresAt:renewed.hardExpiresAt}),1);
 const renewedGrant=access.assert(grant.grantId,{deviceId:'dev-renew',connectionId:originalConnectionId,touch:false});
-assert.equal(renewedGrant.expiresAt,renewed.hardExpiresAt);
+assert.equal(renewedGrant.expiresAt,originalExpiry,'grant cannot outlive 24h A/B even if device renews');
 
 now=originalExpiry+1;
 assert.equal(connections.assertConnected('dev-renew').connectionId,originalConnectionId,'connection must survive its original hard-expiry after explicit renewal');
-assert.equal(access.assert(grant.grantId,{deviceId:'dev-renew',connectionId:originalConnectionId,touch:false}).grantId,grant.grantId,'grant must survive original connection expiry after renewal');
+assert.throws(()=>access.assert(grant.grantId,{deviceId:'dev-renew',connectionId:originalConnectionId,touch:false}),/device_access_grant_expired/,'24h A/B must expire despite device lease renewal');
 assert.ok(events.some(e=>e.type==='device_connection_renewed'));
 assert.ok(events.some(e=>e.type==='device_access_renewed'));
 
@@ -35,7 +35,7 @@ const agentSource=fs.readFileSync(new URL('../../device-agent/operator-agent.mjs
 const routeSource=fs.readFileSync(new URL('../../operator-host/executor-routes-device-channel.mjs',import.meta.url),'utf8');
 assert.match(agentSource,/cloudLeaseRenewalDue/);
 assert.match(agentSource,/channelRequest\(state,hub,'renew'/);
-assert.match(agentSource,/commandPulse[\s\S]*cloudLeaseRenewalDue\(current\)[\s\S]*renewCloudLease\(current,hub\)/);
+assert.match(agentSource,/commandPulse[\s\S]*maybeRenewCloudLease\(current\)/);
 assert.match(routeSource,/\/v1\/device-channel\/renew/);
 assert.match(routeSource,/accessGrants\.renewConnection/);
 

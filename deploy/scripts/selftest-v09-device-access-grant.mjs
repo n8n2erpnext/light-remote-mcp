@@ -14,13 +14,13 @@ assert.equal(b.state,'pending');
 assert.equal(registry.pendingForDevice(base.deviceId).length,2);
 const grant=registry.approve(a.request.requestId,{deviceId:base.deviceId,connectionId:base.connectionId,connectionExpiresAt:base.connectionExpiresAt});
 assert.ok(grant.grantId.startsWith('dag_'));
-assert.equal(registry.pendingForDevice(base.deviceId).length,0);
+assert.equal(registry.pendingForDevice(base.deviceId).length,1);
 const bPoll=registry.poll({requestId:b.request.requestId,pollToken:b.pollToken});
-assert.equal(bPoll.state,'approved');
-assert.equal(bPoll.grant.grantId,grant.grantId);
+assert.equal(bPoll.state,'pending');
+assert.equal(bPoll.grant,undefined);
 const c=registry.request({...base,agentId:'agent-access-test-cccccccc',label:'ChatGPT C'});
-assert.equal(c.state,'approved');
-assert.equal(c.grant.grantId,grant.grantId);
+assert.equal(c.state,'pending');
+assert.equal(c.grant,null);
 assert.equal(registry.activeForDevice(base.deviceId,base.connectionId).grantId,grant.grantId);
 
 const reloaded=new DeviceAccessGrantRegistry({stateFile:file,now:()=>now});
@@ -75,7 +75,7 @@ assert.throws(()=>reloaded.poll({requestId:expiring.request.requestId,pollToken:
 
 fs.rmSync(file,{force:true});
 console.log('v09-device-access-grant=PASS');
-console.log('v09-device-access-multi-agent-one-approval=PASS');
+console.log('v09-device-access-cross-agent-requires-separate-approval=PASS');
 console.log('v09-device-access-disconnect-expiry=PASS');
 
 // P4.5: an A-code pairing request must require its own B approval even when an underlying grant is already active.
@@ -87,7 +87,7 @@ const firstGrant=pairReg.approve(firstReq.request.requestId,{deviceId:pairBase.d
 const pairReq=pairReg.request({...pairBase,agentId:'agent-pairing-second-0002',label:'Pairing client',forceApproval:true,requestTtlMs:5*60*1000,pairingId:'dpa_pairing_00000001'});
 assert.equal(pairReq.state,'pending');assert.ok(pairReq.request.pairingRequired);
 assert.equal(pairReg.poll({requestId:pairReq.request.requestId,pollToken:pairReq.pollToken}).state,'pending','active grant must not bypass B approval');
-const reused=pairReg.approve(pairReq.request.requestId,{deviceId:pairBase.deviceId,connectionId:pairBase.connectionId,connectionExpiresAt:pairBase.connectionExpiresAt,idleGraceMs:30*60*1000});assert.equal(reused.grantId,firstGrant.grantId);
+const reused=pairReg.approve(pairReq.request.requestId,{deviceId:pairBase.deviceId,connectionId:pairBase.connectionId,connectionExpiresAt:pairBase.connectionExpiresAt,idleGraceMs:30*60*1000});assert.notEqual(reused.grantId,firstGrant.grantId);assert.equal(reused.agentId,'agent-pairing-second-0002');
 assert.equal(pairReg.poll({requestId:pairReq.request.requestId,pollToken:pairReq.pollToken}).state,'approved');
 fs.rmSync(pairFile,{force:true});
 console.log('v09-device-access-pairing-requires-b-approval=PASS');
