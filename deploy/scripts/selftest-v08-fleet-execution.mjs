@@ -80,6 +80,10 @@ if(drained.status!==200||drained.json.node?.draining!==true)throw new Error('dra
 const blockedEnvelope=cryptoFixture.seal({action:'exec_batch',operationId:'operation-v08-fleet-drain12',cwd:'/tmp',script:'true',sessionId,agentId:agent1,nodeId,requiredCapabilities:['filesystem'],waitMs:0,timeoutMs:10000});
 const blocked=await request('POST','/v1/execute',blockedEnvelope);
 if(blocked.status!==409||blocked.json.error!=='target_node_draining')throw new Error(`drain_exec_guard_failed:${blocked.status}:${blocked.json.error}`);
+const afterReject=await request('GET',`/v1/sessions/${sessionId}?agentId=${agent1}`);
+const tracked=afterReject.json.session;
+if(afterReject.status!==200||!tracked||tracked.activeJobs.length!==0||tracked.stats.jobsStarted!==tracked.stats.jobsFinished)throw new Error(`rejected_dispatch_orphan_job:${JSON.stringify({activeJobs:tracked?.activeJobs?.length,started:tracked?.stats?.jobsStarted,finished:tracked?.stats?.jobsFinished})}`);
+console.log('v08-rejected-enqueue-no-orphan-active-job=PASS');
 const undrained=await request('POST',`/v1/fleet/${nodeId}/drain`,{draining:false});
 if(undrained.status!==200||undrained.json.node?.draining!==false)throw new Error('undrain_failed');
 const audit=fs.readFileSync(path.join(logDir,'operations.jsonl'),'utf8');
