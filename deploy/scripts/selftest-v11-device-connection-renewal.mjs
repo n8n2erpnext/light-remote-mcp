@@ -35,7 +35,13 @@ const agentSource=fs.readFileSync(new URL('../../device-agent/operator-agent.mjs
 const routeSource=fs.readFileSync(new URL('../../operator-host/executor-routes-device-channel.mjs',import.meta.url),'utf8');
 assert.match(agentSource,/cloudLeaseRenewalDue/);
 assert.match(agentSource,/channelRequest\(state,hub,'renew'/);
-assert.match(agentSource,/commandPulse[\s\S]*maybeRenewCloudLease\(current\)/);
+// Agent's main loop now renews before duplex-ready short-circuit; commandPulse
+// was removed in the original rc.50 source. Preserve this actual guarantee.
+const leaseTick=agentSource.indexOf('if(state?.enrollment?.deviceId&&cloudLeaseRenewalDue(state))');
+const duplexShortCircuit=agentSource.indexOf('if(deviceDuplexStatus().ready)',leaseTick);
+assert(leaseTick>0&&duplexShortCircuit>leaseTick,
+  'main loop must renew cloud lease even while duplex is healthy');
+assert.match(agentSource,/if\(await maybeRenewCloudLease\(state\)\)/);
 assert.match(routeSource,/\/v1\/device-channel\/renew/);
 assert.match(routeSource,/accessGrants\.renewConnection/);
 
