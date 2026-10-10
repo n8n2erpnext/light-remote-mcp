@@ -15,6 +15,7 @@ try{
     onRevoke:({memberAccountId,deviceId,reason})=>
       accessGrants.revokeTeamMember({accountId:memberAccountId,deviceId,reason})
   });
+  teamRegistry.grantTeamAccess({ownerAccountId:'owner',validUntil:now+30*86400000});
   teamRegistry.create({ownerAccountId:'owner'});
   for(const deviceId of devices)
     teamRegistry.shareDevice({ownerAccountId:'owner',deviceId,deviceOwnerAccountId:'owner'});

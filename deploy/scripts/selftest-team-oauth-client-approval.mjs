@@ -47,7 +47,8 @@ try{
   const expectedAgent='plugin-'+crypto.createHash('sha256').update(member+'|'+clientId).digest('hex').slice(0,40);
   assert.equal(adapter.agentId,expectedAgent,'OAuth stable agentId from authenticated account and OAuth client');
   await assert.rejects(()=>adapter.teamAccessBegin(deviceId),/pro_team_membership_required/);
-  teams.create({ownerAccountId:owner});
+  teams.grantTeamAccess({ownerAccountId:owner,validUntil:Date.now()+30*86400000});
+teams.create({ownerAccountId:owner});
   const invite=teams.invite({ownerAccountId:owner,memberAccountId:member});
   teams.accept({memberAccountId:member,inviteCode:invite.inviteCode});
   await assert.rejects(()=>adapter.teamAccessBegin(deviceId),/pro_team_membership_required/);

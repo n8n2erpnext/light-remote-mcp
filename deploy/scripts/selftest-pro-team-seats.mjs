@@ -8,6 +8,8 @@ let now=Date.now();let plan='free';let active=true;
 const options={stateFile:file,now:()=>now,planFor:()=>plan,accountActive:()=>active};
 const team=new ProTeamRegistry(options);
 assert.throws(()=>team.create({ownerAccountId:'owner'}),/pro_team_subscription_required/);
+assert.throws(()=>team.create({ownerAccountId:'owner'}),/pro_team_subscription_required/);
+team.grantTeamAccess({ownerAccountId:'owner',validUntil:now+30*86400000});
 plan='pro';
 assert.equal(team.create({ownerAccountId:'owner'}).usedSeats,1);
 const first=team.invite({ownerAccountId:'owner',memberAccountId:'member1'});

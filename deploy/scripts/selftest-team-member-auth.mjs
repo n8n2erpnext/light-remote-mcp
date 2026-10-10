@@ -8,6 +8,7 @@ const planFor=()=>plan,teamRegistry=new ProTeamRegistry({now:()=>now,planFor,acc
 const accessGrants=new DeviceAccessGrantRegistry({now:()=>now});
 const device={accountId:'owner',deviceId:'dev_team',state:'online'};
 const connection={connectionId:'connection_owner_1'};
+teamRegistry.grantTeamAccess({ownerAccountId:'owner',validUntil:now+30*86400000});
 teamRegistry.create({ownerAccountId:'owner'});
 const invite=teamRegistry.invite({ownerAccountId:'owner',memberAccountId:'member'});
 teamRegistry.accept({memberAccountId:'member',inviteCode:invite.inviteCode});

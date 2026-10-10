@@ -8,6 +8,7 @@ import {handleAccountRoutes} from '../../operator-host/executor-routes-account.m
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'light-remote-pro-team-api-'));
 const plans=new Map([['owner','pro'],['member1','free'],['member2','free'],['member3','free'],['member4','free'],['member5','free'],['outsider','free']]);
 const proTeams=new ProTeamRegistry({stateFile:path.join(dir,'teams.json'),planFor:id=>plans.get(id)||'free',accountActive:id=>plans.has(id)});
+proTeams.grantTeamAccess({ownerAccountId:'owner',validUntil:Date.now()+30*86400000});
 const tokenAccount={tokenOwner:'owner',tokenMember:'member1',tokenOutsider:'outsider'};
 const devices=new Map([['dev_owner',{deviceId:'dev_owner',accountId:'owner',state:'online'}],['dev_foreign',{deviceId:'dev_foreign',accountId:'outsider',state:'online'}],['dev_revoked',{deviceId:'dev_revoked',accountId:'owner',state:'revoked'}]]);
 const events=[];

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {ProTeamRegistry} from '../../operator-host/pro-team-registry.mjs';
 let now=Date.now();
 const team=new ProTeamRegistry({now:()=>now,planFor:id=>id==='owner'?'pro':'free',accountActive:()=>true});
+team.grantTeamAccess({ownerAccountId:'owner',validUntil:now+30*86400000});
 team.create({ownerAccountId:'owner'});
 const first=team.invite({ownerAccountId:'owner',memberAccountId:'m1'});
 const second=team.invite({ownerAccountId:'owner',memberAccountId:'m1'});

@@ -43,6 +43,7 @@ assert.equal(reopened.status({deviceId:'rotated',usageAccounts:usage}).used,0);
 
 let ownerPlan='pro';
 const team=new ProTeamRegistry({now:()=>now,planFor:()=>ownerPlan,accountActive:()=>true});
+team.grantTeamAccess({ownerAccountId:'owner',validUntil:now+30*86400000});
 team.create({ownerAccountId:'owner'});
 const invite=team.invite({ownerAccountId:'owner',memberAccountId:'B'});
 team.accept({memberAccountId:'B',inviteCode:invite.inviteCode});

@@ -17,6 +17,7 @@ const device={deviceId:'shared-dev',nodeId:'shared-node',accountId:'owner',state
 const connection={connectionId:'owner-connection',accountId:'owner',state:'connected',
   hardExpiresAt:now+AB_GRANT_MAX_LIFETIME_MS};
 const approvedCapabilities=['filesystem','terminal','desktop-input','desktop-observe'];
+teamRegistry.grantTeamAccess({ownerAccountId:'owner',validUntil:now+30*86400000});
 teamRegistry.create({ownerAccountId:'owner'});
 teamRegistry.shareDevice({ownerAccountId:'owner',deviceId:device.deviceId,deviceOwnerAccountId:'owner'});
 const approveMember=(id,agent)=>{

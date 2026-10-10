@@ -53,7 +53,8 @@ async function webPost(token,body){
 }
 try{
   fail({},/pro_team_membership_required/);
-  teamRegistry.create({ownerAccountId:owner});
+  teamRegistry.grantTeamAccess({ownerAccountId:owner,validUntil:Date.now()+30*86400000});
+teamRegistry.create({ownerAccountId:owner});
   const invite=teamRegistry.invite({ownerAccountId:owner,memberAccountId:member});
   teamRegistry.accept({memberAccountId:member,inviteCode:invite.inviteCode});
   fail({},/pro_team_membership_required/);

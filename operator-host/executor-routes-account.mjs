@@ -244,13 +244,44 @@ export async function handleAccountRoutes(req,res,url,deps){
     // Pro Team management is authenticated by a REAL account session.
     // It only manages membership/device sharing; cross-account job routes remain
     // disabled until independent per-actor local A/B grants are implemented.
+    if(url.pathname==='/v1/accounts/team/entitlement'&&req.method==='GET'){
+      const ownerAccountId=requireAccount(req).account.accountId;
+      return sendJson(res,200,{ok:true,teamEntitlement:proTeams.teamEntitlement(ownerAccountId)});
+    }
+    if(url.pathname==='/v1/accounts/team/inbox'&&req.method==='GET'){
+      const accountId=requireAccount(req).account.accountId;
+      return sendJson(res,200,{ok:true,...proTeams.inbox({memberAccountId:accountId})});
+    }
+    if(url.pathname==='/v1/accounts/team/inbox/read'&&req.method==='POST'){
+      const accountId=requireAccount(req).account.accountId,body=await readJson(req);
+      const result=proTeams.readInbox({memberAccountId:accountId,notificationId:body.notificationId});
+      return sendJson(res,200,result);
+    }
+    if(url.pathname==='/v1/accounts/team/inbox/accept'&&req.method==='POST'){
+      const accountId=requireAccount(req).account.accountId,body=await readJson(req);
+      const team=proTeams.acceptInbox({memberAccountId:accountId,notificationId:body.notificationId});
+      return sendJson(res,200,{ok:true,team,crossAccountExecutionEnabled:false});
+    }
+    // Team entitlements are administered only over the private Operator socket.
+    // A normal PRO subscription cannot acquire Team via account self-service.
+    const teamGrant=url.pathname.match(/^\/v1\/admin\/accounts\/([A-Za-z0-9._:-]+)\/team-entitlement$/);
+    if(teamGrant&&req.method==='POST'){
+      const body=await readJson(req);
+      const grant=proTeams.grantTeamAccess({ownerAccountId:teamGrant[1],validUntil:body.validUntil,
+        monthlyMemberCallBudget:body.monthlyMemberCallBudget,source:body.source||'admin'});
+      return sendJson(res,200,{ok:true,grant});
+    }
+    if(teamGrant&&req.method==='DELETE'){
+      const revoked=proTeams.revokeTeamAccess(teamGrant[1]);
+      return sendJson(res,200,{ok:true,revoked});
+    }
     if(url.pathname==='/v1/accounts/team/memberships' && req.method==='GET'){
       const memberAccountId=requireAccount(req).account.accountId;
       return sendJson(res,200,{ok:true,memberships:proTeams.memberships(memberAccountId)});
     }
     if(url.pathname==='/v1/accounts/team' && req.method==='GET'){
       const ownerAccountId=requireAccount(req).account.accountId;
-      return sendJson(res,200,{ok:true,team:proTeams.view(ownerAccountId),crossAccountExecutionEnabled:false});
+      return sendJson(res,200,{ok:true,team:proTeams.view(ownerAccountId),teamEntitlement:proTeams.teamEntitlement(ownerAccountId),crossAccountExecutionEnabled:false});
     }
     if(url.pathname==='/v1/accounts/team' && req.method==='POST'){
       const ownerAccountId=requireAccount(req).account.accountId;

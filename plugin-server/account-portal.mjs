@@ -138,7 +138,7 @@ async function runDormancyScan(){
 }
 async function accountApi(req,res){
   const action=String(req.query?.action||'').trim();
-  const mutations=new Set(['register','login','logout','password-change','password-setup','password-reset-request','password-reset-complete','magic-request','verification-resend','verification-verify','reactivate','enrollment-approve','device-revoke','device-remove','device-update','devices-revoke-all','redeem-license','main-device','main-device-clear','upgrade-request','paddle-checkout','paddle-portal','team-create','team-invite','team-accept','team-remove','team-device-share','team-device-unshare','team-access-request']);
+  const mutations=new Set(['register','login','logout','password-change','password-setup','password-reset-request','password-reset-complete','magic-request','verification-resend','verification-verify','reactivate','enrollment-approve','device-revoke','device-remove','device-update','devices-revoke-all','redeem-license','main-device','main-device-clear','upgrade-request','paddle-checkout','paddle-portal','team-create','team-invite','team-accept','team-inbox-read','team-inbox-accept','team-remove','team-device-share','team-device-unshare','team-access-request']);
   if(mutations.has(action)&&!sameOriginMutation(req)){accountAudit(action,'cross_site_denied');return res.status(403).json({ok:false,error:'cross_site_request_denied'});}
   try{
     if(action==='register'){
@@ -221,6 +221,24 @@ async function accountApi(req,res){
         ?`/v1/accounts/usage?months=${Math.max(1,Math.min(Number(req.query?.months)||6,24))}`
         :`/v1/accounts/${action}`;
       return res.status(200).json(await callOperatorJson('GET',target,null,headers(token)));
+    }
+    if(action==='team-entitlement'){
+      if(!method(req,res,'GET'))return;
+      const token=sessionToken(req);if(!token)return res.status(401).json({ok:false,error:'account_session_required'});
+      return res.status(200).json(await callOperatorJson('GET','/v1/accounts/team/entitlement',null,headers(token)));
+    }
+    if(action==='team-inbox'){
+      if(!method(req,res,'GET'))return;
+      const token=sessionToken(req);if(!token)return res.status(401).json({ok:false,error:'account_session_required'});
+      return res.status(200).json(await callOperatorJson('GET','/v1/accounts/team/inbox',null,headers(token)));
+    }
+    if(action==='team-inbox-read'||action==='team-inbox-accept'){
+      if(!method(req,res,'POST'))return;
+      const token=sessionToken(req);if(!token)return res.status(401).json({ok:false,error:'account_session_required'});
+      const notificationId=String(req.body?.notificationId||'').trim();
+      if(!/^tinv_[a-f0-9]{24}$/.test(notificationId))return res.status(400).json({ok:false,error:'invalid_notification_id'});
+      return res.status(200).json(await callOperatorJson('POST',
+        '/v1/accounts/team/inbox/'+(action==='team-inbox-read'?'read':'accept'),{notificationId},headers(token)));
     }
     if(action==='team-memberships'){
       if(!method(req,res,'GET'))return;
@@ -390,6 +408,7 @@ export function registerAccountPortal(app){
   app.get('/enroll',(_q,r)=>sendPortal(r,'enroll.html'));
   app.get(['/account','/account/'],(_q,r)=>sendPortal(r,'index.html'));
   app.get(['/account/team','/account/team/'],(_q,r)=>sendPortal(r,'team.html'));
+  app.get(['/account/inbox','/account/inbox/'],(_q,r)=>sendPortal(r,'inbox.html'));
   app.get(['/account/usage','/account/usage/'],(_q,r)=>sendPortal(r,'usage.html'));
   app.get(['/account/billing','/account/billing/'],(_q,r)=>sendPortal(r,'billing.html'));
   app.get(['/account/settings','/account/settings/'],(_q,r)=>sendPortal(r,'settings.html'));

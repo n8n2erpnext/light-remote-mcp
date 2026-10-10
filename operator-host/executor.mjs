@@ -153,7 +153,9 @@ const teamPrincipalVerifier=teamVerifyFile
   ?new TeamPrincipalProofVerifier({publicKey:fs.readFileSync(teamVerifyFile)}):null;
 const verifyTeamPrincipal=(req,url,body)=>
   verifyTeamPrincipalRequest(req,url,body,teamPrincipalVerifier);
-const proTeams=new ProTeamRegistry({stateFile:PRO_TEAM_STATE_FILE,
+const teamInviteSecretFile=String(process.env.OPERATOR_TEAM_INVITE_SECRET_FILE||'');
+const teamInviteSecret=teamInviteSecretFile?fs.readFileSync(teamInviteSecretFile):null;
+const proTeams=new ProTeamRegistry({stateFile:PRO_TEAM_STATE_FILE,inviteKey:teamInviteSecret,
   planFor:accountId=>operationalAccount(accountId).plan,
   accountActive:accountId=>{try{return operationalAccount(accountId).status==='active';}catch{return false;}},
   emailFor:accountId=>{try{const a=operationalAccount(accountId);return a.emailVerified===true?a.email:null;}catch{return null;}},

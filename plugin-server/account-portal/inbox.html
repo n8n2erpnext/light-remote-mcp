@@ -1,0 +1,59 @@
+<!doctype html><html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow,noarchive"><meta name="referrer" content="no-referrer"><title>Inbox · Light Remote</title><link rel="icon" href="/account/assets/light-remote.ico"><link rel="stylesheet" href="/account/assets/portal.css"><script src="/account/assets/theme.js"></script>
+<style>.inbox-main{max-width:1100px;padding:38px 35px 75px}.inbox-card{padding:23px;margin:16px 0;border:1px solid var(--line,#303840);border-radius:14px;background:var(--panel,#11161c)}.inbox-card h2{font-size:17px;margin:0 0 8px}.inbox-muted{opacity:.7;font-size:13px;line-height:1.7}.inbox-buttons{display:flex;gap:9px;flex-wrap:wrap;margin-top:15px}.inbox-btn{background:#1b242c;border:1px solid #3b454c;color:inherit;border-radius:9px;padding:10px 16px;font:inherit;font-size:13px;cursor:pointer}.inbox-btn.primary{background:#ffcc00;border-color:#ffcc00;color:#101419;font-weight:700}.inbox-btn:disabled{opacity:.5;cursor:not-allowed}.inbox-notice{font-size:13px;margin:16px 0;min-height:20px}.inbox-unread{border-color:#ffcc0070}.inbox-meta{font-size:12px;opacity:.65}.inbox-code{overflow-wrap:anywhere;font-family:ui-monospace,monospace;font-size:12px;padding:12px;background:#0b1117;border-radius:8px;margin-top:10px}.inbox-hidden{display:none}@media(max-width:850px){.inbox-main{padding:25px 17px}}</style></head><body>
+<div class="app"><aside class="sidebar"><div class="brand"><img src="/account/assets/light-remote-mark.svg" alt=""><span><strong>Light Remote</strong><small>Remote MCP</small></span></div>
+<nav class="nav"><a href="/account"><span class="icon"><img class="material-icon" src="/assets/icons/material/devices.svg" alt=""></span>Devices</a><a href="/account/team"><span class="icon"><img class="material-icon" src="/assets/icons/material/groups.svg" alt=""></span>Pro Team</a><a class="active" href="/account/inbox"><span class="icon">✉</span>Inbox <span id="inboxBadge"></span></a><a href="/account/usage"><span class="icon"><img class="material-icon" src="/assets/icons/material/bar_chart.svg" alt=""></span>Usage</a><a href="/account/billing"><span class="icon"><img class="material-icon" src="/assets/icons/material/credit_card.svg" alt=""></span>Plan & billing</a><a href="/account/settings"><span class="icon"><img class="material-icon" src="/assets/icons/material/settings.svg" alt=""></span>Settings</a></nav>
+<div class="account-foot"><div class="account-email" id="currentUser">Loading…</div><div class="account-meta" id="currentPlan"></div></div></aside>
+<main class="main inbox-main"><div class="eyebrow">LIGHT REMOTE · ACCOUNT</div><h1>Your inbox</h1><p class="inbox-muted">Account-specific notifications. Team invitations appear here even if their emails go to Spam or fail delivery. You can accept only invitations sent to your verified account email.</p>
+<div class="inbox-buttons"><button id="refresh" class="inbox-btn">Refresh inbox</button><a class="inbox-btn" href="/account/team">Open Pro Team</a></div>
+<div id="notice" role="status" aria-live="polite" class="inbox-notice"></div><div id="items"><div class="inbox-card inbox-muted">Loading inbox…</div></div>
+<p class="inbox-muted">Accepting membership never authorizes a device. Local Wall A/B approval is separate. Invitations expire after 24 hours (legacy account-ID invites may expire sooner).</p></main></div>
+<script>
+(()=>{'use strict';
+const $=id=>document.getElementById(id);let notifications=[];
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function notice(message,bad=false){$('notice').textContent=message;$('notice').style.color=bad?'#df786f':'#32b38a'}
+async function api(action,method='GET',payload=null){
+ const opts={method,cache:'no-store',credentials:'same-origin',headers:{accept:'application/json'}};
+ if(payload!==null){opts.headers['content-type']='application/json';opts.body=JSON.stringify(payload)}
+ const res=await fetch('/account/api?action='+encodeURIComponent(action),opts);
+ if(res.status===401){location.href='/account/login?next=%2Faccount%2Finbox';throw Error('login_required')}
+ const data=await res.json().catch(()=>({}));
+ if(!res.ok)throw Error(data.error||'request_failed');
+ return data;
+}
+async function load(){
+ const me=await api('me');
+ $('currentUser').textContent=me.account.email;
+ $('currentPlan').textContent=(me.account.plan||'free').toUpperCase();
+ const inbox=await api('team-inbox');notifications=inbox.notifications||[];
+ $('inboxBadge').textContent=inbox.unreadCount?'('+inbox.unreadCount+')':'';
+ $('items').innerHTML=notifications.length?notifications.map(n=>{
+  const date=new Date(n.expiresAt).toLocaleString(),unread=n.readAt?'':' inbox-unread';
+  return '<article class="inbox-card'+unread+'"><h2>Pro Team invitation'+(n.readAt?'':' · New')+'</h2>'
+   +'<div class="inbox-muted">You have been invited by owner <strong>'+esc(n.ownerAccountId)+'</strong>.</div>'
+   +'<div class="inbox-meta">Expires '+esc(date)+' · No device permission is granted</div>'
+   +(n.inviteCode?'<div class="inbox-code" id="code-'+esc(n.notificationId)+'">'+esc(n.inviteCode)+'</div>':'')
+   +'<div class="inbox-buttons"><button class="inbox-btn primary" data-accept="'+esc(n.notificationId)+'">Accept invitation</button>'
+   +(n.inviteCode?'<button class="inbox-btn" data-copy="'+esc(n.notificationId)+'">Copy invite code</button>':'')
+   +(!n.readAt?'<button class="inbox-btn" data-read="'+esc(n.notificationId)+'">Mark read</button>':'')
+   +'</div></article>';
+ }).join(''):'<div class="inbox-card inbox-muted">No pending notifications. If someone has invited this verified email address, the invitation will appear here automatically.</div>';
+}
+async function action(id,mode){
+ const n=notifications.find(n=>n.notificationId===id);if(!n)return;
+ if(mode==='copy'){
+  if(!n.inviteCode)return notice('No backup code is available for this older invitation.',true);
+  try{await navigator.clipboard.writeText(n.inviteCode);return notice('Invite code copied')}catch{return notice('Copy unavailable. Select the code above.',true)}
+ }
+ if(mode==='accept'&&!confirm('Join this Pro Team? Each device still requires Local Wall A/B approval.'))return;
+ try{
+  const actionName=mode==='read'?'team-inbox-read':'team-inbox-accept';
+  await api(actionName,'POST',{notificationId:id});
+  await load();notice(mode==='read'?'Notification marked as read':'Team joined! Visit Pro Team to see the membership.');
+ }catch(error){notice(error.message,true)}
+}
+$('items').onclick=e=>{const b=e.target.closest('[data-accept],[data-copy],[data-read]');if(!b)return;const mode=b.hasAttribute('data-accept')?'accept':b.hasAttribute('data-copy')?'copy':'read';void action(b.dataset[mode],mode)};
+$('refresh').onclick=()=>void load().then(()=>notice('Inbox refreshed')).catch(e=>notice(e.message,true));
+load().catch(e=>notice(e.message,true));
+})();
+</script></body></html>

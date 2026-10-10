@@ -17,9 +17,10 @@ const accounts=new Map([
 const emailFor=id=>{const a=accounts.get(id);return a?.verified?a.email:null;};
 const opts={stateFile:path.join(dir,'teams.json'),now:()=>now,
   planFor:id=>id==='owner'?ownerPlan:'free',
-  accountActive:id=>accounts.get(id)?.active===true,emailFor};
+  accountActive:id=>accounts.get(id)?.active===true,emailFor,inviteKey:Buffer.alloc(32,42)};
 const team=new ProTeamRegistry(opts);
 try{
+ team.grantTeamAccess({ownerAccountId:'owner',validUntil:now+30*86400000});
  team.create({ownerAccountId:'owner'});
  assert.deepEqual(team.memberships('owner'),[],'owner must not be displayed as joined member');
  assert.throws(()=>team.inviteEmail({ownerAccountId:'owner',memberEmail:'invalid'}),/invalid_team_invite_email/);
@@ -85,6 +86,7 @@ try{
  await assert.rejects(()=>call({memberEmail:'anyone@example.com',memberAccountId:'outsider'}),/invalid_team_invitee/);
  // Successful authenticated operator route does not require exposing account ID.
  const fresh=new ProTeamRegistry({...opts,stateFile:path.join(dir,'api-invites.json')});
+ fresh.grantTeamAccess({ownerAccountId:'owner',validUntil:now+30*86400000});
  fresh.create({ownerAccountId:'owner'});
  deps.proTeams=fresh;
  const apiInvite=await call({memberEmail:'NEW-COLLEAGUE@EXAMPLE.COM'});
@@ -94,6 +96,7 @@ try{
  assert.equal(fresh.accept({memberAccountId:'apiMember',inviteCode:apiInvite.data.invite.inviteCode}).usedSeats,2);
  // Persisted rate limits prevent repeated invites from an owner after restart.
  const limited=new ProTeamRegistry({...opts,stateFile:path.join(dir,'daily-limit.json')});
+ limited.grantTeamAccess({ownerAccountId:'owner',validUntil:now+30*86400000});
  limited.create({ownerAccountId:'owner'});
  for(let n=0;n<12;n++){
    limited.inviteEmail({ownerAccountId:'owner',memberEmail:'limited@example.com'});

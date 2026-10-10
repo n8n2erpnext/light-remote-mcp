@@ -18,6 +18,7 @@ const grants=new DeviceAccessGrantRegistry({now:()=>now});
 const teams=new ProTeamRegistry({now:()=>now,planFor:()=>plan,
   accountActive:()=>true,onRevoke:({memberAccountId,deviceId,reason})=>
     grants.revokeTeamMember({accountId:memberAccountId,deviceId,reason})});
+teams.grantTeamAccess({ownerAccountId:owner,validUntil:now+30*86400000});
 teams.create({ownerAccountId:owner});
 teams.shareDevice({ownerAccountId:owner,deviceId:device.deviceId,
   deviceOwnerAccountId:owner});
@@ -56,7 +57,8 @@ const inferCommandCapabilities=(script)=>{
   return result;
 };
 const sim=new TeamDispatchUatSimulator({teamSessions:sessions,
-  inferCommandCapabilities,now:()=>now,maxQueued:8,meterPreview:e=>{
+  inferCommandCapabilities,now:()=>now,maxQueued:8,
+  ownerTeamBudgetFor:id=>teams.teamEntitlement(id).monthlyMemberCallBudget,meterPreview:e=>{
     if(meterFailNext){meterFailNext=false;throw Error('meter_preview_failure');}
     meterEvents.push(e);
   }});
@@ -90,6 +92,18 @@ assert.equal(sim.ledger(owner).length,2);
 assert.equal(sim.ledger('memberA').length,0);
 assert(meterEvents.every(e=>e.billedAccountId===owner&&e.previewOnly===true));
 assert.throws(()=>sim.job(aj.jobId,b),/team_simulator_job_actor_denied/);
+// Team member budget remains finite despite personal PRO unlimited usage.
+const quotaSim=new TeamDispatchUatSimulator({teamSessions:sessions,now:()=>now,
+  ownerTeamBudgetFor:()=>1});
+const q1=quotaSim.admit({identity:a,sessionId:as.sessionId,deviceId:device.deviceId,
+  operationId:'quota-preview-1',descriptor:{family:'fs',action:'read'}});
+const q2=quotaSim.admit({identity:b,sessionId:bs.sessionId,deviceId:device.deviceId,
+  operationId:'quota-preview-2',descriptor:{family:'fs',action:'read'}});
+assert.equal(quotaSim.dispatchNext(device.deviceId).jobId,q1.jobId);
+quotaSim.finish(q1.jobId);
+assert.equal(quotaSim.dispatchNext(device.deviceId),null);
+assert.equal(quotaSim.job(q2.jobId,b).state,'cancelled');
+assert.equal(quotaSim.ledger(owner).length,1);
 assert.equal(sim.job(aj.jobId,a).state,'running');
 assert.equal(sim.finish(aj.jobId).state,'completed');
 assert.equal(sim.dispatchNext(device.deviceId).jobId,cj.jobId);
@@ -163,7 +177,7 @@ sim.finish(paused.jobId);
 // Preview meter failure leaves queue intact, can retry exactly once.
 // Atomic in-process scheduling stress: no owner or Team slot oversubscription.
 const stressSim=new TeamDispatchUatSimulator({teamSessions:sessions,
-  now:()=>now,maxQueued:20});
+  now:()=>now,maxQueued:20,ownerTeamBudgetFor:id=>teams.teamEntitlement(id).monthlyMemberCallBudget});
 const stressIds=Array.from({length:15},(_,i)=>
   stressSim.admit({identity:b,sessionId:bs.sessionId,deviceId:device.deviceId,
     operationId:'op-b-stress-'+i,descriptor:{family:'fs',action:'read'}}).jobId);
@@ -233,7 +247,7 @@ assert.notEqual(freshAfterDowngrade.sessionId,newSessionC.sessionId);
 
 // Queue limit applies across all members and cannot be bypassed by retries.
 const bounded=new TeamDispatchUatSimulator({teamSessions:sessions,now:()=>now,
-  maxQueued:1});
+  maxQueued:1,ownerTeamBudgetFor:id=>teams.teamEntitlement(id).monthlyMemberCallBudget});
 const queueOne=bounded.admit({identity:c,sessionId:freshAfterDowngrade.sessionId,
   deviceId:device.deviceId,operationId:'bounded-1',
   descriptor:{family:'fs',action:'read'}});
@@ -245,6 +259,7 @@ assert.throws(()=>bounded.admit({identity:c,sessionId:freshAfterDowngrade.sessio
   descriptor:{family:'fs',action:'read'}}),/team_simulator_queue_full/);
 
 console.log('team_uat_owner_and_members_shared_three_worker_cap=PASS');
+console.log('team_uat_owner_member_budget_fail_closed=PASS');
 console.log('team_uat_idempotent_scoped_admission_and_owner_preview_billing=PASS');
 console.log('team_uat_server_inferred_required_capabilities_no_spoof=PASS');
 console.log('team_uat_owner_previews_once_and_meter_failure_rolls_back=PASS');

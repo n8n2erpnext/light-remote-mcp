@@ -22,7 +22,7 @@
 <nav class="nav">
 <a href="/account"><span class="icon"><img class="material-icon" src="/assets/icons/material/devices.svg" alt=""></span>Devices</a>
 <a class="active" href="/account/team"><span class="icon"><img class="material-icon" src="/assets/icons/material/groups.svg" alt=""></span>Pro Team</a>
-<a href="/account/usage"><span class="icon"><img class="material-icon" src="/assets/icons/material/bar_chart.svg" alt=""></span>Usage</a>
+<a href="/account/inbox"><span class="icon">✉</span> Inbox</a><a href="/account/usage"><span class="icon"><img class="material-icon" src="/assets/icons/material/bar_chart.svg" alt=""></span>Usage</a>
 <a href="/account/billing"><span class="icon"><img class="material-icon" src="/assets/icons/material/credit_card.svg" alt=""></span>Billing</a>
 <a href="/account/settings"><span class="icon"><img class="material-icon" src="/assets/icons/material/settings.svg" alt=""></span>Settings</a>
 </nav><div class="account-foot"><div class="account-email" id="email">Loading…</div><div class="account-meta" id="plan"></div><div class="footer-links"><a href="/support">Support</a><a href="/privacy">Privacy</a></div></div>
@@ -34,7 +34,7 @@
 <div class="team-row"><strong>Plan</strong><span id="planDetail">—</span></div>
 <div class="team-row"><strong>Team seats</strong><span id="seatCounter" class="team-pill gold">— / 5</span></div>
 <div class="team-actions"><button id="createTeam" class="team-btn primary team-hidden">Create Pro Team</button><button id="reload" class="team-btn">Refresh</button></div>
-<div class="team-status" id="status" role="status" aria-live="polite"></div></div>
+<div class="team-status" id="status" role="status" aria-live="polite"></div><div id="teamAccessNotice" class="team-muted"></div></div>
 <div class="team-card" style="margin-bottom:18px"><h2>Teams I have joined</h2><p class="team-muted">Membership does not permit remote access until device owner approval and member-specific A/B pairing are enabled.</p><div id="joinedTeams" class="team-muted">Loading…</div></div>
 <div class="team-columns">
 <section class="team-card"><h2>Members</h2><p class="team-muted">Invite colleagues using their email address. They can join with an existing account or register a free account first. Invitations expire after 24 hours and work only for the invited, verified email address.</p>
@@ -57,7 +57,7 @@
 </main></div>
 <script>
 (()=>{'use strict';
-const $=id=>document.getElementById(id);let team=null;let user=null;let devices=[];let memberships=[];
+const $=id=>document.getElementById(id);let team=null;let user=null;let devices=[];let memberships=[];let teamEntitlement=null;
 const INVITE_STORAGE_KEY='light_remote_team_pending_invite';
 function captureInvitation(){
  const hash=String(location.hash||'');
@@ -93,8 +93,8 @@ function render(){
  $('seatCounter').textContent=memberList.length+' / 5';
  $('members').innerHTML=memberList.length?memberList.map(id=>'<div class="team-row"><span>'+escapeHtml(id)+(id===team.ownerAccountId?' (owner)':'')+'</span>'+(id===team.ownerAccountId?'':'<button class="team-btn" data-remove="'+escapeHtml(id)+'">Remove</button>')+'</div>').join(''):'<p class="team-muted">Create a paid team to invite members.</p>';
  $('sharedDevices').innerHTML=(team?.devices||[]).length?(team.devices.map(id=>'<div class="team-row"><span>'+escapeHtml(id)+'</span><button class="team-btn" data-unshare="'+escapeHtml(id)+'">Unshare</button></div>').join('')):'<p class="team-muted">No devices shared.</p>';
- $('createTeam').classList.toggle('team-hidden',Boolean(team)||!['pro','vip'].includes(String(user?.plan).toLowerCase()));
- for(const id of ['invite','shareDevice'])$(id).disabled=!team;
+ $('createTeam').classList.toggle('team-hidden',Boolean(team)||!teamEntitlement?.active);
+ for(const id of ['invite','shareDevice'])$(id).disabled=!team||!teamEntitlement?.active;
  $('deviceId').innerHTML=devices.filter(d=>d.state!=='revoked').map(d=>'<option value="'+escapeHtml(d.deviceId)+'">'+escapeHtml(d.displayName||d.deviceId)+'</option>').join('');
  $('shareDevice').disabled=!team||!$('deviceId').options.length;
 }
@@ -102,9 +102,13 @@ async function load(){
  const info=await api('me');user=info.account;
  $('email').textContent=user.email||user.accountId;$('plan').textContent=(user.plan||'free').toUpperCase();
  $('planDetail').textContent=(user.plan||'free').toUpperCase();$('myAccountId').textContent=user.accountId;
+ teamEntitlement=(await api('team-entitlement')).teamEntitlement;
  const owned=await api('devices');devices=owned.devices||[];
  memberships=(await api('team-memberships')).memberships||[];
- try{team=(await api('team-view')).team;}catch(err){team=null;if(err.message!=='team_not_found'&&err.message!=='pro_team_subscription_required')status(err.message,true)}
+ try{team=(await api('team-view')).team;}catch(err){team=null;if(err.message!=='team_not_found'&&err.message!=='pro_team_subscription_required'&&err.message!=='pro_team_addon_required')status(err.message,true)}
+ $('teamAccessNotice').textContent=teamEntitlement?.active
+   ?'PRO Team Access enabled for this owner. Team member budget: '+teamEntitlement.monthlyMemberCallBudget+' calls/month (UAT preview only).'
+   :'A regular PRO subscription does not include Team Access. Team requires a separate PRO+ entitlement. Pricing and real Team billing are not enabled yet.';
  render();
  if($('acceptCode').value.trim())status('Invitation ready. Signed in as '+(user?.email||'this account')+'. Click Accept invitation only if this is the invited email.');
 }

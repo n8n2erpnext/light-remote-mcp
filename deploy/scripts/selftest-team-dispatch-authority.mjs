@@ -12,6 +12,7 @@ import {authorizeTeamDispatch,authorizeTrustedTeamDispatch,assertTeamBoundSessio
 let now=Date.now(),ownerPlan='pro';
 const teamRegistry=new ProTeamRegistry({now:()=>now,planFor:()=>ownerPlan,accountActive:()=>true});
 const accessGrants=new DeviceAccessGrantRegistry({now:()=>now});
+teamRegistry.grantTeamAccess({ownerAccountId:'owner',validUntil:now+30*86400000});
 teamRegistry.create({ownerAccountId:'owner'});
 const invite=teamRegistry.invite({ownerAccountId:'owner',memberAccountId:'member'});
 teamRegistry.accept({memberAccountId:'member',inviteCode:invite.inviteCode});

@@ -83,9 +83,9 @@ function publicJob(job){
  */
 export class TeamDispatchUatSimulator {
   constructor({teamSessions,inferCommandCapabilities,now=()=>Date.now(),
-    maxWorkers=3,maxQueued=32,meterPreview=()=>{}}={}){
+    maxWorkers=3,maxQueued=32,meterPreview=()=>{},ownerTeamBudgetFor=()=>0}={}){
     if(!teamSessions||typeof teamSessions.get!=='function'||
-       typeof now!=='function'||typeof meterPreview!=='function')
+       typeof now!=='function'||typeof meterPreview!=='function'||typeof ownerTeamBudgetFor!=='function')
       fail('team_simulator_dependencies_required',503);
     if(!Number.isInteger(maxWorkers)||maxWorkers<1||maxWorkers>3||
        !Number.isInteger(maxQueued)||maxQueued<1||maxQueued>256)
@@ -94,7 +94,7 @@ export class TeamDispatchUatSimulator {
     this.inferCommandCapabilities=inferCommandCapabilities;
     this.now=now;
     this.maxWorkers=maxWorkers;this.maxQueued=maxQueued;
-    this.meterPreview=meterPreview;
+    this.meterPreview=meterPreview;this.ownerTeamBudgetFor=ownerTeamBudgetFor;
     this.jobs=new Map();
     this.keys=new Map();
     this.queue=[];
@@ -236,12 +236,20 @@ export class TeamDispatchUatSimulator {
         this._release(job,'authorization_revoked');continue;
       }
       if(this._slots(deviceId).total>=this.maxWorkers)return null;
+      // Team budget is finite even for personal PRO with unlimited personal calls.
+      // Preview-only in this process: real dispatch requires durable atomic ledger.
+      const budget=Number(this.ownerTeamBudgetFor(job.billedAccountId));
+      const month=new Date(this.now()).toISOString().slice(0,7);
+      const used=this.previewLedger.filter(e=>e.billedAccountId===job.billedAccountId&&e.month===month).length;
+      if(!Number.isSafeInteger(budget)||budget<1||used>=budget){
+        this._release(job,'team_monthly_budget_exceeded');continue;
+      }
       // Charge counter belongs to the OWNER only. This is never forwarded to
       // UsageRegistry in UAT. Idempotent job key prevents duplicate previews.
       if(!this.charges.has(id)){
         const event=Object.freeze({previewOnly:true,jobId:id,operationId:job.operationId,
           actorAccountId:job.actorAccountId,billedAccountId:job.billedAccountId,
-          deviceId:job.deviceId,toolCalls:1});
+          deviceId:job.deviceId,toolCalls:1,month});
         // If preview recording fails, nothing starts and the queue is intact.
         this.meterPreview(event);
         this.previewLedger.push(event);

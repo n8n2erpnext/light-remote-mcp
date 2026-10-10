@@ -19,6 +19,9 @@ export function resolveTeamEntitlement({deviceOwnerAccountId,actorAccountId,devi
   if(!['pro','vip'].includes(plan)||!teamRegistry.authorize({deviceOwnerAccountId:owner,actorAccountId:actor,deviceId}))
     throw new TeamEntitlementError('pro_team_membership_required');
   if(!memberAbApproved)throw new TeamEntitlementError('team_member_device_approval_required');
+  const budget=teamRegistry.teamEntitlement?.(owner)?.monthlyMemberCallBudget;
+  if(!Number.isSafeInteger(budget)||budget<1)
+    throw new TeamEntitlementError('team_member_budget_required');
   return {allowed:true,billedAccountId:owner,actorAccountId:actor,plan,maxSeats:PRO_TEAM_MAX_SEATS,
-    maxWorkers:3,sharedTeam:true};
+    maxWorkers:3,monthlyMemberCallBudget:budget,sharedTeam:true};
 }
