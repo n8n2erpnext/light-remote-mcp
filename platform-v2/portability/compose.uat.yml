@@ -1,0 +1,43 @@
+# Synthetic portability rehearsal only. No fixed project name, no host ports.
+# Run exclusively with generated secret files and -p lr-uat-move-<random>-src/dst.
+# Do not deploy this template as a production stack.
+services:
+  postgres:
+    image: postgres:17-alpine
+    pull_policy: never
+    restart: "no"
+    env_file:
+      - ${LR_PORTABLE_PG_ENV:?UAT synthetic Postgres env required}
+    command: ["postgres", "-c", "password_encryption=scram-sha-256"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks: [private]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+    mem_limit: 512m
+    cpus: 0.5
+  redis:
+    image: redis:8-alpine
+    pull_policy: never
+    restart: "no"
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    volumes:
+      - redisdata:/data
+      - ${LR_PORTABLE_REDIS_CONF:?UAT synthetic Redis config required}:/usr/local/etc/redis/redis.conf:ro
+    networks: [private]
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping 2>&1 | grep -q NOAUTH"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+    mem_limit: 256m
+    cpus: 0.2
+volumes:
+  pgdata:
+  redisdata:
+networks:
+  private:
+    internal: true
