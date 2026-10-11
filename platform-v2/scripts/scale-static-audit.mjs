@@ -10,7 +10,7 @@ import {fileURLToPath} from 'node:url';
 const repo=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const rules=[
  {id:'sync-account-snapshot',severity:'P0',file:'operator-host/account-registry.mjs',need:['fs.writeFileSync','this.sessions=new Map'],issue:'Full account/session registry snapshot is synchronously rewritten; not safe as multi-instance authoritative store'},
- {id:'sync-usage-snapshot',severity:'P0',file:'operator-host/usage-registry.mjs',need:['fs.writeFileSync','_accrueOpen()'],issue:'Usage serialization and whole-connection accrual on summary reads can grow with online device count'},
+ {id:'sync-usage-snapshot',severity:'P0',file:'operator-host/usage-registry.mjs',need:['fs.writeFileSync','_accrueOpen(aid)'],issue:'Owner-scoped accrual is indexed in this branch, but the whole JSON usage snapshot is still synchronously rewritten on mutations'},
  {id:'volatile-oauth-replay',severity:'P0',file:'plugin-server/oauth.mjs',need:['usedCodes=new Map','usedRefresh=new Map'],issue:'OAuth one-time/replay state is scoped to one Node process'},
  {id:'volatile-fleet-jobs',severity:'P0',file:'operator-host/fleet-router.mjs',need:['this.commands=new Map','this.nodes=new Map'],issue:'Device commands, queue and in-flight records are held in a process-local router'},
  {id:'sync-billing-snapshot',severity:'P0',file:'plugin-server/paddle-billing.mjs',need:['fs.writeFileSync','slice(0, 1000)'],issue:'Paddle dedupe ledger is a synchronous file snapshot with a bounded 1,000-event history'},

@@ -11,7 +11,7 @@ function emptyDevice(){return {toolCalls:0,onlineMs:0};}
 
 export class UsageRegistry{
   constructor({stateFile=null,now=()=>Date.now()}={}){
-    this.stateFile=stateFile;this.now=now;this.accounts={};this.openConnections=new Map();this.trackingSince=this.now();this.loadError=null;this._load();
+    this.stateFile=stateFile;this.now=now;this.accounts={};this.openConnections=new Map();this.accountConnectionIds=new Map();this.deviceConnectionIds=new Map();this.trackingSince=this.now();this.loadError=null;this._load();
   }
   _load(){
     if(!this.stateFile||!fs.existsSync(this.stateFile))return;
@@ -20,14 +20,34 @@ export class UsageRegistry{
       if(d?.schemaVersion!==1||typeof d.accounts!=='object'||!Array.isArray(d.openConnections))throw new Error('invalid_usage_schema');
       this.accounts=d.accounts||{};this.trackingSince=Number(d.trackingSince)||this.trackingSince;let migrated=false;
       for(const row of Object.values(this.accounts)){if(!row||typeof row!=='object')continue;if(!Number(row.lastToolCallAt)){const calls=Object.values(row.months||{}).reduce((sum,b)=>sum+(Number(b?.toolCalls)||0),0);if(calls>0){row.lastToolCallAt=this.now();migrated=true;}}}
-      for(const row of d.openConnections)if(row?.connectionId&&row?.accountId&&row?.deviceId)this.openConnections.set(String(row.connectionId),row);if(migrated)this._persist();
-    }catch(error){this.accounts={};this.openConnections.clear();this.loadError=error?.message||'invalid_usage_state';}
+      for(const row of d.openConnections)if(row?.connectionId&&row?.accountId&&row?.deviceId)this._trackConnection(String(row.connectionId),row);if(migrated)this._persist();
+    }catch(error){this.accounts={};this.openConnections.clear();this.accountConnectionIds.clear();this.deviceConnectionIds.clear();this.loadError=error?.message||'invalid_usage_state';}
   }
   _persist(){
     if(!this.stateFile)return;
     const dir=path.dirname(this.stateFile);fs.mkdirSync(dir,{recursive:true,mode:0o750});
     const data={schemaVersion:1,trackingSince:this.trackingSince,accounts:this.accounts,openConnections:[...this.openConnections.values()]};
     const tmp=`${this.stateFile}.${process.pid}.tmp`;fs.writeFileSync(tmp,`${JSON.stringify(data,null,2)}\n`,{mode:0o600});fs.chmodSync(tmp,0o600);fs.renameSync(tmp,this.stateFile);
+  }
+  _trackConnection(id,row){
+    const key=String(id),old=this.openConnections.get(key);
+    if(old)this._unlinkConnection(key,old.accountId,old.deviceId);
+    this.openConnections.set(key,row);
+    const aid=String(row.accountId||'');let ids=this.accountConnectionIds.get(aid);
+    if(!ids){ids=new Set();this.accountConnectionIds.set(aid,ids);}ids.add(key);
+    const did=String(row.deviceId||'');let deviceIds=this.deviceConnectionIds.get(did);
+    if(!deviceIds){deviceIds=new Set();this.deviceConnectionIds.set(did,deviceIds);}deviceIds.add(key);
+  }
+  _unlinkConnection(id,accountId,deviceId){
+    const key=String(id),aid=String(accountId||''),ids=this.accountConnectionIds.get(aid);
+    if(ids){ids.delete(key);if(!ids.size)this.accountConnectionIds.delete(aid);}
+    const did=String(deviceId||''),deviceIds=this.deviceConnectionIds.get(did);
+    if(deviceIds){deviceIds.delete(key);if(!deviceIds.size)this.deviceConnectionIds.delete(did);}
+  }
+  _removeConnection(id){
+    const key=String(id),row=this.openConnections.get(key);
+    if(!row)return false;
+    this.openConnections.delete(key);this._unlinkConnection(key,row.accountId,row.deviceId);return true;
   }
   isEmpty(){return !Object.keys(this.accounts).length&&!this.openConnections.size;}
   _account(accountId){const id=String(accountId||'');if(!ID_RE.test(id))return null;return this.accounts[id]||(this.accounts[id]={months:{},lastToolCallAt:null});}
@@ -43,20 +63,31 @@ export class UsageRegistry{
     const e=event||{},at=atMs(e.at,this.now());let changed=false;
     if(e.type==='session_activity'&&e.action==='toolCalls'&&e.accountId){const a=this._account(e.accountId),b=this._bucket(e.accountId,monthKey(at));if(b&&a){b.toolCalls++;this._device(b,e.deviceId).toolCalls++;a.lastToolCallAt=Math.max(Number(a.lastToolCallAt)||0,at);changed=true;}}
     else if(e.type==='device_connection_opened'&&e.accountId&&e.connectionId&&e.deviceId){
-      for(const [id,row] of this.openConnections)if(row.deviceId===e.deviceId&&id!==e.connectionId){this._accrue(row,at);this.openConnections.delete(id);changed=true;}
-      this.openConnections.set(String(e.connectionId),{connectionId:String(e.connectionId),accountId:String(e.accountId),deviceId:String(e.deviceId),openedAt:at,lastAccruedAt:at,hardExpiresAt:Number(e.hardExpiresAt)||null});changed=true;
+      for(const [id,row] of this.openConnections)if(row.deviceId===e.deviceId&&id!==e.connectionId){this._accrue(row,at);this._removeConnection(id);changed=true;}
+      this._trackConnection(String(e.connectionId),{connectionId:String(e.connectionId),accountId:String(e.accountId),deviceId:String(e.deviceId),openedAt:at,lastAccruedAt:at,hardExpiresAt:Number(e.hardExpiresAt)||null});changed=true;
     } else if(e.type==='device_connection_renewed'&&e.accountId&&e.connectionId&&e.deviceId){
       const id=String(e.connectionId),hardExpiresAt=Number(e.hardExpiresAt)||null,row=this.openConnections.get(id);
       if(row){this._accrue(row,at);row.hardExpiresAt=hardExpiresAt;changed=true;}
-      else{this.openConnections.set(id,{connectionId:id,accountId:String(e.accountId),deviceId:String(e.deviceId),openedAt:at,lastAccruedAt:at,hardExpiresAt});changed=true;}
-    } else if(e.type==='device_connection_closed'&&e.connectionId){const row=this.openConnections.get(String(e.connectionId));if(row){this._accrue(row,at);this.openConnections.delete(String(e.connectionId));changed=true;}}
+      else{this._trackConnection(id,{connectionId:id,accountId:String(e.accountId),deviceId:String(e.deviceId),openedAt:at,lastAccruedAt:at,hardExpiresAt});changed=true;}
+    } else if(e.type==='device_connection_closed'&&e.connectionId){const row=this.openConnections.get(String(e.connectionId));if(row){this._accrue(row,at);this._removeConnection(String(e.connectionId));changed=true;}}
     if(changed&&persist)this._persist();return changed;
   }
   backfill(events=[]){if(!this.isEmpty())return {backfilled:false,events:0};let count=0,first=null;for(const e of events){const t=atMs(e?.at,NaN);if(!Number.isFinite(t))continue;first=first==null?t:Math.min(first,t);if(this.ingest(e,{persist:false}))count++;}if(first!=null)this.trackingSince=first;this._persist();return {backfilled:true,events:count,trackingSince:this.trackingSince};}
-  reconcileConnections(rows=[]){let changed=false;for(const c of rows){if(!c||c.state!=='connected'||!c.connectionId||!c.accountId||!c.deviceId)continue;if(this.openConnections.has(String(c.connectionId)))continue;const openedAt=Number(c.connectedAt)||this.now();this.openConnections.set(String(c.connectionId),{connectionId:String(c.connectionId),accountId:String(c.accountId),deviceId:String(c.deviceId),openedAt,lastAccruedAt:openedAt,hardExpiresAt:Number(c.hardExpiresAt)||null});changed=true;}if(changed)this._persist();return changed;}
-  _accrueOpen(now=this.now()){let changed=false;for(const [id,row] of this.openConnections){if(this._accrue(row,now))changed=true;if(row.hardExpiresAt&&Number(row.lastAccruedAt)>=Number(row.hardExpiresAt)){this.openConnections.delete(id);changed=true;}}if(changed)this._persist();}
+  reconcileConnections(rows=[]){let changed=false;for(const c of rows){if(!c||c.state!=='connected'||!c.connectionId||!c.accountId||!c.deviceId)continue;if(this.openConnections.has(String(c.connectionId)))continue;const openedAt=Number(c.connectedAt)||this.now();this._trackConnection(String(c.connectionId),{connectionId:String(c.connectionId),accountId:String(c.accountId),deviceId:String(c.deviceId),openedAt,lastAccruedAt:openedAt,hardExpiresAt:Number(c.hardExpiresAt)||null});changed=true;}if(changed)this._persist();return changed;}
+  _accrueOpen(accountId,now=this.now()){
+    const ids=this.accountConnectionIds.get(String(accountId||''));if(!ids?.size)return;
+    let changed=false;
+    for(const id of [...ids]){
+      const row=this.openConnections.get(id);if(!row)continue;
+      if(this._accrue(row,now))changed=true;
+      if(row.hardExpiresAt&&Number(row.lastAccruedAt)>=Number(row.hardExpiresAt)){
+        this._removeConnection(id);changed=true;
+      }
+    }
+    if(changed)this._persist();
+  }
   summary(accountId,{months=6}={}){
-    this._accrueOpen();const aid=String(accountId||''),a=this.accounts[aid]||{months:{}},now=this.now(),count=Math.max(1,Math.min(Number(months)||6,24)),current=monthKey(now),keys=[];let y=new Date(now).getUTCFullYear(),m=new Date(now).getUTCMonth();for(let i=0;i<count;i++){keys.unshift(`${y}-${String(m+1).padStart(2,'0')}`);m--;if(m<0){m=11;y--;}}
+    const aid=String(accountId||'');this._accrueOpen(aid);const a=this.accounts[aid]||{months:{}},now=this.now(),count=Math.max(1,Math.min(Number(months)||6,24)),current=monthKey(now),keys=[];let y=new Date(now).getUTCFullYear(),m=new Date(now).getUTCMonth();for(let i=0;i<count;i++){keys.unshift(`${y}-${String(m+1).padStart(2,'0')}`);m--;if(m<0){m=11;y--;}}
     const series=keys.map(key=>{const b=a.months?.[key]||emptyBucket();return {month:key,toolCalls:Number(b.toolCalls)||0,onlineMs:Number(b.onlineMs)||0,onlineHours:(Number(b.onlineMs)||0)/3600000};});
     const b=a.months?.[current]||emptyBucket(),daysElapsed=Math.max(1,new Date(now).getUTCDate()),devices=Object.entries(b.devices||{}).map(([deviceId,row])=>({deviceId,toolCalls:Number(row.toolCalls)||0,onlineMs:Number(row.onlineMs)||0,onlineHours:(Number(row.onlineMs)||0)/3600000})).sort((x,y)=>y.toolCalls-x.toolCalls||y.onlineMs-x.onlineMs);
     return {accountId:aid,trackingSince:this.trackingSince,lastToolCallAt:Number(a.lastToolCallAt)||null,currentMonth:current,daysElapsed,toolCallsThisMonth:Number(b.toolCalls)||0,onlineMsThisMonth:Number(b.onlineMs)||0,onlineHoursThisMonth:(Number(b.onlineMs)||0)/3600000,dailyAverageCalls:(Number(b.toolCalls)||0)/daysElapsed,dailyAverageOnlineHours:((Number(b.onlineMs)||0)/3600000)/daysElapsed,series,devices};
