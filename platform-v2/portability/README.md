@@ -50,3 +50,21 @@ Verified:
 2. Review the two-Compose **synthetic** cold-move script and run it only if the earlier tool security block is resolved, not through a different interface as a workaround.
 3. Design an encrypted and integrity-checked offline backup manifest with per-file role/group/permissions and SHA256, using fabricated fixtures first. Require explicit authorization before any real snapshot or live secret manipulation.
 4. End-to-end client acceptance: signed client updates, Windows/macOS/Linux reconnect, A/B approver proof, worker stop/drain, billing reconciliation, rollback. This is separate from unit tests.
+
+
+## Synthetic sealed archive prototype (UNVERIFIED RUNTIME — 2026-10-11)
+
+The proposed files `sealed_synthetic_backup.py` and `../test/test_sealed_synthetic_backup.py` are **deliberately offline test code**. They do not integrate with Operator, plugin-server, Docker volume backups, production or service startup. They accept neither a live state root nor arbitrary paths through a CLI.
+
+Design implemented in source:
+
+- AES-256-GCM authenticated encryption with a **random 32-byte test key supplied only in process memory**. The outer archive contains only a format label, random nonce and ciphertext. The encrypted payload contains the file manifest plus the fake JSON bytes.
+- Strict five-file synthetic subset of the source-derived Operator registry manifest: `accounts.json`, `devices.json`, `device-access-grants.json`, `usage.json`, `enrollment-signer.json`. Fake test contents include invented account/device IDs, revoked and active A/B grants, event ID and used quota, and a fake signing reference; **no real credentials**.
+- For each synthetic file, the authenticated manifest records SHA-256, byte length, relative name, POSIX mode and numeric UID/GID. Restore requires the original numeric owner/group to match the destination user. A real cross-host migration needs explicit user/group mapping; this prototype does not silently `chown`.
+- Rejects unexpected/missing files, file types other than normal files, symlinks and hardlinks, weak modes, changed source files, incorrect key, corrupted ciphertext, manipulated authenticated manifest paths, and restoring over an existing destination.
+- Source and target paths must be inside a randomly generated `lr_rc50_sealed_fixture_*` directory under the OS temporary directory owned by the current user with mode 0700. The source must be named `source-uat`, target `restored-uat-*`, both within that scratch workspace. This protects against accidental use on a live state directory.
+- Output data and test secret are kept in memory and scratch fixture bytes. Test cleanup uses Python `TemporaryDirectory` only; no Docker, no registry, no `FLUSHDB` or production filesystem operations.
+
+**VERIFICATION STATUS: NOT TESTED.** The remote command to run the AES-GCM unit tests was blocked by the tool security policy. Do not execute the blocked command using PTY or a different tool as a workaround. No PASS, backup correctness, cross-host restore or production readiness is claimed; require normal security review/permission resolution first.
+
+When permitted by the ordinary tooling policy, the intended acceptance is: encrypted in-memory round-trip of fake JSON files; retention of IDs, revoked grants, usage/event ID and file modes/owner; rejection of wrong key, changed ciphertext, forged manifest, missing/extra files, symlink/hardlink, weak mode, arbitrary destination and existing files. Any production backup implementation must be separately designed and authorized, with a sealed key custody plan, rotation, consistent quiesced snapshot, rollback, storage permissions and auditing. The prototype intentionally does **not** store the AES key in its archive, cannot recreate a lost key, is not a streaming large-data backup, and does not implement disaster recovery.
