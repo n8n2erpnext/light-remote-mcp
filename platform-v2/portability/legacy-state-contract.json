@@ -1,0 +1,267 @@
+{
+  "schema_version": 1,
+  "scope": "source-derived state inventory; NEVER read live files",
+  "operator_state_root": {
+    "source": "operator-host/executor.mjs",
+    "variable": "STATE_DIR",
+    "env_override": "OPERATOR_STATE_DIR",
+    "warning": "Do not assume fallback is the active systemd runtime location; resolve actual effective configuration only under separate owner authorization."
+  },
+  "operator_files": [
+    {
+      "variable": "DEVICE_STATE_FILE",
+      "filename": "devices.json",
+      "classification": "durable_identity",
+      "backup_required": true,
+      "restore_policy": "must-preserve-ID-and-revocation"
+    },
+    {
+      "variable": "ENROLLMENT_STATE_FILE",
+      "filename": "enrollments.json",
+      "classification": "durable_authorization",
+      "backup_required": true,
+      "restore_policy": "must-preserve-ID-and-revocation"
+    },
+    {
+      "variable": "ENROLLMENT_SIGNER_FILE",
+      "filename": "enrollment-signer.json",
+      "classification": "critical_signing_material",
+      "backup_required": true,
+      "restore_policy": "must-preserve-ID-and-revocation"
+    },
+    {
+      "variable": "HOST_DEVICE_IDENTITY_FILE",
+      "filename": "host-device-identity.json",
+      "classification": "critical_signing_material",
+      "backup_required": true,
+      "restore_policy": "must-preserve-ID-and-revocation"
+    },
+    {
+      "variable": "HOST_COMPANION_STATE_FILE",
+      "filename": "host-companion-device.json",
+      "classification": "durable_identity",
+      "backup_required": true,
+      "restore_policy": "must-preserve-ID-and-revocation"
+    },
+    {
+      "variable": "CONNECTION_STATE_FILE",
+      "filename": "device-connections.json",
+      "classification": "durable_session",
+      "backup_required": true,
+      "restore_policy": "must-preserve-ID-and-revocation"
+    },
+    {
+      "variable": "ACCESS_STATE_FILE",
+      "filename": "device-access-grants.json",
+      "classification": "durable_authorization",
+      "backup_required": true,
+      "restore_policy": "must-preserve-ID-and-revocation"
+    },
+    {
+      "variable": "AGENT_CLIENT_STATE_FILE",
+      "filename": "agent-clients.json",
+      "classification": "durable_session",
+      "backup_required": true,
+      "restore_policy": "must-preserve-ID-and-revocation"
+    },
+    {
+      "variable": "ACCOUNT_STATE_FILE",
+      "filename": "accounts.json",
+      "classification": "durable_identity",
+      "backup_required": true,
+      "restore_policy": "must-preserve-ID-and-revocation"
+    },
+    {
+      "variable": "USAGE_STATE_FILE",
+      "filename": "usage.json",
+      "classification": "durable_billing",
+      "backup_required": true,
+      "restore_policy": "must-preserve-ID-and-revocation"
+    },
+    {
+      "variable": "FREE_BENEFIT_STATE_FILE",
+      "filename": "free-benefits.json",
+      "classification": "durable_billing",
+      "backup_required": true,
+      "restore_policy": "must-preserve-ID-and-revocation"
+    },
+    {
+      "variable": "PRO_TEAM_STATE_FILE",
+      "filename": "pro-teams.json",
+      "classification": "durable_entitlement",
+      "backup_required": true,
+      "restore_policy": "must-preserve-ID-and-revocation"
+    },
+    {
+      "variable": "NOTIFICATION_STATE_FILE",
+      "filename": "account-notifications.json",
+      "classification": "durable_message",
+      "backup_required": true,
+      "restore_policy": "must-preserve-ID-and-revocation"
+    },
+    {
+      "variable": "LICENSE_STATE_FILE",
+      "filename": "license-keys.json",
+      "classification": "durable_entitlement",
+      "backup_required": true,
+      "restore_policy": "must-preserve-ID-and-revocation"
+    }
+  ],
+  "outside_operator_state": [
+    {
+      "id": "OPERATOR_KEY_FILE",
+      "kind": "secret_config",
+      "path_source": "operator-host/executor.mjs",
+      "source_marker": "OPERATOR_KEY_FILE",
+      "classification": "critical_signing_material",
+      "required": true
+    },
+    {
+      "id": "OPERATOR_EVENT_LOG",
+      "kind": "audit_log",
+      "path_source": "operator-host/executor.mjs",
+      "source_marker": "operations.jsonl",
+      "classification": "operational_history",
+      "required": false
+    },
+    {
+      "id": "PLUGIN_OAUTH_SECRET",
+      "kind": "secret_config",
+      "path_source": "plugin-server/config.mjs",
+      "source_marker": "OAUTH_SECRET_FILE",
+      "classification": "critical_signing_material",
+      "required": true
+    },
+    {
+      "id": "PLUGIN_LEGACY_OAUTH_CLIENTS",
+      "kind": "secret_config",
+      "path_source": "plugin-server/config.mjs",
+      "source_marker": "OAUTH_LEGACY_CLIENTS_FILE",
+      "classification": "durable_authorization",
+      "required": true
+    },
+    {
+      "id": "PLUGIN_OPENAI_CHALLENGE",
+      "kind": "secret_config",
+      "path_source": "plugin-server/config.mjs",
+      "source_marker": "OPENAI_CHALLENGE_FILE",
+      "classification": "verification_artifact",
+      "required": false
+    },
+    {
+      "id": "PLUGIN_GOOGLE_OAUTH",
+      "kind": "plugin_state",
+      "path_source": "plugin-server/google-auth.mjs",
+      "source_marker": "google-oauth.json",
+      "classification": "critical_config",
+      "required": true
+    },
+    {
+      "id": "PLUGIN_PADDLE_BILLING",
+      "kind": "plugin_state",
+      "path_source": "plugin-server/paddle-billing.mjs",
+      "source_marker": "paddle-billing.json",
+      "classification": "durable_billing",
+      "required": true
+    },
+    {
+      "id": "PLUGIN_SITE_CONTENT",
+      "kind": "plugin_state",
+      "path_source": "plugin-server/site-announcements.mjs",
+      "source_marker": "site-content.json",
+      "classification": "durable_content",
+      "required": true
+    },
+    {
+      "id": "PLUGIN_SUPPORT_OUTBOX",
+      "kind": "plugin_state",
+      "path_source": "plugin-server/support-backoffice.mjs",
+      "source_marker": "support-outbox.json",
+      "classification": "durable_message",
+      "required": true
+    },
+    {
+      "id": "PLUGIN_BACKOFFICE_CONFIG",
+      "kind": "secret_config",
+      "path_source": "plugin-server/support-backoffice.mjs",
+      "source_marker": "backoffice.json",
+      "classification": "critical_config",
+      "required": true
+    },
+    {
+      "id": "PLUGIN_DISTRIBUTION_MANIFEST",
+      "kind": "distribution",
+      "path_source": "plugin-server/distribution-portal.mjs",
+      "source_marker": "manifest.json",
+      "classification": "release_integrity",
+      "required": true
+    },
+    {
+      "id": "SYSTEMD_OPERATOR_ENV",
+      "kind": "secret_config",
+      "path_source": "deploy/direct-linux/light-remote-direct-operator.service",
+      "source_marker": "EnvironmentFile=/etc/light-remote-direct/operator.env",
+      "classification": "critical_config",
+      "required": true
+    },
+    {
+      "id": "SYSTEMD_PLUGIN_ENV",
+      "kind": "secret_config",
+      "path_source": "deploy/direct-linux/light-remote-direct-plugin.service",
+      "source_marker": "EnvironmentFile=/etc/light-remote-direct/plugin.env",
+      "classification": "critical_config",
+      "required": true
+    }
+  ],
+  "transient_state": [
+    {
+      "id": "PROCESS_MAPS",
+      "source": "operator-host/executor.mjs",
+      "markers": [
+        "const jobs = new Map()",
+        "const operationDedupe = new Map()",
+        "const replay = new Map()",
+        "const trustedChannelRateBuckets = new Map()"
+      ],
+      "status": "not durable",
+      "migration_requirement": "quiesce/fence and reconcile; never assume process memory survives"
+    },
+    {
+      "id": "PTY_OS_PROCESS",
+      "source": "lib/native-terminal.mjs",
+      "markers": [
+        "NativeTerminalRegistry"
+      ],
+      "status": "device-local process",
+      "migration_requirement": "drain/terminate and reconnect; never clone a running PTY"
+    },
+    {
+      "id": "OAUTH_PROCESS_REPLAY",
+      "source": "plugin-server/oauth.mjs",
+      "markers": [
+        "usedCodes",
+        "usedRefresh",
+        "usedResume"
+      ],
+      "status": "process-local",
+      "migration_requirement": "shared durable replay ledger required for multi-instance"
+    }
+  ],
+  "restore_invariants": [
+    "account_id",
+    "device_id",
+    "host_signing_identity",
+    "oauth_signing_secret",
+    "oauth_client_binding",
+    "a_b_owner_device_agent_grant",
+    "grant_expiry_and_revocation",
+    "agent_client_session",
+    "free_family_meter",
+    "team_entitlement",
+    "usage_event_idempotency",
+    "billing_provider_event_idempotency",
+    "job_lease_generation_and_fencing",
+    "outbox_checkpoint",
+    "audit_log_retention"
+  ]
+}
