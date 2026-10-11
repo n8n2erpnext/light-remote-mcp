@@ -105,7 +105,9 @@ CREATE TABLE IF NOT EXISTS lr_usage_events (
   observed_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS lr_usage_owner_month ON lr_usage_events(owner_account_id,month_key);
-CREATE UNIQUE INDEX IF NOT EXISTS lr_usage_job_once ON lr_usage_events(job_id) WHERE job_id IS NOT NULL;
+-- UAT baseline: job_id is a trace relationship, not a billable-event deduplication key.
+-- Migration 008 drops the original unique job index on already-initialized UAT databases.
+CREATE INDEX IF NOT EXISTS lr_usage_by_job ON lr_usage_events(job_id) WHERE job_id IS NOT NULL;
 CREATE TABLE IF NOT EXISTS lr_billing_events (
   event_id TEXT PRIMARY KEY CHECK(length(event_id) BETWEEN 1 AND 160),
   owner_account_id TEXT NOT NULL REFERENCES lr_accounts(account_id),

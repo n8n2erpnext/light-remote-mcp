@@ -7,23 +7,32 @@ const IDENTIFIER=/^[A-Za-z0-9._:-]{1,160}$/;
 const EMAIL=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const check=(condition,code)=>{if(!condition)throw new Error(code);};
 export class PgUatRepository {
-  constructor({pool,allowUat=false,expectedDb='light_remote_rc50_uat',authorizeUsage,budgetFor}={}){
+  constructor({pool,allowUat=false,expectedDb='light_remote_rc50_uat',expectedRole='lr_rc50_app',authorizeUsage,budgetFor,allowLegacyUsageTestPath=false}={}){
     check(allowUat===true,'pg_uat_mode_required');
     check(pool&&typeof pool.connect==='function'&&typeof pool.query==='function','pg_pool_required');
     check(expectedDb==='light_remote_rc50_uat','pg_uat_database_must_match');
+    check(expectedRole==='lr_rc50_app','pg_uat_role_must_match');
     this.pool=pool;
     this.expectedDb=expectedDb;
+    this.expectedRole=expectedRole;
+    this.ready=false;
     this.authorizeUsage=authorizeUsage;
     this.budgetFor=budgetFor;
+    this.allowLegacyUsageTestPath=allowLegacyUsageTestPath===true;
   }
   async verifyTarget(){
+    this.ready=false;
     const result=await this.pool.query("SELECT current_database() AS database, current_user AS role, (SELECT rolsuper FROM pg_roles WHERE rolname=current_user) AS superuser");
     const row=result.rows?.[0];
     check(row?.database===this.expectedDb,'pg_unexpected_database');
     check(row?.superuser===false,'pg_superuser_forbidden');
+    check(row?.role===this.expectedRole,'pg_unapproved_application_role');
+    this.ready=true;
     return {database:row.database,role:row.role};
   }
+  assertReady(){check(this.ready===true,'pg_uat_not_initialized');}
   async tx(fn){
+    this.assertReady();
     const client=await this.pool.connect();
     let begun=false;
     try{
@@ -37,11 +46,13 @@ export class PgUatRepository {
     }finally{client.release();}
   }
   async findAccount(accountId){
+    this.assertReady();
     check(IDENTIFIER.test(String(accountId||''))&&accountId.length<=128,'invalid_account_id');
     const {rows}=await this.pool.query('SELECT account_id,email,plan,status,created_at,updated_at FROM lr_accounts WHERE account_id=$1',[accountId]);
     return rows?.[0]||null;
   }
   async createAccount({accountId,email,plan='free',status='active'}){
+    this.assertReady();
     check(IDENTIFIER.test(String(accountId||''))&&accountId.length<=128,'invalid_account_id');
     check(EMAIL.test(String(email||''))&&email.length<=254,'invalid_email');
     check(['free','pro','vip'].includes(plan),'invalid_plan');
@@ -62,7 +73,8 @@ export class PgUatRepository {
     for(const id of [eventId,ownerId,actorId])check(IDENTIFIER.test(String(id||'')),'invalid_usage_identity');
     for(const id of [deviceId,jobId])check(id===null||IDENTIFIER.test(String(id)),'invalid_usage_reference');
     check(/^\d{4}-(0[1-9]|1[0-2])$/.test(String(monthKey||'')),'invalid_month');
-    check(Number.isSafeInteger(calls)&&calls>=0&&calls<=10000,'invalid_calls');
+    check(Number.isSafeInteger(calls)&&calls>=1&&calls<=10000,'invalid_calls');
+    check(this.allowLegacyUsageTestPath,'legacy_usage_write_test_only');
     check(typeof this.authorizeUsage==='function','usage_authority_callback_required');
     check(typeof this.budgetFor==='function','usage_budget_callback_required');
 
@@ -70,8 +82,8 @@ export class PgUatRepository {
       await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[ownerId+':'+monthKey]);
       const existing=async()=>{
         const result=await client.query(
-          'SELECT event_id,owner_account_id,actor_account_id,device_id,job_id,month_key,tool_calls FROM lr_usage_events WHERE event_id=$1 OR ($2::text IS NOT NULL AND job_id=$2) ORDER BY event_id LIMIT 1',
-          [eventId,jobId]);
+          'SELECT event_id,owner_account_id,actor_account_id,device_id,job_id,month_key,tool_calls FROM lr_usage_events WHERE event_id=$1 LIMIT 1',
+          [eventId]);
         return result.rows?.[0]||null;
       };
       const same=row=>row &&
@@ -105,7 +117,26 @@ export class PgUatRepository {
       return {recorded:true,duplicate:false};
     });
   }
+  /**
+   * Preferred rc50 UAT billing path: PostgreSQL is the single quota authority.
+   * The SQL function checks owner/device/job relationships and budget atomically.
+   * Team-member dispatch is deliberately denied until signed A/B proof is available.
+   */
+  async chargeUatEvent({eventId,ownerId,actorId,deviceId,jobId=null,monthKey,calls=1}={}){
+    this.assertReady();
+    for(const id of [eventId,ownerId,actorId,deviceId])
+      check(IDENTIFIER.test(String(id||'')),'invalid_usage_identity');
+    check(jobId===null||IDENTIFIER.test(String(jobId)),'invalid_usage_reference');
+    check(/^\d{4}-(0[1-9]|1[0-2])$/.test(String(monthKey||'')),'invalid_month');
+    check(Number.isSafeInteger(calls)&&calls>=1&&calls<=10000,'invalid_calls');
+    const result=await this.pool.query(
+      'SELECT lr_charge_usage_uat($1,$2,$3,$4,$5,$6,$7) AS charged',
+      [eventId,ownerId,actorId,deviceId,jobId,monthKey,calls]);
+    check(typeof result.rows?.[0]?.charged==='boolean','invalid_usage_result');
+    return {recorded:result.rows[0].charged,duplicate:!result.rows[0].charged};
+  }
   async ownerMonthUsage(ownerId,monthKey){
+    this.assertReady();
     check(IDENTIFIER.test(String(ownerId||'')),'invalid_owner');
     check(/^\d{4}-(0[1-9]|1[0-2])$/.test(String(monthKey||'')),'invalid_month');
     const {rows}=await this.pool.query(
@@ -114,6 +145,7 @@ export class PgUatRepository {
     return BigInt(rows?.[0]?.calls||'0');
   }
   async writeOutbox(client,{topic,aggregateId,payload}){
+    this.assertReady();
     check(IDENTIFIER.test(String(topic||''))&&IDENTIFIER.test(String(aggregateId||'')),'invalid_outbox_identity');
     const {rows}=await client.query(
       'INSERT INTO lr_outbox(topic,aggregate_id,payload) VALUES($1,$2,$3::jsonb) RETURNING outbox_id',
