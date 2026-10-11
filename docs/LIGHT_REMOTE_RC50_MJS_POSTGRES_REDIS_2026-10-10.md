@@ -46,3 +46,17 @@ Do NOT force a full rewrite of old web/API/MCP to React/TypeScript/Fastify just 
 - PostgreSQL17/Redis8 Docker healthy on `lightremote-rc50-v2_private` internal-only network; no published ports. Separate experimental LXD `light-remote-rc50-v2` remains stopped.
 - Last HTTPS health checks: production=200 TLS verification 0, existing rc.50 staging=200 TLS verification 0. No production code, route, proxy, installer, or customer settings changed.
 - PENDING: authorized least-privileged UAT app DB role (earlier blocked; do NOT bypass), end-to-end app-to-DB tests; synthetic legacy contract/diff fixtures; OAuth and AB replay lifecycle test, billing ledger E2E; load test 100/500/1000 simulated sessions and network loss; full Postgres backup/restore. NO production data migration yet.
+
+## 2026-10-11 — Worker/outbox transaction hardening (synthetic UAT only)
+
+- Added `sql/006_worker_outbox_leases.sql`: PostgreSQL worker claim with 3 slots/device, lease token **hash** and monotonic generation, expiry/reclaim, stale completion/renewal rejection, transactional job-finished/lease-expired outbox. Database never dispatches a real OS process.
+- Added `sql/007_worker_function_permissions.sql`: revokes PostgreSQL default `PUBLIC EXECUTE` from all 6 worker/outbox functions; functions remain `SECURITY INVOKER`. Adds unique optional outbox dedupe key.
+- Added `sql/test_worker_outbox_rollback.sql`: synthetic owner/member/job/slot tests, wrong token/generation denial, stale lease reclamation and expiry, finish exactly once, outbox claim/ack/retry/stale acknowledgement; all within BEGIN/ROLLBACK.
+- Added `sql/test_worker_function_acl.sql`: asserts none of those functions is exposed to PUBLIC or elevated SECURITY DEFINER.
+- Added `test/concurrent_worker_outbox.py`: actual 8 concurrent PostgreSQL worker requests -> exactly 3 unique slots and 5 wait. Actual 8 outbox consumers -> 8 unique claims. Generated `uat_workers_*` fixture records are deleted explicitly in finally and checked clean.
+- Added `src/storage/worker-uat.mjs`: Node.js ESM coordinator with injected PostgreSQL adapter, mandatory verified UAT database, explicit trusted claim/outbox callback, bound SQL parameters, generation-bound claim/renew/finish and outbox ack/retry; NOT imported by any live Operator or public API.
+- Added `test/worker-uat.test.mjs`: five fail-closed policy and parameter binding tests.
+- `scripts/check.sh` now runs all 13 native Node.js unit tests, migration 001–007 idempotently, 5 synthetic SQL rollback contract groups, SQL function ACL guard, two concurrent fixture suites, and Docker internal-network/no-published-port check.
+- **Important security limitation**: SQL worker function currently permits only owner=actor claims; member execution is explicitly blocked until trusted OAuth principal, per-member A/B grant, worker fencing AND OS/bridge termination are integrated. The database lease alone cannot stop already running commands on a device.
+- No production state was opened/read/imported/copied, no real account/device/job is sent to this database, no official MCP plugin/production/staging Operator changes, no client/updater/policy changes. All test ids/emails are synthetic and rollback/cleanup verified.
+- Least-privileged PostgreSQL app role remains unavailable (earlier tool protection); **do not** connect an application with database owner credentials or bypass this restriction. No benchmark for 1,000 concurrent agents has been performed.
