@@ -5,6 +5,7 @@ node --check src/storage/postgres.mjs
 node --check src/storage/redis.mjs
 node --check src/storage/worker-uat.mjs
 node --test test/*.test.mjs
+node scripts/scale-static-audit.mjs
 
 project=lightremote-rc50-v2
 pg() {

@@ -2,7 +2,7 @@
 
 **Hard requirement:** Do not read, copy, import, reconcile, or shadow-sync any production account/session/device/Paddle/ERPNext data into rc50-v2 during this phase. The following assets use synthetic fixtures exclusively.
 
-- Backend source lives in an independent Git worktree, branch `feature/rc50-v2-platform`.
+- Backend source lives in an independent Git worktree, branch `feature/rc50-mjs-scale-20261011` (pure MJS rc.50 base, no React web app).
 - Docker project `lightremote-rc50-v2` uses dedicated `pgdata` and `redisdata` volumes and `internal: true` networking, with no published ports.
 - No Operator/API process (production OR current rc50 staging) uses these containers. No service is wired to the new DB.
 - Five additive PostgreSQL migrations: 001 core; 002 monthly usage aggregate; 003 OAuth/AB/device/agent/license/notification/audit; 004 cross-account binding guards; 005 five-seat Team trigger.

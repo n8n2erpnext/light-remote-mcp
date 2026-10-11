@@ -1,10 +1,10 @@
-name: RC50 ESM Data Platform UAT
+name: RC50 MJS Scale UAT
 on:
   push:
-    branches: [feature/rc50-v2-platform]
-    paths: [platform-v2/**, .github/workflows/rc50-v2-platform.yml]
+    branches: [feature/rc50-mjs-scale-20261011]
+    paths: [platform-v2/**, .github/workflows/rc50-mjs-scale.yml]
   pull_request:
-    paths: [platform-v2/**, .github/workflows/rc50-v2-platform.yml]
+    paths: [platform-v2/**, .github/workflows/rc50-mjs-scale.yml]
 permissions:
   contents: read
 jobs:

@@ -25,6 +25,7 @@ Hard rules: Never place passwords in source or logs. No public port mapping. Nev
 - `src/storage/redis.mjs` is namespaced/TTL-only cache. Neither it nor Redis queues may be used as the money or quota ledger.
 - `bash scripts/check.sh` exercises 7 native Node.js unit tests, PostgreSQL schema v1/v2 (idempotent), SQL fixtures with ROLLBACK, and network/port confinement.
 - `MIGRATION_STRATEGY.md` explains preservation of active sessions/keys and the long phased transition without touching production.
+- `../docs/LIGHT_REMOTE_MJS_SCALE_SYSTEM_AUDIT_2026-10-11.md` is the full source-derived scale audit, with MJS-only plan and priorities.
 - A dedicated least-privilege app DB role has NOT been provisioned: tool security blocked that action. Don't connect an application with PostgreSQL superuser credentials. No live data was imported.
 
 ## 2026-10-10 continuation — synthetic data only

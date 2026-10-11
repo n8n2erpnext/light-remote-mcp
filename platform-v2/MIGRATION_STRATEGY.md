@@ -3,7 +3,7 @@
 Decision date: 2026-10-10, all deployment experiments **UAT ONLY**.
 
 ## Decision
-Keep native Node.js ESM (.mjs), Express 5 existing plugin facade, and current Operator HTTP/device transport. Do NOT rewrite working MCP/OAuth/Wall/Agent protocols in Fastify or another runtime simply to modernize syntax. React branch is an isolated preview, not a forced UI cutover. Modularize by domain with stable external API contracts; PostgreSQL holds durable authoritative state; Redis helps queues/cache/rate limiting, never payment or quota ledger.
+Keep native Node.js ESM (.mjs), Express 5 existing plugin facade, and current Operator HTTP/device transport. Do NOT rewrite working MCP/OAuth/Wall/Agent protocols in Fastify or another runtime simply to modernize syntax. React rewrite branch was retired; the old staging preview is a separate UAT route, not the future architecture. Modularize by domain with stable external API contracts; PostgreSQL holds durable authoritative state; Redis helps queues/cache/rate limiting, never payment or quota ledger.
 
 ## Legacy inventory / future target (source-derived)
 | Legacy module or state | Postgres/Redis destination | Migration correctness gate |
@@ -30,7 +30,7 @@ Keep native Node.js ESM (.mjs), Express 5 existing plugin facade, and current Op
 - Existing rc.50 plugin staging LXD `light-remote-rc50-uat`: untouched by database migration.
 - New Docker Compose `lightremote-rc50-v2`: private network, dedicated PostgreSQL 17 and Redis 8 volumes, no published host port, no production credentials.
 - Optional LXD `light-remote-rc50-v2` created for future API canary; network configuration is still under review, currently no traffic routing. DO NOT place it in public Traefik.
-- Feature branch `feature/rc50-v2-platform` based on `3ad4467`. Previous `feature/rc50-web-react-ts-20261010` and owner Pro Team feature branch left intact.
+- Active scale feature branch `feature/rc50-mjs-scale-20261011` based on pure-MJS rc.50 `6ab88ec` with all PostgreSQL/Redis UAT work replayed as independent commits. React/TypeScript rewrite branch retired and archived; owner Pro Team feature branch untouched.
 
 ## How to guarantee user continuity — staged transition
 1. Snapshot source code + ALL live state files, encrypted token material and database exports through owner-authorized mechanism. Record file checksums/ownership without showing raw secrets. Confirm backup restoration and retention policy. No production data import by default.
