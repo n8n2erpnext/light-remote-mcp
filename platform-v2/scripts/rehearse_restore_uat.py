@@ -6,6 +6,7 @@ adds fake Free usage, takes a logical custom-format backup *only of scratch sour
 restores into scratch destination and verifies event-level idempotency plus schema.
 Both scratch databases are deleted after checking; persistent UAT DB is untouched.
 """
+import json
 import secrets
 import subprocess
 import sys
@@ -54,6 +55,7 @@ def main():
     dst='light_remote_rc50_restore_uat_'+suffix+'_dst'
     # The only databases that can be created/dropped here start with fixed
     # generated prefix and match the UAT migrator's strict allowlist.
+    manifest_total=len(json.loads((ROOT/'sql/migrations.lock.json').read_text())['migrations'])
     created=[]
     try:
         create(src);created.append(src)
@@ -69,7 +71,7 @@ def main():
           "COMMIT;")
         sql(src,synthetic)
         original=sql(src,"SELECT (SELECT count(*) FROM lr_usage_events)::text||'|'||(SELECT tool_calls FROM lr_free_family_monthly WHERE family_id='restore_family' AND month_key='2026-10')::text||'|'||(SELECT count(*) FROM lr_schema_migration_hashes)::text")
-        require(original=='1|1|12','source_fixture_not_consistent')
+        require(original==f'1|1|{manifest_total}','source_fixture_not_consistent')
         backup=exec_docker(['pg_dump','-U',ROLE,'-d',src,'-Fc','--no-owner','--no-acl'],timeout=180)
         require(len(backup)>16000 and backup.startswith(b'PGDMP'),'invalid_custom_format_pg_dump')
         create(dst);created.append(dst)
@@ -85,7 +87,7 @@ def main():
         require(new=='t','restored_quota_not_writable')
         total=sql(dst,"SELECT tool_calls FROM lr_free_family_monthly WHERE family_id='restore_family' AND month_key='2026-10'")
         require(total=='2','restored_quota_not_incremented')
-        print(f'RC50_UAT_PG_BACKUP_RESTORE_PASS: manifest=12, fixture=1 event, '+str(len(backup))+
+        print(f'RC50_UAT_PG_BACKUP_RESTORE_PASS: manifest={manifest_total}, fixture=1 event, '+str(len(backup))+
               ' backup bytes, replay stable, new event charged; entirely scratch databases')
     finally:
         for name in reversed(created):

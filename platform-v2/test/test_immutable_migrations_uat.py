@@ -16,8 +16,8 @@ spec.loader.exec_module(migration)
 class MigrationGuardTests(unittest.TestCase):
     def test_lock_manifest_current_source_hashes(self):
         rows=migration.lock_entries()
-        self.assertEqual(len(rows),12)
-        self.assertEqual([r['version'] for r in rows],list(range(1,13)))
+        self.assertEqual(len(rows),13)
+        self.assertEqual([r['version'] for r in rows],list(range(1,14)))
 
     def test_checksum_drift_is_detected_without_db_calls(self):
         with tempfile.TemporaryDirectory(prefix='uat-migration-unit-') as root:

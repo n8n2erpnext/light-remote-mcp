@@ -61,6 +61,11 @@
       "version": 12,
       "file": "012_signed_rotation_proof.sql",
       "sha256": "ae4b29d7e0cbc96494fcfd2bdf16e1de7b52ca29daa2848071e3132d40e933f3"
+    },
+    {
+      "version": 13,
+      "file": "013_oauth_atomic_replay.sql",
+      "sha256": "91d240ebe417ee24d85af80e8045c67b2424683e781e0efd7e33465575e44983"
     }
   ]
 }
