@@ -192,3 +192,33 @@ test('deprecated callback metering path cannot be enabled accidentally',async()=
    monthKey:'2026-10',calls:1}),/legacy_usage_write_test_only/);
  assert.equal(p.queries.length,0);
 });
+
+test('Free and Team UAT usage adapters use bound SQL and require DB role verification',async()=>{
+ const queries=[];
+ const p={
+   connect:async()=>({query:async()=>({rows:[]}),release:()=>{}}),
+   query:async(sql,params=[])=>{
+     queries.push([sql,params]);
+     if(sql.includes('current_database'))
+       return {rows:[{database:'light_remote_rc50_uat',role:'lr_rc50_app',superuser:false}]};
+     return {rows:[{charged:queries.length===2}]};
+   },
+ };
+ const repo=new PgUatRepository({pool:p,allowUat:true});
+ const free={eventId:'free_evt1',ownerId:'free_account',deviceId:'free_device',monthKey:'2026-10',calls:1};
+ await assert.rejects(()=>repo.chargeFreeUat(free),/pg_uat_not_initialized/);
+ await repo.verifyTarget();
+ assert.deepEqual(await repo.chargeFreeUat(free),{recorded:true,duplicate:false});
+ assert.deepEqual(queries[1],[ 'SELECT lr_charge_free_uat($1,$2,$3,$4,$5,$6) AS charged',
+   ['free_evt1','free_account','free_device',null,'2026-10',1] ]);
+ const team={eventId:'member_evt1',ownerId:'paid_owner',actorId:'free_member',
+   deviceId:'shared_device',jobId:'team_job',clientSessionId:'client_session',grantId:'ab_grant',
+   monthKey:'2026-10',calls:1};
+ assert.deepEqual(await repo.chargeTeamMemberUat(team),{recorded:false,duplicate:true});
+ assert.deepEqual(queries[2],[ 'SELECT lr_charge_team_member_uat($1,$2,$3,$4,$5,$6,$7,$8,$9) AS charged',
+   ['member_evt1','paid_owner','free_member','shared_device','team_job','client_session','ab_grant','2026-10',1] ]);
+ await assert.rejects(()=>repo.chargeTeamMemberUat({...team,actorId:team.ownerId}),/team_actor_must_differ_from_owner/);
+ await assert.rejects(()=>repo.chargeFreeUat({...free,monthKey:'2026-99'}),/invalid_month/);
+ await assert.rejects(()=>repo.chargeTeamMemberUat({...team,grantId:''}),/invalid_team_usage_identity/);
+ assert.equal(queries.length,3);
+});

@@ -1,7 +1,7 @@
 \set ON_ERROR_STOP on
 BEGIN;
 INSERT INTO lr_accounts(account_id,email,plan) VALUES
- ('uat_owner_08','owner-08@example.invalid','free'),
+ ('uat_owner_08','owner-08@example.invalid','pro'),
  ('uat_member_08','member-08@example.invalid','free');
 INSERT INTO lr_devices(device_id,owner_account_id) VALUES('uat_device_08','uat_owner_08');
 INSERT INTO lr_jobs(job_id,owner_account_id,actor_account_id,device_id,operation_id)

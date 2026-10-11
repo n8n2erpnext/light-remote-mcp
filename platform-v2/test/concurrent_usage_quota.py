@@ -19,7 +19,7 @@ created=False
 try:
     assert checked("SELECT current_database()")==DB,"refuse non-UAT database"
     checked("BEGIN;"
-        f"INSERT INTO lr_accounts(account_id,email,plan) VALUES({q(owner)},{q(owner+'@example.invalid')},'free');"
+        f"INSERT INTO lr_accounts(account_id,email,plan) VALUES({q(owner)},{q(owner+'@example.invalid')},'pro');"
         f"INSERT INTO lr_devices(device_id,owner_account_id) VALUES({q(device)},{q(owner)});"
         f"INSERT INTO lr_jobs(job_id,owner_account_id,actor_account_id,device_id,operation_id) VALUES({q(job)},{q(owner)},{q(owner)},{q(device)},{q(tag+'_op')});"
         f"INSERT INTO lr_usage_budgets(owner_account_id,month_key,call_limit) VALUES({q(owner)},'2026-10',6);COMMIT;")

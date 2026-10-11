@@ -135,6 +135,34 @@ export class PgUatRepository {
     check(typeof result.rows?.[0]?.charged==='boolean','invalid_usage_result');
     return {recorded:result.rows[0].charged,duplicate:!result.rows[0].charged};
   }
+  async chargeFreeUat({eventId,ownerId,deviceId,jobId=null,monthKey,calls=1}={}){
+    this.assertReady();
+    for(const id of [eventId,ownerId,deviceId])
+      check(IDENTIFIER.test(String(id||'')),'invalid_free_identity');
+    check(jobId===null||IDENTIFIER.test(String(jobId)),'invalid_usage_reference');
+    check(/^\d{4}-(0[1-9]|1[0-2])$/.test(String(monthKey||'')),'invalid_month');
+    check(Number.isSafeInteger(calls)&&calls>=1&&calls<=10000,'invalid_calls');
+    const result=await this.pool.query(
+      'SELECT lr_charge_free_uat($1,$2,$3,$4,$5,$6) AS charged',
+      [eventId,ownerId,deviceId,jobId,monthKey,calls]);
+    check(typeof result.rows?.[0]?.charged==='boolean','invalid_usage_result');
+    return {recorded:result.rows[0].charged,duplicate:!result.rows[0].charged};
+  }
+  async chargeTeamMemberUat({
+    eventId,ownerId,actorId,deviceId,jobId,clientSessionId,grantId,monthKey,calls=1
+  }={}){
+    this.assertReady();
+    for(const id of [eventId,ownerId,actorId,deviceId,jobId,clientSessionId,grantId])
+      check(IDENTIFIER.test(String(id||'')),'invalid_team_usage_identity');
+    check(ownerId!==actorId,'team_actor_must_differ_from_owner');
+    check(/^\d{4}-(0[1-9]|1[0-2])$/.test(String(monthKey||'')),'invalid_month');
+    check(Number.isSafeInteger(calls)&&calls>=1&&calls<=10000,'invalid_calls');
+    const result=await this.pool.query(
+      'SELECT lr_charge_team_member_uat($1,$2,$3,$4,$5,$6,$7,$8,$9) AS charged',
+      [eventId,ownerId,actorId,deviceId,jobId,clientSessionId,grantId,monthKey,calls]);
+    check(typeof result.rows?.[0]?.charged==='boolean','invalid_usage_result');
+    return {recorded:result.rows[0].charged,duplicate:!result.rows[0].charged};
+  }
   async ownerMonthUsage(ownerId,monthKey){
     this.assertReady();
     check(IDENTIFIER.test(String(ownerId||'')),'invalid_owner');
