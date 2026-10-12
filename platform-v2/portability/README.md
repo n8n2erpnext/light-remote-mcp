@@ -67,6 +67,10 @@ This does **not** dispatch Fleet, PTY, webhook, OAuth or billing work, does not 
 
 See [AGENT_EPOCH_ROUTE_CENSUS_UAT.md](./AGENT_EPOCH_ROUTE_CENSUS_UAT.md). The **unwired synthetic-only** `SyntheticAgentGeneration` prototype stores a device-local generation and receipt before fake work, rejects stale/duplicate/conflicting command IDs, preserves completion records and marks in-flight work `UNCERTAIN` after a restart rather than re-executing it. **17/17** Node fixture tests PASS; there are no real Agent/PTY commands or authenticated owner proofs. The independent heuristic source scanner produced a SHA-pinned list of **32 source files, 163 candidate HTTP mutation sites and 28 timer/dispatch candidates**. **7/7** source-census tests PASS. These are code-site candidates, not 163 distinct endpoints, and the report explicitly disclaims exhaustive runtime coverage. Neither test gives production cutover approval, authenticates a device-side generation nor wires global fencing into actual HTTP routes.
 
+## P0 synthetic Ed25519 Agent gate and source mutation triage
+
+See [SIGNED_AGENT_EPOCH_TRIAGE_UAT.md](./SIGNED_AGENT_EPOCH_TRIAGE_UAT.md). The unwired `synthetic-signed-agent-gate.mjs` validates ephemeral-memory Ed25519 signatures over fake epoch and fake command envelopes, binding account/device/Agent, generation, grant revision, epoch hash and expiration **before receipt and immediately before fake start**. There is **no real PTY/Agent execution** or production key use. `../test/test-synthetic-signed-agent-gate.mjs`: **20/20 PASS**. The separate `route-fence-triage.json` groups the **11 source files holding 163 source-level mutation candidates**, all still flagged for manual action-level review; `../test/test_route_fence_triage.py`: **6/6 PASS**. This does not authorize a global writer cutover, authenticate real A/B owner grants or prove full route coverage. Previously blocked operations remain blocked.
+
 ## Legacy portable release package contract
 
 A future signed OCI or server bundle is separated into four independent envelopes. Never bake secrets or customer state into release images.
