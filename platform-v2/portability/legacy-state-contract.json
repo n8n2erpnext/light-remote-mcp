@@ -213,7 +213,51 @@
       "required": true
     }
   ],
+  "plugin_persistent_writers": [
+    {
+      "source": "plugin-server/google-auth.mjs",
+      "state_contract_id": "PLUGIN_GOOGLE_OAUTH",
+      "markers": ["fs.writeFileSync(", "fs.renameSync(", "LIGHT_REMOTE_GOOGLE_OAUTH_FILE"]
+    },
+    {
+      "source": "plugin-server/paddle-billing.mjs",
+      "state_contract_id": "PLUGIN_PADDLE_BILLING",
+      "markers": ["fs.writeFileSync(", "fs.renameSync(", "LIGHT_REMOTE_PADDLE_STATE_FILE"]
+    },
+    {
+      "source": "plugin-server/site-announcements.mjs",
+      "state_contract_id": "PLUGIN_SITE_CONTENT",
+      "markers": ["fs.writeFileSync(", "fs.renameSync(", "LIGHT_REMOTE_SITE_CONTENT_PATH"]
+    },
+    {
+      "source": "plugin-server/support-backoffice.mjs",
+      "state_contract_id": "PLUGIN_SUPPORT_OUTBOX",
+      "markers": ["fs.writeFileSync(", "fs.renameSync(", "support-outbox.json"]
+    }
+  ],
+  "plugin_test_only_writers": ["plugin-server/selftest.mjs"],
   "transient_state": [
+    {
+      "id": "FLEET_IN_MEMORY_DISPATCH",
+      "source": "operator-host/fleet-router.mjs",
+      "markers": ["this.nodes=new Map()", "this.commands=new Map()", "this.completed=new Map()", "this.waiters=new Map()"],
+      "status": "process-local fleet routing and lease state",
+      "migration_requirement": "durable queue and monotonic lease fencing required; never replay a command blindly after migration"
+    },
+    {
+      "id": "GOOGLE_OAUTH_PENDING_FLOWS",
+      "source": "plugin-server/google-auth.mjs",
+      "markers": ["const flows=new Map()", "flows.set(state", "flows.delete("],
+      "status": "process-local OAuth PKCE authorization requests",
+      "migration_requirement": "never pretend pending OAuth flows survive a host move; expire and restart login securely"
+    },
+    {
+      "id": "PUBLIC_DEVICE_RATE_BUCKETS",
+      "source": "plugin-server/device-public.mjs",
+      "markers": ["const buckets=new Map()", "function allow(", "prunePublicRateState"],
+      "status": "process-local IP and identity throttling",
+      "migration_requirement": "shared fail-closed rate coordination required before any replica or writer move"
+    },
     {
       "id": "PROCESS_MAPS",
       "source": "operator-host/executor.mjs",

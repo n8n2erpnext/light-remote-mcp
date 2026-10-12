@@ -10,12 +10,16 @@ Source inventory currently covers:
 
 - **14** Operator `STATE_DIR` JSON files: devices, enrollments, enrollment signer, host device identity/companion, connections, A/B access grants, agent clients, accounts, usage, Free family benefits, Pro Teams, notifications and license keys.
 - **13** external paths/configuration contracts: Operator private key, operation audit log; plugin OAuth secret, legacy OAuth client registry, OpenAI challenge; Google OAuth config; Paddle billing state; site announcements; support outbox and backoffice config; distribution manifest; two systemd environment files.
-- **3** transient process state categories: running jobs/deduplication/replay/maps, PTY-backed OS processes, process-local OAuth replay. These cannot be restored by simply copying JSON or PostgreSQL/Redis.
+- **6** transient process state categories: Operator jobs/deduplication/replay maps, Fleet router's per-process commands/leases/completions, Google OAuth pending PKCE flows, public device rate-limit buckets, PTY-backed OS processes, and plugin OAuth replay. These cannot be restored by simply copying JSON or PostgreSQL/Redis.
 - **15** restore invariants in the contract: account/device IDs, signing keys, OAuth binding, A/B approval and expiry/revoke state, agent sessions, metering, Team entitlement, billing idempotency, worker fencing, outbox offsets and audit history.
 
-The source audit fails closed if a new `STATE_DIR` JSON registry is added but not registered in the manifest. It also fails when a contracted source marker disappears or the contract removes the identity/revocation preservation requirement. This is an **early warning**, not proof that all dynamic state is covered. New persistence may exist in modules outside the entrypoint or in external apps; it requires human review and manifest expansion.
+The source audit fails closed if a new `STATE_DIR` JSON registry is added but not registered in the manifest. It also enumerates synchronous/asynchronous `fs.writeFile`/`fs.appendFile`/`fs.rename` call sites in top-level `plugin-server/*.mjs` and compares them against **4 declared durable plugin writers** (Google, Paddle, announcements, support outbox) plus one explicit test-only selftest fixture. Each durable plugin writer must bind to an existing external state entry and source markers. Missing Fleet/Google/rate-limit transient markers, missing identity/revocation rules or changed writer call sites fail closed. **Scope limitation:** this is a syntactic top-level scan of these filesystem APIs only; aliased imports, delegated helpers, nested modules, runtime-generated paths, external services and out-of-process stores still require a separate source review. It is an **early warning**, not proof that all dynamic state is covered. New persistence may exist in modules outside the entrypoint or in external apps; it requires human review and manifest expansion.
 
 ## Portable release package contract
+
+The additional `portable-package-contract.json` is an **offline DESIGN-ONLY package specification** for ARM64/AMD64 Node ESM deployments. It binds known source artifacts and systemd service entrypoints to their checked-in source, requires immutable package digests, native-dependency review, explicit config references, separate durable/secret envelopes, single-writer snapshot fencing and independently verified restoration. `../test/test_portable_package_contract.py` has 5 source-only contract tests (2026-10-12: **5/5 PASS**). These tests do not build an image, exercise native binaries or validate a backup. For failure handling and later authorized owner review see [RECOVERY_FAILURE_MATRIX.md](./RECOVERY_FAILURE_MATRIX.md).
+
+## Legacy portable release package contract
 
 A future signed OCI or server bundle is separated into four independent envelopes. Never bake secrets or customer state into release images.
 
@@ -40,7 +44,7 @@ A future signed OCI or server bundle is separated into four independent envelope
 Verified:
 - **PTY** Light Remote terminal executed a **read-only** `docker compose ps` command on the approved VPS-ARM: UAT PostgreSQL 17 and Redis 8 healthy. PTY is a suitable interactive channel when genuinely authorized.
 - `python3 -B platform-v2/portability/audit_legacy_state_contract.py`: source inventory PASS.
-- `python3 -B platform-v2/test/test_legacy_state_inventory.py`: 4/4 PASS with source drift, unknown external state and missing revocation guard rejection.
+- `python3 -B platform-v2/test/test_legacy_state_inventory.py`: previous 4/4 PASS; expanded 2026-10-12 source-only test suite **8/8 PASS**, including missing/unbound plugin persistence writer and Fleet transient drift rejection.
 - Previous portability/source tests (4/4), immutable UAT migrations (13/13), platform Node regression (34/34).
 
 **NOT proven / not authorized:** creating/destroying the separate source/destination Compose stacks and restoring their state (previously tool-blocked); actual production source state/secret backup; live A/B and PTY continuation; real OAuth DB adapter/roles; replica or k3s cutover. PTY must **never** be used to evade a prior tool security block.

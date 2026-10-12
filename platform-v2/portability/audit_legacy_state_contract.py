@@ -71,6 +71,41 @@ def audit():
         ensure(isinstance(marker,str) and len(marker)>=6,"missing_external_marker")
         ensure(marker in read_source(row["path_source"]),
             "external_state_source_marker_missing:"+row["id"])
+    # Enumerate checked-in plugin .mjs writer call sites, not live state.
+    # Explicit test-only writers must also be tracked; do not silently ignore
+    # any newly added persistence module.
+    plugin_dir=ROOT/"plugin-server"
+    discovered=set()
+    writer_calls=re.compile(r"\bfs\.(?:promises\.)?(?:writeFile|appendFile|rename)(?:Sync)?\s*\(")
+    for file in sorted(plugin_dir.glob("*.mjs")):
+        rel=file.relative_to(ROOT).as_posix()
+        content=read_source(rel)
+        if writer_calls.search(content):
+            discovered.add(rel)
+    plugin_rows=obj.get("plugin_persistent_writers",[])
+    plugin_sources=[r.get("source") for r in plugin_rows]
+    fixtures=obj.get("plugin_test_only_writers",[])
+    ensure(len(plugin_sources)==len(set(plugin_sources)) and len(fixtures)==len(set(fixtures)),
+           "duplicate_plugin_writer")
+    ensure(all(isinstance(x,str) and x.startswith("plugin-server/") for x in fixtures),
+           "invalid_test_only_writer")
+    ensure(discovered==set(plugin_sources)|set(fixtures),
+           "plugin_writer_inventory_drift:missing="+
+           ",".join(sorted(discovered-set(plugin_sources)-set(fixtures)))+
+           ";stale="+",".join(sorted((set(plugin_sources)|set(fixtures))-discovered)))
+    external_by_id={r["id"]:r for r in extra}
+    for row in plugin_rows:
+        rel=row["source"]
+        ensure(rel.startswith("plugin-server/") and rel.endswith(".mjs"),
+               "invalid_plugin_writer_source:"+rel)
+        contract=external_by_id.get(row.get("state_contract_id"))
+        ensure(contract is not None and contract["path_source"]==rel,
+               "unbound_plugin_writer:"+rel)
+        source_text=read_source(rel)
+        for marker in row.get("markers",[]):
+            ensure(isinstance(marker,str) and len(marker)>=6 and marker in source_text,
+                   "plugin_writer_marker_missing:"+rel)
+        ensure(len(row.get("markers",[]))>=2,"weak_plugin_writer_markers:"+rel)
     trans=obj.get("transient_state",[])
     ensure(len(trans)>=3,"missing_runtime_state_classes")
     for row in trans:
@@ -83,7 +118,9 @@ def audit():
     inv=obj.get("restore_invariants",[])
     ensure(len(set(inv))==len(inv) and len(inv)>=14,
         "missing_or_duplicate_restore_invariants")
-    return {"operator_state_files":len(rows),
+    return {"plugin_persistent_writers":len(plugin_rows),
+            "plugin_test_only_writers":len(fixtures),
+            "operator_state_files":len(rows),
             "external_state_contracts":len(extra),
             "transient_classes":len(trans),
             "restore_invariants":len(inv)}
