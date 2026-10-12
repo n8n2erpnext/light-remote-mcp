@@ -71,6 +71,12 @@ See [AGENT_EPOCH_ROUTE_CENSUS_UAT.md](./AGENT_EPOCH_ROUTE_CENSUS_UAT.md). The **
 
 See [SIGNED_AGENT_EPOCH_TRIAGE_UAT.md](./SIGNED_AGENT_EPOCH_TRIAGE_UAT.md). The unwired `synthetic-signed-agent-gate.mjs` validates ephemeral-memory Ed25519 signatures over fake epoch and fake command envelopes, binding account/device/Agent, generation, grant revision, epoch hash and expiration **before receipt and immediately before fake start**. There is **no real PTY/Agent execution** or production key use. `../test/test-synthetic-signed-agent-gate.mjs`: **20/20 PASS**. The separate `route-fence-triage.json` groups the **11 source files holding 163 source-level mutation candidates**, all still flagged for manual action-level review; `../test/test_route_fence_triage.py`: **6/6 PASS**. This does not authorize a global writer cutover, authenticate real A/B owner grants or prove full route coverage. Previously blocked operations remain blocked.
 
+## P0 signed synthetic PostgreSQL outbox → Agent receipt E2E UAT
+
+See [SIGNED_OUTBOX_AGENT_E2E_UAT.md](./SIGNED_OUTBOX_AGENT_E2E_UAT.md). The dev-only `verify_signed_outbox_agent_uat.mjs` uses **only the isolated rc50 PostgreSQL17 schema** and an ephemeral Ed25519 signer plus fake `SyntheticAgentGeneration` receipt fixture. Actual cross-layer E2E **PASS** for identical command idempotency/ACK exactly once, restarted in-flight UNCERTAIN quarantine, **wrong-signature rejection after PG claim**, old-generation quarantine on writer fence, and **completed local receipt reconciliation after lost DB ACK without re-execution**. End-state cleanup: last observed `generation=15, FENCED, command_outbox rows=0`. The private PG schema remains installed; no other DB/project/Agent/PTY command or production action was changed. `../test/test_signed_outbox_agent_source.py` **9/9 PASS**, source-only.
+
+These are `fake_noop` envelopes. The E2E *does not* authenticate a real Local Wall/A-B owner, stop offline devices already executing a command, prove a global writer authority, or certify encrypted backup/cold move. The UAT script refuses to start on a non-fenced/nonempty synthetic authority; a crash that skips cleanup needs manual review, never automatic takeover. Production readiness remains **NOT_READY**.
+
 ## Legacy portable release package contract
 
 A future signed OCI or server bundle is separated into four independent envelopes. Never bake secrets or customer state into release images.
