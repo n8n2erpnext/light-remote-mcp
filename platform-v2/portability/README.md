@@ -29,6 +29,10 @@ Explicitly excluded from **server authority backup** are device-local client ann
 
 **Verification:** both read-only audits succeeded: legacy inventory 14 Operator files / 17 external contracts / 6 transient groups; deployment audit 6 writer modules / 4 host links / 3 exclusions / 2 Linux architectures. Existing 8/8 legacy negative tests PASS. The attempted creation of a new deployment negative-test file was blocked by safety policy; it was not created or rerouted. Therefore this new deployment audit currently has a verified nominal PASS, **not** a negative-test suite PASS.
 
+## P0 consistency / authoritative writer-fencing contract
+
+See [BACKUP_CONSISTENCY_DESIGN.md](./BACKUP_CONSISTENCY_DESIGN.md) and `backup-consistency-contract.json`. The new `validate_backup_consistency.py` validates only checked-in source markers and synthetic in-memory freeze/restore attestations, **not** a real filesystem, Docker, database or billing backup. It requires the same source fence epoch on Operator, Plugin and PostgreSQL evidence, no in-flight jobs/PTY, independently reconciled identity/grants/usage/OAuth/billing/outbox digests, denied authentication while Redis rate coordination rebuilds, and one higher-generation target writer after explicit activation. `../test/test_backup_consistency_contract.py` has **16/16 PASS** including targeted fail-closed mutations (2026-10-12). The verifier always marks `real_backup_proven=false` and `production_cutover_authorized=false`. Existing AES-GCM and two-stack Docker rehearsals remain blocked; there is no alternate PTY route around that.
+
 ## Legacy portable release package contract
 
 A future signed OCI or server bundle is separated into four independent envelopes. Never bake secrets or customer state into release images.

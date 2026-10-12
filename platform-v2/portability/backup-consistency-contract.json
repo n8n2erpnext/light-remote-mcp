@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "status": "SYNTHETIC_EVIDENCE_ONLY_NOT_RUNTIME_CERTIFICATION",
+  "goal": "single-writer consistent snapshot and independently reconciled restore",
+  "source_of_truth": "source-derived design for rc50 MJS, not live state",
+  "authority": {
+    "source_fenced": true,
+    "destination_fenced_before_verify": true,
+    "old_new_generations_strictly_increasing": true,
+    "never_two_active_writers": true
+  },
+  "required_freeze_lanes": [
+    {
+      "id": "operator_accounts_and_grants",
+      "source": "operator-host/executor.mjs",
+      "source_marker": "const accounts = new AccountRegistry",
+      "enforce": "pause_account_device_grant_and_usage_mutations"
+    },
+    {
+      "id": "plugin_oauth",
+      "source": "plugin-server/oauth.mjs",
+      "source_marker": "usedCodes=new Map()",
+      "enforce": "pause_code_exchange_refresh_resume_and_record_consumed_hashes"
+    },
+    {
+      "id": "billing_webhooks",
+      "source": "plugin-server/paddle-billing.mjs",
+      "source_marker": "processedAt: this.now()",
+      "enforce": "queue_dedupe_provider_events_before_snapshot"
+    },
+    {
+      "id": "support_outbox",
+      "source": "plugin-server/support-backoffice.mjs",
+      "source_marker": "this.rows.push(row)",
+      "enforce": "pause_outbox_pump_and_preserve_delivery_checkpoint"
+    },
+    {
+      "id": "fleet_dispatch",
+      "source": "operator-host/fleet-router.mjs",
+      "source_marker": "this.commands=new Map()",
+      "enforce": "drain_or_fence_commands_and_reject_stale_generation"
+    },
+    {
+      "id": "google_oauth_pending",
+      "source": "plugin-server/google-auth.mjs",
+      "source_marker": "const flows=new Map()",
+      "enforce": "expire_pending_login_and_require_fresh_pkce"
+    }
+  ],
+  "ordered_phases": [
+    "identify",
+    "fence",
+    "drain",
+    "checkpoint",
+    "snapshot",
+    "independent_restore",
+    "reconcile",
+    "activate_one_writer"
+  ],
+  "durable_planes": [
+    "operator",
+    "plugin",
+    "postgres"
+  ],
+  "transient_planes": [
+    "redis",
+    "oauth_process",
+    "fleet_process",
+    "native_pty"
+  ],
+  "required_evidence": {
+    "source_generation": "positive_integer",
+    "next_generation": "strictly_greater",
+    "source_writer_fenced": "true",
+    "destination_writer_disabled": "true_until_verified",
+    "ingress_new_writes_fenced": "true",
+    "webhook_enqueue_or_fence": "true",
+    "live_jobs_and_pty": "zero",
+    "auth_replay_state": "durable_or_login_denied",
+    "source_and_restored_identity_digest": "equal",
+    "source_and_restored_grant_revocation_digest": "equal",
+    "source_and_restored_usage_event_digest": "equal",
+    "source_and_restored_billing_outbox_digest": "equal",
+    "source_and_restored_oauth_consumed_hash_digest": "equal",
+    "snapshot_plane_freeze_id": "identical",
+    "snapshot_plane_generation": "identical",
+    "redis_auth_rate_limit": "fail_closed_until_verified",
+    "post_restore_writer_state": "disabled_until_explicit_cutover"
+  },
+  "negative_cases": [
+    "split_brain",
+    "stale_generation",
+    "active_pty",
+    "pending_unfenced_webhook",
+    "missing_plane",
+    "snapshot_fence_mismatch",
+    "revoked_grant_resurrected",
+    "duplicate_meter_charge",
+    "oauth_replay_reset",
+    "outbox_checkpoint_regression",
+    "redis_fail_open",
+    "premature_target_activation"
+  ],
+  "blocked_tasks_remain_blocked": [
+    "platform-v2/test/test_sealed_synthetic_backup.py",
+    "platform-v2/portability/rehearse_cold_move_uat.py"
+  ],
+  "production_data_access_allowed": false
+}
