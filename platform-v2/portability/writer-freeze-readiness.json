@@ -1,0 +1,256 @@
+{
+  "schema_version": 1,
+  "status": "SOURCE_OBSERVATIONS_ONLY_NOT_RESTORE_READY",
+  "scope": "rc50 dev static source audit without customer/runtime access",
+  "operator_writers": [
+    {
+      "id": "DEVICE_STATE_FILE",
+      "source": "operator-host/device-registry.mjs",
+      "classification": "durable_identity",
+      "write_marker": "fs.writeFileSync(",
+      "flushing": "synchronous_process_io_only",
+      "fsync_proven": false,
+      "source_fence_proven": false,
+      "consistent_generation_proven": false
+    },
+    {
+      "id": "ENROLLMENT_STATE_FILE",
+      "source": "operator-host/enrollment-registry.mjs",
+      "classification": "durable_authorization",
+      "write_marker": "fs.writeFileSync(",
+      "flushing": "synchronous_process_io_only",
+      "fsync_proven": false,
+      "source_fence_proven": false,
+      "consistent_generation_proven": false
+    },
+    {
+      "id": "ENROLLMENT_SIGNER_FILE",
+      "source": "operator-host/enrollment-registry.mjs",
+      "classification": "critical_signing_material",
+      "write_marker": "fs.writeFileSync(",
+      "flushing": "synchronous_process_io_only",
+      "fsync_proven": false,
+      "source_fence_proven": false,
+      "consistent_generation_proven": false
+    },
+    {
+      "id": "HOST_DEVICE_IDENTITY_FILE",
+      "source": "operator-host/host-device-identity.mjs",
+      "classification": "critical_signing_material",
+      "write_marker": "fs.writeFileSync(",
+      "flushing": "synchronous_process_io_only",
+      "fsync_proven": false,
+      "source_fence_proven": false,
+      "consistent_generation_proven": false
+    },
+    {
+      "id": "HOST_COMPANION_STATE_FILE",
+      "source": "operator-host/host-device-identity.mjs",
+      "classification": "durable_identity",
+      "write_marker": "fs.writeFileSync(",
+      "flushing": "synchronous_process_io_only",
+      "fsync_proven": false,
+      "source_fence_proven": false,
+      "consistent_generation_proven": false
+    },
+    {
+      "id": "CONNECTION_STATE_FILE",
+      "source": "operator-host/device-connection-registry.mjs",
+      "classification": "durable_session",
+      "write_marker": "fs.writeFileSync(",
+      "flushing": "synchronous_process_io_only",
+      "fsync_proven": false,
+      "source_fence_proven": false,
+      "consistent_generation_proven": false
+    },
+    {
+      "id": "ACCESS_STATE_FILE",
+      "source": "operator-host/device-access-grant-registry.mjs",
+      "classification": "durable_authorization",
+      "write_marker": "fs.writeFileSync(",
+      "flushing": "synchronous_process_io_only",
+      "fsync_proven": false,
+      "source_fence_proven": false,
+      "consistent_generation_proven": false
+    },
+    {
+      "id": "AGENT_CLIENT_STATE_FILE",
+      "source": "operator-host/agent-client-registry.mjs",
+      "classification": "durable_session",
+      "write_marker": "fs.writeFileSync(",
+      "flushing": "synchronous_process_io_only",
+      "fsync_proven": false,
+      "source_fence_proven": false,
+      "consistent_generation_proven": false
+    },
+    {
+      "id": "ACCOUNT_STATE_FILE",
+      "source": "operator-host/account-registry.mjs",
+      "classification": "durable_identity",
+      "write_marker": "fs.writeFileSync(",
+      "flushing": "synchronous_process_io_only",
+      "fsync_proven": false,
+      "source_fence_proven": false,
+      "consistent_generation_proven": false
+    },
+    {
+      "id": "USAGE_STATE_FILE",
+      "source": "operator-host/usage-registry.mjs",
+      "classification": "durable_billing",
+      "write_marker": "fs.writeFileSync(",
+      "flushing": "synchronous_process_io_only",
+      "fsync_proven": false,
+      "source_fence_proven": false,
+      "consistent_generation_proven": false
+    },
+    {
+      "id": "FREE_BENEFIT_STATE_FILE",
+      "source": "operator-host/free-benefit-registry.mjs",
+      "classification": "durable_billing",
+      "write_marker": "fs.writeFileSync(",
+      "flushing": "synchronous_process_io_only",
+      "fsync_proven": false,
+      "source_fence_proven": false,
+      "consistent_generation_proven": false
+    },
+    {
+      "id": "PRO_TEAM_STATE_FILE",
+      "source": "operator-host/pro-team-registry.mjs",
+      "classification": "durable_entitlement",
+      "write_marker": "fs.writeFileSync(",
+      "flushing": "synchronous_process_io_only",
+      "fsync_proven": false,
+      "source_fence_proven": false,
+      "consistent_generation_proven": false
+    },
+    {
+      "id": "NOTIFICATION_STATE_FILE",
+      "source": "operator-host/account-notification-registry.mjs",
+      "classification": "durable_message",
+      "write_marker": "fs.writeFileSync(",
+      "flushing": "synchronous_process_io_only",
+      "fsync_proven": false,
+      "source_fence_proven": false,
+      "consistent_generation_proven": false
+    },
+    {
+      "id": "LICENSE_STATE_FILE",
+      "source": "operator-host/license-key-registry.mjs",
+      "classification": "durable_entitlement",
+      "write_marker": "fs.writeFileSync(",
+      "flushing": "synchronous_process_io_only",
+      "fsync_proven": false,
+      "source_fence_proven": false,
+      "consistent_generation_proven": false
+    }
+  ],
+  "plugin_writers": [
+    {
+      "id": "PLUGIN_GOOGLE_OAUTH",
+      "source": "plugin-server/google-auth.mjs",
+      "classification": "critical_config",
+      "write_marker": "fs.writeFileSync(",
+      "flushing": "synchronous_process_io_only",
+      "fsync_proven": false,
+      "source_fence_proven": false,
+      "consistent_generation_proven": false
+    },
+    {
+      "id": "PLUGIN_PADDLE_BILLING",
+      "source": "plugin-server/paddle-billing.mjs",
+      "classification": "durable_billing",
+      "write_marker": "fs.writeFileSync(",
+      "flushing": "synchronous_process_io_only",
+      "fsync_proven": false,
+      "source_fence_proven": false,
+      "consistent_generation_proven": false
+    },
+    {
+      "id": "PLUGIN_SITE_CONTENT",
+      "source": "plugin-server/site-announcements.mjs",
+      "classification": "durable_content",
+      "write_marker": "fs.writeFileSync(",
+      "flushing": "synchronous_process_io_only",
+      "fsync_proven": false,
+      "source_fence_proven": false,
+      "consistent_generation_proven": false
+    },
+    {
+      "id": "PLUGIN_SUPPORT_OUTBOX",
+      "source": "plugin-server/support-backoffice.mjs",
+      "classification": "durable_message",
+      "write_marker": "fs.writeFileSync(",
+      "flushing": "synchronous_process_io_only",
+      "fsync_proven": false,
+      "source_fence_proven": false,
+      "consistent_generation_proven": false
+    }
+  ],
+  "dependencies": [
+    {
+      "id": "EVENT_LOG_ASYNC",
+      "source": "operator-host/executor.mjs",
+      "required_markers": [
+        "diskWriteChain=diskWriteChain.then(",
+        "fs.promises.appendFile(",
+        ".catch(e=>console.error("
+      ],
+      "risk": "append_errors_logged_but_not_propagated",
+      "barrier_proven": false
+    },
+    {
+      "id": "SUPPORT_BACKGROUND_PUMP",
+      "source": "plugin-server/support-backoffice.mjs",
+      "required_markers": [
+        "async pump(",
+        "setInterval(",
+        "this._persist();"
+      ],
+      "risk": "background_outbox_pump_can_mutate_during_snapshot",
+      "barrier_proven": false
+    },
+    {
+      "id": "FLEET_PROCESS_COMMAND_MAP",
+      "source": "operator-host/fleet-router.mjs",
+      "required_markers": [
+        "this.commands=new Map()",
+        "setOwnerDrain(",
+        "this.commands.set("
+      ],
+      "risk": "node_local_drain_not_global_writer_fence_or_command_persistence",
+      "barrier_proven": false
+    },
+    {
+      "id": "OAUTH_PROCESS_REPLAY_MAP",
+      "source": "plugin-server/oauth.mjs",
+      "required_markers": [
+        "usedCodes=new Map()",
+        "usedRefresh=new Map()",
+        "usedResume=new Map()"
+      ],
+      "risk": "process_local_consumption_not_cross_replica_durable",
+      "barrier_proven": false
+    },
+    {
+      "id": "GOOGLE_PENDING_LOGIN_MAP",
+      "source": "plugin-server/google-auth.mjs",
+      "required_markers": [
+        "const flows=new Map()"
+      ],
+      "risk": "inflight_pkce_must_expire_on_restart",
+      "barrier_proven": false
+    }
+  ],
+  "required_remediations": [
+    "write_lock_or_fenced_ingress_before_snapshot",
+    "global_epoch_and_single_writer_lease",
+    "fsync_regular_file_and_directory_after_atomic_replace",
+    "surface_async_append_failures_and_confirm_journal_watermark",
+    "pause_and_drain_webhook_and_support_background_pumps",
+    "fence_fleet_node_commands_and_running_pty_across_generations",
+    "durable_oauth_consumed_jti_storage_before_replicas",
+    "attested_cross_plane_checksum_after_independent_restore"
+  ],
+  "non_authoritative_uat_only": true,
+  "reason_not_ready": "source code does not yet expose an end-to-end authoritative pause/drain/fsync/barrier with one shared epoch for all writers"
+}

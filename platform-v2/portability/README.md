@@ -33,6 +33,12 @@ Explicitly excluded from **server authority backup** are device-local client ann
 
 See [BACKUP_CONSISTENCY_DESIGN.md](./BACKUP_CONSISTENCY_DESIGN.md) and `backup-consistency-contract.json`. The new `validate_backup_consistency.py` validates only checked-in source markers and synthetic in-memory freeze/restore attestations, **not** a real filesystem, Docker, database or billing backup. It requires the same source fence epoch on Operator, Plugin and PostgreSQL evidence, no in-flight jobs/PTY, independently reconciled identity/grants/usage/OAuth/billing/outbox digests, denied authentication while Redis rate coordination rebuilds, and one higher-generation target writer after explicit activation. `../test/test_backup_consistency_contract.py` has **16/16 PASS** including targeted fail-closed mutations (2026-10-12). The verifier always marks `real_backup_proven=false` and `production_cutover_authorized=false`. Existing AES-GCM and two-stack Docker rehearsals remain blocked; there is no alternate PTY route around that.
 
+## P0 real writer-source gap audit and synthetic epoch fence (2026-10-12)
+
+See [WRITER_FREEZE_GAP_AUDIT.md](./WRITER_FREEZE_GAP_AUDIT.md). The audited `writer-freeze-readiness.json` and `audit_writer_freeze_readiness.py` match **14 Operator plus 4 Plugin writer files**, classify **5 still-unmitigated async/transient writers**, and explicitly return **NOT_READY**: no cross-plane fsync, durable epoch lease or multi-process fence is proven in active code. `../test/test_writer_freeze_readiness.py` has **10/10 negative/coverage PASS**.
+
+The isolated `freeze-epoch-guard.mjs` is **only an in-memory synthetic UAT prototype**, not wired into the production Operator/Plugin. It enforces a one-way freeze/drain/checkpoint lifecycle, with an explicit work report and six acknowledgements; `../test/test-freeze-epoch-guard.mjs` has **12/12 PASS**. These tests do **not** provide actual backup, distributed authorization or cold-move readiness, and retain all prior blocked-operation boundaries.
+
 ## Legacy portable release package contract
 
 A future signed OCI or server bundle is separated into four independent envelopes. Never bake secrets or customer state into release images.
