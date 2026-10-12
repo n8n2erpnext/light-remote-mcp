@@ -47,6 +47,10 @@ Separately, this rc50 **dev source branch only** updates `operator-host/executor
 
 The subsequent **combined regression execution was tool-blocked**; no equivalent retries were made using PTY or alternate commands. Accordingly the post-manifest audit regression status is **NOT VERIFIED**, despite earlier source audit and prior 10/10 tests having passed before this patch. See [WRITER_FREEZE_GAP_AUDIT.md](./WRITER_FREEZE_GAP_AUDIT.md) for current gaps.
 
+## P0 first registry opt-in + fsynced journal UAT (2026-10-12)
+
+[FREE_BENEFIT_JOURNAL_UAT.md](./FREE_BENEFIT_JOURNAL_UAT.md) documents a strict temporary-fixture-only `FreeBenefitRegistry` shadow-mode writer injection using the earlier file+directory fsync helper, with **6/6 new tests PASS** and a poison-on-failure guard. Default Operator/Plugin production-source paths remain unchanged. The separate `synthetic-journal-watermark.mjs` proves a test-only serialized SHA-256 / sequence / byte-offset acknowledgment after fsync, with **11/11 new tests PASS**. This journal is **not** wired into live Operator log paths. Real cross-plane consistency, authoritative writer fencing, remote proof and restore remain **NOT_READY**. A previous writer-source regression remains tool-blocked, and was not rerun.
+
 ## Legacy portable release package contract
 
 A future signed OCI or server bundle is separated into four independent envelopes. Never bake secrets or customer state into release images.

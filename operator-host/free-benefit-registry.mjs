@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 
 export const FREE_LIMIT=10_000;
 export class FreeBenefitError extends Error{
@@ -8,21 +9,47 @@ export class FreeBenefitError extends Error{
 const monthAt=ms=>new Date(ms).toISOString().slice(0,7);
 const nextMonth=k=>{const [y,m]=k.split('-').map(Number);return Date.UTC(y,m,1);};
 export class FreeBenefitRegistry{
-  constructor({stateFile=null,now=()=>Date.now(),mode='shadow',verifyRotationProof=null}={}){
+  constructor({stateFile=null,now=()=>Date.now(),mode='shadow',verifyRotationProof=null,syntheticDurableUat=null}={}){
     if(!['shadow','enforce'].includes(mode))throw Error('invalid_free_benefit_mode');
+    if(syntheticDurableUat!==null){
+      const root=syntheticDurableUat?.root;
+      if(mode!=='shadow'||!stateFile||syntheticDurableUat?.syntheticOnly!==true||
+        typeof syntheticDurableUat.writer!=='function'||typeof root!=='string'||
+        !path.isAbsolute(root)||path.resolve(root)!==root||
+        path.dirname(root)!==path.resolve(os.tmpdir())||
+        !path.basename(root).startsWith('lr-rc50-benefit-fixture-')||
+        !path.isAbsolute(stateFile)||path.resolve(stateFile)!==stateFile||
+        stateFile!==path.join(root,'free-benefits.json'))
+        throw Error('invalid_synthetic_durable_uat');
+      const stat=fs.lstatSync(root);
+      if(!stat.isDirectory()||stat.isSymbolicLink())throw Error('invalid_synthetic_fixture_root');
+    }
     this.stateFile=stateFile;this.now=now;this.mode=mode;this.verifyRotationProof=verifyRotationProof;
+    this.syntheticDurableUat=syntheticDurableUat;
+    this.syntheticWriteFailed=false;
     const prior=stateFile&&fs.existsSync(stateFile)?JSON.parse(fs.readFileSync(stateFile,'utf8')):null;
     if(prior&&prior.schemaVersion!==1)throw Error('invalid_free_benefit_state');
     this.families=prior?.families||{};this.buckets=prior?.buckets||{};
   }
   _save(){
     if(!this.stateFile)return;
+    if(this.syntheticDurableUat){
+      if(this.syntheticWriteFailed)throw Error('synthetic_uat_persist_failed_restart_required');
+      try{
+        this.syntheticDurableUat.writer({
+          stateFile:this.stateFile,
+          value:{schemaVersion:1,families:this.families,buckets:this.buckets}
+        });
+      }catch(error){this.syntheticWriteFailed=true;throw error;}
+      return;
+    }
     fs.mkdirSync(path.dirname(this.stateFile),{recursive:true,mode:0o750});
     const tmp=this.stateFile+'.'+process.pid+'.tmp';
     fs.writeFileSync(tmp,JSON.stringify({schemaVersion:1,families:this.families,buckets:this.buckets})+'\n',{mode:0o600});
     fs.renameSync(tmp,this.stateFile);
   }
   _family(deviceId){
+    if(this.syntheticWriteFailed)throw Error('synthetic_uat_persist_failed_restart_required');
     const id=String(deviceId||'');
     if(!/^[A-Za-z0-9._:-]{1,128}$/.test(id))throw Error('invalid_benefit_device');
     return this.families[id]||id;
@@ -44,6 +71,7 @@ export class FreeBenefitRegistry{
   }
   // Called synchronously just before SessionRegistry records the tool call.
   reserve({accountId,deviceId,plan='free',accountUsed=0,usageAccounts={},chargeId=null}={}){
+    if(this.syntheticWriteFailed)throw Error('synthetic_uat_persist_failed_restart_required');
     if(['pro','vip'].includes(String(plan).toLowerCase()))return {allowed:true,paid:true};
     if(!/^[A-Za-z0-9._:-]{1,128}$/.test(String(accountId||'')))throw Error('invalid_benefit_account');
     const view=this.status({deviceId,usageAccounts}),prev=this.buckets[view.key]||{used:0,charges:{}};
