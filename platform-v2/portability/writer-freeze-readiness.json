@@ -191,11 +191,18 @@
       "id": "EVENT_LOG_ASYNC",
       "source": "operator-host/executor.mjs",
       "required_markers": [
-        "diskWriteChain=diskWriteChain.then(",
+        "const auditAppendBarrier = new AuditAppendBarrier(",
         "fs.promises.appendFile(",
-        ".catch(e=>console.error("
+        "return auditAppendBarrier.enqueue(batch);",
+        "return auditAppendBarrier.flush();"
       ],
-      "risk": "append_errors_logged_but_not_propagated",
+      "helper_source": "operator-host/audit-append-barrier.mjs",
+      "helper_markers": [
+        "this.#failure=error instanceof Error",
+        "if(this.#failure)throw this.#failure;",
+        "async flush()"
+      ],
+      "risk": "append_failures_latched_in_dev_but_no_file_fsync_or_authoritative_journal_watermark",
       "barrier_proven": false
     },
     {

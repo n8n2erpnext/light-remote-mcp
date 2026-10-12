@@ -11,6 +11,7 @@ import { SessionRegistry, SessionError, SESSION_GRACE_PRESETS } from './session-
 import { DeviceRegistry, DeviceError } from './device-registry.mjs';
 import { EnrollmentRegistry, EnrollmentError } from './enrollment-registry.mjs';
 import { FleetRouter, FleetError } from './fleet-router.mjs';
+import { AuditAppendBarrier } from './audit-append-barrier.mjs';
 import { DeviceConnectionRegistry, DeviceConnectionError, DEFAULT_PLAN_CONNECTION_CAPS } from './device-connection-registry.mjs';
 import { DeviceAccessGrantRegistry, DeviceAccessGrantError } from './device-access-grant-registry.mjs';
 import { DevicePairingRegistry, DevicePairingRegistryError } from './device-pairing-registry.mjs';
@@ -200,14 +201,24 @@ function redact(value) {
   return text;
 }
 
-let diskQueue = []; let diskQueueBytes = 0; let diskFlushTimer = null; let diskWriteChain = Promise.resolve();function serializedDiskRecord(event) {
+let diskQueue = []; let diskQueueBytes = 0; let diskFlushTimer = null;
+const auditAppendBarrier = new AuditAppendBarrier({
+  write:batch=>fs.promises.appendFile(LOG_FILE,batch,{encoding:'utf8'}),
+  onFailure:error=>console.error('[disk] append failed',error?.message||error)
+});
+function serializedDiskRecord(event) {
   const safe = { ...event };
   for (const key of ['script', 'stdout', 'stderr', 'chunk', 'note']) if (safe[key] != null) safe[key] = redact(safe[key]);
   return JSON.stringify(safe)+"\n";
 }
 
-function flushDiskRecords(){if(diskFlushTimer){clearTimeout(diskFlushTimer);diskFlushTimer=null;}if(!diskQueue.length)return diskWriteChain;const batch=diskQueue.join('');diskQueue=[];diskQueueBytes=0;diskWriteChain=diskWriteChain.then(()=>fs.promises.appendFile(LOG_FILE,batch,{encoding:'utf8'})).catch(e=>console.error('[disk] append failed',e?.message||e));return diskWriteChain;}
-function queueDiskRecord(event){const line=serializedDiskRecord(event);diskQueue.push(line);diskQueueBytes+=Buffer.byteLength(line);if(diskQueueBytes>=DISK_BATCH_BYTES)void flushDiskRecords();else if(!diskFlushTimer){diskFlushTimer=setTimeout(()=>void flushDiskRecords(),DISK_FLUSH_MS);diskFlushTimer.unref?.();}}function pruneRing(now=Date.now()){const cutoff=now-MAX_RING_AGE_MS;while(ring.length&&(ring.length>MAX_RING_EVENTS||ringBytes>MAX_RING_BYTES||ring[0].atMs<cutoff)){const old=ring.shift();ringBytes-=old.bytes;}}function pushEvent(input) {
+function flushDiskRecords(){
+  if(diskFlushTimer){clearTimeout(diskFlushTimer);diskFlushTimer=null;}
+  if(!diskQueue.length)return auditAppendBarrier.flush();
+  const batch=diskQueue.join('');diskQueue=[];diskQueueBytes=0;
+  return auditAppendBarrier.enqueue(batch);
+}
+function queueDiskRecord(event){const line=serializedDiskRecord(event);diskQueue.push(line);diskQueueBytes+=Buffer.byteLength(line);if(diskQueueBytes>=DISK_BATCH_BYTES)void flushDiskRecords().catch(()=>{});else if(!diskFlushTimer){diskFlushTimer=setTimeout(()=>void flushDiskRecords().catch(()=>{}),DISK_FLUSH_MS);diskFlushTimer.unref?.();}}function pruneRing(now=Date.now()){const cutoff=now-MAX_RING_AGE_MS;while(ring.length&&(ring.length>MAX_RING_EVENTS||ringBytes>MAX_RING_BYTES||ring[0].atMs<cutoff)){const old=ring.shift();ringBytes-=old.bytes;}}function pushEvent(input) {
   const now=Date.now(); const event={id:++sequence,at:new Date(now).toISOString(),...input};
   const encoded = JSON.stringify(event);
   const bytes = Buffer.byteLength(encoded);
@@ -1117,7 +1128,10 @@ function shutdown(signal) {
       try { process.kill(job.pid, 'SIGTERM'); } catch {}
     }
   }
-  void flushDiskRecords().finally(()=>server.close(()=>process.exit(0)));
+  void flushDiskRecords().then(
+    ()=>server.close(()=>process.exit(0)),
+    error=>{console.error('[disk] shutdown flush failed',error?.message||error);server.close(()=>process.exit(1));}
+  );
   server.closeAllConnections?.();
   setTimeout(() => process.exit(1), 5000).unref();
 }

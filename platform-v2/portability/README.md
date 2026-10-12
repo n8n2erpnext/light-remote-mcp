@@ -39,6 +39,14 @@ See [WRITER_FREEZE_GAP_AUDIT.md](./WRITER_FREEZE_GAP_AUDIT.md). The audited `wri
 
 The isolated `freeze-epoch-guard.mjs` is **only an in-memory synthetic UAT prototype**, not wired into the production Operator/Plugin. It enforces a one-way freeze/drain/checkpoint lifecycle, with an explicit work report and six acknowledgements; `../test/test-freeze-epoch-guard.mjs` has **12/12 PASS**. These tests do **not** provide actual backup, distributed authorization or cold-move readiness, and retain all prior blocked-operation boundaries.
 
+## P0 synthetic durable JSON & dev audit-log error latch
+
+`durable-json-synthetic.mjs` is an **unwired synthetic-fixture-only** atomic replace helper: exclusive temporary file, restrictive mode, complete write, file fsync, atomic rename, then parent directory fsync. `../test/test-durable-json-synthetic.mjs` demonstrated **14/14 PASS** including short write, I/O failure before rename, ambiguous failure after rename, symlink parent/target, traversal and mode rejection. A directory-fsync failure can leave a newly visible target and **must not be called a certified checkpoint**. This does not wire the helper into any live registry or prove crash durability on production filesystems.
+
+Separately, this rc50 **dev source branch only** updates `operator-host/executor.mjs` with `operator-host/audit-append-barrier.mjs`. Append errors become latched and propagate to `await flushDiskRecords()` rather than being swallowed; shutdown flush failure requests a nonzero exit. `../test/test-audit-append-barrier.mjs` demonstrated **8/8 PASS**, and `node --check operator-host/executor.mjs` succeeded **before** later modifications to the writer-audit manifest. The log append is still **not fsynced**; no durable journal watermark, full persistence guarantee, rollout or production update has occurred.
+
+The subsequent **combined regression execution was tool-blocked**; no equivalent retries were made using PTY or alternate commands. Accordingly the post-manifest audit regression status is **NOT VERIFIED**, despite earlier source audit and prior 10/10 tests having passed before this patch. See [WRITER_FREEZE_GAP_AUDIT.md](./WRITER_FREEZE_GAP_AUDIT.md) for current gaps.
+
 ## Legacy portable release package contract
 
 A future signed OCI or server bundle is separated into four independent envelopes. Never bake secrets or customer state into release images.

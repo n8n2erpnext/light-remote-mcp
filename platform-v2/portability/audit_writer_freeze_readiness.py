@@ -69,6 +69,14 @@ def audit():
                     for marker in row['required_markers']) and
                 bool(row['risk']) and row['barrier_proven'] is False,
                 'dependency_risk_source_drift:'+row['id'])
+        if row['id']=='EVENT_LOG_ASYNC':
+            require(row.get('helper_source')=='operator-host/audit-append-barrier.mjs'
+                    and row.get('risk')=='append_failures_latched_in_dev_but_no_file_fsync_or_authoritative_journal_watermark'
+                    and len(row.get('helper_markers',[]))>=3,
+                    'append_error_latch_contract_missing')
+            helper=source(row['helper_source'])
+            require(all(marker in helper for marker in row['helper_markers']),
+                    'append_error_latch_source_drift')
     require(len(manifest.get('required_remediations',[]))>=8 and
             bool(manifest.get('reason_not_ready')),
             'missing_gap_register')
