@@ -63,6 +63,10 @@ See [GENERATION_OUTBOX_UAT.md](./GENERATION_OUTBOX_UAT.md). Inside the isolated 
 
 This does **not** dispatch Fleet, PTY, webhook, OAuth or billing work, does not grant any production role and does not fence OS side effects. A database claim is not actual remote execution; Agent-side monotonic generation rejection, durable receipt and owner-authorized drain are still mandatory. No other migrations, production runtime or Docker services were changed.
 
+## P0 isolated Agent generation receipts + conservative mutation source census
+
+See [AGENT_EPOCH_ROUTE_CENSUS_UAT.md](./AGENT_EPOCH_ROUTE_CENSUS_UAT.md). The **unwired synthetic-only** `SyntheticAgentGeneration` prototype stores a device-local generation and receipt before fake work, rejects stale/duplicate/conflicting command IDs, preserves completion records and marks in-flight work `UNCERTAIN` after a restart rather than re-executing it. **17/17** Node fixture tests PASS; there are no real Agent/PTY commands or authenticated owner proofs. The independent heuristic source scanner produced a SHA-pinned list of **32 source files, 163 candidate HTTP mutation sites and 28 timer/dispatch candidates**. **7/7** source-census tests PASS. These are code-site candidates, not 163 distinct endpoints, and the report explicitly disclaims exhaustive runtime coverage. Neither test gives production cutover approval, authenticates a device-side generation nor wires global fencing into actual HTTP routes.
+
 ## Legacy portable release package contract
 
 A future signed OCI or server bundle is separated into four independent envelopes. Never bake secrets or customer state into release images.
