@@ -57,6 +57,12 @@ See [PG_WRITER_EPOCH_UAT.md](./PG_WRITER_EPOCH_UAT.md). Under the owner's dev-Do
 
 This is **NOT global writer authority**: nobody has yet wired the guard into Operator/Plugin mutating requests, native PTY/Fleet commands, JSON state, webhooks or independent storage. The SQL's `fence_writer_uat` has no owner-authenticated administrative policy; least-privilege roles were previously blocked. No expired-lease auto-takeover or production promotion. Global cutover and cross-host restore remain `NOT_READY`.
 
+## P0 generation-scoped synthetic PostgreSQL command outbox (2026-10-12)
+
+See [GENERATION_OUTBOX_UAT.md](./GENERATION_OUTBOX_UAT.md). Inside the isolated `lightremote-rc50-v2` PostgreSQL17 UAT schema, a new synthetic `command_outbox` and three functions bind **enqueue, claim and ACK** to the currently authorized writer generation. The SQL `test_generation_outbox_uat.sql` passed with transactional `ROLLBACK`, including idempotency, conflict, fence A→B, quarantined old-generation queued/claimed rows and expired claim ACK rejection. Two independent real `psql` processes raced for one fake command: **exactly one claimed it and duplicate ACK was denied**; script removed the synthetic row and fenced the authority. `../test/test_generation_outbox_source.py` has **8/8 PASS** and the 10 critical source-backed integration boundaries remain `NOT_READY`.
+
+This does **not** dispatch Fleet, PTY, webhook, OAuth or billing work, does not grant any production role and does not fence OS side effects. A database claim is not actual remote execution; Agent-side monotonic generation rejection, durable receipt and owner-authorized drain are still mandatory. No other migrations, production runtime or Docker services were changed.
+
 ## Legacy portable release package contract
 
 A future signed OCI or server bundle is separated into four independent envelopes. Never bake secrets or customer state into release images.
