@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "status": "SOURCE_ONLY_NOT_RUNTIME_INVENTORY",
+  "tracked_deploy_writers": [
+    {
+      "source": "deploy/scripts/build-client-update-manifest.mjs",
+      "role": "rebuildable_release_manifest",
+      "markers": [
+        "client-update.json",
+        "fs.writeFileSync("
+      ],
+      "restore": "rebuild_from_signed_immutable_release_assets"
+    },
+    {
+      "source": "deploy/scripts/generate-operator-key.mjs",
+      "role": "security_sensitive_key_provisioning",
+      "markers": [
+        "operator-public-keys.json",
+        "fs.writeFileSync("
+      ],
+      "restore": "existing_secret_custody_only_never_generate_new_key_during_restore"
+    },
+    {
+      "source": "deploy/scripts/generate-wall-auth.mjs",
+      "role": "security_sensitive_local_wall_provisioning",
+      "markers": [
+        "wall-auth.json",
+        "wall-bootstrap-password",
+        "fs.writeFileSync("
+      ],
+      "restore": "preserve_existing_auth_authority_or_owner_approved_rotation"
+    },
+    {
+      "source": "deploy/scripts/promote-client-update-channel.mjs",
+      "role": "signed_distribution_state",
+      "markers": [
+        "client-update.json.sig",
+        "fs.renameSync("
+      ],
+      "restore": "verify_signed_pair_digest_and_version_before_distribution"
+    },
+    {
+      "source": "deploy/scripts/stage-client-core.mjs",
+      "role": "build_only_client_artifact",
+      "markers": [
+        "client-core.json",
+        "fs.copyFileSync("
+      ],
+      "restore": "rebuild_from_pinned_inputs"
+    },
+    {
+      "source": "deploy/scripts/stage-terminal-runtime.mjs",
+      "role": "build_only_native_artifact",
+      "markers": [
+        "node.abi127.node",
+        "prebuilds",
+        "fs.cpSync("
+      ],
+      "restore": "validate_native_abi_and_arch_per_artifact_before_install"
+    }
+  ],
+  "host_external_links": [
+    {
+      "external_state_id": "WALL_AUTH_CONFIG_SOURCE",
+      "source": "deploy/scripts/generate-wall-auth.mjs",
+      "custody": "critical_secret",
+      "restore": "preserve_or_authorized_rotation"
+    },
+    {
+      "external_state_id": "WALL_BOOTSTRAP_PASSWORD_SOURCE",
+      "source": "deploy/scripts/generate-wall-auth.mjs",
+      "custody": "sensitive_bootstrap_artifact",
+      "restore": "do_not_assume_bootstrap_password_required_for_restore"
+    },
+    {
+      "external_state_id": "OPERATOR_PUBLIC_KEY_MANIFEST_SOURCE",
+      "source": "deploy/scripts/generate-operator-key.mjs",
+      "custody": "public_verification_identity",
+      "restore": "verify_matches_existing_private_signing_identity"
+    },
+    {
+      "external_state_id": "SIGNED_UPDATE_CHANNEL_SOURCE",
+      "source": "deploy/scripts/promote-client-update-channel.mjs",
+      "custody": "signed_release_integrity",
+      "restore": "preserve_signed_manifest_signature_pair"
+    }
+  ],
+  "explicit_exclusions": [
+    {
+      "source": "lib/client-announcement-inbox.mjs",
+      "category": "device_local_state",
+      "markers": [
+        "this.storeFile",
+        "fs.writeFileSync("
+      ],
+      "reason": "client_local_seen_notices_not_host_operator_identity"
+    },
+    {
+      "source": "operator-host/team-durable-dispatch-uat.mjs",
+      "category": "uat_sqlite_only",
+      "markers": [
+        "node:sqlite",
+        "previewOnly:true",
+        "new DatabaseSync("
+      ],
+      "reason": "synthetic_preview_store_not_production_authority"
+    },
+    {
+      "source": "lib/native-fs.mjs",
+      "category": "user_requested_filesystem_operations",
+      "markers": [
+        "fsp.writeFile(",
+        "fsp.rename("
+      ],
+      "reason": "remote_user_file_operations_are_not_platform_host_state"
+    }
+  ],
+  "native_abi": {
+    "source": "deploy/scripts/stage-terminal-runtime.mjs",
+    "runtime_module": "@homebridge/node-pty-prebuilt-multiarch",
+    "linux_native_name": "node.abi127.node",
+    "architectures": [
+      "linux-arm64",
+      "linux-x64"
+    ],
+    "validation": "STATIC_ABI_BOUNDARY_ONLY_NO_BINARY_TEST"
+  },
+  "warnings": [
+    "Source path defaults are not verified live effective mounts.",
+    "Do not inspect or copy actual wall-auth, signing keys, customer data or channels.",
+    "Client update channel promotion scripts must never be run as audit.",
+    "Do not execute blocked AES or two-stack Docker rehearsal through alternate interfaces."
+  ]
+}

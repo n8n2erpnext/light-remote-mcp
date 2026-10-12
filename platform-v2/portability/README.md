@@ -9,7 +9,7 @@ The intent is **move the same system, not replace it**. Node.js ESM and the MCP,
 Source inventory currently covers:
 
 - **14** Operator `STATE_DIR` JSON files: devices, enrollments, enrollment signer, host device identity/companion, connections, A/B access grants, agent clients, accounts, usage, Free family benefits, Pro Teams, notifications and license keys.
-- **13** external paths/configuration contracts: Operator private key, operation audit log; plugin OAuth secret, legacy OAuth client registry, OpenAI challenge; Google OAuth config; Paddle billing state; site announcements; support outbox and backoffice config; distribution manifest; two systemd environment files.
+- **17** external paths/configuration contracts: the earlier 13 Operator/plugin/systemd entries plus source references for Wall authentication config, sensitive bootstrap password, Operator public-key manifest and signed client-update feed. These are source markers, **not live path/secret discovery**. The bootstrap password is a sensitive optional recovery artifact, not a mandatory prerequisite for preserving an existing Wall identity.
 - **6** transient process state categories: Operator jobs/deduplication/replay maps, Fleet router's per-process commands/leases/completions, Google OAuth pending PKCE flows, public device rate-limit buckets, PTY-backed OS processes, and plugin OAuth replay. These cannot be restored by simply copying JSON or PostgreSQL/Redis.
 - **15** restore invariants in the contract: account/device IDs, signing keys, OAuth binding, A/B approval and expiry/revoke state, agent sessions, metering, Team entitlement, billing idempotency, worker fencing, outbox offsets and audit history.
 
@@ -18,6 +18,16 @@ The source audit fails closed if a new `STATE_DIR` JSON registry is added but no
 ## Portable release package contract
 
 The additional `portable-package-contract.json` is an **offline DESIGN-ONLY package specification** for ARM64/AMD64 Node ESM deployments. It binds known source artifacts and systemd service entrypoints to their checked-in source, requires immutable package digests, native-dependency review, explicit config references, separate durable/secret envelopes, single-writer snapshot fencing and independently verified restoration. `../test/test_portable_package_contract.py` has 5 source-only contract tests (2026-10-12: **5/5 PASS**). These tests do not build an image, exercise native binaries or validate a backup. For failure handling and later authorized owner review see [RECOVERY_FAILURE_MATRIX.md](./RECOVERY_FAILURE_MATRIX.md).
+
+## Deploy writer & native ABI boundary (2026-10-12 P0)
+
+`deployment-state-boundaries.json` and `audit_deployment_state_boundaries.py` distinguish **six** source-visible `deploy/scripts/*.mjs` writer modules (excluding explicitly named `selftest-*` fixtures): source release-manifest builder, Operator key generation, Wall authentication provisioner, signed channel promotion, client-core staging, and terminal-native staging. Four new external state references are tied to the source-derived state contract. This protects against assuming a source release package is equivalent to a complete backup of Wall authentication or verified updater state. **Never run generation/promotion scripts during an audit or migrate by regenerating identity.**
+
+The source also confirms a linux terminal package referencing `@homebridge/node-pty-prebuilt-multiarch` with a native filename `node.abi127.node` under architecture-specific `prebuilds/linux-arm64` or `linux-x64`; root `package.json` specifies Node `22.x`. These are *source expectations only*. A production release still requires independently verified Node module ABI, ELF machine type, native symbol compatibility, executable permissions, dependency/license inventory and clean ARM64/AMD64 installation checks. Neither compiled native binary was loaded or verified at this checkpoint.
+
+Explicitly excluded from **server authority backup** are device-local client announcement seen-state, `operator-host/team-durable-dispatch-uat.mjs` preview SQLite/WAL simulator, and user-invoked `lib/native-fs.mjs` file operations. These are not necessarily disposable to the individual device/user; they simply do **not** become authoritative Operator/Plugin server state by association.
+
+**Verification:** both read-only audits succeeded: legacy inventory 14 Operator files / 17 external contracts / 6 transient groups; deployment audit 6 writer modules / 4 host links / 3 exclusions / 2 Linux architectures. Existing 8/8 legacy negative tests PASS. The attempted creation of a new deployment negative-test file was blocked by safety policy; it was not created or rerouted. Therefore this new deployment audit currently has a verified nominal PASS, **not** a negative-test suite PASS.
 
 ## Legacy portable release package contract
 

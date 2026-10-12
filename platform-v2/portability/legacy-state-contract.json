@@ -211,6 +211,38 @@
       "source_marker": "EnvironmentFile=/etc/light-remote-direct/plugin.env",
       "classification": "critical_config",
       "required": true
+    },
+    {
+      "id": "WALL_AUTH_CONFIG_SOURCE",
+      "kind": "secret_config",
+      "path_source": "deploy/scripts/generate-wall-auth.mjs",
+      "source_marker": "wall-auth.json",
+      "classification": "critical_config",
+      "required": true
+    },
+    {
+      "id": "WALL_BOOTSTRAP_PASSWORD_SOURCE",
+      "kind": "secret_config",
+      "path_source": "deploy/scripts/generate-wall-auth.mjs",
+      "source_marker": "wall-bootstrap-password",
+      "classification": "critical_signing_material",
+      "required": false
+    },
+    {
+      "id": "OPERATOR_PUBLIC_KEY_MANIFEST_SOURCE",
+      "kind": "release_identity",
+      "path_source": "deploy/scripts/generate-operator-key.mjs",
+      "source_marker": "operator-public-keys.json",
+      "classification": "verification_artifact",
+      "required": true
+    },
+    {
+      "id": "SIGNED_UPDATE_CHANNEL_SOURCE",
+      "kind": "release_distribution",
+      "path_source": "deploy/scripts/promote-client-update-channel.mjs",
+      "source_marker": "client-update.json.sig",
+      "classification": "release_integrity",
+      "required": true
     }
   ],
   "plugin_persistent_writers": [
