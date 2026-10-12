@@ -51,6 +51,12 @@ The subsequent **combined regression execution was tool-blocked**; no equivalent
 
 [FREE_BENEFIT_JOURNAL_UAT.md](./FREE_BENEFIT_JOURNAL_UAT.md) documents a strict temporary-fixture-only `FreeBenefitRegistry` shadow-mode writer injection using the earlier file+directory fsync helper, with **6/6 new tests PASS** and a poison-on-failure guard. Default Operator/Plugin production-source paths remain unchanged. The separate `synthetic-journal-watermark.mjs` proves a test-only serialized SHA-256 / sequence / byte-offset acknowledgment after fsync, with **11/11 new tests PASS**. This journal is **not** wired into live Operator log paths. Real cross-plane consistency, authoritative writer fencing, remote proof and restore remain **NOT_READY**. A previous writer-source regression remains tool-blocked, and was not rerun.
 
+## P0 PostgreSQL writer generation — isolated multi-process UAT
+
+See [PG_WRITER_EPOCH_UAT.md](./PG_WRITER_EPOCH_UAT.md). Under the owner's dev-Docker approval and after verifying exact Compose project, internal network, healthy unexposed PG17, database and username, a **new independent synthetic-only** PostgreSQL schema `lr_rc50_epoch_synthetic` was installed in `light_remote_rc50_uat`. No production database/role/public table, history 001–013, Docker service, OAuth or billing was modified. Transaction-local SQL proves explicit fence A→B/lease expiry FAIL-CLOSED, while a **two-independent-psql-process concurrency UAT PASS** demonstrates exactly one writer winner and that a fence waits for an admitted DB transaction holding `FOR SHARE`. Offline source guards **6/6 PASS**. Schema remains with the one synthetic singleton **fenced** at the checkpoint.
+
+This is **NOT global writer authority**: nobody has yet wired the guard into Operator/Plugin mutating requests, native PTY/Fleet commands, JSON state, webhooks or independent storage. The SQL's `fence_writer_uat` has no owner-authenticated administrative policy; least-privilege roles were previously blocked. No expired-lease auto-takeover or production promotion. Global cutover and cross-host restore remain `NOT_READY`.
+
 ## Legacy portable release package contract
 
 A future signed OCI or server bundle is separated into four independent envelopes. Never bake secrets or customer state into release images.
