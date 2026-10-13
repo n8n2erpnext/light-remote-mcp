@@ -1,5 +1,9 @@
 # Light Remote portable state contract — rc.50
 
+## 2026-10-13 P0 — PostgreSQL global nonce ledger (independent synthetic UAT)
+
+See [PG_GLOBAL_NONCE_LEDGER_UAT_20261013.md](./PG_GLOBAL_NONCE_LEDGER_UAT_20261013.md). A **separate private PostgreSQL17 scratch-only** global replay nonce ledger with unique producer/nonce and request constraints, per-account/device row-locked simulated writer epoch and monotonic generation passed **9/9 real database test groups**: duplicate/replay, scope/key/expiry/fence rejection, transaction rollback, stale epoch rejection and two real concurrent PostgreSQL sessions yielding exactly one winner. **12/12 new source guards PASS.** Scratch Compose cleaned and no host ports. This is **not yet wired to grant issuer or persistent HTTP verifier**; SQL does not authenticate HMAC/Ed25519, synthetic epoch is not product-wide writer epoch, so real cross-host writer fencing, real consent and production cutover **NOT_READY**.
+
 ## 2026-10-13 P0 — Exclusive single-instance nonce journal lease (HTTP SOURCE-ONLY)
 
 See [SINGLE_INSTANCE_REPLAY_LEASE_SOURCE_UAT_20261013.md](./SINGLE_INSTANCE_REPLAY_LEASE_SOURCE_UAT_20261013.md). Added an owner-only `O_EXCL` on-disk local instance lease checked before accepting any HMAC nonce, plus live journal inode/size checks. Second Node process cannot become owner while first holds the lock; a crashed instance leaves a stale lock and prevents automatic restart, not an unsafe PID-based takeover. External append/replacement of an open journal latches fail-closed. **12/12 Node filesystem unit tests, 12/12 HTTP source guards, 12/12 verifier source guards, 10/10 network guards and 7/7 reader ACL source guards PASS.** Not distributed/multi-host replay consensus, not rollback-proof against same-UID file replacement, no verified persistent HTTP Docker integration. The last complete synthetic Docker/PG verifier runtime PASS is still `c7bb175`; production/global writer fence **NOT_READY**.
