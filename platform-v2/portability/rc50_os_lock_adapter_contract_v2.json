@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 2,
+  "status": "OFFLINE_DESIGN_NOT_DEPLOYED",
+  "sourceCheckpoint": "2543432d6b46ba915a0cbcc182c09c4aeff58ac5",
+  "project": "Light Remote rc50 MJS portability P0",
+  "scope": "One enrolled device and one private local receipt root; no cross-host fencing",
+  "boundary": {
+    "owner": "AgentReceiptAuthority (new future trusted service)",
+    "nativeLockMustBeKernelAcquired": true,
+    "exclusiveLockRequiredDuring": [
+      "read and authenticate device/root identity",
+      "read and validate entire receipt snapshot",
+      "check generation high-watermark and grant revision",
+      "dedupe commandId and signed command digest",
+      "durably persist ACCEPTED",
+      "reverify signed epoch, grant and expiry immediately before any OS side effect",
+      "durably persist STARTED",
+      "perform only authorized and independently fenced action",
+      "durably persist COMPLETED or UNCERTAIN",
+      "reconcile upstream ACK without replaying uncertain physical actions"
+    ],
+    "adapterInterface": [
+      "acquireExclusive(scope) -> acquired locked native handle | LOCK_BUSY | ERROR",
+      "assertKernelOwnership(handle, scope) -> OK | LOST_OR_INVALID",
+      "withSerializedReceipt(handle, auditedMutation) -> durable result | UNCERTAIN | ERROR",
+      "release(handle) -> terminal release, never delete a live lock inode"
+    ],
+    "hardDenials": [
+      "no fallback to unlocked writes",
+      "no PID or timeout based forced lock takeover",
+      "no receipt mutation through an unguarded path",
+      "never equate matching fd/inode with ownership of a kernel lock",
+      "no automatic replay of accepted or started work after crash",
+      "no real executor from the synthetic policy module",
+      "no production promotion based on Linux UAT alone"
+    ],
+    "persistence": "file fsync plus parent-directory fsync and corruption detection; a rename-before-dir-fsync failure is ambiguous",
+    "physicalExecutionAllowedByPureModel": false,
+    "monotonicClockRequirements": "Use authority-bounded lease freshness with monotonic checking and clock rollback tests; no local clock by itself proves online revocation"
+  },
+  "osAdapters": {
+    "linux": {
+      "candidate": "native flock(fd,LOCK_EX|LOCK_NB) on trusted private local filesystem",
+      "testEvidence": "Prior rc50 synthetic UAT reported PASS with SIGKILL, contention and inherited FD checks; not committed",
+      "mustTest": ["FD duplication/fork inheritance", "file inode replacement", "noncooperating writer bypass", "lock on host restart", "unsupported NFS/SMB semantics"],
+      "productionReady": false
+    },
+    "darwin": {
+      "candidate": "native BSD flock(2) held in trusted helper over APFS-local receipt file",
+      "testEvidence": "NOT_RUN on macOS",
+      "mustTest": ["two processes", "forced termination", "dup/fork inheritance", "lock inode identity", "relaunch", "helper TCC isolation"],
+      "productionReady": false
+    },
+    "win32": {
+      "candidate": "CreateMutexExW with hardened Global\\ namespace and explicit security descriptor; alternatively choose LockFileEx but not independent mixed schemes",
+      "testEvidence": "NOT_RUN on Windows",
+      "mustTest": ["service Session 0 vs desktop sessions", "Global\\ versus Local\\ namespace", "protect named object from squatting", "WAIT_ABANDONED and state integrity", "ACL deny cross-user", "Windows 10 and 11", "handle closure and reboot"],
+      "productionReady": false
+    }
+  },
+  "decisionModel": {
+    "source": "rc50_agent_receipt_decision.mjs",
+    "proofAndLockFlags": "TEST FLAGS ONLY, untrusted in production",
+    "states": ["accepted", "started", "completed", "uncertain", "fenced"],
+    "operations": ["advance_epoch", "accept", "start_fake", "complete_fake", "recover"],
+    "allMutationsNeedDurability": true,
+    "cannotCallRealOS": true,
+    "offlineTests": 26,
+    "offlineTestsPass": true
+  },
+  "fenceCoveragePlan": [
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "priority": "P0",
+      "examples": ["account device revoke-all", "enrollment approval", "team device shares"],
+      "requiredGate": "owner signed authority, transaction-bound device/grant generation, revocation",
+      "perActionReviewed": false
+    },
+    {
+      "source": "operator-host/executor-routes-device-channel.mjs",
+      "priority": "P0",
+      "examples": ["device channel poll", "device result", "recover-consume pairing"],
+      "requiredGate": "grant generation, signed device identity and receipt at dispatch/result",
+      "perActionReviewed": false
+    },
+    {
+      "source": "operator-host/executor-routes-runtime.mjs",
+      "priority": "P0",
+      "examples": ["execute", "terminal", "desktop", "filesystem", "SCP"],
+      "requiredGate": "ingress + target Agent just-before-physical-execution check",
+      "perActionReviewed": false
+    },
+    {
+      "source": "operator-host/fleet-router.mjs",
+      "priority": "P0",
+      "examples": ["enqueue", "poll", "redeliver", "result"],
+      "requiredGate": "durable command envelope, generation-scoped delivery, device receipt reconciliation",
+      "perActionReviewed": false
+    },
+    {
+      "source": "plugin-server/oauth.mjs",
+      "priority": "P0",
+      "examples": ["code exchange", "refresh", "resume"],
+      "requiredGate": "durable once-only consumed-JTI and holder epoch transaction",
+      "perActionReviewed": false
+    },
+    {
+      "source": "plugin-server/paddle-billing.mjs",
+      "priority": "P0",
+      "examples": ["Paddle webhook", "subscription", "refund"],
+      "requiredGate": "verified provider signature, durable idempotency, accounting receipt and freeze",
+      "perActionReviewed": false
+    },
+    {
+      "source": "plugin-server/support-backoffice.mjs",
+      "priority": "P0",
+      "examples": ["ticket enqueue", "delivery timer", "retry"],
+      "requiredGate": "transactional outbox and provider delivery receipt, no double send",
+      "perActionReviewed": false
+    },
+    {
+      "source": "plugin-server/server.mjs",
+      "priority": "P0",
+      "examples": ["MCP POST multiplexed actions"],
+      "requiredGate": "per tool/action authority, not HTTP method-only",
+      "perActionReviewed": false
+    }
+  ],
+  "globalReadiness": "NOT_READY",
+  "oldSafetyBlockersMustNotBeRetried": true,
+  "handoffCurrentMutationBlocked": true,
+  "sources": [
+    "https://man7.org/linux/man-pages/man2/flock.2.html",
+    "https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/flock.2.html",
+    "https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-createmutexexw",
+    "https://learn.microsoft.com/en-us/windows/win32/termserv/kernel-object-namespaces",
+    "https://learn.microsoft.com/en-us/windows/win32/sync/mutex-objects",
+    "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-lockfileex"
+  ]
+}
