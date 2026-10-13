@@ -41,6 +41,22 @@ process.exit(journal.claim('${a}')===409?0:12);`;
    {encoding:'utf8',timeout:3500});
  assert.equal(result.status,0,result.stderr||'replay_refused');
 }));
+test('live file replacement or external append fails closed without accepting new nonce',()=>fixture((dir,file)=>{
+ let journal=new SyntheticReplayJournal(file);
+ assert.equal(journal.claim(a),200);
+ fs.appendFileSync(file,b+'\n');
+ assert.equal(journal.claim(c),503);
+ assert.equal(journal.failed,true);
+ journal.close();
+ // Separately, replacing the live journal path must fail even with a valid header.
+ fs.writeFileSync(file,'LR_RC50_UAT_REPLAY_V1\n',{mode:0o600});
+ journal=new SyntheticReplayJournal(file);
+ const moved=file+'.moved';
+ fs.renameSync(file,moved);
+ fs.writeFileSync(file,'LR_RC50_UAT_REPLAY_V1\n',{mode:0o600});
+ assert.equal(journal.claim(c),503);
+ journal.close();
+}));
 test('nonce format rejected without consuming journal capacity',()=>fixture((dir,file)=>{
  const journal=new SyntheticReplayJournal(file,{limit:1});
  assert.equal(journal.claim('../a'),401);

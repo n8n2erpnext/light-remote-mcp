@@ -45,6 +45,7 @@ export class SyntheticReplayJournal{
   this.failed=true;
   this.fd=null;
   this.limit=limit;
+  this.filename=filename;
   this.seen=new Set();
   try{
    // Dedicated non-symlink, owner-only regular file; no inherited user state.
@@ -55,6 +56,8 @@ export class SyntheticReplayJournal{
       (st.mode&0o077)!==0||st.size>MAGIC.length+RECORD*limit)
      throw Error('REPLAY_FILE_UNTRUSTED');
    const actual=fs.fstatSync(this.fd).size;
+   this.identity={dev:st.dev,ino:st.ino};
+   this.expectedBytes=actual;
    if(actual<MAGIC.length||actual>MAGIC.length+RECORD*limit)
      throw Error('REPLAY_SIZE_INVALID');
    const bytes=Buffer.alloc(actual);
@@ -82,11 +85,19 @@ export class SyntheticReplayJournal{
   if(this.seen.has(nonce))return 409;
   if(this.seen.size>=this.limit)return 503;
   try{
+   const a=fs.fstatSync(this.fd),b=fs.lstatSync(this.filename);
+   if(!a.isFile()||!b.isFile()||b.isSymbolicLink()||
+     a.dev!==this.identity.dev||a.ino!==this.identity.ino||
+     b.dev!==a.dev||b.ino!==a.ino||a.nlink!==1||b.nlink!==1||
+     a.uid!==process.getuid()||(a.mode&0o077)!==0||
+     a.size!==this.expectedBytes||b.size!==this.expectedBytes)
+    throw Error('REPLAY_LIVE_FILE_CHANGED');
    const bytes=Buffer.from(nonce+'\n','ascii');
    if(fs.writeSync(this.fd,bytes)!==RECORD)
      throw Error('REPLAY_APPEND_SHORT');
    // Durable before this request may be accepted or any verification invoked.
    fs.fsyncSync(this.fd);
+   this.expectedBytes+=RECORD;
    this.seen.add(nonce);
    return 200;
   }catch{this.failed=true;return 503;}

@@ -12,6 +12,7 @@ COPY --chmod=0444 synthetic-owner-channel-verifier-pg.mjs /opt/uat/synthetic-own
 COPY --chmod=0444 synthetic-origin-verifier-http-service.mjs /opt/uat/synthetic-origin-verifier-http-service.mjs
 COPY --chmod=0444 synthetic-origin-producer-http-client.mjs /opt/uat/synthetic-origin-producer-http-client.mjs
 COPY --chmod=0444 synthetic-durable-nonce-journal.mjs /opt/uat/synthetic-durable-nonce-journal.mjs
+COPY --chmod=0444 synthetic-single-instance-lease.mjs /opt/uat/synthetic-single-instance-lease.mjs
 RUN chmod 0555 /opt/uat
 # Actual runtime uses explicit --user 999:999, read-only root, no ports.
 ENTRYPOINT ["node","/opt/uat/synthetic-owner-channel-verifier-pg.mjs"]

@@ -52,7 +52,22 @@ class UATSourceOnly(unittest.TestCase):
   self.assertIn("fs.constants.O_NOFOLLOW",server)
   self.assertIn("st.uid!==process.getuid()",server)
   self.assertIn("REPLAY_JOURNAL_NOT_READY", (root/'synthetic-durable-nonce-journal.mjs').read_text())
- def test_10_cached_image(self):
+ def test_10_local_single_instance_fail_closed(self):
+  lease=(root/'synthetic-single-instance-lease.mjs').read_text()
+  self.assertIn("SyntheticSingleInstanceLease(replayJournalPath)",server)
+  self.assertIn("if(!replayLease.owns())return 503",server)
+  self.assertIn("replayLease?.release()",server)
+  self.assertIn("fs.constants.O_EXCL",lease)
+  self.assertIn("LEASE_NOT_ACQUIRED",lease)
+  self.assertIn("LEASE_OWNERSHIP_LOST",lease)
+  self.assertIn("COPY --chmod=0444 synthetic-single-instance-lease.mjs",docker)
+  self.assertNotIn("unlinkSync(this.file)",server)
+ def test_11_live_journal_identity(self):
+  journal=(root/'synthetic-durable-nonce-journal.mjs').read_text()
+  self.assertIn("REPLAY_LIVE_FILE_CHANGED",journal)
+  self.assertIn("b.ino!==a.ino",journal)
+  self.assertIn("a.size!==this.expectedBytes",journal)
+ def test_12_cached_image(self):
   self.assertIn("COPY --chmod=0444 synthetic-origin-verifier-http-service.mjs",docker)
   self.assertIn("COPY --chmod=0444 synthetic-origin-producer-http-client.mjs",docker)
   self.assertIn("COPY --chmod=0444 synthetic-durable-nonce-journal.mjs",docker)

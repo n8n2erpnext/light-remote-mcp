@@ -8,6 +8,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import {verifyViaSyntheticDb} from './synthetic-owner-channel-verifier-pg.mjs';
 import {SyntheticReplayJournal} from './synthetic-durable-nonce-journal.mjs';
+import {SyntheticSingleInstanceLease} from './synthetic-single-instance-lease.mjs';
 
 const PORT=39071;
 const HASH=/^[a-f0-9]{64}$/;
@@ -18,6 +19,7 @@ const WINDOW_MS=30000;
 // NEVER automatically reset the journal after a crash or permission failure.
 const replayJournalPath='/var/lib/lr-rc50-uat/nonce-journal';
 let replayJournal;
+let replayLease;
 const send=(res,status,obj)=>{
  res.writeHead(status,{'content-type':'application/json','cache-control':'no-store',
    'x-content-type-options':'nosniff'});
@@ -49,6 +51,7 @@ function authenticate(body,headers){
   const mac=crypto.createHmac('sha256',key())
      .update(ts+':'+nonce+':'+sha).digest();
   if(!crypto.timingSafeEqual(mac,Buffer.from(provided,'hex')))return 401;
+  if(!replayLease.owns())return 503;
   return replayJournal.claim(nonce);
  }catch{return 503;}
 }
@@ -56,7 +59,8 @@ const server=http.createServer((req,res)=>{
  if(req.method==='GET'&&req.url==='/health'){
   try{
    key();fs.accessSync('/tmp/lr_rc50_origin_reader_secret',fs.constants.R_OK);
-   if(replayJournal.failed||replayJournal.seen.size>=replayJournal.limit)
+   if(!replayLease.owns()||replayJournal.failed||
+      replayJournal.seen.size>=replayJournal.limit)
     throw Error('REPLAY_JOURNAL_UNAVAILABLE');
    return send(res,200,{ready:true,production:false});
   }
@@ -93,6 +97,7 @@ if(process.argv.slice(2).join(' ')!=='--synthetic-service'||
 try{
  // This deliberate fail-closed gate also blocks startup on any torn record.
  key();
+ replayLease=new SyntheticSingleInstanceLease(replayJournalPath);
  replayJournal=new SyntheticReplayJournal(replayJournalPath);
 }catch{
  process.stderr.write('rc50_synthetic_replay_journal_not_ready\n');
@@ -100,4 +105,9 @@ try{
 }
 server.requestTimeout=8000;
 server.headersTimeout=6000;
+server.on('close',()=>{
+ try{replayJournal?.close();replayLease?.release();}
+ catch{process.exitCode=6;}
+});
+for(const signal of ['SIGTERM','SIGINT'])process.once(signal,()=>server.close());
 server.listen(PORT,'0.0.0.0',()=>process.stdout.write('RC50_UAT_NODE_VERIFIER_LISTENING\n'));
