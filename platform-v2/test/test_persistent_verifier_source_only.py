@@ -25,10 +25,10 @@ class UATSourceOnly(unittest.TestCase):
   self.assertIn("createHmac('sha256'",client)
   self.assertIn("x-uat-signature",client)
  def test_04_anti_replay(self):
-  self.assertIn("const seen=new Map()",server)
-  self.assertIn("if(seen.has(nonce))return 409",server)
+  self.assertIn("SyntheticReplayJournal",server)
+  self.assertIn("replayJournal.claim(nonce)",server)
   self.assertIn("WINDOW_MS=30000",server)
-  self.assertIn("if(seen.size>=1024)return 503",server)
+  self.assertIn("rc50_synthetic_replay_journal_not_ready",server)
  def test_05_trusted_input_denied(self):
   self.assertIn("Object.keys(input).sort().join(',')!=='envelope'",server)
   self.assertIn("UNTRUSTED_CONTEXT_FORBIDDEN",server)
@@ -46,9 +46,16 @@ class UATSourceOnly(unittest.TestCase):
   runner=(root/'verify_owner_channel_origin_transaction_pg_uat.py').read_text()
   self.assertNotIn("EXTERNAL_PRODUCER",runner)
   self.assertIn("EXTERNAL_VERIFIER",runner)
- def test_09_cached_image(self):
+ def test_09_durable_journal_preprovision_and_secret_file(self):
+  self.assertIn("SyntheticReplayJournal(replayJournalPath)",server)
+  self.assertNotIn("initializeSyntheticReplayJournal(",server)
+  self.assertIn("fs.constants.O_NOFOLLOW",server)
+  self.assertIn("st.uid!==process.getuid()",server)
+  self.assertIn("REPLAY_JOURNAL_NOT_READY", (root/'synthetic-durable-nonce-journal.mjs').read_text())
+ def test_10_cached_image(self):
   self.assertIn("COPY --chmod=0444 synthetic-origin-verifier-http-service.mjs",docker)
   self.assertIn("COPY --chmod=0444 synthetic-origin-producer-http-client.mjs",docker)
+  self.assertIn("COPY --chmod=0444 synthetic-durable-nonce-journal.mjs",docker)
   self.assertNotIn("npm install",docker)
   self.assertNotIn("apk add",docker)
 
