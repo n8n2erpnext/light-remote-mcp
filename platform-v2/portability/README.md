@@ -1,5 +1,9 @@
 # Light Remote portable state contract — rc.50
 
+## 2026-10-13 — REAL Plugin HTTP runtime smoke and CI dependencies
+
+See [REAL_PLUGIN_HTTP_RUNTIME_UAT_20261013.md](./REAL_PLUGIN_HTTP_RUNTIME_UAT_20261013.md). A true `plugin-server/server.mjs` child process with fake private state and no production secrets accepts loopback health/support, then SIGUSR2 fsynced freeze; new webhook/support traffic fails HTTP 503, health remains available and restarts are refused by the marker (also with opt-in reset). Dedicated locked `plugin-server` dependencies are now installed in both GitHub Actions isolated and native ARM64/x64 jobs before all Node tests. **53/53 Node and 8/8 P0 release guard tests PASS locally**. Global writer authority, real Agent and complete state restore remain NOT_READY.
+
 ## 2026-10-13 — HOMELAB x64 full synthetic UAT + REAL Operator Unix-socket runtime
 
 Read [HOMELAB_REAL_OPERATOR_RUNTIME_UAT_20261013.md](./HOMELAB_REAL_OPERATOR_RUNTIME_UAT_20261013.md). Verified immutable source-only Git archive from ARM to independently paired HOMELAB with SHA-256, ran 51/51 Node and actual PostgreSQL17/Redis8 private schema/rollback UAT `RC50_V2_PLATFORM_UAT_PASS`, cleaned all Compose containers/volumes/networks. Added a real Operator child-process smoke test (Unix socket health, SIGUSR2 freeze, HTTP 503, marker restart refusal), 1/1 and full 52/52 Node suite PASS on VPS-ARM. CI native Linux ARM64/AMD64 matrix will include it. No production state restore, global writer epoch or real Agent authorization; P0 remains NOT_READY.

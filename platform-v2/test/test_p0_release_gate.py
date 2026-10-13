@@ -67,6 +67,15 @@ class Rc50GateTests(unittest.TestCase):
         self.assertIn('docker compose -p lightremote-rc50-v2 -f compose.yml up -d --wait',txt)
         self.assertIn('docker compose -p lightremote-rc50-v2 -f compose.yml down -v --remove-orphans',txt)
         self.assertIn("if: always() && matrix.expected_arch == 'arm64'",txt)
+    def test_real_plugin_http_runtime_has_locked_deps_on_both_native_jobs(self):
+        txt=WORKFLOW.read_text()
+        self.assertGreaterEqual(txt.count('npm ci --prefix plugin-server --ignore-scripts --no-audit --no-fund'),2)
+        self.assertIn('node --test platform-v2/test/*.test.mjs',txt)
+        smoke=ROOT/'platform-v2/test/plugin-runtime-smoke.test.mjs'
+        self.assertTrue(smoke.is_file())
+        content=smoke.read_text()
+        for marker in ['plugin-server/server.mjs','/billing/paddle/webhook','LOCAL_FREEZE_MARKER_PRESENT_STARTUP_REFUSED','local_ingress_frozen']:
+            self.assertIn(marker,content)
     def test_reject_unknown_flags(self):
         self.assertNotEqual(run('--assume-ready').returncode,0)
 

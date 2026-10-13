@@ -24,6 +24,8 @@ jobs:
           node-version: '22'
       - name: Install Node dependencies without lifecycle scripts
         run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Install Plugin facade locked dependencies for real HTTP runtime
+        run: npm ci --prefix plugin-server --ignore-scripts --no-audit --no-fund
       - name: Full platform and actual Operator/Plugin local regression
         run: node --test platform-v2/test/*.test.mjs
       - name: Real writer source gap audit and negative guards
@@ -86,6 +88,8 @@ jobs:
           node -e "if(process.platform!=='linux'||process.arch!==process.env.EXPECTED_ARCH) {console.error('unexpected_native_arch',process.arch,process.platform); process.exit(1)}; console.log('NATIVE_RC50_ARCH_PASS',process.arch)"
       - name: Locked dependencies on native architecture
         run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Install Plugin facade locked dependencies for native real HTTP runtime
+        run: npm ci --prefix plugin-server --ignore-scripts --no-audit --no-fund
       - name: Native Operator/Plugin source and Node UAT
         run: |
           node --check operator-host/executor.mjs
