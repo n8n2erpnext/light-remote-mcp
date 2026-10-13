@@ -5,7 +5,7 @@ Run ONLY with --confirm-synthetic-only; disposable random PG Compose project.
 """
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
-import json,os,re,secrets,subprocess,sys,tempfile
+import ipaddress,json,os,re,secrets,subprocess,sys,tempfile
 import verify_issuer_origin_pg_uat as origin
 
 u=origin.u
@@ -16,6 +16,9 @@ ACL_SQL=(ROOT/'portability/owner_channel_origin_verifier_acl_uat.sql').read_byte
 INTENTS_SQL=(ROOT/'portability/owner_channel_authenticated_intents_uat.sql').read_bytes()
 VERIFY_ONLY=ROOT/'portability/synthetic-owner-channel-verify-only.mjs'
 BRIDGE=ROOT/'portability/synthetic-owner-channel-db-proof.mjs'
+# Test-only isolated psql clients: distinct containers and ephemeral secrets.
+EXTERNAL_READER=None
+EXTERNAL_WRITER=None
 def must(ok,why):
  if not ok:raise AssertionError('owner_channel_pg_'+why)
 def q(value):
@@ -35,7 +38,7 @@ def setup_synthetic_scram_login(pg):
  u.docker('exec','-i',pg,'psql','-X','-v','ON_ERROR_STOP=1',
    '-U',u.USER,'-d',u.DB,'-f','/dev/stdin',
    data=("ALTER ROLE lr_uat_origin_service_login PASSWORD '"+secret+"';").encode())
- u.docker('exec','-i',pg,'sh','-ec',
+ u.docker('exec','-i',EXTERNAL_WRITER or pg,'sh','-ec',
    'umask 077; cat > /tmp/lr_rc50_origin_login_secret; chmod 0600 /tmp/lr_rc50_origin_login_secret',
    data=secret.encode())
  must(u.sql(pg,"SELECT (rolpassword LIKE 'SCRAM-SHA-256$%')::text FROM pg_authid WHERE rolname='lr_uat_origin_service_login'")=='true',
@@ -47,7 +50,7 @@ def setup_synthetic_reader_login(pg):
  u.docker('exec','-i',pg,'psql','-X','-v','ON_ERROR_STOP=1',
    '-U',u.USER,'-d',u.DB,'-f','/dev/stdin',
    data=("ALTER ROLE lr_uat_origin_reader_login PASSWORD '"+secret+"';").encode())
- u.docker('exec','-i',pg,'sh','-ec',
+ u.docker('exec','-i',EXTERNAL_READER or pg,'sh','-ec',
    'umask 077; cat > /tmp/lr_rc50_origin_reader_secret; chmod 0600 /tmp/lr_rc50_origin_reader_secret',
    data=secret.encode())
  must(u.sql(pg,"SELECT (rolpassword LIKE 'SCRAM-SHA-256$%')::text FROM pg_authid WHERE rolname='lr_uat_origin_reader_login'")=='true',
@@ -63,8 +66,13 @@ def authenticated_sql(pg,statement,secret_file,wrong_password=False,reader=False
             'lr_uat_origin_service_login')
  code=('set -eu; export PGPASSWORD=wrong_test_password' if wrong_password else
    'set -eu; export PGPASSWORD="$(cat '+allowed+')"')
- code+='; host="$(hostname -i | awk \'{print $1}\')"; case "$host" in 127.*|::1|"") exit 91;; esac; exec psql -X -v ON_ERROR_STOP=1 -h "$host" -U '+principal+' -d '+u.DB+' -At -c "$1"'
- return u.docker('exec','-i',pg,'sh','-ec',code,'sh',statement).decode().strip()
+ if (EXTERNAL_READER if reader else EXTERNAL_WRITER):
+  # PostgreSQL server DNS alias from a separate, private-network client.
+  code+='; exec psql -X -v ON_ERROR_STOP=1 -h postgres -U '+principal+' -d '+u.DB+' -At -c "$1"'
+ else:
+  code+='; host="$(hostname -i | awk \'{print $1}\')"; case "$host" in 127.*|::1|"") exit 91;; esac; exec psql -X -v ON_ERROR_STOP=1 -h "$host" -U '+principal+' -d '+u.DB+' -At -c "$1"'
+ target=(EXTERNAL_READER if reader else EXTERNAL_WRITER) or pg
+ return u.docker('exec','-i',target,'sh','-ec',code,'sh',statement).decode().strip()
 def sign_fake_batch(rows):
  env={'PATH':os.environ.get('PATH','/usr/bin:/bin'),
       'HOME':os.environ.get('HOME','/tmp'),'LR_RC50_UAT_ONLY':'1'}
@@ -307,6 +315,21 @@ def verify(pg,hardened_acl=False):
   else:raise AssertionError('reader_escalated_to_issuer_role')
   print('READ PASS 03 separate context reader cannot SET ROLE origin writer')
   secret_path=setup_synthetic_scram_login(pg)
+  if EXTERNAL_READER and EXTERNAL_WRITER:
+   u.docker('exec','-i',EXTERNAL_READER,'sh','-ec',
+     'test ! -e /tmp/lr_rc50_origin_login_secret')
+   u.docker('exec','-i',EXTERNAL_WRITER,'sh','-ec',
+     'test ! -e /tmp/lr_rc50_origin_reader_secret')
+   print('NETWORK PASS 02 reader and writer client tmpfs secrets are mutually absent')
+   reader_addr=authenticated_sql(pg,'SELECT host(inet_client_addr())',
+           reader_secret,reader=True)
+   writer_addr=authenticated_sql(pg,'SELECT host(inet_client_addr())',
+           secret_path)
+   must(reader_addr!=writer_addr,'reader_writer_share_same_net_identity')
+   must(not ipaddress.ip_address(reader_addr).is_loopback and
+        not ipaddress.ip_address(writer_addr).is_loopback,
+        'external_client_uses_loopback_trust_route')
+   print('NETWORK PASS 04 PostgreSQL sees distinct non-loopback reader/writer TCP origins')
   assert 'scram-sha-256' in sql(pg,"SELECT setting FROM pg_settings WHERE name='password_encryption'")
   print('AUTH PASS 01 isolated SCRAM verifier login created with ephemeral password')
   try:authenticated_sql(pg,'SELECT session_user',secret_path,wrong_password=True)
@@ -482,7 +505,38 @@ def verify(pg,hardened_acl=False):
        'regrant_duplicate_evidence')
   print('ACL PASS 06 regrant restores narrow procedure, not replayed grant')
 
+def start_isolated_db_client(project,pg,kind):
+ # Separate process/namespace and scratch credentials for each principal.
+ must(kind in ('reader','writer'),'invalid_client_kind')
+ must(re.fullmatch(r'lr-uat-move-[0-9a-f]{10}-src',project) is not None,
+      'client_outside_random_disposable_project')
+ pg_info=json.loads(u.docker('inspect',pg).decode())[0]
+ networks=pg_info['NetworkSettings']['Networks']
+ must(len(networks)==1,'pg_not_on_unique_private_network')
+ name=next(iter(networks))
+ must(name==project+'_private','unexpected_pg_network_name')
+ net=json.loads(u.docker('network','inspect',name).decode())[0]
+ must(net.get('Internal') is True,'client_network_must_be_internal')
+ client_name=project+'-'+kind+'-psql'
+ u.docker('run','-d','--pull','never',
+  '--name',client_name,'--network',name,
+  '--user','999:999','--read-only',
+  '--tmpfs','/tmp:rw,noexec,nosuid,nodev,size=4m,mode=1777',
+  '--cap-drop','ALL','--security-opt','no-new-privileges',
+  '--pids-limit','48','--memory','128m','--cpus','0.25',
+  '--entrypoint','/bin/sh','postgres:17-alpine',
+  '-ec','exec sleep 540')
+ info=json.loads(u.docker('inspect',client_name).decode())[0]
+ must(info['State']['Running'] is True,'client_container_not_running')
+ must(info['HostConfig']['ReadonlyRootfs'] is True,'client_root_not_read_only')
+ must(info['HostConfig']['NetworkMode']==name,'client_escaped_private_network')
+ must(not any(info['NetworkSettings'].get('Ports',{}).values()),
+      'client_host_port_published')
+ must(info['HostConfig']['Privileged'] is False,'client_privileged')
+ return client_name
+
 def main():
+ global EXTERNAL_READER,EXTERNAL_WRITER
  if sys.argv[1:]!=['--confirm-synthetic-only']:
   raise SystemExit('Refusing to run without --confirm-synthetic-only')
  must(re.fullmatch(r'lr-uat-move-[0-9a-f]{10}',u.BASE) is not None,
@@ -500,9 +554,28 @@ def main():
    for raw in [origin.SQL,PROOF_SQL,INTENTS_SQL]:
     u.docker('exec','-i',cid,'psql','-X','-v','ON_ERROR_STOP=1',
        '-U',u.USER,'-d',u.DB,'-f','/dev/stdin',data=raw)
+   EXTERNAL_READER=start_isolated_db_client(project,cid,'reader')
+   EXTERNAL_WRITER=start_isolated_db_client(project,cid,'writer')
+   must(EXTERNAL_READER!=EXTERNAL_WRITER,'credential_container_overlap')
+   print('NETWORK PASS 01 independent read-only filesystem, credential-isolated SCRAM client containers on private Compose DNS')
    verify(cid,hardened_acl=True)
+   # Inject a reader-only outage. No privileged fallback or writer coupling.
+   u.docker('stop','-t','1',EXTERNAL_READER,timeout=15)
+   try:authenticated_sql(cid,'SELECT current_user',
+                          '/tmp/lr_rc50_origin_reader_secret',reader=True)
+   except RuntimeError:pass
+   else:raise AssertionError('stopped_reader_implicitly_fell_back')
+   must(authenticated_sql(cid,'SELECT current_user',
+       '/tmp/lr_rc50_origin_login_secret')=='lr_uat_origin_service_login',
+       'reader_outage_killed_independent_writer')
+   print('NETWORK PASS 03 stopped reader refuses work; writer still SCRAM-authenticated')
    print('RC50_OWNER_CHANNEL_ATOMIC_ORIGIN_SYNTHETIC_UAT_PASS production=false')
   finally:
+   for role in ('reader','writer'):
+    # Explicit random fixture name only; cleanup even if startup stopped mid-way.
+    try:u.docker('rm','-f',project+'-'+role+'-psql',timeout=25)
+    except RuntimeError:pass
+   EXTERNAL_READER=EXTERNAL_WRITER=None
    if started:
     u.compose(project,env,'down','--volumes','--remove-orphans',timeout=90)
     print('RC50_OWNER_CHANNEL_ATOMIC_ORIGIN_PRIVATE_COMPOSE_CLEANED')
