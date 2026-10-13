@@ -64,8 +64,8 @@ class Rc50GateTests(unittest.TestCase):
         self.assertIn('NOT cross-host state restore',txt)
         self.assertIn('node --test platform-v2/test/*.test.mjs',txt)
         self.assertIn('ARM64-native PostgreSQL schema and rollback',txt)
-        self.assertIn('docker compose -p lr-rc50-native-arm64 -f compose.yml up -d --wait',txt)
-        self.assertIn('docker compose -p lr-rc50-native-arm64 -f compose.yml down -v --remove-orphans',txt)
+        self.assertIn('docker compose -p lightremote-rc50-v2 -f compose.yml up -d --wait',txt)
+        self.assertIn('docker compose -p lightremote-rc50-v2 -f compose.yml down -v --remove-orphans',txt)
         self.assertIn("if: always() && matrix.expected_arch == 'arm64'",txt)
     def test_reject_unknown_flags(self):
         self.assertNotEqual(run('--assume-ready').returncode,0)

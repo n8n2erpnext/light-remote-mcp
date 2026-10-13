@@ -114,7 +114,7 @@ jobs:
       - name: ARM64-native private PostgreSQL / Redis start
         if: matrix.expected_arch == 'arm64'
         working-directory: platform-v2
-        run: docker compose -p lr-rc50-native-arm64 -f compose.yml up -d --wait
+        run: docker compose -p lightremote-rc50-v2 -f compose.yml up -d --wait
       - name: ARM64-native PostgreSQL schema and rollback
         if: matrix.expected_arch == 'arm64'
         working-directory: platform-v2
@@ -122,4 +122,4 @@ jobs:
       - name: Always remove private ARM64 test database and volumes
         if: always() && matrix.expected_arch == 'arm64'
         working-directory: platform-v2
-        run: docker compose -p lr-rc50-native-arm64 -f compose.yml down -v --remove-orphans
+        run: docker compose -p lightremote-rc50-v2 -f compose.yml down -v --remove-orphans
