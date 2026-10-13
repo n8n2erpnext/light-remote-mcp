@@ -1,5 +1,9 @@
 # Light Remote portable state contract — rc.50
 
+## 2026-10-13 P0 — Owner/channel origin verifier restricted PostgreSQL ACL
+
+See [OWNER_CHANNEL_VERIFIER_ACL_UAT_20261013.md](./OWNER_CHANNEL_VERIFIER_ACL_UAT_20261013.md). The **synthetic-only** owner/channel atomic grant UAT now executes as a restricted `NOLOGIN` verifier through a `SECURITY DEFINER` issuer with fixed `search_path=pg_catalog,public,pg_temp`. A separate `NOLOGIN` owner has narrowly scoped table/row-lock privileges; untrusted callers and the verifier cannot call the legacy issuer or directly edit pins/epochs. Synthetic PostgreSQL results: **15/15 origin + 6/6 ACL PASS**; **10/10 ACL source guards, 10/10 origin guards, 38/38 focused Node tests PASS**. Explicit REVOKE/GRANT and fake temp-table-shadow tests passed. SQL does not verify Ed25519, no authenticated production verifier service exists, real Local Wall/device-channel and global writer remain **NOT_READY**. Production unchanged.
+
 ## 2026-10-13 P0 — Signed fake owner+device-channel origin → atomic PG grant transaction
 
 See [OWNER_CHANNEL_ATOMIC_ORIGIN_PG_UAT_20261013.md](./OWNER_CHANNEL_ATOMIC_ORIGIN_PG_UAT_20261013.md). This source-only UAT bridges **two independently signed fake Wall/channel proof packets** into a private PostgreSQL transaction: locks authentic-looking scratch owner/session/request/device/enrollment/connection/pins, binds **exact A/B request creation/expiry**, prevents duplicate decision nonce and request replay, and atomically stores proof ledger, approved request, grant, generation/revision and signing-pending outbox; failed grant mint rolls ALL back. **15/15 PG transaction cases**, **38/38 focused Node**, **10/10 source guards** PASS. PostgreSQL does NOT cryptographically validate the provided Ed25519 digest tuple; real owner Wall producer, protected verifier identity/DB grants, device-channel signing key and global writer remain **NOT_READY**. Production unchanged.
