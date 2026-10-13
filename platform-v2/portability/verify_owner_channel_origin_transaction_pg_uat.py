@@ -11,6 +11,7 @@ import verify_issuer_origin_pg_uat as origin
 u=origin.u
 ROOT=Path(__file__).resolve().parents[1]
 PROOF_SQL=(ROOT/'portability/owner_channel_origin_transaction_uat.sql').read_bytes()
+READER_SQL=(ROOT/'portability/owner_channel_origin_reader_acl_uat.sql').read_bytes()
 ACL_SQL=(ROOT/'portability/owner_channel_origin_verifier_acl_uat.sql').read_bytes()
 INTENTS_SQL=(ROOT/'portability/owner_channel_authenticated_intents_uat.sql').read_bytes()
 VERIFY_ONLY=ROOT/'portability/synthetic-owner-channel-verify-only.mjs'
@@ -40,13 +41,29 @@ def setup_synthetic_scram_login(pg):
  must(u.sql(pg,"SELECT (rolpassword LIKE 'SCRAM-SHA-256$%')::text FROM pg_authid WHERE rolname='lr_uat_origin_service_login'")=='true',
       'missing_scram_stored_login_hash')
  return '/tmp/lr_rc50_origin_login_secret'
-def authenticated_sql(pg,statement,secret_file,wrong_password=False):
+def setup_synthetic_reader_login(pg):
+ # Isolated read-only context identity; different random secret from writer.
+ secret=secrets.token_urlsafe(36)
+ u.docker('exec','-i',pg,'psql','-X','-v','ON_ERROR_STOP=1',
+   '-U',u.USER,'-d',u.DB,'-f','/dev/stdin',
+   data=("ALTER ROLE lr_uat_origin_reader_login PASSWORD '"+secret+"';").encode())
+ u.docker('exec','-i',pg,'sh','-ec',
+   'umask 077; cat > /tmp/lr_rc50_origin_reader_secret; chmod 0600 /tmp/lr_rc50_origin_reader_secret',
+   data=secret.encode())
+ must(u.sql(pg,"SELECT (rolpassword LIKE 'SCRAM-SHA-256$%')::text FROM pg_authid WHERE rolname='lr_uat_origin_reader_login'")=='true',
+      'reader_login_not_scram')
+ return '/tmp/lr_rc50_origin_reader_secret'
+def authenticated_sql(pg,statement,secret_file,wrong_password=False,reader=False):
  # Uses TCP to PostgreSQL and SCRAM password authentication. The password
  # is never supplied as CLI argv, Docker inspect env, or test stdout.
- assert secret_file=='/tmp/lr_rc50_origin_login_secret'
+ allowed=('/tmp/lr_rc50_origin_reader_secret' if reader else
+          '/tmp/lr_rc50_origin_login_secret')
+ must(secret_file==allowed,'invalid_synthetic_db_secret_location')
+ principal=('lr_uat_origin_reader_login' if reader else
+            'lr_uat_origin_service_login')
  code=('set -eu; export PGPASSWORD=wrong_test_password' if wrong_password else
-   'set -eu; export PGPASSWORD="$(cat /tmp/lr_rc50_origin_login_secret)"')
- code+='; host="$(hostname -i | awk \'{print $1}\')"; case "$host" in 127.*|::1|"") exit 91;; esac; exec psql -X -v ON_ERROR_STOP=1 -h "$host" -U lr_uat_origin_service_login -d '+u.DB+' -At -c "$1"'
+   'set -eu; export PGPASSWORD="$(cat '+allowed+')"')
+ code+='; host="$(hostname -i | awk \'{print $1}\')"; case "$host" in 127.*|::1|"") exit 91;; esac; exec psql -X -v ON_ERROR_STOP=1 -h "$host" -U '+principal+' -d '+u.DB+' -At -c "$1"'
  return u.docker('exec','-i',pg,'sh','-ec',code,'sh',statement).decode().strip()
 def sign_fake_batch(rows):
  env={'PATH':os.environ.get('PATH','/usr/bin:/bin'),
@@ -75,11 +92,17 @@ def sign_fake_batch(rows):
       len({x['channelVerifierSha256'] for x in proofs})==1,
       'unexpected_signer_key_rotation')
  return proofs,[x['signedPackets'] for x in envelopes]
-def load_trusted_origin(pg,envelope):
+def load_trusted_origin(pg,envelope,reader_secret=None):
  # The synthetic harness reads independent PostgreSQL request/session/device/
  # pin state. No key or owner-status value is taken from the signed packet.
  request=envelope['wallApproval']['payload']['requestId']
  nonce=envelope['wallApproval']['payload']['wallDecisionNonceSha256']
+ if reader_secret is not None:
+  data=authenticated_sql(pg,
+       f"SELECT public.lr_uat_get_owner_channel_context({q(request)},{q(nonce)})::text",
+       reader_secret,reader=True)
+  must(data!='','read_only_origin_context_missing')
+  return json.loads(data)
  data=u.sql(pg,f"""SELECT row_to_json(z)::text FROM (
   SELECT r.request_id AS "requestId",
    i.proposed_grant_id AS "grantId",r.account_id AS "accountId",
@@ -138,6 +161,7 @@ def commit(proof,**overrides):
  {q(p['channelApprovedAt'])}::timestamptz)"""
 def verify(pg,hardened_acl=False):
  secret_path=None
+ reader_secret=None
  def authorized(proof,**overrides):
   query=commit(proof,**overrides)
   return ('SET ROLE lr_uat_origin_verifier; '+query) if hardened_acl else query
@@ -213,11 +237,42 @@ def verify(pg,hardened_acl=False):
    device_id,wall_verifier_sha256,channel_verifier_sha256,state)
  VALUES({q(device)},{q(proofs[0]['wallVerifierSha256'])},
  {q(proofs[0]['channelVerifierSha256'])},'active')""")
+ if hardened_acl:
+  u.docker('exec','-i',pg,'psql','-X','-v','ON_ERROR_STOP=1',
+       '-U',u.USER,'-d',u.DB,'-f','/dev/stdin',data=READER_SQL)
+  reader_secret=setup_synthetic_reader_login(pg)
+  reader_identity=authenticated_sql(pg,'SELECT current_user,session_user',
+                                    reader_secret,reader=True)
+  must(reader_identity=='lr_uat_origin_reader_login|lr_uat_origin_reader_login',
+       'reader_authentication_not_independent')
+  try:authenticated_sql(pg,'SELECT * FROM public.lr_uat_trusted_origin_verifier_pins',
+                        reader_secret,reader=True)
+  except RuntimeError as e:
+   must('permission denied for table' in str(e),'reader_direct_table_denial')
+  else:raise AssertionError('reader_direct_trust_pin_read')
+  try:authenticated_sql(pg,"UPDATE public.lr_ab_requests SET state='approved'",
+                        reader_secret,reader=True)
+  except RuntimeError as e:
+   must('permission denied for table' in str(e),'reader_direct_mutation_denial')
+  else:raise AssertionError('reader_direct_ab_mutation')
+  print('READ PASS 01 separate SCRAM context login; no direct table read or mutation')
+  try:authenticated_sql(pg,'SELECT current_user',reader_secret,
+                        wrong_password=True,reader=True)
+  except RuntimeError as e:
+   must('password authentication failed' in str(e),
+        'reader_wrong_password_not_rejected')
+  else:raise AssertionError('reader_wrong_password_accepted')
+  try:authenticated_sql(pg,'SET ROLE lr_uat_origin_context_owner; SELECT current_user',
+                        reader_secret,reader=True)
+  except RuntimeError as e:
+   must('permission denied' in str(e),'reader_role_escalation_denial')
+  else:raise AssertionError('reader_escalated_to_issuer')
+  print('READ PASS 02 password rejection and read-owner escalation denied')
  # Signature-verification process is distinct from fake issuer signer,
  # and trusted owner, key pins and request/grant identifiers come from PG.
  checked=[]
  for proof,envelope in zip(proofs,envelopes):
-  trusted=load_trusted_origin(pg,envelope)
+  trusted=load_trusted_origin(pg,envelope,reader_secret)
   verified=public_verify_fake_origin(envelope,trusted)
   must(verified.get('decision')=='VERIFIED_FAKE_OWNER_CHANNEL_PRECOMMIT',
        'separate_public_verifier_rejected_valid_signed_origin')
@@ -233,9 +288,9 @@ def verify(pg,hardened_acl=False):
  tampered=json.loads(json.dumps(envelopes[0]))
  original=tampered['channelAck']['signature']
  tampered['channelAck']['signature']=original[:-2]+('A' if original[-2]!='A' else 'B')+original[-1]
- must(public_verify_fake_origin(tampered,load_trusted_origin(pg,envelopes[0]))['decision']=='DENY',
+ must(public_verify_fake_origin(tampered,load_trusted_origin(pg,envelopes[0],reader_secret))['decision']=='DENY',
       'forged_channel_signature_accepted')
- trust=load_trusted_origin(pg,envelopes[0])
+ trust=load_trusted_origin(pg,envelopes[0],reader_secret)
  must(public_verify_fake_origin(envelopes[0],{**trust,'wallVerifierSha256':'0'*64})['decision']=='DENY',
       'untrusted_wall_key_accepted')
  must(public_verify_fake_origin(envelopes[0],{**trust,'grantId':'uat_grant_forged'})['decision']=='DENY',
@@ -245,6 +300,12 @@ def verify(pg,hardened_acl=False):
   u.docker('exec','-i',pg,'psql','-X','-v','ON_ERROR_STOP=1',
        '-U',u.USER,'-d',u.DB,'-f','/dev/stdin',data=ACL_SQL)
   print('ACL setup: scratch NOLOGIN verifier and SECDEF origin writer')
+  try:authenticated_sql(pg,'SET ROLE lr_uat_origin_verifier; SELECT current_user',
+                        reader_secret,reader=True)
+  except RuntimeError as e:
+   must('permission denied' in str(e),'reader_writer_role_escalation_denial')
+  else:raise AssertionError('reader_escalated_to_issuer_role')
+  print('READ PASS 03 separate context reader cannot SET ROLE origin writer')
   secret_path=setup_synthetic_scram_login(pg)
   assert 'scram-sha-256' in sql(pg,"SELECT setting FROM pg_settings WHERE name='password_encryption'")
   print('AUTH PASS 01 isolated SCRAM verifier login created with ephemeral password')
