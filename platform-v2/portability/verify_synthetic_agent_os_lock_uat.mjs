@@ -14,7 +14,7 @@ import crypto from 'node:crypto';
 const root=fs.mkdtempSync(path.join(os.tmpdir(),'lr-rc50-agent-fixture-lock-'));
 const worker=path.join(import.meta.dirname,'synthetic-agent-locked-worker.mjs');
 const lockFile=path.join(root,'receipt.lock');
-const lockArgs=(action)=>['-x','-n','-E','77','-F','3',process.execPath,worker,root,action];
+const lockArgs=(action)=>['-x','-n','-E','77','-F',lockFile,process.execPath,worker,root,action];
 let holding=null,lockIdentity=null;
 const requireTrue=(cond,msg)=>{if(!cond)throw Error('RC50_AGENT_MUTEX_UAT_FAILED:'+msg);};
 function createLock(){
@@ -43,7 +43,7 @@ function runLocked(action){
   let result;
   try{
     result=spawnSync('flock',lockArgs(action),{
-      encoding:'utf8',timeout:12000,maxBuffer:1024*1024,
+      encoding:'utf8',timeout:12000,maxBuffer:1024*1024,cwd:root,
       stdio:['ignore','pipe','pipe',fd]
     });
   }finally{fs.closeSync(fd);}
@@ -54,7 +54,7 @@ async function holdLock(){
   const fd=openVerifiedLock();
   let child;
   try{child=spawn('flock',lockArgs('hold'),{
-    stdio:['ignore','pipe','pipe',fd]
+    cwd:root,stdio:['ignore','pipe','pipe',fd]
   });}finally{fs.closeSync(fd);}
   holding=child;
   let output='',errors='';
@@ -100,6 +100,16 @@ try{
   const beforeCrash=JSON.parse(fs.readFileSync(path.join(root,'receipts.json'),'utf8'));
   requireTrue(Object.keys(beforeCrash.commands).length===1,'second_writer_modified_state');
   result.concurrent_process_refused=true;
+  // An independent process locks the *actual receipt.lock pathname* instead
+  // of relying on this supervisor's possibly incorrect flock argv.
+  const outsider=spawnSync('flock',['-x','-n','-E','77',lockFile,'/bin/true'],{
+    cwd:root,encoding:'utf8',timeout:8000,stdio:['ignore','pipe','pipe']
+  });
+  requireTrue(!outsider.error && outsider.status===77,
+    'kernel_lock_not_held_on_receipt_inode_'+String(outsider.status));
+  requireTrue(!fs.existsSync(path.join(root,'3')),
+    'numeric_flock_argument_mistaken_for_path');
+  result.independent_inode_lock_probe_refused=true;
 
   // SIGKILL mimics a worker crash. The kernel releases this process-held lock.
   const stopped=new Promise((resolve,reject)=>{
@@ -134,7 +144,7 @@ try{
     'lock_file_replaced_inode_aba');
   requireTrue((stat.mode&0o777)===0o600,'lock_file_mode_changed');
   result.lock_inode_stable_not_unlinked=true;
-  result.testedProcesses=7;
+  result.testedProcesses=8;
   result.uniqueRun=crypto.createHash('sha256').update(path.basename(root)).digest('hex').slice(0,12);
   console.log('RC50_AGENT_OS_EXCLUSIVE_LOCK_UAT_PASS '+JSON.stringify(result));
 }catch(error){
