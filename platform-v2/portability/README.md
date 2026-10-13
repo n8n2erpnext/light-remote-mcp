@@ -1,5 +1,9 @@
 # Light Remote portable state contract — rc.50
 
+## 2026-10-13 P0 — Simulated PostgreSQL A/B issuer origin and four receipt crash points
+
+See [ISSUER_AND_RECEIPT_FAULT_UAT_20261013.md](./ISSUER_AND_RECEIPT_FAULT_UAT_20261013.md). A new **isolated PostgreSQL-only UAT** creates a request→grant provenance ledger and signing-pending outbox in one row-locked transaction, validating mock owner/device/session/approved-request identity, one-time grant ID and monotonic generation. It does NOT verify a real Wall B code or produce a cryptographic signature. In parallel the isolated Linux AgentReceiptAuthority worker was SIGKILL-fault-injected at write, file-fsync, rename and directory-fsync boundaries; unknown states quarantine instead of replay, and ambiguous leftover temp files refuse new work. All effects are fake-noop. **No production Agent, PostgreSQL role, OAuth/billing or runtime modified. Global writer fence NOT_READY.**
+
 ## 2026-10-13 P0 — One OS lock for fake A/B grant, signed epoch and durable receipt
 
 See [BOUND_AB_AGENT_RECEIPT_AUTHORITY_UAT.md](./BOUND_AB_AGENT_RECEIPT_AUTHORITY_UAT.md). The existing **synthetic Linux worker** now combines three independent Ed25519 test verifier pins (fake Wall A/B, lease issuer, writer epoch/command), a fake signed 30-second lease, generation/revocation high-watermarks and fake command receipts into **one fsynced journal under one kernel `flock`**. Fake `bound_start` always rechecks both the A/B lease and writer signatures before changing receipt state; signed revocation fences pending receipts and marks in-flight fake receipts UNCERTAIN. On VPS-ARM **29/29 bound authority tests PASS**, including SIGKILL/restart, two writers, regrant and tampering; all prior UAT remains independent. No production signer, real A/B grant, native PTY/RM/SCP execution, Windows/macOS adapter, rollback-proof clock or global writer fence. Production **NOT_READY**.

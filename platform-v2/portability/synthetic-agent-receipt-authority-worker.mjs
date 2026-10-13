@@ -61,7 +61,18 @@ function readSnapshot() {
   try { text = fs.readFileSync(file,'utf8'); } catch { refuse('receipt_unreadable'); }
   try { return JSON.parse(text); } catch { refuse('receipt_corrupt'); }
 }
-function persist(data) {
+function refuseUnreconciledTempResidue() {
+  // An interrupted write before rename leaves an ambiguous temporary file.
+  // Do not silently discard it and act on an older snapshot.
+  const stale=fs.readdirSync(root).some(n=>/^\.authority\.[0-9]+\.[a-f0-9]{16}\.tmp$/.test(n));
+  if(stale) refuse('ambiguous_persist_residue_requires_owner_reconcile');
+}
+function uatCrashAt(stage, requestedFault) {
+  // PRIVATE TEST PROCESS ONLY. No physical operation is reachable here.
+  // An independent fault-injection runner sets this environment variable.
+  if (requestedFault===stage) process.kill(process.pid,'SIGKILL');
+}
+function persist(data, requestedFault=null) {
   const file = path.join(root,'authority.json');
   const tmp = path.join(root,'.authority.' + process.pid + '.' +
     crypto.randomBytes(8).toString('hex') + '.tmp');
@@ -76,11 +87,15 @@ function persist(data) {
       if (n <= 0) throw Error('short_write');
       at+=n;
     }
+    uatCrashAt('after_write',requestedFault);
     fs.fsyncSync(fd);
+    uatCrashAt('after_file_fsync',requestedFault);
     fs.closeSync(fd);fd=null;
     fs.renameSync(tmp,file);
+    uatCrashAt('after_rename',requestedFault);
     const d=fs.openSync(root,fs.constants.O_RDONLY|fs.constants.O_DIRECTORY);
     try { fs.fsyncSync(d); } finally { fs.closeSync(d); }
+    uatCrashAt('after_dir_fsync',requestedFault);
   } catch (error) {
     refuse('durability_failed_' + String(error?.code || error?.message || 'unknown').slice(0,45));
   } finally {
@@ -296,6 +311,7 @@ try {
   const request=JSON.parse(Buffer.from(encoded,'base64url').toString('utf8'));
   if (!request || typeof request!=='object' || Array.isArray(request))
     refuse('invalid_request_shape');
+  refuseUnreconciledTempResidue();
   const current=readSnapshot();
   if(request.operation==='initialize_bound'){
     if(current!==null)refuse('fixture_already_initialized');
@@ -371,7 +387,10 @@ try {
       process.stdout.write(JSON.stringify(decision)+'\n');
       process.exitCode=24;
     } else {
-      if (decision.decision==='PROPOSE_DURABLE_MUTATION') persist(decision.next);
+      const inject=(request.operation==='bound_start')?
+        process.env.LR_RC50_SYNTHETIC_FAULT_STAGE:null;
+      if (decision.decision==='PROPOSE_DURABLE_MUTATION')
+        persist(decision.next,inject);
       if (request.delayMs !== undefined) {
         process.stdout.write('RC50_AUTHORITY_TEST_LOCK_HELD\n');
         pause(request.delayMs);
