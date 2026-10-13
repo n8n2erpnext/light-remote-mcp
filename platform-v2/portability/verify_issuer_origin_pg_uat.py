@@ -18,7 +18,8 @@ def fails(pg,query,reason):
         must(reason in str(exc),'wrong_refusal_'+reason)
         return
     raise AssertionError('issuer_uat_expected_refusal_'+reason)
-def verify(pg):
+def verify(pg,device_key_sha256='b'*64):
+    must(re.fullmatch(r'[a-f0-9]{64}',device_key_sha256) is not None,'fake_device_sha_invalid')
     prefix='issuerfixture_'+u.BASE.replace('-','_')
     owner=prefix+'_owner'
     member=prefix+'_member'
@@ -45,7 +46,7 @@ INSERT INTO lr_device_connections(connection_id,device_id,account_id,plan,
  VALUES('{conn}','{device}','{owner}','free',
    now()-interval '3 minutes',now()+interval '3 hours',1800000);
 INSERT INTO lr_uat_device_enrolled_key(device_id,public_key_sha256,state)
- VALUES('{device}',repeat('b',64),'active');
+ VALUES('{device}','{device_key_sha256}','active');
 INSERT INTO lr_uat_device_authority_floor(device_id) VALUES('{device}');
 INSERT INTO lr_ab_requests(request_id,account_id,device_id,connection_id,
   agent_id,purpose,poll_sha256,state,created_at,expires_at)

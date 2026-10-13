@@ -77,6 +77,7 @@ export function syntheticPublisherFixture(claim,now=Date.now()){
  const packet=signSyntheticOutboxLease(payload,privateKey);
  verifySyntheticOutboxLease(packet,publicKey);
  return {issuerFingerprint:fakeIssuerPublicKeyFingerprint(publicKey),
+   issuerPublicSpki:publicKey.export({format:'der',type:'spki'}).toString('base64url'),
    packet,signatureDigest:fakeSignedOutboxDigest(packet),
    leaseExpiresAt:new Date(payload.expiresAtMs).toISOString(),
    // No privateKey nor raw customer/session info included in output.
