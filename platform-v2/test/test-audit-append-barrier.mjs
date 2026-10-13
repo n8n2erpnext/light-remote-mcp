@@ -67,6 +67,8 @@ await run('empty_flush_rejects_after_old_async_failure',async()=>{
 await run('executor_dev_source_uses_error_latch_and_nonzero_shutdown',async()=>{
   const src=fs.readFileSync(path.resolve('operator-host/executor.mjs'),'utf8');
   assert.ok(src.includes("import { AuditAppendBarrier } from './audit-append-barrier.mjs'"));
+  assert.ok(src.includes("import { appendDurableAuditBatch } from './durable-audit-append.mjs'"));
+  assert.ok(src.includes('write:batch=>appendDurableAuditBatch(LOG_FILE,batch),'));
   assert.ok(src.includes('return auditAppendBarrier.enqueue(batch);'));
   assert.ok(src.includes('return auditAppendBarrier.flush();'));
   assert.ok(src.includes("server.close(()=>process.exit(1))"));

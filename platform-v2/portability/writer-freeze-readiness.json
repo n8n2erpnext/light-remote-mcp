@@ -192,7 +192,7 @@
       "source": "operator-host/executor.mjs",
       "required_markers": [
         "const auditAppendBarrier = new AuditAppendBarrier(",
-        "fs.promises.appendFile(",
+        "appendDurableAuditBatch(LOG_FILE,batch)",
         "return auditAppendBarrier.enqueue(batch);",
         "return auditAppendBarrier.flush();"
       ],
@@ -202,7 +202,7 @@
         "if(this.#failure)throw this.#failure;",
         "async flush()"
       ],
-      "risk": "append_failures_latched_in_dev_but_no_file_fsync_or_authoritative_journal_watermark",
+      "risk": "append_file_and_directory_fsync_in_dev_but_no_source_fence_or_authoritative_journal_watermark",
       "barrier_proven": false
     },
     {

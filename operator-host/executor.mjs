@@ -12,6 +12,7 @@ import { DeviceRegistry, DeviceError } from './device-registry.mjs';
 import { EnrollmentRegistry, EnrollmentError } from './enrollment-registry.mjs';
 import { FleetRouter, FleetError } from './fleet-router.mjs';
 import { AuditAppendBarrier } from './audit-append-barrier.mjs';
+import { appendDurableAuditBatch } from './durable-audit-append.mjs';
 import { DeviceConnectionRegistry, DeviceConnectionError, DEFAULT_PLAN_CONNECTION_CAPS } from './device-connection-registry.mjs';
 import { DeviceAccessGrantRegistry, DeviceAccessGrantError } from './device-access-grant-registry.mjs';
 import { DevicePairingRegistry, DevicePairingRegistryError } from './device-pairing-registry.mjs';
@@ -203,7 +204,7 @@ function redact(value) {
 
 let diskQueue = []; let diskQueueBytes = 0; let diskFlushTimer = null;
 const auditAppendBarrier = new AuditAppendBarrier({
-  write:batch=>fs.promises.appendFile(LOG_FILE,batch,{encoding:'utf8'}),
+  write:batch=>appendDurableAuditBatch(LOG_FILE,batch),
   onFailure:error=>console.error('[disk] append failed',error?.message||error)
 });
 function serializedDiskRecord(event) {
