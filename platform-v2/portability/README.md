@@ -1,5 +1,9 @@
 # Light Remote portable state contract — rc.50
 
+## 2026-10-13 — HOMELAB x64 full synthetic UAT + REAL Operator Unix-socket runtime
+
+Read [HOMELAB_REAL_OPERATOR_RUNTIME_UAT_20261013.md](./HOMELAB_REAL_OPERATOR_RUNTIME_UAT_20261013.md). Verified immutable source-only Git archive from ARM to independently paired HOMELAB with SHA-256, ran 51/51 Node and actual PostgreSQL17/Redis8 private schema/rollback UAT `RC50_V2_PLATFORM_UAT_PASS`, cleaned all Compose containers/volumes/networks. Added a real Operator child-process smoke test (Unix socket health, SIGUSR2 freeze, HTTP 503, marker restart refusal), 1/1 and full 52/52 Node suite PASS on VPS-ARM. CI native Linux ARM64/AMD64 matrix will include it. No production state restore, global writer epoch or real Agent authorization; P0 remains NOT_READY.
+
 ## 2026-10-13 — Native Linux ARM64 / AMD64 CI parity with real ARM PostgreSQL+Redis schema
 
 See [RC50_NATIVE_ARM64_AMD64_CI_20261013.md](./RC50_NATIVE_ARM64_AMD64_CI_20261013.md). The rc50 workflow now runs actual Operator/Plugin Node source tests on native GitHub-hosted `ubuntu-24.04-arm` and `ubuntu-24.04` runners, with private PostgreSQL+Redis migration/rollback on ARM64. Release gate remains **NOT_READY**: no authorized customer VPS-AMD pairing or actual ARM→AMD whole-state restore. An existing local freeze marker now still refuses restart if the opt-in toggle is accidentally disabled but marker path remains configured. **51/51 Node, 8/8 restart and 7/7 release-gate local tests PASS**; GitHub matrix results require separate confirmation.
