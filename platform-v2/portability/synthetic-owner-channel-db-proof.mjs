@@ -13,7 +13,7 @@ import {signSyntheticChannelApprovalAck,
 const sha=x=>crypto.createHash('sha256').update(x).digest('hex');
 const ids=['requestId','grantId','accountId','deviceId','agentId',
   'connectionId','ownerSessionId'];
-export function makeSyntheticOwnerChannelDbProof(input,at=Date.now(),testKeys=null){
+export function makeSyntheticOwnerChannelDbProof(input,at=Date.now(),testKeys=null,includePackets=false){
  if(!input||ids.some(k=>typeof input[k]!=='string'||
      !/^uat_[A-Za-z0-9_-]{4,90}$/.test(input[k]))||
      !/^[a-f0-9]{64}$/.test(input.deviceKeySha256||'')||
@@ -71,6 +71,9 @@ export function makeSyntheticOwnerChannelDbProof(input,at=Date.now(),testKeys=nu
  if(v.decision!=='VERIFIED_FAKE_OWNER_AND_CHANNEL'||v.productionIssuerAuthorized!==false)
     throw Error('fake_owner_channel_signatures_not_verified');
  return Object.freeze({
+  ...(includePackets?{signedPackets:{wallApproval,channelAck:channelPacket,
+    wallPublicSpki:wall.publicKey.export({type:'spki',format:'der'}).toString('base64url'),
+    channelPublicSpki:channel.publicKey.export({type:'spki',format:'der'}).toString('base64url')}}:{}),
   requestId:input.requestId,grantId:input.grantId,
   ownerSessionId:input.ownerSessionId,ownerAccountId:input.accountId,
   deviceId:input.deviceId,connectionId:input.connectionId,agentId:input.agentId,
@@ -86,7 +89,7 @@ export function makeSyntheticOwnerChannelDbProof(input,at=Date.now(),testKeys=nu
  });
 }
 if(process.argv[1]&&import.meta.url===new URL('file://'+process.argv[1]).href){
- if(process.argv.slice(2).join(' ')!=='--synthetic-only'||
+ if(!['--synthetic-only','--synthetic-envelope-only'].includes(process.argv.slice(2).join(' '))||
     process.env.LR_RC50_UAT_ONLY!=='1'){
    process.stderr.write('synthetic_owner_channel_db_proof_uat_only\n');
    process.exit(3);
@@ -101,8 +104,10 @@ if(process.argv[1]&&import.meta.url===new URL('file://'+process.argv[1]).href){
   const result=Array.isArray(parsed?.batch)&&parsed.batch.length>0&&parsed.batch.length<=3
     ?(()=>{const shared={wall:crypto.generateKeyPairSync('ed25519'),
       channel:crypto.generateKeyPairSync('ed25519')};
-      return parsed.batch.map(x=>makeSyntheticOwnerChannelDbProof(x,Date.now(),shared));})()
-    :makeSyntheticOwnerChannelDbProof(parsed);
+      return parsed.batch.map(x=>makeSyntheticOwnerChannelDbProof(x,Date.now(),shared,
+        process.argv[2]==='--synthetic-envelope-only'));})()
+    :makeSyntheticOwnerChannelDbProof(parsed,Date.now(),null,
+      process.argv[2]==='--synthetic-envelope-only');
   process.stdout.write(JSON.stringify(result)+'\n');
  }catch(e){
   process.stderr.write('synthetic_owner_channel_db_proof_refused\n');

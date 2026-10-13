@@ -5,13 +5,15 @@ Run ONLY with --confirm-synthetic-only; disposable random PG Compose project.
 """
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
-import json,os,re,subprocess,sys,tempfile
+import json,os,re,secrets,subprocess,sys,tempfile
 import verify_issuer_origin_pg_uat as origin
 
 u=origin.u
 ROOT=Path(__file__).resolve().parents[1]
 PROOF_SQL=(ROOT/'portability/owner_channel_origin_transaction_uat.sql').read_bytes()
 ACL_SQL=(ROOT/'portability/owner_channel_origin_verifier_acl_uat.sql').read_bytes()
+INTENTS_SQL=(ROOT/'portability/owner_channel_authenticated_intents_uat.sql').read_bytes()
+VERIFY_ONLY=ROOT/'portability/synthetic-owner-channel-verify-only.mjs'
 BRIDGE=ROOT/'portability/synthetic-owner-channel-db-proof.mjs'
 def must(ok,why):
  if not ok:raise AssertionError('owner_channel_pg_'+why)
@@ -25,17 +27,42 @@ def fails(pg,statement,reason):
   must(reason in str(e),'wrong_denial_'+reason)
   return
  raise AssertionError('expected_denial_'+reason)
+def setup_synthetic_scram_login(pg):
+ # One ephemeral secret in process RAM and a 0600 file INSIDE the scratch
+ # PG container. Never write password to host files or command arguments.
+ secret=secrets.token_hex(32)
+ u.docker('exec','-i',pg,'psql','-X','-v','ON_ERROR_STOP=1',
+   '-U',u.USER,'-d',u.DB,'-f','/dev/stdin',
+   data=("ALTER ROLE lr_uat_origin_service_login PASSWORD '"+secret+"';").encode())
+ u.docker('exec','-i',pg,'sh','-ec',
+   'umask 077; cat > /tmp/lr_rc50_origin_login_secret; chmod 0600 /tmp/lr_rc50_origin_login_secret',
+   data=secret.encode())
+ must(u.sql(pg,"SELECT (rolpassword LIKE 'SCRAM-SHA-256$%')::text FROM pg_authid WHERE rolname='lr_uat_origin_service_login'")=='true',
+      'missing_scram_stored_login_hash')
+ return '/tmp/lr_rc50_origin_login_secret'
+def authenticated_sql(pg,statement,secret_file,wrong_password=False):
+ # Uses TCP to PostgreSQL and SCRAM password authentication. The password
+ # is never supplied as CLI argv, Docker inspect env, or test stdout.
+ assert secret_file=='/tmp/lr_rc50_origin_login_secret'
+ code=('set -eu; export PGPASSWORD=wrong_test_password' if wrong_password else
+   'set -eu; export PGPASSWORD="$(cat /tmp/lr_rc50_origin_login_secret)"')
+ code+='; host="$(hostname -i | awk \'{print $1}\')"; case "$host" in 127.*|::1|"") exit 91;; esac; exec psql -X -v ON_ERROR_STOP=1 -h "$host" -U lr_uat_origin_service_login -d '+u.DB+' -At -c "$1"'
+ return u.docker('exec','-i',pg,'sh','-ec',code,'sh',statement).decode().strip()
 def sign_fake_batch(rows):
  env={'PATH':os.environ.get('PATH','/usr/bin:/bin'),
       'HOME':os.environ.get('HOME','/tmp'),'LR_RC50_UAT_ONLY':'1'}
- p=subprocess.run(['node',str(BRIDGE),'--synthetic-only'],
+ p=subprocess.run(['node',str(BRIDGE),'--synthetic-envelope-only'],
      input=json.dumps({'batch':rows}),capture_output=True,text=True,
      env=env,timeout=12)
  must(p.returncode==0 and p.stdout.strip(),'fake_signing_chain_refused')
- proofs=json.loads(p.stdout)
- must(isinstance(proofs,list) and len(proofs)==len(rows),
+ envelopes=json.loads(p.stdout)
+ must(isinstance(envelopes,list) and len(envelopes)==len(rows),
      'incorrect_fake_chain_batch')
- for item in proofs:
+ proofs=[]
+ for envelope in envelopes:
+  must('signedPackets' in envelope,'missing_fake_signed_packets')
+  item={k:v for k,v in envelope.items() if k!='signedPackets'}
+  proofs.append(item)
   must(item['productionIssuerAuthorized'] is False and
        item['physicalExecutionAuthorized'] is False and
        all(re.fullmatch(r'[a-f0-9]{64}',item[x]) for x in
@@ -47,7 +74,54 @@ def sign_fake_batch(rows):
  must(len({x['wallVerifierSha256'] for x in proofs})==1 and
       len({x['channelVerifierSha256'] for x in proofs})==1,
       'unexpected_signer_key_rotation')
- return proofs
+ return proofs,[x['signedPackets'] for x in envelopes]
+def load_trusted_origin(pg,envelope):
+ # The synthetic harness reads independent PostgreSQL request/session/device/
+ # pin state. No key or owner-status value is taken from the signed packet.
+ request=envelope['wallApproval']['payload']['requestId']
+ nonce=envelope['wallApproval']['payload']['wallDecisionNonceSha256']
+ data=u.sql(pg,f"""SELECT row_to_json(z)::text FROM (
+  SELECT r.request_id AS "requestId",
+   i.proposed_grant_id AS "grantId",r.account_id AS "accountId",
+   r.device_id AS "deviceId",r.agent_id AS "agentId",
+   r.connection_id AS "connectionId",i.owner_session_id AS "ownerSessionId",
+   ek.public_key_sha256 AS "deviceKeySha256",
+   pins.wall_verifier_sha256 AS "wallVerifierSha256",
+   pins.channel_verifier_sha256 AS "channelVerifierSha256",
+   (extract(epoch FROM r.created_at)*1000)::BIGINT AS "requestCreatedAtMs",
+   (extract(epoch FROM r.expires_at)*1000)::BIGINT AS "requestExpiresAtMs",
+   r.state AS "requestState",
+   (ss.revoked_at IS NULL AND ss.expires_at>now() AND
+     ss.account_id=r.account_id) AS "ownerSessionActive",
+   (ek.state='active' AND d.owner_account_id=r.account_id) AS "enrollmentActive",
+   (c.closed_at IS NULL AND c.hard_expires_at>now() AND
+     c.account_id=r.account_id AND c.device_id=r.device_id) AS "connectionActive",
+   (pins.state='active') AS "pinsActive",
+   (NOT EXISTS(SELECT 1 FROM lr_uat_signed_owner_channel_ledger old
+       WHERE old.owner_decision_nonce_sha256={q(nonce)})) AS "nonceUnused"
+  FROM lr_ab_requests r
+  JOIN lr_uat_origin_verifier_intent i USING(request_id)
+  JOIN lr_sessions ss ON ss.session_id=i.owner_session_id
+  JOIN lr_devices d ON d.device_id=r.device_id
+  JOIN lr_device_connections c ON c.connection_id=r.connection_id
+  JOIN lr_uat_device_enrolled_key ek ON ek.device_id=r.device_id
+  JOIN lr_uat_trusted_origin_verifier_pins pins ON pins.device_id=r.device_id
+  WHERE r.request_id={q(request)}
+ ) z""")
+ must(data!='','independent_db_verifier_state_missing')
+ return json.loads(data)
+
+def public_verify_fake_origin(envelope,trusted):
+ # A fresh verifier-only Node process receives ONLY public SPKI and signed
+ # packets. It neither generates nor receives any signing private key.
+ env={'PATH':os.environ.get('PATH','/usr/bin:/bin'),
+      'HOME':os.environ.get('HOME','/tmp'),'LR_RC50_UAT_ONLY':'1'}
+ p=subprocess.run(['node',str(VERIFY_ONLY),'--synthetic-only'],
+   input=json.dumps({'envelope':envelope,'trusted':trusted}),
+   capture_output=True,text=True,env=env,timeout=12)
+ must(p.returncode==0,'independent_public_verifier_failed_closed')
+ return json.loads(p.stdout)
+
 def commit(proof,**overrides):
  p={**proof,**overrides}
  return f"""SELECT lr_uat_commit_owner_channel_origin(
@@ -63,11 +137,14 @@ def commit(proof,**overrides):
  {q(p['approvedAt'])}::timestamptz,
  {q(p['channelApprovedAt'])}::timestamptz)"""
 def verify(pg,hardened_acl=False):
+ secret_path=None
  def authorized(proof,**overrides):
   query=commit(proof,**overrides)
   return ('SET ROLE lr_uat_origin_verifier; '+query) if hardened_acl else query
  def issue(proof,**overrides):
-  result=u.sql(pg,authorized(proof,**overrides))
+  query=authorized(proof,**overrides)
+  result=(authenticated_sql(pg,query,secret_path) if hardened_acl
+    else u.sql(pg,query))
   return result.splitlines()[-1]
  prefix='uat_wall_'+u.BASE.replace('-','_')
  owner=prefix+'_owner';member=prefix+'_member'
@@ -120,6 +197,10 @@ def verify(pg,hardened_acl=False):
        'uat_no_verified_approval_chain')
  print('ORIGIN PASS 02 raw pending request cannot call legacy issuer without evidence')
  for item in ids:
+  sql(pg,f"""INSERT INTO lr_uat_origin_verifier_intent(
+    request_id,proposed_grant_id,owner_session_id)
+    VALUES({q(item['requestId'])},{q(item['grantId'])},{q(item['ownerSessionId'])})""")
+ for item in ids:
   span=sql(pg,f"""SELECT
     (extract(epoch FROM created_at)*1000)::BIGINT::text||'|'||
     (extract(epoch FROM expires_at)*1000)::BIGINT::text
@@ -127,16 +208,69 @@ def verify(pg,hardened_acl=False):
   created,expires=span.split('|')
   item['requestCreatedAtMs']=int(created)
   item['requestExpiresAtMs']=int(expires)
- proofs=sign_fake_batch(ids)
+ proofs,envelopes=sign_fake_batch(ids)
  sql(pg,f"""INSERT INTO lr_uat_trusted_origin_verifier_pins(
    device_id,wall_verifier_sha256,channel_verifier_sha256,state)
  VALUES({q(device)},{q(proofs[0]['wallVerifierSha256'])},
  {q(proofs[0]['channelVerifierSha256'])},'active')""")
- print('ORIGIN PASS 03 three independently Ed25519-verified synthetic Wall/channel packet pairs; pinned keys match')
+ # Signature-verification process is distinct from fake issuer signer,
+ # and trusted owner, key pins and request/grant identifiers come from PG.
+ checked=[]
+ for proof,envelope in zip(proofs,envelopes):
+  trusted=load_trusted_origin(pg,envelope)
+  verified=public_verify_fake_origin(envelope,trusted)
+  must(verified.get('decision')=='VERIFIED_FAKE_OWNER_CHANNEL_PRECOMMIT',
+       'separate_public_verifier_rejected_valid_signed_origin')
+  for k in ('requestId','grantId','ownerAccountId','ownerSessionId',
+            'deviceId','connectionId','enrolledKeySha256',
+            'nonceSha256','wallProofSha256','channelAckSha256',
+            'wallVerifierSha256','channelVerifierSha256',
+            'requestCreatedAt','requestExpiresAt'):
+   must(verified.get(k)==proof.get(k),'separate_public_verifier_digest_mismatch_'+k)
+  checked.append(verified)
+ proofs=checked
+ print('ORIGIN PASS 03 three independently signed Wall/channel proof pairs verified in separate public-key-only process against DB pins')
+ tampered=json.loads(json.dumps(envelopes[0]))
+ original=tampered['channelAck']['signature']
+ tampered['channelAck']['signature']=original[:-2]+('A' if original[-2]!='A' else 'B')+original[-1]
+ must(public_verify_fake_origin(tampered,load_trusted_origin(pg,envelopes[0]))['decision']=='DENY',
+      'forged_channel_signature_accepted')
+ trust=load_trusted_origin(pg,envelopes[0])
+ must(public_verify_fake_origin(envelopes[0],{**trust,'wallVerifierSha256':'0'*64})['decision']=='DENY',
+      'untrusted_wall_key_accepted')
+ must(public_verify_fake_origin(envelopes[0],{**trust,'grantId':'uat_grant_forged'})['decision']=='DENY',
+      'unbound_grant_intent_accepted')
+ print('VERIFY PASS 01 tampered channel, wrong trusted Wall pin and wrong DB grant intent denied')
  if hardened_acl:
   u.docker('exec','-i',pg,'psql','-X','-v','ON_ERROR_STOP=1',
        '-U',u.USER,'-d',u.DB,'-f','/dev/stdin',data=ACL_SQL)
   print('ACL setup: scratch NOLOGIN verifier and SECDEF origin writer')
+  secret_path=setup_synthetic_scram_login(pg)
+  assert 'scram-sha-256' in sql(pg,"SELECT setting FROM pg_settings WHERE name='password_encryption'")
+  print('AUTH PASS 01 isolated SCRAM verifier login created with ephemeral password')
+  try:authenticated_sql(pg,'SELECT session_user',secret_path,wrong_password=True)
+  except RuntimeError as e:
+   must('password authentication failed' in str(e),'incorrect_password_rejection')
+  else:raise AssertionError('wrong_password_accepted')
+  print('AUTH PASS 02 wrong password denied by actual PostgreSQL TCP authentication')
+  identity=authenticated_sql(pg,'SELECT current_user,session_user',secret_path)
+  must(identity=='lr_uat_origin_service_login|lr_uat_origin_service_login',
+       'unauthenticated_or_wrong_login_identity')
+  print('AUTH PASS 03 successful SCRAM login has its own unprivileged principal')
+  try:authenticated_sql(pg,'SELECT * FROM lr_uat_trusted_origin_verifier_pins',secret_path)
+  except RuntimeError as e:
+   must('permission denied for table' in str(e),'login_inherited_read')
+  else:raise AssertionError('login_direct_trust_pin_read')
+  try:authenticated_sql(pg,'SELECT lr_uat_issue_direct_owner_grant(\'x\',\'y\')',secret_path)
+  except RuntimeError as e:
+   must('permission denied for function' in str(e),'login_inherited_legacy_issuer')
+  else:raise AssertionError('login_direct_legacy_issuer')
+  print('AUTH PASS 04 login inherits neither trusted-table rights nor legacy issuer')
+  identity=authenticated_sql(pg,'SET ROLE lr_uat_origin_verifier; SELECT current_user,session_user',
+                             secret_path).splitlines()[-1]
+  must(identity=='lr_uat_origin_verifier|lr_uat_origin_service_login',
+       'set_role_not_bound_to_login')
+  print('AUTH PASS 05 SCRAM-authenticated service can SET ROLE verifier without superuser')
   privilege=sql(pg,"""SELECT
      has_function_privilege('lr_uat_origin_verifier',
       p.oid,'EXECUTE')::text
@@ -208,8 +342,8 @@ def verify(pg,hardened_acl=False):
  if hardened_acl:
   # A verifier with TEMP privilege must not shadow unqualified table names
   # inside the protected function. public precedes pg_temp.
-  temp_proof=sql(pg,"SET ROLE lr_uat_origin_verifier; "+
-   "CREATE TEMP TABLE lr_ab_requests(dummy int); "+commit(p))
+  temp_proof=authenticated_sql(pg,"SET ROLE lr_uat_origin_verifier; "+
+   "CREATE TEMP TABLE lr_ab_requests(dummy int); "+commit(p),secret_path)
   must(temp_proof.splitlines()[-1]=='SYNTHETIC_OWNER_CHANNEL_ATOMIC_GRANT_PENDING_SIGNING',
        'temp_table_shadowed_protected_origin')
   print('ACL PASS 04 pg_temp table shadow cannot intercept protected grant transaction')
@@ -250,7 +384,8 @@ def verify(pg,hardened_acl=False):
  print('ORIGIN PASS 13 second approved proof gets fresh generation 2')
  p3=proofs[2]
  with ThreadPoolExecutor(max_workers=2) as pool:
-  tasks=[pool.submit(sql,pg,authorized(p3)) for _ in range(2)]
+  tasks=[pool.submit(authenticated_sql,pg,authorized(p3),secret_path)
+    if hardened_acl else pool.submit(sql,pg,authorized(p3)) for _ in range(2)]
   outcomes=[]
   for future in tasks:
    try:outcomes.append(future.result().splitlines()[-1])
@@ -301,7 +436,7 @@ def main():
    started=True
    cid=u.cid(project,env,'postgres')
    u.healthy(cid);u.check_isolation(cid);u.migrations(cid)
-   for raw in [origin.SQL,PROOF_SQL]:
+   for raw in [origin.SQL,PROOF_SQL,INTENTS_SQL]:
     u.docker('exec','-i',cid,'psql','-X','-v','ON_ERROR_STOP=1',
        '-U',u.USER,'-d',u.DB,'-f','/dev/stdin',data=raw)
    verify(cid,hardened_acl=True)

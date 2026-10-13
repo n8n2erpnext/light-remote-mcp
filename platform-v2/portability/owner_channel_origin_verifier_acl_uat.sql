@@ -5,6 +5,12 @@ BEGIN;
 CREATE ROLE lr_uat_origin_function_owner NOLOGIN NOINHERIT;
 CREATE ROLE lr_uat_origin_verifier NOLOGIN NOINHERIT;
 CREATE ROLE lr_uat_origin_untrusted NOLOGIN NOINHERIT;
+-- One synthetic SCRAM-authenticated LOGIN may SET ROLE verifier but never
+-- inherits grants automatically. Its randomized password is installed by
+-- the private Python runner and never stored in Git or emitted in output.
+CREATE ROLE lr_uat_origin_service_login LOGIN NOINHERIT;
+GRANT lr_uat_origin_verifier TO lr_uat_origin_service_login
+  WITH INHERIT FALSE, SET TRUE;
 REVOKE ALL ON ALL FUNCTIONS IN SCHEMA public FROM PUBLIC;
 REVOKE CREATE ON SCHEMA public FROM PUBLIC;
 GRANT USAGE ON SCHEMA public TO
