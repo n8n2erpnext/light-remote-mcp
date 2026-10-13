@@ -1,5 +1,9 @@
 # Light Remote portable state contract — rc.50
 
+## 2026-10-13 — Dev Operator / Plugin local ingress freeze and partial drain
+
+See [LOCAL_INGRESS_FREEZE_DRAIN_UAT_20261013.md](./LOCAL_INGRESS_FREEZE_DRAIN_UAT_20261013.md). `LR_RC50_DEV_LOCAL_FREEZE=1` explicitly enables SIGUSR2-triggered, irreversible **process-local** freeze on the real Operator Unix socket and Plugin Express ingress, before mutation routes/Paddle/MCP. New traffic gets 503, GET health shows phase and in-flight tracked request count. Existing HTTP and scheduled support outbox pump are allowed to finish; new scheduled pumps stop, Operator integrated heartbeat/reaper pause. **7/7 Node tests including actual private loopback HTTP and 41/41 full platform regression PASS.** Global per-device writer epoch, old-host cutoff, all in-flight Agent jobs, consistent snapshot watermark and cross-host restore remain **NOT_READY**, audit still 16/18 fsync-proven and 2 previously safety-blocked writers.
+
 ## 2026-10-13 — Real Operator + Plugin JSON registry durability: 16/18, NOT_READY
 
 See [REGISTRY_DURABILITY_16OF18_20261013.md](./REGISTRY_DURABILITY_16OF18_20261013.md) and the [finite P0 closeout gates](./RC50_P0_CLOSEOUT_GATES_20261013.md). This checkpoint converts 11 additional real dev Operator/Plugin JSON writer paths to the previously tested `durableAtomicWriteSync` after commit `d574c1a`, now 16/18 known writer surfaces fsync-proven (file + parent directory). New fake-only registry reload integration tests and full platform Node regression PASS; source audit **NOT_READY** because `ACCOUNT_STATE_FILE` and `CONNECTION_STATE_FILE` were editing-tool blocked and global multi-process writer fence, consistent checkpoint, authenticated owner origin, cross-host restore and release gates remain unproven. No live data, production deployment or tool-block bypass.

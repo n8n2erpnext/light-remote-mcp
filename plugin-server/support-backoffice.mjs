@@ -307,9 +307,15 @@ function supportPayload(account,body={}){
   };
 }
 
-export function registerSupportBackoffice(app,{outbox=new SupportOutbox()}={}){
-  const first=setTimeout(()=>void outbox.pump().catch(error=>console.error('[support-outbox]',safeError(error))),2_000);first.unref?.();
-  const timer=setInterval(()=>void outbox.pump().catch(error=>console.error('[support-outbox]',safeError(error))),10_000);timer.unref?.();
+export function registerSupportBackoffice(app,{outbox=new SupportOutbox(),beginBackgroundWork=()=>()=>{}}={}){
+  const pumpWhenAllowed=()=>{
+    const finish=beginBackgroundWork();
+    if(!finish)return; // reject NEW delivery when local dev ingress is frozen
+    void outbox.pump().catch(error=>console.error('[support-outbox]',safeError(error)))
+      .finally(finish); // wait for accepted pump before reporting drained
+  };
+  const first=setTimeout(pumpWhenAllowed,2_000);first.unref?.();
+  const timer=setInterval(pumpWhenAllowed,10_000);timer.unref?.();
 
   app.get('/support/api',async(req,res)=>{
     res.set('Cache-Control','no-store');

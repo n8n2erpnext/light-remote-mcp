@@ -13,6 +13,7 @@ import { EnrollmentRegistry, EnrollmentError } from './enrollment-registry.mjs';
 import { FleetRouter, FleetError } from './fleet-router.mjs';
 import { AuditAppendBarrier } from './audit-append-barrier.mjs';
 import { appendDurableAuditBatch } from './durable-audit-append.mjs';
+import { LocalIngressFreezeGate } from '../lib/local-ingress-freeze.mjs';
 import { DeviceConnectionRegistry, DeviceConnectionError, DEFAULT_PLAN_CONNECTION_CAPS } from './device-connection-registry.mjs';
 import { DeviceAccessGrantRegistry, DeviceAccessGrantError } from './device-access-grant-registry.mjs';
 import { DevicePairingRegistry, DevicePairingRegistryError } from './device-pairing-registry.mjs';
@@ -49,6 +50,7 @@ import { handlePluginRoutes } from './executor-routes-plugin.mjs';
 import { RealRemoteLiveRegistry } from './real-remote-live-registry.mjs';
 import { createNativeActivityFormatter } from './executor-native-activity.mjs';
 
+const localFreezeGate=new LocalIngressFreezeGate({enabled:process.env.LR_RC50_DEV_LOCAL_FREEZE==='1'});
 const SOCKET_PATH = process.env.OPERATOR_SOCKET || '/run/gpt-vps-operator/operator.sock';
 const KEY_FILE = process.env.OPERATOR_KEY_FILE || '/home/ubuntu/.config/gpt-vps-operator/operator.private.json';
 const LOG_DIR = process.env.OPERATOR_LOG_DIR || '/var/log/gpt-vps-operator';
@@ -253,13 +255,14 @@ if(INTEGRATED_HOST_ENABLED){
   hostBinding=enrollments.ensureTrustedBinding({accountId:ACCOUNT_ID,deviceId:DEVICE_ID,publicIdentityKey:hostIdentity.publicKey,displayName:DEVICE_NAME,platform:os.platform(),architecture:os.arch(),agentVersion:VERSION,fingerprintSummary:`integrated hub / ${os.platform()} ${os.arch()} / key ${hostIdentity.publicKeySha256.slice(0,12)}`,capabilities:HOST_CAPABILITIES,policyProfile:DEVICE_POLICY_PROFILE});
   ensureHostCompanionState(HOST_COMPANION_STATE_FILE,{identity:hostIdentity,binding:hostBinding,signer:enrollments.signerInfo(),nodeId:NODE_ID});
   devices.register({ accountId:ACCOUNT_ID, deviceId:DEVICE_ID, nodeId:NODE_ID, displayName:DEVICE_NAME, platform:os.platform(), architecture:os.arch(), agentVersion:VERSION, publicIdentityKey:hostBinding.publicIdentityKey, capabilities:HOST_CAPABILITIES, policyProfile:DEVICE_POLICY_PROFILE });
-  deviceHeartbeat=setInterval(() => { try { devices.heartbeat(DEVICE_ID); } catch (error) { console.error('[device] heartbeat failed', error?.message || error); } }, DEVICE_HEARTBEAT_MS);
+  deviceHeartbeat=setInterval(() => { if(!localFreezeGate.accepting)return; try { devices.heartbeat(DEVICE_ID); } catch (error) { console.error('[device] heartbeat failed', error?.message || error); } }, DEVICE_HEARTBEAT_MS);
   deviceHeartbeat.unref();
 }
 function reapAccessGrants(){
   return accessGrants.reap({connectionForDevice:deviceId=>connections.get(deviceId),liveSessionsForDevice:deviceId=>sessions.activeCountByDevice(deviceId)});
 }
 const connectionReaper = setInterval(() => {
+  if(!localFreezeGate.accepting)return;
   try {
     const closed=connections.reap();
     for(const item of closed){ sessions.closeByDevice(item.deviceId,`device_${item.reason}`,{force:true}); accessGrants.closeByDevice(item.deviceId,`device_${item.reason}`); pairingCodes.invalidateDevice(item.deviceId,`device_${item.reason}`); agentClients.removeDevice(item.deviceId,`device_${item.reason}`); }
@@ -1083,9 +1086,11 @@ const routeDeps=()=>({
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url || '/', 'http://operator.local');
+  const health=req.method==='GET'&&url.pathname==='/healthz';
+  if(!localFreezeGate.admitHttp(req,res,{health}))return;
   try {
     if (req.method === 'GET' && url.pathname === '/healthz') {
-      return sendJson(res, 200, { ok: true, ...capabilities() });
+      return sendJson(res, 200, { ok: true, ...capabilities(), localFreeze:localFreezeGate.snapshot() });
     }
     if (req.method === 'GET' && url.pathname === '/v1/capabilities') {
       return sendJson(res, 200, { ok: true, ...capabilities() });
@@ -1136,5 +1141,11 @@ function shutdown(signal) {
   server.closeAllConnections?.();
   setTimeout(() => process.exit(1), 5000).unref();
 }
+if(localFreezeGate.enabled)process.on('SIGUSR2',()=>{
+  void localFreezeGate.freeze().then(state=>{
+    console.log(JSON.stringify({event:'rc50_local_ingress_drained',...state,
+      caveat:'background_operator_jobs_and_multihost_writers_not_fenced'}));
+  });
+});
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));

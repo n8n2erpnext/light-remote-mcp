@@ -19,13 +19,20 @@ import { registerPaddleWebhook } from './paddle-billing.mjs';
 import { PLUGIN_TOOL_SECURITY, registerPluginTools } from './tools.mjs';
 import { installOpenAiToolSecurityCompat } from './openai-security-compat.mjs';
 import { installLegacyToolCallCompat } from './legacy-tool-call-compat.mjs';
+import { LocalIngressFreezeGate } from '../lib/local-ingress-freeze.mjs';
 
 
+const localFreezeGate=new LocalIngressFreezeGate({enabled:process.env.LR_RC50_DEV_LOCAL_FREEZE==='1'});
 const app=express();
 // createMcpExpressApp() installs express.json() with Express' default ~100 KB limit.
 // Device-channel result envelopes can legitimately exceed that even after client-side compaction,
 // so install host validation explicitly and apply the product body limit exactly once.
 app.use(hostHeaderValidation(PUBLIC_ALLOWED_HOSTS));
+app.use((req,res,next)=>{
+  const health=req.method==='GET'&&req.path==='/healthz';
+  if(!localFreezeGate.admitHttp(req,res,{health}))return;
+  next();
+});
 app.disable('x-powered-by');
 app.set('trust proxy','loopback, linklocal, uniquelocal');
 registerPaddleWebhook(app,express.raw({type:'application/json',limit:'512kb'}));
@@ -48,7 +55,7 @@ registerWebAssets(app);
 installAnnouncements(app);
 registerClientAnnouncementFeed(app);
 registerAccountPortal(app);
-registerSupportBackoffice(app);
+registerSupportBackoffice(app,{beginBackgroundWork:()=>localFreezeGate.beginWork()});
 registerDistributionPortal(app);
 registerAdminPortal(app);
 registerPublicDeviceRoutes(app);
@@ -73,7 +80,7 @@ app.get('/sitemap.xml',(_q,r)=>{
 });
 app.get('/site.webmanifest',(_q,r)=>r.type('application/manifest+json').send(JSON.stringify({name:'Light Remote',short_name:'Light Remote',start_url:'/',display:'standalone',background_color:'#080a0c',theme_color:'#080a0c',icons:[{src:'/account/assets/light-remote.ico',sizes:'any',type:'image/x-icon'}]})));
 app.get('/favicon.ico',(_q,r)=>r.redirect(302,'/account/assets/light-remote.ico'));
-app.get('/healthz',(_q,r)=>r.json({ok:true,service:'light-remote-direct-plugin',version:VERSION,mcpSurfaceVersion:MCP_SURFACE_VERSION,transport:'direct'}));
+app.get('/healthz',(_q,r)=>r.json({ok:true,service:'light-remote-direct-plugin',version:VERSION,mcpSurfaceVersion:MCP_SURFACE_VERSION,transport:'direct',localFreeze:localFreezeGate.snapshot()}));
 app.get('/.well-known/openai-apps-challenge',(_q,r)=>{
   try{const token=fs.readFileSync(OPENAI_CHALLENGE_FILE,'utf8').trim();if(!token)return r.sendStatus(404);return r.type('text/plain').send(token);}
   catch{return r.sendStatus(404);}
@@ -130,5 +137,11 @@ function shutdown(signal){
   deadline.unref();
   server.close(()=>{clearTimeout(deadline);process.exit(0);});
 }
+if(localFreezeGate.enabled)process.on('SIGUSR2',()=>{
+  void localFreezeGate.freeze().then(state=>{
+    console.log(JSON.stringify({event:'rc50_local_ingress_drained',...state,
+      caveat:'non_http_process_and_multihost_writers_not_fenced'}));
+  });
+});
 process.once('SIGTERM',()=>shutdown('SIGTERM'));
 process.once('SIGINT',()=>shutdown('SIGINT'));
