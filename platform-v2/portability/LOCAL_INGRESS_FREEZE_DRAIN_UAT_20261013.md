@@ -8,7 +8,7 @@
 
 ## Motivation / precise delivered scope
 
-Prior `7b5d223` brought individual JSON writer durability to **16/18**, but global epoch / maintenance ingress/drain remained absent. This work provides **a process-local, dev-opt-in maintenance ingress freeze boundary on ACTUAL Operator HTTP and Plugin HTTP**, a limited source of checkpoint observability. This is a genuine real-code mutation admission boundary, NOT a PostgreSQL-backed election, global writer authority, cross-host fence or complete background job drain. No security approval is granted by this gate.
+Prior `7b5d223` brought individual JSON writer durability to **16/18**, but global epoch / maintenance ingress/drain remained absent. This work provides **a process-local, dev-opt-in maintenance ingress freeze boundary on ACTUAL Operator HTTP and Plugin HTTP**, a limited source of checkpoint observability. The second checkpoint also counts **all non-finished jobs already present in the real Operator `jobs` map** and defers the local drained marker until their `finishJob()` callback. This is a genuine real-code mutation admission boundary, NOT a PostgreSQL-backed election, global writer authority, cross-host fence or complete background job drain. No security approval is granted by this gate.
 
 ## New shared module
 
@@ -21,7 +21,7 @@ Prior `7b5d223` brought individual JSON writer durability to **16/18**, but glob
 
 ## Actual dev wiring
 
-1. **`operator-host/executor.mjs`**: instantiates gate before service setup; gates every Unix-socket HTTP request before any route parser/handler, except exact `GET /healthz`. Health includes `localFreeze` snapshot. Local integrated-device heartbeat and device connection reaper timers are paused once gate is not accepting. With opt-in, `SIGUSR2` invokes one-way freeze and logs `rc50_local_ingress_drained` only once tracked ingress requests reach zero. **The log explicitly states** Operator background jobs and multi-host writers are NOT fenced.
+1. **`operator-host/executor.mjs`**: instantiates gate before service setup; gates every Unix-socket HTTP request before any route parser/handler, except exact `GET /healthz`. Health includes `localFreeze` snapshot, including `pendingExternal` from the real Operator jobs map. A `registerPendingSource('operatorJobs', ...)` census counts every job without `finishedAt`, including PTY, SCP, desktop, remote fleet and filesystem jobs; `finishJob()` notifies the gate of completion. If the census throws or returns invalid data, freeze fails closed and will not report `frozen`. Local integrated-device heartbeat and device connection reaper timers are paused once gate is not accepting. With opt-in, `SIGUSR2` invokes one-way freeze and logs `rc50_local_ingress_drained` only once tracked ingress requests reach zero. **The log explicitly states** Operator background jobs and multi-host writers are NOT fenced.
 2. **`plugin-server/server.mjs`**: same gate inserted directly after host-header validation, BEFORE Paddle webhooks, OAuth, account routes, MCP and public device endpoints. Therefore even unauthenticated mutating requests are stopped when frozen, but exact `GET /healthz` stays accessible and exposes phase. With opt-in, `SIGUSR2` triggers local one-way freeze; logs warning about other processes/writers.
 3. **`plugin-server/support-backoffice.mjs`**: `registerSupportBackoffice` now optionally accepts `beginBackgroundWork`, default preserving prior behavior; scheduled support-outbox pump invokes the admission hook. A pump already accepted runs to completion, and its completion is tracked before local drain; new scheduled pump runs skip while frozen. This does not cancel an already running remote ERPNext call and does not freeze all plugin background work.
 
@@ -38,12 +38,14 @@ Prior `7b5d223` brought individual JSON writer durability to **16/18**, but glob
 
 ```sh
 node --test platform-v2/test/local-ingress-freeze.test.mjs
-# 7/7 PASS: disabled-by-default and opt-in, in-flight HTTP drain,
+# 9/9 PASS: disabled-by-default and opt-in, in-flight HTTP drain,
 # 503 on new POST, health available, background pump accounting,
+# Operator unfinished job census blocks premature local drain,
+# census failures remain fail-closed,
 # idempotent terminal freeze, real source wiring checks,
 # actual local 127.0.0.1 ephemeral HTTP request fixture
 node --test platform-v2/test/*.test.mjs
-# 41/41 PASS, entire platform suite
+# 43/43 PASS, entire platform suite
 node --check lib/local-ingress-freeze.mjs
 node --check operator-host/executor.mjs
 node --check plugin-server/server.mjs
@@ -60,7 +62,7 @@ Test fixture binds to a random local loopback port, calls fetch for an admitted 
 ## P0 still open: what this does NOT prove
 
 - **Global writer epoch**: this gate is in-memory, per-process, opt-in and reset on restart. No PG/Fleet/Agent shared lease, cross-instance monotonic generation, old-host cutoff, transactionally enforced writer revocation or signature origin. A signal to one process cannot stop another process or old server.
-- **Complete quiescence**: Operator PTY, SCP, RM, Agent/Fleet dispatch, already accepted asynchronous jobs and some background timers may continue after HTTP response completes. Only local HTTP, integrated device heartbeat/connection reaper and scheduled support-outbox pump are covered; no durable audit/job/outbox watermark proving all writes stopped. A health `drained:true` refers ONLY to these tracked paths. A long SSE can prevent drain indefinitely.
+- **Complete quiescence**: Known Operator jobs in the current process's `jobs` map now count toward local draining even AFTER HTTP responses close; PTY, SCP, RM and queued remote commands cannot be declared drained while their in-memory job records remain unfinished. **But** these records do not prove that remote Agent OS effects have stopped, survive process restart, cover every background writer outside the job registry or establish a durable job/outbox watermark. Other background timers and remote deliveries may continue. Only local HTTP, counted Operator jobs, integrated device heartbeat/connection reaper and scheduled support-outbox pump are covered; no durable audit/job/outbox watermark proving all writes stopped. A health `drained:true` refers ONLY to these tracked paths. A long SSE can prevent drain indefinitely.
 - **Durability**: 16/18 JSON writer surfaces have atomic file+dir fsync, but `account-registry.mjs` and `device-connection-registry.mjs` edits were safety-blocked in earlier turns and were not attempted or bypassed here. Multi-file atomic snapshot, crash-safe restore and cross-host move remain NOT_READY.
 - **Real consent and release**: independently authenticated OAuth/Local Wall A/B/verifier-stage/Agent source, complete restore/rollback on AMD and rc50 multi-service CI are NOT_READY; previous persistent HTTP verifier Docker integration remains tool-blocked. No real payment, customer data or key touched.
 

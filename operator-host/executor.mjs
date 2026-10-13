@@ -123,6 +123,11 @@ const NATIVE_SEARCHES=new NativeSearchRegistry();
 const LIGHT_SCP=new LightScpRegistry();
 
 const jobs = new Map();
+localFreezeGate.registerPendingSource('operatorJobs',()=>{
+  let pending=0;
+  for(const job of jobs.values())if(!job.finishedAt)pending++;
+  return pending;
+});
 const operationDedupe = new Map();
 const replay = new Map();
 const trustedChannelRateBuckets = new Map();
@@ -422,6 +427,7 @@ function finishJob(job, exitCode, signal) {
     status: job.status, exitCode, signal: signal || null, durationMs: job.finishedAt - job.startedAt, requiredCapabilities:job.requiredCapabilities||[], cwd:job.cwd||'', script:redact(job.script||''), note:redact(job.note||''), resultSummary:redact(job.resultSummary||''), toolMeta:job.toolMeta||null, latency:latencyView(job) });
   for (const resolve of job.waiters.splice(0)) resolve();
   pruneJobs(job.finishedAt);
+  localFreezeGate.notifyPendingChanged();
 }
 
 // A rejected enqueue must not leave a permanent running job or an infinite
@@ -1144,7 +1150,7 @@ function shutdown(signal) {
 if(localFreezeGate.enabled)process.on('SIGUSR2',()=>{
   void localFreezeGate.freeze().then(state=>{
     console.log(JSON.stringify({event:'rc50_local_ingress_drained',...state,
-      caveat:'background_operator_jobs_and_multihost_writers_not_fenced'}));
+      caveat:'local_operator_jobs_tracked_but_other_background_and_multihost_writers_not_fenced'}));
   });
 });
 process.on('SIGTERM', () => shutdown('SIGTERM'));

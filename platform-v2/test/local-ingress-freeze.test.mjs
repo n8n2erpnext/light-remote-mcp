@@ -65,6 +65,41 @@ test('tracked background outbox work drains; no new background work starts',asyn
  assert.equal(finished,true);
  assert.equal(gate.snapshot().inflight,0);
 });
+test('Operator jobs outlive HTTP and block local drain until finishJob notification',async()=>{
+ const gate=new LocalIngressFreezeGate({enabled:true});
+ let outstandingJobs=1;
+ gate.registerPendingSource('operatorJobs',()=>outstandingJobs);
+ const accepted=fakeResponse();
+ assert.equal(gate.admitHttp({},accepted),true);
+ let drained=false;
+ const pending=gate.freeze().then(()=>{drained=true;});
+ accepted.emit('finish');
+ await Promise.resolve();
+ assert.equal(drained,false);
+ assert.equal(gate.snapshot().phase,'freezing');
+ assert.equal(gate.snapshot().inflight,0);
+ assert.equal(gate.snapshot().pendingExternal,1);
+ outstandingJobs=0;
+ gate.notifyPendingChanged();
+ await pending;
+ assert.equal(drained,true);
+ assert.equal(gate.snapshot().pendingExternal,0);
+});
+test('failed or invalid external job census fails closed, never reports frozen',async()=>{
+ const gate=new LocalIngressFreezeGate({enabled:true});
+ let bad=true;
+ gate.registerPendingSource('operatorJobs',()=>{if(bad)throw Error('job_census_unavailable');return 0;});
+ let resolved=false;
+ const frozen=gate.freeze().then(()=>{resolved=true;});
+ await Promise.resolve();
+ assert.equal(gate.snapshot().pendingExternal,null);
+ assert.equal(gate.snapshot().phase,'freezing');
+ assert.equal(resolved,false);
+ bad=false;
+ gate.notifyPendingChanged();
+ await frozen;
+ assert.equal(gate.snapshot().phase,'frozen');
+});
 test('immediate freeze is terminal for this process',async()=>{
  const gate=new LocalIngressFreezeGate({enabled:true});
  const first=await gate.freeze(),again=await gate.freeze();
@@ -87,6 +122,8 @@ test('rc50 dev Operator, Plugin and support pump are actually wired',async()=>{
  }
  assert.match(operator,/if\(!localFreezeGate\.accepting\)return;\s*try \{ devices\.heartbeat/);
  assert.match(operator,/if\(!localFreezeGate\.accepting\)return;\s*try \{\s*const closed=connections\.reap\(\)/);
+ assert.match(operator,/localFreezeGate\.registerPendingSource\('operatorJobs'/);
+ assert.match(operator,/localFreezeGate\.notifyPendingChanged\(\)/);
  assert.match(plugin,/registerSupportBackoffice\(app,\{beginBackgroundWork:/);
  assert.match(support,/const finish=beginBackgroundWork\(\)/);
  assert.match(support,/\.finally\(finish\)/);
