@@ -17,6 +17,7 @@ u=publisher.u
 origin=publisher.origin
 ROOT=Path(__file__).resolve().parents[1]
 SQL=(ROOT/'portability/device_signed_ack_uat.sql').read_bytes()
+ACL_SQL=(ROOT/'portability/device_ack_verifier_acl_uat.sql').read_bytes()
 CLI=ROOT/'portability/synthetic-device-ack-fixture-cli.mjs'
 
 def must(ok,reason):
@@ -104,20 +105,63 @@ def verified(device,ack,lease,ctx):
     must(proc.returncode==0 and proc.stdout.strip(),'independent_verifier_refused')
     return json.loads(proc.stdout.strip())
 def commit(cid,proof):
-    return u.sql(cid,f"""SELECT lr_uat_commit_signed_device_ack(
+    # SQL role is selected on the SCRATCH local PostgreSQL client connection.
+    # Only the trusted public-key verifier pathway is granted this role.
+    response=u.sql(cid,f"""SET ROLE lr_uat_ack_verifier;
+      SELECT lr_uat_commit_signed_device_ack(
      {q(proof['requestId'])},{q(proof['grantId'])},
      {q(proof['signedLeaseDigest'])},{q(proof['deviceKeySha256'])},
      {q(proof['issuerKeySha256'])},{q(proof['nonceSha256'])},
      {int(proof['generation'])},{int(proof['grantRevision'])},
      {int(proof['claimSeq'])},{q(proof['ackSignature'])},
      {q(proof['ackPacketSha256'])})""")
+    return response.splitlines()[-1]
 def verify(cid,device):
     origin.verify(cid,device_key_sha256=device.identity['deviceKeySha256'])
     u.docker('exec','-i',cid,'psql','-X','-v','ON_ERROR_STOP=1',
       '-U',u.USER,'-d',u.DB,'-f','/dev/stdin',data=publisher.SQL)
     u.docker('exec','-i',cid,'psql','-X','-v','ON_ERROR_STOP=1',
       '-U',u.USER,'-d',u.DB,'-f','/dev/stdin',data=SQL)
-    print('ACK PASS 01 isolated DB origin, publisher and signed-device-ACK schema applied')
+    u.docker('exec','-i',cid,'psql','-X','-v','ON_ERROR_STOP=1',
+      '-U',u.USER,'-d',u.DB,'-f','/dev/stdin',data=ACL_SQL)
+    print('ACK PASS 01 isolated DB origin, publisher, signed ACK and restricted ACL applied')
+    perms=u.sql(cid,"""SELECT
+      has_function_privilege('lr_uat_ack_verifier',
+       'public.lr_uat_commit_signed_device_ack(text,text,text,text,text,text,bigint,bigint,bigint,text,text)','EXECUTE')::text
+      ||':'||
+      has_function_privilege('lr_uat_ack_untrusted',
+       'public.lr_uat_commit_signed_device_ack(text,text,text,text,text,text,bigint,bigint,bigint,text,text)','EXECUTE')::text
+      ||':'||
+      has_function_privilege('lr_uat_ack_verifier',
+       'public.lr_uat_ack_signed_lease(text,text,text,text,text)','EXECUTE')::text
+      ||':'||
+      has_table_privilege('lr_uat_ack_verifier',
+       'public.lr_uat_device_ack_challenge','UPDATE')::text""")
+    must(perms=='true:false:false:false','incorrect_restricted_function_acl')
+    print('ACL PASS 01 verifier can call only signed-ACK wrapper; raw ACK and writes denied')
+    for role in ['lr_uat_ack_untrusted','lr_uat_ack_verifier']:
+      fails(cid,f"SET ROLE {role}; SELECT count(*) FROM lr_uat_device_enrolled_key",
+       'permission denied for table')
+      fails(cid,f"SET ROLE {role}; SELECT lr_uat_ack_signed_lease('x','y','z','w','v')",
+       'permission denied for function')
+    print('ACL PASS 02 neither verifier nor untrusted can read enrollment or call unsigned ACK')
+    fails(cid,"SET ROLE lr_uat_ack_untrusted; SELECT lr_uat_issue_direct_owner_grant('x','y')",
+      'permission denied for function')
+    fails(cid,"SET ROLE lr_uat_ack_verifier; UPDATE lr_uat_device_ack_challenge SET consumed_at=now()",
+      'permission denied for table')
+    print('ACL PASS 03 direct grant mint and direct challenge update denied')
+    for actor in ['lr_uat_ack_untrusted','lr_uat_ack_verifier']:
+      must(u.sql(cid,f"SELECT rolcanlogin::text FROM pg_roles WHERE rolname='{actor}'")=='false',
+       'test_principal_unexpected_login')
+    must(u.sql(cid,"SELECT rolcanlogin::text FROM pg_roles WHERE rolname='lr_uat_ack_function_owner'")=='false',
+         'privileged_function_owner_can_login')
+    fails(cid,"""SET ROLE lr_uat_ack_untrusted;
+      SELECT lr_uat_commit_signed_device_ack(
+      'uat_request_invalid','uat_grant_invalid',
+      repeat('a',64),repeat('b',64),repeat('c',64),repeat('d',64),
+      1,1,1,repeat('A',86),repeat('f',64))""",
+      'permission denied for function')
+    print('ACL PASS 04 NOLOGIN roles and client direct signed-ACK invocation denied')
     row=publisher.claim(cid,'uat_worker_device','uat_claim_device_1234567890')
     must(row and row['out_generation']==4,'wrong_latest_generation')
     signed=publisher.sign(row)
@@ -216,6 +260,38 @@ def verify(cid,device):
     must(u.sql(cid,"SELECT count(*) FROM lr_uat_signed_device_ack_receipt")=='1',
       'duplicate_crypto_ack')
     print('ACK PASS 12 exactly one fake signed proof and one ACK row persisted')
+    u.sql(cid,"""REVOKE EXECUTE ON FUNCTION public.lr_uat_commit_signed_device_ack(
+      text,text,text,text,text,text,bigint,bigint,bigint,text,text)
+      FROM lr_uat_ack_verifier""")
+    must(u.sql(cid,"""SELECT has_function_privilege('lr_uat_ack_verifier',
+      'public.lr_uat_commit_signed_device_ack(text,text,text,text,text,text,bigint,bigint,bigint,text,text)',
+      'EXECUTE')::text""")=='false','revocation_not_effective')
+    fails(cid,f"""SET ROLE lr_uat_ack_verifier;
+      SELECT lr_uat_commit_signed_device_ack(
+      {q(proof['requestId'])},{q(proof['grantId'])},
+      {q(proof['signedLeaseDigest'])},{q(proof['deviceKeySha256'])},
+      {q(proof['issuerKeySha256'])},{q(proof['nonceSha256'])},
+      {proof['generation']},{proof['grantRevision']},{proof['claimSeq']},
+      {q(proof['ackSignature'])},{q(proof['ackPacketSha256'])})""",
+      'permission denied for function')
+    print('ACL PASS 05 verifier EXECUTE revoked and takes effect on a new session')
+    u.sql(cid,"""GRANT EXECUTE ON FUNCTION public.lr_uat_commit_signed_device_ack(
+      text,text,text,text,text,text,bigint,bigint,bigint,text,text)
+      TO lr_uat_ack_verifier""")
+    must(commit(cid,proof)=='DEVICE_ACK_SIGNATURE_DUPLICATE_NOOP',
+      'restored_verifier_did_not_idempotently_read_receipt')
+    print('ACL PASS 06 regrant restores only narrow ACK call, existing receipt unchanged')
+    temp_shadow=u.sql(cid,f"""SET ROLE lr_uat_ack_verifier;
+      CREATE TEMP TABLE lr_uat_device_ack_challenge(dummy int);
+      SELECT lr_uat_commit_signed_device_ack(
+      {q(proof['requestId'])},{q(proof['grantId'])},
+      {q(proof['signedLeaseDigest'])},{q(proof['deviceKeySha256'])},
+      {q(proof['issuerKeySha256'])},{q(proof['nonceSha256'])},
+      {proof['generation']},{proof['grantRevision']},{proof['claimSeq']},
+      {q(proof['ackSignature'])},{q(proof['ackPacketSha256'])})""")
+    must('DEVICE_ACK_SIGNATURE_DUPLICATE_NOOP' in temp_shadow,
+      'temp_schema_shadowed_privileged_function_table')
+    print('ACL PASS 07 private SECURITY DEFINER path ignores client pg_temp table shadow')
 
 def main():
     must(sys.argv[1:]==['--confirm-synthetic-only'],'requires_explicit_fixture_optin')
