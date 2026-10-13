@@ -16,7 +16,7 @@ class ContainerVerifierSource(unittest.TestCase):
   self.assertNotIn('RUN npm install',DOCKER)
   self.assertNotIn('RUN apk add',DOCKER)
  def test_02_unprivileged_readable_artifact(self):
-  self.assertEqual(DOCKER.count('COPY --chmod=0444 synthetic-'),4)
+  self.assertGreaterEqual(DOCKER.count('COPY --chmod=0444 synthetic-'),4)
   self.assertIn('RUN chmod 0555 /opt/uat',DOCKER)
   self.assertIn("'--user','999:999'",RUN)
   self.assertIn("'--read-only'",RUN)

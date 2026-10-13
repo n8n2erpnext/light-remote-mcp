@@ -1,0 +1,84 @@
+/**
+ * rc50 disposable UAT ONLY. Persistent private-network verifier ingress.
+ * Ephemeral HMAC producer credential, replay cache, and scoped SCRAM reader.
+ * Deliberately cannot mint grants, sign origin, or authorize OS side effects.
+ */
+import http from 'node:http';
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import {verifyViaSyntheticDb} from './synthetic-owner-channel-verifier-pg.mjs';
+
+const PORT=39071;
+const HASH=/^[a-f0-9]{64}$/;
+const NONCE=/^[a-f0-9]{32}$/;
+const MAX_BODY=24000;
+const WINDOW_MS=30000;
+const seen=new Map();
+const send=(res,status,obj)=>{
+ res.writeHead(status,{'content-type':'application/json','cache-control':'no-store',
+   'x-content-type-options':'nosniff'});
+ res.end(JSON.stringify(obj)+'\n');
+};
+function key(){
+ const hex=fs.readFileSync('/tmp/lr_rc50_uat_ingress_hmac','utf8').trim();
+ if(!HASH.test(hex))throw Error('MISSING_INGRESS_IDENTITY');
+ return Buffer.from(hex,'hex');
+}
+function authenticate(body,headers){
+ try{
+  const ts=headers['x-uat-time'],nonce=headers['x-uat-nonce'];
+  const provided=headers['x-uat-signature'];
+  if(!/^\d{13}$/.test(ts??'')||!NONCE.test(nonce??'')||
+      !HASH.test(provided??''))return 401;
+  const num=Number(ts);
+  if(Math.abs(Date.now()-num)>WINDOW_MS)return 401;
+  const sha=crypto.createHash('sha256').update(body).digest('hex');
+  const mac=crypto.createHmac('sha256',key())
+     .update(ts+':'+nonce+':'+sha).digest();
+  if(!crypto.timingSafeEqual(mac,Buffer.from(provided,'hex')))return 401;
+  for(const [n,expiry] of seen){
+   if(expiry<Date.now())seen.delete(n);
+  }
+  if(seen.has(nonce))return 409;
+  if(seen.size>=1024)return 503;
+  seen.set(nonce,Date.now()+WINDOW_MS);
+  return 200;
+ }catch{return 503;}
+}
+const server=http.createServer((req,res)=>{
+ if(req.method==='GET'&&req.url==='/health'){
+  try{key();fs.accessSync('/tmp/lr_rc50_origin_reader_secret',fs.constants.R_OK);
+   return send(res,200,{ready:true,production:false});}
+  catch{return send(res,503,{ready:false,production:false});}
+ }
+ if(req.method!=='POST'||req.url!=='/v1/verify'){
+   return send(res,404,{decision:'DENY'});}
+ let chunks=[],len=0,over=false;
+ req.on('data',data=>{
+  len+=data.length;
+  if(len>MAX_BODY){over=true;chunks=[];}else if(!over)chunks.push(data);
+ });
+ req.on('end',()=>{
+  if(over)return send(res,413,{decision:'DENY',reason:'BODY_TOO_LARGE'});
+  const body=Buffer.concat(chunks);
+  const auth=authenticate(body,req.headers);
+  if(auth!==200)return send(res,auth,{decision:'DENY',reason:'INGRESS_NOT_AUTHORIZED'});
+  let input;
+  try{input=JSON.parse(body.toString('utf8'));}
+  catch{return send(res,400,{decision:'DENY',reason:'INPUT_INVALID'});}
+  if(!input||typeof input!=='object'||Array.isArray(input)||
+    Object.keys(input).sort().join(',')!=='envelope'){
+    return send(res,400,{decision:'DENY',reason:'UNTRUSTED_CONTEXT_FORBIDDEN'});}
+  const output=verifyViaSyntheticDb(input.envelope);
+  return send(res,200,output);
+ });
+ req.on('error',()=>send(res,400,{decision:'DENY',reason:'STREAM_ERROR'}));
+});
+if(process.argv.slice(2).join(' ')!=='--synthetic-service'||
+   process.env.LR_RC50_UAT_ONLY!=='1'){
+ process.stderr.write('rc50_synthetic_service_requires_optin\n');
+ process.exit(3);
+}
+server.requestTimeout=8000;
+server.headersTimeout=6000;
+server.listen(PORT,'0.0.0.0',()=>process.stdout.write('RC50_UAT_NODE_VERIFIER_LISTENING\n'));
