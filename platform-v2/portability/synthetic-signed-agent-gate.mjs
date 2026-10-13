@@ -66,12 +66,28 @@ export function signSyntheticCommand(privateKey,command){
   return {payload:command,signature:crypto.sign(null,bytes('command',COMMAND_FIELDS,command),privateKey).toString('base64url')};
 }
 function verifiedEnvelope(packet,key,type,fields,validate){
+  if(!keyType(key,'public'))err('invalid_fake_verifier');
   if(!keysExactly(packet,['payload','signature'])||typeof packet.signature!=='string'
     ||!SIG.test(packet.signature))err('invalid_signed_envelope');
   validate(packet.payload);
   if(!crypto.verify(null,bytes(type,fields,packet.payload),key,
     Buffer.from(packet.signature,'base64url')))err('signature_not_verified');
   return packet.payload;
+}
+/** UAT-only strict verifier, reusable inside an exclusive fixture receipt lock. */
+export function verifySyntheticEpochPacket(packet,publicKey){
+  return verifiedEnvelope(packet,publicKey,'epoch',EPOCH_FIELDS,validateEpoch);
+}
+export function verifySyntheticCommandPacket(packet,publicKey){
+  return verifiedEnvelope(packet,publicKey,'command',COMMAND_FIELDS,validateCommand);
+}
+export function syntheticSignedEpochDigest(epoch){
+  validateEpoch(epoch);
+  return sha(bytes('epoch',EPOCH_FIELDS,epoch));
+}
+export function syntheticSignedCommandDigest(command){
+  validateCommand(command);
+  return sha(bytes('command',COMMAND_FIELDS,command));
 }
 /**
  * Agent object must be SyntheticAgentGeneration (or an isolated test equivalent).

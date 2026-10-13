@@ -1,5 +1,9 @@
 # Light Remote portable state contract — rc.50
 
+## 2026-10-13 P0 — Ed25519 verified INSIDE Linux locked fake Agent receipt authority
+
+See [SIGNED_AGENT_RECEIPT_AUTHORITY_UAT.md](./SIGNED_AGENT_RECEIPT_AUTHORITY_UAT.md). Extends the already-isolated synthetic Linux authority with one-time test-only Ed25519 verifier pinning and exact signed fake epoch/command verification while the worker holds the real `flock`; rejects rogue/tampered signatures, stale epoch/grant, expired commands, duplicate IDs and unsigned fake-marker bypass. Uses worker-local time, file+directory fsync and crash `UNCERTAIN` receipt quarantine; still **no real OS effects**. On VPS-ARM **25/25 signed receipt E2E tests**, **9/9 signed source guards**, combined **113/113** Node tests, and original **20/20** synthetic Ed25519 gate tests PASS. The trust bootstrap is a throwaway fixture key, NOT actual owner/Wall A/B authorization; no offline revocation proof, real side-effect fencing, native Windows/macOS lock or production deployment. Global cutover remains **NOT_READY**.
+
 ## 2026-10-13 P0 — Linux kernel-locked fake Agent receipt authority
 
 See [AGENT_RECEIPT_AUTHORITY_LINUX_UAT.md](./AGENT_RECEIPT_AUTHORITY_LINUX_UAT.md). A new **unwired, synthetic-only** process authority holds Linux `flock` on a stable local receipt inode, serializes fake command receipts with atomic replace + file/parent-directory fsync, rejects duplicates and corrupted snapshots, and conservatively transitions a fake STARTED receipt to UNCERTAIN after `SIGKILL` without executing any real OS action. **19/19** Node process tests and **7/7** source guards PASS on VPS-ARM; existing **69/69** receipt decision/dispatch tests and independent **8-process** inode-lock UAT also PASS. This is strictly a private fixture experiment — not a deployed or integrated Agent, not a real grant signer/epoch issuer, not Windows/macOS locking, and not global writer fencing. No production promotion authorized.
