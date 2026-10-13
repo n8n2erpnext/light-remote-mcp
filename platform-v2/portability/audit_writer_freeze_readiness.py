@@ -52,14 +52,29 @@ def audit():
         require(row['classification']==(expected.get(label) if label in expected else ptypes.get(label)),
                 'writer_classification_drift:'+label)
         data=source(row['source'])
-        require(row.get('write_marker')=='fs.writeFileSync(' and
-                row['write_marker'] in data,'write_path_marker_missing:'+label)
-        require(row.get('flushing')=='synchronous_process_io_only' and
-                all(row.get(x) is False for x in
-                    ('fsync_proven','source_fence_proven','consistent_generation_proven')),
-                'unsupported_fence_or_durability_claim:'+label)
-        require(FSYNC_RE.search(data) is None,
-                'new_fsync_requires_reaudit:'+label)
+        if row.get('write_marker')=='durableAtomicWriteSync(':
+            require(row['write_marker'] in data and
+                    "from '../lib/durable-atomic-file.mjs'" in data,
+                    'durable_writer_import_or_call_missing:'+label)
+            require(row.get('flushing')=='sync_file_and_parent_directory'
+                    and row.get('fsync_proven') is True
+                    and row.get('source_fence_proven') is False
+                    and row.get('consistent_generation_proven') is False,
+                    'durable_writer_overclaims_global_fence:'+label)
+            require('fs.writeFileSync(' not in data and
+                    'fs.renameSync(' not in data,
+                    'unconverted_writer_still_present:'+label)
+        else:
+            require(row.get('write_marker')=='fs.writeFileSync(' and
+                    row['write_marker'] in data,
+                    'write_path_marker_missing:'+label)
+            require(row.get('flushing')=='synchronous_process_io_only' and
+                    all(row.get(x) is False for x in
+                        ('fsync_proven','source_fence_proven',
+                         'consistent_generation_proven')),
+                    'unsupported_fence_or_durability_claim:'+label)
+            require(FSYNC_RE.search(data) is None,
+                    'new_fsync_requires_reaudit:'+label)
     deps=manifest['dependencies']
     require(len(deps)==5 and len({d['id'] for d in deps})==5,
             'dependency_risk_inventory_drift')
@@ -82,13 +97,27 @@ def audit():
                     ('await file.writeFile(batch', 'await file.sync()',
                      'await dir.sync()', 'fs.constants.O_NOFOLLOW')),
                     'durable_audit_append_source_drift')
+    helper=source('operator-host/durable-audit-append.mjs')
+    atomic=ROOT/'lib/durable-atomic-file.mjs'
+    require(atomic.is_file() and not atomic.is_symlink(),
+            'shared_atomic_writer_missing')
+    atomic_source=atomic.read_text(encoding='utf8')
+    require(all(mark in atomic_source for mark in
+                ('io.fsyncSync(fd)', 'io.fsyncSync(dirFd)',
+                 'io.renameSync(tmp,file)', 'io.constants.O_EXCL',
+                 'io.constants.O_NOFOLLOW',
+                 'failed=error instanceof Error')),
+            'shared_atomic_writer_durability_contract_missing')
     require(len(manifest.get('required_remediations',[]))>=8 and
             bool(manifest.get('reason_not_ready')),
             'missing_gap_register')
+    durable=sum(row['fsync_proven'] is True for row in operator+plugins)
     return {'status':'NOT_READY',
             'operator_writers':len(operator),'plugin_writers':len(plugins),
             'known_unmitigated_dependencies':len(deps),
-            'fsync_proven':0,'single_writer_authority_proven':False}
+            'fsync_proven':durable,
+            'fsync_not_proven':len(operator)+len(plugins)-durable,
+            'single_writer_authority_proven':False}
 
 if __name__=='__main__':
     try:

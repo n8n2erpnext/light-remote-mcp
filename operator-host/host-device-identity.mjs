@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { durableAtomicWriteSync } from '../lib/durable-atomic-file.mjs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 
@@ -27,8 +28,8 @@ export function loadOrCreateHostDeviceIdentity(file){
     createdAt:Date.now()
   };
   const tmp=`${target}.${process.pid}.tmp`;
-  fs.writeFileSync(tmp,`${JSON.stringify(row,null,2)}\n`,{mode:0o600});
-  fs.chmodSync(tmp,0o600);fs.renameSync(tmp,target);fs.chmodSync(target,0o600);
+  durableAtomicWriteSync(target,`${JSON.stringify(row,null,2)}\n`,{mode:0o600});
+  fs.chmodSync(target,0o600);
   return {...row,publicKeySha256:sha256(Buffer.from(row.publicKey,'base64'))};
 }
 
@@ -48,5 +49,5 @@ export function ensureHostCompanionState(file,{identity,binding,signer,nodeId}){
     cloud:prior.cloud||{desiredConnected:false,state:'dormant',connectionId:null,hardExpiresAt:null,lastError:null,lastDisconnectedAt:Date.now()}
   };
   const dir=path.dirname(target);fs.mkdirSync(dir,{recursive:true,mode:0o750});const tmp=`${target}.${process.pid}.tmp`;
-  fs.writeFileSync(tmp,`${JSON.stringify(state,null,2)}\n`,{mode:0o600});fs.chmodSync(tmp,0o600);fs.renameSync(tmp,target);fs.chmodSync(target,0o600);return state;
+  durableAtomicWriteSync(target,`${JSON.stringify(state,null,2)}\n`,{mode:0o600});fs.chmodSync(target,0o600);return state;
 }

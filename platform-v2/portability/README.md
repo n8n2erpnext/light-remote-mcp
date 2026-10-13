@@ -1,5 +1,9 @@
 # Light Remote portable state contract — rc.50
 
+## 2026-10-13 — P0 real JSON writer durability: 5/18, NOT_READY
+
+See [REGISTRY_DURABILITY_PARTIAL_20261013.md](./REGISTRY_DURABILITY_PARTIAL_20261013.md) and [finite P0 closure gates](./RC50_P0_CLOSEOUT_GATES_20261013.md). Added `lib/durable-atomic-file.mjs` and wired actual rc50 dev device/enrollment/signer/host-identity/companion writers into full file + parent-dir fsync atomic replacement. **7/7 helper failure tests, 1/1 actual registry reload test, 11/11 writer-gap guards, and 34/34 platform Node regression PASS.** Audit confirms `fsync_proven=5`, **13 writers still unverified**, global single-writer fence false. One `device-connection` editing request was tool-blocked, partial work reverted rather than bypassed; no production deployment.
+
 ## 2026-10-13 — P0 closure gates + ACTUAL dev Operator audit file/dir fsync
 
 Read [RC50_P0_CLOSEOUT_GATES_20261013.md](./RC50_P0_CLOSEOUT_GATES_20261013.md) **before further rc50 development**. Five finite gates (global writer authority, real authenticated owner/agent origin, durability/quiesce, cross-host portability, release/CI) remain NOT_READY. This checkpoint removes one non-synthetic durability gap: real dev `operator-host/executor.mjs` audit append now goes through `appendDurableAuditBatch`, synchronizing file and parent directory before a successful `AuditAppendBarrier` acknowledgement. **7/7 new fault-injection filesystem tests, 8/8 barrier tests, 10/10 writer gap regression and 34/34 platform Node tests PASS.** Writer audit correctly remains NOT_READY with 14 Operator + 4 Plugin registries missing fsync/source fence proof. No prod operation, no release readiness claim. Stop adding synthetic P0 primitives without removing a closure gate.

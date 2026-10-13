@@ -1,5 +1,7 @@
 # rc50 P0 CLOSEOUT — no more incremental synthetic-only victory laps
 
+**Update 2026-10-13:** [Real registry durability batch](./REGISTRY_DURABILITY_PARTIAL_20261013.md): five actual dev Operator writer surfaces now use synchronized atomic-file and parent-dir fsync (DEVICE, ENROLLMENT, ENROLLMENT_SIGNER, HOST_DEVICE_IDENTITY, HOST_COMPANION); **13/18 still not proved**. Writer audit remains `NOT_READY`, and **all five P0 closure gates remain open**. An attempted change in `device-connection-registry.mjs` was tool-blocked and cleanly reverted, not circumvented.
+
 **Source audited:** 2026-10-13 on feature/rc50-mjs-scale-20261011, VPS-ARM, NO production/staging modification.
 **Owner requirement:** scale portability should be prepared now (ARM→AMD / larger server / future k3s), not immediately demonstrate 5k real users or migrate live traffic. Preserve Node ESM (.mjs), Express 5 and existing protocol. P0 is completed only when executable end-to-end acceptance and rollback are defensible, not because another primitive passes in isolation.
 

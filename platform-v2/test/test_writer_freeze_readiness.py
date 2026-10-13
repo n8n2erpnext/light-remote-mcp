@@ -29,13 +29,17 @@ class WriterGapTests(unittest.TestCase):
         self.assertEqual(result['status'],'NOT_READY')
         self.assertEqual(result['operator_writers'],14)
         self.assertEqual(result['plugin_writers'],4)
+        self.assertEqual(result['fsync_proven'],5)
+        self.assertEqual(result['fsync_not_proven'],13)
         self.assertFalse(result['single_writer_authority_proven'])
     def test_removed_critical_writer_fails(self):
         self.expect_reject(lambda x:x['operator_writers'].pop(),'operator_writer_inventory_drift')
     def test_duplicate_writer_fails(self):
         self.expect_reject(lambda x:x['operator_writers'].__setitem__(1,x['operator_writers'][0]),'operator_writer_inventory_drift')
     def test_claim_fsync_without_evidence_fails(self):
-        self.expect_reject(lambda x:x['operator_writers'][0].update(fsync_proven=True),'unsupported_fence_or_durability_claim')
+        self.expect_reject(lambda x:x['operator_writers'][5].update(fsync_proven=True),'unsupported_fence_or_durability_claim')
+    def test_remove_atomic_writer_proof_fails(self):
+        self.expect_reject(lambda x:x['operator_writers'][0].update(source_fence_proven=True),'durable_writer_overclaims_global_fence')
     def test_claim_shared_generation_without_evidence_fails(self):
         self.expect_reject(lambda x:x['plugin_writers'][1].update(consistent_generation_proven=True),'unsupported_fence_or_durability_claim')
     def test_remove_background_outbox_pump_fails(self):

@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { durableAtomicWriteSync } from '../lib/durable-atomic-file.mjs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { deviceChannelMessage, deviceHeartbeatMessage, devicePolicyMessage, normalizeDeviceCapabilities } from './device-proof.mjs';
@@ -88,7 +89,7 @@ export class EnrollmentRegistry {
       const { publicKey, privateKey } = crypto.generateKeyPairSync('ed25519');
       const dir = path.dirname(this.signerFile); fs.mkdirSync(dir,{recursive:true,mode:0o750});
       const payload = { schemaVersion:1, algorithm:'Ed25519', privateKey:privateKey.export({format:'der',type:'pkcs8'}).toString('base64'), publicKey:publicKey.export({format:'der',type:'spki'}).toString('base64') };
-      fs.writeFileSync(this.signerFile, `${JSON.stringify(payload,null,2)}\n`, {mode:0o600}); fs.chmodSync(this.signerFile,0o600);
+      durableAtomicWriteSync(this.signerFile, `${JSON.stringify(payload,null,2)}\n`, {mode:0o600}); fs.chmodSync(this.signerFile,0o600);
       return { privateKey, publicKey, publicEncoded:payload.publicKey };
     } catch (error) { throw new EnrollmentError(`enrollment_signer_error:${error?.message || 'unknown'}`, 500); }
   }
@@ -97,8 +98,7 @@ export class EnrollmentRegistry {
     if (!this.stateFile) return;
     const dir = path.dirname(this.stateFile); fs.mkdirSync(dir,{recursive:true,mode:0o750});
     const payload = { schemaVersion:1, pending:[...this.pending.values()], bindings:[...this.bindings.values()] };
-    const tmp = `${this.stateFile}.${process.pid}.tmp`;
-    fs.writeFileSync(tmp, `${JSON.stringify(payload,null,2)}\n`, {mode:0o600}); fs.chmodSync(tmp,0o600); fs.renameSync(tmp,this.stateFile);
+    durableAtomicWriteSync(this.stateFile, `${JSON.stringify(payload,null,2)}\n`, {mode:0o600});
   }
   _load() {
     if (!this.stateFile || !fs.existsSync(this.stateFile)) return;
