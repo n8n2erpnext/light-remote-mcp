@@ -1,5 +1,9 @@
 # Light Remote portable state contract — rc.50
 
+## 2026-10-13 — Actual rc50 feature-branch CI / fail-closed P0 release gate
+
+Read [RC50_CI_RELEASE_GATES_20261013.md](./RC50_CI_RELEASE_GATES_20261013.md). The existing GitHub Actions workflow previously ignored changes outside `platform-v2/**`. It now triggers on actual Operator/Plugin/lib and dependency changes; runs full Node regression, writer source inventory and negative tests; reports **0/5 verified P0 release gates** without failing ordinary dev builds; explicit manual release invokes a **nonzero fail-closed** gate until owner/Agent, global writer, durability, cross-host recovery and E2E proofs are obtained. Local **6/6 new gate negative tests + 43/43 Node + 11/11 writer guards PASS**. GitHub Actions remote job result must be verified separately; no production release claim. PostgreSQL runtime adapter was safety-blocked, unused dependency restored.
+
 ## 2026-10-13 — Dev Operator / Plugin local ingress freeze and partial drain
 
 See [LOCAL_INGRESS_FREEZE_DRAIN_UAT_20261013.md](./LOCAL_INGRESS_FREEZE_DRAIN_UAT_20261013.md). `LR_RC50_DEV_LOCAL_FREEZE=1` explicitly enables SIGUSR2-triggered, irreversible **process-local** freeze on the real Operator Unix socket and Plugin Express ingress, before mutation routes/Paddle/MCP. New traffic gets 503, GET health shows phase and in-flight tracked request count. Existing HTTP and scheduled support outbox pump are allowed to finish; new scheduled pumps stop, Operator integrated heartbeat/reaper pause. **9/9 Node tests including actual private loopback HTTP, unfinished Operator job census and fail-closed census fault, plus 43/43 full platform regression PASS.** Global per-device writer epoch, old-host cutoff, all in-flight Agent jobs, consistent snapshot watermark and cross-host restore remain **NOT_READY**, audit still 16/18 fsync-proven and 2 previously safety-blocked writers.

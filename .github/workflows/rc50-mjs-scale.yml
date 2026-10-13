@@ -2,9 +2,16 @@ name: RC50 MJS Scale UAT
 on:
   push:
     branches: [feature/rc50-mjs-scale-20261011]
-    paths: [platform-v2/**, .github/workflows/rc50-mjs-scale.yml]
+    paths: [platform-v2/**, operator-host/**, plugin-server/**, lib/**, package.json, package-lock.json, .github/workflows/rc50-mjs-scale.yml]
   pull_request:
-    paths: [platform-v2/**, .github/workflows/rc50-mjs-scale.yml]
+    paths: [platform-v2/**, operator-host/**, plugin-server/**, lib/**, package.json, package-lock.json, .github/workflows/rc50-mjs-scale.yml]
+  workflow_dispatch:
+    inputs:
+      require_ready:
+        description: 'Enforce all five release P0 exit gates (fails closed until verified)'
+        required: true
+        type: boolean
+        default: true
 permissions:
   contents: read
 jobs:
@@ -15,8 +22,20 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Unit contracts (no external systems)
-        run: node --test platform-v2/test/storage.test.mjs
+      - name: Install Node dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Full platform and actual Operator/Plugin local regression
+        run: node --test platform-v2/test/*.test.mjs
+      - name: Real writer source gap audit and negative guards
+        run: |
+          python3 -B platform-v2/portability/audit_writer_freeze_readiness.py
+          python3 -B platform-v2/test/test_writer_freeze_readiness.py
+          python3 -B platform-v2/test/test_p0_release_gate.py
+      - name: Publish finite P0 gate report (development does not claim READY)
+        run: python3 -B platform-v2/scripts/p0-release-gate.py --report
+      - name: Fail closed if release was requested without P0 acceptance
+        if: github.event_name == 'workflow_dispatch' && inputs.require_ready
+        run: python3 -B platform-v2/scripts/p0-release-gate.py --require-ready
       - name: Create CI-only secrets (never committed)
         working-directory: platform-v2
         run: |
