@@ -1,5 +1,9 @@
 # Light Remote portable state contract — rc.50
 
+## 2026-10-13 — Restart-denied local freeze marker on actual dev Operator / Plugin
+
+See [LOCAL_FREEZE_RESTART_MARKER_UAT_20261013.md](./LOCAL_FREEZE_RESTART_MARKER_UAT_20261013.md). Both opt-in services now require separate protected marker paths; SIGUSR2 local freeze uses atomic file+directory fsync to persist intent before local drained acknowledgement. A **fresh independent Node process refuses startup** if the marker remains; malformed/unsafe markers and injected fsync faults fail closed. **7/7 restart marker UAT and 50/50 full Node suite PASS**, no production processes run. Critical residual: marker write could fail before a crash, other host/Agent still writes, and global writer epoch / full checkpoint / actual ARM→AMD restore are **NOT_READY**. Prior commit `f283878` GitHub Actions run #31 passed all real CI steps.
+
 ## 2026-10-13 — Actual rc50 feature-branch CI / fail-closed P0 release gate
 
 Read [RC50_CI_RELEASE_GATES_20261013.md](./RC50_CI_RELEASE_GATES_20261013.md). The existing GitHub Actions workflow previously ignored changes outside `platform-v2/**`. It now triggers on actual Operator/Plugin/lib and dependency changes; runs full Node regression, writer source inventory and negative tests; reports **0/5 verified P0 release gates** without failing ordinary dev builds; explicit manual release invokes a **nonzero fail-closed** gate until owner/Agent, global writer, durability, cross-host recovery and E2E proofs are obtained. Local **6/6 new gate negative tests + 43/43 Node + 11/11 writer guards PASS**. GitHub Actions remote job result must be verified separately; no production release claim. PostgreSQL runtime adapter was safety-blocked, unused dependency restored.

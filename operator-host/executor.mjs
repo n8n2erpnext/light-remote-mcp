@@ -50,7 +50,12 @@ import { handlePluginRoutes } from './executor-routes-plugin.mjs';
 import { RealRemoteLiveRegistry } from './real-remote-live-registry.mjs';
 import { createNativeActivityFormatter } from './executor-native-activity.mjs';
 
-const localFreezeGate=new LocalIngressFreezeGate({enabled:process.env.LR_RC50_DEV_LOCAL_FREEZE==='1'});
+const freezeOptIn=process.env.LR_RC50_DEV_LOCAL_FREEZE==='1';
+if(freezeOptIn&&!process.env.LR_RC50_OPERATOR_FREEZE_MARKER_PATH)
+  throw Error('LOCAL_FREEZE_OPERATOR_MARKER_REQUIRED');
+const localFreezeGate=new LocalIngressFreezeGate({enabled:freezeOptIn,
+  markerPath:freezeOptIn?process.env.LR_RC50_OPERATOR_FREEZE_MARKER_PATH:null,
+  service:'operator'});
 const SOCKET_PATH = process.env.OPERATOR_SOCKET || '/run/gpt-vps-operator/operator.sock';
 const KEY_FILE = process.env.OPERATOR_KEY_FILE || '/home/ubuntu/.config/gpt-vps-operator/operator.private.json';
 const LOG_DIR = process.env.OPERATOR_LOG_DIR || '/var/log/gpt-vps-operator';
@@ -1148,10 +1153,12 @@ function shutdown(signal) {
   setTimeout(() => process.exit(1), 5000).unref();
 }
 if(localFreezeGate.enabled)process.on('SIGUSR2',()=>{
-  void localFreezeGate.freeze().then(state=>{
-    console.log(JSON.stringify({event:'rc50_local_ingress_drained',...state,
-      caveat:'local_operator_jobs_tracked_but_other_background_and_multihost_writers_not_fenced'}));
-  });
+  try{
+    void localFreezeGate.freeze().then(state=>{
+      console.log(JSON.stringify({event:'rc50_local_ingress_drained',...state,
+        caveat:'local_operator_jobs_tracked_but_other_background_and_multihost_writers_not_fenced'}));
+    }).catch(e=>console.error('[rc50-local-freeze] refused',e?.message));
+  }catch(e){console.error('[rc50-local-freeze] marker_write_failed',e?.message);}
 });
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));

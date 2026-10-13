@@ -22,7 +22,12 @@ import { installLegacyToolCallCompat } from './legacy-tool-call-compat.mjs';
 import { LocalIngressFreezeGate } from '../lib/local-ingress-freeze.mjs';
 
 
-const localFreezeGate=new LocalIngressFreezeGate({enabled:process.env.LR_RC50_DEV_LOCAL_FREEZE==='1'});
+const freezeOptIn=process.env.LR_RC50_DEV_LOCAL_FREEZE==='1';
+if(freezeOptIn&&!process.env.LR_RC50_PLUGIN_FREEZE_MARKER_PATH)
+  throw Error('LOCAL_FREEZE_PLUGIN_MARKER_REQUIRED');
+const localFreezeGate=new LocalIngressFreezeGate({enabled:freezeOptIn,
+  markerPath:freezeOptIn?process.env.LR_RC50_PLUGIN_FREEZE_MARKER_PATH:null,
+  service:'plugin'});
 const app=express();
 // createMcpExpressApp() installs express.json() with Express' default ~100 KB limit.
 // Device-channel result envelopes can legitimately exceed that even after client-side compaction,
@@ -138,10 +143,12 @@ function shutdown(signal){
   server.close(()=>{clearTimeout(deadline);process.exit(0);});
 }
 if(localFreezeGate.enabled)process.on('SIGUSR2',()=>{
-  void localFreezeGate.freeze().then(state=>{
-    console.log(JSON.stringify({event:'rc50_local_ingress_drained',...state,
-      caveat:'non_http_process_and_multihost_writers_not_fenced'}));
-  });
+  try{
+    void localFreezeGate.freeze().then(state=>{
+      console.log(JSON.stringify({event:'rc50_local_ingress_drained',...state,
+        caveat:'non_http_process_and_multihost_writers_not_fenced'}));
+    }).catch(e=>console.error('[rc50-local-freeze] refused',e?.message));
+  }catch(e){console.error('[rc50-local-freeze] marker_write_failed',e?.message);}
 });
 process.once('SIGTERM',()=>shutdown('SIGTERM'));
 process.once('SIGINT',()=>shutdown('SIGINT'));
