@@ -1,5 +1,9 @@
 # Light Remote portable state contract — rc.50
 
+## 2026-10-13 P0 — Linux kernel-locked fake Agent receipt authority
+
+See [AGENT_RECEIPT_AUTHORITY_LINUX_UAT.md](./AGENT_RECEIPT_AUTHORITY_LINUX_UAT.md). A new **unwired, synthetic-only** process authority holds Linux `flock` on a stable local receipt inode, serializes fake command receipts with atomic replace + file/parent-directory fsync, rejects duplicates and corrupted snapshots, and conservatively transitions a fake STARTED receipt to UNCERTAIN after `SIGKILL` without executing any real OS action. **19/19** Node process tests and **7/7** source guards PASS on VPS-ARM; existing **69/69** receipt decision/dispatch tests and independent **8-process** inode-lock UAT also PASS. This is strictly a private fixture experiment — not a deployed or integrated Agent, not a real grant signer/epoch issuer, not Windows/macOS locking, and not global writer fencing. No production promotion authorized.
+
 The intent is **move the same system, not replace it**. Node.js ESM and the MCP, OAuth, A/B, device and Fleet contracts stay stable. Building the portability foundation is required now; using multiple replicas or k3s is a capacity decision for later.
 
 ## 2026-10-13 update — isolated two-Compose cold-move PASS (not cross-host cutover)
