@@ -116,6 +116,8 @@ function validState(s){
     &&s.revokedGrantIds.every(id=>ID.test(id))
     &&new Set(s.revokedGrantIds).size===s.revokedGrantIds.length);
 }
+/** UAT-only: validates restored grant state before any mutation/recovery. */
+export function validFakeDeviceGrantState(value){return validState(value);}
 function bound(p,s){
   return p.ownerAccountId===s.ownerAccountId&&p.accountId===s.accountId
     &&p.deviceId===s.deviceId&&(!Object.hasOwn(p,'agentId')||p.agentId===s.agentId)

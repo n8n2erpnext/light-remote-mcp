@@ -37,6 +37,8 @@ function snapshotOK(s) {
     STATES.has(row.status) && typeof row.digest === 'string' && HASH.test(row.digest)
   );
 }
+/** UAT-only: rejects corrupt restored snapshots before grant mutations. */
+export function validSyntheticReceiptSnapshot(value){return snapshotOK(value);}
 function clone(s) { return JSON.parse(JSON.stringify(s)); }
 function baseCheck(s, req) {
   if (!snapshotOK(s)) return reject('INVALID_OR_CORRUPT_RECEIPT_SNAPSHOT');

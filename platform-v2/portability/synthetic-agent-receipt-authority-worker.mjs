@@ -12,12 +12,17 @@ import os from 'node:os';
 import crypto from 'node:crypto';
 import {
   makeEmptySyntheticSnapshot, evaluateSyntheticReceiptDecision,
+  validSyntheticReceiptSnapshot,
 } from './rc50_agent_receipt_decision.mjs';
 import {
   verifySyntheticEpochPacket, verifySyntheticCommandPacket,
   syntheticSignedEpochDigest, syntheticSignedCommandDigest,
   syntheticKeyFingerprint,
 } from './synthetic-signed-agent-gate.mjs';
+import {
+  evaluateFakeAbGrantLease,makeFakeDeviceGrantState,
+  validFakeDeviceGrantState,fakePublicKeyFingerprint,
+} from './synthetic-ab-grant-lease.mjs';
 
 const [root, encoded] = process.argv.slice(2);
 function refuse(reason) {
@@ -82,6 +87,118 @@ function persist(data) {
     if (fd != null) try { fs.closeSync(fd); } catch {}
     try { fs.rmSync(tmp,{force:true}); } catch {}
   }
+}
+function readPinnedPublicKey(spki) {
+  if(typeof spki!=='string'||!/^[A-Za-z0-9_-]{40,700}$/.test(spki))
+    throw Error('invalid_fixture_key');
+  const pub=crypto.createPublicKey({
+    key:Buffer.from(spki,'base64url'),format:'der',type:'spki'
+  });
+  if(pub.asymmetricKeyType!=='ed25519'||
+    pub.export({format:'der',type:'spki'}).toString('base64url')!==spki)
+    throw Error('noncanonical_fixture_key');
+  return pub;
+}
+const boundDeny=reason=>Object.freeze({decision:'DENY',reason,physicalExecutionAuthorized:false});
+function checkedBoundRequest(current,request) {
+  // AB revocation high-watermark AND receipt state must be committed together
+  // under the SAME held OS lock. This UAT never performs real physical work.
+  const grant=current.grantState;
+  if(!grant||typeof grant!=='object'||!current.signedVerifierSpki)
+    return boundDeny('BOUND_GRANT_STATE_MISSING');
+  if(!validFakeDeviceGrantState(grant)||
+     !validSyntheticReceiptSnapshot(current) ||
+     current.generation!==grant.floorGeneration ||
+     current.grantRevision!==grant.floorGrantRevision ||
+     (current.generation>0&&!/^[a-f0-9]{64}$/.test(current.signedEpochDigest||'')))
+    return boundDeny('BOUND_DURABLE_STATE_CORRUPT');
+  let wall,issuer,writer;
+  try {
+    wall=readPinnedPublicKey(current.wallVerifierSpki);
+    issuer=readPinnedPublicKey(current.leaseVerifierSpki);
+    writer=readPinnedPublicKey(current.signedVerifierSpki);
+  }catch{return boundDeny('BOUND_ISSUER_KEY_INVALID');}
+  if(fakePublicKeyFingerprint(wall)!==grant.wallPin||
+     fakePublicKeyFingerprint(issuer)!==grant.issuerPin ||
+     syntheticKeyFingerprint(writer)!==current.signedVerifierSha ||
+     current.accountId!==grant.accountId ||
+     current.deviceId!==grant.deviceId ||current.agentId!==grant.agentId)
+    return boundDeny('BOUND_IDENTITY_OR_ISSUER_PIN_MISMATCH');
+  const now=Date.now(); // local worker clock, never request.nowMs
+  if(request.operation==='bound_recover'){
+    const r=checkedSignedRequest(current,{operation:'signed_recover'});
+    return r.decision==='PROPOSE_DURABLE_MUTATION'?
+      {...r,next:{...r.next,grantState:grant}}:r;
+  }
+  if(request.operation==='bound_revoke'){
+    const r=evaluateFakeAbGrantLease(grant,{
+      operation:'revoke',signedRevocation:request.signedRevocation
+    },{wallPublicKey:wall,issuerPublicKey:issuer,timeSource:()=>now});
+    if(r.decision!=='PROPOSE_DURABLE_STATE')return r;
+    const receipts=Object.fromEntries(Object.entries(current.receipts).map(([id,row])=>[
+      id,{...row,status:row.status==='accepted'?'fenced':
+        row.status==='started'?'uncertain':row.status}
+    ]));
+    return {decision:'PROPOSE_DURABLE_MUTATION',
+      reason:'BOUND_REVOCATION_DURABLE_FENCE',physicalExecutionAuthorized:false,
+      next:{...current,grantState:r.next,receipts}};
+  }
+  if(!['bound_accept','bound_start','bound_complete'].includes(request.operation))
+    return boundDeny('UNKNOWN_BOUND_OPERATION');
+  // Check signed epoch/command against both pinned cryptographic issuer chains;
+  // a forged Wall approval, lease, command or writer epoch cannot pass this gate.
+  let signedEpoch,signedCommand;
+  try{
+    const pub=readPinnedPublicKey(current.signedVerifierSpki);
+    signedEpoch=verifySyntheticEpochPacket(request.signedEpoch,pub);
+    signedCommand=verifySyntheticCommandPacket(request.signedCommand,pub);
+  }catch{return boundDeny('BOUND_SIGNED_EPOCH_OR_COMMAND_INVALID');}
+  const lease=request.signedLease?.payload;
+  if(!lease||lease.kind!=='fake_lease' ||
+     signedEpoch.accountId!==grant.accountId||
+     signedEpoch.deviceId!==grant.deviceId||
+     signedEpoch.agentId!==grant.agentId||
+     signedEpoch.generation!==lease.generation||
+     signedEpoch.grantRevision!==lease.grantRevision||
+     signedCommand.generation!==lease.generation||
+     signedCommand.grantRevision!==lease.grantRevision)
+    return boundDeny('BOUND_WRITER_EPOCH_DOES_NOT_MATCH_LEASE');
+  const accepting=request.operation==='bound_accept';
+  const decision=evaluateFakeAbGrantLease(grant,{
+    operation:accepting?'accept':'check',
+    signedApproval:request.signedApproval,signedLease:request.signedLease
+  },{wallPublicKey:wall,issuerPublicKey:issuer,timeSource:()=>now});
+  if(decision.decision!=='PROPOSE_DURABLE_STATE')return decision;
+  const nextWithGrant={...current,grantState:decision.next};
+  if(accepting){
+    const advance=checkedSignedRequest(nextWithGrant,{
+      operation:'signed_epoch',signedEpoch:request.signedEpoch
+    });
+    if(!['PROPOSE_DURABLE_MUTATION','NOOP'].includes(advance.decision))return advance;
+    const afterEpoch=advance.decision==='PROPOSE_DURABLE_MUTATION'?
+      advance.next:nextWithGrant;
+    const accepted=checkedSignedRequest(afterEpoch,{
+      operation:'signed_accept',signedEpoch:request.signedEpoch,
+      signedCommand:request.signedCommand
+    });
+    if(accepted.decision==='DENY')return accepted;
+    if(accepted.decision==='NOOP')return {
+      decision:'NOOP',reason:'BOUND_DUPLICATE_RECEIPT',
+      physicalExecutionAuthorized:false};
+    return {decision:'PROPOSE_DURABLE_MUTATION',
+      reason:'BOUND_APPROVAL_EPOCH_AND_RECEIPT_PERSISTED',
+      physicalExecutionAuthorized:false,
+      next:{...accepted.next,grantState:decision.next}};
+  }
+  const receipt=checkedSignedRequest(nextWithGrant,{
+    operation:request.operation==='bound_start'?'signed_start':'signed_complete',
+    signedEpoch:request.signedEpoch,signedCommand:request.signedCommand
+  });
+  if(receipt.decision!=='PROPOSE_DURABLE_MUTATION')return receipt;
+  return {decision:'PROPOSE_DURABLE_MUTATION',
+    reason:request.operation==='bound_start'?'BOUND_FAKE_STARTED':'BOUND_FAKE_COMPLETED',
+    physicalExecutionAuthorized:false,
+    next:{...receipt.next,grantState:decision.next}};
 }
 function checkedSignedRequest(current,request) {
   const deny=(reason)=>({decision:'DENY',reason,physicalExecutionAuthorized:false});
@@ -180,7 +297,37 @@ try {
   if (!request || typeof request!=='object' || Array.isArray(request))
     refuse('invalid_request_shape');
   const current=readSnapshot();
-  if(request.operation==='initialize_signed'){
+  if(request.operation==='initialize_bound'){
+    if(current!==null)refuse('fixture_already_initialized');
+    let writer,wall,issuer;
+    try {
+      writer=readPinnedPublicKey(request.verifierSpki);
+      wall=readPinnedPublicKey(request.wallVerifierSpki);
+      issuer=readPinnedPublicKey(request.leaseVerifierSpki);
+    }catch{refuse('invalid_bound_issuer_keys');}
+    const fp=[writer,wall,issuer].map(syntheticKeyFingerprint);
+    if(new Set(fp).size!==3)refuse('bound_issuer_key_reuse_disallowed');
+    const initial=makeEmptySyntheticSnapshot();
+    if(request.deviceKeySha256===undefined)refuse('device_key_fingerprint_required');
+    let grantState;
+    try{
+      grantState=makeFakeDeviceGrantState({
+        ownerAccountId:initial.accountId,accountId:initial.accountId,
+        deviceId:initial.deviceId,agentId:initial.agentId,
+        deviceKeySha256:request.deviceKeySha256,
+        wallPublicKey:wall,issuerPublicKey:issuer
+      });
+    }catch{refuse('invalid_bound_identity');}
+    persist({...initial,
+      signedVerifierSpki:request.verifierSpki,
+      signedVerifierSha:syntheticKeyFingerprint(writer),signedEpochDigest:null,
+      wallVerifierSpki:request.wallVerifierSpki,
+      leaseVerifierSpki:request.leaseVerifierSpki,
+      grantState});
+    process.stdout.write(JSON.stringify({
+      decision:'BOUND_INITIALIZED',physicalExecutionAuthorized:false
+    })+'\n');
+  } else if(request.operation==='initialize_signed'){
     if(current!==null) refuse('fixture_already_initialized');
     if(typeof request.verifierSpki!=='string' ||
        !/^[A-Za-z0-9_-]{40,700}$/.test(request.verifierSpki))
@@ -203,13 +350,20 @@ try {
     process.stdout.write(JSON.stringify({decision:'INITIALIZED',physicalExecutionAuthorized:false})+'\n');
   } else {
     if (current===null) refuse('receipt_snapshot_missing');
-    // No legacy caller-supplied fake verification flags can alter a signed root.
-    if(current.signedVerifierSpki && !request.operation?.startsWith('signed_'))
+    // A bound root cannot be mutated by the earlier, less restrictive
+    // signed-only/unsigned fake paths. It has ONE compulsory lock+grant gate.
+    if(current.grantState && !request.operation?.startsWith('bound_'))
+      refuse('bypass_bound_authority_disallowed');
+    if(!current.grantState && request.operation?.startsWith('bound_'))
+      refuse('bound_authority_not_initialized');
+    if(!current.grantState && current.signedVerifierSpki &&
+       !request.operation?.startsWith('signed_'))
       refuse('unsigned_operation_on_pinned_authority');
     if(!current.signedVerifierSpki && request.operation?.startsWith('signed_'))
       refuse('signed_action_requires_pinned_root');
-    const decision=current.signedVerifierSpki?
-      checkedSignedRequest(current,request):
+    const decision=current.grantState?
+      checkedBoundRequest(current,request):
+      current.signedVerifierSpki?checkedSignedRequest(current,request):
       evaluateSyntheticReceiptDecision(current,{
         ...request,lockState:'acquired',storageHealth:'healthy'
       });
@@ -228,7 +382,8 @@ try {
         physicalExecutionAuthorized:false, fsyncPersisted:decision.decision==='PROPOSE_DURABLE_MUTATION'
       })+'\n');
       if (request.crashAfterPersist===true &&
-          (request.operation==='start_fake'||request.operation==='signed_start'))
+          (request.operation==='start_fake'||request.operation==='signed_start'||
+           request.operation==='bound_start'))
         process.kill(process.pid,'SIGKILL'); // only fake STARTED receipt, no OS action
     }
   }
