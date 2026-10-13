@@ -1,5 +1,9 @@
 # Light Remote portable state contract — rc.50
 
+## 2026-10-13 P0 — Signed synthetic verifier→issuer pre-commit receipt (source/unit UAT only)
+
+See [SIGNED_VERIFIER_ISSUER_RECEIPT_UAT_20261013.md](./SIGNED_VERIFIER_ISSUER_RECEIPT_UAT_20261013.md). Added an **Ed25519 signed, domain-separated fake verifier decision receipt** requiring fresh fake Wall+channel signature verification before signing, with independent pinned verifier public-key/key revision and issuer-side validation of owner/account/device/session/grant intent, proof hashes, nonce, expected writer epoch/next grant generation, verifier revocation and ≤10-second expiry. **12/12 Node crypto unit tests + 9/9 source guards PASS.** The deliberately repeated verification of an authentic receipt remains VALID until a PostgreSQL receipt ID is **atomically consumed**, which is NOT wired yet. This is NOT production grant, persistent HTTP Docker integration, TLS, real owner consent, Agent OS control, global writer fence or cutover.
+
 ## 2026-10-13 P0 — PostgreSQL global nonce ledger (independent synthetic UAT)
 
 See [PG_GLOBAL_NONCE_LEDGER_UAT_20261013.md](./PG_GLOBAL_NONCE_LEDGER_UAT_20261013.md). A **separate private PostgreSQL17 scratch-only** global replay nonce ledger with unique producer/nonce and request constraints, per-account/device row-locked simulated writer epoch and monotonic generation passed **9/9 real database test groups**: duplicate/replay, scope/key/expiry/fence rejection, transaction rollback, stale epoch rejection and two real concurrent PostgreSQL sessions yielding exactly one winner. **12/12 new source guards PASS.** Scratch Compose cleaned and no host ports. This is **not yet wired to grant issuer or persistent HTTP verifier**; SQL does not authenticate HMAC/Ed25519, synthetic epoch is not product-wide writer epoch, so real cross-host writer fencing, real consent and production cutover **NOT_READY**.
