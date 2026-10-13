@@ -1,5 +1,9 @@
 # Light Remote portable state contract — rc.50
 
+## 2026-10-13 P0 — Signed fake owner+device-channel origin → atomic PG grant transaction
+
+See [OWNER_CHANNEL_ATOMIC_ORIGIN_PG_UAT_20261013.md](./OWNER_CHANNEL_ATOMIC_ORIGIN_PG_UAT_20261013.md). This source-only UAT bridges **two independently signed fake Wall/channel proof packets** into a private PostgreSQL transaction: locks authentic-looking scratch owner/session/request/device/enrollment/connection/pins, binds **exact A/B request creation/expiry**, prevents duplicate decision nonce and request replay, and atomically stores proof ledger, approved request, grant, generation/revision and signing-pending outbox; failed grant mint rolls ALL back. **15/15 PG transaction cases**, **38/38 focused Node**, **10/10 source guards** PASS. PostgreSQL does NOT cryptographically validate the provided Ed25519 digest tuple; real owner Wall producer, protected verifier identity/DB grants, device-channel signing key and global writer remain **NOT_READY**. Production unchanged.
+
 ## 2026-10-13 P0 — Actual Local Wall localhost B-code HTTP and signed fake channel/owner origin
 
 See [REAL_WALL_HTTP_CHANNEL_ORIGIN_UAT_20261013.md](./REAL_WALL_HTTP_CHANNEL_ORIGIN_UAT_20261013.md). UAT now **runs the real `device-agent/local-wall.mjs` `POST /api/approve` handler** on ephemeral localhost with freshly generated fake owner session and pending B code. Missing/wrong session, CSRF, wrong code and replay deny mock callback; one valid approval drives a fake channel ACK and independently signed Wall proof, bound by digest/request/grant/device/connection. A separate test documents that auth-disabled Local Wall localhost can approve under *local device trust* but cannot be promoted to authenticated owner evidence for a future issuer. Combined **28/28 Node** and **9/9 source guards** PASS; no live A/B, production code import, real signing identity, runtime deployment or global writer cutover. Production `NOT_READY`.
