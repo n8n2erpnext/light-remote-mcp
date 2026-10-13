@@ -1,0 +1,14 @@
+# rc50 UAT only: frozen modules and cached ARM64 PostgreSQL+Node images.
+# Build with --network none --pull=false; NO dependencies, NO customer data.
+FROM ghost:6-alpine AS node_abi
+FROM postgres:17-alpine
+COPY --from=node_abi /usr/local/bin/node /usr/local/bin/node
+COPY --from=node_abi /usr/lib/libstdc++.so.6.0.34 /usr/lib/libstdc++.so.6.0.34
+COPY --from=node_abi /usr/lib/libgcc_s.so.1 /usr/lib/libgcc_s.so.1
+COPY --chmod=0444 synthetic-owner-channel-verify-only.mjs /opt/uat/synthetic-owner-channel-verify-only.mjs
+COPY --chmod=0444 synthetic-channel-approval-attestation.mjs /opt/uat/synthetic-channel-approval-attestation.mjs
+COPY --chmod=0444 synthetic-wall-approval-origin.mjs /opt/uat/synthetic-wall-approval-origin.mjs
+COPY --chmod=0444 synthetic-owner-channel-verifier-pg.mjs /opt/uat/synthetic-owner-channel-verifier-pg.mjs
+RUN chmod 0555 /opt/uat
+# Actual runtime uses explicit --user 999:999, read-only root, no ports.
+ENTRYPOINT ["node","/opt/uat/synthetic-owner-channel-verifier-pg.mjs"]

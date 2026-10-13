@@ -47,7 +47,7 @@ class IsolatedOriginClients(unittest.TestCase):
   self.assertIn("project+'-'+role+'-psql'",SRC)
   self.assertIn("u.docker('rm','-f'",SRC)
   self.assertIn("u.compose(project,env,'down','--volumes','--remove-orphans'",SRC)
-  self.assertIn("EXTERNAL_READER=EXTERNAL_WRITER=None",SRC)
+  self.assertIn("EXTERNAL_READER=EXTERNAL_WRITER=EXTERNAL_VERIFIER=None",SRC)
  def test_09_distinct_non_loopback_origin_at_database(self):
   self.assertIn("host(inet_client_addr())",SRC)
   self.assertIn("ipaddress.ip_address(reader_addr).is_loopback",SRC)

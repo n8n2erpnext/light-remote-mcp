@@ -19,6 +19,7 @@ BRIDGE=ROOT/'portability/synthetic-owner-channel-db-proof.mjs'
 # Test-only isolated psql clients: distinct containers and ephemeral secrets.
 EXTERNAL_READER=None
 EXTERNAL_WRITER=None
+EXTERNAL_VERIFIER=None
 def must(ok,why):
  if not ok:raise AssertionError('owner_channel_pg_'+why)
 def q(value):
@@ -53,6 +54,10 @@ def setup_synthetic_reader_login(pg):
  u.docker('exec','-i',EXTERNAL_READER or pg,'sh','-ec',
    'umask 077; cat > /tmp/lr_rc50_origin_reader_secret; chmod 0600 /tmp/lr_rc50_origin_reader_secret',
    data=secret.encode())
+ if EXTERNAL_VERIFIER:
+  u.docker('exec','-i',EXTERNAL_VERIFIER,'sh','-ec',
+    'umask 077; cat > /tmp/lr_rc50_origin_reader_secret; chmod 0600 /tmp/lr_rc50_origin_reader_secret',
+    data=secret.encode())
  must(u.sql(pg,"SELECT (rolpassword LIKE 'SCRAM-SHA-256$%')::text FROM pg_authid WHERE rolname='lr_uat_origin_reader_login'")=='true',
       'reader_login_not_scram')
  return '/tmp/lr_rc50_origin_reader_secret'
@@ -143,8 +148,15 @@ def load_trusted_origin(pg,envelope,reader_secret=None):
  return json.loads(data)
 
 def public_verify_fake_origin(envelope,trusted):
- # A fresh verifier-only Node process receives ONLY public SPKI and signed
- # packets. It neither generates nor receives any signing private key.
+ # Scratch-only: container verifier gets ONLY signed packets and obtains fresh
+ # trusted context using its OWN restricted PostgreSQL reader identity.
+ if EXTERNAL_VERIFIER:
+  out=u.docker('exec','-i',EXTERNAL_VERIFIER,'node',
+      '/opt/uat/synthetic-owner-channel-verifier-pg.mjs','--synthetic-only',
+      data=json.dumps({'envelope':envelope}).encode(),timeout=15)
+  return json.loads(out)
+ # Historical non-hardened unit path; cannot promote to production.
+ # Host-only verifier receives fixture context for backwards compatibility.
  env={'PATH':os.environ.get('PATH','/usr/bin:/bin'),
       'HOME':os.environ.get('HOME','/tmp'),'LR_RC50_UAT_ONLY':'1'}
  p=subprocess.run(['node',str(VERIFY_ONLY),'--synthetic-only'],
@@ -280,7 +292,8 @@ def verify(pg,hardened_acl=False):
  # and trusted owner, key pins and request/grant identifiers come from PG.
  checked=[]
  for proof,envelope in zip(proofs,envelopes):
-  trusted=load_trusted_origin(pg,envelope,reader_secret)
+  trusted=(None if EXTERNAL_VERIFIER else
+           load_trusted_origin(pg,envelope,reader_secret))
   verified=public_verify_fake_origin(envelope,trusted)
   must(verified.get('decision')=='VERIFIED_FAKE_OWNER_CHANNEL_PRECOMMIT',
        'separate_public_verifier_rejected_valid_signed_origin')
@@ -296,12 +309,37 @@ def verify(pg,hardened_acl=False):
  tampered=json.loads(json.dumps(envelopes[0]))
  original=tampered['channelAck']['signature']
  tampered['channelAck']['signature']=original[:-2]+('A' if original[-2]!='A' else 'B')+original[-1]
- must(public_verify_fake_origin(tampered,load_trusted_origin(pg,envelopes[0],reader_secret))['decision']=='DENY',
+ must(public_verify_fake_origin(tampered,
+      None if EXTERNAL_VERIFIER else load_trusted_origin(pg,envelopes[0],reader_secret))['decision']=='DENY',
       'forged_channel_signature_accepted')
- trust=load_trusted_origin(pg,envelopes[0],reader_secret)
- must(public_verify_fake_origin(envelopes[0],{**trust,'wallVerifierSha256':'0'*64})['decision']=='DENY',
+ trust=(None if EXTERNAL_VERIFIER else
+        load_trusted_origin(pg,envelopes[0],reader_secret))
+ if EXTERNAL_VERIFIER:
+  # Mutate only trusted scratch DB state: caller-supplied JSON cannot influence
+  # verifier, which performs its own fresh authenticated read.
+  sql(pg,f"UPDATE lr_uat_trusted_origin_verifier_pins SET wall_verifier_sha256=repeat('0',64) WHERE device_id={q(device)}")
+  try:
+   must(public_verify_fake_origin(envelopes[0],trust)['decision']=='DENY',
+        'untrusted_wall_key_accepted')
+  finally:
+   sql(pg,f"UPDATE lr_uat_trusted_origin_verifier_pins SET wall_verifier_sha256={q(proofs[0]['wallVerifierSha256'])} WHERE device_id={q(device)}")
+  sql(pg,f"UPDATE lr_uat_origin_verifier_intent SET proposed_grant_id='uat_grant_forged' WHERE request_id={q(ids[0]['requestId'])}")
+  try:
+   must(public_verify_fake_origin(envelopes[0],trust)['decision']=='DENY',
+        'unbound_grant_intent_accepted')
+  finally:
+   sql(pg,f"UPDATE lr_uat_origin_verifier_intent SET proposed_grant_id={q(ids[0]['grantId'])} WHERE request_id={q(ids[0]['requestId'])}")
+  try:
+   u.docker('exec','-i',EXTERNAL_VERIFIER,'node',
+     '/opt/uat/synthetic-owner-channel-verifier-pg.mjs','--synthetic-only',
+     data=json.dumps({'envelope':envelopes[0],'trusted':{'grantId':'fake'}}).encode(),
+     timeout=12)
+  except RuntimeError:pass
+  else:raise AssertionError('verifier_accepted_caller_supplied_trusted_state')
+ else:
+  must(public_verify_fake_origin(envelopes[0],{**trust,'wallVerifierSha256':'0'*64})['decision']=='DENY',
       'untrusted_wall_key_accepted')
- must(public_verify_fake_origin(envelopes[0],{**trust,'grantId':'uat_grant_forged'})['decision']=='DENY',
+  must(public_verify_fake_origin(envelopes[0],{**trust,'grantId':'uat_grant_forged'})['decision']=='DENY',
       'unbound_grant_intent_accepted')
  print('VERIFY PASS 01 tampered channel, wrong trusted Wall pin and wrong DB grant intent denied')
  if hardened_acl:
@@ -321,6 +359,10 @@ def verify(pg,hardened_acl=False):
    u.docker('exec','-i',EXTERNAL_WRITER,'sh','-ec',
      'test ! -e /tmp/lr_rc50_origin_reader_secret')
    print('NETWORK PASS 02 reader and writer client tmpfs secrets are mutually absent')
+   must(EXTERNAL_VERIFIER is not None,'missing_isolated_node_verifier')
+   u.docker('exec','-i',EXTERNAL_VERIFIER,'sh','-ec',
+     'test -r /tmp/lr_rc50_origin_reader_secret && test ! -e /tmp/lr_rc50_origin_login_secret')
+   print('VERIFIER PASS 01 independent Node container has read-only credential, no writer secret')
    reader_addr=authenticated_sql(pg,'SELECT host(inet_client_addr())',
            reader_secret,reader=True)
    writer_addr=authenticated_sql(pg,'SELECT host(inet_client_addr())',
@@ -504,10 +546,21 @@ def verify(pg,hardened_acl=False):
   must(sql(pg,"SELECT count(*) FROM lr_uat_signed_owner_channel_ledger")=='3',
        'regrant_duplicate_evidence')
   print('ACL PASS 06 regrant restores narrow procedure, not replayed grant')
+  if EXTERNAL_VERIFIER:
+   u.docker('exec','-i',EXTERNAL_VERIFIER,'sh','-ec',
+     'rm /tmp/lr_rc50_origin_reader_secret')
+   denied=public_verify_fake_origin(envelopes[0],None)
+   must(denied.get('decision')=='DENY' and
+        denied.get('reason')=='SYNTHETIC_CONTEXT_UNAVAILABLE',
+        'missing_verifier_credential_did_not_fail_closed')
+   must(authenticated_sql(pg,'SELECT current_user',secret_path)==
+        'lr_uat_origin_service_login',
+        'removed_verifier_credential_affected_writer')
+   print('VERIFIER PASS 02 reader secret removed: Node verifier denies, writer still independent')
 
 def start_isolated_db_client(project,pg,kind):
  # Separate process/namespace and scratch credentials for each principal.
- must(kind in ('reader','writer'),'invalid_client_kind')
+ must(kind in ('reader','writer','verifier'),'invalid_client_kind')
  must(re.fullmatch(r'lr-uat-move-[0-9a-f]{10}-src',project) is not None,
       'client_outside_random_disposable_project')
  pg_info=json.loads(u.docker('inspect',pg).decode())[0]
@@ -518,13 +571,16 @@ def start_isolated_db_client(project,pg,kind):
  net=json.loads(u.docker('network','inspect',name).decode())[0]
  must(net.get('Internal') is True,'client_network_must_be_internal')
  client_name=project+'-'+kind+'-psql'
+ image=('lr-rc50-origin-verifier-uat:e8babc6' if kind=='verifier'
+        else 'postgres:17-alpine')
  u.docker('run','-d','--pull','never',
   '--name',client_name,'--network',name,
   '--user','999:999','--read-only',
   '--tmpfs','/tmp:rw,noexec,nosuid,nodev,size=4m,mode=1777',
   '--cap-drop','ALL','--security-opt','no-new-privileges',
   '--pids-limit','48','--memory','128m','--cpus','0.25',
-  '--entrypoint','/bin/sh','postgres:17-alpine',
+  *(['--env','LR_RC50_UAT_ONLY=1'] if kind=='verifier' else []),
+  '--entrypoint','/bin/sh',image,
   '-ec','exec sleep 540')
  info=json.loads(u.docker('inspect',client_name).decode())[0]
  must(info['State']['Running'] is True,'client_container_not_running')
@@ -536,7 +592,7 @@ def start_isolated_db_client(project,pg,kind):
  return client_name
 
 def main():
- global EXTERNAL_READER,EXTERNAL_WRITER
+ global EXTERNAL_READER,EXTERNAL_WRITER,EXTERNAL_VERIFIER
  if sys.argv[1:]!=['--confirm-synthetic-only']:
   raise SystemExit('Refusing to run without --confirm-synthetic-only')
  must(re.fullmatch(r'lr-uat-move-[0-9a-f]{10}',u.BASE) is not None,
@@ -556,8 +612,13 @@ def main():
        '-U',u.USER,'-d',u.DB,'-f','/dev/stdin',data=raw)
    EXTERNAL_READER=start_isolated_db_client(project,cid,'reader')
    EXTERNAL_WRITER=start_isolated_db_client(project,cid,'writer')
-   must(EXTERNAL_READER!=EXTERNAL_WRITER,'credential_container_overlap')
+   EXTERNAL_VERIFIER=start_isolated_db_client(project,cid,'verifier')
+   must(len({EXTERNAL_READER,EXTERNAL_WRITER,EXTERNAL_VERIFIER})==3,
+        'credential_container_overlap')
    print('NETWORK PASS 01 independent read-only filesystem, credential-isolated SCRAM client containers on private Compose DNS')
+   must(json.loads(u.docker('inspect',EXTERNAL_VERIFIER).decode())[0]['Config']['Image']=='lr-rc50-origin-verifier-uat:e8babc6',
+       'verifier_image_not_expected_immutable_candidate')
+   print('VERIFIER PASS 00 isolated cached-image Node verifier container provisioned')
    verify(cid,hardened_acl=True)
    # Inject a reader-only outage. No privileged fallback or writer coupling.
    u.docker('stop','-t','1',EXTERNAL_READER,timeout=15)
@@ -571,11 +632,11 @@ def main():
    print('NETWORK PASS 03 stopped reader refuses work; writer still SCRAM-authenticated')
    print('RC50_OWNER_CHANNEL_ATOMIC_ORIGIN_SYNTHETIC_UAT_PASS production=false')
   finally:
-   for role in ('reader','writer'):
+   for role in ('reader','writer','verifier'):
     # Explicit random fixture name only; cleanup even if startup stopped mid-way.
     try:u.docker('rm','-f',project+'-'+role+'-psql',timeout=25)
     except RuntimeError:pass
-   EXTERNAL_READER=EXTERNAL_WRITER=None
+   EXTERNAL_READER=EXTERNAL_WRITER=EXTERNAL_VERIFIER=None
    if started:
     u.compose(project,env,'down','--volumes','--remove-orphans',timeout=90)
     print('RC50_OWNER_CHANNEL_ATOMIC_ORIGIN_PRIVATE_COMPOSE_CLEANED')
