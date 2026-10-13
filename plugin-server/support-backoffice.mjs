@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
+import { durableAtomicWriteSync } from '../lib/durable-atomic-file.mjs';
 import path from 'node:path';
 import { callOperatorJson } from './operator-client.mjs';
 import { PUBLIC_ORIGIN } from './config.mjs';
@@ -104,10 +105,7 @@ export class SupportOutbox{
     if(!this.stateFile)return;
     const dir=path.dirname(this.stateFile);
     fs.mkdirSync(dir,{recursive:true,mode:0o750});
-    const tmp=`${this.stateFile}.${process.pid}.tmp`;
-    fs.writeFileSync(tmp,`${JSON.stringify({schemaVersion:1,rows:this.rows},null,2)}\n`,{mode:0o600});
-    fs.chmodSync(tmp,0o600);
-    fs.renameSync(tmp,this.stateFile);
+    durableAtomicWriteSync(this.stateFile,`${JSON.stringify({schemaVersion:1,rows:this.rows},null,2)}\n`,{mode:0o600});
   }
   _compact(){
     const pending=this.rows.filter(row=>row.status!=='sent');

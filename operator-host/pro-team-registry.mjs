@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { durableAtomicWriteSync } from '../lib/durable-atomic-file.mjs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 
@@ -28,7 +29,7 @@ export class ProTeamRegistry {
       for(const row of parsed.notificationReads||[])if(row.accountId&&row.hash)this.notificationReads.set(row.accountId+':'+row.hash,row);
     }
   }
-  _save(){if(!this.stateFile)return;fs.mkdirSync(path.dirname(this.stateFile),{recursive:true,mode:0o750});const tmp=this.stateFile+'.'+process.pid+'.tmp';fs.writeFileSync(tmp,JSON.stringify({schemaVersion:1,teams:[...this.teams.values()],invites:[...this.invites.values()],emailInviteEvents:this.emailInviteEvents,teamGrants:[...this.teamGrants.values()],notificationReads:[...this.notificationReads.values()].slice(-5000)},null,2)+'\n',{mode:0o600});fs.chmodSync(tmp,0o600);fs.renameSync(tmp,this.stateFile);}
+  _save(){if(!this.stateFile)return;fs.mkdirSync(path.dirname(this.stateFile),{recursive:true,mode:0o750});durableAtomicWriteSync(this.stateFile,JSON.stringify({schemaVersion:1,teams:[...this.teams.values()],invites:[...this.invites.values()],emailInviteEvents:this.emailInviteEvents,teamGrants:[...this.teamGrants.values()],notificationReads:[...this.notificationReads.values()].slice(-5000)},null,2)+'\n',{mode:0o600});}
   // A regular PRO account never receives Team by default. The account must
   // also have a separately issued owner-scoped TEAM entitlement. No pricing
   // or real billing happens here; an admin integration must issue/revoke it.

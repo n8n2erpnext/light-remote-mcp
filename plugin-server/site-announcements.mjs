@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { durableAtomicWriteSync } from '../lib/durable-atomic-file.mjs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 
@@ -29,9 +30,7 @@ let entries=[defaultAnnouncement];
 try{const data=JSON.parse(fs.readFileSync(DATA,'utf8'));if(Array.isArray(data?.announcements))entries=data.announcements.slice(0,100)}catch{}
 function persist(){
  fs.mkdirSync(path.dirname(DATA),{recursive:true,mode:0o750});
- const tmp=DATA+'.'+process.pid+'.tmp';
- fs.writeFileSync(tmp,JSON.stringify({version:1,announcements:entries}),{mode:0o640});
- fs.renameSync(tmp,DATA);
+ durableAtomicWriteSync(DATA,JSON.stringify({version:1,announcements:entries}),{mode:0o640});
 }
 function sanitize(v,prior={}){
  const title=max(v.title??prior.title,110),message=max(v.message??prior.message,400);

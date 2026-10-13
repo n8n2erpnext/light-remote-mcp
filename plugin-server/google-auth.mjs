@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { durableAtomicWriteSync } from '../lib/durable-atomic-file.mjs';
 import crypto from 'node:crypto';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { PUBLIC_ORIGIN } from './config.mjs';
@@ -23,7 +24,7 @@ export function saveGoogleAuthConfig({clientId,clientSecret}={}){
   if(secret.length<16||secret.length>512||/\s/.test(secret))throw Object.assign(new Error('invalid_google_client_secret'),{status:400});
   const dir=new URL('.',`file://${CONFIG_FILE}`).pathname;fs.mkdirSync(dir,{recursive:true,mode:0o750});
   const payload={schemaVersion:1,clientId:id,clientSecret:secret,redirectUri:`${PUBLIC_ORIGIN}/account/google/callback`},tmp=`${CONFIG_FILE}.${process.pid}.tmp`;
-  fs.writeFileSync(tmp,`${JSON.stringify(payload,null,2)}\n`,{mode:0o600});fs.chmodSync(tmp,0o600);fs.renameSync(tmp,CONFIG_FILE);
+  durableAtomicWriteSync(CONFIG_FILE,`${JSON.stringify(payload,null,2)}\n`,{mode:0o600});
   return googleAuthStatus();
 }
 export function beginGoogleAuth({returnTo='/account'}={}){

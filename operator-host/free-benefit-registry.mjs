@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { durableAtomicWriteSync } from '../lib/durable-atomic-file.mjs';
 import path from 'node:path';
 import os from 'node:os';
 
@@ -44,9 +45,7 @@ export class FreeBenefitRegistry{
       return;
     }
     fs.mkdirSync(path.dirname(this.stateFile),{recursive:true,mode:0o750});
-    const tmp=this.stateFile+'.'+process.pid+'.tmp';
-    fs.writeFileSync(tmp,JSON.stringify({schemaVersion:1,families:this.families,buckets:this.buckets})+'\n',{mode:0o600});
-    fs.renameSync(tmp,this.stateFile);
+    durableAtomicWriteSync(this.stateFile,JSON.stringify({schemaVersion:1,families:this.families,buckets:this.buckets})+'\n',{mode:0o600});
   }
   _family(deviceId){
     if(this.syntheticWriteFailed)throw Error('synthetic_uat_persist_failed_restart_required');

@@ -1,5 +1,9 @@
 # Light Remote portable state contract — rc.50
 
+## 2026-10-13 — Real Operator + Plugin JSON registry durability: 16/18, NOT_READY
+
+See [REGISTRY_DURABILITY_16OF18_20261013.md](./REGISTRY_DURABILITY_16OF18_20261013.md) and the [finite P0 closeout gates](./RC50_P0_CLOSEOUT_GATES_20261013.md). This checkpoint converts 11 additional real dev Operator/Plugin JSON writer paths to the previously tested `durableAtomicWriteSync` after commit `d574c1a`, now 16/18 known writer surfaces fsync-proven (file + parent directory). New fake-only registry reload integration tests and full platform Node regression PASS; source audit **NOT_READY** because `ACCOUNT_STATE_FILE` and `CONNECTION_STATE_FILE` were editing-tool blocked and global multi-process writer fence, consistent checkpoint, authenticated owner origin, cross-host restore and release gates remain unproven. No live data, production deployment or tool-block bypass.
+
 ## 2026-10-13 — P0 real JSON writer durability: 5/18, NOT_READY
 
 See [REGISTRY_DURABILITY_PARTIAL_20261013.md](./REGISTRY_DURABILITY_PARTIAL_20261013.md) and [finite P0 closure gates](./RC50_P0_CLOSEOUT_GATES_20261013.md). Added `lib/durable-atomic-file.mjs` and wired actual rc50 dev device/enrollment/signer/host-identity/companion writers into full file + parent-dir fsync atomic replacement. **7/7 helper failure tests, 1/1 actual registry reload test, 11/11 writer-gap guards, and 34/34 platform Node regression PASS.** Audit confirms `fsync_proven=5`, **13 writers still unverified**, global single-writer fence false. One `device-connection` editing request was tool-blocked, partial work reverted rather than bypassed; no production deployment.

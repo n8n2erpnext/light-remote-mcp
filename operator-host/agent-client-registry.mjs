@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { durableAtomicWriteSync } from '../lib/durable-atomic-file.mjs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 
@@ -23,7 +24,7 @@ export class AgentClientRegistry {
   _persist(){
     if(!this.stateFile)return;
     const dir=path.dirname(this.stateFile);fs.mkdirSync(dir,{recursive:true,mode:0o750});
-    const tmp=`${this.stateFile}.${process.pid}.tmp`;fs.writeFileSync(tmp,`${JSON.stringify({schemaVersion:1,clients:[...this.rows.values()]},null,2)}\n`,{mode:0o600});fs.chmodSync(tmp,0o600);fs.renameSync(tmp,this.stateFile);
+    durableAtomicWriteSync(this.stateFile,`${JSON.stringify({schemaVersion:1,clients:[...this.rows.values()]},null,2)}\n`,{mode:0o600});
   }
   _load(){
     if(!this.stateFile||!fs.existsSync(this.stateFile))return;

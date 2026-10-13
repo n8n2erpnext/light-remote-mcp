@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { durableAtomicWriteSync } from '../lib/durable-atomic-file.mjs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 
@@ -14,7 +15,7 @@ function plan(v){const p=String(v||'').trim().toLowerCase();if(!PLANS.has(p))thr
 function durationMs(input){const days=Number(input.durationDays);if(!Number.isFinite(days)||days<=0||days>3650)throw new LicenseKeyError('invalid_license_duration');return Math.round(days*86400000);}
 export class LicenseKeyRegistry{
   constructor({stateFile=null,now=()=>Date.now(),emit=()=>{}}={}){this.stateFile=stateFile;this.now=now;this.emit=emit;this.rows=new Map();this.byHash=new Map();this.loadError=null;this._load();}
-  _persist(){if(!this.stateFile)return;const dir=path.dirname(this.stateFile);fs.mkdirSync(dir,{recursive:true,mode:0o750});const tmp=`${this.stateFile}.${process.pid}.tmp`;fs.writeFileSync(tmp,`${JSON.stringify({schemaVersion:1,licenses:[...this.rows.values()]},null,2)}\n`,{mode:0o600});fs.chmodSync(tmp,0o600);fs.renameSync(tmp,this.stateFile);}
+  _persist(){if(!this.stateFile)return;const dir=path.dirname(this.stateFile);fs.mkdirSync(dir,{recursive:true,mode:0o750});durableAtomicWriteSync(this.stateFile,`${JSON.stringify({schemaVersion:1,licenses:[...this.rows.values()]},null,2)}\n`,{mode:0o600});}
   _load(){if(!this.stateFile||!fs.existsSync(this.stateFile))return;try{const d=JSON.parse(fs.readFileSync(this.stateFile,'utf8'));if(d?.schemaVersion!==1||!Array.isArray(d.licenses))throw new Error('invalid_license_schema');for(const r of d.licenses){if(!ID_RE.test(String(r.licenseId||''))||!r.keyHash||!PLANS.has(r.plan))throw new Error('invalid_license_row');this.rows.set(r.licenseId,r);this.byHash.set(r.keyHash,r.licenseId);}}catch(e){this.rows.clear();this.byHash.clear();this.loadError=e?.message||'invalid_license_state';}}
   _view(r){return {licenseId:r.licenseId,plan:r.plan,durationDays:r.durationMs/86400000,maxRedemptions:r.maxRedemptions,redemptions:(r.redemptions||[]).length,issuedAt:r.issuedAt,expiresAt:r.expiresAt||null,revokedAt:r.revokedAt||null,label:r.label||'',last4:r.last4};}
   issue(input={}){const p=plan(input.plan),dur=durationMs(input),max=Math.max(1,Math.min(Number(input.maxRedemptions)||1,1000)),now=this.now(),expires=input.expiresAt==null?null:Number(input.expiresAt);if(expires!=null&&(!Number.isFinite(expires)||expires<=now))throw new LicenseKeyError('invalid_license_expiry');const key=makeKey(),norm=normalizeKey(key),keyHash=sha256(norm),licenseId=`lic_${crypto.randomUUID()}`;const row={licenseId,keyHash,last4:norm.slice(-4),plan:p,durationMs:dur,maxRedemptions:max,issuedAt:now,expiresAt:expires,revokedAt:null,label:String(input.label||'').slice(0,120),redemptions:[]};this.rows.set(licenseId,row);this.byHash.set(keyHash,licenseId);this._persist();this.emit({type:'license_key_issued',licenseId,plan:p,status:'active',expiresAt:expires});return {key,license:this._view(row)};}

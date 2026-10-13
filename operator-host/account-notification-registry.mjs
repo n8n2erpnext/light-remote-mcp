@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { durableAtomicWriteSync } from '../lib/durable-atomic-file.mjs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 
@@ -24,11 +25,8 @@ export class AccountNotificationRegistry{
   _save(){
     if(!this.stateFile)return;
     fs.mkdirSync(path.dirname(this.stateFile),{recursive:true,mode:0o750});
-    const target=this.stateFile+'.'+process.pid+'.tmp';
-    fs.writeFileSync(target,JSON.stringify({schemaVersion:1,messages:this.messages,
+    durableAtomicWriteSync(this.stateFile,JSON.stringify({schemaVersion:1,messages:this.messages,
       reads:[...this.reads.values()].slice(-RETENTION_READS)},null,2)+'\n',{mode:0o600});
-    fs.chmodSync(target,0o600);
-    fs.renameSync(target,this.stateFile);
   }
   publish({type,title,body,link='/account/inbox',targetAccountId=null,
     audienceType=null,audienceValue=null,scheduledAt=null,expiresAt=null,publishedBy='admin'}={}){

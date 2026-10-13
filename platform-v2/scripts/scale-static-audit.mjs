@@ -10,17 +10,17 @@ import {fileURLToPath} from 'node:url';
 const repo=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const rules=[
  {id:'sync-account-snapshot',severity:'P0',file:'operator-host/account-registry.mjs',need:['fs.writeFileSync','this.sessions=new Map'],issue:'Full account/session registry snapshot is synchronously rewritten; not safe as multi-instance authoritative store'},
- {id:'sync-usage-snapshot',severity:'P0',file:'operator-host/usage-registry.mjs',need:['fs.writeFileSync','_accrueOpen(aid)'],issue:'Owner-scoped accrual is indexed in this branch, but the whole JSON usage snapshot is still synchronously rewritten on mutations'},
+ {id:'sync-usage-snapshot',severity:'P0',file:'operator-host/usage-registry.mjs',need:['durableAtomicWriteSync','_accrueOpen(aid)'],issue:'Crash-durable atomic JSON usage snapshots remain synchronous and lack multi-process writer fencing'},
  {id:'volatile-oauth-replay',severity:'P0',file:'plugin-server/oauth.mjs',need:['usedCodes=new Map','usedRefresh=new Map'],issue:'OAuth one-time/replay state is scoped to one Node process'},
  {id:'volatile-fleet-jobs',severity:'P0',file:'operator-host/fleet-router.mjs',need:['this.commands=new Map','this.nodes=new Map'],issue:'Device commands, queue and in-flight records are held in a process-local router'},
- {id:'sync-billing-snapshot',severity:'P0',file:'plugin-server/paddle-billing.mjs',need:['fs.writeFileSync','slice(0, 1000)'],issue:'Paddle dedupe ledger is a synchronous file snapshot with a bounded 1,000-event history'},
+ {id:'sync-billing-snapshot',severity:'P0',file:'plugin-server/paddle-billing.mjs',need:['durableAtomicWriteSync','slice(0, 1000)'],issue:'Paddle dedupe snapshot now fsyncs, but concurrent writers and its 1,000-event bounded replay history remain unresolved'},
  {id:'volatile-rate-limits',severity:'P1',file:'plugin-server/device-public.mjs',need:['const buckets=new Map'],issue:'Public device/channel rate limits are process-local'},
  {id:'per-request-mcp-allocation',severity:'P1',file:'plugin-server/server.mjs',need:['new StreamableHTTPServerTransport','const server=mcpServer(identity)'],issue:'MCP server and transport are recreated per HTTP POST; benchmark allocation, latency and memory'},
  {id:'sync-static-page-reads',severity:'P2',file:'plugin-server/server.mjs',need:["fs.readFileSync(new URL('./ai-guide.md'"],issue:'Public page handlers read static HTML/guide source synchronously per request'},
  {id:'bounded-active-sessions',severity:'P1',file:'operator-host/session-manager.mjs',need:['this.maxActive','session_capacity_reached'],issue:'Per-Operator active-session ceiling; partition by device/account, do not simply raise global cap'},
  {id:'process-local-event-ring',severity:'P1',file:'operator-host/executor.mjs',need:['const ring = []','const jobs = new Map()'],issue:'Job output/event rings are local to one Operator instance, requiring affinity/durable lookup'},
  {id:'large-json-request-envelopes',severity:'P1',file:'plugin-server/server.mjs',need:["express.json({limit:'12mb'})"],issue:'12 MB JSON requests can cause high transient memory under concurrent large uploads'},
- {id:'sync-pro-team-snapshot',severity:'P0',file:'operator-host/pro-team-registry.mjs',need:['fs.writeFileSync','this.teams=new Map'],issue:'Team invite/revoke/seat state is rewritten synchronously; requires transactional concurrency'},
+ {id:'sync-pro-team-snapshot',severity:'P0',file:'operator-host/pro-team-registry.mjs',need:['durableAtomicWriteSync','this.teams=new Map'],issue:'Team invite/revoke/seat state now fsyncs, but process-local snapshots still require transactional concurrent writer fencing'},
 ];
 function firstLine(text,marker){
  const index=text.indexOf(marker);

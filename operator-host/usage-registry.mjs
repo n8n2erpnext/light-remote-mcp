@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { durableAtomicWriteSync } from '../lib/durable-atomic-file.mjs';
 import path from 'node:path';
 
 const ID_RE=/^[A-Za-z0-9._:-]{1,128}$/;
@@ -27,7 +28,7 @@ export class UsageRegistry{
     if(!this.stateFile)return;
     const dir=path.dirname(this.stateFile);fs.mkdirSync(dir,{recursive:true,mode:0o750});
     const data={schemaVersion:1,trackingSince:this.trackingSince,accounts:this.accounts,openConnections:[...this.openConnections.values()]};
-    const tmp=`${this.stateFile}.${process.pid}.tmp`;fs.writeFileSync(tmp,`${JSON.stringify(data,null,2)}\n`,{mode:0o600});fs.chmodSync(tmp,0o600);fs.renameSync(tmp,this.stateFile);
+    durableAtomicWriteSync(this.stateFile,`${JSON.stringify(data,null,2)}\n`,{mode:0o600});
   }
   _trackConnection(id,row){
     const key=String(id),old=this.openConnections.get(key);

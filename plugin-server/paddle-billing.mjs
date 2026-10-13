@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { durableAtomicWriteSync } from '../lib/durable-atomic-file.mjs';
 import path from 'node:path';
 import { Environment, EventName, Paddle } from '@paddle/paddle-node-sdk';
 
@@ -131,10 +132,7 @@ function saveState(file, state) {
     .sort((a, b) => Number(b[1]?.processedAt || 0) - Number(a[1]?.processedAt || 0))
     .slice(0, 1000);
   normalized.events = Object.fromEntries(eventEntries);
-  const tmp = `${file}.${process.pid}.tmp`;
-  fs.writeFileSync(tmp, `${JSON.stringify(normalized, null, 2)}\n`, { mode: 0o600 });
-  fs.chmodSync(tmp, 0o600);
-  fs.renameSync(tmp, file);
+  durableAtomicWriteSync(file, `${JSON.stringify(normalized, null, 2)}\n`, { mode: 0o600 });
 }
 
 function defaultConfig(env = process.env) {
