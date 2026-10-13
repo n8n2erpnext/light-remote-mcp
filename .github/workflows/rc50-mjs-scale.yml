@@ -59,3 +59,67 @@ jobs:
         if: always()
         working-directory: platform-v2
         run: docker compose -p lightremote-rc50-v2 -f compose.yml down -v --remove-orphans
+
+  native-runtime-parity:
+    name: "Native Node runtime parity (${{ matrix.expected_arch }})"
+    # Actual GitHub-hosted CPUs, not QEMU/cross-compiled guesses.
+    # This checks source/Node ABI portability, NOT cross-host state restore.
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            expected_arch: x64
+          - runner: ubuntu-24.04-arm
+            expected_arch: arm64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Enforce actual native runner architecture
+        env:
+          EXPECTED_ARCH: ${{ matrix.expected_arch }}
+        run: |
+          node -e "if(process.platform!=='linux'||process.arch!==process.env.EXPECTED_ARCH) {console.error('unexpected_native_arch',process.arch,process.platform); process.exit(1)}; console.log('NATIVE_RC50_ARCH_PASS',process.arch)"
+      - name: Locked dependencies on native architecture
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Native Operator/Plugin source and Node UAT
+        run: |
+          node --check operator-host/executor.mjs
+          node --check plugin-server/server.mjs
+          node --check lib/local-ingress-freeze.mjs
+          node --test platform-v2/test/*.test.mjs
+      - name: Maintain real P0 NOT_READY source gates on both architectures
+        run: |
+          python3 -B platform-v2/portability/audit_writer_freeze_readiness.py
+          python3 -B platform-v2/test/test_writer_freeze_readiness.py
+          python3 -B platform-v2/scripts/p0-release-gate.py --report
+      - name: Create disposable ARM64-only DB/Redis credentials
+        if: matrix.expected_arch == 'arm64'
+        working-directory: platform-v2
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import secrets
+          d=Path('secrets')
+          d.mkdir(mode=0o700)
+          (d/'postgres.env').write_text('POSTGRES_USER=lr_rc50_uat\nPOSTGRES_DB=light_remote_rc50_uat\nPOSTGRES_PASSWORD='+secrets.token_urlsafe(32)+'\nPOSTGRES_INITDB_ARGS=--auth-host=scram-sha-256\n')
+          (d/'redis.conf').write_text('bind 0.0.0.0\nprotected-mode yes\nappendonly yes\nmaxmemory 256mb\nmaxmemory-policy noeviction\nrequirepass '+secrets.token_urlsafe(32)+'\n')
+          (d/'postgres.env').chmod(0o600)
+          (d/'redis.conf').chmod(0o644)
+          PY
+      - name: ARM64-native private PostgreSQL / Redis start
+        if: matrix.expected_arch == 'arm64'
+        working-directory: platform-v2
+        run: docker compose -p lr-rc50-native-arm64 -f compose.yml up -d --wait
+      - name: ARM64-native PostgreSQL schema and rollback
+        if: matrix.expected_arch == 'arm64'
+        working-directory: platform-v2
+        run: bash scripts/check.sh
+      - name: Always remove private ARM64 test database and volumes
+        if: always() && matrix.expected_arch == 'arm64'
+        working-directory: platform-v2
+        run: docker compose -p lr-rc50-native-arm64 -f compose.yml down -v --remove-orphans

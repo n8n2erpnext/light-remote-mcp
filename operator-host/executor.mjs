@@ -54,7 +54,7 @@ const freezeOptIn=process.env.LR_RC50_DEV_LOCAL_FREEZE==='1';
 if(freezeOptIn&&!process.env.LR_RC50_OPERATOR_FREEZE_MARKER_PATH)
   throw Error('LOCAL_FREEZE_OPERATOR_MARKER_REQUIRED');
 const localFreezeGate=new LocalIngressFreezeGate({enabled:freezeOptIn,
-  markerPath:freezeOptIn?process.env.LR_RC50_OPERATOR_FREEZE_MARKER_PATH:null,
+  markerPath:process.env.LR_RC50_OPERATOR_FREEZE_MARKER_PATH||null,
   service:'operator'});
 const SOCKET_PATH = process.env.OPERATOR_SOCKET || '/run/gpt-vps-operator/operator.sock';
 const KEY_FILE = process.env.OPERATOR_KEY_FILE || '/home/ubuntu/.config/gpt-vps-operator/operator.private.json';

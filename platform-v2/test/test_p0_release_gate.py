@@ -52,6 +52,21 @@ class Rc50GateTests(unittest.TestCase):
         self.assertIn('if: always()',txt)
         self.assertIn('docker compose -p lightremote-rc50-v2',txt)
         self.assertIn('down -v --remove-orphans',txt)
+    def test_native_multi_arch_ci_is_not_a_restore_claim(self):
+        txt=WORKFLOW.read_text()
+        self.assertIn('native-runtime-parity:',txt)
+        self.assertIn('runner: ubuntu-24.04-arm',txt)
+        self.assertIn('runner: ubuntu-24.04',txt)
+        self.assertIn('expected_arch: arm64',txt)
+        self.assertIn('expected_arch: x64',txt)
+        self.assertIn("process.arch!==process.env.EXPECTED_ARCH",txt)
+        self.assertIn('npm ci --ignore-scripts --no-audit --no-fund',txt)
+        self.assertIn('NOT cross-host state restore',txt)
+        self.assertIn('node --test platform-v2/test/*.test.mjs',txt)
+        self.assertIn('ARM64-native PostgreSQL schema and rollback',txt)
+        self.assertIn('docker compose -p lr-rc50-native-arm64 -f compose.yml up -d --wait',txt)
+        self.assertIn('docker compose -p lr-rc50-native-arm64 -f compose.yml down -v --remove-orphans',txt)
+        self.assertIn("if: always() && matrix.expected_arch == 'arm64'",txt)
     def test_reject_unknown_flags(self):
         self.assertNotEqual(run('--assume-ready').returncode,0)
 

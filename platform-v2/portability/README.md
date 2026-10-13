@@ -1,5 +1,9 @@
 # Light Remote portable state contract — rc.50
 
+## 2026-10-13 — Native Linux ARM64 / AMD64 CI parity with real ARM PostgreSQL+Redis schema
+
+See [RC50_NATIVE_ARM64_AMD64_CI_20261013.md](./RC50_NATIVE_ARM64_AMD64_CI_20261013.md). The rc50 workflow now runs actual Operator/Plugin Node source tests on native GitHub-hosted `ubuntu-24.04-arm` and `ubuntu-24.04` runners, with private PostgreSQL+Redis migration/rollback on ARM64. Release gate remains **NOT_READY**: no authorized customer VPS-AMD pairing or actual ARM→AMD whole-state restore. An existing local freeze marker now still refuses restart if the opt-in toggle is accidentally disabled but marker path remains configured. **51/51 Node, 8/8 restart and 7/7 release-gate local tests PASS**; GitHub matrix results require separate confirmation.
+
 ## 2026-10-13 — Restart-denied local freeze marker on actual dev Operator / Plugin
 
 See [LOCAL_FREEZE_RESTART_MARKER_UAT_20261013.md](./LOCAL_FREEZE_RESTART_MARKER_UAT_20261013.md). Both opt-in services now require separate protected marker paths; SIGUSR2 local freeze uses atomic file+directory fsync to persist intent before local drained acknowledgement. A **fresh independent Node process refuses startup** if the marker remains; malformed/unsafe markers and injected fsync faults fail closed. **7/7 restart marker UAT and 50/50 full Node suite PASS**, no production processes run. Critical residual: marker write could fail before a crash, other host/Agent still writes, and global writer epoch / full checkpoint / actual ARM→AMD restore are **NOT_READY**. Prior commit `f283878` GitHub Actions run #31 passed all real CI steps.

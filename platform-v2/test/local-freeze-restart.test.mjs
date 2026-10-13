@@ -71,7 +71,18 @@ test('06 distinct local service markers do not globally fence one another',()=>w
   assert.equal(new LocalIngressFreezeGate({enabled:true,markerPath:pluginFile,service:'plugin'}).accepting,true);
  });
 }));
-test('07 real dev source requires separate marker path per process',()=>{
+test('07 disabling opt-in cannot skip an existing marker when marker location stays configured',()=>withFixture(async(dir,file)=>{
+ const gate=new LocalIngressFreezeGate({enabled:true,markerPath:file,service:'operator'});
+ await gate.freeze();
+ assert.throws(()=>new LocalIngressFreezeGate({
+  enabled:false,markerPath:file,service:'operator'
+ }),/LOCAL_FREEZE_MARKER_PRESENT_STARTUP_REFUSED/);
+ const source=fs.readFileSync(new URL('../../operator-host/executor.mjs',import.meta.url),'utf8');
+ assert.match(source,/markerPath:process\.env\.LR_RC50_OPERATOR_FREEZE_MARKER_PATH\|\|null/);
+ const plugin=fs.readFileSync(new URL('../../plugin-server/server.mjs',import.meta.url),'utf8');
+ assert.match(plugin,/markerPath:process\.env\.LR_RC50_PLUGIN_FREEZE_MARKER_PATH\|\|null/);
+}));
+test('08 real dev source requires separate marker path per process',()=>{
  const root=new URL('../../',import.meta.url);
  const op=fs.readFileSync(new URL('operator-host/executor.mjs',root),'utf8');
  const plugin=fs.readFileSync(new URL('plugin-server/server.mjs',root),'utf8');

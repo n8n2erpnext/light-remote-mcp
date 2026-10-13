@@ -26,7 +26,7 @@ const freezeOptIn=process.env.LR_RC50_DEV_LOCAL_FREEZE==='1';
 if(freezeOptIn&&!process.env.LR_RC50_PLUGIN_FREEZE_MARKER_PATH)
   throw Error('LOCAL_FREEZE_PLUGIN_MARKER_REQUIRED');
 const localFreezeGate=new LocalIngressFreezeGate({enabled:freezeOptIn,
-  markerPath:freezeOptIn?process.env.LR_RC50_PLUGIN_FREEZE_MARKER_PATH:null,
+  markerPath:process.env.LR_RC50_PLUGIN_FREEZE_MARKER_PATH||null,
   service:'plugin'});
 const app=express();
 // createMcpExpressApp() installs express.json() with Express' default ~100 KB limit.
