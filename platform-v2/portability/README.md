@@ -1,5 +1,9 @@
 # Light Remote portable state contract — rc.50
 
+## 2026-10-13 P0 — Actual Local Wall A/B path audit and signed origin fixture
+
+See [WALL_APPROVAL_ORIGIN_CONTRACT_UAT_20261013.md](./WALL_APPROVAL_ORIGIN_CONTRACT_UAT_20261013.md). Reviewed the real `Local Wall /api/approve → Agent access-approve → Operator DeviceAccessGrantRegistry` path; the current status event is NOT a cryptographically signed owner-session provenance record and cannot yet safely drive the rc50 issuer. Added a **source-only** synthetic Ed25519 approval-origin contract requiring signed request/grant/owner-session/device-key/connection/channel-ACK/one-time-nonce binding. **25/25 tests** PASS, **8/8 source guards** PASS. Extended scratch PostgreSQL issuer to race two independent issuance transactions for one device and prove separate generation 3/4 and four `pending` outbox rows (**12/12 PG UAT PASS**). Production Local Wall and Agent untouched; owner-proof signer, real B-code-to-PG transaction, cryptographic outbox publisher/ACK and global writer remain **NOT_READY**.
+
 ## 2026-10-13 P0 — Simulated PostgreSQL A/B issuer origin and four receipt crash points
 
 See [ISSUER_AND_RECEIPT_FAULT_UAT_20261013.md](./ISSUER_AND_RECEIPT_FAULT_UAT_20261013.md). A new **isolated PostgreSQL-only UAT** creates a request→grant provenance ledger and signing-pending outbox in one row-locked transaction, validating mock owner/device/session/approved-request identity, one-time grant ID and monotonic generation. It does NOT verify a real Wall B code or produce a cryptographic signature. In parallel the isolated Linux AgentReceiptAuthority worker was SIGKILL-fault-injected at write, file-fsync, rename and directory-fsync boundaries; unknown states quarantine instead of replay, and ambiguous leftover temp files refuse new work. All effects are fake-noop. **No production Agent, PostgreSQL role, OAuth/billing or runtime modified. Global writer fence NOT_READY.**

@@ -5,6 +5,7 @@ Run with --confirm-synthetic-only to allocate one temporary Docker project.
 """
 from pathlib import Path
 import os,sys,re,tempfile
+from concurrent.futures import ThreadPoolExecutor
 import rehearse_cold_move_uat as u
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -123,6 +124,46 @@ COMMIT;"""
     must(sql(pg,"SELECT count(*) FROM lr_uat_lease_signing_outbox WHERE status='signed'")=='0',
          'fixture_falsely_asserted_cryptographic_issuance')
     print('PASS 10 issued provenance remains pending until separate signed publisher')
+    # Two distinct approved requests for the SAME device are issued on two
+    # separate PostgreSQL client connections. The authority-floor UPDATE
+    # serializes generation and revision even when both issuers race.
+    req3=prefix+'_request_concurrent_a'
+    req4=prefix+'_request_concurrent_b'
+    grant3=prefix+'_grant_concurrent_a'
+    grant4=prefix+'_grant_concurrent_b'
+    sql(pg,f"""
+BEGIN;
+INSERT INTO lr_ab_requests(request_id,account_id,device_id,connection_id,
+  agent_id,purpose,poll_sha256,state,created_at,expires_at)
+ VALUES('{req3}','{owner}','{device}','{conn}','{prefix}_agent',
+  'device',repeat('1',64),'approved',now()-interval '2 minutes',
+  now()+interval '6 minutes'),
+ ('{req4}','{owner}','{device}','{conn}','{prefix}_agent',
+  'device',repeat('2',64),'approved',now()-interval '2 minutes',
+  now()+interval '6 minutes');
+INSERT INTO lr_uat_owner_approval_evidence(request_id,owner_account_id,
+  owner_session_id,approved_at,opaque_evidence_sha256)
+ VALUES('{req3}','{owner}','{sess}',now()-interval '25 seconds',repeat('3',64)),
+  ('{req4}','{owner}','{sess}',now()-interval '20 seconds',repeat('4',64));
+COMMIT;""")
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        a=pool.submit(sql,pg,f"SELECT lr_uat_issue_direct_owner_grant('{req3}','{grant3}')")
+        b=pool.submit(sql,pg,f"SELECT lr_uat_issue_direct_owner_grant('{req4}','{grant4}')")
+        must(a.result()=='ORIGIN_COMMITTED_SIGNING_PENDING' and
+             b.result()=='ORIGIN_COMMITTED_SIGNING_PENDING',
+             'concurrent_origin_mint_rejected')
+    floors=sql(pg,f"""SELECT string_agg(generation::text,',' ORDER BY generation)
+      FROM lr_uat_grant_provenance WHERE device_id='{device}'""")
+    must(floors=='1,2,3,4','concurrent_generation_collision')
+    must(sql(pg,f"""SELECT generation||':'||grant_revision
+      FROM lr_uat_device_authority_floor WHERE device_id='{device}'""")=='4:4',
+      'concurrent_floor_nonmonotonic')
+    print('PASS 11 competing issuer connections receive unique generation 3 and 4')
+    must(sql(pg,"SELECT count(*) FROM lr_uat_lease_signing_outbox")=='4',
+       'concurrent_outbox_count')
+    must(sql(pg,"SELECT count(*) FROM lr_uat_lease_signing_outbox WHERE status='signed'")=='0',
+       'synthetic_issuer_signed_without_publisher')
+    print('PASS 12 concurrency preserves four pending outbox rows; none signed')
 
 def main():
     if sys.argv[1:]!=['--confirm-synthetic-only']:
