@@ -23,7 +23,19 @@ services:
     image: redis:8-alpine
     pull_policy: never
     restart: "no"
-    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    # Docker daemon and CLI may have different /tmp mount namespaces. The
+    # scratch host auth file stays 0600; as container root copy it into this
+    # ephemeral writable layer, restrict it to redis:redis, then drop privileges
+    # through the official Redis entrypoint. Never print the generated password.
+    command:
+      - sh
+      - -ec
+      - >-
+        umask 077;
+        cp /usr/local/etc/redis/redis.conf /tmp/lr-redis-uat.conf;
+        chown redis:redis /tmp/lr-redis-uat.conf;
+        chmod 0600 /tmp/lr-redis-uat.conf;
+        exec docker-entrypoint.sh redis-server /tmp/lr-redis-uat.conf
     volumes:
       - redisdata:/data
       - ${LR_PORTABLE_REDIS_CONF:?UAT synthetic Redis config required}:/usr/local/etc/redis/redis.conf:ro

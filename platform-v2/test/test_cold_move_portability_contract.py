@@ -56,6 +56,29 @@ class PortabilitySourceContract(unittest.TestCase):
         self.assertNotIn('FLUSHALL',SCRIPT)
         self.assertNotIn('FLUSHDB',SCRIPT)
 
+    def test_synthetic_redis_mount_namespace_and_private_config(self):
+        # Docker Snap/daemon mount namespaces can see another /tmp. The source
+        # secret must live under a private home fixture directory, not /tmp.
+        self.assertIn("dir=Path.home()", SCRIPT)
+        self.assertIn("directory.mkdir(mode=0o700)", SCRIPT)
+        self.assertIn("conf.chmod(0o600)", SCRIPT)
+        self.assertIn("LR_PORTABLE_REDIS_CONF", COMPOSE)
+        self.assertIn("cp /usr/local/etc/redis/redis.conf /tmp/lr-redis-uat.conf", COMPOSE)
+        self.assertIn("chown redis:redis /tmp/lr-redis-uat.conf", COMPOSE)
+        self.assertIn("chmod 0600 /tmp/lr-redis-uat.conf", COMPOSE)
+        self.assertIn("docker-entrypoint.sh redis-server /tmp/lr-redis-uat.conf", COMPOSE)
+        self.assertNotIn("redis-server --requirepass", COMPOSE)
+        self.assertNotRegex(COMPOSE, r'(?m)^\s*ports\s*:')
+
+    def test_seed_includes_required_tenant_binding(self):
+        # SQL migration 004 makes account_id NOT NULL and enforces a
+        # composite FK matching the actor in the AB grant and agent client.
+        self.assertIn("INSERT INTO lr_agent_bindings(client_session_id,account_id,device_id,grant_id,connection_id)", SCRIPT)
+        self.assertIn("VALUES('{PREFIX}_client','{PREFIX}_owner','{PREFIX}_device','{PREFIX}_grant','{PREFIX}_conn')", SCRIPT)
+        tenant_sql=(ROOT/'sql/004_tenant_binding_guards.sql').read_text()
+        self.assertIn("ALTER TABLE lr_agent_bindings ALTER COLUMN account_id SET NOT NULL",tenant_sql)
+        self.assertIn("lr_binding_same_actor_and_device_as_grant",tenant_sql)
+
     def test_identity_replay_and_rollback_gates_present(self):
         for token in ['lr_accounts','lr_sessions','lr_devices',
                       'lr_device_connections','lr_ab_grants','lr_agent_clients',

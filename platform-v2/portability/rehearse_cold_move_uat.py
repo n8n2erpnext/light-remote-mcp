@@ -142,8 +142,8 @@ INSERT INTO lr_ab_grants(grant_id,account_id,device_id,connection_id,agent_id,
  purpose,approved_at,last_activity_at,idle_grace_ms,expires_at,absolute_expires_at)
  VALUES('{PREFIX}_grant','{PREFIX}_owner','{PREFIX}_device','{PREFIX}_conn',
  '{PREFIX}_agent','device',now(),now(),1800000,now()+interval '1 hour',now()+interval '2 hours');
-INSERT INTO lr_agent_bindings(client_session_id,device_id,grant_id,connection_id)
- VALUES('{PREFIX}_client','{PREFIX}_device','{PREFIX}_grant','{PREFIX}_conn');
+INSERT INTO lr_agent_bindings(client_session_id,account_id,device_id,grant_id,connection_id)
+ VALUES('{PREFIX}_client','{PREFIX}_owner','{PREFIX}_device','{PREFIX}_grant','{PREFIX}_conn');
 INSERT INTO lr_jobs(job_id,owner_account_id,actor_account_id,device_id,operation_id,state)
  VALUES('{PREFIX}_job','{PREFIX}_owner','{PREFIX}_owner','{PREFIX}_device','{PREFIX}_operation','queued');
 INSERT INTO lr_free_families(family_id) VALUES('{PREFIX}_family');
@@ -197,7 +197,11 @@ def main():
     must(sys.argv[1:]==['--confirm-synthetic-only'],
          'explicit_synthetic_rehearsal_confirmation_required')
     projects=[]
-    with tempfile.TemporaryDirectory(prefix='lr_rc50_cold_move_synthetic_') as temp:
+    # Snap/isolated Docker daemons may resolve /tmp in a different mount namespace.
+    # Put synthetic files in the private owner home shared with the daemon; keep
+    # the TemporaryDirectory mode 0700 and remove it on every normal exit.
+    with tempfile.TemporaryDirectory(prefix='lr_rc50_cold_move_synthetic_',
+                                     dir=Path.home()) as temp:
       folder=Path(temp)
       src_pg,src_rc=prepare_configs(folder/'src','src')
       dst_pg,dst_rc=prepare_configs(folder/'dst','dst')
