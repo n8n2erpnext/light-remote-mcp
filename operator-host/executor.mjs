@@ -135,6 +135,10 @@ const NATIVE_SEARCHES=new NativeSearchRegistry();
 const LIGHT_SCP=new LightScpRegistry();
 
 const jobs = new Map();
+// Local dev-only: a timed-out remote command may still be executing on Agent.
+// Never erase this uncertainty merely because the Fleet job was abandoned.
+const unreconciledRemoteEffects=new Set();
+localFreezeGate.registerPendingSource('unreconciledRemoteEffects',()=>unreconciledRemoteEffects.size);
 localFreezeGate.registerPendingSource('operatorJobs',()=>{
   let pending=0;
   for(const job of jobs.values())if(!job.finishedAt)pending++;
@@ -170,6 +174,8 @@ const sessions = new SessionRegistry({ beforeRecord:meterFreeBenefit, idleMs:SES
 const devices = new DeviceRegistry({ stateFile:DEVICE_STATE_FILE, presenceTtlMs:DEVICE_PRESENCE_TTL_MS, emit:event => pushEvent(event) });
 const enrollments = new EnrollmentRegistry({ stateFile:ENROLLMENT_STATE_FILE, signerFile:ENROLLMENT_SIGNER_FILE, activationBaseUrl:ENROLLMENT_ACTIVATION_URL, ttlMs:ENROLLMENT_TTL_MS, emit:event => pushEvent(event) });
 const fleet = new FleetRouter({ channelTtlMs:FLEET_CHANNEL_TTL_MS, commandLeaseMs:FLEET_COMMAND_LEASE_MS, maxQueuedPerNode:FLEET_MAX_QUEUED_PER_NODE, emit:event => pushEvent(event) });
+// Cover Fleet work left in queue/inFlight even if its HTTP request ended.
+localFreezeGate.registerPendingSource('fleetCommands',()=>fleet.commands.size);
 const connections = new DeviceConnectionRegistry({ stateFile:CONNECTION_STATE_FILE, emit:event => pushEvent(event) });
 const accessGrants = new DeviceAccessGrantRegistry({ stateFile:ACCESS_STATE_FILE, emit:event => pushEvent(event) });
 const pairingCodes = new DevicePairingRegistry({ emit:event => pushEvent(event) });
@@ -452,6 +458,10 @@ function finishJob(job, exitCode, signal) {
   job.exitCode = exitCode;
   job.signal = signal || null;
   job.status = exitCode === 0 ? 'ok' : job.timedOut ? 'timeout' : 'error';
+  // A timed-out remote result is NOT proof of OS-side cancellation. Freeze
+  // cannot acknowledge a safe checkpoint until independently reconciled.
+  if(localFreezeGate.enabled&&job.remote&&job.commandId&&job.timedOut)
+    unreconciledRemoteEffects.add(job.commandId);
   flushOutputStates(job);
   if(!job.resultSummary&&job.resultData)job.resultSummary=nativeActivityResult(job.toolMeta,job.resultData);
   clearTimeout(job.timer);

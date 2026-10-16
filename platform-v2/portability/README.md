@@ -1,5 +1,9 @@
 # Light Remote portable state contract — rc.50
 
+## 2026-10-16 — actual Operator Fleet queued/dispatched and unknown remote timeout freeze latch
+
+Read [RC50_FLEET_REMOTE_TIMEOUT_FREEZE_20261016.md](./RC50_FLEET_REMOTE_TIMEOUT_FREEZE_20261016.md). After native local process/PTY lifetime accounting, another real false ACK path remained: remote Fleet commands may be queued or dispatched beyond HTTP request lifetime; when Agent result times out, the job and Fleet command are abandoned even though OS effect may still be active. The actual opt-in dev Operator now counts `fleet.commands` and latches timed-out remote command IDs as unreconciled local pending effects rather than asserting safe frozen state. Focused real-class tests 3/3 GREEN after source-integrated RED. Latch remains in RAM and does not persist through crash; no Agent/global lease proof, all P0 gates **NOT_READY**.
+
 ## 2026-10-16 — actual Operator local native process/PTY lifetime drain
 
 See [RC50_OPERATOR_NATIVE_LIFETIME_DRAIN_20261016.md](./RC50_OPERATOR_NATIVE_LIFETIME_DRAIN_20261016.md). Corrected a real local freeze ACK gap: the Operator previously counted request jobs but could report frozen while a successfully STARTed native process/PTY still lived. Real NativeProcessRegistry/NativeTerminalRegistry censuses now hold local freeze until both lifetimes end, with finish-event wakeups and the existing audit fsync seal. Actual Node child + controlled PTY lifecycle tests 2/2; 63/63 full Node regression PASS on VPS-ARM. This does **not** fence remote Agent/Fleet writers or provide a globally consistent checkpoint; ALL P0 gates remain NOT_READY.
