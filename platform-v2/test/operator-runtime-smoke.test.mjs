@@ -77,6 +77,9 @@ test('actual Operator: health, SIGUSR2 freeze, 503, marker and restart denial',
         return body.ok===true&&body.localFreeze?.phase==='open'?body:null;
       });
       assert.equal(health.localFreeze.enabled,true);
+      const readyOpen=await request('/readyz');
+      assert.equal(readyOpen.status,200);
+      assert.equal(JSON.parse(readyOpen.body).ready,true);
       assert.equal((await request('/v1/capabilities')).status,200);
       assert.equal(first.child.kill('SIGUSR2'),true);
       await until(()=>fs.existsSync(markerPath));
@@ -87,6 +90,10 @@ test('actual Operator: health, SIGUSR2 freeze, 503, marker and restart denial',
           parsed.localFreeze?.markerDurable===true?parsed:null;
       });
       assert.equal(frozen.localFreeze.inflight,0);
+      const readyFrozen=await request('/readyz');
+      assert.equal(readyFrozen.status,503);
+      assert.equal(JSON.parse(readyFrozen.body).ready,false);
+      assert.equal((await request('/healthz')).status,200);
       const rejected=await request('/v1/capabilities');
       assert.equal(rejected.status,503);
       assert.equal(JSON.parse(rejected.body).error,'local_ingress_frozen');

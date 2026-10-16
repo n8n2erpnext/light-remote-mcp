@@ -76,6 +76,22 @@ class Rc50GateTests(unittest.TestCase):
         content=smoke.read_text()
         for marker in ['plugin-server/server.mjs','/billing/paddle/webhook','LOCAL_FREEZE_MARKER_PRESENT_STARTUP_REFUSED','local_ingress_frozen']:
             self.assertIn(marker,content)
+    def test_real_runtime_probes_do_not_confuse_liveness_with_readiness(self):
+        operator=(ROOT/'operator-host/executor.mjs').read_text()
+        plugin=(ROOT/'plugin-server/server.mjs').read_text()
+        for code in (operator,plugin):
+            self.assertIn('/healthz',code)
+            self.assertIn('/readyz',code)
+            self.assertIn('localFreezeGate.accepting',code)
+            self.assertIn('ready?200:503',code)
+        for name in ('operator-runtime-smoke.test.mjs',
+                     'plugin-runtime-smoke.test.mjs',
+                     'operator-audit-failure-runtime.test.mjs'):
+            source=(ROOT/'platform-v2/test'/name).read_text()
+            self.assertIn("request('/readyz')"
+                          if name!='operator-audit-failure-runtime.test.mjs'
+                          else "call('/readyz')",source)
+            self.assertIn('status,503',source)
     def test_reject_unknown_flags(self):
         self.assertNotEqual(run('--assume-ready').returncode,0)
 

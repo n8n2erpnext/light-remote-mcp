@@ -1,5 +1,9 @@
 # Light Remote portable state contract — rc.50
 
+## 2026-10-16 — actual readiness 503, separate from live health 200
+
+See [RC50_REAL_HEALTH_READINESS_20261016.md](./RC50_REAL_HEALTH_READINESS_20261016.md). In real Operator+Plugin child processes, `/healthz` remains a **liveness** probe (200 during freeze for diagnostics), while new read-only `GET /readyz` is a **local admission readiness** probe: 200 before freeze and 503 during freeze/audit failure. Actual EISDIR audit fault verifies that a locally fenced Operator cannot appear ready even while alive. This is **NOT** proof of globally authoritative writer epoch or end-to-end restore; P0 stays NOT_READY.
+
 ## 2026-10-16 — REAL dev Operator audit write failure fences NEW HTTP traffic
 
 Read [RC50_DEV_AUDIT_FAILURE_FAIL_CLOSED_20261016.md](./RC50_DEV_AUDIT_FAILURE_FAIL_CLOSED_20261016.md). Found that asynchronous `AuditAppendBarrier` failure only logged to stderr and the real Operator continued admitting new requests. Actual rc50 opt-in Operator now synchronously enters local `freezing` and persists its marker at the FIRST failed audit append; completion of audit seal fails and never produces a fake frozen ACK. **Real Unix-socket Operator child-process EISDIR fault injection PASS**: status freezing/sealFailed, new HTTP 503, health 200. Local full 57/57 Node and 14/14 writer source guards PASS. This remains local/dev-only, not multi-host Agent or global writer authority.

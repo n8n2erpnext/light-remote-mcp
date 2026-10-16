@@ -1113,11 +1113,17 @@ const routeDeps=()=>({
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url || '/', 'http://operator.local');
-  const health=req.method==='GET'&&url.pathname==='/healthz';
+  const health=req.method==='GET'&&(url.pathname==='/healthz'||url.pathname==='/readyz');
   if(!localFreezeGate.admitHttp(req,res,{health}))return;
   try {
     if (req.method === 'GET' && url.pathname === '/healthz') {
       return sendJson(res, 200, { ok: true, ...capabilities(), localFreeze:localFreezeGate.snapshot() });
+    }
+    if (req.method === 'GET' && url.pathname === '/readyz') {
+      // Readiness is distinct from liveness: frozen or audit-failed Operators
+      // stay alive for diagnosis but MUST NOT be advertised as new-work ready.
+      const ready=localFreezeGate.accepting;
+      return sendJson(res,ready?200:503,{ok:ready,ready,service:'operator',localFreeze:localFreezeGate.snapshot()},{'cache-control':'no-store'});
     }
     if (req.method === 'GET' && url.pathname === '/v1/capabilities') {
       return sendJson(res, 200, { ok: true, ...capabilities() });

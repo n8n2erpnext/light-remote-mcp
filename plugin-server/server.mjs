@@ -34,7 +34,7 @@ const app=express();
 // so install host validation explicitly and apply the product body limit exactly once.
 app.use(hostHeaderValidation(PUBLIC_ALLOWED_HOSTS));
 app.use((req,res,next)=>{
-  const health=req.method==='GET'&&req.path==='/healthz';
+  const health=req.method==='GET'&&(req.path==='/healthz'||req.path==='/readyz');
   if(!localFreezeGate.admitHttp(req,res,{health}))return;
   next();
 });
@@ -86,6 +86,12 @@ app.get('/sitemap.xml',(_q,r)=>{
 app.get('/site.webmanifest',(_q,r)=>r.type('application/manifest+json').send(JSON.stringify({name:'Light Remote',short_name:'Light Remote',start_url:'/',display:'standalone',background_color:'#080a0c',theme_color:'#080a0c',icons:[{src:'/account/assets/light-remote.ico',sizes:'any',type:'image/x-icon'}]})));
 app.get('/favicon.ico',(_q,r)=>r.redirect(302,'/account/assets/light-remote.ico'));
 app.get('/healthz',(_q,r)=>r.json({ok:true,service:'light-remote-direct-plugin',version:VERSION,mcpSurfaceVersion:MCP_SURFACE_VERSION,transport:'direct',localFreeze:localFreezeGate.snapshot()}));
+app.get('/readyz',(_q,r)=>{
+  // Readiness is not liveness. A frozen dev process stays reachable for
+  // diagnosis but must never be considered eligible for new traffic.
+  const ready=localFreezeGate.accepting;
+  return r.status(ready?200:503).json({ok:ready,ready,service:'light-remote-direct-plugin',localFreeze:localFreezeGate.snapshot()});
+});
 app.get('/.well-known/openai-apps-challenge',(_q,r)=>{
   try{const token=fs.readFileSync(OPENAI_CHALLENGE_FILE,'utf8').trim();if(!token)return r.sendStatus(404);return r.type('text/plain').send(token);}
   catch{return r.sendStatus(404);}

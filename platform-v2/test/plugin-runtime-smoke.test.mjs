@@ -108,6 +108,9 @@ test('actual Plugin: loopback health, HTTP freeze 503 and restart marker denial'
         return data.ok===true&&data.localFreeze?.phase==='open'?data:null;
       });
       assert.equal(health.localFreeze.enabled,true);
+      const readyOpen=await request('/readyz');
+      assert.equal(readyOpen.status,200);
+      assert.equal(JSON.parse(readyOpen.body).ready,true);
       assert.equal((await request('/support')).status,200);
       assert.equal(original.child.kill('SIGUSR2'),true);
       await until(()=>fs.existsSync(marker));
@@ -118,6 +121,9 @@ test('actual Plugin: loopback health, HTTP freeze 503 and restart marker denial'
           data.localFreeze?.markerDurable===true?data:null;
       });
       assert.equal(frozen.localFreeze.inflight,0);
+      const readyFrozen=await request('/readyz');
+      assert.equal(readyFrozen.status,503);
+      assert.equal(JSON.parse(readyFrozen.body).ready,false);
       const rejected=await request('/billing/paddle/webhook','POST');
       assert.equal(rejected.status,503);
       assert.equal(JSON.parse(rejected.body).error,'local_ingress_frozen');

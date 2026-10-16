@@ -79,6 +79,10 @@ test('dev Operator stops new requests after an asynchronous audit fsync failure'
       assert.equal(failClosed.drained,false);
       assert.equal(failClosed.markerDurable,true);
       assert.equal((await call('/v1/capabilities')).status,503);
+      const readiness=await call('/readyz');
+      assert.equal(readiness.status,503);
+      assert.equal(JSON.parse(readiness.body).ready,false);
+      assert.equal(JSON.parse(readiness.body).localFreeze.sealFailed,true);
       assert.equal((await call('/healthz')).status,200);
       assert.match(stderr,/\[disk\] append failed/);
       assert.equal(fs.statSync(marker).mode&0o777,0o600);
