@@ -30,6 +30,8 @@ jobs:
         run: node --test platform-v2/test/*.test.mjs
       - name: Cross-host synthetic-only state snapshot, tamper, rollback guards (NOT production restore)
         run: python3 -B -m unittest platform-v2/test/test_cross_host_synthetic_state_uat.py -v
+      - name: Native PG17/Redis8 synthetic archive integrity and deny tests (NO Docker in this unit step)
+        run: python3 -B -m unittest platform-v2/test/test_real_pg_redis_cross_host_uat.py -v
       - name: Actual Local Wall HTTP owner A/B gate regression (fake owner and mock approval only)
         run: node --test platform-v2/portability/test_real_wall_owner_approval_http_uat.mjs
       - name: Real writer source gap audit and negative guards
@@ -110,6 +112,8 @@ jobs:
           node --test platform-v2/test/*.test.mjs
       - name: Native cross-host synthetic snapshot/archive/rollback validation (NOT cutover acceptance)
         run: python3 -B -m unittest platform-v2/test/test_cross_host_synthetic_state_uat.py -v
+      - name: Native PG17/Redis8 archive integrity and deny tests (NO live migration acceptance)
+        run: python3 -B -m unittest platform-v2/test/test_real_pg_redis_cross_host_uat.py -v
       - name: Native Local Wall HTTP owner A/B gate regression (fake owner and mock approval only)
         run: node --test platform-v2/portability/test_real_wall_owner_approval_http_uat.mjs
       - name: Maintain real P0 NOT_READY source gates on both architectures
