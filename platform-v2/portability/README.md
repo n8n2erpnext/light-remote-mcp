@@ -1,5 +1,9 @@
 # Light Remote portable state contract — rc.50
 
+## 2026-10-16 — DEV crash-durable Agent effect inventory (NOT live-wired)
+
+[RC50_DEV_AGENT_EFFECT_INVENTORY_20261016.md](./RC50_DEV_AGENT_EFFECT_INVENTORY_20261016.md) implements a separate DEV prototype: fsynced pre-spawn `intent`, exact owner/PID/handle-linked `spawned`, verified `exited` observation, persistent O_EXCL owner lock and fail-closed unresolved restarts. Real Linux child and mocked PTY tests include a separate process crash after intent and ambiguous durability ACK. **Even exited effects remain unresolved; no WAL settlement and no integration into deployed Agent.** Claimed generation is not authenticated authority. P0-A/B/C/D/E all **NOT_READY**.
+
 ## 2026-10-16 — DEV signed Agent-side lifetime observation, deliberately NON-SETTLING
 
 [RC50_DEV_AGENT_LIFETIME_OBSERVATION_20261016.md](./RC50_DEV_AGENT_LIFETIME_OBSERVATION_20261016.md) specifies and tests a domain-separated Ed25519 observation for a **known** Agent native process/PTY handle, bound to device/command/claimed writer generation/boot ID/fresh challenge. Active handle denies; exited handle is only `EXIT_OBSERVED_UNFENCED`, never an automatic journal clear. Empty/missing registry after restart fails closed. Requires independent global writer authority, durable process inventory and audited reconciliation in the future. DEV contract is NOT wired into production Agent or Operator, all five P0 remain NOT_READY.
