@@ -194,7 +194,8 @@
         "const auditAppendBarrier = new AuditAppendBarrier(",
         "appendDurableAuditBatch(LOG_FILE,batch)",
         "return auditAppendBarrier.enqueue(batch);",
-        "return auditAppendBarrier.flush();"
+        "return auditAppendBarrier.flush();",
+        "beforeDrained:()=>flushDiskRecords()"
       ],
       "helper_source": "operator-host/audit-append-barrier.mjs",
       "helper_markers": [

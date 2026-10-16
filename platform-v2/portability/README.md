@@ -1,5 +1,9 @@
 # Light Remote portable state contract — rc.50
 
+## 2026-10-16 — Real Operator audit fsync required BEFORE local freeze ACK
+
+See [RC50_REAL_OPERATOR_AUDIT_DRAIN_SEAL_20261016.md](./RC50_REAL_OPERATOR_AUDIT_DRAIN_SEAL_20261016.md). Identified a real data-loss ordering gap: local `frozen` could be acknowledged while the batched audit append was still pending. Operator now wires a mandatory `beforeDrained:()=>flushDiskRecords()` on the real local gate: it waits for active jobs + HTTP to finish, **then fsyncs the queued audit tail** (file and parent directory) before local ACK. Failure remains latched in `freezing`, no misleading drained status; regression protects the source binding. This is only a local audit ordering improvement; it is **NOT** a global epoch, complete consistent snapshot, or release-ready signal. All P0 gates remain NOT_READY.
+
 ## 2026-10-13 — REAL Plugin HTTP runtime smoke and CI dependencies
 
 See [REAL_PLUGIN_HTTP_RUNTIME_UAT_20261013.md](./REAL_PLUGIN_HTTP_RUNTIME_UAT_20261013.md). A true `plugin-server/server.mjs` child process with fake private state and no production secrets accepts loopback health/support, then SIGUSR2 fsynced freeze; new webhook/support traffic fails HTTP 503, health remains available and restarts are refused by the marker (also with opt-in reset). Dedicated locked `plugin-server` dependencies are now installed in both GitHub Actions isolated and native ARM64/x64 jobs before all Node tests. **53/53 Node and 8/8 P0 release guard tests PASS locally**. Global writer authority, real Agent and complete state restore remain NOT_READY.

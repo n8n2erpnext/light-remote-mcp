@@ -55,7 +55,8 @@ if(freezeOptIn&&!process.env.LR_RC50_OPERATOR_FREEZE_MARKER_PATH)
   throw Error('LOCAL_FREEZE_OPERATOR_MARKER_REQUIRED');
 const localFreezeGate=new LocalIngressFreezeGate({enabled:freezeOptIn,
   markerPath:process.env.LR_RC50_OPERATOR_FREEZE_MARKER_PATH||null,
-  service:'operator'});
+  service:'operator',
+  beforeDrained:()=>flushDiskRecords()});
 const SOCKET_PATH = process.env.OPERATOR_SOCKET || '/run/gpt-vps-operator/operator.sock';
 const KEY_FILE = process.env.OPERATOR_KEY_FILE || '/home/ubuntu/.config/gpt-vps-operator/operator.private.json';
 const LOG_DIR = process.env.OPERATOR_LOG_DIR || '/var/log/gpt-vps-operator';

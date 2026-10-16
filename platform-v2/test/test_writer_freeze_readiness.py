@@ -46,6 +46,9 @@ class WriterGapTests(unittest.TestCase):
         self.expect_reject(lambda x:x['dependencies'].pop(1),'dependency_risk_inventory_drift')
     def test_claim_async_append_durable_fails(self):
         self.expect_reject(lambda x:x['dependencies'][0].update(barrier_proven=True),'dependency_risk_source_drift')
+    def test_removing_real_operator_audit_drain_seal_fails(self):
+        self.expect_reject(lambda x:x['dependencies'][0]['required_markers'].remove(
+            'beforeDrained:()=>flushDiskRecords()'),'audit_drain_seal_missing')
     def test_live_ready_status_fails(self):
         self.expect_reject(lambda x:x.update(status='RESTORE_READY'),'readiness_claim_not_allowed')
     def test_missing_registry_source_marker_fails(self):
