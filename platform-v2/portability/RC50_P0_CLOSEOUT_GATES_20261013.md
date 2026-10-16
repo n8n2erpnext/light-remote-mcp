@@ -1,5 +1,9 @@
 # rc50 P0 CLOSEOUT — no more incremental synthetic-only victory laps
 
+## 2026-10-16 — REAL Agent binary process lifetime across signed Fleet WAL
+
+[RC50_REAL_AGENT_PROCESS_LIFETIME_E2E_20261016.md](./RC50_REAL_AGENT_PROCESS_LIFETIME_E2E_20261016.md) goes beyond the signed Agent-emulator test: launches the actual isolated Operator and Agent daemon via a 127.0.0.1-only signed channel bridge, executes a harmless real OS child via signed `process.start`, and confirms the Agent spool says command `finished` while the process is **still running**. Real Agent `process.list`/`process.stop`/`process.list` prove ongoing and completed OS lifecycle separately. The DEV WAL remains unresolved, freeze refuses ACK and restart refuses while unknown effects exist. This is one-host UAT, not globally fenced two-host cutover; **all five P0 gates NOT_READY**.
+
 ## 2026-10-16 — signed Agent-emulator HTTP Fleet/WAL runtime UAT
 
 [RC50_SIGNED_FLEET_WAL_HTTP_UAT_20261016.md](./RC50_SIGNED_FLEET_WAL_HTTP_UAT_20261016.md) exercises an actual disposable Operator over Unix HTTP with real Ed25519 enrollment/channel signatures, sealed remote execute, Fleet poll/result, invalid-signature rejection, duplicate ACK and DEV WAL before dispatch. A valid Agent-emulator `ok` result **does not** clear the journal; subsequent SIGUSR2 remains freezing/503 and SIGTERM refuses clean restart with outstanding effect. No real Agent code binary, device OS side effect or cross-host writer generation involved. All P0 gates **NOT_READY**.
