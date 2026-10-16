@@ -1,5 +1,9 @@
 # Light Remote portable state contract — rc.50
 
+## 2026-10-16 — Real Local Wall owner A/B HTTP security regression in native ARM64/x64 CI
+
+See [REAL_LOCAL_WALL_HTTP_NATIVE_CI_20261016.md](./REAL_LOCAL_WALL_HTTP_NATIVE_CI_20261016.md). Fixed missing GitHub Actions triggers for `device-agent/**` and `gateway/**` and explicitly run the existing **ACTUAL Local Wall HTTP /api/approve handler test** in both isolated and native ARM64/x64 jobs. No real owner/device/grant is touched: the approval callback, account, channel signatures and nonce are UAT fakes. This closes a concrete CI **coverage hole**, **not** P0-B production issuer or Agent authorization; hard P0 remains NOT_READY.
+
 ## 2026-10-16 — actual readiness 503, separate from live health 200
 
 See [RC50_REAL_HEALTH_READINESS_20261016.md](./RC50_REAL_HEALTH_READINESS_20261016.md). In real Operator+Plugin child processes, `/healthz` remains a **liveness** probe (200 during freeze for diagnostics), while new read-only `GET /readyz` is a **local admission readiness** probe: 200 before freeze and 503 during freeze/audit failure. Actual EISDIR audit fault verifies that a locally fenced Operator cannot appear ready even while alive. This is **NOT** proof of globally authoritative writer epoch or end-to-end restore; P0 stays NOT_READY.

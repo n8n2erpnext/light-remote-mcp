@@ -39,7 +39,7 @@ class Rc50GateTests(unittest.TestCase):
         self.assertFalse(v['gates']['P0-C_DURABILITY']['multi_file_checkpoint_proven'])
     def test_workflow_runs_when_actual_product_code_changes(self):
         txt=WORKFLOW.read_text()
-        for marker in ['operator-host/**','plugin-server/**','lib/**',
+        for marker in ['operator-host/**','plugin-server/**','device-agent/**','gateway/**','lib/**',
                        'package.json','package-lock.json','platform-v2/**']:
             self.assertIn(marker,txt)
         self.assertIn('node --test platform-v2/test/*.test.mjs',txt)
@@ -76,6 +76,18 @@ class Rc50GateTests(unittest.TestCase):
         content=smoke.read_text()
         for marker in ['plugin-server/server.mjs','/billing/paddle/webhook','LOCAL_FREEZE_MARKER_PRESENT_STARTUP_REFUSED','local_ingress_frozen']:
             self.assertIn(marker,content)
+    def test_actual_local_wall_owner_ab_http_is_gated_by_native_ci(self):
+        txt=WORKFLOW.read_text()
+        test='node --test platform-v2/portability/test_real_wall_owner_approval_http_uat.mjs'
+        self.assertEqual(txt.count(test),2)
+        real_test=ROOT/'platform-v2/portability/test_real_wall_owner_approval_http_uat.mjs'
+        self.assertTrue(real_test.is_file())
+        source=real_test.read_text()
+        for marker in ['device-agent/local-wall.mjs','/api/approve',
+                       'accessApprove:async','csrf','without authenticated session']:
+            self.assertIn(marker,source)
+        # This validates the real HTTP handler, not a production issuer:
+        self.assertIn('synthetic',source.lower())
     def test_real_runtime_probes_do_not_confuse_liveness_with_readiness(self):
         operator=(ROOT/'operator-host/executor.mjs').read_text()
         plugin=(ROOT/'plugin-server/server.mjs').read_text()

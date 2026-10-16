@@ -2,9 +2,9 @@ name: RC50 MJS Scale UAT
 on:
   push:
     branches: [feature/rc50-mjs-scale-20261011]
-    paths: [platform-v2/**, operator-host/**, plugin-server/**, lib/**, package.json, package-lock.json, .github/workflows/rc50-mjs-scale.yml]
+    paths: [platform-v2/**, operator-host/**, plugin-server/**, device-agent/**, gateway/**, lib/**, package.json, package-lock.json, .github/workflows/rc50-mjs-scale.yml]
   pull_request:
-    paths: [platform-v2/**, operator-host/**, plugin-server/**, lib/**, package.json, package-lock.json, .github/workflows/rc50-mjs-scale.yml]
+    paths: [platform-v2/**, operator-host/**, plugin-server/**, device-agent/**, gateway/**, lib/**, package.json, package-lock.json, .github/workflows/rc50-mjs-scale.yml]
   workflow_dispatch:
     inputs:
       require_ready:
@@ -28,6 +28,8 @@ jobs:
         run: npm ci --prefix plugin-server --ignore-scripts --no-audit --no-fund
       - name: Full platform and actual Operator/Plugin local regression
         run: node --test platform-v2/test/*.test.mjs
+      - name: Actual Local Wall HTTP owner A/B gate regression (fake owner and mock approval only)
+        run: node --test platform-v2/portability/test_real_wall_owner_approval_http_uat.mjs
       - name: Real writer source gap audit and negative guards
         run: |
           python3 -B platform-v2/portability/audit_writer_freeze_readiness.py
@@ -96,6 +98,8 @@ jobs:
           node --check plugin-server/server.mjs
           node --check lib/local-ingress-freeze.mjs
           node --test platform-v2/test/*.test.mjs
+      - name: Native Local Wall HTTP owner A/B gate regression (fake owner and mock approval only)
+        run: node --test platform-v2/portability/test_real_wall_owner_approval_http_uat.mjs
       - name: Maintain real P0 NOT_READY source gates on both architectures
         run: |
           python3 -B platform-v2/portability/audit_writer_freeze_readiness.py
