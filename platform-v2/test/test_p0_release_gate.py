@@ -104,6 +104,19 @@ class Rc50GateTests(unittest.TestCase):
                           if name!='operator-audit-failure-runtime.test.mjs'
                           else "call('/readyz')",source)
             self.assertIn('status,503',source)
+    def test_strict_wall_owner_stage_is_unwired_until_explicitly_approved(self):
+        wall=(ROOT/'device-agent/local-wall.mjs').read_text()
+        agent=(ROOT/'device-agent/operator-agent.mjs').read_text()
+        for value in ("requireAuthenticatedApproval=false",
+                      "strict_wall_approval_owner_auth_required",
+                      "wall_approval_requires_b_code"):
+            self.assertIn(value,wall)
+        # This strict option is NOT active in the deployed Agent runtime.
+        # Integration into the actual operator-agent was safety-blocked.
+        self.assertNotIn('LR_RC50_DEV_STRICT_WALL_OWNER_APPROVAL',agent)
+        smoke=(ROOT/'platform-v2/portability/test_real_wall_owner_approval_http_uat.mjs').read_text()
+        self.assertIn('rc50 opt-in strict Wall',smoke)
+        self.assertIn('/api/access/',smoke)
     def test_reject_unknown_flags(self):
         self.assertNotEqual(run('--assume-ready').returncode,0)
 

@@ -1,5 +1,9 @@
 # Light Remote portable state contract — rc.50
 
+## 2026-10-16 — strict Local Wall owner approval UAT stage (NOT Agent-wired)
+
+Read [RC50_STRICT_WALL_OWNER_APPROVAL_STAGE_20261016.md](./RC50_STRICT_WALL_OWNER_APPROVAL_STAGE_20261016.md). The real Local Wall handler has a compatibility legacy approve-by-requestId route which does not ask for B code. A new default-OFF strict constructor option demands authenticated owner sessions and denies this legacy approve route; 14/14 live HTTP UAT cases pass. **The attempted operator-agent integration was tool-safety BLOCKED and not bypassed; the strict option is NOT enabled by the deployed Agent.** P0-B still NOT_READY.
+
 ## 2026-10-16 — Real Local Wall owner A/B HTTP security regression in native ARM64/x64 CI
 
 See [REAL_LOCAL_WALL_HTTP_NATIVE_CI_20261016.md](./REAL_LOCAL_WALL_HTTP_NATIVE_CI_20261016.md). Fixed missing GitHub Actions triggers for `device-agent/**` and `gateway/**` and explicitly run the existing **ACTUAL Local Wall HTTP /api/approve handler test** in both isolated and native ARM64/x64 jobs. No real owner/device/grant is touched: the approval callback, account, channel signatures and nonce are UAT fakes. This closes a concrete CI **coverage hole**, **not** P0-B production issuer or Agent authorization; hard P0 remains NOT_READY.

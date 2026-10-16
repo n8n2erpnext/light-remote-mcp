@@ -229,3 +229,59 @@ test('Local Wall without authenticated session cannot be promoted to verified OW
   await wall.close();
  }
 });
+
+test('rc50 opt-in strict Wall refuses unauthenticated startup and B-code bypass route',async()=>{
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'lr-uat-strict-wall-'));
+ const config=path.join(dir,'auth.json');
+ const requestId='pa_'+crypto.randomBytes(18).toString('base64url');
+ const bCode='4K8M-P7XQ';
+ let approved=0;
+ try{
+  assert.throws(()=>startLocalWall({
+   host:'127.0.0.1',port:0,auth:{enabled:false},
+   requireAuthenticatedApproval:true
+  }),/strict_wall_approval_owner_auth_required/);
+  writeLocalWallAuthConfig(config,{
+   username:'uat_strict_owner',password:'fake_only_'+crypto.randomBytes(18).toString('base64url'),
+   cookieSecret:crypto.randomBytes(32).toString('base64url')
+  });
+  const auth=loadLocalWallAuth(config,{required:true});
+  const session=auth.issue(),cookie=LOCAL_WALL_COOKIE+'='+session.token;
+  const csrf=auth.csrfForRequest({headers:{cookie}});
+  const wall=startLocalWall({
+   host:'127.0.0.1',port:0,auth,requireAuthenticatedApproval:true,
+   getLocalStatus:async()=>({deviceId:'uat_device',cloudDesiredConnected:true,cloudState:'connected'}),
+   getRemoteStatus:async()=>({ok:true,device:{displayName:'UAT strict'},
+     access:{pending:[{requestId,userCode:bCode,accountId:'uat_account',agentId:'uat_agent',
+       expiresAt:Date.now()+60000}]}}),
+   accessApprove:async id=>{assert.equal(id,requestId);approved++;return {requestId:id,status:'approved'};}
+  });
+  try{
+   await once(wall.server,'listening');
+   const base='http://127.0.0.1:'+wall.server.address().port;
+   const post=async(route,body,headers={})=>{
+    const res=await fetch(base+route,{method:'POST',headers:{
+     'content-type':'application/json',cookie,'x-light-remote-csrf':csrf,...headers
+    },body:JSON.stringify(body),signal:AbortSignal.timeout(4000)});
+    return {status:res.status,body:await res.json()};
+   };
+   const legacy=await post('/api/access/'+requestId+'/approve',{});
+   assert.equal(legacy.status,403);
+   assert.equal(legacy.body.error,'wall_approval_requires_b_code');
+   assert.equal(approved,0,'legacy callback must never receive approval');
+   const sessionless=await post('/api/approve',{code:bCode,decision:'approve'},{cookie:''});
+   assert.equal(sessionless.status,401);
+   assert.equal(approved,0);
+   const wrongCode=await post('/api/approve',{code:'BADX-B2QK',decision:'approve'});
+   assert.equal(wrongCode.status,404);
+   assert.equal(approved,0);
+   const authorized=await post('/api/approve',{code:bCode,decision:'approve'});
+   assert.equal(authorized.status,200);
+   assert.equal(approved,1);
+  }finally{
+   await wall.close();
+  }
+ }finally{
+  fs.rmSync(dir,{recursive:true,force:true});
+ }
+});
