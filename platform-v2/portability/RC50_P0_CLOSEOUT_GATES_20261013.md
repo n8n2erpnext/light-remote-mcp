@@ -1,5 +1,9 @@
 # rc50 P0 CLOSEOUT — no more incremental synthetic-only victory laps
 
+## 2026-10-16 — actual orphaned OS child after Agent SIGKILL (DEV-only)
+
+[RC50_AGENT_SIGKILL_ORPHAN_UAT_20261016.md](./RC50_AGENT_SIGKILL_ORPHAN_UAT_20261016.md) demonstrates an actual independently running Linux child after hard SIGKILL of an isolated Agent UAT worker **both before and after durable PID/handle linking**. The fresh Agent writer and exit signer both fail closed while inventory retains `intent` or `spawned`. Adds DEV-only `startDevTrackedAgentEffect` gate enforcing owner match and `fsync intent → native spawn → durable handle link` ordering; a failed intent write cannot spawn. These tests do not wire production Agent or establish a global writer fence. All five P0 gates remain NOT_READY.
+
 ## 2026-10-16 — DEV crash-durable Agent effect inventory (NOT live-wired)
 
 [RC50_DEV_AGENT_EFFECT_INVENTORY_20261016.md](./RC50_DEV_AGENT_EFFECT_INVENTORY_20261016.md) implements a separate DEV prototype: fsynced pre-spawn `intent`, exact owner/PID/handle-linked `spawned`, verified `exited` observation, persistent O_EXCL owner lock and fail-closed unresolved restarts. Real Linux child and mocked PTY tests include a separate process crash after intent and ambiguous durability ACK. **Even exited effects remain unresolved; no WAL settlement and no integration into deployed Agent.** Claimed generation is not authenticated authority. P0-A/B/C/D/E all **NOT_READY**.
