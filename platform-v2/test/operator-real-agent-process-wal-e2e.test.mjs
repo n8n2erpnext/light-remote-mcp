@@ -259,7 +259,7 @@ test('actual Agent binary signed process-start ACK precedes OS exit; remote WAL 
     if(Number.isSafeInteger(childOsPid)&&childOsPid>0){
       try{
         const cmdline=fs.readFileSync('/proc/'+childOsPid+'/cmdline','utf8');
-        if(cmdline.startsWith('/bin/sleep\\0')&&cmdline.includes('12'))
+        if(cmdline.startsWith('/bin/sleep'+String.fromCharCode(0))&&cmdline.includes('12'))
           process.kill(childOsPid,'SIGKILL');
       }catch{}
     }
