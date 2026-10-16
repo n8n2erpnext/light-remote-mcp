@@ -1,5 +1,9 @@
 # Light Remote portable state contract — rc.50
 
+## 2026-10-16 — fail-closed audit EISDIR CI race and truthful cleanup
+
+[RC50_AUDIT_FAULT_CI_RACE_20261016.md](./RC50_AUDIT_FAULT_CI_RACE_20261016.md) diagnoses Actions #38851495298: ARM64 and x64 passed, but isolated-data-contract was 65/66 due to a test assumption about invalid HTTP 400 racing with a legitimate early 503 audit freeze; cleanup then failed because Compose secrets had never been created. Fixed only the test assertion to require the exact 400 invalid_account_id **or** 503 local_ingress_frozen; the durable marker, sealFailed, /readyz 503, /healthz 200 and disk error remain mandatory. Guarded CI teardown when no CI database was started. This is not a P0 signoff.
+
 ## 2026-10-16 — actual Operator Fleet queued/dispatched and unknown remote timeout freeze latch
 
 Read [RC50_FLEET_REMOTE_TIMEOUT_FREEZE_20261016.md](./RC50_FLEET_REMOTE_TIMEOUT_FREEZE_20261016.md). After native local process/PTY lifetime accounting, another real false ACK path remained: remote Fleet commands may be queued or dispatched beyond HTTP request lifetime; when Agent result times out, the job and Fleet command are abandoned even though OS effect may still be active. The actual opt-in dev Operator now counts `fleet.commands` and latches timed-out remote command IDs as unreconciled local pending effects rather than asserting safe frozen state. Focused real-class tests 3/3 GREEN after source-integrated RED. Latch remains in RAM and does not persist through crash; no Agent/global lease proof, all P0 gates **NOT_READY**.

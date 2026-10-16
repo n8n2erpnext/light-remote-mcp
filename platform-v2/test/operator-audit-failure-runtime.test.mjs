@@ -69,7 +69,16 @@ test('dev Operator stops new requests after an asynchronous audit fsync failure'
       // The deliberately invalid account ID emits a real executor_error
       // audit event without creating an account, session, device or job.
       const invalid=await call('/v1/plugin/sessions?accountId=');
-      assert.equal(invalid.status,400);
+      // Under loaded native CI runners, a queued bootstrap audit append may
+      // hit our EISDIR fault BEFORE this request is admitted. A legitimate
+      // fail-closed 503 is then safer than the ordinary invalid-input 400.
+      // Reject arbitrary 503s: the exact local freeze error must be present.
+      if(invalid.status===503){
+        assert.equal(JSON.parse(invalid.body).error,'local_ingress_frozen');
+      }else{
+        assert.equal(invalid.status,400);
+        assert.equal(JSON.parse(invalid.body).error,'invalid_account_id');
+      }
       await eventually(()=>fs.existsSync(marker));
       const failClosed=await eventually(async()=>{
         const health=await call('/healthz');

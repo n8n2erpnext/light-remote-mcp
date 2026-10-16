@@ -62,7 +62,15 @@ jobs:
       - name: Tear down only CI test stack
         if: always()
         working-directory: platform-v2
-        run: docker compose -p lightremote-rc50-v2 -f compose.yml down -v --remove-orphans
+        run: |
+          # Earlier Node test failures can precede CI-only credentials creation.
+          # In that case no Compose stack was started; avoid a misleading
+          # secondary 'env file not found' cleanup failure.
+          if [ -f secrets/postgres.env ] && [ -f secrets/redis.conf ]; then
+            docker compose -p lightremote-rc50-v2 -f compose.yml down -v --remove-orphans
+          else
+            echo 'No disposable CI database credentials: stack was never started.'
+          fi
 
   native-runtime-parity:
     name: "Native Node runtime parity (${{ matrix.expected_arch }})"
