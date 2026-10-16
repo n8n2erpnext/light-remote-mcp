@@ -1,5 +1,9 @@
 # rc50 P0 CLOSEOUT — no more incremental synthetic-only victory laps
 
+## 2026-10-16 — crash-conservative DEV journal shutdown census
+
+[RC50_DEV_JOURNAL_NATIVE_SHUTDOWN_20261016.md](./RC50_DEV_JOURNAL_NATIVE_SHUTDOWN_20261016.md) closes a real false-clean-shutdown path after the previous outbound Fleet WAL: a native process/PTY START job can finish while its OS child persists, yet the SIGTERM path previously released the DEV journal lock whenever Fleet and journal were empty. Actual Operator shutdown now requires a healthy ingress audit gate, zero unfinished jobs, zero Fleet/remote pending, plus *zero live native process or PTY rows* before releasing that lock. New regression uses a real Linux Node child, a deterministic PTY and actual registries. The change runs only when DEV remote-effect journaling is opted in; all P0 release gates remain **NOT_READY**.
+
 ## 2026-10-16 — opt-in crash-conservative DEV Fleet effect journal (local only)
 
 [RC50_DEV_REMOTE_EFFECT_JOURNAL_20261016.md](./RC50_DEV_REMOTE_EFFECT_JOURNAL_20261016.md) adds a real Operator write-ahead journal before Fleet enqueue, with per-file+directory fsync, explicit private owner-provisioned state, O_EXCL single-local-owner lock, missing/pending/replaced journal fail-closed startup, and clean-shutdown lock release only when no unresolved Fleet/remote effects remain. Generic Agent success, particularly remote process/PTY start, is **not** a safe proof to remove a pending entry: no automatic clearing until independent owner/Agent reconciliation is designed. Real isolated child-process boot/restart/shutdown tests and actual source binding are covered. This is separate DEV opt-in; existing production unchanged. It is not a global epoch, Agent final-state receipt, 18/18 registry durability or portable restore acceptance. **ALL P0 GATES NOT_READY.**

@@ -14,6 +14,7 @@ import { FleetRouter, FleetError } from './fleet-router.mjs';
 import { AuditAppendBarrier } from './audit-append-barrier.mjs';
 import { appendDurableAuditBatch } from './durable-audit-append.mjs';
 import { DevRemoteEffectJournal } from './dev-remote-effect-journal.mjs';
+import { assertDevJournalCleanShutdown } from './dev-journal-clean-shutdown.mjs';
 import { LocalIngressFreezeGate } from '../lib/local-ingress-freeze.mjs';
 import { DeviceConnectionRegistry, DeviceConnectionError, DEFAULT_PLAN_CONNECTION_CAPS } from './device-connection-registry.mjs';
 import { DeviceAccessGrantRegistry, DeviceAccessGrantError } from './device-access-grant-registry.mjs';
@@ -1227,9 +1228,11 @@ function shutdown(signal) {
       // stale lock requiring explicit owner reconciliation before restart.
       if(remoteEffectJournal){
         try{
-          if(localFreezeGate.phase!=='open'||fleet.commands.size||
-             unreconciledRemoteEffects.size||remoteEffectJournal.pending)
-            throw Error('DEV_REMOTE_EFFECT_JOURNAL_UNCLEAN_SHUTDOWN');
+          // A completed native process/PTY START request can outlive the job.
+          // Refuse clean shutdown while its OS child remains alive.
+          assertDevJournalCleanShutdown({localFreezeGate,fleet,jobs,
+            unreconciledRemoteEffects,remoteEffectJournal,
+            nativeProcesses:NATIVE_PROCESSES,nativeTerminals:NATIVE_TERMINALS});
           remoteEffectJournal.releaseClean();
         }catch(error){
           console.error('[rc50-dev-remote-ledger] shutdown_refused',error?.message);
