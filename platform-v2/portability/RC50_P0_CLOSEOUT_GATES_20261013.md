@@ -1,5 +1,9 @@
 # rc50 P0 CLOSEOUT — no more incremental synthetic-only victory laps
 
+## 2026-10-16 — Plugin SCP per-chunk SHA compatibility bridge, source-only
+
+[RC50_SCP_CHUNK_SHA_PLUGIN_ADAPTER_20261016.md](./RC50_SCP_CHUNK_SHA_PLUGIN_ADAPTER_20261016.md) adds strict canonical binary-safe per-chunk SHA-256 derivation at the public `light_remote_scp_upload_chunk` Plugin boundary and advertises optional explicit chunk hash. This bridges old Agent builds requiring a SHA and new builds able to derive it, without weakening mandatory whole-file SHA-256 at commit. New positive/negative 8-case adapter/owner-bound binary test and full Node regression PASS. **Installed runtime on HOMELAB still previously failed `scp_invalid_sha256` until a separate canary/release is applied and verified**; DO NOT claim live SCP fixed or silently deploy. All five P0 gates remain NOT_READY.
+
 ## 2026-10-16 — ACTUAL two-host PostgreSQL17 / Redis8 synthetic dump + restore; SCP facade mismatch
 
 [RC50_REAL_PG_REDIS_CROSS_HOST_20261016.md](./RC50_REAL_PG_REDIS_CROSS_HOST_20261016.md) records a real VPS-ARM aarch64 `pg_dump -Fc` + Redis8 RDB of invented fixture rows, independently restored on HOMELAB x86_64 in a different private, no-published-ports Compose project with real PostgreSQL/Redis query validation and cleanup of BOTH hosts' UAT containers/volumes. Archive SHA-256 matched end-to-end. This is not a complete Operator/Plugin state restore, no authenticated old-writer fencing or product cutover. Native Light SCP chunk upload still **fails `scp_invalid_sha256`** on a 5-byte valid test even though the repository's file-level SCP library accepts omitted per-chunk hash (new strict positive/negative unit tests). Treat deployed tool adapter mismatch as OPEN; no SCP fix or production release asserted. Nine new offline PG/RDB archive negative tests run in three CI jobs. P0-D partial progress, **all five P0 gates still NOT_READY**.

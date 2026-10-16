@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { AccountOperatorAdapter } from './operator-adapter.mjs';
 import { mintPairingContinuation, requireScopes, verifyPairingContinuation } from './oauth.mjs';
 import { redactRestrictedText, sanitizeForMcp } from './response-sanitizer.mjs';
+import { prepareScpUploadChunk } from './scp-chunk-integrity.mjs';
 
 const id=z.string().regex(/^[A-Za-z0-9._:-]{1,160}$/);
 const opId=z.string().regex(/^[A-Za-z0-9._:-]{16,160}$/).optional();
@@ -62,7 +63,11 @@ async function terminalOperation(a,x,operation){
   return operationView(await a.terminal(x.sessionId,terminal,x.operationId));
 }
 async function scpOperation(a,x,operation,fields){
-  const scp={op:operation};Object.assign(scp,pick(x,fields));
+  // Public old MCP clients omit per-chunk sha256; derive at the Plugin
+  // boundary so old AND updated Agent versions can both verify the bytes.
+  const scp=operation==='upload-chunk'
+    ?prepareScpUploadChunk(x)
+    :{op:operation,...pick(x,fields)};
   return operationView(await a.scp(x.sessionId,scp,x.operationId));
 }
 async function desktopOperation(a,x,operation,fields){
@@ -427,7 +432,7 @@ export function registerPluginTools(server,identity){
   add(server,'light_remote_scp_upload_chunk',{
     title:'Write an upload chunk',
     description:'Stage one indexed data chunk for an existing Light SCP upload. This changes transfer state but does not commit the destination file.',
-    inputSchema:{sessionId:id,operationId:opId,transferId:z.string().min(1).max(160),index:z.number().int().min(0),data:z.string().max(6_000_000)},securitySchemes:security(['remote:write']),annotations:annotations(false,false,false,false)
+    inputSchema:{sessionId:id,operationId:opId,transferId:z.string().min(1).max(160),index:z.number().int().min(0),data:z.string().max(6_000_000),sha256:z.string().regex(/^[a-f0-9]{64}$/i).optional()},securitySchemes:security(['remote:write']),annotations:annotations(false,false,false,false)
   },guarded(identity,['remote:write'],(a,x)=>scpOperation(a,x,'upload-chunk',['transferId','index','data'])));
 
   add(server,'light_remote_scp_upload_commit',{
