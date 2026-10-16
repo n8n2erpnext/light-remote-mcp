@@ -28,6 +28,8 @@ jobs:
         run: npm ci --prefix plugin-server --ignore-scripts --no-audit --no-fund
       - name: Full platform and actual Operator/Plugin local regression
         run: node --test platform-v2/test/*.test.mjs
+      - name: Cross-host synthetic-only state snapshot, tamper, rollback guards (NOT production restore)
+        run: python3 -B -m unittest platform-v2/test/test_cross_host_synthetic_state_uat.py -v
       - name: Actual Local Wall HTTP owner A/B gate regression (fake owner and mock approval only)
         run: node --test platform-v2/portability/test_real_wall_owner_approval_http_uat.mjs
       - name: Real writer source gap audit and negative guards
@@ -106,6 +108,8 @@ jobs:
           node --check plugin-server/server.mjs
           node --check lib/local-ingress-freeze.mjs
           node --test platform-v2/test/*.test.mjs
+      - name: Native cross-host synthetic snapshot/archive/rollback validation (NOT cutover acceptance)
+        run: python3 -B -m unittest platform-v2/test/test_cross_host_synthetic_state_uat.py -v
       - name: Native Local Wall HTTP owner A/B gate regression (fake owner and mock approval only)
         run: node --test platform-v2/portability/test_real_wall_owner_approval_http_uat.mjs
       - name: Maintain real P0 NOT_READY source gates on both architectures

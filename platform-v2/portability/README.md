@@ -1,5 +1,9 @@
 # Light Remote portable state contract — rc.50
 
+## 2026-10-16 — ACTUAL VPS-ARM→HOMELAB cross-host synthetic archive, restore, rollback UAT
+
+[RC50_REAL_CROSS_HOST_SYNTHETIC_STATE_20261016.md](./RC50_REAL_CROSS_HOST_SYNTHETIC_STATE_20261016.md) documents a physically independent ARM64→x86_64 test: 13/13 invented JSON state planes moved to HOMELAB with exact whole-archive and per-file SHA-256, restored under a private staging directory and rolled back to write-disabled quarantine. A target writer activation attempt was deliberately DENIED absent an authenticated global old-writer fence. Official Light SCP upload failed with `scp_invalid_sha256`; authorized Base64URL text file transport was used and target rehashed successfully. These are **synthetic-only state representations** (NO real PG dump/Redis RDB, production JSON, customer identity, billing or genuine full restore). Eight negative Python tests and CI parity are required. P0-D **subset progress but NOT_READY**; all five release gates remain NOT_READY.
+
 ## 2026-10-16 — actual orphaned OS child after Agent SIGKILL (DEV-only)
 
 [RC50_AGENT_SIGKILL_ORPHAN_UAT_20261016.md](./RC50_AGENT_SIGKILL_ORPHAN_UAT_20261016.md) demonstrates an actual independently running Linux child after hard SIGKILL of an isolated Agent UAT worker **both before and after durable PID/handle linking**. The fresh Agent writer and exit signer both fail closed while inventory retains `intent` or `spawned`. Adds DEV-only `startDevTrackedAgentEffect` gate enforcing owner match and `fsync intent → native spawn → durable handle link` ordering; a failed intent write cannot spawn. These tests do not wire production Agent or establish a global writer fence. All five P0 gates remain NOT_READY.
