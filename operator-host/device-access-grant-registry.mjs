@@ -93,9 +93,17 @@ export class DeviceAccessGrantRegistry {
       if(row.expiresAt<=now){row.state='expired';row.consumedAt=now;this._persist();throw new DeviceAccessGrantError('plus_authorization_expired',410);}
       return {state:'pending',request:{requestId:row.requestId,deviceId:row.deviceId,connectionId:row.connectionId,label:row.label,userCode:row.userCode,expiresAt:row.expiresAt}};
     }
-    if(active){row.state='approved';row.consumedAt=now;this._persist();return {state:'approved',grant:{...active}};}
+    // Explicit denial and an unapproved request's expiry take precedence over
+    // a separate active grant. Already-approved requests remain pollable while
+    // their grant is valid, even after the short B-code request TTL.
     if(row.state==='denied')throw new DeviceAccessGrantError('plus_authorization_denied',403);
-    if(row.expiresAt<=now){row.state='expired';row.consumedAt=now;this._persist();throw new DeviceAccessGrantError('plus_authorization_expired',410);}
+    if(row.state==='expired'||(row.state==='pending'&&row.expiresAt<=now)){
+      if(row.state!=='expired'){row.state='expired';row.consumedAt=now;this._persist();}
+      throw new DeviceAccessGrantError('plus_authorization_expired',410);
+    }
+    if(!['pending','approved'].includes(row.state))throw new DeviceAccessGrantError('plus_authorization_not_found',404);
+    if(active){row.state='approved';row.consumedAt=now;this._persist();return {state:'approved',grant:{...active}};}
+    if(row.state==='approved')throw new DeviceAccessGrantError('device_access_grant_required',401);
     return {state:'pending',request:{requestId:row.requestId,deviceId:row.deviceId,connectionId:row.connectionId,label:row.label,userCode:row.userCode,expiresAt:row.expiresAt}};
   }
   approve(requestId,{deviceId=null,connectionId,connectionExpiresAt,idleGraceMs=null}={}){

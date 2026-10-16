@@ -1,5 +1,9 @@
 # Light Remote portable state contract — rc.50
 
+## 2026-10-16 — denied/expired A/B request no longer inherits another active grant
+
+See [RC50_AB_DENIED_EXPIRED_POLL_PRIORITY_20261016.md](./RC50_AB_DENIED_EXPIRED_POLL_PRIORITY_20261016.md). Fixed actual DeviceAccessGrantRegistry non-pairing poll ordering: an explicitly denied or expired pending B request cannot become approved merely because the same Agent has a separate active grant for A. Regression reproduced two failures BEFORE source fix; 4/4 PASS after, including approved-before-expiry delayed polling. No issuer/Agent production authorization added; hard P0 remains NOT_READY.
+
 ## 2026-10-16 — strict Local Wall owner approval UAT stage (NOT Agent-wired)
 
 Read [RC50_STRICT_WALL_OWNER_APPROVAL_STAGE_20261016.md](./RC50_STRICT_WALL_OWNER_APPROVAL_STAGE_20261016.md). The real Local Wall handler has a compatibility legacy approve-by-requestId route which does not ask for B code. A new default-OFF strict constructor option demands authenticated owner sessions and denies this legacy approve route; 14/14 live HTTP UAT cases pass. **The attempted operator-agent integration was tool-safety BLOCKED and not bypassed; the strict option is NOT enabled by the deployed Agent.** P0-B still NOT_READY.
