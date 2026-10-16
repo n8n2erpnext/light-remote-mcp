@@ -1,5 +1,9 @@
 # rc50 P0 CLOSEOUT — no more incremental synthetic-only victory laps
 
+## 2026-10-16 — REAL executable Agent+Operator signed Fleet SCP binary UAT
+
+[RC50_REAL_AGENT_SIGNED_SCP_FLEET_UAT_20261016.md](./RC50_REAL_AGENT_SIGNED_SCP_FLEET_UAT_20261016.md) runs **actual** isolated Operator and Agent daemon binaries (disposable Ed25519 enrollment, loopback signed channel) and exercises Plugin-adapted upload-begin, deliberate wrong chunk SHA DENY, 3 binary chunks, real upload-commit, independent signed download and byte-for-byte hash verification. DEV durable remote-effect WAL **remains unresolved**, freeze returns `/readyz 503` and restart refuses until legitimate reconciliation. Unlike prior callback mock, Agent/Fleet is real source runtime, but the actual deployed public Plugin and owner device are NOT upgraded/tested. **Installed SCP live fix remains OPEN**. No global writer fencing or production restore evidence; all P0-A/B/C/D/E NOT_READY.
+
 ## 2026-10-16 — DEV two-signer WriterEpoch promotion evidence, NEVER target activation
 
 [RC50_DEV_TWO_SIGNER_WRITER_EPOCH_EVIDENCE_20261016.md](./RC50_DEV_TWO_SIGNER_WRITER_EPOCH_EVIDENCE_20261016.md) introduces a strict *development-only* Ed25519 issuer-signed next-generation grant and an independently source-device-signed drain/fence claim, with matching transaction, nodes, snapshot SHA, fresh challenge and replay/expiry validation. The result remains `TWO_SIGNERS_CHECKED_UNFENCED` with `targetActivationAuthorized:false`; no independent global epoch issuer, hard write-path fence, live device attestation or durable quorum exists. This does **not** close P0-A. All five P0 gates NOT_READY.
