@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import {durableAtomicWriteSync} from '../lib/durable-atomic-file.mjs';
 
 export class AccountError extends Error {
   constructor(message,status=400){super(message);this.status=status;}
@@ -63,7 +64,7 @@ export class AccountRegistry{
     if(!this.stateFile)return;
     const dir=path.dirname(this.stateFile);fs.mkdirSync(dir,{recursive:true,mode:0o750});
     const payload={schemaVersion:2,accounts:[...this.accounts.values()],sessions:[...this.sessions.values()],oneTimeTokens:[...this.oneTimeTokens.values()],upgradeRequests:[...this.upgradeRequests.values()],pendingRegistrations:[...this.pendingRegistrations.values()],googleSignupIntents:[...this.googleSignupIntents.values()],groups:[...this.groups.values()]};
-    const tmp=`${this.stateFile}.${process.pid}.tmp`;fs.writeFileSync(tmp,`${JSON.stringify(payload,null,2)}\n`,{mode:0o600});fs.chmodSync(tmp,0o600);fs.renameSync(tmp,this.stateFile);
+    durableAtomicWriteSync(this.stateFile,`${JSON.stringify(payload,null,2)}\n`,{mode:0o600});
   }
   _load(){
     if(!this.stateFile||!fs.existsSync(this.stateFile))return;

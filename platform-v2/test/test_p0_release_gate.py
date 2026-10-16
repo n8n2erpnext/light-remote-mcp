@@ -33,8 +33,8 @@ class Rc50GateTests(unittest.TestCase):
         self.assertTrue(all(not g['ready'] for g in v['gates'].values()))
     def test_release_cannot_extrapolate_fsync_into_writer_authority(self):
         v=json.loads(run('--report').stdout)
-        self.assertEqual(v['gates']['P0-C_DURABILITY']['file_sync_proven'],16)
-        self.assertEqual(v['gates']['P0-C_DURABILITY']['file_sync_not_proven'],2)
+        self.assertEqual(v['gates']['P0-C_DURABILITY']['file_sync_proven'],18)
+        self.assertEqual(v['gates']['P0-C_DURABILITY']['file_sync_not_proven'],0)
         self.assertFalse(v['gates']['P0-A_WRITER']['writer_single_authority_proven'])
         self.assertFalse(v['gates']['P0-C_DURABILITY']['multi_file_checkpoint_proven'])
     def test_workflow_runs_when_actual_product_code_changes(self):

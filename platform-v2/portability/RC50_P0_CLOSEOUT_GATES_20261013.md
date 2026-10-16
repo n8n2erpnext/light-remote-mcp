@@ -1,5 +1,9 @@
 # rc50 P0 CLOSEOUT — no more incremental synthetic-only victory laps
 
+## 2026-10-16 — final two standalone registry fsync gaps CLOSED, 18/18 (not global fence)
+
+[RC50_FINAL_TWO_FSYNC_WRITERS_20261016.md](./RC50_FINAL_TWO_FSYNC_WRITERS_20261016.md) replaces the two remaining predictable temp/rename-only writers in actual `AccountRegistry` and `DeviceConnectionRegistry` with shared fsynced atomic replace (file fsync + parent directory fsync), no schema changes. Focused real-class tests include restart, injected pre-rename fsync failure, symlink defense and ambiguous post-rename parent fsync fail-stop. The source audit now proves **18/18 individually fsynced registry writers**, but still reports **`single_writer_authority_proven:false`, NOT_READY**. Five async/outbox/replay/Fleet dependencies, authoritative WriterEpoch and all five P0 release gates remain OPEN. This is feature-source only: production is untouched.
+
 ## 2026-10-16 — REAL executable Agent+Operator signed Fleet SCP binary UAT
 
 [RC50_REAL_AGENT_SIGNED_SCP_FLEET_UAT_20261016.md](./RC50_REAL_AGENT_SIGNED_SCP_FLEET_UAT_20261016.md) runs **actual** isolated Operator and Agent daemon binaries (disposable Ed25519 enrollment, loopback signed channel) and exercises Plugin-adapted upload-begin, deliberate wrong chunk SHA DENY, 3 binary chunks, real upload-commit, independent signed download and byte-for-byte hash verification. DEV durable remote-effect WAL **remains unresolved**, freeze returns `/readyz 503` and restart refuses until legitimate reconciliation. Unlike prior callback mock, Agent/Fleet is real source runtime, but the actual deployed public Plugin and owner device are NOT upgraded/tested. **Installed SCP live fix remains OPEN**. No global writer fencing or production restore evidence; all P0-A/B/C/D/E NOT_READY.

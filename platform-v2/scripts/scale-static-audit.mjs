@@ -9,7 +9,8 @@ import {fileURLToPath} from 'node:url';
 
 const repo=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const rules=[
- {id:'sync-account-snapshot',severity:'P0',file:'operator-host/account-registry.mjs',need:['fs.writeFileSync','this.sessions=new Map'],issue:'Full account/session registry snapshot is synchronously rewritten; not safe as multi-instance authoritative store'},
+ {id:'sync-account-snapshot',severity:'P0',file:'operator-host/account-registry.mjs',need:['durableAtomicWriteSync','this.sessions=new Map'],issue:'Full account/session snapshot now fsyncs per file, but still lacks authoritative global WriterEpoch and consistent cross-plane snapshots'},
+ {id:'sync-connection-snapshot',severity:'P0',file:'operator-host/device-connection-registry.mjs',need:['durableAtomicWriteSync','this.connections=new Map'],issue:'Device connection leases now fsync per file, but have no global fencing, lease-revocation or cross-host single writer authority'},
  {id:'sync-usage-snapshot',severity:'P0',file:'operator-host/usage-registry.mjs',need:['durableAtomicWriteSync','_accrueOpen(aid)'],issue:'Crash-durable atomic JSON usage snapshots remain synchronous and lack multi-process writer fencing'},
  {id:'volatile-oauth-replay',severity:'P0',file:'plugin-server/oauth.mjs',need:['usedCodes=new Map','usedRefresh=new Map'],issue:'OAuth one-time/replay state is scoped to one Node process'},
  {id:'volatile-fleet-jobs',severity:'P0',file:'operator-host/fleet-router.mjs',need:['this.commands=new Map','this.nodes=new Map'],issue:'Device commands, queue and in-flight records are held in a process-local router'},
