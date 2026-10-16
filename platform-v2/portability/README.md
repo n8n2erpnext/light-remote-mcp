@@ -1,5 +1,9 @@
 # Light Remote portable state contract — rc.50
 
+## 2026-10-16 — DEV two-signer WriterEpoch promotion evidence, NEVER target activation
+
+[RC50_DEV_TWO_SIGNER_WRITER_EPOCH_EVIDENCE_20261016.md](./RC50_DEV_TWO_SIGNER_WRITER_EPOCH_EVIDENCE_20261016.md) introduces a strict *development-only* Ed25519 issuer-signed next-generation grant and an independently source-device-signed drain/fence claim, with matching transaction, nodes, snapshot SHA, fresh challenge and replay/expiry validation. The result remains `TWO_SIGNERS_CHECKED_UNFENCED` with `targetActivationAuthorized:false`; no independent global epoch issuer, hard write-path fence, live device attestation or durable quorum exists. This does **not** close P0-A. All five P0 gates NOT_READY.
+
 ## 2026-10-16 — Actual registered MCP SCP callbacks through synthetic Operator seam
 
 [RC50_REAL_REGISTERED_MCP_SCP_CALLBACK_20261016.md](./RC50_REAL_REGISTERED_MCP_SCP_CALLBACK_20261016.md) adds end-to-end **registered MCP callback** tests of `light_remote_scp` begin / 3 binary upload chunks / commit using the actual strict owner-bound `LightScpRegistry` and private file SHA/byte identity, mocking only `AccountOperatorAdapter.scp` (cross-service Operator seam). Also tests optional field Zod schema and rejects incorrect client SHA before dispatch. **This does not traverse the deployed Plugin→Operator→signed Fleet→old Agent**, and deployed SCP `scp_invalid_sha256` remains unverified/failing until a permitted canary. All P0 A–E NOT_READY.
