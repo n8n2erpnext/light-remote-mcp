@@ -1,5 +1,9 @@
 # Light Remote portable state contract — rc.50
 
+## 2026-10-16 — Actual registered MCP SCP callbacks through synthetic Operator seam
+
+[RC50_REAL_REGISTERED_MCP_SCP_CALLBACK_20261016.md](./RC50_REAL_REGISTERED_MCP_SCP_CALLBACK_20261016.md) adds end-to-end **registered MCP callback** tests of `light_remote_scp` begin / 3 binary upload chunks / commit using the actual strict owner-bound `LightScpRegistry` and private file SHA/byte identity, mocking only `AccountOperatorAdapter.scp` (cross-service Operator seam). Also tests optional field Zod schema and rejects incorrect client SHA before dispatch. **This does not traverse the deployed Plugin→Operator→signed Fleet→old Agent**, and deployed SCP `scp_invalid_sha256` remains unverified/failing until a permitted canary. All P0 A–E NOT_READY.
+
 ## 2026-10-16 — Plugin SCP per-chunk SHA compatibility bridge, source-only
 
 [RC50_SCP_CHUNK_SHA_PLUGIN_ADAPTER_20261016.md](./RC50_SCP_CHUNK_SHA_PLUGIN_ADAPTER_20261016.md) adds strict canonical binary-safe per-chunk SHA-256 derivation at the public `light_remote_scp_upload_chunk` Plugin boundary and advertises optional explicit chunk hash. This bridges old Agent builds requiring a SHA and new builds able to derive it, without weakening mandatory whole-file SHA-256 at commit. New positive/negative 8-case adapter/owner-bound binary test and full Node regression PASS. **Installed runtime on HOMELAB still previously failed `scp_invalid_sha256` until a separate canary/release is applied and verified**; DO NOT claim live SCP fixed or silently deploy. All five P0 gates remain NOT_READY.
