@@ -1,5 +1,9 @@
 # Light Remote portable state contract — rc.50
 
+## 2026-10-16 — actual Operator local native process/PTY lifetime drain
+
+See [RC50_OPERATOR_NATIVE_LIFETIME_DRAIN_20261016.md](./RC50_OPERATOR_NATIVE_LIFETIME_DRAIN_20261016.md). Corrected a real local freeze ACK gap: the Operator previously counted request jobs but could report frozen while a successfully STARTed native process/PTY still lived. Real NativeProcessRegistry/NativeTerminalRegistry censuses now hold local freeze until both lifetimes end, with finish-event wakeups and the existing audit fsync seal. Actual Node child + controlled PTY lifecycle tests 2/2; 63/63 full Node regression PASS on VPS-ARM. This does **not** fence remote Agent/Fleet writers or provide a globally consistent checkpoint; ALL P0 gates remain NOT_READY.
+
 ## 2026-10-16 — denied/expired A/B request no longer inherits another active grant
 
 See [RC50_AB_DENIED_EXPIRED_POLL_PRIORITY_20261016.md](./RC50_AB_DENIED_EXPIRED_POLL_PRIORITY_20261016.md). Fixed actual DeviceAccessGrantRegistry non-pairing poll ordering: an explicitly denied or expired pending B request cannot become approved merely because the same Agent has a separate active grant for A. Regression reproduced two failures BEFORE source fix; 4/4 PASS after, including approved-before-expiry delayed polling. No issuer/Agent production authorization added; hard P0 remains NOT_READY.

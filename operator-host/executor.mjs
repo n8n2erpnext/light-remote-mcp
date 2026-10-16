@@ -123,8 +123,14 @@ const VERSION = runtimeVersion({envNames:['LIGHT_REMOTE_VERSION','OPERATOR_VERSI
 const CLIENT_BACKWARD_RELEASES=Math.max(0,Math.min(Number(process.env.OPERATOR_CLIENT_BACKWARD_RELEASES)||3,20));
 const MIN_SUPPORTED_CLIENT_VERSION=String(process.env.OPERATOR_MIN_SUPPORTED_CLIENT_VERSION||'').trim()||releaseCompatibilityFloor()||null;
 const compatibilityFor=device=>clientCompatibility(VERSION,device?.agentVersion,{backwardReleases:CLIENT_BACKWARD_RELEASES,explicit:MIN_SUPPORTED_CLIENT_VERSION});
-const NATIVE_PROCESSES=new NativeProcessRegistry();
-const NATIVE_TERMINALS=new NativeTerminalRegistry({emit:event=>pushEvent(event)});
+const NATIVE_PROCESSES=new NativeProcessRegistry({emit:event=>{
+  pushEvent(event);
+  if(event.type==='process_finished')localFreezeGate.notifyPendingChanged();
+}});
+const NATIVE_TERMINALS=new NativeTerminalRegistry({emit:event=>{
+  pushEvent(event);
+  if(event.type==='terminal_finished')localFreezeGate.notifyPendingChanged();
+}});
 const NATIVE_SEARCHES=new NativeSearchRegistry();
 const LIGHT_SCP=new LightScpRegistry();
 
@@ -134,6 +140,13 @@ localFreezeGate.registerPendingSource('operatorJobs',()=>{
   for(const job of jobs.values())if(!job.finishedAt)pending++;
   return pending;
 });
+// A successful process/terminal START job is NOT the end of its OS side effect.
+// Keep dev freeze in 'freezing' until all locally managed long-lived children
+// exit. Remote Agent processes/PTYS still require a separate global fence.
+localFreezeGate.registerPendingSource('nativeProcesses',()=>
+  NATIVE_PROCESSES.list().filter(row=>!row.finishedAt).length);
+localFreezeGate.registerPendingSource('nativeTerminals',()=>
+  NATIVE_TERMINALS.list().filter(row=>!row.finishedAt).length);
 const operationDedupe = new Map();
 const replay = new Map();
 const trustedChannelRateBuckets = new Map();
@@ -1178,7 +1191,7 @@ if(localFreezeGate.enabled)process.on('SIGUSR2',()=>{
   try{
     void localFreezeGate.freeze().then(state=>{
       console.log(JSON.stringify({event:'rc50_local_ingress_drained',...state,
-        caveat:'local_operator_jobs_tracked_but_other_background_and_multihost_writers_not_fenced'}));
+        caveat:'local_jobs_native_processes_and_ptys_tracked_but_remote_agents_fleet_and_multihost_writers_not_fenced'}));
     }).catch(e=>console.error('[rc50-local-freeze] refused',e?.message));
   }catch(e){console.error('[rc50-local-freeze] marker_write_failed',e?.message);}
 });
