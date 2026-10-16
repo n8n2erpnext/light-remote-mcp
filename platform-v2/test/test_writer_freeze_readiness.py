@@ -49,6 +49,16 @@ class WriterGapTests(unittest.TestCase):
     def test_removing_real_operator_audit_drain_seal_fails(self):
         self.expect_reject(lambda x:x['dependencies'][0]['required_markers'].remove(
             'beforeDrained:()=>flushDiskRecords()'),'audit_drain_seal_missing')
+    def test_removed_real_dev_audit_failure_fence_fails(self):
+        self.expect_reject(
+            lambda x:x['dependencies'][0]['required_markers'].remove(
+                'void localFreezeGate.freeze().catch('),
+            'audit_failure_local_fence_missing')
+    def test_real_dev_only_guard_must_not_disappear(self):
+        self.expect_reject(
+            lambda x:x['dependencies'][0]['required_markers'].remove(
+                'if(!localFreezeGate.enabled)return;'),
+            'audit_failure_local_fence_missing')
     def test_live_ready_status_fails(self):
         self.expect_reject(lambda x:x.update(status='RESTORE_READY'),'readiness_claim_not_allowed')
     def test_missing_registry_source_marker_fails(self):

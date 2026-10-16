@@ -218,7 +218,22 @@ function redact(value) {
 let diskQueue = []; let diskQueueBytes = 0; let diskFlushTimer = null;
 const auditAppendBarrier = new AuditAppendBarrier({
   write:batch=>appendDurableAuditBatch(LOG_FILE,batch),
-  onFailure:error=>console.error('[disk] append failed',error?.message||error)
+  onFailure:error=>{
+    console.error('[disk] append failed',error?.message||error);
+    // rc50 dev-only fail-closed admission: a known failed audit fsync must
+    // not leave this Operator accepting more unauditable mutating requests.
+    // This is LOCAL to the current process, not an Agent/global writer fence.
+    if(!localFreezeGate.enabled)return;
+    try{
+      void localFreezeGate.freeze().catch(sealError=>
+        console.error('[rc50-audit-fence] seal_failed',sealError?.message));
+    }catch(markerError){
+      // Even ENOSPC while persisting the freeze marker leaves the local gate
+      // in 'freezing' (new HTTP blocked). A restart without marker is unsafe.
+      console.error('[rc50-audit-fence] marker_write_failed',
+        markerError?.message);
+    }
+  }
 });
 function serializedDiskRecord(event) {
   const safe = { ...event };

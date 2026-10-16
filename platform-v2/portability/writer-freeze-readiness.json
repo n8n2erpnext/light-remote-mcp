@@ -195,7 +195,9 @@
         "appendDurableAuditBatch(LOG_FILE,batch)",
         "return auditAppendBarrier.enqueue(batch);",
         "return auditAppendBarrier.flush();",
-        "beforeDrained:()=>flushDiskRecords()"
+        "beforeDrained:()=>flushDiskRecords()",
+        "if(!localFreezeGate.enabled)return;",
+        "void localFreezeGate.freeze().catch("
       ],
       "helper_source": "operator-host/audit-append-barrier.mjs",
       "helper_markers": [

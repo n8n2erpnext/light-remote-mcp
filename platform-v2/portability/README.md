@@ -1,5 +1,9 @@
 # Light Remote portable state contract — rc.50
 
+## 2026-10-16 — REAL dev Operator audit write failure fences NEW HTTP traffic
+
+Read [RC50_DEV_AUDIT_FAILURE_FAIL_CLOSED_20261016.md](./RC50_DEV_AUDIT_FAILURE_FAIL_CLOSED_20261016.md). Found that asynchronous `AuditAppendBarrier` failure only logged to stderr and the real Operator continued admitting new requests. Actual rc50 opt-in Operator now synchronously enters local `freezing` and persists its marker at the FIRST failed audit append; completion of audit seal fails and never produces a fake frozen ACK. **Real Unix-socket Operator child-process EISDIR fault injection PASS**: status freezing/sealFailed, new HTTP 503, health 200. Local full 57/57 Node and 14/14 writer source guards PASS. This remains local/dev-only, not multi-host Agent or global writer authority.
+
 ## 2026-10-16 — Real Operator audit fsync required BEFORE local freeze ACK
 
 See [RC50_REAL_OPERATOR_AUDIT_DRAIN_SEAL_20261016.md](./RC50_REAL_OPERATOR_AUDIT_DRAIN_SEAL_20261016.md). Identified a real data-loss ordering gap: local `frozen` could be acknowledged while the batched audit append was still pending. Operator now wires a mandatory `beforeDrained:()=>flushDiskRecords()` on the real local gate: it waits for active jobs + HTTP to finish, **then fsyncs the queued audit tail** (file and parent directory) before local ACK. Failure remains latched in `freezing`, no misleading drained status; regression protects the source binding. This is only a local audit ordering improvement; it is **NOT** a global epoch, complete consistent snapshot, or release-ready signal. All P0 gates remain NOT_READY.

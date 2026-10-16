@@ -87,6 +87,10 @@ def audit():
         if row['id']=='EVENT_LOG_ASYNC':
             require('beforeDrained:()=>flushDiskRecords()' in row['required_markers'],
                     'audit_drain_seal_missing')
+            require(all(s in row['required_markers'] for s in
+                        ('if(!localFreezeGate.enabled)return;',
+                         'void localFreezeGate.freeze().catch(')),
+                    'audit_failure_local_fence_missing')
             require(row.get('helper_source')=='operator-host/audit-append-barrier.mjs'
                     and row.get('risk')=='append_file_and_directory_fsync_in_dev_but_no_source_fence_or_authoritative_journal_watermark'
                     and len(row.get('helper_markers',[]))>=3,
