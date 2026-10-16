@@ -1,5 +1,9 @@
 # Light Remote portable state contract — rc.50
 
+## 2026-10-16 — opt-in crash-conservative DEV Fleet effect journal (local only)
+
+[RC50_DEV_REMOTE_EFFECT_JOURNAL_20261016.md](./RC50_DEV_REMOTE_EFFECT_JOURNAL_20261016.md) adds a real Operator write-ahead journal before Fleet enqueue, with per-file+directory fsync, explicit private owner-provisioned state, O_EXCL single-local-owner lock, missing/pending/replaced journal fail-closed startup, and clean-shutdown lock release only when no unresolved Fleet/remote effects remain. Generic Agent success, particularly remote process/PTY start, is **not** a safe proof to remove a pending entry: no automatic clearing until independent owner/Agent reconciliation is designed. Real isolated child-process boot/restart/shutdown tests and actual source binding are covered. This is separate DEV opt-in; existing production unchanged. It is not a global epoch, Agent final-state receipt, 18/18 registry durability or portable restore acceptance. **ALL P0 GATES NOT_READY.**
+
 ## 2026-10-16 — fail-closed audit EISDIR CI race and truthful cleanup
 
 [RC50_AUDIT_FAULT_CI_RACE_20261016.md](./RC50_AUDIT_FAULT_CI_RACE_20261016.md) diagnoses Actions #38851495298: ARM64 and x64 passed, but isolated-data-contract was 65/66 due to a test assumption about invalid HTTP 400 racing with a legitimate early 503 audit freeze; cleanup then failed because Compose secrets had never been created. Fixed only the test assertion to require the exact 400 invalid_account_id **or** 503 local_ingress_frozen; the durable marker, sealFailed, /readyz 503, /healthz 200 and disk error remain mandatory. Guarded CI teardown when no CI database was started. This is not a P0 signoff.

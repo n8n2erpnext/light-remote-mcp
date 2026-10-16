@@ -41,6 +41,9 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
     if(stderr)emitStream(job,'stderr',Buffer.from(stderr));
     job.timedOut=String(result.status||'')==='timeout';
     fleet.complete({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,commandId:command.commandId});
+    // Even a successful 'process/terminal start' result does not prove the
+    // remote OS side effect has finished. The DEV write-ahead entry therefore
+    // remains unresolved until a future independently verified reconciliation.
     finishJob(job,exitCode,null);
     return {ok:true,accepted:true,duplicate:false,job:jobView(job)};
   };

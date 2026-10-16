@@ -13,6 +13,7 @@ import { EnrollmentRegistry, EnrollmentError } from './enrollment-registry.mjs';
 import { FleetRouter, FleetError } from './fleet-router.mjs';
 import { AuditAppendBarrier } from './audit-append-barrier.mjs';
 import { appendDurableAuditBatch } from './durable-audit-append.mjs';
+import { DevRemoteEffectJournal } from './dev-remote-effect-journal.mjs';
 import { LocalIngressFreezeGate } from '../lib/local-ingress-freeze.mjs';
 import { DeviceConnectionRegistry, DeviceConnectionError, DEFAULT_PLAN_CONNECTION_CAPS } from './device-connection-registry.mjs';
 import { DeviceAccessGrantRegistry, DeviceAccessGrantError } from './device-access-grant-registry.mjs';
@@ -62,6 +63,13 @@ const KEY_FILE = process.env.OPERATOR_KEY_FILE || '/home/ubuntu/.config/gpt-vps-
 const LOG_DIR = process.env.OPERATOR_LOG_DIR || '/var/log/gpt-vps-operator';
 const LOG_FILE = path.join(LOG_DIR, 'operations.jsonl');
 const STATE_DIR = process.env.OPERATOR_STATE_DIR || '/var/lib/gpt-vps-operator';
+// Independent opt-in for DEV-only crash-aware outbound Fleet bookkeeping.
+// Missing/dirty journal is never silently initialized or ignored.
+const remoteEffectJournalOptIn=process.env.LR_RC50_DEV_REMOTE_EFFECT_JOURNAL==='1';
+if(remoteEffectJournalOptIn&&!freezeOptIn)
+  throw Error('DEV_REMOTE_EFFECT_JOURNAL_REQUIRES_LOCAL_FREEZE');
+const remoteEffectJournal=remoteEffectJournalOptIn
+  ?new DevRemoteEffectJournal({file:process.env.LR_RC50_DEV_REMOTE_EFFECT_JOURNAL_PATH}):null;
 const DEVICE_STATE_FILE = path.join(STATE_DIR, 'devices.json');
 const ENROLLMENT_STATE_FILE = path.join(STATE_DIR, 'enrollments.json');
 const ENROLLMENT_SIGNER_FILE = path.join(STATE_DIR, 'enrollment-signer.json');
@@ -139,6 +147,7 @@ const jobs = new Map();
 // Never erase this uncertainty merely because the Fleet job was abandoned.
 const unreconciledRemoteEffects=new Set();
 localFreezeGate.registerPendingSource('unreconciledRemoteEffects',()=>unreconciledRemoteEffects.size);
+if(remoteEffectJournal)localFreezeGate.registerPendingSource('durableRemoteEffects',()=>remoteEffectJournal.pending);
 localFreezeGate.registerPendingSource('operatorJobs',()=>{
   let pending=0;
   for(const job of jobs.values())if(!job.finishedAt)pending++;
@@ -474,11 +483,32 @@ function finishJob(job, exitCode, signal) {
   localFreezeGate.notifyPendingChanged();
 }
 
+function latchRemoteJournalFault(error){
+  if(!remoteEffectJournal)return;
+  console.error('[rc50-dev-remote-ledger] fail_closed',error?.message||error);
+  // Any uncertain durable outcome must cease local admission immediately.
+  // If the marker write also fails, the gate STILL remains 'freezing' in RAM;
+  // restart safety then depends on the separately provisioned ledger.
+  try{void localFreezeGate.freeze().catch(e=>
+    console.error('[rc50-dev-remote-ledger] seal_failed',e?.message||e));}
+  catch(e){console.error('[rc50-dev-remote-ledger] marker_failed',e?.message||e);}
+}
 // A rejected enqueue must not leave a permanent running job or an infinite
-// active_job session hold. Registering the job happens before queue admission.
+// active_job session hold. With an explicitly enabled dev journal, persist
+// BEFORE a Fleet command becomes visible to an Agent. Crash after durable
+// prepare is conservatively unresolved, never falsely "no remote effects".
 function enqueueForJob(job, command) {
-  try { return fleet.enqueue(command); }
-  catch (error) {
+  try {
+    let proposed=command;
+    if(remoteEffectJournal){
+      const commandId=`cmd_${crypto.randomUUID()}`;
+      remoteEffectJournal.prepare({commandId,jobId:command.jobId,
+        accountId:command.accountId,deviceId:command.deviceId,nodeId:command.nodeId});
+      proposed={...command,commandId};
+    }
+    return fleet.enqueue(proposed);
+  }catch(error){
+    latchRemoteJournalFault(error);
     job.resultSummary='remote_dispatch_rejected';
     job.resultData={ok:false,error:String(error?.message||'remote_dispatch_rejected'),status:Number(error?.status)||500};
     finishJob(job,1,null);
@@ -1191,7 +1221,23 @@ function shutdown(signal) {
     }
   }
   void flushDiskRecords().then(
-    ()=>server.close(()=>process.exit(0)),
+    ()=>server.close(()=>{
+      // Only a clean DEV shutdown may release the exclusive journal owner.
+      // Crash, freeze, pending Fleet, or unknown Agent effects leave a durable
+      // stale lock requiring explicit owner reconciliation before restart.
+      if(remoteEffectJournal){
+        try{
+          if(localFreezeGate.phase!=='open'||fleet.commands.size||
+             unreconciledRemoteEffects.size||remoteEffectJournal.pending)
+            throw Error('DEV_REMOTE_EFFECT_JOURNAL_UNCLEAN_SHUTDOWN');
+          remoteEffectJournal.releaseClean();
+        }catch(error){
+          console.error('[rc50-dev-remote-ledger] shutdown_refused',error?.message);
+          process.exit(1);
+        }
+      }
+      process.exit(0);
+    }),
     error=>{console.error('[disk] shutdown flush failed',error?.message||error);server.close(()=>process.exit(1));}
   );
   server.closeAllConnections?.();
