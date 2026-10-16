@@ -1,5 +1,9 @@
 # rc50 P0 CLOSEOUT — no more incremental synthetic-only victory laps
 
+## 2026-10-16 — DEV signed Agent-side lifetime observation, deliberately NON-SETTLING
+
+[RC50_DEV_AGENT_LIFETIME_OBSERVATION_20261016.md](./RC50_DEV_AGENT_LIFETIME_OBSERVATION_20261016.md) specifies and tests a domain-separated Ed25519 observation for a **known** Agent native process/PTY handle, bound to device/command/claimed writer generation/boot ID/fresh challenge. Active handle denies; exited handle is only `EXIT_OBSERVED_UNFENCED`, never an automatic journal clear. Empty/missing registry after restart fails closed. Requires independent global writer authority, durable process inventory and audited reconciliation in the future. DEV contract is NOT wired into production Agent or Operator, all five P0 remain NOT_READY.
+
 ## 2026-10-16 — REAL Agent binary process lifetime across signed Fleet WAL
 
 [RC50_REAL_AGENT_PROCESS_LIFETIME_E2E_20261016.md](./RC50_REAL_AGENT_PROCESS_LIFETIME_E2E_20261016.md) goes beyond the signed Agent-emulator test: launches the actual isolated Operator and Agent daemon via a 127.0.0.1-only signed channel bridge, executes a harmless real OS child via signed `process.start`, and confirms the Agent spool says command `finished` while the process is **still running**. Real Agent `process.list`/`process.stop`/`process.list` prove ongoing and completed OS lifecycle separately. The DEV WAL remains unresolved, freeze refuses ACK and restart refuses while unknown effects exist. This is one-host UAT, not globally fenced two-host cutover; **all five P0 gates NOT_READY**.
