@@ -329,7 +329,7 @@ export function registerSupportBackoffice(app,{outbox=new SupportOutbox()}={}){
       }
       if(action==='status'){
         if(!identity.signedIn)return res.status(401).json({ok:false,error:'account_session_required'});
-        const row=outbox.get(String(req.query?.eventId||''),identity.account.accountId);
+        const row=await outbox.get(String(req.query?.eventId||''),identity.account.accountId);
         if(!row)return res.status(404).json({ok:false,error:'support_event_not_found'});
         return res.status(200).json({ok:true,event:row});
       }
@@ -347,7 +347,9 @@ export function registerSupportBackoffice(app,{outbox=new SupportOutbox()}={}){
       if(!ELIGIBLE_PLANS.has(plan))return res.status(403).json({ok:false,error:'support_plan_required',plan});
       if(!allowSubmit(identity.account.accountId))return res.status(429).json({ok:false,error:'support_rate_limited'});
       const payload=supportPayload(identity.account,req.body||{});
-      const queued=outbox.enqueue({account:identity.account,payload});
+      if(process.env.LR_GOLD_SUPPORT_OUTBOX_PG==='1'&&!outbox.deliveryEnabled)
+        return res.status(503).json({ok:false,error:'support_delivery_not_ready'});
+      const queued=await outbox.enqueue({account:identity.account,payload});
       return res.status(202).json({ok:true,accepted:true,event:queued});
     }catch(error){return fail(res,error);}
   });

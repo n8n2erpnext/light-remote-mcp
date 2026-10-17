@@ -76,6 +76,11 @@
       "version": 15,
       "file": "015_site_analytics.sql",
       "sha256": "2acc8a449e9c81ab61c0e9e7ae3a1deac9bc81da676084970f0f4d989a85875e"
+    },
+    {
+      "version": 16,
+      "file": "016_support_outbox.sql",
+      "sha256": "adafddaa97e99997b04063ad20678a201161f36439f7485915887c5a9cc4ea67"
     }
   ]
 }

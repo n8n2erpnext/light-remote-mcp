@@ -19,6 +19,7 @@ import { renderAiGuidePage, renderLlmsIndex, embedAiGuideSource } from './ai-gui
 import { LEGAL_PAGES, renderLegalPage } from './legal-pages.mjs';
 import { renderSupportPage } from './support-page.mjs';
 import { registerSupportBackoffice } from './support-backoffice.mjs';
+import {GoldPgSupportOutbox} from '../platform-v2/src/storage/support-outbox-pg.mjs';
 import { registerPaddleWebhook } from './paddle-billing.mjs';
 import { PLUGIN_TOOL_SECURITY, registerPluginTools } from './tools.mjs';
 import { installOpenAiToolSecurityCompat } from './openai-security-compat.mjs';
@@ -27,7 +28,11 @@ import { installLegacyToolCallCompat } from './legacy-tool-call-compat.mjs';
 
 // PostgreSQL-backed Site content is opt-in until every Plugin state domain is migrated.
 // No DB credentials/migrations => fail startup; never load the legacy site JSON.
-const goldSitePlane=(process.env.LR_GOLD_SITE_ANNOUNCEMENTS_PG==='1'||process.env.LR_GOLD_SITE_ANALYTICS_PG==='1')
+const goldSupportMode=process.env.LR_GOLD_SUPPORT_OUTBOX_PG==='1';
+// Gold UAT may persist support requests, but ERPNext delivery is NOT authorized.
+if(goldSupportMode&&process.env.LR_GOLD_SUPPORT_DELIVERY_ENABLED==='1')
+  throw Error('gold_support_real_erp_delivery_not_authorized');
+const goldSitePlane=(process.env.LR_GOLD_SITE_ANNOUNCEMENTS_PG==='1'||process.env.LR_GOLD_SITE_ANALYTICS_PG==='1'||goldSupportMode)
   ?await openGoldDataPlane({role:'plugin'}):null;
 if(goldSitePlane&&process.env.LR_GOLD_SITE_ANNOUNCEMENTS_PG==='1')configureGoldPgSiteAnnouncements(
   new GoldPgSiteAnnouncementsRepository({pool:goldSitePlane.pool}));
@@ -60,7 +65,9 @@ installSiteAnalytics(app);
 registerOAuth(app);
 registerWebAssets(app);
 registerAccountPortal(app);
-registerSupportBackoffice(app);
+registerSupportBackoffice(app,goldSupportMode?{
+ outbox:new GoldPgSupportOutbox({pool:goldSitePlane.pool,deliveryEnabled:false})
+}:undefined);
 registerDistributionPortal(app);
 registerAdminPortal(app);
 registerPublicDeviceRoutes(app);
