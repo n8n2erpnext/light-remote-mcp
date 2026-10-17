@@ -8,7 +8,8 @@ const AGENT='agent_chat',CLIENT='lrc_verified',GRANT='grant_active';
 
 function fixture({purpose='device',actor=ACTOR,now=EPOCH,
  verified=true,teamActive=true,grantLive=true,pgDown=false}={}){
- const log=[],records=new Map(),state={purpose,actor,now,verified,teamActive,grantLive,pgDown,bindingChanged:false};
+ const log=[],records=new Map(),state={purpose,actor,now,verified,teamActive,grantLive,pgDown,bindingChanged:false,
+  grantId:GRANT,connectionId:'conn_active',upstreamExpiryMs:null};
  let counter=0;
  const client={query:async(sql,p=[])=>{
   log.push({sql,p});
@@ -17,8 +18,11 @@ function fixture({purpose='device',actor=ACTOR,now=EPOCH,
      sql.includes('SELECT pg_advisory_xact_lock('))return{rows:[]};
   if(sql.includes('FROM lr_ab_grants g')){
    return{rows:state.grantLive?[{
-    grant_id:GRANT,owner_account_id:OWNER,purpose:state.purpose,
-    device_id:DEVICE,connection_id:'conn_active',node_id:'node_home',
+    grant_id:state.grantId,owner_account_id:OWNER,purpose:state.purpose,
+    device_id:DEVICE,connection_id:state.connectionId,node_id:'node_home',
+    grant_expires_at:new Date(state.upstreamExpiryMs??state.now+3600000),
+    absolute_expires_at:new Date(state.now+86400000),
+    client_expires_at:new Date(state.now+86400000),
     hard_expires_at:new Date(state.now+3600000)}]:[]};
   }
   if(sql.includes('SELECT tag.grant_id FROM lr_ab_team_actor_grants'))
@@ -62,7 +66,7 @@ function fixture({purpose='device',actor=ACTOR,now=EPOCH,
    {status:401});
   return{binding:{
    clientSessionId:CLIENT,accountId:state.actor,agentId:AGENT,
-   deviceId:DEVICE,grantId:GRANT,connectionId:'conn_active',
+   deviceId:DEVICE,grantId:state.grantId,connectionId:state.connectionId,
    purpose:state.purpose
   },device:{nodeId:'node_home',platform:'linux',architecture:'arm64',
    state:'online'},connection:{state:'connected'}};
@@ -134,4 +138,33 @@ test('Gold refuses revoked grant, invalid grace, forged principal and unavailabl
  await assert.rejects(()=>f.svc.context(f.input),/gold_context_binding_changed/);
  f.state.bindingChanged=false;f.state.pgDown=true;
  await assert.rejects(()=>f.svc.context(f.input),/gold_pg_offline/);
+});
+
+test('Gold session cannot inherit a different A/B grant or device connection after re-approval',async()=>{
+ const f=fixture();
+ const first=await f.svc.context({...f.input,workspace:'/work/project',gracePreset:'60m'});
+ const firstSession=first.session.sessionId;
+ f.state.grantId='grant_reapproved';
+ const reapproved=await f.svc.context({...f.input});
+ assert.notEqual(reapproved.session.sessionId,firstSession);
+ assert.equal(reapproved.session.workspace,'');
+ assert.equal(reapproved.session.reconnectCount,0);
+ assert(f.records.get(firstSession).closed_at);
+ assert(f.log.some(q=>q.sql.startsWith('UPDATE lr_remote_sessions SET closed_at=')&&
+  q.p[1]==='authorization_changed'));
+ const secondId=reapproved.session.sessionId;
+ f.state.connectionId='conn_reconnected';
+ const reconnection=await f.svc.context({...f.input});
+ assert.notEqual(reconnection.session.sessionId,secondId);
+ assert(f.records.get(secondId).closed_at);
+ assert.equal(f.creates,3);
+});
+test('Gold remote session TTL is bounded by upstream A/B lease, not just client grace',async()=>{
+ const f=fixture();
+ f.state.upstreamExpiryMs=EPOCH+120000;
+ const first=await f.svc.context({...f.input,gracePreset:'60m'});
+ assert.equal(first.session.expiresAt,EPOCH+120000);
+ f.state.now=EPOCH+120001;
+ await assert.rejects(()=>f.svc.context(f.input),/gold_context_upstream_lease_expired/);
+ assert.equal(f.log.at(-1).sql,'ROLLBACK');
 });

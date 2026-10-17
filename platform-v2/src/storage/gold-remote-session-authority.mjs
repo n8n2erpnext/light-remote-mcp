@@ -65,7 +65,9 @@ export class GoldPgRemoteSessionAuthority{
    const check=await client.query(
     "SELECT g.grant_id,g.account_id AS owner_account_id,g.purpose,"+
     "g.device_id,g.connection_id,d.node_id,"+
-    "cn.hard_expires_at FROM lr_ab_grants g "+
+    "g.expires_at AS grant_expires_at,g.absolute_expires_at,"+
+    "cn.hard_expires_at,ac.expires_at AS client_expires_at "+
+    "FROM lr_ab_grants g "+
     "JOIN lr_device_connections cn ON cn.connection_id=g.connection_id "+
     "JOIN lr_devices d ON d.device_id=g.device_id "+
     "JOIN lr_agent_clients ac ON ac.client_session_id=$5 "+
@@ -118,16 +120,31 @@ export class GoldPgRemoteSessionAuthority{
     "AND closed_at IS NULL FOR UPDATE",
     [b.accountId,agent,b.deviceId]);
    let old=existing.rows?.[0]||null;
-   if(old&&ms(old.expires_at)<=this.now()){
+   // Re-approval must never let a new A/B grant, device connection, or
+   // Agent Client inherit an old execution session ID. Old jobs may still
+   // refer to that ID; preserve the history but close its execution lane.
+   const stale=old&&(old.client_session_id!==sid||
+    old.grant_id!==b.grantId||old.connection_id!==b.connectionId||
+    old.grant_purpose!==b.purpose||
+    old.owner_account_id!==grant.owner_account_id||
+    old.node_id!==grant.node_id);
+   if(old&&(stale||ms(old.expires_at)<=this.now())){
     await client.query(
-     "UPDATE lr_remote_sessions SET closed_at=now(),hold_reason='expired' "+
-     "WHERE session_id=$1",[old.session_id]);
+     "UPDATE lr_remote_sessions SET closed_at=now(),hold_reason=$2 "+
+     "WHERE session_id=$1",
+     [old.session_id,stale?'authorization_changed':'expired']);
     old=null;
    }
    const chosen=preset||old?.grace_preset||'60m';
    const grace=PRESETS.get(chosen);
    const cwd=workspace===null?(old?.workspace||''):workspace;
-   const expires=this.now()+grace;
+   const expires=Math.min(this.now()+grace,
+    ...[grant.grant_expires_at,grant.absolute_expires_at,
+     grant.hard_expires_at,grant.client_expires_at].map(ms));
+   // Every remote session lease is bounded by the shortest upstream lease.
+   // If the grant changes or expires, a later call must reauthorize anew.
+   if(!Number.isFinite(expires)||expires<=this.now())
+    throw err('gold_context_upstream_lease_expired');
    let row;
    if(old){
     const updated=await client.query(
