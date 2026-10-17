@@ -1,0 +1,319 @@
+{
+  "schemaVersion": 1,
+  "status": "AUDIT_ONLY_NOT_A_GOLD_RELEASE",
+  "checkpointDate": "2026-10-17",
+  "goldCandidate": {
+    "branch": "feature/production-gold-pg-redis-20261017",
+    "head": "f0cd78c343c8c092f2f066a823e0359b3cbd7f15",
+    "productionRelease": "ux-v5-device-os-20261009-r4",
+    "originalGitMain": "12bb746ca3e13e493ac5f634e79f8dda8b3d2ce0",
+    "publicDownloadsChannel": "0.9.0-rc.47"
+  },
+  "sourceRefs": {
+    "winMacLatestTested": "2eb15535cd15b42605dc8c3ea32f20bbb39ef763",
+    "windowsCursorCommit": "083f60f087e4074002796793871afcd98ae101d8",
+    "proTeamInboxNotification": "6ab88ecebd601c9b25da71f92570fa8cac9c4523",
+    "linuxClientTreeAtMain": "2f996ce503ec82b5ba5f4f8647322ff46241aeb3"
+  },
+  "mergeInventory": {
+    "overlap": [
+      {
+        "file": "assets/icons/material/notifications.svg",
+        "goldSha256": "eaf47ee706404ebfad281fe0b7f1d7ebaf4ed5d999494d21a7bafc30520b7f51",
+        "featureSha256": "c43e401f607f9c98627a7c3d6fa5c5a959498adfd419c6d6272c15c559b6965d",
+        "status": "REQUIRES_MANUAL_THREE_WAY_MERGE"
+      },
+      {
+        "file": "lib/native-desktop.mjs",
+        "goldSha256": "ee66511f97f534df6e5a3d4e512a16ac8aa91f8f54deb809ecc6c05a710f3434",
+        "featureSha256": "2e3877b4781e00827d88d33dc4e849f92d1475d54b821167edb0b6cc9babc0e2",
+        "status": "REQUIRES_MANUAL_THREE_WAY_MERGE"
+      },
+      {
+        "file": "operator-host/agent-client-registry.mjs",
+        "goldSha256": "908fe947da8e4e0dbd2daeb875fc87f67ae5aaff36ef2d47c309af810d37846e",
+        "featureSha256": "32e876e8135d2c9ce90ed018fe2c9a4440678938e08adbda8006da78cab43508",
+        "status": "REQUIRES_MANUAL_THREE_WAY_MERGE"
+      },
+      {
+        "file": "operator-host/device-access-grant-registry.mjs",
+        "goldSha256": "d46a9dffe673d035c39a6d3923f34383ff0f818549ceee7590c6c5446fec36d1",
+        "featureSha256": "28729903f2254ba9899b41d22a307629c7bebd5e5510e4c85fb2a2f9d54df615",
+        "status": "REQUIRES_MANUAL_THREE_WAY_MERGE"
+      },
+      {
+        "file": "operator-host/executor-routes-device-channel.mjs",
+        "goldSha256": "470f24255e1faa767173df2136d0b84ac0de77a6ebd23c8285d4efc62a9b7bb1",
+        "featureSha256": "14a4555ad850380e56cb83f76dc540553854b2ff0e5b7079361c9b15d8c94114",
+        "status": "REQUIRES_MANUAL_THREE_WAY_MERGE"
+      },
+      {
+        "file": "operator-host/executor.mjs",
+        "goldSha256": "9c0eea764e477a391b1c135598ba61d36d8212fa6cdbdc688f2c71134e428fa9",
+        "featureSha256": "1c4ed8d41c4c02e0d5456d35e5091c1dd787f90c24e3940a009a05fa0b3c7c60",
+        "status": "REQUIRES_MANUAL_THREE_WAY_MERGE"
+      },
+      {
+        "file": "plugin-server/account-portal.mjs",
+        "goldSha256": "526ff2267d6959b68eab8dc71a363ffd3d5eb47134570a991061af5d3cd1e4c4",
+        "featureSha256": "82bc58362502917515d08d1527410c40b5f8d8bc610e1430ea9ef2ffe5d2da60",
+        "status": "REQUIRES_MANUAL_THREE_WAY_MERGE"
+      },
+      {
+        "file": "plugin-server/account-portal/ai-guide-actions.js",
+        "goldSha256": "a528d05e415237558867663a5ffbf5eddcd928361a948a08fc079ebeff644ff7",
+        "featureSha256": "f7f3d1a0bd16793bd54744570769792ccc0252830c53ed946948095cf1922cfd",
+        "status": "REQUIRES_MANUAL_THREE_WAY_MERGE"
+      },
+      {
+        "file": "plugin-server/account-portal/index.html",
+        "goldSha256": "f43ed1e18558ec5b630367bec993cc5a4735bda5ebeffece5e04397792e5457f",
+        "featureSha256": "5029603da500fd6cb01e5869dc6149652e211018ee107004f78018417f8f7fbb",
+        "status": "REQUIRES_MANUAL_THREE_WAY_MERGE"
+      },
+      {
+        "file": "plugin-server/account-portal/portal.css",
+        "goldSha256": "972bcc9a4e4d208417c5bd5e42a66d4c0cc3e80fc27612253464cfae669a1349",
+        "featureSha256": "6b03c818a56f05545b461b11e9956929f286e3ad6876b4651eab552359c011ea",
+        "status": "REQUIRES_MANUAL_THREE_WAY_MERGE"
+      },
+      {
+        "file": "plugin-server/account-portal/theme.js",
+        "goldSha256": "fc66289e305ce0e4d7ab91d153376f920c20dc58fd6e72e041a7ce53d9796b6d",
+        "featureSha256": "fc66289e305ce0e4d7ab91d153376f920c20dc58fd6e72e041a7ce53d9796b6d",
+        "status": "REQUIRES_MANUAL_THREE_WAY_MERGE"
+      },
+      {
+        "file": "plugin-server/account-portal/usage.html",
+        "goldSha256": "792d3552ee89f11c73952e3cf420d7cee8421faf3f7901a758e93c80552862d1",
+        "featureSha256": "7b243159f2f2a69a75e1e0db886ef7fab4382ba39c47b9cbcbdb6571b5662185",
+        "status": "REQUIRES_MANUAL_THREE_WAY_MERGE"
+      },
+      {
+        "file": "plugin-server/account-portal/visual-system-v4.css",
+        "goldSha256": "ef9c0286925aa50509ad10199be660a638bddceab36370921c064458a5d394c4",
+        "featureSha256": "ace1051e15aea8961560dd5c9ccd20548698b8c4a6dfaf5263f153677c183501",
+        "status": "REQUIRES_MANUAL_THREE_WAY_MERGE"
+      },
+      {
+        "file": "plugin-server/admin-portal.mjs",
+        "goldSha256": "8794a9933191e92d1984f5eff4589199d2f3c008c1fea414e70955fb24c86ef4",
+        "featureSha256": "d2e710e4f170fd222b65d98f64550f8215e754d1c7509f90e287eafd0d3db06c",
+        "status": "REQUIRES_MANUAL_THREE_WAY_MERGE"
+      },
+      {
+        "file": "plugin-server/admin-portal/index.html",
+        "goldSha256": "2060767f6df6fc0625b4879aa210636e0220c6481c06ba82cbecea4311173d16",
+        "featureSha256": "00c5224e3874ad60299057b98b12fcbcbe9ab2dd7d327b9ad8c860de970e29bb",
+        "status": "REQUIRES_MANUAL_THREE_WAY_MERGE"
+      },
+      {
+        "file": "plugin-server/ai-guide-page.mjs",
+        "goldSha256": "1a0288f1222643d2ed518759729b87e2360dd86651a50d5d30b3096e01511ddb",
+        "featureSha256": "a7e30902769d749d79020253de98678f54482229d5a5c41725092483107b3a6b",
+        "status": "REQUIRES_MANUAL_THREE_WAY_MERGE"
+      },
+      {
+        "file": "plugin-server/ai-guide.md",
+        "goldSha256": "184f341458cf2dd50400647d35cebcb91e53b0f16b55699ff684dea6dec9e4eb",
+        "featureSha256": "0ada87a50dcc27c583e9009af532f99f7c9d0e036132dc7ab0255c7eb48f4440",
+        "status": "REQUIRES_MANUAL_THREE_WAY_MERGE"
+      },
+      {
+        "file": "plugin-server/device-public.mjs",
+        "goldSha256": "e962793afa6cf10acc662b082c4643e583b78f09114da8ba4a9d939d7064e4bb",
+        "featureSha256": "e962793afa6cf10acc662b082c4643e583b78f09114da8ba4a9d939d7064e4bb",
+        "status": "REQUIRES_MANUAL_THREE_WAY_MERGE"
+      },
+      {
+        "file": "plugin-server/public-home.html",
+        "goldSha256": "e25e66d42c6305524dd97133dc648f7436573266a65c428e15dc7b726b593052",
+        "featureSha256": "7e3d49386b6608108ab4625ca7036dcf2270ff036c55b31d282518f1e707a63a",
+        "status": "REQUIRES_MANUAL_THREE_WAY_MERGE"
+      },
+      {
+        "file": "plugin-server/server.mjs",
+        "goldSha256": "3a1637033fbb82833cc908b431d88ccbd8267daac84fb28203f30088e36a6c59",
+        "featureSha256": "5132a5644b55bb5c21e4fc138839bab75a96f7ddd0ff4c9dc76a8d08f8a4571d",
+        "status": "REQUIRES_MANUAL_THREE_WAY_MERGE"
+      },
+      {
+        "file": "plugin-server/site-announcements.mjs",
+        "goldSha256": "0a9701c2b4229b8a817b4cfa26b16de4cf26021a3e0a5df5ee66195a0478af29",
+        "featureSha256": "0a9701c2b4229b8a817b4cfa26b16de4cf26021a3e0a5df5ee66195a0478af29",
+        "status": "REQUIRES_MANUAL_THREE_WAY_MERGE"
+      },
+      {
+        "file": "plugin-server/tool-helper.mjs",
+        "goldSha256": "4bf7173e37d4865e4563698bf46764e8b5e96760b3aac5d6f70bc607e8823b3c",
+        "featureSha256": "4bf7173e37d4865e4563698bf46764e8b5e96760b3aac5d6f70bc607e8823b3c",
+        "status": "REQUIRES_MANUAL_THREE_WAY_MERGE"
+      },
+      {
+        "file": "plugin-server/tools.mjs",
+        "goldSha256": "c621f7829bc60f2f434d800bf229a5dd91e5aacb5fab7063eb10ed495460b1b3",
+        "featureSha256": "e9b399d264c44de2e83585aa74248e1cdbeedb362e3b435094b6c9d772753bbd",
+        "status": "REQUIRES_MANUAL_THREE_WAY_MERGE"
+      }
+    ],
+    "client": [
+      {
+        "file": "client/macos/build-pkg.sh",
+        "goldSha256": "5c7bdb5738916080a2895b72ea6984d4f21f02df9c95f63cb0fda00d2f177b6b",
+        "rc49Sha256": "cd8485da9cca0c6573ca68d854b2585443bb9286777ca8d0a4e31e268e0dd89c",
+        "status": "SOURCE_VERIFIED_NOT_INTEGRATED"
+      },
+      {
+        "file": "client/macos/launchd/com.lightremote.agent.plist",
+        "goldSha256": "a9e2bf16e3977158a4b1918d2fddc9047e433dfb64154a3fe5651706432c8b0b",
+        "rc49Sha256": "2b46ca856b8635c3f05ab3a431475c37b97f61cb22b5b0521270c546d76aa382",
+        "status": "SOURCE_VERIFIED_NOT_INTEGRATED"
+      },
+      {
+        "file": "client/macos/real-remote/DevPermissions.swift",
+        "goldSha256": "a7357d3af83ee0fe7d8ab298dbb80aca771cd7eaacd4d735a238bb1e8f899504",
+        "rc49Sha256": "2800e0be201faeda91c01a9806c356a0a65d6ac78a311fc84914c4d02fda67a9",
+        "status": "SOURCE_VERIFIED_NOT_INTEGRATED"
+      },
+      {
+        "file": "client/macos/real-remote/RobotCursorOverlay.swift",
+        "goldSha256": "7043b015524c1ffeaa729f53dc10a56e39b30ec299684d08f4bd7b9b85d86f9e",
+        "rc49Sha256": "c3fa563f09f269da63e6fd5f7afab7103127da80d4eecd72e2c5c99fa50d3550",
+        "status": "SOURCE_VERIFIED_NOT_INTEGRATED"
+      },
+      {
+        "file": "client/macos/real-remote/main.swift",
+        "goldSha256": "7bbe6eba4a88f555901ddef450d6ec297c9c1fc56779d26c2e2878260d35f642",
+        "rc49Sha256": "e01d79f8c7f4c86ad0af352e56433e3ece1710dd49064dff32265b8efb53316d",
+        "status": "SOURCE_VERIFIED_NOT_INTEGRATED"
+      },
+      {
+        "file": "client/macos/real-remote/robot-app/Info.plist",
+        "goldSha256": null,
+        "rc49Sha256": "f9c25a3b9d24ea88b4187b013114f44cde3ea92fe223b99694a30ec2d3eaa4fd",
+        "status": "SOURCE_VERIFIED_NOT_INTEGRATED"
+      },
+      {
+        "file": "client/macos/real-remote/robot-app/build-robot-app.sh",
+        "goldSha256": null,
+        "rc49Sha256": "1ac35747a4614328ee3e85f2db860f469c4a8ba8fbb5568d8a44790fdb1a3933",
+        "status": "SOURCE_VERIFIED_NOT_INTEGRATED"
+      },
+      {
+        "file": "client/macos/tray/main.swift",
+        "goldSha256": "d0754e4d7d9e950a6f4655a04d4e9dc04f6747d59198ff5f9d405ee0d2df197f",
+        "rc49Sha256": "10d237848d19e6a06ebfdd3f1ef778249268a38dce49a3d5789a5e7792960bed",
+        "status": "SOURCE_VERIFIED_NOT_INTEGRATED"
+      },
+      {
+        "file": "client/windows-native/GptOperator.Client/GptOperator.Client.csproj",
+        "goldSha256": "8da614bb35fe95f3b05dea58bea863f78eb261812c9dd6352bb8223bda85cee0",
+        "rc49Sha256": "3b29bd2fab433879c9220e492877aab605ddfabe006542fa17f6d1f143b59614",
+        "status": "SOURCE_VERIFIED_NOT_INTEGRATED"
+      },
+      {
+        "file": "client/windows-native/GptOperator.RealRemoteV2/AgentCursorShape.cs",
+        "goldSha256": null,
+        "rc49Sha256": "c5e0644b0897797a595d714e873fb9905bdf846323f46c6e11fb9d110a36a246",
+        "status": "SOURCE_VERIFIED_NOT_INTEGRATED"
+      },
+      {
+        "file": "client/windows-native/GptOperator.RealRemoteV2/CursorGlowOverlay.cs",
+        "goldSha256": null,
+        "rc49Sha256": "014887c0b5c71a65d1cb11e5159b033a99ab4566b9eeffcb66614ba2d9b74edf",
+        "status": "SOURCE_VERIFIED_NOT_INTEGRATED"
+      },
+      {
+        "file": "client/windows-native/GptOperator.RealRemoteV2/GptOperator.RealRemoteV2.csproj",
+        "goldSha256": "2e5675b5bc78db80573de9b53b5f9ad5853e597fbf6cd5ae54496508c4dfbb10",
+        "rc49Sha256": "97c9d2a13cef72a2999bc761a1302297b2326bb55829929ad271764e2ec399b5",
+        "status": "SOURCE_VERIFIED_NOT_INTEGRATED"
+      },
+      {
+        "file": "client/windows-native/GptOperator.RealRemoteV2/NativeInput.cs",
+        "goldSha256": "a12ab379a28e346371b34b824d7b9d34f721b33035c64952c707854df2cc943d",
+        "rc49Sha256": "dc752d98808ea6db3998c5e00de41f749f37bd772e18a344f40169db6c7fb374",
+        "status": "SOURCE_VERIFIED_NOT_INTEGRATED"
+      },
+      {
+        "file": "client/windows-native/GptOperator.RealRemoteV2/RobotContext.cs",
+        "goldSha256": "20dc011792fd36e8140f934124f7683ec1271df5d5861248d2b01cfbe21a98d8",
+        "rc49Sha256": "9c40dca2e2c2fb8ccaef26b7b56a67a06b869336ea59a05c2c9f7f71e95d8eda",
+        "status": "SOURCE_VERIFIED_NOT_INTEGRATED"
+      },
+      {
+        "file": "client/windows-native/GptOperator.RealRemoteV2/SystemCursorOverride.cs",
+        "goldSha256": "212cf6b3ede78f70e41072ee6cf23db20e15883113fae64f99f6500dcd85050d",
+        "rc49Sha256": "6e9303b18465298f5fee34a8f732250f82d4fdf022c8092485e973bed506500b",
+        "status": "SOURCE_VERIFIED_NOT_INTEGRATED"
+      },
+      {
+        "file": "client/windows-native/LightRemote.Updater/LightRemote.Updater.csproj",
+        "goldSha256": "02da9b1657add3265104e565198bd6920bf8fad83b4513a3fadfe53f550faad6",
+        "rc49Sha256": "0ffa6de5f7155d50ec4ac7863295adf9d18c5f79f9a224d6fb4d2b05d2282610",
+        "status": "SOURCE_VERIFIED_NOT_INTEGRATED"
+      }
+    ],
+    "sharedLibraries": [
+      {
+        "file": "lib/native-desktop.mjs",
+        "goldSha256": "ee66511f97f534df6e5a3d4e512a16ac8aa91f8f54deb809ecc6c05a710f3434",
+        "rc49Sha256": "2e3877b4781e00827d88d33dc4e849f92d1475d54b821167edb0b6cc9babc0e2",
+        "status": "AUDIT_REQUIRED_BEFORE_REPLACING_PRODUCTION_OVERLAY"
+      },
+      {
+        "file": "lib/real-remote-input.cjs",
+        "goldSha256": "1ecc1cb22e0c59c674247a5fb5c6a2199783c045df51cd652fa3efa662b97c77",
+        "rc49Sha256": "59d3dc8a09f34f5eb454d9568fc914e1b850a79d0ee4c2afb2b1ec9dae024c15",
+        "status": "AUDIT_REQUIRED_BEFORE_REPLACING_PRODUCTION_OVERLAY"
+      },
+      {
+        "file": "lib/light-scp-file.mjs",
+        "goldSha256": "a558abdb0c289d28eac48ed9400ec217992c22556f4eb464364784c540eb8919",
+        "rc49Sha256": "690b330e3c71f122467a09c495444dfd0d7b2a84004326e8c70615be1e325d92",
+        "status": "AUDIT_REQUIRED_BEFORE_REPLACING_PRODUCTION_OVERLAY"
+      }
+    ],
+    "missingDeployTests": [
+      {
+        "file": "deploy/scripts/selftest-admin-api-routing.mjs",
+        "productionSha256": "aa3512693adfa1e832211641c39f8ec35bf648d7cf55f71fe390638da8cc5dad",
+        "status": "DEPLOYED_CODE_TEST_MISSING_FROM_CANDIDATE"
+      },
+      {
+        "file": "deploy/scripts/selftest-device-os-summary.mjs",
+        "productionSha256": "b04c25ee0b02c39e31b73fb6eef8cc585df93fe5a72ac4ee2101b25107ba5a65",
+        "status": "DEPLOYED_CODE_TEST_MISSING_FROM_CANDIDATE"
+      },
+      {
+        "file": "deploy/scripts/selftest-site-content-analytics.mjs",
+        "productionSha256": "6ec0ca84aa42f818ba6f45c36c416524d4159650d86860f069630d19e344d7e0",
+        "status": "DEPLOYED_CODE_TEST_MISSING_FROM_CANDIDATE"
+      }
+    ]
+  },
+  "verifiedTests": {
+    "goldCandidate": {
+      "v10-version-plane-parity": "PASS rc47",
+      "v10-desktop-productization": "PASS",
+      "rmv2-helper-lifecycle": "PASS",
+      "v12-macos-rmv2-bridge": "FAIL missing macGuiSidecarAppPath export",
+      "macos-gui-optin": "FAIL missing macGuiSidecarAppPath export",
+      "v12-macos-physical-type-routing": "FAIL desktop_input_event_unsupported"
+    },
+    "sourceRc49": {
+      "v12-macos-rmv2-bridge": "PASS",
+      "macos-gui-optin": "PASS",
+      "v12-macos-physical-type-routing": "PASS",
+      "macos-robot-settings": "PASS",
+      "v10-version-plane-parity": "PASS rc49"
+    }
+  },
+  "conditions": [
+    "Preserve production V4/R4 Web and Operator hotfix behavior.",
+    "Do not bulk cherry-pick feature or P0 branch.",
+    "Selectively reconcile shared native-desktop/input and platform client code from tested rc49; do not overwrite production blindly.",
+    "Do not import rc50 UAT databases, identities or secrets.",
+    "Do not treat syntax or test contract PASS as end-to-end production readiness."
+  ]
+}
