@@ -23,11 +23,11 @@ assert.equal(renewed.hardExpiresAt,now+24*HOUR);
 assert.ok(renewed.hardExpiresAt>originalExpiry);
 assert.equal(access.renewConnection('dev-renew',{connectionId:renewed.connectionId,connectionExpiresAt:renewed.hardExpiresAt}),1);
 const renewedGrant=access.assert(grant.grantId,{deviceId:'dev-renew',connectionId:originalConnectionId,touch:false});
-assert.equal(renewedGrant.expiresAt,renewed.hardExpiresAt);
+assert.equal(renewedGrant.expiresAt,originalExpiry,'A/B grant retains its 24h absolute lifetime while connection extends');
 
 now=originalExpiry+1;
 assert.equal(connections.assertConnected('dev-renew').connectionId,originalConnectionId,'connection must survive its original hard-expiry after explicit renewal');
-assert.equal(access.assert(grant.grantId,{deviceId:'dev-renew',connectionId:originalConnectionId,touch:false}).grantId,grant.grantId,'grant must survive original connection expiry after renewal');
+assert.throws(()=>access.assert(grant.grantId,{deviceId:'dev-renew',connectionId:originalConnectionId,touch:false}),/device_access_grant_expired/,'A/B approval must expire after 24h even though connection survives');
 assert.ok(events.some(e=>e.type==='device_connection_renewed'));
 assert.ok(events.some(e=>e.type==='device_access_renewed'));
 

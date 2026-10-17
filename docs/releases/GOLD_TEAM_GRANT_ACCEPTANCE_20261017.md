@@ -20,11 +20,11 @@
 
 All six finished exit 0 under the same source worktree, including Team A/B 24h expiration and owner pairing/reconnect checks.
 
-## Explicit unresolved legacy tests
+## Legacy test contracts reconciled against production's modern security policy
 
-- `selftest-v09-device-access-grant.mjs` FAIL at its old expectation that approving Agent A automatically consumes Agent B's pending grant. This contradicts the newer deployed per-Agent scoped grant policy. **Do not revert security semantics to satisfy a stale expectation.**
-- `selftest-v11-device-connection-renewal.mjs` FAIL when expecting renewal to extend the grant beyond the newer 24-hour absolute expiry policy. **Do not remove the hard cap.**
-- These old test contracts need formal migration to modern expectations, not arbitrary green edits. Existing denial of unrelated P0 aggregate/full regression remains binding.
+- `selftest-v09-device-access-grant.mjs` now asserts that Agent B remains pending when Agent A is approved; no cross-Agent grant reuse, including separate pairing approval. Source code for the authorization policy was **not weakened** to make the old assertion pass.
+- `selftest-v11-device-connection-renewal.mjs` now asserts that the device connection may renew while the A/B grant still expires at its **absolute 24-hour lifetime**. A fresh approval is necessary after expiry.
+- Both focused tests pass on the Gold worktree after updating their previously stale assertions. The unrelated P0 aggregate/full regression remains safety-denied and was **not attempted** here.
 
 ## Still NOT accepted
 
