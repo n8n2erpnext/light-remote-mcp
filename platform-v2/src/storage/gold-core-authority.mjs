@@ -160,16 +160,17 @@ export class GoldPgCoreAuthority{
    const owner=await c.query('SELECT status FROM lr_accounts WHERE account_id=$1 FOR SHARE',[principal.accountId]);
    if(owner.rows?.[0]?.status!=='active')throw err('gold_device_owner_inactive');
    const prior=await c.query(
-    'SELECT owner_account_id,public_identity_key,state FROM lr_devices WHERE device_id=$1 FOR UPDATE',[dev]);
+    'SELECT owner_account_id,node_id,public_identity_key,state FROM lr_devices WHERE device_id=$1 FOR UPDATE',[dev]);
    const existing=prior.rows?.[0];
    if(existing&&(existing.owner_account_id!==principal.accountId||
-    existing.public_identity_key!==publicIdentityKey||existing.state==='revoked'))
+    existing.public_identity_key!==publicIdentityKey||
+    existing.node_id!==node||existing.state==='revoked'))
     throw err('gold_device_identity_conflict',409);
    const result=await c.query(
     "INSERT INTO lr_devices(device_id,owner_account_id,state,node_id,display_name,"+
-    "public_identity_key,platform,architecture,agent_version,last_seen_at) "+
-    "VALUES($1,$2,'online',$3,$4,$5,$6,$7,$8,now()) "+
-    "ON CONFLICT(device_id) DO UPDATE SET state='online',last_seen_at=now(),updated_at=now(),"+
+    "public_identity_key,platform,architecture,agent_version) "+
+    "VALUES($1,$2,'registered',$3,$4,$5,$6,$7,$8) "+
+    "ON CONFLICT(device_id) DO UPDATE SET updated_at=now(),"+
     "display_name=EXCLUDED.display_name,platform=EXCLUDED.platform,"+
     "architecture=EXCLUDED.architecture,agent_version=EXCLUDED.agent_version "+
     "RETURNING device_id,owner_account_id,node_id,state",

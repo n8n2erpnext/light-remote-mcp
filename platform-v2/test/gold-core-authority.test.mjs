@@ -58,13 +58,15 @@ function harness({identity=true,device=true,agentAccount=account,wall=true,paddl
   if(s.includes('SELECT status FROM lr_accounts WHERE account_id=$1 FOR SHARE')){
    return{rows:[{status:data.accounts.get(params[0])?.status}]};
   }
-  if(s.startsWith('SELECT owner_account_id,public_identity_key,state FROM lr_devices')){
+  if(s.startsWith('SELECT owner_account_id,node_id,public_identity_key,state FROM lr_devices')){
    return{rows:data.devices.has(params[0])?[data.devices.get(params[0])]:[]};
   }
   if(s.startsWith('INSERT INTO lr_devices(')){
    const [dev,owner,node,name,pub]=params;
-   const d={device_id:dev,owner_account_id:owner,node_id:node,
-    display_name:name,public_identity_key:pub,state:'online'};
+   const current=data.devices.get(dev);
+   const d=current?{...current,display_name:name}:{device_id:dev,
+    owner_account_id:owner,node_id:node,display_name:name,
+    public_identity_key:pub,state:'registered'};
    data.devices.set(dev,d);return{rows:[d]};
   }
   if(s.includes('SELECT d.device_id,d.state,a.plan,a.status FROM lr_devices')){
@@ -229,6 +231,17 @@ test('Device enrollment proof cannot mint an online connection using browser bea
  const device=await a.registerDevice({sessionToken:logged.token,deviceId:'dev_mac',nodeId:'node_mac',
   publicIdentityKey:'public-test-key',proof:'signed-device'});
  assert.equal(device.owner_account_id,account);
+ assert.equal(device.state,'registered','enrollment is not a signed online heartbeat');
+ assert.equal(data.devices.get('dev_mac').state,'registered');
+ await assert.rejects(()=>a.registerDevice({sessionToken:logged.token,
+  deviceId:'dev_mac',nodeId:'node_forged',publicIdentityKey:'public-test-key',
+  proof:'signed-device'}),/gold_device_identity_conflict/);
+ data.devices.get('dev_mac').state='offline';
+ const reenrolled=await a.registerDevice({sessionToken:logged.token,
+  deviceId:'dev_mac',nodeId:'node_mac',publicIdentityKey:'public-test-key',
+  proof:'signed-device'});
+ assert.equal(reenrolled.state,'offline',
+  'a signed enrollment refresh must not self-assert a physical connection');
  await assert.rejects(()=>a.connectDevice({sessionToken:logged.token,deviceId:'dev_mac'}),
   /gold_signed_device_channel_required/);
  assert.equal(data.connections.size,0,
