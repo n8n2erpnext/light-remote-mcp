@@ -86,6 +86,11 @@
       "version": 17,
       "file": "017_gold_core_identity.sql",
       "sha256": "0a247a2352ea0d9d3770876a9cf9ecf64cdabf386c8a001c3611b5c0c9768cb2"
+    },
+    {
+      "version": 18,
+      "file": "018_ab_pairing_recovery.sql",
+      "sha256": "e139f26e840054bce70076a000d9ab6db00366ec922fa77faf08a11e991013b5"
     }
   ]
 }

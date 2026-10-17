@@ -95,6 +95,16 @@ export async function startGoldCoreApi({env=process.env,verifiers,
      }
      return;
     }
+    if(req.url?.startsWith('/v1/')){
+     // Do not accept authorization or payment work based on a stale startup
+     // healthcheck. Redis coordination failure must block mutations too.
+     const [db,redis]=await Promise.all([
+      dataPlane.pool.query('SELECT 1 AS gold_ready'),
+      dataPlane.redis.ping()
+     ]);
+     if(Number(db?.rows?.[0]?.gold_ready)!==1||redis!=='PONG')
+      throw Error('gold_core_dependency_unavailable');
+    }
     if(!(await route(req,res))){
      res.statusCode=404;res.end();
     }

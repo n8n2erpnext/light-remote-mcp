@@ -76,6 +76,14 @@
 - `src/http/gold-core-server.mjs` now checks live PostgreSQL and Redis on each health/readiness request, returning 503 for dependency failures.
 - Unit/network tests use fake authorities/data-plane for the component: **actual independent database and full Operator/Fleet/Plugin are still absent**. See `docs/releases/GOLD_CORE_BOOTSTRAP_20261017.md`.
 
+## Migration 018 — exact A/B pairing grant recovery; runtime admission hardening
+
+- Immutable Gold SQL 018 adds `lr_ab_requests.approved_grant_id` referencing one exact `lr_ab_grants.grant_id` and `actor_account_id` bound to verified Agent principal; one-to-one uniqueness and state constraint prevent a request from recovering an unrelated grant. Migration 001..017 are unchanged; 18 files are checksum-locked.
+- `GoldPgCoreAuthority.pollPairing()` resolves pending/approved/closed via the SHA-256-only poll capability, signed verified Agent principal, active owner, device, connection, Team membership and grant, enforcing original expiry/absolute grant expiry and revocation. It never returns the private B code. The Wall approval transaction creates one grant and atomically binds the request to that exact grant.
+- Core HTTP adds `POST /v1/pairing/poll` with trusted Agent ingress; the JSON request's `agentId` or `agentProof` cannot override verified identity. Tests cover pending→approved, replay approval denial, polling with an unrelated account, and revocation closure.
+- Gold Core service now verifies PostgreSQL and Redis **before all `/v1/` API requests**, not just health/ready endpoints; a dependency outage prevents new authentication, grant or billing mutations.
+- Gold `verifyGoldSchema()` now checks the actual `lr_%` table catalogue against `goldTableManifest()`, not merely the ledger versions. A forged or incomplete ledger/table state fails before the Core listener starts.
+- All tests remain source/mocks and Unix/loopback HTTP harnesses; **not a real PostgreSQL17/Redis8, not an integrated full Operator/Fleet/Plugin**, and not an accepted Gold cutover. The previous Docker capability denial must not be bypassed.
 ## Strict next gates
 
 1. Legitimately provision/start Gold database containers and a non-superuser app role. Apply immutable 1..13 migrations and prove actual two-service PG/Redis connections; environment URL files and role grants must be created by the authorized owner-side provisioner.

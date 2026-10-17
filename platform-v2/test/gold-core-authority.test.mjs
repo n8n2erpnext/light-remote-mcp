@@ -87,10 +87,11 @@ function harness({identity=true,device=true,agentAccount=account,wall=true,paddl
     status:data.accounts.get(c.accountId).status,device_state:'online'}]:[]};
   }
   if(s.startsWith('INSERT INTO lr_ab_requests(')){
-   const [requestId,owner,device,connection,agent,purpose,pollSha,cipher,ttlMs]=params;
+   const [requestId,owner,device,connection,agent,purpose,actorAccountId,pollSha,cipher,ttlMs]=params;
    const expiration=DATE+ttlMs;
    data.pairRequests.set(requestId,{request_id:requestId,account_id:owner,
     device_id:device,connection_id:connection,agent_id:agent,purpose,
+    actor_account_id:actorAccountId,
     poll_sha256:pollSha,display_code_ciphertext:cipher,expires_at:new Date(expiration),
     hard_expires_at:new Date(data.connections.get(connection).expiresAt),
     state:'pending',device_state:'online',account_status:'active',
@@ -111,7 +112,19 @@ function harness({identity=true,device=true,agentAccount=account,wall=true,paddl
   }
   if(s.startsWith("UPDATE lr_ab_requests SET state='approved'")){
    const row=data.pairRequests.get(params[0]);row.state='approved';
+   row.approved_grant_id=params[1];
    return{rows:[{request_id:params[0]}]};
+  }
+  if(s.includes('FROM lr_ab_requests r')&&s.includes('r.poll_sha256=$1')){
+   const digest=params[0],agentId=params[1];
+   const request=[...data.pairRequests.values()].find(r=>
+    r.poll_sha256===digest&&r.agent_id===agentId);
+   if(!request)return{rows:[]};
+   const grant=data.grants.get(request.approved_grant_id);
+   return{rows:[{...request,owner_status:'active',device_state:'online',
+    connection_closed_at:null,grant_closed_at:grant?.closed_at||null,
+    grant_expires_at:grant?new Date(DATE+3600000):null,
+    absolute_expires_at:grant?new Date(DATE+86400000):null}]};
   }
   if(s.includes('FROM lr_ab_grants g')&&s.includes('owner.status')){
    const [grant,dev,conn,agent,actor]=params,g=data.grants.get(grant);
@@ -205,6 +218,8 @@ test('A/B requires agent authority, local Wall proof, one-time code, then scoped
  const request=await a.requestPairing({connectionId:conn.connectionId,
   agentId:'agent-chatgpt',agentProof:'server-signed'});
  assert.match(request.approvalCode,/^[0-9A-F]{5}-[0-9A-F]{5}$/);
+ assert.deepEqual(await a.pollPairing({pollToken:request.pollToken,
+   agentId:'agent-chatgpt',agentProof:'server-signed'}),{state:'pending'});
  assert(!JSON.stringify([...data.pairRequests.values()].map(x=>({
   request_id:x.request_id,poll_sha256:x.poll_sha256}))).includes(request.pollToken));
  await assert.rejects(()=>a.approvePairing({requestId:request.requestId,
@@ -212,10 +227,25 @@ test('A/B requires agent authority, local Wall proof, one-time code, then scoped
  const result=await a.approvePairing({requestId:request.requestId,
   approvalCode:request.approvalCode,wallContext:{local:true}});
  assert(result.approved);
+ const recovered=await a.pollPairing({pollToken:request.pollToken,
+  agentId:'agent-chatgpt',agentProof:'server-signed'});
+ assert.equal(recovered.state,'approved');
+ assert.equal(recovered.grantId,result.grantId);
+ await assert.rejects(()=>a.pollPairing({pollToken:'A'.repeat(43),
+   agentId:'agent-chatgpt',agentProof:'server-signed'}),/gold_ab_poll_inactive_or_unknown/);
  assert.equal((await a.authorizeGrant({grantId:result.grantId,actorAccountId:account,
   deviceId:'dev_mac',connectionId:conn.connectionId,agentId:'agent-chatgpt'})).allowed,true);
  await assert.rejects(()=>a.approvePairing({requestId:request.requestId,
   approvalCode:request.approvalCode,wallContext:{local:true}}),/gold_ab_expired_or_consumed/);
+ // The hash-only polling capability cannot be moved to another Account,
+ // and an already granted device must disappear immediately on revocation.
+ a.verifyAgentPrincipal=async()=>({accountId:'acct_stolen'});
+ await assert.rejects(()=>a.pollPairing({pollToken:request.pollToken,
+  agentId:'agent-chatgpt',agentProof:'stolen'}),/gold_ab_poll_account_mismatch/);
+ a.verifyAgentPrincipal=async()=>({accountId:account});
+ data.grants.get(result.grantId).closed_at=new Date(DATE);
+ assert.deepEqual(await a.pollPairing({pollToken:request.pollToken,
+  agentId:'agent-chatgpt',agentProof:'server-signed'}),{state:'closed'});
 });
 test('OAuth one-time tokens are hashed and consumed exactly once',async()=>{
  const {authority:a,data}=harness();

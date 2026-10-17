@@ -110,6 +110,15 @@ export function createGoldCoreHttpHandler({core,team,approveWallRequest,
     connectionId:body.connectionId,purpose:body.purpose,
     agentId:principal.agentId,agentProof:principal.agentProof})};
   },
+  'POST /v1/pairing/poll':async(req)=>{
+   const principal=await verifyAgentIngress(req);
+   if(!principal||typeof principal.agentId!=='string'||!principal.agentProof)
+    throw fail('gold_agent_ingress_unverified',401);
+   const body=await readJson(req);
+   return{status:200,data:await core.pollPairing({
+    pollToken:body.pollToken,agentId:principal.agentId,
+    agentProof:principal.agentProof})};
+  },
   'POST /v1/pairing/approve':async(req)=>{
    const wallContext=await approveWallRequest(req);
    if(!wallContext||wallContext.authorized!==true)

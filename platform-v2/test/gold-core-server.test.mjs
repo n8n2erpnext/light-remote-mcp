@@ -23,7 +23,7 @@ const make=()=>{
   pool:{query:async()=>{if(!alive)throw Error('pg_down');return{rows:[{gold_ready:1}]}},
    connect:async()=>({query:async()=>({rows:[]}),release(){}})},
   redis:{ping:async()=>alive?'PONG':'NO'},cache:{prefix:'gold:test:'},postgres:{database:'light_remote_gold_dev',
-   schemaVersion:17},close:async()=>{closed++}
+   schemaVersion:18},close:async()=>{closed++}
  });
  const core={
   login:async args=>({account:{email:args.email},token:'T'.repeat(48)}),
@@ -89,7 +89,7 @@ test('Gold Core API boots over real private Unix socket after verified data plan
   const health=await f.request('/healthz');
   assert.equal(health.status,200);
   assert.equal(health.data.database,'light_remote_gold_dev');
-  assert.equal(health.data.schemaVersion,17);
+  assert.equal(health.data.schemaVersion,18);
   assert.equal(health.data.cutoverComplete,false);
   assert.equal((await f.request('/readyz')).status,200);
   const login=await f.request('/v1/accounts/login',{method:'POST',
@@ -104,6 +104,10 @@ test('Gold Core API boots over real private Unix socket after verified data plan
   const unhealthy=await f.request('/readyz');
   assert.equal(unhealthy.status,503);
   assert.equal(unhealthy.data.error,'gold_core_dependency_unavailable');
+  const rejectedLogin=await f.request('/v1/accounts/login',{method:'POST',
+   data:{email:'person@example.test',password:'private'}});
+  assert.equal(rejectedLogin.status,503,
+   'an existing Core socket must stop accepting mutations when PG/Redis fail');
   await active.close();
   assert.equal(f.closed(),1);
   assert.equal(fs.existsSync(f.socketPath),false);

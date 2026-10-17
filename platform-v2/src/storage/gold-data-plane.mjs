@@ -11,8 +11,9 @@ import crypto from 'node:crypto';
 import {Pool} from 'pg';
 import {createClient} from 'redis';
 import {assertGoldRuntimeIsolation} from '../../../lib/gold-runtime-isolation.mjs';
+import {goldTableManifest} from './gold-permissions.mjs';
 
-const REQUIRED_SCHEMA=17;
+const REQUIRED_SCHEMA=18;
 const EXPECTED_DATABASE='light_remote_gold_dev';
 const EXPECTED_ROLE='lr_gold_app';
 const INSTANCE=/^[a-z0-9][a-z0-9_-]{2,47}$/;
@@ -61,6 +62,14 @@ export async function verifyGoldSchema(pool){
   const values=records.map(r=>Number(r.version));
   check(values.length===REQUIRED_SCHEMA&&values.every((v,i)=>v===i+1),
     'gold_pg_schema_incomplete');
+  // A recorded migration version alone does not prove the actual business
+  // schema exists; an accidentally hand-seeded ledger must not pass boot.
+  const expected=goldTableManifest();
+  const tables=(await pool.query(
+    "SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename LIKE 'lr_%' ORDER BY tablename"
+  )).rows?.map(row=>row.tablename);
+  check(Array.isArray(tables)&&JSON.stringify(tables)===JSON.stringify(expected),
+    'gold_pg_table_catalog_incomplete_or_drifted');
   const policy=(await pool.query(
     "SELECT has_schema_privilege(current_user,'public','USAGE') AS schema_usage,"+
     "has_schema_privilege(current_user,'public','CREATE') AS schema_create,"+

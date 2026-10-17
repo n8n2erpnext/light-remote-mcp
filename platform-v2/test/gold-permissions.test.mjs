@@ -5,7 +5,7 @@ const TRIGGERS=['lr_enforce_team_seat_limit','lr_enforce_team_seat_cap_change','
 const fnNames=[...APP_ENTRY_FUNCTIONS,...TRIGGERS].sort();
 function client({role='lr_gold_migrator',database='light_remote_gold_dev',
  appSuperuser=false,member=false,tables=goldTableManifest(),functions=fnNames,
- failSql=null,versions=Array.from({length:17},(_,i)=>i+1)}={}){
+ failSql=null,versions=Array.from({length:18},(_,i)=>i+1)}={}){
  const seen=[];let commits=0,rollbacks=0;
  const query=async(sql,args=[])=>{
   seen.push({sql,args});

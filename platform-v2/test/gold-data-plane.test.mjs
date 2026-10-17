@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {goldCredentials,verifyGoldSchema,verifyGoldRedis,openGoldDataPlane} from '../src/storage/gold-data-plane.mjs';
 import {GoldPgNotificationRepository} from '../src/storage/notifications-pg.mjs';
+import {goldTableManifest} from '../src/storage/gold-permissions.mjs';
 
 function fixture(){
   const root=fs.mkdtempSync(path.join(os.tmpdir(),'lr-gold-data-test-'));
@@ -25,10 +26,12 @@ function fixture(){
   };
   return {root,env,clear(){fs.rmSync(root,{recursive:true,force:true})}};
 }
-const schemaPool=({role='lr_gold_app',db='light_remote_gold_dev',superuser=false,unsafePolicy=false,versions=Array.from({length:17},(_,i)=>i+1)}={})=>{
+const schemaPool=({role='lr_gold_app',db='light_remote_gold_dev',superuser=false,unsafePolicy=false,versions=Array.from({length:18},(_,i)=>i+1),tables=goldTableManifest()}={})=>{
   let ended=0;return{
     query:async(sql)=>sql.includes('current_database')?
       {rows:[{db,role,superuser}]}:
+      sql.includes('FROM pg_tables')?
+      {rows:tables.map(tablename=>({tablename}))}:
       sql.includes("has_schema_privilege(current_user")?
       {rows:[{schema_usage:true,schema_create:unsafePolicy,ledger_read:true,
         ledger_insert:false,ledger_update:false,inherited_migrator:false}]}:
@@ -89,12 +92,14 @@ test('Gold plugin role validates all plugin-owned state paths before sharing one
     assert.throws(()=>goldCredentials({...env,LIGHT_REMOTE_PADDLE_ENV:'live'},{role:'plugin'}),/gold_staging_live_paddle_forbidden/);
   }finally{f.clear()}
 });
-test('Gold PG admits only exact least-privilege role, DB and all 17 migrations',async()=>{
-  assert.equal((await verifyGoldSchema(schemaPool())).schemaVersion,17);
+test('Gold PG admits only exact least-privilege role, DB and all 18 migrations',async()=>{
+  assert.equal((await verifyGoldSchema(schemaPool())).schemaVersion,18);
   await assert.rejects(()=>verifyGoldSchema(schemaPool({role:'postgres'})),/gold_pg_database_role_mismatch/);
   await assert.rejects(()=>verifyGoldSchema(schemaPool({superuser:true})),/gold_pg_database_role_mismatch/);
   await assert.rejects(()=>verifyGoldSchema(schemaPool({unsafePolicy:true})),/gold_pg_app_privileges_unsafe/);
   await assert.rejects(()=>verifyGoldSchema(schemaPool({versions:[1,2,3]})),/gold_pg_schema_incomplete/);
+  await assert.rejects(()=>verifyGoldSchema(schemaPool({tables:goldTableManifest().slice(1)})),/gold_pg_table_catalog_incomplete_or_drifted/);
+  await assert.rejects(()=>verifyGoldSchema(schemaPool({tables:[...goldTableManifest(),'lr_unauthorized']})),/gold_pg_table_catalog_incomplete_or_drifted/);
   await assert.rejects(()=>verifyGoldSchema(schemaPool({versions:[1,1,...Array.from({length:11},(_,i)=>i+3)]})),/gold_pg_schema_incomplete/);
 });
 test('Gold Redis readiness probes namespace and deletes its own ephemeral key',async()=>{

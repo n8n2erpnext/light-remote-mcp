@@ -14,6 +14,7 @@ async function setup({wall=false,agent=false,oauth=false,billing=false,usage=fal
   registerDevice:async args=>{called.push(['device',args]);return {device_id:'dev_1'}},
   connectDevice:async args=>{called.push(['connect',args]);return {connectionId:'conn_1'}},
   requestPairing:async args=>{called.push(['requestAB',args]);return {requestId:'ab_1'}},
+  pollPairing:async args=>{called.push(['pollAB',args]);return {state:'pending'}},
   approvePairing:async args=>{called.push(['approveAB',args]);return {approved:true}},
   consumeOAuth:async args=>{called.push(['oauth',args]);return {accountId:'acct_1'}},
   ingestPaddle:async args=>{called.push(['paddle',args]);return {recorded:true}}
@@ -101,6 +102,7 @@ test('Gold Core HTTP: external ingress cannot forge Local Wall/Agent/OAuth/Paddl
  try{
   for(const [path,body] of [
    ['/v1/pairing/request',{agentId:'forged',agentProof:'fake',connectionId:'conn_1'}],
+   ['/v1/pairing/poll',{agentId:'forged',pollToken:'FAKE'}],
    ['/v1/pairing/approve',{requestId:'ab_1',approvalCode:'ABCDE-12345',authorized:true}],
    ['/v1/oauth/token/consume',{purpose:'authorization_code',token:'fake',clientId:'forged',authorized:true}],
    ['/v1/billing/paddle/webhook',{event:'paid',signature:'fake',authorized:true}],
@@ -116,6 +118,7 @@ test('Gold Core HTTP: trusted ingress binds identity; request body cannot replac
  try{
   const cases=[
    ['/v1/pairing/request',{connectionId:'conn_1',agentId:'forged',agentProof:'FAKE'},'requestAB'],
+   ['/v1/pairing/poll',{pollToken:'T'.repeat(44),agentId:'forged'},'pollAB'],
    ['/v1/pairing/approve',{requestId:'ab_1',approvalCode:'ABCDE-12345',wallContext:{authorized:false}},'approveAB'],
    ['/v1/oauth/token/consume',{purpose:'authorization_code',token:'T'.repeat(32),clientId:'forged'},'oauth'],
    ['/v1/billing/paddle/webhook',{signature:'forged',payload:'incorrect'},'paddle'],
@@ -128,10 +131,11 @@ test('Gold Core HTTP: trusted ingress binds identity; request body cannot replac
   }
   assert.equal(called[0][1].agentId,'agent_verified');
   assert.equal(called[0][1].agentProof,'signed');
-  assert.equal(called[1][1].wallContext.source,'trusted-wall-socket');
-  assert.equal(called[2][1].clientId,'oauth_verified');
-  assert.equal(called[3][1].signature,'verified-header');
-  assert.equal(called[4][1].signedEvent,'immutable-signed-job');
+  assert.equal(called[1][1].agentId,'agent_verified');
+  assert.equal(called[2][1].wallContext.source,'trusted-wall-socket');
+  assert.equal(called[3][1].clientId,'oauth_verified');
+  assert.equal(called[4][1].signature,'verified-header');
+  assert.equal(called[5][1].signedEvent,'immutable-signed-job');
  }finally{await close()}
 });
 test('Gold Core HTTP rejects unsupported methods, malformed JSON, oversize and unknown paths',async()=>{

@@ -63,6 +63,13 @@ The audit currently covers **23 major known state domains, none accepted as full
 ### Acceptance consequence
 
 The required `LR_GOLD_PG_ONLY=1` full-system gate still refuses both processes before socket/port bind. `npm run gold:cutover:check` is the objective current blocker inventory (23/23 domains unaccepted). New SQL repositories DO NOT mean runtime routes have changed. Do not label Gold ready, do not stop production, and do not claim a time-to-completion without legitimate Gold database access and E2E results.
+## Further Gold source hardening — A/B recovery and live dependency enforcement
+
+- Migration **018_ab_pairing_recovery.sql** adds an explicit one-request-to-one-approved-grant foreign-key reference and account binding for poll capability holders. The API `POST /v1/pairing/poll` requires separately verified Agent ingress and a high-entropy poll token. This prevents ambiguous historical grant recovery, leaked public B codes and cross-account polling. Polling returns pending, approved or closed, and revocation/expiry closes an approved result.
+- On Wall approval, a PostgreSQL transaction saves `approved_grant_id` on exactly the same one-use A/B request while creating its grant, and clears the encrypted approval B code. No JSON snapshot is used in the new Core authority.
+- Both Core `healthz`/`readyz` **and every `/v1/` API request** now check live PostgreSQL and Redis before proceeding; a cache/DB outage returns HTTP 503 without accepting an authentication, A/B or payment request.
+- The Gold data-plane schema admission gate now compares PostgreSQL's actual `public.lr_%` **table catalogue** against the complete checksum-verified migration table manifest; a manually spoofed or incomplete version ledger is no longer sufficient.
+- Added negative tests for account-scoped A/B polling, revoked-grant recovery, database schema missing/unexpected tables, and API behavior during a simulated dependency outage. **All such tests are mock-based**; no actual Gold PG17/Redis8 runtime has run, and the full 23-domain runtime cutover is still blocked.
 ## Hard external acceptance gates
 
 - A new isolated PostgreSQL 17/Redis 8 environment has **NOT actually been started**. A prior Light Remote Docker start returned `target_node_capability_missing`; effective device policy wins. **Do not bypass by changing tools/targets, dropping declared Docker capability or using sudo.**

@@ -4,7 +4,7 @@ The **Core-only** Unix socket server is an independently launchable source compo
 
 ## Mandatory prerequisites
 
-- Owner-provisioned isolated **PostgreSQL 17** (Gold-only database `light_remote_gold_dev`, application user `lr_gold_app`) and isolated authenticated **Redis 8**; 17 SHA-locked migrations, least privilege verified. **Do not use shared production data or the old RC.50 UAT state.**
+- Owner-provisioned isolated **PostgreSQL 17** (Gold-only database `light_remote_gold_dev`, application user `lr_gold_app`) and isolated authenticated **Redis 8**; 18 SHA-locked migrations, least privilege verified. **Do not use shared production data or the old RC.50 UAT state.**
 - `LIGHT_REMOTE_GOLD_INDEPENDENT=1`, dedicated Gold root, `LR_GOLD_INSTANCE_ID` and owner-owned **0600** `LR_GOLD_PG_URL_FILE` and `LR_GOLD_REDIS_URL_FILE` strictly inside that root. Normal `goldCredentials` and `verifyGoldSchema` policy gates are mandatory.
 - `LR_GOLD_CORE_SOCKET` absolute pathname under a Gold-owned `0700` private directory, not an existing socket path.
 - `LR_GOLD_VERIFIERS_MODULE` absolute path to an owner-owned **0600** `.mjs` file inside a private directory under Gold root. It must export `goldCoreVerifiers`, providing vetted **real** callbacks: `verifyIdentityProof`, `verifyDeviceProof`, `verifyAgentPrincipal`, `verifyWallApproval`, `verifyPaddleSignature`, `verifyOwnerProof`, `verifyUsageEvidence`, `approveWallRequest`, `verifyAgentIngress`, `verifyOAuthClient`, `verifyBillingIngress`, and `verifyUsageIngress`; plus a private 32-byte `pairingEncryptionKey`. Do not accept self-declared booleans or install the mock callbacks from tests. No actual verifier module/key is distributed with source.
