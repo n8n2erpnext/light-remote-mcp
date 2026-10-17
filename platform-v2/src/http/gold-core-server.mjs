@@ -74,11 +74,25 @@ export async function startGoldCoreApi({env=process.env,verifiers,
   });
   server=http.createServer(async(req,res)=>{
    try{
-    if(req.method==='GET'&&req.url==='/healthz'){
-     res.writeHead(200,{'content-type':'application/json','cache-control':'no-store'});
-     res.end(JSON.stringify({ok:true,role:'gold-core-only',
-      database:dataPlane.postgres.database,schemaVersion:dataPlane.postgres.schemaVersion,
-      redis:true,cutoverComplete:false}));
+    if(req.method==='GET'&&(req.url==='/healthz'||req.url==='/readyz')){
+     // A successful startup check is insufficient: report readiness only
+     // while the actual PostgreSQL + Redis clients remain responsive.
+     try{
+      const [database,redis]=await Promise.all([
+       dataPlane.pool.query('SELECT 1 AS gold_ready'),
+       dataPlane.redis.ping()
+      ]);
+      if(Number(database?.rows?.[0]?.gold_ready)!==1||redis!=='PONG')
+       throw Error('gold_core_dependency_unavailable');
+      res.writeHead(200,{'content-type':'application/json','cache-control':'no-store'});
+      res.end(JSON.stringify({ok:true,role:'gold-core-only',
+       database:dataPlane.postgres.database,schemaVersion:dataPlane.postgres.schemaVersion,
+       redis:true,cutoverComplete:false}));
+     }catch(error){
+      res.writeHead(503,{'content-type':'application/json','cache-control':'no-store'});
+      res.end(JSON.stringify({ok:false,error:'gold_core_dependency_unavailable',
+       cutoverComplete:false}));
+     }
      return;
     }
     if(!(await route(req,res))){

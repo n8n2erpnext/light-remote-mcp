@@ -70,6 +70,12 @@
 - Added `src/http/gold-core-server.mjs`, a standalone private Unix socket server initialized only after the existing Gold PostgreSQL/Redis admission gate; it requires the full caller-provided set of trusted verifier functions, secures socket directory/permissions, and releases database resources on close. Health explicitly distinguishes `gold-core-only` from full Gold acceptance.
 - Added real HTTP loopback and Unix-socket tests with injected mock Core/Team/data-plane. Full operator HTTP canonical paths, Plugin/V4/Fleet, signed client compatibility and real PostgreSQL/Redis are **not** migrated or tested here. No production or external billing/ERPNext requests were sent.
 
+## Core-only executable bootstrap and live readiness
+
+- Added `src/http/gold-core-entry.mjs` and `npm run gold:core:boot` for a fail-closed Core-only listener. Owner must supply private verifier module with all trusted ingress callbacks and a pairing key, in addition to legitimate isolated PostgreSQL/Redis credentials. No fake verifier defaults and no source-distributed secrets.
+- `src/http/gold-core-server.mjs` now checks live PostgreSQL and Redis on each health/readiness request, returning 503 for dependency failures.
+- Unit/network tests use fake authorities/data-plane for the component: **actual independent database and full Operator/Fleet/Plugin are still absent**. See `docs/releases/GOLD_CORE_BOOTSTRAP_20261017.md`.
+
 ## Strict next gates
 
 1. Legitimately provision/start Gold database containers and a non-superuser app role. Apply immutable 1..13 migrations and prove actual two-service PG/Redis connections; environment URL files and role grants must be created by the authorized owner-side provisioner.

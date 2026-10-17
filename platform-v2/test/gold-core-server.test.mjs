@@ -18,10 +18,11 @@ const make=()=>{
  fs.chmodSync(root,0o700);fs.chmodSync(directory,0o700);
  const socketPath=path.join(directory,'core.sock');
  const env={LIGHT_REMOTE_GOLD_INDEPENDENT:'1',LIGHT_REMOTE_GOLD_ROOT:root};
- let closed=0;
+ let closed=0,alive=true;
  const openPlane=async()=>({
-  pool:{query:async()=>({rows:[]}),connect:async()=>({query:async()=>({rows:[]}),release(){}})},
-  redis:{},cache:{prefix:'gold:test:'},postgres:{database:'light_remote_gold_dev',
+  pool:{query:async()=>{if(!alive)throw Error('pg_down');return{rows:[{gold_ready:1}]}},
+   connect:async()=>({query:async()=>({rows:[]}),release(){}})},
+  redis:{ping:async()=>alive?'PONG':'NO'},cache:{prefix:'gold:test:'},postgres:{database:'light_remote_gold_dev',
    schemaVersion:17},close:async()=>{closed++}
  });
  const core={
@@ -48,7 +49,8 @@ const make=()=>{
    req.end(body||undefined);
   });
  return {root,socketPath,env,openPlane,core,team,
-  request,closed:()=>closed,clean:()=>fs.rmSync(root,{recursive:true,force:true})};
+  request,closed:()=>closed,breakDependencies:()=>{alive=false},
+  clean:()=>fs.rmSync(root,{recursive:true,force:true})};
 };
 test('Gold socket service refuses missing verifier before opening any PG pool',async()=>{
  const f=make(),called=[];
@@ -89,6 +91,7 @@ test('Gold Core API boots over real private Unix socket after verified data plan
   assert.equal(health.data.database,'light_remote_gold_dev');
   assert.equal(health.data.schemaVersion,17);
   assert.equal(health.data.cutoverComplete,false);
+  assert.equal((await f.request('/readyz')).status,200);
   const login=await f.request('/v1/accounts/login',{method:'POST',
    data:{email:'person@example.test',password:'private'}});
   assert.equal(login.status,200);
@@ -97,6 +100,10 @@ test('Gold Core API boots over real private Unix socket after verified data plan
    data:{requestId:'ab_1',approvalCode:'12345-12345',approved:true}});
   assert.equal(unverified.status,401);
   assert.equal((await f.request('/other')).status,404);
+  f.breakDependencies();
+  const unhealthy=await f.request('/readyz');
+  assert.equal(unhealthy.status,503);
+  assert.equal(unhealthy.data.error,'gold_core_dependency_unavailable');
   await active.close();
   assert.equal(f.closed(),1);
   assert.equal(fs.existsSync(f.socketPath),false);
