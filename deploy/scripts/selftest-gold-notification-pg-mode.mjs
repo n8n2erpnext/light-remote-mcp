@@ -7,7 +7,10 @@ const source=fs.readFileSync(path.join(root,'operator-host/executor.mjs'),'utf8'
 const route=fs.readFileSync(path.join(root,'operator-host/executor-routes-account.mjs'),'utf8');
 assert.match(source,/const goldNotificationPlane=.*LR_GOLD_NOTIFICATIONS_PG/);
 assert.match(source,/await openGoldDataPlane\(\)/);
-assert.match(source,/new GoldPgNotificationRepository\(\{pool:goldNotificationPlane\.pool\}\)/);
+assert.match(source,/createGoldOperatorNotificationBridge\(\{socketPath:notificationCoreSocket\(process\.env\)\}\)/);
+assert.match(source,/accountNotifications=goldNotificationBridge/);
+assert.match(source,/\?null \/\/ canonical routes are intercepted/);
+assert.match(source,/if\(goldNotificationBridge&&await goldNotificationBridge\(req,res,url\)\)return/);
 for(const fragment of [
   'await accountNotifications.inbox(','await accountNotifications.markRead(',
   'await accountNotifications.list(','await accountNotifications.publish(',
@@ -21,5 +24,5 @@ const p=spawnSync(process.execPath,[path.join(root,'operator-host/executor.mjs')
 });
 assert.equal(p.status,1, 'PG mode must fail before server startup, not time out');
 assert.match(p.stderr,/gold_data_requires_independent_runtime/);
-console.log('GOLD_NOTIFICATION_PG_OPTOIN_FAILS_CLOSED_UNCONFIGURED_PASS');
-console.log('GOLD_NOTIFICATION_ROUTES_AWAIT_DATABASE_QUERIES_PASS');
+console.log('GOLD_NOTIFICATION_PG_OPERATOR_CORE_BRIDGE_FAILS_CLOSED_UNCONFIGURED_PASS');
+console.log('GOLD_NOTIFICATION_ROUTES_AWAIT_DATABASE_QUERIES_AND_CORE_AUTHORITY_PASS');

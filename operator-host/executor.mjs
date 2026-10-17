@@ -21,7 +21,7 @@ import { DevicePairingRegistry, DevicePairingRegistryError } from './device-pair
 import { AgentClientRegistry, AgentClientRegistryError } from './agent-client-registry.mjs';
 import { AccountRegistry, AccountError } from './account-registry.mjs';
 import { AccountNotificationRegistry, AccountNotificationError } from './account-notification-registry.mjs';
-import { GoldPgNotificationRepository } from '../platform-v2/src/storage/notifications-pg.mjs';
+import {createGoldOperatorNotificationBridge,notificationCoreSocket} from './gold-notification-core-bridge.mjs';
 import { openGoldDataPlane } from '../platform-v2/src/storage/gold-data-plane.mjs';
 import { ProTeamRegistry, ProTeamError } from './pro-team-registry.mjs';
 import { requestTeamMemberApproval } from './team-approval-requests.mjs';
@@ -53,6 +53,12 @@ import { createNativeActivityFormatter } from './executor-native-activity.mjs';
 // Invalid database credentials or absent PG/Redis abort startup, never fall back.
 const goldNotificationPlane=String(process.env.LR_GOLD_NOTIFICATIONS_PG||'')==='1'
   ?await openGoldDataPlane():null;
+// PostgreSQL notifications in isolated Gold MUST resolve account sessions and
+// writes through the same authoritative Gold Core; legacy JSON sessions cannot
+// be accepted as a parallel identity authority.
+const goldNotificationBridge=goldNotificationPlane
+  ?createGoldOperatorNotificationBridge({socketPath:notificationCoreSocket(process.env)})
+  :null;
 
 const SOCKET_PATH = process.env.OPERATOR_SOCKET || '/run/gpt-vps-operator/operator.sock';
 const KEY_FILE = process.env.OPERATOR_KEY_FILE || '/home/ubuntu/.config/gpt-vps-operator/operator.private.json';
@@ -149,8 +155,8 @@ const teamPrincipalVerifier=teamProofPublicKeyFile
 const verifyTeamPrincipal=(req,url,body)=>verifyTeamPrincipalRequest(req,url,body,teamPrincipalVerifier);
 const teamInviteSecretFile=String(process.env.OPERATOR_TEAM_INVITE_SECRET_FILE||'').trim();
 const teamInviteKey=teamInviteSecretFile?fs.readFileSync(teamInviteSecretFile):null;
-const accountNotifications=goldNotificationPlane
-  ?new GoldPgNotificationRepository({pool:goldNotificationPlane.pool})
+const accountNotifications=goldNotificationBridge
+  ?null // canonical routes are intercepted; never instantiate a legacy writer
   :new AccountNotificationRegistry({stateFile:NOTIFICATIONS_STATE_FILE});
 const proTeams=new ProTeamRegistry({stateFile:TEAM_STATE_FILE,inviteKey:teamInviteKey,
   planFor:accountId=>operationalAccount(accountId).plan,
@@ -1047,6 +1053,7 @@ const server = http.createServer(async (req, res) => {
     }
     await handlePluginRoutes(req,res,url,routeDeps());
     if(res.headersSent)return;
+    if(goldNotificationBridge&&await goldNotificationBridge(req,res,url))return;
     await handleAccountRoutes(req,res,url,routeDeps());
     if(res.headersSent)return;
     await handleDeviceChannelRoutes(req,res,url,routeDeps());
