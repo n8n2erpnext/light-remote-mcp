@@ -92,13 +92,13 @@ export class GoldPgCoreAuthority{
  async authenticate(raw){
   if(typeof raw!=='string'||raw.length<20)throw err('gold_auth_invalid_session',401);
   const r=await this.pool.query(
-   "SELECT s.session_id,s.account_id,s.expires_at,a.email,a.plan "+
+   "SELECT s.session_id,s.account_id,s.expires_at,a.email,a.plan,a.group_id "+
    "FROM lr_sessions s JOIN lr_accounts a ON a.account_id=s.account_id "+
    "WHERE s.token_sha256=$1 AND s.revoked_at IS NULL AND s.expires_at>now() "+
    "AND a.status='active' AND a.email_verified=true",[sha(raw)]);
   if(!r.rows?.length)throw err('gold_auth_invalid_session',401);
   const a=r.rows[0];return{accountId:a.account_id,sessionId:a.session_id,
-   email:a.email,plan:a.plan,expiresAt:ms(a.expires_at)};
+   email:a.email,plan:a.plan,groupId:a.group_id,expiresAt:ms(a.expires_at)};
  }
  async logout(raw){
   if(typeof raw!=='string'||raw.length<20)throw err('gold_auth_invalid_session',401);

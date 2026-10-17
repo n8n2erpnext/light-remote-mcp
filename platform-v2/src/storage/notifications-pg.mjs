@@ -19,6 +19,16 @@ export class GoldPgNotificationRepository{
   async publish(input={}){
     // Existing validation is reused with stateFile=null. It cannot write files.
     const n=new AccountNotificationRegistry({stateFile:null,now:this.now}).publish(input);
+    // Mirror the canonical Operator's assertOperational(target) behavior.
+    // The admin may select a target, but cannot publish to an unknown or
+    // disabled/dormant account by merely supplying a syntactically valid ID.
+    if(n.audienceType==='account'){
+      const target=await this.pool.query(
+        "SELECT account_id FROM lr_accounts WHERE account_id=$1 "+
+        "AND status='active'",[n.audienceValue]);
+      if(target.rows?.length!==1)
+        fail('notification_target_account_not_found',404);
+    }
     const sql=[
       "INSERT INTO lr_notifications(notification_id,category,title,body,link,",
       "audience_type,audience_value,published_by,created_at,scheduled_at,expires_at)",

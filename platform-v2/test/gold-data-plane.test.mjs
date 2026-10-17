@@ -134,6 +134,9 @@ test('PG notification SQL is parameterized and account scoped; never needs JSON 
   const queries=[];
   const pool={query:async(sql,args=[])=>{
     queries.push([sql,args]);
+    if(sql.startsWith('SELECT account_id FROM lr_accounts WHERE account_id=$1')){
+      return{rows:args[0]==='acct-one'?[{account_id:'acct-one'}]:[]};
+    }
     if(sql.startsWith('INSERT INTO lr_notifications('))return{rows:[{...record,notification_id:args[0]}]};
     if(sql.startsWith('SELECT n.*,rd.read_at'))return{rows:[record]};
     if(sql.startsWith('INSERT INTO lr_notification_reads('))return{rows:args[0]==='acct-one'?[{notification_id:nid}]:[]};
@@ -145,15 +148,17 @@ test('PG notification SQL is parameterized and account scoped; never needs JSON 
   const written=await repo.publish({type:'security',title:'Account alert',body:'Test scope only',
     audienceType:'account',audienceValue:'acct-one'});
   assert.equal(written.audienceType,'account');
-  assert(queries[0][0].includes('INSERT INTO lr_notifications'));
-  assert.equal(queries[0][1][6],'acct-one');
+  assert(queries[0][0].includes('SELECT account_id FROM lr_accounts'));
+  assert.deepEqual(queries[0][1],['acct-one']);
+  assert(queries[1][0].includes('INSERT INTO lr_notifications'));
+  assert.equal(queries[1][1][6],'acct-one');
   const inbox=await repo.inbox('acct-one',{plan:'free',groupId:'grp_default'});
   assert.equal(inbox.unreadCount,1);
-  assert.deepEqual(queries[1][1],['acct-one','free','grp_default']);
+  assert.deepEqual(queries[2][1],['acct-one','free','grp_default']);
   await assert.rejects(()=>repo.markRead('acct-two',nid,{plan:'free'}),/notification_not_found/);
-  assert.equal(queries[2][1][0],'acct-two');
+  assert.equal(queries[3][1][0],'acct-two');
   assert.deepEqual(await repo.markRead('acct-one',nid,{plan:'free',groupId:'grp_default'}),{ok:true});
-  assert.match(queries[3][0],/ON CONFLICT\(notification_id,account_id\) DO UPDATE/);
+  assert.match(queries[4][0],/ON CONFLICT\(notification_id,account_id\) DO UPDATE/);
   assert.equal((await repo.list()).notifications[0].readCount,0);
   assert.equal((await repo.cancel(nid)).status,'canceled');
   await assert.rejects(()=>repo.publish({type:'security',title:'a',body:'b'}),/invalid_notification_content/);

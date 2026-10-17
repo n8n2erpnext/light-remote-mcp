@@ -6,8 +6,12 @@ const NOW=Date.parse('2026-10-17T16:00:00.000Z');
 const N1='sys_123e4567-e89b-42d3-a456-426614174000';
 function database(){
  const trace=[],rows=new Map(),reads=new Map();
+ const accounts=new Map([['acct_one','active'],['acct_two','active']]);
  const pool={query:async(sql,params=[])=>{
   trace.push({sql,params});
+  if(sql.startsWith('SELECT account_id FROM lr_accounts WHERE account_id=$1')){
+   return{rows:accounts.get(params[0])==='active'?[{account_id:params[0]}]:[]};
+  }
   if(sql.startsWith('INSERT INTO lr_notifications(')){
    const [notification_id,category,title,body,link,audience_type,audience_value,
     published_by,created_at,scheduled_at,expires_at]=params;
@@ -59,7 +63,7 @@ function database(){
   }
   throw Error('unexpected_pg_notification_sql '+sql.slice(0,110));
  }};
- return {pool,trace,rows,reads};
+ return {pool,trace,rows,reads,accounts};
 }
 test('Gold PG notifications store admin-published content and per-account inbox solely in SQL',async()=>{
  const db=database(),repo=new GoldPgNotificationRepository({pool:db.pool,now:()=>NOW});
@@ -98,4 +102,40 @@ test('Gold PG notification repository rejects invalid payloads before any SQL wr
  assert.equal(db.trace.length,0);
  const off=new GoldPgNotificationRepository({pool:{query:async()=>{throw Error('pg_down')}},now:()=>NOW});
  await assert.rejects(()=>off.inbox('acct_one',{plan:'free'}),/pg_down/);
+});
+
+test('Gold PG publication rejects dormant, disabled, or nonexistent target account',async()=>{
+ const db=database(),repo=new GoldPgNotificationRepository({pool:db.pool,now:()=>NOW});
+ for(const [accountId,state] of [
+  ['acct_one','admin_disabled'],['acct_one','dormant'],
+  ['acct_missing',undefined]]){
+  if(state)db.accounts.set(accountId,state);
+  await assert.rejects(()=>repo.publish({type:'security',title:'Targeted notice',
+   body:'Operational account required',targetAccountId:accountId}),
+   /notification_target_account_not_found/);
+ }
+ assert.equal(db.rows.size,0);
+ assert.equal(db.trace.filter(x=>x.sql.startsWith('INSERT INTO lr_notifications(')).length,0);
+ db.accounts.set('acct_one','active');
+ const ok=await repo.publish({type:'security',title:'Valid notice',
+  body:'Only a real operational account',targetAccountId:'acct_one'});
+ assert.match(ok.notificationId,/^sys_/);
+ const lookup=db.trace.find(x=>x.sql.startsWith('SELECT account_id FROM lr_accounts'));
+ assert.deepEqual(lookup.params,['acct_one']);
+});
+
+test('Gold PG inbox audience group and plan read current authenticated attributes only',async()=>{
+ const db=database(),repo=new GoldPgNotificationRepository({pool:db.pool,now:()=>NOW});
+ await repo.publish({type:'feature',title:'QA Group',body:'QA-only notice',
+  audienceType:'group',audienceValue:'grp_quality'});
+ await repo.publish({type:'feature',title:'Pro Plan',body:'Pro-only notice',
+  audienceType:'plan',audienceValue:'pro'});
+ const qa=await repo.inbox('acct_one',{plan:'free',groupId:'grp_quality'});
+ assert.equal(qa.notifications.length,1);
+ assert.equal(qa.notifications[0].title,'QA Group');
+ const pro=await repo.inbox('acct_two',{plan:'pro',groupId:'grp_other'});
+ assert.equal(pro.notifications.length,1);
+ assert.equal(pro.notifications[0].title,'Pro Plan');
+ const wrong=await repo.inbox('acct_two',{plan:'free',groupId:'grp_other'});
+ assert.equal(wrong.notifications.length,0);
 });

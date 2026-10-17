@@ -30,7 +30,7 @@ function harness({identity=true,device=true,agentAccount=account,wall=true,paddl
   if(s.includes('FROM lr_sessions s JOIN lr_accounts a')){
    const sess=data.sessions.get(params[0]),acc=data.accounts.get(sess?.account_id);
    return{rows:sess&&!sess.revoked&&acc?.status==='active'?
-    [{...sess,email:acc.email,plan:acc.plan}]:[]};
+    [{...sess,email:acc.email,plan:acc.plan,group_id:acc.group_id??'grp_default'}]:[]};
   }
   if(s.includes('UPDATE lr_sessions SET revoked_at=now(),revoked_reason=')){
    const found=data.sessions.get(params[0]);
@@ -191,7 +191,11 @@ test('Account signup/login/PG-session/logout uses hashed password and SHA-only b
  const logged=await a.login({email,password:'StrongPass#123'});
  assert.equal(logged.account.accountId,account);
  assert(![...data.sessions.keys()].includes(logged.token));
- assert.equal((await a.authenticate(logged.token)).accountId,account);
+ const verified=await a.authenticate(logged.token);
+ assert.equal(verified.accountId,account);
+ assert.equal(verified.groupId,'grp_default');
+ assert(calls.some(q=>q.sql?.includes('a.plan,a.group_id')),
+  'the notification group is bound to the PostgreSQL verified session');
  assert.equal((await a.logout(logged.token)).loggedOut,true);
  await assert.rejects(()=>a.authenticate(logged.token),/gold_auth_invalid_session/);
 });

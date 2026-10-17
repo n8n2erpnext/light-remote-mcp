@@ -34,3 +34,12 @@ For every `/v1/` call, the Gold socket admission gate still checks live PostgreS
 4. Perform **real SQL cold-restart, simultaneous Operator/Core processes and cross-account audience tests**, not only fakes. Retain `BLOCKED_SOURCE_CUTOVER 0/23` until all mandatory domains are migrated and independently accepted.
 
 Never stop production solely to validate this source slice.
+
+## Follow-up: PostgreSQL session audience group + operational recipient (2026-10-17)
+
+Two correctness gaps were discovered and fixed on the accepted schema **without adding migrations**:
+
+1. `GoldPgCoreAuthority.authenticate(rawBearer)` originally projected `accountId`, `email` and `plan` from `lr_accounts`, but omitted `group_id`, even though migration 017 introduced that column with default `grp_default`. As a result, PostgreSQL notifications addressed to `audience_type='group'` could silently disappear from the Gold inbox. Authentication now projects `a.group_id` from the **verified database session** as `groupId`. Neither HTTP body nor query `groupId` overrides it.
+2. `GoldPgNotificationRepository.publish` now checks a targeted `audience_type='account'` against the live `lr_accounts` table with `status='active'`. An admin request for an unknown, dormant or disabled recipient returns 404 without inserting any notification. This matches the canonical Operator's `assertOperational(accountId)` at a source-level authorization boundary. Broad group/plan audiences are not confused with single-account validation, and cancellation/read semantics are unchanged.
+
+The new real Core+repository HTTP roundtrip test `gold-notification-group-roundtrip.test.mjs` exercises two genuine Gold Authority objects sharing an injected fake PG pool and verifies that `acct_quality` sees `grp_quality` but `acct_other` cannot opt into that group by manipulating URL query parameters. Additional PG notification tests cover plan/group targeting and rejecting dormant/disabled/missing direct recipients. **The SQL contract is mocked; this remains NOT a live PostgreSQL17/Redis8 E2E acceptance.**
