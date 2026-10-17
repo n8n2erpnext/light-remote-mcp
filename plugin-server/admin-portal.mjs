@@ -53,10 +53,10 @@ export function registerAdminPortal(app){
         if(!/^sys_[a-f0-9-]{36}$/.test(id))return res.status(400).json({ok:false,error:'invalid_notification_id'});
         return res.json(await callOperatorJson('POST','/v1/admin/notifications/'+encodeURIComponent(id)+'/cancel',{}));
       }
-      if(action==='announcements'&&req.method==='GET')return res.json({ok:true,announcements:listAnnouncements()});
-      if(action==='announcement-create'&&req.method==='POST')return res.status(201).json({ok:true,announcement:mutateAnnouncement('POST',null,req.body)});
-      if(action==='announcement-update'&&req.method==='POST')return res.json({ok:true,announcement:mutateAnnouncement('PUT',String(req.body?.id||''),req.body)});
-      if(action==='announcement-delete'&&req.method==='POST')return res.json({ok:true,announcement:mutateAnnouncement('DELETE',String(req.body?.id||''))});
+      if(action==='announcements'&&req.method==='GET')return res.json({ok:true,announcements:await listAnnouncements()});
+      if(action==='announcement-create'&&req.method==='POST')return res.status(201).json({ok:true,announcement:await mutateAnnouncement('POST',null,req.body)});
+      if(action==='announcement-update'&&req.method==='POST')return res.json({ok:true,announcement:await mutateAnnouncement('PUT',String(req.body?.id||''),req.body)});
+      if(action==='announcement-delete'&&req.method==='POST')return res.json({ok:true,announcement:await mutateAnnouncement('DELETE',String(req.body?.id||''))});
       if(action==='site-analytics'&&req.method==='GET')return res.json(siteAnalyticsSummary(req.query?.days||30));
       if(action==='device-os-summary'&&req.method==='GET')return res.json(deviceOSSummary(await callOperatorJson('GET','/v1/admin/accounts')));
       if(action==='accounts-paged'&&req.method==='GET'){

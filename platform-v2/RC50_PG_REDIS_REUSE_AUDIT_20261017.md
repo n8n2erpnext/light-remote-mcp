@@ -13,7 +13,7 @@ Original root: `/home/ubuntu/n8n2erpnext/light-remote-mcp-worktrees/rc50-v2-plat
 - `platform-v2/src/storage/worker-uat.mjs`: exact rc.50 PG worker slots, lease generation and outbox acknowledgement/retry.
 - `platform-v2/src/identity/free-rotation-uat.mjs`, `oauth-replay-uat.mjs`, `pg-rotation-store-uat.mjs`: existing rotation and one-time identity proof/replay prototypes.
 - Five original `platform-v2/test/*.test.mjs` counterpart suites; **30/30 focused tests PASS** on Gold in one command, no DB service required (in-memory test fixtures).
-- Existing `infra/pgredis/migrations/001..013` + checksum lock were ALREADY byte-identical to the rc.50 source (13/13), no new incompatible SQL fork.
+- Existing `infra/pgredis/migrations/001..013` + checksum lock were ALREADY byte-identical to the rc.50 source (13/13), no new incompatible SQL fork **at the time of this historical audit**. Gold subsequently appended migration 014 for Plugin announcements without changing 001..013.
 
 ## Limits documented by the ORIGINAL code, not speculation
 

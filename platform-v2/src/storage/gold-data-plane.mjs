@@ -12,15 +12,15 @@ import {Pool} from 'pg';
 import {createClient} from 'redis';
 import {assertGoldRuntimeIsolation} from '../../../lib/gold-runtime-isolation.mjs';
 
-const REQUIRED_SCHEMA=13;
+const REQUIRED_SCHEMA=14;
 const EXPECTED_DATABASE='light_remote_gold_dev';
 const EXPECTED_ROLE='lr_gold_app';
 const INSTANCE=/^[a-z0-9][a-z0-9_-]{2,47}$/;
 const check=(condition,code)=>{if(!condition)throw Error(code)};
 
-export function goldCredentials(env=process.env){
+export function goldCredentials(env=process.env,{role='operator'}={}){
   check(env.LIGHT_REMOTE_GOLD_INDEPENDENT==='1','gold_data_requires_independent_runtime');
-  assertGoldRuntimeIsolation(env,'operator');
+  assertGoldRuntimeIsolation(env,role);
   const root=fs.realpathSync(String(env.LIGHT_REMOTE_GOLD_ROOT||''));
   const instance=String(env.LR_GOLD_INSTANCE_ID||'');
   check(INSTANCE.test(instance),'gold_instance_id_required');
@@ -91,8 +91,8 @@ export async function verifyGoldRedis(redis,{instance}){
   return {prefix,cacheOnly:true};
 }
 
-export async function openGoldDataPlane({env=process.env,poolFactory,redisFactory}={}){
-  const {urls,instance}=goldCredentials(env);
+export async function openGoldDataPlane({env=process.env,poolFactory,redisFactory,role='operator'}={}){
+  const {urls,instance}=goldCredentials(env,{role});
   let pool,redis;
   try{
     pool=poolFactory?poolFactory(urls.pg):new Pool({

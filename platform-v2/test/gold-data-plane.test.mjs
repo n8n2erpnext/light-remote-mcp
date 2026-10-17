@@ -25,7 +25,7 @@ function fixture(){
   };
   return {root,env,clear(){fs.rmSync(root,{recursive:true,force:true})}};
 }
-const schemaPool=({role='lr_gold_app',db='light_remote_gold_dev',superuser=false,unsafePolicy=false,versions=Array.from({length:13},(_,i)=>i+1)}={})=>{
+const schemaPool=({role='lr_gold_app',db='light_remote_gold_dev',superuser=false,unsafePolicy=false,versions=Array.from({length:14},(_,i)=>i+1)}={})=>{
   let ended=0;return{
     query:async(sql)=>sql.includes('current_database')?
       {rows:[{db,role,superuser}]}:
@@ -61,8 +61,36 @@ test('Gold file credentials and target DB name/role are mandatory',()=>{
     assert.throws(()=>goldCredentials(f.env),/gold_pg_invalid_role/);
   }finally{f.clear()}
 });
-test('Gold PG admits only exact least-privilege role, DB and all 13 migrations',async()=>{
-  assert.equal((await verifyGoldSchema(schemaPool())).schemaVersion,13);
+test('Gold plugin role validates all plugin-owned state paths before sharing one PG/Redis data plane',()=>{
+  const f=fixture();try{
+    const inRoot=p=>path.join(f.root,p);
+    const fields={
+      OPERATOR_SOCKET:inRoot('run/operator.sock'),
+      LIGHT_REMOTE_PLUGIN_OAUTH_SECRET_FILE:inRoot('secrets/plugin-oauth'),
+      LIGHT_REMOTE_PLUGIN_OAUTH_LEGACY_CLIENTS_FILE:inRoot('state/plugin-clients.json'),
+      LIGHT_REMOTE_ACCOUNT_RECOVERY_FILE:inRoot('state/recovery.json'),
+      LIGHT_REMOTE_PADDLE_STATE_FILE:inRoot('state/paddle.json'),
+      LIGHT_REMOTE_SITE_ANALYTICS_PATH:inRoot('state/analytics.json'),
+      LIGHT_REMOTE_SITE_CONTENT_PATH:inRoot('state/content.json'),
+      LIGHT_REMOTE_SUPPORT_OUTBOX_FILE:inRoot('state/support.json'),
+      LIGHT_REMOTE_GOOGLE_OAUTH_FILE:inRoot('state/google.json'),
+      LIGHT_REMOTE_BACKOFFICE_CONFIG_FILE:inRoot('secrets/backoffice.json'),
+      LIGHT_REMOTE_DISTRIBUTION_DIR:inRoot('distribution'),
+      LIGHT_REMOTE_MAIL_ENV_FILE:inRoot('secrets/mail.env'),
+      LIGHT_REMOTE_OPENAI_CHALLENGE_FILE:inRoot('secrets/challenge'),
+      LIGHT_REMOTE_PLUGIN_HOST:'127.0.0.1',
+      LIGHT_REMOTE_PLUGIN_ORIGIN:'http://127.0.0.1:5979',
+      LIGHT_REMOTE_PLUGIN_ALLOW_HTTP_LOOPBACK:'1',
+      LIGHT_REMOTE_PADDLE_ENV:'sandbox'
+    };
+    const env={...f.env,...fields};
+    assert.equal(goldCredentials(env,{role:'plugin'}).instance,'dev01');
+    assert.throws(()=>goldCredentials({...env,LIGHT_REMOTE_SITE_CONTENT_PATH:'/var/lib/light-remote-direct/plugin-state/site-content.json'},{role:'plugin'}),/gold_isolation_outside_root_LIGHT_REMOTE_SITE_CONTENT_PATH/);
+    assert.throws(()=>goldCredentials({...env,LIGHT_REMOTE_PADDLE_ENV:'live'},{role:'plugin'}),/gold_staging_live_paddle_forbidden/);
+  }finally{f.clear()}
+});
+test('Gold PG admits only exact least-privilege role, DB and all 14 migrations',async()=>{
+  assert.equal((await verifyGoldSchema(schemaPool())).schemaVersion,14);
   await assert.rejects(()=>verifyGoldSchema(schemaPool({role:'postgres'})),/gold_pg_database_role_mismatch/);
   await assert.rejects(()=>verifyGoldSchema(schemaPool({superuser:true})),/gold_pg_database_role_mismatch/);
   await assert.rejects(()=>verifyGoldSchema(schemaPool({unsafePolicy:true})),/gold_pg_app_privileges_unsafe/);

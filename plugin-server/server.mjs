@@ -9,7 +9,9 @@ import { registerPublicDeviceRoutes, prunePublicRateState } from './device-publi
 import { registerAccountPortal } from './account-portal.mjs';
 import { registerDistributionPortal } from './distribution-portal.mjs';
 import { registerAdminPortal } from './admin-portal.mjs';
-import { installAnnouncements, registerClientAnnouncementFeed } from './site-announcements.mjs';
+import { installAnnouncements, registerClientAnnouncementFeed,configureGoldPgSiteAnnouncements } from './site-announcements.mjs';
+import {openGoldDataPlane} from '../platform-v2/src/storage/gold-data-plane.mjs';
+import {GoldPgSiteAnnouncementsRepository} from '../platform-v2/src/storage/site-announcements-pg.mjs';
 import { installSiteAnalytics, flushSiteAnalytics } from './site-analytics.mjs';
 import { registerWebAssets } from './web-assets.mjs';
 import { renderAiGuidePage, renderLlmsIndex, embedAiGuideSource } from './ai-guide-page.mjs';
@@ -22,6 +24,12 @@ import { installOpenAiToolSecurityCompat } from './openai-security-compat.mjs';
 import { installLegacyToolCallCompat } from './legacy-tool-call-compat.mjs';
 
 
+// PostgreSQL-backed Site content is opt-in until every Plugin state domain is migrated.
+// No DB credentials/migrations => fail startup; never load the legacy site JSON.
+const goldSitePlane=process.env.LR_GOLD_SITE_ANNOUNCEMENTS_PG==='1'
+  ?await openGoldDataPlane({role:'plugin'}):null;
+if(goldSitePlane)configureGoldPgSiteAnnouncements(
+  new GoldPgSiteAnnouncementsRepository({pool:goldSitePlane.pool}));
 const app=express();
 // createMcpExpressApp() installs express.json() with Express' default ~100 KB limit.
 // Device-channel result envelopes can legitimately exceed that even after client-side compaction,
@@ -120,6 +128,7 @@ const server=app.listen(PUBLIC_PORT,PUBLIC_HOST,()=>{
 let shuttingDown=false;
 function shutdown(signal){
   flushSiteAnalytics();
+  if(goldSitePlane)void goldSitePlane.close().catch(()=>{});
   if(shuttingDown)return;shuttingDown=true;clearInterval(pruner);
   console.log(JSON.stringify({event:'direct_plugin_shutdown',signal}));
   server.closeIdleConnections?.();

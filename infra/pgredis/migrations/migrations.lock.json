@@ -1,5 +1,5 @@
 {
-  "target": "synthetic UAT only",
+  "target": "Gold isolated PostgreSQL extension of immutable RC50 UAT migrations",
   "format": 1,
   "migrations": [
     {
@@ -66,6 +66,11 @@
       "version": 13,
       "file": "013_oauth_atomic_replay.sql",
       "sha256": "91d240ebe417ee24d85af80e8045c67b2424683e781e0efd7e33465575e44983"
+    },
+    {
+      "version": 14,
+      "file": "014_site_announcements.sql",
+      "sha256": "f4d0268273d01bf8c337e01a3a81d0776c7ee6172db6f5b3737cee03692364ab"
     }
   ]
 }

@@ -31,26 +31,26 @@ const makeClient=({role='lr_gold_migrator',db='light_remote_gold_dev',superuser=
  return {query,calls,ledger,get locked(){return locked},get unlocks(){return unlocks}};
 };
 test('Gold immutable manifest carries byte verified versioned SQL without extra files',()=>{
- assert.equal(migrations.length,13);
- assert.deepEqual(migrations.map(x=>x.version),Array.from({length:13},(_,i)=>i+1));
+ assert.equal(migrations.length,14);
+ assert.deepEqual(migrations.map(x=>x.version),Array.from({length:14},(_,i)=>i+1));
  const temporary=fs.mkdtempSync(path.join(os.tmpdir(),'gold-migration-hash-'));
  try{
    const original=path.resolve(import.meta.dirname,'../../infra/pgredis/migrations');
    for(const file of fs.readdirSync(original))fs.copyFileSync(path.join(original,file),path.join(temporary,file));
-   assert.equal(lockedGoldMigrations({directory:temporary}).length,13);
+   assert.equal(lockedGoldMigrations({directory:temporary}).length,14);
    fs.appendFileSync(path.join(temporary,'003_auth_device_communications.sql'),'-- corrupt');
    assert.throws(()=>lockedGoldMigrations({directory:temporary}),/gold_migration_source_hash_mismatch_3/);
  }finally{fs.rmSync(temporary,{recursive:true,force:true})}
 });
-test('Gold migrator applies 13 SQL files in exact order once and replays idempotently',async()=>{
+test('Gold migrator applies 14 SQL files in exact order once and replays idempotently',async()=>{
  const client=makeClient();
  const result=await runLockedGoldMigrations(client);
- assert.deepEqual(result,{schemaVersion:13,applied:Array.from({length:13},(_,i)=>i+1),alreadyApplied:0});
+ assert.deepEqual(result,{schemaVersion:14,applied:Array.from({length:14},(_,i)=>i+1),alreadyApplied:0});
  assert.equal(client.unlocks,1);assert.equal(client.locked,false);
- assert.deepEqual(client.ledger,Array.from({length:13},(_,i)=>i+1));
+ assert.deepEqual(client.ledger,Array.from({length:14},(_,i)=>i+1));
  const second=await runLockedGoldMigrations(client);
- assert.deepEqual(second,{schemaVersion:13,applied:[],alreadyApplied:13});
- assert.equal(client.unlocks,2);assert.equal(client.ledger.length,13);
+ assert.deepEqual(second,{schemaVersion:14,applied:[],alreadyApplied:14});
+ assert.equal(client.unlocks,2);assert.equal(client.ledger.length,14);
 });
 test('Gold migration denies wrong role/db/superuser and unknown ledger',async()=>{
  for(const input of [{role:'postgres'},{role:'lr_gold_app'},{db:'legacy_production'},{superuser:true}]){

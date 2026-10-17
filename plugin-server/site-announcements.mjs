@@ -25,9 +25,20 @@ const defaultAnnouncement={
  linkLabel:'Download Light Remote →',linkUrl:'/downloads',
  pages:['/','/downloads','/support'],audience:'site',kind:'feature',platforms:['windows','macos','linux'],priority:0,dismissible:true,startAt:'',endAt:'',updatedAt:new Date().toISOString()
 };
+const goldPgMode=process.env.LR_GOLD_SITE_ANNOUNCEMENTS_PG==='1';
+let goldPgRepository=null;
+export function configureGoldPgSiteAnnouncements(repo){
+ if(!goldPgMode||goldPgRepository)throw Error('gold_site_pg_invalid_repository_setup');
+ if(!repo||typeof repo.list!=='function'||typeof repo.mutate!=='function')throw Error('gold_site_pg_repository_required');
+ goldPgRepository=repo;
+}
+const goldStore=()=>{if(!goldPgRepository)throw Error('gold_site_pg_repository_not_ready');return goldPgRepository};
 let entries=[defaultAnnouncement];
-try{const data=JSON.parse(fs.readFileSync(DATA,'utf8'));if(Array.isArray(data?.announcements))entries=data.announcements.slice(0,100)}catch{}
+if(!goldPgMode){
+ try{const data=JSON.parse(fs.readFileSync(DATA,'utf8'));if(Array.isArray(data?.announcements))entries=data.announcements.slice(0,100)}catch{}
+}
 function persist(){
+ if(goldPgMode)throw Error('gold_site_json_file_fallback_forbidden');
  fs.mkdirSync(path.dirname(DATA),{recursive:true,mode:0o750});
  const tmp=DATA+'.'+process.pid+'.tmp';
  fs.writeFileSync(tmp,JSON.stringify({version:1,announcements:entries}),{mode:0o640});
@@ -57,8 +68,13 @@ function sanitize(v,prior={}){
  dismissible:typeof v.dismissible==='boolean'?v.dismissible:prior.dismissible??true,
  startAt,endAt,updatedAt:new Date().toISOString()};
 }
-export function listAnnouncements(){return entries.map(x=>({...x})).sort((a,b)=>b.priority-a.priority||b.updatedAt.localeCompare(a.updatedAt))}
+export const sanitizeAnnouncement=sanitize;
+export function listAnnouncements(){
+ if(goldPgMode)return goldStore().list();
+ return entries.map(x=>({...x})).sort((a,b)=>b.priority-a.priority||b.updatedAt.localeCompare(a.updatedAt));
+}
 export function mutateAnnouncement(method,id,payload={}){
+ if(goldPgMode)return goldStore().mutate(method,id,payload);
  if(method==='POST'){if(entries.length>=100)throw Object.assign(new Error('announcement_limit'),{status:400});const created=sanitize(payload);entries.push(created);persist();return created}
  const index=entries.findIndex(x=>x.id===id);
  if(index<0)throw Object.assign(new Error('announcement_not_found'),{status:404});
@@ -66,23 +82,28 @@ export function mutateAnnouncement(method,id,payload={}){
  if(method==='PUT'){const updated=sanitize(payload,entries[index]);entries[index]=updated;persist();return updated}
  throw Object.assign(new Error('invalid_announcement_action'),{status:405});
 }
-function choose(page,now=Date.now()){
- return listAnnouncements().find(x=>x.enabled&&x.audience!=='clients'&&x.pages.includes(page)&&(!x.startAt||Date.parse(x.startAt)<=now)&&(!x.endAt||Date.parse(x.endAt)>now));
+function choose(rows,page,now=Date.now()){
+ return rows.find(x=>x.enabled&&x.audience!=='clients'&&x.pages.includes(page)&&(!x.startAt||Date.parse(x.startAt)<=now)&&(!x.endAt||Date.parse(x.endAt)>now));
 }
-export function announcementHtml(page){
- const entry=choose(page);if(!entry)return '';
+function announcementMarkup(page,rows){
+ const entry=choose(rows,page);if(!entry)return '';
  const link=entry.linkUrl?'<a class="lr-site-announcement-link" href="'+h(entry.linkUrl)+'"'+(entry.linkUrl.startsWith('https:')?' target="_blank" rel="noopener noreferrer"':'')+'>'+h(entry.linkLabel||'Learn more')+'</a>':'';
  const close=entry.dismissible?'<button type="button" class="lr-site-announcement-close" aria-label="Dismiss announcement">×</button>':'';
  return '<div class="lr-site-announcement" data-announcement-id="'+h(entry.id)+'" role="status" style="--lr-notice-bg:'+entry.background+';--lr-notice-color:'+entry.color+';--lr-notice-link:'+entry.linkColor+'">'+
  '<span><strong>'+h(entry.title)+'</strong>'+(entry.title&&entry.message?' · ':'')+h(entry.message)+'</span>'+link+close+'</div>';
 }
+export function announcementHtml(page){
+ const items=listAnnouncements();
+ return items instanceof Promise?items.then(rows=>announcementMarkup(page,rows)):announcementMarkup(page,items);
+}
 export function installAnnouncements(app){
- app.use((req,res,next)=>{
+ app.use(async(req,res,next)=>{
   if(req.method!=='GET'||!allowedPages.has(req.path))return next();
+  let notice;
+  try{notice=await announcementHtml(req.path)}catch(error){return next(error)}
   const original=res.send.bind(res);
   res.send=function(body){
    if(typeof body==='string'&&/<!doctype html|<html/i.test(body)){
-    const notice=announcementHtml(req.path);
     if(notice){
      const styles='<style>.lr-site-announcement{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;min-height:38px;padding:8px 45px;text-align:center;font:700 12px/1.5 system-ui,sans-serif;position:relative;z-index:80;background:var(--lr-notice-bg);color:var(--lr-notice-color)}.lr-site-announcement-link{color:var(--lr-notice-link);text-decoration:underline;text-underline-offset:3px}.lr-site-announcement-close{position:absolute;right:15px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:inherit;font:700 19px system-ui;cursor:pointer;padding:3px 8px}</style>';
      body=body.replace('</head>',styles+'</head>').replace(/<body([^>]*)>/i,(match,attrs)=>match+notice+
@@ -102,18 +123,20 @@ function entryId(markup){return /data-announcement-id="([\da-f-]+)"/.exec(markup
 export function clientAnnouncementFeed({platform='windows',now=Date.now()}={}){
  const target=String(platform).toLowerCase();
  if(!clientPlatforms.has(target))throw Object.assign(new Error('invalid_client_platform'),{status:400});
- const items=listAnnouncements().filter(x=>x.enabled&&['clients','both'].includes(x.audience)
+ const build=rows=>{const items=rows.filter(x=>x.enabled&&['clients','both'].includes(x.audience)
    &&(x.platforms||[...clientPlatforms]).includes(target)
    &&(!x.startAt||Date.parse(x.startAt)<=now)&&(!x.endAt||Date.parse(x.endAt)>now))
    .slice(0,25).map(x=>({id:x.id,kind:x.kind||'feature',title:x.title,message:x.message,
     priority:x.priority,dismissible:x.dismissible,linkLabel:x.linkLabel,linkUrl:x.linkUrl,
     startAt:x.startAt,endAt:x.endAt,updatedAt:x.updatedAt}));
  const revision=crypto.createHash('sha256').update(JSON.stringify(items)).digest('hex').slice(0,20);
- return {schemaVersion:1,platform:target,revision,checkedAt:new Date(now).toISOString(),pollAfterSeconds:300,items};
+ return {schemaVersion:1,platform:target,revision,checkedAt:new Date(now).toISOString(),pollAfterSeconds:300,items};};
+ const result=listAnnouncements();
+ return result instanceof Promise?result.then(build):build(result);
 }
 export function registerClientAnnouncementFeed(app){
- app.get('/api/client-announcements',(req,res)=>{
-  try{const feed=clientAnnouncementFeed({platform:req.query.platform||'windows'});
+ app.get('/api/client-announcements',async(req,res)=>{
+  try{const feed=await clientAnnouncementFeed({platform:req.query.platform||'windows'});
    res.set('Cache-Control','no-store').set('X-Content-Type-Options','nosniff');
    return res.json(feed);
   }catch(error){return res.status(error.status||500).json({ok:false,error:error.message});}

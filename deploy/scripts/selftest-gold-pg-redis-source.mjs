@@ -8,7 +8,7 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const home=path.join(root,'infra/pgredis');
 const manifest=JSON.parse(fs.readFileSync(path.join(home,'migrations/migrations.lock.json'),'utf8'));
 assert.equal(manifest.format,1);
-assert.equal(manifest.migrations.length,13);
+assert.equal(manifest.migrations.length,14);
 const names=new Set();
 for(const [index,m] of manifest.migrations.entries()){
   assert.equal(m.version,index+1);
@@ -20,7 +20,7 @@ for(const [index,m] of manifest.migrations.entries()){
 const files=fs.readdirSync(path.join(home,'migrations'))
   .filter(x=>/^[0-9]{3}_.*\.sql$/.test(x)).sort();
 assert.deepEqual(files,[...names].sort());
-console.log('GOLD_PG_SQL_IMMUTABLE_HASHES_13_PASS');
+console.log('GOLD_PG_SQL_IMMUTABLE_HASHES_14_PASS');
 const compose=fs.readFileSync(path.join(home,'compose.yml'),'utf8');
 assert.match(compose,/postgres:17-alpine/);
 assert.match(compose,/redis:8-alpine/);
