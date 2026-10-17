@@ -61,6 +61,18 @@ export async function verifyGoldSchema(pool){
   const values=records.map(r=>Number(r.version));
   check(values.length===REQUIRED_SCHEMA&&values.every((v,i)=>v===i+1),
     'gold_pg_schema_incomplete');
+  const policy=(await pool.query(
+    "SELECT has_schema_privilege(current_user,'public','USAGE') AS schema_usage,"+
+    "has_schema_privilege(current_user,'public','CREATE') AS schema_create,"+
+    "has_table_privilege(current_user,'public.lr_schema_migrations','SELECT') AS ledger_read,"+
+    "has_table_privilege(current_user,'public.lr_schema_migrations','INSERT') AS ledger_insert,"+
+    "has_table_privilege(current_user,'public.lr_schema_migrations','UPDATE') AS ledger_update,"+
+    "pg_has_role(current_user,'lr_gold_migrator','member') AS inherited_migrator"
+  )).rows?.[0];
+  check(policy?.schema_usage===true&&policy.schema_create===false&&
+    policy.ledger_read===true&&policy.ledger_insert===false&&
+    policy.ledger_update===false&&policy.inherited_migrator===false,
+    'gold_pg_app_privileges_unsafe');
   // This only verifies recorded schema versions; apply source-SHA checked SQL
   // separately under a distinct migration role.
   return {database:row.db,role:row.role,schemaVersion:REQUIRED_SCHEMA};

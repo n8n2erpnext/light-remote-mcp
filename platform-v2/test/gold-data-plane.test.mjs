@@ -25,10 +25,14 @@ function fixture(){
   };
   return {root,env,clear(){fs.rmSync(root,{recursive:true,force:true})}};
 }
-const schemaPool=({role='lr_gold_app',db='light_remote_gold_dev',superuser=false,versions=Array.from({length:13},(_,i)=>i+1)}={})=>{
+const schemaPool=({role='lr_gold_app',db='light_remote_gold_dev',superuser=false,unsafePolicy=false,versions=Array.from({length:13},(_,i)=>i+1)}={})=>{
   let ended=0;return{
     query:async(sql)=>sql.includes('current_database')?
-      {rows:[{db,role,superuser}]}:{rows:versions.map(version=>({version}))},
+      {rows:[{db,role,superuser}]}:
+      sql.includes("has_schema_privilege(current_user")?
+      {rows:[{schema_usage:true,schema_create:unsafePolicy,ledger_read:true,
+        ledger_insert:false,ledger_update:false,inherited_migrator:false}]}:
+      {rows:versions.map(version=>({version}))},
     end:async()=>{ended++},get ended(){return ended}
   };
 };
@@ -61,6 +65,7 @@ test('Gold PG admits only exact least-privilege role, DB and all 13 migrations',
   assert.equal((await verifyGoldSchema(schemaPool())).schemaVersion,13);
   await assert.rejects(()=>verifyGoldSchema(schemaPool({role:'postgres'})),/gold_pg_database_role_mismatch/);
   await assert.rejects(()=>verifyGoldSchema(schemaPool({superuser:true})),/gold_pg_database_role_mismatch/);
+  await assert.rejects(()=>verifyGoldSchema(schemaPool({unsafePolicy:true})),/gold_pg_app_privileges_unsafe/);
   await assert.rejects(()=>verifyGoldSchema(schemaPool({versions:[1,2,3]})),/gold_pg_schema_incomplete/);
   await assert.rejects(()=>verifyGoldSchema(schemaPool({versions:[1,1,...Array.from({length:11},(_,i)=>i+3)]})),/gold_pg_schema_incomplete/);
 });
