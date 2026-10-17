@@ -18,6 +18,8 @@
   "license": "Apache-2.0",
   "scripts": {
     "test": "node deploy/scripts/run-selftests.mjs --portable",
-    "test:host": "node deploy/scripts/selftest-systemd.mjs"
+    "test:host": "node deploy/scripts/selftest-systemd.mjs",
+    "gold:cutover:check": "node deploy/scripts/check-gold-cutover.mjs",
+    "gold:cutover:test": "node --test deploy/scripts/selftest-gold-pg-only-cutover.mjs"
   }
 }

@@ -1,6 +1,8 @@
 import http from 'node:http';
 import { assertGoldRuntimeIsolation } from '../lib/gold-runtime-isolation.mjs';
+import { assertGoldPgOnlyBoot } from '../lib/gold-pg-only-gate.mjs';
 assertGoldRuntimeIsolation(process.env,'operator');
+assertGoldPgOnlyBoot({role:'operator'});
 import os from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';

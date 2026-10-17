@@ -1,6 +1,8 @@
 import os from 'node:os';
 import { assertGoldRuntimeIsolation } from '../lib/gold-runtime-isolation.mjs';
+import { assertGoldPgOnlyBoot } from '../lib/gold-pg-only-gate.mjs';
 assertGoldRuntimeIsolation(process.env,'plugin');
+assertGoldPgOnlyBoot({role:'plugin'});
 import path from 'node:path';
 import { runtimeVersion } from '../lib/runtime-version.mjs';
 

@@ -25,7 +25,6 @@ import { PLUGIN_TOOL_SECURITY, registerPluginTools } from './tools.mjs';
 import { installOpenAiToolSecurityCompat } from './openai-security-compat.mjs';
 import { installLegacyToolCallCompat } from './legacy-tool-call-compat.mjs';
 
-
 // PostgreSQL-backed Site content is opt-in until every Plugin state domain is migrated.
 // No DB credentials/migrations => fail startup; never load the legacy site JSON.
 const goldSupportMode=process.env.LR_GOLD_SUPPORT_OUTBOX_PG==='1';
