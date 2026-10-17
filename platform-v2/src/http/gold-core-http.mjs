@@ -128,6 +128,10 @@ export function createGoldCoreHttpHandler({core,team,approveWallRequest,
    const data=await core.login({email:body.email,password:body.password});
    return{status:200,data};
   },
+  ...(accountEntitlements&&typeof accountEntitlements.profile==='function'?{
+   'GET /v1/accounts/profile':async req=>({status:200,
+    data:await accountEntitlements.profile({sessionToken:getToken(req)})})
+  }:{}),
   'GET /v1/accounts/me':async(req)=>{
    return{status:200,data:{account:await core.authenticate(getToken(req))}};
   },

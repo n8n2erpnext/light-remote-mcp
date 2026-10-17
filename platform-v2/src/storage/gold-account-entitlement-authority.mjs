@@ -13,10 +13,11 @@ export class GoldPgAccountEntitlementAuthority{
    throw Error('gold_account_entitlement_auth_required');
   this.pool=pool;this.core=core;
  }
- async view({sessionToken}={}){
+ async view({sessionToken,includePrincipal=false}={}){
   const principal=await this.core.authenticate(sessionToken);
   const result=await this.pool.query(
-   "SELECT a.account_id,a.plan,a.status,e.entitlement_id,e.kind,e.source,"+
+   "SELECT a.account_id,a.plan,a.status,a.email_verified,a.password_enabled,"+
+   "a.google_sub,a.created_at,a.last_login_at,e.entitlement_id,e.kind,e.source,"+
    "e.source_ref,e.effective_at,e.valid_until "+
    "FROM lr_accounts a LEFT JOIN LATERAL ("+
    "SELECT entitlement_id,kind,source,source_ref,effective_at,valid_until "+
@@ -44,6 +45,28 @@ export class GoldPgAccountEntitlementAuthority{
    entitlement:data,
    // Explicitly no guessed fleet/usage limits: they depend on a separate
    // current plan policy + usage ledger cutover.
-   policyAccepted:false};
+   policyAccepted:false,
+   ...(includePrincipal?{verifiedPrincipal:principal,
+    profileFields:{emailVerified:row.email_verified===true,
+     authProviders:[...(row.password_enabled===true?['password']:[]),
+      ...(row.google_sub?['google']:[])],
+     createdAt:epoch(row.created_at),lastLoginAt:epoch(row.last_login_at)}}:{})};
+ }
+ async profile({sessionToken}={}){
+  const {verifiedPrincipal:principal,profileFields:fields,...access}=
+   await this.view({sessionToken,includePrincipal:true});
+  const entitlement=access.entitlement?{
+   ...access.entitlement,plan:access.plan,
+   grantedAt:access.entitlement.validFrom
+  }:{entitlementId:null,plan:'free',kind:null,source:'none',
+   sourceRef:null,validFrom:null,validUntil:null,grantedAt:null};
+  return{account:{
+   accountId:principal.accountId,email:principal.email,
+   groupId:principal.groupId,plan:access.plan,entitlement,
+   paid:access.paid,teamEligible:access.teamEligible,
+   policyAccepted:false,
+   emailVerified:fields.emailVerified,authProviders:fields.authProviders,
+   status:'active',createdAt:fields.createdAt,lastLoginAt:fields.lastLoginAt
+  },session:{sessionId:principal.sessionId,expiresAt:principal.expiresAt}};
  }
 }

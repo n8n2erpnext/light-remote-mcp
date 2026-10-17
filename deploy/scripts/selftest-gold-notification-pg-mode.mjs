@@ -13,6 +13,7 @@ assert.match(source,/await openGoldDataPlane\(\)/);
 assert.match(source,/createGoldOperatorNotificationBridge\(\{/);
 assert.match(source,/socketPath:notificationCoreSocket\(process\.env\)/);
 assert.match(source,/accountRoutes:goldAccountAuthMode/);
+assert.match(source,/accountProfileRoutes:goldAccountAuthMode/);
 assert.match(source,/isUnmigratedGoldAccountAuthorityRoute\(url\.pathname\)/);
 assert.match(source,/accountNotifications=goldNotificationBridge/);
 assert.match(source,/\?null \/\/ canonical routes are intercepted/);

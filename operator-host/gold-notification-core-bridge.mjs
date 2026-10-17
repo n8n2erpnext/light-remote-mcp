@@ -55,7 +55,7 @@ export function notificationCoreSocket(env=process.env){
 }
 export function createGoldOperatorNotificationBridge({
  socketPath,transport=http.request,maxBodyBytes=32768,timeoutMs=4000,
- accountRoutes=false,notificationRoutes=true}={}){
+ accountRoutes=false,notificationRoutes=true,accountProfileRoutes=false}={}){
  if(!path.isAbsolute(String(socketPath||'')))
   throw Error('gold_notification_bridge_socket_required');
  if(!Number.isSafeInteger(maxBodyBytes)||maxBodyBytes<1024||maxBodyBytes>32768)
@@ -100,12 +100,14 @@ export function createGoldOperatorNotificationBridge({
   // audience, scope and freshness; these bytes grant no privilege by themselves.
   const adminProof=String(req.headers['x-light-operator-admin-proof']||'');
   if(adminProof)headers['x-light-operator-admin-proof']=adminProof;
+  const corePath=accountRoutes&&accountProfileRoutes&&pathname==='/v1/accounts/me'
+   ?'/v1/accounts/profile':pathname;
   return new Promise(resolve=>{
    let finished=false;
    const complete=()=>{if(!finished){finished=true;resolve(true)}};
    let upstream;
    try{
-    upstream=transport({socketPath,path:pathname,method:req.method,
+    upstream=transport({socketPath,path:corePath,method:req.method,
       headers,timeout:timeoutMs},response=>{
      let bytes=0;const received=[];
      response.on('data',chunk=>{
@@ -138,10 +140,19 @@ export function createGoldOperatorNotificationBridge({
           session:{sessionId:parsed.sessionId,expiresAt:parsed.expiresAt},
           token:parsed.token};
         }else if(pathname==='/v1/accounts/me'){
-         if(!parsed.account?.accountId||!parsed.account?.sessionId)
-          throw Error('gold_account_core_me_shape_invalid');
-         const {sessionId,expiresAt,...account}=parsed.account;
-         output={ok:true,account,session:{sessionId,expiresAt}};
+         if(accountProfileRoutes){
+          if(!parsed.account?.accountId||!parsed.session?.sessionId||
+             !Number.isFinite(parsed.session?.expiresAt)||
+             !parsed.account?.entitlement||
+             typeof parsed.account?.policyAccepted!=='boolean')
+           throw Error('gold_account_core_profile_shape_invalid');
+          output={ok:true,account:parsed.account,session:parsed.session};
+         }else{
+          if(!parsed.account?.accountId||!parsed.account?.sessionId)
+           throw Error('gold_account_core_me_shape_invalid');
+          const {sessionId,expiresAt,...account}=parsed.account;
+          output={ok:true,account,session:{sessionId,expiresAt}};
+         }
         }else{
          if(typeof parsed.loggedOut!=='boolean')
           throw Error('gold_account_core_logout_shape_invalid');

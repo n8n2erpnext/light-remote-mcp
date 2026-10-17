@@ -64,6 +64,7 @@ const goldNotificationBridge=goldNotificationPlane
   ?createGoldOperatorNotificationBridge({
     socketPath:notificationCoreSocket(process.env),
     accountRoutes:goldAccountAuthMode,
+    accountProfileRoutes:goldAccountAuthMode,
     notificationRoutes:true
    })
   :null;
