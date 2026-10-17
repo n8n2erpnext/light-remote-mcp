@@ -19,6 +19,8 @@ import { DevicePairingRegistry, DevicePairingRegistryError } from './device-pair
 import { AgentClientRegistry, AgentClientRegistryError } from './agent-client-registry.mjs';
 import { AccountRegistry, AccountError } from './account-registry.mjs';
 import { AccountNotificationRegistry, AccountNotificationError } from './account-notification-registry.mjs';
+import { GoldPgNotificationRepository } from '../platform-v2/src/storage/notifications-pg.mjs';
+import { openGoldDataPlane } from '../platform-v2/src/storage/gold-data-plane.mjs';
 import { ProTeamRegistry, ProTeamError } from './pro-team-registry.mjs';
 import { requestTeamMemberApproval } from './team-approval-requests.mjs';
 import { TeamEntitlementError } from './team-entitlement-policy.mjs';
@@ -45,6 +47,10 @@ import { handleRuntimeRoutes } from './executor-routes-runtime.mjs';
 import { handlePluginRoutes } from './executor-routes-plugin.mjs';
 import { RealRemoteLiveRegistry } from './real-remote-live-registry.mjs';
 import { createNativeActivityFormatter } from './executor-native-activity.mjs';
+// Opt-in one-domain PG canary only. No other registry is migrated yet.
+// Invalid database credentials or absent PG/Redis abort startup, never fall back.
+const goldNotificationPlane=String(process.env.LR_GOLD_NOTIFICATIONS_PG||'')==='1'
+  ?await openGoldDataPlane():null;
 
 const SOCKET_PATH = process.env.OPERATOR_SOCKET || '/run/gpt-vps-operator/operator.sock';
 const KEY_FILE = process.env.OPERATOR_KEY_FILE || '/home/ubuntu/.config/gpt-vps-operator/operator.private.json';
@@ -141,7 +147,9 @@ const teamPrincipalVerifier=teamProofPublicKeyFile
 const verifyTeamPrincipal=(req,url,body)=>verifyTeamPrincipalRequest(req,url,body,teamPrincipalVerifier);
 const teamInviteSecretFile=String(process.env.OPERATOR_TEAM_INVITE_SECRET_FILE||'').trim();
 const teamInviteKey=teamInviteSecretFile?fs.readFileSync(teamInviteSecretFile):null;
-const accountNotifications=new AccountNotificationRegistry({stateFile:NOTIFICATIONS_STATE_FILE});
+const accountNotifications=goldNotificationPlane
+  ?new GoldPgNotificationRepository({pool:goldNotificationPlane.pool})
+  :new AccountNotificationRegistry({stateFile:NOTIFICATIONS_STATE_FILE});
 const proTeams=new ProTeamRegistry({stateFile:TEAM_STATE_FILE,inviteKey:teamInviteKey,
   planFor:accountId=>operationalAccount(accountId).plan,
   accountActive:accountId=>{try{return operationalAccount(accountId).status==='active';}catch{return false;}},
@@ -1074,7 +1082,10 @@ function shutdown(signal) {
       try { process.kill(job.pid, 'SIGTERM'); } catch {}
     }
   }
-  void flushDiskRecords().finally(()=>server.close(()=>process.exit(0)));
+  void flushDiskRecords().finally(async()=>{
+    await goldNotificationPlane?.close();
+    server.close(()=>process.exit(0));
+  });
   server.closeAllConnections?.();
   setTimeout(() => process.exit(1), 5000).unref();
 }
