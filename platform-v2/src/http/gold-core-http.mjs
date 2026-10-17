@@ -39,8 +39,10 @@ const getToken=req=>{
 const jsonStatus=e=>Number.isInteger(e?.status)&&e.status>=400&&e.status<500?e.status:503;
 
 export function createGoldCoreHttpHandler({core,team,approveWallRequest,
-  verifyAgentIngress,verifyOAuthClient,verifyBillingIngress,verifyUsageIngress}={}){
+  verifyAgentIngress,verifyOAuthClient,verifyBillingIngress,verifyUsageIngress,agentClients}={}){
  if(!core||!team)throw Error('gold_http_pg_core_and_team_required');
+ if(agentClients&&(typeof agentClients.attach!=='function'||typeof agentClients.resolve!=='function'))
+  throw Error('gold_http_agent_authority_invalid');
  for(const [name,fn] of Object.entries({approveWallRequest,verifyAgentIngress,
    verifyOAuthClient,verifyBillingIngress,verifyUsageIngress})){
    if(typeof fn!=='function')throw Error('gold_http_trusted_ingress_missing_'+name);
@@ -101,6 +103,27 @@ export function createGoldCoreHttpHandler({core,team,approveWallRequest,
    return{status:200,data:await team.removeMember({sessionToken,teamId:body.teamId,
     memberAccountId:body.memberAccountId,proof:body.ownerChallenge})};
   },
+  ...(agentClients?{
+   'POST /v1/agent-client/attach':async(req)=>{
+    const principal=await verifyAgentIngress(req);
+    if(!principal||typeof principal.agentId!=='string'||!principal.agentProof)
+     throw fail('gold_agent_ingress_unverified',401);
+    const body=await readJson(req);
+    return{status:200,data:await agentClients.attach({
+     grantId:body.grantId,clientSessionId:body.clientSessionId||null,
+     pairingRequestId:body.pairingRequestId||null,
+     agentId:principal.agentId,agentProof:principal.agentProof})};
+   },
+   'POST /v1/agent-client/resolve':async(req)=>{
+    const principal=await verifyAgentIngress(req);
+    if(!principal||typeof principal.agentId!=='string'||!principal.agentProof)
+     throw fail('gold_agent_ingress_unverified',401);
+    const body=await readJson(req);
+    return{status:200,data:await agentClients.resolve({
+     clientSessionId:body.clientSessionId,deviceId:body.deviceId||null,
+     agentId:principal.agentId,agentProof:principal.agentProof})};
+   }
+  }:{}),
   'POST /v1/pairing/request':async(req)=>{
    const principal=await verifyAgentIngress(req);
    if(!principal||typeof principal.agentId!=='string'||!principal.agentProof)

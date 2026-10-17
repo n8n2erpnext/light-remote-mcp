@@ -5,7 +5,7 @@ const TRIGGERS=['lr_enforce_team_seat_limit','lr_enforce_team_seat_cap_change','
 const fnNames=[...APP_ENTRY_FUNCTIONS,...TRIGGERS].sort();
 function client({role='lr_gold_migrator',database='light_remote_gold_dev',
  appSuperuser=false,member=false,tables=goldTableManifest(),functions=fnNames,
- failSql=null,versions=Array.from({length:18},(_,i)=>i+1)}={}){
+ failSql=null,versions=Array.from({length:19},(_,i)=>i+1)}={}){
  const seen=[];let commits=0,rollbacks=0;
  const query=async(sql,args=[])=>{
   seen.push({sql,args});
@@ -36,13 +36,13 @@ function client({role='lr_gold_migrator',database='light_remote_gold_dev',
  return {query,seen,get commits(){return commits},get rollbacks(){return rollbacks}};
 }
 test('Gold privilege plan is complete, uses only locked SQL tables',()=>{
- const tables=goldTableManifest();assert.equal(tables.length,40);
+ const tables=goldTableManifest();assert.equal(tables.length,41);
  assert(tables.includes('lr_schema_migrations'));
  assert.equal(APP_ENTRY_FUNCTIONS.size,11);
 });
 test('Gold grants DML only on business tables, ledger read-only, no public function calls',async()=>{
  const c=client();const result=await applyGoldPrivileges(c);
- assert.deepEqual(result,{ok:true,grantedTables:39,functions:11,triggerFunctionsNotGranted:3});
+ assert.deepEqual(result,{ok:true,grantedTables:40,functions:11,triggerFunctionsNotGranted:3});
  assert.equal(c.commits,1);assert.equal(c.rollbacks,0);
  const all=c.seen.map(x=>x.sql).join('\n');
  assert.match(all,/GRANT SELECT ON TABLE public\.lr_schema_migrations TO lr_gold_app/);

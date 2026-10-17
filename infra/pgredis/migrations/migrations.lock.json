@@ -91,6 +91,11 @@
       "version": 18,
       "file": "018_ab_pairing_recovery.sql",
       "sha256": "e139f26e840054bce70076a000d9ab6db00366ec922fa77faf08a11e991013b5"
+    },
+    {
+      "version": 19,
+      "file": "019_gold_team_agent_binding.sql",
+      "sha256": "01eecd8a5f24c61e550cc1cdd17e4bfcc950c6195b0a0a9503acfb2ddc3543d7"
     }
   ]
 }
