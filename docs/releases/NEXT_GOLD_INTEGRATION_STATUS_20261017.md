@@ -10,6 +10,12 @@
 - Team Local Wall: team-approval-request test PASS for verified OAuth identity, approval, owner billing and revocation, then FAIL at a client Local Wall requester-account display expectation. Do not sidestep prior client-source safety denial to fix this. Feature is NOT E2E accepted.
 - Sandbox offers: ported gated existing source only; Paddle SDK integration and Live production behavior are NOT tested or enabled.
 - Existing rc49 client, Docker capability denial, PostgreSQL migration and release blockers remain unchanged.
+## Latest standalone-runtime source work — 2026-10-17
+
+- Operator executor now constructs ProTeamRegistry and AccountNotificationRegistry and injects both plus owner account, verified OAuth proof handler, and scoped Team member approval handler into its existing account-route dependencies. Staging UAT team sessions stay disabled; missing Ed25519 verifier and invitation encryption key fail closed. The corresponding error classes preserve intended HTTP status; this is not a production activation.
+- A new opt-in isolated-runtime source guard (`LIGHT_REMOTE_GOLD_INDEPENDENT=1`) validates Operator socket/state/logs/key, Plugin OAuth/Paddle/support/mail/analytics/content/distribution paths and local-only development origin. It rejects production path references and live Paddle, without changing existing production defaults. This is a file/socket isolation contract only, not proof of database-backed operation.
+- `deploy/scripts/selftest-gold-backend-dependency-wiring.mjs` checks Team/notification registry source wiring and exercised keyless OAuth fail-closed and notification account isolation. `selftest-gold-runtime-isolation.mjs` exercises production-path rejection. These checks PASS locally.
+- Production remains untouched. PostgreSQL 17/Redis 8 not started due denied Docker capability; business state still JSON and the DB-only user requirement is unmet. Do not switch off production and do not designate Gold ready.
 ## Immutable source lineage
 
 - Clean base: `origin/main@12bb746ca3e13e493ac5f634e79f8dda8b3d2ce0`.

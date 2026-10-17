@@ -1,4 +1,6 @@
 import http from 'node:http';
+import { assertGoldRuntimeIsolation } from '../lib/gold-runtime-isolation.mjs';
+assertGoldRuntimeIsolation(process.env,'operator');
 import os from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -16,6 +18,11 @@ import { DeviceAccessGrantRegistry, DeviceAccessGrantError } from './device-acce
 import { DevicePairingRegistry, DevicePairingRegistryError } from './device-pairing-registry.mjs';
 import { AgentClientRegistry, AgentClientRegistryError } from './agent-client-registry.mjs';
 import { AccountRegistry, AccountError } from './account-registry.mjs';
+import { AccountNotificationRegistry, AccountNotificationError } from './account-notification-registry.mjs';
+import { ProTeamRegistry, ProTeamError } from './pro-team-registry.mjs';
+import { requestTeamMemberApproval } from './team-approval-requests.mjs';
+import { TeamEntitlementError } from './team-entitlement-policy.mjs';
+import { TeamPrincipalProofVerifier, TeamPrincipalProofError, verifyTeamPrincipalRequest } from '../lib/team-oauth-principal-proof.mjs';
 import { UsageRegistry } from './usage-registry.mjs';
 import { LicenseKeyRegistry, LicenseKeyError } from './license-key-registry.mjs';
 import { FleetAuthorityRegistry, FleetAuthorityError } from './fleet-authority-registry.mjs';
@@ -53,6 +60,8 @@ const CONNECTION_STATE_FILE = path.join(STATE_DIR, 'device-connections.json');
 const ACCESS_STATE_FILE = path.join(STATE_DIR, 'device-access-grants.json');
 const AGENT_CLIENT_STATE_FILE = path.join(STATE_DIR, 'agent-clients.json');
 const ACCOUNT_STATE_FILE = path.join(STATE_DIR, 'accounts.json');
+const TEAM_STATE_FILE = path.join(STATE_DIR, 'pro-teams.json');
+const NOTIFICATIONS_STATE_FILE = path.join(STATE_DIR, 'account-notifications.json');
 const USAGE_STATE_FILE = path.join(STATE_DIR, 'usage.json');
 const LICENSE_STATE_FILE = path.join(STATE_DIR, 'license-keys.json');
 const FLEET_AUTHORITY_TTL_MS = Number(process.env.OPERATOR_FLEET_AUTHORITY_TTL_MS || 10 * 60 * 1000);
@@ -125,6 +134,21 @@ const accessGrants = new DeviceAccessGrantRegistry({ stateFile:ACCESS_STATE_FILE
 const pairingCodes = new DevicePairingRegistry({ emit:event => pushEvent(event) });
 const agentClients = new AgentClientRegistry({ stateFile:AGENT_CLIENT_STATE_FILE, emit:event => pushEvent(event) });
 const accounts = new AccountRegistry({ stateFile:ACCOUNT_STATE_FILE, bootstrapAccountId:ACCOUNT_ID, emit:event => pushEvent(event) });
+// Team/OAuth proof is fail-closed when keys are unconfigured; separate keys from Operator encryption key.
+const teamProofPublicKeyFile=String(process.env.OPERATOR_TEAM_OAUTH_VERIFY_KEY_FILE||'').trim();
+const teamPrincipalVerifier=teamProofPublicKeyFile
+  ?new TeamPrincipalProofVerifier({publicKey:fs.readFileSync(teamProofPublicKeyFile)}):null;
+const verifyTeamPrincipal=(req,url,body)=>verifyTeamPrincipalRequest(req,url,body,teamPrincipalVerifier);
+const teamInviteSecretFile=String(process.env.OPERATOR_TEAM_INVITE_SECRET_FILE||'').trim();
+const teamInviteKey=teamInviteSecretFile?fs.readFileSync(teamInviteSecretFile):null;
+const accountNotifications=new AccountNotificationRegistry({stateFile:NOTIFICATIONS_STATE_FILE});
+const proTeams=new ProTeamRegistry({stateFile:TEAM_STATE_FILE,inviteKey:teamInviteKey,
+  planFor:accountId=>operationalAccount(accountId).plan,
+  accountActive:accountId=>{try{return operationalAccount(accountId).status==='active';}catch{return false;}},
+  emailFor:accountId=>{try{const a=operationalAccount(accountId);return a.emailVerified===true?a.email:null;}catch{return null;}},
+  onRevoke:({memberAccountId,deviceId,reason})=>accessGrants.revokeTeamMember({accountId:memberAccountId,deviceId,reason})});
+// Historical UAT Team sessions are deliberately excluded; no unverified cross-account dispatch.
+const teamSessions=null;
 const licenses = new LicenseKeyRegistry({ stateFile:LICENSE_STATE_FILE, emit:event => pushEvent(event) });
 const fleetAuthority = new FleetAuthorityRegistry({ ttlMs:FLEET_AUTHORITY_TTL_MS, emit:event => pushEvent(event) });
 const realRemoteLive = new RealRemoteLiveRegistry();
@@ -994,6 +1018,7 @@ const routeDeps=()=>({
   ingressTelemetry,jobView,jobs,licenses,normalizeUpdateReport,
   pairingCodes,planEntitlements,pruneRing,pushEvent,queueHelperUpdate,
   queueSignedUpdate,readJson,reapAccessGrants,realRemoteLive,recentEvents,redact,
+  accountNotifications,proTeams,teamSessions,requestTeamMemberApproval,operationalAccount,verifyTeamPrincipal,
   removeRuntimeForDevice,requireAccount,requireDeviceConnection,revokeRuntimeForDevice,ring,
   ringBytes,sendJson,sessionStatsFromDisk,sessions,sseClients,
   startDesktopOperation,startFsOperation,startJob,startProcessOperation,startScpOperation,startSearchOperation,
@@ -1022,7 +1047,7 @@ const server = http.createServer(async (req, res) => {
   } catch (error) {
     const message = error?.message || 'internal_error';
     pushEvent({ type: 'executor_error', status: 'error', detail: redact(message) });
-    const status = error instanceof SessionError || error instanceof DeviceError || error instanceof EnrollmentError || error instanceof FleetError || error instanceof DeviceConnectionError || error instanceof DeviceAccessGrantError || error instanceof DevicePairingRegistryError || error instanceof AgentClientRegistryError || error instanceof AccountError || error instanceof LicenseKeyError || error instanceof FleetAuthorityError || error instanceof DeviceChannelRateLimitError ? error.status : ['invalid_envelope', 'expired_envelope', 'replay_detected', 'unknown_kid', 'invalid_envelope_auth', 'unsupported_action'].includes(message) ? 401 : message === 'operation_id_conflict' ? 409 : 400;
+    const status = error instanceof SessionError || error instanceof DeviceError || error instanceof EnrollmentError || error instanceof FleetError || error instanceof DeviceConnectionError || error instanceof DeviceAccessGrantError || error instanceof DevicePairingRegistryError || error instanceof AgentClientRegistryError || error instanceof AccountError || error instanceof AccountNotificationError || error instanceof ProTeamError || error instanceof TeamEntitlementError || error instanceof TeamPrincipalProofError || error instanceof LicenseKeyError || error instanceof FleetAuthorityError || error instanceof DeviceChannelRateLimitError ? error.status : ['invalid_envelope', 'expired_envelope', 'replay_detected', 'unknown_kid', 'invalid_envelope_auth', 'unsupported_action'].includes(message) ? 401 : message === 'operation_id_conflict' ? 409 : 400;
     const limited=error instanceof DeviceChannelRateLimitError;
     return sendJson(res, status, { ok: false, error: message, ...(limited?{scope:error.scope,retryAfterSeconds:error.retryAfterSeconds}:{}) }, limited?{'retry-after':String(error.retryAfterSeconds)}:{});
   }
