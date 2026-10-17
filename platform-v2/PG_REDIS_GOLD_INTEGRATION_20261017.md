@@ -64,6 +64,12 @@
 - `platform-v2/src/storage/gold-team-usage-authority.mjs`: Pro Team with active entitlement, hashed invites, account-bound recipient acceptance, device sharing, revocation closing AB grants; signed job usage event charging with idempotency, owner/month advisory lock and AB/team/budget authorization in the same PG transaction.
 - New tests: `platform-v2/test/gold-core-authority.test.mjs` (8 mocked tests) and `gold-team-usage-authority.test.mjs` (7 mocked tests). `npm run gold:core:test` covers Core plus migrations/role policy. **These are isolated services awaiting trusted-verifier wiring and live server API integration; they are not a completed replacement for the synchronous JSON registry graph.**
 - Gold 17 migrations and SQL source checks are green, but live PG17/Redis8 is not running under the previously denied local Docker capability, and no production/ERPNext/Paddle side effects have been triggered. No honest PG-only E2E acceptance yet.
+## Core Gold standalone HTTP / Unix socket integration layer
+
+- Added `src/http/gold-core-http.mjs`, a fail-closed HTTP-to-Core/Team adapter that forwards only bearer-authorized account/device/team operations. A/B, OAuth, Paddle and metered Usage require independently verified ingress callbacks, not self-declared JSON. All write operations are awaited before HTTP acknowledgement.
+- Added `src/http/gold-core-server.mjs`, a standalone private Unix socket server initialized only after the existing Gold PostgreSQL/Redis admission gate; it requires the full caller-provided set of trusted verifier functions, secures socket directory/permissions, and releases database resources on close. Health explicitly distinguishes `gold-core-only` from full Gold acceptance.
+- Added real HTTP loopback and Unix-socket tests with injected mock Core/Team/data-plane. Full operator HTTP canonical paths, Plugin/V4/Fleet, signed client compatibility and real PostgreSQL/Redis are **not** migrated or tested here. No production or external billing/ERPNext requests were sent.
+
 ## Strict next gates
 
 1. Legitimately provision/start Gold database containers and a non-superuser app role. Apply immutable 1..13 migrations and prove actual two-service PG/Redis connections; environment URL files and role grants must be created by the authorized owner-side provisioner.

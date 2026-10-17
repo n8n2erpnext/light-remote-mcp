@@ -21,6 +21,6 @@
     "test:host": "node deploy/scripts/selftest-systemd.mjs",
     "gold:cutover:check": "node deploy/scripts/check-gold-cutover.mjs",
     "gold:cutover:test": "node --test deploy/scripts/selftest-gold-pg-only-cutover.mjs",
-    "gold:core:test": "node --test platform-v2/test/gold-core-authority.test.mjs platform-v2/test/gold-team-usage-authority.test.mjs platform-v2/test/gold-migrations.test.mjs platform-v2/test/gold-permissions.test.mjs platform-v2/test/gold-data-plane.test.mjs"
+    "gold:core:test": "node --test platform-v2/test/gold-core-authority.test.mjs platform-v2/test/gold-team-usage-authority.test.mjs platform-v2/test/gold-core-http.test.mjs platform-v2/test/gold-core-server.test.mjs platform-v2/test/gold-core-http-sql-roundtrip.test.mjs platform-v2/test/gold-migrations.test.mjs platform-v2/test/gold-permissions.test.mjs platform-v2/test/gold-data-plane.test.mjs"
   }
 }
