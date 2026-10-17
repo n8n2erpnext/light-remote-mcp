@@ -14,7 +14,8 @@ import {startGoldCoreApi} from './gold-core-server.mjs';
 const required=['verifyIdentityProof','verifyDeviceProof','verifyAgentPrincipal',
  'verifyWallApproval','verifyPaddleSignature','verifyOwnerProof',
  'verifyUsageEvidence','approveWallRequest','verifyAgentIngress',
- 'verifyOAuthClient','verifyBillingIngress','verifyUsageIngress'];
+ 'verifyOAuthClient','verifyBillingIngress','verifyUsageIngress',
+ 'verifyDeviceChannelIngress','verifyChannelEnvelope'];
 export function validateGoldVerifierPath(env=process.env){
  if(env.LIGHT_REMOTE_GOLD_INDEPENDENT!=='1')
   throw Error('gold_core_requires_independent_runtime');

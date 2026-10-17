@@ -9,7 +9,8 @@ import {validateGoldVerifierPath,bootGoldCoreFromEnvironment}
 const verifierNames=['verifyIdentityProof','verifyDeviceProof','verifyAgentPrincipal',
  'verifyWallApproval','verifyPaddleSignature','verifyOwnerProof',
  'verifyUsageEvidence','approveWallRequest','verifyAgentIngress',
- 'verifyOAuthClient','verifyBillingIngress','verifyUsageIngress'];
+ 'verifyOAuthClient','verifyBillingIngress','verifyUsageIngress',
+ 'verifyDeviceChannelIngress','verifyChannelEnvelope'];
 const fixture=()=>{
  const root=fs.mkdtempSync(path.join(os.tmpdir(),'gold-core-private-'));
  const dir=path.join(root,'config');fs.mkdirSync(dir,{mode:0o700});

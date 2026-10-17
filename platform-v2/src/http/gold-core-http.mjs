@@ -39,8 +39,12 @@ const getToken=req=>{
 const jsonStatus=e=>Number.isInteger(e?.status)&&e.status>=400&&e.status<500?e.status:503;
 
 export function createGoldCoreHttpHandler({core,team,approveWallRequest,
-  verifyAgentIngress,verifyOAuthClient,verifyBillingIngress,verifyUsageIngress,agentClients,remoteSessions}={}){
+  verifyAgentIngress,verifyOAuthClient,verifyBillingIngress,verifyUsageIngress,verifyDeviceChannelIngress,agentClients,remoteSessions,deviceChannel}={}){
  if(!core||!team)throw Error('gold_http_pg_core_and_team_required');
+ if(deviceChannel&&(['connect','renew','disconnect','setGrace'].some(
+  action=>typeof deviceChannel[action]!=='function')||
+  typeof verifyDeviceChannelIngress!=='function'))
+  throw Error('gold_http_signed_device_channel_required');
  if(remoteSessions&&typeof remoteSessions.context!=='function')
   throw Error('gold_http_remote_session_authority_invalid');
  if(agentClients&&['attach','resolve','findActive','listDevices'].some(
@@ -51,6 +55,21 @@ export function createGoldCoreHttpHandler({core,team,approveWallRequest,
    if(typeof fn!=='function')throw Error('gold_http_trusted_ingress_missing_'+name);
  }
  const routes={
+  ...(deviceChannel?Object.fromEntries([
+   ['connect','connect'],['renew','renew'],['disconnect','disconnect'],
+   ['grace','setGrace']].map(([action,fn])=>[
+    'POST /v1/device-channel/'+action,async req=>{
+     const body=await readJson(req);
+     // The only accepted device/channel identity is issued by the private
+     // host verifier and independently validated by the channel authority.
+     // Body-provided owner/account/device/lease fields never reach SQL.
+     const principal=await verifyDeviceChannelIngress({req,body,purpose:action});
+     if(principal?.authorized!==true||!principal.signedEnvelope)
+      throw fail('gold_channel_trusted_ingress_required',401);
+     return{status:200,data:{connection:await deviceChannel[fn]({
+      signedEnvelope:principal.signedEnvelope})}};
+    }
+   ])):{}),
   'POST /v1/accounts/register':async(req)=>{
    const body=await readJson(req);
    const account=await core.registerVerifiedAccount({
@@ -80,8 +99,11 @@ export function createGoldCoreHttpHandler({core,team,approveWallRequest,
    })}};
   },
   'POST /v1/devices/connect':async(req)=>{
-   const sessionToken=getToken(req),body=await readJson(req);
-   return{status:200,data:await core.connectDevice({sessionToken,deviceId:body.deviceId})};
+   // Reject legacy account-bearer connection minting. Owning an account is
+   // NOT proof that the physical device is online or has signed a channel
+   // challenge. Only /v1/device-channel/connect may create a live lease.
+   await core.authenticate(getToken(req));
+   throw fail('gold_signed_device_channel_required',403);
   },
   'POST /v1/team/create':async(req)=>{
    const sessionToken=getToken(req),body=await readJson(req);

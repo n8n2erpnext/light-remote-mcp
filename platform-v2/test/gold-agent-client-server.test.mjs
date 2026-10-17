@@ -15,7 +15,8 @@ test('Gold private Core socket forwards Agent attach/resolve to a PG authority a
  const names=['verifyIdentityProof','verifyDeviceProof','verifyAgentPrincipal',
   'verifyWallApproval','verifyPaddleSignature','verifyOwnerProof',
   'verifyUsageEvidence','approveWallRequest','verifyAgentIngress',
-  'verifyOAuthClient','verifyBillingIngress','verifyUsageIngress'];
+  'verifyOAuthClient','verifyBillingIngress','verifyUsageIngress',
+ 'verifyDeviceChannelIngress','verifyChannelEnvelope'];
  const verifiers=Object.fromEntries(names.map(name=>[name,async()=>null]));
  verifiers.verifyAgentIngress=async()=>({agentId:'agent_trusted',agentProof:'verified'});
  const plane=async()=>({pool:{query:async()=>online?
@@ -54,7 +55,9 @@ test('Gold private Core socket forwards Agent attach/resolve to a PG authority a
  try{
   core=await startGoldCoreApi({env,socketPath,verifiers,openPlane:plane,
    openCore:()=>({}),openTeam:()=>({}),openAgent:()=>agent,
-   openRemoteSessions:()=>remoteSessions});
+   openRemoteSessions:()=>remoteSessions,
+   openDeviceChannel:()=>({connect:async()=>({}),renew:async()=>({}),
+    disconnect:async()=>({}),setGrace:async()=>({})})});
   const attached=await request('/v1/agent-client/attach',{
    grantId:'grant_pg',agentId:'forged'});
   assert.equal(attached.status,200);

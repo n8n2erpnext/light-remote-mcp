@@ -9,7 +9,8 @@ import {startGoldCoreApi} from '../src/http/gold-core-server.mjs';
 const verifierNames=['verifyIdentityProof','verifyDeviceProof','verifyAgentPrincipal',
  'verifyWallApproval','verifyPaddleSignature','verifyOwnerProof',
  'verifyUsageEvidence','approveWallRequest','verifyAgentIngress',
- 'verifyOAuthClient','verifyBillingIngress','verifyUsageIngress'];
+ 'verifyOAuthClient','verifyBillingIngress','verifyUsageIngress',
+ 'verifyDeviceChannelIngress','verifyChannelEnvelope'];
 const verifiers=Object.fromEntries(verifierNames.map(name=>[name,async()=>null]));
 const make=()=>{
  const root=fs.mkdtempSync(path.join(os.tmpdir(),'gold-core-socket-'));
@@ -112,4 +113,38 @@ test('Gold Core API boots over real private Unix socket after verified data plan
   assert.equal(f.closed(),1);
   assert.equal(fs.existsSync(f.socketPath),false);
  }finally{f.clean()}
+});
+
+test('Gold private Unix socket connects signed Device Channel with live dependency fail-closed',async()=>{
+ const f=make(),received=[];
+ const channel=Object.fromEntries(['connect','renew','disconnect','setGrace'].map(name=>[
+  name,async args=>{
+   received.push({name,...args});
+   return{deviceId:'dev_signed',accountId:'acct_signed',
+    connectionId:'conn_pg_verified',operation:name};
+  }
+ ]));
+ const channelVerifiers={...verifiers,
+  verifyDeviceChannelIngress:async({purpose})=>
+   ({authorized:true,signedEnvelope:'verified:'+purpose})};
+ let active;
+ try{
+  active=await startGoldCoreApi({...f,verifiers:channelVerifiers,
+   openCore:()=>f.core,openTeam:()=>f.team,openDeviceChannel:()=>channel});
+  for(const action of ['connect','renew','grace','disconnect']){
+   const result=await f.request('/v1/device-channel/'+action,{method:'POST',
+    data:{ownerAccountId:'acct_forged',deviceId:'dev_forged',
+     connectionId:'conn_forged',reason:'self-declared'}});
+   assert.equal(result.status,200,action);
+   assert.equal(result.data.connection.deviceId,'dev_signed');
+   assert.equal(received.at(-1).signedEnvelope,'verified:'+action);
+   assert.equal(received.at(-1).ownerAccountId,undefined);
+  }
+  f.breakDependencies();
+  const before=received.length;
+  const denied=await f.request('/v1/device-channel/renew',{method:'POST',
+   data:{connectionId:'conn_pg_verified'}});
+  assert.equal(denied.status,503);
+  assert.equal(received.length,before,'no device mutation while PG/Redis unavailable');
+ }finally{await active?.close();f.clean()}
 });

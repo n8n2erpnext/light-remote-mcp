@@ -83,8 +83,12 @@ test('Gold Core HTTP: Device and Team accept bearer, do not accept account overr
   assert.equal(called.at(-1)[1].sessionToken,BEARER);
   let r=await request('/v1/devices/connect',{body:{deviceId:'dev_1'}});
   assert.equal(r.status,401);
+  const before=called.length;
   r=await request('/v1/devices/connect',{bearer:BEARER,body:{deviceId:'dev_1'}});
-  assert.equal(r.status,200);
+  assert.equal(r.status,403);
+  assert.equal(r.value.error,'gold_signed_device_channel_required');
+  assert(!called.slice(before).some(([kind])=>kind==='connect'),
+   'account bearer must never mint device connection without signed Device Channel');
   for(const [path,body,name] of [
    ['/v1/team/create',{ownerChallenge:'verified'},'teamCreate'],
    ['/v1/team/invite',{teamId:'team_1',recipientEmail:'b@c.test',ownerChallenge:'verified'},'teamInvite'],
