@@ -31,6 +31,24 @@ The audit currently covers **23 major known state domains, none accepted as full
 4. **Plugin/payment/public API:** Replace remaining OAuth, Paddle billing state/idempotency, recovery, admin, Google OAuth, support and content writers. Preserve V4 UI behavior and route contracts. PG/Redis connections must be shared/health-checked and fail closed instead of falling back to JSON.
 5. **Reconcile signed client artifacts** and pass Windows/macOS/Linux API compatibility and A/B user journeys before Gold product acceptance.
 
+## 2026-10-17 one-pass relational Core implementation checkpoint
+
+**The owner requested a single full-stack pass, not more adapter-level completion announcements. This iteration has completed a large SOURCE implementation but has NOT completed the operational cutover.**
+
+- Added immutable Gold-only `017_gold_core_identity.sql` on top of unmodified historical migrations 001..016. It extends normalized `lr_accounts`, `lr_sessions`, `lr_devices`, A/B brute-force protection and adds `lr_team_devices` and `lr_ab_team_actor_grants` with PostgreSQL FKs. The locked schema manifest now has **17 migrations and 40 tables**, with 39 business tables distinct from the read-only migration ledger.
+- `platform-v2/src/storage/gold-core-authority.mjs` provides transactionally committed normalized PostgreSQL operations for verified account registration, scrypt password login, SHA-256 bearer sessions, session logout, administrator disable with atomic revocation of session/connection/grant/request rights, device identity registration with a trusted proof verifier, connection-cap enforcement and reuse, one-time local-Wall-gated encrypted B approval, owner/team grant verification across active SQL relationships, OAuth one-time token issuance/consumption, and Paddle signature-verified event ledger/idempotency.
+- `platform-v2/src/storage/gold-team-usage-authority.mjs` adds PostgreSQL-backed Pro Team creation requiring active entitlement, hashed single-use invite, member acceptance, device sharing, member revocation closing grants, and owner-billed event accounting under advisory transaction lock. Usage requires verified job evidence and an active AB grant; Team charging additionally requires membership/sharing and an explicit Team budget, with owner and team counters updated together.
+- `platform-v2/test/gold-core-authority.test.mjs` (8 tests) and `platform-v2/test/gold-team-usage-authority.test.mjs` (7 tests) exercise the critical transaction interfaces and fail-closed security boundaries using injected PostgreSQL mocks; these prove source behavior but NOT true PostgreSQL locking, multi-process delivery or a functioning HTTP API. `npm run gold:core:test` is the focused reproducible command.
+
+### Incomplete production bindings — MUST remain blocked
+
+- **Operator:** still starts `AccountRegistry`, `SessionRegistry`, `EnrollmentRegistry`, `DeviceRegistry`, `DeviceConnectionRegistry`, `DeviceAccessGrantRegistry`, pairing/Team/Usage registries and native jobs from legacy state/memory when ordinary runtime is started. New relational services are deliberately NOT substituted into these complex synchronous route dependencies without updating every API, channel, reaper and writer. Enrollment signing/certificates, `poll/recover` A/B, trusted verifier concrete implementations and Fleet worker/result authority remain to integrate.
+- **Plugin:** OAuth OIDC/PKCE, account portal, Google, Paddle webhook+subscription entitlement, account recovery, support send worker and Admin still have legacy functions and/or unapproved external-side-effect paths. New Core Paddle method only records an authenticated event ledger; it does not grant or revoke actual subscriptions.
+- **Data plane:** a real isolated Gold PostgreSQL 17/Redis 8 instance has NOT been started or migrated. The earlier Docker target capability denial remains a hard local policy boundary; do not bypass. New tests use mock PG clients, and no real restart persistence or cross-process revocation test has run. Existing rc48/rc49 client compatibility remains unresolved.
+
+### Acceptance consequence
+
+The required `LR_GOLD_PG_ONLY=1` full-system gate still refuses both processes before socket/port bind. `npm run gold:cutover:check` is the objective current blocker inventory (23/23 domains unaccepted). New SQL repositories DO NOT mean runtime routes have changed. Do not label Gold ready, do not stop production, and do not claim a time-to-completion without legitimate Gold database access and E2E results.
 ## Hard external acceptance gates
 
 - A new isolated PostgreSQL 17/Redis 8 environment has **NOT actually been started**. A prior Light Remote Docker start returned `target_node_capability_missing`; effective device policy wins. **Do not bypass by changing tools/targets, dropping declared Docker capability or using sudo.**

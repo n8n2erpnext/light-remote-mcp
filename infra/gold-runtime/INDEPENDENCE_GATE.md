@@ -14,7 +14,7 @@
 - Source code: V4/R4 deployed backend code preserved, Team/Inbox/Notification/AI Guide source integrated in candidate. Focused tests PASS but this is NOT a full standalone service acceptance.
 - Operator: Team and account notification source registry dependencies connected to account routes. They remain legacy JSON repositories until PostgreSQL adapters are completed.
 - Plugin: no validated stand-alone process on its own port/socket yet. All test credentials and OAuth domains must be isolated, no live Paddle/email webhooks.
-- Database: 16 SQL migrations checksum pass (001..013 RC50 unchanged; Gold 014 announcements, 015 analytics and 016 support outbox); isolated PostgreSQL 17/Redis 8 Compose prepared, but Docker startup was denied by the local target's effective capability, so neither service is running.
+- Database: 17 SQL migrations checksum pass (001..013 RC50 unchanged; Gold 014 announcements, 015 analytics, 016 support outbox and 017 relational Core); isolated PostgreSQL 17/Redis 8 Compose prepared, but Docker startup was denied by the local target's effective capability, so neither service is running.
 - Windows rc48 / macOS rc49 real source compatibility is unaccepted because a client replacement attempt was policy-denied previously. Never bypass using a different tool or machine.
 - Do not call a non-production JSON-mode startup proof of PG-only independent acceptance.
 - Existing production remains active and must not be shut down, restarted, reconfigured or used as a new process's data source.

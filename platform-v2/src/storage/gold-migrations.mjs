@@ -8,7 +8,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 
-export const GOLD_MIGRATION_VERSION=16;
+export const GOLD_MIGRATION_VERSION=17;
 export const GOLD_MIGRATION_DATABASE='light_remote_gold_dev';
 export const GOLD_MIGRATION_ROLE='lr_gold_migrator';
 const dir=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../../infra/pgredis/migrations');

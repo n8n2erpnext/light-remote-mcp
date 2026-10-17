@@ -81,6 +81,11 @@
       "version": 16,
       "file": "016_support_outbox.sql",
       "sha256": "adafddaa97e99997b04063ad20678a201161f36439f7485915887c5a9cc4ea67"
+    },
+    {
+      "version": 17,
+      "file": "017_gold_core_identity.sql",
+      "sha256": "0a247a2352ea0d9d3770876a9cf9ecf64cdabf386c8a001c3611b5c0c9768cb2"
     }
   ]
 }
