@@ -12,7 +12,7 @@ import {Pool} from 'pg';
 import {createClient} from 'redis';
 import {assertGoldRuntimeIsolation} from '../../../lib/gold-runtime-isolation.mjs';
 
-const REQUIRED_SCHEMA=14;
+const REQUIRED_SCHEMA=15;
 const EXPECTED_DATABASE='light_remote_gold_dev';
 const EXPECTED_ROLE='lr_gold_app';
 const INSTANCE=/^[a-z0-9][a-z0-9_-]{2,47}$/;

@@ -4,11 +4,28 @@ import crypto from 'node:crypto';
 
 const FILE=process.env.LIGHT_REMOTE_SITE_ANALYTICS_PATH||'/var/lib/light-remote-direct/plugin-state/site-analytics.json';
 const TRACKED=new Set(['/','/downloads','/support','/ai-guide','/privacy','/terms','/cookies']);
+const goldPgMode=process.env.LR_GOLD_SITE_ANALYTICS_PG==='1';
+let goldPgRepository=null;
+let goldWriteFailure=null;
+const goldWrites=new Set();
+export function configureGoldPgSiteAnalytics(repo){
+ if(!goldPgMode||goldPgRepository||!repo||typeof repo.record!=='function'||typeof repo.summary!=='function')
+  throw Error('gold_site_analytics_pg_repository_invalid');
+ goldPgRepository=repo;
+}
+const goldStore=()=>{if(!goldPgRepository)throw Error('gold_site_analytics_pg_not_ready');return goldPgRepository};
+const saveGoldEvent=(type,attrs)=>{
+ const promise=goldStore().record(type,attrs);
+ goldWrites.add(promise);
+ void promise.finally(()=>goldWrites.delete(promise)).catch(()=>{});
+ return promise;
+};
 let days={};
-try{const state=JSON.parse(fs.readFileSync(FILE,'utf8'));if(state?.days&&typeof state.days==='object')days=state.days}catch{}
+if(!goldPgMode){try{const state=JSON.parse(fs.readFileSync(FILE,'utf8'));if(state?.days&&typeof state.days==='object')days=state.days}catch{}}
 let pending=false;
 let changed=false;
 function persist(){
+ if(goldPgMode)throw Error('gold_site_analytics_json_fallback_forbidden');
  if(!changed)return;
  try{
   fs.mkdirSync(path.dirname(FILE),{recursive:true,mode:0o750});
@@ -17,7 +34,7 @@ function persist(){
   fs.renameSync(temp,FILE);changed=false;
  }catch(error){console.error('[site-analytics-write]',error?.message||error)}
 }
-const timer=setInterval(persist,8000);timer.unref();
+if(!goldPgMode){const timer=setInterval(persist,8000);timer.unref();}
 function operatingSystem(ua=''){
  const s=String(ua).toLowerCase();
  if(/iphone|ipad|ipod/.test(s))return 'iOS';
@@ -57,6 +74,7 @@ function prune(){
  for(const key of Object.keys(days))if(key<deadline)delete days[key];
 }
 function record(type,attrs={}){
+ if(goldPgMode)return saveGoldEvent(type,attrs);
  const day=today();let row=days[day];
  if(!row)row=days[day]={pageViews:0,downloads:0,downloadClicks:0,pages:{},os:{},referrers:{},downloadOS:{},downloadArchitecture:{},downloadVersions:{},downloadFiles:{},osTabs:{}};
  if(type==='page'){
@@ -77,6 +95,7 @@ const legitimateAgents=/bot|crawler|spider|facebookexternalhit|preview|uptime|cu
 const eventRate=new Map();
 export function installSiteAnalytics(app){
  app.use((req,res,next)=>{
+  if(goldPgMode&&goldWriteFailure)return next(Error('gold_site_analytics_db_unavailable'));
   if(req.method!=='GET')return next();
   const route=req.path;
   if(!TRACKED.has(route)&&!/^\/downloads\/files\/[^/]{1,220}$/.test(route)&&route!=='/downloads/install.sh')return next();
@@ -85,16 +104,18 @@ export function installSiteAnalytics(app){
   res.once('finish',()=>{
    if(res.statusCode<200||res.statusCode>=400)return;
    if(TRACKED.has(route)){
-    record('page',{path:route,os:operatingSystem(ua),referrer:sourceHost(req.headers.referer||'')});
+    const result=record('page',{path:route,os:operatingSystem(ua),referrer:sourceHost(req.headers.referer||'')});
+    if(result instanceof Promise)void result.catch(error=>{goldWriteFailure=error;console.error('[gold-site-analytics]',error?.message||error)});
    }else{
     const file=route.split('/').pop();
-    record('download',{file:file.slice(0,180),os:osFromFilename(file),arch:architecture(file),version:versionOf(file)});
+    const result=record('download',{file:file.slice(0,180),os:osFromFilename(file),arch:architecture(file),version:versionOf(file)});
+    if(result instanceof Promise)void result.catch(error=>{goldWriteFailure=error;console.error('[gold-site-analytics]',error?.message||error)});
    }
   });
   next();
  });
  // Client-reported UI tab / GitHub clicks, not verified file transfers.
- app.post('/site/interaction',(req,res)=>{
+ app.post('/site/interaction',async(req,res)=>{
   // Keep anonymous telemetry bounded; only short, whitelisted events are accepted.
   const now=Date.now(),key=String(req.ip||req.socket?.remoteAddress||'unknown');
   const prior=eventRate.get(key);
@@ -103,18 +124,20 @@ export function installSiteAnalytics(app){
   if(eventRate.size>3000)for(const [address,v] of eventRate)if(now-v.started>=60_000)eventRate.delete(address);
   if(current.count>100)return res.sendStatus(429);
   const origin=String(req.headers.origin||'');
-  if(origin&&!/^https:\/\/light-remote\.thaiduy\.digital$/i.test(origin))return res.sendStatus(403);
+  const allowedOrigin=goldPgMode?String(process.env.LIGHT_REMOTE_PLUGIN_ORIGIN||''):'https://light-remote.thaiduy.digital';
+  if(origin&&origin!==allowedOrigin)return res.sendStatus(403);
   const event=String(req.body?.event||'');
-  if(event==='os_tab'){const os=String(req.body?.os||'');if(!['Linux','Windows','macOS','iOS','Android','Docker'].includes(os))return res.sendStatus(400);record('tab',{os})}
+  if(event==='os_tab'){const os=String(req.body?.os||'');if(!['Linux','Windows','macOS','iOS','Android','Docker'].includes(os))return res.sendStatus(400);try{await record('tab',{os})}catch(error){goldWriteFailure=error;return res.sendStatus(503)}}
   else if(event==='download_click'){
    const file=String(req.body?.file||'').slice(0,180);
    if(!/^[\w.\-]{3,180}$/.test(file))return res.sendStatus(400);
-   record('download-click',{os:osFromFilename(file),arch:architecture(file),version:versionOf(file)});
+   try{await record('download-click',{file,os:osFromFilename(file),arch:architecture(file),version:versionOf(file)})}catch(error){goldWriteFailure=error;return res.sendStatus(503)}
   }else return res.sendStatus(400);
   return res.status(204).end();
  });
 }
 export function siteAnalyticsSummary(daysBack=30){
+ if(goldPgMode)return goldStore().summary(daysBack);
  const windowDays=Math.max(1,Math.min(90,Number(daysBack)||30));
  const since=new Date(Date.now()-(windowDays-1)*86400000).toISOString().slice(0,10);
  const chosen=Object.entries(days).filter(([date])=>date>=since).sort((a,b)=>a[0].localeCompare(b[0]));
@@ -131,4 +154,7 @@ export function siteAnalyticsSummary(daysBack=30){
   externalClicks:{os:top(sums.externalClickOS),architecture:top(sums.externalClickArchitecture),versions:top(sums.externalClickVersions)},
   methodology:'Server-side page response counts and download HTTP responses. GitHub clicks and OS-tab events are separate client-reported events. Counts begin only when tracking is enabled; no retroactive data, no stored raw IP addresses or unique visitor claims.'};
 }
-export function flushSiteAnalytics(){persist()}
+export async function flushSiteAnalytics(){
+ if(goldPgMode){await Promise.allSettled([...goldWrites]);return;}
+ persist();
+}

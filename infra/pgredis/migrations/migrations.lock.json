@@ -71,6 +71,11 @@
       "version": 14,
       "file": "014_site_announcements.sql",
       "sha256": "f4d0268273d01bf8c337e01a3a81d0776c7ee6172db6f5b3737cee03692364ab"
+    },
+    {
+      "version": 15,
+      "file": "015_site_analytics.sql",
+      "sha256": "2acc8a449e9c81ab61c0e9e7ae3a1deac9bc81da676084970f0f4d989a85875e"
     }
   ]
 }

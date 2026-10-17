@@ -57,7 +57,7 @@ export function registerAdminPortal(app){
       if(action==='announcement-create'&&req.method==='POST')return res.status(201).json({ok:true,announcement:await mutateAnnouncement('POST',null,req.body)});
       if(action==='announcement-update'&&req.method==='POST')return res.json({ok:true,announcement:await mutateAnnouncement('PUT',String(req.body?.id||''),req.body)});
       if(action==='announcement-delete'&&req.method==='POST')return res.json({ok:true,announcement:await mutateAnnouncement('DELETE',String(req.body?.id||''))});
-      if(action==='site-analytics'&&req.method==='GET')return res.json(siteAnalyticsSummary(req.query?.days||30));
+      if(action==='site-analytics'&&req.method==='GET')return res.json(await siteAnalyticsSummary(req.query?.days||30));
       if(action==='device-os-summary'&&req.method==='GET')return res.json(deviceOSSummary(await callOperatorJson('GET','/v1/admin/accounts')));
       if(action==='accounts-paged'&&req.method==='GET'){
         // Pagination/filtering at authenticated web boundary; operator currently exposes snapshot list.
