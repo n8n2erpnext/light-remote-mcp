@@ -5,6 +5,8 @@ import { Environment, EventName, Paddle } from '@paddle/paddle-node-sdk';
 import { callOperatorJson } from './operator-client.mjs';
 import { recordPaddlePurchase, recordPaddleRefund } from './commerce-backoffice.mjs';
 import { sendPaddlePurchaseConfirmation } from './mailer.mjs';
+import { sandboxOfferCatalog,resolveSandboxOffer,verifiedTransactionOffer,verifiedSubscriptionOffer,assertSandboxPriceDetails,chooseSandboxCheckoutAction } from './paddle-sandbox-offers.mjs';
+import { PaddleSandboxTeamCoordinator } from './paddle-sandbox-team-coordinator.mjs';
 
 const DEFAULT_STATE_FILE = '/var/lib/light-remote-direct/plugin-state/paddle-billing.json';
 const ACTIVE_SUBSCRIPTION_STATUSES = new Set(['active', 'trialing']);
@@ -145,6 +147,12 @@ function defaultConfig(env = process.env) {
     apiKey: text(env.LIGHT_REMOTE_PADDLE_API_KEY),
     clientToken: text(env.LIGHT_REMOTE_PADDLE_CLIENT_TOKEN),
     proPriceId: text(env.LIGHT_REMOTE_PADDLE_PRO_PRICE_ID),
+    proMonthlyPriceId: text(env.LIGHT_REMOTE_PADDLE_PRO_PRICE_ID),
+    proYearlyPriceId: text(env.LIGHT_REMOTE_PADDLE_PRO_YEARLY_PRICE_ID),
+    teamMonthlyPriceId: text(env.LIGHT_REMOTE_PADDLE_TEAM_MONTHLY_PRICE_ID),
+    teamYearlyPriceId: text(env.LIGHT_REMOTE_PADDLE_TEAM_YEARLY_PRICE_ID),
+    teamSandboxEnabled: environment === 'sandbox' && text(env.LIGHT_REMOTE_PADDLE_TEAM_SANDBOX_ENABLED).toLowerCase() === 'true',
+    teamUatCallBudget: Number(text(env.LIGHT_REMOTE_PADDLE_TEAM_UAT_CALL_BUDGET) || 5000),
     webhookSecret: text(env.LIGHT_REMOTE_PADDLE_WEBHOOK_SECRET),
     stateFile: text(env.LIGHT_REMOTE_PADDLE_STATE_FILE || DEFAULT_STATE_FILE),
   };
@@ -200,6 +208,11 @@ export class PaddleBilling {
     this.now = now;
     this.state = loadState(config.stateFile);
     this.validation = validatePaddleIdentifiers(config);
+    // Never build the Team coordinator for production or when sandbox opt-in
+    // is absent. Existing PRO subscription processing remains unchanged.
+    this.sandboxTeam = config.environment === 'sandbox' && config.teamSandboxEnabled === true
+      ? new PaddleSandboxTeamCoordinator({config,operatorCall,now})
+      : null;
     this.paddle = paddleClient || (
       this.validation.ok && config.apiKey
         ? new Paddle(config.apiKey, { environment: paddleEnvironment(config.environment) })
@@ -239,6 +252,10 @@ export class PaddleBilling {
       apiConfigured: Boolean(this.config.apiKey),
       clientConfigured: Boolean(this.config.clientToken),
       webhookConfigured: Boolean(this.config.webhookSecret),
+      teamSandboxEnabled: Boolean(this.sandboxTeam),
+      offerPricesConfigured: this.sandboxTeam
+        ? Object.keys(sandboxOfferCatalog(this.config).offers)
+        : [],
     };
   }
 
@@ -253,6 +270,11 @@ export class PaddleBilling {
       clientToken: status.checkoutEnabled ? this.config.clientToken : null,
       proPriceId: status.checkoutEnabled ? this.config.proPriceId : null,
       currency: 'USD',
+      sandboxTeamEnabled: Boolean(this.sandboxTeam && status.checkoutAllowed && this.paddle && this.config.clientToken),
+      sandboxOffers: this.sandboxTeam && status.checkoutAllowed && this.paddle && this.config.clientToken
+        ? Object.fromEntries(Object.entries(sandboxOfferCatalog(this.config).offers)
+            .map(([key,row])=>[key,{priceId:row.priceId,amountUSD:row.amountUSD}]))
+        : {},
       reason: status.checkoutEnabled
         ? null
         : paused
@@ -335,6 +357,63 @@ export class PaddleBilling {
       environment: this.config.environment,
       plan: PRO_PLAN,
     };
+  }
+
+  /**
+   * SANDBOX ONLY. Creates a transaction only for an account with no active
+   * Paddle subscription. Existing paid Pro->Team requires an explicit
+   * Paddle subscription change, NOT a second checkout.
+   */
+  async checkSandboxPrice(offer,{allowArchived=false}={}){
+    if(!this.sandboxTeam||typeof this.paddle?.prices?.get!=='function')
+      throw Object.assign(new Error('paddle_sandbox_price_validation_unavailable'),{status:503});
+    const quote=await this.paddle.prices.get(offer.priceId);
+    return assertSandboxPriceDetails(offer,quote,{allowArchived});
+  }
+
+  async createSandboxOfferCheckout(account,{product,period}={}){
+    if(!this.sandboxTeam||!this.status().checkoutEnabled)
+      throw Object.assign(new Error('paddle_team_sandbox_not_enabled'),{status:403});
+    const offer=resolveSandboxOffer(this.config,{product,period});
+    await this.checkSandboxPrice(offer);
+    const accountId=text(account?.accountId),email=text(account?.email).toLowerCase();
+    if(!accountId||!email)throw Object.assign(new Error('paddle_account_required'),{status:400});
+    const latest=await this.latestTransactionForAccount(account);
+    let latestSub=null;
+    const subId=text(latest?.subscriptionId||latest?.subscription_id||
+      (account?.entitlement?.source==='paddle'?account?.entitlement?.sourceRef:''));
+    if(subId){
+      try{latestSub=await this.paddle.subscriptions.get(subId)}
+      catch{throw Object.assign(new Error('paddle_subscription_requires_reconciliation'),{status:409})}
+    }
+    // If paid entitlement has no identifiable subscription, fail closed.
+    const selection=chooseSandboxCheckoutAction({account,offer,latestSubscription:latestSub});
+    if(selection.action==='change_existing_subscription'){
+      throw Object.assign(new Error('paddle_subscription_change_required'),{status:409});
+    }
+    if(latest&&text(latest.status).toLowerCase()==='completed'&&!latestSub){
+      const refunded=(latest.adjustments||[]).some(row=>
+        text(row?.action).toLowerCase()==='refund'&&text(row?.status).toLowerCase()==='approved'&&
+        text(row?.type).toLowerCase()==='full');
+      if(!refunded)throw Object.assign(new Error('paddle_active_purchase_exists'),{status:409});
+    }
+    let customer=await this.customerForAccount(account);
+    if(!customer?.id)customer=await this.paddle.customers.create({email});
+    if(!customer?.id||text(customer.email).toLowerCase()!==email)
+      throw Object.assign(new Error('paddle_customer_binding_failed'),{status:502});
+    const transaction=await this.paddle.transactions.create({
+      items:[{priceId:offer.priceId,quantity:1}],
+      customerId:customer.id,
+      customData:{
+        light_remote_account_id:accountId,
+        light_remote_account_email:email,
+        light_remote_plan:offer.product,
+        light_remote_billing_period:offer.period,
+        light_remote_environment:'sandbox'
+      }
+    });
+    return {transactionId:transaction.id,environment:'sandbox',
+      product:offer.product,period:offer.period,checkoutUrl:transaction?.checkout?.url||null};
   }
 
   async currentAccount(accountId) {
@@ -509,7 +588,16 @@ export class PaddleBilling {
       const plan = text(custom.light_remote_plan || custom.lightRemotePlan || '').toLowerCase();
       const subscriptionId = text(transaction?.subscriptionId || transaction?.subscription_id);
 
-      if (!accountId || !email || plan !== PRO_PLAN) continue;
+      if (!accountId || !email) continue;
+      let classifiedPlan=plan;
+      if(this.sandboxTeam){
+        // Admin revenue/refund listing derives product from Paddle's actual
+        // transaction price, never the merchant's mutable customData.
+        let verified;
+        try{verified=verifiedTransactionOffer(this.config,transaction)}catch{continue}
+        if(verified.accountId!==accountId)continue;
+        classifiedPlan=verified.product;
+      }else if(plan!==PRO_PLAN)continue;
 
       const searchable = [
         transaction.id,
@@ -553,7 +641,7 @@ export class PaddleBilling {
         subscriptionId: subscriptionId || null,
         accountId,
         email,
-        plan,
+        plan:classifiedPlan,
         transactionStatus: text(transaction?.status) || null,
         currency: text(transaction?.currencyCode || totals?.currencyCode || 'USD') || 'USD',
         amountMinor: text(totals?.grandTotal || totals?.total || capturedPayment?.amount || '0'),
@@ -728,12 +816,63 @@ export class PaddleBilling {
     };
   }
 
+  // Price ID and owner ID must match Paddle's actual transaction item,
+  // not self-supplied metadata from a checkout browser or webhook payload.
+  async recordSandboxTeamPurchase(transaction){
+    const offer=verifiedTransactionOffer(this.config,transaction);
+    if(offer.product!=='pro_team')throw Object.assign(new Error('not_a_team_purchase'),{status:403});
+    await this.checkSandboxPrice(offer,{allowArchived:true});
+    const account=await this.currentAccount(offer.accountId);
+    const email=accountEmailFrom(transaction);
+    if(!account||text(account.email).toLowerCase()!==email)
+      throw Object.assign(new Error('paddle_team_account_email_mismatch'),{status:403});
+    const accounting=paddleAccounting(transaction),capturedAt=this.refundCaptureTime(transaction);
+    const fee=accounting.fee,earnings=accounting.earnings||Math.max(0,accounting.subtotal-fee);
+    const payload={
+      event_id:'paddle.purchase.'+offer.transactionId,source_product:'Light Remote',
+      plan_code:'PRO_TEAM',customer_email:email,account_id:offer.accountId,
+      source_reference:offer.transactionId,external_order_id:offer.subscriptionId,
+      payment_provider:'Paddle',payment_reference:offer.transactionId,
+      amount:accounting.subtotal,gross_amount:accounting.gross||accounting.subtotal,
+      tax_amount:accounting.tax,fee_amount:fee,earnings_amount:earnings,
+      currency:accounting.currency,
+      purchased_at:new Date(capturedAt||this.now()).toISOString(),
+      metadata:{paddle_environment:'sandbox',paddle_product:'pro_team',
+        billing_period:offer.period,subscription_id:offer.subscriptionId,
+        transaction_status:text(transaction.status)||null}
+    };
+    const backoffice=await this.purchaseRecorder(payload);
+    let mail={sent:false,reason:'purchase_mail_not_attempted'};
+    try{
+      const subscription=await this.paddle.subscriptions.get(offer.subscriptionId);
+      if(text(subscription?.status)==='active'){
+        mail=await this.purchaseMailer({
+          to:email,plan:'Pro Team',purchasedAt:payload.purchased_at,
+          billingCycle:subscription?.billingCycle||null,nextBilledAt:subscription?.nextBilledAt||null,
+          subtotal:accounting.subtotal,tax:accounting.tax,
+          total:accounting.gross||accounting.subtotal,currency:accounting.currency,
+          transactionId:offer.transactionId,invoiceNumber:text(transaction.invoiceNumber)||null,
+          taxInclusive:text(transaction?.items?.[0]?.price?.taxMode).toLowerCase()==='internal',
+          environment:'sandbox'
+        });
+      }else mail={sent:false,reason:'subscription_not_yet_active'};
+    }catch(error){mail={sent:false,reason:text(error?.message)||'mail_failed'}}
+    return {action:'recorded_team',accountId:offer.accountId,
+      subscriptionId:offer.subscriptionId,transactionId:offer.transactionId,
+      period:offer.period,backofficeStatus:text(backoffice?.status)||'accepted',
+      backofficeEventId:text(backoffice?.event_id)||payload.event_id,mail};
+  }
+
   async recordCompletedTransaction(data) {
     const transactionId = text(data?.id);
     if (!transactionId || !this.paddle) {
       return { action: 'ignored', reason: 'paddle_transaction_missing' };
     }
     const transaction = await this.paddle.transactions.get(transactionId);
+    if(this.sandboxTeam){
+      const verified=verifiedTransactionOffer(this.config,transaction);
+      if(verified.product==='pro_team')return this.recordSandboxTeamPurchase(transaction);
+    }
     const accountId = accountIdFrom(transaction) || accountIdFrom(data);
     const email = accountEmailFrom(transaction) || accountEmailFrom(data);
     const plan = planFrom(transaction) || planFrom(data);
@@ -862,10 +1001,17 @@ export class PaddleBilling {
       ),
       currency,
     ));
+    let refundPlan='PRO';
+    if(this.sandboxTeam){
+      const offer=verifiedTransactionOffer(this.config,transaction);
+      refundPlan=offer.product==='pro_team'?'PRO_TEAM':'PRO';
+      if(offer.accountId!==accountId)
+        throw Object.assign(new Error('paddle_refund_account_mismatch'),{status:403});
+    }
     const payload = {
       event_id: 'paddle.refund.' + adjustmentId,
       source_product: 'Light Remote',
-      plan_code: 'PRO',
+      plan_code: refundPlan,
       customer_email: email,
       account_id: accountId,
       source_reference: transactionId,
@@ -919,8 +1065,10 @@ export class PaddleBilling {
     }
 
     const accountId = accountIdFrom(transaction);
-    const plan = planFrom(transaction);
-    if (!accountId || plan !== PRO_PLAN) {
+    const plan=this.sandboxTeam
+      ? verifiedTransactionOffer(this.config,transaction).product
+      : planFrom(transaction);
+    if (!accountId || !['pro',...(this.sandboxTeam?['pro_team']:[])].includes(plan)) {
       const error = new Error('paddle_refund_transaction_not_light_remote');
       error.status = 403;
       throw error;
@@ -1009,6 +1157,11 @@ export class PaddleBilling {
     const transaction = await this.paddle.transactions.get(transactionId);
     const accountId = accountIdFrom(transaction);
     const effectiveSubscriptionId = subscriptionId || text(transaction?.subscriptionId);
+    if(this.sandboxTeam){
+      const verified=verifiedTransactionOffer(this.config,transaction);
+      if(verified.subscriptionId!==effectiveSubscriptionId||verified.accountId!==accountId)
+        throw Object.assign(new Error('paddle_refund_subscription_mismatch'),{status:403});
+    }
     if (!accountId || !effectiveSubscriptionId) {
       return {
         action: 'refund_approved_unmapped',
@@ -1040,6 +1193,14 @@ export class PaddleBilling {
     const current = await this.currentAccount(accountId);
     const entitlement = current?.entitlement || {};
     let entitlementAction = 'unchanged';
+    if(this.sandboxTeam){
+      const offer=verifiedTransactionOffer(this.config,transaction);
+      if(offer.product==='pro_team'){
+        await this.operatorCall('DELETE',
+          '/v1/admin/accounts/'+encodeURIComponent(accountId)+'/team-entitlement',
+          {expectedSource:'paddle:'+effectiveSubscriptionId});
+      }
+    }
     if (
       text(entitlement.source) === 'paddle' &&
       text(entitlement.sourceRef) === effectiveSubscriptionId
@@ -1079,6 +1240,21 @@ export class PaddleBilling {
     return result;
   }
 
+  async processSandboxSubscriptionEvent(data){
+    const id=sourceRefFrom(data);
+    if(!/^sub_[a-z0-9]{20,}$/.test(id))
+      throw Object.assign(new Error('sandbox_subscription_id_required'),{status:403});
+    // A verified Paddle webhook is only the trigger: the authoritative
+    // current subscription price, owner, and status are re-read from Paddle.
+    const sub=await this.paddle.subscriptions.get(id);
+    if(text(sub?.id)!==id)
+      throw Object.assign(new Error('paddle_subscription_snapshot_mismatch'),{status:403});
+    const expected=accountIdFrom(data)||null;
+    const offer=verifiedSubscriptionOffer(this.config,sub,{expectedAccountId:expected});
+    await this.checkSandboxPrice(offer,{allowArchived:true});
+    return this.sandboxTeam.apply(sub,{expectedAccountId:expected});
+  }
+
   async processEvent(event) {
     const eventType = safeEventType(event);
     const data = safeData(event);
@@ -1089,7 +1265,18 @@ export class PaddleBilling {
     }
 
     let result = { action: 'ignored', reason: 'event_not_used', eventType };
-    if ([
+    if (this.sandboxTeam && [
+      EventName.SubscriptionCreated,
+      EventName.SubscriptionActivated,
+      EventName.SubscriptionResumed,
+      EventName.SubscriptionTrialing,
+      EventName.SubscriptionUpdated,
+      EventName.SubscriptionCanceled,
+      EventName.SubscriptionPastDue,
+      EventName.SubscriptionPaused,
+    ].includes(eventType)) {
+      result = await this.processSandboxSubscriptionEvent(data);
+    } else if ([
       EventName.SubscriptionCreated,
       EventName.SubscriptionActivated,
       EventName.SubscriptionResumed,
@@ -1173,6 +1360,10 @@ export function paddlePublicConfig() {
 
 export async function createPaddleCheckout(account) {
   return paddleBilling.createCheckout(account);
+}
+
+export async function createPaddleSandboxOfferCheckout(account,selection){
+  return paddleBilling.createSandboxOfferCheckout(account,selection);
 }
 
 export async function paddleBillingSummary(account) {

@@ -3,9 +3,9 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { callOperatorJson } from './operator-client.mjs';
 import { PUBLIC_ORIGIN } from './config.mjs';
-import { mailConfig, sendDormancyWarning, sendDormantNotice, sendMagicLogin, sendPasswordReset, sendUpgradeRequested, sendWelcomeVerification } from './mailer.mjs';
+import { mailConfig, sendDormancyWarning, sendDormantNotice, sendMagicLogin, sendPasswordReset, sendTeamInvitation, sendUpgradeRequested, sendWelcomeVerification } from './mailer.mjs';
 import { beginGoogleAuth, finishGoogleAuth, googleAuthStatus } from './google-auth.mjs';
-import { createPaddleCheckout, createPaddleCustomerPortal, paddleBillingSummary, paddlePublicConfig } from './paddle-billing.mjs';
+import { createPaddleCheckout, createPaddleSandboxOfferCheckout, createPaddleCustomerPortal, paddleBillingSummary, paddlePublicConfig } from './paddle-billing.mjs';
 
 const COOKIE='__Host-light_remote_account';
 const GOOGLE_SIGNUP_COOKIE='__Host-light_remote_google_signup';
@@ -140,7 +140,7 @@ async function runDormancyScan(){
 }
 async function accountApi(req,res){
   const action=String(req.query?.action||'').trim();
-  const mutations=new Set(['register','login','logout','password-change','password-setup','password-reset-request','password-reset-complete','magic-request','verification-resend','verification-verify','reactivate','enrollment-approve','device-revoke','device-remove','device-update','devices-revoke-all','redeem-license','main-device','main-device-clear','upgrade-request','paddle-checkout','paddle-portal']);
+  const mutations=new Set(['register','login','logout','password-change','password-setup','password-reset-request','password-reset-complete','magic-request','verification-resend','verification-verify','reactivate','enrollment-approve','device-revoke','device-remove','device-update','devices-revoke-all','redeem-license','main-device','main-device-clear','upgrade-request','paddle-checkout','paddle-offer-checkout','paddle-portal','team-create','team-invite','team-accept','team-inbox-read','team-inbox-accept','notifications-read','team-remove','team-device-share','team-device-unshare','team-access-request']);
   if(mutations.has(action)&&!sameOriginMutation(req)){accountAudit(action,'cross_site_denied');return res.status(403).json({ok:false,error:'cross_site_request_denied'});}
   try{
     if(action==='register'){
@@ -224,6 +224,82 @@ async function accountApi(req,res){
         :`/v1/accounts/${action}`;
       return res.status(200).json(await callOperatorJson('GET',target,null,headers(token)));
     }
+    if(action==='team-entitlement'){
+      if(!method(req,res,'GET'))return;
+      const token=sessionToken(req);if(!token)return res.status(401).json({ok:false,error:'account_session_required'});
+      return res.status(200).json(await callOperatorJson('GET','/v1/accounts/team/entitlement',null,headers(token)));
+    }
+    if(action==='notifications'){
+      if(!method(req,res,'GET'))return;
+      const token=sessionToken(req);if(!token)return res.status(401).json({ok:false,error:'account_session_required'});
+      return res.status(200).json(await callOperatorJson('GET','/v1/accounts/notifications',null,headers(token)));
+    }
+    if(action==='notifications-read'){
+      if(!method(req,res,'POST'))return;
+      const token=sessionToken(req);if(!token)return res.status(401).json({ok:false,error:'account_session_required'});
+      const notificationId=String(req.body?.notificationId||'').trim();
+      if(!/^sys_[a-f0-9-]{36}$/.test(notificationId))return res.status(400).json({ok:false,error:'invalid_notification_id'});
+      return res.status(200).json(await callOperatorJson('POST','/v1/accounts/notifications/read',{notificationId},headers(token)));
+    }
+    if(action==='team-inbox'){
+      if(!method(req,res,'GET'))return;
+      const token=sessionToken(req);if(!token)return res.status(401).json({ok:false,error:'account_session_required'});
+      return res.status(200).json(await callOperatorJson('GET','/v1/accounts/team/inbox',null,headers(token)));
+    }
+    if(action==='team-inbox-read'||action==='team-inbox-accept'){
+      if(!method(req,res,'POST'))return;
+      const token=sessionToken(req);if(!token)return res.status(401).json({ok:false,error:'account_session_required'});
+      const notificationId=String(req.body?.notificationId||'').trim();
+      if(!/^tinv_[a-f0-9]{24}$/.test(notificationId))return res.status(400).json({ok:false,error:'invalid_notification_id'});
+      return res.status(200).json(await callOperatorJson('POST',
+        '/v1/accounts/team/inbox/'+(action==='team-inbox-read'?'read':'accept'),{notificationId},headers(token)));
+    }
+    if(action==='team-memberships'){
+      if(!method(req,res,'GET'))return;
+      const token=requireAccount(req,res);if(!token)return;
+      return res.status(200).json(await callOperatorJson('GET','/v1/accounts/team/memberships',null,headers(token)));
+    }
+    if(action==='team-access-request'){
+      if(!method(req,res,'POST'))return;
+      // Browser login does not authenticate the OAuth plugin clientId.
+      return res.status(409).json({ok:false,error:'team_approval_requires_oauth_plugin'});
+    }
+    if(action==='team-view'||action==='team-create'){
+      if(!method(req,res,action==='team-view'?'GET':'POST'))return;
+      const token=requireAccount(req,res);if(!token)return;
+      return res.status(action==='team-create'?201:200).json(await callOperatorJson(
+        action==='team-view'?'GET':'POST','/v1/accounts/team',
+        action==='team-create'?{}:null,headers(token)));
+    }
+    if(action==='team-invite'){
+      if(!method(req,res,'POST'))return;
+      const token=sessionToken(req);if(!token)return res.status(401).json({ok:false,error:'account_session_required'});
+      if(!allowPublicAuth(req,'team-invite',{limit:8,windowMs:60*60_000}))
+        return res.status(429).json({ok:false,error:'team_invite_rate_limited'});
+      const memberEmail=String(req.body?.memberEmail||'').trim().toLowerCase();
+      if(memberEmail.length>254||!/^([^\s@]+)@([^\s@]+)\.([^\s@]+)$/.test(memberEmail))
+        return res.status(400).json({ok:false,error:'invalid_team_invite_email'});
+      const upstream=await callOperatorJson('POST','/v1/accounts/team/invite',{memberEmail},headers(token));
+      const mail=await sendTeamInvitation({to:memberEmail,inviteCode:upstream.invite.inviteCode,
+        expiresAt:upstream.invite.expiresAt}).catch(error=>({sent:false,reason:error?.code||'send_failed'}));
+      accountAudit('team-invite',mail?.sent?'success':'mail_error');
+      return res.status(201).json({ok:true,invite:upstream.invite,
+        mail:{sent:Boolean(mail?.sent),reason:mail?.sent?null:'email_delivery_failed'}});
+    }
+    const teamMutations={
+      'team-accept':{route:'accept',field:'inviteCode'},
+      'team-remove':{route:'member/remove',field:'memberAccountId'},
+      'team-device-share':{route:'device/share',field:'deviceId'},
+      'team-device-unshare':{route:'device/unshare',field:'deviceId'}
+    };
+    if(Object.hasOwn(teamMutations,action)){
+      if(!method(req,res,'POST'))return;
+      const token=requireAccount(req,res);if(!token)return;
+      const config=teamMutations[action],value=String(req.body?.[config.field]||'').trim();
+      if(!value||value.length>256)return res.status(400).json({ok:false,error:'invalid_team_request'});
+      return res.status(action==='team-invite'?201:200).json(await callOperatorJson(
+        'POST','/v1/accounts/team/'+config.route,{[config.field]:value},headers(token)));
+    }
     if(action==='paddle-config'){
       if(!method(req,res,'GET'))return;
       const token=requireAccount(req,res);if(!token)return;
@@ -269,6 +345,19 @@ async function accountApi(req,res){
       const current=await callOperatorJson('GET','/v1/accounts/me',null,headers(token));
       const checkout=await createPaddleCheckout(current.account);
       accountAudit('paddle-checkout','created');
+      return res.status(201).json({ok:true,checkout});
+    }
+    if(action==='paddle-offer-checkout'){
+      if(!method(req,res,'POST'))return;
+      const product=String(req.body?.product||'').trim(),
+        period=String(req.body?.period||'').trim();
+      if(!['pro','pro_team'].includes(product)||!['monthly','yearly'].includes(period))
+        return res.status(400).json({ok:false,error:'paddle_offer_invalid'});
+      // Authentication comes from the cookie-backed Operator principal; no
+      // account ID or Paddle price ID is accepted from browser payload.
+      const current=await callOperatorJson('GET','/v1/accounts/me',null,headers(token));
+      const checkout=await createPaddleSandboxOfferCheckout(current.account,{product,period});
+      accountAudit('paddle-offer-checkout','sandbox_created');
       return res.status(201).json({ok:true,checkout});
     }
     if(action==='paddle-portal'){
@@ -345,6 +434,8 @@ export function registerAccountPortal(app){
   const dormancyTimer=setInterval(()=>void runDormancyScan(),DORMANCY_SCAN_INTERVAL_MS);dormancyTimer.unref?.();
   app.get('/enroll',(_q,r)=>sendPortal(r,'enroll.html'));
   app.get(['/account','/account/'],(_q,r)=>sendPortal(r,'index.html'));
+  app.get(['/account/team','/account/team/'],(_q,r)=>sendPortal(r,'team.html'));
+  app.get(['/account/inbox','/account/inbox/'],(_q,r)=>sendPortal(r,'inbox.html'));
   app.get(['/account/usage','/account/usage/'],(_q,r)=>sendPortal(r,'usage.html'));
   app.get(['/account/billing','/account/billing/'],(_q,r)=>sendPortal(r,'billing.html'));
   app.get(['/account/settings','/account/settings/'],(_q,r)=>sendPortal(r,'settings.html'));
@@ -360,6 +451,8 @@ export function registerAccountPortal(app){
   app.get('/account/assets/portal.css',(_q,r)=>sendPortal(r,'portal.css','text/css'));
   app.get('/account/assets/visual-system-v4.css',(_q,r)=>sendPortal(r,'visual-system-v4.css','text/css'));
   app.get('/account/assets/theme.js',(_q,r)=>sendPortal(r,'theme.js','application/javascript'));
+  app.get('/account/assets/ai-guide-actions.js',(_q,r)=>sendPortal(r,'ai-guide-actions.js','application/javascript'));
+  app.get('/account/assets/notifications.js',(_q,r)=>sendPortal(r,'notifications.js','application/javascript'));
   app.get('/account/assets/home-demo.js',(_q,r)=>sendPortal(r,'home-demo.js','application/javascript'));
   app.get('/account/assets/hero-demo-library.json',(_q,r)=>sendPortal(r,'hero-demo-library.json','application/json'));
   app.get('/account/assets/light-remote-mark.svg',(_q,r)=>sendPortal(r,'light-remote-mark.svg','image/svg+xml'));

@@ -2,6 +2,14 @@
 
 **Status: SOURCE INTEGRATION UNDERWAY / NOT OPERATIONALLY GOLD / NOT PRODUCTION READY.**
 
+## Additional source integration — 2026-10-17
+
+- AI Guide: preserved production V4 Home and ported complete offline Markdown embedding and copying; focused guide test PASS (4 checks). Commit 7fa38e1.
+- Account/Team/Inbox: nonconflicting three-way account-portal merge and imported Team account routes, OAuth principal proof, mailer and sandbox-only Paddle modules. Source syntax PASS; actual Operator executor has NOT initialized Team/Notification registry dependencies, so there is NO live end-to-end acceptance.
+- Notification Center: retained Admin V5/R4 site and announcements/analytics; added notification UI plus admin-only, same-origin-checked publish/cancel API and Operator route source. Account notification tests PASS for identity/recipient isolation and persistence; V4 UI/static source tests PASS. Live Operator/PG backend not wired or accepted.
+- Team Local Wall: team-approval-request test PASS for verified OAuth identity, approval, owner billing and revocation, then FAIL at a client Local Wall requester-account display expectation. Do not sidestep prior client-source safety denial to fix this. Feature is NOT E2E accepted.
+- Sandbox offers: ported gated existing source only; Paddle SDK integration and Live production behavior are NOT tested or enabled.
+- Existing rc49 client, Docker capability denial, PostgreSQL migration and release blockers remain unchanged.
 ## Immutable source lineage
 
 - Clean base: `origin/main@12bb746ca3e13e493ac5f634e79f8dda8b3d2ce0`.
