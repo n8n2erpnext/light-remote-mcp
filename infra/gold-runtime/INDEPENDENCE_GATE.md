@@ -2,6 +2,13 @@
 
 **Acceptance definition**: if the old production LXD `light-remote-direct` is stopped, the new instance retains its OWN validated Operator, Plugin, Client release metadata, Web V4, persistent business state, Team, Inbox, Notification, billing and registration, and passes end-to-end device A/B. Do not stop production to test before this contract has passed using an independent isolated system.
 
+## Independent no-production smoke checks — PASS (NOT A PG RELEASE)
+
+- Installed lockfile-pinned dependencies into the **Gold worktree only**, not the production LXD. Node modules are excluded from Git.
+- The focused `deploy/scripts/selftest-gold-operator-http-isolated.mjs` launches a fresh Operator bound to its own private Unix socket, isolated home/log/state directory and synthetic account. Verified `/healthz`, `/v1/admin/accounts`, `/v1/admin/notifications` and expected 404. No production credentials or data are loaded; ephemeral files are removed after the check.
+- The focused `deploy/scripts/selftest-gold-plugin-http-isolated.mjs` launches Plugin on its own loopback port with synthetic OAuth secret and all state/config/output paths inside a private temp directory, no Paddle live checkout or production socket. Verified `/healthz`, Home V4, embedded full `/ai-guide`, Markdown, `llms.txt` and MCP GET 405. This test exposed a missing `lib/light-remote-plan-offers.mjs`, which was restored from the vetted Team source; the test then passed.
+- These tests independently prove **each process can start and serve basic endpoints without touching production**. They do NOT prove the two processes have been paired into a complete stack, or that any durable business write goes to PostgreSQL; Team A/B/client end-to-end and production-off operation remain unaccepted.
+
 ## Current status — NOT READY
 
 - Source code: V4/R4 deployed backend code preserved, Team/Inbox/Notification/AI Guide source integrated in candidate. Focused tests PASS but this is NOT a full standalone service acceptance.
