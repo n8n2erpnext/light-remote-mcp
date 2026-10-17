@@ -1,0 +1,53 @@
+# Independent Light Remote next-generation development data plane.
+# Explicit project name supplied by operator; never touches rc50 or production.
+# No host-published ports. No credential values in this repository.
+services:
+  postgres:
+    image: postgres:17-alpine
+    pull_policy: never
+    restart: unless-stopped
+    env_file:
+      - ${LR_GOLD_PG_ENV:?isolated PostgreSQL env path is required}
+    command: ["postgres", "-c", "password_encryption=scram-sha-256", "-c", "max_connections=70", "-c", "shared_buffers=128MB"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks: [private]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 4s
+      retries: 20
+    mem_limit: 768m
+    cpus: 0.6
+    stop_grace_period: 35s
+  redis:
+    image: redis:8-alpine
+    pull_policy: never
+    restart: unless-stopped
+    command:
+      - sh
+      - -ec
+      - >-
+        umask 077;
+        cp /usr/local/etc/redis/redis.conf /tmp/light-remote-gold.conf;
+        chown redis:redis /tmp/light-remote-gold.conf;
+        chmod 0600 /tmp/light-remote-gold.conf;
+        exec docker-entrypoint.sh redis-server /tmp/light-remote-gold.conf
+    volumes:
+      - redisdata:/data
+      - ${LR_GOLD_REDIS_CONF:?isolated Redis conf path is required}:/usr/local/etc/redis/redis.conf:ro
+    networks: [private]
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping 2>&1 | grep -q NOAUTH"]
+      interval: 5s
+      timeout: 4s
+      retries: 20
+    mem_limit: 256m
+    cpus: 0.2
+    stop_grace_period: 20s
+volumes:
+  pgdata:
+  redisdata:
+networks:
+  private:
+    internal: true

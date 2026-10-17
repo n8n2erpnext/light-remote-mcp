@@ -1,0 +1,71 @@
+{
+  "target": "synthetic UAT only",
+  "format": 1,
+  "migrations": [
+    {
+      "version": 1,
+      "file": "001_core.sql",
+      "sha256": "057a876706e65a8e241014bfc63c081aaab8efa6423f40540acf157867652465"
+    },
+    {
+      "version": 2,
+      "file": "002_usage_monthly.sql",
+      "sha256": "8be93fdeb5b4f1c9922f7e33bdb095fe0cc1fbd266d15b5b8d138bce1a24832e"
+    },
+    {
+      "version": 3,
+      "file": "003_auth_device_communications.sql",
+      "sha256": "ad1d9fd089d009ee76f8e26bf73e9de4d81c592ffd4e16e864da4b4e50a7be8b"
+    },
+    {
+      "version": 4,
+      "file": "004_tenant_binding_guards.sql",
+      "sha256": "853d4635e49a3304732dcda5bb1f72366ad57309040a8e3575847cba22ce175b"
+    },
+    {
+      "version": 5,
+      "file": "005_team_seat_guard.sql",
+      "sha256": "98dcf444697b7824b3b1aa5b4fc06ecf74d80f4f3315342f1c78d6e5b7fe66a9"
+    },
+    {
+      "version": 6,
+      "file": "006_worker_outbox_leases.sql",
+      "sha256": "fccc06fcb0dfea84704a736b0d72223af04e95257e556f2106d46b57831d3c96"
+    },
+    {
+      "version": 7,
+      "file": "007_worker_function_permissions.sql",
+      "sha256": "156a71d4cbd1505c04ab47392491e52744650e5f788ecdb8dce8fb0d89c860ef"
+    },
+    {
+      "version": 8,
+      "file": "008_usage_event_idempotency.sql",
+      "sha256": "d4cfb1d35eee7dbdcf57d22368503f4ef29365f54c0cc8f9ec4e53d894f60665"
+    },
+    {
+      "version": 9,
+      "file": "009_free_family_quota.sql",
+      "sha256": "b980d1ecb33b4f385e5758a68776f2e7501c58ccf868c879cc24ed30c0d63e26"
+    },
+    {
+      "version": 10,
+      "file": "010_free_meter_path_guard.sql",
+      "sha256": "8910f55793beafd8a47b660ba30c819b5c6824eb6ac8a4b8ec7d41c5e64f5b6b"
+    },
+    {
+      "version": 11,
+      "file": "011_team_owner_billed_uat.sql",
+      "sha256": "f67597c77664f2560910c9ff9d9e71c368be51290aeb8a2f5660d3bdbbb4b4f7"
+    },
+    {
+      "version": 12,
+      "file": "012_signed_rotation_proof.sql",
+      "sha256": "ae4b29d7e0cbc96494fcfd2bdf16e1de7b52ca29daa2848071e3132d40e933f3"
+    },
+    {
+      "version": 13,
+      "file": "013_oauth_atomic_replay.sql",
+      "sha256": "91d240ebe417ee24d85af80e8045c67b2424683e781e0efd7e33465575e44983"
+    }
+  ]
+}
