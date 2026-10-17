@@ -118,12 +118,34 @@ export class GoldPgCoreAuthority{
    const revoked=await c.query(
     "UPDATE lr_sessions SET revoked_at=now(),revoked_reason='account_disabled' "+
     "WHERE account_id=$1 AND revoked_at IS NULL RETURNING session_id",[owner]);
+   // Account shutdown is a transaction-wide revocation of *both* ownership
+   // and Team actor privileges, never merely the browser session.
    await c.query("UPDATE lr_ab_requests SET state='denied',consumed_at=now() "+
-    "WHERE account_id=$1 AND state='pending'",[owner]);
-   await c.query("UPDATE lr_ab_grants SET closed_at=now() WHERE account_id=$1 AND closed_at IS NULL",[owner]);
+    "WHERE (account_id=$1 OR actor_account_id=$1) AND state='pending'",[owner]);
+   await c.query(
+    "UPDATE lr_ab_grants SET closed_at=now() "+
+    "WHERE closed_at IS NULL AND (account_id=$1 OR grant_id IN ("+
+    "SELECT grant_id FROM lr_ab_team_actor_grants WHERE actor_account_id=$1))",
+    [owner]);
+   await c.query(
+    "UPDATE lr_remote_sessions SET closed_at=now(),hold_reason='account_disabled' "+
+    "WHERE (owner_account_id=$1 OR actor_account_id=$1) AND closed_at IS NULL",
+    [owner]);
+   await c.query(
+    "UPDATE lr_agent_clients SET closed_at=now(),close_reason='account_disabled' "+
+    "WHERE account_id=$1 AND closed_at IS NULL",[owner]);
+   // Unclaimed work must not run after admin disable. Running work is handled
+   // by Device Channel fencing and the closed grant/connection authority.
+   await c.query(
+    "UPDATE lr_jobs SET state='canceled',finished_at=now(),last_error='account_disabled' "+
+    "WHERE (owner_account_id=$1 OR actor_account_id=$1) AND state='queued'",
+    [owner]);
    await c.query("UPDATE lr_device_connections SET closed_at=now(),close_reason='account_disabled' "+
     "WHERE account_id=$1 AND closed_at IS NULL",[owner]);
-   await c.query('DELETE FROM lr_ab_team_actor_grants WHERE actor_account_id=$1',[owner]);
+   // Preserve actor-grant association for audit and 019's composite FK from
+   // lr_agent_team_bindings. Deleting this row before its referencing binding
+   // would abort the entire revocation transaction in real PostgreSQL.
+   // Authorization is revoked by CLOSED grants, sessions and active status.
    return {accountId:owner,revokedSessions:revoked.rows?.length||0,status:'admin_disabled'};
   });
  }

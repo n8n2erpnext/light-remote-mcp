@@ -51,6 +51,9 @@ function harness({identity=true,device=true,agentAccount=account,wall=true,paddl
   }
   if((s.includes('UPDATE lr_ab_requests SET state=')&&!s.includes("state='approved'"))||s.includes('UPDATE lr_ab_grants SET closed_at')||
      s.includes('UPDATE lr_device_connections SET closed_at')||
+     s.includes('UPDATE lr_remote_sessions SET closed_at')||
+     s.includes('UPDATE lr_agent_clients SET closed_at')||
+     s.includes("UPDATE lr_jobs SET state='canceled'")||
      s.includes('DELETE FROM lr_ab_team_actor_grants'))return{rows:[]};
   if(s.includes('SELECT status FROM lr_accounts WHERE account_id=$1 FOR SHARE')){
    return{rows:[{status:data.accounts.get(params[0])?.status}]};
@@ -200,6 +203,24 @@ test('Core disables accounts transactionally, invalidates sessions and A/B state
  await assert.rejects(()=>a.authenticate(user.token),/gold_auth_invalid_session/);
  assert(calls.some(c=>c.sql.includes('UPDATE lr_ab_grants SET closed_at')));
  assert(calls.some(c=>c.sql.includes('UPDATE lr_device_connections SET closed_at')));
+ const queries=calls.map(x=>x.sql);
+ const request=queries.find(x=>x.includes("UPDATE lr_ab_requests SET state='denied'"));
+ assert(request.includes('actor_account_id=$1'),'pending Team actor requests must be denied');
+ const grants=queries.find(x=>x.includes('UPDATE lr_ab_grants SET closed_at'));
+ assert(grants.includes('actor_account_id=$1'),'Team member grants must close, not only owned grants');
+ const remote=queries.find(x=>x.includes('UPDATE lr_remote_sessions SET closed_at'));
+ assert(remote.includes('actor_account_id=$1')&&remote.includes('owner_account_id=$1'));
+ assert(remote.includes("hold_reason='account_disabled'"));
+ const clients=queries.find(x=>x.includes('UPDATE lr_agent_clients SET closed_at'));
+ assert(clients.includes('account_id=$1'));
+ const jobs=queries.find(x=>x.includes("UPDATE lr_jobs SET state='canceled'"));
+ assert(jobs.includes("state='queued'"),'only unclaimed jobs are canceled by administrative disable');
+ assert(jobs.includes('actor_account_id=$1')&&jobs.includes('owner_account_id=$1'));
+ const grantIdx=queries.indexOf(grants);
+ assert(grantIdx>=0,'Team actor grant closure must be part of the transaction');
+ assert(!queries.some(q=>q.includes('DELETE FROM lr_ab_team_actor_grants')),
+  'deleting the actor-grant row would break Gold 019 FK from Team Agent bindings');
+ assert(queries.lastIndexOf('COMMIT')>grantIdx,'disable transaction must commit revocation');
 });
 test('Device registration is proven and reconnect returns same connection under account cap',async()=>{
  const {authority:a,data}=harness();

@@ -90,7 +90,21 @@ test('Sharing and revoking Team access updates durable membership and closes all
  const result=await svc.removeMember({sessionToken:'s',teamId:TEAM,
   memberAccountId:MEMBER,proof:'signed'});
  assert(result.revoked);
- assert(log.some(x=>x.sql.includes('UPDATE lr_ab_grants SET closed_at=now()')));
+ const sql=log.map(x=>x.sql);
+ assert(sql.some(x=>x.includes('UPDATE lr_ab_grants SET closed_at=now()')));
+ assert(!sql.some(x=>x.includes('DELETE FROM lr_ab_team_actor_grants')),
+  'Team actor grant FK referenced from Gold 019 bindings must be preserved');
+ const grants=sql.findIndex(x=>x.includes('UPDATE lr_ab_grants SET closed_at=now()'));
+ const sessions=sql.findIndex(x=>x.includes('UPDATE lr_remote_sessions SET closed_at=now()'));
+ const pending=sql.findIndex(x=>x.includes("UPDATE lr_ab_requests SET state='denied'"));
+ const queued=sql.findIndex(x=>x.includes("UPDATE lr_jobs SET state='canceled'"));
+ assert(grants>=0&&sessions>grants&&pending>sessions&&queued>pending,
+  'revoke membership, grants, remote sessions, A/B requests and queued work atomically');
+ assert(sql[sessions].includes("hold_reason='team_member_revoked'"));
+ assert(sql[pending].includes('actor_account_id=$2'));
+ assert(sql[queued].includes("state='queued'"));
+ assert(sql[queued].includes('owner_account_id=(SELECT owner_account_id'));
+ assert.equal(sql.at(-1),'COMMIT');
  const denied=fixture({proof:false});
  await assert.rejects(()=>denied.svc.shareDevice({sessionToken:'s',
   teamId:TEAM,deviceId:DEVICE}),/gold_team_share_owner_proof_required/);

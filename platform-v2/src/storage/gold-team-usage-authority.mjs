@@ -154,10 +154,33 @@ export class GoldPgTeamUsageAuthority{
    const affected=await c.query(
     "UPDATE lr_team_members SET state='revoked' WHERE team_id=$1 "+
     "AND account_id=$2 AND state='active' RETURNING account_id",[team,member]);
+   // Close all A/B grants for this member *without deleting* their actor-
+   // grant mappings, which Gold 019's Team Agent bindings reference by FK.
+   const grantIds='SELECT grant_id FROM lr_ab_team_actor_grants '+
+    'WHERE team_id=$1 AND actor_account_id=$2';
+   await c.query('UPDATE lr_ab_grants SET closed_at=now() WHERE grant_id IN ('+
+    grantIds+') AND closed_at IS NULL',[team,member]);
    await c.query(
-    'UPDATE lr_ab_grants SET closed_at=now() WHERE grant_id IN ('+
-    'SELECT grant_id FROM lr_ab_team_actor_grants WHERE team_id=$1 AND actor_account_id=$2'+
-    ') AND closed_at IS NULL',[team,member]);
+    "UPDATE lr_remote_sessions SET closed_at=now(),hold_reason='team_member_revoked' "+
+    'WHERE grant_id IN ('+grantIds+') AND closed_at IS NULL',
+    [team,member]);
+   // Pending Team A/B requests must not later be approved using the old code.
+   await c.query(
+    "UPDATE lr_ab_requests SET state='denied',consumed_at=now() "+
+    "WHERE actor_account_id=$2 AND state='pending' "+
+    "AND account_id=(SELECT owner_account_id FROM lr_teams WHERE team_id=$1) "+
+    "AND device_id IN (SELECT device_id FROM lr_team_devices WHERE team_id=$1)",
+    [team,member]);
+   // RC50 jobs lack a per-job grant FK until the unaccepted Gold 021 change.
+   // Cancel ONLY queued jobs for this Team actor on this Team's devices;
+   // active jobs are subject to the device/channel's final cancellation policy.
+   await c.query(
+    "UPDATE lr_jobs SET state='canceled',finished_at=now(),"+
+    "last_error='team_member_revoked' WHERE state='queued' "+
+    "AND actor_account_id=$2 "+
+    "AND owner_account_id=(SELECT owner_account_id FROM lr_teams WHERE team_id=$1) "+
+    "AND device_id IN (SELECT device_id FROM lr_team_devices WHERE team_id=$1)",
+    [team,member]);
    return {teamId:team,memberAccountId:member,revoked:affected.rows?.length===1};
   });
  }
