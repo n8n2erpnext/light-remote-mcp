@@ -5,7 +5,8 @@ import crypto from 'node:crypto';
 const REQUEST_TTL_MS = 10 * 60 * 1000;
 const DEFAULT_IDLE_GRACE_MS = 30 * 60 * 1000;
 const MIN_IDLE_GRACE_MS = 15 * 60 * 1000;
-const MAX_IDLE_GRACE_MS = 60 * 60 * 1000;
+const MAX_IDLE_GRACE_MS = 24 * 60 * 60 * 1000;
+export const AB_GRANT_MAX_LIFETIME_MS = 24 * 60 * 60 * 1000;
 
 export class DeviceAccessGrantError extends Error {
   constructor(message,status=400){super(message);this.status=status;}
@@ -48,6 +49,7 @@ export class DeviceAccessGrantRegistry {
       for(const row of Array.isArray(parsed.grants)?parsed.grants:[])if(row?.grantId){
         if(!Number.isFinite(Number(row.idleGraceMs)))row.idleGraceMs=this.defaultIdleGraceMs;
         if(!Number.isFinite(Number(row.lastActivityAt)))row.lastActivityAt=Number(row.approvedAt)||this.now();
+        if(!Number.isFinite(Number(row.absoluteExpiresAt)))row.absoluteExpiresAt=Number(row.approvedAt)+AB_GRANT_MAX_LIFETIME_MS;
         this.grants.set(String(row.grantId),row);
       }
     }catch(error){this.requests.clear();this.grants.clear();this.loadError=error?.message||'invalid_device_access_state';}
@@ -57,15 +59,16 @@ export class DeviceAccessGrantRegistry {
     if(!Number.isFinite(grace)||grace<MIN_IDLE_GRACE_MS||grace>MAX_IDLE_GRACE_MS)throw new DeviceAccessGrantError('invalid_access_idle_grace');
     return Math.round(grace);
   }
-  _activeGrant(deviceId,connectionId,now=this.now()){
-    for(const row of this.grants.values())if(row.deviceId===deviceId&&row.connectionId===connectionId&&!row.closedAt&&now<row.expiresAt)return row;
+  _expiry(row){return Math.min(Number(row.expiresAt)||0,Number(row.absoluteExpiresAt)||Number(row.approvedAt)+AB_GRANT_MAX_LIFETIME_MS);}
+  _activeGrant(deviceId,connectionId,now=this.now(),agentId=null,accountId=null){
+    for(const row of this.grants.values())if(row.deviceId===deviceId&&row.connectionId===connectionId&&!row.closedAt&&now<this._expiry(row)&&(agentId==null||row.agentId===String(agentId))&&(accountId==null||row.accountId===String(accountId)))return row;
     return null;
   }
   request({accountId,deviceId,connectionId,connectionExpiresAt,agentId=null,label='ChatGPT Plus',forceApproval=false,requestTtlMs=REQUEST_TTL_MS,pairingId=null}={}){
     const aid=validId(accountId,'invalid_access_account_id'),did=validId(deviceId,'invalid_access_device_id'),cid=validId(connectionId,'invalid_access_connection_id');
     const now=this.now(),expiresAt=Number(connectionExpiresAt);
     if(!Number.isFinite(expiresAt)||expiresAt<=now)throw new DeviceAccessGrantError('device_connection_expired',410);
-    const active=this._activeGrant(did,cid,now);
+    const active=this._activeGrant(did,cid,now,agentId,aid);
     if(active&&!forceApproval){active.lastActivityAt=now;this._persist();return {state:'approved',grant:{...active},request:null,pollToken:null};}
     const ttl=Math.max(30*1000,Math.min(Number(requestTtlMs)||REQUEST_TTL_MS,REQUEST_TTL_MS));
     const requestId=`pa_${crypto.randomBytes(18).toString('base64url')}`,pollToken=crypto.randomBytes(32).toString('base64url');
@@ -77,7 +80,7 @@ export class DeviceAccessGrantRegistry {
   poll({requestId,pollToken}={}){
     const id=validId(requestId,'invalid_plus_request_id'),row=this.requests.get(id),now=this.now();
     if(!row||!equalDigest(pollToken,row.pollHash))throw new DeviceAccessGrantError('plus_authorization_not_found',404);
-    const active=this._activeGrant(row.deviceId,row.connectionId,now);
+    const active=this._activeGrant(row.deviceId,row.connectionId,now,row.agentId,row.accountId);
     if(row.consumedAt){
       if(row.state==='approved'&&active)return {state:'approved',grant:{...active}};
       if(row.state==='denied')throw new DeviceAccessGrantError('plus_authorization_denied',403);
@@ -104,12 +107,12 @@ export class DeviceAccessGrantRegistry {
     const cid=validId(connectionId,'invalid_access_connection_id'),expiresAt=Number(connectionExpiresAt);
     if(cid!==row.connectionId)throw new DeviceAccessGrantError('device_connection_changed',409);
     if(!Number.isFinite(expiresAt)||expiresAt<=now)throw new DeviceAccessGrantError('device_connection_expired',410);
-    const prior=this._activeGrant(row.deviceId,cid,now);
-    const grant=prior||{grantId:`dag_${crypto.randomUUID()}`,accountId:row.accountId,deviceId:row.deviceId,connectionId:cid,approvedAt:now,lastActivityAt:now,idleGraceMs:this._grace(idleGraceMs),expiresAt,closedAt:null,closeReason:null};
-    if(prior){grant.lastActivityAt=now;if(idleGraceMs!=null)grant.idleGraceMs=this._grace(idleGraceMs);}
+    const prior=this._activeGrant(row.deviceId,cid,now,row.agentId,row.accountId);
+    if(prior&&row.pairingRequired)this.close(prior.grantId,'owner_reapproved');
+    const grant=prior&&!row.pairingRequired?prior:{grantId:`dag_${crypto.randomUUID()}`,accountId:row.accountId,agentId:row.agentId,deviceId:row.deviceId,connectionId:cid,approvedAt:now,lastActivityAt:now,idleGraceMs:row.pairingRequired?AB_GRANT_MAX_LIFETIME_MS:this._grace(idleGraceMs),absoluteExpiresAt:now+AB_GRANT_MAX_LIFETIME_MS,expiresAt:Math.min(expiresAt,now+AB_GRANT_MAX_LIFETIME_MS),closedAt:null,closeReason:null};
+    if(prior&&!row.pairingRequired){grant.lastActivityAt=now;if(idleGraceMs!=null)grant.idleGraceMs=this._grace(idleGraceMs);}
     this.grants.set(grant.grantId,grant);
-    if(row.pairingRequired)row.state='approved';
-    else for(const pending of this.requests.values())if(!pending.pairingRequired&&pending.deviceId===row.deviceId&&pending.connectionId===cid&&!pending.consumedAt&&pending.state==='pending')pending.state='approved';
+    row.state='approved';
     this._persist();
     this.emit({type:'device_access_approved',accountId:row.accountId,deviceId:row.deviceId,connectionId:cid,requestId:row.requestId,grantId:grant.grantId,status:'approved'});
     return {...grant};
@@ -126,12 +129,14 @@ export class DeviceAccessGrantRegistry {
     this.emit({type:'device_access_denied',accountId:row.accountId,deviceId:row.deviceId,connectionId:row.connectionId,requestId:row.requestId,status:'denied'});
     return {requestId:row.requestId,state:row.state};
   }
-  assert(grantId,{deviceId=null,connectionId=null,touch=true}={}){
+  assert(grantId,{deviceId=null,connectionId=null,agentId=null,accountId=null,touch=true}={}){
     const id=validId(grantId,'invalid_access_grant_id'),row=this.grants.get(id),now=this.now();
     if(!row||row.closedAt)throw new DeviceAccessGrantError('device_access_grant_required',401);
-    if(now>=row.expiresAt){this.close(row.grantId,'device_connection_expired');throw new DeviceAccessGrantError('device_access_grant_expired',401);}
+    if(now>=this._expiry(row)){this.close(row.grantId,'device_access_grant_expired');throw new DeviceAccessGrantError('device_access_grant_expired',401);}
     if(deviceId!=null&&row.deviceId!==String(deviceId))throw new DeviceAccessGrantError('device_access_grant_device_mismatch',403);
     if(connectionId!=null&&row.connectionId!==String(connectionId))throw new DeviceAccessGrantError('device_access_grant_connection_mismatch',403);
+    if(accountId!=null&&row.accountId!==String(accountId))throw new DeviceAccessGrantError('device_access_grant_account_mismatch',403);
+    if(agentId!=null&&row.agentId!=null&&row.agentId!==String(agentId))throw new DeviceAccessGrantError('device_access_grant_agent_mismatch',403);
     if(touch!==false){row.lastActivityAt=now;this._persist();}
     return {...row};
   }
@@ -140,8 +145,8 @@ export class DeviceAccessGrantRegistry {
     if(!Number.isFinite(expiresAt)||expiresAt<=now)throw new DeviceAccessGrantError('device_connection_expired',410);
     let count=0;
     for(const row of this.grants.values()){
-      if(row.closedAt||row.deviceId!==did||row.connectionId!==cid||now>=Number(row.expiresAt||0))continue;
-      row.expiresAt=expiresAt;count++;
+      if(row.closedAt||row.deviceId!==did||row.connectionId!==cid||now>=this._expiry(row))continue;
+      row.expiresAt=Math.min(expiresAt,Number(row.absoluteExpiresAt)||Number(row.approvedAt)+AB_GRANT_MAX_LIFETIME_MS);count++;
       this.emit({type:'device_access_renewed',accountId:row.accountId,deviceId:did,connectionId:cid,grantId:row.grantId,status:'approved',expiresAt});
     }
     if(count)this._persist();
@@ -177,14 +182,14 @@ export class DeviceAccessGrantRegistry {
       if(row.expiresAt<=now){row.state='expired';row.consumedAt=now;this._persist();return null;}
       return {state:'pending',request:{requestId:row.requestId,deviceId:row.deviceId,connectionId:row.connectionId,label:row.label,userCode:row.userCode,expiresAt:row.expiresAt},grant:null};
     }
-    const active=this._activeGrant(row.deviceId,row.connectionId,now);
+    const active=this._activeGrant(row.deviceId,row.connectionId,now,row.agentId,row.accountId);
     if(!active)return null;
     return {state:'approved',request:{requestId:row.requestId,deviceId:row.deviceId,connectionId:row.connectionId,label:row.label,expiresAt:row.expiresAt},grant:{...active}};
   }
   consumeRecoveredPairing({requestId,accountId,agentId}={}){
     const id=validId(requestId,'invalid_plus_request_id'),aid=validId(accountId,'invalid_access_account_id'),agent=validId(agentId,'invalid_plus_agent_id'),row=this.requests.get(id),now=this.now();
     if(!row||!row.pairingRequired||row.accountId!==aid||row.agentId!==agent)throw new DeviceAccessGrantError('plus_authorization_not_found',404);
-    const active=this._activeGrant(row.deviceId,row.connectionId,now);
+    const active=this._activeGrant(row.deviceId,row.connectionId,now,row.agentId,row.accountId);
     if(row.state!=='approved'||!active)throw new DeviceAccessGrantError('device_access_grant_required',401);
     if(!row.consumedAt){row.consumedAt=now;this._persist();}
     return {state:'approved',requestId:row.requestId,grant:{...active}};
@@ -204,7 +209,7 @@ export class DeviceAccessGrantRegistry {
   }
   activeForDevice(deviceId,connectionId=null){
     const did=validId(deviceId,'invalid_access_device_id'),now=this.now();
-    for(const row of this.grants.values())if(row.deviceId===did&&!row.closedAt&&now<row.expiresAt&&(connectionId==null||row.connectionId===String(connectionId)))return {...row};
+    for(const row of this.grants.values())if(row.deviceId===did&&!row.closedAt&&now<this._expiry(row)&&(connectionId==null||row.connectionId===String(connectionId)))return {...row};
     return null;
   }
   reap({connectionForDevice=()=>null,liveSessionsForDevice=()=>0}={}){
@@ -214,7 +219,7 @@ export class DeviceAccessGrantRegistry {
       if(row.closedAt)continue;
       const connection=connectionForDevice(row.deviceId);
       let reason=null;
-      if(now>=row.expiresAt)reason='device_connection_expired';
+      if(now>=this._expiry(row))reason='device_access_grant_expired';
       else if(!connection||connection.state!=='connected')reason='device_connection_closed';
       else if(connection.connectionId!==row.connectionId)reason='device_connection_changed';
       else if(Number(liveSessionsForDevice(row.deviceId)||0)===0 && now-Number(row.lastActivityAt||row.approvedAt||0)>=Number(row.idleGraceMs||this.defaultIdleGraceMs))reason='device_access_idle_expired';

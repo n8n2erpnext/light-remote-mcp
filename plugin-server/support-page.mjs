@@ -55,6 +55,8 @@ export function renderSupportPage({origin,version}){
     @media(max-width:980px){.support-hero{grid-template-columns:1fr}.quick-grid{grid-template-columns:repeat(2,1fr)}.support-layout{grid-template-columns:1fr}.support-side{position:static;display:flex;overflow:auto;gap:4px}.support-side .label{display:none}.support-side a{white-space:nowrap}.support-cols,.contact-grid{grid-template-columns:1fr}}
     @media(max-width:620px){.support-main{padding:36px 16px 60px}.support-nav{padding:18px 16px}.support-nav nav a:not(:last-child){display:none}.support-hero h1{font-size:38px}.quick-grid{grid-template-columns:1fr}.support-section{padding:21px}.search-row{display:block}.support-cols,.case-form{grid-template-columns:1fr}.case-form .wide{grid-column:auto}}
   </style>
+  <script src="/account/assets/theme.js"></script>
+  <link rel="stylesheet" href="/account/assets/visual-system-v4.css">
 </head>
 <body>
   <header class="support-nav">
@@ -72,12 +74,12 @@ export function renderSupportPage({origin,version}){
     </section>
 
     <section class="quick-grid" aria-label="Common support topics">
-      <a class="quick-card" href="#getting-started"><img src="/assets/icons/material/download.svg" alt=""><div><strong>Install & link</strong><span>Get the client, link the device, then approve AI access.</span></div></a>
-      <a class="quick-card" href="#approval"><img src="/assets/icons/material/link.svg" alt=""><div><strong>A/B approval</strong><span>Account sign-in is not device authorization.</span></div></a>
-      <a class="quick-card" href="#real-remote"><img src="/assets/icons/material/computer.svg" alt=""><div><strong>Real Remote</strong><span>Screen works but mouse, keyboard, or permissions do not.</span></div></a>
-      <a class="quick-card" href="#account-plans"><img src="/assets/icons/material/person.svg" alt=""><div><strong>Account & plans</strong><span>Login, password, quota, PRO, VIP and Fleet.</span></div></a>
-      <a class="quick-card" href="#updates"><img src="/assets/icons/material/refresh.svg" alt=""><div><strong>Update problems</strong><span>Compatibility, prerelease warnings and recovery.</span></div></a>
-      <a class="quick-card" href="#diagnostics"><img src="/assets/icons/material/support_agent.svg" alt=""><div><strong>Need human help</strong><span>Copy a safe support template and contact us.</span></div></a>
+      <a class="quick-card" href="#getting-started"><span class="support-topic-icon"><img src="/assets/icons/material/download.svg" alt=""></span><div><strong>Install & link</strong><span>Get the client, link the device, then approve AI access.</span></div></a>
+      <a class="quick-card" href="#approval"><span class="support-topic-icon"><img src="/assets/icons/material/link.svg" alt=""></span><div><strong>A/B approval</strong><span>Account sign-in is not device authorization.</span></div></a>
+      <a class="quick-card" href="#real-remote"><span class="support-topic-icon"><img src="/assets/icons/material/computer.svg" alt=""></span><div><strong>Real Remote</strong><span>Screen works but mouse, keyboard, or permissions do not.</span></div></a>
+      <a class="quick-card" href="#account-plans"><span class="support-topic-icon"><img src="/assets/icons/material/person.svg" alt=""></span><div><strong>Account & plans</strong><span>Login, password, quota, PRO, VIP and Fleet.</span></div></a>
+      <a class="quick-card" href="#updates"><span class="support-topic-icon"><img src="/assets/icons/material/refresh.svg" alt=""></span><div><strong>Update problems</strong><span>Compatibility, prerelease warnings and recovery.</span></div></a>
+      <a class="quick-card" href="#diagnostics"><span class="support-topic-icon"><img src="/assets/icons/material/support_agent.svg" alt=""></span><div><strong>Need human help</strong><span>Copy a safe support template and contact us.</span></div></a>
     </section>
 
     <div class="support-layout">

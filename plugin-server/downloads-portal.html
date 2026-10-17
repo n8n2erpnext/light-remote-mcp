@@ -20,6 +20,7 @@
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Light Remote","applicationCategory":"DeveloperApplication","operatingSystem":"Windows, Linux, macOS","url":"https://light-remote.thaiduy.digital/","downloadUrl":"https://light-remote.thaiduy.digital/downloads","publisher":{"@type":"Organization","name":"thaiduy.digital","url":"https://thaiduy.digital/"},"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
   <script src="/account/assets/theme.js"></script>
   <link rel="stylesheet" href="/account/assets/portal.css">
+  <link rel="stylesheet" href="/account/assets/visual-system-v4.css">
 </head>
 <body>
 <div class="download-shell">
@@ -39,7 +40,7 @@
       <span class="eyebrow" id="releaseChannel">RC · OFFICIAL DIRECT ENDPOINT</span>
       <h1>Install Light Remote</h1>
       <p>Every client connects directly to <code>https://light-remote.thaiduy.digital</code>. Install the client for your platform, link the local device to your Light Remote account, then control it from the official ChatGPT plugin.</p>
-      <div class="download-chatgpt-cta"><div class="download-chatgpt-copy"><div class="app-icon chatgpt-icon"><img src="/account/assets/chatgpt-logo.svg" alt="ChatGPT"></div><div><strong>Next: open Light Remote in ChatGPT</strong><span>The official plugin is the primary way to use Light Remote after installation.</span></div></div><a class="btn primary" href="https://chatgpt.com/plugins/plugin_asdk_app_6aab6c4bd7d88191a4108d8f4c5e4b4e" target="_blank" rel="noopener noreferrer">Open official plugin</a></div>
+      <div class="download-chatgpt-cta"><div class="download-chatgpt-copy"><div class="app-icon chatgpt-icon"><img src="/account/assets/chatgpt-logo.svg" alt="ChatGPT"></div><div><span class="chatgpt-card-kicker">OFFICIAL CHATGPT PLUGIN</span><strong>Use Light Remote from ChatGPT</strong><span>Link your device, then complete Local Wall A/B approval in the official plugin before your first command.</span></div></div><a class="btn primary download-plugin-btn" href="https://chatgpt.com/plugins/plugin_asdk_app_6aab6c4bd7d88191a4108d8f4c5e4b4e" target="_blank" rel="noopener noreferrer">Open plugin <span aria-hidden="true">↗</span></a></div>
     </section>
 
     <section class="download-install-shell">
@@ -175,7 +176,7 @@ function windowsView(){
 function macView(){
   const rel=release('macos'),x64=rel.assets?.x64,arm=rel.assets?.arm64;
   return '<div class="download-platform-head"><div><span class="download-kind">MACOS</span><h2>Install on macOS</h2><p>Native desktop launcher + Light Remote agent.</p></div>'+versionLine(rel)+'</div>'+
-    '<div class="download-alert"><strong>Unsigned / Not notarized prerelease</strong><span>This package is available now, but it is not Apple-signed or notarized yet. macOS may show a security warning on first launch.</span></div>'+
+    '<div class="download-alert" role="note"><span class="download-alert-status">UNSIGNED · NOT NOTARIZED</span><strong>This macOS build is a prerelease</strong><span>Available now for testing. Because it is not yet Apple-signed or notarized, macOS may show a security warning on first launch.</span><a href="/support#updates">How to open on macOS →</a></div>'+
     '<div class="download-steps">'+
       step(1,'Download and run macOS package','<div class="download-arch-grid">'+
         (arm?.file?assetAnchor(arm,'Apple Silicon (ARM64)'):'')+
@@ -232,9 +233,23 @@ async function load(){
   releaseChannel.textContent=channelLabel(currentManifest.channel)+' · OFFICIAL DIRECT ENDPOINT';
   render(detectedOs());
 }
+function usageEvent(event,detail){
+ try{
+  const body=JSON.stringify({event,...detail});
+  if(navigator.sendBeacon){navigator.sendBeacon('/site/interaction',new Blob([body],{type:'application/json'}));}
+  else fetch('/site/interaction',{method:'POST',headers:{'content-type':'application/json'},body,keepalive:true}).catch(()=>{});
+ }catch{}
+}
+document.addEventListener('click',event=>{
+ const a=event.target.closest('a[href]');
+ if(!a||!a.closest('.download-install-shell'))return;
+ if(!/^https:\/\/github\.com\//.test(a.href))return;
+ try{const u=new URL(a.href);const name=u.pathname.split('/').pop();if(name)usageEvent('download_click',{file:name})}catch{}
+});
 document.querySelectorAll('.download-os-tab').forEach(btn=>btn.onclick=()=>{
   const os=btn.dataset.os;
   history.replaceState(null,'','#'+os);
+  usageEvent('os_tab',{os:({macos:'macOS',windows:'Windows',linux:'Linux',ios:'iOS',android:'Android',docker:'Docker'}[os]||'Other')});
   render(os);
 });
 load().catch(e=>platformContent.innerHTML='<div class="empty error">'+esc(e.message)+'</div>');
