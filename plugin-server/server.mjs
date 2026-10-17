@@ -43,6 +43,10 @@ const app=express();
 // Device-channel result envelopes can legitimately exceed that even after client-side compaction,
 // so install host validation explicitly and apply the product body limit exactly once.
 app.use(hostHeaderValidation(PUBLIC_ALLOWED_HOSTS));
+// Gold site/outbox opt-ins share one live PostgreSQL/Redis dependency. Guard
+// BEFORE Paddle webhooks and every other stateful route, not just /healthz.
+// Non-Gold production has no such middleware and keeps its current behavior.
+if(goldSitePlane)app.use(createGoldPluginDependencyGuard(goldSitePlane));
 app.disable('x-powered-by');
 app.set('trust proxy','loopback, linklocal, uniquelocal');
 registerPaddleWebhook(app,express.raw({type:'application/json',limit:'512kb'}));
@@ -59,10 +63,6 @@ app.use((req,res,next)=>{
   next();
 });
 
-// The ordinary Plugin has no Gold pool and is unchanged. Once Gold opts into
-// the verified PG/Redis plane, no HTTP request may be acknowledged based on a
-// stale startup-only healthcheck. Failed dependencies return 503, never JSON.
-if(goldSitePlane)app.use(createGoldPluginDependencyGuard(goldSitePlane));
 installAnnouncements(app);
 registerClientAnnouncementFeed(app);
 installSiteAnalytics(app);

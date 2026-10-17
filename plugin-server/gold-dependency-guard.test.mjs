@@ -66,3 +66,17 @@ test('Default Plugin path has no Gold database dependency',async()=>{
  try{assert.equal((await server.query('/mcp','POST')).status,200)}
  finally{await server.close()}
 });
+
+test('Gold dependency guard precedes Paddle webhooks, body parsers and public routes',async()=>{
+ const fs=await import('node:fs');
+ const file=fs.readFileSync(new URL('./server.mjs',import.meta.url),'utf8');
+ const at=x=>file.indexOf(x);
+ const guard=at('app.use(createGoldPluginDependencyGuard(goldSitePlane))');
+ assert(guard>0,'Gold guard must be mounted');
+ for(const signature of ['registerPaddleWebhook(app,','app.use(express.json(',
+   'installAnnouncements(app);','registerOAuth(app);','registerAccountPortal(app);',
+   "app.post('/mcp'"]){
+  assert(at(signature)>guard,signature+' mounted before dependency guard');
+ }
+ assert(file.includes('if(goldSitePlane)app.use(createGoldPluginDependencyGuard(goldSitePlane));'));
+});
