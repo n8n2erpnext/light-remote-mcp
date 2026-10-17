@@ -20,6 +20,7 @@ import { LEGAL_PAGES, renderLegalPage } from './legal-pages.mjs';
 import { renderSupportPage } from './support-page.mjs';
 import { registerSupportBackoffice } from './support-backoffice.mjs';
 import {GoldPgSupportOutbox} from '../platform-v2/src/storage/support-outbox-pg.mjs';
+import {createGoldPluginDependencyGuard} from './gold-dependency-guard.mjs';
 import { registerPaddleWebhook } from './paddle-billing.mjs';
 import { PLUGIN_TOOL_SECURITY, registerPluginTools } from './tools.mjs';
 import { installOpenAiToolSecurityCompat } from './openai-security-compat.mjs';
@@ -58,6 +59,10 @@ app.use((req,res,next)=>{
   next();
 });
 
+// The ordinary Plugin has no Gold pool and is unchanged. Once Gold opts into
+// the verified PG/Redis plane, no HTTP request may be acknowledged based on a
+// stale startup-only healthcheck. Failed dependencies return 503, never JSON.
+if(goldSitePlane)app.use(createGoldPluginDependencyGuard(goldSitePlane));
 installAnnouncements(app);
 registerClientAnnouncementFeed(app);
 installSiteAnalytics(app);
