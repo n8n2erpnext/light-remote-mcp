@@ -79,3 +79,10 @@ The required `LR_GOLD_PG_ONLY=1` full-system gate still refuses both processes b
 - Conduct full API/UI E2E and restore rehearsal **without touching production**. No accepted Gold status without green results from this real environment.
 
 **Status: BLOCKED FOR GOLD ACCEPTANCE.** There is no verified production-independent all-PG/Redis system yet. No cutover or production stop is authorized.
+
+## A/B PostgreSQL runtime contract correction — follow-up 2026-10-17
+
+- Audited the exact `GoldPgCoreAuthority.pollPairing` SQL projection against PostgreSQL/pg's object-row behavior. An owner request actor and the optional Team grant actor were both selected as `actor_account_id`; the nullable LEFT JOIN value could mask the verified owner Agent. SQL now projects `request_actor_account_id` and `team_actor_account_id` distinctly, checks the exact requester, and confirms current linked Team actor, member state, device sharing and active actor account before returning approved grants.
+- Local Wall Team approval now rechecks the **immutable, PG-bound request actor** against active Team membership + active account inside the approval transaction, rather than requiring an Agent proof in a separate Wall's request context. The Agent was verified when the request was created and is independently reverified when polling. The owner-controlled Wall verifier still remains mandatory.
+- Focused mock tests cover object-row alias shadowing, owner vs Team separation, wrong Team actor, revoked membership/device share, approval without Wall-owned Agent proof and rollback on a membership revoke. **No legacy JSON/SQLite path was added.**
+- `node --test platform-v2/test/gold-core-authority.test.mjs`: 10/10 PASS. `npm run gold:core:test`: 45/45 PASS. These are **mocked SQL/source tests only**. Gold's 23-domain full runtime cutover is STILL BLOCKED; no independent PostgreSQL 17 / Redis 8 operational E2E, no canonical Operator/Plugin/Fleet migration and no production cutover. Do not infer acceptance from this fix.

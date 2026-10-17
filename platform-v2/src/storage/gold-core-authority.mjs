@@ -215,6 +215,7 @@ export class GoldPgCoreAuthority{
     const member=await c.query(
      "SELECT t.team_id FROM lr_teams t "+
      "JOIN lr_team_members m ON m.team_id=t.team_id AND m.state='active' "+
+     "JOIN lr_accounts actor ON actor.account_id=m.account_id AND actor.status='active' "+
      "JOIN lr_team_devices td ON td.team_id=t.team_id "+
      "WHERE t.owner_account_id=$1 AND m.account_id=$2 AND td.device_id=$3",
      [row.account_id,actor.accountId,row.device_id]);
@@ -275,22 +276,23 @@ export class GoldPgCoreAuthority{
     [grant,row.account_id,row.device_id,row.connection_id,row.agent_id,row.purpose,
      now,idle,Math.min(ms(row.hard_expires_at),now+idle),absolute]);
    if(row.purpose==='team-member'){
-    // The Wall principal is independently verified: never trust a request
-    // body's member account ID.
-    const actor=await this.verifyAgentPrincipal({agentId:row.agent_id,
-     agentProof:wallContext?.agentProof});
+    // The Agent was verified at request time and its actor is bound to this
+    // immutable request in PostgreSQL. A Local Wall approval cannot supply
+    // the Agent's private proof; recheck that stored actor's CURRENT rights
+    // inside this transaction instead. Poll separately re-verifies the Agent.
+    if(!row.actor_account_id)throw err('gold_ab_team_actor_missing');
     const member=await c.query(
      "SELECT t.team_id FROM lr_teams t JOIN lr_team_members m "+
      "ON m.team_id=t.team_id AND m.state='active' "+
+     "JOIN lr_accounts actor ON actor.account_id=m.account_id AND actor.status='active' "+
      "JOIN lr_team_devices td ON td.team_id=t.team_id "+
      "WHERE t.owner_account_id=$1 AND m.account_id=$2 AND td.device_id=$3",
-     [row.account_id,actor?.accountId||'',row.device_id]);
-    if(actor?.accountId!==row.actor_account_id||!member.rows?.length)
-     throw err('gold_ab_team_membership_revoked');
+     [row.account_id,row.actor_account_id,row.device_id]);
+    if(!member.rows?.length)throw err('gold_ab_team_membership_revoked');
     await c.query(
      "INSERT INTO lr_ab_team_actor_grants(grant_id,team_id,actor_account_id,device_id) "+
      "VALUES($1,$2,$3,$4)",
-     [grant,member.rows[0].team_id,actor.accountId,row.device_id]);
+     [grant,member.rows[0].team_id,row.actor_account_id,row.device_id]);
    }
    const update=await c.query(
     "UPDATE lr_ab_requests SET state='approved',consumed_at=now(),"+
@@ -310,13 +312,14 @@ export class GoldPgCoreAuthority{
   const actor=await this.verifyAgentPrincipal({agentId:agent,agentProof});
   if(!actor?.accountId)throw err('gold_ab_agent_proof_required',401);
   const result=await this.pool.query(
-   "SELECT r.state,r.account_id,r.actor_account_id,r.device_id,r.purpose,r.expires_at,"+
+   "SELECT r.state,r.account_id,r.actor_account_id AS request_actor_account_id,r.device_id,r.purpose,r.expires_at,"+
    "r.approved_grant_id,g.closed_at AS grant_closed_at,g.expires_at AS grant_expires_at,"+
    "g.absolute_expires_at,cn.hard_expires_at,cn.closed_at AS connection_closed_at,"+
-   "d.state AS device_state,a.status AS owner_status,"+
-   "tag.actor_account_id,tm.state AS member_state,td.device_id AS shared_device "+
+   "d.state AS device_state,a.status AS owner_status,agent_actor.status AS actor_status,"+
+   "tag.actor_account_id AS team_actor_account_id,tm.state AS member_state,td.device_id AS shared_device "+
    "FROM lr_ab_requests r "+
    "JOIN lr_accounts a ON a.account_id=r.account_id "+
+   "JOIN lr_accounts agent_actor ON agent_actor.account_id=r.actor_account_id "+
    "JOIN lr_device_connections cn ON cn.connection_id=r.connection_id "+
    "JOIN lr_devices d ON d.device_id=r.device_id "+
    "LEFT JOIN lr_ab_grants g ON g.grant_id=r.approved_grant_id "+
@@ -330,10 +333,12 @@ export class GoldPgCoreAuthority{
   if(!row||row.owner_status!=='active'||row.device_state==='revoked'||
    row.connection_closed_at||ms(row.hard_expires_at)<=this.now())
    throw err('gold_ab_poll_inactive_or_unknown',404);
-  if(row.actor_account_id!==actor.accountId)
+  if(row.request_actor_account_id!==actor.accountId)
    throw err('gold_ab_poll_account_mismatch',403);
+  if(row.actor_status!=='active')throw err('gold_ab_poll_account_inactive',403);
   if(row.purpose==='team-member'&&row.state==='approved'&&
-   (row.member_state!=='active'||!row.shared_device))
+   (row.team_actor_account_id!==actor.accountId||
+    row.member_state!=='active'||!row.shared_device))
    throw err('gold_ab_poll_team_revoked',403);
   if(row.state==='pending'&&ms(row.expires_at)>this.now())
    return {state:'pending'};

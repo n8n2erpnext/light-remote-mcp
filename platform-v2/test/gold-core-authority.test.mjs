@@ -121,8 +121,15 @@ function harness({identity=true,device=true,agentAccount=account,wall=true,paddl
     r.poll_sha256===digest&&r.agent_id===agentId);
    if(!request)return{rows:[]};
    const grant=data.grants.get(request.approved_grant_id);
-   return{rows:[{...request,owner_status:'active',device_state:'online',
-    connection_closed_at:null,grant_closed_at:grant?.closed_at||null,
+   // Project the exact unique column names returned by PostgreSQL. A prior
+   // SELECT repeated actor_account_id (request and LEFT JOIN Team grant),
+   // causing the nullable Team column to shadow the owner's actor on device A/B.
+   assert.match(s,/r\.actor_account_id AS request_actor_account_id/);
+   assert.match(s,/tag\.actor_account_id AS team_actor_account_id/);
+   return{rows:[{...request,request_actor_account_id:request.actor_account_id,
+    team_actor_account_id:grant?.teamActorAccountId??null,
+    owner_status:'active',actor_status:'active',device_state:'online',connection_closed_at:null,
+    grant_closed_at:grant?.closed_at||null,
     grant_expires_at:grant?new Date(DATE+3600000):null,
     absolute_expires_at:grant?new Date(DATE+86400000):null}]};
   }
@@ -275,4 +282,84 @@ test('Invalid proof denies registration before any SQL mutation',async()=>{
  await assert.rejects(()=>a.registerVerifiedAccount({accountId:account,email,
   password:'StrongPass#123',proof:'not-valid'}),/gold_verified_email_proof_required/);
  assert.deepEqual(calls.map(x=>x.sql),['BEGIN','ROLLBACK']);
+});
+
+test('A/B polling separates requesting Agent identity from optional Team grant actor',async()=>{
+ const {authority:core,pool}=harness({agentAccount:'acct_member'});
+ const request={
+  state:'approved',account_id:'acct_owner',request_actor_account_id:'acct_member',
+  device_id:'dev_shared',purpose:'team-member',approved_grant_id:'grant_shared',
+  expires_at:new Date(DATE+600000),hard_expires_at:new Date(DATE+86400000),
+  connection_closed_at:null,device_state:'online',owner_status:'active',actor_status:'active',
+  grant_closed_at:null,grant_expires_at:new Date(DATE+3600000),
+  absolute_expires_at:new Date(DATE+86400000),
+  team_actor_account_id:'acct_other',member_state:'active',
+  shared_device:'dev_shared'
+ };
+ pool.query=async(sql)=>{
+  assert(sql.includes('r.actor_account_id AS request_actor_account_id'));
+  assert(sql.includes('tag.actor_account_id AS team_actor_account_id'));
+  return{rows:[{...request}]};
+ };
+ const params={pollToken:'A'.repeat(43),agentId:'agent-chatgpt',agentProof:'verified'};
+ await assert.rejects(()=>core.pollPairing(params),/gold_ab_poll_team_revoked/);
+ request.team_actor_account_id='acct_member';
+ assert.deepEqual(await core.pollPairing(params),{
+  state:'approved',grantId:'grant_shared',deviceId:'dev_shared',
+  expiresAt:DATE+3600000
+ });
+ request.member_state='revoked';
+ await assert.rejects(()=>core.pollPairing(params),/gold_ab_poll_team_revoked/);
+ request.member_state='active';request.shared_device=null;
+ await assert.rejects(()=>core.pollPairing(params),/gold_ab_poll_team_revoked/);
+ // Owner-only A/B does not require a Team actor row from LEFT JOIN.
+ request.purpose='device';request.request_actor_account_id='acct_member';
+ request.team_actor_account_id=null;request.shared_device=null;
+ assert.equal((await core.pollPairing(params)).state,'approved');
+});
+
+test('Team A/B approval uses DB-bound Agent actor and live membership, not an Agent proof from Wall',async()=>{
+ const {authority:core,pool}=harness({agentAccount:'acct_member'});
+ const calls=[];
+ const row={request_id:'ab_team',state:'pending',account_id:'acct_owner',
+  actor_account_id:'acct_member',device_id:'dev_shared',connection_id:'conn_shared',
+  agent_id:'agent-chatgpt',purpose:'team-member',
+  expires_at:new Date(DATE+600000),hard_expires_at:new Date(DATE+86400000),
+  closed_at:null,device_state:'online',account_status:'active',
+  display_code_ciphertext:null};
+ // Match the persisted AES-GCM layout of the request; do not invent or
+ // let the Wall overwrite the Agent account ID in the saved request.
+ const nonce=crypto.randomBytes(12);
+ const cipher=crypto.createCipheriv('aes-256-gcm',key,nonce);
+ row.display_code_ciphertext=Buffer.concat([
+  nonce,cipher.update('ABCDE-12345','utf8'),cipher.final(),cipher.getAuthTag()
+ ]);
+ let membershipActive=true;
+ pool.connect=async()=>({release(){},query:async(sql,params=[])=>{
+  calls.push({sql,params});
+  if(['BEGIN','COMMIT','ROLLBACK'].includes(sql))return{rows:[]};
+  if(sql.includes('FROM lr_ab_requests r')&&sql.includes('FOR UPDATE'))return{rows:[row]};
+  if(sql.startsWith('INSERT INTO lr_ab_grants('))return{rows:[]};
+  if(sql.includes('FROM lr_teams t JOIN lr_team_members m')){
+   assert(sql.includes("actor.status='active'"));
+   assert.deepEqual(params,['acct_owner','acct_member','dev_shared']);
+   return{rows:membershipActive?[{team_id:'team_owner'}]:[]};
+  }
+  if(sql.startsWith('INSERT INTO lr_ab_team_actor_grants(')){
+   assert.equal(params[2],'acct_member');
+   return{rows:[]};
+  }
+  if(sql.startsWith("UPDATE lr_ab_requests SET state='approved'"))return{rows:[{request_id:'ab_team'}]};
+  throw Error('unexpected_test_sql '+sql.slice(0,100));
+ }});
+ const input={requestId:'ab_team',approvalCode:'ABCDE-12345',wallContext:{authorized:true}};
+ const approved=await core.approvePairing(input);
+ assert(approved.approved);
+ assert(calls.some(x=>x.sql==='COMMIT'));
+ assert(!calls.some(x=>x.sql==='ROLLBACK'));
+ assert(!calls.some(x=>JSON.stringify(x.params).includes('agentProof')));
+ calls.length=0;membershipActive=false;
+ await assert.rejects(()=>core.approvePairing(input),/gold_ab_team_membership_revoked/);
+ assert(calls.some(x=>x.sql==='ROLLBACK'));
+ assert(!calls.some(x=>x.sql==='COMMIT'));
 });
