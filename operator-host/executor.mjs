@@ -21,7 +21,7 @@ import { DevicePairingRegistry, DevicePairingRegistryError } from './device-pair
 import { AgentClientRegistry, AgentClientRegistryError } from './agent-client-registry.mjs';
 import { AccountRegistry, AccountError } from './account-registry.mjs';
 import { AccountNotificationRegistry, AccountNotificationError } from './account-notification-registry.mjs';
-import {createGoldOperatorNotificationBridge,notificationCoreSocket} from './gold-notification-core-bridge.mjs';
+import {createGoldOperatorNotificationBridge,notificationCoreSocket,isUnmigratedGoldAccountAuthorityRoute} from './gold-notification-core-bridge.mjs';
 import { openGoldDataPlane } from '../platform-v2/src/storage/gold-data-plane.mjs';
 import { ProTeamRegistry, ProTeamError } from './pro-team-registry.mjs';
 import { requestTeamMemberApproval } from './team-approval-requests.mjs';
@@ -51,13 +51,21 @@ import { RealRemoteLiveRegistry } from './real-remote-live-registry.mjs';
 import { createNativeActivityFormatter } from './executor-native-activity.mjs';
 // Opt-in one-domain PG canary only. No other registry is migrated yet.
 // Invalid database credentials or absent PG/Redis abort startup, never fall back.
-const goldNotificationPlane=String(process.env.LR_GOLD_NOTIFICATIONS_PG||'')==='1'
+const goldAccountAuthMode=String(process.env.LR_GOLD_ACCOUNT_AUTH_PG||'')==='1';
+const goldNotificationMode=String(process.env.LR_GOLD_NOTIFICATIONS_PG||'')==='1';
+if(goldAccountAuthMode&&!goldNotificationMode)
+  throw Error('gold_account_auth_requires_notifications_pg');
+const goldNotificationPlane=goldNotificationMode
   ?await openGoldDataPlane():null;
 // PostgreSQL notifications in isolated Gold MUST resolve account sessions and
 // writes through the same authoritative Gold Core; legacy JSON sessions cannot
 // be accepted as a parallel identity authority.
 const goldNotificationBridge=goldNotificationPlane
-  ?createGoldOperatorNotificationBridge({socketPath:notificationCoreSocket(process.env)})
+  ?createGoldOperatorNotificationBridge({
+    socketPath:notificationCoreSocket(process.env),
+    accountRoutes:goldAccountAuthMode,
+    notificationRoutes:true
+   })
   :null;
 
 const SOCKET_PATH = process.env.OPERATOR_SOCKET || '/run/gpt-vps-operator/operator.sock';
@@ -1051,6 +1059,11 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && url.pathname === '/v1/capabilities') {
       return sendJson(res, 200, { ok: true, ...capabilities() });
     }
+    // The isolated Gold auth rollout must not silently write credentials,
+    // invitations or account plans through legacy JSON Plugin/Admin routes.
+    // A PG-backed equivalent with verified proof must be added first.
+    if(goldAccountAuthMode&&isUnmigratedGoldAccountAuthorityRoute(url.pathname))
+      return sendJson(res,503,{ok:false,error:'gold_account_route_not_migrated'});
     await handlePluginRoutes(req,res,url,routeDeps());
     if(res.headersSent)return;
     if(goldNotificationBridge&&await goldNotificationBridge(req,res,url))return;
