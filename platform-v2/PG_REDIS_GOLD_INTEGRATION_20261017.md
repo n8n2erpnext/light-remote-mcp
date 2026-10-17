@@ -17,6 +17,12 @@
 - Actual Operator/Plugin still instantiate JSON-backed registries, including account, sessions, device, grants, Team, notifications, payment records and Plugin OAuth/outbox. There is **no complete PG-only production runtime** yet.
 - No SQLite business adapter has been imported into Gold runtime. The rc.50 `team-durable-dispatch-uat.mjs` SQLite simulator remains historical reference only.
 
+## Verified schema-migration executor — follow-up
+
+- `platform-v2/src/storage/gold-migrations.mjs` reads the immutable 13-file RC.50 manifest, independently SHA-256 verifies each SQL payload, rejects unexpected files and nontransactional input, and executes only under a PostgreSQL session advisory lock. It requires database `light_remote_gold_dev`, role `lr_gold_migrator` (not the application role and not superuser). Existing versions are checked before applying, and every applied version is verified in the schema ledger.
+- `deploy/scripts/apply-gold-migrations.mjs` is a real, owner-gated CLI for the future Gold database. Requires `LIGHT_REMOTE_GOLD_INDEPENDENT=1`, `LR_GOLD_MIGRATIONS_APPROVED=1`, `LIGHT_REMOTE_GOLD_ROOT` and a 0600 migrator URL file referenced by `LR_GOLD_MIGRATOR_URL_FILE` under that root. It does not provision a database, create users, touch live production or start Docker. Database provisioning and role grants must be reviewed and performed separately.
+- `platform-v2/test/gold-migrations.test.mjs` 4/4 PASS: locked manifest, corruption rejection, first-time 13-file sequence, idempotent replay, role/DB/superuser denial, drift detection and advisory-lock cleanup on failure. Unconfigured CLI fails closed.
+- Migration tests use an injected mock PG client. **No Gold database was migrated** because the required isolated database is not running and Docker start has previously been denied by local Light Remote policy.
 ## Strict next gates
 
 1. Legitimately provision/start Gold database containers and a non-superuser app role. Apply immutable 1..13 migrations and prove actual two-service PG/Redis connections; environment URL files and role grants must be created by the authorized owner-side provisioner.
