@@ -206,4 +206,57 @@ export class GoldPgDeviceChannelAuthority{
     accountId:p.owner,closed:true,closeReason:reason};
   });
  }
+ /**
+  * Database-authoritative lease expiry cleanup for devices that vanished
+  * without sending a signed disconnect. Bounded and race-safe across Gold
+  * Core processes; never fabricates signed device proof on their behalf.
+  */
+ async reapExpired({limit=64}={}){
+  if(!Number.isSafeInteger(limit)||limit<1||limit>128)
+   throw err('gold_channel_reaper_limit_invalid',400);
+  // Read without an early row lock: never hold a connection lock and then
+  // take the owner/device advisory locks in the opposite order of connect().
+  const candidates=await this.pool.query(
+   "SELECT connection_id,account_id,device_id "+
+   "FROM lr_device_connections WHERE closed_at IS NULL "+
+   "AND hard_expires_at<=now() ORDER BY hard_expires_at,connection_id LIMIT $1",
+   [limit]);
+  let expired=0,skipped=0;
+  for(const candidate of candidates.rows||[]){
+   const conn=id(candidate.connection_id),owner=id(candidate.account_id);
+   const device=id(candidate.device_id);
+   const changed=await this.tx(async c=>{
+    await c.query('SELECT pg_advisory_xact_lock(hashtext($1))',
+     ['gold:connect:'+owner]);
+    await c.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',
+     ['gold:device:'+device]);
+    const owned=await c.query(
+     "SELECT device_id FROM lr_devices WHERE device_id=$1 "+
+     "AND owner_account_id=$2 FOR UPDATE",[device,owner]);
+    if(owned.rows?.length!==1)throw err('gold_channel_reaper_device_mismatch');
+    const current=await c.query(
+     "SELECT connection_id,hard_expires_at,closed_at "+
+     "FROM lr_device_connections WHERE connection_id=$1 "+
+     "AND account_id=$2 AND device_id=$3 FOR UPDATE",
+     [conn,owner,device]);
+    const row=current.rows?.[0];
+    if(!row||row.closed_at||epoch(row.hard_expires_at)>this.now())
+     return false; // renewed/revoked/cleaned by another worker
+    const siblings=await c.query(
+     "SELECT connection_id FROM lr_device_connections "+
+     "WHERE device_id=$1 AND account_id=$2 AND connection_id<>$3 "+
+     "AND closed_at IS NULL AND hard_expires_at>now() FOR UPDATE",
+     [device,owner,conn]);
+    const live=(siblings.rows?.length||0)>0;
+    await this.expire(c,conn,'lease_expired',{cancelQueued:!live});
+    if(!live)await c.query(
+     "UPDATE lr_devices SET state='offline',updated_at=now() "+
+     "WHERE device_id=$1 AND owner_account_id=$2 AND state<>'revoked'",
+     [device,owner]);
+    return true;
+   });
+   if(changed)expired++;else skipped++;
+  }
+  return {scanned:(candidates.rows||[]).length,expired,skipped};
+ }
 }

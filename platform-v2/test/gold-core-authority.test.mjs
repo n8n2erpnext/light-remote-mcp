@@ -222,19 +222,17 @@ test('Core disables accounts transactionally, invalidates sessions and A/B state
   'deleting the actor-grant row would break Gold 019 FK from Team Agent bindings');
  assert(queries.lastIndexOf('COMMIT')>grantIdx,'disable transaction must commit revocation');
 });
-test('Device registration is proven and reconnect returns same connection under account cap',async()=>{
+test('Device enrollment proof cannot mint an online connection using browser bearer',async()=>{
  const {authority:a,data}=harness();
  await a.registerVerifiedAccount({accountId:account,email,password:'StrongPass#123',proof:'verified'});
  const logged=await a.login({email,password:'StrongPass#123'});
  const device=await a.registerDevice({sessionToken:logged.token,deviceId:'dev_mac',nodeId:'node_mac',
   publicIdentityKey:'public-test-key',proof:'signed-device'});
  assert.equal(device.owner_account_id,account);
- const connected=await a.connectDevice({sessionToken:logged.token,deviceId:'dev_mac'});
- assert(connected.connectionId.startsWith('conn_'));
- const reused=await a.connectDevice({sessionToken:logged.token,deviceId:'dev_mac'});
- assert.equal(reused.connectionId,connected.connectionId);
- assert.equal(reused.reused,true);
- assert.equal(data.connections.size,1);
+ await assert.rejects(()=>a.connectDevice({sessionToken:logged.token,deviceId:'dev_mac'}),
+  /gold_signed_device_channel_required/);
+ assert.equal(data.connections.size,0,
+  'browser bearer alone must not mint a channel-authorized connection');
 });
 test('A/B requires agent authority, local Wall proof, one-time code, then scoped grant',async()=>{
  const {authority:a,data}=harness();
@@ -242,7 +240,11 @@ test('A/B requires agent authority, local Wall proof, one-time code, then scoped
  const logged=await a.login({email,password:'StrongPass#123'});
  await a.registerDevice({sessionToken:logged.token,deviceId:'dev_mac',nodeId:'node_mac',
   publicIdentityKey:'public-test-key',proof:'signed-device'});
- const conn=await a.connectDevice({sessionToken:logged.token,deviceId:'dev_mac'});
+ // Fixture stands in for a separately signed Gold Device Channel.connect()
+ // transaction; this A/B test does not exercise the hardware verifier.
+ const conn={connectionId:'conn_signed_device_channel'};
+ data.connections.set(conn.connectionId,{connectionId:conn.connectionId,
+  deviceId:'dev_mac',accountId:account,plan:'free',expiresAt:DATE+86400000});
  const request=await a.requestPairing({connectionId:conn.connectionId,
   agentId:'agent-chatgpt',agentProof:'server-signed'});
  assert.match(request.approvalCode,/^[0-9A-F]{5}-[0-9A-F]{5}$/);

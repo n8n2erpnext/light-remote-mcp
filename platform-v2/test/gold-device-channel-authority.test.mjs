@@ -13,6 +13,21 @@ function setup(){
   calls.push({sql,p});
   if(['BEGIN','COMMIT','ROLLBACK'].includes(sql)||
      sql.includes('SELECT pg_advisory_xact_lock'))return{rows:[]};
+  if(sql.startsWith('SELECT connection_id,account_id,device_id FROM lr_device_connections')){
+   return{rows:[...connections.values()].filter(row=>!row.closed_at&&
+    row.expiresAt<=state.now).slice(0,p[0]).map(row=>({
+     connection_id:row.connectionId,account_id:row.accountId,
+     device_id:row.deviceId}))};
+  }
+  if(sql.startsWith('SELECT device_id FROM lr_devices WHERE device_id=')){
+   return{rows:p[0]===DEVICE&&p[1]===OWNER?[{device_id:DEVICE}]:[]};
+  }
+  if(sql.startsWith('SELECT connection_id,hard_expires_at,closed_at FROM lr_device_connections')){
+   const row=connections.get(p[0]);
+   return{rows:row&&row.accountId===p[1]&&row.deviceId===p[2]?[{
+    connection_id:row.connectionId,hard_expires_at:new Date(row.expiresAt),
+    closed_at:row.closed_at}]:[]};
+  }
   if(sql.startsWith('SELECT d.device_id,d.node_id,d.state,a.status,a.plan')){
    return{rows:p[0]===DEVICE&&p[1]===OWNER&&p[2]===NODE?
     [{device_id:DEVICE,node_id:NODE,state:state.deviceState,
@@ -201,4 +216,44 @@ test('Disconnect one of two imported live leases leaves other online and queued 
  assert(f.connections.get(first.connectionId).closed_at);
  assert.equal(f.state.deviceState,'online');
  assert(!f.calls.slice(before).some(x=>x.sql.startsWith("UPDATE lr_jobs SET state='canceled'")));
+});
+
+test('Gold PG channel reaper closes abandoned lease, A/B authority and queued work with no signed device online',async()=>{
+ const f=setup(),connection=await f.call('connect');
+ f.state.now+=3600001;
+ const begin=f.calls.length;
+ const result=await f.svc.reapExpired({limit:12});
+ assert.deepEqual(result,{scanned:1,expired:1,skipped:0});
+ assert(f.connections.get(connection.connectionId).closed_at);
+ assert.equal(f.state.deviceState,'offline');
+ const cleaned=f.calls.slice(begin);
+ assert(cleaned.some(x=>x.sql.startsWith("UPDATE lr_ab_grants SET closed_at")));
+ assert(cleaned.some(x=>x.sql.startsWith("UPDATE lr_remote_sessions SET closed_at")));
+ const canceled=cleaned.find(x=>x.sql.startsWith("UPDATE lr_jobs SET state='canceled'"));
+ assert(canceled?.sql.includes('(device_id,owner_account_id)'));
+ assert.equal(cleaned.at(-1).sql,'COMMIT');
+ const twice=await f.svc.reapExpired({limit:12});
+ assert.deepEqual(twice,{scanned:0,expired:0,skipped:0});
+});
+test('Gold reaper preserves a still-live replacement connection and queued jobs',async()=>{
+ const f=setup(),first=await f.call('connect');
+ f.state.now+=3600001;
+ const other='conn_active_signed_new';
+ f.connections.set(other,{connectionId:other,accountId:OWNER,deviceId:DEVICE,
+  expiresAt:f.state.now+600000,reconnectGraceMs:900000,closed_at:null});
+ const begin=f.calls.length;
+ const result=await f.svc.reapExpired();
+ assert.equal(result.expired,1);
+ assert(f.connections.get(first.connectionId).closed_at);
+ assert.equal(f.state.deviceState,'online');
+ assert(!f.calls.slice(begin).some(x=>x.sql.startsWith("UPDATE lr_jobs SET state='canceled'")));
+});
+test('Gold reaper refuses out-of-range batch sizes and propagates PostgreSQL failures',async()=>{
+ const f=setup();
+ await assert.rejects(()=>f.svc.reapExpired({limit:0}),/gold_channel_reaper_limit_invalid/);
+ await assert.rejects(()=>f.svc.reapExpired({limit:129}),/gold_channel_reaper_limit_invalid/);
+ const previous=f.svc.pool.query;
+ f.svc.pool.query=async()=>{throw Error('real_pg_unavailable')};
+ await assert.rejects(()=>f.svc.reapExpired(),/real_pg_unavailable/);
+ f.svc.pool.query=previous;
 });

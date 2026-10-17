@@ -179,40 +179,12 @@ export class GoldPgCoreAuthority{
    return result.rows[0];
   });
  }
- async connectDevice({sessionToken,deviceId,leaseMs=86400000,reconnectGraceMs=3600000}={}){
-  const owner=await this.authenticate(sessionToken),dev=id(deviceId);
-  ttl(leaseMs,900000,86400000);ttl(reconnectGraceMs,900000,3600000);
-  return this.tx(async c=>{
-   await c.query('SELECT pg_advisory_xact_lock(hashtext($1))',['gold:connect:'+owner.accountId]);
-   const r=await c.query(
-    "SELECT d.device_id,d.state,a.plan,a.status FROM lr_devices d "+
-    "JOIN lr_accounts a ON a.account_id=d.owner_account_id "+
-    "WHERE d.device_id=$1 AND d.owner_account_id=$2 FOR UPDATE",
-    [dev,owner.accountId]);
-   const row=r.rows?.[0];
-   if(!row||row.state==='revoked'||row.status!=='active')
-    throw err('gold_connection_device_invalid');
-   const prior=await c.query(
-    "SELECT connection_id,hard_expires_at FROM lr_device_connections "+
-    "WHERE account_id=$1 AND device_id=$2 AND closed_at IS NULL "+
-    "AND hard_expires_at>now() ORDER BY connected_at DESC LIMIT 1 FOR UPDATE",
-    [owner.accountId,dev]);
-   if(prior.rows?.length)return {connectionId:prior.rows[0].connection_id,
-    deviceId:dev,accountId:owner.accountId,
-    expiresAt:ms(prior.rows[0].hard_expires_at),reused:true};
-   const cnt=await c.query(
-    "SELECT COUNT(DISTINCT device_id)::integer AS count FROM lr_device_connections "+
-    "WHERE account_id=$1 AND closed_at IS NULL AND hard_expires_at>now()",
-    [owner.accountId]);
-   if(Number(cnt.rows?.[0]?.count||0)>=Number(this.planDeviceCap[row.plan]||0))
-    throw err('gold_connection_plan_cap',429);
-   const conn='conn_'+crypto.randomUUID(),expiresAt=this.now()+leaseMs;
-   await c.query(
-    "INSERT INTO lr_device_connections(connection_id,device_id,account_id,plan,"+
-    "hard_expires_at,reconnect_grace_ms) VALUES($1,$2,$3,$4,to_timestamp($5/1000.0),$6)",
-    [conn,dev,owner.accountId,row.plan,expiresAt,reconnectGraceMs]);
-   return {connectionId:conn,deviceId:dev,accountId:owner.accountId,expiresAt};
-  });
+ async connectDevice(){
+  // Deprecated on the Gold Core authority. A web bearer proves account
+  // ownership, NOT that a physical device signed an online connection.
+  // Do not retain this internal bypass even though the HTTP route is denied.
+  // GoldPgDeviceChannelAuthority.connect() is the only PG connection mint.
+  throw err('gold_signed_device_channel_required',403);
  }
  async requestPairing({connectionId,agentId,agentProof,purpose='device',ttlMs=600000}={}){
   const conn=id(connectionId),agent=id(agentId);
