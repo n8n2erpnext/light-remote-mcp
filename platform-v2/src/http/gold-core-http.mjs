@@ -39,8 +39,11 @@ const getToken=req=>{
 const jsonStatus=e=>Number.isInteger(e?.status)&&e.status>=400&&e.status<500?e.status:503;
 
 export function createGoldCoreHttpHandler({core,team,approveWallRequest,
-  verifyAgentIngress,verifyOAuthClient,verifyBillingIngress,verifyUsageIngress,verifyDeviceChannelIngress,agentClients,remoteSessions,deviceChannel}={}){
+  verifyAgentIngress,verifyOAuthClient,verifyBillingIngress,verifyUsageIngress,verifyDeviceChannelIngress,verifyNotificationAdmin,agentClients,remoteSessions,deviceChannel,notifications}={}){
  if(!core||!team)throw Error('gold_http_pg_core_and_team_required');
+ if(notifications&&['inbox','markRead','list','publish','cancel'].some(name=>
+  typeof notifications[name]!=='function'))
+  throw Error('gold_http_pg_notification_authority_invalid');
  if(deviceChannel&&(['connect','renew','disconnect','setGrace'].some(
   action=>typeof deviceChannel[action]!=='function')||
   typeof verifyDeviceChannelIngress!=='function'))
@@ -54,7 +57,43 @@ export function createGoldCoreHttpHandler({core,team,approveWallRequest,
    verifyOAuthClient,verifyBillingIngress,verifyUsageIngress})){
    if(typeof fn!=='function')throw Error('gold_http_trusted_ingress_missing_'+name);
  }
+ const notificationAdmin=async req=>{
+  if(typeof verifyNotificationAdmin!=='function')
+   throw fail('gold_notification_admin_verifier_not_configured',503);
+  const principal=await verifyNotificationAdmin(req);
+  if(principal?.authorized!==true||
+    !/^[A-Za-z0-9._:-]{1,128}$/.test(String(principal.adminAccountId||'')))
+   throw fail('gold_notification_admin_unverified',401);
+  return principal.adminAccountId;
+ };
  const routes={
+  ...(notifications?{
+   'GET /v1/accounts/notifications':async req=>{
+    const account=await core.authenticate(getToken(req));
+    return {status:200,data:await notifications.inbox(account.accountId,account)};
+   },
+   'POST /v1/accounts/notifications/read':async req=>{
+    const account=await core.authenticate(getToken(req));
+    const body=await readJson(req);
+    return {status:200,data:await notifications.markRead(
+     account.accountId,body.notificationId,account)};
+   },
+   'GET /v1/admin/notifications':async req=>{
+    await notificationAdmin(req);
+    return {status:200,data:await notifications.list()};
+   },
+   'POST /v1/admin/notifications/publish':async req=>{
+    const adminAccountId=await notificationAdmin(req);
+    const body=await readJson(req);
+    return {status:201,data:{notification:await notifications.publish({
+     ...body,publishedBy:adminAccountId})}};
+   },
+   'POST /v1/admin/notifications/:id/cancel':async(req,notificationId)=>{
+    const adminAccountId=await notificationAdmin(req);
+    return {status:200,data:{notification:await notifications.cancel(notificationId,
+     {by:adminAccountId})}};
+   }
+  }:{}),
   ...(deviceChannel?Object.fromEntries([
    ['connect','connect'],['renew','renew'],['disconnect','disconnect'],
    ['grace','setGrace']].map(([action,fn])=>[
@@ -234,18 +273,22 @@ export function createGoldCoreHttpHandler({core,team,approveWallRequest,
   if(!url.pathname.startsWith('/v1/'))return false;
   const method=String(req.method||'GET').toUpperCase();
   const deviceMatch=/^\/v1\/agent-client\/(lrc_[A-Za-z0-9_-]+)\/devices$/.exec(url.pathname);
+  const notificationMatch=/^\/v1\/admin\/notifications\/(sys_[0-9a-f-]{36})\/cancel$/.exec(url.pathname);
   const key=deviceMatch
    ?method+' /v1/agent-client/:session/devices'
+   :notificationMatch
+   ?method+' /v1/admin/notifications/:id/cancel'
    :method+' '+url.pathname;
   const route=routes[key];
   if(!route){
-   if((deviceMatch&&agentClients)||Object.keys(routes).some(x=>x.endsWith(' '+url.pathname))){
+   if((deviceMatch&&agentClients)||(notificationMatch&&notifications)||
+    Object.keys(routes).some(x=>x.endsWith(' '+url.pathname))){
     json(res,405,{ok:false,error:'method_not_allowed'});return true;
    }
    return false;
   }
   try{
-   const response=await route(req,deviceMatch?.[1]||null);
+   const response=await route(req,deviceMatch?.[1]||notificationMatch?.[1]||null);
    json(res,response.status,{ok:true,...response.data});
   }catch(error){
    json(res,jsonStatus(error),{ok:false,error:error?.code&&jsonStatus(error)<500?

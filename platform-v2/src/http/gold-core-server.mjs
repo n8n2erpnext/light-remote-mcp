@@ -15,6 +15,7 @@ import {GoldPgTeamUsageAuthority} from '../storage/gold-team-usage-authority.mjs
 import {GoldPgAgentClientAuthority} from '../storage/gold-agent-client-authority.mjs';
 import {GoldPgRemoteSessionAuthority} from '../storage/gold-remote-session-authority.mjs';
 import {GoldPgDeviceChannelAuthority} from '../storage/gold-device-channel-authority.mjs';
+import {GoldPgNotificationRepository} from '../storage/notifications-pg.mjs';
 import {createGoldCoreHttpHandler} from './gold-core-http.mjs';
 
 const requiredVerifiers=[
@@ -38,7 +39,7 @@ const verifyAll=verifiers=>{
   strict(typeof verifiers?.[name]==='function','gold_core_ingress_verifier_required_'+name);
 };
 export async function startGoldCoreApi({env=process.env,verifiers,
- openPlane=openGoldDataPlane,socketPath,openCore,openTeam,openAgent,openRemoteSessions,openDeviceChannel}={}){
+ openPlane=openGoldDataPlane,socketPath,openCore,openTeam,openAgent,openRemoteSessions,openDeviceChannel,openNotifications}={}){
  verifyAll(verifiers);
  strict(env.LIGHT_REMOTE_GOLD_INDEPENDENT==='1','gold_core_independent_runtime_required');
  const pathName=socketPath||env.LR_GOLD_CORE_SOCKET;
@@ -77,8 +78,11 @@ export async function startGoldCoreApi({env=process.env,verifiers,
   const deviceChannel=openDeviceChannel?openDeviceChannel({pool:dataPlane.pool,verifiers}):
    new GoldPgDeviceChannelAuthority({pool:dataPlane.pool,
     verifyChannelEnvelope:verifiers.verifyChannelEnvelope});
+  const notifications=openNotifications?openNotifications({pool:dataPlane.pool,core,verifiers}):
+   new GoldPgNotificationRepository({pool:dataPlane.pool});
   const route=createGoldCoreHttpHandler({
-   core,team,agentClients,remoteSessions,deviceChannel,
+   core,team,agentClients,remoteSessions,deviceChannel,notifications,
+   verifyNotificationAdmin:verifiers.verifyNotificationAdmin,
    approveWallRequest:verifiers.approveWallRequest,
    verifyAgentIngress:verifiers.verifyAgentIngress,
    verifyOAuthClient:verifiers.verifyOAuthClient,
