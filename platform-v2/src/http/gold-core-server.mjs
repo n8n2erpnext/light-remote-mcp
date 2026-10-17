@@ -13,6 +13,7 @@ import {openGoldDataPlane} from '../storage/gold-data-plane.mjs';
 import {GoldPgCoreAuthority} from '../storage/gold-core-authority.mjs';
 import {GoldPgTeamUsageAuthority} from '../storage/gold-team-usage-authority.mjs';
 import {GoldPgAgentClientAuthority} from '../storage/gold-agent-client-authority.mjs';
+import {GoldPgRemoteSessionAuthority} from '../storage/gold-remote-session-authority.mjs';
 import {createGoldCoreHttpHandler} from './gold-core-http.mjs';
 
 const requiredVerifiers=[
@@ -35,7 +36,7 @@ const verifyAll=verifiers=>{
   strict(typeof verifiers?.[name]==='function','gold_core_ingress_verifier_required_'+name);
 };
 export async function startGoldCoreApi({env=process.env,verifiers,
- openPlane=openGoldDataPlane,socketPath,openCore,openTeam,openAgent}={}){
+ openPlane=openGoldDataPlane,socketPath,openCore,openTeam,openAgent,openRemoteSessions}={}){
  verifyAll(verifiers);
  strict(env.LIGHT_REMOTE_GOLD_INDEPENDENT==='1','gold_core_independent_runtime_required');
  const pathName=socketPath||env.LR_GOLD_CORE_SOCKET;
@@ -68,8 +69,11 @@ export async function startGoldCoreApi({env=process.env,verifiers,
   const agentClients=openAgent?openAgent({pool:dataPlane.pool,verifiers}):
    new GoldPgAgentClientAuthority({pool:dataPlane.pool,
     verifyAgentPrincipal:verifiers.verifyAgentPrincipal});
+  const remoteSessions=openRemoteSessions?
+   openRemoteSessions({pool:dataPlane.pool,agentClients,verifiers}):
+   new GoldPgRemoteSessionAuthority({pool:dataPlane.pool,agentClients});
   const route=createGoldCoreHttpHandler({
-   core,team,agentClients,
+   core,team,agentClients,remoteSessions,
    approveWallRequest:verifiers.approveWallRequest,
    verifyAgentIngress:verifiers.verifyAgentIngress,
    verifyOAuthClient:verifiers.verifyOAuthClient,

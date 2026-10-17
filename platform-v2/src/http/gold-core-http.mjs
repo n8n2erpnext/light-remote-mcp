@@ -39,9 +39,12 @@ const getToken=req=>{
 const jsonStatus=e=>Number.isInteger(e?.status)&&e.status>=400&&e.status<500?e.status:503;
 
 export function createGoldCoreHttpHandler({core,team,approveWallRequest,
-  verifyAgentIngress,verifyOAuthClient,verifyBillingIngress,verifyUsageIngress,agentClients}={}){
+  verifyAgentIngress,verifyOAuthClient,verifyBillingIngress,verifyUsageIngress,agentClients,remoteSessions}={}){
  if(!core||!team)throw Error('gold_http_pg_core_and_team_required');
- if(agentClients&&(typeof agentClients.attach!=='function'||typeof agentClients.resolve!=='function'))
+ if(remoteSessions&&typeof remoteSessions.context!=='function')
+  throw Error('gold_http_remote_session_authority_invalid');
+ if(agentClients&&['attach','resolve','findActive','listDevices'].some(
+  name=>typeof agentClients[name]!=='function'))
   throw Error('gold_http_agent_authority_invalid');
  for(const [name,fn] of Object.entries({approveWallRequest,verifyAgentIngress,
    verifyOAuthClient,verifyBillingIngress,verifyUsageIngress})){
@@ -103,7 +106,36 @@ export function createGoldCoreHttpHandler({core,team,approveWallRequest,
    return{status:200,data:await team.removeMember({sessionToken,teamId:body.teamId,
     memberAccountId:body.memberAccountId,proof:body.ownerChallenge})};
   },
+  ...(remoteSessions?{
+   'POST /v1/agent-client/context':async(req)=>{
+    const principal=await verifyAgentIngress(req);
+    if(!principal||typeof principal.agentId!=='string'||!principal.agentProof)
+     throw fail('gold_agent_ingress_unverified',401);
+    const body=await readJson(req);
+    return{status:200,data:await remoteSessions.context({
+     clientSessionId:body.clientSessionId,deviceId:body.deviceId||null,
+     workspace:body.workspace??null,gracePreset:body.gracePreset??null,
+     agentId:principal.agentId,agentProof:principal.agentProof})};
+   }
+  }:{}),
   ...(agentClients?{
+   // The legacy Plugin looks up its durable Agent session before requesting
+   // another A/B pairing. Identity is never accepted from query parameters.
+   'GET /v1/agent-client/by-agent':async(req)=>{
+    const principal=await verifyAgentIngress(req);
+    if(!principal||typeof principal.agentId!=='string'||!principal.agentProof)
+     throw fail('gold_agent_ingress_unverified',401);
+    return{status:200,data:await agentClients.findActive({
+     agentId:principal.agentId,agentProof:principal.agentProof})};
+   },
+   'GET /v1/agent-client/:session/devices':async(req,session)=>{
+    const principal=await verifyAgentIngress(req);
+    if(!principal||typeof principal.agentId!=='string'||!principal.agentProof)
+     throw fail('gold_agent_ingress_unverified',401);
+    return{status:200,data:await agentClients.listDevices({
+     clientSessionId:session,agentId:principal.agentId,
+     agentProof:principal.agentProof})};
+   },
    'POST /v1/agent-client/attach':async(req)=>{
     const principal=await verifyAgentIngress(req);
     if(!principal||typeof principal.agentId!=='string'||!principal.agentProof)
@@ -178,16 +210,20 @@ export function createGoldCoreHttpHandler({core,team,approveWallRequest,
  return async function handleGoldCoreHttp(req,res){
   const url=new URL(req.url||'/', 'http://gold.operator.local');
   if(!url.pathname.startsWith('/v1/'))return false;
-  const key=String(req.method||'GET').toUpperCase()+' '+url.pathname;
+  const method=String(req.method||'GET').toUpperCase();
+  const deviceMatch=/^\/v1\/agent-client\/(lrc_[A-Za-z0-9_-]+)\/devices$/.exec(url.pathname);
+  const key=deviceMatch
+   ?method+' /v1/agent-client/:session/devices'
+   :method+' '+url.pathname;
   const route=routes[key];
   if(!route){
-   if(Object.keys(routes).some(x=>x.endsWith(' '+url.pathname))){
+   if((deviceMatch&&agentClients)||Object.keys(routes).some(x=>x.endsWith(' '+url.pathname))){
     json(res,405,{ok:false,error:'method_not_allowed'});return true;
    }
    return false;
   }
   try{
-   const response=await route(req);
+   const response=await route(req,deviceMatch?.[1]||null);
    json(res,response.status,{ok:true,...response.data});
   }catch(error){
    json(res,jsonStatus(error),{ok:false,error:error?.code&&jsonStatus(error)<500?

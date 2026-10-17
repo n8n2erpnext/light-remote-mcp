@@ -59,6 +59,21 @@ function fixture({purpose='device',actorAccountId=OWNER,memberActive=true,
    row.default_device_id=p[1];row.expires_at=new Date(p[2]);
    return{rows:[{expires_at:row.expires_at}]};
   }
+  if(sql.includes('SELECT ac.client_session_id FROM lr_agent_clients ac')){
+   return{rows:[...sessions.values()].filter(x=>
+    x.account_id===p[0]&&x.agent_id===p[1]&&!x.closed_at
+   ).map(x=>({client_session_id:x.client_session_id}))};
+  }
+  if(sql.includes('SELECT ac.client_session_id,ac.default_device_id,ac.expires_at')){
+   const row=sessions.get(p[0]);
+   return{rows:row&&row.account_id===p[1]&&row.agent_id===p[2]&&
+    state.actorActive?[row]:[]};
+  }
+  if(sql.includes('SELECT device_id FROM lr_agent_bindings WHERE client_session_id')){
+   const ids=[...direct.values(),...team.values()].filter(x=>x.client_session_id===p[0])
+    .map(x=>x.device_id);
+   return{rows:[...new Set(ids)].map(device_id=>({device_id}))};
+  }
   if(sql.includes('FROM lr_agent_clients ac JOIN lr_accounts actor')){
    const row=sessions.get(p[0]);return{rows:row?[row]:[]};
   }
@@ -166,4 +181,46 @@ test('Gold schema 019 preserves historical owner-only constraint and adds relati
  assert(next.includes("CHECK(grant_purpose='team-member')"));
  assert(next.includes('REFERENCES lr_ab_requests(request_id,approved_grant_id)'));
  assert(next.includes('ON lr_ab_requests(request_id,approved_grant_id)'));
+});
+
+test('Gold Agent recovers the latest still-authorized PG client across chat sessions',async()=>{
+ const f=fixture({purpose:'team-member',actorAccountId:MEMBER});
+ const first=await f.authority.attach(f.input);
+ const sessionId=first.client.clientSessionId;
+ const before=f.sessions.get(sessionId).expires_at.getTime();
+ const statementCount=f.events.length;
+ const recovered=await f.authority.findActive({agentId:AGENT,agentProof:'trusted-agent'});
+ assert.equal(recovered.client.clientSessionId,sessionId);
+ assert.equal(recovered.client.accountId,MEMBER);
+ assert.equal(recovered.devices.length,1);
+ assert.equal(recovered.devices[0].purpose,'team-member');
+ assert.equal(recovered.client.defaultDeviceId,DEVICE);
+ assert.equal(f.sessions.get(sessionId).expires_at.getTime(),before,
+  'mere discovery must not refresh the client lease');
+ assert(!f.events.slice(statementCount).some(e=>e.sql.startsWith('UPDATE lr_agent_clients')),
+  'discovering sessions must not mutate the working default or extend TTL');
+ f.state.memberActive=false;
+ const afterRevoke=await f.authority.listDevices({agentId:AGENT,
+  clientSessionId:sessionId});
+ assert.equal(afterRevoke.devices.length,0);
+ assert.equal(afterRevoke.client.defaultDeviceId,null);
+ await assert.rejects(()=>f.authority.findActive({agentId:AGENT}),
+  /gold_agent_client_required/);
+});
+test('Gold Agent discovery refuses different actor, expired sessions and database errors',async()=>{
+ const f=fixture();
+ const attached=await f.authority.attach(f.input);
+ const wrong=fixture({actorAccountId:MEMBER});
+ // The isolated fixture cannot resolve an owner session belonging to another
+ // principal; user-submitted accountId never selects an account.
+ await assert.rejects(()=>wrong.authority.listDevices({agentId:AGENT,
+  clientSessionId:attached.client.clientSessionId}),/gold_agent_client_invalid_or_expired/);
+ f.state.actorActive=false;
+ await assert.rejects(()=>f.authority.listDevices({agentId:AGENT,
+  clientSessionId:attached.client.clientSessionId}),/gold_agent_client_invalid_or_expired/);
+ f.state.actorActive=true;
+ const sql=f.authority.pool.query;
+ f.authority.pool.query=async()=>{throw Error('gold_postgresql_down')};
+ await assert.rejects(()=>f.authority.findActive({agentId:AGENT}),/gold_postgresql_down/);
+ f.authority.pool.query=sql;
 });

@@ -96,6 +96,11 @@
       "version": 19,
       "file": "019_gold_team_agent_binding.sql",
       "sha256": "01eecd8a5f24c61e550cc1cdd17e4bfcc950c6195b0a0a9503acfb2ddc3543d7"
+    },
+    {
+      "version": 20,
+      "file": "020_gold_remote_sessions.sql",
+      "sha256": "84263d58649f6dde2c3c61c309d8215432236e46c3edb1956094b85135f620e3"
     }
   ]
 }

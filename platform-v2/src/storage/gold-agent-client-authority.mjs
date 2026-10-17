@@ -141,7 +141,7 @@ export class GoldPgAgentClientAuthority{
     grantId:grant,purpose:g.purpose};
   });
  }
- async resolve({agentId,agentProof,clientSessionId,deviceId=null}={}){
+ async resolve({agentId,agentProof,clientSessionId,deviceId=null,touch=true}={}){
   const identity=await this.identity({agentId,agentProof}),session=id(clientSessionId);
   const requested=deviceId==null?null:id(deviceId);
   const now=this.now();
@@ -201,13 +201,17 @@ export class GoldPgAgentClientAuthority{
     binding=shared.rows?.[0];kind='team-member';
    }
    if(!binding)throw fail('gold_agent_binding_expired_or_revoked',403);
-   await c.query(
-    "UPDATE lr_agent_clients SET last_activity_at=now(),default_device_id=$2,"+
-    "expires_at=to_timestamp($3/1000.0) WHERE client_session_id=$1",
-    [session,dev,now+this.ttlMs]);
-   const table=kind==='device'?'lr_agent_bindings':'lr_agent_team_bindings';
-   await c.query('UPDATE '+table+' SET last_activity_at=now() '+
-    'WHERE client_session_id=$1 AND device_id=$2',[session,dev]);
+   // Listing/querying a device must not silently extend the session lease or
+   // change the caller's selected default target.
+   if(touch){
+    await c.query(
+     "UPDATE lr_agent_clients SET last_activity_at=now(),default_device_id=$2,"+
+     "expires_at=to_timestamp($3/1000.0) WHERE client_session_id=$1",
+     [session,dev,now+this.ttlMs]);
+    const table=kind==='device'?'lr_agent_bindings':'lr_agent_team_bindings';
+    await c.query('UPDATE '+table+' SET last_activity_at=now() '+
+     'WHERE client_session_id=$1 AND device_id=$2',[session,dev]);
+   }
    return {binding:{clientSessionId:session,agentId:identity.agentId,
     accountId:identity.actorAccountId,deviceId:dev,connectionId:binding.connection_id,
     grantId:binding.grant_id,pairingRequestId:binding.pairing_request_id||null,
@@ -217,5 +221,71 @@ export class GoldPgAgentClientAuthority{
     connection:{state:'connected',hardExpiresAt:epoch(binding.hard_expires_at)},
     grant:{grantId:binding.grant_id,expiresAt:epoch(binding.grant_expires_at)}};
   });
+ }
+ /**
+  * Reuse only a still-authorized PostgreSQL client session for this *verified*
+  * Agent actor. Never infer identity from query string/accountId parameters.
+  */
+ async findActive({agentId,agentProof}={}){
+  const principal=await this.identity({agentId,agentProof});
+  const rows=await this.pool.query(
+   "SELECT ac.client_session_id FROM lr_agent_clients ac "+
+   "JOIN lr_accounts a ON a.account_id=ac.account_id "+
+   "WHERE ac.account_id=$1 AND ac.agent_id=$2 AND ac.closed_at IS NULL "+
+   "AND ac.expires_at>now() AND a.status='active' "+
+   "ORDER BY ac.last_activity_at DESC,ac.created_at DESC "+
+   "LIMIT 32",[principal.actorAccountId,principal.agentId]);
+  for(const item of rows.rows||[]){
+   try{
+    const view=await this.listDevices({agentId,agentProof,
+     clientSessionId:item.client_session_id});
+    if(view.devices.length)return view;
+   }catch(error){
+    // A revoked device/Team binding is expected during session recovery;
+    // database failures or unexpected verifier errors must never be hidden.
+    if(![401,403,404,409].includes(error?.status))throw error;
+   }
+  }
+  throw fail('gold_agent_client_required',401);
+ }
+ /**
+  * Discovery is not authorization. Every returned item passes resolve() with
+  * touch=false to recheck owner/actor, grant expiry, connection and Team share.
+  * The later tool action must resolve again. Discovery never extends leases.
+  */
+ async listDevices({agentId,agentProof,clientSessionId}={}){
+  const principal=await this.identity({agentId,agentProof});
+  const sid=id(clientSessionId),now=this.now();
+  const row=await this.pool.query(
+   "SELECT ac.client_session_id,ac.default_device_id,ac.expires_at "+
+   "FROM lr_agent_clients ac "+
+   "JOIN lr_accounts a ON a.account_id=ac.account_id "+
+   "WHERE ac.client_session_id=$1 AND ac.account_id=$2 "+
+   "AND ac.agent_id=$3 AND ac.closed_at IS NULL AND ac.expires_at>now() "+
+   "AND a.status='active'",
+   [sid,principal.actorAccountId,principal.agentId]);
+  const client=row.rows?.[0];
+  if(!client||epoch(client.expires_at)<=now)
+   throw fail('gold_agent_client_invalid_or_expired',401);
+  const bindings=await this.pool.query(
+   "SELECT device_id FROM lr_agent_bindings WHERE client_session_id=$1 "+
+   "UNION SELECT device_id FROM lr_agent_team_bindings WHERE client_session_id=$1 "+
+   "ORDER BY device_id LIMIT 128",[sid]);
+  const devices=[];
+  for(const entry of bindings.rows||[]){
+   try{
+    const valid=await this.resolve({agentId,agentProof,clientSessionId:sid,
+     deviceId:entry.device_id,touch:false});
+    devices.push({...valid.device,connection:valid.connection,
+     grant:valid.grant,purpose:valid.binding.purpose});
+   }catch(error){
+    if(![401,403,404,409].includes(error?.status))throw error;
+   }
+  }
+  const defaultDeviceId=devices.some(d=>d.deviceId===client.default_device_id)?
+   client.default_device_id:(devices.length===1?devices[0].deviceId:null);
+  return {client:{clientSessionId:sid,agentId:principal.agentId,
+   accountId:principal.actorAccountId,expiresAt:epoch(client.expires_at),
+   defaultDeviceId},devices};
  }
 }

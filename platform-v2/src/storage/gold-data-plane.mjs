@@ -13,7 +13,7 @@ import {createClient} from 'redis';
 import {assertGoldRuntimeIsolation} from '../../../lib/gold-runtime-isolation.mjs';
 import {goldTableManifest} from './gold-permissions.mjs';
 
-const REQUIRED_SCHEMA=19;
+const REQUIRED_SCHEMA=20;
 const EXPECTED_DATABASE='light_remote_gold_dev';
 const EXPECTED_ROLE='lr_gold_app';
 const INSTANCE=/^[a-z0-9][a-z0-9_-]{2,47}$/;
