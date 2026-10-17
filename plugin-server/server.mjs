@@ -20,6 +20,7 @@ import { LEGAL_PAGES, renderLegalPage } from './legal-pages.mjs';
 import { renderSupportPage } from './support-page.mjs';
 import { registerSupportBackoffice } from './support-backoffice.mjs';
 import {GoldPgSupportOutbox} from '../platform-v2/src/storage/support-outbox-pg.mjs';
+import {createGoldSupportAccountResolver} from './gold-support-account.mjs';
 import {createGoldPluginDependencyGuard} from './gold-dependency-guard.mjs';
 import { registerPaddleWebhook } from './paddle-billing.mjs';
 import { PLUGIN_TOOL_SECURITY, registerPluginTools } from './tools.mjs';
@@ -70,7 +71,8 @@ registerOAuth(app);
 registerWebAssets(app);
 registerAccountPortal(app);
 registerSupportBackoffice(app,goldSupportMode?{
- outbox:new GoldPgSupportOutbox({pool:goldSitePlane.pool,deliveryEnabled:false})
+ outbox:new GoldPgSupportOutbox({pool:goldSitePlane.pool,deliveryEnabled:false}),
+ resolveIdentity:createGoldSupportAccountResolver({env:process.env})
 }:undefined);
 registerDistributionPortal(app);
 registerAdminPortal(app);

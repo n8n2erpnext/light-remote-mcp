@@ -11,6 +11,12 @@ const support=fs.readFileSync(path.join(root,'plugin-server/support-backoffice.m
 test('Gold Support routes use PostgreSQL outbox, await transaction, reject disabled delivery',()=>{
  assert(server.includes("LR_GOLD_SUPPORT_OUTBOX_PG==='1'"));
  assert(server.includes("new GoldPgSupportOutbox({pool:goldSitePlane.pool,deliveryEnabled:false})"));
+ assert(server.includes('resolveIdentity:createGoldSupportAccountResolver({env:process.env})'));
+ assert(support.includes('gold_support_postgres_identity_resolver_required'));
+ assert(support.includes('gold_support_postgres_outbox_required'));
+ assert(support.includes('gold_support_delivery_not_authorized'));
+ assert(support.includes('const currentIdentity=req=>resolveIdentity(req,sessionToken(req))'));
+ assert(support.includes('identity.goldVerified===true&&identity.supportEligible!==true'));
  assert(server.includes('gold_support_real_erp_delivery_not_authorized'));
  assert(support.includes("await outbox.get(String(req.query?.eventId||''),identity.account.accountId)"));
  assert(support.includes('await outbox.enqueue({account:identity.account,payload})'));

@@ -309,21 +309,32 @@ function supportPayload(account,body={}){
   };
 }
 
-export function registerSupportBackoffice(app,{outbox=new SupportOutbox()}={}){
+export function registerSupportBackoffice(app,{
+ outbox=null,resolveIdentity=accountIdentity}={}){
+ const gold=process.env.LR_GOLD_SUPPORT_OUTBOX_PG==='1';
+ if(gold&&resolveIdentity===accountIdentity)
+  throw Error('gold_support_postgres_identity_resolver_required');
+ if(gold&&!outbox)throw Error('gold_support_postgres_outbox_required');
+ if(gold&&outbox.deliveryEnabled!==false)
+  throw Error('gold_support_delivery_not_authorized');
+ // The Gold lane never constructs (or reads) a legacy JSON SupportOutbox.
+ if(!outbox)outbox=new SupportOutbox();
+ const currentIdentity=req=>resolveIdentity(req,sessionToken(req));
   const first=setTimeout(()=>void outbox.pump().catch(error=>console.error('[support-outbox]',safeError(error))),2_000);first.unref?.();
   const timer=setInterval(()=>void outbox.pump().catch(error=>console.error('[support-outbox]',safeError(error))),10_000);timer.unref?.();
 
   app.get('/support/api',async(req,res)=>{
     res.set('Cache-Control','no-store');
     try{
-      const identity=await accountIdentity(req);
+      const identity=await currentIdentity(req);
       const action=String(req.query?.action||'eligibility');
       if(action==='eligibility'){
         const plan=String(identity.account?.plan||'free').toLowerCase();
         return res.status(200).json({
           ok:true,
           signedIn:identity.signedIn,
-          eligible:identity.signedIn&&ELIGIBLE_PLANS.has(plan),
+          eligible:identity.signedIn&&ELIGIBLE_PLANS.has(plan)&&
+           (identity.goldVerified!==true||identity.supportEligible===true),
           account:identity.signedIn?{email:identity.account.email,plan}:null,
         });
       }
@@ -341,10 +352,12 @@ export function registerSupportBackoffice(app,{outbox=new SupportOutbox()}={}){
     res.set('Cache-Control','no-store');
     if(!sameOriginMutation(req))return res.status(403).json({ok:false,error:'cross_site_request_denied'});
     try{
-      const identity=await accountIdentity(req);
+      const identity=await currentIdentity(req);
       if(!identity.signedIn)return res.status(401).json({ok:false,error:'account_session_required'});
       const plan=String(identity.account.plan||'free').toLowerCase();
-      if(!ELIGIBLE_PLANS.has(plan))return res.status(403).json({ok:false,error:'support_plan_required',plan});
+      if(!ELIGIBLE_PLANS.has(plan)||
+         (identity.goldVerified===true&&identity.supportEligible!==true))
+        return res.status(403).json({ok:false,error:'support_plan_required',plan});
       if(!allowSubmit(identity.account.accountId))return res.status(429).json({ok:false,error:'support_rate_limited'});
       const payload=supportPayload(identity.account,req.body||{});
       if(process.env.LR_GOLD_SUPPORT_OUTBOX_PG==='1'&&!outbox.deliveryEnabled)
