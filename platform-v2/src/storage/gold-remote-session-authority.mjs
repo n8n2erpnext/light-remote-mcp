@@ -7,6 +7,7 @@
  * fully cut over and verified separately before Gold production admission.
  */
 import crypto from 'node:crypto';
+import {GOLD_TEAM_ENTITLED_SQL} from './gold-team-entitlement.mjs';
 
 const ID=/^[A-Za-z0-9._:-]{1,180}$/;
 const PRESETS=new Map([['15m',900000],['30m',1800000],['45m',2700000],['60m',3600000]]);
@@ -110,6 +111,7 @@ export class GoldPgRemoteSessionAuthority{
      "AND td.device_id=tag.device_id "+
      "WHERE tag.grant_id=$1 AND tag.actor_account_id=$2 "+
      "AND tag.device_id=$3 AND t.owner_account_id=$4 AND m.state='active' "+
+     "AND "+GOLD_TEAM_ENTITLED_SQL+" "+
      "FOR SHARE OF tag,t,m,td",
      [b.grantId,b.accountId,b.deviceId,grant.owner_account_id]);
     if(m.rows?.length!==1)throw err('gold_context_team_access_revoked');

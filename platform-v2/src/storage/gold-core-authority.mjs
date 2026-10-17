@@ -4,6 +4,7 @@
  * Proof callbacks MUST be bound to trusted verifier implementations.
  */
 import crypto from 'node:crypto';
+import {GOLD_TEAM_ENTITLED_SQL} from './gold-team-entitlement.mjs';
 const idPattern=/^[A-Za-z0-9._:-]{1,128}$/;
 const emailPattern=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const purposes=new Set(['authorization_code','refresh','resume','magic','email_verify','password_reset']);
@@ -212,7 +213,8 @@ export class GoldPgCoreAuthority{
      "JOIN lr_team_members m ON m.team_id=t.team_id AND m.state='active' "+
      "JOIN lr_accounts actor ON actor.account_id=m.account_id AND actor.status='active' "+
      "JOIN lr_team_devices td ON td.team_id=t.team_id "+
-     "WHERE t.owner_account_id=$1 AND m.account_id=$2 AND td.device_id=$3",
+     "WHERE t.owner_account_id=$1 AND m.account_id=$2 AND td.device_id=$3 "+
+     "AND "+GOLD_TEAM_ENTITLED_SQL,
      [row.account_id,actor.accountId,row.device_id]);
     if(!member.rows?.length)throw err('gold_ab_team_denied');
    }
@@ -281,7 +283,8 @@ export class GoldPgCoreAuthority{
      "ON m.team_id=t.team_id AND m.state='active' "+
      "JOIN lr_accounts actor ON actor.account_id=m.account_id AND actor.status='active' "+
      "JOIN lr_team_devices td ON td.team_id=t.team_id "+
-     "WHERE t.owner_account_id=$1 AND m.account_id=$2 AND td.device_id=$3",
+     "WHERE t.owner_account_id=$1 AND m.account_id=$2 AND td.device_id=$3 "+
+     "AND "+GOLD_TEAM_ENTITLED_SQL,
      [row.account_id,row.actor_account_id,row.device_id]);
     if(!member.rows?.length)throw err('gold_ab_team_membership_revoked');
     await c.query(
@@ -319,6 +322,8 @@ export class GoldPgCoreAuthority{
    "JOIN lr_devices d ON d.device_id=r.device_id "+
    "LEFT JOIN lr_ab_grants g ON g.grant_id=r.approved_grant_id "+
    "LEFT JOIN lr_ab_team_actor_grants tag ON tag.grant_id=g.grant_id "+
+   "AND EXISTS(SELECT 1 FROM lr_teams t WHERE t.team_id=tag.team_id "+
+   "AND "+GOLD_TEAM_ENTITLED_SQL+") "+
    "LEFT JOIN lr_team_members tm ON tm.team_id=tag.team_id "+
    "AND tm.account_id=tag.actor_account_id "+
    "LEFT JOIN lr_team_devices td ON td.team_id=tag.team_id AND td.device_id=r.device_id "+
@@ -355,6 +360,8 @@ export class GoldPgCoreAuthority{
    "JOIN lr_accounts owner ON owner.account_id=g.account_id "+
    "JOIN lr_accounts actor ON actor.account_id=$5 AND actor.status='active' "+
    "LEFT JOIN lr_ab_team_actor_grants tag ON tag.grant_id=g.grant_id "+
+   "AND EXISTS(SELECT 1 FROM lr_teams t WHERE t.team_id=tag.team_id "+
+   "AND "+GOLD_TEAM_ENTITLED_SQL+") "+
    "LEFT JOIN lr_team_members tm ON tm.team_id=tag.team_id AND tm.account_id=tag.actor_account_id "+
    "LEFT JOIN lr_team_devices td ON td.team_id=tag.team_id AND td.device_id=g.device_id "+
    "WHERE g.grant_id=$1 AND g.device_id=$2 AND g.connection_id=$3 AND g.agent_id=$4 "+
@@ -376,7 +383,8 @@ export class GoldPgCoreAuthority{
    "ON m.team_id=t.team_id AND m.state='active' "+
    "JOIN lr_team_devices td ON td.team_id=t.team_id "+
    "JOIN lr_accounts a ON a.account_id=m.account_id AND a.status='active' "+
-   "WHERE t.team_id=$1 AND m.account_id=$2 AND td.device_id=$3",
+   "WHERE t.team_id=$1 AND m.account_id=$2 AND td.device_id=$3 "+
+   "AND "+GOLD_TEAM_ENTITLED_SQL,
    [team,actor,dev]);
   if(!r.rows?.length)throw err('gold_team_device_access_denied');
   return {allowed:true,teamId:team,actorAccountId:actor,deviceId:dev};

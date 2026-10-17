@@ -378,6 +378,8 @@ test('Team A/B approval uses DB-bound Agent actor and live membership, not an Ag
   if(sql.startsWith('INSERT INTO lr_ab_grants('))return{rows:[]};
   if(sql.includes('FROM lr_teams t JOIN lr_team_members m')){
    assert(sql.includes("actor.status='active'"));
+   assert(sql.includes('lr_entitlements team_ent'));
+   assert(sql.includes("team_billing.plan='pro'"));
    assert.deepEqual(params,['acct_owner','acct_member','dev_shared']);
    return{rows:membershipActive?[{team_id:'team_owner'}]:[]};
   }

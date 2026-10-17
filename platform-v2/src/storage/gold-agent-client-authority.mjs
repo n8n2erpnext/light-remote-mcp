@@ -5,6 +5,7 @@
  * the Gold 019 team-binding table for approved Team member actors.
  */
 import crypto from 'node:crypto';
+import {GOLD_TEAM_ENTITLED_SQL} from './gold-team-entitlement.mjs';
 const ID=/^[A-Za-z0-9._:-]{1,180}$/;
 const fail=(code,status=403)=>Object.assign(new Error(code),{code,status});
 const id=(value,label='gold_agent_invalid_id')=>{
@@ -75,7 +76,8 @@ export class GoldPgAgentClientAuthority{
      "JOIN lr_team_devices td ON td.team_id=t.team_id "+
      "WHERE tag.grant_id=$1 AND tag.actor_account_id=$2 AND tag.device_id=$3 "+
      "AND t.owner_account_id=$4 AND m.account_id=$2 AND m.state='active' "+
-     "AND td.device_id=$3 FOR SHARE OF tag,t,m,td",
+     "AND td.device_id=$3 AND "+GOLD_TEAM_ENTITLED_SQL+
+     " FOR SHARE OF tag,t,m,td",
      [grant,identity.actorAccountId,g.device_id,g.owner_account_id]);
     if(member.rows?.length!==1)throw fail('gold_agent_team_access_revoked');
    }else throw fail('gold_agent_grant_purpose_invalid');
@@ -196,6 +198,7 @@ export class GoldPgAgentClientAuthority{
      "AND b.actor_account_id=$3 AND tag.actor_account_id=$3 "+
      "AND tag.device_id=b.device_id AND t.owner_account_id=b.owner_account_id "+
      "AND g.account_id=b.owner_account_id AND g.purpose='team-member' "+
+     "AND "+GOLD_TEAM_ENTITLED_SQL+" "+
      rights+"FOR SHARE OF b,g,cn,d,owner,tag,m,t,td",
      [session,dev,identity.actorAccountId,identity.agentId]);
     binding=shared.rows?.[0];kind='team-member';

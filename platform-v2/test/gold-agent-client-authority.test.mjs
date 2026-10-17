@@ -140,6 +140,8 @@ test('Team member binding uses dedicated table and never impersonates owner Acco
  assert.equal(bound.binding.accountId,MEMBER);
  assert.equal(bound.binding.purpose,'team-member');
  assert(f.events.some(e=>e.sql.includes("g.purpose='team-member'")));
+ assert(f.events.filter(e=>e.sql.includes('lr_entitlements team_ent')).length>=2,
+  'both Team attach and Team resolve must check currently paid Pro entitlement');
  // Both membership and the underlying 24h wall grant remain live checks.
  f.state.memberActive=false;
  await assert.rejects(()=>f.authority.resolve({agentId:AGENT,

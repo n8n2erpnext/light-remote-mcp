@@ -114,6 +114,8 @@ test('Gold Team workspace binds actor to member, checks share again under transa
  const entered=await f.svc.context({...f.input,deviceId:DEVICE});
  assert.equal(entered.session.accountId,'acct_member');
  assert.equal(entered.session.ownerAccountId,OWNER);
+ assert(f.log.some(entry=>entry.sql.includes('lr_entitlements team_ent')),
+  'Team remote context cannot outlive owner paid Pro entitlement');
  f.state.teamActive=false;
  const count=f.creates;
  await assert.rejects(()=>f.svc.context({...f.input}),
