@@ -46,3 +46,9 @@ No real owner-provisioned `verifyNotificationAdmin` proof issuer was added here;
 **Known incompatibility requiring further work:** Gold `/me` does not yet project the full canonical `entitlements`/billing profile. Paid plan eligibility must be verified against real Gold PG entitlements, never inferred from `plan` alone. Browser pages requiring those fields, registration, password, OAuth Google/Plugin and the Admin account UI are **NOT ACCEPTED** in this slice. No 23-domain gate credit yet; cutover remains `BLOCKED_SOURCE_CUTOVER 0/23`.
 
 Production `light-remote-direct` is untouched. Previous denied Gold 021 job-worker, TeamUsage and Inventory changes are kept in separate Git stashes and must not be reapplied via alternate tools.
+
+## 2026-10-17 additive live-entitlement read API
+
+The opt-in Gold Account Bridge now also forwards **`GET /v1/accounts/entitlements`** to Gold Core. Core uses the actor verified against `lr_sessions` and a current matching unrevoked `lr_entitlements` row before reporting paid/Pro/VIP/teamEligible. It returns Free when no matching ledger entitlement exists even if `lr_accounts.plan` says Pro. The bridge strips caller `accountId`/`plan` query strings, does not forward legacy identity headers as trusted authority and never falls back to JSON.
+
+This does **not** add entitlements to the existing canonical `/v1/accounts/me` shape or finish Account Portal/TeamUsage UI. Complete contract and regression tests: `docs/releases/GOLD_ACCOUNT_ENTITLEMENTS_PG_20261017.md`. The signed password-reset/rotation, verified email signup and payment/usage cutover are still outstanding. A partial attempted password-rotation edit was safety-denied, quarantined in a stash, and must not be restored by an alternate path.

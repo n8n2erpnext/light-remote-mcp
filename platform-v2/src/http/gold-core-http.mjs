@@ -39,8 +39,10 @@ const getToken=req=>{
 const jsonStatus=e=>Number.isInteger(e?.status)&&e.status>=400&&e.status<500?e.status:503;
 
 export function createGoldCoreHttpHandler({core,team,approveWallRequest,
-  verifyAgentIngress,verifyOAuthClient,verifyBillingIngress,verifyUsageIngress,verifyDeviceChannelIngress,verifyNotificationAdmin,agentClients,remoteSessions,deviceChannel,notifications}={}){
+  verifyAgentIngress,verifyOAuthClient,verifyBillingIngress,verifyUsageIngress,verifyDeviceChannelIngress,verifyNotificationAdmin,agentClients,remoteSessions,deviceChannel,notifications,accountEntitlements}={}){
  if(!core||!team)throw Error('gold_http_pg_core_and_team_required');
+ if(accountEntitlements&&typeof accountEntitlements.view!=='function')
+  throw Error('gold_http_account_entitlement_authority_invalid');
  if(notifications&&['inbox','markRead','list','publish','cancel'].some(name=>
   typeof notifications[name]!=='function'))
   throw Error('gold_http_pg_notification_authority_invalid');
@@ -67,6 +69,10 @@ export function createGoldCoreHttpHandler({core,team,approveWallRequest,
   return principal.adminAccountId;
  };
  const routes={
+  ...(accountEntitlements?{
+   'GET /v1/accounts/entitlements':async req=>({status:200,
+    data:await accountEntitlements.view({sessionToken:getToken(req)})})
+  }:{}),
   ...(notifications?{
    'GET /v1/accounts/notifications':async req=>{
     const account=await core.authenticate(getToken(req));

@@ -55,6 +55,7 @@ test('Gold private Core socket forwards Agent attach/resolve to a PG authority a
  try{
   core=await startGoldCoreApi({env,socketPath,verifiers,openPlane:plane,
    openCore:()=>({}),openTeam:()=>({}),openAgent:()=>agent,
+   openAccountEntitlements:()=>({view:async()=>({})}),
    openRemoteSessions:()=>remoteSessions,
    openDeviceChannel:()=>({connect:async()=>({}),renew:async()=>({}),
     disconnect:async()=>({}),setGrace:async()=>({})})});

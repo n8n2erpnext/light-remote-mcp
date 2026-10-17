@@ -11,6 +11,7 @@ import path from 'node:path';
 const accountPaths=new Set([
  '/v1/accounts/login',
  '/v1/accounts/me',
+ '/v1/accounts/entitlements',
  '/v1/accounts/logout'
 ]);
 const notificationPaths=new Set([
