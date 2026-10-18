@@ -1,5 +1,3 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import { Environment, EventName, Paddle } from '@paddle/paddle-node-sdk';
 
 import { callOperatorJson } from './operator-client.mjs';
@@ -8,7 +6,6 @@ import { sendPaddlePurchaseConfirmation } from './mailer.mjs';
 import { sandboxOfferCatalog,resolveSandboxOffer,verifiedTransactionOffer,verifiedSubscriptionOffer,assertSandboxPriceDetails,chooseSandboxCheckoutAction } from './paddle-sandbox-offers.mjs';
 import { PaddleSandboxTeamCoordinator } from './paddle-sandbox-team-coordinator.mjs';
 
-const DEFAULT_STATE_FILE = '/var/lib/light-remote-direct/plugin-state/paddle-billing.json';
 const ACTIVE_SUBSCRIPTION_STATUSES = new Set(['active', 'trialing']);
 const PLAN_RANK = Object.freeze({ free: 0, pro: 1, vip: 2 });
 const PRO_PLAN = 'pro';
@@ -113,30 +110,6 @@ function normalizeState(raw) {
   return { schemaVersion: 2, events, subscriptions, refunds };
 }
 
-function loadState(file) {
-  try {
-    if (!file || !fs.existsSync(file)) return normalizeState(null);
-    return normalizeState(JSON.parse(fs.readFileSync(file, 'utf8')));
-  } catch {
-    return normalizeState(null);
-  }
-}
-
-function saveState(file, state) {
-  if (!file) return;
-  const dir = path.dirname(file);
-  fs.mkdirSync(dir, { recursive: true, mode: 0o750 });
-  const normalized = normalizeState(state);
-  const eventEntries = Object.entries(normalized.events)
-    .sort((a, b) => Number(b[1]?.processedAt || 0) - Number(a[1]?.processedAt || 0))
-    .slice(0, 1000);
-  normalized.events = Object.fromEntries(eventEntries);
-  const tmp = `${file}.${process.pid}.tmp`;
-  fs.writeFileSync(tmp, `${JSON.stringify(normalized, null, 2)}\n`, { mode: 0o600 });
-  fs.chmodSync(tmp, 0o600);
-  fs.renameSync(tmp, file);
-}
-
 function defaultConfig(env = process.env) {
   const environment = text(env.LIGHT_REMOTE_PADDLE_ENV).toLowerCase();
   const rawCheckoutEnabled = text(env.LIGHT_REMOTE_PADDLE_CHECKOUT_ENABLED || 'true').toLowerCase();
@@ -154,7 +127,6 @@ function defaultConfig(env = process.env) {
     teamSandboxEnabled: environment === 'sandbox' && text(env.LIGHT_REMOTE_PADDLE_TEAM_SANDBOX_ENABLED).toLowerCase() === 'true',
     teamUatCallBudget: Number(text(env.LIGHT_REMOTE_PADDLE_TEAM_UAT_CALL_BUDGET) || 5000),
     webhookSecret: text(env.LIGHT_REMOTE_PADDLE_WEBHOOK_SECRET),
-    stateFile: text(env.LIGHT_REMOTE_PADDLE_STATE_FILE || DEFAULT_STATE_FILE),
   };
 }
 
@@ -206,7 +178,7 @@ export class PaddleBilling {
     this.refundRecorder = refundRecorder;
     this.purchaseMailer = purchaseMailer;
     this.now = now;
-    this.state = loadState(config.stateFile);
+    this.state = normalizeState(null); // Fresh Gold state; loaded from PostgreSQL before requests.
     this.validation = validatePaddleIdentifiers(config);
     // Never build the Team coordinator for production or when sandbox opt-in
     // is absent. Existing PRO subscription processing remains unchanged.
@@ -219,6 +191,8 @@ export class PaddleBilling {
         : null
     );
   }
+
+  _persist(){throw Error('gold_paddle_pg_not_initialized')}
 
   status() {
     const credentialsConfigured = Boolean(
@@ -1107,7 +1081,7 @@ export class PaddleBilling {
       updatedAt: this.now(),
       result,
     };
-    saveState(this.config.stateFile, this.state);
+    this._persist();
 
     return {
       adjustmentId: adjustment.id,
@@ -1313,7 +1287,7 @@ export class PaddleBilling {
         result,
       };
     }
-    saveState(this.config.stateFile, this.state);
+    this._persist();
     return { duplicate: false, ...result };
   }
 

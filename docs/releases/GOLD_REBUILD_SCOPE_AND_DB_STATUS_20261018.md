@@ -38,3 +38,13 @@ Complete canonical business storage replacement **in existing Operator/Plugin** 
 - Sessions now use Redis 8 for transient state, preserving 7-day TTL and safely clearing assumed-running jobs after Operator restart. A focused fake Redis restart test passes; **real Redis has not been exercised**.
 - **Still open:** Paddle billing JSON writer (edit blocked by safety tool); Google OAuth configuration/state; account recovery, remaining site/admin service paths, Job/Fleet Redis+PG durability, device-local business storage and remaining canonical writers.
 - **Deployment blocked:** VPS-ARM Docker `target_node_capability_missing` through the declared Light Remote capability. No Docker bypass and no alternate transport used. Gold PostgreSQL/Redis independent stack not deployed; no full API end-to-end tested.
+
+## 2026-10-18 continuation (Paddle, Google, source consistency)
+
+- Device policy inspection listed `docker` as effective on VPS-ARM, but the exact authorized `docker compose version` call with required capability `docker` still returned `target_node_capability_missing` before process launch. No bypass or change to production.
+- Gold Paddle Billing no longer opens or writes `paddle-billing.json`; its **existing** singleton instance and `_persist` operations now use PostgreSQL `paddle_billing` state through the existing Plugin API. The old JSON-file load/save helpers and file-path configuration were deleted.
+- Google OAuth credentials now use PostgreSQL `google_oauth` state; Google OAuth pending state has an atomic Redis TTL record instead of an in-process Map. The existing Account Portal awaits the Redis-backed start flow.
+- Plugin now holds an exclusive PostgreSQL advisory lock for its single-writer snapshot state, mirroring Operator.
+- Restored missing original RC50 dependency `lib/light-remote-plan-offers.mjs` from `6ab88ec`. A static scan reported no missing internal relative imports in Operator/Plugin/lib.
+- Synthetic PostgreSQL start/write/restart checks for Paddle+Google, Operator registries, and fake Redis Session all PASS. Source syntax checks PASS. None of these replace real Gold PostgreSQL/Redis and HTTP E2E acceptance.
+- Remaining blockers: real Gold database provisioning and end-to-end tests, Job/Fleet, other remaining Plugin/Operator business writers. Neither production nor RC50 source branch was changed.

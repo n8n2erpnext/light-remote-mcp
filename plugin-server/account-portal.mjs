@@ -411,8 +411,8 @@ async function accountMagic(req,res){
     setSessionCookie(res,upstream.token,upstream.session?.expiresAt);accountAudit('magic-login','success');return res.redirect(303,safeReturnTo(req.query?.next));
   }catch(error){accountAudit('magic-login','error',error?.payload?.error||error?.message||'magic_login_failed');return res.redirect(303,'/account/login?error=magic_link_invalid');}
 }
-function accountGoogleBegin(req,res){
-  try{return res.redirect(302,beginGoogleAuth({returnTo:safeReturnTo(req.query?.next)}).url);}
+async function accountGoogleBegin(req,res){
+  try{return res.redirect(302,(await beginGoogleAuth({returnTo:safeReturnTo(req.query?.next)})).url);}
   catch(error){accountAudit('google-begin','error',error?.message||'google_oauth_unavailable');return res.redirect(303,'/account/login?error=google_unavailable');}
 }
 async function accountGoogleCallback(req,res){

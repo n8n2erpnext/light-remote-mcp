@@ -7,6 +7,7 @@ import { PUBLIC_ALLOWED_HOSTS, PUBLIC_HOST, PUBLIC_ORIGIN, PUBLIC_PORT, OPENAI_C
 import { authenticateAccess, registerOAuth, initializeOAuthRedis } from './oauth.mjs';
 import { registerPublicDeviceRoutes, prunePublicRateState, initializePublicRateRedis } from './device-public.mjs';
 import { registerAccountPortal } from './account-portal.mjs';
+import { mountGoldGoogleAuth, initializeGoogleRedis } from './google-auth.mjs';
 import { registerDistributionPortal } from './distribution-portal.mjs';
 import { registerAdminPortal } from './admin-portal.mjs';
 import { installAnnouncements, registerClientAnnouncementFeed, initializeSiteAnnouncements } from './site-announcements.mjs';
@@ -18,7 +19,7 @@ import { LEGAL_PAGES, renderLegalPage } from './legal-pages.mjs';
 import { renderSupportPage } from './support-page.mjs';
 import { registerSupportBackoffice, SupportOutbox } from './support-backoffice.mjs';
 import { GoldRegistryPersistence } from '../lib/gold-registry-persistence.mjs';
-import { registerPaddleWebhook } from './paddle-billing.mjs';
+import { registerPaddleWebhook, paddleBilling } from './paddle-billing.mjs';
 import { PLUGIN_TOOL_SECURITY, registerPluginTools } from './tools.mjs';
 import { installOpenAiToolSecurityCompat } from './openai-security-compat.mjs';
 import { installLegacyToolCallCompat } from './legacy-tool-call-compat.mjs';
@@ -28,10 +29,21 @@ import { installLegacyToolCallCompat } from './legacy-tool-call-compat.mjs';
 const goldStorage=await connectGoldStorage();
 initializeOAuthRedis(goldStorage.redis,goldStorage.prefix);
 initializePublicRateRedis(goldStorage.redis,goldStorage.prefix);
+initializeGoogleRedis(goldStorage.redis,goldStorage.prefix);
 try{await initializeSiteAnnouncements(goldStorage.pool);await initializeSiteAnalytics(goldStorage.pool,goldStorage.redis,goldStorage.prefix)}
 catch(error){await goldStorage.close();throw error}
+const goldPluginLease=await goldStorage.pool.connect();
+const pluginLeaseOk=(await goldPluginLease.query(
+  "SELECT pg_try_advisory_lock(hashtext($1)) AS acquired",
+  ['light_remote_gold:'+goldStorage.prefix+':plugin'])).rows?.[0]?.acquired;
+if(pluginLeaseOk!==true){
+ goldPluginLease.release();await goldStorage.close();
+ throw Error('gold_plugin_single_writer_already_active');
+}
 const goldPluginStates=await GoldRegistryPersistence.open({pool:goldStorage.pool});
 const supportOutbox=goldPluginStates.mount('support_outbox',new SupportOutbox({stateFile:null}));
+goldPluginStates.mount('paddle_billing',paddleBilling);
+mountGoldGoogleAuth(goldPluginStates);
 await goldPluginStates.flush();
 const app=express();
 // In the existing Express API, never acknowledge a durable Support Outbox
@@ -164,6 +176,7 @@ function shutdown(signal){
     clearTimeout(deadline);
     await goldPluginStates.flush().catch(error=>console.error('[support-outbox-flush]',error?.message));
     await flushSiteAnalytics().catch(error=>console.error('[analytics-flush]',error?.message));
+    goldPluginLease.release();
     await goldStorage.close().catch(error=>console.error('[gold-db-close]',error?.message));
     process.exit(0);
   });
