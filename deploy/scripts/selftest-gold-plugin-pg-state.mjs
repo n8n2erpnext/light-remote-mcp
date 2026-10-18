@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { GoldRegistryPersistence } from '../../lib/gold-registry-persistence.mjs';
 import { PaddleBilling } from '../../plugin-server/paddle-billing.mjs';
-import { mountGoldGoogleAuth, saveGoogleAuthConfig, googleAuthStatus } from '../../plugin-server/google-auth.mjs';
+import { mountGoldGoogleAuth, saveGoogleAuthConfig, googleAuthStatus, initializeGoogleRedis, beginGoogleAuth } from '../../plugin-server/google-auth.mjs';
 
 const rows=new Map();
 const pool={async query(sql,args=[]){
@@ -28,4 +28,16 @@ mountGoldGoogleAuth(store);
 await store.flush();
 assert.ok(billing.state.events.synthetic_event);
 assert.equal(googleAuthStatus().configured,true);
+const redisKeys=new Map();
+initializeGoogleRedis({
+ async set(key,value,{EX,NX}={}){assert.equal(EX,600);assert.equal(NX,true);if(redisKeys.has(key))return null;redisKeys.set(key,value);return 'OK'},
+ async getDel(key){const value=redisKeys.get(key)??null;redisKeys.delete(key);return value}
+},'lr:gold:synthetic:');
+const login=await beginGoogleAuth({returnTo:'/account'});
+const parsed=new URL(login.url);
+assert.equal(parsed.hostname,'accounts.google.com');
+assert.ok(parsed.searchParams.get('state'));
+assert.equal(redisKeys.size,1);
+assert.ok([...redisKeys.keys()][0].startsWith('lr:gold:synthetic:google:flow:'));
 console.log('GOLD_PLUGIN_SYNTHETIC_PG_RESTART=PASS');
+console.log('GOLD_GOOGLE_REDIS_FLOW_FAKE=PASS');

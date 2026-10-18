@@ -21,6 +21,7 @@ import { AccountNotificationRegistry, AccountNotificationError } from './account
 import { connectGoldStorage } from '../lib/gold-db.mjs';
 import { GoldRegistryPersistence } from '../lib/gold-registry-persistence.mjs';
 import { GoldSessionRedis } from '../lib/gold-session-redis.mjs';
+import { GoldJobLedger } from '../lib/gold-job-ledger.mjs';
 import { ProTeamRegistry, ProTeamError } from './pro-team-registry.mjs';
 import { requestTeamMemberApproval } from './team-approval-requests.mjs';
 import { TeamPrincipalProofVerifier, verifyTeamPrincipalRequest } from '../lib/team-oauth-principal-proof.mjs';
@@ -124,6 +125,7 @@ if(singleWriter!==true){
 }
 const goldRegistries=await GoldRegistryPersistence.open({pool:goldStorage.pool});
 const goldSessionState=await GoldSessionRedis.open({client:goldStorage.redis,prefix:goldStorage.prefix});
+const goldJobs=await GoldJobLedger.open({pool:goldStorage.pool,redact});
 const NATIVE_PROCESSES=new NativeProcessRegistry();
 const NATIVE_TERMINALS=new NativeTerminalRegistry({emit:event=>pushEvent(event)});
 const NATIVE_SEARCHES=new NativeSearchRegistry();
@@ -380,6 +382,7 @@ function finishJob(job, exitCode, signal) {
   if (job.autoCloseSession) { try { sessions.close(job.sessionId, job.agentId); } catch {} }
   pushEvent({ type: 'job_finished', jobId: job.id, requestId: job.requestId, operationId: job.operationId, accountId:job.accountId, deviceId:job.deviceId, sessionId: job.sessionId, agentId:job.agentId, nodeId:job.nodeId,
     status: job.status, exitCode, signal: signal || null, durationMs: job.finishedAt - job.startedAt, requiredCapabilities:job.requiredCapabilities||[], cwd:job.cwd||'', script:redact(job.script||''), note:redact(job.note||''), resultSummary:redact(job.resultSummary||''), toolMeta:job.toolMeta||null, latency:latencyView(job) });
+  goldJobs.save(job);
   for (const resolve of job.waiters.splice(0)) resolve();
   pruneJobs(job.finishedAt);
 }
@@ -475,7 +478,7 @@ function startJob(payload, requestId) {
     timedOut: false, stdout: createAccumulator(), stderr: createAccumulator(), waiters: [], pid: null, timer: null,
     remote, commandId:null, requiredCapabilities
   };
-  jobs.set(job.id, job);
+  jobs.set(job.id, job);goldJobs.save(job);
   sessions.attachJob(job.sessionId, job.id);
   operationDedupe.set(operationId, { jobId: job.id, fingerprint, expiresAt: Date.now() + OPERATION_DEDUPE_MS });
   pushEvent({ type: 'job_started', jobId: job.id, requestId, operationId: job.operationId, accountId:job.accountId, deviceId:job.deviceId, sessionId: job.sessionId, agentId:job.agentId, nodeId:job.nodeId, status: 'running', route:remote?'outbound-leaf':'local', requiredCapabilities,
@@ -527,7 +530,7 @@ async function startFsOperation(payload,requestId){
   if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
   const toolMeta=fsActivityMeta(fsRequest);
   const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-fs:${String(fsRequest.op||'unknown')}`,cwd:'',script:'',status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null,resultSummary:'',toolMeta};
-  assertToolCallQuota(job.accountId);jobs.set(job.id,job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
+  assertToolCallQuota(job.accountId);jobs.set(job.id,job);goldJobs.save(job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
   pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:remote?'outbound-leaf':'local',requiredCapabilities,note:job.note,toolMeta:job.toolMeta});
   if(remote){const command=enqueueForJob(job,{accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'fs',operationId,sessionId:job.sessionId,agentId:job.agentId,fs:fsRequest}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},60000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();return job;}
   Promise.resolve().then(()=>executeNativeFs(fsRequest,{policy:filesystemPolicy()})).then(data=>{job.resultData=data;job.resultSummary=fsActivityResult(job.toolMeta,data);finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};job.resultSummary=String(error?.message||error);emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n','utf8'));finishJob(job,1,null);});
@@ -545,7 +548,7 @@ async function startScpOperation(payload,requestId){
   if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
   const toolMeta=scpActivityMeta(request);
   const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`light-scp:${toolMeta.op}`,cwd:String(request.destination||request.source||''),script:'',status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null,resultSummary:'',toolMeta};
-  assertToolCallQuota(job.accountId);jobs.set(job.id,job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
+  assertToolCallQuota(job.accountId);jobs.set(job.id,job);goldJobs.save(job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
   pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:remote?'outbound-leaf':'local',requiredCapabilities,note:job.note,toolMeta:job.toolMeta});
   if(remote){const command=enqueueForJob(job,{accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'scp',operationId,sessionId:job.sessionId,agentId:job.agentId,scp:request}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},60000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();return job;}
   Promise.resolve().then(()=>executeLocalScpRequest(job,request)).then(data=>{job.resultData=data;job.resultSummary=nativeActivityResult(job.toolMeta,data);finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n'));finishJob(job,1,null);});return job;
@@ -574,7 +577,7 @@ async function startProcessOperation(payload,requestId){
   if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
   const toolMeta=processActivityMeta(request);
   const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-process:${toolMeta.op}`,cwd:String(request.cwd||''),script:String(request.script||''),status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null,resultSummary:'',toolMeta};
-  assertToolCallQuota(job.accountId);jobs.set(job.id,job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
+  assertToolCallQuota(job.accountId);jobs.set(job.id,job);goldJobs.save(job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
   pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:remote?'outbound-leaf':'local',requiredCapabilities,note:job.note,toolMeta:job.toolMeta});
   if(remote){const command=enqueueForJob(job,{accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'process',operationId,sessionId:job.sessionId,agentId:job.agentId,process:request}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},30000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();return job;}
   Promise.resolve().then(()=>executeLocalProcessRequest(job,request)).then(data=>{job.resultData=data;job.resultSummary=nativeActivityResult(job.toolMeta,data);finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n'));finishJob(job,1,null);});return job;
@@ -609,7 +612,7 @@ async function startTerminalOperation(payload,requestId){
   if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
   const toolMeta=terminalWallMeta(request);
   const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-terminal:${toolMeta.op}`,cwd:String(toolMeta.cwd||''),script:toolMeta.label,status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null,resultSummary:'',toolMeta};
-  assertToolCallQuota(job.accountId);jobs.set(job.id,job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
+  assertToolCallQuota(job.accountId);jobs.set(job.id,job);goldJobs.save(job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
   pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:remote?'outbound-leaf':'local',requiredCapabilities,cwd:job.cwd,script:redact(job.script),note:job.note,toolMeta:job.toolMeta});
   if(remote){const command=enqueueForJob(job,{accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'terminal',operationId,sessionId:job.sessionId,agentId:job.agentId,terminal:request}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},30000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();return job;}
   Promise.resolve().then(()=>executeLocalTerminalRequest(job,request)).then(data=>{job.resultData=data;job.resultSummary=terminalResultSummary(data);finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};job.resultSummary='error · '+redact(String(error?.message||error));emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n'));finishJob(job,1,null);});return job;
@@ -682,7 +685,7 @@ async function startDesktopOperation(payload,requestId){
   if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
   const toolMeta={kind:'desktop',op,label:op==='status'?'Desktop status':op==='attach'?'Desktop attach':op==='resume'?'Desktop resume':op==='detach'?'Desktop detach':op==='windows'?'Desktop windows':op==='frame'?'Desktop frame':op==='input'?'Desktop input':op==='run'?'Desktop run':op==='observe'?'Computer observe':op==='act'?'Computer act':op==='semantic-attach'?'Semantic attach':op==='semantic-snapshot'?'Semantic snapshot':op==='semantic-events'?'Semantic events':op==='live-open'?'Real Remote live open':op==='live-close'?'Real Remote live close':'Semantic detach'};
   const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-desktop:${op}`,cwd:'',script:toolMeta.label,status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote:true,commandId:null,requiredCapabilities,resultData:null,resultSummary:'',toolMeta};
-  assertToolCallQuota(job.accountId);jobs.set(job.id,job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
+  assertToolCallQuota(job.accountId);jobs.set(job.id,job);goldJobs.save(job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
   pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:'outbound-leaf',requiredCapabilities,note:job.note,toolMeta});
   const command=enqueueForJob(job,{accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'desktop',operationId,sessionId:job.sessionId,agentId:job.agentId,desktop:request}});
   job.commandId=command.commandId;
@@ -701,7 +704,7 @@ async function startSearchOperation(payload,requestId){
   if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
   const toolMeta=searchActivityMeta(request);
   const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-search:${toolMeta.op}`,cwd:String(request.path||''),script:'',status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null,resultSummary:'',toolMeta};
-  assertToolCallQuota(job.accountId);jobs.set(job.id,job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
+  assertToolCallQuota(job.accountId);jobs.set(job.id,job);goldJobs.save(job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
   pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:remote?'outbound-leaf':'local',requiredCapabilities,note:job.note,toolMeta:job.toolMeta});
   if(remote){const command=enqueueForJob(job,{accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'search',operationId,sessionId:job.sessionId,agentId:job.agentId,search:request}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},30000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();return job;}
   Promise.resolve().then(()=>executeLocalSearchRequest(job,request)).then(data=>{job.resultData=data;const v=data?.search||data;if(v&&typeof v==='object'){for(const key of ['path','searchType','pattern','filePattern'])if(v[key]!=null&&!job.toolMeta[key])job.toolMeta[key]=key==='pattern'?redact(String(v[key])).slice(0,180):String(v[key]);}job.resultSummary=nativeActivityResult(job.toolMeta,data);finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n'));finishJob(job,1,null);});return job;
@@ -825,7 +828,7 @@ async function sendJson(res, status, value, headers={}) {
   try {
     // Never acknowledge Account, Device, A/B, Team, Usage or License changes
     // until their canonical PostgreSQL transaction has completed.
-    await Promise.all([goldRegistries.flush(),goldSessionState.flush()]);
+    await Promise.all([goldRegistries.flush(),goldSessionState.flush(),goldJobs.flush()]);
   } catch(error) {
     console.error('[gold-registry-commit]',error?.message||error);
     if(!res.headersSent){
@@ -944,7 +947,7 @@ function queueHelperUpdate(deviceId,{source='remote-owner'}={}) {
   const agentId=`agent-update-${crypto.randomBytes(8).toString('hex')}`,openId=`open-update-${crypto.randomBytes(8).toString('hex')}`;let session;
   try{session=sessions.open({accountId:device.accountId,agentId,openId,label:'client update',workspace:'',gracePreset:'30m',nodeId:route.nodeId,deviceId:route.deviceId,maxActiveForNode:route.sessionCeiling});const operationId=`client-update-${crypto.randomBytes(8).toString('hex')}`,requestId=`update-${crypto.randomUUID()}`;
     const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:null,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.sessionId,agentId:session.agentId,nodeId:session.nodeId,note:`${updateSource} requested helper client update`,cwd:'',script:'request signed client update',status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote:true,commandId:null,requiredCapabilities:[],resultData:null,autoCloseSession:true};
-    assertToolCallQuota(job.accountId);jobs.set(job.id,job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:'outbound-leaf',requiredCapabilities:[],note:job.note});
+    assertToolCallQuota(job.accountId);jobs.set(job.id,job);goldJobs.save(job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:'outbound-leaf',requiredCapabilities:[],note:job.note});
     const command=enqueueForJob(job,{accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'update',operationId,sessionId:job.sessionId,agentId:job.agentId,update:{op:'request',source:updateSource}}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},60000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();pushEvent({type:'device_update_requested',accountId:device.accountId,deviceId:device.deviceId,nodeId:device.nodeId,sessionId:session.sessionId,agentId,jobId:job.id,status:'queued',source:updateSource});return {accepted:true,deviceId:device.deviceId,nodeId:device.nodeId,sessionId:session.sessionId,agentId,source:updateSource,job:jobView(job)};
   }catch(error){if(session?.sessionId){try{sessions.close(session.sessionId,agentId);}catch{}}throw error;}
 }
@@ -1064,7 +1067,7 @@ const routeDeps=()=>({
   connectionViewForDevice,connections,decryptEnvelope,deviceView,devices,
   emitStream,enrollments,finishJob,fleet,fleetAuthority,
   fleetEligibility,fleetTarget,flushDiskRecords,fs,fullOutputFromDisk,
-  ingressTelemetry,jobView,jobs,licenses,normalizeUpdateReport,
+  ingressTelemetry,jobView,jobs,goldJobs,licenses,normalizeUpdateReport,
   pairingCodes,planEntitlements,pruneRing,pushEvent,queueHelperUpdate,
   queueSignedUpdate,readJson,reapAccessGrants,accountNotifications,realRemoteLive,recentEvents,redact,proTeams,teamSessions,requestTeamMemberApproval,operationalAccount,
   removeRuntimeForDevice,requireAccount,requireDeviceConnection,revokeRuntimeForDevice,ring,
@@ -1074,7 +1077,7 @@ const routeDeps=()=>({
   verifiedFleetContext,verifiedLeafCapabilities,waitForJob,wakeDeviceChannelForDevice,
 });
 
-await Promise.all([goldRegistries.flush(),goldSessionState.flush()]);
+await Promise.all([goldRegistries.flush(),goldSessionState.flush(),goldJobs.flush()]);
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url || '/', 'http://operator.local');
   try {
@@ -1126,6 +1129,7 @@ function shutdown(signal) {
   void flushDiskRecords().finally(()=>server.close(async()=>{
     await goldRegistries.flush().catch(error=>console.error('[gold-registry-flush]',error?.message));
     await goldSessionState.flush().catch(error=>console.error('[gold-session-flush]',error?.message));
+    await goldJobs.flush().catch(error=>console.error('[gold-job-flush]',error?.message));
     goldWriterLease.release();
     await goldStorage.close().catch(error=>console.error('[gold-db-close]',error?.message));
     process.exit(0);

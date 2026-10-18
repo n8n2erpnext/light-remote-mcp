@@ -23,7 +23,7 @@ if(!['postgresql:','postgres:'].includes(parsed.protocol)||
 
 const sqlRoot=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../platform-v2/sql');
 const manifest=JSON.parse(fs.readFileSync(path.join(sqlRoot,'migrations.lock.json'),'utf8'));
-if(manifest.migrations?.length!==15||manifest.target!=='light_remote_gold_dev - independent Gold only')
+if(manifest.migrations?.length!==16||manifest.target!=='light_remote_gold_dev - independent Gold only')
  throw Error('gold_migration_manifest_not_verified');
 const records=manifest.migrations.map((row,i)=>{
  if(row.version!==i+1||!/^[0-9]{3}_[a-z0-9_]+\.sql$/.test(row.file))

@@ -76,6 +76,11 @@
       "version": 15,
       "file": "015_gold_canonical_registry_storage.sql",
       "sha256": "df09330fcb60d317b4e84dcc15ed5181e32f5440f4b2a5795e3812b256331283"
+    },
+    {
+      "version": 16,
+      "file": "016_gold_job_records.sql",
+      "sha256": "16284abce6ac21301475f2cac2cd5d5ade9e0ac65307168ce170a3b8b6f5bac4"
     }
   ]
 }

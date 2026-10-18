@@ -17,7 +17,7 @@ import { registerWebAssets } from './web-assets.mjs';
 import { renderAiGuidePage, renderLlmsIndex } from './ai-guide-page.mjs';
 import { LEGAL_PAGES, renderLegalPage } from './legal-pages.mjs';
 import { renderSupportPage } from './support-page.mjs';
-import { registerSupportBackoffice, SupportOutbox } from './support-backoffice.mjs';
+import { registerSupportBackoffice, SupportOutbox, initializeSupportRedis } from './support-backoffice.mjs';
 import { GoldRegistryPersistence } from '../lib/gold-registry-persistence.mjs';
 import { registerPaddleWebhook, paddleBilling } from './paddle-billing.mjs';
 import { PLUGIN_TOOL_SECURITY, registerPluginTools } from './tools.mjs';
@@ -30,6 +30,7 @@ const goldStorage=await connectGoldStorage();
 initializeOAuthRedis(goldStorage.redis,goldStorage.prefix);
 initializePublicRateRedis(goldStorage.redis,goldStorage.prefix);
 initializeGoogleRedis(goldStorage.redis,goldStorage.prefix);
+initializeSupportRedis(goldStorage.redis,goldStorage.prefix);
 try{await initializeSiteAnnouncements(goldStorage.pool);await initializeSiteAnalytics(goldStorage.pool,goldStorage.redis,goldStorage.prefix)}
 catch(error){await goldStorage.close();throw error}
 const goldPluginLease=await goldStorage.pool.connect();

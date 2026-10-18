@@ -48,3 +48,12 @@ Complete canonical business storage replacement **in existing Operator/Plugin** 
 - Restored missing original RC50 dependency `lib/light-remote-plan-offers.mjs` from `6ab88ec`. A static scan reported no missing internal relative imports in Operator/Plugin/lib.
 - Synthetic PostgreSQL start/write/restart checks for Paddle+Google, Operator registries, and fake Redis Session all PASS. Source syntax checks PASS. None of these replace real Gold PostgreSQL/Redis and HTTP E2E acceptance.
 - Remaining blockers: real Gold database provisioning and end-to-end tests, Job/Fleet, other remaining Plugin/Operator business writers. Neither production nor RC50 source branch was changed.
+
+## Source checkpoint: Support Redis + canonical Job metadata
+
+- Support ticket submission limits use authenticated Redis atomic counters with TTL rather than an in-memory Map.
+- Google login authorization request state now uses Redis with TTL 600s and atomic get-and-delete; Account Portal awaits this storage operation. No Google auth flow fallback file is used.
+- Added immutable SQL migration 016 (`lr_gold_job_records`) for durable job metadata. Operator records Job create/finish in PostgreSQL through the **existing** runtime, using the existing JSON API boundary to await database writes.
+- On Gold Operator startup, previously running Job records are marked `interrupted`. Historical job lookup is bound to the original Agent/Session/Account/Device and does not reveal raw script or output.
+- Focused fake-PG job ledger test PASS; focused fake-Redis Google flow and other fake-PG registry tests PASS; JavaScript syntax PASS. This is **not a real database or end-to-end PASS**.
+- Fleet in-memory command queues, additional unrelated state writers and full Gold independent runtime acceptance remain incomplete. Docker execution was still blocked by the selected node's capability gate. No production changes.

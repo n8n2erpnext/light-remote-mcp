@@ -12,7 +12,12 @@ const ELIGIBLE_PLANS=new Set(['pro','vip']);
 const MAX_PENDING=5000;
 const MAX_SENT_HISTORY=500;
 const SUPPORT_AREAS=new Set(['install','approval','remote','account','update','billing','security','other']);
-const submitRate=new Map();
+let supportRedis=null,supportRedisPrefix='';
+export function initializeSupportRedis(client,prefix){
+ if(!client||typeof client.eval!=='function'||!/^lr:gold:[a-z0-9_-]+:$/.test(prefix||''))
+  throw Error('gold_support_redis_required');
+ supportRedis=client;supportRedisPrefix=prefix+'support:rate:';
+}
 
 function parseCookies(header=''){
   const out={};
@@ -64,11 +69,14 @@ function backoffMs(attempts){
   const ladder=[5_000,15_000,30_000,60_000,2*60_000,5*60_000,10*60_000,30*60_000,60*60_000];
   return ladder[Math.min(Math.max(0,attempts-1),ladder.length-1)];
 }
-function allowSubmit(accountId,{limit=12,windowMs=60*60_000,now=Date.now()}={}){
-  const key=String(accountId||'');
-  const rows=(submitRate.get(key)||[]).filter(ts=>ts>now-windowMs);
-  if(rows.length>=limit){submitRate.set(key,rows);return false;}
-  rows.push(now);submitRate.set(key,rows);return true;
+async function allowSubmit(accountId,{limit=12,windowMs=60*60_000}={}){
+  if(!supportRedis)throw Error('gold_support_redis_not_initialized');
+  const key=supportRedisPrefix+crypto.createHash('sha256').update(String(accountId||'')).digest('hex');
+  const count=Number(await supportRedis.eval(
+    "local count=redis.call('INCR',KEYS[1]);if count==1 then redis.call('EXPIRE',KEYS[1],ARGV[1]) end;return count",
+    {keys:[key],arguments:[String(Math.ceil(windowMs/1000))]}));
+  if(!Number.isSafeInteger(count)||count<1)throw Error('gold_support_redis_counter_invalid');
+  return count<=limit;
 }
 function loadConfig(configFile){
   const row=JSON.parse(fs.readFileSync(configFile,'utf8'));
@@ -345,7 +353,7 @@ export function registerSupportBackoffice(app,{outbox=new SupportOutbox()}={}){
       if(!identity.signedIn)return res.status(401).json({ok:false,error:'account_session_required'});
       const plan=String(identity.account.plan||'free').toLowerCase();
       if(!ELIGIBLE_PLANS.has(plan))return res.status(403).json({ok:false,error:'support_plan_required',plan});
-      if(!allowSubmit(identity.account.accountId))return res.status(429).json({ok:false,error:'support_rate_limited'});
+      if(!await allowSubmit(identity.account.accountId))return res.status(429).json({ok:false,error:'support_rate_limited'});
       const payload=supportPayload(identity.account,req.body||{});
       const queued=outbox.enqueue({account:identity.account,payload});
       return res.status(202).json({ok:true,accepted:true,event:queued});

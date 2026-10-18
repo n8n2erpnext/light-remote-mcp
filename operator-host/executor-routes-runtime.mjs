@@ -1,5 +1,5 @@
 export async function handleRuntimeRoutes(req,res,url,deps){
-  const {ACCOUNT_ID,DEVICE_ID,DeviceAccessGrantError,DeviceConnectionError,EnrollmentError,FleetError,MAX_ACTIVE_SESSIONS,MAX_MEMORY_OUTPUT,NODE_ID,SESSION_GRACE_PRESETS,SESSION_IDLE_MS,SESSION_MAX_IDLE_MS,SESSION_MIN_IDLE_MS,VERSION,accessGrants,agentClients,allDeviceViews,assertDiskJobOwner,assertToolCallQuota,capabilities,clearMainIfMatches,connectionSpec,connectionViewForDevice,connections,decryptEnvelope,deviceView,devices,enrollments,fleet,flushDiskRecords,fs,fullOutputFromDisk,ingressTelemetry,jobView,jobs,pairingCodes,pruneRing,pushEvent,queueSignedUpdate,readJson,realRemoteLive,recentEvents,redact,revokeRuntimeForDevice,ring,ringBytes,sendJson,sessionStatsFromDisk,sessions,sseClients,startDesktopOperation,startFsOperation,startJob,startProcessOperation,startScpOperation,startSearchOperation,startTerminalOperation,targetRoute,waitForJob}=deps;
+  const {ACCOUNT_ID,DEVICE_ID,DeviceAccessGrantError,DeviceConnectionError,EnrollmentError,FleetError,MAX_ACTIVE_SESSIONS,MAX_MEMORY_OUTPUT,NODE_ID,SESSION_GRACE_PRESETS,SESSION_IDLE_MS,SESSION_MAX_IDLE_MS,SESSION_MIN_IDLE_MS,VERSION,accessGrants,agentClients,allDeviceViews,assertDiskJobOwner,assertToolCallQuota,capabilities,clearMainIfMatches,connectionSpec,connectionViewForDevice,connections,decryptEnvelope,deviceView,devices,enrollments,fleet,flushDiskRecords,fs,fullOutputFromDisk,ingressTelemetry,jobView,jobs,goldJobs,pairingCodes,pruneRing,pushEvent,queueSignedUpdate,readJson,realRemoteLive,recentEvents,redact,revokeRuntimeForDevice,ring,ringBytes,sendJson,sessionStatsFromDisk,sessions,sseClients,startDesktopOperation,startFsOperation,startJob,startProcessOperation,startScpOperation,startSearchOperation,startTerminalOperation,targetRoute,waitForJob}=deps;
     if (req.method === 'GET' && url.pathname === '/v1/devices') {
       return sendJson(res, 200, { ok:true, currentDeviceId:DEVICE_ID, devices:allDeviceViews() });
     }
@@ -203,7 +203,16 @@ export async function handleRuntimeRoutes(req,res,url,deps){
       const job = jobs.get(jobMatch[1]);
       const aid = url.searchParams.get('agentId');
       if (job) { const session=sessions.ensure(job.sessionId, { agentId:aid }); assertToolCallQuota(session.accountId); sessions.record(job.sessionId, 'toolCalls'); sessions.record(job.sessionId, 'jobReads'); }
-      return job ? sendJson(res, 200, { ok: true, job: jobView(job) }) : sendJson(res, 404, { ok: false, error: 'job_not_found' });
+      if(job)return sendJson(res,200,{ok:true,job:jobView(job)});
+      const historical=await goldJobs.get(jobMatch[1]);
+      if(!historical)return sendJson(res,404,{ok:false,error:'job_not_found'});
+      const session=sessions.ensure(historical.sessionId,{agentId:aid});
+      if(session.accountId!==historical.accountId||session.deviceId!==historical.deviceId)
+        throw new Error('job_owner_mismatch');
+      assertToolCallQuota(session.accountId);
+      sessions.record(historical.sessionId,'toolCalls');
+      sessions.record(historical.sessionId,'jobReads');
+      return sendJson(res,200,{ok:true,job:historical});
     }
     const outputMatch = url.pathname.match(/^\/v1\/output\/([0-9a-f-]+)$/i);
     if (req.method === 'GET' && outputMatch) {
