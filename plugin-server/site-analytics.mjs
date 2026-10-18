@@ -12,8 +12,15 @@ export async function initializeSiteAnalytics(postgresPool,redisClient,prefix){
 }
 export async function refreshSiteAnalytics(){
  if(!pool)throw Error('gold_site_analytics_not_initialized');
- const {rows}=await pool.query('SELECT day::text AS day,metrics FROM lr_site_analytics_daily WHERE day >= current_date - interval \'94 days\' ORDER BY day');
- days=Object.fromEntries(rows.map(row=>[row.day,row.metrics]));
+ const daily=await pool.query("SELECT day::text AS day,page_views,downloads,download_clicks FROM lr_site_analytics_daily WHERE day >= current_date - interval '94 days' ORDER BY day");
+ const dimensions=await pool.query("SELECT day::text AS day,dimension,value,count FROM lr_site_analytics_dimensions WHERE day >= current_date - interval '94 days'");
+ days=Object.fromEntries(daily.rows.map(row=>[row.day,{
+  pageViews:Number(row.page_views),downloads:Number(row.downloads),downloadClicks:Number(row.download_clicks)
+ }]));
+ for(const r of dimensions.rows){
+  const row=days[r.day];if(!row)continue;
+  row[r.dimension]??={};row[r.dimension][r.value]=Number(r.count);
+ }
  return days;
 }
 
@@ -70,17 +77,33 @@ function applyMetric(row,type,attrs){
  }else if(type==='tab'){row.osTabs??={};inc(row.osTabs,attrs.os)}
  return row;
 }
+const METRIC_DIMENSIONS={
+ page:[['pages','path'],['os','os'],['referrers','referrer']],
+ download:[['downloadOS','os'],['downloadArchitecture','arch'],['downloadVersions','version'],['downloadFiles','file']],
+ 'download-click':[['externalClickOS','os'],['externalClickArchitecture','arch'],['externalClickVersions','version']],
+ tab:[['osTabs','os']]
+};
+const METRIC_COLUMNS={page:'page_views',download:'downloads','download-click':'download_clicks'};
 async function persistMetric(type,attrs){
  if(!pool)throw Error('gold_site_analytics_not_initialized');
+ const dimensions=METRIC_DIMENSIONS[type];
+ if(!dimensions)throw Error('gold_analytics_event_invalid');
  const day=today(),client=await pool.connect();let begun=false;
  try{
   await client.query('BEGIN');begun=true;
-  await client.query("INSERT INTO lr_site_analytics_daily(day,metrics) VALUES($1::date,'{}'::jsonb) ON CONFLICT(day) DO NOTHING",[day]);
-  const locked=(await client.query('SELECT metrics FROM lr_site_analytics_daily WHERE day=$1::date FOR UPDATE',[day])).rows[0];
-  const row=applyMetric(locked.metrics,type,attrs);
-  await client.query('UPDATE lr_site_analytics_daily SET metrics=$2::jsonb,updated_at=now() WHERE day=$1::date',[day,JSON.stringify(row)]);
+  await client.query('INSERT INTO lr_site_analytics_daily(day) VALUES($1::date) ON CONFLICT(day) DO NOTHING',[day]);
+  const column=METRIC_COLUMNS[type];
+  if(column)await client.query(`UPDATE lr_site_analytics_daily SET ${column}=${column}+1,updated_at=now() WHERE day=$1::date`,[day]);
+  for(const [dimension,field] of dimensions){
+   const value=String(attrs[field]||'').slice(0,180);
+   if(!value)continue;
+   await client.query(
+    'INSERT INTO lr_site_analytics_dimensions(day,dimension,value,count) VALUES($1::date,$2,$3,1) ON CONFLICT(day,dimension,value) DO UPDATE SET count=lr_site_analytics_dimensions.count+1',
+    [day,dimension,value]);
+  }
   await client.query('COMMIT');begun=false;
-  days[day]=row;
+  const next=days[day]??{};
+  days[day]=applyMetric(next,type,attrs);
   if(Object.keys(days).length>95)prune();
  }catch(error){if(begun)await client.query('ROLLBACK').catch(()=>{});throw error}
  finally{client.release()}

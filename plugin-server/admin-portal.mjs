@@ -91,7 +91,7 @@ export function registerAdminPortal(app){
       }
       if(action==='mail-status'&&req.method==='GET')return res.json({ok:true,configured:Boolean(mailConfig()),google:googleAuthStatus()});
       if(action==='mail-test'&&req.method==='POST'){const verified=await verifyMail();return res.status(verified?200:503).json({ok:verified,verified});}
-      if(action==='google-config'&&req.method==='POST'){const google=saveGoogleAuthConfig({clientId:req.body?.clientId,clientSecret:req.body?.clientSecret});return res.status(200).json({ok:true,google});}
+      if(action==='google-config'&&req.method==='POST'){const google=await saveGoogleAuthConfig({clientId:req.body?.clientId,clientSecret:req.body?.clientSecret});return res.status(200).json({ok:true,google});}
       if(action==='set-plan'&&req.method==='POST'){
         const id=String(req.body?.accountId||''),plan=String(req.body?.plan||'');
         const out=await callOperatorJson('POST','/v1/admin/accounts/'+encodeURIComponent(id)+'/entitlement',{plan,durationDays:req.body?.durationDays??null,sourceRef:'web-admin'});

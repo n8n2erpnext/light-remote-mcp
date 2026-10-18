@@ -81,6 +81,21 @@
       "version": 16,
       "file": "016_gold_job_records.sql",
       "sha256": "16284abce6ac21301475f2cac2cd5d5ade9e0ac65307168ce170a3b8b6f5bac4"
+    },
+    {
+      "version": 17,
+      "file": "017_gold_google_native.sql",
+      "sha256": "5c6ed57adc4a228c3dbf1a0ae06c1400760c9f3cff5eab6ca9165392b2dfd829"
+    },
+    {
+      "version": 18,
+      "file": "018_gold_site_announcements_native.sql",
+      "sha256": "9e1f0a24745810d9880d7e619dfd382aa326a69f635a306c8c9ef8a2b5183aaa"
+    },
+    {
+      "version": 19,
+      "file": "019_gold_site_analytics_native.sql",
+      "sha256": "cdf4368b8c387086c962cdfbccc3c7bdf89eda60c2bc1052aae26daf735dcbaf"
     }
   ]
 }

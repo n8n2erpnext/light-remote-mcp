@@ -57,3 +57,14 @@ Complete canonical business storage replacement **in existing Operator/Plugin** 
 - On Gold Operator startup, previously running Job records are marked `interrupted`. Historical job lookup is bound to the original Agent/Session/Account/Device and does not reveal raw script or output.
 - Focused fake-PG job ledger test PASS; focused fake-Redis Google flow and other fake-PG registry tests PASS; JavaScript syntax PASS. This is **not a real database or end-to-end PASS**.
 - Fleet in-memory command queues, additional unrelated state writers and full Gold independent runtime acceptance remain incomplete. Docker execution was still blocked by the selected node's capability gate. No production changes.
+
+## 2026-10-18 UAT LXD retry and PostgreSQL-first normalization
+
+- Successfully resumed the owner-authorized Light Remote `direct-arm-local` session after the `target_node_draining` hold cleared.
+- Created *separate* unprivileged LXD `light-remote-gold-uat` on VPS-ARM: 2 CPU, 3 GiB RAM, 10.192.135.61/24, no production proxy/port or boot autostart. Its network was configured independently. Both PostgreSQL **17.11** and Redis **8.10.2** were installed from provider repositories and were verified `active`. No production LXD or database changed.
+- A one-shot tool call to provision isolated `light_remote_gold_dev` SQL roles/secrets and Redis password was **denied by the safety layer**. Did not retry via PTY, alternative target, privileged workaround or omitted capability. Consequently **no authorized Gold credentials/roles, applied migrations or real API PostgreSQL/Redis tests are verified**.
+- New migration 017 and API: Google OAuth credentials are relational columns `client_id,client_secret,redirect_uri`, not a domain JSONB snapshot. Redis remains the only storage for temporary OAuth flow state.
+- New migration 018 and API: Site Announcements now use relational typed columns, PostgreSQL arrays for pages/platforms, and normal SQL CRUD; migration rejects preexisting legacy JSONB rows instead of dropping data silently.
+- New migration 019 and API: Site Analytics counters and dimensional statistics now use typed numeric SQL counters and `lr_site_analytics_dimensions`; migration rejects preexisting legacy JSONB rows.
+- 19 SQL migrations tracked with source hashes. Focused mock SQL tests for these normalized domains PASS, as do prior Account/Device/Paddle fake PostgreSQL and Session/Job fake Redis tests. **Mock tests are not real DB acceptance.**
+- Remaining architectural debt: `lr_gold_registry_documents(domain,payload JSONB)` still stores full snapshots of many domains (Account, Device, Team, Paddle, Support, Usage, etc.). This is **not the requested PostgreSQL-first relational end state**; must be replaced incrementally with canonical typed PG tables and transactional writers before release. The LXD exists but Gold is not deployable/accepted.

@@ -23,18 +23,29 @@ const defaultAnnouncement={
  pages:['/','/downloads','/support'],audience:'site',kind:'feature',platforms:['windows','macos','linux'],priority:0,dismissible:true,startAt:'',endAt:'',updatedAt:new Date().toISOString()
 };
 let entries=[],pool=null;
+const dbColumns='id,enabled,title,message,theme,background,color,link_color,link_label,link_url,pages,audience,kind,platforms,priority,dismissible,start_at,end_at,updated_at';
+const bindEntry=x=>[x.id,x.enabled,x.title,x.message,x.theme,x.background,x.color,x.linkColor,x.linkLabel,x.linkUrl,x.pages,x.audience,x.kind,x.platforms,x.priority,x.dismissible,x.startAt||null,x.endAt||null,x.updatedAt];
+const fromRow=r=>({
+ id:r.id,enabled:r.enabled,title:r.title,message:r.message,theme:r.theme,
+ background:r.background.trim(),color:r.color.trim(),linkColor:r.link_color.trim(),
+ linkLabel:r.link_label,linkUrl:r.link_url,pages:r.pages,audience:r.audience,
+ kind:r.kind,platforms:r.platforms,priority:r.priority,dismissible:r.dismissible,
+ startAt:r.start_at?new Date(r.start_at).toISOString():'',endAt:r.end_at?new Date(r.end_at).toISOString():'',
+ updatedAt:new Date(r.updated_at).toISOString()
+});
+const INSERT_ANNOUNCEMENT=`INSERT INTO lr_site_announcements(${dbColumns}) VALUES(${Array.from({length:19},(_,i)=>'$'+(i+1)).join(',')})`;
+const UPDATE_ANNOUNCEMENT=`UPDATE lr_site_announcements SET ${dbColumns.split(',').slice(1).map((column,i)=>column+'=$'+(i+2)).join(',')} WHERE id=$1`;
 function requireDatabase(){if(!pool)throw Error('gold_site_pg_uninitialized')}
 export async function refreshSiteAnnouncements(){
  requireDatabase();
- const {rows}=await pool.query('SELECT payload FROM lr_site_announcements ORDER BY updated_at DESC LIMIT 100');
- entries=rows.map(row=>row.payload);
+ const {rows}=await pool.query('SELECT * FROM lr_site_announcements ORDER BY updated_at DESC LIMIT 100');
+ entries=rows.map(fromRow);
  return entries;
 }
 export async function initializeSiteAnnouncements(postgresPool){
  if(!postgresPool||typeof postgresPool.query!=='function')throw Error('gold_site_pg_required');
  pool=postgresPool;
- await pool.query('INSERT INTO lr_site_announcements(id,payload) VALUES($1,$2::jsonb) ON CONFLICT(id) DO NOTHING',
-  [defaultAnnouncement.id,JSON.stringify(defaultAnnouncement)]);
+ await pool.query(INSERT_ANNOUNCEMENT+' ON CONFLICT(id) DO NOTHING',bindEntry(defaultAnnouncement));
  return refreshSiteAnnouncements();
 }
 function sanitize(v,prior={}){
@@ -74,18 +85,19 @@ export async function mutateAnnouncement(method,id,payload={}){
    const count=(await client.query('SELECT COUNT(*)::int AS total FROM lr_site_announcements')).rows[0].total;
    if(count>=100)throw Object.assign(Error('announcement_limit'),{status:400});
    const created=sanitize(payload);
-   await client.query('INSERT INTO lr_site_announcements(id,payload) VALUES($1,$2::jsonb)',[created.id,JSON.stringify(created)]);
+   await client.query(INSERT_ANNOUNCEMENT,bindEntry(created));
    result=created;
   }else if(method==='PUT'){
-   const previous=(await client.query('SELECT payload FROM lr_site_announcements WHERE id=$1 FOR UPDATE',[id])).rows?.[0]?.payload;
+   const previousRow=(await client.query('SELECT * FROM lr_site_announcements WHERE id=$1 FOR UPDATE',[id])).rows?.[0];
+   const previous=previousRow?fromRow(previousRow):null;
    if(!previous)throw Object.assign(Error('announcement_not_found'),{status:404});
    const updated=sanitize(payload,previous);
-   await client.query('UPDATE lr_site_announcements SET payload=$2::jsonb,updated_at=now() WHERE id=$1',[id,JSON.stringify(updated)]);
+   await client.query(UPDATE_ANNOUNCEMENT,bindEntry(updated));
    result=updated;
   }else if(method==='DELETE'){
-   const rows=(await client.query('DELETE FROM lr_site_announcements WHERE id=$1 RETURNING payload',[id])).rows;
+   const rows=(await client.query('DELETE FROM lr_site_announcements WHERE id=$1 RETURNING *',[id])).rows;
    if(!rows?.length)throw Object.assign(Error('announcement_not_found'),{status:404});
-   result=rows[0].payload;
+   result=fromRow(rows[0]);
   }else throw Object.assign(Error('invalid_announcement_action'),{status:405});
   await client.query('COMMIT');transaction=false;
   await refreshSiteAnnouncements();

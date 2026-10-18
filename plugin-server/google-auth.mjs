@@ -3,7 +3,14 @@ import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { PUBLIC_ORIGIN } from './config.mjs';
 
 const googleState={config:{}};
-export function mountGoldGoogleAuth(registries){registries.mount('google_oauth',googleState)}
+let goldGooglePool=null;
+export async function initializeGoldGoogleAuth(pool){
+ if(!pool||typeof pool.query!=='function')throw Error('gold_google_postgres_required');
+ goldGooglePool=pool;
+ const {rows}=await pool.query('SELECT client_id,client_secret,redirect_uri FROM lr_gold_google_oauth_config WHERE singleton_id=1');
+ const row=rows?.[0];
+ googleState.config=row?{clientId:row.client_id,clientSecret:row.client_secret,redirectUri:row.redirect_uri}:{};
+}
 let googleRedis=null,googleRedisPrefix='';
 export function initializeGoogleRedis(client,prefix){
  if(!client||typeof client.getDel!=='function'||typeof client.set!=='function'||!/^lr:gold:[a-z0-9_-]+:$/.test(prefix||''))
@@ -23,14 +30,14 @@ function config(){
   return {clientId,clientSecret,redirectUri:String(row.redirectUri||`${PUBLIC_ORIGIN}/account/google/callback`)};
 }
 export function googleAuthStatus(){return {configured:Boolean(config()),origin:PUBLIC_ORIGIN,redirectUri:`${PUBLIC_ORIGIN}/account/google/callback`};}
-export function saveGoogleAuthConfig({clientId,clientSecret}={}){
+export async function saveGoogleAuthConfig({clientId,clientSecret}={}){
   const id=String(clientId||'').trim(),secret=String(clientSecret||'').trim();
   if(!/^[A-Za-z0-9._-]{20,220}\.apps\.googleusercontent\.com$/.test(id))throw Object.assign(new Error('invalid_google_client_id'),{status:400});
   if(secret.length<16||secret.length>512||/\s/.test(secret))throw Object.assign(new Error('invalid_google_client_secret'),{status:400});
   const payload={schemaVersion:1,clientId:id,clientSecret:secret,redirectUri:`${PUBLIC_ORIGIN}/account/google/callback`};
-  if(typeof googleState._persist!=='function')throw Error('gold_google_pg_not_initialized');
+  if(!goldGooglePool)throw Error('gold_google_pg_not_initialized');
+  await goldGooglePool.query(`INSERT INTO lr_gold_google_oauth_config(singleton_id,client_id,client_secret,redirect_uri) VALUES(1,$1,$2,$3) ON CONFLICT(singleton_id) DO UPDATE SET client_id=EXCLUDED.client_id,client_secret=EXCLUDED.client_secret,redirect_uri=EXCLUDED.redirect_uri,updated_at=now()`,[payload.clientId,payload.clientSecret,payload.redirectUri]);
   googleState.config=payload;
-  googleState._persist();
   return googleAuthStatus();
 }
 export async function beginGoogleAuth({returnTo='/account'}={}){

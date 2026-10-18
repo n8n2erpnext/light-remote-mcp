@@ -7,7 +7,7 @@ import { PUBLIC_ALLOWED_HOSTS, PUBLIC_HOST, PUBLIC_ORIGIN, PUBLIC_PORT, OPENAI_C
 import { authenticateAccess, registerOAuth, initializeOAuthRedis } from './oauth.mjs';
 import { registerPublicDeviceRoutes, prunePublicRateState, initializePublicRateRedis } from './device-public.mjs';
 import { registerAccountPortal } from './account-portal.mjs';
-import { mountGoldGoogleAuth, initializeGoogleRedis } from './google-auth.mjs';
+import { initializeGoldGoogleAuth, initializeGoogleRedis } from './google-auth.mjs';
 import { registerDistributionPortal } from './distribution-portal.mjs';
 import { registerAdminPortal } from './admin-portal.mjs';
 import { installAnnouncements, registerClientAnnouncementFeed, initializeSiteAnnouncements } from './site-announcements.mjs';
@@ -44,7 +44,7 @@ if(pluginLeaseOk!==true){
 const goldPluginStates=await GoldRegistryPersistence.open({pool:goldStorage.pool});
 const supportOutbox=goldPluginStates.mount('support_outbox',new SupportOutbox({stateFile:null}));
 goldPluginStates.mount('paddle_billing',paddleBilling);
-mountGoldGoogleAuth(goldPluginStates);
+await initializeGoldGoogleAuth(goldStorage.pool);
 await goldPluginStates.flush();
 const app=express();
 // In the existing Express API, never acknowledge a durable Support Outbox
