@@ -5,7 +5,7 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { hostHeaderValidation } from '@modelcontextprotocol/sdk/server/middleware/hostHeaderValidation.js';
 import { PUBLIC_ALLOWED_HOSTS, PUBLIC_HOST, PUBLIC_ORIGIN, PUBLIC_PORT, OPENAI_CHALLENGE_FILE, VERSION, MCP_SURFACE_VERSION } from './config.mjs';
 import { authenticateAccess, registerOAuth, initializeOAuthRedis } from './oauth.mjs';
-import { registerPublicDeviceRoutes, prunePublicRateState } from './device-public.mjs';
+import { registerPublicDeviceRoutes, prunePublicRateState, initializePublicRateRedis } from './device-public.mjs';
 import { registerAccountPortal } from './account-portal.mjs';
 import { registerDistributionPortal } from './distribution-portal.mjs';
 import { registerAdminPortal } from './admin-portal.mjs';
@@ -27,6 +27,7 @@ import { installLegacyToolCallCompat } from './legacy-tool-call-compat.mjs';
 // Canonical Plugin refuses to listen without the independent Gold PG17/Redis8.
 const goldStorage=await connectGoldStorage();
 initializeOAuthRedis(goldStorage.redis,goldStorage.prefix);
+initializePublicRateRedis(goldStorage.redis,goldStorage.prefix);
 try{await initializeSiteAnnouncements(goldStorage.pool);await initializeSiteAnalytics(goldStorage.pool,goldStorage.redis,goldStorage.prefix)}
 catch(error){await goldStorage.close();throw error}
 const goldPluginStates=await GoldRegistryPersistence.open({pool:goldStorage.pool});

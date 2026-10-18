@@ -20,6 +20,7 @@ import { UsageRegistry } from './usage-registry.mjs';
 import { AccountNotificationRegistry, AccountNotificationError } from './account-notification-registry.mjs';
 import { connectGoldStorage } from '../lib/gold-db.mjs';
 import { GoldRegistryPersistence } from '../lib/gold-registry-persistence.mjs';
+import { GoldSessionRedis } from '../lib/gold-session-redis.mjs';
 import { ProTeamRegistry, ProTeamError } from './pro-team-registry.mjs';
 import { requestTeamMemberApproval } from './team-approval-requests.mjs';
 import { TeamPrincipalProofVerifier, verifyTeamPrincipalRequest } from '../lib/team-oauth-principal-proof.mjs';
@@ -122,6 +123,7 @@ if(singleWriter!==true){
  throw Error('gold_operator_single_writer_already_active');
 }
 const goldRegistries=await GoldRegistryPersistence.open({pool:goldStorage.pool});
+const goldSessionState=await GoldSessionRedis.open({client:goldStorage.redis,prefix:goldStorage.prefix});
 const NATIVE_PROCESSES=new NativeProcessRegistry();
 const NATIVE_TERMINALS=new NativeTerminalRegistry({emit:event=>pushEvent(event)});
 const NATIVE_SEARCHES=new NativeSearchRegistry();
@@ -136,7 +138,7 @@ const sseClients = new Set();
 let ringBytes = 0;
 let sequence = 0;
 const usage = goldRegistries.mount('usage',new UsageRegistry({ stateFile:null }));
-const sessions = new SessionRegistry({ idleMs:SESSION_IDLE_MS, minIdleMs:SESSION_MIN_IDLE_MS, maxIdleMs:SESSION_MAX_IDLE_MS, activeWindowMs:SESSION_ACTIVE_WINDOW_MS, maxActive:MAX_ACTIVE_SESSIONS, historyMs:SESSION_HISTORY_MS, accountId:ACCOUNT_ID, deviceId:DEVICE_ID, nodeId:NODE_ID, emit:event => pushEvent(event) });
+const sessions = goldSessionState.mount(new SessionRegistry({ idleMs:SESSION_IDLE_MS, minIdleMs:SESSION_MIN_IDLE_MS, maxIdleMs:SESSION_MAX_IDLE_MS, activeWindowMs:SESSION_ACTIVE_WINDOW_MS, maxActive:MAX_ACTIVE_SESSIONS, historyMs:SESSION_HISTORY_MS, accountId:ACCOUNT_ID, deviceId:DEVICE_ID, nodeId:NODE_ID, emit:event => pushEvent(event) }));
 const devices = goldRegistries.mount('devices',new DeviceRegistry({ stateFile:null, presenceTtlMs:DEVICE_PRESENCE_TTL_MS, emit:event => pushEvent(event) }));
 const enrollments = goldRegistries.mount('enrollments',new EnrollmentRegistry({ stateFile:null, signerFile:ENROLLMENT_SIGNER_FILE, activationBaseUrl:ENROLLMENT_ACTIVATION_URL, ttlMs:ENROLLMENT_TTL_MS, emit:event => pushEvent(event) }));
 const fleet = new FleetRouter({ channelTtlMs:FLEET_CHANNEL_TTL_MS, commandLeaseMs:FLEET_COMMAND_LEASE_MS, maxQueuedPerNode:FLEET_MAX_QUEUED_PER_NODE, emit:event => pushEvent(event) });
@@ -823,7 +825,7 @@ async function sendJson(res, status, value, headers={}) {
   try {
     // Never acknowledge Account, Device, A/B, Team, Usage or License changes
     // until their canonical PostgreSQL transaction has completed.
-    await goldRegistries.flush();
+    await Promise.all([goldRegistries.flush(),goldSessionState.flush()]);
   } catch(error) {
     console.error('[gold-registry-commit]',error?.message||error);
     if(!res.headersSent){
@@ -1072,7 +1074,7 @@ const routeDeps=()=>({
   verifiedFleetContext,verifiedLeafCapabilities,waitForJob,wakeDeviceChannelForDevice,
 });
 
-await goldRegistries.flush();
+await Promise.all([goldRegistries.flush(),goldSessionState.flush()]);
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url || '/', 'http://operator.local');
   try {
@@ -1123,6 +1125,7 @@ function shutdown(signal) {
   }
   void flushDiskRecords().finally(()=>server.close(async()=>{
     await goldRegistries.flush().catch(error=>console.error('[gold-registry-flush]',error?.message));
+    await goldSessionState.flush().catch(error=>console.error('[gold-session-flush]',error?.message));
     goldWriterLease.release();
     await goldStorage.close().catch(error=>console.error('[gold-db-close]',error?.message));
     process.exit(0);
