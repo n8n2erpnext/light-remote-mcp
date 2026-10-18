@@ -1,4 +1,4 @@
-<!doctype html><html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Light Remote — Admin</title><link rel="icon" href="/account/assets/light-remote.ico" sizes="any"><script src="/account/assets/theme.js"></script><link rel="stylesheet" href="/account/assets/portal.css"><link rel="stylesheet" href="/account/assets/visual-system-v4.css"></head><body><div class="app admin-app">
+<!doctype html><html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Light Remote — Admin</title><link rel="icon" href="/account/assets/light-remote.ico" sizes="any"><script src="/account/assets/theme.js"></script><link rel="stylesheet" href="/account/assets/portal.css"></head><body><div class="app admin-app">
 <aside class="sidebar"><div class="brand"><img src="/account/assets/light-remote-mark.svg" alt=""><span><strong>Light Remote</strong><small>Admin control plane</small></span></div><nav class="nav admin-nav-list">
 <button class="admin-nav active" data-view="overview"><img class="material-icon" src="/assets/icons/material/dashboard.svg" alt="">Overview</button>
 <button class="admin-nav" data-view="accounts"><img class="material-icon" src="/assets/icons/material/group.svg" alt="">Accounts</button>
@@ -6,24 +6,16 @@
 <button class="admin-nav" data-view="upgrades"><img class="material-icon" src="/assets/icons/material/star.svg" alt="">Upgrade requests <span id="upgradeCount" class="nav-count">0</span></button>
 <button class="admin-nav" data-view="billing"><img class="material-icon" src="/assets/icons/material/credit_card.svg" alt="">Billing & refunds</button>
 <button class="admin-nav" data-view="licenses"><img class="material-icon" src="/assets/icons/material/key.svg" alt="">Licenses</button>
-<button class="admin-nav" data-view="analytics"><img class="material-icon" src="/assets/icons/material/bar_chart.svg" alt="">Traffic & downloads</button>
 <button class="admin-nav" data-view="announcements"><img class="material-icon" src="/assets/icons/material/notifications.svg" alt="">Announcements</button>
+<button class="admin-nav" data-view="notification-center"><img class="material-icon" src="/assets/icons/material/mark_email_unread.svg" alt="">Notification Center</button>
 <button class="admin-nav" data-view="system"><img class="material-icon" src="/assets/icons/material/settings.svg" alt="">System</button>
 <a href="/account"><span class="icon"><img class="material-icon" src="/assets/icons/material/arrow_back.svg" alt=""></span>Account portal</a></nav><div class="account-foot"><div class="account-email">Administrator</div><div class="account-meta">Owner authority</div></div></aside>
 <main class="main admin-main">
-<section id="view-overview" class="admin-view"><div class="page-head"><div><div class="eyebrow">CONTROL PLANE</div><h1>Overview</h1><p>Accounts, groups, pending identities, devices and usage.</p></div><button id="refreshAdmin" class="btn"><img class="material-icon" src="/assets/icons/material/refresh.svg" alt=""> Refresh</button></div><div id="adminMetrics" class="usage-grid"></div>
-<div class="admin-device-os-layout">
-<section class="panel"><div class="panel-head"><div><h2>Registered devices by OS</h2><span class="muted">Actual enrolled devices — not website visitors or downloads</span></div></div><div id="adminDeviceOS" class="settings-body"><span class="muted">Loading device inventory…</span></div></section>
-<section class="panel"><div class="panel-head"><div><h2>Device connection status</h2><span class="muted">Real-time inventory, online vs offline</span></div></div><div id="adminDeviceStatus" class="settings-body"><span class="muted">Loading status…</span></div></section>
-</div><div class="admin-two"><section class="panel"><div class="panel-head"><h2>Plan mix</h2></div><div id="planMix" class="settings-body"></div></section><section class="panel"><div class="panel-head"><h2>Service status</h2></div><div id="serviceStatus" class="settings-body"></div></section></div></section>
+<section id="view-overview" class="admin-view"><div class="page-head"><div><div class="eyebrow">CONTROL PLANE</div><h1>Overview</h1><p>Accounts, groups, pending identities, devices and usage.</p></div><button id="refreshAdmin" class="btn"><img class="material-icon" src="/assets/icons/material/refresh.svg" alt=""> Refresh</button></div><div id="adminMetrics" class="usage-grid"></div><div class="admin-two"><section class="panel"><div class="panel-head"><h2>Plan mix</h2></div><div id="planMix" class="settings-body"></div></section><section class="panel"><div class="panel-head"><h2>Service status</h2></div><div id="serviceStatus" class="settings-body"></div></section></div></section>
 
 <section id="view-accounts" class="admin-view hide"><div class="page-head"><div><div class="eyebrow">IDENTITY</div><h1>Accounts</h1><p>Manage verified identities by group, plan and owned device state.</p></div><div class="admin-head-actions"><select id="groupFilter" class="admin-group-filter"><option value="">All groups</option></select><input id="accountSearch" class="admin-search" placeholder="Search email or account ID"></div></div>
 <section class="panel admin-group-manager"><div class="panel-head"><div><h2>Groups</h2><div class="muted">Organize accounts without changing authentication or entitlement.</div></div></div><form id="createGroup" class="admin-group-toolbar"><label>New group<input id="newGroupName" maxlength="50" placeholder="e.g. Beta testers" required></label><button class="btn" type="submit">Create group</button></form><div id="groupGrid" class="admin-group-grid"></div></section>
-<section class="panel">
-<div class="admin-pagination-bar"><label>Rows <select id="accountPageSize"><option>10</option><option selected>20</option><option>30</option><option>50</option></select></label><span id="accountPaginationSummary" class="muted">Loading…</span></div>
-<div id="adminAccounts"><div class="empty">Loading accounts…</div></div>
-<div class="admin-pagination-bar"><span id="accountPaginationBottom" class="muted"></span><nav id="accountPagination" aria-label="Accounts pages" class="admin-pagination-controls"></nav></div>
-</section></section>
+<section class="panel"><div id="adminAccounts"><div class="empty">Loading accounts…</div></div></section></section>
 
 <section id="view-pending" class="admin-view hide"><div class="page-head"><div><div class="eyebrow">REGISTRATION</div><h1>Pending registrations</h1><p>Unverified identities expire automatically after 24 hours.</p></div></div><section class="panel"><div id="pendingRows"><div class="empty">Loading pending registrations…</div></div></section></section>
 
@@ -32,14 +24,6 @@
 <section class="panel"><div class="panel-head"><div><h2>Recent Paddle transactions</h2><div id="billingSummary" class="muted">Loading billing state…</div></div><span id="billingMode" class="badge">…</span></div><div id="billingRows"><div class="empty">Loading transactions…</div></div></section><div id="refundMsg" class="setting-note"></div></section>
 
 <section id="view-licenses" class="admin-view hide"><div class="page-head"><div><div class="eyebrow">ENTITLEMENTS</div><h1>Licenses</h1><p>Keys remain available for gifts, manual grants and VIP delivery.</p></div></div><section class="panel"><div class="panel-head"><div><h2>Issue key</h2><div class="muted">Optional recipient sends the key immediately using Light Remote transactional mail.</div></div></div><form id="issueLicense" class="admin-form admin-form-license settings-body"><label>Plan<select id="licensePlan"><option value="pro">PRO</option><option value="vip">VIP</option></select></label><label>Duration days<input id="licenseDays" type="number" min="1" max="3650" value="30"></label><label>Max redemptions<input id="licenseMax" type="number" min="1" max="1000" value="1"></label><label>Recipient email<input id="licenseRecipient" type="email" placeholder="optional@example.com"></label><button class="btn primary" type="submit">Issue key</button></form><div id="issuedKey" class="setting-note settings-body"></div><div class="panel-head"><h2>Existing licenses</h2></div><div id="licenseRows"><div class="empty">Loading licenses…</div></div></section></section>
-<section id="view-system" class="admin-view hide"><div class="page-head"><div><div class="eyebrow">OPERATIONS</div><h1>System</h1><p>Transactional mail, authentication and public service configuration.</p></div></div><div class="settings-stack"><section class="panel setting-row"><div><h2>Transactional mail</h2><div id="mailSummary" class="muted">Checking configuration…</div></div><button id="verifyMail" class="btn">Verify SMTP</button></section><section class="panel google-system-panel"><div class="panel-head"><div><h2>Google Login</h2><div id="googleSummary" class="muted">Checking configuration…</div></div><span id="googleStatus" class="badge">…</span></div><div class="settings-body google-config-body"><div class="system-code-row"><span class="system-code-label">Authorized origin</span><code id="googleOrigin">—</code><button id="copyGoogleOrigin" class="icon-btn" title="Copy origin"><img class="material-icon" src="/assets/icons/material/content_copy.svg" alt=""></button></div><div class="system-code-row"><span class="system-code-label">Redirect URI</span><code id="googleRedirect">—</code><button id="copyGoogleRedirect" class="icon-btn" title="Copy redirect URI"><img class="material-icon" src="/assets/icons/material/content_copy.svg" alt=""></button></div><div class="google-setup-actions"><a class="btn" href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer">Open Google Cloud</a><span class="muted">Create credentials → OAuth client ID → Web application. Use the origin and redirect URI above exactly.</span></div><form id="googleConfigForm" class="google-config-form"><label>Client ID<input id="googleClientId" autocomplete="off" spellcheck="false" placeholder="…apps.googleusercontent.com" required></label><label>Client secret<input id="googleClientSecret" type="password" autocomplete="new-password" spellcheck="false" placeholder="Paste once — never shown again" required></label><button class="btn primary" type="submit">Save Google client</button></form></div></section><section class="panel setting-row"><div><h2>Public endpoint</h2><div class="muted">Official Direct MCP + Account portal</div></div><code>light-remote.thaiduy.digital</code></section></div><div id="systemMsg" class="setting-note"></div></section>
-<section id="view-analytics" class="admin-view hide"><div class="page-head"><div><div class="eyebrow">OBSERVABILITY</div><h1>Traffic & downloads</h1><p>Aggregated server-side metrics, without storing raw visitor IP addresses.</p></div><div class="admin-head-actions"><select id="analyticsDays"><option value="7">7 days</option><option selected value="30">30 days</option><option value="90">90 days</option></select><button id="refreshAnalytics" class="btn">Refresh</button></div></div><div id="analyticsMetrics" class="usage-grid"></div><div id="analyticsNote" class="setting-note muted"></div><div class="admin-analytics-grid">
-<section class="panel"><div class="panel-head"><h2>Page views by date</h2></div><div id="analyticsTimeline" class="settings-body"></div></section>
-<section class="panel"><div class="panel-head"><div><h2>Client file downloads by OS</h2><span class="muted">File responses only — no Android/iOS app is offered</span></div></div><div id="analyticsOS" class="settings-body"></div></section>
-<section class="panel"><div class="panel-head"><div><h2>External download-link clicks</h2><span class="muted">Clicked GitHub links — not verified files transferred</span></div></div><div id="analyticsExternalClicks" class="settings-body"></div></section>
-<section class="panel"><div class="panel-head"><div><h2>Website views by visitor OS</h2><span class="muted">Browser User-Agent; Android means a website visit, not a download</span></div></div><div id="analyticsVisitorOS" class="settings-body"></div></section>
-<section class="panel"><div class="panel-head"><h2>Architecture & versions</h2></div><div id="analyticsVersions" class="settings-body"></div></section>
-<section class="panel"><div class="panel-head"><h2>Pages & referrals</h2></div><div id="analyticsReferrers" class="settings-body"></div></section></div></section>
 <section id="view-announcements" class="admin-view hide"><div class="page-head"><div><div class="eyebrow">SITE CONTENT</div><h1>Announcements</h1><p>Publish and schedule the slim notice bar seen on public pages.</p></div><button id="refreshAnnouncements" class="btn">Refresh</button></div>
 <section class="panel"><div class="panel-head"><div><h2>Create or edit announcement</h2><div class="muted">Colors and links are scoped to this banner. A higher-priority active notice wins.</div></div></div>
 <form id="announcementForm" class="admin-announcement-form settings-body"><input id="announcementId" type="hidden">
@@ -54,7 +38,7 @@
 <label>Priority <input id="announcementPriority" type="number" min="-100" max="100" value="0"></label>
 <label>Visible on <select id="announcementPages" multiple size="6"><option selected value="/">Home</option><option value="/downloads">Downloads</option><option value="/support">Support</option><option value="/ai-guide">AI Guide</option><option value="/privacy">Privacy</option><option value="/terms">Terms</option><option value="/cookies">Cookies</option><option value="/account">Account</option><option value="/account/login">Login</option><option value="/account/register">Register</option></select></label>
 <label>Delivery audience <select id="announcementAudience"><option value="site">Website only</option><option value="clients">Clients only</option><option value="both">Website + clients</option></select></label>
-<label>Client kind <select id="announcementKind"><option value="feature">Feature</option><option value="update">Update</option><option value="maintenance">Maintenance</option><option value="service">Service</option></select></label>
+<label>Client category <select id="announcementKind"><option value="feature">New feature</option><option value="update">New update</option><option value="maintenance">Maintenance</option><option value="service">Service notice</option></select></label>
 <label>Client platforms <select id="announcementPlatforms" multiple size="3"><option selected value="windows">Windows</option><option selected value="macos">macOS</option><option selected value="linux">Linux</option></select></label>
 <label>Start (optional) <input id="announcementStart" type="datetime-local"></label>
 <label>End (optional) <input id="announcementEnd" type="datetime-local"></label>
@@ -63,88 +47,42 @@
 <div class="admin-announcement-buttons"><button type="submit" class="btn primary">Save announcement</button><button type="button" id="announcementReset" class="btn">New announcement</button></div>
 </form><div id="announcementPreview" class="admin-announcement-preview" role="status"></div><div id="announcementMessageStatus" class="setting-note"></div></section>
 <section class="panel"><div class="panel-head"><h2>Published & drafts</h2></div><div id="announcementRows" class="settings-body">Loading announcements…</div></section></section>
+<section id="view-notification-center" class="admin-view hide">
+<div class="page-head"><div><div class="eyebrow">ACCOUNT MESSAGING</div><h1>Notification Center</h1><p>Publish to account inboxes. Schedule updates, feature news, offers, security and maintenance notices without bulk email.</p></div><button class="btn" id="notificationRefresh" type="button"><img class="material-icon" src="/assets/icons/material/refresh.svg" alt=""> Refresh</button></div>
+<section class="panel"><div class="panel-head"><div><h2>Compose notification</h2><div class="muted">Notification content is plain text. Account verification, invitations and critical transactional email remain separate.</div></div></div>
+<form id="notificationCompose" class="settings-body notification-editor">
+<label>Category <select id="notificationType"><option value="update">Product update</option><option value="feature">New feature</option><option value="promotion">Promotion / offer</option><option value="maintenance">Maintenance notice</option><option value="security">Security notice</option><option value="account">Account notice</option></select></label>
+<label>Title <input id="notificationTitle" maxlength="140" minlength="2" placeholder="What's new in Light Remote" required></label>
+<label>Message <textarea id="notificationBody" maxlength="2000" rows="4" placeholder="Write a short, useful notification…" required></textarea></label>
+<label>Internal link <input id="notificationLink" maxlength="400" value="/account/inbox" placeholder="/downloads" required></label>
+<label>Audience <select id="notificationAudience"><option value="all">All accounts</option><option value="account">One verified email</option><option value="plan">Plan: Free / PRO / VIP</option><option value="group">Account group</option></select></label>
+<label id="notificationTargetWrap" class="hide">Recipient <select id="notificationTarget"></select><input class="hide" id="notificationTargetEmail" type="email" placeholder="recipient@example.com" autocomplete="off"></label>
+<div class="notification-time-grid"><label>Start time (optional) <input id="notificationStart" type="datetime-local"></label><label>Expiry time (optional) <input id="notificationEnd" type="datetime-local"></label></div>
+<div class="admin-checkbox"><label><input id="notificationConfirm" type="checkbox" required> I have reviewed this notice and its audience; only internal Inbox messages will be created.</label></div>
+<div class="notification-preview" id="notificationPreview"><strong>Preview</strong><p>Write a message to preview it here.</p></div>
+<div class="notification-form-actions"><button type="submit" class="btn primary" id="notificationPublish">Publish or schedule</button><button type="button" class="btn" id="notificationReset">Clear</button></div>
+<div id="notificationStatus" class="setting-note" role="status" aria-live="polite"></div>
+</form></section>
+<section class="panel notification-history"><div class="panel-head"><div><h2>Notification history</h2><div class="muted">Scheduled messages appear when due. “Read” counts are not email deliveries.</div></div><div class="badge" id="notificationTotal">—</div></div><div id="notificationRows" class="settings-body">Loading…</div></section>
+</section>
+<section id="view-system" class="admin-view hide"><div class="page-head"><div><div class="eyebrow">OPERATIONS</div><h1>System</h1><p>Transactional mail, authentication and public service configuration.</p></div></div><div class="settings-stack"><section class="panel setting-row"><div><h2>Transactional mail</h2><div id="mailSummary" class="muted">Checking configuration…</div></div><button id="verifyMail" class="btn">Verify SMTP</button></section><section class="panel google-system-panel"><div class="panel-head"><div><h2>Google Login</h2><div id="googleSummary" class="muted">Checking configuration…</div></div><span id="googleStatus" class="badge">…</span></div><div class="settings-body google-config-body"><div class="system-code-row"><span class="system-code-label">Authorized origin</span><code id="googleOrigin">—</code><button id="copyGoogleOrigin" class="icon-btn" title="Copy origin"><img class="material-icon" src="/assets/icons/material/content_copy.svg" alt=""></button></div><div class="system-code-row"><span class="system-code-label">Redirect URI</span><code id="googleRedirect">—</code><button id="copyGoogleRedirect" class="icon-btn" title="Copy redirect URI"><img class="material-icon" src="/assets/icons/material/content_copy.svg" alt=""></button></div><div class="google-setup-actions"><a class="btn" href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer">Open Google Cloud</a><span class="muted">Create credentials → OAuth client ID → Web application. Use the origin and redirect URI above exactly.</span></div><form id="googleConfigForm" class="google-config-form"><label>Client ID<input id="googleClientId" autocomplete="off" spellcheck="false" placeholder="…apps.googleusercontent.com" required></label><label>Client secret<input id="googleClientSecret" type="password" autocomplete="new-password" spellcheck="false" placeholder="Paste once — never shown again" required></label><button class="btn primary" type="submit">Save Google client</button></form></div></section><section class="panel setting-row"><div><h2>Public endpoint</h2><div class="muted">Official Direct MCP + Account portal</div></div><code>light-remote.thaiduy.digital</code></section></div><div id="systemMsg" class="setting-note"></div></section>
 </main></div>
 <script>
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),fmt=n=>new Intl.NumberFormat().format(Number(n)||0),fmtWhen=v=>v?new Date(v).toLocaleString():'—';
 const money=(minor,currency='USD')=>{try{return new Intl.NumberFormat(undefined,{style:'currency',currency:String(currency||'USD')}).format((Number(minor)||0)/100)}catch{return String(minor||0)+' '+String(currency||'USD')}};
 let accountRows=[],groupRows=[],pendingCache=[],upgradeRowsCache=[],billingRowsCache=[],billingMeta={};
-async function api(action,options={}){
- const {query,...requestOptions}=options;
- const suffix=query?'&'+new URLSearchParams(query).toString():'';
- const r=await fetch('/admin/api?action='+encodeURIComponent(action)+suffix,{cache:'no-store',...requestOptions,headers:{'content-type':'application/json',...(requestOptions.headers||{})}});
- if(r.status===401){location.href='/account/login';throw new Error('Session expired. Please sign in again.')}
- const contentType=r.headers.get('content-type')||'';
- if(!contentType.includes('application/json'))throw new Error('Admin API returned '+(contentType.includes('text/html')?'HTML':'an unexpected response')+' (HTTP '+r.status+'). Refresh and retry.');
- const j=await r.json();
- if(!r.ok||j?.ok===false)throw new Error(j.error||('HTTP '+r.status));
- return j;
-}
-const ADMIN_VIEWS=new Set(['overview','accounts','pending','upgrades','billing','licenses','system','analytics','announcements']);
-function show(view,writeUrl=true){
- if(!ADMIN_VIEWS.has(view))view='overview';
- document.querySelectorAll('.admin-view').forEach(x=>x.classList.toggle('hide',x.id!=='view-'+view));
- document.querySelectorAll('.admin-nav').forEach(x=>x.classList.toggle('active',x.dataset.view===view));
- if(writeUrl){const desired='/admin/'+view+((view==='accounts')?location.search:'');if(location.pathname+location.search!==desired)history.pushState({view},'',desired);}
- if(view==='analytics')loadAnalytics().catch(e=>analyticsNote.textContent=e.message);
- if(view==='announcements')loadAnnouncements().catch(e=>announcementMessageStatus.textContent=e.message);
-}
+async function api(action,options={}){const r=await fetch('/admin/api?action='+encodeURIComponent(action),{cache:'no-store',...options,headers:{'content-type':'application/json',...(options.headers||{})}});let j={};try{j=await r.json()}catch{}if(r.status===401){location.href='/account/login';throw new Error('login_required')}if(!r.ok)throw new Error(j.error||('HTTP '+r.status));return j}
+function show(view){if(view==='announcements')loadAnnouncements().catch(()=>{});document.querySelectorAll('.admin-view').forEach(x=>x.classList.add('hide'));document.getElementById('view-'+view).classList.remove('hide');document.querySelectorAll('.admin-nav').forEach(x=>x.classList.toggle('active',x.dataset.view===view))}
 document.querySelectorAll('.admin-nav').forEach(b=>b.onclick=()=>show(b.dataset.view));
 function metric(label,value,note){return '<article class="metric-card"><div class="metric-label">'+esc(label)+'</div><div class="metric-value">'+esc(value)+'</div><div class="metric-note">'+esc(note)+'</div></article>'}
-async function loadOverview(){
- const [r,m]=await Promise.all([api('overview'),api('mail-status')]),o=r.overview||{},st=o.statuses||{};
- // A separate inventory API derives OS from registered devices, not from User-Agent.
- try {
-  const inv=await api('device-os-summary');
-  adminDeviceOS.innerHTML='<div class="admin-inventory-total"><strong>'+fmt(inv.total)+'</strong><span class="muted">registered devices · source: device inventory</span></div>'+
-    analyticsBarTable((inv.os||[]).map(x=>({name:x.name,count:x.total})))+
-    ((inv.total!==Number(o.devices))?'<p class="admin-telemetry-note">Counts currently differ from Overview; refresh to reconcile.</p>':'');
-  adminDeviceStatus.innerHTML='<div class="admin-inventory-total"><strong>'+fmt(inv.online)+'</strong><span class="muted">online · '+fmt(inv.offline)+' offline</span></div>'+
-    analyticsBarTable((inv.os||[]).map(x=>({name:x.name+' · '+x.online+' online / '+x.offline+' offline',count:x.online})),
-      'No online devices')+
-    '<p class="admin-telemetry-note">OS is reported by enrolled clients. This does not measure installs or downloads.</p>';
- }catch(error){adminDeviceOS.textContent='Device OS data unavailable: '+error.message;adminDeviceStatus.textContent='Could not read current inventory.'}
-adminMetrics.innerHTML=metric('Accounts',fmt(o.accounts),'Verified identities')+metric('Pending',fmt(o.pendingRegistrations),'Awaiting email verification')+metric('Dormant',fmt(st.dormant),'Self-reactivatable FREE accounts')+metric('Disabled',fmt(st.admin_disabled),'Disabled by administrator')+metric('Groups',fmt(o.groups),'Account groups')+metric('Devices',fmt(o.devices),'Owned device identities')+metric('Online',fmt(o.onlineDevices),'Devices currently online')+metric('Tool calls',fmt(o.toolCallsThisMonth),'Current UTC month');planMix.innerHTML=Object.entries(o.plans||{}).map(([k,v])=>'<span class="badge admin-plan-badge">'+esc(k.toUpperCase())+' · '+fmt(v)+'</span>').join('')||'<span class="muted">No accounts.</span>';serviceStatus.innerHTML='<div class="status-line"><span>SMTP</span><span class="badge '+(m.configured?'online':'')+'">'+(m.configured?'Configured':'Not configured')+'</span></div><div class="status-line"><span>Google Login</span><span class="badge '+(m.google?.configured?'online':'')+'">'+(m.google?.configured?'Configured':'Waiting')+'</span></div><div class="status-line"><span>Direct MCP</span><span class="badge online">Online</span></div>'}
+async function loadOverview(){const [r,m]=await Promise.all([api('overview'),api('mail-status')]),o=r.overview||{},st=o.statuses||{};adminMetrics.innerHTML=metric('Accounts',fmt(o.accounts),'Verified identities')+metric('Pending',fmt(o.pendingRegistrations),'Awaiting email verification')+metric('Dormant',fmt(st.dormant),'Self-reactivatable FREE accounts')+metric('Disabled',fmt(st.admin_disabled),'Disabled by administrator')+metric('Groups',fmt(o.groups),'Account groups')+metric('Devices',fmt(o.devices),'Owned device identities')+metric('Online',fmt(o.onlineDevices),'Devices currently online')+metric('Tool calls',fmt(o.toolCallsThisMonth),'Current UTC month');planMix.innerHTML=Object.entries(o.plans||{}).map(([k,v])=>'<span class="badge admin-plan-badge">'+esc(k.toUpperCase())+' · '+fmt(v)+'</span>').join('')||'<span class="muted">No accounts.</span>';serviceStatus.innerHTML='<div class="status-line"><span>SMTP</span><span class="badge '+(m.configured?'online':'')+'">'+(m.configured?'Configured':'Not configured')+'</span></div><div class="status-line"><span>Google Login</span><span class="badge '+(m.google?.configured?'online':'')+'">'+(m.google?.configured?'Configured':'Waiting')+'</span></div><div class="status-line"><span>Direct MCP</span><span class="badge online">Online</span></div>'}
 function groupOptions(current){return groupRows.map(g=>'<option value="'+esc(g.groupId)+'"'+(g.groupId===current?' selected':'')+'>'+esc(g.name)+'</option>').join('')}
 function accountRow(row){const a=row.account||{},u=row.usage||{},ds=row.devices||[],status=String(a.status||'active'),statusLabel=status==='admin_disabled'?'DISABLED':status==='dormant'?'DORMANT':'ACTIVE',lastTool=u.lastToolCallAt?fmtWhen(u.lastToolCallAt):'never';let plans='';for(const p of ['free','pro','vip'])plans+='<option value="'+p+'"'+(a.plan===p?' selected':'')+'>'+p.toUpperCase()+'</option>';const lifecycle='<span class="badge admin-status-badge '+esc(status)+'">'+statusLabel+'</span>'+(a.disableProtected?'<button class="btn admin-lifecycle-btn" disabled title="Bootstrap administrator cannot be disabled">Protected</button>':status==='active'?'<button class="btn danger admin-lifecycle-btn" data-disable-account="'+esc(a.accountId)+'">Disable</button>':'<button class="btn admin-lifecycle-btn" data-enable-account="'+esc(a.accountId)+'">Enable</button>');const check='<img class="material-icon" src="/assets/icons/material/check_circle.svg" alt="">';return '<div class="admin-account-row"><div class="admin-account-info"><div class="device-name">'+esc(a.email)+'</div><div class="device-sub">'+esc(a.accountId)+' · '+fmt(u.toolCallsThisMonth)+' calls · '+fmt(ds.length)+' devices · last tool '+esc(lastTool)+' · '+(a.emailVerified?'verified email':'legacy account')+' · '+esc(a.groupName||'Default')+(a.disableReason?' · '+esc(a.disableReason):'')+'</div></div><div class="admin-account-actions"><span class="admin-account-lifecycle">'+lifecycle+'</span><span class="admin-control-group" title="Account group"><select data-group="'+esc(a.accountId)+'" aria-label="Account group">'+groupOptions(a.groupId)+'</select><button class="btn admin-apply-btn" data-apply-group="'+esc(a.accountId)+'" aria-label="Apply group" title="Apply group">'+check+'</button></span><span class="admin-control-group" title="Account plan"><select data-plan="'+esc(a.accountId)+'" aria-label="Account plan">'+plans+'</select><button class="btn admin-apply-btn" data-apply-plan="'+esc(a.accountId)+'" aria-label="Apply plan" title="Apply plan">'+check+'</button></span></div></div>'}
 function bindAccountActions(){document.querySelectorAll('[data-apply-plan]').forEach(btn=>btn.onclick=async()=>{const id=btn.dataset.applyPlan,sel=document.querySelector('[data-plan="'+CSS.escape(id)+'"]');btn.disabled=true;try{await api('set-plan',{method:'POST',body:JSON.stringify({accountId:id,plan:sel.value})});await Promise.all([loadAccounts(),loadOverview()])}catch(e){btn.textContent=e.message}finally{btn.disabled=false}});document.querySelectorAll('[data-apply-group]').forEach(btn=>btn.onclick=async()=>{const id=btn.dataset.applyGroup,sel=document.querySelector('[data-group="'+CSS.escape(id)+'"]');btn.disabled=true;try{await api('set-group',{method:'POST',body:JSON.stringify({accountId:id,groupId:sel.value})});await Promise.all([loadAccounts(),loadGroups(),loadOverview()])}catch(e){btn.textContent=e.message}finally{btn.disabled=false}});document.querySelectorAll('[data-disable-account]').forEach(btn=>btn.onclick=async()=>{const id=btn.dataset.disableAccount,reason=prompt('Reason for disabling this account?','Administrative action');if(reason===null)return;btn.disabled=true;try{await api('set-status',{method:'POST',body:JSON.stringify({accountId:id,status:'admin_disabled',reason:reason.trim()})});await Promise.all([loadAccounts(),loadOverview()])}catch(e){alert(e.message)}finally{btn.disabled=false}});document.querySelectorAll('[data-enable-account]').forEach(btn=>btn.onclick=async()=>{const id=btn.dataset.enableAccount;if(!confirm('Enable this account?'))return;btn.disabled=true;try{await api('set-status',{method:'POST',body:JSON.stringify({accountId:id,status:'active',reason:'admin_reenabled'})});await Promise.all([loadAccounts(),loadOverview()])}catch(e){alert(e.message)}finally{btn.disabled=false}})}
-let accountCurrentPage=1,accountPages=1,accountTotal=0,accountRequestSeq=0,accountSearchTimer;
-const safePage=n=>Math.max(1,Number.parseInt(n,10)||1);
-function syncAccountUrl(){
- if(location.pathname!=='/admin/accounts')return;
- const qs=new URLSearchParams();
- qs.set('page',String(accountCurrentPage));qs.set('size',accountPageSize.value);
- if(accountSearch.value.trim())qs.set('q',accountSearch.value.trim());
- if(groupFilter.value)qs.set('group',groupFilter.value);
- history.replaceState({view:'accounts'},'','/admin/accounts?'+qs.toString());
-}
-function renderAccounts(){
- adminAccounts.innerHTML=accountRows.map(accountRow).join('')||'<div class="empty">No matching accounts.</div>';
- accountPaginationSummary.textContent=accountTotal+' accounts · page '+accountCurrentPage+' of '+accountPages;
- accountPaginationBottom.textContent=(accountTotal?((accountCurrentPage-1)*Number(accountPageSize.value)+1):0)+'–'+Math.min(accountTotal,accountCurrentPage*Number(accountPageSize.value))+' of '+accountTotal;
- let nums=new Set([1,accountPages,accountCurrentPage-1,accountCurrentPage,accountCurrentPage+1]);
- let pages=[...nums].filter(n=>n>=1&&n<=accountPages).sort((a,b)=>a-b);
- accountPagination.innerHTML='<button class="btn" data-page="'+(accountCurrentPage-1)+'"'+(accountCurrentPage<=1?' disabled':'')+'>Prev</button>'+
- pages.map((n,i)=>((i&&n>pages[i-1]+1)?'<span class="muted">…</span>':'')+'<button class="btn'+(n===accountCurrentPage?' primary':'')+'" data-page="'+n+'" aria-current="'+(n===accountCurrentPage?'page':'false')+'">'+n+'</button>').join('')+
- '<button class="btn" data-page="'+(accountCurrentPage+1)+'"'+(accountCurrentPage>=accountPages?' disabled':'')+'>Next</button>';
- accountPagination.querySelectorAll('[data-page]').forEach(button=>button.onclick=()=>{accountCurrentPage=safePage(button.dataset.page);loadAccounts()});
- bindAccountActions();
-}
-async function loadAccounts(){
- const seq=++accountRequestSeq;
- const params=new URLSearchParams({action:'accounts-paged',page:String(accountCurrentPage),size:accountPageSize.value,q:accountSearch.value.trim(),group:groupFilter.value});
- const resp=await fetch('/admin/api?'+params.toString(),{cache:'no-store'});
- if(resp.status===401){location.href='/account/login';throw new Error('Session expired')}
- if(!(resp.headers.get('content-type')||'').includes('application/json'))throw new Error('Accounts API returned an unexpected response (HTTP '+resp.status+')');
- const result=await resp.json();if(!resp.ok||result.ok===false)throw new Error(result.error||'Accounts unavailable');
- if(seq!==accountRequestSeq)return;
- accountRows=result.accounts||[];accountCurrentPage=result.page||1;accountPages=result.totalPages||1;accountTotal=result.total||0;
- renderAccounts();syncAccountUrl();
-}
-accountSearch.oninput=()=>{clearTimeout(accountSearchTimer);accountCurrentPage=1;accountSearchTimer=setTimeout(()=>loadAccounts().catch(console.error),250)};
-groupFilter.onchange=()=>{accountCurrentPage=1;loadAccounts().catch(console.error)};
-accountPageSize.onchange=()=>{accountCurrentPage=1;loadAccounts().catch(console.error)};
+function renderAccounts(){const q=accountSearch.value.trim().toLowerCase(),group=groupFilter.value,rows=accountRows.filter(x=>(!q||String(x.account?.email||'').toLowerCase().includes(q)||String(x.account?.accountId||'').toLowerCase().includes(q))&&(!group||x.account?.groupId===group));adminAccounts.innerHTML=rows.map(accountRow).join('')||'<div class="empty">No matching accounts.</div>';bindAccountActions()}
+async function loadAccounts(){const r=await api('accounts');accountRows=r.accounts||[];renderAccounts()}accountSearch.oninput=renderAccounts;groupFilter.onchange=renderAccounts;
 function renderGroups(){const selected=groupFilter.value;groupFilter.innerHTML='<option value="">All groups</option>'+groupRows.map(g=>'<option value="'+esc(g.groupId)+'">'+esc(g.name)+' · '+fmt(g.accountCount)+'</option>').join('');if(groupRows.some(g=>g.groupId===selected))groupFilter.value=selected;groupGrid.innerHTML=groupRows.map(g=>'<div class="admin-group-chip"><strong>'+esc(g.name)+'</strong><span>'+fmt(g.accountCount)+' accounts</span><button class="btn" data-rename-group="'+esc(g.groupId)+'">Rename</button>'+(g.protected?'':'<button class="btn danger" data-delete-group="'+esc(g.groupId)+'">Delete</button>')+'</div>').join('');document.querySelectorAll('[data-rename-group]').forEach(b=>b.onclick=async()=>{const g=groupRows.find(x=>x.groupId===b.dataset.renameGroup),name=prompt('Rename group',g?.name||'');if(!name||name.trim()===g?.name)return;await api('rename-group',{method:'POST',body:JSON.stringify({groupId:g.groupId,name:name.trim()})});await Promise.all([loadGroups(),loadAccounts()])});document.querySelectorAll('[data-delete-group]').forEach(b=>b.onclick=async()=>{const g=groupRows.find(x=>x.groupId===b.dataset.deleteGroup);if(!g||!confirm('Delete group "'+g.name+'"? Accounts will move to Default.'))return;await api('delete-group',{method:'POST',body:JSON.stringify({groupId:g.groupId,moveTo:'grp_default'})});await Promise.all([loadGroups(),loadAccounts(),loadOverview()])})}
-async function loadGroups(){const r=await api('groups');groupRows=r.groups||[];renderGroups();if(accountRows.length)loadAccounts().catch(console.error)}
+async function loadGroups(){const r=await api('groups');groupRows=r.groups||[];renderGroups();if(accountRows.length)renderAccounts()}
 createGroup.onsubmit=async e=>{e.preventDefault();const b=e.submitter,name=newGroupName.value.trim();if(!name)return;b.disabled=true;try{await api('create-group',{method:'POST',body:JSON.stringify({name})});newGroupName.value='';await Promise.all([loadGroups(),loadAccounts(),loadOverview()])}catch(err){b.textContent=err.message}finally{b.disabled=false}};
 function pendingRow(p){return '<div class="admin-account-row"><div><div class="pending-email">'+esc(p.email)+' <span class="badge">'+esc(String(p.provider||'password').toUpperCase())+'</span></div><div class="pending-meta"><span>'+esc(p.pendingId)+'</span><span>created '+esc(fmtWhen(p.createdAt))+'</span><span>expires '+esc(fmtWhen(p.expiresAt))+'</span><span>mail '+fmt(p.sendCount)+'/'+fmt(p.maxSends)+'</span><span>PIN '+fmt(p.pinAttempts)+'/'+fmt(p.maxPinAttempts)+'</span>'+(p.challengeLocked?'<span>challenge locked</span>':'')+'</div></div><button class="btn danger" data-cancel-pending="'+esc(p.pendingId)+'">Cancel</button></div>'}
 async function loadPending(){const r=await api('pending');pendingCache=r.pending||[];pendingCount.textContent=String(pendingCache.length);pendingRows.innerHTML=pendingCache.map(pendingRow).join('')||'<div class="empty">No pending registrations.</div>';document.querySelectorAll('[data-cancel-pending]').forEach(b=>b.onclick=async()=>{if(!confirm('Cancel this pending registration?'))return;b.disabled=true;try{await api('cancel-pending',{method:'POST',body:JSON.stringify({pendingId:b.dataset.cancelPending})});await Promise.all([loadPending(),loadOverview()])}catch(e){b.textContent=e.message}})}
@@ -165,7 +103,8 @@ async function loadSystem(){const r=await api('mail-status');mailSummary.textCon
 copyGoogleOrigin.onclick=async()=>{try{await navigator.clipboard.writeText(googleOrigin.textContent||'');systemMsg.className='setting-note ok';systemMsg.textContent='Google authorized origin copied.'}catch{systemMsg.className='setting-note error';systemMsg.textContent='Copy failed.'}};
 copyGoogleRedirect.onclick=async()=>{try{await navigator.clipboard.writeText(googleRedirect.textContent||'');systemMsg.className='setting-note ok';systemMsg.textContent='Google redirect URI copied.'}catch{systemMsg.className='setting-note error';systemMsg.textContent='Copy failed.'}};
 googleConfigForm.onsubmit=async ev=>{ev.preventDefault();const btn=ev.submitter;btn.disabled=true;systemMsg.className='setting-note muted';systemMsg.textContent='Saving Google OAuth client…';try{await api('google-config',{method:'POST',body:JSON.stringify({clientId:googleClientId.value.trim(),clientSecret:googleClientSecret.value.trim()})});googleClientId.value='';googleClientSecret.value='';systemMsg.className='setting-note ok';systemMsg.textContent='Google Login configured. Client secret is stored server-side and will not be shown again.';await Promise.all([loadSystem(),loadOverview()])}catch(e){systemMsg.className='setting-note error';systemMsg.textContent=e.message}finally{btn.disabled=false}};
-
+refreshAdmin.onclick=()=>Promise.all([loadOverview(),loadGroups(),loadAccounts(),loadPending(),loadUpgrades(),loadBilling(),loadLicenses(),loadSystem()]);
+Promise.all([loadOverview(),loadGroups(),loadAccounts(),loadPending(),loadUpgrades(),loadBilling(),loadLicenses(),loadSystem()]).catch(e=>{document.querySelector('.main').insertAdjacentHTML('beforeend','<div class="error">'+esc(e.message)+'</div>')});
 /* Admin V5: site announcements and privacy-preserving traffic aggregates. */
 let announcementsCache=[];
 const noticePresets={
@@ -186,7 +125,8 @@ function announcementEditorValues(){return{
  startAt:announcementStart.value?new Date(announcementStart.value).toISOString():'',
  endAt:announcementEnd.value?new Date(announcementEnd.value).toISOString():'',
  enabled:announcementEnabled.checked,dismissible:announcementDismissible.checked,
- audience:announcementAudience.value,kind:announcementKind.value,platforms:[...announcementPlatforms.selectedOptions].map(o=>o.value)
+ audience:announcementAudience.value,kind:announcementKind.value,
+ platforms:[...announcementPlatforms.selectedOptions].map(o=>o.value)
 }}
 function updateAnnouncementPreview(){
  const v=announcementEditorValues();
@@ -201,7 +141,7 @@ function resetAnnouncementForm(){
  announcementTheme.value='brand';
  [announcementBackground.value,announcementColor.value,announcementLinkColor.value]=noticePresets.brand;
  announcementDismissible.checked=true;announcementAudience.value='site';announcementKind.value='feature';
- for(const platform of announcementPlatforms.options)platform.selected=true;
+ for(const item of announcementPlatforms.options)item.selected=true;
  updateAnnouncementPreview();
 }
 announcementTheme.onchange=()=>{
@@ -221,7 +161,7 @@ function editAnnouncement(id){
  announcementStart.value=localDate(x.startAt);announcementEnd.value=localDate(x.endAt);
  announcementEnabled.checked=x.enabled;announcementDismissible.checked=x.dismissible;
  announcementAudience.value=x.audience||'site';announcementKind.value=x.kind||'feature';
- for(const platform of announcementPlatforms.options)platform.selected=(x.platforms||['windows','macos','linux']).includes(platform.value);
+ for(const item of announcementPlatforms.options)item.selected=(x.platforms||['windows','macos','linux']).includes(item.value);
  updateAnnouncementPreview();
  announcementForm.scrollIntoView({behavior:'smooth',block:'start'});
 }
@@ -245,7 +185,7 @@ async function loadAnnouncements(){
 refreshAnnouncements.onclick=()=>loadAnnouncements().catch(e=>announcementMessageStatus.textContent=e.message);
 announcementForm.onsubmit=async event=>{
  event.preventDefault();const button=event.submitter,record=announcementEditorValues();
- if(record.audience!=='clients'&&!record.pages.length){announcementMessageStatus.textContent='Select at least one website page.';return}
+ if(record.audience!=='clients'&&!record.pages.length){announcementMessageStatus.textContent='Select a website destination.';return}
  if(record.audience!=='site'&&!record.platforms.length){announcementMessageStatus.textContent='Select client platforms.';return}
  button.disabled=true;
  try{
@@ -255,45 +195,4 @@ announcementForm.onsubmit=async event=>{
  }catch(error){announcementMessageStatus.textContent=error.message}finally{button.disabled=false}
 };
 resetAnnouncementForm();
-function analyticsBarTable(rows,empty='No data collected yet'){
- if(!rows?.length)return '<p class="muted">'+esc(empty)+'</p>';
- const max=Math.max(...rows.map(x=>Number(x.count)||0),1);
- return rows.slice(0,18).map(x=>'<div class="admin-stats-row"><span title="'+esc(x.name)+'">'+esc(x.name)+'</span>'+
- '<div class="admin-bar-track"><i style="width:'+Math.max(3,Math.min(100,(x.count/max)*100))+'%"></i></div>'+
- '<strong>'+fmt(x.count)+'</strong></div>').join('');
-}
-async function loadAnalytics(){
- const r=await api('site-analytics',{query:{days:analyticsDays.value}});
- analyticsMetrics.innerHTML=metric('Page views',fmt(r.totals?.pageViews),'Public HTTP pages')+
-  metric('Download responses',fmt(r.totals?.downloadResponses),'HTTP file/redirect responses')+
-  metric('External clicks',fmt(r.totals?.externalClickEvents),'Client-reported, not verified files')+
-  metric('Tracking window',r.days+' days','Data begins at instrumented release');
- analyticsNote.textContent=r.methodology||'Counts begin on deployment. There is no historical backfill.';
- analyticsTimeline.innerHTML=analyticsBarTable((r.series||[]).map(v=>({name:v.date,count:v.pageViews})));
- analyticsOS.innerHTML=analyticsBarTable(r.downloads?.os,'No client file downloads recorded yet.')+
-  '<p class="admin-telemetry-note">Counts here are served download files, not visitors or platform-tab clicks.</p>';
- analyticsExternalClicks.innerHTML=analyticsBarTable(r.externalClicks?.os,'No GitHub download-link clicks recorded yet.')+
-  '<p class="admin-telemetry-note">Only clicks, not downloads. Counts never increase the served-file OS totals.</p>';
- analyticsVisitorOS.innerHTML=analyticsBarTable(r.os,'No tracked web visits yet.')+
-  '<p class="admin-telemetry-note">Includes mobile browsers even where no native Light Remote app is released.</p>';
- analyticsVersions.innerHTML='<h3>Client architecture</h3>'+analyticsBarTable(r.downloads?.architecture)+
-  '<h3>Download versions</h3>'+analyticsBarTable(r.downloads?.versions)+
-  '<h3>Download files</h3>'+analyticsBarTable(r.downloads?.files)+
-  '<h3>Platform tabs viewed (not downloads)</h3>'+analyticsBarTable(r.downloads?.tabs);
- analyticsReferrers.innerHTML='<h3>Top pages</h3>'+analyticsBarTable(r.pages)+
-  '<h3>Referrers (host only)</h3>'+analyticsBarTable(r.referrers);
-}
-analyticsDays.onchange=()=>loadAnalytics().catch(e=>analyticsNote.textContent=e.message);
-refreshAnalytics.onclick=()=>loadAnalytics().catch(e=>analyticsNote.textContent=e.message);
-
-refreshAdmin.onclick=()=>Promise.all([loadOverview(),loadGroups(),loadAccounts(),loadPending(),loadUpgrades(),loadBilling(),loadLicenses(),loadSystem()]);
-const current=new URL(location.href),initial=current.pathname.split('/')[2]||'overview';
-if(initial==='accounts'){
- accountCurrentPage=safePage(current.searchParams.get('page'));
- accountPageSize.value=['10','20','30','50'].includes(current.searchParams.get('size'))?current.searchParams.get('size'):'20';
- accountSearch.value=current.searchParams.get('q')||'';
-}
-show(initial,false);
-window.addEventListener('popstate',()=>{const url=new URL(location.href),view=url.pathname.split('/')[2]||'overview';if(view==='accounts'){accountCurrentPage=safePage(url.searchParams.get('page'));accountPageSize.value=['10','20','30','50'].includes(url.searchParams.get('size'))?url.searchParams.get('size'):'20';accountSearch.value=url.searchParams.get('q')||'';loadAccounts().catch(console.error)}show(view,false)});
-Promise.all([loadOverview(),loadGroups(),loadAccounts(),loadPending(),loadUpgrades(),loadBilling(),loadLicenses(),loadSystem()]).catch(e=>{document.querySelector('.main').insertAdjacentHTML('beforeend','<div class="error">'+esc(e.message)+'</div>')});
-</script></body></html>
+</script><script src="/admin/assets/notification-center.js" defer></script></body></html>

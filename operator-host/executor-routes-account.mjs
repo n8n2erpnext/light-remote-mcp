@@ -1,5 +1,7 @@
+import {verifyTeamMemberAuthorization} from './team-member-auth.mjs';
+import {authorizeTrustedTeamDispatch} from './team-dispatch-authority.mjs';
 export async function handleAccountRoutes(req,res,url,deps){
-  const {ACCOUNT_ID,AccountError,DEVICE_ID,accountSessionToken,accounts,allDeviceViews,capabilities,clearMainIfMatches,closeRuntimeForAccount,compatibilityFor,devices,enrollments,fleetAuthority,licenses,planEntitlements,queueHelperUpdate,readJson,removeRuntimeForDevice,requireAccount,revokeRuntimeForDevice,sendJson,usage,wakeDeviceChannelForDevice}=deps;
+  const {ACCOUNT_ID,AccountError,DEVICE_ID,accountSessionToken,accounts,accountNotifications,allDeviceViews,capabilities,clearMainIfMatches,closeRuntimeForAccount,compatibilityFor,devices,enrollments,fleetAuthority,licenses,planEntitlements,proTeams,teamSessions,requestTeamMemberApproval,operationalAccount,accessGrants,connections,targetRoute,verifyTeamPrincipal,queueHelperUpdate,readJson,removeRuntimeForDevice,requireAccount,revokeRuntimeForDevice,sendJson,usage,wakeDeviceChannelForDevice}=deps;
     if (req.method === 'GET' && url.pathname === '/v1/admin/overview') {
       const accountRows=accounts.list(),deviceRows=allDeviceViews(),current=accountRows.map(account=>({account,entitlements:planEntitlements(account),usage:usage.summary(account.accountId,{months:1})}));
       const toolCallsThisMonth=current.reduce((sum,row)=>sum+(Number(row.usage.toolCallsThisMonth)||0),0),plans=current.reduce((out,row)=>{const key=String(row.account.plan||'free');out[key]=(out[key]||0)+1;return out;},{}),statuses=current.reduce((out,row)=>{const key=String(row.account.status||'active');out[key]=(out[key]||0)+1;return out;},{});
@@ -238,6 +240,240 @@ export async function handleAccountRoutes(req,res,url,deps){
       accounts.resetPassword(identity.account.accountId,newPassword,{invalidateSessions:true});
       const logged=accounts.login({email:identity.account.email,password:newPassword});
       return sendJson(res,200,{ok:true,account:logged.account,session:logged.session,token:logged.token});
+    }
+    // Account notifications are resolved by authenticated identity; clients
+    // cannot choose recipient, type, or broadcast audience.
+    if(url.pathname==='/v1/accounts/notifications'&&req.method==='GET'){
+      const account=requireAccount(req).account;
+      return sendJson(res,200,{ok:true,...accountNotifications.inbox(account.accountId,account)});
+    }
+    if(url.pathname==='/v1/accounts/notifications/read'&&req.method==='POST'){
+      const account=requireAccount(req).account,body=await readJson(req);
+      return sendJson(res,200,accountNotifications.markRead(account.accountId,body.notificationId,account));
+    }
+    if(url.pathname==='/v1/admin/notifications'&&req.method==='GET')
+      return sendJson(res,200,{ok:true,...accountNotifications.list()});
+    if(url.pathname==='/v1/admin/notifications/publish'&&req.method==='POST'){
+      const body=await readJson(req);
+      // Private Operator socket, additionally guarded by owner admin portal.
+      const kind=String(body.audienceType|| (body.targetAccountId?'account':'all'));
+      const value=String(body.audienceValue??body.targetAccountId??'');
+      if(kind==='account')accounts.assertOperational(value);
+      if(kind==='group'&&!accounts.listGroups().some(x=>x.groupId===value))
+        throw new AccountError('notification_group_not_found',404);
+      const notification=accountNotifications.publish({...body,publishedBy:'web_admin'});
+      return sendJson(res,201,{ok:true,notification});
+    }
+    const cancelNotification=url.pathname.match(/^\/v1\/admin\/notifications\/(sys_[a-f0-9-]{36})\/cancel$/);
+    if(cancelNotification&&req.method==='POST'){
+      return sendJson(res,200,{ok:true,notification:accountNotifications.cancel(cancelNotification[1],{by:'web_admin'})});
+    }
+    // Pro Team management is authenticated by a REAL account session.
+    // It only manages membership/device sharing; cross-account job routes remain
+    // disabled until independent per-actor local A/B grants are implemented.
+    if(url.pathname==='/v1/accounts/team/entitlement'&&req.method==='GET'){
+      const ownerAccountId=requireAccount(req).account.accountId;
+      return sendJson(res,200,{ok:true,teamEntitlement:proTeams.teamEntitlement(ownerAccountId)});
+    }
+    if(url.pathname==='/v1/accounts/team/inbox'&&req.method==='GET'){
+      const accountId=requireAccount(req).account.accountId;
+      return sendJson(res,200,{ok:true,...proTeams.inbox({memberAccountId:accountId})});
+    }
+    if(url.pathname==='/v1/accounts/team/inbox/read'&&req.method==='POST'){
+      const accountId=requireAccount(req).account.accountId,body=await readJson(req);
+      const result=proTeams.readInbox({memberAccountId:accountId,notificationId:body.notificationId});
+      return sendJson(res,200,result);
+    }
+    if(url.pathname==='/v1/accounts/team/inbox/accept'&&req.method==='POST'){
+      const accountId=requireAccount(req).account.accountId,body=await readJson(req);
+      const team=proTeams.acceptInbox({memberAccountId:accountId,notificationId:body.notificationId});
+      return sendJson(res,200,{ok:true,team,crossAccountExecutionEnabled:false});
+    }
+    // Team entitlements are administered only over the private Operator socket.
+    // A normal PRO subscription cannot acquire Team via account self-service.
+    const teamGrant=url.pathname.match(/^\/v1\/admin\/accounts\/([A-Za-z0-9._:-]+)\/team-entitlement$/);
+    if(teamGrant&&req.method==='POST'){
+      const body=await readJson(req);
+      const grant=proTeams.grantTeamAccess({ownerAccountId:teamGrant[1],validUntil:body.validUntil,
+        monthlyMemberCallBudget:body.monthlyMemberCallBudget,source:body.source||'admin'});
+      return sendJson(res,200,{ok:true,grant});
+    }
+    if(teamGrant&&req.method==='DELETE'){
+      const body=await readJson(req);const revoked=proTeams.revokeTeamAccess(teamGrant[1],{expectedSource:body.expectedSource||null});
+      return sendJson(res,200,{ok:true,revoked});
+    }
+    if(url.pathname==='/v1/accounts/team/memberships' && req.method==='GET'){
+      const memberAccountId=requireAccount(req).account.accountId;
+      return sendJson(res,200,{ok:true,memberships:proTeams.memberships(memberAccountId)});
+    }
+    if(url.pathname==='/v1/accounts/team' && req.method==='GET'){
+      const ownerAccountId=requireAccount(req).account.accountId;
+      return sendJson(res,200,{ok:true,team:proTeams.view(ownerAccountId),teamEntitlement:proTeams.teamEntitlement(ownerAccountId),crossAccountExecutionEnabled:false});
+    }
+    if(url.pathname==='/v1/accounts/team' && req.method==='POST'){
+      const ownerAccountId=requireAccount(req).account.accountId;
+      const team=proTeams.create({ownerAccountId});
+      return sendJson(res,201,{ok:true,team,crossAccountExecutionEnabled:false});
+    }
+    if(url.pathname==='/v1/accounts/team/invite' && req.method==='POST'){
+      const ownerAccountId=requireAccount(req).account.accountId;
+      const body=await readJson(req);
+      // Email invites are opaque, do not disclose whether the address is registered.
+      // A recipient must authenticate and have verified the invited email to accept.
+      if(body.memberEmail&&body.memberAccountId)throw new AccountError('invalid_team_invitee',400);
+      const invite=body.memberEmail
+        ?proTeams.inviteEmail({ownerAccountId,memberEmail:body.memberEmail})
+        :proTeams.invite({ownerAccountId,
+          memberAccountId:accounts.assertOperational(String(body.memberAccountId||'')).accountId});
+      return sendJson(res,201,{ok:true,invite});
+    }
+    // Team A/B is separate from the owner's existing approval. This endpoint
+    // is account-session authenticated; it only creates a pending Local Wall request.
+    if(url.pathname==='/v1/accounts/team/access/request' && req.method==='POST'){
+      // Account cookies cannot prove a ChatGPT OAuth client identity.
+      requireAccount(req);
+      throw new AccountError('team_approval_requires_oauth_plugin',409);
+    }
+    // Only the OAuth-authenticated MCP adapter calls these local Operator APIs.
+    // No browser-supplied agent identity, no cross-account device execution.
+    if(url.pathname==='/v1/plugin/team/access/request' && req.method==='POST'){
+      const body=await readJson(req),
+        proof=verifyTeamPrincipal(req,url,body);
+      const actorAccountId=operationalAccount(proof.accountId).accountId;
+      const approval=requestTeamMemberApproval({
+        actorAccountId,deviceId:body.deviceId,agentId:proof.agentId,label:body.label,
+        devices,connections,accessGrants,teamRegistry:proTeams,
+        planFor:id=>operationalAccount(id).plan
+      });
+      return sendJson(res,201,{ok:true,approval});
+    }
+    if(url.pathname==='/v1/plugin/team/access/poll' && req.method==='POST'){
+      const body=await readJson(req),
+        proof=verifyTeamPrincipal(req,url,body);
+      const actorAccountId=operationalAccount(proof.accountId).accountId;
+      const agentId=proof.agentId,request=accessGrants.requestInfo(body.requestId);
+      if(request.purpose!=='team-member'||request.accountId!==actorAccountId||request.agentId!==agentId)
+        throw new AccountError('team_oauth_agent_mismatch',403);
+      const device=devices.get(request.deviceId),connection=connections.assertConnected(request.deviceId);
+      if(connection.connectionId!==request.connectionId)
+        throw new AccountError('team_device_connection_changed',409);
+      if(device.accountId===actorAccountId||
+         !proTeams.authorize({deviceOwnerAccountId:device.accountId,actorAccountId,deviceId:device.deviceId})||
+         !['pro','vip'].includes(String(operationalAccount(device.accountId).plan||'').toLowerCase()))
+        throw new AccountError('pro_team_membership_required',403);
+      const polled=accessGrants.poll({requestId:body.requestId,pollToken:body.pollToken});
+      if(polled.state!=='approved')
+        return sendJson(res,200,{ok:true,approval:{state:'pending',deviceId:device.deviceId,
+          expiresAt:request.expiresAt,crossAccountExecutionEnabled:false}});
+      verifyTeamMemberAuthorization({
+        device,connection,actorAccountId,agentId,accessGrantId:polled.grant.grantId,
+        accessGrants,teamRegistry:proTeams,planFor:id=>operationalAccount(id).plan
+      });
+      return sendJson(res,200,{ok:true,approval:{state:'approved',deviceId:device.deviceId,
+        accessExpiresAt:Math.min(polled.grant.expiresAt,polled.grant.absoluteExpiresAt),
+        crossAccountExecutionEnabled:false}});
+    }
+    // OFF by default. Local Operator UAT-only decision preview: NO session,
+    // no Fleet enqueue, no metering, no command and no grant ID in response.
+    if(url.pathname==='/v1/plugin/team/dispatch/preflight' && req.method==='POST'){
+      if(process.env.LIGHT_REMOTE_PRO_TEAM_DISPATCH_UAT!=='1')
+        throw new AccountError('team_dispatch_preflight_not_enabled',404);
+      const body=await readJson(req),
+        proof=verifyTeamPrincipal(req,url,body);
+      if(!Array.isArray(body.requiredCapabilities)||!body.requiredCapabilities.length)
+        throw new AccountError('team_dispatch_capabilities_required',400);
+      const actorAccountId=operationalAccount(proof.accountId).accountId,
+        agentId=proof.agentId,
+        device=devices.get(String(body.deviceId||'')),
+        connection=connections.assertConnected(device.deviceId);
+      // All actual owner/device routing facts come from authoritative
+      // registry lookups, NOT member-supplied owner or billing identifiers.
+      const ownerRoute=targetRoute(device.nodeId,{accountId:device.accountId});
+      const enrollment=enrollments.binding(device.deviceId);
+      const decision=authorizeTrustedTeamDispatch({
+        authenticatedActorAccountId:actorAccountId,authenticatedAgentId:agentId,
+        device,connection,accessGrants,teamRegistry:proTeams,
+        planFor:id=>operationalAccount(id).plan,
+        approvedCapabilities:enrollment.approvedCapabilities,
+        routeCapabilities:ownerRoute.capabilities,operation:body.operation,
+        requiredCapabilities:body.requiredCapabilities
+      });
+      return sendJson(res,200,{ok:true,preflight:{
+        actorAccountId:decision.actorAccountId,
+        deviceOwnerAccountId:decision.deviceOwnerAccountId,
+        billedAccountId:decision.billedAccountId,
+        deviceId:decision.deviceId,
+        operation:decision.operation,
+        maxWorkers:decision.maxWorkers,
+        expiresAt:decision.accessExpiresAt,
+        previewOnly:true,crossAccountExecutionEnabled:false
+      }});
+    }
+    // Internal Operator UAT route only; not registered as an MCP tool, not
+    // connected to the real session/job plane, and absent when the UAT flag
+    // is disabled. Caller identity MUST be derived by a trusted OAuth
+    // adapter before this is exposed beyond local test transport.
+    if(req.method==='POST'&&url.pathname==='/v1/plugin/team/sessions/uat/open'){
+      if(!teamSessions)throw new AccountError('team_session_uat_disabled',404);
+      const body=await readJson(req),proof=verifyTeamPrincipal(req,url,body);
+      const session=teamSessions.open({
+        authenticatedActorAccountId:operationalAccount(proof.accountId).accountId,
+        authenticatedAgentId:proof.agentId,
+        deviceId:String(body.deviceId||''),
+        operation:String(body.operation||''),
+        requiredCapabilities:body.requiredCapabilities,
+        openId:body.openId,label:body.label,
+        workspace:body.workspace,gracePreset:body.gracePreset
+      });
+      return sendJson(res,200,{ok:true,session,previewOnly:true,
+        crossAccountExecutionEnabled:false});
+    }
+    const teamUatSessionMatch=url.pathname.match(
+      /^\/v1\/plugin\/team\/sessions\/uat\/([A-Za-z0-9._:-]+)\/(get|resume|hold|touch|close)$/
+    );
+    if(req.method==='POST'&&teamUatSessionMatch){
+      if(!teamSessions)throw new AccountError('team_session_uat_disabled',404);
+      const body=await readJson(req),
+        proof=verifyTeamPrincipal(req,url,body),
+        sessionId=teamUatSessionMatch[1],action=teamUatSessionMatch[2],
+        identity={
+          authenticatedActorAccountId:operationalAccount(proof.accountId).accountId,
+          authenticatedAgentId:proof.agentId
+        };
+      const session=action==='get'?teamSessions.get(sessionId,identity)
+        :action==='resume'?teamSessions.resume(sessionId,identity)
+        :action==='hold'?teamSessions.hold(sessionId,identity,body.reason||'agent_inactive')
+        :action==='touch'?teamSessions.touch(sessionId,identity,body.action||'uat-preview')
+        :teamSessions.close(sessionId,identity);
+      return sendJson(res,200,{ok:true,session,previewOnly:true,
+        crossAccountExecutionEnabled:false});
+    }
+    if(url.pathname==='/v1/accounts/team/accept' && req.method==='POST'){
+      const memberAccountId=requireAccount(req).account.accountId;
+      const body=await readJson(req);
+      const team=proTeams.accept({memberAccountId,inviteCode:body.inviteCode});
+      return sendJson(res,200,{ok:true,team});
+    }
+    if(url.pathname==='/v1/accounts/team/member/remove' && req.method==='POST'){
+      const ownerAccountId=requireAccount(req).account.accountId;
+      const body=await readJson(req);
+      const team=proTeams.remove({ownerAccountId,memberAccountId:body.memberAccountId});
+      return sendJson(res,200,{ok:true,team});
+    }
+    if(url.pathname==='/v1/accounts/team/device/share' && req.method==='POST'){
+      const ownerAccountId=requireAccount(req).account.accountId;
+      const body=await readJson(req);
+      const device=devices.get(String(body.deviceId||''));
+      if(device.accountId!==ownerAccountId)throw new AccountError('team_device_not_owned',403);
+      if(device.state==='revoked')throw new AccountError('team_device_revoked',409);
+      const team=proTeams.shareDevice({ownerAccountId,deviceId:device.deviceId,deviceOwnerAccountId:device.accountId});
+      return sendJson(res,200,{ok:true,team,crossAccountExecutionEnabled:false});
+    }
+    if(url.pathname==='/v1/accounts/team/device/unshare' && req.method==='POST'){
+      const ownerAccountId=requireAccount(req).account.accountId;
+      const body=await readJson(req);
+      const team=proTeams.unshareDevice({ownerAccountId,deviceId:body.deviceId});
+      return sendJson(res,200,{ok:true,team});
     }
     if (req.method === 'GET' && url.pathname === '/v1/accounts/devices') {
       const identity=requireAccount(req),owned=allDeviceViews().filter(device=>device.accountId===identity.account.accountId).map(device=>({...device,removable:device.deviceId!==DEVICE_ID,revocable:device.deviceId!==DEVICE_ID&&device.state!=='revoked',helperUpdatable:device.deviceId!==DEVICE_ID&&device.state!=='revoked'}));

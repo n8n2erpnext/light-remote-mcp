@@ -66,16 +66,17 @@ export function challengeValue(scopes,error='invalid_token',description='Authent
 export function authErrorResult(scopes,error='invalid_token',description='Connect Light Remote to continue.'){return {content:[{type:'text',text:description}],_meta:{'mcp/www_authenticate':[challengeValue(scopes,error,description)]},isError:true};}
 export async function authenticateAccess(req){const raw=String(req.get('authorization')||'').replace(/^Bearer\s+/i,'').trim();if(!raw)return {identity:null,error:'invalid_token'};try{const p=await verify(raw,'access'),scopes=parseScopes(p.scope);if(p.resource!==MCP_RESOURCE||!p.sub||!p.client_id)throw new Error('invalid_token');return {identity:{accountId:String(p.sub),clientId:String(p.client_id),scopes},error:null};}catch(error){return {identity:null,error:error.message==='invalid_scope'?'insufficient_scope':'invalid_token'};}}
 export function requireScopes(identity,required){if(!identity)return authErrorResult(required);const have=new Set(identity.scopes||[]),missing=required.filter(s=>!have.has(s));return missing.length?authErrorResult(required,'insufficient_scope',`Additional permission required: ${missing.join(', ')}`):null;}
-export async function mintPairingContinuation(identity,{requestId,pollToken,agentId,expiresAt}={}){
+export async function mintPairingContinuation(identity,{requestId,pollToken,agentId,expiresAt,flow='device-pairing'}={}){
   if(!identity?.accountId||!identity?.clientId||!requestId||!pollToken||!agentId)throw new Error('pairing_continuation_invalid');
+  if(!['device-pairing','team-member-approval'].includes(flow))throw new Error('pairing_continuation_flow_invalid');
   const expiry=Number(expiresAt),ttl=Math.max(1,Math.min(10*60,Math.ceil(((Number.isFinite(expiry)?expiry:Date.now()+5*60*1000)-Date.now())/1000)));
-  return mint('pairing',{sub:String(identity.accountId),client_id:String(identity.clientId),requestId:String(requestId),pollToken:String(pollToken),agentId:String(agentId)},ttl);
+  return mint('pairing',{sub:String(identity.accountId),client_id:String(identity.clientId),requestId:String(requestId),pollToken:String(pollToken),agentId:String(agentId),flow},ttl);
 }
 export async function verifyPairingContinuation(identity,token){
   if(!identity?.accountId||!identity?.clientId)throw new Error('plugin_identity_required');
   const p=await verify(String(token||''),'pairing');
   if(String(p.sub||'')!==String(identity.accountId)||String(p.client_id||'')!==String(identity.clientId)||!p.requestId||!p.pollToken||!p.agentId)throw new Error('pairing_continuation_invalid');
-  return {requestId:String(p.requestId),pollToken:String(p.pollToken),agentId:String(p.agentId)};
+  return {requestId:String(p.requestId),pollToken:String(p.pollToken),agentId:String(p.agentId),flow:String(p.flow||'device-pairing')};
 }
 function setAuthCsp(res){res.set('Content-Security-Policy',"default-src 'none'; style-src 'unsafe-inline'; font-src 'self'; img-src 'self'; form-action 'self' https://chatgpt.com; frame-ancestors 'none'; base-uri 'none'");}
 function oauthAudit(event,detail={}){console.log(JSON.stringify({event,...detail}));}
