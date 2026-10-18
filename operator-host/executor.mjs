@@ -405,10 +405,24 @@ function startJob(payload, requestId) {
     route=targetRoute(session.nodeId,{accountId:session.accountId});
     if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);
     const missing=requiredCapabilities.filter(cap=>!route.capabilities.includes(cap));
-    if(missing.length)throw new FleetError('target_node_capability_missing',409);
+    if(missing.length){
+      // A refused job never reaches job_started. Record a sanitized policy
+      // diagnosis so Wall/activity can distinguish routing from host safety.
+      pushEvent({type:'job_admission_denied',status:'denied',
+        reason:'target_node_capability_missing',route:'outbound-leaf',
+        accountId:session.accountId,deviceId:session.deviceId,nodeId:session.nodeId,
+        sessionId:session.id,requiredCapabilities,missingCapabilities:missing});
+      throw new FleetError('target_node_capability_missing',409);
+    }
   } else {
     const missing=requiredCapabilities.filter(cap=>!hostEffectiveCapabilities().includes(cap));
-    if(missing.length)throw new DeviceError('local_host_capability_missing',409);
+    if(missing.length){
+      pushEvent({type:'job_admission_denied',status:'denied',
+        reason:'local_host_capability_missing',route:'local',
+        accountId:session.accountId,deviceId:session.deviceId,nodeId:session.nodeId,
+        sessionId:session.id,requiredCapabilities,missingCapabilities:missing});
+      throw new DeviceError('local_host_capability_missing',409);
+    }
   }
   assertToolCallQuota(session.accountId);
   sessions.record(session.id, 'toolCalls');

@@ -2,7 +2,7 @@ import { inferCapabilities, uniqueCapabilities } from './shared.mjs';
 
 const RULES=[
   ['git',/(^|[;&|\s])git(\s|$)/i],
-  ['docker',/(^|[;&|\s])docker(\s|$)/i],
+  ['docker',/(^|[;&|\s"'`])(?:\/opt\/homebrew\/bin\/|\/(?:usr\/)?(?:local\/)?s?bin\/)?(docker|docker-compose)(?=\s|$|["'`;|&])/i],
   ['package-manager',/(^|[;&|\s])(brew|port)(\s|$)/i],
   ['build-test',/(^|[;&|\s])(node|npm|npx|pnpm|yarn|python3?|pip3?|cargo|rustc|make|cmake|xcodebuild|swift)(\s|$)/i],
   ['sudo-on-demand',/(^|[;&|\s])sudo(\s|$)/i],

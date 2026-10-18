@@ -2,11 +2,13 @@ import { inferCapabilities, uniqueCapabilities } from './shared.mjs';
 
 const RULES=[
   ['git',/(^|[;&|\s])(git)(\s|$)/i],
-  ['docker',/(^|[;&|\s])(docker|docker-compose)(\s|$)/i],
-  ['lxd',/(^|[;&|\s])(lxc|lxd)(\s|$)/i],
+  // Recognize standard absolute executable paths as the same authority as
+  // bare commands. A path prefix must never hide Docker from local policy.
+  ['docker',/(^|[;&|\s"'`])(?:\/(?:usr\/)?(?:local\/)?s?bin\/)?(docker|docker-compose)(?=\s|$|["'`;|&])/i],
+  ['lxd',/(^|[;&|\s"'`])(?:\/(?:usr\/)?(?:local\/)?s?bin\/)?(lxc|lxd)(?=\s|$|["'`;|&])/i],
   ['systemctl',/(^|[;&|\s])(systemctl|journalctl)(\s|$)/i],
   ['sudo-on-demand',/(^|[;&|\s])sudo(\s|$)/i],
-  ['package-manager',/(^|[;&|\s])(apt|apt-get|dnf|yum|pacman|apk|zypper)(\s|$)/i],
+  ['package-manager',/(^|[;&|\s])(apt|apt-get|apt-cache|dnf|yum|pacman|apk|zypper)(\s|$)/i],
   ['build-test',/(^|[;&|\s])(node|npm|npx|pnpm|yarn|python3?|pip3?|cargo|rustc|make|cmake)(\s|$)/i]
 ];
 

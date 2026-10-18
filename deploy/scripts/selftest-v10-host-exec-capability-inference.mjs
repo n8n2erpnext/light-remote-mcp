@@ -18,5 +18,11 @@ try{
   const agentId='agent-host-exec-infer-aaaaaaaa',opened=await raw('POST','/v1/sessions/open',{agentId,openId:'host-exec-infer-open'});if(opened.status!==200)throw new Error('session_open_failed');
   const payload={action:'exec_batch',operationId:'op-host-exec-infer-policy-1234',cwd:os.tmpdir(),script:inferredScript,sessionId:opened.json.session.sessionId,agentId,requiredCapabilities:['filesystem'],waitMs:2000,timeoutMs:5000};
   const denied=await raw('POST','/v1/execute',cryptoFixture.seal(payload));if(denied.status!==409||denied.json.error!=='local_host_capability_missing')throw new Error('capability_inference_not_enforced:'+inferredCapability+':'+denied.status+':'+denied.json.error);
+  const activity=await raw('GET','/v1/activity?limit=50');
+  const last=(activity.json.events||[]).find(e=>e.type==='job_admission_denied'&&e.reason==='local_host_capability_missing');
+  if(!last||last.route!=='local'||!last.missingCapabilities?.includes(inferredCapability)||
+     last.requiredCapabilities?.includes(inferredCapability)!==true)
+   throw new Error('capability_denial_activity_missing_or_misclassified');
   console.log('v10-host-exec-capability-inference-deny=PASS capability='+inferredCapability);
+  console.log('v10-host-exec-denial-observability=PASS');
 }finally{child.kill('SIGTERM');await sleep(100);fs.rmSync(dir,{recursive:true,force:true});}

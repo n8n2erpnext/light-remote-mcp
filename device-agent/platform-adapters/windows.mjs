@@ -2,16 +2,18 @@ import { firstAvailable, inferCapabilities, uniqueCapabilities } from './shared.
 
 const RULES=[
   ['git',/(^|[;&|\s])git(\.exe)?(\s|$)/i],
-  ['docker',/(^|[;&|\s])docker(\.exe)?(\s|$)/i],
+  ['docker',/(^|[;&|\s])(docker|docker-compose)(\.exe)?(\s|$)/i],
   ['package-manager',/(^|[;&|\s])(winget|choco)(\.exe)?(\s|$)/i],
   ['build-test',/(^|[;&|\s])(node|npm|npx|pnpm|yarn|python|py|pip|cargo|rustc)(\.exe)?(\s|$)/i],
   ['windows-services',/\b(Get-Service|sc(?:\.exe)?\s+query)\b/i],
   ['windows-eventlog',/\b(Get-WinEvent|Get-EventLog|wevtutil)\b/i],
   ['windows-process-network',/\b(Get-Process|Get-NetTCPConnection|netstat|tasklist|Get-NetAdapter)\b/i],
-  ['windows-registry',/\b(HKLM:|HKCU:|HKCR:|HKU:|Registry::|reg(?:\.exe)?\s+(add|delete|import|restore|load|unload))\b/i],
+  // A colon is not a word boundary before '\\'; HKLM:\\ previously went
+  // unclassified. Registry authority remains separately grant-controlled.
+  ['windows-registry',/(?:\b(?:HKLM|HKCU|HKCR|HKU):|Registry::|\breg(?:\.exe)?\s+(?:add|delete|import|restore|load|unload)\b)/i],
   ['windows-scheduled-tasks',/\b(Register-ScheduledTask|Unregister-ScheduledTask|schtasks(?:\.exe)?)\b/i],
   ['windows-services-admin',/\b(Set-Service|New-Service|Remove-Service|Restart-Service|Stop-Service|Start-Service|sc(?:\.exe)?\s+(create|delete|config|start|stop))\b/i],
-  ['windows-defender-firewall',/\b(Set-MpPreference|Add-MpPreference|Remove-MpPreference|Set-NetFirewall|New-NetFirewall|Remove-NetFirewall|netsh\s+advfirewall)\b/i],
+  ['windows-defender-firewall',/\b(?:Set-MpPreference|Add-MpPreference|Remove-MpPreference|(?:Set|New|Remove)-NetFirewall(?:Rule|Profile|AddressFilter|PortFilter|ApplicationFilter|ServiceFilter|SecurityFilter)?|netsh\s+advfirewall)\b/i],
   ['windows-credential-manager',/\b(cmdkey|vaultcmd|Get-StoredCredential|New-StoredCredential|Remove-StoredCredential)\b/i],
   ['windows-uac-admin',/\b(Start-Process\b[^\r\n;]*-Verb\s+RunAs|runas(?:\.exe)?)\b/i]
 ];
@@ -34,8 +36,12 @@ export function createWindowsAdapter({commandExists}) {
       if(commandExists('tasklist')||commandExists('netstat'))caps.push('windows-process-network');
       return uniqueCapabilities(caps);
     },
-    inferRequiredCapabilities(script) {
-      return uniqueCapabilities(['filesystem','powershell',...inferCapabilities(script,RULES)]);
+    inferRequiredCapabilities(script,{shell:requestedShell='default'}={}) {
+      // An explicitly selected cmd.exe shell must not require the separate
+      // PowerShell capability; it requires terminal shell authority instead.
+      const shellCapability=String(requestedShell||'default').toLowerCase()==='cmd'
+       ?'terminal':'powershell';
+      return uniqueCapabilities(['filesystem',shellCapability,...inferCapabilities(script,RULES)]);
     },
     hardDeny(script) {
       const text=String(script||'');

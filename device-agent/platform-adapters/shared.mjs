@@ -13,7 +13,14 @@ export function defaultCommandExists(platform, name) {
 }
 
 export function inferCapabilities(script, rules = []) {
-  const text=String(script||'');
+  // Normalize only standard executable directories for *capability
+  // inference*. Keep the original script unchanged for execution. Without
+  // this, /usr/bin/sudo, /usr/bin/systemctl, /usr/bin/git, etc. bypassed
+  // the same per-command capability detection as their bare equivalents.
+  // This normalization only ADDS requirements; it never grants authority.
+  const text=String(script||'').replace(
+    /(^|[;&|\s"'`])(?:\/(?:usr\/)?(?:local\/)?s?bin\/|\/opt\/homebrew\/bin\/)([A-Za-z0-9._+-]+)(?=\s|$|[;&|"'`])/g,
+    '$1$2');
   const out=[];
   for (const [capability, pattern] of rules) {
     if (pattern.test(text)) out.push(capability);
