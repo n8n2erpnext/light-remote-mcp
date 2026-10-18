@@ -17,7 +17,8 @@ import { DevicePairingRegistry, DevicePairingRegistryError } from './device-pair
 import { AgentClientRegistry, AgentClientRegistryError } from './agent-client-registry.mjs';
 import { AccountRegistry, AccountError } from './account-registry.mjs';
 import { UsageRegistry } from './usage-registry.mjs';
-import { AccountNotificationRegistry } from './account-notification-registry.mjs';
+import { AccountNotificationRegistry, AccountNotificationError } from './account-notification-registry.mjs';
+import { connectGoldStorage } from '../lib/gold-db.mjs';
 import { ProTeamRegistry, ProTeamError } from './pro-team-registry.mjs';
 import { requestTeamMemberApproval } from './team-approval-requests.mjs';
 import { TeamPrincipalProofVerifier, verifyTeamPrincipalRequest } from '../lib/team-oauth-principal-proof.mjs';
@@ -109,6 +110,8 @@ const VERSION = runtimeVersion({envNames:['LIGHT_REMOTE_VERSION','OPERATOR_VERSI
 const CLIENT_BACKWARD_RELEASES=Math.max(0,Math.min(Number(process.env.OPERATOR_CLIENT_BACKWARD_RELEASES)||3,20));
 const MIN_SUPPORTED_CLIENT_VERSION=String(process.env.OPERATOR_MIN_SUPPORTED_CLIENT_VERSION||'').trim()||releaseCompatibilityFloor()||null;
 const compatibilityFor=device=>clientCompatibility(VERSION,device?.agentVersion,{backwardReleases:CLIENT_BACKWARD_RELEASES,explicit:MIN_SUPPORTED_CLIENT_VERSION});
+// No canonical Operator can start without its independent Gold database services.
+const goldStorage=await connectGoldStorage();
 const NATIVE_PROCESSES=new NativeProcessRegistry();
 const NATIVE_TERMINALS=new NativeTerminalRegistry({emit:event=>pushEvent(event)});
 const NATIVE_SEARCHES=new NativeSearchRegistry();
@@ -137,7 +140,7 @@ const teamPrincipalVerifier=teamVerifyFile?new TeamPrincipalProofVerifier({publi
 const verifyTeamPrincipal=(req,url,body)=>verifyTeamPrincipalRequest(req,url,body,teamPrincipalVerifier);
 const teamInviteSecretFile=String(process.env.OPERATOR_TEAM_INVITE_SECRET_FILE||'');
 const teamInviteSecret=teamInviteSecretFile?fs.readFileSync(teamInviteSecretFile):null;
-const accountNotifications=new AccountNotificationRegistry({stateFile:NOTIFICATION_STATE_FILE});
+const accountNotifications=new AccountNotificationRegistry({pool:goldStorage.pool});
 const proTeams=new ProTeamRegistry({stateFile:PRO_TEAM_STATE_FILE,inviteKey:teamInviteSecret,
   planFor:accountId=>operationalAccount(accountId).plan,
   accountActive:accountId=>{try{return operationalAccount(accountId).status==='active';}catch{return false;}},
@@ -1066,7 +1069,7 @@ const server = http.createServer(async (req, res) => {
   } catch (error) {
     const message = error?.message || 'internal_error';
     pushEvent({ type: 'executor_error', status: 'error', detail: redact(message) });
-    const status = error instanceof SessionError || error instanceof DeviceError || error instanceof EnrollmentError || error instanceof FleetError || error instanceof DeviceConnectionError || error instanceof DeviceAccessGrantError || error instanceof DevicePairingRegistryError || error instanceof AgentClientRegistryError || error instanceof AccountError || error instanceof ProTeamError || error instanceof TeamEntitlementError || error instanceof LicenseKeyError || error instanceof FleetAuthorityError || error instanceof DeviceChannelRateLimitError ? error.status : ['invalid_envelope', 'expired_envelope', 'replay_detected', 'unknown_kid', 'invalid_envelope_auth', 'unsupported_action'].includes(message) ? 401 : message === 'operation_id_conflict' ? 409 : 400;
+    const status = error instanceof SessionError || error instanceof DeviceError || error instanceof EnrollmentError || error instanceof FleetError || error instanceof DeviceConnectionError || error instanceof DeviceAccessGrantError || error instanceof DevicePairingRegistryError || error instanceof AgentClientRegistryError || error instanceof AccountError || error instanceof AccountNotificationError || error instanceof ProTeamError || error instanceof TeamEntitlementError || error instanceof LicenseKeyError || error instanceof FleetAuthorityError || error instanceof DeviceChannelRateLimitError ? error.status : ['invalid_envelope', 'expired_envelope', 'replay_detected', 'unknown_kid', 'invalid_envelope_auth', 'unsupported_action'].includes(message) ? 401 : message === 'operation_id_conflict' ? 409 : 400;
     const limited=error instanceof DeviceChannelRateLimitError;
     return sendJson(res, status, { ok: false, error: message, ...(limited?{scope:error.scope,retryAfterSeconds:error.retryAfterSeconds}:{}) }, limited?{'retry-after':String(error.retryAfterSeconds)}:{});
   }
@@ -1093,7 +1096,10 @@ function shutdown(signal) {
       try { process.kill(job.pid, 'SIGTERM'); } catch {}
     }
   }
-  void flushDiskRecords().finally(()=>server.close(()=>process.exit(0)));
+  void flushDiskRecords().finally(()=>server.close(async()=>{
+    await goldStorage.close().catch(error=>console.error('[gold-db-close]',error?.message));
+    process.exit(0);
+  }));
   server.closeAllConnections?.();
   setTimeout(() => process.exit(1), 5000).unref();
 }

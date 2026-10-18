@@ -5,7 +5,7 @@ import { PUBLIC_ORIGIN } from './config.mjs';
 import { mailConfig, sendLicense, sendUpgradeActivated, verifyMail } from './mailer.mjs';
 import { googleAuthStatus, saveGoogleAuthConfig } from './google-auth.mjs';
 import { paddleBilling, paddleBillingStatus } from './paddle-billing.mjs';
-import { listAnnouncements, mutateAnnouncement } from './site-announcements.mjs';
+import { listAnnouncements, mutateAnnouncement, refreshSiteAnnouncements } from './site-announcements.mjs';
 
 const COOKIE='__Host-light_remote_account';
 const ADMIN_ACCOUNT_ID=String(process.env.LIGHT_REMOTE_ADMIN_ACCOUNT_ID||'direct-production-local');
@@ -52,10 +52,10 @@ export function registerAdminPortal(app){
         if(!/^sys_[a-f0-9-]{36}$/.test(id))return res.status(400).json({ok:false,error:'invalid_notification_id'});
         return res.json(await callOperatorJson('POST','/v1/admin/notifications/'+encodeURIComponent(id)+'/cancel',{}));
       }
-      if(action==='announcements'&&req.method==='GET')return res.json({ok:true,announcements:listAnnouncements()});
-      if(action==='announcement-create'&&req.method==='POST')return res.status(201).json({ok:true,announcement:mutateAnnouncement('POST',null,req.body)});
-      if(action==='announcement-update'&&req.method==='POST')return res.json({ok:true,announcement:mutateAnnouncement('PUT',String(req.body?.id||''),req.body)});
-      if(action==='announcement-delete'&&req.method==='POST')return res.json({ok:true,announcement:mutateAnnouncement('DELETE',String(req.body?.id||''))});
+      if(action==='announcements'&&req.method==='GET'){await refreshSiteAnnouncements();return res.json({ok:true,announcements:listAnnouncements()})}
+      if(action==='announcement-create'&&req.method==='POST')return res.status(201).json({ok:true,announcement:await mutateAnnouncement('POST',null,req.body)});
+      if(action==='announcement-update'&&req.method==='POST')return res.json({ok:true,announcement:await mutateAnnouncement('PUT',String(req.body?.id||''),req.body)});
+      if(action==='announcement-delete'&&req.method==='POST')return res.json({ok:true,announcement:await mutateAnnouncement('DELETE',String(req.body?.id||''))});
       if(action==='overview'&&req.method==='GET')return res.json(await callOperatorJson('GET','/v1/admin/overview'));
       if(action==='accounts'&&req.method==='GET')return res.json(await callOperatorJson('GET','/v1/admin/accounts'));
       if(action==='groups'&&req.method==='GET')return res.json(await callOperatorJson('GET','/v1/admin/groups'));

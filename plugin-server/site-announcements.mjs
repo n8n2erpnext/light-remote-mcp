@@ -1,8 +1,5 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import crypto from 'node:crypto';
 
-const DATA=process.env.LIGHT_REMOTE_SITE_CONTENT_PATH||'/var/lib/light-remote-direct/plugin-state/site-content.json';
 const clientPlatforms=new Set(['windows','macos','linux']);
 const clientKinds=new Set(['feature','update','maintenance','service']);
 const allowedPages=new Set(['/','/downloads','/support','/ai-guide','/privacy','/terms','/cookies','/account','/account/login','/account/register']);
@@ -25,13 +22,20 @@ const defaultAnnouncement={
  linkLabel:'Download Light Remote →',linkUrl:'/downloads',
  pages:['/','/downloads','/support'],audience:'site',kind:'feature',platforms:['windows','macos','linux'],priority:0,dismissible:true,startAt:'',endAt:'',updatedAt:new Date().toISOString()
 };
-let entries=[defaultAnnouncement];
-try{const data=JSON.parse(fs.readFileSync(DATA,'utf8'));if(Array.isArray(data?.announcements))entries=data.announcements.slice(0,100)}catch{}
-function persist(){
- fs.mkdirSync(path.dirname(DATA),{recursive:true,mode:0o750});
- const tmp=DATA+'.'+process.pid+'.tmp';
- fs.writeFileSync(tmp,JSON.stringify({version:1,announcements:entries}),{mode:0o640});
- fs.renameSync(tmp,DATA);
+let entries=[],pool=null;
+function requireDatabase(){if(!pool)throw Error('gold_site_pg_uninitialized')}
+export async function refreshSiteAnnouncements(){
+ requireDatabase();
+ const {rows}=await pool.query('SELECT payload FROM lr_site_announcements ORDER BY updated_at DESC LIMIT 100');
+ entries=rows.map(row=>row.payload);
+ return entries;
+}
+export async function initializeSiteAnnouncements(postgresPool){
+ if(!postgresPool||typeof postgresPool.query!=='function')throw Error('gold_site_pg_required');
+ pool=postgresPool;
+ await pool.query('INSERT INTO lr_site_announcements(id,payload) VALUES($1,$2::jsonb) ON CONFLICT(id) DO NOTHING',
+  [defaultAnnouncement.id,JSON.stringify(defaultAnnouncement)]);
+ return refreshSiteAnnouncements();
 }
 function sanitize(v,prior={}){
  const title=max(v.title??prior.title,110),message=max(v.message??prior.message,400);
@@ -58,13 +62,36 @@ function sanitize(v,prior={}){
  startAt,endAt,updatedAt:new Date().toISOString()};
 }
 export function listAnnouncements(){return entries.map(x=>({...x})).sort((a,b)=>b.priority-a.priority||b.updatedAt.localeCompare(a.updatedAt))}
-export function mutateAnnouncement(method,id,payload={}){
- if(method==='POST'){if(entries.length>=100)throw Object.assign(new Error('announcement_limit'),{status:400});const created=sanitize(payload);entries.push(created);persist();return created}
- const index=entries.findIndex(x=>x.id===id);
- if(index<0)throw Object.assign(new Error('announcement_not_found'),{status:404});
- if(method==='DELETE'){const [removed]=entries.splice(index,1);persist();return removed}
- if(method==='PUT'){const updated=sanitize(payload,entries[index]);entries[index]=updated;persist();return updated}
- throw Object.assign(new Error('invalid_announcement_action'),{status:405});
+export async function mutateAnnouncement(method,id,payload={}){
+ requireDatabase();
+ // Direct transaction on canonical Postgres; no file write or fallback.
+ const client=await pool.connect();let transaction=false;
+ try{
+  await client.query('BEGIN');transaction=true;
+  await client.query('SELECT pg_advisory_xact_lock($1)',[141414]);
+  let result;
+  if(method==='POST'){
+   const count=(await client.query('SELECT COUNT(*)::int AS total FROM lr_site_announcements')).rows[0].total;
+   if(count>=100)throw Object.assign(Error('announcement_limit'),{status:400});
+   const created=sanitize(payload);
+   await client.query('INSERT INTO lr_site_announcements(id,payload) VALUES($1,$2::jsonb)',[created.id,JSON.stringify(created)]);
+   result=created;
+  }else if(method==='PUT'){
+   const previous=(await client.query('SELECT payload FROM lr_site_announcements WHERE id=$1 FOR UPDATE',[id])).rows?.[0]?.payload;
+   if(!previous)throw Object.assign(Error('announcement_not_found'),{status:404});
+   const updated=sanitize(payload,previous);
+   await client.query('UPDATE lr_site_announcements SET payload=$2::jsonb,updated_at=now() WHERE id=$1',[id,JSON.stringify(updated)]);
+   result=updated;
+  }else if(method==='DELETE'){
+   const rows=(await client.query('DELETE FROM lr_site_announcements WHERE id=$1 RETURNING payload',[id])).rows;
+   if(!rows?.length)throw Object.assign(Error('announcement_not_found'),{status:404});
+   result=rows[0].payload;
+  }else throw Object.assign(Error('invalid_announcement_action'),{status:405});
+  await client.query('COMMIT');transaction=false;
+  await refreshSiteAnnouncements();
+  return result;
+ }catch(error){if(transaction)await client.query('ROLLBACK').catch(()=>{});throw error}
+ finally{client.release()}
 }
 function choose(page,now=Date.now()){
  return listAnnouncements().find(x=>x.enabled&&x.audience!=='clients'&&x.pages.includes(page)&&(!x.startAt||Date.parse(x.startAt)<=now)&&(!x.endAt||Date.parse(x.endAt)>now));
@@ -112,8 +139,8 @@ export function clientAnnouncementFeed({platform='windows',now=Date.now()}={}){
  return {schemaVersion:1,platform:target,revision,checkedAt:new Date(now).toISOString(),pollAfterSeconds:300,items};
 }
 export function registerClientAnnouncementFeed(app){
- app.get('/api/client-announcements',(req,res)=>{
-  try{const feed=clientAnnouncementFeed({platform:req.query.platform||'windows'});
+ app.get('/api/client-announcements',async(req,res)=>{
+  try{await refreshSiteAnnouncements();const feed=clientAnnouncementFeed({platform:req.query.platform||'windows'});
    res.set('Cache-Control','no-store').set('X-Content-Type-Options','nosniff');
    return res.json(feed);
   }catch(error){return res.status(error.status||500).json({ok:false,error:error.message});}

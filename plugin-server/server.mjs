@@ -9,8 +9,9 @@ import { registerPublicDeviceRoutes, prunePublicRateState } from './device-publi
 import { registerAccountPortal } from './account-portal.mjs';
 import { registerDistributionPortal } from './distribution-portal.mjs';
 import { registerAdminPortal } from './admin-portal.mjs';
-import { installAnnouncements, registerClientAnnouncementFeed } from './site-announcements.mjs';
-import { installSiteAnalytics, flushSiteAnalytics } from './site-analytics.mjs';
+import { installAnnouncements, registerClientAnnouncementFeed, initializeSiteAnnouncements } from './site-announcements.mjs';
+import { installSiteAnalytics, flushSiteAnalytics, initializeSiteAnalytics } from './site-analytics.mjs';
+import {connectGoldStorage} from '../lib/gold-db.mjs';
 import { registerWebAssets } from './web-assets.mjs';
 import { renderAiGuidePage, renderLlmsIndex } from './ai-guide-page.mjs';
 import { LEGAL_PAGES, renderLegalPage } from './legal-pages.mjs';
@@ -22,6 +23,10 @@ import { installOpenAiToolSecurityCompat } from './openai-security-compat.mjs';
 import { installLegacyToolCallCompat } from './legacy-tool-call-compat.mjs';
 
 
+// Canonical Plugin refuses to listen without the independent Gold PG17/Redis8.
+const goldStorage=await connectGoldStorage();
+try{await initializeSiteAnnouncements(goldStorage.pool);await initializeSiteAnalytics(goldStorage.pool,goldStorage.redis,goldStorage.prefix)}
+catch(error){await goldStorage.close();throw error}
 const app=express();
 // createMcpExpressApp() installs express.json() with Express' default ~100 KB limit.
 // Device-channel result envelopes can legitimately exceed that even after client-side compaction,
@@ -119,7 +124,6 @@ const server=app.listen(PUBLIC_PORT,PUBLIC_HOST,()=>{
 });
 let shuttingDown=false;
 function shutdown(signal){
-  flushSiteAnalytics();
   if(shuttingDown)return;shuttingDown=true;clearInterval(pruner);
   console.log(JSON.stringify({event:'direct_plugin_shutdown',signal}));
   server.closeIdleConnections?.();
@@ -128,7 +132,12 @@ function shutdown(signal){
     process.exit(0);
   },4000);
   deadline.unref();
-  server.close(()=>{clearTimeout(deadline);process.exit(0);});
+  server.close(async()=>{
+    clearTimeout(deadline);
+    await flushSiteAnalytics().catch(error=>console.error('[analytics-flush]',error?.message));
+    await goldStorage.close().catch(error=>console.error('[gold-db-close]',error?.message));
+    process.exit(0);
+  });
 }
 process.once('SIGTERM',()=>shutdown('SIGTERM'));
 process.once('SIGINT',()=>shutdown('SIGINT'));

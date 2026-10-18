@@ -1,23 +1,22 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import crypto from 'node:crypto';
 
-const FILE=process.env.LIGHT_REMOTE_SITE_ANALYTICS_PATH||'/var/lib/light-remote-direct/plugin-state/site-analytics.json';
 const TRACKED=new Set(['/','/downloads','/support','/ai-guide','/privacy','/terms','/cookies']);
-let days={};
-try{const state=JSON.parse(fs.readFileSync(FILE,'utf8'));if(state?.days&&typeof state.days==='object')days=state.days}catch{}
-let pending=false;
-let changed=false;
-function persist(){
- if(!changed)return;
- try{
-  fs.mkdirSync(path.dirname(FILE),{recursive:true,mode:0o750});
-  const temp=FILE+'.'+process.pid+'.tmp';
-  fs.writeFileSync(temp,JSON.stringify({version:1,days}),{mode:0o640});
-  fs.renameSync(temp,FILE);changed=false;
- }catch(error){console.error('[site-analytics-write]',error?.message||error)}
+let days={},pool=null,redis=null,redisPrefix='';
+const inflight=new Set();
+export async function initializeSiteAnalytics(postgresPool,redisClient,prefix){
+ if(!postgresPool||typeof postgresPool.query!=='function')throw Error('gold_site_analytics_pg_required');
+ if(!redisClient||typeof redisClient.eval!=='function'||!/^lr:gold:[a-z0-9_-]+:$/.test(prefix||''))
+  throw Error('gold_site_analytics_redis_required');
+ pool=postgresPool;redis=redisClient;redisPrefix=prefix;
+ await refreshSiteAnalytics();
 }
-const timer=setInterval(persist,8000);timer.unref();
+export async function refreshSiteAnalytics(){
+ if(!pool)throw Error('gold_site_analytics_not_initialized');
+ const {rows}=await pool.query('SELECT day::text AS day,metrics FROM lr_site_analytics_daily WHERE day >= current_date - interval \'94 days\' ORDER BY day');
+ days=Object.fromEntries(rows.map(row=>[row.day,row.metrics]));
+ return days;
+}
+
 function operatingSystem(ua=''){
  const s=String(ua).toLowerCase();
  if(/iphone|ipad|ipod/.test(s))return 'iOS';
@@ -56,25 +55,43 @@ function prune(){
  const deadline=new Date(Date.now()-94*86400000).toISOString().slice(0,10);
  for(const key of Object.keys(days))if(key<deadline)delete days[key];
 }
-function record(type,attrs={}){
- const day=today();let row=days[day];
- if(!row)row=days[day]={pageViews:0,downloads:0,downloadClicks:0,pages:{},os:{},referrers:{},downloadOS:{},downloadArchitecture:{},downloadVersions:{},downloadFiles:{},osTabs:{}};
+function applyMetric(row,type,attrs){
  if(type==='page'){
-  row.pageViews++;inc(row.pages,attrs.path);inc(row.os,attrs.os);inc(row.referrers,attrs.referrer);
+  row.pageViews=(row.pageViews||0)+1;row.pages??={};row.os??={};row.referrers??={};
+  inc(row.pages,attrs.path);inc(row.os,attrs.os);inc(row.referrers,attrs.referrer);
  }else if(type==='download'){
-  row.downloads++;inc(row.downloadOS,attrs.os);inc(row.downloadArchitecture,attrs.arch);
-  inc(row.downloadVersions,attrs.version);inc(row.downloadFiles,attrs.file);
+  row.downloads=(row.downloads||0)+1;
+  for(const field of ['downloadOS','downloadArchitecture','downloadVersions','downloadFiles'])row[field]??={};
+  inc(row.downloadOS,attrs.os);inc(row.downloadArchitecture,attrs.arch);inc(row.downloadVersions,attrs.version);inc(row.downloadFiles,attrs.file);
  }else if(type==='download-click'){
-  // Clicks are intention only; do not inflate served file download OS/version.
-  row.downloadClicks++;
+  row.downloadClicks=(row.downloadClicks||0)+1;
   row.externalClickOS??={};row.externalClickArchitecture??={};row.externalClickVersions??={};
   inc(row.externalClickOS,attrs.os);inc(row.externalClickArchitecture,attrs.arch);inc(row.externalClickVersions,attrs.version);
- }
- else if(type==='tab'){inc(row.osTabs,attrs.os)}
- changed=true;if(Object.keys(days).length>95)prune();
+ }else if(type==='tab'){row.osTabs??={};inc(row.osTabs,attrs.os)}
+ return row;
+}
+async function persistMetric(type,attrs){
+ if(!pool)throw Error('gold_site_analytics_not_initialized');
+ const day=today(),client=await pool.connect();let begun=false;
+ try{
+  await client.query('BEGIN');begun=true;
+  await client.query("INSERT INTO lr_site_analytics_daily(day,metrics) VALUES($1::date,'{}'::jsonb) ON CONFLICT(day) DO NOTHING",[day]);
+  const locked=(await client.query('SELECT metrics FROM lr_site_analytics_daily WHERE day=$1::date FOR UPDATE',[day])).rows[0];
+  const row=applyMetric(locked.metrics,type,attrs);
+  await client.query('UPDATE lr_site_analytics_daily SET metrics=$2::jsonb,updated_at=now() WHERE day=$1::date',[day,JSON.stringify(row)]);
+  await client.query('COMMIT');begun=false;
+  days[day]=row;
+  if(Object.keys(days).length>95)prune();
+ }catch(error){if(begun)await client.query('ROLLBACK').catch(()=>{});throw error}
+ finally{client.release()}
+}
+function record(type,attrs={}){
+ const task=persistMetric(type,attrs);
+ inflight.add(task);
+ void task.catch(error=>console.error('[site-analytics-pg]',error?.message||error))
+  .finally(()=>inflight.delete(task));
 }
 const legitimateAgents=/bot|crawler|spider|facebookexternalhit|preview|uptime|curl|wget|postman|python-requests|google-inspection/i;
-const eventRate=new Map();
 export function installSiteAnalytics(app){
  app.use((req,res,next)=>{
   if(req.method!=='GET')return next();
@@ -94,14 +111,18 @@ export function installSiteAnalytics(app){
   next();
  });
  // Client-reported UI tab / GitHub clicks, not verified file transfers.
- app.post('/site/interaction',(req,res)=>{
-  // Keep anonymous telemetry bounded; only short, whitelisted events are accepted.
-  const now=Date.now(),key=String(req.ip||req.socket?.remoteAddress||'unknown');
-  const prior=eventRate.get(key);
-  const current=prior&&now-prior.started<60_000?prior:{started:now,count:0};
-  current.count++;eventRate.set(key,current);
-  if(eventRate.size>3000)for(const [address,v] of eventRate)if(now-v.started>=60_000)eventRate.delete(address);
-  if(current.count>100)return res.sendStatus(429);
+ app.post('/site/interaction',async(req,res)=>{
+  // Redis is the atomic cross-replica rate authority for ephemeral telemetry.
+  const ip=String(req.ip||req.socket?.remoteAddress||'unknown');
+  const hash=crypto.createHash('sha256').update(ip).digest('hex');
+  let count;
+  try{
+   count=Number(await redis.eval(
+    "local count=redis.call('INCR',KEYS[1]);if count==1 then redis.call('EXPIRE',KEYS[1],ARGV[1]) end;return count",
+    {keys:[redisPrefix+'site:interaction:'+hash],arguments:['60']}));
+  }catch{return res.status(503).json({ok:false,error:'gold_redis_unavailable'})}
+  if(!Number.isSafeInteger(count)||count<1)return res.sendStatus(503);
+  if(count>100)return res.sendStatus(429);
   const origin=String(req.headers.origin||'');
   if(origin&&!/^https:\/\/light-remote\.thaiduy\.digital$/i.test(origin))return res.sendStatus(403);
   const event=String(req.body?.event||'');
@@ -131,4 +152,4 @@ export function siteAnalyticsSummary(daysBack=30){
   externalClicks:{os:top(sums.externalClickOS),architecture:top(sums.externalClickArchitecture),versions:top(sums.externalClickVersions)},
   methodology:'Server-side page response counts and download HTTP responses. GitHub clicks and OS-tab events are separate client-reported events. Counts begin only when tracking is enabled; no retroactive data, no stored raw IP addresses or unique visitor claims.'};
 }
-export function flushSiteAnalytics(){persist()}
+export async function flushSiteAnalytics(){await Promise.allSettled([...inflight])}
