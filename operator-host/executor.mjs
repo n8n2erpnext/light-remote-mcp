@@ -859,12 +859,12 @@ function recentEvents(limit = 500, deviceId = null) {
 }
 
 function routingViewForDevice(device) {
-  if (device.nodeId === NODE_ID) return { mode:'local', state:'online', draining:false, sessionCeiling:MAX_ACTIVE_SESSIONS, queuedCommands:0, inFlightCommands:0 };
+  if (!isOutboundTarget({integratedHostEnabled:INTEGRATED_HOST_ENABLED,localNodeId:NODE_ID,targetNodeId:device.nodeId})) return { mode:'local', state:'online', draining:false, sessionCeiling:MAX_ACTIVE_SESSIONS, queuedCommands:0, inFlightCommands:0 };
   try { return { mode:'outbound-leaf', ...fleet.view(device.nodeId) }; }
   catch { return { mode:'outbound-leaf', state:'offline', draining:false, sessionCeiling:null, queuedCommands:0, inFlightCommands:0, channelTtlMs:FLEET_CHANNEL_TTL_MS }; }
 }
 function policyViewForDevice(device) {
-  if (device.nodeId===NODE_ID) return null;
+  if (!isOutboundTarget({integratedHostEnabled:INTEGRATED_HOST_ENABLED,localNodeId:NODE_ID,targetNodeId:device.nodeId})) return null;
   try { return enrollments.policyView(device.deviceId); } catch { return null; }
 }
 function connectionViewForDevice(deviceId) {
@@ -913,7 +913,11 @@ function targetRoute(requestedNodeId,{accountId:requestedAccountId=ACCOUNT_ID}={
   const nodeId=String(requestedNodeId || NODE_ID).trim(), accountId=String(requestedAccountId||ACCOUNT_ID).trim();
   if (!/^[A-Za-z0-9._:-]{1,128}$/.test(nodeId)) throw new DeviceError('invalid_node_id');
   if (!/^[A-Za-z0-9._:-]{1,128}$/.test(accountId)) throw new DeviceError('invalid_account_id');
-  if (nodeId===NODE_ID) { if(accountId!==ACCOUNT_ID) throw new DeviceError('target_node_account_mismatch',403); requireDeviceConnection(DEVICE_ID); return { accountId, deviceId:DEVICE_ID, nodeId:NODE_ID, mode:'local', sessionCeiling:MAX_ACTIVE_SESSIONS, capabilities:hostEffectiveCapabilities(), state:'online', draining:false }; }
+  // Keep targetRoute aligned with startJob's isOutboundTarget(). In a
+  // separated Operator, even a numerically identical nodeId MUST pass
+  // Fleet routing and enrollment-approved leaf capabilities. No Main-policy
+  // substitution is permitted for outbound commands.
+  if (!isOutboundTarget({integratedHostEnabled:INTEGRATED_HOST_ENABLED,localNodeId:NODE_ID,targetNodeId:nodeId})) { if(accountId!==ACCOUNT_ID) throw new DeviceError('target_node_account_mismatch',403); requireDeviceConnection(DEVICE_ID); return { accountId, deviceId:DEVICE_ID, nodeId:NODE_ID, mode:'local', sessionCeiling:MAX_ACTIVE_SESSIONS, capabilities:hostEffectiveCapabilities(), state:'online', draining:false }; }
   const device=devices.getByNodeId(nodeId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
   if (device.accountId!==accountId) throw new DeviceError('target_node_account_mismatch',403);
   if (device.state!=='online') throw new DeviceError('target_node_offline',409);
