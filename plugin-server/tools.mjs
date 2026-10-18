@@ -112,7 +112,7 @@ export async function callLegacyMultiplexedTool(identity,name,input={}){
 export function registerPluginTools(server,identity){
   add(server,'light_remote_connection_helper',{
     title:'Connect Light Remote with A/B approval',
-    description:'Start here. Handles Local Wall A/B pairing and, when ready, returns/reuses the working context plus a compact tool-family menu. After the owner approves the B code, call this helper again with no A code; the server recovers the in-progress pairing for this exact account and agent. Never reuse an A code. The continuation argument remains supported for backward compatibility. Call again with helperGroup=workspace|files|shell|transfer|desktop only when detailed syntax for that family is needed. OAuth account login alone never authorizes a device.',
+    description:'Start here. Handles Local Wall A/B pairing and, when ready, returns/reuses the working context plus a compact tool-family menu. Call again with helperGroup=workspace|files|shell|transfer|desktop only when detailed syntax for that family is needed. OAuth account login alone never authorizes a device.',
     inputSchema:{aCode:z.string().regex(/^[A-Za-z2-9]{4}-?[A-Za-z2-9]{4}$/).optional(),continuation:z.string().min(20).max(8192).optional(),label:z.string().min(1).max(120).optional(),helperGroup:z.enum(['workspace','files','shell','transfer','desktop']).optional()},
     securitySchemes:security(['remote:read']),annotations:annotations(false,false,false,false)
   },guarded(identity,['remote:read'],async(a,x)=>{
@@ -399,8 +399,8 @@ export function registerPluginTools(server,identity){
   add(server,'light_remote_scp_upload_chunk',{
     title:'Write an upload chunk',
     description:'Stage one indexed data chunk for an existing Light SCP upload. This changes transfer state but does not commit the destination file.',
-    inputSchema:{sessionId:id,operationId:opId,transferId:z.string().min(1).max(160),index:z.number().int().min(0),data:z.string().max(6_000_000),sha256:z.string().regex(/^[a-f0-9]{64}$/i).optional()},securitySchemes:security(['remote:write']),annotations:annotations(false,false,false,false)
-  },guarded(identity,['remote:write'],(a,x)=>scpOperation(a,x,'upload-chunk',['transferId','index','data','sha256'])));
+    inputSchema:{sessionId:id,operationId:opId,transferId:z.string().min(1).max(160),index:z.number().int().min(0),data:z.string().max(6_000_000)},securitySchemes:security(['remote:write']),annotations:annotations(false,false,false,false)
+  },guarded(identity,['remote:write'],(a,x)=>scpOperation(a,x,'upload-chunk',['transferId','index','data'])));
 
   add(server,'light_remote_scp_upload_commit',{
     title:'Commit a file upload',
@@ -504,23 +504,63 @@ export function registerPluginTools(server,identity){
     inputSchema:{sessionId:id,semanticSessionId:z.string().min(1).max(160),afterSeq:z.number().int().min(0).optional(),limit:z.number().int().min(1).max(1000).optional(),includeSnapshot:z.boolean().optional()},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
   },guarded(identity,['remote:read'],(a,x)=>a.desktopLiveRead(x.sessionId,x)));
 
-  add(server,'light_remote_desktop_input',{
-    title:'Perform a semantic desktop action',
-    description:'Perform one bounded semantic UI action on an explicitly authorized remote desktop. The action can cause external or irreversible effects in the active application.',
-    inputSchema:{sessionId:id,operationId:opId,semanticSessionId:z.string().min(1).max(160),nodeId:z.string().min(1).max(512),action:z.string().min(1).max(80),value:z.any().optional(),waitMs:z.number().int().min(0).max(7000).optional()},securitySchemes:security(['remote:execute']),annotations:annotations(false,true,true,false)
-  },guarded(identity,['remote:execute'],(a,x)=>desktopOperation(a,x,'act',['semanticSessionId','nodeId','action','value'])));
-
-  add(server,'light_remote_desktop_input_batch',{
-    title:'Send bounded desktop input',
-    description:'Send one bounded batch of pointer, keyboard, wheel, drag, text, or key events to an authorized remote desktop. Input can cause external or irreversible effects.',
-    inputSchema:{sessionId:id,operationId:opId,events:z.array(jsonObject).min(1).max(128),displayTopologyId:z.string().max(160).optional(),waitMs:z.number().int().min(0).max(7000).optional()},securitySchemes:security(['remote:execute']),annotations:annotations(false,true,true,false)
-  },guarded(identity,['remote:execute'],(a,x)=>desktopOperation(a,x,'input',['events','displayTopologyId'])));
-
-  add(server,'light_remote_desktop_action_await',{
-    title:'Perform a desktop action and await state',
-    description:'Perform one bounded desktop action and wait for a declared UI state condition. The action can cause external or irreversible effects in the active application.',
-    inputSchema:{sessionId:id,operationId:opId,semanticSessionId:z.string().max(160).optional(),nodeId:z.string().max(512).optional(),action:z.string().max(80).optional(),value:z.any().optional(),events:z.array(jsonObject).max(128).optional(),displayTopologyId:z.string().max(160).optional(),afterSeq:z.number().int().min(0).optional(),settleMs:z.number().int().min(0).max(15000).optional(),await:z.object({foregroundTitleContains:z.string().max(512).optional(),foregroundTitleEquals:z.string().max(512).optional(),focusedNameContains:z.string().max(512).optional(),timeoutMs:z.number().int().min(50).max(15000).optional()}),waitMs:z.number().int().min(0).max(7000).optional()},securitySchemes:security(['remote:execute']),annotations:annotations(false,true,true,false)
-  },guarded(identity,['remote:execute'],(a,x)=>desktopOperation(a,x,'run',['semanticSessionId','nodeId','action','value','events','displayTopologyId','afterSeq','settleMs','await'])));
+  // Model-visible desktop actions are individually registered and typed.
+  // Each call performs one chosen mutation, plus optional bounded UI observation.
+  const uiAwait=z.object({
+    foregroundTitleContains:z.string().min(1).max(512).optional(),
+    foregroundTitleEquals:z.string().min(1).max(512).optional(),
+    focusedNameContains:z.string().min(1).max(512).optional(),
+    timeoutMs:z.number().int().min(50).max(15000).optional()
+  }).refine(spec=>Boolean(spec.foregroundTitleContains||spec.foregroundTitleEquals||spec.focusedNameContains),{message:'Specify a UI condition'});
+  const waitFields={waitMs:z.number().int().min(0).max(7000).optional(),await:uiAwait.optional()};
+  const semanticFields={sessionId:id,operationId:opId,semanticSessionId:z.string().min(1).max(160),nodeId:z.string().min(1).max(512),...waitFields};
+  const semanticActions=[
+    ['invoke','Press a named semantic UI control.'],
+    ['click','Click a named semantic UI control.'],
+    ['focus','Focus a named semantic UI element.'],
+    ['value','Set the text value of a named semantic UI element.'],
+    ['toggle','Toggle a named semantic checkbox or switch (Windows UIA).'],
+    ['select','Select a named semantic UI option (Windows UIA).'],
+    ['expand','Expand a named semantic UI node (Windows UIA).'],
+    ['collapse','Collapse a named semantic UI node (Windows UIA).']
+  ];
+  for(const [action,description] of semanticActions){
+    add(server,'light_remote_semantic_'+action,{
+      title:'Desktop semantic '+action,
+      description:description+' This tool performs only this named operation. Optional await observes one declared UI state after the action. Device-local approval remains mandatory.',
+      inputSchema:{...semanticFields,...(action==='value'?{value:z.string().max(4096)}:{})},
+      securitySchemes:security(['remote:execute']),annotations:annotations(false,true,true,false)
+    },guarded(identity,['remote:execute'],(a,x)=>{
+      return desktopOperation(a,{...x,action},x.await?'run':'act',['semanticSessionId','nodeId','action','value','await']);
+    }));
+  }
+  const coord=z.number().finite().min(-32768).max(32768);
+  const screen=z.number().int().min(0).max(31).optional();
+  const button=z.enum(['left','right','middle']);
+  const physicalFields={sessionId:id,operationId:opId,displayTopologyId:z.string().min(1).max(160).optional(),...waitFields};
+  const physicalActions=[
+    ['move','move','Move the pointer to one screen coordinate.',{x:coord,y:coord,screen,steps:z.number().int().min(1).max(32).optional(),durationMs:z.number().int().min(0).max(500).optional()}],
+    ['click','click','Click the OS pointer once or a bounded number of times, optionally at given coordinates.',{x:coord.optional(),y:coord.optional(),screen,button:button.optional(),count:z.number().int().min(1).max(3).optional()}],
+    ['scroll','wheel','Scroll the pointer wheel by a bounded signed delta.',{delta:z.number().int().min(-1200).max(1200),x:coord.optional(),y:coord.optional(),screen}],
+    ['drag','drag','Drag the OS pointer from an explicit starting point to an ending point.',{x:coord,y:coord,toX:coord,toY:coord,screen,toScreen:screen,button:button.optional(),steps:z.number().int().min(1).max(32).optional(),durationMs:z.number().int().min(0).max(1000).optional()}],
+    ['type_text','type','Type Unicode text using the native OS keyboard input.',{text:z.string().min(1).max(4096),intervalMs:z.number().int().min(25).max(100).optional()}],
+    ['write_text','text','Write Unicode text into the focused application using native OS input.',{text:z.string().min(1).max(4096),intervalMs:z.number().int().min(0).max(100).optional()}],
+    ['press_key','key','Press one native key with explicitly enumerated modifiers.',{key:z.string().min(1).max(48),modifiers:z.array(z.enum(['CTRL','ALT','SHIFT','WIN'])).max(4).optional()}],
+    ['launch_app','app.launch','Launch one installed macOS application by bundle identifier (macOS only).',{bundleId:z.string().min(1).max(128)}]
+  ];
+  for(const [name,type,description,eventFields] of physicalActions){
+    add(server,'light_remote_desktop_'+name,{
+      title:'Desktop '+name.replaceAll('_',' '),
+      description:description+' This tool performs only this named OS operation, optionally followed by a bounded UI state observation. Device-local approval remains mandatory.',
+      inputSchema:{...physicalFields,...eventFields},
+      securitySchemes:security(['remote:execute']),annotations:annotations(false,true,true,false)
+    },guarded(identity,['remote:execute'],(a,x)=>{
+      if(['click','scroll'].includes(name)&&((x.x===undefined)!==(x.y===undefined)))throw Error('desktop_coordinates_must_be_paired');
+      if(name==='scroll'&&x.delta===0)throw Error('desktop_scroll_delta_nonzero_required');
+      const event={type,...pick(x,Object.keys(eventFields))};
+      return desktopOperation(a,{...x,events:[event]},x.await?'run':'input',['events','displayTopologyId','await']);
+    }));
+  }
 
   add(server,'light_remote_job',{
     title:'Read durable job status',

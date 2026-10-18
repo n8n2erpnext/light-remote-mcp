@@ -71,6 +71,8 @@ export function renderLegalPage({active,title,description,body,origin}){
     @media(max-width:900px){.legal-shell{grid-template-columns:1fr}.legal-side{border-right:0;border-bottom:1px solid var(--line);padding:14px 18px;overflow:auto}.legal-side-inner{position:static;display:flex;gap:6px;min-width:max-content}.legal-side-title,.legal-side .split,.legal-side .product-link{display:none}.legal-side a{white-space:nowrap}.legal-main{padding:26px 16px 60px}.legal-card{padding:34px 26px}.legal-card h1{font-size:30px}}
     @media(max-width:560px){.legal-top{height:62px}.legal-top-inner{padding:0 16px}.legal-top nav a:not(:last-child){display:none}.legal-card{padding:28px 20px;border-radius:14px}.legal-card h1{font-size:28px}.legal-card h2{font-size:21px}}
   </style>
+  <link rel="stylesheet" href="/account/assets/visual-system-v4.css">
+  <script src="/account/assets/theme.js"></script>
 </head>
 <body>
   <header class="legal-top"><div class="legal-top-inner">

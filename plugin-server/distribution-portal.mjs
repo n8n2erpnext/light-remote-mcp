@@ -57,7 +57,7 @@ function safeFile(name){
 }
 
 export function registerDistributionPortal(app){
-  app.get(['/downloads','/downloads/'],(_q,res)=>res.type('html').sendFile(PORTAL_FILE));
+  app.get(['/downloads','/downloads/'],(_q,res)=>res.type('html').send(fs.readFileSync(PORTAL_FILE,'utf8')));
   app.get('/downloads/manifest.json',(_q,res)=>res.json(manifest()));
   app.get('/downloads/install.sh',(_q,res)=>{
     const remote=String(manifest().installScriptUrl||'');

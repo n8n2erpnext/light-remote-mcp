@@ -2,6 +2,9 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { callOperatorJson } from './operator-client.mjs';
 import { PUBLIC_ORIGIN } from './config.mjs';
+import { listAnnouncements, mutateAnnouncement } from './site-announcements.mjs';
+import { siteAnalyticsSummary } from './site-analytics.mjs';
+import { deviceOSSummary } from './device-os-summary.mjs';
 import { mailConfig, sendLicense, sendUpgradeActivated, verifyMail } from './mailer.mjs';
 import { googleAuthStatus, saveGoogleAuthConfig } from './google-auth.mjs';
 import { paddleBilling, paddleBillingStatus } from './paddle-billing.mjs';
@@ -20,13 +23,29 @@ function sendAdmin(res){return res.type('html').send(fs.readFileSync(adminFile('
 function validEmail(value){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value||'').trim());}
 
 export function registerAdminPortal(app){
-  app.get(['/admin','/admin/'],async(req,res)=>{const admin=await requireAdmin(req,res,{html:true});if(!admin)return;return sendAdmin(res);});
   app.all('/admin/api',async(req,res)=>{
     const admin=await requireAdmin(req,res);if(!admin)return;
     const action=String(req.query?.action||'').trim();
-    const mutations=new Set(['set-plan','set-group','set-status','create-group','rename-group','delete-group','cancel-pending','issue-license','revoke-license','resolve-upgrade','mail-test','google-config','paddle-refund']);
+    const mutations=new Set(['announcement-create','announcement-update','announcement-delete','set-plan','set-group','set-status','create-group','rename-group','delete-group','cancel-pending','issue-license','revoke-license','resolve-upgrade','mail-test','google-config','paddle-refund']);
     if(mutations.has(action)&&!sameOrigin(req))return res.status(403).json({ok:false,error:'cross_site_request_denied'});
     try{
+      if(action==='announcements'&&req.method==='GET')return res.json({ok:true,announcements:listAnnouncements()});
+      if(action==='announcement-create'&&req.method==='POST')return res.status(201).json({ok:true,announcement:mutateAnnouncement('POST',null,req.body)});
+      if(action==='announcement-update'&&req.method==='POST')return res.json({ok:true,announcement:mutateAnnouncement('PUT',String(req.body?.id||''),req.body)});
+      if(action==='announcement-delete'&&req.method==='POST')return res.json({ok:true,announcement:mutateAnnouncement('DELETE',String(req.body?.id||''))});
+      if(action==='site-analytics'&&req.method==='GET')return res.json(siteAnalyticsSummary(req.query?.days||30));
+      if(action==='device-os-summary'&&req.method==='GET')return res.json(deviceOSSummary(await callOperatorJson('GET','/v1/admin/accounts')));
+      if(action==='accounts-paged'&&req.method==='GET'){
+        // Pagination/filtering at authenticated web boundary; operator currently exposes snapshot list.
+        const upstream=await callOperatorJson('GET','/v1/admin/accounts');
+        const q=String(req.query?.q||'').trim().toLowerCase().slice(0,100);
+        const group=String(req.query?.group||'').slice(0,100);
+        const size=[10,20,30,50].includes(Number(req.query?.size))?Number(req.query.size):20;
+        const page=Math.max(1,Math.min(10000,Math.trunc(Number(req.query?.page)||1)));
+        const rows=(upstream.accounts||[]).filter(x=>(!q||[x.account?.email,x.account?.accountId].some(v=>String(v||'').toLowerCase().includes(q)))&&(!group||x.account?.groupId===group));
+        const total=rows.length,totalPages=Math.max(1,Math.ceil(total/size)),current=Math.min(page,totalPages);
+        return res.json({ok:true,accounts:rows.slice((current-1)*size,current*size),total,page:current,size,totalPages,filter:{q,group}});
+      }
       if(action==='overview'&&req.method==='GET')return res.json(await callOperatorJson('GET','/v1/admin/overview'));
       if(action==='accounts'&&req.method==='GET')return res.json(await callOperatorJson('GET','/v1/admin/accounts'));
       if(action==='groups'&&req.method==='GET')return res.json(await callOperatorJson('GET','/v1/admin/groups'));
@@ -90,5 +109,13 @@ export function registerAdminPortal(app){
       }
       return res.status(400).json({ok:false,error:'unknown_admin_action'});
     }catch(error){return res.status(Number(error?.status)||500).json({ok:false,error:error?.payload?.error||error?.message||'admin_unavailable'});}
+  });
+  // Register /admin/api before /admin/:view. Otherwise GET /admin/api
+  // is swallowed as an HTML page and JSON consumers crash on <!doctype.
+  const adminViews=new Set(['overview','accounts','pending','upgrades','billing','licenses','analytics','announcements','system']);
+  app.get(['/admin','/admin/','/admin/:view'],async(req,res)=>{
+    if(req.params.view&&!adminViews.has(req.params.view))return res.sendStatus(404);
+    const admin=await requireAdmin(req,res,{html:true});if(!admin)return;
+    return sendAdmin(res);
   });
 }
