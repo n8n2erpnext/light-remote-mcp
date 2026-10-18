@@ -3,10 +3,35 @@ import {GoldRegistryPersistence} from '../../lib/gold-registry-persistence.mjs';
 import {PaddleBilling} from '../../plugin-server/paddle-billing.mjs';
 import {initializeGoldGoogleAuth,saveGoogleAuthConfig,googleAuthStatus,initializeGoogleRedis,beginGoogleAuth} from '../../plugin-server/google-auth.mjs';
 
-const state=new Map();
+const state=new Map(),paddleEvents=new Map(),paddleSubscriptions=new Map(),paddleRefunds=new Map();
 let googleRow=null;
 const pool={async connect(){return {query:this.query.bind(this),release(){}}},async query(sql,args=[]){
+ if(sql.startsWith('SELECT team_id,owner_account_id,created_at FROM lr_teams')||
+ sql.startsWith('SELECT team_id,account_id FROM lr_team_members')||
+ sql.startsWith('SELECT team_id,device_id FROM lr_gold_team_shared_devices')||
+ sql.startsWith('SELECT * FROM lr_gold_team_entitlements')||
+ sql.startsWith('SELECT * FROM lr_gold_team_invite_codes')||
+ sql.startsWith('SELECT * FROM lr_gold_team_notification_reads')||
+ sql.startsWith('SELECT owner_account_id,member_email,issued_ms FROM lr_gold_team_email_invite_events')||
+ sql.startsWith('SELECT * FROM lr_gold_license_keys')||
+ sql.startsWith('SELECT license_id,account_id,redeemed_ms FROM lr_gold_license_redemptions')||
+ sql.startsWith('SELECT DISTINCT ON(device_id) * FROM lr_device_connections')||
+ sql.startsWith('SELECT * FROM lr_gold_support_outbox'))return {rows:[]};
+ if(sql.startsWith('SELECT * FROM lr_gold_paddle_events'))return {rows:[...paddleEvents.values()]};
+ if(sql.startsWith('SELECT * FROM lr_gold_paddle_subscriptions'))return {rows:[...paddleSubscriptions.values()]};
+ if(sql.startsWith('SELECT * FROM lr_gold_paddle_refunds'))return {rows:[...paddleRefunds.values()]};
+ if(sql.startsWith('INSERT INTO lr_gold_paddle_events')){paddleEvents.set(args[0],{event_id:args[0],event_type:args[1],processed_ms:args[2],result:JSON.parse(args[3])});return {rows:[]};}
+ if(sql.startsWith('INSERT INTO lr_gold_paddle_subscriptions')){paddleSubscriptions.set(args[0],{subscription_id:args[0],account_id:args[1],status:args[2],event_type:args[3],updated_ms:args[4]});return {rows:[]};}
+ if(sql.startsWith('INSERT INTO lr_gold_paddle_refunds')){paddleRefunds.set(args[0],{adjustment_id:args[0],transaction_id:args[1],account_id:args[2],subscription_id:args[3],status:args[4],requested_by:args[5],reason:args[6],requested_ms:args[7],updated_ms:args[8],result:JSON.parse(args[9])});return {rows:[]};}
+ if(sql.startsWith('DELETE FROM lr_gold_paddle_events')){for(const id of [...paddleEvents.keys()])if(!args[0].includes(id))paddleEvents.delete(id);return {rows:[]};}
+ if(sql.startsWith('DELETE FROM lr_gold_paddle_subscriptions')){for(const id of [...paddleSubscriptions.keys()])if(!args[0].includes(id))paddleSubscriptions.delete(id);return {rows:[]};}
+ if(sql.startsWith('DELETE FROM lr_gold_paddle_refunds')){for(const id of [...paddleRefunds.keys()])if(!args[0].includes(id))paddleRefunds.delete(id);return {rows:[]};}
+ if(sql==='BEGIN'||sql==='COMMIT'||sql==='ROLLBACK')return {rows:[]};
  if(sql.startsWith('SELECT * FROM lr_accounts')||sql.startsWith('SELECT * FROM lr_devices')||sql.startsWith('SELECT * FROM lr_gold_account_entitlements')||sql.startsWith('SELECT * FROM lr_gold_fleet_provisioning'))return {rows:[]};
+ if(sql.startsWith('DELETE FROM lr_teams')||sql.startsWith('INSERT INTO lr_teams')||sql.startsWith('DELETE FROM lr_gold_team_')||sql.startsWith('DELETE FROM lr_team_')||
+    sql.startsWith('INSERT INTO lr_gold_team_')||sql.startsWith('INSERT INTO lr_team_')||
+    sql.startsWith('DELETE FROM lr_gold_license_')||sql.startsWith('INSERT INTO lr_gold_license_'))
+   return {rows:[],rowCount:1};
  if(sql.startsWith('SELECT domain,payload FROM lr_gold_registry_documents'))
   return {rows:[...state].map(([domain,payload])=>({domain,payload:structuredClone(payload)}))};
  if(sql.startsWith('INSERT INTO lr_gold_registry_documents')){
@@ -33,7 +58,8 @@ await saveGoogleAuthConfig({
  clientSecret:'synthetic_nonproduction_secret_12345'
 });
 await store.flush();
-assert.equal(state.get('paddle_billing').state.events.synthetic_event.result.ok,true);
+assert.equal(paddleEvents.get('synthetic_event').result.ok,true);
+assert.equal(state.has('paddle_billing'),false);
 assert.equal(googleRow.client_secret,'synthetic_nonproduction_secret_12345');
 store=await GoldRegistryPersistence.open({pool});
 store.mount('paddle_billing',billing);

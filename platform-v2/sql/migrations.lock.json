@@ -101,6 +101,31 @@
       "version": 20,
       "file": "020_gold_accounts_devices_native.sql",
       "sha256": "1d492c3319c26437abf590e75a4264f03ee511c29b03699c088c9c073b865910"
+    },
+    {
+      "version": 21,
+      "file": "021_gold_team_native.sql",
+      "sha256": "22e94a9e977d4865b83bcbaab4866a9292cca08d9ca9724700087c64c2bde718"
+    },
+    {
+      "version": 22,
+      "file": "022_gold_license_native.sql",
+      "sha256": "4a7b19c5572b6b28549cb65d284809a61687799972eb17294384296b913e2040"
+    },
+    {
+      "version": 23,
+      "file": "023_gold_connections_native.sql",
+      "sha256": "c979eed27d903813b70a515eff3ad8a81ff79c3a07262d87f9227562ff213aba"
+    },
+    {
+      "version": 24,
+      "file": "024_gold_paddle_native.sql",
+      "sha256": "0324cf306a7126b6c3d70043a0762f43b6c10f37757d35d77e4ec14475e15f25"
+    },
+    {
+      "version": 25,
+      "file": "025_gold_support_native.sql",
+      "sha256": "ede7388b4ddef1ffd687699accd72827dddc79b469925735929395b783b352bf"
     }
   ]
 }

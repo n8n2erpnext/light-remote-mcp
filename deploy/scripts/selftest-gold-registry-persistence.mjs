@@ -10,7 +10,26 @@ const DEVICE_COLS=['device_id','owner_account_id','state','last_seen_at','create
 const sql=[];
 const query=async(statement,args=[])=>{
  sql.push(statement);
+ if(statement.startsWith('SELECT team_id,owner_account_id,created_at FROM lr_teams')||
+ statement.startsWith('SELECT team_id,account_id FROM lr_team_members')||
+ statement.startsWith('SELECT team_id,device_id FROM lr_gold_team_shared_devices')||
+ statement.startsWith('SELECT * FROM lr_gold_team_entitlements')||
+ statement.startsWith('SELECT * FROM lr_gold_team_invite_codes')||
+ statement.startsWith('SELECT * FROM lr_gold_team_notification_reads')||
+ statement.startsWith('SELECT owner_account_id,member_email,issued_ms FROM lr_gold_team_email_invite_events')||
+ statement.startsWith('SELECT * FROM lr_gold_license_keys')||
+ statement.startsWith('SELECT license_id,account_id,redeemed_ms FROM lr_gold_license_redemptions')||
+ statement.startsWith('SELECT DISTINCT ON(device_id) * FROM lr_device_connections')||
+ statement.startsWith('SELECT * FROM lr_gold_paddle_events')||
+ statement.startsWith('SELECT * FROM lr_gold_paddle_subscriptions')||
+ statement.startsWith('SELECT * FROM lr_gold_paddle_refunds')||
+ statement.startsWith('SELECT * FROM lr_gold_support_outbox'))
+ return {rows:[]};
  if(statement==='BEGIN'||statement==='COMMIT'||statement==='ROLLBACK')return {rows:[]};
+ if((statement.startsWith('DELETE FROM lr_teams')||statement.startsWith('INSERT INTO lr_teams')||statement.startsWith('DELETE FROM lr_gold_team_')||statement.startsWith('DELETE FROM lr_team_')||
+      statement.startsWith('INSERT INTO lr_gold_team_')||statement.startsWith('INSERT INTO lr_team_')||
+      statement.startsWith('DELETE FROM lr_gold_license_')||statement.startsWith('INSERT INTO lr_gold_license_')))
+   return {rows:[],rowCount:1};
  if(statement.startsWith('SELECT domain,payload FROM lr_gold_registry_documents'))
   return {rows:[...docs].map(([domain,payload])=>({domain,payload:structuredClone(payload)}))};
  if(statement.startsWith('SELECT * FROM lr_accounts ORDER BY'))
