@@ -96,6 +96,11 @@
       "version": 19,
       "file": "019_gold_site_analytics_native.sql",
       "sha256": "cdf4368b8c387086c962cdfbccc3c7bdf89eda60c2bc1052aae26daf735dcbaf"
+    },
+    {
+      "version": 20,
+      "file": "020_gold_accounts_devices_native.sql",
+      "sha256": "1d492c3319c26437abf590e75a4264f03ee511c29b03699c088c9c073b865910"
     }
   ]
 }

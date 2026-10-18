@@ -5,7 +5,8 @@ import {initializeGoldGoogleAuth,saveGoogleAuthConfig,googleAuthStatus,initializ
 
 const state=new Map();
 let googleRow=null;
-const pool={async query(sql,args=[]){
+const pool={async connect(){return {query:this.query.bind(this),release(){}}},async query(sql,args=[]){
+ if(sql.startsWith('SELECT * FROM lr_accounts')||sql.startsWith('SELECT * FROM lr_devices')||sql.startsWith('SELECT * FROM lr_gold_account_entitlements')||sql.startsWith('SELECT * FROM lr_gold_fleet_provisioning'))return {rows:[]};
  if(sql.startsWith('SELECT domain,payload FROM lr_gold_registry_documents'))
   return {rows:[...state].map(([domain,payload])=>({domain,payload:structuredClone(payload)}))};
  if(sql.startsWith('INSERT INTO lr_gold_registry_documents')){
