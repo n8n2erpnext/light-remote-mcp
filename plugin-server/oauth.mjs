@@ -1,17 +1,34 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import { SignJWT, jwtVerify } from 'jose';
-import { MCP_RESOURCE, OAUTH_LEGACY_CLIENTS_FILE, OAUTH_SECRET_FILE, PUBLIC_ORIGIN } from './config.mjs';
+import { MCP_RESOURCE, OAUTH_SECRET_FILE, PUBLIC_ORIGIN } from './config.mjs';
 import { callOperatorJson } from './operator-client.mjs';
 import { WEB_FONT_FACE_CSS, WEB_UI_FONT } from '../lib/web-typography.mjs';
 import { googleAuthStatus } from './google-auth.mjs';
 
 const ACCESS_TTL=3600,CODE_TTL=120,REFRESH_TTL=30*24*3600;
 const ALLOWED_SCOPES=new Set(['remote:read','remote:write','remote:execute','remote:terminal','offline_access','openid','email']);
-const usedCodes=new Map(),usedRefresh=new Map(),usedResume=new Map(),failures=new Map();
+let oauthRedis=null,oauthRedisPrefix='';
+export function initializeOAuthRedis(client,prefix){
+ if(!client||typeof client.set!=='function'||!/^lr:gold:[a-z0-9_-]+:$/.test(prefix||''))
+  throw Error('gold_oauth_redis_required');
+ oauthRedis=client;oauthRedisPrefix=prefix+'oauth:';
+}
+function replayKey(kind,jti){
+ if(!oauthRedis)throw Error('gold_oauth_redis_not_initialized');
+ return oauthRedisPrefix+kind+':'+crypto.createHash('sha256').update(String(jti)).digest('hex');
+}
+async function alreadyConsumed(kind,jti){
+ return (await oauthRedis.exists(replayKey(kind,jti)))!==0;
+}
+async function consumeOnce(kind,jti,expiresAt){
+ const ttl=Number(expiresAt)-now();
+ if(!Number.isSafeInteger(ttl)||ttl<1||ttl>30*86400)throw Error('oauth_replay_expiry_invalid');
+ return (await oauthRedis.set(replayKey(kind,jti),'1',{EX:ttl,NX:true}))==='OK';
+}
 const ACCOUNT_COOKIE='__Host-light_remote_account';
 const now=()=>Math.floor(Date.now()/1000);
-function prune(map){const t=now();for(const [k,v] of map)if(Number(v)<=t)map.delete(k);}
+
 function parseScopes(raw=''){const v=[...new Set(String(raw).split(/\s+/).map(x=>x.trim()).filter(Boolean))];if(!v.length||v.some(x=>!ALLOWED_SCOPES.has(x)))throw new Error('invalid_scope');return v;}
 function validRedirect(value){try{const u=new URL(String(value||''));return u.protocol==='https:'||(u.protocol==='http:'&&['127.0.0.1','localhost','::1'].includes(u.hostname));}catch{return false;}}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -19,29 +36,24 @@ function secret(){if(process.env.LIGHT_REMOTE_PLUGIN_OAUTH_SECRET)return Buffer.
 async function mint(type,claims,ttl,audience=MCP_RESOURCE){return new SignJWT({...claims,token_use:type}).setProtectedHeader({alg:'HS256',typ:'JWT'}).setIssuer(PUBLIC_ORIGIN).setAudience(audience).setIssuedAt().setExpirationTime(now()+ttl).setJti(crypto.randomUUID()).sign(secret());}
 async function verify(token,type,audience=MCP_RESOURCE){const {payload}=await jwtVerify(String(token||''),secret(),{issuer:PUBLIC_ORIGIN,audience});if(payload.token_use!==type)throw new Error('invalid_token_use');return payload;}
 async function mintClient(claims){return new SignJWT({...claims,token_use:'client'}).setProtectedHeader({alg:'HS256',typ:'JWT'}).setIssuer(PUBLIC_ORIGIN).setAudience(`${PUBLIC_ORIGIN}/oauth/register`).setIssuedAt().setJti(crypto.randomUUID()).sign(secret());}
-function legacyClientFromId(id){
-  try{
-    if(!fs.existsSync(OAUTH_LEGACY_CLIENTS_FILE))return null;
-    const registry=JSON.parse(fs.readFileSync(OAUTH_LEGACY_CLIENTS_FILE,'utf8'));
-    if(registry?.schemaVersion!==1||!Array.isArray(registry.clients))return null;
-    const raw=String(id||''),digest=crypto.createHash('sha256').update(raw).digest('hex');
-    const row=registry.clients.find(item=>item?.disabled!==true&&String(item?.clientIdSha256||'')===digest);
-    if(!row)return null;
-    const parts=raw.split('.');if(parts.length!==3)return null;
-    const payload=JSON.parse(Buffer.from(parts[1],'base64url').toString('utf8'));
-    const redirects=Array.isArray(row.redirect_uris)?row.redirect_uris.map(String):[];
-    if(payload?.token_use!=='client'||payload?.iss!==PUBLIC_ORIGIN||payload?.aud!==`${PUBLIC_ORIGIN}/oauth/register`)return null;
-    if(!redirects.length||redirects.some(x=>!validRedirect(x))||!Array.isArray(payload.redirect_uris)||payload.redirect_uris.length!==redirects.length)return null;
-    if(payload.redirect_uris.some((value,index)=>String(value)!==redirects[index]))return null;
-    if(row.client_name&&String(payload.client_name||'')!==String(row.client_name))return null;
-    return {...payload,redirect_uris:redirects,legacyClient:true};
-  }catch{return null;}
-}
-export async function clientFromId(id){try{const {payload}=await jwtVerify(String(id||''),secret(),{issuer:PUBLIC_ORIGIN,audience:`${PUBLIC_ORIGIN}/oauth/register`});return payload.token_use==='client'&&Array.isArray(payload.redirect_uris)?payload:null;}catch{return legacyClientFromId(id);}}
+export async function clientFromId(id){try{const {payload}=await jwtVerify(String(id||''),secret(),{issuer:PUBLIC_ORIGIN,audience:`${PUBLIC_ORIGIN}/oauth/register`});return payload.token_use==='client'&&Array.isArray(payload.redirect_uris)?payload:null;}catch{return null;}}
 const pkce=v=>crypto.createHash('sha256').update(String(v||'')).digest('base64url');
 const requesterKey=req=>String(req.ip||req.socket?.remoteAddress||'unknown');
-function tooMany(req){const k=requesterKey(req),t=Date.now(),rows=(failures.get(k)||[]).filter(x=>t-x<600000);failures.set(k,rows);return rows.length>=12;}
-function recordFailure(req){const k=requesterKey(req),rows=failures.get(k)||[];rows.push(Date.now());failures.set(k,rows.slice(-20));}
+const failureKey=req=>{
+ if(!oauthRedis)throw Error('gold_oauth_redis_not_initialized');
+ return oauthRedisPrefix+'failure:'+crypto.createHash('sha256').update(requesterKey(req)).digest('hex');
+};
+async function tooMany(req){
+ const count=Number(await oauthRedis.get(failureKey(req))||0);
+ if(!Number.isSafeInteger(count)||count<0)throw Error('oauth_rate_backend_invalid');
+ return count>=12;
+}
+async function recordFailure(req){
+ const count=Number(await oauthRedis.eval(
+  "local count=redis.call('INCR',KEYS[1]);if count==1 then redis.call('EXPIRE',KEYS[1],ARGV[1]) end;return count",
+  {keys:[failureKey(req)],arguments:['600']}));
+ if(!Number.isSafeInteger(count)||count<1)throw Error('oauth_rate_backend_invalid');
+}
 function parseCookies(header=''){const out={};for(const part of String(header).split(';')){const i=part.indexOf('=');if(i<1)continue;out[part.slice(0,i).trim()]=decodeURIComponent(part.slice(i+1).trim());}return out;}
 function accountSessionToken(req){return String(parseCookies(req.headers?.cookie||'')[ACCOUNT_COOKIE]||'');}
 function authHtml(p,msg='',{resumePath='',google=false}={}){
@@ -58,7 +70,7 @@ async function validateAuthorize(src){const clientId=String(src.client_id||''),c
 function authorizeForm(p){return {client_id:p.clientId,redirect_uri:p.redirect,response_type:'code',code_challenge:p.challenge,code_challenge_method:'S256',resource:p.resource,scope:p.scope,state:p.state};}
 async function mintOAuthResume(p){return mint('oauth-resume',{client_id:p.clientId,redirect_uri:p.redirect,response_type:'code',code_challenge:p.challenge,code_challenge_method:'S256',resource:p.resource,scope:p.scope,state:p.state},24*3600,`${PUBLIC_ORIGIN}/oauth/resume`);}
 async function oauthResumePath(p){return `/oauth/resume?token=${encodeURIComponent(await mintOAuthResume(p))}`;}
-async function verifyOAuthResume(token){prune(usedResume);const claims=await verify(String(token||''),'oauth-resume',`${PUBLIC_ORIGIN}/oauth/resume`);if(!claims.jti||usedResume.has(claims.jti))throw new Error('oauth_resume_used');const p=await validateAuthorize(claims);return {p,jti:String(claims.jti),exp:Number(claims.exp)};}
+async function verifyOAuthResume(token){const claims=await verify(String(token||''),'oauth-resume',`${PUBLIC_ORIGIN}/oauth/resume`);if(!claims.jti||await alreadyConsumed('resume',claims.jti))throw new Error('oauth_resume_used');const p=await validateAuthorize(claims);return {p,jti:String(claims.jti),exp:Number(claims.exp)};}
 async function authorizationRedirect(p,account){const code=await mint('code',{sub:account.accountId,email:account.email,client_id:p.clientId,redirect_uri:p.redirect,code_challenge:p.challenge,resource:MCP_RESOURCE,scope:p.scope},CODE_TTL);const out=new URL(p.redirect);out.searchParams.set('code',code);if(p.state)out.searchParams.set('state',p.state);out.searchParams.set('iss',PUBLIC_ORIGIN);return out.toString();}
 export function oauthMetadata(){return {issuer:PUBLIC_ORIGIN,authorization_endpoint:`${PUBLIC_ORIGIN}/oauth/authorize`,token_endpoint:`${PUBLIC_ORIGIN}/oauth/token`,registration_endpoint:`${PUBLIC_ORIGIN}/oauth/register`,userinfo_endpoint:`${PUBLIC_ORIGIN}/userinfo`,scopes_supported:[...ALLOWED_SCOPES],response_types_supported:['code'],grant_types_supported:['authorization_code','refresh_token'],token_endpoint_auth_methods_supported:['none'],code_challenge_methods_supported:['S256'],authorization_response_iss_parameter_supported:true,client_id_metadata_document_supported:false};}
 export function protectedResourceMetadata(){return {resource:MCP_RESOURCE,authorization_servers:[PUBLIC_ORIGIN],scopes_supported:[...ALLOWED_SCOPES].filter(x=>x!=='offline_access'),resource_documentation:`${PUBLIC_ORIGIN}/support`};}
@@ -103,7 +115,7 @@ export function registerOAuth(app){
       if(!session)return res.redirect(303,'/account/login?next='+encodeURIComponent(selfPath));
       const current=await callOperatorJson('GET','/v1/accounts/me',null,{'x-light-account-session':session});
       const target=await authorizationRedirect(resume.p,current.account);
-      usedResume.set(resume.jti,resume.exp);
+      if(!await consumeOnce('resume',resume.jti,resume.exp))throw Error('oauth_resume_used');
       oauthAudit('oauth_resume',{status:'success'});
       return res.redirect(303,target);
     }catch(error){
@@ -120,7 +132,7 @@ export function registerOAuth(app){
       oauthAudit('oauth_authorize_post',{status:'validation_error',error:String(error?.message||'invalid_request').slice(0,80)});
       return res.status(400).type('text').send(error.message);
     }
-    if(tooMany(req)){
+    if(await tooMany(req)){
       oauthAudit('oauth_authorize_post',{status:'rate_limited'});
       return res.status(429).type('text').send('Too many failed authorization attempts.');
     }
@@ -128,7 +140,7 @@ export function registerOAuth(app){
     try{
       verified=await callOperatorJson('POST','/v1/plugin/auth/verify',{email:req.body.email,password:req.body.password});
     }catch(error){
-      recordFailure(req);
+      await recordFailure(req);
       setAuthCsp(res);
       oauthAudit('oauth_authorize_post',{status:'credentials_error',error:String(error?.payload?.error||error?.message||'invalid_account_credentials').slice(0,80)});
       const resumePath=await oauthResumePath(p),google=googleAuthStatus().configured;
@@ -147,7 +159,6 @@ export function registerOAuth(app){
   app.post('/oauth/token',async(req,res)=>{
     res.set('Cache-Control','no-store');
     res.set('Pragma','no-cache');
-    prune(usedCodes);prune(usedRefresh);
     const clientId=String(req.body.client_id||''),resource=String(req.body.resource||''),grantType=String(req.body.grant_type||'');
     if(!await clientFromId(clientId)){
       oauthAudit('oauth_token',{status:'invalid_client',grant_type:grantType||'unknown'});
@@ -160,16 +171,16 @@ export function registerOAuth(app){
     try{
       if(grantType==='authorization_code'){
         const code=await verify(req.body.code,'code');
-        if(code.client_id!==clientId||code.redirect_uri!==String(req.body.redirect_uri||'')||code.resource!==resource||pkce(req.body.code_verifier)!==code.code_challenge||usedCodes.has(code.jti))throw new Error('authorization_code_mismatch');
-        usedCodes.set(code.jti,Number(code.exp));
+        if(code.client_id!==clientId||code.redirect_uri!==String(req.body.redirect_uri||'')||code.resource!==resource||pkce(req.body.code_verifier)!==code.code_challenge)throw new Error('authorization_code_mismatch');
+        if(!await consumeOnce('authorization_code',code.jti,code.exp))throw Error('authorization_code_used');
         const common={sub:code.sub,email:code.email,client_id:clientId,resource,scope:code.scope};
         oauthAudit('oauth_token',{status:'success',grant_type:'authorization_code'});
         return res.json({access_token:await mint('access',common,ACCESS_TTL),token_type:'Bearer',expires_in:ACCESS_TTL,refresh_token:await mint('refresh',common,REFRESH_TTL),scope:code.scope,resource});
       }
       if(grantType==='refresh_token'){
         const prior=await verify(req.body.refresh_token,'refresh');
-        if(prior.client_id!==clientId||prior.resource!==resource||!prior.jti||usedRefresh.has(prior.jti))throw new Error('refresh_token_mismatch');
-        usedRefresh.set(prior.jti,Number(prior.exp));
+        if(prior.client_id!==clientId||prior.resource!==resource||!prior.jti)throw new Error('refresh_token_mismatch');
+        if(!await consumeOnce('refresh',prior.jti,prior.exp))throw Error('refresh_token_used');
         const common={sub:prior.sub,email:prior.email,client_id:clientId,resource,scope:prior.scope};
         oauthAudit('oauth_token',{status:'success',grant_type:'refresh_token'});
         return res.json({access_token:await mint('access',common,ACCESS_TTL),token_type:'Bearer',expires_in:ACCESS_TTL,refresh_token:await mint('refresh',common,REFRESH_TTL),scope:prior.scope,resource});

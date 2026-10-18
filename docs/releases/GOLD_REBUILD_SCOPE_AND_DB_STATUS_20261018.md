@@ -26,3 +26,14 @@ Branch: `feature/light-remote-gold-rebuild-20261018`. Gold development only. Pro
 
 ## Only remaining goal
 Complete canonical business storage replacement **in existing Operator/Plugin** (no parallel API), provision independently authorized Gold PG17/Redis8, prove real full-app CRUD + restart durability + A/B/Job/Fleet flows. Plain JSON for HTTP payloads/config/logs is not an application database.
+
+## Next focused implementation checkpoint — same day (source-only)
+
+- SQL 015 now defines `lr_gold_registry_documents` in **PostgreSQL**. Each domain payload is stored as PostgreSQL JSONB, not a filesystem JSON database; no production state is imported.
+- Canonical Operator now mounts existing Account/Auth, Device, Enrollment, Connection, A/B grants, Agent Clients, Usage, License and Pro Team registries directly against this PostgreSQL table. Original business methods are retained, initialized with `stateFile:null`. No JSON database file is opened for these mounted registries.
+- The existing Operator HTTP response helper waits for queued SQL commits before acknowledging success; snapshot writes fail closed. A single-writer PostgreSQL advisory lock prevents a second Gold Operator from using this snapshot-only path concurrently.
+- Canonical Plugin Support Outbox now loads/saves its business state in the same PostgreSQL registry table; its Express response boundary flushes mutations.
+- OAuth code/refresh/resume one-time replay state and login-failure throttling now use authenticated atomic Redis keys instead of process-local Maps; legacy client-JSON lookup is no longer called.
+- Targeted synthetic registry persistence/restart test PASS; 15/15 migration hashes and source syntax PASS. **This is not a real PostgreSQL write/read test and does not authorize any release.**
+- **Still open:** Paddle billing JSON writer (edit blocked by safety tool); Google OAuth configuration/state; account recovery, remaining site/admin service paths, Session/Job/Fleet Redis+PG durability, device-local business storage and remaining canonical writers.
+- **Deployment blocked:** VPS-ARM Docker `target_node_capability_missing` through the declared Light Remote capability. No Docker bypass and no alternate transport used. Gold PostgreSQL/Redis independent stack not deployed; no full API end-to-end tested.

@@ -4,7 +4,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { hostHeaderValidation } from '@modelcontextprotocol/sdk/server/middleware/hostHeaderValidation.js';
 import { PUBLIC_ALLOWED_HOSTS, PUBLIC_HOST, PUBLIC_ORIGIN, PUBLIC_PORT, OPENAI_CHALLENGE_FILE, VERSION, MCP_SURFACE_VERSION } from './config.mjs';
-import { authenticateAccess, registerOAuth } from './oauth.mjs';
+import { authenticateAccess, registerOAuth, initializeOAuthRedis } from './oauth.mjs';
 import { registerPublicDeviceRoutes, prunePublicRateState } from './device-public.mjs';
 import { registerAccountPortal } from './account-portal.mjs';
 import { registerDistributionPortal } from './distribution-portal.mjs';
@@ -16,7 +16,8 @@ import { registerWebAssets } from './web-assets.mjs';
 import { renderAiGuidePage, renderLlmsIndex } from './ai-guide-page.mjs';
 import { LEGAL_PAGES, renderLegalPage } from './legal-pages.mjs';
 import { renderSupportPage } from './support-page.mjs';
-import { registerSupportBackoffice } from './support-backoffice.mjs';
+import { registerSupportBackoffice, SupportOutbox } from './support-backoffice.mjs';
+import { GoldRegistryPersistence } from '../lib/gold-registry-persistence.mjs';
 import { registerPaddleWebhook } from './paddle-billing.mjs';
 import { PLUGIN_TOOL_SECURITY, registerPluginTools } from './tools.mjs';
 import { installOpenAiToolSecurityCompat } from './openai-security-compat.mjs';
@@ -25,9 +26,35 @@ import { installLegacyToolCallCompat } from './legacy-tool-call-compat.mjs';
 
 // Canonical Plugin refuses to listen without the independent Gold PG17/Redis8.
 const goldStorage=await connectGoldStorage();
+initializeOAuthRedis(goldStorage.redis,goldStorage.prefix);
 try{await initializeSiteAnnouncements(goldStorage.pool);await initializeSiteAnalytics(goldStorage.pool,goldStorage.redis,goldStorage.prefix)}
 catch(error){await goldStorage.close();throw error}
+const goldPluginStates=await GoldRegistryPersistence.open({pool:goldStorage.pool});
+const supportOutbox=goldPluginStates.mount('support_outbox',new SupportOutbox({stateFile:null}));
+await goldPluginStates.flush();
 const app=express();
+// In the existing Express API, never acknowledge a durable Support Outbox
+// mutation until its PostgreSQL snapshot is committed.
+app.use((_req,res,next)=>{
+ const end=res.end.bind(res);let ending=false;
+ res.end=function(chunk,encoding,callback){
+  if(ending)return res;
+  ending=true;
+  void goldPluginStates.flush().then(
+   ()=>end(chunk,encoding,callback),
+   error=>{
+    console.error('[gold-plugin-persistence]',error?.message||error);
+    if(res.headersSent){res.destroy(error);return}
+    res.statusCode=503;
+    res.removeHeader('Content-Length');res.removeHeader('ETag');
+    res.setHeader('Content-Type','application/json; charset=utf-8');
+    res.setHeader('Cache-Control','no-store');
+    end(JSON.stringify({ok:false,error:'gold_postgres_persistence_unavailable'}));
+   });
+  return res;
+ };
+ next();
+});
 // createMcpExpressApp() installs express.json() with Express' default ~100 KB limit.
 // Device-channel result envelopes can legitimately exceed that even after client-side compaction,
 // so install host validation explicitly and apply the product body limit exactly once.
@@ -54,7 +81,7 @@ installSiteAnalytics(app);
 registerOAuth(app);
 registerWebAssets(app);
 registerAccountPortal(app);
-registerSupportBackoffice(app);
+registerSupportBackoffice(app,{outbox:supportOutbox});
 registerDistributionPortal(app);
 registerAdminPortal(app);
 registerPublicDeviceRoutes(app);
@@ -134,6 +161,7 @@ function shutdown(signal){
   deadline.unref();
   server.close(async()=>{
     clearTimeout(deadline);
+    await goldPluginStates.flush().catch(error=>console.error('[support-outbox-flush]',error?.message));
     await flushSiteAnalytics().catch(error=>console.error('[analytics-flush]',error?.message));
     await goldStorage.close().catch(error=>console.error('[gold-db-close]',error?.message));
     process.exit(0);

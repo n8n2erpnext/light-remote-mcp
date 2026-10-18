@@ -71,6 +71,11 @@
       "version": 14,
       "file": "014_gold_site_storage.sql",
       "sha256": "f329eff54f5309b1c47d076ae5cdc0673825b2e025a195dd5f7c8f583af9cdf2"
+    },
+    {
+      "version": 15,
+      "file": "015_gold_canonical_registry_storage.sql",
+      "sha256": "df09330fcb60d317b4e84dcc15ed5181e32f5440f4b2a5795e3812b256331283"
     }
   ]
 }

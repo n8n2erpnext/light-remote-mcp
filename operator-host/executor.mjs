@@ -19,6 +19,7 @@ import { AccountRegistry, AccountError } from './account-registry.mjs';
 import { UsageRegistry } from './usage-registry.mjs';
 import { AccountNotificationRegistry, AccountNotificationError } from './account-notification-registry.mjs';
 import { connectGoldStorage } from '../lib/gold-db.mjs';
+import { GoldRegistryPersistence } from '../lib/gold-registry-persistence.mjs';
 import { ProTeamRegistry, ProTeamError } from './pro-team-registry.mjs';
 import { requestTeamMemberApproval } from './team-approval-requests.mjs';
 import { TeamPrincipalProofVerifier, verifyTeamPrincipalRequest } from '../lib/team-oauth-principal-proof.mjs';
@@ -112,6 +113,15 @@ const MIN_SUPPORTED_CLIENT_VERSION=String(process.env.OPERATOR_MIN_SUPPORTED_CLI
 const compatibilityFor=device=>clientCompatibility(VERSION,device?.agentVersion,{backwardReleases:CLIENT_BACKWARD_RELEASES,explicit:MIN_SUPPORTED_CLIENT_VERSION});
 // No canonical Operator can start without its independent Gold database services.
 const goldStorage=await connectGoldStorage();
+const goldWriterLease=await goldStorage.pool.connect();
+const singleWriter=(await goldWriterLease.query(
+  "SELECT pg_try_advisory_lock(hashtext($1)) AS acquired",
+  ['light_remote_gold:'+goldStorage.prefix+':operator'])).rows?.[0]?.acquired;
+if(singleWriter!==true){
+ goldWriterLease.release();await goldStorage.close();
+ throw Error('gold_operator_single_writer_already_active');
+}
+const goldRegistries=await GoldRegistryPersistence.open({pool:goldStorage.pool});
 const NATIVE_PROCESSES=new NativeProcessRegistry();
 const NATIVE_TERMINALS=new NativeTerminalRegistry({emit:event=>pushEvent(event)});
 const NATIVE_SEARCHES=new NativeSearchRegistry();
@@ -125,29 +135,29 @@ const ring = [];
 const sseClients = new Set();
 let ringBytes = 0;
 let sequence = 0;
-const usage = new UsageRegistry({ stateFile:USAGE_STATE_FILE });
+const usage = goldRegistries.mount('usage',new UsageRegistry({ stateFile:null }));
 const sessions = new SessionRegistry({ idleMs:SESSION_IDLE_MS, minIdleMs:SESSION_MIN_IDLE_MS, maxIdleMs:SESSION_MAX_IDLE_MS, activeWindowMs:SESSION_ACTIVE_WINDOW_MS, maxActive:MAX_ACTIVE_SESSIONS, historyMs:SESSION_HISTORY_MS, accountId:ACCOUNT_ID, deviceId:DEVICE_ID, nodeId:NODE_ID, emit:event => pushEvent(event) });
-const devices = new DeviceRegistry({ stateFile:DEVICE_STATE_FILE, presenceTtlMs:DEVICE_PRESENCE_TTL_MS, emit:event => pushEvent(event) });
-const enrollments = new EnrollmentRegistry({ stateFile:ENROLLMENT_STATE_FILE, signerFile:ENROLLMENT_SIGNER_FILE, activationBaseUrl:ENROLLMENT_ACTIVATION_URL, ttlMs:ENROLLMENT_TTL_MS, emit:event => pushEvent(event) });
+const devices = goldRegistries.mount('devices',new DeviceRegistry({ stateFile:null, presenceTtlMs:DEVICE_PRESENCE_TTL_MS, emit:event => pushEvent(event) }));
+const enrollments = goldRegistries.mount('enrollments',new EnrollmentRegistry({ stateFile:null, signerFile:ENROLLMENT_SIGNER_FILE, activationBaseUrl:ENROLLMENT_ACTIVATION_URL, ttlMs:ENROLLMENT_TTL_MS, emit:event => pushEvent(event) }));
 const fleet = new FleetRouter({ channelTtlMs:FLEET_CHANNEL_TTL_MS, commandLeaseMs:FLEET_COMMAND_LEASE_MS, maxQueuedPerNode:FLEET_MAX_QUEUED_PER_NODE, emit:event => pushEvent(event) });
-const connections = new DeviceConnectionRegistry({ stateFile:CONNECTION_STATE_FILE, emit:event => pushEvent(event) });
-const accessGrants = new DeviceAccessGrantRegistry({ stateFile:ACCESS_STATE_FILE, emit:event => pushEvent(event) });
+const connections = goldRegistries.mount('connections',new DeviceConnectionRegistry({ stateFile:null, emit:event => pushEvent(event) }));
+const accessGrants = goldRegistries.mount('access_grants',new DeviceAccessGrantRegistry({ stateFile:null, emit:event => pushEvent(event) }));
 const pairingCodes = new DevicePairingRegistry({ emit:event => pushEvent(event) });
-const agentClients = new AgentClientRegistry({ stateFile:AGENT_CLIENT_STATE_FILE, emit:event => pushEvent(event) });
-const accounts = new AccountRegistry({ stateFile:ACCOUNT_STATE_FILE, bootstrapAccountId:ACCOUNT_ID, emit:event => pushEvent(event) });
+const agentClients = goldRegistries.mount('agent_clients',new AgentClientRegistry({ stateFile:null, emit:event => pushEvent(event) }));
+const accounts = goldRegistries.mount('accounts',new AccountRegistry({ stateFile:null, bootstrapAccountId:ACCOUNT_ID, emit:event => pushEvent(event) }));
 const teamVerifyFile=String(process.env.OPERATOR_TEAM_OAUTH_VERIFY_KEY_FILE||'');
 const teamPrincipalVerifier=teamVerifyFile?new TeamPrincipalProofVerifier({publicKey:fs.readFileSync(teamVerifyFile)}):null;
 const verifyTeamPrincipal=(req,url,body)=>verifyTeamPrincipalRequest(req,url,body,teamPrincipalVerifier);
 const teamInviteSecretFile=String(process.env.OPERATOR_TEAM_INVITE_SECRET_FILE||'');
 const teamInviteSecret=teamInviteSecretFile?fs.readFileSync(teamInviteSecretFile):null;
 const accountNotifications=new AccountNotificationRegistry({pool:goldStorage.pool});
-const proTeams=new ProTeamRegistry({stateFile:PRO_TEAM_STATE_FILE,inviteKey:teamInviteSecret,
+const proTeams=goldRegistries.mount('pro_teams',new ProTeamRegistry({stateFile:null,inviteKey:teamInviteSecret,
   planFor:accountId=>operationalAccount(accountId).plan,
   accountActive:accountId=>{try{return operationalAccount(accountId).status==='active';}catch{return false;}},
   emailFor:accountId=>{try{const a=operationalAccount(accountId);return a.emailVerified===true?a.email:null;}catch{return null;}},
-  onRevoke:({memberAccountId,deviceId,reason})=>accessGrants.revokeTeamMember({accountId:memberAccountId,deviceId,reason})});
+  onRevoke:({memberAccountId,deviceId,reason})=>accessGrants.revokeTeamMember({accountId:memberAccountId,deviceId,reason})}));
 const teamSessions=null;
-const licenses = new LicenseKeyRegistry({ stateFile:LICENSE_STATE_FILE, emit:event => pushEvent(event) });
+const licenses = goldRegistries.mount('licenses',new LicenseKeyRegistry({ stateFile:null, emit:event => pushEvent(event) }));
 const fleetAuthority = new FleetAuthorityRegistry({ ttlMs:FLEET_AUTHORITY_TTL_MS, emit:event => pushEvent(event) });
 const realRemoteLive = new RealRemoteLiveRegistry();
 const hostIdentity = INTEGRATED_HOST_ENABLED ? loadOrCreateHostDeviceIdentity(HOST_DEVICE_IDENTITY_FILE) : null;
@@ -804,11 +814,25 @@ function backfillUsageIfNeeded(){
   for(const file of logFilesOldestFirst()) for(const line of readLogText(file).split('\n')){if(!line)continue;try{events.push(JSON.parse(line));}catch{}}
   const result=usage.backfill(events);usage.reconcileConnections(connections.list());return result;
 }
-const usageBootstrap=backfillUsageIfNeeded();
-if(usageBootstrap.backfilled) pushEvent({type:'usage_backfill_completed',accountId:ACCOUNT_ID,status:'ok',events:usageBootstrap.events,trackingSince:usageBootstrap.trackingSince});
+// Fresh Gold state is PostgreSQL-only. Do not replay old JSONL usage logs
+// into a new database, and never read legacy production state at startup.
+usage.reconcileConnections(connections.list());
 
-function sendJson(res, status, value, headers={}) {
+async function sendJson(res, status, value, headers={}) {
   const body = JSON.stringify(value);
+  try {
+    // Never acknowledge Account, Device, A/B, Team, Usage or License changes
+    // until their canonical PostgreSQL transaction has completed.
+    await goldRegistries.flush();
+  } catch(error) {
+    console.error('[gold-registry-commit]',error?.message||error);
+    if(!res.headersSent){
+      res.writeHead(503,{'content-type':'application/json; charset=utf-8','cache-control':'no-store'});
+      res.end(JSON.stringify({ok:false,error:'gold_postgres_persistence_unavailable'}));
+    }else res.destroy(error);
+    return;
+  }
+  if(res.headersSent)return;
   res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...headers });
   res.end(body);
 }
@@ -1048,6 +1072,7 @@ const routeDeps=()=>({
   verifiedFleetContext,verifiedLeafCapabilities,waitForJob,wakeDeviceChannelForDevice,
 });
 
+await goldRegistries.flush();
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url || '/', 'http://operator.local');
   try {
@@ -1097,6 +1122,8 @@ function shutdown(signal) {
     }
   }
   void flushDiskRecords().finally(()=>server.close(async()=>{
+    await goldRegistries.flush().catch(error=>console.error('[gold-registry-flush]',error?.message));
+    goldWriterLease.release();
     await goldStorage.close().catch(error=>console.error('[gold-db-close]',error?.message));
     process.exit(0);
   }));
