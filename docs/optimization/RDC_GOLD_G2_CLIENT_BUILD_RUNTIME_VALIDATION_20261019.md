@@ -1,0 +1,26 @@
+# Gold G2 — Client builds and runtime lifecycle validation (2026-10-19)
+
+Source HEAD: `541f063`. Gold-only branch `feature/light-remote-gold-rebuild-20261018`. **G2 IN PROGRESS; no new G2 source patch or commit in this checkpoint, no Windows/macOS build, production unchanged.**
+
+## User requirement
+Windows/macOS lifecycle/ConPTY/PTY tests require rebuilt client artifacts containing recent G2 changes. Do not infer cross-platform PASS from Linux unit mocks; inspect isolated release workflows before triggering builds. Remaining acceptance includes slow I/O, held/reconnected sessions, managed process count, PTY natural/missing-exit cleanup, and shutdown orphans.
+
+## Verified through official Gold MCP (owner-authorized Gold Linux ARM device)
+1. **Slow reader / bounded output:** A real Node process wrote exactly 6,291,456 bytes to each of stdout and stderr while the observer did not read during execution. It exited normally with code 0. Both `process_output` calls with offset 0 reported `totalBytes=6291456`, `baseOffset=2097152`, `truncatedBefore=true`; thus each 4MiB buffer was bounded and lost-prefix indicators were honest. **PASS on Linux only**; no p95/RSS result claimed.
+2. **Controlled hold/resume completion:** A managed process started, Gold `hold_session` placed the session on hold, and after resume `process_output` returned `state=finished`, exit code 0 and both expected start/end lines. **PASS for deliberate session hold**, not physical network loss or Agent restart.
+3. **Controlled hold/resume cancellation:** A separate 120-second managed process remained live over hold/resume. After resume `stop_process(force=false)` returned `stopping`; subsequent output returned `stopped` with `stopRequested=true`. **PASS for session hold/resume cancellation**. An earlier 30-second test had already finished before stop and was explicitly NOT counted as cancellation evidence.
+4. **PTY natural exit:** Started a real Bash terminal, issued a benign `printf` followed by `exit 0`, then read `state=finished`, `exitCode=0` and the expected output. Final `list_processes` and `list_terminals` reported 0 active managed processes and 0 active terminals. **PASS for natural exit**; missing-onExit on actual platform still unverified.
+5. **Prior G2 hardening:** `541f063` already contains POSIX process-group stop/escalation; Gold live testing of child-group kill and ignored SIGTERM was recorded in `RDC_GOLD_G2_PROCESS_STOP_TREE_LIFECYCLE_20261019.md`.
+
+## Confirmed blockers and unresolved cases
+- Official paired devices this turn: VPS-ARM (Linux ARM64), HOMESV (Linux x64); Gold connector has only the Gold UAT Linux ARM64 device. **No authorized Windows or macOS device currently paired** for live G2 acceptance.
+- Build workflows were discovered by filename: `.github/workflows/windows-native-client.yml`, `.github/workflows/macos-client-build.yml`, plus Windows hotfix and other release workflows. Attempts to inspect build workflow content via authorized remote read were refused twice **before dispatch**. Thus workflow side effects could not be audited; **no build triggered, no artifact published, no production change**. Preserve exact observed refusals as G1 UNRESOLVED; do not infer private filter rationale or reroute the blocked read via alternate tools.
+- Writing a new source regression fixture and patching `NativeProcessRegistry.close()` were each refused in their normal tool flow; neither was applied. Git status verified HEAD `541f063`, with only pre-existing untracked UAT fixtures.
+- Source review identified a **probable shutdown orphan risk**: `lib/native-process.mjs` lacks a registry `close()`; `device-agent/operator-agent.mjs` SIGTERM paths do not clean `NATIVE_PROCESSES`; `operator-host/executor.mjs::shutdown` stops other jobs but does not explicitly drain that registry. Existing managed POSIX children are started in detached process groups. **HYPOTHESIS**, not yet reproduced under actual Gold service restart, and not patched due tool refusal. Do not restart Agent with a long-running fixture until a safe cleanup test and rollback are ready.
+- Windows descendant process-tree cleanup, macOS PTY signal behavior, ConPTY natural exit/worker release, physical network interruption and G2 full resource/soak tests remain OPEN.
+
+## Remaining safe sequence
+1. Read and audit build workflows when authorized access succeeds; configure staging-only Windows and macOS packaging from the exact Gold source SHA, with no auto-publish, updater mutation or version promotion. Verify artifact includes `lib/native-process.mjs` and `lib/native-terminal.mjs`.
+2. Obtain explicitly owner-approved pairing to actual Windows/macOS devices and run platform-specific lifecycle tests on those client builds. Signed Windows/staging DMG only per build policy; never call a Windows cross-OS adapter mock an E2E PASS.
+3. RED→GREEN a shutdown/Agent-restart fixture for detached-process orphan risk, then implement bounded cleanup in Agent and Operator shutdown as appropriate; preserve held-session process continuity.
+4. Save and push follow-up G2 handoff when writes are admitted. Keep master sequence G2 → G3 → G4 → G5 → G6; the G5 SCP inline feature already completed is a separate owner-requested slice, not milestone completion.

@@ -1131,6 +1131,8 @@ let shuttingDown = false;
 function shutdown(signal) {
   if (shuttingDown) return;
   shuttingDown = true;
+  NATIVE_PROCESSES.close();
+  NATIVE_TERMINALS.close();
   console.log(`[operator] ${signal}, shutting down`);
   clearInterval(deviceHeartbeat);
   clearInterval(connectionReaper);

@@ -2,7 +2,7 @@ name: macOS Client Packages
 
 on:
   push:
-    branches: [main, 'codex/**', 'feature/macos-rm-v2-scp']
+    branches: [main, 'codex/**', 'feature/macos-rm-v2-scp', 'feature/light-remote-gold-rebuild-20261018']
     tags: ['v0.9.*']
     paths:
       - 'VERSION'
@@ -173,6 +173,7 @@ jobs:
           test -f "$PKG/lib/native-terminal.mjs"
           test -s "$PKG/licenses/terminal-runtime/node-pty-LICENSE"
           node deploy/scripts/terminal-runtime-smoke.mjs "$PKG"
+          node deploy/scripts/selftest-g2-runtime-shutdown-cleanup.mjs
           test -f "$PKG/device-agent/fleet-component-manager.mjs"
           test -f "$PKG/device-agent/fleet-component-supervisor.mjs"
           for lib in device-proof.mjs native-fs.mjs native-process.mjs native-search.mjs light-scp-file.mjs light-scp-registry.mjs update-contract.mjs runtime-version.mjs; do test -f "$PKG/lib/$lib"; done
