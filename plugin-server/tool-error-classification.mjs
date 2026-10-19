@@ -12,6 +12,8 @@ const KNOWN=Object.freeze({
   filesystem_path_outside_allowed_roots:['device_local_policy',false,'use_authorized_path'],
   filesystem_path_not_found:['filesystem',false,'verify_path'],
   invalid_process_id:['process',false,'verify_process_id'],
+  process_stdin_unavailable:['process',false,'inspect_process_stdin_state'],
+  process_not_running:['process',false,'inspect_process_state'],
   invalid_terminal_id:['terminal',false,'verify_terminal_id'],
   invalid_search_id:['search',false,'verify_search_id'],
   scp_transfer_not_found:['transfer',false,'verify_transfer_id'],

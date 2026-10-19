@@ -7,6 +7,8 @@ import {operationView,result} from '../../plugin-server/tools.mjs';
 for(const [code,layer,nextAction,httpStatus] of [
  ['filesystem_path_not_found','filesystem','verify_path',404],
  ['invalid_process_id','process','verify_process_id',400],
+ ['process_stdin_unavailable','process','inspect_process_stdin_state',409],
+ ['process_not_running','process','inspect_process_state',409],
  ['invalid_terminal_id','terminal','verify_terminal_id',400],
  ['invalid_search_id','search','verify_search_id',400],
  ['scp_transfer_not_found','transfer','verify_transfer_id',404],
