@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { AccountOperatorAdapter } from './operator-adapter.mjs';
 import { mintPairingContinuation, requireScopes, verifyPairingContinuation } from './oauth.mjs';
 import { redactRestrictedText, sanitizeForMcp } from './response-sanitizer.mjs';
+import { classifyPluginToolError } from './tool-error-classification.mjs';
 
 const id=z.string().regex(/^[A-Za-z0-9._:-]{1,160}$/);
 const opId=z.string().regex(/^[A-Za-z0-9._:-]{16,160}$/).optional();
@@ -26,12 +27,19 @@ function result(value){
 function operationView(row){
   return {ok:Boolean(row?.ok),data:row?.data??null,job:row?.job?{jobId:row.job.jobId,state:row.job.state||row.job.status||null,running:!row.job.finishedAt,exitCode:row.job.exitCode??null}:null};
 }
+function pluginToolErrorResult(error){
+  // The original redacted text is intentionally retained for existing MCP
+  // clients. Structured metadata is strictly bounded/allowlisted; nothing
+  // here changes a device permission or retries a denied operation.
+  return {content:[{type:'text',text:redactRestrictedText(error?.message||'Light Remote operation failed.')}],
+    structuredContent:classifyPluginToolError(error),isError:true};
+}
 function guarded(identity,scopes,fn){
   return async(input={})=>{
     const denied=requireScopes(identity,scopes);
     if(denied)return denied;
     try{return result(await fn(new AccountOperatorAdapter(identity),input));}
-    catch(error){return {content:[{type:'text',text:redactRestrictedText(error?.message||'Light Remote operation failed.')}],isError:true};}
+    catch(error){return pluginToolErrorResult(error);}
   };
 }
 function pick(source,keys){const out={};for(const key of keys)if(source[key]!==undefined)out[key]=source[key];return out;}
@@ -121,7 +129,7 @@ export async function callLegacyMultiplexedTool(identity,name,input={}){
     else if(name==='light_remote_desktop_input')value=await desktopOperation(a,x,x.operation,['semanticSessionId','nodeId','action','value','events','displayTopologyId','afterSeq','settleMs','await']);
     else return null;
     return result(value);
-  }catch(error){return {content:[{type:'text',text:redactRestrictedText(error?.message||'Light Remote operation failed.')}],isError:true};}
+  }catch(error){return pluginToolErrorResult(error);}
 }
 
 export function registerPluginTools(server,identity){
