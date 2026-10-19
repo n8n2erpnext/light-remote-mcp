@@ -7,9 +7,8 @@ import {FleetRouter} from '../../operator-host/fleet-router.mjs';
 const cases=[
  {platform:'linux',script:'docker ps --format json',want:['docker','filesystem']},
  {platform:'linux',script:'lxc list',want:['filesystem','lxd']},
- // Known conservative over-match: 'docker' is a service argument, not an executable.
- // Preserve current Agent inference parity without weakening the policy in this gate.
- {platform:'linux',script:'sudo -n systemctl is-active docker',want:['docker','filesystem','sudo-on-demand','systemctl']},
+ // Scoped whole-command status-only service query is not a Docker executable.
+ {platform:'linux',script:'sudo -n systemctl is-active docker',want:['filesystem','sudo-on-demand','systemctl']},
  {platform:'linux',script:'/usr/bin/docker info',want:['docker','filesystem']},
  {platform:'linux',script:'git status',want:['filesystem','git']},
  {platform:'linux',script:'printf ready',want:['filesystem']},

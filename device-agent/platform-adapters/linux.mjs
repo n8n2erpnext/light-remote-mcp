@@ -1,10 +1,26 @@
 import { inferCapabilities, uniqueCapabilities } from './shared.mjs';
 
+// A service *name* is not an executable. Limit this exception to an entire,
+// literal, read-only systemctl status query with no shell metacharacters,
+// expansion, quoting, extra arguments or command chaining. All other scripts
+// retain the existing conservative capability inference.
+// This affects ONLY capability classification; original script is untouched.
+function classificationInput(script) {
+  const input=String(script||'');
+  const match=/^\s*(?:(?:\/usr\/bin\/)?sudo\s+-n\s+)?(?:\/usr\/bin\/)?systemctl\s+(?:is-active|is-enabled|status)\s+(docker|docker\.service)\s*$/i.exec(input);
+  if(!match)return input;
+  const token=match[1];
+  const i=match.index+match[0].lastIndexOf(token);
+  return input.slice(0,i)+'lr_service_unit'+input.slice(i+token.length);
+}
+
 const RULES=[
   ['git',/(^|[;&|\s])(git)(\s|$)/i],
   // Recognize standard absolute executable paths as the same authority as
   // bare commands. A path prefix must never hide Docker from local policy.
-  ['docker',/(^|[;&|\s"'`])(?:\/(?:usr\/)?(?:local\/)?s?bin\/)?(docker|docker-compose)(?=\s|$|["'`;|&])/i],
+  // Parentheses allow detecting Docker as the command in $(docker ...) or
+  // $(/usr/bin/docker ...), not just plain top-level shell statements.
+  ['docker',/(^|[();&|\s"'`])(?:\/(?:usr\/)?(?:local\/)?s?bin\/)?(docker|docker-compose)(?=\s|$|[)"'`;|&])/i],
   ['lxd',/(^|[;&|\s"'`])(?:\/(?:usr\/)?(?:local\/)?s?bin\/)?(lxc|lxd)(?=\s|$|["'`;|&])/i],
   ['systemctl',/(^|[;&|\s])(systemctl|journalctl)(\s|$)/i],
   ['sudo-on-demand',/(^|[;&|\s])sudo(\s|$)/i],
@@ -29,7 +45,7 @@ export function createLinuxAdapter({commandExists}) {
       return uniqueCapabilities(caps);
     },
     inferRequiredCapabilities(script) {
-      return uniqueCapabilities(['filesystem',...inferCapabilities(script,RULES)]);
+      return uniqueCapabilities(['filesystem',...inferCapabilities(classificationInput(script),RULES)]);
     },
     hardDeny() { return null; },
     shellModes() {
