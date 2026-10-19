@@ -25,8 +25,17 @@ export function result(value){
   return {content:[{type:'text',text:JSON.stringify(safe,null,2)}],structuredContent:structured,
     ...(structured.ok===false?{isError:true}:{})};
 }
-function operationView(row){
-  return {ok:Boolean(row?.ok),data:row?.data??null,job:row?.job?{jobId:row.job.jobId,state:row.job.state||row.job.status||null,running:!row.job.finishedAt,exitCode:row.job.exitCode??null}:null};
+export function operationView(row){
+  const ok=Boolean(row?.ok);
+  // Returned Operator/Agent errors are not thrown, so classify their explicit
+  // negative status without guessing any upstream pre-dispatch decision.
+  const failure=ok?null:classifyPluginToolError({
+    message:row?.data?.error??row?.error,
+    status:row?.data?.status??row?.status,
+  });
+  return {ok,data:row?.data??null,job:row?.job?{jobId:row.job.jobId,state:row.job.state||row.job.status||null,running:!row.job.finishedAt,exitCode:row.job.exitCode??null}:null,
+    ...(failure?{error:failure.error,layer:failure.layer,retryable:failure.retryable,nextAction:failure.nextAction,
+      ...(failure.httpStatus?{httpStatus:failure.httpStatus}:{})}:{})};
 }
 function pluginToolErrorResult(error){
   // The original redacted text is intentionally retained for existing MCP
