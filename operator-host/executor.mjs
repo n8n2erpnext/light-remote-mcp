@@ -575,7 +575,7 @@ async function executeLocalScpRequest(job,request){
   if(op==='upload-chunk')return {ok:true,operation:op,transfer:await LIGHT_SCP.putUploadChunk(owner,request.transferId,request)};
   if(op==='upload-commit')return {ok:true,operation:op,result:await LIGHT_SCP.commitUpload(owner,request.transferId)};
   if(op==='download-begin')return {ok:true,operation:op,transfer:await LIGHT_SCP.beginDownload(owner,request)};
-  if(op==='download-chunk')return {ok:true,operation:op,chunk:await LIGHT_SCP.readDownloadChunk(owner,request.transferId,request)};
+  if(op==='download-chunk'){const chunk=await LIGHT_SCP.readDownloadChunk(owner,request.transferId,request);return {ok:true,operation:op,chunk,transfer:await LIGHT_SCP.status(owner,request.transferId)};}
   if(op==='status')return {ok:true,operation:op,transfer:await LIGHT_SCP.status(owner,request.transferId)};
   if(op==='cancel')return {ok:true,operation:op,result:await LIGHT_SCP.cancel(owner,request.transferId)};
   throw new Error('scp_operation_unsupported');
