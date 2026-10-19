@@ -1,5 +1,21 @@
 import assert from 'node:assert/strict';
-import {registerPluginTools} from '../../plugin-server/tools.mjs';
+import {registerPluginTools,result} from '../../plugin-server/tools.mjs';
+
+// A returned application failure is a genuine MCP error, not a successful tool call.
+// Only top-level ok:false has this meaning; nested values and ordinary data remain valid.
+for(const failed of [
+  {ok:false,data:{error:'filesystem_path_not_found',status:404},job:{state:'error'}},
+  {ok:false,data:null,job:{state:'error',exitCode:1}},
+]){
+  const response=result(failed);
+  assert.equal(response.isError,true,'returned failure must set MCP isError');
+  assert.deepEqual(response.structuredContent,failed,'structured failure must be preserved');
+  assert.deepEqual(JSON.parse(response.content[0].text),failed,'failure text must be preserved');
+}
+for(const successful of [{ok:true,data:{items:[]}}, {data:{ok:false}}, ['ok'], {value:1}]){
+  const response=result(successful);
+  assert.equal(response.isError,undefined,'success/nonstatus must not be marked failed');
+}
 
 // Pure registry inspection: no OAuth login, device enumeration or execution.
 const registered=new Map();

@@ -2,6 +2,8 @@
 
 **Current milestone: G0 DONE. G1 critical Gold blockers RESOLVED: signed MCP E2E PASS after restart; Linux newline capability regression GREEN. Residual OpenAI pre-dispatch refusal on one safe LXD read remains OPEN; cross-OS/multi-tool coverage not yet complete. G2–G6 NOT STARTED.**
 
+**LATEST VERIFIED G1 FIX:** [Returned application failure now carries MCP isError](./RDC_GOLD_G1_MCP_RETURNED_FAILURE_ISERROR_20261019.md). Real Gold MCP negative-path before/after verified after Gold-only Plugin restart, positive helper ready, source regression 80 tools PASS. This addresses a plugin response-contract bug, **not** the OpenAI private pre-dispatch gate. Two broader unrelated legacy/integration selftests did not PASS; see detailed report. G1 remains IN PROGRESS, G2–G6 NOT STARTED.
+
 **READ FIRST — OWNER CLARIFIED BROAD TOOL ISSUE:** [G1 all-tool pre-dispatch RCA](./RDC_GOLD_G1_ALL_TOOL_PREDISPATCH_RCA_20261019.md). The issue spans MANY Light Remote tools, not only edit/exec. Source audit of 80 registrations and 8 authorized read-only live probes recorded; a separate failed-operation MCP `isError` inconsistency was reproduced directly. RDC remote devices were offline, so no valid paired live-rate benchmark yet. One fixture write got refused before dispatch; do not pretend to know OpenAI's private reason or route around that refusal. **G1 is still IN PROGRESS; no G2 start.**
 
 **PREVIOUS CRITICAL FIX:** [G1 signed MCP and newline checkpoint](./RDC_GOLD_G1_ENVELOPE_AND_NEWLINE_GREEN_CHECKPOINT_20261019.md) — successful normal owner-authorized Gold-only X25519 key provisioning (no secret in Git), real Gold MCP signed exec/admission evidence and remaining external refusal. Gold systemd overrides are deployed only inside the Gold LXD container.

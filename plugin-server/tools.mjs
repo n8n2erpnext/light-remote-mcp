@@ -19,10 +19,11 @@ function add(server,name,config,callback){
   PLUGIN_TOOL_SECURITY[name]=schemes.map(row=>({...row,scopes:[...(row.scopes||[])]}));
   return server.registerTool(name,config,callback);
 }
-function result(value){
+export function result(value){
   const safe=sanitizeForMcp(value);
   const structured=Array.isArray(safe)?{items:safe}:safe&&typeof safe==='object'?safe:{value:safe};
-  return {content:[{type:'text',text:JSON.stringify(safe,null,2)}],structuredContent:structured};
+  return {content:[{type:'text',text:JSON.stringify(safe,null,2)}],structuredContent:structured,
+    ...(structured.ok===false?{isError:true}:{})};
 }
 function operationView(row){
   return {ok:Boolean(row?.ok),data:row?.data??null,job:row?.job?{jobId:row.job.jobId,state:row.job.state||row.job.status||null,running:!row.job.finishedAt,exitCode:row.job.exitCode??null}:null};
