@@ -113,7 +113,9 @@ export const LEGACY_MULTIPLEXED_TOOL_NAMES=new Set(Object.keys(legacySchemas));
 export async function callLegacyMultiplexedTool(identity,name,input={}){
   const schema=legacySchemas[name];if(!schema||!input||typeof input.operation!=='string')return null;
   const parsed=schema.safeParse(input);
-  if(!parsed.success)return {content:[{type:'text',text:'Invalid legacy Light Remote tool arguments.'}],isError:true};
+  if(!parsed.success)return {content:[{type:'text',text:'Invalid legacy Light Remote tool arguments.'}],
+    structuredContent:{ok:false,error:'invalid_tool_arguments',layer:'plugin_validation',
+      retryable:false,nextAction:'correct_tool_input'},isError:true};
   const x=parsed.data,denied=requireScopes(identity,legacyScopes[name]||[]);
   if(denied)return denied;
   try{

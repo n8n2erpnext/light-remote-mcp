@@ -75,7 +75,13 @@ async function authorizationRedirect(p,account){const code=await mint('code',{su
 export function oauthMetadata(){return {issuer:PUBLIC_ORIGIN,authorization_endpoint:`${PUBLIC_ORIGIN}/oauth/authorize`,token_endpoint:`${PUBLIC_ORIGIN}/oauth/token`,registration_endpoint:`${PUBLIC_ORIGIN}/oauth/register`,userinfo_endpoint:`${PUBLIC_ORIGIN}/userinfo`,scopes_supported:[...ALLOWED_SCOPES],response_types_supported:['code'],grant_types_supported:['authorization_code','refresh_token'],token_endpoint_auth_methods_supported:['none'],code_challenge_methods_supported:['S256'],authorization_response_iss_parameter_supported:true,client_id_metadata_document_supported:false};}
 export function protectedResourceMetadata(){return {resource:MCP_RESOURCE,authorization_servers:[PUBLIC_ORIGIN],scopes_supported:[...ALLOWED_SCOPES].filter(x=>x!=='offline_access'),resource_documentation:`${PUBLIC_ORIGIN}/support`};}
 export function challengeValue(scopes,error='invalid_token',description='Authentication required'){return `Bearer resource_metadata="${PUBLIC_ORIGIN}/.well-known/oauth-protected-resource/mcp", scope="${scopes.join(' ')}", error="${error}", error_description="${String(description).replace(/["\\]/g,'')}"`;}
-export function authErrorResult(scopes,error='invalid_token',description='Connect Light Remote to continue.'){return {content:[{type:'text',text:description}],_meta:{'mcp/www_authenticate':[challengeValue(scopes,error,description)]},isError:true};}
+export function authErrorResult(scopes,error='invalid_token',description='Connect Light Remote to continue.'){
+  const code=error==='insufficient_scope'?'insufficient_scope':'invalid_token';
+  return {content:[{type:'text',text:description}],
+    structuredContent:{ok:false,error:code,layer:'oauth_authorization',retryable:false,
+      nextAction:code==='insufficient_scope'?'request_required_scope':'authorize_plugin'},
+    _meta:{'mcp/www_authenticate':[challengeValue(scopes,error,description)]},isError:true};
+}
 export async function authenticateAccess(req){const raw=String(req.get('authorization')||'').replace(/^Bearer\s+/i,'').trim();if(!raw)return {identity:null,error:'invalid_token'};try{const p=await verify(raw,'access'),scopes=parseScopes(p.scope);if(p.resource!==MCP_RESOURCE||!p.sub||!p.client_id)throw new Error('invalid_token');return {identity:{accountId:String(p.sub),clientId:String(p.client_id),scopes},error:null};}catch(error){return {identity:null,error:error.message==='invalid_scope'?'insufficient_scope':'invalid_token'};}}
 export function requireScopes(identity,required){if(!identity)return authErrorResult(required);const have=new Set(identity.scopes||[]),missing=required.filter(s=>!have.has(s));return missing.length?authErrorResult(required,'insufficient_scope',`Additional permission required: ${missing.join(', ')}`):null;}
 export async function mintPairingContinuation(identity,{requestId,pollToken,agentId,expiresAt,flow='device-pairing'}={}){

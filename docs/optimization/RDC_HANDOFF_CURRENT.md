@@ -1,6 +1,8 @@
 # Current RDC → Light Remote Gold optimization handoff
 
-**Current milestone: G0 DONE. G1 IN PROGRESS; crypto provisioning and MCP E2E BLOCKED.**
+**Current milestone: G0 DONE. G1 IN PROGRESS; MCP OAuth/validation error-boundary slice DEPLOYED TO GOLD; crypto provisioning and signed MCP E2E BLOCKED.**
+
+**Latest G1 slice:** [MCP error-boundary checkpoint](./RDC_GOLD_G1_MCP_ERROR_BOUNDARY_CHECKPOINT_20261019.md). This improves origin/nextAction of OAuth-scope and legacy-schema failures without changing rights or hiding safety denials. **Open security regression remains:** systemctl newline under-classification was reproduced in commit `a54c348` but source patch was denied; reverted RED CI fixture in `e844f6c`. Do not claim the underlying regex was repaired.
 
 Read [G1 journalctl unit checkpoint](./RDC_GOLD_G1_JOURNALCTL_UNIT_CHECKPOINT_20261019.md) **first**, then [G1 Linux service query checkpoint](./RDC_GOLD_G1_LINUX_SERVICE_QUERY_CHECKPOINT_20261019.md), then [G1 outbound exec parity checkpoint](./RDC_GOLD_G1_OUTBOUND_EXEC_PARITY_CHECKPOINT_20261019.md), then [G1 policy revision checkpoint](./RDC_GOLD_G1_POLICY_REVISION_CHECKPOINT_20261019.md), then [G1 capability provenance checkpoint](./RDC_GOLD_G1_CAPABILITY_PROVENANCE_CHECKPOINT_20261019.md), then [G1 initial error-classifier checkpoint](./RDC_GOLD_G1_HANDOFF_20261019.md), then [G0 checkpoint](./RDC_GOLD_G0_HANDOFF_20261019.md), [Master Plan](./RDC_LIGHT_REMOTE_GOLD_MASTER_PLAN.md), [Gap Matrix](./RDC_FEATURE_GAP_MATRIX.md), [Execution RCA Map](./RDC_GOLD_EXECUTION_RCA_MAP.md), and [Baseline](./RDC_GOLD_G0_BASELINE_20261019.md).
 
