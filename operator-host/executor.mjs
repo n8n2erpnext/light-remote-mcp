@@ -11,6 +11,7 @@ import { SessionRegistry, SessionError, SESSION_GRACE_PRESETS } from './session-
 import { DeviceRegistry, DeviceError } from './device-registry.mjs';
 import { EnrollmentRegistry, EnrollmentError } from './enrollment-registry.mjs';
 import { FleetRouter, FleetError } from './fleet-router.mjs';
+import { leafCapabilityAdmission } from './leaf-capability-admission.mjs';
 import { DeviceConnectionRegistry, DeviceConnectionError, DEFAULT_PLAN_CONNECTION_CAPS } from './device-connection-registry.mjs';
 import { DeviceAccessGrantRegistry, DeviceAccessGrantError } from './device-access-grant-registry.mjs';
 import { DevicePairingRegistry, DevicePairingRegistryError } from './device-pairing-registry.mjs';
@@ -443,12 +444,15 @@ function startJob(payload, requestId) {
     if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);
     const missing=requiredCapabilities.filter(cap=>!route.capabilities.includes(cap));
     if(missing.length){
+      const evidence=leafCapabilityAdmission({reported:fleet.view(route.nodeId).capabilities,
+        approved:enrollments.binding(route.deviceId).approvedCapabilities,required:missing});
       // A refused job never reaches job_started. Record a sanitized policy
       // diagnosis so Wall/activity can distinguish routing from host safety.
       pushEvent({type:'job_admission_denied',status:'denied',
         reason:'target_node_capability_missing',route:'outbound-leaf',
         accountId:session.accountId,deviceId:session.deviceId,nodeId:session.nodeId,
-        sessionId:session.id,requiredCapabilities,missingCapabilities:missing});
+        sessionId:session.id,requiredCapabilities,missingCapabilities:missing,
+        missingCapabilityReasons:evidence.missingCapabilityReasons});
       throw new FleetError('target_node_capability_missing',409);
     }
   } else {
@@ -988,8 +992,9 @@ function targetRoute(requestedNodeId,{accountId:requestedAccountId=ACCOUNT_ID}={
   if (device.state!=='online') throw new DeviceError('target_node_offline',409);
   requireDeviceConnection(device.deviceId);
   const route=fleet.assertRoutable(nodeId,{accountId,deviceId:device.deviceId});
-  const binding=enrollments.binding(device.deviceId), allowed=new Set(binding.approvedCapabilities||[]);
-  return { ...route, platform:device.platform, capabilities:(route.capabilities||[]).filter(cap=>allowed.has(cap)), mode:'outbound-leaf' };
+  const binding=enrollments.binding(device.deviceId);
+  const evidence=leafCapabilityAdmission({reported:route.capabilities,approved:binding.approvedCapabilities});
+  return { ...route, platform:device.platform, capabilities:evidence.capabilities, mode:'outbound-leaf' };
 }
 class DeviceChannelRateLimitError extends Error {
   constructor(lane,retryAfterSeconds){super('rate_limited');this.status=429;this.scope=`device-channel-${lane}`;this.retryAfterSeconds=retryAfterSeconds;}
