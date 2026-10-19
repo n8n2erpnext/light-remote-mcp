@@ -159,9 +159,12 @@ export class SupportOutbox{
     this.pumping=true;
     let delivered=0,failed=0;
     try{
-      const config=loadConfig(this.configFile);
       const now=this.now();
       const due=this.rows.filter(row=>row.status!=='sent'&&Number(row.nextAttemptAt||0)<=now).slice(0,limit);
+      const refreshDue=this.rows.some(row=>row.status==='sent'&&!row.resultName&&Number(row.nextStatusCheckAt||0)<=now);
+      // An empty isolated Gold UAT outbox needs no production backoffice configuration.
+      if(!due.length&&!refreshDue)return {ok:true,delivered:0,failed:0,resolved:0,pending:0};
+      const config=loadConfig(this.configFile);
       for(const row of due){
         try{
           await this._deliver(row,config);

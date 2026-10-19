@@ -179,6 +179,9 @@ export class PaddleBilling {
     this.purchaseMailer = purchaseMailer;
     this.now = now;
     this.state = normalizeState(null); // Fresh Gold state; loaded from PostgreSQL before requests.
+    this.eventQueue = Promise.resolve();
+    this.pendingEventCount = 0;
+    this.persistenceFatal = null;
     this.validation = validatePaddleIdentifiers(config);
     // Never build the Team coordinator for production or when sandbox opt-in
     // is absent. Existing PRO subscription processing remains unchanged.
@@ -407,13 +410,9 @@ export class PaddleBilling {
     if (!accountId || !subscriptionId || plan !== PRO_PLAN) {
       return { action: 'ignored', reason: 'paddle_metadata_missing', accountId, subscriptionId };
     }
-    if (!ACTIVE_SUBSCRIPTION_STATUSES.has(status) &&
-        ![
-          EventName.SubscriptionCreated,
-          EventName.SubscriptionActivated,
-          EventName.SubscriptionResumed,
-          EventName.SubscriptionTrialing,
-        ].includes(eventType)) {
+    // An event name alone cannot grant paid access when Paddle reports a
+    // non-active subscription (paused, canceled, past_due, etc.).
+    if (!ACTIVE_SUBSCRIPTION_STATUSES.has(status)) {
       return { action: 'ignored', reason: 'subscription_not_active', accountId, subscriptionId, status };
     }
 
@@ -1230,6 +1229,28 @@ export class PaddleBilling {
   }
 
   async processEvent(event) {
+    // Single Gold Plugin writer: serialize provider side effects and SQL commits.
+    // Reject a missing identity rather than accepting a non-replay-safe event.
+    if (!safeEventId(event)) {
+      const error = Error('paddle_event_id_required');
+      error.status = 400;
+      throw error;
+    }
+    if (this.persistenceFatal) throw this.persistenceFatal;
+    if (this.pendingEventCount >= 128) {
+      const error = Error('paddle_webhook_queue_saturated');
+      error.status = 503;
+      throw error;
+    }
+    this.pendingEventCount++;
+    const task = this.eventQueue.then(() => this._processEventSerial(event));
+    this.eventQueue = task.then(() => undefined, () => undefined);
+    try { return await task; }
+    finally { this.pendingEventCount--; }
+  }
+
+  async _processEventSerial(event) {
+    if (this.persistenceFatal) throw this.persistenceFatal;
     const eventType = safeEventType(event);
     const data = safeData(event);
     const eventId = safeEventId(event);
@@ -1287,7 +1308,13 @@ export class PaddleBilling {
         result,
       };
     }
-    this._persist();
+    try {
+      await this._persist(); // Event must be durable before webhook HTTP acknowledgement.
+    } catch (error) {
+      // In-memory event state might be ahead of SQL. Fail closed until restart.
+      this.persistenceFatal = error;
+      throw error;
+    }
     return { duplicate: false, ...result };
   }
 

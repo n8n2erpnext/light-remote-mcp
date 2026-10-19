@@ -170,6 +170,11 @@ const billing = new PaddleBilling({
   now: () => 1_800_000_000_000,
 });
 
+// Legacy business-logic harness has no real Gold PG pool. Inject a test writer;
+// separately exercise native PostgreSQL durability on the isolated Gold LXD.
+let eventPersistenceCommits = 0;
+billing._persist = async () => { eventPersistenceCommits++; };
+
 assert.equal(billing.status().checkoutEnabled, true);
 assert.equal(billing.status().webhookEnabled, true);
 assert.equal(billing.publicConfig().clientToken, 'test_client_token');
@@ -212,6 +217,16 @@ await assert.rejects(
   () => billing.createCheckout({ ...account, plan: 'pro' }),
   error => error?.message === 'paddle_account_already_paid' && error?.status === 409,
 );
+
+const inactiveSubscriptionEvent = await billing.processEvent({
+  eventId:'evt_'+'m'.repeat(26),
+  eventType:EventName.SubscriptionCreated,
+  data:{id:'sub_'+'m'.repeat(26),status:'paused',
+    customData:{light_remote_account_id:'acct_test',light_remote_plan:'pro'}}
+});
+assert.equal(inactiveSubscriptionEvent.action,'ignored');
+assert.equal(inactiveSubscriptionEvent.reason,'subscription_not_active');
+assert.equal(account.plan,'free');
 
 const webhook = await billing.handleWebhook('raw-body', 'ts=1;h1=test');
 assert.equal(webhook.result.action, 'granted');
