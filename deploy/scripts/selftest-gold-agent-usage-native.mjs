@@ -23,7 +23,7 @@ const query=async(sql,a=[])=>{
  if(sql.startsWith('INSERT INTO lr_agent_bindings')){
   tables.bindings.set(a[0]+':'+a[1],{client_session_id:a[0],device_id:a[1],grant_id:a[2],
    connection_id:a[3],pairing_request_id:a[4],bound_at:a[5],last_activity_at:a[6],
-   working_context:a[7]==null?null:JSON.parse(a[7])});return {rows:[]};
+   account_id:a[7],working_context:a[8]==null?null:JSON.parse(a[8])});return {rows:[]};
  }
  if(sql.startsWith('DELETE FROM lr_agent_clients')){for(const id of [...tables.clients.keys()])if(!a[0].includes(id))tables.clients.delete(id);return {rows:[]}};
  if(sql.startsWith('INSERT INTO lr_gold_usage_config')){tables.trackingSince=a[0];return {rows:[]}};

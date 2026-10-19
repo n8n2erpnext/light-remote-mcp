@@ -3,6 +3,7 @@ Description=Light Remote Gold UAT Local Wall (isolated LXD)
 After=network-online.target light-remote-gold-operator.service light-remote-gold-plugin.service
 Wants=network-online.target
 Requires=light-remote-gold-operator.service light-remote-gold-plugin.service
+PartOf=light-remote-gold-operator.service light-remote-gold-plugin.service
 
 [Service]
 Type=simple
@@ -28,4 +29,4 @@ PrivateTmp=yes
 UMask=0077
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=multi-user.target light-remote-gold-operator.service

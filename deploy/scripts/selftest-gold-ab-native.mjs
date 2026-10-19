@@ -18,8 +18,8 @@ const query=async(sql,v=[])=>{
  if(sql==='SELECT * FROM lr_gold_ab_grant_metadata')return {rows:[...rows.grantMeta.values()]};
  if(sql.startsWith('INSERT INTO lr_ab_requests')){
   rows.requests.set(v[0],{request_id:v[0],account_id:v[1],device_id:v[2],connection_id:v[3],
-   agent_id:v[4],poll_sha256:v[5],display_code_ciphertext:v[6],state:v[7],
-   created_at:v[8],expires_at:v[9],consumed_at:v[10]});return {rows:[]};
+   agent_id:v[4],purpose:v[5],poll_sha256:v[6],display_code_ciphertext:v[7],state:v[8],
+   created_at:v[9],expires_at:v[10],consumed_at:v[11]});return {rows:[]};
  }
  if(sql.startsWith('INSERT INTO lr_gold_ab_request_metadata')){
   rows.requestMeta.set(v[0],{request_id:v[0],label:v[1],pairing_required:v[2],
@@ -27,8 +27,8 @@ const query=async(sql,v=[])=>{
  }
  if(sql.startsWith('INSERT INTO lr_ab_grants')){
   rows.grants.set(v[0],{grant_id:v[0],account_id:v[1],device_id:v[2],
-   connection_id:v[3],agent_id:v[4],approved_at:v[5],last_activity_at:v[6],
-   idle_grace_ms:v[7],expires_at:v[8],absolute_expires_at:v[9],closed_at:v[10]});
+   connection_id:v[3],agent_id:v[4],purpose:v[5],approved_at:v[6],last_activity_at:v[7],
+   idle_grace_ms:v[8],expires_at:v[9],absolute_expires_at:v[10],closed_at:v[11]});
   return {rows:[]};
  }
  if(sql.startsWith('INSERT INTO lr_gold_ab_grant_metadata')){
@@ -64,7 +64,15 @@ try{
  const state=restart.mount();
  assert.equal(state.requests[0][1].userCode,'QWER-4321');
  assert.equal(state.grants[0][1].grantId,'grant1');
- await restart.write({requests:[],grants:[]});
+ const tr={...r,requestId:'team_req',userCode:'TEST-2345',purpose:'team-member'};
+ const tg={...g,grantId:'team_grant',purpose:'team-member'};
+ await restart.write({requests:[['team_req',tr]],grants:[['team_grant',tg]]});
+ const teamReload=await GoldNativeAB.open({pool}),teamState=teamReload.mount();
+ assert.equal(teamState.requests[0][1].purpose,'team-member');
+ assert.equal(teamState.grants[0][1].purpose,'team-member');
+ assert.equal(rows.requests.get('team_req').purpose,'team-member');
+ assert.equal(rows.grants.get('team_grant').purpose,'team-member');
+ await teamReload.write({requests:[],grants:[]});
  assert.equal((await GoldNativeAB.open({pool})).requests.length,0);
  console.log('GOLD_NATIVE_AB_ENCRYPTED_RELOAD_FAKE=PASS');
 }finally{fs.rmSync(root,{recursive:true,force:true})}

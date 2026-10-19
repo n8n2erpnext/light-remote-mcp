@@ -42,6 +42,15 @@ export class ProTeamRegistry {
   revokeTeamAccess(ownerAccountId,{expectedSource=null}={}){
     const owner=checkId(ownerAccountId),current=this.teamGrants.get(owner);
     if(expectedSource!==null&&(!current||current.source!==expectedSource))return false;
+    if(!current)return false;
+    // Add-on revoke invalidates all member A/B grants for devices shared by
+    // this owner; owner/direct-device grants remain untouched.
+    const team=this.teams.get(owner);
+    if(team)for(const memberAccountId of team.members||[]){
+      if(memberAccountId===owner)continue;
+      for(const deviceId of team.devices||[])
+        this.onRevoke({ownerAccountId:owner,memberAccountId,deviceId,reason:'team_addon_revoked'});
+    }
     const deleted=this.teamGrants.delete(owner);
     if(deleted)this._save();
     return deleted;
@@ -163,24 +172,26 @@ export class ProTeamRegistry {
   unshareDevice({ownerAccountId,deviceId}={}){
     const team=this._team(ownerAccountId),did=checkId(deviceId),
       wasShared=team.devices.includes(did);
-    team.devices=team.devices.filter(x=>x!==did);
-    this._save();
+    // Revoke the affected member's explicit A/B before removing shared access.
+    // A failed revoke must not return success with a stale live grant.
     if(wasShared)for(const memberAccountId of team.members){
       if(memberAccountId===team.ownerAccountId)continue;
       this.onRevoke({ownerAccountId:team.ownerAccountId,memberAccountId,
         deviceId:did,reason:'team_device_unshared'});
     }
+    team.devices=team.devices.filter(x=>x!==did);
+    this._save();
     return this.view(team.ownerAccountId);
   }
   remove({ownerAccountId,memberAccountId}={}){
     const team=this._team(ownerAccountId),member=checkId(memberAccountId);
     if(member===team.ownerAccountId)throw new ProTeamError('team_owner_cannot_remove_self');
     const wasMember=team.members.includes(member);
-    team.members=team.members.filter(x=>x!==member);
-    this._save();
     if(wasMember)for(const deviceId of team.devices)
       this.onRevoke({ownerAccountId:team.ownerAccountId,memberAccountId:member,
         deviceId,reason:'team_member_removed'});
+    team.members=team.members.filter(x=>x!==member);
+    this._save();
     return this.view(team.ownerAccountId);
   }
   memberships(memberAccountId){
