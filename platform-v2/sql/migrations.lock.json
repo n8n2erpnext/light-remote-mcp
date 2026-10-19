@@ -126,6 +126,36 @@
       "version": 25,
       "file": "025_gold_support_native.sql",
       "sha256": "ede7388b4ddef1ffd687699accd72827dddc79b469925735929395b783b352bf"
+    },
+    {
+      "version": 26,
+      "file": "026_gold_ab_native.sql",
+      "sha256": "e9ca1e46400263343644703c0348c6cbb43a0bff0d934785c489e680810ae9b2"
+    },
+    {
+      "version": 27,
+      "file": "027_gold_enrollment_native.sql",
+      "sha256": "fe9b7601e2f79b9d48716bdda4f97299d1a0aa2eef76242a69411b2a2ef3cd30"
+    },
+    {
+      "version": 28,
+      "file": "028_gold_agent_client_native.sql",
+      "sha256": "9f31dc4148fcf276b37d6e2f990ddd8c60a94db2d67588433b9c572ae46f7837"
+    },
+    {
+      "version": 29,
+      "file": "029_gold_usage_native.sql",
+      "sha256": "967b822e566ae7b8f2f6a776d48f44ab1b0768332502d6b81be5a5e6ae4656f0"
+    },
+    {
+      "version": 30,
+      "file": "030_gold_account_aux_native.sql",
+      "sha256": "13bb72ed44010193934aed1c4a816afa9d13a93c26ed0945787dea20de476144"
+    },
+    {
+      "version": 31,
+      "file": "031_gold_drop_generic_snapshot.sql",
+      "sha256": "f8cf33be6a578087c960d70a5effc24769a38e04631c47c9a3489a29f319c29b"
     }
   ]
 }

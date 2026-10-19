@@ -4,7 +4,9 @@ import {AccountRegistry} from '../../operator-host/account-registry.mjs';
 import {DeviceRegistry} from '../../operator-host/device-registry.mjs';
 import {ProTeamRegistry} from '../../operator-host/pro-team-registry.mjs';
 
-const docs=new Map(),nativeAccounts=new Map(),nativeDevices=new Map(),nativeEntitlements=new Map(),nativeFleet=new Map();
+const nativeAccounts=new Map(),nativeDevices=new Map(),nativeEntitlements=new Map(),nativeFleet=new Map();
+const auxTables=new Map();
+const auxNames=new Set(['lr_sessions','lr_gold_account_one_time_tokens','lr_gold_account_upgrade_requests','lr_gold_pending_registrations','lr_gold_google_signup_intents','lr_gold_account_groups']);
 const ACCOUNT_COLS=['account_id','email','plan','status','password_hash','created_at','password_enabled','email_verified','google_sub','group_id','main_device_id','last_login_ms','status_reason','dormant_ms','disabled_ms','disabled_by','disable_reason','reactivated_ms','last_device_added_ms','dormancy_anchor_ms','dormancy_notice14_ms','dormancy_notice3_ms'];
 const DEVICE_COLS=['device_id','owner_account_id','state','last_seen_at','created_at','node_id','display_name','platform','architecture','agent_version','first_seen_ms','last_seen_ms','offline_ms','revoked_ms','public_identity_key','capabilities','policy_profile','update_state','update_current_version','update_target_version','update_helper_version','update_code','update_ms'];
 const sql=[];
@@ -23,15 +25,29 @@ const query=async(statement,args=[])=>{
  statement.startsWith('SELECT * FROM lr_gold_paddle_events')||
  statement.startsWith('SELECT * FROM lr_gold_paddle_subscriptions')||
  statement.startsWith('SELECT * FROM lr_gold_paddle_refunds')||
- statement.startsWith('SELECT * FROM lr_gold_support_outbox'))
+ statement.startsWith('SELECT * FROM lr_gold_support_outbox')||
+ statement.startsWith('SELECT * FROM lr_ab_requests')||
+ statement.startsWith('SELECT * FROM lr_ab_grants')||
+ statement.startsWith('SELECT * FROM lr_gold_ab_request_metadata')||
+ statement.startsWith('SELECT * FROM lr_gold_ab_grant_metadata')||
+ statement.startsWith('SELECT * FROM lr_gold_enrollment_pending')||
+ statement.startsWith('SELECT * FROM lr_gold_enrollment_bindings')||
+ statement.startsWith('SELECT * FROM lr_agent_clients')||
+ statement.startsWith('SELECT * FROM lr_agent_bindings')||
+ statement.startsWith('SELECT tracking_since_ms FROM lr_gold_usage_config')||
+ statement.startsWith('SELECT account_id,last_tool_call_ms FROM lr_gold_usage_account')||
+ statement.startsWith('SELECT * FROM lr_gold_usage_month')||
+ statement.startsWith('SELECT * FROM lr_gold_usage_device')||
+ statement.startsWith('SELECT * FROM lr_gold_usage_open_connection'))
  return {rows:[]};
  if(statement==='BEGIN'||statement==='COMMIT'||statement==='ROLLBACK')return {rows:[]};
  if((statement.startsWith('DELETE FROM lr_teams')||statement.startsWith('INSERT INTO lr_teams')||statement.startsWith('DELETE FROM lr_gold_team_')||statement.startsWith('DELETE FROM lr_team_')||
       statement.startsWith('INSERT INTO lr_gold_team_')||statement.startsWith('INSERT INTO lr_team_')||
       statement.startsWith('DELETE FROM lr_gold_license_')||statement.startsWith('INSERT INTO lr_gold_license_')))
    return {rows:[],rowCount:1};
- if(statement.startsWith('SELECT domain,payload FROM lr_gold_registry_documents'))
-  return {rows:[...docs].map(([domain,payload])=>({domain,payload:structuredClone(payload)}))};
+ const nativeAuxSelect=/^SELECT \* FROM (lr_sessions|lr_gold_account_one_time_tokens|lr_gold_account_upgrade_requests|lr_gold_pending_registrations|lr_gold_google_signup_intents|lr_gold_account_groups)$/;
+ const auxSelect=statement.match(nativeAuxSelect);
+ if(auxSelect)return {rows:[...(auxTables.get(auxSelect[1])||new Map()).values()].map(x=>structuredClone(x))};
  if(statement.startsWith('SELECT * FROM lr_accounts ORDER BY'))
   return {rows:[...nativeAccounts.values()].map(row=>structuredClone(row))};
  if(statement.startsWith('SELECT * FROM lr_devices ORDER BY'))
@@ -40,9 +56,6 @@ const query=async(statement,args=[])=>{
   return {rows:[...nativeEntitlements.values()].map(row=>structuredClone(row))};
  if(statement.startsWith('SELECT * FROM lr_gold_fleet_provisioning'))
   return {rows:[...nativeFleet.values()].map(row=>structuredClone(row))};
- if(statement.startsWith('INSERT INTO lr_gold_registry_documents')){
-  docs.set(args[0],JSON.parse(args[1]));return {rowCount:1,rows:[]};
- }
  if(statement.startsWith('INSERT INTO lr_accounts')){
   const row=Object.fromEntries(ACCOUNT_COLS.map((col,i)=>[col,args[i]]));
   nativeAccounts.set(row.account_id,row);return {rowCount:1,rows:[]};
@@ -74,6 +87,19 @@ const query=async(statement,args=[])=>{
   return {rows:[]};
  }
  if(statement.startsWith('DELETE FROM lr_devices')){nativeDevices.clear();return {rows:[]};}
+ const insert=statement.match(/^INSERT INTO (lr_sessions|lr_gold_account_one_time_tokens|lr_gold_account_upgrade_requests|lr_gold_pending_registrations|lr_gold_google_signup_intents|lr_gold_account_groups)\(([\s\S]*?)\)\s*VALUES/);
+ if(insert){
+  const table=insert[1],cols=insert[2].split(',').map(x=>x.trim());
+  const row=Object.fromEntries(cols.map((k,i)=>[k,args[i]]));
+  const key=cols[0];if(!auxTables.has(table))auxTables.set(table,new Map());
+  auxTables.get(table).set(row[key],row);return {rows:[]};
+ }
+ const deletion=statement.match(/^DELETE FROM (lr_sessions|lr_gold_account_one_time_tokens|lr_gold_account_upgrade_requests|lr_gold_pending_registrations|lr_gold_google_signup_intents|lr_gold_account_groups) WHERE NOT/);
+ if(deletion){
+  const table=auxTables.get(deletion[1]);
+  if(table)for(const key of [...table.keys()])if(!args[0].includes(key))table.delete(key);
+  return {rows:[]};
+ }
  throw Error('unexpected_sql:'+statement.slice(0,90));
 };
 const pool={query,async connect(){return {query,release(){}}}};
@@ -93,8 +119,7 @@ first.devices.enroll({accountId,deviceId:'gold_device',nodeId:'gold_node',public
 await first.store.flush();
 assert.ok(nativeAccounts.has(accountId));
 assert.equal(nativeDevices.get('gold_device').node_id,'gold_node');
-assert.equal(docs.get('accounts').accounts,undefined,'whole account records must not be JSONB snapshots');
-assert.equal(docs.has('devices'),false,'whole device records must not be JSONB snapshots');
+assert.ok(!sql.some(s=>s.includes('lr_gold_registry_documents')),'generic JSONB registry query must never run');
 const restarted=await make();
 assert.ok(restarted.accounts.listGroups().some(x=>x.groupId===group.groupId));
 assert.equal(restarted.accounts.verifyCredentials({email:'gold-uat@example.test',password:'LongPassword123!'}).accountId,accountId);

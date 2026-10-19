@@ -86,3 +86,11 @@ Complete canonical business storage replacement **in existing Operator/Plugin** 
 - Canonical Operator/Plugin still call the existing registry/business APIs; the storage adapter writes via PostgreSQL transactions. SHA manifest covers 25 migrations. Focused source/fake SQL tests PASS, including Team/License/Connection reload.
 - This is **not** full migration: pending Account auxiliary maps, Enrollment, A/B requests/grants, Agent Client bindings, Usage and other legacy snapshots still route through `lr_gold_registry_documents`. No real SQL migrations/API/restart acceptance has run.
 - Gold UAT LXD remains `10.192.135.61` PostgreSQL 17/Redis 8 services `active`, but LXD role/DB provisioning is still denied; no public-ready URL. No production changes.
+
+## 2026-10-19 — Source migration 026–031 checkpoint
+- Completed canonical native SQL adapters in the **existing Operator/Plugin** for A/B request/grant records (with encrypted one-time display codes), Enrollment and signed key handling, Agent Client bindings, Usage accounting, and Account/Auth auxiliary collections. No separate Core/API created.
+- Migrations 026–030 define typed, keyed PostgreSQL tables and reuse RC50 native tables when suitable. Migration 031 deletes `lr_gold_registry_documents` (the rejected generic JSONB snapshot table) **only when it is empty**, otherwise fails; no data-loss fallback.
+- The registry adapter no longer queries `lr_gold_registry_documents`. Fake-SQL test stubs for that table have been removed, and a regression assertion forbids such queries.
+- All 31 migration source SHA values validated. 12 focused source/fake SQL and Redis checks passed; this is **not** proof of real PostgreSQL DDL, API persistence or restart acceptance.
+- UAT LXD `light-remote-gold-uat` has PostgreSQL 17.11 and Redis 8.10.2 active. A read-only PostgreSQL query verified the Gold database name `light_remote_gold_dev` is **not present**. Database/role creation was previously denied at the declared Light Remote capability gate. No public URL is available and production was not changed.
+- Flexible third-party event/support payload JSONB remains intentionally scoped; not a generic canonical business snapshot. A full-file-writer audit and true LXD API E2E are still required before release.

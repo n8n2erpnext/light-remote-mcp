@@ -3,7 +3,7 @@ import {GoldRegistryPersistence} from '../../lib/gold-registry-persistence.mjs';
 import {PaddleBilling} from '../../plugin-server/paddle-billing.mjs';
 import {initializeGoldGoogleAuth,saveGoogleAuthConfig,googleAuthStatus,initializeGoogleRedis,beginGoogleAuth} from '../../plugin-server/google-auth.mjs';
 
-const state=new Map(),paddleEvents=new Map(),paddleSubscriptions=new Map(),paddleRefunds=new Map();
+const paddleEvents=new Map(),paddleSubscriptions=new Map(),paddleRefunds=new Map();
 let googleRow=null;
 const pool={async connect(){return {query:this.query.bind(this),release(){}}},async query(sql,args=[]){
  if(sql.startsWith('SELECT team_id,owner_account_id,created_at FROM lr_teams')||
@@ -16,7 +16,20 @@ const pool={async connect(){return {query:this.query.bind(this),release(){}}},as
  sql.startsWith('SELECT * FROM lr_gold_license_keys')||
  sql.startsWith('SELECT license_id,account_id,redeemed_ms FROM lr_gold_license_redemptions')||
  sql.startsWith('SELECT DISTINCT ON(device_id) * FROM lr_device_connections')||
- sql.startsWith('SELECT * FROM lr_gold_support_outbox'))return {rows:[]};
+ sql.startsWith('SELECT * FROM lr_gold_support_outbox')||
+ sql.startsWith('SELECT * FROM lr_ab_requests')||
+ sql.startsWith('SELECT * FROM lr_ab_grants')||
+ sql.startsWith('SELECT * FROM lr_gold_ab_request_metadata')||
+ sql.startsWith('SELECT * FROM lr_gold_ab_grant_metadata')||
+ sql.startsWith('SELECT * FROM lr_gold_enrollment_pending')||
+ sql.startsWith('SELECT * FROM lr_gold_enrollment_bindings')||
+ sql.startsWith('SELECT * FROM lr_agent_clients')||
+ sql.startsWith('SELECT * FROM lr_agent_bindings')||
+ sql.startsWith('SELECT tracking_since_ms FROM lr_gold_usage_config')||
+ sql.startsWith('SELECT account_id,last_tool_call_ms FROM lr_gold_usage_account')||
+ sql.startsWith('SELECT * FROM lr_gold_usage_month')||
+ sql.startsWith('SELECT * FROM lr_gold_usage_device')||
+ sql.startsWith('SELECT * FROM lr_gold_usage_open_connection'))return {rows:[]};
  if(sql.startsWith('SELECT * FROM lr_gold_paddle_events'))return {rows:[...paddleEvents.values()]};
  if(sql.startsWith('SELECT * FROM lr_gold_paddle_subscriptions'))return {rows:[...paddleSubscriptions.values()]};
  if(sql.startsWith('SELECT * FROM lr_gold_paddle_refunds'))return {rows:[...paddleRefunds.values()]};
@@ -32,12 +45,7 @@ const pool={async connect(){return {query:this.query.bind(this),release(){}}},as
     sql.startsWith('INSERT INTO lr_gold_team_')||sql.startsWith('INSERT INTO lr_team_')||
     sql.startsWith('DELETE FROM lr_gold_license_')||sql.startsWith('INSERT INTO lr_gold_license_'))
    return {rows:[],rowCount:1};
- if(sql.startsWith('SELECT domain,payload FROM lr_gold_registry_documents'))
-  return {rows:[...state].map(([domain,payload])=>({domain,payload:structuredClone(payload)}))};
- if(sql.startsWith('INSERT INTO lr_gold_registry_documents')){
-  state.set(args[0],JSON.parse(args[1]));
-  return {rows:[],rowCount:1};
- }
+ if(/^SELECT \* FROM (lr_sessions|lr_gold_account_one_time_tokens|lr_gold_account_upgrade_requests|lr_gold_pending_registrations|lr_gold_google_signup_intents|lr_gold_account_groups)$/.test(sql))return {rows:[]};
  if(sql.startsWith('SELECT client_id,client_secret,redirect_uri FROM lr_gold_google_oauth_config'))
   return {rows:googleRow?[structuredClone(googleRow)]:[]};
  if(sql.startsWith('INSERT INTO lr_gold_google_oauth_config')){
@@ -59,7 +67,7 @@ await saveGoogleAuthConfig({
 });
 await store.flush();
 assert.equal(paddleEvents.get('synthetic_event').result.ok,true);
-assert.equal(state.has('paddle_billing'),false);
+
 assert.equal(googleRow.client_secret,'synthetic_nonproduction_secret_12345');
 store=await GoldRegistryPersistence.open({pool});
 store.mount('paddle_billing',billing);
@@ -67,7 +75,7 @@ await initializeGoldGoogleAuth(pool);
 await store.flush();
 assert.ok(billing.state.events.synthetic_event);
 assert.equal(googleAuthStatus().configured,true);
-assert.equal(state.has('google_oauth'),false);
+
 const redisKeys=new Map();
 initializeGoogleRedis({
  async set(key,value,{EX,NX}={}){assert.equal(EX,600);assert.equal(NX,true);if(redisKeys.has(key))return null;redisKeys.set(key,value);return 'OK'},

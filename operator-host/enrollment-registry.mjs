@@ -79,18 +79,17 @@ export class EnrollmentRegistry {
     }
     try {
       if (fs.existsSync(this.signerFile)) {
-        const raw = JSON.parse(fs.readFileSync(this.signerFile, 'utf8'));
-        const privateKey = crypto.createPrivateKey({ key:Buffer.from(raw.privateKey,'base64'), format:'der', type:'pkcs8' });
-        const publicKey = crypto.createPublicKey({ key:Buffer.from(raw.publicKey,'base64'), format:'der', type:'spki' });
-        if (privateKey.asymmetricKeyType !== 'ed25519' || publicKey.asymmetricKeyType !== 'ed25519') throw new Error('invalid_signer_type');
-        return { privateKey, publicKey, publicEncoded:raw.publicKey };
+        if ((fs.statSync(this.signerFile).mode&0o077)!==0)throw Error('signer_key_permissions');
+        const privateKey=crypto.createPrivateKey(fs.readFileSync(this.signerFile));
+        if(privateKey.asymmetricKeyType!=='ed25519')throw Error('invalid_signer_type');
+        const publicKey=crypto.createPublicKey(privateKey);
+        return {privateKey,publicKey,publicEncoded:publicKey.export({format:'der',type:'spki'}).toString('base64')};
       }
-      const { publicKey, privateKey } = crypto.generateKeyPairSync('ed25519');
-      const dir = path.dirname(this.signerFile); fs.mkdirSync(dir,{recursive:true,mode:0o750});
-      const payload = { schemaVersion:1, algorithm:'Ed25519', privateKey:privateKey.export({format:'der',type:'pkcs8'}).toString('base64'), publicKey:publicKey.export({format:'der',type:'spki'}).toString('base64') };
-      fs.writeFileSync(this.signerFile, `${JSON.stringify(payload,null,2)}\n`, {mode:0o600}); fs.chmodSync(this.signerFile,0o600);
-      return { privateKey, publicKey, publicEncoded:payload.publicKey };
-    } catch (error) { throw new EnrollmentError(`enrollment_signer_error:${error?.message || 'unknown'}`, 500); }
+      const {publicKey,privateKey}=crypto.generateKeyPairSync('ed25519');
+      fs.mkdirSync(path.dirname(this.signerFile),{recursive:true,mode:0o750});
+      fs.writeFileSync(this.signerFile,privateKey.export({type:'pkcs8',format:'pem'}),{mode:0o600,flag:'wx'});
+      return {privateKey,publicKey,publicEncoded:publicKey.export({format:'der',type:'spki'}).toString('base64')};
+    } catch(error){throw new EnrollmentError(`enrollment_signer_error:${error?.message||'unknown'}`,500)}
   }
 
   _persist() {
