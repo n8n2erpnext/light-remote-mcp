@@ -15,7 +15,9 @@ function classificationInput(script) {
     const unit=journal[1],i=input.lastIndexOf(unit);
     return input.slice(0,i)+'lr_service_unit'+input.slice(i+unit.length);
   }
-  const match=/^\s*(?:(?:\/usr\/bin\/)?sudo\s+-n\s+)?(?:\/usr\/bin\/)?systemctl\s+(?:is-active|is-enabled|status)\s+(docker|docker\.service)\s*$/i.exec(input);
+  // SP/TAB only: a newline separates shell commands and must not qualify
+  // for the single-command service-status exception.
+  const match=/^[ \t]*(?:(?:\/usr\/bin\/)?sudo[ \t]+-n[ \t]+)?(?:\/usr\/bin\/)?systemctl[ \t]+(?:is-active|is-enabled|status)[ \t]+(docker|docker\.service)[ \t]*$/i.exec(input);
   if(!match)return input;
   const token=match[1];
   const i=match.index+match[0].lastIndexOf(token);
