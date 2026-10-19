@@ -17,9 +17,10 @@ assert.equal(process.env.LR_GOLD_INSTANCE_ID,'uat19','isolated_gold_instance_req
 const origin='http://127.0.0.1:5583';
 const cookieFile='/var/lib/light-remote-gold-uat/operator/uat-api-cookie';
 const email='gold-native-uat-20261019@example.invalid';
-const subId='sub_gold_uat_flow_20261019';
-const createdId='evt_gold_uat_flow_20261019_created';
-const canceledId='evt_gold_uat_flow_20261019_canceled';
+const signed=process.env.GOLD_EXPECT_SIGNED==='1';
+const subId=signed?'sub_gold_signed_http_20261019':'sub_gold_uat_flow_20261019';
+const createdId=signed?'evt_gold_signed_http_20261019_created':'evt_gold_uat_flow_20261019_created';
+const canceledId=signed?'evt_gold_signed_http_20261019_canceled':'evt_gold_uat_flow_20261019_canceled';
 const gold=await connectGoldStorage();
 const pool=gold.pool;
 const n=async(sql,values=[])=>Number((await pool.query(sql,values)).rows[0].n);
