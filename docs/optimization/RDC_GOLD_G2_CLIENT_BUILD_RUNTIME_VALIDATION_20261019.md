@@ -1,5 +1,10 @@
 # Gold G2 — Client builds and runtime lifecycle validation (2026-10-19)
 
+## FINAL HOSTED CI OUTCOME FOR SOURCE 6018432
+- Windows GitHub Actions run [39265717332](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39265717332): **SUCCESS**. Job `build-install-smoke` completed successfully, including terminal-runtime-smoke on real hosted win32/x64 and `G2_RUNTIME_SHUTDOWN_MANAGED_PROCESS=PASS` in job logs. Full and compact Windows installers uploaded as SHA-scoped artifact `light-remote-windows-x64-6018432c12b201b9003799ea8e8dd8abae7ab703` (328,170,628 artifact bytes). Windows descendant-tree cleanup is NOT proven by this parent-only test.
+- macOS GitHub Actions run [39265717068](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39265717068): **SUCCESS** on hosted x64 and arm64. Both job logs contain `terminal-runtime-smoke=PASS`, `G2_RUNTIME_SHUTDOWN_MANAGED_PROCESS=PASS`, `G2_RUNTIME_SHUTDOWN_POSIX_CHILD_GROUP=PASS`. Artifacts: `light-remote-macos-x64-6018432...` and `light-remote-macos-arm64-6018432...` (SHA-scoped, retained in Actions).
+- These are actual OS hosted-runner builds and smoke tests; they are **not** acceptance testing on an enrolled owner Windows/macOS device or proof that every G2 edge case is resolved. No release-tag push, production update channel, or live Windows/macOS install was performed.
+
 ## UPDATE — 6018432 source and live Gold acceptance
 - NativeProcessRegistry.close() implemented; Agent daemon and Operator shutdown now call NativeProcess and NativeTerminal registries. `selftest-g2-runtime-shutdown-cleanup.mjs` PASS on Linux with POSIX descendant gone; old stop/timeout/EPIPE/PTY regression suites PASS.
 - Commit `6018432c12b201b9003799ea8e8dd8abae7ab703` pushed to Gold branch, triggered **Windows Tray Client** and **macOS Client Packages** isolated GitHub Actions runs. `beta-release.yml` is tag-only; no release/update channel promoted. Both workflows use SHA-scoped upload-artifact output.

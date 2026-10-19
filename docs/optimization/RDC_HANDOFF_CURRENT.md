@@ -1,5 +1,8 @@
 # Current RDC → Light Remote Gold optimization handoff
 
+**LATEST G2 CLIENT CI: HOSTED WINDOWS + macOS x64/arm64 ALL SUCCESS** for Gold source commit `6018432`. See [full Gold restart and CI evidence](./RDC_GOLD_G2_CLIENT_BUILD_RUNTIME_VALIDATION_20261019.md), [Windows Actions run](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39265717332) and [macOS Actions run](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39265717068). Windows job logs show native terminal runtime smoke and G2 managed process shutdown PASS; both macOS variants additionally show POSIX child-group shutdown PASS. SHA-scoped installers/packages are GitHub Actions artifacts only, production unchanged. Remaining G2: Windows descendant tree and physical Windows/macOS client enrollment/E2E, PTY missing-onExit, unexpected network loss. G2 IN PROGRESS; G1 unknown refusals separately unresolved.
+
+
 **LATEST VERIFIED G2 CHECKPOINT — 6018432**: See [G2 client build + live Gold shutdown report](./RDC_GOLD_G2_CLIENT_BUILD_RUNTIME_VALIDATION_20261019.md). Real Gold service restart orphan fixture PASS (leader PID 26633 and child PID 26637 absent afterward), 5/5 Gold services active, Gold+production HTTPS 200 (production untouched). GitHub-hosted macOS x64+arm64 CI run [39265717068](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39265717068) SUCCESS with two SHA-scoped artifacts; Windows CI run [39265717332](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39265717332) IN PROGRESS at last check. These are hosted builds, NOT live owner device E2E. Gold branch source commit `6018432`; full G2 still OPEN pending Windows, live macOS/Windows and hard edge cases. G1 pre-dispatch refusals remain UNRESOLVED.
 
 
