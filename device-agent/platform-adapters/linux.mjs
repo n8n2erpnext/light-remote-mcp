@@ -7,6 +7,14 @@ import { inferCapabilities, uniqueCapabilities } from './shared.mjs';
 // This affects ONLY capability classification; original script is untouched.
 function classificationInput(script) {
   const input=String(script||'');
+  // A literal journalctl unit selector is diagnostic data, not the Docker
+  // executable. Permit only one complete read-only invocation and the
+  // whitelisted output/length flags. No quoting, expansions or shell chaining.
+  const journal=/^[ \t]*(?:(?:\/usr\/bin\/)?sudo[ \t]+-n[ \t]+)?(?:\/usr\/bin\/)?journalctl[ \t]+(?:(?:--no-pager|-n[ \t]+(?:0|[1-9][0-9]{0,5}))[ \t]+)?(?:(?:-u|--unit)[ \t]+|--unit=)(docker(?:\.service)?)(?:[ \t]+(?:--no-pager|-n[ \t]+(?:0|[1-9][0-9]{0,5})))?[ \t]*$/i.exec(input);
+  if(journal){
+    const unit=journal[1],i=input.lastIndexOf(unit);
+    return input.slice(0,i)+'lr_service_unit'+input.slice(i+unit.length);
+  }
   const match=/^\s*(?:(?:\/usr\/bin\/)?sudo\s+-n\s+)?(?:\/usr\/bin\/)?systemctl\s+(?:is-active|is-enabled|status)\s+(docker|docker\.service)\s*$/i.exec(input);
   if(!match)return input;
   const token=match[1];

@@ -14,6 +14,7 @@ const noDocker=[
   ['sudo -n systemctl is-active docker',['filesystem','sudo-on-demand','systemctl']],
   ['/usr/bin/sudo -n /usr/bin/systemctl status docker',['filesystem','sudo-on-demand','systemctl']],
   ['systemctl is-active docker.service',minimum],
+  ['journalctl -u docker',minimum],
 ];
 // These are NOT permitted to benefit from the exception. Command composition,
 // argument expansion, shells, pipelines, comment/newline or extra options must
@@ -40,7 +41,6 @@ const needsDocker=[
   'bash -lc "docker ps"',
   'sh -c "docker ps"',
   "echo 'docker ps'",
-  'journalctl -u docker',
   'systemctl restart docker',
   'systemctl start docker',
   'systemctl stop docker',
