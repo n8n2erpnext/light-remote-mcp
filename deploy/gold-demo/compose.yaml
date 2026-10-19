@@ -1,0 +1,38 @@
+name: light-remote-gold-demo
+services:
+  preview-proxy:
+    image: nginx:1.27-alpine
+    container_name: light-remote-gold-preview
+    restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ./nginx-gold.conf:/etc/nginx/conf.d/default.conf:ro
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
+    expose:
+      - "8080"
+    networks:
+      - netbird_netbird
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: "netbird_netbird"
+      traefik.http.routers.gold-preview.entrypoints: websecure
+      traefik.http.routers.gold-preview.rule: "Host(`gold.light-remote.thaiduy.digital`) && (Path(`/`) || PathPrefix(`/account`) || PathPrefix(`/admin`) || PathPrefix(`/downloads`) || PathPrefix(`/support`) || PathPrefix(`/ai-guide`) || PathPrefix(`/privacy`) || PathPrefix(`/terms`) || PathPrefix(`/cookies`) || PathPrefix(`/favicon`) || PathPrefix(`/site.webmanifest`) || PathPrefix(`/robots.txt`) || PathPrefix(`/sitemap.xml`))"
+      traefik.http.routers.gold-preview.service: gold-preview
+      traefik.http.routers.gold-preview.tls: "true"
+      traefik.http.routers.gold-preview.tls.certresolver: letsencrypt
+      traefik.http.services.gold-preview.loadbalancer.server.port: "8080"
+      traefik.http.middlewares.gold-preview-headers.headers.customresponseheaders.X-Robots-Tag: "noindex, nofollow, noarchive"
+      traefik.http.middlewares.gold-preview-headers.headers.customresponseheaders.Cache-Control: "no-store"
+      traefik.http.middlewares.gold-preview-headers.headers.contenttypenosniff: "true"
+      traefik.http.middlewares.gold-preview-rate.ratelimit.average: "60"
+      traefik.http.middlewares.gold-preview-rate.ratelimit.period: "1m"
+      traefik.http.middlewares.gold-preview-rate.ratelimit.burst: "120"
+      traefik.http.routers.gold-preview.middlewares: gold-preview-headers,gold-preview-rate
+networks:
+  netbird_netbird:
+    external: true
