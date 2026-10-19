@@ -43,6 +43,12 @@ try{
   await page.locator('.wall-back').click();
   await page.waitForURL(base+'/');
   assert.equal(await page.locator('#ptyOpen svg.mi').count(),1,'PTY launcher has Material terminal icon');
+  for(const key of ['#ptyMinimize svg.mi','#ptyDragHandle .pty-grip svg.mi']){
+    const background=page.locator(key+' [fill="none"]');
+    assert.ok(await background.count()>0,key+': decorative background must stay transparent');
+    const svg=page.locator(key).first();
+    assert.equal(await svg.getAttribute('fill'),'currentColor',key+': icon foreground uses currentColor');
+  }
   assert.equal(await page.locator('#ptyOverlay').isVisible(),false,'widget initially closed');
   await page.locator('#ptyOpen').click();
   assert.equal(await page.locator('#ptyPanel').isVisible(),true,'widget opens');
@@ -65,12 +71,16 @@ try{
   await page.locator('#ptyList button').first().click();
   await page.locator('#ptyOutput').getByText('G2_WIDGET_OUTPUT_VISIBLE').first().waitFor({timeout:5000});
   assert.ok(readCalls>=1,'PTY fetched only after opening and selecting the terminal');
+  const expandedHeight=(await panel.boundingBox()).height;
   await page.locator('#ptyMinimize').click();
   assert.equal(await page.locator('#ptyOverlay').evaluate(el=>el.classList.contains('minimized')),true);
+  const minimizedHeight=(await panel.boundingBox()).height;
+  assert.ok(minimizedHeight<100&&minimizedHeight<expandedHeight/2,'minimize must physically collapse the widget to a compact title bar');
   assert.equal(await page.locator('#ptyOutput').isVisible(),false);
   const beforeMin=readCalls;await sleep(1750);assert.equal(readCalls,beforeMin,'PTY polling stops when minimized');
   await page.locator('#ptyMinimize').click();
   assert.equal(await page.locator('#ptyOverlay').evaluate(el=>el.classList.contains('minimized')),false);
+  assert.ok((await panel.boundingBox()).height>expandedHeight-4,'expanding restores full panel height');
   await page.locator('#ptyClose').click();
   assert.equal(await page.locator('#ptyPanel').isVisible(),false);
   assert.equal(await page.locator('#ptyOpen').isVisible(),true);
