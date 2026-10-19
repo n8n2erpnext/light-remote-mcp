@@ -444,8 +444,11 @@ function startJob(payload, requestId) {
     if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);
     const missing=requiredCapabilities.filter(cap=>!route.capabilities.includes(cap));
     if(missing.length){
-      const evidence=leafCapabilityAdmission({reported:fleet.view(route.nodeId).capabilities,
-        approved:enrollments.binding(route.deviceId).approvedCapabilities,required:missing});
+      const fleetState=fleet.view(route.nodeId),binding=enrollments.binding(route.deviceId);
+      const evidence=leafCapabilityAdmission({reported:fleetState.capabilities,
+        approved:binding.approvedCapabilities,required:missing,
+        reportedRevision:fleetState.reportedPolicyRevision,
+        approvedRevision:binding.policyRevision});
       // A refused job never reaches job_started. Record a sanitized policy
       // diagnosis so Wall/activity can distinguish routing from host safety.
       pushEvent({type:'job_admission_denied',status:'denied',

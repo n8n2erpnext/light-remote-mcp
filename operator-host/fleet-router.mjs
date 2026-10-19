@@ -31,7 +31,8 @@ export class FleetRouter {
   _view(node, now=this.now()) {
     return { accountId:node.accountId, deviceId:node.deviceId, nodeId:node.nodeId, state:this._state(node,now), draining:Boolean(node.agentDraining||node.ownerDraining),
       agentDraining:Boolean(node.agentDraining), ownerDraining:Boolean(node.ownerDraining), sessionCeiling:node.sessionCeiling,
-      capabilities:[...node.capabilities], firstSeenAt:node.firstSeenAt, lastSeenAt:node.lastSeenAt,
+      capabilities:[...node.capabilities], reportedPolicyRevision:node.reportedPolicyRevision??null,
+      firstSeenAt:node.firstSeenAt, lastSeenAt:node.lastSeenAt,
       queuedCommands:node.queue.length, inFlightCommands:node.inFlight.size, channelTtlMs:this.channelTtlMs, commandLeaseMs:this.commandLeaseMs };
   }
   touch(input={}) {
@@ -42,7 +43,11 @@ export class FleetRouter {
     const node=prior||{accountId,deviceId,nodeId,firstSeenAt:now,lastSeenAt:now,sessionCeiling:ceiling,capabilities:[],agentDraining:false,ownerDraining:false,queue:[],inFlight:new Map()};
     const wasOffline=prior ? this._state(prior,now)==='offline' : true;
     const drainBefore=Boolean(node.agentDraining||node.ownerDraining);
-    node.lastSeenAt=now; node.sessionCeiling=ceiling; node.capabilities=cleanCapabilities(input.capabilities); node.agentDraining=Boolean(input.draining);
+    node.lastSeenAt=now; node.sessionCeiling=ceiling; node.capabilities=cleanCapabilities(input.capabilities);
+    // Diagnostic only, sourced from an already-authenticated Agent channel.
+    const revision=Number(input.policyRevision);
+    node.reportedPolicyRevision=input.policyRevision!=null&&Number.isSafeInteger(revision)&&revision>=0?revision:null;
+    node.agentDraining=Boolean(input.draining);
     this.nodes.set(nodeId,node);
     const drainAfter=Boolean(node.agentDraining||node.ownerDraining);
     if (!prior || wasOffline) this.emit({type:'node_channel_online',accountId,deviceId,nodeId,status:'online',sessionCeiling:ceiling});
