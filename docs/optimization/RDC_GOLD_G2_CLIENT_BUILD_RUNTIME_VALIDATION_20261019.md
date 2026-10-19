@@ -1,5 +1,14 @@
 # Gold G2 — Client builds and runtime lifecycle validation (2026-10-19)
 
+## UPDATE — 6018432 source and live Gold acceptance
+- NativeProcessRegistry.close() implemented; Agent daemon and Operator shutdown now call NativeProcess and NativeTerminal registries. `selftest-g2-runtime-shutdown-cleanup.mjs` PASS on Linux with POSIX descendant gone; old stop/timeout/EPIPE/PTY regression suites PASS.
+- Commit `6018432c12b201b9003799ea8e8dd8abae7ab703` pushed to Gold branch, triggered **Windows Tray Client** and **macOS Client Packages** isolated GitHub Actions runs. `beta-release.yml` is tag-only; no release/update channel promoted. Both workflows use SHA-scoped upload-artifact output.
+- macOS GitHub Actions run 39265717068 **SUCCESS** on both x64 and arm64 hosted runners. Artifacts `light-remote-macos-x64-6018432...` (83,102,627 bytes) and `light-remote-macos-arm64-6018432...` (80,704,111 bytes). Hosted CI not a test on owner's Mac.
+- Windows GitHub Actions run 39265717332 was **IN PROGRESS** at latest read; do not mark PASS prematurely.
+- Controlled real Gold service restart: copied `lib/native-process.mjs`, `device-agent/operator-agent.mjs`, and `operator-host/executor.mjs` into isolated Gold LXD, verified matching SHA-256, restarted Gold Agent/Operator. Launched a real Device Agent process group leader PID 26633 with child `sleep` PID 26637; both were running before `light-remote-gold-wall` restart, and both were absent from `/proc` afterward. Gold PostgreSQL/Redis/Operator/Plugin/Wall 5/5 active, Gold Preview 200, production 200. This validates post-restart absence, without asserting which layer (runtime cleanup or systemd cgroup) delivered the signal.
+- Remaining: real owner Windows/macOS device tests, Windows child-tree semantics, PTY lost-onExit, and abrupt physical transport loss. G2 STILL IN PROGRESS.
+
+
 Source HEAD: `541f063`. Gold-only branch `feature/light-remote-gold-rebuild-20261018`. **G2 IN PROGRESS; no new G2 source patch or commit in this checkpoint, no Windows/macOS build, production unchanged.**
 
 ## User requirement
