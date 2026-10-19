@@ -86,7 +86,23 @@ export class AccountOperatorAdapter{
     const q=new URLSearchParams({agentId:this.agentId}),row=await callOperatorJson('GET',`/v1/agent-client/${encodeURIComponent(client.clientSessionId)}/devices?${q}`);
     return row.devices||[];
   }
-  async devices(){return (await this.authorizedDevicesRaw()).map(cleanDevice);}
+  async authorizedDeviceDetails(){
+    // The agent-client bindings endpoint contains device identities but can
+    // omit current node/effective capabilities. Enrich only A/B-authorized
+    // devices from the authoritative device endpoint; never enumerate extra
+    // targets or substitute a failed read with a different device.
+    const authorized=await this.authorizedDevicesRaw();
+    return Promise.all(authorized.map(async binding=>{
+      try{
+        const row=await callOperatorJson('GET',`/v1/devices/${encodeURIComponent(binding.deviceId)}`);
+        const current=row?.device;
+        if(current?.deviceId===binding.deviceId&&current.accountId===this.identity.accountId)
+          return {...binding,...current};
+      }catch{}
+      return binding;
+    }));
+  }
+  async devices(){return (await this.authorizedDeviceDetails()).map(cleanDevice);}
   async deviceRaw(deviceId,{continuity=false}={}){
     const client=await this.clientRaw({required:true,continuity});
     await callOperatorJson('POST','/v1/agent-client/resolve',{clientSessionId:client.clientSessionId,agentId:this.agentId,deviceId});
@@ -104,7 +120,7 @@ export class AccountOperatorAdapter{
     return {context:cleanContext(row.context),session:cleanSession(row.session)};
   }
   async connectionHelper(requestedGroup=null){
-    const account=await this.accountRaw(),client=await this.clientRaw({required:false}),devices=client?await this.authorizedDevicesRaw():[],mainId=account.mainDeviceId||null,ready=devices.length>0,transient=!client&&await this.hasActiveSessionEvidence();
+    const account=await this.accountRaw(),client=await this.clientRaw({required:false}),devices=client?await this.authorizedDeviceDetails():[],mainId=account.mainDeviceId||null,ready=devices.length>0,transient=!client&&await this.hasActiveSessionEvidence();
     let working=null;
     if(ready){try{working=await this.workingContext({});}catch(error){if(error?.message!=='agent_client_temporarily_unavailable')throw error;}}
     const helper=ready?(requestedGroup?helperGroup(requestedGroup,working?.context||{}):helperOverview(working?.context||{})):null;

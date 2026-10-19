@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { z } from 'zod';
 import { AccountOperatorAdapter } from './operator-adapter.mjs';
 import { mintPairingContinuation, requireScopes, verifyPairingContinuation } from './oauth.mjs';
@@ -61,8 +62,22 @@ async function terminalOperation(a,x,operation){
   const terminal={op:operation};Object.assign(terminal,pick(x,['terminalId','shell','cwd','term','data','offset','limit','cols','rows','signal','force']));
   return operationView(await a.terminal(x.sessionId,terminal,x.operationId));
 }
+export function scpChunkCompatibilitySha256(rawChunk){
+  const raw=String(rawChunk||'');
+  if(!raw||!/^[A-Za-z0-9_-]+$/.test(raw)||raw.length%4===1)return null;
+  const bytes=Buffer.from(raw,'base64url');
+  if(bytes.toString('base64url')!==raw)return null;
+  return crypto.createHash('sha256').update(bytes).digest('hex');
+}
 async function scpOperation(a,x,operation,fields){
   const scp={op:operation};Object.assign(scp,pick(x,fields));
+  // Older installed device agents require a per-chunk SHA, while current
+  // official MCP clients only advertise transferId/index/data. Derived digest
+  // does not waive the mandatory whole-file SHA verification at commit.
+  if(operation==='upload-chunk'&&scp.sha256===undefined){
+    const hash=scpChunkCompatibilitySha256(scp.data);
+    if(hash)scp.sha256=hash;
+  }
   return operationView(await a.scp(x.sessionId,scp,x.operationId));
 }
 async function desktopOperation(a,x,operation,fields){
@@ -399,8 +414,8 @@ export function registerPluginTools(server,identity){
   add(server,'light_remote_scp_upload_chunk',{
     title:'Write an upload chunk',
     description:'Stage one indexed data chunk for an existing Light SCP upload. This changes transfer state but does not commit the destination file.',
-    inputSchema:{sessionId:id,operationId:opId,transferId:z.string().min(1).max(160),index:z.number().int().min(0),data:z.string().max(6_000_000)},securitySchemes:security(['remote:write']),annotations:annotations(false,false,false,false)
-  },guarded(identity,['remote:write'],(a,x)=>scpOperation(a,x,'upload-chunk',['transferId','index','data'])));
+    inputSchema:{sessionId:id,operationId:opId,transferId:z.string().min(1).max(160),index:z.number().int().min(0),data:z.string().max(6_000_000),sha256:z.string().regex(/^[a-f0-9]{64}$/i).optional()},securitySchemes:security(['remote:write']),annotations:annotations(false,false,false,false)
+  },guarded(identity,['remote:write'],(a,x)=>scpOperation(a,x,'upload-chunk',['transferId','index','data','sha256'])));
 
   add(server,'light_remote_scp_upload_commit',{
     title:'Commit a file upload',
