@@ -1,0 +1,31 @@
+[Unit]
+Description=Light Remote Gold UAT Local Wall (isolated LXD)
+After=network-online.target light-remote-gold-operator.service light-remote-gold-plugin.service
+Wants=network-online.target
+Requires=light-remote-gold-operator.service light-remote-gold-plugin.service
+
+[Service]
+Type=simple
+User=gold-uat
+Group=gold-uat
+WorkingDirectory=/opt/light-remote-gold-uat
+Environment=NODE_ENV=production
+Environment=OPERATOR_AGENT_STATE=/var/lib/light-remote-gold-uat/wall/device.json
+Environment=OPERATOR_AGENT_COMMAND_DIR=/var/lib/light-remote-gold-uat/wall/commands
+Environment=OPERATOR_AGENT_WALL_AUTH_FILE=/var/lib/light-remote-gold-uat/wall/auth.json
+Environment=OPERATOR_AGENT_BASE_URL=https://gold.light-remote.thaiduy.digital
+Environment=OPERATOR_AGENT_HUB_URL=https://gold.light-remote.thaiduy.digital
+Environment=OPERATOR_AGENT_WALL_HOST=10.192.135.61
+Environment=OPERATOR_AGENT_WALL_PORT=5491
+Environment=OPERATOR_FLEET_WALL_HOST=127.0.0.1
+Environment=OPERATOR_FLEET_WALL_PORT=5492
+Environment=LIGHT_REMOTE_UPDATE_MODE=server-managed
+ExecStart=/usr/bin/node /opt/light-remote-gold-uat/device-agent/operator-agent.mjs daemon
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=yes
+PrivateTmp=yes
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

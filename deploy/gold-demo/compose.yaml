@@ -21,7 +21,7 @@ services:
       traefik.enable: "true"
       traefik.docker.network: "netbird_netbird"
       traefik.http.routers.gold-preview.entrypoints: websecure
-      traefik.http.routers.gold-preview.rule: "Host(`gold.light-remote.thaiduy.digital`) && (Path(`/`) || PathPrefix(`/account`) || PathPrefix(`/admin`) || PathPrefix(`/downloads`) || PathPrefix(`/support`) || PathPrefix(`/ai-guide`) || PathPrefix(`/privacy`) || PathPrefix(`/terms`) || PathPrefix(`/cookies`) || PathPrefix(`/favicon`) || PathPrefix(`/site.webmanifest`) || PathPrefix(`/robots.txt`) || PathPrefix(`/sitemap.xml`))"
+      traefik.http.routers.gold-preview.rule: "Host(`gold.light-remote.thaiduy.digital`) && (Path(`/`) || PathPrefix(`/account`) || PathPrefix(`/admin`) || PathPrefix(`/downloads`) || PathPrefix(`/support`) || PathPrefix(`/ai-guide`) || PathPrefix(`/assets/icons/`) || PathPrefix(`/assets/fonts/`) || PathPrefix(`/assets/brand/`) || Path(`/mcp`) || Path(`/enroll`) || Path(`/api/operator`) || PathPrefix(`/device-channel/`) || PathPrefix(`/oauth/`) || PathPrefix(`/.well-known/oauth-`) || Path(`/userinfo`) || PathPrefix(`/privacy`) || PathPrefix(`/terms`) || PathPrefix(`/cookies`) || PathPrefix(`/favicon`) || PathPrefix(`/site.webmanifest`) || PathPrefix(`/robots.txt`) || PathPrefix(`/sitemap.xml`))"
       traefik.http.routers.gold-preview.service: gold-preview
       traefik.http.routers.gold-preview.tls: "true"
       traefik.http.routers.gold-preview.tls.certresolver: letsencrypt
@@ -33,6 +33,25 @@ services:
       traefik.http.middlewares.gold-preview-rate.ratelimit.period: "1m"
       traefik.http.middlewares.gold-preview-rate.ratelimit.burst: "120"
       traefik.http.routers.gold-preview.middlewares: gold-preview-headers,gold-preview-rate
+  wall-netbird-proxy:
+    image: nginx:1.27-alpine
+    container_name: light-remote-gold-wall-netbird
+    restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ./nginx-gold-wall.conf:/etc/nginx/conf.d/default.conf:ro
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
+    ports:
+      - "100.94.184.141:5591:8081"
+    networks:
+      - netbird_netbird
+    labels:
+      traefik.enable: "false"
 networks:
   netbird_netbird:
     external: true

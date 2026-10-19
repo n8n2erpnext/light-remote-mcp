@@ -75,7 +75,17 @@ function fail(res,error){
   return res.status(status).json({ok:false,error:String(message)});
 }
 function sendPortal(res,name,type='html'){
-  return res.type(type).send(fs.readFileSync(portalFile(name)));
+  const file=fs.readFileSync(portalFile(name));
+  if(process.env.LIGHT_REMOTE_GOLD_DEMO==='1'&&name==='index.html'){
+    const goldUrl='https://gold.light-remote.thaiduy.digital/mcp';
+    const html=file.toString('utf8')
+      .replaceAll('https://chatgpt.com/plugins/plugin_asdk_app_6aab6c4bd7d88191a4108d8f4c5e4b4e','https://chatgpt.com/plugins')
+      .replaceAll('Open official plugin','Add Gold test MCP')
+      .replaceAll('Open ChatGPT plugin','Add Gold test MCP')
+      .replace('Official Light Remote Plugin connects directly to this account plane.','Gold UAT uses a separate custom MCP server: '+goldUrl+'. Local Wall: http://100.94.184.141:5591 (NetBird only). The official Light Remote plugin connects to production.');
+    return res.type('html').send(html);
+  }
+  return res.type(type).send(file);
 }
 function esc(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
 function recoveryRecord(token){
