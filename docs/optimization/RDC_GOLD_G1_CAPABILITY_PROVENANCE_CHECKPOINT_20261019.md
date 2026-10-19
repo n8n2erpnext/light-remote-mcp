@@ -19,6 +19,15 @@ Development via the **official** Light Remote connector on authorized VPS-ARM; d
 3. `plugin-server/operator-adapter.mjs`: exposes only the two approved enum reasons corresponding to sanitized `missingCapabilities` in already authorized `light_remote_recent_activity`; does not expose private policy or unrelated devices.
 4. New `deploy/scripts/selftest-gold-leaf-capability-origin.mjs` validates actual in-memory FleetRouter route and all approved/advertised combinations, deny reason, duplicate/malformed capabilities, offline state. No network, customer accounts or mutation outside fixture.
 
+## MCP registry metadata audit — checkpoint extension
+
+A new fixture `deploy/scripts/selftest-gold-plugin-tool-contract.mjs` instantiates the actual `registerPluginTools()` against a no-op MCP registry to inspect **all 80 registered Gold tools** (including tools emitted dynamically from action arrays). No OAuth exchange, device/session access or remote command occurs. It checks:
+- Unique tool names, nonempty titles/descriptions, recognized OAuth scopes.
+- Presence and boolean type of all four MCP annotations.
+- No contradictory `readOnlyHint && destructiveHint`, no `readOnlyHint` paired with execute/write scopes.
+- Exact read/write/execute/terminal scopes and read-only/destructive annotations for 12 representative command, process, file, device and SCP tools.
+Result: **G1_GOLD_MCP_TOOL_METADATA_CONTRACT=PASS registered=80**. This is *not* evidence that an OpenAI pre-dispatch refusal is solved. No annotation or tool name was changed to disguise intent. The G0 source count of 66 static `add(...)` sites was never a count of all dynamically registered tools.
+
 ## Tests and actual rollout evidence
 - `node --check` of all changed source: PASS.
 - `node deploy/scripts/selftest-gold-leaf-capability-origin.mjs`: `G1_GOLD_CAPABILITY_PROVENANCE_FAIL_CLOSED=PASS`.
