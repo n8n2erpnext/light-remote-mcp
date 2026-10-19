@@ -12,6 +12,7 @@ import { DeviceRegistry, DeviceError } from './device-registry.mjs';
 import { EnrollmentRegistry, EnrollmentError } from './enrollment-registry.mjs';
 import { FleetRouter, FleetError } from './fleet-router.mjs';
 import { leafCapabilityAdmission } from './leaf-capability-admission.mjs';
+import { inferOutboundExecCapabilities } from './outbound-exec-capabilities.mjs';
 import { DeviceConnectionRegistry, DeviceConnectionError, DEFAULT_PLAN_CONNECTION_CAPS } from './device-connection-registry.mjs';
 import { DeviceAccessGrantRegistry, DeviceAccessGrantError } from './device-access-grant-registry.mjs';
 import { DevicePairingRegistry, DevicePairingRegistryError } from './device-pairing-registry.mjs';
@@ -442,6 +443,13 @@ function startJob(payload, requestId) {
   if(remote) {
     route=targetRoute(session.nodeId,{accountId:session.accountId});
     if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);
+    // Operator and Agent use the same platform inference. Inbound-only
+    // declared capabilities are insufficient for an outbound exec batch:
+    // detect a missing Docker/LXD/etc right at admission, before creating a
+    // doomed job, while retaining Agent's independent final deny.
+    for(const cap of inferOutboundExecCapabilities(script,{platform:route.platform,shell,declared:requiredCapabilities}))
+      if(!requiredCapabilities.includes(cap))requiredCapabilities.push(cap);
+    requiredCapabilities.sort();
     const missing=requiredCapabilities.filter(cap=>!route.capabilities.includes(cap));
     if(missing.length){
       const fleetState=fleet.view(route.nodeId),binding=enrollments.binding(route.deviceId);
