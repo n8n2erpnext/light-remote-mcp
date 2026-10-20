@@ -160,6 +160,7 @@ jobs:
           VERSION="$(tr -d '\r\n' < VERSION)"
           OUT="$PWD/dist/macos/$TARGET_ARCH"; PKG="$OUT/package"
           node deploy/scripts/stage-client-core.mjs --verify "$PKG"
+          "$PKG/runtime/node" deploy/scripts/selftest-packaged-local-wall.mjs "$PKG"
           test -f "$PKG/client-core.json"
           test -x "$PKG/runtime/node"
           test -x "$PKG/tray/LightRemoteTray"

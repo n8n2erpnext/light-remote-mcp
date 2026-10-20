@@ -1,5 +1,8 @@
 # Current RDC → Light Remote Gold optimization handoff
 
+**LATEST G2 WALL MISSING MATERIAL ICON ASSETS (2026-10-20):** [Windows error `unknown_material_icon:dragIndicator` — bundled asset RCA, RED→GREEN, packaged runtime smoke](./RDC_GOLD_G2_WALL_PACKAGED_MATERIAL_ICONS_20261020.md). Real Windows log 04:02 GET / returns HTTP JSON error (no Node crash). Source had seven SVGs omitted from `client/core-files.json`; RED on original 72-file staged bundle reproduced exact error, fixed 79-file bundle GREEN with parity 39/39 assets, 18 Wall aliases, four HTML pages HTTP 200 and `/api/status` PASS. CI now exercises packaged Local Wall on Windows staged/full installed/compact installed, plus macOS/Linux staged packages. Owner Windows installer acceptance PENDING. Production untouched, G2 IN PROGRESS.
+
+
 **GOLD LINUX HOST-WRITE PILOT CI ACCEPTED:** [RCA, bounded mount exception, systemd Gold canary and Linux CI x64/arm64](./RDC_GOLD_LINUX_HOST_WRITE_SCOPED_PILOT_20261020.md). Gold Linux Client Packages [run #272](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39368624527) **SUCCESS**, commit `831c45e`, both SHA-scoped artifacts uploaded. No production release or HOMESV change. Still only per-installer Owner-selected directories with ProtectSystem=strict and sudo-on-demand grants; **not** a per-operation host-admin broker. Remaining: broker separate owner authorization, real installed E2E, mount denial diagnostics/rollback. G2 remains IN PROGRESS.
 
 

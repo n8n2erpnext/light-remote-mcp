@@ -210,8 +210,16 @@
       "destination": "assets/icons/material/download.svg"
     },
     {
+      "source": "assets/icons/material/drag_indicator.svg",
+      "destination": "assets/icons/material/drag_indicator.svg"
+    },
+    {
       "source": "assets/icons/material/edit.svg",
       "destination": "assets/icons/material/edit.svg"
+    },
+    {
+      "source": "assets/icons/material/expand_more.svg",
+      "destination": "assets/icons/material/expand_more.svg"
     },
     {
       "source": "assets/icons/material/folder.svg",
@@ -220,6 +228,10 @@
     {
       "source": "assets/icons/material/group.svg",
       "destination": "assets/icons/material/group.svg"
+    },
+    {
+      "source": "assets/icons/material/groups.svg",
+      "destination": "assets/icons/material/groups.svg"
     },
     {
       "source": "assets/icons/material/hub.svg",
@@ -238,6 +250,18 @@
       "destination": "assets/icons/material/logout.svg"
     },
     {
+      "source": "assets/icons/material/mark_email_unread.svg",
+      "destination": "assets/icons/material/mark_email_unread.svg"
+    },
+    {
+      "source": "assets/icons/material/notifications.svg",
+      "destination": "assets/icons/material/notifications.svg"
+    },
+    {
+      "source": "assets/icons/material/open_in_full.svg",
+      "destination": "assets/icons/material/open_in_full.svg"
+    },
+    {
       "source": "assets/icons/material/pause.svg",
       "destination": "assets/icons/material/pause.svg"
     },
@@ -252,6 +276,10 @@
     {
       "source": "assets/icons/material/refresh.svg",
       "destination": "assets/icons/material/refresh.svg"
+    },
+    {
+      "source": "assets/icons/material/remove.svg",
+      "destination": "assets/icons/material/remove.svg"
     },
     {
       "source": "assets/icons/material/search.svg",
