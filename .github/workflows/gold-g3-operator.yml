@@ -49,6 +49,7 @@ jobs:
           node deploy/scripts/selftest-g3-executor-readiness-probe.mjs
           node deploy/scripts/selftest-g3-executor-probe-deadline.mjs
           node deploy/scripts/selftest-g3-signed-enrollment-executor-duplex.mjs
+          node deploy/scripts/selftest-g3-local-wall-executor-readiness.mjs
           node deploy/scripts/selftest-v08-fleet-router.mjs
           node deploy/scripts/selftest-host-install-layout.mjs
           bash -n deploy/scripts/install-host.sh
