@@ -48,6 +48,7 @@ export class FleetRouter {
     const node=prior||{accountId,deviceId,nodeId,firstSeenAt:now,lastSeenAt:now,sessionCeiling:ceiling,capabilities:[],agentDraining:false,ownerDraining:false,executorReady:null,queue:[],inFlight:new Map()};
     const wasOffline=prior ? this._state(prior,now)==='offline' : true;
     const drainBefore=Boolean(node.agentDraining||node.ownerDraining);
+    const executorBefore=node.executorReady??null;
     node.lastSeenAt=now; node.sessionCeiling=ceiling; node.capabilities=cleanCapabilities(input.capabilities);
     // Diagnostic only, sourced from an already-authenticated Agent channel.
     const revision=Number(input.policyRevision);
@@ -59,6 +60,7 @@ export class FleetRouter {
     const drainAfter=Boolean(node.agentDraining||node.ownerDraining);
     if (!prior || wasOffline) this.emit({type:'node_channel_online',accountId,deviceId,nodeId,status:'online',sessionCeiling:ceiling});
     if (drainBefore!==drainAfter) this.emit({type:'node_drain_changed',accountId,deviceId,nodeId,status:drainAfter?'draining':'online',draining:drainAfter});
+    if(prior && executorBefore!==node.executorReady) this.emit({type:'node_executor_readiness_changed',accountId,deviceId,nodeId,status:node.executorReady===false?'degraded':node.executorReady===true?'ready':'unknown',executorReady:node.executorReady});
     return this._view(node,now);
   }
   node(nodeId) { const node=this.nodes.get(String(nodeId||'')); if(!node) throw new FleetError('target_node_channel_not_found',404); return node; }
@@ -70,8 +72,10 @@ export class FleetRouter {
     for(const resolve of [...set])resolve();
     set.clear();
   }
-  async waitPoll(input={}, waitMs=8_000) {
-    let result=this.poll(input);
+  async waitPoll(input={}, waitMs=8_000, shouldStop=()=>false) {
+    const latestInput=()=>typeof input==='function'?input():input;
+    if(shouldStop())return {node:this.view(latestInput().nodeId),state:'closed',command:null};
+    let result=this.poll(latestInput());
     if(result.state==='command' || result.node.draining || waitMs<=0)return result;
     const nodeId=result.node.nodeId, delay=Math.max(0,Math.min(Number(waitMs)||0,15_000));
     let set=this.waiters.get(nodeId);
@@ -83,7 +87,10 @@ export class FleetRouter {
     if(timer)clearTimeout(timer);
     set.delete(wake);
     if(!set.size)this.waiters.delete(nodeId);
-    return this.poll(input);
+    if(shouldStop())return {node:this.view(nodeId),state:'closed',command:null};
+    // The heartbeat may update authenticated readiness while waiting;
+    // never re-touch the Fleet using a snapshot from before the wake.
+    return this.poll(latestInput());
   }
   wake(nodeId) { this._notify(validId(nodeId,'node_id')); }
   resume(nodeId) {

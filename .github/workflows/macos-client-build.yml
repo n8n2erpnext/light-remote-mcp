@@ -38,6 +38,7 @@ on:
       - 'deploy/scripts/selftest-g3-duplex-halfopen-watchdog.mjs'
       - 'deploy/scripts/selftest-g3-duplex-executor-rejection.mjs'
       - 'deploy/scripts/selftest-g3-executor-hang-readiness.mjs'
+      - 'deploy/scripts/selftest-g3-duplex-reconnect-inflight.mjs'
       - 'package.json'
       - 'package-lock.json'
       - 'client/core-files.json'
@@ -182,6 +183,7 @@ jobs:
           node deploy/scripts/selftest-g3-duplex-halfopen-watchdog.mjs
           node deploy/scripts/selftest-g3-duplex-executor-rejection.mjs
           node deploy/scripts/selftest-g3-executor-hang-readiness.mjs
+          node deploy/scripts/selftest-g3-duplex-reconnect-inflight.mjs
           test -f "$PKG/device-agent/fleet-component-manager.mjs"
           test -f "$PKG/device-agent/fleet-component-supervisor.mjs"
           for lib in device-proof.mjs native-fs.mjs native-process.mjs native-search.mjs light-scp-file.mjs light-scp-registry.mjs update-contract.mjs runtime-version.mjs; do test -f "$PKG/lib/$lib"; done

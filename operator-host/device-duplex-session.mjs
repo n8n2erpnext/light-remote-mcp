@@ -81,6 +81,7 @@ export async function handleDeviceDuplexSession(req,res,{
     const frameLoop=(async()=>{
       for(;;){
         const frame=await reader.next();
+        if(closed)return;
         if(frame==null){close('request_end');return;}
         const frameEpoch=String(frame.transportEpoch||transportEpoch);
         if(frameEpoch!==transportEpoch)throw new DeviceDuplexError('duplex_transport_epoch_mismatch',409);
@@ -144,7 +145,7 @@ export async function handleDeviceDuplexSession(req,res,{
 
     const commandPump=(async()=>{
       while(!closed){
-        const channel=await poll(authorized,waitMs);
+        const channel=await poll(authorized,waitMs,()=>closed);
         if(closed)return;
         if(channel?.command){
           pendingCommandId=String(channel.command.commandId||'');

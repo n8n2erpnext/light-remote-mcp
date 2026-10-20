@@ -340,7 +340,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
           };
         },
         resume:async authorized=>{fleet.resume(authorized.nodeId);},
-        poll:async(authorized,wait)=>fleet.waitPoll(authorized.context.touchInput,wait),
+        poll:async(authorized,wait,shouldStop)=>fleet.waitPoll(()=>authorized.context.touchInput,wait,shouldStop),
         onResult:async(authorized,result)=>acceptDeviceResult(authorized.context.ctx,result),
         onLive:async(authorized,payload)=>acceptDesktopLivePush(authorized.context.ctx,payload),
         onHeartbeat:async(authorized,payload)=>{
