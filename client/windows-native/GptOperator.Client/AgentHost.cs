@@ -62,7 +62,7 @@ internal static class AgentHost
         }
     }
 
-    private static IntPtr CreateKillOnCloseJob()
+    internal static IntPtr CreateKillOnCloseJob()
     {
         var job = CreateJobObject(IntPtr.Zero, null);
         if (job == IntPtr.Zero) throw new InvalidOperationException($"CreateJobObject failed: {Marshal.GetLastWin32Error()}");
@@ -101,6 +101,7 @@ internal static class AgentHost
         psi.ArgumentList.Add(AppPaths.AgentScript);
         psi.ArgumentList.Add("daemon");
         psi.Environment["OPERATOR_AGENT_STATE"] = AppPaths.StateFile;
+        psi.Environment["LIGHT_REMOTE_MANAGED_PROCESS_HELPER"] = Path.Combine(AppPaths.Root, "GptOperator.Client.exe");
         psi.Environment["HOME"] = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         var connection = ConnectionConfig.Load();
         psi.Environment["OPERATOR_AGENT_BASE_URL"] = connection.BridgeUrl;
@@ -195,8 +196,8 @@ internal static class AgentHost
     private static extern bool SetInformationJobObject(IntPtr hJob, int infoClass, IntPtr lpJobObjectInfo, uint cbJobObjectInfoLength);
 
     [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern bool AssignProcessToJobObject(IntPtr hJob, IntPtr hProcess);
+    internal static extern bool AssignProcessToJobObject(IntPtr hJob, IntPtr hProcess);
 
     [DllImport("kernel32.dll")]
-    private static extern bool CloseHandle(IntPtr hObject);
+    internal static extern bool CloseHandle(IntPtr hObject);
 }

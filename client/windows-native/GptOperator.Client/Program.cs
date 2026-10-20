@@ -7,6 +7,11 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
+        if (args.Length > 0 && string.Equals(args[0], "--managed-process", StringComparison.OrdinalIgnoreCase))
+        {
+            Environment.ExitCode = ManagedProcessEnvelope.Run(args.Skip(1).ToArray());
+            return;
+        }
         AppPaths.EnsureDirectories();
         var selfTestIndex = Array.IndexOf(args, "--self-test-output");
         if (selfTestIndex >= 0 && selfTestIndex + 1 < args.Length)
