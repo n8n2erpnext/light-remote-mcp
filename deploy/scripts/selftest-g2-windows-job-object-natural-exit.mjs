@@ -11,7 +11,7 @@ const reg=new NativeProcessRegistry({stopGraceMs:120});
 const owner={accountId:'g2-job',deviceId:'g2-device',sessionId:'g2-session',agentId:'g2-agent'};
 const pause=ms=>new Promise(r=>setTimeout(r,ms));
 const childCode="setInterval(()=>{},1000)";
-const parentCode="const{spawn}=require('node:child_process');const c=spawn(process.execPath,['-e',"+JSON.stringify(childCode)+"],{windowsHide:true,stdio:'ignore'});console.log('G2_NATURAL_CHILD_PID='+c.pid);";
+const parentCode="const{spawn}=require('node:child_process');const c=spawn(process.execPath,['-e',"+JSON.stringify(childCode)+"],{windowsHide:true,stdio:'ignore'});c.unref();console.log('G2_NATURAL_CHILD_PID='+c.pid);";
 const getAlive=pid=>{try{process.kill(pid,0);return true;}catch(e){if(e.code==='ESRCH')return false;throw e;}};
 const row=reg.start({...owner,cwd:os.tmpdir(),script:parentCode,spawnSpec:()=>({file:process.execPath,args:['-e',parentCode]})});
 let childPid=0;
