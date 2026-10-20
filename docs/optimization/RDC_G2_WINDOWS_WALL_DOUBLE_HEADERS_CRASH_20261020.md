@@ -27,3 +27,11 @@ Gold source Linux ARM64: `selftest-g2-wall-headers-sent-crash.mjs` 3/3 PASS; `se
 2. Confirm Windows CI build source commit SHA, native smoke and downloadable artifact.
 3. Install the updated Gold UAT Windows artifact through authorized owner testing; verify Wall 5491 survives opening '/' and login and repeated requests. If it emits `local_wall_request_error`, inspect the original logged error + exact route rather than reclassifying `ERR_HTTP_HEADERS_SENT`.
 4. Investigate `device_binding_not_found`/Gold enrollment separately if it persists. G2 remains IN PROGRESS; G1 intermittent upstream refusals remain separately UNRESOLVED.
+
+## Hosted Windows build result (2026-10-20)
+- Source commit: `05608aa1ae381744ad35a6446fe6c3c441ae3b38`.
+- GitHub Actions Windows Tray Client **run #433**: [39366296952](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39366296952), status **completed SUCCESS**.
+- Verified real Windows runner logs include `G2_WALL_RENDER_ERROR_NO_HEADERS_SENT_CRASH=PASS`, `G2_WALL_SUBSEQUENT_REQUEST_RECOVERED=PASS`, and `G2_WALL_API_REMAINS_ALIVE=PASS`.
+- Artifact uploaded and not expired: `light-remote-windows-x64-05608aa1ae381744ad35a6446fe6c3c441ae3b38` (328,164,263 bytes), containing full and compact installers as built by workflow.
+- Existing Windows installment on owner's PC was **not** remotely changed. Owner must install/test this exact build and confirm Local Wall 5491. If it returns an error rather than 200, capture new `local_wall_request_error` event to identify previously masked upstream renderer failure.
+- Distinct `device_binding_not_found` suggests stale enrollment after re-pointing old production device state to Gold. Do not erase identity automatically; use Gold Wall enrollment flow if needed after local Wall is stable.
