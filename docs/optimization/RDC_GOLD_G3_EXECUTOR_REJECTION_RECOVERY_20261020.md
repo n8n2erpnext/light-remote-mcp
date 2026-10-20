@@ -29,7 +29,7 @@ In `lib/device-duplex-client.mjs`, normalize an uncaught `onCommand` rejection i
 5. Pushed exact Gold source [`4ab4cc9621760967f78b20c8b10c2d43bd41a4ff`](https://github.com/n8n2erpnext/light-remote-mcp/commit/4ab4cc9621760967f78b20c8b10c2d43bd41a4ff), no release tag or production updater change.
    - Linux [Actions #283](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39408569566): x64 and ARM64 jobs **SUCCESS**; both logs inspected and show `G3_EXECUTOR_REJECTION_RETURNS_UNKNOWN_RESULT=PASS`, `G3_FRESH_CHANNEL_EXECUTOR_RECOVERS_WITHOUT_STALL=PASS`, plus previous G3 half-open/stale tests.
    - macOS [Actions #241](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39408569553): Intel x64 and Apple Silicon arm64 jobs **SUCCESS**; both job logs inspected and contain both new G3 markers and prior half-open watchdog marker.
-   - Windows [Actions #445](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39408569582): native runtime smoke/installer job in progress at checkpoint; no overall PASS claimed yet. Windows CI is **not** actual installed owner-device acceptance.
+   - Windows [Actions #445](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39408569582): **SUCCESS** full installer/runtime build and smoke, exact CI log verified `G3_EXECUTOR_REJECTION_RETURNS_UNKNOWN_RESULT=PASS` and `G3_FRESH_CHANNEL_EXECUTOR_RECOVERS_WITHOUT_STALL=PASS`. Not owner-installed device acceptance. Windows CI is **not** actual installed owner-device acceptance.
    - The CI does not prove Agent/Executor that hangs without rejecting; this is still OPEN.
 
 ## Boundaries

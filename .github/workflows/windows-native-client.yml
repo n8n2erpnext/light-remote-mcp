@@ -41,6 +41,7 @@ on:
       - 'deploy/scripts/selftest-g2-pty-missing-pid-exit.mjs'
       - 'deploy/scripts/selftest-g3-duplex-halfopen-watchdog.mjs'
       - 'deploy/scripts/selftest-g3-duplex-executor-rejection.mjs'
+      - 'deploy/scripts/selftest-g3-executor-hang-readiness.mjs'
       - 'package.json'
       - 'package-lock.json'
       - 'client/core-files.json'
@@ -199,6 +200,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'G3 duplex half-open receive watchdog regression failed on Windows' }
           & $node deploy/scripts/selftest-g3-duplex-executor-rejection.mjs
           if ($LASTEXITCODE -ne 0) { throw 'G3 duplex executor rejection recovery regression failed on Windows' }
+          & $node deploy/scripts/selftest-g3-executor-hang-readiness.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'G3 executor hang readiness regression failed on Windows' }
           & $node deploy/scripts/selftest-g2-wall-headers-sent-crash.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Windows Local Wall double-response crash regression failed' }
           $env:OPERATOR_AGENT_STATE = Join-Path $env:RUNNER_TEMP 'native-empty-device.json'

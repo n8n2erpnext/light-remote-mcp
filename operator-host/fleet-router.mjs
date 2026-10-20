@@ -33,8 +33,8 @@ export class FleetRouter {
   _state(node, now=this.now()) { return this._channelFresh(node,now)?'online':'offline'; }
   _view(node, now=this.now()) {
     const channelFresh=this._channelFresh(node,now),draining=Boolean(node.agentDraining||node.ownerDraining);
-    const readinessReason=!channelFresh?'channel_stale':draining?'draining':'ready';
-    return { accountId:node.accountId, deviceId:node.deviceId, nodeId:node.nodeId, state:this._state(node,now), channelFresh, dispatchReady:readinessReason==='ready', readinessReason, draining,
+    const readinessReason=!channelFresh?'channel_stale':draining?'draining':node.executorReady===false?'executor_unavailable':'ready';
+    return { accountId:node.accountId, deviceId:node.deviceId, nodeId:node.nodeId, state:this._state(node,now), channelFresh, executorReady:node.executorReady??null, dispatchReady:readinessReason==='ready', readinessReason, draining,
       agentDraining:Boolean(node.agentDraining), ownerDraining:Boolean(node.ownerDraining), sessionCeiling:node.sessionCeiling,
       capabilities:[...node.capabilities], reportedPolicyRevision:node.reportedPolicyRevision??null,
       firstSeenAt:node.firstSeenAt, lastSeenAt:node.lastSeenAt,
@@ -45,7 +45,7 @@ export class FleetRouter {
     const now=this.now(), prior=this.nodes.get(nodeId);
     if (prior && (prior.accountId!==accountId || prior.deviceId!==deviceId)) throw new FleetError('fleet_node_identity_conflict',409);
     const ceiling=Math.max(1,Math.min(Number(input.sessionCeiling)||2,100));
-    const node=prior||{accountId,deviceId,nodeId,firstSeenAt:now,lastSeenAt:now,sessionCeiling:ceiling,capabilities:[],agentDraining:false,ownerDraining:false,queue:[],inFlight:new Map()};
+    const node=prior||{accountId,deviceId,nodeId,firstSeenAt:now,lastSeenAt:now,sessionCeiling:ceiling,capabilities:[],agentDraining:false,ownerDraining:false,executorReady:null,queue:[],inFlight:new Map()};
     const wasOffline=prior ? this._state(prior,now)==='offline' : true;
     const drainBefore=Boolean(node.agentDraining||node.ownerDraining);
     node.lastSeenAt=now; node.sessionCeiling=ceiling; node.capabilities=cleanCapabilities(input.capabilities);
@@ -53,6 +53,8 @@ export class FleetRouter {
     const revision=Number(input.policyRevision);
     node.reportedPolicyRevision=input.policyRevision!=null&&Number.isSafeInteger(revision)&&revision>=0?revision:null;
     node.agentDraining=Boolean(input.draining);
+    // Only Agent-provided readiness is diagnostic; missing legacy field is unknown.
+    node.executorReady=typeof input.executorReady==='boolean'?input.executorReady:(prior?.executorReady??null);
     this.nodes.set(nodeId,node);
     const drainAfter=Boolean(node.agentDraining||node.ownerDraining);
     if (!prior || wasOffline) this.emit({type:'node_channel_online',accountId,deviceId,nodeId,status:'online',sessionCeiling:ceiling});
@@ -105,6 +107,7 @@ export class FleetRouter {
     if(deviceId && node.deviceId!==deviceId) throw new FleetError('target_node_device_mismatch',409);
     if(view.state!=='online') throw new FleetError('target_node_offline',409);
     if(view.draining) throw new FleetError('target_node_draining',409);
+    if(view.executorReady===false) throw new FleetError('target_node_executor_unavailable',409);
     return view;
   }
   enqueue(input={}) {
@@ -120,7 +123,7 @@ export class FleetRouter {
   }
   poll(input={}) {
     const view=this.touch(input), node=this.node(view.nodeId), now=this.now();
-    if(view.draining) return {node:view,state:'idle',command:null};
+    if(!view.dispatchReady) return {node:view,state:'idle',command:null};
     let command=[...node.inFlight.values()].map(id=>this.commands.get(id)).find(c=>c && c.dispatchedAt+this.commandLeaseMs<=now);
     let redelivery=Boolean(command);
     if(!command) {

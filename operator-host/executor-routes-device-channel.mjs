@@ -328,7 +328,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
           const capabilities=verifiedLeafCapabilities(payload.capabilities,ctx.binding,reportedRevision);
           requireDeviceConnection(ctx.device.deviceId);
           devices.heartbeat(ctx.device.deviceId,{capabilities,agentVersion:payload.agentVersion,updateStatus:payload.updateStatus});
-          const touchInput={accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,sessionCeiling:payload.sessionCeiling,draining:Boolean(payload.draining),capabilities,policyRevision:reportedRevision};
+          const touchInput={accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,sessionCeiling:payload.sessionCeiling,draining:Boolean(payload.draining),executorReady:payload.executorReady,capabilities,policyRevision:reportedRevision};
           fleet.touch(touchInput);
           const policy=reportedRevision===Math.max(1,Number(ctx.binding.policyRevision)||1)?null:enrollments.policyEnvelope(ctx.device.deviceId);
           const transportEpoch=String(payload.transportEpoch||'').trim();
@@ -348,7 +348,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
           const reportedRevision=Math.max(0,Number(payload.policyRevision??state.reportedRevision)||0);
           const capabilities=verifiedLeafCapabilities(Array.isArray(payload.capabilities)?payload.capabilities:state.capabilities,ctx.binding,reportedRevision);
           state.reportedRevision=reportedRevision;state.capabilities=capabilities;
-          state.touchInput={...state.touchInput,sessionCeiling:payload.sessionCeiling??state.touchInput.sessionCeiling,draining:payload.draining==null?state.touchInput.draining:Boolean(payload.draining),capabilities,policyRevision:reportedRevision};
+          state.touchInput={...state.touchInput,sessionCeiling:payload.sessionCeiling??state.touchInput.sessionCeiling,draining:payload.draining==null?state.touchInput.draining:Boolean(payload.draining),executorReady:payload.executorReady,capabilities,policyRevision:reportedRevision};
           devices.heartbeat(ctx.device.deviceId,{capabilities,agentVersion:payload.agentVersion||ctx.device.agentVersion,updateStatus:payload.updateStatus});
           const node=fleet.touch(state.touchInput);
           const policy=reportedRevision===Math.max(1,Number(ctx.binding.policyRevision)||1)?null:enrollments.policyEnvelope(ctx.device.deviceId);
@@ -365,7 +365,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       requireDeviceConnection(ctx.device.deviceId);
       devices.heartbeat(ctx.device.deviceId,{capabilities,agentVersion:ctx.payload.agentVersion,updateStatus:ctx.payload.updateStatus});
       const waitMs=Math.max(0,Math.min(Number(ctx.payload.waitMs)||8000,15000));
-      const channel=await fleet.waitPoll({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,sessionCeiling:ctx.payload.sessionCeiling,draining:Boolean(ctx.payload.draining),capabilities,policyRevision:reportedRevision},waitMs);
+      const channel=await fleet.waitPoll({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,sessionCeiling:ctx.payload.sessionCeiling,draining:Boolean(ctx.payload.draining),executorReady:ctx.payload.executorReady,capabilities,policyRevision:reportedRevision},waitMs);
       const policy=reportedRevision===Math.max(1,Number(ctx.binding.policyRevision)||1)?null:enrollments.policyEnvelope(ctx.device.deviceId);
       return sendJson(res,200,{ok:true,channel,policy,access:{pending:accessGrants.pendingForDevice(ctx.device.deviceId),activeGrant:accessGrants.activeForDevice(ctx.device.deviceId,connections.get(ctx.device.deviceId)?.connectionId)}});
     }
