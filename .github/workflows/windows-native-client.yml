@@ -44,6 +44,7 @@ on:
       - 'deploy/scripts/selftest-g3-executor-hang-readiness.mjs'
       - 'deploy/scripts/selftest-g3-duplex-reconnect-inflight.mjs'
       - 'deploy/scripts/selftest-g3-executor-readiness-probe.mjs'
+      - 'deploy/scripts/selftest-g3-executor-probe-deadline.mjs'
       - 'package.json'
       - 'package-lock.json'
       - 'client/core-files.json'
@@ -208,6 +209,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'G3 reconnect in-flight readiness regression failed on Windows' }
           & $node deploy/scripts/selftest-g3-executor-readiness-probe.mjs
           if ($LASTEXITCODE -ne 0) { throw 'G3 native executor canary regression failed on Windows' }
+          & $node deploy/scripts/selftest-g3-executor-probe-deadline.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'G3 executor canary deadline/staleness regression failed on Windows' }
           & $node deploy/scripts/selftest-g2-wall-headers-sent-crash.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Windows Local Wall double-response crash regression failed' }
           $env:OPERATOR_AGENT_STATE = Join-Path $env:RUNNER_TEMP 'native-empty-device.json'
