@@ -34,6 +34,8 @@ on:
       - 'deploy/scripts/stage-client-core.mjs'
       - 'deploy/scripts/stage-terminal-runtime.mjs'
       - 'deploy/scripts/terminal-runtime-smoke.mjs'
+      - 'deploy/scripts/selftest-g2-windows-job-object-natural-exit.mjs'
+      - 'deploy/scripts/selftest-g2-pty-missing-exit.mjs'
       - 'package.json'
       - 'package-lock.json'
       - 'client/core-files.json'
