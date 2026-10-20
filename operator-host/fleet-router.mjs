@@ -27,9 +27,14 @@ export class FleetRouter {
     this.maxQueuedPerNode=Math.max(1,Math.min(Number(maxQueuedPerNode)||64,1024));
     this.nodes=new Map(); this.commands=new Map(); this.completed=new Map(); this.waiters=new Map();
   }
-  _state(node, now=this.now()) { return node.inFlight.size>0 || now-node.lastSeenAt<=this.channelTtlMs ? 'online':'offline'; }
+  _channelFresh(node, now=this.now()) { return now>=node.lastSeenAt && now-node.lastSeenAt<=this.channelTtlMs; }
+  // In-flight work may survive channel loss, but cannot prove that the Agent
+  // can accept a NEW dispatch. Only a fresh authenticated channel can.
+  _state(node, now=this.now()) { return this._channelFresh(node,now)?'online':'offline'; }
   _view(node, now=this.now()) {
-    return { accountId:node.accountId, deviceId:node.deviceId, nodeId:node.nodeId, state:this._state(node,now), draining:Boolean(node.agentDraining||node.ownerDraining),
+    const channelFresh=this._channelFresh(node,now),draining=Boolean(node.agentDraining||node.ownerDraining);
+    const readinessReason=!channelFresh?'channel_stale':draining?'draining':'ready';
+    return { accountId:node.accountId, deviceId:node.deviceId, nodeId:node.nodeId, state:this._state(node,now), channelFresh, dispatchReady:readinessReason==='ready', readinessReason, draining,
       agentDraining:Boolean(node.agentDraining), ownerDraining:Boolean(node.ownerDraining), sessionCeiling:node.sessionCeiling,
       capabilities:[...node.capabilities], reportedPolicyRevision:node.reportedPolicyRevision??null,
       firstSeenAt:node.firstSeenAt, lastSeenAt:node.lastSeenAt,

@@ -42,13 +42,13 @@ const late=fleet.enqueue({accountId:'self-hosted-local',deviceId,nodeId,jobId:'j
 polled=fleet.poll({accountId:'self-hosted-local',deviceId,nodeId,sessionCeiling:2,capabilities:['filesystem','git']});
 if(polled.command?.commandId!==late.commandId)throw new Error('fleet_late_dispatch_failed');
 now+=20_100;
-if(fleet.view(nodeId).state!=='online')throw new Error('fleet_inflight_presence_lost');
+if(fleet.view(nodeId).state!=='offline'||fleet.view(nodeId).inFlightCommands!==1||fleet.view(nodeId).dispatchReady!==false)throw new Error('fleet_stale_channel_must_not_claim_dispatch_readiness');
 const abandoned=fleet.abandon(late.commandId,'remote_result_timeout'),receipt=fleet.receipt(late.commandId);
 if(!abandoned?.abandoned||!receipt?.duplicate||!receipt?.abandoned||receipt.abandonReason!=='remote_result_timeout')throw new Error('fleet_abandoned_receipt_missing');
 if(fleet.view(nodeId).state!=='offline')throw new Error('fleet_abandoned_stale_node_should_be_offline');
 polled=fleet.poll({accountId:'self-hosted-local',deviceId,nodeId,sessionCeiling:2,capabilities:['filesystem','git']});
 if(polled.state!=='idle'||polled.node.state!=='online')throw new Error('fleet_repoll_after_abandon_failed');
-console.log('v11-fleet-inflight-presence=PASS');
+console.log('v11-fleet-inflight-work-preserved-but-channel-stale=PASS');
 console.log('v11-fleet-late-result-receipt=PASS');
 
 fleet.setOwnerDrain(nodeId,true);
