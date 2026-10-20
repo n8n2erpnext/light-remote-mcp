@@ -35,3 +35,9 @@ Follow `RDC_LIGHT_REMOTE_GOLD_MASTER_PLAN.md` G3 with Linux Server `light-remote
 - Need next: actual Agent executor-unavailable-with-transport-connected readiness, stale/half-open heartbeat probe and reconnect watchdog (channel/Agent/Operator independently), short transport fault/recovery on a disposable Gold node, then controlled resource soak. Do not equate `dispatchReady=true` with end-to-end ability to execute the job.
 - Do not cut the owner's Windows or production network. macOS physical later. No production, billing, team, A/B, PostgreSQL/Redis schema, or client installer changes.
 - Preserve unrelated pre-existing untracked Gold UAT files and manual backup; never auto-delete.
+
+## Exact Linux hosted CI acceptance (after commit)
+- [Linux Client Packages #281](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39404439435) completed **SUCCESS** for exact source `d7d60c3462b1649595f3c3d8569890f4038a01d9`. Both x64 and arm64 package-contract jobs completed SUCCESS.
+- Inspected both Windows-independent **Linux job logs**: x64 and arm64 EACH contain `G3_STALE_INFLIGHT_CHANNEL_NOT_ONLINE=PASS`, `G3_STALE_DISPATCH_BLOCKED_NO_QUEUE=PASS`, `G3_AUTHENTICATED_REPOLL_REDELIVERY_RECOVERS=PASS`, `G3_DRAIN_OWNER_AND_FRESHNESS_GUARDS=PASS`, and updated `v11-fleet-inflight-work-preserved-but-channel-stale=PASS`.
+- The Linux source commit `d7d60c3` has been installed on **isolated** `light-remote-gold-uat` Operator; the hosted Linux CI only verifies source/packaging and does **not** substitute for the separate real LXD IPC test above.
+- **G3 phase 1 accepted:** fresh transport presence vs in-flight work; no new command accepted to expired Fleet channel; existing outstanding result/lease preserved. **G3 full gate remains OPEN**: remote Agent/executor readiness beyond poll freshness, half-open/reconnect watchdog and isolated live fault-injection. G2 physical network/macOS test remains deferred. Production unaffected.
