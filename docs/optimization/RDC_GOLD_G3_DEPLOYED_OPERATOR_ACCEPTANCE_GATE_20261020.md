@@ -28,3 +28,9 @@ Baseline `66a978a` | **G3 BLOCKED pending installed Operator source alignment an
 4. Do not start G4 by declaring G3 green merely because transport/CI are green. This test and audit provide honest gating, not a policy exception.
 
 Latest other evidence: real dormant Linux/macOS Agent lifecycle plus synthetic enrollment/duplex tests are passing; see master handoff. Keep unrelated preexisting Gold UAT untracked files untouched.
+
+
+## CI verified after push
+- Source [`30b4c6849198414460de6b09bae0156deb5697dc`](https://github.com/n8n2erpnext/light-remote-mcp/commit/30b4c6849198414460de6b09bae0156deb5697dc) triggered [Gold G3 Operator Regression #10](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39437851397): **6/6 SUCCESS** (Operator contract, server bundles x64 + ARM64, real dormant Agent lifecycle, synthetic authenticated CLI enrollment, bounded TCP soak).
+- Reviewed Operator job log for `G3_LEGACY_FRESH_CHANNEL_NOT_EXECUTOR_PROOF=PASS`, `G3_FLEET_REJECTS_FALSE_EXECUTOR_ADMISSION=PASS`, `G3_FLEET_REJECTS_STALE_CHANNEL_ADMISSION=PASS`, `G3_FLEET_REQUIRES_EXPLICIT_EXECUTOR_SIGNAL=PASS`, and `gold-g3-operator-contract=PASS`.
+- This CI tests source contracts and isolated fixtures. It does **not** use credentials, restart the real Gold Operator, or enroll a live test device. The **live** read-only audit continues to report `BLOCKED_OPERATOR_SOURCE_MISMATCH`. Do not conflate the two.
