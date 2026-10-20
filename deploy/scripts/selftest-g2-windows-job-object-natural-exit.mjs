@@ -37,6 +37,19 @@ try{
  assert.equal(getAlive(childPid),false,'Job Object must terminate child on natural parent exit');
  console.log('G2_WINDOWS_JOB_OBJECT_NATURAL_PARENT_EXIT_NO_ORPHAN=PASS');
  console.log('G2_WINDOWS_JOB_OBJECT_STDOUT_AND_EXIT_CODE=PASS');
+ const stdinCode="process.stdin.on('data',chunk=>process.stdout.write('G2_PIPE_'+chunk.toString().trim()));process.stdin.on('end',()=>process.exit(0))";
+ const piped=reg.start({...owner,cwd:os.tmpdir(),script:stdinCode,spawnSpec:()=>({file:process.execPath,args:['-e',stdinCode]})});
+ reg.input(piped.processId,owner,{data:'STDIN_OK\n',eof:true});
+ const ioDeadline=Date.now()+8000;let io=null,ioText='';
+ while(Date.now()<ioDeadline){
+   io=reg.view(piped.processId,owner);
+   ioText=reg.output(piped.processId,owner,{stream:'stdout',limit:600}).output.text;
+   if(io.finishedAt&&ioText.includes('G2_PIPE_STDIN_OK'))break;
+   await pause(40);
+ }
+ assert.equal(io?.exitCode,0,'Job Object helper must forward stdin EOF/exit code');
+ assert.match(ioText,/G2_PIPE_STDIN_OK/,'Job Object helper must inherit agent stdin/stdout pipes');
+ console.log('G2_WINDOWS_JOB_OBJECT_STDIN_STDOUT_PASSTHROUGH=PASS');
  // AgentHost already holds the outer Agent in a kill-on-close job. Prove the
  // per-process envelope works inside a nested Windows Job Object as well.
  if(process.env.G2_NESTED_JOB_FIXTURE!=='1'){

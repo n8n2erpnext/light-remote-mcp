@@ -118,7 +118,7 @@ internal static class ManagedProcessEnvelope
 
         IntPtr job = IntPtr.Zero;
         var process = new ProcessInformation();
-        var created = false, assigned = false;
+        bool created = false, assigned = false;
         try
         {
             var stdin = GetStdHandle(StdInputHandle);
