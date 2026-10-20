@@ -104,7 +104,7 @@ jobs:
           test -s "$PKG/NOTICE"
           test -s "$PKG/THIRD_PARTY_DISTRIBUTION_NOTICES.md"
           node deploy/scripts/stage-client-core.mjs --verify "$PKG"
-          "$PKG/runtime/node" deploy/scripts/selftest-packaged-local-wall.mjs "$PKG"
+          node deploy/scripts/selftest-packaged-local-wall.mjs "$PKG"
           node deploy/scripts/selftest-gold-linux-host-write-policy.mjs
           node deploy/scripts/selftest-device-agent-service.mjs
           node deploy/scripts/selftest-v09-linux-service-policy.mjs
