@@ -3,6 +3,8 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import http from 'node:http';
+import {execFileSync} from 'node:child_process';
+import path from 'node:path';
 
 export function evaluateGoldG3Readiness({nodes,sourceParity}){
   if(!Array.isArray(nodes))throw Error('gold_g3_fleet_nodes_required');
@@ -43,8 +45,20 @@ export async function queryGoldFleet(socketPath){
   return payload.nodes;
 }
 function fileSha(file){return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');}
+export function activeGoldOperatorFleetPath(){
+  const pid=Number(execFileSync('systemctl',['show','-p','MainPID','--value','light-remote-gold-operator'],{encoding:'utf8',timeout:2500}).trim());
+  if(!Number.isSafeInteger(pid)||pid<2)throw Error('gold_operator_not_running');
+  const cmdline=fs.readFileSync('/proc/'+pid+'/cmdline','utf8').split('\0').filter(Boolean);
+  const execPath=cmdline.find(arg=>arg.endsWith('/operator-host/executor.mjs'));
+  if(!execPath)throw Error('gold_operator_entrypoint_not_found');
+  const file=fs.realpathSync(execPath),dir=path.dirname(path.dirname(file));
+  if(dir!=='/opt/light-remote-gold-uat'&&
+    !(path.dirname(dir)==='/opt/light-remote-gold-uat-candidates'&&/^[a-f0-9]{40}$/.test(path.basename(dir))))
+    throw Error('gold_operator_unexpected_source_root');
+  return path.join(dir,'operator-host/fleet-router.mjs');
+}
 if(process.argv[1]&&process.argv[1].endsWith('uat-gold-g3-readiness-audit.mjs')){
-  const installed='/opt/light-remote-gold-uat/operator-host/fleet-router.mjs';
+  const installed=activeGoldOperatorFleetPath();
   const expected=String(process.env.GOLD_G3_EXPECTED_FLEET_SHA||'');
   if(!/^[a-f0-9]{64}$/i.test(expected))throw Error('gold_g3_expected_source_sha_required');
   const actual=fileSha(installed);

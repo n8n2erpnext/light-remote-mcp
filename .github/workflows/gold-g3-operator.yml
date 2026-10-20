@@ -11,6 +11,8 @@ on:
       - 'client/core-files.json'
       - 'deploy/scripts/selftest-g3-*.mjs'
       - 'deploy/scripts/selftest-device-agent-cli.mjs'
+      - 'deploy/scripts/gold-g3-*.sh'
+      - 'deploy/scripts/uat-gold-g3-readiness-audit.mjs'
       - 'deploy/scripts/soak-g3-duplex-readiness.mjs'
       - 'deploy/scripts/selftest-v08-fleet-router.mjs'
       - 'deploy/scripts/stage-client-core.mjs'
@@ -55,6 +57,14 @@ jobs:
           node deploy/scripts/selftest-g3-strict-executor-admission.mjs
           node --check deploy/scripts/uat-gold-g3-live-enrolled-agent.mjs
           node --check deploy/scripts/uat-gold-g3-readiness-audit.mjs
+          for script in deploy/scripts/gold-g3-stage-candidate.sh deploy/scripts/gold-g3-uat-backup.sh deploy/scripts/gold-g3-uat-cutover.sh deploy/scripts/gold-g3-uat-rollback.sh; do
+            bash -n "$script"
+          done
+          grep -Fq 'extra_args=" daemon"' deploy/scripts/gold-g3-uat-cutover.sh
+          grep -Fq 'ExecStart=/usr/bin/node $ROOT/$entry$extra_args' deploy/scripts/gold-g3-uat-cutover.sh
+          grep -Fq 'G3_GOLD_VALIDATE_WALL_DAEMON_ARG_MISSING' deploy/scripts/gold-g3-uat-cutover.sh
+          grep -Fq 'G3_GOLD_STABLE_HEALTH_10_SAMPLES=PASS' deploy/scripts/gold-g3-uat-cutover.sh
+          echo G3_GOLD_UAT_CUTOVER_DAEMON_AND_ROLLBACK_CONTRACT=PASS
           node deploy/scripts/selftest-v08-fleet-router.mjs
           node deploy/scripts/selftest-host-install-layout.mjs
           bash -n deploy/scripts/install-host.sh
