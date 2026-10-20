@@ -691,6 +691,21 @@ jobs:
           if (-not $json.ok -or $json.platformAdapter -ne 'win32') { throw "installed client invalid: $(Get-Content $result -Raw)" }
           $expectedVersion = (Get-Content VERSION -Raw).Trim()
           if ($json.agentVersion -ne $expectedVersion) { throw "installed agent version mismatch: $($json.agentVersion) expected=$expectedVersion" }
+          # Verify the actual *installed* Agent, not just the source checkout.
+          # rc.49 alone is insufficient: older installed rc.49 builds predate G3.
+          $agentRoot = Join-Path $env:WINDOWS_INSTALL_DIR 'agent'
+          $agentEntry = Join-Path $agentRoot 'device-agent\operator-agent.mjs'
+          $probeModule = Join-Path $agentRoot 'lib\executor-readiness-probe.mjs'
+          if (-not (Test-Path -LiteralPath $agentEntry -PathType Leaf)) { throw 'installed Agent entrypoint missing' }
+          if (-not (Test-Path -LiteralPath $probeModule -PathType Leaf)) { throw 'installed Agent missing G3 independent Executor probe' }
+          if (-not (Select-String -LiteralPath $agentEntry -SimpleMatch 'ExecutorReadinessProbe' -Quiet)) { throw 'installed Agent does not import G3 Executor probe' }
+          $nodeExe = Join-Path $env:WINDOWS_INSTALL_DIR 'runtime\node.exe'
+          if (-not (Test-Path -LiteralPath $nodeExe -PathType Leaf)) { throw 'installed bundled Node runtime missing' }
+          & $nodeExe --check $agentEntry
+          if ($LASTEXITCODE -ne 0) { throw 'installed G3 Agent syntax verification failed' }
+          & $nodeExe --check $probeModule
+          if ($LASTEXITCODE -ne 0) { throw 'installed G3 process canary module syntax verification failed' }
+          Write-Host 'windows-installed-g3-executor-probe=PASS'
           Write-Host 'windows-native-installed-selftest=PASS'
 
       - name: Independent updater staged helper promotion smoke

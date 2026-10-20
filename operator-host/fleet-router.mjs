@@ -34,8 +34,10 @@ export class FleetRouter {
   _state(node, now=this.now()) { return this._channelFresh(node,now)?'online':'offline'; }
   _view(node, now=this.now()) {
     const channelFresh=this._channelFresh(node,now),draining=Boolean(node.agentDraining||node.ownerDraining);
-    const readinessReason=!channelFresh?'channel_stale':draining?'draining':node.executorReady===false?'executor_unavailable':this.requireExecutorReady&&node.executorReady!==true?'executor_unknown':'ready';
-    return { accountId:node.accountId, deviceId:node.deviceId, nodeId:node.nodeId, state:this._state(node,now), channelFresh, executorReady:node.executorReady??null, dispatchReady:readinessReason==='ready', readinessReason, draining,
+    const executorKnown=typeof node.executorReady==='boolean';
+    const admissionAllowed=channelFresh&&!draining&&node.executorReady!==false&&(!this.requireExecutorReady||node.executorReady===true);
+    const readinessReason=!channelFresh?'channel_stale':draining?'draining':node.executorReady===false?'executor_unavailable':!executorKnown?(this.requireExecutorReady?'executor_unknown':'executor_unknown_compat'):'ready';
+    return { accountId:node.accountId, deviceId:node.deviceId, nodeId:node.nodeId, state:this._state(node,now), channelFresh, executorReady:node.executorReady??null, executorReadinessProven:node.executorReady===true, dispatchReady:admissionAllowed, readinessReason, draining,
       agentDraining:Boolean(node.agentDraining), ownerDraining:Boolean(node.ownerDraining), sessionCeiling:node.sessionCeiling,
       capabilities:[...node.capabilities], reportedPolicyRevision:node.reportedPolicyRevision??null,
       firstSeenAt:node.firstSeenAt, lastSeenAt:node.lastSeenAt,

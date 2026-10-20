@@ -53,5 +53,6 @@ const legacy=new FleetRouter({channelTtlMs:10000,commandLeaseMs:2500});
 observed=legacy.touch({...ident,sessionCeiling:2});
 assert.equal(observed.executorReady,null);
 assert.equal(observed.dispatchReady,true);
-assert.equal(observed.readinessReason,'ready');
+assert.equal(observed.readinessReason,'executor_unknown_compat');
+assert.equal(observed.executorReadinessProven,false);
 console.log('G3_LEGACY_COMPATIBILITY_OPT_IN_GATE=PASS');
