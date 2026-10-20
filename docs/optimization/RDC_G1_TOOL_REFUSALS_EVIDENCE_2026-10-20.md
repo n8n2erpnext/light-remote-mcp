@@ -50,3 +50,6 @@ Interpretation: identical ordinary `git status` may be rejected on one invocatio
 - GitHub Actions Windows Tray Client run: https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39364203015, triggered for exact source SHA `aa871e6`; initially `in_progress`, not an installer PASS yet.
 - Light Remote `recent_activity` read (200 most recent events) did **not** expose a denial event/reason for the refused upstream tool admission calls. Absence in this bounded view is **not proof** that no upstream event exists.
 - **Engineering conclusion:** reproducible inconsistent admission result for equivalent normal operations; exact classifier/rule/decision trace is NOT exposed. **Root cause UNKNOWN; priority OPEN for instrumented gateway correlation.** Do not assert that a device-local Light Remote rule blocked Git.
+
+## Additional refusal during Windows Wall fix (2026-10-20)
+A combined read/test Light Remote exec for Node syntax checks and Wall tests was refused with the same generic upstream safety message and no job receipt. The identical regression run alone, plus existing Wall auth and PTY tests, were subsequently admitted and PASS. Normal Git commit/push for 05608aa also succeeded. No device policy was changed and no PTY workaround was used. Internal refusal reason remains UNKNOWN.
