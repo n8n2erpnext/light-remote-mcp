@@ -38,3 +38,9 @@ The source is already in `client/core-files.json` and both host installer file l
 G3 still requires a truly enrolled disposable Linux Agent using the normal authorized owner session, signed channel fault injection, cancellation/reconnect and an OS-level view that can distinguish executor process from transport. Prior UAT attempts verified `https://gold.light-remote.thaiduy.digital` canonical origin, but transferring a test account credential to the container was blocked. Do not bypass this; no enrolled Agent was created. Long-lived process RSS/suspend-wake is not established by these short-lived fixtures. G4 independent effect reconciliation has not begun.
 
 Preserve unrelated Gold UAT untracked helper files. No production deploy/restart and no owner-client auto-update.
+
+## Hosted CI after source commit 9e2bf23
+- Source [`9e2bf23c9aafdb12947cb23de202c55808d22f69`](https://github.com/n8n2erpnext/light-remote-mcp/commit/9e2bf23c9aafdb12947cb23de202c55808d22f69) pushed without any production deploy.
+- [Gold G3 Operator Regression #5](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39426682799): **4/4 SUCCESS** (Operator contract, bounded soak, x64 and ARM64 server bundles). Read exact Operator log with all three new deadline/stale PASS markers and soak log with `G3_BOUNDED_REAL_TCP_PROCESS_SOAK=PASS`.
+- [Linux Desktop Packages #287](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39426682770): **2/2 SUCCESS** (x64 + ARM64), exact three new PASS markers verified in both runner logs.
+- [macOS Packages #245](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39426682745): **2/2 SUCCESS** (Intel x64 / Apple Silicon arm64), with three new deadline/stale markers verified in both runner logs. [Windows Installer #449](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39426682777) was still in progress at checkpoint; do not claim full installer PASS until completed.
