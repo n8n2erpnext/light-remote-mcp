@@ -107,6 +107,8 @@ jobs:
           node deploy/scripts/stage-client-core.mjs --verify "$PKG"
           node deploy/scripts/selftest-packaged-local-wall.mjs "$PKG"
           node deploy/scripts/selftest-g2-pty-missing-exit.mjs
+          node deploy/scripts/selftest-g2-transport-drop-job-survival.mjs
+          node deploy/scripts/selftest-g2-pty-missing-pid-exit.mjs
           node deploy/scripts/selftest-g2-posix-natural-exit-reap.mjs
           node deploy/scripts/selftest-gold-linux-host-write-policy.mjs
           node deploy/scripts/selftest-device-agent-service.mjs
