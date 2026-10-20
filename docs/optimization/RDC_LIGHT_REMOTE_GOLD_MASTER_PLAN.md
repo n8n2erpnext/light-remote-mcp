@@ -1,6 +1,6 @@
 # RDC → Light Remote Gold: reliability optimization master plan
 Date: 2026-10-19 | Owner-approved G0 | Branch: `feature/light-remote-gold-rebuild-20261018`
-Status: **G0 BASELINE AND DESIGN COMPLETE — G1–G6 NOT STARTED**
+Status as of 2026-10-20: **G0 complete; G1/G2 implementation and platform evidence in current handoff; G3 ACTIVE (Agent readiness, duplex, lifecycle); G4–G6 NOT STARTED.** This original G0 plan is a baseline; always read [current handoff](./RDC_HANDOFF_CURRENT.md) for accepted gates and exact CI. Do not infer G1/G2 final release readiness from this summary.
 
 ## Objective, not feature copying
 Learn from observed reliability engineering in Desktop Commander MCP (RDC) to reduce Light Remote false-denial reports, tool misrouting, abandoned jobs, stale readiness, ambiguous timeouts and unhelpful errors. **Do not copy unneeded features or change Light Remote's core architecture simply to resemble RDC.** In particular Light Remote already implements bounded output rings, cursors, process/PTY state and surgical edit: preserve them until a failing benchmark proves a gap.
