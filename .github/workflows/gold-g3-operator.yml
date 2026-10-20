@@ -51,6 +51,9 @@ jobs:
           node deploy/scripts/selftest-g3-executor-probe-deadline.mjs
           node deploy/scripts/selftest-g3-signed-enrollment-executor-duplex.mjs
           node deploy/scripts/selftest-g3-local-wall-executor-readiness.mjs
+          node deploy/scripts/selftest-g3-live-readiness-evidence.mjs
+          node --check deploy/scripts/uat-gold-g3-live-enrolled-agent.mjs
+          node --check deploy/scripts/uat-gold-g3-readiness-audit.mjs
           node deploy/scripts/selftest-v08-fleet-router.mjs
           node deploy/scripts/selftest-host-install-layout.mjs
           bash -n deploy/scripts/install-host.sh
