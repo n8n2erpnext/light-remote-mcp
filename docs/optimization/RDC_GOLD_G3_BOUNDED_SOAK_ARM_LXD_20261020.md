@@ -40,3 +40,12 @@ The Gold-only `.github/workflows/gold-g3-operator.yml` now has an independent `g
 Live Gold UAT `/v1/fleet` returned two fresh leaves with `executorReady=null`, which is legacy/unknown, **not** independent executor readiness proof. Trying to access isolated Plugin `http://10.192.135.61:5583/api/operator` returned HTTP 403 `Invalid Host` from the MCP SDK host guard. Do not spoof Host, disable DNS rebinding protection, or use a production identity to force enrollment. Valid trusted Gold UAT access/enrollment flow and owner authorization must be completed before the disposable enrolled Agent fault-injection gate. This checkpoint does not claim such enrollment, real A/B pairing, real Agent restart/wake, independent OS executor probe or service-lifetime resource soak.
 
 **G3 remains OPEN.** Next: use properly authorized UAT Plugin endpoint, enroll a disposable separate Linux Agent with its own identity, test authenticated readiness/failover and reclaim state, and run a bounded long-running Agent soak. Then only close G3 when the acceptance evidence supports it; G4 effect reconciliation remains separate.
+
+
+## Verified hosted Gold CI after push
+Source [`2d88354e56dd8c956e07d9baff0b4ddaa759a29d`](https://github.com/n8n2erpnext/light-remote-mcp/commit/2d88354e56dd8c956e07d9baff0b4ddaa759a29d) triggered [Gold G3 Operator Regression #3](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39417743179). Exact run jobs: **4/4 SUCCESS**, not just started:
+- `gold-operator-contract`: SUCCESS.
+- `gold-uat-server-bundle (x64)`: SUCCESS.
+- `gold-uat-server-bundle (arm64)`: SUCCESS.
+- `gold-g3-bounded-soak`: SUCCESS; inspected job log for all six `G3_SOAK_CASE=PASS` markers, summary, and `G3_BOUNDED_REAL_TCP_PROCESS_SOAK=PASS`. Hosted Linux x64 Node v22.23.2, 2 cycles / 6 processes / totalDurationMs 42361. p95: reconnect 6192ms, hang 6301ms, half-open 9208ms; max sampled RSS 68232 KiB.
+These hosted results do **not** close the missing enrolled-Agent + independent liveness gate. Production unchanged.
