@@ -25,12 +25,18 @@ import { runtimeVersion } from '../lib/runtime-version.mjs';
 import { migrateLegacyEndpoint } from '../lib/public-endpoint.mjs';
 import { compactResultAfter413, fitResultForDelivery, isCompacted413Result } from './result-delivery.mjs';
 import { CommandExecutionCoordinator, DeviceDuplexClient, DEVICE_DUPLEX_PROTOCOL } from '../lib/device-duplex-client.mjs';
+import { ExecutorReadinessProbe } from '../lib/executor-readiness-probe.mjs';
 
 const VERSION=runtimeVersion({envNames:['LIGHT_REMOTE_VERSION','OPERATOR_AGENT_VERSION']});
 const CORE_ROOT=fileURLToPath(new URL('../',import.meta.url));
 const UPDATE_MODE=String(process.env.LIGHT_REMOTE_UPDATE_MODE||'independent-helper').trim()||'independent-helper';
 const PLATFORM_ADAPTER=createPlatformAdapter();
 const NATIVE_PROCESSES=new NativeProcessRegistry();
+const EXECUTOR_PROBE=new ExecutorReadinessProbe({
+  intervalMs:Number(process.env.OPERATOR_AGENT_EXECUTOR_PROBE_INTERVAL_MS)||30000,
+  timeoutMs:Number(process.env.OPERATOR_AGENT_EXECUTOR_PROBE_TIMEOUT_MS)||5000,
+  onTransition:state=>console.log(JSON.stringify({event:'device_executor_probe_readiness_changed',state:state.state,consecutiveFailures:state.consecutiveFailures}))
+});
 const NATIVE_TERMINALS=new NativeTerminalRegistry({emit:event=>console.log(JSON.stringify(event))});
 const NATIVE_SEARCHES=new NativeSearchRegistry();
 const REAL_REMOTE_AVAILABLE=realRemoteAvailable();
@@ -205,6 +211,10 @@ const COMMAND_EXECUTIONS=new CommandExecutionCoordinator();
 let DEVICE_DUPLEX=null,DEVICE_DUPLEX_IDLE_DEADLINE=0,DEVICE_DUPLEX_IDLE_TIMER=null;
 const DEVICE_DUPLEX_IDLE_CLOSE_MS=Math.max(500,Math.min(Number(process.env.LIGHT_REMOTE_DEVICE_DUPLEX_IDLE_CLOSE_MS)||1500,10000));
 function deviceDuplexStatus(){return DEVICE_DUPLEX?.status?.()||{active:false,ready:false};}
+function executorReadiness(){
+  if(deviceDuplexStatus().executorDegraded)return false;
+  return EXECUTOR_PROBE.status().ready;
+}
 function cancelDeviceDuplexIdleClose(){DEVICE_DUPLEX_IDLE_DEADLINE=0;if(DEVICE_DUPLEX_IDLE_TIMER){clearTimeout(DEVICE_DUPLEX_IDLE_TIMER);DEVICE_DUPLEX_IDLE_TIMER=null;}}
 function scheduleDeviceDuplexIdleClose(){
   if(!DEVICE_DUPLEX)return;
@@ -214,11 +224,11 @@ function scheduleDeviceDuplexIdleClose(){
   DEVICE_DUPLEX_IDLE_TIMER.unref?.();
 }
 function duplexHelloPayload(state,meta={}){
-  return {protocol:DEVICE_DUPLEX_PROTOCOL,transportEpoch:meta.transportEpoch,resumeClientSeq:Math.max(0,Number(meta.resumeClientSeq)||0),clientSeq:Math.max(0,Number(meta.clientSeq)||0),nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling:Math.max(1,Math.min(Number(process.env.OPERATOR_AGENT_MAX_SESSIONS)||2,100)),draining:Boolean(state.routing?.draining),executorReady:!deviceDuplexStatus().executorDegraded,capabilities:effectiveCapabilitiesForState(state),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView()};
+  return {protocol:DEVICE_DUPLEX_PROTOCOL,transportEpoch:meta.transportEpoch,resumeClientSeq:Math.max(0,Number(meta.resumeClientSeq)||0),clientSeq:Math.max(0,Number(meta.clientSeq)||0),nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling:Math.max(1,Math.min(Number(process.env.OPERATOR_AGENT_MAX_SESSIONS)||2,100)),draining:Boolean(state.routing?.draining),executorReady:executorReadiness(),capabilities:effectiveCapabilitiesForState(state),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView()};
 }
 function duplexHeartbeatPayload(){
   const state=readState();if(!state?.enrollment?.deviceId||!cloudDesired(state))return null;
-  return {nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling:Math.max(1,Math.min(Number(process.env.OPERATOR_AGENT_MAX_SESSIONS)||2,100)),draining:Boolean(state.routing?.draining),executorReady:!deviceDuplexStatus().executorDegraded,capabilities:effectiveCapabilitiesForState(state),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView()};
+  return {nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling:Math.max(1,Math.min(Number(process.env.OPERATOR_AGENT_MAX_SESSIONS)||2,100)),draining:Boolean(state.routing?.draining),executorReady:executorReadiness(),capabilities:effectiveCapabilitiesForState(state),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView()};
 }
 async function duplexExecuteCommand(command,hub){
   const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
@@ -775,7 +785,11 @@ async function daemon(args){
   const commandHeartbeatMs=Math.max(2000,Math.min(Number(process.env.OPERATOR_AGENT_COMMAND_HEARTBEAT_MS)||5000,15000));
   let stopped=false,wake=null,failures=0,localWall=null,fleetTimer=null,fleetReconciling=false;
   const fleetManager=new FleetComponentManager(),fleetSupervisor=new FleetComponentSupervisor({manager:fleetManager,stateProvider:()=>readState(),requestIntent:async current=>{const local=await localFleetStatus();const response=await channelRequest(current,hub,'fleet-intent',{agentVersion:VERSION,moduleVersion:fleetManager.current()?.version||null,fleetHealthy:local.healthy===true,fleetPort:local.port});return response.fleet;},env:{OPERATOR_AGENT_STATE:STATE_FILE,OPERATOR_AGENT_IDENTITY_FILE:EXTERNAL_IDENTITY_FILE,OPERATOR_AGENT_WALL_AUTH_FILE:LOCAL_WALL_AUTH_FILE,OPERATOR_AGENT_HUB_URL:hub,OPERATOR_FLEET_WALL_HOST:FLEET_WALL_HOST,OPERATOR_FLEET_WALL_PORT:String(FLEET_WALL_PORT),OPERATOR_FLEET_WALL_PUBLIC_URL:FLEET_WALL_PUBLIC_URL},emit:event=>console.log(JSON.stringify(event))});
-  const stop=()=>{if(stopped)return;NATIVE_PROCESSES.close();NATIVE_TERMINALS.close();stopped=true;if(wake)wake();if(fleetTimer){clearInterval(fleetTimer);fleetTimer=null;}fleetSupervisor.close().catch(()=>{});try{localWall?.server.close();}catch{}};process.on('SIGTERM',stop);process.on('SIGINT',stop);
+  EXECUTOR_PROBE.start();
+  // Do not start a signed command channel with an unprobed new Agent.
+  await EXECUTOR_PROBE.check();
+  if(EXECUTOR_PROBE.status().ready===null)await EXECUTOR_PROBE.check();
+  const stop=()=>{if(stopped)return;EXECUTOR_PROBE.stop();NATIVE_PROCESSES.close();NATIVE_TERMINALS.close();stopped=true;if(wake)wake();if(fleetTimer){clearInterval(fleetTimer);fleetTimer=null;}fleetSupervisor.close().catch(()=>{});try{localWall?.server.close();}catch{}};process.on('SIGTERM',stop);process.on('SIGINT',stop);
   const wait=ms=>new Promise(resolve=>{const timer=setTimeout(()=>{wake=null;resolve();},ms);wake=()=>{clearTimeout(timer);wake=null;resolve();};});
   if(!fs.existsSync(LOCAL_WALL_AUTH_FILE))writeAccountOnlyWallAuthConfig(LOCAL_WALL_AUTH_FILE,{username:'account'});
   const wallAuth=loadLocalWallAuth(LOCAL_WALL_AUTH_FILE,{required:!['127.0.0.1','::1','localhost'].includes(String(LOCAL_WALL_HOST))});
@@ -797,7 +811,7 @@ async function daemon(args){
     try{
       await flushPendingUpdateReport(state,hub).catch(error=>console.error(JSON.stringify({event:'update_report_delivery_failed',error:error.message,status:error.status||null})));
       if(deviceDuplexStatus().ready){failures=0;await wait(500);continue;}
-      const payload={nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling,draining:Boolean(state.routing?.draining),executorReady:!deviceDuplexStatus().executorDegraded,capabilities:effectiveCapabilitiesForState(state),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView(),waitMs};
+      const payload={nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling,draining:Boolean(state.routing?.draining),executorReady:executorReadiness(),capabilities:effectiveCapabilitiesForState(state),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView(),waitMs};
       const response=await channelRequest(state,hub,'poll',payload);
       // A Local Wall connect/disconnect can update device.json while this long-poll is in flight.
       // Re-read before persisting the poll result so the daemon never clobbers newer lease metadata.
@@ -861,8 +875,8 @@ async function wallOnly(args){
   await stopped;clearInterval(timer);try{await fleetSupervisor.close();}catch{}try{await localWall.close();}catch{}console.log(JSON.stringify({event:'host_wall_companion_stopped',deviceId:state.enrollment.deviceId}));
 }
 
-async function setDrain(args,draining){const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');state.routing={...(state.routing||{}),draining:Boolean(draining),changedAt:Date.now()};writeState(state);const payload={nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling:Math.max(1,Math.min(Number(process.env.OPERATOR_AGENT_MAX_SESSIONS)||2,100)),draining:Boolean(draining),executorReady:!deviceDuplexStatus().executorDegraded,capabilities:effectiveCapabilitiesForState(state),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),waitMs:0};const response=await channelRequest(state,args.hub||DEFAULT_HUB,'poll',payload);applyPolicyEnvelope(state,response.policy);console.log(JSON.stringify({ok:true,deviceId:state.enrollment.deviceId,nodeId:payload.nodeId,draining:Boolean(draining),channelState:response.channel?.node?.state||null},null,2));}
-async function status(){console.log(JSON.stringify({...statusView(),fleetWall:await localFleetStatus()},null,2));}
+async function setDrain(args,draining){const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');state.routing={...(state.routing||{}),draining:Boolean(draining),changedAt:Date.now()};writeState(state);const payload={nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling:Math.max(1,Math.min(Number(process.env.OPERATOR_AGENT_MAX_SESSIONS)||2,100)),draining:Boolean(draining),executorReady:executorReadiness(),capabilities:effectiveCapabilitiesForState(state),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),waitMs:0};const response=await channelRequest(state,args.hub||DEFAULT_HUB,'poll',payload);applyPolicyEnvelope(state,response.policy);console.log(JSON.stringify({ok:true,deviceId:state.enrollment.deviceId,nodeId:payload.nodeId,draining:Boolean(draining),channelState:response.channel?.node?.state||null},null,2));}
+async function status(){console.log(JSON.stringify({...statusView(),executorProbe:EXECUTOR_PROBE.status(),fleetWall:await localFleetStatus()},null,2));}
 async function initWallAuth(args){const password=fs.readFileSync(0,'utf8').replace(/[\r\n]+$/,'');if(password.length<12)throw new Error('local_wall_password_too_short');const result=writeLocalWallAuthConfig(LOCAL_WALL_AUTH_FILE,{username:args.username||'operator',password});console.log(JSON.stringify({ok:true,wallAuth:'configured',file:result.file,username:result.username,passwordEchoed:false},null,2));}
 const args=parseArgs(process.argv.slice(2)),command=args._[0]||'status';
 try{if(command==='login')await login(args);else if(command==='poll'){const state=readState();if(!state)throw new Error('no_device_state');console.log(JSON.stringify(await finishEnrollment(state,args.base||DEFAULT_BASE,{wait:false}),null,2));}else if(command==='heartbeat'){const state=readState();if(!state)throw new Error('no_device_state');console.log(JSON.stringify(await heartbeat(state,args.base||DEFAULT_BASE),null,2));}else if(command==='daemon')await daemon(args);else if(command==='wall-only')await wallOnly(args);else if(command==='connect')await connectCloud(args);else if(command==='disconnect')await disconnectCloud(args);else if(command==='set-grace')await setConnectionGrace(args);else if(command==='drain')await setDrain(args,true);else if(command==='undrain')await setDrain(args,false);else if(command==='status')await status();else if(command==='wall-auth-init')await initWallAuth(args);else throw new Error(`unknown_command:${command}`);}catch(error){console.error(JSON.stringify({ok:false,error:error.message,status:error.status||null},null,2));process.exitCode=1;}

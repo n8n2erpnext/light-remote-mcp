@@ -34,6 +34,7 @@ on:
       - 'deploy/scripts/selftest-g3-duplex-executor-rejection.mjs'
       - 'deploy/scripts/selftest-g3-executor-hang-readiness.mjs'
       - 'deploy/scripts/selftest-g3-duplex-reconnect-inflight.mjs'
+      - 'deploy/scripts/selftest-g3-executor-readiness-probe.mjs'
       - 'package.json'
       - 'package-lock.json'
       - 'client/core-files.json'
@@ -119,6 +120,7 @@ jobs:
           node deploy/scripts/selftest-g3-duplex-executor-rejection.mjs
           node deploy/scripts/selftest-g3-executor-hang-readiness.mjs
           node deploy/scripts/selftest-g3-duplex-reconnect-inflight.mjs
+          node deploy/scripts/selftest-g3-executor-readiness-probe.mjs
           node deploy/scripts/selftest-v08-fleet-router.mjs
           node deploy/scripts/selftest-g2-posix-natural-exit-reap.mjs
           node deploy/scripts/selftest-gold-linux-host-write-policy.mjs
