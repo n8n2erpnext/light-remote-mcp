@@ -28,6 +28,7 @@ on:
       - 'deploy/scripts/stage-client-core.mjs'
       - 'deploy/scripts/stage-terminal-runtime.mjs'
       - 'deploy/scripts/terminal-runtime-smoke.mjs'
+      - 'deploy/scripts/selftest-g2-posix-natural-exit-reap.mjs'
       - 'package.json'
       - 'package-lock.json'
       - 'client/core-files.json'
@@ -106,6 +107,7 @@ jobs:
           node deploy/scripts/stage-client-core.mjs --verify "$PKG"
           node deploy/scripts/selftest-packaged-local-wall.mjs "$PKG"
           node deploy/scripts/selftest-g2-pty-missing-exit.mjs
+          node deploy/scripts/selftest-g2-posix-natural-exit-reap.mjs
           node deploy/scripts/selftest-gold-linux-host-write-policy.mjs
           node deploy/scripts/selftest-device-agent-service.mjs
           node deploy/scripts/selftest-v09-linux-service-policy.mjs
