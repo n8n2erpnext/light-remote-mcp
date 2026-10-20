@@ -23,7 +23,11 @@ Prior G3 fixed a TCP channel that stayed open without incoming frames and a call
 - Prior G3 Fleet stale inFlight 4 markers, duplex half-open watchdog 3, and executor rejection recovery 2, plus v08/v11 Fleet regressions: PASS. Node syntax for all touched modules, three CI YAML parse and `git diff --check`: PASS.
 - **Actual Linux Server LXD:** container `light-remote-gold-uat` RUNNING ARM64. Staged source in `/tmp/g3-executor-hang-20261020` without replacing installed modules. The real duplex fixture ran **inside this LXD**, all three new markers PASS. Staged `lib/device-duplex-client.mjs` SHA-256 `a3a8dbc34a100aace2f175e95062f3fb0abc46afe6e9dfcefea9fa49ebf890be`, staged `operator-host/fleet-router.mjs` SHA-256 `33f76997f9c6facfec9dbd3cd68df9e94f555dc45e7ade2a50e11d13cc193b4b`, both equal VPS-ARM worktree hashes.
 - Real Gold Operator Unix IPC `GET /v1/fleet` HTTP 200; PostgreSQL 17, Redis, Gold Operator, Plugin and Wall service units **5/5 active**.
-- New regression wired to Windows native packaged-runtime smoke, Linux x64/ARM64 package-contract smoke and macOS x64/ARM64 package-contract smoke; CI status must be confirmed after exact SHA push. No deployed owner-client E2E claimed.
+- Source [`fa59f879e5a91edadc1cb85abb13337f9e8b7fa2`](https://github.com/n8n2erpnext/light-remote-mcp/commit/fa59f879e5a91edadc1cb85abb13337f9e8b7fa2) pushed to Gold branch.
+  - Linux [Actions #284](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39411369717): **x64 and ARM64 SUCCESS**, inspected both full job logs. Each contains all 3 new hang-readiness PASS markers.
+  - macOS [Actions #242](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39411369871): ARM64 **SUCCESS**, all 3 markers verified; Intel x64 **IN PROGRESS** at checkpoint.
+  - Windows [Actions #446](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39411369674): full native/package/installer workflow **IN PROGRESS** at checkpoint.
+  - Hosted CI is not an installed owner-device acceptance; no client updated.
 
 ## Limitations / next work
 - The watchdog is intentionally a conservative heuristic relative to each command's timeout; for unbounded native FS/desktop operations, 10min+20s is not an authoritative operation deadline. A stuck JS event loop cannot send heartbeat; that is a transport liveness failure and is distinct.
