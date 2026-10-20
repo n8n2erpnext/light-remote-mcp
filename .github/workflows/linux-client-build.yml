@@ -36,6 +36,7 @@ on:
       - 'deploy/scripts/selftest-g3-duplex-reconnect-inflight.mjs'
       - 'deploy/scripts/selftest-g3-executor-readiness-probe.mjs'
       - 'deploy/scripts/selftest-g3-executor-probe-deadline.mjs'
+      - 'deploy/scripts/selftest-g3-signed-enrollment-executor-duplex.mjs'
       - 'package.json'
       - 'package-lock.json'
       - 'client/core-files.json'
@@ -123,6 +124,7 @@ jobs:
           node deploy/scripts/selftest-g3-duplex-reconnect-inflight.mjs
           node deploy/scripts/selftest-g3-executor-readiness-probe.mjs
           node deploy/scripts/selftest-g3-executor-probe-deadline.mjs
+          node deploy/scripts/selftest-g3-signed-enrollment-executor-duplex.mjs
           node deploy/scripts/selftest-v08-fleet-router.mjs
           node deploy/scripts/selftest-g2-posix-natural-exit-reap.mjs
           node deploy/scripts/selftest-gold-linux-host-write-policy.mjs

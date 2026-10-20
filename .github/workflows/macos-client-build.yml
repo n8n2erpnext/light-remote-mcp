@@ -41,6 +41,7 @@ on:
       - 'deploy/scripts/selftest-g3-duplex-reconnect-inflight.mjs'
       - 'deploy/scripts/selftest-g3-executor-readiness-probe.mjs'
       - 'deploy/scripts/selftest-g3-executor-probe-deadline.mjs'
+      - 'deploy/scripts/selftest-g3-signed-enrollment-executor-duplex.mjs'
       - 'package.json'
       - 'package-lock.json'
       - 'client/core-files.json'
@@ -188,6 +189,7 @@ jobs:
           node deploy/scripts/selftest-g3-duplex-reconnect-inflight.mjs
           node deploy/scripts/selftest-g3-executor-readiness-probe.mjs
           node deploy/scripts/selftest-g3-executor-probe-deadline.mjs
+          node deploy/scripts/selftest-g3-signed-enrollment-executor-duplex.mjs
           test -f "$PKG/device-agent/fleet-component-manager.mjs"
           test -f "$PKG/device-agent/fleet-component-supervisor.mjs"
           for lib in device-proof.mjs native-fs.mjs native-process.mjs native-search.mjs light-scp-file.mjs light-scp-registry.mjs update-contract.mjs runtime-version.mjs; do test -f "$PKG/lib/$lib"; done
