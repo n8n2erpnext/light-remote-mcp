@@ -22,6 +22,7 @@ on:
       - 'deploy/scripts/macos-operator-native-*-e2e.mjs'
       - 'lib/native-process.mjs'
       - 'lib/native-terminal.mjs'
+      - 'lib/device-duplex-client.mjs'
       - 'lib/native-search.mjs'
       - 'lib/light-scp-file.mjs'
       - 'lib/light-scp-registry.mjs'
@@ -34,6 +35,7 @@ on:
       - 'deploy/scripts/stage-client-core.mjs'
       - 'deploy/scripts/stage-terminal-runtime.mjs'
       - 'deploy/scripts/terminal-runtime-smoke.mjs'
+      - 'deploy/scripts/selftest-g3-duplex-halfopen-watchdog.mjs'
       - 'package.json'
       - 'package-lock.json'
       - 'client/core-files.json'
@@ -175,6 +177,7 @@ jobs:
           test -s "$PKG/licenses/terminal-runtime/node-pty-LICENSE"
           node deploy/scripts/terminal-runtime-smoke.mjs "$PKG"
           node deploy/scripts/selftest-g2-runtime-shutdown-cleanup.mjs
+          node deploy/scripts/selftest-g3-duplex-halfopen-watchdog.mjs
           test -f "$PKG/device-agent/fleet-component-manager.mjs"
           test -f "$PKG/device-agent/fleet-component-supervisor.mjs"
           for lib in device-proof.mjs native-fs.mjs native-process.mjs native-search.mjs light-scp-file.mjs light-scp-registry.mjs update-contract.mjs runtime-version.mjs; do test -f "$PKG/lib/$lib"; done
