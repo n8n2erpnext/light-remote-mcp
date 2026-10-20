@@ -30,7 +30,7 @@ A premature change to return immediately for every `!dispatchReady` caused a bus
    - Duplex session `b3caabd9d0aa5f1e6c6e92b51131d9ffb0e85af6112bbf916a72a8b6b0e73336`
    Gold Operator real IPC GET /v1/fleet HTTP 200; PostgreSQL17, Redis, Operator, Plugin, Wall units 5/5 active. No service runtime replaced or restarted.
 4. Real Gold live /v1/fleet read-only showed 2 outbound leaves with `channelFresh=true`, `dispatchReady=true` and `executorReady=null` (legacy or not reporting self-test). This is **not** proof of executor readiness or full real enrolled-Agent G3 acceptance.
-5. Linux Client #285 (x64/arm64) and macOS Client #243 (x64/arm64) completed SUCCESS at source `6b4759a`. Windows #447 was still running at first check. Legacy Linux Server Bundle #310 FAILED from a known installer-source mismatch and legacy audit assumptions; see the linked CI isolation handoff. A new dedicated Gold G3 Operator CI will verify server-side source and artifacts after its next push.
+5. Linux Client #285 (x64/arm64) and macOS Client #243 (x64/arm64) completed SUCCESS at source `6b4759a`. Windows #447 was still running at first check. Legacy Linux Server Bundle #310 FAILED from a known installer-source mismatch and legacy audit assumptions; see the linked CI isolation handoff. Dedicated [Gold G3 Operator CI #2](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39415783519) at SHA `3c0b89d` passed all 3 jobs (Operator contract, server bundle x64 and ARM64), with exact reconnect markers verified; see linked CI isolation handoff.
 
 ## Boundaries and next steps
 - Source/test and LXD staged local fixture only. No production, public plugin/updater, live Gold Operator replacement, installed owner client or enrollment changes.
