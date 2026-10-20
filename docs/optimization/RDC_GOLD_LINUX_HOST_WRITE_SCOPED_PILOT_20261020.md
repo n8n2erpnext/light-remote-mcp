@@ -28,3 +28,9 @@ Container light-remote-gold-uat RUNNING; systemd-run available. Two transient sy
 - node selftest-gold-linux-host-write-policy.mjs PASS; selftest-device-agent-service.mjs PASS; selftest-v09-linux-service-policy.mjs PASS; bash -n both Linux installers PASS; git diff --check PASS.
 - Gold LXD: GOLD_MOUNT_DEFAULT_RO_PASS, GOLD_MOUNT_ALLOWLIST_WRITE_AND_OTHER_DENIED_PASS, GOLD_SYSTEMD_REAL_MOUNT_ACCEPTANCE_PASS.
 - Check CI artifact builds on exact Gold source commit before publishing the build result. Review future true host-maintenance broker contract (independent owner + server capability authorization, bounded filesystem/service scopes, auditable request ID, rollback and rejection reason HOST_MOUNT_READ_ONLY_BY_AGENT_SANDBOX). Do not claim this pilot closes the entire RCA or change HOMESV before owner approval.
+
+## CI result — accepted Gold Linux packages
+- Source behavior commit 33f9bec; follow-up executable-mode correction 831c45e (latest source).
+- [Linux Client Packages run #272](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39368624527) **completed SUCCESS** on commit 831c45e; both hosted x64 and arm64 jobs passed Build self-contained package, Package contract smoke (including new host-write regressions), Build Debian package, Upload Linux package.
+- Archived SHA-scoped CI artifacts: `gpt-operator-linux-x64-831c45e3a75daf2ddca044123a1dd2731e4f8901` and `gpt-operator-linux-arm64-831c45e3a75daf2ddca044123a1dd2731e4f8901`. Artifacts available in GitHub Actions, NOT production release.
+- WARNING: Hosted artifact and transient Gold systemd mount acceptance are **not** a full installed Linux client E2E with owner-approved sudo plus host operation broker. Do not install these on HOMESV or change its live systemd unit without explicit owner review.

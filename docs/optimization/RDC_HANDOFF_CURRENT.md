@@ -1,5 +1,8 @@
 # Current RDC → Light Remote Gold optimization handoff
 
+**GOLD LINUX HOST-WRITE PILOT CI ACCEPTED:** [RCA, bounded mount exception, systemd Gold canary and Linux CI x64/arm64](./RDC_GOLD_LINUX_HOST_WRITE_SCOPED_PILOT_20261020.md). Gold Linux Client Packages [run #272](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39368624527) **SUCCESS**, commit `831c45e`, both SHA-scoped artifacts uploaded. No production release or HOMESV change. Still only per-installer Owner-selected directories with ProtectSystem=strict and sudo-on-demand grants; **not** a per-operation host-admin broker. Remaining: broker separate owner authorization, real installed E2E, mount denial diagnostics/rollback. G2 remains IN PROGRESS.
+
+
 **GOLD LINUX SUDO / HOST-WRITE SCOPED PILOT (2026-10-20):** [systemd namespace root-cause + opt-in path policy and Gold LXD mount acceptance](./RDC_GOLD_LINUX_HOST_WRITE_SCOPED_PILOT_20261020.md). Both Linux installers keep ProtectSystem=strict and default state-only writes; an explicitly owner-acknowledged, root-owned directory allowlist (max 4) extends ReadWritePaths for approved sudo operations and persists across reinstall/update. Gold real systemd transient service: no allowlist RO PASS; one allowed directory write PASS; sibling denied PASS; /etc still RO PASS. Source regressions PASS. **Not a per-operation host-write broker**; no HOMESV production changes, no automatic global root host privileges. Follow-up separate broker/local consent, CI, E2E required. G2 IN PROGRESS.
 
 
