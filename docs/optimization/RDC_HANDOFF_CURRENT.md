@@ -1,5 +1,8 @@
 # Current RDC → Light Remote Gold optimization handoff
 
+**LATEST WALL ASSET FIX — WINDOWS GOLD #436 SUCCESS:** [RCA, missing 7 Material SVGs, RED→GREEN and CI artifact](./RDC_GOLD_G2_WALL_PACKAGED_MATERIAL_ICONS_20261020.md). Windows [Actions #436](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39372493947) commit `395270b` SUCCESS, artifact `light-remote-windows-x64-395270b06124b1893c66d19cc02fac12fa6afad3`. Complete CI logs confirm 39/39 packaged assets, 18 aliases, HTTP page/API smoke and **post-install full + compact Wall smoke** PASS. Linux [#274](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39372661941) and macOS [#234](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39372661896) x64/arm64 PASS after cross-architecture CI runner correction `70c92f6`. **Owner Windows installed acceptance pending**; use new #436, not #433. Production unchanged. G2 remains IN PROGRESS.
+
+
 **LATEST G2 WALL MISSING MATERIAL ICON ASSETS (2026-10-20):** [Windows error `unknown_material_icon:dragIndicator` — bundled asset RCA, RED→GREEN, packaged runtime smoke](./RDC_GOLD_G2_WALL_PACKAGED_MATERIAL_ICONS_20261020.md). Real Windows log 04:02 GET / returns HTTP JSON error (no Node crash). Source had seven SVGs omitted from `client/core-files.json`; RED on original 72-file staged bundle reproduced exact error, fixed 79-file bundle GREEN with parity 39/39 assets, 18 Wall aliases, four HTML pages HTTP 200 and `/api/status` PASS. CI now exercises packaged Local Wall on Windows staged/full installed/compact installed, plus macOS/Linux staged packages. Owner Windows installer acceptance PENDING. Production untouched, G2 IN PROGRESS.
 
 
