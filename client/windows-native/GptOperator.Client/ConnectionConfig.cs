@@ -6,18 +6,20 @@ internal sealed record ConnectionSettings(string BridgeUrl, string HubUrl);
 
 internal static class ConnectionConfig
 {
-    public const string StablePublicEndpoint = "https://light-remote.thaiduy.digital";
+    public const string StablePublicEndpoint = "https://gold.light-remote.thaiduy.digital";
     public const string DefaultBridgeUrl = StablePublicEndpoint;
     public const string DefaultHubUrl = StablePublicEndpoint;
 
     private static readonly string[] LegacyBridgeUrls =
     [
+        "https://light-remote.thaiduy.digital",
         "https://light-remote-mcp.vercel.app",
         "https://lightremote.thaiduy.digital"
     ];
 
     private static readonly string[] LegacyHubUrls =
     [
+        "https://light-remote.thaiduy.digital",
         "https://mcp.dashboard.thaiduy.store",
         "https://lightremote.thaiduy.digital"
     ];
