@@ -10,6 +10,7 @@ on:
       - 'lib/**'
       - 'client/core-files.json'
       - 'deploy/scripts/selftest-g3-*.mjs'
+      - 'deploy/scripts/selftest-device-agent-cli.mjs'
       - 'deploy/scripts/soak-g3-duplex-readiness.mjs'
       - 'deploy/scripts/selftest-v08-fleet-router.mjs'
       - 'deploy/scripts/stage-client-core.mjs'
@@ -56,6 +57,24 @@ jobs:
           node deploy/scripts/stage-client-core.mjs "$RUNNER_TEMP/gold-core"
           node deploy/scripts/stage-client-core.mjs --verify "$RUNNER_TEMP/gold-core"
           echo gold-g3-operator-contract=PASS
+
+  gold-g3-cli-enrollment-fixture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.2'
+      - name: CLI synthetic enrollment and Agent daemon isolate inherited host identity
+        shell: bash
+        env:
+          OPERATOR_AGENT_IDENTITY_FILE: /nonexistent-g3-test-only-key
+          OPERATOR_AGENT_WALL_HOST: 203.0.113.1
+          OPERATOR_FLEET_WALL_HOST: 203.0.113.1
+        run: |
+          set -euo pipefail
+          node deploy/scripts/selftest-device-agent-cli.mjs
 
   gold-g3-real-agent-lifecycle:
     runs-on: ubuntu-latest

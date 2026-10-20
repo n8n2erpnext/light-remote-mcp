@@ -34,7 +34,7 @@ Two rounds each:
 - Master Plan first-line stale G0-only status corrected; the implementation still follows original G3 acceptance plan.
 
 ## Existing limitation and next acceptance
-`deploy/scripts/selftest-device-agent-cli.mjs` (older CLI contract) was attempted on VPS-ARM in the same session and failed with `cli_pending_state_missing` before daemon startup, so do **not** count that older fixture as PASS; root cause is separate to investigate before closing any full Agent enrollment gate.
+The pre-existing `deploy/scripts/selftest-device-agent-cli.mjs` initially failed due to inherited real VPS-ARM identity and Wall host environment. Fixed only its child-process environment (not Agent runtime); subsequently **11/11 PASS on VPS-ARM and inside LXD**, see [G3 synthetic Agent CLI environment isolation](./RDC_GOLD_G3_SYNTHETIC_AGENT_CLI_ENV_ISOLATION_20261020.md). Do not confuse that mock-owner-signed fixture with live Gold Operator enrollment.
 This test operates **unenrolled** on a private localhost Wall with a genuinely spawned Agent process, while the earlier signed protocol fixture uses an ephemeral in-memory EnrollmentRegistry. Neither replaces *normal owner-account approval and live service enrollment*. Still missing: current Gold Operator install alignment, owner-approved disposable identity, bounded enrolled process load/command execution, and official UAT signed channel fault/recovery; G4 is not accepted or started from this evidence.
 
 Do not move/commit untracked `deploy/gold-uat/`, check-gold-db and uat-gold helper scripts; do not touch live production.

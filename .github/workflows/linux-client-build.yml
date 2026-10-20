@@ -39,6 +39,7 @@ on:
       - 'deploy/scripts/selftest-g3-signed-enrollment-executor-duplex.mjs'
       - 'deploy/scripts/selftest-g3-local-wall-executor-readiness.mjs'
       - 'deploy/scripts/selftest-g3-agent-daemon-lifecycle.mjs'
+      - 'deploy/scripts/selftest-device-agent-cli.mjs'
       - 'package.json'
       - 'package-lock.json'
       - 'client/core-files.json'
@@ -129,6 +130,7 @@ jobs:
           node deploy/scripts/selftest-g3-signed-enrollment-executor-duplex.mjs
           node deploy/scripts/selftest-g3-local-wall-executor-readiness.mjs
           node deploy/scripts/selftest-g3-agent-daemon-lifecycle.mjs
+          node deploy/scripts/selftest-device-agent-cli.mjs
           node deploy/scripts/selftest-v08-fleet-router.mjs
           node deploy/scripts/selftest-g2-posix-natural-exit-reap.mjs
           node deploy/scripts/selftest-gold-linux-host-write-policy.mjs
