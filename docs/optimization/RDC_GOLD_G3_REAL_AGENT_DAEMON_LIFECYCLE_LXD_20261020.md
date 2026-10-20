@@ -30,7 +30,7 @@ Two rounds each:
 ## CI and platform consistency
 - New `gold-g3-real-agent-lifecycle` job in isolated Gold CI, 4-minute budget; checks actual child process not a unit stub.
 - Native Client package workflows for Linux Desktop x64/ARM64 and macOS Intel/Apple Silicon additionally run the same real-process fixture. POSIX SIGSTOP/SIGCONT is applicable to macOS and Linux. Windows is intentionally **not claimed** for SIGSTOP semantics; previous Windows smoke checks remain separate.
-- CI statuses are **PENDING until exact-source run/job/log verification**; no deployment or updater.
+- Hosted CI at exact source `5f000fdc9e35b609045d44cb3d552b448586b276`: [Gold Operator CI #8](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39433635814) **5/5 SUCCESS** including separate real Agent lifecycle job, [Linux Desktop #290](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39433635949) **x64/ARM64 SUCCESS**, and [macOS #248](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39433635946) **Intel/Apple Silicon SUCCESS**. Inspected each real-process job log: `G3_REAL_DAEMON_SIGSTOP_SIGCONT_WALL_RECOVERY=PASS` both rounds, `G3_REAL_DAEMON_RESTART_NO_ORPHAN=PASS`, and summary reports starts=2/shutdowns=2. Hosted Linux x64 peak sampled RSS 73,864 KiB Gold CI, 74,252 KiB/74,464 KiB Linux package jobs. macOS RSS sampling reports 0 because `/proc` is Linux-only, not because actual macOS RSS is zero. No deployment or updater.
 - Master Plan first-line stale G0-only status corrected; the implementation still follows original G3 acceptance plan.
 
 ## Existing limitation and next acceptance
