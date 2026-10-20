@@ -179,6 +179,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'G2 Windows bundled native process shutdown cleanup failed' }
           & $node deploy/scripts/selftest-g2-windows-process-tree.mjs
           if ($LASTEXITCODE -ne 0) { throw 'G2 Windows managed process-tree stop/timeout/shutdown regression failed' }
+          & $node deploy/scripts/selftest-g2-pty-missing-exit.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'G2 missing PTY onExit PID reconciliation failed on Windows' }
           & $node deploy/scripts/selftest-g2-wall-headers-sent-crash.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Windows Local Wall double-response crash regression failed' }
           $env:OPERATOR_AGENT_STATE = Join-Path $env:RUNNER_TEMP 'native-empty-device.json'
