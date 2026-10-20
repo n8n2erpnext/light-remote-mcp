@@ -1,0 +1,92 @@
+name: Gold G3 Operator Regression
+
+on:
+  push:
+    branches:
+      - 'feature/light-remote-gold-rebuild-20261018'
+    paths:
+      - 'operator-host/**'
+      - 'device-agent/**'
+      - 'lib/**'
+      - 'client/core-files.json'
+      - 'deploy/scripts/selftest-g3-*.mjs'
+      - 'deploy/scripts/selftest-v08-fleet-router.mjs'
+      - 'deploy/scripts/stage-client-core.mjs'
+      - 'deploy/scripts/selftest-host-install-layout.mjs'
+      - 'deploy/scripts/install-host.sh'
+      - 'deploy/server-linux/**'
+      - '.github/workflows/gold-g3-operator.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gold-operator-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.2'
+          cache: npm
+      - name: Install test dependencies
+        run: npm ci --ignore-scripts
+      - name: Gold G3 duplex, Fleet, reconnect and installer source contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          for source in lib/device-duplex-client.mjs operator-host/device-duplex-session.mjs operator-host/fleet-router.mjs operator-host/executor-routes-device-channel.mjs device-agent/operator-agent.mjs; do
+            node --check "$source"
+          done
+          node deploy/scripts/selftest-g3-fleet-channel-stale-inflight.mjs
+          node deploy/scripts/selftest-g3-duplex-halfopen-watchdog.mjs
+          node deploy/scripts/selftest-g3-duplex-executor-rejection.mjs
+          node deploy/scripts/selftest-g3-executor-hang-readiness.mjs
+          node deploy/scripts/selftest-g3-duplex-reconnect-inflight.mjs
+          node deploy/scripts/selftest-v08-fleet-router.mjs
+          node deploy/scripts/selftest-host-install-layout.mjs
+          bash -n deploy/scripts/install-host.sh
+          node deploy/scripts/stage-client-core.mjs "$RUNNER_TEMP/gold-core"
+          node deploy/scripts/stage-client-core.mjs --verify "$RUNNER_TEMP/gold-core"
+          echo gold-g3-operator-contract=PASS
+
+  gold-uat-server-bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64, arm64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.2'
+          cache: npm
+      - name: Prepare Gold UAT package dependencies
+        run: npm ci --ignore-scripts
+      - name: Build isolated Gold server bundle (never deploy)
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash deploy/server-linux/build-bundle.sh "${{ matrix.arch }}"
+          VERSION="$(tr -d '\r\n' < VERSION)"
+          OUT="dist/server-linux/${{ matrix.arch }}"
+          (cd "$OUT" && sha256sum -c SHA256SUMS.txt)
+          ARCHIVE="$OUT/Light-Remote-MCP-Server-Linux-${{ matrix.arch }}-$VERSION.tar.gz"
+          tar -tzf "$ARCHIVE" > "$RUNNER_TEMP/gold-bundle-files.txt"
+          for required in package/lib/gold-db.mjs package/lib/gold-job-ledger.mjs package/lib/gold-registry-persistence.mjs package/lib/gold-session-redis.mjs package/operator-host/executor-routes-device-channel.mjs; do
+            grep -Fxq "$required" "$RUNNER_TEMP/gold-bundle-files.txt"
+          done
+          echo "gold-g3-server-bundle-${{ matrix.arch }}=PASS"
+      - name: Retain Gold CI artifacts only
+        uses: actions/upload-artifact@v4
+        with:
+          name: gold-g3-server-${{ matrix.arch }}-${{ github.sha }}
+          path: |
+            dist/server-linux/${{ matrix.arch }}/*.tar.gz
+            dist/server-linux/${{ matrix.arch }}/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 7

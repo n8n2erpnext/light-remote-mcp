@@ -7,7 +7,7 @@ const installer=fs.readFileSync(path.join(root,'deploy/scripts/install-host.sh')
 const unit=fs.readFileSync(path.join(root,'deploy/systemd/gpt-vps-operator.service'),'utf8');
 const executor=fs.readFileSync(path.join(root,'operator-host/executor.mjs'),'utf8');
 
-const libs=['device-proof.mjs','native-fs.mjs','native-process.mjs','native-terminal.mjs','native-search.mjs','activity-ring.mjs','light-scp-file.mjs','light-scp-registry.mjs','update-contract.mjs','runtime-version.mjs','version-compat.mjs','operator-target-route.mjs'];
+const libs=['device-proof.mjs','native-fs.mjs','native-process.mjs','native-terminal.mjs','native-search.mjs','activity-ring.mjs','light-scp-file.mjs','light-scp-registry.mjs','update-contract.mjs','runtime-version.mjs','version-compat.mjs','operator-target-route.mjs','gold-db.mjs','gold-job-ledger.mjs','gold-registry-persistence.mjs','gold-session-redis.mjs','team-oauth-principal-proof.mjs'];
 for(const lib of libs){
   const occurrences=installer.split(lib).length-1;
   if(occurrences<2)throw new Error(`host_installer_missing_lib:${lib}:${occurrences}`);

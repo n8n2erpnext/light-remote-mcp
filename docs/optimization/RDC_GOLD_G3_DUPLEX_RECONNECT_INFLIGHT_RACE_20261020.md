@@ -15,7 +15,7 @@ A premature change to return immediately for every `!dispatchReady` caused a bus
 - `operator-host/device-duplex-session.mjs`: ignore frames after stream closes, pass `()=>closed` into command-pump poll. A replaced stream cannot re-touch Fleet on delayed completion of a pending poll.
 - `operator-host/executor-routes-device-channel.mjs`: pass a closure referencing **current** authenticated stream `touchInput` instead of a frozen snapshot.
 - `lib/device-duplex-client.mjs`: when previously stalled callback finally settles, publish its *current* Agent heartbeat (where readiness is true) **before** sending the result that unblocks the server command pump. If heartbeat send fails, log a sanitized diagnostic and preserve result delivery; do not mutate policy or claim effect uniqueness.
-- New real duplex regression is wired into Linux client x64/arm64, macOS Intel/Apple Silicon, Windows native CI. Gold branch also added to the **Linux Server Bundle build-only CI trigger** to cover server-side Operator changes. No deploy workflow enabled.
+- New real duplex regression is wired into Linux client x64/arm64, macOS Intel/Apple Silicon, Windows native CI. An isolated Gold-only Operator/Server CI workflow was later added, rather than putting Gold into the legacy Linux Server Bundle workflow; see [Gold G3 CI isolation](./RDC_GOLD_G3_CI_OPERATOR_ISOLATION_20261020.md). No deploy workflow enabled.
 
 ## GREEN evidence
 1. Source VPS-ARM: **3 consecutive** `selftest-g3-duplex-reconnect-inflight.mjs` passes, each yielding:
@@ -30,7 +30,7 @@ A premature change to return immediately for every `!dispatchReady` caused a bus
    - Duplex session `b3caabd9d0aa5f1e6c6e92b51131d9ffb0e85af6112bbf916a72a8b6b0e73336`
    Gold Operator real IPC GET /v1/fleet HTTP 200; PostgreSQL17, Redis, Operator, Plugin, Wall units 5/5 active. No service runtime replaced or restarted.
 4. Real Gold live /v1/fleet read-only showed 2 outbound leaves with `channelFresh=true`, `dispatchReady=true` and `executorReady=null` (legacy or not reporting self-test). This is **not** proof of executor readiness or full real enrolled-Agent G3 acceptance.
-5. Four CI workflows (Linux Client, macOS Client, Windows Tray Client, Linux Server Bundle) are configured to run isolated Gold branch, verify run status and exact SHA after push. **CI results PENDING until verified**.
+5. Linux Client #285 (x64/arm64) and macOS Client #243 (x64/arm64) completed SUCCESS at source `6b4759a`. Windows #447 was still running at first check. Legacy Linux Server Bundle #310 FAILED from a known installer-source mismatch and legacy audit assumptions; see the linked CI isolation handoff. A new dedicated Gold G3 Operator CI will verify server-side source and artifacts after its next push.
 
 ## Boundaries and next steps
 - Source/test and LXD staged local fixture only. No production, public plugin/updater, live Gold Operator replacement, installed owner client or enrollment changes.
