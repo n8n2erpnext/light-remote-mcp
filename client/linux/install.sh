@@ -15,6 +15,10 @@ WALL_HOST_ARG=""
 ASSUME_YES=0
 PURGE=0
 TARGET_USER="${SUDO_USER:-${USER:-}}"
+HOST_WRITE_PATHS=()
+HOST_WRITE_EXPLICIT=0
+HOST_WRITE_ACK=0
+HOST_WRITE_CLEAR=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -22,6 +26,9 @@ while [[ $# -gt 0 ]]; do
     --user) TARGET_USER="$2"; shift 2;;
     --base-url) BASE_URL="${2%/}"; shift 2;;
     --hub-url) HUB_URL="${2%/}"; shift 2;;
+    --host-write-path) HOST_WRITE_PATHS+=("$2"); HOST_WRITE_EXPLICIT=1; shift 2;;
+    --acknowledge-host-write-risk) HOST_WRITE_ACK=1; shift;;
+    --clear-host-write-paths) HOST_WRITE_CLEAR=1; shift;;
     --defer-enrollment) DEFER_ENROLLMENT=1; shift;;
     --action) ACTION="$2"; shift 2;;
     --wall) WALL_MODE="$2"; shift 2;;
@@ -311,6 +318,26 @@ if [[ ! -x "$UPDATER_ROOT/current/runtime/node" ]]; then
   as_root mv -Tf "$UPDATER_ROOT/current.next" "$UPDATER_ROOT/current"
 fi
 POLICY_HELPER="$ROOT/current/device-agent/linux-service-policy.mjs"
+HOST_WRITE_POLICY_FILE="/etc/gpt-operator-agent/host-write-paths.list"
+if [[ "$HOST_WRITE_EXPLICIT" == "1" || "$HOST_WRITE_CLEAR" == "1" ]]; then
+  [[ "$HOST_WRITE_ACK" == "1" ]] || { echo "Explicit host writes require --acknowledge-host-write-risk and an owner-selected path." >&2; exit 2; }
+  [[ ! ( "$HOST_WRITE_EXPLICIT" == "1" && "$HOST_WRITE_CLEAR" == "1" ) ]] || { echo "Cannot set and clear host write paths together" >&2; exit 2; }
+elif as_root test -f "$HOST_WRITE_POLICY_FILE"; then
+  mapfile -t HOST_WRITE_PATHS < <(as_root cat "$HOST_WRITE_POLICY_FILE")
+fi
+if ((${#HOST_WRITE_PATHS[@]})); then
+  HOST_WRITE_VALIDATED="$("$ROOT/current/runtime/node" "$POLICY_HELPER" "$STATE_FILE" hostWritePaths "${HOST_WRITE_PATHS[@]}")"
+else
+  HOST_WRITE_VALIDATED=""
+fi
+if [[ "$HOST_WRITE_EXPLICIT" == "1" || "$HOST_WRITE_CLEAR" == "1" ]]; then
+  as_root install -d -m 0700 /etc/gpt-operator-agent
+  printf '%s\n' "${HOST_WRITE_PATHS[@]}" | as_root tee "$HOST_WRITE_POLICY_FILE" >/dev/null
+  if [[ "$HOST_WRITE_CLEAR" == "1" ]]; then as_root sh -c ": > '/etc/gpt-operator-agent/host-write-paths.list'"; fi
+  as_root chown root:root "$HOST_WRITE_POLICY_FILE"
+  as_root chmod 0600 "$HOST_WRITE_POLICY_FILE"
+fi
+[[ -z "$HOST_WRITE_VALIDATED" ]] || echo "Owner-approved systemd host write paths: $HOST_WRITE_VALIDATED"
 NO_NEW_PRIVILEGES="$("$ROOT/current/runtime/node" "$POLICY_HELPER" "$STATE_FILE" noNewPrivileges)"
 RESTRICT_SUID_SGID="$("$ROOT/current/runtime/node" "$POLICY_HELPER" "$STATE_FILE" restrictSuidSgid)"
 CLEAR_CAPABILITY_BOUNDING_SET="$("$ROOT/current/runtime/node" "$POLICY_HELPER" "$STATE_FILE" clearCapabilityBoundingSet)"
@@ -361,7 +388,7 @@ NoNewPrivileges=$NO_NEW_PRIVILEGES
 RestrictSUIDSGID=$RESTRICT_SUID_SGID
 $CAPABILITY_BOUNDING_SET_LINE
 AmbientCapabilities=
-ReadWritePaths=$TARGET_HOME/.config/gpt-operator-agent
+ReadWritePaths=$TARGET_HOME/.config/gpt-operator-agent $HOST_WRITE_VALIDATED
 
 [Install]
 WantedBy=multi-user.target

@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import { spawnSync } from 'node:child_process';
-import { linuxServicePolicy } from '../../device-agent/linux-service-policy.mjs';
+import { linuxServicePolicy, validateLinuxHostWritePaths } from '../../device-agent/linux-service-policy.mjs';
 const file=new URL('../../device-agent/install-linux-service.sh',import.meta.url).pathname;
 const text=fs.readFileSync(file,'utf8');
 if(spawnSync('bash',['-n',file]).status!==0)throw new Error('linux_service_installer_syntax_failed');
@@ -14,6 +14,10 @@ if(text.includes('Run operator-agent login first')||text.includes('Device is not
 if(!text.includes('local-wall.mjs')||!text.includes('local-wall-auth.mjs')||!text.includes('light-remote-mark.svg'))throw new Error('local_wall_service_install_missing');
 if(!text.includes('systemctl show gpt-operator-device-agent.service --property=Environment --value')||!text.includes('WALL_DISPLAY_HOST'))throw new Error('local_wall_effective_url_missing');
 if(/password|pollToken|privateKey/i.test(text))throw new Error('service_installer_secret_material_reference');
+if(!text.includes('$HOST_WRITE_VALIDATED')||!text.includes('host-write-paths.list')||!text.includes('--acknowledge-host-write-risk'))throw new Error('scoped_host_write_install_opt_in_missing');
+if(validateLinuxHostWritePaths(['/etc/systemd/system'])[0]!=='/etc/systemd/system')throw new Error('scoped_host_write_path_validation_failed');
+for(const p of ['/','/etc','/usr','/tmp']){try{validateLinuxHostWritePaths([p]);throw new Error('broad_path_wrongly_accepted');}catch(e){if(e.message==='broad_path_wrongly_accepted')throw e;}}
+console.log('device-agent-service-scoped-host-write-policy=PASS');
 console.log('device-agent-service-shell-syntax=PASS');
 console.log('device-agent-service-hardening=PASS');
 console.log('device-agent-service-profile-controlled-sudo=PASS');

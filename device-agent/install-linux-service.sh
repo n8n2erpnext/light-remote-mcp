@@ -5,6 +5,37 @@ USER_NAME="${SUDO_USER:-${USER}}"
 HOME_DIR="$(getent passwd "$USER_NAME" | cut -d: -f6)"
 NODE_BIN="$(command -v node)"
 STATE_FILE="$HOME_DIR/.config/gpt-operator-agent/device.json"
+HOST_WRITE_PATHS=()
+HOST_WRITE_ACK=0
+HOST_WRITE_CLEAR=0
+HOST_WRITE_EXPLICIT=0
+while (($#)); do
+  case "$1" in
+    --host-write-path) HOST_WRITE_PATHS+=("$2"); HOST_WRITE_EXPLICIT=1; shift 2;;
+    --acknowledge-host-write-risk) HOST_WRITE_ACK=1; shift;;
+    --clear-host-write-paths) HOST_WRITE_CLEAR=1; shift;;
+    *) echo "Unknown Linux service installer argument: $1" >&2; exit 2;;
+  esac
+done
+HOST_WRITE_POLICY_FILE="/etc/gpt-operator-agent/host-write-paths.list"
+if [[ "$HOST_WRITE_EXPLICIT" == "1" || "$HOST_WRITE_CLEAR" == "1" ]]; then
+  [[ "$HOST_WRITE_ACK" == "1" ]] || { echo "Host-write paths require explicit owner acknowledgement" >&2; exit 2; }
+  [[ ! ( "$HOST_WRITE_EXPLICIT" == "1" && "$HOST_WRITE_CLEAR" == "1" ) ]] || { echo "Conflicting host-write options" >&2; exit 2; }
+elif sudo test -f "$HOST_WRITE_POLICY_FILE"; then
+  mapfile -t HOST_WRITE_PATHS < <(sudo cat "$HOST_WRITE_POLICY_FILE")
+fi
+if ((${#HOST_WRITE_PATHS[@]})); then
+  HOST_WRITE_VALIDATED="$($NODE_BIN "$ROOT_DIR/device-agent/linux-service-policy.mjs" "$STATE_FILE" hostWritePaths "${HOST_WRITE_PATHS[@]}")"
+else
+  HOST_WRITE_VALIDATED=""
+fi
+if [[ "$HOST_WRITE_EXPLICIT" == "1" || "$HOST_WRITE_CLEAR" == "1" ]]; then
+  sudo install -d -m 0700 /etc/gpt-operator-agent
+  printf '%s\n' "${HOST_WRITE_PATHS[@]}" | sudo tee "$HOST_WRITE_POLICY_FILE" >/dev/null
+  if [[ "$HOST_WRITE_CLEAR" == "1" ]]; then sudo truncate -s 0 "$HOST_WRITE_POLICY_FILE"; fi
+  sudo chown root:root "$HOST_WRITE_POLICY_FILE"
+  sudo chmod 0600 "$HOST_WRITE_POLICY_FILE"
+fi
 NO_NEW_PRIVILEGES="$($NODE_BIN "$ROOT_DIR/device-agent/linux-service-policy.mjs" "$STATE_FILE" noNewPrivileges)"
 RESTRICT_SUID_SGID="$($NODE_BIN "$ROOT_DIR/device-agent/linux-service-policy.mjs" "$STATE_FILE" restrictSuidSgid)"
 CLEAR_CAPABILITY_BOUNDING_SET="$($NODE_BIN "$ROOT_DIR/device-agent/linux-service-policy.mjs" "$STATE_FILE" clearCapabilityBoundingSet)"
@@ -48,7 +79,7 @@ UMask=0077
 NoNewPrivileges=$NO_NEW_PRIVILEGES
 PrivateTmp=true
 ProtectSystem=strict
-ReadWritePaths=$HOME_DIR/.config/gpt-operator-agent
+ReadWritePaths=$HOME_DIR/.config/gpt-operator-agent $HOST_WRITE_VALIDATED
 ProtectKernelTunables=true
 ProtectKernelModules=true
 ProtectControlGroups=true

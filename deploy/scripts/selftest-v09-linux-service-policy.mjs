@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { linuxServicePolicy } from '../../device-agent/linux-service-policy.mjs';
+import { linuxServicePolicy, validateLinuxHostWritePaths } from '../../device-agent/linux-service-policy.mjs';
 function expect(value,message){if(!value)throw new Error(message);}
 const normal=linuxServicePolicy({enrollment:{grantableCapabilities:['filesystem','git'],approvedCapabilities:['filesystem','git']}});
 expect(normal.sudoGrantable===false,'default_sudo_grantable_state');
@@ -35,5 +35,9 @@ expect(packagedInstaller.includes('chown -R root:root'), 'linux_release_root_own
 expect(packagedInstaller.includes('chmod -R go-w'), 'linux_release_write_hardening_missing');
 expect(packagedInstaller.includes('Environment=GPT_OPERATOR_UPDATE_MANIFEST_URL=$MANIFEST_URL'), 'linux_update_manifest_channel_not_persisted');
 expect(packagedInstaller.includes('Environment=GPT_OPERATOR_UPDATE_SIGNATURE_URL=$SIGNATURE_URL'), 'linux_update_signature_channel_not_persisted');
+expect(validateLinuxHostWritePaths([]).length===0,'default_host_write_must_be_disabled');
+for(const p of ['/','/etc','/usr','/var/lib']){let denied=false;try{validateLinuxHostWritePaths([p]);}catch{denied=true;}expect(denied,'host_write_broad_path_must_be_denied:'+p);}
+for(const script of [installer,packagedInstaller]){expect(script.includes('--host-write-path')&&script.includes('--acknowledge-host-write-risk')&&script.includes('--clear-host-write-paths'),'scoped_host_write_cli_missing');expect(script.includes('host-write-paths.list')&&script.includes('$HOST_WRITE_VALIDATED'),'scoped_host_write_retention_missing');}
+console.log('v09-linux-host-write-scoped-opt-in=PASS');
 console.log('v09-linux-service-policy=PASS');
 console.log('v09-linux-web-sudo-toggle-no-reinstall=PASS');
