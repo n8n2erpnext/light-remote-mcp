@@ -43,3 +43,10 @@ Expose safe, redacted correlation fields at policy/gateway/Plugin/Agent boundari
 | Current retry | `light_remote_exec` | Read-only `git branch`, `git log -1`, `git diff --check`, `git diff` | SUCCESS, exit 0 | Job receipt returned; branch `feature/light-remote-gold-rebuild-20261018`, previous HEAD `e83c702` |
 
 Interpretation: identical ordinary `git status` may be rejected on one invocation and accepted on another without explicit change to device or local policy. This supports a transient/variable **admission symptom**, **not** evidence of the classifier's internal decision rule. Do not mislabel this as a Light Remote local policy denial. Unknown internal reason remains UNKNOWN.
+
+## Outcome — approved ordinary Git flow after retry (2026-10-20)
+- The same `light_remote_exec` tool completed `git diff --check`, narrow `git add`, `git commit`, and `git push` with a returned job receipt and **exitCode=0**. No PTY, alternative device, or policy modification was involved.
+- New source/evidence commit: `aa871e6cee7c6eda6a42c1225e04104180eb0cbe`, pushed to `feature/light-remote-gold-rebuild-20261018`. Only two paths were committed: `ConnectionConfig.cs` and this G1 evidence file. Unrelated untracked Gold UAT files preserved.
+- GitHub Actions Windows Tray Client run: https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39364203015, triggered for exact source SHA `aa871e6`; initially `in_progress`, not an installer PASS yet.
+- Light Remote `recent_activity` read (200 most recent events) did **not** expose a denial event/reason for the refused upstream tool admission calls. Absence in this bounded view is **not proof** that no upstream event exists.
+- **Engineering conclusion:** reproducible inconsistent admission result for equivalent normal operations; exact classifier/rule/decision trace is NOT exposed. **Root cause UNKNOWN; priority OPEN for instrumented gateway correlation.** Do not assert that a device-local Light Remote rule blocked Git.
