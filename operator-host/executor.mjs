@@ -145,7 +145,7 @@ const usage = goldRegistries.mount('usage',new UsageRegistry({ stateFile:null })
 const sessions = goldSessionState.mount(new SessionRegistry({ idleMs:SESSION_IDLE_MS, minIdleMs:SESSION_MIN_IDLE_MS, maxIdleMs:SESSION_MAX_IDLE_MS, activeWindowMs:SESSION_ACTIVE_WINDOW_MS, maxActive:MAX_ACTIVE_SESSIONS, historyMs:SESSION_HISTORY_MS, accountId:ACCOUNT_ID, deviceId:DEVICE_ID, nodeId:NODE_ID, emit:event => pushEvent(event) }));
 const devices = goldRegistries.mount('devices',new DeviceRegistry({ stateFile:null, presenceTtlMs:DEVICE_PRESENCE_TTL_MS, emit:event => pushEvent(event) }));
 const enrollments = goldRegistries.mount('enrollments',new EnrollmentRegistry({ stateFile:null, signerFile:ENROLLMENT_SIGNER_FILE, activationBaseUrl:ENROLLMENT_ACTIVATION_URL, ttlMs:ENROLLMENT_TTL_MS, emit:event => pushEvent(event) }));
-const fleet = new FleetRouter({ channelTtlMs:FLEET_CHANNEL_TTL_MS, commandLeaseMs:FLEET_COMMAND_LEASE_MS, maxQueuedPerNode:FLEET_MAX_QUEUED_PER_NODE, emit:event => pushEvent(event) });
+const fleet = new FleetRouter({ channelTtlMs:FLEET_CHANNEL_TTL_MS, commandLeaseMs:FLEET_COMMAND_LEASE_MS, maxQueuedPerNode:FLEET_MAX_QUEUED_PER_NODE, requireExecutorReady:process.env.OPERATOR_REQUIRE_EXECUTOR_READY==='1', emit:event => pushEvent(event) });
 const connections = goldRegistries.mount('connections',new DeviceConnectionRegistry({ stateFile:null, emit:event => pushEvent(event) }));
 const accessGrants = goldRegistries.mount('access_grants',new DeviceAccessGrantRegistry({ stateFile:null, emit:event => pushEvent(event) }));
 const pairingCodes = new DevicePairingRegistry({ emit:event => pushEvent(event) });

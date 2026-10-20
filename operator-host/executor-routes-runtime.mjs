@@ -4,7 +4,7 @@ export async function handleRuntimeRoutes(req,res,url,deps){
       return sendJson(res, 200, { ok:true, currentDeviceId:DEVICE_ID, devices:allDeviceViews() });
     }
     if (req.method === 'GET' && url.pathname === '/v1/fleet') {
-      return sendJson(res, 200, { ok:true, hubNodeId:NODE_ID, nodes:[{accountId:ACCOUNT_ID,deviceId:DEVICE_ID,nodeId:NODE_ID,mode:'local',state:'online',draining:false,sessionCeiling:MAX_ACTIVE_SESSIONS,activeSessions:sessions.activeCountByNode(NODE_ID)}, ...fleet.list().map(node=>({...node,mode:'outbound-leaf',activeSessions:sessions.activeCountByNode(node.nodeId)}))] });
+      return sendJson(res, 200, { ok:true, hubNodeId:NODE_ID, requireExecutorReady:fleet.requireExecutorReady, nodes:[{accountId:ACCOUNT_ID,deviceId:DEVICE_ID,nodeId:NODE_ID,mode:'local',state:'online',draining:false,sessionCeiling:MAX_ACTIVE_SESSIONS,activeSessions:sessions.activeCountByNode(NODE_ID)}, ...fleet.list().map(node=>({...node,mode:'outbound-leaf',activeSessions:sessions.activeCountByNode(node.nodeId)}))] });
     }
     const drainMatch=url.pathname.match(/^\/v1\/fleet\/([A-Za-z0-9._:-]+)\/drain$/);
     if (req.method === 'POST' && drainMatch) {
