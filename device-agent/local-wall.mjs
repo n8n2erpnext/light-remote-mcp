@@ -352,19 +352,21 @@ export function startLocalWall({host='127.0.0.1',port=5491,brandSvgPath,fontPath
   const server=http.createServer(async(req,res)=>{try{
     const url=new URL(req.url||'/','http://local.wall');
     if(req.method==='GET'&&(url.pathname==='/assets/fonts/CascadiaMono.ttf'||url.pathname==='/assets/fonts/CascadiaCode.ttf')){try{const file=url.pathname.endsWith('CascadiaMono.ttf')?(fontPath||cascadiaMonoFontPath):cascadiaCodeFontPath,data=fs.readFileSync(file);res.writeHead(200,{'content-type':'font/ttf','content-length':data.length,'cache-control':'public, max-age=31536000, immutable','x-content-type-options':'nosniff'});res.end(data);}catch{return json(res,404,{ok:false,error:'font_not_found'});}return;}
-    if(auth?.enabled&&url.pathname==='/login'&&req.method==='GET'){if(auth.identity(req)){res.writeHead(303,{location:safeNext(url.searchParams.get('next')),'cache-control':'no-store'});return res.end();}res.writeHead(200,pageHeaders());res.end(loginPage(brandSvg,'',url.searchParams.get('next'),auth.recoveryEnabled!==false,auth.issueLoginCsrf()));return;}
+    if(auth?.enabled&&url.pathname==='/login'&&req.method==='GET'){if(auth.identity(req)){res.writeHead(303,{location:safeNext(url.searchParams.get('next')),'cache-control':'no-store'});return res.end();}const html=loginPage(brandSvg,'',url.searchParams.get('next'),auth.recoveryEnabled!==false,auth.issueLoginCsrf());res.writeHead(200,pageHeaders());res.end(html);return;}
     if(auth?.enabled&&url.pathname==='/auth/login'&&req.method==='POST'){
       const data=await formBody(req);
       if(!auth.verifyLoginCsrf(data.csrf)){
+        const html=loginPage(brandSvg,'Login session expired. Reload and try again.',data.next,auth.recoveryEnabled!==false,auth.issueLoginCsrf());
         res.writeHead(403,pageHeaders());
-        res.end(loginPage(brandSvg,'Login session expired. Reload and try again.',data.next,auth.recoveryEnabled!==false,auth.issueLoginCsrf()));
+        res.end(html);
         return;
       }
       const key=String(req.socket.remoteAddress||'unknown'),now=Date.now();
       const recent=(loginFailures.get(key)||[]).filter(at=>now-at<10*60*1000);
       if(recent.length>=10){
+        const html=loginPage(brandSvg,'Too many failed attempts. Try again later.','/',auth.recoveryEnabled!==false,auth.issueLoginCsrf());
         res.writeHead(429,{...pageHeaders(),'retry-after':'600'});
-        res.end(loginPage(brandSvg,'Too many failed attempts. Try again later.','/',auth.recoveryEnabled!==false,auth.issueLoginCsrf()));
+        res.end(html);
         return;
       }
       let accountIdentity=null,remoteFailure=null;
@@ -383,8 +385,9 @@ export function startLocalWall({host='127.0.0.1',port=5491,brandSvgPath,fontPath
       if(!verified){
         const failure=remoteFailure||classifyLocalWallLoginFailure({message:'invalid_account_credentials',status:401});
         if(failure.credentialFailure){recent.push(now);loginFailures.set(key,recent);}
+        const html=loginPage(brandSvg,failure.message,data.next,auth.recoveryEnabled!==false,auth.issueLoginCsrf());
         res.writeHead(failure.status,{...pageHeaders(),...(failure.retryAfterSeconds?{'retry-after':String(failure.retryAfterSeconds)}:{})});
-        res.end(loginPage(brandSvg,failure.message,data.next,auth.recoveryEnabled!==false,auth.issueLoginCsrf()));
+        res.end(html);
         return;
       }
       loginFailures.delete(key);
@@ -394,10 +397,10 @@ export function startLocalWall({host='127.0.0.1',port=5491,brandSvgPath,fontPath
     }
     if(auth?.enabled&&url.pathname==='/auth/logout'&&req.method==='POST'){const data=await formBody(req);if(!auth.verifyRequestCsrf(req,data.csrf))return json(res,403,{ok:false,error:'csrf_invalid'});res.writeHead(303,{location:'/login','set-cookie':clearSessionCookie(secureRequest(req)),'cache-control':'no-store'});return res.end();}
     if(auth?.enabled&&!auth.identity(req)){if(url.pathname.startsWith('/api/')||url.pathname==='/events')return json(res,401,{ok:false,error:'wall_auth_required'});res.writeHead(303,{location:`/login?next=${encodeURIComponent(safeNext(req.url||'/'))}`,'cache-control':'no-store'});return res.end();}
-    if(req.method==='GET'&&url.pathname==='/'){res.writeHead(200,pageHeaders());res.end(wallPage(brandSvg,Boolean(auth?.enabled),auth?.enabled?auth.csrfForRequest(req)||'':'',auth?.enabled?auth.identity(req):null));return;}
-    if(req.method==='GET'&&url.pathname==='/approve'){res.writeHead(200,pageHeaders());res.end(approvePage(brandSvg,auth?.enabled?auth.csrfForRequest(req)||'':''));return;}
-    if(req.method==='GET'&&url.pathname==='/permissions'){res.writeHead(200,pageHeaders());res.end(permissionsPage(brandSvg,auth?.enabled?auth.csrfForRequest(req)||'':''));return;}
-    if(req.method==='GET'&&url.pathname==='/settings'){res.writeHead(200,pageHeaders());res.end(updateSettingsHtml({surface:'local',csrfToken:auth?.enabled?auth.csrfForRequest(req)||'':'',brandHtml:brandSvg}));return;}
+    if(req.method==='GET'&&url.pathname==='/'){const html=wallPage(brandSvg,Boolean(auth?.enabled),auth?.enabled?auth.csrfForRequest(req)||'':'',auth?.enabled?auth.identity(req):null);res.writeHead(200,pageHeaders());res.end(html);return;}
+    if(req.method==='GET'&&url.pathname==='/approve'){const html=approvePage(brandSvg,auth?.enabled?auth.csrfForRequest(req)||'':'');res.writeHead(200,pageHeaders());res.end(html);return;}
+    if(req.method==='GET'&&url.pathname==='/permissions'){const html=permissionsPage(brandSvg,auth?.enabled?auth.csrfForRequest(req)||'':'');res.writeHead(200,pageHeaders());res.end(html);return;}
+    if(req.method==='GET'&&url.pathname==='/settings'){const html=updateSettingsHtml({surface:'local',csrfToken:auth?.enabled?auth.csrfForRequest(req)||'':'',brandHtml:brandSvg});res.writeHead(200,pageHeaders());res.end(html);return;}
     if(req.method==='GET'&&url.pathname==='/api/policy-status'){const local=await (typeof getLocalPolicyStatus==='function'?getLocalPolicyStatus():getLocalStatus());return json(res,200,{ok:true,local});}
     if(req.method==='GET'&&url.pathname==='/api/status'){const value=await status();return json(res,200,{ok:true,...value});}
     if(req.method==='POST'&&url.pathname==='/api/update/check'){if(!mutationAllowed(req))return json(res,403,{ok:false,error:'csrf_invalid'});if(typeof requestUpdate!=='function')return json(res,501,{ok:false,error:'update_control_unavailable'});const value=await requestUpdate({mode:'check'});return json(res,200,{ok:true,update:value});}
@@ -440,6 +443,6 @@ export function startLocalWall({host='127.0.0.1',port=5491,brandSvgPath,fontPath
 
     const access=url.pathname.match(/^\/api\/access\/(pa_[A-Za-z0-9_-]{20,80})\/(approve|deny)$/);if(req.method==='POST'&&access){if(!mutationAllowed(req))return json(res,403,{ok:false,error:'csrf_invalid'});const data=await body(req);const fn=access[2]==='approve'?accessApprove:accessDeny;if(typeof fn!=='function')return json(res,501,{ok:false,error:'access_control_unavailable'});const value=await fn(access[1],data||{});return json(res,200,{ok:true,authorization:value});}
     return json(res,404,{ok:false,error:'not_found'});
-  }catch(error){return json(res,Number(error.status)||400,{ok:false,error:error.message||'local_wall_error'});}});
+  }catch(error){const code=String(error?.message||'local_wall_error');console.error(JSON.stringify({event:'local_wall_request_error',method:String(req.method||''),route:new URL(req.url||'/','http://local.wall').pathname,error:code.slice(0,240),headersSent:res.headersSent}));if(res.headersSent||res.writableEnded){if(!res.writableEnded)res.destroy();return;}return json(res,Number(error?.status)||400,{ok:false,error:code});}});
   server.listen(Number(port),host);return{server,host,port:Number(port),url:`http://${host}:${Number(port)}/`,close:()=>{shutdownActivityPump();return new Promise(resolve=>server.close(()=>resolve()));}};
 }

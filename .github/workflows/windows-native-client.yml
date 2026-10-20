@@ -175,6 +175,8 @@ jobs:
           if (-not $terminalSmokeOk) { throw 'windows terminal runtime smoke failed after retry' }
           & $node deploy/scripts/selftest-g2-runtime-shutdown-cleanup.mjs
           if ($LASTEXITCODE -ne 0) { throw 'G2 Windows bundled native process shutdown cleanup failed' }
+          & $node deploy/scripts/selftest-g2-wall-headers-sent-crash.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Windows Local Wall double-response crash regression failed' }
           $env:OPERATOR_AGENT_STATE = Join-Path $env:RUNNER_TEMP 'native-empty-device.json'
           Write-Host '--- bundled agent direct status ---'
           & $node $agent status
