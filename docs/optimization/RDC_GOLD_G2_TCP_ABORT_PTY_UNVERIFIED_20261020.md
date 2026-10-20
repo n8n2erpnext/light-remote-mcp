@@ -37,3 +37,10 @@ No changes on Windows owner's installation, HOMESV, Gold LXD services, public pr
 - Verify Windows and Linux CI pass; investigate timeout/compatibility failures if needed.
 - Instrument actual Hub/Bridge/channel (G3) without equating Online with dispatch readiness; preserve A/B and owner checks.
 - Controlled short resource soak (G6), real unexpected network cut on a disposable isolated Gold node (not owner Windows), and macOS physical test later with owner.
+
+## Hosted CI acceptance — exact source cab8013 (2026-10-20)
+- Source commit `cab8013f2516ca395f4b15d2efa47ec7f3f525dd` built on Windows [Actions #443](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39400783470) **completed SUCCESS** and Linux [Actions #280](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39400783477) **completed SUCCESS** (both x64 and ARM64).
+- Full Windows runner logs (203,740 bytes) explicitly confirm ALL SIX: `G2_PTY_MISSING_PID_ONEXIT_FAIL_CLOSED=PASS`, `G2_PTY_MISSING_PID_NO_REPEATED_KILL=PASS`, `G2_PTY_LATE_ONEXIT_RECOVERY_RELEASES_SLOT=PASS`, `G2_TCP_ABORT_AFTER_DISPATCH_JOB_SURVIVES=PASS`, `G2_TCP_RECONNECT_OWNER_STATE_AND_OUTPUT=PASS`, `G2_TCP_RECONNECT_CANCEL_AND_CLEANUP=PASS`.
+- Windows native/compact installer build, full install/self-test, rollback/uninstall, compact install/uninstall and artifact upload completed SUCCESS; artifact `light-remote-windows-x64-cab8013f2516ca395f4b15d2efa47ec7f3f525dd` (328,179,155 bytes) uploaded and not expired. Do not confuse #443 hosted CI with a user Windows installation.
+- G3 identified SOURCE-ONLY preflight: `operator-host/fleet-router.mjs::_state` currently treats `inFlight.size>0` as online even after `lastSeenAt` exceeds channelTtlMs, potentially mislabeling channel dispatch readiness. Reproduce in G3 RED fixture before any behavioral change. Distinguish active work from fresh authenticated channel presence and Owner/device presence. No G3 runtime modification in this checkpoint.
+- **G2 remains IN PROGRESS** for owner-deferred physical network interruption, macOS real E2E and longer soak; no production deployment or owner Windows upgrade was performed.
