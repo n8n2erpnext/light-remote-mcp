@@ -33,3 +33,12 @@ New `deploy/scripts/selftest-g3-executor-readiness-probe.mjs` checks:
 - Keep unrelated untracked Gold UAT source and shared production/owner-installed clients untouched. No rollback, updater or license state changed.
 
 Next candidate: make current Gold Operator code available to an isolated disposable enrolled UAT identity **only through the user-authorized test account and approval flow**, and perform real Agent health fault injection with independent OS observation before G3 gate closure.
+
+
+## Hosted CI acceptance — source 007ac71
+Source [`007ac718d6d20893a65dce82732f5e541b5757cc`](https://github.com/n8n2erpnext/light-remote-mcp/commit/007ac718d6d20893a65dce82732f5e541b5757cc):
+- [Gold G3 Operator Regression #4](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39423200013): **4/4 SUCCESS** — Operator contract (four independent process-canary markers verified in job log), x64/arm64 server bundles and bounded soak.
+- [Linux Desktop Packages #286](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39423200001): **x64 and ARM64 SUCCESS**; all four independent canary markers verified in each job log.
+- [macOS Packages #244](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39423200046): Apple Silicon ARM64 and Intel x64 **SUCCESS**, all four new canary markers verified in both platform logs.
+- [Windows Tray Client #448](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39423200167): native bundled runtime smoke/installer job **in progress** at first checkpoint; do not claim final installer PASS without completed run.
+These CI checks execute an isolated real OS Node child from the shared module. They do not prove macOS native desktop input or an installed Owner Agent, nor fix unavailable authenticated Gold UAT enrollment.
