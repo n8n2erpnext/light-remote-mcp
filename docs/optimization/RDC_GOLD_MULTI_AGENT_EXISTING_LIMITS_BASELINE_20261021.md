@@ -40,3 +40,27 @@ Each test used only synthetic `sleep`, simple stdout, authorized process start/l
 6. Future acceptance should re-run the same A/B busy-overlap on Windows AFTER installing the new approved Gold Agent, then test Free queueing and three independently authorized Pro Agent identities. Avoid synthetic workload inflation or production rollout without explicit owner choice.
 
 **Baseline conclusion:** Gold already supports multiple independent OS processes inside a single authorized Agent, but current `exec` dispatch is serial and old Windows can spuriously DRAIN. There is no demonstrated plan-aware multi-Agent scheduler; native process slots, sessions, Team seats and Agent slots must remain distinct.
+
+## Addendum — real Internet curl.exe download build #464, competing command (2026-10-21)
+
+**Owner clarified:** “download” means Internet transfers launched through ordinary shell tools such as `curl`/`wget`, **not** Light SCP. All tests below used exactly the official Windows Tray Client **build #464** artifact from [GitHub Actions run 39580015765](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39580015765), source commit `eee3a6bd3ad341c606e3396317d1f46084cbaafd`, artifact ID `12336506021`, 328,177,372 bytes. Authenticated signed artifact URL obtained from the GitHub integration; its expiring signed query is intentionally omitted. Windows Agent **remained installed on** `0.9.0-rc.49+6729f5d`; build #464 was NOT installed.
+
+### Real `curl.exe` with long shell `light_remote_exec` (negative)
+- From the A/B-authorized Windows Gold session, launched `curl.exe --location --fail --silent --show-error --limit-rate 1024k --max-time 45 --connect-timeout 15 --output ... build464.zip` against the actual GitHub artifact distribution.
+- First `light_remote_exec` returned `jobId=9b1110bb-a8e5-4c04-ac43-c37a248294b8`, `state=running`.
+- While that exact job was **still running**, a second harmless Windows `light_remote_exec` (`Write-Output`, `Get-Date`) **failed with `target_node_draining`**. Starting an unrelated `light_remote_process` during the same download also **failed `target_node_draining`**.
+- Gold Operator Fleet at that time: `state=online`, `agentDraining=true`, `ownerDraining=false`, `readinessReason=draining`, `dispatchReady=false`, `inFlightCommands=1`, `queuedCommands=0`.
+- Download was **real**, receiving **47,009,373 bytes** of the 328,177,372-byte artifact. It ended intentionally at 45s with `curl (28) timeout` (exit 28), NOT a network/authentication failure. Immediately afterward a harmless `exec` succeeded (exit 0). Partial file was deleted.
+- Diagnosis: **running-long-exec on the old Windows Agent spuriously blocks admission for the whole node**. This is independent of user/owner maintenance drain. It is NOT proof of a lack of OS process concurrency.
+
+### Real `curl.exe` with `light_remote_process` (positive control)
+- Launched the same actual #464 download URL with `curl.exe` and a 19s intentional maximum download duration inside a managed PowerShell process using `light_remote_process`.
+- Received native `processId=lp_fpS2JlP3QXlR-fD9d1WvBb91`, process state **running**, stdout marker `MANAGED_CURL_464_START`.
+- While process was verified still **running**, a second harmless `light_remote_exec` immediately **PASS (exit 0)** with `EXEC_ACCEPTED_WHILE_MANAGED_CURL_DOWNLOADS`.
+- Process downloaded **19,925,833 bytes**, exited `28` at intentional 19s curl max time. Partial test file was deleted.
+- Managed process uses existing owner-scoped process registry. It has a process handle/status/output/stop API, and avoids monopolizing the synchronous command dispatch lane. It is **not durable across Agent restart**, does **not** automatically make multiple independently paired Agents admissible, and does **not** yet implement recoverable background-build/download Job Supervisor or the proposed Free/Pro Agent slots.
+
+### Design consequence
+- For Internet `curl`/`wget` downloads and long builds today, prefer **managed process start → process output/status polling → stop on owner request** over keeping `light_remote_exec` running for minutes/hours. It is a demonstrated **current workaround**, not the final multi-Agent scheduler.
+- The newer Gold Linux Agent `eee3a6b` uses a non-draining liveness pulse; on that version the second `exec` queued instead of getting a drain denial, but execution remains serialized on its single command poll loop. Therefore a pulse patch alone does not yield true concurrent command execution.
+- Final architecture must distinguish `BUSY`, `QUEUED`, `RESOURCE_LOCKED`, `CAPACITY_FULL` and **real owner `DRAINING`**. Preserve per-account Free=1/Pro+=3 Agent execution-slot admission, bounded worker slots per device, proper cancel ownership, safe resource locks and durable job state. No production/client configuration changes occurred during this measurement.
