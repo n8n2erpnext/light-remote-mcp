@@ -36,6 +36,7 @@ on:
       - 'deploy/scripts/stage-terminal-runtime.mjs'
       - 'deploy/scripts/terminal-runtime-smoke.mjs'
       - 'deploy/scripts/selftest-g2-windows-job-object-natural-exit.mjs'
+      - 'deploy/scripts/selftest-g2-windows-cross-process-filelock.mjs'
       - 'deploy/scripts/selftest-g2-pty-missing-exit.mjs'
       - 'deploy/scripts/selftest-g2-transport-drop-job-survival.mjs'
       - 'deploy/scripts/selftest-g2-pty-missing-pid-exit.mjs'
@@ -192,6 +193,8 @@ jobs:
           $env:LIGHT_REMOTE_MANAGED_PROCESS_HELPER = $exe
           & $node deploy/scripts/selftest-g2-windows-job-object-natural-exit.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Gold Windows per-job natural-parent-exit containment failed' }
+          & $node deploy/scripts/selftest-g2-windows-cross-process-filelock.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'GitHub issue #3 Windows exclusive cross-process file-lock acceptance failed' }
           & $node deploy/scripts/selftest-g2-runtime-shutdown-cleanup.mjs
           if ($LASTEXITCODE -ne 0) { throw 'G2 Windows bundled native process shutdown cleanup failed' }
           & $node deploy/scripts/selftest-g2-windows-process-tree.mjs
