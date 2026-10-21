@@ -373,7 +373,7 @@ async function executeProcessCommand(state,p){
     const missing=required.filter(cap=>!effective.includes(cap));if(missing.length)throw new Error(`local capability denied: ${missing.join(',')}`);
     const cwd=String(request.cwd||os.homedir());let stat;try{stat=fs.statSync(cwd);}catch{}if(!stat?.isDirectory())throw new Error('cwd_not_directory');
     const process=SUPERVISED_PROCESSES?
-      await SUPERVISED_PROCESSES.start({...owner,script,cwd,timeoutMs:request.timeoutMs,shell:request.shell,operationId:p.operationId}):
+      await SUPERVISED_PROCESSES.start({...owner,script,cwd,timeoutMs:request.timeoutMs,shell:request.shell,operationId:p.operationId,executionMode:request.executionMode}):
       NATIVE_PROCESSES.start({...owner,script,cwd,timeoutMs:request.timeoutMs,spawnSpec:value=>PLATFORM_ADAPTER.commandFor(value,{shell:request.shell}),env:{GPT_OPERATOR_ACCOUNT:owner.accountId,GPT_OPERATOR_DEVICE:owner.deviceId,GPT_OPERATOR_NODE:state.enrollment.nodeId||owner.deviceId,GPT_OPERATOR_SESSION:owner.sessionId}});
     return {ok:true,operation:'start',process};
   }

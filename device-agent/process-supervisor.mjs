@@ -9,6 +9,7 @@ import os from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {NativeProcessRegistry} from '../lib/native-process.mjs';
 import {SupervisorJobJournal} from '../lib/supervisor-job-journal.mjs';
+import {IsolatedWorkerManager} from '../lib/isolated-worker-manager.mjs';
 import {createPlatformAdapter} from './platform-adapters/index.mjs';
 
 const MAX_REQUEST=128*1024;
@@ -32,7 +33,7 @@ function ensureToken(filename){
   if(!/^[a-f0-9]{64}$/.test(token))throw Error('supervisor_token_invalid');
   return token;
 }
-export async function startProcessSupervisor({socketPath,tokenFile,stateFile,journalDir=null,maxProcesses=16}={}){
+export async function startProcessSupervisor({socketPath,tokenFile,stateFile,journalDir=null,isolatedWorkers=false,maxProcesses=16}={}){
   if(process.platform==='win32')throw Error('process_supervisor_windows_not_supported');
   if(!socketPath||!tokenFile||!stateFile||!path.isAbsolute(socketPath)||!path.isAbsolute(tokenFile))throw Error('supervisor_absolute_paths_required');
   if(path.dirname(socketPath)!==path.dirname(tokenFile))throw Error('supervisor_token_must_share_private_socket_dir');
@@ -40,6 +41,29 @@ export async function startProcessSupervisor({socketPath,tokenFile,stateFile,jou
   const secret=ensureToken(tokenFile);
   const adapter=createPlatformAdapter();
   const journal=journalDir?new SupervisorJobJournal({dir:journalDir}):null;
+  if(isolatedWorkers&&!journal)throw Error('isolated_workers_require_crash_safe_journal');
+  const durable=isolatedWorkers?new IsolatedWorkerManager({dir:path.join(journalDir,'isolated-jobs')}):null;
+  async function viewIsolated(row){
+    const status=await durable.view(row);
+    if(['finished','stopped','timeout','error'].includes(status.state)&&status.finishedAt)
+      journal.markFinished(status);
+    return {...journal.byProcess(row.processId,row.owner),...status,
+      accountId:row.owner.accountId,deviceId:row.owner.deviceId,sessionId:row.owner.sessionId,agentId:row.owner.agentId};
+  }
+  async function recoveredRows(owner=null,deviceOnly=false){
+    if(!journal)return [];
+    const records=deviceOnly?journal.reconciledDevice(owner.accountId,owner.deviceId):journal.reconciled(owner);
+    const selected=records.slice(-64);
+    const result=[];
+    for(const row of selected){
+      if(row.backend==='isolated-user-unit'){
+        if(!durable){result.push({...row,state:'unknown',unknownReason:'isolated_worker_backend_disabled'});continue;}
+        try{result.push(await viewIsolated({...row,owner:{accountId:row.accountId,deviceId:row.deviceId,sessionId:row.sessionId,agentId:row.agentId}}));}
+        catch{result.push({...row,state:'unknown',unknownReason:'isolated_worker_probe_failed'});}
+      }else result.push(row);
+    }
+    return result;
+  }
   // A journal is authoritative for replay across service restarts, not for
   // pretending the original OS child is still attached after its parent dies.
   let processes;
@@ -75,7 +99,7 @@ export async function startProcessSupervisor({socketPath,tokenFile,stateFile,jou
         if(raw?.enrollment?.accountId!==partial.accountId||raw?.enrollment?.deviceId!==partial.deviceId)
           throw Object.assign(Error('supervisor_device_identity_mismatch'),{status:403});
         const live=processes.list().filter(p=>p.accountId===partial.accountId&&p.deviceId===partial.deviceId);
-        const recovered=journal?journal.reconciledDevice(partial.accountId,partial.deviceId).filter(p=>!live.some(l=>l.processId===p.processId)):[];
+        const recovered=(await recoveredRows(partial,true)).filter(p=>!live.some(l=>l.processId===p.processId));
         return respond(res,200,{ok:true,processes:[...live,...recovered].slice(0,64)});
       }
       const state=checkIdentity(owner);
@@ -101,6 +125,12 @@ export async function startProcessSupervisor({socketPath,tokenFile,stateFile,jou
         const fingerprint=crypto.createHash('sha256').update(JSON.stringify([script,cwd,input.timeoutMs||0,input.shell||'default'])).digest('hex');
         if(journal&&!opId)throw Object.assign(Error('supervisor_operation_id_required'),{status:400});
         const priorJournal=journal?journal.previous(owner,opId,fingerprint):null;
+        if(priorJournal?.backend==='isolated-user-unit'){
+          if(!durable)throw Object.assign(Error('prior_operation_status_unknown'),{status:409});
+          const checked=await viewIsolated({...priorJournal,owner});
+          if(checked.state==='unknown')throw Object.assign(Error('prior_operation_status_unknown'),{status:409});
+          return respond(res,200,{ok:true,deduplicated:true,process:checked});
+        }
         if(priorJournal&&!processes.list(owner).some(x=>x.processId===priorJournal.processId))
           throw Object.assign(Error('prior_operation_status_unknown'),{status:409});
         if(dedupeKey){
@@ -121,19 +151,31 @@ export async function startProcessSupervisor({socketPath,tokenFile,stateFile,jou
         // Write-ahead reservation BEFORE first possible external side effect.
         // On failure, preserve UNKNOWN evidence rather than auto-restarting.
         const reserved=journal?journal.reserve(owner,opId,fingerprint):null;
-        const proc=processes.start({...owner,script,cwd,timeoutMs:input.timeoutMs,
-          spawnSpec:value=>adapter.commandFor(value,{shell:input.shell}),
-          env:{GPT_OPERATOR_ACCOUNT:owner.accountId,GPT_OPERATOR_DEVICE:owner.deviceId,GPT_OPERATOR_SESSION:owner.sessionId}});
+        const managedIsolated=Boolean(durable&&input.executionMode==='background');
+        const proc=managedIsolated?
+          await durable.launch({owner,processId:'lp_'+crypto.randomBytes(18).toString('base64url'),
+            script,cwd,shell:input.shell,timeoutMs:input.timeoutMs}):
+          processes.start({...owner,script,cwd,timeoutMs:input.timeoutMs,
+            spawnSpec:value=>adapter.commandFor(value,{shell:input.shell}),
+            env:{GPT_OPERATOR_ACCOUNT:owner.accountId,GPT_OPERATOR_DEVICE:owner.deviceId,GPT_OPERATOR_SESSION:owner.sessionId}});
         if(reserved)journal.attach(reserved.recordId,proc);
         if(dedupeKey)dedupe.set(dedupeKey,{fingerprint,processId:proc.processId});
         return respond(res,200,{ok:true,process:proc});
       }
       if(op==='list'){
         const live=processes.list(owner);
-        const recovered=journal?journal.reconciled(owner).filter(p=>!live.some(x=>x.processId===p.processId)):[];
+        const recovered=(await recoveredRows(owner)).filter(p=>!live.some(x=>x.processId===p.processId));
         return respond(res,200,{ok:true,processes:[...live,...recovered].slice(0,64)});
       }
       if(['output','stop','input'].includes(op)&&journal){
+        const saved=journal.byProcess(input.processId,owner);
+        if(saved?.backend==='isolated-user-unit'){
+          if(!durable)throw Object.assign(Error('isolated_worker_backend_disabled'),{status:503});
+          const record={...saved,owner};
+          if(op==='output')return respond(res,200,{ok:true,data:await durable.output(record,{stream:input.stream,offset:input.offset,limit:input.limit})});
+          if(op==='stop')return respond(res,200,{ok:true,process:await durable.stop(record,{force:input.force===true})});
+          throw Object.assign(Error('isolated_background_stdin_unavailable'),{status:409});
+        }
         const recovered=journal.byProcess(input.processId,owner);
         if(recovered&&!processes.list(owner).some(p=>p.processId===input.processId))
           throw Object.assign(Error(recovered.finishedAt?'process_output_unavailable_after_supervisor_restart':'prior_operation_status_unknown'),{status:409});
@@ -170,7 +212,8 @@ if(main){
   const tokenFile=String(process.env.LIGHT_REMOTE_PROCESS_SUPERVISOR_TOKEN_FILE||'');
   const stateFile=String(process.env.OPERATOR_AGENT_STATE||'');
   const journalDir=String(process.env.LIGHT_REMOTE_PROCESS_SUPERVISOR_JOURNAL_DIR||'').trim()||null;
-  startProcessSupervisor({socketPath,tokenFile,stateFile,journalDir}).then(runtime=>{
+  const isolatedWorkers=process.env.LIGHT_REMOTE_PROCESS_SUPERVISOR_ISOLATED_WORKERS==='1';
+  startProcessSupervisor({socketPath,tokenFile,stateFile,journalDir,isolatedWorkers}).then(runtime=>{
     console.log(JSON.stringify({event:'managed_supervisor_ready',pid:process.pid}));
     let shutting=false;const stop=()=>{if(shutting)return;shutting=true;void runtime.shutdown().then(()=>process.exit(0)).catch(()=>process.exit(1));};
     process.once('SIGTERM',stop);process.once('SIGINT',stop);
