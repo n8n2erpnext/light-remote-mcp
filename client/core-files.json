@@ -22,6 +22,10 @@
       "destination": "device-agent/local-wall.mjs"
     },
     {
+      "source": "device-agent/local-process-page.mjs",
+      "destination": "device-agent/local-process-page.mjs"
+    },
+    {
       "source": "device-agent/wall-status-cache.mjs",
       "destination": "device-agent/wall-status-cache.mjs"
     },
