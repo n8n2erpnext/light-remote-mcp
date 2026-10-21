@@ -30,4 +30,10 @@ console.log('G3_INLINE_STDOUT_ERROR_RECOVERABLE_CANONICAL_JOBID=PASS');
 const source=fs.readFileSync(new URL('../../plugin-server/tools.mjs',import.meta.url),'utf8');
 assert.ok(source.includes('inlineStdout:z.boolean().optional()'));
 assert.ok(source.includes('maybeInlineExecStdout(operationView(await a.exec'));
+assert.ok(source.includes("process.env.LIGHT_REMOTE_GOLD_INDEPENDENT==='1'&&process.env.LIGHT_REMOTE_GOLD_INLINE_STDOUT_DEFAULT==='1'"));
+assert.ok(source.includes('inlineStdout:x.inlineStdout??goldAutoInlineStdout'));
 console.log('G3_INLINE_STDOUT_GOLD_TOOL_SCHEMA=PASS');
+const switchScript=fs.readFileSync(new URL('./gold-g3-uat-inline-stdout-switch.sh',import.meta.url),'utf8');
+for(const proof of ['G3_INLINE_OPT_IN','gold_not_idle_ready_strict','LIGHT_REMOTE_GOLD_INLINE_STDOUT_DEFAULT=1','G3_GOLD_INLINE_ROLLBACK_PLUGIN_ACTIVE'])
+  assert.ok(switchScript.includes(proof),'gold_only_inline_switch_lacks_guard:'+proof);
+console.log('G3_INLINE_STDOUT_GOLD_ONLY_RUNTIME_SWITCH_GUARDS=PASS');

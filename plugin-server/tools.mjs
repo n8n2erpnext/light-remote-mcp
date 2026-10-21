@@ -14,6 +14,9 @@ const security=scopes=>[{type:'oauth2',scopes:[...scopes]}];
 const annotations=(readOnly=false,destructive=false,openWorld=false,idempotent=false)=>({readOnlyHint:readOnly,destructiveHint:destructive,openWorldHint:openWorld,idempotentHint:idempotent});
 
 export const PLUGIN_TOOL_SECURITY=Object.create(null);
+// OFF by default. Only explicitly configured independent Gold Plugin UAT may
+// inline short completed exec stdout for currently published MCP tool schemas.
+const goldAutoInlineStdout=process.env.LIGHT_REMOTE_GOLD_INDEPENDENT==='1'&&process.env.LIGHT_REMOTE_GOLD_INLINE_STDOUT_DEFAULT==='1';
 
 function add(server,name,config,callback){
   const schemes=config.securitySchemes||[];
@@ -328,7 +331,7 @@ export function registerPluginTools(server,identity){
     title:'Execute one bounded remote command job',
     description:'Run one logical shell/PowerShell job. Prefer structured tools first; device policy re-infers capabilities before spawn. Gold opt-in inlineStdout returns up to 1536 bytes of completed successful stdout in the same tool response; otherwise use light_remote_output.',
     inputSchema:{sessionId:id,operationId:opId,script:z.string().min(1).max(1_000_000),shell:z.string().max(80).optional(),cwd:pathText.optional(),timeoutMs:z.number().int().min(1000).max(7_200_000).optional(),waitMs:z.number().int().min(0).max(7000).optional(),requiredCapabilities:z.array(z.string().min(1).max(80)).max(32).optional(),inlineStdout:z.boolean().optional()},securitySchemes:security(['remote:execute']),annotations:annotations(false,true,true,false)
-  },guarded(identity,['remote:execute'],async(a,x)=>maybeInlineExecStdout(operationView(await a.exec(x.sessionId,x.script,{shell:x.shell,cwd:x.cwd,operationId:x.operationId,timeoutMs:x.timeoutMs,waitMs:x.waitMs,requiredCapabilities:x.requiredCapabilities})),a,{inlineStdout:x.inlineStdout})));
+  },guarded(identity,['remote:execute'],async(a,x)=>maybeInlineExecStdout(operationView(await a.exec(x.sessionId,x.script,{shell:x.shell,cwd:x.cwd,operationId:x.operationId,timeoutMs:x.timeoutMs,waitMs:x.waitMs,requiredCapabilities:x.requiredCapabilities})),a,{inlineStdout:x.inlineStdout??goldAutoInlineStdout})));
 
   add(server,'light_remote_process',{
     title:'Start a managed remote process',
