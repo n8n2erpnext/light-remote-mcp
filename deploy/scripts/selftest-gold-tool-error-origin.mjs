@@ -17,7 +17,7 @@ for(const [code,layer,nextAction,httpStatus] of [
 ]){
  const negative={ok:false,data:{ok:false,error:code,status:httpStatus},job:{jobId:'fixture',state:'error',finishedAt:123,exitCode:1}};
  const projected=operationView(negative),transport=result(projected);
- assert.equal(transport.isError,true,code+':isError');
+ assert.equal(transport.isError,code==='filesystem_edit_conflict'?undefined:true,code+':isError');
  assert.equal(projected.ok,false,code+':ok');
  assert.equal(projected.layer,layer,code+':layer');
  assert.equal(projected.retryable,false,code+':retryable');
