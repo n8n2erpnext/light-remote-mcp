@@ -24,11 +24,10 @@ const a=job(0,'project:/projects/a'),b=job(1,'project:/projects/a'),
 try{
  for(const item of [a,b,c,d,e,f,g])await scheduler.enqueue(item);
  assert.deepEqual(await scheduler.admit(a.accountId,3),[a.jobId]);
- const raced=await Promise.all([scheduler.admit(b.accountId,3),scheduler.admit(c.accountId,3),scheduler.admit(d.accountId,3),scheduler.admit(e.accountId,3)]);
- assert.deepEqual(raced[0],[],'same project cannot start');
- assert.deepEqual(raced[1],[c.jobId],'independent project allowed');
- assert.deepEqual(raced[2],[],'reader of actively exclusive project waits');
- assert.deepEqual(raced[3],[],'2/2 device worker capacity is exhausted');
+ const contested=await Promise.all([scheduler.admit(b.accountId,3),scheduler.admit(d.accountId,3)]);
+ assert.deepEqual(contested,[[],[]],'concurrent conflicting accounts must both queue');
+ assert.deepEqual(await scheduler.admit(c.accountId,3),[c.jobId],'independent project allowed');
+ assert.deepEqual(await scheduler.admit(e.accountId,3),[],'2/2 device worker capacity is exhausted');
  const blocked=await db.pool.query('SELECT account_id,queue_reason FROM lr_gold_personal_agent_work WHERE account_id=ANY($1::text[])',[accounts]);
  const why=new Map(blocked.rows.map(x=>[x.account_id,x.queue_reason]));
  assert.equal(why.get(b.accountId),'RESOURCE_LOCKED');
