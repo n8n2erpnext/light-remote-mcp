@@ -10,6 +10,7 @@ import { spawn } from 'node:child_process';
 import { SessionRegistry, SessionError, SESSION_GRACE_PRESETS } from './session-manager.mjs';
 import { personalCapacity } from './execution-capacity-policy.mjs';
 import { GoldPersonalAgentScheduler } from '../lib/gold-personal-agent-scheduler.mjs';
+import { usesPersonalAgentSlot } from './personal-agent-tool-admission.mjs';
 import { resolveExecMode } from './long-running-exec-policy.mjs';
 import { DeviceRegistry, DeviceError } from './device-registry.mjs';
 import { EnrollmentRegistry, EnrollmentError } from './enrollment-registry.mjs';
@@ -141,6 +142,26 @@ const goldJobs=await GoldJobLedger.open({pool:goldStorage.pool,redact});
 const personalAgentScheduler=PERSONAL_AGENT_SCHEDULER?new GoldPersonalAgentScheduler({pool:goldStorage.pool}):null;
 if(personalAgentScheduler)await personalAgentScheduler.recoverStartup();
 const pendingForegroundExec=new Map();
+// Only work that can start a new effect holds an Agent execution slot.
+// Stop/status/output/input remain control-plane operations so owners can
+// always inspect and cancel a long-running process without waiting.
+
+async function schedulePersonalEffect(job,dispatch){
+ if(!job.personalScheduled)return dispatch();
+ pendingForegroundExec.set(job.id,dispatch);
+ try{
+  await personalAgentScheduler.enqueue({jobId:job.id,accountId:job.accountId,
+   agentId:job.agentId,sessionId:job.sessionId,operationId:job.operationId});
+  await pumpPersonalAgentAccount(job.accountId);
+ }catch(error){
+  pendingForegroundExec.delete(job.id);
+  job.resultData={ok:false,error:'m3_personal_scheduler_unavailable',status:503};
+  finishJob(job,1,null);
+  throw error;
+ }
+ return job;
+}
+
 const pumpingPersonalAccounts=new Set();
 async function pumpPersonalAgentAccount(accountId){
  if(!personalAgentScheduler||pumpingPersonalAccounts.has(accountId))return;
@@ -587,7 +608,7 @@ async function startJob(payload, requestId) {
   jobs.set(job.id, job);goldJobs.save(job);
   sessions.attachJob(job.sessionId, job.id);
   operationDedupe.set(operationId, { jobId: job.id, fingerprint, expiresAt: Date.now() + OPERATION_DEDUPE_MS });
-  pushEvent({ type: 'job_started', jobId: job.id, requestId, operationId: job.operationId, accountId:job.accountId, deviceId:job.deviceId, sessionId: job.sessionId, agentId:job.agentId, nodeId:job.nodeId, status: 'running', route:remote?'outbound-leaf':'local', requiredCapabilities,
+  pushEvent({ type: 'job_started', jobId: job.id, requestId, operationId: job.operationId, accountId:job.accountId, deviceId:job.deviceId, sessionId: job.sessionId, agentId:job.agentId, nodeId:job.nodeId, status: job.status, route:remote?'outbound-leaf':'local', requiredCapabilities,
     cwd, script: redact(script), note: redact(job.note), timeoutMs });
   const performForegroundExec=()=>{
   if(remote) {
@@ -619,21 +640,7 @@ async function startJob(payload, requestId) {
   job.timer.unref();
   return job;
   };
-  if(personalAgentScheduler){
-    pendingForegroundExec.set(job.id,performForegroundExec);
-    try{
-      await personalAgentScheduler.enqueue({jobId:job.id,accountId:job.accountId,
-        agentId:job.agentId,sessionId:job.sessionId,operationId:job.operationId});
-      await pumpPersonalAgentAccount(job.accountId);
-    }catch(error){
-      pendingForegroundExec.delete(job.id);
-      job.resultData={ok:false,error:'m3_agent_scheduler_unavailable',status:503};
-      finishJob(job,1,null);
-      throw error;
-    }
-    return job;
-  }
-  return performForegroundExec();
+  return schedulePersonalEffect(job,performForegroundExec);
 }
 const {fsActivityMeta,fsActivityResult,shortNativeId,scpActivityMeta,processActivityMeta,searchActivityMeta,nativeActivityResult,shortTerminalId,terminalInputPreview,terminalWallMeta,terminalResultSummary}=createNativeActivityFormatter({redact});
 
@@ -648,16 +655,20 @@ async function startFsOperation(payload,requestId){
   const remote=isOutboundTarget({integratedHostEnabled:INTEGRATED_HOST_ENABLED,localNodeId:NODE_ID,targetNodeId:session.nodeId}),requiredCapabilities=['filesystem'];
   if(remote){const route=targetRoute(session.nodeId,{accountId:session.accountId});if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(!route.capabilities.includes('filesystem'))throw new FleetError('target_node_capability_missing',409);}
   else if(!hostEffectiveCapabilities().includes('filesystem'))throw new DeviceError('local_host_capability_missing',409);
+  const shouldQueue=usesPersonalAgentSlot({enabled:Boolean(personalAgentScheduler),family:'fs',op:String(fsRequest.op||'')});
   const fingerprint=crypto.createHash('sha256').update(JSON.stringify({fsRequest,sessionId:session.id,nodeId:session.nodeId})).digest('hex');
   const existing=operationDedupe.get(operationId);
   if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
   const toolMeta=fsActivityMeta(fsRequest);
-  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-fs:${String(fsRequest.op||'unknown')}`,cwd:'',script:'',status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null,resultSummary:'',toolMeta};
+  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-fs:${String(fsRequest.op||'unknown')}`,cwd:'',script:'',status:shouldQueue?'queued':'running',personalScheduled:shouldQueue,queueReason:shouldQueue?'QUEUED_AGENT_SLOT':null,admittedAt:null,startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null,resultSummary:'',toolMeta};
   assertToolCallQuota(job.accountId);const historical=await reserveGoldJob(job);if(historical)return historical;jobs.set(job.id,job);goldJobs.save(job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
-  pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:remote?'outbound-leaf':'local',requiredCapabilities,note:job.note,toolMeta:job.toolMeta});
+  pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:job.status,route:remote?'outbound-leaf':'local',requiredCapabilities,note:job.note,toolMeta:job.toolMeta});
+  const dispatch=()=>{
   if(remote){const command=enqueueForJob(job,{accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'fs',operationId,sessionId:job.sessionId,agentId:job.agentId,fs:fsRequest}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},60000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();return job;}
   Promise.resolve().then(()=>executeNativeFs(fsRequest,{policy:filesystemPolicy()})).then(data=>{job.resultData=data;job.resultSummary=fsActivityResult(job.toolMeta,data);finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};job.resultSummary=String(error?.message||error);emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n','utf8'));finishJob(job,1,null);});
   return job;
+  };
+  return schedulePersonalEffect(job,dispatch);
 }
 
 async function startScpOperation(payload,requestId){
@@ -667,14 +678,18 @@ async function startScpOperation(payload,requestId){
   const request=payload.scp&&typeof payload.scp==='object'&&!Array.isArray(payload.scp)?payload.scp:null;if(!request)throw new Error('scp_request_required');
   const remote=isOutboundTarget({integratedHostEnabled:INTEGRATED_HOST_ENABLED,localNodeId:NODE_ID,targetNodeId:session.nodeId}),requiredCapabilities=['filesystem'];
   if(remote){const route=targetRoute(session.nodeId,{accountId:session.accountId});if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(!route.capabilities.includes('filesystem'))throw new FleetError('target_node_capability_missing',409);}else if(!hostEffectiveCapabilities().includes('filesystem'))throw new DeviceError('local_host_capability_missing',409);
+  const shouldQueue=usesPersonalAgentSlot({enabled:Boolean(personalAgentScheduler),family:'scp',op:String(request.op||'')});
   const fingerprint=crypto.createHash('sha256').update(JSON.stringify({request,sessionId:session.id,nodeId:session.nodeId})).digest('hex'),existing=operationDedupe.get(operationId);
   if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
   const toolMeta=scpActivityMeta(request);
-  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`light-scp:${toolMeta.op}`,cwd:String(request.destination||request.source||''),script:'',status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null,resultSummary:'',toolMeta};
+  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`light-scp:${toolMeta.op}`,cwd:String(request.destination||request.source||''),script:'',status:shouldQueue?'queued':'running',personalScheduled:shouldQueue,queueReason:shouldQueue?'QUEUED_AGENT_SLOT':null,admittedAt:null,startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null,resultSummary:'',toolMeta};
   assertToolCallQuota(job.accountId);const historical=await reserveGoldJob(job);if(historical)return historical;jobs.set(job.id,job);goldJobs.save(job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
-  pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:remote?'outbound-leaf':'local',requiredCapabilities,note:job.note,toolMeta:job.toolMeta});
+  pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:job.status,route:remote?'outbound-leaf':'local',requiredCapabilities,note:job.note,toolMeta:job.toolMeta});
+  const dispatch=()=>{
   if(remote){const command=enqueueForJob(job,{accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'scp',operationId,sessionId:job.sessionId,agentId:job.agentId,scp:request}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},60000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();return job;}
   Promise.resolve().then(()=>executeLocalScpRequest(job,request)).then(data=>{job.resultData=data;job.resultSummary=nativeActivityResult(job.toolMeta,data);finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n'));finishJob(job,1,null);});return job;
+  };
+  return schedulePersonalEffect(job,dispatch);
 }
 
 async function executeLocalScpRequest(job,request){
@@ -696,14 +711,18 @@ async function startProcessOperation(payload,requestId,{managedExec=false,longCo
   const request=payload.process&&typeof payload.process==='object'&&!Array.isArray(payload.process)?payload.process:null;if(!request)throw new Error('process_request_required');
   const remote=isOutboundTarget({integratedHostEnabled:INTEGRATED_HOST_ENABLED,localNodeId:NODE_ID,targetNodeId:session.nodeId}),requiredCapabilities=['filesystem'];
   if(remote){const route=targetRoute(session.nodeId,{accountId:session.accountId});if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(!route.capabilities.includes('filesystem'))throw new FleetError('target_node_capability_missing',409);}else if(!hostEffectiveCapabilities().includes('filesystem'))throw new DeviceError('local_host_capability_missing',409);
+  const shouldQueue=usesPersonalAgentSlot({enabled:Boolean(personalAgentScheduler),family:'process',op:String(request.op||'')});
   const fingerprint=crypto.createHash('sha256').update(JSON.stringify({request,sessionId:session.id,nodeId:session.nodeId})).digest('hex'),existing=operationDedupe.get(operationId);
   if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
   const toolMeta=processActivityMeta(request);
-  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-process:${toolMeta.op}`,cwd:String(request.cwd||''),script:String(request.script||''),status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null,resultSummary:'',toolMeta,managedExec,longCommandHint};
+  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-process:${toolMeta.op}`,cwd:String(request.cwd||''),script:String(request.script||''),status:shouldQueue?'queued':'running',personalScheduled:shouldQueue,queueReason:shouldQueue?'QUEUED_AGENT_SLOT':null,admittedAt:null,startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null,resultSummary:'',toolMeta,managedExec,longCommandHint};
   assertToolCallQuota(job.accountId);const historical=await reserveGoldJob(job);if(historical)return historical;jobs.set(job.id,job);goldJobs.save(job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
-  pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:remote?'outbound-leaf':'local',requiredCapabilities,note:job.note,toolMeta:job.toolMeta});
+  pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:job.status,route:remote?'outbound-leaf':'local',requiredCapabilities,note:job.note,toolMeta:job.toolMeta});
+  const dispatch=()=>{
   if(remote){const command=enqueueForJob(job,{accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'process',operationId,sessionId:job.sessionId,agentId:job.agentId,process:request}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},30000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();return job;}
   Promise.resolve().then(()=>executeLocalProcessRequest(job,request)).then(data=>{job.resultData=data;job.resultSummary=nativeActivityResult(job.toolMeta,data);finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n'));finishJob(job,1,null);});return job;
+  };
+  return schedulePersonalEffect(job,dispatch);
 }
 
 async function executeLocalProcessRequest(job,request){
@@ -731,14 +750,18 @@ async function startTerminalOperation(payload,requestId){
   const request=payload.terminal&&typeof payload.terminal==='object'&&!Array.isArray(payload.terminal)?payload.terminal:null;if(!request)throw new Error('terminal_request_required');
   const remote=isOutboundTarget({integratedHostEnabled:INTEGRATED_HOST_ENABLED,localNodeId:NODE_ID,targetNodeId:session.nodeId}),requiredCapabilities=['terminal'];
   if(remote){const route=targetRoute(session.nodeId,{accountId:session.accountId});if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(!route.capabilities.includes('terminal'))throw new FleetError('target_node_capability_missing',409);}else if(!hostEffectiveCapabilities().includes('terminal'))throw new DeviceError('local_host_capability_missing',409);
+  const shouldQueue=usesPersonalAgentSlot({enabled:Boolean(personalAgentScheduler),family:'terminal',op:String(request.op||'')});
   const fingerprint=crypto.createHash('sha256').update(JSON.stringify({request,sessionId:session.id,nodeId:session.nodeId})).digest('hex'),existing=operationDedupe.get(operationId);
   if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
   const toolMeta=terminalWallMeta(request);
-  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-terminal:${toolMeta.op}`,cwd:String(toolMeta.cwd||''),script:toolMeta.label,status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null,resultSummary:'',toolMeta};
+  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-terminal:${toolMeta.op}`,cwd:String(toolMeta.cwd||''),script:toolMeta.label,status:shouldQueue?'queued':'running',personalScheduled:shouldQueue,queueReason:shouldQueue?'QUEUED_AGENT_SLOT':null,admittedAt:null,startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null,resultSummary:'',toolMeta};
   assertToolCallQuota(job.accountId);const historical=await reserveGoldJob(job);if(historical)return historical;jobs.set(job.id,job);goldJobs.save(job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
-  pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:remote?'outbound-leaf':'local',requiredCapabilities,cwd:job.cwd,script:redact(job.script),note:job.note,toolMeta:job.toolMeta});
+  pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:job.status,route:remote?'outbound-leaf':'local',requiredCapabilities,cwd:job.cwd,script:redact(job.script),note:job.note,toolMeta:job.toolMeta});
+  const dispatch=()=>{
   if(remote){const command=enqueueForJob(job,{accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'terminal',operationId,sessionId:job.sessionId,agentId:job.agentId,terminal:request}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},30000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();return job;}
   Promise.resolve().then(()=>executeLocalTerminalRequest(job,request)).then(data=>{job.resultData=data;job.resultSummary=terminalResultSummary(data);finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};job.resultSummary='error · '+redact(String(error?.message||error));emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n'));finishJob(job,1,null);});return job;
+  };
+  return schedulePersonalEffect(job,dispatch);
 }
 
 async function executeLocalTerminalRequest(job,request){
@@ -823,14 +846,18 @@ async function startSearchOperation(payload,requestId){
   const request=payload.search&&typeof payload.search==='object'&&!Array.isArray(payload.search)?payload.search:null;if(!request)throw new Error('search_request_required');
   const remote=isOutboundTarget({integratedHostEnabled:INTEGRATED_HOST_ENABLED,localNodeId:NODE_ID,targetNodeId:session.nodeId}),requiredCapabilities=['filesystem'];
   if(remote){const route=targetRoute(session.nodeId,{accountId:session.accountId});if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(!route.capabilities.includes('filesystem'))throw new FleetError('target_node_capability_missing',409);}else if(!hostEffectiveCapabilities().includes('filesystem'))throw new DeviceError('local_host_capability_missing',409);
+  const shouldQueue=usesPersonalAgentSlot({enabled:Boolean(personalAgentScheduler),family:'search',op:String(request.op||'')});
   const fingerprint=crypto.createHash('sha256').update(JSON.stringify({request,sessionId:session.id,nodeId:session.nodeId})).digest('hex'),existing=operationDedupe.get(operationId);
   if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
   const toolMeta=searchActivityMeta(request);
-  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-search:${toolMeta.op}`,cwd:String(request.path||''),script:'',status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null,resultSummary:'',toolMeta};
+  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-search:${toolMeta.op}`,cwd:String(request.path||''),script:'',status:shouldQueue?'queued':'running',personalScheduled:shouldQueue,queueReason:shouldQueue?'QUEUED_AGENT_SLOT':null,admittedAt:null,startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null,resultSummary:'',toolMeta};
   assertToolCallQuota(job.accountId);const historical=await reserveGoldJob(job);if(historical)return historical;jobs.set(job.id,job);goldJobs.save(job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
-  pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:remote?'outbound-leaf':'local',requiredCapabilities,note:job.note,toolMeta:job.toolMeta});
+  pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:job.status,route:remote?'outbound-leaf':'local',requiredCapabilities,note:job.note,toolMeta:job.toolMeta});
+  const dispatch=()=>{
   if(remote){const command=enqueueForJob(job,{accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'search',operationId,sessionId:job.sessionId,agentId:job.agentId,search:request}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},30000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();return job;}
   Promise.resolve().then(()=>executeLocalSearchRequest(job,request)).then(data=>{job.resultData=data;const v=data?.search||data;if(v&&typeof v==='object'){for(const key of ['path','searchType','pattern','filePattern'])if(v[key]!=null&&!job.toolMeta[key])job.toolMeta[key]=key==='pattern'?redact(String(v[key])).slice(0,180):String(v[key]);}job.resultSummary=nativeActivityResult(job.toolMeta,data);finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n'));finishJob(job,1,null);});return job;
+  };
+  return schedulePersonalEffect(job,dispatch);
 }
 
 async function executeLocalSearchRequest(job,request){

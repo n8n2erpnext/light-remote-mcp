@@ -18,6 +18,7 @@ on:
       - 'deploy/scripts/selftest-g5-*.mjs'
       - 'deploy/scripts/selftest-gold-multi-agent-entitlement.mjs'
       - 'deploy/scripts/selftest-gold-m3-personal-schema-contract.mjs'
+      - 'deploy/scripts/selftest-gold-m3-shared-tool-admission.mjs'
       - 'deploy/scripts/selftest-gold-m3-pg-personal-admission.mjs'
       - 'platform-v2/sql/**'
       - 'deploy/scripts/selftest-gold-m2-long-command-mode.mjs'
@@ -74,6 +75,7 @@ jobs:
           node deploy/scripts/selftest-g5-gold-edit-tool-schema.mjs
           node deploy/scripts/selftest-gold-multi-agent-entitlement.mjs
           node deploy/scripts/selftest-gold-m3-personal-schema-contract.mjs
+          node deploy/scripts/selftest-gold-m3-shared-tool-admission.mjs
           node --check deploy/scripts/selftest-gold-m3-pg-personal-admission.mjs
           node --check lib/gold-personal-agent-scheduler.mjs
           node --check operator-host/executor.mjs
