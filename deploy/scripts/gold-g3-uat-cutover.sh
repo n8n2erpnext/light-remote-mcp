@@ -8,6 +8,10 @@ umask 077
 SHA="${G3_GOLD_SOURCE_SHA:?SHA required}"
 [[ "$SHA" =~ ^[a-f0-9]{40}$ ]] || exit 2
 [[ "${G3_GOLD_CUTOVER:-}" == "1" ]] || { echo G3_GOLD_CUTOVER_OPT_IN_REQUIRED >&2;exit 2; }
+# Preserve existing Gold admission policy during a source-only candidate upgrade.
+G3_GOLD_EXPECT_STRICT="${G3_GOLD_EXPECT_STRICT:-0}"
+[[ "$G3_GOLD_EXPECT_STRICT" == "0" || "$G3_GOLD_EXPECT_STRICT" == "1" ]] || { echo G3_GOLD_EXPECT_STRICT_INVALID >&2;exit 2; }
+export G3_GOLD_EXPECT_STRICT
 ROOT="/opt/light-remote-gold-uat-candidates/$SHA"
 BACKUP="/var/backups/light-remote-gold-uat/pre-g3-$SHA"
 SOCK="/run/light-remote-gold-uat/operator.sock"
@@ -37,6 +41,9 @@ const req=http.get({socketPath:sock,path:'/v1/fleet',timeout:3000},res=>{
    const queued=nodes.reduce((sum,node)=>sum+(Number(node.queuedCommands)||0),0);
    const sessions=nodes.reduce((sum,node)=>sum+(Number(node.activeSessions)||0),0);
    if(inflight||queued||sessions)throw Error('active_jobs_or_sessions');
+   if(value.requireExecutorReady!==(process.env.G3_GOLD_EXPECT_STRICT==='1'))throw Error('existing_strict_policy_mismatch');
+   const leaves=nodes.filter(x=>x.mode==='outbound-leaf');
+   if(leaves.length!==2||leaves.some(x=>x.channelFresh!==true||x.executorReady!==true))throw Error('executor_proof_not_ready');
    console.log('G3_GOLD_CUTOVER_NO_ACTIVE_JOBS=PASS');
   }catch(e){console.error('G3_GOLD_CUTOVER_PREFLIGHT_DENIED:'+e.message);process.exitCode=4;}
  });
@@ -94,7 +101,13 @@ function validate(){
       try{
         const j=JSON.parse(text);
         if(!j.ok||!Array.isArray(j.nodes)){console.error('G3_GOLD_VALIDATE_FLEET_CONTRACT');process.exitCode=1;}
-        else if(j.requireExecutorReady!==false){console.error('G3_GOLD_VALIDATE_STRICT_VALUE_MISMATCH');process.exitCode=1;}
+        else if(j.requireExecutorReady!==(process.env.G3_GOLD_EXPECT_STRICT==='1')){console.error('G3_GOLD_VALIDATE_STRICT_VALUE_MISMATCH');process.exitCode=1;}
+        else {
+          const leaves=j.nodes.filter(n=>n.mode==='outbound-leaf');
+          if(leaves.length!==2||leaves.some(n=>n.channelFresh!==true||n.executorReady!==true)){
+            console.error('G3_GOLD_VALIDATE_EXECUTOR_PROOF_MISSING');process.exitCode=1;
+          }
+        }
       }catch{console.error('G3_GOLD_VALIDATE_INVALID_JSON');process.exitCode=1;}
     })";then return 1;fi
   for pair in 'operator:operator-host/executor.mjs' 'plugin:plugin-server/server.mjs' 'wall:device-agent/operator-agent.mjs';do
@@ -179,5 +192,9 @@ trap - EXIT
 echo "G3_GOLD_CANDIDATE_CUTOVER=PASS"
 echo "G3_GOLD_STABLE_HEALTH_10_SAMPLES=PASS"
 echo "G3_GOLD_OPERATOR_SOURCE_SHA=$SHA"
-echo "G3_GOLD_STRICT_ADMISSION=OFF_FOR_LEGACY_COMPATIBILITY"
+if [[ "$G3_GOLD_EXPECT_STRICT" == "1" ]];then
+  echo "G3_GOLD_STRICT_ADMISSION=ON_PRESERVED"
+else
+  echo "G3_GOLD_STRICT_ADMISSION=OFF_PRESERVED"
+fi
 echo "G3_GOLD_ROLLBACK_OVERRIDES=90-g3-candidate.conf"

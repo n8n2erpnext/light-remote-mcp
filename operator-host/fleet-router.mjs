@@ -144,8 +144,13 @@ export class FleetRouter {
       if(command) node.inFlight.set(command.commandId,command.commandId);
     }
     if(!command) return {node:this._view(node,now),state:'idle',command:null};
+    // The HTTP route supplies this server-trusted transport marker. Never infer
+    // Duplex from mere stream presence: signed poll can race the same queue.
+    const dispatchTransport=['device-duplex-v1','signed-poll-v1'].includes(input.transport)?input.transport:'unspecified';
     command.dispatchedAt=now; command.attempts++;
-    this.emit({type:redelivery?'node_command_redelivered':'node_command_dispatched',accountId:command.accountId,deviceId:command.deviceId,nodeId:command.nodeId,jobId:command.jobId,commandId:command.commandId,status:'running',attempts:command.attempts});
+    command.firstDispatchTransport??=dispatchTransport;
+    command.lastDispatchTransport=dispatchTransport;
+    this.emit({type:redelivery?'node_command_redelivered':'node_command_dispatched',accountId:command.accountId,deviceId:command.deviceId,nodeId:command.nodeId,jobId:command.jobId,commandId:command.commandId,status:'running',attempts:command.attempts,dispatchTransport,firstDispatchTransport:command.firstDispatchTransport});
     return {node:this._view(node,now),state:'command',command:{...command}};
   }
   _pruneCompleted(now=this.now()) { for(const [id,row] of this.completed) if(row.expiresAt<=now)this.completed.delete(id); }
@@ -179,7 +184,8 @@ export class FleetRouter {
     if(input.nodeId && command.nodeId!==input.nodeId) throw new FleetError('command_node_mismatch',409);
     const now=this.now(), node=this.node(command.nodeId); node.inFlight.delete(commandId); node.lastSeenAt=now; this.commands.delete(commandId);
     this.completed.set(commandId,{command:{...command},expiresAt:now+Math.max(120_000,this.channelTtlMs*6)});
-    this.emit({type:'node_command_completed',accountId:command.accountId,deviceId:command.deviceId,nodeId:command.nodeId,jobId:command.jobId,commandId,status:'completed'});
+    const resultTransport=['device-duplex-v1','signed-poll-v1'].includes(input.resultTransport)?input.resultTransport:'unspecified';
+    this.emit({type:'node_command_completed',accountId:command.accountId,deviceId:command.deviceId,nodeId:command.nodeId,jobId:command.jobId,commandId,status:'completed',firstDispatchTransport:command.firstDispatchTransport||'unspecified',dispatchTransport:command.lastDispatchTransport||'unspecified',resultTransport,attempts:command.attempts});
     return {...command,duplicate:false};
   }
 }

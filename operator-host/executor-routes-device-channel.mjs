@@ -16,7 +16,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
     });
     return {ok:true,live};
   };
-  const acceptDeviceResult=(ctx,result)=>{
+  const acceptDeviceResult=(ctx,result,{resultTransport='unspecified'}={})=>{
     let command;
     try{command=fleet.command(result.commandId);}
     catch(error){
@@ -40,7 +40,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
     if(stdout)emitStream(job,'stdout',Buffer.from(stdout));
     if(stderr)emitStream(job,'stderr',Buffer.from(stderr));
     job.timedOut=String(result.status||'')==='timeout';
-    fleet.complete({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,commandId:command.commandId});
+    fleet.complete({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,commandId:command.commandId,resultTransport});
     finishJob(job,exitCode,null);
     return {ok:true,accepted:true,duplicate:false,job:jobView(job)};
   };
@@ -347,8 +347,8 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
           };
         },
         resume:async authorized=>{fleet.resume(authorized.nodeId);},
-        poll:async(authorized,wait,shouldStop)=>fleet.waitPoll(()=>authorized.context.touchInput,wait,shouldStop),
-        onResult:async(authorized,result)=>acceptDeviceResult(authorized.context.ctx,result),
+        poll:async(authorized,wait,shouldStop)=>fleet.waitPoll(()=>({...authorized.context.touchInput,transport:'device-duplex-v1'}),wait,shouldStop),
+        onResult:async(authorized,result)=>acceptDeviceResult(authorized.context.ctx,result,{resultTransport:'device-duplex-v1'}),
         onLive:async(authorized,payload)=>acceptDesktopLivePush(authorized.context.ctx,payload),
         onHeartbeat:async(authorized,payload)=>{
           const state=authorized.context,ctx=state.ctx;
@@ -372,13 +372,13 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       requireDeviceConnection(ctx.device.deviceId);
       devices.heartbeat(ctx.device.deviceId,{capabilities,agentVersion:ctx.payload.agentVersion,updateStatus:ctx.payload.updateStatus});
       const waitMs=Math.max(0,Math.min(Number(ctx.payload.waitMs)||8000,15000));
-      const channel=await fleet.waitPoll({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,sessionCeiling:ctx.payload.sessionCeiling,draining:Boolean(ctx.payload.draining),executorReady:ctx.payload.executorReady,capabilities,policyRevision:reportedRevision},waitMs);
+      const channel=await fleet.waitPoll({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,sessionCeiling:ctx.payload.sessionCeiling,draining:Boolean(ctx.payload.draining),executorReady:ctx.payload.executorReady,capabilities,policyRevision:reportedRevision,transport:'signed-poll-v1'},waitMs);
       const policy=reportedRevision===Math.max(1,Number(ctx.binding.policyRevision)||1)?null:enrollments.policyEnvelope(ctx.device.deviceId);
       return sendJson(res,200,{ok:true,channel,policy,access:{pending:accessGrants.pendingForDevice(ctx.device.deviceId),activeGrant:accessGrants.activeForDevice(ctx.device.deviceId,connections.get(ctx.device.deviceId)?.connectionId)}});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/result') {
       const body=await readJson(req),ctx=await verifiedChannelContext(body,'result');
-      return sendJson(res,200,acceptDeviceResult(ctx,ctx.payload));
+      return sendJson(res,200,acceptDeviceResult(ctx,ctx.payload,{resultTransport:'signed-poll-v1'}));
     }
 
 }
