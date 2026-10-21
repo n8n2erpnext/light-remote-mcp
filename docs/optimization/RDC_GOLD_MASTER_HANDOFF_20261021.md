@@ -1,4 +1,6 @@
 # MASTER HANDOFF — Light Remote Gold / RDC Optimization / G3
+
+> **LIVE UPDATE 2026-10-21 AFTER THIS HANDOFF WAS AUTHORED:** See [RDC_GOLD_G3_WINDOWS_453_AND_PROMOTION_20261021.md](./RDC_GOLD_G3_WINDOWS_453_AND_PROMOTION_20261021.md). Gold LXD current installed candidate is now `15eed24fa400feccfb6156df7959c78a8aa437af`, not `a74ec1b`; Operator source parity TRUE and 5/5 active after stable 10-sample cutover. Windows #453 CI artifact hashes PASS, but actual owner Windows remains old/no Executor probe because installer Task Scheduler admission returned `target_node_capability_missing` before job creation. Strict OFF, explicit ExecutorReady 1/2, G3 BLOCKED; G4 not open. Sections below are the **historical pre-promotion snapshot** and must not override this latest status.
 **Ngày lập:** 2026-10-21 (Asia/Ho_Chi_Minh)
 **Mục tiêu:** Phiên ChatGPT kế tiếp kết nối đúng thiết bị, kiểm tra trạng thái thật và tiếp tục triển khai G3 ngay. Đây là handoff vận hành + code + UAT, không phải bản kế hoạch trừu tượng.
 **Trạng thái chuẩn:** **G3 IN PROGRESS — BLOCKED_EXECUTOR_EVIDENCE (1 legacy Windows Agent)**; **chưa mở G4**. Production không thay đổi.
