@@ -6,27 +6,44 @@ import http from 'node:http';
 import {execFileSync} from 'node:child_process';
 import path from 'node:path';
 
-export function evaluateGoldG3Readiness({nodes,sourceParity}){
+export function evaluateGoldG3Readiness({nodes,sourceParity,expectedOutboundLeaves=2}){
   if(!Array.isArray(nodes))throw Error('gold_g3_fleet_nodes_required');
+  if(!Number.isSafeInteger(expectedOutboundLeaves)||expectedOutboundLeaves<1)throw Error('gold_g3_invalid_expected_leaves');
   const leaves=nodes.filter(n=>n.mode==='outbound-leaf');
   const fresh=leaves.filter(n=>n.channelFresh===true);
+  const ready=fresh.filter(n=>n.executorReady===true);
+  const unavailable=fresh.filter(n=>n.executorReady===false);
   const explicit=leaves.filter(n=>typeof n.executorReady==='boolean');
   const unknownFresh=fresh.filter(n=>typeof n.executorReady!=='boolean');
   const optimistic=fresh.filter(n=>n.dispatchReady===true&&n.executorReady!==true);
   const unsafeFalse=leaves.filter(n=>n.executorReady===false&&n.dispatchReady===true);
   const staleRoutable=leaves.filter(n=>n.channelFresh!==true&&n.dispatchReady===true);
+  const notAdmissible=leaves.filter(n=>n.executorReady===true&&n.channelFresh===true&&(n.dispatchReady!==true||n.draining===true));
+  const activeSessions=nodes.reduce((sum,n)=>sum+(Number(n.activeSessions)||0),0);
+  const queuedCommands=nodes.reduce((sum,n)=>sum+(Number(n.queuedCommands)||0),0);
+  const inFlightCommands=nodes.reduce((sum,n)=>sum+(Number(n.inFlightCommands)||0),0);
+  const allReady=leaves.length===expectedOutboundLeaves&&ready.length===leaves.length;
   return {
     sourceParity:sourceParity===true,
+    expectedOutboundLeaves,
     outboundLeaves:leaves.length,
     freshOutboundChannels:fresh.length,
+    provenReadyExecutors:ready.length,
+    unavailableOnFreshChannels:unavailable.length,
     explicitExecutorSignals:explicit.length,
     unknownOnFreshChannels:unknownFresh.length,
     optimisticAdmissionWithoutExecutorProof:optimistic.length,
     unsafeExecutorFalseAdmission:unsafeFalse.length,
     staleChannelAdmission:staleRoutable.length,
+    readyButNotAdmissible:notAdmissible.length,
+    activeSessions,queuedCommands,inFlightCommands,
     gate:sourceParity!==true?'BLOCKED_OPERATOR_SOURCE_MISMATCH':
       staleRoutable.length||unsafeFalse.length?'FAIL_ROUTING_SAFETY':
-      !fresh.length||unknownFresh.length?'BLOCKED_EXECUTOR_EVIDENCE':
+      leaves.length!==expectedOutboundLeaves||fresh.length!==leaves.length||unknownFresh.length?'BLOCKED_EXECUTOR_EVIDENCE':
+      unavailable.length?'BLOCKED_EXECUTOR_UNAVAILABLE':
+      !allReady?'BLOCKED_EXECUTOR_EVIDENCE':
+      notAdmissible.length?'BLOCKED_ROUTE_NOT_ADMISSIBLE':
+      activeSessions||queuedCommands||inFlightCommands?'BLOCKED_ACTIVE_WORK':
       'SOURCE_AND_FLEET_EVIDENCE_PRESENT',
     warning:'transport online and dispatchReady alone do not constitute executor health'
   };
