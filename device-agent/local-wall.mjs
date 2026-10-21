@@ -333,7 +333,7 @@ function approvePage(brandSvg,csrf=''){return `<!doctype html><html lang="en"><h
 const wallCsrf=${JSON.stringify(csrf)},code=document.getElementById('code'),msg=document.getElementById('msg'),decision=document.getElementById('decision'),request=document.getElementById('request');let current=null;function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}async function lookup(){msg.className='muted';msg.textContent='Checking…';decision.style.display='none';current=null;const r=await fetch('/api/approve?code='+encodeURIComponent(code.value),{cache:'no-store'}),j=await r.json();if(!r.ok||!j.ok){msg.className='error';msg.textContent=j.error==='approval_code_not_found'?'No pending request matches this code.':(j.error||'Unable to check code.');return;}current=j.request;msg.textContent='';request.innerHTML='<b>'+esc(current.label||'ChatGPT')+'</b> requests access to <b>'+esc(current.deviceName||'this device')+'</b><br><span class="muted">Agent '+esc(current.agentId||'')+' · code '+esc(current.userCode||'')+'</span>';decision.style.display='block';}async function decide(kind){if(!current)return;const r=await fetch('/api/approve',{method:'POST',headers:{'content-type':'application/json','x-light-remote-csrf':wallCsrf},body:JSON.stringify({code:code.value,decision:kind})}),j=await r.json();if(!r.ok||!j.ok){msg.className='error';msg.textContent=j.error||'Request failed.';return;}decision.style.display='none';msg.className='ok';msg.textContent=kind==='approve'?'Access approved':'Access denied';setTimeout(()=>location.href='/',900);}document.getElementById('lookup').onclick=lookup;document.getElementById('approve').onclick=()=>decide('approve');document.getElementById('deny').onclick=()=>decide('deny');code.addEventListener('keydown',e=>{if(e.key==='Enter')lookup();});const q=new URLSearchParams(location.search).get('code');if(q){code.value=q;lookup();}
 </script></body></html>`;}
 
-export function startLocalWall({host='127.0.0.1',port=5491,brandSvgPath,fontPath=null,cascadiaMonoFontPath=DEFAULT_CASCADIA_MONO_FONT,cascadiaCodeFontPath=DEFAULT_CASCADIA_CODE_FONT,auth={enabled:false},accountAuthenticate,getLocalStatus,getLocalPolicyStatus,getRemoteStatus,getRemoteActivity,getLocalTerminals,readLocalTerminal,connect,disconnect,setGrace,setPermissions,beginEnrollment,pollEnrollment,pairingCode,ownerProofCode,accessApprove,accessDeny,closeSession,requestUpdate}={}){
+export function startLocalWall({host='127.0.0.1',port=5491,brandSvgPath,fontPath=null,cascadiaMonoFontPath=DEFAULT_CASCADIA_MONO_FONT,cascadiaCodeFontPath=DEFAULT_CASCADIA_CODE_FONT,auth={enabled:false},accountAuthenticate,getLocalStatus,getLocalPolicyStatus,getRemoteStatus,getRemoteActivity,getPendingAccess,getLocalTerminals,readLocalTerminal,connect,disconnect,setGrace,setPermissions,beginEnrollment,pollEnrollment,pairingCode,ownerProofCode,accessApprove,accessDeny,closeSession,requestUpdate}={}){
 
   if(!isAllowedLocalWallBindHost(host)) throw new Error('local_wall_bind_host_not_private');
   const loopback=['127.0.0.1','::1','localhost'].includes(String(host));
@@ -357,7 +357,19 @@ export function startLocalWall({host='127.0.0.1',port=5491,brandSvgPath,fontPath
     const remote=statusCache?await statusCache.get({connected,deviceId:local?.deviceId,force:fresh}):null;
     return {local,remote};
   }
-  async function resolveCode(code){const normalized=normalizeCode(code);if(normalized.length!==8)throw Object.assign(new Error('invalid_approval_code'),{status:400});const current=await status({fresh:true}),pending=current.remote?.access?.pending||[];const found=pending.find(item=>normalizeCode(item.userCode)===normalized);if(!found)throw Object.assign(new Error('approval_code_not_found'),{status:404});return{...found,deviceName:current.remote?.device?.displayName||current.local?.deviceName||current.local?.deviceId||'this device'};}
+  async function resolveCode(code){
+    const normalized=normalizeCode(code);
+    if(normalized.length!==8)throw Object.assign(new Error('invalid_approval_code'),{status:400});
+    // Signed access-lookup has a control budget independent from the noisy
+    // observer/status lane. Never turn a 429 into a false "code not found".
+    const state=typeof getPendingAccess==='function'?{remote:await getPendingAccess(),local:await getLocalStatus()}:await status({fresh:true});
+    const remote=state.remote;
+    if(!remote?.ok){const error=new Error(remote?.error||'access_lookup_unavailable');error.status=Number(remote?.status)||503;error.retryAfterSeconds=Number(remote?.retryAfterSeconds)||null;throw error;}
+    const pending=remote.access?.pending||[];
+    const found=pending.find(item=>normalizeCode(item.userCode)===normalized);
+    if(!found)throw Object.assign(new Error('approval_code_not_found'),{status:404});
+    return {...found,deviceName:remote.device?.displayName||state.local?.deviceName||state.local?.deviceId||'this device'};
+  }
   const server=http.createServer(async(req,res)=>{try{
     const url=new URL(req.url||'/','http://local.wall');
     if(req.method==='GET'&&(url.pathname==='/assets/fonts/CascadiaMono.ttf'||url.pathname==='/assets/fonts/CascadiaCode.ttf')){try{const file=url.pathname.endsWith('CascadiaMono.ttf')?(fontPath||cascadiaMonoFontPath):cascadiaCodeFontPath,data=fs.readFileSync(file);res.writeHead(200,{'content-type':'font/ttf','content-length':data.length,'cache-control':'public, max-age=31536000, immutable','x-content-type-options':'nosniff'});res.end(data);}catch{return json(res,404,{ok:false,error:'font_not_found'});}return;}

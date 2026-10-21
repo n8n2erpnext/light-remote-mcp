@@ -7,7 +7,7 @@ const ACTION_LANES=Object.freeze({
   'desktop-live-push':'rm-live',
   'fleet-intent':'fleet','fleet-authority':'fleet','fleet-status':'fleet',
   'fleet-devices':'fleet','fleet-sessions':'fleet','fleet-activity':'fleet',
-  status:'observer',activity:'observer'
+  status:'observer',activity:'observer','access-lookup':'control'
 });
 const LUA_INCREMENT="local n=redis.call('INCR',KEYS[1]);if n==1 then redis.call('EXPIRE',KEYS[1],ARGV[1]) end;return n";
 export class TrustedChannelRateLimitError extends Error {

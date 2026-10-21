@@ -278,6 +278,13 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       const proof=accounts.issueOwnerProof({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId});
       return sendJson(res,200,{ok:true,proof});
     }
+    // Wall B-code lookup has its own signed control-lane budget. A busy
+    // observer/status dashboard must not prevent an owner approval.
+    if (req.method === 'POST' && url.pathname === '/v1/device-channel/access-lookup') {
+      const body=await readJson(req), ctx=await verifiedChannelContext(body,'access-lookup');
+      requireDeviceConnection(ctx.device.deviceId);
+      return sendJson(res,200,{ok:true,device:{displayName:ctx.device.displayName||ctx.device.deviceId},access:{pending:accessGrants.pendingForDevice(ctx.device.deviceId)}});
+    }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/access-approve') {
       const body=await readJson(req), ctx=await verifiedChannelContext(body,'access-approve');
       const connection=connections.assertConnected(ctx.device.deviceId);
