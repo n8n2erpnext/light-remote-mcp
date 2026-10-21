@@ -51,7 +51,7 @@ try{
  const remaining=await db.pool.query('SELECT count(*)::int n FROM lr_gold_device_resource_claims WHERE device_id=$1',[dev]);
  assert.equal(remaining.rows[0].n,0);
  console.log('M4_PG_SHARED_READERS_WAITING_WRITERS_RELEASE_AND_CLEANUP=PASS');
- const record=job(0,'project:/projects/unknown');
+ const record=job(0,'project:/projects/unknown'); record.operationId += '_unknown'; // Every new logical task has a distinct G4 identity.
  await scheduler.enqueue(record);
  assert.deepEqual(await scheduler.admit(record.accountId,3),[record.jobId]);
  await db.pool.query("UPDATE lr_gold_personal_agent_work SET state='unknown' WHERE job_id=$1",[record.jobId]);
