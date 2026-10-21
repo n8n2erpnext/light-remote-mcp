@@ -18,3 +18,27 @@ Use the dedicated PostgreSQL fixture to verify four distinct *synthetic* verifie
 
 ## Gates
 Source policy and CI tests, isolated Gold UAT multi-account PostgreSQL contention fixture for download-vs-build with no network downloads, immutable staged candidate and verified backup before guarded cutover; then a bounded owner-authorized real MCP process+exec test without fetching large external files. Pro Team owner metering remains unchanged. Never run on production.
+
+## Actual source / PostgreSQL / Gold MCP UAT results — 2026-10-21
+
+- Source commit [`371a39d5f6a0de67c59d98271acc521f865ba947`](https://github.com/n8n2erpnext/light-remote-mcp/commit/371a39d5f6a0de67c59d98271acc521f865ba947): download resource-classifier fix, CLI-only tests. The second commit [`4934fa54c05efebf9a329956f763d34d96d4b486`](https://github.com/n8n2erpnext/light-remote-mcp/commit/4934fa54c05efebf9a329956f763d34d96d4b486) adds the isolated Pro-3+1-with-M4 fixture. Gold Operator CI runs [39633770605](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39633770605) and [39634176828](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/39634176828) both **SUCCESS**. No database schema migration beyond 034 and no Windows/macOS installed-client changes.
+- Immutable Gold candidate `4934fa5` staged with package-lock parity PASS and independent pre-G3 backup code/systemd/local-state/`pg_dump` verified at `/var/backups/light-remote-gold-uat/pre-g3-4934fa54c05efebf9a329956f763d34d96d4b486/`. Guarded cutover PASS, 10/10 health samples PASS, strict ON. Final Operator active exact source `4934fa5`. Two Gold UAT leaves ready, no queued/in-flight/drain; 6/6 services active, all test sessions closed.
+- Physical PostgreSQL fixture `selftest-gold-m4-download-resource-pg.mjs` run as unprivileged `gold-uat` against real schema034 with app-only DB credentials **4/4 PASS**:
+  - `M4_WGET_BUILD_SAME_PROJECT_RESOURCE_LOCKED`
+  - `M4_CURL_ABSOLUTE_OUTPUT_CONFLICTS_WITH_WORKSPACE`
+  - `M4_DOWNLOAD_AND_UNRELATED_BUILD_PARALLEL`
+  - `M4_DOWNLOAD_RESOURCE_LOCK_RELEASE_QUEUE_PROMOTION`.
+  Synthetic fixture accounts/device IDs were randomized and cleaned; no network transfers were performed by this test.
+- Physical PostgreSQL fixture `selftest-gold-m3-pro-3plus1-device.mjs` run against the *M4-enabled* schema (workerWeight=0 to isolate Agent entitlement from the device worker budget) **3/3 PASS**:
+  - `M3_PRO_THREE_DISTINCT_FIXTURE_AGENTS_ACTIVE_FOURTH_QUEUED`
+  - `M3_PRO_FOURTH_PROMOTED_AFTER_AGENT_RELEASE_NO_DRAIN`
+  - `M3_PRO_3PLUS1_RESOURCE_CLAIMS_CLEAN`.
+  **These are synthetic IDs in a real database, not four actual independently approved MCP clients.** Opening four Gold `open_session` calls with the same connected plugin reused the same signed session; do not count as real multi-client acceptance.
+- Gold MCP physical `curl` download from a short-lived 127.0.0.1 fixture could **NOT** be accepted: Device Agent denied `network` capability (`local capability denied: network`, surfaced as 500/`operation_failed`). The agent's local policy was **not relaxed**, and we did not drop the network capability to evade it. The lock-collision fix is proven by real PG, but a physical network download under Gold UAT remains unproven until a separately authorized network-capable test device is used.
+- OS namespace observation: Gold Wall and M5 Supervisor both have `PrivateTmp=yes`; they do **not** necessarily share file fixtures under `/tmp`. A managed process start pointing to a directory created from the Wall's private `/tmp` failed with `ENOENT`. A privately owned fixture directory under `/var/lib/light-remote-gold-uat` was created without changing systemd isolation; loopback HTTP server was started and then stopped cleanly. Shared directory and both private `/tmp` fixtures were deleted after confirmation; no real user directories altered.
+- **Permission / block taxonomy findings:** `local capability denied: network` is a correct policy decision but the `HTTP 500 operation_failed` wrapper is misleading; it should map to an explicit policy-denied status (normally 403) and proper originating layer. `ENOENT` from cross-service `PrivateTmp` is an OS namespace/path mismatch, not random Agent blocking. Do not merge these with earlier transient tool-layer refusals.
+- Production, Gold billing, Pro Team cross-account, Windows/macOS installed client, device capability allowlists and owner A/B approvals remain unchanged.
+
+## Remaining acceptance steps
+
+The actual 3-Pro + fourth queued requires four independent MCP client principals, each owner A/B-approved for the same explicitly allowed Gold UAT device. The same plugin's repeated sessions cannot manufacture four identities. Once clients are available, use short read-only/workerWeight=0 jobs to isolate Pro slot 3 from M4 device budget 2; inspect signed actor/Agent IDs, PG `QUEUED_AGENT_SLOT`, no false `drain`, fourth promotion and cancellation. Avoid testing using a live production owner Team seat or silently borrowing Team member entitlement. The separate device-local `realpath`/symlink/junction, file CAS, desktop input lock, and OS resource budget remain open.
