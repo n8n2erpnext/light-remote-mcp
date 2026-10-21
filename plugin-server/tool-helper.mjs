@@ -61,7 +61,7 @@ const chapters={
     terminal_stop:{name:'light_remote_stop_terminal',input:'{sessionId,terminalId,force?}'},
     job:{name:'light_remote_job',use:'Poll an existing durable job instead of repeating it.'},
     output:{name:'light_remote_output',input:'{jobId,stream?,offset?,limit?,full?}',use:'Recover bounded or full durable stdout/stderr.'}
-  },rule:'Duration alone is not a reason to split. Prefer structured tools first.'}),
+  },rule:'On Gold with managed-long-exec enabled, exec(auto) backgrounds recognized curl/wget/download, build and package operations; exec(background) is explicit for unknown long scripts. Background exec jobId is only the launch receipt; use its processId via process_output/stop. Device policy remains authoritative.'}),
   transfer:context=>({kind:'light-remote-tool-helper-group',helperMode:'group-detail',group:'transfer',target:targetFor(context),tools:{
     download_begin:{name:'light_remote_scp_download',scope:'remote:read',integrity:'Whole-file and chunk SHA-256.'},
     download_chunk:{name:'light_remote_scp_download_chunk',scope:'remote:read'},

@@ -9,6 +9,7 @@ import { decryptEnvelope as decryptSealedEnvelope } from './crypto.mjs';
 import { spawn } from 'node:child_process';
 import { SessionRegistry, SessionError, SESSION_GRACE_PRESETS } from './session-manager.mjs';
 import { personalCapacity } from './execution-capacity-policy.mjs';
+import { resolveExecMode } from './long-running-exec-policy.mjs';
 import { DeviceRegistry, DeviceError } from './device-registry.mjs';
 import { EnrollmentRegistry, EnrollmentError } from './enrollment-registry.mjs';
 import { FleetRouter, FleetError } from './fleet-router.mjs';
@@ -89,6 +90,8 @@ const SESSION_ACTIVE_WINDOW_MS = Number(process.env.OPERATOR_SESSION_ACTIVE_WIND
 const SESSION_HISTORY_MS = Number(process.env.OPERATOR_SESSION_HISTORY_MS || 7 * 24 * 60 * 60 * 1000);
 // Opt-in Gold migration; default remains compatible with existing client tests.
 const SCOPED_SESSION_LIMITS = process.env.OPERATOR_SCOPED_SESSION_LIMITS==='1';
+// OFF by default; Gold UAT can opt in without touching published clients.
+const MANAGED_LONG_EXEC = process.env.OPERATOR_MANAGED_LONG_EXEC==='1';
 const MAX_ACTIVE_SESSIONS = Number(process.env.OPERATOR_MAX_ACTIVE_SESSIONS || (SCOPED_SESSION_LIMITS ? 128 : 5));
 const ACCOUNT_ID = String(process.env.OPERATOR_ACCOUNT_ID || 'self-hosted-local');
 const ACCOUNT_PLAN = String(process.env.OPERATOR_ACCOUNT_PLAN || 'free').trim().toLowerCase();
@@ -344,6 +347,7 @@ function jobView(job) {
   const err = job.stderr.snapshot();
   return {
     jobId: job.id, requestId: job.requestId, operationId: job.operationId, accountId:job.accountId, deviceId:job.deviceId, sessionId: job.sessionId, agentId: job.agentId, nodeId: job.nodeId, status: job.status,
+    ...(job.managedExec?{executionMode:'background',jobRole:'process_launch',longCommandHint:job.longCommandHint||null}:{}),
     cwd: job.cwd, script: redact(job.script), note: redact(job.note || ''), pid: job.pid || null, route:job.remote?'outbound-leaf':'local', commandId:job.commandId||null, requiredCapabilities:[...(job.requiredCapabilities||[])],
     startedAt: job.startedAt, finishedAt: job.finishedAt || null, exitCode: job.exitCode,
     signal: job.signal || null, durationMs: job.finishedAt ? job.finishedAt - job.startedAt : Date.now() - job.startedAt,
@@ -382,6 +386,10 @@ function finishJob(job, exitCode, signal) {
   job.signal = signal || null;
   job.status = exitCode === 0 ? 'ok' : job.timedOut ? 'timeout' : 'error';
   flushOutputStates(job);
+  if(job.managedExec&&job.resultData?.process?.processId&&job.exitCode===0)
+    job.resultData={...job.resultData,executionMode:'background',
+      lifecycle:'managed_process',commandState:job.resultData.process.state,
+      processId:job.resultData.process.processId,launchJobId:job.id};
   if(!job.resultSummary&&job.resultData)job.resultSummary=nativeActivityResult(job.toolMeta,job.resultData);
   clearTimeout(job.timer);
   sessions.finishJob(job.sessionId, job.id, job.status);
@@ -492,6 +500,17 @@ async function startJob(payload, requestId) {
       throw new DeviceError('local_host_capability_missing',409);
     }
   }
+  const mode=resolveExecMode({mode:payload.executionMode,script,enabled:MANAGED_LONG_EXEC});
+  if(mode.effective==='background'){
+    // Reuse the same authorized, G4-reserved NativeProcess launch route as
+    // light_remote_process. The Operator receipt confirms launch only; callers
+    // use the returned processId for running status, stdout and explicit stop.
+    // Never hold the signed poll command until curl/wget/build finishes.
+    const processPayload={...payload,action:'process',
+      process:{op:'start',script,cwd,shell,timeoutMs,requiredCapabilities,
+        executionMode:mode.effective}};
+    return startProcessOperation(processPayload,requestId,{managedExec:true,longCommandHint:mode.hint});
+  }
   assertToolCallQuota(session.accountId);
   sessions.record(session.id, 'toolCalls');
   sessions.record(session.id, 'execCalls');
@@ -598,7 +617,7 @@ async function executeLocalScpRequest(job,request){
   throw new Error('scp_operation_unsupported');
 }
 
-async function startProcessOperation(payload,requestId){
+async function startProcessOperation(payload,requestId,{managedExec=false,longCommandHint=null}={}){
   const operationId=String(payload.operationId||'').trim();if(!/^[A-Za-z0-9._:-]{16,128}$/.test(operationId))throw new Error('invalid_operation_id');
   const agentId=String(payload.agentId||'').trim(),session=sessions.ensure(String(payload.sessionId||''),{agentId});requireDeviceConnection(session.deviceId);
   if(payload.nodeId!=null&&String(payload.nodeId)!==session.nodeId)throw new SessionError('session_target_mismatch',409);
@@ -608,7 +627,7 @@ async function startProcessOperation(payload,requestId){
   const fingerprint=crypto.createHash('sha256').update(JSON.stringify({request,sessionId:session.id,nodeId:session.nodeId})).digest('hex'),existing=operationDedupe.get(operationId);
   if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
   const toolMeta=processActivityMeta(request);
-  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-process:${toolMeta.op}`,cwd:String(request.cwd||''),script:String(request.script||''),status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null,resultSummary:'',toolMeta};
+  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-process:${toolMeta.op}`,cwd:String(request.cwd||''),script:String(request.script||''),status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null,resultSummary:'',toolMeta,managedExec,longCommandHint};
   assertToolCallQuota(job.accountId);const historical=await reserveGoldJob(job);if(historical)return historical;jobs.set(job.id,job);goldJobs.save(job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
   pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:remote?'outbound-leaf':'local',requiredCapabilities,note:job.note,toolMeta:job.toolMeta});
   if(remote){const command=enqueueForJob(job,{accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'process',operationId,sessionId:job.sessionId,agentId:job.agentId,process:request}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},30000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();return job;}
