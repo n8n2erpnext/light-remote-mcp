@@ -6,6 +6,9 @@ on:
       - 'feature/light-remote-gold-rebuild-20261018'
     paths:
       - 'operator-host/**'
+      - 'plugin-server/tools.mjs'
+      - 'plugin-server/tool-error-classification.mjs'
+      - 'deploy/scripts/selftest-gold-tool-error-origin.mjs'
       - 'device-agent/**'
       - 'lib/**'
       - 'client/core-files.json'

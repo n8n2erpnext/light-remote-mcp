@@ -20,6 +20,9 @@ Budget values are opt-in configurable for CI and run only in source soak; no cha
 
 This 18-process source soak is a **reproducible bounded reliability baseline**, not a multi-day real enrolled Windows/macOS stability SLA, exact Agent RSS budget, or intrinsic LLM token decoding acceleration. Previous paired real MCP benchmark N=8 production vs Gold measured Gold p50/p95 advantage and one-call inline stdout but is not a large-sample production capacity SLO. Earlier physical Gold Windows device Duplex reconnect/lost receipt was tested separately under strict ON.
 
+## Deployed Gold runtime checkpoint (2026-10-21)
+Source `0210cabb4a7dbd9ed839ff97a25dcb83b1894ed4` was promoted to isolated Gold UAT after immutable source SHA verification, protected backup and 10/10 Gold health checks; 5/5 services and 2/2 explicit ExecutorReady remained active with strict and inline ON. The G6 child-process budget guard is a **CI/source-soak test**, not an additional limiter inside a live device Agent. Production was not restarted/reconfigured.
+
 ## Remaining owner release gates
 - Refresh published external MCP tool schema if exposing optional `expectedSha256`; verify signed installer across Windows/macOS/Linux Desktop from exact Gold source.
 - Real multi-agent 24h+ session/receipt/RSS soak and authenticated Gold Wall visual SCP acceptance are deferred for owner-driven testing; do not represent these as passed.
