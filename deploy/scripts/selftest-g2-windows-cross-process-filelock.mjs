@@ -65,7 +65,13 @@ const wait=async (id,predicate,label,limitMs=13000)=>{
 const probe=async expected=>{
  const id=run('Probe');
  const result=await wait(id,(row,out)=>row.finishedAt!==null&&(expected==='denied'?out.includes('ISSUE3_LOCK_DENIED_WHILE_OWNED'):out.includes('ISSUE3_LOCK_ACQUIRED_BY_PROBE')),'probe_'+expected);
- assert.equal(result.row.exitCode,expected==='denied'?73:0);
+ if(expected==='denied'){
+  // powershell.exe -Command can normalize script exit 73 to process exit 1.
+  // The explicit IOException sharing-violation marker plus nonzero exit is
+  // the verifiable contract, not a shell-specific numeric exit code.
+  assert.notEqual(result.row.exitCode,0,'sharing violation must fail');
+  assert.match(result.output,/ISSUE3_LOCK_DENIED_WHILE_OWNED/);
+ }else assert.equal(result.row.exitCode,0);
  return result;
 };
 try {
