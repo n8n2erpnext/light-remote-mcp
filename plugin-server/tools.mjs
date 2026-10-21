@@ -341,8 +341,8 @@ export function registerPluginTools(server,identity){
   add(server,'light_remote_edit_file',{
     title:'Edit an exact remote text block',
     description:'Replace an exact text block and fail if the expected replacement count is not met.',
-    inputSchema:{sessionId:id,operationId:opId,path:pathText,oldText:z.string().min(1).max(4_000_000),newText:z.string().max(4_000_000),expectedReplacements:z.number().int().min(1).max(100).optional()},securitySchemes:security(['remote:write']),annotations:annotations(false,true,false,false)
-  },guarded(identity,['remote:write'],async(a,x)=>operationView(await a.fs(x.sessionId,{op:'edit',path:x.path,oldText:x.oldText,newText:x.newText,expectedReplacements:x.expectedReplacements||1},x.operationId))));
+    inputSchema:{sessionId:id,operationId:opId,path:pathText,oldText:z.string().min(1).max(4_000_000),newText:z.string().max(4_000_000),expectedReplacements:z.number().int().min(1).max(100).optional(),expectedSha256:z.string().regex(/^[a-fA-F0-9]{64}$/).optional()},securitySchemes:security(['remote:write']),annotations:annotations(false,true,false,false)
+  },guarded(identity,['remote:write'],async(a,x)=>operationView(await a.fs(x.sessionId,{op:'edit',path:x.path,oldText:x.oldText,newText:x.newText,expectedReplacements:x.expectedReplacements||1,expectedSha256:x.expectedSha256},x.operationId))));
 
   add(server,'light_remote_exec',{
     title:'Execute one bounded remote command job',

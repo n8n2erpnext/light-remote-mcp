@@ -11,6 +11,8 @@ const KNOWN=Object.freeze({
   target_node_channel_not_found:['fleet_admission',true,'check_authorized_device_channel'],
   filesystem_path_outside_allowed_roots:['device_local_policy',false,'use_authorized_path'],
   filesystem_path_not_found:['filesystem',false,'verify_path'],
+  filesystem_edit_conflict:['filesystem_conflict',false,'reread_and_confirm_expected_sha'],
+  filesystem_edit_expected_sha256_invalid:['plugin_validation',false,'correct_tool_input'],
   invalid_process_id:['process',false,'verify_process_id'],
   process_stdin_unavailable:['process',false,'inspect_process_stdin_state'],
   process_not_running:['process',false,'inspect_process_state'],

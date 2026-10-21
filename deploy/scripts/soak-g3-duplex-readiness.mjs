@@ -18,6 +18,9 @@ const cycleIndex=args.indexOf('--cycles');
 const cycles=cycleIndex>=0?Number(args[cycleIndex+1]):4;
 assert.ok(Number.isInteger(cycles)&&cycles>=1&&cycles<=24,'g3_soak_cycles_out_of_bounds');
 const caseTimeoutMs=30000;
+// Gold G6 source-soak budgets; not a substitute for physical Agent UAT.
+const maxRssKiB=Math.max(32*1024,Math.min(Number(process.env.G6_MAX_CHILD_RSS_KIB)||192*1024,1024*1024));
+const maxCaseDurationMs=Math.max(10000,Math.min(Number(process.env.G6_MAX_CASE_MS)||27000,caseTimeoutMs));
 const scenarios=[
   {file:'selftest-g3-duplex-reconnect-inflight.mjs',markers:[
     'G3_TRANSPORT_DROP_RECONNECT_WITH_HELD_EXECUTOR=PASS',
@@ -74,6 +77,8 @@ async function runCase(scenario,cycle){
       throw Error('G3_SOAK_CASE_FAILED '+JSON.stringify({expectedMarker:marker,...summary}));
     }
   }
+  if(result.ms>maxCaseDurationMs)throw Error('G6_CHILD_CASE_LATENCY_BUDGET_EXCEEDED:'+result.scenario);
+  if(process.platform==='linux'&&(!result.samples||result.peakRssKiB>maxRssKiB))throw Error('G6_CHILD_CASE_RSS_BUDGET_EXCEEDED:'+result.scenario);
   return {scenario:result.scenario,cycle,ms:result.ms,peakRssKiB:result.peakRssKiB,rssSamples:result.samples,exitCode:result.exitCode};
 }
 const started=performance.now(),rows=[];
@@ -89,6 +94,7 @@ const summary={
   environment:{platform:process.platform,arch:process.arch,node:process.version,hostname:os.hostname()},
   cycles,
   successfulProcesses:rows.length,
+  resourceBudget:{maxRssKiB,maxCaseDurationMs},
   totalDurationMs:Math.round(performance.now()-started),
   source:'localhost TCP / real FleetRouter and duplex client fixtures; independent ephemeral child processes',
   limitations:'not an enrolled Agent, no production, no cross-process resource leak proof; RSS is sampled Linux VmRSS',

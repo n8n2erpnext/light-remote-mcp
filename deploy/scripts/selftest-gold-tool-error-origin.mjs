@@ -6,6 +6,7 @@ import {operationView,result,pluginToolErrorResult} from '../../plugin-server/to
 // process, terminal, transfer and desktop tools (not thrown exceptions).
 for(const [code,layer,nextAction,httpStatus] of [
  ['filesystem_path_not_found','filesystem','verify_path',404],
+ ['filesystem_edit_conflict','filesystem_conflict','reread_and_confirm_expected_sha',409],
  ['invalid_process_id','process','verify_process_id',400],
  ['process_stdin_unavailable','process','inspect_process_stdin_state',409],
  ['process_not_running','process','inspect_process_state',409],
