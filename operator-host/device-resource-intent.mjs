@@ -40,7 +40,27 @@ export function deviceResourceIntent({family='',op='',request={},cwd='',script='
  if(type==='process'||type==='exec'){
   const workspace=normalizedPath(request.cwd||cwd)||'unknown';
   const command=String(request.script||script||'');
-  if(downloadCommands.test(command)&&!writeCommands.test(command))return intent('download:'+workspace,'shared',1);
+  // curl/wget can write to disk for minutes even when the command otherwise
+  // appears read-only. A shared `download:cwd` key did not conflict with
+  // builds (`project:cwd`) or filesystem edits (`file-dir:cwd`) and could
+  // allow concurrent writes. Keep a worker weight throughout M4.1 lease.
+  if(downloadCommands.test(command)){
+   if(workspace==='unknown')return intent('filesystem:unknown','exclusive',1);
+   // When a download explicitly targets an absolute output file, lock its
+   // destination directory (including when outside cwd). Complex shell
+   // quoting and redirections cannot be safely inferred lexically, so
+   // those cases conservatively hold a device-wide filesystem lock.
+   const explicit=command.match(/(?:^|\s)(?:-o|--output|-O|--output-document)(?:=|\s+)(?:["']?)(\/[^\s"';|&]+)(?:["']?)(?=\s|$|[;&|])/i);
+   if(explicit){
+    const dest=normalizedPath(explicit[1]);
+    return intent(dest?'file-dir:'+scopePath(dest):'filesystem:unknown','exclusive',1);
+   }
+   // Output-directory flags and compact -oFILE forms are too ambiguous
+   // without executing a shell parser and resolving the remote path.
+   if(/[|;&<>]|(?:\s(?:--output-dir|--directory-prefix|-P|--output|-o|-O|--output-document)(?:\s|=|\/|\.))/.test(command))
+    return intent('filesystem:unknown','exclusive',1);
+   return intent('project:'+workspace,'exclusive',1);
+  }
   if(writeCommands.test(command)||workspace==='unknown')return intent('project:'+workspace,'exclusive',1);
   return intent('project:'+workspace,'shared',0);
  }

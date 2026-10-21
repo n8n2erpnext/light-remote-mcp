@@ -22,6 +22,7 @@ on:
       - 'deploy/scripts/selftest-gold-m4-resource-policy.mjs'
       - 'deploy/scripts/selftest-gold-m4-pg-resource-admission.mjs'
       - 'deploy/scripts/selftest-gold-m4-worker-lease-pg.mjs'
+      - 'deploy/scripts/selftest-gold-m4-download-resource-pg.mjs'
       - 'deploy/scripts/selftest-gold-m3-pg-personal-admission.mjs'
       - 'platform-v2/sql/**'
       - 'deploy/scripts/selftest-gold-m2-long-command-mode.mjs'
@@ -82,6 +83,7 @@ jobs:
           node deploy/scripts/selftest-gold-m4-resource-policy.mjs
           node --check deploy/scripts/selftest-gold-m4-pg-resource-admission.mjs
           node --check deploy/scripts/selftest-gold-m4-worker-lease-pg.mjs
+          node --check deploy/scripts/selftest-gold-m4-download-resource-pg.mjs
           node --check deploy/scripts/selftest-gold-m3-pg-personal-admission.mjs
           node --check lib/gold-personal-agent-scheduler.mjs
           node --check operator-host/executor.mjs

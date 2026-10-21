@@ -6,7 +6,13 @@ assert.equal(intent({family:'fs',op:'read',request:{path:'/work/a/log.txt'}}).mo
 assert.equal(intent({family:'fs',op:'write',request:{path:'/work/a/data.txt'}}).resourceKey,'file-dir:/work/a');
 assert.equal(intent({family:'process',op:'start',request:{cwd:'/work/a',script:'make all'}}).resourceKey,'project:/work/a');
 assert.equal(intent({family:'process',op:'start',request:{cwd:'/work/b',script:'make all'}}).resourceKey,'project:/work/b');
-assert.equal(intent({family:'exec',cwd:'/work/a',script:'curl -fL https://example.invalid/a -o /tmp/foo'}).mode,'shared');
+assert.equal(intent({family:'exec',cwd:'/work/a',script:'curl -fL https://example.invalid/a -o /tmp/foo'}).mode,'exclusive');
+assert.equal(intent({family:'exec',cwd:'/work/a',script:'curl -fL https://example.invalid/a -o /tmp/foo'}).resourceKey,'file-dir:/tmp');
+assert.equal(intent({family:'process',op:'start',request:{cwd:'/work/a',script:'wget https://example.invalid/b'}}).resourceKey,'project:/work/a');
+assert.equal(intent({family:'exec',cwd:'/work/a',script:'curl https://example.invalid/a | tar xf -'}).resourceKey,'filesystem:unknown');
+assert.ok(resourcePathsOverlap(intent({family:'process',op:'start',request:{cwd:'/work/a',script:'wget https://example.invalid/b'}}).resourceKey,'project:/work/a'));
+assert.ok(resourcePathsOverlap(intent({family:'exec',cwd:'/work/a',script:'curl -o /work/a/foo https://example.invalid/a'}).resourceKey,'project:/work/a'));
+assert.ok(!resourcePathsOverlap('project:/work/a','project:/work/b'));
 assert.ok(resourcePathsOverlap('project:/work/a','file-dir:/work/a/build'));
 assert.ok(!resourcePathsOverlap('project:/work/a','project:/work/b'));
 assert.ok(resourcePathsOverlap('file-dir:/work/a','file-dir:/work/a/sub'));
