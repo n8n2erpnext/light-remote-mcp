@@ -1,0 +1,30 @@
+# Gold M4 — PostgreSQL device resource claims, first conservative slice
+
+**Date:** 2026-10-21. **Parent plan:** [Multi-Agent Scheduler Master](./RDC_GOLD_MULTI_AGENT_JOB_SCHEDULER_MASTER_PLAN_20261021.md). **Prior acceptance:** [M3 shared six-family MCP tool admission](./RDC_GOLD_M3_SHARED_TOOL_ADMISSION_20261021.md).
+
+## Scope and guarantees
+
+M4 is **opt-in** via `OPERATOR_DEVICE_RESOURCE_LOCKS=1`, which **requires** existing `OPERATOR_PERSONAL_AGENT_SCHEDULER=1`. Default OFF; production and Windows/macOS installed clients unchanged. This first slice introduces an *admission-and-release lock around the Operator's bounded tool job*, not a full persistent resource lease across detached background worker lifetimes.
+
+- A typed PostgreSQL migration **033** adds resource metadata and queue reason to `lr_gold_personal_agent_work` and creates `lr_gold_device_resource_claims` with foreign-key job ownership, strict shared/exclusive modes, worker weights, per-device index. App role uses DML only; migrator applies schema changes. No JSONB snapshot or alternative runtime database.
+- Device identity is taken only from the verified session, not caller-selected. Account Agent limit remains Free **1**, Pro/VIP **3**. A separate **device worker-budget** (default **2**, explicitly bounded 1–8) is evaluated transactionally with resource locks; Agent slots and worker slots are distinct.
+- `GoldDeviceResourceLocks.tryClaim` uses per-device PostgreSQL transaction advisory mutexes, checking active claims from *all accounts* on the same device, plus ancestor-aware resource keys. Same project or conflicting file-directory write requires exclusive access; independent project resources may proceed concurrently when worker capacity permits. Shared readers may coexist, but an exclusive writer must wait. Device-wide unknown intents are conservative.
+- Blocked work stays in canonical PG **queued** state with either **`RESOURCE_LOCKED`** or **`QUEUED_WORKER_CAPACITY`**; it is **never** labeled `target_node_draining`. The existing Agent slot queue still uses **`QUEUED_AGENT_SLOT`**. A blocked Agent doesn't consume an execution slot while waiting, so an eligible independent Agent can be considered. The queue is bounded to 64 jobs/account; no ETA is invented.
+- `GoldPersonalAgentScheduler.complete` releases the owned resource claim in the same PG transaction as the terminal admission receipt. The Operator attempts wake-ups of other account queues on the same device, with a bounded 3s reconciliation poll for transient advisory-lock contention. Redis wake-up is future optimization, PostgreSQL remains authoritative.
+- Unexpected Operator restart maps in-progress admission to **UNKNOWN** and **does not release its resource claim**. This may conservatively block the same resource until its external process has been independently reconciled; this is intentional fail-closed, not proof that a process still runs.
+- Native process/terminal launch is subject to admission **only until launch receipt**, after which background M5 workers have a separate lifecycle. Therefore **this slice alone does not prevent two detached background builds from modifying the same project after both launches**. Full worker-lifetime resource claims, signed completion receipts and OS budget measurements are follow-up M4/M5 gates. No claim of full physical resource isolation or Linux cgroups for every job.
+- Path normalization at Operator handles slash/drive conventions and directory ancestry. **Remote filesystem symlinks/junctions cannot be safely canonicalized by Operator alone**; strict alias correctness needs Agent-local `realpath`/inode verification and durable lease fencing before lifting conservative mutation limits. Do not present simple path normalization as symlink-safe concurrency.
+- Shared remote desktop pointer/keyboard control is **not enabled**; M4 must add a device-local exclusive input lease and owner handoff first. Team cross-account remains OFF and owner-paid Team Agent slots are unaffected.
+
+## Source modules
+
+`operator-host/device-resource-intent.mjs` derives known structured resource intents and conservative fallback from validated tool arguments and operation family. `lib/gold-device-resource-locks.mjs` handles PG device claims and queued-account wakeups. `lib/gold-personal-agent-scheduler.mjs` combines M3 account Agent admission and M4 device resource/worker claims before a new job can leave queue. `operator-host/executor.mjs` wires M4 behind a distinct flag, then preserves the bypass for process/terminal/SCP status, output and owner stop/cancel (control plane never waits for a worker slot).
+
+## Acceptance stages
+
+1. Source contract regression: resource intents, path ancestry, unknown conservative key; schema33 immutable SHA; installer/Operator import parity, M2/M3/G3/G4 regressions.
+2. Real PostgreSQL fixture, using only isolated **Gold UAT**: two different authenticated fixture accounts and same device/project must serialize with `RESOURCE_LOCKED`; another project runs concurrently while budget permits; third weighted job waits with `QUEUED_WORKER_CAPACITY`; readers share; terminal deletion releases claims; UNKNOWN keeps claim.
+3. Only after source CI, verified backup and schema033 migration, guarded Gold UAT cutover and M4 flag ON. Real MCP bounded foreground shell in two separate workspaces and FS read/write behavior; observe PG queue reasons. Installed Windows/macOS and production unchanged.
+4. Long-running independent worker OS lease and inode/path alias gate remains OPEN even after first admission fixture; three actual independently paired Pro Agent sessions and fourth queued are separate acceptance steps.
+
+**Rollback:** turn off only `OPERATOR_DEVICE_RESOURCE_LOCKS` in UAT Operator and restart after inspecting active jobs. Preserve PG migration033, G4 operation tombstones and UNKNOWN claims. Never downgrade Operator to an incompatible schema version without a full controlled backup/restore.

@@ -161,6 +161,11 @@
       "version": 32,
       "file": "032_gold_personal_agent_admission.sql",
       "sha256": "bd77b09cffe711acfd7b27ac3a5119cd38d6ee7e72de094948ee4475de8585cb"
+    },
+    {
+      "version": 33,
+      "file": "033_gold_device_resource_claims.sql",
+      "sha256": "ab43cba46bbfbfd3869d5e274d618c78128fd5f6b46bf5fe6313795fc3c297c8"
     }
   ]
 }

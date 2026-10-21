@@ -10,6 +10,8 @@ import { spawn } from 'node:child_process';
 import { SessionRegistry, SessionError, SESSION_GRACE_PRESETS } from './session-manager.mjs';
 import { personalCapacity } from './execution-capacity-policy.mjs';
 import { GoldPersonalAgentScheduler } from '../lib/gold-personal-agent-scheduler.mjs';
+import { GoldDeviceResourceLocks } from '../lib/gold-device-resource-locks.mjs';
+import { deviceResourceIntent } from './device-resource-intent.mjs';
 import { usesPersonalAgentSlot } from './personal-agent-tool-admission.mjs';
 import { resolveExecMode } from './long-running-exec-policy.mjs';
 import { DeviceRegistry, DeviceError } from './device-registry.mjs';
@@ -93,6 +95,8 @@ const SESSION_HISTORY_MS = Number(process.env.OPERATOR_SESSION_HISTORY_MS || 7 *
 // Opt-in Gold migration; default remains compatible with existing client tests.
 const SCOPED_SESSION_LIMITS = process.env.OPERATOR_SCOPED_SESSION_LIMITS==='1';
 const PERSONAL_AGENT_SCHEDULER = process.env.OPERATOR_PERSONAL_AGENT_SCHEDULER==='1';
+const DEVICE_RESOURCE_LOCKS = process.env.OPERATOR_DEVICE_RESOURCE_LOCKS==='1';
+if(DEVICE_RESOURCE_LOCKS&&!PERSONAL_AGENT_SCHEDULER)throw Error('m4_personal_scheduler_required');
 if(PERSONAL_AGENT_SCHEDULER&&!SCOPED_SESSION_LIMITS)throw Error('m3_scoped_sessions_required');
 // OFF by default; Gold UAT can opt in without touching published clients.
 const MANAGED_LONG_EXEC = process.env.OPERATOR_MANAGED_LONG_EXEC==='1';
@@ -139,7 +143,10 @@ if(singleWriter!==true){
 const goldRegistries=await GoldRegistryPersistence.open({pool:goldStorage.pool});
 const goldSessionState=await GoldSessionRedis.open({client:goldStorage.redis,prefix:goldStorage.prefix});
 const goldJobs=await GoldJobLedger.open({pool:goldStorage.pool,redact});
-const personalAgentScheduler=PERSONAL_AGENT_SCHEDULER?new GoldPersonalAgentScheduler({pool:goldStorage.pool}):null;
+const deviceResourceLocks=DEVICE_RESOURCE_LOCKS?
+ new GoldDeviceResourceLocks({capacity:Math.max(1,Math.min(8,Number(process.env.OPERATOR_DEVICE_WORKER_BUDGET)||2))}):null;
+const personalAgentScheduler=PERSONAL_AGENT_SCHEDULER?
+ new GoldPersonalAgentScheduler({pool:goldStorage.pool,resources:deviceResourceLocks}):null;
 if(personalAgentScheduler)await personalAgentScheduler.recoverStartup();
 const pendingForegroundExec=new Map();
 // Only work that can start a new effect holds an Agent execution slot.
@@ -150,8 +157,10 @@ async function schedulePersonalEffect(job,dispatch){
  if(!job.personalScheduled)return dispatch();
  pendingForegroundExec.set(job.id,dispatch);
  try{
+  const resource=job.resourceIntent||deviceResourceIntent({family:'exec',cwd:job.cwd,script:job.script});
   await personalAgentScheduler.enqueue({jobId:job.id,accountId:job.accountId,
-   agentId:job.agentId,sessionId:job.sessionId,operationId:job.operationId});
+   agentId:job.agentId,sessionId:job.sessionId,operationId:job.operationId,
+   deviceId:deviceResourceLocks?job.deviceId:null,resource:deviceResourceLocks?resource:null});
   await pumpPersonalAgentAccount(job.accountId);
  }catch(error){
   pendingForegroundExec.delete(job.id);
@@ -169,6 +178,13 @@ async function pumpPersonalAgentAccount(accountId){
  try{
   const ids=await personalAgentScheduler.admit(accountId,
     personalCapacity(operationalAccount(accountId).plan).agentConcurrencyLimit);
+  if(deviceResourceLocks){
+    const reasons=await goldStorage.pool.query("SELECT job_id,queue_reason FROM lr_gold_personal_agent_work WHERE account_id=$1 AND state='queued' ORDER BY queued_at LIMIT 64",[accountId]);
+    for(const row of reasons.rows){
+      const queued=jobs.get(row.job_id);
+      if(queued){queued.queueReason=row.queue_reason||'QUEUED_AGENT_SLOT';goldJobs.save(queued);}
+    }
+  }
   for(const id of ids){
    const task=pendingForegroundExec.get(id),job=jobs.get(id);
    if(!task||!job){
@@ -203,6 +219,15 @@ async function pumpPersonalAgentAccount(accountId){
   pushEvent({type:'m3_scheduler_unavailable',accountId,reason:'personal_agent_admission_failure'});
   console.error(JSON.stringify({event:'m3_scheduler_failure',message:String(error?.message||error)}));
  }finally{pumpingPersonalAccounts.delete(accountId);}
+}
+if(deviceResourceLocks){
+  const ticker=setInterval(async()=>{
+    try{
+      const q=await goldStorage.pool.query("SELECT DISTINCT account_id FROM lr_gold_personal_agent_work WHERE state='queued' ORDER BY account_id LIMIT 64");
+      for(const {account_id:id} of q.rows)await pumpPersonalAgentAccount(id);
+    }catch(error){console.error(JSON.stringify({event:'m4_queue_reconcile_failed',code:String(error?.code||'PG_UNAVAILABLE')}));}
+  },3000);
+  ticker.unref();
 }
 const NATIVE_PROCESSES=new NativeProcessRegistry();
 const NATIVE_TERMINALS=new NativeTerminalRegistry({emit:event=>pushEvent(event)});
@@ -469,7 +494,13 @@ function finishJob(job, exitCode, signal) {
   if(job.personalScheduled){
     pendingForegroundExec.delete(job.id);
     void personalAgentScheduler.complete(job.id,job.accountId,job.status)
-      .then(()=>pumpPersonalAgentAccount(job.accountId))
+      .then(async()=>{
+        await pumpPersonalAgentAccount(job.accountId);
+        if(deviceResourceLocks){
+          const accounts=await deviceResourceLocks.waitingAccounts(goldStorage.pool,job.deviceId);
+          await Promise.all(accounts.filter(id=>id!==job.accountId).map(id=>pumpPersonalAgentAccount(id)));
+        }
+      })
       .catch(error=>console.error(JSON.stringify({event:'m3_slot_release_failed',jobId:job.id,
         message:String(error?.message||error)})));
   }
@@ -668,6 +699,7 @@ async function startFsOperation(payload,requestId){
   Promise.resolve().then(()=>executeNativeFs(fsRequest,{policy:filesystemPolicy()})).then(data=>{job.resultData=data;job.resultSummary=fsActivityResult(job.toolMeta,data);finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};job.resultSummary=String(error?.message||error);emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n','utf8'));finishJob(job,1,null);});
   return job;
   };
+  if(deviceResourceLocks&&job.personalScheduled)job.resourceIntent=deviceResourceIntent({family:'fs',op:String(fsRequest.op||''),request:fsRequest});
   return schedulePersonalEffect(job,dispatch);
 }
 
@@ -689,6 +721,7 @@ async function startScpOperation(payload,requestId){
   if(remote){const command=enqueueForJob(job,{accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'scp',operationId,sessionId:job.sessionId,agentId:job.agentId,scp:request}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},60000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();return job;}
   Promise.resolve().then(()=>executeLocalScpRequest(job,request)).then(data=>{job.resultData=data;job.resultSummary=nativeActivityResult(job.toolMeta,data);finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n'));finishJob(job,1,null);});return job;
   };
+  if(deviceResourceLocks&&job.personalScheduled)job.resourceIntent=deviceResourceIntent({family:'scp',op:String(request.op||''),request:request});
   return schedulePersonalEffect(job,dispatch);
 }
 
@@ -722,6 +755,7 @@ async function startProcessOperation(payload,requestId,{managedExec=false,longCo
   if(remote){const command=enqueueForJob(job,{accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'process',operationId,sessionId:job.sessionId,agentId:job.agentId,process:request}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},30000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();return job;}
   Promise.resolve().then(()=>executeLocalProcessRequest(job,request)).then(data=>{job.resultData=data;job.resultSummary=nativeActivityResult(job.toolMeta,data);finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n'));finishJob(job,1,null);});return job;
   };
+  if(deviceResourceLocks&&job.personalScheduled)job.resourceIntent=deviceResourceIntent({family:'process',op:String(request.op||''),request:request});
   return schedulePersonalEffect(job,dispatch);
 }
 
@@ -761,6 +795,7 @@ async function startTerminalOperation(payload,requestId){
   if(remote){const command=enqueueForJob(job,{accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'terminal',operationId,sessionId:job.sessionId,agentId:job.agentId,terminal:request}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},30000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();return job;}
   Promise.resolve().then(()=>executeLocalTerminalRequest(job,request)).then(data=>{job.resultData=data;job.resultSummary=terminalResultSummary(data);finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};job.resultSummary='error · '+redact(String(error?.message||error));emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n'));finishJob(job,1,null);});return job;
   };
+  if(deviceResourceLocks&&job.personalScheduled)job.resourceIntent=deviceResourceIntent({family:'terminal',op:String(request.op||''),request:request});
   return schedulePersonalEffect(job,dispatch);
 }
 
@@ -857,6 +892,7 @@ async function startSearchOperation(payload,requestId){
   if(remote){const command=enqueueForJob(job,{accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'search',operationId,sessionId:job.sessionId,agentId:job.agentId,search:request}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},30000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();return job;}
   Promise.resolve().then(()=>executeLocalSearchRequest(job,request)).then(data=>{job.resultData=data;const v=data?.search||data;if(v&&typeof v==='object'){for(const key of ['path','searchType','pattern','filePattern'])if(v[key]!=null&&!job.toolMeta[key])job.toolMeta[key]=key==='pattern'?redact(String(v[key])).slice(0,180):String(v[key]);}job.resultSummary=nativeActivityResult(job.toolMeta,data);finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n'));finishJob(job,1,null);});return job;
   };
+  if(deviceResourceLocks&&job.personalScheduled)job.resourceIntent=deviceResourceIntent({family:'search',op:String(request.op||''),request:request});
   return schedulePersonalEffect(job,dispatch);
 }
 
