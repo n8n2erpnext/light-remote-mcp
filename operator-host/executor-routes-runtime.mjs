@@ -19,7 +19,7 @@ export async function handleRuntimeRoutes(req,res,url,deps){
     }
     const maintenanceUpdateMatch = url.pathname.match(/^\/v1\/devices\/([A-Za-z0-9._:-]+)\/maintenance\/update$/);
     if (req.method === 'POST' && maintenanceUpdateMatch) {
-      const maintenance=queueSignedUpdate(maintenanceUpdateMatch[1]);
+      const maintenance=await queueSignedUpdate(maintenanceUpdateMatch[1]);
       await flushDiskRecords();
       return sendJson(res,200,{ok:true,maintenance});
     }
@@ -129,7 +129,7 @@ export async function handleRuntimeRoutes(req,res,url,deps){
       if(!['exec_batch','fs','process','terminal','search','scp','desktop'].includes(payload.action))throw new Error('unsupported_action');
       const session=sessions.ensure(String(payload.sessionId||''),{agentId:String(payload.agentId||'')});
       if(session.deviceId!==grant.deviceId||session.accountId!==grant.accountId)throw new DeviceAccessGrantError('device_access_grant_session_mismatch',403);
-      const job=payload.action==='desktop'?await startDesktopOperation(payload,requestId):payload.action==='fs'?await startFsOperation(payload,requestId):payload.action==='process'?await startProcessOperation(payload,requestId):payload.action==='terminal'?await startTerminalOperation(payload,requestId):payload.action==='search'?await startSearchOperation(payload,requestId):payload.action==='scp'?await startScpOperation(payload,requestId):startJob(payload,requestId);
+      const job=payload.action==='desktop'?await startDesktopOperation(payload,requestId):payload.action==='fs'?await startFsOperation(payload,requestId):payload.action==='process'?await startProcessOperation(payload,requestId):payload.action==='terminal'?await startTerminalOperation(payload,requestId):payload.action==='search'?await startSearchOperation(payload,requestId):payload.action==='scp'?await startScpOperation(payload,requestId):await startJob(payload,requestId);
       if(!job.telemetry?.operatorAcceptedAt){job.telemetry={...(job.telemetry||{}),...ingressTelemetry(body.telemetry,operatorAcceptedAt),dispatchAt:job.startedAt};if(!job.remote)job.telemetry.deviceReceivedAt=job.startedAt;}
       const waitMs=Math.max(0,Math.min(Number(payload.waitMs)||0,8000));
       await waitForJob(job,waitMs);
@@ -193,7 +193,7 @@ export async function handleRuntimeRoutes(req,res,url,deps){
       const envelope = await readJson(req);
       const { payload, requestId, aad, kid } = decryptEnvelope(envelope);
       if (payload.action !== 'exec_batch') throw new Error('unsupported_action');
-      const job = startJob(payload, requestId);
+      const job = await startJob(payload, requestId);
       const waitMs = Math.max(0, Math.min(Number(payload.waitMs) || 0, 8000));
       await waitForJob(job, waitMs);
       return sendJson(res, 200, { ok: true, encryptedByKid: kid, aad, job: jobView(job) });

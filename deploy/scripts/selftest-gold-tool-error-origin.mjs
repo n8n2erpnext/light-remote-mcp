@@ -56,6 +56,8 @@ const cases=[
  ['filesystem_path_outside_allowed_roots','device_local_policy',false,'use_authorized_path'],
  ['device_connection_expired','authorization',false,'reauthorize_on_local_wall'],
  ['gold_postgres_persistence_unavailable','canonical_storage',true,'check_gold_postgres_health'],
+ ['operation_effect_unknown','operation_reconciliation',false,'inspect_original_job_receipt'],
+ ['operation_id_conflict','operation_reconciliation',false,'use_distinct_operation_id_for_new_intent'],
 ];
 for(const [message,layer,retryable,nextAction] of cases){
  const o=classifyPluginToolError(Object.assign(new Error(message),{status:409}));

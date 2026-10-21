@@ -23,6 +23,8 @@ const KNOWN=Object.freeze({
   agent_client_temporarily_unavailable:['operator_transport',true,'retry_same_authorized_session'],
   operator_unavailable:['operator_transport',true,'wait_for_operator_health'],
   gold_postgres_persistence_unavailable:['canonical_storage',true,'check_gold_postgres_health'],
+  operation_effect_unknown:['operation_reconciliation',false,'inspect_original_job_receipt'],
+  operation_id_conflict:['operation_reconciliation',false,'use_distinct_operation_id_for_new_intent'],
 });
 const SAFE_CODE=/^[a-z][a-z0-9_]{0,119}$/;
 export function classifyPluginToolError(error){
