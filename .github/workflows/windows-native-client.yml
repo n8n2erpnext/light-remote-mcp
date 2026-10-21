@@ -40,6 +40,7 @@ on:
       - 'deploy/scripts/selftest-g2-transport-drop-job-survival.mjs'
       - 'deploy/scripts/selftest-g2-pty-missing-pid-exit.mjs'
       - 'deploy/scripts/selftest-g3-duplex-halfopen-watchdog.mjs'
+      - 'deploy/scripts/selftest-g3-duplex-ready-timeout-diagnostic.mjs'
       - 'deploy/scripts/selftest-g3-duplex-executor-rejection.mjs'
       - 'deploy/scripts/selftest-g3-executor-hang-readiness.mjs'
       - 'deploy/scripts/selftest-g3-duplex-reconnect-inflight.mjs'
@@ -203,6 +204,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'G2 PTY missing PID and exit evidence fail-closed regression failed on Windows' }
           & $node deploy/scripts/selftest-g3-duplex-halfopen-watchdog.mjs
           if ($LASTEXITCODE -ne 0) { throw 'G3 duplex half-open receive watchdog regression failed on Windows' }
+          & $node deploy/scripts/selftest-g3-duplex-ready-timeout-diagnostic.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'G3 duplex buffered HTTP ready timeout diagnostic failed on Windows' }
           & $node deploy/scripts/selftest-g3-duplex-executor-rejection.mjs
           if ($LASTEXITCODE -ne 0) { throw 'G3 duplex executor rejection recovery regression failed on Windows' }
           & $node deploy/scripts/selftest-g3-executor-hang-readiness.mjs

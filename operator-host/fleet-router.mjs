@@ -57,8 +57,10 @@ export class FleetRouter {
     const revision=Number(input.policyRevision);
     node.reportedPolicyRevision=input.policyRevision!=null&&Number.isSafeInteger(revision)&&revision>=0?revision:null;
     node.agentDraining=Boolean(input.draining);
-    // Only Agent-provided readiness is diagnostic; missing legacy field is unknown.
-    node.executorReady=typeof input.executorReady==='boolean'?input.executorReady:(this.requireExecutorReady?null:(prior?.executorReady??null));
+    // A fresh authenticated frame lacking executor proof is UNKNOWN, including
+    // after a previously healthy Agent has downgraded to a legacy runtime.
+    // Compatibility can still dispatch, but must not reuse stale proof.
+    node.executorReady=typeof input.executorReady==='boolean'?input.executorReady:null;
     this.nodes.set(nodeId,node);
     const drainAfter=Boolean(node.agentDraining||node.ownerDraining);
     if (!prior || wasOffline) this.emit({type:'node_channel_online',accountId,deviceId,nodeId,status:'online',sessionCeiling:ceiling});

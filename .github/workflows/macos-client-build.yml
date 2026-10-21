@@ -36,6 +36,7 @@ on:
       - 'deploy/scripts/stage-terminal-runtime.mjs'
       - 'deploy/scripts/terminal-runtime-smoke.mjs'
       - 'deploy/scripts/selftest-g3-duplex-halfopen-watchdog.mjs'
+      - 'deploy/scripts/selftest-g3-duplex-ready-timeout-diagnostic.mjs'
       - 'deploy/scripts/selftest-g3-duplex-executor-rejection.mjs'
       - 'deploy/scripts/selftest-g3-executor-hang-readiness.mjs'
       - 'deploy/scripts/selftest-g3-duplex-reconnect-inflight.mjs'
@@ -186,6 +187,7 @@ jobs:
           node deploy/scripts/terminal-runtime-smoke.mjs "$PKG"
           node deploy/scripts/selftest-g2-runtime-shutdown-cleanup.mjs
           node deploy/scripts/selftest-g3-duplex-halfopen-watchdog.mjs
+          node deploy/scripts/selftest-g3-duplex-ready-timeout-diagnostic.mjs
           node deploy/scripts/selftest-g3-duplex-executor-rejection.mjs
           node deploy/scripts/selftest-g3-executor-hang-readiness.mjs
           node deploy/scripts/selftest-g3-duplex-reconnect-inflight.mjs

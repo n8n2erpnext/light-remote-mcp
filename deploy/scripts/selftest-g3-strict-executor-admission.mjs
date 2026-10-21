@@ -56,3 +56,14 @@ assert.equal(observed.dispatchReady,true);
 assert.equal(observed.readinessReason,'executor_unknown_compat');
 assert.equal(observed.executorReadinessProven,false);
 console.log('G3_LEGACY_COMPATIBILITY_OPT_IN_GATE=PASS');
+
+// A newly authenticated legacy frame must invalidate prior explicit executor
+// readiness; compatibility may still dispatch but cannot claim proven ready.
+const compatible=new FleetRouter({channelTtlMs:10000,commandLeaseMs:2500});
+compatible.touch({...ident,executorReady:true,capabilities:['filesystem']});
+observed=compatible.touch({...ident,capabilities:['filesystem']});
+assert.equal(observed.executorReady,null);
+assert.equal(observed.executorReadinessProven,false);
+assert.equal(observed.readinessReason,'executor_unknown_compat');
+assert.equal(observed.dispatchReady,true);
+console.log('G3_COMPAT_FRAME_WITHOUT_PROBE_REVOKES_OLD_PROOF=PASS');
