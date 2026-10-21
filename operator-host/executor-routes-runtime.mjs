@@ -196,7 +196,7 @@ export async function handleRuntimeRoutes(req,res,url,deps){
       const job = await startJob(payload, requestId);
       const waitMs = Math.max(0, Math.min(Number(payload.waitMs) || 0, 8000));
       await waitForJob(job, waitMs);
-      return sendJson(res, 200, { ok: true, encryptedByKid: kid, aad, job: jobView(job) });
+      return sendJson(res, 200, { ok: job.finishedAt?job.exitCode===0:true, encryptedByKid: kid, aad, job: jobView(job), data: job.resultData });
     }
     const jobMatch = url.pathname.match(/^\/v1\/jobs\/([0-9a-f-]+)$/i);
     if (req.method === 'GET' && jobMatch) {
