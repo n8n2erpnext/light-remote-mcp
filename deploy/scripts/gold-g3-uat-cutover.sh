@@ -47,7 +47,40 @@ JS
 for service in "${SERVICES[@]}";do
  [[ -f "$UNIT_ROOT/$service.service" ]]||{ echo "G3_GOLD_UNKNOWN_UNIT:$service" >&2;exit 3; }
 done
-if find "$UNIT_ROOT" -path '*/90-g3-candidate.conf' | grep -q .;then echo G3_GOLD_CUTOVER_OVERRIDE_ALREADY_PRESENT >&2;exit 3;fi
+# Initial cutover may start from original units; later G3 promotions may start
+# from an already active immutable candidate. Never erase prior overrides
+# before preserving all three as one consistent transaction preimage.
+PREVIOUS_OVERRIDES="$BACKUP/previous-candidate-overrides"
+previous_count=0
+previous_root=""
+for service in "${SERVICES[@]}";do
+  override="$UNIT_ROOT/$service.service.d/90-g3-candidate.conf"
+  if [[ -f "$override" ]];then
+    previous_count=$((previous_count+1))
+    root_line="$(sed -n 's/^WorkingDirectory=//p' "$override")"
+    if [[ ! "$root_line" =~ ^/opt/light-remote-gold-uat-candidates/[a-f0-9]{40}$ ]] ||
+       [[ ! -f "$root_line/.git-source-sha" ]] ||
+       [[ "$(cat "$root_line/.git-source-sha")" != "${root_line##*/}" ]];then
+      echo G3_GOLD_PREVIOUS_CANDIDATE_UNVERIFIED >&2;exit 3
+    fi
+    if [[ -n "$previous_root" && "$previous_root" != "$root_line" ]];then
+      echo G3_GOLD_PREVIOUS_CANDIDATE_SPLIT >&2;exit 3
+    fi
+    previous_root="$root_line"
+  fi
+done
+if [[ "$previous_count" != "0" && "$previous_count" != "${#SERVICES[@]}" ]];then
+  echo G3_GOLD_PARTIAL_EXISTING_OVERRIDES >&2;exit 3
+fi
+if [[ "$previous_root" == "$ROOT" ]];then echo G3_GOLD_CANDIDATE_ALREADY_ACTIVE >&2;exit 3;fi
+if [[ -e "$PREVIOUS_OVERRIDES" ]];then echo G3_GOLD_PREVIOUS_OVERRIDE_SNAPSHOT_EXISTS >&2;exit 3;fi
+install -d -m 0700 "$PREVIOUS_OVERRIDES"
+for service in "${SERVICES[@]}";do
+  override="$UNIT_ROOT/$service.service.d/90-g3-candidate.conf"
+  if [[ -f "$override" ]];then cp -p "$override" "$PREVIOUS_OVERRIDES/$service.conf";fi
+done
+echo "G3_GOLD_PREVIOUS_OVERRIDE_SNAPSHOT=PASS"
+
 function validate(){
   for service in "${SERVICES[@]}";do
     if ! systemctl is-active --quiet "$service";then echo "G3_GOLD_VALIDATE_UNIT_INACTIVE:$service" >&2;return 1;fi
@@ -101,10 +134,15 @@ function startOrdered(){
 function rollback(){
   echo G3_GOLD_CUTOVER_HEALTH_FAILED_ROLLING_BACK >&2
   for service in "${SERVICES[@]}";do
-    rm -f "$UNIT_ROOT/$service.service.d/90-g3-candidate.conf"
+    override="$UNIT_ROOT/$service.service.d/90-g3-candidate.conf"
+    if [[ -f "$PREVIOUS_OVERRIDES/$service.conf" ]];then
+      cp -p "$PREVIOUS_OVERRIDES/$service.conf" "$override"
+    else
+      rm -f "$override"
+    fi
   done
   systemctl daemon-reload
-  if startOrdered;then echo G3_GOLD_ROLLBACK_OLD_UNITS_RESTORED;else echo G3_GOLD_ROLLBACK_REQUIRES_ATTENTION >&2;fi
+  if startOrdered;then echo G3_GOLD_ROLLBACK_PREVIOUS_UNITS_RESTORED;else echo G3_GOLD_ROLLBACK_REQUIRES_ATTENTION >&2;fi
 }
 rollbackOnExit=1
 trap 'if [[ "$rollbackOnExit" == "1" ]];then rollback;fi' EXIT
