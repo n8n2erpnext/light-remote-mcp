@@ -4,6 +4,7 @@ import { AccountOperatorAdapter } from './operator-adapter.mjs';
 import { mintPairingContinuation, requireScopes, verifyPairingContinuation } from './oauth.mjs';
 import { redactRestrictedText, sanitizeForMcp } from './response-sanitizer.mjs';
 import { classifyPluginToolError } from './tool-error-classification.mjs';
+import { maybeInlineExecStdout } from './exec-inline-output.mjs';
 
 const id=z.string().regex(/^[A-Za-z0-9._:-]{1,160}$/);
 const opId=z.string().regex(/^[A-Za-z0-9._:-]{16,160}$/).optional();
@@ -325,9 +326,9 @@ export function registerPluginTools(server,identity){
 
   add(server,'light_remote_exec',{
     title:'Execute one bounded remote command job',
-    description:'Run one logical shell/PowerShell job. Prefer structured tools first; device policy re-infers capabilities before spawn.',
-    inputSchema:{sessionId:id,operationId:opId,script:z.string().min(1).max(1_000_000),shell:z.string().max(80).optional(),cwd:pathText.optional(),timeoutMs:z.number().int().min(1000).max(7_200_000).optional(),waitMs:z.number().int().min(0).max(7000).optional(),requiredCapabilities:z.array(z.string().min(1).max(80)).max(32).optional()},securitySchemes:security(['remote:execute']),annotations:annotations(false,true,true,false)
-  },guarded(identity,['remote:execute'],async(a,x)=>operationView(await a.exec(x.sessionId,x.script,{shell:x.shell,cwd:x.cwd,operationId:x.operationId,timeoutMs:x.timeoutMs,waitMs:x.waitMs,requiredCapabilities:x.requiredCapabilities}))));
+    description:'Run one logical shell/PowerShell job. Prefer structured tools first; device policy re-infers capabilities before spawn. Gold opt-in inlineStdout returns up to 1536 bytes of completed successful stdout in the same tool response; otherwise use light_remote_output.',
+    inputSchema:{sessionId:id,operationId:opId,script:z.string().min(1).max(1_000_000),shell:z.string().max(80).optional(),cwd:pathText.optional(),timeoutMs:z.number().int().min(1000).max(7_200_000).optional(),waitMs:z.number().int().min(0).max(7000).optional(),requiredCapabilities:z.array(z.string().min(1).max(80)).max(32).optional(),inlineStdout:z.boolean().optional()},securitySchemes:security(['remote:execute']),annotations:annotations(false,true,true,false)
+  },guarded(identity,['remote:execute'],async(a,x)=>maybeInlineExecStdout(operationView(await a.exec(x.sessionId,x.script,{shell:x.shell,cwd:x.cwd,operationId:x.operationId,timeoutMs:x.timeoutMs,waitMs:x.waitMs,requiredCapabilities:x.requiredCapabilities})),a,{inlineStdout:x.inlineStdout})));
 
   add(server,'light_remote_process',{
     title:'Start a managed remote process',

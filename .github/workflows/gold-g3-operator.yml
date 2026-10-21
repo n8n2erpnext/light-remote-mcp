@@ -52,6 +52,7 @@ jobs:
           node deploy/scripts/selftest-g3-redis-wall-status-rate.mjs
           node deploy/scripts/selftest-g3-ab-control-lane-lookup.mjs
           node deploy/scripts/selftest-g3-command-transport-provenance.mjs
+          node deploy/scripts/selftest-g3-agent-inline-stdout.mjs
           node deploy/scripts/selftest-g3-duplex-executor-rejection.mjs
           node deploy/scripts/selftest-g3-executor-hang-readiness.mjs
           node deploy/scripts/selftest-g3-duplex-reconnect-inflight.mjs
