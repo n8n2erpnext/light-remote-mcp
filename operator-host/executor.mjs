@@ -149,6 +149,55 @@ const personalAgentScheduler=PERSONAL_AGENT_SCHEDULER?
  new GoldPersonalAgentScheduler({pool:goldStorage.pool,resources:deviceResourceLocks}):null;
 if(personalAgentScheduler)await personalAgentScheduler.recoverStartup();
 const pendingForegroundExec=new Map();
+// A launch ACK closes the Agent execution slot, not the device resource lease.
+// Synchronize a fast signed terminal receipt with the launch-PG transaction.
+const pendingProcessLeaseWrites=new Map();
+async function reconcileSignedTerminalProcessReceipts(ctx,items){
+ if(!deviceResourceLocks||!Array.isArray(items))return;
+ for(const entry of items.slice(0,32)){
+  if(!/^lp_[A-Za-z0-9_-]{20,80}$/.test(String(entry?.processId||''))||
+     !['finished','stopped','timeout','error'].includes(entry.state)||
+     !Number.isSafeInteger(Number(entry.finishedAt))||Number(entry.finishedAt)<=0)continue;
+  try{
+   const pending=pendingProcessLeaseWrites.get(entry.processId);
+   if(pending)await pending;
+   const released=await deviceResourceLocks.releaseVerifiedTerminal(goldStorage.pool,{
+    accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,process:entry});
+   if(!released)continue;
+   pushEvent({type:'m4_worker_signed_terminal_receipt',accountId:ctx.binding.accountId,
+    deviceId:ctx.device.deviceId,processId:entry.processId,state:entry.state});
+   for(const id of await deviceResourceLocks.waitingAccounts(goldStorage.pool,ctx.device.deviceId))
+    await pumpPersonalAgentAccount(id);
+  }catch(error){console.error(JSON.stringify({event:'m4_signed_process_reconcile_failed',
+    code:String(error?.code||'PG_UNAVAILABLE')}));}
+ }
+}
+async function reconcileBackgroundProcessReceipt(job){
+ if(!deviceResourceLocks||job.exitCode!==0)return;
+ const data=job.resultData;
+ if(!data||typeof data!=='object'||!String(job.note||'').startsWith('native-process:'))return;
+ const op=String(data.operation||'');
+ const records=op==='list'&&Array.isArray(data.processes)?data.processes.slice(0,32):
+  (op==='output'&&data.processId?[data]:['stop','input'].includes(op)&&data.process?[data.process]:[]);
+ for(const process of records){
+  if(!process?.processId||process.accountId&&process.accountId!==job.accountId||
+     process.deviceId&&process.deviceId!==job.deviceId)continue;
+  try{
+   const before=pendingProcessLeaseWrites.get(process.processId);
+   if(before)await before;
+   const released=await deviceResourceLocks.releaseVerifiedTerminal(goldStorage.pool,
+    {accountId:job.accountId,deviceId:job.deviceId,process});
+   if(released){
+    pushEvent({type:'m4_background_resource_released',jobId:job.id,
+      accountId:job.accountId,deviceId:job.deviceId,processId:process.processId});
+    const accounts=await deviceResourceLocks.waitingAccounts(goldStorage.pool,job.deviceId);
+    for(const account of accounts)await pumpPersonalAgentAccount(account);
+   }
+  }catch(error){console.error(JSON.stringify({event:'m4_process_receipt_reconcile_failed',
+    code:String(error?.code||'PG_UNAVAILABLE')}));}
+ }
+}
+
 // Only work that can start a new effect holds an Agent execution slot.
 // Stop/status/output/input remain control-plane operations so owners can
 // always inspect and cancel a long-running process without waiting.
@@ -493,7 +542,23 @@ function finishJob(job, exitCode, signal) {
   goldJobs.save(job);
   if(job.personalScheduled){
     pendingForegroundExec.delete(job.id);
-    void personalAgentScheduler.complete(job.id,job.accountId,job.status)
+    // Only an authenticated process-start receipt can attach a durable
+    // process identity. A transport timeout leaves an unresolved lock.
+    const process=job.note?.startsWith('native-process:start')&&job.exitCode===0?
+      job.resultData?.process:null;
+    const running=process&&['running','starting','stopping'].includes(process.state);
+    const retained=running&&/^lp_[A-Za-z0-9_-]{20,80}$/.test(String(process.processId||''))?
+      process.processId:null;
+    const holdUnknown=Boolean(deviceResourceLocks&&job.note?.startsWith('native-process:start')&&
+      job.timedOut&&!retained);
+    const persisted=personalAgentScheduler.complete(job.id,job.accountId,job.status,
+      {processId:retained,holdUnknown});
+    if(retained){
+      pendingProcessLeaseWrites.set(retained,persisted);
+      void persisted.finally(()=>{if(pendingProcessLeaseWrites.get(retained)===persisted)
+        pendingProcessLeaseWrites.delete(retained);}).catch(()=>{});
+    }
+    void persisted
       .then(async()=>{
         await pumpPersonalAgentAccount(job.accountId);
         if(deviceResourceLocks){
@@ -504,6 +569,9 @@ function finishJob(job, exitCode, signal) {
       .catch(error=>console.error(JSON.stringify({event:'m3_slot_release_failed',jobId:job.id,
         message:String(error?.message||error)})));
   }
+  if(deviceResourceLocks&&String(job.note||'').startsWith('native-process:')&&
+     !job.note.endsWith(':start'))
+    void reconcileBackgroundProcessReceipt(job);
   for (const resolve of job.waiters.splice(0)) resolve();
   pruneJobs(job.finishedAt);
 }
@@ -1236,7 +1304,7 @@ const routeDeps=()=>({
   abandonedCommandReceiptFromDisk,agentClients,allDeviceViews,applyDeviceTelemetry,assertDiskJobOwner,assertToolCallQuota,capabilities,
   clearMainIfMatches,clientCompatibility,closeRuntimeForAccount,compatibilityFor,connectionSpec,
   connectionViewForDevice,connections,decryptEnvelope,deviceView,devices,
-  emitStream,enrollments,finishJob,fleet,fleetAuthority,
+  emitStream,enrollments,finishJob,fleet,fleetAuthority,reconcileSignedTerminalProcessReceipts,
   fleetEligibility,fleetTarget,flushDiskRecords,fs,fullOutputFromDisk,
   ingressTelemetry,jobView,jobs,goldJobs,licenses,normalizeUpdateReport,
   pairingCodes,planEntitlements,pruneRing,pushEvent,queueHelperUpdate,

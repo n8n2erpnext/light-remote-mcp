@@ -166,6 +166,11 @@
       "version": 33,
       "file": "033_gold_device_resource_claims.sql",
       "sha256": "ab43cba46bbfbfd3869d5e274d618c78128fd5f6b46bf5fe6313795fc3c297c8"
+    },
+    {
+      "version": 34,
+      "file": "034_gold_background_resource_receipts.sql",
+      "sha256": "82dc70c38b53f4f29c86f1316dbea8523d1b263e8084da92dcd4b4927ed8ed16"
     }
   ]
 }

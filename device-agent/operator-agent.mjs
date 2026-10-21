@@ -215,6 +215,23 @@ async function frameRealRemoteVisual(p,request,{observe=false}={}){
   return visualPublicView(row,{...native,frame:safeCapture,unchanged:true});
 }
 const COMMAND_EXECUTIONS=new CommandExecutionCoordinator();
+// Only bounded terminal worker receipts, no scripts/paths/output or secrets.
+let PROCESS_TERMINAL_RECEIPTS=[];
+async function refreshProcessTerminalReceipts(current){
+ if(!current?.enrollment?.deviceId||!current.enrollment?.accountId)return;
+ try{
+  const list=SUPERVISED_PROCESSES?
+   await SUPERVISED_PROCESSES.listDevice(current.enrollment.accountId,current.enrollment.deviceId):
+   NATIVE_PROCESSES.list();
+  PROCESS_TERMINAL_RECEIPTS=list.filter(v=>
+    /^lp_[A-Za-z0-9_-]{20,80}$/.test(String(v.processId||''))&&
+    ['finished','stopped','timeout','error'].includes(v.state)&&
+    Number.isSafeInteger(Number(v.finishedAt))&&Number(v.finishedAt)>0)
+   .slice(-32).map(v=>({processId:v.processId,state:v.state,finishedAt:v.finishedAt,
+      exitCode:v.exitCode??null}));
+ }catch{PROCESS_TERMINAL_RECEIPTS=[];}
+}
+
 let DEVICE_DUPLEX=null,DEVICE_DUPLEX_IDLE_DEADLINE=0,DEVICE_DUPLEX_IDLE_TIMER=null;
 const DEVICE_DUPLEX_IDLE_CLOSE_MS=Math.max(500,Math.min(Number(process.env.LIGHT_REMOTE_DEVICE_DUPLEX_IDLE_CLOSE_MS)||1500,10000));
 function deviceDuplexStatus(){return DEVICE_DUPLEX?.status?.()||{active:false,ready:false};}
@@ -235,7 +252,7 @@ function duplexHelloPayload(state,meta={}){
 }
 function duplexHeartbeatPayload(){
   const state=readState();if(!state?.enrollment?.deviceId||!cloudDesired(state))return null;
-  return {nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling:Math.max(1,Math.min(Number(process.env.OPERATOR_AGENT_MAX_SESSIONS)||2,100)),draining:Boolean(state.routing?.draining),executorReady:executorReadiness(),capabilities:effectiveCapabilitiesForState(state),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView()};
+  return {nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling:Math.max(1,Math.min(Number(process.env.OPERATOR_AGENT_MAX_SESSIONS)||2,100)),draining:Boolean(state.routing?.draining),executorReady:executorReadiness(),capabilities:effectiveCapabilitiesForState(state),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView(),processTerminalReceipts:PROCESS_TERMINAL_RECEIPTS};
 }
 async function duplexExecuteCommand(command,hub){
   const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
@@ -827,6 +844,9 @@ async function daemon(args){
   const fleetReconcileMs=Math.max(500,Math.min(Number(process.env.OPERATOR_FLEET_RECONCILE_MS)||15000,300000));
   const reconcileFleet=async()=>{if(stopped||fleetReconciling)return;fleetReconciling=true;try{const current=readState();if(current)expireLocalHardLease(current);if(!current?.enrollment?.deviceId||!cloudDesired(current)||current.cloud?.state!=='connected'){await fleetSupervisor.stop('device_cloud_dormant');return;}await fleetSupervisor.reconcile();}catch(error){console.error(JSON.stringify({event:'fleet_component_reconcile_failed',error:error.message,status:error.status||null}));}finally{fleetReconciling=false;}};
   fleetTimer=setInterval(reconcileFleet,fleetReconcileMs);fleetTimer.unref?.();
+  const workerReceiptTimer=setInterval(()=>void refreshProcessTerminalReceipts(readState()||state),5000);
+  workerReceiptTimer.unref?.();
+  await refreshProcessTerminalReceipts(state);
   while(!stopped){
     const latest=readState();if(latest)state=latest;
     if(state?.enrollment?.deviceId&&cloudLeaseRenewalDue(state)){
@@ -838,7 +858,7 @@ async function daemon(args){
     try{
       await flushPendingUpdateReport(state,hub).catch(error=>console.error(JSON.stringify({event:'update_report_delivery_failed',error:error.message,status:error.status||null})));
       if(deviceDuplexStatus().ready){failures=0;await wait(500);continue;}
-      const payload={nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling,draining:Boolean(state.routing?.draining),executorReady:executorReadiness(),capabilities:effectiveCapabilitiesForState(state),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView(),waitMs};
+      const payload={nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling,draining:Boolean(state.routing?.draining),executorReady:executorReadiness(),capabilities:effectiveCapabilitiesForState(state),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView(),processTerminalReceipts:PROCESS_TERMINAL_RECEIPTS,waitMs};
       const response=await channelRequest(state,hub,'poll',payload);
       // A Local Wall connect/disconnect can update device.json while this long-poll is in flight.
       // Re-read before persisting the poll result so the daemon never clobbers newer lease metadata.
@@ -850,7 +870,7 @@ async function daemon(args){
       if(command){
         const deviceReceivedAt=Date.now();
         let commandPulseTimer=null,commandPulseBusy=false;
-        const commandPulse=async()=>{if(stopped||commandPulseBusy)return;commandPulseBusy=true;try{const current=readState()||state;if(!current?.enrollment?.deviceId||!cloudDesired(current))return;if(cloudLeaseRenewalDue(current))await renewCloudLease(current,hub);await channelRequest(current,hub,'pulse',{nodeId:current.enrollment.nodeId||current.enrollment.deviceId,agentVersion:VERSION,sessionCeiling,draining:Boolean(current.routing?.draining),executorReady:executorReadiness(),capabilities:effectiveCapabilitiesForState(current),policyRevision:Math.max(0,Number(current.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView()});}catch(error){console.error(JSON.stringify({event:'device_command_liveness_failed',deviceId:state.enrollment?.deviceId||null,commandId:command.commandId,error:error.message,status:error.status||null}));}finally{commandPulseBusy=false;}};
+        const commandPulse=async()=>{if(stopped||commandPulseBusy)return;commandPulseBusy=true;try{const current=readState()||state;if(!current?.enrollment?.deviceId||!cloudDesired(current))return;if(cloudLeaseRenewalDue(current))await renewCloudLease(current,hub);await channelRequest(current,hub,'pulse',{nodeId:current.enrollment.nodeId||current.enrollment.deviceId,agentVersion:VERSION,sessionCeiling,draining:Boolean(current.routing?.draining),executorReady:executorReadiness(),capabilities:effectiveCapabilitiesForState(current),policyRevision:Math.max(0,Number(current.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView(),processTerminalReceipts:PROCESS_TERMINAL_RECEIPTS});}catch(error){console.error(JSON.stringify({event:'device_command_liveness_failed',deviceId:state.enrollment?.deviceId||null,commandId:command.commandId,error:error.message,status:error.status||null}));}finally{commandPulseBusy=false;}};
         await commandPulse();commandPulseTimer=setInterval(()=>void commandPulse(),commandHeartbeatMs);commandPulseTimer.unref?.();
         let result,claim;
         try{
@@ -884,6 +904,7 @@ async function daemon(args){
       failures++;const retryInMs=Math.min(Math.max(1000*(2**Math.min(failures,5)),Number(error.retryAfterMs)||0),300000);console.error(JSON.stringify({event:'device_channel_failed',deviceId:state.enrollment.deviceId,error:error.message,status:error.status||null,failures,retryInMs}));if(!stopped)await wait(retryInMs);
     }
   }
+  clearInterval(workerReceiptTimer);PROCESS_TERMINAL_RECEIPTS=[];
   cancelDeviceDuplexIdleClose();if(DEVICE_DUPLEX){const duplex=DEVICE_DUPLEX;DEVICE_DUPLEX=null;try{await duplex.close('daemon_stop');}catch{}}
   try{await fleetSupervisor.close();}catch{}
   try{await localWall?.close();}catch{}

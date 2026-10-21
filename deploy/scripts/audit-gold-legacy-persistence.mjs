@@ -45,7 +45,7 @@ assert.deepEqual(agentLocal.sort(),['wall/auth.json','wall/device.json'],'unexpe
 const gold=await connectGoldStorage();
 try{
  const migrations=await gold.pool.query('SELECT count(*)::int n FROM lr_schema_migrations');
- assert.equal(migrations.rows[0].n,33);
+ assert.equal(migrations.rows[0].n,34);
  const snap=await gold.pool.query("SELECT to_regclass('public.lr_gold_registry_documents') AS snapshot_table");
  assert.equal(snap.rows[0].snapshot_table,null,'generic_jsonb_snapshot_table_still_exists');
  const p=await gold.pool.query("SELECT count(*)::int AS n FROM lr_teams");
@@ -53,5 +53,5 @@ try{
  console.log('GOLD_NO_LEGACY_SQLITE_OR_BUSINESS_JSON_FILES=PASS');
  console.log('GOLD_11_POSTGRES_REGISTRY_DOMAINS=PASS');
  console.log('GOLD_LOCAL_WALL_AUTH_IDENTITY_CONFIG=2_ALLOWED');
- console.log('GOLD_SCHEMA_33_NO_GENERIC_JSONB_SNAPSHOT=PASS');
+ console.log('GOLD_SCHEMA_34_NO_GENERIC_JSONB_SNAPSHOT=PASS');
 }finally{await gold.close()}
