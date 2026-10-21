@@ -8,6 +8,7 @@ import { StringDecoder } from 'node:string_decoder';
 import { decryptEnvelope as decryptSealedEnvelope } from './crypto.mjs';
 import { spawn } from 'node:child_process';
 import { SessionRegistry, SessionError, SESSION_GRACE_PRESETS } from './session-manager.mjs';
+import { personalCapacity } from './execution-capacity-policy.mjs';
 import { DeviceRegistry, DeviceError } from './device-registry.mjs';
 import { EnrollmentRegistry, EnrollmentError } from './enrollment-registry.mjs';
 import { FleetRouter, FleetError } from './fleet-router.mjs';
@@ -86,7 +87,9 @@ const SESSION_MIN_IDLE_MS = Number(process.env.OPERATOR_SESSION_MIN_IDLE_MS || 1
 const SESSION_MAX_IDLE_MS = Number(process.env.OPERATOR_SESSION_MAX_IDLE_MS || 60 * 60 * 1000);
 const SESSION_ACTIVE_WINDOW_MS = Number(process.env.OPERATOR_SESSION_ACTIVE_WINDOW_MS || 60 * 1000);
 const SESSION_HISTORY_MS = Number(process.env.OPERATOR_SESSION_HISTORY_MS || 7 * 24 * 60 * 60 * 1000);
-const MAX_ACTIVE_SESSIONS = Number(process.env.OPERATOR_MAX_ACTIVE_SESSIONS || 5);
+// Opt-in Gold migration; default remains compatible with existing client tests.
+const SCOPED_SESSION_LIMITS = process.env.OPERATOR_SCOPED_SESSION_LIMITS==='1';
+const MAX_ACTIVE_SESSIONS = Number(process.env.OPERATOR_MAX_ACTIVE_SESSIONS || (SCOPED_SESSION_LIMITS ? 128 : 5));
 const ACCOUNT_ID = String(process.env.OPERATOR_ACCOUNT_ID || 'self-hosted-local');
 const ACCOUNT_PLAN = String(process.env.OPERATOR_ACCOUNT_PLAN || 'free').trim().toLowerCase();
 const CONNECTION_LEASE_ENFORCE = ['1','true','yes'].includes(String(process.env.OPERATOR_CONNECTION_LEASE_ENFORCE || '0').toLowerCase());
@@ -896,7 +899,7 @@ function hostEffectiveCapabilities(){
   catch{return [...HOST_CAPABILITIES];}
 }
 const PLAN_FEATURES=Object.freeze({free:{fleetWall:false,multiDeviceConsole:false,toolCallLimit:10_000},pro:{fleetWall:true,multiDeviceConsole:true,toolCallLimit:null},vip:{fleetWall:true,multiDeviceConsole:true,toolCallLimit:null}});
-function planEntitlements(input){const account=typeof input==='object'&&input?input:null,key=String(account?.plan||input||'free').toLowerCase(),capMs=DEFAULT_PLAN_CONNECTION_CAPS[key]||DEFAULT_PLAN_CONNECTION_CAPS.free,validUntil=account?.entitlement?.validUntil??null,features=PLAN_FEATURES[key]||PLAN_FEATURES.free;return {plan:key,connectionLeaseMs:capMs,connectionLeaseHours:capMs/3600000,fleetWall:Boolean(features.fleetWall),multiDeviceConsole:Boolean(features.multiDeviceConsole),usageMetering:true,toolCallLimit:features.toolCallLimit==null?null:Number(features.toolCallLimit),toolCallsUnlimited:features.toolCallLimit==null,singleCodebase:true,validUntil,source:account?.entitlement?.source||null};}
+function planEntitlements(input){const account=typeof input==='object'&&input?input:null,key=String(account?.plan||input||'free').toLowerCase(),capMs=DEFAULT_PLAN_CONNECTION_CAPS[key]||DEFAULT_PLAN_CONNECTION_CAPS.free,validUntil=account?.entitlement?.validUntil??null,features=PLAN_FEATURES[key]||PLAN_FEATURES.free;return {plan:key,connectionLeaseMs:capMs,connectionLeaseHours:capMs/3600000,fleetWall:Boolean(features.fleetWall),multiDeviceConsole:Boolean(features.multiDeviceConsole),usageMetering:true,toolCallLimit:features.toolCallLimit==null?null:Number(features.toolCallLimit),toolCallsUnlimited:features.toolCallLimit==null,singleCodebase:true,...(SCOPED_SESSION_LIMITS?{sessionLimit:personalCapacity(key).sessionLimit,agentConcurrencyTarget:personalCapacity(key).agentConcurrencyLimit}:{}),validUntil,source:account?.entitlement?.source||null};}
 function assertToolCallQuota(accountId){const account=operationalAccount(accountId),entitlements=planEntitlements(account),limit=entitlements.toolCallLimit;if(limit==null)return {allowed:true,used:null,limit:null};const used=usage.summary(account.accountId,{months:1}).toolCallsThisMonth;if(used>=limit){const error=new AccountError('tool_call_quota_exceeded',429);error.plan=entitlements.plan;error.limit=limit;error.used=used;throw error;}return {allowed:true,used,limit};}
 function connectionSpec(accountId,requestedLeaseMs){const account=operationalAccount(accountId),key=String(account.plan||'free').toLowerCase(),planCap=DEFAULT_PLAN_CONNECTION_CAPS[key]||DEFAULT_PLAN_CONNECTION_CAPS.free,expires=Number(account.entitlement?.validUntil),now=Date.now(),remaining=key!=='free'&&Number.isFinite(expires)&&expires>now?expires-now:planCap,cap=Math.min(planCap,remaining),requested=requestedLeaseMs==null?cap:Number(requestedLeaseMs);if(!Number.isFinite(requested)||requested<=0||requested>cap)throw new DeviceConnectionError('invalid_device_connection_lease');return {plan:key,requestedLeaseMs:requested,account};}
 function revokeRuntimeForDevice(deviceId,reason){

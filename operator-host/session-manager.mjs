@@ -118,6 +118,14 @@ export class SessionRegistry {
     return n;
   }
 
+  activeCountByAccount(accountId,now=this.now()) {
+    this.prune(now); const owner=String(accountId||'');
+    let count=0;
+    for(const s of this.sessions.values())
+      if(s.accountId===owner&&['active','hold'].includes(this._state(s,now)))count++;
+    return count;
+  }
+
   activeCountByNode(nodeId,now=this.now()) {
     this.prune(now); const nid=String(nodeId||'');
     let n=0; for (const s of this.sessions.values()) if (s.nodeId===nid&&['active','hold'].includes(this._state(s,now))) n++;
@@ -130,7 +138,7 @@ export class SessionRegistry {
   }
 
   open({ id=null, openId=null, accountId=null, agentId, label='', workspace='', implicit=false,
-    graceMs=null, gracePreset=null, leaseMs=null, leasePreset=null, nodeId=null, deviceId=null, maxActiveForNode=null }={}) {
+    graceMs=null, gracePreset=null, leaseMs=null, leasePreset=null, nodeId=null, deviceId=null, maxActiveForNode=null, maxActiveForAccount=null }={}) {
     this.prune();
     const aid=String(agentId||'').trim();
     if (!this._validAgent(aid)) throw new SessionError('invalid_agent_id');
@@ -162,6 +170,13 @@ export class SessionRegistry {
         return this._view(prior);
       }
       if (priorId) this.openDedupe.delete(openKey);
+    }
+    if (maxActiveForAccount!=null) {
+      const limit=Number(maxActiveForAccount);
+      if(!Number.isInteger(limit)||limit<1||limit>1000)
+        throw new SessionError('invalid_account_session_capacity',400);
+      if(this.activeCountByAccount(targetAccountId)>=limit)
+        throw new SessionError('account_session_capacity_reached',429);
     }
     if (this.activeCount()>=this.maxActive) throw new SessionError('session_capacity_reached',429);
     if (nodeCeiling!=null&&this.activeCountByNode(targetNodeId)>=nodeCeiling) throw new SessionError('node_session_capacity_reached',429);

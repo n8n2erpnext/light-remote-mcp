@@ -16,7 +16,7 @@ function ownedSession(deps,{accountId,sessionId,agentId}){
 export async function handlePluginRoutes(req,res,url,deps){
   if(req.method==='POST'&&url.pathname==='/v1/plugin/sessions/open'){
     const body=await deps.readJson(req),account=pluginAccount(deps,body.accountId),route=deps.targetRoute(body.nodeId,{accountId:account.accountId});
-    const session=deps.sessions.open({accountId:account.accountId,openId:body.openId,agentId:body.agentId,label:body.label,workspace:body.workspace,graceMs:body.graceMs,gracePreset:body.gracePreset,leaseMs:body.leaseMs,leasePreset:body.leasePreset,nodeId:route.nodeId,deviceId:route.deviceId,maxActiveForNode:route.sessionCeiling});
+    const session=deps.sessions.open({accountId:account.accountId,openId:body.openId,agentId:body.agentId,label:body.label,workspace:body.workspace,graceMs:body.graceMs,gracePreset:body.gracePreset,leaseMs:body.leaseMs,leasePreset:body.leasePreset,nodeId:route.nodeId,deviceId:route.deviceId,maxActiveForNode:route.sessionCeiling,maxActiveForAccount:deps.planEntitlements(account).sessionLimit??null});
     return deps.sendJson(res,200,{ok:true,route,session});
   }
   if(req.method==='GET'&&url.pathname==='/v1/plugin/sessions'){

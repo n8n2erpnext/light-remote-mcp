@@ -170,7 +170,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
         const gracePreset=String(body.gracePreset||binding.workingContext?.gracePreset||'60m');
         let session=null;
         if(binding.workingContext?.sessionId){try{const prior=sessions.get(binding.workingContext.sessionId,binding.agentId);if(['active','hold'].includes(prior.state))session=prior;}catch{}}
-        if(!session)session=sessions.open({accountId:grant.accountId,agentId:binding.agentId,label:'ChatGPT Light Remote',workspace,gracePreset,nodeId:device.nodeId,deviceId:device.deviceId,maxActiveForNode:route.sessionCeiling});
+        if(!session)session=sessions.open({accountId:grant.accountId,agentId:binding.agentId,label:'ChatGPT Light Remote',workspace,gracePreset,nodeId:device.nodeId,deviceId:device.deviceId,maxActiveForNode:route.sessionCeiling,maxActiveForAccount:planEntitlements(accounts.account(grant.accountId)).sessionLimit??null});
         if(workspace!==session.workspace)session=sessions.setWorkspace(session.sessionId,binding.agentId,workspace);
         const context=agentClients.setWorkingContext(binding.clientSessionId,{agentId:binding.agentId,deviceId:device.deviceId,sessionId:session.sessionId,workspace:session.workspace,gracePreset:session.gracePreset});
         return sendJson(res,200,{ok:true,context:{...context,nodeId:device.nodeId,displayName:device.displayName,platform:device.platform,architecture:device.architecture,deviceState:device.state,connectionState:connection.state},session});

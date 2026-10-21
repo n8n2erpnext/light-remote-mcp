@@ -1,4 +1,5 @@
 import {PRO_TEAM_MAX_SEATS} from './pro-team-registry.mjs';
+import {TEAM_CAPACITY} from './execution-capacity-policy.mjs';
 
 export class TeamEntitlementError extends Error{
   constructor(message,status=403){super(message);this.status=status;}
@@ -23,5 +24,5 @@ export function resolveTeamEntitlement({deviceOwnerAccountId,actorAccountId,devi
   if(!Number.isSafeInteger(budget)||budget<1)
     throw new TeamEntitlementError('team_member_budget_required');
   return {allowed:true,billedAccountId:owner,actorAccountId:actor,plan,maxSeats:PRO_TEAM_MAX_SEATS,
-    maxWorkers:3,monthlyMemberCallBudget:budget,sharedTeam:true};
+    maxWorkers:3,agentConcurrencyTarget:TEAM_CAPACITY.agentConcurrencyLimit,sessionLimit:TEAM_CAPACITY.sessionLimit,sessionsPerSeat:TEAM_CAPACITY.sessionsPerSeat,agentsPerSeat:TEAM_CAPACITY.agentsPerSeat,monthlyMemberCallBudget:budget,sharedTeam:true};
 }
