@@ -26,6 +26,10 @@
       "destination": "device-agent/local-process-page.mjs"
     },
     {
+      "source": "lib/supervisor-job-journal.mjs",
+      "destination": "lib/supervisor-job-journal.mjs"
+    },
+    {
       "source": "device-agent/process-supervisor.mjs",
       "destination": "device-agent/process-supervisor.mjs"
     },
