@@ -9,6 +9,7 @@ import { decryptEnvelope as decryptSealedEnvelope } from './crypto.mjs';
 import { spawn } from 'node:child_process';
 import { SessionRegistry, SessionError, SESSION_GRACE_PRESETS } from './session-manager.mjs';
 import { personalCapacity } from './execution-capacity-policy.mjs';
+import { GoldPersonalAgentScheduler } from '../lib/gold-personal-agent-scheduler.mjs';
 import { resolveExecMode } from './long-running-exec-policy.mjs';
 import { DeviceRegistry, DeviceError } from './device-registry.mjs';
 import { EnrollmentRegistry, EnrollmentError } from './enrollment-registry.mjs';
@@ -90,6 +91,8 @@ const SESSION_ACTIVE_WINDOW_MS = Number(process.env.OPERATOR_SESSION_ACTIVE_WIND
 const SESSION_HISTORY_MS = Number(process.env.OPERATOR_SESSION_HISTORY_MS || 7 * 24 * 60 * 60 * 1000);
 // Opt-in Gold migration; default remains compatible with existing client tests.
 const SCOPED_SESSION_LIMITS = process.env.OPERATOR_SCOPED_SESSION_LIMITS==='1';
+const PERSONAL_AGENT_SCHEDULER = process.env.OPERATOR_PERSONAL_AGENT_SCHEDULER==='1';
+if(PERSONAL_AGENT_SCHEDULER&&!SCOPED_SESSION_LIMITS)throw Error('m3_scoped_sessions_required');
 // OFF by default; Gold UAT can opt in without touching published clients.
 const MANAGED_LONG_EXEC = process.env.OPERATOR_MANAGED_LONG_EXEC==='1';
 const MAX_ACTIVE_SESSIONS = Number(process.env.OPERATOR_MAX_ACTIVE_SESSIONS || (SCOPED_SESSION_LIMITS ? 128 : 5));
@@ -135,6 +138,51 @@ if(singleWriter!==true){
 const goldRegistries=await GoldRegistryPersistence.open({pool:goldStorage.pool});
 const goldSessionState=await GoldSessionRedis.open({client:goldStorage.redis,prefix:goldStorage.prefix});
 const goldJobs=await GoldJobLedger.open({pool:goldStorage.pool,redact});
+const personalAgentScheduler=PERSONAL_AGENT_SCHEDULER?new GoldPersonalAgentScheduler({pool:goldStorage.pool}):null;
+if(personalAgentScheduler)await personalAgentScheduler.recoverStartup();
+const pendingForegroundExec=new Map();
+const pumpingPersonalAccounts=new Set();
+async function pumpPersonalAgentAccount(accountId){
+ if(!personalAgentScheduler||pumpingPersonalAccounts.has(accountId))return;
+ pumpingPersonalAccounts.add(accountId);
+ try{
+  const ids=await personalAgentScheduler.admit(accountId,
+    personalCapacity(operationalAccount(accountId).plan).agentConcurrencyLimit);
+  for(const id of ids){
+   const task=pendingForegroundExec.get(id),job=jobs.get(id);
+   if(!task||!job){
+    pushEvent({type:'m3_foreground_reconcile_required',jobId:id,accountId,reason:'admitted_payload_missing'});
+    continue;
+   }
+   pendingForegroundExec.delete(id);
+   try{
+    const session=sessions.get(job.sessionId,job.agentId);
+    if(!['active','hold'].includes(session.state)||session.accountId!==accountId||
+       session.deviceId!==job.deviceId||session.nodeId!==job.nodeId)
+      throw Error('m3_session_no_longer_authorized');
+    operationalAccount(accountId);
+    requireDeviceConnection(job.deviceId);
+    const approved=job.remote?targetRoute(job.nodeId,{accountId}).capabilities:hostEffectiveCapabilities();
+    if((job.requiredCapabilities||[]).some(cap=>!approved.includes(cap)))
+      throw Error('m3_capability_revoked_during_queue');
+   }catch(error){
+    job.resultData={ok:false,error:String(error.message||error),status:403};
+    finishJob(job,1,null);
+    continue;
+   }
+   job.status='running';job.queueReason=null;job.admittedAt=Date.now();
+   goldJobs.save(job);
+   pushEvent({type:'m3_agent_slot_granted',jobId:id,accountId,agentId:job.agentId});
+   try{task();}catch(error){
+    job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};
+    finishJob(job,1,null);
+   }
+  }
+ }catch(error){
+  pushEvent({type:'m3_scheduler_unavailable',accountId,reason:'personal_agent_admission_failure'});
+  console.error(JSON.stringify({event:'m3_scheduler_failure',message:String(error?.message||error)}));
+ }finally{pumpingPersonalAccounts.delete(accountId);}
+}
 const NATIVE_PROCESSES=new NativeProcessRegistry();
 const NATIVE_TERMINALS=new NativeTerminalRegistry({emit:event=>pushEvent(event)});
 const NATIVE_SEARCHES=new NativeSearchRegistry();
@@ -346,7 +394,7 @@ function jobView(job) {
   const out = job.stdout.snapshot();
   const err = job.stderr.snapshot();
   return {
-    jobId: job.id, requestId: job.requestId, operationId: job.operationId, accountId:job.accountId, deviceId:job.deviceId, sessionId: job.sessionId, agentId: job.agentId, nodeId: job.nodeId, status: job.status,
+    jobId: job.id, requestId: job.requestId, operationId: job.operationId, ...(job.personalScheduled?{agentAdmission:'personal',queueReason:job.queueReason||null,admittedAt:job.admittedAt||null}:{}), accountId:job.accountId, deviceId:job.deviceId, sessionId: job.sessionId, agentId: job.agentId, nodeId: job.nodeId, status: job.status,
     ...(job.managedExec?{executionMode:'background',jobRole:'process_launch',longCommandHint:job.longCommandHint||null}:{}),
     cwd: job.cwd, script: redact(job.script), note: redact(job.note || ''), pid: job.pid || null, route:job.remote?'outbound-leaf':'local', commandId:job.commandId||null, requiredCapabilities:[...(job.requiredCapabilities||[])],
     startedAt: job.startedAt, finishedAt: job.finishedAt || null, exitCode: job.exitCode,
@@ -397,6 +445,13 @@ function finishJob(job, exitCode, signal) {
   pushEvent({ type: 'job_finished', jobId: job.id, requestId: job.requestId, operationId: job.operationId, accountId:job.accountId, deviceId:job.deviceId, sessionId: job.sessionId, agentId:job.agentId, nodeId:job.nodeId,
     status: job.status, exitCode, signal: signal || null, durationMs: job.finishedAt - job.startedAt, requiredCapabilities:job.requiredCapabilities||[], cwd:job.cwd||'', script:redact(job.script||''), note:redact(job.note||''), resultSummary:redact(job.resultSummary||''), toolMeta:job.toolMeta||null, latency:latencyView(job) });
   goldJobs.save(job);
+  if(job.personalScheduled){
+    pendingForegroundExec.delete(job.id);
+    void personalAgentScheduler.complete(job.id,job.accountId,job.status)
+      .then(()=>pumpPersonalAgentAccount(job.accountId))
+      .catch(error=>console.error(JSON.stringify({event:'m3_slot_release_failed',jobId:job.id,
+        message:String(error?.message||error)})));
+  }
   for (const resolve of job.waiters.splice(0)) resolve();
   pruneJobs(job.finishedAt);
 }
@@ -524,7 +579,7 @@ async function startJob(payload, requestId) {
   }
   const job = {
     id: crypto.randomUUID(), requestId, operationId, operationFingerprint: fingerprint, accountId:session.accountId, deviceId:session.deviceId, sessionId, agentId:session.agentId, nodeId:session.nodeId, note,
-    cwd, script, shell, status: 'running', startedAt: Date.now(), finishedAt: null, exitCode: null, signal: null,
+    cwd, script, shell, status: PERSONAL_AGENT_SCHEDULER?'queued':'running', personalScheduled:PERSONAL_AGENT_SCHEDULER, queueReason:PERSONAL_AGENT_SCHEDULER?'QUEUED_AGENT_SLOT':null, admittedAt:null, startedAt: Date.now(), finishedAt: null, exitCode: null, signal: null,
     timedOut: false, stdout: createAccumulator(), stderr: createAccumulator(), waiters: [], pid: null, timer: null,
     remote, commandId:null, requiredCapabilities
   };
@@ -534,6 +589,7 @@ async function startJob(payload, requestId) {
   operationDedupe.set(operationId, { jobId: job.id, fingerprint, expiresAt: Date.now() + OPERATION_DEDUPE_MS });
   pushEvent({ type: 'job_started', jobId: job.id, requestId, operationId: job.operationId, accountId:job.accountId, deviceId:job.deviceId, sessionId: job.sessionId, agentId:job.agentId, nodeId:job.nodeId, status: 'running', route:remote?'outbound-leaf':'local', requiredCapabilities,
     cwd, script: redact(script), note: redact(job.note), timeoutMs });
+  const performForegroundExec=()=>{
   if(remote) {
     const command=enqueueForJob(job,{accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'exec',operationId,sessionId,agentId:job.agentId,script,cwd,shell,timeoutMs,note,requiredCapabilities}});
     job.commandId=command.commandId;
@@ -562,6 +618,22 @@ async function startJob(payload, requestId) {
   }, timeoutMs);
   job.timer.unref();
   return job;
+  };
+  if(personalAgentScheduler){
+    pendingForegroundExec.set(job.id,performForegroundExec);
+    try{
+      await personalAgentScheduler.enqueue({jobId:job.id,accountId:job.accountId,
+        agentId:job.agentId,sessionId:job.sessionId,operationId:job.operationId});
+      await pumpPersonalAgentAccount(job.accountId);
+    }catch(error){
+      pendingForegroundExec.delete(job.id);
+      job.resultData={ok:false,error:'m3_agent_scheduler_unavailable',status:503};
+      finishJob(job,1,null);
+      throw error;
+    }
+    return job;
+  }
+  return performForegroundExec();
 }
 const {fsActivityMeta,fsActivityResult,shortNativeId,scpActivityMeta,processActivityMeta,searchActivityMeta,nativeActivityResult,shortTerminalId,terminalInputPreview,terminalWallMeta,terminalResultSummary}=createNativeActivityFormatter({redact});
 

@@ -17,6 +17,9 @@ on:
       - 'deploy/scripts/selftest-g4-*.mjs'
       - 'deploy/scripts/selftest-g5-*.mjs'
       - 'deploy/scripts/selftest-gold-multi-agent-entitlement.mjs'
+      - 'deploy/scripts/selftest-gold-m3-personal-schema-contract.mjs'
+      - 'deploy/scripts/selftest-gold-m3-pg-personal-admission.mjs'
+      - 'platform-v2/sql/**'
       - 'deploy/scripts/selftest-gold-m2-long-command-mode.mjs'
       - 'deploy/scripts/selftest-gold-m5-owner-process-wall.mjs'
       - 'deploy/scripts/selftest-gold-m5-process-supervisor-agent-restart.mjs'
@@ -70,6 +73,10 @@ jobs:
           node deploy/scripts/selftest-g5-native-fs-cas.mjs
           node deploy/scripts/selftest-g5-gold-edit-tool-schema.mjs
           node deploy/scripts/selftest-gold-multi-agent-entitlement.mjs
+          node deploy/scripts/selftest-gold-m3-personal-schema-contract.mjs
+          node --check deploy/scripts/selftest-gold-m3-pg-personal-admission.mjs
+          node --check lib/gold-personal-agent-scheduler.mjs
+          node --check operator-host/executor.mjs
           node deploy/scripts/selftest-gold-m2-long-command-mode.mjs
           node deploy/scripts/selftest-gold-m5-owner-process-wall.mjs
           node deploy/scripts/selftest-gold-m5-process-supervisor-agent-restart.mjs

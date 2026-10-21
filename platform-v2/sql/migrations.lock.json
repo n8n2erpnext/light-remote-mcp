@@ -156,6 +156,11 @@
       "version": 31,
       "file": "031_gold_drop_generic_snapshot.sql",
       "sha256": "f8cf33be6a578087c960d70a5effc24769a38e04631c47c9a3489a29f319c29b"
+    },
+    {
+      "version": 32,
+      "file": "032_gold_personal_agent_admission.sql",
+      "sha256": "bd77b09cffe711acfd7b27ac3a5119cd38d6ee7e72de094948ee4475de8585cb"
     }
   ]
 }
