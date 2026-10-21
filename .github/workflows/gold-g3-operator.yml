@@ -54,6 +54,7 @@ jobs:
           node deploy/scripts/selftest-g3-command-transport-provenance.mjs
           node deploy/scripts/selftest-g3-agent-inline-stdout.mjs
           node deploy/scripts/selftest-g3-operator-rate-error-handler.mjs
+          node deploy/scripts/selftest-gold-tool-error-origin.mjs
           node deploy/scripts/selftest-g3-duplex-executor-rejection.mjs
           node deploy/scripts/selftest-g3-executor-hang-readiness.mjs
           node deploy/scripts/selftest-g3-duplex-reconnect-inflight.mjs

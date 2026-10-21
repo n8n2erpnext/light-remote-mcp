@@ -25,6 +25,21 @@ for(const [code,layer,nextAction,httpStatus] of [
  assert.equal(projected.job.jobId,'fixture',code+':job-preserved');
  assert.equal(projected.data.error,code,code+':original-error-preserved');
 }
+// A known local path deny is a valid completed policy decision. Keep all
+// machine-readable denial metadata but do not convert it into an opaque MCP
+// INVALID_ARGUMENT exception on clients that unwrap isError as a tool failure.
+const pathDenied=operationView({ok:false,data:{ok:false,error:'filesystem_path_outside_allowed_roots',status:403},
+ job:{jobId:'path-fixture',state:'error',finishedAt:123,exitCode:1}});
+const pathResult=result(pathDenied);
+assert.equal(pathResult.isError,undefined,'expected path denial should not throw through MCP host');
+assert.equal(pathResult.structuredContent.ok,false);
+assert.equal(pathResult.structuredContent.layer,'device_local_policy');
+assert.equal(pathResult.structuredContent.httpStatus,403);
+assert.equal(pathResult.structuredContent.retryable,false);
+assert.equal(pathResult.structuredContent.nextAction,'use_authorized_path');
+assert.equal(pathResult.structuredContent.job.jobId,'path-fixture');
+console.log('G3_EXPECTED_PATH_DENIAL_STAYS_STRUCTURED_AND_NONRETRYABLE=PASS');
+
 const positive=operationView({ok:true,data:{ok:true,items:[]},job:{jobId:'okfixture',state:'ok',finishedAt:123}});
 assert.equal(positive.ok,true);
 assert.equal('layer' in positive,false,'success must not gain negative metadata');

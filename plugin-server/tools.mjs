@@ -26,8 +26,18 @@ function add(server,name,config,callback){
 export function result(value){
   const safe=sanitizeForMcp(value);
   const structured=Array.isArray(safe)?{items:safe}:safe&&typeof safe==='object'?safe:{value:safe};
+  // A known device-local path denial is a completed, authoritative decision.
+  // Some MCP hosts convert isError:true to INVALID_ARGUMENT and discard the
+  // structured cause, prompting an Agent to retry an operation it must not
+  // retry. Preserve ok:false/status/nextAction while keeping a normal result.
+  // Unknown errors, OAuth failures and other failures remain MCP errors.
+  const knownPathDeny=structured.ok===false
+    && structured.error==='filesystem_path_outside_allowed_roots'
+    && structured.layer==='device_local_policy'
+    && structured.httpStatus===403
+    && structured.retryable===false;
   return {content:[{type:'text',text:JSON.stringify(safe,null,2)}],structuredContent:structured,
-    ...(structured.ok===false?{isError:true}:{})};
+    ...(structured.ok===false&&!knownPathDeny?{isError:true}:{})};
 }
 export function operationView(row){
   const ok=Boolean(row?.ok);
