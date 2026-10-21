@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 // Redis-backed, signed-device-scoped fixed-minute budgets. The calling route
 // MUST validate the signed device proof before consuming the budget.
 const ACTION_LANES=Object.freeze({
-  poll:'runtime',result:'runtime','update-report':'runtime',stream:'runtime',
+  poll:'runtime',pulse:'runtime',result:'runtime','update-report':'runtime',stream:'runtime',
   'desktop-live-push':'rm-live',
   'fleet-intent':'fleet','fleet-authority':'fleet','fleet-status':'fleet',
   'fleet-devices':'fleet','fleet-sessions':'fleet','fleet-activity':'fleet',

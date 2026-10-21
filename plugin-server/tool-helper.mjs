@@ -39,7 +39,7 @@ const chapters={
     search_results:{name:'light_remote_search_results',input:'{sessionId,searchId,offset?,limit?}'},
     search_cancel:{name:'light_remote_cancel_search',input:'{sessionId,searchId}'},
     write:{name:'light_remote_write_file',input:'{sessionId,operationId?,path,content,mode?,createParents?}'},
-    edit:{name:'light_remote_edit_file',input:'{sessionId,operationId?,path,oldText,newText,expectedReplacements?}'},
+    edit:{name:'light_remote_edit_file',input:'{sessionId,operationId?,path,oldText,newText,expectedReplacements?,expectedSha256?}',use:'Optional expectedSha256 is the lowercase/uppercase 64-hex SHA-256 of the original file; stale versions fail with structured 409, retryable:false. Re-read and request owner confirmation before retry, never overwrite blindly.'},
     mkdir:{name:'light_remote_filesystem',use:'Create a directory.'},
     copy:{name:'light_remote_copy_path',use:'Copy one file or directory.'},
     move:{name:'light_remote_move_path',use:'Move or rename one file or directory.'},

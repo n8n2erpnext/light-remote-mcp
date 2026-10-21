@@ -1,0 +1,54 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {FleetRouter,FleetError} from '../../operator-host/fleet-router.mjs';
+
+let now=1_800_000_000_000;
+const events=[];
+const fleet=new FleetRouter({now:()=>now,emit:e=>events.push(e),channelTtlMs:20_000,commandLeaseMs:12_000,requireExecutorReady:true});
+const owner={accountId:'gold-g3-pulse-acct',deviceId:'gold-g3-pulse-device',nodeId:'gold-g3-pulse-node'};
+const accepted={...owner,sessionCeiling:2,capabilities:['filesystem'],executorReady:true,draining:false};
+fleet.touch(accepted);
+const a=fleet.enqueue({...owner,jobId:'g3_owner_job_a',payload:{kind:'hold'}});
+const first=fleet.poll(accepted);
+assert.equal(first.command.commandId,a.commandId);
+assert.equal(fleet.view(owner.nodeId).inFlightCommands,1);
+now+=4500;
+// This is how the signed /device-channel/pulse endpoint refreshes one proven
+// healthy/busy Agent. It does not call poll() or claim any queued command.
+const pulse=fleet.touch(accepted);
+assert.equal(pulse.draining,false,'running work must not become a drain');
+assert.equal(pulse.dispatchReady,true,'a busy Agent with executor readiness remains routable');
+assert.equal(pulse.inFlightCommands,1);
+const b=fleet.enqueue({...owner,jobId:'g3_owner_job_b',payload:{kind:'other work'}});
+assert.equal(fleet.view(owner.nodeId).queuedCommands,1);
+assert.equal(fleet.command(a.commandId).attempts,1,'pulse must not re-dispatch first in-flight command');
+assert.equal(fleet.command(b.commandId).attempts,0,'pulse must not steal queued work');
+assert.equal(events.filter(e=>e.type==='node_drain_changed').length,0);
+console.log('G3_BUSY_PULSE_DOES_NOT_DRAIN_OR_CONSUME_COMMAND=PASS');
+// Explicit local/owner drain remains authoritative.
+fleet.touch({...accepted,draining:true});
+assert.throws(()=>fleet.enqueue({...owner,jobId:'g3_owner_job_c',payload:{}}),e=>e instanceof FleetError&&e.message==='target_node_draining');
+fleet.touch(accepted);
+fleet.setOwnerDrain(owner.nodeId,true);
+assert.throws(()=>fleet.enqueue({...owner,jobId:'g3_owner_job_d',payload:{}}),e=>e instanceof FleetError&&e.message==='target_node_draining');
+fleet.setOwnerDrain(owner.nodeId,false);
+assert.equal(fleet.view(owner.nodeId).queuedCommands,1);
+assert.equal(fleet.view(owner.nodeId).inFlightCommands,1);
+const next=fleet.poll(accepted);
+assert.equal(next.command.commandId,b.commandId,'normal command dispatch works after pulse');
+assert.equal(next.command.attempts,1);
+console.log('G3_EXPLICIT_DRAINS_STILL_ENFORCED_AND_FIFO_PRESERVED=PASS');
+const server=readFileSync(new URL('../../operator-host/executor-routes-device-channel.mjs',import.meta.url),'utf8');
+const start=server.indexOf("url.pathname === '/v1/device-channel/pulse'");
+const end=server.indexOf("url.pathname === '/v1/device-channel/poll'",start);
+assert.ok(start>0&&end>start);
+const route=server.slice(start,end);
+for(const t of ["verifiedChannelContext(body,'pulse')",'requireDeviceConnection','verifiedLeafCapabilities','fleet.touch(', 'pulseOnly:true'])assert.ok(route.includes(t),t);
+assert.ok(!route.includes('waitPoll(')&&!route.includes('fleet.poll('),'pulse endpoint cannot claim work');
+const agent=readFileSync(new URL('../../device-agent/operator-agent.mjs',import.meta.url),'utf8');
+assert.ok(agent.includes("channelRequest(current,hub,'pulse'"),'busy daemon must send pulse');
+assert.ok(agent.includes('draining:Boolean(current.routing?.draining)'),'pulse should preserve true owner drain');
+assert.ok(!agent.includes("channelRequest(current,hub,'poll',{nodeId:current.enrollment.nodeId||current.enrollment.deviceId,agentVersion:VERSION,sessionCeiling,draining:true"),'old false-drain heartbeat forbidden');
+const limiter=readFileSync(new URL('../../operator-host/trusted-channel-rate-limiter.mjs',import.meta.url),'utf8');
+assert.match(limiter,/pulse:'runtime'/);
+console.log('G3_SIGNED_PULSE_ROUTE_AUTH_NO_COMMAND_DISPATCH=PASS');

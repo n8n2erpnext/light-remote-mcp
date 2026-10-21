@@ -364,6 +364,20 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
         onEvent:event=>pushEvent({accountId:(()=>{try{return devices.get(event.deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)}).accountId;}catch{return ACCOUNT_ID;}})(),nodeId:(()=>{try{return devices.get(event.deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)}).nodeId;}catch{return null;}})(),status:event.type==='device_duplex_error'?'error':'ok',...event})
       });
     }
+    // A signed liveness-only refresh while a poll-executed command is active.
+    // Never pull/claim/redeliver queued commands here: the caller is busy and
+    // cannot consume another command. 'running' is not an owner drain.
+    if (req.method === 'POST' && url.pathname === '/v1/device-channel/pulse') {
+      const body=await readJson(req), ctx=await verifiedChannelContext(body,'pulse');
+      if (ctx.payload.nodeId!=null && String(ctx.payload.nodeId)!==ctx.device.nodeId) throw new EnrollmentError('device_node_mismatch',409);
+      const reportedRevision=Math.max(0,Number(ctx.payload.policyRevision)||0);
+      const capabilities=verifiedLeafCapabilities(ctx.payload.capabilities,ctx.binding,reportedRevision);
+      requireDeviceConnection(ctx.device.deviceId);
+      devices.heartbeat(ctx.device.deviceId,{capabilities,agentVersion:ctx.payload.agentVersion,updateStatus:ctx.payload.updateStatus});
+      const node=fleet.touch({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,sessionCeiling:ctx.payload.sessionCeiling,draining:Boolean(ctx.payload.draining),executorReady:ctx.payload.executorReady,capabilities,policyRevision:reportedRevision});
+      const policy=reportedRevision===Math.max(1,Number(ctx.binding.policyRevision)||1)?null:enrollments.policyEnvelope(ctx.device.deviceId);
+      return sendJson(res,200,{ok:true,node,policy,pulseOnly:true});
+    }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/poll') {
       const body=await readJson(req), ctx=await verifiedChannelContext(body,'poll');
       if (ctx.payload.nodeId!=null && String(ctx.payload.nodeId)!==ctx.device.nodeId) throw new EnrollmentError('device_node_mismatch',409);

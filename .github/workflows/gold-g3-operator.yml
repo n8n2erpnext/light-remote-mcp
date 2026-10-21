@@ -7,6 +7,7 @@ on:
     paths:
       - 'operator-host/**'
       - 'plugin-server/tools.mjs'
+      - 'plugin-server/tool-helper.mjs'
       - 'plugin-server/tool-error-classification.mjs'
       - 'deploy/scripts/selftest-gold-tool-error-origin.mjs'
       - 'device-agent/**'
@@ -51,6 +52,7 @@ jobs:
             node --check "$source"
           done
           node deploy/scripts/selftest-g3-fleet-channel-stale-inflight.mjs
+          node deploy/scripts/selftest-g3-command-liveness-pulse.mjs
           node deploy/scripts/selftest-g3-duplex-halfopen-watchdog.mjs
           node deploy/scripts/selftest-g3-duplex-ready-timeout-diagnostic.mjs
           node deploy/scripts/selftest-g3-gold-preview-stream-config.mjs
@@ -60,6 +62,7 @@ jobs:
           node deploy/scripts/selftest-g3-agent-inline-stdout.mjs
           node deploy/scripts/selftest-g4-gold-durable-operation-claim.mjs
           node deploy/scripts/selftest-g5-native-fs-cas.mjs
+          node deploy/scripts/selftest-g5-gold-edit-tool-schema.mjs
           node deploy/scripts/selftest-v10-light-scp-file.mjs
           node deploy/scripts/selftest-v10-light-scp-owner.mjs
           node deploy/scripts/selftest-v10-light-scp-routing.mjs
