@@ -9,7 +9,7 @@ const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const until=async(check,ms=6500)=>{for(const stop=Date.now()+ms;Date.now()<stop;){if(check())return true;await sleep(35);}return false;};
 const owner={accountId:'g3-hang-owner',deviceId:'g3-hang-device',nodeId:'g3-hang-node'};
 const base={...owner,capabilities:['filesystem'],sessionCeiling:2};
-const router=new FleetRouter({channelTtlMs:10000,commandLeaseMs:2500});
+const router=new FleetRouter({channelTtlMs:10000,commandLeaseMs:2500,requireExecutorReady:true});
 router.touch(base);
 let resolveHeld,executions=0,heartbeats=0;
 const results=[],events=[];
@@ -57,8 +57,8 @@ try{
   assert.equal(results.length,0,'must not fabricate completion or unknown shell effect');
   assert.throws(()=>router.enqueue({...owner,jobId:'g3-new-job',payload:{}}),e=>e instanceof FleetError&&e.message==='target_node_executor_unavailable');
   assert.equal(view.queuedCommands,0,'denied job never gets into queue');
-  router.touch(base); // older fallback poll without executorReady must not erase explicit fail-closed evidence
-  assert.equal(router.view(owner.nodeId).executorReady,false);
+  router.touch(base); // A fresh frame without proof revokes prior readiness; strict admission must keep it non-dispatchable.
+  assert.equal(router.view(owner.nodeId).executorReady,null);
   assert.equal(router.view(owner.nodeId).dispatchReady,false);
   await sleep(2750); // exceed command lease: heartbeat must not redeliver while degraded
   assert.equal(executions,1,'do not execute same command twice after lease expiry');
