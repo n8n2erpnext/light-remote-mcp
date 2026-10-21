@@ -177,13 +177,13 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       }catch(error){if(['agent_client_device_connection_mismatch','device_connection_closed','device_connection_expired'].includes(error.message))agentClients.removeDevice(binding.deviceId,'binding_invalid');throw error;}
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/connect') {
-      const body=await readJson(req), ctx=verifiedChannelContext(body,'connect');
+      const body=await readJson(req), ctx=await verifiedChannelContext(body,'connect');
       const spec=connectionSpec(ctx.binding.accountId,ctx.payload.requestedLeaseMs),connection=connections.connect({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,plan:spec.plan,requestedLeaseMs:spec.requestedLeaseMs,reconnectGraceMs:ctx.payload.reconnectGraceMs});
       devices.heartbeat(ctx.device.deviceId,{agentVersion:ctx.payload.agentVersion});
       return sendJson(res,200,{ok:true,connection});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/renew') {
-      const body=await readJson(req), ctx=verifiedChannelContext(body,'renew');
+      const body=await readJson(req), ctx=await verifiedChannelContext(body,'renew');
       const spec=connectionSpec(ctx.binding.accountId,ctx.payload.requestedLeaseMs);
       const connection=connections.renew(ctx.device.deviceId,{accountId:ctx.binding.accountId,plan:spec.plan,requestedLeaseMs:spec.requestedLeaseMs,reconnectGraceMs:ctx.payload.reconnectGraceMs});
       accessGrants.renewConnection(ctx.device.deviceId,{connectionId:connection.connectionId,connectionExpiresAt:connection.hardExpiresAt});
@@ -191,7 +191,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       return sendJson(res,200,{ok:true,connection});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/disconnect') {
-      const body=await readJson(req), ctx=verifiedChannelContext(body,'disconnect');
+      const body=await readJson(req), ctx=await verifiedChannelContext(body,'disconnect');
       const connection=connections.disconnect(ctx.device.deviceId,ctx.payload.reason||'client_disconnect');
       sessions.closeByDevice(ctx.device.deviceId,connection.closeReason||'device_connection_closed',{force:true});
       accessGrants.closeByDevice(ctx.device.deviceId,connection.closeReason||'device_connection_closed');
@@ -201,21 +201,21 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       return sendJson(res,200,{ok:true,connection});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/grace') {
-      const body=await readJson(req), ctx=verifiedChannelContext(body,'grace');
+      const body=await readJson(req), ctx=await verifiedChannelContext(body,'grace');
       return sendJson(res,200,{ok:true,connection:connections.setGrace(ctx.device.deviceId,ctx.payload.reconnectGraceMs)});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/desktop-live-push') {
-      const body=await readJson(req),ctx=verifiedChannelContext(body,'desktop-live-push');
+      const body=await readJson(req),ctx=await verifiedChannelContext(body,'desktop-live-push');
       return sendJson(res,200,acceptDesktopLivePush(ctx,ctx.payload));
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/account-auth') {
-      const body=await readJson(req), ctx=verifiedChannelContext(body,'account-auth');
+      const body=await readJson(req), ctx=await verifiedChannelContext(body,'account-auth');
       const account=accounts.verifyCredentials({email:ctx.payload.email,password:ctx.payload.password},{recordLogin:true,eventType:'account_wall_login'});
       if(account.accountId!==ctx.binding.accountId)throw new AccountError('device_account_mismatch',403);
       return sendJson(res,200,{ok:true,account,entitlements:planEntitlements(account)});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/fleet-intent') {
-      const body=await readJson(req),ctx=verifiedChannelContext(body,'fleet-intent');let account=accounts.account(ctx.binding.accountId),entitlements=planEntitlements(account);
+      const body=await readJson(req),ctx=await verifiedChannelContext(body,'fleet-intent');let account=accounts.account(ctx.binding.accountId),entitlements=planEntitlements(account);
       const reportedVersion=String(ctx.payload.agentVersion||ctx.device.agentVersion||''),compatibility=clientCompatibility(VERSION,reportedVersion,{backwardReleases:CLIENT_BACKWARD_RELEASES,explicit:MIN_SUPPORTED_CLIENT_VERSION});
       const baseEligible=Boolean(entitlements.fleetWall&&entitlements.multiDeviceConsole&&account.mainDeviceId===ctx.device.deviceId&&ctx.device.state!=='revoked'),desired=Boolean(baseEligible&&compatibility.supported);
       const reason=desired?'main_device_eligible':!entitlements.fleetWall?'fleet_entitlement_required':!account.mainDeviceId?'main_device_not_selected':account.mainDeviceId!==ctx.device.deviceId?'not_main_device':!compatibility.supported?compatibility.status:'main_device_unavailable';
@@ -228,75 +228,75 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       return sendJson(res,200,{ok:true,fleet:{desired,port:5492,reason,compatibility,updateRequired:compatibility.updateRequired},account:{accountId:account.accountId,plan:account.plan,mainDeviceId:account.mainDeviceId,fleetProvisioning:account.fleetProvisioning||null},entitlements});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/fleet-authority') {
-      const body=await readJson(req),ctx=verifiedChannelContext(body,'fleet-authority');let {account,entitlements}=fleetEligibility(ctx);
+      const body=await readJson(req),ctx=await verifiedChannelContext(body,'fleet-authority');let {account,entitlements}=fleetEligibility(ctx);
       const issued=fleetAuthority.issue({accountId:account.accountId,mainDeviceId:account.mainDeviceId,deviceId:ctx.device.deviceId,publicKeySha256:ctx.binding.publicKeySha256,entitlementId:account.entitlement?.entitlementId||null,moduleVersion:ctx.payload.moduleVersion||null});
       if(account.fleetProvisioning?.deviceId===ctx.device.deviceId&&account.fleetProvisioning?.state!=='online')account=accounts.setFleetProvisioning(account.accountId,{deviceId:ctx.device.deviceId,state:'ready',reason:'fleet_authority_issued',moduleVersion:ctx.payload.moduleVersion||null,port:5492});
       return sendJson(res,200,{ok:true,fleet:{desired:true,port:5492},account:{accountId:account.accountId,plan:account.plan,mainDeviceId:account.mainDeviceId,fleetProvisioning:account.fleetProvisioning||null},entitlements,authority:issued});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/fleet-status') {
-      const body=await readJson(req),ctx=verifiedFleetContext(verifiedChannelContext(body,'fleet-status'));let {account,entitlements}=ctx;
+      const body=await readJson(req),ctx=verifiedFleetContext(await verifiedChannelContext(body,'fleet-status'));let {account,entitlements}=ctx;
       const status=String(ctx.payload.status||'').trim().toLowerCase(),port=Number(ctx.payload.port)||5492;if(status!=='online')throw new FleetAuthorityError('invalid_fleet_status');if(port!==5492)throw new FleetAuthorityError('invalid_fleet_status_port');
       account=accounts.setFleetProvisioning(account.accountId,{deviceId:ctx.device.deviceId,state:'online',reason:'fleet_runtime_online',moduleVersion:ctx.payload.moduleVersion||null,port});
       return sendJson(res,200,{ok:true,fleet:{desired:true,status:'online',port},account:{accountId:account.accountId,plan:account.plan,mainDeviceId:account.mainDeviceId,fleetProvisioning:account.fleetProvisioning||null},entitlements});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/fleet-devices') {
-      const body=await readJson(req),ctx=verifiedFleetContext(verifiedChannelContext(body,'fleet-devices'));
+      const body=await readJson(req),ctx=verifiedFleetContext(await verifiedChannelContext(body,'fleet-devices'));
       const rows=allDeviceViews().filter(device=>device.accountId===ctx.account.accountId&&device.state!=='revoked');
       return sendJson(res,200,{ok:true,mainDeviceId:ctx.account.mainDeviceId,authority:ctx.lease,devices:rows});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/fleet-sessions') {
-      const body=await readJson(req),ctx=verifiedFleetContext(verifiedChannelContext(body,'fleet-sessions')),owned=new Set(allDeviceViews().filter(device=>device.accountId===ctx.account.accountId&&device.state!=='revoked').map(device=>device.deviceId));
+      const body=await readJson(req),ctx=verifiedFleetContext(await verifiedChannelContext(body,'fleet-sessions')),owned=new Set(allDeviceViews().filter(device=>device.accountId===ctx.account.accountId&&device.state!=='revoked').map(device=>device.deviceId));
       const rows=sessions.list().filter(row=>owned.has(row.deviceId));
       return sendJson(res,200,{ok:true,mainDeviceId:ctx.account.mainDeviceId,authority:ctx.lease,sessions:rows});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/fleet-activity') {
-      const body=await readJson(req),ctx=verifiedFleetContext(verifiedChannelContext(body,'fleet-activity')),owned=new Set(allDeviceViews().filter(device=>device.accountId===ctx.account.accountId&&device.state!=='revoked').map(device=>device.deviceId)),limit=Math.max(1,Math.min(Number(ctx.payload.limit)||500,5000));
+      const body=await readJson(req),ctx=verifiedFleetContext(await verifiedChannelContext(body,'fleet-activity')),owned=new Set(allDeviceViews().filter(device=>device.accountId===ctx.account.accountId&&device.state!=='revoked').map(device=>device.deviceId)),limit=Math.max(1,Math.min(Number(ctx.payload.limit)||500,5000));
       const rows=recentEvents(MAX_RING_EVENTS).filter(event=>event.accountId===ctx.account.accountId||owned.has(String(event.deviceId||''))).slice(-limit);
       return sendJson(res,200,{ok:true,mainDeviceId:ctx.account.mainDeviceId,authority:ctx.lease,events:rows});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/fleet-device-policy') {
-      const body=await readJson(req),ctx=verifiedFleetContext(verifiedChannelContext(body,'fleet-device-policy')),target=fleetTarget(ctx,ctx.payload.deviceId);
+      const body=await readJson(req),ctx=verifiedFleetContext(await verifiedChannelContext(body,'fleet-device-policy')),target=fleetTarget(ctx,ctx.payload.deviceId);
       const policy=enrollments.updatePolicy({deviceId:target.deviceId,accountId:ctx.account.accountId,approvedCapabilities:ctx.payload.approvedCapabilities,policyProfile:ctx.payload.policyProfile});
       if(target.nodeId!==NODE_ID){try{fleet.wake(target.nodeId);}catch{}}
       pushEvent({type:'device_policy_updated',accountId:policy.accountId,deviceId:policy.deviceId,nodeId:target.nodeId,status:'updated',policyProfile:policy.policyProfile,policyRevision:policy.policyRevision,capabilities:policy.approvedCapabilities,source:'fleet_wall'});
       return sendJson(res,200,{ok:true,mainDeviceId:ctx.account.mainDeviceId,policy,device:deviceView(target)});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/fleet-device-update') {
-      const body=await readJson(req),ctx=verifiedFleetContext(verifiedChannelContext(body,'fleet-device-update')),target=fleetTarget(ctx,ctx.payload.deviceId);
+      const body=await readJson(req),ctx=verifiedFleetContext(await verifiedChannelContext(body,'fleet-device-update')),target=fleetTarget(ctx,ctx.payload.deviceId);
       return sendJson(res,200,{ok:true,mainDeviceId:ctx.account.mainDeviceId,maintenance:queueHelperUpdate(target.deviceId,{source:'fleet-wall'})});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/pairing-code') {
-      const body=await readJson(req), ctx=verifiedChannelContext(body,'pairing-code');
+      const body=await readJson(req), ctx=await verifiedChannelContext(body,'pairing-code');
       const connection=connections.assertConnected(ctx.device.deviceId);
       const spec={accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,connectionId:connection.connectionId,connectionExpiresAt:connection.hardExpiresAt};
       const pairing=ctx.payload.rotate===true?pairingCodes.rotate(spec):pairingCodes.currentOrRotate(spec);
       return sendJson(res,200,{ok:true,pairing});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/account-owner-proof') {
-      const body=await readJson(req), ctx=verifiedChannelContext(body,'account-owner-proof');
+      const body=await readJson(req), ctx=await verifiedChannelContext(body,'account-owner-proof');
       connections.assertConnected(ctx.device.deviceId);
       const proof=accounts.issueOwnerProof({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId});
       return sendJson(res,200,{ok:true,proof});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/access-approve') {
-      const body=await readJson(req), ctx=verifiedChannelContext(body,'access-approve');
+      const body=await readJson(req), ctx=await verifiedChannelContext(body,'access-approve');
       const connection=connections.assertConnected(ctx.device.deviceId);
       const grant=accessGrants.approve(ctx.payload.requestId,{deviceId:ctx.device.deviceId,connectionId:connection.connectionId,connectionExpiresAt:connection.hardExpiresAt,idleGraceMs:connection.reconnectGraceMs});
       return sendJson(res,200,{ok:true,grant});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/access-deny') {
-      const body=await readJson(req), ctx=verifiedChannelContext(body,'access-deny');
+      const body=await readJson(req), ctx=await verifiedChannelContext(body,'access-deny');
       const result=accessGrants.deny(ctx.payload.requestId,ctx.payload.reason||'owner_denied',{deviceId:ctx.device.deviceId});
       return sendJson(res,200,{ok:true,authorization:result});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/status') {
-      const body=await readJson(req), ctx=verifiedChannelContext(body,'status');
+      const body=await readJson(req), ctx=await verifiedChannelContext(body,'status');
       const connection=requireDeviceConnection(ctx.device.deviceId);
       const liveSessions=sessions.list({deviceId:ctx.device.deviceId}).filter(item=>item.state==='active'||item.state==='hold');
       return sendJson(res,200,{ok:true,device:deviceView(ctx.device),connection:{...connections.get(ctx.device.deviceId),enforced:CONNECTION_LEASE_ENFORCE},sessions:liveSessions,access:{pending:accessGrants.pendingForDevice(ctx.device.deviceId),activeGrant:accessGrants.activeForDevice(ctx.device.deviceId,connection.connectionId)}});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/session-close') {
-      const body=await readJson(req), ctx=verifiedChannelContext(body,'session-close');
+      const body=await readJson(req), ctx=await verifiedChannelContext(body,'session-close');
       requireDeviceConnection(ctx.device.deviceId);
       const sessionId=String(ctx.payload.sessionId||'').trim(), agentId=String(ctx.payload.agentId||'').trim();
       const current=sessions.get(sessionId,agentId);
@@ -305,7 +305,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       return sendJson(res,200,{ok:true,session});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/update-report') {
-      const body=await readJson(req),ctx=verifiedChannelContext(body,'update-report');
+      const body=await readJson(req),ctx=await verifiedChannelContext(body,'update-report');
       requireDeviceConnection(ctx.device.deviceId);
       if(ctx.payload.nodeId!=null&&String(ctx.payload.nodeId)!==ctx.device.nodeId)throw new EnrollmentError('device_node_mismatch',409);
       const report=normalizeUpdateReport(ctx.payload);
@@ -313,7 +313,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       return sendJson(res,200,{ok:true,accepted:true,reportId:report.reportId});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/activity') {
-      const body=await readJson(req), ctx=verifiedChannelContext(body,'activity');
+      const body=await readJson(req), ctx=await verifiedChannelContext(body,'activity');
       requireDeviceConnection(ctx.device.deviceId);
       const limit=Math.max(1,Math.min(Number(ctx.payload.limit)||500,5000));
       return sendJson(res,200,{ok:true,deviceId:ctx.device.deviceId,events:recentEvents(limit,ctx.device.deviceId)});
@@ -321,7 +321,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/stream') {
       return handleDeviceDuplexSession(req,res,{
         authorizeHello:async body=>{
-          const ctx=verifiedChannelContext(body,'stream'),payload=ctx.payload;
+          const ctx=await verifiedChannelContext(body,'stream'),payload=ctx.payload;
           if(String(payload.protocol||'')!==DEVICE_DUPLEX_PROTOCOL)throw new FleetError('duplex_protocol_mismatch',409);
           if(payload.nodeId!=null&&String(payload.nodeId)!==ctx.device.nodeId)throw new EnrollmentError('device_node_mismatch',409);
           const reportedRevision=Math.max(0,Number(payload.policyRevision)||0);
@@ -358,7 +358,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       });
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/poll') {
-      const body=await readJson(req), ctx=verifiedChannelContext(body,'poll');
+      const body=await readJson(req), ctx=await verifiedChannelContext(body,'poll');
       if (ctx.payload.nodeId!=null && String(ctx.payload.nodeId)!==ctx.device.nodeId) throw new EnrollmentError('device_node_mismatch',409);
       const reportedRevision=Math.max(0,Number(ctx.payload.policyRevision)||0);
       const capabilities=verifiedLeafCapabilities(ctx.payload.capabilities,ctx.binding,reportedRevision);
@@ -370,7 +370,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       return sendJson(res,200,{ok:true,channel,policy,access:{pending:accessGrants.pendingForDevice(ctx.device.deviceId),activeGrant:accessGrants.activeForDevice(ctx.device.deviceId,connections.get(ctx.device.deviceId)?.connectionId)}});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/result') {
-      const body=await readJson(req),ctx=verifiedChannelContext(body,'result');
+      const body=await readJson(req),ctx=await verifiedChannelContext(body,'result');
       return sendJson(res,200,acceptDeviceResult(ctx,ctx.payload));
     }
 

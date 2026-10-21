@@ -12,7 +12,7 @@ The prior read-only physical RM V2 live-open returned `transport=semantic-push-c
 
 Gold public `https://gold.light-remote.thaiduy.digital/` returned HTTP 200 with `Server: nginx`. The Gold-specific Docker container is `light-remote-gold-preview` (Compose project `light-remote-gold-demo`, service `preview-proxy`), **separate from production**. Its read-only mounted config came from `deploy/gold-demo/nginx-gold.conf`. Existing Nginx general `location /` had `proxy_http_version 1.1;` and **response** `proxy_buffering off;`, but no `proxy_request_buffering off;`; request buffering defaults to ON. This matters because Agent opens an indefinite chunked POST `/device-channel/stream`, which cannot finish the request body before receiving `hello-ack` (deadlock if a proxy waits for full request body). Nginx docs: https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_request_buffering .
 
-The front router has Traefik labels for the Gold hostname, then Gold Nginx -> `10.192.135.61:5583` (plugin) -> Gold Operator Unix IPC. A previous possibility of Cloudflare buffering was **not selected**; do not assume Cloudflare caused this failure.
+The deployed Gold transport is managed on VPS-ARM through NetBird / Traefik, Gold Nginx -> `10.192.135.61:5583` (Plugin) -> Gold Operator Unix IPC. The proven failure point was **request buffering in Gold Nginx**; G3 does not require an additional public proxy or WAF.
 
 ## Gold-only fix / safe maintenance
 
@@ -44,6 +44,6 @@ The front router has Traefik labels for the Gold hostname, then Gold Nginx -> `1
 3. Once all evidence PASS: controlled Gold-only strict admission `OPERATOR_REQUIRE_EXECUTOR_READY=1` under backup, true zero-work, 10-sample health and rollback gate; verify unknown/false denied HTTP 409 and true admitted. **Not enabled here**.
 4. G3 DONE only when all physical acceptance gates met; **G4 not started**. Preserve four pre-existing untracked UAT files.
 
-Backup rollback if Gold preview regression: restore ONLY `deploy/gold-demo/nginx-gold.conf` from the path above and recreate only Compose `preview-proxy` with `--no-deps`; verify 10-sample Gold HTTP health. Do not restart production or change Cloudflare as workaround.
+Backup rollback if Gold preview regression: restore ONLY `deploy/gold-demo/nginx-gold.conf` from the path above and recreate only Compose `preview-proxy` with `--no-deps`; verify 10-sample Gold HTTP health. Do not restart production or introduce another proxy as a workaround.
 
 Historical preceding RCA (pre-fix): [RDC_GOLD_G3_PHYSICAL_DUPLEX_HANDSHAKE_RCA_20261021.md](./RDC_GOLD_G3_PHYSICAL_DUPLEX_HANDSHAKE_RCA_20261021.md).

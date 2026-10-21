@@ -24,6 +24,7 @@ import { connectGoldStorage } from '../lib/gold-db.mjs';
 import { GoldRegistryPersistence } from '../lib/gold-registry-persistence.mjs';
 import { GoldSessionRedis } from '../lib/gold-session-redis.mjs';
 import { GoldJobLedger } from '../lib/gold-job-ledger.mjs';
+import { createTrustedChannelRateLimiter } from './trusted-channel-rate-limiter.mjs';
 import { ProTeamRegistry, ProTeamError } from './pro-team-registry.mjs';
 import { requestTeamMemberApproval } from './team-approval-requests.mjs';
 import { TeamPrincipalProofVerifier, verifyTeamPrincipalRequest } from '../lib/team-oauth-principal-proof.mjs';
@@ -136,7 +137,7 @@ const LIGHT_SCP=new LightScpRegistry();
 const jobs = new Map();
 const operationDedupe = new Map();
 const replay = new Map();
-const trustedChannelRateBuckets = new Map();
+const trustedChannelRateLimiter=createTrustedChannelRateLimiter({redis:goldStorage.redis,prefix:goldStorage.prefix,limits:{runtime:DEVICE_CHANNEL_RUNTIME_LIMIT,observer:DEVICE_CHANNEL_OBSERVER_LIMIT,fleet:DEVICE_CHANNEL_FLEET_LIMIT,control:DEVICE_CHANNEL_CONTROL_LIMIT,'rm-live':DEVICE_CHANNEL_RM_LIVE_LIMIT}});
 const ring = [];
 const sseClients = new Set();
 let ringBytes = 0;
@@ -1007,29 +1008,13 @@ function targetRoute(requestedNodeId,{accountId:requestedAccountId=ACCOUNT_ID}={
   const evidence=leafCapabilityAdmission({reported:route.capabilities,approved:binding.approvedCapabilities});
   return { ...route, platform:device.platform, capabilities:evidence.capabilities, mode:'outbound-leaf' };
 }
-class DeviceChannelRateLimitError extends Error {
-  constructor(lane,retryAfterSeconds){super('rate_limited');this.status=429;this.scope=`device-channel-${lane}`;this.retryAfterSeconds=retryAfterSeconds;}
-}
-function trustedChannelLane(action){
-  if(['poll','result','update-report','stream'].includes(action))return 'runtime';
-  if(action==='desktop-live-push')return 'rm-live';
-  if(['fleet-intent','fleet-authority','fleet-status','fleet-devices','fleet-sessions','fleet-activity'].includes(action))return 'fleet';
-  if(['status','activity'].includes(action))return 'observer';
-  return 'control';
-}
-function enforceTrustedChannelRate(deviceId,action,now=Date.now()){
-  const lane=trustedChannelLane(action),limit=lane==='runtime'?DEVICE_CHANNEL_RUNTIME_LIMIT:lane==='observer'?DEVICE_CHANNEL_OBSERVER_LIMIT:lane==='fleet'?DEVICE_CHANNEL_FLEET_LIMIT:lane==='rm-live'?DEVICE_CHANNEL_RM_LIVE_LIMIT:DEVICE_CHANNEL_CONTROL_LIMIT;
-  const minute=Math.floor(now/60000),key=`${lane}:${deviceId}`,current=trustedChannelRateBuckets.get(key),state=current?.minute===minute?current:{minute,count:0};
-  state.count++;trustedChannelRateBuckets.set(key,state);
-  if(state.count>limit)throw new DeviceChannelRateLimitError(lane,Math.max(1,60-Math.floor((now%60000)/1000)));
-}
-function verifiedChannelContext(body, action) {
+async function verifiedChannelContext(body, action) {
   const payload=body?.payload;
   if (!payload || typeof payload!=='object' || Array.isArray(payload)) throw new EnrollmentError('invalid_device_channel_payload');
   const proof=enrollments.verifyChannel(body,action,payload), binding=proof.binding;
   const device=devices.get(binding.deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
   if (device.accountId!==binding.accountId || device.publicIdentityKey!==binding.publicIdentityKey) throw new EnrollmentError('device_binding_mismatch',403);
-  enforceTrustedChannelRate(device.deviceId,action);
+  await trustedChannelRateLimiter.check(device.deviceId,action);
   return {payload,proof,binding,device};
 }
 function fleetEligibility(ctx){
