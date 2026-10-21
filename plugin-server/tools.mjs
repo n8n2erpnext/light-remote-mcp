@@ -51,12 +51,19 @@ export function operationView(row){
     ...(failure?{error:failure.error,layer:failure.layer,retryable:failure.retryable,nextAction:failure.nextAction,
       ...(failure.httpStatus?{httpStatus:failure.httpStatus}:{})}:{})};
 }
-function pluginToolErrorResult(error){
+export function pluginToolErrorResult(error){
   // The original redacted text is intentionally retained for existing MCP
   // clients. Structured metadata is strictly bounded/allowlisted; nothing
   // here changes a device permission or retries a denied operation.
+  const classification=classifyPluginToolError(error);
+  const originalJobId=String(error?.payload?.originalJobId||'');
+  const reconciliation=classification.layer==='operation_reconciliation'&&classification.retryable===false;
+  const structured={...classification,...(reconciliation&&/^[a-f0-9-]{36}$/i.test(originalJobId)?{originalJobId}:{})};
+  // A known 409 means the remote policy/receipt decided NOT to rerun a
+  // possibly side-effecting command. Return explicit structured denial rather
+  // than host-level INVALID_ARGUMENT; do not unlock a retry.
   return {content:[{type:'text',text:redactRestrictedText(error?.message||'Light Remote operation failed.')}],
-    structuredContent:classifyPluginToolError(error),isError:true};
+    structuredContent:structured,...(reconciliation?{}:{isError:true})};
 }
 function guarded(identity,scopes,fn){
   return async(input={})=>{

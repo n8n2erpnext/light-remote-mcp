@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {classifyPluginToolError} from '../../plugin-server/tool-error-classification.mjs';
-import {operationView,result} from '../../plugin-server/tools.mjs';
+import {operationView,result,pluginToolErrorResult} from '../../plugin-server/tools.mjs';
 
 // Exercise the shared normal MCP result path used by filesystem, search,
 // process, terminal, transfer and desktop tools (not thrown exceptions).
@@ -72,4 +72,16 @@ assert.equal(classifyPluginToolError(new Error('platform_pre_dispatch_denied')).
 assert.equal(classifyPluginToolError(new Error('target_node_capability_missing')).layer,'fleet_admission');
 assert.equal(classifyPluginToolError(new Error('unknown_code')).layer,'unknown');
 assert.equal('httpStatus' in classifyPluginToolError(Object.assign(new Error('operator_unavailable'),{status:42})),false);
+for(const code of ['operation_id_conflict','operation_effect_unknown']){
+ const e=Object.assign(new Error(code),{status:409,payload:{originalJobId:'48cfdf66-a4e1-4063-b223-76f6f7410ea1'}});
+ const out=pluginToolErrorResult(e);
+ assert.equal(out.isError,undefined);
+ assert.equal(out.structuredContent.ok,false);
+ assert.equal(out.structuredContent.retryable,false);
+ assert.equal(out.structuredContent.layer,'operation_reconciliation');
+ assert.equal(out.structuredContent.httpStatus,409);
+ assert.equal(out.structuredContent.originalJobId,e.payload.originalJobId);
+}
+assert.equal(pluginToolErrorResult(Object.assign(new Error('operator_unavailable'),{status:503})).isError,true);
+console.log('G4_MCP_UNKNOWN_OR_CONFLICT_RETURNS_NONRETRYABLE_RECEIPT_HINT=PASS');
 console.log('G1_PLUGIN_TOOL_ERROR_ORIGIN_CLASSIFICATION=PASS');

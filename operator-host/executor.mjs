@@ -1115,7 +1115,7 @@ const server = http.createServer(async (req, res) => {
     pushEvent({ type: 'executor_error', status: 'error', detail: redact(message) });
     const status = error instanceof SessionError || error instanceof DeviceError || error instanceof EnrollmentError || error instanceof FleetError || error instanceof DeviceConnectionError || error instanceof DeviceAccessGrantError || error instanceof DevicePairingRegistryError || error instanceof AgentClientRegistryError || error instanceof AccountError || error instanceof AccountNotificationError || error instanceof ProTeamError || error instanceof TeamEntitlementError || error instanceof LicenseKeyError || error instanceof FleetAuthorityError || error instanceof GoldOperationEffectError || error instanceof TrustedChannelRateLimitError || (error?.status===503 && ['trusted_channel_rate_storage_unavailable','trusted_channel_rate_invalid_response'].includes(message)) ? error.status : ['invalid_envelope', 'expired_envelope', 'replay_detected', 'unknown_kid', 'invalid_envelope_auth', 'unsupported_action'].includes(message) ? 401 : message === 'operation_id_conflict' ? 409 : 400;
     const limited=error instanceof TrustedChannelRateLimitError;
-    return sendJson(res, status, { ok: false, error: message, ...(limited?{scope:error.scope,retryAfterSeconds:error.retryAfterSeconds}:{}) }, limited?{'retry-after':String(error.retryAfterSeconds)}:{});
+    return sendJson(res, status, { ok: false, error: message, ...(error instanceof GoldOperationEffectError&&/^[a-f0-9-]{36}$/i.test(error.jobId||'')?{originalJobId:error.jobId}:{}), ...(limited?{scope:error.scope,retryAfterSeconds:error.retryAfterSeconds}:{}) }, limited?{'retry-after':String(error.retryAfterSeconds)}:{});
   }
 });
 
