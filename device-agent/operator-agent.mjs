@@ -14,6 +14,7 @@ import { FleetComponentManager } from './fleet-component-manager.mjs';
 import { FleetComponentSupervisor } from './fleet-component-supervisor.mjs';
 import { executeNativeFs, filesystemPolicy } from '../lib/native-fs.mjs';
 import { NativeProcessRegistry } from '../lib/native-process.mjs';
+import { ProcessSupervisorClient } from './process-supervisor-client.mjs';
 import { NativeTerminalRegistry } from '../lib/native-terminal.mjs';
 import { NativeSearchRegistry } from '../lib/native-search.mjs';
 import { NativeDesktopBridge, realRemoteAvailable } from '../lib/native-desktop.mjs';
@@ -32,6 +33,12 @@ const CORE_ROOT=fileURLToPath(new URL('../',import.meta.url));
 const UPDATE_MODE=String(process.env.LIGHT_REMOTE_UPDATE_MODE||'independent-helper').trim()||'independent-helper';
 const PLATFORM_ADAPTER=createPlatformAdapter();
 const NATIVE_PROCESSES=new NativeProcessRegistry();
+const PROCESS_SUPERVISOR_SOCKET=String(process.env.LIGHT_REMOTE_PROCESS_SUPERVISOR_SOCKET||'').trim();
+const PROCESS_SUPERVISOR_TOKEN_FILE=String(process.env.LIGHT_REMOTE_PROCESS_SUPERVISOR_TOKEN_FILE||'').trim();
+if(PROCESS_SUPERVISOR_SOCKET&&(process.platform==='win32'||!PROCESS_SUPERVISOR_TOKEN_FILE))
+  throw Error('process_supervisor_platform_or_token_missing');
+const SUPERVISED_PROCESSES=PROCESS_SUPERVISOR_SOCKET?new ProcessSupervisorClient({
+  socketPath:PROCESS_SUPERVISOR_SOCKET,tokenFile:PROCESS_SUPERVISOR_TOKEN_FILE}):null;
 const EXECUTOR_PROBE=new ExecutorReadinessProbe({
   intervalMs:Number(process.env.OPERATOR_AGENT_EXECUTOR_PROBE_INTERVAL_MS)||30000,
   timeoutMs:Number(process.env.OPERATOR_AGENT_EXECUTOR_PROBE_TIMEOUT_MS)||5000,
@@ -365,13 +372,16 @@ async function executeProcessCommand(state,p){
     const policyDeny=PLATFORM_ADAPTER.hardDeny?.(script)||null;if(policyDeny)throw new Error(`local platform policy denied: ${policyDeny}`);
     const missing=required.filter(cap=>!effective.includes(cap));if(missing.length)throw new Error(`local capability denied: ${missing.join(',')}`);
     const cwd=String(request.cwd||os.homedir());let stat;try{stat=fs.statSync(cwd);}catch{}if(!stat?.isDirectory())throw new Error('cwd_not_directory');
-    return {ok:true,operation:'start',process:NATIVE_PROCESSES.start({...owner,script,cwd,timeoutMs:request.timeoutMs,spawnSpec:value=>PLATFORM_ADAPTER.commandFor(value,{shell:request.shell}),env:{GPT_OPERATOR_ACCOUNT:owner.accountId,GPT_OPERATOR_DEVICE:owner.deviceId,GPT_OPERATOR_NODE:state.enrollment.nodeId||owner.deviceId,GPT_OPERATOR_SESSION:owner.sessionId}})};
+    const process=SUPERVISED_PROCESSES?
+      await SUPERVISED_PROCESSES.start({...owner,script,cwd,timeoutMs:request.timeoutMs,shell:request.shell,operationId:p.operationId}):
+      NATIVE_PROCESSES.start({...owner,script,cwd,timeoutMs:request.timeoutMs,spawnSpec:value=>PLATFORM_ADAPTER.commandFor(value,{shell:request.shell}),env:{GPT_OPERATOR_ACCOUNT:owner.accountId,GPT_OPERATOR_DEVICE:owner.deviceId,GPT_OPERATOR_NODE:state.enrollment.nodeId||owner.deviceId,GPT_OPERATOR_SESSION:owner.sessionId}});
+    return {ok:true,operation:'start',process};
   }
   if(!effective.includes('filesystem'))throw new Error('local capability denied: filesystem');
-  if(op==='input')return {ok:true,operation:'input',process:NATIVE_PROCESSES.input(request.processId,owner,{data:request.data,eof:Boolean(request.eof)})};
-  if(op==='output')return {ok:true,operation:'output',...NATIVE_PROCESSES.output(request.processId,owner,{stream:request.stream,offset:request.offset,limit:request.limit})};
-  if(op==='stop')return {ok:true,operation:'stop',process:NATIVE_PROCESSES.stop(request.processId,owner,{force:Boolean(request.force)})};
-  if(op==='list')return {ok:true,operation:'list',processes:NATIVE_PROCESSES.list(owner)};
+  if(op==='input')return {ok:true,operation:'input',process:await (SUPERVISED_PROCESSES||NATIVE_PROCESSES).input(request.processId,owner,{data:request.data,eof:Boolean(request.eof)})};
+  if(op==='output')return {ok:true,operation:'output',...await (SUPERVISED_PROCESSES||NATIVE_PROCESSES).output(request.processId,owner,{stream:request.stream,offset:request.offset,limit:request.limit})};
+  if(op==='stop')return {ok:true,operation:'stop',process:await (SUPERVISED_PROCESSES||NATIVE_PROCESSES).stop(request.processId,owner,{force:Boolean(request.force)})};
+  if(op==='list')return {ok:true,operation:'list',processes:await (SUPERVISED_PROCESSES||NATIVE_PROCESSES).list(owner)};
   throw new Error('process_operation_unsupported');
 }
 
@@ -797,17 +807,17 @@ async function daemon(args){
   const wait=ms=>new Promise(resolve=>{const timer=setTimeout(()=>{wake=null;resolve();},ms);wake=()=>{clearTimeout(timer);wake=null;resolve();};});
   if(!fs.existsSync(LOCAL_WALL_AUTH_FILE))writeAccountOnlyWallAuthConfig(LOCAL_WALL_AUTH_FILE,{username:'account'});
   const wallAuth=loadLocalWallAuth(LOCAL_WALL_AUTH_FILE,{required:!['127.0.0.1','::1','localhost'].includes(String(LOCAL_WALL_HOST))});
-  localWall=startLocalWall({host:LOCAL_WALL_HOST,port:LOCAL_WALL_PORT,brandSvgPath:LOCAL_WALL_BRAND,auth:wallAuth,getLocalStatus:async()=>({...statusView(),fleetWall:await localFleetStatus()}),getLocalPolicyStatus:async()=>statusView(),getPendingAccess:async()=>remoteAccessLookup(hub),getRemoteStatus:async()=>{const remote=await remoteDeviceStatus(hub);return remote;},getRemoteActivity:async limit=>remoteDeviceActivity(hub,limit),getLocalProcesses:async()=>NATIVE_PROCESSES.list().map(p=>({
+  localWall=startLocalWall({host:LOCAL_WALL_HOST,port:LOCAL_WALL_PORT,brandSvgPath:LOCAL_WALL_BRAND,auth:wallAuth,getLocalStatus:async()=>({...statusView(),fleetWall:await localFleetStatus()}),getLocalPolicyStatus:async()=>statusView(),getPendingAccess:async()=>remoteAccessLookup(hub),getRemoteStatus:async()=>{const remote=await remoteDeviceStatus(hub);return remote;},getRemoteActivity:async limit=>remoteDeviceActivity(hub,limit),getLocalProcesses:async()=>((SUPERVISED_PROCESSES?await SUPERVISED_PROCESSES.listDevice(state.enrollment.accountId,state.enrollment.deviceId):NATIVE_PROCESSES.list())).map(p=>({
     processId:p.processId,sessionId:p.sessionId,pid:p.pid,state:p.state,
     startedAt:p.startedAt,finishedAt:p.finishedAt,exitCode:p.exitCode,
     stdoutBytes:p.stdoutBytes,stderrBytes:p.stderrBytes,stopRequested:p.stopRequested,
     stopForce:p.stopForce,treeStopMethod:p.treeStopMethod
   })),
   stopLocalProcess:async({processId,force})=>{
-    const p=NATIVE_PROCESSES.list().find(row=>row.processId===processId);
+    const p=(SUPERVISED_PROCESSES?await SUPERVISED_PROCESSES.listDevice(state.enrollment.accountId,state.enrollment.deviceId):NATIVE_PROCESSES.list()).find(row=>row.processId===processId);
     if(!p||p.deviceId!==state.enrollment?.deviceId||p.accountId!==state.enrollment?.accountId)
       throw Object.assign(new Error('process_not_found'),{status:404});
-    return NATIVE_PROCESSES.stop(processId,{accountId:p.accountId,deviceId:p.deviceId,
+    return (SUPERVISED_PROCESSES||NATIVE_PROCESSES).stop(processId,{accountId:p.accountId,deviceId:p.deviceId,
       sessionId:p.sessionId,agentId:p.agentId},{force:Boolean(force)});
   },
   getLocalTerminals:async()=>NATIVE_TERMINALS.list().map(t=>({terminalId:t.terminalId,sessionId:t.sessionId,state:t.state,shell:t.shell,startedAt:t.startedAt,finishedAt:t.finishedAt,outputBytes:t.outputBytes})),readLocalTerminal:async(terminalId,{offset=0,limit=32768}={})=>{const t=NATIVE_TERMINALS.output(terminalId,null,{offset,limit});return {terminalId:t.terminalId,sessionId:t.sessionId,state:t.state,output:t.output};},connect:async data=>connectCloud({hub,graceMinutes:data.graceMinutes,leaseHours:data.leaseHours,silent:true}),disconnect:async data=>disconnectCloud({hub,reason:data.reason||'local_wall_disconnect',silent:true}),setGrace:async data=>setConnectionGrace({hub,minutes:data.minutes,silent:true}),setPermissions:async data=>setLocalPermissions(data?.allowedCapabilities,data?.profile),beginEnrollment:async()=>beginWallEnrollment(base),pollEnrollment:async()=>pollWallEnrollment(base),accountAuthenticate:async data=>authenticateWallAccount(data?.username,data?.password,base),pairingCode:async data=>rotatePairingCode(hub,data),ownerProofCode:async()=>accountOwnerProofCode(hub),accessApprove:async requestId=>approveDeviceAccess(requestId,hub),accessDeny:async(requestId,data)=>denyDeviceAccess(requestId,hub,data?.reason||'owner_denied'),closeSession:async data=>closeWallSession(hub,data),requestUpdate:async data=>requestLocalUpdate('local-wall',data?.mode||'apply')});

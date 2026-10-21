@@ -26,6 +26,14 @@
       "destination": "device-agent/local-process-page.mjs"
     },
     {
+      "source": "device-agent/process-supervisor.mjs",
+      "destination": "device-agent/process-supervisor.mjs"
+    },
+    {
+      "source": "device-agent/process-supervisor-client.mjs",
+      "destination": "device-agent/process-supervisor-client.mjs"
+    },
+    {
       "source": "device-agent/wall-status-cache.mjs",
       "destination": "device-agent/wall-status-cache.mjs"
     },
