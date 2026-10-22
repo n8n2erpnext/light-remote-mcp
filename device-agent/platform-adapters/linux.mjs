@@ -7,6 +7,19 @@ import { inferCapabilities, uniqueCapabilities } from './shared.mjs';
 // This affects ONLY capability classification; original script is untouched.
 function classificationInput(script) {
   const input=String(script||'');
+  // Strict single-command, read-only infrastructure diagnostics do not need
+  // an additional administration toggle. Complex shell input falls through.
+  const safeRead=[
+    /^[ \t]*(?:\/usr\/bin\/|\/sbin\/)?ip[ \t]+(?:(?:-br|-j)[ \t]+)?(?:a|addr|address|link|route|neigh)(?:[ \t]+(?:show|list)(?:[ \t]+(?:dev|table)[ \t]+[A-Za-z0-9_.:@-]+)?)?[ \t]*$/i,
+    /^[ \t]*(?:\/usr\/bin\/)?nmcli[ \t]+(?:device[ \t]+(?:status|show)|general[ \t]+status|connection[ \t]+show)[ \t]*$/i,
+    /^[ \t]*(?:\/usr\/sbin\/)?netplan[ \t]+(?:get|status)(?:[ \t]+[A-Za-z0-9_.-]+)?[ \t]*$/i,
+    /^[ \t]*(?:\/usr\/bin\/)?lsblk(?:[ \t]+(?:-f|-J|-a))?[ \t]*$/i,
+    /^[ \t]*(?:\/usr\/sbin\/)?nft[ \t]+list[ \t]+(?:ruleset|tables)[ \t]*$/i,
+    /^[ \t]*(?:\/usr\/sbin\/)?ufw[ \t]+status(?:[ \t]+(?:verbose|numbered))?[ \t]*$/i,
+    /^[ \t]*(?:\/usr\/bin\/)?wg[ \t]+show[ \t]*$/i,
+    /^[ \t]*(?:\/usr\/sbin\/)?zpool[ \t]+(?:status|list)[ \t]*$/i
+  ];
+  if(safeRead.some(pattern=>pattern.test(input)))return 'lr_readonly_host_diagnostic';
   // A *single*, literal installation of one named infrastructure runtime is
   // governed by that runtime's owner toggle, even before it exists on disk.
   // This grants no arbitrary package or sudo command. Shell operators, variable

@@ -28,12 +28,20 @@ for(const script of noBypass){
   assert(list.includes('package-manager'),script+' must require general package-manager');
   assert(list.includes('sudo-on-demand'),script+' must require elevated command authority');
 }
-for(const [script,cap] of [['podman ps','podman'],['incus list','incus'],['kubectl get pods','kubernetes'],['helm list','kubernetes'],['virsh list','virtualization'],['ip addr','network-admin'],['nft list ruleset','firewall'],['zpool status','storage-admin'],['snap list','package-manager']]){
+for(const [script,cap] of [['podman ps','podman'],['incus list','incus'],['kubectl get pods','kubernetes'],['helm list','kubernetes'],['virsh list','virtualization'],['ip link set eth0 down','network-admin'],['nft add table inet test','firewall'],['zpool create test /dev/sdz','storage-admin'],['snap list','package-manager']]){
   assert(missing.inferRequiredCapabilities(script).includes(cap),script+' requires '+cap);
 }
 for(const script of ['command -v docker','command -v lxc','which kubectl','type -P lxd']){
   assert(!missing.inferRequiredCapabilities(script).includes('docker'));
   assert(!missing.inferRequiredCapabilities(script).includes('lxd'));
+}
+for(const cmd of ['ip addr','ip route show','nmcli device status','netplan get','lsblk','nft list ruleset','ufw status','wg show','zpool status']){
+ const caps=missing.inferRequiredCapabilities(cmd);
+ assert.deepEqual(caps,['filesystem'],cmd+' should need only baseline filesystem authority');
+}
+for(const cmd of ['ip route add 10.0.1.0/24 via 10.0.1.1','netplan apply','nmcli connection modify Wired ipv4.method manual','nft add table inet bad','mkfs.ext4 /dev/sdz']){
+ const caps=missing.inferRequiredCapabilities(cmd);
+ assert(caps.some(c=>['network-admin','firewall','storage-admin'].includes(c)),cmd+' must retain admin capability');
 }
 const sample='sudo apt-get install -y lxd';
 assert.deepEqual(inferOutboundExecCapabilities(sample,{platform:'linux',declared:[]}),missing.inferRequiredCapabilities(sample),'Operator/Agent parity');

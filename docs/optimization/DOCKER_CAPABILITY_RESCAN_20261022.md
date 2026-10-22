@@ -45,3 +45,30 @@ Keep all changes in the Gold fix branch pending review. Do not merge automatical
 ## Status
 
 Code-only patch and focused tests; no runtime Gold deployment. M plan HOLD.
+
+
+## Permission Wall grouped UX (Gold code-only, 2026-10-22)
+
+Owner requirement: **all device actions must be available when explicitly granted; installed executable inventory must not decide authorization**. Native OS restrictions still apply. To preserve clarity as catalog grows, Local Wall /permissions uses an eight-group accordion with local Material SVG icons and no Google CDN:
+
+1. **Files & Development** — filesystem, Git, builds and non-interactive Windows shells.
+2. **PTY / Interactive Terminal** — only `terminal`, an explicit independent ON/OFF. PTY input is an unrestricted interactive shell under the host service account; per-command capability inference cannot reliably inspect shell input.
+3. **Desktop & Real Remote** — `desktop` for screen view and `desktop-input` for real mouse/keyboard control; separate toggles and separate local decisions.
+4. **Containers & Virtualization** — Docker, LXD, Podman, Incus, Kubernetes and VMs.
+5. **System & Packages** — systemd/launchd/Windows services, package managers, sudo/UAC, scheduled tasks.
+6. **Network & Firewall** — network changes, firewalls, Windows process/network inspection.
+7. **Storage & Provisioning** — storage and infrastructure-as-code.
+8. **OS Security & Logs** — OS-native registry, credentials and logs.
+
+Any capability introduced by a later OS adapter is displayed exactly once under **Additional OS capabilities**, rather than silently omitted. Groups exist only if supported by the current platform. Each accordion header has an ON/OFF group switch; mixed children show indeterminate state and local/effective counts. Expand to access individual controls and status chips. A server-unapproved permission is shown as **Server approval needed**, never silently treated as effective. Availability ("Tool detected" / "Tool not detected") is read-only diagnostic metadata, not a permission decision.
+
+Existing profiles **Safe**, **Developer**, **Infra / Ops**, **Full access**, **Custom** remain. New **Remote Support** selects screen view/input and basic inspection without PTY. Profiles are selection shortcuts; selecting and saving produces the same `allowedCapabilities` and `profile` payload through the existing Local Wall `POST /api/permissions` endpoint. No storage schema change; user policies are preserved.
+
+Linux command classification additionally exempts only strict one-command read-only `ip addr`, `ip route show`, `nmcli device status`, `netplan get`, `lsblk`, `nft list ruleset`, `ufw status`, `wg show` and `zpool status` forms from their *administration* capability. Composite or modifying shell commands are still classified with the appropriate administrative rights. This classification is shared by Operator preflight and Agent execution. The OS itself may still deny the read.
+
+### Verification
+
+- `node deploy/scripts/selftest-gold-permission-groups.mjs`: actual Chromium Local Wall owner authentication, group ON/OFF, PTY independent of RM input, Remote Support profile persistence, account approval ceiling, no duplicate capabilities, fallback for future capabilities; client catalog completeness across Linux, macOS and Windows.
+- `node deploy/scripts/selftest-infra-capability-catalog.mjs`: infrastructure rights independent of installed software plus read-only diagnostics vs modifications, Operator/Agent consistency.
+- `node deploy/scripts/selftest-docker-capability-refresh.mjs`: signed rescan/owner policy contract.
+- No deployment to HOME SV, Gold UAT or production. M plan is **HOLD**.

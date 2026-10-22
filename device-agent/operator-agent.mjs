@@ -840,7 +840,7 @@ function setLocalPermissions(allowedCapabilities,profile='custom'){
   const grantable=normalizeDeviceCapabilities(state.enrollment.grantableCapabilities||state.enrollment.approvedCapabilities||[]);
   const allowed=normalizeDeviceCapabilities(Array.isArray(allowedCapabilities)?allowedCapabilities:[]);
   if(allowed.some(cap=>!grantable.includes(cap)))throw new Error('local_permission_not_grantable');
-  const localProfile=/^(safe|developer|infra|full|custom)$/.test(String(profile||''))?String(profile):'custom';
+  const localProfile=/^(safe|developer|support|infra|full|custom)$/.test(String(profile||''))?String(profile):'custom';
   const denied=grantable.filter(cap=>!allowed.includes(cap));
   state.policy=realRemotePolicyAfterSave({...(state.policy||{}),deniedCapabilities:denied,localProfile,localFinalDenyBoundary:true,localPolicyUpdatedAt:Date.now()},{grantable,allowed});
   state.effectiveCapabilities=effectiveCapabilitiesForState(state);
