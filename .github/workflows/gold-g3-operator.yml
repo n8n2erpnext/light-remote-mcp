@@ -35,6 +35,9 @@ on:
       - 'deploy/scripts/selftest-gold-m6-process-stop.mjs'
       - 'deploy/scripts/selftest-gold-m6-resource-metrics.mjs'
       - 'deploy/scripts/selftest-gold-m6-terminal-replay.mjs'
+      - 'deploy/scripts/selftest-gold-m6-native-terminal-spool.mjs'
+      - 'lib/native-terminal-receipt-spool.mjs'
+      - 'lib/native-process.mjs'
       - 'lib/gold-device-resource-locks.mjs'
       - 'lib/supervisor-job-journal.mjs'
       - 'lib/gold-device-resource-metrics.mjs'
@@ -111,6 +114,8 @@ jobs:
           node deploy/scripts/selftest-gold-m6-resource-metrics.mjs
           node --check deploy/scripts/apply-gold-db.mjs
           node deploy/scripts/selftest-gold-m6-terminal-replay.mjs
+          node --check lib/native-terminal-receipt-spool.mjs
+          node deploy/scripts/selftest-gold-m6-native-terminal-spool.mjs
           node deploy/scripts/selftest-v10-light-scp-file.mjs
           node deploy/scripts/selftest-v10-light-scp-owner.mjs
           node deploy/scripts/selftest-v10-light-scp-routing.mjs

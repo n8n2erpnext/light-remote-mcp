@@ -1,5 +1,8 @@
 # Current RDC → Light Remote Gold optimization handoff
 
+**LATEST 2026-10-22 — M6 NATIVE TERMINAL RECEIPT JOURNAL (WINDOWS/MAC SOURCE):** [Handoff, tests, physical gates](./RDC_GOLD_M6_NATIVE_TERMINAL_REPLAY_20261022.md). New `NativeTerminalReceiptSpool` on the enrolled device fsyncs only real NativeProcessRegistry terminal events and replays pending signed ACKs after Agent restart; no terminal recorded for unproven running process. Added to core-files release packaging. New Linux-backed cross-platform unit/real-process test PASS, prior Linux Supervisor/PG tests PASS. Windows test via Gold connector is **queued** (not claimed PASS); macOS physical pending. **Source only, not Gold UAT or production deployed.** Migration 035 remains unapplied, Team/3+1 UAT PAUSED.
+
+
 **LATEST 2026-10-22 — M6 DURABLE TERMINAL ACK/REPLAY (SOURCE ONLY):** [Full handoff + schema035 rollout gate](./RDC_GOLD_M6_DURABLE_TERMINAL_ACK_REPLAY_20261022.md). Linux Supervisor private journal now retains unacked process terminal receipts and replays after Agent/Supervisor restart. Operator commits worker-lease release + exact terminal ACK atomically in PostgreSQL `lr_gold_terminal_receipt_acks`, and sends ACK in signed poll/pulse/duplex responses; Agent fsyncs matching ACK in Supervisor. New locked migration 035 not yet applied to Gold UAT. Focused tests + prior M5/M6 regressions PASS; no runtime deployment, no physical acceptance, no Team/3+1 tests. Windows/macOS non-Supervisor durable ACK parity still pending.
 
 

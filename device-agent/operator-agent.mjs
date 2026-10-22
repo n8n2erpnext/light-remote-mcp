@@ -14,6 +14,7 @@ import { FleetComponentManager } from './fleet-component-manager.mjs';
 import { FleetComponentSupervisor } from './fleet-component-supervisor.mjs';
 import { executeNativeFs, filesystemPolicy } from '../lib/native-fs.mjs';
 import { NativeProcessRegistry } from '../lib/native-process.mjs';
+import { NativeTerminalReceiptSpool } from '../lib/native-terminal-receipt-spool.mjs';
 import { ProcessSupervisorClient } from './process-supervisor-client.mjs';
 import { NativeTerminalRegistry } from '../lib/native-terminal.mjs';
 import { NativeSearchRegistry } from '../lib/native-search.mjs';
@@ -32,7 +33,9 @@ const VERSION=runtimeVersion({envNames:['LIGHT_REMOTE_VERSION','OPERATOR_AGENT_V
 const CORE_ROOT=fileURLToPath(new URL('../',import.meta.url));
 const UPDATE_MODE=String(process.env.LIGHT_REMOTE_UPDATE_MODE||'independent-helper').trim()||'independent-helper';
 const PLATFORM_ADAPTER=createPlatformAdapter();
-const NATIVE_PROCESSES=new NativeProcessRegistry();
+const NATIVE_PROCESSES=new NativeProcessRegistry({emit:event=>{
+ if(event?.type==='process_finished')NATIVE_TERMINAL_SPOOL.record(event);
+}});
 const PROCESS_SUPERVISOR_SOCKET=String(process.env.LIGHT_REMOTE_PROCESS_SUPERVISOR_SOCKET||'').trim();
 const PROCESS_SUPERVISOR_TOKEN_FILE=String(process.env.LIGHT_REMOTE_PROCESS_SUPERVISOR_TOKEN_FILE||'').trim();
 if(PROCESS_SUPERVISOR_SOCKET&&(process.platform==='win32'||!PROCESS_SUPERVISOR_TOKEN_FILE))
@@ -53,6 +56,8 @@ const LIGHT_SCP=new LightScpRegistry();
 const DEFAULT_BASE=migrateLegacyEndpoint(process.env.OPERATOR_AGENT_BASE_URL,{kind:'base'});
 const DEFAULT_HUB=migrateLegacyEndpoint(process.env.OPERATOR_AGENT_HUB_URL,{kind:'hub'});
 const STATE_FILE=process.env.OPERATOR_AGENT_STATE || path.join(os.homedir(),'.config','gpt-operator-agent','device.json');
+// Only terminal OS evidence; a missing terminal after Agent restart is UNKNOWN.
+const NATIVE_TERMINAL_SPOOL=new NativeTerminalReceiptSpool({directory:path.join(path.dirname(STATE_FILE),'terminal-journal')});
 const EXTERNAL_IDENTITY_FILE=String(process.env.OPERATOR_AGENT_IDENTITY_FILE||'').trim();
 const COMMAND_DIR=process.env.OPERATOR_AGENT_COMMAND_DIR || path.join(path.dirname(STATE_FILE),'commands');
 const LOCAL_WALL_HOST=process.env.OPERATOR_AGENT_WALL_HOST || '127.0.0.1';
@@ -232,18 +237,18 @@ async function refreshProcessTerminalReceipts(current){
  try{
   const list=SUPERVISED_PROCESSES?
    await SUPERVISED_PROCESSES.listUnackedTerminals(current.enrollment.accountId,current.enrollment.deviceId):
-   NATIVE_PROCESSES.list();
+   NATIVE_TERMINAL_SPOOL.list(current.enrollment.accountId,current.enrollment.deviceId);
   PROCESS_TERMINAL_RECEIPTS=list.filter(v=>
     /^lp_[A-Za-z0-9_-]{20,80}$/.test(String(v.processId||''))&&
     ['finished','stopped','timeout','error'].includes(v.state)&&
     Number.isSafeInteger(Number(v.finishedAt))&&Number(v.finishedAt)>0)
    .slice(-64).map(v=>({processId:v.processId,state:v.state,finishedAt:v.finishedAt,
       exitCode:v.exitCode??null}));
- }catch{PROCESS_TERMINAL_RECEIPTS=[];}
+ }catch(error){PROCESS_TERMINAL_RECEIPTS=[];console.error(JSON.stringify({event:'terminal_receipt_refresh_failed',code:String(error?.code||error?.message||'JOURNAL_UNAVAILABLE').slice(0,80)}));}
 }
 
 async function confirmTerminalReceiptsAck(current,acks){
- if(!Array.isArray(acks)||!acks.length||!SUPERVISED_PROCESSES||
+ if(!Array.isArray(acks)||!acks.length||
     !current?.enrollment?.accountId||!current?.enrollment?.deviceId)return;
  const valid=acks.slice(0,32).filter(x=>
   /^lp_[A-Za-z0-9_-]{20,80}$/.test(String(x?.processId||''))&&
@@ -252,7 +257,9 @@ async function confirmTerminalReceiptsAck(current,acks){
  if(!valid.length)return;
  // Fail closed: Supervisor must fsync its private terminal ACK journal first.
  // The next poll/heartbeat will replay if the local write was interrupted.
- await SUPERVISED_PROCESSES.ackTerminals(current.enrollment.accountId,current.enrollment.deviceId,valid);
+ if(SUPERVISED_PROCESSES)
+  await SUPERVISED_PROCESSES.ackTerminals(current.enrollment.accountId,current.enrollment.deviceId,valid);
+ else NATIVE_TERMINAL_SPOOL.acknowledge(current.enrollment.accountId,current.enrollment.deviceId,valid);
  await refreshProcessTerminalReceipts(current);
 }
 

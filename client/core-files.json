@@ -118,6 +118,10 @@
       "destination": "lib/native-process.mjs"
     },
     {
+      "source": "lib/native-terminal-receipt-spool.mjs",
+      "destination": "lib/native-terminal-receipt-spool.mjs"
+    },
+    {
       "source": "lib/native-search.mjs",
       "destination": "lib/native-search.mjs"
     },
