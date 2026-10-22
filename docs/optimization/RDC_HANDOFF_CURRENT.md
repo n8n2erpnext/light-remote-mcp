@@ -1,5 +1,8 @@
 # Current RDC → Light Remote Gold optimization handoff
 
+**LATEST 2026-10-22 — M6 UAT STAGED, PG SCHEMA 035 APPLIED, FOUR-SERVICE CUTOVER GATED:** [Full real LXD checkpoint](./RDC_GOLD_M6_UAT_SCHEMA35_STAGING_GATE_20261022.md). Immutable `a7d1d96` staged and verified backup (DB/live code/state/all four units) PASS. PostgreSQL 035 applied ONLY to Gold UAT using independent migrator, ACK table confirmed. No runtime service upgraded: 1 active session, 9 queued Agent slot + 1 resource-queued and 1 native worker claim; new UAT four-service preflight correctly REFUSED `M6_PG_WORK_BUSY:11`. Do not clear SQL claims/queues or force stop unknown OS processes. Strict admission remains ON. Pro Team/3+1 UAT paused by owner. Production unchanged.
+
+
 **LATEST 2026-10-22 — GOLD M6 SIGNED DEVICE CPU/RAM/AGENT I/O METRICS (SOURCE ONLY):** [Detailed M6 telemetry checkpoint](./RDC_GOLD_M6_SIGNED_DEVICE_TELEMETRY_20261022.md). Signed poll/pulse/duplex Agent measurements distinguish host CPU/RAM from Agent CPU/RSS/fs I/O operations; Linux process disk-byte delta optional. Owner-scoped bounded cache makes stale/unknown explicit after 90s, no unsafe claim release, no secrets. Fleet Wall Jobs shows per-device performance beside PG worker leases. New source tests, real ARM sampler and M6 regressions PASS. **NOT Gold UAT deployed or browser accepted**, migration 035 unapplied, Team/3+1 owner-paused. Continue matching Gold UAT release/backups after readiness; do not overstate real Windows/macOS validation.
 
 
