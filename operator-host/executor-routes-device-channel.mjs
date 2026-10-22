@@ -6,6 +6,19 @@ import { ownerDeviceResourceMetrics } from '../lib/gold-device-resource-metrics.
 
 export async function handleDeviceChannelRoutes(req,res,url,deps){
   const {ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,DeviceAccessGrantError,DevicePairingRegistryError,EnrollmentError,FleetAuthorityError,FleetError,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,MIN_SUPPORTED_CLIENT_VERSION,NODE_ID,VERSION,abandonedCommandReceiptFromDisk,accessGrants,accounts,agentClients,allDeviceViews,applyDeviceTelemetry,capabilities,clientCompatibility,connectionSpec,connections,deviceView,devices,emitStream,enrollments,finishJob,fleet,fleetAuthority,fleetEligibility,fleetTarget,jobView,jobs,goldJobs,deviceResourceLocks,deviceResourceSampleCache,cancelQueuedPersonalJob,requestFleetProcessStop,reconcileSignedTerminalProcessReceipts,normalizeUpdateReport,pairingCodes,planEntitlements,pushEvent,queueHelperUpdate,readJson,reapAccessGrants,realRemoteLive,recentEvents,requireDeviceConnection,sendJson,sessions,targetRoute,terminalResultSummary,verifiedChannelContext,verifiedFleetContext,verifiedLeafCapabilities}=deps;
+  if(req.method==='POST'&&url.pathname==='/v1/device-channel/capabilities-refresh'){
+    const body=await readJson(req),ctx=await verifiedChannelContext(body,'capabilities-refresh');
+    const change=enrollments.refreshDiscoveredCapabilities({
+      deviceId:ctx.binding.deviceId,accountId:ctx.binding.accountId,capabilities:ctx.payload.capabilities
+    });
+    const active=Array.isArray(ctx.device.capabilities)?ctx.device.capabilities:[];
+    const effective=active.filter(cap=>change.policy.approvedCapabilities.includes(cap));
+    if(effective.length)devices.heartbeat(ctx.binding.deviceId,{capabilities:effective});
+    if(change.addedCapabilities.length||change.removedCapabilities.length){
+      pushEvent({type:'device_capabilities_rescanned',accountId:ctx.binding.accountId,deviceId:ctx.binding.deviceId,status:'updated',addedCapabilities:change.addedCapabilities,removedCapabilities:change.removedCapabilities,policyRevision:change.policy.policyRevision});
+    }
+    return sendJson(res,200,{ok:true,change,policy:enrollments.policyEnvelope(ctx.binding.deviceId)});
+  }
   const acceptDesktopLivePush=(ctx,payload=ctx.payload)=>{
     requireDeviceConnection(ctx.device.deviceId);
     const session=sessions.ensure(String(payload.sessionId||''),{agentId:String(payload.agentId||'')});

@@ -7,6 +7,9 @@ import { inferCapabilities, uniqueCapabilities } from './shared.mjs';
 // This affects ONLY capability classification; original script is untouched.
 function classificationInput(script) {
   const input=String(script||'');
+  // Exact read-only shell probes are not Docker operations. Chaining,
+  // substitution, quoting or arguments beyond the command name fall through.
+  if(/^[ \\t]*(?:command[ \\t]+-v|type[ \\t]+-P|which)[ \\t]+docker[ \\t]*$/i.test(input))return 'lr_readonly_executable_probe';
   // A literal journalctl unit selector is diagnostic data, not the Docker
   // executable. Permit only one complete read-only invocation and the
   // whitelisted output/length flags. No quoting, expansions or shell chaining.

@@ -299,6 +299,7 @@ async function requireClientJobDevice(req,res,next){
   }catch(error){return res.status(Number(error.status)||400).json({ok:false,error:error.message||'agent_client_job_check_failed'});}
 }
 
+app.post('/device-channel/capabilities-refresh', deviceChannelEdgeRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/capabilities-refresh', req.body || {}));
 app.post('/device-channel/connect', deviceChannelEdgeRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/connect', req.body || {}));
 app.post('/device-channel/disconnect', deviceChannelEdgeRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/disconnect', req.body || {}));
 app.post('/device-channel/grace', deviceChannelEdgeRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/grace', req.body || {}));
