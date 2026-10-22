@@ -40,6 +40,7 @@ try{
  assert.equal(await page.locator('details[data-permission-group=pty] input[data-cap]').count(),1,'PTY is exactly one toggle');
  assert.deepEqual(await page.locator('details[data-permission-group=remote] input[data-cap]').evaluateAll(els=>els.map(e=>e.value).sort()),['desktop','desktop-input'],'RM view/input separate');
  assert.equal(await page.locator('input[data-cap][value=terminal]').isChecked(),false);
+ assert.equal(await page.locator('input[data-cap][value=docker]').isChecked(),false,'new unapproved OS permission defaults OFF');
  await page.locator('details[data-permission-group=pty] input[data-group=pty]').check();
  assert.equal(await page.locator('input[data-cap][value=terminal]').isChecked(),true,'PTY group enables terminal');
  assert.equal(await page.locator('input[data-cap][value=desktop-input]').isChecked(),false,'PTY does not toggle RM input');

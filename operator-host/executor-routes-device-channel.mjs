@@ -11,6 +11,8 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
     const change=enrollments.refreshDiscoveredCapabilities({
       deviceId:ctx.binding.deviceId,accountId:ctx.binding.accountId,capabilities:ctx.payload.capabilities
     });
+    // Durable PG write must finish before returning a signed permission revision.
+    await deps.flushDiskRecords?.();
     const active=Array.isArray(ctx.device.capabilities)?ctx.device.capabilities:[];
     const effective=active.filter(cap=>change.policy.approvedCapabilities.includes(cap));
     if(effective.length)devices.heartbeat(ctx.binding.deviceId,{capabilities:effective});

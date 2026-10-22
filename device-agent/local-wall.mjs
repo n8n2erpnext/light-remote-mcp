@@ -351,7 +351,7 @@ const GROUP_ICONS={
  other:${JSON.stringify(materialIcon('support'))}
 };
 let expandedGroups=new Set(['remote']);
-let knownGrantable=[],knownApproved=new Set(),knownInstalled=new Set(),knownDenied=new Set(),isLocalMain=false;
+let knownGrantable=[],knownServerGrantable=new Set(),knownOwnerRequested=new Set(),knownApproved=new Set(),knownInstalled=new Set(),knownDenied=new Set(),isLocalMain=false;
 
 const META={'terminal':['Interactive terminal','Open a governed raw PTY/ConPTY session with the service account authority; command-level inference does not inspect terminal input.','elevated'],'desktop':['Desktop view','Read the real interactive desktop, visible windows and bounded screen frames. This may expose sensitive on-screen information.','sensitive'],'desktop-input':['Desktop input','Control the real mouse and keyboard in the interactive desktop. This capability is locally blocked by default until the owner explicitly enables it.','elevated'],'filesystem':['Files & folders','Read and write files available to the service account.'],'git':['Git repositories','Work with repositories, branches, commits and diffs.'],'build-test':['Build & tests','Run development, build and test commands.'],'docker':['Docker','Inspect and manage Docker containers.'],'lxd':['LXD containers','Approve LXD lifecycle and its precisely scoped installation even when not installed.'],'podman':['Podman','Manage Podman/Buildah images and containers.'],'incus':['Incus','Manage Incus systems and containers.'],'kubernetes':['Kubernetes','Operate kubectl, Helm and cluster tools.'],'virtualization':['Virtual machines','Manage VM and hypervisor tools.'],'network-admin':['Network administration','Manage network interfaces, routes and tunnels.'],'firewall':['Firewall','Manage host firewall tools and rules.'],'storage-admin':['Storage administration','Manage disks, volumes, filesystems and mounts.'],'infra-provisioning':['Infrastructure as code','Manage Terraform, OpenTofu, Ansible and provisioning tools.'],'systemctl':['System services','Inspect and manage systemd services and journals.'],'sudo-on-demand':['Sudo on demand','Allow explicit sudo workflows when needed. UID 0 does not override a read-only systemd mount; host writes additionally require owner-approved installer paths. Light Remote itself still does not run directly as root.'],'package-manager':['Package manager','Install, update or remove packages.'],'powershell':['Windows shells','Run PowerShell or CMD commands using the selected shell mode.'],'windows-eventlog':['Windows Event Log','Read Windows event logs.'],'windows-process-network':['Processes & network','Inspect processes and network state.'],'windows-services':['Windows Services','Inspect Windows services.'],'windows-services-admin':['Windows Services admin','Create, configure, start, stop or remove Windows services.'],'windows-registry':['Windows Registry','Modify non-protected registry locations when locally permitted.'],'windows-scheduled-tasks':['Scheduled Tasks','Create or remove Windows scheduled tasks.'],'windows-defender-firewall':['Defender / Firewall','Modify Defender or Windows Firewall configuration.'],'windows-credential-manager':['Credential Manager','Access Windows credential-manager operations; secret export remains policy-sensitive.'],'windows-uac-admin':['UAC elevation','Allow explicit Windows administrator elevation workflows.'],'macos-services':['macOS services','Inspect and manage launchd services.'],'macos-log':['macOS logs','Read unified macOS system logs.']};
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
@@ -395,7 +395,7 @@ function renderCapabilityRows(){
   perms.innerHTML=groups.map(group=>{
     const rows=group.caps.map(cap=>{
       const meta=META[cap]||[cap,'Supported on this operating system.'];
-      const serverOk=isLocalMain||knownApproved.has(cap),locallyAllowed=!knownDenied.has(cap);
+      const serverOk=isLocalMain||knownApproved.has(cap),locallyAllowed=!knownDenied.has(cap)&&(knownServerGrantable.has(cap)||knownOwnerRequested.has(cap));
       const badges=[];
       if(!serverOk)badges.push('<span class="perm-chip pending">Server approval needed</span>');
       else if(locallyAllowed)badges.push('<span class="perm-chip on">Effective</span>');
@@ -420,7 +420,7 @@ async function load(){
   if(!response.ok||!data.ok)throw new Error(data.error||'Cannot load permissions');
   const state=data.local||{};
   knownGrantable=[...(state.supportedCapabilities||state.grantableCapabilities||[])];
-  knownApproved=new Set(state.approvedCapabilities||[]);
+  knownServerGrantable=new Set(state.grantableCapabilities||[]);knownOwnerRequested=new Set(state.localRequestedCapabilities||[]);knownApproved=new Set(state.approvedCapabilities||[]);
   knownInstalled=new Set(state.installedCapabilities||[]);
   knownDenied=new Set(state.deniedCapabilities||[]);
   isLocalMain=state.policyAuthority==='local-main';
