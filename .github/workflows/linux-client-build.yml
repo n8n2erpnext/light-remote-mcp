@@ -6,6 +6,7 @@ on:
       - main
       - 'codex/**'
       - 'feature/light-remote-gold-rebuild-20261018' # isolated Gold CI artifacts only
+      - 'fix/docker-capability-refresh-20261022' # isolated permissions UAT artifact; never publish production
     tags:
       - 'v0.9.*'
     paths:
