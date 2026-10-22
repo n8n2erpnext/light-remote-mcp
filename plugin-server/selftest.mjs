@@ -127,13 +127,15 @@ assert.equal(resource.resource,`${env.LIGHT_REMOTE_PLUGIN_ORIGIN}/mcp`);
 assert.ok(resource.scopes_supported.includes('remote:terminal'));assert.ok(resource.scopes_supported.includes('openid'));assert.ok(resource.scopes_supported.includes('email'));
 
 const redirect='https://client.example.invalid/callback';
-const regResp=await fetch(`${env.LIGHT_REMOTE_PLUGIN_ORIGIN}/oauth/register`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({client_name:'OpenAI selftest',redirect_uris:[redirect],token_endpoint_auth_method:'none',scope:'remote:read remote:write offline_access openid email'})});
+const loopbackRedirect='http://127.0.0.1:60952/callback';
+const regResp=await fetch(`${env.LIGHT_REMOTE_PLUGIN_ORIGIN}/oauth/register`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({client_name:'OpenAI selftest',redirect_uris:[redirect,loopbackRedirect],token_endpoint_auth_method:'none',scope:'remote:read remote:write offline_access openid email'})});
 assert.equal(regResp.status,201);const reg=await regResp.json();assert.ok(reg.client_id);
 const verifier=crypto.randomBytes(48).toString('base64url');
 const challenge=crypto.createHash('sha256').update(verifier).digest('base64url');
 const authUrl=new URL(`${env.LIGHT_REMOTE_PLUGIN_ORIGIN}/oauth/authorize`);
 authUrl.search=new URLSearchParams({client_id:reg.client_id,redirect_uri:redirect,response_type:'code',code_challenge:challenge,code_challenge_method:'S256',resource:`${env.LIGHT_REMOTE_PLUGIN_ORIGIN}/mcp`,scope:'remote:read remote:write',state:'state123'}).toString();
 const authPage=await fetch(authUrl);assert.equal(authPage.status,200);assert.match(String(authPage.headers.get('content-security-policy')||''),/form-action 'self' https:\/\/chatgpt\.com/);assert.match(await authPage.text(),/Requested permissions:<\/strong>\s*remote:read/);
+const loopbackAuthPage=await fetch(new URL(String(authUrl).replace(encodeURIComponent(redirect),encodeURIComponent(loopbackRedirect))));assert.equal(loopbackAuthPage.status,200);assert.ok(String(loopbackAuthPage.headers.get('content-security-policy')||'').includes("http://127.0.0.1:60952;"));console.log('plugin_oauth_csp_loopback_redirect=PASS');
 console.log('plugin_oauth_discovery_dcr_pkce=PASS');
 const authBody=new URLSearchParams({client_id:reg.client_id,redirect_uri:redirect,response_type:'code',code_challenge:challenge,code_challenge_method:'S256',resource:`${env.LIGHT_REMOTE_PLUGIN_ORIGIN}/mcp`,scope:'remote:read remote:write offline_access openid email',state:'state123',email:'reviewer@example.test',password:reviewerPassword});
 const authSubmit=await fetch(`${env.LIGHT_REMOTE_PLUGIN_ORIGIN}/oauth/authorize`,{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:authBody,redirect:'manual'});

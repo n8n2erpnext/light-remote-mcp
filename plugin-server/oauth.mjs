@@ -96,7 +96,14 @@ export async function verifyPairingContinuation(identity,token){
   if(String(p.sub||'')!==String(identity.accountId)||String(p.client_id||'')!==String(identity.clientId)||!p.requestId||!p.pollToken||!p.agentId)throw new Error('pairing_continuation_invalid');
   return {requestId:String(p.requestId),pollToken:String(p.pollToken),agentId:String(p.agentId),flow:String(p.flow||'device-pairing')};
 }
-function setAuthCsp(res){res.set('Content-Security-Policy',"default-src 'none'; style-src 'unsafe-inline'; font-src 'self'; img-src 'self'; form-action 'self' https://chatgpt.com; frame-ancestors 'none'; base-uri 'none'");}
+function setAuthCsp(res,redirectUri=''){
+  // Chrome enforces form-action on 303 destinations as well as the initial
+  // same-origin POST. Only add the exact origin of an already validated,
+  // OAuth-registered redirect URI; never loosen CSP to '*' or broad localhost.
+  const callbackOrigin=redirectUri&&validRedirect(redirectUri)?new URL(redirectUri).origin:'';
+  const actionSources=["'self'",'https://chatgpt.com',...(callbackOrigin?[callbackOrigin]:[])];
+  res.set('Content-Security-Policy',"default-src 'none'; style-src 'unsafe-inline'; font-src 'self'; img-src 'self'; form-action "+actionSources.join(' ')+"; frame-ancestors 'none'; base-uri 'none'");
+}
 function oauthAudit(event,detail={}){console.log(JSON.stringify({event,...detail}));}
 export function registerOAuth(app){
   app.get('/.well-known/oauth-authorization-server',(_q,r)=>r.json(oauthMetadata()));
@@ -106,7 +113,7 @@ export function registerOAuth(app){
   app.get('/oauth/authorize',async(req,res)=>{
     try{
       const p=await validateAuthorize(req.query||{}),resumePath=await oauthResumePath(p),google=googleAuthStatus().configured;
-      setAuthCsp(res);
+      setAuthCsp(res,p.redirect);
       oauthAudit('oauth_authorize_get',{status:'ok',google});
       return res.type('html').send(authHtml(authorizeForm(p),'',{resumePath,google}));
     }catch(error){
@@ -147,7 +154,7 @@ export function registerOAuth(app){
       verified=await callOperatorJson('POST','/v1/plugin/auth/verify',{email:req.body.email,password:req.body.password});
     }catch(error){
       await recordFailure(req);
-      setAuthCsp(res);
+      setAuthCsp(res,p.redirect);
       oauthAudit('oauth_authorize_post',{status:'credentials_error',error:String(error?.payload?.error||error?.message||'invalid_account_credentials').slice(0,80)});
       const resumePath=await oauthResumePath(p),google=googleAuthStatus().configured;
       return res.status(401).type('html').send(authHtml(authorizeForm(p),'Invalid email or password.',{resumePath,google}));
