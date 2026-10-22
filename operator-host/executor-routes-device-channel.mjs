@@ -12,7 +12,8 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       deviceId:ctx.binding.deviceId,accountId:ctx.binding.accountId,capabilities:ctx.payload.capabilities
     });
     // Durable PG write must finish before returning a signed permission revision.
-    await deps.flushDiskRecords?.();
+    if(typeof deps.flushGoldRegistries!=='function')throw Error('gold_permission_durable_store_unavailable');
+    await deps.flushGoldRegistries();
     const active=Array.isArray(ctx.device.capabilities)?ctx.device.capabilities:[];
     const effective=active.filter(cap=>change.policy.approvedCapabilities.includes(cap));
     if(effective.length)devices.heartbeat(ctx.binding.deviceId,{capabilities:effective});
@@ -20,6 +21,23 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       pushEvent({type:'device_capabilities_rescanned',accountId:ctx.binding.accountId,deviceId:ctx.binding.deviceId,status:'updated',addedCapabilities:change.addedCapabilities,removedCapabilities:change.removedCapabilities,policyRevision:change.policy.policyRevision});
     }
     return sendJson(res,200,{ok:true,change,policy:enrollments.policyEnvelope(ctx.binding.deviceId)});
+  }
+  // Device signatures establish device identity; account credentials establish
+  // *owner* intent. Never allow a device signature alone to expand approval.
+  if(req.method==='POST'&&url.pathname==='/v1/device-channel/capabilities-owner-approve'){
+    const body=await readJson(req),ctx=await verifiedChannelContext(body,'capabilities-owner-approve');
+    if(ctx.binding.trustedHost)throw new EnrollmentError('trusted_host_uses_local_capability_authority',409);
+    const email=String(ctx.payload.email||'').trim(),password=String(ctx.payload.password||'');
+    if(!email||password.length<1||password.length>512)throw new EnrollmentError('owner_credentials_required',401);
+    const owner=accounts.verifyCredentials({email,password},{recordLogin:true,eventType:'device_permissions_owner_approved'});
+    if(owner.accountId!==ctx.binding.accountId)throw new EnrollmentError('device_account_mismatch',403);
+    const policy=enrollments.updatePolicy({deviceId:ctx.binding.deviceId,accountId:owner.accountId,
+      approvedCapabilities:ctx.payload.approvedCapabilities,policyProfile:ctx.payload.policyProfile||'custom'});
+    if(typeof deps.flushGoldRegistries!=='function')throw Error('gold_permission_durable_store_unavailable');
+    await deps.flushGoldRegistries();
+    pushEvent({type:'device_permissions_owner_approved',deviceId:ctx.binding.deviceId,accountId:owner.accountId,
+      status:'updated',policyRevision:policy.policyRevision,capabilities:policy.approvedCapabilities});
+    return sendJson(res,200,{ok:true,policy:enrollments.policyEnvelope(ctx.binding.deviceId)});
   }
   const acceptDesktopLivePush=(ctx,payload=ctx.payload)=>{
     requireDeviceConnection(ctx.device.deviceId);

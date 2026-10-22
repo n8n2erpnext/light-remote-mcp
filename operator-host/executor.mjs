@@ -1376,7 +1376,7 @@ const routeDeps=()=>({
   clearMainIfMatches,clientCompatibility,closeRuntimeForAccount,compatibilityFor,connectionSpec,
   connectionViewForDevice,connections,decryptEnvelope,deviceView,devices,
   emitStream,enrollments,finishJob,fleet,fleetAuthority,reconcileSignedTerminalProcessReceipts,
-  fleetEligibility,fleetTarget,flushDiskRecords,fs,fullOutputFromDisk,
+  fleetEligibility,fleetTarget,flushDiskRecords,flushGoldRegistries:()=>goldRegistries.flush(),fs,fullOutputFromDisk,
   ingressTelemetry,jobView,jobs,goldJobs,deviceResourceLocks,deviceResourceSampleCache,cancelQueuedPersonalJob,requestFleetProcessStop,licenses,normalizeUpdateReport,
   pairingCodes,planEntitlements,pruneRing,pushEvent,queueHelperUpdate,
   queueSignedUpdate,readJson,reapAccessGrants,accountNotifications,realRemoteLive,recentEvents,redact,proTeams,teamSessions,requestTeamMemberApproval,operationalAccount,

@@ -46,6 +46,7 @@ on:
       - 'deploy/scripts/selftest-gold-permission-groups.mjs'
       - 'deploy/scripts/selftest-infra-capability-catalog.mjs'
       - 'deploy/scripts/selftest-docker-capability-refresh.mjs'
+      - 'deploy/scripts/selftest-gold-owner-permission-authorization.mjs'
       - 'package.json'
       - 'package-lock.json'
       - 'client/core-files.json'
@@ -129,6 +130,7 @@ jobs:
           node deploy/scripts/selftest-v09-linux-service-policy.mjs
           node deploy/scripts/selftest-infra-capability-catalog.mjs
           node deploy/scripts/selftest-docker-capability-refresh.mjs
+          node deploy/scripts/selftest-gold-owner-permission-authorization.mjs
           node deploy/scripts/selftest-g2-pty-missing-exit.mjs
           node deploy/scripts/selftest-g2-transport-drop-job-survival.mjs
           node deploy/scripts/selftest-g2-pty-missing-pid-exit.mjs
