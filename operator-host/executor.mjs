@@ -153,7 +153,8 @@ const pendingForegroundExec=new Map();
 // Synchronize a fast signed terminal receipt with the launch-PG transaction.
 const pendingProcessLeaseWrites=new Map();
 async function reconcileSignedTerminalProcessReceipts(ctx,items){
- if(!deviceResourceLocks||!Array.isArray(items))return;
+ if(!deviceResourceLocks||!Array.isArray(items))return [];
+ const acks=[];
  for(const entry of items.slice(0,32)){
   if(!/^lp_[A-Za-z0-9_-]{20,80}$/.test(String(entry?.processId||''))||
      !['finished','stopped','timeout','error'].includes(entry.state)||
@@ -161,9 +162,10 @@ async function reconcileSignedTerminalProcessReceipts(ctx,items){
   try{
    const pending=pendingProcessLeaseWrites.get(entry.processId);
    if(pending)await pending;
-   const released=await deviceResourceLocks.releaseVerifiedTerminal(goldStorage.pool,{
+   const ack=await deviceResourceLocks.acknowledgeVerifiedTerminal(goldStorage.pool,{
     accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,process:entry});
-   if(!released)continue;
+   if(ack.acked)acks.push({processId:entry.processId,state:entry.state,finishedAt:entry.finishedAt});
+   if(!ack.released)continue;
    pushEvent({type:'m4_worker_signed_terminal_receipt',accountId:ctx.binding.accountId,
     deviceId:ctx.device.deviceId,processId:entry.processId,state:entry.state});
    for(const id of await deviceResourceLocks.waitingAccounts(goldStorage.pool,ctx.device.deviceId))
@@ -171,6 +173,7 @@ async function reconcileSignedTerminalProcessReceipts(ctx,items){
   }catch(error){console.error(JSON.stringify({event:'m4_signed_process_reconcile_failed',
     code:String(error?.code||'PG_UNAVAILABLE')}));}
  }
+ return acks;
 }
 async function reconcileBackgroundProcessReceipt(job){
  if(!deviceResourceLocks||job.exitCode!==0)return;
@@ -185,9 +188,9 @@ async function reconcileBackgroundProcessReceipt(job){
   try{
    const before=pendingProcessLeaseWrites.get(process.processId);
    if(before)await before;
-   const released=await deviceResourceLocks.releaseVerifiedTerminal(goldStorage.pool,
+   const receipt=await deviceResourceLocks.acknowledgeVerifiedTerminal(goldStorage.pool,
     {accountId:job.accountId,deviceId:job.deviceId,process});
-   if(released){
+   if(receipt.released){
     pushEvent({type:'m4_background_resource_released',jobId:job.id,
       accountId:job.accountId,deviceId:job.deviceId,processId:process.processId});
     const accounts=await deviceResourceLocks.waitingAccounts(goldStorage.pool,job.deviceId);
@@ -1371,7 +1374,7 @@ const routeDeps=()=>({
   connectionViewForDevice,connections,decryptEnvelope,deviceView,devices,
   emitStream,enrollments,finishJob,fleet,fleetAuthority,reconcileSignedTerminalProcessReceipts,
   fleetEligibility,fleetTarget,flushDiskRecords,fs,fullOutputFromDisk,
-  ingressTelemetry,jobView,jobs,goldJobs,cancelQueuedPersonalJob,requestFleetProcessStop,licenses,normalizeUpdateReport,
+  ingressTelemetry,jobView,jobs,goldJobs,deviceResourceLocks,cancelQueuedPersonalJob,requestFleetProcessStop,licenses,normalizeUpdateReport,
   pairingCodes,planEntitlements,pruneRing,pushEvent,queueHelperUpdate,
   queueSignedUpdate,readJson,reapAccessGrants,accountNotifications,realRemoteLive,recentEvents,redact,proTeams,teamSessions,requestTeamMemberApproval,operationalAccount,
   removeRuntimeForDevice,requireAccount,requireDeviceConnection,revokeRuntimeForDevice,ring,

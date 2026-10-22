@@ -231,7 +231,7 @@ async function refreshProcessTerminalReceipts(current){
  if(!current?.enrollment?.deviceId||!current.enrollment?.accountId)return;
  try{
   const list=SUPERVISED_PROCESSES?
-   await SUPERVISED_PROCESSES.listDevice(current.enrollment.accountId,current.enrollment.deviceId):
+   await SUPERVISED_PROCESSES.listUnackedTerminals(current.enrollment.accountId,current.enrollment.deviceId):
    NATIVE_PROCESSES.list();
   PROCESS_TERMINAL_RECEIPTS=list.filter(v=>
     /^lp_[A-Za-z0-9_-]{20,80}$/.test(String(v.processId||''))&&
@@ -240,6 +240,20 @@ async function refreshProcessTerminalReceipts(current){
    .slice(-64).map(v=>({processId:v.processId,state:v.state,finishedAt:v.finishedAt,
       exitCode:v.exitCode??null}));
  }catch{PROCESS_TERMINAL_RECEIPTS=[];}
+}
+
+async function confirmTerminalReceiptsAck(current,acks){
+ if(!Array.isArray(acks)||!acks.length||!SUPERVISED_PROCESSES||
+    !current?.enrollment?.accountId||!current?.enrollment?.deviceId)return;
+ const valid=acks.slice(0,32).filter(x=>
+  /^lp_[A-Za-z0-9_-]{20,80}$/.test(String(x?.processId||''))&&
+  ['finished','stopped','timeout','error'].includes(String(x?.state||''))&&
+  Number.isSafeInteger(Number(x?.finishedAt))&&Number(x.finishedAt)>0);
+ if(!valid.length)return;
+ // Fail closed: Supervisor must fsync its private terminal ACK journal first.
+ // The next poll/heartbeat will replay if the local write was interrupted.
+ await SUPERVISED_PROCESSES.ackTerminals(current.enrollment.accountId,current.enrollment.deviceId,valid);
+ await refreshProcessTerminalReceipts(current);
 }
 
 let DEVICE_DUPLEX=null,DEVICE_DUPLEX_IDLE_DEADLINE=0,DEVICE_DUPLEX_IDLE_TIMER=null;
@@ -288,7 +302,7 @@ async function ensureDeviceDuplex(state,hub){
       hello:meta=>{const current=readState()||state;return signedChannelEnvelope(current,'stream',duplexHelloPayload(current,meta));},
       onCommand:command=>duplexExecuteCommand(command,hub),
       onHelloAck:async(frame,info)=>{const current=readState();if(current){applyPolicyEnvelope(current,frame.policy);current.cloud={...(current.cloud||{}),desiredConnected:true,state:'connected',lastServerActivityAt:Date.now(),lastError:null};writeState(current);}if(info?.serverEpochChanged)queueMicrotask(()=>void resyncLiveAfterDuplexEpochChange());},
-      onHeartbeatAck:async frame=>{const current=readState();if(current&&frame.policy)applyPolicyEnvelope(current,frame.policy);},
+      onHeartbeatAck:async frame=>{const current=readState();if(current&&frame.policy)applyPolicyEnvelope(current,frame.policy);if(current)await confirmTerminalReceiptsAck(current,frame.terminalReceiptsAck);},
       heartbeatPayload:duplexHeartbeatPayload,
       heartbeatMs:5000,
       maxPending:128,
@@ -873,14 +887,14 @@ async function daemon(args){
       // A Local Wall connect/disconnect can update device.json while this long-poll is in flight.
       // Re-read before persisting the poll result so the daemon never clobbers newer lease metadata.
       const latestAfterPoll=readState();if(latestAfterPoll)state=latestAfterPoll;
-      applyPolicyEnvelope(state,response.policy);failures=0;
+      applyPolicyEnvelope(state,response.policy);await confirmTerminalReceiptsAck(state,response.terminalReceiptsAck);failures=0;
       state.cloud={...(state.cloud||{}),desiredConnected:true,state:'connected',lastServerActivityAt:Date.now(),lastError:null};writeState(state);
       void reconcileFleet();
       const command=response.channel?.command;
       if(command){
         const deviceReceivedAt=Date.now();
         let commandPulseTimer=null,commandPulseBusy=false;
-        const commandPulse=async()=>{if(stopped||commandPulseBusy)return;commandPulseBusy=true;try{const current=readState()||state;if(!current?.enrollment?.deviceId||!cloudDesired(current))return;if(cloudLeaseRenewalDue(current))await renewCloudLease(current,hub);await channelRequest(current,hub,'pulse',{nodeId:current.enrollment.nodeId||current.enrollment.deviceId,agentVersion:VERSION,sessionCeiling,draining:Boolean(current.routing?.draining),executorReady:executorReadiness(),capabilities:effectiveCapabilitiesForState(current),policyRevision:Math.max(0,Number(current.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView(),processTerminalReceipts:nextProcessTerminalReceipts()});}catch(error){console.error(JSON.stringify({event:'device_command_liveness_failed',deviceId:state.enrollment?.deviceId||null,commandId:command.commandId,error:error.message,status:error.status||null}));}finally{commandPulseBusy=false;}};
+        const commandPulse=async()=>{if(stopped||commandPulseBusy)return;commandPulseBusy=true;try{const current=readState()||state;if(!current?.enrollment?.deviceId||!cloudDesired(current))return;if(cloudLeaseRenewalDue(current))await renewCloudLease(current,hub);const pulseAck=await channelRequest(current,hub,'pulse',{nodeId:current.enrollment.nodeId||current.enrollment.deviceId,agentVersion:VERSION,sessionCeiling,draining:Boolean(current.routing?.draining),executorReady:executorReadiness(),capabilities:effectiveCapabilitiesForState(current),policyRevision:Math.max(0,Number(current.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView(),processTerminalReceipts:nextProcessTerminalReceipts()});await confirmTerminalReceiptsAck(current,pulseAck.terminalReceiptsAck);}catch(error){console.error(JSON.stringify({event:'device_command_liveness_failed',deviceId:state.enrollment?.deviceId||null,commandId:command.commandId,error:error.message,status:error.status||null}));}finally{commandPulseBusy=false;}};
         await commandPulse();commandPulseTimer=setInterval(()=>void commandPulse(),commandHeartbeatMs);commandPulseTimer.unref?.();
         let result,claim;
         try{

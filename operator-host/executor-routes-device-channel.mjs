@@ -427,9 +427,9 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
           state.touchInput={...state.touchInput,sessionCeiling:payload.sessionCeiling??state.touchInput.sessionCeiling,draining:payload.draining==null?state.touchInput.draining:Boolean(payload.draining),executorReady:payload.executorReady,capabilities,policyRevision:reportedRevision};
           devices.heartbeat(ctx.device.deviceId,{capabilities,agentVersion:payload.agentVersion||ctx.device.agentVersion,updateStatus:payload.updateStatus});
           const node=fleet.touch(state.touchInput);
-          await reconcileSignedTerminalProcessReceipts(ctx,payload.processTerminalReceipts);
+          const terminalReceiptsAck=await reconcileSignedTerminalProcessReceipts(ctx,payload.processTerminalReceipts);
           const policy=reportedRevision===Math.max(1,Number(ctx.binding.policyRevision)||1)?null:enrollments.policyEnvelope(ctx.device.deviceId);
-          return {node,policy};
+          return {node,policy,terminalReceiptsAck};
         },
         onEvent:event=>pushEvent({accountId:(()=>{try{return devices.get(event.deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)}).accountId;}catch{return ACCOUNT_ID;}})(),nodeId:(()=>{try{return devices.get(event.deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)}).nodeId;}catch{return null;}})(),status:event.type==='device_duplex_error'?'error':'ok',...event})
       });
@@ -445,9 +445,9 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       requireDeviceConnection(ctx.device.deviceId);
       devices.heartbeat(ctx.device.deviceId,{capabilities,agentVersion:ctx.payload.agentVersion,updateStatus:ctx.payload.updateStatus});
       const node=fleet.touch({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,sessionCeiling:ctx.payload.sessionCeiling,draining:Boolean(ctx.payload.draining),executorReady:ctx.payload.executorReady,capabilities,policyRevision:reportedRevision});
-      await reconcileSignedTerminalProcessReceipts(ctx,ctx.payload.processTerminalReceipts);
+      const terminalReceiptsAck=await reconcileSignedTerminalProcessReceipts(ctx,ctx.payload.processTerminalReceipts);
       const policy=reportedRevision===Math.max(1,Number(ctx.binding.policyRevision)||1)?null:enrollments.policyEnvelope(ctx.device.deviceId);
-      return sendJson(res,200,{ok:true,node,policy,pulseOnly:true});
+      return sendJson(res,200,{ok:true,node,policy,pulseOnly:true,terminalReceiptsAck});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/poll') {
       const body=await readJson(req), ctx=await verifiedChannelContext(body,'poll');
@@ -456,11 +456,11 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       const capabilities=verifiedLeafCapabilities(ctx.payload.capabilities,ctx.binding,reportedRevision);
       requireDeviceConnection(ctx.device.deviceId);
       devices.heartbeat(ctx.device.deviceId,{capabilities,agentVersion:ctx.payload.agentVersion,updateStatus:ctx.payload.updateStatus});
-      await reconcileSignedTerminalProcessReceipts(ctx,ctx.payload.processTerminalReceipts);
+      const terminalReceiptsAck=await reconcileSignedTerminalProcessReceipts(ctx,ctx.payload.processTerminalReceipts);
       const waitMs=Math.max(0,Math.min(Number(ctx.payload.waitMs)||8000,15000));
       const channel=await fleet.waitPoll({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,sessionCeiling:ctx.payload.sessionCeiling,draining:Boolean(ctx.payload.draining),executorReady:ctx.payload.executorReady,capabilities,policyRevision:reportedRevision,transport:'signed-poll-v1'},waitMs);
       const policy=reportedRevision===Math.max(1,Number(ctx.binding.policyRevision)||1)?null:enrollments.policyEnvelope(ctx.device.deviceId);
-      return sendJson(res,200,{ok:true,channel,policy,access:{pending:accessGrants.pendingForDevice(ctx.device.deviceId),activeGrant:accessGrants.activeForDevice(ctx.device.deviceId,connections.get(ctx.device.deviceId)?.connectionId)}});
+      return sendJson(res,200,{ok:true,channel,policy,terminalReceiptsAck,access:{pending:accessGrants.pendingForDevice(ctx.device.deviceId),activeGrant:accessGrants.activeForDevice(ctx.device.deviceId,connections.get(ctx.device.deviceId)?.connectionId)}});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/result') {
       const body=await readJson(req),ctx=await verifiedChannelContext(body,'result');

@@ -91,6 +91,20 @@ export async function startProcessSupervisor({socketPath,tokenFile,stateFile,jou
       for await(const part of req){size+=part.length;if(size>MAX_REQUEST)throw Object.assign(Error('supervisor_request_too_large'),{status:413});chunks.push(part);}
       let input;try{input=JSON.parse(Buffer.concat(chunks).toString());}catch{throw Error('invalid_json');}
       const owner=input.owner;
+      if(input.op==='list-device-terminals'||input.op==='ack-device-terminals'){
+        const partial=input.owner;
+        if(!partial||!['accountId','deviceId'].every(k=>/^[a-zA-Z0-9._:-]{1,180}$/.test(String(partial[k]||''))))
+          throw Object.assign(Error('supervisor_owner_invalid'),{status:400});
+        const raw=JSON.parse(fs.readFileSync(stateFile,'utf8'));
+        if(raw?.enrollment?.accountId!==partial.accountId||
+           raw?.enrollment?.deviceId!==partial.deviceId)
+          throw Object.assign(Error('supervisor_device_identity_mismatch'),{status:403});
+        if(!journal)throw Object.assign(Error('supervisor_journal_required_for_replay'),{status:409});
+        if(input.op==='list-device-terminals')
+          return respond(res,200,{ok:true,receipts:journal.unackedTerminals(partial.accountId,partial.deviceId,{limit:32})});
+        const ack=journal.ackTerminals(partial.accountId,partial.deviceId,input.receipts);
+        return respond(res,200,{ok:true,...ack});
+      }
       if(input.op==='list-device'){
         const partial=input.owner;
         if(!partial||!['accountId','deviceId'].every(k=>/^[a-zA-Z0-9._:-]{1,180}$/.test(String(partial[k]||''))))

@@ -1,5 +1,8 @@
 # Current RDC → Light Remote Gold optimization handoff
 
+**LATEST 2026-10-22 — M6 DURABLE TERMINAL ACK/REPLAY (SOURCE ONLY):** [Full handoff + schema035 rollout gate](./RDC_GOLD_M6_DURABLE_TERMINAL_ACK_REPLAY_20261022.md). Linux Supervisor private journal now retains unacked process terminal receipts and replays after Agent/Supervisor restart. Operator commits worker-lease release + exact terminal ACK atomically in PostgreSQL `lr_gold_terminal_receipt_acks`, and sends ACK in signed poll/pulse/duplex responses; Agent fsyncs matching ACK in Supervisor. New locked migration 035 not yet applied to Gold UAT. Focused tests + prior M5/M6 regressions PASS; no runtime deployment, no physical acceptance, no Team/3+1 tests. Windows/macOS non-Supervisor durable ACK parity still pending.
+
+
 **LATEST 2026-10-22 — M6 RESOURCE LEASE AUDIT + SIGNED TERMINAL RECEIPT ROTATION (SOURCE ONLY):** Fleet Wall Jobs now shows owner-scoped PostgreSQL worker claim counts, aged/review-needed leases, queued reasons and server worker budget; only signed terminal receipt can release claim (never age or missing in-memory job). Device Agent signed terminal receipts rotate up to 64 retained supervisor entries in 32-item batches rather than starving older 32. Unit/source tests PASS, actual Gold UAT PostgreSQL query syntax validated read-only with EXPLAIN. No Gold UAT/production deploy or physical acceptance yet. Team/3+1 user testing remains PAUSED. [Full M6 checkpoint](./RDC_GOLD_M6_RESOURCE_LEASE_OBSERVABILITY_20261022.md).
 
 

@@ -171,6 +171,11 @@
       "version": 34,
       "file": "034_gold_background_resource_receipts.sql",
       "sha256": "82dc70c38b53f4f29c86f1316dbea8523d1b263e8084da92dcd4b4927ed8ed16"
+    },
+    {
+      "version": 35,
+      "file": "035_gold_terminal_receipt_acks.sql",
+      "sha256": "6b73ab68a3d165cf67709a178d845a0a5fc3206dfb45afe4b505d5c6e405b085"
     }
   ]
 }

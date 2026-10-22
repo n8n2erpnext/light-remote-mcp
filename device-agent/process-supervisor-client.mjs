@@ -29,6 +29,8 @@ export class ProcessSupervisorClient {
   async start(input){const {accountId,deviceId,sessionId,agentId,...command}=input;return (await this.request('start',{accountId,deviceId,sessionId,agentId},command)).process;}
   async list(owner){return (await this.request('list',owner)).processes;}
   async listDevice(accountId,deviceId){return (await this.request('list-device',{accountId,deviceId})).processes;}
+  async listUnackedTerminals(accountId,deviceId){return (await this.request('list-device-terminals',{accountId,deviceId})).receipts;}
+  async ackTerminals(accountId,deviceId,receipts){return this.request('ack-device-terminals',{accountId,deviceId},{receipts});}
   async stop(processId,owner,{force=false}={}){return (await this.request('stop',owner,{processId,force})).process;}
   async input(processId,owner,options={}){return (await this.request('input',owner,{processId,...options})).process;}
   async output(processId,owner,options={}){return (await this.request('output',owner,{processId,...options})).data;}
