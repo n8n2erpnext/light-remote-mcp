@@ -34,3 +34,26 @@
 1. CI #319 artifact signed/catalog check and if PASS install Wall candidate; verify Agent automatically refreshes supported grantable capabilities on startup. Server-approved existing rights stay unchanged; newly supported rights remain locally denied until owner selects.
 2. Account-only owner signs in, selects Full access or granular rights, chooses Save or the explicit **Verify owner & approve selected** action. Must use valid account credentials without asking ChatGPT for password. Check server-revision increment, PostgreSQL persistence (write→read→operator restart→read), and new effective capabilities.
 3. Exercise allowed/denied commands for filesystem, SCP, Docker/LXD, PTY and RM View/Input on real OS in UAT. Do not claim all OSes physically tested from ARM Linux-only UAT; macOS/Windows still need native validation.
+
+## 2026-10-22 — Plugin schema-35 recovery / final Gold UAT permission receipts
+
+**Supersedes the earlier "Plugin unchanged" runtime statement above**: the Plugin was discovered crash-looping (317 failed restarts) due to stale `gold_pg_migrations_missing` validation of exactly 34 revisions against a PostgreSQL ledger of 35. This repeatedly restarted Wall through its systemd dependency and made the remote channel return transient HTTP 502.
+
+- Repair was **runtime-only, UAT-only**, not an M plan rollout. Cloned the previously active plugin candidate `/opt/light-remote-gold-uat-candidates/b99cd6469f0a5ed325a176e1417db2d2c5c00c4b` into `/opt/light-remote-gold-uat-permissions-candidates/plugin-schema35-20261022`. Replaced **only** `lib/gold-db.mjs` with the Gold fix variant; comparison verified that it differs solely in the strict migration validator.
+- Validator accepts only contiguous revision ledger 1–34 or 1–35, and when 35 is present explicitly verifies `public.lr_gold_terminal_receipt_acks` exists. Does not add, apply, delete or rollback migrations.
+- New systemd override `/etc/systemd/system/light-remote-gold-plugin.service.d/zz-permissions-schema35-20261022.conf` activates that plugin candidate. Previous systemd override and source remain intact for rollback.
+- Plugin listened on `10.192.135.61:5583`, accepted the expected host `gold.light-remote.thaiduy.digital` with HTTP 200 and held **the same PID** during a 10-second runtime stability check. Subsequent read-only audit confirmed the Plugin, Operator, Wall and Process Supervisor active, Wall unauthenticated `/permissions` HTTP 303 login redirect and `/api/policy-status` HTTP 401, signed owner policy endpoint unauthenticated rejection HTTP 400. Plugin's historical `NRestarts=317` is a cumulative counter, **not** new restarts after recovery.
+- Server-side PostgreSQL grantable rights remained **17** for Linux UAT with no implicit approval during Agent rescan. At the first post-fix read 17 grantable / 8 approved / policy revision 2, nine new capabilities denied locally.
+- **Later, at 2026-10-22 16:52:02 UTC**, a new owner policy was observed in DB: device `dev_e68276c691ba5413f42d5dde` had profile `full`, policy revision **3**, **17 grantable / 17 approved**. The Agent's local policy also reported profile `full`, **17 locally requested / 0 denied / 17 effective**, revision 3. No owner credentials were read or logged by the assistant and no approval request was issued by the assistant. This demonstrates live effective-policy propagation but **does not establish physical sudo/root authority** or exhaustive command-level enforcement tests.
+- PostgreSQL `lr_gold_device_resource_claims` still had **1 running** resource claim. M plan remains **HOLD**: no release, cancellation, queue intervention, migration execution, Fleet cutover, or production changes.
+- The prior `terminal_receipt_refresh_failed: supervisor_owner_invalid` M5 supervisor mismatch remains a separate issue; do not claim resolved. Linux ARM64 UAT alone does not constitute Windows/macOS native acceptance.
+
+### UAT-only rollback (only upon explicit instruction)
+- Plugin: remove its `zz-permissions-schema35-20261022.conf` and run `systemctl daemon-reload && systemctl restart light-remote-gold-plugin.service` inside `light-remote-gold-uat`. **Warning:** this reverts to the incompatible 34-migration Plugin and is expected to restore crash-loop on a 35-migration DB; prefer a known compatible candidate instead. No DB rollback.
+- Operator/Wall: follow the separate owner permissions overrides described above. Preserve the existing account/enrollment state and the M5 resource claim.
+- Handoff focus for future testing: deny/effective behavior by entrypoint, native macOS/Windows permissions tests, M5 receipt compatibility only when M plan resumes. Avoid repeated synthetic validation loops.
+
+### Source and release
+- Permission-owner feature: `7236c29ea19a07b5e2a06521fb719262de05eb4d`.
+- Agent startup automatic rescan: `44c8ecb14b735acbc0ff610c240045c91f3499dc` (CI #319 ARM64 tar SHA-256 `718cc451b625b720b28122a6e8529c43daa917d238553802c452361762130b79`, validated against CI SHA256SUMS and unpacked into its own candidate before Wall-only activation).
+- The Gold UAT Plugin fix follows the shared `lib/gold-db.mjs` implementation already committed in `7236c29`; no separate production plugin build or release occurred.
