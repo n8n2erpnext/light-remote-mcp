@@ -15,8 +15,8 @@ const rows=document.getElementById('rows'),message=document.getElementById('stat
 let all=[];
 const cell=(tr,value)=>{const td=document.createElement('td');td.textContent=String(value??'—');tr.append(td);return td};
 function render(){rows.replaceChildren();const found=all.filter(j=>!filter.value||j.status===filter.value);for(const j of found){const tr=document.createElement('tr');cell(tr,j.status).className=['queued','running','ok','error'].includes(j.status)?j.status:'';cell(tr,j.deviceName||j.deviceId);cell(tr,j.agentId);cell(tr,j.jobId);cell(tr,j.workerClass+(j.jobRole==='process_launch'?' · launch':''));
-cell(tr,j.queueReason||'—');cell(tr,j.startedAt?new Date(j.startedAt).toLocaleString():'—');cell(tr,(j.outputBytes||0)+' B');rows.append(tr)}
-message.textContent=found.length+' visible jobs · '+all.length+' scoped jobs. Data reflects current retained Operator records.'}
+cell(tr,j.queueReason||'—');cell(tr,j.startedAt?new Date(j.startedAt).toLocaleString():'—');cell(tr,j.outputBytes==null?'not retained':String(j.outputBytes)+' B');rows.append(tr)}
+message.textContent=found.length+' visible jobs · '+all.length+' scoped jobs. PostgreSQL history + current live Operator state.'}
 async function refresh(){const r=await fetch('/api/jobs?limit=200',{cache:'no-store'}),v=await r.json();if(!r.ok||!v.ok)throw Error(v.error||'fleet_jobs_unavailable');all=v.jobs||[];render()}
 document.getElementById('refresh').onclick=()=>refresh().catch(e=>message.textContent=e.message);
 filter.onchange=render;refresh().catch(e=>message.textContent=e.message);

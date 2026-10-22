@@ -95,6 +95,7 @@ jobs:
           node deploy/scripts/selftest-gold-m5-process-supervisor-agent-restart.mjs
           node deploy/scripts/selftest-gold-m5-supervisor-restart-journal.mjs
           node deploy/scripts/selftest-gold-m5-isolated-worker-core.mjs
+          node --check lib/gold-job-ledger.mjs
           node --check operator-host/fleet-job-view.mjs
           node --check device-agent/fleet-job-page.mjs
           node --check device-agent/fleet-wall-runtime.mjs

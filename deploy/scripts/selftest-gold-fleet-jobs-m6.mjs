@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {ownerFleetJobRows} from '../../operator-host/fleet-job-view.mjs';
+import {GoldJobLedger} from '../../lib/gold-job-ledger.mjs';
 import {fleetJobPage} from '../../device-agent/fleet-job-page.mjs';
 const m=new Map();
 const create=(id,accountId,deviceId,status,fields={})=>m.set(id,{id,accountId,deviceId,agentId:'signed-agent',sessionId:'s',status,startedAt:1000+Number(id.slice(1)),stdout:{totalBytes:5},stderr:{totalBytes:3},script:'SECRET_TOKEN_DO_NOT_LEAK',resultData:{password:'SECRET'},...fields});
@@ -21,6 +22,19 @@ const html=fleetJobPage();
 assert.match(html,/Jobs & Queue/);
 assert.match(html,/\/api\/jobs/);
 assert.ok(!/form method=.post./i.test(html));
+let argsSeen=null;
+const pool={async query(sql,args){argsSeen=args;assert.match(sql,/account_id=\$1/);assert.match(sql,/device_id=ANY\(\$2::text\[\]\)/);return {rows:[
+ {jobId:'pg1',deviceId:'device-A',agentId:'signed-1',sessionId:'sess-1',status:'interrupted',startedAt:new Date(1700000000000),finishedAt:new Date(1700000010000),exitCode:null,jobRole:null,workerClass:null,queueReason:null},
+ {jobId:'pg2',deviceId:'device-A',agentId:'signed-2',sessionId:'sess-2',status:'running',startedAt:new Date(1700000015000),finishedAt:null,exitCode:null,jobRole:'process_launch',workerClass:'process',queueReason:'QUEUED_AGENT_SLOT'}
+ ]};}};
+const ledger=new GoldJobLedger({pool,redact:String});
+const history=await ledger.listForOwner({accountId:'owner',deviceIds:['device-A'],limit:15});
+assert.deepEqual(argsSeen,['owner',['device-A'],15]);
+assert.deepEqual(history.map(x=>x.status),['interrupted','queued']);
+assert.equal(history[1].queueReason,'QUEUED_AGENT_SLOT');
+assert.equal(history[1].jobRole,'process_launch');
+assert.equal(JSON.stringify(history).includes('password'),false);
+console.log('M6_PG_DURABLE_OWNER_HISTORY=PASS');
 console.log('M6_OWNER_FLEET_JOB_ACCOUNT_SCOPE=PASS');
 console.log('M6_OWNER_FLEET_JOB_SAFE_PROJECTION=PASS');
 console.log('M6_FLEET_JOBS_READ_ONLY_PAGE=PASS');

@@ -4,7 +4,7 @@ import { ownerFleetJobRows } from './fleet-job-view.mjs';
 
 
 export async function handleDeviceChannelRoutes(req,res,url,deps){
-  const {ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,DeviceAccessGrantError,DevicePairingRegistryError,EnrollmentError,FleetAuthorityError,FleetError,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,MIN_SUPPORTED_CLIENT_VERSION,NODE_ID,VERSION,abandonedCommandReceiptFromDisk,accessGrants,accounts,agentClients,allDeviceViews,applyDeviceTelemetry,capabilities,clientCompatibility,connectionSpec,connections,deviceView,devices,emitStream,enrollments,finishJob,fleet,fleetAuthority,fleetEligibility,fleetTarget,jobView,jobs,reconcileSignedTerminalProcessReceipts,normalizeUpdateReport,pairingCodes,planEntitlements,pushEvent,queueHelperUpdate,readJson,reapAccessGrants,realRemoteLive,recentEvents,requireDeviceConnection,sendJson,sessions,targetRoute,terminalResultSummary,verifiedChannelContext,verifiedFleetContext,verifiedLeafCapabilities}=deps;
+  const {ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,DeviceAccessGrantError,DevicePairingRegistryError,EnrollmentError,FleetAuthorityError,FleetError,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,MIN_SUPPORTED_CLIENT_VERSION,NODE_ID,VERSION,abandonedCommandReceiptFromDisk,accessGrants,accounts,agentClients,allDeviceViews,applyDeviceTelemetry,capabilities,clientCompatibility,connectionSpec,connections,deviceView,devices,emitStream,enrollments,finishJob,fleet,fleetAuthority,fleetEligibility,fleetTarget,jobView,jobs,goldJobs,reconcileSignedTerminalProcessReceipts,normalizeUpdateReport,pairingCodes,planEntitlements,pushEvent,queueHelperUpdate,readJson,reapAccessGrants,realRemoteLive,recentEvents,requireDeviceConnection,sendJson,sessions,targetRoute,terminalResultSummary,verifiedChannelContext,verifiedFleetContext,verifiedLeafCapabilities}=deps;
   const acceptDesktopLivePush=(ctx,payload=ctx.payload)=>{
     requireDeviceConnection(ctx.device.deviceId);
     const session=sessions.ensure(String(payload.sessionId||''),{agentId:String(payload.agentId||'')});
@@ -256,8 +256,14 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       const owned=new Set(ownedViews.map(d=>d.deviceId));
       const names=new Map(ownedViews.map(d=>[d.deviceId,String(d.displayName||d.deviceId)]));
       const limit=Math.max(1,Math.min(Number(ctx.payload.limit)||100,200));
-      const rows=ownerFleetJobRows(jobs,{accountId:ctx.account.accountId,deviceIds:owned,limit})
-        .map(j=>({...j,deviceName:names.get(j.deviceId)||j.deviceId}));
+      // PostgreSQL provides durable history; currently retained Operator rows
+      // override matching records with live queue reasons and output bytes.
+      const history=await goldJobs.listForOwner({accountId:ctx.account.accountId,deviceIds:[...owned],limit});
+      const active=ownerFleetJobRows(jobs,{accountId:ctx.account.accountId,deviceIds:owned,limit});
+      const merged=new Map(history.map(j=>[j.jobId,j]));
+      for(const j of active)merged.set(j.jobId,j);
+      const rows=[...merged.values()].sort((a,b)=>(Number(b.startedAt)||0)-(Number(a.startedAt)||0))
+        .slice(0,limit).map(j=>({...j,deviceName:names.get(j.deviceId)||j.deviceId}));
       return sendJson(res,200,{ok:true,mainDeviceId:ctx.account.mainDeviceId,jobs:rows});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/fleet-activity') {
