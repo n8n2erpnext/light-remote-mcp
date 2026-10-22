@@ -924,6 +924,14 @@ async function daemon(args){
   console.log(JSON.stringify({event:'local_wall_started',url:localWall.url,deviceId:state.enrollment?.deviceId||null}));
   console.log(JSON.stringify({event:'device_agent_started',mode:'always-alive-service',platformAdapter:PLATFORM_ADAPTER.id,deviceId:state.enrollment?.deviceId||null,nodeId:state.enrollment?.nodeId||null,sessionCeiling,waitMs,dormantPollMs,localWallUrl:localWall.url}));
   acknowledgeCoreUpdateHealth();
+  // Device-supported rights and installed-tool inventory are independent.
+  // Refresh the signed grantable catalog after a daemon upgrade; never auto-approve
+  // or locally enable new rights without the owner's explicit saved selection.
+  if(state.enrollment?.deviceId&&!isTrustedHostState(state)){
+    void rescanHostCapabilities(hub)
+      .then(result=>console.log(JSON.stringify({event:'device_capability_catalog_synced',added:result.addedCapabilities?.length||0,removed:result.removedCapabilities?.length||0,policyRevision:result.policyRevision})))
+      .catch(error=>console.error(JSON.stringify({event:'device_capability_catalog_sync_failed',code:String(error?.message||'unknown').slice(0,96)})));
+  }
   const fleetReconcileMs=Math.max(500,Math.min(Number(process.env.OPERATOR_FLEET_RECONCILE_MS)||15000,300000));
   const reconcileFleet=async()=>{if(stopped||fleetReconciling)return;fleetReconciling=true;try{const current=readState();if(current)expireLocalHardLease(current);if(!current?.enrollment?.deviceId||!cloudDesired(current)||current.cloud?.state!=='connected'){await fleetSupervisor.stop('device_cloud_dormant');return;}await fleetSupervisor.reconcile();}catch(error){console.error(JSON.stringify({event:'fleet_component_reconcile_failed',error:error.message,status:error.status||null}));}finally{fleetReconciling=false;}};
   fleetTimer=setInterval(reconcileFleet,fleetReconcileMs);fleetTimer.unref?.();
