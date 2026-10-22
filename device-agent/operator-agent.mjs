@@ -216,7 +216,17 @@ async function frameRealRemoteVisual(p,request,{observe=false}={}){
 }
 const COMMAND_EXECUTIONS=new CommandExecutionCoordinator();
 // Only bounded terminal worker receipts, no scripts/paths/output or secrets.
-let PROCESS_TERMINAL_RECEIPTS=[];
+let PROCESS_TERMINAL_RECEIPTS=[],PROCESS_TERMINAL_CURSOR=0;
+// Terminal receipts are retained by the device process supervisor journal.
+// Rotate on each signed transmission, not on a timer: a fixed last-32
+// window could starve older terminal leases indefinitely after restart.
+function nextProcessTerminalReceipts(){
+ const all=PROCESS_TERMINAL_RECEIPTS,cap=Math.min(32,all.length);
+ if(!cap)return [];
+ const start=PROCESS_TERMINAL_CURSOR%all.length;
+ PROCESS_TERMINAL_CURSOR=(start+cap)%all.length;
+ return Array.from({length:cap},(_,i)=>all[(start+i)%all.length]);
+}
 async function refreshProcessTerminalReceipts(current){
  if(!current?.enrollment?.deviceId||!current.enrollment?.accountId)return;
  try{
@@ -227,7 +237,7 @@ async function refreshProcessTerminalReceipts(current){
     /^lp_[A-Za-z0-9_-]{20,80}$/.test(String(v.processId||''))&&
     ['finished','stopped','timeout','error'].includes(v.state)&&
     Number.isSafeInteger(Number(v.finishedAt))&&Number(v.finishedAt)>0)
-   .slice(-32).map(v=>({processId:v.processId,state:v.state,finishedAt:v.finishedAt,
+   .slice(-64).map(v=>({processId:v.processId,state:v.state,finishedAt:v.finishedAt,
       exitCode:v.exitCode??null}));
  }catch{PROCESS_TERMINAL_RECEIPTS=[];}
 }
@@ -252,7 +262,7 @@ function duplexHelloPayload(state,meta={}){
 }
 function duplexHeartbeatPayload(){
   const state=readState();if(!state?.enrollment?.deviceId||!cloudDesired(state))return null;
-  return {nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling:Math.max(1,Math.min(Number(process.env.OPERATOR_AGENT_MAX_SESSIONS)||2,100)),draining:Boolean(state.routing?.draining),executorReady:executorReadiness(),capabilities:effectiveCapabilitiesForState(state),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView(),processTerminalReceipts:PROCESS_TERMINAL_RECEIPTS};
+  return {nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling:Math.max(1,Math.min(Number(process.env.OPERATOR_AGENT_MAX_SESSIONS)||2,100)),draining:Boolean(state.routing?.draining),executorReady:executorReadiness(),capabilities:effectiveCapabilitiesForState(state),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView(),processTerminalReceipts:nextProcessTerminalReceipts()};
 }
 async function duplexExecuteCommand(command,hub){
   const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
@@ -858,7 +868,7 @@ async function daemon(args){
     try{
       await flushPendingUpdateReport(state,hub).catch(error=>console.error(JSON.stringify({event:'update_report_delivery_failed',error:error.message,status:error.status||null})));
       if(deviceDuplexStatus().ready){failures=0;await wait(500);continue;}
-      const payload={nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling,draining:Boolean(state.routing?.draining),executorReady:executorReadiness(),capabilities:effectiveCapabilitiesForState(state),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView(),processTerminalReceipts:PROCESS_TERMINAL_RECEIPTS,waitMs};
+      const payload={nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling,draining:Boolean(state.routing?.draining),executorReady:executorReadiness(),capabilities:effectiveCapabilitiesForState(state),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView(),processTerminalReceipts:nextProcessTerminalReceipts(),waitMs};
       const response=await channelRequest(state,hub,'poll',payload);
       // A Local Wall connect/disconnect can update device.json while this long-poll is in flight.
       // Re-read before persisting the poll result so the daemon never clobbers newer lease metadata.
@@ -870,7 +880,7 @@ async function daemon(args){
       if(command){
         const deviceReceivedAt=Date.now();
         let commandPulseTimer=null,commandPulseBusy=false;
-        const commandPulse=async()=>{if(stopped||commandPulseBusy)return;commandPulseBusy=true;try{const current=readState()||state;if(!current?.enrollment?.deviceId||!cloudDesired(current))return;if(cloudLeaseRenewalDue(current))await renewCloudLease(current,hub);await channelRequest(current,hub,'pulse',{nodeId:current.enrollment.nodeId||current.enrollment.deviceId,agentVersion:VERSION,sessionCeiling,draining:Boolean(current.routing?.draining),executorReady:executorReadiness(),capabilities:effectiveCapabilitiesForState(current),policyRevision:Math.max(0,Number(current.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView(),processTerminalReceipts:PROCESS_TERMINAL_RECEIPTS});}catch(error){console.error(JSON.stringify({event:'device_command_liveness_failed',deviceId:state.enrollment?.deviceId||null,commandId:command.commandId,error:error.message,status:error.status||null}));}finally{commandPulseBusy=false;}};
+        const commandPulse=async()=>{if(stopped||commandPulseBusy)return;commandPulseBusy=true;try{const current=readState()||state;if(!current?.enrollment?.deviceId||!cloudDesired(current))return;if(cloudLeaseRenewalDue(current))await renewCloudLease(current,hub);await channelRequest(current,hub,'pulse',{nodeId:current.enrollment.nodeId||current.enrollment.deviceId,agentVersion:VERSION,sessionCeiling,draining:Boolean(current.routing?.draining),executorReady:executorReadiness(),capabilities:effectiveCapabilitiesForState(current),policyRevision:Math.max(0,Number(current.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView(),processTerminalReceipts:nextProcessTerminalReceipts()});}catch(error){console.error(JSON.stringify({event:'device_command_liveness_failed',deviceId:state.enrollment?.deviceId||null,commandId:command.commandId,error:error.message,status:error.status||null}));}finally{commandPulseBusy=false;}};
         await commandPulse();commandPulseTimer=setInterval(()=>void commandPulse(),commandHeartbeatMs);commandPulseTimer.unref?.();
         let result,claim;
         try{

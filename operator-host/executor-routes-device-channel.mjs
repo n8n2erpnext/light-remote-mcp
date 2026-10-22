@@ -1,10 +1,11 @@
 import { DEVICE_DUPLEX_PROTOCOL } from './device-duplex-transport.mjs';
 import { handleDeviceDuplexSession } from './device-duplex-session.mjs';
 import { ownerFleetJobRows } from './fleet-job-view.mjs';
+import { ownerDeviceResourceMetrics } from '../lib/gold-device-resource-metrics.mjs';
 
 
 export async function handleDeviceChannelRoutes(req,res,url,deps){
-  const {ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,DeviceAccessGrantError,DevicePairingRegistryError,EnrollmentError,FleetAuthorityError,FleetError,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,MIN_SUPPORTED_CLIENT_VERSION,NODE_ID,VERSION,abandonedCommandReceiptFromDisk,accessGrants,accounts,agentClients,allDeviceViews,applyDeviceTelemetry,capabilities,clientCompatibility,connectionSpec,connections,deviceView,devices,emitStream,enrollments,finishJob,fleet,fleetAuthority,fleetEligibility,fleetTarget,jobView,jobs,goldJobs,cancelQueuedPersonalJob,requestFleetProcessStop,reconcileSignedTerminalProcessReceipts,normalizeUpdateReport,pairingCodes,planEntitlements,pushEvent,queueHelperUpdate,readJson,reapAccessGrants,realRemoteLive,recentEvents,requireDeviceConnection,sendJson,sessions,targetRoute,terminalResultSummary,verifiedChannelContext,verifiedFleetContext,verifiedLeafCapabilities}=deps;
+  const {ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,DeviceAccessGrantError,DevicePairingRegistryError,EnrollmentError,FleetAuthorityError,FleetError,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,MIN_SUPPORTED_CLIENT_VERSION,NODE_ID,VERSION,abandonedCommandReceiptFromDisk,accessGrants,accounts,agentClients,allDeviceViews,applyDeviceTelemetry,capabilities,clientCompatibility,connectionSpec,connections,deviceView,devices,emitStream,enrollments,finishJob,fleet,fleetAuthority,fleetEligibility,fleetTarget,jobView,jobs,goldJobs,deviceResourceLocks,cancelQueuedPersonalJob,requestFleetProcessStop,reconcileSignedTerminalProcessReceipts,normalizeUpdateReport,pairingCodes,planEntitlements,pushEvent,queueHelperUpdate,readJson,reapAccessGrants,realRemoteLive,recentEvents,requireDeviceConnection,sendJson,sessions,targetRoute,terminalResultSummary,verifiedChannelContext,verifiedFleetContext,verifiedLeafCapabilities}=deps;
   const acceptDesktopLivePush=(ctx,payload=ctx.payload)=>{
     requireDeviceConnection(ctx.device.deviceId);
     const session=sessions.ensure(String(payload.sessionId||''),{agentId:String(payload.agentId||'')});
@@ -291,7 +292,13 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
           }
         }
       }
-      return sendJson(res,200,{ok:true,mainDeviceId:ctx.account.mainDeviceId,jobs:rows});
+      // These are owner-only claim observations. Age/UNKNOWN is an audit
+      // signal, NOT proof that a worker stopped or a lease may be deleted.
+      const resources=await ownerDeviceResourceMetrics({pool:goldJobs.pool,
+        accountId:ctx.account.accountId,deviceIds:[...owned],
+        workerBudget:deviceResourceLocks?.capacity??null});
+      for(const resource of resources)resource.deviceName=names.get(resource.deviceId)||resource.deviceId;
+      return sendJson(res,200,{ok:true,mainDeviceId:ctx.account.mainDeviceId,jobs:rows,resources});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/fleet-job-cancel') {
       const body=await readJson(req);

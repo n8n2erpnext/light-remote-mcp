@@ -1,5 +1,8 @@
 # Current RDC → Light Remote Gold optimization handoff
 
+**LATEST 2026-10-22 — M6 RESOURCE LEASE AUDIT + SIGNED TERMINAL RECEIPT ROTATION (SOURCE ONLY):** Fleet Wall Jobs now shows owner-scoped PostgreSQL worker claim counts, aged/review-needed leases, queued reasons and server worker budget; only signed terminal receipt can release claim (never age or missing in-memory job). Device Agent signed terminal receipts rotate up to 64 retained supervisor entries in 32-item batches rather than starving older 32. Unit/source tests PASS, actual Gold UAT PostgreSQL query syntax validated read-only with EXPLAIN. No Gold UAT/production deploy or physical acceptance yet. Team/3+1 user testing remains PAUSED. [Full M6 checkpoint](./RDC_GOLD_M6_RESOURCE_LEASE_OBSERVABILITY_20261022.md).
+
+
 **LATEST 2026-10-22 — M6 FLEET MANAGED PROCESS GRACEFUL STOP SOURCE:** [Owner-signed Fleet → verified Agent's original session → canonical PG lease → device-native graceful Stop request; HTTP 202 REQUESTED only, no early worker release; focused source tests](./RDC_GOLD_M6_FLEET_MANAGED_PROCESS_STOP_20261022.md). Requires owner login+CSRF, main Fleet authority, retained managed process launch and valid original Agent session. Background lease released only on signed terminal receipt. Physical Gold UAT/browser/restart acceptance still **PENDING**, no runtime promotion, no Team/3+1 tests.
 
 

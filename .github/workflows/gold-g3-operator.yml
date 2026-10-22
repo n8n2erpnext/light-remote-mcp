@@ -33,6 +33,8 @@ on:
       - 'deploy/scripts/selftest-gold-m5-isolated-worker-core.mjs'
       - 'deploy/scripts/selftest-gold-fleet-jobs-m6.mjs'
       - 'deploy/scripts/selftest-gold-m6-process-stop.mjs'
+      - 'deploy/scripts/selftest-gold-m6-resource-metrics.mjs'
+      - 'lib/gold-device-resource-metrics.mjs'
       - 'deploy/scripts/selftest-device-agent-cli.mjs'
       - 'deploy/scripts/gold-g3-*.sh'
       - 'deploy/scripts/uat-gold-g3-readiness-audit.mjs'
@@ -102,6 +104,8 @@ jobs:
           node --check device-agent/fleet-wall-runtime.mjs
           node deploy/scripts/selftest-gold-fleet-jobs-m6.mjs
           node deploy/scripts/selftest-gold-m6-process-stop.mjs
+          node --check lib/gold-device-resource-metrics.mjs
+          node deploy/scripts/selftest-gold-m6-resource-metrics.mjs
           node deploy/scripts/selftest-v10-light-scp-file.mjs
           node deploy/scripts/selftest-v10-light-scp-owner.mjs
           node deploy/scripts/selftest-v10-light-scp-routing.mjs
