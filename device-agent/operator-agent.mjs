@@ -110,7 +110,7 @@ async function heartbeat(state,base,{persist=true}={}){if(!state.enrollment?.dev
 let observerChannelTail=Promise.resolve(),observerChannelNextAt=0,rmLiveChannelTail=Promise.resolve(),rmLiveChannelNextAt=0;
 function clientChannelLane(action){
   if(action==='desktop-live-push')return 'rm-live';
-  return ['status','activity','fleet-intent','fleet-authority','fleet-status','fleet-devices','fleet-sessions','fleet-activity'].includes(action)?'observer':'direct';
+  return ['status','activity','fleet-intent','fleet-authority','fleet-status','fleet-devices','fleet-sessions','fleet-activity','fleet-jobs'].includes(action)?'observer':'direct';
 }
 function signedChannelEnvelope(state,action,payload){if(!state.enrollment?.deviceId)throw new Error('device_not_enrolled');const deviceId=state.enrollment.deviceId,timestamp=Date.now(),nonce=crypto.randomBytes(18).toString('base64url');const signature=crypto.sign(null,Buffer.from(deviceChannelMessage({deviceId,action,timestamp,nonce,payload})),privateKey(state)).toString('base64url');return {deviceId,timestamp,nonce,signature,payload};}
 async function channelRequestDirect(state,hubBase,action,payload){const response=await fetch(hubBase.replace(/\/$/,'')+'/device-channel/'+action,{method:'POST',headers:{'content-type':'application/json','accept':'application/json'},body:JSON.stringify(signedChannelEnvelope(state,action,payload)),signal:AbortSignal.timeout(action==='poll'?25000:15000)});return parseResponse(response);}

@@ -21,7 +21,7 @@ ${fontFace}:root{color-scheme:dark;font-family:${uiFont};background:#080a0c;colo
 <script>
 const box=document.getElementById('jobs'),devicebox=document.getElementById('devicebox'),tabs=document.getElementById('tabs'),sessionbox=document.getElementById('sessionbox'),filter=document.getElementById('filter'),statusSel=document.getElementById('status'),conn=document.getElementById('conn'),stats=document.getElementById('stats');
 const surfaceFleet=${fleet?'true':'false'};
-if(surfaceFleet){const settings=document.createElement('a');settings.className='btn small';settings.href='/settings';settings.textContent='Settings';document.querySelector('.topright')?.prepend(settings);}
+if(surfaceFleet){const settings=document.createElement('a');settings.className='btn small';settings.href='/settings';settings.textContent='Settings';const jobsLink=document.createElement('a');jobsLink.className='btn small';jobsLink.href='/jobs';jobsLink.textContent='Jobs & Queue';document.querySelector('.topright')?.prepend(jobsLink,settings);}
 const jobs=new Map(),sessions=new Map(),seenEvents=new Set(),seenOrder=[],dirtyJobs=new Set(),pendingKeys=new Set();
 let paused=false,pending=[],selected='ALL',deviceRows=[],renderTimer=null,sessionRefreshTimer=null,sessionsInFlight=null,devicesInFlight=null,probeInFlight=false,catchupInFlight=false;
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}

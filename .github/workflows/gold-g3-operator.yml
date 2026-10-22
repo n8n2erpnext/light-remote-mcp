@@ -31,6 +31,7 @@ on:
       - 'deploy/scripts/selftest-gold-m5-process-supervisor-agent-restart.mjs'
       - 'deploy/scripts/selftest-gold-m5-supervisor-restart-journal.mjs'
       - 'deploy/scripts/selftest-gold-m5-isolated-worker-core.mjs'
+      - 'deploy/scripts/selftest-gold-fleet-jobs-m6.mjs'
       - 'deploy/scripts/selftest-device-agent-cli.mjs'
       - 'deploy/scripts/gold-g3-*.sh'
       - 'deploy/scripts/uat-gold-g3-readiness-audit.mjs'
@@ -94,6 +95,10 @@ jobs:
           node deploy/scripts/selftest-gold-m5-process-supervisor-agent-restart.mjs
           node deploy/scripts/selftest-gold-m5-supervisor-restart-journal.mjs
           node deploy/scripts/selftest-gold-m5-isolated-worker-core.mjs
+          node --check operator-host/fleet-job-view.mjs
+          node --check device-agent/fleet-job-page.mjs
+          node --check device-agent/fleet-wall-runtime.mjs
+          node deploy/scripts/selftest-gold-fleet-jobs-m6.mjs
           node deploy/scripts/selftest-v10-light-scp-file.mjs
           node deploy/scripts/selftest-v10-light-scp-owner.mjs
           node deploy/scripts/selftest-v10-light-scp-routing.mjs

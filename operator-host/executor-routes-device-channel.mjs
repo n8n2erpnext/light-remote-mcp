@@ -1,5 +1,6 @@
 import { DEVICE_DUPLEX_PROTOCOL } from './device-duplex-transport.mjs';
 import { handleDeviceDuplexSession } from './device-duplex-session.mjs';
+import { ownerFleetJobRows } from './fleet-job-view.mjs';
 
 
 export async function handleDeviceChannelRoutes(req,res,url,deps){
@@ -248,6 +249,16 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       const body=await readJson(req),ctx=verifiedFleetContext(await verifiedChannelContext(body,'fleet-sessions')),owned=new Set(allDeviceViews().filter(device=>device.accountId===ctx.account.accountId&&device.state!=='revoked').map(device=>device.deviceId));
       const rows=sessions.list().filter(row=>owned.has(row.deviceId));
       return sendJson(res,200,{ok:true,mainDeviceId:ctx.account.mainDeviceId,authority:ctx.lease,sessions:rows});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/device-channel/fleet-jobs') {
+      const body=await readJson(req),ctx=verifiedFleetContext(await verifiedChannelContext(body,'fleet-jobs'));
+      const ownedViews=allDeviceViews().filter(d=>d.accountId===ctx.account.accountId&&d.state!=='revoked');
+      const owned=new Set(ownedViews.map(d=>d.deviceId));
+      const names=new Map(ownedViews.map(d=>[d.deviceId,String(d.displayName||d.deviceId)]));
+      const limit=Math.max(1,Math.min(Number(ctx.payload.limit)||100,200));
+      const rows=ownerFleetJobRows(jobs,{accountId:ctx.account.accountId,deviceIds:owned,limit})
+        .map(j=>({...j,deviceName:names.get(j.deviceId)||j.deviceId}));
+      return sendJson(res,200,{ok:true,mainDeviceId:ctx.account.mainDeviceId,jobs:rows});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/fleet-activity') {
       const body=await readJson(req),ctx=verifiedFleetContext(await verifiedChannelContext(body,'fleet-activity')),owned=new Set(allDeviceViews().filter(device=>device.accountId===ctx.account.accountId&&device.state!=='revoked').map(device=>device.deviceId)),limit=Math.max(1,Math.min(Number(ctx.payload.limit)||500,5000));
