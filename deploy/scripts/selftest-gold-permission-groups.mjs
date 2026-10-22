@@ -13,7 +13,7 @@ writeLocalWallAuthConfig(authFile,{username:'owner',password:'fixture-gold-permi
 const auth=loadLocalWallAuth(authFile,{required:true});
 const port=29000+(process.pid%20000);
 const caps=['filesystem','git','build-test','terminal','desktop','desktop-input','docker','lxd','network-admin','firewall','macos-log','other-vendor-plugin'];
-let status={deviceId:'dev_test',deviceName:'Gold MultiOS Fixture',policyAuthority:'server-and-local',policyRevision:3,grantableCapabilities:caps,approvedCapabilities:caps.filter(c=>c!=='docker'),installedCapabilities:['git'],deniedCapabilities:['terminal','desktop-input','firewall'],localPolicyProfile:'custom'};
+let status={deviceId:'dev_test',deviceName:'Gold MultiOS Fixture',policyAuthority:'server-and-local',policyRevision:3,supportedCapabilities:caps,grantableCapabilities:caps.filter(c=>!['docker','other-vendor-plugin'].includes(c)),approvedCapabilities:caps.filter(c=>c!=='docker'),installedCapabilities:['git'],deniedCapabilities:['terminal','desktop-input','firewall'],localPolicyProfile:'custom'};
 const saves=[];
 const wall=startLocalWall({host:'127.0.0.1',port,brandSvgPath:new URL('../../assets/branding/light-remote-mark.svg',import.meta.url).pathname,auth,
  getLocalStatus:async()=>status,getLocalPolicyStatus:async()=>status,
@@ -60,7 +60,7 @@ try{
  for(const platform of ['linux','darwin','win32']){
    const adapter=createPlatformAdapter({platform,commandExists:()=>false});
    const catalog=[...new Set([...adapter.discoverCapabilities(),'desktop','desktop-input'])];
-   status={...status,deviceName:platform+' permission fixture',platformAdapter:platform,grantableCapabilities:catalog,approvedCapabilities:catalog,installedCapabilities:[],deniedCapabilities:['terminal'],localPolicyProfile:'custom'};
+   status={...status,deviceName:platform+' permission fixture',platformAdapter:platform,supportedCapabilities:catalog,grantableCapabilities:catalog,approvedCapabilities:catalog,installedCapabilities:[],deniedCapabilities:['terminal'],localPolicyProfile:'custom'};
    await page.reload();
    await page.locator('details[data-permission-group=pty]').waitFor();
    const visible=await page.locator('input[data-cap]').evaluateAll(els=>els.map(e=>e.value));

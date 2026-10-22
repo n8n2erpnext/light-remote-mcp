@@ -419,7 +419,7 @@ async function load(){
   const response=await fetch('/api/policy-status',{cache:'no-store'}),data=await response.json();
   if(!response.ok||!data.ok)throw new Error(data.error||'Cannot load permissions');
   const state=data.local||{};
-  knownGrantable=[...(state.grantableCapabilities||[])];
+  knownGrantable=[...(state.supportedCapabilities||state.grantableCapabilities||[])];
   knownApproved=new Set(state.approvedCapabilities||[]);
   knownInstalled=new Set(state.installedCapabilities||[]);
   knownDenied=new Set(state.deniedCapabilities||[]);

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
+import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -120,7 +121,17 @@ function clientChannelLane(action){
   return ['status','activity','fleet-intent','fleet-authority','fleet-status','fleet-devices','fleet-sessions','fleet-activity','fleet-jobs'].includes(action)?'observer':'direct';
 }
 function signedChannelEnvelope(state,action,payload){if(!state.enrollment?.deviceId)throw new Error('device_not_enrolled');const deviceId=state.enrollment.deviceId,timestamp=Date.now(),nonce=crypto.randomBytes(18).toString('base64url');const signature=crypto.sign(null,Buffer.from(deviceChannelMessage({deviceId,action,timestamp,nonce,payload})),privateKey(state)).toString('base64url');return {deviceId,timestamp,nonce,signature,payload};}
-async function channelRequestDirect(state,hubBase,action,payload){const response=await fetch(hubBase.replace(/\/$/,'')+'/device-channel/'+action,{method:'POST',headers:{'content-type':'application/json','accept':'application/json'},body:JSON.stringify(signedChannelEnvelope(state,action,payload)),signal:AbortSignal.timeout(action==='poll'?25000:15000)});return parseResponse(response);}
+function channelRequestLocalOperator(state,action,payload){
+  return new Promise((resolve,reject)=>{
+    const body=JSON.stringify(signedChannelEnvelope(state,action,payload));
+    const req=http.request({socketPath:process.env.LIGHT_REMOTE_LOCAL_OPERATOR_SOCKET,path:'/v1/device-channel/capabilities-refresh',method:'POST',headers:{'content-type':'application/json'}},res=>{
+      const chunks=[];res.on('data',chunk=>chunks.push(chunk));res.on('end',()=>void parseResponse(new Response(Buffer.concat(chunks),{status:res.statusCode||502})).then(resolve,reject));
+    });
+    req.setTimeout(15000,()=>req.destroy(new Error('operator_timeout')));req.on('error',reject);req.end(body);
+  });
+}
+async function channelRequestDirect(state,hubBase,action,payload){
+  if(action==='capabilities-refresh'&&process.env.LIGHT_REMOTE_LOCAL_OPERATOR_SOCKET)return channelRequestLocalOperator(state,action,payload);const response=await fetch(hubBase.replace(/\/$/,'')+'/device-channel/'+action,{method:'POST',headers:{'content-type':'application/json','accept':'application/json'},body:JSON.stringify(signedChannelEnvelope(state,action,payload)),signal:AbortSignal.timeout(action==='poll'?25000:15000)});return parseResponse(response);}
 async function channelRequest(state,hubBase,action,payload){
   const lane=clientChannelLane(action);
   if(lane==='direct')return channelRequestDirect(state,hubBase,action,payload);
@@ -138,8 +149,11 @@ async function rescanHostCapabilities(hub=DEFAULT_HUB){
   const response=await channelRequest(state,hub,'capabilities-refresh',{capabilities:discovered,agentVersion:VERSION});
   if(!response?.policy?.policy)throw new Error('capability_rescan_unsigned_policy_missing');
   const newlyGrantable=normalizeDeviceCapabilities(response.change?.addedCapabilities||[]);
-  // A newly installed tool must remain locally blocked until the owner opts in.
-  state.policy={...(state.policy||{}),deniedCapabilities:normalizeDeviceCapabilities([...(state.policy?.deniedCapabilities||[]),...newlyGrantable]),localProfile:newlyGrantable.length?'custom':state.policy?.localProfile||'custom'};
+  // An explicit local owner selection is remembered before server approval.
+  // Otherwise newly discovered rights stay locally denied; never auto-grant.
+  const ownerIntent=new Set(normalizeDeviceCapabilities(state.policy?.localRequestedCapabilities||[]));
+  const newDeny=newlyGrantable.filter(cap=>!ownerIntent.has(cap));
+  state.policy={...(state.policy||{}),deniedCapabilities:normalizeDeviceCapabilities([...(state.policy?.deniedCapabilities||[]),...newDeny]),localProfile:newlyGrantable.length?'custom':state.policy?.localProfile||'custom'};
   applyPolicyEnvelope(state,response.policy);
   state.effectiveCapabilities=effectiveCapabilitiesForState(state);
   writeState(state);
@@ -838,19 +852,20 @@ async function denyDeviceAccess(requestId,hub=DEFAULT_HUB,reason='owner_denied')
 function setLocalPermissions(allowedCapabilities,profile='custom'){
   const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
   const grantable=normalizeDeviceCapabilities(state.enrollment.grantableCapabilities||state.enrollment.approvedCapabilities||[]);
+  const supported=normalizeDeviceCapabilities([...discoverCapabilities(),...grantable]);
   const allowed=normalizeDeviceCapabilities(Array.isArray(allowedCapabilities)?allowedCapabilities:[]);
-  if(allowed.some(cap=>!grantable.includes(cap)))throw new Error('local_permission_not_grantable');
+  if(allowed.some(cap=>!supported.includes(cap)))throw new Error('local_permission_not_device_supported');
   const localProfile=/^(safe|developer|support|infra|full|custom)$/.test(String(profile||''))?String(profile):'custom';
-  const denied=grantable.filter(cap=>!allowed.includes(cap));
-  state.policy=realRemotePolicyAfterSave({...(state.policy||{}),deniedCapabilities:denied,localProfile,localFinalDenyBoundary:true,localPolicyUpdatedAt:Date.now()},{grantable,allowed});
+  const denied=supported.filter(cap=>!allowed.includes(cap));
+  state.policy=realRemotePolicyAfterSave({...(state.policy||{}),deniedCapabilities:denied,localRequestedCapabilities:allowed,localProfile,localFinalDenyBoundary:true,localPolicyUpdatedAt:Date.now()},{grantable:supported,allowed});
   state.effectiveCapabilities=effectiveCapabilitiesForState(state);
   writeState(state);
-  return {profile:localProfile,policyAuthority:isTrustedHostState(state)?'local-main':'server-and-local',grantableCapabilities:grantable,serverApprovedCapabilities:[...(state.enrollment.approvedCapabilities||[])],localAllowedCapabilities:allowed,deniedCapabilities:denied,effectiveCapabilities:[...state.effectiveCapabilities],updatedAt:state.policy.localPolicyUpdatedAt};
+  return {profile:localProfile,policyAuthority:isTrustedHostState(state)?'local-main':'server-and-local',supportedCapabilities:supported,grantableCapabilities:grantable,serverApprovedCapabilities:[...(state.enrollment.approvedCapabilities||[])],localAllowedCapabilities:allowed,deniedCapabilities:denied,effectiveCapabilities:[...state.effectiveCapabilities],updatedAt:state.policy.localPolicyUpdatedAt};
 }
 function statusView(state=readState()){
   if(state)expireLocalHardLease(state);
   if(!state)return {ok:true,version:VERSION,platformAdapter:PLATFORM_ADAPTER.id,enrolled:false,deviceId:null,deviceName:os.hostname(),accountId:null,cloudDesiredConnected:false,cloudState:'dormant',connectionId:null,hardExpiresAt:null,reconnectGraceMs:null,connectionPlan:null,stateFile:STATE_FILE,localWallUrl:`http://${LOCAL_WALL_HOST}:${LOCAL_WALL_PORT}/`,deviceDuplex:deviceDuplexStatus(),executorReady:executorReadiness(),executorProbe:EXECUTOR_PROBE.status(),realRemoteLiveSessions:REAL_REMOTE_LIVE.size,update:updateStatusView()};
-  return {ok:true,version:VERSION,platformAdapter:PLATFORM_ADAPTER.id,enrolled:Boolean(state.enrollment?.deviceId),deviceId:state.enrollment?.deviceId||null,deviceName:state.enrollment?.displayName||os.hostname(),nodeId:state.enrollment?.nodeId||state.enrollment?.deviceId||null,accountId:state.enrollment?.accountId||null,pendingEnrollmentId:state.pendingEnrollment?.enrollmentId||null,publicKeySha256:state.identity?.publicKeySha256||null,policyProfile:state.enrollment?.policyProfile||state.pendingEnrollment?.requestedPolicy||null,localPolicyProfile:state.policy?.localProfile||((state.policy?.deniedCapabilities||[]).length?'custom':'full'),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),policyAuthority:isTrustedHostState(state)?'local-main':'server-and-local',grantableCapabilities:state.enrollment?.grantableCapabilities||state.enrollment?.approvedCapabilities||[],installedCapabilities:PLATFORM_ADAPTER.installedCapabilities?.()||[],approvedCapabilities:state.enrollment?.approvedCapabilities||[],deniedCapabilities:state.policy?.deniedCapabilities||[],effectiveCapabilities:state.effectiveCapabilities||[],draining:Boolean(state.routing?.draining),cloudDesiredConnected:cloudDesired(state),cloudState:state.cloud?.state||(cloudDesired(state)?'legacy-connected':'dormant'),connectionId:state.cloud?.connectionId||null,hardExpiresAt:state.cloud?.hardExpiresAt||null,reconnectGraceMs:state.cloud?.reconnectGraceMs||null,connectionPlan:state.cloud?.plan||null,lastCloudError:state.cloud?.lastError||null,lastHeartbeatAt:state.lastHeartbeatAt||null,stateFile:STATE_FILE,commandDir:COMMAND_DIR,localWallUrl:`http://${LOCAL_WALL_HOST}:${LOCAL_WALL_PORT}/`,privateKeyStoredLocally:Boolean(state.identity?.privateKey),deviceDuplex:deviceDuplexStatus(),executorReady:executorReadiness(),executorProbe:EXECUTOR_PROBE.status(),realRemoteLiveSessions:REAL_REMOTE_LIVE.size,update:updateStatusView()};
+  return {ok:true,version:VERSION,platformAdapter:PLATFORM_ADAPTER.id,enrolled:Boolean(state.enrollment?.deviceId),deviceId:state.enrollment?.deviceId||null,deviceName:state.enrollment?.displayName||os.hostname(),nodeId:state.enrollment?.nodeId||state.enrollment?.deviceId||null,accountId:state.enrollment?.accountId||null,pendingEnrollmentId:state.pendingEnrollment?.enrollmentId||null,publicKeySha256:state.identity?.publicKeySha256||null,policyProfile:state.enrollment?.policyProfile||state.pendingEnrollment?.requestedPolicy||null,localPolicyProfile:state.policy?.localProfile||((state.policy?.deniedCapabilities||[]).length?'custom':'full'),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),policyAuthority:isTrustedHostState(state)?'local-main':'server-and-local',grantableCapabilities:state.enrollment?.grantableCapabilities||state.enrollment?.approvedCapabilities||[],supportedCapabilities:discoverCapabilities(),installedCapabilities:PLATFORM_ADAPTER.installedCapabilities?.()||[],approvedCapabilities:state.enrollment?.approvedCapabilities||[],deniedCapabilities:state.policy?.deniedCapabilities||[],effectiveCapabilities:state.effectiveCapabilities||[],draining:Boolean(state.routing?.draining),cloudDesiredConnected:cloudDesired(state),cloudState:state.cloud?.state||(cloudDesired(state)?'legacy-connected':'dormant'),connectionId:state.cloud?.connectionId||null,hardExpiresAt:state.cloud?.hardExpiresAt||null,reconnectGraceMs:state.cloud?.reconnectGraceMs||null,connectionPlan:state.cloud?.plan||null,lastCloudError:state.cloud?.lastError||null,lastHeartbeatAt:state.lastHeartbeatAt||null,stateFile:STATE_FILE,commandDir:COMMAND_DIR,localWallUrl:`http://${LOCAL_WALL_HOST}:${LOCAL_WALL_PORT}/`,privateKeyStoredLocally:Boolean(state.identity?.privateKey),deviceDuplex:deviceDuplexStatus(),executorReady:executorReadiness(),executorProbe:EXECUTOR_PROBE.status(),realRemoteLiveSessions:REAL_REMOTE_LIVE.size,update:updateStatusView()};
 }
 async function daemon(args){
   const hub=args.hub||DEFAULT_HUB,base=args.base||DEFAULT_BASE;let state=readState()||{};
