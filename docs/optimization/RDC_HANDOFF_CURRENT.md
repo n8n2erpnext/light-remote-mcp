@@ -1,5 +1,8 @@
 # Current RDC → Light Remote Gold optimization handoff
 
+**LATEST 2026-10-22 — GOLD M6 SIGNED DEVICE CPU/RAM/AGENT I/O METRICS (SOURCE ONLY):** [Detailed M6 telemetry checkpoint](./RDC_GOLD_M6_SIGNED_DEVICE_TELEMETRY_20261022.md). Signed poll/pulse/duplex Agent measurements distinguish host CPU/RAM from Agent CPU/RSS/fs I/O operations; Linux process disk-byte delta optional. Owner-scoped bounded cache makes stale/unknown explicit after 90s, no unsafe claim release, no secrets. Fleet Wall Jobs shows per-device performance beside PG worker leases. New source tests, real ARM sampler and M6 regressions PASS. **NOT Gold UAT deployed or browser accepted**, migration 035 unapplied, Team/3+1 owner-paused. Continue matching Gold UAT release/backups after readiness; do not overstate real Windows/macOS validation.
+
+
 **LATEST 2026-10-22 — M6 NATIVE TERMINAL RECEIPT JOURNAL (WINDOWS/MAC SOURCE):** [Handoff, tests, physical gates](./RDC_GOLD_M6_NATIVE_TERMINAL_REPLAY_20261022.md). New `NativeTerminalReceiptSpool` on the enrolled device fsyncs only real NativeProcessRegistry terminal events and replays pending signed ACKs after Agent restart; no terminal recorded for unproven running process. Added to core-files release packaging. New Linux-backed cross-platform unit/real-process test PASS, prior Linux Supervisor/PG tests PASS. Windows test via Gold connector is **queued** (not claimed PASS); macOS physical pending. **Source only, not Gold UAT or production deployed.** Migration 035 remains unapplied, Team/3+1 UAT PAUSED.
 
 

@@ -122,6 +122,10 @@
       "destination": "lib/native-terminal-receipt-spool.mjs"
     },
     {
+      "source": "lib/device-resource-telemetry.mjs",
+      "destination": "lib/device-resource-telemetry.mjs"
+    },
+    {
       "source": "lib/native-search.mjs",
       "destination": "lib/native-search.mjs"
     },

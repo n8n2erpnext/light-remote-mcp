@@ -11,6 +11,7 @@ import { SessionRegistry, SessionError, SESSION_GRACE_PRESETS } from './session-
 import { personalCapacity } from './execution-capacity-policy.mjs';
 import { GoldPersonalAgentScheduler } from '../lib/gold-personal-agent-scheduler.mjs';
 import { GoldDeviceResourceLocks } from '../lib/gold-device-resource-locks.mjs';
+import { DeviceResourceSampleCache } from '../lib/device-resource-telemetry.mjs';
 import { deviceResourceIntent } from './device-resource-intent.mjs';
 import { usesPersonalAgentSlot } from './personal-agent-tool-admission.mjs';
 import { resolveExecMode } from './long-running-exec-policy.mjs';
@@ -1363,6 +1364,7 @@ async function dispatchFleetProcessStop({jobId,accountId,deviceIds}={}){
   terminalVerified:false,reason:'awaiting_device_terminal_receipt'};
 }
 
+const deviceResourceSampleCache=new DeviceResourceSampleCache();
 const routeDeps=()=>({
   ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,
   DEVICE_ID,DeviceAccessGrantError,DeviceConnectionError,DevicePairingRegistryError,EnrollmentError,
@@ -1374,7 +1376,7 @@ const routeDeps=()=>({
   connectionViewForDevice,connections,decryptEnvelope,deviceView,devices,
   emitStream,enrollments,finishJob,fleet,fleetAuthority,reconcileSignedTerminalProcessReceipts,
   fleetEligibility,fleetTarget,flushDiskRecords,fs,fullOutputFromDisk,
-  ingressTelemetry,jobView,jobs,goldJobs,deviceResourceLocks,cancelQueuedPersonalJob,requestFleetProcessStop,licenses,normalizeUpdateReport,
+  ingressTelemetry,jobView,jobs,goldJobs,deviceResourceLocks,deviceResourceSampleCache,cancelQueuedPersonalJob,requestFleetProcessStop,licenses,normalizeUpdateReport,
   pairingCodes,planEntitlements,pruneRing,pushEvent,queueHelperUpdate,
   queueSignedUpdate,readJson,reapAccessGrants,accountNotifications,realRemoteLive,recentEvents,redact,proTeams,teamSessions,requestTeamMemberApproval,operationalAccount,
   removeRuntimeForDevice,requireAccount,requireDeviceConnection,revokeRuntimeForDevice,ring,

@@ -36,6 +36,8 @@ on:
       - 'deploy/scripts/selftest-gold-m6-resource-metrics.mjs'
       - 'deploy/scripts/selftest-gold-m6-terminal-replay.mjs'
       - 'deploy/scripts/selftest-gold-m6-native-terminal-spool.mjs'
+      - 'deploy/scripts/selftest-gold-m6-device-telemetry.mjs'
+      - 'lib/device-resource-telemetry.mjs'
       - 'lib/native-terminal-receipt-spool.mjs'
       - 'lib/native-process.mjs'
       - 'lib/gold-device-resource-locks.mjs'
@@ -116,6 +118,8 @@ jobs:
           node deploy/scripts/selftest-gold-m6-terminal-replay.mjs
           node --check lib/native-terminal-receipt-spool.mjs
           node deploy/scripts/selftest-gold-m6-native-terminal-spool.mjs
+          node --check lib/device-resource-telemetry.mjs
+          node deploy/scripts/selftest-gold-m6-device-telemetry.mjs
           node deploy/scripts/selftest-v10-light-scp-file.mjs
           node deploy/scripts/selftest-v10-light-scp-owner.mjs
           node deploy/scripts/selftest-v10-light-scp-routing.mjs
