@@ -64,8 +64,11 @@ export class AccountOperatorAdapter{
     if(!grant||grant.accountId!==this.identity.accountId)throw Object.assign(new Error('pairing_account_mismatch'),{status:403});
     const prior=await this.clientRaw({required:false,touch:false});
     const attached=await callOperatorJson('POST','/v1/agent-client/attach',{clientSessionId:prior?.clientSessionId||null,agentId:this.agentId,grantId:grant.grantId,pairingRequestId:requestId});
-    const contextRow=await callOperatorJson('POST','/v1/agent-client/context',{clientSessionId:attached.client.clientSessionId,agentId:this.agentId,deviceId:attached.device.deviceId,workspace:'',gracePreset:'60m'});
-    return {state:'approved',client:attached.client,device:attached.device,context:cleanContext(contextRow.context),session:cleanSession(contextRow.session)};
+    // A/B approval attaches a device grant; it MUST NOT require a new
+    // execution session on that device. A Pro account may authorize four
+    // distinct OAuth clients while the device's two session slots are full.
+    // Opening a session is an independent, capacity-governed operation.
+    return {state:'approved',client:attached.client,device:attached.device,context:null,session:null};
   }
   async pairPoll({requestId,pollToken}={}){
     const row=await callOperatorJson('POST','/v1/device-access/poll',{requestId,pollToken}),access=row.access;
@@ -122,7 +125,7 @@ export class AccountOperatorAdapter{
   async connectionHelper(requestedGroup=null){
     const account=await this.accountRaw(),client=await this.clientRaw({required:false}),devices=client?await this.authorizedDeviceDetails():[],mainId=account.mainDeviceId||null,ready=devices.length>0,transient=!client&&await this.hasActiveSessionEvidence();
     let working=null;
-    if(ready){try{working=await this.workingContext({});}catch(error){if(error?.message!=='agent_client_temporarily_unavailable')throw error;}}
+    if(ready){try{working=await this.workingContext({});}catch(error){if(!['agent_client_temporarily_unavailable','target_node_draining','node_session_capacity_reached','account_session_capacity_reached','session_capacity_reached'].includes(String(error?.message||'')))throw error;}}
     const helper=ready?(requestedGroup?helperGroup(requestedGroup,working?.context||{}):helperOverview(working?.context||{})):null;
     const status=transient?'temporarily_unavailable':ready?'ready':'need_a_code';
     return {product:'Light Remote',status,purpose:'Governed remote computing for AI agents on explicitly authorized user-owned devices.',account:safeAccount(account),productCapabilities:[...PRODUCT_CAPABILITIES],onboarding:{nextAction:transient?'retry_same_helper_no_repair':ready?'use_working_context_and_helper_menu':'ask_owner_for_local_wall_a_code',retryable:transient||undefined,retryAfterMs:transient?1500:undefined,normalFlow:['Open the target device Local Wall and copy the one-time A code.','Call this helper with that A code to create the B approval request.','Show only the B code to the owner.','The owner enters B at that same Local Wall /approve and chooses Approve.','Call this helper again with the returned continuation. Only then is the device available to this plugin client.'],trustBoundary:'OAuth signs the user into the account, but it does not authorize a device. Every target device must be A/B-approved into this plugin client. The MCP cannot mint A or bypass Local Wall /approve.'},topology:devices.map(d=>({deviceId:d.deviceId,name:d.displayName||d.name||d.deviceId,role:d.deviceId===mainId?'main':'device',platform:d.platform,architecture:d.architecture,state:d.state,routing:safeRouting(d.routing||{}),effectiveCapabilities:[...(d.effectiveCapabilities||d.capabilities||[])]})),context:working?.context||null,session:working?.session||null,toolHelper:helper,governance:{explicitTargetRequired:true,silentFallback:false,localPolicyFinalDeny:true,credentialsMustRemainLocal:true,deviceAuthorization:'local-wall-a-b'}};
