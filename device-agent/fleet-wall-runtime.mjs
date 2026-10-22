@@ -133,7 +133,7 @@ async function start(){
       res.writeHead(303,{location:`/login?next=${encodeURIComponent(safeNext(req.url||'/'))}`,'cache-control':'no-store'});return res.end();
     }
     if(req.method==='GET'&&url.pathname==='/'){res.writeHead(200,pageHeaders());res.end(dashboardHtml({surface:'fleet',showLogout:Boolean(auth.enabled),csrfToken:auth.enabled?auth.csrfForRequest(req)||'':''}));return;}
-    if(req.method==='GET'&&url.pathname==='/jobs'){res.writeHead(200,pageHeaders());res.end(fleetJobPage());return;}
+    if(req.method==='GET'&&url.pathname==='/jobs'){res.writeHead(200,pageHeaders());res.end(fleetJobPage({csrfToken:auth.enabled?auth.csrfForRequest(req)||'':''}));return;}
     if(req.method==='GET'&&url.pathname==='/settings'){res.writeHead(200,pageHeaders());res.end(updateSettingsHtml({surface:'fleet',csrfToken:auth.enabled?auth.csrfForRequest(req)||'':'',brandHtml:brandMarkSvg(44)}));return;}
     if(req.method==='GET'&&url.pathname==='/device-policy'){
       const deviceId=String(url.searchParams.get('id')||'').trim();if(!/^[A-Za-z0-9._:-]{1,128}$/.test(deviceId))return json(res,400,{ok:false,error:'invalid_device_id'});
@@ -147,6 +147,13 @@ async function start(){
     const updateApi=url.pathname.match(/^\/api\/devices\/([A-Za-z0-9._:-]{1,128})\/maintenance\/update$/);
     if(req.method==='POST'&&updateApi){if(!mutationAllowed(req))return json(res,403,{ok:false,error:'csrf_invalid'});const value=await fleetCall('fleet-device-update',{deviceId:updateApi[1]});return json(res,200,value);}
     if(req.method==='POST'&&url.pathname==='/api/updates/all'){if(!mutationAllowed(req))return json(res,403,{ok:false,error:'csrf_invalid'});const value=await fleetCall('fleet-devices'),targets=(value.devices||[]).filter(d=>d.deviceId!==value.mainDeviceId&&d.state==='online'),results=[];for(const target of targets){try{const queued=await fleetCall('fleet-device-update',{deviceId:target.deviceId});results.push({deviceId:target.deviceId,nodeId:target.nodeId,status:'queued',jobId:queued.maintenance?.job?.jobId||null});}catch(error){results.push({deviceId:target.deviceId,nodeId:target.nodeId,status:'skipped',error:error.message});}}return json(res,200,{ok:true,queued:results.filter(x=>x.status==='queued').length,skipped:results.filter(x=>x.status!=='queued').length,results});}
+    if(req.method==='POST'&&url.pathname==='/api/jobs/cancel'){
+      if(!mutationAllowed(req))return json(res,403,{ok:false,error:'csrf_invalid'});
+      const data=await jsonBody(req),jobId=String(data.jobId||'');
+      if(!/^[a-f0-9-]{36}$/i.test(jobId))return json(res,400,{ok:false,error:'invalid_job_id'});
+      const value=await fleetCall('fleet-job-cancel',{jobId});
+      return json(res,200,value);
+    }
     if(req.method==='GET'&&url.pathname==='/api/jobs'){
       const limit=Math.max(1,Math.min(Number(url.searchParams.get('limit'))||100,200));
       const value=await fleetCall('fleet-jobs',{limit});

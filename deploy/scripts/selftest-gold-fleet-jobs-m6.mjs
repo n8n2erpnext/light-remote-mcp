@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import vm from 'node:vm';
+import {GoldPersonalAgentScheduler} from '../../lib/gold-personal-agent-scheduler.mjs';
 import {ownerFleetJobRows} from '../../operator-host/fleet-job-view.mjs';
 import {GoldJobLedger} from '../../lib/gold-job-ledger.mjs';
 import {fleetJobPage} from '../../device-agent/fleet-job-page.mjs';
@@ -34,6 +36,38 @@ assert.deepEqual(history.map(x=>x.status),['interrupted','queued']);
 assert.equal(history[1].queueReason,'QUEUED_AGENT_SLOT');
 assert.equal(history[1].jobRole,'process_launch');
 assert.equal(JSON.stringify(history).includes('password'),false);
+const signedHtml=fleetJobPage({csrfToken:'csrf_test_value'});
+assert.match(signedHtml,/x-light-remote-csrf/);
+assert.match(signedHtml,/csrf_test_value/);
+const browserJs=signedHtml.split('<script>')[1]?.split('</script>')[0];
+assert.ok(browserJs);
+new vm.Script(browserJs,{filename:'fleet-job-page.inline.js'});
+let rowState='queued',resourceClaim=false,transactionCommitted=false;
+const fakePool={async connect(){return{
+ async query(sql,args){
+  if(sql==='COMMIT'){transactionCommitted=true;return {rowCount:0};}
+  if(sql==='BEGIN'||sql==='ROLLBACK'||sql.startsWith('SELECT pg_advisory_xact_lock'))return {rowCount:0};
+  if(sql.startsWith('SELECT 1 FROM lr_gold_device_resource_claims'))return {rowCount:resourceClaim?1:0};
+  if(sql.includes("UPDATE lr_gold_personal_agent_work SET state='finished'")){
+   assert.equal(args[1],'owner');
+   if(rowState==='queued'){rowState='finished';return {rowCount:1};}
+   return {rowCount:0};
+  }
+  throw Error('unexpected_pg_query');
+ },
+ release(){}
+ };}};
+const cancel=new GoldPersonalAgentScheduler({pool:fakePool,resources:{}});
+assert.equal(await cancel.cancelQueued({jobId:'00000000-0000-4000-8000-000000000001',accountId:'owner'}),true);
+assert.equal(rowState,'finished');
+assert.equal(transactionCommitted,true);
+assert.equal(await cancel.cancelQueued({jobId:'00000000-0000-4000-8000-000000000001',accountId:'owner'}),false);
+rowState='queued';resourceClaim=true;
+await assert.rejects(()=>cancel.cancelQueued({jobId:'00000000-0000-4000-8000-000000000002',accountId:'owner'}),/m6_queued_job_has_resource_claim/);
+assert.equal(rowState,'queued');
+console.log('M6_OWNER_CANCEL_QUEUED_ONLY=PASS');
+console.log('M6_OWNER_CANCEL_RESOURCE_CLAIM_FAIL_CLOSED=PASS');
+console.log('M6_OWNER_CANCEL_BROWSER_JS_SYNTAX=PASS');
 console.log('M6_PG_DURABLE_OWNER_HISTORY=PASS');
 console.log('M6_OWNER_FLEET_JOB_ACCOUNT_SCOPE=PASS');
 console.log('M6_OWNER_FLEET_JOB_SAFE_PROJECTION=PASS');

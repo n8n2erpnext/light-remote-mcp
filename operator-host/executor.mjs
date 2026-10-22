@@ -527,7 +527,7 @@ function finishJob(job, exitCode, signal) {
   if(!job.telemetry.firstOutputAt)job.telemetry.firstOutputAt=job.firstOutputAt;
   job.exitCode = exitCode;
   job.signal = signal || null;
-  job.status = exitCode === 0 ? 'ok' : job.timedOut ? 'timeout' : 'error';
+  job.status = job.cancelled === true ? 'cancelled' : exitCode === 0 ? 'ok' : job.timedOut ? 'timeout' : 'error';
   flushOutputStates(job);
   if(job.managedExec&&job.resultData?.process?.processId&&job.exitCode===0)
     job.resultData={...job.resultData,executionMode:'background',
@@ -1295,6 +1295,23 @@ function verifiedLeafCapabilities(value,binding,reportedRevision=0) {
   return out;
 }
 
+async function cancelQueuedPersonalJob({jobId,accountId,deviceIds}={}){
+ if(!/^[a-f0-9-]{36}$/i.test(String(jobId||''))||!accountId||!(deviceIds instanceof Set))
+  throw Object.assign(Error('m6_invalid_job_scope'),{status:400});
+ const job=jobs.get(jobId);
+ if(!job||job.accountId!==accountId||!deviceIds.has(job.deviceId))
+  throw Object.assign(Error('fleet_job_not_found'),{status:404});
+ if(!personalAgentScheduler||!job.personalScheduled||job.finishedAt||!pendingForegroundExec.has(jobId))
+  throw Object.assign(Error('fleet_job_not_queued'),{status:409});
+ const cancelled=await personalAgentScheduler.cancelQueued({jobId,accountId});
+ if(!cancelled)throw Object.assign(Error('fleet_job_already_admitted_or_finished'),{status:409});
+ job.cancelled=true;
+ job.resultData={ok:false,error:'cancelled_before_dispatch'};
+ job.resultSummary='cancelled_before_dispatch';
+ finishJob(job,130,null);
+ return {ok:true,jobId,state:'cancelled',reason:'cancelled_before_dispatch'};
+}
+
 const routeDeps=()=>({
   ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,
   DEVICE_ID,DeviceAccessGrantError,DeviceConnectionError,DevicePairingRegistryError,EnrollmentError,
@@ -1306,7 +1323,7 @@ const routeDeps=()=>({
   connectionViewForDevice,connections,decryptEnvelope,deviceView,devices,
   emitStream,enrollments,finishJob,fleet,fleetAuthority,reconcileSignedTerminalProcessReceipts,
   fleetEligibility,fleetTarget,flushDiskRecords,fs,fullOutputFromDisk,
-  ingressTelemetry,jobView,jobs,goldJobs,licenses,normalizeUpdateReport,
+  ingressTelemetry,jobView,jobs,goldJobs,cancelQueuedPersonalJob,licenses,normalizeUpdateReport,
   pairingCodes,planEntitlements,pruneRing,pushEvent,queueHelperUpdate,
   queueSignedUpdate,readJson,reapAccessGrants,accountNotifications,realRemoteLive,recentEvents,redact,proTeams,teamSessions,requestTeamMemberApproval,operationalAccount,
   removeRuntimeForDevice,requireAccount,requireDeviceConnection,revokeRuntimeForDevice,ring,

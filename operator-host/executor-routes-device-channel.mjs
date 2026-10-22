@@ -4,7 +4,7 @@ import { ownerFleetJobRows } from './fleet-job-view.mjs';
 
 
 export async function handleDeviceChannelRoutes(req,res,url,deps){
-  const {ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,DeviceAccessGrantError,DevicePairingRegistryError,EnrollmentError,FleetAuthorityError,FleetError,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,MIN_SUPPORTED_CLIENT_VERSION,NODE_ID,VERSION,abandonedCommandReceiptFromDisk,accessGrants,accounts,agentClients,allDeviceViews,applyDeviceTelemetry,capabilities,clientCompatibility,connectionSpec,connections,deviceView,devices,emitStream,enrollments,finishJob,fleet,fleetAuthority,fleetEligibility,fleetTarget,jobView,jobs,goldJobs,reconcileSignedTerminalProcessReceipts,normalizeUpdateReport,pairingCodes,planEntitlements,pushEvent,queueHelperUpdate,readJson,reapAccessGrants,realRemoteLive,recentEvents,requireDeviceConnection,sendJson,sessions,targetRoute,terminalResultSummary,verifiedChannelContext,verifiedFleetContext,verifiedLeafCapabilities}=deps;
+  const {ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,DeviceAccessGrantError,DevicePairingRegistryError,EnrollmentError,FleetAuthorityError,FleetError,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,MIN_SUPPORTED_CLIENT_VERSION,NODE_ID,VERSION,abandonedCommandReceiptFromDisk,accessGrants,accounts,agentClients,allDeviceViews,applyDeviceTelemetry,capabilities,clientCompatibility,connectionSpec,connections,deviceView,devices,emitStream,enrollments,finishJob,fleet,fleetAuthority,fleetEligibility,fleetTarget,jobView,jobs,goldJobs,cancelQueuedPersonalJob,reconcileSignedTerminalProcessReceipts,normalizeUpdateReport,pairingCodes,planEntitlements,pushEvent,queueHelperUpdate,readJson,reapAccessGrants,realRemoteLive,recentEvents,requireDeviceConnection,sendJson,sessions,targetRoute,terminalResultSummary,verifiedChannelContext,verifiedFleetContext,verifiedLeafCapabilities}=deps;
   const acceptDesktopLivePush=(ctx,payload=ctx.payload)=>{
     requireDeviceConnection(ctx.device.deviceId);
     const session=sessions.ensure(String(payload.sessionId||''),{agentId:String(payload.agentId||'')});
@@ -265,6 +265,15 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       const rows=[...merged.values()].sort((a,b)=>(Number(b.startedAt)||0)-(Number(a.startedAt)||0))
         .slice(0,limit).map(j=>({...j,deviceName:names.get(j.deviceId)||j.deviceId}));
       return sendJson(res,200,{ok:true,mainDeviceId:ctx.account.mainDeviceId,jobs:rows});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/device-channel/fleet-job-cancel') {
+      const body=await readJson(req);
+      const ctx=verifiedFleetContext(await verifiedChannelContext(body,'fleet-job-cancel'));
+      const devices=allDeviceViews().filter(v=>v.accountId===ctx.account.accountId&&v.state!=='revoked');
+      const allowed=new Set(devices.map(v=>v.deviceId));
+      const jobId=String(ctx.payload.jobId||'');
+      const cancelled=await cancelQueuedPersonalJob({jobId,accountId:ctx.account.accountId,deviceIds:allowed});
+      return sendJson(res,200,cancelled);
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/fleet-activity') {
       const body=await readJson(req),ctx=verifiedFleetContext(await verifiedChannelContext(body,'fleet-activity')),owned=new Set(allDeviceViews().filter(device=>device.accountId===ctx.account.accountId&&device.state!=='revoked').map(device=>device.deviceId)),limit=Math.max(1,Math.min(Number(ctx.payload.limit)||500,5000));

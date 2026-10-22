@@ -1,5 +1,8 @@
 # Current RDC → Light Remote Gold optimization handoff
 
+**LATEST 2026-10-22 — M6 OWNER QUEUED-ONLY CANCEL SOURCE (NO TEAM/3+1 TESTS):** [Exact auth, signed Fleet route, CSRF, atomic PostgreSQL M3 queued cancellation, no OS worker claim release, source unit gates and missing physical acceptance](./RDC_GOLD_M6_OWNER_QUEUED_CANCEL_20261022.md). Fleet Wall now has owner-confirmed **Cancel queued** for undispatched jobs only; running process Stop/Force remains device Local Wall. Source/test only, **not Gold UAT/production deployed**. No billing/Team/multi-user work resumed; next safe gate is isolated owner single-job UAT when eligible without interrupting sessions.
+
+
 **LATEST 2026-10-22 — OWNER PAUSED PHYSICAL TEAM/3+1 UAT; RETURNED TO M PLAN M6 SOURCE:** Real owner approvals A/B/C/D preserved, Pro Team cross-account OFF, no more multiple-user/3+1 tests until devices/people ready. Temporary Linux Local Wall VPN bridge stopped and port 55491 verified closed. First M6 source-only feature adds signed owner-scoped Fleet Wall Jobs & Queue overview (read-only), safe job projection, CI test; **not deployed to Gold UAT/production and not physical M6 acceptance**. See [M6 first slice](./RDC_GOLD_M6_FLEET_JOBS_FIRST_SLICE_20261022.md). Continue M6 durable history/owner-scoped safe job management; don't resume Team test without owner.
 
 
