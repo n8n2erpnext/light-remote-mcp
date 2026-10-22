@@ -154,6 +154,13 @@ async function start(){
       const value=await fleetCall('fleet-job-cancel',{jobId});
       return json(res,200,value);
     }
+    if(req.method==='POST'&&url.pathname==='/api/jobs/stop'){
+      if(!mutationAllowed(req))return json(res,403,{ok:false,error:'csrf_invalid'});
+      const data=await jsonBody(req),jobId=String(data.jobId||'');
+      if(!/^[a-f0-9-]{36}$/i.test(jobId))return json(res,400,{ok:false,error:'invalid_job_id'});
+      const value=await fleetCall('fleet-process-stop',{jobId});
+      return json(res,202,value);
+    }
     if(req.method==='GET'&&url.pathname==='/api/jobs'){
       const limit=Math.max(1,Math.min(Number(url.searchParams.get('limit'))||100,200));
       const value=await fleetCall('fleet-jobs',{limit});

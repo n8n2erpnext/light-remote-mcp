@@ -1312,6 +1312,54 @@ async function cancelQueuedPersonalJob({jobId,accountId,deviceIds}={}){
  return {ok:true,jobId,state:'cancelled',reason:'cancelled_before_dispatch'};
 }
 
+// Fleet owner Stop requests reuse the original process owner principal.
+ // Accepted means dispatched only; final OS termination is recorded separately
+ // by a verified device process receipt. Never free a worker claim here.
+const fleetStopDispatching=new Set();
+async function requestFleetProcessStop(args={}){
+ const key=String(args.jobId||'');
+ if(fleetStopDispatching.has(key))
+  throw new FleetAuthorityError('fleet_process_stop_dispatch_in_progress',409);
+ fleetStopDispatching.add(key);
+ try{return await dispatchFleetProcessStop(args);}
+ finally{fleetStopDispatching.delete(key);}
+}
+async function dispatchFleetProcessStop({jobId,accountId,deviceIds}={}){
+ if(!/^[a-f0-9-]{36}$/i.test(String(jobId||''))||!accountId||!(deviceIds instanceof Set))
+  throw new FleetAuthorityError('fleet_invalid_process_job',400);
+ const launch=jobs.get(jobId);
+ if(!launch||launch.accountId!==accountId||!deviceIds.has(launch.deviceId))
+  throw new FleetAuthorityError('fleet_process_job_not_found',404);
+ if(!launch.finishedAt||launch.exitCode!==0||launch.managedExec!==true||
+    String(launch.note||'')!=='native-process:start')
+  throw new FleetAuthorityError('fleet_process_launch_not_verified',409);
+ if(!deviceResourceLocks)throw new FleetAuthorityError('fleet_process_lease_unavailable',409);
+ const claim=await goldStorage.pool.query(
+  "SELECT process_id FROM lr_gold_device_resource_claims WHERE job_id=$1 AND account_id=$2 AND device_id=$3 AND worker_state='running' LIMIT 1",
+  [jobId,accountId,launch.deviceId]);
+ const processId=String(claim.rows?.[0]?.process_id||'');
+ if(!/^lp_[A-Za-z0-9_-]{20,80}$/.test(processId))
+  throw new FleetAuthorityError('fleet_process_not_running_or_unverified',409);
+ // The original signed Agent's session must still be authorized for its node.
+ // Never mint or impersonate a new Agent or bypass its session policy.
+ const session=sessions.ensure(launch.sessionId,{agentId:launch.agentId});
+ if(session.accountId!==accountId||session.deviceId!==launch.deviceId||session.nodeId!==launch.nodeId)
+  throw new FleetAuthorityError('fleet_process_session_mismatch',403);
+ if(launch.fleetStopRequested)throw new FleetAuthorityError('fleet_process_stop_already_requested',409);
+ const stopJob=await startProcessOperation({
+  operationId:crypto.randomUUID(),agentId:launch.agentId,
+  sessionId:launch.sessionId,nodeId:launch.nodeId,
+  process:{op:'stop',processId,force:false}
+ },crypto.randomUUID());
+ launch.fleetStopRequested=true;
+ launch.fleetStopJobId=stopJob.id;
+ launch.fleetStopProcessId=processId;
+ pushEvent({type:'fleet_owner_process_stop_requested',accountId,deviceId:launch.deviceId,
+  jobId,stopJobId:stopJob.id,status:'requested'});
+ return {ok:true,jobId,stopJobId:stopJob.id,state:'stop_requested',
+  terminalVerified:false,reason:'awaiting_device_terminal_receipt'};
+}
+
 const routeDeps=()=>({
   ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,
   DEVICE_ID,DeviceAccessGrantError,DeviceConnectionError,DevicePairingRegistryError,EnrollmentError,
@@ -1323,7 +1371,7 @@ const routeDeps=()=>({
   connectionViewForDevice,connections,decryptEnvelope,deviceView,devices,
   emitStream,enrollments,finishJob,fleet,fleetAuthority,reconcileSignedTerminalProcessReceipts,
   fleetEligibility,fleetTarget,flushDiskRecords,fs,fullOutputFromDisk,
-  ingressTelemetry,jobView,jobs,goldJobs,cancelQueuedPersonalJob,licenses,normalizeUpdateReport,
+  ingressTelemetry,jobView,jobs,goldJobs,cancelQueuedPersonalJob,requestFleetProcessStop,licenses,normalizeUpdateReport,
   pairingCodes,planEntitlements,pruneRing,pushEvent,queueHelperUpdate,
   queueSignedUpdate,readJson,reapAccessGrants,accountNotifications,realRemoteLive,recentEvents,redact,proTeams,teamSessions,requestTeamMemberApproval,operationalAccount,
   removeRuntimeForDevice,requireAccount,requireDeviceConnection,revokeRuntimeForDevice,ring,

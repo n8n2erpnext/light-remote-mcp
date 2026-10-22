@@ -1,5 +1,8 @@
 # Current RDC → Light Remote Gold optimization handoff
 
+**LATEST 2026-10-22 — M6 FLEET MANAGED PROCESS GRACEFUL STOP SOURCE:** [Owner-signed Fleet → verified Agent's original session → canonical PG lease → device-native graceful Stop request; HTTP 202 REQUESTED only, no early worker release; focused source tests](./RDC_GOLD_M6_FLEET_MANAGED_PROCESS_STOP_20261022.md). Requires owner login+CSRF, main Fleet authority, retained managed process launch and valid original Agent session. Background lease released only on signed terminal receipt. Physical Gold UAT/browser/restart acceptance still **PENDING**, no runtime promotion, no Team/3+1 tests.
+
+
 **LATEST 2026-10-22 — M6 OWNER QUEUED-ONLY CANCEL SOURCE (NO TEAM/3+1 TESTS):** [Exact auth, signed Fleet route, CSRF, atomic PostgreSQL M3 queued cancellation, no OS worker claim release, source unit gates and missing physical acceptance](./RDC_GOLD_M6_OWNER_QUEUED_CANCEL_20261022.md). Fleet Wall now has owner-confirmed **Cancel queued** for undispatched jobs only; running process Stop/Force remains device Local Wall. Source/test only, **not Gold UAT/production deployed**. No billing/Team/multi-user work resumed; next safe gate is isolated owner single-job UAT when eligible without interrupting sessions.
 
 
