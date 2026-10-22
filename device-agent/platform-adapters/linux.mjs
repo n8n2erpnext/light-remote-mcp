@@ -7,9 +7,19 @@ import { inferCapabilities, uniqueCapabilities } from './shared.mjs';
 // This affects ONLY capability classification; original script is untouched.
 function classificationInput(script) {
   const input=String(script||'');
+  // A *single*, literal installation of one named infrastructure runtime is
+  // governed by that runtime's owner toggle, even before it exists on disk.
+  // This grants no arbitrary package or sudo command. Shell operators, variable
+  // expansion, extra packages and alternate installer flags fall through to
+  // the separately controlled package-manager/sudo capabilities.
+  const install=/^[ \t]*(?:(?:\/usr\/bin\/)?sudo[ \t]+(?:-n[ \t]+)?)?(?:\/usr\/bin\/)?(?:apt|apt-get|snap)[ \t]+install[ \t]+(?:(?:-y|--yes|--classic)[ \t]+)?(lxd|incus|podman|docker|docker\.io|docker-ce)(?:[ \t]+--classic)?[ \t]*$/i.exec(input);
+  if(install){
+    const name=install[1].toLowerCase();
+    return name.startsWith('docker')?'docker':name;
+  }
   // Exact read-only shell probes are not Docker operations. Chaining,
   // substitution, quoting or arguments beyond the command name fall through.
-  if(/^[ \\t]*(?:command[ \\t]+-v|type[ \\t]+-P|which)[ \\t]+docker[ \\t]*$/i.test(input))return 'lr_readonly_executable_probe';
+  if(/^[ \t]*(?:command[ \t]+-v|type[ \t]+-P|which)[ \t]+(?:docker|docker-compose|lxd|lxc|podman|incus|kubectl|helm|virsh|nft|iptables|ip6tables|snap|apt|apt-get)[ \t]*$/i.test(input))return 'lr_readonly_executable_probe';
   // A literal journalctl unit selector is diagnostic data, not the Docker
   // executable. Permit only one complete read-only invocation and the
   // whitelisted output/length flags. No quoting, expansions or shell chaining.
@@ -37,24 +47,33 @@ const RULES=[
   ['lxd',/(^|[;&|\s"'`])(?:\/(?:usr\/)?(?:local\/)?s?bin\/)?(lxc|lxd)(?=\s|$|["'`;|&])/i],
   ['systemctl',/(^|[;&|\s])(systemctl|journalctl)(\s|$)/i],
   ['sudo-on-demand',/(^|[;&|\s])sudo(\s|$)/i],
-  ['package-manager',/(^|[;&|\s])(apt|apt-get|apt-cache|dnf|yum|pacman|apk|zypper)(\s|$)/i],
-  ['build-test',/(^|[;&|\s])(node|npm|npx|pnpm|yarn|python3?|pip3?|cargo|rustc|make|cmake)(\s|$)/i]
+  ['package-manager',/(^|[;&|\s])(apt|apt-get|apt-cache|dnf|yum|pacman|apk|zypper|snap|flatpak|rpm|dpkg|dpkg-query)(\s|$)/i],
+  ['build-test',/(^|[;&|\s])(node|npm|npx|pnpm|yarn|python3?|pip3?|cargo|rustc|make|cmake)(\s|$)/i],
+  ['podman',/(^|[();&|\s"'`])(podman|buildah|skopeo)(?=\s|$|[)"'`;|&])/i],
+  ['incus',/(^|[();&|\s"'`])incus(?=\s|$|[)"'`;|&])/i],
+  ['kubernetes',/(^|[();&|\s"'`])(kubectl|helm|k3s|kubeadm|microk8s|kind)(?=\s|$|[)"'`;|&])/i],
+  ['virtualization',/(^|[();&|\s"'`])(virsh|virt-install|qemu-system-[\w-]+|qm|pct|pvesh)(?=\s|$|[)"'`;|&])/i],
+  ['network-admin',/(^|[();&|\s"'`])(ip|nmcli|netplan|wg|wg-quick|ethtool|bridge|tc)(?=\s|$|[)"'`;|&])/i],
+  ['firewall',/(^|[();&|\s"'`])(nft|iptables|ip6tables|ufw|firewall-cmd|ipset|bpftool)(?=\s|$|[)"'`;|&])/i],
+  ['infra-provisioning',/(^|[();&|\s"'`])(terraform|tofu|ansible|ansible-playbook|packer|pulumi|vagrant|nomad|consul)(?=\s|$|[)"'`;|&])/i],
+  ['storage-admin',/(^|[();&|\s"'`])(lsblk|mount|umount|fdisk|sfdisk|parted|lvcreate|vgcreate|pvcreate|zpool|zfs|mdadm|cryptsetup|mkfs(?:\.[\w-]+)?)(?=\s|$|[)"'`;|&])/i]
 ];
 
 export function createLinuxAdapter({commandExists}) {
   return {
     id:'linux',
     displayName:'Linux shell adapter',
-    discoverCapabilities() {
+    // Owner rights are OS capabilities; binary installation is separate telemetry.
+    discoverCapabilities(){return uniqueCapabilities(['filesystem','git','build-test','terminal','docker','lxd','podman','incus','kubernetes','virtualization','network-admin','firewall','storage-admin','infra-provisioning','systemctl','sudo-on-demand','package-manager']);},
+    installedCapabilities() {
       const caps=['filesystem'];
-      if(commandExists('git'))caps.push('git');
-      if(['node','python3','cargo'].some(commandExists))caps.push('build-test');
-      if(['bash','zsh','sh'].some(commandExists))caps.push('terminal');
-      if(commandExists('docker'))caps.push('docker');
-      if(commandExists('lxc'))caps.push('lxd');
-      if(commandExists('systemctl'))caps.push('systemctl');
-      if(commandExists('sudo'))caps.push('sudo-on-demand');
-      if(['apt','apt-get','dnf','yum','pacman','apk','zypper'].some(commandExists))caps.push('package-manager');
+      const test=(cap,names)=>{if(names.some(commandExists))caps.push(cap);};
+      test('git',['git']);test('build-test',['node','python3','cargo']);test('terminal',['bash','zsh','sh']);
+      test('docker',['docker']);test('lxd',['lxc','lxd']);test('podman',['podman']);test('incus',['incus']);
+      test('kubernetes',['kubectl','helm','k3s','microk8s']);test('virtualization',['virsh','qm','qemu-system-x86_64']);
+      test('network-admin',['ip','nmcli','netplan']);test('firewall',['nft','iptables','ufw','firewall-cmd']);
+      test('storage-admin',['lsblk','mount','zpool']);test('infra-provisioning',['terraform','tofu','ansible','pulumi']);test('systemctl',['systemctl']);
+      test('sudo-on-demand',['sudo']);test('package-manager',['apt','apt-get','dnf','yum','snap','pacman','apk','zypper']);
       return uniqueCapabilities(caps);
     },
     inferRequiredCapabilities(script) {

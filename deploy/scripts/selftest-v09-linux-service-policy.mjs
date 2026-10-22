@@ -11,8 +11,14 @@ const enabled=linuxServicePolicy({enrollment:{grantableCapabilities:['filesystem
 expect(enabled.sudoGrantable===true,'grantable_sudo_missing');
 expect(enabled.noNewPrivileges===false&&enabled.restrictSuidSgid===false&&enabled.clearCapabilityBoundingSet===false,'grantable_sudo_hardening_not_relaxed');
 const webDisabled=linuxServicePolicy({enrollment:{grantableCapabilities:['filesystem','sudo-on-demand'],approvedCapabilities:['filesystem']},policy:{deniedCapabilities:[]}});
-expect(webDisabled.sudoGrantable===true,'web_disable_must_not_remove_future_grantability');
-expect(webDisabled.noNewPrivileges===false&&webDisabled.restrictSuidSgid===false&&webDisabled.clearCapabilityBoundingSet===false,'web_toggle_must_not_require_service_reinstall');
+expect(webDisabled.sudoGrantable===false,'unapproved_sudo_must_not_relax_systemd');
+expect(webDisabled.noNewPrivileges===true&&webDisabled.restrictSuidSgid===true&&webDisabled.clearCapabilityBoundingSet===true,'server_unapproved_sudo_must_stay_hardened');
+const catalogOnly=linuxServicePolicy({enrollment:{grantableCapabilities:['filesystem','sudo-on-demand'],approvedCapabilities:['filesystem']}});
+expect(catalogOnly.noNewPrivileges===true,'catalog_only_sudo_must_not_enable_setuid');
+const trustedOff=linuxServicePolicy({enrollment:{enrollmentId:'trusted-host',grantableCapabilities:['filesystem','sudo-on-demand']},policy:{deniedCapabilities:['sudo-on-demand']}});
+expect(trustedOff.noNewPrivileges===true,'trusted_main_sudo_off_must_remain_hardened');
+const trustedOn=linuxServicePolicy({enrollment:{enrollmentId:'trusted-host',grantableCapabilities:['filesystem','sudo-on-demand']},policy:{deniedCapabilities:[]}});
+expect(trustedOn.noNewPrivileges===false,'trusted_main_sudo_on_requires_owner_optin');
 const legacy=linuxServicePolicy({enrollment:{approvedCapabilities:['filesystem','sudo-on-demand']}});
 expect(legacy.sudoGrantable===true,'legacy_approved_sudo_fallback_missing');
 const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'lrm-linux-policy-'));
@@ -20,7 +26,7 @@ const helperReal=new URL('../../device-agent/linux-service-policy.mjs',import.me
 const helperLink=path.join(tmp,'linux-service-policy.mjs');
 const stateFile=path.join(tmp,'device.json');
 fs.symlinkSync(helperReal,helperLink);
-fs.writeFileSync(stateFile,JSON.stringify({enrollment:{grantableCapabilities:['filesystem','sudo-on-demand']}}));
+fs.writeFileSync(stateFile,JSON.stringify({enrollment:{grantableCapabilities:['filesystem','sudo-on-demand'],approvedCapabilities:['filesystem','sudo-on-demand']}}));
 const cli=spawnSync(process.execPath,[helperLink,stateFile,'noNewPrivileges'],{encoding:'utf8'});
 expect(cli.status===0&&cli.stdout==='false','symlink_cli_policy_output_failed');
 fs.rmSync(tmp,{recursive:true,force:true});
@@ -40,4 +46,4 @@ for(const p of ['/','/etc','/usr','/var/lib']){let denied=false;try{validateLinu
 for(const script of [installer,packagedInstaller]){expect(script.includes('--host-write-path')&&script.includes('--acknowledge-host-write-risk')&&script.includes('--clear-host-write-paths'),'scoped_host_write_cli_missing');expect(script.includes('host-write-paths.list')&&script.includes('$HOST_WRITE_VALIDATED'),'scoped_host_write_retention_missing');}
 console.log('v09-linux-host-write-scoped-opt-in=PASS');
 console.log('v09-linux-service-policy=PASS');
-console.log('v09-linux-web-sudo-toggle-no-reinstall=PASS');
+console.log('v09-linux-sudo-server-approval-and-main-local-policy=PASS');

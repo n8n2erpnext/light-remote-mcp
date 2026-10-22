@@ -31,8 +31,14 @@ export function validateLinuxHostWritePaths(paths=[],{filesystem=fs}={}){
 }
 
 export function linuxServicePolicy(state = {}) {
-  const grantable = new Set(state?.enrollment?.grantableCapabilities || state?.enrollment?.approvedCapabilities || []);
-  const sudoGrantable = grantable.has('sudo-on-demand');
+  // OS-supported capabilities must not relax systemd's sandbox by themselves.
+  // Leaf requires explicit server approval; trusted Main requires local ON.
+  const enrollment=state?.enrollment||{};
+  const serverApproved=new Set(enrollment.approvedCapabilities||[]);
+  const main=enrollment.enrollmentId==='trusted-host';
+  const mainGrantable=new Set(enrollment.grantableCapabilities||enrollment.approvedCapabilities||[]);
+  const localDenied=new Set(state?.policy?.deniedCapabilities||[]);
+  const sudoGrantable=main ? (mainGrantable.has('sudo-on-demand')&&!localDenied.has('sudo-on-demand')) : serverApproved.has('sudo-on-demand');
   return {
     sudoGrantable,
     noNewPrivileges: !sudoGrantable,

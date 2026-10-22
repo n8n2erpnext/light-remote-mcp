@@ -1121,8 +1121,9 @@ function activeAccount(accountId=ACCOUNT_ID){try{return accounts.account(account
 function operationalAccount(accountId=ACCOUNT_ID){try{return accounts.assertOperational(accountId);}catch(error){if(error?.message==='account_not_found'&&String(accountId)===String(ACCOUNT_ID))return {accountId,plan:ACCOUNT_PLAN,entitlement:{plan:ACCOUNT_PLAN,source:'environment',validUntil:null},status:'active'};throw error;}}
 function activeAccountPlan(accountId=ACCOUNT_ID){return String(activeAccount(accountId).plan||ACCOUNT_PLAN).toLowerCase();}
 function hostEffectiveCapabilities(){
-  try{const state=JSON.parse(fs.readFileSync(HOST_COMPANION_STATE_FILE,'utf8')),allowed=Array.isArray(state.effectiveCapabilities)?state.effectiveCapabilities:HOST_CAPABILITIES;return HOST_CAPABILITIES.filter(cap=>allowed.includes(cap));}
-  catch{return [...HOST_CAPABILITIES];}
+  try{const state=JSON.parse(fs.readFileSync(HOST_COMPANION_STATE_FILE,'utf8')),allowed=Array.isArray(state.effectiveCapabilities)?state.effectiveCapabilities:[];return HOST_CAPABILITIES.filter(cap=>allowed.includes(cap));}
+  // Missing/corrupt local policy must never enable the full OS capability catalog.
+  catch{return [];}
 }
 const PLAN_FEATURES=Object.freeze({free:{fleetWall:false,multiDeviceConsole:false,toolCallLimit:10_000},pro:{fleetWall:true,multiDeviceConsole:true,toolCallLimit:null},vip:{fleetWall:true,multiDeviceConsole:true,toolCallLimit:null}});
 function planEntitlements(input){const account=typeof input==='object'&&input?input:null,key=String(account?.plan||input||'free').toLowerCase(),capMs=DEFAULT_PLAN_CONNECTION_CAPS[key]||DEFAULT_PLAN_CONNECTION_CAPS.free,validUntil=account?.entitlement?.validUntil??null,features=PLAN_FEATURES[key]||PLAN_FEATURES.free;return {plan:key,connectionLeaseMs:capMs,connectionLeaseHours:capMs/3600000,fleetWall:Boolean(features.fleetWall),multiDeviceConsole:Boolean(features.multiDeviceConsole),usageMetering:true,toolCallLimit:features.toolCallLimit==null?null:Number(features.toolCallLimit),toolCallsUnlimited:features.toolCallLimit==null,singleCodebase:true,...(SCOPED_SESSION_LIMITS?{sessionLimit:personalCapacity(key).sessionLimit,agentConcurrencyTarget:personalCapacity(key).agentConcurrencyLimit}:{}),validUntil,source:account?.entitlement?.source||null};}
