@@ -14,7 +14,7 @@ const digest=v=>crypto.createHash('sha256').update(v).digest('base64url');
 const random=()=>crypto.randomBytes(24).toString('base64url');
 const htmlEscape=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function respond(res,status,body,contentType='text/html; charset=utf-8'){
-  res.writeHead(status,{'content-type':contentType,'cache-control':'no-store','referrer-policy':'no-referrer','x-content-type-options':'nosniff','content-security-policy':"default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none';"});
+  res.writeHead(status,{'content-type':contentType,'cache-control':'no-store','referrer-policy':'same-origin','x-content-type-options':'nosniff','content-security-policy':"default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none';"});
   res.end(body);
 }
 const redirect=res=>{res.writeHead(303,{location:'/', 'cache-control':'no-store'});res.end();};
@@ -38,7 +38,7 @@ function view(){
  slots.map((s,i)=>'<section><h2>Client '+s.label+' — '+htmlEscape(s.stage)+'</h2><p>'+htmlEscape(s.error||'')+'</p>'+
   (s.stage==='new'?form('/start',i,'Register and authorize '+s.label):'')+
   (s.stage==='authorize'?'<p><a target="_blank" rel="noreferrer" href="'+htmlEscape(s.authorizeUrl)+'">Authorize client '+s.label+' on Gold</a></p>':'')+
-  (s.stage==='oauth-approved'?'<p>OAuth approved. Enter a fresh Local Wall A code from an authorized Gold UAT device:</p>'+form('/pair',i,'Request Local Wall B code','<input name="aCode" autocomplete="off" pattern="[A-Za-z2-9-]{8,9}" required placeholder="XXXX-XXXX">'):'')+
+  (s.stage==='oauth-approved'?'<p>OAuth approved. Authorize this MCP client to access an already-enrolled Gold device: copy the Local Wall MCP access A code. New device enrollment instead uses Account → Add a device with a Device Code, not this step.</p>'+form('/mcp-access',i,'Request MCP access approval code B','<input name="aCode" autocomplete="off" pattern="[A-Za-z2-9-]{8,9}" required placeholder="XXXX-XXXX">'):'')+
   (s.stage==='approval-required'?'<p>Local Wall B code: <strong><code>'+htmlEscape(s.bCode)+'</code></strong>. Enter B on the same Gold device Local Wall /approve, choose Approve, then:</p>'+form('/resume',i,'Check owner approval'):'')+
   (s.stage==='ready'?'<p>OAuth + device approval ready. Gold-visible devices: '+htmlEscape(s.devices.map(d=>d.name||d.deviceId).join(', '))+'.</p>':'')+
   '</section>').join('')+
@@ -174,7 +174,7 @@ const server=http.createServer(async(req,res)=>{
  try{
   if(req.method==='GET'&&u.pathname==='/'){respond(res,200,view());return;}
   if(req.method==='GET'&&u.pathname==='/callback'){await callback(u);redirect(res);return;}
-  if(req.method!=='POST'||!['/start','/pair','/resume','/stop','/test'].includes(u.pathname)){respond(res,404,'Not found','text/plain');return;}
+  if(req.method!=='POST'||!['/start','/mcp-access','/resume','/stop','/test'].includes(u.pathname)){respond(res,404,'Not found','text/plain');return;}
   const localOrigin=String(req.headers.origin||'');
   if(localOrigin&&localOrigin!==baseUrl)throw Error('origin_mismatch');
   const body=await parseBody(req);if(body.get('csrf')!==csrf)throw Error('csrf_mismatch');
@@ -187,7 +187,7 @@ const server=http.createServer(async(req,res)=>{
   }
   const i=Number(body.get('i'));if(!Number.isInteger(i)||i<0||i>=4)throw Error('invalid_client_index');
   if(u.pathname==='/start')await begin(i);
-  if(u.pathname==='/pair')await pair(i,String(body.get('aCode')||'').trim());
+  if(u.pathname==='/mcp-access')await pair(i,String(body.get('aCode')||'').trim());
   if(u.pathname==='/resume')await resume(i);
   redirect(res);
  }catch(e){

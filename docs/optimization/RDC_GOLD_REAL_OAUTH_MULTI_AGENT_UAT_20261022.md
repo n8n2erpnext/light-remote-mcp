@@ -23,6 +23,11 @@
 - Once four clients have independent approvals for actual Gold devices, the harness can submit bounded foreground 22-second print/sleep commands to approved devices, observe A/B/C overlap and D queued/completes. **PG account_id/agent_id/operation_id/queue_reason and signed terminal receipts remain a separate required read-only verification**, not inferred from UI.
 - Session cap of two per device means four real clients need at least two approved Gold devices unless a separately approved design changes it. Avoid forcing worker budget to three merely to make a test pass.
 
+## Device enrollment versus MCP authorization, correction 2026-10-22
+- Official Gold new-device enrollment: Local Wall /api/enrollment/begin -> Device Code -> Account > Add a device -> /api/enrollment/poll. It does not use an A code.
+- Separate MCP access for a previously enrolled device: light_remote_connection_helper A/B with Local Wall /approve, one grant per independent OAuth client. Harness localhost /pair was misnamed; renamed /mcp-access.
+- Local harness form POST failed origin_mismatch because Referrer-Policy no-referrer sends Origin null for navigation-mode form POST; fixed to same-origin while keeping strict Origin comparison and random CSRF. Existing Node process in memory will not hot-reload; do not terminate while preserving four OAuth-approved clients.
+
 ## Physical tool observations (not Gold scheduler regressions)
 - First structured write to `C:\Users\Public` returned genuine `filesystem_path_outside_allowed_roots` 403; user-owned `C:\Users\Admin\Documents` confirmed allowed via list + write. Policy was NOT relaxed or bypassed.
 - Windows RM `desktop_type_text` unexpectedly returned `desktop_input_physical_type_macos_only`, while `desktop_write_text` worked; Chrome title confirmed `Gold UAT 3+1 OAuth clients`.
