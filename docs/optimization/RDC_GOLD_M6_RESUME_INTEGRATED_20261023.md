@@ -80,3 +80,15 @@ Live recovery: unauthenticated UNIX socket /v1/accounts/me returned 503, then 40
 Source-level preventive guard: GoldNativeAccountDevice.deviceHasHistoricalReferences() reads PostgreSQL FK catalog and checks dependent table references by parameterized read-only SQL; Account Plugin remove action returns 409 device_has_referenced_history_revoke_instead BEFORE any registry/session mutation if historical references exist. Revoke is the supported alternative; unreferenced removal still permitted. No hidden soft delete, no FK removal, no schema36.
 Source-level diagnostics: log only domain, SQLSTATE, table and constraint on persistence write failure, never query parameters or credential/Device contents. No blanket disabling of fail-closed.
 Selftest gold-native-device-fk-removal PASS along with owner Orphan and owner Permissions regressions. Code remains on integrated M6 branch until CI and isolated Operator-only UAT patch promotion; DO NOT promote full M6 candidate since orphan Windows claim is still outstanding.
+
+## Follow-up — Owner Remove must actually work for relinking (supersedes FK 409 preflight)
+
+The owner reproduced that clicking **Remove Device** in Gold Account made persistence fail again. Returning HTTP 409 "Revoke instead" would prevent a database exception but **would not let the owner Remove/relink**, so that approach was superseded.
+
+The durable Gold PostgreSQL write contract now uses a **typed Device tombstone** instead of hard deleting a referenced Device:
+- GoldNativeAccountDevice.writeDevices maps rows omitted from the active DeviceRegistry to state=revoked, revoked_ms and policy_profile=__gold_removed_v1__ (typed existing columns; no new migration, no JSON snapshots).
+- GoldNativeAccountDevice.open excludes only this explicit owner-removed tombstone from active devices, while ordinary revoked devices remain loadable.
+- Historical lr_device_connections, A/B approvals, jobs, usage, and audit still reference an existing Device row. No history is deleted, no FK disabled, no cascade introduced.
+- Owner remove on Plugin account route is allowed again, with enrollment removal and runtime teardown; new authenticated enrollment can upsert the Device ID again. The old "device_has_referenced_history_revoke_instead" 409 guard no longer runs.
+- Focused regression selftest-gold-native-device-fk-removal.mjs PASS: child foreign key retained, removed Device hidden after native rehydrate, new enrollment restores same Device ID, and owner remove returns HTTP 200 without preflight blocking.
+- Do not claim full UAT acceptance before deploying this revision and checking owner Account and new enrollment. Run exact source CI and Operator-only rollout; full M6 four-service cutover remains blocked by Windows orphan claim.
