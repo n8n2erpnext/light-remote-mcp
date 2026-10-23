@@ -1,7 +1,7 @@
 import {verifyTeamMemberAuthorization} from './team-member-auth.mjs';
 import {authorizeTrustedTeamDispatch} from './team-dispatch-authority.mjs';
 export async function handleAccountRoutes(req,res,url,deps){
-  const {ACCOUNT_ID,AccountError,DEVICE_ID,accountSessionToken,accounts,accountNotifications,allDeviceViews,capabilities,clearMainIfMatches,closeRuntimeForAccount,compatibilityFor,devices,enrollments,fleetAuthority,licenses,planEntitlements,proTeams,teamSessions,requestTeamMemberApproval,operationalAccount,accessGrants,connections,targetRoute,verifyTeamPrincipal,queueHelperUpdate,readJson,removeRuntimeForDevice,requireAccount,revokeRuntimeForDevice,sendJson,usage,wakeDeviceChannelForDevice}=deps;
+  const {ACCOUNT_ID,AccountError,DEVICE_ID,accountSessionToken,accounts,accountNotifications,allDeviceViews,capabilities,clearMainIfMatches,closeRuntimeForAccount,compatibilityFor,devices,enrollments,fleet,fleetAuthority,licenses,planEntitlements,proTeams,teamSessions,requestTeamMemberApproval,operationalAccount,accessGrants,connections,targetRoute,verifyTeamPrincipal,queueHelperUpdate,readJson,removeRuntimeForDevice,requireAccount,revokeRuntimeForDevice,sendJson,usage,wakeDeviceChannelForDevice}=deps;
     if (req.method === 'GET' && url.pathname === '/v1/admin/overview') {
       const accountRows=accounts.list(),deviceRows=allDeviceViews(),current=accountRows.map(account=>({account,entitlements:planEntitlements(account),usage:usage.summary(account.accountId,{months:1})}));
       const toolCallsThisMonth=current.reduce((sum,row)=>sum+(Number(row.usage.toolCallsThisMonth)||0),0),plans=current.reduce((out,row)=>{const key=String(row.account.plan||'free');out[key]=(out[key]||0)+1;return out;},{}),statuses=current.reduce((out,row)=>{const key=String(row.account.status||'active');out[key]=(out[key]||0)+1;return out;},{});
@@ -180,6 +180,30 @@ export async function handleAccountRoutes(req,res,url,deps){
       account=accounts.setFleetProvisioning(accountId,{deviceId:device.deviceId,state:entitlements.fleetWall&&entitlements.multiDeviceConsole?'starting':'failed',reason:entitlements.fleetWall&&entitlements.multiDeviceConsole?'main_device_selected':'fleet_entitlement_required',port:5492});
       if(prior&&prior!==device.deviceId)wakeDeviceChannelForDevice(prior);wakeDeviceChannelForDevice(device.deviceId);
       return sendJson(res,200,{ok:true,account,entitlements,mainDevice:device});
+    }
+    const orphanClaimMatch=url.pathname.match(/^\/v1\/accounts\/devices\/([A-Za-z0-9._:-]+)\/orphan-claims\/([a-f0-9-]{36})\/abandon$/i);
+    if(req.method==='POST'&&orphanClaimMatch){
+      const identity=requireAccount(req),account=identity.account,body=await readJson(req);
+      if(body.confirm!=='ABANDON_UNKNOWN_RESULT')throw new AccountError('m6_orphan_owner_confirmation_required',403);
+      if(!['gold_agent_uninstalled','gold_agent_reinstalled'].includes(body.reason))
+        throw new AccountError('m6_orphan_reason_invalid',400);
+      const password=String(body.password||'');
+      if(password.length<1||password.length>512)throw new AccountError('m6_orphan_owner_password_required',401);
+      const owner=accounts.verifyCredentials({email:account.email,password},
+        {recordLogin:true,eventType:'m6_orphan_owner_recovery'});
+      if(owner.accountId!==account.accountId)throw new AccountError('m6_orphan_account_mismatch',403);
+      const deviceId=orphanClaimMatch[1],jobId=orphanClaimMatch[2],device=devices.get(deviceId);
+      if(device.accountId!==account.accountId||deviceId===DEVICE_ID)
+        throw new AccountError('m6_orphan_device_scope_denied',403);
+      let fresh=false;try{fresh=fleet.view(device.nodeId||device.deviceId).channelFresh===true;}
+      catch(error){if(error?.message!=='target_node_channel_not_found')throw error;}
+      if(connections.get(deviceId).state==='connected'||fresh)
+        throw new AccountError('m6_orphan_gold_channel_active',409);
+      if(typeof deps.abandonOwnerAttestedOrphan!=='function')throw new AccountError('m6_orphan_recovery_unavailable',503);
+      const outcome=await deps.abandonOwnerAttestedOrphan({
+        accountId:account.accountId,deviceId,jobId,observedBootAtMs:body.observedBootAtMs,reason:body.reason,channelFresh:fresh
+      });
+      return sendJson(res,200,{ok:true,...outcome});
     }
     const pluginDeviceAction=url.pathname.match(/^\/v1\/plugin\/accounts\/([A-Za-z0-9._:-]+)\/devices\/([A-Za-z0-9._:-]+)\/(revoke|remove)$/);
     if(req.method==='POST'&&pluginDeviceAction){

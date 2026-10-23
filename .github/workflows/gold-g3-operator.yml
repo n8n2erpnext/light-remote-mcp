@@ -34,6 +34,7 @@ on:
       - 'deploy/scripts/selftest-gold-m5-isolated-worker-core.mjs'
       - 'deploy/scripts/selftest-gold-fleet-jobs-m6.mjs'
       - 'deploy/scripts/selftest-gold-m6-process-stop.mjs'
+      - 'deploy/scripts/selftest-gold-m6-owner-orphan-recovery.mjs'
       - 'deploy/scripts/selftest-gold-m6-resource-metrics.mjs'
       - 'deploy/scripts/selftest-gold-m6-terminal-replay.mjs'
       - 'deploy/scripts/selftest-gold-m6-native-terminal-spool.mjs'
@@ -115,6 +116,7 @@ jobs:
           node --check device-agent/fleet-wall-runtime.mjs
           node deploy/scripts/selftest-gold-fleet-jobs-m6.mjs
           node deploy/scripts/selftest-gold-m6-process-stop.mjs
+          node deploy/scripts/selftest-gold-m6-owner-orphan-recovery.mjs
           node --check lib/gold-device-resource-metrics.mjs
           node deploy/scripts/selftest-gold-m6-resource-metrics.mjs
           node --check deploy/scripts/apply-gold-db.mjs
