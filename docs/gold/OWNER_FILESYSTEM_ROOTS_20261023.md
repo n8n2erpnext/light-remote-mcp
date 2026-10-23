@@ -27,3 +27,15 @@ Production rc.47 user `kgsz3000@gmail.com` reported a Windows device with `files
 3. Verify structured `list_files` and `stat_path` read E:\STREC, write blocked when Write omits E:, SCP and search follow the same rules.
 4. Remove E: root and verify all new operations are blocked, including existing SCP transfers and searches. Restart Agent: persisted roots must survive.
 5. Verify no permission change grants filesystem capability if server policy or local capability denies it.
+
+
+## Owner-selected OS volumes / A-B lease visibility (Gold follow-up, 2026-10-23)
+
+- Windows Local Wall enumerates fixed, removable, mapped and optical logical drive letters through device-local PowerShell (Get-CimInstance Win32_LogicalDisk) with bounded fallback. Read/Write checkboxes are shown per detected drive; additional absolute subdirectories are allowed.
+- Windows initial policy defaults to C:\ for read/write (plus existing service home/temp directories) until the owner customizes roots. D:\ / E:\ remain owner opt-in. NTFS/UAC permissions continue to apply.
+- macOS Local Wall offers Home and volumes under /Volumes; Linux offers Home and applicable mounted filesystems (mountinfo). No automatic root-wide Linux/macOS grant.
+- Inventory endpoint GET /api/filesystem-volumes requires Local Wall authentication, and does not sync volume labels to cloud.
+- Local Wall displays an Agent A/B access countdown, calculated from server-sourced activeGrant.absoluteExpiresAt and expiresAt; A code expiration and cloud connection timers remain separate.
+- 24-hour A/B maximum lifetime remains UNCHANGED; owner must reapprove after expiry. No stealth extension.
+- Windows 'Administrator (Windows UAC)' remains an owner-controlled, remembered capability flag, not a mechanism for silent elevation. The installer uses PrivilegesRequired=lowest and there is no broker that could safely cache one-time UAC approval. Implementing a one-time privileged Windows broker/service requires a separate security-reviewed change. Do NOT promise it exists.
+- Verify Windows 10/11 with real E: volume, Windows UAC behavior, power users, network drive mapping, and restart persistence before publishing binaries.

@@ -7,6 +7,7 @@ import path from 'node:path';
 import {normalizeFilesystemRoots,filesystemPolicy,executeNativeFs} from '../../lib/native-fs.mjs';
 import {LightScpFileRegistry} from '../../lib/light-scp-file.mjs';
 import {startLocalWall} from '../../device-agent/local-wall.mjs';
+import {filesystemVolumeInventory} from '../../device-agent/filesystem-volume-inventory.mjs';
 
 const root=fs.mkdtempSync(path.join(os.tmpdir(),'light-remote-gold-fs-'));
 const folder=path.join(root,'allowed'),file=path.join(folder,'example.txt');
@@ -36,6 +37,7 @@ let settings=filesystemPolicy({}, {readRoots:[folder],writeRoots:[folder]});
 const wall=startLocalWall({host:'127.0.0.1',port:0,brandSvgPath:'/does/not/exist',auth,
   getLocalStatus:async()=>({enrolled:true,deviceId:'dev_test'}),
   getLocalPolicyStatus:async()=>({deviceId:'dev_test',grantableCapabilities:['filesystem'],approvedCapabilities:['filesystem'],effectiveCapabilities:['filesystem'],filesystemRoots:settings}),
+  getFilesystemVolumes:async()=>({platform:'win32',volumes:[{path:'E:\\',label:'E:',kind:'fixed'}]}),
   setFilesystemRoots:async input=>{const roots=normalizeFilesystemRoots(input);settings=filesystemPolicy({},roots);return settings;}
 });
 try{
@@ -50,7 +52,20 @@ try{
   assert.match(html,/Filesystem access locations/);
   assert.match(html,/id="fs-read-roots"/);
   assert.match(html,/id="fs-write-roots"/);
+  assert.match(html,/id="fs-volume-options"/);
+  assert.deepEqual(filesystemVolumeInventory({platform:'linux'}).platform,'linux');
+  let volumes=await fetch(base+'/api/filesystem-volumes');
+  assert.equal(volumes.status,401,'volumes inventory requires Local Wall login');
+  volumes=await fetch(base+'/api/filesystem-volumes',{headers:{'x-test-owner':'ok'}});
+  assert.equal(volumes.status,200);
+  assert.equal((await volumes.json()).volumes[0].path,'E:\\');
   for(const m of html.matchAll(/<script>([\s\S]*?)<\/script>/g))new Function(m[1]);
+  const home=await fetch(base+'/',{headers:{'x-test-owner':'ok'}});
+  assert.equal(home.status,200);
+  const homeHtml=await home.text();
+  assert.match(homeHtml,/id="abGrantTimer"/);
+  assert.match(homeHtml,/absoluteExpiresAt/);
+  for(const m of homeHtml.matchAll(/<script>([\s\S]*?)<\/script>/g))new Function(m[1]);
   r=await fetch(base+'/api/filesystem-roots',{method:'POST',
     headers:{'content-type':'application/json','x-test-owner':'ok','x-light-remote-csrf':'valid'},
     body:JSON.stringify({readRoots:[folder],writeRoots:[folder]})});
