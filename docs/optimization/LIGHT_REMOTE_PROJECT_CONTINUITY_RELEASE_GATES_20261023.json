@@ -31,8 +31,10 @@
     "linux_server_fixed_uid_installed_lxd_boot_and_consent": "PASS_ISOLATED_LXD_ARM",
     "linux_server_netbird_only_owner_projects_webui": "PASS_LXD_UAT",
     "linux_server_webui_graceful_lxc_restart": "OPEN_SHUTDOWN_TIMEOUT",
-    "linux_server_webui_public_https_and_password_isolation": "OPEN_UAT_ONLY"
+    "linux_server_webui_public_https_and_password_isolation": "OPEN_UAT_ONLY",
+    "continuity_projects_in_shared_local_wall_navigation": "PASS_SOURCE_AND_ISOLATED_LXD",
+    "continuity_projects_real_production_wall_integration": "OPEN_NOT_DEPLOYED"
   },
   "test_build_allowed": false,
-  "notes": "Isolated Linux LXD UAT: WebUI service (lr-cont-agent) and broker (lr-continuity) ACTIVE, LXD proxy binds 100.94.184.141:5587 NetBird-only to LXD loopback, owner login/CSRF/Origin/Host control, Memory CRUD/checkpoint, owner consent/revoke PASS. First lxc restart timed out on shutdown; subsequent clean lxc start restored both services and persisted proxy. Graceful restart and real remote peer check OPEN. Production HTTPS, distinct production credentials, all four-OS OS adapters, real signed Plugin A/B and Codex/Worker OPEN. Installer BLOCKED."
+  "notes": "Corrected the standalone UAT Projects server mistake: LXD port 5587 now runs the SAME device-agent/local-wall.mjs as product Wall, with Projects nav rendered only when Continuity is opted in, and broker-backed /projects API. Actual signed-in Wall root, CSRF/Origin and memory/owner consent smoke PASS_ISOLATED_LXD. Production Wall 5491 not modified, no real device enrollment in UAT. Windows native ACL, macOS/Linux Desktop parity, real A/B Plugin and Codex Worker still OPEN; final installer BLOCKED."
 }

@@ -16,10 +16,25 @@ NETBIRD_IP="$(ip -o -4 addr show dev wt0 | awk '{split($4,a,"/");print a[1];exit
 if ss -H -ltn | awk '{print $4}' | grep -Eq "(:|^)$PORT$"; then
  echo "REFUSE_OCCUPIED_HOST_PORT:$PORT";exit 4
 fi
-for src in device-agent/project-continuity-uat-web.mjs device-agent/project-continuity-page.mjs device-agent/local-wall-auth.mjs; do
- lxc file push "$src" "$INSTANCE/opt/light-remote-continuity/$src"
- lxc exec "$INSTANCE" -- chmod 0644 "/opt/light-remote-continuity/$src"
-done
+# Stage the SAME Local Wall source/routes/icons and CSS assets used by
+# the regular Light Remote Client. Do not deploy a second Projects server.
+STAGE="$(mktemp -d /home/ubuntu/continuity-shared-wall.XXXXXX)"
+trap 'rm -rf -- "$STAGE"' EXIT
+tar -czf "$STAGE/shared-wall.tar.gz" \
+ device-agent/local-wall.mjs device-agent/local-wall-auth.mjs \
+ device-agent/wall-status-cache.mjs device-agent/local-process-page.mjs \
+ device-agent/update-settings-page.mjs device-agent/project-continuity-page.mjs \
+ device-agent/project-continuity-uat-wall.mjs \
+ lib/brand.mjs lib/material-icon.mjs lib/web-typography.mjs \
+ assets/branding/light-remote-mark.svg assets/icons/material \
+ assets/fonts/CascadiaMono.ttf assets/fonts/web/CascadiaCode.ttf
+lxc exec "$INSTANCE" -- rm -f /tmp/shared-wall.tar.gz
+lxc file push "$STAGE/shared-wall.tar.gz" "$INSTANCE/tmp/shared-wall.tar.gz"
+lxc exec "$INSTANCE" -- tar -xzf /tmp/shared-wall.tar.gz -C /opt/light-remote-continuity
+lxc exec "$INSTANCE" -- find /opt/light-remote-continuity -type d -exec chmod 0755 '{}' '+'
+lxc exec "$INSTANCE" -- find /opt/light-remote-continuity -type f -name '*.mjs' -exec chmod 0644 '{}' '+'
+lxc exec "$INSTANCE" -- rm -f /tmp/shared-wall.tar.gz
+lxc exec "$INSTANCE" -- runuser -u lr-cont-agent -- /usr/local/bin/light-remote-continuity-node --check /opt/light-remote-continuity/device-agent/project-continuity-uat-wall.mjs
 lxc exec -T "$INSTANCE" -- /bin/bash -s <<'INNER'
 set -euo pipefail
 install -d -m 0700 -o lr-cont-agent -g lr-continuity-client /var/lib/light-remote-continuity-web
@@ -38,7 +53,7 @@ if(!fs.existsSync(file)){
 JS
 cat > /etc/systemd/system/light-remote-continuity-web-uat.service <<'UNIT'
 [Unit]
-Description=Light Remote Project Continuity protected WebUI UAT (loopback only)
+Description=Light Remote shared Local Wall with Project Continuity UAT (loopback only)
 After=light-remote-continuity-uat.service
 Requires=light-remote-continuity-uat.service
 [Service]
@@ -51,7 +66,7 @@ Environment=LIGHT_REMOTE_CONTINUITY_ISOLATED_BROKER=1
 Environment=LIGHT_REMOTE_CONTINUITY_BROKER_ROOT=/var/lib/light-remote-continuity
 Environment=LIGHT_REMOTE_CONTINUITY_UAT_AUTH_FILE=/var/lib/light-remote-continuity-web/auth.json
 Environment=LIGHT_REMOTE_CONTINUITY_UAT_WEB_PORT=5587
-ExecStart=/usr/local/bin/light-remote-continuity-node /opt/light-remote-continuity/device-agent/project-continuity-uat-web.mjs
+ExecStart=/usr/local/bin/light-remote-continuity-node /opt/light-remote-continuity/device-agent/project-continuity-uat-wall.mjs
 Restart=on-failure
 RestartSec=2
 NoNewPrivileges=yes
