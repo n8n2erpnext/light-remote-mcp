@@ -1375,6 +1375,7 @@ const routeDeps=()=>({
   abandonedCommandReceiptFromDisk,agentClients,allDeviceViews,applyDeviceTelemetry,assertDiskJobOwner,assertToolCallQuota,capabilities,
   clearMainIfMatches,clientCompatibility,closeRuntimeForAccount,compatibilityFor,connectionSpec,
   connectionViewForDevice,connections,decryptEnvelope,deviceView,devices,
+  deviceHasHistoricalReferences:deviceId=>goldRegistries.native.accounts.deviceHasHistoricalReferences(deviceId),
   emitStream,enrollments,finishJob,fleet,fleetAuthority,reconcileSignedTerminalProcessReceipts,
   fleetEligibility,fleetTarget,flushDiskRecords,flushGoldRegistries:()=>goldRegistries.flush(),fs,fullOutputFromDisk,
   ingressTelemetry,jobView,jobs,goldJobs,deviceResourceLocks,deviceResourceSampleCache,

@@ -67,3 +67,16 @@ The owner clarified that **Gold Windows was deliberately uninstalled** because R
 - **NO owner abandon/release request has been executed on UAT.** The Windows claim and the 10 historical never-dispatched UNKNOWN rows remain preserved. M6 four-service cutover stays blocked until the owner deliberately uses the authenticated recovery action (or valid Gold signed receipt appears) and the preflight is re-run.
 - This is an administrative abandonment workflow, not a claim that the process is complete or that the normal signed receipt path has passed. The route is implemented in **source**, not yet exposed through a finished owner-facing confirmation UI. Do not capture the user's password in ChatGPT or logs.
 - Production Windows rc.47 remains the active client. Never let attempts to repair Gold RM interfere with production without owner instructions.
+
+## 2026-10-23 — Gold PostgreSQL Device persistence incident
+
+Impact: Gold Account, Inbox, MCP and Windows Wall returned gold_postgres_persistence_unavailable / HTTP 503. VPS-ARM LXD PostgreSQL 17, Redis, Operator, Plugin, Wall were active.
+
+Live Operator was using Permissions candidate owner-7236c29, NOT any promoted M6 integrated candidate. LXD Gold PostgreSQL had 3 Device records, 17 foreign keys into lr_devices, and a Gold Windows Device referenced from lr_device_connections.
+Operator journal repeated gold_native_postgres_write_failed:devices. GoldRegistryPersistence persists an error in memory and sendJson flushes all registries before every response, so even unrelated read-only endpoints returned 503.
+Root SQLSTATE/constraint of the original failed Device write is not yet established; a hard DELETE of a referenced Device is a strong hypothesis only.
+Live recovery: unauthenticated UNIX socket /v1/accounts/me returned 503, then 401 after restarting ONLY light-remote-gold-operator in LXD. Gold MCP helper returned need_a_code instead of a persistence error. No DB content manually modified, no migration, no M6 release/claim change, no production change.
+
+Source-level preventive guard: GoldNativeAccountDevice.deviceHasHistoricalReferences() reads PostgreSQL FK catalog and checks dependent table references by parameterized read-only SQL; Account Plugin remove action returns 409 device_has_referenced_history_revoke_instead BEFORE any registry/session mutation if historical references exist. Revoke is the supported alternative; unreferenced removal still permitted. No hidden soft delete, no FK removal, no schema36.
+Source-level diagnostics: log only domain, SQLSTATE, table and constraint on persistence write failure, never query parameters or credential/Device contents. No blanket disabling of fail-closed.
+Selftest gold-native-device-fk-removal PASS along with owner Orphan and owner Permissions regressions. Code remains on integrated M6 branch until CI and isolated Operator-only UAT patch promotion; DO NOT promote full M6 candidate since orphan Windows claim is still outstanding.

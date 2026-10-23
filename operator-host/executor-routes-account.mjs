@@ -217,6 +217,12 @@ export async function handleAccountRoutes(req,res,url,deps){
         const account=clearMainIfMatches(accountId,device.deviceId,'main_device_revoked')||accounts.account(accountId);
         return sendJson(res,200,{ok:true,binding,device:revoked,account,entitlements:planEntitlements(account)});
       }
+      // Physical deletion can violate historical PostgreSQL foreign keys.
+      // Reject before mutating in-memory registries or terminating sessions.
+      if(typeof deps.deviceHasHistoricalReferences!=='function')
+        throw new AccountError('device_deletion_preflight_unavailable',503);
+      if(await deps.deviceHasHistoricalReferences(device.deviceId))
+        throw new AccountError('device_has_referenced_history_revoke_instead',409);
       const account=clearMainIfMatches(accountId,device.deviceId,'main_device_removed')||accounts.account(accountId);
       removeRuntimeForDevice(device.deviceId,reason);
       let binding={deviceId:device.deviceId,removed:false};try{binding=enrollments.remove({deviceId:device.deviceId,accountId,reason});}catch(error){if(error.message!=='device_binding_not_found')throw error;}
