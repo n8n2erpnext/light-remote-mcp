@@ -1,3 +1,4 @@
+import {ownerAuthorityPublicKey,verifyContinuityConsent} from './project-continuity-owner-grants.mjs';
 /* P1 local deterministic store. Not imported by production Gold Agent. */
 import {DatabaseSync,backup} from 'node:sqlite';
 import fs from 'node:fs';
@@ -26,10 +27,11 @@ export class ContinuityStore {
  constructor({root=continuityDefaultRoot()}={}){
   this.root=path.resolve(root);fs.mkdirSync(this.root,{recursive:true,mode:0o700});
   if(process.platform!=='win32')fs.chmodSync(this.root,0o700);
+  this.ownerPublicKey=ownerAuthorityPublicKey(this.root);
   this.db=new DatabaseSync(path.join(this.root,'continuity.db'),{timeout:3000});
   this.db.exec('PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=3000; PRAGMA synchronous=FULL');
   const openedVersion=this.db.prepare('PRAGMA user_version').get().user_version;
-  if(openedVersion>5){this.db.close();throw Error('continuity_future_schema_version');}
+  if(openedVersion>6){this.db.close();throw Error('continuity_future_schema_version');}
   this.db.exec([
   'CREATE TABLE IF NOT EXISTS projects(id TEXT PRIMARY KEY,name TEXT NOT NULL,workspace TEXT NOT NULL,memory_enabled INTEGER NOT NULL DEFAULT 0 CHECK(memory_enabled IN(0,1)),codex_enabled INTEGER NOT NULL DEFAULT 0 CHECK(codex_enabled IN(0,1)),revision INTEGER NOT NULL DEFAULT 1,created_at TEXT NOT NULL,updated_at TEXT NOT NULL)',
   'CREATE TABLE IF NOT EXISTS tasks(id TEXT PRIMARY KEY,project_id TEXT NOT NULL REFERENCES projects(id),title TEXT NOT NULL,created_at TEXT NOT NULL)',
@@ -65,6 +67,9 @@ export class ContinuityStore {
   // No unprivileged IPC action can turn this on. Owner step-up/UI pending.
   this.db.exec("CREATE TABLE IF NOT EXISTS remote_project_consent(project_id TEXT PRIMARY KEY REFERENCES projects(id),enabled INTEGER NOT NULL DEFAULT 0 CHECK(enabled IN(0,1)),updated_at TEXT NOT NULL)");
   this.db.exec('PRAGMA user_version=5');
+  // One-time signed step-up grant; replay is durable across process restarts.
+  this.db.exec("CREATE TABLE IF NOT EXISTS consent_grant_nonces(nonce TEXT PRIMARY KEY,project_id TEXT NOT NULL REFERENCES projects(id),principal TEXT NOT NULL,action TEXT NOT NULL,created_at TEXT NOT NULL)");
+  this.db.exec('PRAGMA user_version=6');
   this.reconcileStartup();
  }
  reconcileStartup(){
@@ -87,8 +92,8 @@ export class ContinuityStore {
  }
   close(){this.db.close();}
  tx(fn){this.db.exec('BEGIN IMMEDIATE');try{const result=fn();this.db.exec('COMMIT');return result;}catch(e){this.db.exec('ROLLBACK');throw e;}}
- project(pid){return this.db.prepare('SELECT * FROM projects WHERE id=?').get(guid(pid))||null;}
- projects(){return this.db.prepare('SELECT * FROM projects ORDER BY created_at,id').all();}
+ project(pid){return this.db.prepare('SELECT p.*,COALESCE(r.enabled,0) AS remote_read_enabled FROM projects p LEFT JOIN remote_project_consent r ON r.project_id=p.id WHERE p.id=?').get(guid(pid))||null;}
+ projects(){return this.db.prepare('SELECT p.*,COALESCE(r.enabled,0) AS remote_read_enabled FROM projects p LEFT JOIN remote_project_consent r ON r.project_id=p.id ORDER BY p.created_at,p.id').all();}
  event(pid,who,what,eid='',from='',to='',detail=''){this.db.prepare('INSERT INTO events(project_id,actor,kind,entity_id,old_state,new_state,detail,created_at) VALUES (?,?,?,?,?,?,?,?)').run(pid,who,what,eid,from,to,detail,now());}
  createProject({projectName,workspace=''}){
   req(typeof workspace==='string'&&workspace.length<=4096,'continuity_invalid_workspace');
@@ -304,14 +309,23 @@ export class ContinuityStore {
   const exists=this.db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='memory_fts'").get();if(!exists)return [];
   return this.db.prepare('SELECT m.id,m.body,m.kind,m.source_ref,a.confidence FROM memory_fts JOIN memory_facts m ON m.id=memory_fts.fact_id JOIN memory_annotations a ON a.fact_id=m.id AND a.superseded=0 WHERE memory_fts MATCH ? AND memory_fts.project_id=? ORDER BY rank LIMIT ?').all('"'+label(query,300).replaceAll('"','""')+'"',pid,limit);
  }
- setRemoteReadConsent(pid,{enabled,ownerVerified=false}={}){
-  req(ownerVerified===true,'continuity_owner_proof_required');
-  req(typeof enabled==='boolean','continuity_remote_consent_invalid');
-  req(this.project(pid)?.memory_enabled===1,'continuity_memory_disabled');
+ setRemoteReadConsent(pid,{proof}={}){
+  const p=this.project(pid);req(p,'continuity_project_missing');
+  req(p.memory_enabled===1,'continuity_memory_disabled');
+  const grant=verifyContinuityConsent({proof,publicKey:this.ownerPublicKey,projectId:pid,revision:p.revision});
   return this.tx(()=>{
-   this.db.prepare("INSERT INTO remote_project_consent(project_id,enabled,updated_at) VALUES (?,?,?) ON CONFLICT(project_id) DO UPDATE SET enabled=excluded.enabled,updated_at=excluded.updated_at").run(pid,enabled?1:0,now());
-   this.event(pid,'owner_attested_local_store','remote_read_consent',pid,'',enabled?'enabled':'disabled');
-   return {projectId:pid,remoteReadEnabled:enabled};
+   // No user-controlled ownerVerified flag; only verified Ed25519 signature.
+   // Atomic single-use nonce prevents replay even after restart.
+   const fresh=this.project(pid);req(fresh.revision===grant.revision,'continuity_stale_revision');
+   const old=this.db.prepare('SELECT enabled FROM remote_project_consent WHERE project_id=?').get(pid)?.enabled===1;
+   this.db.prepare('INSERT INTO consent_grant_nonces(nonce,project_id,principal,action,created_at) VALUES (?,?,?,?,?)')
+    .run(grant.nonce,pid,grant.principal,grant.enabled?'enable':'disable',now());
+   this.db.prepare("INSERT INTO remote_project_consent(project_id,enabled,updated_at) VALUES (?,?,?) ON CONFLICT(project_id) DO UPDATE SET enabled=excluded.enabled,updated_at=excluded.updated_at")
+    .run(pid,grant.enabled?1:0,now());
+   this.db.prepare('UPDATE projects SET revision=revision+1,updated_at=? WHERE id=? AND revision=?')
+    .run(now(),pid,grant.revision);
+   this.event(pid,'signed_owner_stepup','remote_read_consent',pid,old?'enabled':'disabled',grant.enabled?'enabled':'disabled',grant.principal);
+   return {projectId:pid,remoteReadEnabled:grant.enabled,revision:grant.revision+1};
   });
  }
  remoteBrief(pid,{query='',maxChars=8000}={}){

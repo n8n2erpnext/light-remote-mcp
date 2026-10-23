@@ -536,6 +536,7 @@ export function startLocalWall({host='127.0.0.1',port=5491,brandSvgPath,fontPath
   const ensureActivityPump=()=>{if(activityTimer)return;void activityPump();activityTimer=setInterval(activityPump,activityPollMs);activityTimer.unref?.();};
   const shutdownActivityPump=()=>{if(activityTimer){clearInterval(activityTimer);activityTimer=null;}for(const res of [...activityClients]){try{res.end();}catch{}}activityClients.clear();activitySeen.clear();activityOrder.length=0;};
   const mutationAllowed=req=>!auth?.enabled||auth.verifyRequestCsrf(req,String(req.headers['x-light-remote-csrf']||''));
+  const ownerConsentFailures=new Map();
   const statusCache=typeof getRemoteStatus==='function'?createWallStatusCache({fetchRemote:getRemoteStatus}):null;
   async function status({fresh=false}={}){
     const local=await getLocalStatus();
@@ -621,10 +622,28 @@ export function startLocalWall({host='127.0.0.1',port=5491,brandSvgPath,fontPath
       if(!continuity?.request)return json(res,404,{ok:false,error:'project_continuity_disabled'});
       if(!auth?.enabled||!auth.identity(req))return json(res,403,{ok:false,error:'project_continuity_owner_auth_required'});
       const op=url.pathname.slice('/api/project-continuity/'.length);
-      const allowedGet=['listProjects'],allowedPost=['createProject','setModules','createTask','addSection','checkpoint','contextBrief','memoryPut','memorySearch','memoryRecent'];
+      const allowedGet=['listProjects'],allowedPost=['createProject','setModules','createTask','addSection','checkpoint','contextBrief','memoryPut','memorySearch','memoryRecent','setRemoteReadConsent'];
       if(!(req.method==='GET'&&allowedGet.includes(op))&&!(req.method==='POST'&&allowedPost.includes(op)))return json(res,404,{ok:false,error:'project_continuity_action_unavailable'});
       if(req.method==='POST'&&!mutationAllowed(req))return json(res,403,{ok:false,error:'csrf_invalid'});
       const data=req.method==='POST'?await body(req):{};
+      if(op==='setRemoteReadConsent'){
+        if(typeof continuity.ownerConsent!=='function')return json(res,501,{ok:false,error:'continuity_owner_stepup_unavailable'});
+        const principal=String(auth.identity(req)?.username||'');
+        const rateKey=principal+'|'+String(req.socket?.remoteAddress||'');
+        const now=Date.now(),recent=(ownerConsentFailures.get(rateKey)||[]).filter(t=>now-t<10*60*1000);
+        if(recent.length>=5)return json(res,429,{ok:false,error:'continuity_owner_stepup_rate_limited'});
+        if(!data||typeof data.enabled!=='boolean'||!Number.isInteger(data.expectedRevision))
+          return json(res,400,{ok:false,error:'continuity_owner_consent_invalid'});
+        try{
+          const result=await continuity.ownerConsent({principal,password:data.password,projectId:data.projectId,
+            enabled:data.enabled,expectedRevision:data.expectedRevision});
+          ownerConsentFailures.delete(rateKey);
+          return json(res,200,{ok:true,result});
+        }catch(e){
+          recent.push(now);ownerConsentFailures.set(rateKey,recent);
+          return json(res,403,{ok:false,error:'continuity_owner_stepup_denied'});
+        }
+      }
       const result=await continuity.request(op,data);
       return json(res,200,{ok:true,result});
     }

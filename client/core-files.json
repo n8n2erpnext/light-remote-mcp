@@ -380,6 +380,10 @@
     {
       "source": "device-agent/project-continuity-codex-rpc.mjs",
       "destination": "device-agent/project-continuity-codex-rpc.mjs"
+    },
+    {
+      "source": "device-agent/project-continuity-owner-grants.mjs",
+      "destination": "device-agent/project-continuity-owner-grants.mjs"
     }
   ]
 }

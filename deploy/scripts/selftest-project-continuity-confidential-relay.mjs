@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {ContinuityStore} from '../../device-agent/project-continuity-store.mjs';
+import {provisionContinuityOwnerAuthority,signContinuityConsent} from '../../device-agent/project-continuity-owner-grants.mjs';
 import {continuityRequest,startContinuityServer} from '../../device-agent/project-continuity-ipc.mjs';
 import {handleDeviceDuplexSession,confidentialProjectRequest} from '../../operator-host/device-duplex-session.mjs';
 import {DEVICE_DUPLEX_PROTOCOL,DeviceDuplexClient} from '../../lib/device-duplex-client.mjs';
@@ -24,22 +25,28 @@ class MockResponse extends PassThrough{
 let local=null;
 let stream=null;
 try {
+ const signerDir=path.join(root,'owner-priv');
+ provisionContinuityOwnerAuthority({root,signerDir});
  const db=new ContinuityStore({root});
  const project=db.createProject({projectName:'Private gold',workspace:'/workspace/read-only'});
  db.setModules(project.id,{memory:true,expectedRevision:1});
  db.memoryPut(project.id,{body:'Local project decisions stay on device',sourceRef:'owner:handoff'});
  // Full local Memory exists but is NOT authorized over any remote path.
  assert.throws(()=>db.remoteBrief(project.id),/continuity_remote_read_denied/);
- assert.throws(()=>db.setRemoteReadConsent(project.id,{enabled:true,ownerVerified:false}),/continuity_owner_proof_required/);
+ assert.throws(()=>db.setRemoteReadConsent(project.id,{proof:{}}),/continuity_owner_grant_invalid/);
  db.close();
  local=startContinuityServer({root});
  await waitFor(()=>local.server.listening);
  await assert.rejects(continuityRequest('remoteBrief',{projectId:project.id},{root}),/continuity_remote_read_denied/);
  // Generic local IPC CANNOT mint consent, even if it knows the local token.
  await assert.rejects(continuityRequest('setRemoteReadConsent',{projectId:project.id,enabled:true,ownerVerified:true},{root}),/continuity_unknown_action/);
+ await assert.rejects(continuityRequest('applySignedOwnerConsent',{projectId:project.id,proof:{grant:{},signature:'fake'}},{root}),/continuity_owner_grant_scope_invalid/);
  await local.stop();local=null;
  const ownerDb=new ContinuityStore({root});
- ownerDb.setRemoteReadConsent(project.id,{enabled:true,ownerVerified:true});ownerDb.close();
+ const firstGrant=signContinuityConsent({root,signerDir,projectId:project.id,enabled:true,revision:ownerDb.project(project.id).revision,principal:'local-owner'});
+ ownerDb.setRemoteReadConsent(project.id,{proof:firstGrant});
+ assert.throws(()=>ownerDb.setRemoteReadConsent(project.id,{proof:firstGrant}),/continuity_stale_revision/);
+ ownerDb.close();
  local=startContinuityServer({root});await waitFor(()=>local.server.listening);
  const approved=await continuityRequest('remoteBrief',{projectId:project.id,maxChars:8000},{root});
  assert.match(approved.content,/Local project decisions stay on device/);
@@ -54,7 +61,8 @@ try {
  revoker.close();
  // Re-consent is required after revoking and re-enabling Memory.
  const ownerDb2=new ContinuityStore({root});
- ownerDb2.setRemoteReadConsent(project.id,{enabled:true,ownerVerified:true});
+ const secondGrant=signContinuityConsent({root,signerDir,projectId:project.id,enabled:true,revision:ownerDb2.project(project.id).revision,principal:'local-owner'});
+ ownerDb2.setRemoteReadConsent(project.id,{proof:secondGrant});
  ownerDb2.close();
  console.log('P2_LOCAL_PROJECT_REMOTE_CONSENT_DENY_DEFAULT_PASS');
 
@@ -114,19 +122,23 @@ try {
   let routeCalls=0,transportBoundDevice=null;
   const deps={
    accounts:{account:()=>({accountId:'account-1'})},
-   sessions:{get:()=>({id:'session123',agentId:'agent1',deviceId:'bound-device',accountId:'account-1',state:'active'})},
+   sessions:{get:()=>({sessionId:'session123',agentId:'agent1',deviceId:'bound-device',accountId:'account-1',state:'active'})},
    AccountError:class extends Error{},readJson:async()=>({accountId:'account-1',agentId:'agent1',sessionId:'session123',deviceId:'UNTRUSTED_DEVICE',projectId:project.id}),
    requireDeviceConnection:deviceId=>assert.equal(deviceId,'bound-device'),
    confidentialProjectRequest:async args=>{routeCalls++;transportBoundDevice=args.deviceId;return {content:'device-only result',projectId:project.id};},
    sendJson:(res,status,body)=>{res.statusCode=status;res.body=body;res.headersSent=true;return body;}
   };
-  const routeResponse={headersSent:false};
+  const routeResponse={headersSent:false,writeHead(code,headers){this.statusCode=code;this.headers=headers;this.headersSent=true;return this;},
+    end(body){this.body=JSON.parse(body);}};
   await handlePluginRoutes({method:'POST'},routeResponse,new URL('http://local/v1/plugin/project-continuity/read'),deps);
   assert.equal(routeCalls,1);
   assert.equal(transportBoundDevice,'bound-device');
+  assert.equal(routeResponse.statusCode,200);
+  assert.equal(routeResponse.statusCode,200);
+  assert.equal(routeResponse.headers['cache-control'],'no-store, private');
   assert.equal(routeResponse.body.data.content,'device-only result');
   assert.equal(routeResponse.body.job,undefined);
-  deps.sessions.get=()=>({id:'session123',deviceId:'bound-device',accountId:'different-account',state:'active'});
+  deps.sessions.get=()=>({sessionId:'session123',deviceId:'bound-device',accountId:'different-account',state:'active'});
   await assert.rejects(handlePluginRoutes({method:'POST'}, {headersSent:false},new URL('http://local/v1/plugin/project-continuity/read'),deps),/plugin_session_account_mismatch/);
   console.log('P2_MCP_OPERATOR_DEVICE_ACCOUNT_SESSION_BINDING_PASS');
  }finally{

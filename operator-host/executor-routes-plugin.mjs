@@ -24,12 +24,24 @@ export async function handlePluginRoutes(req,res,url,deps){
     // Device scope comes ONLY from the server-validated active session,
     // not a caller-provided deviceId or nodeId.
     const data=await deps.confidentialProjectRequest({
-      deviceId:session.deviceId,sessionId:session.id,
+      deviceId:session.deviceId,sessionId:session.sessionId,
       projectId:body.projectId,query:body.query??'',maxChars:body.maxChars??8000,
       timeoutMs:10000
     });
     // Do not emit job telemetry, persist a JSONB blob or log project content.
-    return deps.sendJson(res,200,{ok:true,data});
+    // Unlike generic Gold sendJson, this read-only response MUST NOT force
+    // a PostgreSQL/Redis/job-journal flush that could entangle private data
+    // with unrelated mutable telemetry. Keep the payload response ephemeral.
+    const bytes=JSON.stringify({ok:true,data});
+    if(Buffer.byteLength(bytes)>12000)throw Error('continuity_reply_too_large');
+    res.writeHead(200,{
+      'content-type':'application/json; charset=utf-8',
+      'cache-control':'no-store, private',
+      'pragma':'no-cache',
+      'x-content-type-options':'nosniff'
+    });
+    res.end(bytes);
+    return true;
   }
 
   if(req.method==='POST'&&url.pathname==='/v1/plugin/sessions/open'){

@@ -155,7 +155,7 @@ export class AccountOperatorAdapter{
     const session=await this.sessionRaw(sessionId);
     if(session.state!=='active')throw Error('continuity_session_inactive');
     return callOperatorJson('POST','/v1/plugin/project-continuity/read',{
-      accountId:this.identity.accountId,agentId:this.agentId,sessionId:session.id,
+      accountId:this.identity.accountId,agentId:this.agentId,sessionId:session.sessionId,
       projectId,query,maxChars
     });
   }

@@ -29,7 +29,13 @@ hr{border:0;border-top:1px solid #243247;margin:20px 0}pre{white-space:pre-wrap;
 <div class="switch"><span><b>Project Memory</b><br><small>Persistent local facts and checkpoint retrieval</small></span><input aria-label="Enable Project Memory" id="memory" type="checkbox"></div>
 <div class="switch"><span><b>Codex Bridge</b><br><small>Codex connection is not activated by this switch in P1</small></span><input aria-label="Enable Codex Bridge" id="codex" type="checkbox"></div>
 <p class="muted" style="font-size:12px">Each module is independent. Enabling Codex here only records its preference; no Codex login or worker starts in P1.</p>
-<button class="primary" id="save">Save modules</button><hr>
+<button class="primary" id="save">Save modules</button>
+<hr><h2>Remote Memory Access</h2>
+<p class="muted" style="font-size:12px">Disabled by default. Grants an explicitly chosen Project to a linked ChatGPT session. Re-enter your Local Wall or account password to change this setting.</p>
+<div id="remoteStatus" class="muted">Remote sharing: OFF</div>
+<form id="remoteConsentForm"><label>Owner action</label><select id="remoteConsentAction" style="width:100%;background:#0a1321;border:1px solid #304158;color:#edf5ff;padding:10px;border-radius:7px"><option value="off">Revoke remote read</option><option value="on">Allow remote read</option></select>
+<label>Re-enter owner password</label><input id="remoteOwnerPassword" type="password" autocomplete="current-password" required placeholder="Owner credentials are not saved">
+<button class="primary" type="submit" style="margin-top:10px">Verify owner and apply</button></form><hr>
 <h2>Task Controller</h2><form id="taskCreate" class="row"><input id="taskTitle" placeholder="New task" maxlength="160" required><button type="submit">Add task</button></form>
 <div id="tasks"></div>
 <form id="sectionCreate" style="margin-top:12px">
@@ -67,6 +73,9 @@ async function select(id){
  try{active=id;const p=items.find(x=>x.id===id);if(!p){active=null;return;}
  by('empty').hidden=true;by('detail').hidden=false;by('title').textContent=p.name;by('meta').textContent=p.workspace||'No workspace selected';
  by('memory').checked=!!p.memory_enabled;by('codex').checked=!!p.codex_enabled;
+ by('remoteStatus').textContent='Remote sharing: '+(p.remote_read_enabled?'ON':'OFF');
+ by('remoteConsentAction').value=p.remote_read_enabled?'on':'off';
+ by('remoteConsentForm').hidden=!p.memory_enabled;
  renderList();await refresh();
  }catch(e){notice(e.message,true);}
 }
@@ -96,6 +105,13 @@ async function refresh(){
 }
 by('create').onsubmit=async e=>{e.preventDefault();try{const p=await api('createProject',{name:by('projectName').value,workspace:by('workspace').value});by('projectName').value='';items=await api('listProjects');await select(p.id);notice('Local project created');}catch(err){notice(err.message,true);}};
 by('save').onclick=async()=>{const p=items.find(x=>x.id===active);if(!p)return;try{const updated=await api('setModules',{projectId:p.id,memory:by('memory').checked,codex:by('codex').checked,expectedRevision:p.revision});items=items.map(x=>x.id===updated.id?updated:x);await select(updated.id);notice('Module settings saved locally');}catch(e){notice(e.message,true);}};
+by('remoteConsentForm').onsubmit=async e=>{e.preventDefault();const p=items.find(x=>x.id===active);if(!p)return;
+ const secret=by('remoteOwnerPassword').value;by('remoteOwnerPassword').value='';
+ try{
+  const result=await api('setRemoteReadConsent',{projectId:active,enabled:by('remoteConsentAction').value==='on',expectedRevision:p.revision,password:secret});
+  items=await api('listProjects');await select(active);notice('Remote Memory consent updated after owner verification');
+ }catch(err){notice(err.message,true);}
+};
 by('taskCreate').onsubmit=async e=>{e.preventDefault();try{await api('createTask',{projectId:active,title:by('taskTitle').value});by('taskTitle').value='';await refresh();notice('Task added');}catch(err){notice(err.message,true);}};
 by('sectionCreate').onsubmit=async e=>{e.preventDefault();try{await api('addSection',{taskId:by('sectionTask').value,title:by('sectionTitle').value,resources:by('sectionResource').value.trim()?[{key:by('sectionResource').value.trim(),mode:by('sectionMode').value}]:[]});by('sectionTitle').value='';by('sectionResource').value='';await refresh();notice('Section added');}catch(err){notice(err.message,true);}};
 by('memoryCreate').onsubmit=async e=>{e.preventDefault();try{await api('memoryPut',{projectId:active,body:by('memoryBody').value,sourceRef:by('memorySource').value,kind:by('memoryKind').value});by('memoryBody').value='';await refresh();notice('Local memory recorded (unverified)');}catch(err){notice(err.message,true);}};
