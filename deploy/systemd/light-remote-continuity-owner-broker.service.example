@@ -1,0 +1,35 @@
+# Source template ONLY. Requires explicit owner install/approval and prior
+# bootstrap under dedicated service UID. Not installed by Gold Agent.
+# /var/lib/light-remote/continuity-broker must be:
+# owner: lightremote-continuity, group: lightremote-continuity-client,
+# mode: 2710; its /private signer directory mode 0700.
+# The Light Remote Agent account may belong to *client* group ONLY.
+# IMPORTANT: broker does not launch Codex or control filesystem execution.
+[Unit]
+Description=Light Remote Project Continuity isolated owner key broker
+After=local-fs.target
+
+[Service]
+Type=simple
+User=lightremote-continuity
+Group=lightremote-continuity-client
+UMask=0077
+WorkingDirectory=/opt/light-remote/current
+ExecStart=/usr/bin/node /opt/light-remote/current/device-agent/project-continuity-owner-broker-cli.mjs serve --root /var/lib/light-remote/continuity-broker
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_UNIX
+ReadWritePaths=/var/lib/light-remote/continuity-broker
+
+[Install]
+WantedBy=multi-user.target

@@ -384,6 +384,18 @@
     {
       "source": "device-agent/project-continuity-owner-grants.mjs",
       "destination": "device-agent/project-continuity-owner-grants.mjs"
+    },
+    {
+      "source": "device-agent/project-continuity-owner-broker.mjs",
+      "destination": "device-agent/project-continuity-owner-broker.mjs"
+    },
+    {
+      "source": "device-agent/project-continuity-owner-broker-cli.mjs",
+      "destination": "device-agent/project-continuity-owner-broker-cli.mjs"
+    },
+    {
+      "source": "device-agent/project-continuity-platform-contract.mjs",
+      "destination": "device-agent/project-continuity-platform-contract.mjs"
     }
   ]
 }
