@@ -31,7 +31,20 @@ hr{border:0;border-top:1px solid #243247;margin:20px 0}pre{white-space:pre-wrap;
 <p class="muted" style="font-size:12px">Each module is independent. Enabling Codex here only records its preference; no Codex login or worker starts in P1.</p>
 <button class="primary" id="save">Save modules</button><hr>
 <h2>Task Controller</h2><form id="taskCreate" class="row"><input id="taskTitle" placeholder="New task" maxlength="160" required><button type="submit">Add task</button></form>
-<div id="tasks"></div><hr><h2>Durable checkpoint</h2><p class="muted" style="font-size:12px">Read-only view generated from canonical SQLite state, not inferred by AI.</p>
+<div id="tasks"></div>
+<form id="sectionCreate" style="margin-top:12px">
+<label>Task</label><select id="sectionTask" required style="width:100%;background:#0a1321;border:1px solid #304158;color:#edf5ff;padding:10px;border-radius:7px"></select>
+<label>Section name</label><input id="sectionTitle" maxlength="160" required placeholder="e.g. Install and verify">
+<button type="submit" style="margin-top:8px">Add section (independent)</button>
+</form><hr><h2>Project Memory</h2>
+<p class="muted" style="font-size:12px">Owner-curated local notes; unverified until owner confirmation. No automatic chat scraping.</p>
+<form id="memoryCreate"><label>Memory / decision / observation</label><input id="memoryBody" maxlength="12000" required placeholder="What should be remembered?">
+<label>Source reference</label><input id="memorySource" maxlength="2048" required placeholder="docs/handoff.md or commit SHA">
+<label>Kind</label><select id="memoryKind" style="width:100%;background:#0a1321;border:1px solid #304158;color:#edf5ff;padding:10px;border-radius:7px"><option value="observation">Observation</option><option value="fact">Fact (unverified)</option><option value="decision">Decision (unverified)</option><option value="hypothesis">Hypothesis</option></select>
+<button type="submit" style="margin-top:8px">Save local memory</button></form>
+<form id="memorySearchForm" class="row" style="margin-top:12px"><input id="memoryQuery" placeholder="Search project memory" maxlength="300"><button type="submit">Search</button></form>
+<pre id="memoryResults"></pre><button id="makeHandoff">Generate bounded handoff</button>
+<pre id="handoff"></pre><hr><h2>Durable checkpoint</h2><p class="muted" style="font-size:12px">Read-only view generated from canonical SQLite state, not inferred by AI.</p>
 <button id="refresh">Refresh checkpoint</button><pre id="checkpoint" aria-label="Project checkpoint"></pre></div></section></div></main>
 <script>
 const CSRF=__CSRF_JSON__;let items=[],active=null;
@@ -66,11 +79,25 @@ async function refresh(){
    box.append(row);
   }
   if(!snapshot.tasks.length)box.textContent='No tasks yet';
+  const select=by('sectionTask');select.replaceChildren();
+  for(const task of snapshot.tasks){const opt=document.createElement('option');opt.value=task.id;opt.textContent=task.title;select.append(opt);}
+  by('sectionCreate').hidden=snapshot.tasks.length===0;
+  const mem=!!snapshot.project.memoryEnabled;
+  by('memoryCreate').hidden=!mem;by('memorySearchForm').hidden=!mem;by('makeHandoff').hidden=!mem;
+  if(mem){
+   const rows=await api('memoryRecent',{projectId:active});
+   by('memoryResults').textContent=JSON.stringify(rows.slice(0,10),null,2);
+  }else{by('memoryResults').textContent='Memory disabled';by('handoff').textContent='';}
+
  }catch(e){notice(e.message,true);}
 }
 by('create').onsubmit=async e=>{e.preventDefault();try{const p=await api('createProject',{name:by('projectName').value,workspace:by('workspace').value});by('projectName').value='';items=await api('listProjects');await select(p.id);notice('Local project created');}catch(err){notice(err.message,true);}};
 by('save').onclick=async()=>{const p=items.find(x=>x.id===active);if(!p)return;try{const updated=await api('setModules',{projectId:p.id,memory:by('memory').checked,codex:by('codex').checked,expectedRevision:p.revision});items=items.map(x=>x.id===updated.id?updated:x);await select(updated.id);notice('Module settings saved locally');}catch(e){notice(e.message,true);}};
 by('taskCreate').onsubmit=async e=>{e.preventDefault();try{await api('createTask',{projectId:active,title:by('taskTitle').value});by('taskTitle').value='';await refresh();notice('Task added');}catch(err){notice(err.message,true);}};
+by('sectionCreate').onsubmit=async e=>{e.preventDefault();try{await api('addSection',{taskId:by('sectionTask').value,title:by('sectionTitle').value});by('sectionTitle').value='';await refresh();notice('Section added');}catch(err){notice(err.message,true);}};
+by('memoryCreate').onsubmit=async e=>{e.preventDefault();try{await api('memoryPut',{projectId:active,body:by('memoryBody').value,sourceRef:by('memorySource').value,kind:by('memoryKind').value});by('memoryBody').value='';await refresh();notice('Local memory recorded (unverified)');}catch(err){notice(err.message,true);}};
+by('memorySearchForm').onsubmit=async e=>{e.preventDefault();try{const q=by('memoryQuery').value.trim();if(!q)return;const rows=await api('memorySearch',{projectId:active,query:q,limit:10});by('memoryResults').textContent=JSON.stringify(rows,null,2);notice('Memory matches: '+rows.length);}catch(err){notice(err.message,true);}};
+by('makeHandoff').onclick=async()=>{try{const data=await api('contextBrief',{projectId:active,maxChars:10000});by('handoff').textContent=data.content;notice('Bounded handoff generated from SQLite');}catch(err){notice(err.message,true);}};
 by('refresh').onclick=refresh;all();
 </script></body></html>`;
 return page.replace('__CSRF_JSON__',JSON.stringify(csrf));

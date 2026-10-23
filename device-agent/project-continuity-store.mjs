@@ -28,6 +28,8 @@ export class ContinuityStore {
   if(process.platform!=='win32')fs.chmodSync(this.root,0o700);
   this.db=new DatabaseSync(path.join(this.root,'continuity.db'),{timeout:3000});
   this.db.exec('PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=3000; PRAGMA synchronous=FULL');
+  const openedVersion=this.db.prepare('PRAGMA user_version').get().user_version;
+  if(openedVersion>3){this.db.close();throw Error('continuity_future_schema_version');}
   this.db.exec([
   'CREATE TABLE IF NOT EXISTS projects(id TEXT PRIMARY KEY,name TEXT NOT NULL,workspace TEXT NOT NULL,memory_enabled INTEGER NOT NULL DEFAULT 0 CHECK(memory_enabled IN(0,1)),codex_enabled INTEGER NOT NULL DEFAULT 0 CHECK(codex_enabled IN(0,1)),revision INTEGER NOT NULL DEFAULT 1,created_at TEXT NOT NULL,updated_at TEXT NOT NULL)',
   'CREATE TABLE IF NOT EXISTS tasks(id TEXT PRIMARY KEY,project_id TEXT NOT NULL REFERENCES projects(id),title TEXT NOT NULL,created_at TEXT NOT NULL)',
@@ -42,11 +44,36 @@ export class ContinuityStore {
   'CREATE INDEX IF NOT EXISTS idx_sections_task ON sections(task_id)',
   'CREATE INDEX IF NOT EXISTS idx_evidence_section ON evidence(section_id)'
   ].join(';\n')+';');
-  const v=this.db.prepare('PRAGMA user_version').get().user_version;
-  if(v>1)throw Error('continuity_future_schema_version');
-  if(v===0)this.db.exec('PRAGMA user_version=1');
+  // Additive, typed migration; never rehydrate from exported JSON.
+  this.db.exec([
+   'CREATE TABLE IF NOT EXISTS section_claims(section_id TEXT PRIMARY KEY REFERENCES sections(id),project_id TEXT NOT NULL REFERENCES projects(id),operation_id TEXT NOT NULL,worker TEXT NOT NULL,lease_hash TEXT NOT NULL,status TEXT NOT NULL CHECK(status IN (\'held\',\'unknown\',\'released\')),created_at TEXT NOT NULL,updated_at TEXT NOT NULL, UNIQUE(project_id,operation_id))',
+   'CREATE TABLE IF NOT EXISTS memory_annotations(fact_id TEXT PRIMARY KEY REFERENCES memory_facts(id),confidence TEXT NOT NULL CHECK(confidence IN (\'unverified\',\'owner_confirmed\',\'source_verified\')),superseded INTEGER NOT NULL DEFAULT 0 CHECK(superseded IN(0,1)))',
+   'CREATE INDEX IF NOT EXISTS idx_events_project_seq ON events(project_id,seq)',
+   'CREATE INDEX IF NOT EXISTS idx_memory_project_time ON memory_facts(project_id,created_at)'
+  ].join(';\n')+';');
+  this.db.exec('PRAGMA user_version=2');
+  this.db.exec("CREATE TABLE IF NOT EXISTS codex_threads(project_id TEXT PRIMARY KEY REFERENCES projects(id),thread_id TEXT NOT NULL,last_turn_status TEXT NOT NULL DEFAULT 'idle',updated_at TEXT NOT NULL)");
+  this.db.exec('PRAGMA user_version=3');
+  this.reconcileStartup();
  }
- close(){this.db.close();}
+ reconcileStartup(){
+  // Previous runner may have survived the database service. Never claim completion
+  // or re-dispatch any unacknowledged native effect; preserve UNKNOWN for review.
+  const running=this.db.prepare("SELECT s.id,t.project_id FROM sections s JOIN tasks t ON t.id=s.task_id WHERE s.state='RUNNING'").all();
+  const held=this.db.prepare("SELECT section_id,project_id FROM section_claims WHERE status='held'").all();
+  if(running.length===0&&held.length===0)return;
+  this.tx(()=>{
+   for(const s of running){
+    this.db.prepare("UPDATE sections SET state='UNKNOWN',revision=revision+1,reason='restart_requires_reconciliation',updated_at=? WHERE id=?").run(now(),s.id);
+    this.event(s.project_id,'controller','restart_unknown',s.id,'RUNNING','UNKNOWN');
+   }
+   for(const x of held){
+    this.db.prepare("UPDATE section_claims SET status='unknown',updated_at=? WHERE section_id=?").run(now(),x.section_id);
+    this.event(x.project_id,'controller','claim_unknown',x.section_id,'held','unknown');
+   }
+  });
+ }
+  close(){this.db.close();}
  tx(fn){this.db.exec('BEGIN IMMEDIATE');try{const result=fn();this.db.exec('COMMIT');return result;}catch(e){this.db.exec('ROLLBACK');throw e;}}
  project(pid){return this.db.prepare('SELECT * FROM projects WHERE id=?').get(guid(pid))||null;}
  projects(){return this.db.prepare('SELECT * FROM projects ORDER BY created_at,id').all();}
@@ -142,23 +169,133 @@ export class ContinuityStore {
    this.event(a.project_id,'owner','approval_decided',a.section_id,'WAIT_OWNER',next,decision);return this.section(a.section_id);
   });
  }
+ codexThread(pid){
+  const p=this.project(pid);req(p,'continuity_project_missing');req(p.codex_enabled===1,'continuity_codex_disabled');
+  return this.db.prepare('SELECT thread_id,last_turn_status,updated_at FROM codex_threads WHERE project_id=?').get(pid)||null;
+ }
+ recordCodexThread(pid,{threadId,lastTurnStatus='idle'}){
+  req(this.project(pid)?.codex_enabled===1,'continuity_codex_disabled');
+  req(typeof threadId==='string'&&threadId.length>=4&&threadId.length<=256,'continuity_codex_thread_invalid');
+  req(['idle','inProgress','completed','failed','interrupted','unknown'].includes(lastTurnStatus),'continuity_codex_turn_status_invalid');
+  return this.tx(()=>{
+   this.db.prepare('INSERT INTO codex_threads(project_id,thread_id,last_turn_status,updated_at) VALUES (?,?,?,?) ON CONFLICT(project_id) DO UPDATE SET thread_id=excluded.thread_id,last_turn_status=excluded.last_turn_status,updated_at=excluded.updated_at')
+    .run(pid,threadId,lastTurnStatus,now());
+   this.event(pid,'controller','codex_thread_updated',threadId);
+   return this.codexThread(pid);
+  });
+ }
+ claimSection(sid,{expectedRevision,operationId,worker,ownerAuthorized=false}){
+  const s=this.section(sid);req(s,'continuity_section_missing');
+  const p=this.project(s.project_id);
+  req(p.codex_enabled===1,'continuity_codex_disabled');
+  req(ownerAuthorized===true,'continuity_delegation_owner_required');
+  req(s.state==='READY'&&s.revision===expectedRevision,'continuity_not_ready_or_stale');
+  req(typeof operationId==='string'&&/^[A-Za-z0-9._:-]{16,160}$/.test(operationId),'continuity_operation_id_invalid');
+  const holder=label(worker,160);
+  const pending=this.db.prepare("SELECT COUNT(*) n FROM section_deps d JOIN sections dep ON dep.id=d.depends_on WHERE d.section_id=? AND dep.state<>'DONE'").get(sid).n;
+  req(pending===0,'continuity_dependencies_incomplete');
+  const token=crypto.randomBytes(32).toString('hex'),hash=crypto.createHash('sha256').update(token).digest('hex');
+  return this.tx(()=>{
+   const existing=this.db.prepare('SELECT status,operation_id FROM section_claims WHERE section_id=?').get(sid);
+   req(!existing,'continuity_claim_exists_or_unknown');
+   const duplicate=this.db.prepare('SELECT section_id FROM section_claims WHERE project_id=? AND operation_id=?').get(s.project_id,operationId);
+   req(!duplicate,'continuity_operation_reused');
+   this.db.prepare("INSERT INTO section_claims(section_id,project_id,operation_id,worker,lease_hash,status,created_at,updated_at) VALUES (?,?,?,?,?,'held',?,?)").run(sid,s.project_id,operationId,holder,hash,now(),now());
+   this.db.prepare("UPDATE sections SET state='RUNNING',reason=NULL,revision=revision+1,updated_at=? WHERE id=? AND state='READY'").run(now(),sid);
+   this.event(s.project_id,'controller','claim_reserved',sid,'READY','RUNNING',operationId);
+   return {sectionId:sid,operationId,leaseToken:token,state:'RUNNING',revision:s.revision+1};
+  });
+ }
+ markClaimUnknown(sid,{leaseToken}){
+  const s=this.section(sid);req(s,'continuity_section_missing');
+  const hash=crypto.createHash('sha256').update(label(leaseToken,64)).digest('hex');
+  return this.tx(()=>{
+   const r=this.db.prepare("UPDATE section_claims SET status='unknown',updated_at=? WHERE section_id=? AND status='held' AND lease_hash=?").run(now(),sid,hash);
+   req(r.changes===1,'continuity_lease_unknown_or_invalid');
+   this.db.prepare("UPDATE sections SET state='UNKNOWN',reason='effect_unverified',revision=revision+1,updated_at=? WHERE id=? AND state='RUNNING'").run(now(),sid);
+   this.event(s.project_id,'controller','claim_unknown',sid,'RUNNING','UNKNOWN');
+   return this.section(sid);
+  });
+ }
+ reconcileClaim(sid,{ownerVerified=false,evidenceReference,verdict}){
+  req(ownerVerified===true,'continuity_owner_proof_required');
+  req(['not_started','terminal_failed','terminal_succeeded'].includes(verdict),'continuity_reconciliation_invalid');
+  const s=this.section(sid);req(s?.state==='UNKNOWN','continuity_not_unknown');
+  const claim=this.db.prepare("SELECT * FROM section_claims WHERE section_id=? AND status='unknown'").get(sid);
+  req(claim,'continuity_claim_unverified');
+  const evidenceRef=label(evidenceReference,2048);
+  // No auto-READY in uncertainty: owner certifies exact outcome and records evidence.
+  const next=verdict==='terminal_succeeded'?'CHECKPOINTED':'FAILED';
+  return this.tx(()=>{
+   const eid=uid();
+   this.db.prepare('INSERT INTO evidence(id,section_id,reference,sha256,verified_by,created_at) VALUES (?,?,?,?,?,?)').run(eid,sid,evidenceRef,null,'owner',now());
+   this.db.prepare("UPDATE section_claims SET status='released',updated_at=? WHERE section_id=?").run(now(),sid);
+   this.db.prepare("UPDATE sections SET state=?,reason=?,revision=revision+1,updated_at=? WHERE id=?").run(next,'reconciled_'+verdict,now(),sid);
+   this.event(s.project_id,'owner','claim_reconciled',sid,'UNKNOWN',next,verdict);
+   return this.section(sid);
+  });
+ }
  memoryPut(pid,{body,kind='observation',sourceRef}){
   req(this.project(pid)?.memory_enabled===1,'continuity_memory_disabled');
   req(['observation','fact','decision','hypothesis'].includes(kind),'continuity_memory_kind_invalid');
   const fid=uid(),b=label(body,12000),ref=label(sourceRef,2048);
+  // Only a heuristic prevention boundary; encrypted secrets remain in OS vaults.
+  const secretPattern=/(-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|(?:sk-proj-|sk-|github_pat_)[A-Za-z0-9_-]{14,}|Bearer\s+[A-Za-z0-9._-]{20,})/i;
+  req(!secretPattern.test(b)&&!secretPattern.test(ref),'continuity_sensitive_content_rejected');
   return this.tx(()=>{
    // FTS table only initialized after opting in, not for Codex-only.
    this.db.exec("CREATE VIRTUAL TABLE IF NOT EXISTS memory_fts USING fts5(fact_id UNINDEXED,project_id UNINDEXED,body,tokenize='unicode61')");
    this.db.prepare('INSERT INTO memory_facts(id,project_id,body,kind,source_ref,created_at) VALUES (?,?,?,?,?,?)').run(fid,pid,b,kind,ref,now());
+   this.db.prepare('INSERT INTO memory_annotations(fact_id,confidence) VALUES (?,?)').run(fid,kind==='hypothesis'?'unverified':'unverified');
    this.db.prepare('INSERT INTO memory_fts(fact_id,project_id,body) VALUES (?,?,?)').run(fid,pid,b);
    this.event(pid,'owner','memory_added',fid);return {id:fid,kind,sourceRef:ref};
   });
  }
- memorySearch(pid,query,{limit=8}={}){
+ confirmMemory(pid,factId,{ownerVerified=false}={}){
+  req(ownerVerified===true,'continuity_owner_proof_required');
+  req(this.project(pid)?.memory_enabled===1,'continuity_memory_disabled');
+  const fact=this.db.prepare('SELECT id FROM memory_facts WHERE id=? AND project_id=?').get(guid(factId),pid);
+  req(fact,'continuity_fact_not_found');
+  return this.tx(()=>{
+   this.db.prepare("UPDATE memory_annotations SET confidence='owner_confirmed' WHERE fact_id=?").run(factId);
+   this.event(pid,'owner','fact_confirmed',factId);
+   return {id:factId,confidence:'owner_confirmed'};
+  });
+ }
+  memorySearch(pid,query,{limit=8}={}){
   req(this.project(pid)?.memory_enabled===1,'continuity_memory_disabled');
   req(Number.isInteger(limit)&&limit>=1&&limit<=25,'continuity_invalid_limit');
   const exists=this.db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='memory_fts'").get();if(!exists)return [];
-  return this.db.prepare('SELECT m.id,m.body,m.kind,m.source_ref FROM memory_fts JOIN memory_facts m ON m.id=memory_fts.fact_id WHERE memory_fts MATCH ? AND memory_fts.project_id=? ORDER BY rank LIMIT ?').all(label(query,300),pid,limit);
+  return this.db.prepare('SELECT m.id,m.body,m.kind,m.source_ref,a.confidence FROM memory_fts JOIN memory_facts m ON m.id=memory_fts.fact_id JOIN memory_annotations a ON a.fact_id=m.id AND a.superseded=0 WHERE memory_fts MATCH ? AND memory_fts.project_id=? ORDER BY rank LIMIT ?').all('"'+label(query,300).replaceAll('"','""')+'"',pid,limit);
+ }
+ contextBrief(pid,{query='',maxChars=10000}={}){
+  const p=this.project(pid);req(p,'continuity_project_missing');
+  req(p.memory_enabled===1,'continuity_memory_disabled');
+  req(Number.isInteger(maxChars)&&maxChars>=512&&maxChars<=16000,'continuity_context_limit');
+  const snap=this.checkpoint(pid);
+  const recent=this.db.prepare('SELECT f.id,f.body,f.kind,f.source_ref,f.created_at,a.confidence FROM memory_facts f JOIN memory_annotations a ON a.fact_id=f.id WHERE f.project_id=? AND a.superseded=0 ORDER BY CASE WHEN a.confidence=\'owner_confirmed\' THEN 0 ELSE 1 END,f.created_at DESC LIMIT 24').all(pid);
+  const matches=typeof query==='string'&&query.trim()?this.memorySearch(pid,query,{limit:10}):[];
+  const selected=[...matches,...recent].filter((v,i,a)=>a.findIndex(x=>x.id===v.id)===i).slice(0,24);
+  const lines=[
+   '# Project Continuity — Evidence-scoped handoff',
+   'Project: '+p.name,
+   'Project ID: '+p.id,
+   'Project revision: '+p.revision,
+   'Checkpoint event sequence: '+snap.sequence,
+   'Workspace (reference only, NOT permission): '+p.workspace,
+   '',
+   '## Tasks / Sections',
+   ...snap.tasks.flatMap(t=>['Task: '+t.title+' ['+t.id+']',...t.sections.map(s=>' - '+s.title+' ['+s.id+'] = '+s.state+(s.reason?' ('+s.reason+')':''))]),
+   '',
+   '## Owner approvals pending',
+   ...snap.pendingApprovals.map(a=>' - '+a.section_id+': '+a.reason),
+   '',
+   '## Knowledge (source attribution required; unverified is not confirmed)',
+   ...selected.map(m=>' - ['+m.kind+'; '+m.confidence+'; '+m.source_ref+'] '+m.body)
+  ];
+  let output='';
+  for(const line of lines){if(output.length+line.length+1>maxChars){output+='\n[TRUNCATED: more context available by bounded search]\n';break;}output+=line+'\n';}
+  return {projectId:pid,sequence:snap.sequence,content:output,factsReturned:selected.length,truncated:output.includes('[TRUNCATED')};
  }
  checkpoint(pid){
   const p=this.project(pid);req(p,'continuity_project_missing');
@@ -181,6 +318,18 @@ export class ContinuityStore {
    fs.renameSync(temp,output);
    return {path:output,sha256:crypto.createHash('sha256').update(fs.readFileSync(output)).digest('hex')};
   }finally{if(fs.existsSync(temp))fs.rmSync(temp,{force:true});}
+ }
+ exportHandoff(pid,{query='',maxChars=10000}={}){
+  const data=this.contextBrief(pid,{query,maxChars});
+  const target=path.join(this.root,'handoff-'+guid(pid)+'.md');
+  const tmp=target+'.'+uid()+'.tmp';
+  try{
+   fs.writeFileSync(tmp,data.content,{mode:0o600,flag:'wx'});
+   fs.renameSync(tmp,target);
+  }finally{if(fs.existsSync(tmp))fs.rmSync(tmp,{force:true});}
+  return {projectId:pid,path:target,sequence:data.sequence,
+   sha256:crypto.createHash('sha256').update(data.content).digest('hex'),
+   factsReturned:data.factsReturned,truncated:data.truncated};
  }
  exportCheckpoint(pid){
   const data=this.checkpoint(pid),target=path.join(this.root,'checkpoint-'+guid(pid)+'.json'),tmp=target+'.'+uid()+'.tmp';

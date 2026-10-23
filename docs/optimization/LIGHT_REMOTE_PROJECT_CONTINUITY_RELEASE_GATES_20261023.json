@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "feature": "Light Remote Project Continuity",
+  "status": "BLOCKED",
+  "owner_tested_windows_baseline": "30766940ac18e55cb735354b40a3af9ba37eddb8",
+  "gates": {
+    "local_sqlite_controller_and_memory_source": "PASS_SOURCE_ONLY",
+    "owner_bound_privileged_ipc_and_windows_acl": "OPEN",
+    "official_mcp_cross_chat_memory_end_to_end": "OPEN",
+    "real_codex_app_server_owner_auth": "OPEN",
+    "delegated_worker_scopes_receipts_recovery": "OPEN",
+    "all_four_optional_mode_end_to_end": "OPEN",
+    "physical_windows_486_parity": "OPEN"
+  },
+  "test_build_allowed": false,
+  "notes": "This manifest is planning/readiness metadata, not runtime state. Do not change gates without evidence references. Never count mocked app-server as physical Codex acceptance."
+}

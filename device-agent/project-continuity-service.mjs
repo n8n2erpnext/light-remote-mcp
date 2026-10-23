@@ -14,7 +14,12 @@ if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
   process.on('SIGINT',shutdown);process.on('SIGTERM',shutdown);
  }else if(op==='health'||op==='listProjects'){
   continuityRequest(op,{}, {root}).then(v=>{console.log(JSON.stringify(v,null,2));}).catch(e=>{console.error(e.message);process.exitCode=1;});
+ }else if(op==='brief'){
+  // Explicit project ID required. No guessed "current project", no token echo.
+  const projectId=process.argv[3];
+  if(!/^[a-f0-9-]{36}$/.test(String(projectId||'')))throw Error('continuity_invalid_id');
+  continuityRequest('contextBrief',{projectId,maxChars:10000},{root}).then(v=>console.log(v.content)).catch(e=>{console.error(e.message);process.exitCode=1;});
  }else{
-  console.error('usage: project-continuity-service.mjs serve|health|listProjects [--root DIR]');process.exitCode=2;
+  console.error('usage: project-continuity-service.mjs serve|health|listProjects|brief PROJECT_ID [--root DIR]');process.exitCode=2;
  }
 }

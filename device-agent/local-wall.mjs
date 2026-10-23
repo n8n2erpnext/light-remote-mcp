@@ -621,7 +621,7 @@ export function startLocalWall({host='127.0.0.1',port=5491,brandSvgPath,fontPath
       if(!continuity?.request)return json(res,404,{ok:false,error:'project_continuity_disabled'});
       if(!auth?.enabled||!auth.identity(req))return json(res,403,{ok:false,error:'project_continuity_owner_auth_required'});
       const op=url.pathname.slice('/api/project-continuity/'.length);
-      const allowedGet=['listProjects'],allowedPost=['createProject','setModules','createTask','checkpoint'];
+      const allowedGet=['listProjects'],allowedPost=['createProject','setModules','createTask','addSection','checkpoint','contextBrief','memoryPut','memorySearch','memoryRecent'];
       if(!(req.method==='GET'&&allowedGet.includes(op))&&!(req.method==='POST'&&allowedPost.includes(op)))return json(res,404,{ok:false,error:'project_continuity_action_unavailable'});
       if(req.method==='POST'&&!mutationAllowed(req))return json(res,403,{ok:false,error:'csrf_invalid'});
       const data=req.method==='POST'?await body(req):{};

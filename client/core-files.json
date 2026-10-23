@@ -376,6 +376,10 @@
     {
       "source": "assets/icons/material/visibility_off.svg",
       "destination": "assets/icons/material/visibility_off.svg"
+    },
+    {
+      "source": "device-agent/project-continuity-codex-rpc.mjs",
+      "destination": "device-agent/project-continuity-codex-rpc.mjs"
     }
   ]
 }
