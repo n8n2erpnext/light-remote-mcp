@@ -18,6 +18,10 @@
       "destination": "device-agent/local-wall-auth.mjs"
     },
     {
+      "source": "device-agent/filesystem-volume-inventory.mjs",
+      "destination": "device-agent/filesystem-volume-inventory.mjs"
+    },
+    {
       "source": "device-agent/local-wall.mjs",
       "destination": "device-agent/local-wall.mjs"
     },
