@@ -1,4 +1,17 @@
 import { confidentialProjectRequest } from './device-duplex-session.mjs';
+import {createProjectReadDelegation} from '../lib/project-continuity-session-proof.mjs';
+function signScopedContinuityRead({accountId,deviceId,agentId,sessionId,projectId,
+ requestId,query,maxChars}){
+ const filename=String(process.env.LIGHT_REMOTE_CONTINUITY_OPERATOR_SIGNING_KEY_FILE||'');
+ if(!filename)throw Error('continuity_operator_signer_not_configured');
+ if(!path.isAbsolute(filename))throw Error('continuity_operator_signer_path_invalid');
+ const st=fs.lstatSync(filename);
+ if(!st.isFile()||st.isSymbolicLink()||(process.platform!=='win32'&&(st.mode&0o077)!==0))
+  throw Error('continuity_operator_signer_file_unsafe');
+ return createProjectReadDelegation({privateKey:fs.readFileSync(filename),
+  accountId,deviceId,agentId,sessionId,projectId,requestId,query,maxChars});
+}
+
 import http from 'node:http';
 import os from 'node:os';
 import fs from 'node:fs';
@@ -1387,7 +1400,7 @@ const routeDeps=()=>({
   removeRuntimeForDevice,requireAccount,requireDeviceConnection,revokeRuntimeForDevice,ring,
   ringBytes,sendJson,sessionStatsFromDisk,sessions,sseClients,
   startDesktopOperation,startFsOperation,startJob,startProcessOperation,startScpOperation,startSearchOperation,
-  startTerminalOperation,targetRoute,verifyTeamPrincipal,terminalResultSummary,usage,verifiedChannelContext,confidentialProjectRequest,
+  startTerminalOperation,targetRoute,verifyTeamPrincipal,terminalResultSummary,usage,verifiedChannelContext,confidentialProjectRequest,signScopedContinuityRead,
   verifiedFleetContext,verifiedLeafCapabilities,waitForJob,wakeDeviceChannelForDevice,
 });
 

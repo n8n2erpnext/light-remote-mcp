@@ -14,6 +14,7 @@ P2 sealed signing-key checkpoint: [encrypted owner key and focused privacy audit
 P2 rekey/signed receipts source checkpoint: [owner password rewrap, signed remote-read consent verification and safe v7 migration](./LIGHT_REMOTE_PROJECT_CONTINUITY_P2_REKEY_SIGNED_CONSENT_HANDOFF_20261023.md). Rekey/source receipt PASS; separate OS identity, real MCP and Windows test build still OPEN.
 Multi-OS Owner Broker: [Windows and Linux Server first; macOS and Linux Desktop second; actual two-UID Linux pilot](./LIGHT_REMOTE_PROJECT_CONTINUITY_MULTI_OS_OWNER_BROKER_HANDOFF_20261023.md). Source and Linux pilot PASS; real first-wave service integration and second-wave physical parity remain OPEN.
 Isolated Controller checkpoint: [broker-owned SQLite and pinned trust anchor, Agent local selector, Linux two-UID receipt](./LIGHT_REMOTE_PROJECT_CONTINUITY_ISOLATED_CONTROLLER_MULTI_OS_HANDOFF_20261023.md). Source/Linux ephemeral smoke PASS; broker remote A/B session binding and installed service still OPEN.
+Signed Operator delegation: [signed scoped six-second request, durable nonce and Linux two-UID broker remote Memory fixture](./LIGHT_REMOTE_PROJECT_CONTINUITY_SIGNED_OPERATOR_RELAY_HANDOFF_20261023.md). Signed-source proof PASS; live official Plugin/Operator A/B session, key lifecycle and four OS installer acceptance remain OPEN.
 
 Windows owner-tested build: Actions #486, SHA 30766940ac18e55cb735354b40a3af9ba37eddb8
 

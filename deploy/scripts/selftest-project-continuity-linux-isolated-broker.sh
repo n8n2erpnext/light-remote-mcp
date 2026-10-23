@@ -22,6 +22,13 @@ sudo -n -u nobody id -u >/dev/null
 mkdir -m 0755 "$SOURCES"
 cp device-agent/project-continuity-owner-broker{,-cli}.mjs device-agent/project-continuity-owner-grants.mjs device-agent/project-continuity-store.mjs device-agent/project-continuity-client.mjs "$SOURCES/"
 chmod 0644 "$SOURCES"/*.mjs
+mkdir -m 0755 "$ROOT/lib"
+cp lib/project-continuity-session-proof.mjs "$ROOT/lib/"
+chmod 0644 "$ROOT/lib/"*.mjs
+RELAY_PRIVATE="$ROOT/relay-sign-private.pem"
+RELAY_PUBLIC="$ROOT/lib/relay-sign-public.pem"
+RELAY_PRIVATE="$RELAY_PRIVATE" RELAY_PUBLIC="$RELAY_PUBLIC" node --input-type=module -e "import crypto from 'node:crypto';import fs from 'node:fs';const k=crypto.generateKeyPairSync('ed25519');fs.writeFileSync(process.env.RELAY_PRIVATE,k.privateKey.export({type:'pkcs8',format:'pem'}),{mode:0o600});fs.writeFileSync(process.env.RELAY_PUBLIC,k.publicKey.export({type:'spki',format:'pem'}),{mode:0o644});"
+chmod 0644 "$RELAY_PUBLIC"
 mkdir "$BROKER"
 sudo -n chown nobody:"$(id -gn)" "$BROKER"
 sudo -n chmod 2710 "$BROKER"
@@ -30,6 +37,8 @@ printf '{"password":"isolated-linux-broker-test-only-passphrase-2026"}\n' \
  | sudo -n -u nobody node "$SOURCES/project-continuity-owner-broker-cli.mjs" bootstrap --root "$BROKER" >/dev/null
 [[ ! -r "$BROKER/private/continuity-owner-private.enc.json" ]] || { echo "ISOLATION_VIOLATION_PRIVATE_READ"; exit 5; }
 [[ ! -r "$BROKER/owner-authority-public.pem" ]] || { echo "ISOLATION_VIOLATION_TRUST_ANCHOR_READ"; exit 5; }
+sudo -n -u nobody node "$SOURCES/project-continuity-owner-broker-cli.mjs" trust-operator --root "$BROKER" --account-id account-linux-test --device-id device-linux-test --public-key-file "$RELAY_PUBLIC" >/dev/null
+[[ ! -r "$BROKER/trusted-operator-relay.json" ]] || { echo "ISOLATION_VIOLATION_OPERATOR_TRUST_READ"; exit 5; }
 sudo -n -u nobody node "$SOURCES/project-continuity-owner-broker-cli.mjs" serve --root "$BROKER" --controller 1 \
  > "$ROOT/broker-output.log" 2>&1 &
 BROKER_PID=$!
@@ -41,11 +50,12 @@ done
 [[ "$(stat -c '%a' "$BROKER/owner-broker.sock")" = "660" ]]
 # The client is a different OS user (the invoking account) and can access
 # only the broker socket; credentials still required for signing.
-BROKER_ROOT="$BROKER" BROKER_MODULE="$SOURCES/project-continuity-owner-broker.mjs" BROKER_CLIENT="$SOURCES/project-continuity-client.mjs" node --input-type=module <<'JS'
+BROKER_ROOT="$BROKER" BROKER_MODULE="$SOURCES/project-continuity-owner-broker.mjs" BROKER_CLIENT="$SOURCES/project-continuity-client.mjs" PROOF_MODULE="$ROOT/lib/project-continuity-session-proof.mjs" RELAY_PRIVATE="$RELAY_PRIVATE" node --input-type=module <<'JS'
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 const {ownerBrokerRequest}=await import(process.env.BROKER_MODULE);
+const {createProjectReadDelegation}=await import(process.env.PROOF_MODULE);
 const {projectContinuityRequest,projectContinuityOwnerConsent}=await import(process.env.BROKER_CLIENT);
 process.env.LIGHT_REMOTE_CONTINUITY_ISOLATED_BROKER='1';
 process.env.LIGHT_REMOTE_CONTINUITY_BROKER_ROOT=process.env.BROKER_ROOT;
@@ -74,7 +84,7 @@ await projectContinuityRequest('memoryPut',{projectId:created.id,body:'ISOLATED_
 const local=await projectContinuityRequest('contextBrief',{projectId:created.id,maxChars:2000});
 assert.match(local.content,/ISOLATED_CANARY_IN_PRIVATE_DB_2070/);
 await assert.rejects(brokerOp('remoteBrief',{projectId:created.id}),/continuity_broker_controller_action_denied/);
-await assert.rejects(projectContinuityRequest('remoteBrief',{projectId:created.id}),/continuity_broker_remote_session_binding_pending/);
+await assert.rejects(projectContinuityRequest('remoteBrief',{projectId:created.id}),/continuity_remote_delegation_required/);
 await assert.rejects(projectContinuityRequest('applySignedOwnerConsent',{projectId:created.id}),/continuity_broker_signature_direct_use_denied/);
 await assert.rejects(brokerOp('applySignedOwnerConsent',{projectId:created.id,proof:{}}),/continuity_broker_controller_action_denied/);
 await assert.rejects(brokerOp('transition',{sectionId:'arbitrary'}),/continuity_broker_controller_action_denied/);
@@ -86,6 +96,21 @@ const enabled=await projectContinuityOwnerConsent({
  password:'isolated-linux-broker-test-only-passphrase-2026'});
 assert.equal(enabled.remoteReadEnabled,true);
 assert.equal((await brokerOp('getProject',{projectId:created.id})).remote_read_enabled,1);
+const relayRequestId=crypto.randomUUID();
+const relayProof=createProjectReadDelegation({
+ privateKey:fs.readFileSync(process.env.RELAY_PRIVATE),
+ accountId:'account-linux-test',deviceId:'device-linux-test',agentId:'agent-linux-test',
+ sessionId:'s_linux-uat',projectId:created.id,requestId:relayRequestId,
+ query:'',maxChars:1600
+});
+const read=await projectContinuityRequest('remoteBrief',{
+ projectId:created.id,requestId:relayRequestId,query:'',maxChars:1600,proof:relayProof
+});
+assert.match(read.content,/ISOLATED_CANARY_IN_PRIVATE_DB_2070/);
+await assert.rejects(projectContinuityRequest('remoteBrief',{
+ projectId:created.id,requestId:relayRequestId,query:'',maxChars:1600,proof:relayProof
+}),/continuity_remote_read_denied/);
+console.log('LINUX_SERVER_SIGNED_OPERATOR_REMOTE_READ_REAL_TWO_UID_PASS');
 await assert.rejects(ownerBrokerRequest({runtimeDir,action:'ownerConsent',data:{
  projectId:created.id,enabled:false,revision:2,principal:'owner',
  password:'isolated-linux-broker-test-only-passphrase-2026'}}),/continuity_broker_owner_verification_failed/);

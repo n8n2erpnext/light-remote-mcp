@@ -51,7 +51,7 @@ try{
   projectId:project.id,enabled:true,expectedRevision:2});
  assert.equal(permit.remoteReadEnabled,true);
  await assert.rejects(projectContinuityRequest('remoteBrief',{projectId:project.id}),
-  /continuity_broker_remote_session_binding_pending/);
+  /continuity_remote_delegation_required/);
  await broker.stop();broker=null;
  broker=await startIsolatedControllerBroker({runtimeDir:root,clientGroupMode:0o600});
  await once(broker.server,'listening');

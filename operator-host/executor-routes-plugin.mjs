@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 function cleanId(value,name='account_id'){
   const out=String(value||'').trim();
   if(!/^[A-Za-z0-9._:-]{1,128}$/.test(out)) throw new Error(`invalid_${name}`);
@@ -23,9 +24,18 @@ export async function handlePluginRoutes(req,res,url,deps){
     deps.requireDeviceConnection(session.deviceId);
     // Device scope comes ONLY from the server-validated active session,
     // not a caller-provided deviceId or nodeId.
+    // The signed Operator assertion can be verified by a separately owned
+    // broker; Agent caller-supplied sessionId cannot mint one.
+    const requestId=crypto.randomUUID();
+    const query=body.query??'',maxChars=body.maxChars??8000;
+    const proof=deps.signScopedContinuityRead({
+      accountId:session.accountId,deviceId:session.deviceId,
+      agentId:session.agentId,sessionId:session.sessionId,
+      projectId:body.projectId,requestId,query,maxChars
+    });
     const data=await deps.confidentialProjectRequest({
       deviceId:session.deviceId,sessionId:session.sessionId,
-      projectId:body.projectId,query:body.query??'',maxChars:body.maxChars??8000,
+      projectId:body.projectId,query,maxChars,proof,requestId,
       timeoutMs:10000
     });
     // Do not emit job telemetry, persist a JSONB blob or log project content.

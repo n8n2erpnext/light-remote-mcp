@@ -436,7 +436,9 @@ async function ensureDeviceDuplex(state,hub){
         const {projectContinuityRequest}=await import('./project-continuity-client.mjs');
         // Isolated mode intentionally DENIES remoteBrief until broker
         // receives a verified A/B session-scoped authorization proof.
-        return projectContinuityRequest('remoteBrief',{projectId:request.projectId,query:request.query,maxChars:request.maxChars},{timeoutMs:7500});
+        return projectContinuityRequest('remoteBrief',{projectId:request.projectId,
+          query:request.query,maxChars:request.maxChars,requestId:request.requestId,
+          proof:request.proof},{timeoutMs:7500});
       },
       onHelloAck:async(frame,info)=>{const current=readState();if(current){applyPolicyEnvelope(current,frame.policy);current.cloud={...(current.cloud||{}),desiredConnected:true,state:'connected',lastServerActivityAt:Date.now(),lastError:null};writeState(current);}if(info?.serverEpochChanged)queueMicrotask(()=>void resyncLiveAfterDuplexEpochChange());},
       onHeartbeatAck:async frame=>{const current=readState();if(current&&frame.policy)applyPolicyEnvelope(current,frame.policy);if(current)await confirmTerminalReceiptsAck(current,frame.terminalReceiptsAck);},

@@ -16,7 +16,7 @@ function commitClientSeq(row,seq){row.lastClientSeq=Math.max(row.lastClientSeq,M
 let serial=0;
 const CONFIDENTIAL_MAX_REPLY=12000;
 const CONFIDENTIAL_LIMIT=6;
-export async function confidentialProjectRequest({deviceId,sessionId,projectId,query='',maxChars=8000,timeoutMs=10000}={}){
+export async function confidentialProjectRequest({deviceId,sessionId,projectId,query='',maxChars=8000,timeoutMs=10000,proof,requestId}={}){
   const stream=ACTIVE_STREAMS.get(String(deviceId||''));
   if(!stream?.projectRead)throw new DeviceDuplexError('continuity_device_stream_unavailable',503);
   if(typeof projectId!=='string'||!/^[a-f0-9-]{36}$/.test(projectId))throw new DeviceDuplexError('continuity_project_id_invalid',400);
@@ -24,7 +24,11 @@ export async function confidentialProjectRequest({deviceId,sessionId,projectId,q
   if(typeof query!=='string'||query.length>300)throw new DeviceDuplexError('continuity_query_invalid',400);
   if(!Number.isInteger(maxChars)||maxChars<512||maxChars>8000)throw new DeviceDuplexError('continuity_context_limit',400);
   if(!Number.isInteger(timeoutMs)||timeoutMs<1000||timeoutMs>15000)throw new DeviceDuplexError('continuity_timeout_invalid',400);
-  return stream.projectRead({sessionId,projectId,query,maxChars},timeoutMs);
+  // The signed proof must bind the EXACT requestId that is sent to the
+  // device; never permit the Duplex stream to replace it after signing.
+  if(!proof||typeof requestId!=='string'||!/^[a-f0-9-]{36}$/.test(requestId))
+   throw new DeviceDuplexError('continuity_operator_delegation_required',403);
+  return stream.projectRead({sessionId,projectId,query,maxChars,proof,requestId},timeoutMs);
 }
 
 
@@ -91,7 +95,9 @@ export async function handleDeviceDuplexSession(req,res,{
   const projectRead=(data,timeoutMs)=>new Promise((resolve,reject)=>{
     if(closed)return reject(new DeviceDuplexError('continuity_device_stream_closed',503));
     if(pendingProjects.size>=CONFIDENTIAL_LIMIT)return reject(new DeviceDuplexError('continuity_too_many_requests',429));
-    const requestId=crypto.randomUUID();
+    const requestId=data.requestId;
+    if(typeof requestId!=='string'||pendingProjects.has(requestId))
+     return reject(new DeviceDuplexError('continuity_operator_request_reused',409));
     const timer=setTimeout(()=>{
       pendingProjects.delete(requestId);
       reject(new DeviceDuplexError('continuity_device_response_timeout',504));

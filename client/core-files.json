@@ -400,6 +400,10 @@
     {
       "source": "device-agent/project-continuity-client.mjs",
       "destination": "device-agent/project-continuity-client.mjs"
+    },
+    {
+      "source": "lib/project-continuity-session-proof.mjs",
+      "destination": "lib/project-continuity-session-proof.mjs"
     }
   ]
 }

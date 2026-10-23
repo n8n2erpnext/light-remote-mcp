@@ -18,11 +18,21 @@ export async function projectContinuityRequest(action,data={},options={}){
  if(isolatedContinuityEnabled()){
   // A/B session validation and broker consent gating need a separate
   // confidential read operation. Never reuse generic local controller IPC.
-  if(action==='remoteBrief')throw Error('continuity_broker_remote_session_binding_pending');
+  if(action==='remoteBrief'){
+   // Caller sessionId is NOT proof; only a broker-pinned Ed25519 Operator
+   // assertion over all request fields can authorize this remote read.
+   if(!data?.proof||typeof data.requestId!=='string')
+    throw Error('continuity_remote_delegation_required');
+   return ownerBrokerRequest({runtimeDir:isolatedContinuityRoot(),action:'remoteRead',
+    data,timeoutMs:options.timeoutMs??7500});
+  }
   if(action==='applySignedOwnerConsent')throw Error('continuity_broker_signature_direct_use_denied');
   return ownerBrokerRequest({runtimeDir:isolatedContinuityRoot(),action:'controller',
     data:{action,data},timeoutMs:options.timeoutMs??4000});
  }
+ // Legacy same-user Controller is suitable for local-only P1 pilot, NOT
+ // remote session trust. The isolated broker is mandatory for remoteBrief.
+ if(action==='remoteBrief')throw Error('continuity_isolated_broker_required_for_remote_read');
  const {continuityRequest}=await import('./project-continuity-ipc.mjs');
  return continuityRequest(action,data,options);
 }

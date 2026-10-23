@@ -31,7 +31,7 @@ export class ContinuityStore {
   this.db=new DatabaseSync(path.join(this.root,'continuity.db'),{timeout:3000});
   this.db.exec('PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=3000; PRAGMA synchronous=FULL');
   const openedVersion=this.db.prepare('PRAGMA user_version').get().user_version;
-  if(openedVersion>7){this.db.close();throw Error('continuity_future_schema_version');}
+  if(openedVersion>8){this.db.close();throw Error('continuity_future_schema_version');}
   this.db.exec([
   'CREATE TABLE IF NOT EXISTS projects(id TEXT PRIMARY KEY,name TEXT NOT NULL,workspace TEXT NOT NULL,memory_enabled INTEGER NOT NULL DEFAULT 0 CHECK(memory_enabled IN(0,1)),codex_enabled INTEGER NOT NULL DEFAULT 0 CHECK(codex_enabled IN(0,1)),revision INTEGER NOT NULL DEFAULT 1,created_at TEXT NOT NULL,updated_at TEXT NOT NULL)',
   'CREATE TABLE IF NOT EXISTS tasks(id TEXT PRIMARY KEY,project_id TEXT NOT NULL REFERENCES projects(id),title TEXT NOT NULL,created_at TEXT NOT NULL)',
@@ -74,6 +74,10 @@ export class ContinuityStore {
   // insufficient. Migrated legacy consents without signatures fail closed.
   this.db.exec("CREATE TABLE IF NOT EXISTS remote_consent_attestations(project_id TEXT PRIMARY KEY REFERENCES projects(id),grant_json TEXT NOT NULL,signature TEXT NOT NULL,recorded_at TEXT NOT NULL)");
   this.db.exec('PRAGMA user_version=7');
+  // Durable one-use Operator relay nonce. Do not reuse read grants after
+  // restart, and never store the memory text or raw delegation signature.
+  this.db.exec("CREATE TABLE IF NOT EXISTS operator_read_nonces(request_id TEXT PRIMARY KEY,project_id TEXT NOT NULL REFERENCES projects(id),expires_at INTEGER NOT NULL)");
+  this.db.exec('PRAGMA user_version=8');
   this.reconcileStartup();
  }
  reconcileStartup(){

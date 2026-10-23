@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {PassThrough} from 'node:stream';
 import fs from 'node:fs';
 import os from 'node:os';
+import crypto from 'node:crypto';
 import path from 'node:path';
 import {ContinuityStore} from '../../device-agent/project-continuity-store.mjs';
 import {provisionContinuityOwnerAuthority,signContinuityConsent} from '../../device-agent/project-continuity-owner-grants.mjs';
@@ -9,6 +10,7 @@ import {continuityRequest,startContinuityServer} from '../../device-agent/projec
 import {handleDeviceDuplexSession,confidentialProjectRequest} from '../../operator-host/device-duplex-session.mjs';
 import {DEVICE_DUPLEX_PROTOCOL,DeviceDuplexClient} from '../../lib/device-duplex-client.mjs';
 import {handlePluginRoutes} from '../../operator-host/executor-routes-plugin.mjs';
+import {createProjectReadDelegation,verifyProjectReadDelegation} from '../../lib/project-continuity-session-proof.mjs';
 
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function waitFor(f,limit=2500){
@@ -80,7 +82,15 @@ try {
  const epoch='confidential-epoch-1';
  req.write(JSON.stringify({type:'hello',protocol:DEVICE_DUPLEX_PROTOCOL,transportEpoch:epoch})+'\n');
  await waitFor(()=>wire.includes('"hello-ack"'));
- const deviceCall=confidentialProjectRequest({deviceId:'confidential-device-1',sessionId:'session123',projectId:project.id,query:'decisions',maxChars:1000});
+ const signing=crypto.generateKeyPairSync('ed25519');
+ const issue=(requestId,query='',maxChars=1000,deviceId='confidential-device-1')=>createProjectReadDelegation({
+  privateKey:signing.privateKey,accountId:'account-1',deviceId,agentId:'agent1',
+  sessionId:'session123',projectId:project.id,requestId,query,maxChars
+ });
+ const requestId=crypto.randomUUID();
+ const deviceCall=confidentialProjectRequest({
+  deviceId:'confidential-device-1',sessionId:'session123',projectId:project.id,
+  query:'decisions',maxChars:1000,requestId,proof:issue(requestId,'decisions')});
  const outgoing=await waitFor(()=>wire.trim().split('\n').map(line=>JSON.parse(line)).find(frame=>frame.type==='project-request'));
  assert.equal(outgoing.request.projectId,project.id);
  assert.equal(outgoing.request.sessionId,'session123');
@@ -93,7 +103,11 @@ try {
  assert.equal(persistCalls,0);
  await waitFor(()=>wire.includes('"client-ack"'));
  await assert.rejects(confidentialProjectRequest({deviceId:'missing',sessionId:'session123',projectId:project.id}),/continuity_device_stream_unavailable/);
- await assert.rejects(confidentialProjectRequest({deviceId:'confidential-device-1',sessionId:'session123',projectId:project.id,maxChars:1000,timeoutMs:1000}),/continuity_device_response_timeout/);
+ const timeoutId=crypto.randomUUID();
+ await assert.rejects(confidentialProjectRequest({
+  deviceId:'confidential-device-1',sessionId:'session123',projectId:project.id,
+  maxChars:1000,requestId:timeoutId,proof:issue(timeoutId),timeoutMs:1000
+ }),/continuity_device_response_timeout/);
  req.write(JSON.stringify({type:'close',transportEpoch:epoch,clientSeq:2})+'\n');await stream.promise;
  await assert.rejects(confidentialProjectRequest({deviceId:'confidential-device-1',sessionId:'session123',projectId:project.id}),/continuity_device_stream_unavailable/);
  stream=null;
@@ -128,7 +142,14 @@ try {
    sessions:{get:()=>({sessionId:'session123',agentId:'agent1',deviceId:'bound-device',accountId:'account-1',state:'active'})},
    AccountError:class extends Error{},readJson:async()=>({accountId:'account-1',agentId:'agent1',sessionId:'session123',deviceId:'UNTRUSTED_DEVICE',projectId:project.id}),
    requireDeviceConnection:deviceId=>assert.equal(deviceId,'bound-device'),
-   confidentialProjectRequest:async args=>{routeCalls++;transportBoundDevice=args.deviceId;return {content:'device-only result',projectId:project.id};},
+   signScopedContinuityRead:args=>issue(args.requestId,args.query,args.maxChars,args.deviceId),
+   confidentialProjectRequest:async args=>{
+    routeCalls++;transportBoundDevice=args.deviceId;
+    verifyProjectReadDelegation({proof:args.proof,publicKey:signing.publicKey,
+      accountId:'account-1',deviceId:'bound-device',projectId:project.id,
+      requestId:args.requestId,query:args.query,maxChars:args.maxChars});
+    return {content:'device-only result',projectId:project.id};
+   },
    sendJson:(res,status,body)=>{res.statusCode=status;res.body=body;res.headersSent=true;return body;}
   };
   const routeResponse={headersSent:false,writeHead(code,headers){this.statusCode=code;this.headers=headers;this.headersSent=true;return this;},
