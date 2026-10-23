@@ -28,8 +28,11 @@
     "linux_server_real_systemd_transient_lifecycle": "PASS_ARM_TRANSIENT_NO_GOLD_MUTATION",
     "linux_server_permanent_service_upgrade_reboot_uat": "OPEN_UPGRADE_ROLLBACK_NOT_TESTED",
     "linux_server_sigkill_orphan_socket_recovery": "PASS_ARM_SYSTEMD_TRANSIENT",
-    "linux_server_fixed_uid_installed_lxd_boot_and_consent": "PASS_ISOLATED_LXD_ARM"
+    "linux_server_fixed_uid_installed_lxd_boot_and_consent": "PASS_ISOLATED_LXD_ARM",
+    "linux_server_netbird_only_owner_projects_webui": "PASS_LXD_UAT",
+    "linux_server_webui_graceful_lxc_restart": "OPEN_SHUTDOWN_TIMEOUT",
+    "linux_server_webui_public_https_and_password_isolation": "OPEN_UAT_ONLY"
   },
   "test_build_allowed": false,
-  "notes": "Linux Server separate LXD light-remote-continuity-uat: fixed OS service and group socket, real LXD reboot auto-start, protected SQLite persistence and owner consent revocation PASS_ISOLATED_LXD_ARM. Reproducible UAT installer and client smoke available. Existing Gold LXD/prod untouched. Upgrade/rollback, real Operator A/B + official ChatGPT Web MCP, native Windows SID/DACL, macOS launchd/Keychain, Linux Desktop system/user, real Codex/Worker and privacy audit OPEN. Final installer BLOCKED."
+  "notes": "Isolated Linux LXD UAT: WebUI service (lr-cont-agent) and broker (lr-continuity) ACTIVE, LXD proxy binds 100.94.184.141:5587 NetBird-only to LXD loopback, owner login/CSRF/Origin/Host control, Memory CRUD/checkpoint, owner consent/revoke PASS. First lxc restart timed out on shutdown; subsequent clean lxc start restored both services and persisted proxy. Graceful restart and real remote peer check OPEN. Production HTTPS, distinct production credentials, all four-OS OS adapters, real signed Plugin A/B and Codex/Worker OPEN. Installer BLOCKED."
 }
