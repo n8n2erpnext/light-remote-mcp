@@ -262,7 +262,7 @@ function confirmAction(message){return new Promise(resolve=>{const overlay=docum
 function displayBadgeLabel(j){return toolLabel(j)||fallbackCommandBadge(j);}function fallbackCommandBadge(j){const text=String(commandText(j)||'').trim();if(!text)return 'COMMAND';if(/\$env:|\b(?:Write-Output|Get-|Set-|New-|Remove-|Start-|Stop-|Invoke-)/i.test(text))return 'POWERSHELL';const m=text.match(/^\s*(?:sudo\s+|env\s+|nohup\s+|time\s+)?([^\s;&|]+)/),raw=String(m?.[1]||'').replace(/^.*[\\/]/,'').toLowerCase(),map={git:'GIT',powershell:'POWERSHELL','powershell.exe':'POWERSHELL',pwsh:'POWERSHELL','pwsh.exe':'POWERSHELL',cmd:'CMD','cmd.exe':'CMD',npm:'PACKAGE',pnpm:'PACKAGE',yarn:'PACKAGE',bun:'PACKAGE',pip:'PACKAGE',pip3:'PACKAGE',docker:'CONTAINER',podman:'CONTAINER',kubectl:'K8S',helm:'K8S',k3s:'K8S',ssh:'SSH',journalctl:'JOURNAL',systemctl:'SYSTEMCTL'};return map[raw]||'COMMAND';}
 function refreshAbGrantTimer(){
   const el=document.getElementById('abGrantTimer');el.className='muted';
-  if(!grantExpiryAt){el.textContent='Agent A/B access · no active approval';return;}
+  if(!grantExpiryAt){el.textContent=remoteState?.ok===false?'Agent A/B access · status temporarily unavailable':'Agent A/B access · no active approval';return;}
   const sec=Math.max(0,Math.ceil((grantExpiryAt-Date.now())/1000));
   if(!sec){el.className='error';el.textContent='Agent A/B access expired · new approval required';return;}
   const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),s=sec%60;
@@ -621,11 +621,12 @@ export function startLocalWall({host='127.0.0.1',port=5491,brandSvgPath,fontPath
     if(req.method==='POST'&&url.pathname==='/api/capabilities/rescan'){if(!mutationAllowed(req))return json(res,403,{ok:false,error:'csrf_invalid'});if(typeof rescanCapabilities!=='function')return json(res,501,{ok:false,error:'capability_rescan_unavailable'});const result=await rescanCapabilities();return json(res,200,{ok:true,result});}
     if(req.method==='POST'&&url.pathname==='/api/permissions'){if(!mutationAllowed(req))return json(res,403,{ok:false,error:'csrf_invalid'});if(typeof setPermissions!=='function')return json(res,501,{ok:false,error:'permission_control_unavailable'});const data=await body(req);const value=await setPermissions(data||{});return json(res,200,{ok:true,policy:value});}
     if(req.method==='GET'&&url.pathname==='/api/filesystem-volumes'){
-      if(auth?.enabled&&!auth.identity(req))return json(res,401,{ok:false,error:'wall_auth_required'});
+      if(!auth?.enabled||!auth.identity(req))return json(res,401,{ok:false,error:'wall_auth_required'});
       if(typeof getFilesystemVolumes!=='function')return json(res,501,{ok:false,error:'filesystem_volume_inventory_unavailable'});
       const value=await getFilesystemVolumes();return json(res,200,{ok:true,...value});
     }
     if(req.method==='POST'&&url.pathname==='/api/filesystem-roots'){
+      if(!auth?.enabled||!auth.identity(req))return json(res,403,{ok:false,error:'filesystem_owner_auth_required'});
       if(!mutationAllowed(req))return json(res,403,{ok:false,error:'csrf_invalid'});
       if(typeof setFilesystemRoots!=='function')return json(res,501,{ok:false,error:'filesystem_scope_control_unavailable'});
       const data=await body(req);const value=await setFilesystemRoots(data||{});
