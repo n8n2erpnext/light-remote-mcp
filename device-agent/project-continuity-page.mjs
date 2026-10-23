@@ -35,7 +35,14 @@ hr{border:0;border-top:1px solid #243247;margin:20px 0}pre{white-space:pre-wrap;
 <div id="remoteStatus" class="muted">Remote sharing: OFF</div>
 <form id="remoteConsentForm"><label>Owner action</label><select id="remoteConsentAction" style="width:100%;background:#0a1321;border:1px solid #304158;color:#edf5ff;padding:10px;border-radius:7px"><option value="off">Revoke remote read</option><option value="on">Allow remote read</option></select>
 <label>Re-enter owner password</label><input id="remoteOwnerPassword" type="password" autocomplete="current-password" required placeholder="Owner credentials are not saved">
-<button class="primary" type="submit" style="margin-top:10px">Verify owner and apply</button></form><hr>
+<button class="primary" type="submit" style="margin-top:10px">Verify owner and apply</button></form>
+<h2 style="margin-top:24px">Refresh signing-key protection after password change</h2>
+<p class="muted" style="font-size:12px">First change your actual Light Remote account or Local Wall login password outside this page. Then enter the previous and current passwords here to re-encrypt the same signing key. This does not change your account password or revoke existing consent.</p>
+<form id="ownerRekeyForm"><label>Previous owner password</label>
+<input id="ownerOldPassword" type="password" autocomplete="off" required>
+<label>Current owner login password</label>
+<input id="ownerNewPassword" type="password" autocomplete="current-password" minlength="12" required>
+<button type="submit" style="margin-top:10px">Re-encrypt signing key</button></form><hr>
 <h2>Task Controller</h2><form id="taskCreate" class="row"><input id="taskTitle" placeholder="New task" maxlength="160" required><button type="submit">Add task</button></form>
 <div id="tasks"></div>
 <form id="sectionCreate" style="margin-top:12px">
@@ -110,6 +117,15 @@ by('remoteConsentForm').onsubmit=async e=>{e.preventDefault();const p=items.find
  try{
   const result=await api('setRemoteReadConsent',{projectId:active,enabled:by('remoteConsentAction').value==='on',expectedRevision:p.revision,password:secret});
   items=await api('listProjects');await select(active);notice('Remote Memory consent updated after owner verification');
+ }catch(err){notice(err.message,true);}
+};
+by('ownerRekeyForm').onsubmit=async e=>{e.preventDefault();
+ const oldPassword=by('ownerOldPassword').value,newPassword=by('ownerNewPassword').value;
+ by('ownerOldPassword').value='';by('ownerNewPassword').value='';
+ try{
+  const result=await api('rekeyOwnerSigner',{oldPassword,newPassword});
+  if(!result.rewrapped||!result.publicKeyUnchanged)throw Error('Signing key rekey unconfirmed');
+  notice('Owner signing key re-encrypted; public identity unchanged');
  }catch(err){notice(err.message,true);}
 };
 by('taskCreate').onsubmit=async e=>{e.preventDefault();try{await api('createTask',{projectId:active,title:by('taskTitle').value});by('taskTitle').value='';await refresh();notice('Task added');}catch(err){notice(err.message,true);}};

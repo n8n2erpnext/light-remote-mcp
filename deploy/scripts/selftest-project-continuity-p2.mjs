@@ -46,7 +46,7 @@ try {
  expect(()=>store.confirmMemory(one.id,uncertain.id,{ownerVerified:false}),'continuity_owner_proof_required');
  assert.equal(store.memorySearch(one.id,'Gold owner')[0].confidence,'owner_confirmed');
  assert.equal(store.section(c.id).state,'BLOCKED');
- assert.equal(store.db.prepare('PRAGMA user_version').get().user_version,6);
+ assert.equal(store.db.prepare('PRAGMA user_version').get().user_version,7);
  // Codex-only without Memory: owner authorizes a reserved section, not execution.
  const codexProject=store.createProject({projectName:'Codex-only'});
  store.setModules(codexProject.id,{codex:true,memory:false,expectedRevision:1});
@@ -121,12 +121,12 @@ try {
   raw.close();
   const upgraded=new ContinuityStore({root:migrationRoot});
   try{
-   assert.equal(upgraded.db.prepare('PRAGMA user_version').get().user_version,6);
+   assert.equal(upgraded.db.prepare('PRAGMA user_version').get().user_version,7);
    assert.equal(upgraded.project(preserved.id).name,'Preserved v3 project');
    assert.equal(upgraded.db.prepare("SELECT COUNT(*) n FROM sqlite_master WHERE type='table' AND name='section_claim_history'").get().n,1);
   }finally{upgraded.close();}
  }finally{fs.rmSync(migrationRoot,{recursive:true,force:true});}
- console.log('P2_LOCAL_SQLITE_V3_TO_V6_MIGRATION_PASS');
+ console.log('P2_LOCAL_SQLITE_V3_TO_V7_MIGRATION_PASS');
 
 }finally{
  if(store)store.close();

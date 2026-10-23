@@ -622,21 +622,29 @@ export function startLocalWall({host='127.0.0.1',port=5491,brandSvgPath,fontPath
       if(!continuity?.request)return json(res,404,{ok:false,error:'project_continuity_disabled'});
       if(!auth?.enabled||!auth.identity(req))return json(res,403,{ok:false,error:'project_continuity_owner_auth_required'});
       const op=url.pathname.slice('/api/project-continuity/'.length);
-      const allowedGet=['listProjects'],allowedPost=['createProject','setModules','createTask','addSection','checkpoint','contextBrief','memoryPut','memorySearch','memoryRecent','setRemoteReadConsent'];
+      const allowedGet=['listProjects'],allowedPost=['createProject','setModules','createTask','addSection','checkpoint','contextBrief','memoryPut','memorySearch','memoryRecent','setRemoteReadConsent','rekeyOwnerSigner'];
       if(!(req.method==='GET'&&allowedGet.includes(op))&&!(req.method==='POST'&&allowedPost.includes(op)))return json(res,404,{ok:false,error:'project_continuity_action_unavailable'});
       if(req.method==='POST'&&!mutationAllowed(req))return json(res,403,{ok:false,error:'csrf_invalid'});
       const data=req.method==='POST'?await body(req):{};
-      if(op==='setRemoteReadConsent'){
-        if(typeof continuity.ownerConsent!=='function')return json(res,501,{ok:false,error:'continuity_owner_stepup_unavailable'});
+      if(op==='setRemoteReadConsent'||op==='rekeyOwnerSigner'){
+        const isRekey=op==='rekeyOwnerSigner';
+        if(typeof (isRekey?continuity.ownerRekey:continuity.ownerConsent)!=='function')
+          return json(res,501,{ok:false,error:'continuity_owner_stepup_unavailable'});
         const principal=String(auth.identity(req)?.username||'');
         const rateKey=principal+'|'+String(req.socket?.remoteAddress||'');
         const now=Date.now(),recent=(ownerConsentFailures.get(rateKey)||[]).filter(t=>now-t<10*60*1000);
         if(recent.length>=5)return json(res,429,{ok:false,error:'continuity_owner_stepup_rate_limited'});
-        if(!data||typeof data.enabled!=='boolean'||!Number.isInteger(data.expectedRevision))
+        if(isRekey){
+          if(typeof data?.oldPassword!=='string'||data.oldPassword.length<1||
+             typeof data?.newPassword!=='string'||data.newPassword.length<12||data.newPassword.length>1024)
+            return json(res,400,{ok:false,error:'continuity_owner_rekey_invalid'});
+        }else if(!data||typeof data.enabled!=='boolean'||!Number.isInteger(data.expectedRevision))
           return json(res,400,{ok:false,error:'continuity_owner_consent_invalid'});
         try{
-          const result=await continuity.ownerConsent({principal,password:data.password,projectId:data.projectId,
-            enabled:data.enabled,expectedRevision:data.expectedRevision});
+          const result=isRekey
+            ?await continuity.ownerRekey({principal,oldPassword:data.oldPassword,newPassword:data.newPassword})
+            :await continuity.ownerConsent({principal,password:data.password,projectId:data.projectId,
+              enabled:data.enabled,expectedRevision:data.expectedRevision});
           ownerConsentFailures.delete(rateKey);
           return json(res,200,{ok:true,result});
         }catch(e){

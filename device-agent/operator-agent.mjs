@@ -13,7 +13,7 @@ import { invalidateCommandExistenceCache } from './platform-adapters/shared.mjs'
 import { startLocalWall } from './local-wall.mjs';
 import { filesystemVolumeInventory } from './filesystem-volume-inventory.mjs';
 import { loadLocalWallAuth, writeLocalWallAuthConfig, writeAccountOnlyWallAuthConfig } from './local-wall-auth.mjs';
-import {provisionContinuityOwnerAuthority,signContinuityConsent} from './project-continuity-owner-grants.mjs';
+import {provisionContinuityOwnerAuthority,signContinuityConsent,rekeyContinuityOwnerAuthority} from './project-continuity-owner-grants.mjs';
 import { FleetComponentManager } from './fleet-component-manager.mjs';
 import { FleetComponentSupervisor } from './fleet-component-supervisor.mjs';
 import { executeNativeFs, filesystemPolicy, normalizeFilesystemRoots } from '../lib/native-fs.mjs';
@@ -91,9 +91,32 @@ async function ownerConsentWithStepUp({principal,password,projectId,enabled,expe
   const proof=signContinuityConsent({root,signerDir,password:credential,projectId,enabled,revision:expectedRevision,principal:username});
   return continuityRequest('applySignedOwnerConsent',{projectId,proof},{root});
 }
+async function ownerRekeyAfterCredentialChange({principal,oldPassword,newPassword}={}){
+  const username=String(principal||'').trim();
+  const currentPassword=String(newPassword||'');
+  if(!username||typeof oldPassword!=='string'||oldPassword.length<1||
+     currentPassword.length<12||currentPassword.length>1024)
+    throw Error('continuity_owner_rekey_credentials_invalid');
+  const wallAuth=loadLocalWallAuth(LOCAL_WALL_AUTH_FILE,{required:true});
+  // The owner must have changed the ACTUAL login password independently.
+  // This operation only rewraps the independent Continuity signing key.
+  if(wallAuth.mode==='local'){
+    if(!wallAuth.verifyCredentials(username,currentPassword))
+      throw Error('continuity_owner_rekey_auth_failed');
+  }else if(wallAuth.mode==='account-only'){
+    const identity=await authenticateWallAccount(username,currentPassword);
+    if(!identity?.account?.accountId||
+       String(identity.account.email||'').trim().toLowerCase()!==username.toLowerCase())
+      throw Error('continuity_owner_rekey_auth_failed');
+  }else throw Error('continuity_owner_rekey_auth_unavailable');
+  const {continuityDefaultRoot}=await import('./project-continuity-store.mjs');
+  return rekeyContinuityOwnerAuthority({root:continuityDefaultRoot(),
+    signerDir:path.dirname(LOCAL_WALL_AUTH_FILE),oldPassword,newPassword:currentPassword});
+}
 const CONTINUITY_UI=process.env.LIGHT_REMOTE_PROJECT_CONTINUITY_EXPERIMENTAL==='1'
   ? {request:async(action,data)=>{const {continuityRequest}=await import('./project-continuity-ipc.mjs');return continuityRequest(action,data);},
-     ownerConsent:ownerConsentWithStepUp}
+     ownerConsent:ownerConsentWithStepUp,
+     ownerRekey:ownerRekeyAfterCredentialChange}
   : null;
 
 const LOCAL_WALL_AUTH_FILE=process.env.OPERATOR_AGENT_WALL_AUTH_FILE || path.join(path.dirname(STATE_FILE),'wall-auth.json');

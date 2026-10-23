@@ -31,7 +31,7 @@ export class ContinuityStore {
   this.db=new DatabaseSync(path.join(this.root,'continuity.db'),{timeout:3000});
   this.db.exec('PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=3000; PRAGMA synchronous=FULL');
   const openedVersion=this.db.prepare('PRAGMA user_version').get().user_version;
-  if(openedVersion>6){this.db.close();throw Error('continuity_future_schema_version');}
+  if(openedVersion>7){this.db.close();throw Error('continuity_future_schema_version');}
   this.db.exec([
   'CREATE TABLE IF NOT EXISTS projects(id TEXT PRIMARY KEY,name TEXT NOT NULL,workspace TEXT NOT NULL,memory_enabled INTEGER NOT NULL DEFAULT 0 CHECK(memory_enabled IN(0,1)),codex_enabled INTEGER NOT NULL DEFAULT 0 CHECK(codex_enabled IN(0,1)),revision INTEGER NOT NULL DEFAULT 1,created_at TEXT NOT NULL,updated_at TEXT NOT NULL)',
   'CREATE TABLE IF NOT EXISTS tasks(id TEXT PRIMARY KEY,project_id TEXT NOT NULL REFERENCES projects(id),title TEXT NOT NULL,created_at TEXT NOT NULL)',
@@ -70,6 +70,10 @@ export class ContinuityStore {
   // One-time signed step-up grant; replay is durable across process restarts.
   this.db.exec("CREATE TABLE IF NOT EXISTS consent_grant_nonces(nonce TEXT PRIMARY KEY,project_id TEXT NOT NULL REFERENCES projects(id),principal TEXT NOT NULL,action TEXT NOT NULL,created_at TEXT NOT NULL)");
   this.db.exec('PRAGMA user_version=6');
+  // Durable remote-read attestation: plain SQLite enabled=1 alone is
+  // insufficient. Migrated legacy consents without signatures fail closed.
+  this.db.exec("CREATE TABLE IF NOT EXISTS remote_consent_attestations(project_id TEXT PRIMARY KEY REFERENCES projects(id),grant_json TEXT NOT NULL,signature TEXT NOT NULL,recorded_at TEXT NOT NULL)");
+  this.db.exec('PRAGMA user_version=7');
   this.reconcileStartup();
  }
  reconcileStartup(){
@@ -113,6 +117,7 @@ export class ContinuityStore {
     // Disable any previous remote sharing on Memory OFF. Re-enabling Memory
     // must never silently resurrect a previous remote-read consent.
     this.db.prepare("UPDATE remote_project_consent SET enabled=0,updated_at=? WHERE project_id=?").run(now(),pid);
+    this.db.prepare('DELETE FROM remote_consent_attestations WHERE project_id=?').run(pid);
    }
    this.event(pid,'local_client_unverified','modules_changed',pid,JSON.stringify({memory:old.memory_enabled,codex:old.codex_enabled}),JSON.stringify({memory:m,codex:c}));
    return this.project(pid);
@@ -325,6 +330,10 @@ export class ContinuityStore {
     .run(grant.nonce,pid,grant.principal,grant.enabled?'enable':'disable',now());
    this.db.prepare("INSERT INTO remote_project_consent(project_id,enabled,updated_at) VALUES (?,?,?) ON CONFLICT(project_id) DO UPDATE SET enabled=excluded.enabled,updated_at=excluded.updated_at")
     .run(pid,grant.enabled?1:0,now());
+   if(grant.enabled){
+    this.db.prepare("INSERT INTO remote_consent_attestations(project_id,grant_json,signature,recorded_at) VALUES (?,?,?,?) ON CONFLICT(project_id) DO UPDATE SET grant_json=excluded.grant_json,signature=excluded.signature,recorded_at=excluded.recorded_at")
+     .run(pid,JSON.stringify(proof.grant),proof.signature,now());
+   }else this.db.prepare('DELETE FROM remote_consent_attestations WHERE project_id=?').run(pid);
    this.db.prepare('UPDATE projects SET revision=revision+1,updated_at=? WHERE id=? AND revision=?')
     .run(now(),pid,grant.revision);
    this.event(pid,'signed_owner_stepup','remote_read_consent',pid,old?'enabled':'disabled',grant.enabled?'enabled':'disabled',grant.principal);
@@ -336,6 +345,21 @@ export class ContinuityStore {
   req(p.memory_enabled===1,'continuity_memory_disabled');
   const consent=this.db.prepare('SELECT enabled FROM remote_project_consent WHERE project_id=?').get(pid);
   req(consent?.enabled===1,'continuity_remote_read_denied');
+  // This enforces authentic owner consent, rather than trusting a mutable
+  // SQLite boolean. Full DB rollback resistance still needs an OS broker.
+  const attestation=this.db.prepare('SELECT grant_json,signature FROM remote_consent_attestations WHERE project_id=?').get(pid);
+  req(attestation,'continuity_remote_consent_receipt_missing');
+  let storedGrant;
+  try{storedGrant=JSON.parse(attestation.grant_json);}
+  catch{throw Error('continuity_remote_consent_receipt_invalid');}
+  if(!this.ownerPublicKey)this.ownerPublicKey=ownerAuthorityPublicKey(this.root);
+  try{
+   const verified=verifyContinuityConsent({proof:{grant:storedGrant,signature:attestation.signature},
+     publicKey:this.ownerPublicKey,projectId:pid,revision:storedGrant.revision,now:storedGrant.issuedAt});
+   req(verified.enabled===true,'continuity_remote_consent_receipt_invalid');
+   const issued=this.db.prepare('SELECT action FROM consent_grant_nonces WHERE nonce=? AND project_id=?').get(verified.nonce,pid);
+   req(issued?.action==='enable','continuity_remote_consent_receipt_invalid');
+  }catch{throw Error('continuity_remote_consent_receipt_invalid');}
   req(Number.isInteger(maxChars)&&maxChars>=512&&maxChars<=8000,'continuity_remote_context_limit');
   const brief=this.contextBrief(pid,{query,maxChars});
   // Bound actual UTF-8 bytes, not just JavaScript UTF-16 length.

@@ -6,7 +6,7 @@ import crypto from 'node:crypto';
 import {once} from 'node:events';
 import {ContinuityStore} from '../../device-agent/project-continuity-store.mjs';
 import {startContinuityServer,continuityRequest} from '../../device-agent/project-continuity-ipc.mjs';
-import {provisionContinuityOwnerAuthority,signContinuityConsent,verifyContinuityConsent} from '../../device-agent/project-continuity-owner-grants.mjs';
+import {provisionContinuityOwnerAuthority,signContinuityConsent,verifyContinuityConsent,rekeyContinuityOwnerAuthority,ownerAuthorityPublicKey} from '../../device-agent/project-continuity-owner-grants.mjs';
 import {writeLocalWallAuthConfig,loadLocalWallAuth,LOCAL_WALL_COOKIE} from '../../device-agent/local-wall-auth.mjs';
 import {startLocalWall} from '../../device-agent/local-wall.mjs';
 
@@ -111,6 +111,38 @@ try{
  const replay=signContinuityConsent({root,signerDir,password,projectId:project.id,enabled:true,revision:2,principal:'owner'});
  await assert.rejects(continuityRequest('applySignedOwnerConsent',{projectId:project.id,proof:replay},{root}),/continuity_stale_revision/);
  assert.equal((await continuityRequest('getProject',{projectId:project.id},{root})).remote_read_enabled,0);
+ // Simulate a login password changed BEFORE the independent signer is rewrapped.
+ const newPassword='new-confirmed-owner-login-password-55';
+ const originalPub=ownerAuthorityPublicKey(root).export({type:'spki',format:'der'});
+ writeLocalWallAuthConfig(conf,{username:'owner',password:newPassword});
+ const freshAuth=loadLocalWallAuth(conf,{required:true});
+ const rekey=async({principal,oldPassword,newPassword:next})=>{
+  if(!freshAuth.verifyCredentials(principal,next))throw Error('continuity_owner_rekey_auth_failed');
+  return rekeyContinuityOwnerAuthority({root,signerDir,oldPassword,newPassword:next});
+ };
+ wall=startLocalWall({host:'127.0.0.1',port:0,
+  brandSvgPath:path.join(process.cwd(),'assets/branding/light-remote-mark.svg'),auth:freshAuth,
+  getLocalStatus:async()=>({cloudDesiredConnected:false,cloudState:'dormant'}),
+  continuity:{request:(action,data)=>continuityRequest(action,data,{root}),ownerRekey:rekey}});
+ await once(wall.server,'listening');
+ const endpoint='http://127.0.0.1:'+wall.server.address().port;
+ const cookie2=LOCAL_WALL_COOKIE+'='+freshAuth.issue('owner').token;
+ const csrf2=freshAuth.csrfForRequest({headers:{cookie:cookie2}});
+ const callRekey=(oldPwd,newPwd,hasCsrf=true)=>fetch(endpoint+'/api/project-continuity/rekeyOwnerSigner',{
+  method:'POST',headers:{cookie:cookie2,'content-type':'application/json',
+   ...(hasCsrf?{'x-light-remote-csrf':csrf2}:{})},
+  body:JSON.stringify({oldPassword:oldPwd,newPassword:newPwd})});
+ let changed=await callRekey(password,newPassword,false);assert.equal(changed.status,403);
+ changed=await callRekey('old-password-wrong',newPassword);assert.equal(changed.status,403);
+ changed=await callRekey(password,newPassword);assert.equal(changed.status,200);
+ assert.equal((await changed.json()).result.publicKeyUnchanged,true);
+ assert.deepEqual(ownerAuthorityPublicKey(root).export({type:'spki',format:'der'}),originalPub);
+ assert.throws(()=>signContinuityConsent({root,signerDir,password,projectId:project.id,
+  enabled:true,revision:4,principal:'owner'}),/continuity_owner_signer_unlock_failed/);
+ assert.equal(signContinuityConsent({root,signerDir,password:newPassword,projectId:project.id,
+  enabled:true,revision:4,principal:'owner'}).grant.projectId,project.id);
+ await wall.close();wall=null;
+ console.log('P2_LOCAL_WALL_OWNER_REKEY_AFTER_PASSWORD_CHANGE_PASS');
  console.log('P2_OWNER_SIGNED_30S_SCOPE_AND_REPLAY_DENY_PASS');
  console.log('P2_LOCAL_WALL_PASSWORD_CSRF_CONSENT_REVOKE_PASS');
  console.log('P2_REMOTE_CONSENT_RESTART_FAIL_CLOSED_PASS');

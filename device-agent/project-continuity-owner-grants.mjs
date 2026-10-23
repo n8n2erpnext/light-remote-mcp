@@ -91,6 +91,60 @@ export function provisionContinuityOwnerAuthority({root,signerDir,password=null}
  }
  return {publicPath,privatePath,initialized:true};
 }
+/**
+ * Rewraps the SAME Ed25519 private key after an authenticated owner password
+ * change. This does not update the Local Wall password or external account:
+ * the caller must coordinate credential changes separately.
+ *
+ * No delete/recreate fallback. A crash before rename preserves old envelope;
+ * a crash after rename preserves new envelope and unchanged public key.
+ */
+export function rekeyContinuityOwnerAuthority({root,signerDir,oldPassword,newPassword}={}){
+ const {publicPath,privatePath}=keyPaths(root,signerDir);
+ ensure(safePath(publicPath)&&safePath(privatePath),'continuity_owner_authority_uninitialized');
+ ensure(typeof oldPassword==='string'&&oldPassword.length>0,'continuity_old_password_required');
+ ensure(typeof newPassword==='string'&&newPassword.length>=12&&newPassword.length<=1024,
+  'continuity_new_password_too_weak');
+ ensure(oldPassword!==newPassword,'continuity_new_password_unchanged');
+ const lockPath=path.join(signerDir,'continuity-owner-rekey.lock');
+ let lockFd,temporary=null;
+ try{
+  try{lockFd=fs.openSync(lockPath,'wx',0o600);}
+  catch(error){
+   if(error?.code==='EEXIST')throw Error('continuity_owner_rekey_busy_manual_recovery');
+   throw error;
+  }
+  const original=fs.readFileSync(privatePath,'utf8');
+  const oldKey=unlockPrivateKey(original,oldPassword);
+  const publicKey=crypto.createPublicKey(fs.readFileSync(publicPath));
+  const publicDer=publicKey.export({format:'der',type:'spki'});
+  ensure(crypto.createPublicKey(oldKey).export({type:'spki',format:'der'}).equals(publicDer),
+   'continuity_owner_authority_mismatch');
+  const rewrapped=lockPrivateKey(oldKey,newPassword);
+  const testKey=unlockPrivateKey(JSON.stringify(rewrapped),newPassword);
+  ensure(crypto.createPublicKey(testKey).export({type:'spki',format:'der'}).equals(publicDer),
+   'continuity_owner_rekey_verify_failed');
+  temporary=privatePath+'.'+crypto.randomBytes(8).toString('hex')+'.tmp';
+  const fd=fs.openSync(temporary,'wx',0o600);
+  try{
+   fs.writeFileSync(fd,JSON.stringify(rewrapped)+'\n');
+   fs.fsyncSync(fd);
+  }finally{fs.closeSync(fd);}
+  // Fail closed if a concurrent actor changed the source during rewrap.
+  ensure(safePath(privatePath)&&fs.readFileSync(privatePath,'utf8')===original,
+   'continuity_owner_key_concurrently_changed');
+  fs.renameSync(temporary,privatePath);
+  temporary=null;
+  if(process.platform!=='win32'){
+   try{const dirFd=fs.openSync(signerDir,'r');try{fs.fsyncSync(dirFd);}finally{fs.closeSync(dirFd);}}
+   catch{ /* platform filesystem may not support directory fsync */ }
+  }
+  return {rewrapped:true,publicKeyUnchanged:true};
+ }finally{
+  if(temporary&&fs.existsSync(temporary))fs.rmSync(temporary,{force:true});
+  if(lockFd!==undefined){fs.closeSync(lockFd);fs.rmSync(lockPath,{force:true});}
+ }
+}
 export function ownerAuthorityPublicKey(root){
  const file=path.join(root,'owner-authority-public.pem');
  if(!safePath(file))return null;
@@ -101,8 +155,12 @@ export function signContinuityConsent({root,signerDir,password,projectId,enabled
  ensure(typeof enabled==='boolean','continuity_remote_consent_invalid');
  ensure(Number.isInteger(revision)&&revision>=1,'continuity_stale_revision');
  ensure(typeof principal==='string'&&principal.length>=1&&principal.length<=254,'continuity_owner_identity_invalid');
+ if(fs.existsSync(path.join(signerDir,'continuity-owner-rekey.lock')))
+  throw Error('continuity_owner_rekey_busy_manual_recovery');
  const {privatePath}=provisionContinuityOwnerAuthority({root,signerDir,password});
  const privateKey=unlockPrivateKey(fs.readFileSync(privatePath,'utf8'),password);
+ if(fs.existsSync(path.join(signerDir,'continuity-owner-rekey.lock')))
+  throw Error('continuity_owner_rekey_busy_manual_recovery');
  const grant={purpose:PURPOSE,projectId,enabled,revision,principal,issuedAt:now,
   expiresAt:now+VALID_FOR_MS,nonce:crypto.randomBytes(20).toString('hex')};
  const signature=crypto.sign(null,Buffer.from(JSON.stringify(grant)),privateKey).toString('base64url');

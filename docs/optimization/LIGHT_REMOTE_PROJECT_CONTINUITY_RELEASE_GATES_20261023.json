@@ -13,8 +13,9 @@
     "physical_windows_486_parity": "OPEN",
     "owner_password_sealed_signer_source": "PASS_SOURCE_ONLY",
     "os_isolated_signer_and_password_rekey": "OPEN",
-    "full_operator_plugin_proxy_retention_audit": "OPEN"
+    "full_operator_plugin_proxy_retention_audit": "OPEN",
+    "owner_password_rekey_and_consent_receipts_source": "PASS_SOURCE_ONLY"
   },
   "test_build_allowed": false,
-  "notes": "Owner private key now AES-256-GCM sealed at rest with per-key scrypt from re-entered owner password; no plaintext PEM created and targeted Duplex event-canary source test PASS. Separate OS identity, Windows ACL, password-change/rekey, full cloud tracing audit, live cross-chat MCP, real Codex, delegated worker, Windows physical acceptance still OPEN. NO INSTALLER."
+  "notes": "P2 sealed-key password rewrap and durable Ed25519-signed SQLite v7 remote consent receipt PASS_SOURCE_ONLY. No generic IPC rekey. Missing receipt / simple enabled=1 SQL tampering fail closed. OS-separated broker/Windows ACL and anti-rollback trust anchor still OPEN; account-only physical rekey, full proxy tracing audit, real ChatGPT MCP, real Codex, worker, Windows #486 physical acceptance all OPEN. NO INSTALLER."
 }

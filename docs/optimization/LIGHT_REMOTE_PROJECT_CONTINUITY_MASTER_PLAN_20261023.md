@@ -11,6 +11,7 @@ P1c source checkpoint: [Controller resource locks and trustworthy memory boundar
 P2 confidential transport handoff: [no-job scoped MCP relay](./LIGHT_REMOTE_PROJECT_CONTINUITY_P2_CONFIDENTIAL_RELAY_HANDOFF_20261023.md). Source/fixture PASS only; owner privilege, logging audit and real-client end-to-end still OPEN.
 P2 owner step-up handoff: [signed scoped grant and Local Wall reauthentication](./LIGHT_REMOTE_PROJECT_CONTINUITY_P2_OWNER_STEPUP_HANDOFF_20261023.md). SOURCE pilot only; OS signer isolation and account-only physical checks remain OPEN.
 P2 sealed signing-key checkpoint: [encrypted owner key and focused privacy audit](./LIGHT_REMOTE_PROJECT_CONTINUITY_P2_SEALED_KEY_PRIVACY_AUDIT_HANDOFF_20261023.md). Owner key now password-encrypted at rest in source, but same-OS-identity tampering and password rekey remain OPEN; Windows build BLOCKED.
+P2 rekey/signed receipts source checkpoint: [owner password rewrap, signed remote-read consent verification and safe v7 migration](./LIGHT_REMOTE_PROJECT_CONTINUITY_P2_REKEY_SIGNED_CONSENT_HANDOFF_20261023.md). Rekey/source receipt PASS; separate OS identity, real MCP and Windows test build still OPEN.
 
 Windows owner-tested build: Actions #486, SHA 30766940ac18e55cb735354b40a3af9ba37eddb8
 
