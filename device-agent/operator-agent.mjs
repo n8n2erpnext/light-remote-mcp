@@ -88,7 +88,7 @@ async function ownerConsentWithStepUp({principal,password,projectId,enabled,expe
   const current=await continuityRequest('getProject',{projectId},{root});
   if(!current||current.revision!==expectedRevision)throw Error('continuity_stale_revision');
   if(!current.memory_enabled)throw Error('continuity_memory_disabled');
-  const proof=signContinuityConsent({root,signerDir,projectId,enabled,revision:expectedRevision,principal:username});
+  const proof=signContinuityConsent({root,signerDir,password:credential,projectId,enabled,revision:expectedRevision,principal:username});
   return continuityRequest('applySignedOwnerConsent',{projectId,proof},{root});
 }
 const CONTINUITY_UI=process.env.LIGHT_REMOTE_PROJECT_CONTINUITY_EXPERIMENTAL==='1'

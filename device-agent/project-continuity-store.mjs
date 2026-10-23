@@ -312,6 +312,9 @@ export class ContinuityStore {
  setRemoteReadConsent(pid,{proof}={}){
   const p=this.project(pid);req(p,'continuity_project_missing');
   req(p.memory_enabled===1,'continuity_memory_disabled');
+  // The service may have started before the owner ever entered a credential,
+  // so the first signed grant can initialize the pinned public key lazily.
+  if(!this.ownerPublicKey)this.ownerPublicKey=ownerAuthorityPublicKey(this.root);
   const grant=verifyContinuityConsent({proof,publicKey:this.ownerPublicKey,projectId:pid,revision:p.revision});
   return this.tx(()=>{
    // No user-controlled ownerVerified flag; only verified Ed25519 signature.

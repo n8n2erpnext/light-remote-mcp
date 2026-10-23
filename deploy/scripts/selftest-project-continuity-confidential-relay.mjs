@@ -25,8 +25,8 @@ class MockResponse extends PassThrough{
 let local=null;
 let stream=null;
 try {
- const signerDir=path.join(root,'owner-priv');
- provisionContinuityOwnerAuthority({root,signerDir});
+ const signerDir=path.join(root,'owner-priv'),password='reliable-test-password-for-signature';
+ provisionContinuityOwnerAuthority({root,signerDir,password});
  const db=new ContinuityStore({root});
  const project=db.createProject({projectName:'Private gold',workspace:'/workspace/read-only'});
  db.setModules(project.id,{memory:true,expectedRevision:1});
@@ -43,7 +43,7 @@ try {
  await assert.rejects(continuityRequest('applySignedOwnerConsent',{projectId:project.id,proof:{grant:{},signature:'fake'}},{root}),/continuity_owner_grant_scope_invalid/);
  await local.stop();local=null;
  const ownerDb=new ContinuityStore({root});
- const firstGrant=signContinuityConsent({root,signerDir,projectId:project.id,enabled:true,revision:ownerDb.project(project.id).revision,principal:'local-owner'});
+ const firstGrant=signContinuityConsent({root,signerDir,password,projectId:project.id,enabled:true,revision:ownerDb.project(project.id).revision,principal:'local-owner'});
  ownerDb.setRemoteReadConsent(project.id,{proof:firstGrant});
  assert.throws(()=>ownerDb.setRemoteReadConsent(project.id,{proof:firstGrant}),/continuity_stale_revision/);
  ownerDb.close();
@@ -61,7 +61,7 @@ try {
  revoker.close();
  // Re-consent is required after revoking and re-enabling Memory.
  const ownerDb2=new ContinuityStore({root});
- const secondGrant=signContinuityConsent({root,signerDir,projectId:project.id,enabled:true,revision:ownerDb2.project(project.id).revision,principal:'local-owner'});
+ const secondGrant=signContinuityConsent({root,signerDir,password,projectId:project.id,enabled:true,revision:ownerDb2.project(project.id).revision,principal:'local-owner'});
  ownerDb2.setRemoteReadConsent(project.id,{proof:secondGrant});
  ownerDb2.close();
  console.log('P2_LOCAL_PROJECT_REMOTE_CONSENT_DENY_DEFAULT_PASS');
@@ -69,11 +69,13 @@ try {
  const req=new PassThrough(),res=new MockResponse();let wire='';
  res.setEncoding('utf8');res.on('data',s=>wire+=s);
  let persistCalls=0;
+ const transportEvents=[];
  stream={req,res,promise:handleDeviceDuplexSession(req,res,{
   authorizeHello:async hello=>({deviceId:'confidential-device-1',transportEpoch:hello.transportEpoch}),
   resume:async()=>{},poll:async()=>{await sleep(20);return {command:null};},
   onResult:async()=>{persistCalls++;throw Error('ordinary_job_used');},
-  onLive:async()=>({}),onHeartbeat:async()=>({})
+  onLive:async()=>({}),onHeartbeat:async()=>({}),
+  onEvent:event=>transportEvents.push(event)
  })};
  const epoch='confidential-epoch-1';
  req.write(JSON.stringify({type:'hello',protocol:DEVICE_DUPLEX_PROTOCOL,transportEpoch:epoch})+'\n');
@@ -83,10 +85,11 @@ try {
  assert.equal(outgoing.request.projectId,project.id);
  assert.equal(outgoing.request.sessionId,'session123');
  req.write(JSON.stringify({type:'project-result',transportEpoch:epoch,clientSeq:1,response:{
-  requestId:outgoing.request.requestId,ok:true,data:{projectId:project.id,content:'private bounded content',sequence:2}
+  requestId:outgoing.request.requestId,ok:true,data:{projectId:project.id,content:'PRIVATE_CANARY_2070_dev_only',sequence:2}
  }})+'\n');
  const received=await deviceCall;
- assert.equal(received.content,'private bounded content');
+ assert.equal(received.content,'PRIVATE_CANARY_2070_dev_only');
+ assert.equal(JSON.stringify(transportEvents).includes('PRIVATE_CANARY_2070_dev_only'),false);
  assert.equal(persistCalls,0);
  await waitFor(()=>wire.includes('"client-ack"'));
  await assert.rejects(confidentialProjectRequest({deviceId:'missing',sessionId:'session123',projectId:project.id}),/continuity_device_stream_unavailable/);

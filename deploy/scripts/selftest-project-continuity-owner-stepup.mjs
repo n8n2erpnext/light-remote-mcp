@@ -14,7 +14,33 @@ const root=fs.mkdtempSync(path.join(os.tmpdir(),'lr-cont-owner-'));
 const signerDir=path.join(root,'wall-secrets'),password='a-long-test-owner-password!42';
 let service,wall;
 try{
- provisionContinuityOwnerAuthority({root,signerDir});
+ // Cold Agent startup never generates an unencrypted signing key.
+ const coldRoot=path.join(root,'cold-project'),coldSigner=path.join(root,'cold-signer');
+ const cold=provisionContinuityOwnerAuthority({root:coldRoot,signerDir:coldSigner});
+ assert.equal(cold.initialized,false);
+ assert.equal(fs.existsSync(cold.privatePath),false);
+ assert.equal(fs.existsSync(cold.publicPath),false);
+ const waitingDb=new ContinuityStore({root:coldRoot});
+ const coldProject=waitingDb.createProject({projectName:'Late enrollment'});
+ waitingDb.setModules(coldProject.id,{memory:true,expectedRevision:1});
+ const coldGrant=signContinuityConsent({root:coldRoot,signerDir:coldSigner,password,projectId:coldProject.id,enabled:true,revision:2,principal:'owner'});
+ assert.equal(waitingDb.setRemoteReadConsent(coldProject.id,{proof:coldGrant}).remoteReadEnabled,true);
+ waitingDb.close();
+ provisionContinuityOwnerAuthority({root,signerDir,password});
+ const sealedPath=path.join(signerDir,'continuity-owner-private.enc.json');
+ const sealed=fs.readFileSync(sealedPath,'utf8');
+ assert.equal(sealed.includes('BEGIN PRIVATE KEY'),false);
+ assert.equal(JSON.parse(sealed).cipher,'aes-256-gcm');
+ assert.equal(JSON.parse(sealed).kdf,'scrypt-N32768-r8-p1');
+ assert.throws(()=>signContinuityConsent({root,signerDir,password:'wrong-unlock-secret',projectId:crypto.randomUUID(),enabled:true,revision:1,principal:'owner'}),/continuity_owner_signer_unlock_failed/);
+ if(process.platform!=='win32'){
+  assert.equal(fs.statSync(sealedPath).mode&0o077,0);
+  const poison=path.join(root,'untrusted-public-key');
+  fs.mkdirSync(poison,{recursive:true});
+  fs.symlinkSync(sealedPath,path.join(poison,'owner-authority-public.pem'));
+  const {ownerAuthorityPublicKey}=await import('../../device-agent/project-continuity-owner-grants.mjs');
+  assert.throws(()=>ownerAuthorityPublicKey(poison),/continuity_owner_authority_unsafe_file/);
+ }
  const conf=path.join(signerDir,'wall-auth.json');
  writeLocalWallAuthConfig(conf,{username:'owner',password});
  const auth=loadLocalWallAuth(conf,{required:true});
@@ -25,16 +51,16 @@ try{
  assert.equal(db.project(project.id).remote_read_enabled,0);
  const outsider=db.createProject({projectName:'Unrelated private project'});
  db.setModules(outsider.id,{memory:true,expectedRevision:1});
- const stale=signContinuityConsent({root,signerDir,projectId:project.id,enabled:true,revision:db.project(project.id).revision,principal:'owner',now:Date.now()-180000});
+ const stale=signContinuityConsent({root,signerDir,password,projectId:project.id,enabled:true,revision:db.project(project.id).revision,principal:'owner',now:Date.now()-180000});
  assert.throws(()=>db.setRemoteReadConsent(project.id,{proof:stale}),/continuity_owner_grant_expired/);
- const altered=signContinuityConsent({root,signerDir,projectId:project.id,enabled:true,revision:db.project(project.id).revision,principal:'owner'});
+ const altered=signContinuityConsent({root,signerDir,password,projectId:project.id,enabled:true,revision:db.project(project.id).revision,principal:'owner'});
  altered.grant.enabled=false;
  assert.throws(()=>db.setRemoteReadConsent(project.id,{proof:altered}),/continuity_owner_signature_invalid/);
  assert.throws(()=>db.setRemoteReadConsent(outsider.id,{proof:altered}),/continuity_owner_grant_scope_invalid/);
  const invalidSignerDir=path.join(root,'rogue');
  const rogueRoot=path.join(root,'rogue-public');
- provisionContinuityOwnerAuthority({root:rogueRoot,signerDir:invalidSignerDir});
- const wrongSignature=signContinuityConsent({root:rogueRoot,signerDir:invalidSignerDir,projectId:project.id,enabled:true,revision:db.project(project.id).revision,principal:'owner'});
+ provisionContinuityOwnerAuthority({root:rogueRoot,signerDir:invalidSignerDir,password});
+ const wrongSignature=signContinuityConsent({root:rogueRoot,signerDir:invalidSignerDir,password,projectId:project.id,enabled:true,revision:db.project(project.id).revision,principal:'owner'});
  assert.throws(()=>db.setRemoteReadConsent(project.id,{proof:wrongSignature}),/continuity_owner_signature_invalid/);
  db.close();
  service=startContinuityServer({root});
@@ -45,7 +71,7 @@ try{
   if(!auth.verifyCredentials(principal,provided))throw Error('invalid_owner_credentials');
   const live=await continuityRequest('getProject',{projectId},{root});
   if(live.revision!==expectedRevision)throw Error('continuity_stale_revision');
-  const proof=signContinuityConsent({root,signerDir,projectId,enabled,revision:expectedRevision,principal});
+  const proof=signContinuityConsent({root,signerDir,password:provided,projectId,enabled,revision:expectedRevision,principal});
   return continuityRequest('applySignedOwnerConsent',{projectId,proof},{root});
  };
  wall=startLocalWall({host:'127.0.0.1',port:0,brandSvgPath:path.join(process.cwd(),'assets/branding/light-remote-mark.svg'),auth,
@@ -66,7 +92,7 @@ try{
  const remote=await continuityRequest('remoteBrief',{projectId:project.id},{root});
  assert.match(remote.content,/Owner-approved note/);
  response=await post(password,{'x-light-remote-csrf':csrf});assert.equal(response.status,403); // stale revision
- const expiredProof=signContinuityConsent({root,signerDir,projectId:project.id,enabled:true,revision:3,principal:'owner',now:Date.now()-180000});
+ const expiredProof=signContinuityConsent({root,signerDir,password,projectId:project.id,enabled:true,revision:3,principal:'owner',now:Date.now()-180000});
  await assert.rejects(continuityRequest('applySignedOwnerConsent',{projectId:project.id,proof:expiredProof},{root}),/continuity_owner_grant_expired/);
  // Dedicated owner step-up is required to revoke. Use updated revision.
  response=await fetch(origin+'/api/project-continuity/setRemoteReadConsent',{method:'POST',
@@ -82,7 +108,7 @@ try{
  await service.stop();service=null;
  service=startContinuityServer({root});await once(service.server,'listening');
  await assert.rejects(continuityRequest('remoteBrief',{projectId:project.id},{root}),/continuity_remote_read_denied/);
- const replay=signContinuityConsent({root,signerDir,projectId:project.id,enabled:true,revision:2,principal:'owner'});
+ const replay=signContinuityConsent({root,signerDir,password,projectId:project.id,enabled:true,revision:2,principal:'owner'});
  await assert.rejects(continuityRequest('applySignedOwnerConsent',{projectId:project.id,proof:replay},{root}),/continuity_stale_revision/);
  assert.equal((await continuityRequest('getProject',{projectId:project.id},{root})).remote_read_enabled,0);
  console.log('P2_OWNER_SIGNED_30S_SCOPE_AND_REPLAY_DENY_PASS');

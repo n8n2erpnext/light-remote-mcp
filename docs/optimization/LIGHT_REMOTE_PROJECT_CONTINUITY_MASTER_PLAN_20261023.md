@@ -10,6 +10,7 @@ New source-only checkpoint: [P1b/P2 local/P3 mock](./LIGHT_REMOTE_PROJECT_CONTIN
 P1c source checkpoint: [Controller resource locks and trustworthy memory boundary](./LIGHT_REMOTE_PROJECT_CONTINUITY_P1C_CONTROLLER_RESOURCE_LOCKS_20261023.md). Build remains BLOCKED until native MCP relay + privileged owner ACL + real Codex/worker gates.
 P2 confidential transport handoff: [no-job scoped MCP relay](./LIGHT_REMOTE_PROJECT_CONTINUITY_P2_CONFIDENTIAL_RELAY_HANDOFF_20261023.md). Source/fixture PASS only; owner privilege, logging audit and real-client end-to-end still OPEN.
 P2 owner step-up handoff: [signed scoped grant and Local Wall reauthentication](./LIGHT_REMOTE_PROJECT_CONTINUITY_P2_OWNER_STEPUP_HANDOFF_20261023.md). SOURCE pilot only; OS signer isolation and account-only physical checks remain OPEN.
+P2 sealed signing-key checkpoint: [encrypted owner key and focused privacy audit](./LIGHT_REMOTE_PROJECT_CONTINUITY_P2_SEALED_KEY_PRIVACY_AUDIT_HANDOFF_20261023.md). Owner key now password-encrypted at rest in source, but same-OS-identity tampering and password rekey remain OPEN; Windows build BLOCKED.
 
 Windows owner-tested build: Actions #486, SHA 30766940ac18e55cb735354b40a3af9ba37eddb8
 

@@ -10,8 +10,11 @@
     "real_codex_app_server_owner_auth": "OPEN",
     "delegated_worker_scopes_receipts_recovery": "OPEN",
     "all_four_optional_mode_end_to_end": "OPEN",
-    "physical_windows_486_parity": "OPEN"
+    "physical_windows_486_parity": "OPEN",
+    "owner_password_sealed_signer_source": "PASS_SOURCE_ONLY",
+    "os_isolated_signer_and_password_rekey": "OPEN",
+    "full_operator_plugin_proxy_retention_audit": "OPEN"
   },
   "test_build_allowed": false,
-  "notes": "P2 Owner local password step-up + Ed25519 signed 30-second single-use Project consent PASS_SOURCE_ONLY; SQLite v6. Windows/OS signer isolation and account-only physical validation OPEN. Native confidential Duplex source PASS but full cloud logs/tracing audit and real ChatGPT new-session UAT OPEN. Real Codex/Delegated Worker/Windows #486 physical UAT OPEN. NO installer."
+  "notes": "Owner private key now AES-256-GCM sealed at rest with per-key scrypt from re-entered owner password; no plaintext PEM created and targeted Duplex event-canary source test PASS. Separate OS identity, Windows ACL, password-change/rekey, full cloud tracing audit, live cross-chat MCP, real Codex, delegated worker, Windows physical acceptance still OPEN. NO INSTALLER."
 }
