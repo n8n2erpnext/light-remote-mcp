@@ -70,7 +70,7 @@ const LOCAL_WALL_HOST=process.env.OPERATOR_AGENT_WALL_HOST || '127.0.0.1';
 const LOCAL_WALL_PORT=Math.max(1024,Math.min(Number(process.env.OPERATOR_AGENT_WALL_PORT)||5491,65535));
 // OFF by default. Does not start Codex or open a network listener.
 async function ownerConsentWithStepUp({principal,password,projectId,enabled,expectedRevision}={}){
-  const {continuityRequest}=await import('./project-continuity-ipc.mjs');
+  const {projectContinuityRequest,isolatedContinuityEnabled,projectContinuityOwnerConsent}=await import('./project-continuity-client.mjs');
   const {continuityDefaultRoot}=await import('./project-continuity-store.mjs');
   const username=String(principal||'').trim(),credential=String(password||'');
   if(!username||credential.length<1||credential.length>1024)throw Error('continuity_owner_credentials_invalid');
@@ -85,11 +85,13 @@ async function ownerConsentWithStepUp({principal,password,projectId,enabled,expe
       throw Error('continuity_owner_identity_mismatch');
   }else throw Error('continuity_owner_auth_unavailable');
   const root=continuityDefaultRoot(),signerDir=path.dirname(LOCAL_WALL_AUTH_FILE);
-  const current=await continuityRequest('getProject',{projectId},{root});
+  const current=await projectContinuityRequest('getProject',{projectId},{root});
   if(!current||current.revision!==expectedRevision)throw Error('continuity_stale_revision');
   if(!current.memory_enabled)throw Error('continuity_memory_disabled');
+  if(isolatedContinuityEnabled())return projectContinuityOwnerConsent({
+    principal:username,password:credential,projectId,enabled,expectedRevision});
   const proof=signContinuityConsent({root,signerDir,password:credential,projectId,enabled,revision:expectedRevision,principal:username});
-  return continuityRequest('applySignedOwnerConsent',{projectId,proof},{root});
+  return projectContinuityRequest('applySignedOwnerConsent',{projectId,proof},{root});
 }
 async function ownerRekeyAfterCredentialChange({principal,oldPassword,newPassword}={}){
   const username=String(principal||'').trim();
@@ -110,11 +112,13 @@ async function ownerRekeyAfterCredentialChange({principal,oldPassword,newPasswor
       throw Error('continuity_owner_rekey_auth_failed');
   }else throw Error('continuity_owner_rekey_auth_unavailable');
   const {continuityDefaultRoot}=await import('./project-continuity-store.mjs');
+  const {isolatedContinuityEnabled,projectContinuityOwnerRekey}=await import('./project-continuity-client.mjs');
+  if(isolatedContinuityEnabled())return projectContinuityOwnerRekey({oldPassword,newPassword:currentPassword});
   return rekeyContinuityOwnerAuthority({root:continuityDefaultRoot(),
     signerDir:path.dirname(LOCAL_WALL_AUTH_FILE),oldPassword,newPassword:currentPassword});
 }
 const CONTINUITY_UI=process.env.LIGHT_REMOTE_PROJECT_CONTINUITY_EXPERIMENTAL==='1'
-  ? {request:async(action,data)=>{const {continuityRequest}=await import('./project-continuity-ipc.mjs');return continuityRequest(action,data);},
+  ? {request:async(action,data)=>{const {projectContinuityRequest}=await import('./project-continuity-client.mjs');return projectContinuityRequest(action,data);},
      ownerConsent:ownerConsentWithStepUp,
      ownerRekey:ownerRekeyAfterCredentialChange}
   : null;
@@ -429,10 +433,10 @@ async function ensureDeviceDuplex(state,hub){
           throw Error('continuity_device_read_failed');
         if(!Number.isInteger(request.maxChars)||request.maxChars<512||request.maxChars>8000)
           throw Error('continuity_device_read_failed');
-        const {continuityRequest}=await import('./project-continuity-ipc.mjs');
-        // remoteBrief enforces LOCAL per-Project consent; local full contextBrief
-        // is deliberately never callable via this remote path.
-        return continuityRequest('remoteBrief',{projectId:request.projectId,query:request.query,maxChars:request.maxChars},{timeoutMs:7500});
+        const {projectContinuityRequest}=await import('./project-continuity-client.mjs');
+        // Isolated mode intentionally DENIES remoteBrief until broker
+        // receives a verified A/B session-scoped authorization proof.
+        return projectContinuityRequest('remoteBrief',{projectId:request.projectId,query:request.query,maxChars:request.maxChars},{timeoutMs:7500});
       },
       onHelloAck:async(frame,info)=>{const current=readState();if(current){applyPolicyEnvelope(current,frame.policy);current.cloud={...(current.cloud||{}),desiredConnected:true,state:'connected',lastServerActivityAt:Date.now(),lastError:null};writeState(current);}if(info?.serverEpochChanged)queueMicrotask(()=>void resyncLiveAfterDuplexEpochChange());},
       onHeartbeatAck:async frame=>{const current=readState();if(current&&frame.policy)applyPolicyEnvelope(current,frame.policy);if(current)await confirmTerminalReceiptsAck(current,frame.terminalReceiptsAck);},
@@ -996,7 +1000,9 @@ async function daemon(args){
   const wallAuth=loadLocalWallAuth(LOCAL_WALL_AUTH_FILE,{required:!['127.0.0.1','::1','localhost'].includes(String(LOCAL_WALL_HOST))});
   if(CONTINUITY_UI){
     const {continuityDefaultRoot}=await import('./project-continuity-store.mjs');
-    provisionContinuityOwnerAuthority({root:continuityDefaultRoot(),signerDir:path.dirname(LOCAL_WALL_AUTH_FILE)});
+    const {isolatedContinuityEnabled}=await import('./project-continuity-client.mjs');
+    if(!isolatedContinuityEnabled())
+      provisionContinuityOwnerAuthority({root:continuityDefaultRoot(),signerDir:path.dirname(LOCAL_WALL_AUTH_FILE)});
   }
   localWall=startLocalWall({continuity:CONTINUITY_UI,host:LOCAL_WALL_HOST,port:LOCAL_WALL_PORT,brandSvgPath:LOCAL_WALL_BRAND,auth:wallAuth,getLocalStatus:async()=>({...statusView(),fleetWall:await localFleetStatus()}),getLocalPolicyStatus:async()=>statusView(),getPendingAccess:async()=>remoteAccessLookup(hub),getRemoteStatus:async()=>{const remote=await remoteDeviceStatus(hub);return remote;},getRemoteActivity:async limit=>remoteDeviceActivity(hub,limit),getLocalProcesses:async()=>((SUPERVISED_PROCESSES?await SUPERVISED_PROCESSES.listDevice(state.enrollment.accountId,state.enrollment.deviceId):NATIVE_PROCESSES.list())).map(p=>({
     processId:p.processId,sessionId:p.sessionId,pid:p.pid,state:p.state,
@@ -1098,7 +1104,9 @@ async function wallOnly(args){
   const wallAuth=loadLocalWallAuth(LOCAL_WALL_AUTH_FILE,{required:!['127.0.0.1','::1','localhost'].includes(String(LOCAL_WALL_HOST))});
   if(CONTINUITY_UI){
     const {continuityDefaultRoot}=await import('./project-continuity-store.mjs');
-    provisionContinuityOwnerAuthority({root:continuityDefaultRoot(),signerDir:path.dirname(LOCAL_WALL_AUTH_FILE)});
+    const {isolatedContinuityEnabled}=await import('./project-continuity-client.mjs');
+    if(!isolatedContinuityEnabled())
+      provisionContinuityOwnerAuthority({root:continuityDefaultRoot(),signerDir:path.dirname(LOCAL_WALL_AUTH_FILE)});
   }
   const fleetManager=new FleetComponentManager(),fleetSupervisor=new FleetComponentSupervisor({manager:fleetManager,stateProvider:()=>readState(),requestIntent:async current=>{const local=await localFleetStatus();const response=await channelRequest(current,hub,'fleet-intent',{agentVersion:VERSION,moduleVersion:fleetManager.current()?.version||null,fleetHealthy:local.healthy===true,fleetPort:local.port});return response.fleet;},env:{OPERATOR_AGENT_STATE:STATE_FILE,OPERATOR_AGENT_IDENTITY_FILE:EXTERNAL_IDENTITY_FILE,OPERATOR_AGENT_WALL_AUTH_FILE:LOCAL_WALL_AUTH_FILE,OPERATOR_AGENT_HUB_URL:hub,OPERATOR_FLEET_WALL_HOST:FLEET_WALL_HOST,OPERATOR_FLEET_WALL_PORT:String(FLEET_WALL_PORT),OPERATOR_FLEET_WALL_PUBLIC_URL:FLEET_WALL_PUBLIC_URL},emit:event=>console.log(JSON.stringify(event))});
   const localWall=startLocalWall({continuity:CONTINUITY_UI,host:LOCAL_WALL_HOST,port:LOCAL_WALL_PORT,brandSvgPath:LOCAL_WALL_BRAND,auth:wallAuth,getLocalStatus:async()=>({...statusView(),fleetWall:await localFleetStatus()}),getLocalPolicyStatus:async()=>statusView(),getPendingAccess:async()=>remoteAccessLookup(hub),getRemoteStatus:async()=>remoteDeviceStatus(hub),getRemoteActivity:async limit=>remoteDeviceActivity(hub,limit),getLocalTerminals:async()=>NATIVE_TERMINALS.list().map(t=>({terminalId:t.terminalId,sessionId:t.sessionId,state:t.state,shell:t.shell,startedAt:t.startedAt,finishedAt:t.finishedAt,outputBytes:t.outputBytes})),readLocalTerminal:async(terminalId,{offset=0,limit=32768}={})=>{const t=NATIVE_TERMINALS.output(terminalId,null,{offset,limit});return {terminalId:t.terminalId,sessionId:t.sessionId,state:t.state,output:t.output};},connect:async data=>connectCloud({hub,graceMinutes:data.graceMinutes,leaseHours:data.leaseHours,silent:true}),disconnect:async data=>disconnectCloud({hub,reason:data.reason||'local_wall_disconnect',silent:true}),setGrace:async data=>setConnectionGrace({hub,minutes:data.minutes,silent:true}),setPermissions:async data=>setLocalPermissions(data?.allowedCapabilities,data?.profile),setFilesystemRoots:async data=>setLocalFilesystemRoots(data),getFilesystemVolumes:async()=>filesystemVolumeInventory(),ownerApprovePermissions:async data=>ownerApproveServerPermissions(data,hub),rescanCapabilities:async()=>rescanHostCapabilities(hub),accountAuthenticate:async data=>authenticateWallAccount(data?.username,data?.password,base),pairingCode:async data=>rotatePairingCode(hub,data),ownerProofCode:async()=>accountOwnerProofCode(hub),accessApprove:async requestId=>approveDeviceAccess(requestId,hub),accessDeny:async(requestId,data)=>denyDeviceAccess(requestId,hub,data?.reason||'owner_denied'),closeSession:async data=>closeWallSession(hub,data),requestUpdate:async data=>requestLocalUpdate('local-wall',data?.mode||'apply')});

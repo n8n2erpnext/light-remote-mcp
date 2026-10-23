@@ -9,7 +9,9 @@ import crypto from 'node:crypto';
 import {provisionContinuityOwnerAuthority,signContinuityConsent,rekeyContinuityOwnerAuthority,
  ownerAuthorityPublicKey} from './project-continuity-owner-grants.mjs';
 
-const MAX_LINE=8192,MAX_REPLY=8192;
+// Preserve Memory's 12KiB note capability plus source/JSON overhead,
+// but keep bounded broker IPC and deny oversized payloads.
+const MAX_LINE=20*1024,MAX_REPLY=64*1024;
 const abort=(code)=>{throw Error(code);};
 export function ownerBrokerEndpoint(runtimeDir,{platform=process.platform}={}){
  if(typeof runtimeDir!=='string'||!(platform==='win32'?path.win32.isAbsolute(runtimeDir):path.posix.isAbsolute(runtimeDir)))
@@ -37,7 +39,7 @@ export function bootstrapOwnerBroker({runtimeDir,password}={}){
  // Bootstrapping is a LOCAL service-identity operation, never an IPC action.
  return provisionContinuityOwnerAuthority({root:runtimeDir,signerDir:path.join(runtimeDir,'private'),password});
 }
-export function startOwnerBroker({runtimeDir,clientGroupMode=0o660}={}){
+export function startOwnerBroker({runtimeDir,clientGroupMode=0o660,controller=null}={}){
  // node:net does not expose an independently audited, explicit Windows
  // pipe security descriptor. Do not open a privileged pipe on Windows until
  // the service SID / DACL adapter is implemented and physically checked.
@@ -77,13 +79,53 @@ export function startOwnerBroker({runtimeDir,clientGroupMode=0o660}={}){
     const pk=ownerAuthorityPublicKey(runtimeDir);
     return reply({ok:true,result:{publicKeyPem:pk.export({type:'spki',format:'pem'})}});
    }
-   if(!['signConsent','rekey'].includes(action))
+   if(action==='controller'){
+    if(!controller)return reply({ok:false,error:'continuity_broker_controller_disabled'});
+    // OS group membership authorizes bounded LOCAL actions only.
+    // Never provide arbitrary SQL, owner boolean, worker transitions or
+    // remoteBrief without a verified device A/B session-bound scope.
+    const op=params.action,body=params.data||{};
+    const actions={
+     listProjects:()=>controller.projects(),
+     getProject:()=>controller.project(body.projectId),
+     createProject:()=>controller.createProject({projectName:body.name,workspace:body.workspace||''}),
+     setModules:()=>controller.setModules(body.projectId,{memory:body.memory,codex:body.codex,expectedRevision:body.expectedRevision}),
+     createTask:()=>controller.createTask(body.projectId,body.title),
+     addSection:()=>controller.addSection(body.taskId,{title:body.title,dependsOn:body.dependsOn||[],resources:body.resources||[]}),
+     getTask:()=>controller.task(body.taskId),
+     checkpoint:()=>controller.checkpoint(body.projectId),
+     memoryPut:()=>controller.memoryPut(body.projectId,{body:body.body,kind:body.kind,sourceRef:body.sourceRef}),
+     memorySearch:()=>controller.memorySearch(body.projectId,body.query,{limit:body.limit||8}),
+     memoryRecent:()=>{
+      const p=controller.project(body.projectId);
+      if(!p?.memory_enabled)abort('continuity_memory_disabled');
+      return controller.db.prepare('SELECT f.id,f.kind,f.body,f.source_ref,f.created_at,a.confidence FROM memory_facts f JOIN memory_annotations a ON a.fact_id=f.id WHERE f.project_id=? ORDER BY f.created_at DESC LIMIT 16').all(p.id);
+     },
+     contextBrief:()=>controller.contextBrief(body.projectId,{query:body.query||'',maxChars:body.maxChars||4000})
+    };
+    if(!Object.hasOwn(actions,op))return reply({ok:false,error:'continuity_broker_controller_action_denied'});
+    try{return reply({ok:true,result:actions[op]()});}
+    catch(error){return reply({ok:false,error:/^continuity_/.test(error?.message||'')?error.message:'continuity_broker_controller_failed'});}
+   }
+   if(!['signConsent','rekey','ownerConsent'].includes(action))
     return reply({ok:false,error:'continuity_broker_action_denied'});
+   if(action==='ownerConsent'&&!controller)
+    return reply({ok:false,error:'continuity_broker_controller_disabled'});
    const now=Date.now();
    failedAttempts=failedAttempts.filter(timestamp=>now-timestamp<600000);
    if(failedAttempts.length>=5)return reply({ok:false,error:'continuity_broker_rate_limited'});
    try{
-    const result=action==='signConsent'
+    const result=action==='ownerConsent'
+      ?(()=>{
+         const p=controller.project(params.projectId);
+         if(!p||!p.memory_enabled||p.revision!==params.revision)
+          abort('continuity_broker_owner_scope_invalid');
+         const proof=signContinuityConsent({root:runtimeDir,signerDir:path.join(runtimeDir,'private'),
+          password:params.password,projectId:params.projectId,enabled:params.enabled,
+          revision:params.revision,principal:params.principal});
+         return controller.setRemoteReadConsent(params.projectId,{proof});
+        })()
+      :action==='signConsent'
       ?signContinuityConsent({root:runtimeDir,signerDir:path.join(runtimeDir,'private'),password:params.password,
         projectId:params.projectId,enabled:params.enabled,revision:params.revision,
         principal:params.principal})
@@ -107,9 +149,40 @@ export function startOwnerBroker({runtimeDir,clientGroupMode=0o660}={}){
  }));
  return {server,stop,endpoint};
 }
+/**
+ * Only the dedicated broker identity opens the canonical SQLite database
+ * and the pinned Ed25519 public trust anchor. A device Agent group client
+ * can use only the explicitly allowed local IPC actions.
+ */
+export async function startIsolatedControllerBroker({runtimeDir,clientGroupMode=0o660}={}){
+ if(process.platform==='win32')abort('continuity_broker_windows_dacl_unverified');
+ safeBrokerRoot(runtimeDir);
+ const anchor=path.join(runtimeDir,'owner-authority-public.pem');
+ if(!ownerAuthorityPublicKey(runtimeDir))abort('continuity_broker_not_bootstrapped');
+ const dir=path.join(runtimeDir,'controller');
+ if(fs.existsSync(dir)){
+  const st=fs.lstatSync(dir);
+  if(!st.isDirectory()||st.isSymbolicLink()||(st.mode&0o077)!==0)
+   abort('continuity_broker_controller_dir_unsafe');
+ }else fs.mkdirSync(dir,{mode:0o700});
+ const dest=path.join(dir,'owner-authority-public.pem'), canonical=fs.readFileSync(anchor);
+ if(fs.existsSync(dest)){
+  const st=fs.lstatSync(dest);
+  if(!st.isFile()||st.isSymbolicLink()||(st.mode&0o077)!==0)
+   abort('continuity_broker_controller_anchor_unsafe');
+  if(!fs.readFileSync(dest).equals(canonical))
+   abort('continuity_broker_controller_anchor_mismatch');
+ }else fs.writeFileSync(dest,canonical,{mode:0o600,flag:'wx'});
+ const {ContinuityStore}=await import('./project-continuity-store.mjs');
+ const store=new ContinuityStore({root:dir});
+ try{
+  const broker=startOwnerBroker({runtimeDir,clientGroupMode,controller:store});
+  return {...broker,stop:async()=>{await broker.stop();store.close();}};
+ }catch(error){store.close();throw error;}
+}
 export function ownerBrokerRequest({runtimeDir,action,data={},timeoutMs=3500}={}){
  const endpoint=ownerBrokerEndpoint(runtimeDir);
- if(!['health','publicKey','signConsent','rekey'].includes(action))
+ if(!['health','publicKey','signConsent','rekey','controller','ownerConsent'].includes(action))
   return Promise.reject(Error('continuity_broker_action_denied'));
  if(!Number.isInteger(timeoutMs)||timeoutMs<100||timeoutMs>15000)
   return Promise.reject(Error('continuity_broker_timeout_invalid'));

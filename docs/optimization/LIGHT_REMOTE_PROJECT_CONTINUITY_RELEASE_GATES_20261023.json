@@ -19,8 +19,11 @@
     "windows_named_pipe_service_sid_acl": "OPEN",
     "macos_launchd_privileged_broker": "OPEN",
     "linux_desktop_system_user_broker": "OPEN",
-    "controller_trust_anchor_os_isolation": "OPEN"
+    "controller_trust_anchor_os_isolation": "OPEN",
+    "linux_server_controller_trust_anchor_distinct_uid_smoke": "PASS_EPHEMERAL_ARM",
+    "agent_isolated_broker_local_api_source": "PASS_SOURCE_ONLY",
+    "broker_verified_remote_ab_session_delegation": "OPEN"
   },
   "test_build_allowed": false,
-  "notes": "Multi-OS contract: Windows + Linux Server FIRST; macOS + Linux Desktop SECOND. Linux Server two-UID broker ownership and group socket PASS_EPHEMERAL_ARM, no deployment. Broker not integrated with canonical SQLite/Gold; Windows DACL fail-closed. All Mac/Desktop physical UAT, real MCP, Codex, worker and release gates still OPEN. NO INSTALLER."
+  "notes": "Multi-OS: Windows Desktop + Linux Server FIRST, macOS Desktop + Linux Desktop SECOND. Linux isolated broker now physically separates SQLite Controller+trust anchor under broker UID (ephemeral ARM two-user source pilot). Agent selector routes local operations with no fallback, but remoteBrief intentionally FAILS CLOSED pending verified A/B delegation. No installed systemd service, no Windows named-pipe DACL, no live ChatGPT MCP or Codex worker. Gold and Windows #486 unchanged, test installer BLOCKED."
 }

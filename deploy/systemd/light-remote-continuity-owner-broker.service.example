@@ -4,6 +4,9 @@
 # owner: lightremote-continuity, group: lightremote-continuity-client,
 # mode: 2710; its /private signer directory mode 0700.
 # The Light Remote Agent account may belong to *client* group ONLY.
+# Controller SQLite and pinned public trust anchor live under
+# /var/lib/light-remote/continuity-broker/controller (mode 0700).
+# Agent clients only connect over the group-owned local socket.
 # IMPORTANT: broker does not launch Codex or control filesystem execution.
 [Unit]
 Description=Light Remote Project Continuity isolated owner key broker
@@ -15,7 +18,7 @@ User=lightremote-continuity
 Group=lightremote-continuity-client
 UMask=0077
 WorkingDirectory=/opt/light-remote/current
-ExecStart=/usr/bin/node /opt/light-remote/current/device-agent/project-continuity-owner-broker-cli.mjs serve --root /var/lib/light-remote/continuity-broker
+ExecStart=/usr/bin/node /opt/light-remote/current/device-agent/project-continuity-owner-broker-cli.mjs serve --root /var/lib/light-remote/continuity-broker --controller 1
 Restart=on-failure
 RestartSec=3
 NoNewPrivileges=yes

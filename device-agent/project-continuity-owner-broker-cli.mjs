@@ -1,7 +1,7 @@
 /* Explicit local broker launcher. No untrusted network bind.
  * bootstrap reads JSON {password} on stdin: no argv/env secret exposure. */
 import {pathToFileURL} from 'node:url';
-import {bootstrapOwnerBroker,startOwnerBroker,ownerBrokerRequest} from './project-continuity-owner-broker.mjs';
+import {bootstrapOwnerBroker,startOwnerBroker,startIsolatedControllerBroker,ownerBrokerRequest} from './project-continuity-owner-broker.mjs';
 import path from 'node:path';
 
 const arg=(name)=>{const idx=process.argv.indexOf(name);return idx<0?null:process.argv[idx+1];};
@@ -18,7 +18,9 @@ if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
   bootstrapOwnerBroker({runtimeDir,password:parsed.password});
   process.stdout.write('CONTINUITY_OWNER_BROKER_INITIALIZED\\n');
  }else if(command==='serve'){
-  const broker=startOwnerBroker({runtimeDir,clientGroupMode:process.platform==='win32'?0o600:0o660});
+  const broker=arg('--controller')==='1'
+   ?await startIsolatedControllerBroker({runtimeDir,clientGroupMode:process.platform==='win32'?0o600:0o660})
+   :startOwnerBroker({runtimeDir,clientGroupMode:process.platform==='win32'?0o600:0o660});
   const stop=()=>broker.stop().then(()=>process.exit(0)).catch(()=>process.exit(1));
   process.once('SIGINT',stop);process.once('SIGTERM',stop);
  }else if(command==='health'){

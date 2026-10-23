@@ -396,6 +396,10 @@
     {
       "source": "device-agent/project-continuity-platform-contract.mjs",
       "destination": "device-agent/project-continuity-platform-contract.mjs"
+    },
+    {
+      "source": "device-agent/project-continuity-client.mjs",
+      "destination": "device-agent/project-continuity-client.mjs"
     }
   ]
 }
