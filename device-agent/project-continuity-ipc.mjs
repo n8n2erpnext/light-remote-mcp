@@ -42,7 +42,7 @@ export function startContinuityServer({root=continuityDefaultRoot()}={}){
   createProject:d=>store.createProject({projectName:d.name,workspace:d.workspace||''}),
   setModules:d=>store.setModules(d.projectId,{memory:d.memory,codex:d.codex,expectedRevision:d.expectedRevision}),
   createTask:d=>store.createTask(d.projectId,d.title),
-  addSection:d=>store.addSection(d.taskId,{title:d.title,dependsOn:d.dependsOn||[]}),
+  addSection:d=>store.addSection(d.taskId,{title:d.title,dependsOn:d.dependsOn||[],resources:d.resources||[]}),
   getTask:d=>store.task(d.taskId),
   checkpoint:d=>store.checkpoint(d.projectId),
   exportCheckpoint:d=>store.exportCheckpoint(d.projectId),

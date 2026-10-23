@@ -7,6 +7,8 @@ Source base: feature/gold-m6-integrated-20261023 at ba579f8830a0654e8321204f1727
 Pre-feature frozen rollback baseline: checkpoint/gold-pre-project-continuity-20261023
 P1 working checkpoint: [LIGHT_REMOTE_PROJECT_CONTINUITY_P1_CHECKPOINT_20261023.md](./LIGHT_REMOTE_PROJECT_CONTINUITY_P1_CHECKPOINT_20261023.md)
 New source-only checkpoint: [P1b/P2 local/P3 mock](./LIGHT_REMOTE_PROJECT_CONTINUITY_P1B_P2_P3_SOURCE_CHECKPOINT_20261023.md). Feature remains IN DEVELOPMENT; do not build before readiness gates.
+P1c source checkpoint: [Controller resource locks and trustworthy memory boundary](./LIGHT_REMOTE_PROJECT_CONTINUITY_P1C_CONTROLLER_RESOURCE_LOCKS_20261023.md). Build remains BLOCKED until native MCP relay + privileged owner ACL + real Codex/worker gates.
+
 Windows owner-tested build: Actions #486, SHA 30766940ac18e55cb735354b40a3af9ba37eddb8
 
 ## A. Product contract (authoritative owner requirements)
