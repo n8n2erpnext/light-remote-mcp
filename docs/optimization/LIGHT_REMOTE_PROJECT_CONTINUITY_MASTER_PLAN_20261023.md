@@ -16,6 +16,7 @@ Multi-OS Owner Broker: [Windows and Linux Server first; macOS and Linux Desktop 
 Isolated Controller checkpoint: [broker-owned SQLite and pinned trust anchor, Agent local selector, Linux two-UID receipt](./LIGHT_REMOTE_PROJECT_CONTINUITY_ISOLATED_CONTROLLER_MULTI_OS_HANDOFF_20261023.md). Source/Linux ephemeral smoke PASS; broker remote A/B session binding and installed service still OPEN.
 Signed Operator delegation: [signed scoped six-second request, durable nonce and Linux two-UID broker remote Memory fixture](./LIGHT_REMOTE_PROJECT_CONTINUITY_SIGNED_OPERATOR_RELAY_HANDOFF_20261023.md). Signed-source proof PASS; live official Plugin/Operator A/B session, key lifecycle and four OS installer acceptance remain OPEN.
 Linux Server transient systemd UAT: [actual service UID/AF_UNIX/socket sandbox, restart and SIGKILL orphan recovery](./LIGHT_REMOTE_PROJECT_CONTINUITY_LINUX_SYSTEMD_TRANSIENT_UAT_HANDOFF_20261023.md). PASS on ARM development host; fixed installed systemd service on Gold LXD, Windows native, macOS/Linux Desktop and live Plugin A/B remain OPEN.
+Linux Server separate installed LXD UAT: [fixed OS UID/group, offline systemd auto-boot, protected SQLite and consent revoke](./LIGHT_REMOTE_PROJECT_CONTINUITY_LINUX_LXD_INSTALLED_SYSTEMD_HANDOFF_20261024.md). PASS in dedicated light-remote-continuity-uat, NOT Gold; source upgrade/rollback, live A/B, Windows native and secondary OS parity remain OPEN.
 
 Windows owner-tested build: Actions #486, SHA 30766940ac18e55cb735354b40a3af9ba37eddb8
 
