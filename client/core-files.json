@@ -26,6 +26,22 @@
       "destination": "device-agent/local-wall.mjs"
     },
     {
+      "source": "device-agent/project-continuity-store.mjs",
+      "destination": "device-agent/project-continuity-store.mjs"
+    },
+    {
+      "source": "device-agent/project-continuity-ipc.mjs",
+      "destination": "device-agent/project-continuity-ipc.mjs"
+    },
+    {
+      "source": "device-agent/project-continuity-service.mjs",
+      "destination": "device-agent/project-continuity-service.mjs"
+    },
+    {
+      "source": "device-agent/project-continuity-page.mjs",
+      "destination": "device-agent/project-continuity-page.mjs"
+    },
+    {
       "source": "device-agent/local-process-page.mjs",
       "destination": "device-agent/local-process-page.mjs"
     },

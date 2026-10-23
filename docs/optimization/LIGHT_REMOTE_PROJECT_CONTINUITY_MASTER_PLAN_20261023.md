@@ -1,10 +1,11 @@
 # Light Remote Project Continuity — Architecture and Delivery Plan
 
 Date: 2026-10-23 (Asia/Ho_Chi_Minh)
-Status: PLAN ONLY — NO RUNTIME FEATURE IMPLEMENTED
+Status: P0 DONE; P1 Local Engine SOURCE PILOT on isolated branch (not yet accepted as a client release)
 Planning branch: feature/project-continuity-plan-20261023
 Source base: feature/gold-m6-integrated-20261023 at ba579f8830a0654e8321204f17270db8d94c5593
 Pre-feature frozen rollback baseline: checkpoint/gold-pre-project-continuity-20261023
+P1 working checkpoint: [LIGHT_REMOTE_PROJECT_CONTINUITY_P1_CHECKPOINT_20261023.md](./LIGHT_REMOTE_PROJECT_CONTINUITY_P1_CHECKPOINT_20261023.md)
 Windows owner-tested build: Actions #486, SHA 30766940ac18e55cb735354b40a3af9ba37eddb8
 
 ## A. Product contract (authoritative owner requirements)

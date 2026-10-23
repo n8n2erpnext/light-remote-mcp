@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { LOCAL_WALL_COOKIE } from './local-wall-auth.mjs';
 import { createWallStatusCache } from './wall-status-cache.mjs';
 import { localProcessPage } from './local-process-page.mjs';
+import { continuityProjectsPage } from './project-continuity-page.mjs';
 import { updateSettingsHtml } from './update-settings-page.mjs';
 import { brandFaviconSvg } from '../lib/brand.mjs';
 import { materialIcon } from '../lib/material-icon.mjs';
@@ -518,7 +519,7 @@ function approvePage(brandSvg,csrf=''){return `<!doctype html><html lang="en"><h
 const wallCsrf=${JSON.stringify(csrf)},code=document.getElementById('code'),msg=document.getElementById('msg'),decision=document.getElementById('decision'),request=document.getElementById('request');let current=null;function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}async function lookup(){msg.className='muted';msg.textContent='Checking…';decision.style.display='none';current=null;const r=await fetch('/api/approve?code='+encodeURIComponent(code.value),{cache:'no-store'}),j=await r.json();if(!r.ok||!j.ok){msg.className='error';msg.textContent=j.error==='approval_code_not_found'?'No pending request matches this code.':(j.error||'Unable to check code.');return;}current=j.request;msg.textContent='';request.innerHTML='<b>'+esc(current.label||'ChatGPT')+'</b> requests access to <b>'+esc(current.deviceName||'this device')+'</b><br><span class="muted">Agent '+esc(current.agentId||'')+' · code '+esc(current.userCode||'')+'</span>';decision.style.display='block';}async function decide(kind){if(!current)return;const r=await fetch('/api/approve',{method:'POST',headers:{'content-type':'application/json','x-light-remote-csrf':wallCsrf},body:JSON.stringify({code:code.value,decision:kind})}),j=await r.json();if(!r.ok||!j.ok){msg.className='error';msg.textContent=j.error||'Request failed.';return;}decision.style.display='none';msg.className='ok';msg.textContent=kind==='approve'?'Access approved':'Access denied';setTimeout(()=>location.href='/',900);}document.getElementById('lookup').onclick=lookup;document.getElementById('approve').onclick=()=>decide('approve');document.getElementById('deny').onclick=()=>decide('deny');code.addEventListener('keydown',e=>{if(e.key==='Enter')lookup();});const q=new URLSearchParams(location.search).get('code');if(q){code.value=q;lookup();}
 </script></body></html>`;}
 
-export function startLocalWall({host='127.0.0.1',port=5491,brandSvgPath,fontPath=null,cascadiaMonoFontPath=DEFAULT_CASCADIA_MONO_FONT,cascadiaCodeFontPath=DEFAULT_CASCADIA_CODE_FONT,auth={enabled:false},accountAuthenticate,getLocalStatus,getLocalPolicyStatus,getRemoteStatus,getRemoteActivity,getPendingAccess,getLocalTerminals,readLocalTerminal,getLocalProcesses,stopLocalProcess,connect,disconnect,setGrace,setPermissions,setFilesystemRoots,getFilesystemVolumes,ownerApprovePermissions,rescanCapabilities,beginEnrollment,pollEnrollment,pairingCode,ownerProofCode,accessApprove,accessDeny,closeSession,requestUpdate}={}){
+export function startLocalWall({host='127.0.0.1',port=5491,brandSvgPath,fontPath=null,cascadiaMonoFontPath=DEFAULT_CASCADIA_MONO_FONT,cascadiaCodeFontPath=DEFAULT_CASCADIA_CODE_FONT,auth={enabled:false},accountAuthenticate,getLocalStatus,getLocalPolicyStatus,getRemoteStatus,getRemoteActivity,getPendingAccess,getLocalTerminals,readLocalTerminal,getLocalProcesses,stopLocalProcess,connect,disconnect,setGrace,setPermissions,setFilesystemRoots,getFilesystemVolumes,ownerApprovePermissions,rescanCapabilities,beginEnrollment,pollEnrollment,pairingCode,ownerProofCode,accessApprove,accessDeny,closeSession,requestUpdate,continuity=null}={}){
 
   if(!isAllowedLocalWallBindHost(host)) throw new Error('local_wall_bind_host_not_private');
   const loopback=['127.0.0.1','::1','localhost'].includes(String(host));
@@ -611,6 +612,22 @@ export function startLocalWall({host='127.0.0.1',port=5491,brandSvgPath,fontPath
       res.writeHead(200,pageHeaders());res.end(localProcessPage(auth.csrfForRequest(req)||''));return;
     }
     if(req.method==='GET'&&url.pathname==='/permissions'){const html=permissionsPage(brandSvg,auth?.enabled?auth.csrfForRequest(req)||'':'');res.writeHead(200,pageHeaders());res.end(html);return;}
+    if(req.method==='GET'&&url.pathname==='/projects'){
+      if(!continuity?.request)return json(res,404,{ok:false,error:'project_continuity_disabled'});
+      if(!auth?.enabled||!auth.identity(req))return json(res,403,{ok:false,error:'project_continuity_owner_auth_required'});
+      res.writeHead(200,pageHeaders());res.end(continuityProjectsPage(auth.csrfForRequest(req)||''));return;
+    }
+    if(url.pathname.startsWith('/api/project-continuity/')){
+      if(!continuity?.request)return json(res,404,{ok:false,error:'project_continuity_disabled'});
+      if(!auth?.enabled||!auth.identity(req))return json(res,403,{ok:false,error:'project_continuity_owner_auth_required'});
+      const op=url.pathname.slice('/api/project-continuity/'.length);
+      const allowedGet=['listProjects'],allowedPost=['createProject','setModules','createTask','checkpoint'];
+      if(!(req.method==='GET'&&allowedGet.includes(op))&&!(req.method==='POST'&&allowedPost.includes(op)))return json(res,404,{ok:false,error:'project_continuity_action_unavailable'});
+      if(req.method==='POST'&&!mutationAllowed(req))return json(res,403,{ok:false,error:'csrf_invalid'});
+      const data=req.method==='POST'?await body(req):{};
+      const result=await continuity.request(op,data);
+      return json(res,200,{ok:true,result});
+    }
     if(req.method==='GET'&&url.pathname==='/settings'){const html=updateSettingsHtml({surface:'local',csrfToken:auth?.enabled?auth.csrfForRequest(req)||'':'',brandHtml:brandSvg});res.writeHead(200,pageHeaders());res.end(html);return;}
     if(req.method==='GET'&&url.pathname==='/api/policy-status'){const local=await (typeof getLocalPolicyStatus==='function'?getLocalPolicyStatus():getLocalStatus());return json(res,200,{ok:true,local});}
     if(req.method==='GET'&&url.pathname==='/api/status'){const value=await status();return json(res,200,{ok:true,...value});}
