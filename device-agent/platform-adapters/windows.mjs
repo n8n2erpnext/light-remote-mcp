@@ -31,10 +31,12 @@ const RULES=[
 export function createWindowsAdapter({commandExists}) {
   const shell=firstAvailable(commandExists,['pwsh','powershell.exe','powershell']);
   const cmd=firstAvailable(commandExists,['cmd.exe','cmd']);
+  let installedCache=null,installedCacheUntil=0;
   return {
     id:'win32',displayName:'Windows PowerShell adapter',
     discoverCapabilities(){return uniqueCapabilities(['filesystem','powershell','terminal','git','build-test','docker','package-manager','windows-services','windows-services-admin','windows-eventlog','windows-process-network','windows-registry','windows-scheduled-tasks','windows-defender-firewall','windows-credential-manager','windows-uac-admin','kubernetes','virtualization','network-admin','storage-admin','infra-provisioning']);},
     installedCapabilities(){
+      if(installedCache&&Date.now()<installedCacheUntil)return [...installedCache];
       const caps=['filesystem'];
       const test=(cap,names)=>{if(names.some(commandExists))caps.push(cap);};
       if(shell)caps.push('powershell');
@@ -47,8 +49,11 @@ export function createWindowsAdapter({commandExists}) {
       test('windows-credential-manager',['cmdkey.exe']);test('windows-uac-admin',['runas.exe']);
       test('kubernetes',['kubectl','helm']);test('virtualization',['wsl.exe','VBoxManage.exe']);
       test('network-admin',['netsh.exe']);test('storage-admin',['diskpart.exe']);test('infra-provisioning',['terraform.exe','tofu.exe','pulumi.exe']);
-      return uniqueCapabilities(caps);
+      installedCache=uniqueCapabilities(caps);
+      installedCacheUntil=Date.now()+60_000;
+      return [...installedCache];
     },
+    invalidateInstalledCapabilities(){installedCache=null;installedCacheUntil=0;},
     inferRequiredCapabilities(script,{shell:requestedShell='default'}={}) {
       // An explicitly selected cmd.exe shell must not require the separate
       // PowerShell capability; it requires terminal shell authority instead.

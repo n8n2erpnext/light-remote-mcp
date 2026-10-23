@@ -36,6 +36,7 @@ on:
       - 'deploy/scripts/selftest-gold-m6-process-stop.mjs'
       - 'deploy/scripts/selftest-gold-m6-owner-orphan-recovery.mjs'
       - 'deploy/scripts/selftest-gold-native-device-fk-removal.mjs'
+      - 'deploy/scripts/selftest-gold-windows-wall-nonblocking-inventory.mjs'
       - 'deploy/scripts/selftest-gold-m6-resource-metrics.mjs'
       - 'deploy/scripts/selftest-gold-m6-terminal-replay.mjs'
       - 'deploy/scripts/selftest-gold-m6-native-terminal-spool.mjs'
@@ -89,6 +90,7 @@ jobs:
           node deploy/scripts/selftest-g3-duplex-ready-timeout-diagnostic.mjs
           node deploy/scripts/selftest-g3-gold-preview-stream-config.mjs
           node deploy/scripts/selftest-g3-redis-wall-status-rate.mjs
+          node deploy/scripts/selftest-gold-windows-wall-nonblocking-inventory.mjs
           node deploy/scripts/selftest-g3-ab-control-lane-lookup.mjs
           node deploy/scripts/selftest-g3-command-transport-provenance.mjs
           node deploy/scripts/selftest-g3-agent-inline-stdout.mjs

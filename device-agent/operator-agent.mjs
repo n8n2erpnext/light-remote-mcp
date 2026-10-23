@@ -9,6 +9,7 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { deviceChannelMessage, deviceHeartbeatMessage, devicePolicyMessage, normalizeDeviceCapabilities } from '../lib/device-proof.mjs';
 import { createPlatformAdapter } from './platform-adapters/index.mjs';
+import { invalidateCommandExistenceCache } from './platform-adapters/shared.mjs';
 import { startLocalWall } from './local-wall.mjs';
 import { loadLocalWallAuth, writeLocalWallAuthConfig, writeAccountOnlyWallAuthConfig } from './local-wall-auth.mjs';
 import { FleetComponentManager } from './fleet-component-manager.mjs';
@@ -165,6 +166,8 @@ async function rescanHostCapabilities(hub=DEFAULT_HUB){
   const state=readState();
   if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
   if(isTrustedHostState(state))throw new Error('trusted_host_capabilities_refresh_on_operator_restart');
+  invalidateCommandExistenceCache();
+  PLATFORM_ADAPTER.invalidateInstalledCapabilities?.();
   const discovered=discoverCapabilities();
   const response=await channelRequest(state,hub,'capabilities-refresh',{capabilities:discovered,agentVersion:VERSION});
   if(!response?.policy?.policy)throw new Error('capability_rescan_unsigned_policy_missing');

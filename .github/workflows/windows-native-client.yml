@@ -10,6 +10,7 @@ on:
       - 'feature/real-remote-v2-m6-persistent-duplex'
       - 'feature/windows-rm-ux-rc48'
       - 'feature/light-remote-gold-rebuild-20261018' # staging CI artifacts only
+      - 'feature/gold-m6-integrated-20261023' # isolated Gold UAT Windows build only
     tags:
       - 'v0.9.*'
     paths:
@@ -83,6 +84,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'physical type routing contract failed' }
           node deploy/scripts/selftest-v12-rm-cursor-effect-parity.mjs
           if ($LASTEXITCODE -ne 0) { throw 'cursor effect parity regression failed' }
+          node deploy/scripts/selftest-gold-windows-wall-nonblocking-inventory.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold Windows Wall blocking inventory regression failed' }
       - name: Publish native tray client
         shell: pwsh
         run: |
