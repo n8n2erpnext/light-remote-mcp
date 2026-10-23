@@ -1,7 +1,7 @@
 /* Explicit local broker launcher. No untrusted network bind.
  * bootstrap reads JSON {password} on stdin: no argv/env secret exposure. */
 import {pathToFileURL} from 'node:url';
-import {bootstrapOwnerBroker,provisionTrustedContinuityOperator,startOwnerBroker,startIsolatedControllerBroker,ownerBrokerRequest} from './project-continuity-owner-broker.mjs';
+import {bootstrapOwnerBroker,provisionTrustedContinuityOperator,startOwnerBroker,startIsolatedControllerBroker,recoverStaleOwnerBrokerSocket,ownerBrokerRequest} from './project-continuity-owner-broker.mjs';
 import path from 'node:path';
 import fs from 'node:fs';
 
@@ -29,6 +29,7 @@ if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
   });
   process.stdout.write(JSON.stringify(result)+'\n');
  }else if(command==='serve'){
+  if(arg('--recover-stale')==='1')await recoverStaleOwnerBrokerSocket(runtimeDir);
   const broker=arg('--controller')==='1'
    ?await startIsolatedControllerBroker({runtimeDir,clientGroupMode:process.platform==='win32'?0o600:0o660})
    :startOwnerBroker({runtimeDir,clientGroupMode:process.platform==='win32'?0o600:0o660});

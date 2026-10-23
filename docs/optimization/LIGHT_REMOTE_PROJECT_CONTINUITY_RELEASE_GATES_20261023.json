@@ -24,8 +24,11 @@
     "agent_isolated_broker_local_api_source": "PASS_SOURCE_ONLY",
     "broker_verified_remote_ab_session_delegation": "OPEN",
     "broker_signed_operator_delegation_source": "PASS_EPHEMERAL_ARM",
-    "broker_live_operator_ab_session_and_key_lifecycle": "OPEN"
+    "broker_live_operator_ab_session_and_key_lifecycle": "OPEN",
+    "linux_server_real_systemd_transient_lifecycle": "PASS_ARM_TRANSIENT_NO_GOLD_MUTATION",
+    "linux_server_permanent_service_upgrade_reboot_uat": "OPEN",
+    "linux_server_sigkill_orphan_socket_recovery": "PASS_ARM_SYSTEMD_TRANSIENT"
   },
   "test_build_allowed": false,
-  "notes": "Four OS parity unchanged: Windows/Linux Server first, macOS/Linux Desktop second. Ed25519 signed Operator A/B session+account+device+Project+query one-use proof and isolated Linux two-UID remote Memory fixture PASS_EPHEMERAL_ARM. Real Gold Operator signing and official ChatGPT cross-session MCP UAT OPEN; Windows DACL, installed systemd, Mac/Linux Desktop service adapters, real Codex/Worker, end-to-end log audit and physical parity OPEN. NO INSTALLER."
+  "notes": "Linux Server real transient systemd (dedicated nobody UID, ubuntu group, no privilege, protected SQLite, service stop/restart, SIGKILL orphan socket recovery and consent revocation) PASS_ARM_TRANSIENT. No installed unit or change to Gold/LXD. Windows native service SID+DACL OPEN; macOS launchd/Keychain and Linux Desktop system/user adapters OPEN; real Plugin A/B, Codex/Worker and physical four-platform integration OPEN. Installer BLOCKED."
 }

@@ -70,6 +70,47 @@ function loadTrustedContinuityOperator(runtimeDir){
  if(publicKey.asymmetricKeyType!=='ed25519')abort('continuity_operator_trust_key_invalid');
  return {...trust,publicKey};
 }
+/**
+ * Optional system-service startup recovery after SIGKILL/power loss.
+ * Only the broker OS identity can inspect/unlink its own UNIX socket.
+ * Never remove a live socket, foreign owner, symlink or changed inode.
+ * This is a best-effort startup recovery, not a distributed lock.
+ */
+export async function recoverStaleOwnerBrokerSocket(runtimeDir){
+ if(process.platform==='win32')abort('continuity_broker_windows_dacl_unverified');
+ safeBrokerRoot(runtimeDir);
+ const socketPath=ownerBrokerEndpoint(runtimeDir);
+ let original;
+ try{original=fs.lstatSync(socketPath);}
+ catch(error){
+  if(error?.code==='ENOENT')return {recovered:false,reason:'absent'};
+  throw error;
+ }
+ if(!original.isSocket()||original.isSymbolicLink()||original.uid!==process.getuid()||
+    ![0o600,0o660].includes(original.mode&0o777))
+  abort('continuity_broker_existing_socket_unsafe');
+ const probe=await new Promise((resolve,reject)=>{
+  const socket=net.createConnection(socketPath);
+  let settled=false;
+  const finish=(err,value)=>{
+   if(settled)return;settled=true;socket.destroy();
+   if(err)reject(err);else resolve(value);
+  };
+  socket.setTimeout(900,()=>finish(Error('continuity_broker_socket_probe_timeout')));
+  socket.once('connect',()=>finish(null,'live'));
+  socket.once('error',error=>{
+   if(error?.code==='ECONNREFUSED')finish(null,'orphan');
+   else finish(Error('continuity_broker_socket_probe_denied'));
+  });
+ });
+ if(probe==='live')abort('continuity_broker_socket_live');
+ const now=fs.lstatSync(socketPath);
+ if(!now.isSocket()||now.dev!==original.dev||now.ino!==original.ino||
+    now.uid!==original.uid||now.mode!==original.mode)
+  abort('continuity_broker_socket_changed');
+ fs.unlinkSync(socketPath);
+ return {recovered:true,reason:'orphan'};
+}
 export function startOwnerBroker({runtimeDir,clientGroupMode=0o660,controller=null}={}){
  // node:net does not expose an independently audited, explicit Windows
  // pipe security descriptor. Do not open a privileged pipe on Windows until

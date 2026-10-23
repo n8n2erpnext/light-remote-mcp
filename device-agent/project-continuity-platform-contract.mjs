@@ -13,7 +13,7 @@ export const CONTINUITY_PLATFORMS=Object.freeze({
   transport:'AF_UNIX socket with owner UID and dedicated client group',
   ownerIsolation:'dedicated service UID, signer directory 0700, socket 0660, no group write to parent',
   dataLocation:'$XDG_DATA_HOME/light-remote/continuity or dedicated root',
-  brokerStatus:'EPHEMERAL_TWO_UID_LINUX_SOURCE_PILOT',physicalTest:'ARM_EPHEMERAL_PILOT_PASS'
+  brokerStatus:'TRANSIENT_SYSTEMD_TWO_UID_PILOT',physicalTest:'ARM_SYSTEMD_TRANSIENT_LIFECYCLE_PASS'
  }),
  'linux-desktop':Object.freeze({
   client:'Linux Desktop',focus:'SECOND_WAVE',service:'systemd system broker + systemd user Agent',
