@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - 'feature/light-remote-gold-rebuild-20261018'
+      - 'feature/gold-m6-integrated-20261023' # isolated Gold M6 + owner permissions integration CI
     paths:
       - 'operator-host/**'
       - 'plugin-server/tools.mjs'
@@ -37,6 +38,7 @@ on:
       - 'deploy/scripts/selftest-gold-m6-terminal-replay.mjs'
       - 'deploy/scripts/selftest-gold-m6-native-terminal-spool.mjs'
       - 'deploy/scripts/selftest-gold-m6-device-telemetry.mjs'
+      - 'deploy/scripts/selftest-gold-owner-permission-authorization.mjs'
       - 'deploy/scripts/gold-m6-uat-four-service-cutover.sh'
       - 'lib/device-resource-telemetry.mjs'
       - 'lib/native-terminal-receipt-spool.mjs'
@@ -121,6 +123,7 @@ jobs:
           node deploy/scripts/selftest-gold-m6-native-terminal-spool.mjs
           node --check lib/device-resource-telemetry.mjs
           node deploy/scripts/selftest-gold-m6-device-telemetry.mjs
+          node deploy/scripts/selftest-gold-owner-permission-authorization.mjs
           bash -n deploy/scripts/gold-m6-uat-four-service-cutover.sh
           node deploy/scripts/selftest-v10-light-scp-file.mjs
           node deploy/scripts/selftest-v10-light-scp-owner.mjs

@@ -1,5 +1,8 @@
 # Current RDC → Light Remote Gold optimization handoff
 
+**LATEST 2026-10-23 — M PLAN RESUMED, GOLD M6 + MULTI-OS OWNER PERMISSIONS INTEGRATION:** [Complete resumed M6 review, real LXD PG/Fleet gate and source/test receipts](./RDC_GOLD_M6_RESUME_INTEGRATED_20261023.md). Clean branch `feature/gold-m6-integrated-20261023` descends from Gold M6 `8c28dff` through permission commit `ed74fc0`. UAT PG has 10 retained never-dispatched interrupted UNKNOWN (not workers), plus 1 Windows background process claim without signed terminal ACK. M6 read-only gate now correctly reports `M6_RETAINED_PRE_DISPATCH_UNKNOWN:10`, **blocks on `M6_PG_WORK_BUSY:1`**; absolutely no SQL cleanup or forced kill. M6 override ordering fixed for owner Permissions Wall/Operator/Plugin zz/zzz drop-ins; regression M6 Stop fixture restored. M6 UAT four-service cutover still BLOCKED until Windows claim authenticated reconciliation and both leaf executor proofs. Pro Team/real 3+1 owner-paused tests remain PAUSED. Production untouched.
+
+
 **LATEST 2026-10-22 — M6 UAT STAGED, PG SCHEMA 035 APPLIED, FOUR-SERVICE CUTOVER GATED:** [Full real LXD checkpoint](./RDC_GOLD_M6_UAT_SCHEMA35_STAGING_GATE_20261022.md). Immutable `a7d1d96` staged and verified backup (DB/live code/state/all four units) PASS. PostgreSQL 035 applied ONLY to Gold UAT using independent migrator, ACK table confirmed. No runtime service upgraded: 1 active session, 9 queued Agent slot + 1 resource-queued and 1 native worker claim; new UAT four-service preflight correctly REFUSED `M6_PG_WORK_BUSY:11`. Do not clear SQL claims/queues or force stop unknown OS processes. Strict admission remains ON. Pro Team/3+1 UAT paused by owner. Production unchanged.
 
 
