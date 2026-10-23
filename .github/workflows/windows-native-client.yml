@@ -11,6 +11,7 @@ on:
       - 'feature/windows-rm-ux-rc48'
       - 'feature/light-remote-gold-rebuild-20261018' # staging CI artifacts only
       - 'feature/gold-m6-integrated-20261023' # isolated Gold UAT Windows build only
+      - 'fix/gold-owner-filesystem-roots-20261023' # isolated Gold filesystem UAT build
     tags:
       - 'v0.9.*'
     paths:
@@ -58,6 +59,8 @@ on:
       - 'operator-host/executor.mjs'
       - 'deploy/scripts/selftest-v12-macos-physical-type-routing.mjs'
       - 'deploy/scripts/selftest-v12-rm-cursor-effect-parity.mjs'
+      - 'deploy/scripts/selftest-gold-owner-filesystem-roots.mjs'
+      - 'device-agent/filesystem-volume-inventory.mjs'
       - '.github/workflows/windows-native-client.yml'
   workflow_dispatch:
   workflow_call:
@@ -86,6 +89,13 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'cursor effect parity regression failed' }
           node deploy/scripts/selftest-gold-windows-wall-nonblocking-inventory.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Gold Windows Wall blocking inventory regression failed' }
+      - name: Gold Windows owner filesystem scope regression
+        shell: pwsh
+        run: |
+          node deploy/scripts/selftest-gold-owner-filesystem-roots.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold owner filesystem scopes or drive inventory regression' }
+          Write-Host 'gold-windows-owner-filesystem-scopes=PASS'
+
       - name: Publish native tray client
         shell: pwsh
         run: |
@@ -167,6 +177,9 @@ jobs:
           $updaterStage = Join-Path $PWD 'dist\windows\updater'
           $updater = Join-Path $updaterStage 'LightRemote.Updater.exe'
           node deploy/scripts/stage-client-core.mjs --verify $agentRoot
+          $volumesModule = Join-Path $agentRoot 'device-agent\filesystem-volume-inventory.mjs'
+          if (-not (Test-Path $volumesModule)) { throw 'Gold filesystem volume inventory absent from packaged Windows Agent' }
+          Write-Host 'gold-windows-volume-inventory-packaged=PASS'
           if ($LASTEXITCODE -ne 0) { throw 'canonical client core verification failed' }
           & $node deploy/scripts/selftest-packaged-local-wall.mjs $agentRoot
           if ($LASTEXITCODE -ne 0) { throw 'packaged Local Wall icon asset and HTTP page regression failed' }
