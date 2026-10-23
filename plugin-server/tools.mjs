@@ -166,6 +166,18 @@ export async function callLegacyMultiplexedTool(identity,name,input={}){
 }
 
 export function registerPluginTools(server,identity){
+  if(process.env.LIGHT_REMOTE_PROJECT_CONTINUITY_EXPERIMENTAL==='1'){
+    add(server,'light_remote_project_context',{
+      title:'Read bounded local Project Memory',
+      description:'Fetch owner-permitted, project-scoped durable context from the A/B-authorized device. Project Memory must be enabled and separately consented to on that device; no Agent execution/FS/PTY or stored Operator job.',
+      inputSchema:{sessionId:id,projectId:z.string().uuid(),query:z.string().max(300).optional(),maxChars:z.number().int().min(512).max(8000).optional()},
+      securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
+    },guarded(identity,['remote:read'],async(a,x)=>{
+      const response=await a.projectMemoryBrief(x.sessionId,x.projectId,{query:x.query||'',maxChars:x.maxChars||8000});
+      return {ok:Boolean(response.ok),...(response.ok?{context:response.data}:{error:'continuity_read_unavailable'})};
+    }));
+  }
+
   add(server,'light_remote_connection_helper',{
     title:'Connect Light Remote with A/B approval',
     description:'Start here. Handles Local Wall A/B pairing and, when ready, returns/reuses the working context plus a compact tool-family menu. Call again with helperGroup=workspace|files|shell|transfer|desktop only when detailed syntax for that family is needed. OAuth account login alone never authorizes a device.',

@@ -1,3 +1,4 @@
+import { confidentialProjectRequest } from './device-duplex-session.mjs';
 import http from 'node:http';
 import os from 'node:os';
 import fs from 'node:fs';
@@ -1386,7 +1387,7 @@ const routeDeps=()=>({
   removeRuntimeForDevice,requireAccount,requireDeviceConnection,revokeRuntimeForDevice,ring,
   ringBytes,sendJson,sessionStatsFromDisk,sessions,sseClients,
   startDesktopOperation,startFsOperation,startJob,startProcessOperation,startScpOperation,startSearchOperation,
-  startTerminalOperation,targetRoute,verifyTeamPrincipal,terminalResultSummary,usage,verifiedChannelContext,
+  startTerminalOperation,targetRoute,verifyTeamPrincipal,terminalResultSummary,usage,verifiedChannelContext,confidentialProjectRequest,
   verifiedFleetContext,verifiedLeafCapabilities,waitForJob,wakeDeviceChannelForDevice,
 });
 

@@ -371,6 +371,22 @@ async function ensureDeviceDuplex(state,hub){
       hub,
       hello:meta=>{const current=readState()||state;return signedChannelEnvelope(current,'stream',duplexHelloPayload(current,meta));},
       onCommand:command=>duplexExecuteCommand(command,hub),
+      onProjectRequest:async request=>{
+        // Device-local consent is mandatory and separate from FS/SCP/PTY.
+        // Disabled by default on existing Gold builds.
+        if(process.env.LIGHT_REMOTE_PROJECT_CONTINUITY_EXPERIMENTAL!=='1')
+          throw Error('continuity_remote_unavailable');
+        if(typeof request?.projectId!=='string'||!/^[a-f0-9-]{36}$/.test(request.projectId))
+          throw Error('continuity_project_missing');
+        if(typeof request?.query!=='string'||request.query.length>300)
+          throw Error('continuity_device_read_failed');
+        if(!Number.isInteger(request.maxChars)||request.maxChars<512||request.maxChars>8000)
+          throw Error('continuity_device_read_failed');
+        const {continuityRequest}=await import('./project-continuity-ipc.mjs');
+        // remoteBrief enforces LOCAL per-Project consent; local full contextBrief
+        // is deliberately never callable via this remote path.
+        return continuityRequest('remoteBrief',{projectId:request.projectId,query:request.query,maxChars:request.maxChars},{timeoutMs:7500});
+      },
       onHelloAck:async(frame,info)=>{const current=readState();if(current){applyPolicyEnvelope(current,frame.policy);current.cloud={...(current.cloud||{}),desiredConnected:true,state:'connected',lastServerActivityAt:Date.now(),lastError:null};writeState(current);}if(info?.serverEpochChanged)queueMicrotask(()=>void resyncLiveAfterDuplexEpochChange());},
       onHeartbeatAck:async frame=>{const current=readState();if(current&&frame.policy)applyPolicyEnvelope(current,frame.policy);if(current)await confirmTerminalReceiptsAck(current,frame.terminalReceiptsAck);},
       heartbeatPayload:duplexHeartbeatPayload,

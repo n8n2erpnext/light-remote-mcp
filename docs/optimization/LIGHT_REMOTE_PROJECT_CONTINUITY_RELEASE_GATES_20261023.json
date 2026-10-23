@@ -13,5 +13,5 @@
     "physical_windows_486_parity": "OPEN"
   },
   "test_build_allowed": false,
-  "notes": "P1c SQLite schema 4 and cross-project resource conflict gate PASS_SOURCE_ONLY; unsafe owner IPC and confidential MCP relay still OPEN. Gold Operator ordinary job journaling must not persist Project Memory; no FS/PTY workaround. Mock Codex != physical acceptance."
+  "notes": "P1c controller resource locks PASS_SOURCE_ONLY. P2 confidential no-job Duplex relay now passes mock/live process fixtures in source, but per-Project owner step-up and real native MCP/Windows acceptance remain OPEN. Do not claim plaintext is end-to-end encrypted; no Windows build."
 }

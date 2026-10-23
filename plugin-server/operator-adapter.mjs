@@ -151,6 +151,14 @@ export class AccountOperatorAdapter{
   async resumeSession(sessionId){await this.sessionRaw(sessionId);const row=await callOperatorJson('POST',`/v1/plugin/sessions/${encodeURIComponent(sessionId)}/resume`,{accountId:this.identity.accountId,agentId:this.agentId});return cleanSession(row.session);}
   async holdSession(sessionId,reason='transport_lost'){await this.sessionRaw(sessionId);const row=await callOperatorJson('POST',`/v1/plugin/sessions/${encodeURIComponent(sessionId)}/hold`,{accountId:this.identity.accountId,agentId:this.agentId,reason:String(reason||'transport_lost').slice(0,80)});return cleanSession(row.session);}
   async closeSession(sessionId){await this.sessionRaw(sessionId);const row=await callOperatorJson('POST',`/v1/plugin/sessions/${encodeURIComponent(sessionId)}/close`,{accountId:this.identity.accountId,agentId:this.agentId});return cleanSession(row.session);}
+  async projectMemoryBrief(sessionId,projectId,{query='',maxChars=8000}={}){
+    const session=await this.sessionRaw(sessionId);
+    if(session.state!=='active')throw Error('continuity_session_inactive');
+    return callOperatorJson('POST','/v1/plugin/project-continuity/read',{
+      accountId:this.identity.accountId,agentId:this.agentId,sessionId:session.id,
+      projectId,query,maxChars
+    });
+  }
   async fs(sessionId,fs,operationId=opId('fs'),waitMs=7000){const s=await this.sessionRaw(sessionId),payload={action:'fs',operationId,sessionId,agentId:this.agentId,nodeId:s.nodeId,fs,waitMs};return callOperatorJson('POST','/v1/fs',sealOperatorPayload(payload));}
   async search(sessionId,search,operationId=opId('search'),waitMs=7000){const s=await this.sessionRaw(sessionId),payload={action:'search',operationId,sessionId,agentId:this.agentId,nodeId:s.nodeId,search,waitMs};return callOperatorJson('POST','/v1/search',sealOperatorPayload(payload));}
   async process(sessionId,process,operationId=opId('process'),waitMs=7000){const s=await this.sessionRaw(sessionId),payload={action:'process',operationId,sessionId,agentId:this.agentId,nodeId:s.nodeId,process,waitMs};return callOperatorJson('POST','/v1/process',sealOperatorPayload(payload));}

@@ -14,6 +14,24 @@ function ownedSession(deps,{accountId,sessionId,agentId}){
   return {account,session};
 }
 export async function handlePluginRoutes(req,res,url,deps){
+  if(req.method==='POST'&&url.pathname==='/v1/plugin/project-continuity/read'){
+    if(process.env.LIGHT_REMOTE_PROJECT_CONTINUITY_EXPERIMENTAL!=='1')
+      return deps.sendJson(res,404,{ok:false,error:'continuity_not_enabled'});
+    const body=await deps.readJson(req);
+    const {session}=ownedSession(deps,{accountId:body.accountId,sessionId:body.sessionId,agentId:body.agentId});
+    if(session.state!=='active')return deps.sendJson(res,409,{ok:false,error:'continuity_session_inactive'});
+    deps.requireDeviceConnection(session.deviceId);
+    // Device scope comes ONLY from the server-validated active session,
+    // not a caller-provided deviceId or nodeId.
+    const data=await deps.confidentialProjectRequest({
+      deviceId:session.deviceId,sessionId:session.id,
+      projectId:body.projectId,query:body.query??'',maxChars:body.maxChars??8000,
+      timeoutMs:10000
+    });
+    // Do not emit job telemetry, persist a JSONB blob or log project content.
+    return deps.sendJson(res,200,{ok:true,data});
+  }
+
   if(req.method==='POST'&&url.pathname==='/v1/plugin/sessions/open'){
     const body=await deps.readJson(req),account=pluginAccount(deps,body.accountId),route=deps.targetRoute(body.nodeId,{accountId:account.accountId});
     const session=deps.sessions.open({accountId:account.accountId,openId:body.openId,agentId:body.agentId,label:body.label,workspace:body.workspace,graceMs:body.graceMs,gracePreset:body.gracePreset,leaseMs:body.leaseMs,leasePreset:body.leasePreset,nodeId:route.nodeId,deviceId:route.deviceId,maxActiveForNode:route.sessionCeiling,maxActiveForAccount:deps.planEntitlements(account).sessionLimit??null});

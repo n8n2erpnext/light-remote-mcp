@@ -50,6 +50,7 @@ export function startContinuityServer({root=continuityDefaultRoot()}={}){
   memoryPut:d=>store.memoryPut(d.projectId,{body:d.body,kind:d.kind,sourceRef:d.sourceRef}),
   memorySearch:d=>store.memorySearch(d.projectId,d.query,{limit:d.limit||8}),
   contextBrief:d=>store.contextBrief(d.projectId,{query:d.query||'',maxChars:d.maxChars||8000}),
+  remoteBrief:d=>store.remoteBrief(d.projectId,{query:d.query||'',maxChars:d.maxChars||8000}),
   exportHandoff:d=>store.exportHandoff(d.projectId,{query:d.query||'',maxChars:d.maxChars||10000}),
   memoryRecent:d=>{const p=store.project(d.projectId);if(!p?.memory_enabled)throw Error('continuity_memory_disabled');return store.db.prepare('SELECT f.id,f.kind,f.body,f.source_ref,f.created_at,a.confidence FROM memory_facts f JOIN memory_annotations a ON a.fact_id=f.id WHERE f.project_id=? ORDER BY f.created_at DESC LIMIT 30').all(p.id);}
  };

@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { createNdjsonReader, createNdjsonWriter, DEVICE_DUPLEX_PROTOCOL, DEVICE_DUPLEX_SERVER_EPOCH, DeviceDuplexError } from './device-duplex-transport.mjs';
 
 const ACTIVE_STREAMS=new Map();
@@ -13,6 +14,19 @@ function resumeRow(deviceId,transportEpoch,now=Date.now()){
 function commitClientSeq(row,seq){row.lastClientSeq=Math.max(row.lastClientSeq,Math.max(0,Number(seq)||0));row.updatedAt=Date.now();return row.lastClientSeq;}
 
 let serial=0;
+const CONFIDENTIAL_MAX_REPLY=12000;
+const CONFIDENTIAL_LIMIT=6;
+export async function confidentialProjectRequest({deviceId,sessionId,projectId,query='',maxChars=8000,timeoutMs=10000}={}){
+  const stream=ACTIVE_STREAMS.get(String(deviceId||''));
+  if(!stream?.projectRead)throw new DeviceDuplexError('continuity_device_stream_unavailable',503);
+  if(typeof projectId!=='string'||!/^[a-f0-9-]{36}$/.test(projectId))throw new DeviceDuplexError('continuity_project_id_invalid',400);
+  if(typeof sessionId!=='string'||sessionId.length>160||!sessionId)throw new DeviceDuplexError('continuity_session_invalid',400);
+  if(typeof query!=='string'||query.length>300)throw new DeviceDuplexError('continuity_query_invalid',400);
+  if(!Number.isInteger(maxChars)||maxChars<512||maxChars>8000)throw new DeviceDuplexError('continuity_context_limit',400);
+  if(!Number.isInteger(timeoutMs)||timeoutMs<1000||timeoutMs>15000)throw new DeviceDuplexError('continuity_timeout_invalid',400);
+  return stream.projectRead({sessionId,projectId,query,maxChars},timeoutMs);
+}
+
 
 function cleanError(error){
   return {error:String(error?.message||error||'duplex_error').slice(0,160),status:Number(error?.status)||500};
@@ -55,6 +69,7 @@ export async function handleDeviceDuplexSession(req,res,{
 
   const streamId=`ds_${(++serial).toString(36)}_${Date.now().toString(36)}`,resumeState=resumeRow(deviceId,transportEpoch);
   let closed=false,serverSeq=0,lastClientSeq=resumeState.lastClientSeq,lastAckedServerSeq=0,pendingCommandId=null,pendingResolve=null;
+  const pendingProjects=new Map();
   let closeResolve;
   const closedPromise=new Promise(resolve=>{closeResolve=resolve;});
   const send=(type,data={})=>writer.send({type,protocol:DEVICE_DUPLEX_PROTOCOL,serverEpoch:DEVICE_DUPLEX_SERVER_EPOCH,streamId,serverSeq:++serverSeq,...data});
@@ -62,6 +77,8 @@ export async function handleDeviceDuplexSession(req,res,{
     if(closed)return;
     closed=true;
     if(pendingResolve){pendingResolve({closed:true,reason});pendingResolve=null;}
+    for(const [id,waiting] of pendingProjects){clearTimeout(waiting.timer);waiting.reject(new DeviceDuplexError('continuity_device_stream_closed',503));}
+    pendingProjects.clear();
     const current=ACTIVE_STREAMS.get(deviceId);
     if(current?.streamId===streamId)ACTIVE_STREAMS.delete(deviceId);
     try{writer.close();}catch{}
@@ -71,7 +88,26 @@ export async function handleDeviceDuplexSession(req,res,{
 
   const prior=ACTIVE_STREAMS.get(deviceId);
   if(prior)prior.close('replaced');
-  ACTIVE_STREAMS.set(deviceId,{streamId,close});
+  const projectRead=(data,timeoutMs)=>new Promise((resolve,reject)=>{
+    if(closed)return reject(new DeviceDuplexError('continuity_device_stream_closed',503));
+    if(pendingProjects.size>=CONFIDENTIAL_LIMIT)return reject(new DeviceDuplexError('continuity_too_many_requests',429));
+    const requestId=crypto.randomUUID();
+    const timer=setTimeout(()=>{
+      pendingProjects.delete(requestId);
+      reject(new DeviceDuplexError('continuity_device_response_timeout',504));
+    },timeoutMs);
+    timer.unref?.();
+    pendingProjects.set(requestId,{resolve,reject,timer});
+    // This bypasses Gold persisted jobs entirely. It is still transiently
+    // visible in server memory and the HTTPS/LAN transport.
+    Promise.resolve(send('project-request',{request:{requestId,...data}})).catch(()=>{
+      const waiter=pendingProjects.get(requestId);
+      if(!waiter)return;
+      pendingProjects.delete(requestId);clearTimeout(waiter.timer);
+      waiter.reject(new DeviceDuplexError('continuity_device_send_failed',503));
+    });
+  });
+  ACTIVE_STREAMS.set(deviceId,{streamId,close,projectRead});
   onEvent({type:'device_duplex_opened',deviceId,streamId,serverEpoch:DEVICE_DUPLEX_SERVER_EPOCH,transportEpoch});
 
   try{
@@ -120,6 +156,26 @@ export async function handleDeviceDuplexSession(req,res,{
           lastClientSeq=commitClientSeq(resumeState,clientSeq);
           await send('result-ack',{clientSeq,lastClientSeq,commandId:String(frame.result?.commandId||''),accepted:ack?.accepted!==false,duplicate:Boolean(ack?.duplicate)});
           if(pendingCommandId===String(frame.result?.commandId||'')){pendingResolve?.({accepted:true});pendingResolve=null;pendingCommandId=null;}
+          continue;
+        }
+        if(type==='project-result'){
+          // One-shot in-memory result, never put in job stdout/resultData,
+          // activity rings, metrics events, PostgreSQL or Redis.
+          const reply=frame.response;
+          const requestId=String(reply?.requestId||'');
+          const waiter=pendingProjects.get(requestId);
+          if(waiter){
+            pendingProjects.delete(requestId);clearTimeout(waiter.timer);
+            const bytes=Buffer.byteLength(JSON.stringify(reply||{}));
+            if(bytes>CONFIDENTIAL_MAX_REPLY)waiter.reject(new DeviceDuplexError('continuity_reply_too_large',413));
+            else if(reply?.ok===true&&reply?.data&&typeof reply.data.content==='string'
+               &&reply.data.content.length<=8000)waiter.resolve(reply.data);
+            else waiter.reject(new DeviceDuplexError(
+              ['continuity_remote_read_denied','continuity_memory_disabled','continuity_project_missing','continuity_remote_unavailable'].includes(reply?.error)
+              ?reply.error:'continuity_device_read_failed',403));
+          }
+          lastClientSeq=commitClientSeq(resumeState,clientSeq);
+          await send('client-ack',{clientSeq,lastClientSeq});
           continue;
         }
         if(type==='live'){

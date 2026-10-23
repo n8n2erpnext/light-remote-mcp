@@ -29,7 +29,7 @@ export class ContinuityStore {
   this.db=new DatabaseSync(path.join(this.root,'continuity.db'),{timeout:3000});
   this.db.exec('PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=3000; PRAGMA synchronous=FULL');
   const openedVersion=this.db.prepare('PRAGMA user_version').get().user_version;
-  if(openedVersion>4){this.db.close();throw Error('continuity_future_schema_version');}
+  if(openedVersion>5){this.db.close();throw Error('continuity_future_schema_version');}
   this.db.exec([
   'CREATE TABLE IF NOT EXISTS projects(id TEXT PRIMARY KEY,name TEXT NOT NULL,workspace TEXT NOT NULL,memory_enabled INTEGER NOT NULL DEFAULT 0 CHECK(memory_enabled IN(0,1)),codex_enabled INTEGER NOT NULL DEFAULT 0 CHECK(codex_enabled IN(0,1)),revision INTEGER NOT NULL DEFAULT 1,created_at TEXT NOT NULL,updated_at TEXT NOT NULL)',
   'CREATE TABLE IF NOT EXISTS tasks(id TEXT PRIMARY KEY,project_id TEXT NOT NULL REFERENCES projects(id),title TEXT NOT NULL,created_at TEXT NOT NULL)',
@@ -61,6 +61,10 @@ export class ContinuityStore {
   ].join(';\n')+';');
   this.db.exec("INSERT OR IGNORE INTO section_claim_history(project_id,operation_id,section_id,status,recorded_at) SELECT project_id,operation_id,section_id,status,created_at FROM section_claims");
   this.db.exec('PRAGMA user_version=4');
+  // Remote reading never inherits from the Memory toggle or FS capability.
+  // No unprivileged IPC action can turn this on. Owner step-up/UI pending.
+  this.db.exec("CREATE TABLE IF NOT EXISTS remote_project_consent(project_id TEXT PRIMARY KEY REFERENCES projects(id),enabled INTEGER NOT NULL DEFAULT 0 CHECK(enabled IN(0,1)),updated_at TEXT NOT NULL)");
+  this.db.exec('PRAGMA user_version=5');
   this.reconcileStartup();
  }
  reconcileStartup(){
@@ -100,6 +104,11 @@ export class ContinuityStore {
   return this.tx(()=>{
    const r=this.db.prepare('UPDATE projects SET memory_enabled=?,codex_enabled=?,revision=revision+1,updated_at=? WHERE id=? AND revision=?').run(m,c,now(),pid,expectedRevision);
    req(r.changes===1,'continuity_stale_revision');
+   if(m===0&&old.memory_enabled===1){
+    // Disable any previous remote sharing on Memory OFF. Re-enabling Memory
+    // must never silently resurrect a previous remote-read consent.
+    this.db.prepare("UPDATE remote_project_consent SET enabled=0,updated_at=? WHERE project_id=?").run(now(),pid);
+   }
    this.event(pid,'local_client_unverified','modules_changed',pid,JSON.stringify({memory:old.memory_enabled,codex:old.codex_enabled}),JSON.stringify({memory:m,codex:c}));
    return this.project(pid);
   });
@@ -294,6 +303,36 @@ export class ContinuityStore {
   req(Number.isInteger(limit)&&limit>=1&&limit<=25,'continuity_invalid_limit');
   const exists=this.db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='memory_fts'").get();if(!exists)return [];
   return this.db.prepare('SELECT m.id,m.body,m.kind,m.source_ref,a.confidence FROM memory_fts JOIN memory_facts m ON m.id=memory_fts.fact_id JOIN memory_annotations a ON a.fact_id=m.id AND a.superseded=0 WHERE memory_fts MATCH ? AND memory_fts.project_id=? ORDER BY rank LIMIT ?').all('"'+label(query,300).replaceAll('"','""')+'"',pid,limit);
+ }
+ setRemoteReadConsent(pid,{enabled,ownerVerified=false}={}){
+  req(ownerVerified===true,'continuity_owner_proof_required');
+  req(typeof enabled==='boolean','continuity_remote_consent_invalid');
+  req(this.project(pid)?.memory_enabled===1,'continuity_memory_disabled');
+  return this.tx(()=>{
+   this.db.prepare("INSERT INTO remote_project_consent(project_id,enabled,updated_at) VALUES (?,?,?) ON CONFLICT(project_id) DO UPDATE SET enabled=excluded.enabled,updated_at=excluded.updated_at").run(pid,enabled?1:0,now());
+   this.event(pid,'owner_attested_local_store','remote_read_consent',pid,'',enabled?'enabled':'disabled');
+   return {projectId:pid,remoteReadEnabled:enabled};
+  });
+ }
+ remoteBrief(pid,{query='',maxChars=8000}={}){
+  const p=this.project(pid);req(p,'continuity_project_missing');
+  req(p.memory_enabled===1,'continuity_memory_disabled');
+  const consent=this.db.prepare('SELECT enabled FROM remote_project_consent WHERE project_id=?').get(pid);
+  req(consent?.enabled===1,'continuity_remote_read_denied');
+  req(Number.isInteger(maxChars)&&maxChars>=512&&maxChars<=8000,'continuity_remote_context_limit');
+  const brief=this.contextBrief(pid,{query,maxChars});
+  // Bound actual UTF-8 bytes, not just JavaScript UTF-16 length.
+  const limit=7000;
+  if(Buffer.byteLength(brief.content,'utf8')>limit){
+   const marker='\n[TRUNCATED: device-side confidential relay byte budget]\n';
+   let content='';
+   for(const codepoint of brief.content){
+    if(Buffer.byteLength(content+codepoint+marker,'utf8')>limit)break;
+    content+=codepoint;
+   }
+   return {...brief,content:content+marker,truncated:true};
+  }
+  return brief;
  }
  contextBrief(pid,{query='',maxChars=10000}={}){
   const p=this.project(pid);req(p,'continuity_project_missing');
