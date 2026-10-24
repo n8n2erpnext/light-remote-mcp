@@ -61,3 +61,57 @@ save and after browser load.
    mutation and no stale receipt acceptance.
 6. Windows/Mac/Linux desktop cross-platform install packaging/UAT remains
    separate; Linux UAT success is not automatic platform parity.
+
+## UAT receipts / authoritative end-of-turn state
+Gold source commit f79dc9da22fccf8587655a99218d411ad4fe9866 initially activated
+on light-remote-gold-uat. Follow-up exact-device binding fix is
+17030d90d142aa82d9985af955d487d93ce1ac40 (CURRENT UAT running SHA).
+These are on the same original Gold development branch.
+
+One existing Wall: http://100.94.184.141:5591/
+One existing LXD: light-remote-gold-uat.
+Four Gold services plus PostgreSQL/Redis remain active; Account, A/B,
+filesystem roots, SCP, PTY and existing Gold source preserved.
+No new snapshot. No second Wall or new service. Gold pre-feature restore tag
+gold-restore-before-memory-codex-20261024 stays ba579f8.
+
+The existing Gold Plugin systemd service has two nonsecret environment values
+pinning the exact installed Client root and enrolled Gold UAT device:
+LIGHT_REMOTE_GOLD_MEMORY_CLIENT_ROOT =
+  /opt/light-remote-gold-uat-candidates/17030d90d142aa82d9985af955d487d93ce1ac40
+LIGHT_REMOTE_GOLD_MEMORY_DEVICE_ID = dev_e68276c691ba5413f42d5dde
+Both values are target constraints, not bearer tokens. An authorized session
+for a different device is denied when the default root is used.
+
+Tests:
+- 11 existing Gold Core regressions PASS.
+- Immutable Gold #486 90-file parity PASS on 95-file staged Client.
+- Gold Wall /, /permissions, /approve, /settings package smoke PASS.
+- Owner and CSRF gate for handoff endpoints PASS.
+- SQLite Session A -> independent Session B read and HMAC verification PASS.
+- Direct CLI process A save -> process B read under gold-uat in same LXD PASS.
+- Real owner-storage checkpoint ID: 353b1231-e27e-4ffc-9004-8200a0686cda;
+  source: owner instructions and verified Gold UAT ChatGPT conversation
+  on 2026-10-24; HMAC verification PASS after service restart.
+- Codex ChatGPT Plus still connected after Wall/Plugin restart.
+- Codex task remains todo, no inference calls made by acceptance checks.
+- Real read-only Codex completed model turn previously owner-tested.
+- Operator/Plugin/Wall/Supervisor all active on new Git source and NetBird
+  /login HTTP 200.
+
+Important remaining release gates (OPEN):
+1. Existing ChatGPT Gold connector is NOT A/B-paired into this current chat.
+   Its helper returned need_a_code. Owner must provide a NEW one-time
+   A code from the SAME Gold UAT Wall (not the ARM production Wall),
+   approve the B code, then reconnect/reload the official connector.
+2. Current ChatGPT client tool catalog does not yet expose the new
+   light_remote_long_memory_read or light_remote_long_memory_checkpoint
+   tool names even though UAT plugin source registers them. Refreshing
+   the connector tool catalog/publishing may be required.
+3. Only after both gates can real ChatGPT Web Session A save through MCP,
+   separate Web Session B retrieve through MCP, and owner approve outcome.
+   Do not call source process simulation a live ChatGPT Web cross-session PASS.
+4. Windows/macOS/Linux Desktop installation path binding and physical
+   owner-client parity for new features remain unverified.
+5. Model feedback is not task execution; owner must approve any receipt
+   transition. No automatic ChatGPT Web turn continuation.
