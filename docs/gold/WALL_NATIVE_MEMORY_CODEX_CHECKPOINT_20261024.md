@@ -120,3 +120,34 @@ NetBird tunnel and ideally enable HTTPS before entering any long-lived key.
 Test scripts use a dummy key and mocked OpenAI requests; no real user
 credentials or paid requests were used in source tests. Real owner-provided
 key + Agents API entitlement still require live owner acceptance.
+
+## Codex API key Wall activation receipt
+The native credential UI, encrypted-device key handling and OpenAI Agents API
+read-only live observer code was committed as
+55020e693d5385c986f20bdc5411ba4272ac7963 on the same Gold branch.
+14 focused source regressions PASS; 92-file staged core matches its digest
+and immutable Gold #486 parity allows only original Wall + Agent changes.
+The source archive was staged directly in light-remote-gold-uat and its
+critical files SHA256 matched Git. The existing four Gold services were
+switched atomically from eca45a0 to 55020e6 with the required Wall
+"daemon" argument, same database, user login, WebUI, ports and LXD.
+Runtime PASS: Wall login 200; Plugin health 200; unauthenticated Codex
+settings/POST blocked 401; schema still 35. No Codex credential configured
+at receipt time; REAL hosted Codex inference NOT owner-tested yet.
+The official immutable restore tag ba579f8 was not moved.
+
+Owner acceptance checklist on http://100.94.184.141:5591/ (NetBird VPN):
+1. Authenticate as existing Gold owner, open Long Memory & Codex Bridge.
+2. Enable Codex Bridge independently and save modules (if OFF).
+3. From OpenAI Platform, use project API key with agents.read, agents.write
+   and responses.write. Never paste the key into a ChatGPT conversation.
+4. In the Codex API section choose an allowed model, paste the API key into
+   the PASSWORD field, Save API key. Key is not retrievable by WebUI.
+5. Verify key: checks authentication without billed inference but DOES NOT
+   prove actual Agents API entitlement.
+6. Optional Run Codex observer: explicit confirmation and API billing,
+   tool-free environment:none, sends up to 20 task titles/states to OpenAI.
+   Only a completed turn is acceptance; report failures honestly.
+7. Disconnect removes encrypted credential file and device encryption key.
+The existing NetBird HTTP UI is tunneled through encrypted VPN but still not
+HTTPS; HTTPS is recommended for secret entry and public/untrusted traffic.
