@@ -55,6 +55,7 @@ try{
    scopeId:scope.scopeId,homeDeviceId:homeDevice,homeUrl:url,fetchImpl:mockFetch});
  assert.equal(pulled.revision,1);
  assert.equal(pulled.ack,'acked');
+ fs.chmodSync(replicaFile,0o600); // SQLite opened outside Gold must satisfy private storage invariant.
  const replica=createGoldWallModules({file:replicaFile,scopeIdentity:{accountId,deviceId:replicaDevice}});
  try{replica.configure({longMemory:true,codexBridge:false,expectedRevision:0});assert.equal(replica.scopedHandoff({scopeId:scope.scopeId}).checkpoints[0].integrity,'home_ed25519_verified');
  assert.equal(replica.scopedHandoff({scopeId:scope.scopeId}).checkpoints[0].checkpointId,cp.checkpointId);}
