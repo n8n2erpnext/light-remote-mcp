@@ -26,6 +26,10 @@
       "destination": "device-agent/local-wall.mjs"
     },
     {
+      "source": "device-agent/gold-wall-modules.mjs",
+      "destination": "device-agent/gold-wall-modules.mjs"
+    },
+    {
       "source": "device-agent/local-process-page.mjs",
       "destination": "device-agent/local-process-page.mjs"
     },

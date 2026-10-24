@@ -1,0 +1,47 @@
+name: Gold Native Wall Modules Parity
+on:
+  push:
+    branches: [feature/gold-m6-integrated-20261023]
+  pull_request:
+    paths:
+      - 'device-agent/**'
+      - 'client/**'
+      - 'lib/**'
+      - 'deploy/scripts/**'
+      - '.github/workflows/gold-native-modules-parity.yml'
+jobs:
+  gold-guard:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Gold Client stage and Git baseline byte parity
+        run: |
+          node deploy/scripts/stage-client-core.mjs "$RUNNER_TEMP/gold-client"
+          node deploy/scripts/stage-client-core.mjs --verify "$RUNNER_TEMP/gold-client"
+          node deploy/scripts/verify-gold-core-parity.mjs "$RUNNER_TEMP/gold-client" extension
+      - name: Gold native same-Wall modules
+        run: node --no-warnings deploy/scripts/selftest-gold-wall-modules.mjs
+      - name: Gold existing owner filesystem, SCP, Permissions and Wall latency
+        run: |
+          node deploy/scripts/selftest-gold-owner-filesystem-roots.mjs
+          node deploy/scripts/selftest-gold-windows-wall-nonblocking-inventory.mjs
+          node deploy/scripts/selftest-gold-owner-permission-authorization.mjs
+          node deploy/scripts/selftest-gold-permission-groups.mjs
+          node deploy/scripts/selftest-v10-light-scp-file.mjs
+          node deploy/scripts/selftest-v10-light-scp-owner.mjs
+          node deploy/scripts/selftest-v10-native-fs.mjs
+      - name: Gold M6 source contracts
+        run: |
+          node deploy/scripts/selftest-gold-m6-terminal-replay.mjs
+          node deploy/scripts/selftest-gold-m6-native-terminal-spool.mjs
+          node deploy/scripts/selftest-gold-native-device-fk-removal.mjs
+          node deploy/scripts/selftest-gold-m6-owner-orphan-recovery.mjs
+      - name: Final staged Gold Wall smoke
+        run: node deploy/scripts/selftest-packaged-local-wall.mjs "$RUNNER_TEMP/gold-client"
