@@ -109,6 +109,8 @@ try {
     const base='http://127.0.0.1:'+wall.server.address().port;
     const home=await (await fetch(base+'/',{headers:{'x-test-owner':'yes'}})).text();
     assert.match(home,/Sign in with ChatGPT/);
+    assert.match(home,/Observer does not change task states/);
+    assert.doesNotMatch(home,/Codex runtime: not connected/);
     assert.match(home,/goldCodexPlusLogin/);
     assert.doesNotMatch(home,/id="goldCodexApiKey"/);
     assert.match(home,/Long Memory/);

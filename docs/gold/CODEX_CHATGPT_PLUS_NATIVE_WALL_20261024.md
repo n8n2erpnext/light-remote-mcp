@@ -80,3 +80,29 @@ For regression rollback: return the four original Gold unit ExecStart paths
 to /opt/light-remote-gold-uat-git486-20261024 and preserve the Wall
 daemon argument. Re-start Operator, Supervisor, Plugin, Wall; keep all
 PostgreSQL, Redis, enrollment and owner-selected filesystem roots intact.
+
+## Owner acceptance: REAL Plus login and Codex read-only inference — 2026-10-24
+After the owner completed the official device-code sign-in on the SINGLE Gold
+Wall, their browser screenshot independently displayed:
+- "ChatGPT Codex signed in · plus · No OpenAI Platform API key required."
+- The original owner task title "Kiểm tra kết nối Codex Bridge".
+- "Result: completed" and a concise Vietnamese Codex observer response.
+
+A separate READ-ONLY live verification within light-remote-gold-uat as
+gold-uat using its same private CODEX_HOME returned:
+- codexLoginConnected=true, codexLoginMode=chatgpt, codexPlan=plus.
+- Both Long Memory and Codex Bridge are enabled.
+- Gold Wall/Operator/Plugin/Process Supervisor/PostgreSQL/Redis: all active.
+- Official immutable restore tag remains ba579f8830a0654e8321204f17270db8d94c5593.
+- No additional inference invocation occurred in this verification.
+
+The task still showed todo and local Task Controller recommendation CONTINUE.
+This is EXPECTED: observer inference is READ-ONLY, and a completed model
+turn MUST NOT silently mark a user task complete. Only owner-controlled
+task state transitions are authoritative. Original Gold Wall frontend said
+"Codex runtime: not connected" because it used an old hardcoded local
+Task Controller label, despite the separate Plus auth successfully connected.
+UI label is corrected to distinguish Task Controller from live Codex sign-in.
+This checkpoint proves real Plus login and one completed observer turn,
+not automatic ChatGPT Web session continuation or Long Memory cross-session
+retrieval. Those remain separate OPEN acceptance gates.

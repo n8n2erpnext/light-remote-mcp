@@ -359,7 +359,7 @@ async function goldObserverRefresh(){
   const r=await fetch('/api/gold/modules/observer',{cache:'no-store'}),j=await r.json();
   if(!r.ok||!j.ok)throw Error(j.error||'gold_observer_unavailable');
   const host=document.getElementById('goldObserverTasks');host.textContent='';
-  document.getElementById('goldObserverRecommendation').textContent='Local suggestion: '+j.observer.recommendation+' · Codex runtime: not connected';
+  document.getElementById('goldObserverRecommendation').textContent='Local Task Controller: '+j.observer.recommendation+' · Observer does not change task states · ChatGPT sign-in shown below';
   await goldCodexPlusRefresh();
   for(const task of j.observer.tasks){
     const row=document.createElement('div');row.className='controls';row.style.padding='6px 0';
