@@ -1,0 +1,50 @@
+name: Gold Canonical Parity
+on:
+  push:
+    branches: [audit/gold-baseline-lock-20261024]
+  pull_request:
+    paths:
+      - 'client/**'
+      - 'device-agent/**'
+      - 'lib/**'
+      - 'assets/**'
+      - 'deploy/scripts/verify-gold-core-parity.mjs'
+      - '.github/workflows/gold-canonical-parity.yml'
+
+jobs:
+  frozen-gold-client:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Stage exact frozen Gold Client Core
+        run: |
+          node deploy/scripts/stage-client-core.mjs "$RUNNER_TEMP/gold-core"
+          node deploy/scripts/stage-client-core.mjs --verify "$RUNNER_TEMP/gold-core"
+      - name: Enforce immutable bytes plus contracts against Gold 486
+        run: node deploy/scripts/verify-gold-core-parity.mjs "$RUNNER_TEMP/gold-core" exact
+      - name: Gold Filesystem and Permissions regressions
+        run: |
+          node deploy/scripts/selftest-gold-owner-filesystem-roots.mjs
+          node deploy/scripts/selftest-gold-windows-wall-nonblocking-inventory.mjs
+          node deploy/scripts/selftest-gold-owner-permission-authorization.mjs
+          node deploy/scripts/selftest-gold-permission-groups.mjs
+          node deploy/scripts/selftest-v10-light-scp-file.mjs
+          node deploy/scripts/selftest-v10-light-scp-owner.mjs
+          node deploy/scripts/selftest-v10-native-fs.mjs
+      - name: Gold packaged Wall and Core
+        run: |
+          node deploy/scripts/selftest-v10-client-core-parity.mjs
+          node deploy/scripts/selftest-packaged-local-wall.mjs "$RUNNER_TEMP/gold-core"
+      - name: Gold M6 focused contract only, NOT live UAT acceptance
+        run: |
+          node deploy/scripts/selftest-gold-m6-terminal-replay.mjs
+          node deploy/scripts/selftest-gold-m6-native-terminal-spool.mjs
+          node deploy/scripts/selftest-gold-native-device-fk-removal.mjs
+          node deploy/scripts/selftest-gold-m6-owner-orphan-recovery.mjs
