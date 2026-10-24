@@ -55,6 +55,12 @@ try{
   const page=await (await fetch(base+'/',{headers:owner})).text();
   assert.match(page,/goldModulesLiveSummary/);
   assert.match(page,/Signed handoff checkpoints/);
+  for(const id of ['goldPeerExportIdentity','goldPeerCopyIdentity','goldPeerCandidate',
+    'goldPeerExpectedFingerprint','goldPeerGrant','goldPeerInviteOutput',
+    'goldPeerCopyInvite','goldPeerInviteInput','goldPeerHomeFingerprint',
+    'goldPeerAccept','goldPeerRevoke','goldPeerOwnerApproval'])
+    assert.ok(page.includes('id="'+id+'"'),'Owner pairing control missing: '+id);
+  assert.match(page,/I own these devices, checked their fingerprints separately/);
   assert.match(page,/Observer does not change task states/);
   for(const [,js] of page.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g))if(js.trim())new vm.Script(js);
   assert.equal((await fetch(base+'/api/gold/modules/handoff')).status,401);
