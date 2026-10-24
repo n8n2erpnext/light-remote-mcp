@@ -88,3 +88,35 @@ stop Wall, Plugin and Supervisor; point the four existing units back to
 /opt/light-remote-gold-uat-git486-20261024, with Wall "daemon" arg;
 restart Operator, Supervisor, Plugin, Wall in order. Preserve Gold PG/Redis
 and owner enrollment data. Never use the old Continuity runtime.
+
+## Native Codex API setup, test and scope (next Gold commit)
+Gold Wall /, Codex Bridge: API-key password field, fixed OpenAI Agents API
+provider, selected OpenAI model, Save key, Verify key, Run Codex observer
+(explicit billable consent) and Disconnect. No second Wall/port/account,
+and no legacy Continuity code or mandatory Project.
+
+Platform API key must be scoped to agents.read + agents.write +
+responses.write. Key access and billing are separate from ChatGPT Plus.
+Provider endpoint is pinned server-side to https://api.openai.com/v1 and
+cannot be customized from browser input. Device-local credential encrypted
+with AES-256-GCM, with a separate mode-0600 random device key; never sent
+back by any GET API. Device compromise can access both files, so this is
+defense against incidental disclosure rather than a hardware security vault.
+Owner auth, CSRF, revision checks and module ON gate remain mandatory.
+
+'Verify key' only reads /v1/models, does not incur inference cost and cannot
+establish Agents API entitlement. 'Run Codex observer' calls
+POST /v1/agents/sessions, with OpenAI-Beta: agents=v1 and environment:none,
+and streams a strictly READ-ONLY model response. No commands, remote
+execution, Light Remote credentials, tools, shell, MCP or background worker.
+Task names/states are transmitted ONLY after owner confirms the run; don't
+put secrets in task titles. Completion is credited ONLY after receiving
+agent.session.turn.completed, not after HTTP 200/idle/closed stream.
+This read-only model consultation is NOT automatic ChatGPT Web continuation.
+Status and failures do not disclose an API key; no key is committed to Git.
+
+The NetBird Gold Wall address currently uses HTTP. Use a trusted encrypted
+NetBird tunnel and ideally enable HTTPS before entering any long-lived key.
+Test scripts use a dummy key and mocked OpenAI requests; no real user
+credentials or paid requests were used in source tests. Real owner-provided
+key + Agents API entitlement still require live owner acceptance.

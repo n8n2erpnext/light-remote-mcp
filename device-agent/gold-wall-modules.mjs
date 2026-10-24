@@ -6,6 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import {createRequire} from 'node:module';
+import {createGoldCodexConnection} from './gold-codex-api.mjs';
 const loadBuiltin=createRequire(import.meta.url);
 
 function fault(code,status=400){return Object.assign(new Error(code),{status});}
@@ -28,9 +29,11 @@ function openPrivate(file){
   }catch(e){db.close();throw e;}
   return db;
 }
-export function createGoldWallModules({file}){
+export function createGoldWallModules({file,fetchImpl}){
   if(!path.isAbsolute(file))throw fault('gold_modules_storage_path_required');
   let database=null;
+  let codexRequestInFlight=false;
+  const codex=createGoldCodexConnection({storageFile:file+'.codex.enc',fetchImpl});
   function open(create=false){
     if(database)return database;
     if(!create&&!fs.existsSync(file))return null;
@@ -93,6 +96,19 @@ export function createGoldWallModules({file}){
       const result=db.prepare('UPDATE observer_tasks SET state=?,changed_ms=? WHERE id=?').run(input.state,Date.now(),id);
       if(result.changes!==1)throw fault('gold_observer_task_not_found',404);
       return {id,state:input.state};
+    },
+    codexConfig(){enabled('codexBridge');return codex.config();},
+    saveCodexKey(input){enabled('codexBridge');return codex.save(input);},
+    clearCodexKey(){enabled('codexBridge');return codex.clear();},
+    async verifyCodexKey(){enabled('codexBridge');return codex.verify();},
+    async runCodexObserver(){
+      const db=enabled('codexBridge');
+      if(codexRequestInFlight)throw fault('codex_run_already_in_progress',409);
+      codexRequestInFlight=true;
+      try {
+        const tasks=db.prepare('SELECT title,state FROM observer_tasks ORDER BY changed_ms DESC LIMIT 20').all();
+        return await codex.run({tasks});
+      } finally {codexRequestInFlight=false;}
     },
     observer(){
       const db=enabled('codexBridge');

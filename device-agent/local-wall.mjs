@@ -77,7 +77,7 @@ ${WALL_FONT_FACE_CSS}:root{color-scheme:dark;font-family:${WALL_UI_FONT};backgro
 
 <div id="devicebox" class="sessionbox muted">loading device…</div><div id="abGrantTimer" class="muted" style="margin:5px 0">Agent A/B access · checking…</div><div id="tabs" class="tabs"></div><div id="sessionbox" class="sessionbox muted">loading sessions…</div><div id="sessionActions" class="controls" style="margin-top:7px"></div>
 <div class="controls" style="margin-top:9px"><input id="filter" placeholder="filter cwd / command / output / PTY"><select id="status"><option value="">all status</option><option>running</option><option>ok</option><option>error</option><option>timeout</option></select><button id="pause" class="btn">${materialIcon('pause')}<span>Pause</span></button><button id="copyVisible" class="btn">${materialIcon('copy')}<span>Copy visible</span></button></div>
-${moduleSupported?"<details id=\"goldModulesPanel\" class=\"sessionbox\" style=\"margin:12px 0;padding:11px;border:1px solid #293844;border-radius:9px\">\n  <summary style=\"cursor:pointer;font-weight:700\">Long Memory &amp; Codex Bridge <span class=\"muted\" style=\"font-size:12px\">\u00b7 Optional Gold features, OFF by default</span></summary>\n  <p class=\"muted\" style=\"font-size:12px\">Built into this device's Gold Wall. Local data only; no Project or second Account. Enabling a module does not automatically authorize remote access.</p>\n  <div class=\"controls\" style=\"align-items:center;gap:18px;flex-wrap:wrap\">\n    <label><input id=\"goldLongMemory\" type=\"checkbox\"> Long Memory</label>\n    <label><input id=\"goldCodexBridge\" type=\"checkbox\"> Codex Bridge</label>\n    <button class=\"btn small\" type=\"button\" id=\"goldModulesSave\">Save modules</button>\n    <span id=\"goldModulesStatus\" class=\"muted\" role=\"status\">Loading modules\u2026</span>\n  </div>\n  <div id=\"goldMemoryArea\" hidden>\n    <h3 style=\"margin-bottom:5px\">Long Memory \u00b7 Device-local notes</h3>\n    <p class=\"muted\" style=\"font-size:12px\">Notes have explicit sources; they are not verified hidden ChatGPT context. Remote cross-chat retrieval requires a separately authorized Gold Plugin integration.</p>\n    <div class=\"controls\" style=\"flex-wrap:wrap\">\n      <select id=\"goldMemoryKind\" aria-label=\"Memory kind\"><option value=\"note\">Note</option><option value=\"decision\">Decision</option><option value=\"checkpoint\">Checkpoint</option></select>\n      <input id=\"goldMemorySource\" maxlength=\"512\" placeholder=\"Source or decision reference\" style=\"min-width:220px\">\n      <button class=\"btn small\" id=\"goldMemorySave\" type=\"button\">Save local note</button>\n    </div>\n    <textarea id=\"goldMemoryBody\" maxlength=\"12000\" rows=\"3\" placeholder=\"Context worth retaining, from an attributable source\" style=\"width:100%;resize:vertical;background:#0c1219;border:1px solid #304158;color:#d8dee7;border-radius:6px;padding:8px\"></textarea>\n    <div class=\"controls\"><input id=\"goldMemoryQuery\" maxlength=\"160\" placeholder=\"Search saved memory\"><button class=\"btn small\" type=\"button\" id=\"goldMemoryFind\">Search</button></div>\n    <div id=\"goldMemoryResults\" class=\"muted\" style=\"white-space:pre-wrap;overflow-wrap:anywhere;max-height:220px;overflow:auto\">No notes loaded.</div>\n  </div>\n  <div id=\"goldCodexArea\" hidden>\n    <h3 style=\"margin-bottom:5px\">Codex Bridge \u00b7 Task observer</h3>\n    <p class=\"muted\" style=\"font-size:12px\">Local task-state tracking only until an authorized Codex runtime is connected. It cannot run tasks or continue ChatGPT Web by itself.</p>\n    <div class=\"controls\"><input id=\"goldObserverTitle\" maxlength=\"240\" placeholder=\"Current task to observe\" style=\"min-width:230px\"><button class=\"btn small\" id=\"goldObserverAdd\" type=\"button\">Add task</button></div>\n    <div id=\"goldObserverRecommendation\" class=\"muted\">Observer inactive.</div>\n    <div id=\"goldObserverTasks\"></div>\n  </div>\n</details>":''}
+${moduleSupported?"<details id=\"goldModulesPanel\" class=\"sessionbox\" style=\"margin:12px 0;padding:11px;border:1px solid #293844;border-radius:9px\">\n  <summary style=\"cursor:pointer;font-weight:700\">Long Memory &amp; Codex Bridge <span class=\"muted\" style=\"font-size:12px\">\u00b7 Optional Gold features, OFF by default</span></summary>\n  <p class=\"muted\" style=\"font-size:12px\">Built into this device's Gold Wall. Local data only; no Project or second Account. Enabling a module does not automatically authorize remote access.</p>\n  <div class=\"controls\" style=\"align-items:center;gap:18px;flex-wrap:wrap\">\n    <label><input id=\"goldLongMemory\" type=\"checkbox\"> Long Memory</label>\n    <label><input id=\"goldCodexBridge\" type=\"checkbox\"> Codex Bridge</label>\n    <button class=\"btn small\" type=\"button\" id=\"goldModulesSave\">Save modules</button>\n    <span id=\"goldModulesStatus\" class=\"muted\" role=\"status\">Loading modules\u2026</span>\n  </div>\n  <div id=\"goldMemoryArea\" hidden>\n    <h3 style=\"margin-bottom:5px\">Long Memory \u00b7 Device-local notes</h3>\n    <p class=\"muted\" style=\"font-size:12px\">Notes have explicit sources; they are not verified hidden ChatGPT context. Remote cross-chat retrieval requires a separately authorized Gold Plugin integration.</p>\n    <div class=\"controls\" style=\"flex-wrap:wrap\">\n      <select id=\"goldMemoryKind\" aria-label=\"Memory kind\"><option value=\"note\">Note</option><option value=\"decision\">Decision</option><option value=\"checkpoint\">Checkpoint</option></select>\n      <input id=\"goldMemorySource\" maxlength=\"512\" placeholder=\"Source or decision reference\" style=\"min-width:220px\">\n      <button class=\"btn small\" id=\"goldMemorySave\" type=\"button\">Save local note</button>\n    </div>\n    <textarea id=\"goldMemoryBody\" maxlength=\"12000\" rows=\"3\" placeholder=\"Context worth retaining, from an attributable source\" style=\"width:100%;resize:vertical;background:#0c1219;border:1px solid #304158;color:#d8dee7;border-radius:6px;padding:8px\"></textarea>\n    <div class=\"controls\"><input id=\"goldMemoryQuery\" maxlength=\"160\" placeholder=\"Search saved memory\"><button class=\"btn small\" type=\"button\" id=\"goldMemoryFind\">Search</button></div>\n    <div id=\"goldMemoryResults\" class=\"muted\" style=\"white-space:pre-wrap;overflow-wrap:anywhere;max-height:220px;overflow:auto\">No notes loaded.</div>\n  </div>\n  <div id=\"goldCodexArea\" hidden>\n    <h3 style=\"margin-bottom:5px\">Codex Bridge \u00b7 Task observer</h3>\n    <p class=\"muted\" style=\"font-size:12px\">Local task-state tracking only until an authorized Codex runtime is connected. It cannot run tasks or continue ChatGPT Web by itself.</p>\n    <div class=\"controls\"><input id=\"goldObserverTitle\" maxlength=\"240\" placeholder=\"Current task to observe\" style=\"min-width:230px\"><button class=\"btn small\" id=\"goldObserverAdd\" type=\"button\">Add task</button></div>\n    <div id=\"goldObserverRecommendation\" class=\"muted\">Observer inactive.</div>\n    <div id=\"goldObserverTasks\"></div>\n    <section id=\"goldCodexApi\" style=\"margin:12px 0 0;padding:10px;border:1px solid #293844;border-radius:7px\">\n      <strong>Codex API \u00b7 OpenAI Agents harness</strong>\n      <p class=\"muted\" style=\"font-size:12px\">OpenAI Platform API key, billed separately from ChatGPT Plus. Encrypted locally and never displayed again. This observer has no tools or command execution.</p>\n      <div class=\"controls\" style=\"flex-wrap:wrap\">\n        <input type=\"password\" id=\"goldCodexApiKey\" autocomplete=\"new-password\" spellcheck=\"false\" placeholder=\"OpenAI API key \u00b7 sk-...\" style=\"min-width:240px;flex:1\">\n        <select id=\"goldCodexApiModel\" aria-label=\"Codex model\"><option value=\"gpt-6-luna\">GPT-6 Luna \u00b7 low cost</option><option value=\"gpt-6.1-sol\">GPT-6.1 Sol</option><option value=\"gpt-6-astra\">GPT-6 Astra</option></select>\n        <button class=\"btn small\" id=\"goldCodexApiSave\" type=\"button\">Save API key</button>\n        <button class=\"btn small\" id=\"goldCodexApiVerify\" type=\"button\">Verify key</button>\n        <button class=\"btn small\" id=\"goldCodexApiRun\" type=\"button\">Run Codex observer \u00b7 billable</button>\n        <button class=\"btn small\" id=\"goldCodexApiRemove\" type=\"button\">Disconnect</button>\n      </div>\n      <div id=\"goldCodexApiStatus\" class=\"muted\" role=\"status\">Not connected.</div>\n      <div id=\"goldCodexTransportNotice\" class=\"muted\" style=\"font-size:11px\"></div>\n      <pre id=\"goldCodexApiReport\" style=\"white-space:pre-wrap;overflow-wrap:anywhere;max-height:180px;overflow:auto\"></pre>\n    </section>\n\n  </div>\n</details>":''}
 <div id="ptyOverlay" class="pty-overlay" role="dialog" aria-modal="false" aria-label="PTY Viewer" aria-hidden="true"><div id="ptyPanel" class="pty-card"><div id="ptyDragHandle" class="pty-bar" aria-label="Drag PTY Viewer"><strong class="pty-heading">${materialIcon('terminal')}<span>PTY Viewer</span><span class="pty-readonly">· read only</span><span class="pty-grip">${materialIcon('dragIndicator')}</span></strong><div class="actions"><button id="ptyRefresh" class="btn small" type="button" title="Refresh terminals" aria-label="Refresh terminals">${materialIcon('refresh')}</button><button id="ptyMinimize" class="btn small" type="button" title="Minimize PTY Viewer" aria-label="Minimize PTY Viewer"><span class="pty-minimize-icon">${materialIcon('minimize')}</span><span class="pty-expand-icon">${materialIcon('maximize')}</span></button><button id="ptyClose" class="btn small" type="button" title="Close PTY Viewer" aria-label="Close PTY Viewer">${materialIcon('close')}</button></div></div><div class="pty-warning">Terminal output may contain secrets. Visible only after you select a terminal. Device Agent PTYs only; Operator-side PTYs are not included.</div><div id="ptyTitle" class="pty-title">Select a terminal to view its live output.</div><div class="pty-detail"><div id="ptyList" class="pty-list"></div><pre id="ptyOutput" class="pty-screen" aria-live="off">Output is hidden until a terminal is selected.</pre></div></div></div><button id="ptyOpen" class="btn pty-launcher" type="button" aria-controls="ptyOverlay" aria-expanded="false">${materialIcon('terminal')}<span>PTY</span></button><div class="term"><div class="head"><span>LIVE OPERATOR STREAM</span><span id="stats" class="muted">0 jobs</span></div><div id="jobs"></div></div><div class="note">This Wall is observer/control only. Closing the browser does not stop the service, cloud lease, Agent sessions, or durable jobs.</div>
 <script>
 const box=document.getElementById('jobs'),devicebox=document.getElementById('devicebox'),tabs=document.getElementById('tabs'),sessionbox=document.getElementById('sessionbox'),sessionActions=document.getElementById('sessionActions'),filter=document.getElementById('filter'),statusSel=document.getElementById('status'),conn=document.getElementById('conn'),stats=document.getElementById('stats'),acode=document.getElementById('acode'),aexp=document.getElementById('aexp'),toggleA=document.getElementById('toggleA'),copyA=document.getElementById('copyA'),connectCloud=document.getElementById('connectCloud'),disconnectCloud=document.getElementById('disconnectCloud'),linkDevice=document.getElementById('linkDevice'),deviceCodeWrap=document.getElementById('deviceCodeWrap'),deviceCode=document.getElementById('deviceCode'),deviceCodeExp=document.getElementById('deviceCodeExp'),copyDeviceCode=document.getElementById('copyDeviceCode'),enrollMsg=document.getElementById('enrollMsg'),fleetWall=document.getElementById('fleetWall');
@@ -360,6 +360,7 @@ async function goldObserverRefresh(){
   if(!r.ok||!j.ok)throw Error(j.error||'gold_observer_unavailable');
   const host=document.getElementById('goldObserverTasks');host.textContent='';
   document.getElementById('goldObserverRecommendation').textContent='Local suggestion: '+j.observer.recommendation+' · Codex runtime: not connected';
+  await goldCodexApiRefresh();
   for(const task of j.observer.tasks){
     const row=document.createElement('div');row.className='controls';row.style.padding='6px 0';
     const label=document.createElement('span');label.textContent=task.title;
@@ -399,6 +400,63 @@ document.getElementById('goldMemorySave').onclick=async()=>{
 document.getElementById('goldMemoryFind').onclick=async()=>{
   try{await goldMemoryRefresh();}
   catch(e){document.getElementById('goldModulesStatus').textContent=String(e.message||e);}
+};
+
+async function goldCodexApiRefresh(){
+  const r=await fetch('/api/gold/modules/codex/config',{cache:'no-store'}),j=await r.json();
+  if(!r.ok||!j.ok)throw Error(j.error||'codex_settings_unavailable');
+  const cfg=j.config||{};
+  document.getElementById('goldCodexApiModel').value=cfg.model||'gpt-6-luna';
+  document.getElementById('goldCodexApiStatus').textContent=cfg.configured?
+    'Key saved on this device · Model: '+cfg.model+' · Agents inference not yet verified':
+    'Not connected · Enter an OpenAI Platform API key';
+}
+document.getElementById('goldCodexTransportNotice').textContent=
+  location.protocol==='http:'&&!['127.0.0.1','localhost','[::1]'].includes(location.hostname)?
+  'HTTP page: only submit secrets through a trusted encrypted NetBird tunnel; HTTPS is strongly recommended.':'';
+async function goldCodexApiAction(path,payload={}){
+  const status=document.getElementById('goldCodexApiStatus');
+  status.textContent='Contacting OpenAI API…';
+  try{
+    const j=await wallMutation(path,payload);
+    status.textContent='Request completed.';
+    return j;
+  }catch(e){status.textContent=String(e.message||e);throw e;}
+}
+document.getElementById('goldCodexApiSave').onclick=async()=>{
+  const key=document.getElementById('goldCodexApiKey');
+  if(!key.value.trim()){document.getElementById('goldCodexApiStatus').textContent='Enter an API key first.';return;}
+  try{
+    await goldCodexApiAction('/api/gold/modules/codex/config',{apiKey:key.value,model:document.getElementById('goldCodexApiModel').value});
+    key.value='';await goldCodexApiRefresh();
+  }catch{}
+};
+document.getElementById('goldCodexApiVerify').onclick=async()=>{
+  try{
+    const j=await goldCodexApiAction('/api/gold/modules/codex/verify');
+    document.getElementById('goldCodexApiStatus').textContent=j.result.authenticated?
+      'Key authentication PASS. Agents API inference NOT yet verified.':
+      'Key authentication not verified.';
+  }catch{}
+};
+document.getElementById('goldCodexApiRun').onclick=async()=>{
+  const trigger=document.getElementById('goldCodexApiRun');
+  if(trigger.disabled)return;
+  if(!confirm('Run a real Codex Agents API session? API usage may be billed. Up to 20 task titles/states will be sent to OpenAI. No Light Remote tools are provided.'))return;
+  trigger.disabled=true;
+  const out=document.getElementById('goldCodexApiReport');out.textContent='Contacting Codex harness…';
+  try{
+    const j=await goldCodexApiAction('/api/gold/modules/codex/run');
+    out.textContent='Codex '+String(j.result.status||'unknown')+' · model '+String(j.result.model||'')+
+      String.fromCharCode(10)+String(j.result.summary||'No model output available.');
+    document.getElementById('goldCodexApiStatus').textContent=j.result.completed?
+      'Real Codex Agents API turn completed.':'Codex turn incomplete or unverified; see report.';
+  }catch(e){out.textContent='No verified Codex response: '+String(e.message||e);}
+  finally{trigger.disabled=false;}
+};
+document.getElementById('goldCodexApiRemove').onclick=async()=>{
+  if(!confirm('Disconnect saved Codex API key from this device?'))return;
+  try{await goldCodexApiAction('/api/gold/modules/codex/remove');await goldCodexApiRefresh();document.getElementById('goldCodexApiReport').textContent='';}catch{}
 };
 document.getElementById('goldObserverAdd').onclick=async()=>{
   try{
@@ -707,6 +765,11 @@ export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvg
       if(req.method==='GET'&&url.pathname==='/api/gold/modules/memory')return json(res,200,{ok:true,notes:modules.notes({query:url.searchParams.get('query')||''})});
       if(req.method==='POST'&&url.pathname==='/api/gold/modules/task')return json(res,200,{ok:true,task:modules.addTask(await body(req))});
       if(req.method==='POST'&&url.pathname==='/api/gold/modules/task/state')return json(res,200,{ok:true,task:modules.updateTask(await body(req))});
+      if(req.method==='GET'&&url.pathname==='/api/gold/modules/codex/config')return json(res,200,{ok:true,config:modules.codexConfig()});
+      if(req.method==='POST'&&url.pathname==='/api/gold/modules/codex/config')return json(res,200,{ok:true,config:modules.saveCodexKey(await body(req))});
+      if(req.method==='POST'&&url.pathname==='/api/gold/modules/codex/remove')return json(res,200,{ok:true,config:modules.clearCodexKey()});
+      if(req.method==='POST'&&url.pathname==='/api/gold/modules/codex/verify')return json(res,200,{ok:true,result:await modules.verifyCodexKey()});
+      if(req.method==='POST'&&url.pathname==='/api/gold/modules/codex/run')return json(res,200,{ok:true,result:await modules.runCodexObserver()});
       if(req.method==='GET'&&url.pathname==='/api/gold/modules/observer')return json(res,200,{ok:true,observer:modules.observer()});
       return json(res,404,{ok:false,error:'gold_modules_action_unavailable'});
     }

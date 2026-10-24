@@ -28,6 +28,8 @@ jobs:
           node deploy/scripts/verify-gold-core-parity.mjs "$RUNNER_TEMP/gold-client" extension
       - name: Gold native same-Wall modules
         run: node --no-warnings deploy/scripts/selftest-gold-wall-modules.mjs
+      - name: Codex API owner credentials and read-only mocked Agents integration
+        run: node --no-warnings deploy/scripts/selftest-gold-codex-api.mjs
       - name: Gold existing owner filesystem, SCP, Permissions and Wall latency
         run: |
           node deploy/scripts/selftest-gold-owner-filesystem-roots.mjs
