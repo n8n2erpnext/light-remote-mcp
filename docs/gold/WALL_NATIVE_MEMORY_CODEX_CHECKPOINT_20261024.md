@@ -45,3 +45,46 @@ Remaining OPEN, must never claim functional completion:
 
 Feature flags OFF/OFF must be inert (SQLite unopened/no local write) and
 not interrupt Gold operations. This checkpoint is NOT a release approval.
+
+## Gold UAT activation receipt — 2026-10-24 15:04+07
+Commit eca45a0b2381e5c0a9521f664bcac3a3cf835a00 was staged
+in SAME light-remote-gold-uat LXD as one git-archive source artifact at
+/opt/light-remote-gold-uat-candidates/eca45a0b2381e5c0a9521f664bcac3a3cf835a00.
+SHA256 of the Gold Wall/Agent/Plugin/Operator/Supervisor candidate source
+matched Git; a candidate loopback HTTP smoke and FS roots check PASS.
+
+First service cutover FAILED AND ROLLED BACK because the temporary UAT
+systemd override omitted the mandatory "daemon" argument after
+device-agent/operator-agent.mjs. It launched "status" and exited normally,
+leaving Wall inactive. Pre-feature Gold all four services were returned
+to /opt/light-remote-gold-uat-git486-20261024 and verified ACTIVE.
+This was a CUTOVER SCRIPT regression, not evidence of functional module failure.
+
+A corrected cutover revalidated the effective Wall unit ExecStart contains:
+.../device-agent/operator-agent.mjs daemon
+BEFORE restarting anything. All four canonical Gold services then started
+successfully from the same eca45a0 artifact. PASS on UAT:
+- Four active systemd units from the exact same new Gold source revision
+- Node Wall daemon running with the mandatory 'daemon' argument
+- Same Wall /login HTTP 200; Gold Plugin /healthz HTTP 200
+- Account protected; unauthenticated /api/gold/modules HTTP 401
+- Owner /permissions still requires Gold login (303 without session)
+- NetBird Gold Wall /login at 100.94.184.141:5591 returned HTTP 200
+- OFF/OFF did not create gold-wall-modules.sqlite and required no new process
+- PostgreSQL schema still 35 with one pre-existing unresolved resource claim
+- No other LXD, new Wall port, extra Account, credentials reset or new snapshot.
+
+Known limitations:
+- The owner has NOT yet authenticated and clicked the new controls in a real
+  browser. API/UI source and isolated real-container smoke PASS, not owner acceptance.
+- Remote ChatGPT cross-session Long Memory and real Codex app-server integration
+  remain NOT IMPLEMENTED, NOT TESTED; no automatic Web turn continuation.
+- Gold M6 legacy channel 502 / supervisor_owner_invalid may persist, unrelated
+  to feature flags. No claim/job is rewritten to fake release acceptance.
+- This commit is UAT ONLY. Production and Windows owner-tested build #486 untouched.
+
+Restore instructions remain exactly as the immutable restore doc/tag specifies:
+stop Wall, Plugin and Supervisor; point the four existing units back to
+/opt/light-remote-gold-uat-git486-20261024, with Wall "daemon" arg;
+restart Operator, Supervisor, Plugin, Wall in order. Preserve Gold PG/Redis
+and owner enrollment data. Never use the old Continuity runtime.
