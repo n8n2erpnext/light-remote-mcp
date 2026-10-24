@@ -5,6 +5,7 @@ import { mintPairingContinuation, requireScopes, verifyPairingContinuation } fro
 import { redactRestrictedText, sanitizeForMcp } from './response-sanitizer.mjs';
 import { classifyPluginToolError } from './tool-error-classification.mjs';
 import { maybeInlineExecStdout } from './exec-inline-output.mjs';
+import {runGoldMemoryViaAuthorizedSession} from './gold-memory-bridge.mjs';
 
 const id=z.string().regex(/^[A-Za-z0-9._:-]{1,160}$/);
 const opId=z.string().regex(/^[A-Za-z0-9._:-]{16,160}$/).optional();
@@ -270,6 +271,23 @@ export function registerPluginTools(server,identity){
     description:'List an allowed directory on the selected session target.',
     inputSchema:{sessionId:id,path:pathText,maxEntries:z.number().int().min(1).max(1000).optional(),maxDepth:z.number().int().min(0).max(3).optional()},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
   },guarded(identity,['remote:read'],async(a,x)=>operationView(await a.fs(x.sessionId,{op:'list',path:x.path,maxEntries:x.maxEntries,maxDepth:x.maxDepth||0}))));
+
+  add(server,'light_remote_long_memory_read',{
+    title:'Retrieve owner-approved Long Memory checkpoints across ChatGPT sessions',
+    description:'Read verified device-local handoff checkpoints from one explicitly selected, currently A/B-authorized Gold session. No hidden ChatGPT transcript, no Project. Uses the existing governed Agent and requires remote:execute.',
+    inputSchema:{sessionId:id,operationId:opId,action:z.enum(['handoff','list','get']),
+      id:z.string().uuid().optional(),query:z.string().max(160).optional(),limit:z.number().int().min(1).max(30).optional()},
+    securitySchemes:security(['remote:execute']),annotations:annotations(true,false,false,true)
+  },guarded(identity,['remote:execute'],(a,x)=>runGoldMemoryViaAuthorizedSession(a,x)));
+
+  add(server,'light_remote_long_memory_checkpoint',{
+    title:'Save explicitly approved handoff to Long Memory',
+    description:'Append a device-local HMAC-verified checkpoint on the exact A/B-authorized Gold session. Only save information the owner explicitly approved; do not claim access to hidden ChatGPT context.',
+    inputSchema:{sessionId:id,operationId:opId,title:z.string().min(1).max(240),
+      body:z.string().min(1).max(12000),source:z.string().min(1).max(512),
+      kind:z.enum(['checkpoint','decision','handoff']).optional()},
+    securitySchemes:security(['remote:execute']),annotations:annotations(false,false,false,false)
+  },guarded(identity,['remote:execute'],(a,x)=>runGoldMemoryViaAuthorizedSession(a,{...x,action:'save'})));
 
   add(server,'light_remote_read_file',{
     title:'Read a remote text file',

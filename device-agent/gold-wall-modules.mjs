@@ -8,6 +8,7 @@ import crypto from 'node:crypto';
 import {createRequire} from 'node:module';
 import {createGoldCodexConnection} from './gold-codex-api.mjs';
 import {createGoldCodexPlus} from './gold-codex-plus.mjs';
+import {saveGoldCheckpoint,readGoldCheckpoint,listGoldCheckpoints,goldHandoff,saveGoldObserverReceipt,listGoldObserverReceipts,confirmGoldObserverTask} from './gold-memory-ledger.mjs';
 const loadBuiltin=createRequire(import.meta.url);
 
 function fault(code,status=400){return Object.assign(new Error(code),{status});}
@@ -30,12 +31,13 @@ function openPrivate(file){
   }catch(e){db.close();throw e;}
   return db;
 }
-export function createGoldWallModules({file,fetchImpl}){
+export function createGoldWallModules({file,fetchImpl,plusImpl}){
   if(!path.isAbsolute(file))throw fault('gold_modules_storage_path_required');
   let database=null;
   let codexRequestInFlight=false;
   const codex=createGoldCodexConnection({storageFile:file+'.codex.enc',fetchImpl});
-  const plus=createGoldCodexPlus({home:path.join(path.dirname(file),'codex-home')});
+  const plus=plusImpl||createGoldCodexPlus({home:path.join(path.dirname(file),'codex-home')});
+  const checkpointKeyFile=file+'.checkpoint-key';
   function open(create=false){
     if(database)return database;
     if(!create&&!fs.existsSync(file))return null;
@@ -65,6 +67,12 @@ export function createGoldWallModules({file,fetchImpl}){
       if(result.changes!==1)throw fault('gold_modules_revision_conflict',409);
       return flags();
     },
+    saveCheckpoint(input={}){return saveGoldCheckpoint(enabled('longMemory'),checkpointKeyFile,input);},
+    readCheckpoint(id){return readGoldCheckpoint(enabled('longMemory'),checkpointKeyFile,id);},
+    listCheckpoints(input={}){return listGoldCheckpoints(enabled('longMemory'),checkpointKeyFile,input);},
+    handoff(input={}){return goldHandoff(enabled('longMemory'),checkpointKeyFile,input);},
+    observerReceipts(){return listGoldObserverReceipts(enabled('codexBridge'));},
+    confirmObserverTask(input={}){return confirmGoldObserverTask(enabled('codexBridge'),input);},
     saveNote(input={}){
       const db=enabled('longMemory');
       if(!['note','decision','checkpoint'].includes(input.kind??'note'))throw fault('gold_memory_kind_invalid');
@@ -108,8 +116,13 @@ export function createGoldWallModules({file,fetchImpl}){
       if(codexRequestInFlight)throw fault('codex_run_already_in_progress',409);
       codexRequestInFlight=true;
       try{
-        const tasks=db.prepare('SELECT title,state FROM observer_tasks ORDER BY changed_ms DESC LIMIT 20').all();
-        return await plus.runReadOnly({tasks});
+        const rows=db.prepare('SELECT id,title,state,changed_ms AS changedAt FROM observer_tasks ORDER BY changed_ms DESC LIMIT 20').all();
+        const result=await plus.runReadOnly({tasks:rows});
+        if(result.completed&&typeof result.summary==='string'&&result.summary.trim()){
+          const receipt=saveGoldObserverReceipt(db,{summary:result.summary,status:'completed',tasks:rows});
+          return {...result,receipt,taskStateChanged:false,ownerConfirmationRequired:true};
+        }
+        return {...result,taskStateChanged:false,ownerConfirmationRequired:true};
       }finally{codexRequestInFlight=false;}
     },
     codexConfig(){enabled('codexBridge');return codex.config();},

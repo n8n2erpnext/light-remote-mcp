@@ -30,6 +30,10 @@ jobs:
         run: node --no-warnings deploy/scripts/selftest-gold-wall-modules.mjs
       - name: ChatGPT-plan Codex app-server device auth and owner Wall parity
         run: node --no-warnings deploy/scripts/selftest-gold-codex-plus.mjs
+      - name: Long Memory Session A to B integrity and owner-gated Codex receipts
+        run: |
+          node --no-warnings deploy/scripts/selftest-gold-cross-session.mjs
+          node --no-warnings deploy/scripts/selftest-gold-memory-plugin.mjs
       - name: Gold existing owner filesystem, SCP, Permissions and Wall latency
         run: |
           node deploy/scripts/selftest-gold-owner-filesystem-roots.mjs
