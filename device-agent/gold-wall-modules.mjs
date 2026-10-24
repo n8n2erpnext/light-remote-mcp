@@ -9,6 +9,7 @@ import {createRequire} from 'node:module';
 import {createGoldCodexConnection} from './gold-codex-api.mjs';
 import {createGoldCodexPlus} from './gold-codex-plus.mjs';
 import {saveGoldCheckpoint,readGoldCheckpoint,listGoldCheckpoints,goldHandoff,saveGoldObserverReceipt,listGoldObserverReceipts,confirmGoldObserverTask} from './gold-memory-ledger.mjs';
+import {createGoldScope,listGoldScopes,bindGoldScope,resolveGoldScope,appendGoldScopedCheckpoint,readGoldScopedCheckpoint,goldScopedHandoff,goldLegacyUnassignedCount} from './gold-memory-scope.mjs';
 const loadBuiltin=createRequire(import.meta.url);
 
 function fault(code,status=400){return Object.assign(new Error(code),{status});}
@@ -31,13 +32,19 @@ function openPrivate(file){
   }catch(e){db.close();throw e;}
   return db;
 }
-export function createGoldWallModules({file,fetchImpl,plusImpl}){
+export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=null}){
   if(!path.isAbsolute(file))throw fault('gold_modules_storage_path_required');
   let database=null;
   let codexRequestInFlight=false;
   const codex=createGoldCodexConnection({storageFile:file+'.codex.enc',fetchImpl});
   const plus=plusImpl||createGoldCodexPlus({home:path.join(path.dirname(file),'codex-home')});
   const checkpointKeyFile=file+'.checkpoint-key';
+  const scopeKeyFile=file+'.device-ed25519-key';
+  function scopedIdentity(){
+    if(!scopeIdentity||typeof scopeIdentity.accountId!=='string'||typeof scopeIdentity.deviceId!=='string')
+      throw fault('gold_scope_trusted_identity_required',403);
+    return scopeIdentity;
+  }
   function open(create=false){
     if(database)return database;
     if(!create&&!fs.existsSync(file))return null;
@@ -71,6 +78,15 @@ export function createGoldWallModules({file,fetchImpl,plusImpl}){
     readCheckpoint(id){return readGoldCheckpoint(enabled('longMemory'),checkpointKeyFile,id);},
     listCheckpoints(input={}){return listGoldCheckpoints(enabled('longMemory'),checkpointKeyFile,input);},
     handoff(input={}){return goldHandoff(enabled('longMemory'),checkpointKeyFile,input);},
+    // G1: explicit, trusted local account/device binding; no unscoped automatic writes.
+    createMemoryScope(input={}){const x=scopedIdentity();return createGoldScope(enabled('longMemory'),scopeKeyFile,{...input,accountId:x.accountId,homeDeviceId:x.deviceId});},
+    listMemoryScopes(){const x=scopedIdentity();return listGoldScopes(enabled('longMemory'),{accountId:x.accountId});},
+    bindMemoryScope(input={}){const x=scopedIdentity();return bindGoldScope(enabled('longMemory'),{...input,accountId:x.accountId});},
+    resolveMemoryScope(input={}){const x=scopedIdentity();return resolveGoldScope(enabled('longMemory'),{...input,accountId:x.accountId});},
+    appendScopedCheckpoint(input={}){const x=scopedIdentity();return appendGoldScopedCheckpoint(enabled('longMemory'),scopeKeyFile,{...input,accountId:x.accountId,deviceId:x.deviceId});},
+    readScopedCheckpoint(input={}){const x=scopedIdentity();return readGoldScopedCheckpoint(enabled('longMemory'),{...input,accountId:x.accountId});},
+    scopedHandoff(input={}){const x=scopedIdentity();return goldScopedHandoff(enabled('longMemory'),{...input,accountId:x.accountId});},
+    legacyUnassignedCount(){scopedIdentity();return goldLegacyUnassignedCount(enabled('longMemory'));},
     observerReceipts(){return listGoldObserverReceipts(enabled('codexBridge'));},
     confirmObserverTask(input={}){return confirmGoldObserverTask(enabled('codexBridge'),input);},
     saveNote(input={}){
