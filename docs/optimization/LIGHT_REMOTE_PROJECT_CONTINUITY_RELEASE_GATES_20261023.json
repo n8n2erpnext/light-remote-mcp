@@ -40,8 +40,16 @@
     "memory_only_chatgpt_cross_session_without_codex": "OPEN",
     "same_real_gold_agent_wall_enrollment_permissions_fleet": "BLOCKED_FAKE_UAT_RETIRED",
     "device_global_module_owner_stepup_broker": "OPEN",
-    "retired_separate_lxd_fake_wall": "PASS_PRESERVED_SQLITE"
+    "retired_separate_lxd_fake_wall": "PASS_PRESERVED_SQLITE",
+    "real_gold_full_operator_agent_lxd_internal_wall": "PASS_ISOLATED_UNENROLLED",
+    "real_gold_agent_local_wall_brand_login_permissions": "PASS_ISOLATED_SOURCE_AND_HTTP",
+    "real_gold_agent_active_enrollment_ab_permissions_fleet": "OPEN_NOT_ENROLLED",
+    "continuity_sqlite_v8_to_v9_cold_backup_lxd": "PASS_ISOLATED_BACKUP",
+    "real_gold_agent_global_modules_authenticated_read": "PASS_ISOLATED_LXD",
+    "real_gold_agent_live_plugin_cross_chat_and_codex": "OPEN",
+    "gold_full_agent_101_file_checksum_inside_lxd": "PASS",
+    "gold_full_agent_unauthorized_production_enrollment_guard": "PASS_ISOLATED_OFFLINE_UAT"
   },
   "test_build_allowed": false,
-  "notes": "Restored original contract in source: independent Light Remote device-level ON/OFF switches, Projects optional, hidden default Memory scope, SQLite v9, Gold #486 Client Core manifest superset. Retired fake 5587 LXD UI/NetBird proxy and retained private broker SQLite. Full real Gold Agent/Wall/permissions/enrollment runtime NOT integrated yet. Gold operator/plugin/wall active. Actual Codex worker, ChatGPT cross-session, global owner step-up and four-OS parity remain OPEN. Final installer BLOCKED."
+  "notes": "Real full 101-file feature branch Gold Client Core staged and hash verified in isolated light-remote-continuity-uat; actual operator-agent.mjs daemon (NO mocked Wall status) running under lr-cont-agent, native Gold Wall/login/Permissions and device-level Continuity API authenticated GET PASS, executor probe healthy. Broker upgraded v8->v9 with root-only isolated LXD cold backup. Agent NOT enrolled, cloud dormant, no approved rights/A-B/Plugin proof; no host NetBird port, old fake UI still disabled. Gold production/Gold UAT services unchanged. Windows/macOS/Linux Desktop and real Codex remain OPEN. Build gate BLOCKED. Isolated Full Gold Agent outbound BASE/HUB forcibly pinned to localhost closed port 9 until owner-approved real UAT endpoint exists; therefore Link Device is intentionally unavailable in internal-only UAT and NOT release-accepted. On-device SHA256 reverified all 101 files."
 }

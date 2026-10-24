@@ -199,3 +199,7 @@ Cognee reference only: https://www.cognee.ai/how-cognee-builds-ai-memory
 ## Binding architecture correction — 2026-10-24
 
 [Read the original contract and corrective handoff](./LIGHT_REMOTE_CONTINUITY_ORIGINAL_CONTRACT_GOLD_GLOBAL_MODULES_HANDOFF_20261024.md). Two independent DEVICE-level features; no Project to activate. Never substitute a fake standalone Wall. SQLite v9 device modules and default Memory scope SOURCE PASS. Invalid 5587 demo disabled without deleting memory. Entire real Gold runtime, Codex worker, cross-chat, Windows/macOS/Linux Desktop physical acceptance remain release blockers.
+
+## 2026-10-24 Runtime integration follow-up
+
+[Real full Gold Agent isolated LXD startup and Broker v9 backup handoff](./LIGHT_REMOTE_CONTINUITY_FULL_GOLD_AGENT_LXD_UAT_HANDOFF_20261024.md). Full 101-file Client Core staged and verified; actual operator-agent.mjs daemon, Gold brand/Wall/Permissions and global module API operational with UAT owner auth, executor probe healthy. Still UNENROLLED, no A/B/Plugin/real Codex, no public NetBird proxy; release remains BLOCKED.
