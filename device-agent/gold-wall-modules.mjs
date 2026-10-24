@@ -7,6 +7,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import {createRequire} from 'node:module';
 import {createGoldCodexConnection} from './gold-codex-api.mjs';
+import {requireGoldMemoryPrivateKey} from './gold-memory-key-permissions.mjs';
 import {createGoldCodexPlus} from './gold-codex-plus.mjs';
 import {saveGoldCheckpoint,readGoldCheckpoint,listGoldCheckpoints,goldHandoff,saveGoldObserverReceipt,listGoldObserverReceipts,confirmGoldObserverTask} from './gold-memory-ledger.mjs';
 import {createGoldScope,listGoldScopes,changeGoldScopeCapture,changeGoldScopeSyncPolicy,bindGoldScope,resolveGoldScope,appendGoldScopedCheckpoint,readGoldScopedCheckpoint,goldScopedHandoff,goldLegacyUnassignedCount} from './gold-memory-scope.mjs';
@@ -21,11 +22,12 @@ function strictText(input,max,code){
 }
 function openPrivate(file){
   fs.mkdirSync(path.dirname(file),{recursive:true,mode:0o700});
-  if(fs.existsSync(file)&&(fs.statSync(file).mode&0o077))throw fault('gold_modules_database_permissions',503);
+  if(fs.existsSync(file))requireGoldMemoryPrivateKey(file,'gold_modules_database_permissions');
   const {DatabaseSync}=loadBuiltin('node:sqlite'); // do not activate SQLite while modules are OFF
   const db=new DatabaseSync(file);
   try {
     fs.chmodSync(file,0o600);
+    requireGoldMemoryPrivateKey(file,'gold_modules_database_permissions');
     db.exec('PRAGMA journal_mode=WAL;PRAGMA busy_timeout=2500;');
     db.exec('CREATE TABLE IF NOT EXISTS module_flags (singleton INTEGER PRIMARY KEY CHECK(singleton=1), memory_enabled INTEGER NOT NULL DEFAULT 0 CHECK(memory_enabled IN (0,1)),codex_enabled INTEGER NOT NULL DEFAULT 0 CHECK(codex_enabled IN (0,1)),revision INTEGER NOT NULL DEFAULT 0);'
       +'CREATE TABLE IF NOT EXISTS owner_notes(id TEXT PRIMARY KEY,kind TEXT NOT NULL CHECK(kind IN (\'note\',\'decision\',\'checkpoint\')),body TEXT NOT NULL,source TEXT NOT NULL,created_ms INTEGER NOT NULL);'
