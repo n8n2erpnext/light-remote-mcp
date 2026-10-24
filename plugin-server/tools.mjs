@@ -275,7 +275,7 @@ export function registerPluginTools(server,identity){
   add(server,'light_remote_long_memory_read',{
     title:'Retrieve owner-approved Long Memory checkpoints across ChatGPT sessions',
     description:'Read verified device-local handoff checkpoints from one explicitly selected, currently A/B-authorized Gold session. No hidden ChatGPT transcript, no Project. Uses the existing governed Agent and requires remote:execute.',
-    inputSchema:{sessionId:id,operationId:opId,action:z.enum(['handoff','list','get']),
+    inputSchema:{sessionId:id,operationId:opId,clientRoot:pathText.optional(),action:z.enum(['handoff','list','get']),
       id:z.string().uuid().optional(),query:z.string().max(160).optional(),limit:z.number().int().min(1).max(30).optional()},
     securitySchemes:security(['remote:execute']),annotations:annotations(true,false,false,true)
   },guarded(identity,['remote:execute'],(a,x)=>runGoldMemoryViaAuthorizedSession(a,x)));
@@ -283,7 +283,7 @@ export function registerPluginTools(server,identity){
   add(server,'light_remote_long_memory_checkpoint',{
     title:'Save explicitly approved handoff to Long Memory',
     description:'Append a device-local HMAC-verified checkpoint on the exact A/B-authorized Gold session. Only save information the owner explicitly approved; do not claim access to hidden ChatGPT context.',
-    inputSchema:{sessionId:id,operationId:opId,title:z.string().min(1).max(240),
+    inputSchema:{sessionId:id,operationId:opId,clientRoot:pathText.optional(),title:z.string().min(1).max(240),
       body:z.string().min(1).max(12000),source:z.string().min(1).max(512),
       kind:z.enum(['checkpoint','decision','handoff']).optional()},
     securitySchemes:security(['remote:execute']),annotations:annotations(false,false,false,false)

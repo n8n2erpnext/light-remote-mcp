@@ -40,11 +40,26 @@ export function parseGoldMemoryExecOutput(output){
 }
 export async function runGoldMemoryViaAuthorizedSession(adapter,input){
   const script=makeGoldMemoryExecScript(input);
+  // Explicit client install root is required. The Agent defaults exec.cwd to
+  // os.homedir(), not the Gold install directory. No filesystem auto-discovery.
+  const configuredRoot=String(input.clientRoot||process.env.LIGHT_REMOTE_GOLD_MEMORY_CLIENT_ROOT||'').trim();
+  if(!configuredRoot||configuredRoot.length>4096||
+    !(configuredRoot.startsWith('/')||/^[A-Za-z]:[\\/]/.test(configuredRoot)))
+    throw failure('gold_memory_client_root_required',409);
+  // If server applies a default root, confine it to the explicitly pinned UAT
+  // device to prevent accidental reuse for other Fleet targets.
+  if(!input.clientRoot){
+    const allowedId=String(process.env.LIGHT_REMOTE_GOLD_MEMORY_DEVICE_ID||'').trim();
+    if(!allowedId)throw failure('gold_memory_device_binding_unconfigured',409);
+    const ownedSession=await adapter.sessionRaw(input.sessionId);
+    if(ownedSession.deviceId!==allowedId)throw failure('gold_memory_device_binding_mismatch',403);
+  }
+
   // A/B, exact session device authorization and local policy are enforced
   // by AccountOperatorAdapter.exec() and the existing Gold Agent.
   const response=await adapter.exec(input.sessionId,script,{
     executionMode:'foreground',waitMs:7000,timeoutMs:25000,
-    operationId:input.operationId,requiredCapabilities:['filesystem']
+    cwd:configuredRoot,operationId:input.operationId,requiredCapabilities:['filesystem']
   });
   const job=response?.job;
   if(!job?.jobId)throw failure('gold_memory_command_receipt_missing',502);
