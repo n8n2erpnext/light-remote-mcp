@@ -50,3 +50,33 @@ owner approves the code. ChatGPT Plan quotas are NOT Platform API billing.
 No second LXD, Project Manager, Wall URL, service or Git branch. No new
 snapshot. Preserve Account, PostgreSQL, Redis, A/B, Files, SCP, PTY, Fleet,
 Real Remote, original Windows build, and immutable rollback tag.
+
+## UAT activation receipt
+Commit a18bcf27cce9faba947a2c6da1ee4b1ccaccbe96 was staged directly
+from Git archive into the existing light-remote-gold-uat LXD:
+ /opt/light-remote-gold-uat-candidates/a18bcf27cce9faba947a2c6da1ee4b1ccaccbe96/
+The existing four Gold systemd units were switched from the old build
+bb615ef to a18bcf2 with the required Gold Wall daemon argument.
+No SQL changes, owner password reset, snapshot, new branch or second Wall.
+
+Evidence:
+- Immutable 90-file Gold #486 byte-parity PASS for the 93-file staged package.
+- Eleven source regression tests PASS including owner FS roots, SCP, Permissions,
+  nonblocking Wall, Gold M6 and Codex Plus JSON-RPC mock.
+- Candidate critical binaries matched Git SHA. Operator/Plugin/Supervisor,
+  Native FS, SCP and Wall status-cache byte-identical to previous UAT.
+- Real Codex 0.164.0 app-server initialize and account/read PASS as Gold UAT
+  service user, isolated CODEX_HOME, no ChatGPT sign-in yet.
+- Four Gold runtime units active, Gold Wall /login HTTP 200, Plugin health 200,
+  unauthenticated Codex Plus status HTTP 401, NetBird Wall /login HTTP 200.
+- Owner OAuth device code NOT completed and ChatGPT-plan inference NOT yet
+  acceptance-tested. Browser button and code approval must be done by owner.
+- Old saved Platform credential is preserved but unused. No API key needed for
+  ChatGPT Plan mode; old paid endpoints are disabled.
+- Restore gold-restore-before-memory-codex-20261024 remains ba579f8.
+- No new LXD snapshot requested or created.
+
+For regression rollback: return the four original Gold unit ExecStart paths
+to /opt/light-remote-gold-uat-git486-20261024 and preserve the Wall
+daemon argument. Re-start Operator, Supervisor, Plugin, Wall; keep all
+PostgreSQL, Redis, enrollment and owner-selected filesystem roots intact.
