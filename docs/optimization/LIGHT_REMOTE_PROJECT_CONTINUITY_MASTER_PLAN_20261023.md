@@ -207,3 +207,7 @@ Cognee reference only: https://www.cognee.ai/how-cognee-builds-ai-memory
 ## 2026-10-24 Private Gold UAT pending enrollment
 
 [Full native Gold Agent reached private Gold UAT Operator and requested fresh owner approval](./LIGHT_REMOTE_CONTINUITY_GOLD_UAT_PRIVATE_ENROLLMENT_HANDOFF_20261024.md). Dedicated LXD static 10.192.135.62 to Gold UAT 10.192.135.61, UAT-only hostname pinned, no default route. Enrollment is PENDING with short-lived owner code; not a signed certificate, A/B session or owner-approved enrollment. All usual release gates remain BLOCKED.
+
+## 2026-10-24 Native NetBird Gold UAT owner portal
+
+[Direct NetBird native LXD proxy to the existing Gold UAT login/enroll](./LIGHT_REMOTE_GOLD_UAT_NATIVE_NETBIRD_ACCOUNT_PORTAL_HANDOFF_20261024.md). Replaces needless SSH tunnel. NetBird port 5588, original UAT login/enroll reachable and Host security preserved. Prior code expired, owner approval and A/B pending. Release BLOCKED.
