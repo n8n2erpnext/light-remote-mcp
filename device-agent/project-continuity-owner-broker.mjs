@@ -161,6 +161,8 @@ export function startOwnerBroker({runtimeDir,clientGroupMode=0o660,controller=nu
     const actions={
      listProjects:()=>controller.projects(),
      getGlobalModules:()=>controller.moduleSettings(),
+     observeGoldTool:()=>controller.observeGoldTool({operationId:body.operationId,category:body.category,outcome:body.outcome}),
+     recentGoldActivity:()=>controller.recentGoldActivity({limit:body.limit??12}),
      setGlobalModules:()=>controller.setGlobalModules({memory:body.memory,codex:body.codex,expectedRevision:body.expectedRevision}),
      getProject:()=>controller.project(body.projectId),
      createProject:()=>controller.createProject({projectName:body.name,workspace:body.workspace||''}),

@@ -17,15 +17,25 @@ label{display:block;margin:12px 0 6px;font-size:12px;color:#aabbd0}.row{display:
 hr{border:0;border-top:1px solid #243247;margin:20px 0}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.5 ui-monospace,Consolas,monospace;color:#b0c7e2;background:#0b1320;border:1px solid #26374b;padding:12px;border-radius:8px;max-height:340px;overflow:auto}
 #notice{min-height:22px;font-size:12px;color:#9bb9d7}.error{color:#ff9b9b!important}.ok{color:#78e2c5!important}.card{border:1px solid #28384b;border-radius:7px;padding:12px;margin-top:10px}
 @media(max-width:800px){main{padding:14px}.layout{grid-template-columns:1fr}header{padding:0 14px}}
-</style></head><body><header><b>Light Remote <span class="muted">/ Project Continuity</span></b><nav><a href="/">Wall</a> &nbsp; · &nbsp; <a href="/permissions">Permissions</a></nav></header>
-<main><h1>Projects</h1><div class="muted">Light Remote device modules · Local project scopes · UAT</div><p id="notice" role="status"></p>
+</style></head><body><header><b>Light Remote <span class="muted">/ Continuity</span></b><nav><a href="/">Wall</a> &nbsp; · &nbsp; <a href="/permissions">Permissions</a></nav></header>
+<main><h1>Long Memory &amp; Codex Observer</h1><div class="muted">Two optional modules within your existing Light Remote Gold Wall · data on local client</div><p id="notice" role="status"></p>
 <section class="panel" id="continuityModules" aria-label="Light Remote optional modules">
 <h2>Light Remote — Optional modules</h2>
 <p class="muted">These are independent Light Remote device settings. <b>No Project needs to be created first.</b> Projects below only organize tasks, decisions and memory scopes.</p>
-<div class="switch"><span><b>Project Memory</b><br><small>Persistent context across ChatGPT conversations when authorized. No Codex subscription required.</small></span><input aria-label="Enable Project Memory globally" id="memory" type="checkbox"></div>
-<div class="switch"><span><b>Codex Bridge</b><br><small>Optional Codex engine; works independently of Project Memory. Real worker connection is not ready in this UAT.</small></span><input aria-label="Enable Codex Bridge globally" id="codex" type="checkbox"></div>
+<div class="switch"><span><b>Long Memory</b><br><small>Recover context across ChatGPT Web sessions when authorized. No Codex subscription or Project needed.</small></span><input aria-label="Enable Project Memory globally" id="memory" type="checkbox"></div>
+<div class="switch"><span><b>Codex Bridge — Observer</b><br><small>Read-only planning observer. It may recommend when ChatGPT should continue, but it cannot code, execute tasks or control ChatGPT Web without a supported integration.</small></span><input aria-label="Enable Codex Bridge globally" id="codex" type="checkbox"></div>
 <div class="row" style="margin-top:12px"><button class="primary" id="save">Save Light Remote modules</button><span id="moduleState" class="muted">Loading module settings…</span></div>
 <div id="globalMemoryArea" hidden>
+ <hr><h2>ChatGPT Web cross-session access</h2>
+ <p class="muted">Long Memory stays on this device. Enable reading from the same account-bound Gold plugin only when needed. Uses your existing Gold Wall/account login and a separate owner confirmation. No Project creation is required.</p>
+ <div id="globalRemoteStatus" class="muted">Remote recall: OFF</div>
+ <form id="globalConsentForm">
+  <label>Allow ChatGPT Web to retrieve this device's default Memory</label>
+  <select id="globalConsentAction" style="width:100%;background:#0a1321;border:1px solid #304158;color:#edf5ff;padding:10px;border-radius:7px"><option value="off">Do not share</option><option value="on">Allow owner-approved recall</option></select>
+  <label>Confirm your existing Gold Wall/account password</label>
+  <input id="globalOwnerPassword" type="password" autocomplete="current-password" required>
+  <button type="submit">Confirm remote recall permission</button>
+ </form>
  <hr><h2>Default Memory — No Project required</h2>
  <p class="muted">Use this local context before organizing any Project. Notes are evidence, not executable instructions.</p>
  <form id="globalMemoryForm">
@@ -38,6 +48,19 @@ hr{border:0;border-top:1px solid #243247;margin:20px 0}pre{white-space:pre-wrap;
   <button type="submit">Search</button>
  </form>
  <pre id="globalMemoryResults" aria-label="Default Memory results"></pre>
+ <h3>Recent Light Remote activity</h3>
+ <p class="muted">Locally saved tool-result metadata only. No chat transcript, command arguments or output. Decisions still need confirmed evidence.</p>
+ <button id="reloadActivity" type="button">Refresh local activity</button>
+ <pre id="globalToolActivity" aria-label="Observed local Gold tool activity"></pre>
+</div>
+<div id="globalCodexArea" hidden>
+ <hr><h2>Codex Bridge — Plan observer</h2>
+ <p class="muted">Codex may observe the task ledger and suggest a safe continuation. Codex does NOT perform tasks or inject ChatGPT Web messages in this build. No Project is required.</p>
+ <form id="defaultPlanCreate" class="row">
+  <input id="defaultPlanTitle" maxlength="160" placeholder="Current work plan or task">
+  <button type="submit">Record plan/task</button>
+ </form>
+ <pre id="defaultPlanState" aria-label="Local default task state"></pre>
 </div>
 </section>
 <div class="layout"><section class="panel"><h2>Local projects (optional organization)</h2><div id="list"></div><hr>
@@ -92,6 +115,22 @@ async function all(){try{
  by('codex').checked=!!moduleState.codexEnabled;
  by('moduleState').textContent='Device-wide · revision '+moduleState.revision;
  by('globalMemoryArea').hidden=!moduleState.memoryEnabled;
+ by('globalCodexArea').hidden=!moduleState.codexEnabled;
+ if(moduleState.codexEnabled){
+  const snap=await api('checkpoint',{projectId:moduleState.defaultScopeId});
+  by('defaultPlanState').textContent=JSON.stringify({
+    tasks:snap.tasks,pendingApprovals:snap.pendingApprovals,sequence:snap.sequence
+  },null,2);
+ }
+ if(moduleState.memoryEnabled){
+  const scope=await api('getProject',{projectId:moduleState.defaultScopeId});
+  by('globalRemoteStatus').textContent='ChatGPT remote recall: '+(scope?.remote_read_enabled?'ON':'OFF');
+  by('globalConsentAction').value=scope?.remote_read_enabled?'on':'off';
+ }
+ if(moduleState.memoryEnabled){
+  const timeline=await api('recentGoldActivity',{limit:12});
+  by('globalToolActivity').textContent=timeline.length?JSON.stringify(timeline,null,2):'No Gold tool receipts recorded yet';
+ }
  items=await api('listProjects');renderList();if(active)await select(active);
 }catch(e){notice(e.message,true);}}
 function renderList(){
@@ -102,7 +141,7 @@ function renderList(){
 async function select(id){
  try{active=id;const p=items.find(x=>x.id===id);if(!p){active=null;return;}
  by('empty').hidden=true;by('detail').hidden=false;by('title').textContent=p.name;by('meta').textContent=p.workspace||'No workspace selected';
- by('memory').checked=!!p.memory_enabled;by('codex').checked=!!p.codex_enabled;
+ // Device-wide module controls are never overwritten when selecting a Project.
  by('remoteStatus').textContent='Remote sharing: '+(p.remote_read_enabled?'ON':'OFF');
  by('remoteConsentAction').value=p.remote_read_enabled?'on':'off';
  by('remoteConsentForm').hidden=!(moduleState?.memoryEnabled && p.memory_enabled);
@@ -133,6 +172,28 @@ async function refresh(){
 
  }catch(e){notice(e.message,true);}
 }
+by('reloadActivity').onclick=()=>all();
+by('defaultPlanCreate').onsubmit=async e=>{e.preventDefault();try{
+ if(!moduleState?.codexEnabled)throw Error('Codex Bridge is disabled');
+ const title=by('defaultPlanTitle').value.trim();
+ if(!title)return;
+ await api('createTask',{projectId:moduleState.defaultScopeId,title});
+ by('defaultPlanTitle').value='';
+ await all();notice('Recorded local Controller task, no Project required');
+}catch(error){notice(error.message,true);}};
+by('globalConsentForm').onsubmit=async e=>{e.preventDefault();
+ const password=by('globalOwnerPassword').value;
+ by('globalOwnerPassword').value='';
+ try{
+  if(!moduleState?.memoryEnabled)throw Error('Enable Long Memory first');
+  const scope=await api('getProject',{projectId:moduleState.defaultScopeId});
+  if(!scope)throw Error('Local Memory scope not initialized');
+  await api('setRemoteReadConsent',{projectId:moduleState.defaultScopeId,
+    enabled:by('globalConsentAction').value==='on',expectedRevision:scope.revision,password});
+  await all();
+  notice('Default Long Memory read permission updated on this Gold Wall');
+ }catch(error){notice(error.message,true);}
+};
 by('globalMemoryForm').onsubmit=async e=>{e.preventDefault();try{
  if(!moduleState?.memoryEnabled)throw Error('Project Memory is disabled');
  await api('memoryPut',{projectId:moduleState.defaultScopeId,body:by('globalMemoryBody').value,

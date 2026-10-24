@@ -30,7 +30,7 @@ export function validateSupervisorProposal(snapshot,input){
  }
  return {status:'PROPOSED',projectId:input.projectId,sectionIds,recommendation,reason:input.reason,
   evidenceRefs:Array.isArray(input.evidenceRefs)?input.evidenceRefs.filter(v=>typeof v==='string').slice(0,12):[],
-  authorized:false};
+  authorized:false,executionAllowed:false,webTurnContinuation:'NOT_SUPPORTED_BY_THIS_BRIDGE'};
 }
 export class CodexAppServerClient {
  constructor({cwd,binary='codex',args=['app-server','--listen','stdio://'],timeoutMs=45000,env={},spawnFn=spawn}={}){
@@ -99,7 +99,7 @@ export class CodexAppServerClient {
   ensure(typeof threadId==='string'&&threadId.length<=256,'continuity_codex_invalid_thread');
   ensure(snapshot?.project,'continuity_codex_snapshot_missing');
   ensure(Number.isInteger(maxChars)&&maxChars>=1024&&maxChars<=16000,'continuity_codex_context_limit');
-  const prompt='You are a READ-ONLY supervisor. Never execute, edit, approve, or use external tools. Return exactly one JSON object with projectId, sectionIds, recommendation, reason, evidenceRefs. Allowed recommendations: CONTINUE, WAIT_OWNER, CONTINUE_SECTION_B, DONE. Base conclusions on state and evidence; do not invent receipts. Project snapshot:\n'+JSON.stringify(snapshot).slice(0,maxChars);
+  const prompt='You are a READ-ONLY observer and coordinator for a ChatGPT Web work plan. Never execute, edit, approve, dispatch any worker, or use external tools. Return exactly one JSON object with projectId, sectionIds, recommendation, reason, evidenceRefs. Allowed recommendations: CONTINUE, WAIT_OWNER, CONTINUE_SECTION_B, DONE. Base conclusions on state and evidence; do not invent receipts. Project snapshot:\n'+JSON.stringify(snapshot).slice(0,maxChars);
   let reply='',finished=false,finish,fail;
   const done=new Promise((resolve,reject)=>{finish=resolve;fail=reject;});
   const timer=setTimeout(()=>{if(!finished){finished=true;fail(Error('continuity_codex_turn_timeout'));}},this.timeoutMs);

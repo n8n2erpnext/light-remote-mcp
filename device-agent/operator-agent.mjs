@@ -11,6 +11,7 @@ import { deviceChannelMessage, deviceHeartbeatMessage, devicePolicyMessage, norm
 import { createPlatformAdapter } from './platform-adapters/index.mjs';
 import { invalidateCommandExistenceCache } from './platform-adapters/shared.mjs';
 import { startLocalWall } from './local-wall.mjs';
+import { observeGoldToolReceipt } from './project-continuity-tool-observer.mjs';
 import { filesystemVolumeInventory } from './filesystem-volume-inventory.mjs';
 import { loadLocalWallAuth, writeLocalWallAuthConfig, writeAccountOnlyWallAuthConfig } from './local-wall-auth.mjs';
 import {provisionContinuityOwnerAuthority,signContinuityConsent,rekeyContinuityOwnerAuthority} from './project-continuity-owner-grants.mjs';
@@ -403,6 +404,8 @@ async function duplexExecuteCommand(command,hub){
   const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
   const deviceReceivedAt=Date.now(),claim=await COMMAND_EXECUTIONS.run(command.commandId,'duplex',()=>executeCommand(state,command,{hub}));
   if(!claim.owner)console.log(JSON.stringify({event:'device_command_duplicate_replayed',commandId:command.commandId,ownerTransport:claim.transport,duplicateTransport:'duplex'}));
+  // Passive local metadata only, never impacts the Gold command result.
+  if(claim.owner)void observeGoldToolReceipt(command,claim.result);
   const source=claim.result;if(!source||typeof source!=='object'||Array.isArray(source))return source;
   const result={...source,telemetry:{...(source.telemetry||{})}},completedAt=Date.now(),reportedFirst=Number(result.telemetry?.firstOutputAt);
   result.telemetry={...(result.telemetry||{}),deviceReceivedAt,firstOutputAt:Number.isSafeInteger(reportedFirst)&&reportedFirst>0?reportedFirst:completedAt,completedAt,deviceTransport:'duplex-v1',duplicateTransport:claim.owner?null:'duplex'};
@@ -1066,6 +1069,7 @@ async function daemon(args){
         try{
           claim=await COMMAND_EXECUTIONS.run(command.commandId,'poll',()=>executeCommand(state,command,{hub}));result=claim.result;
           if(!claim.owner){console.log(JSON.stringify({event:'device_command_duplicate_suppressed',commandId:command.commandId,ownerTransport:claim.transport,duplicateTransport:'poll'}));continue;}
+          void observeGoldToolReceipt(command,result);
           const completedAt=Date.now();
           const reportedFirst=Number(result.telemetry?.firstOutputAt);
           result.telemetry={...(result.telemetry||{}),deviceReceivedAt,firstOutputAt:Number.isSafeInteger(reportedFirst)&&reportedFirst>0?reportedFirst:completedAt,completedAt};

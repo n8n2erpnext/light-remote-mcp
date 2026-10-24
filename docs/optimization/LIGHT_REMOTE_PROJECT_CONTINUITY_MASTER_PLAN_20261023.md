@@ -1,3 +1,5 @@
+> **SUPERSEDED owner scope (2026-10-24):** This historical plan included Project-first Memory and a Codex Delegated Worker. Both are OUT OF SCOPE. The current binding contract is [Gold Long Memory + Codex Observer Corrective Audit](./LIGHT_REMOTE_GOLD_CONTINUITY_SCOPE_CORRECTION_20261024.md). Do not implement P4 delegated execution or require Project creation. Codex only observes and recommends; an actual supported ChatGPT Web auto-continue API remains unverified.
+
 # Light Remote Project Continuity — Architecture and Delivery Plan
 
 Date: 2026-10-23 (Asia/Ho_Chi_Minh)

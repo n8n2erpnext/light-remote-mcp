@@ -39,6 +39,8 @@ export function startContinuityServer({root=continuityDefaultRoot()}={}){
   health:()=>({status:'ready',version:1,projects:store.projects().length}),
   listProjects:()=>store.projects(),
   getGlobalModules:()=>store.moduleSettings(),
+  observeGoldTool:d=>store.observeGoldTool(d),
+  recentGoldActivity:d=>store.recentGoldActivity({limit:d.limit??12}),
   setGlobalModules:d=>store.setGlobalModules({memory:d.memory,codex:d.codex,expectedRevision:d.expectedRevision}),
   getProject:d=>store.project(d.projectId),
   createProject:d=>store.createProject({projectName:d.name,workspace:d.workspace||''}),

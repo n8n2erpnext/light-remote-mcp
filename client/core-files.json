@@ -402,6 +402,10 @@
       "destination": "device-agent/project-continuity-client.mjs"
     },
     {
+      "source": "device-agent/project-continuity-tool-observer.mjs",
+      "destination": "device-agent/project-continuity-tool-observer.mjs"
+    },
+    {
       "source": "lib/project-continuity-session-proof.mjs",
       "destination": "lib/project-continuity-session-proof.mjs"
     }

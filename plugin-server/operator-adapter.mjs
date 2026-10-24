@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import {recoverOwnerApprovedLongMemory} from './continuity-automatic-recall.mjs';
 import { callOperatorJson } from '../gateway/operator-proxy.mjs';
 import { sealOperatorPayload } from '../gateway/operator-crypto.mjs';
 import { redactRestrictedText } from './response-sanitizer.mjs';
@@ -127,8 +128,15 @@ export class AccountOperatorAdapter{
     let working=null;
     if(ready){try{working=await this.workingContext({});}catch(error){if(!['agent_client_temporarily_unavailable','target_node_draining','node_session_capacity_reached','account_session_capacity_reached','session_capacity_reached'].includes(String(error?.message||'')))throw error;}}
     const helper=ready?(requestedGroup?helperGroup(requestedGroup,working?.context||{}):helperOverview(working?.context||{})):null;
+    // No owner consent / disconnected device / timeout => no Memory returned.
+    // Base Gold connection helper remains usable with both modules OFF.
+    const continuity=await recoverOwnerApprovedLongMemory({
+      enabled:!requestedGroup&&process.env.LIGHT_REMOTE_PROJECT_CONTINUITY_EXPERIMENTAL==='1',
+      session:working?.session||null,
+      read:(sessionId,{maxChars})=>this.projectMemoryBrief(sessionId,undefined,{maxChars})
+    });
     const status=transient?'temporarily_unavailable':ready?'ready':'need_a_code';
-    return {product:'Light Remote',status,purpose:'Governed remote computing for AI agents on explicitly authorized user-owned devices.',account:safeAccount(account),productCapabilities:[...PRODUCT_CAPABILITIES],onboarding:{nextAction:transient?'retry_same_helper_no_repair':ready?'use_working_context_and_helper_menu':'ask_owner_for_local_wall_a_code',retryable:transient||undefined,retryAfterMs:transient?1500:undefined,normalFlow:['Open the target device Local Wall and copy the one-time A code.','Call this helper with that A code to create the B approval request.','Show only the B code to the owner.','The owner enters B at that same Local Wall /approve and chooses Approve.','Call this helper again with the returned continuation. Only then is the device available to this plugin client.'],trustBoundary:'OAuth signs the user into the account, but it does not authorize a device. Every target device must be A/B-approved into this plugin client. The MCP cannot mint A or bypass Local Wall /approve.'},topology:devices.map(d=>({deviceId:d.deviceId,name:d.displayName||d.name||d.deviceId,role:d.deviceId===mainId?'main':'device',platform:d.platform,architecture:d.architecture,state:d.state,routing:safeRouting(d.routing||{}),effectiveCapabilities:[...(d.effectiveCapabilities||d.capabilities||[])]})),context:working?.context||null,session:working?.session||null,toolHelper:helper,governance:{explicitTargetRequired:true,silentFallback:false,localPolicyFinalDeny:true,credentialsMustRemainLocal:true,deviceAuthorization:'local-wall-a-b'}};
+    return {product:'Light Remote',status,purpose:'Governed remote computing for AI agents on explicitly authorized user-owned devices.',account:safeAccount(account),productCapabilities:[...PRODUCT_CAPABILITIES],onboarding:{nextAction:transient?'retry_same_helper_no_repair':ready?'use_working_context_and_helper_menu':'ask_owner_for_local_wall_a_code',retryable:transient||undefined,retryAfterMs:transient?1500:undefined,normalFlow:['Open the target device Local Wall and copy the one-time A code.','Call this helper with that A code to create the B approval request.','Show only the B code to the owner.','The owner enters B at that same Local Wall /approve and chooses Approve.','Call this helper again with the returned continuation. Only then is the device available to this plugin client.'],trustBoundary:'OAuth signs the user into the account, but it does not authorize a device. Every target device must be A/B-approved into this plugin client. The MCP cannot mint A or bypass Local Wall /approve.'},topology:devices.map(d=>({deviceId:d.deviceId,name:d.displayName||d.name||d.deviceId,role:d.deviceId===mainId?'main':'device',platform:d.platform,architecture:d.architecture,state:d.state,routing:safeRouting(d.routing||{}),effectiveCapabilities:[...(d.effectiveCapabilities||d.capabilities||[])]})),context:working?.context||null,session:working?.session||null,...(continuity?{continuity}:{}),toolHelper:helper,governance:{explicitTargetRequired:true,silentFallback:false,localPolicyFinalDeny:true,credentialsMustRemainLocal:true,deviceAuthorization:'local-wall-a-b'}};
   }
 
   async inspectDevice(deviceId){const [d,a]=await Promise.all([this.deviceRaw(deviceId),this.accountRaw()]);return {device:cleanDevice(d),role:a.mainDeviceId===d.deviceId?'main':'device',routing:safeRouting(d.routing||{}),connection:safeConnection(d.connection||{}),policy:safePolicy(d),update:safeUpdate(d.updateStatus||{}),fleet:{accountPlan:String(a.plan||'free'),mainDeviceId:a.mainDeviceId||null,provisioning:a.fleetProvisioning?{state:a.fleetProvisioning.state||null,deviceId:a.fleetProvisioning.deviceId||null,moduleVersion:a.fleetProvisioning.moduleVersion||null}:null}};}
@@ -151,7 +159,7 @@ export class AccountOperatorAdapter{
   async resumeSession(sessionId){await this.sessionRaw(sessionId);const row=await callOperatorJson('POST',`/v1/plugin/sessions/${encodeURIComponent(sessionId)}/resume`,{accountId:this.identity.accountId,agentId:this.agentId});return cleanSession(row.session);}
   async holdSession(sessionId,reason='transport_lost'){await this.sessionRaw(sessionId);const row=await callOperatorJson('POST',`/v1/plugin/sessions/${encodeURIComponent(sessionId)}/hold`,{accountId:this.identity.accountId,agentId:this.agentId,reason:String(reason||'transport_lost').slice(0,80)});return cleanSession(row.session);}
   async closeSession(sessionId){await this.sessionRaw(sessionId);const row=await callOperatorJson('POST',`/v1/plugin/sessions/${encodeURIComponent(sessionId)}/close`,{accountId:this.identity.accountId,agentId:this.agentId});return cleanSession(row.session);}
-  async projectMemoryBrief(sessionId,projectId,{query='',maxChars=8000}={}){
+  async projectMemoryBrief(sessionId,projectId='00000000-0000-4000-8000-000000000001',{query='',maxChars=8000}={}){
     const session=await this.sessionRaw(sessionId);
     if(session.state!=='active')throw Error('continuity_session_inactive');
     return callOperatorJson('POST','/v1/plugin/project-continuity/read',{
