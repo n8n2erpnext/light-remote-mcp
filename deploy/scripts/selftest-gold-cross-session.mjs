@@ -109,6 +109,13 @@ try{
   const denied=await post('/api/gold/modules/scope/sync/grant',{
     scopeId:scope.scopeId,peer,expectedFingerprint:identity.fingerprint});
   assert.equal(denied.status,403,'sync grant requires owner confirmation, not just CSRF');
+  const routeWithoutCsrf=await post('/api/gold/modules/scope/sync/route',{
+    scopeId:scope.scopeId,homeUrl:'http://100.94.184.141:5591',enabled:true},owner);
+  assert.equal(routeWithoutCsrf.status,403);
+  const anonymousPeer=await fetch(base+'/api/gold/peer/v1',{
+    method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({malformed:true})});
+  assert.equal(anonymousPeer.status,403);
+  console.log('GOLD_G3_PEER_ROUTE_OWNER_CSRF_AND_ANONYMOUS_SIGNED_GATE_PASS');
   console.log('GOLD_G3_SCOPED_OWNER_SYNC_IDENTITY_POLICY_AND_GRANT_CONFIRM_PASS');
   console.log('GOLD_G2_SCOPED_OWNER_CAPTURE_MODE_CSRF_PASS');
   console.log('GOLD_G1_OWNER_SCOPED_WALL_CSRF_HANDOFF_PASS');

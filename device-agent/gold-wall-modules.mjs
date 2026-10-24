@@ -13,6 +13,7 @@ import {saveGoldCheckpoint,readGoldCheckpoint,listGoldCheckpoints,goldHandoff,sa
 import {createGoldScope,listGoldScopes,changeGoldScopeCapture,changeGoldScopeSyncPolicy,bindGoldScope,resolveGoldScope,appendGoldScopedCheckpoint,readGoldScopedCheckpoint,goldScopedHandoff,goldLegacyUnassignedCount} from './gold-memory-scope.mjs';
 import {ingestGoldAutoEvent,ingestGoldAutoFsEffect,resolveGoldAutoWorkspace,flushGoldAuto,goldAutoPending} from './gold-memory-auto.mjs';
 import {goldSyncIdentity,goldGrantReplica,goldAcceptReplicaInvite,goldNextSyncFrame,goldApplySyncFrame,goldApplySyncAck,goldRevokeReplica,goldSyncStatus} from './gold-memory-sync.mjs';
+import {receiveGoldPeerRequest,pollGoldPeer,allowGoldPeerHomeUrl,configureGoldPeerRoute,listGoldPeerRoutes,runGoldPeerRoutes} from './gold-memory-peer.mjs';
 const loadBuiltin=createRequire(import.meta.url);
 
 function fault(code,status=400){return Object.assign(new Error(code),{status});}
@@ -98,6 +99,16 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
     applySyncAck(input={}){const x=scopedIdentity();return goldApplySyncAck(enabled('longMemory'),{...input,accountId:x.accountId,deviceId:x.deviceId});},
     revokeSyncReplica(input={}){const x=scopedIdentity();return goldRevokeReplica(enabled('longMemory'),{...input,accountId:x.accountId,deviceId:x.deviceId});},
     syncStatus(input={}){const x=scopedIdentity();return goldSyncStatus(enabled('longMemory'),{...input,accountId:x.accountId,deviceId:x.deviceId});},
+    peerRequest(input={}){const x=scopedIdentity();return receiveGoldPeerRequest(enabled('longMemory'),
+      scopeKeyFile,scopeEncryptKeyFile,{accountId:x.accountId,deviceId:x.deviceId,request:input});},
+    async pollPeer(input={}){const x=scopedIdentity();return pollGoldPeer(enabled('longMemory'),
+      scopeKeyFile,scopeEncryptKeyFile,{...input,accountId:x.accountId,deviceId:x.deviceId});},
+    validatePeerUrl(url){return allowGoldPeerHomeUrl(url);},
+    configurePeerRoute(input={}){const x=scopedIdentity();return configureGoldPeerRoute(enabled('longMemory'),
+      {...input,accountId:x.accountId,deviceId:x.deviceId});},
+    peerRoutes(){const x=scopedIdentity();return listGoldPeerRoutes(enabled('longMemory'),{accountId:x.accountId});},
+    async pollPeerRoutes(){const x=scopedIdentity();return runGoldPeerRoutes(enabled('longMemory'),
+      scopeKeyFile,scopeEncryptKeyFile,{accountId:x.accountId,deviceId:x.deviceId});},
     bindMemoryScope(input={}){const x=scopedIdentity();return bindGoldScope(enabled('longMemory'),{...input,accountId:x.accountId});},
     resolveMemoryScope(input={}){const x=scopedIdentity();return resolveGoldScope(enabled('longMemory'),{...input,accountId:x.accountId});},
     appendScopedCheckpoint(input={}){const x=scopedIdentity();return appendGoldScopedCheckpoint(enabled('longMemory'),scopeKeyFile,{...input,accountId:x.accountId,deviceId:x.deviceId});},

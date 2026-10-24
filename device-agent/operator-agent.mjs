@@ -982,7 +982,7 @@ async function daemon(args){
   // Do not start a signed command channel with an unprobed new Agent.
   await EXECUTOR_PROBE.check();
   if(EXECUTOR_PROBE.status().ready===null)await EXECUTOR_PROBE.check();
-  const stop=()=>{if(stopped)return;EXECUTOR_PROBE.stop();NATIVE_PROCESSES.close();NATIVE_TERMINALS.close();stopped=true;if(typeof goldMemoryFlushTimer!=='undefined')clearInterval(goldMemoryFlushTimer);if(wake)wake();if(fleetTimer){clearInterval(fleetTimer);fleetTimer=null;}fleetSupervisor.close().catch(()=>{});try{localWall?.server.close();}catch{}};process.on('SIGTERM',stop);process.on('SIGINT',stop);
+  const stop=()=>{if(stopped)return;EXECUTOR_PROBE.stop();NATIVE_PROCESSES.close();NATIVE_TERMINALS.close();stopped=true;if(typeof goldMemoryFlushTimer!=='undefined')clearInterval(goldMemoryFlushTimer);if(typeof goldPeerPollTimer!=='undefined')clearInterval(goldPeerPollTimer);if(wake)wake();if(fleetTimer){clearInterval(fleetTimer);fleetTimer=null;}fleetSupervisor.close().catch(()=>{});try{localWall?.server.close();}catch{}};process.on('SIGTERM',stop);process.on('SIGINT',stop);
   const wait=ms=>new Promise(resolve=>{const timer=setTimeout(()=>{wake=null;resolve();},ms);wake=()=>{clearTimeout(timer);wake=null;resolve();};});
   if(!fs.existsSync(LOCAL_WALL_AUTH_FILE))writeAccountOnlyWallAuthConfig(LOCAL_WALL_AUTH_FILE,{username:'account'});
   const wallAuth=loadLocalWallAuth(LOCAL_WALL_AUTH_FILE,{required:!['127.0.0.1','::1','localhost'].includes(String(LOCAL_WALL_HOST))});
@@ -1016,6 +1016,20 @@ async function daemon(args){
   fleetTimer=setInterval(reconcileFleet,fleetReconcileMs);fleetTimer.unref?.();
   const workerReceiptTimer=setInterval(()=>void refreshProcessTerminalReceipts(readState()||state),5000);
   // Flush only pending, scoped Gold events. An OFF module has zero workload.
+  let goldPeerPollInFlight=false;
+  const goldPeerPollTimer=setInterval(async()=>{
+    if(goldPeerPollInFlight)return;
+    goldPeerPollInFlight=true;
+    try{
+      const results=await GOLD_WALL_MODULES.pollPeerRoutes();
+      for(const result of results)if(result.state!=='up_to_date')
+        console.log(JSON.stringify({event:'gold_sync_peer_tick',...result}));
+    }catch(e){
+      if(String(e.message)!=='gold_module_disabled'&&String(e.message)!=='gold_scope_trusted_identity_required')
+        console.error(JSON.stringify({event:'gold_sync_peer_tick_failed',code:String(e.message).slice(0,90)}));
+    }finally{goldPeerPollInFlight=false;}
+  },45000);
+  goldPeerPollTimer.unref?.();
   const goldMemoryFlushTimer=setInterval(()=>{
     try{
       const saved=GOLD_WALL_MODULES.flushAuto();

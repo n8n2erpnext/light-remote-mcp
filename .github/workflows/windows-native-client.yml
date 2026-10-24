@@ -94,6 +94,8 @@ jobs:
         run: |
           node deploy/scripts/selftest-gold-memory-sync-v3.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Gold G3 Windows E2EE / signed ACK / key ACL failed' }
+          node deploy/scripts/selftest-gold-memory-peer-v3.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold G3 Windows signed NetBird peer pull/replay/ACK failed' }
           node deploy/scripts/selftest-gold-memory-scope-v2.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Gold Windows Long Memory V1/V2 scope and HMAC failed' }
           Write-Host 'gold-windows-g3-cryptographic-scope-smoke=PASS'
