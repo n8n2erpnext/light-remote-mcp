@@ -151,3 +151,25 @@ Owner acceptance checklist on http://100.94.184.141:5591/ (NetBird VPN):
 7. Disconnect removes encrypted credential file and device encryption key.
 The existing NetBird HTTP UI is tunneled through encrypted VPN but still not
 HTTPS; HTTPS is recommended for secret entry and public/untrusted traffic.
+
+## Codex failed in real owner test: diagnostic patch (2026-10-24)
+The owner submitted a billable Run Codex observer test on UAT: Wall displayed
+"Codex failed · model gpt-6.1-sol / No model output available".
+The earlier bridge dropped the nested SSE turn.error.code and always
+rendered a generic failed state. Thus prior evidence CANNOT distinguish
+zero API credits from project quota, permissions, model access or environment
+failure. Do not pretend the error cause is already known.
+
+ChatGPT Plus/ChatGPT Codex 5-hour and weekly quota is separate from API
+Platform billing. A /v1/models 200 only proves key authentication, not
+Agents API inference entitlement or credit balance. API billing requires
+separate project funding, not just Plus subscription.
+
+Patch preserves a bounded/syntactically safe errorCode from OpenAI's
+HTTP JSON error response or Agents SSE failed turn/session event, plus
+HTTP status for rejected requests. It discards arbitrary API response
+messages, headers and secrets. Gold Wall displays an actionable error
+classification. Real API trial must be explicitly owner approved because
+it may incur separate API billing. No extra billable request made in fix.
+Regression tests mock HTTP credit_balance_exhausted/model_not_found and
+failed-turn SSE, validate no key or response text is exposed.

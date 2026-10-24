@@ -447,8 +447,19 @@ document.getElementById('goldCodexApiRun').onclick=async()=>{
   const out=document.getElementById('goldCodexApiReport');out.textContent='Contacting Codex harness…';
   try{
     const j=await goldCodexApiAction('/api/gold/modules/codex/run');
+    const details=j.result.errorCode?(' · error_code='+String(j.result.errorCode)):'';
+    const statusCode=Number.isInteger(j.result.httpStatus)?(' · HTTP '+String(j.result.httpStatus)):'';
+    const reason=j.result.errorCode==='credit_balance_exhausted'?
+      'OpenAI Platform prepaid credits exhausted. ChatGPT Plus quota does not fund API usage.':
+      j.result.errorCode==='model_not_found'||j.result.errorCode==='resource_not_found'?
+      'This model is unavailable to the API project. Check model entitlements.':
+      j.result.errorCode==='project_spend_limit_exceeded'||j.result.errorCode==='organization_spend_limit_exceeded'?
+      'An OpenAI Platform spending limit was reached.':
+      j.result.errorCode==='rate_limit_exceeded'?
+      'OpenAI API rate limit reached.':
+      '';
     out.textContent='Codex '+String(j.result.status||'unknown')+' · model '+String(j.result.model||'')+
-      String.fromCharCode(10)+String(j.result.summary||'No model output available.');
+      statusCode+details+String.fromCharCode(10)+(reason||String(j.result.summary||'No model output available.'));
     document.getElementById('goldCodexApiStatus').textContent=j.result.completed?
       'Real Codex Agents API turn completed.':'Codex turn incomplete or unverified; see report.';
   }catch(e){out.textContent='No verified Codex response: '+String(e.message||e);}

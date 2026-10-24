@@ -9,6 +9,17 @@ import crypto from 'node:crypto';
 const ENDPOINT='https://api.openai.com/v1';
 const MODELS=new Set(['gpt-6-luna','gpt-6.1-sol','gpt-6-astra']);
 function error(code,status=400){return Object.assign(new Error(code),{status});}
+
+// Never expose untrusted API response messages, request headers, or credentials
+// through a Wall response. Only safe diagnostic error CODES are returned.
+function safeErrorCode(value){
+  return typeof value==='string'&&/^[a-z][a-z0-9_]{1,95}$/.test(value)?value:null;
+}
+function eventErrorCode(evt){
+  return [evt?.error?.code,evt?.turn?.error?.code,evt?.session?.error?.code,
+    evt?.data?.error?.code,evt?.data?.code,evt?.code,evt?.turn?.result?.error?.code]
+    .map(safeErrorCode).find(Boolean)||null;
+}
 function privateDir(dir){fs.mkdirSync(dir,{recursive:true,mode:0o700});}
 function ensureMode(filename){if(fs.existsSync(filename)&&(fs.statSync(filename).mode&0o077))throw error('codex_credential_permissions',503);}
 function writePrivate(filename,bytes) {
@@ -99,13 +110,20 @@ export function createGoldCodexConnection({storageFile,fetchImpl=globalThis.fetc
       body:JSON.stringify({agent:{model,instructions:'You are the READ-ONLY Light Remote Gold Codex Bridge observer. No tools, no shell, no network access, no file access, no automatic actions or ChatGPT Web turn injection. Output a brief recommendation.'},
         environment:{type:'none'},input,stream:true})
     });
-    if(res.status===401)throw error('codex_api_key_rejected',401);
-    if(res.status===403)throw error('codex_agents_permission_denied',403);
-    if(res.status===429)throw error('codex_agents_quota_or_rate_limit',429);
-    if(!res.ok)throw error('codex_agents_request_failed',502);
+    if(!res.ok){
+      let code=null;
+      try{
+        const payload=await res.json();
+        code=safeErrorCode(payload?.error?.code)||safeErrorCode(payload?.error?.type);
+      }catch{}
+      const fallback=res.status===401?'unauthorized':res.status===403?'forbidden':
+        res.status===429?'rate_limit_exceeded':'agents_request_rejected';
+      return {connected:false,completed:false,status:'rejected',model,httpStatus:res.status,
+        errorCode:code||fallback,sessionId:null,summary:null};
+    }
     if(!res.body)throw error('codex_agents_no_stream',502);
     const reader=res.body.getReader();const decoder=new TextDecoder();
-    let pending='',written='',outcome='in_progress',bytes=0,sessionId=null;
+    let pending='',written='',outcome='in_progress',bytes=0,sessionId=null,failureCode=null;
     const handle=raw=>{
       const data=raw.split('\n').filter(x=>x.startsWith('data:')).map(x=>x.slice(5).trim()).join('');
       if(!data||data==='[DONE]')return;
@@ -115,7 +133,10 @@ export function createGoldCodexConnection({storageFile,fetchImpl=globalThis.fetc
       if(evt.type==='agent.session.turn.output_text.delta'&&typeof evt.delta==='string')written=(written+evt.delta).slice(0,5000);
       if(evt.type==='agent.session.turn.output_text.done'&&typeof evt.text==='string')written=evt.text.slice(0,5000);
       if(evt.type==='agent.session.turn.completed')outcome='completed';
-      if(evt.type==='agent.session.turn.failed'||evt.type==='agent.session.turn.cancelled'||evt.type==='agent.session.failed'||evt.type==='error')outcome='failed';
+      if(evt.type==='agent.session.turn.failed'||evt.type==='agent.session.turn.cancelled'||evt.type==='agent.session.failed'||evt.type==='error'){
+        failureCode=eventErrorCode(evt)||failureCode;
+        outcome='failed';
+      }
     };
     try{
       while(bytes<1200000&&outcome==='in_progress'){
@@ -129,7 +150,9 @@ export function createGoldCodexConnection({storageFile,fetchImpl=globalThis.fetc
       }
     }catch{throw error('codex_agents_stream_interrupted',502);}
     finally{await reader.cancel().catch(()=>{});}
-    if(outcome!=='completed')return {connected:true,completed:false,status:outcome==='failed'?'failed':'unverified',model,sessionId,summary:written||null};
+    if(outcome!=='completed')return {connected:true,completed:false,
+      status:outcome==='failed'?'failed':'unverified',model,sessionId,
+      errorCode:failureCode||(outcome==='failed'?'agent_turn_failed':'turn_outcome_unverified'),summary:written||null};
     return {connected:true,completed:true,status:'completed',model,sessionId,summary:written||'Turn completed without text output'};
   }
   return {config,save,clear,verify,run};
