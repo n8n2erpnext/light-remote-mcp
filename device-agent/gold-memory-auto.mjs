@@ -158,9 +158,8 @@ export function flushGoldAuto(db,keyFile,{accountId,deviceId,now=Date.now(),
           lines.join('\n')+'\nEvent refs:\n'+events.map(e=>e.event_type+' · '+e.event_ref.slice(0,160)).join('\n')+
           '\nNo command output, hidden chat transcript or inferred task completion was captured.',
         source:'gold-agent-auto-journal',
-        status:'observed',evidence:eventRefs.map(id=>'event:'+id).slice(0,LIMIT),
-        transactionManaged:true
-      });
+        status:'observed',evidence:eventRefs.map(id=>'event:'+id).slice(0,LIMIT)
+      },{transactionManaged:true});
       const stmt=db.prepare(`UPDATE lm_events SET ingest_state='committed',checkpoint_id=?
         WHERE event_id=? AND ingest_state='pending'`);
       for(const event of events)if(stmt.run(checkpoint.checkpointId,event.event_id).changes!==1)

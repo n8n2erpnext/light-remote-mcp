@@ -167,7 +167,8 @@ export function resolveGoldScope(db,{accountId,sourceType,sourceId}={}){
     .get(a,sourceType,id,a);
   return row||{scopeId:null,unassigned:true};
 }
-export function appendGoldScopedCheckpoint(db,keyFile,{accountId,deviceId,scopeId,kind='checkpoint',title,body,source,status='observed',evidence,transactionManaged=false}={}){
+export function appendGoldScopedCheckpoint(db,keyFile,{accountId,deviceId,scopeId,kind='checkpoint',title,body,source,status='observed',evidence}={},internalOptions={}){
+  const transactionManaged=internalOptions?.transactionManaged===true;
   prepareGoldMemoryV2(db);
   const s=ownScope(db,{scopeId,accountId});
   if(s.status!=='active')throw problem('gold_scope_archived',409);

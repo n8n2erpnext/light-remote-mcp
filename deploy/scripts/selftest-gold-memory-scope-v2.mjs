@@ -39,7 +39,7 @@ try{
   assert.equal(m.scopedHandoff({scopeId:light.scopeId}).checkpoints[0].prevHash,a.contentHash);
   assert.throws(()=>m.readScopedCheckpoint({scopeId:light.scopeId,checkpointId:b.checkpointId}),/gold_scope_checkpoint_not_found/);
   assert.throws(()=>m.readScopedCheckpoint({scopeId:bi.scopeId,checkpointId:d.checkpointId}),/gold_scope_checkpoint_not_found/);
-  const safe=m.appendScopedCheckpoint({scopeId:light.scopeId,deviceId:'device-foreign',accountId:'other-account',title:'Guarded',body:'Trusted local identity wins',source:'local-runtime'});
+  const safe=m.appendScopedCheckpoint({scopeId:light.scopeId,deviceId:'device-foreign',accountId:'other-account',title:'Guarded',body:'Trusted local identity wins',source:'local-runtime',transactionManaged:true});
   assert.equal(safe.revision,3);
   assert.equal(m.scopedHandoff({scopeId:light.scopeId}).checkpoints[0].title,'Guarded');
   const raw=new DatabaseSync(file);
