@@ -9,6 +9,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import {ContinuityStore,continuityDefaultRoot} from './project-continuity-store.mjs';
+import {verifyProjectReadDelegation,verifyProjectWriteDelegation} from '../lib/project-continuity-session-proof.mjs';
 
 const MAX_REQUEST=64*1024,MAX_REPLY=512*1024;
 const reject=(code)=>{throw Error(code);};
@@ -31,6 +32,19 @@ function getToken(root,{create=false}={}){
  const data=fs.readFileSync(file,'utf8').trim();
  if(!/^[a-f0-9]{64}$/.test(data))reject('continuity_ipc_token_invalid');
  return data;
+}
+function pinnedOperator(root){
+ const filename=path.join(root,'trusted-operator-relay.json');
+ const stat=fs.lstatSync(filename);
+ if(!stat.isFile()||stat.isSymbolicLink()||(process.platform!=='win32'&&
+  ((stat.mode&0o077)!==0||stat.uid!==process.getuid())))
+  reject('continuity_operator_trust_file_unsafe');
+ const trust=JSON.parse(fs.readFileSync(filename,'utf8'));
+ if(trust.schema!==1||typeof trust.accountId!=='string'||typeof trust.deviceId!=='string')
+  reject('continuity_operator_trust_invalid');
+ const publicKey=crypto.createPublicKey(trust.publicKeyPem);
+ if(publicKey.asymmetricKeyType!=='ed25519')reject('continuity_operator_trust_invalid');
+ return {...trust,publicKey};
 }
 const constantEquals=(a,b)=>typeof a==='string'&&/^[a-f0-9]{64}$/.test(a)&&crypto.timingSafeEqual(Buffer.from(a,'hex'),Buffer.from(b,'hex'));
 export function startContinuityServer({root=continuityDefaultRoot()}={}){
@@ -56,6 +70,28 @@ export function startContinuityServer({root=continuityDefaultRoot()}={}){
   memorySearch:d=>store.memorySearch(d.projectId,d.query,{limit:d.limit||8}),
   contextBrief:d=>store.contextBrief(d.projectId,{query:d.query||'',maxChars:d.maxChars||8000}),
   remoteBrief:d=>store.remoteBrief(d.projectId,{query:d.query||'',maxChars:d.maxChars||8000}),
+  // Confidential Gold duplex requests only: signed Operator session,
+  // owner opt-in and user-local SQLite. No fallback to unsigned read/write.
+  remoteSignedRead:d=>{
+   const trust=pinnedOperator(root);
+   const projectId=d.projectId,query=d.query||'',maxChars=d.maxChars??8000;
+   const grant=verifyProjectReadDelegation({proof:d.proof,publicKey:trust.publicKey,
+    accountId:trust.accountId,deviceId:trust.deviceId,
+    projectId,requestId:d.requestId,query,maxChars});
+   return store.tx(()=>{
+    store.db.prepare('INSERT INTO operator_read_nonces(request_id,project_id,expires_at) VALUES (?,?,?)')
+      .run(grant.requestId,projectId,grant.expiresAt);
+    return store.remoteBrief(projectId,{query,maxChars});
+   });
+  },
+  remoteSignedWrite:d=>{
+   const trust=pinnedOperator(root);
+   verifyProjectWriteDelegation({proof:d.proof,publicKey:trust.publicKey,
+    accountId:trust.accountId,deviceId:trust.deviceId,
+    projectId:d.projectId,requestId:d.requestId,body:d.body,kind:d.kind,sourceRef:d.sourceRef});
+   return store.remoteMemoryCheckpoint(d.projectId,{body:d.body,kind:d.kind,
+    sourceRef:d.sourceRef,requestId:d.requestId});
+  },
   applySignedOwnerConsent:d=>store.setRemoteReadConsent(d.projectId,{proof:d.proof}),
   applySignedOwnerWriteConsent:d=>store.setRemoteWriteConsent(d.projectId,{proof:d.proof}),
   exportHandoff:d=>store.exportHandoff(d.projectId,{query:d.query||'',maxChars:d.maxChars||10000}),

@@ -76,8 +76,19 @@
     "long_memory_real_web_chat_checkpoint_session_a_to_b": "OPEN_NOT_LIVE_TESTED",
     "long_memory_official_plugin_tool_rollout": "OPEN_NOT_DEPLOYED",
     "long_memory_gold_account_unified_wall_live_stepup": "OPEN_NOT_PHYSICAL_UAT",
-    "codex_web_turn_automatic_continuation": "OPEN_NO_SUPPORTED_HOOK_PROVEN"
+    "codex_web_turn_automatic_continuation": "OPEN_NO_SUPPORTED_HOOK_PROVEN",
+    "gold_full_single_stack_lxd_snapshot_pre_upgrade": "PASS_OFFLINE_BTRFS_SNAPSHOT",
+    "gold_uat_continuity_duplicate_lxd_removed": "PASS_CONFIRMED_ABSENT",
+    "gold_account_wall_unified_no_second_login": "PASS_ACCOUNT_ONLY_SOURCE_AND_HTTP_UNAUTHENTICATED",
+    "gold_merged_live_operator_plugin_wall_active": "PASS_GOLD_UAT_STACK_RUNNING",
+    "gold_client_102_file_manifest_sha": "PASS_MERGED_UAT_PRE_IPC_UPDATE",
+    "gold_same_agent_private_sqlite_remote_signed_read_write": "PASS_ISOLATED_LOCAL_SOURCE_TEST",
+    "gold_live_owner_account_memory_on_off": "OPEN_OWNER_LOGIN_REQUIRED",
+    "gold_live_a_b_memory_checkpoint_session_a_b": "OPEN_REAL_WEB_PLUGIN_TEST",
+    "gold_native_device_channel_full_duplex_receipt": "OPEN_HTTP_502_OBSERVED",
+    "gold_preexisting_supervisor_owner_invalid": "OPEN_REQUIRES_GOLD_STABILITY_TRACE",
+    "codex_observer_real_plus_runtime": "OPEN_NO_LIVE_OWNER_CODEX"
   },
   "test_build_allowed": false,
-  "notes": "Gold source now adds opt-in long_memory_checkpoint tool requiring Gold active A/B + owner-signed independent write consent, six-second Ed25519 note hash and local broker SQLite v11. Source note remains unverified, no Project, no extra Account/Wall. Repeated operationId with identical content idempotent, altered content denied. Gold route intentionally bypasses persisted job. Source/fixture and Gold package stage PASS; real Web cross-session, full cloud privacy audit, physical Windows/Linux and live Codex still OPEN. No production deployed."
+  "notes": "2026-10-24 owner requested deployment on EXISTING full Gold UAT, and deletion of separate Continuity UAT. Took offline Btrfs snapshot pre-long-memory-codex-observer-20261024; removed light-remote-continuity-uat. Three ORIGINAL Gold systemd services Operator/Plugin/Wall now run merged Gold+Continuity candidate under /opt/light-remote-gold-uat-continuity-candidate using same account-only wall auth, original enrolled device, PostgreSQL and Redis unaffected. Internal Agent IPC and Memory SQLite local in Gold UAT wall state, no new external service. Gold NetBird same Wall:100.94.184.141:5491/projects; Login 200, auth anonymous redirects/401, plugin health 200. Signed local read/write source tested but live ChatGPT session A->B and Codex Plus still not accepted. Device channel HTTP502 and supervisor_owner_invalid logs remain OPEN. Release BLOCKED."
 }

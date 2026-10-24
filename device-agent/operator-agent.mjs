@@ -90,6 +90,8 @@ async function ownerConsentWithStepUp({principal,password,projectId,enabled,expe
   if(!current||current.revision!==expectedRevision)throw Error('continuity_stale_revision');
   if(!current.memory_enabled)throw Error('continuity_memory_disabled');
   if(!['read','write'].includes(scope))throw Error('continuity_owner_consent_scope_invalid');
+  if(!isolatedContinuityEnabled())
+   provisionContinuityOwnerAuthority({root,signerDir,password:credential});
   if(isolatedContinuityEnabled())return projectContinuityOwnerConsent({
     principal:username,password:credential,projectId,enabled,expectedRevision,scope});
   const proof=signContinuityConsent({root,signerDir,password:credential,projectId,enabled,revision:expectedRevision,principal:username,scope});
@@ -119,8 +121,22 @@ async function ownerRekeyAfterCredentialChange({principal,oldPassword,newPasswor
   return rekeyContinuityOwnerAuthority({root:continuityDefaultRoot(),
     signerDir:path.dirname(LOCAL_WALL_AUTH_FILE),oldPassword,newPassword:currentPassword});
 }
+let GOLD_LOCAL_CONTINUITY=null;
+async function goldLocalContinuityRequest(action,data){
+ const {isolatedContinuityEnabled,projectContinuityRequest}=await import('./project-continuity-client.mjs');
+ if(!isolatedContinuityEnabled()&&!GOLD_LOCAL_CONTINUITY){
+  const {startContinuityServer}=await import('./project-continuity-ipc.mjs');
+  GOLD_LOCAL_CONTINUITY=startContinuityServer();
+  await new Promise((resolve,reject)=>{
+   if(GOLD_LOCAL_CONTINUITY.server.listening)return resolve();
+   GOLD_LOCAL_CONTINUITY.server.once('listening',resolve);
+   GOLD_LOCAL_CONTINUITY.server.once('error',reject);
+  });
+ }
+ return projectContinuityRequest(action,data);
+}
 const CONTINUITY_UI=process.env.LIGHT_REMOTE_PROJECT_CONTINUITY_EXPERIMENTAL==='1'
-  ? {request:async(action,data)=>{const {projectContinuityRequest}=await import('./project-continuity-client.mjs');return projectContinuityRequest(action,data);},
+  ? {request:goldLocalContinuityRequest,
      ownerConsent:ownerConsentWithStepUp,
      ownerRekey:ownerRekeyAfterCredentialChange}
   : null;
@@ -1011,15 +1027,24 @@ async function daemon(args){
   // Do not start a signed command channel with an unprobed new Agent.
   await EXECUTOR_PROBE.check();
   if(EXECUTOR_PROBE.status().ready===null)await EXECUTOR_PROBE.check();
-  const stop=()=>{if(stopped)return;EXECUTOR_PROBE.stop();NATIVE_PROCESSES.close();NATIVE_TERMINALS.close();stopped=true;if(wake)wake();if(fleetTimer){clearInterval(fleetTimer);fleetTimer=null;}fleetSupervisor.close().catch(()=>{});try{localWall?.server.close();}catch{}};process.on('SIGTERM',stop);process.on('SIGINT',stop);
+  const stop=()=>{if(stopped)return;if(GOLD_LOCAL_CONTINUITY){void GOLD_LOCAL_CONTINUITY.stop().catch(()=>{});GOLD_LOCAL_CONTINUITY=null;}EXECUTOR_PROBE.stop();NATIVE_PROCESSES.close();NATIVE_TERMINALS.close();stopped=true;if(wake)wake();if(fleetTimer){clearInterval(fleetTimer);fleetTimer=null;}fleetSupervisor.close().catch(()=>{});try{localWall?.server.close();}catch{}};process.on('SIGTERM',stop);process.on('SIGINT',stop);
   const wait=ms=>new Promise(resolve=>{const timer=setTimeout(()=>{wake=null;resolve();},ms);wake=()=>{clearTimeout(timer);wake=null;resolve();};});
   if(!fs.existsSync(LOCAL_WALL_AUTH_FILE))writeAccountOnlyWallAuthConfig(LOCAL_WALL_AUTH_FILE,{username:'account'});
   const wallAuth=loadLocalWallAuth(LOCAL_WALL_AUTH_FILE,{required:!['127.0.0.1','::1','localhost'].includes(String(LOCAL_WALL_HOST))});
   if(CONTINUITY_UI){
-    const {continuityDefaultRoot}=await import('./project-continuity-store.mjs');
+    const {continuityDefaultRoot,ContinuityStore}=await import('./project-continuity-store.mjs');
     const {isolatedContinuityEnabled}=await import('./project-continuity-client.mjs');
-    if(!isolatedContinuityEnabled())
-      provisionContinuityOwnerAuthority({root:continuityDefaultRoot(),signerDir:path.dirname(LOCAL_WALL_AUTH_FILE)});
+    if(!isolatedContinuityEnabled()){
+      const root=continuityDefaultRoot();
+      provisionContinuityOwnerAuthority({root,signerDir:path.dirname(LOCAL_WALL_AUTH_FILE)});
+      const existing=path.join(root,'continuity.db');
+      if(fs.existsSync(existing)){
+        const store=new ContinuityStore({root});
+        const enabled=store.moduleSettings().memoryEnabled||store.moduleSettings().codexEnabled;
+        store.close();
+        if(enabled)await goldLocalContinuityRequest('getGlobalModules',{});
+      }
+    }
   }
   localWall=startLocalWall({continuity:CONTINUITY_UI,host:LOCAL_WALL_HOST,port:LOCAL_WALL_PORT,brandSvgPath:LOCAL_WALL_BRAND,auth:wallAuth,getLocalStatus:async()=>({...statusView(),fleetWall:await localFleetStatus()}),getLocalPolicyStatus:async()=>statusView(),getPendingAccess:async()=>remoteAccessLookup(hub),getRemoteStatus:async()=>{const remote=await remoteDeviceStatus(hub);return remote;},getRemoteActivity:async limit=>remoteDeviceActivity(hub,limit),getLocalProcesses:async()=>((SUPERVISED_PROCESSES?await SUPERVISED_PROCESSES.listDevice(state.enrollment.accountId,state.enrollment.deviceId):NATIVE_PROCESSES.list())).map(p=>({
     processId:p.processId,sessionId:p.sessionId,pid:p.pid,state:p.state,

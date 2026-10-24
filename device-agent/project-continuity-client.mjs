@@ -38,9 +38,12 @@ export async function projectContinuityRequest(action,data={},options={}){
  }
  // Legacy same-user Controller is suitable for local-only P1 pilot, NOT
  // remote session trust. The isolated broker is mandatory for remoteBrief.
- if(action==='remoteBrief')throw Error('continuity_isolated_broker_required_for_remote_read');
- if(action==='remoteMemoryCheckpoint')throw Error('continuity_isolated_broker_required_for_remote_write');
  const {continuityRequest}=await import('./project-continuity-ipc.mjs');
+ if(action==='remoteBrief'||action==='remoteMemoryCheckpoint'){
+  if(!data?.proof||typeof data.requestId!=='string')
+   throw Error('continuity_remote_delegation_required');
+  return continuityRequest(action==='remoteBrief'?'remoteSignedRead':'remoteSignedWrite',data,options);
+ }
  return continuityRequest(action,data,options);
 }
 export async function projectContinuityOwnerConsent({principal,password,projectId,enabled,expectedRevision,scope='read'}={}){

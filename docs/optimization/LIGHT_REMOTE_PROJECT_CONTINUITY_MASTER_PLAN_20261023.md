@@ -217,3 +217,7 @@ Cognee reference only: https://www.cognee.ai/how-cognee-builds-ai-memory
 ## 2026-10-24 Gold signed Long Memory note checkpoints
 
 [Gold signed checkpoint source handoff](./LIGHT_REMOTE_GOLD_LONG_MEMORY_SIGNED_CHECKPOINT_HANDOFF_20261024.md). Existing Gold plugin/account/Wall + active A/B only, separate owner read/write consent, 6s signed note, local SQLite v11, idempotent stable operationId. OFF/OFF unaffected. Source PASS, real ChatGPT session A to B and Plus Codex remain OPEN, release BLOCKED.
+
+## 2026-10-24 One real Gold UAT stack, original Account/Wall
+
+[Real Gold UAT integrated Long Memory/Codex observer handoff](./LIGHT_REMOTE_GOLD_UAT_SINGLE_STACK_CONTINUITY_HANDOFF_20261024.md). Owner-requested offline snapshot, deleted wrong separate Continuity LXD, 3 integrated Gold services using original Account/Wall; no new app or Account. Gold UAT login and plugin healthy, local signed Memory test PASS; live A/B Web chat handoff still OPEN, Codex observer live Plus still OPEN. Release BLOCKED.
