@@ -127,6 +127,15 @@ export function listGoldScopes(db,{accountId}={}){
   ORDER BY s.updated_at DESC,s.scope_id LIMIT 100`)
     .all(required(accountId,160,'gold_scope_account_invalid'));
 }
+export function changeGoldScopeCapture(db,{accountId,scopeId,captureMode}={}){
+  prepareGoldMemoryV2(db);
+  if(!CAPTURE.has(captureMode))throw problem('gold_scope_capture_mode_invalid');
+  const scope=ownScope(db,{accountId,scopeId});
+  if(scope.status!=='active')throw problem('gold_scope_archived',409);
+  db.prepare('UPDATE lm_scopes SET capture_mode=?,updated_at=? WHERE scope_id=? AND account_id=?')
+    .run(captureMode,Date.now(),scope.scope_id,accountId);
+  return {scopeId:scope.scope_id,captureMode};
+}
 export function bindGoldScope(db,{accountId,scopeId,sourceType,sourceId,proofType}={}){
   prepareGoldMemoryV2(db);
   ownScope(db,{scopeId,accountId});
@@ -158,7 +167,7 @@ export function resolveGoldScope(db,{accountId,sourceType,sourceId}={}){
     .get(a,sourceType,id,a);
   return row||{scopeId:null,unassigned:true};
 }
-export function appendGoldScopedCheckpoint(db,keyFile,{accountId,deviceId,scopeId,kind='checkpoint',title,body,source,status='observed',evidence}={}){
+export function appendGoldScopedCheckpoint(db,keyFile,{accountId,deviceId,scopeId,kind='checkpoint',title,body,source,status='observed',evidence,transactionManaged=false}={}){
   prepareGoldMemoryV2(db);
   const s=ownScope(db,{scopeId,accountId});
   if(s.status!=='active')throw problem('gold_scope_archived',409);
@@ -171,7 +180,7 @@ export function appendGoldScopedCheckpoint(db,keyFile,{accountId,deviceId,scopeI
   const proof=checkEvidence(evidence);
   const keys=signingKeys(keyFile);
   if(keys.publicDer!==s.home_public_key)throw problem('gold_scope_home_public_key_mismatch',409);
-  db.exec('BEGIN IMMEDIATE');
+  if(!transactionManaged)db.exec('BEGIN IMMEDIATE');
   try{
     const head=db.prepare('SELECT * FROM lm_heads WHERE scope_id=?').get(s.scope_id);
     if(!head||head.home_epoch!==s.home_epoch)throw problem('gold_scope_epoch_conflict',409);
@@ -188,10 +197,10 @@ export function appendGoldScopedCheckpoint(db,keyFile,{accountId,deviceId,scopeI
     const changed=db.prepare('UPDATE lm_heads SET revision=?,head_hash=?,updated_at=? WHERE scope_id=? AND home_epoch=? AND revision=?')
        .run(item.revision,contentHash,item.committedAt,item.scopeId,item.homeEpoch,head.revision);
     if(changed.changes!==1)throw problem('gold_scope_head_cas_conflict',409);
-    db.exec('COMMIT');
+    if(!transactionManaged)db.exec('COMMIT');
     return {checkpointId:item.checkpointId,scopeId:item.scopeId,homeEpoch:item.homeEpoch,
       revision:item.revision,contentHash,integrity:'home_ed25519_signed'};
-  }catch(e){db.exec('ROLLBACK');throw e;}
+  }catch(e){if(!transactionManaged)db.exec('ROLLBACK');throw e;}
 }
 function verified(db,scope,row){
   if(!row)throw problem('gold_scope_checkpoint_not_found',404);

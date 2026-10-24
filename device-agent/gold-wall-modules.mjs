@@ -9,7 +9,8 @@ import {createRequire} from 'node:module';
 import {createGoldCodexConnection} from './gold-codex-api.mjs';
 import {createGoldCodexPlus} from './gold-codex-plus.mjs';
 import {saveGoldCheckpoint,readGoldCheckpoint,listGoldCheckpoints,goldHandoff,saveGoldObserverReceipt,listGoldObserverReceipts,confirmGoldObserverTask} from './gold-memory-ledger.mjs';
-import {createGoldScope,listGoldScopes,bindGoldScope,resolveGoldScope,appendGoldScopedCheckpoint,readGoldScopedCheckpoint,goldScopedHandoff,goldLegacyUnassignedCount} from './gold-memory-scope.mjs';
+import {createGoldScope,listGoldScopes,changeGoldScopeCapture,bindGoldScope,resolveGoldScope,appendGoldScopedCheckpoint,readGoldScopedCheckpoint,goldScopedHandoff,goldLegacyUnassignedCount} from './gold-memory-scope.mjs';
+import {ingestGoldAutoEvent,ingestGoldAutoFsEffect,resolveGoldAutoWorkspace,flushGoldAuto,goldAutoPending} from './gold-memory-auto.mjs';
 const loadBuiltin=createRequire(import.meta.url);
 
 function fault(code,status=400){return Object.assign(new Error(code),{status});}
@@ -83,14 +84,34 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
     // G1: explicit, trusted local account/device binding; no unscoped automatic writes.
     createMemoryScope(input={}){const x=scopedIdentity();return createGoldScope(enabled('longMemory'),scopeKeyFile,{...input,accountId:x.accountId,homeDeviceId:x.deviceId});},
     listMemoryScopes(){const x=scopedIdentity();return listGoldScopes(enabled('longMemory'),{accountId:x.accountId});},
+    changeScopeCapture(input={}){const x=scopedIdentity();return changeGoldScopeCapture(enabled('longMemory'),{...input,accountId:x.accountId});},
     bindMemoryScope(input={}){const x=scopedIdentity();return bindGoldScope(enabled('longMemory'),{...input,accountId:x.accountId});},
     resolveMemoryScope(input={}){const x=scopedIdentity();return resolveGoldScope(enabled('longMemory'),{...input,accountId:x.accountId});},
     appendScopedCheckpoint(input={}){const x=scopedIdentity();return appendGoldScopedCheckpoint(enabled('longMemory'),scopeKeyFile,{...input,accountId:x.accountId,deviceId:x.deviceId});},
     readScopedCheckpoint(input={}){const x=scopedIdentity();return readGoldScopedCheckpoint(enabled('longMemory'),{...input,accountId:x.accountId});},
     scopedHandoff(input={}){const x=scopedIdentity();return goldScopedHandoff(enabled('longMemory'),{...input,accountId:x.accountId});},
     legacyUnassignedCount(){scopedIdentity();return goldLegacyUnassignedCount(enabled('longMemory'));},
+    ingestAutoEvent(input={}){const x=scopedIdentity();return ingestGoldAutoEvent(enabled('longMemory'),{...input,accountId:x.accountId,deviceId:x.deviceId});},
+    ingestFsEffect(input={}){const x=scopedIdentity();return ingestGoldAutoFsEffect(enabled('longMemory'),{...input,accountId:x.accountId,deviceId:x.deviceId});},
+    resolveAutoWorkspace(input={}){const x=scopedIdentity();return resolveGoldAutoWorkspace(enabled('longMemory'),{...input,accountId:x.accountId,deviceId:x.deviceId});},
+    flushAuto(input={}){const x=scopedIdentity();return flushGoldAuto(enabled('longMemory'),scopeKeyFile,{...input,accountId:x.accountId,deviceId:x.deviceId});},
+    autoPending(){const x=scopedIdentity();return goldAutoPending(enabled('longMemory'),{accountId:x.accountId});},
     observerReceipts(){return listGoldObserverReceipts(enabled('codexBridge'));},
-    confirmObserverTask(input={}){return confirmGoldObserverTask(enabled('codexBridge'),input);},
+    confirmObserverTask(input={}){
+      const db=enabled('codexBridge');
+      const result=confirmGoldObserverTask(db,input); // owner-approved CAS is the authority
+      if(flags().longMemory){
+        try{
+          const x=scopedIdentity();
+          ingestGoldAutoEvent(db,{accountId:x.accountId,deviceId:x.deviceId,
+            sourceType:'task',sourceId:result.taskId,workContextId:'task:'+result.taskId,
+            eventType:'task_state_changed',
+            eventRef:'task:owner-approve:'+result.receiptId+':'+result.taskId});
+        }catch(e){if(e.message!=='gold_scope_trusted_identity_required')
+          console.error(JSON.stringify({event:'gold_auto_owner_transition_failed',code:String(e.message).slice(0,90)}));}
+      }
+      return result;
+    },
     saveNote(input={}){
       const db=enabled('longMemory');
       if(!['note','decision','checkpoint'].includes(input.kind??'note'))throw fault('gold_memory_kind_invalid');
@@ -114,6 +135,21 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
       const db=enabled('codexBridge');
       const title=strictText(input.title,240,'gold_observer_task_invalid');
       const id=crypto.randomUUID(),now=Date.now();
+      if(input.scopeId){
+        if(!flags().longMemory)throw fault('gold_module_disabled',409);
+        const identity=scopedIdentity();
+        db.exec('BEGIN IMMEDIATE');
+        try{
+          db.prepare('INSERT INTO observer_tasks(id,title,state,created_ms,changed_ms) VALUES(?,?,?,?,?)').run(id,title,'todo',now,now);
+          bindGoldScope(db,{accountId:identity.accountId,scopeId:input.scopeId,sourceType:'task',
+            sourceId:id,proofType:'owner_explicit'});
+          db.exec('COMMIT');
+        }catch(e){db.exec('ROLLBACK');throw e;}
+        const event=ingestGoldAutoEvent(db,{accountId:identity.accountId,deviceId:identity.deviceId,
+          sourceType:'task',sourceId:id,workContextId:'task:'+id,
+          eventType:'task_created',eventRef:'task:create:'+id});
+        return {id,title,state:'todo',scopeId:input.scopeId,autoEventQueued:event.accepted};
+      }
       db.prepare('INSERT INTO observer_tasks(id,title,state,created_ms,changed_ms) VALUES(?,?,?,?,?)').run(id,title,'todo',now,now);
       return {id,title,state:'todo'};
     },
@@ -121,9 +157,24 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
       const db=enabled('codexBridge');
       const id=strictText(input.id,64,'gold_observer_task_id_invalid');
       if(!['todo','working','done','waiting'].includes(input.state))throw fault('gold_observer_state_invalid');
-      const result=db.prepare('UPDATE observer_tasks SET state=?,changed_ms=? WHERE id=?').run(input.state,Date.now(),id);
-      if(result.changes!==1)throw fault('gold_observer_task_not_found',404);
-      return {id,state:input.state};
+      const prior=db.prepare('SELECT state FROM observer_tasks WHERE id=?').get(id);
+      if(!prior)throw fault('gold_observer_task_not_found',404);
+      if(prior.state===input.state)return {id,state:input.state,unchanged:true};
+      const changedAt=Date.now();
+      const changed=db.prepare('UPDATE observer_tasks SET state=?,changed_ms=? WHERE id=? AND state=?')
+        .run(input.state,changedAt,id,prior.state);
+      if(changed.changes!==1)throw fault('gold_observer_task_changed',409);
+      let autoEventQueued=false;
+      if(flags().longMemory){
+        try{
+          const identity=scopedIdentity();
+          autoEventQueued=ingestGoldAutoEvent(db,{accountId:identity.accountId,deviceId:identity.deviceId,
+            sourceType:'task',sourceId:id,workContextId:'task:'+id,
+            eventType:'task_state_changed',eventRef:'task:change:'+id+':'+changedAt+':'+crypto.randomUUID()}).accepted;
+        }catch(e){if(e.message!=='gold_scope_trusted_identity_required')
+          console.error(JSON.stringify({event:'gold_auto_task_capture_failed',code:String(e.message).slice(0,90)}));}
+      }
+      return {id,state:input.state,autoEventQueued};
     },
     async codexPlusStatus(){enabled('codexBridge');return plus.account();},
     async codexPlusLogin(){enabled('codexBridge');return plus.beginLogin();},

@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { StringDecoder } from 'node:string_decoder';
-import { spawn } from 'node:child_process';
+import { spawn, execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { deviceChannelMessage, deviceHeartbeatMessage, devicePolicyMessage, normalizeDeviceCapabilities } from '../lib/device-proof.mjs';
 import { createPlatformAdapter } from './platform-adapters/index.mjs';
@@ -668,7 +668,7 @@ async function executeScpCommand(state,p){
   throw new Error('scp_operation_unsupported');
 }
 
-async function executeCommand(state,command,{hub=DEFAULT_HUB}={}){
+async function executeCommandCore(state,command,{hub=DEFAULT_HUB}={}){
   const existing=readCommand(command.commandId);
   if(existing?.state==='finished'&&existing.result)return existing.result;
   if(existing?.state==='running'){
@@ -769,6 +769,61 @@ async function executeCommand(state,command,{hub=DEFAULT_HUB}={}){
   });
   const result={commandId:command.commandId,status:timedOut?'timeout':exitCode===0?'ok':'error',exitCode:timedOut?124:Math.max(0,Math.min(Number(exitCode)||0,255)),stdout:out.text(),stderr:err.text(),durationMs:Date.now()-startedAt,outputTruncated:out.truncated()||err.truncated(),telemetry:{firstOutputAt}};
   writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;
+}
+function checkedGitHead(cwd){
+  try{
+    const sha=execFileSync('git',['rev-parse','--verify','HEAD'],{
+      cwd,timeout:1500,maxBuffer:256,encoding:'utf8',
+      env:{...process.env,GIT_OPTIONAL_LOCKS:'0'}
+    }).trim();
+    return /^[a-f0-9]{40,64}$/.test(sha)?sha:null;
+  }catch{return null;}
+}
+async function executeCommand(state,command,options={}){
+  // The Agent alone knows whether an operation completed successfully.
+  // Never infer filesystem changes from a successful shell/PTY command.
+  const prior=readCommand(command.commandId);
+  const payload=command.payload||{};
+  let verifiedWorkspace=null,oldHead=null;
+  if(!prior && payload.type==='exec' && typeof payload.cwd==='string'){
+    try{
+      verifiedWorkspace=GOLD_WALL_MODULES.resolveAutoWorkspace({filePath:payload.cwd});
+      if(verifiedWorkspace.scopeId&&verifiedWorkspace.captureMode!=='manual')
+        oldHead=checkedGitHead(payload.cwd);
+    }catch{verifiedWorkspace=null;}
+  }
+  const result=await executeCommandCore(state,command,options);
+  if(!prior&&verifiedWorkspace?.scopeId&&oldHead&&result?.status==='ok'){
+    const newHead=checkedGitHead(payload.cwd);
+    if(newHead&&newHead!==oldHead){
+      try{
+        const event=GOLD_WALL_MODULES.ingestAutoEvent({
+          sourceType:verifiedWorkspace.sourceType,sourceId:verifiedWorkspace.sourceId,
+          workContextId:verifiedWorkspace.workContextId,eventType:'repository_head_changed',
+          eventRef:'git:'+newHead+':'+String(command.commandId||'')
+        });
+        if(event.accepted&&!event.duplicate)console.log(JSON.stringify({
+          event:'gold_auto_repository_head_queued',scopeId:event.scopeId,eventId:event.eventId}));
+      }catch(error){console.error(JSON.stringify({
+        event:'gold_auto_repository_capture_failed',code:String(error.message).slice(0,90)}));}
+    }
+  }
+  const fsOp=String(command.payload?.fs?.op||'');
+  if(!prior&&command.payload?.type==='fs'&&
+    ['write','edit','mkdir','delete'].includes(fsOp)&&result?.status==='ok'&&result.data?.ok===true){
+    try{
+      const event=GOLD_WALL_MODULES.ingestFsEffect({
+        operation:fsOp,filePath:result.data.path,eventRef:'command:'+String(command.commandId||'')
+      });
+      if(event.accepted&&!event.duplicate)console.log(JSON.stringify({
+        event:'gold_auto_memory_event_queued',scopeId:event.scopeId,eventId:event.eventId}));
+    }catch(error){
+      // Memory remains opt-in and must never roll back a valid Gold operation.
+      if(String(error.message)!=='gold_module_disabled')
+        console.error(JSON.stringify({event:'gold_auto_memory_event_failed',code:String(error.message).slice(0,90)}));
+    }
+  }
+  return result;
 }
 async function localFleetStatus(){try{const r=await fetch(`http://${FLEET_WALL_HOST}:${FLEET_WALL_PORT}/healthz`,{headers:{accept:'application/json'},signal:AbortSignal.timeout(800)}),j=await r.json();if(!r.ok||!j.ok||j.service!=='light-remote-fleet-wall')throw new Error('fleet_wall_unhealthy');return {healthy:true,port:FLEET_WALL_PORT,version:j.version||null,publicUrl:FLEET_WALL_PUBLIC_URL||null};}catch{return {healthy:false,port:FLEET_WALL_PORT,version:null,publicUrl:FLEET_WALL_PUBLIC_URL||null};}}
 function cloudDesired(state){return Boolean(state?.enrollment?.deviceId)&&state?.cloud?.desiredConnected!==false;}
@@ -927,7 +982,7 @@ async function daemon(args){
   // Do not start a signed command channel with an unprobed new Agent.
   await EXECUTOR_PROBE.check();
   if(EXECUTOR_PROBE.status().ready===null)await EXECUTOR_PROBE.check();
-  const stop=()=>{if(stopped)return;EXECUTOR_PROBE.stop();NATIVE_PROCESSES.close();NATIVE_TERMINALS.close();stopped=true;if(wake)wake();if(fleetTimer){clearInterval(fleetTimer);fleetTimer=null;}fleetSupervisor.close().catch(()=>{});try{localWall?.server.close();}catch{}};process.on('SIGTERM',stop);process.on('SIGINT',stop);
+  const stop=()=>{if(stopped)return;EXECUTOR_PROBE.stop();NATIVE_PROCESSES.close();NATIVE_TERMINALS.close();stopped=true;if(typeof goldMemoryFlushTimer!=='undefined')clearInterval(goldMemoryFlushTimer);if(wake)wake();if(fleetTimer){clearInterval(fleetTimer);fleetTimer=null;}fleetSupervisor.close().catch(()=>{});try{localWall?.server.close();}catch{}};process.on('SIGTERM',stop);process.on('SIGINT',stop);
   const wait=ms=>new Promise(resolve=>{const timer=setTimeout(()=>{wake=null;resolve();},ms);wake=()=>{clearTimeout(timer);wake=null;resolve();};});
   if(!fs.existsSync(LOCAL_WALL_AUTH_FILE))writeAccountOnlyWallAuthConfig(LOCAL_WALL_AUTH_FILE,{username:'account'});
   const wallAuth=loadLocalWallAuth(LOCAL_WALL_AUTH_FILE,{required:!['127.0.0.1','::1','localhost'].includes(String(LOCAL_WALL_HOST))});
@@ -960,6 +1015,19 @@ async function daemon(args){
   const reconcileFleet=async()=>{if(stopped||fleetReconciling)return;fleetReconciling=true;try{const current=readState();if(current)expireLocalHardLease(current);if(!current?.enrollment?.deviceId||!cloudDesired(current)||current.cloud?.state!=='connected'){await fleetSupervisor.stop('device_cloud_dormant');return;}await fleetSupervisor.reconcile();}catch(error){console.error(JSON.stringify({event:'fleet_component_reconcile_failed',error:error.message,status:error.status||null}));}finally{fleetReconciling=false;}};
   fleetTimer=setInterval(reconcileFleet,fleetReconcileMs);fleetTimer.unref?.();
   const workerReceiptTimer=setInterval(()=>void refreshProcessTerminalReceipts(readState()||state),5000);
+  // Flush only pending, scoped Gold events. An OFF module has zero workload.
+  const goldMemoryFlushTimer=setInterval(()=>{
+    try{
+      const saved=GOLD_WALL_MODULES.flushAuto();
+      for(const row of saved.checkpoints)console.log(JSON.stringify({
+        event:'gold_auto_memory_checkpoint_committed',scopeId:row.scopeId,
+        checkpointId:row.checkpointId,revision:row.revision,eventCount:row.events}));
+    }catch(error){
+      if(String(error.message)!=='gold_module_disabled')
+        console.error(JSON.stringify({event:'gold_auto_memory_flush_failed',code:String(error.message).slice(0,90)}));
+    }
+  },5000);
+  goldMemoryFlushTimer.unref?.();
   workerReceiptTimer.unref?.();
   await refreshProcessTerminalReceipts(state);
   while(!stopped){

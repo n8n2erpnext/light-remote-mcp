@@ -83,6 +83,16 @@ try{
   assert.equal(v2.handoff.checkpoints[0].integrity,'home_ed25519_verified');
   assert.equal(v2.handoff.checkpoints[0].title,'G1 scoped UI');
   assert.equal(v2.handoff.revision,1);
+  const policy=await post('/api/gold/modules/scope/capture',{
+    scopeId:scope.scopeId,captureMode:'auto'});
+  assert.equal(policy.status,200);
+  assert.equal((await policy.json()).policy.captureMode,'auto');
+  const pending=await fetch(base+'/api/gold/modules/auto/pending',{headers:owner});
+  assert.equal(pending.status,200);
+  assert.deepEqual((await pending.json()).pending,[]);
+  assert.equal((await post('/api/gold/modules/scope/capture',{
+    scopeId:scope.scopeId,captureMode:'invalid'},owner)).status,403);
+  console.log('GOLD_G2_SCOPED_OWNER_CAPTURE_MODE_CSRF_PASS');
   console.log('GOLD_G1_OWNER_SCOPED_WALL_CSRF_HANDOFF_PASS');
   console.log('GOLD_MEMORY_SESSION_A_TO_B_SIGNED_LOCAL_CHECKPOINT_PASS');
   const e2eFile=path.join(dir,'codex-linked.sqlite');
