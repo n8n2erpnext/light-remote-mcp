@@ -275,8 +275,9 @@ export function registerPluginTools(server,identity){
   add(server,'light_remote_long_memory_read',{
     title:'Retrieve owner-approved Long Memory checkpoints across ChatGPT sessions',
     description:'Read verified device-local handoff checkpoints from one explicitly selected, currently A/B-authorized Gold session. No hidden ChatGPT transcript, no Project. Uses the existing governed Agent and requires remote:execute.',
-    inputSchema:{sessionId:id,operationId:opId,clientRoot:pathText.optional(),action:z.enum(['handoff','list','get']),
-      id:z.string().uuid().optional(),query:z.string().max(160).optional(),limit:z.number().int().min(1).max(30).optional()},
+    inputSchema:{sessionId:id,operationId:opId,clientRoot:pathText.optional(),action:z.enum(['handoff','list','get','scopes','scope_resolve','scope_handoff','scope_get']),
+      id:z.string().uuid().optional(),scopeId:z.string().uuid().optional(),query:z.string().max(160).optional(),
+      sourceType:z.enum(['workspace','repository','job','task','work_context']).optional(),sourceId:z.string().max(1024).optional(),limit:z.number().int().min(1).max(30).optional()},
     securitySchemes:security(['remote:execute']),annotations:annotations(true,false,false,true)
   },guarded(identity,['remote:execute'],(a,x)=>runGoldMemoryViaAuthorizedSession(a,x)));
 
@@ -284,10 +285,12 @@ export function registerPluginTools(server,identity){
     title:'Save explicitly approved handoff to Long Memory',
     description:'Append a device-local HMAC-verified checkpoint on the exact A/B-authorized Gold session. Only save information the owner explicitly approved; do not claim access to hidden ChatGPT context.',
     inputSchema:{sessionId:id,operationId:opId,clientRoot:pathText.optional(),title:z.string().min(1).max(240),
-      body:z.string().min(1).max(12000),source:z.string().min(1).max(512),
+      body:z.string().min(1).max(12000),source:z.string().min(1).max(512),scopeId:z.string().uuid().optional(),
+      status:z.enum(['observed','claimed','test_passed','owner_approved','blocked']).optional(),
+      evidence:z.array(z.string().min(1).max(300)).max(24).optional(),
       kind:z.enum(['checkpoint','decision','handoff']).optional()},
     securitySchemes:security(['remote:execute']),annotations:annotations(false,false,false,false)
-  },guarded(identity,['remote:execute'],(a,x)=>runGoldMemoryViaAuthorizedSession(a,{...x,action:'save'})));
+  },guarded(identity,['remote:execute'],(a,x)=>runGoldMemoryViaAuthorizedSession(a,{...x,action:x.scopeId?'scope_save':'save'})));
 
   add(server,'light_remote_read_file',{
     title:'Read a remote text file',

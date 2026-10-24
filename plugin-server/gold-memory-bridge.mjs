@@ -9,21 +9,36 @@ const MARKER='LIGHT_REMOTE_GOLD_MEMORY_V1=';
 function failure(code,status=400){return Object.assign(new Error(code),{status});}
 function b64url(value){return Buffer.from(JSON.stringify(value),'utf8').toString('base64url');}
 export function makeGoldMemoryExecScript(x){
-  if(!['handoff','list','get','save'].includes(x.action))throw failure('gold_memory_action_invalid');
+  if(!['handoff','list','get','save','scopes','scope_resolve','scope_handoff','scope_get','scope_save'].includes(x.action))throw failure('gold_memory_action_invalid');
   const clean={action:x.action};
-  if(x.action==='save'){
+  if(['save','scope_save'].includes(x.action)){
     if(typeof x.title!=='string'||x.title.length<1||x.title.length>240
       ||typeof x.body!=='string'||x.body.length<1||x.body.length>12000
       ||typeof x.source!=='string'||x.source.length<1||x.source.length>512)
       throw failure('gold_memory_save_validation_failed');
     Object.assign(clean,{title:x.title,body:x.body,source:x.source,kind:x.kind||'checkpoint'});
+    if(x.action==='scope_save'){
+      if(!x.scopeId||!/^[-a-f0-9]{36}$/i.test(x.scopeId))throw failure('gold_scope_id_invalid');
+      clean.scopeId=x.scopeId;
+      if(x.status!==undefined)clean.status=x.status;
+      if(x.evidence!==undefined)clean.evidence=x.evidence;
+    }
   }
-  if(x.action==='get'){
+  if(['get','scope_get'].includes(x.action)){
     if(typeof x.id!=='string'||!/^[a-f0-9-]{36}$/.test(x.id))throw failure('gold_memory_id_invalid');
     clean.id=x.id;
   }
   if(x.action==='list')clean.query=String(x.query||'').slice(0,160);
-  if(x.action==='list'||x.action==='handoff')clean.limit=Math.max(1,Math.min(Number(x.limit)||5,30));
+  if(['list','handoff','scope_handoff'].includes(x.action))clean.limit=Math.max(1,Math.min(Number(x.limit)||5,30));
+  if(['scope_handoff','scope_get'].includes(x.action)){
+    if(!x.scopeId||!/^[-a-f0-9]{36}$/i.test(x.scopeId))throw failure('gold_scope_id_invalid');
+    clean.scopeId=x.scopeId;
+  }
+  if(x.action==='scope_resolve'){
+    if(!['workspace','repository','job','task','work_context'].includes(x.sourceType)||
+       typeof x.sourceId!=='string'||x.sourceId.length>1024)throw failure('gold_scope_resolve_invalid');
+    clean.sourceType=x.sourceType;clean.sourceId=x.sourceId;
+  }
   const encoded=b64url(clean);
   // base64url is shell-inert on bash, sh and PowerShell.
   if(!/^[A-Za-z0-9_-]+$/.test(encoded))throw failure('gold_memory_encoding_invalid');

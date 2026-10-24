@@ -79,7 +79,10 @@ const MAX_OUTPUT=4*1024*1024;
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 function sha256(value){return crypto.createHash('sha256').update(value).digest('hex');}
 function parseArgs(argv){const out={_:[]};for(let i=0;i<argv.length;i++){const v=argv[i];if(!v.startsWith('--'))out._.push(v);else{const k=v.slice(2);if(['no-wait','reenroll'].includes(k))out[k]=true;else{const raw=argv[++i];out[k]=k==='base'?migrateLegacyEndpoint(raw,{kind:'base'}):k==='hub'?migrateLegacyEndpoint(raw,{kind:'hub'}):raw;}}}return out;}
-const GOLD_WALL_MODULES=createGoldWallModules({file:path.join(path.dirname(STATE_FILE),'gold-wall-modules.sqlite')});
+const GOLD_WALL_MODULES=createGoldWallModules({
+  file:path.join(path.dirname(STATE_FILE),'gold-wall-modules.sqlite'),
+  scopeIdentity:()=>{const e=readState()?.enrollment;return e?.accountId&&e?.deviceId?{accountId:e.accountId,deviceId:e.deviceId}:null;}
+});
 function readState(){try{return JSON.parse(fs.readFileSync(STATE_FILE,'utf8'));}catch{return null;}}
 function effectiveFilesystemPolicy(state){
   return filesystemPolicy(process.env,state?.policy?.filesystemRoots??null);

@@ -7,7 +7,7 @@ import {createGoldWallModules} from '../../device-agent/gold-wall-modules.mjs';
 import {startLocalWall} from '../../device-agent/local-wall.mjs';
 
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'gold-cross-session-')),file=path.join(dir,'gold-wall-modules.sqlite');
-let m=createGoldWallModules({file}),wall;
+let m=createGoldWallModules({file,scopeIdentity:{accountId:'owner-test',deviceId:'arm-test'}}),wall;
 try{
   assert.equal(fs.existsSync(file),false);
   assert.throws(()=>m.handoff(),/gold_module_disabled/);
@@ -19,7 +19,7 @@ try{
   assert.equal(m.readCheckpoint(a.id).integrity,'device_hmac_verified');
   assert.equal(m.handoff().checkpoints[0].body,'Gold source pinned to ba579f8. No second Wall.');
   m.close();
-  m=createGoldWallModules({file}); // new ChatGPT Web session instance
+  m=createGoldWallModules({file,scopeIdentity:{accountId:'owner-test',deviceId:'arm-test'}}); // new ChatGPT Web session instance
   const b=m.handoff();
   assert.equal(b.checkpoints[0].id,a.id);
   assert.equal(b.checkpoints[0].signature,a.signature);
@@ -66,6 +66,24 @@ try{
   const post=(url,data,headers={'x-owner':'yes','x-light-remote-csrf':'gold-csrf'})=>fetch(base+url,{method:'POST',headers:{...headers,'content-type':'application/json'},body:JSON.stringify(data)});
   assert.equal((await post('/api/gold/modules/checkpoint',{title:'Deny',body:'X',source:'Y'},owner)).status,403);
   assert.equal((await post('/api/gold/modules/checkpoint',{title:'Session B',body:'Recovered prior context',source:'owner-confirmed-session-B'})).status,200);
+  const scopeCreate=await post('/api/gold/modules/scope',{displayName:'Gold UAT scoped',captureMode:'manual',syncPolicy:'local_only'});
+  assert.equal(scopeCreate.status,200);
+  const scope=(await scopeCreate.json()).scope;
+  const scopes=await (await fetch(base+'/api/gold/modules/scopes',{headers:owner})).json();
+  assert.equal(scopes.scopes.some(x=>x.scopeId===scope.scopeId),true);
+  assert.equal(scopes.legacyUnassigned,2);
+  const badCsrf=await post('/api/gold/modules/scope',{displayName:'Denied'},owner);
+  assert.equal(badCsrf.status,403);
+  assert.equal((await post('/api/gold/modules/scope/bind',{
+    scopeId:scope.scopeId,sourceType:'workspace',sourceId:'/gold/dev',proofType:'owner_explicit'})).status,200);
+  const signed=await post('/api/gold/modules/scope/checkpoint',{
+    scopeId:scope.scopeId,title:'G1 scoped UI',body:'Isolated project checkpoint',source:'owner-wall',status:'owner_approved'});
+  assert.equal(signed.status,200);
+  const v2=await (await fetch(base+'/api/gold/modules/scope/handoff?scopeId='+scope.scopeId,{headers:owner})).json();
+  assert.equal(v2.handoff.checkpoints[0].integrity,'home_ed25519_verified');
+  assert.equal(v2.handoff.checkpoints[0].title,'G1 scoped UI');
+  assert.equal(v2.handoff.revision,1);
+  console.log('GOLD_G1_OWNER_SCOPED_WALL_CSRF_HANDOFF_PASS');
   console.log('GOLD_MEMORY_SESSION_A_TO_B_SIGNED_LOCAL_CHECKPOINT_PASS');
   const e2eFile=path.join(dir,'codex-linked.sqlite');
   let calls=0;

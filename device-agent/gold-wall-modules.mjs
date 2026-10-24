@@ -41,9 +41,11 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
   const checkpointKeyFile=file+'.checkpoint-key';
   const scopeKeyFile=file+'.device-ed25519-key';
   function scopedIdentity(){
-    if(!scopeIdentity||typeof scopeIdentity.accountId!=='string'||typeof scopeIdentity.deviceId!=='string')
+    const identity=typeof scopeIdentity==='function'?scopeIdentity():scopeIdentity;
+    if(!identity||typeof identity.accountId!=='string'||!identity.accountId.trim()
+      ||typeof identity.deviceId!=='string'||!identity.deviceId.trim())
       throw fault('gold_scope_trusted_identity_required',403);
-    return scopeIdentity;
+    return {accountId:identity.accountId,deviceId:identity.deviceId};
   }
   function open(create=false){
     if(database)return database;
