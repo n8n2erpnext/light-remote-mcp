@@ -127,6 +127,16 @@ export function listGoldScopes(db,{accountId}={}){
   ORDER BY s.updated_at DESC,s.scope_id LIMIT 100`)
     .all(required(accountId,160,'gold_scope_account_invalid'));
 }
+export function changeGoldScopeSyncPolicy(db,{accountId,deviceId,scopeId,syncPolicy}={}){
+  prepareGoldMemoryV2(db);
+  if(!SYNC.has(syncPolicy))throw problem('gold_scope_sync_policy_invalid');
+  const s=ownScope(db,{accountId,scopeId});
+  if(s.status!=='active'||s.home_device_id!==deviceId)
+    throw problem('gold_scope_home_policy_only',403);
+  db.prepare('UPDATE lm_scopes SET sync_policy=?,updated_at=? WHERE scope_id=? AND account_id=?')
+    .run(syncPolicy,Date.now(),s.scope_id,accountId);
+  return {scopeId:s.scope_id,syncPolicy};
+}
 export function changeGoldScopeCapture(db,{accountId,scopeId,captureMode}={}){
   prepareGoldMemoryV2(db);
   if(!CAPTURE.has(captureMode))throw problem('gold_scope_capture_mode_invalid');
@@ -202,6 +212,16 @@ export function appendGoldScopedCheckpoint(db,keyFile,{accountId,deviceId,scopeI
     return {checkpointId:item.checkpointId,scopeId:item.scopeId,homeEpoch:item.homeEpoch,
       revision:item.revision,contentHash,integrity:'home_ed25519_signed'};
   }catch(e){if(!transactionManaged)db.exec('ROLLBACK');throw e;}
+}
+// Used by G3 replicas: original Home signature is verified, never re-signed by peers.
+export function verifyGoldHomeSignedRecord(homePublicKey,item){
+  const expected=digest('gold-lm-v2\n'+wire(item));
+  if(expected!==item.contentHash)throw problem('gold_scope_checkpoint_hash_invalid',409);
+  const key=crypto.createPublicKey({key:Buffer.from(homePublicKey,'base64'),format:'der',type:'spki'});
+  if(key.asymmetricKeyType!=='ed25519')throw problem('gold_scope_checkpoint_signer_invalid',409);
+  if(!crypto.verify(null,Buffer.from('gold-lm-v2-sig\n'+expected),key,Buffer.from(item.homeSignature||'','base64')))
+    throw problem('gold_scope_checkpoint_signature_invalid',409);
+  return {integrity:'home_ed25519_verified',contentHash:expected};
 }
 function verified(db,scope,row){
   if(!row)throw problem('gold_scope_checkpoint_not_found',404);

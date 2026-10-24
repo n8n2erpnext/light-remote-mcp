@@ -92,6 +92,24 @@ try{
   assert.deepEqual((await pending.json()).pending,[]);
   assert.equal((await post('/api/gold/modules/scope/capture',{
     scopeId:scope.scopeId,captureMode:'invalid'},owner)).status,403);
+  const idResponse=await fetch(base+'/api/gold/modules/sync/identity',{headers:owner});
+  assert.equal(idResponse.status,200);
+  const identity=(await idResponse.json()).identity;
+  assert.ok(identity.fingerprint.length>=16);
+  assert.ok(identity.signPublicKey.length>32&&identity.encPublicKey.length>32);
+  const statusResponse=await fetch(base+'/api/gold/modules/scope/sync/status?scopeId='+scope.scopeId,{headers:owner});
+  assert.equal(statusResponse.status,200);
+  assert.equal((await statusResponse.json()).sync.syncPolicy,'local_only');
+  const noCsrf=await post('/api/gold/modules/scope/sync/policy',{
+    scopeId:scope.scopeId,syncPolicy:'selected_devices'},owner);
+  assert.equal(noCsrf.status,403);
+  assert.equal((await post('/api/gold/modules/scope/sync/policy',{
+    scopeId:scope.scopeId,syncPolicy:'selected_devices'})).status,200);
+  const peer={...identity,deviceId:'other-approved-device'};
+  const denied=await post('/api/gold/modules/scope/sync/grant',{
+    scopeId:scope.scopeId,peer,expectedFingerprint:identity.fingerprint});
+  assert.equal(denied.status,403,'sync grant requires owner confirmation, not just CSRF');
+  console.log('GOLD_G3_SCOPED_OWNER_SYNC_IDENTITY_POLICY_AND_GRANT_CONFIRM_PASS');
   console.log('GOLD_G2_SCOPED_OWNER_CAPTURE_MODE_CSRF_PASS');
   console.log('GOLD_G1_OWNER_SCOPED_WALL_CSRF_HANDOFF_PASS');
   console.log('GOLD_MEMORY_SESSION_A_TO_B_SIGNED_LOCAL_CHECKPOINT_PASS');

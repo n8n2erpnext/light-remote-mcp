@@ -9,8 +9,9 @@ import {createRequire} from 'node:module';
 import {createGoldCodexConnection} from './gold-codex-api.mjs';
 import {createGoldCodexPlus} from './gold-codex-plus.mjs';
 import {saveGoldCheckpoint,readGoldCheckpoint,listGoldCheckpoints,goldHandoff,saveGoldObserverReceipt,listGoldObserverReceipts,confirmGoldObserverTask} from './gold-memory-ledger.mjs';
-import {createGoldScope,listGoldScopes,changeGoldScopeCapture,bindGoldScope,resolveGoldScope,appendGoldScopedCheckpoint,readGoldScopedCheckpoint,goldScopedHandoff,goldLegacyUnassignedCount} from './gold-memory-scope.mjs';
+import {createGoldScope,listGoldScopes,changeGoldScopeCapture,changeGoldScopeSyncPolicy,bindGoldScope,resolveGoldScope,appendGoldScopedCheckpoint,readGoldScopedCheckpoint,goldScopedHandoff,goldLegacyUnassignedCount} from './gold-memory-scope.mjs';
 import {ingestGoldAutoEvent,ingestGoldAutoFsEffect,resolveGoldAutoWorkspace,flushGoldAuto,goldAutoPending} from './gold-memory-auto.mjs';
+import {goldSyncIdentity,goldGrantReplica,goldAcceptReplicaInvite,goldNextSyncFrame,goldApplySyncFrame,goldApplySyncAck,goldRevokeReplica,goldSyncStatus} from './gold-memory-sync.mjs';
 const loadBuiltin=createRequire(import.meta.url);
 
 function fault(code,status=400){return Object.assign(new Error(code),{status});}
@@ -41,6 +42,7 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
   const plus=plusImpl||createGoldCodexPlus({home:path.join(path.dirname(file),'codex-home')});
   const checkpointKeyFile=file+'.checkpoint-key';
   const scopeKeyFile=file+'.device-ed25519-key';
+  const scopeEncryptKeyFile=file+'.device-x25519-key';
   function scopedIdentity(){
     const identity=typeof scopeIdentity==='function'?scopeIdentity():scopeIdentity;
     if(!identity||typeof identity.accountId!=='string'||!identity.accountId.trim()
@@ -85,6 +87,15 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
     createMemoryScope(input={}){const x=scopedIdentity();return createGoldScope(enabled('longMemory'),scopeKeyFile,{...input,accountId:x.accountId,homeDeviceId:x.deviceId});},
     listMemoryScopes(){const x=scopedIdentity();return listGoldScopes(enabled('longMemory'),{accountId:x.accountId});},
     changeScopeCapture(input={}){const x=scopedIdentity();return changeGoldScopeCapture(enabled('longMemory'),{...input,accountId:x.accountId});},
+    changeScopeSyncPolicy(input={}){const x=scopedIdentity();return changeGoldScopeSyncPolicy(enabled('longMemory'),{...input,accountId:x.accountId,deviceId:x.deviceId});},
+    syncIdentity(){const x=scopedIdentity();enabled('longMemory');return goldSyncIdentity(scopeKeyFile,scopeEncryptKeyFile,x);},
+    grantSyncReplica(input={}){const x=scopedIdentity();return goldGrantReplica(enabled('longMemory'),scopeKeyFile,scopeEncryptKeyFile,{...input,accountId:x.accountId,deviceId:x.deviceId});},
+    acceptSyncInvite(input={}){const x=scopedIdentity();return goldAcceptReplicaInvite(enabled('longMemory'),scopeKeyFile,scopeEncryptKeyFile,{...input,accountId:x.accountId,deviceId:x.deviceId});},
+    nextSyncFrame(input={}){const x=scopedIdentity();return goldNextSyncFrame(enabled('longMemory'),scopeKeyFile,scopeEncryptKeyFile,{...input,accountId:x.accountId,deviceId:x.deviceId});},
+    applySyncFrame(input={}){const x=scopedIdentity();return goldApplySyncFrame(enabled('longMemory'),scopeKeyFile,scopeEncryptKeyFile,{...input,accountId:x.accountId,deviceId:x.deviceId});},
+    applySyncAck(input={}){const x=scopedIdentity();return goldApplySyncAck(enabled('longMemory'),{...input,accountId:x.accountId,deviceId:x.deviceId});},
+    revokeSyncReplica(input={}){const x=scopedIdentity();return goldRevokeReplica(enabled('longMemory'),{...input,accountId:x.accountId,deviceId:x.deviceId});},
+    syncStatus(input={}){const x=scopedIdentity();return goldSyncStatus(enabled('longMemory'),{...input,accountId:x.accountId,deviceId:x.deviceId});},
     bindMemoryScope(input={}){const x=scopedIdentity();return bindGoldScope(enabled('longMemory'),{...input,accountId:x.accountId});},
     resolveMemoryScope(input={}){const x=scopedIdentity();return resolveGoldScope(enabled('longMemory'),{...input,accountId:x.accountId});},
     appendScopedCheckpoint(input={}){const x=scopedIdentity();return appendGoldScopedCheckpoint(enabled('longMemory'),scopeKeyFile,{...input,accountId:x.accountId,deviceId:x.deviceId});},
