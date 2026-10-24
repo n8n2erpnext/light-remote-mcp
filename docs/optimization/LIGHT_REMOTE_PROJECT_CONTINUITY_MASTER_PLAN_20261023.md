@@ -213,3 +213,7 @@ Cognee reference only: https://www.cognee.ai/how-cognee-builds-ai-memory
 ## 2026-10-24 Native NetBird Gold UAT owner portal
 
 [Direct NetBird native LXD proxy to the existing Gold UAT login/enroll](./LIGHT_REMOTE_GOLD_UAT_NATIVE_NETBIRD_ACCOUNT_PORTAL_HANDOFF_20261024.md). Replaces needless SSH tunnel. NetBird port 5588, original UAT login/enroll reachable and Host security preserved. Prior code expired, owner approval and A/B pending. Release BLOCKED.
+
+## 2026-10-24 Gold signed Long Memory note checkpoints
+
+[Gold signed checkpoint source handoff](./LIGHT_REMOTE_GOLD_LONG_MEMORY_SIGNED_CHECKPOINT_HANDOFF_20261024.md). Existing Gold plugin/account/Wall + active A/B only, separate owner read/write consent, 6s signed note, local SQLite v11, idempotent stable operationId. OFF/OFF unaffected. Source PASS, real ChatGPT session A to B and Plus Codex remain OPEN, release BLOCKED.

@@ -159,6 +159,15 @@ export class AccountOperatorAdapter{
   async resumeSession(sessionId){await this.sessionRaw(sessionId);const row=await callOperatorJson('POST',`/v1/plugin/sessions/${encodeURIComponent(sessionId)}/resume`,{accountId:this.identity.accountId,agentId:this.agentId});return cleanSession(row.session);}
   async holdSession(sessionId,reason='transport_lost'){await this.sessionRaw(sessionId);const row=await callOperatorJson('POST',`/v1/plugin/sessions/${encodeURIComponent(sessionId)}/hold`,{accountId:this.identity.accountId,agentId:this.agentId,reason:String(reason||'transport_lost').slice(0,80)});return cleanSession(row.session);}
   async closeSession(sessionId){await this.sessionRaw(sessionId);const row=await callOperatorJson('POST',`/v1/plugin/sessions/${encodeURIComponent(sessionId)}/close`,{accountId:this.identity.accountId,agentId:this.agentId});return cleanSession(row.session);}
+  async longMemoryCheckpoint(sessionId,{projectId='00000000-0000-4000-8000-000000000001',
+   body,kind='observation',sourceRef,operationId}={}){
+    const session=await this.sessionRaw(sessionId);
+    if(session.state!=='active')throw Error('continuity_session_inactive');
+    return callOperatorJson('POST','/v1/plugin/project-continuity/write',{
+      accountId:this.identity.accountId,agentId:this.agentId,sessionId:session.sessionId,
+      projectId,body,kind,sourceRef,operationId
+    });
+  }
   async projectMemoryBrief(sessionId,projectId='00000000-0000-4000-8000-000000000001',{query='',maxChars=8000}={}){
     const session=await this.sessionRaw(sessionId);
     if(session.state!=='active')throw Error('continuity_session_inactive');

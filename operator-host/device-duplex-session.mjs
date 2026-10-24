@@ -32,6 +32,24 @@ export async function confidentialProjectRequest({deviceId,sessionId,projectId,q
 }
 
 
+// No Gold persisted job: this write goes over the same confidential, ephemeral
+// authenticated device duplex route as local Long Memory reads.
+export async function confidentialProjectWrite({deviceId,sessionId,projectId,body,kind,sourceRef,
+ requestId,proof,timeoutMs=10000}={}){
+ const stream=ACTIVE_STREAMS.get(String(deviceId||''));
+ if(!stream?.projectRead)throw new DeviceDuplexError('continuity_device_stream_unavailable',503);
+ if(typeof projectId!=='string'||!/^[a-f0-9-]{36}$/.test(projectId)||
+    typeof requestId!=='string'||!/^[a-f0-9-]{36}$/.test(requestId)||
+    typeof sessionId!=='string'||!sessionId||sessionId.length>160||
+    typeof body!=='string'||body.length<1||body.length>2400||
+    !['observation','decision','hypothesis'].includes(kind)||
+    typeof sourceRef!=='string'||sourceRef.length<1||sourceRef.length>320||
+    !proof||!Number.isInteger(timeoutMs)||timeoutMs<1000||timeoutMs>15000)
+  throw new DeviceDuplexError('continuity_write_request_invalid',400);
+ return stream.projectRead({op:'write',sessionId,projectId,body,kind,sourceRef,requestId,proof},timeoutMs);
+}
+
+
 function cleanError(error){
   return {error:String(error?.message||error||'duplex_error').slice(0,160),status:Number(error?.status)||500};
 }
@@ -103,7 +121,7 @@ export async function handleDeviceDuplexSession(req,res,{
       reject(new DeviceDuplexError('continuity_device_response_timeout',504));
     },timeoutMs);
     timer.unref?.();
-    pendingProjects.set(requestId,{resolve,reject,timer});
+    pendingProjects.set(requestId,{resolve,reject,timer,op:data.op==='write'?'write':'read'});
     // This bypasses Gold persisted jobs entirely. It is still transiently
     // visible in server memory and the HTTPS/LAN transport.
     Promise.resolve(send('project-request',{request:{requestId,...data}})).catch(()=>{
@@ -174,10 +192,13 @@ export async function handleDeviceDuplexSession(req,res,{
             pendingProjects.delete(requestId);clearTimeout(waiter.timer);
             const bytes=Buffer.byteLength(JSON.stringify(reply||{}));
             if(bytes>CONFIDENTIAL_MAX_REPLY)waiter.reject(new DeviceDuplexError('continuity_reply_too_large',413));
-            else if(reply?.ok===true&&reply?.data&&typeof reply.data.content==='string'
+            else if(waiter.op==='read'&&reply?.ok===true&&reply?.data&&typeof reply.data.content==='string'
                &&reply.data.content.length<=8000)waiter.resolve(reply.data);
+            else if(waiter.op==='write'&&reply?.ok===true&&reply?.data?.saved===true&&
+              typeof reply.data.id==='string'&&reply.data.id.length===36)
+              waiter.resolve({saved:true,duplicate:reply.data.duplicate===true,id:reply.data.id});
             else waiter.reject(new DeviceDuplexError(
-              ['continuity_remote_read_denied','continuity_memory_disabled','continuity_project_missing','continuity_remote_unavailable'].includes(reply?.error)
+              ['continuity_remote_write_denied','continuity_remote_read_denied','continuity_memory_disabled','continuity_project_missing','continuity_remote_unavailable'].includes(reply?.error)
               ?reply.error:'continuity_device_read_failed',403));
           }
           lastClientSeq=commitClientSeq(resumeState,clientSeq);

@@ -43,6 +43,7 @@ export function startContinuityServer({root=continuityDefaultRoot()}={}){
   recentGoldActivity:d=>store.recentGoldActivity({limit:d.limit??12}),
   setGlobalModules:d=>store.setGlobalModules({memory:d.memory,codex:d.codex,expectedRevision:d.expectedRevision}),
   getProject:d=>store.project(d.projectId),
+  remoteWriteStatus:d=>store.remoteWriteStatus(d.projectId),
   createProject:d=>store.createProject({projectName:d.name,workspace:d.workspace||''}),
   // Per-project module switching is deprecated; configuration is global.
   createTask:d=>store.createTask(d.projectId,d.title),
@@ -56,6 +57,7 @@ export function startContinuityServer({root=continuityDefaultRoot()}={}){
   contextBrief:d=>store.contextBrief(d.projectId,{query:d.query||'',maxChars:d.maxChars||8000}),
   remoteBrief:d=>store.remoteBrief(d.projectId,{query:d.query||'',maxChars:d.maxChars||8000}),
   applySignedOwnerConsent:d=>store.setRemoteReadConsent(d.projectId,{proof:d.proof}),
+  applySignedOwnerWriteConsent:d=>store.setRemoteWriteConsent(d.projectId,{proof:d.proof}),
   exportHandoff:d=>store.exportHandoff(d.projectId,{query:d.query||'',maxChars:d.maxChars||10000}),
   memoryRecent:d=>{const p=store.project(d.projectId);if(!p?.memory_enabled)throw Error('continuity_memory_disabled');return store.db.prepare('SELECT f.id,f.kind,f.body,f.source_ref,f.created_at,a.confidence FROM memory_facts f JOIN memory_annotations a ON a.fact_id=f.id WHERE f.project_id=? ORDER BY f.created_at DESC LIMIT 30').all(p.id);}
  };

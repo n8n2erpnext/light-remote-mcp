@@ -8,7 +8,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import {provisionContinuityOwnerAuthority,signContinuityConsent,rekeyContinuityOwnerAuthority,
  ownerAuthorityPublicKey} from './project-continuity-owner-grants.mjs';
-import {verifyProjectReadDelegation} from '../lib/project-continuity-session-proof.mjs';
+import {verifyProjectReadDelegation,verifyProjectWriteDelegation} from '../lib/project-continuity-session-proof.mjs';
 
 // Preserve Memory's 12KiB note capability plus source/JSON overhead,
 // but keep bounded broker IPC and deny oversized payloads.
@@ -161,6 +161,7 @@ export function startOwnerBroker({runtimeDir,clientGroupMode=0o660,controller=nu
     const actions={
      listProjects:()=>controller.projects(),
      getGlobalModules:()=>controller.moduleSettings(),
+     remoteWriteStatus:()=>controller.remoteWriteStatus(body.projectId),
      observeGoldTool:()=>controller.observeGoldTool({operationId:body.operationId,category:body.category,outcome:body.outcome}),
      recentGoldActivity:()=>controller.recentGoldActivity({limit:body.limit??12}),
      setGlobalModules:()=>controller.setGlobalModules({memory:body.memory,codex:body.codex,expectedRevision:body.expectedRevision}),
@@ -183,6 +184,19 @@ export function startOwnerBroker({runtimeDir,clientGroupMode=0o660,controller=nu
     if(!Object.hasOwn(actions,op))return reply({ok:false,error:'continuity_broker_controller_action_denied'});
     try{return reply({ok:true,result:actions[op]()});}
     catch(error){return reply({ok:false,error:/^continuity_/.test(error?.message||'')?error.message:'continuity_broker_controller_failed'});}
+   }
+   if(action==='remoteWrite'){
+    if(!controller||!operatorTrust)return reply({ok:false,error:'continuity_operator_trust_missing'});
+    try{
+     const {projectId,requestId,body,kind,sourceRef,proof}=params;
+     verifyProjectWriteDelegation({proof,publicKey:operatorTrust.publicKey,
+      accountId:operatorTrust.accountId,deviceId:operatorTrust.deviceId,
+      projectId,requestId,body,kind,sourceRef});
+     const result=controller.remoteMemoryCheckpoint(projectId,{body,kind,sourceRef,requestId});
+     return reply({ok:true,result});
+    }catch(error){
+     return reply({ok:false,error:/^continuity_/.test(error?.message||'')?error.message:'continuity_remote_write_denied'});
+    }
    }
    if(action==='remoteRead'){
     // No fallback to ordinary Controller actions. Only the operator that
@@ -221,12 +235,14 @@ export function startOwnerBroker({runtimeDir,clientGroupMode=0o660,controller=nu
     const result=action==='ownerConsent'
       ?(()=>{
          const p=controller.project(params.projectId);
+         if(!['read','write'].includes(params.scope||'read'))abort('continuity_owner_consent_scope_invalid');
          if(!p||!p.memory_enabled||p.revision!==params.revision)
           abort('continuity_broker_owner_scope_invalid');
          const proof=signContinuityConsent({root:runtimeDir,signerDir:path.join(runtimeDir,'private'),
           password:params.password,projectId:params.projectId,enabled:params.enabled,
-          revision:params.revision,principal:params.principal});
-         return controller.setRemoteReadConsent(params.projectId,{proof});
+          revision:params.revision,principal:params.principal,scope:params.scope||'read'});
+         return params.scope==='write'?controller.setRemoteWriteConsent(params.projectId,{proof})
+           :controller.setRemoteReadConsent(params.projectId,{proof});
         })()
       :action==='signConsent'
       ?signContinuityConsent({root:runtimeDir,signerDir:path.join(runtimeDir,'private'),password:params.password,
@@ -285,7 +301,7 @@ export async function startIsolatedControllerBroker({runtimeDir,clientGroupMode=
 }
 export function ownerBrokerRequest({runtimeDir,action,data={},timeoutMs=3500}={}){
  const endpoint=ownerBrokerEndpoint(runtimeDir);
- if(!['health','publicKey','signConsent','rekey','controller','ownerConsent','remoteRead'].includes(action))
+ if(!['health','publicKey','signConsent','rekey','controller','ownerConsent','remoteRead','remoteWrite'].includes(action))
   return Promise.reject(Error('continuity_broker_action_denied'));
  if(!Number.isInteger(timeoutMs)||timeoutMs<100||timeoutMs>15000)
   return Promise.reject(Error('continuity_broker_timeout_invalid'));

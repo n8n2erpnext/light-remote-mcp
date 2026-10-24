@@ -15,6 +15,32 @@ function ownedSession(deps,{accountId,sessionId,agentId}){
   return {account,session};
 }
 export async function handlePluginRoutes(req,res,url,deps){
+  if(req.method==='POST'&&url.pathname==='/v1/plugin/project-continuity/write'){
+    if(process.env.LIGHT_REMOTE_PROJECT_CONTINUITY_EXPERIMENTAL!=='1')
+      return deps.sendJson(res,404,{ok:false,error:'continuity_not_enabled'});
+    const body=await deps.readJson(req);
+    const {session}=ownedSession(deps,{accountId:body.accountId,sessionId:body.sessionId,agentId:body.agentId});
+    if(session.state!=='active')return deps.sendJson(res,409,{ok:false,error:'continuity_session_inactive'});
+    deps.requireDeviceConnection(session.deviceId);
+    // Agent can reuse operationId on retry, but cannot change payload for
+    // an already committed operation without a durable conflict.
+    const requestId=body.operationId||crypto.randomUUID();
+    const note=body.body,kind=body.kind||'observation',sourceRef=body.sourceRef;
+    const proof=deps.signScopedContinuityWrite({
+      accountId:session.accountId,deviceId:session.deviceId,
+      agentId:session.agentId,sessionId:session.sessionId,
+      projectId:body.projectId,requestId,body:note,kind,sourceRef
+    });
+    const result=await deps.confidentialProjectWrite({
+      deviceId:session.deviceId,sessionId:session.sessionId,
+      projectId:body.projectId,requestId,body:note,kind,sourceRef,proof,timeoutMs:10000
+    });
+    // Never send note text back into a Gold job, activity ring or cloud DB.
+    res.writeHead(200,{'content-type':'application/json; charset=utf-8',
+      'cache-control':'no-store, private','pragma':'no-cache','x-content-type-options':'nosniff'});
+    res.end(JSON.stringify({ok:true,data:result}));
+    return true;
+  }
   if(req.method==='POST'&&url.pathname==='/v1/plugin/project-continuity/read'){
     if(process.env.LIGHT_REMOTE_PROJECT_CONTINUITY_EXPERIMENTAL!=='1')
       return deps.sendJson(res,404,{ok:false,error:'continuity_not_enabled'});

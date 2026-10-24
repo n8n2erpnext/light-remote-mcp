@@ -622,7 +622,7 @@ export function startLocalWall({host='127.0.0.1',port=5491,brandSvgPath,fontPath
       if(!continuity?.request)return json(res,404,{ok:false,error:'project_continuity_disabled'});
       if(!auth?.enabled||!auth.identity(req))return json(res,403,{ok:false,error:'project_continuity_owner_auth_required'});
       const op=url.pathname.slice('/api/project-continuity/'.length);
-      const allowedGet=['listProjects','getGlobalModules'],allowedPost=['createProject','getProject','setGlobalModules','createTask','addSection','checkpoint','contextBrief','memoryPut','memorySearch','memoryRecent','recentGoldActivity','setRemoteReadConsent','rekeyOwnerSigner'];
+      const allowedGet=['listProjects','getGlobalModules'],allowedPost=['createProject','getProject','remoteWriteStatus','setGlobalModules','createTask','addSection','checkpoint','contextBrief','memoryPut','memorySearch','memoryRecent','recentGoldActivity','setRemoteReadConsent','setRemoteWriteConsent','rekeyOwnerSigner'];
       if(!(req.method==='GET'&&allowedGet.includes(op))&&!(req.method==='POST'&&allowedPost.includes(op)))return json(res,404,{ok:false,error:'project_continuity_action_unavailable'});
       if(req.method==='POST'){
         const origin=String(req.headers.origin||'');
@@ -631,7 +631,7 @@ export function startLocalWall({host='127.0.0.1',port=5491,brandSvgPath,fontPath
         if(!mutationAllowed(req))return json(res,403,{ok:false,error:'csrf_invalid'});
       }
       const data=req.method==='POST'?await body(req):{};
-      if(op==='setRemoteReadConsent'||op==='rekeyOwnerSigner'){
+      if(op==='setRemoteReadConsent'||op==='setRemoteWriteConsent'||op==='rekeyOwnerSigner'){
         const isRekey=op==='rekeyOwnerSigner';
         if(typeof (isRekey?continuity.ownerRekey:continuity.ownerConsent)!=='function')
           return json(res,501,{ok:false,error:'continuity_owner_stepup_unavailable'});
@@ -649,7 +649,8 @@ export function startLocalWall({host='127.0.0.1',port=5491,brandSvgPath,fontPath
           const result=isRekey
             ?await continuity.ownerRekey({principal,oldPassword:data.oldPassword,newPassword:data.newPassword})
             :await continuity.ownerConsent({principal,password:data.password,projectId:data.projectId,
-              enabled:data.enabled,expectedRevision:data.expectedRevision});
+              enabled:data.enabled,expectedRevision:data.expectedRevision,
+              scope:op==='setRemoteWriteConsent'?'write':'read'});
           ownerConsentFailures.delete(rateKey);
           return json(res,200,{ok:true,result});
         }catch(e){

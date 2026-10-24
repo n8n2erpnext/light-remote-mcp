@@ -12,6 +12,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 
 const PURPOSE='light-remote:continuity:remote-read-consent:v1';
+const WRITE_PURPOSE='light-remote:continuity:remote-write-consent:v1';
 const AAD=Buffer.from('light-remote-continuity-owner-key-v1','utf8');
 const VALID_FOR_MS=30000;
 const PRIVATE_FILENAME='continuity-owner-private.enc.json';
@@ -150,7 +151,7 @@ export function ownerAuthorityPublicKey(root){
  if(!safePath(file))return null;
  return crypto.createPublicKey(fs.readFileSync(file));
 }
-export function signContinuityConsent({root,signerDir,password,projectId,enabled,revision,principal,now=Date.now()}){
+export function signContinuityConsent({root,signerDir,password,projectId,enabled,revision,principal,scope='read',now=Date.now()}){
  ensure(typeof projectId==='string'&&/^[a-f0-9-]{36}$/.test(projectId),'continuity_project_id_invalid');
  ensure(typeof enabled==='boolean','continuity_remote_consent_invalid');
  ensure(Number.isInteger(revision)&&revision>=1,'continuity_stale_revision');
@@ -161,16 +162,18 @@ export function signContinuityConsent({root,signerDir,password,projectId,enabled
  const privateKey=unlockPrivateKey(fs.readFileSync(privatePath,'utf8'),password);
  if(fs.existsSync(path.join(signerDir,'continuity-owner-rekey.lock')))
   throw Error('continuity_owner_rekey_busy_manual_recovery');
- const grant={purpose:PURPOSE,projectId,enabled,revision,principal,issuedAt:now,
+ ensure(['read','write'].includes(scope),'continuity_owner_consent_scope_invalid');
+ const grant={purpose:scope==='write'?WRITE_PURPOSE:PURPOSE,projectId,enabled,revision,principal,issuedAt:now,
   expiresAt:now+VALID_FOR_MS,nonce:crypto.randomBytes(20).toString('hex')};
  const signature=crypto.sign(null,Buffer.from(JSON.stringify(grant)),privateKey).toString('base64url');
  return {grant,signature};
 }
-export function verifyContinuityConsent({proof,publicKey,projectId,revision,now=Date.now()}){
+export function verifyContinuityConsent({proof,publicKey,projectId,revision,scope='read',now=Date.now()}){
  ensure(publicKey,'continuity_owner_authority_unavailable');
  const g=proof?.grant,sig=proof?.signature;
  ensure(g&&typeof g==='object'&&!Array.isArray(g)&&typeof sig==='string'&&sig.length<180,'continuity_owner_grant_invalid');
- ensure(g.purpose===PURPOSE&&g.projectId===projectId&&typeof g.projectId==='string','continuity_owner_grant_scope_invalid');
+ ensure(['read','write'].includes(scope),'continuity_owner_consent_scope_invalid');
+ ensure(g.purpose===(scope==='write'?WRITE_PURPOSE:PURPOSE)&&g.projectId===projectId&&typeof g.projectId==='string','continuity_owner_grant_scope_invalid');
  ensure(Number.isInteger(revision)&&g.revision===revision,'continuity_stale_revision');
  ensure(typeof g.enabled==='boolean'&&typeof g.principal==='string'&&g.principal.length>0&&g.principal.length<=254,'continuity_owner_grant_invalid');
  ensure(typeof g.nonce==='string'&&/^[0-9a-f]{40}$/.test(g.nonce),'continuity_owner_grant_invalid');

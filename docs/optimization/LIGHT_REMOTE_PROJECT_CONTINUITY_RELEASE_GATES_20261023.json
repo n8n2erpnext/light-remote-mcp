@@ -67,8 +67,17 @@
     "full_live_same_gold_account_wall_plugin_memory_recovery": "OPEN_NOT_UAT_PROVEN",
     "real_owner_authorized_codex_observation": "OPEN_MOCK_ONLY",
     "fake_wall_and_account_nat_source_removed": "RETIRED_AS_PRODUCT_PATH_HISTORICAL_ONLY",
-    "gold_486_packaged_baseline_superset_102_files": "PASS_SOURCE_AND_STAGE"
+    "gold_486_packaged_baseline_superset_102_files": "PASS_SOURCE_AND_STAGE",
+    "long_memory_gold_plugin_signed_checkpoint_submit": "PASS_SOURCE_FIXTURE_ONLY",
+    "long_memory_owner_write_consent_separate_read": "PASS_LOCAL_WALL_AND_BROKER_TEST",
+    "long_memory_operator_session_note_hash_and_expiry": "PASS_SOURCE_CRYPTO_AND_ROUTE",
+    "long_memory_dedup_retry_operationid_same_payload": "PASS_SQLITE_V11_FIXTURE",
+    "long_memory_no_raw_note_gold_job_persistence": "PASS_ROUTE_NO_JOB_SOURCE_ONLY",
+    "long_memory_real_web_chat_checkpoint_session_a_to_b": "OPEN_NOT_LIVE_TESTED",
+    "long_memory_official_plugin_tool_rollout": "OPEN_NOT_DEPLOYED",
+    "long_memory_gold_account_unified_wall_live_stepup": "OPEN_NOT_PHYSICAL_UAT",
+    "codex_web_turn_automatic_continuation": "OPEN_NO_SUPPORTED_HOOK_PROVEN"
   },
   "test_build_allowed": false,
-  "notes": "Corrected feature source per latest owner contract: Long Memory + Codex observer only, both Gold device-level independent, no Project or extra Account/Wall, local-only storage. SQLite v10 passive Gold tool metadata with no private commands/outputs; default owner-consented memory recall via existing Gold helper as bounded optional response. Removed synthetic UAT Wall and account NAT scripts. Codex cannot dispatch work or continue Web turns in this bridge. REAL ChatGPT Web continuity and owner Codex not yet end-to-end, no physical Gold OS acceptance. Previous UAT claims remain historical only. Release BLOCKED. Historical UAT account/NAT/fake Wall receipts superseded; 6 obsolete release-gate fields marked historical, not valid product acceptance. Runtime was not mutated in this source-only corrective turn."
+  "notes": "Gold source now adds opt-in long_memory_checkpoint tool requiring Gold active A/B + owner-signed independent write consent, six-second Ed25519 note hash and local broker SQLite v11. Source note remains unverified, no Project, no extra Account/Wall. Repeated operationId with identical content idempotent, altered content denied. Gold route intentionally bypasses persisted job. Source/fixture and Gold package stage PASS; real Web cross-session, full cloud privacy audit, physical Windows/Linux and live Codex still OPEN. No production deployed."
 }

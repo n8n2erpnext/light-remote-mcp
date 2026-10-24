@@ -1,5 +1,5 @@
-import { confidentialProjectRequest } from './device-duplex-session.mjs';
-import {createProjectReadDelegation} from '../lib/project-continuity-session-proof.mjs';
+import { confidentialProjectRequest,confidentialProjectWrite } from './device-duplex-session.mjs';
+import {createProjectReadDelegation,createProjectWriteDelegation} from '../lib/project-continuity-session-proof.mjs';
 function signScopedContinuityRead({accountId,deviceId,agentId,sessionId,projectId,
  requestId,query,maxChars}){
  const filename=String(process.env.LIGHT_REMOTE_CONTINUITY_OPERATOR_SIGNING_KEY_FILE||'');
@@ -10,6 +10,17 @@ function signScopedContinuityRead({accountId,deviceId,agentId,sessionId,projectI
   throw Error('continuity_operator_signer_file_unsafe');
  return createProjectReadDelegation({privateKey:fs.readFileSync(filename),
   accountId,deviceId,agentId,sessionId,projectId,requestId,query,maxChars});
+}
+
+function signScopedContinuityWrite({accountId,deviceId,agentId,sessionId,projectId,
+ requestId,body,kind,sourceRef}){
+ const filename=String(process.env.LIGHT_REMOTE_CONTINUITY_OPERATOR_SIGNING_KEY_FILE||'');
+ if(!filename||!path.isAbsolute(filename))throw Error('continuity_operator_signer_not_configured');
+ const st=fs.lstatSync(filename);
+ if(!st.isFile()||st.isSymbolicLink()||(process.platform!=='win32'&&(st.mode&0o077)!==0))
+  throw Error('continuity_operator_signer_file_unsafe');
+ return createProjectWriteDelegation({privateKey:fs.readFileSync(filename,'utf8'),
+  accountId,deviceId,agentId,sessionId,projectId,requestId,body,kind,sourceRef});
 }
 
 import http from 'node:http';
@@ -1400,7 +1411,7 @@ const routeDeps=()=>({
   removeRuntimeForDevice,requireAccount,requireDeviceConnection,revokeRuntimeForDevice,ring,
   ringBytes,sendJson,sessionStatsFromDisk,sessions,sseClients,
   startDesktopOperation,startFsOperation,startJob,startProcessOperation,startScpOperation,startSearchOperation,
-  startTerminalOperation,targetRoute,verifyTeamPrincipal,terminalResultSummary,usage,verifiedChannelContext,confidentialProjectRequest,signScopedContinuityRead,
+  startTerminalOperation,targetRoute,verifyTeamPrincipal,terminalResultSummary,usage,verifiedChannelContext,confidentialProjectRequest,confidentialProjectWrite,signScopedContinuityRead,signScopedContinuityWrite,
   verifiedFleetContext,verifiedLeafCapabilities,waitForJob,wakeDeviceChannelForDevice,
 });
 

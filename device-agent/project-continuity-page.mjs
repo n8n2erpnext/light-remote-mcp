@@ -36,6 +36,16 @@ hr{border:0;border-top:1px solid #243247;margin:20px 0}pre{white-space:pre-wrap;
   <input id="globalOwnerPassword" type="password" autocomplete="current-password" required>
   <button type="submit">Confirm remote recall permission</button>
  </form>
+ <hr><h3>Allow ChatGPT to propose local checkpoint notes</h3>
+ <p class="muted">Separate permission from read access. Agent notes saved locally remain unverified; no automatic chat transcript capture.</p>
+ <div id="globalRemoteWriteStatus" class="muted">Checkpoint submissions: OFF</div>
+ <form id="globalWriteConsentForm">
+  <label>Agent checkpoint submissions</label>
+  <select id="globalWriteConsentAction"><option value="off">Do not permit</option><option value="on">Permit via authorized Gold session</option></select>
+  <label>Existing Gold Wall/account password</label>
+  <input id="globalWriteOwnerPassword" type="password" autocomplete="current-password" required>
+  <button type="submit">Apply checkpoint permission</button>
+ </form>
  <hr><h2>Default Memory — No Project required</h2>
  <p class="muted">Use this local context before organizing any Project. Notes are evidence, not executable instructions.</p>
  <form id="globalMemoryForm">
@@ -126,6 +136,9 @@ async function all(){try{
   const scope=await api('getProject',{projectId:moduleState.defaultScopeId});
   by('globalRemoteStatus').textContent='ChatGPT remote recall: '+(scope?.remote_read_enabled?'ON':'OFF');
   by('globalConsentAction').value=scope?.remote_read_enabled?'on':'off';
+  const writeScope=await api('remoteWriteStatus',{projectId:moduleState.defaultScopeId});
+  by('globalRemoteWriteStatus').textContent='ChatGPT checkpoint submissions: '+(writeScope?.enabled?'ON':'OFF');
+  by('globalWriteConsentAction').value=writeScope?.enabled?'on':'off';
  }
  if(moduleState.memoryEnabled){
   const timeline=await api('recentGoldActivity',{limit:12});
@@ -181,6 +194,17 @@ by('defaultPlanCreate').onsubmit=async e=>{e.preventDefault();try{
  by('defaultPlanTitle').value='';
  await all();notice('Recorded local Controller task, no Project required');
 }catch(error){notice(error.message,true);}};
+by('globalWriteConsentForm').onsubmit=async e=>{e.preventDefault();
+ const password=by('globalWriteOwnerPassword').value;by('globalWriteOwnerPassword').value='';
+ try{
+  if(!moduleState?.memoryEnabled)throw Error('Enable Long Memory first');
+  const scope=await api('getProject',{projectId:moduleState.defaultScopeId});
+  if(!scope)throw Error('Local Memory scope not initialized');
+  await api('setRemoteWriteConsent',{projectId:moduleState.defaultScopeId,
+   enabled:by('globalWriteConsentAction').value==='on',expectedRevision:scope.revision,password});
+  await all();notice('Gold session checkpoint permission updated');
+ }catch(error){notice(error.message,true);}
+};
 by('globalConsentForm').onsubmit=async e=>{e.preventDefault();
  const password=by('globalOwnerPassword').value;
  by('globalOwnerPassword').value='';

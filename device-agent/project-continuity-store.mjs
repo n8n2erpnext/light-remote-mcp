@@ -33,7 +33,7 @@ export class ContinuityStore {
   this.db=new DatabaseSync(path.join(this.root,'continuity.db'),{timeout:3000});
   this.db.exec('PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=3000; PRAGMA synchronous=FULL');
   const openedVersion=this.db.prepare('PRAGMA user_version').get().user_version;
-  if(openedVersion>10){this.db.close();throw Error('continuity_future_schema_version');}
+  if(openedVersion>11){this.db.close();throw Error('continuity_future_schema_version');}
   this.db.exec([
   'CREATE TABLE IF NOT EXISTS projects(id TEXT PRIMARY KEY,name TEXT NOT NULL,workspace TEXT NOT NULL,memory_enabled INTEGER NOT NULL DEFAULT 0 CHECK(memory_enabled IN(0,1)),codex_enabled INTEGER NOT NULL DEFAULT 0 CHECK(codex_enabled IN(0,1)),revision INTEGER NOT NULL DEFAULT 1,created_at TEXT NOT NULL,updated_at TEXT NOT NULL)',
   'CREATE TABLE IF NOT EXISTS tasks(id TEXT PRIMARY KEY,project_id TEXT NOT NULL REFERENCES projects(id),title TEXT NOT NULL,created_at TEXT NOT NULL)',
@@ -98,6 +98,10 @@ export class ContinuityStore {
   // stdout, stderr, chat messages, credentials or file contents are retained.
   this.db.exec("CREATE TABLE IF NOT EXISTS observed_tool_receipts(operation_id TEXT PRIMARY KEY,category TEXT NOT NULL,outcome TEXT NOT NULL,observed_at TEXT NOT NULL)");
   this.db.exec('PRAGMA user_version=10');
+  // Separate owner consent and signed one-use Operator note receipts.
+  this.db.exec("CREATE TABLE IF NOT EXISTS remote_write_consent(project_id TEXT PRIMARY KEY REFERENCES projects(id),enabled INTEGER NOT NULL DEFAULT 0 CHECK(enabled IN(0,1)),grant_json TEXT,signature TEXT,updated_at TEXT NOT NULL)");
+  this.db.exec("CREATE TABLE IF NOT EXISTS operator_write_nonces(request_id TEXT PRIMARY KEY,project_id TEXT NOT NULL REFERENCES projects(id),memory_id TEXT NOT NULL,payload_sha256 TEXT NOT NULL,recorded_at TEXT NOT NULL)");
+  this.db.exec('PRAGMA user_version=11');
   this.reconcileStartup();
  }
  reconcileStartup(){
@@ -146,6 +150,7 @@ export class ContinuityStore {
    if(!m){
     this.db.prepare('UPDATE remote_project_consent SET enabled=0,updated_at=? WHERE enabled=1').run(now());
     this.db.exec('DELETE FROM remote_consent_attestations');
+    this.db.prepare('UPDATE remote_write_consent SET enabled=0,grant_json=NULL,signature=NULL,updated_at=? WHERE enabled=1').run(now());
    }
    return this.moduleSettings();
   });
@@ -172,6 +177,64 @@ export class ContinuityStore {
   req(Number.isInteger(limit)&&limit>0&&limit<=25,'continuity_invalid_limit');
   return this.db.prepare('SELECT category,outcome,observed_at FROM observed_tool_receipts ORDER BY observed_at DESC,rowid DESC LIMIT ?').all(limit);
  }
+ remoteWriteStatus(pid){
+  req(this.project(pid),'continuity_project_missing');
+  const r=this.db.prepare('SELECT enabled FROM remote_write_consent WHERE project_id=?').get(pid);
+  return {projectId:pid,enabled:r?.enabled===1};
+ }
+ setRemoteWriteConsent(pid,{proof}={}){
+  const project=this.project(pid);
+  req(project?.memory_enabled===1,'continuity_memory_disabled');
+  if(!this.ownerPublicKey)this.ownerPublicKey=ownerAuthorityPublicKey(this.root);
+  const grant=verifyContinuityConsent({proof,publicKey:this.ownerPublicKey,
+   projectId:pid,revision:project.revision,scope:'write'});
+  return this.tx(()=>{
+   req(this.project(pid)?.revision===grant.revision,'continuity_stale_revision');
+   this.db.prepare('INSERT INTO consent_grant_nonces(nonce,project_id,principal,action,created_at) VALUES (?,?,?,?,?)')
+    .run(grant.nonce,pid,grant.principal,grant.enabled?'write_enable':'write_disable',now());
+   this.db.prepare('INSERT INTO remote_write_consent(project_id,enabled,grant_json,signature,updated_at) VALUES (?,?,?,?,?) ON CONFLICT(project_id) DO UPDATE SET enabled=excluded.enabled,grant_json=excluded.grant_json,signature=excluded.signature,updated_at=excluded.updated_at')
+    .run(pid,+grant.enabled,grant.enabled?JSON.stringify(proof.grant):null,grant.enabled?proof.signature:null,now());
+   this.db.prepare('UPDATE projects SET revision=revision+1,updated_at=? WHERE id=?').run(now(),pid);
+   this.event(pid,'signed_owner_stepup','remote_write_consent',pid,'',grant.enabled?'enabled':'disabled');
+   return {projectId:pid,remoteWriteEnabled:grant.enabled,revision:grant.revision+1};
+  });
+ }
+ remoteMemoryCheckpoint(pid,{body,kind='observation',sourceRef,requestId}={}){
+  req(this.project(pid)?.memory_enabled===1,'continuity_memory_disabled');
+  req(typeof requestId==='string'&&/^[a-f0-9-]{36}$/.test(requestId),'continuity_invalid_operation_id');
+  req(['observation','decision','hypothesis'].includes(kind),'continuity_memory_kind_invalid');
+  const b=label(body,2400),ref=label(sourceRef,320);
+  req(!/(-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|(?:sk-proj-|sk-|github_pat_)[A-Za-z0-9_-]{14,}|Bearer\\s+[A-Za-z0-9._-]{20,})/i.test(b+ref),
+   'continuity_sensitive_content_rejected');
+  const payloadSha256=crypto.createHash('sha256').update(JSON.stringify({projectId:pid,body:b,kind,sourceRef:ref}),'utf8').digest('hex');
+  return this.tx(()=>{
+   const consent=this.db.prepare('SELECT enabled,grant_json,signature FROM remote_write_consent WHERE project_id=?').get(pid);
+   req(consent?.enabled===1&&consent.grant_json&&consent.signature,'continuity_remote_write_denied');
+   let grant;
+   try{grant=JSON.parse(consent.grant_json);}catch{throw Error('continuity_remote_write_denied');}
+   if(!this.ownerPublicKey)this.ownerPublicKey=ownerAuthorityPublicKey(this.root);
+   const verified=verifyContinuityConsent({proof:{grant,signature:consent.signature},publicKey:this.ownerPublicKey,
+    projectId:pid,revision:grant.revision,scope:'write',now:grant.issuedAt});
+   req(verified.enabled,'continuity_remote_write_denied');
+   req(this.db.prepare('SELECT action FROM consent_grant_nonces WHERE nonce=? AND project_id=?').get(verified.nonce,pid)?.action==='write_enable',
+    'continuity_remote_write_denied');
+   const previous=this.db.prepare('SELECT memory_id,project_id,payload_sha256 FROM operator_write_nonces WHERE request_id=?').get(requestId);
+   if(previous){
+    req(previous.project_id===pid&&previous.payload_sha256===payloadSha256,'continuity_operation_reused');
+    return {saved:true,duplicate:true,id:previous.memory_id};
+   }
+   const id=uid();
+   this.db.exec("CREATE VIRTUAL TABLE IF NOT EXISTS memory_fts USING fts5(fact_id UNINDEXED,project_id UNINDEXED,body,tokenize='unicode61')");
+   this.db.prepare('INSERT INTO memory_facts(id,project_id,body,kind,source_ref,created_at) VALUES (?,?,?,?,?,?)')
+    .run(id,pid,b,kind,ref,now());
+   this.db.prepare('INSERT INTO memory_annotations(fact_id,confidence) VALUES (?,?)').run(id,'unverified');
+   this.db.prepare('INSERT INTO memory_fts(fact_id,project_id,body) VALUES (?,?,?)').run(id,pid,b);
+   this.db.prepare('INSERT INTO operator_write_nonces(request_id,project_id,memory_id,payload_sha256,recorded_at) VALUES (?,?,?,?,?)')
+    .run(requestId,pid,id,payloadSha256,now());
+   this.event(pid,'unverified_chatgpt_agent','remote_memory_proposed',id);
+   return {saved:true,duplicate:false,id};
+  });
+ }
  tx(fn){this.db.exec('BEGIN IMMEDIATE');try{const result=fn();this.db.exec('COMMIT');return result;}catch(e){this.db.exec('ROLLBACK');throw e;}}
  project(pid){return this.db.prepare('SELECT p.*,COALESCE(r.enabled,0) AS remote_read_enabled FROM projects p LEFT JOIN remote_project_consent r ON r.project_id=p.id WHERE p.id=?').get(guid(pid))||null;}
  projects(){return this.db.prepare('SELECT p.*,COALESCE(r.enabled,0) AS remote_read_enabled FROM projects p LEFT JOIN remote_project_consent r ON r.project_id=p.id WHERE p.workspace<>? ORDER BY p.created_at,p.id').all(DEFAULT_WORKSPACE);}
@@ -196,6 +259,7 @@ export class ContinuityStore {
     // must never silently resurrect a previous remote-read consent.
     this.db.prepare("UPDATE remote_project_consent SET enabled=0,updated_at=? WHERE project_id=?").run(now(),pid);
     this.db.prepare('DELETE FROM remote_consent_attestations WHERE project_id=?').run(pid);
+    this.db.prepare('UPDATE remote_write_consent SET enabled=0,grant_json=NULL,signature=NULL,updated_at=? WHERE project_id=?').run(now(),pid);
    }
    this.event(pid,'local_client_unverified','modules_changed',pid,JSON.stringify({memory:old.memory_enabled,codex:old.codex_enabled}),JSON.stringify({memory:m,codex:c}));
    return this.project(pid);

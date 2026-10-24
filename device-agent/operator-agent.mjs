@@ -70,7 +70,7 @@ const COMMAND_DIR=process.env.OPERATOR_AGENT_COMMAND_DIR || path.join(path.dirna
 const LOCAL_WALL_HOST=process.env.OPERATOR_AGENT_WALL_HOST || '127.0.0.1';
 const LOCAL_WALL_PORT=Math.max(1024,Math.min(Number(process.env.OPERATOR_AGENT_WALL_PORT)||5491,65535));
 // OFF by default. Does not start Codex or open a network listener.
-async function ownerConsentWithStepUp({principal,password,projectId,enabled,expectedRevision}={}){
+async function ownerConsentWithStepUp({principal,password,projectId,enabled,expectedRevision,scope='read'}={}){
   const {projectContinuityRequest,isolatedContinuityEnabled,projectContinuityOwnerConsent}=await import('./project-continuity-client.mjs');
   const {continuityDefaultRoot}=await import('./project-continuity-store.mjs');
   const username=String(principal||'').trim(),credential=String(password||'');
@@ -89,10 +89,11 @@ async function ownerConsentWithStepUp({principal,password,projectId,enabled,expe
   const current=await projectContinuityRequest('getProject',{projectId},{root});
   if(!current||current.revision!==expectedRevision)throw Error('continuity_stale_revision');
   if(!current.memory_enabled)throw Error('continuity_memory_disabled');
+  if(!['read','write'].includes(scope))throw Error('continuity_owner_consent_scope_invalid');
   if(isolatedContinuityEnabled())return projectContinuityOwnerConsent({
-    principal:username,password:credential,projectId,enabled,expectedRevision});
-  const proof=signContinuityConsent({root,signerDir,password:credential,projectId,enabled,revision:expectedRevision,principal:username});
-  return projectContinuityRequest('applySignedOwnerConsent',{projectId,proof},{root});
+    principal:username,password:credential,projectId,enabled,expectedRevision,scope});
+  const proof=signContinuityConsent({root,signerDir,password:credential,projectId,enabled,revision:expectedRevision,principal:username,scope});
+  return projectContinuityRequest(scope==='write'?'applySignedOwnerWriteConsent':'applySignedOwnerConsent',{projectId,proof},{root});
 }
 async function ownerRekeyAfterCredentialChange({principal,oldPassword,newPassword}={}){
   const username=String(principal||'').trim();
@@ -430,6 +431,17 @@ async function ensureDeviceDuplex(state,hub){
         // Disabled by default on existing Gold builds.
         if(process.env.LIGHT_REMOTE_PROJECT_CONTINUITY_EXPERIMENTAL!=='1')
           throw Error('continuity_remote_unavailable');
+        if(request?.op==='write'){
+          if(typeof request.body!=='string'||request.body.length<1||request.body.length>2400||
+             !['observation','decision','hypothesis'].includes(request.kind)||
+             typeof request.sourceRef!=='string'||request.sourceRef.length<1||request.sourceRef.length>320)
+            throw Error('continuity_remote_write_denied');
+          const {projectContinuityRequest}=await import('./project-continuity-client.mjs');
+          return projectContinuityRequest('remoteMemoryCheckpoint',{
+            projectId:request.projectId,requestId:request.requestId,
+            body:request.body,kind:request.kind,sourceRef:request.sourceRef,
+            proof:request.proof},{timeoutMs:7500});
+        }
         if(typeof request?.projectId!=='string'||!/^[a-f0-9-]{36}$/.test(request.projectId))
           throw Error('continuity_project_missing');
         if(typeof request?.query!=='string'||request.query.length>300)

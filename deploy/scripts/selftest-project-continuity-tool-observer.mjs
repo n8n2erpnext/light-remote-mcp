@@ -10,7 +10,7 @@ const root=fs.mkdtempSync(path.join(os.tmpdir(),'continuity-passive-memory-'));
 try{
  const db=new ContinuityStore({root});
  try{
-  assert.equal(db.db.prepare('PRAGMA user_version').get().user_version,10);
+  assert.equal(db.db.prepare('PRAGMA user_version').get().user_version,11);
   assert.deepEqual([db.moduleSettings().memoryEnabled,db.moduleSettings().codexEnabled],[false,false]);
   const receipt=safeGoldToolReceipt({
    commandId:'command:fixed-0123456789',
