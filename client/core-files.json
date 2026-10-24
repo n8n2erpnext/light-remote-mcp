@@ -46,6 +46,10 @@
       "destination": "device-agent/gold-memory-sync.mjs"
     },
     {
+      "source": "device-agent/gold-memory-key-permissions.mjs",
+      "destination": "device-agent/gold-memory-key-permissions.mjs"
+    },
+    {
       "source": "device-agent/gold-memory-cli.mjs",
       "destination": "device-agent/gold-memory-cli.mjs"
     },

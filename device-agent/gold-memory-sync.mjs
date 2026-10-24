@@ -6,6 +6,7 @@
  * Each device owns independent SQLite; never copy a live SQLite database.
  */
 import crypto from 'node:crypto';
+import {requireGoldMemoryPrivateKey} from './gold-memory-key-permissions.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {prepareGoldMemoryV2,verifyGoldHomeSignedRecord} from './gold-memory-scope.mjs';
@@ -35,7 +36,7 @@ function writePrivate(file,kind){
     try{fs.writeFileSync(file,privateKey.export({format:'pem',type:'pkcs8'}),{flag:'wx',mode:0o600});}
     catch(e){if(e.code!=='EEXIST')throw e;}
   }
-  if(fs.statSync(file).mode&0o077)throw fail('gold_sync_private_key_permissions',503);
+  requireGoldMemoryPrivateKey(file,'gold_sync_private_key_permissions');
   let privateKey;
   try{privateKey=crypto.createPrivateKey(fs.readFileSync(file));}
   catch{throw fail('gold_sync_private_key_invalid',503);}

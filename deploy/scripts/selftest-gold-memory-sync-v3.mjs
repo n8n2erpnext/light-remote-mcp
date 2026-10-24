@@ -91,7 +91,8 @@ try{
  assert.equal(goldSyncStatus(dr,{accountId:owner,deviceId:winId,scopeId:scope.scopeId}).isHome,false);
  assert.throws(()=>appendGoldScopedCheckpoint(dr,rs,{accountId:owner,deviceId:winId,
    scopeId:scope.scopeId,title:'Hijack',body:'No',source:'tamper'}),/gold_scope_home_only/);
- assert.equal(fs.statSync(re).mode&0o077,0,'private encryption key must be 0600');
+ if(process.platform!=='win32')assert.equal(fs.statSync(re).mode&0o077,0,'private encryption key must be 0600');
+ else assert.ok(fs.existsSync(re),'Windows private key must exist under enforced owner-only ACL');
  assert.throws(()=>goldRevokeReplica(dh,{accountId:owner,deviceId:armId,
    scopeId:scope.scopeId,replicaDeviceId:winId}),/gold_sync_owner_confirmation_required/);
  assert.equal(goldRevokeReplica(dh,{accountId:owner,deviceId:armId,

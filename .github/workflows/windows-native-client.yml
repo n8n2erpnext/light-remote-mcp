@@ -89,6 +89,15 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'cursor effect parity regression failed' }
           node deploy/scripts/selftest-gold-windows-wall-nonblocking-inventory.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Gold Windows Wall blocking inventory regression failed' }
+      - name: Gold Long Memory G3 native Windows crypto smoke
+        shell: pwsh
+        run: |
+          node deploy/scripts/selftest-gold-memory-sync-v3.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold G3 Windows E2EE / signed ACK / key ACL failed' }
+          node deploy/scripts/selftest-gold-memory-scope-v2.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold Windows Long Memory V1/V2 scope and HMAC failed' }
+          Write-Host 'gold-windows-g3-cryptographic-scope-smoke=PASS'
+
       - name: Gold Windows owner filesystem scope regression
         shell: pwsh
         run: |
@@ -177,6 +186,10 @@ jobs:
           $updaterStage = Join-Path $PWD 'dist\windows\updater'
           $updater = Join-Path $updaterStage 'LightRemote.Updater.exe'
           node deploy/scripts/stage-client-core.mjs --verify $agentRoot
+          foreach ($memoryModule in @('gold-memory-ledger.mjs','gold-memory-scope.mjs','gold-memory-auto.mjs','gold-memory-sync.mjs','gold-memory-key-permissions.mjs')) {
+            if (-not (Test-Path (Join-Path $agentRoot ('device-agent\'+$memoryModule)))) { throw "Gold Windows Memory module missing: $memoryModule" }
+          }
+          Write-Host 'gold-windows-memory-g3-package-modules=PASS'
           $volumesModule = Join-Path $agentRoot 'device-agent\filesystem-volume-inventory.mjs'
           if (-not (Test-Path $volumesModule)) { throw 'Gold filesystem volume inventory absent from packaged Windows Agent' }
           Write-Host 'gold-windows-volume-inventory-packaged=PASS'

@@ -5,6 +5,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import {requireGoldMemoryPrivateKey} from './gold-memory-key-permissions.mjs';
 
 function fail(code,status=400){return Object.assign(new Error(code),{status});}
 function str(v,n,code){if(typeof v!=='string'||!v.trim()||v.length>n)throw fail(code);return v.trim();}
@@ -15,7 +16,7 @@ function signKey(filename,create=false){
     try{fs.writeFileSync(filename,crypto.randomBytes(32),{flag:'wx',mode:0o600});}
     catch(e){if(e.code!=='EEXIST')throw e;}
   }
-  if(fs.statSync(filename).mode&0o077)throw fail('gold_checkpoint_signing_key_permissions',503);
+  requireGoldMemoryPrivateKey(filename,'gold_checkpoint_signing_key_permissions');
   const key=fs.readFileSync(filename);
   if(key.length!==32)throw fail('gold_checkpoint_signing_key_invalid',503);
   return key;

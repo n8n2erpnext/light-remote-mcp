@@ -6,6 +6,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import {requireGoldMemoryPrivateKey} from './gold-memory-key-permissions.mjs';
 
 function problem(code,status=400){return Object.assign(new Error(code),{status});}
 function required(s,max,code){
@@ -35,7 +36,7 @@ function signingKeys(filename,create=false){
     try{fs.writeFileSync(filename,privateKey.export({format:'pem',type:'pkcs8'}),{flag:'wx',mode:0o600});}
     catch(e){if(e.code!=='EEXIST')throw e;}
   }
-  if(fs.statSync(filename).mode&0o077)throw problem('gold_scope_device_signing_key_permissions',503);
+  requireGoldMemoryPrivateKey(filename,'gold_scope_device_signing_key_permissions');
   const privateKey=crypto.createPrivateKey(fs.readFileSync(filename));
   if(privateKey.asymmetricKeyType!=='ed25519')throw problem('gold_scope_device_signing_key_invalid',503);
   const publicKey=crypto.createPublicKey(privateKey);
