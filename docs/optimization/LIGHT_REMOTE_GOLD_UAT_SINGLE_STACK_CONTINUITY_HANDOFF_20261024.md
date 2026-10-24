@@ -36,7 +36,7 @@ Installed integrated root: `/opt/light-remote-gold-uat-continuity-candidate/`:
 
 ## What the user opens
 
-**Same EXISTING Gold Wall over NetBird:** `http://100.94.184.141:5491/projects` (sidebar navigation label **Continuity**). This URL is WITHIN the real Gold Wall on port 5491; it redirects anonymous visitors to its existing login, whose `auth.json` is account-only. /account and Wall authenticate through the same Gold Account. No localhost SSH tunnel, fake username, Project Manager app, or port 5588 account portal. Standard Gold Permissions/Fleet/Agent remain on the same Wall at `http://100.94.184.141:5491/`.
+**Same EXISTING Gold Wall over NetBird:** `http://100.94.184.141:5591/projects` (sidebar navigation label **Continuity**). This URL is WITHIN the real Gold Wall on host port 5591 (existing nginx proxy to LXD port 5491); it redirects anonymous visitors to its existing login, whose `auth.json` is account-only. /account and Wall authenticate through the same Gold Account. No localhost SSH tunnel, fake username, Project Manager app, or port 5588 account portal. Standard Gold Permissions/Fleet/Agent remain on the same Wall at `http://100.94.184.141:5591/`.
 
 After existing account login: Long Memory and Codex Observer global ON/OFF independently; default Memory/local Controller works without creating Project; granting separate remote READ/WRITE requires Gold owner password step-up (owner signer initialized lazily from verified Gold account credentials); Memory body local to client. The new official Plugin `light_remote_long_memory_checkpoint` tool exists in Gold UAT runtime, but official ChatGPT connector registration and session A→B acceptance must still be tested.
 
@@ -44,7 +44,7 @@ After existing account login: Long Memory and Codex Observer global ON/OFF indep
 
 - Six Gold UAT services active on integrated source: Plugin, Operator, Wall, Process Supervisor, PostgreSQL17 and Redis.
 - Existing enrolled Gold Agent candidate `operator-agent.mjs status`: `enrolled=true`, Linux, account/device present, cloud desired connection retained.
-- Login GET `http://100.94.184.141:5491/login` = 200; unauthenticated `/projects` = HTTP 303 redirect to original Gold login; protected API unauthenticated = 401. No other Account/Wall.
+- Login GET `http://100.94.184.141:5591/login` = 200; unauthenticated `/projects` = HTTP 303 redirect to original Gold login; protected API unauthenticated = 401. No other Account/Wall.
 - Original Gold Plugin direct `/healthz` = 200; module flag and callback exports verified.
 - Merged installed Client manifest validates SHA256 of ALL 102 files, digest `f6f5fbd3e8262d63822d5a74a218340d880209e6fe2499a437c64cff9c16bf94` before latest IPC patch. Recompute/verify after updated module files before final release.
 - `ONE_GOLD_LOCAL_CLIENT_SIGNED_MEMORY_READ_WRITE_NO_PROJECT_PASS`, `ONE_GOLD_LOCAL_CLIENT_OWNER_CONSENT_UNVERIFIED_CHECKPOINT_IDEMPOTENCY_PASS`, `SIGNED_GOLD_OPERATOR_WRITE_CONSENT_SEPARATE_FROM_READ_PASS`, signed Gold Wall/CSRF tests, four module settings and mock-only Codex observer source tests PASS.
@@ -61,3 +61,12 @@ After existing account login: Long Memory and Codex Observer global ON/OFF indep
 ## Next implementation/acceptance focus
 
 Do not build more UAT LXD/Accounts. On THIS Gold Wall and existing `/account`: owner signs in, switches Long Memory ON, opts into signed read and write, checks persisted SQLite; use a Gold A/B session and official plugin to submit/retrieve source-labelled checkpoint between two ChatGPT Web chats. Independently test Codex observer using owner-authorized Plus without taking over command execution. If an integration bug arises, fix this feature branch, deploy only to same Gold UAT then reuse existing snapshot for rollback if necessary.
+
+
+## 2026-10-24 IMPORTANT correction: NetBird Gold UAT Wall URL
+
+Earlier handoff incorrectly published http://100.94.184.141:5491/projects as Gold UAT. Read-only process inspection proves host port 5491 is bound by unrelated ARM production gpt-operator-device-agent.service, which authenticates against light-remote.thaiduy.digital. Thus Gold credentials failed there because it is the WRONG Agent Wall, not due to a Gold password defect.
+
+The actual Gold UAT Wall is inside light-remote-gold-uat LXD at 10.192.135.61:5491. EXISTING NetBird nginx container light-remote-gold-wall-netbird forwards 100.94.184.141:5591 to that LXD address. Confirmed /login 200, unauthenticated /projects 303 to same Gold Wall login, /api/project-continuity/getGlobalModules 401. The gold.light-remote.thaiduy.digital Account portal runs via existing light-remote-gold-preview nginx, also targeting the SAME Gold UAT LXD Plugin at 10.192.135.61:5583.
+
+OWNER correct URL: http://100.94.184.141:5591/projects . No password reset/new account/Wall necessary. Authenticated owner login at 5591 still pending actual browser validation; do not claim that pass.

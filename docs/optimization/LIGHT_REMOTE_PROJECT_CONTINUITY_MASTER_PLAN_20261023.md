@@ -221,3 +221,8 @@ Cognee reference only: https://www.cognee.ai/how-cognee-builds-ai-memory
 ## 2026-10-24 One real Gold UAT stack, original Account/Wall
 
 [Real Gold UAT integrated Long Memory/Codex observer handoff](./LIGHT_REMOTE_GOLD_UAT_SINGLE_STACK_CONTINUITY_HANDOFF_20261024.md). Owner-requested offline snapshot, deleted wrong separate Continuity LXD, 3 integrated Gold services using original Account/Wall; no new app or Account. Gold UAT login and plugin healthy, local signed Memory test PASS; live A/B Web chat handoff still OPEN, Codex observer live Plus still OPEN. Release BLOCKED.
+
+
+## 2026-10-24 Gold UAT NetBird Wall URL correction
+
+Correct Gold UAT Wall: http://100.94.184.141:5591/projects (NetBird nginx proxy to LXD 10.192.135.61:5491). Host :5491 is a DIFFERENT ARM production Agent Wall; never use host :5491 to test Gold Account. Owner's password remains unchanged, authenticated UAT browser re-test at :5591 OPEN.

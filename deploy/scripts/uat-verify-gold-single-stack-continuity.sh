@@ -28,9 +28,12 @@ JS
  systemctl show -p Environment --value light-remote-gold-wall | grep -Fq LIGHT_REMOTE_PROJECT_CONTINUITY_EXPERIMENTAL=1
  grep -Fq light_remote_long_memory_checkpoint /opt/light-remote-gold-uat-continuity-candidate/plugin/plugin-server/tools.mjs
 '
-[[ "$(curl -sS --max-time 5 -o /dev/null -w '%{http_code}' http://100.94.184.141:5491/login)" == 200 ]]
-[[ "$(curl -sS --max-time 5 -o /dev/null -w '%{http_code}' http://100.94.184.141:5491/api/project-continuity/getGlobalModules)" == 401 ]]
-[[ "$(curl -sS --max-time 5 -o /dev/null -w '%{http_code}' http://100.94.184.141:5491/projects)" == 303 ]]
+# The host :5491 is ARM production Wall, never Gold UAT.
+docker inspect light-remote-gold-wall-netbird --format '{{json .NetworkSettings.Ports}}' | grep -Fq '"HostPort":"5591"'
+docker exec light-remote-gold-wall-netbird nginx -T 2>/dev/null | grep -Fq 'proxy_pass http://10.192.135.61:5491;'
+[[ "$(curl -sS --max-time 5 -o /dev/null -w '%{http_code}' http://100.94.184.141:5591/login)" == 200 ]]
+[[ "$(curl -sS --max-time 5 -o /dev/null -w '%{http_code}' http://100.94.184.141:5591/api/project-continuity/getGlobalModules)" == 401 ]]
+[[ "$(curl -sS --max-time 5 -o /dev/null -w '%{http_code}' http://100.94.184.141:5591/projects)" == 303 ]]
 [[ "$(curl -sS --max-time 5 -o /dev/null -w '%{http_code}' -H 'Host: gold.light-remote.thaiduy.digital' http://10.192.135.61:5583/healthz)" == 200 ]]
 echo 'ONE_REAL_GOLD_ACCOUNT_WALL_PLUGIN_OPERATOR_UAT_DEPLOYED_PASS'
 echo 'DUPLICATE_CONTINUITY_LXD_REMOVED_AND_PREUPGRADE_SNAPSHOT_PRESENT_PASS'
