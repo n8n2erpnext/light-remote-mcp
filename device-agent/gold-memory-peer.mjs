@@ -39,6 +39,25 @@ export function signGoldPeerRequest(signFile,{accountId,deviceId,homeDeviceId,sc
   const signature=crypto.sign(null,Buffer.from(JSON.stringify(payload)),checkedPrivate(signFile)).toString('base64');
   return {payload,signature};
 }
+function signedGoldPeerResponse(signFile,request,result){
+  const req=request.payload;
+  const payload={protocol:PROTOCOL,accountId:req.accountId,homeDeviceId:req.homeDeviceId,
+    deviceId:req.deviceId,scopeId:req.scopeId,action:req.action,
+    requestNonce:req.nonce,result};
+  const signature=crypto.sign(null,Buffer.from(JSON.stringify(payload)),
+    checkedPrivate(signFile)).toString('base64');
+  return {payload,signature};
+}
+export function verifyGoldPeerResponse(homePublicKey,request,response){
+  const req=request?.payload, p=response?.payload;
+  if(!req||!p||p.protocol!==PROTOCOL||p.accountId!==req.accountId||
+    p.homeDeviceId!==req.homeDeviceId||p.deviceId!==req.deviceId||
+    p.scopeId!==req.scopeId||p.action!==req.action||
+    p.requestNonce!==req.nonce||!p.result||
+    !verify(homePublicKey,p,response.signature))
+    throw fail('gold_peer_home_response_signature_invalid',403);
+  return p.result;
+}
 export function receiveGoldPeerRequest(db,signFile,encFile,{accountId,deviceId,request,now=Date.now()}={}){
   if(!request||JSON.stringify(request).length>MAX_DATA)throw fail('gold_peer_request_oversize',413);
   const p=request.payload;
@@ -68,12 +87,14 @@ export function receiveGoldPeerRequest(db,signFile,encFile,{accountId,deviceId,r
   if(p.action==='pull'){
     const next=goldNextSyncFrame(db,signFile,encFile,{
       accountId,deviceId,scopeId:p.scopeId,replicaDeviceId:p.deviceId});
-    return next.state==='up_to_date'?{state:'up_to_date',revision:next.revision}:
+    const result=next.state==='up_to_date'?{state:'up_to_date',revision:next.revision}:
       {state:'frame',frame:next.frame};
+    return signedGoldPeerResponse(signFile,request,result);
   }
   if(!p.receipt||p.receipt.deviceId!==p.deviceId||p.receipt.scopeId!==p.scopeId)
     throw fail('gold_peer_ack_mismatch');
-  return {state:'ack',result:goldApplySyncAck(db,{accountId,deviceId,receipt:p.receipt})};
+  return signedGoldPeerResponse(signFile,request,{
+    state:'ack',result:goldApplySyncAck(db,{accountId,deviceId,receipt:p.receipt})});
 }
 export function allowGoldPeerHomeUrl(input){
   // Only RFC6598 NetBird peer IPs may be used. NO DNS, localhost, redirects or public endpoints.
@@ -113,7 +134,7 @@ export async function pollGoldPeer(db,signFile,encFile,{accountId,deviceId,scope
     if(raw.length>MAX_DATA)throw fail('gold_peer_response_oversize',413);
     const parsed=JSON.parse(raw);
     if(!parsed.ok||!parsed.result)throw fail('gold_peer_response_invalid',409);
-    return parsed.result;
+    return verifyGoldPeerResponse(scope.home_public_key,request,parsed.result);
   }
   const pulled=await send('pull');
   if(pulled.state==='up_to_date')return {state:'up_to_date',remoteRevision:pulled.revision};

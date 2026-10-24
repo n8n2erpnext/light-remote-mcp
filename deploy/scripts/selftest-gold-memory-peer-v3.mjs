@@ -7,7 +7,7 @@ import {createGoldWallModules} from '../../device-agent/gold-wall-modules.mjs';
 import {changeGoldScopeSyncPolicy} from '../../device-agent/gold-memory-scope.mjs';
 import {goldSyncIdentity,goldGrantReplica,goldAcceptReplicaInvite} from '../../device-agent/gold-memory-sync.mjs';
 import {receiveGoldPeerRequest,signGoldPeerRequest,pollGoldPeer,allowGoldPeerHomeUrl,
-  configureGoldPeerRoute,runGoldPeerRoutes} from '../../device-agent/gold-memory-peer.mjs';
+  configureGoldPeerRoute,runGoldPeerRoutes,verifyGoldPeerResponse} from '../../device-agent/gold-memory-peer.mjs';
 
 const {DatabaseSync}=createRequire(import.meta.url)('node:sqlite');
 const temp=fs.mkdtempSync(path.join(os.tmpdir(),'gold-peer-g3-'));
@@ -41,7 +41,16 @@ try{
    request:signGoldPeerRequest(repSign,{accountId,deviceId:replicaDevice,
      homeDeviceId:homeDevice,scopeId:scope.scopeId,action:'pull',now:Date.now()-180000})}),/gold_peer_request_invalid/);
  const first=receiveGoldPeerRequest(h,homeSign,homeEnc,{accountId,deviceId:homeDevice,request});
- assert.equal(first.state,'frame');assert.ok(!JSON.stringify(first.frame).includes('No real user data'));
+ assert.equal(verifyGoldPeerResponse(homeIdentity.signPublicKey,request,first).state,'frame');
+ assert.ok(!JSON.stringify(first.payload.result.frame).includes('No real user data'));
+ const forged=structuredClone(first);
+ forged.payload.result.state='up_to_date';
+ assert.throws(()=>verifyGoldPeerResponse(homeIdentity.signPublicKey,request,forged),
+   /gold_peer_home_response_signature_invalid/);
+ const wrongNonce=structuredClone(request);
+ wrongNonce.payload.nonce='a'.repeat(36);
+ assert.throws(()=>verifyGoldPeerResponse(homeIdentity.signPublicKey,wrongNonce,first),
+   /gold_peer_home_response_signature_invalid/);
  assert.throws(()=>receiveGoldPeerRequest(h,homeSign,homeEnc,{accountId,deviceId:homeDevice,request}),/gold_peer_replayed_request/);
  assert.equal(configureGoldPeerRoute(r,{accountId,deviceId:replicaDevice,
    scopeId:scope.scopeId,homeUrl:url,enabled:true}).enabled,true);
@@ -63,6 +72,19 @@ try{
  const already=await pollGoldPeer(r,repSign,repEnc,{accountId,deviceId:replicaDevice,
    scopeId:scope.scopeId,homeDeviceId:homeDevice,homeUrl:url,fetchImpl:mockFetch});
  assert.equal(already.state,'up_to_date');
+ const badHomeFetch=async (_url,{body})=>{
+   const req=JSON.parse(body);
+   return new Response(JSON.stringify({ok:true,result:{
+     payload:{protocol:'light-remote-memory-peer-v1',accountId,
+       homeDeviceId:homeDevice,deviceId:replicaDevice,scopeId:scope.scopeId,
+       action:req.payload.action,requestNonce:req.payload.nonce,
+       result:{state:'up_to_date',revision:999}},
+     signature:'forged'
+   }}),{status:200,headers:{'content-type':'application/json'}});
+ };
+ await assert.rejects(()=>pollGoldPeer(r,repSign,repEnc,{accountId,
+   deviceId:replicaDevice,scopeId:scope.scopeId,homeDeviceId:homeDevice,
+   homeUrl:url,fetchImpl:badHomeFetch}),/gold_peer_home_response_signature_invalid/);
  // Background routes default disabled unless explicitly owner-enabled.
  configureGoldPeerRoute(r,{accountId,deviceId:replicaDevice,scopeId:scope.scopeId,
    homeUrl:url,enabled:false});
