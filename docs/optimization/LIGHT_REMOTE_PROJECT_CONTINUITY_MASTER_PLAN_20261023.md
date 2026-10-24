@@ -203,3 +203,7 @@ Cognee reference only: https://www.cognee.ai/how-cognee-builds-ai-memory
 ## 2026-10-24 Runtime integration follow-up
 
 [Real full Gold Agent isolated LXD startup and Broker v9 backup handoff](./LIGHT_REMOTE_CONTINUITY_FULL_GOLD_AGENT_LXD_UAT_HANDOFF_20261024.md). Full 101-file Client Core staged and verified; actual operator-agent.mjs daemon, Gold brand/Wall/Permissions and global module API operational with UAT owner auth, executor probe healthy. Still UNENROLLED, no A/B/Plugin/real Codex, no public NetBird proxy; release remains BLOCKED.
+
+## 2026-10-24 Private Gold UAT pending enrollment
+
+[Full native Gold Agent reached private Gold UAT Operator and requested fresh owner approval](./LIGHT_REMOTE_CONTINUITY_GOLD_UAT_PRIVATE_ENROLLMENT_HANDOFF_20261024.md). Dedicated LXD static 10.192.135.62 to Gold UAT 10.192.135.61, UAT-only hostname pinned, no default route. Enrollment is PENDING with short-lived owner code; not a signed certificate, A/B session or owner-approved enrollment. All usual release gates remain BLOCKED.
