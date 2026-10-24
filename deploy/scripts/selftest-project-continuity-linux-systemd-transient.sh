@@ -42,7 +42,7 @@ assert.equal(fs.existsSync(root+'/controller/continuity.db'),false);
 assert.equal(fs.existsSync(root+'/private/continuity-owner-private.enc.json'),false);
 if(process.argv[2]==='write'){
  const p=await req('createProject',{name:'Real transient systemd UAT'});
- await req('setModules',{projectId:p.id,memory:true,expectedRevision:1});
+ await req('setGlobalModules',{memory:true,codex:false,expectedRevision:1});
  await req('memoryPut',{projectId:p.id,body:'SYSTEMD_REAL_SERVICE_CANARY_2026',sourceRef:'owner:systemd-test'});
  assert.equal((await owner({principal:'owner',password:'systemd-uat-fixture-password-2026-only',
    projectId:p.id,enabled:true,expectedRevision:2})).remoteReadEnabled,true);

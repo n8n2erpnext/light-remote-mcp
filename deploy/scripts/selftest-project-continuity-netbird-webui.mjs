@@ -57,9 +57,9 @@ const created=await post('createProject',{name});
 assert.equal(created.status,200);
 const data=(await created.json()).result;
 assert.equal(data.name,name);
-let changed=await post('setModules',{projectId:data.id,memory:true,codex:false,expectedRevision:1});
+let changed=await post('setGlobalModules',{memory:true,codex:false,expectedRevision:1});
 assert.equal(changed.status,200);
-let revision=(await changed.json()).result.revision;
+let revision=2; // Project revision changes when global switch synchronizes mirrors
 const memo='NETBIRD_WEBUI_UAT_CANARY_'+crypto.randomBytes(6).toString('hex');
 const put=await post('memoryPut',{projectId:data.id,body:memo,sourceRef:'owner:uat-web'});
 assert.equal(put.status,200);

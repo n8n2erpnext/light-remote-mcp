@@ -195,3 +195,7 @@ OpenAI official:
 - https://developers.openai.com/siwc/quickstart
 - https://developers.openai.com/siwc/token-sharing-open-source/codex-app-server
 Cognee reference only: https://www.cognee.ai/how-cognee-builds-ai-memory
+
+## Binding architecture correction — 2026-10-24
+
+[Read the original contract and corrective handoff](./LIGHT_REMOTE_CONTINUITY_ORIGINAL_CONTRACT_GOLD_GLOBAL_MODULES_HANDOFF_20261024.md). Two independent DEVICE-level features; no Project to activate. Never substitute a fake standalone Wall. SQLite v9 device modules and default Memory scope SOURCE PASS. Invalid 5587 demo disabled without deleting memory. Entire real Gold runtime, Codex worker, cross-chat, Windows/macOS/Linux Desktop physical acceptance remain release blockers.

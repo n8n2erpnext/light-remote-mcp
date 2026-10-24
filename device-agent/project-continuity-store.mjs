@@ -7,6 +7,8 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 
 const uid=()=>crypto.randomUUID(),now=()=>new Date().toISOString();
+const DEFAULT_SCOPE_ID='00000000-0000-4000-8000-000000000001';
+const DEFAULT_WORKSPACE='__continuity_default_scope__';
 const STATES={
  READY:['RUNNING','WAIT_OWNER','BLOCKED','FAILED'],
  RUNNING:['CHECKPOINTED','WAIT_OWNER','BLOCKED','DONE','FAILED','UNKNOWN'],
@@ -31,7 +33,7 @@ export class ContinuityStore {
   this.db=new DatabaseSync(path.join(this.root,'continuity.db'),{timeout:3000});
   this.db.exec('PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=3000; PRAGMA synchronous=FULL');
   const openedVersion=this.db.prepare('PRAGMA user_version').get().user_version;
-  if(openedVersion>8){this.db.close();throw Error('continuity_future_schema_version');}
+  if(openedVersion>9){this.db.close();throw Error('continuity_future_schema_version');}
   this.db.exec([
   'CREATE TABLE IF NOT EXISTS projects(id TEXT PRIMARY KEY,name TEXT NOT NULL,workspace TEXT NOT NULL,memory_enabled INTEGER NOT NULL DEFAULT 0 CHECK(memory_enabled IN(0,1)),codex_enabled INTEGER NOT NULL DEFAULT 0 CHECK(codex_enabled IN(0,1)),revision INTEGER NOT NULL DEFAULT 1,created_at TEXT NOT NULL,updated_at TEXT NOT NULL)',
   'CREATE TABLE IF NOT EXISTS tasks(id TEXT PRIMARY KEY,project_id TEXT NOT NULL REFERENCES projects(id),title TEXT NOT NULL,created_at TEXT NOT NULL)',
@@ -78,6 +80,12 @@ export class ContinuityStore {
   // restart, and never store the memory text or raw delegation signature.
   this.db.exec("CREATE TABLE IF NOT EXISTS operator_read_nonces(request_id TEXT PRIMARY KEY,project_id TEXT NOT NULL REFERENCES projects(id),expires_at INTEGER NOT NULL)");
   this.db.exec('PRAGMA user_version=8');
+  // Global feature switches belong to the Light Remote INSTALLATION,
+  // not to a Project. Migration preserves any existing explicit opt-ins,
+  // but never automatically enables or broadens remote-read consent.
+  this.db.exec("CREATE TABLE IF NOT EXISTS device_modules(id INTEGER PRIMARY KEY CHECK(id=1),memory_enabled INTEGER NOT NULL DEFAULT 0 CHECK(memory_enabled IN(0,1)),codex_enabled INTEGER NOT NULL DEFAULT 0 CHECK(codex_enabled IN(0,1)),revision INTEGER NOT NULL DEFAULT 1,updated_at TEXT NOT NULL)");
+  this.db.prepare("INSERT OR IGNORE INTO device_modules(id,memory_enabled,codex_enabled,revision,updated_at) SELECT 1,COALESCE(MAX(memory_enabled),0),COALESCE(MAX(codex_enabled),0),1,? FROM projects").run(now());
+  this.db.exec('PRAGMA user_version=9');
   this.reconcileStartup();
  }
  reconcileStartup(){
@@ -99,14 +107,46 @@ export class ContinuityStore {
   });
  }
   close(){this.db.close();}
+ moduleSettings(){
+  const p=this.db.prepare('SELECT memory_enabled,codex_enabled,revision,updated_at FROM device_modules WHERE id=1').get();
+  return {memoryEnabled:!!p.memory_enabled,codexEnabled:!!p.codex_enabled,revision:p.revision,updatedAt:p.updated_at,defaultScopeId:DEFAULT_SCOPE_ID};
+ }
+ setGlobalModules({memory,codex,expectedRevision}={}){
+  const previous=this.moduleSettings();
+  req(Number.isInteger(expectedRevision)&&expectedRevision===previous.revision,'continuity_stale_revision');
+  req(memory===undefined||typeof memory==='boolean','continuity_invalid_modules');
+  req(codex===undefined||typeof codex==='boolean','continuity_invalid_modules');
+  const m=memory===undefined?previous.memoryEnabled:memory;
+  const c=codex===undefined?previous.codexEnabled:codex;
+  return this.tx(()=>{
+   const result=this.db.prepare('UPDATE device_modules SET memory_enabled=?,codex_enabled=?,revision=revision+1,updated_at=? WHERE id=1 AND revision=?').run(+m,+c,now(),expectedRevision);
+   req(result.changes===1,'continuity_stale_revision');
+   // A hidden internal scope supports Memory-only and Codex-only with NO
+   // user-created Project. Creation is lazy and never occurs when both OFF.
+   if(m||c){
+    const ts=now();
+    this.db.prepare('INSERT OR IGNORE INTO projects(id,name,workspace,memory_enabled,codex_enabled,created_at,updated_at) VALUES (?,?,?,?,?,?,?)')
+      .run(DEFAULT_SCOPE_ID,'Light Remote default context',DEFAULT_WORKSPACE,+m,+c,ts,ts);
+   }
+   // Legacy project-local flags are compatibility mirrors, not owner controls.
+   // Update them in the same local SQLite transaction, avoiding mixed modes.
+   this.db.prepare('UPDATE projects SET memory_enabled=?,codex_enabled=?,revision=revision+1,updated_at=? WHERE memory_enabled<>? OR codex_enabled<>?').run(+m,+c,now(),+m,+c);
+   if(!m){
+    this.db.prepare('UPDATE remote_project_consent SET enabled=0,updated_at=? WHERE enabled=1').run(now());
+    this.db.exec('DELETE FROM remote_consent_attestations');
+   }
+   return this.moduleSettings();
+  });
+ }
  tx(fn){this.db.exec('BEGIN IMMEDIATE');try{const result=fn();this.db.exec('COMMIT');return result;}catch(e){this.db.exec('ROLLBACK');throw e;}}
  project(pid){return this.db.prepare('SELECT p.*,COALESCE(r.enabled,0) AS remote_read_enabled FROM projects p LEFT JOIN remote_project_consent r ON r.project_id=p.id WHERE p.id=?').get(guid(pid))||null;}
- projects(){return this.db.prepare('SELECT p.*,COALESCE(r.enabled,0) AS remote_read_enabled FROM projects p LEFT JOIN remote_project_consent r ON r.project_id=p.id ORDER BY p.created_at,p.id').all();}
+ projects(){return this.db.prepare('SELECT p.*,COALESCE(r.enabled,0) AS remote_read_enabled FROM projects p LEFT JOIN remote_project_consent r ON r.project_id=p.id WHERE p.workspace<>? ORDER BY p.created_at,p.id').all(DEFAULT_WORKSPACE);}
  event(pid,who,what,eid='',from='',to='',detail=''){this.db.prepare('INSERT INTO events(project_id,actor,kind,entity_id,old_state,new_state,detail,created_at) VALUES (?,?,?,?,?,?,?,?)').run(pid,who,what,eid,from,to,detail,now());}
  createProject({projectName,workspace=''}){
   req(typeof workspace==='string'&&workspace.length<=4096,'continuity_invalid_workspace');
   const pid=uid(),ts=now();
-  return this.tx(()=>{this.db.prepare('INSERT INTO projects(id,name,workspace,created_at,updated_at) VALUES (?,?,?,?,?)').run(pid,label(projectName),workspace,ts,ts);this.event(pid,'local_client_unverified','project_created',pid);return this.project(pid);});
+  const switches=this.moduleSettings();
+  return this.tx(()=>{this.db.prepare('INSERT INTO projects(id,name,workspace,memory_enabled,codex_enabled,created_at,updated_at) VALUES (?,?,?,?,?,?,?)').run(pid,label(projectName),workspace,+switches.memoryEnabled,+switches.codexEnabled,ts,ts);this.event(pid,'local_client_unverified','project_created',pid);return this.project(pid);});
  }
  setModules(pid,{memory,codex,expectedRevision}){
   const old=this.project(pid);req(old,'continuity_project_missing');

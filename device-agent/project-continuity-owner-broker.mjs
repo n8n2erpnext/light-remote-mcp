@@ -160,9 +160,11 @@ export function startOwnerBroker({runtimeDir,clientGroupMode=0o660,controller=nu
     const op=params.action,body=params.data||{};
     const actions={
      listProjects:()=>controller.projects(),
+     getGlobalModules:()=>controller.moduleSettings(),
+     setGlobalModules:()=>controller.setGlobalModules({memory:body.memory,codex:body.codex,expectedRevision:body.expectedRevision}),
      getProject:()=>controller.project(body.projectId),
      createProject:()=>controller.createProject({projectName:body.name,workspace:body.workspace||''}),
-     setModules:()=>controller.setModules(body.projectId,{memory:body.memory,codex:body.codex,expectedRevision:body.expectedRevision}),
+     // Legacy per-project setModules deliberately not on generic Agent IPC.
      createTask:()=>controller.createTask(body.projectId,body.title),
      addSection:()=>controller.addSection(body.taskId,{title:body.title,dependsOn:body.dependsOn||[],resources:body.resources||[]}),
      getTask:()=>controller.task(body.taskId),

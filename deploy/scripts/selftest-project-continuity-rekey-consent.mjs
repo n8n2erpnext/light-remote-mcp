@@ -92,7 +92,7 @@ try {
  raw.exec('DROP TABLE remote_consent_attestations; PRAGMA user_version=6');
  raw.close();
  legacy=new ContinuityStore({root:oldRoot});
- assert.equal(legacy.db.prepare('PRAGMA user_version').get().user_version,8);
+ assert.equal(legacy.db.prepare('PRAGMA user_version').get().user_version,9);
  assert.throws(()=>legacy.remoteBrief(unverified.id),/continuity_remote_consent_receipt_missing/);
  legacy.close();
  console.log('P2_REKEY_PRESERVES_PUBLIC_IDENTITY_AND_CONSENT_PASS');

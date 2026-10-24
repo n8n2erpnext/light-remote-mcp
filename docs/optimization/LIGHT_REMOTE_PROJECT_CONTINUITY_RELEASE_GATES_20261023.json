@@ -33,8 +33,15 @@
     "linux_server_webui_graceful_lxc_restart": "OPEN_SHUTDOWN_TIMEOUT",
     "linux_server_webui_public_https_and_password_isolation": "OPEN_UAT_ONLY",
     "continuity_projects_in_shared_local_wall_navigation": "PASS_SOURCE_AND_ISOLATED_LXD",
-    "continuity_projects_real_production_wall_integration": "OPEN_NOT_DEPLOYED"
+    "continuity_projects_real_production_wall_integration": "OPEN_NOT_DEPLOYED",
+    "device_global_independent_module_switches_no_project_required": "PASS_SOURCE_ONLY",
+    "gold_486_manifest_complete_inheritance": "PASS_SOURCE_ONLY_NOT_RUNNING_PARITY",
+    "codex_only_real_worker_no_memory": "OPEN",
+    "memory_only_chatgpt_cross_session_without_codex": "OPEN",
+    "same_real_gold_agent_wall_enrollment_permissions_fleet": "BLOCKED_FAKE_UAT_RETIRED",
+    "device_global_module_owner_stepup_broker": "OPEN",
+    "retired_separate_lxd_fake_wall": "PASS_PRESERVED_SQLITE"
   },
   "test_build_allowed": false,
-  "notes": "Corrected the standalone UAT Projects server mistake: LXD port 5587 now runs the SAME device-agent/local-wall.mjs as product Wall, with Projects nav rendered only when Continuity is opted in, and broker-backed /projects API. Actual signed-in Wall root, CSRF/Origin and memory/owner consent smoke PASS_ISOLATED_LXD. Production Wall 5491 not modified, no real device enrollment in UAT. Windows native ACL, macOS/Linux Desktop parity, real A/B Plugin and Codex Worker still OPEN; final installer BLOCKED."
+  "notes": "Restored original contract in source: independent Light Remote device-level ON/OFF switches, Projects optional, hidden default Memory scope, SQLite v9, Gold #486 Client Core manifest superset. Retired fake 5587 LXD UI/NetBird proxy and retained private broker SQLite. Full real Gold Agent/Wall/permissions/enrollment runtime NOT integrated yet. Gold operator/plugin/wall active. Actual Codex worker, ChatGPT cross-session, global owner step-up and four-OS parity remain OPEN. Final installer BLOCKED."
 }

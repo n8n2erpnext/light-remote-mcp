@@ -38,9 +38,11 @@ export function startContinuityServer({root=continuityDefaultRoot()}={}){
  const actions={
   health:()=>({status:'ready',version:1,projects:store.projects().length}),
   listProjects:()=>store.projects(),
+  getGlobalModules:()=>store.moduleSettings(),
+  setGlobalModules:d=>store.setGlobalModules({memory:d.memory,codex:d.codex,expectedRevision:d.expectedRevision}),
   getProject:d=>store.project(d.projectId),
   createProject:d=>store.createProject({projectName:d.name,workspace:d.workspace||''}),
-  setModules:d=>store.setModules(d.projectId,{memory:d.memory,codex:d.codex,expectedRevision:d.expectedRevision}),
+  // Per-project module switching is deprecated; configuration is global.
   createTask:d=>store.createTask(d.projectId,d.title),
   addSection:d=>store.addSection(d.taskId,{title:d.title,dependsOn:d.dependsOn||[],resources:d.resources||[]}),
   getTask:d=>store.task(d.taskId),

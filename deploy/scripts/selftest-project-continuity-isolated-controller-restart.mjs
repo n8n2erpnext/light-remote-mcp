@@ -27,26 +27,14 @@ try{
  await once(broker.server,'listening');
  const project=await projectContinuityRequest('createProject',{name:'Persisted isolated controller'});
  assert.equal(project.memory_enabled,0);
- const enabled=await projectContinuityRequest('setModules',{projectId:project.id,memory:true,expectedRevision:1});
- assert.equal(enabled.memory_enabled,1);
+ const enabled=await projectContinuityRequest('setGlobalModules',{memory:true,codex:false,expectedRevision:1});
+ assert.equal(enabled.memoryEnabled,true);
  await projectContinuityRequest('memoryPut',{projectId:project.id,body:'PERSISTED_ISOLATED_PRIVATE_2070',sourceRef:'owner:fixture'});
- // Same cross-OS contract: independent module switches and full-size local note.
- const codexOnly=await projectContinuityRequest('createProject',{name:'Codex only'});
- await projectContinuityRequest('setModules',{projectId:codexOnly.id,codex:true,expectedRevision:1});
- const codexState=await projectContinuityRequest('getProject',{projectId:codexOnly.id});
- assert.equal(codexState.memory_enabled,0);
- assert.equal(codexState.codex_enabled,1);
- await assert.rejects(projectContinuityRequest('contextBrief',{projectId:codexOnly.id}),
-  /continuity_memory_disabled/);
+ // Project creation is NOT necessary to enable either module. The
+ // separate four-mode test covers the device-level sequence.
  const longNote=await projectContinuityRequest('memoryPut',{projectId:project.id,
   body:'a'.repeat(10000),sourceRef:'owner:bounded-max-note'});
  assert.equal(longNote.kind,'observation');
- const combined=await projectContinuityRequest('createProject',{name:'Both modules'});
- await projectContinuityRequest('setModules',{projectId:combined.id,memory:true,codex:true,expectedRevision:1});
- const modes=await projectContinuityRequest('listProjects');
- assert.equal(modes.length,3);
- assert.equal(modes.find(p=>p.id===combined.id).codex_enabled,1);
- assert.equal(modes.find(p=>p.id===combined.id).memory_enabled,1);
  const permit=await projectContinuityOwnerConsent({principal:'owner',password,
   projectId:project.id,enabled:true,expectedRevision:2});
  assert.equal(permit.remoteReadEnabled,true);

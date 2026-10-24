@@ -27,7 +27,7 @@ try{
  const outsider=crypto.generateKeyPairSync('ed25519');
  const project=async()=>{
   const p=await projectContinuityRequest('createProject',{name:'Signed relay privacy test'});
-  await projectContinuityRequest('setModules',{projectId:p.id,memory:true,expectedRevision:1});
+  await projectContinuityRequest('setGlobalModules',{memory:true,codex:false,expectedRevision:1});
   await projectContinuityRequest('memoryPut',{projectId:p.id,body:'SENSITIVE_CANARY_READS_ONLY_WITH_OPERATOR_PROOF',sourceRef:'owner:test'});
   await projectContinuityOwnerConsent({principal:'owner',password,projectId:p.id,enabled:true,expectedRevision:2});
   return p.id;
@@ -73,7 +73,6 @@ try{
  // that only the Operator may mint token AFTER its active-session check.
  assert.equal((await projectContinuityRequest('remoteBrief',wrongSession)).projectId,id);
  const another=await projectContinuityRequest('createProject',{name:'No consent fixture'});
- await projectContinuityRequest('setModules',{projectId:another.id,memory:true,expectedRevision:1});
  await assert.rejects(projectContinuityRequest('remoteBrief',make({projectId:another.id})),/continuity_remote_read_denied/);
  const expired=make();
  expired.proof=createProjectReadDelegation({privateKey:signer.privateKey,accountId,deviceId,

@@ -79,7 +79,7 @@ assert.equal(fs.existsSync(runtimeDir+'/controller/owner-authority-public.pem'),
 const brokerOp=(action,data={})=>ownerBrokerRequest({runtimeDir,action:'controller',data:{action,data}});
 const created=await projectContinuityRequest('createProject',{name:'Isolated project memory fixture'});
 assert.equal(created.memory_enabled,0);
-await projectContinuityRequest('setModules',{projectId:created.id,memory:true,expectedRevision:1});
+await projectContinuityRequest('setGlobalModules',{memory:true,codex:false,expectedRevision:1});
 await projectContinuityRequest('memoryPut',{projectId:created.id,body:'ISOLATED_CANARY_IN_PRIVATE_DB_2070',sourceRef:'fixture:signed'});
 const local=await projectContinuityRequest('contextBrief',{projectId:created.id,maxChars:2000});
 assert.match(local.content,/ISOLATED_CANARY_IN_PRIVATE_DB_2070/);

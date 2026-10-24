@@ -18,18 +18,34 @@ hr{border:0;border-top:1px solid #243247;margin:20px 0}pre{white-space:pre-wrap;
 #notice{min-height:22px;font-size:12px;color:#9bb9d7}.error{color:#ff9b9b!important}.ok{color:#78e2c5!important}.card{border:1px solid #28384b;border-radius:7px;padding:12px;margin-top:10px}
 @media(max-width:800px){main{padding:14px}.layout{grid-template-columns:1fr}header{padding:0 14px}}
 </style></head><body><header><b>Light Remote <span class="muted">/ Project Continuity</span></b><nav><a href="/">Wall</a> &nbsp; · &nbsp; <a href="/permissions">Permissions</a></nav></header>
-<main><h1>Projects</h1><div class="muted">Local project state · Owner-controlled · Experimental P1</div><p id="notice" role="status"></p>
-<div class="layout"><section class="panel"><h2>Local projects</h2><div id="list"></div><hr>
+<main><h1>Projects</h1><div class="muted">Light Remote device modules · Local project scopes · UAT</div><p id="notice" role="status"></p>
+<section class="panel" id="continuityModules" aria-label="Light Remote optional modules">
+<h2>Light Remote — Optional modules</h2>
+<p class="muted">These are independent Light Remote device settings. <b>No Project needs to be created first.</b> Projects below only organize tasks, decisions and memory scopes.</p>
+<div class="switch"><span><b>Project Memory</b><br><small>Persistent context across ChatGPT conversations when authorized. No Codex subscription required.</small></span><input aria-label="Enable Project Memory globally" id="memory" type="checkbox"></div>
+<div class="switch"><span><b>Codex Bridge</b><br><small>Optional Codex engine; works independently of Project Memory. Real worker connection is not ready in this UAT.</small></span><input aria-label="Enable Codex Bridge globally" id="codex" type="checkbox"></div>
+<div class="row" style="margin-top:12px"><button class="primary" id="save">Save Light Remote modules</button><span id="moduleState" class="muted">Loading module settings…</span></div>
+<div id="globalMemoryArea" hidden>
+ <hr><h2>Default Memory — No Project required</h2>
+ <p class="muted">Use this local context before organizing any Project. Notes are evidence, not executable instructions.</p>
+ <form id="globalMemoryForm">
+  <label>Remember (local only)</label><input id="globalMemoryBody" maxlength="12000" required placeholder="Important decision, fact or handoff context">
+  <label>Source reference</label><input id="globalMemorySource" maxlength="2048" required placeholder="Owner note or source document">
+  <button type="submit">Save to default Memory</button>
+ </form>
+ <form id="globalMemorySearchForm" class="row" style="margin-top:12px">
+  <input id="globalMemoryQuery" maxlength="300" placeholder="Search default Memory">
+  <button type="submit">Search</button>
+ </form>
+ <pre id="globalMemoryResults" aria-label="Default Memory results"></pre>
+</div>
+</section>
+<div class="layout"><section class="panel"><h2>Local projects (optional organization)</h2><div id="list"></div><hr>
 <form id="create"><label>New project name</label><input id="projectName" maxlength="160" required placeholder="e.g. Light Remote Gold">
 <label>Workspace (metadata only)</label><input id="workspace" maxlength="4096" placeholder="Absolute project directory">
 <button type="submit" class="primary" style="margin-top:12px">Create project</button></form></section>
-<section class="panel"><div id="empty" class="muted">Choose a project on the left to manage optional modules.</div>
+<section class="panel"><div id="empty" class="muted">Choose a project to manage its tasks and scoped memory. The Light Remote module switches are above.</div>
 <div id="detail" hidden><h2 id="title"></h2><div class="muted" id="meta"></div>
-<hr><h2>Optional modules</h2>
-<div class="switch"><span><b>Project Memory</b><br><small>Persistent local facts and checkpoint retrieval</small></span><input aria-label="Enable Project Memory" id="memory" type="checkbox"></div>
-<div class="switch"><span><b>Codex Bridge</b><br><small>Codex connection is not activated by this switch in P1</small></span><input aria-label="Enable Codex Bridge" id="codex" type="checkbox"></div>
-<p class="muted" style="font-size:12px">Each module is independent. Enabling Codex here only records its preference; no Codex login or worker starts in P1.</p>
-<button class="primary" id="save">Save modules</button>
 <hr><h2>Remote Memory Access</h2>
 <p class="muted" style="font-size:12px">Disabled by default. Grants an explicitly chosen Project to a linked ChatGPT session. Re-enter your Local Wall or account password to change this setting.</p>
 <div id="remoteStatus" class="muted">Remote sharing: OFF</div>
@@ -63,14 +79,21 @@ hr{border:0;border-top:1px solid #243247;margin:20px 0}pre{white-space:pre-wrap;
 <pre id="handoff"></pre><hr><h2>Durable checkpoint</h2><p class="muted" style="font-size:12px">Read-only view generated from canonical SQLite state, not inferred by AI.</p>
 <button id="refresh">Refresh checkpoint</button><pre id="checkpoint" aria-label="Project checkpoint"></pre></div></section></div></main>
 <script>
-const CSRF=__CSRF_JSON__;let items=[],active=null;
+const CSRF=__CSRF_JSON__;let items=[],active=null,moduleState=null;
 const by=id=>document.getElementById(id),notice=(msg,error=false)=>{by('notice').textContent=msg;by('notice').className=error?'error':'ok';};
 async function api(action,data){
  const post=!!data;
  const res=await fetch('/api/project-continuity/'+action,{method:post?'POST':'GET',headers:{'content-type':'application/json','x-light-remote-csrf':CSRF},body:post?JSON.stringify(data):undefined,cache:'no-store'});
  const body=await res.json();if(!res.ok||!body.ok)throw Error(body.error||'Request failed');return body.result;
 }
-async function all(){try{items=await api('listProjects');renderList();if(active)await select(active);}catch(e){notice(e.message,true);}}
+async function all(){try{
+ moduleState=await api('getGlobalModules');
+ by('memory').checked=!!moduleState.memoryEnabled;
+ by('codex').checked=!!moduleState.codexEnabled;
+ by('moduleState').textContent='Device-wide · revision '+moduleState.revision;
+ by('globalMemoryArea').hidden=!moduleState.memoryEnabled;
+ items=await api('listProjects');renderList();if(active)await select(active);
+}catch(e){notice(e.message,true);}}
 function renderList(){
  const list=by('list');list.replaceChildren();
  if(!items.length){list.textContent='No projects created';list.className='muted';return;}
@@ -82,7 +105,7 @@ async function select(id){
  by('memory').checked=!!p.memory_enabled;by('codex').checked=!!p.codex_enabled;
  by('remoteStatus').textContent='Remote sharing: '+(p.remote_read_enabled?'ON':'OFF');
  by('remoteConsentAction').value=p.remote_read_enabled?'on':'off';
- by('remoteConsentForm').hidden=!p.memory_enabled;
+ by('remoteConsentForm').hidden=!(moduleState?.memoryEnabled && p.memory_enabled);
  renderList();await refresh();
  }catch(e){notice(e.message,true);}
 }
@@ -110,8 +133,29 @@ async function refresh(){
 
  }catch(e){notice(e.message,true);}
 }
+by('globalMemoryForm').onsubmit=async e=>{e.preventDefault();try{
+ if(!moduleState?.memoryEnabled)throw Error('Project Memory is disabled');
+ await api('memoryPut',{projectId:moduleState.defaultScopeId,body:by('globalMemoryBody').value,
+  sourceRef:by('globalMemorySource').value,kind:'observation'});
+ by('globalMemoryBody').value='';notice('Saved default Memory without creating a Project');
+}catch(err){notice(err.message,true);}};
+by('globalMemorySearchForm').onsubmit=async e=>{e.preventDefault();try{
+ if(!moduleState?.memoryEnabled)throw Error('Project Memory is disabled');
+ const q=by('globalMemoryQuery').value.trim();if(!q)return;
+ const rows=await api('memorySearch',{projectId:moduleState.defaultScopeId,query:q,limit:10});
+ by('globalMemoryResults').textContent=JSON.stringify(rows,null,2);
+ notice('Default Memory matches: '+rows.length);
+}catch(err){notice(err.message,true);}};
 by('create').onsubmit=async e=>{e.preventDefault();try{const p=await api('createProject',{name:by('projectName').value,workspace:by('workspace').value});by('projectName').value='';items=await api('listProjects');await select(p.id);notice('Local project created');}catch(err){notice(err.message,true);}};
-by('save').onclick=async()=>{const p=items.find(x=>x.id===active);if(!p)return;try{const updated=await api('setModules',{projectId:p.id,memory:by('memory').checked,codex:by('codex').checked,expectedRevision:p.revision});items=items.map(x=>x.id===updated.id?updated:x);await select(updated.id);notice('Module settings saved locally');}catch(e){notice(e.message,true);}};
+by('save').onclick=async()=>{try{
+ if(!moduleState)throw Error('Module state unavailable');
+ const updated=await api('setGlobalModules',{
+  memory:by('memory').checked,codex:by('codex').checked,
+  expectedRevision:moduleState.revision
+ });
+ moduleState=updated;await all();
+ notice('Light Remote module settings saved · Projects are optional');
+}catch(e){notice(e.message,true);}};
 by('remoteConsentForm').onsubmit=async e=>{e.preventDefault();const p=items.find(x=>x.id===active);if(!p)return;
  const secret=by('remoteOwnerPassword').value;by('remoteOwnerPassword').value='';
  try{

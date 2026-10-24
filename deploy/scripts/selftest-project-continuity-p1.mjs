@@ -88,8 +88,8 @@ try{
  assert.equal(list.length,2);
  const extra=await continuityRequest('createProject',{name:'IPC created'}, {root});
  assert.equal(extra.memory_enabled,0);assert.equal(extra.codex_enabled,0);
- const cc=await continuityRequest('setModules',{projectId:extra.id,memory:true,codex:false,expectedRevision:1},{root});
- assert.equal(cc.memory_enabled,1);assert.equal(cc.codex_enabled,0);
+ const cc=await continuityRequest('setGlobalModules',{memory:true,codex:false,expectedRevision:1},{root});
+ assert.equal(cc.memoryEnabled,true);assert.equal(cc.codexEnabled,false);
  await continuityRequest('memoryPut',{projectId:extra.id,body:'SQLite local continuity via IPC',sourceRef:'test'},{root});
  assert.equal((await continuityRequest('memorySearch',{projectId:extra.id,query:'SQLite'},{root})).length,1);
  await assert.rejects(continuityRequest('decideApproval',{approvalId:req.id,decision:'approved',ownerVerified:true},{root}),/continuity_unknown_action/);
