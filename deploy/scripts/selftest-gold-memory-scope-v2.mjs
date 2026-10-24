@@ -51,9 +51,18 @@ try{
   m.close();
   m=createGoldWallModules({file,scopeIdentity:{accountId:'account-owner',deviceId:'device-arm'}});
   assert.equal(m.scopedHandoff({scopeId:bi.scopeId}).checkpoints[0].integrity,'home_ed25519_verified');
-  assert.equal(m.legacyUnassignedCount(),1);
+  const lateV1=m.saveCheckpoint({title:'Late V1 manual checkpoint',kind:'checkpoint',body:'Still legacy/unassigned',source:'old-manual-tool'});
+  assert.equal(m.legacyUnassignedCount(),2,'Later V1 writes must remain unassigned');
+  assert.equal(m.readCheckpoint(lateV1.id).integrity,'device_hmac_verified');
   assert.throws(()=>m.readScopedCheckpoint({scopeId:light.scopeId,checkpointId:a.checkpointId}),/gold_scope_checkpoint_hash_invalid/);
   m.close();
+  const replica=createGoldWallModules({file,scopeIdentity:{accountId:'account-owner',deviceId:'device-windows'}});
+  try{
+    assert.equal(replica.scopedHandoff({scopeId:bi.scopeId}).checkpoints[0].integrity,'home_ed25519_verified');
+    assert.throws(()=>replica.appendScopedCheckpoint({scopeId:bi.scopeId,title:'Illegal replica commit',body:'Should not be committed',source:'replica'}),/gold_scope_home_only/);
+  }finally{replica.close();}
+  const untrusted=createGoldWallModules({file});
+  try{assert.throws(()=>untrusted.listMemoryScopes(),/gold_scope_trusted_identity_required/);}finally{untrusted.close();}
   const other=createGoldWallModules({file,scopeIdentity:{accountId:'different-account',deviceId:'device-arm'}});
   try{assert.equal(other.listMemoryScopes().length,0);assert.throws(()=>other.scopedHandoff({scopeId:light.scopeId}),/gold_scope_not_found/);}finally{other.close();}
   console.log('GOLD_LONG_MEMORY_V2_G1_SCOPE_ISOLATION_V1_HMAC_SIGNATURE_TAMPER_RESTART_PASS');
