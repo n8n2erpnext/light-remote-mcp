@@ -6,6 +6,16 @@ import { ownerDeviceResourceMetrics } from '../lib/gold-device-resource-metrics.
 
 export async function handleDeviceChannelRoutes(req,res,url,deps){
   const {ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,DeviceAccessGrantError,DevicePairingRegistryError,EnrollmentError,FleetAuthorityError,FleetError,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,MIN_SUPPORTED_CLIENT_VERSION,NODE_ID,VERSION,abandonedCommandReceiptFromDisk,accessGrants,accounts,agentClients,allDeviceViews,applyDeviceTelemetry,capabilities,clientCompatibility,connectionSpec,connections,deviceView,devices,emitStream,enrollments,finishJob,fleet,fleetAuthority,fleetEligibility,fleetTarget,jobView,jobs,goldJobs,deviceResourceLocks,deviceResourceSampleCache,cancelQueuedPersonalJob,requestFleetProcessStop,reconcileSignedTerminalProcessReceipts,normalizeUpdateReport,pairingCodes,planEntitlements,pushEvent,queueHelperUpdate,readJson,reapAccessGrants,realRemoteLive,recentEvents,requireDeviceConnection,sendJson,sessions,targetRoute,terminalResultSummary,verifiedChannelContext,verifiedFleetContext,verifiedLeafCapabilities}=deps;
+  // Account-scoped Memory device discovery: authenticate the enrolled device, not a
+  // caller-supplied account ID. Never expose checkpoint bodies or unrelated accounts.
+  if(req.method==='POST'&&url.pathname==='/v1/device-channel/memory-peers'){
+    const body=await readJson(req),ctx=await verifiedChannelContext(body,'memory-peers');
+    const owned=devices.list().filter(d=>d.accountId===ctx.binding.accountId&&d.state!=='revoked');
+    return sendJson(res,200,{ok:true,currentDeviceId:ctx.binding.deviceId,
+      devices:owned.map(d=>({deviceId:d.deviceId,displayName:d.displayName,
+        state:d.state,platform:d.platform,architecture:d.architecture,
+        agentVersion:d.agentVersion})).slice(0,100)});
+  }
   if(req.method==='POST'&&url.pathname==='/v1/device-channel/capabilities-refresh'){
     const body=await readJson(req),ctx=await verifiedChannelContext(body,'capabilities-refresh');
     const change=enrollments.refreshDiscoveredCapabilities({

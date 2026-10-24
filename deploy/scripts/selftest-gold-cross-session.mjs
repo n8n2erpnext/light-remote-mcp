@@ -49,12 +49,14 @@ try{
   m.configure({longMemory:true,codexBridge:true,expectedRevision:2});
   assert.equal(m.handoff().checkpoints[0].id,a.id);
   const auth={enabled:true,identity:r=>r.headers['x-owner']==='yes'?{username:'owner'}:null,csrfForRequest:()=> 'gold-csrf',verifyRequestCsrf:(_r,x)=>x==='gold-csrf'};
-  wall=startLocalWall({host:'127.0.0.1',port:0,auth,modules:m,getLocalStatus:async()=>({cloudState:'disconnected'})});
+  wall=startLocalWall({host:'127.0.0.1',port:0,auth,modules:m,getMemoryAccountDevices:async()=>({currentDeviceId:'arm-test',devices:[{deviceId:'arm-test',displayName:'ARM Home',state:'online',platform:'linux'},{deviceId:'windows-peer',displayName:'Windows Replica',state:'offline',platform:'win32'}]}),getLocalStatus:async()=>({cloudState:'disconnected'})});
   await new Promise((ok,bad)=>wall.server.listening?ok():wall.server.once('listening',ok).once('error',bad));
   const base='http://127.0.0.1:'+wall.server.address().port,owner={'x-owner':'yes'};
   const page=await (await fetch(base+'/',{headers:owner})).text();
   assert.match(page,/goldModulesLiveSummary/);
   assert.match(page,/Signed handoff checkpoints/);
+  assert.match(page,/goldPeerAccountDevicesRefresh/);
+  assert.doesNotMatch(page,/Home NetBird URL e.g./);
   for(const id of ['goldPeerExportIdentity','goldPeerCopyIdentity','goldPeerCandidate',
     'goldPeerExpectedFingerprint','goldPeerGrant','goldPeerInviteOutput',
     'goldPeerCopyInvite','goldPeerInviteInput','goldPeerHomeFingerprint',
@@ -63,6 +65,12 @@ try{
   assert.match(page,/I own these devices, checked their fingerprints separately/);
   assert.match(page,/Observer does not change task states/);
   for(const [,js] of page.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g))if(js.trim())new vm.Script(js);
+  assert.equal((await fetch(base+'/api/gold/modules/sync/account-devices')).status,401);
+  const directory=await fetch(base+'/api/gold/modules/sync/account-devices',{headers:owner});
+  assert.equal(directory.status,200);
+  const directoryData=await directory.json();
+  assert.deepEqual(directoryData.devices.map(device=>device.deviceId),['arm-test','windows-peer']);
+  assert.equal(directoryData.currentDeviceId,'arm-test');
   assert.equal((await fetch(base+'/api/gold/modules/handoff')).status,401);
   const result=await (await fetch(base+'/api/gold/modules/handoff',{headers:owner})).json();
   assert.equal(result.handoff.checkpoints[0].id,a.id);
