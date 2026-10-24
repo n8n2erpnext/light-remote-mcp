@@ -34,6 +34,10 @@
       "destination": "device-agent/gold-codex-api.mjs"
     },
     {
+      "source": "device-agent/gold-codex-plus.mjs",
+      "destination": "device-agent/gold-codex-plus.mjs"
+    },
+    {
       "source": "device-agent/local-process-page.mjs",
       "destination": "device-agent/local-process-page.mjs"
     },

@@ -7,6 +7,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import {createRequire} from 'node:module';
 import {createGoldCodexConnection} from './gold-codex-api.mjs';
+import {createGoldCodexPlus} from './gold-codex-plus.mjs';
 const loadBuiltin=createRequire(import.meta.url);
 
 function fault(code,status=400){return Object.assign(new Error(code),{status});}
@@ -34,6 +35,7 @@ export function createGoldWallModules({file,fetchImpl}){
   let database=null;
   let codexRequestInFlight=false;
   const codex=createGoldCodexConnection({storageFile:file+'.codex.enc',fetchImpl});
+  const plus=createGoldCodexPlus({home:path.join(path.dirname(file),'codex-home')});
   function open(create=false){
     if(database)return database;
     if(!create&&!fs.existsSync(file))return null;
@@ -97,6 +99,19 @@ export function createGoldWallModules({file,fetchImpl}){
       if(result.changes!==1)throw fault('gold_observer_task_not_found',404);
       return {id,state:input.state};
     },
+    async codexPlusStatus(){enabled('codexBridge');return plus.account();},
+    async codexPlusLogin(){enabled('codexBridge');return plus.beginLogin();},
+    async codexPlusCancel(){enabled('codexBridge');return plus.cancelLogin();},
+    async codexPlusLogout(){enabled('codexBridge');return plus.logout();},
+    async codexPlusObserve(){
+      const db=enabled('codexBridge');
+      if(codexRequestInFlight)throw fault('codex_run_already_in_progress',409);
+      codexRequestInFlight=true;
+      try{
+        const tasks=db.prepare('SELECT title,state FROM observer_tasks ORDER BY changed_ms DESC LIMIT 20').all();
+        return await plus.runReadOnly({tasks});
+      }finally{codexRequestInFlight=false;}
+    },
     codexConfig(){enabled('codexBridge');return codex.config();},
     saveCodexKey(input){enabled('codexBridge');return codex.save(input);},
     clearCodexKey(){enabled('codexBridge');return codex.clear();},
@@ -119,6 +134,6 @@ export function createGoldWallModules({file,fetchImpl}){
         :states.some(s=>s==='working'||s==='todo')?'CONTINUE':'WAIT_OWNER';
       return {tasks,recommendation,engine:'local-controller',codexRuntime:'not_connected',webTurnContinuation:'unsupported'};
     },
-    close(){if(database){database.close();database=null;}}
+    close(){plus.stop();if(database){database.close();database=null;}}
   };
 }
