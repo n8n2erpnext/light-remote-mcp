@@ -112,6 +112,8 @@ try {
     assert.match(home,/Observer does not change task states/);
     assert.doesNotMatch(home,/Codex runtime: not connected/);
     assert.match(home,/goldCodexPlusLogin/);
+    assert.match(home,/goldModulesLiveSummary/);
+    assert.doesNotMatch(home,/Optional Gold features, OFF by default/);
     assert.doesNotMatch(home,/id="goldCodexApiKey"/);
     assert.match(home,/Long Memory/);
     for(const [,js] of home.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g))if(js.trim())new vm.Script(js);
