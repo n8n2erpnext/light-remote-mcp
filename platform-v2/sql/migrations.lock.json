@@ -176,6 +176,11 @@
       "version": 35,
       "file": "035_gold_terminal_receipt_acks.sql",
       "sha256": "6b73ab68a3d165cf67709a178d845a0a5fc3206dfb45afe4b505d5c6e405b085"
+    },
+    {
+      "version": 36,
+      "file": "036_gold_memory_account_sync_modes.sql",
+      "sha256": "bd5b09bb4adfb90dfd2f48877bf5ff4d16cdf3669b8313f386437414aed8b242"
     }
   ]
 }

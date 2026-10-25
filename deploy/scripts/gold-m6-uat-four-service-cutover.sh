@@ -21,7 +21,7 @@ for entry in operator-host/executor.mjs plugin-server/server.mjs device-agent/op
  runuser -u gold-uat -- node --check "$TARGET/$entry"
 done
 v="$(runuser -u postgres -- psql -d light_remote_gold_dev -AtX -v ON_ERROR_STOP=1 -c 'SELECT max(version) FROM lr_schema_migrations')"
-[[ "$v" == 35 ]] || { echo M6_SCHEMA_35_REQUIRED >&2; exit 3; }
+[[ "$v" == 35 || "$v" == 36 ]] || { echo M6_SCHEMA_35_OR_36_REQUIRED >&2; exit 3; }
 t="$(runuser -u postgres -- psql -d light_remote_gold_dev -AtX -c "SELECT to_regclass('public.lr_gold_terminal_receipt_acks')")"
 [[ "$t" == lr_gold_terminal_receipt_acks ]] || { echo M6_ACK_TABLE_REQUIRED >&2; exit 3; }
 for unit in light-remote-gold-operator light-remote-gold-plugin light-remote-gold-wall light-remote-gold-process-supervisor; do

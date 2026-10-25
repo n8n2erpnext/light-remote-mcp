@@ -37,18 +37,13 @@ export class GoldMemoryAccountSyncPolicy{
   constructor(pool){if(!pool?.connect||!pool?.query)throw Error('memory_account_sync_pg_required');this.pool=pool;this.schemaReady=null;}
   async ready(){
     if(!this.schemaReady)this.schemaReady=(async()=>{
-      await this.pool.query(`CREATE TABLE IF NOT EXISTS lr_gold_memory_sync_accounts(
-        account_id TEXT PRIMARY KEY,enabled BOOLEAN NOT NULL DEFAULT FALSE,
-        revision BIGINT NOT NULL DEFAULT 0,updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      )`);
-      await this.pool.query(`CREATE TABLE IF NOT EXISTS lr_gold_memory_sync_devices(
-        account_id TEXT NOT NULL REFERENCES lr_gold_memory_sync_accounts(account_id) ON DELETE CASCADE,
-        device_id TEXT NOT NULL,selected BOOLEAN NOT NULL DEFAULT FALSE,
-        mode TEXT NOT NULL DEFAULT 'auto' CHECK(mode IN ('auto','follow_project','manual')),
-        manual_request_seq BIGINT NOT NULL DEFAULT 0,
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        PRIMARY KEY(account_id,device_id)
-      )`);
+      // lr_gold_app is intentionally denied CREATE privileges. Migration 036
+      // is applied only by lr_gold_migrator; never run DDL in an API process.
+      const schema=await this.pool.query(`SELECT
+        to_regclass('public.lr_gold_memory_sync_accounts') IS NOT NULL AS accounts,
+        to_regclass('public.lr_gold_memory_sync_devices') IS NOT NULL AS devices`);
+      if(schema.rows[0]?.accounts!==true||schema.rows[0]?.devices!==true)
+        throw invalid('gold_memory_sync_migration_036_required',503);
     })().catch(e=>{this.schemaReady=null;throw e;});
     return this.schemaReady;
   }

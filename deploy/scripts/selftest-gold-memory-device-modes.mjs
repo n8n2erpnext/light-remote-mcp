@@ -33,7 +33,8 @@ assert.throws(()=>normalizeMemoryAccountSyncInput({enabled:true,expectedRevision
 const accounts=new Map(),devices=new Map();
 function response(sql,args){
   const q=sql.replace(/\s+/g,' ').trim();
-  if(q.startsWith('CREATE TABLE'))return {rows:[]};
+  if(q.startsWith('SELECT to_regclass'))return {rows:[{accounts:true,devices:true}]};
+  if(q.startsWith('CREATE TABLE'))throw Error('runtime_ddl_forbidden');
   if(q.startsWith('INSERT INTO lr_gold_memory_sync_accounts')){
     if(!accounts.has(args[0]))accounts.set(args[0],{enabled:false,revision:0});
     return {rows:[]};
