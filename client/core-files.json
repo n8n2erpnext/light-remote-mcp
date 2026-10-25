@@ -50,6 +50,10 @@
       "destination": "device-agent/gold-memory-evidence.mjs"
     },
     {
+      "source": "device-agent/gold-memory-manual-evidence.mjs",
+      "destination": "device-agent/gold-memory-manual-evidence.mjs"
+    },
+    {
       "source": "device-agent/gold-memory-device-selection.mjs",
       "destination": "device-agent/gold-memory-device-selection.mjs"
     },

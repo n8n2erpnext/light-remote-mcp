@@ -805,7 +805,7 @@ async function replicaAutoCaptureAllowed(state){
     const own=policy?.devices?.find(d=>d.deviceId===state.enrollment.deviceId);
     // Account authority, not local UI hints. Manual is never auto-collected.
     return policy?.enabled===true&&own?.selected===true&&
-      ['auto','follow_project'].includes(own.mode);
+      ['auto','follow_project','manual'].includes(own.mode);
   }catch{return false;} // fail closed on offline/unknown account policy
 }
 function checkedGitHead(cwd){
@@ -1291,16 +1291,19 @@ async function daemon(args){
         const senderGate=GOLD_WALL_MODULES.scopeSyncGate({scopeId:record.scopeId,
           replicaDeviceId:sender.deviceId,mode:sender.mode,
           manualRequestSeq:sender.manualRequestSeq||0});
-        if(!homeGate.allowed||!senderGate.allowed||sender.mode==='manual')continue;
+        if(!homeGate.allowed||(!senderGate.allowed&&sender.mode!=='manual'))continue;
         try{
-          const accepted=GOLD_WALL_MODULES.acceptReplicaEvidence(frame);
+          const accepted=GOLD_WALL_MODULES.acceptReplicaEvidence(frame,{
+            manualRequestSeq:sender.mode==='manual'?(sender.manualRequestSeq||0):0
+          });
           await channelRequest(current,hub,'memory-relay',
             {action:'push_evidence_ack',evidence_ack:accepted.ack});
         }catch(error){console.error(JSON.stringify({event:'gold_evidence_home_rejected',
           code:String(error.message).slice(0,90)}));}
       }
-      if(own.mode!=='manual'){
-        const evidencePending=GOLD_WALL_MODULES.pendingReplicaEvidence({limit:4});
+      {
+        const evidencePending=GOLD_WALL_MODULES.pendingReplicaEvidence({
+          limit:4,mode:own.mode,manualRequestSeq:own.manualRequestSeq||0});
         for(const evidence of evidencePending){
           const home=selection.devices.find(d=>d.deviceId===evidence.meta?.homeDeviceId&&d.selected);
           const original=accounts.find(x=>x.scopeId===evidence.meta.scopeId);

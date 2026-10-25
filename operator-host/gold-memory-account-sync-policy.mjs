@@ -70,7 +70,7 @@ export class GoldMemoryAccountSyncPolicy{
       throw invalid('memory_sync_manual_device_invalid',403);
     await this.ready();
     const result=await this.pool.query(`UPDATE lr_gold_memory_sync_devices AS d
-      SET manual_request_seq=manual_request_seq+1,updated_at=NOW()
+      SET manual_request_seq=manual_request_seq+CASE WHEN MOD(manual_request_seq,2)=0 THEN 1 ELSE 2 END,updated_at=NOW()
       FROM lr_gold_memory_sync_accounts AS a
       WHERE d.account_id=a.account_id AND d.account_id=$1 AND d.device_id=$2
       AND d.selected=TRUE AND d.mode='manual' AND a.enabled=TRUE
@@ -91,8 +91,14 @@ export class GoldMemoryAccountSyncPolicy{
       for(const d of data.devices)await client.query(`INSERT INTO lr_gold_memory_sync_devices
         (account_id,device_id,selected,mode) VALUES($1,$2,$3,$4)
         ON CONFLICT(account_id,device_id) DO UPDATE
-        SET selected=excluded.selected,mode=excluded.mode,updated_at=NOW()`,
-        [accountId,d.deviceId,d.selected,d.mode]);
+        SET selected=excluded.selected,mode=excluded.mode,updated_at=NOW(),
+        manual_request_seq=CASE
+          WHEN lr_gold_memory_sync_devices.mode='manual' AND excluded.mode='manual'
+            AND lr_gold_memory_sync_devices.selected=TRUE AND excluded.selected=TRUE AND $5=TRUE
+          THEN lr_gold_memory_sync_devices.manual_request_seq
+          ELSE lr_gold_memory_sync_devices.manual_request_seq+MOD(lr_gold_memory_sync_devices.manual_request_seq,2)
+        END`,
+        [accountId,d.deviceId,d.selected,d.mode,data.enabled]);
       const next=await client.query(`UPDATE lr_gold_memory_sync_accounts
         SET enabled=$2,revision=revision+1,updated_at=NOW()
         WHERE account_id=$1 RETURNING revision`,[accountId,data.enabled]);

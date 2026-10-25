@@ -105,6 +105,42 @@ try{
   assert.equal(home.acceptReplicaEvidence(pending[0]).status,'duplicate');
   replica.applyReplicaEvidenceAck(second.ack);
   assert.equal(replica.pendingReplicaEvidence().length,0);
+  // Manual mode: the signed Owner request releases only the durable
+  // outbox snapshot present when this Replica first observes the request.
+  const manualFirst=replica.queueReplicaEvidence({scopeId:scope.scopeId,
+    eventType:'manual_note',title:'Manual batch one',body:'Release on Sync now',
+    source:'windows:manual-one',eventRef:'uat:manual-one'});
+  assert.equal(replica.pendingReplicaEvidence({mode:'manual',manualRequestSeq:0}).length,0);
+  const firstRelease=replica.pendingReplicaEvidence({mode:'manual',manualRequestSeq:1});
+  assert.equal(firstRelease.length,1);
+  assert.equal(firstRelease[0].meta.eventId,manualFirst.eventId);
+  assert.equal(firstRelease[0].manualRelease.requestSeq,1);
+  const manualAfter=replica.queueReplicaEvidence({scopeId:scope.scopeId,
+    eventType:'manual_note',title:'Manual batch two',body:'Must wait for next request',
+    source:'windows:manual-two',eventRef:'uat:manual-two'});
+  const sameRelease=replica.pendingReplicaEvidence({mode:'manual',manualRequestSeq:1});
+  assert.equal(sameRelease.length,1,'future event must not join prior approval');
+  assert.equal(sameRelease[0].meta.eventId,manualFirst.eventId);
+  assert.throws(()=>home.acceptReplicaEvidence(firstRelease[0],{manualRequestSeq:3}),
+    /gold_manual_release_mismatch/);
+  assert.throws(()=>home.acceptReplicaEvidence({...firstRelease[0],
+    manualRelease:{...firstRelease[0].manualRelease,signature:'tampered'}},
+    {manualRequestSeq:1}),/gold_manual_release_signature_invalid/);
+  const manualCommitted=home.acceptReplicaEvidence(firstRelease[0],{manualRequestSeq:1});
+  assert.equal(manualCommitted.status,'committed');
+  replica.applyReplicaEvidenceAck(manualCommitted.ack);
+  assert.equal(replica.pendingReplicaEvidence({mode:'manual',manualRequestSeq:1}).length,0);
+  replica.close();
+  replica=createGoldWallModules({file:winPath,scopeIdentity:{accountId:owner,deviceId:win}});
+  assert.equal(replica.pendingReplicaEvidence({mode:'manual',manualRequestSeq:1}).length,0,
+    'restart must retain the same manual snapshot limit');
+  const nextRelease=replica.pendingReplicaEvidence({mode:'manual',manualRequestSeq:3});
+  assert.equal(nextRelease.length,1);
+  assert.equal(nextRelease[0].meta.eventId,manualAfter.eventId);
+  const nextCommitted=home.acceptReplicaEvidence(nextRelease[0],{manualRequestSeq:3});
+  assert.equal(nextCommitted.status,'committed');
+  replica.applyReplicaEvidenceAck(nextCommitted.ack);
+  assert.equal(replica.pendingReplicaEvidence({mode:'manual',manualRequestSeq:3}).length,0);
   // Revoked member cannot contribute event despite locally queued frame.
   const third=replica.queueReplicaEvidence({scopeId:scope.scopeId,eventType:'manual_note',
     title:'Stale event must be rejected',body:'Do not accept after revoke',

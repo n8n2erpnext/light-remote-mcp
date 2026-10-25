@@ -7,6 +7,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import {requireGoldMemoryPrivateKey} from './gold-memory-key-permissions.mjs';
 import {prepareGoldMemorySync} from './gold-memory-sync.mjs';
+import {verifyManualEvidenceRelease} from './gold-memory-manual-evidence.mjs';
 import {appendGoldScopedCheckpoint} from './gold-memory-scope.mjs';
 
 const PROTOCOL='light-remote-memory-evidence-v1';
@@ -92,7 +93,7 @@ function seal(homeEnc,meta,payload,signer){
   return {...frame,signature:sign(signer,frame)};
 }
 function open(frame,homeDecrypt,replicaSign){
-  const {signature,...unsigned}=frame;
+  const {signature,manualRelease,...unsigned}=frame;
   if(!verify(replicaSign,unsigned,signature))throw fault('gold_evidence_signature_invalid',403);
   const salt=Buffer.from(frame.salt||'','base64'),nonce=Buffer.from(frame.nonce||'','base64'),
     tag=Buffer.from(frame.tag||'','base64'),ciphertext=Buffer.from(frame.ciphertext||'','base64');
@@ -152,7 +153,7 @@ export function queueGoldReplicaEvidence(db,signFile,encFile,
       s.home_epoch,home.grant_id,payloadHash,json,Date.now());
   return {eventId,scopeId,homeDeviceId:s.home_device_id,state:'pending'};
 }
-export function pendingGoldReplicaEvidence(db,{accountId,deviceId,limit=4}={}){
+export function pendingGoldReplicaEvidence(db,{accountId,deviceId,limit=4,maxRowid=null}={}){
   prepare(db);checked(accountId,160,'gold_evidence_account_required');
   const count=Math.min(Math.max(Number(limit)||4,1),8);
   return db.prepare(`SELECT o.frame_json FROM lm_evidence_outbox o
@@ -161,9 +162,10 @@ export function pendingGoldReplicaEvidence(db,{accountId,deviceId,limit=4}={}){
     WHERE s.account_id=? AND s.home_device_id<>? AND o.state='pending'
       AND s.status='active' AND h.role='home' AND h.revoked_at IS NULL
       AND o.grant_id=h.grant_id AND o.home_epoch=s.home_epoch
-    ORDER BY o.created_at,o.event_id LIMIT ?`).all(accountId,deviceId,count).map(x=>JSON.parse(x.frame_json));
+    AND (? IS NULL OR o.rowid<=?)
+    ORDER BY o.rowid LIMIT ?`).all(accountId,deviceId,maxRowid,maxRowid,count).map(x=>JSON.parse(x.frame_json));
 }
-export function acceptGoldReplicaEvidence(db,signFile,encFile,{accountId,deviceId,frame}={}){
+export function acceptGoldReplicaEvidence(db,signFile,encFile,{accountId,deviceId,frame,manualRequestSeq=0}={}){
   prepare(db);
   if(!frame||JSON.stringify(frame).length>39000||!frame.meta)
     throw fault('gold_evidence_envelope_invalid',403);
@@ -179,9 +181,11 @@ export function acceptGoldReplicaEvidence(db,signFile,encFile,{accountId,deviceI
   if(replica.grant_id!==meta.grantId)throw fault('gold_evidence_grant_invalid',403);
   const signer=key(signFile,'ed25519');
   if(publicString(signer)!==s.home_public_key)throw fault('gold_evidence_home_signer_invalid',403);
-  const {signature,...unsigned}=frame;
+  const {signature,manualRelease,...unsigned}=frame;
   if(!verify(replica.sign_public_key,unsigned,signature))
     throw fault('gold_evidence_signature_invalid',403);
+  if(manualRequestSeq!==0)
+    verifyManualEvidenceRelease(frame,replica.sign_public_key,manualRequestSeq);
   const previous=db.prepare('SELECT * FROM lm_evidence_inbox WHERE event_id=?').get(meta.eventId);
   if(previous){
     if(previous.scope_id!==s.scope_id||previous.from_device_id!==meta.deviceId||

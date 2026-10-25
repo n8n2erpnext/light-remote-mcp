@@ -15,6 +15,7 @@ import {ingestGoldAutoEvent,ingestGoldAutoFsEffect,resolveGoldAutoWorkspace,flus
 import {goldSyncIdentity,goldGrantReplica,goldAcceptReplicaInvite,goldNextSyncFrame,goldApplySyncFrame,goldApplySyncAck,goldRevokeReplica,goldSyncStatus} from './gold-memory-sync.mjs';
 import {goldDeviceSelection,goldSetDeviceSelection} from './gold-memory-device-selection.mjs';
 import {queueGoldReplicaEvidence,pendingGoldReplicaEvidence,acceptGoldReplicaEvidence,applyGoldReplicaEvidenceAck} from './gold-memory-evidence.mjs';
+import {manualEvidenceCap,signManualEvidenceFrames} from './gold-memory-manual-evidence.mjs';
 import {receiveGoldPeerRequest,pollGoldPeer,allowGoldPeerHomeUrl,configureGoldPeerRoute,listGoldPeerRoutes,runGoldPeerRoutes} from './gold-memory-peer.mjs';
 const loadBuiltin=createRequire(import.meta.url);
 
@@ -100,10 +101,18 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
     deviceSyncSelection(){const x=scopedIdentity();return goldDeviceSelection(enabled('longMemory'),x);},
     queueReplicaEvidence(input={}){const x=scopedIdentity();return queueGoldReplicaEvidence(enabled('longMemory'),
       scopeKeyFile,scopeEncryptKeyFile,{...input,...x});},
-    pendingReplicaEvidence(input={}){const x=scopedIdentity();return pendingGoldReplicaEvidence(enabled('longMemory'),
-      {...input,...x});},
-    acceptReplicaEvidence(frame){const x=scopedIdentity();return acceptGoldReplicaEvidence(enabled('longMemory'),
-      scopeKeyFile,scopeEncryptKeyFile,{...x,frame});},
+    pendingReplicaEvidence(input={}){const x=scopedIdentity(),db=enabled('longMemory');
+      if(input.mode==='manual'){
+        if(!Number.isSafeInteger(input.manualRequestSeq)||input.manualRequestSeq<1||input.manualRequestSeq%2===0)return [];
+        const maxRowid=manualEvidenceCap(db,{...x,requestSeq:input.manualRequestSeq});
+        const frames=pendingGoldReplicaEvidence(db,{...input,...x,maxRowid});
+        return signManualEvidenceFrames(frames,scopeKeyFile,{...x,requestSeq:input.manualRequestSeq});
+      }
+      return pendingGoldReplicaEvidence(db,{...input,...x});
+    },
+    acceptReplicaEvidence(frame,{manualRequestSeq=0}={}){const x=scopedIdentity();
+      return acceptGoldReplicaEvidence(enabled('longMemory'),
+        scopeKeyFile,scopeEncryptKeyFile,{...x,frame,manualRequestSeq});},
     applyReplicaEvidenceAck(receipt){const x=scopedIdentity();return applyGoldReplicaEvidenceAck(enabled('longMemory'),
       {...x,receipt});},
     scopeSyncGate({scopeId,replicaDeviceId,mode,manualRequestSeq=0}={}){
@@ -117,7 +126,7 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
           .get(x.accountId,scopeId);
         return {allowed:Boolean(binding),uptoRevision:null,reason:binding?null:'project_binding_required'};
       }
-      if(mode!=='manual'||!Number.isSafeInteger(manualRequestSeq)||manualRequestSeq<1)
+      if(mode!=='manual'||!Number.isSafeInteger(manualRequestSeq)||manualRequestSeq<1||manualRequestSeq%2===0)
         return {allowed:false,reason:'manual_sync_not_requested'};
       db.exec(`CREATE TABLE IF NOT EXISTS lm_sync_manual_limits(
         scope_id TEXT NOT NULL,device_id TEXT NOT NULL,request_seq INTEGER NOT NULL,
