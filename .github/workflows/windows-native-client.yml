@@ -54,6 +54,8 @@ on:
       - 'deploy/scripts/selftest-gold-wall-navigation.mjs'
       - 'deploy/scripts/selftest-gold-managed-codex-runtime.mjs'
       - 'deploy/scripts/selftest-gold-memory-delete-settings.mjs'
+      - 'deploy/scripts/selftest-gold-client-core-imports.mjs'
+      - 'client/core-files.json'
       - 'plugin-server/device-public.mjs'
       - 'deploy/scripts/selftest-g3-duplex-ready-timeout-diagnostic.mjs'
       - 'deploy/scripts/selftest-g3-duplex-executor-rejection.mjs'
@@ -121,6 +123,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Gold device-managed optional Codex runtime regression failed' }
           node deploy/scripts/selftest-gold-memory-delete-settings.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Gold owner-approved Memory deletion regression failed' }
+          node deploy/scripts/selftest-gold-client-core-imports.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Bundled Gold Client Core missing static imports' }
           node deploy/scripts/selftest-gold-codex-plus.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Gold Windows Codex NTFS private home regression failed' }
           node --no-warnings deploy/scripts/selftest-gold-memory-replica-evidence.mjs
