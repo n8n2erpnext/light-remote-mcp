@@ -88,7 +88,59 @@ function effectiveFilesystemPolicy(state){
   return filesystemPolicy(process.env,state?.policy?.filesystemRoots??null);
 }
 function sleepSync(ms){const sab=new SharedArrayBuffer(4);Atomics.wait(new Int32Array(sab),0,0,Math.max(1,ms));}
-function writeJson0600(file,value){const dir=path.dirname(file);fs.mkdirSync(dir,{recursive:true,mode:0o700});const lock=`${file}.lock`,deadline=Date.now()+2500;let lockFd=null;while(lockFd===null){try{lockFd=fs.openSync(lock,'wx',0o600);}catch(error){if(error?.code!=='EEXIST'||Date.now()>=deadline)throw error;sleepSync(20);}}const tmp=`${file}.${process.pid}.${Date.now()}.${crypto.randomBytes(4).toString('hex')}.tmp`;try{fs.writeFileSync(tmp,`${JSON.stringify(value,null,2)}\n`,{mode:0o600});fs.chmodSync(tmp,0o600);for(let attempt=0;;attempt++){try{fs.renameSync(tmp,file);break;}catch(error){if(process.platform==='win32'&&['EPERM','EACCES','EEXIST'].includes(error?.code)&&attempt<6){sleepSync(25*(attempt+1));continue;}if(process.platform==='win32'&&['EPERM','EACCES','EEXIST'].includes(error?.code)){fs.copyFileSync(tmp,file);fs.rmSync(tmp,{force:true});break;}throw error;}}}finally{try{if(fs.existsSync(tmp))fs.rmSync(tmp,{force:true});}catch{}try{if(lockFd!==null)fs.closeSync(lockFd);}catch{}try{fs.rmSync(lock,{force:true});}catch{}}}
+// A crash can leave a durable lock after the Agent's process has gone away.
+// Reclaim only locks with trusted owner metadata, a dead PID, and a safe age.
+// A legacy/empty lock has unknown ownership and always remains fail-closed.
+function reclaimDeadJsonLock(lock){
+  let snapshot,owner;
+  try{snapshot=fs.readFileSync(lock,'utf8');owner=JSON.parse(snapshot);}catch{return false;}
+  const age=Date.now()-Number(owner?.acquiredAt);
+  if(owner?.version!==1||!Number.isSafeInteger(owner.pid)||owner.pid<=0||
+     !Number.isSafeInteger(owner.acquiredAt)||age<30_000||age>365*24*3600_000)return false;
+  try{process.kill(owner.pid,0);return false;}catch(error){if(error?.code!=='ESRCH')return false;}
+  // Serialize competing reclaimers. Never remove an active or changed lock.
+  const guard=lock+'.reclaim';let fd=null;
+  try{fd=fs.openSync(guard,'wx',0o600);}catch{return false;}
+  try{
+    if(fs.readFileSync(lock,'utf8')!==snapshot)return false;
+    if(Date.now()-fs.statSync(lock).mtimeMs<30_000)return false;
+    fs.rmSync(lock);
+    return true;
+  }catch{return false;}
+  finally{try{fs.closeSync(fd);}catch{}try{fs.rmSync(guard,{force:true});}catch{}}
+}
+function writeJson0600(file,value){
+  const dir=path.dirname(file);fs.mkdirSync(dir,{recursive:true,mode:0o700});
+  const lock=file+'.lock',deadline=Date.now()+2500;let lockFd=null;
+  while(lockFd===null){
+    try{
+      lockFd=fs.openSync(lock,'wx',0o600);
+      fs.writeSync(lockFd,JSON.stringify({version:1,pid:process.pid,acquiredAt:Date.now()}));
+      fs.fsyncSync(lockFd);
+    }catch(error){
+      if(lockFd!==null){try{fs.closeSync(lockFd);}catch{}lockFd=null;try{fs.rmSync(lock,{force:true});}catch{}throw error;}
+      if(error?.code!=='EEXIST'||Date.now()>=deadline)throw error;
+      if(reclaimDeadJsonLock(lock))continue;
+      sleepSync(20);
+    }
+  }
+  const tmp=file+'.'+process.pid+'.'+Date.now()+'.'+crypto.randomBytes(4).toString('hex')+'.tmp';
+  try{
+    fs.writeFileSync(tmp,JSON.stringify(value,null,2)+'\n',{mode:0o600});fs.chmodSync(tmp,0o600);
+    for(let attempt=0;;attempt++){
+      try{fs.renameSync(tmp,file);break;}
+      catch(error){
+        if(process.platform==='win32'&&['EPERM','EACCES','EEXIST'].includes(error?.code)&&attempt<6){sleepSync(25*(attempt+1));continue;}
+        if(process.platform==='win32'&&['EPERM','EACCES','EEXIST'].includes(error?.code)){fs.copyFileSync(tmp,file);fs.rmSync(tmp,{force:true});break;}
+        throw error;
+      }
+    }
+  }finally{
+    try{if(fs.existsSync(tmp))fs.rmSync(tmp,{force:true});}catch{}
+    try{fs.closeSync(lockFd);}catch{}
+    try{fs.rmSync(lock,{force:true});}catch{}
+  }
+}
 function writeState(state){writeJson0600(STATE_FILE,state);}
 function readJsonFile(file){try{return JSON.parse(fs.readFileSync(file,'utf8'));}catch{return null;}}
 function updateStatusView(){const report=readJsonFile(UPDATE_REPORT_FILE);if(UPDATE_MODE==='server-managed')return {state:'managed',currentVersion:VERSION,targetVersion:null,helperVersion:'server-managed',code:null,updatedAt:null,mode:UPDATE_MODE,pendingReport:null};const status=normalizeUpdateStatus(readJsonFile(UPDATE_STATUS_FILE)||{});return {...status,currentVersion:status.currentVersion||VERSION,mode:UPDATE_MODE,pendingReport:report?{outcome:String(report.outcome||''),code:String(report.code||'')||null,targetVersion:String(report.targetVersion||'')||null,at:Number(report.at)||null}:null};}
@@ -1375,9 +1427,30 @@ async function daemon(args){
       // Re-read before persisting the poll result so the daemon never clobbers newer lease metadata.
       const latestAfterPoll=readState();if(latestAfterPoll)state=latestAfterPoll;
       applyPolicyEnvelope(state,response.policy);await confirmTerminalReceiptsAck(state,response.terminalReceiptsAck);failures=0;
-      state.cloud={...(state.cloud||{}),desiredConnected:true,state:'connected',lastServerActivityAt:Date.now(),lastError:null};writeState(state);
-      void reconcileFleet();
+      state.cloud={...(state.cloud||{}),desiredConnected:true,state:'connected',lastServerActivityAt:Date.now(),lastError:null};
       const command=response.channel?.command;
+      try{writeState(state);}
+      catch(error){
+        // The command was delivered but local state durability is unknown.
+        // Fail closed; report an explicit negative result instead of silent
+        // re-dispatch and a misleading remote_result_timeout.
+        if(command?.commandId){
+          try{
+            await channelRequest(state,hub,'result',{
+              commandId:command.commandId,status:'error',exitCode:125,stdout:'',
+              stderr:'agent_state_persistence_unavailable\n',durationMs:0,
+              data:{ok:false,error:'agent_state_persistence_unavailable'}
+            });
+            console.error(JSON.stringify({event:'device_command_rejected_state_persistence',
+              commandId:command.commandId}));
+          }catch(reportError){
+            console.error(JSON.stringify({event:'device_command_negative_result_delivery_failed',
+              commandId:command.commandId,error:String(reportError?.message||reportError).slice(0,120)}));
+          }
+        }
+        throw error;
+      }
+      void reconcileFleet();
       if(command){
         const deviceReceivedAt=Date.now();
         let commandPulseTimer=null,commandPulseBusy=false;

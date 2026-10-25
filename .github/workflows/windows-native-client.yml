@@ -11,6 +11,7 @@ on:
       - 'feature/windows-rm-ux-rc48'
       - 'feature/light-remote-gold-rebuild-20261018' # staging CI artifacts only
       - 'feature/gold-m6-integrated-20261023' # isolated Gold UAT Windows build only
+      - 'fix/gold-pulse-stale-lock-20261025' # crash-safe state and public signed pulse UAT
       - 'fix/gold-owner-filesystem-roots-20261023' # isolated Gold filesystem UAT build
     tags:
       - 'v0.9.*'
@@ -44,6 +45,9 @@ on:
       - 'deploy/scripts/selftest-g2-pty-missing-pid-exit.mjs'
       - 'deploy/scripts/selftest-g3-duplex-halfopen-watchdog.mjs'
       - 'deploy/scripts/selftest-g3-command-liveness-pulse.mjs'
+      - 'deploy/scripts/selftest-g3-agent-state-lock-recovery.mjs'
+      - 'deploy/scripts/selftest-gold-wall-close-session-*.mjs'
+      - 'plugin-server/device-public.mjs'
       - 'deploy/scripts/selftest-g3-duplex-ready-timeout-diagnostic.mjs'
       - 'deploy/scripts/selftest-g3-duplex-executor-rejection.mjs'
       - 'deploy/scripts/selftest-g3-executor-hang-readiness.mjs'
@@ -92,6 +96,14 @@ jobs:
       - name: Gold Long Memory G3 native Windows crypto smoke
         shell: pwsh
         run: |
+          node deploy/scripts/selftest-g3-command-liveness-pulse.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Signed pulse public gateway contract failed' }
+          node deploy/scripts/selftest-g3-agent-state-lock-recovery.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Crash-safe Agent state lock regression failed' }
+          node deploy/scripts/selftest-gold-wall-close-session-cache.mjs $PWD
+          if ($LASTEXITCODE -ne 0) { throw 'Gold Wall session-close cache regression failed' }
+          node deploy/scripts/selftest-gold-wall-close-session-http.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold Wall session-close HTTP regression failed' }
           node deploy/scripts/selftest-gold-codex-plus.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Gold Windows Codex NTFS private home regression failed' }
           node --no-warnings deploy/scripts/selftest-gold-memory-replica-evidence.mjs

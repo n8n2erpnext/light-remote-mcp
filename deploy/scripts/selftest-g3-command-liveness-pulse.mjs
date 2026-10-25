@@ -51,4 +51,11 @@ assert.ok(agent.includes('draining:Boolean(current.routing?.draining)'),'pulse s
 assert.ok(!agent.includes("channelRequest(current,hub,'poll',{nodeId:current.enrollment.nodeId||current.enrollment.deviceId,agentVersion:VERSION,sessionCeiling,draining:true"),'old false-drain heartbeat forbidden');
 const limiter=readFileSync(new URL('../../operator-host/trusted-channel-rate-limiter.mjs',import.meta.url),'utf8');
 assert.match(limiter,/pulse:'runtime'/);
+const publicGateway=readFileSync(new URL('../../plugin-server/device-public.mjs',import.meta.url),'utf8');
+const allowlist=publicGateway.match(/const CHANNEL = new Set\(\[([\s\S]*?)\]\);/)?.[1];
+assert.ok(allowlist,'public device channel allowlist missing');
+assert.ok(/'pulse'/.test(allowlist),'device-channel/pulse must pass through public gateway');
+assert.ok(publicGateway.includes('if(!CHANNEL.has(action))'),'public gateway must remain allowlist guarded');
+assert.ok(publicGateway.includes("'/v1/device-channel/"),'public gateway must route pulse to signed Operator endpoint');
+console.log('G3_PUBLIC_SIGNED_PULSE_GATEWAY_ALLOWLIST_PASS');
 console.log('G3_SIGNED_PULSE_ROUTE_AUTH_NO_COMMAND_DISPATCH=PASS');

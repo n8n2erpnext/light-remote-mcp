@@ -5,16 +5,19 @@ on:
     branches:
       - 'feature/light-remote-gold-rebuild-20261018'
       - 'feature/gold-m6-integrated-20261023' # isolated Gold M6 + owner permissions integration CI
+      - 'fix/gold-pulse-stale-lock-20261025' # signed channel and crash-lock UAT regression
     paths:
       - 'operator-host/**'
       - 'plugin-server/tools.mjs'
       - 'plugin-server/tool-helper.mjs'
+      - 'plugin-server/device-public.mjs'
       - 'plugin-server/tool-error-classification.mjs'
       - 'deploy/scripts/selftest-gold-tool-error-origin.mjs'
       - 'device-agent/**'
       - 'lib/**'
       - 'client/core-files.json'
       - 'deploy/scripts/selftest-g3-*.mjs'
+      - 'deploy/scripts/selftest-gold-wall-close-session-*.mjs'
       - 'deploy/scripts/selftest-g4-*.mjs'
       - 'deploy/scripts/selftest-g5-*.mjs'
       - 'deploy/scripts/selftest-gold-multi-agent-entitlement.mjs'
@@ -87,6 +90,9 @@ jobs:
           done
           node deploy/scripts/selftest-g3-fleet-channel-stale-inflight.mjs
           node deploy/scripts/selftest-g3-command-liveness-pulse.mjs
+          node deploy/scripts/selftest-g3-agent-state-lock-recovery.mjs
+          node deploy/scripts/selftest-gold-wall-close-session-cache.mjs "$PWD"
+          node deploy/scripts/selftest-gold-wall-close-session-http.mjs
           node deploy/scripts/selftest-g3-duplex-halfopen-watchdog.mjs
           node deploy/scripts/selftest-g3-duplex-ready-timeout-diagnostic.mjs
           node deploy/scripts/selftest-g3-gold-preview-stream-config.mjs
