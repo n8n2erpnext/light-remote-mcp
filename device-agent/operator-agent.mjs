@@ -1100,7 +1100,8 @@ async function daemon(args){
         const offers=await memoryAccountInvites(hub,{action:'list'});
         for(const message of (offers.invites||[]).slice(0,16)){
           const invitation=message.package?.invite;
-          const home=directory.devices.find(d=>d.deviceId===message.homeDeviceId&&d.memoryIdentity);
+          const home=directory.devices.find(d=>d.deviceId===message.homeDeviceId&&
+            d.memoryIdentity?.syncModeProtocol===1);
           if(!home||!invitation||home.memoryIdentity.signPublicKey!==invitation.homeSignPublicKey||
             home.memoryIdentity.encPublicKey!==invitation.homeEncPublicKey)continue;
           try{
@@ -1138,8 +1139,9 @@ async function daemon(args){
             const gate=GOLD_WALL_MODULES.scopeSyncGate({scopeId:scope.scopeId,
               replicaDeviceId:peerId,mode:target.mode,manualRequestSeq:target.manualRequestSeq||0});
             if(!gate.allowed)continue;
-            const device=directory.devices.find(d=>d.deviceId===peerId&&d.memoryIdentity);
-            if(!device)continue; // Offline/unadvertised: retry without user input
+            const device=directory.devices.find(d=>d.deviceId===peerId&&
+              d.memoryIdentity?.syncModeProtocol===1);
+            if(!device)continue; // Unsupported/offline peer: fail closed, retry after upgrade
             const offerKey=scope.scopeId+'|'+peerId+'|'+device.memoryIdentity.fingerprint;
             const peerState=GOLD_WALL_MODULES.syncStatus({scopeId:scope.scopeId}).peers
               .find(p=>p.deviceId===peerId&&p.role==='replica');
@@ -1188,7 +1190,9 @@ async function daemon(args){
         for(const peer of status.peers||[]){
           if(peer.role!=='replica'||peer.revokedAt||pushed>=4)continue;
           const target=selection.devices.find(d=>d.deviceId===peer.deviceId&&d.selected);
-          if(!target)continue;
+          const compatible=directory.devices.some(d=>d.deviceId===peer.deviceId&&
+            d.memoryIdentity?.syncModeProtocol===1);
+          if(!target||!compatible)continue;
           const gate=GOLD_WALL_MODULES.scopeSyncGate({scopeId:scope.scopeId,
             replicaDeviceId:peer.deviceId,mode:target.mode,
             manualRequestSeq:target.manualRequestSeq||0});
@@ -1210,7 +1214,9 @@ async function daemon(args){
         const meta=frame?.meta;
         if(!meta||!accounts.some(scope=>scope.scopeId===meta.scopeId&&
           scope.homeDeviceId===meta.homeDeviceId&&meta.homeDeviceId!==deviceId))continue;
-        if(!selection.devices.some(d=>d.deviceId===meta.homeDeviceId&&d.selected))continue;
+        if(!selection.devices.some(d=>d.deviceId===meta.homeDeviceId&&d.selected)||
+          !directory.devices.some(d=>d.deviceId===meta.homeDeviceId&&
+            d.memoryIdentity?.syncModeProtocol===1))continue;
         const direct=routes.find(route=>route.scopeId===meta.scopeId&&route.enabled&&
           route.lastSuccessAt&&route.lastErrorCode===null);
         if(direct)continue;
