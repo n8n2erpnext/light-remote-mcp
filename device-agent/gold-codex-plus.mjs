@@ -31,7 +31,7 @@ function privateFolder(dir){
     try{
       const info=execFileSync('whoami.exe',['/user','/fo','csv','/nh'],{
         encoding:'utf8',timeout:5000,windowsHide:true,maxBuffer:4096});
-      const sid=info.match(/S-1-\\d+(?:-\\d+)+/)?.[0];
+      const sid=info.match(/S-1-\d+(?:-\d+)+/)?.[0];
       if(!sid)throw new Error('codex_owner_sid_unavailable');
       execFileSync('icacls.exe',[dir,'/inheritance:r','/grant:r',
         '*'+sid+':(OI)(CI)F','/remove:g',
