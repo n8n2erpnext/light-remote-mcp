@@ -13,4 +13,9 @@ assert.throws(()=>resolveGoldCodexBinary({platform:'win32',env:{...env,CODEX_CLI
 assert.throws(()=>resolveGoldCodexBinary({platform:'win32',env:{...env,CODEX_CLI_PATH:'C:\\Apps\\codex.cmd'},exists:()=>true}),/codex_native_binary_path_invalid/);
 assert.equal(resolveGoldCodexBinary({platform:'linux',env:{},exists:()=>false}),
   '/opt/light-remote-gold-codex-runtime/node_modules/.bin/codex');
+const managedLinux='/tmp/gold-codex-fixture/node_modules/@openai/codex-linux-arm64/vendor/aarch64-unknown-linux-gnu/bin/codex';
+if(process.arch==='arm64')assert.equal(resolveGoldCodexBinary({
+  platform:'linux',env:{},managedRoot:'/tmp/gold-codex-fixture',exists:()=>false}),managedLinux);
+assert.equal(resolveGoldCodexBinary({platform:'darwin',env:{},managedRoot:'/tmp/codex-fixture',
+  exists:()=>false}).includes('/node_modules/@openai/codex-darwin-'),true);
 console.log('GOLD_CODEX_NATIVE_BINARY_WINDOWS_INSTALL_AND_OVERRIDE_DISCOVERY_PASS');

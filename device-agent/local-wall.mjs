@@ -1442,7 +1442,7 @@ export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvg
       res.writeHead(200,pageHeaders());res.end(localProcessPage(auth.csrfForRequest(req)||''));return;
     }
     if(req.method==='GET'&&url.pathname==='/permissions'){const html=permissionsPage(brandSvg,auth?.enabled?auth.csrfForRequest(req)||'':'');res.writeHead(200,pageHeaders());res.end(html);return;}
-    if(req.method==='GET'&&url.pathname==='/settings'){const html=updateSettingsHtml({surface:'local',csrfToken:auth?.enabled?auth.csrfForRequest(req)||'':'',brandHtml:brandSvg});res.writeHead(200,pageHeaders());res.end(html);return;}
+    if(req.method==='GET'&&url.pathname==='/settings'){const html=updateSettingsHtml({surface:'local',csrfToken:auth?.enabled?auth.csrfForRequest(req)||'':'',brandHtml:brandSvg,modulesAvailable:Boolean(modules)});res.writeHead(200,pageHeaders());res.end(html);return;}
     if(url.pathname==='/api/gold/modules'&&req.method==='GET'){
       if(!modules||!auth?.enabled||!auth.identity(req))return json(res,403,{ok:false,error:'gold_modules_owner_required'});
       return json(res,200,{ok:true,modules:modules.flags()});

@@ -194,6 +194,20 @@ jobs:
           $dotnetExe = (Get-Command dotnet.exe).Source
           $dotnetRoot = Split-Path $dotnetExe -Parent
           Copy-Item $nodeExe (Join-Path $runtime 'node.exe')
+          # Codex Bridge is optional, but its owner-approved installer must work
+          # even on consumer Windows PCs with no global Node/npm installation.
+          # Bundle the official npm CLI and all its runtime dependencies from
+          # the CI-pinned Node distribution, without downloading Codex itself.
+          $npmSource = Join-Path $nodeRoot 'node_modules\npm'
+          $npmCliSource = Join-Path $npmSource 'bin\npm-cli.js'
+          if (-not (Test-Path $npmCliSource)) { throw 'CI Node distribution is missing npm-cli.js' }
+          $npmDestParent = Join-Path $runtime 'node_modules'
+          New-Item -ItemType Directory -Force -Path $npmDestParent | Out-Null
+          Copy-Item $npmSource (Join-Path $npmDestParent 'npm') -Recurse -Force
+          $bundledNpmCli = Join-Path $runtime 'node_modules\npm\bin\npm-cli.js'
+          & (Join-Path $runtime 'node.exe') $bundledNpmCli --version
+          if ($LASTEXITCODE -ne 0) { throw 'isolated managed Codex npm provisioner failed' }
+          Write-Host 'gold-optional-codex-offline-npm-bootstrap-packaged=PASS'
           Copy-Item (Join-Path $nodeRoot 'LICENSE') (Join-Path $nodeLicenseDir 'LICENSE')
           Copy-Item (Join-Path $dotnetRoot 'LICENSE.txt') (Join-Path $dotnetLicenseDir 'LICENSE.txt')
           Copy-Item (Join-Path $dotnetRoot 'ThirdPartyNotices.txt') (Join-Path $dotnetLicenseDir 'ThirdPartyNotices.txt')
@@ -220,6 +234,11 @@ jobs:
           $result = Join-Path $env:RUNNER_TEMP 'gpt-native-selftest.json'
           $exe = Join-Path $stage 'GptOperator.Client.exe'
           $node = Join-Path $stage 'runtime\node.exe'
+          $codexInstallerNpm = Join-Path $stage 'runtime\node_modules\npm\bin\npm-cli.js'
+          if (-not (Test-Path $codexInstallerNpm)) { throw 'Codex managed installer npm CLI absent from Windows stage' }
+          & $node $codexInstallerNpm --version
+          if ($LASTEXITCODE -ne 0) { throw 'Codex managed installer npm CLI cannot execute on bundled Node' }
+          Write-Host 'gold-codex-managed-offline-bootstrap-smoke=PASS'
           $agent = Join-Path $stage 'agent\device-agent\operator-agent.mjs'
           $agentRoot = Join-Path $stage 'agent'
           $updaterStage = Join-Path $PWD 'dist\windows\updater'
@@ -655,6 +674,12 @@ jobs:
           if ($legacyAfter) { throw 'legacy Node runtime survived native install' }
           Remove-Item $legacyRoot -Recurse -Force -ErrorAction SilentlyContinue
           Write-Host 'windows-legacy-agent-cleanup=PASS'
+          $installedNpmCli = Join-Path $installDir 'runtime\node_modules\npm\bin\npm-cli.js'
+          $installedNode = Join-Path $installDir 'runtime\node.exe'
+          if (-not (Test-Path $installedNpmCli)) { throw 'Optional Codex npm runtime missing from installed Windows client' }
+          & $installedNode $installedNpmCli --version
+          if ($LASTEXITCODE -ne 0) { throw 'Installed optional Codex npm bootstrap cannot execute' }
+          Write-Host 'gold-codex-managed-npm-installed-roundtrip=PASS'
           $exe = Join-Path $installDir 'GptOperator.Client.exe'
           if (-not (Test-Path $exe)) { throw "installed client missing: $exe" }
           $rmv2Installed = Join-Path $installDir 'realremote-v2\LightRemote.RM.exe'

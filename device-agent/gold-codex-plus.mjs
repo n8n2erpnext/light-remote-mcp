@@ -54,9 +54,20 @@ export function resolveGoldCodexBinary({platform=process.platform,env=process.en
     return explicit;
   }
   if(!win){
-    const managed=managedRoot?path.posix.join(managedRoot,'node_modules','@openai','codex-linux-arm64','vendor','aarch64-unknown-linux-gnu','bin','codex'):null;
-    if(managed&&exists(managed))return managed;
-    return '/opt/light-remote-gold-codex-runtime/node_modules/.bin/codex';
+    // Keep Codex Bridge independent from global Node/npm. Choose the managed
+    // native path even before installation when no external CLI is present.
+    // Otherwise an app-server object created at Agent boot would keep using a
+    // missing external binary after the owner installs the managed runtime.
+    const arch=process.arch==='arm64'?'arm64':'x64';
+    const platformName=platform==='darwin'?'darwin':'linux';
+    const triple=platform==='darwin'?(arch==='arm64'?'aarch64-apple-darwin':'x86_64-apple-darwin'):
+      (arch==='arm64'?'aarch64-unknown-linux-gnu':'x86_64-unknown-linux-gnu');
+    const managed=managedRoot?path.posix.join(managedRoot,'node_modules','@openai',
+      'codex-'+platformName+'-'+arch,'vendor',triple,'bin','codex'):null;
+    const external=platform==='darwin'?'/usr/local/bin/codex':
+      '/opt/light-remote-gold-codex-runtime/node_modules/.bin/codex';
+    if(managed&&(exists(managed)||!exists(external)))return managed;
+    return external;
   }
   const local=env.LOCALAPPDATA||p.join(os.homedir(),'AppData','Local');
   const roaming=env.APPDATA||p.join(os.homedir(),'AppData','Roaming');
