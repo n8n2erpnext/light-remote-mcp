@@ -1,5 +1,15 @@
 # Light Remote Gold — G3 Account-first Memory Sync Handoff — 2026-10-25
 
+> **UPDATE 2026-10-25 — supersedes historical manual grant steps below.**
+> Code: `aa925ef` (simple Home Account device sync) + `cba6510` (live status refresh).
+> Gold UAT services currently run `cba651004885d0dff0f43e0e6e1971d6aa4dc249`; 4/4 active. Snapshot `gold-before-one-switch-memory-sync-20261025`.
+> The only normal user flow is: in **Long Memory → Memory Sync**, tick one or more enrolled account devices and turn **Sync ON**. Untick a device to cease new transmissions to it; turn **Sync OFF** to stop local sending/receiving. No per-scope Home picker, IP, JSON, fingerprint, manual revoke, or second-Wall invitation approval is required. Advanced scope editing, notes and manual diagnostics are collapsed.
+> The owner-authenticated Home Wall saves the selection locally in `lm_sync_device_selection`. Each Home scope inherits `selected_devices` while enabled. The Gold Agent discovers signed device public keys, renews/rekeys scope grants as needed, sends signed invitations, and each enrolled Replica with Long Memory ON auto-accepts only an account-verified Home-signed invitation. All checkpoint frames stay E2EE; Operator only offers volatile TTL bounded transport; client retains SQLite durable ledger.
+> **No claim of full two-device E2E acceptance yet.** Windows `DESKTOP-VA16D27` still runs an older installed Agent without the auto-accept logic. Candidate `cba6510` is staged and 101-file manifest-verified on Windows under `%LOCALAPPDATA%\\Light Remote\\G3-SimpleSync-cba6510` (NOT installed, preserving current product and A/B plugin access). A compatible Windows installation plus synthetic Home→Windows revision+ACK/offline test remains pending.
+> All historical bullets below asking owner to separately revoke, authorize, open Replica Wall or approve invitations are **OBSOLETE** and must not be repeated to the user. The old signed grant may be superseded only by an active Home owner's Sync ON + device checkbox selection, which is explicit consent. Existing downloaded data cannot be erased remotely.
+
+
+
 ## Read first / operating contract
 
 - Continue the **complete, original Gold product**, with optional Long Memory and Codex Bridge. **NO** separate Continuity/Project app, second Wall, cloud-stored Memory content, or user-entered Home IP/NetBird URL/JSON/fingerprints.
