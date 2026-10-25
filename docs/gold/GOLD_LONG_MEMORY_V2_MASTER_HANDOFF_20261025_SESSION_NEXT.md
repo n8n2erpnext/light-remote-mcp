@@ -5,7 +5,7 @@
 
 ## 0. COPY/PASTE PROMPT DÀNH CHO SESSION MỚI
 
-> Tiếp quản Light Remote Gold Long Memory V2. Đọc kỹ toàn bộ \`docs/gold/GOLD_LONG_MEMORY_V2_MASTER_HANDOFF_20261025_SESSION_NEXT.md\` trong repo \`n8n2erpnext/light-remote-mcp\`, branch \`feature/gold-m6-integrated-20261023\`. Đối chiếu GitHub HEAD, CI, Windows \`DESKTOP-VA16D27\`, Linux LXD \`light-remote-gold-uat\` trước khi làm. GitHub source mới nhất tại thời điểm bàn giao là \`20b584c\`, nhưng 2 Agent live vẫn ở \`99b1d2f\`, scoped Memory rev6/ACK6/6. Tiếp tục G3 Manual Replica→Home **real E2E**, sau đó full disconnect/reconcile. Tuyệt đối không thay Gold production, không lách sandbox sudo, không buộc nhập IP/NetBird URL/JSON/fingerprint ở UI. Nếu host ARM không authorized, làm A/B pairing chính thức. Đừng tự ý chạy test explosion hoặc ghi sai scope; ghi receipts/handoff sau từng gate.
+> Tiếp quản Light Remote Gold Long Memory V2. Đọc kỹ toàn bộ `docs/gold/GOLD_LONG_MEMORY_V2_MASTER_HANDOFF_20261025_SESSION_NEXT.md` trong repo `n8n2erpnext/light-remote-mcp`, branch `feature/gold-m6-integrated-20261023`. Đối chiếu GitHub HEAD, CI, Windows `DESKTOP-VA16D27`, Linux LXD `light-remote-gold-uat` trước khi làm. Feature-code checkpoint hiện tại là `20b584c`, nhưng 2 Agent live vẫn ở `99b1d2f`, scoped Memory rev6/ACK6/6. Tiếp tục G3 Manual Replica→Home **real E2E**, sau đó full disconnect/reconcile. Tuyệt đối không thay Gold production, không lách sandbox sudo, không buộc nhập IP/NetBird URL/JSON/fingerprint ở UI. Nếu host ARM không authorized, làm A/B pairing chính thức. Đừng tự ý chạy test explosion hoặc ghi sai scope; ghi receipts/handoff sau từng gate.
 
 ## 1. CURRENT TRUTH — ĐÃ XÁC MINH TRỰC TIẾP
 
@@ -13,36 +13,36 @@
 |---|---|
 | Ngày bàn giao | 25/10/2026, múi giờ Asia/Ho_Chi_Minh |
 | Repo | https://github.com/n8n2erpnext/light-remote-mcp |
-| Branch canonical | \`feature/gold-m6-integrated-20261023\` |
-| GitHub HEAD | \`20b584c45376aee84e829d433eab51735af50406\` |
-| Mô tả HEAD | \`feat(gold): durable signed Manual Replica event release\` |
-| CI của HEAD | **4/4 SUCCESS**: Windows, Linux, Gold Native Wall Parity, Gold G3 Operator |
-| Mã đang chạy trên Gold UAT | \`99b1d2fd3dbdd54c7f34b88033ba159e4560e8b2\`, **CHƯA** nâng lên \`20b584c\` |
-| Mã đang chạy trên Windows | \`99b1d2f\`, **CHƯA** nâng lên \`20b584c\`; Windows Agent Task Running |
-| Gold UAT | LXD \`light-remote-gold-uat\`, **4/4 systemd services active** |
-| Thiết bị Home ARM | \`dev_e68276c691ba5413f42d5dde\` |
-| Thiết bị Windows Replica | \`dev_8d0715fce77efffce4c5ed28\`, \`DESKTOP-VA16D27\` |
-| Synthetic scoped E2E | \`d5e57c01-8864-4995-a186-01de2514ba79\` |
-| Home revision / Windows ACK | **6/6**, exact matching hash \`456b287151e86121f33a934f0a101cc4aa7e9f62318b0cefc0daa811ea4a2aa0\` |
+| Branch canonical | `feature/gold-m6-integrated-20261023` |
+| Latest feature-code commit | `20b584c45376aee84e829d433eab51735af50406` |
+| Feature-code commit message | `feat(gold): durable signed Manual Replica event release` |
+| CI của feature-code commit | **4/4 SUCCESS**: Windows, Linux, Gold Native Wall Parity, Gold G3 Operator |
+| Mã đang chạy trên Gold UAT | `99b1d2fd3dbdd54c7f34b88033ba159e4560e8b2`, **CHƯA** nâng lên `20b584c` |
+| Mã đang chạy trên Windows | `99b1d2f`, **CHƯA** nâng lên `20b584c`; Windows Agent Task Running |
+| Gold UAT | LXD `light-remote-gold-uat`, **4/4 systemd services active** |
+| Thiết bị Home ARM | `dev_e68276c691ba5413f42d5dde` |
+| Thiết bị Windows Replica | `dev_8d0715fce77efffce4c5ed28`, `DESKTOP-VA16D27` |
+| Synthetic scoped E2E | `d5e57c01-8864-4995-a186-01de2514ba79` |
+| Home revision / Windows ACK | **6/6**, exact matching hash `456b287151e86121f33a934f0a101cc4aa7e9f62318b0cefc0daa811ea4a2aa0` |
 | Manual Replica-origin candidate | Source regression + staging **103/103 PASS**; UAT real **OPEN** |
 | New Windows EXE | Verified SHA-256, already staged, **NOT installed** |
 | Owner Account policy | Historical last mode read: global Sync ON, both ARM/Windows selected Auto, policy revision 14 **historical only**. Fetch current before mutation. |
-| ARM host authorization | Production \`@light-remote\` target \`direct-arm-local\` currently returns \`agent_client_device_not_authorized\`. Gold UAT guest \`gold-uat\` has \`NoNewPrivileges\` and **cannot sudo root**. |
+| ARM host authorization | Production `@light-remote` target `direct-arm-local` currently returns `agent_client_device_not_authorized`. Gold UAT guest `gold-uat` has `NoNewPrivileges` and **cannot sudo root**. |
 | Production Gold | **UNCHANGED**, không thay đổi. |
 
-**Quan trọng:** Candidate GitHub \`20b584c\` có đủ CI xanh nhưng *không* có bằng chứng live Manual Replica→Home. Không được ghi "G3 Manual cả hai chiều PASS" trước bài thử cuối.
+**Quan trọng:** Candidate GitHub `20b584c` có đủ CI xanh nhưng *không* có bằng chứng live Manual Replica→Home. Không được ghi "G3 Manual cả hai chiều PASS" trước bài thử cuối.
 
 ## 2. PRODUCT CONTRACT OWNER ĐÃ KHÓA
 
 Long Memory & Codex Bridge **hai module tùy chọn độc lập**, có thể ON/OFF từng cái; cả hai OFF không được ảnh hưởng Light Remote chính (Account, Device, Operator, Plugin, Wall, Fleet, PTY/ConPTY, SCP, Filesystem roots, Admin, Support, Real Remote). Không dựng thêm app "Continuity", Account, Wall hoặc LXD thứ hai.
 
-Wall Gold **English native admin**, danh sách thiết bị đã enroll theo **Light Remote Account**, Account Sync ON/OFF, checkbox selected từng device, và **selector độc lập ngay sau từng device**: \`Auto / Follow Project / Manual\`.
+Wall Gold **English native admin**, danh sách thiết bị đã enroll theo **Light Remote Account**, Account Sync ON/OFF, checkbox selected từng device, và **selector độc lập ngay sau từng device**: `Auto / Follow Project / Manual`.
 
 - **Auto:** scope được owner cấp quyền đồng bộ tự động.
 - **Follow Project:** CHỈ project/workspace có binding xác thực, không đoán path/tên project trên máy khác.
-- **Manual:** vẫn lưu verified local events vào SQLite, chỉ gửi khi chủ tài khoản bấm \`Sync now\`. Lượt sau không được nhập lẫn vào lượt trước; OFF/deselect/mode switch phải hủy quyền Manual cũ.
+- **Manual:** vẫn lưu verified local events vào SQLite, chỉ gửi khi chủ tài khoản bấm `Sync now`. Lượt sau không được nhập lẫn vào lượt trước; OFF/deselect/mode switch phải hủy quyền Manual cũ.
 - UI chỉ báo Synced khi có signed scope revision + full hash + ACK hợp lệ. Không báo synced vì toggle ON, kết nối online hoặc ciphertext queued.
-- Không yêu cầu người dùng nhập \`Home NetBird URL\`, IP, fingerprint, copy JSON/invitation. Route P2P/direct/relay no-store E2EE do Gold tự xử lý.
+- Không yêu cầu người dùng nhập `Home NetBird URL`, IP, fingerprint, copy JSON/invitation. Route P2P/direct/relay no-store E2EE do Gold tự xử lý.
 - Dark/cyan-blue style của Gold, giữ nguyên toàn bộ UI quản trị sản phẩm, icon và quyền filesystem roots.
 
 **Datastores:** PostgreSQL 17 + Redis 8 canonical backend Account/Auth/device/policy/jobs. SQLite local chính thống cho scoped Long Memory, signed ledger, outbox, grants, ACK. Không đưa private keys, plaintext memory hoặc full chat transcript lên Operator/PG/Redis/cloud. JSON/SQLite không được thay thế PG runtime Gold.
@@ -51,27 +51,27 @@ Wall Gold **English native admin**, danh sách thiết bị đã enroll theo **L
 
 Một **authoritative Home per scope/epoch**, Ed25519-signed checkpoints. Replica không thể tự làm Home; event từ Replica có chữ ký thiết bị + X25519 ephemeral/HKDF/AES-256-GCM E2EE. Home kiểm tra đúng account, enrolled device, scope membership, active grant, epoch, signature, replay và idempotency, rồi transaction ghi signed Home checkpoint. Chữ ký event ACK và Home-to-Replica checkpoint ACK là hai gate khác nhau. Relay Operator chỉ luân chuyển **transient ciphertext**, không lưu/decrypt body.
 
-\`Follow Project\` trên Replica cần owner-explicit binding **tại chính device** và active Home grant. \`Auto\` source adapters chỉ quan sát **verified successful native FS write/edit/mkdir/delete** hoặc **real Git HEAD transition**, không thu script/stdout/file content/path/credentials. Event ref bền vững dựa authenticated command ID để retry không ghi trùng.
+`Follow Project` trên Replica cần owner-explicit binding **tại chính device** và active Home grant. `Auto` source adapters chỉ quan sát **verified successful native FS write/edit/mkdir/delete** hoặc **real Git HEAD transition**, không thu script/stdout/file content/path/credentials. Event ref bền vững dựa authenticated command ID để retry không ghi trùng.
 
-**Manual Replica code mới:** signed Account \`manualRequestSeq\` odd = approved one-shot, even = disarmed; mode/account changes vô hiệu hóa lượt cũ. Khi Replica lần đầu thấy odd seq, lưu SQLite \`lm_evidence_manual_release\` snapshot high-water \`MAX(rowid)\` trong outbox; chỉ event đã tồn tại lúc đó thuộc lượt này. Mỗi frame nhận signed \`manualRelease\` proof (account/device/scope/eventId/Home epoch/grant/seq). Home bắt buộc proof khớp current Account policy và đúng chữ ký. Đây **đã PASS source tests, chưa live**.
+**Manual Replica code mới:** signed Account `manualRequestSeq` odd = approved one-shot, even = disarmed; mode/account changes vô hiệu hóa lượt cũ. Khi Replica lần đầu thấy odd seq, lưu SQLite `lm_evidence_manual_release` snapshot high-water `MAX(rowid)` trong outbox; chỉ event đã tồn tại lúc đó thuộc lượt này. Mỗi frame nhận signed `manualRelease` proof (account/device/scope/eventId/Home epoch/grant/seq). Home bắt buộc proof khớp current Account policy và đúng chữ ký. Đây **đã PASS source tests, chưa live**.
 
 **Caveat kỹ thuật:** high-water rowid dựa trên outbox append-only; nếu sau này prune/VACUUM/reuse rowid thì chuyển sang frozen event-ID manifest trước khi bật retention xóa rows.
 
 ## 4. SOURCE, ROLLBACK, THIẾT BỊ, ĐƯỜNG DẪN
 
-- Repo canonical: \`n8n2erpnext/light-remote-mcp\`, branch \`feature/gold-m6-integrated-20261023\`.
-- Gold ARM development worktree: \`/home/ubuntu/n8n2erpnext/light-remote-mcp-worktrees/gold-m6-integrated-20261023\`.
-- ARM LXD Gold UAT \`light-remote-gold-uat\`; candidate current: \`/opt/light-remote-gold-uat-candidates/99b1d2fd3dbdd54c7f34b88033ba159e4560e8b2\`.
-- 4 UAT services: \`light-remote-gold-operator.service\`, \`light-remote-gold-plugin.service\`, \`light-remote-gold-process-supervisor.service\`, \`light-remote-gold-wall.service\`. Check \`systemctl is-active\` + actual \`ExecStart\`.
-- UAT Wall NetBird route dành cho kỹ thuật: \`http://100.94.184.141:5591/\`; **ARM host :5491 là production**, tuyệt đối không đụng production. Địa chỉ này KHÔNG thuộc UI người dùng.
-- UAT snapshot lịch sử: \`gold-before-codex-acl-and-sync-status-20261025\`, \`gold-before-g3-replica-evidence-20261025\`, \`gold-before-replica-autocapture-20261025\`. **Snapshot mới trước cutover \`20b584c\`.**
-- Rollback tag bất biến: \`gold-restore-before-memory-codex-20261024\` => \`ba579f8830a0654e8321204f17270db8d94c5593\`, owner Windows baseline #486. **KHÔNG retarget/delete.**
-- Windows local source Git: \`%LOCALAPPDATA%\Light Remote\G3-Account-UAT-387498d\source\`. HEAD \`20b584c\`; trước đó commit \`21c9b7d\` chứa handoff revision-6.
-- Windows **đang cài** stable \`99b1d2f\` ở \`%LOCALAPPDATA%\Programs\Light Remote MCP\`, task \`LightRemoteDeviceAgent\` Running.
-- Windows **chưa cài** \`20b584c\`, nhưng installer verified ở \`%LOCALAPPDATA%\Light Remote\Gold-UAT-20b584c\installer\Light-Remote-MCP-Setup-x64.exe\`; SHA256 \`e0b2165dd36a00d99f810a775dc1a427af5915861e04c7635bf539387f4cb0e5\`.
-- Windows CI ZIP \`windows-20b584c-artifact.zip\` trong cùng folder, 328,467,088 bytes, SHA256 \`4cbea3c6cba8d222518f80afa2ea52151df6f4cdd9756517d67a56e6e0c09bea\`. GitHub artifact \`12593177463\`.
-- Windows prior backup \`%LOCALAPPDATA%\Light Remote\Gold-UAT-99b1d2f\backup\installed-client\`; **take new backup** trước installer. Windows cùng AppId với client đang dùng, cài đè có thể tạm drop session.
-- \`@light-remote\` ARM host device \`direct-arm-local\` cần A/B pairing lại chính thức (last \`agent_client_device_not_authorized\`); \`@light-remote-gold\` guest UAT user \`gold-uat\` không thể vượt \`NoNewPrivileges\`. Không lách sudo, không ghi vào root-owned candidate qua Gold guest sandbox.
+- Repo canonical: `n8n2erpnext/light-remote-mcp`, branch `feature/gold-m6-integrated-20261023`.
+- Gold ARM development worktree: `/home/ubuntu/n8n2erpnext/light-remote-mcp-worktrees/gold-m6-integrated-20261023`.
+- ARM LXD Gold UAT `light-remote-gold-uat`; candidate current: `/opt/light-remote-gold-uat-candidates/99b1d2fd3dbdd54c7f34b88033ba159e4560e8b2`.
+- 4 UAT services: `light-remote-gold-operator.service`, `light-remote-gold-plugin.service`, `light-remote-gold-process-supervisor.service`, `light-remote-gold-wall.service`. Check `systemctl is-active` + actual `ExecStart`.
+- UAT Wall NetBird route dành cho kỹ thuật: `http://100.94.184.141:5591/`; **ARM host :5491 là production**, tuyệt đối không đụng production. Địa chỉ này KHÔNG thuộc UI người dùng.
+- UAT snapshot lịch sử: `gold-before-codex-acl-and-sync-status-20261025`, `gold-before-g3-replica-evidence-20261025`, `gold-before-replica-autocapture-20261025`. **Snapshot mới trước cutover `20b584c`.**
+- Rollback tag bất biến: `gold-restore-before-memory-codex-20261024` => `ba579f8830a0654e8321204f17270db8d94c5593`, owner Windows baseline #486. **KHÔNG retarget/delete.**
+- Windows local source Git: `%LOCALAPPDATA%\Light Remote\G3-Account-UAT-387498d\source`. HEAD `20b584c`; trước đó commit `21c9b7d` chứa handoff revision-6.
+- Windows **đang cài** stable `99b1d2f` ở `%LOCALAPPDATA%\Programs\Light Remote MCP`, task `LightRemoteDeviceAgent` Running.
+- Windows **chưa cài** `20b584c`, nhưng installer verified ở `%LOCALAPPDATA%\Light Remote\Gold-UAT-20b584c\installer\Light-Remote-MCP-Setup-x64.exe`; SHA256 `e0b2165dd36a00d99f810a775dc1a427af5915861e04c7635bf539387f4cb0e5`.
+- Windows CI ZIP `windows-20b584c-artifact.zip` trong cùng folder, 328,467,088 bytes, SHA256 `4cbea3c6cba8d222518f80afa2ea52151df6f4cdd9756517d67a56e6e0c09bea`. GitHub artifact `12593177463`.
+- Windows prior backup `%LOCALAPPDATA%\Light Remote\Gold-UAT-99b1d2f\backup\installed-client`; **take new backup** trước installer. Windows cùng AppId với client đang dùng, cài đè có thể tạm drop session.
+- `@light-remote` ARM host device `direct-arm-local` cần A/B pairing lại chính thức (last `agent_client_device_not_authorized`); `@light-remote-gold` guest UAT user `gold-uat` không thể vượt `NoNewPrivileges`. Không lách sudo, không ghi vào root-owned candidate qua Gold guest sandbox.
 
 ## 5. PASS/OPEN GATE MATRIX
 
@@ -82,7 +82,7 @@ Một **authoritative Home per scope/epoch**, Ed25519-signed checkpoints. Replic
 | G2 Auto Home checkpoint + restart | PASS |
 | G3 Account device directory / per-device modes / English Wall | PASS nền tảng |
 | G3 Home→Windows Auto E2EE ACK | PASS LIVE |
-| G3 Home→Windows Manual \`Sync now\` | PASS LIVE |
+| G3 Home→Windows Manual `Sync now` | PASS LIVE |
 | G3 Follow Project unbound deny / verified bound allow | PASS LIVE |
 | G3 Windows→Home typed E2EE event + reflected Home signed checkpoint | PASS LIVE |
 | G3 Gold Home Wall offline 95s → reconnect, durable outbox | PASS LIMITED LIVE (không phải full network/host outage) |
@@ -93,88 +93,88 @@ Một **authoritative Home per scope/epoch**, Ed25519-signed checkpoints. Replic
 | G4 complete P2P/NAT/no-store relay fallback | PARTIAL, not signed off |
 | G5 full fresh ChatGPT conversation V2 scoped restore | OPEN (V1 HMAC handoff tested separately) |
 | G6 macOS/Linux Desktop packaging/parity | OPEN |
-| Optional Windows Codex app-server | \`codex_home_permissions\` fixed; \`codex_binary_missing\` OPEN |
+| Optional Windows Codex app-server | `codex_home_permissions` fixed; `codex_binary_missing` OPEN |
 
 ## 6. LIVE RECEIPTS — ĐỪNG TEST LẠI VÔ ÍCH
 
-Synthetic G3 scope **\`d5e57c01-8864-4995-a186-01de2514ba79\`**, Home ARM, Windows Replica:
+Synthetic G3 scope **`d5e57c01-8864-4995-a186-01de2514ba79`**, Home ARM, Windows Replica:
 
 | Signed Home rev | Live gate | Receipt |
 |---|---|---|
 | 1 | Follow Project scope unbound | Windows không nhận — correct negative gate |
 | 2 | Owner explicitly verified workspace binding | Windows received signed rev2; Home ACK 2/2 |
-| 3 | Windows typed E2EE event, then Home→Windows mirror | Event \`215d1dc4-9e5b-4d1e-9590-419b2fd49f16\`, hash \`3faadac30eeff0e10085805df9295b2cf4c8745daec2acbd7fcc28212ea788fb\`, ACK 3/3 |
-| 4 | Gold UAT Home Wall offline 95-second scheduled autorestart | Windows queued event \`a07703a6-b017-46c6-9b93-8ede9a319860\` pending; after reboot signed hash \`2586478bfed2d11ec62cf80d6449f575b7bcbf9504451f4095b10deb12c4d0de\`, ACK 4/4 |
-| 5 | Authenticated Windows Agent real Git HEAD change | Windows commit \`11d92337d9e9572b4f7708a85aeda3bfc30bb83c\`, event \`25d63714-7156-52b3-a629-c36c54727a6d\`, Home hash \`212639e52e72173beabbfe3a551270b4ca393b38d02555ab441b8d15a03ca056\`, ACK 5/5 |
-| 6 | Authenticated native \`light_remote_write_file\` (synthetic file in owner-bound Windows UAT repo) | event \`8f0f5201-a5d2-5da4-a518-b7b971de7520\`, source \`gold-agent:native-fs\`, Home hash \`456b287151e86121f33a934f0a101cc4aa7e9f62318b0cefc0daa811ea4a2aa0\`, ACK **6/6** |
+| 3 | Windows typed E2EE event, then Home→Windows mirror | Event `215d1dc4-9e5b-4d1e-9590-419b2fd49f16`, hash `3faadac30eeff0e10085805df9295b2cf4c8745daec2acbd7fcc28212ea788fb`, ACK 3/3 |
+| 4 | Gold UAT Home Wall offline 95-second scheduled autorestart | Windows queued event `a07703a6-b017-46c6-9b93-8ede9a319860` pending; after reboot signed hash `2586478bfed2d11ec62cf80d6449f575b7bcbf9504451f4095b10deb12c4d0de`, ACK 4/4 |
+| 5 | Authenticated Windows Agent real Git HEAD change | Windows commit `11d92337d9e9572b4f7708a85aeda3bfc30bb83c`, event `25d63714-7156-52b3-a629-c36c54727a6d`, Home hash `212639e52e72173beabbfe3a551270b4ca393b38d02555ab441b8d15a03ca056`, ACK 5/5 |
+| 6 | Authenticated native `light_remote_write_file` (synthetic file in owner-bound Windows UAT repo) | event `8f0f5201-a5d2-5da4-a518-b7b971de7520`, source `gold-agent:native-fs`, Home hash `456b287151e86121f33a934f0a101cc4aa7e9f62318b0cefc0daa811ea4a2aa0`, ACK **6/6** |
 
 Ngoài ra:
-- G2 Home auto scope \`7a0426e2-ef34-45de-a0be-31adefc0ef48\`, checkpoint \`5ed8292a-dc53-4329-b7ec-f1ac677a5a20\`, revision 1 signed Ed25519 after ~90s coalesce, persisted restart.
-- V1 cross-session MCP HMAC checkpoints \`3c643f8a-1484-4a5c-8043-5746a3782850\`, \`a96f1652-4a87-4ffc-bc06-abf13f817538\`, \`353b1231-e27e-4ffc-9004-8200a0686cda\` with \`device_hmac_verified\`; **không phải V2 G5 full proof**.
+- G2 Home auto scope `7a0426e2-ef34-45de-a0be-31adefc0ef48`, checkpoint `5ed8292a-dc53-4329-b7ec-f1ac677a5a20`, revision 1 signed Ed25519 after ~90s coalesce, persisted restart.
+- V1 cross-session MCP HMAC checkpoints `3c643f8a-1484-4a5c-8043-5746a3782850`, `a96f1652-4a87-4ffc-bc06-abf13f817538`, `353b1231-e27e-4ffc-9004-8200a0686cda` with `device_hmac_verified`; **không phải V2 G5 full proof**.
 - Home→Windows Manual earlier: held rev3 while mode Manual, owner requested Sync now, Windows accepted revision 3 and Home ACK 3/3.
-- Last read-only verification **ngay trước handoff**: Gold UAT 4/4 service active; \`lm_heads\` and \`lm_replica_ack\` **[6, same full hash]**; Windows Agent Running.
+- Last read-only verification **ngay trước handoff**: Gold UAT 4/4 service active; `lm_heads` and `lm_replica_ack` **[6, same full hash]**; Windows Agent Running.
 
-## 7. CANDIDATE \`20b584c\` — THAY ĐỔI CODE/TESTS
+## 7. CANDIDATE `20b584c` — THAY ĐỔI CODE/TESTS
 
 Commit: https://github.com/n8n2erpnext/light-remote-mcp/commit/20b584c45376aee84e829d433eab51735af50406
 
-- **New:** \`device-agent/gold-memory-manual-evidence.mjs\`: \`manualEvidenceCap\`, \`signManualEvidenceFrames\`, \`verifyManualEvidenceRelease\`.
-- \`gold-memory-evidence.mjs\`: queue outbox cap \`maxRowid\`, Manual signed proof validation, E2EE signature compatibility.
-- \`gold-wall-modules.mjs\`: mode-aware pending evidence, signed frames, Home current-seq validation.
-- \`operator-agent.mjs\`: Manual sender only releases approved snapshot batch; Home checks mode/seq.
-- \`operator-host/gold-memory-account-sync-policy.mjs\`: odd=request armed, even=disarmed, revoke old authorization on Sync OFF/deselect/mode switch; PostgreSQL migration 036 as-is.
-- \`client/core-files.json\` and Windows CI manifest updated to **103 core files**.
-- Tests \`selftest-gold-memory-replica-evidence.mjs\`, \`selftest-gold-memory-device-modes.mjs\`: signed proof tamper reject, wrong seq reject, post-snapshot hold, restart cap persistence, dedup, OFF/Auto→Manual invalidation and PG Account CAS.
+- **New:** `device-agent/gold-memory-manual-evidence.mjs`: `manualEvidenceCap`, `signManualEvidenceFrames`, `verifyManualEvidenceRelease`.
+- `gold-memory-evidence.mjs`: queue outbox cap `maxRowid`, Manual signed proof validation, E2EE signature compatibility.
+- `gold-wall-modules.mjs`: mode-aware pending evidence, signed frames, Home current-seq validation.
+- `operator-agent.mjs`: Manual sender only releases approved snapshot batch; Home checks mode/seq.
+- `operator-host/gold-memory-account-sync-policy.mjs`: odd=request armed, even=disarmed, revoke old authorization on Sync OFF/deselect/mode switch; PostgreSQL migration 036 as-is.
+- `client/core-files.json` and Windows CI manifest updated to **103 core files**.
+- Tests `selftest-gold-memory-replica-evidence.mjs`, `selftest-gold-memory-device-modes.mjs`: signed proof tamper reject, wrong seq reject, post-snapshot hold, restart cap persistence, dedup, OFF/Auto→Manual invalidation and PG Account CAS.
 - Local Windows source PASS syntax + regression + **103/103 staged files**; CI Windows + Linux + Parity + Operator **all SUCCESS**.
-- **Caveat:** outbox high-water \`rowid\` correctness requires append-only outbox (purging/reuse needs fixed event-ID manifest). Không gọi source test "live UAT".
+- **Caveat:** outbox high-water `rowid` correctness requires append-only outbox (purging/reuse needs fixed event-ID manifest). Không gọi source test "live UAT".
 - Windows official CI https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/40177333957 ; Linux https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/40177333935 ; Wall https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/40177333944 ; Operator https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/40177333915 .
 
 ## 8. SESSION NEXT — THỰC HIỆN CÓ GATE / KHÔNG LÁCH QUYỀN
 
 **A — READ ONLY FIRST**
 1. Load this handoff, Master Plan appendix and G3 detailed appendix; check branch HEAD and CI.
-2. \`@light-remote-gold\`: context explicit device ID for ARM UAT & Windows; read current source/installed manifest/4 services/Memory signed Home 6/6/Account policy current revision. **Không assume** policy revision 14 còn đúng.
-3. Dùng \`@light-remote\` cho ARM host: nếu chưa authorized, owner mở Local Wall đưa **A code**, gọi connection helper A→B→owner Approve→helper ready. Không enumerate, sudo sandbox, SSH bypass trước approval.
-4. Không đụng Gold production, DB live hay \`:5491\`.
+2. `@light-remote-gold`: context explicit device ID for ARM UAT & Windows; read current source/installed manifest/4 services/Memory signed Home 6/6/Account policy current revision. **Không assume** policy revision 14 còn đúng.
+3. Dùng `@light-remote` cho ARM host: nếu chưa authorized, owner mở Local Wall đưa **A code**, gọi connection helper A→B→owner Approve→helper ready. Không enumerate, sudo sandbox, SSH bypass trước approval.
+4. Không đụng Gold production, DB live hay `:5491`.
 
 **B — DEPLOY ARM GOLD UAT CANDIDATE**
-1. Khi có host ARM quyền hợp lệ: snapshot **hiện tại** của \`light-remote-gold-uat\` + backup SQLite/service overrides (không đưa secrets lên cloud).
-2. Tạo candidate path riêng từ checked Git \`20b584c\`, diff từ installed \`99b1d2f\`, copy 103 client core module như cần; preserve dependencies, ACL and systemd users.
+1. Khi có host ARM quyền hợp lệ: snapshot **hiện tại** của `light-remote-gold-uat` + backup SQLite/service overrides (không đưa secrets lên cloud).
+2. Tạo candidate path riêng từ checked Git `20b584c`, diff từ installed `99b1d2f`, copy 103 client core module như cần; preserve dependencies, ACL and systemd users.
 3. Syntax/regression on UAT; override **4 UAT services only**, health check 4/4, test Wall login/auth/device registry/old signed rev6. If failed revert using snapshot/old overrides; **đừng upgrade Windows**.
 
 **C — UPGRADE WINDOWS**
 1. Backup currently installed per-user client, profile, enrollment/SQLite; không xóa local memory. Installer artifact path/hash §4, reverify SHA256.
-2. Installer chính thức \`20b584c\` có thể khiến Agent mất kết nối tạm; dùng independent Scheduled Task + durable install-result receipt như prior UAT; không gọi running job = PASS.
+2. Installer chính thức `20b584c` có thể khiến Agent mất kết nối tạm; dùng independent Scheduled Task + durable install-result receipt như prior UAT; không gọi running job = PASS.
 3. Reconnect, verify **103/103 actually installed**, Agent Task Running, original Filesystem roots/PTY/Wall English intact, scoped signed rev6 unchanged, remove temporary install task.
 
 **D — REAL MANUAL REPLICA-ORIGIN LIVE E2E**
 1. Read current Account policy+CAS; store original mode/checkbox/Sync state. Global ON + ARM Home selected; chọn Windows Manual **via owner authorized Wall**, no direct PG edit.
-2. Trong owner-bound **synthetic Windows repo** \`%LOCALAPPDATA%\Light Remote\Gold-UAT-99b1d2f\workspace\`, làm 1 Git commit hoặc native FS operation **bằng authenticated Light Remote Agent**; xác minh E2EE event outbox \`pending\`. Không trực tiếp gọi \`queueReplicaEvidence\`.
+2. Trong owner-bound **synthetic Windows repo** `%LOCALAPPDATA%\Light Remote\Gold-UAT-99b1d2f\workspace`, làm 1 Git commit hoặc native FS operation **bằng authenticated Light Remote Agent**; xác minh E2EE event outbox `pending`. Không trực tiếp gọi `queueReplicaEvidence`.
 3. Chưa bấm Sync now: Home vẫn rev6, Windows pending, no event ACK — **must PASS negative**.
-4. Owner bấm **Sync now** cho Windows, expect newly armed odd \`manualRequestSeq\`, local snapshot cap + signed proof, ARM Home atomic checkpoint **rev7**, Window event \`acked\`, Window ledger rev7 signed hash matches, Home ACK **7/7**. No second Home.
+4. Owner bấm **Sync now** cho Windows, expect newly armed odd `manualRequestSeq`, local snapshot cap + signed proof, ARM Home atomic checkpoint **rev7**, Window event `acked`, Window ledger rev7 signed hash matches, Home ACK **7/7**. No second Home.
 5. Sau khi snapshot lượt đầu, tạo 1 event mới, giữ pending đến lượt Sync now thứ hai; revision **8/8** only after second request, old replay duplicate idempotent.
 6. Test OFF/deselect, Manual→Auto→Manual (only if owner approved for synthetic UAT), sequence fencing; do not overwrite concurrent owner edits.
 7. Re-fetch current Account policy; restore **only test changes with latest CAS**, stop/report conflict rather than force overwrite.
 8. Record exact event/checkpoint IDs, hashes, policy revisions/seqs, signed ACK, logs, snapshots, SHA, installer receipts.
 
-**E — THEN CONTINUE:** full-device/network outage, IP changes, stale epoch/home rotation/conflict reconciliation, signed per-device UI status, PTY/task/Codex typed adapter, G4 P2P/relay under NAT, G5 fresh-session V2 restore, G6 macOS/Linux Desktop parity. Windows Codex binary \`codex_binary_missing\` remains separate.
+**E — THEN CONTINUE:** full-device/network outage, IP changes, stale epoch/home rotation/conflict reconciliation, signed per-device UI status, PTY/task/Codex typed adapter, G4 P2P/relay under NAT, G5 fresh-session V2 restore, G6 macOS/Linux Desktop parity. Windows Codex binary `codex_binary_missing` remains separate.
 
 ## 9. BLOCKERS / RISKS / DO NOT DO
 
-- **ARM host unauthorized**: production connector says \`agent_client_device_not_authorized\`; Gold UAT guest cannot sudo due \`NoNewPrivileges\`. Use official A/B. Không tái sử dụng session IDs cũ khi đã hết hạn, không tự nhảy sang Windows/host khác.
-- **UAT vs production:** chỉ UAT \`:5591\`; host \`:5491\` là production. Cần snapshot trước cutover; **không di chuyển annotated restore tag**.
-- **Manual E2E chưa PASS:** source candidate \`20b584c\` chưa triển khai. Keep live rev6/6 until safely upgraded.
+- **ARM host unauthorized**: production connector says `agent_client_device_not_authorized`; Gold UAT guest cannot sudo due `NoNewPrivileges`. Use official A/B. Không tái sử dụng session IDs cũ khi đã hết hạn, không tự nhảy sang Windows/host khác.
+- **UAT vs production:** chỉ UAT `:5591`; host `:5491` là production. Cần snapshot trước cutover; **không di chuyển annotated restore tag**.
+- **Manual E2E chưa PASS:** source candidate `20b584c` chưa triển khai. Keep live rev6/6 until safely upgraded.
 - **Account CAS concurrency:** owner UI có thể thay revision; lịch sử rev14 không được dùng lại; đổi mode phải restore từ current signed policy, not stale snapshot.
-- **ACK distinction:** event ACK \`acked\` không có nghĩa Replica already has Home-signed revision; cần kiểm đủ Home ledger, Replica hash/signature, Home ACK.
+- **ACK distinction:** event ACK `acked` không có nghĩa Replica already has Home-signed revision; cần kiểm đủ Home ledger, Replica hash/signature, Home ACK.
 - **Privacy/authority:** không mix Light Remote, LightBI, Light Luna scopes; không ghi transcript/keys/plaintext cloud; don't infer project from ChatGPT text.
 - **Avoid test explosion:** chỉ cần tests gating feature mới và vài parity smoke; không loop synthetic vô tận.
-- **Codex binary blocker:** đã vá \`codex_home_permissions\` (Windows NTFS ACL) nhưng \`codex_binary_missing\` chưa fix; Long Memory không được phụ thuộc Codex.
+- **Codex binary blocker:** đã vá `codex_home_permissions` (Windows NTFS ACL) nhưng `codex_binary_missing` chưa fix; Long Memory không được phụ thuộc Codex.
 - **Manual rowid cap:** append-only assumption, avoid deleting/compacting pending outbox; nếu thấy hiện tượng reuse thì STOP và redesign.
 - **UI user simplicity:** checkbox + per-device mode + Sync now; IP/key JSON/NetBird/handshake tất cả là tầng infra, không đưa vào product UI.
 
 ## 10. ĐỊNH NGHĨA DONE CỦA SESSION KẾ TIẾP
 
-Chỉ được chốt **G3 Manual Replica-origin E2E PASS** sau khi ARM UAT và Windows cùng chạy \`20b584c\`; proof source & manifest đúng; negative pending-before-click verified; owner-approved Sync now snapshot; ARM signs exactly rev7; event + checkpoint ACK verified; later event stays pending until next request; restart/off/mode changes fence stale grants; configs restored via fresh CAS; rollback receipts saved. Nếu thiếu quyền ARM hoặc cutover fail: **BLOCKED / PARTIAL**, không ghi PASS.
+Chỉ được chốt **G3 Manual Replica-origin E2E PASS** sau khi ARM UAT và Windows cùng chạy `20b584c`; proof source & manifest đúng; negative pending-before-click verified; owner-approved Sync now snapshot; ARM signs exactly rev7; event + checkpoint ACK verified; later event stays pending until next request; restart/off/mode changes fence stale grants; configs restored via fresh CAS; rollback receipts saved. Nếu thiếu quyền ARM hoặc cutover fail: **BLOCKED / PARTIAL**, không ghi PASS.
 
 ---
 
@@ -489,7 +489,7 @@ Branch `feature/gold-m6-integrated-20261023` only. Keep Gold production untouche
 
 **Release source:** `8a8c40c3f998032ab25b6cfbf54f3935d61ce70f` in `feature/gold-m6-integrated-20261023`, after `ccd102b` English Wall and `1658567` earlier E2E handoff. Gold UAT LXD `light-remote-gold-uat` four services `active`, running source `8a8c40c`. UAT pre-upgrade snapshot `gold-before-codex-acl-and-sync-status-20261025` exists. **Do not alter Gold production or rollback tags.**
 
-Windows native installer was built from the exact source SHA by [Windows Tray Client CI run 40167770765](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/40167770765), with **four CI workflows green** (Windows, Gold Native Wall Modules Parity, Gold G3 Operator Regression and Linux Packages). Artifact `light-remote-windows-x64-8a8c40c3f998032ab25b6cfbf54f3935d61ce70f` ZIP SHA256 `63a3c89a97ac180d0fe3df50b84be1178f22afc8631661569482db0612178ef5`, full installer SHA256 `05d8c3edc0893005ed251177505d777ff1f8e423cb2d82d8c5cb93338ef70d5e`. Installer staged under Windows `%LOCALAPPDATA%\\Light Remote\\Gold-UAT-8a8c40c\\installer\\`, old client backed up in that directory's `backup\\installed-client`, installed in existing per-user AppId via independent temporary Scheduled Task, and the temporary installer task was removed afterward.
+Windows native installer was built from the exact source SHA by [Windows Tray Client CI run 40167770765](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/40167770765), with **four CI workflows green** (Windows, Gold Native Wall Modules Parity, Gold G3 Operator Regression and Linux Packages). Artifact `light-remote-windows-x64-8a8c40c3f998032ab25b6cfbf54f3935d61ce70f` ZIP SHA256 `63a3c89a97ac180d0fe3df50b84be1178f22afc8631661569482db0612178ef5`, full installer SHA256 `05d8c3edc0893005ed251177505d777ff1f8e423cb2d82d8c5cb93338ef70d5e`. Installer staged under Windows `%LOCALAPPDATA%\\Light Remote\\Gold-UAT-8a8c40c\\installer\`, old client backed up in that directory's `backup\\installed-client`, installed in existing per-user AppId via independent temporary Scheduled Task, and the temporary installer task was removed afterward.
 
 **Windows install verified:** installer exit 0; independent stage and verification of **101/101 client core files**; exact SHA-256 file comparison PASS for `operator-agent.mjs`, `local-wall.mjs`, `gold-codex-plus.mjs`, `gold-wall-modules.mjs`; scheduled `LightRemoteDeviceAgent` Running; signed scoped Memory record validation on Windows PASS. An early scripted post-install validation erroneously used positional PowerShell `Select-String` arguments, causing a **false FAIL receipt** after a successful installer exit. Initial error is preserved as `initial-validator-false-negative.txt`; corrected independent receipt in `install-result.txt` documents PASS. Do not confuse this validation-script bug with installer failure.
 
