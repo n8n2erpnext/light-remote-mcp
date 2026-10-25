@@ -1054,6 +1054,8 @@ async function daemon(args){
     if(goldPeerPollInFlight)return;
     goldPeerPollInFlight=true;
     try{
+      if(!GOLD_WALL_MODULES.flags().longMemory||
+        GOLD_WALL_MODULES.deviceSyncSelection().receiveBlocked)return;
       const results=await GOLD_WALL_MODULES.pollPeerRoutes();
       for(const result of results)if(result.state!=='up_to_date')
         console.log(JSON.stringify({event:'gold_sync_peer_tick',...result}));
@@ -1067,15 +1069,71 @@ async function daemon(args){
   // holds ciphertext/receipts in bounded process RAM only, never durable storage.
   // The existing direct peer route, when healthy, takes priority on the Replica.
   let goldRelayInFlight=false;
+  const goldOfferedAt=new Map();
   const goldMemoryRelayTick=async()=>{
     if(goldRelayInFlight)return;
     goldRelayInFlight=true;
     try{
-      const scopes=GOLD_WALL_MODULES.listMemoryScopes();
-      if(!scopes.length)return;
+      if(!GOLD_WALL_MODULES.flags().longMemory)return;
       const current=readState();
       if(!current?.enrollment?.deviceId||!cloudDesired(current))return;
       const deviceId=current.enrollment.deviceId;
+      const selection=GOLD_WALL_MODULES.deviceSyncSelection();
+      const directory=await memoryAccountDevices(hub);
+      // Recipient accepts Home's signed scope grant automatically ONLY after
+      // Home owner selected it. Operator verified the enrolled account of both
+      // devices and the local Memory module verifies the signed keys/epoch.
+      if(!selection.receiveBlocked){
+        const offers=await memoryAccountInvites(hub,{action:'list'});
+        for(const message of (offers.invites||[]).slice(0,16)){
+          const invitation=message.package?.invite;
+          const home=directory.devices.find(d=>d.deviceId===message.homeDeviceId&&d.memoryIdentity);
+          if(!home||!invitation||home.memoryIdentity.signPublicKey!==invitation.homeSignPublicKey||
+            home.memoryIdentity.encPublicKey!==invitation.homeEncPublicKey)continue;
+          try{
+            GOLD_WALL_MODULES.acceptSyncInvite({package:message.package,
+              expectedHomeFingerprint:home.memoryIdentity.fingerprint,ownerConfirmed:true});
+            await memoryAccountInvites(hub,{action:'ack',inviteId:message.inviteId});
+          }catch(error){console.error(JSON.stringify({event:'gold_memory_auto_invite_rejected',
+            code:String(error.message).slice(0,90)}));}
+        }
+      }
+      const scopes=GOLD_WALL_MODULES.listMemoryScopes();
+      if(selection.enabled){
+        for(const scope of scopes.filter(x=>x.homeDeviceId===deviceId).slice(0,20)){
+          if(scope.syncPolicy==='local_only')
+            GOLD_WALL_MODULES.changeScopeSyncPolicy({
+              scopeId:scope.scopeId,syncPolicy:'selected_devices'});
+          for(const peerId of selection.selectedDeviceIds.slice(0,100)){
+            const device=directory.devices.find(d=>d.deviceId===peerId&&d.memoryIdentity);
+            if(!device)continue; // Offline/unadvertised: retry without user input
+            const offerKey=scope.scopeId+'|'+peerId+'|'+device.memoryIdentity.fingerprint;
+            const peerState=GOLD_WALL_MODULES.syncStatus({scopeId:scope.scopeId}).peers
+              .find(p=>p.deviceId===peerId&&p.role==='replica');
+            if(peerState&&!peerState.revokedAt&&
+               Date.now()-(goldOfferedAt.get(offerKey)||0)<120000)continue;
+            try{
+              let grant;
+              try{grant=GOLD_WALL_MODULES.grantSyncReplica({scopeId:scope.scopeId,
+                peer:device.memoryIdentity,expectedFingerprint:device.memoryIdentity.fingerprint,
+                ownerConfirmed:true});}
+              catch(error){
+                if(String(error.message)!=='gold_sync_peer_key_rotation_requires_regrant')throw error;
+                // The Home owner already explicitly selected this exact
+                // account device. Fence stale key/grant before re-authorizing.
+                GOLD_WALL_MODULES.revokeSyncReplica({scopeId:scope.scopeId,
+                  replicaDeviceId:peerId,ownerConfirmed:true});
+                grant=GOLD_WALL_MODULES.grantSyncReplica({scopeId:scope.scopeId,
+                  peer:device.memoryIdentity,expectedFingerprint:device.memoryIdentity.fingerprint,
+                  ownerConfirmed:true});
+              }
+              await memoryAccountInvites(hub,{action:'offer',package:grant});
+              goldOfferedAt.set(offerKey,Date.now());
+            }catch(error){console.error(JSON.stringify({event:'gold_memory_auto_grant_pending',
+              code:String(error.message).slice(0,90)}));}
+          }
+        }
+      }
       const routes=GOLD_WALL_MODULES.peerRoutes();
       const accounts=scopes.slice(0,20);
       // Process Home ACKs before preparing its next revision.
@@ -1089,7 +1147,7 @@ async function daemon(args){
       }
       let pushed=0;
       for(const scope of accounts){
-        if(scope.homeDeviceId!==deviceId||scope.syncPolicy==='local_only')continue;
+        if(!selection.enabled||scope.homeDeviceId!==deviceId||scope.syncPolicy==='local_only')continue;
         const status=GOLD_WALL_MODULES.syncStatus({scopeId:scope.scopeId});
         for(const peer of status.peers||[]){
           if(peer.role!=='replica'||peer.revokedAt||pushed>=4)continue;
@@ -1103,6 +1161,7 @@ async function daemon(args){
         }
         if(pushed>=4)break;
       }
+      if(selection.receiveBlocked)return;
       const inbox=await channelRequest(current,hub,'memory-relay',{action:'pull_frames'});
       for(const frame of inbox.result?.items||[]){
         const meta=frame?.meta;

@@ -41,8 +41,9 @@ export function memoryDirectory({accountId,deviceId,devices,identity=null,now=Da
   if(identity!=null){
     const attested=checkedIdentity(identity,accountId,deviceId),id=identityKey(accountId,deviceId);
     const before=peers.get(id);
-    if(before&&(before.signPublicKey!==attested.signPublicKey||before.encPublicKey!==attested.encPublicKey))
-      throw fault('memory_peer_key_change_requires_reenrollment',409);
+    // Enrollment proof authenticates THIS account device; re-advertised Memory
+    // keys may change after local reinstall. Existing scope grants do not
+    // auto-rotate: Home must explicitly select this device for synchronization.
     peers.set(id,{...attested,expiresAt:now+PEER_TTL});
   }
   return devices.filter(d=>d.accountId===accountId&&d.state!=='revoked').slice(0,100).map(d=>{

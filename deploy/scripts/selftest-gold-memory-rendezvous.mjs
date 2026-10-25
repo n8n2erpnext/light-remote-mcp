@@ -32,9 +32,6 @@ assert.throws(()=>memoryDirectory({accountId,deviceId:'r-home',devices,
   identity:{...home.identity,accountId:'different-account'},now}),/memory_peer_identity_mismatch/);
 assert.throws(()=>memoryDirectory({accountId,deviceId:'r-other',devices,
   identity:{...home.identity,deviceId:'r-other'},now}),/memory_peer_device_not_enrolled/);
-const impostor=peer('r-home');
-assert.throws(()=>memoryDirectory({accountId,deviceId:'r-home',devices,identity:impostor.identity,now}),
-  /memory_peer_key_change_requires_reenrollment/);
 const invite={protocol:'light-remote-memory-sync-v1',accountId,homeDeviceId:'r-home',
   toDeviceId:'r-replica',scopeId:crypto.randomUUID(),createdAt:now,
   homeSignPublicKey:home.identity.signPublicKey,homeEncPublicKey:home.identity.encPublicKey,
@@ -56,4 +53,7 @@ assert.throws(()=>memoryInvites({accountId,deviceId:'r-home',devices,
 assert.equal(memoryInvites({accountId,deviceId:'r-replica',devices,
   payload:{action:'ack',inviteId:offer.inviteId},now}).acknowledged,true);
 assert.equal(memoryInvites({accountId,deviceId:'r-replica',devices,payload:{action:'list'},now}).length,0);
+const rotated=peer('r-home');
+const newRoster=memoryDirectory({accountId,deviceId:'r-home',devices,identity:rotated.identity,now:now+100});
+assert.equal(newRoster.find(x=>x.deviceId==='r-home').memoryIdentity.fingerprint,rotated.identity.fingerprint);
 console.log('GOLD_MEMORY_ACCOUNT_DEVICE_SIGNED_INVITATION_RENDEZVOUS_PASS');

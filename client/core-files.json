@@ -46,6 +46,10 @@
       "destination": "device-agent/gold-memory-sync.mjs"
     },
     {
+      "source": "device-agent/gold-memory-device-selection.mjs",
+      "destination": "device-agent/gold-memory-device-selection.mjs"
+    },
+    {
       "source": "device-agent/gold-memory-peer.mjs",
       "destination": "device-agent/gold-memory-peer.mjs"
     },

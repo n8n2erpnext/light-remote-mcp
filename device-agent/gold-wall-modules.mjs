@@ -13,6 +13,7 @@ import {saveGoldCheckpoint,readGoldCheckpoint,listGoldCheckpoints,goldHandoff,sa
 import {createGoldScope,listGoldScopes,changeGoldScopeCapture,changeGoldScopeSyncPolicy,bindGoldScope,resolveGoldScope,appendGoldScopedCheckpoint,readGoldScopedCheckpoint,goldScopedHandoff,goldLegacyUnassignedCount} from './gold-memory-scope.mjs';
 import {ingestGoldAutoEvent,ingestGoldAutoFsEffect,resolveGoldAutoWorkspace,flushGoldAuto,goldAutoPending} from './gold-memory-auto.mjs';
 import {goldSyncIdentity,goldGrantReplica,goldAcceptReplicaInvite,goldNextSyncFrame,goldApplySyncFrame,goldApplySyncAck,goldRevokeReplica,goldSyncStatus} from './gold-memory-sync.mjs';
+import {goldDeviceSelection,goldSetDeviceSelection} from './gold-memory-device-selection.mjs';
 import {receiveGoldPeerRequest,pollGoldPeer,allowGoldPeerHomeUrl,configureGoldPeerRoute,listGoldPeerRoutes,runGoldPeerRoutes} from './gold-memory-peer.mjs';
 const loadBuiltin=createRequire(import.meta.url);
 
@@ -87,11 +88,35 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
     listCheckpoints(input={}){return listGoldCheckpoints(enabled('longMemory'),checkpointKeyFile,input);},
     handoff(input={}){return goldHandoff(enabled('longMemory'),checkpointKeyFile,input);},
     // G1: explicit, trusted local account/device binding; no unscoped automatic writes.
-    createMemoryScope(input={}){const x=scopedIdentity();return createGoldScope(enabled('longMemory'),scopeKeyFile,{...input,accountId:x.accountId,homeDeviceId:x.deviceId});},
+    createMemoryScope(input={}){const x=scopedIdentity();const db=enabled('longMemory');
+      const preference=goldDeviceSelection(db,x);
+      return createGoldScope(db,scopeKeyFile,{...input,accountId:x.accountId,homeDeviceId:x.deviceId,
+        syncPolicy:preference.enabled?'selected_devices':'local_only'});},
     listMemoryScopes(){const x=scopedIdentity();return listGoldScopes(enabled('longMemory'),{accountId:x.accountId});},
     changeScopeCapture(input={}){const x=scopedIdentity();return changeGoldScopeCapture(enabled('longMemory'),{...input,accountId:x.accountId});},
     changeScopeSyncPolicy(input={}){const x=scopedIdentity();return changeGoldScopeSyncPolicy(enabled('longMemory'),{...input,accountId:x.accountId,deviceId:x.deviceId});},
     syncIdentity(){const x=scopedIdentity();enabled('longMemory');return goldSyncIdentity(scopeKeyFile,scopeEncryptKeyFile,x);},
+    deviceSyncSelection(){const x=scopedIdentity();return goldDeviceSelection(enabled('longMemory'),x);},
+    deviceSyncOverview(){
+      const x=scopedIdentity(),db=enabled('longMemory');
+      const selection=goldDeviceSelection(db,x);
+      const scopes=listGoldScopes(db,{accountId:x.accountId})
+        .filter(s=>s.homeDeviceId===x.deviceId);
+      const devices={};
+      for(const peerId of selection.selectedDeviceIds){
+        let synced=0;
+        for(const scope of scopes){
+          const status=goldSyncStatus(db,{accountId:x.accountId,
+            deviceId:x.deviceId,scopeId:scope.scopeId});
+          const peer=status.peers.find(p=>p.deviceId===peerId&&p.role==='replica'&&!p.revokedAt);
+          if(peer&&Number.isInteger(peer.ackRevision)&&peer.ackRevision>=scope.revision)synced++;
+        }
+        devices[peerId]=!selection.enabled?'off':
+          !scopes.length?'no_scopes':synced===scopes.length?'synced':'pending';
+      }
+      return {selection,homeScopeCount:scopes.length,devices};
+    },
+    setDeviceSyncSelection(input={}){const x=scopedIdentity();return goldSetDeviceSelection(enabled('longMemory'),{...input,...x});},
     grantSyncReplica(input={}){const x=scopedIdentity();return goldGrantReplica(enabled('longMemory'),scopeKeyFile,scopeEncryptKeyFile,{...input,accountId:x.accountId,deviceId:x.deviceId});},
     acceptSyncInvite(input={}){const x=scopedIdentity();return goldAcceptReplicaInvite(enabled('longMemory'),scopeKeyFile,scopeEncryptKeyFile,{...input,accountId:x.accountId,deviceId:x.deviceId});},
     nextSyncFrame(input={}){const x=scopedIdentity();return goldNextSyncFrame(enabled('longMemory'),scopeKeyFile,scopeEncryptKeyFile,{...input,accountId:x.accountId,deviceId:x.deviceId});},
