@@ -1210,16 +1210,12 @@ export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvg
         if(!target)return json(res,409,{ok:false,error:'memory_replica_identity_not_advertised'});
         const grant=modules.grantSyncReplica({scopeId:input.scopeId,peer:target.memoryIdentity,
           expectedFingerprint:target.memoryIdentity.fingerprint,ownerConfirmed:true});
-        try{
-          const offered=await getMemoryAccountInvites({action:'offer',package:grant});
-          return json(res,200,{ok:true,offer:offered.result});
-        }catch(e){
-          // Revoke a newly minted grant if its invitation could not be delivered.
-          // Even if transport had accepted it, the stale invitation cannot pull data.
-          modules.revokeSyncReplica({scopeId:input.scopeId,
-            replicaDeviceId:input.replicaDeviceId,ownerConfirmed:true});
-          throw e;
-        }
+        // Keep the owner-approved grant if delivery fails or times out:
+        // the Replica cannot read a scope until it separately accepts.
+        // Retrying this endpoint re-signs the SAME grant without rotating keys,
+        // resetting ACK/outbox, or unintentionally revoking an existing peer.
+        const offered=await getMemoryAccountInvites({action:'offer',package:grant});
+        return json(res,200,{ok:true,offer:offered.result,reused:grant.reused===true});
       }
       if(req.method==='POST'&&url.pathname==='/api/gold/modules/sync/accept-device'){
         if(typeof getMemoryAccountDevices!=='function'||typeof getMemoryAccountInvites!=='function')

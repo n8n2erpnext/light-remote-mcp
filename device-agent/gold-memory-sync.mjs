@@ -128,18 +128,23 @@ export function goldGrantReplica(db,signFile,encFile,{accountId,deviceId,scopeId
   if(self.signPublicKey!==s.home_public_key)throw fail('gold_sync_home_identity_mismatch',409);
   const before=db.prepare('SELECT * FROM lm_scope_members WHERE scope_id=? AND device_id=?')
     .get(scopeId,peerId);
-  if(before&&!before.revoked_at){
+  const reused=Boolean(before&&!before.revoked_at);
+  if(reused){
+    if(before.role!=='replica')throw fail('gold_sync_scope_member_role_conflict',409);
     if(before.sign_public_key!==peer.signPublicKey||before.enc_public_key!==peer.encPublicKey)
       throw fail('gold_sync_peer_key_rotation_requires_regrant',409);
-    throw fail('gold_sync_peer_already_granted',409);
+    // An invitation can expire or disappear when the volatile Operator restarts.
+    // Re-offer the exact existing grant; never reset ACK, epoch, or outbox.
   }
-  const grantId=crypto.randomUUID(),grantEpoch=before?before.grant_epoch+1:1,now=Date.now();
+  const grantId=reused?before.grant_id:crypto.randomUUID(),
+    grantEpoch=reused?before.grant_epoch:before?before.grant_epoch+1:1,now=Date.now();
   const invite={protocol:PROTOCOL,scopeId,accountId,homeDeviceId:deviceId,
     toDeviceId:peerId,homeEpoch:s.home_epoch,grantEpoch,grantId,
     displayName:s.display_name,homeSignPublicKey:self.signPublicKey,
     homeEncPublicKey:self.encPublicKey,peerSignPublicKey:peer.signPublicKey,
     peerEncPublicKey:peer.encPublicKey,createdAt:now};
   const signature=sign(self.signer,invite);
+  if(reused)return {invite,signature,reused:true};
   db.exec('BEGIN IMMEDIATE');
   try{
     db.prepare(`INSERT INTO lm_scope_members(scope_id,device_id,role,grant_id,grant_epoch,
@@ -157,7 +162,7 @@ export function goldGrantReplica(db,signFile,encFile,{accountId,deviceId,scopeId
     }
     db.exec('COMMIT');
   }catch(e){db.exec('ROLLBACK');throw e;}
-  return {invite,signature};
+  return {invite,signature,reused:false};
 }
 export function goldAcceptReplicaInvite(db,signFile,encFile,{accountId,deviceId,package:pkg,
  expectedHomeFingerprint,ownerConfirmed=false}={}){

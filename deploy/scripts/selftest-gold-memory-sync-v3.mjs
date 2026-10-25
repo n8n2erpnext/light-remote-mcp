@@ -38,6 +38,12 @@ try{
    peer:w,expectedFingerprint:'untrusted',ownerConfirmed:true}),/gold_sync_peer_fingerprint_unconfirmed/);
  const pkg=goldGrantReplica(dh,hs,he,{accountId:owner,deviceId:armId,scopeId:scope.scopeId,
    peer:w,expectedFingerprint:w.fingerprint,ownerConfirmed:true});
+ const repeatedGrant=goldGrantReplica(dh,hs,he,{accountId:owner,deviceId:armId,scopeId:scope.scopeId,
+   peer:w,expectedFingerprint:w.fingerprint,ownerConfirmed:true});
+ assert.equal(repeatedGrant.reused,true,'owner re-offer must preserve existing authorization');
+ assert.equal(repeatedGrant.invite.grantId,pkg.invite.grantId);
+ assert.equal(repeatedGrant.invite.grantEpoch,pkg.invite.grantEpoch);
+ assert.equal(dh.prepare('SELECT COUNT(*) AS n FROM lm_scope_members WHERE scope_id=?').get(scope.scopeId).n,1);
  assert.throws(()=>goldAcceptReplicaInvite(dr,rs,re,{accountId:owner,deviceId:winId,
    package:pkg,ownerConfirmed:true,expectedHomeFingerprint:'wrong'}),/gold_sync_home_fingerprint_unconfirmed/);
  const imported=goldAcceptReplicaInvite(dr,rs,re,{accountId:owner,deviceId:winId,
@@ -88,6 +94,14 @@ try{
  const status=goldSyncStatus(dh,{accountId:owner,deviceId:armId,scopeId:scope.scopeId});
  assert.equal(status.peers[0].ackRevision,2);assert.equal(status.peers[0].behind,0);
  assert.equal(status.localRevision,2);
+ const reofferAfterAck=goldGrantReplica(dh,hs,he,{accountId:owner,deviceId:armId,
+   scopeId:scope.scopeId,peer:w,expectedFingerprint:w.fingerprint,ownerConfirmed:true});
+ assert.equal(reofferAfterAck.reused,true);
+ assert.equal(reofferAfterAck.invite.grantId,pkg.invite.grantId);
+ assert.equal(goldSyncStatus(dh,{accountId:owner,deviceId:armId,scopeId:scope.scopeId}).peers[0].ackRevision,2,
+   're-offer must never rewind acknowledged history');
+ assert.equal(goldNextSyncFrame(dh,hs,he,{accountId:owner,deviceId:armId,
+   scopeId:scope.scopeId,replicaDeviceId:winId}).state,'up_to_date');
  assert.equal(goldSyncStatus(dr,{accountId:owner,deviceId:winId,scopeId:scope.scopeId}).isHome,false);
  assert.throws(()=>appendGoldScopedCheckpoint(dr,rs,{accountId:owner,deviceId:winId,
    scopeId:scope.scopeId,title:'Hijack',body:'No',source:'tamper'}),/gold_scope_home_only/);
