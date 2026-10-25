@@ -5,7 +5,7 @@
  * App-server is a local child with isolated CODEX_HOME. All Codex JSON-RPC
  * server-initiated requests are denied; the Bridge never auto-approves tools.
  */
-import {spawn} from 'node:child_process';
+import {spawn,execFileSync} from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -24,7 +24,23 @@ function compactError(value){
 function privateFolder(dir){
   fs.mkdirSync(dir,{recursive:true,mode:0o700});
   const st=fs.statSync(dir);
-  if((st.mode&0o077)!==0)throw fault('codex_home_permissions',503);
+  if(!st.isDirectory())throw fault('codex_home_permissions',503);
+  // Node's POSIX permission bits are NOT a Windows NTFS ACL inspection.
+  // The old mode & 0077 check rejected valid Windows CODEX_HOME paths.
+  if(process.platform==='win32'){
+    try{
+      const info=execFileSync('whoami.exe',['/user','/fo','csv','/nh'],{
+        encoding:'utf8',timeout:5000,windowsHide:true,maxBuffer:4096});
+      const sid=info.match(/S-1-\\d+(?:-\\d+)+/)?.[0];
+      if(!sid)throw new Error('codex_owner_sid_unavailable');
+      execFileSync('icacls.exe',[dir,'/inheritance:r','/grant:r',
+        '*'+sid+':(OI)(CI)F','/remove:g',
+        '*S-1-1-0','*S-1-5-11','*S-1-5-32-545','/T','/L'],{
+        timeout:12000,windowsHide:true,maxBuffer:65536});
+    }catch{throw fault('codex_home_permissions',503);}
+    return;
+  }
+  if(st.mode&0o077)throw fault('codex_home_permissions',503);
 }
 const defaultBinary='/opt/light-remote-gold-codex-runtime/node_modules/.bin/codex';
 

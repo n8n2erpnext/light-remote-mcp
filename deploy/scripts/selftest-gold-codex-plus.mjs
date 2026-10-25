@@ -67,7 +67,11 @@ try {
       fake=new FakeCodex();return fake;
     }});
   assert.equal((await client.account()).connected,false);
-  assert.equal(fs.statSync(path.join(dir,'home')).mode&0o077,0);
+  if(process.platform==='win32'){
+    const {execFileSync}=await import('node:child_process');
+    const info=execFileSync('icacls.exe',[path.join(dir,'home')],{encoding:'utf8',timeout:5000});
+    assert.match(info,/Successfully processed 1 files/i);
+  }else assert.equal(fs.statSync(path.join(dir,'home')).mode&0o077,0);
   const first=await client.beginLogin();
   assert.equal(first.userCode,'TEST-1234');
   assert.equal(first.verificationUrl,'https://auth.openai.com/codex/device');

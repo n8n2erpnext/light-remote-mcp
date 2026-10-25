@@ -92,6 +92,8 @@ jobs:
       - name: Gold Long Memory G3 native Windows crypto smoke
         shell: pwsh
         run: |
+          node deploy/scripts/selftest-gold-codex-plus.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold Windows Codex NTFS private home regression failed' }
           node deploy/scripts/selftest-gold-memory-sync-v3.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Gold G3 Windows E2EE / signed ACK / key ACL failed' }
           node deploy/scripts/selftest-gold-memory-peer-v3.mjs

@@ -625,7 +625,7 @@ async function goldSimpleSyncRefresh(){
         !device.memoryIdentity?'Connecting':
         device.memoryIdentity.syncModeProtocol!==1?'Client update required':
         cfg.mode==='follow_project'?'Project-bound scopes only':
-        cfg.mode==='manual'?'On demand':'Awaiting verified revision';
+        cfg.mode==='manual'?'On demand':'Sync enabled · Check scope revisions';
       row.append(check,name,group,state);
       if(cfg.selected&&cfg.mode==='manual'){
         const now=document.createElement('button');now.className='btn small';now.type='button';
