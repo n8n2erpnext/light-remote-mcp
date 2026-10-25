@@ -60,7 +60,7 @@ try{
  assert.match(html,/id="goldSimpleSyncEnabled"/);
  assert.match(html,/id="goldSimpleSyncDevices"/);
  assert.match(html,/syncModes=\['auto','follow_project','manual'\]/);
- assert.match(html,/Đồng bộ ngay/);
+ assert.match(html,/Sync now/);
  for(const [,js] of html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g))
    if(js.trim())new vm.Script(js);
  assert.equal((await fetch(arm+'/api/gold/modules/sync/account-policy')).status,401);
