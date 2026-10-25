@@ -1272,7 +1272,7 @@ export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvg
         // Direct P2P must obey the SAME account-wide pause/membership gate
         // as the E2EE relay; a previously issued grant is not an OFF bypass.
         if(typeof getMemoryAccountSyncPolicy!=='function')
-          return json(res,503,{ok:false,error:'memory_sync_policy_unavailable'});
+          return json(res,403,{ok:false,error:'memory_sync_policy_unavailable'});
         const policy=(await getMemoryAccountSyncPolicy({action:'get'})).policy;
         const id=modules.syncIdentity();
         const me=policy?.devices?.find(d=>d.deviceId===id.deviceId&&d.selected);
