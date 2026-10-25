@@ -631,6 +631,11 @@ async function goldSimpleSyncSave(){
   }finally{goldSimpleSyncSaving=false;}
 }
 document.getElementById('goldSimpleSyncEnabled').onchange=()=>void goldSimpleSyncSave();
+setInterval(()=>{
+  const panel=document.getElementById('goldSimpleSyncPanel');
+  if(!goldSimpleSyncSaving&&panel&&panel.offsetParent!==null)
+    void goldSimpleSyncRefresh();
+},20000);
 
 document.getElementById('goldSyncOffer').onclick=async()=>{
   const status=document.getElementById('goldSyncStatusText');
