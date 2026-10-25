@@ -127,3 +127,58 @@ Windows native installer was built from the exact source SHA by [Windows Tray Cl
   Follow Project binding proof propagation and full scope manifest
   reconciliation remain independent acceptance gates. Use only synthetic
   authorized UAT event for live test.
+
+## LIVE G3 acceptance 2026-10-25 — Follow Project and Replica → Home
+
+**UAT source SHA:** `43c5fe3973a3f7c04a9f099269381aebc42c64b5`, branch
+`feature/gold-m6-integrated-20261023`, four Gold UAT systemd services
+`active`. Snapshot `gold-before-g3-replica-evidence-20261025` exists;
+Gold production untouched. Four CI workflows for SHA `43c5fe3` succeeded:
+Windows Tray Client run `40169773812`, Linux Client Packages
+`40169773693`, Gold G3 Operator Regression `40169773707`, Gold Native
+Wall Modules Parity `40169773751`.
+
+**Windows distribution:** native official artifact
+`light-remote-windows-x64-43c5fe3973a3f7c04a9f099269381aebc42c64b5`;
+ZIP SHA256 `395ad28f336df7596e685e0e44ac47c7aa293ee86d19cc38b197c5b859ae93b7`;
+full EXE SHA256 `b2899ecbf4e4cef81d3d3a96f18b92a9a7f87aa1fd0145cebaa0ba59c32c44f0`.
+Windows candidate was installed on `DESKTOP-VA16D27` via an independent
+temporary Scheduled Task; installer return code 0, **102/102 installed core
+hashes verify**, scheduled `LightRemoteDeviceAgent` Running, Windows evidence
+regression PASS. Previous Windows client backed up under
+`%LOCALAPPDATA%\\Light Remote\\Gold-UAT-43c5fe3\\backup\\installed-client`.
+Temporary installer task unregistered after successful verification.
+
+**Follow Project two-device test:** Gold ARM UAT was Auto; Windows was
+temporarily `Follow Project`. Dedicated UAT synthetic scope
+`d5e57c01-8864-4995-a186-01de2514ba79` had Home ARM. Checkpoint revision 1
+without binding did **not** appear on Windows; after Home explicitly verified
+and bound workspace `uat://gold/follow-project-20261025`, Home checkpoint
+revision 2 was delivered to Windows, independently signature/hash verified.
+Home `syncStatus` reported recipient `ackRevision=2`, `behind=0`.
+Account policy then restored through CAS: revision **14**, global Sync ON,
+**both devices selected and Auto**. No forced overwrite of owner settings.
+
+**Replica → Home real encrypted event:** Windows submitted exactly one
+synthetic `test_receipt`, event ID
+`215d1dc4-9e5b-4d1e-9590-419b2fd49f16`, in the same isolated UAT scope.
+The Windows outbox was locally durable and the Operator relayed only signed
+E2EE ciphertext. ARM verified membership/grant/Epoch/Ed25519 and committed
+the source-provenance checkpoint as **Home revision 3**, status `claimed`,
+source `replica:dev_8d0715fce77efffce4c5ed28:windows-gold-uat:evidence-e2e`.
+Home signed checkpoint hash:
+`3faadac30eeff0e10085805df9295b2cf4c8745daec2acbd7fcc28212ea788fb`.
+Windows evidence outbox then showed `state=acked`, `ackReceived=true`.
+Home revision 3 was subsequently delivered back to Windows (hash equal);
+ARM recorded **Replica ACK revision 3/3**. Both Windows and ARM remained online
+and signed scope history independently validated. This is **real Windows →
+ARM → Windows E2E PASS**, not SQLite copying or unit-only simulation.
+
+**Remaining independently open:** offline/disconnect/reconnect full E2E
+observations, automatic Replica-local PTY/Operator/Codex event capture adapter
+and trusted provenance-to-scope mapping, Manual-mode device-origin evidence
+(one-shot trigger semantics), multi-device manifest reconciliation and
+signed Home rotation; macOS/Linux parity. Evidence contribution currently
+uses volatile no-store E2EE relay (P2P support remains for Home→Replica
+checkpoint frames), and no live production project content was transmitted.
+The Codex Bridge Windows `codex_binary_missing` blocker remains unrelated.
