@@ -55,7 +55,9 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       throw new EnrollmentError('memory_sync_account_disabled_or_unselected',403);
     const outgoing=ctx.payload?.action==='push_frame'?
       ctx.payload?.frame?.meta?.toDeviceId:
-      ctx.payload?.action==='push_ack'?ctx.payload?.ack?.homeDeviceId:null;
+      ctx.payload?.action==='push_ack'?ctx.payload?.ack?.homeDeviceId:
+      ctx.payload?.action==='push_evidence'?ctx.payload?.evidence?.meta?.homeDeviceId:
+      ctx.payload?.action==='push_evidence_ack'?ctx.payload?.evidence_ack?.deviceId:null;
     if(outgoing&&!policy.devices.some(d=>d.deviceId===outgoing&&d.selected))
       throw new EnrollmentError('memory_sync_recipient_not_selected',403);
     const result=memoryRelay({accountId:ctx.binding.accountId,deviceId:ctx.binding.deviceId,

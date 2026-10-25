@@ -90,3 +90,40 @@ Windows native installer was built from the exact source SHA by [Windows Tray Cl
 **Windows Codex Bridge unrelated blocker:** `codex_home_permissions` was a POSIX mode check incorrectly applied to Windows. Fixed by owner SID-only explicit NTFS ACL via `icacls`; Windows test PASS; installed Windows `codex-home` ACL inheritance is protected. Actual installed bridge probe now reports `codex_binary_missing`: the Windows Codex app-server executable is **not present**; it remains an independent OPEN gate, not solved by ACL alone. Codex remains optional; Long Memory E2EE Sync worked independently.
 
 **Open gates:** Follow Project mode *real* Windows/Linux scoped bound/unbound E2E, Replica→Home signed evidence and unique scope-authority reconciliation, offline/reconnection conflict and stale restore tests, true per-device revision summary on Wall, and Windows Codex binary packaging/discovery. No claim that the whole G3–G6 roadmap is complete. Keep Account PostgreSQL metadata separate from SQLite private Memory, and preserve the unchanged Gold UI/admin surfaces.
+
+## G3 Replica → Home typed evidence protocol (development handoff)
+
+- `device-agent/gold-memory-evidence.mjs` now implements a local-first, bounded,
+  per-scope Replica contribution protocol. An enrolled Replica with an active
+  signed Home grant creates a typed event (`test_receipt`, `fs_change`,
+  `task_state_changed`, `operator_receipt`, or `manual_note`). The event
+  is signed using its own Ed25519 device key and encrypted for the scope Home
+  with ephemeral X25519/HKDF/AES-256-GCM; the relay never sees the body.
+- The Replica stores ciphertext in `lm_evidence_outbox` SQLite before
+  transport. The Operator's `memory-relay` has volatile `push_evidence`,
+  `pull_evidence`, `push_evidence_ack`, and `pull_evidence_acks` actions,
+  with enrolled account membership and selected-device authorization. No
+  event body, decrypted payload, SQLite, or secret is in PG/Redis/cloud logs.
+- The Home checks account, exact scope authority, Home epoch, grant ID,
+  non-revoked Replica member and Ed25519 signature, decrypts the event, and
+  commits the provenance-tagged checkpoint and idempotency receipt in ONE
+  SQLite transaction. The Home's signed ACK carries its newly authoritative
+  checkpoint/revision back to the Replica. Retries do not double-commit.
+- The Gold Agent relay worker polls inbound events/ACKs and drains the
+  Replica's bounded persistent outbox, with account per-device policy checks.
+  Replica Manual *event contribution* is deliberately deferred: manual
+  mode never silently drains the evidence queue. Ordinary Manual
+  Home→Replica checkpoints remain implemented and E2E PASS.
+- Unit/regression receipt:
+  `GOLD_REPLICA_TO_HOME_E2EE_SIGNED_TYPED_EVENT_ATOMIC_COMMIT_REPLAY_RESTART_REVOCATION_PASS`;
+  also checks relay envelope, account isolation, duplicate ACK, revoke,
+  outbox persistence across restart, and Home→Replica round-trip of the new
+  Home-signed checkpoint. Canonical Windows core manifest now contains
+  **102 files** (was 101) including `gold-memory-evidence.mjs`.
+- **Not yet a feature-complete claim:** automatic selection of which
+  Replica-local operator/PTY/codex events to contribute requires a typed
+  source adapter and owner-scoped provenance filter; Home↔Windows real
+  event ingestion, offline/reconnect, manual-source trigger, source-side
+  Follow Project binding proof propagation and full scope manifest
+  reconciliation remain independent acceptance gates. Use only synthetic
+  authorized UAT event for live test.

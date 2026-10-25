@@ -36,6 +36,7 @@ jobs:
           node --no-warnings deploy/scripts/selftest-gold-memory-plugin.mjs
           node --no-warnings deploy/scripts/selftest-gold-memory-rendezvous.mjs
           node --no-warnings deploy/scripts/selftest-gold-memory-account-relay.mjs
+          node --no-warnings deploy/scripts/selftest-gold-memory-replica-evidence.mjs
           node --no-warnings deploy/scripts/selftest-gold-memory-simple-sync.mjs
           node --no-warnings deploy/scripts/selftest-gold-memory-device-modes.mjs
           node --no-warnings deploy/scripts/selftest-gold-memory-account-ui.mjs

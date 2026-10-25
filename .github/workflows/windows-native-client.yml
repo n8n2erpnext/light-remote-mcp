@@ -94,6 +94,8 @@ jobs:
         run: |
           node deploy/scripts/selftest-gold-codex-plus.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Gold Windows Codex NTFS private home regression failed' }
+          node --no-warnings deploy/scripts/selftest-gold-memory-replica-evidence.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold Replica to Home evidence regression failed' }
           node deploy/scripts/selftest-gold-memory-sync-v3.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Gold G3 Windows E2EE / signed ACK / key ACL failed' }
           node deploy/scripts/selftest-gold-memory-peer-v3.mjs
@@ -190,7 +192,7 @@ jobs:
           $updaterStage = Join-Path $PWD 'dist\windows\updater'
           $updater = Join-Path $updaterStage 'LightRemote.Updater.exe'
           node deploy/scripts/stage-client-core.mjs --verify $agentRoot
-          foreach ($memoryModule in @('gold-memory-ledger.mjs','gold-memory-scope.mjs','gold-memory-auto.mjs','gold-memory-sync.mjs','gold-memory-key-permissions.mjs')) {
+          foreach ($memoryModule in @('gold-memory-ledger.mjs','gold-memory-scope.mjs','gold-memory-auto.mjs','gold-memory-sync.mjs','gold-memory-evidence.mjs','gold-memory-key-permissions.mjs')) {
             if (-not (Test-Path (Join-Path $agentRoot ('device-agent\'+$memoryModule)))) { throw "Gold Windows Memory module missing: $memoryModule" }
           }
           Write-Host 'gold-windows-memory-g3-package-modules=PASS'

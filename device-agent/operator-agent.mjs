@@ -1209,6 +1209,52 @@ async function daemon(args){
         }
         if(pushed>=4)break;
       }
+      // G3 typed device-origin evidence: durable Replica outbox → volatile
+      // ciphertext relay → Home verification and atomic signed checkpoint.
+      // Acknowledgment is Home-signed; no Replica ever writes the Home ledger.
+      const evidenceAcks=await channelRequest(current,hub,'memory-relay',
+        {action:'pull_evidence_acks'});
+      for(const receipt of evidenceAcks.result?.items||[]){
+        if(!accounts.some(scope=>scope.scopeId===receipt.scopeId&&
+          scope.homeDeviceId===receipt.homeDeviceId&&scope.homeDeviceId!==deviceId))continue;
+        try{GOLD_WALL_MODULES.applyReplicaEvidenceAck(receipt);}
+        catch(error){console.error(JSON.stringify({event:'gold_evidence_ack_rejected',
+          code:String(error.message).slice(0,80)}));}
+      }
+      const evidenceIncoming=await channelRequest(current,hub,'memory-relay',
+        {action:'pull_evidence'});
+      for(const frame of evidenceIncoming.result?.items||[]){
+        const meta=frame?.meta;
+        const record=accounts.find(scope=>scope.scopeId===meta?.scopeId&&
+          scope.homeDeviceId===deviceId&&meta.homeDeviceId===deviceId);
+        const sender=selection.devices.find(d=>d.deviceId===meta?.deviceId&&d.selected);
+        if(!record||!sender||!directory.devices.some(d=>d.deviceId===meta.deviceId&&
+          d.memoryIdentity?.syncModeProtocol===1))continue;
+        const homeGate=GOLD_WALL_MODULES.scopeSyncGate({scopeId:record.scopeId,
+          replicaDeviceId:deviceId,mode:own.mode,manualRequestSeq:own.manualRequestSeq||0});
+        const senderGate=GOLD_WALL_MODULES.scopeSyncGate({scopeId:record.scopeId,
+          replicaDeviceId:sender.deviceId,mode:sender.mode,
+          manualRequestSeq:sender.manualRequestSeq||0});
+        if(!homeGate.allowed||!senderGate.allowed||sender.mode==='manual')continue;
+        try{
+          const accepted=GOLD_WALL_MODULES.acceptReplicaEvidence(frame);
+          await channelRequest(current,hub,'memory-relay',
+            {action:'push_evidence_ack',evidence_ack:accepted.ack});
+        }catch(error){console.error(JSON.stringify({event:'gold_evidence_home_rejected',
+          code:String(error.message).slice(0,90)}));}
+      }
+      if(own.mode!=='manual'){
+        const evidencePending=GOLD_WALL_MODULES.pendingReplicaEvidence({limit:4});
+        for(const evidence of evidencePending){
+          const home=selection.devices.find(d=>d.deviceId===evidence.meta?.homeDeviceId&&d.selected);
+          const original=accounts.find(x=>x.scopeId===evidence.meta.scopeId);
+          if(!home||!original||original.homeDeviceId!==home.deviceId)continue;
+          if(!directory.devices.some(d=>d.deviceId===home.deviceId&&
+             d.memoryIdentity?.syncModeProtocol===1))continue;
+          await channelRequest(current,hub,'memory-relay',
+            {action:'push_evidence',evidence});
+        }
+      }
       const inbox=await channelRequest(current,hub,'memory-relay',{action:'pull_frames'});
       for(const frame of inbox.result?.items||[]){
         const meta=frame?.meta;

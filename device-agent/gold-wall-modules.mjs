@@ -14,6 +14,7 @@ import {createGoldScope,listGoldScopes,changeGoldScopeCapture,changeGoldScopeSyn
 import {ingestGoldAutoEvent,ingestGoldAutoFsEffect,resolveGoldAutoWorkspace,flushGoldAuto,goldAutoPending} from './gold-memory-auto.mjs';
 import {goldSyncIdentity,goldGrantReplica,goldAcceptReplicaInvite,goldNextSyncFrame,goldApplySyncFrame,goldApplySyncAck,goldRevokeReplica,goldSyncStatus} from './gold-memory-sync.mjs';
 import {goldDeviceSelection,goldSetDeviceSelection} from './gold-memory-device-selection.mjs';
+import {queueGoldReplicaEvidence,pendingGoldReplicaEvidence,acceptGoldReplicaEvidence,applyGoldReplicaEvidenceAck} from './gold-memory-evidence.mjs';
 import {receiveGoldPeerRequest,pollGoldPeer,allowGoldPeerHomeUrl,configureGoldPeerRoute,listGoldPeerRoutes,runGoldPeerRoutes} from './gold-memory-peer.mjs';
 const loadBuiltin=createRequire(import.meta.url);
 
@@ -97,6 +98,14 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
     changeScopeSyncPolicy(input={}){const x=scopedIdentity();return changeGoldScopeSyncPolicy(enabled('longMemory'),{...input,accountId:x.accountId,deviceId:x.deviceId});},
     syncIdentity(){const x=scopedIdentity();enabled('longMemory');return goldSyncIdentity(scopeKeyFile,scopeEncryptKeyFile,x);},
     deviceSyncSelection(){const x=scopedIdentity();return goldDeviceSelection(enabled('longMemory'),x);},
+    queueReplicaEvidence(input={}){const x=scopedIdentity();return queueGoldReplicaEvidence(enabled('longMemory'),
+      scopeKeyFile,scopeEncryptKeyFile,{...input,...x});},
+    pendingReplicaEvidence(input={}){const x=scopedIdentity();return pendingGoldReplicaEvidence(enabled('longMemory'),
+      {...input,...x});},
+    acceptReplicaEvidence(frame){const x=scopedIdentity();return acceptGoldReplicaEvidence(enabled('longMemory'),
+      scopeKeyFile,scopeEncryptKeyFile,{...x,frame});},
+    applyReplicaEvidenceAck(receipt){const x=scopedIdentity();return applyGoldReplicaEvidenceAck(enabled('longMemory'),
+      {...x,receipt});},
     scopeSyncGate({scopeId,replicaDeviceId,mode,manualRequestSeq=0}={}){
       const x=scopedIdentity(),db=enabled('longMemory');
       const scope=db.prepare('SELECT scope_id FROM lm_scopes WHERE account_id=? AND home_device_id=? AND scope_id=? AND status=\'active\'')

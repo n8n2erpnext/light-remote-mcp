@@ -111,34 +111,43 @@ export function memoryRelay({accountId,deviceId,devices,payload={},now=Date.now(
   if(!owned(devices,accountId,deviceId))throw fault('memory_relay_device_not_enrolled',403);
   for(const [k,v] of relay)if(v.expiresAt<=now)relay.delete(k);
   const action=payload.action;
-  if(action==='pull_frames'||action==='pull_acks'){
-    const kind=action==='pull_frames'?'frame':'ack';
+  const pulls={pull_frames:'frame',pull_acks:'ack',
+    pull_evidence:'evidence',pull_evidence_acks:'evidence_ack'};
+  if(Object.hasOwn(pulls,action)){
+    const kind=pulls[action];
     const items=[...relay.values()].filter(x=>x.accountId===accountId&&
       x.recipient===deviceId&&x.kind===kind).sort((a,b)=>a.createdAt-b.createdAt)
       .slice(0,6).map(x=>x.value);
     return {items,transport:'volatile_e2ee_relay'};
   }
-  if(!['push_frame','push_ack'].includes(action))
-    throw fault('memory_relay_action_invalid',400);
-  const kind=action==='push_frame'?'frame':'ack',value=payload[kind];
+  const pushes={push_frame:'frame',push_ack:'ack',
+    push_evidence:'evidence',push_evidence_ack:'evidence_ack'};
+  if(!Object.hasOwn(pushes,action))throw fault('memory_relay_action_invalid',400);
+  const kind=pushes[action],value=payload[kind];
   const serialized=JSON.stringify(value||null);
-  if(serialized.length>(kind==='frame'?48000:3000))
+  if(serialized.length>(kind==='frame'||kind==='evidence'?48000:4000))
     throw fault('memory_relay_payload_oversized',413);
-  const meta=kind==='frame'?value?.meta:value;
+  const meta=(kind==='frame'||kind==='evidence')?value?.meta:value;
   if(!meta||meta.accountId!==accountId||!scopePattern.test(String(meta.scopeId||''))||
     !Number.isSafeInteger(meta.homeEpoch)||meta.homeEpoch<1||
-    !Number.isSafeInteger(meta.revision)||meta.revision<1||
     typeof value.signature!=='string'||value.signature.length>400)
     throw fault('memory_relay_envelope_invalid',403);
-  const source=kind==='frame'?meta.homeDeviceId:meta.deviceId,
-    recipient=kind==='frame'?meta.toDeviceId:meta.homeDeviceId;
+  const isEvidence=kind==='evidence'||kind==='evidence_ack';
+  if(isEvidence?!/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(String(meta.eventId||'')):
+    (!Number.isSafeInteger(meta.revision)||meta.revision<1))
+    throw fault('memory_relay_envelope_invalid',403);
+  const source=(kind==='frame'||kind==='evidence_ack')?meta.homeDeviceId:meta.deviceId,
+    recipient=(kind==='frame')?meta.toDeviceId:
+      kind==='evidence'?meta.homeDeviceId:
+      kind==='evidence_ack'?meta.deviceId:meta.homeDeviceId;
   if(source!==deviceId||!idPattern.test(recipient)||recipient===deviceId||
     !owned(devices,accountId,recipient))
     throw fault('memory_relay_target_invalid',403);
-  if(kind==='frame'&&(typeof value.ciphertext!=='string'||!value.ciphertext.length))
+  if((kind==='frame'||kind==='evidence')&&
+    (typeof value.ciphertext!=='string'||!value.ciphertext.length))
     throw fault('memory_relay_ciphertext_required',403);
   const id=[accountId,kind,recipient,source,meta.scopeId,meta.homeEpoch,
-    meta.revision].join('\\n');
+    isEvidence?meta.eventId:meta.revision].join('\\n');
   relay.set(id,{accountId,recipient,kind,value,createdAt:now,expiresAt:now+RELAY_TTL});
   if(relay.size>300){
     const oldest=[...relay].sort((a,b)=>a[1].createdAt-b[1].createdAt);
