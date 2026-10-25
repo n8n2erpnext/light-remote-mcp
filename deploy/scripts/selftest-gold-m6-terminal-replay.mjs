@@ -69,7 +69,8 @@ try{
  console.log('M6_PG_ATOMIC_RELEASE_ACK_AND_IDEMPOTENT_REPLAY=PASS');
 
  const manifest=JSON.parse(fs.readFileSync(new URL('../../platform-v2/sql/migrations.lock.json',import.meta.url),'utf8'));
- const m=manifest.migrations.at(-1);
+ const m=manifest.migrations.find(row=>row.version===35);
+ assert.ok(m,'M6 migration 035 must remain immutable');
  assert.equal(m.version,35);
  assert.equal(m.file,'035_gold_terminal_receipt_acks.sql');
  assert.equal(m.sha256,crypto.createHash('sha256').update(fs.readFileSync(new URL('../../platform-v2/sql/'+m.file,import.meta.url))).digest('hex'));
