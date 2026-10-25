@@ -267,6 +267,36 @@ export function goldScopedHandoff(db,{accountId,scopeId,limit=5}={}){
     homeEpoch:head.homeEpoch,revision:head.revision,headHash:head.headHash,
     checkpoints,source:'device_local_scoped_home',stale:false};
 }
+// Owner-only local export of the complete currently authoritative epoch.
+// Unlike the short handoff preview, it verifies every revision, never truncates
+// silently and never exports device private keys or other memory scopes.
+export function goldScopedExport(db,{accountId,scopeId}={}){
+  prepareGoldMemoryV2(db);
+  const scope=ownScope(db,{scopeId,accountId});
+  const head=db.prepare('SELECT home_epoch AS homeEpoch,revision,head_hash AS headHash FROM lm_heads WHERE scope_id=?').get(scope.scope_id);
+  if(!head)throw problem('gold_scope_head_integrity_failed',409);
+  if(head.revision>2000)throw problem('gold_scope_export_too_large',413);
+  const rows=db.prepare(`SELECT * FROM lm_checkpoint_v2 WHERE scope_id=? AND home_epoch=?
+    ORDER BY revision DESC LIMIT 2001`).all(scope.scope_id,head.homeEpoch);
+  if(rows.length!==head.revision)throw problem('gold_scope_export_history_incomplete',409);
+  const checkpoints=rows.map(row=>verified(db,scope,row));
+  if(checkpoints.length && (checkpoints[0].revision!==head.revision ||
+      checkpoints[0].contentHash!==head.headHash))
+    throw problem('gold_scope_head_integrity_failed',409);
+  for(let i=1;i<checkpoints.length;i++){
+    if(checkpoints[i-1].revision!==checkpoints[i].revision+1 ||
+       checkpoints[i-1].prevHash!==checkpoints[i].contentHash)
+      throw problem('gold_scope_checkpoint_chain_invalid',409);
+  }
+  if(checkpoints.length&&checkpoints[checkpoints.length-1].revision!==1)
+    throw problem('gold_scope_export_history_incomplete',409);
+  return {format:'light-remote-verified-scoped-memory-v2',scopeId:scope.scope_id,
+    displayName:scope.display_name,homeDeviceId:scope.home_device_id,
+    homeEpoch:head.homeEpoch,revision:head.revision,headHash:head.headHash,
+    checkpointCount:checkpoints.length,
+    checkpoints:checkpoints.reverse(),integrity:'all_current_epoch_revisions_verified',
+    coverage:'authoritative_current_epoch_only',source:'device_local_scoped_home'};
+}
 export function goldLegacyUnassignedCount(db){
   prepareGoldMemoryV2(db);
   const old=db.prepare("SELECT 1 AS present FROM sqlite_master WHERE type='table' AND name='gold_checkpoints'").get();

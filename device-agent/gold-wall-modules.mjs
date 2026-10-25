@@ -10,7 +10,7 @@ import {createGoldCodexConnection} from './gold-codex-api.mjs';
 import {requireGoldMemoryPrivateKey} from './gold-memory-key-permissions.mjs';
 import {createGoldCodexPlus} from './gold-codex-plus.mjs';
 import {saveGoldCheckpoint,readGoldCheckpoint,listGoldCheckpoints,goldHandoff,saveGoldObserverReceipt,listGoldObserverReceipts,confirmGoldObserverTask} from './gold-memory-ledger.mjs';
-import {createGoldScope,listGoldScopes,changeGoldScopeCapture,changeGoldScopeSyncPolicy,bindGoldScope,resolveGoldScope,appendGoldScopedCheckpoint,readGoldScopedCheckpoint,goldScopedHandoff,goldLegacyUnassignedCount} from './gold-memory-scope.mjs';
+import {createGoldScope,listGoldScopes,changeGoldScopeCapture,changeGoldScopeSyncPolicy,bindGoldScope,resolveGoldScope,appendGoldScopedCheckpoint,readGoldScopedCheckpoint,goldScopedHandoff,goldScopedExport,goldLegacyUnassignedCount} from './gold-memory-scope.mjs';
 import {ingestGoldAutoEvent,ingestGoldAutoFsEffect,resolveGoldAutoWorkspace,flushGoldAuto,goldAutoPending} from './gold-memory-auto.mjs';
 import {goldSyncIdentity,goldGrantReplica,goldAcceptReplicaInvite,goldNextSyncFrame,goldApplySyncFrame,goldApplySyncAck,goldRevokeReplica,goldSyncStatus} from './gold-memory-sync.mjs';
 import {goldDeviceSelection,goldSetDeviceSelection} from './gold-memory-device-selection.mjs';
@@ -185,6 +185,7 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
     appendScopedCheckpoint(input={}){const x=scopedIdentity();return appendGoldScopedCheckpoint(enabled('longMemory'),scopeKeyFile,{...input,accountId:x.accountId,deviceId:x.deviceId});},
     readScopedCheckpoint(input={}){const x=scopedIdentity();return readGoldScopedCheckpoint(enabled('longMemory'),{...input,accountId:x.accountId});},
     scopedHandoff(input={}){const x=scopedIdentity();return goldScopedHandoff(enabled('longMemory'),{...input,accountId:x.accountId});},
+    scopedExport(input={}){const x=scopedIdentity();return goldScopedExport(enabled('longMemory'),{...input,accountId:x.accountId});},
     legacyUnassignedCount(){scopedIdentity();return goldLegacyUnassignedCount(enabled('longMemory'));},
     ingestAutoEvent(input={}){const x=scopedIdentity();return ingestGoldAutoEvent(enabled('longMemory'),{...input,accountId:x.accountId,deviceId:x.deviceId});},
     ingestFsEffect(input={}){const x=scopedIdentity();return ingestGoldAutoFsEffect(enabled('longMemory'),{...input,accountId:x.accountId,deviceId:x.deviceId});},

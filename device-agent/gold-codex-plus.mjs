@@ -8,6 +8,7 @@
 import {spawn,execFileSync} from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 
 function fault(code,status=400){return Object.assign(new Error(code),{status});}
 const ALLOWED_LOGIN_HOSTS=new Set(['auth.openai.com','chatgpt.com','login.openai.com']);
@@ -42,9 +43,29 @@ function privateFolder(dir){
   }
   if(st.mode&0o077)throw fault('codex_home_permissions',503);
 }
-const defaultBinary='/opt/light-remote-gold-codex-runtime/node_modules/.bin/codex';
+// Codex is optional and device-local. Do not execute npm .cmd shims through
+// shell:true on Windows: use the real native executable only.
+export function resolveGoldCodexBinary({platform=process.platform,env=process.env,exists=fs.existsSync}={}){
+  const explicit=String(env.LIGHT_REMOTE_GOLD_CODEX_BINARY||env.CODEX_CLI_PATH||'').trim();
+  const win=platform==='win32',p=win?path.win32:path.posix;
+  if(explicit){
+    if(!p.isAbsolute(explicit)||win&&!/\\codex\.exe$/i.test(explicit))
+      throw fault('codex_native_binary_path_invalid',400);
+    return explicit;
+  }
+  if(!win)return '/opt/light-remote-gold-codex-runtime/node_modules/.bin/codex';
+  const local=env.LOCALAPPDATA||p.join(os.homedir(),'AppData','Local');
+  const roaming=env.APPDATA||p.join(os.homedir(),'AppData','Roaming');
+  const npmRoot=p.join(roaming,'npm','node_modules','@openai','codex','node_modules');
+  const candidates=[
+    p.join(local,'Programs','OpenAI','Codex','bin','codex.exe'),
+    p.join(npmRoot,'@openai','codex-win32-x64','vendor','x86_64-pc-windows-msvc','bin','codex.exe'),
+    p.join(npmRoot,'@openai','codex-win32-arm64','vendor','aarch64-pc-windows-msvc','bin','codex.exe')
+  ];
+  return candidates.find(c=>exists(c))||candidates[0];
+}
 
-export function createGoldCodexPlus({home,command=defaultBinary,spawnImpl=spawn}){
+export function createGoldCodexPlus({home,command=resolveGoldCodexBinary(),spawnImpl=spawn}){
   if(!path.isAbsolute(home)||!path.isAbsolute(command))
     throw fault('codex_plus_runtime_paths_invalid');
   let child=null,buffer='',requestId=0,booting=null,pending=new Map();
