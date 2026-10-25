@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
+import fs from 'node:fs';
 import {memoryDirectory,memoryInvites} from '../../operator-host/gold-memory-rendezvous.mjs';
+const gateway=fs.readFileSync(new URL('../../plugin-server/device-public.mjs',import.meta.url),'utf8');
+const actions=gateway.match(/const CHANNEL = new Set\(\[([\s\S]*?)\]\);/)?.[1]||'';
+for(const action of ['memory-peers','memory-invites','memory-relay'])
+  assert.ok(actions.includes("'"+action+"'"),'public_gateway_missing_signed_memory_action:'+action);
 const accountId='rendezvous-account';
 const devices=[
   {deviceId:'r-home',accountId,state:'online',displayName:'Home'},
