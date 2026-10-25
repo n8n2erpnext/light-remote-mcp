@@ -56,6 +56,7 @@ try{
   assert.match(page,/goldModulesLiveSummary/);
   assert.match(page,/Signed handoff checkpoints/);
   assert.match(page,/goldPeerAccountDevicesRefresh/);
+  assert.match(page,/goldSyncRevoke/);
   assert.doesNotMatch(page,/Home NetBird URL e.g./);
   for(const id of ['goldPeerExportIdentity','goldPeerCopyIdentity','goldPeerCandidate',
     'goldPeerExpectedFingerprint','goldPeerGrant','goldPeerInviteOutput',
