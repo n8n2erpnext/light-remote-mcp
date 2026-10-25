@@ -34,6 +34,8 @@ jobs:
         run: |
           node --no-warnings deploy/scripts/selftest-gold-cross-session.mjs
           node --no-warnings deploy/scripts/selftest-gold-memory-plugin.mjs
+          node --no-warnings deploy/scripts/selftest-gold-memory-rendezvous.mjs
+          node --no-warnings deploy/scripts/selftest-gold-memory-account-relay.mjs
       - name: Gold existing owner filesystem, SCP, Permissions and Wall latency
         run: |
           node deploy/scripts/selftest-gold-owner-filesystem-roots.mjs

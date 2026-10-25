@@ -1,3 +1,4 @@
+import {memoryDirectory,memoryInvites,memoryRelay} from './gold-memory-rendezvous.mjs';
 import { DEVICE_DUPLEX_PROTOCOL } from './device-duplex-transport.mjs';
 import { handleDeviceDuplexSession } from './device-duplex-session.mjs';
 import { ownerFleetJobRows } from './fleet-job-view.mjs';
@@ -10,11 +11,21 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
   // caller-supplied account ID. Never expose checkpoint bodies or unrelated accounts.
   if(req.method==='POST'&&url.pathname==='/v1/device-channel/memory-peers'){
     const body=await readJson(req),ctx=await verifiedChannelContext(body,'memory-peers');
-    const owned=devices.list().filter(d=>d.accountId===ctx.binding.accountId&&d.state!=='revoked');
-    return sendJson(res,200,{ok:true,currentDeviceId:ctx.binding.deviceId,
-      devices:owned.map(d=>({deviceId:d.deviceId,displayName:d.displayName,
-        state:d.state,platform:d.platform,architecture:d.architecture,
-        agentVersion:d.agentVersion})).slice(0,100)});
+    const owned=memoryDirectory({accountId:ctx.binding.accountId,
+      deviceId:ctx.binding.deviceId,devices:devices.list(),identity:ctx.payload?.identity||null});
+    return sendJson(res,200,{ok:true,currentDeviceId:ctx.binding.deviceId,devices:owned});
+  }
+  if(req.method==='POST'&&url.pathname==='/v1/device-channel/memory-invites'){
+    const body=await readJson(req),ctx=await verifiedChannelContext(body,'memory-invites');
+    const result=memoryInvites({accountId:ctx.binding.accountId,deviceId:ctx.binding.deviceId,
+      devices:devices.list(),payload:ctx.payload||{}});
+    return sendJson(res,200,{ok:true,...(Array.isArray(result)?{invites:result}:{result})});
+  }
+  if(req.method==='POST'&&url.pathname==='/v1/device-channel/memory-relay'){
+    const body=await readJson(req),ctx=await verifiedChannelContext(body,'memory-relay');
+    const result=memoryRelay({accountId:ctx.binding.accountId,deviceId:ctx.binding.deviceId,
+      devices:devices.list(),payload:ctx.payload||{}});
+    return sendJson(res,200,{ok:true,result});
   }
   if(req.method==='POST'&&url.pathname==='/v1/device-channel/capabilities-refresh'){
     const body=await readJson(req),ctx=await verifiedChannelContext(body,'capabilities-refresh');

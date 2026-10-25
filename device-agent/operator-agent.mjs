@@ -174,11 +174,23 @@ async function channelRequest(state,hubBase,action,payload){
 async function memoryAccountDevices(hub=DEFAULT_HUB){
   const state=readState();
   if(!state?.enrollment?.deviceId)throw new Error('memory_device_not_enrolled');
-  // Signed, per-device account discovery. No account ID or stored Memory data is supplied.
-  const result=await channelRequest(state,hub,'memory-peers',{});
-  if(!Array.isArray(result?.devices)||result.devices.length>100)
+  // Keys originate in the local enabled Memory module, are bound by the
+  // enrollment-signed device channel, and are never supplied by the browser.
+  let identity=null;
+  try{identity=GOLD_WALL_MODULES.syncIdentity();}
+  catch(error){if(String(error.message)!=='gold_module_disabled')throw error;}
+  const result=await channelRequest(state,hub,'memory-peers',{identity});
+  if(!Array.isArray(result?.devices)||result.devices.length>100||
+    result.currentDeviceId!==state.enrollment.deviceId)
     throw new Error('memory_account_device_directory_invalid');
   return {currentDeviceId:result.currentDeviceId,devices:result.devices};
+}
+async function memoryAccountInvites(hub=DEFAULT_HUB,input={action:'list'}){
+  const state=readState();
+  if(!state?.enrollment?.deviceId)throw new Error('memory_device_not_enrolled');
+  const result=await channelRequest(state,hub,'memory-invites',input);
+  if(!result?.ok)throw new Error('memory_account_invites_unavailable');
+  return result;
 }
 async function rescanHostCapabilities(hub=DEFAULT_HUB){
   const state=readState();
@@ -995,7 +1007,7 @@ async function daemon(args){
   const wait=ms=>new Promise(resolve=>{const timer=setTimeout(()=>{wake=null;resolve();},ms);wake=()=>{clearTimeout(timer);wake=null;resolve();};});
   if(!fs.existsSync(LOCAL_WALL_AUTH_FILE))writeAccountOnlyWallAuthConfig(LOCAL_WALL_AUTH_FILE,{username:'account'});
   const wallAuth=loadLocalWallAuth(LOCAL_WALL_AUTH_FILE,{required:!['127.0.0.1','::1','localhost'].includes(String(LOCAL_WALL_HOST))});
-  localWall=startLocalWall({modules:GOLD_WALL_MODULES,host:LOCAL_WALL_HOST,port:LOCAL_WALL_PORT,brandSvgPath:LOCAL_WALL_BRAND,auth:wallAuth,getMemoryAccountDevices:async()=>memoryAccountDevices(hub),getLocalStatus:async()=>({...statusView(),fleetWall:await localFleetStatus()}),getLocalPolicyStatus:async()=>statusView(),getPendingAccess:async()=>remoteAccessLookup(hub),getRemoteStatus:async()=>{const remote=await remoteDeviceStatus(hub);return remote;},getRemoteActivity:async limit=>remoteDeviceActivity(hub,limit),getLocalProcesses:async()=>((SUPERVISED_PROCESSES?await SUPERVISED_PROCESSES.listDevice(state.enrollment.accountId,state.enrollment.deviceId):NATIVE_PROCESSES.list())).map(p=>({
+  localWall=startLocalWall({modules:GOLD_WALL_MODULES,host:LOCAL_WALL_HOST,port:LOCAL_WALL_PORT,brandSvgPath:LOCAL_WALL_BRAND,auth:wallAuth,getMemoryAccountDevices:async()=>memoryAccountDevices(hub),getMemoryAccountInvites:async data=>memoryAccountInvites(hub,data),getLocalStatus:async()=>({...statusView(),fleetWall:await localFleetStatus()}),getLocalPolicyStatus:async()=>statusView(),getPendingAccess:async()=>remoteAccessLookup(hub),getRemoteStatus:async()=>{const remote=await remoteDeviceStatus(hub);return remote;},getRemoteActivity:async limit=>remoteDeviceActivity(hub,limit),getLocalProcesses:async()=>((SUPERVISED_PROCESSES?await SUPERVISED_PROCESSES.listDevice(state.enrollment.accountId,state.enrollment.deviceId):NATIVE_PROCESSES.list())).map(p=>({
     processId:p.processId,sessionId:p.sessionId,pid:p.pid,state:p.state,
     startedAt:p.startedAt,finishedAt:p.finishedAt,exitCode:p.exitCode,
     stdoutBytes:p.stdoutBytes,stderrBytes:p.stderrBytes,stopRequested:p.stopRequested,
@@ -1026,6 +1038,18 @@ async function daemon(args){
   const workerReceiptTimer=setInterval(()=>void refreshProcessTerminalReceipts(readState()||state),5000);
   // Flush only pending, scoped Gold events. An OFF module has zero workload.
   let goldPeerPollInFlight=false;
+  // Advertise only public Memory keys while the optional module is ON. This
+  // transient directory expires automatically if a device goes offline.
+  const goldPeerPresenceTimer=setInterval(()=>{
+    if(!GOLD_WALL_MODULES.flags().longMemory)return;
+    void memoryAccountDevices(hub).catch(error=>{
+      if(String(error.message)!=='gold_module_disabled')
+        console.error(JSON.stringify({event:'gold_memory_directory_refresh_failed',
+          code:String(error.message).slice(0,90)}));
+    });
+  },90000);
+  goldPeerPresenceTimer.unref?.();
+  void memoryAccountDevices(hub).catch(()=>{});
   const goldPeerPollTimer=setInterval(async()=>{
     if(goldPeerPollInFlight)return;
     goldPeerPollInFlight=true;
@@ -1039,6 +1063,73 @@ async function daemon(args){
     }finally{goldPeerPollInFlight=false;}
   },45000);
   goldPeerPollTimer.unref?.();
+  // Zero-config encrypted fallback for account-enrolled devices. The Operator
+  // holds ciphertext/receipts in bounded process RAM only, never durable storage.
+  // The existing direct peer route, when healthy, takes priority on the Replica.
+  let goldRelayInFlight=false;
+  const goldMemoryRelayTick=async()=>{
+    if(goldRelayInFlight)return;
+    goldRelayInFlight=true;
+    try{
+      const scopes=GOLD_WALL_MODULES.listMemoryScopes();
+      if(!scopes.length)return;
+      const current=readState();
+      if(!current?.enrollment?.deviceId||!cloudDesired(current))return;
+      const deviceId=current.enrollment.deviceId;
+      const routes=GOLD_WALL_MODULES.peerRoutes();
+      const accounts=scopes.slice(0,20);
+      // Process Home ACKs before preparing its next revision.
+      const pendingAcks=await channelRequest(current,hub,'memory-relay',{action:'pull_acks'});
+      for(const receipt of pendingAcks.result?.items||[]){
+        if(!accounts.some(scope=>scope.scopeId===receipt.scopeId&&scope.homeDeviceId===deviceId))
+          continue;
+        try{GOLD_WALL_MODULES.applySyncAck({receipt});}
+        catch(error){console.error(JSON.stringify({event:'gold_memory_relay_ack_rejected',
+          code:String(error.message).slice(0,80)}));}
+      }
+      let pushed=0;
+      for(const scope of accounts){
+        if(scope.homeDeviceId!==deviceId||scope.syncPolicy==='local_only')continue;
+        const status=GOLD_WALL_MODULES.syncStatus({scopeId:scope.scopeId});
+        for(const peer of status.peers||[]){
+          if(peer.role!=='replica'||peer.revokedAt||pushed>=4)continue;
+          const next=GOLD_WALL_MODULES.nextSyncFrame({
+            scopeId:scope.scopeId,replicaDeviceId:peer.deviceId
+          });
+          if(next.state==='pending'){
+            await channelRequest(current,hub,'memory-relay',{action:'push_frame',frame:next.frame});
+            pushed++;
+          }
+        }
+        if(pushed>=4)break;
+      }
+      const inbox=await channelRequest(current,hub,'memory-relay',{action:'pull_frames'});
+      for(const frame of inbox.result?.items||[]){
+        const meta=frame?.meta;
+        if(!meta||!accounts.some(scope=>scope.scopeId===meta.scopeId&&
+          scope.homeDeviceId===meta.homeDeviceId&&meta.homeDeviceId!==deviceId))continue;
+        const direct=routes.find(route=>route.scopeId===meta.scopeId&&route.enabled&&
+          route.lastSuccessAt&&route.lastErrorCode===null);
+        if(direct)continue;
+        try{
+          const received=GOLD_WALL_MODULES.applySyncFrame({frame});
+          await channelRequest(current,hub,'memory-relay',{
+            action:'push_ack',ack:received.ack
+          });
+        }catch(error){
+          console.error(JSON.stringify({event:'gold_memory_relay_frame_rejected',
+            code:String(error.message).slice(0,80)}));
+        }
+      }
+    }catch(error){
+      if(!['gold_module_disabled','gold_scope_trusted_identity_required'].includes(String(error.message)))
+        console.error(JSON.stringify({event:'gold_memory_relay_tick_failed',
+          code:String(error.message).slice(0,90)}));
+    }finally{goldRelayInFlight=false;}
+  };
+  const goldMemoryRelayTimer=setInterval(()=>void goldMemoryRelayTick(),25000);
+  goldMemoryRelayTimer.unref?.();
+  void goldMemoryRelayTick();
   const goldMemoryFlushTimer=setInterval(()=>{
     try{
       const saved=GOLD_WALL_MODULES.flushAuto();
@@ -1121,7 +1212,7 @@ async function wallOnly(args){
   if(!fs.existsSync(LOCAL_WALL_AUTH_FILE))writeAccountOnlyWallAuthConfig(LOCAL_WALL_AUTH_FILE,{username:'account'});
   const wallAuth=loadLocalWallAuth(LOCAL_WALL_AUTH_FILE,{required:!['127.0.0.1','::1','localhost'].includes(String(LOCAL_WALL_HOST))});
   const fleetManager=new FleetComponentManager(),fleetSupervisor=new FleetComponentSupervisor({manager:fleetManager,stateProvider:()=>readState(),requestIntent:async current=>{const local=await localFleetStatus();const response=await channelRequest(current,hub,'fleet-intent',{agentVersion:VERSION,moduleVersion:fleetManager.current()?.version||null,fleetHealthy:local.healthy===true,fleetPort:local.port});return response.fleet;},env:{OPERATOR_AGENT_STATE:STATE_FILE,OPERATOR_AGENT_IDENTITY_FILE:EXTERNAL_IDENTITY_FILE,OPERATOR_AGENT_WALL_AUTH_FILE:LOCAL_WALL_AUTH_FILE,OPERATOR_AGENT_HUB_URL:hub,OPERATOR_FLEET_WALL_HOST:FLEET_WALL_HOST,OPERATOR_FLEET_WALL_PORT:String(FLEET_WALL_PORT),OPERATOR_FLEET_WALL_PUBLIC_URL:FLEET_WALL_PUBLIC_URL},emit:event=>console.log(JSON.stringify(event))});
-  const localWall=startLocalWall({modules:GOLD_WALL_MODULES,host:LOCAL_WALL_HOST,port:LOCAL_WALL_PORT,brandSvgPath:LOCAL_WALL_BRAND,auth:wallAuth,getMemoryAccountDevices:async()=>memoryAccountDevices(hub),getLocalStatus:async()=>({...statusView(),fleetWall:await localFleetStatus()}),getLocalPolicyStatus:async()=>statusView(),getPendingAccess:async()=>remoteAccessLookup(hub),getRemoteStatus:async()=>remoteDeviceStatus(hub),getRemoteActivity:async limit=>remoteDeviceActivity(hub,limit),getLocalTerminals:async()=>NATIVE_TERMINALS.list().map(t=>({terminalId:t.terminalId,sessionId:t.sessionId,state:t.state,shell:t.shell,startedAt:t.startedAt,finishedAt:t.finishedAt,outputBytes:t.outputBytes})),readLocalTerminal:async(terminalId,{offset=0,limit=32768}={})=>{const t=NATIVE_TERMINALS.output(terminalId,null,{offset,limit});return {terminalId:t.terminalId,sessionId:t.sessionId,state:t.state,output:t.output};},connect:async data=>connectCloud({hub,graceMinutes:data.graceMinutes,leaseHours:data.leaseHours,silent:true}),disconnect:async data=>disconnectCloud({hub,reason:data.reason||'local_wall_disconnect',silent:true}),setGrace:async data=>setConnectionGrace({hub,minutes:data.minutes,silent:true}),setPermissions:async data=>setLocalPermissions(data?.allowedCapabilities,data?.profile),setFilesystemRoots:async data=>setLocalFilesystemRoots(data),getFilesystemVolumes:async()=>filesystemVolumeInventory(),ownerApprovePermissions:async data=>ownerApproveServerPermissions(data,hub),rescanCapabilities:async()=>rescanHostCapabilities(hub),accountAuthenticate:async data=>authenticateWallAccount(data?.username,data?.password,base),pairingCode:async data=>rotatePairingCode(hub,data),ownerProofCode:async()=>accountOwnerProofCode(hub),accessApprove:async requestId=>approveDeviceAccess(requestId,hub),accessDeny:async(requestId,data)=>denyDeviceAccess(requestId,hub,data?.reason||'owner_denied'),closeSession:async data=>closeWallSession(hub,data),requestUpdate:async data=>requestLocalUpdate('local-wall',data?.mode||'apply')});
+  const localWall=startLocalWall({modules:GOLD_WALL_MODULES,host:LOCAL_WALL_HOST,port:LOCAL_WALL_PORT,brandSvgPath:LOCAL_WALL_BRAND,auth:wallAuth,getMemoryAccountDevices:async()=>memoryAccountDevices(hub),getMemoryAccountInvites:async data=>memoryAccountInvites(hub,data),getLocalStatus:async()=>({...statusView(),fleetWall:await localFleetStatus()}),getLocalPolicyStatus:async()=>statusView(),getPendingAccess:async()=>remoteAccessLookup(hub),getRemoteStatus:async()=>remoteDeviceStatus(hub),getRemoteActivity:async limit=>remoteDeviceActivity(hub,limit),getLocalTerminals:async()=>NATIVE_TERMINALS.list().map(t=>({terminalId:t.terminalId,sessionId:t.sessionId,state:t.state,shell:t.shell,startedAt:t.startedAt,finishedAt:t.finishedAt,outputBytes:t.outputBytes})),readLocalTerminal:async(terminalId,{offset=0,limit=32768}={})=>{const t=NATIVE_TERMINALS.output(terminalId,null,{offset,limit});return {terminalId:t.terminalId,sessionId:t.sessionId,state:t.state,output:t.output};},connect:async data=>connectCloud({hub,graceMinutes:data.graceMinutes,leaseHours:data.leaseHours,silent:true}),disconnect:async data=>disconnectCloud({hub,reason:data.reason||'local_wall_disconnect',silent:true}),setGrace:async data=>setConnectionGrace({hub,minutes:data.minutes,silent:true}),setPermissions:async data=>setLocalPermissions(data?.allowedCapabilities,data?.profile),setFilesystemRoots:async data=>setLocalFilesystemRoots(data),getFilesystemVolumes:async()=>filesystemVolumeInventory(),ownerApprovePermissions:async data=>ownerApproveServerPermissions(data,hub),rescanCapabilities:async()=>rescanHostCapabilities(hub),accountAuthenticate:async data=>authenticateWallAccount(data?.username,data?.password,base),pairingCode:async data=>rotatePairingCode(hub,data),ownerProofCode:async()=>accountOwnerProofCode(hub),accessApprove:async requestId=>approveDeviceAccess(requestId,hub),accessDeny:async(requestId,data)=>denyDeviceAccess(requestId,hub,data?.reason||'owner_denied'),closeSession:async data=>closeWallSession(hub,data),requestUpdate:async data=>requestLocalUpdate('local-wall',data?.mode||'apply')});
   console.log(JSON.stringify({event:'host_wall_companion_started',mode:'wall-only',url:localWall.url,deviceId:state.enrollment.deviceId,nodeId:state.enrollment.nodeId||state.enrollment.deviceId}));
   let stopping=false,resolveStop;const stopped=new Promise(resolve=>resolveStop=resolve);const stop=()=>{if(stopping)return;stopping=true;resolveStop();};process.once('SIGTERM',stop);process.once('SIGINT',stop);
   const reconcile=async()=>{if(stopping)return;try{await fleetSupervisor.reconcile();}catch(error){console.error(JSON.stringify({event:'fleet_component_reconcile_failed',error:error.message,status:error.status||null}));}};
