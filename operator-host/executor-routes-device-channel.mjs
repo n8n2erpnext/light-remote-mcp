@@ -6,7 +6,28 @@ import { ownerDeviceResourceMetrics } from '../lib/gold-device-resource-metrics.
 
 
 export async function handleDeviceChannelRoutes(req,res,url,deps){
-  const {ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,DeviceAccessGrantError,DevicePairingRegistryError,EnrollmentError,FleetAuthorityError,FleetError,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,MIN_SUPPORTED_CLIENT_VERSION,NODE_ID,VERSION,abandonedCommandReceiptFromDisk,accessGrants,accounts,agentClients,allDeviceViews,applyDeviceTelemetry,capabilities,clientCompatibility,connectionSpec,connections,deviceView,devices,emitStream,enrollments,finishJob,fleet,fleetAuthority,fleetEligibility,fleetTarget,jobView,jobs,goldJobs,deviceResourceLocks,deviceResourceSampleCache,cancelQueuedPersonalJob,requestFleetProcessStop,reconcileSignedTerminalProcessReceipts,normalizeUpdateReport,pairingCodes,planEntitlements,pushEvent,queueHelperUpdate,readJson,reapAccessGrants,realRemoteLive,recentEvents,requireDeviceConnection,sendJson,sessions,targetRoute,terminalResultSummary,verifiedChannelContext,verifiedFleetContext,verifiedLeafCapabilities}=deps;
+  const {ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,DeviceAccessGrantError,DevicePairingRegistryError,EnrollmentError,FleetAuthorityError,FleetError,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,MIN_SUPPORTED_CLIENT_VERSION,NODE_ID,VERSION,abandonedCommandReceiptFromDisk,accessGrants,accounts,agentClients,allDeviceViews,applyDeviceTelemetry,capabilities,clientCompatibility,connectionSpec,connections,deviceView,devices,emitStream,enrollments,finishJob,fleet,fleetAuthority,fleetEligibility,fleetTarget,jobView,jobs,goldJobs,deviceResourceLocks,deviceResourceSampleCache,cancelQueuedPersonalJob,requestFleetProcessStop,reconcileSignedTerminalProcessReceipts,normalizeUpdateReport,pairingCodes,planEntitlements,pushEvent,queueHelperUpdate,readJson,reapAccessGrants,realRemoteLive,recentEvents,requireDeviceConnection,sendJson,sessions,targetRoute,terminalResultSummary,verifiedChannelContext,verifiedFleetContext,verifiedLeafCapabilities,memorySyncPolicy}=deps;
+  if(req.method==='POST'&&url.pathname==='/v1/device-channel/memory-sync-policy'){
+    const body=await readJson(req),ctx=await verifiedChannelContext(body,'memory-sync-policy');
+    if(!memorySyncPolicy)throw Error('memory_sync_account_pg_unavailable');
+    const accountId=ctx.binding.accountId,roster=devices.list(),action=ctx.payload?.action;
+    if(action==='get'){
+      const policy=await memorySyncPolicy.get(accountId,roster);
+      return sendJson(res,200,{ok:true,policy});
+    }
+    if(action==='set'){
+      // SET is reached from the owner-authenticated, CSRF-protected Wall and
+      // signed by its enrolled Agent. Same-account roster/CAS validated again.
+      const policy=await memorySyncPolicy.set(accountId,ctx.payload.policy,roster);
+      return sendJson(res,200,{ok:true,policy});
+    }
+    if(action==='manual'){
+      const manual=await memorySyncPolicy.requestManual(accountId,
+        ctx.payload.deviceId,roster);
+      return sendJson(res,200,{ok:true,manual});
+    }
+    throw new EnrollmentError('memory_sync_policy_action_invalid',400);
+  }
   // Account-scoped Memory device discovery: authenticate the enrolled device, not a
   // caller-supplied account ID. Never expose checkpoint bodies or unrelated accounts.
   if(req.method==='POST'&&url.pathname==='/v1/device-channel/memory-peers'){
@@ -17,14 +38,28 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
   }
   if(req.method==='POST'&&url.pathname==='/v1/device-channel/memory-invites'){
     const body=await readJson(req),ctx=await verifiedChannelContext(body,'memory-invites');
+    const roster=devices.list(),policy=await memorySyncPolicy.get(ctx.binding.accountId,roster);
+    if(!policy.enabled||!policy.devices.some(d=>d.deviceId===ctx.binding.deviceId&&d.selected))
+      throw new EnrollmentError('memory_sync_account_disabled_or_unselected',403);
+    if(ctx.payload?.action==='offer'&&!policy.devices.some(d=>
+      d.deviceId===ctx.payload?.package?.invite?.toDeviceId&&d.selected))
+      throw new EnrollmentError('memory_sync_replica_not_selected',403);
     const result=memoryInvites({accountId:ctx.binding.accountId,deviceId:ctx.binding.deviceId,
-      devices:devices.list(),payload:ctx.payload||{}});
+      devices:roster,payload:ctx.payload||{}});
     return sendJson(res,200,{ok:true,...(Array.isArray(result)?{invites:result}:{result})});
   }
   if(req.method==='POST'&&url.pathname==='/v1/device-channel/memory-relay'){
     const body=await readJson(req),ctx=await verifiedChannelContext(body,'memory-relay');
+    const roster=devices.list(),policy=await memorySyncPolicy.get(ctx.binding.accountId,roster);
+    if(!policy.enabled||!policy.devices.some(d=>d.deviceId===ctx.binding.deviceId&&d.selected))
+      throw new EnrollmentError('memory_sync_account_disabled_or_unselected',403);
+    const outgoing=ctx.payload?.action==='push_frame'?
+      ctx.payload?.frame?.meta?.toDeviceId:
+      ctx.payload?.action==='push_ack'?ctx.payload?.ack?.homeDeviceId:null;
+    if(outgoing&&!policy.devices.some(d=>d.deviceId===outgoing&&d.selected))
+      throw new EnrollmentError('memory_sync_recipient_not_selected',403);
     const result=memoryRelay({accountId:ctx.binding.accountId,deviceId:ctx.binding.deviceId,
-      devices:devices.list(),payload:ctx.payload||{}});
+      devices:roster,payload:ctx.payload||{}});
     return sendJson(res,200,{ok:true,result});
   }
   if(req.method==='POST'&&url.pathname==='/v1/device-channel/capabilities-refresh'){

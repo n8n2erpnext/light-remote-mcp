@@ -97,6 +97,34 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
     changeScopeSyncPolicy(input={}){const x=scopedIdentity();return changeGoldScopeSyncPolicy(enabled('longMemory'),{...input,accountId:x.accountId,deviceId:x.deviceId});},
     syncIdentity(){const x=scopedIdentity();enabled('longMemory');return goldSyncIdentity(scopeKeyFile,scopeEncryptKeyFile,x);},
     deviceSyncSelection(){const x=scopedIdentity();return goldDeviceSelection(enabled('longMemory'),x);},
+    scopeSyncGate({scopeId,replicaDeviceId,mode,manualRequestSeq=0}={}){
+      const x=scopedIdentity(),db=enabled('longMemory');
+      const scope=db.prepare('SELECT scope_id FROM lm_scopes WHERE account_id=? AND home_device_id=? AND scope_id=? AND status=\'active\'')
+        .get(x.accountId,x.deviceId,scopeId);
+      if(!scope)return {allowed:false,reason:'not_scope_home'};
+      if(mode==='auto')return {allowed:true,uptoRevision:null};
+      if(mode==='follow_project'){
+        const binding=db.prepare("SELECT 1 FROM lm_work_bindings WHERE account_id=? AND scope_id=? AND source_type IN ('workspace','repository','work_context') LIMIT 1")
+          .get(x.accountId,scopeId);
+        return {allowed:Boolean(binding),uptoRevision:null,reason:binding?null:'project_binding_required'};
+      }
+      if(mode!=='manual'||!Number.isSafeInteger(manualRequestSeq)||manualRequestSeq<1)
+        return {allowed:false,reason:'manual_sync_not_requested'};
+      db.exec(`CREATE TABLE IF NOT EXISTS lm_sync_manual_limits(
+        scope_id TEXT NOT NULL,device_id TEXT NOT NULL,request_seq INTEGER NOT NULL,
+        upto_revision INTEGER NOT NULL,PRIMARY KEY(scope_id,device_id)
+      )`);
+      const saved=db.prepare('SELECT request_seq,upto_revision FROM lm_sync_manual_limits WHERE scope_id=? AND device_id=?')
+        .get(scopeId,replicaDeviceId);
+      if(saved&&saved.request_seq===manualRequestSeq)
+        return {allowed:true,uptoRevision:saved.upto_revision};
+      const head=db.prepare('SELECT revision FROM lm_heads WHERE scope_id=?').get(scopeId);
+      db.prepare(`INSERT INTO lm_sync_manual_limits(scope_id,device_id,request_seq,upto_revision)
+        VALUES(?,?,?,?) ON CONFLICT(scope_id,device_id) DO UPDATE
+        SET request_seq=excluded.request_seq,upto_revision=excluded.upto_revision`)
+        .run(scopeId,replicaDeviceId,manualRequestSeq,head?.revision||0);
+      return {allowed:true,uptoRevision:head?.revision||0};
+    },
     deviceSyncOverview(){
       const x=scopedIdentity(),db=enabled('longMemory');
       const selection=goldDeviceSelection(db,x);
