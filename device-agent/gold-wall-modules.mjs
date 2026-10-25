@@ -8,7 +8,9 @@ import crypto from 'node:crypto';
 import {createRequire} from 'node:module';
 import {createGoldCodexConnection} from './gold-codex-api.mjs';
 import {requireGoldMemoryPrivateKey} from './gold-memory-key-permissions.mjs';
-import {createGoldCodexPlus} from './gold-codex-plus.mjs';
+import {createGoldCodexPlus,resolveGoldCodexBinary} from './gold-codex-plus.mjs';
+import {createManagedCodexRuntime} from './gold-codex-runtime-manager.mjs';
+import {localMemoryDeletePreview,clearLocalMemory as clearLocalMemoryData} from './gold-memory-delete.mjs';
 import {saveGoldCheckpoint,readGoldCheckpoint,listGoldCheckpoints,goldHandoff,saveGoldObserverReceipt,listGoldObserverReceipts,confirmGoldObserverTask} from './gold-memory-ledger.mjs';
 import {createGoldScope,listGoldScopes,changeGoldScopeCapture,changeGoldScopeSyncPolicy,bindGoldScope,resolveGoldScope,appendGoldScopedCheckpoint,readGoldScopedCheckpoint,goldScopedHandoff,goldScopedExport,goldLegacyUnassignedCount} from './gold-memory-scope.mjs';
 import {ingestGoldAutoEvent,ingestGoldAutoFsEffect,resolveGoldAutoWorkspace,flushGoldAuto,goldAutoPending} from './gold-memory-auto.mjs';
@@ -45,7 +47,9 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
   let database=null;
   let codexRequestInFlight=false;
   const codex=createGoldCodexConnection({storageFile:file+'.codex.enc',fetchImpl});
-  const plus=plusImpl||createGoldCodexPlus({home:path.join(path.dirname(file),'codex-home')});
+  const managedCodex=createManagedCodexRuntime({root:path.join(path.dirname(file),'codex-runtime')});
+  const plus=plusImpl||createGoldCodexPlus({home:path.join(path.dirname(file),'codex-home'),
+    command:resolveGoldCodexBinary({managedRoot:managedCodex.managedRoot})});
   const checkpointKeyFile=file+'.checkpoint-key';
   const scopeKeyFile=file+'.device-ed25519-key';
   const scopeEncryptKeyFile=file+'.device-x25519-key';
@@ -85,6 +89,11 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
       if(result.changes!==1)throw fault('gold_modules_revision_conflict',409);
       return flags();
     },
+    managedCodexStatus(){enabled('codexBridge');return managedCodex.status();},
+    installManagedCodexRuntime(){enabled('codexBridge');return managedCodex.install();},
+    removeManagedCodexRuntime(){enabled('codexBridge');plus.stop();return managedCodex.remove();},
+    localMemoryDeletePreview(){scopedIdentity();return localMemoryDeletePreview(enabled('longMemory'));},
+    clearLocalMemory(input={}){scopedIdentity();return clearLocalMemoryData(enabled('longMemory'),input);},
     saveCheckpoint(input={}){return saveGoldCheckpoint(enabled('longMemory'),checkpointKeyFile,input);},
     readCheckpoint(id){return readGoldCheckpoint(enabled('longMemory'),checkpointKeyFile,id);},
     listCheckpoints(input={}){return listGoldCheckpoints(enabled('longMemory'),checkpointKeyFile,input);},

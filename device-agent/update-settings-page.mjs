@@ -8,8 +8,23 @@ function escHtml(value){
 export function updateSettingsHtml({surface='local',csrfToken='',brandHtml='Light Remote'}={}){
   const fleet=surface==='fleet';
   const title=fleet?'Fleet Update':'Device Update';
+  const memorySettings=fleet?'':`<section class="card" id="memoryDeleteSettings">
+    <h2>Long Memory · Data deletion</h2>
+    <p class="muted">Choose the deletion scope. This is irreversible for data not backed up elsewhere. Export anything you need from Long Memory first.</p>
+    <label style="display:block;margin:10px 0"><input type="radio" name="memoryDeleteScope" value="local" checked> <b>Delete memory on this device</b></label>
+    <p class="muted">Clears local notes, scoped checkpoints and sync queues while preserving Light Remote enrollment and Codex tasks. Disable this device in Memory Sync first to prevent a Replica resync.</p>
+    <label style="display:block;margin:10px 0"><input type="radio" name="memoryDeleteScope" value="account" disabled> <b>Delete memory across all account devices</b> · Not yet available</label>
+    <p class="muted">Requires durable account tombstones and acknowledgment by offline devices. This build refuses an unverified account-wide deletion.</p>
+    <div class="actions">
+      <button id="memoryDeletePreview" class="btn" type="button">Inspect local memory</button>
+      <input id="memoryDeleteConfirmation" maxlength="32" autocomplete="off" spellcheck="false" placeholder="Type DELETE LOCAL MEMORY" style="min-width:250px;padding:9px;background:#0b1015;color:#e9eef4;border:1px solid #2b333d;border-radius:7px">
+      <button id="memoryDeleteLocal" class="btn" type="button" style="color:#ff9e9e;border-color:#914c4c">Delete local memory</button>
+    </div>
+    <pre id="memoryDeleteResult" role="status" style="white-space:pre-wrap;font-size:12px;overflow-wrap:anywhere"></pre>
+    <div class="muted">Local-only deletion does not erase copies previously exported, backed up or held by offline replicas. Account deletion is blocked until its delivery protocol is implemented.</div>
+  </section>`;
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">${brandFaviconSvg()}<title>Light Remote — ${title}</title><style>
-${WALL_FONT_FACE_CSS}:root{color-scheme:dark;font-family:${WALL_UI_FONT};background:#080a0c;color:#d8dee7}*{box-sizing:border-box}body{margin:0;background:#080a0c}.wrap{max-width:980px;margin:4vh auto;padding:18px}.brand{display:flex;align-items:center;gap:12px}.brand svg{width:44px;height:44px}.card{margin-top:14px;border:1px solid #252d36;border-radius:10px;background:#0a0e12;padding:16px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}.row{border:1px solid #202832;border-radius:8px;padding:12px;background:#0b1015}.muted{color:#718096}.ok{color:#78d78b}.hold{color:#e6c36b}.error{color:#ff8e8e}.btn{border:1px solid #2b333d;background:#0e1216;color:#cfd7e3;border-radius:7px;padding:9px 11px;font:inherit;cursor:pointer;text-decoration:none;display:inline-block}.primary{background:#18232e;border-color:#52697f}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.mono{font-family:${WALL_CODE_FONT};word-break:break-word}button:disabled{opacity:.45;cursor:not-allowed}</style></head><body><main class="wrap"><div class="brand"><span>${brandHtml}</span><div><b>Light Remote</b><div class="muted">${title}</div></div></div><section class="card"><a class="btn" href="/">${materialIcon('arrowBack')}<span>Wall</span></a><h1>Update</h1><p class="muted">Updater Helper is independent from Core. Core is committed only after health acknowledgement; failed Core updates roll back automatically.</p><div id="content" class="grid"><div class="row muted">Loading update state…</div></div><div class="actions"><button id="refresh" class="btn">Refresh</button>${fleet?'<button id="updateAll" class="btn primary">Update all current clients</button>':'<button id="check" class="btn">Check now</button><button id="update" class="btn primary">Update now</button>'}</div><div id="msg" class="muted" style="margin-top:12px"></div></section></main><script>
+${WALL_FONT_FACE_CSS}:root{color-scheme:dark;font-family:${WALL_UI_FONT};background:#080a0c;color:#d8dee7}*{box-sizing:border-box}body{margin:0;background:#080a0c}.wrap{max-width:980px;margin:4vh auto;padding:18px}.brand{display:flex;align-items:center;gap:12px}.brand svg{width:44px;height:44px}.card{margin-top:14px;border:1px solid #252d36;border-radius:10px;background:#0a0e12;padding:16px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}.row{border:1px solid #202832;border-radius:8px;padding:12px;background:#0b1015}.muted{color:#718096}.ok{color:#78d78b}.hold{color:#e6c36b}.error{color:#ff8e8e}.btn{border:1px solid #2b333d;background:#0e1216;color:#cfd7e3;border-radius:7px;padding:9px 11px;font:inherit;cursor:pointer;text-decoration:none;display:inline-block}.primary{background:#18232e;border-color:#52697f}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.mono{font-family:${WALL_CODE_FONT};word-break:break-word}button:disabled{opacity:.45;cursor:not-allowed}</style></head><body><main class="wrap"><div class="brand"><span>${brandHtml}</span><div><b>Light Remote</b><div class="muted">${title}</div></div></div><section class="card"><a class="btn" href="/">${materialIcon('arrowBack')}<span>Wall</span></a><h1>Update</h1><p class="muted">Updater Helper is independent from Core. Core is committed only after health acknowledgement; failed Core updates roll back automatically.</p><div id="content" class="grid"><div class="row muted">Loading update state…</div></div><div class="actions"><button id="refresh" class="btn">Refresh</button>${fleet?'<button id="updateAll" class="btn primary">Update all current clients</button>':'<button id="check" class="btn">Check now</button><button id="update" class="btn primary">Update now</button>'}</div><div id="msg" class="muted" style="margin-top:12px"></div></section>${memorySettings}</main><script>
 const csrf=${JSON.stringify(csrfToken)},fleet=${fleet?'true':'false'},content=document.getElementById('content'),msg=document.getElementById('msg');
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function stateClass(s){return ['success','idle','available'].includes(String(s||''))?'ok':['failed','rollback_failed'].includes(String(s||''))?'error':'hold';}
@@ -22,6 +37,43 @@ document.getElementById('refresh').onclick=load;
 if(fleet){document.getElementById('updateAll').onclick=async e=>{e.currentTarget.disabled=true;msg.className='muted';msg.textContent='Queueing updates for current online clients…';try{const j=await mutate('/api/updates/all');msg.className='ok';msg.textContent='Queued '+String(j.queued||0)+' client(s); skipped '+String(j.skipped||0)+'.';await loadFleet();}catch(err){msg.className='error';msg.textContent=err.message;}finally{e.currentTarget.disabled=false;}};}else{
 document.getElementById('check').onclick=async e=>{e.currentTarget.disabled=true;msg.className='muted';msg.textContent='Checking signed update channel…';try{await mutate('/api/update/check',{mode:'check'});msg.textContent='Check requested. Refresh shortly for result.';setTimeout(load,1200);}catch(err){msg.className='error';msg.textContent=err.message;}finally{e.currentTarget.disabled=false;}};
 document.getElementById('update').onclick=async e=>{e.currentTarget.disabled=true;msg.className='muted';msg.textContent='Update requested. Helper will verify, install, health-check and roll back if needed.';try{await mutate('/api/update/request',{mode:'apply'});setTimeout(load,1200);}catch(err){msg.className='error';msg.textContent=err.message;}finally{e.currentTarget.disabled=false;}};}
+if(!fleet){
+  const summary=document.getElementById('memoryDeleteResult');
+  const preview=document.getElementById('memoryDeletePreview');
+  const del=document.getElementById('memoryDeleteLocal');
+  preview.onclick=async()=>{
+    preview.disabled=true;summary.className='muted';summary.textContent='Checking local memory…';
+    try{
+      const r=await fetch('/api/gold/modules/memory/delete/preview',{cache:'no-store'}),j=await r.json();
+      if(!r.ok||!j.ok)throw Error(j.error||'memory_preview_unavailable');
+      const p=j.preview;
+      summary.textContent='Local memory records: '+p.totalRows+' · this device only.\\n'+
+        'Existing backups/exports and other devices are not included.';
+    }catch(e){summary.className='error';summary.textContent=String(e.message||e);}
+    finally{preview.disabled=false;}
+  };
+  del.onclick=async()=>{
+    const typed=document.getElementById('memoryDeleteConfirmation').value.trim();
+    if(typed!=='DELETE LOCAL MEMORY'){
+      summary.className='error';summary.textContent='Type DELETE LOCAL MEMORY exactly before continuing.';
+      return;
+    }
+    if(!confirm('Permanently delete this device’s local Long Memory? This cannot be undone. Other devices and backups are NOT deleted.')){
+      return;
+    }
+    del.disabled=true;summary.className='hold';summary.textContent='Deleting local memory…';
+    try{
+      const j=await mutate('/api/gold/modules/memory/delete/local',{confirmText:typed});
+      summary.className='ok';
+      summary.textContent='Local memory cleared · '+j.result.totalRows+
+        ' rows removed. This device will not accept memory sync until re-enabled by the owner.';
+      document.getElementById('memoryDeleteConfirmation').value='';
+    }catch(e){
+      summary.className='error';summary.textContent=String(e.message||e)+
+        '\\nIf sync is enabled for this device, first deselect it in Long Memory → Memory Sync.';
+    }finally{del.disabled=false;}
+  };
+}
 load();setInterval(()=>{if(!document.hidden)load();},10000);
 </script></body></html>`;
 }

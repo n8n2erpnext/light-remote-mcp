@@ -6,6 +6,7 @@ on:
       - 'feature/light-remote-gold-rebuild-20261018'
       - 'feature/gold-m6-integrated-20261023' # isolated Gold M6 + owner permissions integration CI
       - 'feature/gold-memory-reader-codex-win-20261025' # owner-scoped Memory Library and Windows Codex runtime
+      - 'feature/gold-navigation-codex-managed-memory-delete-20261025' # isolated Gold Wall navigation and optional runtime
       - 'fix/gold-pulse-stale-lock-20261025' # signed channel and crash-lock UAT regression
     paths:
       - 'operator-host/**'
@@ -94,6 +95,9 @@ jobs:
           node deploy/scripts/selftest-g3-agent-state-lock-recovery.mjs
           node deploy/scripts/selftest-gold-memory-reader-export.mjs
           node deploy/scripts/selftest-gold-codex-binary-discovery.mjs
+          node deploy/scripts/selftest-gold-wall-navigation.mjs
+          node deploy/scripts/selftest-gold-managed-codex-runtime.mjs
+          node deploy/scripts/selftest-gold-memory-delete-settings.mjs
           node deploy/scripts/selftest-gold-wall-close-session-cache.mjs "$PWD"
           node deploy/scripts/selftest-gold-wall-close-session-http.mjs
           node deploy/scripts/selftest-g3-duplex-halfopen-watchdog.mjs

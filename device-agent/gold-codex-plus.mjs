@@ -45,7 +45,7 @@ function privateFolder(dir){
 }
 // Codex is optional and device-local. Do not execute npm .cmd shims through
 // shell:true on Windows: use the real native executable only.
-export function resolveGoldCodexBinary({platform=process.platform,env=process.env,exists=fs.existsSync}={}){
+export function resolveGoldCodexBinary({platform=process.platform,env=process.env,exists=fs.existsSync,managedRoot=null}={}){
   const explicit=String(env.LIGHT_REMOTE_GOLD_CODEX_BINARY||env.CODEX_CLI_PATH||'').trim();
   const win=platform==='win32',p=win?path.win32:path.posix;
   if(explicit){
@@ -53,11 +53,22 @@ export function resolveGoldCodexBinary({platform=process.platform,env=process.en
       throw fault('codex_native_binary_path_invalid',400);
     return explicit;
   }
-  if(!win)return '/opt/light-remote-gold-codex-runtime/node_modules/.bin/codex';
+  if(!win){
+    const managed=managedRoot?path.posix.join(managedRoot,'node_modules','@openai','codex-linux-arm64','vendor','aarch64-unknown-linux-gnu','bin','codex'):null;
+    if(managed&&exists(managed))return managed;
+    return '/opt/light-remote-gold-codex-runtime/node_modules/.bin/codex';
+  }
   const local=env.LOCALAPPDATA||p.join(os.homedir(),'AppData','Local');
   const roaming=env.APPDATA||p.join(os.homedir(),'AppData','Roaming');
   const npmRoot=p.join(roaming,'npm','node_modules','@openai','codex','node_modules');
+  const managedCandidates=managedRoot?[
+    p.join(managedRoot,'node_modules','@openai','codex-win32-x64','vendor','x86_64-pc-windows-msvc','bin','codex.exe'),
+    p.join(managedRoot,'node_modules','@openai','codex-win32-arm64','vendor','aarch64-pc-windows-msvc','bin','codex.exe'),
+    p.join(managedRoot,'node_modules','@openai','codex','node_modules','@openai','codex-win32-x64','vendor','x86_64-pc-windows-msvc','bin','codex.exe'),
+    p.join(managedRoot,'node_modules','@openai','codex','node_modules','@openai','codex-win32-arm64','vendor','aarch64-pc-windows-msvc','bin','codex.exe')
+  ]:[];
   const candidates=[
+    ...managedCandidates,
     p.join(local,'Programs','OpenAI','Codex','bin','codex.exe'),
     p.join(npmRoot,'@openai','codex-win32-x64','vendor','x86_64-pc-windows-msvc','bin','codex.exe'),
     p.join(npmRoot,'@openai','codex-win32-arm64','vendor','aarch64-pc-windows-msvc','bin','codex.exe')

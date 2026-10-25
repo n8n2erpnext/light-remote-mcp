@@ -13,6 +13,7 @@ on:
       - 'feature/gold-m6-integrated-20261023' # isolated Gold UAT Windows build only
       - 'fix/gold-pulse-stale-lock-20261025' # crash-safe state and public signed pulse UAT
       - 'feature/gold-memory-reader-codex-win-20261025' # Memory Library + native Windows Codex discovery
+      - 'feature/gold-navigation-codex-managed-memory-delete-20261025' # optional Codex runtime and scoped memory Wall routes
       - 'fix/gold-owner-filesystem-roots-20261023' # isolated Gold filesystem UAT build
     tags:
       - 'v0.9.*'
@@ -50,6 +51,9 @@ on:
       - 'deploy/scripts/selftest-gold-wall-close-session-*.mjs'
       - 'deploy/scripts/selftest-gold-memory-reader-export.mjs'
       - 'deploy/scripts/selftest-gold-codex-binary-discovery.mjs'
+      - 'deploy/scripts/selftest-gold-wall-navigation.mjs'
+      - 'deploy/scripts/selftest-gold-managed-codex-runtime.mjs'
+      - 'deploy/scripts/selftest-gold-memory-delete-settings.mjs'
       - 'plugin-server/device-public.mjs'
       - 'deploy/scripts/selftest-g3-duplex-ready-timeout-diagnostic.mjs'
       - 'deploy/scripts/selftest-g3-duplex-executor-rejection.mjs'
@@ -111,6 +115,12 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Gold native Windows Codex binary discovery failed' }
           node deploy/scripts/selftest-gold-memory-reader-export.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Gold Memory Library read and export regression failed' }
+          node deploy/scripts/selftest-gold-wall-navigation.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold dedicated module route navigation regression failed' }
+          node deploy/scripts/selftest-gold-managed-codex-runtime.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold device-managed optional Codex runtime regression failed' }
+          node deploy/scripts/selftest-gold-memory-delete-settings.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold owner-approved Memory deletion regression failed' }
           node deploy/scripts/selftest-gold-codex-plus.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Gold Windows Codex NTFS private home regression failed' }
           node --no-warnings deploy/scripts/selftest-gold-memory-replica-evidence.mjs
