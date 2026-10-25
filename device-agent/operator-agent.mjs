@@ -798,6 +798,16 @@ async function executeCommandCore(state,command,{hub=DEFAULT_HUB}={}){
   const result={commandId:command.commandId,status:timedOut?'timeout':exitCode===0?'ok':'error',exitCode:timedOut?124:Math.max(0,Math.min(Number(exitCode)||0,255)),stdout:out.text(),stderr:err.text(),durationMs:Date.now()-startedAt,outputTruncated:out.truncated()||err.truncated(),telemetry:{firstOutputAt}};
   writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;
 }
+async function replicaAutoCaptureAllowed(state){
+  if(!GOLD_WALL_MODULES.flags().longMemory||!state?.enrollment?.deviceId)return false;
+  try{
+    const {policy}=await memoryAccountSyncPolicy(DEFAULT_HUB,{action:'get'});
+    const own=policy?.devices?.find(d=>d.deviceId===state.enrollment.deviceId);
+    // Account authority, not local UI hints. Manual is never auto-collected.
+    return policy?.enabled===true&&own?.selected===true&&
+      ['auto','follow_project'].includes(own.mode);
+  }catch{return false;} // fail closed on offline/unknown account policy
+}
 function checkedGitHead(cwd){
   try{
     const sha=execFileSync('git',['rev-parse','--verify','HEAD'],{
@@ -812,13 +822,21 @@ async function executeCommand(state,command,options={}){
   // Never infer filesystem changes from a successful shell/PTY command.
   const prior=readCommand(command.commandId);
   const payload=command.payload||{};
-  let verifiedWorkspace=null,oldHead=null;
+  let verifiedWorkspace=null,verifiedReplica=null,oldHead=null;
   if(!prior && payload.type==='exec' && typeof payload.cwd==='string'){
     try{
       verifiedWorkspace=GOLD_WALL_MODULES.resolveAutoWorkspace({filePath:payload.cwd});
       if(verifiedWorkspace.scopeId&&verifiedWorkspace.captureMode!=='manual')
         oldHead=checkedGitHead(payload.cwd);
     }catch{verifiedWorkspace=null;}
+    // A replica has an independently, explicitly bound local workspace.
+    // Never infer a Windows path from an ARM path or an AI-provided project name.
+    if(!verifiedWorkspace?.scopeId){
+      try{
+        verifiedReplica=GOLD_WALL_MODULES.resolveReplicaWorkspace({filePath:payload.cwd});
+        if(verifiedReplica?.scopeId)oldHead=checkedGitHead(payload.cwd);
+      }catch{verifiedReplica=null;}
+    }
   }
   const result=await executeCommandCore(state,command,options);
   if(!prior&&verifiedWorkspace?.scopeId&&oldHead&&result?.status==='ok'){
@@ -836,6 +854,26 @@ async function executeCommand(state,command,options={}){
         event:'gold_auto_repository_capture_failed',code:String(error.message).slice(0,90)}));}
     }
   }
+  if(!prior&&verifiedReplica?.scopeId&&oldHead&&result?.status==='ok'){
+    const newHead=checkedGitHead(payload.cwd);
+    if(newHead&&newHead!==oldHead&&await replicaAutoCaptureAllowed(state)){
+      try{
+        const cmdId=String(command.commandId||'');
+        const receipt=crypto.createHash('sha256').update(cmdId).digest('hex').slice(0,32);
+        const queued=GOLD_WALL_MODULES.queueReplicaEvidence({
+          scopeId:verifiedReplica.scopeId,eventType:'operator_receipt',
+          title:'Verified repository HEAD change',
+          body:'Trusted Agent observed an actual Git HEAD change in an owner-bound Replica workspace. Git HEAD: '+newHead+'. No command body or output was collected.',
+          source:'gold-agent:repository-head',
+          evidence:['git-head:'+newHead,'command-receipt-sha256:'+receipt],
+          eventRef:'exec:git:'+cmdId
+        });
+        if(!queued.duplicate)console.log(JSON.stringify({event:'gold_replica_repository_evidence_queued',
+          scopeId:queued.scopeId,eventId:queued.eventId}));
+      }catch(error){console.error(JSON.stringify({event:'gold_replica_repository_evidence_failed',
+        code:String(error.message).slice(0,90)}));}
+    }
+  }
   const fsOp=String(command.payload?.fs?.op||'');
   if(!prior&&command.payload?.type==='fs'&&
     ['write','edit','mkdir','delete'].includes(fsOp)&&result?.status==='ok'&&result.data?.ok===true){
@@ -845,6 +883,24 @@ async function executeCommand(state,command,options={}){
       });
       if(event.accepted&&!event.duplicate)console.log(JSON.stringify({
         event:'gold_auto_memory_event_queued',scopeId:event.scopeId,eventId:event.eventId}));
+      if(!event.accepted&&event.reason==='unassigned'&&await replicaAutoCaptureAllowed(state)){
+        const bound=GOLD_WALL_MODULES.resolveReplicaWorkspace({filePath:result.data.path});
+        if(bound.scopeId){
+          const cmdId=String(command.commandId||'');
+          const receipt=crypto.createHash('sha256').update(cmdId).digest('hex').slice(0,32);
+          const queued=GOLD_WALL_MODULES.queueReplicaEvidence({
+            scopeId:bound.scopeId,eventType:'fs_change',
+            title:'Verified filesystem '+fsOp,
+            body:'Trusted Agent completed a native filesystem '+fsOp+
+              ' in an explicitly bound local Replica workspace. No file path, body, or output was collected.',
+            source:'gold-agent:native-fs',
+            evidence:['operation:'+fsOp,'command-receipt-sha256:'+receipt],
+            eventRef:'fs:'+fsOp+':'+cmdId
+          });
+          if(!queued.duplicate)console.log(JSON.stringify({
+            event:'gold_replica_fs_evidence_queued',scopeId:queued.scopeId,eventId:queued.eventId}));
+        }
+      }
     }catch(error){
       // Memory remains opt-in and must never roll back a valid Gold operation.
       if(String(error.message)!=='gold_module_disabled')

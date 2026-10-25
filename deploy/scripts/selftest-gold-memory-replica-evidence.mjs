@@ -21,10 +21,27 @@ try{
   const invite=home.grantSyncReplica({scopeId:scope.scopeId,peer:w,
     expectedFingerprint:w.fingerprint,ownerConfirmed:true});
   replica.acceptSyncInvite({package:invite,expectedHomeFingerprint:h.fingerprint,ownerConfirmed:true});
+  const workspace=path.join(root,'windows','verified-local-workspace');
+  fs.mkdirSync(workspace,{recursive:true});
+  assert.equal(replica.resolveReplicaWorkspace({filePath:workspace}).unassigned,true);
+  replica.bindMemoryScope({scopeId:scope.scopeId,sourceType:'workspace',
+    sourceId:workspace,proofType:'owner_explicit'});
+  assert.equal(replica.resolveReplicaWorkspace({filePath:workspace}).scopeId,scope.scopeId);
+  assert.equal(replica.resolveAutoWorkspace({filePath:workspace}).unassigned,true,
+    'Replica must never accidentally become an authoritative G2 Home');
+  assert.equal(replica.resolveReplicaWorkspace({filePath:root}).unassigned,true);
   const event=replica.queueReplicaEvidence({scopeId:scope.scopeId,eventType:'test_receipt',
     title:'Windows verified UAT',body:'Synthetic Windows test result sent to ARM',
-    source:'windows-build:test-1',evidence:['signed-test-receipt']});
+    source:'windows-build:test-1',evidence:['signed-test-receipt'],eventRef:'trusted:command-a'});
   assert.equal(event.state,'pending');
+  const retried=replica.queueReplicaEvidence({scopeId:scope.scopeId,eventType:'test_receipt',
+    title:'Windows verified UAT',body:'Synthetic Windows test result sent to ARM',
+    source:'windows-build:test-1',evidence:['signed-test-receipt'],eventRef:'trusted:command-a'});
+  assert.equal(retried.eventId,event.eventId,'command replay must be idempotent');
+  assert.equal(retried.duplicate,true);
+  assert.throws(()=>replica.queueReplicaEvidence({scopeId:scope.scopeId,eventType:'test_receipt',
+    title:'Changed command replay',body:'Collision',source:'windows-build:test-1',
+    evidence:[],eventRef:'trusted:command-a'}),/gold_evidence_event_ref_conflict/);
   let pending=replica.pendingReplicaEvidence();
   assert.equal(pending.length,1);
   assert.equal(JSON.stringify(pending[0]).includes('Synthetic Windows test result'),false,

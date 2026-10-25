@@ -51,14 +51,28 @@ function canonicalFilePath(candidate){
     catch{return null;}
   }
 }
-export function resolveGoldAutoWorkspace(db,{accountId,deviceId,filePath}={}){
+export function resolveGoldAutoWorkspace(db,{accountId,deviceId,filePath,allowReplica=false}={}){
   prepareGoldMemoryV2(db);
   const target=canonicalFilePath(filePath);
   if(!target)return {scopeId:null,unassigned:true};
-  const rows=db.prepare(`SELECT b.scope_id AS scopeId,b.source_id AS sourceId,b.source_type AS sourceType,s.capture_mode AS captureMode
+  if(allowReplica&&!db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='lm_scope_members'").get())
+    return {scopeId:null,unassigned:true};
+  // A Replica can only attribute observed operations to a locally owner-bound
+  // workspace AND a signed, non-revoked Home grant. No guessed cross-OS paths.
+  // Default Home-only behavior for G2 auto journaling remains unchanged.
+  const rows=allowReplica?db.prepare(`SELECT b.scope_id AS scopeId,b.source_id AS sourceId,
+      b.source_type AS sourceType,s.capture_mode AS captureMode,s.home_device_id AS homeDeviceId
+    FROM lm_work_bindings b JOIN lm_scopes s ON s.scope_id=b.scope_id
+    JOIN lm_scope_members m ON m.scope_id=s.scope_id AND m.device_id=s.home_device_id
+      AND m.role='home' AND m.revoked_at IS NULL
+    WHERE b.account_id=? AND s.account_id=? AND s.home_device_id<>? AND s.status='active'
+      AND b.proof_type IN ('owner_explicit','verified_parent','owner_workspace_mapping')
+      AND b.source_type IN ('workspace','repository')`).all(accountId,accountId,deviceId)
+    :db.prepare(`SELECT b.scope_id AS scopeId,b.source_id AS sourceId,
+      b.source_type AS sourceType,s.capture_mode AS captureMode,s.home_device_id AS homeDeviceId
     FROM lm_work_bindings b JOIN lm_scopes s ON s.scope_id=b.scope_id
     WHERE b.account_id=? AND s.account_id=? AND s.home_device_id=? AND s.status='active'
-    AND b.source_type IN ('workspace','repository')`).all(accountId,accountId,deviceId);
+      AND b.source_type IN ('workspace','repository')`).all(accountId,accountId,deviceId);
   const matches=rows.map(row=>({...row,canonical:canonicalFilePath(row.sourceId)}))
     .filter(row=>row.canonical&&(target===row.canonical||target.startsWith(row.canonical+path.sep)))
     .sort((a,b)=>b.canonical.length-a.canonical.length);

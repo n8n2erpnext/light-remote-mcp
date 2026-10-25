@@ -115,7 +115,7 @@ function ack(meta,row,signer){
   return {...receipt,signature:sign(signer,receipt)};
 }
 export function queueGoldReplicaEvidence(db,signFile,encFile,
-  {accountId,deviceId,scopeId,eventType,title,body,source,evidence=[]}={}){
+  {accountId,deviceId,scopeId,eventType,title,body,source,evidence=[],eventRef=null}={}){
   prepare(db);
   const s=scope(db,accountId,scopeId);
   if(s.home_device_id===deviceId)throw fault('gold_evidence_replica_only',403);
@@ -127,7 +127,20 @@ export function queueGoldReplicaEvidence(db,signFile,encFile,
   if(!pin||pin.grant_id!==home.grant_id||pin.sign_public_key!==identity||
     pin.enc_public_key!==publicString(encryptor))throw fault('gold_evidence_recipient_pin_mismatch',403);
   const payload=validatePayload({eventType,title,body,source,evidence});
-  const eventId=crypto.randomUUID(),payloadHash=sha(JSON.stringify(payload));
+  // An attested Agent command ID is a stable local idempotency reference.
+  // Retries must never generate a second checkpoint for the same observed act.
+  const ref=eventRef===null?null:checked(eventRef,240,'gold_evidence_event_ref_invalid');
+  const hex=ref?sha('gold-evidence-event-id\\n'+accountId+'\\n'+deviceId+'\\n'+scopeId+
+    '\\n'+eventType+'\\n'+ref):null;
+  const eventId=hex?hex.slice(0,8)+'-'+hex.slice(8,12)+'-5'+hex.slice(13,16)+
+    '-a'+hex.slice(17,20)+'-'+hex.slice(20,32):crypto.randomUUID();
+  const payloadHash=sha(JSON.stringify(payload));
+  const previous=db.prepare('SELECT scope_id,payload_hash,state FROM lm_evidence_outbox WHERE event_id=?').get(eventId);
+  if(previous){
+    if(previous.scope_id!==scopeId||previous.payload_hash!==payloadHash)
+      throw fault('gold_evidence_event_ref_conflict',409);
+    return {eventId,scopeId,homeDeviceId:s.home_device_id,state:previous.state,duplicate:true};
+  }
   const meta={protocol:PROTOCOL,accountId,scopeId,homeDeviceId:s.home_device_id,
     deviceId,homeEpoch:s.home_epoch,grantId:home.grant_id,eventId,payloadHash};
   const frame=seal(home.enc_public_key,meta,payload,signer);
