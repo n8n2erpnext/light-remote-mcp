@@ -23,9 +23,11 @@ function peer(deviceId){
     sign:sign.privateKey};
 }
 const home=peer('r-home'),replica=peer('r-replica'),now=Date.now();
+home.identity.syncModeProtocol=1;
 const listing=memoryDirectory({accountId,deviceId:'r-home',devices,identity:home.identity,now});
 assert.deepEqual(listing.map(x=>x.deviceId),['r-home','r-replica']);
 assert.equal(listing[0].memoryIdentity.fingerprint,home.identity.fingerprint);
+assert.equal(listing[0].memoryIdentity.syncModeProtocol,1);
 assert.equal(listing[1].memoryIdentity,null);
 memoryDirectory({accountId,deviceId:'r-replica',devices,identity:replica.identity,now});
 assert.throws(()=>memoryDirectory({accountId,deviceId:'r-home',devices,

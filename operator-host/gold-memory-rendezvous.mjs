@@ -26,7 +26,8 @@ function checkedIdentity(value,accountId,deviceId){
   const fingerprint=crypto.createHash('sha256').update(value.signPublicKey+'\n'+value.encPublicKey).digest('hex').slice(0,32);
   if(value.fingerprint!==fingerprint)throw fault('memory_peer_fingerprint_invalid',403);
   return {accountId,deviceId,signPublicKey:value.signPublicKey,
-    encPublicKey:value.encPublicKey,fingerprint};
+    encPublicKey:value.encPublicKey,fingerprint,
+    syncModeProtocol:value.syncModeProtocol===1?1:0};
 }
 function sweep(now=Date.now()){
   for(const [id,v] of peers)if(v.expiresAt<=now)peers.delete(id);
@@ -52,7 +53,7 @@ export function memoryDirectory({accountId,deviceId,devices,identity=null,now=Da
       platform:d.platform,architecture:d.architecture,agentVersion:d.agentVersion,
       memoryIdentity:found?{deviceId:found.deviceId,accountId:found.accountId,
         signPublicKey:found.signPublicKey,encPublicKey:found.encPublicKey,
-        fingerprint:found.fingerprint}:null};
+        fingerprint:found.fingerprint,syncModeProtocol:found.syncModeProtocol}:null};
   });
 }
 export function memoryInvites({accountId,deviceId,devices,payload={},now=Date.now()}){
