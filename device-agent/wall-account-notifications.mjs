@@ -14,7 +14,7 @@ export const notificationBellStyles=`
 .wall-notification-toggle .mi{width:19px;height:19px}
 .wall-notification-badge{position:absolute;top:-7px;right:-7px;background:#f3c753;color:#171c24;min-width:19px;height:19px;border-radius:12px;font-size:10px;font-weight:750;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid #080a0c}
 .wall-notification-badge[hidden],.wall-notification-panel[hidden]{display:none!important}
-.wall-notification-panel{position:absolute;z-index:7000;right:0;top:calc(100% + 9px);width:min(360px,calc(100vw - 25px));max-height:390px;overflow-y:auto;background:#0d141d;border:1px solid #344253;border-radius:12px;box-shadow:0 16px 45px #000a}
+.wall-notification-panel{position:fixed;z-index:7000;right:auto;left:10px;top:60px;width:min(360px,calc(100vw - 20px));max-height:min(390px,calc(100dvh - 20px));overflow-y:auto;background:#0d141d;border:1px solid #344253;border-radius:12px;box-shadow:0 16px 45px #000a}
 .wall-notification-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px;border-bottom:1px solid #2c3947;font-size:13px}
 .wall-notification-heading a{color:#a5d4f1;text-decoration:none;font-size:12px}
 .wall-notification-row{display:block;padding:12px;border-bottom:1px solid #23303c;text-decoration:none;color:#d7e1eb}
@@ -23,7 +23,7 @@ export const notificationBellStyles=`
 .wall-notification-body{color:#9aa9b9;font-size:11px;line-height:1.5;margin-top:4px;overflow-wrap:anywhere}
 .wall-notification-new{font-size:10px;border-radius:4px;background:#314b60;color:#c3eaff;padding:2px 5px}
 .wall-notification-empty{color:#9baabc;padding:14px;font-size:12px}
-@media(max-width:690px){.wall-notification-panel{position:fixed;right:10px;top:75px;max-height:65vh}}
+@media(max-width:690px){.wall-notification-panel{max-height:min(390px,calc(100dvh - 20px))}}
 `;
 export const notificationBellMarkup=`
 <div class="wall-notification" id="wallNotificationHost">
@@ -101,12 +101,28 @@ export const notificationBellScript=`
    all.removeAttribute('href');
   }finally{loading=false;}
  }
+ // Fixed-position, viewport-clamped placement. A right-anchored absolute
+ // dropdown goes off-screen because the bell is the first toolbar control.
+ function placePanel(){
+  if(panel.hidden)return;
+  const rect=bell.getBoundingClientRect();
+  const width=panel.getBoundingClientRect().width;
+  const margin=10;
+  const maxLeft=Math.max(margin,window.innerWidth-width-margin);
+  const left=Math.max(margin,Math.min(rect.left,maxLeft));
+  const top=Math.max(margin,Math.min(rect.bottom+9,window.innerHeight-110));
+  panel.style.left=Math.round(left)+'px';
+  panel.style.top=Math.round(top)+'px';
+  panel.style.maxHeight=Math.max(95,Math.min(390,window.innerHeight-top-margin))+'px';
+ }
  function close(){panel.hidden=true;bell.setAttribute('aria-expanded','false');}
  bell.addEventListener('click',()=>{
   const opening=panel.hidden;
   panel.hidden=!opening;bell.setAttribute('aria-expanded',String(opening));
-  if(opening)void refreshNotifications();
+  if(opening){placePanel();void refreshNotifications();}
  });
+ window.addEventListener('resize',placePanel);
+ window.addEventListener('scroll',placePanel,true);
  document.addEventListener('click',event=>{if(!host.contains(event.target))close();});
  document.addEventListener('keydown',event=>{if(event.key==='Escape')close();});
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)void refreshNotifications();});

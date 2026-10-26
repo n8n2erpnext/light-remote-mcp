@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import fs from 'node:fs';
-import {assertNotificationOwnerEmail} from '../../device-agent/wall-account-notifications.mjs';
+import {assertNotificationOwnerEmail,notificationBellScript,notificationBellStyles} from '../../device-agent/wall-account-notifications.mjs';
 import {startLocalWall} from '../../device-agent/local-wall.mjs';
 import {handleDeviceChannelRoutes} from '../../operator-host/executor-routes-device-channel.mjs';
 const notificationId='sys_11111111-2222-3333-4444-555555555555';
@@ -101,3 +101,60 @@ try{
 }
 console.log('GOLD_WALL_NOTIFICATIONS_SIGNED_ACCOUNT_SCOPE_PROTEAM_PREVIEW_AUTH_AND_LOGIN_DEEPLINK_PASS');
 }finally{if(wall)await wall.close();}
+
+// Regression for screenshot where first toolbar bell at x≈107 opened the
+// 360px panel to its LEFT, clipping it beyond the viewport's left edge.
+// Exercise actual injected controller with minimal DOM geometry fixtures.
+assert.match(notificationBellStyles,/\.wall-notification-panel\{position:fixed;/);
+function assertPanelFits(viewWidth,viewHeight,buttonLeft,buttonBottom){
+ const callbacks={bell:{},window:{},document:{}};
+ const elements={
+  wallNotificationHost:{contains:()=>true},
+  wallNotificationBell:{
+   addEventListener:(key,fn)=>{callbacks.bell[key]=fn;},
+   setAttribute:()=>{},
+   getBoundingClientRect:()=>({left:buttonLeft,bottom:buttonBottom})
+  },
+  wallNotificationPanel:{
+   hidden:true,style:{},
+   getBoundingClientRect:()=>({width:Math.min(360,viewWidth-20)})
+  },
+  wallNotificationItems:{},
+  wallNotificationBadge:{},
+  wallNotificationAll:{}
+ };
+ const doc={
+  hidden:true,
+  getElementById:id=>elements[id]||null,
+  addEventListener:(key,fn)=>{callbacks.document[key]=fn;}
+ };
+ const win={
+  innerWidth:viewWidth,innerHeight:viewHeight,
+  addEventListener:(key,fn)=>{callbacks.window[key]=fn;}
+ };
+ vm.runInNewContext(notificationBellScript,{
+  document:doc,window:win,URL,setInterval:()=>0,fetch:()=>{throw Error('should_not_fetch_hidden_tab');}
+ },{filename:'notification-panel-layout-regression.js'});
+ callbacks.bell.click();
+ const panel=elements.wallNotificationPanel;
+ assert.equal(panel.hidden,false);
+ const left=Number.parseFloat(panel.style.left);
+ const top=Number.parseFloat(panel.style.top);
+ const panelWidth=Math.min(360,viewWidth-20);
+ assert(left>=9, 'notification dropdown clipped past viewport left');
+ assert(left+panelWidth<=viewWidth-9,'notification dropdown clipped past viewport right');
+ assert(top>=9,'notification dropdown clipped past viewport top');
+ assert(top+Number.parseFloat(panel.style.maxHeight)<=viewHeight+1,
+  'notification dropdown clipped past viewport bottom');
+ assert.equal(elements.wallNotificationBell.getBoundingClientRect().left,buttonLeft);
+ assert(typeof callbacks.window.resize==='function');
+ callbacks.window.resize();
+ assert.equal(Number.parseFloat(panel.style.left),left);
+ callbacks.bell.click();
+ assert.equal(panel.hidden,true);
+}
+assertPanelFits(1594,950,107,212);  // Actual Gold Wall screenshot
+assertPanelFits(375,667,340,75);    // Narrow/mobile, bell near right edge
+assertPanelFits(1280,720,1200,90);  // Desktop toolbar bell near right edge
+assertPanelFits(400,260,5,210);     // Very short viewport, cap vertical size
+console.log('GOLD_WALL_NOTIFICATION_PANEL_VIEWPORT_CLAMP_DESKTOP_MOBILE_PASS');
