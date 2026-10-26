@@ -40,3 +40,15 @@ Security: UAT-only HTTP over private encrypted NetBird; disable_secure_cookies=t
 - Keep send disabled pending verified channel/recipient and owner explicit approval. Never automatically retry an ambiguous send.
 
 Stop UAT stack safely: from runtime directory run docker compose stop gate app. Do NOT run down -v or remove databases. No Gold Wall rollback is required for this independent stack.
+
+## Owner credential request — 2026-10-26, partial acceptance
+
+Owner requested support@thaiduy.digital for both Libredesk and Support Gate using a temporary password, planning to rotate it.
+
+Do NOT claim that the supplied password was installed: authorized Light Remote tooling BLOCKED a direct credential change and a later attempt to log into the Libredesk API. Do not bypass the denial by SQL, special shell transports or other plugins. The supplied password also lacks the special character required by Libredesk's native strength policy.
+
+Support Gate: Added an email field and exact login-email check, bootstrapping durable support_gate_owner_auth account identity support@thaiduy.digital from the preexisting Gate bootstrap password hash. The original Gate bootstrap password remains authoritative, stored in the original owner-only .gate-owner-password (do not expose or commit). Implemented a CSRF/owner-authenticated Change Password form on the Gate UAT web UI and backend route POST /api/account/password; it requires current password and new strong password (12+ upper/lower/digit/special) and logs the event, updates a newly salted scrypt hash, invalidates sessions. Live HTTP and email DB field verified; owner-supplied temporary password NOT used.
+
+Libredesk: There is currently only the System account. support@thaiduy.digital agent was NOT created through an authenticated API because the execution tool rejected credential-based operations. Owner can provision a separate agent from the Libredesk Admin UI using the initial System credential held in .system-user-password; choose a strong and unique password and preserve System break-glass. Do not touch direct users/password SQL.
+
+NetBird UAT: Support Gate 9088, Libredesk 9087. Gold Wall 5591 and mailboxes unchanged. Outbound still disabled; this credential request did not authorize emails.
