@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
+import fs from 'node:fs';
 import {startLocalWall} from '../../device-agent/local-wall.mjs';
 import {handleDeviceChannelRoutes} from '../../operator-host/executor-routes-device-channel.mjs';
 const notificationId='sys_11111111-2222-3333-4444-555555555555';
@@ -83,5 +84,16 @@ try{
  const unavailable=await fetch('http://127.0.0.1:'+wall.server.address().port+'/api/account-notifications',
   {headers:{'x-test-owner':'yes'}});
  assert.equal(unavailable.status,503);
- console.log('GOLD_WALL_NOTIFICATIONS_SIGNED_ACCOUNT_SCOPE_PROTEAM_PREVIEW_AUTH_AND_DEEPLINK_PASS');
+ // If the account session is missing, preserve the selected notification
+// across the existing /account/login?next=... flow.
+{
+ const html=fs.readFileSync(new URL('../../plugin-server/account-portal/inbox.html',import.meta.url),'utf8');
+ assert.match(html,/const back='\/account\/inbox'\+\(targetNotificationId/);
+ assert.match(html,/location\.href='\/account\/login\?next='\+encodeURIComponent\(back\)/);
+ assert.match(html,/target\.scrollIntoView/);
+ const requested='/account/inbox?notificationId='+encodeURIComponent(notificationId);
+ const login='/account/login?next='+encodeURIComponent(requested);
+ assert.equal(new URL(login,'https://gold.light-remote.thaiduy.digital').searchParams.get('next'),requested);
+}
+console.log('GOLD_WALL_NOTIFICATIONS_SIGNED_ACCOUNT_SCOPE_PROTEAM_PREVIEW_AUTH_AND_LOGIN_DEEPLINK_PASS');
 }finally{if(wall)await wall.close();}

@@ -26,7 +26,7 @@ async function api(action,method='GET',payload=null){
  const opts={method,cache:'no-store',credentials:'same-origin',headers:{accept:'application/json'}};
  if(payload!==null){opts.headers['content-type']='application/json';opts.body=JSON.stringify(payload)}
  const res=await fetch('/account/api?action='+encodeURIComponent(action),opts);
- if(res.status===401){location.href='/account/login?next=%2Faccount%2Finbox';throw Error('login_required')}
+ if(res.status===401){const back='/account/inbox'+(targetNotificationId?'?notificationId='+encodeURIComponent(targetNotificationId):'');location.href='/account/login?next='+encodeURIComponent(back);throw Error('login_required')}
  const data=await res.json().catch(()=>({}));
  if(!res.ok)throw Error(data.error||'request_failed');
  return data;
