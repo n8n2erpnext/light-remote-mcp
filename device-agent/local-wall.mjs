@@ -447,7 +447,7 @@ function goldMemoryNativeInit(){
   const detailBar=goldMemoryNativeElement('div','sessionbox');
   detailBar.style.cssText='padding:11px;margin-bottom:10px';
   const back=goldMemoryNativeElement('button','btn small','All work');
-  back.id='goldMemoryBackToWork';back.type='button';
+  back.id='goldMemoryBackToWork';back.type='button';back.style.marginRight='10px';
   back.onclick=()=>goldMemoryNativeCloseWork();
   const detailTitle=goldMemoryNativeElement('strong');
   detailTitle.id='goldMemoryWorkTitle';
@@ -508,6 +508,10 @@ function goldMemoryNativeInit(){
   select.style.display='none'; // selection is owned by the My Work list, not an extra technical dropdown
   detail.append(reader);
   const context=document.getElementById('goldContextCapture');
+  context.querySelector('strong').textContent='Save or read session context';
+  context.querySelector('p').textContent='Paste a handoff or choose a file. Gold cannot silently read ChatGPT browser conversations. Accepted context is signed on its Home device.';
+  document.getElementById('goldContextRead').textContent='Read saved context';
+  document.getElementById('goldContextSave').textContent='Save context';
   const contextDetails=goldMemoryNativeElement('details');
   contextDetails.id='goldMemoryContextDetails';
   contextDetails.style.cssText='margin:10px 0';
@@ -620,7 +624,7 @@ function goldMemoryNativeRender(scopes){
       Number(scope.revision)>0?'Saved history available':'No checkpoints yet');
     state.style.fontSize='11px';
     content.append(name,state);
-    card.append(content,goldMemoryNativeElement('span','muted','Open ›'));
+    card.append(content,goldMemoryNativeElement('span','muted','Open'));
     card.onclick=()=>goldMemoryNativeOpenWork(scope.scopeId);
     host.append(card);
   }
@@ -658,12 +662,10 @@ async function goldReaderRequest(full=false){
 }
 function goldReaderText(data){
   const nl=String.fromCharCode(10);
-  const lines=['Scope: '+data.displayName,'Scope ID: '+data.scopeId,
-    'Home epoch: '+data.homeEpoch,'Revision: '+data.revision,
-    'Head hash: '+data.headHash,'Verified checkpoints: '+(data.checkpoints||[]).length,''];
+  const lines=['Saved history for '+data.displayName,
+    'Entries: '+(data.checkpoints||[]).length,''];
   for(const item of data.checkpoints||[]){
-    lines.push('Revision '+item.revision+' · '+(item.title||item.kind||'Checkpoint')+
-      ' · '+(item.integrity||'unverified'));
+    lines.push(item.title||item.kind||'Saved entry');
     lines.push('Source: '+(item.source||'not specified'));
     lines.push(String(item.body||''),'');
   }
@@ -674,7 +676,7 @@ async function goldReaderRead(){
   const preview=document.getElementById('goldReaderPreview');
   preview.hidden=false;preview.textContent=goldReaderText(d);
   document.getElementById('goldReaderStatus').textContent=
-    'Verified scoped handoff · latest '+(d.checkpoints||[]).length+' checkpoints · revision '+d.revision;
+    'Loaded '+(d.checkpoints||[]).length+' entries from verified saved history.';
 }
 async function goldReaderExport(kind){
   const d=await goldReaderRequest(true);
