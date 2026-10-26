@@ -12,6 +12,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
   if(req.method==='POST'&&url.pathname==='/v1/device-channel/account-notifications'){
     const payload=await readJson(req),ctx=await verifiedChannelContext(payload,'account-notifications');
     if(!accountNotifications||!proTeams)throw new EnrollmentError('account_notification_service_unavailable',503);
+    accounts.assertOperational(ctx.binding.accountId);
     const account=accounts.account(ctx.binding.accountId);
     if(!account||account.state==='revoked'||account.status==='disabled')
       throw new EnrollmentError('account_notification_identity_unavailable',403);

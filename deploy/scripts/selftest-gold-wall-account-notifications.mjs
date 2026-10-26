@@ -11,7 +11,7 @@ function backendDeps(ctx=signedCtx){
   get lookup(){return lookup},
   readJson:async()=>({}),
   verifiedChannelContext:async(_body,action)=>{assert.equal(action,'account-notifications');return ctx;},
-  accounts:{account:id=>{lookup++;assert.equal(id,ctx.binding.accountId);return {accountId:id,state:'active',plan:'pro',groupId:'group_owners'};}},
+  accounts:{assertOperational:id=>{assert.equal(id,ctx.binding.accountId);},account:id=>{lookup++;assert.equal(id,ctx.binding.accountId);return {accountId:id,state:'active',plan:'pro',groupId:'group_owners'};}},
   accountNotifications:{inbox:async(id,account)=>{
    assert.equal(id,ctx.binding.accountId);assert.equal(account.plan,'pro');
    return {unreadCount:1,notifications:[{notificationId,type:'security',title:'Security update',
@@ -46,6 +46,13 @@ function backendDeps(ctx=signedCtx){
  const d=backendDeps();d.accounts.account=()=>({state:'revoked'});
  await assert.rejects(()=>handleDeviceChannelRoutes({method:'POST'}, {},
   new URL('http://localhost/v1/device-channel/account-notifications'),d));
+}
+{
+ const d=backendDeps();
+ d.accounts.assertOperational=()=>{throw new Error('account_admin_disabled');};
+ await assert.rejects(()=>handleDeviceChannelRoutes({method:'POST'}, {},
+  new URL('http://localhost/v1/device-channel/account-notifications'),d),/account_admin_disabled/);
+ assert.equal(d.lookup,0,'disabled account must not reach notification registry');
 }
 const auth={enabled:true,identity:req=>req.headers['x-test-owner']==='yes'?{username:'owner@example.invalid'}:null,
  csrfForRequest:()=> 'test-csrf',verifyRequestCsrf:()=>true};
