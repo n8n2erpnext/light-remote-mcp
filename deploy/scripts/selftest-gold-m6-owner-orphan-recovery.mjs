@@ -96,4 +96,42 @@ for(const options of [
  assert.equal(res.status,200);assert.equal(deps.calls,1);
  assert.equal(result.terminalReceiptCreated,false);
 }
-console.log('GOLD_M6_OWNER_ORPHAN_RECOVERY_PASS account_auth,device_scope,fresh_channel_deny,boot_after_claim,atomic_audit,rollback,no_fake_terminal_ack,unknown_result');
+// An owner-removed Gold Device is absent from the active registry, but the
+// durable orphan claim is still bound to the original account/device/job.
+{
+ const deps=makeDeps(),res={};let inspected=0;
+ deps.devices={get:()=>{throw new AccountError('device_not_found',404)}};
+ deps.inspectOwnerOrphanDevice=async q=>{
+   inspected++;assert.deepEqual(q,{accountId,deviceId,jobId});
+   return {accountId,deviceId,nodeId:deviceId,state:'revoked',policyProfile:'__gold_removed_v1__'};
+ };
+ deps.connections={get:()=>{throw new AccountError('device_connection_not_found',404)}};
+ const out=await handleAccountRoutes(request(base),res,new URL('http://op'+route),deps);
+ assert.equal(out.released,true);assert.equal(inspected,1);assert.equal(deps.calls,1);
+ for(const bad of [
+   {state:'online',policyProfile:'__gold_removed_v1__',accountId},
+   {state:'revoked',policyProfile:'other',accountId},
+   {state:'revoked',policyProfile:'__gold_removed_v1__',accountId:'acct_wrong'}
+ ]){
+   const blocked=makeDeps(),response={};
+   blocked.devices=deps.devices;
+   blocked.inspectOwnerOrphanDevice=async()=>({...bad,deviceId,nodeId:deviceId});
+   blocked.connections=deps.connections;
+   await assert.rejects(()=>handleAccountRoutes(request(base),response,new URL('http://op'+route),blocked));
+   assert.equal(blocked.calls,0);
+ }
+ const offline=makeDeps({online:true}),response={};
+ offline.devices=deps.devices;offline.inspectOwnerOrphanDevice=deps.inspectOwnerOrphanDevice;
+ offline.connections=deps.connections;
+ await assert.rejects(()=>handleAccountRoutes(request(base),response,new URL('http://op'+route),offline));
+ assert.equal(offline.calls,0);
+}
+{
+ let args;
+ const pool={query:async(sql,params)=>{args={sql,params};return {rows:[{accountId,deviceId,state:'revoked',policyProfile:'__gold_removed_v1__',nodeId:deviceId}]}}};
+ const observed=await locks.inspectOwnerOrphanDevice(pool,{accountId,deviceId,jobId});
+ assert.equal(observed.accountId,accountId);assert.deepEqual(args.params,[accountId,deviceId,jobId]);
+ assert.match(args.sql,/JOIN lr_gold_job_records/);
+ assert.match(args.sql,/c.account_id=\$1 AND c.device_id=\$2 AND c.job_id=\$3/);
+}
+console.log('GOLD_M6_OWNER_ORPHAN_RECOVERY_PASS account_auth,device_scope,revoked_historical_lookup,fresh_channel_deny,boot_after_claim,atomic_audit,rollback,no_fake_terminal_ack,unknown_result');
