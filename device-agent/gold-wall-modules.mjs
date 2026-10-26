@@ -10,6 +10,7 @@ import {createGoldCodexConnection} from './gold-codex-api.mjs';
 import {requireGoldMemoryPrivateKey} from './gold-memory-key-permissions.mjs';
 import {createGoldCodexPlus,resolveGoldCodexBinary} from './gold-codex-plus.mjs';
 import {createGoldCodexSupervisor} from './gold-codex-supervisor.mjs';
+import {createGoldCodexCoordinator} from './gold-codex-coordinator.mjs';
 import {createManagedCodexRuntime} from './gold-codex-runtime-manager.mjs';
 import {localMemoryDeletePreview,clearLocalMemory as clearLocalMemoryData} from './gold-memory-delete.mjs';
 import {signAccountScopeDelete,applyAccountScopeDelete} from './gold-memory-account-delete.mjs';
@@ -60,6 +61,7 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
   let database=null;
   let codexRequestInFlight=false;
   let codexSupervisor=null;
+  let codexCoordinator=null;
 
   const codex=createGoldCodexConnection({storageFile:file+'.codex.enc',fetchImpl});
   const managedCodex=createManagedCodexRuntime({root:path.join(path.dirname(file),'codex-runtime')});
@@ -106,6 +108,12 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
       }
     });
     return codexSupervisor;
+  }
+  function coordinator(){
+    const db=enabled('codexBridge');
+    if(!codexCoordinator)codexCoordinator=createGoldCodexCoordinator({db,plus,
+      enabled:()=>flags().codexBridge});
+    return codexCoordinator;
   }
   function enabled(feature){
     if(!flags()[feature])throw fault('gold_module_disabled',409);
@@ -400,6 +408,11 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
       }
       return {id,state:input.state,autoEventQueued};
     },
+    coordinatorCreate(input={}){return coordinator().create(input);},
+    coordinatorList(){return coordinator().list();},
+    coordinatorGet(id){return coordinator().get(id);},
+    coordinatorReceipts(id){return coordinator().receipts(id);},
+    async coordinatorReport(input={}){return coordinator().report(input);},
     supervisorWorkspace(){return supervisor().workspaceRoot();},
     supervisorList(){return supervisor().list();},
     supervisorReceipts(taskId){return supervisor().receipts(taskId);},

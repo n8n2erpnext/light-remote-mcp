@@ -1541,6 +1541,110 @@ async function goldObserverRefresh(){
     row.append(label,select,delegate,edit,remove,editor);host.appendChild(row);
   }
 }
+let goldCoordinatorPlanId=null;
+function goldCoordinatorNode(tag,text='',cls=''){
+  const el=document.createElement(tag);
+  if(text)el.textContent=text;
+  if(cls)el.className=cls;
+  return el;
+}
+function goldCoordinatorInit(){
+  const host=document.getElementById('goldSupervisorPanel');
+  if(!host)return;
+  const panel=goldCoordinatorNode('details','','sessionbox');
+  panel.id='goldCoordinatorPanel';
+  panel.style.cssText='padding:12px;margin:12px 0';
+  panel.append(goldCoordinatorNode('summary','Codex Review Loop · reports decide the next step'));
+  const explanation=goldCoordinatorNode('p',
+    'You or an authorized coding agent completes one short task and submits a report. Codex reviews the evidence read-only. Only CONTINUE unlocks the next step. WAIT_OWNER blocks progress. This does not inject ChatGPT Web messages.','muted');
+  explanation.style.fontSize='12px';panel.append(explanation);
+  const controls=goldCoordinatorNode('div','','controls');
+  const create=goldCoordinatorNode('button','Create 3-step review test','btn small');
+  create.type='button';create.id='goldCoordinatorCreate';
+  create.onclick=async()=>{
+    if(!confirm('Create one 3-step UAT plan? Codex must approve each short report before the next step unlocks.'))return;
+    create.disabled=true;
+    try{
+      const payload={ownerApproved:true,title:'Short-task Codex coordination test',steps:[
+        {title:'T1 · Produce a short result',acceptance:'A clear completed result with a concrete verifiable output and evidence.'},
+        {title:'T2 · Verify the previous result',acceptance:'Provide an independent explicit verification of the first output, including PASS evidence.'},
+        {title:'T3 · Record the final handoff',acceptance:'Summarize both prior results and report a clear final verification, without claiming untested work.'}
+      ]};
+      const data=await wallMutation('/api/gold/modules/coordinator/create',payload);
+      goldCoordinatorPlanId=data.plan.id;
+      await goldCoordinatorRefresh();
+    }catch(e){document.getElementById('goldCoordinatorStatus').textContent='Create failed: '+String(e.message||e);}
+    finally{create.disabled=false;}
+  };
+  const refresh=goldCoordinatorNode('button','Refresh','btn small');refresh.type='button';
+  refresh.onclick=()=>void goldCoordinatorRefresh();
+  const select=goldCoordinatorNode('select');select.id='goldCoordinatorSelect';
+  select.setAttribute('aria-label','Review plan');
+  select.onchange=()=>{goldCoordinatorPlanId=select.value;void goldCoordinatorRefresh();};
+  controls.append(create,refresh,select);panel.append(controls);
+  const status=goldCoordinatorNode('div','Select or create a review plan.','muted');
+  status.id='goldCoordinatorStatus';status.style.cssText='font-size:12px;margin:8px 0';
+  const current=goldCoordinatorNode('div');current.id='goldCoordinatorCurrent';
+  const report=goldCoordinatorNode('textarea');report.id='goldCoordinatorReport';
+  report.rows=3;report.placeholder='What I actually completed on this step';
+  report.setAttribute('aria-label','Agent step report');report.style.cssText='width:100%;margin:5px 0';
+  const evidence=goldCoordinatorNode('textarea');evidence.id='goldCoordinatorEvidence';
+  evidence.rows=2;evidence.placeholder='Concrete evidence: output, exact command result, test receipt';
+  evidence.setAttribute('aria-label','Agent evidence');evidence.style.cssText='width:100%;margin:5px 0';
+  const submit=goldCoordinatorNode('button','Send report to Codex reviewer','btn small');
+  submit.id='goldCoordinatorSubmit';submit.type='button';
+  submit.onclick=async()=>{
+    if(!goldCoordinatorPlanId)return;
+    if(!confirm('Send the current task report to read-only Codex for independent review?'))return;
+    submit.disabled=true;status.textContent='Codex is reviewing this task. The next task stays locked until a valid decision.';
+    try{
+      const p=await (await fetch('/api/gold/modules/coordinator/plan?planId='+encodeURIComponent(goldCoordinatorPlanId),{cache:'no-store'})).json();
+      if(!p.ok||p.plan.status!=='active')throw Error('No active step to report');
+      const result=await wallMutation('/api/gold/modules/coordinator/report',{
+        planId:goldCoordinatorPlanId,stepIndex:p.plan.currentIndex,expectedRevision:p.plan.revision,
+        summary:report.value,evidence:evidence.value});
+      report.value='';evidence.value='';
+      status.textContent='Codex: '+result.review.decision+' · '+result.review.reason;
+      await goldCoordinatorRefresh();
+    }catch(e){status.textContent='Review did not advance: '+String(e.message||e);}
+    finally{submit.disabled=false;}
+  };
+  panel.append(status,current,report,evidence,submit);
+  host.after(panel);
+  void goldCoordinatorRefresh();
+}
+async function goldCoordinatorRefresh(){
+  const select=document.getElementById('goldCoordinatorSelect');
+  if(!select)return;
+  const status=document.getElementById('goldCoordinatorStatus');
+  const current=document.getElementById('goldCoordinatorCurrent');
+  const submit=document.getElementById('goldCoordinatorSubmit');
+  try{
+    const list=await (await fetch('/api/gold/modules/coordinator',{cache:'no-store'})).json();
+    if(!list.ok)throw Error(list.error||'Coordinator unavailable');
+    select.textContent='';
+    const empty=goldCoordinatorNode('option','Choose review plan');empty.value='';select.append(empty);
+    for(const p of list.plans||[]){
+      const option=goldCoordinatorNode('option',p.title+' · '+p.status);option.value=p.id;select.append(option);
+    }
+    if(!goldCoordinatorPlanId&&(list.plans||[]).length)goldCoordinatorPlanId=list.plans[0].id;
+    select.value=goldCoordinatorPlanId||'';
+    current.textContent='';
+    if(!goldCoordinatorPlanId){submit.disabled=true;return;}
+    const view=await (await fetch('/api/gold/modules/coordinator/plan?planId='+encodeURIComponent(goldCoordinatorPlanId),{cache:'no-store'})).json();
+    if(!view.ok)throw Error(view.error||'Plan unavailable');
+    const p=view.plan;
+    for(const step of p.steps){
+      const line=goldCoordinatorNode('div',(step.stepIndex+1)+'. '+step.title+' · '+step.state,'muted');
+      line.style.cssText='font-size:12px;margin:5px 0';current.append(line);
+    }
+    const desc=goldCoordinatorNode('p',p.currentStep?'Current acceptance: '+p.currentStep.acceptance:'All steps have been reviewed.','muted');
+    desc.style.cssText='font-size:12px;margin-top:8px';current.append(desc);
+    submit.disabled=p.status!=='active';
+    status.textContent='Plan '+p.status+' · '+p.steps.filter(x=>x.state==='accepted').length+'/'+p.steps.length+
+      ' accepted · '+p.nextAction;
+  }catch(e){submit.disabled=true;status.textContent='Coordinator: '+String(e.message||e);}
+}
 async function goldSupervisorRefresh(){
   const host=document.getElementById('goldSupervisorTasks');
   if(!host)return;
@@ -1588,6 +1692,7 @@ async function goldSupervisorRefresh(){
   }catch(e){status.textContent='Supervisor unavailable: '+String(e.message||e);}
 }
 document.getElementById('goldSupervisorRefresh').onclick=()=>void goldSupervisorRefresh();
+goldCoordinatorInit();
 document.getElementById('goldModulesSave').onclick=async()=>{
   const status=document.getElementById('goldModulesStatus');
   try{
@@ -2274,6 +2379,16 @@ export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvg
       if(req.method==='POST'&&url.pathname==='/api/gold/modules/task/state')return json(res,200,{ok:true,task:modules.updateTask(await body(req))});
       if(req.method==='POST'&&url.pathname==='/api/gold/modules/task/edit')return json(res,200,{ok:true,task:modules.editTask(await body(req))});
       if(req.method==='POST'&&url.pathname==='/api/gold/modules/task/delete')return json(res,200,{ok:true,task:modules.deleteTask(await body(req))});
+      if(req.method==='GET'&&url.pathname==='/api/gold/modules/coordinator')
+        return json(res,200,{ok:true,plans:modules.coordinatorList()});
+      if(req.method==='GET'&&url.pathname==='/api/gold/modules/coordinator/plan')
+        return json(res,200,{ok:true,plan:modules.coordinatorGet(url.searchParams.get('planId')||'')});
+      if(req.method==='GET'&&url.pathname==='/api/gold/modules/coordinator/receipts')
+        return json(res,200,{ok:true,receipts:modules.coordinatorReceipts(url.searchParams.get('planId')||'')});
+      if(req.method==='POST'&&url.pathname==='/api/gold/modules/coordinator/create')
+        return json(res,200,{ok:true,plan:modules.coordinatorCreate(await body(req))});
+      if(req.method==='POST'&&url.pathname==='/api/gold/modules/coordinator/report')
+        return json(res,200,{ok:true,review:await modules.coordinatorReport(await body(req))});
       if(req.method==='GET'&&url.pathname==='/api/gold/modules/supervisor')
         return json(res,200,{ok:true,workspaceRoot:modules.supervisorWorkspace(),delegations:modules.supervisorList()});
       if(req.method==='GET'&&url.pathname==='/api/gold/modules/supervisor/receipts')

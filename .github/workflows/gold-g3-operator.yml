@@ -104,6 +104,7 @@ jobs:
           node deploy/scripts/selftest-gold-memory-account-delete.mjs
           node deploy/scripts/selftest-gold-codex-task-management.mjs
           node deploy/scripts/selftest-gold-codex-supervisor.mjs
+          node deploy/scripts/selftest-gold-codex-coordinator.mjs
           node deploy/scripts/selftest-gold-wall-close-session-cache.mjs "$PWD"
           node deploy/scripts/selftest-gold-wall-close-session-http.mjs
           node deploy/scripts/selftest-g3-duplex-halfopen-watchdog.mjs
