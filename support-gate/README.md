@@ -37,3 +37,11 @@ Real Light Remote/LightBI inboxes and IMAP/SMTP, Libredesk API key and brand map
 In runtime dir: docker compose stop gate app. Never use docker compose down -v: volumes contain databases and uploads. Checkpoint tag: checkpoint/gold-pre-libredesk-support-gate-20261026.
 
 Official APIs: https://support.libredesk.io/en/articles/get-conversation and https://support.libredesk.io/en/articles/send-message.
+
+## Unified Libredesk identity (26 October 2026)
+
+The separate Gate password login was removed. Owner web access now exclusively delegates to an authenticated Libredesk session via the official GET /api/v1/agents/me API. The browser must sign into Libredesk at NetBird :9087 as the single support@thaiduy.digital agent first; opening Support Gate at :9088 then uses that same Libredesk cookie (same NetBird host, different port). For every Gate request, an active upstream Libredesk session and an exact owner email match are required; mutations additionally require an HMAC-based CSRF token bound to the Libredesk session cookie. The owner has one credential authority: Libredesk. Password rotation also occurs exclusively in Libredesk. Worker draft-only ingest is separate from owner auth and cannot approve/send.
+
+**Account provisioning blocker:** The Libredesk installation still only has its initial System account. support@thaiduy.digital has NOT yet been created. A previous Light Remote credential operation was denied by device-local policy; no attempted bypass by SQL, installers, alternate shells or transport is acceptable. The owner must provision the account via authorized Libredesk administrative UI. Until then this integration deliberately returns 401, and legitimate login has NOT passed E2E.
+
+Live unauthenticated/fake-cookie tests pass, Gate UI and Libredesk are HTTP 200, outbound remains disabled; no customer email sent. The original independent Gate authentication database row is no longer consulted and is retained only for rollback.

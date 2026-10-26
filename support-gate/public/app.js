@@ -42,28 +42,13 @@ async function init(){
  try{
   const session=await api('/api/session');csrf=session.csrf;canSend=session.outbound_ready;
   $('login').hidden=true;$('workspace').hidden=false;
-  $('email').value=session.email;
+
   $('outbound').textContent=canSend?'Outbound API configured: owner approval is mandatory.':
    'UAT safe mode: Libredesk API send credentials not yet connected. Drafts and approvals are available.';
   await refresh();
  }catch{$('login').hidden=false;$('workspace').hidden=true}
 }
-$('loginForm').addEventListener('submit',async ev=>{
- ev.preventDefault();try{
- const r=await api('/api/login','POST',{email:$('email').value,password:$('password').value});csrf=r.csrf;$('password').value='';
- feedback('Signed in');await init();
- }catch(e){feedback(e.message)}
-});
-$('changePasswordForm').addEventListener('submit',async ev=>{
- ev.preventDefault();
- try{
-  await api('/api/account/password','POST',
-   {current_password:$('currentPassword').value,new_password:$('newPassword').value});
-  $('currentPassword').value='';$('newPassword').value='';csrf='';
-  $('login').hidden=false;$('workspace').hidden=true;
-  feedback('Password changed. Please sign in again.');
- }catch(e){feedback('Password change: '+e.message)}
-});
+$('retryLogin').addEventListener('click',()=>init());
 $('refresh').addEventListener('click',()=>refresh().catch(e=>feedback(e.message)));
 $('newDraft').addEventListener('click',()=>{fill(null);render()});
 $('save').addEventListener('click',async()=>{

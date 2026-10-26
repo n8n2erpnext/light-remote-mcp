@@ -11,19 +11,31 @@ const {GATE_PG_URL,GATE_ADMIN_SALT,GATE_ADMIN_HASH,LIBREDESK_BASE_URL,
 if(!GATE_PG_URL||!GATE_ADMIN_SALT||!GATE_ADMIN_HASH)throw Error('support_gate_config_missing');
 const pool=new pg.Pool({connectionString:GATE_PG_URL,max:6,connectionTimeoutMillis:6000});
 const root=join(dirname(fileURLToPath(import.meta.url)),'../public');
-const sessions=new Map(),attempts=new Map(),cookie='sg_session';
+const authorityUrl='http://app:9000/api/v1/agents/me';
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 const email=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const outgoingReady=()=>Boolean(LIBREDESK_BASE_URL&&LIBREDESK_API_KEY&&LIBREDESK_API_SECRET&&Number(LIBREDESK_REMOTE_INBOX_ID)>0&&Number(LIBREDESK_LIGHTBI_INBOX_ID)>0);
 const ownerEmail=(GATE_OWNER_EMAIL||'support@thaiduy.digital').toLowerCase();
-function verifyPassword(p,record){
- const supplied=crypto.scryptSync(String(p||''),Buffer.from(record.salt,'hex'),64);
- const expected=Buffer.from(record.password_hash,'hex');
- return expected.length===64&&crypto.timingSafeEqual(supplied,expected);
-}
-async function ownerAuth(){
- const r=await pool.query('SELECT email,salt,password_hash FROM support_gate_owner_auth WHERE id=1');
- return r.rows[0];
+// The one owner identity is managed by Libredesk, never in Support Gate.
+async function libredeskOwner(req){
+ const cookieHeader=String(req.headers.cookie||'');
+ if(!cookieHeader||cookieHeader.length>8192)return null;
+ const ctrl=new AbortController();
+ const timer=setTimeout(()=>ctrl.abort(),4500);
+ try{
+  const result=await fetch(authorityUrl,{
+   method:'GET',headers:{cookie:cookieHeader,accept:'application/json'},
+   redirect:'error',signal:ctrl.signal
+  });
+  if(!result.ok)return null;
+  const payload=await result.json();
+  const agent=payload?.data;
+  if(!agent||String(agent.email||'').toLowerCase()!==ownerEmail||
+    agent.enabled===false||agent.type==='contact')return null;
+  const csrf=crypto.createHmac('sha256',GATE_ADMIN_HASH)
+    .update('gold-gate-v1\0'+cookieHeader).digest('hex');
+  return {email:ownerEmail,csrf};
+ }catch{return null}finally{clearTimeout(timer)}
 }
 function json(res,status,result){
  res.writeHead(status,{'content-type':'application/json; charset=utf-8','cache-control':'no-store',
@@ -34,13 +46,9 @@ async function readJson(req){
  let value='';for await(const chunk of req){value+=chunk;if(value.length>65536)throw Error('too_large')}
  try{return JSON.parse(value||'{}')}catch{throw Error('invalid_json')}
 }
-function sessionFor(req){
- const key=(req.headers.cookie||'').split(';').map(x=>x.trim()).find(x=>x.startsWith(cookie+'='));
- const session=key?sessions.get(key.slice(cookie.length+1)):null;
- return session&&session.until>Date.now()?session:null;
-}
-function guard(req,res,mutation=false){
- const session=sessionFor(req);if(!session){fail(res,401,'login_required');return null}
+async function guard(req,res,mutation=false){
+ const session=await libredeskOwner(req);
+ if(!session){fail(res,401,'libredesk_login_required');return null}
  if(mutation&&req.headers['x-csrf']!==session.csrf){fail(res,403,'csrf_failed');return null}
  return session;
 }
@@ -61,8 +69,6 @@ async function log(id,action,details={}){
  [id,action,JSON.stringify(details)]);
 }
 async function setup(){
- await pool.query("CREATE TABLE IF NOT EXISTS support_gate_owner_auth (id integer PRIMARY KEY CHECK(id=1),email text NOT NULL,salt text NOT NULL,password_hash text NOT NULL,changed_at timestamptz NOT NULL DEFAULT now())");
- await pool.query('INSERT INTO support_gate_owner_auth(id,email,salt,password_hash) VALUES(1,$1,$2,$3) ON CONFLICT (id) DO NOTHING',[ownerEmail,GATE_ADMIN_SALT,GATE_ADMIN_HASH]);
  await pool.query("CREATE TABLE IF NOT EXISTS support_gate_drafts ("+
  "id uuid PRIMARY KEY,brand text NOT NULL CHECK(brand IN ('light-remote','lightbi')),"+
  "conversation_uuid uuid NOT NULL,recipient text NOT NULL,subject text NOT NULL,message text NOT NULL,"+
@@ -158,44 +164,13 @@ async function handler(req,res){
   await log(id,'light_remote_agent_draft_created',{brand:d.brand});
   return json(res,201,{ok:true,id,status:'draft'});
  }
- if(path==='/api/login'&&method==='POST'){
-  const key=req.socket.remoteAddress||'?',now=Date.now();
-  let rate=attempts.get(key)||{n:0,from:now};
-  if(now-rate.from>60000)rate={n:0,from:now};
-  rate.n++;attempts.set(key,rate);
-  if(rate.n>8)return fail(res,429,'too_many_attempts');
-  const d=await readJson(req);
-  const auth=await ownerAuth();
-  if(!auth||String(d.email||'').trim().toLowerCase()!==auth.email.toLowerCase()||!verifyPassword(d.password,auth))return fail(res,401,'invalid_login');
-  const sid=crypto.randomBytes(32).toString('hex'),csrf=crypto.randomBytes(24).toString('hex');
-  sessions.set(sid,{csrf,until:now+28800000});
-  res.setHeader('set-cookie',cookie+'='+sid+'; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800');
-  return json(res,200,{ok:true,csrf});
- }
+ // Owner access is delegated to the EXISTING Libredesk session on this same
+ // NetBird host. No second admin password or account exists in Support Gate.
  if(path==='/api/session'){
-  const s=guard(req,res);if(!s)return;
-  return json(res,200,{ok:true,csrf:s.csrf,outbound_ready:outgoingReady(),email:(await ownerAuth()).email});
+  const s=await guard(req,res);if(!s)return;
+  return json(res,200,{ok:true,csrf:s.csrf,outbound_ready:outgoingReady(),email:s.email});
  }
- const s=guard(req,res,method!=='GET');if(!s)return;
- if(path==='/api/account/password'&&method==='POST'){
-  const data=await readJson(req);
-  const old=String(data.current_password||''),next=String(data.new_password||'');
-  if(next.length<12||next.length>72||!/[A-Z]/.test(next)||!/[a-z]/.test(next)||
-    !/[0-9]/.test(next)||!(/[^A-Za-z0-9]/.test(next)))
-    return fail(res,400,'password_requires_12_chars_upper_lower_number_special');
-  const auth=await ownerAuth();
-  if(!auth||!verifyPassword(old,auth))return fail(res,403,'current_password_incorrect');
-  const salt=crypto.randomBytes(16).toString('hex');
-  const hash=crypto.scryptSync(next,Buffer.from(salt,'hex'),64).toString('hex');
-  const changed=await pool.query(
-   'UPDATE support_gate_owner_auth SET salt=$1,password_hash=$2,changed_at=now() WHERE id=1 AND password_hash=$3',
-   [salt,hash,auth.password_hash]);
-  if(changed.rowCount!==1)return fail(res,409,'account_changed_reauthenticate');
-  sessions.clear();
-  res.setHeader('set-cookie',cookie+'=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0');
-  await log(null,'owner_password_changed',{owner_email:auth.email});
-  return json(res,200,{ok:true,reauthenticate:true});
- }
+ const s=await guard(req,res,method!=='GET');if(!s)return;
  if(path==='/api/drafts'&&method==='GET'){
   const rows=await pool.query('SELECT * FROM support_gate_drafts ORDER BY updated_at DESC LIMIT 100');
   return json(res,200,{ok:true,drafts:rows.rows});

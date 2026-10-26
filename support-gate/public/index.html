@@ -1,16 +1,11 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Light Remote | AI Support Gate</title><link rel="stylesheet" href="/styles.css"></head><body>
 <header><div class="brand"><span class="mark">LR</span><div><strong>AI Support Gate</strong><small>Light Remote · LightBI · Owner review</small></div></div><span id="mode" class="status">UAT · Human approval required</span></header>
 <main>
-<section id="login" class="panel login"><h2>Owner access</h2><p>Drafts, customer information and outgoing replies are restricted to the owner.</p><form id="loginForm"><label for="email">Email</label><input type="email" id="email" autocomplete="username" value="support@thaiduy.digital" required><label for="password">Password</label><input type="password" id="password" autocomplete="current-password" required><button type="submit">Sign in</button></form></section>
+<section id="login" class="panel login"><h2>Sign in once with Libredesk</h2><p>There is no separate AI Support Gate admin account or password. Sign in to Libredesk as support@thaiduy.digital, then return here. Your Libredesk session authorizes both dashboards.</p><p><a href="http://100.94.184.141:9087/" class="outline" style="display:inline-block;padding:10px 16px;text-decoration:none;border-radius:8px">Open Libredesk sign in</a></p><button type="button" id="retryLogin">I've signed in — Try again</button></section>
 <section id="workspace" hidden>
 <div class="top"><div><h1>Support review</h1><p>AI proposes. Owner approves. Libredesk sends in the original conversation.</p></div><button type="button" class="outline" id="refresh">Refresh</button></div>
 <div class="notice" id="outbound">Checking outbound integration…</div>
-<details class="panel"><summary>Account security — Change password</summary>
-<form id="changePasswordForm">
-<label for="currentPassword">Current password</label><input id="currentPassword" type="password" autocomplete="current-password" required>
-<label for="newPassword">New password</label><input id="newPassword" type="password" autocomplete="new-password" minlength="12" required>
-<p class="help">At least 12 characters with uppercase, lowercase, number and special character. All sessions will be signed out after changing.</p>
-<button type="submit">Change password</button></form></details>
+<p class="help">Account and password are managed only in Libredesk. <a href="http://100.94.184.141:9087/">Open Libredesk settings</a></p>
 <div class="columns"><aside class="panel"><h3>Draft queue</h3><div id="drafts"></div><button type="button" class="outline" id="newDraft">+ New draft</button></aside>
 <section class="panel"><h3 id="editorTitle">New support draft</h3>
 <div class="two"><label>Brand<select id="brand"><option value="light-remote">Light Remote</option><option value="lightbi">LightBI</option></select></label><label>Recipient<input id="recipient" type="email" autocomplete="off" placeholder="customer@example.com"></label></div>
