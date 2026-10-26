@@ -28,6 +28,12 @@ try{
     assert.ok(html.includes('href="/permissions"'),route);
     assert.ok(!html.includes('fonts.googleapis.com'),route);
     assert.ok(!html.includes('fonts.gstatic.com'),route);
+    if(tag==='memory'){
+      // Wall-native progressive layout: no second Wall, no new UI library.
+      for(const token of ['goldMemoryNativeInit()',"'My Work'","'Device Sync'","'goldMemoryWorkCards'","'goldMemoryContextDetails'"]){
+        assert.ok(html.includes(token),'Wall-native Long Memory layout missing '+token);
+      }
+    }
     if(tag==='home'){
       assert.ok(!html.includes('id="backToWall"'), 'home does not need return link');
       assert.ok(html.includes('body.wall-view-home #goldModulesPanel{display:none}'));

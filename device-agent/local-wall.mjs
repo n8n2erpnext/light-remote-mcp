@@ -362,6 +362,274 @@ async function goldModulesRefresh(){
   }
   if(f.codexBridge&&location.pathname==='/codex-cli'){await goldObserverRefresh();void goldManagedRuntimeRefresh().catch(e=>{document.getElementById('goldManagedCodexStatus').textContent=String(e.message||e);});}
 }
+// Wall-native Long Memory organization. Reuse the existing Wall typography, tabs,
+// controls, borders and Material icons. Original APIs, IDs and handlers remain intact.
+let goldMemoryNative=null;
+function goldMemoryNativeElement(tag,className='',label=''){
+  const el=document.createElement(tag);if(className)el.className=className;
+  if(label)el.textContent=label;return el;
+}
+function goldMemoryNativeInit(){
+  if(location.pathname!=='/long-memory')return;
+  const area=document.getElementById('goldMemoryArea');
+  if(!area)return;
+  const header=goldMemoryNativeElement('div','sessionbox');
+  header.style.cssText='margin:0 0 8px;padding:13px';
+  const title=goldMemoryNativeElement('strong','','Long Memory');
+  title.style.fontSize='17px';
+  const intro=goldMemoryNativeElement('p','muted',
+    'Your saved work, ready to read and continue across authorized sessions and devices.');
+  intro.style.cssText='font-size:12px;margin:6px 0 0';
+  header.append(title,intro);
+  const tabs=goldMemoryNativeElement('div','tabs');
+  tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','Long Memory sections');
+  tabs.style.margin='9px 0 13px';
+  const sections={};
+  const pages={};
+  for(const [key,label] of [['work','My Work'],['devices','Device Sync'],['settings','Settings']]){
+    const button=goldMemoryNativeElement('button','tab',label);
+    button.type='button';button.setAttribute('role','tab');
+    button.setAttribute('aria-controls','goldMemoryNativePage-'+key);
+    button.onclick=()=>goldMemoryNativeShow(key);
+    tabs.append(button);sections[key]=button;
+    const pane=goldMemoryNativeElement('section');
+    pane.id='goldMemoryNativePage-'+key;
+    pane.setAttribute('role','tabpanel');pane.hidden=true;
+    pages[key]=pane;area.append(pane);
+  }
+  area.prepend(header,tabs);
+  const workList=goldMemoryNativeElement('section','sessionbox');
+  workList.id='goldMemoryWorkList';
+  workList.style.cssText='padding:13px;margin-bottom:12px';
+  const listTop=goldMemoryNativeElement('div','controls');
+  listTop.style.cssText='justify-content:space-between;align-items:center;margin-bottom:10px';
+  const listHeading=goldMemoryNativeElement('strong','','My Work');
+  const add=goldMemoryNativeElement('button','btn small','Add work');
+  add.type='button';add.id='goldMemoryAddWork';
+  listTop.append(listHeading,add);
+  const workHint=goldMemoryNativeElement('p','muted',
+    'Select a saved work to read its history or add context. No project setup is required.');
+  workHint.style.cssText='font-size:12px;margin:0 0 10px';
+  const cards=goldMemoryNativeElement('div');
+  cards.id='goldMemoryWorkCards';
+  cards.style.cssText='display:grid;gap:8px';
+  workList.append(listTop,workHint,cards);
+  const create=goldMemoryNativeElement('section','sessionbox');
+  create.id='goldMemoryCreateWork';create.hidden=true;
+  create.style.cssText='padding:13px;margin-bottom:12px';
+  create.append(goldMemoryNativeElement('strong','','Add work'));
+  const createHelp=goldMemoryNativeElement('p','muted',
+    'Give this work a recognizable name. Memory starts on this device; you can enable authorized sync separately.');
+  createHelp.style.cssText='font-size:12px;margin:7px 0';
+  const createRow=goldMemoryNativeElement('div','controls');
+  const workName=goldMemoryNativeElement('input');
+  workName.id='goldMemoryWorkName';workName.maxLength=240;
+  workName.placeholder='e.g. Light Remote Gold';
+  workName.setAttribute('aria-label','Work name');
+  workName.style.minWidth='200px';
+  const workMode=goldMemoryNativeElement('select');
+  workMode.id='goldMemoryWorkCapture';
+  for(const [value,label] of [['manual','Save manually'],['auto','Capture supported activity'],['follow_project','Follow bound project activity']]){
+    const opt=goldMemoryNativeElement('option','',label);opt.value=value;workMode.append(opt);
+  }
+  workMode.setAttribute('aria-label','How to record memory for this work');
+  const submit=goldMemoryNativeElement('button','btn small','Create work');
+  submit.id='goldMemoryCreateSubmit';submit.type='button';
+  const cancel=goldMemoryNativeElement('button','btn small','Cancel');
+  cancel.type='button';cancel.onclick=()=>{create.hidden=true;workList.hidden=false;};
+  createRow.append(workName,workMode,submit,cancel);
+  const createStatus=goldMemoryNativeElement('p','muted');
+  createStatus.id='goldMemoryCreateStatus';
+  createStatus.style.fontSize='12px';
+  create.append(createHelp,createRow,createStatus);
+  const detail=goldMemoryNativeElement('section');
+  detail.id='goldMemoryWorkDetail';detail.hidden=true;
+  const detailBar=goldMemoryNativeElement('div','sessionbox');
+  detailBar.style.cssText='padding:11px;margin-bottom:10px';
+  const back=goldMemoryNativeElement('button','btn small','All work');
+  back.id='goldMemoryBackToWork';back.type='button';
+  back.onclick=()=>goldMemoryNativeCloseWork();
+  const detailTitle=goldMemoryNativeElement('strong');
+  detailTitle.id='goldMemoryWorkTitle';
+  detailBar.append(back,detailTitle);
+  const capture=goldMemoryNativeElement('div','controls');
+  capture.style.cssText='margin:9px 0 0;align-items:center';
+  const capLabel=goldMemoryNativeElement('span','muted','Save activity:');
+  const capChoice=goldMemoryNativeElement('select');
+  capChoice.id='goldMemoryWorkCaptureChoice';
+  for(const [value,label] of [['manual','Manual'],['auto','Auto · supported activity'],['follow_project','Follow Project']]){
+    const opt=goldMemoryNativeElement('option','',label);opt.value=value;capChoice.append(opt);
+  }
+  const capSave=goldMemoryNativeElement('button','btn small','Apply');
+  capSave.type='button';
+  const capStatus=goldMemoryNativeElement('span','muted');
+  capStatus.id='goldMemoryWorkCaptureStatus';capStatus.style.fontSize='12px';
+  capSave.onclick=async()=>{
+    const scopeId=document.getElementById('goldReaderScope').value;
+    if(!scopeId)return;
+    capSave.disabled=true;
+    try{
+      await wallMutation('/api/gold/modules/scope/capture',{scopeId,captureMode:capChoice.value});
+      await goldScopeRefresh(scopeId);await goldReaderRefresh(scopeId);
+      capStatus.textContent='Capture preference saved. This does not capture hidden ChatGPT conversations.';
+    }catch(error){capStatus.textContent='Unable to save: '+String(error.message||error);}
+    finally{capSave.disabled=false;}
+  };
+  capture.append(capLabel,capChoice,capSave,capStatus);
+  detailBar.append(capture);
+  detail.append(detailBar);
+  pages.work.append(workList,create,detail);
+  pages.devices.append(document.getElementById('goldSimpleSyncPanel'));
+  const syncHelp=pages.devices.querySelector('#goldSimpleSyncPanel > p');
+  if(syncHelp)syncHelp.textContent='Choose which enrolled devices exchange authorized memory. Each device can have its own transfer mode; this does not change when memory is recorded.';
+  const deviceNote=goldMemoryNativeElement('p','muted',
+    'Auto transfers saved changes. Follow Project transfers only verified project-bound scopes. Manual requires Sync now. Turning Sync off pauses transfers without deleting saved memory.');
+  deviceNote.style.cssText='font-size:12px;margin:10px 0';
+  pages.devices.append(deviceNote);
+  const settingsIntro=goldMemoryNativeElement('div','sessionbox');
+  settingsIntro.style.cssText='padding:12px;margin-bottom:12px';
+  settingsIntro.append(goldMemoryNativeElement('strong','','Memory settings'));
+  const settingsHelp=goldMemoryNativeElement('p','muted',
+    'Long Memory is optional. Advanced tools, legacy notes and technical details are available below.');
+  settingsHelp.style.cssText='font-size:12px;margin:7px 0';
+  settingsIntro.append(settingsHelp);
+  const moduleControls=document.getElementById('goldModulesSave').parentElement;
+  settingsIntro.append(moduleControls);
+  pages.settings.append(settingsIntro);
+  const advanced=document.getElementById('goldAdvancedMemory');
+  advanced.querySelector('summary').textContent='Advanced tools · scopes, bindings and checkpoints';
+  pages.settings.append(advanced);
+  const reader=document.getElementById('goldMemoryReader');
+  const firstTitle=reader.querySelector('strong');
+  if(firstTitle)firstTitle.textContent='Saved memory';
+  const firstHelp=reader.querySelector('p');
+  if(firstHelp)firstHelp.textContent='Read verified saved history, or open context and management options when needed.';
+  const select=document.getElementById('goldReaderScope');
+  select.style.display='none'; // selection is owned by the My Work list, not an extra technical dropdown
+  detail.append(reader);
+  const context=document.getElementById('goldContextCapture');
+  const contextDetails=goldMemoryNativeElement('details');
+  contextDetails.id='goldMemoryContextDetails';
+  contextDetails.style.cssText='margin:10px 0';
+  contextDetails.append(goldMemoryNativeElement('summary','','Saved context · read or add session notes'));
+  context.replaceWith(contextDetails);contextDetails.append(context);
+  const usage=document.getElementById('goldReaderUsage');
+  const usageDetails=goldMemoryNativeElement('details');
+  usageDetails.id='goldMemoryUsageDetails';
+  usageDetails.style.cssText='margin:10px 0';
+  usageDetails.append(goldMemoryNativeElement('summary','','Storage and verification details'));
+  usage.replaceWith(usageDetails);usageDetails.append(usage);
+  const exports=goldMemoryNativeElement('details');
+  exports.id='goldMemoryExportDetails';
+  exports.style.cssText='margin:9px 0';
+  exports.append(goldMemoryNativeElement('summary','','Export and manage this work'));
+  const exportRow=goldMemoryNativeElement('div','controls');
+  exportRow.style.marginTop='8px';
+  for(const id of ['goldReaderExportJson','goldReaderExportMd','goldReaderManage']){
+    exportRow.append(document.getElementById(id));
+  }
+  exports.append(exportRow);
+  const readButton=document.getElementById('goldReaderRead');
+  readButton.parentElement.after(exports);
+  const archived=goldMemoryNativeElement('div','sessionbox');
+  archived.style.cssText='padding:12px;margin:12px 0';
+  archived.append(goldMemoryNativeElement('strong','','Archived work'));
+  const archivedRow=goldMemoryNativeElement('div','controls');
+  archivedRow.style.marginTop='9px';
+  archivedRow.append(document.getElementById('goldReaderArchived'),document.getElementById('goldReaderRestore'));
+  archived.append(archivedRow);
+  pages.settings.insertBefore(archived,pages.settings.querySelector('#goldAdvancedMemory'));
+  const oldInfo=document.getElementById('goldModulesPanel').querySelector(':scope > p');
+  if(oldInfo)oldInfo.hidden=true;
+  add.onclick=()=>{detail.hidden=true;workList.hidden=true;create.hidden=false;workName.focus();};
+  submit.onclick=async()=>{
+    const name=workName.value.trim();
+    if(!name){createStatus.textContent='Enter a name for this work.';workName.focus();return;}
+    submit.disabled=true;
+    try{
+      const j=await wallMutation('/api/gold/modules/scope',
+        {displayName:name,captureMode:workMode.value,syncPolicy:'local_only'});
+      await goldScopeRefresh(j.scope.scopeId);
+      await goldReaderRefresh(j.scope.scopeId);
+      create.hidden=true;workName.value='';
+      goldMemoryNativeOpenWork(j.scope.scopeId);
+    }catch(error){createStatus.textContent='Unable to create work: '+String(error.message||error);}
+    finally{submit.disabled=false;}
+  };
+  goldMemoryNative={sections,pages,workList,cards,create,detail,detailTitle,capChoice};
+  goldMemoryNativeShow('work');
+}
+function goldMemoryNativeShow(name){
+  if(!goldMemoryNative)return;
+  const {sections,pages}=goldMemoryNative;
+  for(const [key,pane] of Object.entries(pages)){
+    const selected=key===name;
+    pane.hidden=!selected;
+    sections[key].classList.toggle('active',selected);
+    sections[key].setAttribute('aria-selected',String(selected));
+    sections[key].tabIndex=selected?0:-1;
+  }
+}
+function goldMemoryNativeCloseWork(){
+  if(!goldMemoryNative)return;
+  goldMemoryNative.detail.hidden=true;
+  goldMemoryNative.create.hidden=true;
+  goldMemoryNative.workList.hidden=false;
+}
+function goldMemoryNativeOpenWork(id){
+  if(!goldMemoryNative)return;
+  const option=[...document.getElementById('goldReaderScope').options].find(o=>o.value===id);
+  if(!option)return;
+  const select=document.getElementById('goldReaderScope');
+  select.value=id;
+  select.dispatchEvent(new Event('change'));
+  const row=(goldMemoryNative.knownScopes||[]).find(s=>s.scopeId===id);
+  goldMemoryNative.detailTitle.textContent=row?.displayName||option.textContent;
+  goldMemoryNative.capChoice.value=row?.captureMode||'manual';
+  goldMemoryNative.workList.hidden=true;
+  goldMemoryNative.create.hidden=true;
+  goldMemoryNative.detail.hidden=false;
+  document.getElementById('goldReaderPreview').hidden=true;
+  document.getElementById('goldReaderStatus').textContent='Select Read memory to load the verified history.';
+  document.getElementById('goldReaderManagePanel').hidden=true;
+  document.getElementById('goldMemoryContextDetails').open=false;
+  document.getElementById('goldMemoryExportDetails').open=false;
+  document.getElementById('goldMemoryUsageDetails').open=false;
+}
+function goldMemoryNativeRender(scopes){
+  if(!goldMemoryNative)return;
+  goldMemoryNative.knownScopes=scopes;
+  const host=goldMemoryNative.cards;host.textContent='';
+  const active=scopes.filter(scope=>scope.status!=='archived'&&scope.status!=='deleted');
+  if(!active.length){
+    const empty=goldMemoryNativeElement('div','muted',
+      'No saved work yet. Choose Add work to create your first memory space.');
+    empty.style.cssText='font-size:12px;padding:12px';
+    host.append(empty);
+  }
+  for(const scope of active){
+    const card=goldMemoryNativeElement('button','btn');
+    card.type='button';
+    card.style.cssText='width:100%;text-align:left;justify-content:flex-start;display:flex;gap:12px;padding:12px;min-height:56px';
+    const icon=document.querySelector('a[href="/long-memory"] svg')?.cloneNode(true);
+    if(icon)card.append(icon);
+    const content=goldMemoryNativeElement('span');
+    content.style.cssText='display:flex;flex-direction:column;gap:3px;flex:1;min-width:0';
+    const name=goldMemoryNativeElement('strong','',scope.displayName);
+    const state=goldMemoryNativeElement('span','muted',
+      Number(scope.revision)>0?'Saved history available':'No checkpoints yet');
+    state.style.fontSize='11px';
+    content.append(name,state);
+    card.append(content,goldMemoryNativeElement('span','muted','Open ›'));
+    card.onclick=()=>goldMemoryNativeOpenWork(scope.scopeId);
+    host.append(card);
+  }
+  const current=document.getElementById('goldReaderScope').value;
+  if(goldMemoryNative.detail.hidden===false&&
+    !active.some(scope=>scope.scopeId===current))goldMemoryNativeCloseWork();
+}
+goldMemoryNativeInit();
+
 // Owner-authenticated local Memory Library; neither export nor preview mutates state.
 async function goldReaderRefresh(preferred=''){
   const r=await fetch('/api/gold/modules/scopes',{cache:'no-store'}),j=await r.json();
@@ -374,6 +642,7 @@ async function goldReaderRefresh(preferred=''){
     opt.textContent=scope.displayName+' · revision '+String(scope.revision)+' · capture '+scope.captureMode;sel.appendChild(opt);
   }
   if(old&&(j.scopes||[]).some(s=>s.scopeId===old))sel.value=old;
+  goldMemoryNativeRender(j.scopes||[]);
   void goldReaderUsageRefresh().catch(e=>{document.getElementById('goldReaderUsage').textContent=String(e.message||e);});
   void goldReaderPreferenceRefresh().catch(e=>{document.getElementById('goldContextStatus').textContent=String(e.message||e);});
   document.getElementById('goldReaderStatus').textContent=
@@ -451,8 +720,7 @@ async function goldReaderUsageRefresh(){
   const verified=document.getElementById('goldSimpleSyncVerified');
   if(verified){
     const peers=(j.usage.deviceSync||[]).map(x=>x.deviceId+': '+goldSyncStamp(x.lastAckAt));
-    verified.textContent='Last verified sync: '+goldSyncStamp(j.usage.lastConfirmedSyncAt)+
-      (peers.length?' · Peer ACK '+peers.join(' | '):' · No peer ACK yet');
+    verified.textContent='Last verified transfer: '+goldSyncStamp(j.usage.lastConfirmedSyncAt);
   }
   const u=j.usage,scope=(u.scopes||[]).find(s=>s.scopeId===document.getElementById('goldReaderScope').value);
   document.getElementById('goldReaderUsage').textContent=
