@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
+import {readFileSync} from 'node:fs';
 import {GoldDeviceResourceLocks} from '../../lib/gold-device-resource-locks.mjs';
 import {handleAccountRoutes} from '../../operator-host/executor-routes-account.mjs';
 
@@ -134,4 +135,15 @@ for(const options of [
  assert.match(args.sql,/JOIN lr_gold_job_records/);
  assert.match(args.sql,/c.account_id=\$1 AND c.device_id=\$2 AND c.job_id=\$3/);
 }
-console.log('GOLD_M6_OWNER_ORPHAN_RECOVERY_PASS account_auth,device_scope,revoked_historical_lookup,fresh_channel_deny,boot_after_claim,atomic_audit,rollback,no_fake_terminal_ack,unknown_result');
+// Recovery CLI must NEVER fall back to direct SQL/peer-privilege mutations
+// when the authenticated Operator refuses a destructive action.
+{
+ const cli=readFileSync(new URL('./gold-m6-owner-orphan-recovery-cli.mjs',import.meta.url),'utf8');
+ assert.match(cli,/orphan-claims\/.*abandon/);
+ assert.match(cli,/No direct database mutation/);
+ assert(!cli.includes('new pg.Pool('));
+ assert(!cli.includes('.abandonOwnerAttestedOrphan('));
+ assert(!cli.includes('process.setuid('));
+ assert(!cli.includes('process.setgid('));
+}
+console.log('GOLD_M6_OWNER_ORPHAN_RECOVERY_PASS account_auth,device_scope,revoked_historical_lookup,fresh_channel_deny,boot_after_claim,atomic_audit,rollback,no_fake_terminal_ack,unknown_result,no_db_fallback');

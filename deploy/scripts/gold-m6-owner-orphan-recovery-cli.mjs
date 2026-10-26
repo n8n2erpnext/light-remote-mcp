@@ -1,12 +1,8 @@
 #!/usr/bin/env node
 // Gold UAT owner-operated orphan recovery. NEVER run unattended.
-// The normal authenticated Operator route owns recovery. When a historical
-// owner-removed device is hidden from its active registry (404 ONLY), this
-// owner-authenticated emergency path invokes the SAME audited library method
-// with a local PostgreSQL peer identity after dropping root privileges.
-// No raw SQL mutation, forged terminal ACK, service restart or UAT cutover.
-import pg from 'pg';
-import {GoldDeviceResourceLocks} from '../../lib/gold-device-resource-locks.mjs';
+// Recovery mutations MUST pass through the authenticated Operator route.
+// Historical removed device lookup belongs in that route, NOT this CLI.
+// No direct database mutation, alternate fallback, service restart or cutover.
 import http from 'node:http';
 import {execFileSync} from 'node:child_process';
 import {createInterface} from 'node:readline/promises';
@@ -54,29 +50,6 @@ function request(path,body,token){
   req.on('timeout',()=>req.destroy(Error('operator_timeout')));
   req.on('error',reject);
   req.end(payload);
- });
-}
-async function assertHistoricalChannelOffline(claim){
- assert(claim.deviceState==='revoked'&&claim.policyProfile==='__gold_removed_v1__',
-   'Historical owner-removed device proof missing; refuse fallback.');
- assert(!claim.liveConnection,'Original device still has an unexpired connected session.');
- return new Promise((resolve,reject)=>{
-  const req=http.get({socketPath:SOCKET,path:'/v1/fleet',timeout:8000},res=>{
-   let body='';res.on('data',part=>{body+=part;if(body.length>65536)req.destroy(Error('oversized_fleet'));});
-   res.on('end',()=>{
-    try{
-     assert(res.statusCode===200,'Fleet state unavailable.');
-     const fleet=JSON.parse(body);assert(fleet.ok===true&&fleet.requireExecutorReady===true,'Strict Gold Fleet admission unavailable.');
-     const nodes=Array.isArray(fleet.nodes)?fleet.nodes:[];
-     const found=nodes.filter(n=>n.deviceId===claim.deviceId||n.nodeId===claim.nodeId);
-     assert(!found.some(n=>n.channelFresh===true||n.state==='connected'||n.connectionState==='connected'),
-       'Historical Gold node is connected/fresh. Refuse orphan abandonment.');
-     resolve(true);
-    }catch(e){reject(e);}
-   });
-  });
-  req.on('timeout',()=>req.destroy(Error('fleet_timeout')));
-  req.on('error',reject);
  });
 }
 async function secret(prompt){
@@ -130,42 +103,12 @@ async function main(){
   assert(logged.ok&&logged.token,'Gold owner login failed.');
   token=logged.token;
   assert(logged.account?.accountId===claim.accountId,'Owner login does not own the historical claim.');
-  let result;
-  try{
-   result=await request('/v1/accounts/devices/'+encodeURIComponent(claim.deviceId)+
-     '/orphan-claims/'+encodeURIComponent(claim.jobId)+'/abandon',{
-      confirm,reason,observedBootAtMs:boot,password
-     },token);
-  }catch(error){
-   // The unmodified UAT Operator cannot find an owner-removed tombstoned
-   // device. ONLY this exact 404 may enter owner-authenticated local recovery.
-   if(error?.message!=='Operator denied (404): device_not_found')throw error;
-   const verified=await request('/v1/accounts/password-verify',{email,password},token);
-   assert(verified.ok===true&&verified.account?.accountId===claim.accountId,
-     'Owner password re-verification did not match the historical claim.');
-   const fresh=readClaim();
-   assert(fresh.jobId===claim.jobId&&fresh.deviceId===claim.deviceId&&fresh.accountId===claim.accountId,
-     'Claim changed during owner authentication; refuse release.');
-   await assertHistoricalChannelOffline(fresh);
-   // Root never executes the owner-attested PostgreSQL release. Drop to the
-   // DB peer account, then invoke the SAME reviewed typed audit transaction.
-   await request('/v1/accounts/logout',{},token);
-   token=undefined;
-   process.setgroups([]);
-   process.setgid('postgres');
-   process.setuid('postgres');
-   assert(process.getuid()!==0,'Refusing owner recovery with root database privileges.');
-   const pool=new pg.Pool({host:'/var/run/postgresql',user:'postgres',database:'light_remote_gold_dev',max:1,
-     connectionTimeoutMillis:5000});
-   try{
-    result=await new GoldDeviceResourceLocks().abandonOwnerAttestedOrphan(pool,{
-     accountId:claim.accountId,deviceId:claim.deviceId,jobId:claim.jobId,
-     observedBootAtMs:boot,reason,channelFresh:false
-    });
-   }finally{await pool.end();}
-  }
+  const result=await request('/v1/accounts/devices/'+encodeURIComponent(claim.deviceId)+
+    '/orphan-claims/'+encodeURIComponent(claim.jobId)+'/abandon',{
+     confirm,reason,observedBootAtMs:boot,password
+    },token);
   assert(result.released===true&&result.audited===true&&result.processOutcome==='unknown'&&result.terminalReceiptCreated===false,
-   'Recovery did not certify audited UNKNOWN release. Check audit without SQL cleanup.');
+   'Operator recovery did not certify an audited UNKNOWN release. No direct SQL fallback is allowed.');
   stdout.write('OWNER_ORPHAN_RELEASE_AUDITED_UNKNOWN=PASS (NO terminal ACK generated)\n');
  }finally{
   password='';
