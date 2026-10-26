@@ -526,15 +526,39 @@ function goldMemoryNativeInit(){
   const exports=goldMemoryNativeElement('details');
   exports.id='goldMemoryExportDetails';
   exports.style.cssText='margin:9px 0';
-  exports.append(goldMemoryNativeElement('summary','','Export and manage this work'));
+  exports.append(goldMemoryNativeElement('summary','','Export saved memory'));
   const exportRow=goldMemoryNativeElement('div','controls');
   exportRow.style.marginTop='8px';
-  for(const id of ['goldReaderExportJson','goldReaderExportMd','goldReaderManage']){
+  for(const id of ['goldReaderExportJson','goldReaderExportMd']){
     exportRow.append(document.getElementById(id));
   }
   exports.append(exportRow);
   const readButton=document.getElementById('goldReaderRead');
   readButton.parentElement.after(exports);
+  // Keep scoped destructive actions visible in the selected work. Previous UX
+  // accidentally hid Delete behind Export > Manage scope (two extra clicks).
+  const manage=goldMemoryNativeElement('section','sessionbox');
+  manage.id='goldMemoryWorkManage';
+  manage.style.cssText='padding:12px;margin:0 0 12px';
+  manage.append(goldMemoryNativeElement('strong','','Manage this work'));
+  const manageHint=goldMemoryNativeElement('p','muted',
+    'Archive keeps signed history. Delete on this device permanently removes only this local copy; other devices and backups are not erased.');
+  manageHint.style.cssText='font-size:12px;line-height:1.5;margin:7px 0';
+  manage.append(manageHint);
+  // Attach the management section before moving controls, otherwise the old
+  // controls live in a detached node and document.getElementById returns null.
+  detail.insertBefore(manage,reader);
+  const managePanel=document.getElementById('goldReaderManagePanel');
+  managePanel.style.cssText='border:0;padding:0;margin:8px 0 0';
+  manage.append(managePanel);
+  const unsupported=document.getElementById('goldReaderDeleteAccount');
+  unsupported.textContent='Delete across account · unavailable';
+  unsupported.disabled=true;
+  unsupported.title='Not yet supported: requires durable signed deletion on offline devices and per-device acknowledgement';
+  document.getElementById('goldReaderDeleteLocal').classList.add('danger');
+  // Retain the original control for legacy browser handlers, without an
+  // additional nested menu in the owner-facing flow.
+  document.getElementById('goldReaderManage').style.display='none';
   const archived=goldMemoryNativeElement('div','sessionbox');
   archived.style.cssText='padding:12px;margin:12px 0';
   archived.append(goldMemoryNativeElement('strong','','Archived work'));
@@ -595,7 +619,7 @@ function goldMemoryNativeOpenWork(id){
   goldMemoryNative.detail.hidden=false;
   document.getElementById('goldReaderPreview').hidden=true;
   document.getElementById('goldReaderStatus').textContent='Select Read memory to load the verified history.';
-  document.getElementById('goldReaderManagePanel').hidden=true;
+  document.getElementById('goldReaderManagePanel').hidden=false;
   document.getElementById('goldMemoryContextDetails').open=false;
   document.getElementById('goldMemoryExportDetails').open=false;
   document.getElementById('goldMemoryUsageDetails').open=false;

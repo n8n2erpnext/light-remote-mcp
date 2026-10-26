@@ -30,7 +30,7 @@ try{
     assert.ok(!html.includes('fonts.gstatic.com'),route);
     if(tag==='memory'){
       // Wall-native progressive layout: no second Wall, no new UI library.
-      for(const token of ['goldMemoryNativeInit()',"'My Work'","'Device Sync'","'goldMemoryWorkCards'","'goldMemoryContextDetails'"]){
+      for(const token of ['goldMemoryNativeInit()',"'My Work'","'Device Sync'","'goldMemoryWorkCards'","'goldMemoryContextDetails'","'goldMemoryWorkManage'"]){
         assert.ok(html.includes(token),'Wall-native Long Memory layout missing '+token);
       }
     }
