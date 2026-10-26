@@ -83,23 +83,33 @@ try{
     fetch(base+url,{method:'POST',headers:{...headers,'content-type':'application/json'},body:JSON.stringify(data)});
   assert.equal((await fetch(base+'/api/gold/modules/codex/config')).status,401);
   assert.equal((await post('/api/gold/modules/codex/remove',{},owner)).status,403,'No mutation without CSRF');
-  const page=await (await fetch(base+'/',{headers:owner})).text();
-  assert.match(page,/goldCodexApiKey/);
-  assert.match(page,/Run Codex observer/);
-  assert.match(page,/goldMemoryArea/);
-  assert.match(page,/Filesystem|Permissions|Agent A\/B access/);
+  // Gold moved Codex and Memory off the home Wall into dedicated routes.
+  // Legacy API-key mutations remain owner/CSRF protected, but the current
+  // Plus-first Wall must not expose a deprecated API-key input.
+  const home=await (await fetch(base+'/',{headers:owner})).text();
+  assert.match(home,/href="\/codex-cli"/);
+  assert.match(home,/href="\/long-memory"/);
+  assert.match(home,/Filesystem|Permissions|Agent A\/B access/);
+  const page=await (await fetch(base+'/codex-cli',{headers:owner})).text();
+  assert.doesNotMatch(page,/id="goldCodexApiKey"/);
+  assert.match(page,/goldCodexPlusLogin/);
+  assert.match(page,/goldCodexArea/);
+  const memory=await (await fetch(base+'/long-memory',{headers:owner})).text();
+  assert.match(memory,/goldMemoryArea/);
   for(const [,script] of page.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g))if(script.trim())new vm.Script(script);
-  const view=await (await fetch(base+'/api/gold/modules/codex/config',{headers:owner})).json();
-  assert.equal(view.config.configured,true);
-  assert.equal(JSON.stringify(view).includes(dummyKey),false);
-  const viaWall=await (await post('/api/gold/modules/codex/run',{})).json();
-  assert.equal(viaWall.result.completed,true);
-  assert.equal((await post('/api/gold/modules/codex/remove',{})).status,200);
-  assert.equal((await (await fetch(base+'/api/gold/modules/codex/config',{headers:owner})).json()).config.configured,false);
-  assert.equal(fs.existsSync(file+'.codex.enc'),false);
-  assert.equal((await post('/api/gold/modules/codex/run',{})).status,409);
-  console.log('GOLD_CODEX_API_ENCRYPTED_KEY_OWNER_CSRF_MOCK_AGENTS_TURN_PASS');
-  console.log('GOLD_CODEX_LOCAL_STATUS_AND_PAID_RUN_SEPARATION_PASS');
+  // Gold now uses ChatGPT Plus/Pro sign-in and intentionally disables all
+  // legacy Platform API-key endpoints (even when an old key remains on disk).
+  const view=await fetch(base+'/api/gold/modules/codex/config',{headers:owner});
+  assert.equal(view.status,410);
+  assert.equal((await view.json()).error,'codex_platform_api_disabled_use_chatgpt_sign_in');
+  const disabledRun=await post('/api/gold/modules/codex/run',{});
+  assert.equal(disabledRun.status,410);
+  const disabledRemove=await post('/api/gold/modules/codex/remove',{});
+  assert.equal(disabledRemove.status,410);
+  assert.equal(modules.codexConfig().configured,true,'Legacy key storage is not silently modified.');
+  assert.equal(fs.existsSync(file+'.codex.enc'),true);
+  console.log('GOLD_CODEX_LEGACY_API_KEY_ENCRYPTED_MOCK_AGENTS_UNIT_PASS');
+  console.log('GOLD_CODEX_PLATFORM_API_DISABLED_CHATGPT_PLUS_FIRST_WALL_CSRF_PASS');
 }finally{
   if(wall)await wall.close();
   modules.close();
