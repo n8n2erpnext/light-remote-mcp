@@ -38,3 +38,11 @@ second Wall, or server storing Memory payload is created.
 New scoped signing and tombstone fixture, existing Home/Replica E2EE regression,
 Gold Wall navigation and packaging checks must all pass. A second real Agent
 must ACK a test-only scope before E2E completion is claimed.
+
+## UAT packaging gate learned during rollout
+The server-side PG boot ledger allowlist must include schema version 37 and
+verify both deletion metadata tables. The Gold Plugin has a *separate* npm
+dependency directory. Git archives omit deployment-only node_modules symlinks;
+staged UAT source must link both the root node_modules and
+plugin-server/node_modules to the existing isolated UAT installation. A source
+artifact without those links is NOT a runnable Gold Plugin deployment.
