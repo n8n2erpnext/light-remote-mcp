@@ -1,0 +1,14 @@
+{
+  "name": "light-remote-support-gate",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Owner-reviewed AI support draft gateway for Libredesk; sends disabled until authorized credentials",
+  "scripts": {
+    "start": "node src/server.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "pg": "8.16.3"
+  }
+}

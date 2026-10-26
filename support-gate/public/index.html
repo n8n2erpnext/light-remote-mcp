@@ -1,0 +1,20 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Light Remote | AI Support Gate</title><link rel="stylesheet" href="/styles.css"></head><body>
+<header><div class="brand"><span class="mark">LR</span><div><strong>AI Support Gate</strong><small>Light Remote · LightBI · Owner review</small></div></div><span id="mode" class="status">UAT · Human approval required</span></header>
+<main>
+<section id="login" class="panel login"><h2>Owner access</h2><p>Drafts, customer information and outgoing replies are restricted to the owner.</p><form id="loginForm"><label for="password">Password</label><input type="password" id="password" autocomplete="current-password" required><button type="submit">Sign in</button></form></section>
+<section id="workspace" hidden>
+<div class="top"><div><h1>Support review</h1><p>AI proposes. Owner approves. Libredesk sends in the original conversation.</p></div><button type="button" class="outline" id="refresh">Refresh</button></div>
+<div class="notice" id="outbound">Checking outbound integration…</div>
+<div class="columns"><aside class="panel"><h3>Draft queue</h3><div id="drafts"></div><button type="button" class="outline" id="newDraft">+ New draft</button></aside>
+<section class="panel"><h3 id="editorTitle">New support draft</h3>
+<div class="two"><label>Brand<select id="brand"><option value="light-remote">Light Remote</option><option value="lightbi">LightBI</option></select></label><label>Recipient<input id="recipient" type="email" autocomplete="off" placeholder="customer@example.com"></label></div>
+<label>Libredesk conversation UUID<input id="conversation" spellcheck="false" placeholder="UUID of the original conversation"></label>
+<label>Latest message UUID (for send freshness check)<input id="latest" spellcheck="false" placeholder="UUID of last incoming message"></label>
+<label>Subject<input id="subject" maxlength="240"></label>
+<label>Proposed reply<textarea id="message" rows="11" maxlength="20000" placeholder="AI support reply — edit before approval"></textarea></label>
+<div class="actions"><button type="button" class="outline" id="save">Save draft</button><button type="button" id="approve">Approve</button><button type="button" class="danger" id="send" disabled>Send approved reply</button></div>
+<p id="hint" class="help">Sending remains locked until a Libredesk agent API key is configured and the conversation can be verified.</p>
+</section></div>
+</section>
+<p class="feedback" id="feedback" role="status"></p>
+</main><script src="/app.js" defer></script></body></html>
