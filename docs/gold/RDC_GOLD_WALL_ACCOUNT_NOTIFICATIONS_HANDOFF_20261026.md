@@ -32,3 +32,15 @@
 - Source branch commit `bc86ece79366015fe5626bf5b6b5ee7d5e62640b` was SHA-256 staged in `/opt/light-remote-gold-uat-candidates/bc86ece79366015fe5626bf5b6b5ee7d5e62640b`. Test outputs: `GOLD_NOTIFICATIONS_PG17_REAL_REGISTRY_SIGNED_ROUTE_OWNER_SCOPE_READ_STATE_PASS`, `GOLD_NOTIFICATION_PG17_SCRATCH_CLEANUP_PASS=PASS`.
 - UAT canary systemd service `light-remote-gold-notification-canary` was re-pointed to this commit and remains ACTIVE on **127.0.0.1:5593 ONLY**, with synthetic preview. Authenticated HTTP PASS and no-auth 401 PASS.
 - Four actual Gold UAT services remain ACTIVE and untouched on the protected good source `371f1ce786fa484b86a77a7272ce16e6591e2a99`. Original Gold rebuild `8c28dffd...` unchanged. Orphan claim unresolved; no live 4-service cutover, no merge, no Windows build, no production changes.
+
+## Security closure and full synthetic path — final UAT continuation, 26 October 2026
+- Identified a re-enrollment privacy boundary: an existing local Wall account session cookie could outlive device account ownership changes, while notification signed channel selects the CURRENT enrolled account. Previous code checked a Wall session existed but not that its principal matched the current device owner.
+- Signed Operator preview now supplies `accountEmail` from its enrollment-bound owner. The Agent compares this to the current credential-verified Wall session username using `assertNotificationOwnerEmail` (case-insensitive). Missing identity, old-owner cookie, or mismatch FAILS CLOSED; signed email is never sent to the Local Wall browser response.
+- Local Wall notification API requires an account-email identity; a generic non-account local username cannot retrieve account notifications. Account auth and no-store protections preserved.
+- `deploy/scripts/selftest-gold-wall-notifications-signed-proof.mjs`: real enrollment Ed25519 signing, replay detection, wrong-action and attacker-key rejection; account scope only from signed enrollment binding. PASS.
+- `deploy/scripts/integration-gold-wall-notifications-pg17.mjs` now runs a **single full synthetic chain**: disposable PostgreSQL 17, canonical Registry publish/inbox/read, real Ed25519 signatures, actual Operator device-channel route, owner-authenticated Local Wall HTTP endpoint, cross-account data isolation and old-owner session rejection. UAT output markers:
+  `GOLD_NOTIFICATIONS_PG17_REAL_SIGNED_CHANNEL_LOCAL_WALL_HTTP_END_TO_END_PASS`,
+  `GOLD_NOTIFICATIONS_PG17_REAL_REGISTRY_SIGNED_ROUTE_OWNER_SCOPE_READ_STATE_PASS`,
+  `GOLD_NOTIFICATION_REAL_SIGNED_PG_SCRATCH_CLEAN=PASS`.
+- Feature-code commit `c52e0792c5e40661b4052c63c11ceab23f530207` staged inside the SAME `light-remote-gold-uat` LXD at `/opt/light-remote-gold-uat-candidates/c52e0792c5e40661b4052c63c11ceab23f530207`, full tracked SHA256 PASS.
+- This is cryptographic/PG/HTTP integration using SYNTHETIC owners and data, NOT a live account notification through the four-service stack. Gold UAT physical cutover is still blocked by the historical orphan claim. Do not SQL-delete claim, merge, build Windows, or restart the main four services to force acceptance.
