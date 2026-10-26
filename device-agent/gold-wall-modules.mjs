@@ -40,8 +40,16 @@ function openPrivate(file){
     db.exec('PRAGMA journal_mode=WAL;PRAGMA busy_timeout=2500;');
     db.exec('CREATE TABLE IF NOT EXISTS module_flags (singleton INTEGER PRIMARY KEY CHECK(singleton=1), memory_enabled INTEGER NOT NULL DEFAULT 0 CHECK(memory_enabled IN (0,1)),codex_enabled INTEGER NOT NULL DEFAULT 0 CHECK(codex_enabled IN (0,1)),revision INTEGER NOT NULL DEFAULT 0);'
       +'CREATE TABLE IF NOT EXISTS owner_notes(id TEXT PRIMARY KEY,kind TEXT NOT NULL CHECK(kind IN (\'note\',\'decision\',\'checkpoint\')),body TEXT NOT NULL,source TEXT NOT NULL,created_ms INTEGER NOT NULL);'
-      +'CREATE TABLE IF NOT EXISTS observer_tasks(id TEXT PRIMARY KEY,title TEXT NOT NULL,state TEXT NOT NULL CHECK(state IN (\'todo\',\'working\',\'done\',\'waiting\')),created_ms INTEGER NOT NULL,changed_ms INTEGER NOT NULL);'
+      +'CREATE TABLE IF NOT EXISTS observer_tasks(id TEXT PRIMARY KEY,title TEXT NOT NULL,state TEXT NOT NULL CHECK(state IN (\'todo\',\'working\',\'done\',\'waiting\')),created_ms INTEGER NOT NULL,changed_ms INTEGER NOT NULL,deleted_ms INTEGER DEFAULT NULL);'
       +'INSERT OR IGNORE INTO module_flags(singleton) VALUES(1);');
+    const columns=db.prepare('PRAGMA table_info(observer_tasks)').all();
+    if(!columns.some(c=>c.name==='deleted_ms'))
+      db.exec('ALTER TABLE observer_tasks ADD COLUMN deleted_ms INTEGER DEFAULT NULL');
+    db.exec(`CREATE TABLE IF NOT EXISTS observer_task_history(
+      id TEXT PRIMARY KEY,task_id TEXT NOT NULL,action TEXT NOT NULL
+        CHECK(action IN ('edit','delete')),previous_title TEXT NOT NULL,
+      next_title TEXT,created_ms INTEGER NOT NULL
+    )`);
   }catch(e){db.close();throw e;}
   return db;
 }
@@ -271,16 +279,84 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
       db.prepare('INSERT INTO observer_tasks(id,title,state,created_ms,changed_ms) VALUES(?,?,?,?,?)').run(id,title,'todo',now,now);
       return {id,title,state:'todo'};
     },
+    editTask(input={}){
+      const db=enabled('codexBridge');
+      if(codexRequestInFlight)throw fault('gold_observer_in_progress',409);
+      const id=strictText(input.id,64,'gold_observer_task_id_invalid');
+      const title=strictText(input.title,240,'gold_observer_task_invalid');
+      if(!Number.isSafeInteger(input.expectedChangedAt)||input.expectedChangedAt<1)
+        throw fault('gold_observer_task_version_required',400);
+      const prior=db.prepare('SELECT title,state,changed_ms AS changedAt,deleted_ms AS deletedAt FROM observer_tasks WHERE id=?').get(id);
+      if(!prior||prior.deletedAt!==null)throw fault('gold_observer_task_not_found',404);
+      if(input.expectedChangedAt!==prior.changedAt)throw fault('gold_observer_task_changed_since_edit',409);
+      if(title===prior.title)return {id,title,state:prior.state,changedAt:prior.changedAt,unchanged:true};
+      const changedAt=Math.max(Date.now(),prior.changedAt+1),historyId=crypto.randomUUID();
+      db.exec('BEGIN IMMEDIATE');
+      try{
+        const changed=db.prepare('UPDATE observer_tasks SET title=?,changed_ms=? WHERE id=? AND changed_ms=? AND deleted_ms IS NULL')
+          .run(title,changedAt,id,prior.changedAt);
+        if(changed.changes!==1)throw fault('gold_observer_task_changed_since_edit',409);
+        db.prepare('INSERT INTO observer_task_history(id,task_id,action,previous_title,next_title,created_ms) VALUES(?,?,?,?,?,?)')
+          .run(historyId,id,'edit',prior.title,title,changedAt);
+        db.exec('COMMIT');
+      }catch(e){db.exec('ROLLBACK');throw e;}
+      let autoEventQueued=false;
+      if(flags().longMemory){
+        try{
+          const identity=scopedIdentity();
+          autoEventQueued=ingestGoldAutoEvent(db,{accountId:identity.accountId,deviceId:identity.deviceId,
+            sourceType:'task',sourceId:id,workContextId:'task:'+id,
+            eventType:'task_updated',eventRef:'task:edit:'+id+':'+historyId}).accepted;
+        }catch(e){if(e.message!=='gold_scope_trusted_identity_required')
+          console.error(JSON.stringify({event:'gold_auto_task_edit_capture_failed',code:String(e.message).slice(0,90)}));}
+      }
+      return {id,title,state:prior.state,changedAt,autoEventQueued,
+        auditPreserved:true,priorReceiptsUnchanged:true};
+    },
+    deleteTask(input={}){
+      const db=enabled('codexBridge');
+      if(codexRequestInFlight)throw fault('gold_observer_in_progress',409);
+      const id=strictText(input.id,64,'gold_observer_task_id_invalid');
+      if(input.confirm!==true)throw fault('gold_observer_task_delete_owner_confirmation_required',403);
+      if(!Number.isSafeInteger(input.expectedChangedAt)||input.expectedChangedAt<1)
+        throw fault('gold_observer_task_version_required',400);
+      const prior=db.prepare('SELECT title,state,changed_ms AS changedAt,deleted_ms AS deletedAt FROM observer_tasks WHERE id=?').get(id);
+      if(!prior||prior.deletedAt!==null)throw fault('gold_observer_task_not_found',404);
+      if(input.confirmTitle!==prior.title)throw fault('gold_observer_task_delete_title_mismatch',400);
+      if(input.expectedChangedAt!==prior.changedAt)throw fault('gold_observer_task_changed_since_delete',409);
+      const deletedAt=Math.max(Date.now(),prior.changedAt+1),historyId=crypto.randomUUID();
+      db.exec('BEGIN IMMEDIATE');
+      try{
+        const changed=db.prepare('UPDATE observer_tasks SET deleted_ms=?,changed_ms=? WHERE id=? AND changed_ms=? AND deleted_ms IS NULL')
+          .run(deletedAt,deletedAt,id,prior.changedAt);
+        if(changed.changes!==1)throw fault('gold_observer_task_changed_since_delete',409);
+        db.prepare('INSERT INTO observer_task_history(id,task_id,action,previous_title,next_title,created_ms) VALUES(?,?,?,?,?,?)')
+          .run(historyId,id,'delete',prior.title,null,deletedAt);
+        db.exec('COMMIT');
+      }catch(e){db.exec('ROLLBACK');throw e;}
+      let autoEventQueued=false;
+      if(flags().longMemory){
+        try{
+          const identity=scopedIdentity();
+          autoEventQueued=ingestGoldAutoEvent(db,{accountId:identity.accountId,deviceId:identity.deviceId,
+            sourceType:'task',sourceId:id,workContextId:'task:'+id,
+            eventType:'task_deleted',eventRef:'task:delete:'+id+':'+historyId}).accepted;
+        }catch(e){if(e.message!=='gold_scope_trusted_identity_required')
+          console.error(JSON.stringify({event:'gold_auto_task_delete_capture_failed',code:String(e.message).slice(0,90)}));}
+      }
+      return {id,deleted:true,deletedAt,autoEventQueued,
+        historyPreserved:true,receiptsPreserved:true,excludedFromFutureObservers:true};
+    },
     updateTask(input={}){
       const db=enabled('codexBridge');
       const id=strictText(input.id,64,'gold_observer_task_id_invalid');
       if(!['todo','working','done','waiting'].includes(input.state))throw fault('gold_observer_state_invalid');
-      const prior=db.prepare('SELECT state FROM observer_tasks WHERE id=?').get(id);
+      const prior=db.prepare('SELECT state,changed_ms AS changedAt FROM observer_tasks WHERE id=? AND deleted_ms IS NULL').get(id);
       if(!prior)throw fault('gold_observer_task_not_found',404);
       if(prior.state===input.state)return {id,state:input.state,unchanged:true};
-      const changedAt=Date.now();
-      const changed=db.prepare('UPDATE observer_tasks SET state=?,changed_ms=? WHERE id=? AND state=?')
-        .run(input.state,changedAt,id,prior.state);
+      const changedAt=Math.max(Date.now(),prior.changedAt+1);
+      const changed=db.prepare('UPDATE observer_tasks SET state=?,changed_ms=? WHERE id=? AND state=? AND changed_ms=? AND deleted_ms IS NULL')
+        .run(input.state,changedAt,id,prior.state,prior.changedAt);
       if(changed.changes!==1)throw fault('gold_observer_task_changed',409);
       let autoEventQueued=false;
       if(flags().longMemory){
@@ -303,7 +379,7 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
       if(codexRequestInFlight)throw fault('codex_run_already_in_progress',409);
       codexRequestInFlight=true;
       try{
-        const rows=db.prepare('SELECT id,title,state,changed_ms AS changedAt FROM observer_tasks ORDER BY changed_ms DESC LIMIT 20').all();
+        const rows=db.prepare('SELECT id,title,state,changed_ms AS changedAt FROM observer_tasks WHERE deleted_ms IS NULL ORDER BY changed_ms DESC LIMIT 20').all();
         const result=await plus.runReadOnly({tasks:rows});
         if(result.completed&&typeof result.summary==='string'&&result.summary.trim()){
           const receipt=saveGoldObserverReceipt(db,{summary:result.summary,status:'completed',tasks:rows});
@@ -321,13 +397,13 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
       if(codexRequestInFlight)throw fault('codex_run_already_in_progress',409);
       codexRequestInFlight=true;
       try {
-        const tasks=db.prepare('SELECT title,state FROM observer_tasks ORDER BY changed_ms DESC LIMIT 20').all();
+        const tasks=db.prepare('SELECT title,state FROM observer_tasks WHERE deleted_ms IS NULL ORDER BY changed_ms DESC LIMIT 20').all();
         return await codex.run({tasks});
       } finally {codexRequestInFlight=false;}
     },
     observer(){
       const db=enabled('codexBridge');
-      const tasks=db.prepare('SELECT id,title,state,created_ms AS createdAt,changed_ms AS changedAt FROM observer_tasks ORDER BY created_ms,id LIMIT 100').all();
+      const tasks=db.prepare('SELECT id,title,state,created_ms AS createdAt,changed_ms AS changedAt FROM observer_tasks WHERE deleted_ms IS NULL ORDER BY created_ms,id LIMIT 100').all();
       const states=tasks.map(t=>t.state);
       const recommendation=states.includes('waiting')?'WAIT_OWNER'
         :states.length>0&&states.every(s=>s==='done')?'DONE'

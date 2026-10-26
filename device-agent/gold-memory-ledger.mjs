@@ -88,7 +88,7 @@ export function confirmGoldObserverTask(db,{receiptId,taskId,toState,confirm}={}
  if(!receipt)throw fail('gold_observer_receipt_not_found',404);
  const prior=JSON.parse(receipt.task_snapshot).find(t=>t.id===tid);
  if(!prior)throw fail('gold_observer_task_not_in_receipt',409);
- const changed=db.prepare('UPDATE observer_tasks SET state=?,changed_ms=? WHERE id=? AND state=? AND changed_ms=?')
+ const changed=db.prepare('UPDATE observer_tasks SET state=?,changed_ms=? WHERE id=? AND state=? AND changed_ms=? AND deleted_ms IS NULL')
    .run(toState,Date.now(),tid,prior.state,prior.changedAt);
  if(changed.changes!==1)throw fail('gold_observer_task_changed_since_receipt',409);
  db.prepare('UPDATE gold_observer_receipts SET reviewed=1 WHERE id=?').run(rid);

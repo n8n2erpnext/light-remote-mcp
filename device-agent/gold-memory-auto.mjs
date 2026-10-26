@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {prepareGoldMemoryV2,resolveGoldScope,appendGoldScopedCheckpoint} from './gold-memory-scope.mjs';
 
-const TYPES=new Set(['filesystem_changed','repository_head_changed','task_created','task_state_changed','process_completed']);
+const TYPES=new Set(['filesystem_changed','repository_head_changed','task_created','task_state_changed','task_updated','task_deleted','process_completed']);
 const EFFECTS=new Set(['observed','blocked']);
 const ID=/^[A-Za-z0-9._:@/-]{1,512}$/;
 const NOW_MIN=0;

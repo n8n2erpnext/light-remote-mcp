@@ -113,8 +113,8 @@ export function saveOwnerFullContext(db,keyFile,{accountId,deviceId,scopeId,text
   const consent=getMemoryScopeContextPreference(db,{accountId,scopeId});
   if(!consent.fullContextOptIn)throw fail('memory_full_context_scope_opt_in_disabled',403);
   const scope=scopeRow(db,{accountId,scopeId});
-  if(scope.status!=='active'||scope.home_device_id!==deviceId)
-    throw fail('memory_full_context_home_only',403);
+  if(scope.status!=='active')throw fail('memory_scope_not_active',409);
+  if(scope.home_device_id!==deviceId)throw fail('memory_full_context_home_only',403);
   if(typeof text!=='string'||!text.trim())throw fail('memory_full_context_text_required',400);
   const bytes=Buffer.byteLength(text,'utf8');
   if(bytes>512*1024)throw fail('memory_full_context_snapshot_exceeds_512kib',413);

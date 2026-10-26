@@ -2,7 +2,7 @@
 
 Base commit: `b8de92df049d529a0bd4b7387fdefa3d998405a1`.
 Branch: `feature/gold-memory-completion-20261026`.
-Owner instruction: implement Memory first, **do not run tests or build**. Next session stage is to test real Codex CLI/observer on Windows, then run comprehensive Memory G3 regression and **GitHub Actions** build.
+Owner workflow: implement Memory source first, then test real Codex CLI/observer on Windows and run regression before any GitHub Actions build. The owner confirmed Codex CLI read-only observer `completed` on Windows with a receipt requiring explicit owner approval on 2026-10-26. Regression was then run on the isolated ARM source checkout.
 
 ## Implemented in source (NOT validated or deployed)
 
@@ -14,6 +14,22 @@ Owner instruction: implement Memory first, **do not run tests or build**. Next s
 - No hidden ChatGPT transcript interception: user must explicitly supply context or use an authorized connector integration in future.
 - Gold MCP memory read schema now adds `scope_full_context` (paged, verified, max 10,000 characters per read) and `scope_usage`, to allow an authorized new conversation to request saved full context without a pasted handoff. This DOES NOT auto-invoke itself when a new ChatGPT session starts.
 - Gold Windows client-core manifest includes the new module; CI manifest preflight includes it. No Windows installation touched.
+
+## Codex Task Controller Edit/Delete
+
+- On /codex-cli each active task now exposes inline **Edit** with Save/Cancel, and owner-confirmed **Delete** requiring the exact task title.
+- Edit uses optimistic `expectedChangedAt` to reject stale tabs; state remains unchanged. Delete is a soft delete (`deleted_ms`) that excludes the task from active lists/future Codex observations, preserving the original row and audit history. Both are denied while Codex observer is in progress.
+- Codex receipts remain immutable. Old receipts cannot approve a task altered or deleted since observation. Task state transitions also use a monotonic revision timestamp and SQLite CAS.
+- On-disk SQLite schema migrates `observer_tasks` with an optional `deleted_ms` and `observer_task_history`, preserving existing tasks.
+- Automatic project-bound capture supports `task_updated` and `task_deleted` event classes for trusted bound tasks; no arbitrary transcript captured.
+- New test `deploy/scripts/selftest-gold-codex-task-management.mjs` covers edit/delete, CSRF/owner, receipt invariants, stale revisions and in-browser JS syntax.
+
+## Local regression performed (temporary fixture only)
+
+- `selftest-gold-codex-task-management.mjs` PASS.
+- `selftest-gold-memory-scope-management.mjs` PASS: archive/restore/delete, opt-in Unicode full-context import and verified restore, tombstone scope isolation.
+- `selftest-gold-wall-navigation.mjs`, `selftest-gold-memory-reader-export.mjs`, `selftest-gold-memory-scope-v2.mjs` and `selftest-gold-client-core-imports.mjs` PASS.
+- No real Windows/Gold UAT Memory, task, or snapshots modified during source fixture tests. CI and live deployment remain separate gates.
 
 ## Key files
 - `device-agent/gold-memory-scope-admin.mjs` (new)
