@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import fs from 'node:fs';
+import {assertNotificationOwnerEmail} from '../../device-agent/wall-account-notifications.mjs';
 import {startLocalWall} from '../../device-agent/local-wall.mjs';
 import {handleDeviceChannelRoutes} from '../../operator-host/executor-routes-device-channel.mjs';
 const notificationId='sys_11111111-2222-3333-4444-555555555555';
@@ -12,7 +13,7 @@ function backendDeps(ctx=signedCtx){
   get lookup(){return lookup},
   readJson:async()=>({}),
   verifiedChannelContext:async(_body,action)=>{assert.equal(action,'account-notifications');return ctx;},
-  accounts:{assertOperational:id=>{assert.equal(id,ctx.binding.accountId);},account:id=>{lookup++;assert.equal(id,ctx.binding.accountId);return {accountId:id,state:'active',plan:'pro',groupId:'group_owners'};}},
+  accounts:{assertOperational:id=>{assert.equal(id,ctx.binding.accountId);},account:id=>{lookup++;assert.equal(id,ctx.binding.accountId);return {accountId:id,email:'owner@example.invalid',state:'active',plan:'pro',groupId:'group_owners'};}},
   accountNotifications:{inbox:async(id,account)=>{
    assert.equal(id,ctx.binding.accountId);assert.equal(account.plan,'pro');
    return {unreadCount:1,notifications:[{notificationId,type:'security',title:'Security update',
@@ -29,6 +30,9 @@ function backendDeps(ctx=signedCtx){
    new URL('http://localhost/v1/device-channel/account-notifications'),d);
  assert.equal(res.status,200);
  assert.equal(value.ok,true);assert.equal(value.unreadCount,2);
+ assert.equal(value.accountEmail,'owner@example.invalid');
+ assert.equal(assertNotificationOwnerEmail(value.accountEmail,'OWNER@example.invalid'),true);
+ assert.throws(()=>assertNotificationOwnerEmail(value.accountEmail,'old-owner@example.invalid'),/account_notification_session_mismatch/);
  assert.equal(value.notifications.length,2);
  assert.equal(value.notifications[0].type,'team_invitation');
  assert.equal(value.notifications[1].title,'Security update');
@@ -61,8 +65,8 @@ let wall;const inbox='https://gold.light-remote.thaiduy.digital/account/inbox';
 try{
  wall=startLocalWall({host:'127.0.0.1',port:0,auth,
   getLocalStatus:async()=>({cloudState:'connected',cloudDesiredConnected:true}),
-  getAccountNotifications:async()=>({ok:true,accountInboxUrl:inbox,unreadCount:2,
-   notifications:[{notificationId,readAt:null,title:'Security update',body:'Review your account'}]})});
+  getAccountNotifications:async({wallUsername})=>{assert.equal(wallUsername,'owner@example.invalid');return {ok:true,accountInboxUrl:inbox,unreadCount:2,
+   notifications:[{notificationId,readAt:null,title:'Security update',body:'Review your account'}]};}});
  await new Promise((ok,bad)=>wall.server.listening?ok():wall.server.once('listening',ok).once('error',bad));
  const url='http://127.0.0.1:'+wall.server.address().port;
  assert.equal((await fetch(url+'/api/account-notifications')).status,401);

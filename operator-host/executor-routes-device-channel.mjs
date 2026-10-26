@@ -34,7 +34,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       }))
     ].filter(n=>/^sys_[a-f0-9-]{36}$|^tinv_[a-f0-9]{24}$/.test(String(n.notificationId)))
       .sort((a,b)=>Number(b.createdAt||0)-Number(a.createdAt||0));
-    return sendJson(res,200,{ok:true,unreadCount:Number(system.unreadCount||0)+Number(team.unreadCount||0),
+    return sendJson(res,200,{ok:true,accountEmail:String(account.email||'').trim().toLowerCase(),unreadCount:Number(system.unreadCount||0)+Number(team.unreadCount||0),
       notifications:notices.slice(0,5)});
   }
   if(req.method==='POST'&&url.pathname==='/v1/device-channel/memory-sync-policy'){

@@ -2164,7 +2164,10 @@ export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvg
       if(typeof getAccountNotifications!=='function')
         return json(res,503,{ok:false,error:'account_notifications_unavailable'});
       try{
-        const response=await getAccountNotifications();
+        const owner=auth.identity(req);
+        if(!owner?.username||!String(owner.username).includes('@'))
+          return json(res,403,{ok:false,error:'account_notification_account_login_required'});
+        const response=await getAccountNotifications({wallUsername:owner.username});
         if(response?.ok!==true||!Array.isArray(response.notifications))
           throw Error('account_notifications_unavailable');
         return json(res,200,response);

@@ -1,5 +1,12 @@
 // Shared presentation for the owner-authenticated Local Wall notification bell.
 // Browser receives only account-scoped previews from the signed Agent channel.
+export function assertNotificationOwnerEmail(accountEmail,wallUsername){
+ const signed=String(accountEmail||'').trim().toLowerCase();
+ const session=String(wallUsername||'').trim().toLowerCase();
+ if(!signed||!session||!signed.includes('@')||signed!==session)
+  throw new Error('account_notification_session_mismatch');
+ return true;
+}
 export const notificationBellStyles=`
 .wall-notification{position:relative;display:inline-flex;align-items:center}
 .wall-notification-toggle{position:relative;display:inline-flex;align-items:center;justify-content:center;border:1px solid #34475a;border-radius:9px;background:#101923;color:#d8e5f2;width:37px;height:35px;cursor:pointer}
