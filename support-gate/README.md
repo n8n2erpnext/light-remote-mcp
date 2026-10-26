@@ -53,3 +53,19 @@ The Gate web UI now matches the bright Libredesk Inbox visual language: compact 
 Authorized Libredesk Admin sessions (System or support@thaiduy.digital) now provide access to the same Gate via the Libredesk session cookie, without a second Gate password. Authorization is checked live through Libredesk on every API call and is denied for missing, foreign or non-Admin identities. Gate send remains disabled.
 
 Current Libredesk database only has the System account. Authenticated browser end-to-end must still be checked by the owner, as no user cookie was available in remote tests. New unit tests cover allowed and denied identities. Deployment only rebuilt Support Gate on NetBird :9088, leaving Libredesk :9087 and Gold Wall 5591 intact.
+
+## Canonical HTTPS production-domain UAT (27 October 2026)
+
+The former NetBird HTTP browser URLs are superseded by:
+- https://support.thaiduy.digital/ — upstream Libredesk agent portal
+- https://support.thaiduy.digital/ai-support/ — AI Support Gate Owner Review
+
+Existing NetBird Traefik terminates trusted Let's Encrypt TLS and forwards by host/path to the respective existing Docker containers, with StripPrefix for Gate. UI scripts/styles and API requests are same-origin under /ai-support/. Libredesk Secure Cookies are enabled. Gate is authenticated exclusively against the Libredesk Admin session (native System or the configured support Admin). No separate admin account or password.
+
+Original ERPNext/Helpdesk LXD, its database and erp.thaiduy.digital remain unchanged. The support.thaiduy.digital route no longer serves ERPNext Helpdesk. Router backup and original PostgreSQL custom-format dumps, with SHA256SUMS, are stored privately in /home/ubuntu/n8n2erpnext/support-gate-checkpoints/20261027-domain-cutover.
+
+Important Docker note: /home/ubuntu/netbird/traefik-dynamic.yaml is bind-mounted READ ONLY as a single FILE into netbird-traefik. After changing this host route file, its original pinned inode may remain in the container. To reload the correct file, recreate ONLY the Traefik service from its existing Compose:
+  cd /home/ubuntu/netbird && docker compose -f docker-compose.yml up -d --no-deps --force-recreate traefik
+Do not restart or redeploy other NetBird services. For rollback, restore the saved pre-cutover route, recreate Traefik, restore Libredesk's pre-cutover config if required and restart only Libredesk app.
+
+The live owner browser still needs to confirm WebSocket readiness after signing in via HTTPS. Unauthenticated GET /ws returns 401 from Libredesk, proving route exists, but not an authenticated successful WebSocket upgrade. Email inboxes/API and actual outgoing mail remain disabled.

@@ -8,7 +8,7 @@ function feedback(message){
  toastTimer=setTimeout(()=>el.classList.remove('active'),5200);
 }
 async function api(path,method='GET',payload){
- const response=await fetch(path,{
+ const response=await fetch('/ai-support'+path,{
   method,credentials:'same-origin',
   headers:{'content-type':'application/json','x-csrf':csrf},
   body:payload===undefined?undefined:JSON.stringify(payload)

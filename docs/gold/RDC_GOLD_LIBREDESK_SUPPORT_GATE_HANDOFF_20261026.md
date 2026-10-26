@@ -78,3 +78,34 @@ Rollback point: Git tag checkpoint/gold-gate-before-libredesk-ui-20261027, prior
 **Still needs owner browser validation:** Current browser session cookies are not available to shell tests. User should refresh Libredesk :9087 and Gate :9088 while logged in, and confirm that Gate displays draft queue instead of login page. Libredesk DB still showed only System, not support@thaiduy.digital, when inspected; do not claim new agent was created or password changed. This change legitimately permits System Admin access meanwhile.
 
 Not implemented: SMTP/IMAP inbox integration, production message sending, agent API mapping, AI worker orchestration, customer magic-link portal. Existing outbound remains disabled; no mail was sent.
+
+## 27 October 2026 — Support domain canonical cutover to Libredesk and AI Support Gate
+
+Owner authorized removing the old ERPNext Helpdesk **domain route** and repointing existing NetBird Traefik (NOT a new proxy and NOT a DNS change) on VPS-ARM. This cutover is now RUNNING. Work remains in the current Gold feature branch, no PR merge and no Windows build.
+
+### Canonical public HTTPS URLs
+- `https://support.thaiduy.digital/` → Libredesk v2.9.0, HTTP 200, upstream Server header libredesk
+- `https://support.thaiduy.digital/ai-support/` → our owner-reviewed Gate, HTTP 200
+- `https://support.thaiduy.digital/ai-support/app.js`, `styles.css`, `healthz` → HTTP 200
+- `https://support.thaiduy.digital/ai-support/api/session` without session → HTTP 401 (intended)
+- `https://support.thaiduy.digital/ws` without session → HTTP 401 (Libredesk's actual authenticated WebSocket route, NOT `/api/v1/ws`)
+- `https://erp.thaiduy.digital/` → original ERPNext router remains HTTP 200, independent.
+- Libredesk's `disable_secure_cookies` changed from `true` (legacy private HTTP UAT) to `false` (Secure cookies). Certificate is Let's Encrypt for `support.thaiduy.digital` and was validated by curl without `-k`, expires Jan 4 2027.
+- Gate frontend URLs changed from direct NetBird ports to same-origin paths: stylesheet/script at `/ai-support/styles.css` and `/ai-support/app.js`, and all fetch calls at `/ai-support/api/*`. Direct old :9088 homepage redirects to the canonical HTTPS path. Both services use the same hostname and Libredesk session cookies; there is no second Gate admin login.
+
+### Router and rollback
+- Live Traefik route file: `/home/ubuntu/netbird/traefik-dynamic.yaml`; service `netbird-traefik` under `/home/ubuntu/netbird/docker-compose.yml`.
+- Existing `light-support@file` router changed service from `erpnext-lxd` (with `support-root` rewrite) to `libredesk-support` at `http://100.94.184.141:9087`.
+- Added `light-support-ai@file` with rule `Host(support.thaiduy.digital) && PathPrefix(/ai-support)`, priority 1000, StripPrefix middleware `/ai-support`, backend `http://100.94.184.141:9088`.
+- Preserved `erp-backoffice@file` → `erpnext-lxd` at `http://10.192.135.70:80`; existing NetBird-related routers also preserved.
+- Important lesson: Traefik bind-mount was a READ-ONLY **file mount pinned to an older inode**. Host's modified file had new sha256, but in-container `/etc/traefik/dynamic.yaml` still had old sha256, and traffic still reached Helpdesk. Fixed by `cd /home/ubuntu/netbird && docker compose -f docker-compose.yml up -d --no-deps --force-recreate traefik` (only Traefik container recreated). New in-container and host config checksums matched exactly. NetBird Server kept running. Verified actual Traefik access logs: `light-support@file` to 9087 and `light-support-ai@file` to 9088.
+- BACKUP folder, 0600: `/home/ubuntu/n8n2erpnext/support-gate-checkpoints/20261027-domain-cutover` with pre-change Traefik route, Libredesk config and Docker Compose, **libredesk.pgsql.dump** and **support_gate.pgsql.dump** (PostgreSQL custom-format dumps), SHA256SUMS all PASS; `traefik-dynamic.yaml.candidate` is final route candidate.
+- If rollback needed: restore `traefik-dynamic.yaml.prev` into live route, **recreate only Traefik** to remount updated file, and restore `libredesk-config.toml.prev` then restart Libredesk app. Keep all PG/Redis volumes; never `down -v`. Do NOT delete ERPNext/Helpdesk data or its LXD (retained as rollback).
+- During the first attempt Gate image switched to new same-origin asset version, but a script returned nonzero before changing the live router; current route was verified still old and no data was damaged. Later dedicated domain cutover succeeded.
+- After restart, Traefik logs showed historical browser tabs still polling `/socket.io/` for the old Frappe Helpdesk (HTTP 404 against Libredesk). That is stale pre-cutover browser JavaScript, not a Libredesk endpoint. Owner should CLOSE/REFRESH old Helpdesk tabs, then sign in anew on canonical HTTPS domain and refresh `/ai-support/`.
+
+### Validated & outstanding
+- HTTPS/TLS, 5 public URLs, route mapping, Secure cookies, unauthenticated Gate protection, old ERPNext domain, Docker and Gold services all validated. Disk ~22 GB free.
+- WebSocket `/ws` reaches correct authenticated Libredesk endpoint through HTTPS and returns expected 401 without a user session; **authenticated live browser upgrade was not tested** because owner's browser cookie is inaccessible to this session. Confirm on owner web UI that Connecting disappears after signing in on HTTPS and refreshing.
+- Light Remote and LightBI inbox email channels, inbound/outbound threading, owner-approved sending, AI evidence worker and public customer ticket links remain not set up. Gate `outbound_ready=false` and no email was sent.
+- This change removes ONLY the support domain routing to ERPNext Helpdesk; it does NOT remove the ERPNext Helpdesk app or its historical tickets.

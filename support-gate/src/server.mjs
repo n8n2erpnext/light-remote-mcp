@@ -141,6 +141,10 @@ async function send(res,id,version){
 }
 async function handler(req,res){
  const path=new URL(req.url,'http://localhost').pathname,method=req.method;
+ if(path==='/'&&String(req.headers.host||'').endsWith(':9088')){
+  res.writeHead(302,{location:'https://support.thaiduy.digital/ai-support/','cache-control':'no-store'});
+  return res.end();
+ }
  if(path==='/healthz')return json(res,200,{ok:true,service:'support-gate',outbound_ready:outgoingReady()});
  if(['/', '/app.js','/styles.css'].includes(path)&&method==='GET'){
   const file=path==='/'?'index.html':path.slice(1),text=await readFile(join(root,file));
