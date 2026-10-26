@@ -25,7 +25,8 @@ function compactError(value){
 function privateFolder(dir){
   fs.mkdirSync(dir,{recursive:true,mode:0o700});
   const st=fs.statSync(dir);
-  if(!st.isDirectory())throw fault('codex_home_permissions',503);
+  if(!st.isDirectory()||fs.lstatSync(dir).isSymbolicLink())
+    throw fault('codex_home_permissions',503);
   // Node's POSIX permission bits are NOT a Windows NTFS ACL inspection.
   // The old mode & 0077 check rejected valid Windows CODEX_HOME paths.
   if(process.platform==='win32'){
@@ -34,9 +35,14 @@ function privateFolder(dir){
         encoding:'utf8',timeout:5000,windowsHide:true,maxBuffer:4096});
       const sid=info.match(/S-1-\d+(?:-\d+)+/)?.[0];
       if(!sid)throw new Error('codex_owner_sid_unavailable');
+      // ACL the protected *parent directory*, not every descendant on each
+      // account() call. Codex can accumulate thousands of sandbox/cache files,
+      // some owned by a sandbox token. /T on those files can fail even though
+      // CODEX_HOME itself is private. Child files inherit this secured parent
+      // when created; fail closed for a symlink/junction as above.
       execFileSync('icacls.exe',[dir,'/inheritance:r','/grant:r',
         '*'+sid+':(OI)(CI)F','/remove:g',
-        '*S-1-1-0','*S-1-5-11','*S-1-5-32-545','/T','/L'],{
+        '*S-1-1-0','*S-1-5-11','*S-1-5-32-545','/L'],{
         timeout:12000,windowsHide:true,maxBuffer:65536});
     }catch{throw fault('codex_home_permissions',503);}
     return;
