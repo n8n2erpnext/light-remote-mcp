@@ -81,7 +81,7 @@ body.wall-view-memory #goldModulesPanel>summary,body.wall-view-codex #goldModule
 body.wall-view-memory #ptyOpen,body.wall-view-codex #ptyOpen{display:none}
 .module-nav-status{font-size:10px;border-radius:5px;padding:2px 4px;background:#303943;color:#abbccc}
 .module-nav-status.on{background:#123627;color:#7ee8ad}
-</style></head><body class="wall-view-${view}"><div id="toastHost" class="toasts" aria-live="polite"></div><div id="confirmOverlay" class="confirm-overlay" role="dialog" aria-modal="true" aria-hidden="true"><div class="confirm-card"><div id="confirmText" class="confirm-text"></div><div class="confirm-actions"><button id="confirmCancel" class="btn small" type="button">Cancel</button><button id="confirmOk" class="btn small danger" type="button">Confirm</button></div></div></div><div class="wrap"><div class="top"><div><div class="brand"><span>${brandSvg}</span><span><strong>Light Remote</strong> <small>MCP</small></span></div><div class="muted" style="margin-top:6px">Local Wall · one device · session lanes · operator history</div></div><div class="topright">${view==='home'?'':'<a id="backToWall" class="btn small" href="/" aria-label="Back to Wall">'+materialIcon('arrowBack')+'<span>Back to Wall</span></a>'}<span id="conn" class="pill">connecting…</span><span class="paircontrol"><span class="pairprefix">A</span><span id="acode" class="paircode">••••-••••</span><span id="aexp" class="code-exp">--:--</span><button id="toggleA" class="icon-only" type="button" title="Show A" aria-label="Show A" disabled><span class="eye-open">${materialIcon('visibility')}</span><span class="eye-off">${materialIcon('visibilityOff')}</span></button><button id="copyA" class="icon-only" type="button" title="Copy A" aria-label="Copy A" disabled>${materialIcon('copy')}</button><button id="refreshA" class="icon-only" type="button" title="Refresh A" aria-label="Refresh A">${materialIcon('refresh')}</button></span><button id="connectCloud" class="btn small">${materialIcon('link')}<span>Connect</span></button><button id="disconnectCloud" class="btn small">${materialIcon('power')}<span>Disconnect</span></button><button id="linkDevice" class="btn small" style="display:none">${materialIcon('device')}<span class="label">Link device</span></button><span id="deviceCodeWrap" class="pill" style="display:none">Device <span id="deviceCode" class="paircode">—</span> <span id="deviceCodeExp" class="muted"></span></span><button id="copyDeviceCode" class="btn small" style="display:none" disabled>${materialIcon('copy')}<span>Copy code</span></button><span id="enrollMsg" class="muted"></span><a id="fleetWall" class="btn small" href="#" target="_blank" rel="noopener" style="display:none">${materialIcon('device')}<span>Open Fleet Wall</span></a><a class="btn small" href="/processes">${materialIcon("terminal")}<span>Processes</span></a><a class="btn small" href="/permissions">${materialIcon('security')}<span>Permissions</span></a><a class="btn small" href="/approve">${materialIcon('approve')}<span>Approve B</span></a>${moduleSupported?'<a class="btn small" href="/long-memory">'+materialIcon("folder")+'<span>Long Memory</span> <span id="navMemoryState" class="module-nav-status">…</span></a><a class="btn small" href="/codex-cli">'+materialIcon("smart_toy")+'<span>Codex</span> <span id="navCodexState" class="module-nav-status">…</span></a>':''}<a class="btn small" href="/settings">${materialIcon('settings')}<span>Settings</span></a>${authEnabled?'<form method="post" action="/auth/logout" style="margin:0"><input type="hidden" name="csrf" value="'+csrf+'"><button class="btn small" type="submit">'+materialIcon('logout')+'<span>Logout</span></button></form>':''}</div></div>
+.confirm-card #confirmInput{width:100%;margin:12px 0 5px;max-width:100%;font:inherit}.confirm-card #confirmInput[hidden]{display:none!important}</style></head><body class="wall-view-${view}"><div id="toastHost" class="toasts" aria-live="polite"></div><div id="confirmOverlay" class="confirm-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="confirmText"><div class="confirm-card"><div id="confirmText" class="confirm-text"></div><input id="confirmInput" type="text" autocomplete="off" spellcheck="false" aria-label="Confirmation text" maxlength="2000" hidden><div class="confirm-actions"><button id="confirmCancel" class="btn small" type="button">Cancel</button><button id="confirmOk" class="btn small danger" type="button">Confirm</button></div></div></div><div class="wrap"><div class="top"><div><div class="brand"><span>${brandSvg}</span><span><strong>Light Remote</strong> <small>MCP</small></span></div><div class="muted" style="margin-top:6px">Local Wall · one device · session lanes · operator history</div></div><div class="topright">${view==='home'?'':'<a id="backToWall" class="btn small" href="/" aria-label="Back to Wall">'+materialIcon('arrowBack')+'<span>Back to Wall</span></a>'}<span id="conn" class="pill">connecting…</span><span class="paircontrol"><span class="pairprefix">A</span><span id="acode" class="paircode">••••-••••</span><span id="aexp" class="code-exp">--:--</span><button id="toggleA" class="icon-only" type="button" title="Show A" aria-label="Show A" disabled><span class="eye-open">${materialIcon('visibility')}</span><span class="eye-off">${materialIcon('visibilityOff')}</span></button><button id="copyA" class="icon-only" type="button" title="Copy A" aria-label="Copy A" disabled>${materialIcon('copy')}</button><button id="refreshA" class="icon-only" type="button" title="Refresh A" aria-label="Refresh A">${materialIcon('refresh')}</button></span><button id="connectCloud" class="btn small">${materialIcon('link')}<span>Connect</span></button><button id="disconnectCloud" class="btn small">${materialIcon('power')}<span>Disconnect</span></button><button id="linkDevice" class="btn small" style="display:none">${materialIcon('device')}<span class="label">Link device</span></button><span id="deviceCodeWrap" class="pill" style="display:none">Device <span id="deviceCode" class="paircode">—</span> <span id="deviceCodeExp" class="muted"></span></span><button id="copyDeviceCode" class="btn small" style="display:none" disabled>${materialIcon('copy')}<span>Copy code</span></button><span id="enrollMsg" class="muted"></span><a id="fleetWall" class="btn small" href="#" target="_blank" rel="noopener" style="display:none">${materialIcon('device')}<span>Open Fleet Wall</span></a><a class="btn small" href="/processes">${materialIcon("terminal")}<span>Processes</span></a><a class="btn small" href="/permissions">${materialIcon('security')}<span>Permissions</span></a><a class="btn small" href="/approve">${materialIcon('approve')}<span>Approve B</span></a>${moduleSupported?'<a class="btn small" href="/long-memory">'+materialIcon("folder")+'<span>Long Memory</span> <span id="navMemoryState" class="module-nav-status">…</span></a><a class="btn small" href="/codex-cli">'+materialIcon("smart_toy")+'<span>Codex</span> <span id="navCodexState" class="module-nav-status">…</span></a>':''}<a class="btn small" href="/settings">${materialIcon('settings')}<span>Settings</span></a>${authEnabled?'<form method="post" action="/auth/logout" style="margin:0"><input type="hidden" name="csrf" value="'+csrf+'"><button class="btn small" type="submit">'+materialIcon('logout')+'<span>Logout</span></button></form>':''}</div></div>
 
 <div class="wall-primary"><div id="devicebox" class="sessionbox muted">loading device…</div><div id="abGrantTimer" class="muted" style="margin:5px 0">Agent A/B access · checking…</div><div id="tabs" class="tabs"></div><div id="sessionbox" class="sessionbox muted">loading sessions…</div><div id="sessionActions" class="controls" style="margin-top:7px"></div>
 <div class="controls" style="margin-top:9px"><input id="filter" placeholder="filter cwd / command / output / PTY"><select id="status"><option value="">all status</option><option>running</option><option>ok</option><option>error</option><option>timeout</option></select><button id="pause" class="btn">${materialIcon('pause')}<span>Pause</span></button><button id="copyVisible" class="btn">${materialIcon('copy')}<span>Copy visible</span></button></div>
@@ -268,7 +268,58 @@ async function copyText(value,label='Copied'){
   }
   notify('Copy failed','error');return false;
 }
-function confirmAction(message){return new Promise(resolve=>{const overlay=document.getElementById('confirmOverlay'),text=document.getElementById('confirmText'),ok=document.getElementById('confirmOk'),cancel=document.getElementById('confirmCancel');if(!overlay){resolve(false);return;}text.textContent=String(message||'Confirm action?');overlay.classList.add('show');overlay.setAttribute('aria-hidden','false');const done=v=>{overlay.classList.remove('show');overlay.setAttribute('aria-hidden','true');ok.onclick=null;cancel.onclick=null;resolve(v);};ok.onclick=()=>done(true);cancel.onclick=()=>done(false);overlay.onclick=e=>{if(e.target===overlay)done(false);};cancel.focus();});}
+// Gold Wall dialog: never invoke the browser's native alert/confirm/prompt.
+let wallDialogActive=false;
+function wallDialog(message,{textInput=false,initialValue=''}={}){
+  return new Promise(resolve=>{
+    const overlay=document.getElementById('confirmOverlay');
+    const text=document.getElementById('confirmText');
+    const input=document.getElementById('confirmInput');
+    const ok=document.getElementById('confirmOk');
+    const cancel=document.getElementById('confirmCancel');
+    if(wallDialogActive||!overlay||!text||!input||!ok||!cancel){
+      resolve(textInput?null:false);return;
+    }
+    wallDialogActive=true;
+    const previous=document.activeElement;
+    text.textContent=String(message||'Confirm action?');
+    input.hidden=!textInput;
+    input.value=textInput?String(initialValue??'').slice(0,2000):'';
+    ok.textContent=textInput?'Continue':'Confirm';
+    ok.classList.toggle('danger',!textInput&&/delete|remove|revoke|sign out|stop|cancel|archive/i.test(String(message)));
+    overlay.classList.add('show');
+    overlay.setAttribute('aria-hidden','false');
+    const done=(accepted)=>{
+      overlay.classList.remove('show');
+      overlay.setAttribute('aria-hidden','true');
+      overlay.removeEventListener('keydown',keys);
+      overlay.onclick=null;
+      ok.onclick=null;cancel.onclick=null;
+      input.hidden=true;
+      wallDialogActive=false;
+      resolve(accepted?(textInput?input.value:true):(textInput?null:false));
+      if(previous&&typeof previous.focus==='function')previous.focus();
+    };
+    const keys=(event)=>{
+      if(event.key==='Escape'){event.preventDefault();done(false);return;}
+      if(event.key==='Enter'&&event.target===input){event.preventDefault();done(true);return;}
+      if(event.key==='Tab'){
+        const focusables=textInput?[input,cancel,ok]:[cancel,ok];
+        const first=focusables[0],last=focusables[focusables.length-1];
+        if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
+        else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
+      }
+    };
+    overlay.addEventListener('keydown',keys);
+    ok.onclick=()=>done(true);
+    cancel.onclick=()=>done(false);
+    overlay.onclick=event=>{if(event.target===overlay)done(false);};
+    (textInput?input:cancel).focus();
+  });
+}
+function confirmAction(message){return wallDialog(message);}
+function wallPrompt(message,initialValue=''){return wallDialog(message,{textInput:true,initialValue});}
+
 function displayBadgeLabel(j){return toolLabel(j)||fallbackCommandBadge(j);}function fallbackCommandBadge(j){const text=String(commandText(j)||'').trim();if(!text)return 'COMMAND';if(/\$env:|\b(?:Write-Output|Get-|Set-|New-|Remove-|Start-|Stop-|Invoke-)/i.test(text))return 'POWERSHELL';const m=text.match(/^\s*(?:sudo\s+|env\s+|nohup\s+|time\s+)?([^\s;&|]+)/),raw=String(m?.[1]||'').replace(/^.*[\\/]/,'').toLowerCase(),map={git:'GIT',powershell:'POWERSHELL','powershell.exe':'POWERSHELL',pwsh:'POWERSHELL','pwsh.exe':'POWERSHELL',cmd:'CMD','cmd.exe':'CMD',npm:'PACKAGE',pnpm:'PACKAGE',yarn:'PACKAGE',bun:'PACKAGE',pip:'PACKAGE',pip3:'PACKAGE',docker:'CONTAINER',podman:'CONTAINER',kubectl:'K8S',helm:'K8S',k3s:'K8S',ssh:'SSH',journalctl:'JOURNAL',systemctl:'SYSTEMCTL'};return map[raw]||'COMMAND';}
 function refreshAbGrantTimer(){
   const el=document.getElementById('abGrantTimer');el.className='muted';
@@ -823,7 +874,7 @@ document.getElementById('goldReaderArchive').onclick=async()=>{
   const status=document.getElementById('goldReaderManageStatus');
   try{
     const scopeId=goldReaderSelected(),name=goldMemoryUsageCache?.scopes?.find(s=>s.scopeId===scopeId)?.displayName||scopeId;
-    if(!confirm('Archive '+name+'? Capture and new sync for this scope will stop; the existing signed history is retained.'))return;
+    if(!await confirmAction('Archive '+name+'? Capture and new sync for this scope will stop; the existing signed history is retained.'))return;
     await wallMutation('/api/gold/modules/scope/archive',{scopeId,ownerConfirmed:true});
     status.textContent='Archived '+name+'; signed history retained.';
     await goldReaderRefresh();await goldReaderUsageRefresh();
@@ -833,7 +884,7 @@ document.getElementById('goldReaderRestore').onclick=async()=>{
   const status=document.getElementById('goldReaderManageStatus'),scopeId=document.getElementById('goldReaderArchived').value;
   if(!scopeId){status.textContent='Choose an archived scope';return;}
   try{
-    if(!confirm('Restore this archived scope locally? It may resume receiving authorized updates.'))return;
+    if(!await confirmAction('Restore this archived scope locally? It may resume receiving authorized updates.'))return;
     await wallMutation('/api/gold/modules/scope/restore',{scopeId,ownerConfirmed:true});
     await goldReaderRefresh(scopeId);await goldReaderUsageRefresh();
     status.textContent='Archived scope restored. Sync policy still applies.';
@@ -847,9 +898,9 @@ document.getElementById('goldReaderDeleteAccount').onclick=async()=>{
     const row=goldMemoryUsageCache?.scopes?.find(s=>s.scopeId===scopeId);
     if(!row)throw Error('Select a work and refresh its details first');
     const name=row.displayName;
-    const typed=prompt('Delete '+name+' across ALL enrolled devices? This cannot be undone. Type the exact work name to request deletion:');
+    const typed=await wallPrompt('Delete '+name+' across ALL enrolled devices? This cannot be undone. Type the exact work name to request deletion:');
     if(typed!==name){status.textContent='Canceled: work name did not match.';return;}
-    if(!confirm('Final confirmation: permanently delete this work on this device and send signed deletion instructions to other devices? Offline devices remain PENDING until they acknowledge. Exports and backups remain.'))return;
+    if(!await confirmAction('Final confirmation: permanently delete this work on this device and send signed deletion instructions to other devices? Offline devices remain PENDING until they acknowledge. Exports and backups remain.'))return;
     button.disabled=true;
     const j=await wallMutation('/api/gold/modules/scope/delete/account',
       {scopeId,confirmName:typed,ownerConfirmed:true});
@@ -866,9 +917,9 @@ document.getElementById('goldReaderDeleteLocal').onclick=async()=>{
     const scopeId=goldReaderSelected(),row=goldMemoryUsageCache?.scopes?.find(s=>s.scopeId===scopeId);
     if(!row)throw Error('Refresh storage and choose a scope first');
     const name=row.displayName;
-    const typed=prompt('Delete local checkpoints for '+name+'? Other devices and backups remain unchanged. To confirm, type the exact scope name:');
+    const typed=await wallPrompt('Delete local checkpoints for '+name+'? Other devices and backups remain unchanged. To confirm, type the exact scope name:');
     if(typed!==name){status.textContent='Canceled: scope name not confirmed.';return;}
-    if(!confirm('Permanently remove this scope’s local content and retain a tombstone preventing stale resync on this device?'))return;
+    if(!await confirmAction('Permanently remove this scope’s local content and retain a tombstone preventing stale resync on this device?'))return;
     const j=await wallMutation('/api/gold/modules/scope/delete/local',
       {scopeId,confirmName:typed,ownerConfirmed:true});
     status.textContent='Deleted locally: '+j.result.checkpointsDeleted+' checkpoints. Replica copies were NOT erased.';
@@ -905,7 +956,7 @@ document.getElementById('goldContextSave').onclick=async()=>{
     const text=document.getElementById('goldContextText').value;
     if(!text.trim())throw Error('Paste or import content first');
     if(new TextEncoder().encode(text).byteLength>512*1024)throw Error('Text exceeds 512 KiB');
-    if(!confirm('Save the exact owner-provided text as signed scope checkpoints? It may contain sensitive information.'))return;
+    if(!await confirmAction('Save the exact owner-provided text as signed scope checkpoints? It may contain sensitive information.'))return;
     const j=await wallMutation('/api/gold/modules/scope/context/save',{
       scopeId:goldReaderSelected(),title:document.getElementById('goldContextTitle').value||'Complete session context',
       text,source:goldContextInputSource,confirmed:true
@@ -1292,7 +1343,7 @@ document.getElementById('goldSyncRevoke').onclick=async()=>{
     if(!scopeId||!replicaDeviceId)throw Error('Choose the exact Home scope and Replica');
     if(!document.getElementById('goldSyncOwnerConfirm').checked)
       throw Error('Explicit owner confirmation required for this scope change');
-    if(!confirm("Revoke this Replica's access to the selected Memory Scope? Already downloaded data cannot be erased remotely."))
+    if(!await confirmAction("Revoke this Replica's access to the selected Memory Scope? Already downloaded data cannot be erased remotely."))
       return;
     await wallMutation('/api/gold/modules/scope/sync/revoke',{
       scopeId,replicaDeviceId,ownerConfirmed:true
@@ -1318,7 +1369,7 @@ async function goldRefreshSyncInbox(){
       const approve=document.createElement('button');approve.type='button';approve.className='btn small';
       approve.textContent='Approve on this Replica';
       approve.onclick=async()=>{
-        if(!confirm('Approve Memory scope '+String(invite.scopeName)+' from '+invite.homeDeviceId+
+        if(!await confirmAction('Approve Memory scope '+String(invite.scopeName)+' from '+invite.homeDeviceId+
           ' on this device? This grants only the selected scope.'))return;
         try{
           const data=await wallMutation('/api/gold/modules/sync/accept-device',{
@@ -1447,7 +1498,7 @@ async function goldObserverReceiptsRefresh(){
       const approve=document.createElement('button');approve.type='button';approve.className='btn small';
       approve.textContent='Approve task done';approve.disabled=receipt.reviewed;
       approve.onclick=async()=>{
-        if(!confirm('After reviewing the Codex receipt, explicitly mark this specific task DONE? This changes your local Task Controller.'))return;
+        if(!await confirmAction('After reviewing the Codex receipt, explicitly mark this specific task DONE? This changes your local Task Controller.'))return;
         try{
           await wallMutation('/api/gold/modules/receipt/approve',{receiptId:receipt.id,taskId:task.id,toState:'done',confirm:true});
           await goldObserverRefresh();
@@ -1486,11 +1537,11 @@ async function goldObserverRefresh(){
     delegate.textContent='Delegate to Codex';
     delegate.onclick=async()=>{
       try{
-        const workspace=prompt('Project folder path (optional). Leave blank for a private safe test workspace. External folders require prior approval:', '');
+        const workspace=await wallPrompt('Project folder path (optional). Leave blank for a private safe test workspace. External folders require prior approval:', '');
         if(workspace===null)return;
-        const goal=prompt('What should Codex accomplish in this workspace? (max 2000 characters)',task.title);
+        const goal=await wallPrompt('What should Codex accomplish in this workspace? (max 2000 characters)',task.title);
         if(!goal)return;
-        if(!confirm('Authorize Codex to edit files within this workspace in up to 2 bounded rounds? No elevated permissions, approval bypass or automatic DONE. Your ChatGPT-plan Codex quota will be used.'))return;
+        if(!await confirmAction('Authorize Codex to edit files within this workspace in up to 2 bounded rounds? No elevated permissions, approval bypass or automatic DONE. Your ChatGPT-plan Codex quota will be used.'))return;
         delegate.disabled=true;
         await wallMutation('/api/gold/modules/supervisor/delegate',{
           taskId:task.id,workspace,goal,maxRounds:2,ownerApproved:true});
@@ -1526,9 +1577,9 @@ async function goldObserverRefresh(){
     };
     input.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();save.click();}else if(e.key==='Escape')cancel.click();};
     remove.onclick=async()=>{
-      const typed=prompt('Delete task from active Task Controller? Existing Codex receipts remain available. Type the exact task title to confirm:',task.title);
+      const typed=await wallPrompt('Delete task from active Task Controller? Existing Codex receipts remain available. Type the exact task title to confirm:',task.title);
       if(typed!==task.title)return;
-      if(!confirm('Hide this task from future Codex observations? Previous receipts and task history are retained; this cannot be undone from this view.'))return;
+      if(!await confirmAction('Hide this task from future Codex observations? Previous receipts and task history are retained; this cannot be undone from this view.'))return;
       remove.disabled=true;
       try{
         await wallMutation('/api/gold/modules/task/delete',
@@ -1562,7 +1613,7 @@ function goldCoordinatorInit(){
   const create=goldCoordinatorNode('button','Create 3-step review test','btn small');
   create.type='button';create.id='goldCoordinatorCreate';
   create.onclick=async()=>{
-    if(!confirm('Create one 3-step UAT plan? Codex must approve each short report before the next step unlocks.'))return;
+    if(!await confirmAction('Create one 3-step UAT plan? Codex must approve each short report before the next step unlocks.'))return;
     create.disabled=true;
     try{
       const payload={ownerApproved:true,title:'Short-task Codex coordination test',steps:[
@@ -1595,7 +1646,7 @@ function goldCoordinatorInit(){
   submit.id='goldCoordinatorSubmit';submit.type='button';
   submit.onclick=async()=>{
     if(!goldCoordinatorPlanId)return;
-    if(!confirm('Send the current task report to read-only Codex for independent review?'))return;
+    if(!await confirmAction('Send the current task report to read-only Codex for independent review?'))return;
     submit.disabled=true;status.textContent='Codex is reviewing this task. The next task stays locked until a valid decision.';
     try{
       const p=await (await fetch('/api/gold/modules/coordinator/plan?planId='+encodeURIComponent(goldCoordinatorPlanId),{cache:'no-store'})).json();
@@ -1613,7 +1664,7 @@ function goldCoordinatorInit(){
   reopen.id='goldCoordinatorReopen';reopen.type='button';reopen.hidden=true;
   reopen.onclick=async()=>{
     if(!goldCoordinatorPlanId)return;
-    if(!confirm('Reopen the blocked step to provide NEW evidence? The previous Codex decision and receipt will be retained.'))return;
+    if(!await confirmAction('Reopen the blocked step to provide NEW evidence? The previous Codex decision and receipt will be retained.'))return;
     try{
       const response=await fetch('/api/gold/modules/coordinator/plan?planId='+encodeURIComponent(goldCoordinatorPlanId),{cache:'no-store'});
       const view=await response.json();
@@ -1753,7 +1804,7 @@ document.getElementById('goldManagedCodexRefresh').onclick=async()=>{
   catch(e){document.getElementById('goldManagedCodexStatus').textContent=String(e.message||e);}
 };
 document.getElementById('goldManagedCodexInstall').onclick=async()=>{
-  if(!confirm('Install official @openai/codex from npm into this device only? This downloads executable code from the official registry. No installation occurs merely by enabling Codex Bridge.'))return;
+  if(!await confirmAction('Install official @openai/codex from npm into this device only? This downloads executable code from the official registry. No installation occurs merely by enabling Codex Bridge.'))return;
   const b=document.getElementById('goldManagedCodexInstall');b.disabled=true;
   try{
     await wallMutation('/api/gold/modules/codex-runtime/install',{ownerApproved:true});
@@ -1762,7 +1813,7 @@ document.getElementById('goldManagedCodexInstall').onclick=async()=>{
   finally{b.disabled=false;}
 };
 document.getElementById('goldManagedCodexRemove').onclick=async()=>{
-  const typed=prompt('Type REMOVE CODEX RUNTIME to delete only the Codex executable managed by Light Remote:');
+  const typed=await wallPrompt('Type REMOVE CODEX RUNTIME to delete only the Codex executable managed by Light Remote:');
   if(typed!=='REMOVE CODEX RUNTIME')return;
   try{await wallMutation('/api/gold/modules/codex-runtime/remove',{confirmText:typed});await goldManagedRuntimeRefresh();}
   catch(e){document.getElementById('goldManagedCodexStatus').textContent=String(e.message||e);}
@@ -1822,12 +1873,12 @@ document.getElementById('goldCodexPlusCancel').onclick=async()=>{
   catch(e){document.getElementById('goldCodexPlusStatus').textContent=goldCodexDiagnostic(e);}
 };
 document.getElementById('goldCodexPlusLogout').onclick=async()=>{
-  if(!confirm('Sign out this Gold device from ChatGPT Codex?'))return;
+  if(!await confirmAction('Sign out this Gold device from ChatGPT Codex?'))return;
   try{await goldCodexPlusAction('/api/gold/modules/codex-plus/logout');await goldCodexPlusRefresh();}
   catch(e){document.getElementById('goldCodexPlusStatus').textContent=goldCodexDiagnostic(e);}
 };
 document.getElementById('goldCodexPlusRun').onclick=async()=>{
-  if(!confirm('Run a read-only Codex observer turn using your ChatGPT-plan quota? Task titles/states will be sent to Codex. No device commands are approved.'))return;
+  if(!await confirmAction('Run a read-only Codex observer turn using your ChatGPT-plan quota? Task titles/states will be sent to Codex. No device commands are approved.'))return;
   const button=document.getElementById('goldCodexPlusRun'),output=document.getElementById('goldCodexPlusOutput');
   button.disabled=true;output.textContent='Codex app-server turn running…';
   try{

@@ -1,3 +1,4 @@
+import {WALL_DIALOG_EMBED} from '../lib/wall-dialogs.mjs';
 import {brandFaviconSvg} from '../lib/brand.mjs';
 import {materialIcon} from '../lib/material-icon.mjs';
 import {WALL_FONT_FACE_CSS,WALL_UI_FONT,WALL_CODE_FONT} from '../lib/web-typography.mjs';
@@ -58,7 +59,7 @@ if(!fleet&&modulesAvailable){
       summary.className='error';summary.textContent='Type DELETE LOCAL MEMORY exactly before continuing.';
       return;
     }
-    if(!confirm('Permanently delete this device’s local Long Memory? This cannot be undone. Other devices and backups are NOT deleted.')){
+    if(!await wallConfirm('Permanently delete this device’s local Long Memory? This cannot be undone. Other devices and backups are NOT deleted.')){
       return;
     }
     del.disabled=true;summary.className='hold';summary.textContent='Deleting local memory…';
@@ -75,7 +76,7 @@ if(!fleet&&modulesAvailable){
   };
 }
 load();setInterval(()=>{if(!document.hidden)load();},10000);
-</script></body></html>`;
+</script></body></html>`.replace("</body>",WALL_DIALOG_EMBED+"</body>");
 }
 
 export {escHtml};

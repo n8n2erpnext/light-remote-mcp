@@ -52,6 +52,7 @@ on:
       - 'deploy/scripts/selftest-gold-wall-close-session-*.mjs'
       - 'deploy/scripts/selftest-gold-memory-reader-export.mjs'
       - 'deploy/scripts/selftest-gold-codex-binary-discovery.mjs'
+      - 'deploy/scripts/selftest-gold-no-native-browser-dialogs.mjs'
       - 'deploy/scripts/selftest-gold-wall-navigation.mjs'
       - 'deploy/scripts/selftest-gold-managed-codex-runtime.mjs'
       - 'deploy/scripts/selftest-gold-memory-delete-settings.mjs'
@@ -122,6 +123,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Gold Memory Library read and export regression failed' }
           node deploy/scripts/selftest-gold-wall-navigation.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Gold dedicated module route navigation regression failed' }
+          node deploy/scripts/selftest-gold-no-native-browser-dialogs.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold native browser dialog regression failed' }
           node deploy/scripts/selftest-gold-managed-codex-runtime.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Gold device-managed optional Codex runtime regression failed' }
           node deploy/scripts/selftest-gold-memory-delete-settings.mjs
