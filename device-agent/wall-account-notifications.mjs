@@ -78,10 +78,10 @@ export const notificationBellScript=`
    bell.setAttribute('aria-label',count?'Notifications, '+count+' unread':'Notifications');
    items.className='';
    items.replaceChildren();
-   const notices=data.notifications.filter(n=>valid(n.notificationId)).slice(0,5);
+   const notices=data.notifications.filter(n=>valid(n.notificationId)&&!n.readAt).slice(0,5);
    if(!notices.length){
     items.className='wall-notification-empty';
-    items.textContent='No notifications yet.';
+    items.textContent='All caught up.';
    }
    for(const notice of notices){
     const a=document.createElement('a');
@@ -89,7 +89,7 @@ export const notificationBellScript=`
     a.target='_blank';a.rel='noopener noreferrer';
     const title=document.createElement('div');title.className='wall-notification-title';
     title.textContent=String(notice.title||'Notification').slice(0,160);
-    if(!notice.readAt){const isNew=document.createElement('span');isNew.className='wall-notification-new';isNew.textContent='New';title.append(isNew);}
+    const isNew=document.createElement('span');isNew.className='wall-notification-new';isNew.textContent='New';title.append(isNew);
     const body=document.createElement('div');body.className='wall-notification-body';
     body.textContent=String(notice.body||'').slice(0,300);
     a.append(title,body);items.append(a);
@@ -122,6 +122,7 @@ export const notificationBellScript=`
   if(opening){placePanel();void refreshNotifications();}
  });
  window.addEventListener('resize',placePanel);
+ window.addEventListener('focus',()=>{void refreshNotifications();});
  window.addEventListener('scroll',placePanel,true);
  document.addEventListener('click',event=>{if(!host.contains(event.target))close();});
  document.addEventListener('keydown',event=>{if(event.key==='Escape')close();});

@@ -87,7 +87,11 @@ try{
  await registry.markRead(account,own.notificationId,{plan:'pro'});
  const updated=await handleDeviceChannelRoutes(signedRequest(), {}, endpoint,deps);
  assert.equal(updated.unreadCount,1);
- assert(updated.notifications.find(n=>n.notificationId===own.notificationId).readAt);
+ assert(!updated.notifications.some(n=>n.notificationId===own.notificationId),'read notice must disappear from Bell');
+ assert(updated.notifications.some(n=>n.notificationId===everyone.notificationId),'unread notice stays in Bell');
+ const history=await registry.inbox(account,{plan:'pro'});
+ assert(history.notifications.find(n=>n.notificationId===own.notificationId).readAt,
+  'read notice must remain in Account history');
  assert.equal((await registry.inbox(other,{plan:'free'})).unreadCount,2,'read states isolated by account');
  // HTTP → authorized Wall → real Ed25519 verifier → real PostgreSQL inbox
  // → Wall JSON. An old principal from another account must fail closed.
@@ -114,7 +118,8 @@ try{
   const legit=await fetch(base+'/api/account-notifications',{headers:{'x-test-owner':'owner'}});
   assert.equal(legit.status,200);
   const actual=await legit.json();assert.equal(actual.unreadCount,1);
-  assert.equal(actual.notifications.length,2);
+  assert.equal(actual.notifications.length,1);
+  assert(!actual.notifications.some(n=>n.notificationId===own.notificationId));
   assert(!actual.notifications.some(n=>n.title==='Other account notice'));
   const old=await fetch(base+'/api/account-notifications',{headers:{'x-test-owner':'previous'}});
   assert.notEqual(old.status,200,'stale old account session must never read new owner');

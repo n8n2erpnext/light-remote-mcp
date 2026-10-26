@@ -17,10 +17,13 @@ function backendDeps(ctx=signedCtx){
   accountNotifications:{inbox:async(id,account)=>{
    assert.equal(id,ctx.binding.accountId);assert.equal(account.plan,'pro');
    return {unreadCount:1,notifications:[{notificationId,type:'security',title:'Security update',
-    body:'Please review your account',readAt:null,createdAt:2000,link:'https://evil.invalid/steal',inviteCode:'DO_NOT_LEAK'}]};}},
+    body:'Please review your account',readAt:null,createdAt:2000,link:'https://evil.invalid/steal',inviteCode:'DO_NOT_LEAK'},
+    {notificationId:'sys_22222222-2222-3333-4444-555555555555',type:'feature',
+     title:'Previously read',body:'Keep in account history',readAt:1900,createdAt:9000}]};}},
   proTeams:{inbox:({memberAccountId})=>{assert.equal(memberAccountId,ctx.binding.accountId);
     return {unreadCount:1,notifications:[{notificationId:inviteId,type:'team_invitation',ownerEmail:'owner@example.invalid',
-      inviteCode:'PRIVATE_INVITE_SECRET',readAt:null,createdAt:3000}]};}},
+      inviteCode:'PRIVATE_INVITE_SECRET',readAt:null,createdAt:3000},
+      {notificationId:'tinv_'+('b'.repeat(24)),ownerEmail:'old@example.invalid',readAt:2100,createdAt:8000}]};}},
   sendJson:(res,status,value)=>{res.status=status;res.value=value;return value}
  };
 }
@@ -36,6 +39,8 @@ function backendDeps(ctx=signedCtx){
  assert.equal(value.notifications.length,2);
  assert.equal(value.notifications[0].type,'team_invitation');
  assert.equal(value.notifications[1].title,'Security update');
+ assert(!value.notifications.some(n=>n.readAt),'read notifications must disappear from Bell preview');
+ assert(!value.notifications.some(n=>n.title==='Previously read'));
  assert(!JSON.stringify(value).includes('PRIVATE_INVITE_SECRET'));
  assert(!JSON.stringify(value).includes('DO_NOT_LEAK'));
  assert(!JSON.stringify(value).includes('evil.invalid'));
@@ -95,6 +100,10 @@ try{
  assert.match(html,/const back='\/account\/inbox'\+\(targetNotificationId/);
  assert.match(html,/location\.href='\/account\/login\?next='\+encodeURIComponent\(back\)/);
  assert.match(html,/target\.scrollIntoView/);
+ assert.match(html,/deepLinkReadAttempted/);
+ assert.match(html,/await api\(focused\.type==='team_invitation'\?'team-inbox-read':'notifications-read','POST'/);
+ assert.match(notificationBellScript,/filter\(n=>valid\(n.notificationId\)&&!n.readAt\)/);
+ assert.match(notificationBellScript,/window.addEventListener\('focus'/);
  const requested='/account/inbox?notificationId='+encodeURIComponent(notificationId);
  const login='/account/login?next='+encodeURIComponent(requested);
  assert.equal(new URL(login,'https://gold.light-remote.thaiduy.digital').searchParams.get('next'),requested);

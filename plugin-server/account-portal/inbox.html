@@ -17,6 +17,7 @@
 const $=id=>document.getElementById(id);let notifications=[],selected='all';
 const requestedNotificationId=new URLSearchParams(location.search).get('notificationId');
 const targetNotificationId=/^(sys_[a-f0-9-]{36}|tinv_[a-f0-9]{24})$/.test(String(requestedNotificationId||''))?requestedNotificationId:null;
+const deepLinkReadAttempted=new Set();
 const icon='/assets/icons/material/';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const kind={team_invitation:'Team invitation',update:'Product update',feature:'New feature',promotion:'Offer',maintenance:'Maintenance',security:'Security notice',account:'Account'};
@@ -61,6 +62,22 @@ async function load(){
  if(targetNotificationId){
   const target=$('notification-'+targetNotificationId);
   if(target)requestAnimationFrame(()=>{target.scrollIntoView({behavior:'smooth',block:'center'});target.focus({preventScroll:true})});
+  // The owner actually opened this notification in Account Inbox.
+  // Mark it read in canonical PostgreSQL; never accept a Team invite here.
+  const focused=notifications.find(n=>n.notificationId===targetNotificationId);
+  if(focused&&!focused.readAt&&!deepLinkReadAttempted.has(targetNotificationId)){
+   deepLinkReadAttempted.add(targetNotificationId);
+   try{
+    await api(focused.type==='team_invitation'?'team-inbox-read':'notifications-read','POST',{notificationId:targetNotificationId});
+    focused.readAt=Date.now();
+    const left=notifications.filter(n=>!n.readAt).length;
+    $('inboxBadge').textContent=left?'('+left+')':'';
+    $('inboxTotal').textContent=left?left+' unread':'All caught up';
+    render();
+    const latest=$('notification-'+targetNotificationId);
+    if(latest)requestAnimationFrame(()=>{latest.scrollIntoView({behavior:'smooth',block:'center'});latest.focus({preventScroll:true})});
+   }catch(error){deepLinkReadAttempted.delete(targetNotificationId);notice('Unable to mark notification read: '+error.message,true)}
+  }
  }
 }
 async function action(id,mode){
