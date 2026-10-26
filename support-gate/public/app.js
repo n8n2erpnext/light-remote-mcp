@@ -1,72 +1,171 @@
-const $=id=>document.getElementById(id);let csrf='',current=null,canSend=false,drafts=[];
-function feedback(text){$('feedback').textContent=text}
+const $=id=>document.getElementById(id);
+let csrf='',current=null,canSend=false,drafts=[],filter='all',query='',toastTimer=0;
+
+function icon(ref){return '<svg aria-hidden="true"><use href="#i-'+ref+'"></use></svg>'}
+function feedback(message){
+ const el=$('feedback');el.textContent=message;el.classList.add('active');
+ if(toastTimer)clearTimeout(toastTimer);
+ toastTimer=setTimeout(()=>el.classList.remove('active'),5200);
+}
 async function api(path,method='GET',payload){
- const response=await fetch(path,{method,credentials:'same-origin',headers:{'content-type':'application/json','x-csrf':csrf},body:payload===undefined?undefined:JSON.stringify(payload)});
- const result=await response.json();if(!response.ok)throw Error(result.error||'HTTP '+response.status);return result;
+ const response=await fetch(path,{
+  method,credentials:'same-origin',
+  headers:{'content-type':'application/json','x-csrf':csrf},
+  body:payload===undefined?undefined:JSON.stringify(payload)
+ });
+ const data=await response.json();
+ if(!response.ok)throw Error(data.error||'HTTP '+response.status);
+ return data;
 }
 function draftForm(){
- return {brand:$('brand').value,conversation_uuid:$('conversation').value.trim(),recipient:$('recipient').value.trim(),
- subject:$('subject').value.trim(),message:$('message').value.trim(),based_on_message_uuid:$('latest').value.trim()};
+ return {brand:$('brand').value,conversation_uuid:$('conversation').value.trim(),
+ recipient:$('recipient').value.trim(),subject:$('subject').value.trim(),
+ message:$('message').value.trim(),based_on_message_uuid:$('latest').value.trim()};
+}
+function relativeDate(value){
+ if(!value)return 'now';
+ const delta=Date.now()-new Date(value).getTime();
+ if(!Number.isFinite(delta)||delta<0)return 'now';
+ if(delta<60000)return 'now';
+ if(delta<3600000)return Math.floor(delta/60000)+'m';
+ if(delta<86400000)return Math.floor(delta/3600000)+'h';
+ return new Date(value).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
+function label(status){
+ return ({draft:'Needs review',approved:'Approved',sent:'Sent',
+   needs_review:'Recheck',unknown:'Needs attention',sending:'Sending'})[status]||status;
 }
 function fill(item){
  current=item||null;
- $('editorTitle').textContent=item?'Draft '+item.status:'New support draft';
+ $('editorTitle').textContent=item?item.subject:'New support draft';
+ $('crumbMode').textContent=item?'Draft #'+item.id.slice(0,8):'New draft';
  $('brand').value=item?.brand||'light-remote';
  $('conversation').value=item?.conversation_uuid||'';
  $('recipient').value=item?.recipient||'';
  $('subject').value=item?.subject||'';
  $('message').value=item?.message||'';
  $('latest').value=item?.based_on_message_uuid||'';
+ const status=$('draftStatus');status.textContent=item?label(item.status):'New draft';
+ status.className='draft-status'+(item?.status?' '+item.status:'');
+ const editable=!item||['draft','approved','needs_review'].includes(item.status);
+ $('save').disabled=!editable;
  $('approve').disabled=!item||item.status!=='draft';
  $('send').disabled=!item||item.status!=='approved'||!canSend;
- $('hint').textContent=item?.status==='sent'?'This response has been sent.':
-  !canSend?'Outbound disabled until agent API credentials are verified.':
-  item?.status==='approved'?'Ready for owner-authorized send after checking conversation freshness.':
-  'Review and approve a draft before sending.';
+ for(const element of document.querySelectorAll('#draftForm input,#draftForm textarea,#draftForm select'))
+   element.disabled=!editable;
+ $('hint').textContent=item?.status==='sent'?'The reply was sent through Libredesk.':
+  item?.status==='unknown'?'Delivery outcome requires manual reconciliation. Never send this draft again automatically.':
+  !canSend?'Sending is locked until Libredesk agent API and inbox mappings are verified.':
+  item?.status==='approved'?'Owner-approved. Check the recipient and latest message before sending.':
+  'Save the proposed response, then approve it before sending.';
 }
 function render(){
  const target=$('drafts');target.replaceChildren();
- for(const d of drafts){
-  const b=document.createElement('button');b.type='button';b.className='draft'+(current?.id===d.id?' active':'');
-  const title=document.createElement('strong');title.textContent=d.subject;
-  const sub=document.createElement('small');sub.textContent=d.brand+' · '+d.status+' · v'+d.version;
-  b.append(title,sub);b.addEventListener('click',()=>{fill(d);render()});target.append(b);
+ for(const key of ['all','draft','approved','sent']){
+  $('count-'+key).textContent=key==='all'?drafts.length:drafts.filter(d=>key==='draft'?['draft','needs_review','unknown'].includes(d.status):d.status===key).length;
+ }
+ const visible=drafts.filter(d=>{
+  if(filter==='draft'&&!['draft','needs_review','unknown'].includes(d.status))return false;
+  if(filter==='approved'&&d.status!=='approved')return false;
+  if(filter==='sent'&&d.status!=='sent')return false;
+  const q=query.toLowerCase();
+  return !q||[d.subject,d.recipient,d.brand,d.message,d.status].some(x=>String(x||'').toLowerCase().includes(q));
+ });
+ $('queueCount').textContent=visible.length+' '+(visible.length===1?'draft':'drafts');
+ $('emptyQueue').hidden=visible.length!==0;
+ for(const d of visible){
+  const button=document.createElement('button');
+  button.type='button';button.className='draft'+(current?.id===d.id?' active':'');button.setAttribute('role','listitem');
+  const top=document.createElement('div');top.className='draft-top';
+  const brand=document.createElement('span');brand.className='draft-brand'+(d.brand==='lightbi'?' bi':'');
+  brand.textContent=d.brand==='lightbi'?'LightBI':'Light Remote';
+  const age=document.createElement('span');age.className='draft-age';age.textContent=relativeDate(d.updated_at);
+  top.append(brand,age);
+  const subject=document.createElement('span');subject.className='draft-subject';subject.textContent=d.subject;
+  const preview=document.createElement('span');preview.className='draft-preview';preview.textContent=d.message||'No response drafted';
+  const footer=document.createElement('div');footer.className='draft-footer';
+  const recipient=document.createElement('span');recipient.textContent=d.recipient;
+  const pill=document.createElement('span');pill.className='pill '+d.status;pill.textContent=label(d.status);
+  footer.append(recipient,pill);
+  button.append(top,subject,preview,footer);
+  button.addEventListener('click',()=>{fill(d);render()});
+  target.append(button);
  }
 }
 async function refresh(){
- const data=await api('/api/drafts');drafts=data.drafts;
- if(current)current=drafts.find(d=>d.id===current.id)||null;
- render();fill(current);
+ const result=await api('/api/drafts');
+ drafts=result.drafts;
+ if(current)current=drafts.find(x=>x.id===current.id)||null;
+ fill(current);render();
 }
 async function init(){
  try{
-  const session=await api('/api/session');csrf=session.csrf;canSend=session.outbound_ready;
+  const session=await api('/api/session');
+  csrf=session.csrf;canSend=session.outbound_ready;
+  $('operator').textContent=session.email||'Admin';
   $('login').hidden=true;$('workspace').hidden=false;
-
-  $('outbound').textContent=canSend?'Outbound API configured: owner approval is mandatory.':
-   'UAT safe mode: Libredesk API send credentials not yet connected. Drafts and approvals are available.';
+  const banner=$('outbound');banner.className='info-banner'+(canSend?' ready':'');
+  banner.querySelector('span').textContent=canSend
+   ?'Libredesk outbound configured. Human owner approval is required before every reply.'
+   :'UAT safe mode — Sending disabled until brand inboxes and Libredesk agent API are configured.';
   await refresh();
- }catch{$('login').hidden=false;$('workspace').hidden=true}
+ }catch(error){
+  csrf='';canSend=false;
+  $('login').hidden=false;$('workspace').hidden=true;
+ }
 }
+function setFilter(next){
+ filter=next;
+ for(const item of document.querySelectorAll('[data-filter]')){
+  const active=item.dataset.filter===next;
+  item.classList.toggle('active',active);
+  if(active)item.setAttribute('aria-current','page');else item.removeAttribute('aria-current');
+ }
+ $('listTitle').textContent=({all:'All drafts',draft:'Needs review',approved:'Approved',sent:'Sent'})[next]||'Drafts';
+ render();
+}
+$('draftForm').addEventListener('submit',event=>event.preventDefault());
 $('retryLogin').addEventListener('click',()=>init());
 $('refresh').addEventListener('click',()=>refresh().catch(e=>feedback(e.message)));
-$('newDraft').addEventListener('click',()=>{fill(null);render()});
+$('search').addEventListener('input',event=>{query=event.target.value.trim();render()});
+document.querySelectorAll('[data-filter]').forEach(item=>
+ item.addEventListener('click',()=>setFilter(item.dataset.filter)));
+$('newDraft').addEventListener('click',()=>{
+ if($('workspace').hidden){feedback('Sign into Libredesk first.');return}
+ fill(null);render();$('subject').focus();
+});
 $('save').addEventListener('click',async()=>{
- try{const d=draftForm();const result=current?
- await api('/api/drafts/'+current.id,'PATCH',d):await api('/api/drafts','POST',d);
- feedback('Draft saved');current={id:result.id||current.id};await refresh();
- }catch(e){feedback('Save: '+e.message)}
+ try{
+  const form=draftForm();
+  const result=current?
+    await api('/api/drafts/'+current.id,'PATCH',form):await api('/api/drafts','POST',form);
+  const id=result.id||current.id;
+  current={id};await refresh();
+  feedback('Draft saved to Support Gate.');
+ }catch(e){feedback('Save failed: '+e.message)}
 });
 $('approve').addEventListener('click',async()=>{
- if(!current)return;try{await api('/api/drafts/'+current.id+'/approve','POST',{version:current.version});
- feedback('Owner approval recorded');await refresh();
- }catch(e){feedback('Approve: '+e.message)}
+ if(!current)return;
+ try{
+  await api('/api/drafts/'+current.id+'/approve','POST',{version:current.version});
+  feedback('Owner approval recorded.');await refresh();
+ }catch(e){feedback('Approval failed: '+e.message)}
 });
-$('send').addEventListener('click',async()=>{
+$('send').addEventListener('click',()=>{
+ if(!current||!canSend||current.status!=='approved')return;
+ $('sendConfirmText').textContent='Send the approved reply to '+current.recipient+' in its original Libredesk conversation? This will email the customer.';
+ $('sendConfirm').showModal();
+});
+$('sendCancel').addEventListener('click',()=>$('sendConfirm').close());
+$('sendProceed').addEventListener('click',async()=>{
+ $('sendConfirm').close();
  if(!current||!canSend||current.status!=='approved')return;
  $('send').disabled=true;
- try{await api('/api/drafts/'+current.id+'/send','POST',{version:current.version});
- feedback('Response sent through Libredesk');await refresh();
+ $('sendProceed').disabled=true;
+ try{
+  await api('/api/drafts/'+current.id+'/send','POST',{version:current.version});
+  feedback('Reply sent through Libredesk.');await refresh();
  }catch(e){feedback('Send not completed: '+e.message);await refresh()}
+ finally{$('sendProceed').disabled=false}
 });
 void init();

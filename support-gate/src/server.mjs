@@ -4,6 +4,7 @@ import {fileURLToPath} from 'node:url';
 import {join,dirname} from 'node:path';
 import crypto from 'node:crypto';
 import pg from 'pg';
+import {sessionCookie,approvedAgent,ownerCsrf} from './libredesk-owner.mjs';
 
 const {GATE_PG_URL,GATE_ADMIN_SALT,GATE_ADMIN_HASH,LIBREDESK_BASE_URL,
  LIBREDESK_API_KEY,LIBREDESK_API_SECRET,GATE_OWNER_EMAIL,GATE_WORKER_TOKEN_HASH,
@@ -18,23 +19,20 @@ const outgoingReady=()=>Boolean(LIBREDESK_BASE_URL&&LIBREDESK_API_KEY&&LIBREDESK
 const ownerEmail=(GATE_OWNER_EMAIL||'support@thaiduy.digital').toLowerCase();
 // The one owner identity is managed by Libredesk, never in Support Gate.
 async function libredeskOwner(req){
- const cookieHeader=String(req.headers.cookie||'');
- if(!cookieHeader||cookieHeader.length>8192)return null;
+ const validCookie=sessionCookie(req.headers.cookie);
+ if(!validCookie)return null;
  const ctrl=new AbortController();
  const timer=setTimeout(()=>ctrl.abort(),4500);
  try{
   const result=await fetch(authorityUrl,{
-   method:'GET',headers:{cookie:cookieHeader,accept:'application/json'},
+   method:'GET',headers:{cookie:'libredesk_session='+validCookie,accept:'application/json'},
    redirect:'error',signal:ctrl.signal
   });
   if(!result.ok)return null;
   const payload=await result.json();
-  const agent=payload?.data;
-  if(!agent||String(agent.email||'').toLowerCase()!==ownerEmail||
-    agent.enabled===false||agent.type==='contact')return null;
-  const csrf=crypto.createHmac('sha256',GATE_ADMIN_HASH)
-    .update('gold-gate-v1\0'+cookieHeader).digest('hex');
-  return {email:ownerEmail,csrf};
+  const agent=approvedAgent(payload,ownerEmail);
+  if(!agent)return null;
+  return {email:agent.email,role:agent.role,csrf:ownerCsrf(validCookie,GATE_ADMIN_HASH)};
  }catch{return null}finally{clearTimeout(timer)}
 }
 function json(res,status,result){

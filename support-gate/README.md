@@ -45,3 +45,11 @@ The separate Gate password login was removed. Owner web access now exclusively d
 **Account provisioning blocker:** The Libredesk installation still only has its initial System account. support@thaiduy.digital has NOT yet been created. A previous Light Remote credential operation was denied by device-local policy; no attempted bypass by SQL, installers, alternate shells or transport is acceptable. The owner must provision the account via authorized Libredesk administrative UI. Until then this integration deliberately returns 401, and legitimate login has NOT passed E2E.
 
 Live unauthenticated/fake-cookie tests pass, Gate UI and Libredesk are HTTP 200, outbound remains disabled; no customer email sent. The original independent Gate authentication database row is no longer consulted and is retained only for rollback.
+
+## Libredesk-matched UI and Admin login, 27 October 2026
+
+The Gate web UI now matches the bright Libredesk Inbox visual language: compact icon rail, left navigation, status filters, searchable draft queue and detail/editor pane with local SVG; mobile responsive. No native browser confirmation for Send. No modification to upstream Libredesk.
+
+Authorized Libredesk Admin sessions (System or support@thaiduy.digital) now provide access to the same Gate via the Libredesk session cookie, without a second Gate password. Authorization is checked live through Libredesk on every API call and is denied for missing, foreign or non-Admin identities. Gate send remains disabled.
+
+Current Libredesk database only has the System account. Authenticated browser end-to-end must still be checked by the owner, as no user cookie was available in remote tests. New unit tests cover allowed and denied identities. Deployment only rebuilt Support Gate on NetBird :9088, leaving Libredesk :9087 and Gold Wall 5591 intact.
