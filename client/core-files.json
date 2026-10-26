@@ -22,8 +22,16 @@
       "destination": "device-agent/filesystem-volume-inventory.mjs"
     },
     {
+      "source": "lib/wall-dialogs.mjs",
+      "destination": "lib/wall-dialogs.mjs"
+    },
+    {
       "source": "device-agent/local-wall.mjs",
       "destination": "device-agent/local-wall.mjs"
+    },
+    {
+      "source": "device-agent/wall-account-notifications.mjs",
+      "destination": "device-agent/wall-account-notifications.mjs"
     },
     {
       "source": "device-agent/gold-wall-modules.mjs",
