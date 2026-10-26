@@ -54,3 +54,15 @@ https://github.com/n8n2erpnext/light-remote-mcp/compare/feature/light-remote-gol
 5. Normalize remaining portal dialogs and design Web Distribution + Admin only after Gold baseline acceptance.
 
 This document is a scoped first-pass audit with explicit unresolved items, **not** a certification that all source code is free of defects.
+
+## PR #4 review finding and parity remediation
+
+PR [#4](https://github.com/n8n2erpnext/light-remote-mcp/pull/4) is open and mergeable, but its initial Gold Native Wall Modules Parity job (40301835007) failed because the #486 frozen-client guard also hashes three intentionally changed files outside the original three allowed dynamic files. This is a **real failing merge gate**, not a compiler error or a GitHub permission failure.
+
+- `device-agent/local-process-page.mjs`: owner-confirmation uses the in-Wall modal instead of native Chrome confirm.
+- `device-agent/update-settings-page.mjs`: existing owner-guarded local Memory deletion UI and in-Wall modal. This page still intentionally refuses all-account deletion; it is **not** the separate scoped Home-signed delete workflow.
+- `device-agent/wall-status-cache.mjs`: generation fencing and cache invalidation after closing a session, preventing stale hold state from reappearing.
+
+The parity guard now contains SHA-256 pins for **only those three exact files**. It still requires the frozen #486 baseline files to exist, checks the entire staged package manifest, and rejects every other mismatch; `exact` mode remains unchanged. No wildcard directory allowlist or disabled checks. A future change to any pinned file requires explicit review and an updated digest.
+
+Local PR validation: `verify-gold-core-parity.mjs /tmp/gold-pr4-core-audit extension` PASS, 90 frozen files matched against 110 staged package entries; `selftest-gold-wall-close-session-cache.mjs <repo>` PASS, and the full Gold Native Wall Modules Parity command sequence, including packaged Wall HTTP smoke, PASS on VPS-ARM. This is separate from final GitHub CI status and UAT cutover.

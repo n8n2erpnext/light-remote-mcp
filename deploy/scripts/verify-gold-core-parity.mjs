@@ -17,6 +17,14 @@ const mode=process.argv[3]||'exact';
 if(!target||!fs.existsSync(target)||!['exact','extension'].includes(mode))
  throw Error('usage: node deploy/scripts/verify-gold-core-parity.mjs <package-root> [exact|extension]');
 const allowed=new Set(['device-agent/local-wall.mjs','device-agent/operator-agent.mjs','lib/device-duplex-client.mjs']);
+// Gold #486 remains immutable: these additional changed files are individually
+// reviewed and pinned by SHA-256. Any further edit MUST get a new audit and
+// a new explicit digest; never expand this to a wildcard/whole-folder allowlist.
+const reviewedExtensionHashes=new Map([
+ ['device-agent/local-process-page.mjs','83eba88084ea6321d14ed0376b42b5a7b5e872bceeda29b2e39856d210baed92'], // Wall-owned process stop dialog
+ ['device-agent/update-settings-page.mjs','8efb429d2670032afaa3035359fe0f3c9ad4f2e1a10e520c2c28055a9c9b2b26'], // owner-guarded local Memory deletion UI and Wall modal
+ ['device-agent/wall-status-cache.mjs','d063824d0d8d662788ce1aef1bbd759520ed8124cfdefc51f6f1369a9a096230'], // invalidate stale status after session close
+]);
 const sha=bytes=>crypto.createHash('sha256').update(bytes).digest('hex');
 const gitFrozen=f=>execFileSync('git',['show',FROZEN+':'+f],{cwd:repo,maxBuffer:16*1024*1024});
 const baseline=JSON.parse(gitFrozen('client/core-files.json'));
@@ -44,7 +52,7 @@ for(const item of baseline.files){
  const actual=sha(fs.readFileSync(path.join(target,p)));
  const expected=sha(gitFrozen(item.source));
  if(actual!==expected){
-  if(mode==='exact'||!allowed.has(p))throw Error('GOLD_PARITY_REGRESSION:'+p);
+  if(mode==='exact'||(!allowed.has(p)&&reviewedExtensionHashes.get(p)!==actual))throw Error('GOLD_PARITY_REGRESSION:'+p);
   changed.push(p);
  }
 }
