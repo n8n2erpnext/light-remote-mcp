@@ -413,6 +413,7 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
     coordinatorGet(id){return coordinator().get(id);},
     coordinatorReceipts(id){return coordinator().receipts(id);},
     async coordinatorReport(input={}){return coordinator().report(input);},
+    coordinatorReopen(input={}){return coordinator().reopen(input);},
     supervisorWorkspace(){return supervisor().workspaceRoot();},
     supervisorList(){return supervisor().list();},
     supervisorReceipts(taskId){return supervisor().receipts(taskId);},

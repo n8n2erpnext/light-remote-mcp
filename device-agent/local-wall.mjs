@@ -1609,7 +1609,22 @@ function goldCoordinatorInit(){
     }catch(e){status.textContent='Review did not advance: '+String(e.message||e);}
     finally{submit.disabled=false;}
   };
-  panel.append(status,current,report,evidence,submit);
+  const reopen=goldCoordinatorNode('button','Revise report · retry Codex review','btn small');
+  reopen.id='goldCoordinatorReopen';reopen.type='button';reopen.hidden=true;
+  reopen.onclick=async()=>{
+    if(!goldCoordinatorPlanId)return;
+    if(!confirm('Reopen the blocked step to provide NEW evidence? The previous Codex decision and receipt will be retained.'))return;
+    try{
+      const response=await fetch('/api/gold/modules/coordinator/plan?planId='+encodeURIComponent(goldCoordinatorPlanId),{cache:'no-store'});
+      const view=await response.json();
+      if(!view.ok||view.plan.status!=='waiting_owner')throw Error('Plan is not waiting for owner');
+      await wallMutation('/api/gold/modules/coordinator/reopen',{planId:goldCoordinatorPlanId,
+        expectedRevision:view.plan.revision,ownerApproved:true});
+      report.value='';evidence.value='';
+      await goldCoordinatorRefresh();
+    }catch(e){status.textContent='Reopen rejected: '+String(e.message||e);}
+  };
+  panel.append(status,current,report,evidence,submit,reopen);
   host.after(panel);
   void goldCoordinatorRefresh();
 }
@@ -1641,6 +1656,7 @@ async function goldCoordinatorRefresh(){
     const desc=goldCoordinatorNode('p',p.currentStep?'Current acceptance: '+p.currentStep.acceptance:'All steps have been reviewed.','muted');
     desc.style.cssText='font-size:12px;margin-top:8px';current.append(desc);
     submit.disabled=p.status!=='active';
+    document.getElementById('goldCoordinatorReopen').hidden=p.status!=='waiting_owner';
     status.textContent='Plan '+p.status+' · '+p.steps.filter(x=>x.state==='accepted').length+'/'+p.steps.length+
       ' accepted · '+p.nextAction;
   }catch(e){submit.disabled=true;status.textContent='Coordinator: '+String(e.message||e);}
@@ -2389,6 +2405,8 @@ export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvg
         return json(res,200,{ok:true,plan:modules.coordinatorCreate(await body(req))});
       if(req.method==='POST'&&url.pathname==='/api/gold/modules/coordinator/report')
         return json(res,200,{ok:true,review:await modules.coordinatorReport(await body(req))});
+      if(req.method==='POST'&&url.pathname==='/api/gold/modules/coordinator/reopen')
+        return json(res,200,{ok:true,plan:modules.coordinatorReopen(await body(req))});
       if(req.method==='GET'&&url.pathname==='/api/gold/modules/supervisor')
         return json(res,200,{ok:true,workspaceRoot:modules.supervisorWorkspace(),delegations:modules.supervisorList()});
       if(req.method==='GET'&&url.pathname==='/api/gold/modules/supervisor/receipts')

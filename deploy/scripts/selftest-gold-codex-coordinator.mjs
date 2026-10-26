@@ -58,6 +58,27 @@ try{
  assert.equal(mod.coordinatorGet(initial.id).status,'completed');
  assert.equal(mod.coordinatorReceipts(initial.id).length,3);
  assert.equal(mod.coordinatorGet(blocked.id).status,'waiting_owner');
+ assert.throws(()=>mod.coordinatorReopen({planId:blocked.id,
+   expectedRevision:rejected.plan.revision}),/owner_required/);
+ const resume=mod.coordinatorReopen({planId:blocked.id,
+   expectedRevision:rejected.plan.revision,ownerApproved:true});
+ assert.equal(resume.status,'active');
+ assert.equal(resume.steps[0].state,'ready');
+ assert.equal(resume.steps[1].state,'locked');
+ await assert.rejects(()=>mod.coordinatorReport({planId:blocked.id,
+   stepIndex:0,expectedRevision:resume.revision,
+   summary:'Report with inadequate result',evidence:'Evidence not confirmed'}),/new_evidence_required/);
+ const fixed=await mod.coordinatorReport({planId:blocked.id,
+   stepIndex:0,expectedRevision:resume.revision,
+   summary:'Revised verified report with concrete new proof',evidence:'PASS: corrected evidence now verified'});
+ assert.equal(fixed.decision,'CONTINUE');
+ assert.equal(fixed.plan.steps[1].state,'ready');
+ const records=mod.coordinatorReceipts(blocked.id);
+ assert.equal(records.length,2);
+ assert.equal(records[0].decision,'WAIT_OWNER');
+ assert.equal(records[0].evidence,'Evidence not confirmed');
+ assert.equal(records[1].decision,'CONTINUE');
+ assert.equal(records[1].evidence,'PASS: corrected evidence now verified');
  const auth={enabled:true,identity:req=>req.headers['x-owner']==='yes'?{username:'owner'}:null,
   csrfForRequest:()=> 'fixture-csrf',verifyRequestCsrf:(_r,v)=>v==='fixture-csrf'};
  wall=startLocalWall({host:'127.0.0.1',port:0,modules:mod,auth,
@@ -73,5 +94,5 @@ try{
  result=await fetch(endpoint,{method:'POST',headers:{'content-type':'application/json','x-owner':'yes','x-light-remote-csrf':'fixture-csrf'},body:payload});
  assert.equal(result.status,200);
  assert.equal((await result.json()).plan.status,'active');
- console.log('GOLD_CODEX_COORDINATOR_3_MICROTASK_REPORT_CAS_REVIEW_RECEIPT_WAIT_OWNER_RESTART_CSRF_PASS');
+ console.log('GOLD_CODEX_COORDINATOR_THREE_GATES_WAIT_OWNER_REOPEN_NEW_EVIDENCE_AUDIT_CSRF_PASS');
 }finally{await wall?.close().catch(()=>{});mod?.close();fs.rmSync(dir,{recursive:true,force:true});}

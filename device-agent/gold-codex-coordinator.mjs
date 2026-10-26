@@ -13,7 +13,11 @@ export function parseGoldCodexGate(raw,{last=false}={}){
 export function createGoldCodexCoordinator({db,plus,enabled=()=>true}){
  db.exec("CREATE TABLE IF NOT EXISTS codex_review_plans (id TEXT PRIMARY KEY,title TEXT NOT NULL,status TEXT NOT NULL CHECK(status IN ('active','reviewing','waiting_owner','completed','cancelled')),current_index INTEGER NOT NULL DEFAULT 0,revision INTEGER NOT NULL DEFAULT 1,created_ms INTEGER NOT NULL,updated_ms INTEGER NOT NULL)");
  db.exec("CREATE TABLE IF NOT EXISTS codex_review_steps (plan_id TEXT NOT NULL REFERENCES codex_review_plans(id),step_index INTEGER NOT NULL,title TEXT NOT NULL,acceptance TEXT NOT NULL,state TEXT NOT NULL CHECK(state IN ('locked','ready','reviewing','accepted','waiting_owner')),report TEXT,evidence TEXT,report_sha256 TEXT,receipt_id TEXT,PRIMARY KEY(plan_id,step_index))");
- db.exec("CREATE TABLE IF NOT EXISTS codex_review_receipts (id TEXT PRIMARY KEY,plan_id TEXT NOT NULL,step_index INTEGER NOT NULL,report_sha256 TEXT NOT NULL,decision TEXT NOT NULL,reason TEXT NOT NULL,summary TEXT NOT NULL,status TEXT NOT NULL,created_ms INTEGER NOT NULL,UNIQUE(plan_id,step_index,report_sha256))");
+ db.exec("CREATE TABLE IF NOT EXISTS codex_review_receipts (id TEXT PRIMARY KEY,plan_id TEXT NOT NULL,step_index INTEGER NOT NULL,report_sha256 TEXT NOT NULL,decision TEXT NOT NULL,reason TEXT NOT NULL,summary TEXT NOT NULL,status TEXT NOT NULL,created_ms INTEGER NOT NULL,report TEXT,evidence TEXT,UNIQUE(plan_id,step_index,report_sha256))");
+ for(const column of ['report','evidence']){
+   if(!db.prepare('PRAGMA table_info(codex_review_receipts)').all().some(x=>x.name===column))
+     db.exec('ALTER TABLE codex_review_receipts ADD COLUMN '+column+' TEXT');
+ }
  db.prepare("UPDATE codex_review_plans SET status='waiting_owner',revision=revision+1,updated_ms=? WHERE status='reviewing'").run(Date.now());
  db.prepare("UPDATE codex_review_steps SET state='waiting_owner' WHERE state='reviewing'").run();
  let busy=false;
@@ -27,7 +31,7 @@ export function createGoldCodexCoordinator({db,plus,enabled=()=>true}){
  }
  function list(){return db.prepare('SELECT id,title,status,current_index AS currentIndex,revision FROM codex_review_plans ORDER BY updated_ms DESC LIMIT 50').all();}
  function receipts(id){if(!planRow(id))throw fail('codex_review_plan_not_found',404);
-   return db.prepare('SELECT id,step_index AS stepIndex,decision,reason,summary,status,created_ms AS createdAt FROM codex_review_receipts WHERE plan_id=? ORDER BY created_ms').all(id);}
+   return db.prepare('SELECT id,step_index AS stepIndex,decision,reason,summary,status,report,evidence,created_ms AS createdAt FROM codex_review_receipts WHERE plan_id=? ORDER BY created_ms').all(id);}
  function create({title,steps:items,ownerApproved=false}={}){
   if(!enabled())throw fail('gold_module_disabled',409);
   if(ownerApproved!==true)throw fail('codex_review_owner_required',403);
@@ -44,6 +48,27 @@ export function createGoldCodexCoordinator({db,plus,enabled=()=>true}){
   }catch(e){db.exec('ROLLBACK');throw e;}
   return get(id);
  }
+ function reopen({planId,expectedRevision,ownerApproved=false}={}){
+  if(!enabled())throw fail('gold_module_disabled',409);
+  if(ownerApproved!==true)throw fail('codex_review_owner_required',403);
+  const p=planRow(planId);
+  if(!p)throw fail('codex_review_plan_not_found',404);
+  if(p.status!=='waiting_owner')throw fail('codex_review_not_waiting_owner',409);
+  if(!Number.isSafeInteger(expectedRevision)||expectedRevision!==p.revision)throw fail('codex_review_plan_revision_conflict',409);
+  const step=db.prepare('SELECT state FROM codex_review_steps WHERE plan_id=? AND step_index=?')
+    .get(planId,p.current_index);
+  if(step?.state!=='waiting_owner')throw fail('codex_review_step_not_waiting_owner',409);
+  db.exec('BEGIN IMMEDIATE');
+  try{
+    const changed=db.prepare("UPDATE codex_review_plans SET status='active',revision=revision+1,updated_ms=? WHERE id=? AND status='waiting_owner' AND revision=?")
+      .run(Date.now(),planId,expectedRevision);
+    if(changed.changes!==1)throw fail('codex_review_reopen_conflict',409);
+    db.prepare("UPDATE codex_review_steps SET state='ready' WHERE plan_id=? AND step_index=? AND state='waiting_owner'")
+      .run(planId,p.current_index);
+    db.exec('COMMIT');
+  }catch(e){db.exec('ROLLBACK');throw e;}
+  return get(planId);
+ }
  async function report({planId,stepIndex,expectedRevision,summary,evidence}={}){
   if(!enabled())throw fail('gold_module_disabled',409);
   if(busy)throw fail('codex_review_busy',409);
@@ -56,6 +81,8 @@ export function createGoldCodexCoordinator({db,plus,enabled=()=>true}){
   if(step?.state!=='ready')throw fail('codex_review_step_not_ready',409);
   const reportText=text(summary,4000,'codex_review_report_invalid'),proof=text(evidence,4000,'codex_review_evidence_required');
   const hash=crypto.createHash('sha256').update(JSON.stringify([planId,stepIndex,reportText,proof])).digest('hex');
+  if(db.prepare('SELECT 1 FROM codex_review_receipts WHERE plan_id=? AND step_index=? AND report_sha256=?').get(planId,stepIndex,hash))
+    throw fail('codex_review_new_evidence_required',409);
   busy=true;
   try{
    const claim=db.prepare("UPDATE codex_review_plans SET status='reviewing',revision=revision+1,updated_ms=? WHERE id=? AND status='active' AND revision=?").run(Date.now(),planId,expectedRevision);
@@ -76,8 +103,8 @@ export function createGoldCodexCoordinator({db,plus,enabled=()=>true}){
    const id=crypto.randomUUID(),now=Date.now();
    db.exec('BEGIN IMMEDIATE');
    try{
-    db.prepare('INSERT INTO codex_review_receipts(id,plan_id,step_index,report_sha256,decision,reason,summary,status,created_ms) VALUES(?,?,?,?,?,?,?,?,?)')
-      .run(id,planId,stepIndex,hash,decision,parsed.reason,raw,String(outcome?.status||'unknown').slice(0,32),now);
+    db.prepare('INSERT INTO codex_review_receipts(id,plan_id,step_index,report_sha256,decision,reason,summary,status,created_ms,report,evidence) VALUES(?,?,?,?,?,?,?,?,?,?,?)')
+      .run(id,planId,stepIndex,hash,decision,parsed.reason,raw,String(outcome?.status||'unknown').slice(0,32),now,reportText,proof);
     db.prepare('UPDATE codex_review_steps SET state=?,receipt_id=? WHERE plan_id=? AND step_index=?').run(accepted?'accepted':'waiting_owner',id,planId,stepIndex);
     if(decision==='CONTINUE')db.prepare("UPDATE codex_review_steps SET state='ready' WHERE plan_id=? AND step_index=? AND state='locked'").run(planId,stepIndex+1);
     const update=db.prepare("UPDATE codex_review_plans SET status=?,current_index=?,revision=revision+1,updated_ms=? WHERE id=? AND status='reviewing' AND current_index=?")
@@ -88,5 +115,5 @@ export function createGoldCodexCoordinator({db,plus,enabled=()=>true}){
    return {receiptId:id,decision,reason:parsed.reason,reportHash:hash,plan:get(planId)};
   }finally{busy=false;}
  }
- return {create,get,list,report,receipts};
+ return {create,get,list,report,reopen,receipts};
 }
