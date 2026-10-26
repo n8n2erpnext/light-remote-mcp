@@ -6,7 +6,36 @@ import { ownerDeviceResourceMetrics } from '../lib/gold-device-resource-metrics.
 
 
 export async function handleDeviceChannelRoutes(req,res,url,deps){
-  const {ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,DeviceAccessGrantError,DevicePairingRegistryError,EnrollmentError,FleetAuthorityError,FleetError,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,MIN_SUPPORTED_CLIENT_VERSION,NODE_ID,VERSION,abandonedCommandReceiptFromDisk,accessGrants,accounts,agentClients,allDeviceViews,applyDeviceTelemetry,capabilities,clientCompatibility,connectionSpec,connections,deviceView,devices,emitStream,enrollments,finishJob,fleet,fleetAuthority,fleetEligibility,fleetTarget,jobView,jobs,goldJobs,deviceResourceLocks,deviceResourceSampleCache,cancelQueuedPersonalJob,requestFleetProcessStop,reconcileSignedTerminalProcessReceipts,normalizeUpdateReport,pairingCodes,planEntitlements,pushEvent,queueHelperUpdate,readJson,reapAccessGrants,realRemoteLive,recentEvents,requireDeviceConnection,sendJson,sessions,targetRoute,terminalResultSummary,verifiedChannelContext,verifiedFleetContext,verifiedLeafCapabilities,memorySyncPolicy,memoryAccountDelete}=deps;
+  const {ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,DeviceAccessGrantError,DevicePairingRegistryError,EnrollmentError,FleetAuthorityError,FleetError,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,MIN_SUPPORTED_CLIENT_VERSION,NODE_ID,VERSION,abandonedCommandReceiptFromDisk,accessGrants,accounts,agentClients,allDeviceViews,applyDeviceTelemetry,capabilities,clientCompatibility,connectionSpec,connections,deviceView,devices,emitStream,enrollments,finishJob,fleet,fleetAuthority,fleetEligibility,fleetTarget,jobView,jobs,goldJobs,deviceResourceLocks,deviceResourceSampleCache,cancelQueuedPersonalJob,requestFleetProcessStop,reconcileSignedTerminalProcessReceipts,normalizeUpdateReport,pairingCodes,planEntitlements,pushEvent,queueHelperUpdate,readJson,reapAccessGrants,realRemoteLive,recentEvents,requireDeviceConnection,sendJson,sessions,targetRoute,terminalResultSummary,verifiedChannelContext,verifiedFleetContext,verifiedLeafCapabilities,memorySyncPolicy,memoryAccountDelete,accountNotifications,proTeams}=deps;
+  // Reuse the canonical account notification inbox. The signed enrollment
+  // determines the account; the browser cannot supply an account ID.
+  if(req.method==='POST'&&url.pathname==='/v1/device-channel/account-notifications'){
+    const payload=await readJson(req),ctx=await verifiedChannelContext(payload,'account-notifications');
+    if(!accountNotifications||!proTeams)throw new EnrollmentError('account_notification_service_unavailable',503);
+    const account=accounts.account(ctx.binding.accountId);
+    if(!account||account.state==='revoked'||account.status==='disabled')
+      throw new EnrollmentError('account_notification_identity_unavailable',403);
+    const [system,team]=await Promise.all([
+      accountNotifications.inbox(ctx.binding.accountId,account),
+      Promise.resolve(proTeams.inbox({memberAccountId:ctx.binding.accountId}))
+    ]);
+    // Preview only. Never forward team invite codes, account credentials or
+    // arbitrary publisher-supplied URLs to the device browser.
+    const notices=[
+      ...(system.notifications||[]).map(n=>({
+        notificationId:n.notificationId,type:n.type,title:n.title,body:n.body,
+        readAt:n.readAt,createdAt:n.createdAt
+      })),
+      ...(team.notifications||[]).map(n=>({
+        notificationId:n.notificationId,type:'team_invitation',title:'Pro Team invitation',
+        body:'Invitation from '+String(n.ownerEmail||'a team owner').slice(0,200),
+        readAt:n.readAt,createdAt:n.createdAt
+      }))
+    ].filter(n=>/^sys_[a-f0-9-]{36}$|^tinv_[a-f0-9]{24}$/.test(String(n.notificationId)))
+      .sort((a,b)=>Number(b.createdAt||0)-Number(a.createdAt||0));
+    return sendJson(res,200,{ok:true,unreadCount:Number(system.unreadCount||0)+Number(team.unreadCount||0),
+      notifications:notices.slice(0,5)});
+  }
   if(req.method==='POST'&&url.pathname==='/v1/device-channel/memory-sync-policy'){
     const body=await readJson(req),ctx=await verifiedChannelContext(body,'memory-sync-policy');
     if(!memorySyncPolicy)throw Error('memory_sync_account_pg_unavailable');

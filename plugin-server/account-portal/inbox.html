@@ -1,5 +1,5 @@
 <!doctype html><html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow,noarchive"><meta name="referrer" content="no-referrer"><title>Inbox · Light Remote</title><link rel="icon" href="/account/assets/light-remote.ico"><link rel="stylesheet" href="/account/assets/portal.css"><script src="/account/assets/theme.js"></script>
-<style>.inbox-main{max-width:1100px;padding:38px 35px 75px}.inbox-card{padding:23px;margin:16px 0;border:1px solid var(--line,#303840);border-radius:14px;background:var(--panel,#11161c)}.inbox-card h2{font-size:17px;margin:0 0 8px}.inbox-muted{opacity:.7;font-size:13px;line-height:1.7}.inbox-buttons{display:flex;gap:9px;flex-wrap:wrap;margin-top:15px}.inbox-btn{background:#1b242c;border:1px solid #3b454c;color:inherit;border-radius:9px;padding:10px 16px;font:inherit;font-size:13px;cursor:pointer}.inbox-btn.primary{background:#ffcc00;border-color:#ffcc00;color:#101419;font-weight:700}.inbox-btn:disabled{opacity:.5;cursor:not-allowed}.inbox-notice{font-size:13px;margin:16px 0;min-height:20px}.inbox-unread{border-color:#ffcc0070}.inbox-meta{font-size:12px;opacity:.65}.inbox-code{overflow-wrap:anywhere;font-family:ui-monospace,monospace;font-size:12px;padding:12px;background:#0b1117;border-radius:8px;margin-top:10px}.inbox-hidden{display:none}.inbox-card-header{display:flex;align-items:center;gap:12px;margin-bottom:12px}.inbox-type-icon{width:25px;height:25px;flex:none}.inbox-btn-icon{width:15px;height:15px;vertical-align:middle;margin-right:6px}.inbox-filters{margin:20px 0}.inbox-filters .active{border-color:#ffcc00;color:#ffcc00}@media(max-width:850px){.inbox-main{padding:25px 17px}}</style></head><body>
+<style>.inbox-main{max-width:1100px;padding:38px 35px 75px}.inbox-card{padding:23px;margin:16px 0;border:1px solid var(--line,#303840);border-radius:14px;background:var(--panel,#11161c)}.inbox-card h2{font-size:17px;margin:0 0 8px}.inbox-muted{opacity:.7;font-size:13px;line-height:1.7}.inbox-buttons{display:flex;gap:9px;flex-wrap:wrap;margin-top:15px}.inbox-btn{background:#1b242c;border:1px solid #3b454c;color:inherit;border-radius:9px;padding:10px 16px;font:inherit;font-size:13px;cursor:pointer}.inbox-btn.primary{background:#ffcc00;border-color:#ffcc00;color:#101419;font-weight:700}.inbox-btn:disabled{opacity:.5;cursor:not-allowed}.inbox-notice{font-size:13px;margin:16px 0;min-height:20px}.inbox-unread{border-color:#ffcc0070}.inbox-meta{font-size:12px;opacity:.65}.inbox-code{overflow-wrap:anywhere;font-family:ui-monospace,monospace;font-size:12px;padding:12px;background:#0b1117;border-radius:8px;margin-top:10px}.inbox-hidden{display:none}.inbox-card-target{border-color:#e0bc50!important;box-shadow:0 0 0 2px #e0bc5040;scroll-margin-top:22px}.inbox-card-header{display:flex;align-items:center;gap:12px;margin-bottom:12px}.inbox-type-icon{width:25px;height:25px;flex:none}.inbox-btn-icon{width:15px;height:15px;vertical-align:middle;margin-right:6px}.inbox-filters{margin:20px 0}.inbox-filters .active{border-color:#ffcc00;color:#ffcc00}@media(max-width:850px){.inbox-main{padding:25px 17px}}</style></head><body>
 <div class="app"><aside class="sidebar"><div class="brand"><img src="/account/assets/light-remote-mark.svg" alt=""><span><strong>Light Remote</strong><small>Remote MCP</small></span></div>
 <nav class="nav"><a href="/account"><span class="icon"><img class="material-icon" src="/assets/icons/material/devices.svg" alt=""></span>Devices</a><a href="/account/team"><span class="icon"><img class="material-icon" src="/assets/icons/material/groups.svg" alt=""></span>Pro Team</a><a class="active" href="/account/inbox"><span class="icon"><img class="material-icon" src="/assets/icons/material/mark_email_unread.svg" alt=""></span>Inbox <span id="inboxBadge"></span></a><a href="/account/usage"><span class="icon"><img class="material-icon" src="/assets/icons/material/bar_chart.svg" alt=""></span>Usage</a><a href="/account/billing"><span class="icon"><img class="material-icon" src="/assets/icons/material/credit_card.svg" alt=""></span>Plan & billing</a><a href="/account/settings"><span class="icon"><img class="material-icon" src="/assets/icons/material/settings.svg" alt=""></span>Settings</a></nav>
 <div class="account-foot"><div class="account-email" id="currentUser">Loading…</div><div class="account-meta" id="currentPlan"></div></div></aside>
@@ -15,6 +15,8 @@
 <script>
 (()=>{'use strict';
 const $=id=>document.getElementById(id);let notifications=[],selected='all';
+const requestedNotificationId=new URLSearchParams(location.search).get('notificationId');
+const targetNotificationId=/^(sys_[a-f0-9-]{36}|tinv_[a-f0-9]{24})$/.test(String(requestedNotificationId||''))?requestedNotificationId:null;
 const icon='/assets/icons/material/';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const kind={team_invitation:'Team invitation',update:'Product update',feature:'New feature',promotion:'Offer',maintenance:'Maintenance',security:'Security notice',account:'Account'};
@@ -36,7 +38,7 @@ function render(){
   const isTeam=n.type==='team_invitation',title=isTeam?'Pro Team invitation':n.title,
    category=kind[n.type]||'Notification',body=isTeam?'You have an invitation from '+(n.ownerEmail||'a Team owner')+'. Accepting membership does not grant remote access.':n.body,
    ico=kindIcon[n.type]||'info';
-  return '<article class="inbox-card'+(n.readAt?'':' inbox-unread')+'"><div class="inbox-card-header"><img src="'+icon+ico+'.svg" class="inbox-type-icon" alt=""><div><div class="inbox-meta">'+esc(category)+(n.readAt?'':' · New')+'</div><h2>'+esc(title)+'</h2></div></div>'
+  return '<article id="notification-'+esc(n.notificationId)+'" tabindex="-1" class="inbox-card'+(n.readAt?'':' inbox-unread')+(n.notificationId===targetNotificationId?' inbox-card-target':'')+'"><div class="inbox-card-header"><img src="'+icon+ico+'.svg" class="inbox-type-icon" alt=""><div><div class="inbox-meta">'+esc(category)+(n.readAt?'':' · New')+'</div><h2>'+esc(title)+'</h2></div></div>'
    +'<div class="inbox-muted">'+esc(body)+'</div>'
    +'<div class="inbox-meta">'+(n.expiresAt?'Expires '+esc(new Date(n.expiresAt).toLocaleString()):new Date(n.createdAt).toLocaleString())+'</div>'
    +(isTeam&&n.inviteCode?'<div class="inbox-code">'+esc(n.inviteCode)+'</div>':'')
@@ -56,6 +58,10 @@ async function load(){
  $('inboxBadge').textContent=count?'('+count+')':'';
  $('inboxTotal').textContent=count?count+' unread':'All caught up';
  render();
+ if(targetNotificationId){
+  const target=$('notification-'+targetNotificationId);
+  if(target)requestAnimationFrame(()=>{target.scrollIntoView({behavior:'smooth',block:'center'});target.focus({preventScroll:true})});
+ }
 }
 async function action(id,mode){
  const n=notifications.find(row=>row.notificationId===id);if(!n)return;
