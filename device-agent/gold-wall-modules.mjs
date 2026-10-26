@@ -9,6 +9,7 @@ import {createRequire} from 'node:module';
 import {createGoldCodexConnection} from './gold-codex-api.mjs';
 import {requireGoldMemoryPrivateKey} from './gold-memory-key-permissions.mjs';
 import {createGoldCodexPlus,resolveGoldCodexBinary} from './gold-codex-plus.mjs';
+import {createGoldCodexSupervisor} from './gold-codex-supervisor.mjs';
 import {createManagedCodexRuntime} from './gold-codex-runtime-manager.mjs';
 import {localMemoryDeletePreview,clearLocalMemory as clearLocalMemoryData} from './gold-memory-delete.mjs';
 import {signAccountScopeDelete,applyAccountScopeDelete} from './gold-memory-account-delete.mjs';
@@ -58,6 +59,8 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
   if(!path.isAbsolute(file))throw fault('gold_modules_storage_path_required');
   let database=null;
   let codexRequestInFlight=false;
+  let codexSupervisor=null;
+
   const codex=createGoldCodexConnection({storageFile:file+'.codex.enc',fetchImpl});
   const managedCodex=createManagedCodexRuntime({root:path.join(path.dirname(file),'codex-runtime')});
   const plus=plusImpl||createGoldCodexPlus({home:path.join(path.dirname(file),'codex-home'),
@@ -82,6 +85,27 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
     if(!db)return {longMemory:false,codexBridge:false,revision:0};
     const r=db.prepare('SELECT memory_enabled,codex_enabled,revision FROM module_flags WHERE singleton=1').get();
     return {longMemory:r?.memory_enabled===1,codexBridge:r?.codex_enabled===1,revision:Number(r?.revision)||0};
+  }
+  function supervisor(){
+    const db=enabled('codexBridge');
+    if(!codexSupervisor)codexSupervisor=createGoldCodexSupervisor({
+      db,plus,flags,root:path.join(path.dirname(file),'codex-workspaces'),
+      onReceipt:({taskId,receiptId,decision,summary})=>{
+        if(!flags().longMemory)return;
+        try{
+          const x=scopedIdentity();
+          const bound=resolveGoldScope(db,{accountId:x.accountId,
+            sourceType:'task',sourceId:taskId});
+          if(!bound?.scopeId)return; // no cross-project or unassigned writes
+          appendGoldScopedCheckpoint(db,scopeKeyFile,{...x,scopeId:bound.scopeId,
+            kind:'handoff',title:'Codex delegated work · '+decision,
+            body:'Codex receipt '+receiptId+'\n'+String(summary||'').slice(0,9000),
+            source:'gold-codex-supervisor:'+receiptId,status:'observed',
+            evidence:['codex-receipt:'+receiptId]});
+        }catch(e){if(e.message!=='gold_scope_trusted_identity_required')throw e;}
+      }
+    });
+    return codexSupervisor;
   }
   function enabled(feature){
     if(!flags()[feature])throw fault('gold_module_disabled',409);
@@ -285,6 +309,7 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
     editTask(input={}){
       const db=enabled('codexBridge');
       if(codexRequestInFlight)throw fault('gold_observer_in_progress',409);
+      if(codexSupervisor?.isRunning(input.id))throw fault('gold_codex_supervisor_task_running',409);
       const id=strictText(input.id,64,'gold_observer_task_id_invalid');
       const title=strictText(input.title,240,'gold_observer_task_invalid');
       if(!Number.isSafeInteger(input.expectedChangedAt)||input.expectedChangedAt<1)
@@ -319,6 +344,7 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
     deleteTask(input={}){
       const db=enabled('codexBridge');
       if(codexRequestInFlight)throw fault('gold_observer_in_progress',409);
+      if(codexSupervisor?.isRunning(input.id))throw fault('gold_codex_supervisor_task_running',409);
       const id=strictText(input.id,64,'gold_observer_task_id_invalid');
       if(input.confirm!==true)throw fault('gold_observer_task_delete_owner_confirmation_required',403);
       if(!Number.isSafeInteger(input.expectedChangedAt)||input.expectedChangedAt<1)
@@ -354,6 +380,7 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
       const db=enabled('codexBridge');
       const id=strictText(input.id,64,'gold_observer_task_id_invalid');
       if(!['todo','working','done','waiting'].includes(input.state))throw fault('gold_observer_state_invalid');
+      if(codexSupervisor?.isRunning(id))throw fault('gold_codex_supervisor_task_running',409);
       const prior=db.prepare('SELECT state,changed_ms AS changedAt FROM observer_tasks WHERE id=? AND deleted_ms IS NULL').get(id);
       if(!prior)throw fault('gold_observer_task_not_found',404);
       if(prior.state===input.state)return {id,state:input.state,unchanged:true};
@@ -373,6 +400,12 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
       }
       return {id,state:input.state,autoEventQueued};
     },
+    supervisorWorkspace(){return supervisor().workspaceRoot();},
+    supervisorList(){return supervisor().list();},
+    supervisorReceipts(taskId){return supervisor().receipts(taskId);},
+    supervisorDelegate(input={}){return supervisor().delegate(input);},
+    supervisorPause(input={}){return supervisor().pause(input);},
+    async supervisorTick(){if(!flags().codexBridge)return {ran:false,reason:'module_off'};return supervisor().tick();},
     async codexPlusStatus(){enabled('codexBridge');return plus.account();},
     async codexPlusLogin(){enabled('codexBridge');return plus.beginLogin();},
     async codexPlusCancel(){enabled('codexBridge');return plus.cancelLogin();},
@@ -413,6 +446,6 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
         :states.some(s=>s==='working'||s==='todo')?'CONTINUE':'WAIT_OWNER';
       return {tasks,recommendation,engine:'local-controller',codexRuntime:'not_connected',webTurnContinuation:'unsupported'};
     },
-    close(){plus.stop();if(database){database.close();database=null;}}
+    close(){codexSupervisor?.close();plus.stop();if(database){database.close();database=null;}}
   };
 }

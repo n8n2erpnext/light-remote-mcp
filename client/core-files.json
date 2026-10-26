@@ -86,6 +86,10 @@
       "destination": "device-agent/gold-codex-plus.mjs"
     },
     {
+      "source": "device-agent/gold-codex-supervisor.mjs",
+      "destination": "device-agent/gold-codex-supervisor.mjs"
+    },
+    {
       "source": "device-agent/gold-codex-runtime-manager.mjs",
       "destination": "device-agent/gold-codex-runtime-manager.mjs"
     },

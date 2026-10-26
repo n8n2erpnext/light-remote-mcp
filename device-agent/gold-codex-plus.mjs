@@ -247,5 +247,42 @@ export function createGoldCodexPlus({home,command=resolveGoldCodexBinary(),spawn
         reject:e=>{clearTimeout(timer);reject(e);}};
     });
   }
-  return {account,beginLogin,cancelLogin,logout,runReadOnly,stop};
+  async function runDelegated({taskTitle,goal,workspace,round=1,maxRounds=2,previous=[]}={}){
+    if(currentTurn)throw fault('codex_supervisor_busy',409);
+    if(typeof workspace!=='string'||!path.isAbsolute(workspace)||
+       typeof goal!=='string'||goal.length>2000||typeof taskTitle!=='string')
+      throw fault('codex_supervisor_input_invalid');
+    const a=await account();
+    if(!a.connected||a.authMode==='apiKey')throw fault('codex_chatgpt_sign_in_required',409);
+    const cwd=fs.realpathSync(workspace);
+    const started=await rpc('thread/start',{cwd,
+      approvalPolicy:'never',sandbox:'workspace-write',ephemeral:true},20000);
+    const threadId=started?.thread?.id;
+    if(!threadId)throw fault('codex_thread_start_failed',502);
+    const past=(Array.isArray(previous)?previous:[]).slice(0,2).map(v=>String(v.summary||'').slice(0,1500));
+    const instructions=[
+      'Light Remote Gold: OWNER-DELEGATED BOUNDED CODING TASK.',
+      'Only work inside the sandboxed selected workspace. Do not access secrets, credentials, other projects or network.',
+      'Do not request or auto-approve elevated permissions. If blocked, stop and request owner input.',
+      'Perform actual bounded work on the task when possible (edit files, run safe local tests).',
+      'Do not mark the official Task Controller task DONE: only the owner may approve completion.',
+      'Task: '+taskTitle.slice(0,240),'Goal: '+goal,
+      'Delegated round '+round+' of '+maxRounds+'. Previous receipts: '+JSON.stringify(past),
+      'End your final answer with EXACTLY one line RECOMMENDATION: CONTINUE, CONTINUE_SECTION_B, WAIT_OWNER or DONE.',
+      'CONTINUE_SECTION_B means an independent safe section can proceed while A awaits owner.',
+      'WAIT_OWNER means missing owner decision, blocked tooling or uncertain result.',
+      'DONE means suggest owner review; it never authorizes marking task done.'
+    ].join('\n');
+    const turn=await rpc('turn/start',{threadId,input:[{type:'text',text:instructions}]},20000);
+    const turnId=turn?.turn?.id;
+    if(!turnId)throw fault('codex_turn_start_failed',502);
+    return new Promise((resolve,reject)=>{
+      const timer=setTimeout(()=>{
+        if(currentTurn?.turnId===turnId)stop('codex_supervisor_turn_timeout');
+      },120000);timer.unref?.();
+      currentTurn={turnId,output:'',resolve:x=>{clearTimeout(timer);resolve(x);},
+        reject:e=>{clearTimeout(timer);reject(e);}};
+    });
+  }
+  return {account,beginLogin,cancelLogin,logout,runReadOnly,runDelegated,stop};
 }

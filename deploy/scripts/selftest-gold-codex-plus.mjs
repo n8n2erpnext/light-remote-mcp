@@ -35,7 +35,7 @@ class FakeCodex extends EventEmitter {
       case 'account/login/cancel':result={};break;
       case 'account/logout':this.auth=false;result={};break;
       case 'thread/start':
-        assert.equal(req.params.sandbox,'read-only');
+        assert.ok(['read-only','workspace-write'].includes(req.params.sandbox));
         assert.equal(req.params.approvalPolicy,'never');
         assert.equal(req.params.ephemeral,true);
         result={thread:{id:'thread-123'}};break;
@@ -47,7 +47,7 @@ class FakeCodex extends EventEmitter {
     this.stdout.write(JSON.stringify({id:req.id,result})+'\n');
     if(req.method==='turn/start')setTimeout(()=>{
       this.stdout.write(JSON.stringify({method:'item/agentMessage/delta',
-        params:{delta:'Safe observer result'}})+'\n');
+        params:{delta:this.received.at(-1)?.params?.input?.[0]?.text?.includes('OWNER-DELEGATED')?'Test file changed.\nRECOMMENDATION: CONTINUE':'Safe observer result'}})+'\n');
       this.stdout.write(JSON.stringify({method:'turn/completed',
         params:{turn:{id:'turn-123',status:'completed'}}})+'\n');
     },8);
@@ -92,6 +92,12 @@ try {
   const observed=await client.runReadOnly({tasks:[{title:'Check Gold',state:'todo'}]});
   assert.equal(observed.completed,true);
   assert.equal(observed.summary,'Safe observer result');
+  const delegated=await client.runDelegated({workspace:dir,taskTitle:'Sample',
+    goal:'Change one file inside this workspace',round:1,maxRounds:2});
+  assert.equal(delegated.completed,true);
+  assert.match(delegated.summary,/RECOMMENDATION: CONTINUE/);
+  assert.ok(fake.received.some(x=>x.method==='thread/start'&&x.params.sandbox==='workspace-write'));
+
   assert.equal((await client.logout()).signedOut,true);
   assert.equal((await client.account()).connected,false);
   client.stop();
