@@ -29,8 +29,11 @@ try{
     assert.ok(!html.includes('fonts.googleapis.com'),route);
     assert.ok(!html.includes('fonts.gstatic.com'),route);
     if(tag==='home'){
+      assert.ok(!html.includes('id="backToWall"'), 'home does not need return link');
       assert.ok(html.includes('body.wall-view-home #goldModulesPanel{display:none}'));
     }else{
+      assert.match(html, /<a id="backToWall" class="btn small" href="\/" aria-label="Back to Wall">[\s\S]*?<span>Back to Wall<\/span><\/a>/, route+' has Wall return navigation');
+      assert.equal((html.match(/id="backToWall"/g)||[]).length,1,route+' has exactly one Wall return link');
       assert.ok(html.includes('<details open id="goldModulesPanel"'));
       assert.ok(html.includes('body.wall-view-'+tag+' .wall-primary'));
     }
