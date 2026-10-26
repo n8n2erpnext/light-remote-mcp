@@ -10,6 +10,7 @@ import {requireGoldMemoryPrivateKey} from './gold-memory-key-permissions.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {prepareGoldMemoryV2,verifyGoldHomeSignedRecord} from './gold-memory-scope.mjs';
+import {ensureMemoryScopeLifecycle} from './gold-memory-scope-admin.mjs';
 
 const PROTOCOL='light-remote-memory-sync-v1';
 const MAX_FRAME=48000, MAX_BODY=18000;
@@ -115,6 +116,7 @@ export function goldGrantReplica(db,signFile,encFile,{accountId,deviceId,scopeId
   prepareGoldMemorySync(db);
   if(!ownerConfirmed)throw fail('gold_sync_owner_confirmation_required',403);
   const s=scoped(db,accountId,scopeId);
+  if(s.status!=='active')throw fail('gold_sync_archived_scope',409);
   if(s.home_device_id!==deviceId)throw fail('gold_sync_only_home_grants',403);
   if(s.sync_policy==='local_only')throw fail('gold_sync_local_only_policy',409);
   if(!peer||peer.accountId!==accountId||peer.deviceId===deviceId)
@@ -182,7 +184,11 @@ export function goldAcceptReplicaInvite(db,signFile,encFile,{accountId,deviceId,
   if(!Number.isSafeInteger(invite.homeEpoch)||invite.homeEpoch<1||
      !Number.isSafeInteger(invite.grantEpoch)||invite.grantEpoch<1)
     throw fail('gold_sync_invitation_epoch_invalid',403);
+  ensureMemoryScopeLifecycle(db);
+  if(db.prepare('SELECT 1 FROM lm_scope_local_tombstones WHERE scope_id=?').get(invite.scopeId))
+    throw fail('gold_sync_locally_deleted_scope_cannot_rejoin',409);
   const prior=db.prepare('SELECT * FROM lm_scopes WHERE scope_id=?').get(invite.scopeId);
+  if(prior?.status==='archived')throw fail('gold_sync_archived_scope_cannot_rejoin',409);
   if(prior&&(prior.account_id!==accountId||prior.home_device_id!==invite.homeDeviceId||
     prior.home_epoch!==invite.homeEpoch||prior.home_public_key!==invite.homeSignPublicKey))
     throw fail('gold_sync_scope_authority_conflict',409);
@@ -294,6 +300,7 @@ function signedReceipt({scopeId,accountId,homeDeviceId,deviceId,homeEpoch,revisi
 export function goldNextSyncFrame(db,signFile,encFile,{accountId,deviceId,scopeId,replicaDeviceId}={}){
   prepareGoldMemorySync(db);
   const scope=scoped(db,accountId,scopeId);
+  if(scope.status!=='active')throw fail('gold_sync_archived_scope',409);
   if(scope.home_device_id!==deviceId)throw fail('gold_sync_only_home_can_send',403);
   if(scope.sync_policy==='local_only')throw fail('gold_sync_local_only_policy',409);
   const member=grantRow(db,scopeId,clean(replicaDeviceId,160,'gold_sync_peer_device_invalid'),'replica');
@@ -339,6 +346,9 @@ export function goldApplySyncFrame(db,signFile,encFile,{accountId,deviceId,frame
   if(!meta||meta.protocol!==PROTOCOL||meta.accountId!==accountId||meta.toDeviceId!==deviceId)
     throw fail('gold_sync_wrong_account_or_recipient',403);
   const scope=scoped(db,accountId,meta.scopeId);
+  ensureMemoryScopeLifecycle(db);
+  if(scope.status!=='active'||db.prepare('SELECT 1 FROM lm_scope_local_tombstones WHERE scope_id=?').get(scope.scope_id))
+    throw fail('gold_sync_locally_archived_or_deleted',409);
   if(scope.home_device_id===deviceId||scope.home_device_id!==meta.homeDeviceId ||
     scope.home_epoch!==meta.homeEpoch)
     throw fail('gold_sync_wrong_home_or_epoch',403);

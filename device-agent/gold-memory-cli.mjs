@@ -36,6 +36,19 @@ async function main(){
       case 'scope_handoff':result=modules.scopedHandoff({scopeId:data.scopeId,limit:Math.max(1,Math.min(Number(data.limit)||5,20))});break;
       case 'scope_get':result=modules.readScopedCheckpoint({scopeId:data.scopeId,checkpointId:data.id});break;
       case 'scope_save':result=modules.appendScopedCheckpoint({scopeId:data.scopeId,kind:data.kind,title:data.title,body:data.body,source:data.source,status:data.status,evidence:data.evidence});break;
+      case 'scope_usage':result=modules.localMemoryUsage();break;
+      case 'scope_full_context':{
+        const found=modules.readFullContext({scopeId:data.scopeId});
+        if(!found.available){result=found;break;}
+        const offset=Math.max(0,Math.min(Number(data.offset)||0,found.text.length));
+        const maxChars=Math.max(1,Math.min(Number(data.maxChars)||8000,10000));
+        const part=found.text.slice(offset,offset+maxChars);
+        result={scopeId:found.scopeId,available:true,title:found.title,bytes:found.bytes,
+          sha256:found.sha256,integrity:found.integrity,checkpointRevision:found.checkpointRevision,
+          totalChars:found.text.length,offset,text:part,nextOffset:offset+part.length,
+          hasMore:offset+part.length<found.text.length};
+        break;
+      }
       default:fail('gold_memory_action_invalid');
     }
     process.stdout.write('LIGHT_REMOTE_GOLD_MEMORY_V1='+JSON.stringify({ok:true,action:data.action,result})+'\n');

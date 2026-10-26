@@ -11,6 +11,9 @@ import {requireGoldMemoryPrivateKey} from './gold-memory-key-permissions.mjs';
 import {createGoldCodexPlus,resolveGoldCodexBinary} from './gold-codex-plus.mjs';
 import {createManagedCodexRuntime} from './gold-codex-runtime-manager.mjs';
 import {localMemoryDeletePreview,clearLocalMemory as clearLocalMemoryData} from './gold-memory-delete.mjs';
+import {memoryScopeArchive,memoryScopeRestore,memoryScopeLocalDelete,memoryScopeAccountDeleteGate,
+  memoryLocalUsage,getMemoryScopeContextPreference,setMemoryScopeContextPreference,
+  saveOwnerFullContext,readOwnerFullContext} from './gold-memory-scope-admin.mjs';
 import {saveGoldCheckpoint,readGoldCheckpoint,listGoldCheckpoints,goldHandoff,saveGoldObserverReceipt,listGoldObserverReceipts,confirmGoldObserverTask} from './gold-memory-ledger.mjs';
 import {createGoldScope,listGoldScopes,changeGoldScopeCapture,changeGoldScopeSyncPolicy,bindGoldScope,resolveGoldScope,appendGoldScopedCheckpoint,readGoldScopedCheckpoint,goldScopedHandoff,goldScopedExport,goldLegacyUnassignedCount} from './gold-memory-scope.mjs';
 import {ingestGoldAutoEvent,ingestGoldAutoFsEffect,resolveGoldAutoWorkspace,flushGoldAuto,goldAutoPending} from './gold-memory-auto.mjs';
@@ -104,6 +107,15 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
       return createGoldScope(db,scopeKeyFile,{...input,accountId:x.accountId,homeDeviceId:x.deviceId,
         syncPolicy:preference.enabled?'selected_devices':'local_only'});},
     listMemoryScopes(){const x=scopedIdentity();return listGoldScopes(enabled('longMemory'),{accountId:x.accountId});},
+    localMemoryUsage(){const x=scopedIdentity();return memoryLocalUsage(enabled('longMemory'),{...x,filePath:file});},
+    archiveMemoryScope(input={}){const x=scopedIdentity();return memoryScopeArchive(enabled('longMemory'),{...input,accountId:x.accountId});},
+    restoreMemoryScope(input={}){const x=scopedIdentity();return memoryScopeRestore(enabled('longMemory'),{...input,accountId:x.accountId});},
+    deleteMemoryScopeLocal(input={}){const x=scopedIdentity();return memoryScopeLocalDelete(enabled('longMemory'),{...input,accountId:x.accountId});},
+    deleteMemoryScopeAcrossAccount(){scopedIdentity();return memoryScopeAccountDeleteGate();},
+    fullContextPreference(input={}){const x=scopedIdentity();return getMemoryScopeContextPreference(enabled('longMemory'),{...input,accountId:x.accountId});},
+    setFullContextPreference(input={}){const x=scopedIdentity();return setMemoryScopeContextPreference(enabled('longMemory'),{...input,accountId:x.accountId});},
+    saveFullContext(input={}){const x=scopedIdentity();return saveOwnerFullContext(enabled('longMemory'),scopeKeyFile,{...input,accountId:x.accountId,deviceId:x.deviceId});},
+    readFullContext(input={}){const x=scopedIdentity();return readOwnerFullContext(enabled('longMemory'),{...input,accountId:x.accountId});},
     changeScopeCapture(input={}){const x=scopedIdentity();return changeGoldScopeCapture(enabled('longMemory'),{...input,accountId:x.accountId});},
     changeScopeSyncPolicy(input={}){const x=scopedIdentity();return changeGoldScopeSyncPolicy(enabled('longMemory'),{...input,accountId:x.accountId,deviceId:x.deviceId});},
     syncIdentity(){const x=scopedIdentity();enabled('longMemory');return goldSyncIdentity(scopeKeyFile,scopeEncryptKeyFile,x);},

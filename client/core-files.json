@@ -38,6 +38,10 @@
       "destination": "device-agent/gold-memory-scope.mjs"
     },
     {
+      "source": "device-agent/gold-memory-scope-admin.mjs",
+      "destination": "device-agent/gold-memory-scope-admin.mjs"
+    },
+    {
       "source": "device-agent/gold-memory-auto.mjs",
       "destination": "device-agent/gold-memory-auto.mjs"
     },
