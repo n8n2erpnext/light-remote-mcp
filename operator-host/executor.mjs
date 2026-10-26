@@ -54,6 +54,7 @@ import { createPlatformAdapter } from '../device-agent/platform-adapters/index.m
 import { handleAccountRoutes } from './executor-routes-account.mjs';
 import { handleDeviceChannelRoutes } from './executor-routes-device-channel.mjs';
 import {GoldMemoryAccountSyncPolicy} from './gold-memory-account-sync-policy.mjs';
+import {GoldMemoryAccountDelete} from './gold-memory-account-delete.mjs';
 import { handleRuntimeRoutes } from './executor-routes-runtime.mjs';
 import { handlePluginRoutes } from './executor-routes-plugin.mjs';
 import { RealRemoteLiveRegistry } from './real-remote-live-registry.mjs';
@@ -135,6 +136,7 @@ const compatibilityFor=device=>clientCompatibility(VERSION,device?.agentVersion,
 // No canonical Operator can start without its independent Gold database services.
 const goldStorage=await connectGoldStorage();
 const memorySyncPolicy=new GoldMemoryAccountSyncPolicy(goldStorage.pool);
+const memoryAccountDelete=new GoldMemoryAccountDelete(goldStorage.pool);
 const goldWriterLease=await goldStorage.pool.connect();
 const singleWriter=(await goldWriterLease.query(
   "SELECT pg_try_advisory_lock(hashtext($1)) AS acquired",
@@ -1380,7 +1382,7 @@ const routeDeps=()=>({
   deviceHasHistoricalReferences:deviceId=>goldRegistries.native.accounts.deviceHasHistoricalReferences(deviceId),
   emitStream,enrollments,finishJob,fleet,fleetAuthority,reconcileSignedTerminalProcessReceipts,
   fleetEligibility,fleetTarget,flushDiskRecords,flushGoldRegistries:()=>goldRegistries.flush(),fs,fullOutputFromDisk,
-  ingressTelemetry,jobView,jobs,goldJobs,deviceResourceLocks,deviceResourceSampleCache,memorySyncPolicy,
+  ingressTelemetry,jobView,jobs,goldJobs,deviceResourceLocks,deviceResourceSampleCache,memorySyncPolicy,memoryAccountDelete,
   abandonOwnerAttestedOrphan:options=>deviceResourceLocks.abandonOwnerAttestedOrphan(goldStorage.pool,options),
   cancelQueuedPersonalJob,requestFleetProcessStop,licenses,normalizeUpdateReport,
   pairingCodes,planEntitlements,pruneRing,pushEvent,queueHelperUpdate,

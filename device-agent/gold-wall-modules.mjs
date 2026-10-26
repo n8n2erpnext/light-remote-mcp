@@ -11,6 +11,7 @@ import {requireGoldMemoryPrivateKey} from './gold-memory-key-permissions.mjs';
 import {createGoldCodexPlus,resolveGoldCodexBinary} from './gold-codex-plus.mjs';
 import {createManagedCodexRuntime} from './gold-codex-runtime-manager.mjs';
 import {localMemoryDeletePreview,clearLocalMemory as clearLocalMemoryData} from './gold-memory-delete.mjs';
+import {signAccountScopeDelete,applyAccountScopeDelete} from './gold-memory-account-delete.mjs';
 import {memoryScopeArchive,memoryScopeRestore,memoryScopeLocalDelete,memoryScopeAccountDeleteGate,
   memoryLocalUsage,getMemoryScopeContextPreference,setMemoryScopeContextPreference,
   saveOwnerFullContext,readOwnerFullContext} from './gold-memory-scope-admin.mjs';
@@ -119,6 +120,8 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
     archiveMemoryScope(input={}){const x=scopedIdentity();return memoryScopeArchive(enabled('longMemory'),{...input,accountId:x.accountId});},
     restoreMemoryScope(input={}){const x=scopedIdentity();return memoryScopeRestore(enabled('longMemory'),{...input,accountId:x.accountId});},
     deleteMemoryScopeLocal(input={}){const x=scopedIdentity();return memoryScopeLocalDelete(enabled('longMemory'),{...input,accountId:x.accountId});},
+    signScopeDeleteAcrossAccount(input={}){const x=scopedIdentity();return signAccountScopeDelete(enabled('longMemory'),scopeKeyFile,{...input,...x});},
+    applyScopeDeleteAcrossAccount(envelope){const x=scopedIdentity();return applyAccountScopeDelete(enabled('longMemory'),{...x,envelope});},
     deleteMemoryScopeAcrossAccount(){scopedIdentity();return memoryScopeAccountDeleteGate();},
     fullContextPreference(input={}){const x=scopedIdentity();return getMemoryScopeContextPreference(enabled('longMemory'),{...input,accountId:x.accountId});},
     setFullContextPreference(input={}){const x=scopedIdentity();return setMemoryScopeContextPreference(enabled('longMemory'),{...input,accountId:x.accountId});},

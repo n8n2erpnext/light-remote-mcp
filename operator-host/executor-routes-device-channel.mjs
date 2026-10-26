@@ -6,7 +6,7 @@ import { ownerDeviceResourceMetrics } from '../lib/gold-device-resource-metrics.
 
 
 export async function handleDeviceChannelRoutes(req,res,url,deps){
-  const {ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,DeviceAccessGrantError,DevicePairingRegistryError,EnrollmentError,FleetAuthorityError,FleetError,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,MIN_SUPPORTED_CLIENT_VERSION,NODE_ID,VERSION,abandonedCommandReceiptFromDisk,accessGrants,accounts,agentClients,allDeviceViews,applyDeviceTelemetry,capabilities,clientCompatibility,connectionSpec,connections,deviceView,devices,emitStream,enrollments,finishJob,fleet,fleetAuthority,fleetEligibility,fleetTarget,jobView,jobs,goldJobs,deviceResourceLocks,deviceResourceSampleCache,cancelQueuedPersonalJob,requestFleetProcessStop,reconcileSignedTerminalProcessReceipts,normalizeUpdateReport,pairingCodes,planEntitlements,pushEvent,queueHelperUpdate,readJson,reapAccessGrants,realRemoteLive,recentEvents,requireDeviceConnection,sendJson,sessions,targetRoute,terminalResultSummary,verifiedChannelContext,verifiedFleetContext,verifiedLeafCapabilities,memorySyncPolicy}=deps;
+  const {ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,DeviceAccessGrantError,DevicePairingRegistryError,EnrollmentError,FleetAuthorityError,FleetError,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,MIN_SUPPORTED_CLIENT_VERSION,NODE_ID,VERSION,abandonedCommandReceiptFromDisk,accessGrants,accounts,agentClients,allDeviceViews,applyDeviceTelemetry,capabilities,clientCompatibility,connectionSpec,connections,deviceView,devices,emitStream,enrollments,finishJob,fleet,fleetAuthority,fleetEligibility,fleetTarget,jobView,jobs,goldJobs,deviceResourceLocks,deviceResourceSampleCache,cancelQueuedPersonalJob,requestFleetProcessStop,reconcileSignedTerminalProcessReceipts,normalizeUpdateReport,pairingCodes,planEntitlements,pushEvent,queueHelperUpdate,readJson,reapAccessGrants,realRemoteLive,recentEvents,requireDeviceConnection,sendJson,sessions,targetRoute,terminalResultSummary,verifiedChannelContext,verifiedFleetContext,verifiedLeafCapabilities,memorySyncPolicy,memoryAccountDelete}=deps;
   if(req.method==='POST'&&url.pathname==='/v1/device-channel/memory-sync-policy'){
     const body=await readJson(req),ctx=await verifiedChannelContext(body,'memory-sync-policy');
     if(!memorySyncPolicy)throw Error('memory_sync_account_pg_unavailable');
@@ -28,6 +28,31 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
     }
     throw new EnrollmentError('memory_sync_policy_action_invalid',400);
   }
+  if(req.method==='POST'&&url.pathname==='/v1/device-channel/memory-account-delete'){
+    const body=await readJson(req),ctx=await verifiedChannelContext(body,'memory-account-delete');
+    const action=ctx.payload?.action,accountId=ctx.binding.accountId,deviceId=ctx.binding.deviceId;
+    if(!memoryAccountDelete)throw new EnrollmentError('memory_account_delete_pg_unavailable',503);
+    if(action==='begin'){
+      const roster=devices.list();
+      const directory=memoryDirectory({accountId,deviceId,devices:roster});
+      const key=directory.find(x=>x.deviceId===deviceId)?.memoryIdentity?.signPublicKey||null;
+      const status=await memoryAccountDelete.begin(accountId,deviceId,ctx.payload.envelope,roster,key);
+      return sendJson(res,200,{ok:true,status});
+    }
+    if(action==='poll'){
+      return sendJson(res,200,{ok:true,commands:await memoryAccountDelete.pending(accountId,deviceId)});
+    }
+    if(action==='list'){
+      return sendJson(res,200,{ok:true,requests:await memoryAccountDelete.list(accountId)});
+    }
+    if(action==='ack'){
+      return sendJson(res,200,{ok:true,result:await memoryAccountDelete.ack(accountId,deviceId,ctx.payload.scopeId)});
+    }
+    if(action==='status'){
+      return sendJson(res,200,{ok:true,status:await memoryAccountDelete.status(accountId,ctx.payload.scopeId)});
+    }
+    throw new EnrollmentError('memory_account_delete_action_invalid',400);
+  }
   // Account-scoped Memory device discovery: authenticate the enrolled device, not a
   // caller-supplied account ID. Never expose checkpoint bodies or unrelated accounts.
   if(req.method==='POST'&&url.pathname==='/v1/device-channel/memory-peers'){
@@ -44,6 +69,9 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
     if(ctx.payload?.action==='offer'&&!policy.devices.some(d=>
       d.deviceId===ctx.payload?.package?.invite?.toDeviceId&&d.selected))
       throw new EnrollmentError('memory_sync_replica_not_selected',403);
+    if(ctx.payload?.action==='offer'&&
+       await memoryAccountDelete.isDeleted(ctx.binding.accountId,ctx.payload?.package?.invite?.scopeId||''))
+      throw new EnrollmentError('memory_scope_deleted_account_wide',409);
     const result=memoryInvites({accountId:ctx.binding.accountId,deviceId:ctx.binding.deviceId,
       devices:roster,payload:ctx.payload||{}});
     return sendJson(res,200,{ok:true,...(Array.isArray(result)?{invites:result}:{result})});
@@ -60,6 +88,10 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       ctx.payload?.action==='push_evidence_ack'?ctx.payload?.evidence_ack?.deviceId:null;
     if(outgoing&&!policy.devices.some(d=>d.deviceId===outgoing&&d.selected))
       throw new EnrollmentError('memory_sync_recipient_not_selected',403);
+    const relayScope=ctx.payload?.frame?.meta?.scopeId||ctx.payload?.ack?.scopeId||
+      ctx.payload?.evidence?.meta?.scopeId||ctx.payload?.evidence_ack?.scopeId;
+    if(relayScope&&await memoryAccountDelete.isDeleted(ctx.binding.accountId,relayScope))
+      throw new EnrollmentError('memory_scope_deleted_account_wide',409);
     const result=memoryRelay({accountId:ctx.binding.accountId,deviceId:ctx.binding.deviceId,
       devices:roster,payload:ctx.payload||{}});
     return sendJson(res,200,{ok:true,result});

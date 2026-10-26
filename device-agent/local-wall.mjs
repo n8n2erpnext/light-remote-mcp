@@ -81,7 +81,7 @@ body.wall-view-memory #goldModulesPanel>summary,body.wall-view-codex #goldModule
 body.wall-view-memory #ptyOpen,body.wall-view-codex #ptyOpen{display:none}
 .module-nav-status{font-size:10px;border-radius:5px;padding:2px 4px;background:#303943;color:#abbccc}
 .module-nav-status.on{background:#123627;color:#7ee8ad}
-</style></head><body class="wall-view-${view}"><div id="toastHost" class="toasts" aria-live="polite"></div><div id="confirmOverlay" class="confirm-overlay" role="dialog" aria-modal="true" aria-hidden="true"><div class="confirm-card"><div id="confirmText" class="confirm-text"></div><div class="confirm-actions"><button id="confirmCancel" class="btn small" type="button">Cancel</button><button id="confirmOk" class="btn small danger" type="button">Confirm</button></div></div></div><div class="wrap"><div class="top"><div><div class="brand"><span>${brandSvg}</span><span><strong>Light Remote</strong> <small>MCP</small></span></div><div class="muted" style="margin-top:6px">Local Wall · one device · session lanes · operator history</div></div><div class="topright">${view==='home'?'':'<a id="backToWall" class="btn small" href="/" aria-label="Back to Wall">'+materialIcon('arrowBack')+'<span>Back to Wall</span></a>'}<span id="conn" class="pill">connecting…</span><span class="paircontrol"><span class="pairprefix">A</span><span id="acode" class="paircode">••••-••••</span><span id="aexp" class="code-exp">--:--</span><button id="toggleA" class="icon-only" type="button" title="Show A" aria-label="Show A" disabled><span class="eye-open">${materialIcon('visibility')}</span><span class="eye-off">${materialIcon('visibilityOff')}</span></button><button id="copyA" class="icon-only" type="button" title="Copy A" aria-label="Copy A" disabled>${materialIcon('copy')}</button><button id="refreshA" class="icon-only" type="button" title="Refresh A" aria-label="Refresh A">${materialIcon('refresh')}</button></span><button id="connectCloud" class="btn small">${materialIcon('link')}<span>Connect</span></button><button id="disconnectCloud" class="btn small">${materialIcon('power')}<span>Disconnect</span></button><button id="linkDevice" class="btn small" style="display:none">${materialIcon('device')}<span class="label">Link device</span></button><span id="deviceCodeWrap" class="pill" style="display:none">Device <span id="deviceCode" class="paircode">—</span> <span id="deviceCodeExp" class="muted"></span></span><button id="copyDeviceCode" class="btn small" style="display:none" disabled>${materialIcon('copy')}<span>Copy code</span></button><span id="enrollMsg" class="muted"></span><a id="fleetWall" class="btn small" href="#" target="_blank" rel="noopener" style="display:none">${materialIcon('device')}<span>Open Fleet Wall</span></a><a class="btn small" href="/processes">${materialIcon("terminal")}<span>Processes</span></a><a class="btn small" href="/permissions">${materialIcon('security')}<span>Permissions</span></a><a class="btn small" href="/approve">${materialIcon('approve')}<span>Approve B</span></a>${moduleSupported?'<a class="btn small" href="/long-memory">'+materialIcon("folder")+'<span>Long Memory</span> <span id="navMemoryState" class="module-nav-status">…</span></a><a class="btn small" href="/codex-cli">'+materialIcon("terminal")+'<span>Codex</span> <span id="navCodexState" class="module-nav-status">…</span></a>':''}<a class="btn small" href="/settings">${materialIcon('settings')}<span>Settings</span></a>${authEnabled?'<form method="post" action="/auth/logout" style="margin:0"><input type="hidden" name="csrf" value="'+csrf+'"><button class="btn small" type="submit">'+materialIcon('logout')+'<span>Logout</span></button></form>':''}</div></div>
+</style></head><body class="wall-view-${view}"><div id="toastHost" class="toasts" aria-live="polite"></div><div id="confirmOverlay" class="confirm-overlay" role="dialog" aria-modal="true" aria-hidden="true"><div class="confirm-card"><div id="confirmText" class="confirm-text"></div><div class="confirm-actions"><button id="confirmCancel" class="btn small" type="button">Cancel</button><button id="confirmOk" class="btn small danger" type="button">Confirm</button></div></div></div><div class="wrap"><div class="top"><div><div class="brand"><span>${brandSvg}</span><span><strong>Light Remote</strong> <small>MCP</small></span></div><div class="muted" style="margin-top:6px">Local Wall · one device · session lanes · operator history</div></div><div class="topright">${view==='home'?'':'<a id="backToWall" class="btn small" href="/" aria-label="Back to Wall">'+materialIcon('arrowBack')+'<span>Back to Wall</span></a>'}<span id="conn" class="pill">connecting…</span><span class="paircontrol"><span class="pairprefix">A</span><span id="acode" class="paircode">••••-••••</span><span id="aexp" class="code-exp">--:--</span><button id="toggleA" class="icon-only" type="button" title="Show A" aria-label="Show A" disabled><span class="eye-open">${materialIcon('visibility')}</span><span class="eye-off">${materialIcon('visibilityOff')}</span></button><button id="copyA" class="icon-only" type="button" title="Copy A" aria-label="Copy A" disabled>${materialIcon('copy')}</button><button id="refreshA" class="icon-only" type="button" title="Refresh A" aria-label="Refresh A">${materialIcon('refresh')}</button></span><button id="connectCloud" class="btn small">${materialIcon('link')}<span>Connect</span></button><button id="disconnectCloud" class="btn small">${materialIcon('power')}<span>Disconnect</span></button><button id="linkDevice" class="btn small" style="display:none">${materialIcon('device')}<span class="label">Link device</span></button><span id="deviceCodeWrap" class="pill" style="display:none">Device <span id="deviceCode" class="paircode">—</span> <span id="deviceCodeExp" class="muted"></span></span><button id="copyDeviceCode" class="btn small" style="display:none" disabled>${materialIcon('copy')}<span>Copy code</span></button><span id="enrollMsg" class="muted"></span><a id="fleetWall" class="btn small" href="#" target="_blank" rel="noopener" style="display:none">${materialIcon('device')}<span>Open Fleet Wall</span></a><a class="btn small" href="/processes">${materialIcon("terminal")}<span>Processes</span></a><a class="btn small" href="/permissions">${materialIcon('security')}<span>Permissions</span></a><a class="btn small" href="/approve">${materialIcon('approve')}<span>Approve B</span></a>${moduleSupported?'<a class="btn small" href="/long-memory">'+materialIcon("folder")+'<span>Long Memory</span> <span id="navMemoryState" class="module-nav-status">…</span></a><a class="btn small" href="/codex-cli">'+materialIcon("smart_toy")+'<span>Codex</span> <span id="navCodexState" class="module-nav-status">…</span></a>':''}<a class="btn small" href="/settings">${materialIcon('settings')}<span>Settings</span></a>${authEnabled?'<form method="post" action="/auth/logout" style="margin:0"><input type="hidden" name="csrf" value="'+csrf+'"><button class="btn small" type="submit">'+materialIcon('logout')+'<span>Logout</span></button></form>':''}</div></div>
 
 <div class="wall-primary"><div id="devicebox" class="sessionbox muted">loading device…</div><div id="abGrantTimer" class="muted" style="margin:5px 0">Agent A/B access · checking…</div><div id="tabs" class="tabs"></div><div id="sessionbox" class="sessionbox muted">loading sessions…</div><div id="sessionActions" class="controls" style="margin-top:7px"></div>
 <div class="controls" style="margin-top:9px"><input id="filter" placeholder="filter cwd / command / output / PTY"><select id="status"><option value="">all status</option><option>running</option><option>ok</option><option>error</option><option>timeout</option></select><button id="pause" class="btn">${materialIcon('pause')}<span>Pause</span></button><button id="copyVisible" class="btn">${materialIcon('copy')}<span>Copy visible</span></button></div>
@@ -478,7 +478,19 @@ function goldMemoryNativeInit(){
   capture.append(capLabel,capChoice,capSave,capStatus);
   detailBar.append(capture);
   detail.append(detailBar);
-  pages.work.append(workList,create,detail);
+  const deletionLog=goldMemoryNativeElement('details','sessionbox');
+  deletionLog.id='goldMemoryDeleteActivity';
+  deletionLog.style.cssText='padding:12px;margin:12px 0';
+  deletionLog.append(goldMemoryNativeElement('summary','','Account deletion activity'));
+  const deletionInfo=goldMemoryNativeElement('p','muted',
+    'An account-wide deletion is complete only after every enrolled target device confirms. Offline devices remain Pending; exports and backups are not erased.');
+  deletionInfo.style.cssText='font-size:12px;line-height:1.5;margin:8px 0';
+  const deletionItems=goldMemoryNativeElement('div');
+  deletionItems.id='goldMemoryDeleteActivityItems';
+  const deletionRefresh=goldMemoryNativeElement('button','btn small','Refresh deletion status');
+  deletionRefresh.type='button';deletionRefresh.onclick=()=>void goldMemoryAccountDeletionRefresh();
+  deletionLog.append(deletionInfo,deletionRefresh,deletionItems);
+  pages.work.append(workList,create,detail,deletionLog);
   pages.devices.append(document.getElementById('goldSimpleSyncPanel'));
   const syncHelp=pages.devices.querySelector('#goldSimpleSyncPanel > p');
   if(syncHelp)syncHelp.textContent='Choose which enrolled devices exchange authorized memory. Each device can have its own transfer mode; this does not change when memory is recorded.';
@@ -552,9 +564,10 @@ function goldMemoryNativeInit(){
   managePanel.style.cssText='border:0;padding:0;margin:8px 0 0';
   manage.append(managePanel);
   const unsupported=document.getElementById('goldReaderDeleteAccount');
-  unsupported.textContent='Delete across account · unavailable';
-  unsupported.disabled=true;
-  unsupported.title='Not yet supported: requires durable signed deletion on offline devices and per-device acknowledgement';
+  unsupported.textContent='Delete across account';
+  unsupported.disabled=false;
+  unsupported.classList.add('danger');
+  unsupported.title='Permanent account-wide request. Each enrolled device acknowledges on reconnect; offline devices remain Pending.';
   document.getElementById('goldReaderDeleteLocal').classList.add('danger');
   // Retain the original control for legacy browser handlers, without an
   // additional nested menu in the owner-facing flow.
@@ -624,6 +637,25 @@ function goldMemoryNativeOpenWork(id){
   document.getElementById('goldMemoryExportDetails').open=false;
   document.getElementById('goldMemoryUsageDetails').open=false;
 }
+async function goldMemoryAccountDeletionRefresh(){
+  const box=document.getElementById('goldMemoryDeleteActivityItems');
+  if(!box)return;
+  try{
+    const response=await fetch('/api/gold/modules/scope/delete/account/list',{cache:'no-store'});
+    const payload=await response.json();
+    if(!response.ok||!payload.ok)throw Error(payload.error||'Deletion progress unavailable');
+    box.textContent='';
+    for(const entry of payload.requests||[]){
+      const line=goldMemoryNativeElement('div','muted',
+        entry.scopeName+' · '+(entry.state==='completed'?'Completed':'Pending')+
+        ' · '+entry.acknowledged+'/'+entry.total+' devices acknowledged');
+      line.style.cssText='font-size:12px;margin-top:8px';
+      box.append(line);
+    }
+    const total=(payload.requests||[]).length;
+    if(!total)box.textContent='No account-wide deletion requests.';
+  }catch(error){box.textContent='Deletion status unavailable: '+String(error.message||error);}
+}
 function goldMemoryNativeRender(scopes){
   if(!goldMemoryNative)return;
   goldMemoryNative.knownScopes=scopes;
@@ -671,6 +703,7 @@ async function goldReaderRefresh(preferred=''){
   }
   if(old&&(j.scopes||[]).some(s=>s.scopeId===old))sel.value=old;
   goldMemoryNativeRender(j.scopes||[]);
+  void goldMemoryAccountDeletionRefresh();
   void goldReaderUsageRefresh().catch(e=>{document.getElementById('goldReaderUsage').textContent=String(e.message||e);});
   void goldReaderPreferenceRefresh().catch(e=>{document.getElementById('goldContextStatus').textContent=String(e.message||e);});
   document.getElementById('goldReaderStatus').textContent=
@@ -805,6 +838,27 @@ document.getElementById('goldReaderRestore').onclick=async()=>{
     await goldReaderRefresh(scopeId);await goldReaderUsageRefresh();
     status.textContent='Archived scope restored. Sync policy still applies.';
   }catch(e){status.textContent=String(e.message||e);}
+};
+document.getElementById('goldReaderDeleteAccount').onclick=async()=>{
+  const status=document.getElementById('goldReaderManageStatus');
+  const button=document.getElementById('goldReaderDeleteAccount');
+  try{
+    const scopeId=goldReaderSelected();
+    const row=goldMemoryUsageCache?.scopes?.find(s=>s.scopeId===scopeId);
+    if(!row)throw Error('Select a work and refresh its details first');
+    const name=row.displayName;
+    const typed=prompt('Delete '+name+' across ALL enrolled devices? This cannot be undone. Type the exact work name to request deletion:');
+    if(typed!==name){status.textContent='Canceled: work name did not match.';return;}
+    if(!confirm('Final confirmation: permanently delete this work on this device and send signed deletion instructions to other devices? Offline devices remain PENDING until they acknowledge. Exports and backups remain.'))return;
+    button.disabled=true;
+    const j=await wallMutation('/api/gold/modules/scope/delete/account',
+      {scopeId,confirmName:typed,ownerConfirmed:true});
+    status.textContent='Account deletion '+j.result.state+' · '+j.result.acknowledged+'/'+j.result.total+
+      ' enrolled devices acknowledged. Offline devices will receive the deletion when they reconnect. Existing backups and exported files are not erased.';
+    document.getElementById('goldReaderPreview').hidden=true;
+    await goldReaderRefresh();await goldReaderUsageRefresh();
+  }catch(e){status.textContent='Account deletion not completed: '+String(e.message||e);}
+  finally{button.disabled=false;}
 };
 document.getElementById('goldReaderDeleteLocal').onclick=async()=>{
   const status=document.getElementById('goldReaderManageStatus');
@@ -1800,7 +1854,7 @@ function approvePage(brandSvg,csrf=''){return `<!doctype html><html lang="en"><h
 const wallCsrf=${JSON.stringify(csrf)},code=document.getElementById('code'),msg=document.getElementById('msg'),decision=document.getElementById('decision'),request=document.getElementById('request');let current=null;function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}async function lookup(){msg.className='muted';msg.textContent='Checking…';decision.style.display='none';current=null;const r=await fetch('/api/approve?code='+encodeURIComponent(code.value),{cache:'no-store'}),j=await r.json();if(!r.ok||!j.ok){msg.className='error';msg.textContent=j.error==='approval_code_not_found'?'No pending request matches this code.':(j.error||'Unable to check code.');return;}current=j.request;msg.textContent='';request.innerHTML='<b>'+esc(current.label||'ChatGPT')+'</b> requests access to <b>'+esc(current.deviceName||'this device')+'</b><br><span class="muted">Agent '+esc(current.agentId||'')+' · code '+esc(current.userCode||'')+'</span>';decision.style.display='block';}async function decide(kind){if(!current)return;const r=await fetch('/api/approve',{method:'POST',headers:{'content-type':'application/json','x-light-remote-csrf':wallCsrf},body:JSON.stringify({code:code.value,decision:kind})}),j=await r.json();if(!r.ok||!j.ok){msg.className='error';msg.textContent=j.error||'Request failed.';return;}decision.style.display='none';msg.className='ok';msg.textContent=kind==='approve'?'Access approved':'Access denied';setTimeout(()=>location.href='/',900);}document.getElementById('lookup').onclick=lookup;document.getElementById('approve').onclick=()=>decide('approve');document.getElementById('deny').onclick=()=>decide('deny');code.addEventListener('keydown',e=>{if(e.key==='Enter')lookup();});const q=new URLSearchParams(location.search).get('code');if(q){code.value=q;lookup();}
 </script></body></html>`;}
 
-export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvgPath,fontPath=null,cascadiaMonoFontPath=DEFAULT_CASCADIA_MONO_FONT,cascadiaCodeFontPath=DEFAULT_CASCADIA_CODE_FONT,auth={enabled:false},accountAuthenticate,getLocalStatus,getLocalPolicyStatus,getRemoteStatus,getRemoteActivity,getPendingAccess,getMemoryAccountDevices,getMemoryAccountInvites,getMemoryAccountSyncPolicy,getLocalTerminals,readLocalTerminal,getLocalProcesses,stopLocalProcess,connect,disconnect,setGrace,setPermissions,setFilesystemRoots,getFilesystemVolumes,ownerApprovePermissions,rescanCapabilities,beginEnrollment,pollEnrollment,pairingCode,ownerProofCode,accessApprove,accessDeny,closeSession,requestUpdate}={}){
+export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvgPath,fontPath=null,cascadiaMonoFontPath=DEFAULT_CASCADIA_MONO_FONT,cascadiaCodeFontPath=DEFAULT_CASCADIA_CODE_FONT,auth={enabled:false},accountAuthenticate,getLocalStatus,getLocalPolicyStatus,getRemoteStatus,getRemoteActivity,getPendingAccess,getMemoryAccountDevices,getMemoryAccountInvites,getMemoryAccountSyncPolicy,getMemoryAccountDelete,getLocalTerminals,readLocalTerminal,getLocalProcesses,stopLocalProcess,connect,disconnect,setGrace,setPermissions,setFilesystemRoots,getFilesystemVolumes,ownerApprovePermissions,rescanCapabilities,beginEnrollment,pollEnrollment,pairingCode,ownerProofCode,accessApprove,accessDeny,closeSession,requestUpdate}={}){
 
   if(!isAllowedLocalWallBindHost(host)) throw new Error('local_wall_bind_host_not_private');
   const loopback=['127.0.0.1','::1','localhost'].includes(String(host));
@@ -1981,7 +2035,29 @@ export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvg
         return json(res,200,{ok:true,result:modules.deleteMemoryScopeLocal({...input,ownerConfirmed:input.ownerConfirmed===true})});
       }
       if(req.method==='POST'&&url.pathname==='/api/gold/modules/scope/delete/account'){
-        return json(res,501,{ok:false,error:'memory_scope_account_delete_requires_signed_tombstone_offline_delivery_and_acks'});
+        if(typeof getMemoryAccountDelete!=='function')
+          return json(res,503,{ok:false,error:'memory_account_delete_channel_unavailable'});
+        const input=await body(req);
+        const envelope=modules.signScopeDeleteAcrossAccount({...input,ownerConfirmed:input.ownerConfirmed===true});
+        // Persist signed deletion and offline delivery targets BEFORE erasing
+        // the originating Home. Failure leaves all local Memory intact.
+        const begun=await getMemoryAccountDelete({action:'begin',envelope});
+        const applied=modules.applyScopeDeleteAcrossAccount(envelope);
+        await getMemoryAccountDelete({action:'ack',scopeId:envelope.record.scopeId});
+        const result=await getMemoryAccountDelete({action:'status',scopeId:envelope.record.scopeId});
+        return json(res,200,{ok:true,result:result.status,local:applied,scheduled:begun.status});
+      }
+      if(req.method==='GET'&&url.pathname==='/api/gold/modules/scope/delete/account/list'){
+        if(typeof getMemoryAccountDelete!=='function')
+          return json(res,503,{ok:false,error:'memory_account_delete_channel_unavailable'});
+        const result=await getMemoryAccountDelete({action:'list'});
+        return json(res,200,{ok:true,requests:result.requests||[]});
+      }
+      if(req.method==='GET'&&url.pathname==='/api/gold/modules/scope/delete/account'){
+        if(typeof getMemoryAccountDelete!=='function')
+          return json(res,503,{ok:false,error:'memory_account_delete_channel_unavailable'});
+        const result=await getMemoryAccountDelete({action:'status',scopeId:url.searchParams.get('scopeId')||''});
+        return json(res,200,{ok:true,result:result.status});
       }
       if(req.method==='GET'&&url.pathname==='/api/gold/modules/scope/context/preference')
         return json(res,200,{ok:true,preference:modules.fullContextPreference({scopeId:url.searchParams.get('scopeId')||''})});
