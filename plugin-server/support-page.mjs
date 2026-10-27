@@ -48,7 +48,7 @@ export function renderSupportPage({origin,version}){
     .callout{border:1px solid #493f18;background:#171508;border-radius:12px;padding:14px 16px;color:#cabb79;margin:16px 0}.callout strong{color:#ffe26a}.danger{border-color:#4a2b25;background:#180f0d;color:#d8aaa0}.danger strong{color:#ffb5a4}
     .support-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}.mini{border:1px solid #252d35;background:var(--panel2);border-radius:13px;padding:16px}.mini h3{font-size:14px;margin:0 0 8px}.mini p,.mini li{color:#84919e;font-size:13px}.mini p{margin:0}.mini ul{margin:8px 0 0;padding-left:18px}
     .error-table{width:100%;border-collapse:collapse;font-size:13px}.error-table th,.error-table td{border-top:1px solid #252d35;padding:12px 10px;text-align:left;vertical-align:top}.error-table th{color:#cbd4dd;font-size:11px;letter-spacing:.06em;text-transform:uppercase}.error-table td{color:#84919e}.error-table code{font-family:${WEB_CODE_FONT};color:#f2d968;background:#16150d;padding:2px 5px;border-radius:5px}
-    .diag{border:1px solid #303943;background:#090d10;border-radius:14px;padding:17px}.diag pre{white-space:pre-wrap;margin:12px 0 0;color:#aab4bf;font:12px/1.55 ${WEB_CODE_FONT};background:#060809;border:1px solid #20272e;border-radius:10px;padding:14px}.btn{border:1px solid #353e47;background:#11161b;color:#e7edf3;border-radius:10px;padding:10px 14px;font:600 13px ${WEB_UI_FONT};cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px}.btn:hover{border-color:#59636d;background:#151b21}.btn.primary{background:var(--yellow);border-color:var(--yellow);color:#111}.btn[disabled]{opacity:.55;cursor:not-allowed}.btn img{width:17px;height:17px}.case-panel{margin-top:14px;border:1px solid #303943;background:#0b1014;border-radius:14px;padding:18px}.case-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}.case-head h3{margin:0 0 5px;font-size:16px}.case-head p{margin:0;color:#84919e;font-size:13px}.case-badge{border:1px solid #353e47;border-radius:999px;padding:5px 9px;color:#9aa6b2;font-size:11px;font-weight:700}.case-gate{margin-top:14px;color:#9aa6b2;font-size:13px}.case-form{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:15px}.case-form.hide{display:none}.case-form label{display:grid;gap:6px;color:#cbd4dd;font-size:12px;font-weight:650}.case-form .wide{grid-column:1/-1}.case-form input,.case-form select,.case-form textarea{width:100%;border:1px solid #303943;background:#080c0f;color:#e7edf3;border-radius:9px;padding:10px 11px;font:13px ${WEB_UI_FONT};outline:none}.case-form textarea{min-height:90px;resize:vertical}.case-form input:focus,.case-form select:focus,.case-form textarea:focus{border-color:#707b86}.case-actions{grid-column:1/-1;display:flex;gap:10px;align-items:center;flex-wrap:wrap}.case-msg{color:#8d99a6;font-size:12px}.case-msg.ok{color:#9bd6a7}.case-msg.error{color:#ffad9a}.contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}.contact-card{border:1px solid #2b333c;background:#0b1014;border-radius:14px;padding:18px}.contact-card h3{margin:0 0 6px;font-size:15px}.contact-card p{margin:0 0 14px;color:#84919e;font-size:13px}
+    .diag{border:1px solid #303943;background:#090d10;border-radius:14px;padding:17px}.diag pre{white-space:pre-wrap;margin:12px 0 0;color:#aab4bf;font:12px/1.55 ${WEB_CODE_FONT};background:#060809;border:1px solid #20272e;border-radius:10px;padding:14px}.btn{border:1px solid #353e47;background:#11161b;color:#e7edf3;border-radius:10px;padding:10px 14px;font:600 13px ${WEB_UI_FONT};cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px}.btn:hover{border-color:#59636d;background:#151b21}.btn.primary{background:var(--yellow);border-color:var(--yellow);color:#111}.btn[disabled]{opacity:.55;cursor:not-allowed}.btn img{width:17px;height:17px}.case-panel{margin-top:14px;border:1px solid #303943;background:#0b1014;border-radius:14px;padding:18px}.case-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}.case-head h3{margin:0 0 5px;font-size:16px}.case-head p{margin:0;color:#84919e;font-size:13px}.case-badge{border:1px solid #353e47;border-radius:999px;padding:5px 9px;color:#9aa6b2;font-size:11px;font-weight:700}.case-gate{margin-top:14px;color:#9aa6b2;font-size:13px}.case-form{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:15px}.case-form.hide{display:none}.case-form label{display:grid;gap:6px;color:#cbd4dd;font-size:12px;font-weight:650}.case-form .wide{grid-column:1/-1}.case-account{margin-top:14px;padding:12px 15px;border:1px solid #34485b;border-radius:10px;background:#111c26;color:#cbdbe8;font-size:13px}.case-account strong{color:#f0c55b}.case-account[hidden],.case-mail[hidden],#supportDeviceGroup[hidden]{display:none}.case-system{grid-column:1/-1;padding:11px 14px;border:1px solid #303943;border-radius:10px;background:#080d12;color:#9ba8b7;font-size:12px}.case-system strong{color:#d5e0eb}.case-form input,.case-form select,.case-form textarea{width:100%;border:1px solid #303943;background:#080c0f;color:#e7edf3;border-radius:9px;padding:10px 11px;font:13px ${WEB_UI_FONT};outline:none}.case-form textarea{min-height:90px;resize:vertical}.case-form input:focus,.case-form select:focus,.case-form textarea:focus{border-color:#707b86}.case-actions{grid-column:1/-1;display:flex;gap:10px;align-items:center;flex-wrap:wrap}.case-msg{color:#8d99a6;font-size:12px}.case-msg.ok{color:#9bd6a7}.case-msg.error{color:#ffad9a}.contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}.contact-card{border:1px solid #2b333c;background:#0b1014;border-radius:14px;padding:18px}.contact-card h3{margin:0 0 6px;font-size:15px}.contact-card p{margin:0 0 14px;color:#84919e;font-size:13px}
     details{border-top:1px solid #252d35}details:first-of-type{border-top:0}summary{cursor:pointer;padding:15px 0;font-weight:700;color:#dce3e9}details p{margin:0 0 15px;color:#8793a0;font-size:13px}
     .no-results{display:none;border:1px dashed #38424c;border-radius:14px;padding:24px;text-align:center;color:#7f8b97;margin:18px 0}.no-results.show{display:block}
     .support-footer{margin-top:54px;border-top:1px solid #20262c;padding-top:24px;display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;color:#6f7b87;font-size:12px}.support-footer nav{display:flex;gap:14px;flex-wrap:wrap}.support-footer a{text-decoration:none;color:#84919e}.support-footer a:hover{color:#fff}
@@ -176,9 +176,12 @@ export function renderSupportPage({origin,version}){
           <div class="case-panel" id="contact-support">
             <div class="case-head"><div><h3>Light Remote Support Center</h3><p>Submit your ticket directly from this page. LibreDesk creates the ticket and emails a private tracking link so you can read and reply without signing in.</p></div><span class="case-badge">EVERYONE · NO ACCOUNT</span></div>
             <div class="callout"><strong>One conversation, two reply options.</strong> After you submit the form, check your inbox for the automatic ticket acknowledgment. Open its private link to follow Open / Snoozed / Resolved / Closed, reply on the ticket page, or reply to the email. Links expire 14 days after a ticket is Closed.</div>
+            <div id="supportAccountSummary" class="case-account" hidden><strong>Signed-in account</strong> · <span id="supportAccountDetails"></span><div>We use the email and current plan from your Gold account.</div></div>
             <form id="supportCaseForm" class="case-form">
               <label>Your name (optional)<input name="name" maxlength="100" autocomplete="name" placeholder="Name"></label>
-              <label>Your email address<input name="email" type="email" maxlength="254" required autocomplete="email" placeholder="you@example.com"></label>
+              <label id="guestEmailGroup" class="case-mail">Your email address<input name="email" id="supportEmailInput" type="email" maxlength="254" required autocomplete="email" placeholder="you@example.com"></label>
+              <label id="supportDeviceGroup" class="wide" hidden>Affected registered device (optional)<select id="supportLinkedDevice" name="linkedDeviceId"><option value="">Select a device or describe another device below</option></select></label>
+              <div id="supportSystemSummary" class="case-system" aria-live="polite"><strong>System information</strong><div id="supportSystemDetails">Detecting browser and service versions…</div><div>Remote device OS and client version can be entered or corrected below.</div></div>
               <input name="website" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;opacity:0" />
               <label>Problem area<select name="problemArea"><option value="install">Install</option><option value="approval">A/B approval</option><option value="remote">Real Remote</option><option value="account">Account</option><option value="update">Update</option><option value="billing">Billing</option><option value="security">Security</option><option value="other" selected>Other</option></select></label>
               <label>Device status<select name="deviceStatus"><option value="unknown" selected>Unknown</option><option value="online">Online</option><option value="offline">Offline</option></select></label>
@@ -189,7 +192,7 @@ export function renderSupportPage({origin,version}){
               <label class="wide">Sanitized error (optional)<textarea name="sanitizedError" maxlength="1200" placeholder="Remove passwords, tokens and private data."></textarea></label>
               <div class="case-actions"><button id="submitCase" class="btn primary" type="submit"><img src="/assets/icons/material/support_agent.svg" alt="">Submit ticket</button><button id="copyCase" class="btn" type="button">Copy support request</button><a class="btn" href="mailto:support@thaiduy.digital">Email support directly</a><span id="caseMsg" class="case-msg" role="status" aria-live="polite"></span></div>
             </form>
-            <p style="margin:14px 0 0;color:#8d99a6;font-size:12px">Submitting creates a ticket in LibreDesk automatically. If submission is unavailable, use email as a fallback: send your request to <a href="mailto:support@thaiduy.digital">support@thaiduy.digital</a>. The private ticket URL is emailed to the address you entered after the ticket is created. Do not share that link.</p>
+            <p style="margin:14px 0 0;color:#8d99a6;font-size:12px">Submitting creates a ticket in LibreDesk automatically. If submission is unavailable, use email as a fallback: send your request to <a href="mailto:support@thaiduy.digital">support@thaiduy.digital</a>. The private ticket URL is emailed to the verified account email (when signed in) or the address entered above. Do not share that link.</p>
           </div>
           <div class="danger callout"><strong>Redact before sending.</strong> Never include passwords, OTP/MFA codes, bearer/API tokens, cookies, private keys, A/B continuation data, device secrets, or screenshots containing sensitive credentials.</div>
           <div class="contact-grid">
@@ -257,11 +260,88 @@ export function renderSupportPage({origin,version}){
     const caseMsg=document.getElementById('caseMsg');
     const submitCase=document.getElementById('submitCase');
     const copyCase=document.getElementById('copyCase');
+    const guestEmailGroup=document.getElementById('guestEmailGroup');
+    const supportEmailInput=document.getElementById('supportEmailInput');
+    const accountSummary=document.getElementById('supportAccountSummary');
+    const accountDetails=document.getElementById('supportAccountDetails');
+    const systemDetails=document.getElementById('supportSystemDetails');
+    const deviceGroup=document.getElementById('supportDeviceGroup');
+    const deviceSelect=document.getElementById('supportLinkedDevice');
+    const targetOs=caseForm?.elements.namedItem('targetOsArch');
+    const targetVersion=caseForm?.elements.namedItem('targetVersion');
+    let registeredDevices=[];
     let currentRequestId=null;
+    let verifiedAccount=null;
+    let systemContext={browserPlatform:String(navigator.platform||'unknown').slice(0,120),
+      browserUserAgent:String(navigator.userAgent||'unknown').slice(0,500),
+      serverCoreVersion:'unknown',mcpSurfaceVersion:'unknown'};
+    const showAccount=account=>{
+      verifiedAccount=account&&account.email?{email:String(account.email),plan:String(account.plan||'free').toUpperCase()}:null;
+      guestEmailGroup.hidden=Boolean(verifiedAccount);
+      supportEmailInput.required=!verifiedAccount;
+      if(verifiedAccount){
+        supportEmailInput.value=verifiedAccount.email;
+        accountDetails.textContent=verifiedAccount.email+' · '+verifiedAccount.plan;
+        accountSummary.hidden=false;
+      }else{
+        accountSummary.hidden=true;
+        supportEmailInput.value='';
+      }
+    };
+    const detectContext=async()=>{
+      const [profile,health]=await Promise.all([
+        fetch('/support/api?action=eligibility',{credentials:'same-origin',cache:'no-store'})
+          .then(r=>r.ok?r.json():null).catch(()=>null),
+        fetch('/healthz',{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null)
+      ]);
+      showAccount(profile?.signedIn?profile.account:null);
+      if(verifiedAccount){
+        try{
+          const response=await fetch('/account/api?action=devices',{credentials:'same-origin',cache:'no-store'});
+          const body=response.ok?await response.json():null;
+          registeredDevices=(Array.isArray(body?.devices)?body.devices:[]).filter(d=>d&&d.deviceId&&d.state!=='revoked');
+        }catch{registeredDevices=[]}
+        deviceSelect.replaceChildren(new Option('Select a device or describe another device below',''));
+        for(const d of registeredDevices){
+          const platform=String(d.platform||'unknown');
+          const version=String(d.compatibility?.clientVersion||d.agentVersion||'unknown');
+          const label=String(d.displayName||d.deviceId)+' · '+platform+' · '+version;
+          deviceSelect.add(new Option(label.slice(0,170),String(d.deviceId)));
+        }
+        deviceGroup.hidden=registeredDevices.length===0;
+        if(registeredDevices.length===1){
+          deviceSelect.value=String(registeredDevices[0].deviceId);
+          deviceSelect.dispatchEvent(new Event('change'));
+        }
+      }else{
+        registeredDevices=[];
+        deviceGroup.hidden=true;
+        deviceSelect.value='';
+      }
+      systemContext.serverCoreVersion=String(health?.version||'unknown').slice(0,100);
+      systemContext.mcpSurfaceVersion=String(health?.mcpSurfaceVersion||'unknown').slice(0,100);
+      try{
+        if(navigator.userAgentData?.getHighEntropyValues){
+          const details=await navigator.userAgentData.getHighEntropyValues(['platformVersion','architecture','bitness']);
+          systemContext.browserPlatform=[navigator.userAgentData.platform,details.architecture,details.bitness?details.bitness+'-bit':''].filter(Boolean).join(' ').slice(0,120)||systemContext.browserPlatform;
+        }
+      }catch{}
+      systemDetails.textContent='Browser OS / architecture: '+systemContext.browserPlatform+
+        ' · Gold Core: '+systemContext.serverCoreVersion+' · MCP: '+systemContext.mcpSurfaceVersion;
+    };
+    deviceSelect?.addEventListener('change',()=>{
+      const d=registeredDevices.find(x=>String(x.deviceId)===deviceSelect.value);
+      if(!d)return;
+      targetOs.value=[d.platform,d.architecture].filter(Boolean).join(' ').slice(0,120);
+      targetVersion.value=String(d.compatibility?.clientVersion||d.agentVersion||'').slice(0,100);
+    });
+    void detectContext();
     const buildPayload=()=>{
       if(!caseForm?.reportValidity())return null;
       const f=new FormData(caseForm);
-      return Object.fromEntries(f.entries());
+      const data=Object.fromEntries(f.entries());
+      if(verifiedAccount)data.email=verifiedAccount.email;
+      return {...data,...systemContext};
     };
     const supportEmail=()=>{
       const f=new FormData(caseForm);
@@ -291,6 +371,7 @@ export function renderSupportPage({origin,version}){
         caseMsg.textContent='Ticket '+(result.referenceNumber?'#'+result.referenceNumber+' ':'')+
           'created successfully. Check your email for the private ticket link (also check Spam). You can reply from that link or by email.';
         caseForm.reset();
+        if(verifiedAccount)supportEmailInput.value=verifiedAccount.email;
       }catch(error){
         caseMsg.className='case-msg error';
         caseMsg.textContent=error.message==='support_rate_limited'?'Too many requests. Try again later.':

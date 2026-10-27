@@ -28,14 +28,29 @@ export function validateTicketPayload(body){
  if(name.length>100||!subject||subject.length>180||!detail||detail.length>3000)throw Error('invalid_fields');
  if(!['install','approval','remote','account','update','billing','security','other'].includes(area))throw Error('invalid_area');
  if(!['unknown','online','offline'].includes(status)||os.length>120||ver.length>100||err.length>1200)throw Error('invalid_fields');
- return {email:address,name,subject,description:detail,problemArea:area,deviceStatus:status,targetOsArch:os,targetVersion:ver,sanitizedError:err};
+ const bounded=(key,max)=>String(d[key]||'').trim().slice(0,max);
+ return {email:address,name,subject,description:detail,problemArea:area,deviceStatus:status,targetOsArch:os,targetVersion:ver,sanitizedError:err,
+  accountVerified:d.accountVerified===true,accountPlan:bounded('accountPlan',48),
+  browserPlatform:bounded('browserPlatform',120),browserUserAgent:bounded('browserUserAgent',500),
+  serverCoreVersion:bounded('serverCoreVersion',120),mcpSurfaceVersion:bounded('mcpSurfaceVersion',120),
+  registeredDevice:d.registeredDevice&&typeof d.registeredDevice==='object'&&!Array.isArray(d.registeredDevice)?
+   Object.fromEntries(['name','platform','architecture','version','status'].map(k=>[k,String(d.registeredDevice[k]||'').slice(0,k==='name'?160:120)])):null};
 }
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
 export function nativeTicketBody(d){
  return '<p>'+esc(d.description).replace(/\r?\n/g,'<br>')+'</p><p><strong>Source:</strong> Gold Distribution /support<br>'+
  '<strong>Area:</strong> '+esc(d.problemArea)+'<br><strong>Device:</strong> '+esc(d.deviceStatus)+
- '<br><strong>OS / arch:</strong> '+esc(d.targetOsArch)+'<br><strong>Version:</strong> '+esc(d.targetVersion)+
- (d.sanitizedError?'<br><strong>Sanitized error:</strong> '+esc(d.sanitizedError).replace(/\r?\n/g,'<br>'):'')+'</p>';
+ '<br><strong>OS / arch (target device):</strong> '+esc(d.targetOsArch)+'<br><strong>Client version (target device):</strong> '+esc(d.targetVersion)+
+ (d.sanitizedError?'<br><strong>Sanitized error:</strong> '+esc(d.sanitizedError).replace(/\r?\n/g,'<br>'):'')+
+ '</p><p><strong>Gold account:</strong> '+(d.accountVerified?'Verified session':'Guest')+
+ (d.accountVerified?'<br><strong>Current plan:</strong> '+esc(d.accountPlan||'Unknown'):'')+
+ '<br><strong>Detected browser platform:</strong> '+esc(d.browserPlatform)+
+ '<br><strong>Browser:</strong> '+esc(d.browserUserAgent)+
+ '<br><strong>Gold Core:</strong> '+esc(d.serverCoreVersion)+
+ '<br><strong>MCP Surface:</strong> '+esc(d.mcpSurfaceVersion)+
+ (d.registeredDevice?'<br><strong>Registered device:</strong> '+esc(d.registeredDevice.name)+
+ ' · '+esc(d.registeredDevice.platform)+' / '+esc(d.registeredDevice.architecture)+
+ ' · '+esc(d.registeredDevice.version)+' · '+esc(d.registeredDevice.status):'')+'</p>';
 }
 export async function createGoldTicket(req,res,{pool,secret,apiKey,apiSecret,inboxId,readBody,sendJson,fetchImpl=fetch}){
  const bad=(status,error)=>sendJson(res,status,{ok:false,error});

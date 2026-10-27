@@ -284,7 +284,12 @@ export class SupportOutbox{
 async function accountIdentity(req){
   const token=sessionToken(req);
   if(!token)return {signedIn:false,token:null,account:null};
-  const me=await callOperatorJson('GET','/v1/accounts/me',null,accountHeaders(token));
+  let me;
+  try{me=await callOperatorJson('GET','/v1/accounts/me',null,accountHeaders(token))}
+  catch(error){
+    if([401,403].includes(Number(error?.status)))return {signedIn:false,token:null,account:null};
+    throw error;
+  }
   const account=me?.account||null;
   if(!account?.accountId||!account?.email)return {signedIn:false,token:null,account:null};
   return {signedIn:true,token,account};
@@ -321,6 +326,21 @@ function supportPayload(account,body={}){
   };
 }
 
+export function goldSupportIdentityFields(input,identity){
+  const data={...input};
+  const account=identity?.signedIn?identity.account:null;
+  if(account?.email){
+    // Never use the browser-supplied email, account, or plan on a verified session.
+    data.email=String(account.email).trim().toLowerCase();
+    data.accountVerified=true;
+    data.accountPlan=String(account.plan||'free').trim().toUpperCase().slice(0,48);
+  }else{
+    data.accountVerified=false;
+    data.accountPlan='';
+  }
+  return data;
+}
+
 export function registerSupportBackoffice(app,{outbox=new SupportOutbox()}={}){
   const first=setTimeout(()=>void outbox.pump().catch(error=>console.error('[support-outbox]',safeError(error))),2_000);first.unref?.();
   const timer=setInterval(()=>void outbox.pump().catch(error=>console.error('[support-outbox]',safeError(error))),10_000);timer.unref?.();
@@ -354,7 +374,30 @@ export function registerSupportBackoffice(app,{outbox=new SupportOutbox()}={}){
     if(process.env.LIGHT_REMOTE_GOLD_DEMO==='1'){
       if(!sameOriginMutation(req))return res.status(403).json({ok:false,error:'cross_site_request_denied'});
       try{
-        const data=validateGoldSupportRequest(req.body||{});
+        const identity=await accountIdentity(req);
+        const payload=goldSupportIdentityFields(req.body||{},identity);
+        const data=validateGoldSupportRequest(payload);
+        data.accountVerified=payload.accountVerified;
+        data.accountPlan=payload.accountPlan;
+        const linkedDeviceId=String(req.body?.linkedDeviceId||'');
+        if(linkedDeviceId){
+          if(!identity.signedIn||linkedDeviceId.length>160)
+            return res.status(400).json({ok:false,error:'registered_device_not_available'});
+          const details=await callOperatorJson('GET','/v1/accounts/devices',null,accountHeaders(identity.token));
+          const member=(Array.isArray(details?.devices)?details.devices:[]).find(d=>
+            String(d.deviceId)===linkedDeviceId&&d.state!=='revoked');
+          if(!member)return res.status(400).json({ok:false,error:'registered_device_not_available'});
+          data.registeredDevice={
+            name:String(member.displayName||member.deviceId).slice(0,160),
+            platform:String(member.platform||'unknown').slice(0,120),
+            architecture:String(member.architecture||'').slice(0,50),
+            version:String(member.compatibility?.clientVersion||member.agentVersion||'unknown').slice(0,100),
+            status:String(member.state||'unknown').slice(0,45)
+          };
+        }
+        for(const key of ['browserPlatform','browserUserAgent','serverCoreVersion','mcpSurfaceVersion']){
+          data[key]=cleanText(payload[key],{max:key==='browserUserAgent'?500:120,field:key});
+        }
         for(const key of ['description','subject','sanitizedError']){
           if(redactRestrictedText(data[key])!==data[key])return res.status(400).json({ok:false,error:'support_contains_sensitive_material'});
         }
