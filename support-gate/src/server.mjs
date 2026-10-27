@@ -7,7 +7,7 @@ import pg from 'pg';
 import {sessionCookie,approvedAgent,ownerCsrf} from './libredesk-owner.mjs';
 import {verifyInbound,normalizeInbound,stableEventKey} from './inbound.mjs';
 import {configuredRemoteInbox,verifiedTicket} from './ticket-read.mjs';
-import {ticketSummary,buildQueue} from './ticket-queue.mjs';
+import {ticketSummary,buildQueue,nativeTicketStatus} from './ticket-queue.mjs';
 import {parseReply,htmlFromPlainText,rawNativeCsrf,lastPublicMessage} from './owner-reply.mjs';
 import {aiProviderReady,requestAIDraft} from './ai-draft.mjs';
 import {createTicketReader,renderPublicTicket,publicHeaders,getPublicTicket,getTicketMessages} from './public-ticket.mjs';
@@ -154,6 +154,10 @@ async function send(res,id,version){
  try{
   const root='/api/v1/conversations/'+encodeURIComponent(draft.conversation_uuid);
   const conversation=(await upstream(root)).data;
+  if(nativeTicketStatus(conversation)==='closed'){
+   await pool.query("UPDATE support_gate_drafts SET status='needs_review',last_error='ticket_closed_read_only' WHERE id=$1",[id]);
+   return fail(res,409,'ticket_closed_read_only');
+  }
   const expectedInbox=Number(draft.brand==='light-remote'?LIBREDESK_REMOTE_INBOX_ID:LIBREDESK_LIGHTBI_INBOX_ID);
   if(!conversation||conversation.uuid!==draft.conversation_uuid||
    conversation.inbox_channel!=='email'||Number(conversation.inbox_id)!==expectedInbox||
@@ -248,6 +252,7 @@ async function ownerCreateAIDraft(req,res,conversationUUID){
   const conv=await ownerReadUpstream(req,route);
   if(!conv||Number(conv.inbox_id)!==remoteInbox||conv.inbox_channel!=='email')
    return fail(res,403,'ai_ticket_scope_denied');
+  if(nativeTicketStatus(conv)==='closed')return fail(res,409,'ticket_closed_read_only');
   const messagesRaw=await ownerReadUpstream(req,route+'/messages?page=1&page_size=12&private=false');
   const messages=Array.isArray(messagesRaw?.results)?messagesRaw.results:Array.isArray(messagesRaw)?messagesRaw:null;
   if(!messages)return fail(res,502,'ai_ticket_messages_unavailable');
@@ -307,6 +312,7 @@ async function ownerSendNativeReply(req,res,conversationUUID){
   const conv=await ownerReadUpstream(req,route);
   if(!conv||!inboxAllowed(Number(conv.inbox_id))||conv.inbox_channel!=='email')
    return fail(res,403,'not_an_authorized_email_ticket');
+  if(nativeTicketStatus(conv)==='closed')return fail(res,409,'ticket_closed_read_only');
   const contact=typeof conv.contact?.email==='string'?conv.contact.email:
    String(conv.contact?.email?.String||'');
   if(contact.toLowerCase()!==input.recipient)return fail(res,409,'ticket_recipient_changed');

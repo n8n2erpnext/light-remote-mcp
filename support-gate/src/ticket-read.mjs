@@ -1,4 +1,5 @@
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
+import {nativeTicketStatus} from './ticket-queue.mjs';
 const email=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 function value(v){return typeof v==='string'?v:typeof v?.String==='string'?v.String:''}
 export function configuredRemoteInbox(envValue){
@@ -20,7 +21,7 @@ export function verifiedTicket(conversation,messages,remoteInbox,lightbiInbox=0)
   uuid:m.uuid,type:m.type,created_at:m.created_at,
   text:String(m.text_content||'').slice(0,1600)
  }));
- return {brand,conversation_uuid:conversation.uuid,
+ return {brand,conversation_uuid:conversation.uuid,status:nativeTicketStatus(conversation),
   inbox_id:inboxId,recipient,
   subject:value(conversation.subject).slice(0,240)||'Support request',
   based_on_message_uuid:latest,history,history_count:ordered.length};

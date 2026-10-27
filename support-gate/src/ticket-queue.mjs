@@ -1,5 +1,12 @@
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 const val=v=>typeof v==='string'?v:typeof v?.String==='string'?v.String:'';
+const statusById={1:'open',2:'snoozed',3:'resolved',4:'closed'};
+export function nativeTicketStatus(conversation){
+ const id=Number(conversation?.status_id);
+ if(statusById[id])return statusById[id];
+ const raw=val(conversation?.status).toLowerCase().trim();
+ return ['open','snoozed','resolved','closed'].includes(raw)?raw:'unknown';
+}
 export function ticketSummary(conversation,remoteInbox,lightbiInbox=0){
  const inboxId=Number(conversation?.inbox_id);
  const brand=remoteInbox>0&&inboxId===remoteInbox?'light-remote':lightbiInbox>0&&inboxId===lightbiInbox?'lightbi':null;
@@ -10,10 +17,11 @@ export function ticketSummary(conversation,remoteInbox,lightbiInbox=0){
  return {conversation_uuid:conversation.uuid,inbox_id:inboxId,brand,
   name:name.slice(0,128),email:email.slice(0,256),
   subject:val(conversation.subject).slice(0,240)||'No subject',
-  status:val(conversation.status)||'open',
+  status:nativeTicketStatus(conversation),status_id:Number(conversation.status_id)||null,
   last_message:val(conversation.last_message).slice(0,200),
   last_sender:val(conversation.last_message_sender).toLowerCase(),
   updated_at:conversation.last_message_at?.Time||conversation.last_message_at||conversation.updated_at||null,
+  status_updated_at:conversation.updated_at||null,
   reference:val(conversation.reference_number).slice(0,35)};
 }
 export function buildQueue(events,byUUID){

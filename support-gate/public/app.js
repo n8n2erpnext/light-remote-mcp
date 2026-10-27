@@ -1,6 +1,6 @@
 const $=id=>document.getElementById(id);
 let csrf='',current=null,canSend=false,aiConnected=false,drafts=[],tickets=[],filter='tickets',query='',toastTimer=0,selectedTicket=null,selectedTicketEvent=null,ticketDirty=false,syncBusy=false,syncTimer=null,manualPending=null;
-let alertReady=false,seenTicketIds=new Set(),seenTicketEvents=new Map();
+let alertReady=false,seenTicketIds=new Set(),seenTicketEvents=new Map(),selectedTicketStatus=null;
 
 function icon(ref){return '<svg aria-hidden="true"><use href="#i-'+ref+'"></use></svg>'}
 function feedback(message){
@@ -36,6 +36,7 @@ function label(status){
  return ({draft:'Needs review',approved:'Approved',sent:'Sent',
    needs_review:'Recheck',unknown:'Needs attention',sending:'Sending'})[status]||status;
 }
+function selectedIsClosed(){return !!selectedTicket&&(selectedTicketStatus==='closed'||isClosed(tickets.find(t=>t.conversation_uuid===selectedTicket)))}
 function fill(item){
  $('ticketPreview').hidden=true;
  $('threadPanel').hidden=true;
@@ -56,19 +57,20 @@ function fill(item){
  $('loadTicket').disabled=!editable;
  $('approve').disabled=!item||item.status!=='draft';
  $('send').disabled=!item||item.status!=='approved'||!canSend;
- $('sendManual').disabled=!!item||!selectedTicket||!$('latest').value||!$('message').value.trim();
+ $('sendManual').disabled=!!item||!selectedTicket||selectedIsClosed()||!$('latest').value||!$('message').value.trim();
  const inboxReplyMode=!!selectedTicket&&!item;
  $('save').hidden=inboxReplyMode;
  $('approve').hidden=inboxReplyMode;
  $('send').hidden=inboxReplyMode;
- $('sendManual').hidden=!inboxReplyMode;
- $('aiDraft').disabled=!aiConnected||!inboxReplyMode||!$('latest').value;
+ $('sendManual').hidden=!inboxReplyMode||selectedIsClosed();
+ $('aiDraft').disabled=!aiConnected||!inboxReplyMode||selectedIsClosed()||!$('latest').value;
  $('aiStatus').textContent=aiConnected?'AI ready · Draft only':'AI worker not connected';
  $('ticketMetaDetails').open=!inboxReplyMode;
  $('advancedPanel').open=!inboxReplyMode;
  for(const element of document.querySelectorAll('#draftForm input,#draftForm textarea,#draftForm select'))
    element.disabled=!editable;
- $('hint').textContent=item?.status==='sent'?'The reply was sent through Libredesk.':
+ if(inboxReplyMode&&selectedIsClosed())$('message').disabled=true;
+ $('hint').textContent=selectedIsClosed()&&!item?'This conversation is Closed in Libredesk. Reopen it there before replying.':item?.status==='sent'?'The reply was sent through Libredesk.':
   item?.status==='unknown'?'Delivery outcome requires manual reconciliation. Never send this draft again automatically.':
   !canSend?'Manual replies are available from selected tickets; AI auto-send is not configured.':
   item?.status==='approved'?'Owner-approved. Check the recipient and latest message before sending.':
@@ -76,12 +78,13 @@ function fill(item){
 }
 function render(){
  const target=$('drafts');target.replaceChildren();
- $('count-tickets').textContent=tickets.length;
+ $('count-tickets').textContent=tickets.filter(t=>!isClosed(t)).length;
+ $('count-closed').textContent=tickets.filter(isClosed).length;
  $('count-attention').textContent=tickets.filter(needsReply).length;
  for(const key of ['draft','approved','sent']){
   $('count-'+key).textContent=drafts.filter(d=>key==='draft'?['draft','needs_review','unknown'].includes(d.status):d.status===key).length;
  }
- if(['tickets','attention'].includes(filter)){renderTicketCards(target);return}
+ if(['tickets','attention','closed'].includes(filter)){renderTicketCards(target);return}
  const visible=drafts.filter(d=>{
   if(filter==='draft'&&!['draft','needs_review','unknown'].includes(d.status))return false;
   if(filter==='approved'&&d.status!=='approved')return false;
@@ -142,13 +145,13 @@ function setFilter(next){
   item.classList.toggle('active',active);
   if(active)item.setAttribute('aria-current','page');else item.removeAttribute('aria-current');
  }
- $('listTitle').textContent=({tickets:'Support inbox',attention:'Needs reply',draft:'Needs review',approved:'Approved',sent:'Sent'})[next]||'Support inbox';
+ $('listTitle').textContent=({tickets:'Support inbox',attention:'Needs reply',closed:'Closed tickets',draft:'Needs review',approved:'Approved',sent:'Sent'})[next]||'Support inbox';
  render();
 }
 $('draftForm').addEventListener('submit',event=>event.preventDefault());
 $('draftForm').addEventListener('input',()=>{ticketDirty=true});
 $('aiDraft').addEventListener('click',async()=>{
- if(!aiConnected||!selectedTicket||current||$('brand').value!=='light-remote')return;
+ if(!aiConnected||!selectedTicket||current||selectedIsClosed()||$('brand').value!=='light-remote')return;
  const id=selectedTicket;
  $('aiDraft').disabled=true;
  $('aiStatus').textContent='AI is drafting…';
@@ -168,7 +171,7 @@ async function refreshDraftListOnly(){
  try{const result=await api('/api/drafts');drafts=result.drafts;render()}catch{}
 }
 $('message').addEventListener('input',()=>{
- $('sendManual').disabled=!!current||!selectedTicket||!$('latest').value||!$('message').value.trim();
+ $('sendManual').disabled=!!current||!selectedTicket||selectedIsClosed()||!$('latest').value||!$('message').value.trim();
 });
 async function importTicket(conversation){
  if(!conversation){feedback('Paste the Libredesk conversation UUID first.');return}
@@ -193,8 +196,12 @@ async function importTicket(conversation){
   }
   $('threadPanel').hidden=false;
   $('threadMeta').textContent=ticket.history.length+' recent messages';
-  $('sendManual').disabled=!ticket.based_on_message_uuid||!$('message').value.trim();
-  $('aiDraft').disabled=!aiConnected||ticket.brand!=='light-remote'||!ticket.based_on_message_uuid;
+  selectedTicketStatus=ticket.status;
+ const closed=ticket.status==='closed';
+ $('message').disabled=closed;
+ $('sendManual').hidden=closed;
+ $('sendManual').disabled=closed||!ticket.based_on_message_uuid||!$('message').value.trim();
+  $('aiDraft').disabled=closed||!aiConnected||ticket.brand!=='light-remote'||!ticket.based_on_message_uuid;
   $('aiStatus').textContent=ticket.brand==='lightbi'?'AI Draft for LightBI not connected yet':aiConnected?'AI ready · Draft only':'AI worker not connected';
   const preview=$('ticketPreview');
   preview.textContent=ticket.history.length
@@ -203,7 +210,9 @@ async function importTicket(conversation){
   preview.hidden=false;
   $('editorTitle').textContent=ticket.subject;
   $('crumbMode').textContent=(ticket.brand==='lightbi'?'LightBI':'Light Remote')+' · '+ticket.recipient;
-  $('draftStatus').textContent='Ready to reply';
+  $('draftStatus').textContent=closed?'Closed · Read only':'Ready to reply';
+ $('draftStatus').className='draft-status'+(closed?' closed':'');
+ $('hint').textContent=closed?'Ticket Closed in Libredesk. Reopen it in Libredesk before composing a reply.':'Reply on the original support conversation. AI auto-send stays disabled.';
   ticketDirty=false;
   feedback('Ticket loaded automatically. No email sent.');
  }catch(e){$('ticketPreview').hidden=true;feedback('Ticket not loaded: '+e.message)}
@@ -211,7 +220,7 @@ async function importTicket(conversation){
 }
 $('loadTicket').addEventListener('click',()=>importTicket($('conversation').value.trim()));
 $('retryLogin').addEventListener('click',()=>init());
-$('refresh').addEventListener('click',()=>['tickets','attention'].includes(filter)?syncTickets(false):refresh().catch(e=>feedback(e.message)));
+$('refresh').addEventListener('click',()=>['tickets','attention','closed'].includes(filter)?syncTickets(false):refresh().catch(e=>feedback(e.message)));
 $('syncNow').addEventListener('click',()=>syncTickets(false));
 function refreshAlertButton(){
  const supported=typeof Notification!=='undefined'&&window.isSecureContext;
@@ -250,7 +259,7 @@ $('approve').addEventListener('click',async()=>{
  }catch(e){feedback('Approval failed: '+e.message)}
 });
 $('sendManual').addEventListener('click',()=>{
- if(!selectedTicket||current||!$('message').value.trim()||!$('latest').value)return;
+ if(!selectedTicket||current||selectedIsClosed()||!$('message').value.trim()||!$('latest').value)return;
  manualPending={conversation:selectedTicket,recipient:$('recipient').value,
   baseline:$('latest').value,message:$('message').value.trim(),request_id:crypto.randomUUID()};
  $('sendConfirmText').textContent='Send this reply to '+manualPending.recipient+
@@ -317,10 +326,18 @@ $('connectWebhook').addEventListener('click',async()=>{
 $('refreshEvents').addEventListener('click',()=>loadEvents().catch(e=>feedback(e.message)));
 void init();
 
-function needsReply(t){return ['contact','incoming'].includes(String(t.last_sender||'').toLowerCase())}
-function ticketStatus(t){return needsReply(t)?'Needs reply':(['agent','outgoing','system'].includes(t.last_sender)?'Replied':'Open')}
+function isClosed(t){return String(t?.status||'').toLowerCase()==='closed'||Number(t?.status_id)===4}
+function needsReply(t){return !isClosed(t)&&['contact','incoming'].includes(String(t.last_sender||'').toLowerCase())}
+function ticketStatus(t){
+ if(isClosed(t))return 'Closed';
+ if(t.status==='snoozed')return 'Snoozed';
+ if(t.status==='resolved')return 'Resolved';
+ return needsReply(t)?'Needs reply':(['agent','outgoing','system'].includes(t.last_sender)?'Replied':'Open');
+}
 function renderTicketCards(target){
- const list=tickets.filter(t=>(filter!=='attention'||needsReply(t))&&
+ const list=tickets.filter(t=>
+  (filter==='closed'?isClosed(t):!isClosed(t))&&
+  (filter!=='attention'||needsReply(t))&&
   (!query||[t.subject,t.name,t.email,t.last_message,t.reference].some(v=>String(v||'').toLowerCase().includes(query.toLowerCase()))));
  $('queueCount').textContent=list.length+' '+(list.length===1?'conversation':'conversations');
  $('emptyQueue').hidden=list.length!==0;
@@ -339,7 +356,7 @@ function renderTicketCards(target){
   const preview=document.createElement('span');preview.className='draft-preview';preview.textContent=t.last_message||'No preview available';
   const footer=document.createElement('div');footer.className='draft-footer';
   const email=document.createElement('span');email.textContent=t.email;
-  const state=document.createElement('span');state.className='pill '+(needsReply(t)?'needs_review':'sent');state.textContent=ticketStatus(t);
+  const state=document.createElement('span');state.className='pill '+(isClosed(t)?'closed':t.status==='snoozed'?'snoozed':t.status==='resolved'?'resolved':needsReply(t)?'needs_review':'sent');state.textContent=ticketStatus(t);
   footer.append(email,state);
   button.append(top,person,subject,preview,footer);
   button.addEventListener('click',()=>void selectTicket(t.conversation_uuid));
@@ -348,6 +365,7 @@ function renderTicketCards(target){
 }
 async function selectTicket(id){
  selectedTicket=id;
+ selectedTicketStatus=tickets.find(t=>t.conversation_uuid===id)?.status||null;
  selectedTicketEvent=tickets.find(t=>t.conversation_uuid===id)?.last_event_at||null;
  ticketDirty=false;
  fill(null);
@@ -361,9 +379,9 @@ async function syncTickets(initial=false){
  try{
   const response=await api('/api/tickets/queue');
   tickets=response.tickets||[];
-  const additions=tickets.filter(t=>!seenTicketIds.has(t.conversation_uuid));
-  const newReplies=tickets.filter(t=>seenTicketEvents.has(t.conversation_uuid)&&
-   seenTicketEvents.get(t.conversation_uuid)!==t.last_event_at&&t.last_sender==='contact');
+  const additions=tickets.filter(t=>!isClosed(t)&&!seenTicketIds.has(t.conversation_uuid));
+  const newReplies=tickets.filter(t=>needsReply(t)&&seenTicketEvents.has(t.conversation_uuid)&&
+   seenTicketEvents.get(t.conversation_uuid)!==t.last_event_at);
   for(const ticket of tickets){seenTicketIds.add(ticket.conversation_uuid);seenTicketEvents.set(ticket.conversation_uuid,ticket.last_event_at)}
   if(alertReady&&additions.length){
    feedback(additions.length+' new support ticket'+(additions.length>1?'s':'')+' received.');
@@ -389,12 +407,26 @@ async function syncTickets(initial=false){
   $('syncStatus').textContent='Last synced '+time+' · Every 30 sec'+(response.unavailable?' · '+response.unavailable+' unavailable':'');
   $('queueSync').textContent='Auto-sync on';
   render();
-  if(initial&&tickets.length&&!current&&!selectedTicket)await selectTicket(tickets[0].conversation_uuid);
+  if(initial&&tickets.some(t=>!isClosed(t))&&!current&&!selectedTicket)await selectTicket(tickets.find(t=>!isClosed(t)).conversation_uuid);
   else if(!initial&&selectedTicket&&!current){
    const latest=tickets.find(t=>t.conversation_uuid===selectedTicket);
-   if(latest?.last_event_at&&latest.last_event_at!==selectedTicketEvent){
-    if(!ticketDirty){selectedTicketEvent=latest.last_event_at;await importTicket(selectedTicket)}
-    else $('syncStatus').textContent='New message received · Your unsaved reply is preserved; reload when ready';
+   const statusChanged=!!latest&&latest.status!==selectedTicketStatus;
+   const activityChanged=!!latest?.last_event_at&&latest.last_event_at!==selectedTicketEvent;
+   if(statusChanged||activityChanged){
+    if(!ticketDirty){
+     selectedTicketEvent=latest.last_event_at;
+     selectedTicketStatus=latest.status;
+     await importTicket(selectedTicket);
+    }else if(statusChanged){
+     selectedTicketStatus=latest.status;
+     if(selectedIsClosed()){
+      $('message').disabled=true;
+      $('sendManual').disabled=true;$('sendManual').hidden=true;$('aiDraft').disabled=true;
+      $('draftStatus').textContent='Closed · Read only';
+      $('draftStatus').className='draft-status closed';
+      $('syncStatus').textContent='Ticket closed in Libredesk · unsent text preserved, sending disabled';
+     }else $('syncStatus').textContent='Ticket status changed · click ticket again to reload; unsent text preserved';
+    }else $('syncStatus').textContent='New message received · Your unsaved reply is preserved; reload when ready';
    }
   }
  }catch(e){

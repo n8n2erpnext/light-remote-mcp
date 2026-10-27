@@ -86,6 +86,7 @@ svg{height:18px;width:18px;fill:none;stroke:currentColor;stroke-width:1.85;strok
 .pill.approved{background:#e9f5ec;color:#2d8159}
 .pill.sent{background:#e9effb;color:#496aab}
 .pill.unknown,.pill.needs_review{background:#fff1df;color:#ab732f}
+.pill.closed{background:#f5e9ed;color:#934961}.pill.snoozed{background:#fff1d3;color:#896119}.pill.resolved{background:#e2f4e9;color:#28714b}
 .empty-queue{padding:105px 25px;display:flex;align-items:center;flex-direction:column;text-align:center;gap:11px;color:#92979e}
 .empty-queue svg{width:43px;height:43px;color:#babec2}
 .empty-queue strong{color:#252a2f;font-size:14px}
