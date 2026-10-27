@@ -22,6 +22,8 @@ const authorityUrl='http://app:9000/api/v1/agents/me';
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 const email=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const remoteInbox=configuredRemoteInbox(LIBREDESK_REMOTE_INBOX_ID);
+const lightbiInbox=configuredRemoteInbox(LIBREDESK_LIGHTBI_INBOX_ID);
+const inboxAllowed=id=>id===remoteInbox||(lightbiInbox>0&&id===lightbiInbox);
 const aiReady=()=>aiProviderReady({url:GATE_AI_DRAFTER_URL,token:GATE_AI_DRAFTER_TOKEN});
 const outgoingReady=()=>Boolean(LIBREDESK_BASE_URL&&LIBREDESK_API_KEY&&LIBREDESK_API_SECRET&&remoteInbox&&Number(LIBREDESK_LIGHTBI_INBOX_ID)>0);
 const ownerEmail=(GATE_OWNER_EMAIL||'support@thaiduy.digital').toLowerCase();
@@ -188,13 +190,13 @@ async function loadOwnerQueue(req,res){
   await Promise.all(chunk.map(async item=>{
    try{
     const conv=await ownerReadUpstream(req,'/api/v1/conversations/'+item.uuid);
-    const summary=ticketSummary(conv,remoteInbox);
+    const summary=ticketSummary(conv,remoteInbox,lightbiInbox);
     if(summary)byUUID.set(item.uuid,summary);
    }catch{failures++}
   }));
  }
  const queue=buildQueue(seen.rows,byUUID);
- return json(res,200,{ok:true,brand:'light-remote',inbox_id:remoteInbox,
+ return json(res,200,{ok:true,brands:['light-remote',...(lightbiInbox?['lightbi']:[])],
   tickets:queue,total:queue.length,sync_at:new Date().toISOString(),unavailable:failures,
   mode:'webhook_index_owner_read',next_refresh_seconds:30});
 }
@@ -204,12 +206,12 @@ async function loadOwnerTicket(req,res,conversationUUID){
   const route='/api/v1/conversations/'+conversationUUID;
   const conversation=await ownerReadUpstream(req,route);
   // Enforce inbox boundary before fetching any message content.
-  if(!conversation||conversation.inbox_channel!=='email'||Number(conversation.inbox_id)!==remoteInbox)
+  if(!conversation||conversation.inbox_channel!=='email'||!inboxAllowed(Number(conversation.inbox_id)))
    return fail(res,403,'ticket_not_in_remote_email_inbox');
   const raw=await ownerReadUpstream(req,route+'/messages?page=1&page_size=12&private=false');
   const msgs=Array.isArray(raw?.results)?raw.results:Array.isArray(raw)?raw:null;
   if(!msgs)return fail(res,502,'messages_response_invalid');
-  const ticket=verifiedTicket(conversation,msgs,remoteInbox);
+  const ticket=verifiedTicket(conversation,msgs,remoteInbox,lightbiInbox);
   return json(res,200,{ok:true,ticket});
  }catch(err){
   if(String(err.message).startsWith('ticket_'))return fail(res,422,err.message);
@@ -282,8 +284,8 @@ async function ownerSendNativeReply(req,res,conversationUUID){
  let route='/api/v1/conversations/'+conversationUUID;
  try{
   const conv=await ownerReadUpstream(req,route);
-  if(!conv||Number(conv.inbox_id)!==remoteInbox||conv.inbox_channel!=='email')
-   return fail(res,403,'not_a_light_remote_email_ticket');
+  if(!conv||!inboxAllowed(Number(conv.inbox_id))||conv.inbox_channel!=='email')
+   return fail(res,403,'not_an_authorized_email_ticket');
   const contact=typeof conv.contact?.email==='string'?conv.contact.email:
    String(conv.contact?.email?.String||'');
   if(contact.toLowerCase()!==input.recipient)return fail(res,409,'ticket_recipient_changed');

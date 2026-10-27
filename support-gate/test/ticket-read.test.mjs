@@ -43,7 +43,7 @@ test('server ticket endpoint is owner-session guarded and GET-only',async()=>{
  assert.match(source,/if\(method==='GET'&&ticketMatch&&uuid\.test\(ticketMatch\[1\]\)\)/);
  assert.match(source,/return loadOwnerTicket\(req,res,ticketMatch\[1\]\)/);
  assert.match(source,/conversation\.inbox_channel!=='email'/);
- assert.match(source,/Number\(conversation\.inbox_id\)!==remoteInbox/);
+ assert.match(source,/!inboxAllowed\(Number\(conversation\.inbox_id\)\)/);
  assert.match(source,/headers:\{cookie:'libredesk_session='\+cookie/);
  assert.match(ui,/async function importTicket\(conversation\)/);
  assert.match(ui,/async function syncTickets\(initial=false\)/);

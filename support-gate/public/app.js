@@ -147,7 +147,7 @@ function setFilter(next){
 $('draftForm').addEventListener('submit',event=>event.preventDefault());
 $('draftForm').addEventListener('input',()=>{ticketDirty=true});
 $('aiDraft').addEventListener('click',async()=>{
- if(!aiConnected||!selectedTicket||current)return;
+ if(!aiConnected||!selectedTicket||current||$('brand').value!=='light-remote')return;
  const id=selectedTicket;
  $('aiDraft').disabled=true;
  $('aiStatus').textContent='AI is drafting…';
@@ -161,7 +161,7 @@ $('aiDraft').addEventListener('click',async()=>{
   await refreshDraftListOnly();
   feedback('AI draft ready. Review and edit before sending.');
  }catch(e){$('aiStatus').textContent='AI draft unavailable';feedback(e.message)}
- finally{$('aiDraft').disabled=!aiConnected||!selectedTicket||!!current}
+ finally{$('aiDraft').disabled=!aiConnected||!selectedTicket||!!current||$('brand').value!=='light-remote'}
 });
 async function refreshDraftListOnly(){
  try{const result=await api('/api/drafts');drafts=result.drafts;render()}catch{}
@@ -179,7 +179,7 @@ async function importTicket(conversation){
   const result=await api('/api/tickets/'+encodeURIComponent(conversation));
   const ticket=result.ticket;
   $('conversation').value=ticket.conversation_uuid;
-  $('brand').value='light-remote';
+  $('brand').value=ticket.brand;
   $('recipient').value=ticket.recipient;
   $('subject').value=ticket.subject;
   $('latest').value=ticket.based_on_message_uuid;
@@ -193,14 +193,15 @@ async function importTicket(conversation){
   $('threadPanel').hidden=false;
   $('threadMeta').textContent=ticket.history.length+' recent messages';
   $('sendManual').disabled=!ticket.based_on_message_uuid||!$('message').value.trim();
-  $('aiDraft').disabled=!aiConnected||!ticket.based_on_message_uuid;
+  $('aiDraft').disabled=!aiConnected||ticket.brand!=='light-remote'||!ticket.based_on_message_uuid;
+  $('aiStatus').textContent=ticket.brand==='lightbi'?'AI Draft for LightBI not connected yet':aiConnected?'AI ready · Draft only':'AI worker not connected';
   const preview=$('ticketPreview');
   preview.textContent=ticket.history.length
    ?ticket.history.slice().reverse().map(m=>m.type.toUpperCase()+': '+m.text).join('\n\n')
    :'No public messages in the latest 12-message window.';
   preview.hidden=false;
   $('editorTitle').textContent=ticket.subject;
-  $('crumbMode').textContent='Light Remote · '+ticket.recipient;
+  $('crumbMode').textContent=(ticket.brand==='lightbi'?'LightBI':'Light Remote')+' · '+ticket.recipient;
   $('draftStatus').textContent='Ready to reply';
   ticketDirty=false;
   feedback('Ticket loaded automatically. No email sent.');
@@ -241,7 +242,7 @@ $('sendManual').addEventListener('click',()=>{
  manualPending={conversation:selectedTicket,recipient:$('recipient').value,
   baseline:$('latest').value,message:$('message').value.trim(),request_id:crypto.randomUUID()};
  $('sendConfirmText').textContent='Send this reply to '+manualPending.recipient+
-  ' through the original Light Remote support conversation? This will email the customer.';
+  ' through the original '+($('brand').value==='lightbi'?'LightBI':'Light Remote')+' support conversation? This will email the customer.';
  $('sendConfirm').showModal();
 });
 $('send').addEventListener('click',()=>{
@@ -317,7 +318,8 @@ function renderTicketCards(target){
   button.setAttribute('role','listitem');
   button.setAttribute('aria-label',t.name+' — '+t.subject);
   const top=document.createElement('div');top.className='draft-top';
-  const brand=document.createElement('span');brand.className='draft-brand';brand.textContent='Light Remote';
+  const brand=document.createElement('span');brand.className='draft-brand';brand.textContent=t.brand==='lightbi'?'LightBI':'Light Remote';
+  if(t.brand==='lightbi')brand.classList.add('bi');
   const time=document.createElement('span');time.className='draft-age';time.textContent=relativeDate(t.last_event_at||t.updated_at);
   top.append(brand,time);
   const person=document.createElement('strong');person.className='ticket-person';person.textContent=t.name;

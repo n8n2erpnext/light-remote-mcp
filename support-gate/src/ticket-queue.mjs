@@ -1,11 +1,13 @@
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 const val=v=>typeof v==='string'?v:typeof v?.String==='string'?v.String:'';
-export function ticketSummary(conversation,remoteInbox){
- if(!conversation||!uuid.test(conversation.uuid)||Number(conversation.inbox_id)!==remoteInbox||conversation.inbox_channel!=='email')return null;
+export function ticketSummary(conversation,remoteInbox,lightbiInbox=0){
+ const inboxId=Number(conversation?.inbox_id);
+ const brand=remoteInbox>0&&inboxId===remoteInbox?'light-remote':lightbiInbox>0&&inboxId===lightbiInbox?'lightbi':null;
+ if(!conversation||!uuid.test(conversation.uuid)||!brand||conversation.inbox_channel!=='email')return null;
  const c=conversation.contact||{};
  const email=val(c.email).trim().toLowerCase();
  const name=val(c.name).trim()||[val(c.first_name),val(c.last_name)].filter(Boolean).join(' ').trim()||email||'Unknown contact';
- return {conversation_uuid:conversation.uuid,inbox_id:remoteInbox,brand:'light-remote',
+ return {conversation_uuid:conversation.uuid,inbox_id:inboxId,brand,
   name:name.slice(0,128),email:email.slice(0,256),
   subject:val(conversation.subject).slice(0,240)||'No subject',
   status:val(conversation.status)||'open',

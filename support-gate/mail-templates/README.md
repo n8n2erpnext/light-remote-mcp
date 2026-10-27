@@ -13,3 +13,7 @@ Installed through native **Libredesk Admin → Notifications → Templates → O
 - **Important:** Libredesk 2.9.0 supports one global Default outgoing template, not per-inbox email wrappers. When LightBI Lark inbox is added, implement brand-aware wrapping before any LightBI outgoing emails; otherwise they would get Light Remote branding.
 - Rollback (native UI): open `https://support.thaiduy.digital/admin/templates/9/edit`, uncheck **Is default**, Save. This restores Libredesk's stock unbranded fallback when no other default exists. Do not delete inbox data/volumes.
 - No customer mail was sent for template acceptance. Only Admin UI, native template validation, stored-content checks and service health were verified.
+
+## Current active multibrand default — 27 October 2026
+
+The former Light Remote-only source is superseded by `support-multibrand-outgoing.html`. Libredesk global default template **ID 9** now has conditional Go template branching on `.Inbox.Name`: `Light Remote Support` → LR brand and `support@thaiduy.digital`; `LightBI Support` → BI brand and `support@lightbi.app`. Required `{{ template "content" . }}` occurs exactly once. Native Libredesk Admin Save validated the template; after fixing HTML delimiters, **real Lark SMTP → Zoho email displayed full BI header and footer**. Be careful not to mistake a global default for a per-inbox DB template. If third brands are added, update the branch conditions and test both incoming and outgoing. No automated send.

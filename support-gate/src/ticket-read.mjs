@@ -5,9 +5,10 @@ export function configuredRemoteInbox(envValue){
  const n=Number(envValue);
  return Number.isSafeInteger(n)&&n>0?n:0;
 }
-export function verifiedTicket(conversation,messages,remoteInbox){
- if(!conversation||!uuid.test(conversation.uuid)||!remoteInbox||
-   Number(conversation.inbox_id)!==remoteInbox||conversation.inbox_channel!=='email')
+export function verifiedTicket(conversation,messages,remoteInbox,lightbiInbox=0){
+ const inboxId=Number(conversation?.inbox_id);
+ const brand=remoteInbox>0&&inboxId===remoteInbox?'light-remote':lightbiInbox>0&&inboxId===lightbiInbox?'lightbi':null;
+ if(!conversation||!uuid.test(conversation.uuid)||!brand||conversation.inbox_channel!=='email')
   throw Error('ticket_not_in_remote_email_inbox');
  const recipient=value(conversation.contact?.email).trim().toLowerCase();
  if(!email.test(recipient)||recipient.length>256)throw Error('ticket_contact_email_unavailable');
@@ -19,8 +20,8 @@ export function verifiedTicket(conversation,messages,remoteInbox){
   uuid:m.uuid,type:m.type,created_at:m.created_at,
   text:String(m.text_content||'').slice(0,1600)
  }));
- return {brand:'light-remote',conversation_uuid:conversation.uuid,
-  inbox_id:remoteInbox,recipient,
+ return {brand,conversation_uuid:conversation.uuid,
+  inbox_id:inboxId,recipient,
   subject:value(conversation.subject).slice(0,240)||'Support request',
   based_on_message_uuid:latest,history,history_count:ordered.length};
 }
