@@ -409,7 +409,7 @@ async function handler(req,res){
    catch(e){const code=String(e.message);
     return fail(res,code==='reply_rate_limited'?429:code==='duplicate_request'?409:502,
      code==='reply_rate_limited'?'reply_rate_limited':code==='duplicate_request'?'duplicate_request':'reply_not_confirmed_refresh_ticket');}
-   res.writeHead(303,{'location':'/ai-support/t/'+ticketId+'?sent=1','cache-control':'no-store','referrer-policy':'no-referrer'});
+   res.writeHead(303,{'location':'/ai-support/t/'+ticketId+'?sent=1','cache-control':'no-store','referrer-policy':'same-origin'});
    return res.end();
   }
  }

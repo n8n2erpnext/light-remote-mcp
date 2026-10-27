@@ -34,6 +34,9 @@ test('Active ticket offers plain-text-only reply form with both reply methods',(
  assert.doesNotMatch(html,/<script>/);
  assert.match(html,/&lt;script&gt;/);
  assert.match(publicHeaders()['content-security-policy'],/form-action 'self'/);
+ // Native Chrome form navigations get Origin:null under no-referrer, defeating our CSRF origin guard.
+ // same-origin keeps bearer ticket URL private from cross-site Referer while preserving real form Origin.
+ assert.equal(publicHeaders()['referrer-policy'],'same-origin');
 });
 test('No grant or past closure cannot read ticket or bypass visibility',async()=>{
  const p={query:async()=>({rowCount:1,rows:[{conversation_uuid:id}]})};

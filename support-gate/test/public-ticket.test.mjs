@@ -14,7 +14,7 @@ test('public ticket uses escaped plain text and never executes customer HTML',()
  assert.match(page,/LightBI Support/);
  assert.match(page,/Ticket #104/);
  assert.match(page,/No account or password/);
- assert.equal(publicHeaders()['referrer-policy'],'no-referrer');
+ assert.equal(publicHeaders()['referrer-policy'],'same-origin');
 });
 test('reader verifies active grant before touching conversation history',async()=>{
  let readCalls=0;

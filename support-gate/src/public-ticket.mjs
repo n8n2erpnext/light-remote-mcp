@@ -50,4 +50,4 @@ export async function renderPublicTicket(pool,bridge,id,options={}){
  const form=options.issueForm&&ticket.status_id!==4?options.issueForm(id):null;
  return buildPublicPage(ticket,messages.rows,{form,notice:options.notice});
 }
-export function publicHeaders(){return {'content-type':'text/html; charset=utf-8','cache-control':'private, no-store, max-age=0','x-content-type-options':'nosniff','x-frame-options':'DENY','referrer-policy':'no-referrer','x-robots-tag':'noindex,nofollow,noarchive','content-security-policy':"default-src 'none';img-src https://support.thaiduy.digital;style-src 'unsafe-inline';form-action 'self';frame-ancestors 'none';base-uri 'none'"};}
+export function publicHeaders(){return {'content-type':'text/html; charset=utf-8','cache-control':'private, no-store, max-age=0','x-content-type-options':'nosniff','x-frame-options':'DENY','referrer-policy':'same-origin','x-robots-tag':'noindex,nofollow,noarchive','content-security-policy':"default-src 'none';img-src https://support.thaiduy.digital;style-src 'unsafe-inline';form-action 'self';frame-ancestors 'none';base-uri 'none'"};}
