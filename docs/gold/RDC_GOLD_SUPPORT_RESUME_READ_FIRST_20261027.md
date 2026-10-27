@@ -57,3 +57,17 @@ AI Draft is an **owner-session POST** `/ai-support/api/tickets/:uuid/ai-draft`: 
 **Rollback:** Root-only checkpoint `/home/ubuntu/n8n2erpnext/support-gate-checkpoints/20261027-ai-draft` and image tag `libredesk-support-gold-gate:pre-ai-draft-20261027`. Stop/disable LXD `light-remote-gold-support-ai-drafter.service`, remove only the two AI drafter keys from private Gate runtime env, then Gate-only restore/rebuild from the earlier source; do not delete Codex HOME, Gold UAT LXD, Libredesk database or other production services.
 
 **Next gates:** Integrate a strictly scoped background account for unattended inbox reads, AI automatic draft only when tickets change, durable queue/idempotency, allowlist/rate/policy and delivery reconciliation for a separately owner-enabled AI auto-send mode. Owner manual Send remains an independent already implemented route; AI automatic sending must not be enabled by default.
+
+
+---
+
+## 18. Light Remote branded email template — 27 Oct 2026
+
+Owner requested email template for Light Remote Support. Verified native Libredesk 2.9.0 template subsystem and previously missing default outgoing template (logs fell back to unbranded content). Created via **signed-in Admin native UI**:
+`https://support.thaiduy.digital/admin/templates/9/edit`, ID=9, name `Light Remote Support — Branded Outgoing Email`, type=`email_outgoing`, **is_default=true**; only one default in PostgreSQL.
+
+Source `support-gate/mail-templates/light-remote-outgoing.html`. Native CodeMirror typing initially mangled content, so saved template as inactive, detected DB text truncation, corrected with UI Automation accessible editor Value setting, validated and *only then* activated Default. Full DB body exactly matches whitespace-minified source (3519 chars, SHA256 `78c2b39eafd37e59b022240563d2bfda554342408fd7b92025fc4a988cc397f4`). Required `{{ template "content" . }}` exactly once, with full HTML start/end, no external img. Native API validation PASS when Save accepted. No email sent; no actual inbox-client screenshot/deliverability test for branded wrapper yet.
+
+Template has dark-blue LR lettermark and gold accent, human-readable content and Thai Duy Digital footer, customer instructed to reply by email (not to broken portal login). No forced auto-signature. Zoho sender `support@thaiduy.digital`, SMTP/IMAP unchanged. Libredesk/App/Gate/DB/Redis containers still healthy, no restart necessary.
+
+**Architectural limitation:** Libredesk only allows ONE globally default outgoing template, currently okay because only Light Remote email Inbox ID 1 exists. When LightBI Lark mailbox is introduced, design a per-brand outbound wrapper *before* using LightBI, or default LR branding could leak onto LightBI email. This action does not add customer notification/acknowledgement automation. Rollback: uncheck Is default on template ID 9 in Admin, Save. Do not remove databases, volumes, NetBird/Traefik or Gold production.
