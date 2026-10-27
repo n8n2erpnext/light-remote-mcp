@@ -58,6 +58,17 @@ test('Cross-origin posts blocked, same-origin browser form permitted',()=>{
  assert.equal(allowPublicOrigin({origin:'https://evil.test','sec-fetch-site':'cross-site'}),false);
  assert.equal(allowPublicOrigin({}),false);
 });
+test('Native same-origin form POST without Origin requires exact navigation Fetch Metadata',()=>{
+ const native={'sec-fetch-site':'same-origin','sec-fetch-mode':'navigate','sec-fetch-dest':'document'};
+ assert.equal(allowPublicOrigin(native),true);
+ assert.equal(allowPublicOrigin({...native,origin:'https://support.thaiduy.digital'}),true);
+ assert.equal(allowPublicOrigin({...native,origin:'null'}),false);
+ assert.equal(allowPublicOrigin({...native,origin:''}),false);
+ assert.equal(allowPublicOrigin({...native,origin:'https://evil.example'}),false);
+ for(const site of ['cross-site','same-site','none',undefined])assert.equal(allowPublicOrigin({...native,'sec-fetch-site':site}),false);
+ for(const mode of ['cors','no-cors','same-origin',undefined])assert.equal(allowPublicOrigin({...native,'sec-fetch-mode':mode}),false);
+ for(const dest of ['empty','iframe','image',undefined])assert.equal(allowPublicOrigin({...native,'sec-fetch-dest':dest}),false);
+});
 test('One reply request produces one narrow native contact function call and audit row',async()=>{
  const out='ad64143e-308f-403b-afc8-b08fb80cc7b2',called=[];
  const pg={connect:async()=>({query:async(sql)=>{called.push(sql);if(sql.includes('SELECT COUNT'))return {rows:[{ten:0,day:0}]};if(sql.includes('INSERT INTO support_gate_public_web_replies'))return {rowCount:1};return {}} ,release(){}}),

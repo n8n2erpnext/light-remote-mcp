@@ -31,7 +31,13 @@ export async function readPublicForm(req){
  return params;
 }
 export function allowPublicOrigin(headers){
- return headers.origin==='https://support.thaiduy.digital'&&(!headers['sec-fetch-site']||headers['sec-fetch-site']==='same-origin');
+ const origin=headers.origin;
+ const site=headers['sec-fetch-site'];
+ // An explicit Origin must match the public ticket origin. A missing Origin on
+ // a native same-origin form navigation is acceptable only with browser-only
+ // Fetch Metadata proving same-origin navigation to a document.
+ if(origin!==undefined)return origin==='https://support.thaiduy.digital'&&(!site||site==='same-origin');
+ return site==='same-origin'&&headers['sec-fetch-mode']==='navigate'&&headers['sec-fetch-dest']==='document';
 }
 export async function submitPublicReply(pool,bridge,ticket,input){
  const client=await pool.connect();
