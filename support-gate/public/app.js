@@ -36,6 +36,7 @@ function label(status){
    needs_review:'Recheck',unknown:'Needs attention',sending:'Sending'})[status]||status;
 }
 function fill(item){
+ $('ticketPreview').hidden=true;
  current=item||null;
  $('editorTitle').textContent=item?item.subject:'New support draft';
  $('crumbMode').textContent=item?'Draft #'+item.id.slice(0,8):'New draft';
@@ -49,6 +50,7 @@ function fill(item){
  status.className='draft-status'+(item?.status?' '+item.status:'');
  const editable=!item||['draft','approved','needs_review'].includes(item.status);
  $('save').disabled=!editable;
+ $('loadTicket').disabled=!editable;
  $('approve').disabled=!item||item.status!=='draft';
  $('send').disabled=!item||item.status!=='approved'||!canSend;
  for(const element of document.querySelectorAll('#draftForm input,#draftForm textarea,#draftForm select'))
@@ -126,6 +128,30 @@ function setFilter(next){
  render();
 }
 $('draftForm').addEventListener('submit',event=>event.preventDefault());
+async function importTicket(conversation){
+ if(!conversation){feedback('Paste the Libredesk conversation UUID first.');return}
+ if(current&&!['draft','needs_review'].includes(current.status)){
+  feedback('Create a new draft before importing another ticket.');return;
+ }
+ $('loadTicket').disabled=true;
+ try{
+  const result=await api('/api/tickets/'+encodeURIComponent(conversation));
+  const ticket=result.ticket;
+  $('conversation').value=ticket.conversation_uuid;
+  $('brand').value='light-remote';
+  $('recipient').value=ticket.recipient;
+  $('subject').value=ticket.subject;
+  $('latest').value=ticket.based_on_message_uuid;
+  const preview=$('ticketPreview');
+  preview.textContent=ticket.history.length
+   ?ticket.history.slice().reverse().map(m=>m.type.toUpperCase()+': '+m.text).join('\n\n')
+   :'No public messages in the latest 12-message window.';
+  preview.hidden=false;
+  feedback('Ticket loaded, Inbox '+ticket.inbox_id+'. Prepare and review the reply; no email was sent.');
+ }catch(e){$('ticketPreview').hidden=true;feedback('Ticket not loaded: '+e.message)}
+ finally{$('loadTicket').disabled=false}
+}
+$('loadTicket').addEventListener('click',()=>importTicket($('conversation').value.trim()));
 $('retryLogin').addEventListener('click',()=>init());
 $('refresh').addEventListener('click',()=>refresh().catch(e=>feedback(e.message)));
 $('search').addEventListener('input',event=>{query=event.target.value.trim();render()});
@@ -182,7 +208,17 @@ async function loadEvents(){
   const label=document.createElement('strong');
   label.textContent=event.event_type+(event.inbox_id?' · Inbox '+event.inbox_id:'');
   const date=document.createElement('time');date.textContent=new Date(event.received_at).toLocaleString('en-US');
-  item.append(label,date);target.append(item);
+  item.append(label,date);
+  if(event.conversation_uuid){
+   const open=document.createElement('button');open.type='button';open.className='event-import';
+   open.textContent='Load ticket';open.title='Read from native Libredesk, never send email';
+   open.addEventListener('click',()=>{
+    if(current){fill(null);render()}
+    void importTicket(event.conversation_uuid);
+   });
+   item.append(open);
+  }
+  target.append(item);
  }
 }
 $('connectWebhook').addEventListener('click',async()=>{

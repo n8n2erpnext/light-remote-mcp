@@ -104,7 +104,9 @@
         <label>Customer email <input id="recipient" type="email" placeholder="customer@example.com"></label>
        </div>
        <label>Conversation ID <input id="conversation" spellcheck="false" placeholder="Libredesk conversation UUID"></label>
-       <label>Latest message ID <input id="latest" spellcheck="false" placeholder="Last incoming message UUID"></label>
+       <div class="ticket-read-actions"><button class="btn secondary" type="button" id="loadTicket">Load ticket from Libredesk</button><span>Read-only · Light Remote Inbox 1</span></div>
+       <pre id="ticketPreview" class="ticket-preview" hidden></pre>
+       <label>Latest message ID <input id="latest" spellcheck="false" placeholder="Latest public message UUID"></label>
        <label>Subject <input id="subject" maxlength="240" placeholder="Support request subject"></label>
        <div class="section-title reply-title"><svg><use href="#i-mail"/></svg> Proposed reply</div>
        <label class="textarea-label"><textarea id="message" rows="9" maxlength="20000" placeholder="Review and edit the AI-proposed response here."></textarea></label>

@@ -6,6 +6,7 @@ import crypto from 'node:crypto';
 import pg from 'pg';
 import {sessionCookie,approvedAgent,ownerCsrf} from './libredesk-owner.mjs';
 import {verifyInbound,normalizeInbound,stableEventKey} from './inbound.mjs';
+import {configuredRemoteInbox,verifiedTicket} from './ticket-read.mjs';
 
 const {GATE_PG_URL,GATE_ADMIN_SALT,GATE_ADMIN_HASH,LIBREDESK_BASE_URL,
  LIBREDESK_API_KEY,LIBREDESK_API_SECRET,GATE_OWNER_EMAIL,GATE_WORKER_TOKEN_HASH,
@@ -16,7 +17,8 @@ const root=join(dirname(fileURLToPath(import.meta.url)),'../public');
 const authorityUrl='http://app:9000/api/v1/agents/me';
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 const email=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const outgoingReady=()=>Boolean(LIBREDESK_BASE_URL&&LIBREDESK_API_KEY&&LIBREDESK_API_SECRET&&Number(LIBREDESK_REMOTE_INBOX_ID)>0&&Number(LIBREDESK_LIGHTBI_INBOX_ID)>0);
+const remoteInbox=configuredRemoteInbox(LIBREDESK_REMOTE_INBOX_ID);
+const outgoingReady=()=>Boolean(LIBREDESK_BASE_URL&&LIBREDESK_API_KEY&&LIBREDESK_API_SECRET&&remoteInbox&&Number(LIBREDESK_LIGHTBI_INBOX_ID)>0);
 const ownerEmail=(GATE_OWNER_EMAIL||'support@thaiduy.digital').toLowerCase();
 // The one owner identity is managed by Libredesk, never in Support Gate.
 async function libredeskOwner(req){
@@ -146,6 +148,41 @@ async function send(res,id,version){
   return fail(res,502,'send_uncertain_manual_reconciliation_required');
  }
 }
+async function ownerReadUpstream(req,path){
+ // Read-only native Libredesk API under the same authenticated Admin session,
+ // without issuing an API key or allowing the worker to access ticket bodies.
+ const cookie=sessionCookie(req.headers.cookie);
+ if(!cookie)throw Error('session_required');
+ const ctrl=new AbortController();
+ const timer=setTimeout(()=>ctrl.abort(),6000);
+ try{
+  const response=await fetch('http://app:9000'+path,{method:'GET',
+   headers:{cookie:'libredesk_session='+cookie,accept:'application/json'},
+   redirect:'error',signal:ctrl.signal});
+  if(!response.ok)throw Error('libredesk_read_http_'+response.status);
+  const result=await response.json();
+  if(!result||result.data===undefined)throw Error('libredesk_response_invalid');
+  return result.data;
+ }finally{clearTimeout(timer)}
+}
+async function loadOwnerTicket(req,res,conversationUUID){
+ if(!remoteInbox)return fail(res,503,'remote_inbox_mapping_not_configured');
+ try{
+  const route='/api/v1/conversations/'+conversationUUID;
+  const conversation=await ownerReadUpstream(req,route);
+  // Enforce inbox boundary before fetching any message content.
+  if(!conversation||conversation.inbox_channel!=='email'||Number(conversation.inbox_id)!==remoteInbox)
+   return fail(res,403,'ticket_not_in_remote_email_inbox');
+  const raw=await ownerReadUpstream(req,route+'/messages?page=1&page_size=12&private=false');
+  const msgs=Array.isArray(raw?.results)?raw.results:Array.isArray(raw)?raw:null;
+  if(!msgs)return fail(res,502,'messages_response_invalid');
+  const ticket=verifiedTicket(conversation,msgs,remoteInbox);
+  return json(res,200,{ok:true,ticket});
+ }catch(err){
+  if(String(err.message).startsWith('ticket_'))return fail(res,422,err.message);
+  return fail(res,502,'libredesk_ticket_read_failed');
+ }
+}
 async function readRawWebhook(req){
  const parts=[];let length=0;
  for await(const chunk of req){length+=chunk.length;if(length>131072)throw Error('webhook_body_too_large');parts.push(chunk)}
@@ -232,6 +269,9 @@ async function handler(req,res){
   return json(res,200,{ok:true,csrf:s.csrf,outbound_ready:outgoingReady(),email:s.email});
  }
  const s=await guard(req,res,method!=='GET');if(!s)return;
+ const ticketMatch=path.match(/^\/api\/tickets\/([a-f0-9-]{36})$/i);
+ if(method==='GET'&&ticketMatch&&uuid.test(ticketMatch[1]))
+  return loadOwnerTicket(req,res,ticketMatch[1]);
  if(path==='/api/integration/connect-webhook'&&method==='POST')return connectWebhook(req,res);
  if(path==='/api/inbound/events'&&method==='GET'){
   const rows=await pool.query('SELECT id,event_type,conversation_uuid,message_uuid,inbox_id,sender_type,status,received_at FROM support_gate_inbound_events ORDER BY id DESC LIMIT 100');

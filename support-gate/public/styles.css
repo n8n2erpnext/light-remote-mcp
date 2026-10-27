@@ -161,3 +161,11 @@ textarea{resize:vertical;min-height:175px;line-height:1.65}
 .event-entry{border:1px solid #eff0f0;border-radius:6px;padding:8px 11px;font-size:11px;color:#58606a;display:flex;justify-content:space-between;gap:8px;overflow-wrap:anywhere}
 .event-entry strong{color:#3c4550;font-weight:630}
 .event-entry time{white-space:nowrap;color:#a2a7ab}
+
+.ticket-read-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 12px}
+.ticket-read-actions span{font-size:12px;color:#64748b}
+.ticket-preview{max-height:240px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;color:#334155;font:12px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;margin:0 0 16px}
+
+.event-import{border:1px solid #cbd5e1;border-radius:6px;background:#fff;color:#334155;font-size:11px;font-weight:600;cursor:pointer;padding:5px 9px;margin-left:6px}
+.event-import:hover{background:#f1f5f9}
+.event-import:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
