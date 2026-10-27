@@ -13,6 +13,7 @@ import {aiProviderReady,requestAIDraft} from './ai-draft.mjs';
 import {createTicketReader,renderPublicTicket,publicHeaders,getPublicTicket} from './public-ticket.mjs';
 import {issueReplyForm,validatePublicForm,readPublicForm,allowPublicOrigin,submitPublicReply} from './public-reply.mjs';
 import {createGoldTicket} from './gold-intake.mjs';
+import {ticketAccessCode,verifyTicketAccessCode,makeTicketCookie,ticketCookieValid,ticketCodePage,ticketCodeHeaders,readAccessForm,checkCodeAttempt,deliverTicketCode} from './ticket-access.mjs';
 
 const {GATE_PG_URL,GATE_ADMIN_SALT,GATE_ADMIN_HASH,LIBREDESK_BASE_URL,
  LIBREDESK_API_KEY,LIBREDESK_API_SECRET,GATE_OWNER_EMAIL,GATE_WORKER_TOKEN_HASH,
@@ -89,6 +90,8 @@ async function setup(){
   "CHECK(status IN ('processing','saved','uncertain')),message_uuid uuid,"+
   "created_at timestamptz NOT NULL DEFAULT now())");
  await pool.query("CREATE INDEX IF NOT EXISTS public_web_reply_rate_idx ON support_gate_public_web_replies(conversation_uuid,created_at)");
+ await pool.query("CREATE TABLE IF NOT EXISTS support_gate_ticket_access_attempts (conversation_uuid uuid PRIMARY KEY,failures integer NOT NULL DEFAULT 0,window_started timestamptz NOT NULL DEFAULT now())");
+ await pool.query("CREATE TABLE IF NOT EXISTS support_gate_ticket_code_delivery (conversation_uuid uuid PRIMARY KEY,status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','sending','sent','uncertain')),sent_count integer NOT NULL DEFAULT 0,window_started timestamptz NOT NULL DEFAULT now(),last_sent_at timestamptz)");
  await pool.query("CREATE TABLE IF NOT EXISTS support_gate_public_ticket_access ("+
   "conversation_uuid uuid PRIMARY KEY,inbox_id integer NOT NULL CHECK(inbox_id IN (1,2)),"+
   "created_at timestamptz NOT NULL DEFAULT now(),"+
@@ -379,6 +382,11 @@ async function receiveWebhook(req,res){
  [key,event.event,event.conversation_uuid,event.message_uuid,event.inbox_id,event.sender_type]);
  if(saved.rowCount&&event.event==='conversation.created'&&event.conversation_uuid&&inboxAllowed(event.inbox_id)){
   await pool.query('INSERT INTO support_gate_public_ticket_access(conversation_uuid,inbox_id) VALUES($1,$2) ON CONFLICT DO NOTHING',[event.conversation_uuid,event.inbox_id]);
+  // Native automation sends the link; only the verified inbox can send the matching code.
+  // Any ambiguous mail outcome is retained for owner review, never blindly resent.
+  try{await deliverTicketCode(pool,event.conversation_uuid,event.inbox_id,{
+   secret:GATE_PUBLIC_REPLY_SECRET,apiKey:LIBREDESK_INTAKE_API_KEY,apiSecret:LIBREDESK_INTAKE_API_SECRET});}
+  catch(e){console.error('[ticket-code-delivery]',String(e.message).slice(0,100))}
  }
  return json(res,202,{ok:true,queued:Boolean(saved.rowCount),duplicate:!saved.rowCount});
 }
@@ -387,10 +395,47 @@ async function handler(req,res){
  if(path==='/api/internal/gold-intake'&&method==='POST')return createGoldTicket(req,res,{pool,secret:GATE_GOLD_INTAKE_SECRET,
   apiKey:LIBREDESK_INTAKE_API_KEY,apiSecret:LIBREDESK_INTAKE_API_SECRET,inboxId:remoteInbox,
   readBody:async(r,max)=>{let raw='';for await(const chunk of r){raw+=chunk;if(raw.length>max)throw Error('too_large')}return raw},sendJson:json});
+ const codeMatch=path.match(/^\/t\/([a-f0-9-]{36})\/access\/(verify|request)$/i);
+ if(codeMatch&&uuid.test(codeMatch[1])&&method==='POST'){
+  const ticketId=codeMatch[1],action=codeMatch[2];
+  if(!allowPublicOrigin(req.headers))return fail(res,403,'same_origin_required');
+  const ticket=await getPublicTicket(pool,publicTicketBridge,ticketId);
+  if(!ticket)return fail(res,404,'ticket_expired_or_unavailable');
+  let form;
+  try{form=await readAccessForm(req)}catch{return fail(res,400,'invalid_form')}
+  if(action==='verify'){
+   if(form.getAll('code').length!==1)return fail(res,400,'invalid_code_form');
+   const allowed=await checkCodeAttempt(pool,ticketId);
+   if(!allowed||!verifyTicketAccessCode(GATE_PUBLIC_REPLY_SECRET,ticketId,form.get('code'))){
+    res.writeHead(allowed?403:429,ticketCodeHeaders());
+    return res.end(ticketCodePage(ticketId,{inboxId:ticket.inbox_id,message:allowed?'Invalid access code. Check the email and try again.':'Too many attempts. Try again after 15 minutes.',error:true}));
+   }
+   res.writeHead(303,{'set-cookie':makeTicketCookie(GATE_PUBLIC_REPLY_SECRET,ticketId),
+    'location':'/ai-support/t/'+ticketId,'cache-control':'no-store','referrer-policy':'same-origin'});
+   return res.end();
+  }
+  // Request sends ONLY to the verified original Libredesk contact inbox.
+  let notice='An access code has been sent to the original ticket email. Check the inbox and spam folder.';
+  try{
+   const result=await deliverTicketCode(pool,ticketId,ticket.inbox_id,{
+    secret:GATE_PUBLIC_REPLY_SECRET,apiKey:LIBREDESK_INTAKE_API_KEY,apiSecret:LIBREDESK_INTAKE_API_SECRET});
+   if(!result.sent)notice='A recent code email has already been requested. Check your inbox or try again after 15 minutes.';
+  }catch(e){
+   console.error('[ticket-code-request]',String(e.message).slice(0,100));
+   notice='Delivery could not be confirmed. Please reply to the original support email for help.';
+  }
+  res.writeHead(200,ticketCodeHeaders());
+  return res.end(ticketCodePage(ticketId,{inboxId:ticket.inbox_id,message:notice}));
+ }
  const publicMatch=path.match(/^\/t\/([a-f0-9-]{36})$/i);
  if(publicMatch&&uuid.test(publicMatch[1])){
   const ticketId=publicMatch[1];
   if(method==='GET'){
+   const ticket=await getPublicTicket(pool,publicTicketBridge,ticketId);
+   if(!ticket){res.writeHead(404,ticketCodeHeaders());return res.end('Ticket link unavailable or expired')}
+   if(!ticketCookieValid(GATE_PUBLIC_REPLY_SECRET,ticketId,req.headers)){
+    res.writeHead(200,ticketCodeHeaders());return res.end(ticketCodePage(ticketId,{inboxId:ticket.inbox_id}));
+   }
    const note=new URL(req.url,'http://localhost').searchParams.get('sent');
    const page=await renderPublicTicket(pool,publicTicketBridge,ticketId,{
     issueForm:id=>issueReplyForm(GATE_PUBLIC_REPLY_SECRET,id),
@@ -399,6 +444,7 @@ async function handler(req,res){
   }
   if(method==='POST'){
    if(!allowPublicOrigin(req.headers))return fail(res,403,'same_origin_required');
+   if(!ticketCookieValid(GATE_PUBLIC_REPLY_SECRET,ticketId,req.headers))return fail(res,403,'ticket_access_code_required');
    const ticket=await getPublicTicket(pool,publicTicketBridge,ticketId);
    if(!ticket)return fail(res,404,'ticket_expired_or_unavailable');
    if(Number(ticket.status_id)===4)return fail(res,409,'closed_ticket_read_only');

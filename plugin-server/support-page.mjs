@@ -174,8 +174,8 @@ export function renderSupportPage({origin,version}){
             </div>
           </div>
           <div class="case-panel" id="contact-support">
-            <div class="case-head"><div><h3>Light Remote Support Center</h3><p>Submit your ticket directly from this page. LibreDesk creates the ticket and emails a private tracking link so you can read and reply without signing in.</p></div><span class="case-badge">EVERYONE · NO ACCOUNT</span></div>
-            <div class="callout"><strong>One conversation, two reply options.</strong> After you submit the form, check your inbox for the automatic ticket acknowledgment. Open its private link to follow Open / Snoozed / Resolved / Closed, reply on the ticket page, or reply to the email. Links expire 14 days after a ticket is Closed.</div>
+            <div class="case-head"><div><h3>Light Remote Support Center</h3><p>Submit your ticket directly from this page. LibreDesk creates the ticket and emails a private tracking link plus a separate access code. No account sign-in is required.</p></div><span class="case-badge">EVERYONE · NO ACCOUNT</span></div>
+            <div class="callout"><strong>One conversation, two reply options.</strong> After submitting, check your inbox for the ticket link and a separate access-code email from the same Support Center. Enter the code to open the ticket, follow Open / Snoozed / Resolved / Closed, and reply on the page. You can also reply directly by email without using the code. The link expires 14 days after a ticket is Closed.</div>
             <div id="supportAccountSummary" class="case-account" hidden><strong>Signed-in account</strong> · <span id="supportAccountDetails"></span><div>We use the email and current plan from your Gold account.</div></div>
             <p id="supportGuestSignin" style="margin:12px 0;color:#9aa6b2;font-size:13px">Have a Gold account? <a href="/account/login?next=%2Fsupport">Sign in</a> to use your verified email, current plan and registered device information automatically.</p>
             <form id="supportCaseForm" class="case-form">
