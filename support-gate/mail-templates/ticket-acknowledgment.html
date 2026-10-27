@@ -1,0 +1,8 @@
+<p>Hello,</p>
+<p>We have received your support request and opened <strong>ticket #{{ .Conversation.ReferenceNumber }}</strong> for {{ .Inbox.Name }}.</p>
+<p><strong>View your ticket without signing in:</strong></p>
+<p><a href="https://support.thaiduy.digital/ai-support/t/{{ .Conversation.UUID }}" style="display:inline-block;padding:12px 18px;background-color:#24588c;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:bold;">View ticket #{{ .Conversation.ReferenceNumber }}</a></p>
+<p>If the button does not work, copy this complete link into your browser:</p>
+<p><a href="https://support.thaiduy.digital/ai-support/t/{{ .Conversation.UUID }}">https://support.thaiduy.digital/ai-support/t/{{ .Conversation.UUID }}</a></p>
+<p>You can reply directly to this email to continue the conversation. You do not need an account or password.</p>
+<p>Kind regards,<br>{{ .Inbox.Name }}</p>
