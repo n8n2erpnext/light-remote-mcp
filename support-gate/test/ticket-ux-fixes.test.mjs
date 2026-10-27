@@ -21,6 +21,7 @@ test('ticket access offers eight per-character inputs when JS is on and classic 
 test('print handler waits for iframe srcdoc full-history and avoids document.write race',()=>{
  const source=readFileSync(new URL('../public/ticket-actions.js',import.meta.url),'utf8');
  assert.match(source,/frame\.srcdoc=html/);
+ assert.ok(source.indexOf('frame.srcdoc=html')<source.indexOf('document.body.appendChild(frame)'), 'srcdoc must be set before attachment to avoid initial about:blank load');
  assert.match(source,/await loaded/);
  assert.match(source,/\.print\(\)/);
  assert.match(source,/fetch\(url,\{credentials:'same-origin'/);
@@ -33,6 +34,9 @@ test('Material Icons are locally served; no remote font dependencies',()=>{
  assert.match(css,/\/ai-support\/fonts\/material-icons-latin-400-normal\.woff2/);
  assert.doesNotMatch(css,/fonts\.googleapis|fonts\.gstatic/);
  assert.match(publicHeaders()['content-security-policy'],/font-src 'self'/);
+ assert.match(publicHeaders()['content-security-policy'],/connect-src 'self'/);
+ assert.doesNotMatch(publicHeaders()['content-security-policy'],/connect-src \*/);
+ assert.doesNotMatch(publicHeaders({print:true})['content-security-policy'],/connect-src https?:/);
  const html=buildPublicPage(ticket,[],{form:{requestId:'test',issued:'test',token:'test'}});
  assert.match(html,/material-icons\.css/);
  assert.match(html,/>print<\/span>/);

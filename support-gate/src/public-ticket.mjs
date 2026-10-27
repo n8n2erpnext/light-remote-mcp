@@ -133,5 +133,5 @@ export async function renderPublicTicket(pool,bridge,id,options={}){
 }
 export function publicHeaders({print=false}={}){
  return {'content-type':'text/html; charset=utf-8','cache-control':'private, no-store, max-age=0','x-content-type-options':'nosniff','x-frame-options':print?'SAMEORIGIN':'DENY','referrer-policy':'same-origin','x-robots-tag':'noindex,nofollow,noarchive',
-  'content-security-policy':"default-src 'none';img-src 'self';style-src 'self';font-src 'self';script-src 'self';"+(print?"frame-ancestors 'self';":"frame-src 'self';frame-ancestors 'none';")+"form-action 'self';base-uri 'none'"};
+  'content-security-policy':"default-src 'none';connect-src 'self';img-src 'self';style-src 'self';font-src 'self';script-src 'self';"+(print?"frame-ancestors 'self';":"frame-src 'self';frame-ancestors 'none';")+"form-action 'self';base-uri 'none'"};
 }

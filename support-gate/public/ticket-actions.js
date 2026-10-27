@@ -39,8 +39,10 @@ document.addEventListener('DOMContentLoaded',()=>{
      frame.addEventListener('load',resolve,{once:true});
      frame.addEventListener('error',()=>reject(new Error('Print document could not load.')),{once:true});
     });
-    document.body.appendChild(frame);
+    // Setting srcdoc before attachment prevents a spurious initial about:blank
+    // load event from racing the real printable document's load event.
     frame.srcdoc=html;
+    document.body.appendChild(frame);
     await loaded;
     const doc=frame.contentDocument;
     if(!doc||!doc.querySelector('.print-view .timeline'))
