@@ -38,7 +38,7 @@ function shell(ticket,inner,{print=false}={}){
  const brand=brandFor(ticket),status=ticketStatus(ticket);
  return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'+
  '<meta name="robots" content="noindex,nofollow,noarchive"><meta name="color-scheme" content="light"><title>'+escapeHTML(brand.name)+' · Ticket #'+escapeHTML(ticket.reference_number)+'</title>'+
- '<link rel="stylesheet" href="/ai-support/ticket.css"></head><body class="'+(print?'print-view':'ticket-view')+'"><main class="wrap"><div class="sheet">'+
+ '<link rel="stylesheet" href="/ai-support/ticket.css"><link rel="stylesheet" href="/ai-support/material-icons.css"></head><body class="'+(print?'print-view':'ticket-view')+'"><main class="wrap"><div class="sheet">'+
  '<header class="ticket-header"><div class="identity"><img alt="'+escapeHTML(brand.name)+'" src="/ai-support/branding/'+brand.logo+'"><div><span class="kicker">Customer Support Center</span>'+escapeHTML(brand.name)+' Support</div></div><div class="header-side">Private support ticket</div></header>'+
  '<div class="main">'+inner+'</div></div></main>'+ (print?'<footer class="print-footer" aria-label="Print footer"><div><span>https://support.thaiduy.digital/</span> · <span>'+escapeHTML(brand.email)+'</span></div><div>Printed: '+escapeHTML(outputTimestamp())+'</div></footer>':'')+(print?'<script src="/ai-support/print-ticket.js" defer></script>':'<script src="/ai-support/ticket-actions.js" defer></script>')+'</body></html>';
 }
@@ -46,7 +46,7 @@ function header(ticket,{print=false}={}){
  const status=ticketStatus(ticket),id=String(ticket.reference_number||'');
  const expiry=ticketExpiry(ticket);
  const actions=print?'<a class="btn no-print" href="'+ticketURL(ticket.uuid)+'">Back to ticket</a><button class="btn primary no-print" id="printNow" type="button">Print now</button><a class="btn no-print" href="'+ticketURL(ticket.uuid)+'/pdf">Export PDF</a>':
- '<button class="btn" type="button" id="printReady" data-print-url="'+ticketURL(ticket.uuid)+'/print" aria-label="Print complete ticket">▤ Print ready</button><a class="btn" href="#ticket-details">▤ Ticket details</a><a class="btn primary" href="'+ticketURL(ticket.uuid)+'/pdf">↓ Export PDF</a>';
+ '<button class="btn" type="button" id="printReady" data-print-url="'+ticketURL(ticket.uuid)+'/print" aria-label="Print complete ticket"><span class="material-icon" aria-hidden="true">print</span> Print ready</button><a class="btn" href="#ticket-details"><span class="material-icon" aria-hidden="true">info_outline</span> Ticket details</a><a class="btn primary" href="'+ticketURL(ticket.uuid)+'/pdf"><span class="material-icon" aria-hidden="true">picture_as_pdf</span> Export PDF</a>';
  return '<div class="overline">Ticket #'+escapeHTML(id)+' · Support request</div><h1>'+escapeHTML(String(ticket.subject||'Support request').slice(0,320))+'</h1>'+
  '<div class="status-row"><span class="pill '+(['closed','resolved','snoozed'].includes(status.toLowerCase())?status.toLowerCase():'')+'">'+escapeHTML(status)+'</span></div>'+
  '<nav class="toolbar" aria-label="Ticket actions">'+actions+'</nav>'+
@@ -85,7 +85,7 @@ function reply(ticket,form){
  return '<section class="reply"><h2>Write a reply</h2><p>Your reply goes to the same support conversation. You can also reply directly to your support email.</p>'+
  '<form method="post" action="'+ticketURL(ticket.uuid)+'" accept-charset="UTF-8">'+hidden+
  '<label for="reply">Your message</label><textarea id="reply" name="message" rows="5" minlength="1" maxlength="4000" required placeholder="Describe your update or question..."></textarea>'+
- '<button class="btn primary" type="submit">Send reply</button></form></section>';
+ '<button class="btn primary" type="submit"><span class="material-icon" aria-hidden="true">send</span> Send reply</button></form></section>';
 }
 const footer='<footer class="foot">Access to this ticket requires both its private link and the access code from your support email. Keep that email confidential. No account or password is required. You may also reply directly by email.</footer>';
 export function buildPublicPage(ticket,messages,{form=null,notice='',pagination=null,total=undefined,print=false}={}){
@@ -133,5 +133,5 @@ export async function renderPublicTicket(pool,bridge,id,options={}){
 }
 export function publicHeaders({print=false}={}){
  return {'content-type':'text/html; charset=utf-8','cache-control':'private, no-store, max-age=0','x-content-type-options':'nosniff','x-frame-options':print?'SAMEORIGIN':'DENY','referrer-policy':'same-origin','x-robots-tag':'noindex,nofollow,noarchive',
-  'content-security-policy':"default-src 'none';img-src 'self';style-src 'self';script-src 'self';"+(print?"frame-ancestors 'self';":"frame-src 'self';frame-ancestors 'none';")+"form-action 'self';base-uri 'none'"};
+  'content-security-policy':"default-src 'none';img-src 'self';style-src 'self';font-src 'self';script-src 'self';"+(print?"frame-ancestors 'self';":"frame-src 'self';frame-ancestors 'none';")+"form-action 'self';base-uri 'none'"};
 }

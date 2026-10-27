@@ -488,10 +488,10 @@ async function handler(req,res){
  }
  if(path==='/healthz')return json(res,200,{ok:true,service:'support-gate',outbound_ready:outgoingReady(),ai_draft_ready:aiReady()});
  if(path==='/api/webhooks/libredesk'&&method==='POST')return receiveWebhook(req,res);
- if(['/', '/app.js','/styles.css','/ticket.css','/print-ticket.js','/ticket-actions.js','/branding/light-remote-mark.png','/branding/light-remote-mark-256.png','/branding/lightbi-app-icon.png'].includes(path)&&method==='GET'){
+ if(['/', '/app.js','/styles.css','/ticket.css','/print-ticket.js','/ticket-actions.js','/ticket-code.js','/material-icons.css','/fonts/material-icons-latin-400-normal.woff2','/branding/light-remote-mark.png','/branding/light-remote-mark-256.png','/branding/lightbi-app-icon.png'].includes(path)&&method==='GET'){
   const file=path==='/'?'index.html':path.slice(1),text=await readFile(join(root,file));
-  const type=file.endsWith('.png')?'image/png':file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'text/html';
-  res.writeHead(200,{'content-type':type+(type==='image/png'?'':'; charset=utf-8'),'cache-control':type==='image/png'?'public, max-age=3600':'no-store',
+  const type=file.endsWith('.png')?'image/png':file.endsWith('.woff2')?'font/woff2':file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'text/html';
+  res.writeHead(200,{'content-type':type+(['image/png','font/woff2'].includes(type)?'':'; charset=utf-8'),'cache-control':type==='image/png'?'public, max-age=3600':'no-store',
    'content-security-policy':"default-src 'self';script-src 'self';style-src 'self';base-uri 'none';object-src 'none';frame-ancestors 'none'"});
   return res.end(text);
  }

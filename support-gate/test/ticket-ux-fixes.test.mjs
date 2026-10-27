@@ -1,0 +1,41 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {ticketCodePage,ticketCodeHeaders} from '../src/ticket-access.mjs';
+import {buildPublicPage,publicHeaders} from '../src/public-ticket.mjs';
+const id='5661e50c-ea21-4f7e-bef7-29b68fdf6d5c';
+const ticket={id:44,uuid:id,inbox_id:1,reference_number:900,status_id:1,subject:'UAT ticket',created_at:'2026-10-27T01:02:00Z'};
+test('ticket access offers eight per-character inputs when JS is on and classic form fallback',()=>{
+ const html=ticketCodePage(id);
+ const script=readFileSync(new URL('../public/ticket-code.js',import.meta.url),'utf8');
+ assert.match(html,/ticket-code\.js/);
+ assert.match(html,/material-icons\.css/);
+ assert.match(html,/id="access-code" name="code"/);
+ assert.match(script,/for\(let i=0;i<8;i\+\+\)/);
+ assert.match(script,/clipboardData/);
+ assert.match(script,/replace\(\/\[\^A-HJ-NP-Z2-9\]/);
+ assert.match(script,/cell\.addEventListener\('keydown'/);
+ assert.match(ticketCodeHeaders()['content-security-policy'],/script-src 'self'/);
+ assert.match(ticketCodeHeaders()['content-security-policy'],/font-src 'self'/);
+});
+test('print handler waits for iframe srcdoc full-history and avoids document.write race',()=>{
+ const source=readFileSync(new URL('../public/ticket-actions.js',import.meta.url),'utf8');
+ assert.match(source,/frame\.srcdoc=html/);
+ assert.match(source,/await loaded/);
+ assert.match(source,/\.print\(\)/);
+ assert.match(source,/fetch\(url,\{credentials:'same-origin'/);
+ assert.doesNotMatch(source,/doc\.write\(/);
+ assert.doesNotMatch(source,/window\.alert\(/);
+});
+test('Material Icons are locally served; no remote font dependencies',()=>{
+ const css=readFileSync(new URL('../public/material-icons.css',import.meta.url),'utf8');
+ assert.match(css,/font-family:"Local Material Icons"/);
+ assert.match(css,/\/ai-support\/fonts\/material-icons-latin-400-normal\.woff2/);
+ assert.doesNotMatch(css,/fonts\.googleapis|fonts\.gstatic/);
+ assert.match(publicHeaders()['content-security-policy'],/font-src 'self'/);
+ const html=buildPublicPage(ticket,[],{form:{requestId:'test',issued:'test',token:'test'}});
+ assert.match(html,/material-icons\.css/);
+ assert.match(html,/>print<\/span>/);
+ assert.match(html,/>picture_as_pdf<\/span>/);
+ assert.match(html,/>send<\/span>/);
+});
