@@ -1,5 +1,5 @@
 const $=id=>document.getElementById(id);
-let csrf='',current=null,canSend=false,drafts=[],tickets=[],filter='tickets',query='',toastTimer=0,selectedTicket=null,selectedTicketEvent=null,ticketDirty=false,syncBusy=false,syncTimer=null,manualPending=null;
+let csrf='',current=null,canSend=false,aiConnected=false,drafts=[],tickets=[],filter='tickets',query='',toastTimer=0,selectedTicket=null,selectedTicketEvent=null,ticketDirty=false,syncBusy=false,syncTimer=null,manualPending=null;
 
 function icon(ref){return '<svg aria-hidden="true"><use href="#i-'+ref+'"></use></svg>'}
 function feedback(message){
@@ -61,6 +61,8 @@ function fill(item){
  $('approve').hidden=inboxReplyMode;
  $('send').hidden=inboxReplyMode;
  $('sendManual').hidden=!inboxReplyMode;
+ $('aiDraft').disabled=!aiConnected||!inboxReplyMode||!$('latest').value;
+ $('aiStatus').textContent=aiConnected?'AI ready · Draft only':'AI worker not connected';
  $('ticketMetaDetails').open=!inboxReplyMode;
  $('advancedPanel').open=!inboxReplyMode;
  for(const element of document.querySelectorAll('#draftForm input,#draftForm textarea,#draftForm select'))
@@ -116,7 +118,7 @@ async function refresh(){
 async function init(){
  try{
   const session=await api('/api/session');
-  csrf=session.csrf;canSend=session.outbound_ready;
+  csrf=session.csrf;canSend=session.outbound_ready;aiConnected=session.ai_draft_ready===true;
   $('operator').textContent=session.email||'Admin';
   $('login').hidden=true;$('workspace').hidden=false;
   const banner=$('outbound');banner.className='info-banner'+(canSend?' ready':'');
@@ -144,6 +146,26 @@ function setFilter(next){
 }
 $('draftForm').addEventListener('submit',event=>event.preventDefault());
 $('draftForm').addEventListener('input',()=>{ticketDirty=true});
+$('aiDraft').addEventListener('click',async()=>{
+ if(!aiConnected||!selectedTicket||current)return;
+ const id=selectedTicket;
+ $('aiDraft').disabled=true;
+ $('aiStatus').textContent='AI is drafting…';
+ try{
+  const result=await api('/api/tickets/'+encodeURIComponent(id)+'/ai-draft','POST',{});
+  if(selectedTicket!==id||current){feedback('AI draft created; open Needs review to inspect.');return}
+  $('message').value=result.message;
+  ticketDirty=true;
+  $('sendManual').disabled=!$('latest').value||!$('message').value.trim();
+  $('aiStatus').textContent='AI suggestion ready · Review before sending';
+  await refreshDraftListOnly();
+  feedback('AI draft ready. Review and edit before sending.');
+ }catch(e){$('aiStatus').textContent='AI draft unavailable';feedback(e.message)}
+ finally{$('aiDraft').disabled=!aiConnected||!selectedTicket||!!current}
+});
+async function refreshDraftListOnly(){
+ try{const result=await api('/api/drafts');drafts=result.drafts;render()}catch{}
+}
 $('message').addEventListener('input',()=>{
  $('sendManual').disabled=!!current||!selectedTicket||!$('latest').value||!$('message').value.trim();
 });
@@ -171,6 +193,7 @@ async function importTicket(conversation){
   $('threadPanel').hidden=false;
   $('threadMeta').textContent=ticket.history.length+' recent messages';
   $('sendManual').disabled=!ticket.based_on_message_uuid||!$('message').value.trim();
+  $('aiDraft').disabled=!aiConnected||!ticket.based_on_message_uuid;
   const preview=$('ticketPreview');
   preview.textContent=ticket.history.length
    ?ticket.history.slice().reverse().map(m=>m.type.toUpperCase()+': '+m.text).join('\n\n')

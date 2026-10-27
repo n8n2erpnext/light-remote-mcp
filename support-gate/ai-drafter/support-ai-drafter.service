@@ -1,0 +1,32 @@
+[Unit]
+Description=Gold UAT Support AI Drafter (draft-only, authenticated internal API)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=gold-uat
+Group=gold-uat
+WorkingDirectory=/var/lib/light-remote-gold-uat/support-ai-drafter/workspace
+Environment=NODE_ENV=production
+Environment=HOME=/var/lib/light-remote-gold-uat
+Environment=CODEX_HOME=/var/lib/light-remote-gold-uat/wall/codex-home
+ExecStart=/usr/bin/node /opt/support-ai-drafter/server.mjs
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/light-remote-gold-uat/wall/codex-home /var/lib/light-remote-gold-uat/support-ai-drafter/workspace
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryMax=2G
+TasksMax=80
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

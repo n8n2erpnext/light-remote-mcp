@@ -9,10 +9,12 @@ import {verifyInbound,normalizeInbound,stableEventKey} from './inbound.mjs';
 import {configuredRemoteInbox,verifiedTicket} from './ticket-read.mjs';
 import {ticketSummary,buildQueue} from './ticket-queue.mjs';
 import {parseReply,htmlFromPlainText,rawNativeCsrf,lastPublicMessage} from './owner-reply.mjs';
+import {aiProviderReady,requestAIDraft} from './ai-draft.mjs';
 
 const {GATE_PG_URL,GATE_ADMIN_SALT,GATE_ADMIN_HASH,LIBREDESK_BASE_URL,
  LIBREDESK_API_KEY,LIBREDESK_API_SECRET,GATE_OWNER_EMAIL,GATE_WORKER_TOKEN_HASH,
- LIBREDESK_REMOTE_INBOX_ID,LIBREDESK_LIGHTBI_INBOX_ID,GATE_WEBHOOK_SECRET}=process.env;
+ LIBREDESK_REMOTE_INBOX_ID,LIBREDESK_LIGHTBI_INBOX_ID,GATE_WEBHOOK_SECRET,
+ GATE_AI_DRAFTER_URL,GATE_AI_DRAFTER_TOKEN}=process.env;
 if(!GATE_PG_URL||!GATE_ADMIN_SALT||!GATE_ADMIN_HASH)throw Error('support_gate_config_missing');
 const pool=new pg.Pool({connectionString:GATE_PG_URL,max:6,connectionTimeoutMillis:6000});
 const root=join(dirname(fileURLToPath(import.meta.url)),'../public');
@@ -20,6 +22,7 @@ const authorityUrl='http://app:9000/api/v1/agents/me';
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 const email=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const remoteInbox=configuredRemoteInbox(LIBREDESK_REMOTE_INBOX_ID);
+const aiReady=()=>aiProviderReady({url:GATE_AI_DRAFTER_URL,token:GATE_AI_DRAFTER_TOKEN});
 const outgoingReady=()=>Boolean(LIBREDESK_BASE_URL&&LIBREDESK_API_KEY&&LIBREDESK_API_SECRET&&remoteInbox&&Number(LIBREDESK_LIGHTBI_INBOX_ID)>0);
 const ownerEmail=(GATE_OWNER_EMAIL||'support@thaiduy.digital').toLowerCase();
 // The one owner identity is managed by Libredesk, never in Support Gate.
@@ -213,6 +216,47 @@ async function loadOwnerTicket(req,res,conversationUUID){
   return fail(res,502,'libredesk_ticket_read_failed');
  }
 }
+async function ownerCreateAIDraft(req,res,conversationUUID){
+ if(!aiReady())return fail(res,503,'ai_drafter_not_connected');
+ if(!remoteInbox)return fail(res,503,'remote_inbox_mapping_not_configured');
+ let ticket;
+ try{
+  const route='/api/v1/conversations/'+conversationUUID;
+  const conv=await ownerReadUpstream(req,route);
+  if(!conv||Number(conv.inbox_id)!==remoteInbox||conv.inbox_channel!=='email')
+   return fail(res,403,'ai_ticket_scope_denied');
+  const messagesRaw=await ownerReadUpstream(req,route+'/messages?page=1&page_size=12&private=false');
+  const messages=Array.isArray(messagesRaw?.results)?messagesRaw.results:Array.isArray(messagesRaw)?messagesRaw:null;
+  if(!messages)return fail(res,502,'ai_ticket_messages_unavailable');
+  ticket=verifiedTicket(conv,messages,remoteInbox);
+  if(!ticket.based_on_message_uuid)return fail(res,409,'ai_ticket_missing_baseline');
+ }catch{return fail(res,502,'ai_ticket_read_failed')}
+ // Reuse an existing draft based on this exact public message; never call AI twice
+ // for the same input because retrying the browser should not create competing replies.
+ const existing=await pool.query(
+  "SELECT id,message FROM support_gate_drafts WHERE brand='light-remote' AND conversation_uuid=$1 "+
+  "AND based_on_message_uuid=$2 AND status IN ('draft','needs_review') ORDER BY updated_at DESC LIMIT 1",
+  [conversationUUID,ticket.based_on_message_uuid]);
+ if(existing.rowCount)return json(res,200,{ok:true,id:existing.rows[0].id,
+  message:existing.rows[0].message,status:'draft',reused:true});
+ let reply;
+ try{reply=await requestAIDraft({url:GATE_AI_DRAFTER_URL,token:GATE_AI_DRAFTER_TOKEN,ticket})}
+ catch{return fail(res,503,'ai_drafter_failed_no_email_sent')}
+ // Refetch latest public message to reject stale AI output before saving a draft.
+ try{
+  const raw=await ownerReadUpstream(req,
+   '/api/v1/conversations/'+conversationUUID+'/messages?page=1&page_size=12&private=false');
+  const messages=Array.isArray(raw?.results)?raw.results:Array.isArray(raw)?raw:null;
+  if(!messages||lastPublicMessage(messages)!==ticket.based_on_message_uuid)
+   return fail(res,409,'conversation_changed_during_ai_generation');
+ }catch{return fail(res,502,'ai_baseline_check_failed')}
+ const id=crypto.randomUUID();
+ await pool.query("INSERT INTO support_gate_drafts(id,brand,conversation_uuid,recipient,subject,message,based_on_message_uuid) "+
+  "VALUES($1,'light-remote',$2,$3,$4,$5,$6)",
+  [id,conversationUUID,ticket.recipient,ticket.subject,reply,ticket.based_on_message_uuid]);
+ await log(id,'owner_requested_ai_draft',{brand:'light-remote',conversation_uuid:conversationUUID});
+ return json(res,201,{ok:true,id,status:'draft',message:reply,reused:false});
+}
 async function ownerPostNative(req,path,body){
  const session=sessionCookie(req.headers.cookie);
  const csrf=rawNativeCsrf(req.headers.cookie);
@@ -323,7 +367,7 @@ async function handler(req,res){
   res.writeHead(302,{location:'https://support.thaiduy.digital/ai-support/','cache-control':'no-store'});
   return res.end();
  }
- if(path==='/healthz')return json(res,200,{ok:true,service:'support-gate',outbound_ready:outgoingReady()});
+ if(path==='/healthz')return json(res,200,{ok:true,service:'support-gate',outbound_ready:outgoingReady(),ai_draft_ready:aiReady()});
  if(path==='/api/webhooks/libredesk'&&method==='POST')return receiveWebhook(req,res);
  if(['/', '/app.js','/styles.css'].includes(path)&&method==='GET'){
   const file=path==='/'?'index.html':path.slice(1),text=await readFile(join(root,file));
@@ -349,10 +393,13 @@ async function handler(req,res){
  // NetBird host. No second admin password or account exists in Support Gate.
  if(path==='/api/session'){
   const s=await guard(req,res);if(!s)return;
-  return json(res,200,{ok:true,csrf:s.csrf,outbound_ready:outgoingReady(),email:s.email});
+  return json(res,200,{ok:true,csrf:s.csrf,outbound_ready:outgoingReady(),ai_draft_ready:aiReady(),email:s.email});
  }
  const s=await guard(req,res,method!=='GET');if(!s)return;
  if(path==='/api/tickets/queue'&&method==='GET')return loadOwnerQueue(req,res);
+ const aiDraftMatch=path.match(/^\/api\/tickets\/([a-f0-9-]{36})\/ai-draft$/i);
+ if(method==='POST'&&aiDraftMatch&&uuid.test(aiDraftMatch[1]))
+  return ownerCreateAIDraft(req,res,aiDraftMatch[1]);
  const ownerReplyMatch=path.match(/^\/api\/tickets\/([a-f0-9-]{36})\/reply$/i);
  if(method==='POST'&&ownerReplyMatch&&uuid.test(ownerReplyMatch[1]))
   return ownerSendNativeReply(req,res,ownerReplyMatch[1]);
