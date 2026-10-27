@@ -45,6 +45,7 @@ test('server ticket endpoint is owner-session guarded and GET-only',async()=>{
  assert.match(source,/conversation\.inbox_channel!=='email'/);
  assert.match(source,/Number\(conversation\.inbox_id\)!==remoteInbox/);
  assert.match(source,/headers:\{cookie:'libredesk_session='\+cookie/);
- assert.match(ui,/open\.textContent='Load ticket'/);
+ assert.match(ui,/async function importTicket\(conversation\)/);
+ assert.match(ui,/async function syncTickets\(initial=false\)/);
  assert.doesNotMatch(source,/LIBREDESK_API_SECRET.*\/api\/tickets/);
 });

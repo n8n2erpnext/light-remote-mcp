@@ -7,6 +7,7 @@ import pg from 'pg';
 import {sessionCookie,approvedAgent,ownerCsrf} from './libredesk-owner.mjs';
 import {verifyInbound,normalizeInbound,stableEventKey} from './inbound.mjs';
 import {configuredRemoteInbox,verifiedTicket} from './ticket-read.mjs';
+import {ticketSummary,buildQueue} from './ticket-queue.mjs';
 
 const {GATE_PG_URL,GATE_ADMIN_SALT,GATE_ADMIN_HASH,LIBREDESK_BASE_URL,
  LIBREDESK_API_KEY,LIBREDESK_API_SECRET,GATE_OWNER_EMAIL,GATE_WORKER_TOKEN_HASH,
@@ -165,6 +166,30 @@ async function ownerReadUpstream(req,path){
   return result.data;
  }finally{clearTimeout(timer)}
 }
+async function loadOwnerQueue(req,res){
+ if(!remoteInbox)return fail(res,503,'remote_inbox_mapping_not_configured');
+ // Signed webhook notifications are durable, one visible row per conversation.
+ // Message bodies and customer details stay in Libredesk and are read only with owner cookies.
+ const seen=await pool.query(
+  "SELECT conversation_uuid::text AS uuid, MAX(received_at) AS event_at, COUNT(*)::int AS events "+
+  "FROM support_gate_inbound_events WHERE conversation_uuid IS NOT NULL "+
+  "GROUP BY conversation_uuid ORDER BY MAX(received_at) DESC LIMIT 40");
+ const byUUID=new Map();let failures=0;
+ for(let i=0;i<seen.rows.length;i+=6){
+  const chunk=seen.rows.slice(i,i+6);
+  await Promise.all(chunk.map(async item=>{
+   try{
+    const conv=await ownerReadUpstream(req,'/api/v1/conversations/'+item.uuid);
+    const summary=ticketSummary(conv,remoteInbox);
+    if(summary)byUUID.set(item.uuid,summary);
+   }catch{failures++}
+  }));
+ }
+ const queue=buildQueue(seen.rows,byUUID);
+ return json(res,200,{ok:true,brand:'light-remote',inbox_id:remoteInbox,
+  tickets:queue,total:queue.length,sync_at:new Date().toISOString(),unavailable:failures,
+  mode:'webhook_index_owner_read',next_refresh_seconds:30});
+}
 async function loadOwnerTicket(req,res,conversationUUID){
  if(!remoteInbox)return fail(res,503,'remote_inbox_mapping_not_configured');
  try{
@@ -269,6 +294,7 @@ async function handler(req,res){
   return json(res,200,{ok:true,csrf:s.csrf,outbound_ready:outgoingReady(),email:s.email});
  }
  const s=await guard(req,res,method!=='GET');if(!s)return;
+ if(path==='/api/tickets/queue'&&method==='GET')return loadOwnerQueue(req,res);
  const ticketMatch=path.match(/^\/api\/tickets\/([a-f0-9-]{36})$/i);
  if(method==='GET'&&ticketMatch&&uuid.test(ticketMatch[1]))
   return loadOwnerTicket(req,res,ticketMatch[1]);

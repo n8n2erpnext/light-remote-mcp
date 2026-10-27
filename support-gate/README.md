@@ -95,3 +95,9 @@ The historical "Not ready yet" notes above describe the **initial phase** and ar
 - Gold UAT only; no changes to NetBird Traefik, ERPNext or Light Remote production. Branch commit for implementation: `0f75909`.
 
 Next stage: authenticated browser acceptance of ticket import, then a dedicated least-privilege API identity for an investigation worker and **draft-only** automation via official Light Remote. Never use the owner API key as a machine worker credential or enable auto-send. LightBI still lacks a finalized Lark support mailbox.
+
+## Ticket-first auto-sync (Gold phase 3, deployment pending)
+
+Owner-only GET /api/tickets/queue groups incoming signed webhook notifications into unique conversations, fetches current Libredesk summaries using the already-authenticated Admin session, and validates the Light Remote email inbox ID 1. Gate stores no raw ticket bodies from webhooks. UI defaults to Support inbox and Needs reply; it auto-loads the first ticket, refreshes every 30 seconds while the tab is visible, retains Sync now/manual Reload, and moves raw events/UUIDs into collapsed Advanced areas. Distinct customer, email, subject and state replace event-row spam. Scope is the latest 40 webhook-observed conversations; this is not a full historical import. Sender remains locked and worker cannot access owner-only reads.
+
+18/18 tests PASS. **This code was not deployed in this session:** Gate-only Docker Compose rebuild was refused by tool safety checks. Rollback image was preserved as libredesk-support-gold-gate:pre-auto-ticket-ui-20261027. Rebuild only the Gate through an authorized workflow before claiming it is live. Verify Admin UI, HTTPS and unauthorized 401; do not alter ERPNext, Traefik, Zoho mail or production Light Remote.

@@ -42,7 +42,9 @@
   <button type="button" class="nav-create" id="newDraft"><svg><use href="#i-plus"/></svg> New draft</button>
   <div class="nav-caption">WORKSPACE</div>
   <div class="filters">
-   <button type="button" class="nav-item active" data-filter="all"><svg><use href="#i-inbox"/></svg><span>All drafts</span><span class="nav-count" id="count-all">0</span></button>
+   <button type="button" class="nav-item active" data-filter="tickets"><svg><use href="#i-inbox"/></svg><span>Support inbox</span><span class="nav-count" id="count-tickets">0</span></button>
+   <button type="button" class="nav-item" data-filter="attention"><svg><use href="#i-mail"/></svg><span>Needs reply</span><span class="nav-count" id="count-attention">0</span></button>
+   <div class="nav-caption nav-caption-secondary">RESPONSE DRAFTS</div>
    <button type="button" class="nav-item" data-filter="draft"><svg><use href="#i-file"/></svg><span>Needs review</span><span class="nav-count" id="count-draft">0</span></button>
    <button type="button" class="nav-item" data-filter="approved"><svg><use href="#i-check"/></svg><span>Approved</span><span class="nav-count" id="count-approved">0</span></button>
    <button type="button" class="nav-item" data-filter="sent"><svg><use href="#i-send"/></svg><span>Sent</span><span class="nav-count" id="count-sent">0</span></button>
@@ -65,13 +67,13 @@
    </div>
   </section>
   <section id="workspace" class="workspace" hidden>
-   <aside class="queue" aria-label="Draft list">
-    <div class="queue-head"><div class="queue-title"><h2 id="listTitle">All drafts</h2><button type="button" id="refresh" class="icon-button" title="Refresh drafts" aria-label="Refresh drafts"><svg><use href="#i-refresh"/></svg></button></div>
-      <div class="search-field"><svg><use href="#i-search"/></svg><input type="search" id="search" placeholder="Search drafts" aria-label="Search drafts"></div>
+   <aside class="queue" aria-label="Support tickets and draft list">
+    <div class="queue-head"><div class="queue-title"><h2 id="listTitle">Support inbox</h2><button type="button" id="refresh" class="icon-button" title="Sync now" aria-label="Sync now"><svg><use href="#i-refresh"/></svg></button></div>
+      <div class="search-field"><svg><use href="#i-search"/></svg><input type="search" id="search" placeholder="Search tickets or drafts" aria-label="Search tickets or drafts"></div>
     </div>
-    <div class="queue-toolbar"><span id="queueCount">0 drafts</span><span>Newest activity <svg><use href="#i-chevron"/></svg></span></div>
+    <div class="queue-toolbar"><span id="queueCount">Syncing tickets…</span><span id="queueSync">Auto-sync</span></div>
     <div id="drafts" class="drafts" role="list"></div>
-    <div id="emptyQueue" class="empty-queue" hidden><svg><use href="#i-inbox"/></svg><strong>No drafts found</strong><span>Try another filter or create a new draft.</span></div>
+    <div id="emptyQueue" class="empty-queue" hidden><svg><use href="#i-inbox"/></svg><strong>No matching tickets</strong><span>New messages will appear automatically.</span></div>
    </aside>
    <section class="detail" aria-label="Support draft editor">
     <div class="detail-head">
@@ -82,9 +84,9 @@
      <div class="content-width">
       <div class="eyebrow">CUSTOMER SUPPORT · AI ASSISTED</div>
       <div class="content-heading"><div><h2 id="editorTitle">New support draft</h2><p>AI investigates through Light Remote. Review and send only when ready.</p></div><span class="draft-status" id="draftStatus">New draft</span></div>
-      <div class="info-banner" id="outbound"><svg><use href="#i-shield"/></svg><span>Checking send permissions…</span></div>
+      <div class="info-banner" id="outbound"><svg><use href="#i-shield"/></svg><span>Checking send permissions…</span></div><div class="auto-sync-bar"><span class="net-dot"></span><strong>Libredesk ticket sync</strong><span id="syncStatus">Connecting…</span><button class="btn secondary" id="syncNow" type="button">Sync now</button></div>
       <details class="setup-panel" id="integrationPanel">
-        <summary><svg><use href="#i-settings"/></svg> Support channels &amp; incoming events <span id="integrationBadge">Not configured</span></summary>
+        <summary><svg><use href="#i-settings"/></svg> Integration settings &amp; event diagnostics <span id="integrationBadge">Not configured</span></summary>
         <div class="setup-content">
           <p>One Libredesk account, two brands. Create the real email inboxes using their own IMAP/SMTP authorization in Libredesk Admin. No passwords are collected by AI Support Gate.</p>
           <div class="setup-links">
@@ -93,21 +95,23 @@
           </div>
           <div class="setup-controls"><button type="button" class="btn primary" id="connectWebhook">Connect incoming events</button><button type="button" class="btn secondary" id="refreshEvents">Refresh event queue</button></div>
           <div class="setup-meta" id="inboundStatus">Checking event receiver…</div>
-          <div class="events-list" id="inboundEvents"></div>
+          <details class="technical-events"><summary>Technical event log (advanced)</summary><div class="events-list" id="inboundEvents"></div></details>
           <p class="help-text">Incoming events are signed and retained as metadata only. AI never sends email without Owner approval.</p>
         </div>
       </details>
-      <div class="section-title">Ticket details</div>
+      <div class="section-title">Selected ticket &amp; reply draft</div>
       <form id="draftForm" autocomplete="off">
        <div class="two">
         <label>Product <select id="brand"><option value="light-remote">Light Remote</option><option value="lightbi">LightBI</option></select></label>
         <label>Customer email <input id="recipient" type="email" placeholder="customer@example.com"></label>
        </div>
-       <label>Conversation ID <input id="conversation" spellcheck="false" placeholder="Libredesk conversation UUID"></label>
-       <div class="ticket-read-actions"><button class="btn secondary" type="button" id="loadTicket">Load ticket from Libredesk</button><span>Read-only · Light Remote Inbox 1</span></div>
-       <pre id="ticketPreview" class="ticket-preview" hidden></pre>
-       <label>Latest message ID <input id="latest" spellcheck="false" placeholder="Latest public message UUID"></label>
        <label>Subject <input id="subject" maxlength="240" placeholder="Support request subject"></label>
+       <div class="ticket-read-actions"><button class="btn secondary" type="button" id="loadTicket">Reload selected ticket</button><span>Auto-loaded from Libredesk · Read only</span></div>
+       <pre id="ticketPreview" class="ticket-preview" hidden></pre>
+       <details class="technical-events ticket-advanced"><summary>Advanced: conversation &amp; message IDs</summary>
+         <label>Conversation ID <input id="conversation" spellcheck="false" placeholder="Libredesk conversation UUID"></label>
+         <label>Latest message ID <input id="latest" spellcheck="false" placeholder="Latest public message UUID"></label>
+       </details>
        <div class="section-title reply-title"><svg><use href="#i-mail"/></svg> Proposed reply</div>
        <label class="textarea-label"><textarea id="message" rows="9" maxlength="20000" placeholder="Review and edit the AI-proposed response here."></textarea></label>
       </form>

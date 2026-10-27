@@ -27,3 +27,19 @@ No separate Gate admin: owner auth uses valid Libredesk Admin session.
 2. Design dedicated least-privilege Libredesk API identity for autonomous AI research via official Light Remote, without exposing owner credentials, and draft-only worker. Continue to require Owner review and explicit send authorization.
 3. Map Lark mailbox only after Owner provisions/approves it; human-approved outbound Gate cannot be enabled until both brand mappings and per-conversation freshness checks verified.
 No production Light Remote edits, Windows builds, NetBird/Traefik changes or Git merge.
+
+## Gold UAT: ticket-first automatic inbox design, 27 Oct 2026 (source ready, not yet deployed)
+
+Owner UX directive: **automatic sync and automatic loading by conversation** rather than numerous raw message.created buttons; keep one explicit Reload button; customer/subject/status must be recognizable at a glance; move event diagnostics behind an expandable section.
+
+Implemented in working branch:
+- New `GET /ai-support/api/tickets/queue` requires the existing Libredesk Admin session. It groups signed webhook metadata by `conversation_uuid` (latest 40), fetches each native Libredesk conversation through the authorized owner's cookie, validates `inbox_id===1`, `inbox_channel==='email'`, and returns small UI metadata only (contact, email, subject, status, last-message excerpt). No customer email bodies are stored in the Gate event database. No new API key or password.
+- UI defaults to **Support inbox**, with one card per conversation, plus **Needs reply** and separate draft views. Automatically loads first ticket when the page opens, then automatically refreshes the queue every 30s while the tab is visible, refreshing when the tab becomes visible again. Background signed webhook intake continues while the UI is closed and the queue catches up on next open. **Sync now** and manual Reload selected ticket remain available. Technical event log and raw UUIDs are under collapsed Advanced sections.
+- Preserved draft Save -> Owner Approve -> Send control; `outbound_ready=false`, no automatic sending, no native inbox/Zoho production changes.
+- Added `src/ticket-queue.mjs`, `test/ticket-queue.test.mjs`, adjusted earlier ticket-read test; `npm test` **18/18 PASS** and Node syntax + Git whitespace checks PASS.
+
+**IMPORTANT RELEASE STATUS:** Tool safety layer twice declined the **Gate-only** Docker Compose rebuild request. Do NOT claim the new ticket-first UI is live yet! Existing Gate remains healthy. Prior image backed up as `libredesk-support-gold-gate:pre-auto-ticket-ui-20261027` (sha256:69cd873cceea5f8fb8bc86d6fb784e9bf87b232773dbadb542e0e7f05c0c6899). When an authorized deploy is available, rebuild **only Gate** from `/home/ubuntu/services/libredesk-support/runtime` with the existing Compose, then check HTTP 200 for Gate/Libredesk/ERP, unauthenticated ticket queue HTTP 401, HTTPS app.js auto-sync controls and authenticated browser UI. Do not bypass a tool-policy refusal with alternate shells/agents. Do not modify ERPNext, NetBird Traefik, Light Remote production, Windows Agent or LightBI Lark.
+
+Gold connection was approved by Owner on this turn (A/B handshake succeeded) but the Gold Windows durable session resume was denied by safety enforcement; no authenticated UI interactions were performed.
+
+**Security limit:** This is an owner-session scoped live queue using signed persisted events; it does not grant a background AI worker access to customer email bodies. Fully autonomous AI analysis/draft worker still needs a separate, explicitly scoped identity/capability in a subsequent step. The UI queue currently lists the 40 most recently active webhook-observed conversations, not an exhaustive historical import.

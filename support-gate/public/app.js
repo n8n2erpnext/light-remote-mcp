@@ -1,5 +1,5 @@
 const $=id=>document.getElementById(id);
-let csrf='',current=null,canSend=false,drafts=[],filter='all',query='',toastTimer=0;
+let csrf='',current=null,canSend=false,drafts=[],tickets=[],filter='tickets',query='',toastTimer=0,selectedTicket=null,syncBusy=false,syncTimer=null;
 
 function icon(ref){return '<svg aria-hidden="true"><use href="#i-'+ref+'"></use></svg>'}
 function feedback(message){
@@ -63,9 +63,12 @@ function fill(item){
 }
 function render(){
  const target=$('drafts');target.replaceChildren();
- for(const key of ['all','draft','approved','sent']){
-  $('count-'+key).textContent=key==='all'?drafts.length:drafts.filter(d=>key==='draft'?['draft','needs_review','unknown'].includes(d.status):d.status===key).length;
+ $('count-tickets').textContent=tickets.length;
+ $('count-attention').textContent=tickets.filter(needsReply).length;
+ for(const key of ['draft','approved','sent']){
+  $('count-'+key).textContent=drafts.filter(d=>key==='draft'?['draft','needs_review','unknown'].includes(d.status):d.status===key).length;
  }
+ if(['tickets','attention'].includes(filter)){renderTicketCards(target);return}
  const visible=drafts.filter(d=>{
   if(filter==='draft'&&!['draft','needs_review','unknown'].includes(d.status))return false;
   if(filter==='approved'&&d.status!=='approved')return false;
@@ -90,7 +93,7 @@ function render(){
   const pill=document.createElement('span');pill.className='pill '+d.status;pill.textContent=label(d.status);
   footer.append(recipient,pill);
   button.append(top,subject,preview,footer);
-  button.addEventListener('click',()=>{fill(d);render()});
+  button.addEventListener('click',()=>{selectedTicket=null;fill(d);render()});
   target.append(button);
  }
 }
@@ -112,6 +115,8 @@ async function init(){
    :'UAT safe mode — Sending disabled until brand inboxes and Libredesk agent API are configured.';
   await refresh();
   await loadEvents().catch(()=>{});
+  await syncTickets(true);
+  if(!syncTimer)syncTimer=setInterval(()=>{if(document.visibilityState==='visible')void syncTickets(false)},30000);
  }catch(error){
   csrf='';canSend=false;
   $('login').hidden=false;$('workspace').hidden=true;
@@ -124,7 +129,7 @@ function setFilter(next){
   item.classList.toggle('active',active);
   if(active)item.setAttribute('aria-current','page');else item.removeAttribute('aria-current');
  }
- $('listTitle').textContent=({all:'All drafts',draft:'Needs review',approved:'Approved',sent:'Sent'})[next]||'Drafts';
+ $('listTitle').textContent=({tickets:'Support inbox',attention:'Needs reply',draft:'Needs review',approved:'Approved',sent:'Sent'})[next]||'Support inbox';
  render();
 }
 $('draftForm').addEventListener('submit',event=>event.preventDefault());
@@ -147,19 +152,24 @@ async function importTicket(conversation){
    ?ticket.history.slice().reverse().map(m=>m.type.toUpperCase()+': '+m.text).join('\n\n')
    :'No public messages in the latest 12-message window.';
   preview.hidden=false;
-  feedback('Ticket loaded, Inbox '+ticket.inbox_id+'. Prepare and review the reply; no email was sent.');
+  $('editorTitle').textContent=ticket.subject;
+  $('crumbMode').textContent='Light Remote · '+ticket.recipient;
+  $('draftStatus').textContent='Ready to draft';
+  feedback('Ticket loaded automatically. No email sent.');
  }catch(e){$('ticketPreview').hidden=true;feedback('Ticket not loaded: '+e.message)}
  finally{$('loadTicket').disabled=false}
 }
 $('loadTicket').addEventListener('click',()=>importTicket($('conversation').value.trim()));
 $('retryLogin').addEventListener('click',()=>init());
-$('refresh').addEventListener('click',()=>refresh().catch(e=>feedback(e.message)));
+$('refresh').addEventListener('click',()=>['tickets','attention'].includes(filter)?syncTickets(false):refresh().catch(e=>feedback(e.message)));
+$('syncNow').addEventListener('click',()=>syncTickets(false));
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&!$('workspace').hidden)void syncTickets(false)});
 $('search').addEventListener('input',event=>{query=event.target.value.trim();render()});
 document.querySelectorAll('[data-filter]').forEach(item=>
  item.addEventListener('click',()=>setFilter(item.dataset.filter)));
 $('newDraft').addEventListener('click',()=>{
  if($('workspace').hidden){feedback('Sign into Libredesk first.');return}
- fill(null);render();$('subject').focus();
+ selectedTicket=null;fill(null);setFilter('draft');$('subject').focus();
 });
 $('save').addEventListener('click',async()=>{
  try{
@@ -167,7 +177,7 @@ $('save').addEventListener('click',async()=>{
   const result=current?
     await api('/api/drafts/'+current.id,'PATCH',form):await api('/api/drafts','POST',form);
   const id=result.id||current.id;
-  current={id};await refresh();
+  current={id};selectedTicket=null;setFilter('draft');await refresh();
   feedback('Draft saved to Support Gate.');
  }catch(e){feedback('Save failed: '+e.message)}
 });
@@ -209,15 +219,6 @@ async function loadEvents(){
   label.textContent=event.event_type+(event.inbox_id?' · Inbox '+event.inbox_id:'');
   const date=document.createElement('time');date.textContent=new Date(event.received_at).toLocaleString('en-US');
   item.append(label,date);
-  if(event.conversation_uuid){
-   const open=document.createElement('button');open.type='button';open.className='event-import';
-   open.textContent='Load ticket';open.title='Read from native Libredesk, never send email';
-   open.addEventListener('click',()=>{
-    if(current){fill(null);render()}
-    void importTicket(event.conversation_uuid);
-   });
-   item.append(open);
-  }
   target.append(item);
  }
 }
@@ -230,3 +231,55 @@ $('connectWebhook').addEventListener('click',async()=>{
 });
 $('refreshEvents').addEventListener('click',()=>loadEvents().catch(e=>feedback(e.message)));
 void init();
+
+function needsReply(t){return ['contact','incoming'].includes(String(t.last_sender||'').toLowerCase())}
+function ticketStatus(t){return needsReply(t)?'Needs reply':(['agent','outgoing','system'].includes(t.last_sender)?'Replied':'Open')}
+function renderTicketCards(target){
+ const list=tickets.filter(t=>(filter!=='attention'||needsReply(t))&&
+  (!query||[t.subject,t.name,t.email,t.last_message,t.reference].some(v=>String(v||'').toLowerCase().includes(query.toLowerCase()))));
+ $('queueCount').textContent=list.length+' '+(list.length===1?'conversation':'conversations');
+ $('emptyQueue').hidden=list.length!==0;
+ for(const t of list){
+  const button=document.createElement('button');button.type='button';
+  button.className='draft ticket-item'+(selectedTicket===t.conversation_uuid?' active':'');
+  button.setAttribute('role','listitem');
+  button.setAttribute('aria-label',t.name+' — '+t.subject);
+  const top=document.createElement('div');top.className='draft-top';
+  const brand=document.createElement('span');brand.className='draft-brand';brand.textContent='Light Remote';
+  const time=document.createElement('span');time.className='draft-age';time.textContent=relativeDate(t.last_event_at||t.updated_at);
+  top.append(brand,time);
+  const person=document.createElement('strong');person.className='ticket-person';person.textContent=t.name;
+  const subject=document.createElement('span');subject.className='draft-subject';subject.textContent=t.subject;
+  const preview=document.createElement('span');preview.className='draft-preview';preview.textContent=t.last_message||'No preview available';
+  const footer=document.createElement('div');footer.className='draft-footer';
+  const email=document.createElement('span');email.textContent=t.email;
+  const state=document.createElement('span');state.className='pill '+(needsReply(t)?'needs_review':'sent');state.textContent=ticketStatus(t);
+  footer.append(email,state);
+  button.append(top,person,subject,preview,footer);
+  button.addEventListener('click',()=>void selectTicket(t.conversation_uuid));
+  target.append(button);
+ }
+}
+async function selectTicket(id){
+ selectedTicket=id;
+ fill(null);
+ render();
+ await importTicket(id);
+}
+async function syncTickets(initial=false){
+ if(syncBusy||$('workspace').hidden)return;
+ syncBusy=true;
+ $('syncStatus').textContent='Syncing…';
+ try{
+  const response=await api('/api/tickets/queue');
+  tickets=response.tickets||[];
+  const time=new Date(response.sync_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  $('syncStatus').textContent='Last synced '+time+' · Every 30 sec'+(response.unavailable?' · '+response.unavailable+' unavailable':'');
+  $('queueSync').textContent='Auto-sync on';
+  render();
+  if(initial&&tickets.length&&!current&&!selectedTicket)await selectTicket(tickets[0].conversation_uuid);
+ }catch(e){
+  $('syncStatus').textContent='Sync unavailable — retry';
+  $('queueSync').textContent='Retry available';
+ }finally{syncBusy=false}
+}
