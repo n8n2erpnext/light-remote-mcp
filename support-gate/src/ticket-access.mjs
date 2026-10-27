@@ -96,8 +96,22 @@ export async function deliverTicketCode(pool,id,inboxId,{secret,apiKey,apiSecret
   const conv=response.data||response;
   if(!get.ok||conv.uuid!==id||conv.inbox_channel!=='email'||Number(conv.inbox_id)!==Number(inboxId)||!conv.contact?.email)throw Error('code_recipient_verification_failed');
   const pass=ticketAccessCode(secret,id);
-  const message='<p>Your Support Center ticket access code is:</p><p><strong style="font-size:24px;letter-spacing:2px">'+pass+'</strong></p>'+
-    '<p>Use this code together with the private ticket link in the ticket confirmation email. The code is not a Light Remote account password. Do not forward either message. If you did not request support, disregard this email.</p>';
+  // This is the only automated acknowledgment: native Libredesk Rule 1 is disabled.
+  // Deliver URL and access code together through the verified original inbox.
+  const link='https://support.thaiduy.digital/ai-support/t/'+id;
+  const brand=Number(inboxId)===2?'LightBI':'Light Remote';
+  const reference=String(conv.reference_number||'').replace(/[^A-Za-z0-9_-]/g,'').slice(0,32);
+  const ticketName=reference?'ticket #'+reference:'your support ticket';
+  const message='<p>Hello,</p>'+
+    '<p>We have received '+ticketName+' for '+brand+' Support.</p>'+
+    '<p><strong>Open your private ticket:</strong></p>'+
+    '<p><a href="'+link+'" style="display:inline-block;padding:12px 18px;background-color:#24588c;color:#fff;text-decoration:none;border-radius:6px;font-weight:bold">View ticket</a></p>'+
+    '<p>If the button does not work, copy this link:<br><a href="'+link+'">'+link+'</a></p>'+
+    '<p><strong>Your ticket access code:</strong></p>'+
+    '<p><strong style="font-size:24px;letter-spacing:2px">'+pass+'</strong></p>'+
+    '<p>Enter this code after opening the link. No account or password is required. You may respond on the ticket page or reply directly to this email.</p>'+
+    '<p>Keep this email private. The ticket remains accessible while active and the link expires 14 days after it is Closed.</p>'+
+    '<p>Kind regards,<br>'+brand+' Support</p>';
   sendAttempted=true;
   const sent=await fetchImpl('http://app:9000/api/v1/conversations/'+id+'/messages',{
    method:'POST',headers:{...head,'content-type':'application/json'},

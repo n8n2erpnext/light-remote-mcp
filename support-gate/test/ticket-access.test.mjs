@@ -54,7 +54,7 @@ test('code delivery verifies original native contact and only sends one email',a
  },release(){}};
  const pool={connect:async()=>client,query:async(sql)=>({rowCount:1})};
  const fetchImpl=async(url,options)=>{
-  if(options.method==='POST'){sends++;const msg=JSON.parse(options.body).message;assert.match(msg,/ticket access code/);assert.match(msg,new RegExp(ticketAccessCode(secret,id)));assert.equal(JSON.parse(options.body).private,false);assert.equal(JSON.parse(options.body).sender_type,'agent');assert.equal(JSON.parse(options.body).send_from,'support@thaiduy.digital');assert.deepEqual(JSON.parse(options.body).to,['owner@example.test']);
+  if(options.method==='POST'){sends++;const msg=JSON.parse(options.body).message;assert.match(msg,/ticket access code/);assert.match(msg,new RegExp(ticketAccessCode(secret,id)));assert.match(msg,new RegExp('https://support\\.thaiduy\\.digital/ai-support/t/'+id));assert.match(msg,/View ticket/);assert.equal(JSON.parse(options.body).private,false);assert.equal(JSON.parse(options.body).sender_type,'agent');assert.equal(JSON.parse(options.body).send_from,'support@thaiduy.digital');assert.deepEqual(JSON.parse(options.body).to,['owner@example.test']);
    return {ok:true,json:async()=>({data:{uuid:'ad64143e-308f-403b-afc8-b08fb80cc7b2'}})};}
   return {ok:true,json:async()=>({data:{uuid:id,inbox_channel:'email',inbox_id:1,contact:{email:'owner@example.test'}}})};
  };
