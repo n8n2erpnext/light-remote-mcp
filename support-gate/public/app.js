@@ -1,6 +1,6 @@
 const $=id=>document.getElementById(id);
 let csrf='',current=null,canSend=false,aiConnected=false,drafts=[],tickets=[],filter='tickets',query='',toastTimer=0,selectedTicket=null,selectedTicketEvent=null,ticketDirty=false,syncBusy=false,syncTimer=null,manualPending=null;
-let alertReady=false,seenTicketIds=new Set();
+let alertReady=false,seenTicketIds=new Set(),seenTicketEvents=new Map();
 
 function icon(ref){return '<svg aria-hidden="true"><use href="#i-'+ref+'"></use></svg>'}
 function feedback(message){
@@ -362,13 +362,24 @@ async function syncTickets(initial=false){
   const response=await api('/api/tickets/queue');
   tickets=response.tickets||[];
   const additions=tickets.filter(t=>!seenTicketIds.has(t.conversation_uuid));
-  for(const ticket of tickets)seenTicketIds.add(ticket.conversation_uuid);
+  const newReplies=tickets.filter(t=>seenTicketEvents.has(t.conversation_uuid)&&
+   seenTicketEvents.get(t.conversation_uuid)!==t.last_event_at&&t.last_sender==='contact');
+  for(const ticket of tickets){seenTicketIds.add(ticket.conversation_uuid);seenTicketEvents.set(ticket.conversation_uuid,ticket.last_event_at)}
   if(alertReady&&additions.length){
    feedback(additions.length+' new support ticket'+(additions.length>1?'s':'')+' received.');
    document.title='('+additions.length+' new) AI Support · Light Remote';
    if(typeof Notification!=='undefined'&&Notification.permission==='granted'){
     for(const ticket of additions.slice(0,3)){
      const notice=new Notification((ticket.brand==='lightbi'?'LightBI':'Light Remote')+' · New ticket',{body:ticket.subject||'New support request',tag:'support-'+ticket.conversation_uuid});
+     notice.onclick=()=>{window.focus();void selectTicket(ticket.conversation_uuid);notice.close()};
+    }
+   }
+  }
+  if(alertReady&&newReplies.length){
+   feedback(newReplies.length+' support conversation'+(newReplies.length>1?'s':'')+' received customer replies.');
+   if(typeof Notification!=='undefined'&&Notification.permission==='granted'){
+    for(const ticket of newReplies.slice(0,3)){
+     const notice=new Notification((ticket.brand==='lightbi'?'LightBI':'Light Remote')+' · Customer replied',{body:ticket.subject||'New reply received',tag:'reply-'+ticket.conversation_uuid});
      notice.onclick=()=>{window.focus();void selectTicket(ticket.conversation_uuid);notice.close()};
     }
    }

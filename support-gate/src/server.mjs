@@ -10,12 +10,14 @@ import {configuredRemoteInbox,verifiedTicket} from './ticket-read.mjs';
 import {ticketSummary,buildQueue} from './ticket-queue.mjs';
 import {parseReply,htmlFromPlainText,rawNativeCsrf,lastPublicMessage} from './owner-reply.mjs';
 import {aiProviderReady,requestAIDraft} from './ai-draft.mjs';
-import {createTicketReader,renderPublicTicket,publicHeaders} from './public-ticket.mjs';
+import {createTicketReader,renderPublicTicket,publicHeaders,getPublicTicket} from './public-ticket.mjs';
+import {issueReplyForm,validatePublicForm,readPublicForm,allowPublicOrigin,submitPublicReply} from './public-reply.mjs';
 
 const {GATE_PG_URL,GATE_ADMIN_SALT,GATE_ADMIN_HASH,LIBREDESK_BASE_URL,
  LIBREDESK_API_KEY,LIBREDESK_API_SECRET,GATE_OWNER_EMAIL,GATE_WORKER_TOKEN_HASH,
  LIBREDESK_REMOTE_INBOX_ID,LIBREDESK_LIGHTBI_INBOX_ID,GATE_WEBHOOK_SECRET,
- GATE_AI_DRAFTER_URL,GATE_AI_DRAFTER_TOKEN}=process.env;
+ GATE_AI_DRAFTER_URL,GATE_AI_DRAFTER_TOKEN,GATE_PUBLIC_REPLY_SECRET}=process.env;
+if(!GATE_PUBLIC_REPLY_SECRET||GATE_PUBLIC_REPLY_SECRET.length<40)throw Error('public_ticket_reply_secret_missing');
 if(!GATE_PG_URL||!GATE_ADMIN_SALT||!GATE_ADMIN_HASH)throw Error('support_gate_config_missing');
 const pool=new pg.Pool({connectionString:GATE_PG_URL,max:6,connectionTimeoutMillis:6000});
 const publicTicketBridge=createTicketReader(GATE_PG_URL,pg.Pool);
@@ -79,10 +81,15 @@ async function log(id,action,details={}){
  [id,action,JSON.stringify(details)]);
 }
 async function setup(){
+ await pool.query("CREATE TABLE IF NOT EXISTS support_gate_public_web_replies ("+
+  "request_id uuid PRIMARY KEY,conversation_uuid uuid NOT NULL,status text NOT NULL " +
+  "CHECK(status IN ('processing','saved','uncertain')),message_uuid uuid,"+
+  "created_at timestamptz NOT NULL DEFAULT now())");
+ await pool.query("CREATE INDEX IF NOT EXISTS public_web_reply_rate_idx ON support_gate_public_web_replies(conversation_uuid,created_at)");
  await pool.query("CREATE TABLE IF NOT EXISTS support_gate_public_ticket_access ("+
   "conversation_uuid uuid PRIMARY KEY,inbox_id integer NOT NULL CHECK(inbox_id IN (1,2)),"+
   "created_at timestamptz NOT NULL DEFAULT now(),"+
-  "expires_at timestamptz NOT NULL DEFAULT (now()+interval '60 days'),revoked_at timestamptz)");
+  "expires_at timestamptz,revoked_at timestamptz)");
  await pool.query("CREATE TABLE IF NOT EXISTS support_gate_drafts ("+
  "id uuid PRIMARY KEY,brand text NOT NULL CHECK(brand IN ('light-remote','lightbi')),"+
  "conversation_uuid uuid NOT NULL,recipient text NOT NULL,subject text NOT NULL,message text NOT NULL,"+
@@ -375,9 +382,30 @@ async function receiveWebhook(req,res){
 async function handler(req,res){
  const path=new URL(req.url,'http://localhost').pathname,method=req.method;
  const publicMatch=path.match(/^\/t\/([a-f0-9-]{36})$/i);
- if(method==='GET'&&publicMatch&&uuid.test(publicMatch[1])){
-  const page=await renderPublicTicket(pool,publicTicketBridge,publicMatch[1]);
-  res.writeHead(page?200:404,publicHeaders());return res.end(page||'Ticket link unavailable or expired');
+ if(publicMatch&&uuid.test(publicMatch[1])){
+  const ticketId=publicMatch[1];
+  if(method==='GET'){
+   const note=new URL(req.url,'http://localhost').searchParams.get('sent');
+   const page=await renderPublicTicket(pool,publicTicketBridge,ticketId,{
+    issueForm:id=>issueReplyForm(GATE_PUBLIC_REPLY_SECRET,id),
+    notice:note==='1'?'sent':''});
+   res.writeHead(page?200:404,publicHeaders());return res.end(page||'Ticket link unavailable or expired');
+  }
+  if(method==='POST'){
+   if(!allowPublicOrigin(req.headers))return fail(res,403,'same_origin_required');
+   const ticket=await getPublicTicket(pool,publicTicketBridge,ticketId);
+   if(!ticket)return fail(res,404,'ticket_expired_or_unavailable');
+   if(Number(ticket.status_id)===4)return fail(res,409,'closed_ticket_read_only');
+   let input;
+   try{input=validatePublicForm(GATE_PUBLIC_REPLY_SECRET,ticketId,await readPublicForm(req))}
+   catch{return fail(res,400,'invalid_or_expired_form_reload_ticket')}
+   try{await submitPublicReply(pool,publicTicketBridge,ticket,input)}
+   catch(e){const code=String(e.message);
+    return fail(res,code==='reply_rate_limited'?429:code==='duplicate_request'?409:502,
+     code==='reply_rate_limited'?'reply_rate_limited':code==='duplicate_request'?'duplicate_request':'reply_not_confirmed_refresh_ticket');}
+   res.writeHead(303,{'location':'/ai-support/t/'+ticketId+'?sent=1','cache-control':'no-store','referrer-policy':'no-referrer'});
+   return res.end();
+  }
  }
  if(path==='/'&&String(req.headers.host||'').endsWith(':9088')){
   res.writeHead(302,{location:'https://support.thaiduy.digital/ai-support/','cache-control':'no-store'});

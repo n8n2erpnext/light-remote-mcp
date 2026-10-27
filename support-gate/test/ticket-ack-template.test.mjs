@@ -12,8 +12,8 @@ test('customer confirmation explicitly links to unauthenticated read-only ticket
 });
 test('HTML block elements separate the URL from following words',()=>{
  assert.equal((html.match(/<a href=/g)||[]).length,2);
- assert.equal((html.match(/<p>/g)||[]).length,8);
- assert.match(html,/<\/a><\/p>\s*<p>You can reply/);
- assert.match(html,/<\/a><\/p>\s*<p>You can reply/);
+ assert.equal((html.match(/<p>/g)||[]).length,9);
+ assert.match(html,/<\/a><\/p>\s*<p>You can check/);
+ assert.match(html,/<\/a><\/p>\s*<p>You can check/);
  assert.match(html,/copy this complete link into your browser/);
 });
