@@ -350,6 +350,11 @@ export function registerSupportBackoffice(app,{outbox=new SupportOutbox()}={}){
 
   app.post('/support/api',async(req,res)=>{
     res.set('Cache-Control','no-store');
+    // Gold Distribution cutover: old Helpdesk is retired. Never silently
+    // deliver new Gold support requests to the legacy ERPNext outbox.
+    if(process.env.LIGHT_REMOTE_GOLD_DEMO==='1'){
+      return res.status(410).json({ok:false,error:'legacy_helpdesk_retired',supportEmail:'support@thaiduy.digital',supportPage:'/support'});
+    }
     if(!sameOriginMutation(req))return res.status(403).json({ok:false,error:'cross_site_request_denied'});
     try{
       const identity=await accountIdentity(req);

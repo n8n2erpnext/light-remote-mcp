@@ -17,13 +17,14 @@ need(source.includes("ELIGIBLE_PLANS=new Set(['pro','vip'])")&&source.includes("
 need(source.includes('redactRestrictedText')&&source.includes('support_contains_sensitive_material'),'secret-redaction-gate');
 need(source.includes('x-light-account-session')&&source.includes("'/v1/accounts/me'"),'server-side-account-plan');
 need(source.includes('SupportOutbox')&&source.includes('nextAttemptAt')&&source.includes('backoffMs'),'durable-retry-outbox');
-need(page.includes('Open a private support case')&&page.includes('/support/api?action=eligibility')&&page.includes('Private case submission is available on PRO/VIP')&&page.includes('Open case in Support Portal')&&page.includes('https://support.thaiduy.digital/'),'support-form-ui');
+need(page.includes('Light Remote Support Center')&&page.includes('mailto:support@thaiduy.digital')&&page.includes('14 days')&&page.includes('window.location.href=url')&&!page.includes('/support/api')&&!page.includes('Helpdesk case'),'new-libredesk-mailbox-intake-ui');
+need(source.includes('legacy_helpdesk_retired')&&source.includes("LIGHT_REMOTE_GOLD_DEMO==='1'"),'gold-retired-legacy-erpnext-route');
 const renderedPage=renderSupportPage({origin:'https://light-remote.example.test',version:'test'});
 const inlineStart=renderedPage.lastIndexOf('<script>'),inlineEnd=renderedPage.indexOf('</script>',inlineStart);
 assert.ok(inlineStart>=0&&inlineEnd>inlineStart,'support inline script missing');
 new vm.Script(renderedPage.slice(inlineStart+8,inlineEnd),{filename:'rendered-support-inline.js'});
 console.log('support-inline-js-syntax=PASS');
-need(server.includes("registerSupportBackoffice(app)"),'support-route-registration');
+need(server.includes("registerSupportBackoffice(app,{outbox:supportOutbox})"),'support-route-registration');
 need(server.includes("invalid_json")&&server.includes("request_too_large"),'safe-http-parse-errors');
 
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'lr-support-outbox-'));

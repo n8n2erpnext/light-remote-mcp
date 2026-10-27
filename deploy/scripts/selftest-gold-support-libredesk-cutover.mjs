@@ -1,0 +1,20 @@
+import assert from 'node:assert/strict';
+import vm from 'node:vm';
+import {readFileSync} from 'node:fs';
+import {renderSupportPage} from '../../plugin-server/support-page.mjs';
+const html=renderSupportPage({origin:'https://gold.light-remote.thaiduy.digital',version:'test-gold'});
+const backend=readFileSync(new URL('../../plugin-server/support-backoffice.mjs',import.meta.url),'utf8');
+const tag=html.lastIndexOf('<script>'),close=html.indexOf('</script>',tag);
+assert.ok(tag>0&&close>tag);
+new vm.Script(html.slice(tag+8,close));
+for(const phrase of ['Light Remote Support Center','support@thaiduy.digital','Create / track ticket','EVERYONE · NO ACCOUNT','Open email app','Copy support request','14 days','Open / Snoozed / Resolved / Closed','supportCaseForm','Copy support template'])
+ assert.ok(html.includes(phrase),'missing '+phrase);
+assert.ok(!html.includes('/support/api'),'no legacy helpdesk calls from new site');
+assert.ok(!html.includes('Helpdesk case'),'no stale helpdesk ticket link');
+assert.ok(!html.includes('Private case submission is available on PRO/VIP'),'no paid account gate');
+assert.ok(!html.includes('https://support.thaiduy.digital/" target='),'customer must not be sent to staff-only login');
+assert.ok(html.includes('mailto:support@thaiduy.digital'),'mailbox email is the intake');
+assert.ok(html.includes('Your email app should open. Click Send there'),'no false server-send confirmation');
+assert.ok(html.includes('encodeURIComponent(message.subject)')&&html.includes('encodeURIComponent(message.body)'),'safe mailto payload encoding');
+assert.ok(backend.includes('legacy_helpdesk_retired')&&backend.includes("LIGHT_REMOTE_GOLD_DEMO==='1'"),'old Gold ERPNext mutation guarded');
+console.log('GOLD_DISTRIBUTION_LIBREDESK_INTAKE=PASS');

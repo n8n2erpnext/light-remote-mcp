@@ -16,14 +16,14 @@ export function renderSupportPage({origin,version}){
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Light Remote Support Center</title>
-  <meta name="description" content="Install, connect, approve and troubleshoot Light Remote devices, Local Wall A/B approval, Real Remote, accounts, plans and updates.">
+  <meta name="description" content="Light Remote Support: troubleshooting guides and email ticket creation with a private no-login follow-up link.">
   <meta name="robots" content="index,follow,max-image-preview:large">
   <meta name="theme-color" content="#080a0c">
   <link rel="canonical" href="${canonical}">
   <link rel="icon" href="/account/assets/light-remote.ico" sizes="any">
   <meta property="og:type" content="website"><meta property="og:site_name" content="Light Remote">
   <meta property="og:title" content="Light Remote Support Center">
-  <meta property="og:description" content="Guides and troubleshooting for Light Remote devices, approval, Real Remote, accounts and updates.">
+  <meta property="og:description" content="Open Light Remote support tickets by email and track them without signing in.">
   <meta property="og:url" content="${canonical}">
   <meta name="twitter:card" content="summary">
   <script type="application/ld+json">${faqJson}</script>
@@ -79,7 +79,7 @@ export function renderSupportPage({origin,version}){
       <a class="quick-card" href="#real-remote"><span class="support-topic-icon"><img src="/assets/icons/material/computer.svg" alt=""></span><div><strong>Real Remote</strong><span>Screen works but mouse, keyboard, or permissions do not.</span></div></a>
       <a class="quick-card" href="#account-plans"><span class="support-topic-icon"><img src="/assets/icons/material/person.svg" alt=""></span><div><strong>Account & plans</strong><span>Login, password, quota, PRO, VIP and Fleet.</span></div></a>
       <a class="quick-card" href="#updates"><span class="support-topic-icon"><img src="/assets/icons/material/refresh.svg" alt=""></span><div><strong>Update problems</strong><span>Compatibility, prerelease warnings and recovery.</span></div></a>
-      <a class="quick-card" href="#diagnostics"><span class="support-topic-icon"><img src="/assets/icons/material/support_agent.svg" alt=""></span><div><strong>Need human help</strong><span>Copy a safe support template and contact us.</span></div></a>
+      <a class="quick-card" href="#contact-support"><span class="support-topic-icon"><img src="/assets/icons/material/support_agent.svg" alt=""></span><div><strong>Open a support ticket</strong><span>Email our Support Center. Track your ticket from a private link, no account needed.</span></div></a>
     </section>
 
     <div class="support-layout">
@@ -92,7 +92,7 @@ export function renderSupportPage({origin,version}){
         <a href="#troubleshooting">Troubleshooting</a>
         <a href="#updates">Updates</a>
         <a href="#faq">FAQ</a>
-        <a href="#diagnostics">Diagnostics & contact</a>
+        <a href="#diagnostics">Diagnostics</a><a href="#contact-support">Create / track ticket</a>
       </aside>
       <div class="support-content">
         <div id="noResults" class="no-results">No matching support section. Try a shorter symptom or copy the support template below.</div>
@@ -170,24 +170,23 @@ export function renderSupportPage({origin,version}){
             <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
               <button id="copyDiag" class="btn primary" type="button"><img src="/assets/icons/material/content_copy.svg" alt="">Copy support template</button>
               <a class="btn" href="/account"><img src="/assets/icons/material/settings.svg" alt="">Open account</a>
-              <a class="btn" href="https://support.thaiduy.digital/" target="_blank" rel="noopener"><img src="/assets/icons/material/support_agent.svg" alt="">Support Portal</a>
+              <a class="btn" href="#contact-support"><img src="/assets/icons/material/support_agent.svg" alt="">Create / track ticket</a>
             </div>
           </div>
-          <div class="case-panel" id="casePanel">
-            <div class="case-head"><div><h3>Open a private support case</h3><p>Available to signed-in PRO and VIP accounts. The account email and plan are verified server-side; ERPNext delivery runs asynchronously through a durable outbox.</p></div><span id="caseBadge" class="case-badge">Checking account…</span></div>
-            <div id="caseGate" class="case-gate">Checking your Light Remote account…</div>
-            <form id="supportCaseForm" class="case-form hide">
+          <div class="case-panel" id="contact-support">
+            <div class="case-head"><div><h3>Light Remote Support Center</h3><p>Create your ticket by sending an email. LibreDesk sends a receipt with a private link where you can read status and reply directly without signing in.</p></div><span class="case-badge">EVERYONE · NO ACCOUNT</span></div>
+            <div class="callout"><strong>One conversation, two reply options.</strong> Once your message is sent, check your inbox for the automatic ticket acknowledgment. Open its private link to follow Open / Snoozed / Resolved / Closed, reply on the ticket page, or reply to the email. Links expire 14 days after a ticket is Closed.</div>
+            <form id="supportCaseForm" class="case-form">
               <label>Problem area<select name="problemArea"><option value="install">Install</option><option value="approval">A/B approval</option><option value="remote">Real Remote</option><option value="account">Account</option><option value="update">Update</option><option value="billing">Billing</option><option value="security">Security</option><option value="other" selected>Other</option></select></label>
               <label>Device status<select name="deviceStatus"><option value="unknown" selected>Unknown</option><option value="online">Online</option><option value="offline">Offline</option></select></label>
-              <label class="wide">Subject<input name="subject" maxlength="240" required placeholder="Short description of the issue"></label>
-              <label class="wide">What happened?<textarea name="description" maxlength="12000" required placeholder="Describe the symptom and what you were trying to do."></textarea></label>
-              <label>Target device OS / arch<input name="targetOsArch" maxlength="160" placeholder="e.g. Windows 11 x64"></label>
-              <label>Target client / Core version<input name="targetVersion" maxlength="120" placeholder="e.g. rc.34"></label>
-              <label class="wide">Exact sanitized error<textarea name="sanitizedError" maxlength="4000" placeholder="Paste only sanitized error text. Secret-like material is rejected server-side."></textarea></label>
-              <label class="wide">Steps immediately before failure<textarea name="steps" maxlength="6000"></textarea></label>
-              <label class="wide">Expected result<textarea name="expected" maxlength="3000"></textarea></label>
-              <div class="case-actions"><button id="submitCase" class="btn primary" type="submit"><img src="/assets/icons/material/support_agent.svg" alt="">Submit support case</button><span id="caseMsg" class="case-msg"></span></div>
+              <label class="wide">Subject<input name="subject" maxlength="180" required placeholder="Short description of the issue"></label>
+              <label class="wide">What happened?<textarea name="description" maxlength="3000" required placeholder="Describe the problem and what you tried. Never paste credentials."></textarea></label>
+              <label>Target device OS / architecture<input name="targetOsArch" maxlength="120" placeholder="e.g. Windows 11 x64"></label>
+              <label>Client / Core version<input name="targetVersion" maxlength="100" placeholder="e.g. rc.48"></label>
+              <label class="wide">Sanitized error (optional)<textarea name="sanitizedError" maxlength="1200" placeholder="Remove passwords, tokens and private data."></textarea></label>
+              <div class="case-actions"><button id="submitCase" class="btn primary" type="submit"><img src="/assets/icons/material/support_agent.svg" alt="">Open email app</button><button id="copyCase" class="btn" type="button">Copy support request</button><a class="btn" href="mailto:support@thaiduy.digital">Email support directly</a><span id="caseMsg" class="case-msg" role="status" aria-live="polite"></span></div>
             </form>
+            <p style="margin:14px 0 0;color:#8d99a6;font-size:12px">Sending is completed in your own mail app, not on this website. If no mail app opens, copy the support request and email it to <a href="mailto:support@thaiduy.digital">support@thaiduy.digital</a>. The private ticket URL is emailed only after LibreDesk receives your message. Do not share that link.</p>
           </div>
           <div class="danger callout"><strong>Redact before sending.</strong> Never include passwords, OTP/MFA codes, bearer/API tokens, cookies, private keys, A/B continuation data, device secrets, or screenshots containing sensitive credentials.</div>
           <div class="contact-grid">
@@ -252,72 +251,51 @@ export function renderSupportPage({origin,version}){
     });
 
     const caseForm=document.getElementById('supportCaseForm');
-    const caseGate=document.getElementById('caseGate');
-    const caseBadge=document.getElementById('caseBadge');
     const caseMsg=document.getElementById('caseMsg');
     const submitCase=document.getElementById('submitCase');
-    const showGate=(text,html='')=>{if(caseGate){if(html)caseGate.innerHTML=html;else caseGate.textContent=text;}};
-    const checkEligibility=async()=>{
-      try{
-        const r=await fetch('/support/api?action=eligibility',{cache:'no-store'}),j=await r.json();
-        if(!r.ok)throw new Error(j.error||'support_unavailable');
-        if(!j.signedIn){caseBadge.textContent='SIGN IN';showGate('', 'Sign in to your Light Remote account to check case eligibility. <a href="/account/login?next=%2Fsupport%23diagnostics">Sign in →</a>');return;}
-        caseBadge.textContent=String(j.account?.plan||'free').toUpperCase();
-        if(!j.eligible){showGate('', 'Free accounts can use all self-help guidance on this page. Private case submission is available on PRO/VIP. <a href="/account/billing">View plan options →</a>');return;}
-        showGate('Signed in as '+String(j.account?.email||'')+'. Your case is queued locally first, then delivered to the back office asynchronously.');
-        caseForm?.classList.remove('hide');
-      }catch(e){caseBadge.textContent='UNAVAILABLE';showGate('Account support status is temporarily unavailable. Self-help guidance remains available.');}
+    const copyCase=document.getElementById('copyCase');
+    const supportAddress='support@thaiduy.digital';
+    const buildSupportEmail=()=>{
+      if(!caseForm?.reportValidity())return null;
+      const f=new FormData(caseForm);
+      const subject='[Light Remote Support] '+String(f.get('subject')||'').trim();
+      const details=[
+        'Hello Light Remote Support,','',
+        String(f.get('description')||'').trim(),'',
+        'Problem area: '+String(f.get('problemArea')||'other'),
+        'Device status: '+String(f.get('deviceStatus')||'unknown'),
+        'Target OS / architecture: '+String(f.get('targetOsArch')||'').trim(),
+        'Client / Core version: '+String(f.get('targetVersion')||'').trim(),
+        'Sanitized error: '+String(f.get('sanitizedError')||'').trim(),'',
+        'Please send the ticket acknowledgment and private follow-up link to my sending email address.',
+        'I understand that replies can be sent through the ticket link or by email.',
+        'Do not include passwords, tokens, cookies or A/B continuation data.'
+      ].join('\\n');
+      return {subject,body:details};
     };
-    const pollCase=async eventId=>{
-      let delivered=false;
-      for(let i=0;i<20;i++){
-        await new Promise(r=>setTimeout(r,1500));
-        try{
-          const r=await fetch('/support/api?action=status&eventId='+encodeURIComponent(eventId),{cache:'no-store'}),j=await r.json();
-          if(!r.ok)continue;
-          const event=j.event||{};
-          if(event.resultName){
-            caseMsg.className='case-msg ok';
-            caseMsg.textContent='Helpdesk case '+event.resultName+' created · ';
-            const portalLink=document.createElement('a');
-            portalLink.href='https://support.thaiduy.digital/helpdesk/my-tickets/'+encodeURIComponent(event.resultName);
-            portalLink.textContent='Open case in Support Portal →';
-            portalLink.rel='noopener';
-            caseMsg.appendChild(portalLink);
-            return;
-          }
-          if(event.status==='sent'){
-            delivered=true;
-            caseMsg.className='case-msg ok';
-            caseMsg.textContent='Delivered to Support Center · creating your Helpdesk case…';
-          }
-          if(event.lastError==='backoffice_processing_failed'){
-            caseMsg.className='case-msg';
-            caseMsg.textContent='Case received · Helpdesk processing is retrying automatically.';
-          }
-        }catch{}
-      }
+    caseForm?.addEventListener('submit',event=>{
+      event.preventDefault();
+      const message=buildSupportEmail();
+      if(!message)return;
+      const url='mailto:'+supportAddress+'?subject='+encodeURIComponent(message.subject)+'&body='+encodeURIComponent(message.body);
+      if(url.length>7500){caseMsg.className='case-msg error';caseMsg.textContent='Request is too long for a mail app. Shorten the description or email support directly.';return;}
       caseMsg.className='case-msg ok';
-      caseMsg.textContent=delivered
-        ?'Delivered to Support Center · Helpdesk case creation continues in the background · '+eventId
-        :'Queued safely · '+eventId+' · delivery will retry automatically.';
-    };
-    caseForm?.addEventListener('submit',async ev=>{
-      ev.preventDefault();
-      submitCase.disabled=true;caseMsg.className='case-msg';caseMsg.textContent='Queueing case…';
-      const f=new FormData(caseForm),payload=Object.fromEntries(f.entries());
-      payload.browserPlatform=safePlatform();payload.browserUserAgent=navigator.userAgent;
-      try{
-        const r=await fetch('/support/api',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)}),j=await r.json();
-        if(!r.ok)throw new Error(j.error||'support_submit_failed');
-        const eventId=String(j.event?.eventId||'');
-        caseMsg.className='case-msg ok';caseMsg.textContent='Queued safely · '+eventId;
-        caseForm.reset();
-        if(eventId)void pollCase(eventId);
-      }catch(e){caseMsg.className='case-msg error';caseMsg.textContent=e.message==='support_contains_sensitive_material'?'Remove secret-like material before submitting.':e.message;}
-      finally{submitCase.disabled=false;}
+      caseMsg.textContent='Your email app should open. Click Send there to create the ticket; then check your inbox for the private ticket link.';
+      window.location.href=url;
     });
-    void checkEligibility();
+    copyCase?.addEventListener('click',async()=>{
+      const message=buildSupportEmail();
+      if(!message)return;
+      const composed='To: '+supportAddress+'\\nSubject: '+message.subject+'\\n\\n'+message.body;
+      try{
+        await navigator.clipboard.writeText(composed);
+        caseMsg.className='case-msg ok';
+        caseMsg.textContent='Support request copied. Email it to '+supportAddress+' to create the ticket.';
+      }catch{
+        caseMsg.className='case-msg error';
+        caseMsg.textContent='Clipboard access is blocked. Open your mail app and copy the form details.';
+      }
+    });
   })();
   </script>
 </body></html>`;
