@@ -158,9 +158,11 @@ async function connectWebhook(req,res){
  const rawCookie=String(req.headers.cookie||'');
  const s=sessionCookie(rawCookie);
  const match=rawCookie.split(';').map(x=>x.trim()).find(x=>x.startsWith('csrf_token='));
- const csrf=match?decodeURIComponent(match.slice('csrf_token='.length)):'';
+ // Libredesk compares the literal CSRF cookie value to X-CSRFTOKEN.
+ // Decoding this value would mismatch any percent-encoded characters.
+ const csrf=match?match.slice('csrf_token='.length):'';
  if(!s||!csrf||csrf.length>512)return fail(res,403,'libredesk_session_or_csrf_missing');
- const headers={cookie:'libredesk_session='+s+'; csrf_token='+encodeURIComponent(csrf),
+ const headers={cookie:'libredesk_session='+s+'; csrf_token='+csrf,
   'x-csrftoken':csrf,'content-type':'application/json'};
  const url='http://app:9000/api/v1/webhooks';
  const ctrl=new AbortController();const timer=setTimeout(()=>ctrl.abort(),8000);
