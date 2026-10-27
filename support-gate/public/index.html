@@ -83,7 +83,21 @@
     <div class="detail-scroll">
      <div class="content-width">
       <div class="eyebrow">CUSTOMER SUPPORT · AI ASSISTED</div>
-      <div class="content-heading"><div><h2 id="editorTitle">New support draft</h2><p>AI investigates through Light Remote. Review and send only when ready.</p></div><span class="draft-status" id="draftStatus">New draft</span></div>
+      <div class="content-heading"><div><h2 id="editorTitle">New support draft</h2><p>Read your customer conversations and reply from this inbox.</p></div><span class="draft-status" id="draftStatus">New draft</span></div>
+      <div class="section-title">Ticket</div>
+      <form id="draftForm" autocomplete="off">
+       <section class="thread-panel" id="threadPanel" hidden><div class="thread-heading"><strong>Conversation</strong><span id="threadMeta">Live from Libredesk</span></div><div id="threadMessages" class="thread-messages"></div></section>
+       <div class="section-title reply-title"><svg><use href="#i-mail"/></svg> Reply</div>
+       <label class="textarea-label"><textarea id="message" rows="7" maxlength="10000" placeholder="Write your reply, or ask AI to prepare one…"></textarea></label>
+       <div class="compose-tools"><button type="button" class="btn secondary" id="aiDraft" disabled>AI Draft</button><span id="aiStatus">AI worker connection pending</span></div>
+      </form>
+      <p class="help-text" id="hint">Save a draft and approve it before sending.</p>
+      <div class="action-bar">
+       <button type="button" class="btn secondary" id="save">Save draft</button><button type="button" class="btn strong" id="sendManual" disabled>Send reply</button>
+       <button type="button" class="btn primary" id="approve">Approve draft</button>
+       <button type="button" class="btn strong" id="send" disabled><svg><use href="#i-send"/></svg> Send reply</button>
+      </div>
+      <details class="advanced-panel" id="advancedPanel"><summary>Advanced · Sync &amp; integration settings</summary><div class="advanced-body">
       <div class="info-banner" id="outbound"><svg><use href="#i-shield"/></svg><span>Checking send permissions…</span></div><div class="auto-sync-bar"><span class="net-dot"></span><strong>Libredesk ticket sync</strong><span id="syncStatus">Connecting…</span><button class="btn secondary" id="syncNow" type="button">Sync now</button></div>
       <details class="setup-panel" id="integrationPanel">
         <summary><svg><use href="#i-settings"/></svg> Integration settings &amp; event diagnostics <span id="integrationBadge">Not configured</span></summary>
@@ -99,29 +113,22 @@
           <p class="help-text">Incoming events are signed and retained as metadata only. AI never sends email without Owner approval.</p>
         </div>
       </details>
-      <div class="section-title">Selected ticket &amp; reply draft</div>
-      <form id="draftForm" autocomplete="off">
+      <details class="technical-events ticket-meta-advanced" id="ticketMetaDetails">
+        <summary>Advanced: ticket recipient and subject</summary>
        <div class="two">
         <label>Product <select id="brand"><option value="light-remote">Light Remote</option><option value="lightbi">LightBI</option></select></label>
         <label>Customer email <input id="recipient" type="email" placeholder="customer@example.com"></label>
        </div>
        <label>Subject <input id="subject" maxlength="240" placeholder="Support request subject"></label>
-       <div class="ticket-read-actions"><button class="btn secondary" type="button" id="loadTicket">Reload selected ticket</button><span>Auto-loaded from Libredesk · Read only</span></div>
-       <pre id="ticketPreview" class="ticket-preview" hidden></pre>
+       </details>
+       <details class="technical-events"><summary>Advanced: manually reload ticket</summary><div class="ticket-read-actions"><button class="btn secondary" type="button" id="loadTicket">Reload selected ticket</button><span>Read only · Libredesk Inbox 1</span></div></details>
+       <details class="technical-events"><summary>Advanced: imported message snapshot</summary>       <pre id="ticketPreview" class="ticket-preview" hidden></pre></details>
        <details class="technical-events ticket-advanced"><summary>Advanced: conversation &amp; message IDs</summary>
          <label>Conversation ID <input id="conversation" spellcheck="false" placeholder="Libredesk conversation UUID"></label>
          <label>Latest message ID <input id="latest" spellcheck="false" placeholder="Latest public message UUID"></label>
        </details>
-       <div class="section-title reply-title"><svg><use href="#i-mail"/></svg> Proposed reply</div>
-       <label class="textarea-label"><textarea id="message" rows="9" maxlength="20000" placeholder="Review and edit the AI-proposed response here."></textarea></label>
-      </form>
-      <p class="help-text" id="hint">Save a draft and approve it before sending.</p>
-      <div class="action-bar">
-       <button type="button" class="btn secondary" id="save">Save draft</button>
-       <button type="button" class="btn primary" id="approve">Approve draft</button>
-       <button type="button" class="btn strong" id="send" disabled><svg><use href="#i-send"/></svg> Send reply</button>
-      </div>
-      <div class="integration-note"><svg><use href="#i-shield"/></svg><span>Only the owner can approve or send. The AI can create drafts but cannot send emails.</span></div>
+</div></details>
+      <div class="integration-note"><svg><use href="#i-shield"/></svg><span>Send reply is an explicit owner action. AI automation requires separate authorization.</span></div>
      </div>
     </div>
    </section>

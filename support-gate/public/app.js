@@ -1,5 +1,5 @@
 const $=id=>document.getElementById(id);
-let csrf='',current=null,canSend=false,drafts=[],tickets=[],filter='tickets',query='',toastTimer=0,selectedTicket=null,syncBusy=false,syncTimer=null;
+let csrf='',current=null,canSend=false,drafts=[],tickets=[],filter='tickets',query='',toastTimer=0,selectedTicket=null,selectedTicketEvent=null,ticketDirty=false,syncBusy=false,syncTimer=null,manualPending=null;
 
 function icon(ref){return '<svg aria-hidden="true"><use href="#i-'+ref+'"></use></svg>'}
 function feedback(message){
@@ -37,6 +37,8 @@ function label(status){
 }
 function fill(item){
  $('ticketPreview').hidden=true;
+ $('threadPanel').hidden=true;
+ $('threadMessages').replaceChildren();
  current=item||null;
  $('editorTitle').textContent=item?item.subject:'New support draft';
  $('crumbMode').textContent=item?'Draft #'+item.id.slice(0,8):'New draft';
@@ -53,11 +55,19 @@ function fill(item){
  $('loadTicket').disabled=!editable;
  $('approve').disabled=!item||item.status!=='draft';
  $('send').disabled=!item||item.status!=='approved'||!canSend;
+ $('sendManual').disabled=!!item||!selectedTicket||!$('latest').value||!$('message').value.trim();
+ const inboxReplyMode=!!selectedTicket&&!item;
+ $('save').hidden=inboxReplyMode;
+ $('approve').hidden=inboxReplyMode;
+ $('send').hidden=inboxReplyMode;
+ $('sendManual').hidden=!inboxReplyMode;
+ $('ticketMetaDetails').open=!inboxReplyMode;
+ $('advancedPanel').open=!inboxReplyMode;
  for(const element of document.querySelectorAll('#draftForm input,#draftForm textarea,#draftForm select'))
    element.disabled=!editable;
  $('hint').textContent=item?.status==='sent'?'The reply was sent through Libredesk.':
   item?.status==='unknown'?'Delivery outcome requires manual reconciliation. Never send this draft again automatically.':
-  !canSend?'Sending is locked until Libredesk agent API and inbox mappings are verified.':
+  !canSend?'Manual replies are available from selected tickets; AI auto-send is not configured.':
   item?.status==='approved'?'Owner-approved. Check the recipient and latest message before sending.':
   'Save the proposed response, then approve it before sending.';
 }
@@ -112,7 +122,7 @@ async function init(){
   const banner=$('outbound');banner.className='info-banner'+(canSend?' ready':'');
   banner.querySelector('span').textContent=canSend
    ?'Libredesk outbound configured. Human owner approval is required before every reply.'
-   :'UAT safe mode — Sending disabled until brand inboxes and Libredesk agent API are configured.';
+   :'Manual owner replies are available for connected tickets. AI automatic sending remains disabled.';
   await refresh();
   await loadEvents().catch(()=>{});
   await syncTickets(true);
@@ -133,6 +143,10 @@ function setFilter(next){
  render();
 }
 $('draftForm').addEventListener('submit',event=>event.preventDefault());
+$('draftForm').addEventListener('input',()=>{ticketDirty=true});
+$('message').addEventListener('input',()=>{
+ $('sendManual').disabled=!!current||!selectedTicket||!$('latest').value||!$('message').value.trim();
+});
 async function importTicket(conversation){
  if(!conversation){feedback('Paste the Libredesk conversation UUID first.');return}
  if(current&&!['draft','needs_review'].includes(current.status)){
@@ -147,6 +161,16 @@ async function importTicket(conversation){
   $('recipient').value=ticket.recipient;
   $('subject').value=ticket.subject;
   $('latest').value=ticket.based_on_message_uuid;
+  const thread=$('threadMessages');thread.replaceChildren();
+  for(const m of ticket.history.slice().reverse()){
+   const bubble=document.createElement('article');bubble.className='thread-bubble '+(m.type==='incoming'?'incoming':'outgoing');
+   const label=document.createElement('span');label.className='thread-role';label.textContent=m.type==='incoming'?'Customer':'Support';
+   const body=document.createElement('p');body.textContent=m.text||'(No text body)';
+   bubble.append(label,body);thread.append(bubble);
+  }
+  $('threadPanel').hidden=false;
+  $('threadMeta').textContent=ticket.history.length+' recent messages';
+  $('sendManual').disabled=!ticket.based_on_message_uuid||!$('message').value.trim();
   const preview=$('ticketPreview');
   preview.textContent=ticket.history.length
    ?ticket.history.slice().reverse().map(m=>m.type.toUpperCase()+': '+m.text).join('\n\n')
@@ -154,7 +178,8 @@ async function importTicket(conversation){
   preview.hidden=false;
   $('editorTitle').textContent=ticket.subject;
   $('crumbMode').textContent='Light Remote · '+ticket.recipient;
-  $('draftStatus').textContent='Ready to draft';
+  $('draftStatus').textContent='Ready to reply';
+  ticketDirty=false;
   feedback('Ticket loaded automatically. No email sent.');
  }catch(e){$('ticketPreview').hidden=true;feedback('Ticket not loaded: '+e.message)}
  finally{$('loadTicket').disabled=false}
@@ -188,14 +213,38 @@ $('approve').addEventListener('click',async()=>{
   feedback('Owner approval recorded.');await refresh();
  }catch(e){feedback('Approval failed: '+e.message)}
 });
+$('sendManual').addEventListener('click',()=>{
+ if(!selectedTicket||current||!$('message').value.trim()||!$('latest').value)return;
+ manualPending={conversation:selectedTicket,recipient:$('recipient').value,
+  baseline:$('latest').value,message:$('message').value.trim(),request_id:crypto.randomUUID()};
+ $('sendConfirmText').textContent='Send this reply to '+manualPending.recipient+
+  ' through the original Light Remote support conversation? This will email the customer.';
+ $('sendConfirm').showModal();
+});
 $('send').addEventListener('click',()=>{
  if(!current||!canSend||current.status!=='approved')return;
  $('sendConfirmText').textContent='Send the approved reply to '+current.recipient+' in its original Libredesk conversation? This will email the customer.';
  $('sendConfirm').showModal();
 });
-$('sendCancel').addEventListener('click',()=>$('sendConfirm').close());
+$('sendCancel').addEventListener('click',()=>{manualPending=null;$('sendConfirm').close()});
+$('sendConfirm').addEventListener('close',()=>{manualPending=null});
 $('sendProceed').addEventListener('click',async()=>{
  $('sendConfirm').close();
+ if(manualPending){
+  const pending=manualPending;manualPending=null;
+  $('sendManual').disabled=true;$('sendProceed').disabled=true;
+  try{
+   await api('/api/tickets/'+encodeURIComponent(pending.conversation)+'/reply','POST',{
+    message:pending.message,recipient:pending.recipient,baseline:pending.baseline,request_id:pending.request_id});
+   $('message').value='';
+   feedback('Reply queued in Libredesk. Check delivery status in the conversation.');
+   await importTicket(pending.conversation);
+   await syncTickets(false);
+  }catch(e){
+   feedback('Reply not confirmed: '+e.message+'. Check Libredesk before trying again.');
+  }finally{$('sendProceed').disabled=false}
+  return;
+ }
  if(!current||!canSend||current.status!=='approved')return;
  $('send').disabled=true;
  $('sendProceed').disabled=true;
@@ -262,6 +311,8 @@ function renderTicketCards(target){
 }
 async function selectTicket(id){
  selectedTicket=id;
+ selectedTicketEvent=tickets.find(t=>t.conversation_uuid===id)?.last_event_at||null;
+ ticketDirty=false;
  fill(null);
  render();
  await importTicket(id);
@@ -278,6 +329,13 @@ async function syncTickets(initial=false){
   $('queueSync').textContent='Auto-sync on';
   render();
   if(initial&&tickets.length&&!current&&!selectedTicket)await selectTicket(tickets[0].conversation_uuid);
+  else if(!initial&&selectedTicket&&!current){
+   const latest=tickets.find(t=>t.conversation_uuid===selectedTicket);
+   if(latest?.last_event_at&&latest.last_event_at!==selectedTicketEvent){
+    if(!ticketDirty){selectedTicketEvent=latest.last_event_at;await importTicket(selectedTicket)}
+    else $('syncStatus').textContent='New message received · Your unsaved reply is preserved; reload when ready';
+   }
+  }
  }catch(e){
   $('syncStatus').textContent='Sync unavailable — retry';
   $('queueSync').textContent='Retry available';

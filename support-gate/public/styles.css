@@ -185,3 +185,26 @@ textarea{resize:vertical;min-height:175px;line-height:1.65}
 .ticket-advanced input{width:100%}
 #queueSync{font-size:11px;color:#64748b}
 @media(max-width:700px){.auto-sync-bar #syncStatus{margin-left:0}.auto-sync-bar{gap:7px}.auto-sync-bar .btn{margin-left:auto}}
+
+/* Ticket-first owner inbox: correspondence is primary, diagnostics stay collapsed. */
+.advanced-panel{margin:0 0 18px;border:1px solid #e8eaed;border-radius:8px;color:#77818a;background:#fff}
+.advanced-panel>summary{list-style:none;cursor:pointer;padding:11px 14px;font-size:12px;font-weight:650}
+.advanced-panel>summary::-webkit-details-marker{display:none}
+.advanced-panel>summary::before{content:"⚙";margin-right:8px;color:#a0a7af}
+.advanced-body{padding:0 14px 14px;border-top:1px solid #eff1f3}
+.advanced-body .info-banner{margin:14px 0}
+.advanced-body .setup-panel{margin-bottom:0}
+.thread-panel{border:1px solid #e5e9eb;border-radius:11px;padding:15px 15px 19px;background:#fafbfc;margin:20px 0 26px}
+.thread-heading{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#29343b;margin-bottom:16px}
+.thread-heading span{font-size:11px;color:#8c969e}
+.thread-messages{display:flex;flex-direction:column;gap:14px;max-height:390px;overflow:auto;padding:0 3px}
+.thread-bubble{max-width:88%;padding:12px 14px;border:1px solid #e4e8eb;border-radius:12px;background:#fff;line-height:1.5}
+.thread-bubble.outgoing{align-self:flex-end;background:#f0f7f2;border-color:#cee6d6}
+.thread-bubble.incoming{align-self:flex-start}
+.thread-role{display:block;font-size:11px;font-weight:700;margin-bottom:6px;color:#6b7c83}
+.thread-bubble p{white-space:pre-wrap;overflow-wrap:anywhere;margin:0;font-size:13px;color:#2f3940}
+.compose-tools{display:flex;align-items:center;gap:10px;margin:10px 0 14px}
+.compose-tools span{font-size:11px;color:#8b949d}
+#sendManual{background:#1d6d4c;color:white;border-color:#1d6d4c}
+.ticket-advanced{background:#fff}
+#advancedPanel:not([open])+.section-title{margin-top:20px}
