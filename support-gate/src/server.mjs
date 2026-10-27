@@ -10,7 +10,8 @@ import {configuredRemoteInbox,verifiedTicket} from './ticket-read.mjs';
 import {ticketSummary,buildQueue} from './ticket-queue.mjs';
 import {parseReply,htmlFromPlainText,rawNativeCsrf,lastPublicMessage} from './owner-reply.mjs';
 import {aiProviderReady,requestAIDraft} from './ai-draft.mjs';
-import {createTicketReader,renderPublicTicket,publicHeaders,getPublicTicket} from './public-ticket.mjs';
+import {createTicketReader,renderPublicTicket,publicHeaders,getPublicTicket,getTicketMessages} from './public-ticket.mjs';
+import {createTicketPDF} from './ticket-pdf.mjs';
 import {issueReplyForm,validatePublicForm,readPublicForm,allowPublicOrigin,submitPublicReply} from './public-reply.mjs';
 import {createGoldTicket} from './gold-intake.mjs';
 import {ticketAccessCode,verifyTicketAccessCode,makeTicketCookie,ticketCookieValid,ticketCodePage,ticketCodeHeaders,readAccessForm,checkCodeAttempt,deliverTicketCode} from './ticket-access.mjs';
@@ -92,6 +93,7 @@ async function setup(){
  await pool.query("CREATE INDEX IF NOT EXISTS public_web_reply_rate_idx ON support_gate_public_web_replies(conversation_uuid,created_at)");
  await pool.query("CREATE TABLE IF NOT EXISTS support_gate_ticket_access_attempts (conversation_uuid uuid PRIMARY KEY,failures integer NOT NULL DEFAULT 0,window_started timestamptz NOT NULL DEFAULT now())");
  await pool.query("CREATE TABLE IF NOT EXISTS support_gate_ticket_code_delivery (conversation_uuid uuid PRIMARY KEY,status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','sending','sent','uncertain')),sent_count integer NOT NULL DEFAULT 0,window_started timestamptz NOT NULL DEFAULT now(),last_sent_at timestamptz)");
+ await pool.query("CREATE TABLE IF NOT EXISTS support_gate_ticket_system_messages (conversation_uuid uuid NOT NULL,native_message_id bigint NOT NULL,created_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(conversation_uuid,native_message_id))");
  await pool.query("CREATE TABLE IF NOT EXISTS support_gate_public_ticket_access ("+
   "conversation_uuid uuid PRIMARY KEY,inbox_id integer NOT NULL CHECK(inbox_id IN (1,2)),"+
   "created_at timestamptz NOT NULL DEFAULT now(),"+
@@ -427,6 +429,26 @@ async function handler(req,res){
   res.writeHead(200,ticketCodeHeaders());
   return res.end(ticketCodePage(ticketId,{inboxId:ticket.inbox_id,message:notice}));
  }
+ const exportMatch=path.match(/^\/t\/([a-f0-9-]{36})\/(print|pdf)$/i);
+ if(exportMatch&&uuid.test(exportMatch[1])&&method==='GET'){
+  const id=exportMatch[1],format=exportMatch[2];
+  if(!ticketCookieValid(GATE_PUBLIC_REPLY_SECRET,id,req.headers))return fail(res,403,'ticket_access_code_required');
+  const ticket=await getPublicTicket(pool,publicTicketBridge,id);
+  if(!ticket)return fail(res,404,'ticket_expired_or_unavailable');
+  try{
+   if(format==='print'){
+    const html=await renderPublicTicket(pool,publicTicketBridge,id,{print:true});
+    if(!html)return fail(res,404,'ticket_expired_or_unavailable');
+    res.writeHead(200,publicHeaders({print:true}));return res.end(html);
+   }
+   const result=await getTicketMessages(pool,publicTicketBridge,ticket,{all:true});
+   const pdf=createTicketPDF(ticket,result.messages);
+   pdf.on('error',()=>res.destroy());
+   res.writeHead(200,{'content-type':'application/pdf','content-disposition':'attachment; filename="support-ticket-'+String(ticket.reference_number).replace(/[^0-9A-Za-z_-]/g,'')+'.pdf"',
+    'cache-control':'private, no-store, max-age=0','x-content-type-options':'nosniff','referrer-policy':'same-origin','x-robots-tag':'noindex,nofollow,noarchive'});
+   return pdf.pipe(res);
+  }catch(e){return fail(res,String(e.message)==='ticket_export_too_large'?413:502,String(e.message)==='ticket_export_too_large'?'ticket_export_too_large':'ticket_export_failed');}
+ }
  const publicMatch=path.match(/^\/t\/([a-f0-9-]{36})$/i);
  if(publicMatch&&uuid.test(publicMatch[1])){
   const ticketId=publicMatch[1];
@@ -439,6 +461,7 @@ async function handler(req,res){
    const note=new URL(req.url,'http://localhost').searchParams.get('sent');
    const page=await renderPublicTicket(pool,publicTicketBridge,ticketId,{
     issueForm:id=>issueReplyForm(GATE_PUBLIC_REPLY_SECRET,id),
+    page:new URL(req.url,'http://localhost').searchParams.get('page'),
     notice:note==='1'?'sent':''});
    res.writeHead(page?200:404,publicHeaders());return res.end(page||'Ticket link unavailable or expired');
   }
@@ -465,7 +488,7 @@ async function handler(req,res){
  }
  if(path==='/healthz')return json(res,200,{ok:true,service:'support-gate',outbound_ready:outgoingReady(),ai_draft_ready:aiReady()});
  if(path==='/api/webhooks/libredesk'&&method==='POST')return receiveWebhook(req,res);
- if(['/', '/app.js','/styles.css','/branding/light-remote-mark.png','/branding/light-remote-mark-256.png','/branding/lightbi-app-icon.png'].includes(path)&&method==='GET'){
+ if(['/', '/app.js','/styles.css','/ticket.css','/print-ticket.js','/branding/light-remote-mark.png','/branding/light-remote-mark-256.png','/branding/lightbi-app-icon.png'].includes(path)&&method==='GET'){
   const file=path==='/'?'index.html':path.slice(1),text=await readFile(join(root,file));
   const type=file.endsWith('.png')?'image/png':file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'text/html';
   res.writeHead(200,{'content-type':type+(type==='image/png'?'':'; charset=utf-8'),'cache-control':type==='image/png'?'public, max-age=3600':'no-store',

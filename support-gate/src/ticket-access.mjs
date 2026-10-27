@@ -54,8 +54,8 @@ export function ticketCodePage(id,{message='',error=false,inboxId=1}={}){
  '<body><main><div class="panel"><div class="logo"><img src="'+ticketOrigin+'/ai-support/branding/'+(Number(inboxId)===2?'lightbi-app-icon.png':'light-remote-mark-256.png')+'" alt=""><strong>Support Center · Private ticket</strong></div>'+
  '<h1>Enter your ticket access code</h1><p>The private ticket link alone does not open the conversation. Enter the 8-character code sent to the original ticket contact email. No account or password is required.</p>'+
  note+'<form method="post" action="'+action+'/access/verify" accept-charset="UTF-8"><label for="access-code">Access code</label><input id="access-code" name="code" type="text" minlength="8" maxlength="9" autocomplete="one-time-code" placeholder="ABCD-EFGH" pattern="[A-Za-z2-9]{4}-?[A-Za-z2-9]{4}" required><button type="submit">Open ticket</button></form>'+
- '<form method="post" action="'+action+'/access/request"><button class="secondary" type="submit">Email me the access code</button></form>'+
- '<small>The code is sent only to the original ticket contact address. For security, requests and failed attempts are rate limited. Replying by email remains available.</small>'+
+ '<form method="post" action="'+action+'/access/request"><button class="secondary" type="submit">Resend ticket email</button></form>'+
+ '<small>The ticket link and code are sent together to the original contact email. For security, requests and failed attempts are rate limited. Replying by email remains available.</small>'+
  '</div></main></body></html>';
 }
 export function ticketCodeHeaders(){return {'content-type':'text/html; charset=utf-8','cache-control':'private, no-store, max-age=0','referrer-policy':'same-origin','x-content-type-options':'nosniff','x-frame-options':'DENY','x-robots-tag':'noindex,nofollow,noarchive','content-security-policy':"default-src 'none';img-src https://support.thaiduy.digital;style-src 'unsafe-inline';form-action 'self';frame-ancestors 'none';base-uri 'none'"};}
@@ -121,6 +121,9 @@ export async function deliverTicketCode(pool,id,inboxId,{secret,apiKey,apiSecret
   const data=await sent.json().catch(()=>({}));
   const item=data.data||data;
   if(!sent.ok||!uuid.test(String(item.uuid||item.message?.uuid||'')))throw Error('code_delivery_unconfirmed');
+  const nativeId=Number(item.id||item.message?.id);
+  if(!Number.isSafeInteger(nativeId)||nativeId<=0)throw Error('code_delivery_message_id_missing');
+  await pool.query('INSERT INTO support_gate_ticket_system_messages(conversation_uuid,native_message_id) VALUES($1,$2) ON CONFLICT DO NOTHING',[id,nativeId]);
   await pool.query("UPDATE support_gate_ticket_code_delivery SET status='sent' WHERE conversation_uuid=$1",[id]);
   return {sent:true};
  }catch(e){

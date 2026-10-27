@@ -21,7 +21,7 @@ test('Closed ticket is read-only with accurate expiry; all statuses visible',()=
  const t={...base,status_id:4,closed_at:new Date(now)};
  const html=buildPublicPage(t,[],{form:{requestId:id,issued:String(now),token:'a'.repeat(64)}});
  assert.match(html,/Closed/);
- assert.match(html,/14 days/);
+ assert.match(html,/Link expires/);
  assert.doesNotMatch(html,/<form/);
  assert.match(html,/Open/);assert.match(html,/Snoozed/);assert.match(html,/Resolved/);
 });
@@ -29,8 +29,8 @@ test('Active ticket offers plain-text-only reply form with both reply methods',(
  const t={...base,subject:'<script>alert(1)</script>'};
  const html=buildPublicPage(t,[],{form:{requestId:id,issued:String(now),token:'a'.repeat(64)}});
  assert.match(html,/<form method="post"/);
- assert.match(html,/Reply to this ticket/);
- assert.match(html,/reply directly to any support email/);
+ assert.match(html,/Write a reply/);
+ assert.match(html,/reply directly to your support email/);
  assert.doesNotMatch(html,/<script>/);
  assert.match(html,/&lt;script&gt;/);
  assert.match(publicHeaders()['content-security-policy'],/form-action 'self'/);
