@@ -17,8 +17,8 @@ need(source.includes("ELIGIBLE_PLANS=new Set(['pro','vip'])")&&source.includes("
 need(source.includes('redactRestrictedText')&&source.includes('support_contains_sensitive_material'),'secret-redaction-gate');
 need(source.includes('x-light-account-session')&&source.includes("'/v1/accounts/me'"),'server-side-account-plan');
 need(source.includes('SupportOutbox')&&source.includes('nextAttemptAt')&&source.includes('backoffMs'),'durable-retry-outbox');
-need(page.includes('Light Remote Support Center')&&page.includes('mailto:support@thaiduy.digital')&&page.includes('14 days')&&page.includes('window.location.href=url')&&!page.includes('/support/api')&&!page.includes('Helpdesk case'),'new-libredesk-mailbox-intake-ui');
-need(source.includes('legacy_helpdesk_retired')&&source.includes("LIGHT_REMOTE_GOLD_DEMO==='1'"),'gold-retired-legacy-erpnext-route');
+need(page.includes('Light Remote Support Center')&&page.includes('support@thaiduy.digital')&&page.includes('14 days')&&page.includes("fetch('/support/api'")&&page.includes('Submit ticket')&&!page.includes('Helpdesk case'),'new-libredesk-native-intake-ui');
+need(source.includes('callGoldSupportIntake')&&source.includes("LIGHT_REMOTE_GOLD_DEMO==='1'"),'gold-native-libredesk-route');
 const renderedPage=renderSupportPage({origin:'https://light-remote.example.test',version:'test'});
 const inlineStart=renderedPage.lastIndexOf('<script>'),inlineEnd=renderedPage.indexOf('</script>',inlineStart);
 assert.ok(inlineStart>=0&&inlineEnd>inlineStart,'support inline script missing');

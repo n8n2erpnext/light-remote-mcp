@@ -12,11 +12,13 @@ import {parseReply,htmlFromPlainText,rawNativeCsrf,lastPublicMessage} from './ow
 import {aiProviderReady,requestAIDraft} from './ai-draft.mjs';
 import {createTicketReader,renderPublicTicket,publicHeaders,getPublicTicket} from './public-ticket.mjs';
 import {issueReplyForm,validatePublicForm,readPublicForm,allowPublicOrigin,submitPublicReply} from './public-reply.mjs';
+import {createGoldTicket} from './gold-intake.mjs';
 
 const {GATE_PG_URL,GATE_ADMIN_SALT,GATE_ADMIN_HASH,LIBREDESK_BASE_URL,
  LIBREDESK_API_KEY,LIBREDESK_API_SECRET,GATE_OWNER_EMAIL,GATE_WORKER_TOKEN_HASH,
  LIBREDESK_REMOTE_INBOX_ID,LIBREDESK_LIGHTBI_INBOX_ID,GATE_WEBHOOK_SECRET,
- GATE_AI_DRAFTER_URL,GATE_AI_DRAFTER_TOKEN,GATE_PUBLIC_REPLY_SECRET}=process.env;
+ GATE_AI_DRAFTER_URL,GATE_AI_DRAFTER_TOKEN,GATE_PUBLIC_REPLY_SECRET,
+ GATE_GOLD_INTAKE_SECRET,LIBREDESK_INTAKE_API_KEY,LIBREDESK_INTAKE_API_SECRET}=process.env;
 if(!GATE_PUBLIC_REPLY_SECRET||GATE_PUBLIC_REPLY_SECRET.length<40)throw Error('public_ticket_reply_secret_missing');
 if(!GATE_PG_URL||!GATE_ADMIN_SALT||!GATE_ADMIN_HASH)throw Error('support_gate_config_missing');
 const pool=new pg.Pool({connectionString:GATE_PG_URL,max:6,connectionTimeoutMillis:6000});
@@ -81,6 +83,7 @@ async function log(id,action,details={}){
  [id,action,JSON.stringify(details)]);
 }
 async function setup(){
+ await pool.query("CREATE TABLE IF NOT EXISTS support_gate_gold_intake_requests (request_id uuid PRIMARY KEY,state text NOT NULL CHECK(state IN ('processing','created','uncertain')),reference_number text,conversation_uuid uuid,created_at timestamptz NOT NULL DEFAULT now())");
  await pool.query("CREATE TABLE IF NOT EXISTS support_gate_public_web_replies ("+
   "request_id uuid PRIMARY KEY,conversation_uuid uuid NOT NULL,status text NOT NULL " +
   "CHECK(status IN ('processing','saved','uncertain')),message_uuid uuid,"+
@@ -381,6 +384,9 @@ async function receiveWebhook(req,res){
 }
 async function handler(req,res){
  const path=new URL(req.url,'http://localhost').pathname,method=req.method;
+ if(path==='/api/internal/gold-intake'&&method==='POST')return createGoldTicket(req,res,{pool,secret:GATE_GOLD_INTAKE_SECRET,
+  apiKey:LIBREDESK_INTAKE_API_KEY,apiSecret:LIBREDESK_INTAKE_API_SECRET,inboxId:remoteInbox,
+  readBody:async(r,max)=>{let raw='';for await(const chunk of r){raw+=chunk;if(raw.length>max)throw Error('too_large')}return raw},sendJson:json});
  const publicMatch=path.match(/^\/t\/([a-f0-9-]{36})$/i);
  if(publicMatch&&uuid.test(publicMatch[1])){
   const ticketId=publicMatch[1];

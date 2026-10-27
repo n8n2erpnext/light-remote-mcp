@@ -174,9 +174,12 @@ export function renderSupportPage({origin,version}){
             </div>
           </div>
           <div class="case-panel" id="contact-support">
-            <div class="case-head"><div><h3>Light Remote Support Center</h3><p>Create your ticket by sending an email. LibreDesk sends a receipt with a private link where you can read status and reply directly without signing in.</p></div><span class="case-badge">EVERYONE · NO ACCOUNT</span></div>
-            <div class="callout"><strong>One conversation, two reply options.</strong> Once your message is sent, check your inbox for the automatic ticket acknowledgment. Open its private link to follow Open / Snoozed / Resolved / Closed, reply on the ticket page, or reply to the email. Links expire 14 days after a ticket is Closed.</div>
+            <div class="case-head"><div><h3>Light Remote Support Center</h3><p>Submit your ticket directly from this page. LibreDesk creates the ticket and emails a private tracking link so you can read and reply without signing in.</p></div><span class="case-badge">EVERYONE · NO ACCOUNT</span></div>
+            <div class="callout"><strong>One conversation, two reply options.</strong> After you submit the form, check your inbox for the automatic ticket acknowledgment. Open its private link to follow Open / Snoozed / Resolved / Closed, reply on the ticket page, or reply to the email. Links expire 14 days after a ticket is Closed.</div>
             <form id="supportCaseForm" class="case-form">
+              <label>Your name (optional)<input name="name" maxlength="100" autocomplete="name" placeholder="Name"></label>
+              <label>Your email address<input name="email" type="email" maxlength="254" required autocomplete="email" placeholder="you@example.com"></label>
+              <input name="website" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;opacity:0" />
               <label>Problem area<select name="problemArea"><option value="install">Install</option><option value="approval">A/B approval</option><option value="remote">Real Remote</option><option value="account">Account</option><option value="update">Update</option><option value="billing">Billing</option><option value="security">Security</option><option value="other" selected>Other</option></select></label>
               <label>Device status<select name="deviceStatus"><option value="unknown" selected>Unknown</option><option value="online">Online</option><option value="offline">Offline</option></select></label>
               <label class="wide">Subject<input name="subject" maxlength="180" required placeholder="Short description of the issue"></label>
@@ -184,9 +187,9 @@ export function renderSupportPage({origin,version}){
               <label>Target device OS / architecture<input name="targetOsArch" maxlength="120" placeholder="e.g. Windows 11 x64"></label>
               <label>Client / Core version<input name="targetVersion" maxlength="100" placeholder="e.g. rc.48"></label>
               <label class="wide">Sanitized error (optional)<textarea name="sanitizedError" maxlength="1200" placeholder="Remove passwords, tokens and private data."></textarea></label>
-              <div class="case-actions"><button id="submitCase" class="btn primary" type="submit"><img src="/assets/icons/material/support_agent.svg" alt="">Open email app</button><button id="copyCase" class="btn" type="button">Copy support request</button><a class="btn" href="mailto:support@thaiduy.digital">Email support directly</a><span id="caseMsg" class="case-msg" role="status" aria-live="polite"></span></div>
+              <div class="case-actions"><button id="submitCase" class="btn primary" type="submit"><img src="/assets/icons/material/support_agent.svg" alt="">Submit ticket</button><button id="copyCase" class="btn" type="button">Copy support request</button><a class="btn" href="mailto:support@thaiduy.digital">Email support directly</a><span id="caseMsg" class="case-msg" role="status" aria-live="polite"></span></div>
             </form>
-            <p style="margin:14px 0 0;color:#8d99a6;font-size:12px">Sending is completed in your own mail app, not on this website. If no mail app opens, copy the support request and email it to <a href="mailto:support@thaiduy.digital">support@thaiduy.digital</a>. The private ticket URL is emailed only after LibreDesk receives your message. Do not share that link.</p>
+            <p style="margin:14px 0 0;color:#8d99a6;font-size:12px">Submitting creates a ticket in LibreDesk automatically. If submission is unavailable, use email as a fallback: send your request to <a href="mailto:support@thaiduy.digital">support@thaiduy.digital</a>. The private ticket URL is emailed to the address you entered after the ticket is created. Do not share that link.</p>
           </div>
           <div class="danger callout"><strong>Redact before sending.</strong> Never include passwords, OTP/MFA codes, bearer/API tokens, cookies, private keys, A/B continuation data, device secrets, or screenshots containing sensitive credentials.</div>
           <div class="contact-grid">
@@ -254,46 +257,60 @@ export function renderSupportPage({origin,version}){
     const caseMsg=document.getElementById('caseMsg');
     const submitCase=document.getElementById('submitCase');
     const copyCase=document.getElementById('copyCase');
-    const supportAddress='support@thaiduy.digital';
-    const buildSupportEmail=()=>{
+    let currentRequestId=null;
+    const buildPayload=()=>{
       if(!caseForm?.reportValidity())return null;
       const f=new FormData(caseForm);
-      const subject='[Light Remote Support] '+String(f.get('subject')||'').trim();
-      const details=[
-        'Hello Light Remote Support,','',
-        String(f.get('description')||'').trim(),'',
-        'Problem area: '+String(f.get('problemArea')||'other'),
-        'Device status: '+String(f.get('deviceStatus')||'unknown'),
-        'Target OS / architecture: '+String(f.get('targetOsArch')||'').trim(),
-        'Client / Core version: '+String(f.get('targetVersion')||'').trim(),
-        'Sanitized error: '+String(f.get('sanitizedError')||'').trim(),'',
-        'Please send the ticket acknowledgment and private follow-up link to my sending email address.',
-        'I understand that replies can be sent through the ticket link or by email.',
-        'Do not include passwords, tokens, cookies or A/B continuation data.'
-      ].join('\\n');
-      return {subject,body:details};
+      return Object.fromEntries(f.entries());
     };
-    caseForm?.addEventListener('submit',event=>{
+    const supportEmail=()=>{
+      const f=new FormData(caseForm);
+      return {subject:'[Light Remote Support] '+String(f.get('subject')||''),
+        body:['Hello Light Remote Support,','',String(f.get('description')||''),'',
+        'Contact email: '+String(f.get('email')||''),'Name: '+String(f.get('name')||''),
+        'Area: '+String(f.get('problemArea')||''),'Device: '+String(f.get('deviceStatus')||''),
+        'OS/arch: '+String(f.get('targetOsArch')||''),'Client version: '+String(f.get('targetVersion')||''),
+        'Sanitized error: '+String(f.get('sanitizedError')||'')].join('\\n')};
+    };
+    caseForm?.addEventListener('submit',async event=>{
       event.preventDefault();
-      const message=buildSupportEmail();
-      if(!message)return;
-      const url='mailto:'+supportAddress+'?subject='+encodeURIComponent(message.subject)+'&body='+encodeURIComponent(message.body);
-      if(url.length>7500){caseMsg.className='case-msg error';caseMsg.textContent='Request is too long for a mail app. Shorten the description or email support directly.';return;}
-      caseMsg.className='case-msg ok';
-      caseMsg.textContent='Your email app should open. Click Send there to create the ticket; then check your inbox for the private ticket link.';
-      window.location.href=url;
+      const payload=buildPayload();
+      if(!payload)return;
+      if(!currentRequestId)currentRequestId=crypto.randomUUID();
+      payload.requestId=currentRequestId;
+      submitCase.disabled=true;
+      caseMsg.className='case-msg';
+      caseMsg.textContent='Creating your ticket in LibreDesk...';
+      try{
+        const response=await fetch('/support/api',{method:'POST',headers:{'content-type':'application/json'},
+          body:JSON.stringify(payload),credentials:'same-origin'});
+        const result=await response.json();
+        if(!response.ok||result.ok!==true)throw Error(String(result.error||'support_submit_failed'));
+        currentRequestId=null;
+        caseMsg.className='case-msg ok';
+        caseMsg.textContent='Ticket '+(result.referenceNumber?'#'+result.referenceNumber+' ':'')+
+          'created successfully. Check your email for the private ticket link (also check Spam). You can reply from that link or by email.';
+        caseForm.reset();
+      }catch(error){
+        caseMsg.className='case-msg error';
+        caseMsg.textContent=error.message==='support_rate_limited'?'Too many requests. Try again later.':
+          error.message==='valid_email_required'?'Please enter a valid email address.':
+          error.message==='support_contains_sensitive_material'?'Remove passwords, tokens and other secrets before submitting.':
+          error.message==='submission_unconfirmed_please_check_email_before_retrying'?
+          'The result is uncertain. Check your email before retrying to avoid a duplicate ticket.':
+          'Ticket not confirmed ('+String(error.message).slice(0,100)+'). Please check your details or use the email fallback.';
+      }finally{submitCase.disabled=false}
     });
     copyCase?.addEventListener('click',async()=>{
-      const message=buildSupportEmail();
-      if(!message)return;
-      const composed='To: '+supportAddress+'\\nSubject: '+message.subject+'\\n\\n'+message.body;
+      if(!buildPayload())return;
+      const mail=supportEmail();
       try{
-        await navigator.clipboard.writeText(composed);
+        await navigator.clipboard.writeText('To: support@thaiduy.digital\\nSubject: '+mail.subject+'\\n\\n'+mail.body);
         caseMsg.className='case-msg ok';
-        caseMsg.textContent='Support request copied. Email it to '+supportAddress+' to create the ticket.';
+        caseMsg.textContent='Support request copied. Email it to support@thaiduy.digital if direct submission is unavailable.';
       }catch{
         caseMsg.className='case-msg error';
-        caseMsg.textContent='Clipboard access is blocked. Open your mail app and copy the form details.';
+        caseMsg.textContent='Clipboard blocked. You can still email support@thaiduy.digital directly.';
       }
     });
   })();

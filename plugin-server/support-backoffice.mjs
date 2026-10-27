@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { callOperatorJson } from './operator-client.mjs';
 import { PUBLIC_ORIGIN } from './config.mjs';
+import {validateGoldSupportRequest,callGoldSupportIntake} from './support-libredesk-intake.mjs';
 import { redactRestrictedText } from './response-sanitizer.mjs';
 
 const ACCOUNT_COOKIE='__Host-light_remote_account';
@@ -350,10 +351,22 @@ export function registerSupportBackoffice(app,{outbox=new SupportOutbox()}={}){
 
   app.post('/support/api',async(req,res)=>{
     res.set('Cache-Control','no-store');
-    // Gold Distribution cutover: old Helpdesk is retired. Never silently
-    // deliver new Gold support requests to the legacy ERPNext outbox.
     if(process.env.LIGHT_REMOTE_GOLD_DEMO==='1'){
-      return res.status(410).json({ok:false,error:'legacy_helpdesk_retired',supportEmail:'support@thaiduy.digital',supportPage:'/support'});
+      if(!sameOriginMutation(req))return res.status(403).json({ok:false,error:'cross_site_request_denied'});
+      try{
+        const data=validateGoldSupportRequest(req.body||{});
+        for(const key of ['description','subject','sanitizedError']){
+          if(redactRestrictedText(data[key])!==data[key])return res.status(400).json({ok:false,error:'support_contains_sensitive_material'});
+        }
+        if(!await allowSubmit('gold-global-intake',{limit:90,windowMs:3600000})||
+           !await allowSubmit('gold-email:'+data.email,{limit:4,windowMs:86400000}))
+          return res.status(429).json({ok:false,error:'support_rate_limited'});
+        const id=String(req.body?.requestId||'');
+        if(!/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(id))
+          return res.status(400).json({ok:false,error:'invalid_request_id'});
+        const result=await callGoldSupportIntake(data,{requestId:id});
+        return res.status(201).json({ok:true,...result});
+      }catch(error){return fail(res,error)}
     }
     if(!sameOriginMutation(req))return res.status(403).json({ok:false,error:'cross_site_request_denied'});
     try{
