@@ -177,6 +177,7 @@ export function renderSupportPage({origin,version}){
             <div class="case-head"><div><h3>Light Remote Support Center</h3><p>Submit your ticket directly from this page. LibreDesk creates the ticket and emails a private tracking link so you can read and reply without signing in.</p></div><span class="case-badge">EVERYONE · NO ACCOUNT</span></div>
             <div class="callout"><strong>One conversation, two reply options.</strong> After you submit the form, check your inbox for the automatic ticket acknowledgment. Open its private link to follow Open / Snoozed / Resolved / Closed, reply on the ticket page, or reply to the email. Links expire 14 days after a ticket is Closed.</div>
             <div id="supportAccountSummary" class="case-account" hidden><strong>Signed-in account</strong> · <span id="supportAccountDetails"></span><div>We use the email and current plan from your Gold account.</div></div>
+            <p id="supportGuestSignin" style="margin:12px 0;color:#9aa6b2;font-size:13px">Have a Gold account? <a href="/account/login?next=%2Fsupport">Sign in</a> to use your verified email, current plan and registered device information automatically.</p>
             <form id="supportCaseForm" class="case-form">
               <label>Your name (optional)<input name="name" maxlength="100" autocomplete="name" placeholder="Name"></label>
               <label id="guestEmailGroup" class="case-mail">Your email address<input name="email" id="supportEmailInput" type="email" maxlength="254" required autocomplete="email" placeholder="you@example.com"></label>
@@ -263,6 +264,7 @@ export function renderSupportPage({origin,version}){
     const guestEmailGroup=document.getElementById('guestEmailGroup');
     const supportEmailInput=document.getElementById('supportEmailInput');
     const accountSummary=document.getElementById('supportAccountSummary');
+    const guestSignin=document.getElementById('supportGuestSignin');
     const accountDetails=document.getElementById('supportAccountDetails');
     const systemDetails=document.getElementById('supportSystemDetails');
     const deviceGroup=document.getElementById('supportDeviceGroup');
@@ -278,6 +280,7 @@ export function renderSupportPage({origin,version}){
     const showAccount=account=>{
       verifiedAccount=account&&account.email?{email:String(account.email),plan:String(account.plan||'free').toUpperCase()}:null;
       guestEmailGroup.hidden=Boolean(verifiedAccount);
+      guestSignin.hidden=Boolean(verifiedAccount);
       supportEmailInput.required=!verifiedAccount;
       if(verifiedAccount){
         supportEmailInput.value=verifiedAccount.email;
@@ -289,11 +292,8 @@ export function renderSupportPage({origin,version}){
       }
     };
     const detectContext=async()=>{
-      const [profile,health]=await Promise.all([
-        fetch('/support/api?action=eligibility',{credentials:'same-origin',cache:'no-store'})
-          .then(r=>r.ok?r.json():null).catch(()=>null),
-        fetch('/healthz',{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null)
-      ]);
+      const profile=await fetch('/support/api?action=eligibility',{credentials:'same-origin',cache:'no-store'})
+        .then(r=>r.ok?r.json():null).catch(()=>null);
       showAccount(profile?.signedIn?profile.account:null);
       if(verifiedAccount){
         try{
@@ -318,8 +318,8 @@ export function renderSupportPage({origin,version}){
         deviceGroup.hidden=true;
         deviceSelect.value='';
       }
-      systemContext.serverCoreVersion=String(health?.version||'unknown').slice(0,100);
-      systemContext.mcpSurfaceVersion=String(health?.mcpSurfaceVersion||'unknown').slice(0,100);
+      systemContext.serverCoreVersion=String(profile?.system?.coreVersion||'unknown').slice(0,100);
+      systemContext.mcpSurfaceVersion=String(profile?.system?.mcpSurfaceVersion||'unknown').slice(0,100);
       try{
         if(navigator.userAgentData?.getHighEntropyValues){
           const details=await navigator.userAgentData.getHighEntropyValues(['platformVersion','architecture','bitness']);

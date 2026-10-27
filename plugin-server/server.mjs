@@ -83,7 +83,8 @@ app.use((req,res,next)=>{
   const indexable=PUBLIC_INDEXABLE_PATHS.has(req.path);
   res.set('X-Content-Type-Options','nosniff');
   res.set('Referrer-Policy',indexable?'strict-origin-when-cross-origin':'no-referrer');
-  res.set('Cache-Control',indexable?'public, max-age=300':'no-store');
+  // /support displays session-derived account information and must not be cached as a stale guest page.
+  res.set('Cache-Control',indexable&&req.path!=='/support'?'public, max-age=300':'no-store');
   if(!indexable)res.set('X-Robots-Tag','noindex, nofollow, noarchive');
   res.set('Permissions-Policy','camera=(), microphone=(), geolocation=()');
   next();

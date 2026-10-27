@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { callOperatorJson } from './operator-client.mjs';
-import { PUBLIC_ORIGIN } from './config.mjs';
+import { PUBLIC_ORIGIN, VERSION, MCP_SURFACE_VERSION } from './config.mjs';
 import {validateGoldSupportRequest,callGoldSupportIntake} from './support-libredesk-intake.mjs';
 import { redactRestrictedText } from './response-sanitizer.mjs';
 
@@ -357,6 +357,7 @@ export function registerSupportBackoffice(app,{outbox=new SupportOutbox()}={}){
           signedIn:identity.signedIn,
           eligible:identity.signedIn&&ELIGIBLE_PLANS.has(plan),
           account:identity.signedIn?{email:identity.account.email,plan}:null,
+          system:{coreVersion:VERSION,mcpSurfaceVersion:MCP_SURFACE_VERSION},
         });
       }
       if(action==='status'){

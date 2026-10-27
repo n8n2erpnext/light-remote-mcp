@@ -9,10 +9,13 @@ const start=html.lastIndexOf('<script>'),end=html.indexOf('</script>',start);
 new vm.Script(html.slice(start+8,end));
 for(const item of ['supportAccountSummary','guestEmailGroup','supportEmailInput','supportSystemSummary',
     'supportSystemDetails','supportLinkedDevice',"/support/api?action=eligibility",
-    "/account/api?action=devices","/healthz","registeredDevices.length===1"])
+    "/account/api?action=devices","supportGuestSignin","/account/login?next=%2Fsupport","registeredDevices.length===1"])
  assert.ok(html.includes(item),'missing '+item);
 assert.match(html,/guestEmailGroup.hidden=Boolean\(verifiedAccount\)/);
 assert.match(html,/supportEmailInput.required=!verifiedAccount/);
+assert.match(html,/guestSignin.hidden=Boolean\(verifiedAccount\)/);
+assert.ok(html.includes('profile?.system?.coreVersion'),'Support context uses the same-origin API');
+assert.ok(html.includes('profile?.system?.mcpSurfaceVersion'),'MCP surface context comes from the API');
 
 const fake={email:'attacker@example.invalid',accountPlan:'VIP',accountVerified:true,
  subject:'test',description:'Help',problemArea:'other',deviceStatus:'unknown'};
