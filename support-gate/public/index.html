@@ -33,7 +33,7 @@
   <a class="rail-icon selected" href="/ai-support/" title="AI Support Gate" aria-current="page" aria-label="AI Support Gate"><svg><use href="#i-spark"/></svg></a>
   <a class="rail-icon" href="https://support.thaiduy.digital/contacts" title="Contacts in Libredesk" aria-label="Contacts"><svg><use href="#i-user"/></svg></a>
   <div class="rail-bottom">
-   <a class="rail-icon" href="https://support.thaiduy.digital/settings" title="Libredesk Settings" aria-label="Settings"><svg><use href="#i-settings"/></svg></a>
+   <a class="rail-icon" href="https://support.thaiduy.digital/admin/inboxes" title="Libredesk Settings" aria-label="Settings"><svg><use href="#i-settings"/></svg></a>
    <a class="rail-avatar" href="https://support.thaiduy.digital/" title="Libredesk account">S<span class="avatar-check"><svg><use href="#i-check"/></svg></span></a>
   </div>
  </nav>
@@ -49,7 +49,7 @@
   </div>
   <div class="nav-caption nav-caption-secondary">CHANNELS</div>
   <a class="nav-item nav-link" href="https://support.thaiduy.digital/inboxes/all"><svg><use href="#i-inbox"/></svg><span>Libredesk Inbox</span><svg class="nav-arrow"><use href="#i-arrow"/></svg></a>
-  <a class="nav-item nav-link" href="https://support.thaiduy.digital/settings"><svg><use href="#i-settings"/></svg><span>Manage in Libredesk</span><svg class="nav-arrow"><use href="#i-arrow"/></svg></a>
+  <a class="nav-item nav-link" href="https://support.thaiduy.digital/admin/inboxes"><svg><use href="#i-settings"/></svg><span>Manage in Libredesk</span><svg class="nav-arrow"><use href="#i-arrow"/></svg></a>
   <div class="nav-foot"><span class="net-dot"></span><span>Gold UAT · Human approval</span></div>
  </aside>
  <main class="main">
@@ -83,6 +83,20 @@
       <div class="eyebrow">CUSTOMER SUPPORT · AI ASSISTED</div>
       <div class="content-heading"><div><h2 id="editorTitle">New support draft</h2><p>AI investigates through Light Remote. Review and send only when ready.</p></div><span class="draft-status" id="draftStatus">New draft</span></div>
       <div class="info-banner" id="outbound"><svg><use href="#i-shield"/></svg><span>Checking send permissions…</span></div>
+      <details class="setup-panel" id="integrationPanel">
+        <summary><svg><use href="#i-settings"/></svg> Support channels &amp; incoming events <span id="integrationBadge">Not configured</span></summary>
+        <div class="setup-content">
+          <p>One Libredesk account, two brands. Create the real email inboxes using their own IMAP/SMTP authorization in Libredesk Admin. No passwords are collected by AI Support Gate.</p>
+          <div class="setup-links">
+            <a href="https://support.thaiduy.digital/admin/inboxes/new" target="_blank" rel="noopener noreferrer">Create email inbox in Libredesk</a>
+            <a href="https://support.thaiduy.digital/admin/webhooks" target="_blank" rel="noopener noreferrer">Manage webhooks</a>
+          </div>
+          <div class="setup-controls"><button type="button" class="btn primary" id="connectWebhook">Connect incoming events</button><button type="button" class="btn secondary" id="refreshEvents">Refresh event queue</button></div>
+          <div class="setup-meta" id="inboundStatus">Checking event receiver…</div>
+          <div class="events-list" id="inboundEvents"></div>
+          <p class="help-text">Incoming events are signed and retained as metadata only. AI never sends email without Owner approval.</p>
+        </div>
+      </details>
       <div class="section-title">Ticket details</div>
       <form id="draftForm" autocomplete="off">
        <div class="two">

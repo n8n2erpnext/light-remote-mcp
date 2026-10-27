@@ -69,3 +69,13 @@ Important Docker note: /home/ubuntu/netbird/traefik-dynamic.yaml is bind-mounted
 Do not restart or redeploy other NetBird services. For rollback, restore the saved pre-cutover route, recreate Traefik, restore Libredesk's pre-cutover config if required and restart only Libredesk app.
 
 The live owner browser still needs to confirm WebSocket readiness after signing in via HTTPS. Unauthenticated GET /ws returns 401 from Libredesk, proving route exists, but not an authenticated successful WebSocket upgrade. Email inboxes/API and actual outgoing mail remain disabled.
+
+## Signed inbound Libredesk webhook UAT (2026-10-27)
+
+Live receiver: `POST https://support.thaiduy.digital/ai-support/api/webhooks/libredesk`. It accepts only the exact Libredesk `X-Libredesk-Signature: sha256=<HMAC>`, validated against the raw HTTP body, and stores **only event metadata** in `support_gate_inbound_events` (deduplicated; no ticket bodies). Its signing secret is generated solely at private runtime in `.gate.env`, never in Git.
+
+The existing Admin has a one-click **Connect incoming events** control inside **Support channels & incoming events** on the Gate Owner Review web page. It uses the same Libredesk Admin cookies and native CSRF, and creates the official Libredesk webhook through `POST /api/v1/webhooks` with only `conversation.created` and `message.created` subscriptions. This connection is not auto-enabled by the deployment; it must be activated by an authenticated owner. The event queue is owner-only. AI may create drafts, but does not auto-approve or auto-send.
+
+At deployment, Libredesk had zero email inboxes and no webhook configured. Real customer email remains out of scope until both brands have verified IMAP/SMTP credentials and sender identities. Lark requires a dedicated app authorization code entered only in the Libredesk Admin web form; do not copy passwords into tickets or Git.
+
+Detailed handoff: `docs/gold/RDC_GOLD_LIBREDESK_INBOUND_WEBHOOK_HANDOFF_20261027.md`.

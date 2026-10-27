@@ -109,6 +109,7 @@ async function init(){
    ?'Libredesk outbound configured. Human owner approval is required before every reply.'
    :'UAT safe mode — Sending disabled until brand inboxes and Libredesk agent API are configured.';
   await refresh();
+  await loadEvents().catch(()=>{});
  }catch(error){
   csrf='';canSend=false;
   $('login').hidden=false;$('workspace').hidden=true;
@@ -168,4 +169,28 @@ $('sendProceed').addEventListener('click',async()=>{
  }catch(e){feedback('Send not completed: '+e.message);await refresh()}
  finally{$('sendProceed').disabled=false}
 });
+async function loadEvents(){
+ const data=await api('/api/inbound/events');
+ $('integrationBadge').textContent=data.webhook_connected?'Webhook connected':'Needs setup';
+ $('connectWebhook').disabled=Boolean(data.webhook_connected)||!data.webhook_ready;
+ $('inboundStatus').textContent='Events received: '+data.total+
+  ' · Signed receiver: '+(data.webhook_ready?'ready':'not configured')+
+  ' · Automatic email send: '+(data.mail_sending_ready?'configured':'disabled');
+ const target=$('inboundEvents');target.replaceChildren();
+ for(const event of data.events.slice(0,12)){
+  const item=document.createElement('div');item.className='event-entry';
+  const label=document.createElement('strong');
+  label.textContent=event.event_type+(event.inbox_id?' · Inbox '+event.inbox_id:'');
+  const date=document.createElement('time');date.textContent=new Date(event.received_at).toLocaleString('en-US');
+  item.append(label,date);target.append(item);
+ }
+}
+$('connectWebhook').addEventListener('click',async()=>{
+ $('connectWebhook').disabled=true;
+ try{
+  await api('/api/integration/connect-webhook','POST',{});
+  feedback('Libredesk webhook linked to AI Support Gate.');await loadEvents();
+ }catch(error){feedback('Webhook setup: '+error.message);$('connectWebhook').disabled=false}
+});
+$('refreshEvents').addEventListener('click',()=>loadEvents().catch(e=>feedback(e.message)));
 void init();
