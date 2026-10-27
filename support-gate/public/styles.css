@@ -60,7 +60,7 @@ svg{height:18px;width:18px;fill:none;stroke:currentColor;stroke-width:1.85;strok
 .queue{width:333px;flex:0 0 333px;border-right:1px solid #e4e6e8;display:flex;flex-direction:column;min-width:0;background:#fff}
 .queue-head{padding:26px 17px 19px}
 .queue-title{display:flex;justify-content:space-between;align-items:center;gap:12px}
-.queue-title h2{font-size:16px;letter-spacing:-.3px;margin:0;font-weight:670}
+.queue-actions{display:flex;gap:5px;align-items:center}.queue-actions .btn{font-size:11px;padding:5px 9px;white-space:nowrap}\n.queue-title h2{font-size:16px;letter-spacing:-.3px;margin:0;font-weight:670}
 .icon-button{width:30px;height:30px;border:0;background:transparent;color:#85898d;border-radius:7px;display:grid;place-items:center}
 .icon-button:hover{background:#f1f1f1}
 .icon-button svg{width:16px;height:16px}

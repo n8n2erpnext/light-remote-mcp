@@ -10,6 +10,7 @@ import {configuredRemoteInbox,verifiedTicket} from './ticket-read.mjs';
 import {ticketSummary,buildQueue} from './ticket-queue.mjs';
 import {parseReply,htmlFromPlainText,rawNativeCsrf,lastPublicMessage} from './owner-reply.mjs';
 import {aiProviderReady,requestAIDraft} from './ai-draft.mjs';
+import {createTicketReader,renderPublicTicket,publicHeaders} from './public-ticket.mjs';
 
 const {GATE_PG_URL,GATE_ADMIN_SALT,GATE_ADMIN_HASH,LIBREDESK_BASE_URL,
  LIBREDESK_API_KEY,LIBREDESK_API_SECRET,GATE_OWNER_EMAIL,GATE_WORKER_TOKEN_HASH,
@@ -17,6 +18,7 @@ const {GATE_PG_URL,GATE_ADMIN_SALT,GATE_ADMIN_HASH,LIBREDESK_BASE_URL,
  GATE_AI_DRAFTER_URL,GATE_AI_DRAFTER_TOKEN}=process.env;
 if(!GATE_PG_URL||!GATE_ADMIN_SALT||!GATE_ADMIN_HASH)throw Error('support_gate_config_missing');
 const pool=new pg.Pool({connectionString:GATE_PG_URL,max:6,connectionTimeoutMillis:6000});
+const publicTicketBridge=createTicketReader(GATE_PG_URL,pg.Pool);
 const root=join(dirname(fileURLToPath(import.meta.url)),'../public');
 const authorityUrl='http://app:9000/api/v1/agents/me';
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
@@ -77,6 +79,10 @@ async function log(id,action,details={}){
  [id,action,JSON.stringify(details)]);
 }
 async function setup(){
+ await pool.query("CREATE TABLE IF NOT EXISTS support_gate_public_ticket_access ("+
+  "conversation_uuid uuid PRIMARY KEY,inbox_id integer NOT NULL CHECK(inbox_id IN (1,2)),"+
+  "created_at timestamptz NOT NULL DEFAULT now(),"+
+  "expires_at timestamptz NOT NULL DEFAULT (now()+interval '60 days'),revoked_at timestamptz)");
  await pool.query("CREATE TABLE IF NOT EXISTS support_gate_drafts ("+
  "id uuid PRIMARY KEY,brand text NOT NULL CHECK(brand IN ('light-remote','lightbi')),"+
  "conversation_uuid uuid NOT NULL,recipient text NOT NULL,subject text NOT NULL,message text NOT NULL,"+
@@ -361,20 +367,28 @@ async function receiveWebhook(req,res){
  const key=stableEventKey(event,bytes);
  const saved=await pool.query('INSERT INTO support_gate_inbound_events(event_key,event_type,conversation_uuid,message_uuid,inbox_id,sender_type) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT (event_key) DO NOTHING RETURNING id',
  [key,event.event,event.conversation_uuid,event.message_uuid,event.inbox_id,event.sender_type]);
+ if(saved.rowCount&&event.event==='conversation.created'&&event.conversation_uuid&&inboxAllowed(event.inbox_id)){
+  await pool.query('INSERT INTO support_gate_public_ticket_access(conversation_uuid,inbox_id) VALUES($1,$2) ON CONFLICT DO NOTHING',[event.conversation_uuid,event.inbox_id]);
+ }
  return json(res,202,{ok:true,queued:Boolean(saved.rowCount),duplicate:!saved.rowCount});
 }
 async function handler(req,res){
  const path=new URL(req.url,'http://localhost').pathname,method=req.method;
+ const publicMatch=path.match(/^\/t\/([a-f0-9-]{36})$/i);
+ if(method==='GET'&&publicMatch&&uuid.test(publicMatch[1])){
+  const page=await renderPublicTicket(pool,publicTicketBridge,publicMatch[1]);
+  res.writeHead(page?200:404,publicHeaders());return res.end(page||'Ticket link unavailable or expired');
+ }
  if(path==='/'&&String(req.headers.host||'').endsWith(':9088')){
   res.writeHead(302,{location:'https://support.thaiduy.digital/ai-support/','cache-control':'no-store'});
   return res.end();
  }
  if(path==='/healthz')return json(res,200,{ok:true,service:'support-gate',outbound_ready:outgoingReady(),ai_draft_ready:aiReady()});
  if(path==='/api/webhooks/libredesk'&&method==='POST')return receiveWebhook(req,res);
- if(['/', '/app.js','/styles.css'].includes(path)&&method==='GET'){
+ if(['/', '/app.js','/styles.css','/branding/light-remote-mark.png'].includes(path)&&method==='GET'){
   const file=path==='/'?'index.html':path.slice(1),text=await readFile(join(root,file));
-  const type=file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'text/html';
-  res.writeHead(200,{'content-type':type+'; charset=utf-8','cache-control':'no-store',
+  const type=file.endsWith('.png')?'image/png':file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'text/html';
+  res.writeHead(200,{'content-type':type+(type==='image/png'?'':'; charset=utf-8'),'cache-control':type==='image/png'?'public, max-age=3600':'no-store',
    'content-security-policy':"default-src 'self';script-src 'self';style-src 'self';base-uri 'none';object-src 'none';frame-ancestors 'none'"});
   return res.end(text);
  }
@@ -455,4 +469,4 @@ const server=http.createServer((req,res)=>Promise.resolve(handler(req,res)).catc
  if(!res.headersSent)fail(res,500,'internal_error');else res.end();
 }));
 server.listen(Number(process.env.PORT||9088),'0.0.0.0',()=>console.log('SUPPORT_GATE_OWNER_REVIEW_READY'));
-process.on('SIGTERM',()=>server.close(()=>pool.end()));
+process.on('SIGTERM',()=>server.close(async()=>{await Promise.all([pool.end(),publicTicketBridge.end()])}));

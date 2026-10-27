@@ -84,3 +84,17 @@ Template has dark-blue LR lettermark and gold accent, human-readable content and
 - **Important safety boundary:** AI Draft worker currently accepts Light Remote Inbox 1 only, by design. AI Draft for LightBI is explicitly DISABLED in UI; AI auto-send for both brands is OFF (`outbound_ready=false`). LightBI manual reply remains available through Libredesk and the owner-authorized Gate route, but no actual Gate owner-reply send was made under Inbox 2 (the tested live sending path was **native Libredesk**). Gate approved-draft sender still lacks dedicated Libredesk API credentials (not inferred from new inbox mapping). Do not describe AI automated sending or LightBI AI Draft as enabled. Work on those as separate future acceptance tasks.
 - Rollback two-brand Gate ONLY: restore earlier Gate image and `.gate.env` checkpoint, rebuild only Gate; retain Inbox 2 and Lark mailbox. If reverting branding, restore previous LR-only default by native Libredesk Templates UI; beware that it brands LightBI mail incorrectly if Inbox 2 stays active.
 - **Never print/share the Lark Public Mailbox password** from Lark UI, remote clipboard, .gate.env or PostgreSQL.
+
+## Official Light Remote SVG mark in outgoing emails — 27 Oct 2026
+
+The current native Libredesk globally-default email template **ID 9** is `support-multibrand-outgoing.html`. Its **Light Remote** header now uses the real official mark supplied by the owner from
+`https://raw.githubusercontent.com/n8n2erpnext/light-remote-mcp/refs/heads/main/assets/branding/light-remote-mark.svg`.
+Source copy: `support-gate/assets/branding/light-remote-mark.svg` SHA256 `417f45d22d27c82ba7159b94e6e59bc93da64546a5027ed06aaeb54a9cee1d65`.
+
+For compatibility with Gmail/Outlook where remote SVG logos are often unsupported, a 160×160 transparent PNG was rasterized via ImageMagick and served from the Gate's public static allowlist:
+`https://support.thaiduy.digital/ai-support/branding/light-remote-mark.png`.
+Production PNG `public/branding/light-remote-mark.png` SHA256 `647a6eeaca0f10eac5303239e38e2969f88c4a2fb8cab1662c74adfc7adcc1e0`. GET is unauthenticated with `Content-Type: image/png` and 1h cache. No new proxy or DNS. The email markup adds `<img src=... alt="Light Remote">...` **only** when `.Inbox.Name` is not `LightBI Support`; the BI initials, footer and Lark sender for LightBI remain unchanged. Global `{{ template "content" . }}` remains exactly once.
+
+Native Libredesk Admin editor saved successfully as Default ID 9 via authorized Gold Windows session. The template stored in PostgreSQL is an **exact match** to whitespace-minified source, 3970 characters, one hosted PNG image and one content template placeholder. Gate/Libredesk/ERPNext HTTP health 200. Live email UAT from **Light Remote ticket #106** to owner-controlled Gmail `th.dangduy@gmail.com`: Gmail received the response at 2026-10-27T06:24:08Z. Raw Gmail MIME, after quoted-printable decoding, includes the complete public PNG HTTPS URL in an `<img>` tag and correct Light Remote brand name. No external customer was mailed. Some email clients block remote images until user chooses to display them; alt text remains available.
+
+Rollback: in Libredesk native Admin Templates ID 9, restore the prior `support-multibrand-outgoing.html` from Git parent and Save; for Gate-only asset route revert the code/ Docker image tag `libredesk-support-gold-gate:pre-official-mail-logo-20261027`. Do not alter DB volumes, NetBird routes, customer tickets or mail credentials.

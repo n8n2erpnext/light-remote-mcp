@@ -1,5 +1,6 @@
 const $=id=>document.getElementById(id);
 let csrf='',current=null,canSend=false,aiConnected=false,drafts=[],tickets=[],filter='tickets',query='',toastTimer=0,selectedTicket=null,selectedTicketEvent=null,ticketDirty=false,syncBusy=false,syncTimer=null,manualPending=null;
+let alertReady=false,seenTicketIds=new Set();
 
 function icon(ref){return '<svg aria-hidden="true"><use href="#i-'+ref+'"></use></svg>'}
 function feedback(message){
@@ -212,6 +213,17 @@ $('loadTicket').addEventListener('click',()=>importTicket($('conversation').valu
 $('retryLogin').addEventListener('click',()=>init());
 $('refresh').addEventListener('click',()=>['tickets','attention'].includes(filter)?syncTickets(false):refresh().catch(e=>feedback(e.message)));
 $('syncNow').addEventListener('click',()=>syncTickets(false));
+function refreshAlertButton(){
+ const supported=typeof Notification!=='undefined'&&window.isSecureContext;
+ $('ticketAlerts').disabled=!supported||Notification.permission==='denied';
+ $('ticketAlerts').textContent=!supported?'Alerts unavailable':Notification.permission==='granted'?'Alerts on':Notification.permission==='denied'?'Alerts blocked':'Enable alerts';
+}
+$('ticketAlerts').addEventListener('click',async()=>{
+ if(typeof Notification==='undefined'||!window.isSecureContext)return feedback('Desktop alerts require HTTPS and browser support.');
+ const permission=await Notification.requestPermission();refreshAlertButton();
+ feedback(permission==='granted'?'Desktop notifications enabled for new tickets.':'Browser notifications were not enabled. In-app alerts remain active.');
+});
+refreshAlertButton();
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&!$('workspace').hidden)void syncTickets(false)});
 $('search').addEventListener('input',event=>{query=event.target.value.trim();render()});
 document.querySelectorAll('[data-filter]').forEach(item=>
@@ -349,6 +361,19 @@ async function syncTickets(initial=false){
  try{
   const response=await api('/api/tickets/queue');
   tickets=response.tickets||[];
+  const additions=tickets.filter(t=>!seenTicketIds.has(t.conversation_uuid));
+  for(const ticket of tickets)seenTicketIds.add(ticket.conversation_uuid);
+  if(alertReady&&additions.length){
+   feedback(additions.length+' new support ticket'+(additions.length>1?'s':'')+' received.');
+   document.title='('+additions.length+' new) AI Support · Light Remote';
+   if(typeof Notification!=='undefined'&&Notification.permission==='granted'){
+    for(const ticket of additions.slice(0,3)){
+     const notice=new Notification((ticket.brand==='lightbi'?'LightBI':'Light Remote')+' · New ticket',{body:ticket.subject||'New support request',tag:'support-'+ticket.conversation_uuid});
+     notice.onclick=()=>{window.focus();void selectTicket(ticket.conversation_uuid);notice.close()};
+    }
+   }
+  }
+  alertReady=true;
   const time=new Date(response.sync_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
   $('syncStatus').textContent='Last synced '+time+' · Every 30 sec'+(response.unavailable?' · '+response.unavailable+' unavailable':'');
   $('queueSync').textContent='Auto-sync on';
