@@ -13,7 +13,11 @@ export function ticketExpiry(ticket){
 export function ticketCanView(ticket,now=new Date()){
  const expires=ticketExpiry(ticket);return !expires||expires.getTime()>now.getTime();
 }
-export function brandFor(ticket){return Number(ticket.inbox_id)===2?{name:'LightBI',logo:'lightbi-app-icon.png'}:{name:'Light Remote',logo:'light-remote-mark-256.png'};}
+export function brandFor(ticket){return Number(ticket.inbox_id)===2?{name:'LightBI',logo:'lightbi-app-icon.png',email:'support@lightbi.app'}:{name:'Light Remote',logo:'light-remote-mark-256.png',email:'support@thaiduy.digital'};}
+export function outputTimestamp(value=new Date()){
+ const date=new Date(value);
+ return Number.isFinite(date.getTime())?date.toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false,timeZone:'Asia/Ho_Chi_Minh'})+' ICT':'—';
+}
 export function ticketStatus(ticket){return String(statusLabels[ticket.status_id]||ticket.status_name||'In progress');}
 export function ticketWhen(value){
  const d=new Date(value);return Number.isFinite(d.getTime())?d.toLocaleString('en-GB',{dateStyle:'medium',timeStyle:'short',timeZone:'UTC'})+' UTC':'—';
@@ -34,22 +38,23 @@ function shell(ticket,inner,{print=false}={}){
  const brand=brandFor(ticket),status=ticketStatus(ticket);
  return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'+
  '<meta name="robots" content="noindex,nofollow,noarchive"><meta name="color-scheme" content="light"><title>'+escapeHTML(brand.name)+' · Ticket #'+escapeHTML(ticket.reference_number)+'</title>'+
- '<link rel="stylesheet" href="/ai-support/ticket.css"></head><body class="'+(print?'print-view':'')+'"><main class="wrap"><div class="sheet">'+
+ '<link rel="stylesheet" href="/ai-support/ticket.css"></head><body class="'+(print?'print-view':'ticket-view')+'"><main class="wrap"><div class="sheet">'+
  '<header class="ticket-header"><div class="identity"><img alt="'+escapeHTML(brand.name)+'" src="/ai-support/branding/'+brand.logo+'"><div><span class="kicker">Customer Support Center</span>'+escapeHTML(brand.name)+' Support</div></div><div class="header-side">Private support ticket</div></header>'+
- '<div class="main">'+inner+'</div></div></main>'+(print?'<script src="/ai-support/print-ticket.js" defer></script>':'')+'</body></html>';
+ '<div class="main">'+inner+'</div></div></main>'+ (print?'<footer class="print-footer" aria-label="Print footer"><div><span>https://support.thaiduy.digital/</span> · <span>'+escapeHTML(brand.email)+'</span></div><div>Printed: '+escapeHTML(outputTimestamp())+'</div></footer>':'')+(print?'<script src="/ai-support/print-ticket.js" defer></script>':'<script src="/ai-support/ticket-actions.js" defer></script>')+'</body></html>';
 }
 function header(ticket,{print=false}={}){
  const status=ticketStatus(ticket),id=String(ticket.reference_number||'');
  const expiry=ticketExpiry(ticket);
  const actions=print?'<a class="btn no-print" href="'+ticketURL(ticket.uuid)+'">Back to ticket</a><button class="btn primary no-print" id="printNow" type="button">Print now</button><a class="btn no-print" href="'+ticketURL(ticket.uuid)+'/pdf">Export PDF</a>':
- '<a class="btn" href="'+ticketURL(ticket.uuid)+'/print" target="_blank" rel="noopener">Print ready</a><a class="btn primary" href="'+ticketURL(ticket.uuid)+'/pdf">Export PDF</a>';
+ '<button class="btn" type="button" id="printReady" data-print-url="'+ticketURL(ticket.uuid)+'/print" aria-label="Print complete ticket">▤ Print ready</button><a class="btn" href="#ticket-details">▤ Ticket details</a><a class="btn primary" href="'+ticketURL(ticket.uuid)+'/pdf">↓ Export PDF</a>';
  return '<div class="overline">Ticket #'+escapeHTML(id)+' · Support request</div><h1>'+escapeHTML(String(ticket.subject||'Support request').slice(0,320))+'</h1>'+
  '<div class="status-row"><span class="pill '+(['closed','resolved','snoozed'].includes(status.toLowerCase())?status.toLowerCase():'')+'">'+escapeHTML(status)+'</span></div>'+
  '<nav class="toolbar" aria-label="Ticket actions">'+actions+'</nav>'+
- '<div class="details"><div class="detail"><small>Ticket reference</small><strong>#'+escapeHTML(id)+'</strong></div>'+
+ '<div class="details" id="ticket-details"><div class="detail"><small>Ticket reference</small><strong>#'+escapeHTML(id)+'</strong></div>'+
  '<div class="detail"><small>Created</small><strong>'+ticketWhen(ticket.created_at)+'</strong></div>'+
  '<div class="detail"><small>Current status</small><strong>'+escapeHTML(status)+'</strong></div></div>'+
- '<div class="steps" aria-label="Possible ticket statuses">'+[1,2,3,4].map(i=>i===Number(ticket.status_id)?'<strong>'+statusLabels[i]+'</strong>':'<span>'+statusLabels[i]+'</span>').join('')+'</div>'+
+ '<nav class="steps" aria-label="Ticket status explanations">'+[1,2,3,4].map(i=>'<a class="status-tag '+statusLabels[i].toLowerCase()+(i===Number(ticket.status_id)?' current':'')+'" href="#status-info"'+(i===Number(ticket.status_id)?' aria-current="step"':'')+' title="View meaning of '+statusLabels[i]+'">'+statusLabels[i]+'</a>').join('')+'</nav>'+
+ '<details class="status-info" id="status-info"><summary>What do these statuses mean?</summary><div class="status-definitions"><p><strong>Open</strong> — Your ticket is active and can receive replies.</p><p><strong>Snoozed</strong> — Temporarily on hold; a new reply reopens it.</p><p><strong>Resolved</strong> — A solution was provided; replies can reopen the ticket.</p><p><strong>Closed</strong> — Read-only; its link expires after 14 days.</p></div><small>These are informational links, not controls for changing ticket status.</small></details>'+
  '<p class="expiry">'+(expiry?'Closed '+ticketWhen(ticket.closed_at)+' · Link expires '+ticketWhen(expiry):'The private ticket remains available while active and expires 14 days after it is Closed.')+'</p>';
 }
 export function messageCard(message){
@@ -127,6 +132,6 @@ export async function renderPublicTicket(pool,bridge,id,options={}){
  return buildPublicPage(ticket,result.messages,{form,notice:options.notice,pagination:result.pagination,total:result.total,print:Boolean(options.print)});
 }
 export function publicHeaders({print=false}={}){
- return {'content-type':'text/html; charset=utf-8','cache-control':'private, no-store, max-age=0','x-content-type-options':'nosniff','x-frame-options':'DENY','referrer-policy':'same-origin','x-robots-tag':'noindex,nofollow,noarchive',
-  'content-security-policy':"default-src 'none';img-src 'self';style-src 'self';"+(print?"script-src 'self';":"")+"form-action 'self';frame-ancestors 'none';base-uri 'none'"};
+ return {'content-type':'text/html; charset=utf-8','cache-control':'private, no-store, max-age=0','x-content-type-options':'nosniff','x-frame-options':print?'SAMEORIGIN':'DENY','referrer-policy':'same-origin','x-robots-tag':'noindex,nofollow,noarchive',
+  'content-security-policy':"default-src 'none';img-src 'self';style-src 'self';script-src 'self';"+(print?"frame-ancestors 'self';":"frame-src 'self';frame-ancestors 'none';")+"form-action 'self';base-uri 'none'"};
 }

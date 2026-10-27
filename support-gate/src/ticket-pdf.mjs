@@ -1,16 +1,16 @@
 import PDFDocument from 'pdfkit';
 import {existsSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
-import {brandFor,redactTicketText,ticketStatus,ticketWhen,MAX_EXPORT_MESSAGES} from './public-ticket.mjs';
+import {brandFor,redactTicketText,ticketStatus,ticketWhen,outputTimestamp,MAX_EXPORT_MESSAGES} from './public-ticket.mjs';
 
 const fontCandidates=['/usr/share/fonts/ttf-dejavu/DejaVuSans.ttf','/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'];
 const logoRoot=new URL('../public/branding/',import.meta.url);
 export function pdfFontPath(){return fontCandidates.find(existsSync)||null;}
 // The PDF contains conversation text, never the bearer URL, access code or authorization cookie.
-export function createTicketPDF(ticket,messages){
+export function createTicketPDF(ticket,messages,{exportedAt=new Date()}={}){
  if(!Array.isArray(messages)||messages.length>MAX_EXPORT_MESSAGES)throw Error('ticket_export_too_large');
  const brand=brandFor(ticket);
- const doc=new PDFDocument({size:'A4',margins:{top:46,bottom:49,left:48,right:48},bufferPages:true,
+ const doc=new PDFDocument({size:'A4',margins:{top:46,bottom:70,left:48,right:48},bufferPages:true,
   info:{Title:brand.name+' Support - Ticket #'+String(ticket.reference_number),Author:brand.name+' Support Center',Subject:'Customer support transcript'}});
  const font=pdfFontPath();
  if(font)doc.registerFont('body',font);
@@ -46,10 +46,14 @@ export function createTicketPDF(ticket,messages){
  const range=doc.bufferedPageRange();
  for(let i=range.start;i<range.start+range.count;i++){
   doc.switchToPage(i);
-  const y=doc.page.height-30,originalBottom=doc.page.margins.bottom;
-  doc.page.margins.bottom=8;
-  doc.font(fontName).fontSize(8).fillColor(secondary).text('Private support transcript · '+brand.name,margin,y,{width:345,lineBreak:false});
-  doc.text('Page '+(i+1)+' / '+range.count,pageWidth-136,y,{width:88,align:'right',lineBreak:false});
+  const originalBottom=doc.page.margins.bottom,footerY=doc.page.height-62;
+  doc.page.margins.bottom=5;
+  doc.moveTo(margin,footerY-5).lineTo(pageWidth-margin,footerY-5).strokeColor('#d9e2ec').stroke();
+  doc.font(fontName).fontSize(7.5).fillColor(secondary)
+   .text('https://support.thaiduy.digital/',margin,footerY,{width:205,height:12,lineBreak:false,link:'https://support.thaiduy.digital/'});
+  doc.text(brand.email,margin,footerY+12,{width:270,height:12,lineBreak:false,link:'mailto:'+brand.email});
+  doc.text('Exported: '+outputTimestamp(exportedAt),margin,footerY+25,{width:340,height:12,lineBreak:false});
+  doc.font(fontName).fontSize(8).fillColor(secondary).text('Page '+(i+1)+' / '+range.count,pageWidth-140,footerY+25,{width:92,height:12,align:'right',lineBreak:false});
   doc.page.margins.bottom=originalBottom;
  }
  doc.end();
