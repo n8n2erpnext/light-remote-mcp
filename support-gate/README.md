@@ -79,3 +79,19 @@ The existing Admin has a one-click **Connect incoming events** control inside **
 At deployment, Libredesk had zero email inboxes and no webhook configured. Real customer email remains out of scope until both brands have verified IMAP/SMTP credentials and sender identities. Lark requires a dedicated app authorization code entered only in the Libredesk Admin web form; do not copy passwords into tickets or Git.
 
 Detailed handoff: `docs/gold/RDC_GOLD_LIBREDESK_INBOUND_WEBHOOK_HANDOFF_20261027.md`.
+
+
+## Phase 2: Zoho email E2E and owner-only ticket import (27 October 2026)
+
+The historical "Not ready yet" notes above describe the **initial phase** and are superseded for Light Remote email receive/reply only:
+
+- Live Light Remote Zoho inbox ID 1, `support@thaiduy.digital`, IMAP `imap.zoho.com:993` SSL/TLS and SMTP `smtp.zoho.com:465` SSL/TLS.
+- Verified on native Libredesk: 4 conversations after IMAP import; a controlled email became incoming/received and manual reply was recorded as outgoing/sent in the same conversation. Do not claim general deliverability or reply threading beyond this tested example.
+- HMAC-signed native webhook connected, `conversation.created` and `message.created` events return HTTP 202 to Gate. Gate stores metadata only and does not retain webhook ticket bodies.
+- Owner-only read path: `GET /ai-support/api/tickets/:uuid` (proxy strips `/ai-support`), protected by the existing Libredesk Admin session; native upstream `GET /api/v1/conversations/:uuid` and `GET /api/v1/conversations/:uuid/messages`. It enforces the mapped Light Remote `inbox_id=1` and channel=email before fetching message content, excludes private messages, and returns a bounded public-message preview plus prefill fields to owner.
+- Gate UI has **Load ticket from Libredesk** and per-incoming-event **Load ticket** buttons. This creates **no draft** until Save is clicked; all send paths remain disabled because dedicated agent API credentials and LightBI inbox mapping are absent.
+- Runtime-only `LIBREDESK_REMOTE_INBOX_ID=1` in private `.gate.env`; back up the old file under `support-gate-checkpoints/20261027-ticket-read/`. Neither account credentials nor API keys go to Git.
+- Unit/security tests **14/14 PASS**. Public health HTTP 200 and missing-cookie ticket requests return HTTP 401. Real authenticated browser click of new Load ticket control is **pending acceptance**; do not report it as verified before the owner tests with a live session.
+- Gold UAT only; no changes to NetBird Traefik, ERPNext or Light Remote production. Branch commit for implementation: `0f75909`.
+
+Next stage: authenticated browser acceptance of ticket import, then a dedicated least-privilege API identity for an investigation worker and **draft-only** automation via official Light Remote. Never use the owner API key as a machine worker credential or enable auto-send. LightBI still lacks a finalized Lark support mailbox.
