@@ -30,6 +30,15 @@ assert.equal(requests[0].opts.cwd,'/opt/light-remote-gold-uat-candidates/gold-te
 assert.equal(requests[0].opts.executionMode,'foreground');
 assert.deepEqual(requests[0].opts.requiredCapabilities,['filesystem']);
 assert.equal(requests[0].opts.operationId,input.operationId);
+const windowsRoot='C:\\Users\\vkphu\\AppData\\Local\\Programs\\Light Remote MCP\\agent';
+const winInput={...input,clientRoot:windowsRoot};
+const winResult=await runGoldMemoryViaAuthorizedSession(adapter,winInput);
+assert.equal(winResult.ok,true);
+assert.equal(requests.at(-1).opts.cwd,windowsRoot);
+assert.match(requests.at(-1).cmd,/^& 'C:\\Users\\vkphu\\AppData\\Local\\Programs\\Light Remote MCP\\runtime\\node\.exe' --no-warnings/);
+assert.doesNotMatch(requests.at(-1).cmd,/whoami/);
+const powerShellQuoted=makeGoldMemoryExecScript(input,{nodeBinary:"C:\\root's folder\\node.exe"});
+assert.match(powerShellQuoted,/^& 'C:\\root''s folder\\node\.exe' --no-warnings/);
 let denied=false;
 try{await runGoldMemoryViaAuthorizedSession({exec:async()=>{throw new Error('device_access_grant_required');}},input);}
 catch(e){denied=true;assert.match(e.message,/device_access_grant_required/);}

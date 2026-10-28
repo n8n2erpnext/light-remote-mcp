@@ -4,11 +4,12 @@
  * This is a restricted command route over the existing governed Gold Agent.
  */
 import crypto from 'node:crypto';
+import path from 'node:path';
 
 const MARKER='LIGHT_REMOTE_GOLD_MEMORY_V1=';
 function failure(code,status=400){return Object.assign(new Error(code),{status});}
 function b64url(value){return Buffer.from(JSON.stringify(value),'utf8').toString('base64url');}
-export function makeGoldMemoryExecScript(x){
+export function makeGoldMemoryExecScript(x,{nodeBinary=null}={}){
   if(!['handoff','list','get','save','scopes','scope_resolve','scope_handoff','scope_get','scope_save','scope_usage','scope_full_context'].includes(x.action))throw failure('gold_memory_action_invalid');
   const clean={action:x.action};
   if(['save','scope_save'].includes(x.action)){
@@ -46,7 +47,10 @@ export function makeGoldMemoryExecScript(x){
   const encoded=b64url(clean);
   // base64url is shell-inert on bash, sh and PowerShell.
   if(!/^[A-Za-z0-9_-]+$/.test(encoded))throw failure('gold_memory_encoding_invalid');
-  return 'node --no-warnings device-agent/gold-memory-cli.mjs '+encoded;
+  // Windows installations bundle Node beside agent/. Never assume node.exe
+  // is globally available in the user's PowerShell PATH.
+  const executable=nodeBinary?"& '"+String(nodeBinary).replace(/'/g,"''")+"' ":'node ';
+  return executable+'--no-warnings device-agent/gold-memory-cli.mjs '+encoded;
 }
 export function parseGoldMemoryExecOutput(output){
   if(typeof output!=='string')throw failure('gold_memory_output_invalid',502);
@@ -58,7 +62,6 @@ export function parseGoldMemoryExecOutput(output){
   return value;
 }
 export async function runGoldMemoryViaAuthorizedSession(adapter,input){
-  const script=makeGoldMemoryExecScript(input);
   // Explicit client install root is required. The Agent defaults exec.cwd to
   // os.homedir(), not the Gold install directory. No filesystem auto-discovery.
   const configuredRoot=String(input.clientRoot||process.env.LIGHT_REMOTE_GOLD_MEMORY_CLIENT_ROOT||'').trim();
@@ -73,6 +76,10 @@ export async function runGoldMemoryViaAuthorizedSession(adapter,input){
     const ownedSession=await adapter.sessionRaw(input.sessionId);
     if(ownedSession.deviceId!==allowedId)throw failure('gold_memory_device_binding_mismatch',403);
   }
+
+  const isWindowsRoot=/^[A-Za-z]:[\\/]/.test(configuredRoot);
+  const nodeBinary=isWindowsRoot?path.win32.join(path.win32.dirname(configuredRoot),'runtime','node.exe'):null;
+  const script=makeGoldMemoryExecScript(input,{nodeBinary});
 
   // A/B, exact session device authorization and local policy are enforced
   // by AccountOperatorAdapter.exec() and the existing Gold Agent.
