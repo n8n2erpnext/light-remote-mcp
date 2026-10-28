@@ -32,6 +32,28 @@ try{
  assert.deepEqual(await sched.admit(loser.accountId,5),[loser.jobId]);
  await sched.complete(loser.jobId,loser.accountId);
  console.log('M3_TEAM_CROSS_ACCOUNT_SINGLE_DEVICE_SLOT_PASS');
+ // Background lease blocks a project, NOT an unrelated foreground read job.
+ const holDevice='hol_device_'+seed;
+ const bg=mk(a,holDevice,'bg_owner_'+seed);
+ bg.resource={resourceKey:'project:/fixture/blocked',mode:'exclusive',workerWeight:1};
+ await sched.enqueue(bg);
+ assert.deepEqual(await sched.admit(a,3),[bg.jobId]);
+ const bgProcess='lp_'+crypto.randomBytes(18).toString('base64url');
+ await sched.complete(bg.jobId,a,'ok',{processId:bgProcess});
+ const blocked=mk(a,holDevice,'blocked_'+seed);
+ blocked.resource={resourceKey:'project:/fixture/blocked',mode:'exclusive',workerWeight:1};
+ const independent=mk(a,holDevice,'read_'+seed);
+ independent.resource={resourceKey:'project:/fixture/free',mode:'shared',workerWeight:0};
+ await sched.enqueue(blocked);await sched.enqueue(independent);
+ assert.deepEqual(await sched.admit(a,3),[independent.jobId],
+  'background lock must not head-of-line block independent work');
+ await sched.complete(independent.jobId,a);
+ await sched.resources.releaseVerifiedTerminal(db.pool,{accountId:a,deviceId:holDevice,process:{
+  processId:bgProcess,state:'finished',finishedAt:Date.now()
+ }});
+ assert.deepEqual(await sched.admit(a,3),[blocked.jobId]);
+ await sched.complete(blocked.jobId,a);
+ console.log('M3_BLOCKED_BACKGROUND_DOES_NOT_STARVE_INDEPENDENT_WORK_PASS');
  const capped='queue_cap_'+seed;
  const queued=Array.from({length:16},()=>mk(a,capped,'agent_'+seed));
  for(const job of queued)await sched.enqueue(job);
@@ -41,6 +63,13 @@ try{
  assert.deepEqual(await sched.expireQueued(a,600000),[queued[0].jobId]);
  for(const job of queued.slice(1))await sched.cancelQueued({jobId:job.jobId,accountId:a});
  console.log('M3_DEVICE_QUEUE_16_EXPIRE_10M_IDEMPOTENCY_PASS');
+ const accountQueued=Array.from({length:48},(_,n)=>mk(a,'account_limit_'+seed+'_'+Math.floor(n/16),'cap_agent_'+seed));
+ for(const job of accountQueued)await sched.enqueue(job);
+ await assert.rejects(()=>sched.enqueue(mk(a,'new_device_'+seed,'overflow_agent_'+seed)),
+  /m3_personal_queue_capacity_reached/);
+ assert.equal((await sched.enqueue(accountQueued[0])).jobId,accountQueued[0].jobId);
+ for(const job of accountQueued)await sched.cancelQueued({jobId:job.jobId,accountId:a});
+ console.log('M3_ACCOUNT_QUEUE_48_AND_RETRY_PRESERVED_PASS');
 }finally{
  for(const id of [a,b])await db.pool.query('DELETE FROM lr_gold_personal_agent_work WHERE account_id=$1',[id]);
  await db.close();

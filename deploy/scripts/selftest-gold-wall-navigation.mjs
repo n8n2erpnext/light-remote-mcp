@@ -28,6 +28,8 @@ try{
     assert.ok(html.includes('href="/permissions"'),route);
     assert.ok(!html.includes('href="/processes"'), 'OS process list is no longer top-level Wall navigation');
     assert.ok(html.includes('data-stop="job"'), 'each active job has inline Kill/Cancel');
+    assert.ok(html.includes('WAIT &gt;60s'), 'queued jobs must warn after 60 seconds');
+    assert.ok(html.includes("j.status==='queued'"), 'warning must only apply to queued jobs');
     assert.ok(!html.includes('fonts.googleapis.com'),route);
     assert.ok(!html.includes('fonts.gstatic.com'),route);
     if(tag==='memory'){
