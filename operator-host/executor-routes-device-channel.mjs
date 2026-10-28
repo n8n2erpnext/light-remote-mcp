@@ -179,8 +179,19 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       const receipt=fleet.receipt(result.commandId)||abandonedCommandReceiptFromDisk?.(result.commandId);
       if(!receipt)throw error;
       if(receipt.accountId!==ctx.binding.accountId||receipt.deviceId!==ctx.device.deviceId||receipt.nodeId!==ctx.device.nodeId)throw new FleetError('command_device_mismatch',403);
-      const prior=jobs.get(receipt.jobId);
-      return {ok:true,accepted:true,duplicate:true,job:prior?jobView(prior):null};
+      // A completed Fleet receipt is not itself proof of a terminal result.
+      // An abandoned queued command has no verified device execution.
+      if(receipt.abandoned)throw new FleetError('command_abandoned_effect_unknown',409);
+      const committed=await goldJobs.get(receipt.jobId);
+      if(!committed||
+         committed.accountId!==ctx.binding.accountId||
+         committed.deviceId!==ctx.device.deviceId||
+         !committed.finishedAt||
+         !['ok','error','timeout','cancelled'].includes(committed.status)||
+         !Number.isInteger(committed.exitCode))
+        throw new FleetError('command_terminal_commit_unverified',409);
+      // PostgreSQL returns an already redacted public snapshot, not a live job.
+      return {ok:true,accepted:true,duplicate:true,job:committed};
     }
     if(command.accountId!==ctx.binding.accountId||command.deviceId!==ctx.device.deviceId||command.nodeId!==ctx.device.nodeId)throw new FleetError('command_device_mismatch',403);
     const job=jobs.get(command.jobId);
