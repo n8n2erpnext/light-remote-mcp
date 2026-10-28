@@ -30,7 +30,9 @@ Owner requested a comprehensive RCA and fixes after Win11 baolong123 enrollment,
 6. A Gold UAT branch is not production; require code review/PR before merging or deploying to users. Do not auto-update the running Win11 owner device during CI.
 
 ## CI incident and test coverage update
-- First Windows GitHub Actions run #538 compiled successfully but the native Tray self-test failed, before installer deployment. Job logs showed trayLogic=false. The added URL query matcher mistakenly contained two regex backslashes before ?, so the server's valid ?id=... did not match. Fixed to a single regex escape and added a static guard against double escaping. Rerun required; do not publish run #538.
+- First Windows GitHub Actions run #538 compiled successfully but the native Tray self-test failed, before installer deployment. Job logs showed trayLogic=false. The added URL query matcher mistakenly contained two regex backslashes before ?, so the server's valid ?id=... did not match. Fixed to a single regex escape and added a static guard against double escaping. Do not publish run #538.
+- Windows GitHub Actions run #539 (https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/40652410188) completed SUCCESS on commit 8dd9a5fadca050c7b64f499b60c582450295c519. Native runtime smoke, RM V2 companion/bridge, full and compact installer, updater rollback and uninstall smoke all passed. Artifact: light-remote-windows-x64-8dd9a5fadca050c7b64f499b60c582450295c519 (331906203 bytes, GitHub Actions ZIP). This is source/CI acceptance, not Windows 11 physical A/B relink acceptance; SAC signing remains unresolved.
+- After CI, baolong123 checked with Gold device inspection: device Online, routing Online, cloud Connected, 23 effective including desktop and desktop-input. That is its currently installed client, NOT a test of the newly built #539 binary.
 
 ## Remaining work
 - Run the Windows CI workflow once on the dedicated fix branch and inspect real logs; static and .NET compile gates must pass. If errors occur, fix in the dedicated branch and rerun only as required.
