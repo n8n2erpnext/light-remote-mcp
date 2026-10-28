@@ -171,7 +171,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
     });
     return {ok:true,live};
   };
-  const acceptDeviceResult=(ctx,result,{resultTransport='unspecified'}={})=>{
+  const acceptDeviceResult=async(ctx,result,{resultTransport='unspecified'}={})=>{
     let command;
     try{command=fleet.command(result.commandId);}
     catch(error){
@@ -184,7 +184,12 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
     }
     if(command.accountId!==ctx.binding.accountId||command.deviceId!==ctx.device.deviceId||command.nodeId!==ctx.device.nodeId)throw new FleetError('command_device_mismatch',403);
     const job=jobs.get(command.jobId);
-    if(!job||job.commandId!==command.commandId)throw new FleetError('remote_job_not_found',404);
+    // Bind the retained job to the authenticated signed Agent principal as
+    // well as the Fleet command. A mismatched job must never receive an ACK.
+    if(!job||job.commandId!==command.commandId||
+       job.accountId!==ctx.binding.accountId||
+       job.deviceId!==ctx.device.deviceId)
+      throw new FleetError('remote_job_not_found',404);
     const stdout=String(result.stdout||''),stderr=String(result.stderr||'');
     if(Buffer.byteLength(stdout)>MAX_MEMORY_OUTPUT||Buffer.byteLength(stderr)>MAX_MEMORY_OUTPUT)throw new FleetError('remote_result_too_large',413);
     if(result.data!==undefined&&Buffer.byteLength(JSON.stringify(result.data))>MAX_MEMORY_OUTPUT)throw new FleetError('remote_result_data_too_large',413);
@@ -198,8 +203,13 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
     // Only a signed device exit after an owner stop request is proof of Kill.
     if(String(result.status||'')==='cancelled'&&job.stopRequestedAt)
       job.cancelled=true;
-    fleet.complete({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,commandId:command.commandId,resultTransport});
     finishJob(job,exitCode,null);
+    // This signed Agent result is NOT acknowledged until the terminal state
+    // is committed to PostgreSQL. Fleet completion must follow the durable
+    // ledger commit as well; otherwise a retry could receive a duplicate
+    // receipt even though its final result was never persisted.
+    await goldJobs.flush();
+    fleet.complete({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,commandId:command.commandId,resultTransport});
     return {ok:true,accepted:true,duplicate:false,job:jobView(job)};
   };
     if (req.method === 'POST' && url.pathname === '/v1/enrollments/begin') {
@@ -639,7 +649,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/result') {
       const body=await readJson(req),ctx=await verifiedChannelContext(body,'result');
-      return sendJson(res,200,acceptDeviceResult(ctx,ctx.payload,{resultTransport:'signed-poll-v1'}));
+      return sendJson(res,200,await acceptDeviceResult(ctx,ctx.payload,{resultTransport:'signed-poll-v1'}));
     }
 
 }
