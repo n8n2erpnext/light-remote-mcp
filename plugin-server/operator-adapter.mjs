@@ -3,16 +3,14 @@ import { callOperatorJson } from '../gateway/operator-proxy.mjs';
 import { sealOperatorPayload } from '../gateway/operator-crypto.mjs';
 import { redactRestrictedText } from './response-sanitizer.mjs';
 import { helperOverview, helperGroup } from './tool-helper.mjs';
+import { cleanJob } from './job-view.mjs';
 
 const opId=p=>`${p}-${crypto.randomUUID()}`;
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const cleanDevice=d=>({deviceId:d.deviceId,name:d.displayName||d.name||d.deviceId,platform:d.platform,architecture:d.architecture,state:d.state,capabilities:[...(d.effectiveCapabilities||d.capabilities||d.approvedCapabilities||[])]});
 const cleanSession=s=>({sessionId:s.sessionId,deviceId:s.deviceId,state:s.state,workspace:s.workspace||'',gracePreset:s.gracePreset||null,holdReason:s.holdReason||null,expiresAt:s.expiresAt||null,reconnectCount:Number(s.reconnectCount)||0});
 const cleanContext=c=>c?({deviceId:c.deviceId||null,sessionId:c.sessionId||null,nodeId:c.nodeId||null,workspace:c.workspace||'',gracePreset:c.gracePreset||null,platform:c.platform||null,architecture:c.architecture||null,deviceState:c.deviceState||null,connectionState:c.connectionState||null}):null;
-// Live Operator jobs expose `status`; durable PostgreSQL snapshots also use
-// `status`. Accept `state` for older integrations without hiding terminal
-// statuses such as cancelled or interrupted from the AI caller.
-const cleanJob=j=>({jobId:j.jobId,state:j.state||j.status||null,running:!j.finishedAt,exitCode:j.exitCode??null});
+// Job view normalization is shared with P0 regression fixtures.
 const PRODUCT_CAPABILITIES=Object.freeze([
   'account-owned device enrollment with local-first A/B approval',
   'explicit device targeting with no silent fallback',
