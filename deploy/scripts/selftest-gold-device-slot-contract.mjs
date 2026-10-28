@@ -9,4 +9,7 @@ assert.match(src,/m3_device_queue_capacity_reached/);
 assert.match(src,/total>=48/);
 assert.match(src,/total>=16/);
 assert.match(src,/queue_wait_timeout/);
+const host=fs.readFileSync('operator-host/executor.mjs','utf8');
+assert.match(host,/queueFull\?'queue_full':'m3_personal_scheduler_unavailable'/);
+assert.match(host,/status:queueFull\?429:503/);
 console.log('DEVICE_SLOT_SOURCE_CONTRACT_PASS');

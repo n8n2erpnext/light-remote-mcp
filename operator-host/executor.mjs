@@ -238,7 +238,9 @@ async function schedulePersonalEffect(job,dispatch){
   await pumpPersonalAgentAccount(job.accountId);
  }catch(error){
   pendingForegroundExec.delete(job.id);
-  job.resultData={ok:false,error:'m3_personal_scheduler_unavailable',status:503};
+  const queueFull=['m3_device_queue_capacity_reached','m3_personal_queue_capacity_reached'].includes(String(error?.message||''));
+  job.resultData={ok:false,error:queueFull?'queue_full':'m3_personal_scheduler_unavailable',status:queueFull?429:503};
+  job.resultSummary=queueFull?'queue_full':'m3_personal_scheduler_unavailable';
   finishJob(job,1,null);
   throw error;
  }
