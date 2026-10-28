@@ -12,7 +12,8 @@ internal sealed record TrayAgentSnapshot(
     string Plan,
     string LastCloudError,
     bool FleetHealthy,
-    string? FleetUrl
+    string? FleetUrl,
+    string? PendingEnrollmentId = null
 );
 
 internal sealed class TrayApplicationContext : ApplicationContext
@@ -28,6 +29,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
     private readonly ToolStripMenuItem _openWall = new("Open Local Wall");
     private readonly ToolStripMenuItem _openFleet = new("Open Fleet") { Visible = false, Enabled = false };
     private readonly ToolStripMenuItem _account = new("Manage Account");
+    private readonly ToolStripMenuItem _relink = new("Relink this Windows PC…");
     private readonly ToolStripMenuItem _connect = new("Connect");
     private readonly ToolStripMenuItem _restart = new("Restart Light Remote");
     private readonly ToolStripMenuItem _update = new("Check for updates");
@@ -36,6 +38,8 @@ internal sealed class TrayApplicationContext : ApplicationContext
     private readonly System.Windows.Forms.Timer _timer = new() { Interval = 5000 };
 
     private bool _busy;
+    private bool _enrollmentStarting;
+    private bool _enrollmentPollInFlight;
     private string? _fleetUrl;
     private string? _actionStatus;
     private DateTimeOffset _actionStatusUntil;
@@ -51,6 +55,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
         menu.Items.Add(_openWall);
         menu.Items.Add(_openFleet);
         menu.Items.Add(_account);
+        menu.Items.Add(_relink);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(_connect);
         menu.Items.Add(_restart);
@@ -62,6 +67,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
         _openWall.Click += async (_, _) => await OpenWallAsync();
         _openFleet.Click += (_, _) => OpenFleet();
         _account.Click += (_, _) => OpenUrl(AccountUrl, "account_open_failed");
+        _relink.Click += async (_, _) => await RelinkWindowsAsync();
         _connect.Click += async (_, _) => await ToggleConnectionAsync();
         _restart.Click += async (_, _) => await RestartLightRemoteAsync();
         _serviceToggle.Click += async (_, _) => await ToggleServiceAsync();
@@ -365,6 +371,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
         var desired = root.TryGetProperty("cloudDesiredConnected", out var dc) && dc.ValueKind == JsonValueKind.True;
         var cloudState = root.TryGetProperty("cloudState", out var cs) ? cs.GetString() ?? "" : "";
         var plan = root.TryGetProperty("connectionPlan", out var cp) ? cp.GetString() ?? "" : "";
+        var pendingId = root.TryGetProperty("pendingEnrollmentId", out var pending) && pending.ValueKind == JsonValueKind.String ? pending.GetString() : null;
         var lastError = root.TryGetProperty("lastCloudError", out var le) ? le.GetString() ?? "" : "";
         var fleetHealthy = false;
         string? fleetUrl = null;
@@ -373,7 +380,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
             fleetHealthy = fw.TryGetProperty("healthy", out var fh) && fh.ValueKind == JsonValueKind.True;
             fleetUrl = fw.TryGetProperty("publicUrl", out var fu) && fu.ValueKind == JsonValueKind.String ? fu.GetString() : null;
         }
-        return new(true, enrolled, desired, cloudState, plan, lastError, fleetHealthy, fleetUrl);
+        return new(true, enrolled, desired, cloudState, plan, lastError, fleetHealthy, fleetUrl, pendingId);
     }
 
     private void SetActionStatus(string message, int seconds = 8)
@@ -394,9 +401,11 @@ internal sealed class TrayApplicationContext : ApplicationContext
     {
         if (_busy) return;
         _busy = true;
+        var hasPendingEnrollment = false;
         try
         {
             var status = await ReadSnapshotAsync();
+            hasPendingEnrollment = status.StatusAvailable && !string.IsNullOrWhiteSpace(status.PendingEnrollmentId);
             var wallOnline = WallPortListening();
             var taskRunning = TaskRunning();
             var visual = VisualFor(wallOnline, status.StatusAvailable, status.Enrolled, status.CloudDesiredConnected, status.CloudState);
@@ -405,13 +414,15 @@ internal sealed class TrayApplicationContext : ApplicationContext
                 && status.CloudDesiredConnected
                 && status.CloudState.Equals("connected", StringComparison.OrdinalIgnoreCase);
 
-            var label = EffectiveLabel(LabelFor(wallOnline, taskRunning, status));
+            var label = EffectiveLabel(hasPendingEnrollment ? "Waiting for account approval" : LabelFor(wallOnline, taskRunning, status));
             _state.Text = label;
             _connect.Text = connected ? "Disconnect" : "Connect";
             _connect.Enabled = wallOnline && status.StatusAvailable && status.Enrolled;
             _restart.Enabled = wallOnline;
             _serviceToggle.Text = wallOnline ? "Stop Light Remote" : "Start Light Remote";
             _account.Text = status.Enrolled ? "Manage Account" : "Sign in / Manage Account";
+            _relink.Text = status.Enrolled ? "Relink this Windows PC…" : "Link this Windows PC…";
+            _relink.Enabled = status.StatusAvailable && !hasPendingEnrollment && !_enrollmentStarting;
 
             _fleetUrl = FleetUrl(status);
             _openFleet.Visible = _fleetUrl is not null;
@@ -428,6 +439,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
             var wallOnline = WallPortListening();
             _state.Text = EffectiveLabel(wallOnline ? "Status unavailable" : "Stopped");
             _connect.Enabled = false;
+            _relink.Enabled = false;
             _restart.Enabled = wallOnline;
             _serviceToggle.Text = wallOnline ? "Stop Light Remote" : "Start Light Remote";
             var old = _tray.Icon;
@@ -435,7 +447,137 @@ internal sealed class TrayApplicationContext : ApplicationContext
             old?.Dispose();
             ClientEvent("tray_refresh_failed", new { error = ex.Message });
         }
-        finally { _busy = false; }
+        finally
+        {
+            _busy = false;
+            if (hasPendingEnrollment && !_enrollmentStarting) _ = PollEnrollmentIfNeededAsync();
+        }
+    }
+
+    // Relink follows the macOS flow: keep the Ed25519 device identity and local
+    // settings, issue a fresh account-approval code, then apply after approval.
+    internal static string[] EnrollmentCommand(bool previouslyEnrolled) =>
+        previouslyEnrolled ? new[] { "login", "--reenroll", "--no-wait" } : new[] { "login", "--no-wait" };
+
+    private static string AgentLine(string output, string prefix)
+    {
+        foreach (var raw in output.Split('\n'))
+        {
+            var line = raw.Trim();
+            if (line.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                return line[prefix.Length..].Trim();
+        }
+        return "";
+    }
+
+    private async Task RelinkWindowsAsync()
+    {
+        if (_busy || _enrollmentStarting) return;
+        _busy = true;
+        _enrollmentStarting = true;
+        try
+        {
+            var status = await ReadSnapshotAsync();
+            if (!status.StatusAvailable) { SetActionStatus("Device Agent unavailable"); return; }
+            if (!string.IsNullOrWhiteSpace(status.PendingEnrollmentId))
+            {
+                SetActionStatus("Device approval already pending", 8);
+                return;
+            }
+            if (status.Enrolled)
+            {
+                var confirmation = MessageBox.Show(
+                    "A new one-time device code will be issued. The existing device identity, Memory and local settings are preserved.\n\n" +
+                    "Your account link changes only when you sign in and approve this Windows PC in the browser.\n\n" +
+                    "Relink this Windows PC?",
+                    "Light Remote — Relink this Windows PC",
+                    MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2);
+                if (confirmation != DialogResult.Yes) return;
+            }
+
+            SetActionStatus("Preparing device approval…", 15);
+            var command = EnrollmentCommand(status.Enrolled);
+            var result = await AgentAsync(command);
+            var activation = AgentLine(result.Out, "Activation URL:");
+            var code = AgentLine(result.Out, "Device code:");
+            var expectedHost = new Uri(ConnectionConfig.Load().BridgeUrl).Host;
+            if (result.Code != 0 || !Uri.TryCreate(activation, UriKind.Absolute, out var url)
+                || url.Scheme != Uri.UriSchemeHttps || !url.Host.Equals(expectedHost, StringComparison.OrdinalIgnoreCase)
+                || string.IsNullOrWhiteSpace(code))
+            {
+                ClientEvent("tray_relink_begin_failed", new { result.Code });
+                SetActionStatus("Could not start device approval", 12);
+                MessageBox.Show("Unable to start device linking.\n\n" +
+                    (result.Err.Length > 0 ? result.Err[..Math.Min(result.Err.Length, 360)] : "Please try again."),
+                    "Light Remote — Device linking", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            var copied = false;
+            try { Clipboard.SetText(code); copied = true; } catch { /* Code is shown below even without clipboard. */ }
+            ClientEvent("tray_relink_started", new { wasEnrolled = status.Enrolled });
+            MessageBox.Show("One-time device code:\n\n" + code + "\n\n" +
+                (copied ? "The code has been copied to your clipboard.\n\n" : "Copy the code shown above.\n\n") +
+                "Click OK to open the approval page. Sign in with the intended Light Remote account, review permissions, and approve this Windows PC.\n\n" +
+                "Light Remote will complete relinking automatically after approval.",
+                "Light Remote — Approve this Windows PC", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            OpenUrl(url.AbsoluteUri, "tray_relink_activation_open_failed");
+            SetActionStatus("Waiting for account approval", 15);
+        }
+        catch (Exception ex)
+        {
+            ClientEvent("tray_relink_begin_exception", new { error = ex.GetType().Name });
+            SetActionStatus("Device linking failed", 10);
+            MessageBox.Show("Unable to begin device linking. Please check the installed Agent and try again.",
+                "Light Remote — Device linking", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+        finally
+        {
+            _enrollmentStarting = false;
+            _busy = false;
+            await RefreshAsync();
+        }
+    }
+
+    private async Task PollEnrollmentIfNeededAsync()
+    {
+        if (_enrollmentPollInFlight || _enrollmentStarting) return;
+        _enrollmentPollInFlight = true;
+        try
+        {
+            var response = await AgentAsync("poll");
+            if (response.Code != 0) { ClientEvent("tray_relink_poll_failed", new { response.Code }); return; }
+            using var document = JsonDocument.Parse(response.Out);
+            var root = document.RootElement;
+            var state = root.TryGetProperty("state", out var value) ? value.GetString() : "";
+            if (state == "approved")
+            {
+                ClientEvent("tray_relink_approved");
+                SetActionStatus("Device approved — restarting Agent…", 30);
+                var restart = await Task.Run(RestartAgentTransactional);
+                SetActionStatus(restart.Ok ? "Device linked successfully" : "Approved — restart Agent manually", 12);
+                MessageBox.Show(restart.Ok
+                        ? "This Windows PC has been approved and linked to your account. The Agent has restarted with the updated enrollment."
+                        : "Account approval succeeded, but the Agent did not restart automatically. Select Restart Light Remote from the Tray menu.",
+                    "Light Remote — Device approved", MessageBoxButtons.OK,
+                    restart.Ok ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
+            }
+            else if (state is "expired" or "replaced" or "cancelled")
+            {
+                SetActionStatus("Device code expired — select Relink again", 12);
+                ClientEvent("tray_relink_code_ended", new { state });
+            }
+        }
+        catch (Exception ex)
+        {
+            ClientEvent("tray_relink_poll_exception", new { error = ex.GetType().Name });
+        }
+        finally
+        {
+            // The regular 5-second Tray timer schedules the next attempt.
+            // Refreshing here would immediately recurse into another poll.
+            _enrollmentPollInFlight = false;
+        }
     }
 
     private async Task ToggleConnectionAsync()
@@ -593,7 +735,9 @@ internal sealed class TrayApplicationContext : ApplicationContext
             && FleetUrl(connected) == "https://fleet.example/"
             && FleetUrl(connected with { FleetUrl = null }) == LocalFleetUrl
             && FleetUrl(connected with { FleetHealthy = false }) is null
-            && FleetUrl(connected with { Enrolled = false, FleetHealthy = false }) is null;
+            && FleetUrl(connected with { Enrolled = false, FleetHealthy = false }) is null
+            && EnrollmentCommand(true).SequenceEqual(new[] { "login", "--reenroll", "--no-wait" })
+            && EnrollmentCommand(false).SequenceEqual(new[] { "login", "--no-wait" });
     }
 
     protected override void ExitThreadCore()

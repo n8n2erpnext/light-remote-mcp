@@ -16,6 +16,7 @@ on:
       - 'feature/gold-navigation-codex-managed-memory-delete-20261025' # optional Codex runtime and scoped memory Wall routes
       - 'feature/gold-memory-completion-20261026' # Memory scope UI and Codex task edit/delete
       - 'feature/gold-windows-ci-once-20261028' # one isolated GitHub-hosted Windows x64 UAT build
+      - 'feature/gold-windows-relink-ci-20261028' # dedicated Windows Tray relink regression build
       - 'fix/gold-owner-filesystem-roots-20261023' # isolated Gold filesystem UAT build
     tags:
       - 'v0.9.*'
@@ -154,6 +155,10 @@ jobs:
           node deploy/scripts/selftest-gold-owner-filesystem-roots.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Gold owner filesystem scopes or drive inventory regression' }
           Write-Host 'gold-windows-owner-filesystem-scopes=PASS'
+
+      - name: Gold Windows tray Relink regression
+        shell: pwsh
+        run: node deploy/scripts/selftest-gold-windows-tray-relink.mjs
 
       - name: Publish native tray client
         shell: pwsh

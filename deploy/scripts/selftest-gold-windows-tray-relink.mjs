@@ -1,0 +1,24 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const tray=readFileSync(new URL('../../client/windows-native/GptOperator.Client/TrayApplicationContext.cs',import.meta.url),'utf8');
+const agent=readFileSync(new URL('../../device-agent/operator-agent.mjs',import.meta.url),'utf8');
+const workflow=readFileSync(new URL('../../.github/workflows/windows-native-client.yml',import.meta.url),'utf8');
+
+assert.match(tray,/new\("Relink this Windows PC…"/);
+assert.match(tray,/menu\.Items\.Add\(_relink\)/);
+assert.match(tray,/_relink\.Click \+= async \(_, _\) => await RelinkWindowsAsync\(\)/);
+assert.match(tray,/previouslyEnrolled \? new\[\] \{ "login", "--reenroll", "--no-wait" \}/);
+assert.match(tray,/MessageBoxButtons\.YesNo, MessageBoxIcon\.Question, MessageBoxDefaultButton\.Button2/);
+assert.match(tray,/status\.PendingEnrollmentId/);
+assert.match(tray,/AgentAsync\("poll"\)/);
+assert.match(tray,/if \(state == "approved"\)/);
+assert.match(tray,/Task\.Run\(RestartAgentTransactional\)/);
+assert.match(tray,/url\.Host\.Equals\(expectedHost, StringComparison\.OrdinalIgnoreCase\)/);
+assert.match(tray,/Clipboard\.SetText\(code\)/);
+assert.match(tray,/_enrollmentPollInFlight = false/);
+assert.doesNotMatch(tray,/File\.Delete\(AppPaths\.StateFile\)/);
+assert.match(agent,/if\(state\.enrollment\?\.deviceId&&!args\.reenroll\)/);
+assert.match(agent,/if\(e\.state==='approved'\)/);
+assert.match(workflow,/runs-on: windows-latest/);
+assert.match(workflow,/Gold Windows tray Relink regression/);
+console.log('GOLD_WINDOWS_RELINK_TRAY_CONTRACT_PASS');
