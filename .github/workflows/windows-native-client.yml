@@ -15,6 +15,7 @@ on:
       - 'feature/gold-memory-reader-codex-win-20261025' # Memory Library + native Windows Codex discovery
       - 'feature/gold-navigation-codex-managed-memory-delete-20261025' # optional Codex runtime and scoped memory Wall routes
       - 'feature/gold-memory-completion-20261026' # Memory scope UI and Codex task edit/delete
+      - 'feature/gold-windows-ci-once-20261028' # one isolated GitHub-hosted Windows x64 UAT build
       - 'fix/gold-owner-filesystem-roots-20261023' # isolated Gold filesystem UAT build
     tags:
       - 'v0.9.*'

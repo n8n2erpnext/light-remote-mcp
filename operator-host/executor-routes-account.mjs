@@ -192,12 +192,21 @@ export async function handleAccountRoutes(req,res,url,deps){
       const owner=accounts.verifyCredentials({email:account.email,password},
         {recordLogin:true,eventType:'m6_orphan_owner_recovery'});
       if(owner.accountId!==account.accountId)throw new AccountError('m6_orphan_account_mismatch',403);
-      const deviceId=orphanClaimMatch[1],jobId=orphanClaimMatch[2],device=devices.get(deviceId);
+      const deviceId=orphanClaimMatch[1],jobId=orphanClaimMatch[2];
+      let device;try{device=devices.get(deviceId);}catch(error){
+        if(error?.message!=='device_not_found')throw error;
+        if(typeof deps.inspectOwnerOrphanDevice!=='function')throw new AccountError('m6_orphan_historical_lookup_unavailable',503);
+        const historical=await deps.inspectOwnerOrphanDevice({accountId:account.accountId,deviceId,jobId});
+        if(!historical||historical.state!=='revoked'||historical.policyProfile!=='__gold_removed_v1__')throw new AccountError('m6_orphan_historical_device_unverified',403);
+        device={deviceId,nodeId:historical.nodeId,accountId:historical.accountId};
+      }
       if(device.accountId!==account.accountId||deviceId===DEVICE_ID)
         throw new AccountError('m6_orphan_device_scope_denied',403);
       let fresh=false;try{fresh=fleet.view(device.nodeId||device.deviceId).channelFresh===true;}
       catch(error){if(error?.message!=='target_node_channel_not_found')throw error;}
-      if(connections.get(deviceId).state==='connected'||fresh)
+      let connected=false;try{connected=connections.get(deviceId).state==='connected';}
+      catch(error){if(error?.message!=='device_connection_not_found')throw error;}
+      if(connected||fresh)
         throw new AccountError('m6_orphan_gold_channel_active',409);
       if(typeof deps.abandonOwnerAttestedOrphan!=='function')throw new AccountError('m6_orphan_recovery_unavailable',503);
       const outcome=await deps.abandonOwnerAttestedOrphan({
