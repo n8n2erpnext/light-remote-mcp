@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Net.NetworkInformation;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace GptOperator.Client;
 
@@ -105,6 +106,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
         var c = ConnectionConfig.Load();
         p.Environment["OPERATOR_AGENT_BASE_URL"] = c.BridgeUrl;
         p.Environment["OPERATOR_AGENT_HUB_URL"] = c.HubUrl;
+        AgentHost.ConfigureRealRemoteEnvironment(p);
         return p;
     }
 
@@ -297,7 +299,11 @@ internal sealed class TrayApplicationContext : ApplicationContext
             var sawDown=WaitForWall(false,20000);
             var back=WaitForWall(true,45000);
             ClientEvent("restart_updater_task_observed",new { sawDown,back });
-            return back?(true,""):(false,"Light Remote did not return after restart.");
+            // A still-listening old Wall is not proof that the Agent restarted.
+            // Fail closed rather than claiming a new enrollment is live.
+            return sawDown && back ? (true,"") :
+                (false,sawDown ? "Light Remote did not return after restart." :
+                    "Restart not verified: the previous Local Wall never went offline.");
         }
         catch(Exception ex)
         {
@@ -470,6 +476,35 @@ internal sealed class TrayApplicationContext : ApplicationContext
         return "";
     }
 
+    // Gold UAT can advertise a loopback activation URL (the Operator's own
+    // localhost:5583). That URL does not resolve to the Operator from a
+    // customer's Windows machine. Preserve only its bounded enrollment ID,
+    // then link to the configured HTTPS Bridge; never follow an arbitrary URL.
+    internal static Uri? TrustedEnrollmentActivationUrl(string raw, string bridgeUrl)
+    {
+        if (!Uri.TryCreate(raw, UriKind.Absolute, out var source) ||
+            !Uri.TryCreate(bridgeUrl, UriKind.Absolute, out var bridge) ||
+            bridge.Scheme != Uri.UriSchemeHttps || !string.IsNullOrEmpty(bridge.UserInfo) ||
+            !string.IsNullOrEmpty(source.UserInfo) || source.Fragment.Length > 0 ||
+            source.AbsolutePath != "/enroll")
+            return null;
+
+        var match = Regex.Match(source.Query, @"^\\?id=(enr_[A-Za-z0-9-]{24,80})$",
+            RegexOptions.CultureInvariant | RegexOptions.NonBacktracking);
+        if (!match.Success) return null;
+
+        var trustedPublic = source.Scheme == Uri.UriSchemeHttps &&
+            source.IdnHost.Equals(bridge.IdnHost, StringComparison.OrdinalIgnoreCase) &&
+            source.Port == bridge.Port;
+        var knownLocalOperator = source.Scheme == Uri.UriSchemeHttp &&
+            source.IsLoopback && source.Port == 5583;
+        if (!trustedPublic && !knownLocalOperator) return null;
+
+        var result = new UriBuilder(bridge.Scheme, bridge.Host, bridge.Port,
+            "/enroll", "?id=" + Uri.EscapeDataString(match.Groups[1].Value));
+        return result.Uri;
+    }
+
     private async Task RelinkWindowsAsync()
     {
         if (_busy || _enrollmentStarting) return;
@@ -500,10 +535,8 @@ internal sealed class TrayApplicationContext : ApplicationContext
             var result = await AgentAsync(command);
             var activation = AgentLine(result.Out, "Activation URL:");
             var code = AgentLine(result.Out, "Device code:");
-            var expectedHost = new Uri(ConnectionConfig.Load().BridgeUrl).Host;
-            if (result.Code != 0 || !Uri.TryCreate(activation, UriKind.Absolute, out var url)
-                || url.Scheme != Uri.UriSchemeHttps || !url.Host.Equals(expectedHost, StringComparison.OrdinalIgnoreCase)
-                || string.IsNullOrWhiteSpace(code))
+            var url = TrustedEnrollmentActivationUrl(activation, ConnectionConfig.Load().BridgeUrl);
+            if (result.Code != 0 || url is null || string.IsNullOrWhiteSpace(code))
             {
                 ClientEvent("tray_relink_begin_failed", new { result.Code });
                 SetActionStatus("Could not start device approval", 12);
@@ -519,7 +552,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
             MessageBox.Show("One-time device code:\n\n" + code + "\n\n" +
                 (copied ? "The code has been copied to your clipboard.\n\n" : "Copy the code shown above.\n\n") +
                 "Click OK to open the approval page. Sign in with the intended Light Remote account, review permissions, and approve this Windows PC.\n\n" +
-                "Light Remote will complete relinking automatically after approval.",
+                "Light Remote will complete relinking and reconnect the approved device automatically after approval.",
                 "Light Remote — Approve this Windows PC", MessageBoxButtons.OK, MessageBoxIcon.Information);
             OpenUrl(url.AbsoluteUri, "tray_relink_activation_open_failed");
             SetActionStatus("Waiting for account approval", 15);
@@ -543,6 +576,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
     {
         if (_enrollmentPollInFlight || _enrollmentStarting) return;
         _enrollmentPollInFlight = true;
+        var completing = false;
         try
         {
             var response = await AgentAsync("poll");
@@ -554,13 +588,40 @@ internal sealed class TrayApplicationContext : ApplicationContext
             {
                 ClientEvent("tray_relink_approved");
                 SetActionStatus("Device approved — restarting Agent…", 30);
+                _busy = true;
+                completing = true;
                 var restart = await Task.Run(RestartAgentTransactional);
-                SetActionStatus(restart.Ok ? "Device linked successfully" : "Approved — restart Agent manually", 12);
-                MessageBox.Show(restart.Ok
-                        ? "This Windows PC has been approved and linked to your account. The Agent has restarted with the updated enrollment."
-                        : "Account approval succeeded, but the Agent did not restart automatically. Select Restart Light Remote from the Tray menu.",
+                var connected = false;
+                if (restart.Ok)
+                {
+                    // Only the user-triggered Tray approval flow opts in to
+                    // connecting the newly approved account. CLI and Local Wall
+                    // polling continue to fail closed with Cloud dormant.
+                    try
+                    {
+                        var cloud = await AgentAsync("connect");
+                        if (cloud.Code == 0)
+                        {
+                            var newState = await ReadSnapshotAsync();
+                            connected = newState.Enrolled && newState.CloudDesiredConnected
+                                && newState.CloudState.Equals("connected", StringComparison.OrdinalIgnoreCase);
+                        }
+                        if (!connected) ClientEvent("tray_relink_cloud_reconnect_failed", new { cloud.Code });
+                    }
+                    catch (Exception error)
+                    {
+                        ClientEvent("tray_relink_cloud_reconnect_failed", new { error = error.GetType().Name });
+                    }
+                }
+                SetActionStatus(connected ? "Device linked and connected" :
+                    restart.Ok ? "Linked — select Connect to go online" : "Approved — restart Agent manually", 12);
+                MessageBox.Show(connected
+                        ? "Device approved. The Agent restarted with the new enrollment, and Cloud connection is active."
+                        : restart.Ok
+                            ? "Device approved and Agent restarted, but Cloud is not connected. Select Connect from the Tray menu."
+                            : "Device approved, but Agent restart was not verified. Select Restart Light Remote, then Connect from the Tray menu.",
                     "Light Remote — Device approved", MessageBoxButtons.OK,
-                    restart.Ok ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
+                    connected ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
             }
             else if (state is "expired" or "replaced" or "cancelled")
             {
@@ -577,6 +638,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
             // The regular 5-second Tray timer schedules the next attempt.
             // Refreshing here would immediately recurse into another poll.
             _enrollmentPollInFlight = false;
+            if (completing) _busy = false;
         }
     }
 
@@ -719,12 +781,41 @@ internal sealed class TrayApplicationContext : ApplicationContext
         catch (Exception ex) { ClientEvent(failureEvent, new { error = ex.Message, url }); }
     }
 
+    internal static bool RelinkRuntimeSelfTest()
+    {
+        const string bridge = ConnectionConfig.DefaultBridgeUrl;
+        const string token = "enr_e339c5b1-815d-44a9-8360-c097073b615f";
+        var gold = TrustedEnrollmentActivationUrl(
+            "https://gold.light-remote.thaiduy.digital/enroll?id=" + token, bridge);
+        var loopback = TrustedEnrollmentActivationUrl(
+            "http://127.0.0.1:5583/enroll?id=" + token, bridge);
+        var localhost = TrustedEnrollmentActivationUrl(
+            "http://localhost:5583/enroll?id=" + token, bridge);
+        var expected = bridge + "/enroll?id=" + token;
+        var p = AgentStart("status");
+        var companion = Path.Combine(AppContext.BaseDirectory, "realremote-v2", "LightRemote.RM.exe");
+        var present = File.Exists(companion);
+        var realRemoteSelected = p.Environment.TryGetValue("LIGHT_REMOTE_REAL_REMOTE", out var enabled)
+            && enabled == "1";
+        var pathSelected = p.Environment.TryGetValue("LIGHT_REMOTE_CLIENT_EXE", out var actual)
+            && string.Equals(actual, companion, StringComparison.OrdinalIgnoreCase);
+        return gold?.AbsoluteUri == expected && loopback?.AbsoluteUri == expected
+            && localhost?.AbsoluteUri == expected
+            && TrustedEnrollmentActivationUrl("https://evil.example/enroll?id=" + token, bridge) is null
+            && TrustedEnrollmentActivationUrl("http://192.0.2.10:5583/enroll?id=" + token, bridge) is null
+            && TrustedEnrollmentActivationUrl("http://127.0.0.1:9999/enroll?id=" + token, bridge) is null
+            && TrustedEnrollmentActivationUrl("http://127.0.0.1:5583/other?id=" + token, bridge) is null
+            && TrustedEnrollmentActivationUrl("http://127.0.0.1:5583/enroll?id=" + token + "&next=evil", bridge) is null
+            && realRemoteSelected == present && pathSelected == present;
+    }
+
     internal static bool SelfTest()
     {
         var connected = new TrayAgentSnapshot(true, true, true, "connected", "vip", "", true, "https://fleet.example/");
         var dormant = connected with { CloudDesiredConnected = false, CloudState = "dormant" };
         var disconnected = connected with { CloudState = "error" };
-        return VisualFor(false, true, true, true, "connected") == TrayVisualState.Stopped
+        return RelinkRuntimeSelfTest()
+            && VisualFor(false, true, true, true, "connected") == TrayVisualState.Stopped
             && VisualFor(true, true, false, false, "dormant") == TrayVisualState.Unlinked
             && VisualFor(true, true, true, true, "connected") == TrayVisualState.Connected
             && VisualFor(true, true, true, false, "dormant") == TrayVisualState.Dormant

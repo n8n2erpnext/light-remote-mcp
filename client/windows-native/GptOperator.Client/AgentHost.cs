@@ -106,14 +106,29 @@ internal static class AgentHost
         var connection = ConnectionConfig.Load();
         psi.Environment["OPERATOR_AGENT_BASE_URL"] = connection.BridgeUrl;
         psi.Environment["OPERATOR_AGENT_HUB_URL"] = connection.HubUrl;
-        var realRemoteV2 = Path.Combine(AppContext.BaseDirectory, "realremote-v2", "LightRemote.RM.exe");
-        if (File.Exists(realRemoteV2))
+        ConfigureRealRemoteEnvironment(psi);
+        return psi;
+    }
+
+    // Every invocation of the bundled Agent (daemon, status, login, poll, rescan)
+    // must discover the same optional RM V2 companion. Do not rely on inherited
+    // environment variables: Tray and AgentHost are separate processes.
+    internal static void ConfigureRealRemoteEnvironment(ProcessStartInfo psi)
+    {
+        var companion = Path.Combine(AppContext.BaseDirectory, "realremote-v2", "LightRemote.RM.exe");
+        if (File.Exists(companion))
         {
             psi.Environment["LIGHT_REMOTE_REAL_REMOTE"] = "1";
-            psi.Environment["LIGHT_REMOTE_CLIENT_EXE"] = realRemoteV2;
+            psi.Environment["LIGHT_REMOTE_CLIENT_EXE"] = companion;
             psi.Environment["LIGHT_REMOTE_RMV2_IDLE_MS"] = "60000";
         }
-        return psi;
+        else
+        {
+            // An inherited opt-in or arbitrary companion path cannot supply rights.
+            psi.Environment.Remove("LIGHT_REMOTE_REAL_REMOTE");
+            psi.Environment.Remove("LIGHT_REMOTE_CLIENT_EXE");
+            psi.Environment.Remove("LIGHT_REMOTE_RMV2_IDLE_MS");
+        }
     }
 
     private static void StopChild(Process? child)

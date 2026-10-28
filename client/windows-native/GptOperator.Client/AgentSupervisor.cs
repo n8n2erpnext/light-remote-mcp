@@ -54,7 +54,8 @@ internal sealed class AgentSupervisor : IDisposable
 
     public async Task<EnrollmentInfo> BeginEnrollmentAsync(CancellationToken cancellationToken = default)
     {
-        var result = await RunAgentAsync("login --no-wait", cancellationToken);
+        var enrolled = (await ReadStatusAsync(cancellationToken)).Enrolled;
+        var result = await RunAgentAsync(enrolled ? "login --reenroll --no-wait" : "login --no-wait", cancellationToken);
         var activation = LineValue(result.Stdout, "Activation URL:");
         var code = LineValue(result.Stdout, "Device code:");
         var expiresRaw = LineValue(result.Stdout, "Expires in:").TrimEnd('s');
@@ -181,6 +182,7 @@ internal sealed class AgentSupervisor : IDisposable
         var connection = ConnectionConfig.Load();
         psi.Environment["OPERATOR_AGENT_BASE_URL"] = connection.BridgeUrl;
         psi.Environment["OPERATOR_AGENT_HUB_URL"] = connection.HubUrl;
+        AgentHost.ConfigureRealRemoteEnvironment(psi);
         return psi;
     }
     private static async Task<(int ExitCode, string Stdout, string Stderr)> RunAgentAsync(string arguments, CancellationToken cancellationToken, bool allowFailure = false)

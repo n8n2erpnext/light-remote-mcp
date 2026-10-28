@@ -17,6 +17,7 @@ on:
       - 'feature/gold-memory-completion-20261026' # Memory scope UI and Codex task edit/delete
       - 'feature/gold-windows-ci-once-20261028' # one isolated GitHub-hosted Windows x64 UAT build
       - 'feature/gold-windows-relink-ci-20261028' # dedicated Windows Tray relink regression build
+      - 'fix/gold-windows-relink-rm-stability-20261028' # RM and enrollment recovery stability UAT build
       - 'fix/gold-owner-filesystem-roots-20261023' # isolated Gold filesystem UAT build
     tags:
       - 'v0.9.*'
