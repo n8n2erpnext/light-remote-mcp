@@ -94,6 +94,16 @@ for(const status of ['queued','running','ok','error','timeout','cancelled','inte
  if(status==='cancelled')assert.equal(view.exitCode,130);
 }
 assert.equal(cleanJob({jobId:'job-test',state:'ok',status:'running',finishedAt:123}).state,'ok');
+const held=cleanJob({jobId:'job-stop-unknown',status:'interrupted',finishedAt:null,
+ stopRequestedAt:1234567890,exitCode:null});
+assert.equal(held.running,null);
+assert.equal(held.effectUnknown,true);
+assert.equal(held.stopRequestedAt,1234567890);
+assert.equal(held.stopRequestVerified,false,'requested does not mean killed');
+const terminated=cleanJob({jobId:'job-stop-ok',status:'cancelled',finishedAt:1234567999,
+ stopRequestedAt:1234567890,exitCode:130});
+assert.equal(terminated.stopRequestVerified,true);
+assert.equal(terminated.running,false);
 const plugin=src('plugin-server/tools.mjs');
 assert.match(plugin,/add\(server,'light_remote_cancel_job'/);
 assert.match(plugin,/security\(\['remote:execute'\]\)/);

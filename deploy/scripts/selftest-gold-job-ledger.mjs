@@ -23,6 +23,11 @@ const job={id:'00000000-0000-4000-8000-000000000001',requestId:'request-x',
  script:'SENSITIVE COMMAND',resultSummary:'',requiredCapabilities:['filesystem'],note:'SENSITIVE'};
 db.save(job);await db.flush();
 assert.equal((await db.get(job.id)).status,'running');
+job.stopRequestedAt=Date.now();
+db.save(job);await db.flush();
+assert.equal((await db.get(job.id)).stopRequestedAt,job.stopRequestedAt,
+  'durable ledger must preserve requested Stop without inventing a terminal receipt');
+assert.equal((await db.get(job.id)).effectState,'unknown');
 assert.equal(JSON.stringify(await db.get(job.id)).includes('COMMAND'),false);
 job.finishedAt=Date.now();job.status='ok';job.exitCode=0;
 db.save(job);await db.flush();

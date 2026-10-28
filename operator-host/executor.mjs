@@ -1351,6 +1351,9 @@ async function cancelQueuedPersonalJob({jobId,accountId,deviceIds}={}){
  job.resultData={ok:false,error:'cancelled_before_dispatch'};
  job.resultSummary='cancelled_before_dispatch';
  finishJob(job,130,null);
+ // Do not acknowledge cancellation to the AI before PostgreSQL confirms
+ // the terminal record; queue admission and job history must agree.
+ await goldJobs.flush();
  return {ok:true,jobId,state:'cancelled',reason:'cancelled_before_dispatch'};
 }
 
@@ -1387,6 +1390,9 @@ async function cancelControlJob({jobId,accountId,deviceId,agentId=null}={}){
        pushEvent({type:'job_stop_requested',jobId,accountId,deviceId,
          sessionId:job.sessionId,agentId:job.agentId,status:'stop_requested'});
        goldJobs.save(job);
+       // Persist the pending Stop marker before reporting request acceptance.
+       // This is NOT a verified process terminal receipt.
+       await goldJobs.flush();
        return {ok:true,jobId,state:'stop_requested',commandId:command.commandId,
          reason:'await_verified_device_exit'};
      }
@@ -1398,6 +1404,7 @@ async function cancelControlJob({jobId,accountId,deviceId,agentId=null}={}){
    job.resultData={ok:false,error:'cancelled_before_device_dispatch'};
    job.resultSummary='cancelled_before_device_dispatch';
    finishJob(job,130,null);
+   await goldJobs.flush();
    return {ok:true,jobId,state:'cancelled',reason:'cancelled_before_device_dispatch'};
  }
  throw Object.assign(Error('job_running_no_verified_stop_handle'),{status:409});
