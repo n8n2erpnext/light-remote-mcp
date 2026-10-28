@@ -35,6 +35,8 @@ assert.match(runtime,/'job_effect_unknown'/,'interrupted effects must remain unk
 const host=src('operator-host/executor.mjs');
 assert.match(host,/job.status==='cancelled'&&job.exitCode===130/,
  'in-memory second Cancel is idempotent only for terminal cancellation');
+assert.match(host,/stopRequestedAt: Number.isSafeInteger\(job.stopRequestedAt\)/,
+ 'live job view retains the same Stop metadata as the durable ledger');
 assert.match(host,/pendingForegroundExec.has\(jobId\)/);
 assert.match(host,/command.dispatchedAt!==null/);
 assert.match(host,/cancelUndispatched\(command.commandId\)/);

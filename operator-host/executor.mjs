@@ -532,7 +532,9 @@ function jobView(job) {
     jobId: job.id, requestId: job.requestId, operationId: job.operationId, ...(job.personalScheduled?{agentAdmission:'personal',queueReason:job.queueReason||null,admittedAt:job.admittedAt||null}:{}), accountId:job.accountId, deviceId:job.deviceId, sessionId: job.sessionId, agentId: job.agentId, nodeId: job.nodeId, status: job.status,
     ...(job.managedExec?{executionMode:'background',jobRole:'process_launch',longCommandHint:job.longCommandHint||null}:{}),
     cwd: job.cwd, script: redact(job.script), note: redact(job.note || ''), pid: job.pid || null, route:job.remote?'outbound-leaf':'local', commandId:job.commandId||null, requiredCapabilities:[...(job.requiredCapabilities||[])],
-    startedAt: job.startedAt, finishedAt: job.finishedAt || null, exitCode: job.exitCode,
+    startedAt: job.startedAt, finishedAt: job.finishedAt || null,
+    stopRequestedAt: Number.isSafeInteger(job.stopRequestedAt)?job.stopRequestedAt:null,
+    exitCode: job.exitCode,
     signal: job.signal || null, durationMs: job.finishedAt ? job.finishedAt - job.startedAt : Date.now() - job.startedAt,
     stdout: redact(out.text), stderr: redact(err.text), stdoutBytes: out.totalBytes, stderrBytes: err.totalBytes,
     outputTruncated: out.truncated || err.truncated, resultData:job.resultData ?? null, resultSummary:redact(job.resultSummary||''), toolMeta:job.toolMeta||null, latency:latencyView(job)
