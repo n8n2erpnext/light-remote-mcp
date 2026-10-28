@@ -3,14 +3,16 @@
 // Recovery mutations MUST pass through the authenticated Operator route.
 // Historical removed device lookup belongs in that route, NOT this CLI.
 // No direct database mutation, alternate fallback, service restart or cutover.
+// Require `--job-id <uuid>`; NEVER guess/select the first of multiple claims.
 import http from 'node:http';
 import {execFileSync} from 'node:child_process';
 import {createInterface} from 'node:readline/promises';
 import {stdin,stdout,stderr} from 'node:process';
+import {requireOrphanJobId,exactOrphanClaimWhere} from './gold-m6-orphan-claim-selection.mjs';
 
 const SOCKET='/run/light-remote-gold-uat/operator.sock';
 function assert(ok,message){if(!ok)throw Error(message);}
-function readClaim(){
+function readClaim(jobId){
  const sql=`SELECT json_build_object(
    'jobId',c.job_id,'deviceId',c.device_id,'accountId',c.account_id,
    'nodeId',d.node_id,'claimedAt',c.claimed_at,
@@ -23,7 +25,7 @@ function readClaim(){
      WHERE a.account_id=c.account_id AND a.device_id=c.device_id AND a.process_id=c.process_id)
  ) FROM lr_gold_device_resource_claims c
  JOIN lr_gold_job_records j ON j.job_id=c.job_id AND j.account_id=c.account_id AND j.device_id=c.device_id
- JOIN lr_devices d ON d.device_id=c.device_id`;
+ JOIN lr_devices d ON d.device_id=c.device_id${exactOrphanClaimWhere(jobId)}`;
  const raw=execFileSync('runuser',['-u','postgres','--','psql','-d','light_remote_gold_dev','-AtX','-v','ON_ERROR_STOP=1','-c',sql],{encoding:'utf8',timeout:8000,maxBuffer:32768}).trim();
  const lines=raw.split('\n').filter(Boolean);
  assert(lines.length===1,'Expected exactly one claim; refuse ambiguous selection.');
@@ -78,7 +80,7 @@ async function main(){
  assert(stdin.isTTY&&stdout.isTTY,'Interactive owner terminal required; never pipe credentials or automate this action.');
  const hostname=(await import('node:os')).hostname();
  assert(hostname==='light-remote-gold-uat','Not the Gold UAT container.');
- const claim=readClaim();
+ const claim=readClaim(requireOrphanJobId(process.argv.slice(2)));
  stdout.write('Gold UAT administrative orphan recovery (never creates a terminal ACK)\n');
  stdout.write('Claimed at: '+claim.claimedAt+'; Device label: '+String(claim.deviceLabel||'unknown')+'; Device state: '+claim.deviceState+'\n');
  stdout.write('Result will remain UNKNOWN. No claim is released until authenticated owner confirmation.\n');
