@@ -489,7 +489,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
             source.AbsolutePath != "/enroll")
             return null;
 
-        var match = Regex.Match(source.Query, @"^\\?id=(enr_[A-Za-z0-9-]{24,80})$",
+        var match = Regex.Match(source.Query, @"^\?id=(enr_[A-Za-z0-9-]{24,80})$",
             RegexOptions.CultureInvariant | RegexOptions.NonBacktracking);
         if (!match.Success) return null;
 

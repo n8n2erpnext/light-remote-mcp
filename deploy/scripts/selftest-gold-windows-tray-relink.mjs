@@ -24,6 +24,8 @@ assert.match(tray,/var cloud = await AgentAsync\("connect"\)/);
 assert.match(tray,/connected = newState\.Enrolled && newState\.CloudDesiredConnected/);
 assert.match(tray,/TrustedEnrollmentActivationUrl\(activation, ConnectionConfig\.Load\(\)\.BridgeUrl\)/);
 assert.match(tray,/source\.IsLoopback && source\.Port == 5583/);
+assert.ok(tray.includes(String.raw`@"^\?id=`), 'activation query must match literal question mark');
+assert.ok(!tray.includes(String.raw`@"^\\?id=`), 'double escaped question mark rejected');
 assert.match(tray,/source\.IdnHost\.Equals\(bridge\.IdnHost/);
 assert.match(tray,/Uri\.EscapeDataString\(match\.Groups\[1\]\.Value\)/);
 assert.match(tray,/TrustedEnrollmentActivationUrl\("https:\/\/evil\.example\/enroll\?id="/);

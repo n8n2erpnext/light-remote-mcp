@@ -29,6 +29,9 @@ Owner requested a comprehensive RCA and fixes after Win11 baolong123 enrollment,
 5. Continue to consider SAC signed installer / MSIX Store beta separate; current GitHub CI artifacts are not yet guaranteed to be trusted by Smart App Control. Do NOT turn off Defender or advise bypass. No Store submission.
 6. A Gold UAT branch is not production; require code review/PR before merging or deploying to users. Do not auto-update the running Win11 owner device during CI.
 
+## CI incident and test coverage update
+- First Windows GitHub Actions run #538 compiled successfully but the native Tray self-test failed, before installer deployment. Job logs showed trayLogic=false. The added URL query matcher mistakenly contained two regex backslashes before ?, so the server's valid ?id=... did not match. Fixed to a single regex escape and added a static guard against double escaping. Rerun required; do not publish run #538.
+
 ## Remaining work
 - Run the Windows CI workflow once on the dedicated fix branch and inspect real logs; static and .NET compile gates must pass. If errors occur, fix in the dedicated branch and rerun only as required.
 - Manual owner Win11 E2E still required; cannot claim 'fully stable' solely from CI.
