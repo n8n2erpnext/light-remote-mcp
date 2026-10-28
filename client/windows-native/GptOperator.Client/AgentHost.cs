@@ -10,6 +10,30 @@ internal static class AgentHost
     private const int JobObjectExtendedLimitInformationClass = 9;
     private static readonly object LogGate = new();
 
+    // The scheduled task only retries a finite number of times. A long-lived host
+    // must also recover from transient daemon failures without requiring re-login.
+    // Every attempt gets a NEW kill-on-close job so descendants of a crashed
+    // daemon cannot retain the Wall port or hold stale pipes during its restart.
+    private static readonly TimeSpan HealthyRunWindow = TimeSpan.FromMinutes(2);
+
+    internal static int NextFailureCount(int previous, TimeSpan uptime)
+        => uptime >= HealthyRunWindow ? 1 : Math.Min(Math.Max(previous, 0) + 1, 7);
+
+    internal static TimeSpan RestartDelay(int failures)
+        => TimeSpan.FromSeconds(Math.Min(30, 1 << Math.Min(Math.Max(failures - 1, 0), 5)));
+
+    internal static bool SelfTestRestartPolicy()
+        => NextFailureCount(0, TimeSpan.Zero) == 1
+           && NextFailureCount(1, TimeSpan.Zero) == 2
+           && NextFailureCount(6, TimeSpan.Zero) == 7
+           && NextFailureCount(7, TimeSpan.Zero) == 7
+           && NextFailureCount(7, HealthyRunWindow) == 1
+           && RestartDelay(1) == TimeSpan.FromSeconds(1)
+           && RestartDelay(2) == TimeSpan.FromSeconds(2)
+           && RestartDelay(3) == TimeSpan.FromSeconds(4)
+           && RestartDelay(6) == TimeSpan.FromSeconds(30)
+           && RestartDelay(7) == TimeSpan.FromSeconds(30);
+
     public static int Run()
     {
         AppPaths.EnsureDirectories();
@@ -20,45 +44,53 @@ internal static class AgentHost
             return 0;
         }
 
-        Process? child = null;
-        EventHandler? exitHandler = null;
-        IntPtr job = IntPtr.Zero;
-        try
+        var failures = 0;
+        while (true)
         {
-            job = CreateKillOnCloseJob();
-            var psi = CreateStartInfo();
-            child = new Process { StartInfo = psi, EnableRaisingEvents = true };
-            child.OutputDataReceived += (_, e) => { if (e.Data is not null) Log("OUT", e.Data); };
-            child.ErrorDataReceived += (_, e) => { if (e.Data is not null) Log("ERR", e.Data); };
-            exitHandler = (_, _) => StopChild(child);
-            AppDomain.CurrentDomain.ProcessExit += exitHandler;
-            if (!child.Start()) return 2;
-            if (!AssignProcessToJobObject(job, child.Handle))
+            Process? child = null;
+            EventHandler? exitHandler = null;
+            IntPtr job = IntPtr.Zero;
+            var uptime = Stopwatch.StartNew();
+            try
             {
-                var error = Marshal.GetLastWin32Error();
-                Log("ERR", $"failed to bind child to kill-on-close job win32={error} child={child.Id}");
-                StopChild(child);
-                return 3;
+                job = CreateKillOnCloseJob();
+                var psi = CreateStartInfo();
+                child = new Process { StartInfo = psi, EnableRaisingEvents = true };
+                child.OutputDataReceived += (_, e) => { if (e.Data is not null) Log("OUT", e.Data); };
+                child.ErrorDataReceived += (_, e) => { if (e.Data is not null) Log("ERR", e.Data); };
+                exitHandler = (_, _) => StopChild(child);
+                AppDomain.CurrentDomain.ProcessExit += exitHandler;
+                if (!child.Start()) throw new InvalidOperationException("Could not start operator agent.");
+                if (!AssignProcessToJobObject(job, child.Handle))
+                {
+                    var error = Marshal.GetLastWin32Error();
+                    throw new InvalidOperationException($"Agent job binding failed (win32={error}).");
+                }
+                child.BeginOutputReadLine();
+                child.BeginErrorReadLine();
+                Log("SYS", $"agent host started host={Environment.ProcessId} child={child.Id} job=kill-on-close");
+                child.WaitForExit();
+                Log("SYS", $"agent child exited code={child.ExitCode} child={child.Id}");
             }
-            child.BeginOutputReadLine();
-            child.BeginErrorReadLine();
-            Log("SYS", $"agent host started host={Environment.ProcessId} child={child.Id} job=kill-on-close");
-            child.WaitForExit();
-            var code = child.ExitCode;
-            Log("SYS", $"agent child exited code={code} child={child.Id}");
-            return code;
-        }
-        catch (Exception ex)
-        {
-            Log("ERR", $"agent host failed: {ex}");
-            return 1;
-        }
-        finally
-        {
-            if (exitHandler is not null) AppDomain.CurrentDomain.ProcessExit -= exitHandler;
-            StopChild(child);
-            child?.Dispose();
-            if (job != IntPtr.Zero) CloseHandle(job);
+            catch (Exception ex)
+            {
+                Log("ERR", $"agent host attempt failed: {ex.GetType().Name}: {ex.Message}");
+            }
+            finally
+            {
+                if (exitHandler is not null) AppDomain.CurrentDomain.ProcessExit -= exitHandler;
+                StopChild(child);
+                child?.Dispose();
+                // Reap ALL children of this attempt, including orphaned RM helpers.
+                if (job != IntPtr.Zero) CloseHandle(job);
+            }
+
+            failures = NextFailureCount(failures, uptime.Elapsed);
+            var delay = RestartDelay(failures);
+            Log("SYS", $"agent host recovery scheduled failure={failures} delaySeconds={delay.TotalSeconds:0}");
+            Thread.Sleep(delay);
+            // Scheduler /End terminates the host and closes the job automatically.
+            // Never change enrollment, permissions, cloud desired-state or Memory.
         }
     }
 
