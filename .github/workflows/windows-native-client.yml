@@ -924,7 +924,7 @@ jobs:
             Write-Host 'windows-native-installer-roundtrip=SKIP install-not-reached'
           }
       - name: Install compact web client and verify runtime cache
-        timeout-minutes: 5
+        timeout-minutes: 10
         shell: pwsh
         run: |
           $installDir = Join-Path $env:RUNNER_TEMP 'Light Remote Compact Installed'
@@ -933,7 +933,19 @@ jobs:
           $logArg = '/LOG="' + $log1 + '"'
           $args = @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',$dirArg,$logArg)
           $p = Start-Process -FilePath $env:WINDOWS_COMPACT_INSTALLER -ArgumentList $args -PassThru
-          if (-not $p.WaitForExit(180000)) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; throw 'compact installer timed out after 180s' }
+          if (-not $p.WaitForExit(240000)) {
+            Write-Host 'compact-install-timeout=diagnostics'
+            if (Test-Path $log1) { Get-Content -LiteralPath $log1 -Tail 150 | Write-Host }
+            $updaterRoot = Join-Path $env:LOCALAPPDATA 'Light Remote\Updater'
+            if (Test-Path $updaterRoot) {
+              Get-ChildItem $updaterRoot -Filter '*.log' -File -Recurse -ErrorAction SilentlyContinue |
+                Select-Object -First 4 | ForEach-Object { Write-Host "diagnostic-log=$($_.FullName)"; Get-Content $_.FullName -Tail 35 | Write-Host }
+            }
+            Get-CimInstance Win32_Process | Where-Object { $_.Name -match '^(Light-Remote|GptOperator|node|powershell)'} |
+              Select-Object Name,ProcessId,ParentProcessId | Format-Table | Out-String | Write-Host
+            Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+            throw 'compact installer timed out after 240s (installer and updater diagnostics above)'
+          }
           if ($p.ExitCode -ne 0) { if(Test-Path $log1){Get-Content $log1 -Raw|Write-Host}; throw "compact installer exit=$($p.ExitCode)" }
           $node = Join-Path $installDir 'runtime\node.exe'
           if (-not(Test-Path $node)) { throw 'compact installer did not provision Node runtime' }
@@ -951,7 +963,12 @@ jobs:
           $logArg2 = '/LOG="' + $log2 + '"'
           $args2 = @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',$dirArg,$logArg2)
           $p2 = Start-Process -FilePath $env:WINDOWS_COMPACT_INSTALLER -ArgumentList $args2 -PassThru
-          if (-not $p2.WaitForExit(180000)) { Stop-Process -Id $p2.Id -Force -ErrorAction SilentlyContinue; throw 'compact cache reinstall timed out after 180s' }
+          if (-not $p2.WaitForExit(240000)) {
+            Write-Host 'compact-cache-reinstall-timeout=diagnostics'
+            if (Test-Path $log2) { Get-Content -LiteralPath $log2 -Tail 150 | Write-Host }
+            Stop-Process -Id $p2.Id -Force -ErrorAction SilentlyContinue
+            throw 'compact cache reinstall timed out after 240s'
+          }
           if ($p2.ExitCode -ne 0) { if(Test-Path $log2){Get-Content $log2 -Raw|Write-Host}; throw "compact cache reinstall exit=$($p2.ExitCode)" }
           if ((Get-Content $log2 -Raw) -notmatch 'compact-node-source=cache') { throw 'compact reinstall did not reuse verified Node cache' }
           $exe = Join-Path $installDir 'GptOperator.Client.exe'

@@ -104,7 +104,8 @@ end;
 
 procedure PrepareCompactNodeArchive();
 var
-  CacheZip, TempZip: String;
+  CacheZip, TempZip, ScriptFile, ScriptText, Args: String;
+  ResultCode: Integer;
 begin
   ForceDirectories(CompactNodeCacheDir());
   CacheZip := CompactNodeCacheZip();
@@ -116,8 +117,41 @@ begin
   end
   else
   begin
-    DownloadTemporaryFile('{#NodeUrl}', '{#NodeZipName}', '{#NodeZipSha}', nil);
-    if not CopyFile(TempZip, CacheZip, False) then RaiseException('Unable to cache Node runtime');
+    // WinHTTP DownloadTemporaryFile may block silently while the runner is
+    // waiting for Setup. Use a bounded Windows PowerShell HTTPS download,
+    // then independently verify the pinned SHA-256 in Inno before caching.
+    ScriptFile := ExpandConstant('{tmp}\light-remote-node-fetch.ps1');
+    ScriptText :=
+      'param([string]$Url,[string]$Out)' + #13#10 +
+      '$ErrorActionPreference=''Stop''' + #13#10 +
+      'for($attempt=1;$attempt -le 2;$attempt++){' + #13#10 +
+      '  try{' + #13#10 +
+      '    Remove-Item -LiteralPath $Out -Force -ErrorAction SilentlyContinue' + #13#10 +
+      '    Invoke-WebRequest -Uri $Url -OutFile $Out -UseBasicParsing -MaximumRedirection 8 -TimeoutSec 65' + #13#10 +
+      '    if(-not(Test-Path -LiteralPath $Out) -or (Get-Item -LiteralPath $Out).Length -lt 1024){throw ''empty_or_incomplete_node_archive''}' + #13#10 +
+      '    exit 0' + #13#10 +
+      '  }catch{' + #13#10 +
+      '    Remove-Item -LiteralPath $Out -Force -ErrorAction SilentlyContinue' + #13#10 +
+      '    if($attempt -eq 2){ exit 71 }' + #13#10 +
+      '    Start-Sleep -Seconds 2' + #13#10 +
+      '  }' + #13#10 +
+      '}' + #13#10;
+    if not SaveStringToFile(ScriptFile, ScriptText, False) then
+      RaiseException('Unable to stage bounded Node downloader');
+    Args := '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + ScriptFile +
+      '" -Url "{#NodeUrl}" -Out "' + TempZip + '"';
+    Log('compact-node-download-bounded-begin');
+    if (not Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
+      Args, '', SW_HIDE, ewWaitUntilTerminated, ResultCode)) or (ResultCode <> 0) then
+      RaiseException('Verified Node runtime download failed (bounded attempts exit ' + IntToStr(ResultCode) + ')');
+    if not FileExists(TempZip) then RaiseException('Downloaded Node runtime archive missing');
+    if CompareText(GetSHA256OfFile(TempZip), '{#NodeZipSha}') <> 0 then
+    begin
+      DeleteFile(TempZip);
+      RaiseException('Downloaded Node runtime SHA-256 mismatch');
+    end;
+    if not CopyFile(TempZip, CacheZip, False) then RaiseException('Unable to cache verified Node runtime');
+    Log('compact-node-download-bounded-success');
     Log('compact-node-source=download');
   end;
 end;

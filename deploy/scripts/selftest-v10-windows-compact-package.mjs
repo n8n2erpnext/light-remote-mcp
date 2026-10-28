@@ -11,7 +11,8 @@ expect(builder.includes(`$NodeVersion='${version}'`)&&builder.includes(`$NodeZip
 expect(builder.includes('Remove-Item $BundledNode -Force')&&builder.includes('compact stage still contains bundled Node runtime'),'compact_node_not_removed');
 expect(builder.includes('/DCompactNodeBootstrap=1')&&builder.includes('Light-Remote-MCP-Compact-Setup-x64'),'compact_builder_defines_missing');
 expect(installer.includes('#ifdef CompactNodeBootstrap')&&installer.includes('ArchiveExtraction=full'),'compact_archive_mode_missing');
-expect(installer.includes("DownloadTemporaryFile('{#NodeUrl}', '{#NodeZipName}', '{#NodeZipSha}', nil)")&&installer.includes('GetSHA256OfFile(CacheZip)'),'compact_verified_download_missing');
+expect(installer.includes('GetSHA256OfFile(CacheZip)')&&installer.includes('GetSHA256OfFile(TempZip)')&&installer.includes('Invoke-WebRequest -Uri $Url -OutFile $Out')&&installer.includes(' -TimeoutSec 65'),'compact_bounded_verified_download_missing');
+expect(installer.includes('compact-node-download-bounded-begin')&&installer.includes('compact-node-download-bounded-success')&&installer.includes('if($attempt -eq 2){ exit 71 }'),'compact_download_retry_diagnostics_missing');
 expect(installer.includes('runtime-cache')&&installer.includes('ExtractArchive(TempZip')&&installer.includes("DestNode := ExpandConstant('{app}\\runtime\\node.exe')"),'compact_runtime_install_missing');
 expect(installer.includes('AfterInstall: InstallCompactNodeRuntime'),'compact_runtime_must_precede_run_section');
 expect(installer.includes('Light-Remote-MCP-Setup-{#AppVersion}-x64.exe'),'compact_rollback_cache_contract_missing');
