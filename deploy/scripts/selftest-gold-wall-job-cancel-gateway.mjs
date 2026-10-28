@@ -1,0 +1,23 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const src=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
+const gateway=src('plugin-server/device-public.mjs');
+const allowlist=gateway.match(/const CHANNEL = new Set\(\[([\s\S]*?)\]\);/)?.[1];
+assert.ok(allowlist,'public gateway allowlist must remain explicit');
+const actions=[...allowlist.matchAll(/'([a-z][a-z-]*)'/g)].map(m=>m[1]);
+assert.equal(actions.filter(a=>a==='job-cancel').length,1,'exact signed Wall action must be allowlisted once');
+for(const deny of ['job-stop-unsafe','stop-all','device-admin','account-delete','shell-exec'])
+ assert.ok(!actions.includes(deny),'unreviewed actions must remain denied');
+assert.match(gateway,/if\(!CHANNEL\.has\(action\)\)/);
+assert.match(gateway,/callOperatorJson\('POST',`\/v1\/device-channel\/\$\{encodeURIComponent\(action\)\}`/);
+const agent=src('device-agent/operator-agent.mjs');
+assert.match(agent,/channelRequest\(state,hub,'job-cancel',\{jobId\}\)/);
+const wall=src('device-agent/local-wall.mjs');
+assert.match(wall,/wallMutation\('\/api\/jobs\/cancel',\{jobId:id\}\)/);
+const operator=src('operator-host/executor-routes-device-channel.mjs');
+const section=operator.slice(operator.indexOf("url.pathname==='/v1/device-channel/job-cancel'"));
+assert.match(section,/verifiedChannelContext\(body,'job-cancel'\)/);
+assert.match(section,/accountId:ctx\.binding\.accountId,deviceId:ctx\.binding\.deviceId/);
+assert.doesNotMatch(section.slice(0,550),/ctx\.payload\.(?:accountId|deviceId|agentId)/);
+assert.match(src('operator-host/trusted-channel-rate-limiter.mjs'),/'job-cancel':'control'/);
+console.log('P0_SIGNED_WALL_KILL_GATEWAY_ALLOWED_OPERATOR_DEVICE_SCOPED_PASS');
