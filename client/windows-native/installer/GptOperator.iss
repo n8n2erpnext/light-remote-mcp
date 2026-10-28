@@ -104,7 +104,7 @@ end;
 
 procedure PrepareCompactNodeArchive();
 var
-  CacheZip, TempZip, ScriptFile, ScriptText, Args: String;
+  CacheZip, TempZip, ScriptFile, ScriptText, WorkerFile, WorkerText, Args: String;
   ResultCode: Integer;
 begin
   ForceDirectories(CompactNodeCacheDir());
@@ -121,17 +121,40 @@ begin
     // waiting for Setup. Use a bounded Windows PowerShell HTTPS download,
     // then independently verify the pinned SHA-256 in Inno before caching.
     ScriptFile := ExpandConstant('{tmp}\light-remote-node-fetch.ps1');
-    ScriptText :=
-      'param([string]$Url,[string]$Out)' + #13#10 +
+    WorkerFile := ExpandConstant('{tmp}\light-remote-node-download-worker.ps1');
+    WorkerText :=
       '$ErrorActionPreference=''Stop''' + #13#10 +
+      'Invoke-WebRequest -Uri $env:LR_NODE_URL -OutFile $env:LR_NODE_OUT -UseBasicParsing -MaximumRedirection 8 -TimeoutSec 60 | Out-Null' + #13#10 +
+      'if(-not(Test-Path -LiteralPath $env:LR_NODE_OUT) -or (Get-Item -LiteralPath $env:LR_NODE_OUT).Length -lt 1024){ exit 73 }' + #13#10 +
+      'exit 0' + #13#10;
+    if not SaveStringToFile(WorkerFile, WorkerText, False) then
+      RaiseException('Unable to stage Node download worker');
+    // Invoke-WebRequest -TimeoutSec limits network phases, not necessarily
+    // wall time. A separate child process plus WaitForExit enforces that limit.
+    ScriptText :=
+      'param([string]$Url,[string]$Out,[string]$Worker)' + #13#10 +
+      '$ErrorActionPreference=''Stop''' + #13#10 +
+      '$env:LR_NODE_URL=$Url; $env:LR_NODE_OUT=$Out' + #13#10 +
       'for($attempt=1;$attempt -le 2;$attempt++){' + #13#10 +
+      '  Remove-Item -LiteralPath $Out -Force -ErrorAction SilentlyContinue' + #13#10 +
       '  try{' + #13#10 +
-      '    Remove-Item -LiteralPath $Out -Force -ErrorAction SilentlyContinue' + #13#10 +
-      '    Invoke-WebRequest -Uri $Url -OutFile $Out -UseBasicParsing -MaximumRedirection 8 -TimeoutSec 65' + #13#10 +
+      '    $psi=New-Object System.Diagnostics.ProcessStartInfo' + #13#10 +
+      '    $psi.FileName=Join-Path $PSHOME ''powershell.exe''' + #13#10 +
+      '    $psi.Arguments=''-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "'' + $Worker + ''"''' + #13#10 +
+      '    $psi.UseShellExecute=$false; $psi.CreateNoWindow=$true' + #13#10 +
+      '    $child=[System.Diagnostics.Process]::Start($psi)' + #13#10 +
+      '    if(-not $child){throw ''node_download_worker_not_started''}' + #13#10 +
+      '    try{' + #13#10 +
+      '      if(-not $child.WaitForExit(75000)){' + #13#10 +
+      '        try{$child.Kill()}catch{}' + #13#10 +
+      '        $null=$child.WaitForExit(5000)' + #13#10 +
+      '        throw ''node_download_wall_clock_timeout''' + #13#10 +
+      '      }' + #13#10 +
+      '      if($child.ExitCode -ne 0){throw (''node_download_worker_exit_''+$child.ExitCode)}' + #13#10 +
+      '    }finally{$child.Dispose()}' + #13#10 +
       '    if(-not(Test-Path -LiteralPath $Out) -or (Get-Item -LiteralPath $Out).Length -lt 1024){throw ''empty_or_incomplete_node_archive''}' + #13#10 +
       '    exit 0' + #13#10 +
       '  }catch{' + #13#10 +
-      '    Remove-Item -LiteralPath $Out -Force -ErrorAction SilentlyContinue' + #13#10 +
       '    if($attempt -eq 2){ exit 71 }' + #13#10 +
       '    Start-Sleep -Seconds 2' + #13#10 +
       '  }' + #13#10 +
@@ -139,7 +162,7 @@ begin
     if not SaveStringToFile(ScriptFile, ScriptText, False) then
       RaiseException('Unable to stage bounded Node downloader');
     Args := '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + ScriptFile +
-      '" -Url "{#NodeUrl}" -Out "' + TempZip + '"';
+      '" -Url "{#NodeUrl}" -Out "' + TempZip + '" -Worker "' + WorkerFile + '"';
     Log('compact-node-download-bounded-begin');
     if (not Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
       Args, '', SW_HIDE, ewWaitUntilTerminated, ResultCode)) or (ResultCode <> 0) then
