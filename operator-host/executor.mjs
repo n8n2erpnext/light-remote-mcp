@@ -154,6 +154,23 @@ const personalAgentScheduler=PERSONAL_AGENT_SCHEDULER?
  new GoldPersonalAgentScheduler({pool:goldStorage.pool,resources:deviceResourceLocks}):null;
 if(personalAgentScheduler)await personalAgentScheduler.recoverStartup();
 const pendingForegroundExec=new Map();
+// Stop intents are retried over independently signed liveness channels.
+// A request is NOT a kill receipt; only an authenticated device result can
+// transition a dispatched job to cancelled.
+const pendingDeviceJobStops=new Map();
+function deviceStopRequests(accountId,deviceId){
+ const now=Date.now(),pending=[];
+ for(const [commandId,row] of pendingDeviceJobStops){
+   const job=jobs.get(row.jobId);
+   if(!job||job.finishedAt||now-row.requestedAt>15*60_000){
+     pendingDeviceJobStops.delete(commandId);continue;
+   }
+   if(row.accountId===accountId&&row.deviceId===deviceId&&pending.length<16)
+     pending.push({commandId,jobId:row.jobId});
+ }
+ return pending;
+}
+
 // A launch ACK closes the Agent execution slot, not the device resource lease.
 // Synchronize a fast signed terminal receipt with the launch-PG transaction.
 const pendingProcessLeaseWrites=new Map();
@@ -528,6 +545,7 @@ function pruneJobs(now = Date.now()) {
 
 function finishJob(job, exitCode, signal) {
   if (job.finishedAt) return;
+  if(job.commandId)pendingDeviceJobStops.delete(job.commandId);
   job.finishedAt = Date.now();
   job.telemetry={...(job.telemetry||{}),completedAt:job.telemetry?.completedAt||job.finishedAt};
   if(!job.telemetry.deviceReceivedAt&&!job.remote)job.telemetry.deviceReceivedAt=job.startedAt;
@@ -1321,6 +1339,51 @@ async function cancelQueuedPersonalJob({jobId,accountId,deviceIds}={}){
  return {ok:true,jobId,state:'cancelled',reason:'cancelled_before_dispatch'};
 }
 
+// Cancellation is a CONTROL operation: never put it behind the device's
+// execution queue. Only acknowledge cancellation before Agent admission.
+// Once dispatched, refuse rather than lying about killing an OS effect.
+async function cancelControlJob({jobId,accountId,deviceId,agentId=null}={}){
+ if(!/^[a-f0-9-]{36}$/i.test(String(jobId||'')))throw Object.assign(Error('invalid_job_id'),{status:400});
+ const job=jobs.get(jobId);
+ if(!job||job.accountId!==accountId||job.deviceId!==deviceId||
+    (agentId!==null&&job.agentId!==agentId))
+   throw Object.assign(Error('job_not_found'),{status:404});
+ if(job.finishedAt)throw Object.assign(Error('job_already_finished'),{status:409});
+ if(job.personalScheduled&&pendingForegroundExec.has(jobId)){
+   return cancelQueuedPersonalJob({jobId,accountId,deviceIds:new Set([deviceId])});
+ }
+ if(job.remote&&job.commandId){
+   let command;
+   try{command=fleet.command(job.commandId);}catch{
+     throw Object.assign(Error('job_dispatch_receipt_unavailable'),{status:409});
+   }
+   if(command.accountId!==accountId||command.deviceId!==deviceId||command.jobId!==jobId)
+     throw Object.assign(Error('job_device_mismatch'),{status:403});
+   if(command.dispatchedAt!==null){
+     if(job.note?.startsWith('native-exec:')||job.script){
+       job.stopRequestedAt??=Date.now();
+       pendingDeviceJobStops.set(command.commandId,{
+         jobId,accountId,deviceId,requestedAt:job.stopRequestedAt
+       });
+       pushEvent({type:'job_stop_requested',jobId,accountId,deviceId,
+         sessionId:job.sessionId,agentId:job.agentId,status:'stop_requested'});
+       goldJobs.save(job);
+       return {ok:true,jobId,state:'stop_requested',commandId:command.commandId,
+         reason:'await_verified_device_exit'};
+     }
+     throw Object.assign(Error('job_running_no_verified_exec_stop_handle'),{status:409});
+   }
+   const cancelled=fleet.cancelUndispatched(command.commandId);
+   if(!cancelled)throw Object.assign(Error('job_already_dispatched_stop_requires_device_receipt'),{status:409});
+   job.cancelled=true;
+   job.resultData={ok:false,error:'cancelled_before_device_dispatch'};
+   job.resultSummary='cancelled_before_device_dispatch';
+   finishJob(job,130,null);
+   return {ok:true,jobId,state:'cancelled',reason:'cancelled_before_device_dispatch'};
+ }
+ throw Object.assign(Error('job_running_no_verified_stop_handle'),{status:409});
+}
+
 // Fleet owner Stop requests reuse the original process owner principal.
  // Accepted means dispatched only; final OS termination is recorded separately
  // by a verified device process receipt. Never free a worker claim here.
@@ -1385,7 +1448,7 @@ const routeDeps=()=>({
   ingressTelemetry,jobView,jobs,goldJobs,deviceResourceLocks,deviceResourceSampleCache,memorySyncPolicy,memoryAccountDelete,
   inspectOwnerOrphanDevice:options=>deviceResourceLocks.inspectOwnerOrphanDevice(goldStorage.pool,options),
   abandonOwnerAttestedOrphan:options=>deviceResourceLocks.abandonOwnerAttestedOrphan(goldStorage.pool,options),
-  cancelQueuedPersonalJob,requestFleetProcessStop,licenses,normalizeUpdateReport,
+  cancelQueuedPersonalJob,cancelControlJob,deviceStopRequests,requestFleetProcessStop,licenses,normalizeUpdateReport,
   pairingCodes,planEntitlements,pruneRing,pushEvent,queueHelperUpdate,
   queueSignedUpdate,readJson,reapAccessGrants,accountNotifications,realRemoteLive,recentEvents,redact,proTeams,teamSessions,requestTeamMemberApproval,operationalAccount,
   removeRuntimeForDevice,requireAccount,requireDeviceConnection,revokeRuntimeForDevice,ring,

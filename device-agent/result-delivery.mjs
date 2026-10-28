@@ -2,7 +2,7 @@ export const RESULT_DELIVERY_BUDGET_BYTES=3*1024*1024;
 export const RESULT_413_RETRY_BUDGET_BYTES=512*1024;
 
 const jsonBytes=value=>Buffer.byteLength(JSON.stringify(value));
-const safeStatus=value=>['ok','error','timeout'].includes(String(value||''))?String(value):'error';
+const safeStatus=value=>['ok','error','timeout','cancelled'].includes(String(value||''))?String(value):'error';
 
 function utf8Slice(value,maxBytes){
   const text=String(value??''),limit=Math.max(0,Number(maxBytes)||0);

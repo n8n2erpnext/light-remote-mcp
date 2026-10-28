@@ -6,7 +6,7 @@ import { ownerDeviceResourceMetrics } from '../lib/gold-device-resource-metrics.
 
 
 export async function handleDeviceChannelRoutes(req,res,url,deps){
-  const {ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,DeviceAccessGrantError,DevicePairingRegistryError,EnrollmentError,FleetAuthorityError,FleetError,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,MIN_SUPPORTED_CLIENT_VERSION,NODE_ID,VERSION,abandonedCommandReceiptFromDisk,accessGrants,accounts,agentClients,allDeviceViews,applyDeviceTelemetry,capabilities,clientCompatibility,connectionSpec,connections,deviceView,devices,emitStream,enrollments,finishJob,fleet,fleetAuthority,fleetEligibility,fleetTarget,jobView,jobs,goldJobs,deviceResourceLocks,deviceResourceSampleCache,cancelQueuedPersonalJob,requestFleetProcessStop,reconcileSignedTerminalProcessReceipts,normalizeUpdateReport,pairingCodes,planEntitlements,pushEvent,queueHelperUpdate,readJson,reapAccessGrants,realRemoteLive,recentEvents,requireDeviceConnection,sendJson,sessions,targetRoute,terminalResultSummary,verifiedChannelContext,verifiedFleetContext,verifiedLeafCapabilities,memorySyncPolicy,memoryAccountDelete,accountNotifications,proTeams}=deps;
+  const {ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,DeviceAccessGrantError,DevicePairingRegistryError,EnrollmentError,FleetAuthorityError,FleetError,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,MIN_SUPPORTED_CLIENT_VERSION,NODE_ID,VERSION,abandonedCommandReceiptFromDisk,accessGrants,accounts,agentClients,allDeviceViews,applyDeviceTelemetry,capabilities,clientCompatibility,connectionSpec,connections,deviceView,devices,emitStream,enrollments,finishJob,fleet,fleetAuthority,fleetEligibility,fleetTarget,jobView,jobs,goldJobs,deviceResourceLocks,deviceResourceSampleCache,cancelQueuedPersonalJob,cancelControlJob,deviceStopRequests,requestFleetProcessStop,reconcileSignedTerminalProcessReceipts,normalizeUpdateReport,pairingCodes,planEntitlements,pushEvent,queueHelperUpdate,readJson,reapAccessGrants,realRemoteLive,recentEvents,requireDeviceConnection,sendJson,sessions,targetRoute,terminalResultSummary,verifiedChannelContext,verifiedFleetContext,verifiedLeafCapabilities,memorySyncPolicy,memoryAccountDelete,accountNotifications,proTeams}=deps;
   // Reuse the canonical account notification inbox. The signed enrollment
   // determines the account; the browser cannot supply an account ID.
   if(req.method==='POST'&&url.pathname==='/v1/device-channel/account-notifications'){
@@ -195,6 +195,9 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
     if(stdout)emitStream(job,'stdout',Buffer.from(stdout));
     if(stderr)emitStream(job,'stderr',Buffer.from(stderr));
     job.timedOut=String(result.status||'')==='timeout';
+    // Only a signed device exit after an owner stop request is proof of Kill.
+    if(String(result.status||'')==='cancelled'&&job.stopRequestedAt)
+      job.cancelled=true;
     fleet.complete({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,commandId:command.commandId,resultTransport});
     finishJob(job,exitCode,null);
     return {ok:true,accepted:true,duplicate:false,job:jobView(job)};
@@ -547,6 +550,16 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       pushEvent({type:'device_update_report',accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,status:report.outcome==='success'?'ok':'error',...report});
       return sendJson(res,200,{ok:true,accepted:true,reportId:report.reportId});
     }
+    if(req.method==='POST'&&url.pathname==='/v1/device-channel/job-cancel'){
+      const body=await readJson(req),ctx=await verifiedChannelContext(body,'job-cancel');
+      // The signed enrollment binds this control to one owner-device only.
+      // No global Fleet lease and no client-supplied account/device/agent.
+      const value=await cancelControlJob({
+        jobId:String(ctx.payload.jobId||''),
+        accountId:ctx.binding.accountId,deviceId:ctx.binding.deviceId
+      });
+      return sendJson(res,200,value);
+    }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/activity') {
       const body=await readJson(req), ctx=await verifiedChannelContext(body,'activity');
       requireDeviceConnection(ctx.device.deviceId);
@@ -589,7 +602,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
           deviceResourceSampleCache.record({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,value:payload.resourceSample});
           const terminalReceiptsAck=await reconcileSignedTerminalProcessReceipts(ctx,payload.processTerminalReceipts);
           const policy=reportedRevision===Math.max(1,Number(ctx.binding.policyRevision)||1)?null:enrollments.policyEnvelope(ctx.device.deviceId);
-          return {node,policy,terminalReceiptsAck};
+          return {node,policy,terminalReceiptsAck,stopRequests:deviceStopRequests(ctx.binding.accountId,ctx.binding.deviceId)};
         },
         onEvent:event=>pushEvent({accountId:(()=>{try{return devices.get(event.deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)}).accountId;}catch{return ACCOUNT_ID;}})(),nodeId:(()=>{try{return devices.get(event.deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)}).nodeId;}catch{return null;}})(),status:event.type==='device_duplex_error'?'error':'ok',...event})
       });
@@ -608,7 +621,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       deviceResourceSampleCache.record({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,value:ctx.payload.resourceSample});
       const terminalReceiptsAck=await reconcileSignedTerminalProcessReceipts(ctx,ctx.payload.processTerminalReceipts);
       const policy=reportedRevision===Math.max(1,Number(ctx.binding.policyRevision)||1)?null:enrollments.policyEnvelope(ctx.device.deviceId);
-      return sendJson(res,200,{ok:true,node,policy,pulseOnly:true,terminalReceiptsAck});
+      return sendJson(res,200,{ok:true,node,policy,pulseOnly:true,terminalReceiptsAck,stopRequests:deviceStopRequests(ctx.binding.accountId,ctx.binding.deviceId)});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/poll') {
       const body=await readJson(req), ctx=await verifiedChannelContext(body,'poll');
@@ -622,7 +635,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       const waitMs=Math.max(0,Math.min(Number(ctx.payload.waitMs)||8000,15000));
       const channel=await fleet.waitPoll({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,sessionCeiling:ctx.payload.sessionCeiling,draining:Boolean(ctx.payload.draining),executorReady:ctx.payload.executorReady,capabilities,policyRevision:reportedRevision,transport:'signed-poll-v1'},waitMs);
       const policy=reportedRevision===Math.max(1,Number(ctx.binding.policyRevision)||1)?null:enrollments.policyEnvelope(ctx.device.deviceId);
-      return sendJson(res,200,{ok:true,channel,policy,terminalReceiptsAck,access:{pending:accessGrants.pendingForDevice(ctx.device.deviceId),activeGrant:accessGrants.activeForDevice(ctx.device.deviceId,connections.get(ctx.device.deviceId)?.connectionId)}});
+      return sendJson(res,200,{ok:true,channel,policy,terminalReceiptsAck,stopRequests:deviceStopRequests(ctx.binding.accountId,ctx.binding.deviceId),access:{pending:accessGrants.pendingForDevice(ctx.device.deviceId),activeGrant:accessGrants.activeForDevice(ctx.device.deviceId,connections.get(ctx.device.deviceId)?.connectionId)}});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/result') {
       const body=await readJson(req),ctx=await verifiedChannelContext(body,'result');

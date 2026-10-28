@@ -461,7 +461,7 @@ async function ensureDeviceDuplex(state,hub){
       hello:meta=>{const current=readState()||state;return signedChannelEnvelope(current,'stream',duplexHelloPayload(current,meta));},
       onCommand:command=>duplexExecuteCommand(command,hub),
       onHelloAck:async(frame,info)=>{const current=readState();if(current){applyPolicyEnvelope(current,frame.policy);current.cloud={...(current.cloud||{}),desiredConnected:true,state:'connected',lastServerActivityAt:Date.now(),lastError:null};writeState(current);}if(info?.serverEpochChanged)queueMicrotask(()=>void resyncLiveAfterDuplexEpochChange());},
-      onHeartbeatAck:async frame=>{const current=readState();if(current&&frame.policy)applyPolicyEnvelope(current,frame.policy);if(current)await confirmTerminalReceiptsAck(current,frame.terminalReceiptsAck);},
+      onHeartbeatAck:async frame=>{const current=readState();if(current&&frame.policy)applyPolicyEnvelope(current,frame.policy);if(current)await confirmTerminalReceiptsAck(current,frame.terminalReceiptsAck);applyDeviceStopRequests(frame.stopRequests);},
       heartbeatPayload:duplexHeartbeatPayload,
       heartbeatMs:5000,
       maxPending:128,
@@ -757,6 +757,33 @@ async function executeScpCommand(state,p){
   throw new Error('scp_operation_unsupported');
 }
 
+// Only exact children started by this Agent can be stopped. Never accept a
+// PID/path from browser, plugin or Operator stop payload.
+const ACTIVE_EXEC_CHILDREN=new Map();
+function applyDeviceStopRequests(rows){
+  if(!Array.isArray(rows))return;
+  for(const row of rows.slice(0,16)){
+    const id=String(row?.commandId||'');
+    if(!/^cmd_[a-f0-9-]{36}$/.test(id))continue;
+    const running=ACTIVE_EXEC_CHILDREN.get(id);
+    if(!running||running.cancelRequested)continue;
+    const child=running.child,pid=child?.pid;
+    if(!Number.isSafeInteger(pid)||pid<=0||child.exitCode!==null)continue;
+    running.cancelRequested=true;
+    console.log(JSON.stringify({event:'owned_exec_stop_requested',commandId:id,pid}));
+    if(process.platform==='win32'){
+      // Windows /T /F is required to stop descendants, not only cmd.exe.
+      const killer=spawn('taskkill.exe',['/PID',String(pid),'/T','/F'],{
+        windowsHide:true,stdio:'ignore'
+      });
+      killer.on('error',()=>{try{child.kill();}catch{}});
+      killer.on('exit',code=>{if(code!==0&&child.exitCode===null){try{child.kill();}catch{}}});
+      killer.unref();
+    }else{
+      try{child.kill('SIGTERM');}catch{}
+    }
+  }
+}
 async function executeCommandCore(state,command,{hub=DEFAULT_HUB}={}){
   const existing=readCommand(command.commandId);
   if(existing?.state==='finished'&&existing.result)return existing.result;
@@ -850,13 +877,17 @@ async function executeCommandCore(state,command,{hub=DEFAULT_HUB}={}){
   }
   const startedAt=Date.now();writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'running',startedAt});
   const out=boundedCollector(),err=boundedCollector();let timedOut=false,firstOutputAt=null;
+  const execStopState={child:null,cancelRequested:false};
   const markOutput=(collector,data)=>{if(firstOutputAt==null)firstOutputAt=Date.now();collector.add(data);};
   const exitCode=await new Promise(resolve=>{
     const child=spawn(spec.file,spec.args,{cwd,env:{...process.env,GPT_OPERATOR_ACCOUNT:state.enrollment.accountId,GPT_OPERATOR_DEVICE:state.enrollment.deviceId,GPT_OPERATOR_NODE:state.enrollment.nodeId||state.enrollment.deviceId,GPT_OPERATOR_SESSION:String(p.sessionId||'')},stdio:['ignore','pipe','pipe']});
+    execStopState.child=child;ACTIVE_EXEC_CHILDREN.set(command.commandId,execStopState);
     child.stdout.on('data',d=>markOutput(out,d));child.stderr.on('data',d=>markOutput(err,d));child.on('error',e=>{err.add(`${e.message}\n`);resolve(127);});child.on('exit',code=>resolve(code??128));
     const timer=setTimeout(()=>{timedOut=true;child.kill('SIGTERM');setTimeout(()=>child.kill('SIGKILL'),5000).unref();},Math.max(1000,Math.min(Number(p.timeoutMs)||600000,7200000)));timer.unref();child.on('close',()=>clearTimeout(timer));
   });
-  const result={commandId:command.commandId,status:timedOut?'timeout':exitCode===0?'ok':'error',exitCode:timedOut?124:Math.max(0,Math.min(Number(exitCode)||0,255)),stdout:out.text(),stderr:err.text(),durationMs:Date.now()-startedAt,outputTruncated:out.truncated()||err.truncated(),telemetry:{firstOutputAt}};
+  ACTIVE_EXEC_CHILDREN.delete(command.commandId);
+  const cancelled=execStopState.cancelRequested;
+  const result={commandId:command.commandId,status:cancelled?'cancelled':timedOut?'timeout':exitCode===0?'ok':'error',exitCode:cancelled?130:timedOut?124:Math.max(0,Math.min(Number(exitCode)||0,255)),stdout:out.text(),stderr:err.text(),durationMs:Date.now()-startedAt,outputTruncated:out.truncated()||err.truncated(),telemetry:{firstOutputAt}};
   writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;
 }
 async function replicaAutoCaptureAllowed(state){
@@ -1061,6 +1092,16 @@ async function remoteAccountNotifications(hub=DEFAULT_HUB,base=DEFAULT_BASE,{wal
   return {ok:true,unreadCount:Math.max(0,Number(result.unreadCount)||0),
     notifications:result.notifications.slice(0,5),accountInboxUrl:new URL('/account/inbox',origin).href};
 }
+async function cancelWallJob(hub=DEFAULT_HUB,jobId=''){
+  const state=readState();
+  if(!state?.enrollment?.deviceId)throw new Error('job_cancel_device_not_enrolled');
+  if(!/^[a-f0-9-]{36}$/i.test(String(jobId)))throw new Error('invalid_job_id');
+  // Independent signed control request, never queued through the stalled Agent.
+  const answer=await channelRequest(state,hub,'job-cancel',{jobId});
+  if(answer.state==='stop_requested'&&answer.commandId)
+    applyDeviceStopRequests([{commandId:answer.commandId}]);
+  return answer;
+}
 async function remoteDeviceActivity(hub=DEFAULT_HUB,limit=500){
   const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
   const bounded=Math.max(1,Math.min(Number(limit)||500,5000));
@@ -1149,7 +1190,7 @@ async function daemon(args){
   const wait=ms=>new Promise(resolve=>{const timer=setTimeout(()=>{wake=null;resolve();},ms);wake=()=>{clearTimeout(timer);wake=null;resolve();};});
   if(!fs.existsSync(LOCAL_WALL_AUTH_FILE))writeAccountOnlyWallAuthConfig(LOCAL_WALL_AUTH_FILE,{username:'account'});
   const wallAuth=loadLocalWallAuth(LOCAL_WALL_AUTH_FILE,{required:!['127.0.0.1','::1','localhost'].includes(String(LOCAL_WALL_HOST))});
-  localWall=startLocalWall({modules:GOLD_WALL_MODULES,host:LOCAL_WALL_HOST,port:LOCAL_WALL_PORT,brandSvgPath:LOCAL_WALL_BRAND,auth:wallAuth,getAccountNotifications:async owner=>remoteAccountNotifications(hub,base,owner),getMemoryAccountDevices:async()=>memoryAccountDevices(hub),getMemoryAccountInvites:async data=>memoryAccountInvites(hub,data),getMemoryAccountSyncPolicy:async data=>memoryAccountSyncPolicy(hub,data),getMemoryAccountDelete:async data=>memoryAccountDeleteChannel(hub,data),getLocalStatus:async()=>({...statusView(),fleetWall:await localFleetStatus()}),getLocalPolicyStatus:async()=>statusView(),getPendingAccess:async()=>remoteAccessLookup(hub),getRemoteStatus:async()=>{const remote=await remoteDeviceStatus(hub);return remote;},getRemoteActivity:async limit=>remoteDeviceActivity(hub,limit),getLocalProcesses:async()=>((SUPERVISED_PROCESSES?await SUPERVISED_PROCESSES.listDevice(state.enrollment.accountId,state.enrollment.deviceId):NATIVE_PROCESSES.list())).map(p=>({
+  localWall=startLocalWall({modules:GOLD_WALL_MODULES,host:LOCAL_WALL_HOST,port:LOCAL_WALL_PORT,brandSvgPath:LOCAL_WALL_BRAND,auth:wallAuth,getAccountNotifications:async owner=>remoteAccountNotifications(hub,base,owner),getMemoryAccountDevices:async()=>memoryAccountDevices(hub),getMemoryAccountInvites:async data=>memoryAccountInvites(hub,data),getMemoryAccountSyncPolicy:async data=>memoryAccountSyncPolicy(hub,data),getMemoryAccountDelete:async data=>memoryAccountDeleteChannel(hub,data),getLocalStatus:async()=>({...statusView(),fleetWall:await localFleetStatus()}),getLocalPolicyStatus:async()=>statusView(),getPendingAccess:async()=>remoteAccessLookup(hub),getRemoteStatus:async()=>{const remote=await remoteDeviceStatus(hub);return remote;},getRemoteActivity:async limit=>remoteDeviceActivity(hub,limit),cancelRemoteJob:async jobId=>cancelWallJob(hub,jobId),getLocalProcesses:async()=>((SUPERVISED_PROCESSES?await SUPERVISED_PROCESSES.listDevice(state.enrollment.accountId,state.enrollment.deviceId):NATIVE_PROCESSES.list())).map(p=>({
     processId:p.processId,sessionId:p.sessionId,pid:p.pid,state:p.state,
     startedAt:p.startedAt,finishedAt:p.finishedAt,exitCode:p.exitCode,
     stdoutBytes:p.stdoutBytes,stderrBytes:p.stderrBytes,stopRequested:p.stopRequested,
@@ -1481,7 +1522,7 @@ async function daemon(args){
       // A Local Wall connect/disconnect can update device.json while this long-poll is in flight.
       // Re-read before persisting the poll result so the daemon never clobbers newer lease metadata.
       const latestAfterPoll=readState();if(latestAfterPoll)state=latestAfterPoll;
-      applyPolicyEnvelope(state,response.policy);await confirmTerminalReceiptsAck(state,response.terminalReceiptsAck);failures=0;
+      applyPolicyEnvelope(state,response.policy);await confirmTerminalReceiptsAck(state,response.terminalReceiptsAck);applyDeviceStopRequests(response.stopRequests);failures=0;
       state.cloud={...(state.cloud||{}),desiredConnected:true,state:'connected',lastServerActivityAt:Date.now(),lastError:null};
       const command=response.channel?.command;
       try{writeState(state);}
@@ -1509,7 +1550,7 @@ async function daemon(args){
       if(command){
         const deviceReceivedAt=Date.now();
         let commandPulseTimer=null,commandPulseBusy=false;
-        const commandPulse=async()=>{if(stopped||commandPulseBusy)return;commandPulseBusy=true;try{const current=readState()||state;if(!current?.enrollment?.deviceId||!cloudDesired(current))return;if(cloudLeaseRenewalDue(current))await renewCloudLease(current,hub);const pulseAck=await channelRequest(current,hub,'pulse',{nodeId:current.enrollment.nodeId||current.enrollment.deviceId,agentVersion:VERSION,sessionCeiling,draining:Boolean(current.routing?.draining),executorReady:executorReadiness(),capabilities:effectiveCapabilitiesForState(current),policyRevision:Math.max(0,Number(current.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView(),processTerminalReceipts:nextProcessTerminalReceipts(),resourceSample:DEVICE_RESOURCE_SAMPLER.sample()});await confirmTerminalReceiptsAck(current,pulseAck.terminalReceiptsAck);}catch(error){console.error(JSON.stringify({event:'device_command_liveness_failed',deviceId:state.enrollment?.deviceId||null,commandId:command.commandId,error:error.message,status:error.status||null}));}finally{commandPulseBusy=false;}};
+        const commandPulse=async()=>{if(stopped||commandPulseBusy)return;commandPulseBusy=true;try{const current=readState()||state;if(!current?.enrollment?.deviceId||!cloudDesired(current))return;if(cloudLeaseRenewalDue(current))await renewCloudLease(current,hub);const pulseAck=await channelRequest(current,hub,'pulse',{nodeId:current.enrollment.nodeId||current.enrollment.deviceId,agentVersion:VERSION,sessionCeiling,draining:Boolean(current.routing?.draining),executorReady:executorReadiness(),capabilities:effectiveCapabilitiesForState(current),policyRevision:Math.max(0,Number(current.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView(),processTerminalReceipts:nextProcessTerminalReceipts(),resourceSample:DEVICE_RESOURCE_SAMPLER.sample()});await confirmTerminalReceiptsAck(current,pulseAck.terminalReceiptsAck);applyDeviceStopRequests(pulseAck.stopRequests);}catch(error){console.error(JSON.stringify({event:'device_command_liveness_failed',deviceId:state.enrollment?.deviceId||null,commandId:command.commandId,error:error.message,status:error.status||null}));}finally{commandPulseBusy=false;}};
         await commandPulse();commandPulseTimer=setInterval(()=>void commandPulse(),commandHeartbeatMs);commandPulseTimer.unref?.();
         let result,claim;
         try{
@@ -1554,7 +1595,7 @@ async function wallOnly(args){
   if(!fs.existsSync(LOCAL_WALL_AUTH_FILE))writeAccountOnlyWallAuthConfig(LOCAL_WALL_AUTH_FILE,{username:'account'});
   const wallAuth=loadLocalWallAuth(LOCAL_WALL_AUTH_FILE,{required:!['127.0.0.1','::1','localhost'].includes(String(LOCAL_WALL_HOST))});
   const fleetManager=new FleetComponentManager(),fleetSupervisor=new FleetComponentSupervisor({manager:fleetManager,stateProvider:()=>readState(),requestIntent:async current=>{const local=await localFleetStatus();const response=await channelRequest(current,hub,'fleet-intent',{agentVersion:VERSION,moduleVersion:fleetManager.current()?.version||null,fleetHealthy:local.healthy===true,fleetPort:local.port});return response.fleet;},env:{OPERATOR_AGENT_STATE:STATE_FILE,OPERATOR_AGENT_IDENTITY_FILE:EXTERNAL_IDENTITY_FILE,OPERATOR_AGENT_WALL_AUTH_FILE:LOCAL_WALL_AUTH_FILE,OPERATOR_AGENT_HUB_URL:hub,OPERATOR_FLEET_WALL_HOST:FLEET_WALL_HOST,OPERATOR_FLEET_WALL_PORT:String(FLEET_WALL_PORT),OPERATOR_FLEET_WALL_PUBLIC_URL:FLEET_WALL_PUBLIC_URL},emit:event=>console.log(JSON.stringify(event))});
-  const localWall=startLocalWall({modules:GOLD_WALL_MODULES,host:LOCAL_WALL_HOST,port:LOCAL_WALL_PORT,brandSvgPath:LOCAL_WALL_BRAND,auth:wallAuth,getAccountNotifications:async owner=>remoteAccountNotifications(hub,base,owner),getMemoryAccountDevices:async()=>memoryAccountDevices(hub),getMemoryAccountInvites:async data=>memoryAccountInvites(hub,data),getMemoryAccountSyncPolicy:async data=>memoryAccountSyncPolicy(hub,data),getMemoryAccountDelete:async data=>memoryAccountDeleteChannel(hub,data),getLocalStatus:async()=>({...statusView(),fleetWall:await localFleetStatus()}),getLocalPolicyStatus:async()=>statusView(),getPendingAccess:async()=>remoteAccessLookup(hub),getRemoteStatus:async()=>remoteDeviceStatus(hub),getRemoteActivity:async limit=>remoteDeviceActivity(hub,limit),getLocalTerminals:async()=>NATIVE_TERMINALS.list().map(t=>({terminalId:t.terminalId,sessionId:t.sessionId,state:t.state,shell:t.shell,startedAt:t.startedAt,finishedAt:t.finishedAt,outputBytes:t.outputBytes})),readLocalTerminal:async(terminalId,{offset=0,limit=32768}={})=>{const t=NATIVE_TERMINALS.output(terminalId,null,{offset,limit});return {terminalId:t.terminalId,sessionId:t.sessionId,state:t.state,output:t.output};},connect:async data=>connectCloud({hub,graceMinutes:data.graceMinutes,leaseHours:data.leaseHours,silent:true}),disconnect:async data=>disconnectCloud({hub,reason:data.reason||'local_wall_disconnect',silent:true}),setGrace:async data=>setConnectionGrace({hub,minutes:data.minutes,silent:true}),setPermissions:async data=>setLocalPermissions(data?.allowedCapabilities,data?.profile),setFilesystemRoots:async data=>setLocalFilesystemRoots(data),getFilesystemVolumes:async()=>filesystemVolumeInventory(),ownerApprovePermissions:async data=>ownerApproveServerPermissions(data,hub),rescanCapabilities:async()=>rescanHostCapabilities(hub),accountAuthenticate:async data=>authenticateWallAccount(data?.username,data?.password,base),pairingCode:async data=>rotatePairingCode(hub,data),ownerProofCode:async()=>accountOwnerProofCode(hub),accessApprove:async requestId=>approveDeviceAccess(requestId,hub),accessDeny:async(requestId,data)=>denyDeviceAccess(requestId,hub,data?.reason||'owner_denied'),closeSession:async data=>closeWallSession(hub,data),requestUpdate:async data=>requestLocalUpdate('local-wall',data?.mode||'apply')});
+  const localWall=startLocalWall({modules:GOLD_WALL_MODULES,host:LOCAL_WALL_HOST,port:LOCAL_WALL_PORT,brandSvgPath:LOCAL_WALL_BRAND,auth:wallAuth,getAccountNotifications:async owner=>remoteAccountNotifications(hub,base,owner),getMemoryAccountDevices:async()=>memoryAccountDevices(hub),getMemoryAccountInvites:async data=>memoryAccountInvites(hub,data),getMemoryAccountSyncPolicy:async data=>memoryAccountSyncPolicy(hub,data),getMemoryAccountDelete:async data=>memoryAccountDeleteChannel(hub,data),getLocalStatus:async()=>({...statusView(),fleetWall:await localFleetStatus()}),getLocalPolicyStatus:async()=>statusView(),getPendingAccess:async()=>remoteAccessLookup(hub),getRemoteStatus:async()=>remoteDeviceStatus(hub),getRemoteActivity:async limit=>remoteDeviceActivity(hub,limit),cancelRemoteJob:async jobId=>cancelWallJob(hub,jobId),getLocalTerminals:async()=>NATIVE_TERMINALS.list().map(t=>({terminalId:t.terminalId,sessionId:t.sessionId,state:t.state,shell:t.shell,startedAt:t.startedAt,finishedAt:t.finishedAt,outputBytes:t.outputBytes})),readLocalTerminal:async(terminalId,{offset=0,limit=32768}={})=>{const t=NATIVE_TERMINALS.output(terminalId,null,{offset,limit});return {terminalId:t.terminalId,sessionId:t.sessionId,state:t.state,output:t.output};},connect:async data=>connectCloud({hub,graceMinutes:data.graceMinutes,leaseHours:data.leaseHours,silent:true}),disconnect:async data=>disconnectCloud({hub,reason:data.reason||'local_wall_disconnect',silent:true}),setGrace:async data=>setConnectionGrace({hub,minutes:data.minutes,silent:true}),setPermissions:async data=>setLocalPermissions(data?.allowedCapabilities,data?.profile),setFilesystemRoots:async data=>setLocalFilesystemRoots(data),getFilesystemVolumes:async()=>filesystemVolumeInventory(),ownerApprovePermissions:async data=>ownerApproveServerPermissions(data,hub),rescanCapabilities:async()=>rescanHostCapabilities(hub),accountAuthenticate:async data=>authenticateWallAccount(data?.username,data?.password,base),pairingCode:async data=>rotatePairingCode(hub,data),ownerProofCode:async()=>accountOwnerProofCode(hub),accessApprove:async requestId=>approveDeviceAccess(requestId,hub),accessDeny:async(requestId,data)=>denyDeviceAccess(requestId,hub,data?.reason||'owner_denied'),closeSession:async data=>closeWallSession(hub,data),requestUpdate:async data=>requestLocalUpdate('local-wall',data?.mode||'apply')});
   console.log(JSON.stringify({event:'host_wall_companion_started',mode:'wall-only',url:localWall.url,deviceId:state.enrollment.deviceId,nodeId:state.enrollment.nodeId||state.enrollment.deviceId}));
   let stopping=false,resolveStop;const stopped=new Promise(resolve=>resolveStop=resolve);const stop=()=>{if(stopping)return;stopping=true;resolveStop();};process.once('SIGTERM',stop);process.once('SIGINT',stop);
   const reconcile=async()=>{if(stopping)return;try{await fleetSupervisor.reconcile();}catch(error){console.error(JSON.stringify({event:'fleet_component_reconcile_failed',error:error.message,status:error.status||null}));}};

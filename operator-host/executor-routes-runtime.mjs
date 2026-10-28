@@ -1,5 +1,5 @@
 export async function handleRuntimeRoutes(req,res,url,deps){
-  const {ACCOUNT_ID,DEVICE_ID,DeviceAccessGrantError,DeviceConnectionError,EnrollmentError,FleetError,MAX_ACTIVE_SESSIONS,MAX_MEMORY_OUTPUT,NODE_ID,SESSION_GRACE_PRESETS,SESSION_IDLE_MS,SESSION_MAX_IDLE_MS,SESSION_MIN_IDLE_MS,VERSION,accessGrants,agentClients,allDeviceViews,assertDiskJobOwner,assertToolCallQuota,capabilities,clearMainIfMatches,connectionSpec,connectionViewForDevice,connections,decryptEnvelope,deviceView,devices,enrollments,fleet,flushDiskRecords,fs,fullOutputFromDisk,ingressTelemetry,jobView,jobs,goldJobs,pairingCodes,pruneRing,pushEvent,queueSignedUpdate,readJson,realRemoteLive,recentEvents,redact,revokeRuntimeForDevice,ring,ringBytes,sendJson,sessionStatsFromDisk,sessions,sseClients,startDesktopOperation,startFsOperation,startJob,startProcessOperation,startScpOperation,startSearchOperation,startTerminalOperation,targetRoute,waitForJob,planEntitlements,operationalAccount}=deps;
+  const {ACCOUNT_ID,DEVICE_ID,DeviceAccessGrantError,DeviceConnectionError,EnrollmentError,FleetError,MAX_ACTIVE_SESSIONS,MAX_MEMORY_OUTPUT,NODE_ID,SESSION_GRACE_PRESETS,SESSION_IDLE_MS,SESSION_MAX_IDLE_MS,SESSION_MIN_IDLE_MS,VERSION,accessGrants,agentClients,allDeviceViews,assertDiskJobOwner,assertToolCallQuota,cancelControlJob,capabilities,clearMainIfMatches,connectionSpec,connectionViewForDevice,connections,decryptEnvelope,deviceView,devices,enrollments,fleet,flushDiskRecords,fs,fullOutputFromDisk,ingressTelemetry,jobView,jobs,goldJobs,pairingCodes,pruneRing,pushEvent,queueSignedUpdate,readJson,realRemoteLive,recentEvents,redact,revokeRuntimeForDevice,ring,ringBytes,sendJson,sessionStatsFromDisk,sessions,sseClients,startDesktopOperation,startFsOperation,startJob,startProcessOperation,startScpOperation,startSearchOperation,startTerminalOperation,targetRoute,waitForJob,planEntitlements,operationalAccount}=deps;
     if (req.method === 'GET' && url.pathname === '/v1/devices') {
       return sendJson(res, 200, { ok:true, currentDeviceId:DEVICE_ID, devices:allDeviceViews() });
     }
@@ -197,6 +197,19 @@ export async function handleRuntimeRoutes(req,res,url,deps){
       const waitMs = Math.max(0, Math.min(Number(payload.waitMs) || 0, 8000));
       await waitForJob(job, waitMs);
       return sendJson(res, 200, { ok: job.finishedAt?job.exitCode===0:true, encryptedByKid: kid, aad, job: jobView(job), data: job.resultData });
+    }
+    const jobCancelMatch=url.pathname.match(/^\/v1\/jobs\/([0-9a-f-]+)\/cancel$/i);
+    if(req.method==='POST'&&jobCancelMatch){
+      const body=await readJson(req),job=jobs.get(jobCancelMatch[1]);
+      if(!job) return sendJson(res,404,{ok:false,error:'job_not_found'});
+      const agentId=String(body.agentId||'');
+      const session=sessions.get(job.sessionId,agentId);
+      if(session.accountId!==job.accountId||session.deviceId!==job.deviceId||
+         job.agentId!==agentId)
+        return sendJson(res,403,{ok:false,error:'job_owner_mismatch'});
+      return sendJson(res,200,await cancelControlJob({
+        jobId:job.id,accountId:session.accountId,deviceId:session.deviceId,agentId
+      }));
     }
     const jobMatch = url.pathname.match(/^\/v1\/jobs\/([0-9a-f-]+)$/i);
     if (req.method === 'GET' && jobMatch) {

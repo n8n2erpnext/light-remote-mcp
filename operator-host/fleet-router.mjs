@@ -165,6 +165,15 @@ export class FleetRouter {
     const row=this.completed.get(validId(commandId,'command_id'));
     return row ? {...row.command,duplicate:true} : null;
   }
+  // The state check and removal are synchronous: poll cannot race between
+  // validating the command and removing it from its undispatched queue.
+  cancelUndispatched(commandId) {
+    const command=this.commands.get(validId(commandId,'command_id'));
+    if(!command||command.dispatchedAt!==null)return null;
+    const node=this.nodes.get(command.nodeId);
+    if(!node||!node.queue.includes(command.commandId)||node.inFlight.has(command.commandId))return null;
+    return this.abandon(command.commandId,'owner_cancelled_before_dispatch');
+  }
   abandon(commandId, reason='abandoned') {
     const command=this.commands.get(validId(commandId,'command_id'));
     if(!command) return null;
