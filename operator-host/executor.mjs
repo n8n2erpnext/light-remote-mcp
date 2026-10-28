@@ -1363,7 +1363,11 @@ async function cancelControlJob({jobId,accountId,deviceId,agentId=null}={}){
  if(!job||job.accountId!==accountId||job.deviceId!==deviceId||
     (agentId!==null&&job.agentId!==agentId))
    throw Object.assign(Error('job_not_found'),{status:404});
- if(job.finishedAt)throw Object.assign(Error('job_already_finished'),{status:409});
+ if(job.finishedAt){
+   if(job.status==='cancelled'&&job.exitCode===130)
+     return {ok:true,jobId,state:'cancelled',reason:'already_cancelled_verified'};
+   throw Object.assign(Error('job_already_finished'),{status:409});
+ }
  if(job.personalScheduled&&pendingForegroundExec.has(jobId)){
    return cancelQueuedPersonalJob({jobId,accountId,deviceIds:new Set([deviceId])});
  }

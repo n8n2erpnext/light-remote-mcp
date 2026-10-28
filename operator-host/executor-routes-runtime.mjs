@@ -201,8 +201,24 @@ export async function handleRuntimeRoutes(req,res,url,deps){
     const jobCancelMatch=url.pathname.match(/^\/v1\/jobs\/([0-9a-f-]+)\/cancel$/i);
     if(req.method==='POST'&&jobCancelMatch){
       const body=await readJson(req),job=jobs.get(jobCancelMatch[1]);
-      if(!job) return sendJson(res,404,{ok:false,error:'job_not_found'});
       const agentId=String(body.agentId||'');
+      if(!job){
+        // Control retries after Operator restart must never recreate an effect.
+        // The durable record is authoritative only for confirmed terminal
+        // cancellation; interrupted/unknown effects remain fail-closed.
+        const historical=await goldJobs.get(jobCancelMatch[1]);
+        if(!historical)return sendJson(res,404,{ok:false,error:'job_not_found'});
+        const ownerSession=sessions.ensure(historical.sessionId,{agentId});
+        if(ownerSession.accountId!==historical.accountId||
+           ownerSession.deviceId!==historical.deviceId||
+           historical.agentId!==agentId)
+          return sendJson(res,403,{ok:false,error:'job_owner_mismatch'});
+        if(historical.status==='cancelled'&&historical.finishedAt&&historical.exitCode===130)
+          return sendJson(res,200,{ok:true,jobId:historical.jobId,state:'cancelled',
+            reason:'already_cancelled_durable'});
+        return sendJson(res,409,{ok:false,error:historical.status==='interrupted'?
+          'job_effect_unknown':'job_already_finished'});
+      }
       const session=sessions.get(job.sessionId,agentId);
       if(session.accountId!==job.accountId||session.deviceId!==job.deviceId||
          job.agentId!==agentId)

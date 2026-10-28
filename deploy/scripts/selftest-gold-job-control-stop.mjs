@@ -25,7 +25,15 @@ const runtime=src('operator-host/executor-routes-runtime.mjs');
 assert.match(runtime,/jobCancelMatch/);
 assert.match(runtime,/session.accountId!==job.accountId\|\|session.deviceId!==job.deviceId/);
 assert.match(runtime,/job.agentId!==agentId/);
+assert.ok(runtime.includes('const historical=await goldJobs.get(jobCancelMatch[1])'),
+ 'restart-safe Cancel uses durable record instead of re-dispatch');
+assert.match(runtime,/historical.agentId!==agentId/,'historical retry must retain exact Agent authorization');
+assert.match(runtime,/historical.status==='cancelled'&&historical.finishedAt&&historical.exitCode===130/,
+ 'only confirmed cancelled terminal records may be replay-acknowledged');
+assert.match(runtime,/'job_effect_unknown'/,'interrupted effects must remain unknown');
 const host=src('operator-host/executor.mjs');
+assert.match(host,/job.status==='cancelled'&&job.exitCode===130/,
+ 'in-memory second Cancel is idempotent only for terminal cancellation');
 assert.match(host,/pendingForegroundExec.has\(jobId\)/);
 assert.match(host,/command.dispatchedAt!==null/);
 assert.match(host,/cancelUndispatched\(command.commandId\)/);
