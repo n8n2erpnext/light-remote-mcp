@@ -15,10 +15,13 @@ const requests=[];
 const adapter={
  exec:async(session,cmd,opts)=>{
    requests.push({session,cmd,opts});
-   return {ok:true,job:{jobId:'job_exact',state:'ok',exitCode:0}};
+   const probe=cmd.includes('LIGHT_REMOTE_GOLD_MEMORY_CLIENT_ROOT=');
+   return {ok:true,job:{jobId:probe?'job_probe':'job_exact',state:'ok',exitCode:0}};
  },
  output:async(jobId,stream)=>{
-   assert.equal(jobId,'job_exact');assert.equal(stream,'stdout');
+   assert.equal(stream,'stdout');
+   if(jobId==='job_probe')return {output:'LIGHT_REMOTE_GOLD_MEMORY_CLIENT_ROOT=C:\\Users\\vkphu\\AppData\\Local\\Programs\\Light Remote MCP\\agent'+String.fromCharCode(13,10)};
+   assert.equal(jobId,'job_exact');
    return {output:marker+JSON.stringify({ok:true,action:'save',result:{id:'memory123',signature:'abc'}})+'\n'};
  }
 };
@@ -59,10 +62,17 @@ const winDefaultAdapter={...adapter,
 };
 const autoWin=await runGoldMemoryViaAuthorizedSession(winDefaultAdapter,{...input,clientRoot:undefined});
 assert.equal(autoWin.ok,true);
-assert.equal(requests.at(-1).opts.cwd,'');
-assert.match(requests.at(-1).cmd,/LOCALAPPDATA/);
+assert.equal(requests.at(-1).opts.cwd,'C:\\Users\\vkphu\\AppData\\Local\\Programs\\Light Remote MCP\\agent');
+assert.equal(requests.at(-2).opts.cwd,'C:\\Windows\\Temp');
+const firstProbeId=requests.at(-2).opts.operationId;
+assert.match(firstProbeId,/^gold-memory-path-[a-f0-9]{32}$/);
+await runGoldMemoryViaAuthorizedSession(winDefaultAdapter,{...input,clientRoot:undefined});
+assert.equal(requests.at(-2).opts.operationId,firstProbeId,
+  'retry of same memory operation must not multiply queued path probes');
+assert.match(requests.at(-2).cmd,/LIGHT_REMOTE_GOLD_MEMORY_CLIENT_ROOT=/);
+assert.match(requests.at(-2).cmd,/LOCALAPPDATA/);
 assert.match(requests.at(-1).cmd,/runtime\\node\.exe/);
-assert.match(requests.at(-1).cmd,/agent\\device-agent\\gold-memory-cli\.mjs/);
+assert.match(requests.at(-1).cmd,/device-agent\/gold-memory-cli\.mjs/);
 assert.doesNotMatch(requests.at(-1).cmd,/known-gold|fixture/);
 await assert.rejects(runGoldMemoryViaAuthorizedSession({...winDefaultAdapter,
  deviceRaw:async()=>({deviceId:'dev_other',platform:'win32'})},{...input,clientRoot:undefined}),
@@ -70,6 +80,17 @@ await assert.rejects(runGoldMemoryViaAuthorizedSession({...winDefaultAdapter,
 await assert.rejects(runGoldMemoryViaAuthorizedSession({...winDefaultAdapter,
  deviceRaw:async()=>({deviceId:'dev_win11',platform:'macos'})},{...input,clientRoot:undefined}),
  /gold_memory_device_binding_unconfigured|gold_memory_device_binding_mismatch/);
+// An unresolved read probe must never proceed to a memory save.
+let probeCalls=0;
+const pendingProbe=await runGoldMemoryViaAuthorizedSession({...winDefaultAdapter,
+ exec:async()=>{probeCalls++;return {job:{jobId:'job_probe_pending',state:'queued',exitCode:null}};}
+},{...input,clientRoot:undefined});
+assert.equal(pendingProbe.pending,true);
+assert.equal(pendingProbe.jobId,'job_probe_pending');
+assert.equal(probeCalls,1,'no second write command after uncertain bootstrap');
+await assert.rejects(runGoldMemoryViaAuthorizedSession({...winDefaultAdapter,
+ output:async()=>({output:'LIGHT_REMOTE_GOLD_MEMORY_CLIENT_ROOT=C:\\Users\\vkphu\\..\\AppData\\Local\\Programs\\Light Remote MCP\\agent'+String.fromCharCode(10)})
+},{...input,clientRoot:undefined}),/gold_memory_client_root_probe_invalid/);
 const priorRoot=process.env.LIGHT_REMOTE_GOLD_MEMORY_CLIENT_ROOT;
 const priorDevice=process.env.LIGHT_REMOTE_GOLD_MEMORY_DEVICE_ID;
 try{
