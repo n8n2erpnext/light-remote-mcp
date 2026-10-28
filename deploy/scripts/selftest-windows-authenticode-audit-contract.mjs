@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const workflow=readFileSync(new URL('../../.github/workflows/windows-native-client.yml',import.meta.url),'utf8');
+const audit=readFileSync(new URL('./windows-authenticode-audit.ps1',import.meta.url),'utf8');
+const iss=readFileSync(new URL('../../client/windows-native/installer/GptOperator.iss',import.meta.url),'utf8');
+assert.match(workflow,/runs-on: windows-latest/);
+assert.match(workflow,/Audit Windows publisher signatures \(Smart App Control\)/);
+assert.match(workflow,/windows-authenticode-audit\.ps1 @params/);
+assert.match(workflow,/if \(\$env:GITHUB_REF -like 'refs\/tags\/\*'\) \{ \$params\.RequireTrustedSignatures = \$true \}/);
+assert.match(workflow,/dist\/windows\/installer\/authenticode-audit\.json/);
+assert.match(audit,/Get-AuthenticodeSignature -LiteralPath/);
+assert.match(audit,/\.exe.*\.dll.*\.node.*\.ps1/);
+assert.match(audit,/criticalSigned=\$allCriticalValid/);
+assert.match(audit,/RequireTrustedSignatures -and/);
+assert.match(iss,/Filename: "\{app\}\\GptOperator.Client\.exe"/);
+assert.doesNotMatch(iss,/(^|\n)SignTool=/m,'Original Inno installer must not be claimed signed without real signer');
+console.log('GOLD_WIN11_AUTHENTICODE_AUDIT_CONTRACT_PASS release_tags_fail_closed=YES no_self_signed_bypass=YES');

@@ -1003,6 +1003,19 @@ jobs:
           Write-Host "windows-native-installer-sha256=$fullHash"
           Write-Host "windows-compact-installer-sha256=$compactHash"
 
+      - name: Audit Windows publisher signatures (Smart App Control)
+        shell: pwsh
+        run: |
+          $stage = (Resolve-Path 'dist/windows/stage').Path
+          $installerDir = (Resolve-Path 'dist/windows/installer').Path
+          $report = Join-Path $installerDir 'authenticode-audit.json'
+          $params = @{StageDir=$stage;InstallerDir=$installerDir;ReportFile=$report}
+          # CI UAT builds may remain unsigned; publishing a version tag must not.
+          if ($env:GITHUB_REF -like 'refs/tags/*') { $params.RequireTrustedSignatures = $true }
+          & ./deploy/scripts/windows-authenticode-audit.ps1 @params
+          if ($LASTEXITCODE -and $LASTEXITCODE -ne 0) { throw "Windows Authenticode audit failed exit=$LASTEXITCODE" }
+          if (-not (Test-Path -LiteralPath $report)) { throw 'Windows Authenticode audit report missing' }
+
       - name: Upload native Windows installer
         uses: actions/upload-artifact@v4
         with:
@@ -1011,5 +1024,6 @@ jobs:
             dist/windows/installer/Light-Remote-MCP-Setup-x64.exe
             dist/windows/installer/Light-Remote-MCP-Compact-Setup-x64.exe
             dist/windows/installer/SHA256SUMS.txt
+            dist/windows/installer/authenticode-audit.json
           if-no-files-found: error
           retention-days: 14
