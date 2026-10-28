@@ -294,11 +294,21 @@ async function pumpPersonalAgentAccount(accountId){
   console.error(JSON.stringify({event:'m3_scheduler_failure',message:String(error?.message||error)}));
  }finally{pumpingPersonalAccounts.delete(accountId);}
 }
+async function expireOwnerQueued(accountId){
+ const ids=await personalAgentScheduler.expireQueued(accountId,600000);
+ for(const id of ids){
+  const job=jobs.get(id);
+  if(!job||job.finishedAt)continue;
+  job.timedOut=true;
+  job.resultSummary='queue_wait_timeout';
+  finishJob(job,124,null);
+ }
+}
 if(deviceResourceLocks){
   const ticker=setInterval(async()=>{
     try{
       const q=await goldStorage.pool.query("SELECT DISTINCT account_id FROM lr_gold_personal_agent_work WHERE state='queued' ORDER BY account_id LIMIT 64");
-      for(const {account_id:id} of q.rows)await pumpPersonalAgentAccount(id);
+      for(const {account_id:id} of q.rows){await expireOwnerQueued(id);await pumpPersonalAgentAccount(id);}
     }catch(error){console.error(JSON.stringify({event:'m4_queue_reconcile_failed',code:String(error?.code||'PG_UNAVAILABLE')}));}
   },3000);
   ticker.unref();

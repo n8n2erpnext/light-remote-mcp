@@ -24,10 +24,14 @@ const a=job(0,'project:/projects/a'),b=job(1,'project:/projects/a'),
 try{
  for(const item of [a,b,c,d,e,f,g])await scheduler.enqueue(item);
  assert.deepEqual(await scheduler.admit(a.accountId,3),[a.jobId]);
+ const pA='lp_'+crypto.randomBytes(18).toString('base64url');
+ await scheduler.complete(a.jobId,a.accountId,'ok',{processId:pA});
  const contested=await Promise.all([scheduler.admit(b.accountId,3),scheduler.admit(d.accountId,3)]);
  assert.deepEqual(contested,[[],[]],'concurrent conflicting accounts must both queue');
  assert.deepEqual(await scheduler.admit(c.accountId,3),[c.jobId],'independent project allowed');
- assert.deepEqual(await scheduler.admit(e.accountId,3),[],'2/2 device worker capacity is exhausted');
+ const pC='lp_'+crypto.randomBytes(18).toString('base64url');
+ await scheduler.complete(c.jobId,c.accountId,'ok',{processId:pC});
+ assert.deepEqual(await scheduler.admit(e.accountId,3),[],'2/2 background workers are occupied');
  const blocked=await db.pool.query('SELECT account_id,queue_reason FROM lr_gold_personal_agent_work WHERE account_id=ANY($1::text[])',[accounts]);
  const why=new Map(blocked.rows.map(x=>[x.account_id,x.queue_reason]));
  assert.equal(why.get(b.accountId),'RESOURCE_LOCKED');
@@ -35,19 +39,25 @@ try{
  assert.equal(why.get(e.accountId),'QUEUED_WORKER_CAPACITY');
  console.log('M4_PG_SAME_PROJECT_RESOURCE_LOCKED_AND_SEPARATE_PROJECT_PARALLEL=PASS');
  console.log('M4_PG_DEVICE_CAPACITY_2_HARD_BOUND=PASS');
- await scheduler.complete(a.jobId,a.accountId);
+ await locks.releaseVerifiedTerminal(db.pool,{accountId:a.accountId,deviceId:dev,process:{processId:pA,state:'finished',finishedAt:Date.now()}});
  assert.deepEqual(await scheduler.admit(d.accountId,3),[d.jobId]);
+ const pD='lp_'+crypto.randomBytes(18).toString('base64url');
+ await scheduler.complete(d.jobId,d.accountId,'ok',{processId:pD});
  assert.deepEqual(await scheduler.admit(f.accountId,3),[f.jobId]);
+ const pF='lp_'+crypto.randomBytes(18).toString('base64url');
+ await scheduler.complete(f.jobId,f.accountId,'ok',{processId:pF});
  assert.deepEqual(await scheduler.admit(g.accountId,3),[g.jobId]);
+ const pG='lp_'+crypto.randomBytes(18).toString('base64url');
+ await scheduler.complete(g.jobId,g.accountId,'ok',{processId:pG});
  assert.deepEqual(await scheduler.admit(b.accountId,3),[],'shared readers prevent exclusive writer');
- await scheduler.complete(d.jobId,d.accountId);
- await scheduler.complete(f.jobId,f.accountId);
- await scheduler.complete(g.jobId,g.accountId);
+ for(const [owner,pid] of [[d.accountId,pD],[f.accountId,pF],[g.accountId,pG]])
+  await locks.releaseVerifiedTerminal(db.pool,{accountId:owner,deviceId:dev,process:{processId:pid,state:'finished',finishedAt:Date.now()}});
  assert.deepEqual(await scheduler.admit(b.accountId,3),[b.jobId]);
- assert.deepEqual(await scheduler.admit(e.accountId,3),[],'the device has two weighted workers again');
- await scheduler.complete(c.jobId,c.accountId);
+ assert.deepEqual(await scheduler.admit(e.accountId,3),[],'foreground slot still held by B');
+ await locks.releaseVerifiedTerminal(db.pool,{accountId:c.accountId,deviceId:dev,process:{processId:pC,state:'finished',finishedAt:Date.now()}});
+ await scheduler.complete(b.jobId,b.accountId);
  assert.deepEqual(await scheduler.admit(e.accountId,3),[e.jobId]);
- for(const item of [b,e])await scheduler.complete(item.jobId,item.accountId);
+ await scheduler.complete(e.jobId,e.accountId);
  const remaining=await db.pool.query('SELECT count(*)::int n FROM lr_gold_device_resource_claims WHERE device_id=$1',[dev]);
  assert.equal(remaining.rows[0].n,0);
  console.log('M4_PG_SHARED_READERS_WAITING_WRITERS_RELEASE_AND_CLEANUP=PASS');

@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+const src=fs.readFileSync('lib/gold-personal-agent-scheduler.mjs','utf8');
+assert.match(src,/deferredDevices/);
+assert.match(src,/admittedDevices/);
+assert.match(src,/QUEUED_DEVICE_SLOT/);
+assert.match(src,/m3_device_queue_capacity_reached/);
+assert.match(src,/total>=48/);
+assert.match(src,/total>=16/);
+assert.match(src,/queue_wait_timeout/);
+console.log('DEVICE_SLOT_SOURCE_CONTRACT_PASS');

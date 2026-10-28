@@ -38,10 +38,11 @@ try{
  console.log('M4_BACKGROUND_UNKNOWN_AND_FOREIGN_OWNER_NO_RELEASE=PASS');
  const released=await locks.releaseVerifiedTerminal(db.pool,{accountId:a.accountId,deviceId,process:{processId,state:'finished',finishedAt:Date.now(),exitCode:0}});
  assert.equal(released,true);
- assert.deepEqual(await sched.admit(b.accountId,3),[b.jobId]);
+ assert.deepEqual(await sched.admit(b.accountId,3),[]);
  await sched.complete(c.jobId,c.accountId,'ok');
- assert.deepEqual(await sched.admit(d.accountId,3),[d.jobId]);
+ assert.deepEqual(await sched.admit(b.accountId,3),[b.jobId]);
  await sched.complete(b.jobId,b.accountId,'ok');
+ assert.deepEqual(await sched.admit(d.accountId,3),[d.jobId]);
  await sched.complete(d.jobId,d.accountId,'ok');
  console.log('M4_BACKGROUND_VERIFIED_EXIT_RECLAIMS_WORKER_AND_PROJECT=PASS');
  const unknown=mk(0,'project:/work/unknown');unknown.operationId+='_other';
