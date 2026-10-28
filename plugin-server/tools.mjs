@@ -646,8 +646,8 @@ export function registerPluginTools(server,identity){
   },guarded(identity,['remote:read'],(a,x)=>a.job(x.jobId)));
 
   add(server,'light_remote_cancel_job',{
-    title:'Cancel queued job without waiting for device',
-    description:'Owner-scoped control-plane cancellation by existing jobId. Cancels only a job proven not to have been dispatched to the device. If already executing returns a non-success status; use verified managed-process Stop for running OS work. Does not enqueue another command.',
+    title:'Cancel queued job or request verified Kill of running command',
+    description:'Owner and Agent scoped control-plane operation by existing jobId. Cancels queued undispatched work immediately; executing shell jobs return stop_requested while the authorized Agent stops only its own process tree. A signed terminal result is required to confirm cancelled. Control does not enter the work queue.',
     inputSchema:{jobId:id},securitySchemes:security(['remote:execute']),annotations:annotations(false,true,false,false)
   },guarded(identity,['remote:execute'],(a,x)=>a.cancelJob(x.jobId)));
 

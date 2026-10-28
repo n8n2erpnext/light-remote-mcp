@@ -159,10 +159,13 @@ const pendingForegroundExec=new Map();
 // transition a dispatched job to cancelled.
 const pendingDeviceJobStops=new Map();
 function deviceStopRequests(accountId,deviceId){
- const now=Date.now(),pending=[];
+ const pending=[];
  for(const [commandId,row] of pendingDeviceJobStops){
    const job=jobs.get(row.jobId);
-   if(!job||job.finishedAt||now-row.requestedAt>15*60_000){
+   // Device may be disconnected longer than 15 minutes. Do not silently
+   // abandon a Kill intent while the original job can still be running.
+   // Only a verified terminal state may retire the intent.
+   if(!job||job.finishedAt){
      pendingDeviceJobStops.delete(commandId);continue;
    }
    if(row.accountId===accountId&&row.deviceId===deviceId&&pending.length<16)

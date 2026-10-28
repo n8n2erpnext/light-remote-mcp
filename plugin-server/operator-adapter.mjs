@@ -166,7 +166,9 @@ export class AccountOperatorAdapter{
     // Pure control plane operation: do not await a read/command on a stalled device.
     // The Operator authenticates the exact owning session and agent before mutation.
     const value=await callOperatorJson('POST',`/v1/jobs/${encodeURIComponent(jobId)}/cancel`,{agentId:this.agentId});
-    return {jobId,state:value.state,reason:value.reason};
+    return {jobId,state:value.state,reason:value.reason,
+      ...(value.state==='stop_requested'?{verified:false,nextAction:'read_existing_job_until_signed_terminal_result'}:{}),
+      ...(value.state==='cancelled'?{verified:true}:{})};
   }
   async job(jobId){const row=await callOperatorJson('GET',`/v1/jobs/${encodeURIComponent(jobId)}?agentId=${encodeURIComponent(this.agentId)}`),j=row.job;if(!j)throw new Error('job_not_found');await this.deviceRaw(j.deviceId);return cleanJob(j);}
   async output(jobId,stream='stdout',offset=0,limit=4*1024*1024,full=false){await this.job(jobId);const q=new URLSearchParams({agentId:this.agentId,stream:stream==='stderr'?'stderr':'stdout',offset:String(Math.max(0,offset)),limit:String(Math.max(1,Math.min(limit,8*1024*1024))),full:full?'1':'0'});const row=await callOperatorJson('GET',`/v1/output/${encodeURIComponent(jobId)}?${q}`);return {jobId:row.jobId,stream:row.stream,offset:row.offset,returnedBytes:row.returnedBytes,totalBytes:row.totalBytes,hasMore:row.hasMore,output:redactRestrictedText(row.output)};}

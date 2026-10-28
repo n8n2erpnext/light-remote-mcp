@@ -41,6 +41,7 @@ for(const [name,config] of registered){
 }
 const must={
  light_remote_exec:['remote:execute',false,true],
+ light_remote_cancel_job:['remote:execute',false,true],
  light_remote_process:['remote:execute',false,true],
  light_remote_terminal_input:['remote:terminal',false,true],
  light_remote_list_devices:['remote:read',true,false],

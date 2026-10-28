@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {FleetRouter} from '../../operator-host/fleet-router.mjs';
+import vm from 'node:vm';
 const src=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
 const events=[];
 const f=new FleetRouter({emit:e=>events.push(e),channelTtlMs:20000,commandLeaseMs:5000,requireExecutorReady:true});
@@ -31,6 +32,23 @@ assert.match(host,/cancelUndispatched\(command.commandId\)/);
 assert.match(host,/job_already_dispatched_stop_requires_device_receipt/);
 assert.match(host,/pendingDeviceJobStops.set\(command.commandId/);
 assert.match(host,/deviceStopRequests\(accountId,deviceId\)/);
+// A stop request must survive outages longer than the old 15-minute TTL.
+// Never infer a terminal result from a deadline or from a retry.
+const fnText=host.match(/function deviceStopRequests\(accountId,deviceId\)\{[\s\S]*?\n\}/)?.[0];
+assert.ok(fnText,'stop-request source is readable');
+const testJobs=new Map([['job-stall',{finishedAt:null}]]);
+const requestMap=new Map([['cmd_00000000-0000-4000-8000-000000000000',{
+  jobId:'job-stall',accountId:'owner-1',deviceId:'device-1',requestedAt:1
+}]]);
+const stopList=vm.runInNewContext(fnText+';deviceStopRequests',{
+ jobs:testJobs,pendingDeviceJobStops:requestMap,Date:{now:()=>60*60*1000}
+});
+assert.equal(stopList('owner-1','device-1').length,1,'stop intent survives a 60-minute disconnect');
+assert.equal(stopList('owner-2','device-1').length,0,'no cross-owner stop intents');
+assert.equal(stopList('owner-1','device-2').length,0,'no cross-device stop intents');
+testJobs.get('job-stall').finishedAt=Date.now();
+assert.equal(stopList('owner-1','device-1').length,0,'verified finished state retires stop');
+assert.equal(requestMap.size,0);
 const leaf=src('device-agent/operator-agent.mjs');
 assert.match(leaf,/ACTIVE_EXEC_CHILDREN.set\(command.commandId,execStopState\)/);
 assert.match(leaf,/taskkill.exe/);
@@ -45,6 +63,10 @@ assert.match(wall,/data-copy="cmd".*?data-stop="job"/);
 assert.match(wall,/wallMutation\('\/api\/jobs\/cancel',\{jobId:id\}\)/);
 assert.match(wall,/job_cancel_owner_auth_required/);
 assert.match(wall,/csrf_invalid/);
+assert.match(wall,/j.stopRequested=true/);
+assert.match(wall,/j.stopRequested\?'Stopping…'/);
+assert.doesNotMatch(wall,/j.status='stop_requested'/,'pending Kill must not replace running primary status');
+assert.match(wall,/stopRequested:false,exitCode:e.exitCode/,'terminal status clears Stop pending');
 const plugin=src('plugin-server/tools.mjs');
 assert.match(plugin,/add\(server,'light_remote_cancel_job'/);
 assert.match(plugin,/security\(\['remote:execute'\]\)/);
