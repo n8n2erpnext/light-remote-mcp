@@ -30,11 +30,17 @@ try{
   const first=await startFixture();
   const stopped=reg.stop(first.id,owner,{force:false});
   assert.equal(stopped.stopRequested,true);
-  assert.equal(stopped.stopForce,true,'Windows /F must be reflected in status');
-  assert.equal(stopped.treeStopMethod,'taskkill-tree');
+  assert.equal(stopped.stopForce,false,'non-forced request cannot claim force before escalation');
+  assert.ok(['taskkill-tree-soft','taskkill-tree-soft-unavailable'].includes(stopped.treeStopMethod));
   await waitUntil(()=>!alive(first.childPid),'stop_descendant_not_alive',4000);
   await waitUntil(()=>reg.view(first.id,owner).finishedAt!=null,'stop_finished');
   assert.equal(reg.view(first.id,owner).state,'stopped');
+  const finalStop=reg.view(first.id,owner);
+  assert.equal(finalStop.stopRequested,true);
+  assert.ok(['taskkill-tree-soft','taskkill-tree','job-object-force-fallback'].includes(finalStop.treeStopMethod));
+  if(finalStop.treeStopMethod==='taskkill-tree')assert.equal(finalStop.stopForce,true);
+  if(finalStop.treeStopMethod==='taskkill-tree-soft')assert.equal(finalStop.stopForce,false);
+  console.log('G2_WINDOWS_GRACEFUL_REQUEST_THEN_BOUNDED_FORCE_IF_REQUIRED=PASS');
   console.log('G2_WINDOWS_PROCESS_TREE_STOP_NO_ORPHAN=PASS');
 
   const timed=await startFixture(1800);

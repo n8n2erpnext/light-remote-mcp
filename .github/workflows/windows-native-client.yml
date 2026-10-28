@@ -304,6 +304,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'G2 Windows bundled native process shutdown cleanup failed' }
           & $node deploy/scripts/selftest-g2-windows-process-tree.mjs
           if ($LASTEXITCODE -ne 0) { throw 'G2 Windows managed process-tree stop/timeout/shutdown regression failed' }
+          & $node deploy/scripts/selftest-gold-windows-graceful-stop-contract.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'P0 Windows graceful tree stop bounded escalation contract failed' }
           & $node deploy/scripts/selftest-g2-pty-missing-exit.mjs
           if ($LASTEXITCODE -ne 0) { throw 'G2 missing PTY onExit PID reconciliation failed on Windows' }
           & $node deploy/scripts/selftest-g2-transport-drop-job-survival.mjs

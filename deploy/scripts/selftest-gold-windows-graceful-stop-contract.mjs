@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+const source=fs.readFileSync(new URL('../../lib/native-process.mjs',import.meta.url),'utf8');
+const sig=source.slice(source.indexOf('  _signal(row,signal){'),source.indexOf('  _owner(input){'));
+assert.match(source,/stopGraceMs=process\.platform==='win32'\?3000:DEFAULT_STOP_GRACE_MS/);
+assert.match(sig,/const forced=signal==='SIGKILL'/);
+assert.match(sig,/const args=\['\/PID',String\(row\.pid\),'\/T',\.\.\.\(forced\?\['\/F'\]:\[\]\)\]/);
+assert.match(sig,/if\(!forced\)[\s\S]*?return false/);
+assert.match(sig,/row\.treeContainment==='job-object-kill-on-close'/);
+assert.match(sig,/throw new Error\('process_tree_force_unverified'\)/);
+assert.doesNotMatch(sig.slice(0,sig.indexOf('    if(row.processGroupId){')),/return row\.child\.kill\(signal\)/);
+const stop=source.slice(source.indexOf('  stop(processId,owner,{force=false}'),source.indexOf('  // Runtime shutdown only;'));
+assert.match(stop,/const sent=this\._signal\(row,'SIGKILL'\)/);
+assert.match(stop,/if\(sent\)\{row\.stopForce=true;this\.emit\(\{type:'process_stop_escalated'/);
+assert.match(stop,/type:'process_stop_escalation_failed'/);
+console.log('P0_WINDOWS_SOFT_REQUEST_BOUNDED_ESCALATION_NO_PARENT_ONLY_ORPHAN_CONTRACT=PASS');
