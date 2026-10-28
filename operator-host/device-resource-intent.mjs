@@ -69,8 +69,13 @@ export function deviceResourceIntent({family='',op='',request={},cwd='',script='
 export function resourcePathsOverlap(a,b){
  const x=String(a||''),y=String(b||'');
  if(x===y)return true;
- // Unknown work holds a device-wide conservative exclusive lock.
- if(x==='device:unknown'||y==='device:unknown'||x==='filesystem:unknown'||y==='filesystem:unknown')return true;
+ // Unknown filesystem *or workspace* paths cannot be proven disjoint.
+ // Treat an unknown project path as a device-wide conflict. Otherwise an
+ // old background worker with cwd=unknown may overlap an apparently distinct
+ // file-dir:C:/... write, silently breaking the M4 exclusive-lease guarantee.
+ if(x==='device:unknown'||y==='device:unknown'||
+    x==='filesystem:unknown'||y==='filesystem:unknown'||
+    x==='project:unknown'||y==='project:unknown')return true;
  const resource=q=>q.slice(q.indexOf(':')+1);
  const pathClass=x.startsWith('file-dir:')||x.startsWith('project:');
  const otherPathClass=y.startsWith('file-dir:')||y.startsWith('project:');
