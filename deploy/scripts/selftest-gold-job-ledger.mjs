@@ -28,4 +28,8 @@ job.finishedAt=Date.now();job.status='ok';job.exitCode=0;
 db.save(job);await db.flush();
 assert.equal((await db.get(job.id)).status,'ok');
 assert.equal((await db.get(job.id)).note,'[REDACTED]');
+job.status='cancelled';job.exitCode=130;job.cancelled=true;
+db.save(job);await db.flush();
+assert.equal((await db.get(job.id)).status,'cancelled','cancelled must survive durable ledger roundtrip');
+assert.equal((await db.get(job.id)).exitCode,130);
 console.log('GOLD_PG_JOB_LEDGER_FAKE=PASS');

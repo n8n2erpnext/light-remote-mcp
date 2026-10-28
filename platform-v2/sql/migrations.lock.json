@@ -186,6 +186,11 @@
       "version": 37,
       "file": "037_gold_memory_account_delete_tombstones.sql",
       "sha256": "c25c11c4220158c7ac824cc3ec63a9777cb8e3c45f720bcd9a6b28b9f195a749"
+    },
+    {
+      "version": 38,
+      "file": "038_gold_job_cancelled_status.sql",
+      "sha256": "04850c368b24b0583236b8eca9f4543a5168a85bd96c37775a6e8ca9d5b51357"
     }
   ]
 }
