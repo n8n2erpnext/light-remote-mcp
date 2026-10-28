@@ -400,6 +400,8 @@ async function goldModulesRefresh(){
   if(live)live.textContent='Long Memory: '+(f.longMemory?'ON':'OFF')+' · Codex Bridge: '+(f.codexBridge?'ON':'OFF');
 
   document.getElementById('goldMemoryArea').hidden=!f.longMemory;
+  const memoryOffNotice=document.getElementById('goldMemoryDisabledNotice');
+  if(memoryOffNotice)memoryOffNotice.hidden=Boolean(f.longMemory);
   document.getElementById('goldCodexArea').hidden=!f.codexBridge;
   document.getElementById('goldModulesStatus').textContent='Local revision '+String(f.revision||0);
   document.getElementById('goldModulesPanel').dataset.revision=String(f.revision||0);
@@ -424,6 +426,39 @@ function goldMemoryNativeInit(){
   if(location.pathname!=='/long-memory')return;
   const area=document.getElementById('goldMemoryArea');
   if(!area)return;
+  // The module toggle lives inside the Memory Settings tab. When Memory is OFF,
+  // that entire area must remain hidden, but the owner still needs a way to enable it.
+  const disabledNotice=goldMemoryNativeElement('section','sessionbox');
+  disabledNotice.id='goldMemoryDisabledNotice';
+  disabledNotice.style.cssText='padding:14px;margin:0 0 12px';
+  disabledNotice.hidden=true;
+  disabledNotice.append(
+    goldMemoryNativeElement('strong','','Long Memory is turned off on this device'),
+    goldMemoryNativeElement('p','muted',
+      'Saved memory is device-local. Enable Long Memory here to view saved work on this device; account device sync is configured separately.')
+  );
+  const enableMemory=goldMemoryNativeElement('button','btn small','Enable Long Memory');
+  enableMemory.type='button';
+  const disabledStatus=goldMemoryNativeElement('span','muted');
+  disabledStatus.setAttribute('role','status');
+  disabledStatus.style.cssText='font-size:12px;margin-left:10px';
+  disabledNotice.append(enableMemory,disabledStatus);
+  area.parentElement.insertBefore(disabledNotice,area);
+  enableMemory.onclick=async()=>{
+    enableMemory.disabled=true;
+    disabledStatus.textContent='Enabling…';
+    try{
+      await wallMutation('/api/gold/modules/configure',{
+        longMemory:true,
+        codexBridge:document.getElementById('goldCodexBridge').checked,
+        expectedRevision:Number(document.getElementById('goldModulesPanel').dataset.revision||0)
+      });
+      await goldModulesRefresh();
+      disabledStatus.textContent='';
+    }catch(error){
+      disabledStatus.textContent='Unable to enable: '+String(error.message||error);
+    }finally{enableMemory.disabled=false;}
+  };
   const header=goldMemoryNativeElement('div','sessionbox');
   header.style.cssText='margin:0 0 8px;padding:13px';
   const title=goldMemoryNativeElement('strong','','Long Memory');

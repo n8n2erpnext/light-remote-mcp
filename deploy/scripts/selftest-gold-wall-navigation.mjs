@@ -46,6 +46,22 @@ try{
     for(const [index,s] of [...html.matchAll(/<script(?:[^>]*)>([\s\S]*?)<\/script>/g)].entries())
       if(s[1]?.trim())new vm.Script(s[1],{filename:tag+'-'+index+'.js'});
   }
+  // Regression: Memory OFF must never produce an empty, impossible-to-enable page.
+  // Keep Codex enabled to check the two optional modules remain independent.
+  m.configure({longMemory:false,codexBridge:true,expectedRevision:1});
+  const disabled=await fetch(base+'/long-memory',{headers:{'x-test-owner':'yes'}});
+  assert.equal(disabled.status,200);
+  const disabledHtml=await disabled.text();
+  assert.ok(disabledHtml.includes("disabledNotice.id='goldMemoryDisabledNotice'"));
+  assert.ok(disabledHtml.includes("'Enable Long Memory'"));
+  assert.ok(disabledHtml.includes("memoryOffNotice.hidden=Boolean(f.longMemory)"));
+  assert.ok(disabledHtml.includes("longMemory:true"));
+  assert.ok(disabledHtml.includes("codexBridge:document.getElementById('goldCodexBridge').checked"));
+  const disabledFlags=await fetch(base+'/api/gold/modules',{headers:{'x-test-owner':'yes'}});
+  assert.equal(disabledFlags.status,200);
+  const disabledState=await disabledFlags.json();
+  assert.equal(disabledState.modules.longMemory,false);
+  assert.equal(disabledState.modules.codexBridge,true);
   const settings=await fetch(base+'/settings',{headers:{'x-test-owner':'yes'}});
   assert.equal(settings.status,200);
   const html=await settings.text();
