@@ -15,3 +15,8 @@
 - Stage same-SHA Gold UAT candidate only after branch commit and validated snapshot/rollback; verify 4 systemd units and read back *held* claim states. Check no active personal jobs or supervised children before restart.
 - Do not use owner orphan recovery on current Win11 claim: last verified boot predated claimed_at. Existing CLI requires exactly one claim but current DB has three; future owner-specific CLI selection must remain explicitly scoped, password and post-claim boot verified, and authorized through Operator, never direct SQL.
 - Pro Team live separate A/B Agent overlap, Wall Cancel/Kill graphical confirmation and genuine signed old background terminal receipts remain open. Production/Windows installation are out of scope.
+
+## First UAT cutover, observed failure and corrective fix
+
+- Candidate 047bd1d was staged, four units restarted healthy, but legacy claim remained admitting, so the guarded cutover automatically rolled back to 80a8e7d. Snapshot and old systemd overrides preserved.
+- RCA: SQL `FROM lost` made an empty new-recovery CTE suppress ALL existing historical `unknown` claim matches. The fix removes that join and uses `IN (SELECT job_id FROM lost) OR EXISTS (...)` as independent qualifying paths. Regression now forbids the empty-CTE join. No claim was deleted.

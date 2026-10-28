@@ -18,6 +18,8 @@ assert.match(sql,/state IN \('queued','running'\)/);
 assert.match(sql,/UPDATE lr_gold_device_resource_claims AS c/);
 assert.match(sql,/worker_state='terminal_unknown'/);
 assert.match(sql,/c\.job_id IN \(SELECT job_id FROM lost\)/);
+assert.doesNotMatch(sql,/SET worker_state='terminal_unknown'\s+FROM lost/,
+ 'empty lost CTE must not suppress previously unknown claims');
 assert.match(sql,/j\.state='unknown'/);
 assert.match(sql,/j\.disposition='operator_restart_reconcile'/);
 assert.match(sql,/c\.worker_state='admitting' AND c\.process_id IS NULL/);
