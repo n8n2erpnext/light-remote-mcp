@@ -9,7 +9,7 @@ import path from 'node:path';
 const MARKER='LIGHT_REMOTE_GOLD_MEMORY_V1=';
 function failure(code,status=400){return Object.assign(new Error(code),{status});}
 function b64url(value){return Buffer.from(JSON.stringify(value),'utf8').toString('base64url');}
-export function makeGoldMemoryExecScript(x,{nodeBinary=null}={}){
+export function makeGoldMemoryExecScript(x,{nodeBinary=null,windowsDefault=false}={}){
   if(!['handoff','list','get','save','scopes','scope_resolve','scope_handoff','scope_get','scope_save','scope_usage','scope_full_context'].includes(x.action))throw failure('gold_memory_action_invalid');
   const clean={action:x.action};
   if(['save','scope_save'].includes(x.action)){
@@ -49,6 +49,15 @@ export function makeGoldMemoryExecScript(x,{nodeBinary=null}={}){
   if(!/^[A-Za-z0-9_-]+$/.test(encoded))throw failure('gold_memory_encoding_invalid');
   // Windows installations bundle Node beside agent/. Never assume node.exe
   // is globally available in the user's PowerShell PATH.
+  if(windowsDefault){
+    // Only used after exact authorized-session AND Windows-device verification.
+    // Resolve the standard installer location on the target device itself.
+    // No cross-device server root or global Node PATH is involved.
+    const base="(Join-Path $env:LOCALAPPDATA 'Programs\\Light Remote MCP')";
+    const node="(Join-Path "+base+" 'runtime\\node.exe')";
+    const cli="(Join-Path "+base+" 'agent\\device-agent\\gold-memory-cli.mjs')";
+    return "if(!(Test-Path -LiteralPath "+node+") -or !(Test-Path -LiteralPath "+cli+")){throw 'gold_memory_client_root_required'}; & "+node+' --no-warnings '+cli+' '+encoded;
+  }
   const executable=nodeBinary?"& '"+String(nodeBinary).replace(/'/g,"''")+"' ":'node ';
   return executable+'--no-warnings device-agent/gold-memory-cli.mjs '+encoded;
 }
@@ -62,30 +71,38 @@ export function parseGoldMemoryExecOutput(output){
   return value;
 }
 export async function runGoldMemoryViaAuthorizedSession(adapter,input){
-  // Explicit client install root is required. The Agent defaults exec.cwd to
-  // os.homedir(), not the Gold install directory. No filesystem auto-discovery.
-  const configuredRoot=String(input.clientRoot||process.env.LIGHT_REMOTE_GOLD_MEMORY_CLIENT_ROOT||'').trim();
-  if(!configuredRoot||configuredRoot.length>4096||
-    !(configuredRoot.startsWith('/')||/^[A-Za-z]:[\\/]/.test(configuredRoot)))
-    throw failure('gold_memory_client_root_required',409);
-  // If server applies a default root, confine it to the explicitly pinned UAT
-  // device to prevent accidental reuse for other Fleet targets.
-  if(!input.clientRoot){
-    const allowedId=String(process.env.LIGHT_REMOTE_GOLD_MEMORY_DEVICE_ID||'').trim();
-    if(!allowedId)throw failure('gold_memory_device_binding_unconfigured',409);
+  // An explicit root is always honored for custom installs. Without it,
+  // verify the A/B session AND device platform before deriving the standard
+  // Windows installer path locally on that same Windows device.
+  const explicitRoot=String(input.clientRoot||'').trim();
+  let configuredRoot=explicitRoot;
+  let windowsDefault=false;
+  if(!explicitRoot){
     const ownedSession=await adapter.sessionRaw(input.sessionId);
-    if(ownedSession.deviceId!==allowedId)throw failure('gold_memory_device_binding_mismatch',403);
+    const device=await adapter.deviceRaw(ownedSession.deviceId);
+    if(device?.deviceId!==ownedSession.deviceId)
+      throw failure('gold_memory_device_binding_mismatch',403);
+    if(String(device.platform).toLowerCase()==='win32'){
+      windowsDefault=true;
+    }else{
+      const allowedId=String(process.env.LIGHT_REMOTE_GOLD_MEMORY_DEVICE_ID||'').trim();
+      if(!allowedId)throw failure('gold_memory_device_binding_unconfigured',409);
+      if(ownedSession.deviceId!==allowedId)throw failure('gold_memory_device_binding_mismatch',403);
+      configuredRoot=String(process.env.LIGHT_REMOTE_GOLD_MEMORY_CLIENT_ROOT||'').trim();
+    }
   }
-
+  if(!windowsDefault&&(!configuredRoot||configuredRoot.length>4096||
+    !(configuredRoot.startsWith('/')||/^[A-Za-z]:[\\/]/.test(configuredRoot))))
+    throw failure('gold_memory_client_root_required',409);
   const isWindowsRoot=/^[A-Za-z]:[\\/]/.test(configuredRoot);
   const nodeBinary=isWindowsRoot?path.win32.join(path.win32.dirname(configuredRoot),'runtime','node.exe'):null;
-  const script=makeGoldMemoryExecScript(input,{nodeBinary});
+  const script=makeGoldMemoryExecScript(input,{nodeBinary,windowsDefault});
 
   // A/B, exact session device authorization and local policy are enforced
   // by AccountOperatorAdapter.exec() and the existing Gold Agent.
   const response=await adapter.exec(input.sessionId,script,{
     executionMode:'foreground',waitMs:7000,timeoutMs:25000,
-    cwd:configuredRoot,operationId:input.operationId,requiredCapabilities:['filesystem']
+    cwd:windowsDefault?'':configuredRoot,operationId:input.operationId,requiredCapabilities:['filesystem']
   });
   const job=response?.job;
   if(!job?.jobId)throw failure('gold_memory_command_receipt_missing',502);

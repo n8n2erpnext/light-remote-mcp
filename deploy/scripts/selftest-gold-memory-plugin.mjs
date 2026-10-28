@@ -48,18 +48,38 @@ assert.equal(pending.pending,true);
 assert.equal(pending.jobId,'job_pending');
 assert.throws(()=>parseGoldMemoryExecOutput(marker+'{"ok":false,"error":"gold_checkpoint_integrity_failed"}\n'),/gold_checkpoint_integrity_failed/);
 assert.throws(()=>makeGoldMemoryExecScript({...input,action:'evil'}),/gold_memory_action_invalid/);
-await assert.rejects(runGoldMemoryViaAuthorizedSession(adapter,{...input,clientRoot:''}),
-  /gold_memory_client_root_required/);
+await assert.rejects(runGoldMemoryViaAuthorizedSession({...adapter,
+  sessionRaw:async()=>({deviceId:'dev_linux_no_root'}),
+  deviceRaw:async()=>({deviceId:'dev_linux_no_root',platform:'linux'})},{...input,clientRoot:''}),
+  /gold_memory_device_binding_unconfigured|gold_memory_client_root_required/);
+// Multi-device defaults resolve locally; never reuse server UAT install root.
+const winDefaultAdapter={...adapter,
+ sessionRaw:async()=>({deviceId:'dev_win11'}),
+ deviceRaw:async id=>({deviceId:id,platform:'win32'})
+};
+const autoWin=await runGoldMemoryViaAuthorizedSession(winDefaultAdapter,{...input,clientRoot:undefined});
+assert.equal(autoWin.ok,true);
+assert.equal(requests.at(-1).opts.cwd,'');
+assert.match(requests.at(-1).cmd,/LOCALAPPDATA/);
+assert.match(requests.at(-1).cmd,/runtime\\node\.exe/);
+assert.match(requests.at(-1).cmd,/agent\\device-agent\\gold-memory-cli\.mjs/);
+assert.doesNotMatch(requests.at(-1).cmd,/known-gold|fixture/);
+await assert.rejects(runGoldMemoryViaAuthorizedSession({...winDefaultAdapter,
+ deviceRaw:async()=>({deviceId:'dev_other',platform:'win32'})},{...input,clientRoot:undefined}),
+ /gold_memory_device_binding_mismatch/);
+await assert.rejects(runGoldMemoryViaAuthorizedSession({...winDefaultAdapter,
+ deviceRaw:async()=>({deviceId:'dev_win11',platform:'macos'})},{...input,clientRoot:undefined}),
+ /gold_memory_device_binding_unconfigured|gold_memory_device_binding_mismatch/);
 const priorRoot=process.env.LIGHT_REMOTE_GOLD_MEMORY_CLIENT_ROOT;
 const priorDevice=process.env.LIGHT_REMOTE_GOLD_MEMORY_DEVICE_ID;
 try{
   process.env.LIGHT_REMOTE_GOLD_MEMORY_CLIENT_ROOT='/opt/light-remote-gold-uat-candidates/known-gold';
   process.env.LIGHT_REMOTE_GOLD_MEMORY_DEVICE_ID='dev_known';
-  const boundAdapter={...adapter,sessionRaw:async()=>({deviceId:'dev_known'})};
+  const boundAdapter={...adapter,sessionRaw:async()=>({deviceId:'dev_known'}),deviceRaw:async()=>({deviceId:'dev_known',platform:'linux'})};
   const yes=await runGoldMemoryViaAuthorizedSession(boundAdapter,{...input,clientRoot:undefined});
   assert.equal(yes.ok,true);
   assert.equal(requests.at(-1).opts.cwd,'/opt/light-remote-gold-uat-candidates/known-gold');
-  await assert.rejects(runGoldMemoryViaAuthorizedSession({...adapter,sessionRaw:async()=>({deviceId:'dev_other'})},{...input,clientRoot:undefined}),
+  await assert.rejects(runGoldMemoryViaAuthorizedSession({...adapter,sessionRaw:async()=>({deviceId:'dev_other'}),deviceRaw:async()=>({deviceId:'dev_other',platform:'linux'})},{...input,clientRoot:undefined}),
     /gold_memory_device_binding_mismatch/);
 }finally{
   if(priorRoot===undefined)delete process.env.LIGHT_REMOTE_GOLD_MEMORY_CLIENT_ROOT;
