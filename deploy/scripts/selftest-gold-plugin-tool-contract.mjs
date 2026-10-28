@@ -37,7 +37,13 @@ for(const [name,config] of registered){
   const scopes=config.securitySchemes?.flatMap(x=>x.scopes||[])||[];
   assert.ok(scopes.length>=1,name+':scope_missing');
   assert.ok(scopes.every(x=>['remote:read','remote:write','remote:execute','remote:terminal'].includes(x)),name+':unexpected_scope');
-  if(a.readOnlyHint)assert.ok(!scopes.includes('remote:execute')&&!scopes.includes('remote:write'),name+':read_only_excess_scopes');
+  if(a.readOnlyHint){
+    // Local Long Memory reads invoke a read-only CLI on the authorized device;
+    // the OS execution permission is required even though no data is changed.
+    if(name==='light_remote_long_memory_read')
+      assert.deepEqual(scopes,['remote:execute'],name+':memory_read_scope_changed');
+    else assert.ok(!scopes.includes('remote:execute')&&!scopes.includes('remote:write'),name+':read_only_excess_scopes');
+  }
 }
 const must={
  light_remote_exec:['remote:execute',false,true],
