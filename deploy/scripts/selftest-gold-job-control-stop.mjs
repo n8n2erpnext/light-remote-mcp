@@ -67,6 +67,20 @@ assert.match(wall,/j.stopRequested=true/);
 assert.match(wall,/j.stopRequested\?'Stopping…'/);
 assert.doesNotMatch(wall,/j.status='stop_requested'/,'pending Kill must not replace running primary status');
 assert.match(wall,/stopRequested:false,exitCode:e.exitCode/,'terminal status clears Stop pending');
+// Job status is provided as `status` by both in-memory and durable
+// Operator records. The plugin must not erase terminal cancelled status.
+const adapterSource=src('plugin-server/operator-adapter.mjs');
+const cleanJobDeclaration=adapterSource.split('\n').find(line=>line.startsWith('const cleanJob='));
+assert.ok(cleanJobDeclaration,'Gold plugin job mapper source found');
+const cleanJob=vm.runInNewContext(cleanJobDeclaration+';cleanJob');
+for(const status of ['queued','running','ok','error','timeout','cancelled','interrupted']){
+ const finishedAt=['queued','running'].includes(status)?null:Date.now();
+ const view=cleanJob({jobId:'job-test',status,finishedAt,exitCode:status==='cancelled'?130:null});
+ assert.equal(view.state,status,'Gold plugin must preserve '+status);
+ assert.equal(view.running,!finishedAt);
+ if(status==='cancelled')assert.equal(view.exitCode,130);
+}
+assert.equal(cleanJob({jobId:'job-test',state:'ok',status:'running',finishedAt:123}).state,'ok');
 const plugin=src('plugin-server/tools.mjs');
 assert.match(plugin,/add\(server,'light_remote_cancel_job'/);
 assert.match(plugin,/security\(\['remote:execute'\]\)/);
