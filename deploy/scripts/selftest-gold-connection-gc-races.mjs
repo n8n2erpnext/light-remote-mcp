@@ -53,3 +53,22 @@ assert.equal(steady.sql.some(q=>q.includes('INSERT INTO lr_gold_terminal_receipt
 console.log(JSON.stringify({ok:true,unit:'source_mock_only',
  races:['new_connection','new_heartbeat','late_signed_channel'],
  rollbackForAllRaces:true,steadyOfflineGc:true,falseTerminalAck:0}));
+
+// A controlled Gold UAT can opt into a strict device allowlist. This must
+// protect another stale claim even when both devices would be GC-eligible.
+let scopedSql=0,scopedConnections=0;
+const scopedPool={async query(sql,args){
+  scopedSql++;
+  assert.match(sql,/device_id=ANY\(\$3::text\[\]\)/);
+  assert.deepEqual(args[2],['dev-fixture-a']);
+  return {rows:sql.includes('device_id>$1')?[{device_id:'dev-fixture-a'}]:[]};
+},async connect(){scopedConnections++;throw Error('out_of_scope_device_must_never_connect');}};
+assert.throws(()=>new GoldConnectionJobReaper({pool:scopedPool,allowedDevices:[]}),/invalid_device_allowlist/);
+assert.throws(()=>new GoldConnectionJobReaper({pool:scopedPool,allowedDevices:['dev other']}),/invalid_device_allowlist/);
+const scopedGc=new GoldConnectionJobReaper({pool:scopedPool,allowedDevices:['dev-fixture-a'],now:()=>now});
+assert.deepEqual(await scopedGc.candidates(),['dev-fixture-a']);
+const excluded=await scopedGc.sweepDevice('dev-historical-unrelated',{dryRun:false});
+assert.equal(excluded.reason,'not_in_gc_allowlist');
+assert.equal(scopedConnections,0,'no PG mutations or locks for unrelated device');
+assert.ok(scopedSql>=1);
+console.log('GOLD_GC_UAT_DEVICE_ALLOWLIST_UNRELATED_CLAIMS_PROTECTED=PASS');

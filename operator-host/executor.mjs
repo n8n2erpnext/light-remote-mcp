@@ -115,6 +115,10 @@ const CONNECTION_JOB_GC_ENABLED = process.env.OPERATOR_CONNECTION_JOB_GC_ENABLED
 const CONNECTION_JOB_GC_OFFLINE_MS = Number(process.env.OPERATOR_CONNECTION_JOB_GC_OFFLINE_MS || DEFAULT_OFFLINE_GC_MS);
 const CONNECTION_JOB_GC_SCAN_MS = Math.max(5000,Math.min(300000,Number(process.env.OPERATOR_CONNECTION_JOB_GC_SCAN_MS)||10000));
 const CONNECTION_JOB_GC_BATCH = Math.max(1,Math.min(128,Number(process.env.OPERATOR_CONNECTION_JOB_GC_BATCH)||128));
+// Optional UAT-only scope: never sweep another customer's historical claim.
+// An explicit empty list is invalid; omission retains account-wide semantics.
+const CONNECTION_JOB_GC_ONLY_DEVICE_IDS = Object.hasOwn(process.env,'OPERATOR_CONNECTION_JOB_GC_ONLY_DEVICE_IDS')
+  ? String(process.env.OPERATOR_CONNECTION_JOB_GC_ONLY_DEVICE_IDS).split(',').map(x=>x.trim()) : null;
 const DEVICE_ID = String(process.env.OPERATOR_DEVICE_ID || 'arm-local');
 const NODE_ID = String(process.env.OPERATOR_NODE_ID || 'arm');
 const DEVICE_NAME = String(process.env.OPERATOR_DEVICE_NAME || os.hostname());
@@ -442,6 +446,7 @@ if(CONNECTION_JOB_GC_ENABLED){
     pool:goldStorage.pool,
     offlineMs:CONNECTION_JOB_GC_OFFLINE_MS,
     limit:CONNECTION_JOB_GC_BATCH,
+    allowedDevices:CONNECTION_JOB_GC_ONLY_DEVICE_IDS,
     channelFresh:async deviceId=>{
       if(fleet.list().some(node=>node.deviceId===deviceId&&node.channelFresh))return true;
       // A fresh connection/renewal may not yet have flushed to PG. Respect it,

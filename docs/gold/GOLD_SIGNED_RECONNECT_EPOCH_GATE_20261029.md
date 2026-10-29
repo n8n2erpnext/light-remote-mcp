@@ -19,3 +19,6 @@ P0 PASS, Pro Team 5-person FROZEN, Pro Share $25 not deployed. Free 12h / Pro 48
 
 ## UAT rollout gate
 Do not apply schema040 or enable `OPERATOR_CONNECTION_JOB_GC_ENABLED=1` yet. First prove the above with real PG concurrency and signed Agent E2E in an isolated test device. Then snapshot LXD + independent PG backup + exact candidate SHA/rollback plan. Apply migration 040 with worker OFF, inspect claim counts and schema/health, obtain separate owner sign-off before a controlled GC activation. Production remains unchanged.
+
+## Additional controlled-scope safety after first CI green
+The previous unscoped reaper would sweep the real historical unrelated claim as soon as the global worker was enabled. A strictly optional `OPERATOR_CONNECTION_JOB_GC_ONLY_DEVICE_IDS` comma-separated allowlist is now parsed by Operator and passed into Reaper; SQL candidate enumeration and direct `sweepDevice` are both constrained. Configuring an invalid or empty list fails startup instead of inadvertently widening the sweep. In a future single-device UAT activation, explicitly set this to the exact **new synthetic test device ID**, never to a broad active customer list. Omission keeps intended future account-wide production semantics; worker remains OFF by default. This is a source-only control and must still undergo a Gold UAT owner-approved staged rollout.
