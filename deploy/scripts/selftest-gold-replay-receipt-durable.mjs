@@ -9,11 +9,12 @@ const code=src.slice(a,b);
 const ctx={binding:{accountId:'acct'},device:{deviceId:'dev',nodeId:'node'}};
 const receipt={commandId:'cmd1',jobId:'11111111-1111-4111-8111-111111111111',accountId:'acct',deviceId:'dev',nodeId:'node'};
 const terminal={jobId:receipt.jobId,accountId:'acct',deviceId:'dev',status:'cancelled',finishedAt:Date.now(),exitCode:130,effectState:'result_observed'};
-async function check(r,db,disk=null){
+async function check(r,db,disk=null,completedDisk=null){
  let calls=0;class FleetError extends Error{constructor(code,status){super(code);this.status=status;}}
  const context={FleetError,jobs:new Map(),Buffer,MAX_MEMORY_OUTPUT:10000,
    fleet:{command(){throw Error('command_not_found');},receipt(){return r;}},
    abandonedCommandReceiptFromDisk:()=>disk,
+   completedCommandReceiptFromDisk:()=>completedDisk,
    goldJobs:{async get(){calls++;return db;}},
    jobView(){throw Error('live_job_view_used_on_database_snapshot');}
  };
@@ -35,4 +36,8 @@ r=await check({...receipt,accountId:'other'},terminal);
 assert.equal(r.error,'command_device_mismatch');assert.equal(r.calls,0);
 r=await check(null,terminal,{...receipt,abandoned:true,recoveredFromDisk:true});
 assert.equal(r.error,'command_abandoned_effect_unknown');assert.equal(r.calls,0);
-console.log('P0_GOLD_REPLAY_TERMINAL_PG_ONLY_AND_ABANDONED_DENY_PASS');
+r=await check(null,terminal,null,{...receipt,completedAt:Date.now(),recoveredFromDisk:true});
+assert.equal(r.value.accepted,true);assert.equal(r.value.duplicate,true);assert.equal(r.calls,1);
+r=await check(null,{...terminal,status:'interrupted'},null,{...receipt,recoveredFromDisk:true});
+assert.equal(r.error,'command_terminal_commit_unverified');
+console.log('P0_GOLD_REPLAY_TERMINAL_PG_ONLY_ABANDONED_DENY_AND_RESTART_COMPLETED_PASS');

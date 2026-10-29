@@ -1071,6 +1071,31 @@ function abandonedCommandReceiptFromDisk(commandId,{maxAgeMs=24*60*60*1000,now=D
   return null;
 }
 
+// Recover an already completed Fleet receipt only when its own Operator
+// event was durably written. The signed Agent result is still acknowledged
+// only after the matching terminal PostgreSQL record is verified.
+function completedCommandReceiptFromDisk(commandId,{maxAgeMs=24*60*60*1000,now=Date.now()}={}){
+  const id=String(commandId||'').trim();
+  if(!/^cmd_[A-Za-z0-9._:-]{20,128}$/.test(id))return null;
+  const cutoff=now-Math.max(10*60_000,Math.min(Number(maxAgeMs)||24*60*60*1000,7*24*60*60*1000));
+  for(const file of [...logFilesOldestFirst()].reverse()){
+    const lines=readLogText(file).split('\n');
+    for(let i=lines.length-1;i>=0;i--){
+      const line=lines[i];
+      if(!line||!line.includes(id)||!line.includes('node_command_completed'))continue;
+      let event;try{event=JSON.parse(line);}catch{continue;}
+      if(event.type!=='node_command_completed'||event.commandId!==id)continue;
+      const at=Date.parse(event.at||event.ts||0);
+      if(!Number.isFinite(at)||at<cutoff)return null;
+      if(!event.accountId||!event.deviceId||!event.nodeId||!event.jobId)return null;
+      return {commandId:id,jobId:String(event.jobId),accountId:String(event.accountId),
+        deviceId:String(event.deviceId),nodeId:String(event.nodeId),
+        duplicate:true,recoveredFromDisk:true,completedAt:at};
+    }
+  }
+  return null;
+}
+
 function fullOutputFromDisk(jobId, stream) {
   let output = '';
   for (const file of logFilesOldestFirst()) {
@@ -1467,7 +1492,7 @@ const routeDeps=()=>({
   FleetAuthorityError,FleetError,MAX_ACTIVE_SESSIONS,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,
   MIN_SUPPORTED_CLIENT_VERSION,NODE_ID,SESSION_GRACE_PRESETS,SESSION_IDLE_MS,SESSION_MAX_IDLE_MS,
   SESSION_MIN_IDLE_MS,VERSION,accessGrants,accountSessionToken,accounts,
-  abandonedCommandReceiptFromDisk,agentClients,allDeviceViews,applyDeviceTelemetry,assertDiskJobOwner,assertToolCallQuota,capabilities,
+  abandonedCommandReceiptFromDisk,completedCommandReceiptFromDisk,agentClients,allDeviceViews,applyDeviceTelemetry,assertDiskJobOwner,assertToolCallQuota,capabilities,
   clearMainIfMatches,clientCompatibility,closeRuntimeForAccount,compatibilityFor,connectionSpec,
   connectionViewForDevice,connections,decryptEnvelope,deviceView,devices,
   deviceHasHistoricalReferences:deviceId=>goldRegistries.native.accounts.deviceHasHistoricalReferences(deviceId),
