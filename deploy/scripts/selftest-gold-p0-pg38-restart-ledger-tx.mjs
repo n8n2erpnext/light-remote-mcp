@@ -25,7 +25,8 @@ try {
  const pending={...base,id:uuid,status:'running',finishedAt:null,exitCode:null};
  ledger.save(pending);await ledger.flush();
  assert.equal((await ledger.get(uuid))?.status,'running');
- const done={...base,id:id2,status:'cancelled',finishedAt:Date.now(),exitCode:130,stopRequestedAt:Date.now()};
+ const replayCommand='cmd_'+crypto.randomUUID();
+ const done={...base,id:id2,status:'cancelled',finishedAt:Date.now(),exitCode:130,stopRequestedAt:Date.now(),commandId:replayCommand,signedResultVerified:true};
  ledger.save(done);await ledger.flush();
  assert.equal((await ledger.get(id2))?.status,'cancelled');
  const restored=await GoldJobLedger.open({pool,redact:v=>v});
@@ -35,6 +36,10 @@ try {
  const terminal=await restored.get(id2);
  assert.equal(terminal.status,'cancelled','verified terminal must survive restart');
  assert.equal(terminal.exitCode,130);
+ const mapped=await restored.completedForCommand({commandId:replayCommand,accountId:base.accountId,deviceId:base.deviceId,nodeId:base.nodeId});
+ assert.equal(mapped?.jobId,id2,'durably committed terminal must map exact command after restart');
+ assert.equal(mapped?.status,'cancelled');
+ assert.equal(await restored.completedForCommand({commandId:replayCommand,accountId:'other-account',deviceId:base.deviceId,nodeId:base.nodeId}),null);
  const q=await db.query('SELECT status,finished_at FROM lr_gold_job_records WHERE job_id=$1',[uuid]);
  assert.equal(q.rows[0]?.status,'interrupted');
  assert.ok(q.rows[0]?.finished_at,'reconciliation records local transition without inventing signed completion');

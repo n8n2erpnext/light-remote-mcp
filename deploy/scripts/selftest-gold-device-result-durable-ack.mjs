@@ -34,6 +34,7 @@ function make({flush=gate(),owner='account1'}={}){
  assert.deepEqual(x.sequence,['finishJob','ledger.flush'],'Fleet command must remain in-flight before ledger commit');
  x.flush.resolve();const accepted=await promise;
  assert.equal(accepted.accepted,true);assert.equal(accepted.job.status,'cancelled');
+ assert.equal(x.job.signedResultVerified,true,'verified Agent result must be persisted with terminal ledger');
  assert.deepEqual(x.sequence,['finishJob','ledger.flush','fleet.complete']);
 }
 {

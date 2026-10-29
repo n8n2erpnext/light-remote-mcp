@@ -177,7 +177,16 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
     catch(error){
       if(error?.message!=='command_not_found')throw error;
       const receipt=fleet.receipt(result.commandId)||abandonedCommandReceiptFromDisk?.(result.commandId)||completedCommandReceiptFromDisk?.(result.commandId);
-      if(!receipt)throw error;
+      if(!receipt){
+        // The terminal job commit carries its command ID. PG is the fallback
+        // when Operator crashed after commit but before event-log persistence.
+        const terminal=await goldJobs.completedForCommand({
+          commandId:result.commandId,accountId:ctx.binding.accountId,
+          deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId
+        });
+        if(!terminal)throw error;
+        return {ok:true,accepted:true,duplicate:true,job:terminal};
+      }
       if(receipt.accountId!==ctx.binding.accountId||receipt.deviceId!==ctx.device.deviceId||receipt.nodeId!==ctx.device.nodeId)throw new FleetError('command_device_mismatch',403);
       // A completed Fleet receipt is not itself proof of a terminal result.
       // An abandoned queued command has no verified device execution.
@@ -214,6 +223,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
     // Only a signed device exit after an owner stop request is proof of Kill.
     if(String(result.status||'')==='cancelled'&&job.stopRequestedAt)
       job.cancelled=true;
+    job.signedResultVerified=true;
     finishJob(job,exitCode,null);
     // This signed Agent result is NOT acknowledged until the terminal state
     // is committed to PostgreSQL. Fleet completion must follow the durable
