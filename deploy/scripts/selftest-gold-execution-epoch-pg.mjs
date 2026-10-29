@@ -7,6 +7,7 @@ import path from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {GoldExecutionEpochs,verifyExecutionCommand} from '../../lib/gold-execution-epoch.mjs';
 import {AgentExecutionEpochJournal} from '../../device-agent/execution-epoch-journal.mjs';
+import {NativeProcessRegistry} from '../../lib/native-process.mjs';
 
 const database=process.env.LR_GOLD_EPOCH_TEST_DB||'';
 assert.match(database,/^lr_gold_epoch_fixture_[0-9]{8}$/,'disposable PG DB name required');
@@ -21,7 +22,7 @@ const B=new GoldExecutionEpochs({pool:poolB,signer:issuer});
 const accountId='acct-epoch-fixture',deviceId='dev-epoch-fixture',connectionId='dc_epoch_fixture_1';
 const key=issuer.publicKey;
 const cmdId='cmd_22222222-2222-4222-8222-222222222222',jobId='11111111-1111-4111-8111-111111111111';
-const command={commandId:cmdId,jobId,payload:{type:'exec',operationId:'op_1234567890123456',script:'printf harmless'}};
+const command={commandId:cmdId,jobId,payload:{type:'process',operationId:'op_1234567890123456',process:{op:'start',script:'synthetic harmless native process'}}};
 let localDir=null;
 try{
   const first=await A.issue({accountId,deviceId,connectionId,instanceId:'ei_fixture_process_1'});
@@ -46,8 +47,32 @@ try{
     authorization:ticket.executionAuthorization}),/execution_start_already_authorized/);
   assert.equal(journal.reserve(ticket,{accountId,deviceId,publicKey:key}).state,'reserved');
   assert.equal(journal.reserve(ticket,{accountId,deviceId,publicKey:key}).previous,true,'duplicate may replay but not respawn');
+  // Execute ONE real operating-system child under a synthetic device owner.
+  // Both transport deliveries of the same command must converge to that
+  // single authenticated PG effect permit and single native process.
+  const marker=path.join(localDir,'harmless-process-count.txt');
+  const registry=new NativeProcessRegistry();
+  const owner={accountId,deviceId,sessionId:'synthetic-session',agentId:'synthetic-agent'};
+  const code=`require('node:fs').appendFileSync(${JSON.stringify(marker)},'1')`;
+  const launched=registry.start({...owner,cwd:localDir,script:'synthetic process fixture',
+    spawnSpec:()=>({file:process.execPath,args:['-e',code]})});
+  assert.match(launched.processId,/^lp_/);
+  journal.finish(command,{data:{ok:true,operation:'start',process:launched}});
+  let observed=launched;
+  for(let i=0;i<100&&!observed.finishedAt;i++){
+    await new Promise(resolve=>setTimeout(resolve,20));
+    observed=registry.view(launched.processId,owner);
+  }
+  assert.equal(observed.state,'finished');
+  assert.equal(observed.exitCode,0);
+  journal.observeProcesses([observed],{accountId,deviceId});
+  assert.equal(journal.rows.get(cmdId).processId,launched.processId);
+  assert.equal(journal.rows.get(cmdId).pid,launched.pid);
+  assert.equal(journal.rows.get(cmdId).state,'finished');
+  assert.equal(fs.readFileSync(marker,'utf8'),'1','a duplicated Poll+Duplex command caused a second OS effect');
+  registry.close();
   const restarted=new AgentExecutionEpochJournal({directory:localDir,maxRecords:256});
-  assert.equal(restarted.rows.get(cmdId).state,'reserved','write-ahead survives Agent restart');
+  assert.equal(restarted.rows.get(cmdId).state,'finished','native terminal identity persisted across Agent restart');
   const tickets=await Promise.all([A.authorizeCommand({accountId,deviceId,connectionId,instanceId:'ei_fixture_process_1',command}),B.authorizeCommand({accountId,deviceId,connectionId,instanceId:'ei_fixture_process_1',command})]);
   assert.deepEqual(tickets[0].executionAuthorization.ticket,tickets[1].executionAuthorization.ticket);
   assert.equal((await poolA.query('SELECT count(*)::int n FROM lr_gold_execution_command_issuance')).rows[0].n,1,'exactly one issuance across Operators');
@@ -90,5 +115,5 @@ try{
   assert.equal((await poolA.query('SELECT count(*)::int n FROM lr_gold_terminal_receipt_acks')).rows[0].n,0);
   console.log(JSON.stringify({ok:true,postgresql:true,operators:2,monotonicEpoch:3,
     duplicateConcurrentIssuance:1,oneTimePgEffectStart:true,oldEpochCommandDenied:true,staleInventoryDenied:true,
-    journalFsyncRecovery:true,signedInventoryPages:2,terminalAcksCreated:0,sourceOnly:true}));
+    journalFsyncRecovery:true,realNativeOSProcessStartedOnce:true,signedInventoryPages:2,terminalAcksCreated:0,sourceOnly:true}));
 }finally{if(localDir)fs.rmSync(localDir,{recursive:true,force:true});await Promise.allSettled([poolA.end(),poolB.end()]);}

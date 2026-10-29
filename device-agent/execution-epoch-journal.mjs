@@ -70,13 +70,27 @@ export class AgentExecutionEpochJournal {
   finish(command,result){
     const row=this.rows.get(command.commandId);
     if(!row)throw Error('execution_command_not_reserved');
-    const process=result?.data?.process;
-    const pid=String(process?.processId||'');
-    if(/^lp_[A-Za-z0-9_-]{20,80}$/.test(pid))row.processId=pid;
-    // The command's successful launch is NOT a terminal result for its child.
-    row.state=row.processId&&['finished','stopped','timeout','error','running'].includes(process.state)?process.state:'unknown';
-    row.startedAt=Number.isSafeInteger(process?.startedAt)?process.startedAt:row.startedAt;
-    row.finishedAt=Number.isSafeInteger(process?.finishedAt)?process.finishedAt:null;
+    // Only a native process START can own a new process identity. A stop,
+    // output, list or input command references an EXISTING process and must
+    // not assign that process to a different job (or forge termination proof).
+    const launched=command?.payload?.type==='process'&&command.payload.process?.op==='start'&&
+      result?.data?.operation==='start'&&result?.data?.ok===true;
+    const process=launched?result.data.process:null;
+    const processId=String(process?.processId||'');
+    if(/^lp_[A-Za-z0-9_-]{20,80}$/.test(processId)){
+      row.processId=processId;
+      if(Number.isSafeInteger(process.startedAt)&&process.startedAt>0){
+        row.nativeStartedAt=process.startedAt;
+        row.startedAt=process.startedAt;
+      }
+      if(Number.isSafeInteger(process.pid)&&process.pid>0)row.pid=process.pid;
+      // Process-start command may finish while its child still runs.
+      row.state=['running','finished','stopped','timeout','error'].includes(process.state)?process.state:'unknown';
+      row.finishedAt=Number.isSafeInteger(process.finishedAt)?process.finishedAt:null;
+    }else{
+      row.state='unknown';
+      row.finishedAt=null;
+    }
     this.save();
   }
   observeProcesses(observed,{accountId,deviceId}={}){
@@ -88,8 +102,16 @@ export class AgentExecutionEpochJournal {
       if(!row.processId)continue;
       const current=byId.get(row.processId);
       if(!current)continue; // Missing process is NOT a terminal receipt.
-      if(Number.isSafeInteger(current.startedAt)&&row.startedAt>current.startedAt+1000)
-        continue; // PID/process reuse or contradictory timeline; fail closed.
+      // Never overwrite an already pinned native start identity. Native PID
+      // reuse, a forged supervisor handle, or a replayed stale process report
+      // must not be promoted to an authentic terminal observation.
+      if(!Number.isSafeInteger(current.startedAt)||current.startedAt<=0)continue;
+      if(Number.isSafeInteger(row.nativeStartedAt)){
+        if(current.startedAt!==row.nativeStartedAt)continue;
+        if(Number.isSafeInteger(row.pid)&&Number.isSafeInteger(current.pid)&&
+          row.pid!==current.pid)continue;
+      }else if(current.startedAt<row.startedAt-1000||
+        current.startedAt>row.startedAt+10*60*1000)continue;
       if(['running','finished','stopped','timeout','error','unknown'].includes(current.state)&&
           row.state!==current.state){row.state=current.state;changed=true;}
       if(Number.isSafeInteger(current.pid)&&current.pid>0&&row.pid!==current.pid){row.pid=current.pid;changed=true;}

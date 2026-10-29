@@ -63,6 +63,7 @@ jobs:
           node deploy/scripts/selftest-gold-reconnect-proof.mjs
           node deploy/scripts/selftest-gold-execution-epoch-wiring.mjs
           node deploy/scripts/selftest-gold-execution-epoch-agent-journal.mjs
+          node deploy/scripts/selftest-gold-execution-epoch-native-process.mjs
           node deploy/scripts/selftest-gold-m6-terminal-replay.mjs
           node deploy/scripts/selftest-g3-duplex-reconnect-inflight.mjs
           node deploy/scripts/selftest-gold-m4-resource-policy.mjs
@@ -119,4 +120,5 @@ jobs:
           node --check device-agent/operator-agent.mjs
           node --check device-agent/execution-epoch-journal.mjs
           node deploy/scripts/selftest-gold-execution-epoch-agent-journal.mjs
+          node deploy/scripts/selftest-gold-execution-epoch-native-process.mjs
           node deploy/scripts/selftest-gold-execution-epoch-wiring.mjs
