@@ -12,6 +12,7 @@ import { personalCapacity } from './execution-capacity-policy.mjs';
 import { GoldPersonalAgentScheduler } from '../lib/gold-personal-agent-scheduler.mjs';
 import { GoldDeviceResourceLocks } from '../lib/gold-device-resource-locks.mjs';
 import { GoldConnectionJobReaper, DEFAULT_OFFLINE_GC_MS } from '../lib/gold-connection-job-reaper.mjs';
+import { GoldStaleClaimMonitor } from '../lib/gold-stale-claim-monitor.mjs';
 import { GoldExecutionEpochs } from '../lib/gold-execution-epoch.mjs';
 import { DeviceResourceSampleCache } from '../lib/device-resource-telemetry.mjs';
 import { deviceResourceIntent } from './device-resource-intent.mjs';
@@ -113,6 +114,11 @@ const CONNECTION_LEASE_ENFORCE = ['1','true','yes'].includes(String(process.env.
 const CONNECTION_REAP_MS = Number(process.env.OPERATOR_CONNECTION_REAP_MS || 30 * 1000);
 // Opt-in PG-authoritative cleanup of jobs after 60m continuously offline.
 const CONNECTION_JOB_GC_ENABLED = process.env.OPERATOR_CONNECTION_JOB_GC_ENABLED==='1';
+// P1-A owner-scoped observer. Requires explicit synthetic/test-device allowlist.
+const STALE_CLAIM_MONITOR_ENABLED=process.env.OPERATOR_STALE_CLAIM_MONITOR_ENABLED==='1';
+const STALE_CLAIM_MONITOR_ONLY_DEVICE_IDS=Object.hasOwn(process.env,'OPERATOR_STALE_CLAIM_MONITOR_ONLY_DEVICE_IDS')
+ ? String(process.env.OPERATOR_STALE_CLAIM_MONITOR_ONLY_DEVICE_IDS).split(',').map(x=>x.trim()):null;
+const STALE_CLAIM_MONITOR_SCAN_MS=Math.max(10000,Math.min(300000,Number(process.env.OPERATOR_STALE_CLAIM_MONITOR_SCAN_MS)||30000));
 // Additive schema041 feature: OFF until signed Agent + PG epoch UAT acceptance.
 const EXECUTION_EPOCH_ENABLED = process.env.OPERATOR_EXECUTION_EPOCH_ENABLED==='1';
 const EXECUTION_EPOCH_ONLY_DEVICE_IDS=Object.hasOwn(process.env,'OPERATOR_EXECUTION_EPOCH_ONLY_DEVICE_IDS')
@@ -507,6 +513,27 @@ if(CONNECTION_JOB_GC_ENABLED){
     finally{connectionJobGcBusy=false}
   },CONNECTION_JOB_GC_SCAN_MS);
   connectionJobGcTicker.unref();
+}
+
+// P1-A never touches claims: signed terminal replay (P1-C) and audited owner
+// recovery (P1-D) remain separate authorization and disposition paths.
+if(STALE_CLAIM_MONITOR_ENABLED&&(!STALE_CLAIM_MONITOR_ONLY_DEVICE_IDS||
+ !STALE_CLAIM_MONITOR_ONLY_DEVICE_IDS.length||
+ STALE_CLAIM_MONITOR_ONLY_DEVICE_IDS.some(id=>!/^[A-Za-z0-9._:-]{1,160}$/.test(id))))
+ throw Error('p1_stale_claim_monitor_explicit_allowlist_required');
+const staleClaimMonitor=STALE_CLAIM_MONITOR_ENABLED?new GoldStaleClaimMonitor({
+ pool:goldStorage.pool,getDeviceViews:()=>allDeviceViews(),
+ allowedDevices:STALE_CLAIM_MONITOR_ONLY_DEVICE_IDS,
+ // Alert details remain owner-scoped in memory and Fleet Jobs. Do not
+ // broadcast any other owner's claim count through the global SSE ring.
+ onAlert:()=>console.warn('[p1] M4 stale-claim diagnostic available in owner Fleet Jobs')
+}):null;
+if(staleClaimMonitor){
+ const ticker=setInterval(()=>void staleClaimMonitor.tick().catch(error=>{
+  console.error(JSON.stringify({event:'p1_stale_claim_monitor_failed',
+   reason:String(error?.message||error).slice(0,120)}));
+ }),STALE_CLAIM_MONITOR_SCAN_MS);
+ ticker.unref();
 }
 
 function pruneReplay(now = Date.now()) {
@@ -1584,7 +1611,7 @@ const routeDeps=()=>({
   emitStream,enrollments,finishJob,fleet,fleetAuthority,reconcileSignedTerminalProcessReceipts,
   executionEpochs,requiresExecutionEpoch,
   fleetEligibility,fleetTarget,flushDiskRecords,flushGoldRegistries:()=>goldRegistries.flush(),fs,fullOutputFromDisk,
-  ingressTelemetry,jobView,jobs,goldJobs,deviceResourceLocks,deviceResourceSampleCache,deviceBootObservations,memorySyncPolicy,memoryAccountDelete,
+  ingressTelemetry,jobView,jobs,goldJobs,deviceResourceLocks,staleClaimMonitor,deviceResourceSampleCache,deviceBootObservations,memorySyncPolicy,memoryAccountDelete,
   inspectOwnerOrphanDevice:options=>deviceResourceLocks.inspectOwnerOrphanDevice(goldStorage.pool,options),
   abandonOwnerAttestedOrphan:options=>deviceResourceLocks.abandonOwnerAttestedOrphan(goldStorage.pool,options),
   cancelQueuedPersonalJob,cancelControlJob,deviceStopRequests,requestFleetProcessStop,licenses,normalizeUpdateReport,

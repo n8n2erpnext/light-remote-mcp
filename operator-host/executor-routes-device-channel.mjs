@@ -4,10 +4,11 @@ import { DEVICE_DUPLEX_PROTOCOL } from './device-duplex-transport.mjs';
 import { handleDeviceDuplexSession } from './device-duplex-session.mjs';
 import { ownerFleetJobRows } from './fleet-job-view.mjs';
 import { ownerDeviceResourceMetrics } from '../lib/gold-device-resource-metrics.mjs';
+import { scanOwnerStaleClaims } from '../lib/gold-stale-claim-detector.mjs';
 
 
 export async function handleDeviceChannelRoutes(req,res,url,deps){
-  const {ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,DeviceAccessGrantError,DevicePairingRegistryError,EnrollmentError,FleetAuthorityError,FleetError,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,MIN_SUPPORTED_CLIENT_VERSION,NODE_ID,VERSION,abandonedCommandReceiptFromDisk,completedCommandReceiptFromDisk,accessGrants,accounts,agentClients,allDeviceViews,applyDeviceTelemetry,capabilities,clientCompatibility,connectionSpec,connections,deviceView,devices,emitStream,enrollments,finishJob,fleet,fleetAuthority,fleetEligibility,fleetTarget,jobView,jobs,goldJobs,deviceResourceLocks,deviceResourceSampleCache,deviceBootObservations,cancelQueuedPersonalJob,cancelControlJob,deviceStopRequests,requestFleetProcessStop,reconcileSignedTerminalProcessReceipts,executionEpochs,requiresExecutionEpoch,normalizeUpdateReport,pairingCodes,planEntitlements,pushEvent,queueHelperUpdate,readJson,reapAccessGrants,realRemoteLive,recentEvents,requireDeviceConnection,sendJson,sessions,targetRoute,terminalResultSummary,verifiedChannelContext,verifiedFleetContext,verifiedLeafCapabilities,memorySyncPolicy,memoryAccountDelete,accountNotifications,proTeams}=deps;
+  const {ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,DeviceAccessGrantError,DevicePairingRegistryError,EnrollmentError,FleetAuthorityError,FleetError,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,MIN_SUPPORTED_CLIENT_VERSION,NODE_ID,VERSION,abandonedCommandReceiptFromDisk,completedCommandReceiptFromDisk,accessGrants,accounts,agentClients,allDeviceViews,applyDeviceTelemetry,capabilities,clientCompatibility,connectionSpec,connections,deviceView,devices,emitStream,enrollments,finishJob,fleet,fleetAuthority,fleetEligibility,fleetTarget,jobView,jobs,goldJobs,deviceResourceLocks,staleClaimMonitor,deviceResourceSampleCache,deviceBootObservations,cancelQueuedPersonalJob,cancelControlJob,deviceStopRequests,requestFleetProcessStop,reconcileSignedTerminalProcessReceipts,executionEpochs,requiresExecutionEpoch,normalizeUpdateReport,pairingCodes,planEntitlements,pushEvent,queueHelperUpdate,readJson,reapAccessGrants,realRemoteLive,recentEvents,requireDeviceConnection,sendJson,sessions,targetRoute,terminalResultSummary,verifiedChannelContext,verifiedFleetContext,verifiedLeafCapabilities,memorySyncPolicy,memoryAccountDelete,accountNotifications,proTeams}=deps;
   // Boot telemetry uses the authenticated device channel, never the M4
   // scheduler. Errors are isolated from command ACK and cannot free claims.
   const persistBoot=async(ctx,value,agentVersion)=>{
@@ -505,7 +506,26 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
         resource.metrics=m.state==='fresh'?m.sample:null;
         resource.metricsLastSeenAt=m.sample?.receivedAt||null;
       }
-      return sendJson(res,200,{ok:true,mainDeviceId:ctx.account.mainDeviceId,jobs:rows,resources});
+      // Owner-authenticated and restricted to registered devices. Read-only;
+      // the detector NEVER changes OS-effect claims or signed ACKs.
+      const monitored=staleClaimMonitor?.snapshotForOwner(ctx.account.accountId,[...owned]);
+      const ageMs=Date.now()-(Number(monitored?.observedAt)||0);
+      // A deliberately scoped monitor cannot suppress diagnostic observations
+      // for the other devices the owner is authorized to inspect.
+      const completeMonitorScope=Boolean(staleClaimMonitor&&
+        [...owned].every(id=>staleClaimMonitor.allowed.has(id)));
+      const observations=completeMonitorScope&&monitored&&monitored.error===null&&ageMs<=90000
+        ? monitored : [...owned].length===0?{staleClaims:[],mode:'diagnostic_only'}:
+          await scanOwnerStaleClaims({pool:goldJobs.pool,accountId:ctx.account.accountId,
+            deviceIds:[...owned],minimumAgeMs:3600000,maxRows:1000});
+      const staleClaims=(observations.items||observations.staleClaims||[]).map(item=>({
+        deviceId:item.deviceId,deviceName:names.get(item.deviceId)||item.deviceId,
+        jobId:item.jobId,ageMinutes:Math.floor(item.ageMs/60000),
+        processIdentityKnown:item.processIdentityKnown,workerState:item.workerState,
+        classification:item.classification,releaseAllowed:false,nextAction:item.nextAction}));
+      return sendJson(res,200,{ok:true,mainDeviceId:ctx.account.mainDeviceId,jobs:rows,resources,
+        staleClaimStatus:{mode:'diagnostic_only',releaseAllowed:false,
+          scanSource:observations===monitored?'periodic_monitor':'owner_read_only'},staleClaims});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/fleet-job-cancel') {
       const body=await readJson(req);

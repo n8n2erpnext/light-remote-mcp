@@ -22,6 +22,9 @@ assert.equal(ownerFleetJobRows(m,{accountId:'owner',deviceIds:new Set(['device-A
 assert.throws(()=>ownerFleetJobRows(m,{accountId:'',deviceIds:new Set(['device-A'])}),/fleet_job_owner_scope_required/);
 const html=fleetJobPage();
 assert.match(html,/Jobs & Queue/);
+assert.match(html,/Stale M4 claims — diagnostic only/);
+assert.match(html,/staleClaims=v\.staleClaims/);
+assert.doesNotMatch(html,/Unlock claim|Force release claim/i);
 assert.match(html,/\/api\/jobs/);
 assert.ok(!/form method=.post./i.test(html));
 let argsSeen=null;

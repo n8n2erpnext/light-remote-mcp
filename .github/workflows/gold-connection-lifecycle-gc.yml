@@ -25,6 +25,9 @@ on:
       - 'deploy/scripts/selftest-gold-gc-boundary-pg.mjs'
       - 'deploy/scripts/selftest-gold-p1-stale-claim-pg.mjs'
       - 'lib/gold-stale-claim-detector.mjs'
+      - 'lib/gold-stale-claim-monitor.mjs'
+      - 'deploy/scripts/selftest-gold-p1-stale-monitor-pg.mjs'
+      - 'device-agent/fleet-job-page.mjs'
       - 'deploy/scripts/ci-gold-epoch-pg.mjs'
       - 'deploy/scripts/selftest-gold-signed-http-duplex-pg.mjs'
       - 'deploy/scripts/selftest-gold-real-agent-daemon-pg.mjs'
@@ -53,6 +56,9 @@ jobs:
         run: |
           set -euo pipefail
           node --check lib/gold-connection-job-reaper.mjs
+          node --check lib/gold-stale-claim-monitor.mjs
+          node --check device-agent/fleet-job-page.mjs
+          node deploy/scripts/selftest-gold-fleet-jobs-m6.mjs
           node --check lib/gold-execution-epoch.mjs
           node --check lib/gold-db.mjs
           node --check device-agent/execution-epoch-journal.mjs
