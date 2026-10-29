@@ -52,6 +52,7 @@ import { restoreActivityRing } from '../lib/activity-ring.mjs';
 import { isOutboundTarget } from '../lib/operator-target-route.mjs';
 import { createPlatformAdapter } from '../device-agent/platform-adapters/index.mjs';
 import { handleAccountRoutes } from './executor-routes-account.mjs';
+import { GoldDeviceBootObservations } from './gold-device-boot-observations.mjs';
 import { handleDeviceChannelRoutes } from './executor-routes-device-channel.mjs';
 import {GoldMemoryAccountSyncPolicy} from './gold-memory-account-sync-policy.mjs';
 import {GoldMemoryAccountDelete} from './gold-memory-account-delete.mjs';
@@ -1486,6 +1487,7 @@ async function dispatchFleetProcessStop({jobId,accountId,deviceIds}={}){
 }
 
 const deviceResourceSampleCache=new DeviceResourceSampleCache();
+const deviceBootObservations=new GoldDeviceBootObservations(goldStorage.pool);
 const routeDeps=()=>({
   ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,
   DEVICE_ID,DeviceAccessGrantError,DeviceConnectionError,DevicePairingRegistryError,EnrollmentError,
@@ -1498,7 +1500,7 @@ const routeDeps=()=>({
   deviceHasHistoricalReferences:deviceId=>goldRegistries.native.accounts.deviceHasHistoricalReferences(deviceId),
   emitStream,enrollments,finishJob,fleet,fleetAuthority,reconcileSignedTerminalProcessReceipts,
   fleetEligibility,fleetTarget,flushDiskRecords,flushGoldRegistries:()=>goldRegistries.flush(),fs,fullOutputFromDisk,
-  ingressTelemetry,jobView,jobs,goldJobs,deviceResourceLocks,deviceResourceSampleCache,memorySyncPolicy,memoryAccountDelete,
+  ingressTelemetry,jobView,jobs,goldJobs,deviceResourceLocks,deviceResourceSampleCache,deviceBootObservations,memorySyncPolicy,memoryAccountDelete,
   inspectOwnerOrphanDevice:options=>deviceResourceLocks.inspectOwnerOrphanDevice(goldStorage.pool,options),
   abandonOwnerAttestedOrphan:options=>deviceResourceLocks.abandonOwnerAttestedOrphan(goldStorage.pool,options),
   cancelQueuedPersonalJob,cancelControlJob,deviceStopRequests,requestFleetProcessStop,licenses,normalizeUpdateReport,

@@ -214,6 +214,10 @@
       "destination": "lib/device-resource-telemetry.mjs"
     },
     {
+      "source": "lib/device-boot-telemetry.mjs",
+      "destination": "lib/device-boot-telemetry.mjs"
+    },
+    {
       "source": "lib/native-search.mjs",
       "destination": "lib/native-search.mjs"
     },

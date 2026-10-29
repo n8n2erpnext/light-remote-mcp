@@ -6,7 +6,20 @@ import { ownerDeviceResourceMetrics } from '../lib/gold-device-resource-metrics.
 
 
 export async function handleDeviceChannelRoutes(req,res,url,deps){
-  const {ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,DeviceAccessGrantError,DevicePairingRegistryError,EnrollmentError,FleetAuthorityError,FleetError,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,MIN_SUPPORTED_CLIENT_VERSION,NODE_ID,VERSION,abandonedCommandReceiptFromDisk,completedCommandReceiptFromDisk,accessGrants,accounts,agentClients,allDeviceViews,applyDeviceTelemetry,capabilities,clientCompatibility,connectionSpec,connections,deviceView,devices,emitStream,enrollments,finishJob,fleet,fleetAuthority,fleetEligibility,fleetTarget,jobView,jobs,goldJobs,deviceResourceLocks,deviceResourceSampleCache,cancelQueuedPersonalJob,cancelControlJob,deviceStopRequests,requestFleetProcessStop,reconcileSignedTerminalProcessReceipts,normalizeUpdateReport,pairingCodes,planEntitlements,pushEvent,queueHelperUpdate,readJson,reapAccessGrants,realRemoteLive,recentEvents,requireDeviceConnection,sendJson,sessions,targetRoute,terminalResultSummary,verifiedChannelContext,verifiedFleetContext,verifiedLeafCapabilities,memorySyncPolicy,memoryAccountDelete,accountNotifications,proTeams}=deps;
+  const {ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,DeviceAccessGrantError,DevicePairingRegistryError,EnrollmentError,FleetAuthorityError,FleetError,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,MIN_SUPPORTED_CLIENT_VERSION,NODE_ID,VERSION,abandonedCommandReceiptFromDisk,completedCommandReceiptFromDisk,accessGrants,accounts,agentClients,allDeviceViews,applyDeviceTelemetry,capabilities,clientCompatibility,connectionSpec,connections,deviceView,devices,emitStream,enrollments,finishJob,fleet,fleetAuthority,fleetEligibility,fleetTarget,jobView,jobs,goldJobs,deviceResourceLocks,deviceResourceSampleCache,deviceBootObservations,cancelQueuedPersonalJob,cancelControlJob,deviceStopRequests,requestFleetProcessStop,reconcileSignedTerminalProcessReceipts,normalizeUpdateReport,pairingCodes,planEntitlements,pushEvent,queueHelperUpdate,readJson,reapAccessGrants,realRemoteLive,recentEvents,requireDeviceConnection,sendJson,sessions,targetRoute,terminalResultSummary,verifiedChannelContext,verifiedFleetContext,verifiedLeafCapabilities,memorySyncPolicy,memoryAccountDelete,accountNotifications,proTeams}=deps;
+  // Boot telemetry uses the authenticated device channel, never the M4
+  // scheduler. Errors are isolated from command ACK and cannot free claims.
+  const persistBoot=async(ctx,value,agentVersion)=>{
+    if(!value||!deviceBootObservations)return;
+    try{await deviceBootObservations.record({
+      accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,
+      agentVersion,value
+    });}catch(error){
+      pushEvent({type:'device_boot_telemetry_persist_failed',
+        accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,
+        status:'error',reason:'boot_store_unavailable'});
+    }
+  };
   // Reuse the canonical account notification inbox. The signed enrollment
   // determines the account; the browser cannot supply an account ID.
   if(req.method==='POST'&&url.pathname==='/v1/device-channel/account-notifications'){
@@ -631,6 +644,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
           devices.heartbeat(ctx.device.deviceId,{capabilities,agentVersion:payload.agentVersion||ctx.device.agentVersion,updateStatus:payload.updateStatus});
           const node=fleet.touch(state.touchInput);
           deviceResourceSampleCache.record({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,value:payload.resourceSample});
+          await persistBoot(ctx,payload.bootEvidence,payload.agentVersion);
           const terminalReceiptsAck=await reconcileSignedTerminalProcessReceipts(ctx,payload.processTerminalReceipts);
           const policy=reportedRevision===Math.max(1,Number(ctx.binding.policyRevision)||1)?null:enrollments.policyEnvelope(ctx.device.deviceId);
           return {node,policy,terminalReceiptsAck,stopRequests:deviceStopRequests(ctx.binding.accountId,ctx.binding.deviceId)};
@@ -650,6 +664,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       devices.heartbeat(ctx.device.deviceId,{capabilities,agentVersion:ctx.payload.agentVersion,updateStatus:ctx.payload.updateStatus});
       const node=fleet.touch({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,sessionCeiling:ctx.payload.sessionCeiling,draining:Boolean(ctx.payload.draining),executorReady:ctx.payload.executorReady,capabilities,policyRevision:reportedRevision});
       deviceResourceSampleCache.record({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,value:ctx.payload.resourceSample});
+      await persistBoot(ctx,ctx.payload.bootEvidence,ctx.payload.agentVersion);
       const terminalReceiptsAck=await reconcileSignedTerminalProcessReceipts(ctx,ctx.payload.processTerminalReceipts);
       const policy=reportedRevision===Math.max(1,Number(ctx.binding.policyRevision)||1)?null:enrollments.policyEnvelope(ctx.device.deviceId);
       return sendJson(res,200,{ok:true,node,policy,pulseOnly:true,terminalReceiptsAck,stopRequests:deviceStopRequests(ctx.binding.accountId,ctx.binding.deviceId)});
@@ -662,6 +677,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       requireDeviceConnection(ctx.device.deviceId);
       devices.heartbeat(ctx.device.deviceId,{capabilities,agentVersion:ctx.payload.agentVersion,updateStatus:ctx.payload.updateStatus});
       deviceResourceSampleCache.record({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,value:ctx.payload.resourceSample});
+      await persistBoot(ctx,ctx.payload.bootEvidence,ctx.payload.agentVersion);
       const terminalReceiptsAck=await reconcileSignedTerminalProcessReceipts(ctx,ctx.payload.processTerminalReceipts);
       const waitMs=Math.max(0,Math.min(Number(ctx.payload.waitMs)||8000,15000));
       const channel=await fleet.waitPoll({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,sessionCeiling:ctx.payload.sessionCeiling,draining:Boolean(ctx.payload.draining),executorReady:ctx.payload.executorReady,capabilities,policyRevision:reportedRevision,transport:'signed-poll-v1'},waitMs);

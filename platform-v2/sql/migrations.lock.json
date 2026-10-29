@@ -191,6 +191,11 @@
       "version": 38,
       "file": "038_gold_job_cancelled_status.sql",
       "sha256": "04850c368b24b0583236b8eca9f4543a5168a85bd96c37775a6e8ca9d5b51357"
+    },
+    {
+      "version": 39,
+      "file": "039_gold_device_boot_observations.sql",
+      "sha256": "47605e0cc776d6f2c8ae0088bf504a8db15f3608e7676a671c061934aa2b2fbf"
     }
   ]
 }

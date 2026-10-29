@@ -1,7 +1,7 @@
 import {verifyTeamMemberAuthorization} from './team-member-auth.mjs';
 import {authorizeTrustedTeamDispatch} from './team-dispatch-authority.mjs';
 export async function handleAccountRoutes(req,res,url,deps){
-  const {ACCOUNT_ID,AccountError,DEVICE_ID,accountSessionToken,accounts,accountNotifications,allDeviceViews,capabilities,clearMainIfMatches,closeRuntimeForAccount,compatibilityFor,devices,enrollments,fleet,fleetAuthority,licenses,planEntitlements,proTeams,teamSessions,requestTeamMemberApproval,operationalAccount,accessGrants,connections,targetRoute,verifyTeamPrincipal,queueHelperUpdate,readJson,removeRuntimeForDevice,requireAccount,revokeRuntimeForDevice,sendJson,usage,wakeDeviceChannelForDevice}=deps;
+  const {deviceBootObservations,ACCOUNT_ID,AccountError,DEVICE_ID,accountSessionToken,accounts,accountNotifications,allDeviceViews,capabilities,clearMainIfMatches,closeRuntimeForAccount,compatibilityFor,devices,enrollments,fleet,fleetAuthority,licenses,planEntitlements,proTeams,teamSessions,requestTeamMemberApproval,operationalAccount,accessGrants,connections,targetRoute,verifyTeamPrincipal,queueHelperUpdate,readJson,removeRuntimeForDevice,requireAccount,revokeRuntimeForDevice,sendJson,usage,wakeDeviceChannelForDevice}=deps;
     if (req.method === 'GET' && url.pathname === '/v1/admin/overview') {
       const accountRows=accounts.list(),deviceRows=allDeviceViews(),current=accountRows.map(account=>({account,entitlements:planEntitlements(account),usage:usage.summary(account.accountId,{months:1})}));
       const toolCallsThisMonth=current.reduce((sum,row)=>sum+(Number(row.usage.toolCallsThisMonth)||0),0),plans=current.reduce((out,row)=>{const key=String(row.account.plan||'free');out[key]=(out[key]||0)+1;return out;},{}),statuses=current.reduce((out,row)=>{const key=String(row.account.status||'active');out[key]=(out[key]||0)+1;return out;},{});
@@ -511,6 +511,20 @@ export async function handleAccountRoutes(req,res,url,deps){
       const body=await readJson(req);
       const team=proTeams.unshareDevice({ownerAccountId,deviceId:body.deviceId});
       return sendJson(res,200,{ok:true,team});
+    }
+    // Owner-only, read-only health diagnostic, independent of M4 resource
+    // admission. Never exposes another account's device or grants recovery.
+    const bootStatusMatch=url.pathname.match(/^\/v1\/accounts\/devices\/([A-Za-z0-9._:-]+)\/boot-evidence$/);
+    if(req.method==='GET'&&bootStatusMatch){
+      const identity=requireAccount(req,{touch:false});
+      const device=devices.get(bootStatusMatch[1]);
+      if(device.accountId!==identity.account.accountId)
+        throw new AccountError('account_device_mismatch',403);
+      if(!deviceBootObservations)throw new AccountError('boot_observation_store_unavailable',503);
+      const diagnostic=await deviceBootObservations.inspect({
+        accountId:identity.account.accountId,deviceId:device.deviceId});
+      return sendJson(res,200,{ok:true,deviceId:device.deviceId,
+        ...diagnostic,recoveryAuthorization:'not_authorized_by_boot_telemetry'});
     }
     if (req.method === 'GET' && url.pathname === '/v1/accounts/devices') {
       const identity=requireAccount(req),owned=allDeviceViews().filter(device=>device.accountId===identity.account.accountId).map(device=>({...device,removable:device.deviceId!==DEVICE_ID,revocable:device.deviceId!==DEVICE_ID&&device.state!=='revoked',helperUpdatable:device.deviceId!==DEVICE_ID&&device.state!=='revoked'}));
