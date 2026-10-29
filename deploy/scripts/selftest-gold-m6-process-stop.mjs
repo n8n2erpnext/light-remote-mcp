@@ -6,7 +6,8 @@ import {fleetJobPage} from '../../device-agent/fleet-job-page.mjs';
 import {DeviceResourceSampleCache} from '../../lib/device-resource-telemetry.mjs';
 const src=fs.readFileSync(new URL('../../operator-host/executor.mjs',import.meta.url),'utf8');
 const a=src.indexOf('const fleetStopDispatching=new Set();');
-const b=src.indexOf('const routeDeps=()=>({',a);
+// Isolate Stop without unrelated boot-health initializers.
+const b=src.indexOf('const deviceResourceSampleCache=',a);
 assert.ok(a>0&&b>a,'fleet_stop_helper_not_found');
 const processId='lp_ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890';
 const launch={id:'11111111-1111-4111-8111-111111111111',accountId:'owner',deviceId:'dev-A',
