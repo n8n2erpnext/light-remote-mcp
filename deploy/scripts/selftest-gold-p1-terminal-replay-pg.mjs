@@ -71,8 +71,8 @@ try{
  const retained=await poolA.query('SELECT job_id FROM lr_gold_device_resource_claims WHERE process_id=$1',[rejectPid]);
  assert.equal(retained.rowCount,1,'ACK database failure must rollback lease deletion');
  assert.equal((await poolA.query('SELECT count(*)::int n FROM lr_gold_terminal_receipt_acks WHERE process_id=$1',[rejectPid])).rows[0].n,0);
- const result=await poolA.query('SELECT count(*)::int n FROM lr_gold_terminal_receipt_acks');
- assert.equal(result.rows[0].n,2,'one ACK for claim plus one ACK for late GC fence');
+ const result=await poolA.query('SELECT count(*)::int n FROM lr_gold_terminal_receipt_acks WHERE account_id=$1 AND device_id=$2',[accountId,deviceId]);
+ assert.equal(result.rows[0].n,2,'one owner-scoped ACK for claim plus one ACK for late GC fence');
  console.log(JSON.stringify({ok:true,realPostgres:true,twoOperators:true,
    identicalReplayIdempotent:true,concurrentClaimReleaseExactlyOnce:true,
    lateGcFenceAutoResolvedByExactTerminal:true,concurrentFenceReleaseExactlyOnce:true,
