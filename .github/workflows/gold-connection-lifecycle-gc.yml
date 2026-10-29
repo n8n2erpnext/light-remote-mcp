@@ -23,6 +23,8 @@ on:
       - 'deploy/scripts/selftest-gold-execution-epoch-*.mjs'
       - 'deploy/scripts/selftest-gold-gc-epoch-race-pg.mjs'
       - 'deploy/scripts/selftest-gold-gc-boundary-pg.mjs'
+      - 'deploy/scripts/selftest-gold-p1-stale-claim-pg.mjs'
+      - 'lib/gold-stale-claim-detector.mjs'
       - 'deploy/scripts/ci-gold-epoch-pg.mjs'
       - 'deploy/scripts/selftest-gold-signed-http-duplex-pg.mjs'
       - 'deploy/scripts/selftest-gold-real-agent-daemon-pg.mjs'
