@@ -126,8 +126,43 @@ try{
   // Replay and stale inventory from a prior epoch are rejected even when signed.
   await assert.rejects(()=>B.recordInventory({accountId,deviceId,connectionId,statement:inventory,devicePublicKey:deviceKeys.publicKey}),/gold_reconnect_inventory_untrusted|execution_inventory_stale_epoch/);
   await assert.rejects(()=>A.assertReady({accountId,deviceId,connectionId,instanceId:'ei_fixture_process_1'}),/execution_inventory_not_reconciled/);
+  // Simulate a real reconnect with a NEW connection ID: the old connection
+  // cannot issue commands or resurrect an already signed, expired snapshot.
+  const successorConnection='dc_epoch_fixture_2';
+  await poolA.query('UPDATE lr_device_connections SET closed_at=now() WHERE connection_id=$1',[connectionId]);
+  await poolB.query(`INSERT INTO lr_device_connections
+    (connection_id,account_id,device_id,connected_at,closed_at,hard_expires_at)
+    VALUES($1,$2,$3,clock_timestamp(),NULL,clock_timestamp()+interval '1 hour')`,
+    [successorConnection,accountId,deviceId]);
+  await assert.rejects(()=>A.issue({accountId,deviceId,connectionId,
+    instanceId:'ei_fixture_process_5'}),/execution_pg_connection_not_current/);
+  await assert.rejects(()=>B.authorizeCommand({accountId,deviceId,connectionId,
+    instanceId:'ei_fixture_process_4',command}),/execution_pg_connection_not_current/);
+  const successor=await A.issue({accountId,deviceId,connectionId:successorConnection,
+    instanceId:'ei_fixture_process_5'});
+  assert.equal(successor.grant.executionEpoch,'5');
+  await assert.rejects(()=>B.assertReady({accountId,deviceId,connectionId:successorConnection,
+    instanceId:'ei_fixture_process_5'}),/execution_inventory_not_reconciled/);
+  journal.acceptGrant(successor,{accountId,deviceId,instanceId:'ei_fixture_process_5',publicKey:key});
+  const rebootPages=journal.inventoryPages({accountId,deviceId,privateKey:deviceKeys.privateKey});
+  assert.equal(rebootPages.length,2);
+  const firstReboot=await B.recordInventory({accountId,deviceId,
+    connectionId:successorConnection,statement:rebootPages[0],devicePublicKey:deviceKeys.publicKey});
+  assert.equal(firstReboot.ready,false,'partial reboot inventory cannot open execution gate');
+  await assert.rejects(()=>A.assertReady({accountId,deviceId,connectionId:successorConnection,
+    instanceId:'ei_fixture_process_5'}),/execution_inventory_not_reconciled/);
+  const completeReboot=await A.recordInventory({accountId,deviceId,
+    connectionId:successorConnection,statement:rebootPages[1],devicePublicKey:deviceKeys.publicKey});
+  assert.equal(completeReboot.ready,true);
+  await B.assertReady({accountId,deviceId,connectionId:successorConnection,
+    instanceId:'ei_fixture_process_5'});
+  await assert.rejects(()=>B.recordInventory({accountId,deviceId,connectionId,
+    statement:inventory,devicePublicKey:deviceKeys.publicKey}),/execution_pg_connection_not_current/);
+  await assert.rejects(()=>A.validateStart({accountId,deviceId,connectionId,
+    instanceId:'ei_fixture_process_1',authorization:ticket.executionAuthorization}),/execution_pg_connection_not_current/);
   assert.equal((await poolA.query('SELECT count(*)::int n FROM lr_gold_terminal_receipt_acks')).rows[0].n,0);
-  console.log(JSON.stringify({ok:true,postgresql:true,operators:2,monotonicEpoch:4,
+  console.log(JSON.stringify({ok:true,postgresql:true,operators:2,monotonicEpoch:5,
+    rotatedConnectionFenced:true,partialRebootInventoryDenied:true,readyAfterAllSignedPages:true,
     identicalSnapshotReplayIdempotent:true,conflictingSnapshotRejected:true,oldSnapshotHashPinned:true,
     duplicateConcurrentIssuance:1,oneTimePgEffectStart:true,oldEpochCommandDenied:true,staleInventoryDenied:true,
     journalFsyncRecovery:true,realNativeOSProcessStartedOnce:true,signedInventoryPages:2,terminalAcksCreated:0,sourceOnly:true}));
