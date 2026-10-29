@@ -7,7 +7,7 @@ import {GoldExecutionEpochs} from '../../lib/gold-execution-epoch.mjs';
 const db=process.env.LR_GOLD_EPOCH_TEST_DB||'';
 assert.match(db,/^lr_gold_epoch_fixture_[0-9]{8}$/);
 const {default:pg}=await import(process.env.LR_GOLD_EPOCH_PG_DRIVER?pathToFileURL(process.env.LR_GOLD_EPOCH_PG_DRIVER).href:'pg');
-const pgA=new pg.Pool({host:'/var/run/postgresql',user:'postgres',database:db,max:5}),pgB=new pg.Pool({host:'/var/run/postgresql',user:'postgres',database:db,max:5});
+const pgA=new pg.Pool({host:process.env.PGHOST||'/var/run/postgresql',user:process.env.PGUSER||'postgres',database:db,max:5}),pgB=new pg.Pool({host:process.env.PGHOST||'/var/run/postgresql',user:process.env.PGUSER||'postgres',database:db,max:5});
 const key=crypto.generateKeyPairSync('ed25519');
 const issuer=new GoldExecutionEpochs({pool:pgB,signer:key});
 const now=()=>Date.now();
