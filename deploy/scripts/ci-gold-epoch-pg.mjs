@@ -48,6 +48,7 @@ try{
   run('./selftest-gold-execution-epoch-pg.mjs');
   run('./selftest-gold-gc-epoch-race-pg.mjs');
   run('./selftest-gold-signed-http-duplex-pg.mjs');
+  run('./selftest-gold-real-agent-daemon-pg.mjs');
   console.log('GOLD_EPOCH_REAL_PG_TWO_OPERATOR_GC_RECONNECT_RACE=PASS');
 }finally{
   if(created){
