@@ -35,8 +35,9 @@ try{
         state TEXT,finished_at TIMESTAMPTZ,queue_reason TEXT,disposition TEXT,resource_key TEXT,resource_mode TEXT);
       CREATE TABLE lr_gold_device_resource_claims(job_id TEXT PRIMARY KEY,account_id TEXT,device_id TEXT,
         resource_key TEXT,resource_mode TEXT,worker_state TEXT,process_id TEXT,claimed_at TIMESTAMPTZ DEFAULT now());
-      CREATE TABLE lr_gold_terminal_receipt_acks(account_id TEXT,device_id TEXT,job_id TEXT,
-        process_id TEXT,terminal_state TEXT,finished_at_ms BIGINT);
+      CREATE TABLE lr_gold_terminal_receipt_acks(account_id TEXT NOT NULL,device_id TEXT NOT NULL,job_id TEXT NOT NULL,
+        process_id TEXT NOT NULL,terminal_state TEXT NOT NULL,finished_at_ms BIGINT NOT NULL,
+        PRIMARY KEY(account_id,device_id,process_id));
       CREATE TABLE lr_audit_events(event_id TEXT PRIMARY KEY,actor_account_id TEXT,owner_account_id TEXT,
         kind TEXT,resource_type TEXT,resource_id TEXT,metadata JSONB);
       INSERT INTO lr_devices VALUES('dev-epoch-fixture','online',now());
@@ -50,6 +51,7 @@ try{
   run('./selftest-gold-gc-boundary-pg.mjs');
   run('./selftest-gold-p1-stale-claim-pg.mjs');
   run('./selftest-gold-p1-stale-monitor-pg.mjs');
+  run('./selftest-gold-p1-terminal-replay-pg.mjs');
   run('./selftest-gold-signed-http-duplex-pg.mjs');
   run('./selftest-gold-real-agent-daemon-pg.mjs');
   console.log('GOLD_EPOCH_REAL_PG_TWO_OPERATOR_GC_RECONNECT_RACE=PASS');

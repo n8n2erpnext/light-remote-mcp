@@ -27,6 +27,7 @@ on:
       - 'lib/gold-stale-claim-detector.mjs'
       - 'lib/gold-stale-claim-monitor.mjs'
       - 'deploy/scripts/selftest-gold-p1-stale-monitor-pg.mjs'
+      - 'deploy/scripts/selftest-gold-p1-terminal-replay-pg.mjs'
       - 'device-agent/fleet-job-page.mjs'
       - 'deploy/scripts/selftest-gold-fleet-jobs-m6.mjs'
       - 'deploy/scripts/ci-gold-epoch-pg.mjs'
