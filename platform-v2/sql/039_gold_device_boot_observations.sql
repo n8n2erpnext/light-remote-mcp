@@ -12,6 +12,16 @@ CREATE TABLE lr_gold_device_boot_observations(
   source TEXT NOT NULL CHECK(source='win32_node_os_uptime'),
   assurance TEXT NOT NULL CHECK(assurance='estimate_only'),
   agent_version VARCHAR(100) NOT NULL,
+  native_boot_at_ms BIGINT,
+  native_observed_at_ms BIGINT,
+  native_source TEXT CHECK (native_source='win32_wmi_lastbootuptime'),
+  native_consistency TEXT CHECK (native_consistency IN ('consistent','divergent')),
+  CHECK (
+    (native_boot_at_ms IS NULL AND native_observed_at_ms IS NULL AND native_source IS NULL AND native_consistency IS NULL)
+    OR
+    (native_boot_at_ms>1577836800000 AND native_observed_at_ms>=native_boot_at_ms-30000
+       AND native_source IS NOT NULL AND native_consistency IS NOT NULL)
+  ),
   received_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
   PRIMARY KEY(account_id,device_id),
   CHECK(boot_estimate_ms<=sampled_at_ms)

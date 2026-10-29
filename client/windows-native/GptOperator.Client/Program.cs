@@ -12,6 +12,11 @@ internal static class Program
             Environment.ExitCode = ManagedProcessEnvelope.Run(args.Skip(1).ToArray());
             return;
         }
+        if (args.Length == 2 && string.Equals(args[0], "--boot-evidence-self-test", StringComparison.OrdinalIgnoreCase))
+        {
+            Environment.ExitCode = WindowsBootEvidence.SelfTest(args[1]) ? 0 : 1;
+            return;
+        }
         AppPaths.EnsureDirectories();
         var selfTestIndex = Array.IndexOf(args, "--self-test-output");
         if (selfTestIndex >= 0 && selfTestIndex + 1 < args.Length)

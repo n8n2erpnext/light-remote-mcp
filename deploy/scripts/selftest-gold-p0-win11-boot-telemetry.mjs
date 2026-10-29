@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
-import {sampleWindowsBootEvidence,sanitizeWindowsBootEvidence} from '../../lib/device-boot-telemetry.mjs';
+import {sampleWindowsBootEvidence,sanitizeWindowsBootEvidence,nativeWindowsBootFromHost} from '../../lib/device-boot-telemetry.mjs';
 import {GoldDeviceBootObservations} from '../../operator-host/gold-device-boot-observations.mjs';
 
 const now=1793244000000, boot=now-7200000;
@@ -10,6 +10,26 @@ const sample=sampleWindowsBootEvidence({platform:'win32',clock:()=>now,
 assert.equal(sample.bootEstimateMs,boot);
 assert.equal(sample.source,'win32_node_os_uptime');
 assert.equal(sample.assurance,'estimate_only');
+const nativeEnv={
+  LIGHT_REMOTE_NATIVE_BOOT_SOURCE:'win32_wmi_lastbootuptime',
+  LIGHT_REMOTE_NATIVE_BOOT_AT_MS:String(boot),
+  LIGHT_REMOTE_NATIVE_BOOT_OBSERVED_AT_MS:String(now-60000)
+};
+const nativeSample=sampleWindowsBootEvidence({platform:'win32',clock:()=>now,
+  uptime:()=>7200,agentUptime:()=>180,nativeEnv});
+assert.equal(nativeSample.nativeBootAtMs,boot);
+assert.equal(nativeSample.nativeConsistency,'consistent');
+assert.equal(sanitizeWindowsBootEvidence(nativeSample,{now}).nativeBootAtMs,boot);
+assert.equal(nativeWindowsBootFromHost({...nativeEnv,LIGHT_REMOTE_NATIVE_BOOT_SOURCE:'powershell'},{sampledAtMs:now}),null);
+assert.equal(nativeWindowsBootFromHost({...nativeEnv,LIGHT_REMOTE_NATIVE_BOOT_AT_MS:'1;whoami'},{sampledAtMs:now}),null);
+assert.equal(nativeWindowsBootFromHost({...nativeEnv,LIGHT_REMOTE_NATIVE_BOOT_OBSERVED_AT_MS:String(now+50000)},{sampledAtMs:now}),null);
+const diverged=sampleWindowsBootEvidence({platform:'win32',clock:()=>now,
+  uptime:()=>7200,agentUptime:()=>180,nativeEnv:{...nativeEnv,LIGHT_REMOTE_NATIVE_BOOT_AT_MS:String(boot+3600000)}});
+assert.equal(diverged.nativeConsistency,'divergent');
+assert.equal(sanitizeWindowsBootEvidence(diverged,{now}).nativeConsistency,'divergent');
+assert.equal(sanitizeWindowsBootEvidence({...nativeSample,nativeConsistency:'verified'},{now}),null);
+assert.equal(sanitizeWindowsBootEvidence({...sample,nativeSource:'win32_wmi_lastbootuptime'},{now}),null);
+
 assert.equal(sampleWindowsBootEvidence({platform:'linux'}),null);
 assert.equal(sampleWindowsBootEvidence({platform:'win32',clock:()=>now,uptime:()=>NaN}),null);
 assert.equal(sampleWindowsBootEvidence({platform:'win32',clock:()=>now,uptime:()=>30,agentUptime:()=>150}),null);
@@ -29,12 +49,14 @@ const rows=new Map(),calls=[];
 const pool={async query(sql,args=[]){
   calls.push(sql);
   if(sql.includes('INSERT INTO lr_gold_device_boot_observations')){
-    const [accountId,deviceId,sampledAtMs,bootEstimateMs,systemUptimeMs,agentUptimeMs,source,assurance,agentVersion]=args;
+    const [accountId,deviceId,sampledAtMs,bootEstimateMs,systemUptimeMs,agentUptimeMs,source,assurance,agentVersion,nativeBootAtMs,nativeObservedAtMs,nativeSource,nativeConsistency]=args;
     const key=accountId+'|'+deviceId,old=rows.get(key);
     if(old&&old.sampled_at_ms>=sampledAtMs)return {rowCount:0,rows:[]};
     rows.set(key,{sampled_at_ms:sampledAtMs,boot_estimate_ms:bootEstimateMs,
       system_uptime_ms:systemUptimeMs,agent_uptime_ms:agentUptimeMs,source,assurance,
-      agent_version:agentVersion,received_at:new Date(now)});
+      agent_version:agentVersion,received_at:new Date(now),
+      native_boot_at_ms:nativeBootAtMs,native_observed_at_ms:nativeObservedAtMs,
+      native_source:nativeSource,native_consistency:nativeConsistency});
     return {rowCount:1,rows:[{device_id:deviceId}]};
   }
   if(sql.includes('FROM lr_gold_device_boot_observations')){
@@ -48,6 +70,13 @@ assert.equal(await store.record({accountId:'acct-A',deviceId:'win11',agentVersio
 assert.equal(await store.record({accountId:'acct-A',deviceId:'win11',agentVersion:'0.9.0-rc.50',value:sample}),false);
 assert.equal(await store.record({accountId:'acct-A',deviceId:'win11',value:{...sample,source:'external_command'}}),false);
 assert.equal((await store.inspect({accountId:'acct-A',deviceId:'win11'})).state,'reported');
+assert.equal(await store.record({accountId:'acct-A',deviceId:'win10',agentVersion:'native-test',value:nativeSample}),true);
+const nativeStored=await store.inspect({accountId:'acct-A',deviceId:'win10'});
+assert.equal(nativeStored.evidence.nativeBootAtMs,boot);
+assert.equal(nativeStored.evidence.nativeConsistency,'consistent');
+assert.equal(nativeStored.evidenceClass,'win32_wmi_os_report_not_attestation');
+assert.equal(nativeStored.releaseEligible,false);
+
 assert.equal((await store.inspect({accountId:'acct-A',deviceId:'win11'})).releaseEligible,false);
 assert.equal((await store.inspect({accountId:'acct-B',deviceId:'win11'})).state,'missing');
 assert.equal((await store.inspect({accountId:'acct-A',deviceId:'missing'})).state,'missing');

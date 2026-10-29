@@ -243,6 +243,25 @@ jobs:
           $stageBytes=(Get-ChildItem $stage -File -Recurse | Measure-Object Length -Sum).Sum
           $helperStageBytes=(Get-ChildItem $updaterStage -File -Recurse | Measure-Object Length -Sum).Sum
           Write-Host "windows-size-tray-bytes=$trayBytes helper-bytes=$helperBytes node-bytes=$nodeBytes stage-bytes=$stageBytes helper-stage-bytes=$helperStageBytes"
+      - name: Native Win10/Win11 OS boot evidence source smoke
+        timeout-minutes: 2
+        shell: pwsh
+        run: |
+          node deploy/scripts/selftest-gold-p0-win11-boot-telemetry.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'boot source transport/validation regression failed' }
+          $exe = Join-Path $PWD 'dist\windows\stage\GptOperator.Client.exe'
+          $result = Join-Path $env:RUNNER_TEMP 'win32-native-boot-evidence.json'
+          $probe = Start-Process -FilePath $exe -ArgumentList @('--boot-evidence-self-test',$result) -PassThru -Wait
+          if ($probe.ExitCode -ne 0 -or -not (Test-Path $result)) { throw 'OS boot WMI native selftest failed' }
+          $details = Get-Content $result -Raw | ConvertFrom-Json
+          if ($details.ok -ne $true -or $details.wmi -ne 'pass' -or $details.source -ne 'win32_wmi_lastbootuptime') {
+            throw 'Invalid boot telemetry source or WMI unavailable'
+          }
+          if ([long]$details.bootAtMs -le 0 -or [long]$details.observedAtMs -le [long]$details.bootAtMs) {
+            throw 'OS boot source timestamp invalid'
+          }
+          Write-Host 'WIN_NATIVE_OS_BOOT_WMI_NO_SHELL_PASS'
+
       - name: Native client bundled runtime smoke
         timeout-minutes: 3
         shell: pwsh

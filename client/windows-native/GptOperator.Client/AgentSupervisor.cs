@@ -134,6 +134,7 @@ internal sealed class AgentSupervisor : IDisposable
             var psi = BaseStartInfo();
             psi.ArgumentList.Add(AppPaths.AgentScript);
             psi.ArgumentList.Add("daemon");
+            WindowsBootEvidence.Configure(psi);
             var process = new Process { StartInfo = psi, EnableRaisingEvents = true };
             process.OutputDataReceived += (_, e) => { if (e.Data != null) AppendLog("OUT", e.Data); };
             process.ErrorDataReceived += (_, e) => { if (e.Data != null) AppendLog("ERR", e.Data); };

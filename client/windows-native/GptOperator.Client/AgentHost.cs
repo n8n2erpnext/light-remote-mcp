@@ -139,6 +139,7 @@ internal static class AgentHost
         psi.Environment["OPERATOR_AGENT_BASE_URL"] = connection.BridgeUrl;
         psi.Environment["OPERATOR_AGENT_HUB_URL"] = connection.HubUrl;
         ConfigureRealRemoteEnvironment(psi);
+        WindowsBootEvidence.Configure(psi);
         return psi;
     }
 
