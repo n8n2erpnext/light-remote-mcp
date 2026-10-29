@@ -46,6 +46,7 @@ try{
    const jobId=running.get(args[2]);if(jobId)running.delete(args[2]);
    return jobId?{rowCount:1,rows:[{job_id:jobId}]}:{rowCount:0,rows:[]};
   }
+  if(statement.includes('UPDATE lr_gold_device_gc_fences'))return {rowCount:0,rows:[]};
   if(statement.startsWith('INSERT INTO lr_gold_terminal_receipt_acks')){
    const key=args.slice(0,3).join('|');
    if(!acks.has(key))acks.set(key,{jobId:args[3],state:args[4],at:args[5]});

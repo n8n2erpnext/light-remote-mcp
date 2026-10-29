@@ -20,6 +20,7 @@ import { FleetComponentSupervisor } from './fleet-component-supervisor.mjs';
 import { executeNativeFs, filesystemPolicy, normalizeFilesystemRoots } from '../lib/native-fs.mjs';
 import { NativeProcessRegistry } from '../lib/native-process.mjs';
 import { NativeTerminalReceiptSpool } from '../lib/native-terminal-receipt-spool.mjs';
+import { AgentExecutionEpochJournal } from './execution-epoch-journal.mjs';
 import { DeviceResourceSampler } from '../lib/device-resource-telemetry.mjs';
 import { sampleWindowsBootEvidence } from '../lib/device-boot-telemetry.mjs';
 import { ProcessSupervisorClient } from './process-supervisor-client.mjs';
@@ -68,6 +69,10 @@ const STATE_FILE=process.env.OPERATOR_AGENT_STATE || path.join(os.homedir(),'.co
 const NATIVE_TERMINAL_SPOOL=new NativeTerminalReceiptSpool({directory:path.join(path.dirname(STATE_FILE),'terminal-journal')});
 const EXTERNAL_IDENTITY_FILE=String(process.env.OPERATOR_AGENT_IDENTITY_FILE||'').trim();
 const COMMAND_DIR=process.env.OPERATOR_AGENT_COMMAND_DIR || path.join(path.dirname(STATE_FILE),'commands');
+const EXECUTION_EPOCH_REQUIRED=process.env.OPERATOR_AGENT_EXECUTION_EPOCH_REQUIRED==='1';
+const EXECUTION_INSTANCE_ID='ei_'+crypto.randomBytes(20).toString('hex');
+const EXECUTION_JOURNAL=EXECUTION_EPOCH_REQUIRED?new AgentExecutionEpochJournal({directory:path.join(path.dirname(STATE_FILE),'execution-epoch-journal')}):null;
+let ACTIVE_EPOCH_READY=null,EXECUTION_EPOCH_PROMISE=null;
 const LOCAL_WALL_HOST=process.env.OPERATOR_AGENT_WALL_HOST || '127.0.0.1';
 const LOCAL_WALL_PORT=Math.max(1024,Math.min(Number(process.env.OPERATOR_AGENT_WALL_PORT)||5491,65535));
 const LOCAL_WALL_AUTH_FILE=process.env.OPERATOR_AGENT_WALL_AUTH_FILE || path.join(path.dirname(STATE_FILE),'wall-auth.json');
@@ -416,6 +421,38 @@ async function confirmTerminalReceiptsAck(current,acks){
  await refreshProcessTerminalReceipts(current);
 }
 
+// The server's enrolled signing key is pinned by the original device certificate.
+function executionSignerKey(state){
+  const bytes=Buffer.from(String(state.enrollment?.signer?.publicKey||''),'base64');
+  if(!bytes.length)throw Error('execution_epoch_signer_missing');
+  return crypto.createPublicKey({key:bytes,format:'der',type:'spki'});
+}
+async function ensureExecutionEpoch(state,hub){
+  if(!EXECUTION_EPOCH_REQUIRED)return;
+  const e=state.enrollment,connectionId=state.cloud?.connectionId;
+  if(!e?.deviceId||!e.accountId||!connectionId)throw Error('execution_epoch_device_connection_required');
+  if(ACTIVE_EPOCH_READY===connectionId&&EXECUTION_JOURNAL.grant?.instanceId===EXECUTION_INSTANCE_ID)return;
+  if(EXECUTION_EPOCH_PROMISE)return EXECUTION_EPOCH_PROMISE;
+  EXECUTION_EPOCH_PROMISE=(async()=>{
+    const received=await channelRequest(state,hub,'execution-epoch',{instanceId:EXECUTION_INSTANCE_ID});
+    EXECUTION_JOURNAL.acceptGrant(received,{accountId:e.accountId,deviceId:e.deviceId,
+      instanceId:EXECUTION_INSTANCE_ID,publicKey:executionSignerKey(state)});
+    // Native/Supervisor process observations are positive evidence only;
+    // a missing PID, incomplete journal, or truncated listing stays UNKNOWN.
+    const observed=SUPERVISED_PROCESSES?
+      await SUPERVISED_PROCESSES.listDevice(e.accountId,e.deviceId):
+      NATIVE_PROCESSES.list().filter(p=>p.accountId===e.accountId&&p.deviceId===e.deviceId);
+    EXECUTION_JOURNAL.observeProcesses(observed,{accountId:e.accountId,deviceId:e.deviceId});
+    const pages=EXECUTION_JOURNAL.inventoryPages({accountId:e.accountId,deviceId:e.deviceId,privateKey:privateKey(state)});
+    for(let i=0;i<pages.length;i++){
+      const result=await channelRequest(state,hub,'execution-inventory',{statement:pages[i]});
+      if(result?.inventory?.verified!==true||Boolean(result.inventory.ready)!==(i===pages.length-1))
+        throw Error('execution_inventory_not_acknowledged');
+    }
+    ACTIVE_EPOCH_READY=connectionId;
+  })();
+  try{await EXECUTION_EPOCH_PROMISE;}finally{EXECUTION_EPOCH_PROMISE=null;}
+}
 let DEVICE_DUPLEX=null,DEVICE_DUPLEX_IDLE_DEADLINE=0,DEVICE_DUPLEX_IDLE_TIMER=null;
 const DEVICE_DUPLEX_IDLE_CLOSE_MS=Math.max(500,Math.min(Number(process.env.LIGHT_REMOTE_DEVICE_DUPLEX_IDLE_CLOSE_MS)||1500,10000));
 function deviceDuplexStatus(){return DEVICE_DUPLEX?.status?.()||{active:false,ready:false};}
@@ -432,7 +469,7 @@ function scheduleDeviceDuplexIdleClose(){
   DEVICE_DUPLEX_IDLE_TIMER.unref?.();
 }
 function duplexHelloPayload(state,meta={}){
-  return {protocol:DEVICE_DUPLEX_PROTOCOL,transportEpoch:meta.transportEpoch,resumeClientSeq:Math.max(0,Number(meta.resumeClientSeq)||0),clientSeq:Math.max(0,Number(meta.clientSeq)||0),nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling:Math.max(1,Math.min(Number(process.env.OPERATOR_AGENT_MAX_SESSIONS)||2,100)),draining:Boolean(state.routing?.draining),executorReady:executorReadiness(),capabilities:effectiveCapabilitiesForState(state),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView()};
+  return {protocol:DEVICE_DUPLEX_PROTOCOL,transportEpoch:meta.transportEpoch,resumeClientSeq:Math.max(0,Number(meta.resumeClientSeq)||0),clientSeq:Math.max(0,Number(meta.clientSeq)||0),nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling:Math.max(1,Math.min(Number(process.env.OPERATOR_AGENT_MAX_SESSIONS)||2,100)),draining:Boolean(state.routing?.draining),executorReady:executorReadiness(),capabilities:effectiveCapabilitiesForState(state),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView(),...(EXECUTION_EPOCH_REQUIRED?{executionInstanceId:EXECUTION_INSTANCE_ID}:{})};
 }
 function duplexHeartbeatPayload(){
   const state=readState();if(!state?.enrollment?.deviceId||!cloudDesired(state))return null;
@@ -454,6 +491,7 @@ async function resyncLiveAfterDuplexEpochChange(){
   }
 }
 async function ensureDeviceDuplex(state,hub){
+  if(EXECUTION_EPOCH_REQUIRED)await ensureExecutionEpoch(state,hub);
   cancelDeviceDuplexIdleClose();
   if(DEVICE_DUPLEX&&DEVICE_DUPLEX.hub!==String(hub||'').replace(/\/$/,'')){const prior=DEVICE_DUPLEX;DEVICE_DUPLEX=null;try{await prior.close('hub_changed');}catch{}}
   if(!DEVICE_DUPLEX){
@@ -911,6 +949,31 @@ function checkedGitHead(cwd){
   }catch{return null;}
 }
 async function executeCommand(state,command,options={}){
+  // Poll and Duplex share this FINAL pre-effect check. A valid server ticket
+  // with a stale epoch cannot spawn, write, update or touch the desktop.
+  if(EXECUTION_EPOCH_REQUIRED){
+    if(ACTIVE_EPOCH_READY!==state.cloud?.connectionId||
+      EXECUTION_JOURNAL.grant?.instanceId!==EXECUTION_INSTANCE_ID)
+      throw Error('execution_epoch_not_current_for_agent');
+    const scope={accountId:state.enrollment.accountId,deviceId:state.enrollment.deviceId,
+      publicKey:executionSignerKey(state)};
+    const ticket=EXECUTION_JOURNAL.checkCommand(command,scope);
+    const previous=EXECUTION_JOURNAL.rows.get(command.commandId);
+    const previousCommand=readCommand(command.commandId);
+    if(previous){
+      if(previous.jobId!==ticket.jobId||previous.executionEpoch!==ticket.executionEpoch||!previousCommand)
+        throw Error('execution_unknown_prior_reservation');
+      // Duplicate delivery: replay the durable result (or explicit UNKNOWN),
+      // never ask PostgreSQL for a second effect-start permit.
+    }else{
+      if(previousCommand)throw Error('execution_legacy_command_without_epoch_reservation');
+      const start=await channelRequest(state,options.hub||DEFAULT_HUB,'execution-start',{
+        instanceId:EXECUTION_INSTANCE_ID,executionAuthorization:command.executionAuthorization});
+      if(start?.start?.authorized!==true||start.start.commandId!==command.commandId)
+        throw Error('execution_start_not_approved');
+      EXECUTION_JOURNAL.reserve(command,scope);
+    }
+  }
   // The Agent alone knows whether an operation completed successfully.
   // Never infer filesystem changes from a successful shell/PTY command.
   const prior=readCommand(command.commandId);
@@ -932,6 +995,7 @@ async function executeCommand(state,command,options={}){
     }
   }
   const result=await executeCommandCore(state,command,options);
+  if(EXECUTION_EPOCH_REQUIRED&&!prior)EXECUTION_JOURNAL.finish(command,result);
   if(!prior&&verifiedWorkspace?.scopeId&&oldHead&&result?.status==='ok'){
     const newHead=checkedGitHead(payload.cwd);
     if(newHead&&newHead!==oldHead){
@@ -1516,9 +1580,10 @@ async function daemon(args){
     expireLocalHardLease(state);
     if(!state.enrollment?.deviceId||!cloudDesired(state)){await wait(dormantPollMs);continue;}
     try{
+      if(EXECUTION_EPOCH_REQUIRED)await ensureExecutionEpoch(state,hub);
       await flushPendingUpdateReport(state,hub).catch(error=>console.error(JSON.stringify({event:'update_report_delivery_failed',error:error.message,status:error.status||null})));
       if(deviceDuplexStatus().ready){failures=0;await wait(500);continue;}
-      const payload={nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling,draining:Boolean(state.routing?.draining),executorReady:executorReadiness(),capabilities:effectiveCapabilitiesForState(state),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView(),processTerminalReceipts:nextProcessTerminalReceipts(),resourceSample:DEVICE_RESOURCE_SAMPLER.sample(),bootEvidence:sampleWindowsBootEvidence(),waitMs};
+      const payload={nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling,draining:Boolean(state.routing?.draining),executorReady:executorReadiness(),capabilities:effectiveCapabilitiesForState(state),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView(),processTerminalReceipts:nextProcessTerminalReceipts(),resourceSample:DEVICE_RESOURCE_SAMPLER.sample(),bootEvidence:sampleWindowsBootEvidence(),waitMs,...(EXECUTION_EPOCH_REQUIRED?{executionInstanceId:EXECUTION_INSTANCE_ID}:{})};
       const response=await channelRequest(state,hub,'poll',payload);
       // A Local Wall connect/disconnect can update device.json while this long-poll is in flight.
       // Re-read before persisting the poll result so the daemon never clobbers newer lease metadata.

@@ -1,0 +1,57 @@
+// Explicitly opt-in CI harness. It never connects to a live Gold database and
+// refuses to replace or drop a database that already exists.
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {spawnSync} from 'node:child_process';
+import pg from 'pg';
+assert.equal(process.env.LR_EPOCH_PG_TEST_ALLOW,'1','disposable PG test opt-in required');
+const db='lr_gold_epoch_fixture_20261029';
+const admin=new pg.Pool({database:'postgres',max:2});
+let created=false;
+const sqlRoot=fileURLToPath(new URL('../../platform-v2/sql/',import.meta.url));
+const run=script=>{
+  const result=spawnSync(process.execPath,[fileURLToPath(new URL(script,import.meta.url))],{
+    env:{...process.env,LR_GOLD_EPOCH_TEST_DB:db},stdio:'inherit',timeout:60000});
+  if(result.error||result.status!==0)throw Error('epoch_pg_suite_failed:'+script+':'+String(result.error?.message||result.status));
+};
+try{
+  const found=await admin.query('SELECT 1 FROM pg_database WHERE datname=$1',[db]);
+  assert.equal(found.rowCount,0,'fixture database already exists; refusing to overwrite');
+  await admin.query(`DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='lr_gold_app')
+    THEN CREATE ROLE lr_gold_app NOLOGIN; END IF; END $$;`);
+  await admin.query('CREATE DATABASE '+db);
+  created=true;
+  const pool=new pg.Pool({database:db,max:3});
+  try{
+    await pool.query(`CREATE TABLE lr_device_connections (
+      connection_id TEXT PRIMARY KEY,account_id TEXT,device_id TEXT,connected_at TIMESTAMPTZ NOT NULL,
+      closed_at TIMESTAMPTZ,hard_expires_at TIMESTAMPTZ NOT NULL);
+      CREATE TABLE lr_devices(device_id TEXT PRIMARY KEY,state TEXT,last_seen_at TIMESTAMPTZ);
+      CREATE TABLE lr_gold_job_records(job_id TEXT PRIMARY KEY,account_id TEXT,device_id TEXT,status TEXT,
+        finished_at TIMESTAMPTZ,exit_code INTEGER,public_view JSONB,updated_at TIMESTAMPTZ DEFAULT now());
+      CREATE TABLE lr_gold_personal_agent_work(job_id TEXT PRIMARY KEY,account_id TEXT,device_id TEXT,
+        state TEXT,finished_at TIMESTAMPTZ,queue_reason TEXT,disposition TEXT,resource_key TEXT,resource_mode TEXT);
+      CREATE TABLE lr_gold_device_resource_claims(job_id TEXT PRIMARY KEY,account_id TEXT,device_id TEXT,
+        resource_key TEXT,resource_mode TEXT,worker_state TEXT,process_id TEXT);
+      CREATE TABLE lr_gold_terminal_receipt_acks(account_id TEXT,device_id TEXT,job_id TEXT,
+        process_id TEXT,terminal_state TEXT,finished_at_ms BIGINT);
+      CREATE TABLE lr_audit_events(event_id TEXT PRIMARY KEY,actor_account_id TEXT,owner_account_id TEXT,
+        kind TEXT,resource_type TEXT,resource_id TEXT,metadata JSONB);
+      INSERT INTO lr_devices VALUES('dev-epoch-fixture','online',now());
+      INSERT INTO lr_device_connections VALUES('dc_epoch_fixture_1','acct-epoch-fixture',
+        'dev-epoch-fixture',now(),NULL,now()+interval '12 hours');`);
+    for(const version of ['040_gold_connection_job_gc_fences.sql','041_gold_device_execution_epoch.sql'])
+      await pool.query(await fs.readFile(path.join(sqlRoot,version),'utf8'));
+  }finally{await pool.end();}
+  run('./selftest-gold-execution-epoch-pg.mjs');
+  run('./selftest-gold-gc-epoch-race-pg.mjs');
+  console.log('GOLD_EPOCH_REAL_PG_TWO_OPERATOR_GC_RECONNECT_RACE=PASS');
+}finally{
+  if(created){
+    try{await admin.query('DROP DATABASE '+db+' WITH (FORCE)');}
+    catch(error){console.error('DISPOSABLE_DB_CLEANUP_FAILED:'+String(error.message));throw error;}
+  }
+  await admin.end();
+}

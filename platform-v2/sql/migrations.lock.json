@@ -201,6 +201,11 @@
       "version": 40,
       "file": "040_gold_connection_job_gc_fences.sql",
       "sha256": "88a970188aeb6e66667d648b85b78a5aadadbab62c90d75902ce0d1583741878"
+    },
+    {
+      "version": 41,
+      "file": "041_gold_device_execution_epoch.sql",
+      "sha256": "ff16394e4c72ff685bec3b704454ca688e3255146b68fdeaf657028fa03f533f"
     }
   ]
 }

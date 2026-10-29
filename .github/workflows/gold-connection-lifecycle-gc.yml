@@ -6,12 +6,23 @@ on:
       - 'feat/gold-connection-gc-reconciler-20261029'
     paths:
       - 'lib/gold-connection-job-reaper.mjs'
+      - 'lib/gold-execution-epoch.mjs'
+      - 'lib/gold-db.mjs'
+      - 'device-agent/operator-agent.mjs'
+      - 'device-agent/execution-epoch-journal.mjs'
+      - 'operator-host/executor.mjs'
+      - 'operator-host/executor-routes-device-channel.mjs'
       - 'lib/gold-reconnect-proof.mjs'
       - 'lib/gold-device-resource-locks.mjs'
       - 'operator-host/device-connection-registry.mjs'
       - 'deploy/scripts/selftest-gold-connection-*.mjs'
       - 'deploy/scripts/selftest-gold-reconnect-proof.mjs'
       - 'platform-v2/sql/040_gold_connection_job_gc_fences.sql'
+      - 'platform-v2/sql/041_gold_device_execution_epoch.sql'
+      - 'platform-v2/sql/migrations.lock.json'
+      - 'deploy/scripts/selftest-gold-execution-epoch-*.mjs'
+      - 'deploy/scripts/selftest-gold-gc-epoch-race-pg.mjs'
+      - 'deploy/scripts/ci-gold-epoch-pg.mjs'
       - '.github/workflows/gold-connection-lifecycle-gc.yml'
   workflow_dispatch:
 
@@ -37,6 +48,11 @@ jobs:
         run: |
           set -euo pipefail
           node --check lib/gold-connection-job-reaper.mjs
+          node --check lib/gold-execution-epoch.mjs
+          node --check lib/gold-db.mjs
+          node --check device-agent/execution-epoch-journal.mjs
+          node --check device-agent/operator-agent.mjs
+          node --check operator-host/executor-routes-device-channel.mjs
           node --check lib/gold-reconnect-proof.mjs
           node --check lib/gold-device-resource-locks.mjs
           node --check operator-host/executor.mjs
@@ -45,9 +61,43 @@ jobs:
           node deploy/scripts/selftest-gold-connection-job-gc.mjs
           node deploy/scripts/selftest-gold-connection-gc-races.mjs
           node deploy/scripts/selftest-gold-reconnect-proof.mjs
+          node deploy/scripts/selftest-gold-execution-epoch-wiring.mjs
+          node deploy/scripts/selftest-gold-m6-terminal-replay.mjs
+          node deploy/scripts/selftest-g3-duplex-reconnect-inflight.mjs
           node deploy/scripts/selftest-gold-m4-resource-policy.mjs
           node deploy/scripts/selftest-gold-job-control-stop.mjs
           node deploy/scripts/selftest-gold-job-control-durable-ack.mjs
           node deploy/scripts/selftest-gold-wall-job-cancel-gateway.mjs
       - name: Check patch whitespace
         run: git diff --check HEAD~1 HEAD
+
+  postgres-epoch-gc-races:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: fixture-ci-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=5s
+          --health-timeout=3s
+          --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.2'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Two Operator instances, real PostgreSQL 040+041, epoch and GC races
+        env:
+          LR_EPOCH_PG_TEST_ALLOW: '1'
+          PGHOST: '127.0.0.1'
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: fixture-ci-only
+        run: node deploy/scripts/ci-gold-epoch-pg.mjs

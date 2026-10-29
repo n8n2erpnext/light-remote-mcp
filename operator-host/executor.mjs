@@ -12,6 +12,7 @@ import { personalCapacity } from './execution-capacity-policy.mjs';
 import { GoldPersonalAgentScheduler } from '../lib/gold-personal-agent-scheduler.mjs';
 import { GoldDeviceResourceLocks } from '../lib/gold-device-resource-locks.mjs';
 import { GoldConnectionJobReaper, DEFAULT_OFFLINE_GC_MS } from '../lib/gold-connection-job-reaper.mjs';
+import { GoldExecutionEpochs } from '../lib/gold-execution-epoch.mjs';
 import { DeviceResourceSampleCache } from '../lib/device-resource-telemetry.mjs';
 import { deviceResourceIntent } from './device-resource-intent.mjs';
 import { usesPersonalAgentSlot } from './personal-agent-tool-admission.mjs';
@@ -112,6 +113,8 @@ const CONNECTION_LEASE_ENFORCE = ['1','true','yes'].includes(String(process.env.
 const CONNECTION_REAP_MS = Number(process.env.OPERATOR_CONNECTION_REAP_MS || 30 * 1000);
 // Opt-in PG-authoritative cleanup of jobs after 60m continuously offline.
 const CONNECTION_JOB_GC_ENABLED = process.env.OPERATOR_CONNECTION_JOB_GC_ENABLED==='1';
+// Additive schema041 feature: OFF until signed Agent + PG epoch UAT acceptance.
+const EXECUTION_EPOCH_ENABLED = process.env.OPERATOR_EXECUTION_EPOCH_ENABLED==='1';
 const CONNECTION_JOB_GC_OFFLINE_MS = Number(process.env.OPERATOR_CONNECTION_JOB_GC_OFFLINE_MS || DEFAULT_OFFLINE_GC_MS);
 const CONNECTION_JOB_GC_SCAN_MS = Math.max(5000,Math.min(300000,Number(process.env.OPERATOR_CONNECTION_JOB_GC_SCAN_MS)||10000));
 const CONNECTION_JOB_GC_BATCH = Math.max(1,Math.min(128,Number(process.env.OPERATOR_CONNECTION_JOB_GC_BATCH)||128));
@@ -348,6 +351,7 @@ const devices = goldRegistries.mount('devices',new DeviceRegistry({ stateFile:nu
 const enrollments = goldRegistries.mount('enrollments',new EnrollmentRegistry({ stateFile:null, signerFile:ENROLLMENT_SIGNER_FILE, activationBaseUrl:ENROLLMENT_ACTIVATION_URL, ttlMs:ENROLLMENT_TTL_MS, emit:event => pushEvent(event) }));
 const fleet = new FleetRouter({ channelTtlMs:FLEET_CHANNEL_TTL_MS, commandLeaseMs:FLEET_COMMAND_LEASE_MS, maxQueuedPerNode:FLEET_MAX_QUEUED_PER_NODE, requireExecutorReady:process.env.OPERATOR_REQUIRE_EXECUTOR_READY==='1', emit:event => pushEvent(event) });
 const connections = goldRegistries.mount('connections',new DeviceConnectionRegistry({ stateFile:null, emit:event => pushEvent(event) }));
+const executionEpochs=EXECUTION_EPOCH_ENABLED?new GoldExecutionEpochs({pool:goldStorage.pool,signer:enrollments.signer}):null;
 const accessGrants = goldRegistries.mount('access_grants',new DeviceAccessGrantRegistry({ stateFile:null, emit:event => pushEvent(event) }));
 const pairingCodes = new DevicePairingRegistry({ emit:event => pushEvent(event) });
 const agentClients = goldRegistries.mount('agent_clients',new AgentClientRegistry({ stateFile:null, emit:event => pushEvent(event) }));
@@ -440,6 +444,7 @@ connectionReaper.unref();
 // is retired as UNKNOWN only after an hour without a fresh Agent channel.
 // OS effects without a signed terminal receipt retain independent PG fences.
 if(CONNECTION_JOB_GC_ENABLED&&!DEVICE_RESOURCE_LOCKS)throw Error('gold_connection_gc_requires_m4');
+if(CONNECTION_JOB_GC_ENABLED&&!EXECUTION_EPOCH_ENABLED)throw Error('gold_connection_gc_requires_durable_execution_epoch');
 let connectionJobGcTicker=null,connectionJobGcBusy=false;
 if(CONNECTION_JOB_GC_ENABLED){
   const reaper=new GoldConnectionJobReaper({
@@ -1566,6 +1571,7 @@ const routeDeps=()=>({
   connectionViewForDevice,connections,decryptEnvelope,deviceView,devices,
   deviceHasHistoricalReferences:deviceId=>goldRegistries.native.accounts.deviceHasHistoricalReferences(deviceId),
   emitStream,enrollments,finishJob,fleet,fleetAuthority,reconcileSignedTerminalProcessReceipts,
+  executionEpochs,EXECUTION_EPOCH_ENABLED,
   fleetEligibility,fleetTarget,flushDiskRecords,flushGoldRegistries:()=>goldRegistries.flush(),fs,fullOutputFromDisk,
   ingressTelemetry,jobView,jobs,goldJobs,deviceResourceLocks,deviceResourceSampleCache,deviceBootObservations,memorySyncPolicy,memoryAccountDelete,
   inspectOwnerOrphanDevice:options=>deviceResourceLocks.inspectOwnerOrphanDevice(goldStorage.pool,options),

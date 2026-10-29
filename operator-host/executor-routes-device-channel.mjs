@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import {memoryDirectory,memoryInvites,memoryRelay} from './gold-memory-rendezvous.mjs';
 import { DEVICE_DUPLEX_PROTOCOL } from './device-duplex-transport.mjs';
 import { handleDeviceDuplexSession } from './device-duplex-session.mjs';
@@ -6,7 +7,7 @@ import { ownerDeviceResourceMetrics } from '../lib/gold-device-resource-metrics.
 
 
 export async function handleDeviceChannelRoutes(req,res,url,deps){
-  const {ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,DeviceAccessGrantError,DevicePairingRegistryError,EnrollmentError,FleetAuthorityError,FleetError,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,MIN_SUPPORTED_CLIENT_VERSION,NODE_ID,VERSION,abandonedCommandReceiptFromDisk,completedCommandReceiptFromDisk,accessGrants,accounts,agentClients,allDeviceViews,applyDeviceTelemetry,capabilities,clientCompatibility,connectionSpec,connections,deviceView,devices,emitStream,enrollments,finishJob,fleet,fleetAuthority,fleetEligibility,fleetTarget,jobView,jobs,goldJobs,deviceResourceLocks,deviceResourceSampleCache,deviceBootObservations,cancelQueuedPersonalJob,cancelControlJob,deviceStopRequests,requestFleetProcessStop,reconcileSignedTerminalProcessReceipts,normalizeUpdateReport,pairingCodes,planEntitlements,pushEvent,queueHelperUpdate,readJson,reapAccessGrants,realRemoteLive,recentEvents,requireDeviceConnection,sendJson,sessions,targetRoute,terminalResultSummary,verifiedChannelContext,verifiedFleetContext,verifiedLeafCapabilities,memorySyncPolicy,memoryAccountDelete,accountNotifications,proTeams}=deps;
+  const {ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,DeviceAccessGrantError,DevicePairingRegistryError,EnrollmentError,FleetAuthorityError,FleetError,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,MIN_SUPPORTED_CLIENT_VERSION,NODE_ID,VERSION,abandonedCommandReceiptFromDisk,completedCommandReceiptFromDisk,accessGrants,accounts,agentClients,allDeviceViews,applyDeviceTelemetry,capabilities,clientCompatibility,connectionSpec,connections,deviceView,devices,emitStream,enrollments,finishJob,fleet,fleetAuthority,fleetEligibility,fleetTarget,jobView,jobs,goldJobs,deviceResourceLocks,deviceResourceSampleCache,deviceBootObservations,cancelQueuedPersonalJob,cancelControlJob,deviceStopRequests,requestFleetProcessStop,reconcileSignedTerminalProcessReceipts,executionEpochs,EXECUTION_EPOCH_ENABLED,normalizeUpdateReport,pairingCodes,planEntitlements,pushEvent,queueHelperUpdate,readJson,reapAccessGrants,realRemoteLive,recentEvents,requireDeviceConnection,sendJson,sessions,targetRoute,terminalResultSummary,verifiedChannelContext,verifiedFleetContext,verifiedLeafCapabilities,memorySyncPolicy,memoryAccountDelete,accountNotifications,proTeams}=deps;
   // Boot telemetry uses the authenticated device channel, never the M4
   // scheduler. Errors are isolated from command ACK and cannot free claims.
   const persistBoot=async(ctx,value,agentVersion)=>{
@@ -610,6 +611,36 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       const limit=Math.max(1,Math.min(Number(ctx.payload.limit)||500,5000));
       return sendJson(res,200,{ok:true,deviceId:ctx.device.deviceId,events:recentEvents(limit,ctx.device.deviceId)});
     }
+    // Signed enrolled-device messages, independent of A/B Agent-client grants.
+    // Epoch changes serialize with M4 and GC under the SAME PG advisory lock.
+    if (req.method === 'POST' && url.pathname === '/v1/device-channel/execution-epoch') {
+      const body=await readJson(req),ctx=await verifiedChannelContext(body,'execution-epoch');
+      if(!EXECUTION_EPOCH_ENABLED)throw new FleetError('execution_epoch_not_enabled',409);
+      const connection=connections.assertConnected(ctx.device.deviceId);
+      const grant=await executionEpochs.issue({accountId:ctx.binding.accountId,
+        deviceId:ctx.device.deviceId,connectionId:connection.connectionId,
+        instanceId:ctx.payload.instanceId});
+      return sendJson(res,200,{ok:true,...grant});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/device-channel/execution-start') {
+      const body=await readJson(req),ctx=await verifiedChannelContext(body,'execution-start');
+      if(!EXECUTION_EPOCH_ENABLED)throw new FleetError('execution_epoch_not_enabled',409);
+      const connection=connections.assertConnected(ctx.device.deviceId);
+      const start=await executionEpochs.validateStart({accountId:ctx.binding.accountId,
+        deviceId:ctx.device.deviceId,connectionId:connection.connectionId,
+        instanceId:ctx.payload.instanceId,authorization:ctx.payload.executionAuthorization});
+      return sendJson(res,200,{ok:true,start});
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/device-channel/execution-inventory') {
+      const body=await readJson(req),ctx=await verifiedChannelContext(body,'execution-inventory');
+      if(!EXECUTION_EPOCH_ENABLED)throw new FleetError('execution_epoch_not_enabled',409);
+      const connection=connections.assertConnected(ctx.device.deviceId);
+      const key=crypto.createPublicKey({key:Buffer.from(ctx.binding.publicIdentityKey,'base64'),format:'der',type:'spki'});
+      const inventory=await executionEpochs.recordInventory({accountId:ctx.binding.accountId,
+        deviceId:ctx.device.deviceId,connectionId:connection.connectionId,
+        statement:ctx.payload.statement,devicePublicKey:key});
+      return sendJson(res,200,{ok:true,inventory});
+    }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/stream') {
       return handleDeviceDuplexSession(req,res,{
         authorizeHello:async body=>{
@@ -618,7 +649,9 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
           if(payload.nodeId!=null&&String(payload.nodeId)!==ctx.device.nodeId)throw new EnrollmentError('device_node_mismatch',409);
           const reportedRevision=Math.max(0,Number(payload.policyRevision)||0);
           const capabilities=verifiedLeafCapabilities(payload.capabilities,ctx.binding,reportedRevision);
-          requireDeviceConnection(ctx.device.deviceId);
+          const connection=connections.assertConnected(ctx.device.deviceId);
+          if(EXECUTION_EPOCH_ENABLED)await executionEpochs.assertReady({accountId:ctx.binding.accountId,
+            deviceId:ctx.device.deviceId,connectionId:connection.connectionId,instanceId:payload.executionInstanceId});
           devices.heartbeat(ctx.device.deviceId,{capabilities,agentVersion:payload.agentVersion,updateStatus:payload.updateStatus});
           const touchInput={accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,sessionCeiling:payload.sessionCeiling,draining:Boolean(payload.draining),executorReady:payload.executorReady,capabilities,policyRevision:reportedRevision};
           fleet.touch(touchInput);
@@ -627,16 +660,28 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
           if(!transportEpoch||transportEpoch.length>128)throw new FleetError('invalid_duplex_transport_epoch',400);
           return {
             deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,transportEpoch,
-            context:{ctx,touchInput,reportedRevision,capabilities},
+            context:{ctx,touchInput,reportedRevision,capabilities,executionInstanceId:payload.executionInstanceId||null},
             helloAck:{node:fleet.view(ctx.device.nodeId),policy,access:{pending:accessGrants.pendingForDevice(ctx.device.deviceId),activeGrant:accessGrants.activeForDevice(ctx.device.deviceId,connections.get(ctx.device.deviceId)?.connectionId)}}
           };
         },
         resume:async authorized=>{fleet.resume(authorized.nodeId);},
-        poll:async(authorized,wait,shouldStop)=>fleet.waitPoll(()=>({...authorized.context.touchInput,transport:'device-duplex-v1'}),wait,shouldStop),
+        poll:async(authorized,wait,shouldStop)=>{
+          const result=await fleet.waitPoll(()=>({...authorized.context.touchInput,transport:'device-duplex-v1'}),wait,shouldStop);
+          if(EXECUTION_EPOCH_ENABLED&&result.command){
+            const ctx=authorized.context.ctx,conn=connections.assertConnected(ctx.device.deviceId);
+            result.command=await executionEpochs.authorizeCommand({accountId:ctx.binding.accountId,
+              deviceId:ctx.device.deviceId,connectionId:conn.connectionId,
+              instanceId:authorized.context.executionInstanceId,command:result.command});
+          }
+          return result;
+        },
         onResult:async(authorized,result)=>acceptDeviceResult(authorized.context.ctx,result,{resultTransport:'device-duplex-v1'}),
         onLive:async(authorized,payload)=>acceptDesktopLivePush(authorized.context.ctx,payload),
         onHeartbeat:async(authorized,payload)=>{
           const state=authorized.context,ctx=state.ctx;
+          if(EXECUTION_EPOCH_ENABLED)await executionEpochs.assertReady({accountId:ctx.binding.accountId,
+            deviceId:ctx.device.deviceId,connectionId:connections.assertConnected(ctx.device.deviceId).connectionId,
+            instanceId:state.executionInstanceId});
           const reportedRevision=Math.max(0,Number(payload.policyRevision??state.reportedRevision)||0);
           const capabilities=verifiedLeafCapabilities(Array.isArray(payload.capabilities)?payload.capabilities:state.capabilities,ctx.binding,reportedRevision);
           state.reportedRevision=reportedRevision;state.capabilities=capabilities;
@@ -680,7 +725,16 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       await persistBoot(ctx,ctx.payload.bootEvidence,ctx.payload.agentVersion);
       const terminalReceiptsAck=await reconcileSignedTerminalProcessReceipts(ctx,ctx.payload.processTerminalReceipts);
       const waitMs=Math.max(0,Math.min(Number(ctx.payload.waitMs)||8000,15000));
+      if(EXECUTION_EPOCH_ENABLED)await executionEpochs.assertReady({accountId:ctx.binding.accountId,
+        deviceId:ctx.device.deviceId,connectionId:connections.assertConnected(ctx.device.deviceId).connectionId,
+        instanceId:ctx.payload.executionInstanceId});
       const channel=await fleet.waitPoll({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,sessionCeiling:ctx.payload.sessionCeiling,draining:Boolean(ctx.payload.draining),executorReady:ctx.payload.executorReady,capabilities,policyRevision:reportedRevision,transport:'signed-poll-v1'},waitMs);
+      if(EXECUTION_EPOCH_ENABLED&&channel.command){
+        const connection=connections.assertConnected(ctx.device.deviceId);
+        channel.command=await executionEpochs.authorizeCommand({accountId:ctx.binding.accountId,
+          deviceId:ctx.device.deviceId,connectionId:connection.connectionId,
+          instanceId:ctx.payload.executionInstanceId,command:channel.command});
+      }
       const policy=reportedRevision===Math.max(1,Number(ctx.binding.policyRevision)||1)?null:enrollments.policyEnvelope(ctx.device.deviceId);
       return sendJson(res,200,{ok:true,channel,policy,terminalReceiptsAck,stopRequests:deviceStopRequests(ctx.binding.accountId,ctx.binding.deviceId),access:{pending:accessGrants.pendingForDevice(ctx.device.deviceId),activeGrant:accessGrants.activeForDevice(ctx.device.deviceId,connections.get(ctx.device.deviceId)?.connectionId)}});
     }
