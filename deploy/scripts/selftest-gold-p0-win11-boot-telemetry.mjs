@@ -106,4 +106,8 @@ assert.equal(entry.version,39);
 const sql=fs.readFileSync('platform-v2/sql/'+entry.file,'utf8');
 assert.equal(crypto.createHash('sha256').update(sql).digest('hex'),entry.sha256);
 assert.ok(!/DELETE FROM lr_gold_device_resource_claims/i.test(sql));
+const storage=fs.readFileSync('lib/gold-db.mjs','utf8');
+assert.match(storage,/34,35,36,37,38,39/);
+assert.match(storage,/gold_pg_migration_039_boot_observations_missing/);
+
 console.log('BOOT_AUTHENTICATED_TRANSPORT_PACKAGE_AND_PG39_CONTRACT=PASS');
