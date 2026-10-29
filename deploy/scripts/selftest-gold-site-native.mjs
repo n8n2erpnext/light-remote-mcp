@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import {initializeSiteAnnouncements,refreshSiteAnnouncements,mutateAnnouncement,listAnnouncements,clientAnnouncementFeed,wallAnnouncementFeed} from '../../plugin-server/site-announcements.mjs';
+import {initializeSiteAnnouncements,refreshSiteAnnouncements,mutateAnnouncement,listAnnouncements,clientAnnouncementFeed,wallAnnouncementFeed,announcementHtml} from '../../plugin-server/site-announcements.mjs';
 
 const table=new Map();
 const cols=['id','enabled','title','message','theme','background','color','link_color','link_label','link_url','pages','audience','kind','platforms','priority','dismissible','start_at','end_at','updated_at'];
@@ -54,6 +54,8 @@ assert.deepEqual(wallFeed.items.map(x=>x.id),[wall.id]);
 assert.equal(wallAnnouncementFeed({platform:'macos'}).items.length,0);
 assert.equal(clientAnnouncementFeed({platform:'linux'}).items.length,0);
 assert.notEqual(web.revision,wallFeed.revision);
+assert(!announcementHtml('/').includes('Wall Only'),'Wall-only banner must never appear on website');
+assert(!clientAnnouncementFeed({platform:'windows'}).items.some(x=>x.id===wall.id));
 const policy=fs.readFileSync('platform-v2/sql/042_gold_wall_announcements_channel.sql','utf8');
 assert.match(policy,/audience IN \('site','clients','both','wall'\)/);
 const admin=fs.readFileSync('plugin-server/admin-portal/index.html','utf8');

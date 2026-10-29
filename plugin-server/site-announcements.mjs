@@ -106,7 +106,7 @@ export async function mutateAnnouncement(method,id,payload={}){
  finally{client.release()}
 }
 function choose(page,now=Date.now()){
- return listAnnouncements().find(x=>x.enabled&&x.audience!=='clients'&&x.pages.includes(page)&&(!x.startAt||Date.parse(x.startAt)<=now)&&(!x.endAt||Date.parse(x.endAt)>now));
+ return listAnnouncements().find(x=>x.enabled&&['site','both'].includes(x.audience)&&x.pages.includes(page)&&(!x.startAt||Date.parse(x.startAt)<=now)&&(!x.endAt||Date.parse(x.endAt)>now));
 }
 export function announcementHtml(page){
  const entry=choose(page);if(!entry)return '';
