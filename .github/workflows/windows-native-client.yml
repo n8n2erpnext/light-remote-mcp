@@ -19,6 +19,7 @@ on:
       - 'feature/gold-windows-relink-ci-20261028' # dedicated Windows Tray relink regression build
       - 'fix/gold-windows-relink-rm-stability-20261028' # RM and enrollment recovery stability UAT build
       - 'fix/gold-owner-filesystem-roots-20261023' # isolated Gold filesystem UAT build
+      - 'feat/gold-connection-gc-reconciler-20261029' # isolated signed-epoch Windows x64 UAT build; artifact only
     tags:
       - 'v0.9.*'
     paths:
