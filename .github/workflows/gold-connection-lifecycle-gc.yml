@@ -40,6 +40,7 @@ on:
       - 'deploy/scripts/selftest-gold-wall-account-notifications.mjs'
       - 'deploy/scripts/selftest-gold-p1-owner-recovery-wall.mjs'
       - 'deploy/scripts/ci-gold-epoch-pg.mjs'
+      - 'deploy/scripts/selftest-gold-p1-e-load-chaos-pg.mjs'
       - 'deploy/scripts/selftest-gold-signed-http-duplex-pg.mjs'
       - 'deploy/scripts/selftest-gold-real-agent-daemon-pg.mjs'
       - '.github/workflows/gold-connection-lifecycle-gc.yml'
@@ -79,6 +80,7 @@ jobs:
           node deploy/scripts/selftest-gold-wall-notifications-signed-proof.mjs
           node deploy/scripts/selftest-gold-p1-owner-recovery-wall.mjs
           node deploy/scripts/selftest-gold-m6-owner-orphan-recovery.mjs
+          node --check deploy/scripts/selftest-gold-p1-e-load-chaos-pg.mjs
           node --check lib/gold-execution-epoch.mjs
           node --check lib/gold-db.mjs
           node --check device-agent/execution-epoch-journal.mjs
@@ -106,7 +108,7 @@ jobs:
 
   postgres-epoch-gc-races:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     services:
       postgres:
         image: postgres:17

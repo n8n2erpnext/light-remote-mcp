@@ -11,9 +11,9 @@ const db='lr_gold_epoch_fixture_20261029';
 const admin=new pg.Pool({database:'postgres',max:2});
 let created=false;
 const sqlRoot=fileURLToPath(new URL('../../platform-v2/sql/',import.meta.url));
-const run=script=>{
+const run=(script,timeoutMs=60000,overrides={})=>{
   const result=spawnSync(process.execPath,[fileURLToPath(new URL(script,import.meta.url))],{
-    env:{...process.env,LR_GOLD_EPOCH_TEST_DB:db},stdio:'inherit',timeout:60000});
+    env:{...process.env,...overrides,LR_GOLD_EPOCH_TEST_DB:db},stdio:'inherit',timeout:timeoutMs});
   if(result.error||result.status!==0)throw Error('epoch_pg_suite_failed:'+script+':'+String(result.error?.message||result.status));
 };
 try{
@@ -54,6 +54,10 @@ try{
   run('./selftest-gold-p1-terminal-replay-pg.mjs');
   run('./selftest-gold-signed-http-duplex-pg.mjs');
   run('./selftest-gold-real-agent-daemon-pg.mjs');
+  // Last, execute P1-E on disposable 1k/10k synthetic device population.
+  // No live endpoints, real clients, external sockets or production DB.
+  run('./selftest-gold-p1-e-load-chaos-pg.mjs',600000,
+    {LR_P1E_LOAD_ALLOW:'1',LR_P1E_TARGET:'10000'});
   console.log('GOLD_EPOCH_REAL_PG_TWO_OPERATOR_GC_RECONNECT_RACE=PASS');
 }finally{
   if(created){
