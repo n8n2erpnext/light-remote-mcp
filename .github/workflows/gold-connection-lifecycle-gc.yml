@@ -24,6 +24,7 @@ on:
       - 'deploy/scripts/selftest-gold-gc-epoch-race-pg.mjs'
       - 'deploy/scripts/ci-gold-epoch-pg.mjs'
       - 'deploy/scripts/selftest-gold-signed-http-duplex-pg.mjs'
+      - 'deploy/scripts/selftest-gold-real-agent-daemon-pg.mjs'
       - '.github/workflows/gold-connection-lifecycle-gc.yml'
   workflow_dispatch:
 

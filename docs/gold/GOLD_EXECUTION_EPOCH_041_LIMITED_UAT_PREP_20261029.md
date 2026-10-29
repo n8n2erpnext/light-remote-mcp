@@ -32,3 +32,6 @@ P0 PASS. Five-person Pro Team FROZEN. $25 Pro Share design only, not sale or cro
 - Snapshot/PG backup and rollback test confirm old 7f46dea+039 can be restored without losing owner data.
 
 **Do not enable the worker merely because source CI is green.**
+
+## New CI gate and rollback warning (2026-10-29)
+Commit ae8b1a12dcacf158eb34d3cd00b66f81b085f793; run 40868911042 PASS 3/3. Actual Linux Agent daemon against signed HTTP Poll and isolated PostgreSQL17 passed epoch 1->2 restart, stale replay denial, OS effect marker 12 and durable UNKNOWN; desktop Duplex test still uses a synthetic client. Gold UAT remains schema039, four services healthy, unrelated claim intact, 8GB container disk free. No live migration approval. Before migration040/041, require an independent pg_dump -Fc and restore rehearsal, verified LXD snapshot capacity and matching old runtime 7f46dea + schema039 rollback. Both feature flags OFF until verified new synthetic Agent and exact nonempty device allowlists; never enable account-wide GC. Physical Windows client and 60-minute live GC remain OPEN.
