@@ -107,8 +107,13 @@ jobs:
         run: git diff --check HEAD~1 HEAD
 
   postgres-epoch-gc-races:
+    name: PostgreSQL GC/epoch + P1-E (${{ matrix.devices }} simulated devices)
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        devices: [1000, 10000]
     services:
       postgres:
         image: postgres:17
@@ -131,6 +136,7 @@ jobs:
       - name: Two Operator instances, real PostgreSQL 040+041, epoch and GC races
         env:
           LR_EPOCH_PG_TEST_ALLOW: '1'
+          LR_P1E_TARGET: ${{ matrix.devices }}
           PGHOST: '127.0.0.1'
           PGPORT: '5432'
           PGUSER: postgres

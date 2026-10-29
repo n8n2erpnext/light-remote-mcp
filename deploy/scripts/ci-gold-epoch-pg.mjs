@@ -57,7 +57,7 @@ try{
   // Last, execute P1-E on disposable 1k/10k synthetic device population.
   // No live endpoints, real clients, external sockets or production DB.
   run('./selftest-gold-p1-e-load-chaos-pg.mjs',600000,
-    {LR_P1E_LOAD_ALLOW:'1',LR_P1E_TARGET:'10000'});
+    {LR_P1E_LOAD_ALLOW:'1',LR_P1E_TARGET:process.env.LR_P1E_TARGET||'10000'});
   console.log('GOLD_EPOCH_REAL_PG_TWO_OPERATOR_GC_RECONNECT_RACE=PASS');
 }finally{
   if(created){
