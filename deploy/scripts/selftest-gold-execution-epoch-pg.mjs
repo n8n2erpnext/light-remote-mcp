@@ -76,6 +76,20 @@ try{
   const tickets=await Promise.all([A.authorizeCommand({accountId,deviceId,connectionId,instanceId:'ei_fixture_process_1',command}),B.authorizeCommand({accountId,deviceId,connectionId,instanceId:'ei_fixture_process_1',command})]);
   assert.deepEqual(tickets[0].executionAuthorization.ticket,tickets[1].executionAuthorization.ticket);
   assert.equal((await poolA.query('SELECT count(*)::int n FROM lr_gold_execution_command_issuance')).rows[0].n,1,'exactly one issuance across Operators');
+  // A replay of the SAME signed inventory is idempotent; a DIFFERENT
+  // snapshot, even signed by the device, cannot replace pinned epoch proof.
+  const pinnedBefore=(await poolA.query('SELECT inventory_sha256 FROM lr_gold_device_execution_epochs WHERE device_id=$1',[deviceId])).rows[0].inventory_sha256;
+  const repeated=await B.recordInventory({accountId,deviceId,connectionId,statement:inventory,devicePublicKey:deviceKeys.publicKey});
+  assert.equal(repeated.ready,true);assert.equal(repeated.idempotent,true);
+  const conflictingSnapshot=journal.inventory({accountId,deviceId,privateKey:deviceKeys.privateKey});
+  await assert.rejects(()=>A.recordInventory({accountId,deviceId,connectionId,
+    statement:conflictingSnapshot,devicePublicKey:deviceKeys.publicKey}),/execution_inventory_epoch_already_reconciled/);
+  assert.equal((await poolB.query('SELECT inventory_sha256 FROM lr_gold_device_execution_epochs WHERE device_id=$1',[deviceId])).rows[0].inventory_sha256,pinnedBefore);
+  // A real Agent restart mints a NEW epoch before it may submit new proof.
+  const second=await A.issue({accountId,deviceId,connectionId,instanceId:'ei_fixture_process_2'});
+  assert.equal(second.grant.executionEpoch,'2');
+  journal.acceptGrant(second,{accountId,deviceId,instanceId:'ei_fixture_process_2',publicKey:key});
+  await assert.rejects(()=>A.assertReady({accountId,deviceId,connectionId,instanceId:'ei_fixture_process_2'}),/execution_inventory_not_reconciled/);
   // All journal records must be represented across signed 128-record pages.
   // No single truncated last-64 inventory is ever treated as complete.
   for(let i=0;i<130;i++){
@@ -98,22 +112,23 @@ try{
   assert.equal(lastPage.items,131);
   assert.equal(lastPage.complete,false,'historic OS absence is not proven');
 
-  const [issued2,issued3]=await Promise.all([
-    A.issue({accountId,deviceId,connectionId,instanceId:'ei_fixture_process_2'}),
-    B.issue({accountId,deviceId,connectionId,instanceId:'ei_fixture_process_3'})
+  const [issued3,issued4]=await Promise.all([
+    A.issue({accountId,deviceId,connectionId,instanceId:'ei_fixture_process_3'}),
+    B.issue({accountId,deviceId,connectionId,instanceId:'ei_fixture_process_4'})
   ]);
-  assert.deepEqual([issued2.grant.executionEpoch,issued3.grant.executionEpoch].sort(),['2','3']);
+  assert.deepEqual([issued3.grant.executionEpoch,issued4.grant.executionEpoch].sort(),['3','4']);
   const current=(await poolB.query('SELECT epoch,agent_instance_id FROM lr_gold_device_execution_epochs WHERE device_id=$1',[deviceId])).rows[0];
-  assert.equal(String(current.epoch),'3');
+  assert.equal(String(current.epoch),'4');
   await assert.rejects(()=>A.authorizeCommand({accountId,deviceId,connectionId,instanceId:'ei_fixture_process_1',command}),/execution_old_command_replay_fenced|execution_epoch_connection_stale/);
   await assert.rejects(()=>B.validateStart({accountId,deviceId,connectionId,instanceId:'ei_fixture_process_1',
     authorization:ticket.executionAuthorization}),/execution_start_stale_epoch/);
-  assert.throws(()=>restarted.acceptGrant(issued2,{accountId,deviceId,instanceId:'ei_fixture_process_1',publicKey:key}),/execution_grant_invalid/);
+  assert.throws(()=>restarted.acceptGrant(issued3,{accountId,deviceId,instanceId:'ei_fixture_process_1',publicKey:key}),/execution_grant_invalid/);
   // Replay and stale inventory from a prior epoch are rejected even when signed.
   await assert.rejects(()=>B.recordInventory({accountId,deviceId,connectionId,statement:inventory,devicePublicKey:deviceKeys.publicKey}),/gold_reconnect_inventory_untrusted|execution_inventory_stale_epoch/);
   await assert.rejects(()=>A.assertReady({accountId,deviceId,connectionId,instanceId:'ei_fixture_process_1'}),/execution_inventory_not_reconciled/);
   assert.equal((await poolA.query('SELECT count(*)::int n FROM lr_gold_terminal_receipt_acks')).rows[0].n,0);
-  console.log(JSON.stringify({ok:true,postgresql:true,operators:2,monotonicEpoch:3,
+  console.log(JSON.stringify({ok:true,postgresql:true,operators:2,monotonicEpoch:4,
+    identicalSnapshotReplayIdempotent:true,conflictingSnapshotRejected:true,oldSnapshotHashPinned:true,
     duplicateConcurrentIssuance:1,oneTimePgEffectStart:true,oldEpochCommandDenied:true,staleInventoryDenied:true,
     journalFsyncRecovery:true,realNativeOSProcessStartedOnce:true,signedInventoryPages:2,terminalAcksCreated:0,sourceOnly:true}));
 }finally{if(localDir)fs.rmSync(localDir,{recursive:true,force:true});await Promise.allSettled([poolA.end(),poolB.end()]);}
