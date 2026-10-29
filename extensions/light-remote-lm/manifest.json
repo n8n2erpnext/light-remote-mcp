@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Light Remote LM",
   "short_name": "LR LM",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "User-approved capture of visible ChatGPT conversation into the existing Light Remote Gold Long Memory Wall.",
   "permissions": [
     "activeTab",

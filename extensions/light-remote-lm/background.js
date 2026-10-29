@@ -13,7 +13,8 @@ function allowedWall(url) {
 function validSnapshot(s) {
   if (!s || s.ok !== true || s.source !== 'chatgpt-dom-user-initiated' ||
       typeof s.text !== 'string' || !Number.isInteger(s.turns) || s.turns < 1 ||
-      !/^https:\/\/chatgpt\.com\/(?:c\/[a-zA-Z0-9-]+)?/.test(s.url || ''))
+      !/^https:\/\/chatgpt\.com\/[^?#]*$/.test(s.url || '') ||
+      !/^[0-9a-f]{64}$/.test(s.sha256 || '') || s.coverage !== 'loaded_dom_only')
     return false;
   return new TextEncoder().encode(s.text).byteLength <= MAX_BYTES;
 }
@@ -56,8 +57,14 @@ async function maybePrepare(tabId, providedUrl) {
     const result = await chrome.scripting.executeScript({
       target:{tabId},world:'ISOLATED',func:prepareWallPage,args:[pendingWall.snapshot]
     });
-    if (result[0]?.result?.ok)
+    if (result[0]?.result?.ok) {
+      await chrome.storage.session.set({lastStaged:{
+        url:pendingWall.snapshot.url,
+        sha256:pendingWall.snapshot.sha256,
+        preparedAt:Date.now()
+      }});
       await chrome.storage.session.remove('pendingWall');
+    }
   } catch { /* No data sent; user can try again from the popup. */ }
 }
 async function prepareWallPage(snapshot) {
