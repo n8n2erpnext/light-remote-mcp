@@ -9,7 +9,7 @@ const entry=manifest.migrations.find(row=>row.version===38);
 assert.equal(entry.version,38);
 assert.equal(entry.file,'038_gold_job_cancelled_status.sql');
 const sql=fs.readFileSync(root+entry.file,'utf8');
-assert.equal(crypto.createHash('sha256').update(sql).digest('hex'),entry.sha256);
+assert.equal(crypto.createHash('sha256').update(sql.replace(/\r\n/g,'\n')).digest('hex'),entry.sha256);
 assert.match(sql,/BEGIN;[\s\S]*ALTER TABLE lr_gold_job_records[\s\S]*COMMIT;/);
 for(const status of ['queued','running','ok','error','timeout','interrupted','cancelled'])
  assert.match(sql,new RegExp("'"+status+"'"),'missing durable state '+status);

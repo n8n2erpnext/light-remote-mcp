@@ -243,6 +243,7 @@ jobs:
           $stageBytes=(Get-ChildItem $stage -File -Recurse | Measure-Object Length -Sum).Sum
           $helperStageBytes=(Get-ChildItem $updaterStage -File -Recurse | Measure-Object Length -Sum).Sum
           Write-Host "windows-size-tray-bytes=$trayBytes helper-bytes=$helperBytes node-bytes=$nodeBytes stage-bytes=$stageBytes helper-stage-bytes=$helperStageBytes"
+      # Windows Git checkout can use CRLF; the SQL migration hash test canonicalizes LF.
       - name: Native Win10/Win11 OS boot evidence source smoke
         timeout-minutes: 2
         shell: pwsh

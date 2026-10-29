@@ -104,7 +104,7 @@ assert.equal(db.migrations.length,39);
 const entry=db.migrations.at(-1);
 assert.equal(entry.version,39);
 const sql=fs.readFileSync('platform-v2/sql/'+entry.file,'utf8');
-assert.equal(crypto.createHash('sha256').update(sql).digest('hex'),entry.sha256);
+assert.equal(crypto.createHash('sha256').update(sql.replace(/\r\n/g,'\n')).digest('hex'),entry.sha256);
 assert.ok(!/DELETE FROM lr_gold_device_resource_claims/i.test(sql));
 const storage=fs.readFileSync('lib/gold-db.mjs','utf8');
 assert.match(storage,/34,35,36,37,38,39/);
