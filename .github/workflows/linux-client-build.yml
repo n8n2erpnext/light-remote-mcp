@@ -6,6 +6,8 @@ on:
       - main
       - 'codex/**'
       - 'feature/light-remote-gold-rebuild-20261018' # isolated Gold CI artifacts only
+      - 'fix/docker-capability-refresh-20261022' # isolated permissions UAT artifact; never publish production
+      - 'feature/gold-m6-integrated-20261023' # isolated M6/permission Linux artifact
     tags:
       - 'v0.9.*'
     paths:
@@ -41,6 +43,11 @@ on:
       - 'deploy/scripts/selftest-g3-local-wall-executor-readiness.mjs'
       - 'deploy/scripts/selftest-g3-agent-daemon-lifecycle.mjs'
       - 'deploy/scripts/selftest-device-agent-cli.mjs'
+      - 'deploy/scripts/selftest-gold-linux-host-write-policy.mjs'
+      - 'deploy/scripts/selftest-gold-permission-groups.mjs'
+      - 'deploy/scripts/selftest-infra-capability-catalog.mjs'
+      - 'deploy/scripts/selftest-docker-capability-refresh.mjs'
+      - 'deploy/scripts/selftest-gold-owner-permission-authorization.mjs'
       - 'package.json'
       - 'package-lock.json'
       - 'client/core-files.json'
@@ -118,6 +125,13 @@ jobs:
           test -s "$PKG/THIRD_PARTY_DISTRIBUTION_NOTICES.md"
           node deploy/scripts/stage-client-core.mjs --verify "$PKG"
           node deploy/scripts/selftest-packaged-local-wall.mjs "$PKG"
+          # Run privilege-policy contract checks before long G2/G3 lifecycle tests.
+          node deploy/scripts/selftest-gold-linux-host-write-policy.mjs
+          node deploy/scripts/selftest-device-agent-service.mjs
+          node deploy/scripts/selftest-v09-linux-service-policy.mjs
+          node deploy/scripts/selftest-infra-capability-catalog.mjs
+          node deploy/scripts/selftest-docker-capability-refresh.mjs
+          node deploy/scripts/selftest-gold-owner-permission-authorization.mjs
           node deploy/scripts/selftest-g2-pty-missing-exit.mjs
           node deploy/scripts/selftest-g2-transport-drop-job-survival.mjs
           node deploy/scripts/selftest-g2-pty-missing-pid-exit.mjs
@@ -135,9 +149,6 @@ jobs:
           node deploy/scripts/selftest-device-agent-cli.mjs
           node deploy/scripts/selftest-v08-fleet-router.mjs
           node deploy/scripts/selftest-g2-posix-natural-exit-reap.mjs
-          node deploy/scripts/selftest-gold-linux-host-write-policy.mjs
-          node deploy/scripts/selftest-device-agent-service.mjs
-          node deploy/scripts/selftest-v09-linux-service-policy.mjs
           test -f "$PKG/client-core.json"
           test -f "$PKG/device-agent/operator-agent.mjs"
           test -f "$PKG/device-agent/fleet-component-manager.mjs"

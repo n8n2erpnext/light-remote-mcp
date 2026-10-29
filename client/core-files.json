@@ -18,8 +18,92 @@
       "destination": "device-agent/local-wall-auth.mjs"
     },
     {
+      "source": "device-agent/filesystem-volume-inventory.mjs",
+      "destination": "device-agent/filesystem-volume-inventory.mjs"
+    },
+    {
+      "source": "lib/wall-dialogs.mjs",
+      "destination": "lib/wall-dialogs.mjs"
+    },
+    {
       "source": "device-agent/local-wall.mjs",
       "destination": "device-agent/local-wall.mjs"
+    },
+    {
+      "source": "device-agent/gold-wall-modules.mjs",
+      "destination": "device-agent/gold-wall-modules.mjs"
+    },
+    {
+      "source": "device-agent/gold-memory-ledger.mjs",
+      "destination": "device-agent/gold-memory-ledger.mjs"
+    },
+    {
+      "source": "device-agent/gold-memory-scope.mjs",
+      "destination": "device-agent/gold-memory-scope.mjs"
+    },
+    {
+      "source": "device-agent/gold-memory-scope-admin.mjs",
+      "destination": "device-agent/gold-memory-scope-admin.mjs"
+    },
+    {
+      "source": "device-agent/gold-memory-account-delete.mjs",
+      "destination": "device-agent/gold-memory-account-delete.mjs"
+    },
+    {
+      "source": "device-agent/gold-memory-auto.mjs",
+      "destination": "device-agent/gold-memory-auto.mjs"
+    },
+    {
+      "source": "device-agent/gold-memory-sync.mjs",
+      "destination": "device-agent/gold-memory-sync.mjs"
+    },
+    {
+      "source": "device-agent/gold-memory-evidence.mjs",
+      "destination": "device-agent/gold-memory-evidence.mjs"
+    },
+    {
+      "source": "device-agent/gold-memory-manual-evidence.mjs",
+      "destination": "device-agent/gold-memory-manual-evidence.mjs"
+    },
+    {
+      "source": "device-agent/gold-memory-device-selection.mjs",
+      "destination": "device-agent/gold-memory-device-selection.mjs"
+    },
+    {
+      "source": "device-agent/gold-memory-peer.mjs",
+      "destination": "device-agent/gold-memory-peer.mjs"
+    },
+    {
+      "source": "device-agent/gold-memory-key-permissions.mjs",
+      "destination": "device-agent/gold-memory-key-permissions.mjs"
+    },
+    {
+      "source": "device-agent/gold-memory-cli.mjs",
+      "destination": "device-agent/gold-memory-cli.mjs"
+    },
+    {
+      "source": "device-agent/gold-codex-api.mjs",
+      "destination": "device-agent/gold-codex-api.mjs"
+    },
+    {
+      "source": "device-agent/gold-codex-plus.mjs",
+      "destination": "device-agent/gold-codex-plus.mjs"
+    },
+    {
+      "source": "device-agent/gold-codex-supervisor.mjs",
+      "destination": "device-agent/gold-codex-supervisor.mjs"
+    },
+    {
+      "source": "device-agent/gold-codex-coordinator.mjs",
+      "destination": "device-agent/gold-codex-coordinator.mjs"
+    },
+    {
+      "source": "device-agent/gold-codex-runtime-manager.mjs",
+      "destination": "device-agent/gold-codex-runtime-manager.mjs"
+    },
+    {
+      "source": "device-agent/gold-memory-delete.mjs",
+      "destination": "device-agent/gold-memory-delete.mjs"
     },
     {
       "source": "device-agent/local-process-page.mjs",

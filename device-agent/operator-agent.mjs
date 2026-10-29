@@ -1,18 +1,22 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
+import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { StringDecoder } from 'node:string_decoder';
-import { spawn } from 'node:child_process';
+import { spawn, execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { deviceChannelMessage, deviceHeartbeatMessage, devicePolicyMessage, normalizeDeviceCapabilities } from '../lib/device-proof.mjs';
 import { createPlatformAdapter } from './platform-adapters/index.mjs';
+import { invalidateCommandExistenceCache } from './platform-adapters/shared.mjs';
 import { startLocalWall } from './local-wall.mjs';
+import {createGoldWallModules} from './gold-wall-modules.mjs';
+import { filesystemVolumeInventory } from './filesystem-volume-inventory.mjs';
 import { loadLocalWallAuth, writeLocalWallAuthConfig, writeAccountOnlyWallAuthConfig } from './local-wall-auth.mjs';
 import { FleetComponentManager } from './fleet-component-manager.mjs';
 import { FleetComponentSupervisor } from './fleet-component-supervisor.mjs';
-import { executeNativeFs, filesystemPolicy } from '../lib/native-fs.mjs';
+import { executeNativeFs, filesystemPolicy, normalizeFilesystemRoots } from '../lib/native-fs.mjs';
 import { NativeProcessRegistry } from '../lib/native-process.mjs';
 import { NativeTerminalReceiptSpool } from '../lib/native-terminal-receipt-spool.mjs';
 import { DeviceResourceSampler } from '../lib/device-resource-telemetry.mjs';
@@ -54,7 +58,7 @@ const NATIVE_SEARCHES=new NativeSearchRegistry();
 const REAL_REMOTE_AVAILABLE=realRemoteAvailable();
 const NATIVE_DESKTOP=new NativeDesktopBridge();
 const {normalizeDesktopInput}=realRemoteInputPolicy;
-const LIGHT_SCP=new LightScpRegistry();
+const LIGHT_SCP=new LightScpRegistry({policy:()=>effectiveFilesystemPolicy(readState())});
 const DEFAULT_BASE=migrateLegacyEndpoint(process.env.OPERATOR_AGENT_BASE_URL,{kind:'base'});
 const DEFAULT_HUB=migrateLegacyEndpoint(process.env.OPERATOR_AGENT_HUB_URL,{kind:'hub'});
 const STATE_FILE=process.env.OPERATOR_AGENT_STATE || path.join(os.homedir(),'.config','gpt-operator-agent','device.json');
@@ -75,9 +79,68 @@ const MAX_OUTPUT=4*1024*1024;
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 function sha256(value){return crypto.createHash('sha256').update(value).digest('hex');}
 function parseArgs(argv){const out={_:[]};for(let i=0;i<argv.length;i++){const v=argv[i];if(!v.startsWith('--'))out._.push(v);else{const k=v.slice(2);if(['no-wait','reenroll'].includes(k))out[k]=true;else{const raw=argv[++i];out[k]=k==='base'?migrateLegacyEndpoint(raw,{kind:'base'}):k==='hub'?migrateLegacyEndpoint(raw,{kind:'hub'}):raw;}}}return out;}
+const GOLD_WALL_MODULES=createGoldWallModules({
+  file:path.join(path.dirname(STATE_FILE),'gold-wall-modules.sqlite'),
+  scopeIdentity:()=>{const e=readState()?.enrollment;return e?.accountId&&e?.deviceId?{accountId:e.accountId,deviceId:e.deviceId}:null;}
+});
 function readState(){try{return JSON.parse(fs.readFileSync(STATE_FILE,'utf8'));}catch{return null;}}
+function effectiveFilesystemPolicy(state){
+  return filesystemPolicy(process.env,state?.policy?.filesystemRoots??null);
+}
 function sleepSync(ms){const sab=new SharedArrayBuffer(4);Atomics.wait(new Int32Array(sab),0,0,Math.max(1,ms));}
-function writeJson0600(file,value){const dir=path.dirname(file);fs.mkdirSync(dir,{recursive:true,mode:0o700});const lock=`${file}.lock`,deadline=Date.now()+2500;let lockFd=null;while(lockFd===null){try{lockFd=fs.openSync(lock,'wx',0o600);}catch(error){if(error?.code!=='EEXIST'||Date.now()>=deadline)throw error;sleepSync(20);}}const tmp=`${file}.${process.pid}.${Date.now()}.${crypto.randomBytes(4).toString('hex')}.tmp`;try{fs.writeFileSync(tmp,`${JSON.stringify(value,null,2)}\n`,{mode:0o600});fs.chmodSync(tmp,0o600);for(let attempt=0;;attempt++){try{fs.renameSync(tmp,file);break;}catch(error){if(process.platform==='win32'&&['EPERM','EACCES','EEXIST'].includes(error?.code)&&attempt<6){sleepSync(25*(attempt+1));continue;}if(process.platform==='win32'&&['EPERM','EACCES','EEXIST'].includes(error?.code)){fs.copyFileSync(tmp,file);fs.rmSync(tmp,{force:true});break;}throw error;}}}finally{try{if(fs.existsSync(tmp))fs.rmSync(tmp,{force:true});}catch{}try{if(lockFd!==null)fs.closeSync(lockFd);}catch{}try{fs.rmSync(lock,{force:true});}catch{}}}
+// A crash can leave a durable lock after the Agent's process has gone away.
+// Reclaim only locks with trusted owner metadata, a dead PID, and a safe age.
+// A legacy/empty lock has unknown ownership and always remains fail-closed.
+function reclaimDeadJsonLock(lock){
+  let snapshot,owner;
+  try{snapshot=fs.readFileSync(lock,'utf8');owner=JSON.parse(snapshot);}catch{return false;}
+  const age=Date.now()-Number(owner?.acquiredAt);
+  if(owner?.version!==1||!Number.isSafeInteger(owner.pid)||owner.pid<=0||
+     !Number.isSafeInteger(owner.acquiredAt)||age<30_000||age>365*24*3600_000)return false;
+  try{process.kill(owner.pid,0);return false;}catch(error){if(error?.code!=='ESRCH')return false;}
+  // Serialize competing reclaimers. Never remove an active or changed lock.
+  const guard=lock+'.reclaim';let fd=null;
+  try{fd=fs.openSync(guard,'wx',0o600);}catch{return false;}
+  try{
+    if(fs.readFileSync(lock,'utf8')!==snapshot)return false;
+    if(Date.now()-fs.statSync(lock).mtimeMs<30_000)return false;
+    fs.rmSync(lock);
+    return true;
+  }catch{return false;}
+  finally{try{fs.closeSync(fd);}catch{}try{fs.rmSync(guard,{force:true});}catch{}}
+}
+function writeJson0600(file,value){
+  const dir=path.dirname(file);fs.mkdirSync(dir,{recursive:true,mode:0o700});
+  const lock=file+'.lock',deadline=Date.now()+2500;let lockFd=null;
+  while(lockFd===null){
+    try{
+      lockFd=fs.openSync(lock,'wx',0o600);
+      fs.writeSync(lockFd,JSON.stringify({version:1,pid:process.pid,acquiredAt:Date.now()}));
+      fs.fsyncSync(lockFd);
+    }catch(error){
+      if(lockFd!==null){try{fs.closeSync(lockFd);}catch{}lockFd=null;try{fs.rmSync(lock,{force:true});}catch{}throw error;}
+      if(error?.code!=='EEXIST'||Date.now()>=deadline)throw error;
+      if(reclaimDeadJsonLock(lock))continue;
+      sleepSync(20);
+    }
+  }
+  const tmp=file+'.'+process.pid+'.'+Date.now()+'.'+crypto.randomBytes(4).toString('hex')+'.tmp';
+  try{
+    fs.writeFileSync(tmp,JSON.stringify(value,null,2)+'\n',{mode:0o600});fs.chmodSync(tmp,0o600);
+    for(let attempt=0;;attempt++){
+      try{fs.renameSync(tmp,file);break;}
+      catch(error){
+        if(process.platform==='win32'&&['EPERM','EACCES','EEXIST'].includes(error?.code)&&attempt<6){sleepSync(25*(attempt+1));continue;}
+        if(process.platform==='win32'&&['EPERM','EACCES','EEXIST'].includes(error?.code)){fs.copyFileSync(tmp,file);fs.rmSync(tmp,{force:true});break;}
+        throw error;
+      }
+    }
+  }finally{
+    try{if(fs.existsSync(tmp))fs.rmSync(tmp,{force:true});}catch{}
+    try{fs.closeSync(lockFd);}catch{}
+    try{fs.rmSync(lock,{force:true});}catch{}
+  }
+}
 function writeState(state){writeJson0600(STATE_FILE,state);}
 function readJsonFile(file){try{return JSON.parse(fs.readFileSync(file,'utf8'));}catch{return null;}}
 function updateStatusView(){const report=readJsonFile(UPDATE_REPORT_FILE);if(UPDATE_MODE==='server-managed')return {state:'managed',currentVersion:VERSION,targetVersion:null,helperVersion:'server-managed',code:null,updatedAt:null,mode:UPDATE_MODE,pendingReport:null};const status=normalizeUpdateStatus(readJsonFile(UPDATE_STATUS_FILE)||{});return {...status,currentVersion:status.currentVersion||VERSION,mode:UPDATE_MODE,pendingReport:report?{outcome:String(report.outcome||''),code:String(report.code||'')||null,targetVersion:String(report.targetVersion||'')||null,at:Number(report.at)||null}:null};}
@@ -113,6 +176,25 @@ function applyPolicyEnvelope(state,envelope){
   state.policy={...(state.policy||{}),serverPolicyRevision:revision,serverPolicyUpdatedAt:Number(policy.policyUpdatedAt)||Date.now(),localFinalDenyBoundary:true};
   state.effectiveCapabilities=effectiveCapabilities(approved,state.policy?.deniedCapabilities);writeState(state);return revision>current;
 }
+async function ownerApproveServerPermissions({email,password,approvedCapabilities,profile}={},hub=DEFAULT_HUB){
+  let state=readState();if(!state?.enrollment?.deviceId)throw Error('device_not_enrolled');
+  if(isTrustedHostState(state))throw Error('trusted_host_uses_local_capability_authority');
+  const desired=normalizeDeviceCapabilities(approvedCapabilities||[]);
+  if(!desired.length)throw Error('owner_permissions_empty');
+  if(desired.some(c=>!normalizeDeviceCapabilities(state.enrollment.grantableCapabilities||[]).includes(c))){
+    await rescanHostCapabilities(hub);state=readState();
+  }
+  if(desired.some(c=>!normalizeDeviceCapabilities(state.enrollment.grantableCapabilities||[]).includes(c)))
+    throw Error('owner_permissions_not_device_supported');
+  if(!email||!password)throw Error('owner_credentials_required');
+  const response=await channelRequest(state,hub,'capabilities-owner-approve',{
+    email:String(email).trim(),password:String(password),approvedCapabilities:desired,policyProfile:String(profile||'custom')});
+  if(!response?.policy?.policy)throw Error('owner_approval_signed_policy_missing');
+  applyPolicyEnvelope(state,response.policy);
+  state.effectiveCapabilities=effectiveCapabilitiesForState(state);writeState(state);
+  return {policyRevision:state.policy.serverPolicyRevision,approvedCapabilities:state.enrollment.approvedCapabilities,
+    effectiveCapabilities:state.effectiveCapabilities};
+}
 async function heartbeat(state,base,{persist=true}={}){if(!state.enrollment?.deviceId)throw new Error('device_not_enrolled');const capabilities=effectiveCapabilitiesForState(state);const timestamp=Date.now(),nonce=crypto.randomBytes(18).toString('base64url');const message=deviceHeartbeatMessage({deviceId:state.enrollment.deviceId,timestamp,nonce,capabilities});const signature=crypto.sign(null,Buffer.from(message),privateKey(state)).toString('base64url');const upstream=await operator(base,'device-heartbeat',{deviceId:state.enrollment.deviceId,timestamp,nonce,capabilities,signature,policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0)});applyPolicyEnvelope(state,upstream.policy);state.lastHeartbeatAt=Date.now();state.effectiveCapabilities=effectiveCapabilitiesForState(state);if(persist)writeState(state);return upstream.device;}
 let observerChannelTail=Promise.resolve(),observerChannelNextAt=0,rmLiveChannelTail=Promise.resolve(),rmLiveChannelNextAt=0;
 function clientChannelLane(action){
@@ -120,7 +202,18 @@ function clientChannelLane(action){
   return ['status','activity','fleet-intent','fleet-authority','fleet-status','fleet-devices','fleet-sessions','fleet-activity','fleet-jobs'].includes(action)?'observer':'direct';
 }
 function signedChannelEnvelope(state,action,payload){if(!state.enrollment?.deviceId)throw new Error('device_not_enrolled');const deviceId=state.enrollment.deviceId,timestamp=Date.now(),nonce=crypto.randomBytes(18).toString('base64url');const signature=crypto.sign(null,Buffer.from(deviceChannelMessage({deviceId,action,timestamp,nonce,payload})),privateKey(state)).toString('base64url');return {deviceId,timestamp,nonce,signature,payload};}
-async function channelRequestDirect(state,hubBase,action,payload){const response=await fetch(hubBase.replace(/\/$/,'')+'/device-channel/'+action,{method:'POST',headers:{'content-type':'application/json','accept':'application/json'},body:JSON.stringify(signedChannelEnvelope(state,action,payload)),signal:AbortSignal.timeout(action==='poll'?25000:15000)});return parseResponse(response);}
+function channelRequestLocalOperator(state,action,payload){
+  if(!['capabilities-refresh','capabilities-owner-approve'].includes(action))throw new Error('local_operator_action_denied');
+  return new Promise((resolve,reject)=>{
+    const body=JSON.stringify(signedChannelEnvelope(state,action,payload));
+    const req=http.request({socketPath:process.env.LIGHT_REMOTE_LOCAL_OPERATOR_SOCKET,path:'/v1/device-channel/'+action,method:'POST',headers:{'content-type':'application/json'}},res=>{
+      const chunks=[];res.on('data',chunk=>chunks.push(chunk));res.on('end',()=>void parseResponse(new Response(Buffer.concat(chunks),{status:res.statusCode||502})).then(resolve,reject));
+    });
+    req.setTimeout(15000,()=>req.destroy(new Error('operator_timeout')));req.on('error',reject);req.end(body);
+  });
+}
+async function channelRequestDirect(state,hubBase,action,payload){
+  if(['capabilities-refresh','capabilities-owner-approve'].includes(action)&&process.env.LIGHT_REMOTE_LOCAL_OPERATOR_SOCKET)return channelRequestLocalOperator(state,action,payload);const response=await fetch(hubBase.replace(/\/$/,'')+'/device-channel/'+action,{method:'POST',headers:{'content-type':'application/json','accept':'application/json'},body:JSON.stringify(signedChannelEnvelope(state,action,payload)),signal:AbortSignal.timeout(action==='poll'?25000:15000)});return parseResponse(response);}
 async function channelRequest(state,hubBase,action,payload){
   const lane=clientChannelLane(action);
   if(lane==='direct')return channelRequestDirect(state,hubBase,action,payload);
@@ -129,6 +222,62 @@ async function channelRequest(state,hubBase,action,payload){
   const tail=rm?rmLiveChannelTail:observerChannelTail,next=tail.then(run,run);
   if(rm)rmLiveChannelTail=next.catch(()=>{});else observerChannelTail=next.catch(()=>{});
   return next;
+}
+async function memoryAccountDevices(hub=DEFAULT_HUB){
+  const state=readState();
+  if(!state?.enrollment?.deviceId)throw new Error('memory_device_not_enrolled');
+  // Keys originate in the local enabled Memory module, are bound by the
+  // enrollment-signed device channel, and are never supplied by the browser.
+  let identity=null;
+  try{identity={...GOLD_WALL_MODULES.syncIdentity(),syncModeProtocol:1};}
+  catch(error){if(String(error.message)!=='gold_module_disabled')throw error;}
+  const result=await channelRequest(state,hub,'memory-peers',{identity});
+  if(!Array.isArray(result?.devices)||result.devices.length>100||
+    result.currentDeviceId!==state.enrollment.deviceId)
+    throw new Error('memory_account_device_directory_invalid');
+  return {currentDeviceId:result.currentDeviceId,devices:result.devices};
+}
+async function memoryAccountInvites(hub=DEFAULT_HUB,input={action:'list'}){
+  const state=readState();
+  if(!state?.enrollment?.deviceId)throw new Error('memory_device_not_enrolled');
+  const result=await channelRequest(state,hub,'memory-invites',input);
+  if(!result?.ok)throw new Error('memory_account_invites_unavailable');
+  return result;
+}
+async function memoryAccountDeleteChannel(hub=DEFAULT_HUB,input={action:'poll'}){
+  const state=readState();
+  if(!state?.enrollment?.deviceId)throw new Error('memory_device_not_enrolled');
+  if(input?.action==='begin')await memoryAccountDevices(hub); // fresh enrolled Home key assertion
+  const result=await channelRequest(state,hub,'memory-account-delete',input);
+  if(!result?.ok)throw new Error('memory_account_delete_channel_unavailable');
+  return result;
+}
+async function memoryAccountSyncPolicy(hub=DEFAULT_HUB,input={action:'get'}){
+  const state=readState();
+  if(!state?.enrollment?.deviceId)throw new Error('memory_device_not_enrolled');
+  const result=await channelRequest(state,hub,'memory-sync-policy',input);
+  if(!result?.ok)throw new Error('memory_account_sync_policy_unavailable');
+  return result;
+}
+async function rescanHostCapabilities(hub=DEFAULT_HUB){
+  const state=readState();
+  if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
+  if(isTrustedHostState(state))throw new Error('trusted_host_capabilities_refresh_on_operator_restart');
+  invalidateCommandExistenceCache();
+  PLATFORM_ADAPTER.invalidateInstalledCapabilities?.();
+  const discovered=discoverCapabilities();
+  const response=await channelRequest(state,hub,'capabilities-refresh',{capabilities:discovered,agentVersion:VERSION});
+  if(!response?.policy?.policy)throw new Error('capability_rescan_unsigned_policy_missing');
+  const newlyGrantable=normalizeDeviceCapabilities(response.change?.addedCapabilities||[]);
+  // An explicit local owner selection is remembered before server approval.
+  // Otherwise newly discovered rights stay locally denied; never auto-grant.
+  const ownerIntent=new Set(normalizeDeviceCapabilities(state.policy?.localRequestedCapabilities||[]));
+  const newDeny=newlyGrantable.filter(cap=>!ownerIntent.has(cap));
+  state.policy={...(state.policy||{}),deniedCapabilities:normalizeDeviceCapabilities([...(state.policy?.deniedCapabilities||[]),...newDeny]),localProfile:newlyGrantable.length?'custom':state.policy?.localProfile||'custom'};
+  applyPolicyEnvelope(state,response.policy);
+  state.effectiveCapabilities=effectiveCapabilitiesForState(state);
+  writeState(state);
+  return {supportedCapabilities:discovered,installedCapabilities:PLATFORM_ADAPTER.installedCapabilities?.()||[],addedCapabilities:newlyGrantable,removedCapabilities:response.change?.removedCapabilities||[],approvalRequired:newlyGrantable,policyRevision:state.policy.serverPolicyRevision,effectiveCapabilities:state.effectiveCapabilities};
 }
 const REAL_REMOTE_LIVE=new Map();
 const REAL_REMOTE_VISUAL=new Map();
@@ -458,7 +607,7 @@ async function executeSearchCommand(state,p){
   const request=p.search&&typeof p.search==='object'&&!Array.isArray(p.search)?p.search:{};
   const op=String(request.op||''),owner={accountId:state.enrollment.accountId,deviceId:state.enrollment.deviceId,sessionId:String(p.sessionId||''),agentId:String(p.agentId||'')};
   const effective=effectiveCapabilitiesForState(state);if(!effective.includes('filesystem'))throw new Error('local capability denied: filesystem');
-  if(op==='start'){const policy=filesystemPolicy();return {ok:true,operation:'start',search:await NATIVE_SEARCHES.start({...owner,path:request.path,searchType:request.searchType,pattern:request.pattern,literalSearch:Boolean(request.literalSearch),ignoreCase:request.ignoreCase!==false,filePattern:request.filePattern,contextLines:request.contextLines,maxResults:request.maxResults,readRoots:policy.readRoots})};}
+  if(op==='start'){const policy=effectiveFilesystemPolicy(state);return {ok:true,operation:'start',search:await NATIVE_SEARCHES.start({...owner,path:request.path,searchType:request.searchType,pattern:request.pattern,literalSearch:Boolean(request.literalSearch),ignoreCase:request.ignoreCase!==false,filePattern:request.filePattern,contextLines:request.contextLines,maxResults:request.maxResults,readRoots:policy.readRoots})};}
   if(op==='results')return {ok:true,operation:'results',...NATIVE_SEARCHES.results(request.searchId,owner,{offset:request.offset,limit:request.limit})};
   if(op==='cancel')return {ok:true,operation:'cancel',search:NATIVE_SEARCHES.cancel(request.searchId,owner)};
   throw new Error('search_operation_unsupported');
@@ -607,7 +756,7 @@ async function executeScpCommand(state,p){
   throw new Error('scp_operation_unsupported');
 }
 
-async function executeCommand(state,command,{hub=DEFAULT_HUB}={}){
+async function executeCommandCore(state,command,{hub=DEFAULT_HUB}={}){
   const existing=readCommand(command.commandId);
   if(existing?.state==='finished'&&existing.result)return existing.result;
   if(existing?.state==='running'){
@@ -666,7 +815,7 @@ async function executeCommand(state,command,{hub=DEFAULT_HUB}={}){
     }
     writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'running',startedAt});
     try{
-      const data=await executeNativeFs(p.fs||{}, {policy:filesystemPolicy()});
+      const data=await executeNativeFs(p.fs||{}, {policy:effectiveFilesystemPolicy(state)});
       const result={commandId:command.commandId,status:'ok',exitCode:0,stdout:'',stderr:'',durationMs:Date.now()-startedAt,data};
       writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;
     }catch(error){
@@ -708,6 +857,117 @@ async function executeCommand(state,command,{hub=DEFAULT_HUB}={}){
   });
   const result={commandId:command.commandId,status:timedOut?'timeout':exitCode===0?'ok':'error',exitCode:timedOut?124:Math.max(0,Math.min(Number(exitCode)||0,255)),stdout:out.text(),stderr:err.text(),durationMs:Date.now()-startedAt,outputTruncated:out.truncated()||err.truncated(),telemetry:{firstOutputAt}};
   writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;
+}
+async function replicaAutoCaptureAllowed(state){
+  if(!GOLD_WALL_MODULES.flags().longMemory||!state?.enrollment?.deviceId)return false;
+  try{
+    const {policy}=await memoryAccountSyncPolicy(DEFAULT_HUB,{action:'get'});
+    const own=policy?.devices?.find(d=>d.deviceId===state.enrollment.deviceId);
+    // Account authority, not local UI hints. Manual is never auto-collected.
+    return policy?.enabled===true&&own?.selected===true&&
+      ['auto','follow_project','manual'].includes(own.mode);
+  }catch{return false;} // fail closed on offline/unknown account policy
+}
+function checkedGitHead(cwd){
+  try{
+    const sha=execFileSync('git',['rev-parse','--verify','HEAD'],{
+      cwd,timeout:1500,maxBuffer:256,encoding:'utf8',
+      env:{...process.env,GIT_OPTIONAL_LOCKS:'0'}
+    }).trim();
+    return /^[a-f0-9]{40,64}$/.test(sha)?sha:null;
+  }catch{return null;}
+}
+async function executeCommand(state,command,options={}){
+  // The Agent alone knows whether an operation completed successfully.
+  // Never infer filesystem changes from a successful shell/PTY command.
+  const prior=readCommand(command.commandId);
+  const payload=command.payload||{};
+  let verifiedWorkspace=null,verifiedReplica=null,oldHead=null;
+  if(!prior && payload.type==='exec' && typeof payload.cwd==='string'){
+    try{
+      verifiedWorkspace=GOLD_WALL_MODULES.resolveAutoWorkspace({filePath:payload.cwd});
+      if(verifiedWorkspace.scopeId&&verifiedWorkspace.captureMode!=='manual')
+        oldHead=checkedGitHead(payload.cwd);
+    }catch{verifiedWorkspace=null;}
+    // A replica has an independently, explicitly bound local workspace.
+    // Never infer a Windows path from an ARM path or an AI-provided project name.
+    if(!verifiedWorkspace?.scopeId){
+      try{
+        verifiedReplica=GOLD_WALL_MODULES.resolveReplicaWorkspace({filePath:payload.cwd});
+        if(verifiedReplica?.scopeId)oldHead=checkedGitHead(payload.cwd);
+      }catch{verifiedReplica=null;}
+    }
+  }
+  const result=await executeCommandCore(state,command,options);
+  if(!prior&&verifiedWorkspace?.scopeId&&oldHead&&result?.status==='ok'){
+    const newHead=checkedGitHead(payload.cwd);
+    if(newHead&&newHead!==oldHead){
+      try{
+        const event=GOLD_WALL_MODULES.ingestAutoEvent({
+          sourceType:verifiedWorkspace.sourceType,sourceId:verifiedWorkspace.sourceId,
+          workContextId:verifiedWorkspace.workContextId,eventType:'repository_head_changed',
+          eventRef:'git:'+newHead+':'+String(command.commandId||'')
+        });
+        if(event.accepted&&!event.duplicate)console.log(JSON.stringify({
+          event:'gold_auto_repository_head_queued',scopeId:event.scopeId,eventId:event.eventId}));
+      }catch(error){console.error(JSON.stringify({
+        event:'gold_auto_repository_capture_failed',code:String(error.message).slice(0,90)}));}
+    }
+  }
+  if(!prior&&verifiedReplica?.scopeId&&oldHead&&result?.status==='ok'){
+    const newHead=checkedGitHead(payload.cwd);
+    if(newHead&&newHead!==oldHead&&await replicaAutoCaptureAllowed(state)){
+      try{
+        const cmdId=String(command.commandId||'');
+        const receipt=crypto.createHash('sha256').update(cmdId).digest('hex').slice(0,32);
+        const queued=GOLD_WALL_MODULES.queueReplicaEvidence({
+          scopeId:verifiedReplica.scopeId,eventType:'operator_receipt',
+          title:'Verified repository HEAD change',
+          body:'Trusted Agent observed an actual Git HEAD change in an owner-bound Replica workspace. Git HEAD: '+newHead+'. No command body or output was collected.',
+          source:'gold-agent:repository-head',
+          evidence:['git-head:'+newHead,'command-receipt-sha256:'+receipt],
+          eventRef:'exec:git:'+cmdId
+        });
+        if(!queued.duplicate)console.log(JSON.stringify({event:'gold_replica_repository_evidence_queued',
+          scopeId:queued.scopeId,eventId:queued.eventId}));
+      }catch(error){console.error(JSON.stringify({event:'gold_replica_repository_evidence_failed',
+        code:String(error.message).slice(0,90)}));}
+    }
+  }
+  const fsOp=String(command.payload?.fs?.op||'');
+  if(!prior&&command.payload?.type==='fs'&&
+    ['write','edit','mkdir','delete'].includes(fsOp)&&result?.status==='ok'&&result.data?.ok===true){
+    try{
+      const event=GOLD_WALL_MODULES.ingestFsEffect({
+        operation:fsOp,filePath:result.data.path,eventRef:'command:'+String(command.commandId||'')
+      });
+      if(event.accepted&&!event.duplicate)console.log(JSON.stringify({
+        event:'gold_auto_memory_event_queued',scopeId:event.scopeId,eventId:event.eventId}));
+      if(!event.accepted&&event.reason==='unassigned'&&await replicaAutoCaptureAllowed(state)){
+        const bound=GOLD_WALL_MODULES.resolveReplicaWorkspace({filePath:result.data.path});
+        if(bound.scopeId){
+          const cmdId=String(command.commandId||'');
+          const receipt=crypto.createHash('sha256').update(cmdId).digest('hex').slice(0,32);
+          const queued=GOLD_WALL_MODULES.queueReplicaEvidence({
+            scopeId:bound.scopeId,eventType:'fs_change',
+            title:'Verified filesystem '+fsOp,
+            body:'Trusted Agent completed a native filesystem '+fsOp+
+              ' in an explicitly bound local Replica workspace. No file path, body, or output was collected.',
+            source:'gold-agent:native-fs',
+            evidence:['operation:'+fsOp,'command-receipt-sha256:'+receipt],
+            eventRef:'fs:'+fsOp+':'+cmdId
+          });
+          if(!queued.duplicate)console.log(JSON.stringify({
+            event:'gold_replica_fs_evidence_queued',scopeId:queued.scopeId,eventId:queued.eventId}));
+        }
+      }
+    }catch(error){
+      // Memory remains opt-in and must never roll back a valid Gold operation.
+      if(String(error.message)!=='gold_module_disabled')
+        console.error(JSON.stringify({event:'gold_auto_memory_event_failed',code:String(error.message).slice(0,90)}));
+    }
+  }
+  return result;
 }
 async function localFleetStatus(){try{const r=await fetch(`http://${FLEET_WALL_HOST}:${FLEET_WALL_PORT}/healthz`,{headers:{accept:'application/json'},signal:AbortSignal.timeout(800)}),j=await r.json();if(!r.ok||!j.ok||j.service!=='light-remote-fleet-wall')throw new Error('fleet_wall_unhealthy');return {healthy:true,port:FLEET_WALL_PORT,version:j.version||null,publicUrl:FLEET_WALL_PUBLIC_URL||null};}catch{return {healthy:false,port:FLEET_WALL_PORT,version:null,publicUrl:FLEET_WALL_PUBLIC_URL||null};}}
 function cloudDesired(state){return Boolean(state?.enrollment?.deviceId)&&state?.cloud?.desiredConnected!==false;}
@@ -820,22 +1080,35 @@ async function denyDeviceAccess(requestId,hub=DEFAULT_HUB,reason='owner_denied')
   const response=await channelRequest(state,hub,'access-deny',{requestId:id,reason:String(reason||'owner_denied').slice(0,80)});
   return response.authorization||response;
 }
+function setLocalFilesystemRoots(input){
+  const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
+  // The owner changes locations through authenticated Local Wall + CSRF.
+  // This does not grant a capability denied by the signed server policy.
+  const roots=normalizeFilesystemRoots(input);
+  state.policy={...(state.policy||{}),filesystemRoots:roots,localFilesystemRootsUpdatedAt:Date.now()};
+  writeState(state);
+  // Stop searches started under an older read scope. SCP rechecks per chunk/commit.
+  for(const row of NATIVE_SEARCHES.rows.values())if(!row.finishedAt)row.cancelRequested=true;
+  NATIVE_SEARCHES.rows.clear(); // Drop results admitted by an earlier read scope.
+  return {source:'owner',...roots,updatedAt:state.policy.localFilesystemRootsUpdatedAt};
+}
 function setLocalPermissions(allowedCapabilities,profile='custom'){
   const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
   const grantable=normalizeDeviceCapabilities(state.enrollment.grantableCapabilities||state.enrollment.approvedCapabilities||[]);
+  const supported=normalizeDeviceCapabilities([...discoverCapabilities(),...grantable]);
   const allowed=normalizeDeviceCapabilities(Array.isArray(allowedCapabilities)?allowedCapabilities:[]);
-  if(allowed.some(cap=>!grantable.includes(cap)))throw new Error('local_permission_not_grantable');
-  const localProfile=/^(safe|developer|infra|full|custom)$/.test(String(profile||''))?String(profile):'custom';
-  const denied=grantable.filter(cap=>!allowed.includes(cap));
-  state.policy=realRemotePolicyAfterSave({...(state.policy||{}),deniedCapabilities:denied,localProfile,localFinalDenyBoundary:true,localPolicyUpdatedAt:Date.now()},{grantable,allowed});
+  if(allowed.some(cap=>!supported.includes(cap)))throw new Error('local_permission_not_device_supported');
+  const localProfile=/^(safe|developer|support|infra|full|custom)$/.test(String(profile||''))?String(profile):'custom';
+  const denied=supported.filter(cap=>!allowed.includes(cap));
+  state.policy=realRemotePolicyAfterSave({...(state.policy||{}),deniedCapabilities:denied,localRequestedCapabilities:allowed,localProfile,localFinalDenyBoundary:true,localPolicyUpdatedAt:Date.now()},{grantable:supported,allowed});
   state.effectiveCapabilities=effectiveCapabilitiesForState(state);
   writeState(state);
-  return {profile:localProfile,policyAuthority:isTrustedHostState(state)?'local-main':'server-and-local',grantableCapabilities:grantable,serverApprovedCapabilities:[...(state.enrollment.approvedCapabilities||[])],localAllowedCapabilities:allowed,deniedCapabilities:denied,effectiveCapabilities:[...state.effectiveCapabilities],updatedAt:state.policy.localPolicyUpdatedAt};
+  return {profile:localProfile,policyAuthority:isTrustedHostState(state)?'local-main':'server-and-local',supportedCapabilities:supported,grantableCapabilities:grantable,serverApprovedCapabilities:[...(state.enrollment.approvedCapabilities||[])],localAllowedCapabilities:allowed,deniedCapabilities:denied,effectiveCapabilities:[...state.effectiveCapabilities],updatedAt:state.policy.localPolicyUpdatedAt};
 }
 function statusView(state=readState()){
   if(state)expireLocalHardLease(state);
   if(!state)return {ok:true,version:VERSION,platformAdapter:PLATFORM_ADAPTER.id,enrolled:false,deviceId:null,deviceName:os.hostname(),accountId:null,cloudDesiredConnected:false,cloudState:'dormant',connectionId:null,hardExpiresAt:null,reconnectGraceMs:null,connectionPlan:null,stateFile:STATE_FILE,localWallUrl:`http://${LOCAL_WALL_HOST}:${LOCAL_WALL_PORT}/`,deviceDuplex:deviceDuplexStatus(),executorReady:executorReadiness(),executorProbe:EXECUTOR_PROBE.status(),realRemoteLiveSessions:REAL_REMOTE_LIVE.size,update:updateStatusView()};
-  return {ok:true,version:VERSION,platformAdapter:PLATFORM_ADAPTER.id,enrolled:Boolean(state.enrollment?.deviceId),deviceId:state.enrollment?.deviceId||null,deviceName:state.enrollment?.displayName||os.hostname(),nodeId:state.enrollment?.nodeId||state.enrollment?.deviceId||null,accountId:state.enrollment?.accountId||null,pendingEnrollmentId:state.pendingEnrollment?.enrollmentId||null,publicKeySha256:state.identity?.publicKeySha256||null,policyProfile:state.enrollment?.policyProfile||state.pendingEnrollment?.requestedPolicy||null,localPolicyProfile:state.policy?.localProfile||((state.policy?.deniedCapabilities||[]).length?'custom':'full'),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),policyAuthority:isTrustedHostState(state)?'local-main':'server-and-local',grantableCapabilities:state.enrollment?.grantableCapabilities||state.enrollment?.approvedCapabilities||[],approvedCapabilities:state.enrollment?.approvedCapabilities||[],deniedCapabilities:state.policy?.deniedCapabilities||[],effectiveCapabilities:state.effectiveCapabilities||[],draining:Boolean(state.routing?.draining),cloudDesiredConnected:cloudDesired(state),cloudState:state.cloud?.state||(cloudDesired(state)?'legacy-connected':'dormant'),connectionId:state.cloud?.connectionId||null,hardExpiresAt:state.cloud?.hardExpiresAt||null,reconnectGraceMs:state.cloud?.reconnectGraceMs||null,connectionPlan:state.cloud?.plan||null,lastCloudError:state.cloud?.lastError||null,lastHeartbeatAt:state.lastHeartbeatAt||null,stateFile:STATE_FILE,commandDir:COMMAND_DIR,localWallUrl:`http://${LOCAL_WALL_HOST}:${LOCAL_WALL_PORT}/`,privateKeyStoredLocally:Boolean(state.identity?.privateKey),deviceDuplex:deviceDuplexStatus(),executorReady:executorReadiness(),executorProbe:EXECUTOR_PROBE.status(),realRemoteLiveSessions:REAL_REMOTE_LIVE.size,update:updateStatusView()};
+  return {ok:true,version:VERSION,platformAdapter:PLATFORM_ADAPTER.id,enrolled:Boolean(state.enrollment?.deviceId),deviceId:state.enrollment?.deviceId||null,deviceName:state.enrollment?.displayName||os.hostname(),nodeId:state.enrollment?.nodeId||state.enrollment?.deviceId||null,accountId:state.enrollment?.accountId||null,pendingEnrollmentId:state.pendingEnrollment?.enrollmentId||null,publicKeySha256:state.identity?.publicKeySha256||null,policyProfile:state.enrollment?.policyProfile||state.pendingEnrollment?.requestedPolicy||null,localPolicyProfile:state.policy?.localProfile||((state.policy?.deniedCapabilities||[]).length?'custom':'full'),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),policyAuthority:isTrustedHostState(state)?'local-main':'server-and-local',grantableCapabilities:state.enrollment?.grantableCapabilities||state.enrollment?.approvedCapabilities||[],supportedCapabilities:discoverCapabilities(),installedCapabilities:PLATFORM_ADAPTER.installedCapabilities?.()||[],approvedCapabilities:state.enrollment?.approvedCapabilities||[],localRequestedCapabilities:state.policy?.localRequestedCapabilities||[],deniedCapabilities:state.policy?.deniedCapabilities||[],filesystemRoots:effectiveFilesystemPolicy(state),effectiveCapabilities:state.effectiveCapabilities||[],draining:Boolean(state.routing?.draining),cloudDesiredConnected:cloudDesired(state),cloudState:state.cloud?.state||(cloudDesired(state)?'legacy-connected':'dormant'),connectionId:state.cloud?.connectionId||null,hardExpiresAt:state.cloud?.hardExpiresAt||null,reconnectGraceMs:state.cloud?.reconnectGraceMs||null,connectionPlan:state.cloud?.plan||null,lastCloudError:state.cloud?.lastError||null,lastHeartbeatAt:state.lastHeartbeatAt||null,stateFile:STATE_FILE,commandDir:COMMAND_DIR,localWallUrl:`http://${LOCAL_WALL_HOST}:${LOCAL_WALL_PORT}/`,privateKeyStoredLocally:Boolean(state.identity?.privateKey),deviceDuplex:deviceDuplexStatus(),executorReady:executorReadiness(),executorProbe:EXECUTOR_PROBE.status(),realRemoteLiveSessions:REAL_REMOTE_LIVE.size,update:updateStatusView()};
 }
 async function daemon(args){
   const hub=args.hub||DEFAULT_HUB,base=args.base||DEFAULT_BASE;let state=readState()||{};
@@ -847,17 +1120,17 @@ async function daemon(args){
   const waitMs=Math.max(1000,Math.min(Number(process.env.OPERATOR_AGENT_CHANNEL_WAIT_MS)||8000,15000));
   const dormantPollMs=Math.max(1000,Math.min(Number(process.env.OPERATOR_AGENT_DORMANT_CHECK_MS)||2000,30000));
   const commandHeartbeatMs=Math.max(2000,Math.min(Number(process.env.OPERATOR_AGENT_COMMAND_HEARTBEAT_MS)||5000,15000));
-  let stopped=false,wake=null,failures=0,localWall=null,fleetTimer=null,fleetReconciling=false;
+  let stopped=false,wake=null,failures=0,localWall=null,fleetTimer=null,fleetReconciling=false,codexSupervisorTimer=null;
   const fleetManager=new FleetComponentManager(),fleetSupervisor=new FleetComponentSupervisor({manager:fleetManager,stateProvider:()=>readState(),requestIntent:async current=>{const local=await localFleetStatus();const response=await channelRequest(current,hub,'fleet-intent',{agentVersion:VERSION,moduleVersion:fleetManager.current()?.version||null,fleetHealthy:local.healthy===true,fleetPort:local.port});return response.fleet;},env:{OPERATOR_AGENT_STATE:STATE_FILE,OPERATOR_AGENT_IDENTITY_FILE:EXTERNAL_IDENTITY_FILE,OPERATOR_AGENT_WALL_AUTH_FILE:LOCAL_WALL_AUTH_FILE,OPERATOR_AGENT_HUB_URL:hub,OPERATOR_FLEET_WALL_HOST:FLEET_WALL_HOST,OPERATOR_FLEET_WALL_PORT:String(FLEET_WALL_PORT),OPERATOR_FLEET_WALL_PUBLIC_URL:FLEET_WALL_PUBLIC_URL},emit:event=>console.log(JSON.stringify(event))});
   EXECUTOR_PROBE.start();
   // Do not start a signed command channel with an unprobed new Agent.
   await EXECUTOR_PROBE.check();
   if(EXECUTOR_PROBE.status().ready===null)await EXECUTOR_PROBE.check();
-  const stop=()=>{if(stopped)return;EXECUTOR_PROBE.stop();NATIVE_PROCESSES.close();NATIVE_TERMINALS.close();stopped=true;if(wake)wake();if(fleetTimer){clearInterval(fleetTimer);fleetTimer=null;}fleetSupervisor.close().catch(()=>{});try{localWall?.server.close();}catch{}};process.on('SIGTERM',stop);process.on('SIGINT',stop);
+  const stop=()=>{if(stopped)return;EXECUTOR_PROBE.stop();NATIVE_PROCESSES.close();NATIVE_TERMINALS.close();stopped=true;if(typeof goldMemoryFlushTimer!=='undefined')clearInterval(goldMemoryFlushTimer);if(typeof goldPeerPollTimer!=='undefined')clearInterval(goldPeerPollTimer);if(wake)wake();if(codexSupervisorTimer)clearInterval(codexSupervisorTimer);if(fleetTimer){clearInterval(fleetTimer);fleetTimer=null;}fleetSupervisor.close().catch(()=>{});try{localWall?.server.close();}catch{}};process.on('SIGTERM',stop);process.on('SIGINT',stop);
   const wait=ms=>new Promise(resolve=>{const timer=setTimeout(()=>{wake=null;resolve();},ms);wake=()=>{clearTimeout(timer);wake=null;resolve();};});
   if(!fs.existsSync(LOCAL_WALL_AUTH_FILE))writeAccountOnlyWallAuthConfig(LOCAL_WALL_AUTH_FILE,{username:'account'});
   const wallAuth=loadLocalWallAuth(LOCAL_WALL_AUTH_FILE,{required:!['127.0.0.1','::1','localhost'].includes(String(LOCAL_WALL_HOST))});
-  localWall=startLocalWall({host:LOCAL_WALL_HOST,port:LOCAL_WALL_PORT,brandSvgPath:LOCAL_WALL_BRAND,auth:wallAuth,getLocalStatus:async()=>({...statusView(),fleetWall:await localFleetStatus()}),getLocalPolicyStatus:async()=>statusView(),getPendingAccess:async()=>remoteAccessLookup(hub),getRemoteStatus:async()=>{const remote=await remoteDeviceStatus(hub);return remote;},getRemoteActivity:async limit=>remoteDeviceActivity(hub,limit),getLocalProcesses:async()=>((SUPERVISED_PROCESSES?await SUPERVISED_PROCESSES.listDevice(state.enrollment.accountId,state.enrollment.deviceId):NATIVE_PROCESSES.list())).map(p=>({
+  localWall=startLocalWall({modules:GOLD_WALL_MODULES,host:LOCAL_WALL_HOST,port:LOCAL_WALL_PORT,brandSvgPath:LOCAL_WALL_BRAND,auth:wallAuth,getMemoryAccountDevices:async()=>memoryAccountDevices(hub),getMemoryAccountInvites:async data=>memoryAccountInvites(hub,data),getMemoryAccountSyncPolicy:async data=>memoryAccountSyncPolicy(hub,data),getMemoryAccountDelete:async data=>memoryAccountDeleteChannel(hub,data),getLocalStatus:async()=>({...statusView(),fleetWall:await localFleetStatus()}),getLocalPolicyStatus:async()=>statusView(),getPendingAccess:async()=>remoteAccessLookup(hub),getRemoteStatus:async()=>{const remote=await remoteDeviceStatus(hub);return remote;},getRemoteActivity:async limit=>remoteDeviceActivity(hub,limit),getLocalProcesses:async()=>((SUPERVISED_PROCESSES?await SUPERVISED_PROCESSES.listDevice(state.enrollment.accountId,state.enrollment.deviceId):NATIVE_PROCESSES.list())).map(p=>({
     processId:p.processId,sessionId:p.sessionId,pid:p.pid,state:p.state,
     startedAt:p.startedAt,finishedAt:p.finishedAt,exitCode:p.exitCode,
     stdoutBytes:p.stdoutBytes,stderrBytes:p.stderrBytes,stopRequested:p.stopRequested,
@@ -870,14 +1143,307 @@ async function daemon(args){
     return (SUPERVISED_PROCESSES||NATIVE_PROCESSES).stop(processId,{accountId:p.accountId,deviceId:p.deviceId,
       sessionId:p.sessionId,agentId:p.agentId},{force:Boolean(force)});
   },
-  getLocalTerminals:async()=>NATIVE_TERMINALS.list().map(t=>({terminalId:t.terminalId,sessionId:t.sessionId,state:t.state,shell:t.shell,startedAt:t.startedAt,finishedAt:t.finishedAt,outputBytes:t.outputBytes})),readLocalTerminal:async(terminalId,{offset=0,limit=32768}={})=>{const t=NATIVE_TERMINALS.output(terminalId,null,{offset,limit});return {terminalId:t.terminalId,sessionId:t.sessionId,state:t.state,output:t.output};},connect:async data=>connectCloud({hub,graceMinutes:data.graceMinutes,leaseHours:data.leaseHours,silent:true}),disconnect:async data=>disconnectCloud({hub,reason:data.reason||'local_wall_disconnect',silent:true}),setGrace:async data=>setConnectionGrace({hub,minutes:data.minutes,silent:true}),setPermissions:async data=>setLocalPermissions(data?.allowedCapabilities,data?.profile),beginEnrollment:async()=>beginWallEnrollment(base),pollEnrollment:async()=>pollWallEnrollment(base),accountAuthenticate:async data=>authenticateWallAccount(data?.username,data?.password,base),pairingCode:async data=>rotatePairingCode(hub,data),ownerProofCode:async()=>accountOwnerProofCode(hub),accessApprove:async requestId=>approveDeviceAccess(requestId,hub),accessDeny:async(requestId,data)=>denyDeviceAccess(requestId,hub,data?.reason||'owner_denied'),closeSession:async data=>closeWallSession(hub,data),requestUpdate:async data=>requestLocalUpdate('local-wall',data?.mode||'apply')});
+  getLocalTerminals:async()=>NATIVE_TERMINALS.list().map(t=>({terminalId:t.terminalId,sessionId:t.sessionId,state:t.state,shell:t.shell,startedAt:t.startedAt,finishedAt:t.finishedAt,outputBytes:t.outputBytes})),readLocalTerminal:async(terminalId,{offset=0,limit=32768}={})=>{const t=NATIVE_TERMINALS.output(terminalId,null,{offset,limit});return {terminalId:t.terminalId,sessionId:t.sessionId,state:t.state,output:t.output};},connect:async data=>connectCloud({hub,graceMinutes:data.graceMinutes,leaseHours:data.leaseHours,silent:true}),disconnect:async data=>disconnectCloud({hub,reason:data.reason||'local_wall_disconnect',silent:true}),setGrace:async data=>setConnectionGrace({hub,minutes:data.minutes,silent:true}),setPermissions:async data=>setLocalPermissions(data?.allowedCapabilities,data?.profile),setFilesystemRoots:async data=>setLocalFilesystemRoots(data),getFilesystemVolumes:async()=>filesystemVolumeInventory(),ownerApprovePermissions:async data=>ownerApproveServerPermissions(data,hub),rescanCapabilities:async()=>rescanHostCapabilities(hub),beginEnrollment:async()=>beginWallEnrollment(base),pollEnrollment:async()=>pollWallEnrollment(base),accountAuthenticate:async data=>authenticateWallAccount(data?.username,data?.password,base),pairingCode:async data=>rotatePairingCode(hub,data),ownerProofCode:async()=>accountOwnerProofCode(hub),accessApprove:async requestId=>approveDeviceAccess(requestId,hub),accessDeny:async(requestId,data)=>denyDeviceAccess(requestId,hub,data?.reason||'owner_denied'),closeSession:async data=>closeWallSession(hub,data),requestUpdate:async data=>requestLocalUpdate('local-wall',data?.mode||'apply')});
   console.log(JSON.stringify({event:'local_wall_started',url:localWall.url,deviceId:state.enrollment?.deviceId||null}));
   console.log(JSON.stringify({event:'device_agent_started',mode:'always-alive-service',platformAdapter:PLATFORM_ADAPTER.id,deviceId:state.enrollment?.deviceId||null,nodeId:state.enrollment?.nodeId||null,sessionCeiling,waitMs,dormantPollMs,localWallUrl:localWall.url}));
   acknowledgeCoreUpdateHealth();
+  // Device-supported rights and installed-tool inventory are independent.
+  // Refresh the signed grantable catalog after a daemon upgrade; never auto-approve
+  // or locally enable new rights without the owner's explicit saved selection.
+  if(state.enrollment?.deviceId&&!isTrustedHostState(state)){
+    void rescanHostCapabilities(hub)
+      .then(result=>console.log(JSON.stringify({event:'device_capability_catalog_synced',added:result.addedCapabilities?.length||0,removed:result.removedCapabilities?.length||0,policyRevision:result.policyRevision})))
+      .catch(error=>console.error(JSON.stringify({event:'device_capability_catalog_sync_failed',code:String(error?.message||'unknown').slice(0,96)})));
+  }
   const fleetReconcileMs=Math.max(500,Math.min(Number(process.env.OPERATOR_FLEET_RECONCILE_MS)||15000,300000));
   const reconcileFleet=async()=>{if(stopped||fleetReconciling)return;fleetReconciling=true;try{const current=readState();if(current)expireLocalHardLease(current);if(!current?.enrollment?.deviceId||!cloudDesired(current)||current.cloud?.state!=='connected'){await fleetSupervisor.stop('device_cloud_dormant');return;}await fleetSupervisor.reconcile();}catch(error){console.error(JSON.stringify({event:'fleet_component_reconcile_failed',error:error.message,status:error.status||null}));}finally{fleetReconciling=false;}};
   fleetTimer=setInterval(reconcileFleet,fleetReconcileMs);fleetTimer.unref?.();
   const workerReceiptTimer=setInterval(()=>void refreshProcessTerminalReceipts(readState()||state),5000);
+  // Flush only pending, scoped Gold events. An OFF module has zero workload.
+  let goldPeerPollInFlight=false;
+  // Advertise only public Memory keys while the optional module is ON. This
+  // transient directory expires automatically if a device goes offline.
+  const goldPeerPresenceTimer=setInterval(()=>{
+    if(!GOLD_WALL_MODULES.flags().longMemory)return;
+    void memoryAccountDevices(hub).catch(error=>{
+      if(String(error.message)!=='gold_module_disabled')
+        console.error(JSON.stringify({event:'gold_memory_directory_refresh_failed',
+          code:String(error.message).slice(0,90)}));
+    });
+  },90000);
+  goldPeerPresenceTimer.unref?.();
+  void memoryAccountDevices(hub).catch(()=>{});
+  const goldPeerPollTimer=setInterval(async()=>{
+    if(goldPeerPollInFlight)return;
+    goldPeerPollInFlight=true;
+    try{
+      if(!GOLD_WALL_MODULES.flags().longMemory)return;
+      const current=readState();
+      if(!current?.enrollment?.deviceId)return;
+      const policy=(await memoryAccountSyncPolicy(hub,{action:'get'})).policy;
+      if(!policy?.enabled||!policy.devices.some(d=>d.deviceId===current.enrollment.deviceId&&d.selected))
+        return;
+      const results=await GOLD_WALL_MODULES.pollPeerRoutes();
+      for(const result of results)if(result.state!=='up_to_date')
+        console.log(JSON.stringify({event:'gold_sync_peer_tick',...result}));
+    }catch(e){
+      if(String(e.message)!=='gold_module_disabled'&&String(e.message)!=='gold_scope_trusted_identity_required')
+        console.error(JSON.stringify({event:'gold_sync_peer_tick_failed',code:String(e.message).slice(0,90)}));
+    }finally{goldPeerPollInFlight=false;}
+  },45000);
+  goldPeerPollTimer.unref?.();
+  // Zero-config encrypted fallback for account-enrolled devices. The Operator
+  // holds ciphertext/receipts in bounded process RAM only, never durable storage.
+  // The existing direct peer route, when healthy, takes priority on the Replica.
+  let goldRelayInFlight=false;
+  const goldOfferedAt=new Map();
+  const goldMemoryRelayTick=async()=>{
+    if(goldRelayInFlight)return;
+    goldRelayInFlight=true;
+    try{
+      if(!GOLD_WALL_MODULES.flags().longMemory)return;
+      const current=readState();
+      if(!current?.enrollment?.deviceId||!cloudDesired(current))return;
+      const deviceId=current.enrollment.deviceId;
+      // Process durable account deletion even if normal Memory Sync is OFF.
+      // An offline device remains Pending on the server until it returns.
+      try{
+        const deletion=await memoryAccountDeleteChannel(hub,{action:'poll'});
+        for(const envelope of deletion.commands||[]){
+          try{
+            GOLD_WALL_MODULES.applyScopeDeleteAcrossAccount(envelope);
+            await memoryAccountDeleteChannel(hub,{action:'ack',scopeId:envelope.record.scopeId});
+            console.log(JSON.stringify({event:'gold_account_memory_scope_deleted',
+              scopeId:envelope.record.scopeId,deviceId}));
+          }catch(error){console.error(JSON.stringify({event:'gold_account_memory_delete_pending',
+            scopeId:envelope.record?.scopeId,code:String(error.message).slice(0,110)}));}
+        }
+      }catch(error){console.error(JSON.stringify({event:'gold_account_memory_delete_poll_pending',
+        code:String(error.message).slice(0,110)}));}
+      const selection=(await memoryAccountSyncPolicy(hub,{action:'get'})).policy;
+      const own=selection?.devices?.find(d=>d.deviceId===deviceId);
+      if(!selection?.enabled||!own?.selected)return;
+      const directory=await memoryAccountDevices(hub);
+      // Recipient accepts Home's signed scope grant automatically ONLY after
+      // Home owner selected it. Operator verified the enrolled account of both
+      // devices and the local Memory module verifies the signed keys/epoch.
+      if(own.selected){
+        const offers=await memoryAccountInvites(hub,{action:'list'});
+        for(const message of (offers.invites||[]).slice(0,16)){
+          const invitation=message.package?.invite;
+          const home=directory.devices.find(d=>d.deviceId===message.homeDeviceId&&
+            d.memoryIdentity?.syncModeProtocol===1);
+          if(!home||!invitation||home.memoryIdentity.signPublicKey!==invitation.homeSignPublicKey||
+            home.memoryIdentity.encPublicKey!==invitation.homeEncPublicKey)continue;
+          try{
+            GOLD_WALL_MODULES.acceptSyncInvite({package:message.package,
+              expectedHomeFingerprint:home.memoryIdentity.fingerprint,ownerConfirmed:true});
+            await memoryAccountInvites(hub,{action:'ack',inviteId:message.inviteId});
+          }catch(error){console.error(JSON.stringify({event:'gold_memory_auto_invite_rejected',
+            code:String(error.message).slice(0,90)}));}
+        }
+      }
+      const scopes=GOLD_WALL_MODULES.listMemoryScopes();
+      if(selection.enabled){
+        for(const scope of scopes.filter(x=>x.homeDeviceId===deviceId).slice(0,20)){
+          const sourceGate=GOLD_WALL_MODULES.scopeSyncGate({scopeId:scope.scopeId,
+            replicaDeviceId:deviceId,mode:own.mode,manualRequestSeq:own.manualRequestSeq||0});
+          if(!sourceGate.allowed)continue;
+          if(scope.syncPolicy==='local_only')
+            GOLD_WALL_MODULES.changeScopeSyncPolicy({
+              scopeId:scope.scopeId,syncPolicy:'selected_devices'});
+          // Unchecking a recipient revokes future scope access; global OFF
+          // simply pauses traffic without tearing down durable grants.
+          const oldPeers=GOLD_WALL_MODULES.syncStatus({scopeId:scope.scopeId}).peers;
+          for(const oldPeer of oldPeers.filter(p=>p.role==='replica'&&!p.revokedAt)){
+            const target=selection.devices.find(d=>d.deviceId===oldPeer.deviceId&&d.selected);
+            const gate=target?GOLD_WALL_MODULES.scopeSyncGate({
+              scopeId:scope.scopeId,replicaDeviceId:oldPeer.deviceId,
+              mode:target.mode,manualRequestSeq:target.manualRequestSeq||0
+            }):{allowed:false};
+            if(!gate.allowed)
+              GOLD_WALL_MODULES.revokeSyncReplica({scopeId:scope.scopeId,
+                replicaDeviceId:oldPeer.deviceId,ownerConfirmed:true});
+          }
+          for(const target of selection.devices.filter(d=>d.selected&&d.deviceId!==deviceId)){
+            const peerId=target.deviceId;
+            const gate=GOLD_WALL_MODULES.scopeSyncGate({scopeId:scope.scopeId,
+              replicaDeviceId:peerId,mode:target.mode,manualRequestSeq:target.manualRequestSeq||0});
+            if(!gate.allowed)continue;
+            const device=directory.devices.find(d=>d.deviceId===peerId&&
+              d.memoryIdentity?.syncModeProtocol===1);
+            if(!device)continue; // Unsupported/offline peer: fail closed, retry after upgrade
+            const offerKey=scope.scopeId+'|'+peerId+'|'+device.memoryIdentity.fingerprint;
+            const peerState=GOLD_WALL_MODULES.syncStatus({scopeId:scope.scopeId}).peers
+              .find(p=>p.deviceId===peerId&&p.role==='replica');
+            if(peerState&&!peerState.revokedAt&&
+               Date.now()-(goldOfferedAt.get(offerKey)||0)<120000)continue;
+            try{
+              let grant;
+              try{grant=GOLD_WALL_MODULES.grantSyncReplica({scopeId:scope.scopeId,
+                peer:device.memoryIdentity,expectedFingerprint:device.memoryIdentity.fingerprint,
+                ownerConfirmed:true});}
+              catch(error){
+                if(String(error.message)!=='gold_sync_peer_key_rotation_requires_regrant')throw error;
+                // The Home owner already explicitly selected this exact
+                // account device. Fence stale key/grant before re-authorizing.
+                GOLD_WALL_MODULES.revokeSyncReplica({scopeId:scope.scopeId,
+                  replicaDeviceId:peerId,ownerConfirmed:true});
+                grant=GOLD_WALL_MODULES.grantSyncReplica({scopeId:scope.scopeId,
+                  peer:device.memoryIdentity,expectedFingerprint:device.memoryIdentity.fingerprint,
+                  ownerConfirmed:true});
+              }
+              await memoryAccountInvites(hub,{action:'offer',package:grant});
+              goldOfferedAt.set(offerKey,Date.now());
+            }catch(error){console.error(JSON.stringify({event:'gold_memory_auto_grant_pending',
+              code:String(error.message).slice(0,90)}));}
+          }
+        }
+      }
+      const routes=GOLD_WALL_MODULES.peerRoutes();
+      const accounts=scopes.slice(0,20);
+      // Process Home ACKs before preparing its next revision.
+      const pendingAcks=await channelRequest(current,hub,'memory-relay',{action:'pull_acks'});
+      for(const receipt of pendingAcks.result?.items||[]){
+        if(!accounts.some(scope=>scope.scopeId===receipt.scopeId&&scope.homeDeviceId===deviceId))
+          continue;
+        try{GOLD_WALL_MODULES.applySyncAck({receipt});}
+        catch(error){console.error(JSON.stringify({event:'gold_memory_relay_ack_rejected',
+          code:String(error.message).slice(0,80)}));}
+      }
+      let pushed=0;
+      for(const scope of accounts){
+        if(!selection.enabled||scope.homeDeviceId!==deviceId||scope.syncPolicy==='local_only')continue;
+        const sourceGate=GOLD_WALL_MODULES.scopeSyncGate({scopeId:scope.scopeId,
+          replicaDeviceId:deviceId,mode:own.mode,manualRequestSeq:own.manualRequestSeq||0});
+        if(!sourceGate.allowed)continue;
+        const status=GOLD_WALL_MODULES.syncStatus({scopeId:scope.scopeId});
+        for(const peer of status.peers||[]){
+          if(peer.role!=='replica'||peer.revokedAt||pushed>=4)continue;
+          const target=selection.devices.find(d=>d.deviceId===peer.deviceId&&d.selected);
+          const compatible=directory.devices.some(d=>d.deviceId===peer.deviceId&&
+            d.memoryIdentity?.syncModeProtocol===1);
+          if(!target||!compatible)continue;
+          const gate=GOLD_WALL_MODULES.scopeSyncGate({scopeId:scope.scopeId,
+            replicaDeviceId:peer.deviceId,mode:target.mode,
+            manualRequestSeq:target.manualRequestSeq||0});
+          if(!gate.allowed)continue;
+          const next=GOLD_WALL_MODULES.nextSyncFrame({
+            scopeId:scope.scopeId,replicaDeviceId:peer.deviceId
+          });
+          if(next.state==='pending'&&
+             (gate.uptoRevision==null||next.frame.meta.revision<=gate.uptoRevision)&&
+             (sourceGate.uptoRevision==null||next.frame.meta.revision<=sourceGate.uptoRevision)){
+            await channelRequest(current,hub,'memory-relay',{action:'push_frame',frame:next.frame});
+            pushed++;
+          }
+        }
+        if(pushed>=4)break;
+      }
+      // G3 typed device-origin evidence: durable Replica outbox → volatile
+      // ciphertext relay → Home verification and atomic signed checkpoint.
+      // Acknowledgment is Home-signed; no Replica ever writes the Home ledger.
+      const evidenceAcks=await channelRequest(current,hub,'memory-relay',
+        {action:'pull_evidence_acks'});
+      for(const receipt of evidenceAcks.result?.items||[]){
+        if(!accounts.some(scope=>scope.scopeId===receipt.scopeId&&
+          scope.homeDeviceId===receipt.homeDeviceId&&scope.homeDeviceId!==deviceId))continue;
+        try{GOLD_WALL_MODULES.applyReplicaEvidenceAck(receipt);}
+        catch(error){console.error(JSON.stringify({event:'gold_evidence_ack_rejected',
+          code:String(error.message).slice(0,80)}));}
+      }
+      const evidenceIncoming=await channelRequest(current,hub,'memory-relay',
+        {action:'pull_evidence'});
+      for(const frame of evidenceIncoming.result?.items||[]){
+        const meta=frame?.meta;
+        const record=accounts.find(scope=>scope.scopeId===meta?.scopeId&&
+          scope.homeDeviceId===deviceId&&meta.homeDeviceId===deviceId);
+        const sender=selection.devices.find(d=>d.deviceId===meta?.deviceId&&d.selected);
+        if(!record||!sender||!directory.devices.some(d=>d.deviceId===meta.deviceId&&
+          d.memoryIdentity?.syncModeProtocol===1))continue;
+        const homeGate=GOLD_WALL_MODULES.scopeSyncGate({scopeId:record.scopeId,
+          replicaDeviceId:deviceId,mode:own.mode,manualRequestSeq:own.manualRequestSeq||0});
+        const senderGate=GOLD_WALL_MODULES.scopeSyncGate({scopeId:record.scopeId,
+          replicaDeviceId:sender.deviceId,mode:sender.mode,
+          manualRequestSeq:sender.manualRequestSeq||0});
+        if(!homeGate.allowed||(!senderGate.allowed&&sender.mode!=='manual'))continue;
+        try{
+          const accepted=GOLD_WALL_MODULES.acceptReplicaEvidence(frame,{
+            manualRequestSeq:sender.mode==='manual'?(sender.manualRequestSeq||0):0
+          });
+          await channelRequest(current,hub,'memory-relay',
+            {action:'push_evidence_ack',evidence_ack:accepted.ack});
+        }catch(error){console.error(JSON.stringify({event:'gold_evidence_home_rejected',
+          code:String(error.message).slice(0,90)}));}
+      }
+      {
+        const evidencePending=GOLD_WALL_MODULES.pendingReplicaEvidence({
+          limit:4,mode:own.mode,manualRequestSeq:own.manualRequestSeq||0});
+        for(const evidence of evidencePending){
+          const home=selection.devices.find(d=>d.deviceId===evidence.meta?.homeDeviceId&&d.selected);
+          const original=accounts.find(x=>x.scopeId===evidence.meta.scopeId);
+          if(!home||!original||original.homeDeviceId!==home.deviceId)continue;
+          if(!directory.devices.some(d=>d.deviceId===home.deviceId&&
+             d.memoryIdentity?.syncModeProtocol===1))continue;
+          await channelRequest(current,hub,'memory-relay',
+            {action:'push_evidence',evidence});
+        }
+      }
+      const inbox=await channelRequest(current,hub,'memory-relay',{action:'pull_frames'});
+      for(const frame of inbox.result?.items||[]){
+        const meta=frame?.meta;
+        if(!meta||!accounts.some(scope=>scope.scopeId===meta.scopeId&&
+          scope.homeDeviceId===meta.homeDeviceId&&meta.homeDeviceId!==deviceId))continue;
+        if(!selection.devices.some(d=>d.deviceId===meta.homeDeviceId&&d.selected)||
+          !directory.devices.some(d=>d.deviceId===meta.homeDeviceId&&
+            d.memoryIdentity?.syncModeProtocol===1))continue;
+        const direct=routes.find(route=>route.scopeId===meta.scopeId&&route.enabled&&
+          route.lastSuccessAt&&route.lastErrorCode===null);
+        if(direct)continue;
+        try{
+          const received=GOLD_WALL_MODULES.applySyncFrame({frame});
+          await channelRequest(current,hub,'memory-relay',{
+            action:'push_ack',ack:received.ack
+          });
+        }catch(error){
+          console.error(JSON.stringify({event:'gold_memory_relay_frame_rejected',
+            code:String(error.message).slice(0,80)}));
+        }
+      }
+    }catch(error){
+      if(!['gold_module_disabled','gold_scope_trusted_identity_required'].includes(String(error.message)))
+        console.error(JSON.stringify({event:'gold_memory_relay_tick_failed',
+          code:String(error.message).slice(0,90)}));
+    }finally{goldRelayInFlight=false;}
+  };
+  const goldMemoryRelayTimer=setInterval(()=>void goldMemoryRelayTick(),25000);
+  goldMemoryRelayTimer.unref?.();
+  void goldMemoryRelayTick();
+  const goldMemoryFlushTimer=setInterval(()=>{
+    try{
+      const saved=GOLD_WALL_MODULES.flushAuto();
+      for(const row of saved.checkpoints)console.log(JSON.stringify({
+        event:'gold_auto_memory_checkpoint_committed',scopeId:row.scopeId,
+        checkpointId:row.checkpointId,revision:row.revision,eventCount:row.events}));
+    }catch(error){
+      if(String(error.message)!=='gold_module_disabled')
+        console.error(JSON.stringify({event:'gold_auto_memory_flush_failed',code:String(error.message).slice(0,90)}));
+    }
+  },5000);
+  goldMemoryFlushTimer.unref?.();
+  // This loop is device-local, persists across browser closures and stops on
+  // Agent shutdown. Nothing is run unless the owner explicitly delegated it.
+  codexSupervisorTimer=setInterval(()=>{
+    void GOLD_WALL_MODULES.supervisorTick().then(result=>{
+      if(result.ran)console.log(JSON.stringify({event:'gold_codex_delegation_receipt',
+        taskId:result.taskId,receiptId:result.receiptId,decision:result.decision,
+        state:result.state,round:result.round}));
+    }).catch(e=>{
+      if(e.message!=='gold_module_disabled')console.error(JSON.stringify({
+        event:'gold_codex_supervisor_tick_failed',code:String(e.message).slice(0,96)}));
+    });
+  },15000);
+  codexSupervisorTimer.unref?.();
   workerReceiptTimer.unref?.();
   await refreshProcessTerminalReceipts(state);
   while(!stopped){
@@ -897,9 +1463,30 @@ async function daemon(args){
       // Re-read before persisting the poll result so the daemon never clobbers newer lease metadata.
       const latestAfterPoll=readState();if(latestAfterPoll)state=latestAfterPoll;
       applyPolicyEnvelope(state,response.policy);await confirmTerminalReceiptsAck(state,response.terminalReceiptsAck);failures=0;
-      state.cloud={...(state.cloud||{}),desiredConnected:true,state:'connected',lastServerActivityAt:Date.now(),lastError:null};writeState(state);
-      void reconcileFleet();
+      state.cloud={...(state.cloud||{}),desiredConnected:true,state:'connected',lastServerActivityAt:Date.now(),lastError:null};
       const command=response.channel?.command;
+      try{writeState(state);}
+      catch(error){
+        // The command was delivered but local state durability is unknown.
+        // Fail closed; report an explicit negative result instead of silent
+        // re-dispatch and a misleading remote_result_timeout.
+        if(command?.commandId){
+          try{
+            await channelRequest(state,hub,'result',{
+              commandId:command.commandId,status:'error',exitCode:125,stdout:'',
+              stderr:'agent_state_persistence_unavailable\n',durationMs:0,
+              data:{ok:false,error:'agent_state_persistence_unavailable'}
+            });
+            console.error(JSON.stringify({event:'device_command_rejected_state_persistence',
+              commandId:command.commandId}));
+          }catch(reportError){
+            console.error(JSON.stringify({event:'device_command_negative_result_delivery_failed',
+              commandId:command.commandId,error:String(reportError?.message||reportError).slice(0,120)}));
+          }
+        }
+        throw error;
+      }
+      void reconcileFleet();
       if(command){
         const deviceReceivedAt=Date.now();
         let commandPulseTimer=null,commandPulseBusy=false;
@@ -948,7 +1535,7 @@ async function wallOnly(args){
   if(!fs.existsSync(LOCAL_WALL_AUTH_FILE))writeAccountOnlyWallAuthConfig(LOCAL_WALL_AUTH_FILE,{username:'account'});
   const wallAuth=loadLocalWallAuth(LOCAL_WALL_AUTH_FILE,{required:!['127.0.0.1','::1','localhost'].includes(String(LOCAL_WALL_HOST))});
   const fleetManager=new FleetComponentManager(),fleetSupervisor=new FleetComponentSupervisor({manager:fleetManager,stateProvider:()=>readState(),requestIntent:async current=>{const local=await localFleetStatus();const response=await channelRequest(current,hub,'fleet-intent',{agentVersion:VERSION,moduleVersion:fleetManager.current()?.version||null,fleetHealthy:local.healthy===true,fleetPort:local.port});return response.fleet;},env:{OPERATOR_AGENT_STATE:STATE_FILE,OPERATOR_AGENT_IDENTITY_FILE:EXTERNAL_IDENTITY_FILE,OPERATOR_AGENT_WALL_AUTH_FILE:LOCAL_WALL_AUTH_FILE,OPERATOR_AGENT_HUB_URL:hub,OPERATOR_FLEET_WALL_HOST:FLEET_WALL_HOST,OPERATOR_FLEET_WALL_PORT:String(FLEET_WALL_PORT),OPERATOR_FLEET_WALL_PUBLIC_URL:FLEET_WALL_PUBLIC_URL},emit:event=>console.log(JSON.stringify(event))});
-  const localWall=startLocalWall({host:LOCAL_WALL_HOST,port:LOCAL_WALL_PORT,brandSvgPath:LOCAL_WALL_BRAND,auth:wallAuth,getLocalStatus:async()=>({...statusView(),fleetWall:await localFleetStatus()}),getLocalPolicyStatus:async()=>statusView(),getPendingAccess:async()=>remoteAccessLookup(hub),getRemoteStatus:async()=>remoteDeviceStatus(hub),getRemoteActivity:async limit=>remoteDeviceActivity(hub,limit),getLocalTerminals:async()=>NATIVE_TERMINALS.list().map(t=>({terminalId:t.terminalId,sessionId:t.sessionId,state:t.state,shell:t.shell,startedAt:t.startedAt,finishedAt:t.finishedAt,outputBytes:t.outputBytes})),readLocalTerminal:async(terminalId,{offset=0,limit=32768}={})=>{const t=NATIVE_TERMINALS.output(terminalId,null,{offset,limit});return {terminalId:t.terminalId,sessionId:t.sessionId,state:t.state,output:t.output};},connect:async data=>connectCloud({hub,graceMinutes:data.graceMinutes,leaseHours:data.leaseHours,silent:true}),disconnect:async data=>disconnectCloud({hub,reason:data.reason||'local_wall_disconnect',silent:true}),setGrace:async data=>setConnectionGrace({hub,minutes:data.minutes,silent:true}),setPermissions:async data=>setLocalPermissions(data?.allowedCapabilities,data?.profile),accountAuthenticate:async data=>authenticateWallAccount(data?.username,data?.password,base),pairingCode:async data=>rotatePairingCode(hub,data),ownerProofCode:async()=>accountOwnerProofCode(hub),accessApprove:async requestId=>approveDeviceAccess(requestId,hub),accessDeny:async(requestId,data)=>denyDeviceAccess(requestId,hub,data?.reason||'owner_denied'),closeSession:async data=>closeWallSession(hub,data),requestUpdate:async data=>requestLocalUpdate('local-wall',data?.mode||'apply')});
+  const localWall=startLocalWall({modules:GOLD_WALL_MODULES,host:LOCAL_WALL_HOST,port:LOCAL_WALL_PORT,brandSvgPath:LOCAL_WALL_BRAND,auth:wallAuth,getMemoryAccountDevices:async()=>memoryAccountDevices(hub),getMemoryAccountInvites:async data=>memoryAccountInvites(hub,data),getMemoryAccountSyncPolicy:async data=>memoryAccountSyncPolicy(hub,data),getMemoryAccountDelete:async data=>memoryAccountDeleteChannel(hub,data),getLocalStatus:async()=>({...statusView(),fleetWall:await localFleetStatus()}),getLocalPolicyStatus:async()=>statusView(),getPendingAccess:async()=>remoteAccessLookup(hub),getRemoteStatus:async()=>remoteDeviceStatus(hub),getRemoteActivity:async limit=>remoteDeviceActivity(hub,limit),getLocalTerminals:async()=>NATIVE_TERMINALS.list().map(t=>({terminalId:t.terminalId,sessionId:t.sessionId,state:t.state,shell:t.shell,startedAt:t.startedAt,finishedAt:t.finishedAt,outputBytes:t.outputBytes})),readLocalTerminal:async(terminalId,{offset=0,limit=32768}={})=>{const t=NATIVE_TERMINALS.output(terminalId,null,{offset,limit});return {terminalId:t.terminalId,sessionId:t.sessionId,state:t.state,output:t.output};},connect:async data=>connectCloud({hub,graceMinutes:data.graceMinutes,leaseHours:data.leaseHours,silent:true}),disconnect:async data=>disconnectCloud({hub,reason:data.reason||'local_wall_disconnect',silent:true}),setGrace:async data=>setConnectionGrace({hub,minutes:data.minutes,silent:true}),setPermissions:async data=>setLocalPermissions(data?.allowedCapabilities,data?.profile),setFilesystemRoots:async data=>setLocalFilesystemRoots(data),getFilesystemVolumes:async()=>filesystemVolumeInventory(),ownerApprovePermissions:async data=>ownerApproveServerPermissions(data,hub),rescanCapabilities:async()=>rescanHostCapabilities(hub),accountAuthenticate:async data=>authenticateWallAccount(data?.username,data?.password,base),pairingCode:async data=>rotatePairingCode(hub,data),ownerProofCode:async()=>accountOwnerProofCode(hub),accessApprove:async requestId=>approveDeviceAccess(requestId,hub),accessDeny:async(requestId,data)=>denyDeviceAccess(requestId,hub,data?.reason||'owner_denied'),closeSession:async data=>closeWallSession(hub,data),requestUpdate:async data=>requestLocalUpdate('local-wall',data?.mode||'apply')});
   console.log(JSON.stringify({event:'host_wall_companion_started',mode:'wall-only',url:localWall.url,deviceId:state.enrollment.deviceId,nodeId:state.enrollment.nodeId||state.enrollment.deviceId}));
   let stopping=false,resolveStop;const stopped=new Promise(resolve=>resolveStop=resolve);const stop=()=>{if(stopping)return;stopping=true;resolveStop();};process.once('SIGTERM',stop);process.once('SIGINT',stop);
   const reconcile=async()=>{if(stopping)return;try{await fleetSupervisor.reconcile();}catch(error){console.error(JSON.stringify({event:'fleet_component_reconcile_failed',error:error.message,status:error.status||null}));}};

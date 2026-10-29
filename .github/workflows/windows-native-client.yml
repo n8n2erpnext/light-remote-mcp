@@ -10,6 +10,12 @@ on:
       - 'feature/real-remote-v2-m6-persistent-duplex'
       - 'feature/windows-rm-ux-rc48'
       - 'feature/light-remote-gold-rebuild-20261018' # staging CI artifacts only
+      - 'feature/gold-m6-integrated-20261023' # isolated Gold UAT Windows build only
+      - 'fix/gold-pulse-stale-lock-20261025' # crash-safe state and public signed pulse UAT
+      - 'feature/gold-memory-reader-codex-win-20261025' # Memory Library + native Windows Codex discovery
+      - 'feature/gold-navigation-codex-managed-memory-delete-20261025' # optional Codex runtime and scoped memory Wall routes
+      - 'feature/gold-memory-completion-20261026' # Memory scope UI and Codex task edit/delete
+      - 'fix/gold-owner-filesystem-roots-20261023' # isolated Gold filesystem UAT build
     tags:
       - 'v0.9.*'
     paths:
@@ -42,6 +48,19 @@ on:
       - 'deploy/scripts/selftest-g2-pty-missing-pid-exit.mjs'
       - 'deploy/scripts/selftest-g3-duplex-halfopen-watchdog.mjs'
       - 'deploy/scripts/selftest-g3-command-liveness-pulse.mjs'
+      - 'deploy/scripts/selftest-g3-agent-state-lock-recovery.mjs'
+      - 'deploy/scripts/selftest-gold-wall-close-session-*.mjs'
+      - 'deploy/scripts/selftest-gold-memory-reader-export.mjs'
+      - 'deploy/scripts/selftest-gold-codex-binary-discovery.mjs'
+      - 'deploy/scripts/selftest-gold-no-native-browser-dialogs.mjs'
+      - 'deploy/scripts/selftest-gold-wall-navigation.mjs'
+      - 'deploy/scripts/selftest-gold-managed-codex-runtime.mjs'
+      - 'deploy/scripts/selftest-gold-memory-delete-settings.mjs'
+      - 'deploy/scripts/selftest-gold-memory-scope-management.mjs'
+      - 'deploy/scripts/selftest-gold-codex-task-management.mjs'
+      - 'deploy/scripts/selftest-gold-client-core-imports.mjs'
+      - 'client/core-files.json'
+      - 'plugin-server/device-public.mjs'
       - 'deploy/scripts/selftest-g3-duplex-ready-timeout-diagnostic.mjs'
       - 'deploy/scripts/selftest-g3-duplex-executor-rejection.mjs'
       - 'deploy/scripts/selftest-g3-executor-hang-readiness.mjs'
@@ -57,6 +76,8 @@ on:
       - 'operator-host/executor.mjs'
       - 'deploy/scripts/selftest-v12-macos-physical-type-routing.mjs'
       - 'deploy/scripts/selftest-v12-rm-cursor-effect-parity.mjs'
+      - 'deploy/scripts/selftest-gold-owner-filesystem-roots.mjs'
+      - 'device-agent/filesystem-volume-inventory.mjs'
       - '.github/workflows/windows-native-client.yml'
   workflow_dispatch:
   workflow_call:
@@ -83,6 +104,56 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'physical type routing contract failed' }
           node deploy/scripts/selftest-v12-rm-cursor-effect-parity.mjs
           if ($LASTEXITCODE -ne 0) { throw 'cursor effect parity regression failed' }
+          node deploy/scripts/selftest-gold-windows-wall-nonblocking-inventory.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold Windows Wall blocking inventory regression failed' }
+      - name: Gold Long Memory G3 native Windows crypto smoke
+        shell: pwsh
+        run: |
+          node deploy/scripts/selftest-g3-command-liveness-pulse.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Signed pulse public gateway contract failed' }
+          node deploy/scripts/selftest-g3-agent-state-lock-recovery.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Crash-safe Agent state lock regression failed' }
+          node deploy/scripts/selftest-gold-wall-close-session-cache.mjs $PWD
+          if ($LASTEXITCODE -ne 0) { throw 'Gold Wall session-close cache regression failed' }
+          node deploy/scripts/selftest-gold-wall-close-session-http.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold Wall session-close HTTP regression failed' }
+          node deploy/scripts/selftest-gold-codex-binary-discovery.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold native Windows Codex binary discovery failed' }
+          node deploy/scripts/selftest-gold-memory-reader-export.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold Memory Library read and export regression failed' }
+          node deploy/scripts/selftest-gold-wall-navigation.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold dedicated module route navigation regression failed' }
+          node deploy/scripts/selftest-gold-no-native-browser-dialogs.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold native browser dialog regression failed' }
+          node deploy/scripts/selftest-gold-managed-codex-runtime.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold device-managed optional Codex runtime regression failed' }
+          node deploy/scripts/selftest-gold-memory-delete-settings.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold owner-approved Memory deletion regression failed' }
+          node deploy/scripts/selftest-gold-client-core-imports.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Bundled Gold Client Core missing static imports' }
+          node deploy/scripts/selftest-gold-memory-scope-management.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Scoped Memory lifecycle and full-context verification failed' }
+          node deploy/scripts/selftest-gold-codex-task-management.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Codex task edit/delete owner-audit regression failed' }
+          node deploy/scripts/selftest-gold-codex-plus.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold Windows Codex NTFS private home regression failed' }
+          node --no-warnings deploy/scripts/selftest-gold-memory-replica-evidence.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold Replica to Home evidence regression failed' }
+          node deploy/scripts/selftest-gold-memory-sync-v3.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold G3 Windows E2EE / signed ACK / key ACL failed' }
+          node deploy/scripts/selftest-gold-memory-peer-v3.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold G3 Windows signed NetBird peer pull/replay/ACK failed' }
+          node deploy/scripts/selftest-gold-memory-scope-v2.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold Windows Long Memory V1/V2 scope and HMAC failed' }
+          Write-Host 'gold-windows-g3-cryptographic-scope-smoke=PASS'
+
+      - name: Gold Windows owner filesystem scope regression
+        shell: pwsh
+        run: |
+          node deploy/scripts/selftest-gold-owner-filesystem-roots.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold owner filesystem scopes or drive inventory regression' }
+          Write-Host 'gold-windows-owner-filesystem-scopes=PASS'
+
       - name: Publish native tray client
         shell: pwsh
         run: |
@@ -133,6 +204,20 @@ jobs:
           $dotnetExe = (Get-Command dotnet.exe).Source
           $dotnetRoot = Split-Path $dotnetExe -Parent
           Copy-Item $nodeExe (Join-Path $runtime 'node.exe')
+          # Codex Bridge is optional, but its owner-approved installer must work
+          # even on consumer Windows PCs with no global Node/npm installation.
+          # Bundle the official npm CLI and all its runtime dependencies from
+          # the CI-pinned Node distribution, without downloading Codex itself.
+          $npmSource = Join-Path $nodeRoot 'node_modules\npm'
+          $npmCliSource = Join-Path $npmSource 'bin\npm-cli.js'
+          if (-not (Test-Path $npmCliSource)) { throw 'CI Node distribution is missing npm-cli.js' }
+          $npmDestParent = Join-Path $runtime 'node_modules'
+          New-Item -ItemType Directory -Force -Path $npmDestParent | Out-Null
+          Copy-Item $npmSource (Join-Path $npmDestParent 'npm') -Recurse -Force
+          $bundledNpmCli = Join-Path $runtime 'node_modules\npm\bin\npm-cli.js'
+          & (Join-Path $runtime 'node.exe') $bundledNpmCli --version
+          if ($LASTEXITCODE -ne 0) { throw 'isolated managed Codex npm provisioner failed' }
+          Write-Host 'gold-optional-codex-offline-npm-bootstrap-packaged=PASS'
           Copy-Item (Join-Path $nodeRoot 'LICENSE') (Join-Path $nodeLicenseDir 'LICENSE')
           Copy-Item (Join-Path $dotnetRoot 'LICENSE.txt') (Join-Path $dotnetLicenseDir 'LICENSE.txt')
           Copy-Item (Join-Path $dotnetRoot 'ThirdPartyNotices.txt') (Join-Path $dotnetLicenseDir 'ThirdPartyNotices.txt')
@@ -159,11 +244,23 @@ jobs:
           $result = Join-Path $env:RUNNER_TEMP 'gpt-native-selftest.json'
           $exe = Join-Path $stage 'GptOperator.Client.exe'
           $node = Join-Path $stage 'runtime\node.exe'
+          $codexInstallerNpm = Join-Path $stage 'runtime\node_modules\npm\bin\npm-cli.js'
+          if (-not (Test-Path $codexInstallerNpm)) { throw 'Codex managed installer npm CLI absent from Windows stage' }
+          & $node $codexInstallerNpm --version
+          if ($LASTEXITCODE -ne 0) { throw 'Codex managed installer npm CLI cannot execute on bundled Node' }
+          Write-Host 'gold-codex-managed-offline-bootstrap-smoke=PASS'
           $agent = Join-Path $stage 'agent\device-agent\operator-agent.mjs'
           $agentRoot = Join-Path $stage 'agent'
           $updaterStage = Join-Path $PWD 'dist\windows\updater'
           $updater = Join-Path $updaterStage 'LightRemote.Updater.exe'
           node deploy/scripts/stage-client-core.mjs --verify $agentRoot
+          foreach ($memoryModule in @('gold-memory-ledger.mjs','gold-memory-scope.mjs','gold-memory-scope-admin.mjs','gold-memory-auto.mjs','gold-memory-sync.mjs','gold-memory-evidence.mjs','gold-memory-manual-evidence.mjs','gold-memory-key-permissions.mjs')) {
+            if (-not (Test-Path (Join-Path $agentRoot ('device-agent\'+$memoryModule)))) { throw "Gold Windows Memory module missing: $memoryModule" }
+          }
+          Write-Host 'gold-windows-memory-g3-package-modules=PASS'
+          $volumesModule = Join-Path $agentRoot 'device-agent\filesystem-volume-inventory.mjs'
+          if (-not (Test-Path $volumesModule)) { throw 'Gold filesystem volume inventory absent from packaged Windows Agent' }
+          Write-Host 'gold-windows-volume-inventory-packaged=PASS'
           if ($LASTEXITCODE -ne 0) { throw 'canonical client core verification failed' }
           & $node deploy/scripts/selftest-packaged-local-wall.mjs $agentRoot
           if ($LASTEXITCODE -ne 0) { throw 'packaged Local Wall icon asset and HTTP page regression failed' }
@@ -587,6 +684,12 @@ jobs:
           if ($legacyAfter) { throw 'legacy Node runtime survived native install' }
           Remove-Item $legacyRoot -Recurse -Force -ErrorAction SilentlyContinue
           Write-Host 'windows-legacy-agent-cleanup=PASS'
+          $installedNpmCli = Join-Path $installDir 'runtime\node_modules\npm\bin\npm-cli.js'
+          $installedNode = Join-Path $installDir 'runtime\node.exe'
+          if (-not (Test-Path $installedNpmCli)) { throw 'Optional Codex npm runtime missing from installed Windows client' }
+          & $installedNode $installedNpmCli --version
+          if ($LASTEXITCODE -ne 0) { throw 'Installed optional Codex npm bootstrap cannot execute' }
+          Write-Host 'gold-codex-managed-npm-installed-roundtrip=PASS'
           $exe = Join-Path $installDir 'GptOperator.Client.exe'
           if (-not (Test-Path $exe)) { throw "installed client missing: $exe" }
           $rmv2Installed = Join-Path $installDir 'realremote-v2\LightRemote.RM.exe'

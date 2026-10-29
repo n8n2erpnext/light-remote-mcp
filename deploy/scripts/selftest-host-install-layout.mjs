@@ -7,7 +7,7 @@ const installer=fs.readFileSync(path.join(root,'deploy/scripts/install-host.sh')
 const unit=fs.readFileSync(path.join(root,'deploy/systemd/gpt-vps-operator.service'),'utf8');
 const executor=fs.readFileSync(path.join(root,'operator-host/executor.mjs'),'utf8');
 
-const libs=['device-proof.mjs','native-fs.mjs','native-process.mjs','native-terminal.mjs','native-search.mjs','activity-ring.mjs','executor-readiness-probe.mjs','light-scp-file.mjs','light-scp-registry.mjs','update-contract.mjs','runtime-version.mjs','version-compat.mjs','operator-target-route.mjs','gold-db.mjs','gold-job-ledger.mjs','gold-personal-agent-scheduler.mjs','gold-device-resource-locks.mjs','gold-registry-persistence.mjs','gold-session-redis.mjs','team-oauth-principal-proof.mjs'];
+const libs=['device-proof.mjs','native-fs.mjs','native-process.mjs','native-terminal.mjs','native-search.mjs','activity-ring.mjs','executor-readiness-probe.mjs','light-scp-file.mjs','light-scp-registry.mjs','update-contract.mjs','runtime-version.mjs','version-compat.mjs','operator-target-route.mjs','gold-db.mjs','gold-job-ledger.mjs','gold-personal-agent-scheduler.mjs','gold-device-resource-locks.mjs','gold-registry-persistence.mjs','gold-session-redis.mjs','gold-device-resource-metrics.mjs','device-resource-telemetry.mjs','native-terminal-receipt-spool.mjs','material-icon.mjs','public-endpoint.mjs','web-typography.mjs','team-oauth-principal-proof.mjs'];
 for(const lib of libs){
   const occurrences=installer.split(lib).length-1;
   if(occurrences<2)throw new Error(`host_installer_missing_lib:${lib}:${occurrences}`);
@@ -22,6 +22,26 @@ const executorLibImports=[...executor.matchAll(/from '\.\.\/lib\/([^']+\.mjs)'/g
 for(const lib of executorLibImports)if(!libs.includes(lib))throw new Error(`host_installer_missing_executor_import:${lib}`);
 for(const rel of ['../lib/native-fs.mjs','../lib/native-process.mjs','../lib/native-terminal.mjs','../lib/native-search.mjs','../lib/activity-ring.mjs','../lib/light-scp-registry.mjs','../lib/runtime-version.mjs','../lib/version-compat.mjs','../lib/operator-target-route.mjs','../device-agent/platform-adapters/index.mjs']){
   if(!executor.includes(`from '${rel}'`))throw new Error(`executor_import_contract_missing:${rel}`);
+}
+// Verify complete static import coverage, not just the executor entrypoint.
+// Gold M6 telemetry/receipt and owner UI introduced transitive dependencies
+// previously omitted by the curated system/host-wall install list.
+const installLoops=[...installer.matchAll(/for lib in ([^;]+); do/g)].map(match=>match[1].trim());
+if(installLoops.length!==2||installLoops[0]!==installLoops[1])throw new Error('host_operator_and_wall_lib_lists_diverged');
+const installedLibs=new Set(installLoops[0].split(/\s+/));
+const hostSources=[
+  ...fs.readdirSync(path.join(root,'operator-host')).filter(name=>name.endsWith('.mjs')).map(name=>'operator-host/'+name),
+  'device-agent/operator-agent.mjs','device-agent/local-wall.mjs'
+];
+for(const rel of hostSources){
+  const source=fs.readFileSync(path.join(root,rel),'utf8');
+  for(const match of source.matchAll(/from ['"]\.\.\/lib\/([^'"]+\.(?:mjs|cjs))['"]/g)){
+    if(!installedLibs.has(match[1]))throw new Error('host_installer_missing_import:'+rel+':'+match[1]);
+  }
+}
+for(const moduleName of ['local-process-page.mjs','process-supervisor-client.mjs']){
+  if(!installer.includes('$ROOT_DIR/device-agent/'+moduleName))
+    throw new Error('host_wall_installer_missing_device_module:'+moduleName);
 }
 if(!installer.includes('CLIENT_COMPATIBILITY_FLOOR'))throw new Error('host_compatibility_floor_install_missing');
 console.log('host-install-layout-imports=PASS');

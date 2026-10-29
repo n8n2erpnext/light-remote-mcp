@@ -248,6 +248,35 @@ export class EnrollmentRegistry {
     const signature=crypto.sign(null,Buffer.from(devicePolicyMessage({deviceId:policy.deviceId,accountId:policy.accountId,revision:policy.policyRevision,approvedCapabilities:policy.approvedCapabilities,grantableCapabilities:policy.grantableCapabilities,policyProfile:policy.policyProfile,updatedAt:policy.policyUpdatedAt})),this.signer.privateKey).toString('base64url');
     return { policy, signature, signer:this.signerInfo() };
   }
+  // Signed device rescan may expand the grantable ceiling, never the approval.
+  // The existing owner policy endpoint remains the only approval path.
+  refreshDiscoveredCapabilities(input = {}) {
+    const row=this.binding(input.deviceId);
+    if(row.trustedHost)throw new EnrollmentError('trusted_host_uses_local_capability_authority',409);
+    if(row.accountId!==String(input.accountId||''))throw new EnrollmentError('device_account_mismatch',403);
+    if(!Array.isArray(input.capabilities))throw new EnrollmentError('invalid_discovered_capabilities');
+    const discovered=cleanCapabilities(input.capabilities);
+    if(!discovered.includes('filesystem'))throw new EnrollmentError('device_filesystem_capability_required');
+    const previous=cleanCapabilities(row.grantableCapabilities||row.approvedCapabilities||[]);
+    const priorApproved=cleanCapabilities(row.approvedCapabilities||[]);
+    const approved=priorApproved.filter(cap=>discovered.includes(cap));
+    if(!approved.length)throw new EnrollmentError('rescan_would_remove_all_approved_capabilities',409);
+    const added=discovered.filter(cap=>!previous.includes(cap));
+    const removed=previous.filter(cap=>!discovered.includes(cap));
+    if(added.length||removed.length||approved.length!==priorApproved.length){
+      row.grantableCapabilities=discovered;
+      row.approvedCapabilities=approved;
+      row.policyRevision=Math.max(1,Number(row.policyRevision)||1)+1;
+      row.policyUpdatedAt=this.now();
+      if(approved.length!==priorApproved.length){
+        row.certificate=certificateBody(row);
+        row.certificateSignature=crypto.sign(null,Buffer.from(canonicalCertificate(row)),this.signer.privateKey).toString('base64url');
+      }
+      this._persist();
+      this.emit({type:'device_capabilities_rescanned',deviceId:row.deviceId,accountId:row.accountId,status:'updated',policyRevision:row.policyRevision,addedCapabilities:added,removedCapabilities:removed,approvedCapabilities:[...approved]});
+    }
+    return {policy:this.policyView(row.deviceId),addedCapabilities:added,removedCapabilities:removed,approvalRequired:added};
+  }
   updatePolicy(input = {}) {
     const row=this.binding(input.deviceId);
     const accountId=String(input.accountId||'');

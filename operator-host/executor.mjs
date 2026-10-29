@@ -53,6 +53,8 @@ import { isOutboundTarget } from '../lib/operator-target-route.mjs';
 import { createPlatformAdapter } from '../device-agent/platform-adapters/index.mjs';
 import { handleAccountRoutes } from './executor-routes-account.mjs';
 import { handleDeviceChannelRoutes } from './executor-routes-device-channel.mjs';
+import {GoldMemoryAccountSyncPolicy} from './gold-memory-account-sync-policy.mjs';
+import {GoldMemoryAccountDelete} from './gold-memory-account-delete.mjs';
 import { handleRuntimeRoutes } from './executor-routes-runtime.mjs';
 import { handlePluginRoutes } from './executor-routes-plugin.mjs';
 import { RealRemoteLiveRegistry } from './real-remote-live-registry.mjs';
@@ -133,6 +135,8 @@ const MIN_SUPPORTED_CLIENT_VERSION=String(process.env.OPERATOR_MIN_SUPPORTED_CLI
 const compatibilityFor=device=>clientCompatibility(VERSION,device?.agentVersion,{backwardReleases:CLIENT_BACKWARD_RELEASES,explicit:MIN_SUPPORTED_CLIENT_VERSION});
 // No canonical Operator can start without its independent Gold database services.
 const goldStorage=await connectGoldStorage();
+const memorySyncPolicy=new GoldMemoryAccountSyncPolicy(goldStorage.pool);
+const memoryAccountDelete=new GoldMemoryAccountDelete(goldStorage.pool);
 const goldWriterLease=await goldStorage.pool.connect();
 const singleWriter=(await goldWriterLease.query(
   "SELECT pg_try_advisory_lock(hashtext($1)) AS acquired",
@@ -1121,8 +1125,9 @@ function activeAccount(accountId=ACCOUNT_ID){try{return accounts.account(account
 function operationalAccount(accountId=ACCOUNT_ID){try{return accounts.assertOperational(accountId);}catch(error){if(error?.message==='account_not_found'&&String(accountId)===String(ACCOUNT_ID))return {accountId,plan:ACCOUNT_PLAN,entitlement:{plan:ACCOUNT_PLAN,source:'environment',validUntil:null},status:'active'};throw error;}}
 function activeAccountPlan(accountId=ACCOUNT_ID){return String(activeAccount(accountId).plan||ACCOUNT_PLAN).toLowerCase();}
 function hostEffectiveCapabilities(){
-  try{const state=JSON.parse(fs.readFileSync(HOST_COMPANION_STATE_FILE,'utf8')),allowed=Array.isArray(state.effectiveCapabilities)?state.effectiveCapabilities:HOST_CAPABILITIES;return HOST_CAPABILITIES.filter(cap=>allowed.includes(cap));}
-  catch{return [...HOST_CAPABILITIES];}
+  try{const state=JSON.parse(fs.readFileSync(HOST_COMPANION_STATE_FILE,'utf8')),allowed=Array.isArray(state.effectiveCapabilities)?state.effectiveCapabilities:[];return HOST_CAPABILITIES.filter(cap=>allowed.includes(cap));}
+  // Missing/corrupt local policy must never enable the full OS capability catalog.
+  catch{return [];}
 }
 const PLAN_FEATURES=Object.freeze({free:{fleetWall:false,multiDeviceConsole:false,toolCallLimit:10_000},pro:{fleetWall:true,multiDeviceConsole:true,toolCallLimit:null},vip:{fleetWall:true,multiDeviceConsole:true,toolCallLimit:null}});
 function planEntitlements(input){const account=typeof input==='object'&&input?input:null,key=String(account?.plan||input||'free').toLowerCase(),capMs=DEFAULT_PLAN_CONNECTION_CAPS[key]||DEFAULT_PLAN_CONNECTION_CAPS.free,validUntil=account?.entitlement?.validUntil??null,features=PLAN_FEATURES[key]||PLAN_FEATURES.free;return {plan:key,connectionLeaseMs:capMs,connectionLeaseHours:capMs/3600000,fleetWall:Boolean(features.fleetWall),multiDeviceConsole:Boolean(features.multiDeviceConsole),usageMetering:true,toolCallLimit:features.toolCallLimit==null?null:Number(features.toolCallLimit),toolCallsUnlimited:features.toolCallLimit==null,singleCodebase:true,...(SCOPED_SESSION_LIMITS?{sessionLimit:personalCapacity(key).sessionLimit,agentConcurrencyTarget:personalCapacity(key).agentConcurrencyLimit}:{}),validUntil,source:account?.entitlement?.source||null};}
@@ -1374,9 +1379,13 @@ const routeDeps=()=>({
   abandonedCommandReceiptFromDisk,agentClients,allDeviceViews,applyDeviceTelemetry,assertDiskJobOwner,assertToolCallQuota,capabilities,
   clearMainIfMatches,clientCompatibility,closeRuntimeForAccount,compatibilityFor,connectionSpec,
   connectionViewForDevice,connections,decryptEnvelope,deviceView,devices,
+  deviceHasHistoricalReferences:deviceId=>goldRegistries.native.accounts.deviceHasHistoricalReferences(deviceId),
   emitStream,enrollments,finishJob,fleet,fleetAuthority,reconcileSignedTerminalProcessReceipts,
-  fleetEligibility,fleetTarget,flushDiskRecords,fs,fullOutputFromDisk,
-  ingressTelemetry,jobView,jobs,goldJobs,deviceResourceLocks,deviceResourceSampleCache,cancelQueuedPersonalJob,requestFleetProcessStop,licenses,normalizeUpdateReport,
+  fleetEligibility,fleetTarget,flushDiskRecords,flushGoldRegistries:()=>goldRegistries.flush(),fs,fullOutputFromDisk,
+  ingressTelemetry,jobView,jobs,goldJobs,deviceResourceLocks,deviceResourceSampleCache,memorySyncPolicy,memoryAccountDelete,
+  inspectOwnerOrphanDevice:options=>deviceResourceLocks.inspectOwnerOrphanDevice(goldStorage.pool,options),
+  abandonOwnerAttestedOrphan:options=>deviceResourceLocks.abandonOwnerAttestedOrphan(goldStorage.pool,options),
+  cancelQueuedPersonalJob,requestFleetProcessStop,licenses,normalizeUpdateReport,
   pairingCodes,planEntitlements,pruneRing,pushEvent,queueHelperUpdate,
   queueSignedUpdate,readJson,reapAccessGrants,accountNotifications,realRemoteLive,recentEvents,redact,proTeams,teamSessions,requestTeamMemberApproval,operationalAccount,
   removeRuntimeForDevice,requireAccount,requireDeviceConnection,revokeRuntimeForDevice,ring,

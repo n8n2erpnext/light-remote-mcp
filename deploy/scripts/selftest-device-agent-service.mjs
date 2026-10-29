@@ -8,8 +8,12 @@ for(const rule of ['Restart=always','PrivateTmp=true','ProtectSystem=strict','Re
 for(const marker of ['NoNewPrivileges=$NO_NEW_PRIVILEGES','RestrictSUIDSGID=$RESTRICT_SUID_SGID','$CAPABILITY_BOUNDING_SET_LINE'])if(!text.includes(marker))throw new Error(`dynamic_privilege_policy_missing:${marker}`);
 const normal=linuxServicePolicy({enrollment:{grantableCapabilities:['filesystem']}});
 if(!(normal.noNewPrivileges&&normal.restrictSuidSgid&&normal.clearCapabilityBoundingSet))throw new Error('default_hardening_not_enforced');
-const sudoGrantable=linuxServicePolicy({enrollment:{grantableCapabilities:['filesystem','sudo-on-demand'],approvedCapabilities:['filesystem']}});
-if(sudoGrantable.noNewPrivileges||sudoGrantable.restrictSuidSgid||sudoGrantable.clearCapabilityBoundingSet)throw new Error('grantable_sudo_must_support_web_toggle_without_reinstall');
+const catalogOnly=linuxServicePolicy({enrollment:{grantableCapabilities:['filesystem','sudo-on-demand'],approvedCapabilities:['filesystem']}});
+if(!(catalogOnly.noNewPrivileges&&catalogOnly.restrictSuidSgid&&catalogOnly.clearCapabilityBoundingSet))throw new Error('catalog_only_sudo_must_not_relax_systemd');
+const sudoApproved=linuxServicePolicy({enrollment:{grantableCapabilities:['filesystem','sudo-on-demand'],approvedCapabilities:['filesystem','sudo-on-demand']}});
+if(sudoApproved.noNewPrivileges||sudoApproved.restrictSuidSgid||sudoApproved.clearCapabilityBoundingSet)throw new Error('owner_approved_sudo_must_support_host_install_workflow');
+const trustedMainOff=linuxServicePolicy({enrollment:{enrollmentId:'trusted-host',grantableCapabilities:['filesystem','sudo-on-demand']},policy:{deniedCapabilities:['sudo-on-demand']}});
+if(!(trustedMainOff.noNewPrivileges&&trustedMainOff.restrictSuidSgid&&trustedMainOff.clearCapabilityBoundingSet))throw new Error('trusted_main_local_sudo_off_must_harden_systemd');
 if(text.includes('Run operator-agent login first')||text.includes('Device is not enrolled yet'))throw new Error('service_must_start_before_enrollment');
 if(!text.includes('local-wall.mjs')||!text.includes('local-wall-auth.mjs')||!text.includes('light-remote-mark.svg'))throw new Error('local_wall_service_install_missing');
 if(!text.includes('systemctl show gpt-operator-device-agent.service --property=Environment --value')||!text.includes('WALL_DISPLAY_HOST'))throw new Error('local_wall_effective_url_missing');

@@ -23,8 +23,14 @@ assert.equal(cli.status,0);
 assert.equal(cli.stdout,'/etc/systemd/system');
 const normal=linuxServicePolicy({enrollment:{grantableCapabilities:['filesystem']}});
 assert.equal(normal.noNewPrivileges,true);
-const sudo=linuxServicePolicy({enrollment:{grantableCapabilities:['sudo-on-demand']}});
-assert.equal(sudo.noNewPrivileges,false);
+const catalogOnly=linuxServicePolicy({enrollment:{grantableCapabilities:['sudo-on-demand'],approvedCapabilities:[]}});
+assert.equal(catalogOnly.noNewPrivileges,true,'catalog must not relax systemd without owner approval');
+const sudo=linuxServicePolicy({enrollment:{grantableCapabilities:['sudo-on-demand'],approvedCapabilities:['sudo-on-demand']}});
+assert.equal(sudo.noNewPrivileges,false,'server-approved sudo should enable the approved path');
+const mainOff=linuxServicePolicy({enrollment:{enrollmentId:'trusted-host',grantableCapabilities:['sudo-on-demand']},policy:{deniedCapabilities:['sudo-on-demand']}});
+assert.equal(mainOff.noNewPrivileges,true,'trusted Main local OFF must keep systemd hardened');
+const mainOn=linuxServicePolicy({enrollment:{enrollmentId:'trusted-host',grantableCapabilities:['sudo-on-demand']},policy:{deniedCapabilities:[]}});
+assert.equal(mainOn.noNewPrivileges,false,'trusted Main local ON may enable approved path');
 for(const file of ['../../client/linux/install.sh','../../device-agent/install-linux-service.sh']){
  const script=fs.readFileSync(new URL(file,import.meta.url),'utf8');
  assert.match(script,/--host-write-path/);

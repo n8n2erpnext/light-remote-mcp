@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import crypto from 'node:crypto';
 import {fleetJobPage} from '../../device-agent/fleet-job-page.mjs';
+import {DeviceResourceSampleCache} from '../../lib/device-resource-telemetry.mjs';
 const src=fs.readFileSync(new URL('../../operator-host/executor.mjs',import.meta.url),'utf8');
 const a=src.indexOf('const fleetStopDispatching=new Set();');
 const b=src.indexOf('const routeDeps=()=>({',a);
@@ -15,7 +16,7 @@ let pgClaim=true,invocations=[],events=[],identityMismatch=false;
 const jobs=new Map([[launch.id,launch]]);
 class FleetAuthorityError extends Error{constructor(message,status){super(message);this.status=status;}}
 const context={
- Set,jobs,crypto,FleetAuthorityError,deviceResourceLocks:{},
+ Set,jobs,crypto,FleetAuthorityError,DeviceResourceSampleCache,deviceResourceLocks:{},
  goldStorage:{pool:{async query(sql,args){assert.match(sql,/account_id=\$2/);assert.match(sql,/device_id=\$3/);
   assert.deepEqual([...args],[launch.id,'owner','dev-A']);
   assert.ok(!/DELETE|UPDATE/i.test(sql),'stop_api_must_not_release_claim');

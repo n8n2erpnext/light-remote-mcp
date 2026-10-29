@@ -1,5 +1,10 @@
 import { firstAvailable, inferCapabilities, uniqueCapabilities } from './shared.mjs';
 
+function scopedInstaller(script){
+  const m=/^[ \t]*(?:winget(?:\.exe)?|choco(?:\.exe)?)[ \t]+install[ \t]+(?:(?:--id|-e|--exact)[ \t]+)?(Docker\.DockerDesktop|Docker\.DockerCLI|docker-desktop|kubectl|helm|Kubernetes\.kubectl)(?:[ \t]+(?:-e|--exact|--silent))?[ \t]*$/i.exec(String(script||''));
+  if(!m)return null;
+  return /kubectl|helm/i.test(m[1])?'kubectl':'docker';
+}
 const RULES=[
   ['git',/(^|[;&|\s])git(\.exe)?(\s|$)/i],
   ['docker',/(^|[;&|\s])(docker|docker-compose)(\.exe)?(\s|$)/i],
@@ -15,33 +20,46 @@ const RULES=[
   ['windows-services-admin',/\b(Set-Service|New-Service|Remove-Service|Restart-Service|Stop-Service|Start-Service|sc(?:\.exe)?\s+(create|delete|config|start|stop))\b/i],
   ['windows-defender-firewall',/\b(?:Set-MpPreference|Add-MpPreference|Remove-MpPreference|(?:Set|New|Remove)-NetFirewall(?:Rule|Profile|AddressFilter|PortFilter|ApplicationFilter|ServiceFilter|SecurityFilter)?|netsh\s+advfirewall)\b/i],
   ['windows-credential-manager',/\b(cmdkey|vaultcmd|Get-StoredCredential|New-StoredCredential|Remove-StoredCredential)\b/i],
-  ['windows-uac-admin',/\b(Start-Process\b[^\r\n;]*-Verb\s+RunAs|runas(?:\.exe)?)\b/i]
+  ['windows-uac-admin',/\b(Start-Process\b[^\r\n;]*-Verb\s+RunAs|runas(?:\.exe)?)\b/i],
+  ['kubernetes',/\b(kubectl|helm|kind|minikube)(?:\.exe)?\b/i],
+  ['virtualization',/\b(docker-machine|VBoxManage|virsh|wsl(?:\.exe)?|vmrun|Get-VM|New-VM|Start-VM|Stop-VM)\b/i],
+  ['network-admin',/\b(New-NetIPAddress|Set-NetIPAddress|Remove-NetIPAddress|Set-DnsClientServerAddress|Disable-NetAdapter|Enable-NetAdapter|Set-NetAdapter|netsh\s+interface)\b/i],
+  ['infra-provisioning',/\b(terraform|tofu|ansible|packer|pulumi|vagrant)(?:\.exe)?\b/i],
+  ['storage-admin',/\b(Initialize-Disk|New-Partition|Remove-Partition|Format-Volume|Resize-Partition|diskpart(?:\.exe)?)\b/i]
 ];
 
 export function createWindowsAdapter({commandExists}) {
   const shell=firstAvailable(commandExists,['pwsh','powershell.exe','powershell']);
   const cmd=firstAvailable(commandExists,['cmd.exe','cmd']);
+  let installedCache=null,installedCacheUntil=0;
   return {
     id:'win32',displayName:'Windows PowerShell adapter',
-    discoverCapabilities() {
+    discoverCapabilities(){return uniqueCapabilities(['filesystem','powershell','terminal','git','build-test','docker','package-manager','windows-services','windows-services-admin','windows-eventlog','windows-process-network','windows-registry','windows-scheduled-tasks','windows-defender-firewall','windows-credential-manager','windows-uac-admin','kubernetes','virtualization','network-admin','storage-admin','infra-provisioning']);},
+    installedCapabilities(){
+      if(installedCache&&Date.now()<installedCacheUntil)return [...installedCache];
       const caps=['filesystem'];
+      const test=(cap,names)=>{if(names.some(commandExists))caps.push(cap);};
       if(shell)caps.push('powershell');
       if(shell||cmd)caps.push('terminal');
-      if(commandExists('git'))caps.push('git');
-      if(['node','python','py','cargo'].some(commandExists))caps.push('build-test');
-      if(commandExists('docker'))caps.push('docker');
-      if(commandExists('winget')||commandExists('choco'))caps.push('package-manager');
-      if(commandExists('sc.exe')||commandExists('sc'))caps.push('windows-services');
-      if(commandExists('wevtutil'))caps.push('windows-eventlog');
-      if(commandExists('tasklist')||commandExists('netstat'))caps.push('windows-process-network');
-      return uniqueCapabilities(caps);
+      test('git',['git']);test('build-test',['node','python','py','cargo']);test('docker',['docker']);
+      test('package-manager',['winget','choco']);test('windows-services',['sc.exe','sc']);
+      test('windows-services-admin',['sc.exe','sc']);test('windows-eventlog',['wevtutil']);
+      test('windows-process-network',['tasklist','netstat']);test('windows-registry',['reg.exe']);
+      test('windows-scheduled-tasks',['schtasks.exe']);test('windows-defender-firewall',['netsh.exe']);
+      test('windows-credential-manager',['cmdkey.exe']);test('windows-uac-admin',['runas.exe']);
+      test('kubernetes',['kubectl','helm']);test('virtualization',['wsl.exe','VBoxManage.exe']);
+      test('network-admin',['netsh.exe']);test('storage-admin',['diskpart.exe']);test('infra-provisioning',['terraform.exe','tofu.exe','pulumi.exe']);
+      installedCache=uniqueCapabilities(caps);
+      installedCacheUntil=Date.now()+60_000;
+      return [...installedCache];
     },
+    invalidateInstalledCapabilities(){installedCache=null;installedCacheUntil=0;},
     inferRequiredCapabilities(script,{shell:requestedShell='default'}={}) {
       // An explicitly selected cmd.exe shell must not require the separate
       // PowerShell capability; it requires terminal shell authority instead.
       const shellCapability=String(requestedShell||'default').toLowerCase()==='cmd'
        ?'terminal':'powershell';
-      return uniqueCapabilities(['filesystem',shellCapability,...inferCapabilities(script,RULES)]);
+      return uniqueCapabilities(['filesystem',shellCapability,...inferCapabilities(scopedInstaller(script)||script,RULES)]);
     },
     hardDeny(script) {
       const text=String(script||'');

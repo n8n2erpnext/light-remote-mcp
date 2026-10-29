@@ -4,16 +4,23 @@ on:
   push:
     branches:
       - 'feature/light-remote-gold-rebuild-20261018'
+      - 'feature/gold-m6-integrated-20261023' # isolated Gold M6 + owner permissions integration CI
+      - 'feature/gold-memory-reader-codex-win-20261025' # owner-scoped Memory Library and Windows Codex runtime
+      - 'feature/gold-navigation-codex-managed-memory-delete-20261025' # isolated Gold Wall navigation and optional runtime
+      - 'feature/gold-memory-completion-20261026' # scoped Memory lifecycle and Codex task CRUD
+      - 'fix/gold-pulse-stale-lock-20261025' # signed channel and crash-lock UAT regression
     paths:
       - 'operator-host/**'
       - 'plugin-server/tools.mjs'
       - 'plugin-server/tool-helper.mjs'
+      - 'plugin-server/device-public.mjs'
       - 'plugin-server/tool-error-classification.mjs'
       - 'deploy/scripts/selftest-gold-tool-error-origin.mjs'
       - 'device-agent/**'
       - 'lib/**'
       - 'client/core-files.json'
       - 'deploy/scripts/selftest-g3-*.mjs'
+      - 'deploy/scripts/selftest-gold-wall-close-session-*.mjs'
       - 'deploy/scripts/selftest-g4-*.mjs'
       - 'deploy/scripts/selftest-g5-*.mjs'
       - 'deploy/scripts/selftest-gold-multi-agent-entitlement.mjs'
@@ -33,10 +40,15 @@ on:
       - 'deploy/scripts/selftest-gold-m5-isolated-worker-core.mjs'
       - 'deploy/scripts/selftest-gold-fleet-jobs-m6.mjs'
       - 'deploy/scripts/selftest-gold-m6-process-stop.mjs'
+      - 'deploy/scripts/selftest-gold-m6-owner-orphan-recovery.mjs'
+      - 'deploy/scripts/selftest-gold-native-device-fk-removal.mjs'
+      - 'deploy/scripts/selftest-gold-windows-wall-nonblocking-inventory.mjs'
+      - 'deploy/scripts/selftest-gold-owner-filesystem-roots.mjs'
       - 'deploy/scripts/selftest-gold-m6-resource-metrics.mjs'
       - 'deploy/scripts/selftest-gold-m6-terminal-replay.mjs'
       - 'deploy/scripts/selftest-gold-m6-native-terminal-spool.mjs'
       - 'deploy/scripts/selftest-gold-m6-device-telemetry.mjs'
+      - 'deploy/scripts/selftest-gold-owner-permission-authorization.mjs'
       - 'deploy/scripts/gold-m6-uat-four-service-cutover.sh'
       - 'lib/device-resource-telemetry.mjs'
       - 'lib/native-terminal-receipt-spool.mjs'
@@ -81,10 +93,27 @@ jobs:
           done
           node deploy/scripts/selftest-g3-fleet-channel-stale-inflight.mjs
           node deploy/scripts/selftest-g3-command-liveness-pulse.mjs
+          node deploy/scripts/selftest-g3-agent-state-lock-recovery.mjs
+          node deploy/scripts/selftest-gold-memory-reader-export.mjs
+          node deploy/scripts/selftest-gold-codex-binary-discovery.mjs
+          node deploy/scripts/selftest-gold-wall-navigation.mjs
+          node deploy/scripts/selftest-gold-no-native-browser-dialogs.mjs
+          node deploy/scripts/selftest-gold-managed-codex-runtime.mjs
+          node deploy/scripts/selftest-gold-memory-delete-settings.mjs
+          node deploy/scripts/selftest-gold-client-core-imports.mjs
+          node deploy/scripts/selftest-gold-memory-scope-management.mjs
+          node deploy/scripts/selftest-gold-memory-account-delete.mjs
+          node deploy/scripts/selftest-gold-codex-task-management.mjs
+          node deploy/scripts/selftest-gold-codex-supervisor.mjs
+          node deploy/scripts/selftest-gold-codex-coordinator.mjs
+          node deploy/scripts/selftest-gold-wall-close-session-cache.mjs "$PWD"
+          node deploy/scripts/selftest-gold-wall-close-session-http.mjs
           node deploy/scripts/selftest-g3-duplex-halfopen-watchdog.mjs
           node deploy/scripts/selftest-g3-duplex-ready-timeout-diagnostic.mjs
           node deploy/scripts/selftest-g3-gold-preview-stream-config.mjs
           node deploy/scripts/selftest-g3-redis-wall-status-rate.mjs
+          node deploy/scripts/selftest-gold-windows-wall-nonblocking-inventory.mjs
+          node deploy/scripts/selftest-gold-owner-filesystem-roots.mjs
           node deploy/scripts/selftest-g3-ab-control-lane-lookup.mjs
           node deploy/scripts/selftest-g3-command-transport-provenance.mjs
           node deploy/scripts/selftest-g3-agent-inline-stdout.mjs
@@ -113,6 +142,8 @@ jobs:
           node --check device-agent/fleet-wall-runtime.mjs
           node deploy/scripts/selftest-gold-fleet-jobs-m6.mjs
           node deploy/scripts/selftest-gold-m6-process-stop.mjs
+          node deploy/scripts/selftest-gold-m6-owner-orphan-recovery.mjs
+          node deploy/scripts/selftest-gold-native-device-fk-removal.mjs
           node --check lib/gold-device-resource-metrics.mjs
           node deploy/scripts/selftest-gold-m6-resource-metrics.mjs
           node --check deploy/scripts/apply-gold-db.mjs
@@ -121,6 +152,7 @@ jobs:
           node deploy/scripts/selftest-gold-m6-native-terminal-spool.mjs
           node --check lib/device-resource-telemetry.mjs
           node deploy/scripts/selftest-gold-m6-device-telemetry.mjs
+          node deploy/scripts/selftest-gold-owner-permission-authorization.mjs
           bash -n deploy/scripts/gold-m6-uat-four-service-cutover.sh
           node deploy/scripts/selftest-v10-light-scp-file.mjs
           node deploy/scripts/selftest-v10-light-scp-owner.mjs
