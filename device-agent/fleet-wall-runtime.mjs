@@ -179,7 +179,7 @@ async function start(){
     if(req.method==='GET'&&url.pathname==='/api/jobs'){
       const limit=Math.max(1,Math.min(Number(url.searchParams.get('limit'))||100,200));
       const value=await fleetCall('fleet-jobs',{limit});
-      return json(res,200,{ok:true,mainDeviceId:value.mainDeviceId,jobs:value.jobs||[]});
+      return json(res,200,{ok:true,mainDeviceId:value.mainDeviceId,jobs:value.jobs||[],resources:value.resources||[],staleClaimStatus:value.staleClaimStatus||{mode:'diagnostic_only',available:false},staleClaims:value.staleClaims||[]});
     }
     if(req.method==='GET'&&url.pathname==='/api/sessions'){const value=await fleetCall('fleet-sessions');return json(res,200,{ok:true,mainDeviceId:value.mainDeviceId,sessions:value.sessions||[]});}
     if(req.method==='GET'&&url.pathname==='/api/activity'){
