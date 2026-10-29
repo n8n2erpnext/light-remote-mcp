@@ -283,8 +283,9 @@ jobs:
           $updaterStage = Join-Path $PWD 'dist\windows\updater'
           $updater = Join-Path $updaterStage 'LightRemote.Updater.exe'
           $cacheProbe = Join-Path $env:RUNNER_TEMP 'gold-updater-cache-fixture.json'
-          & $updater --cache-self-test-output $cacheProbe
-          if ($LASTEXITCODE -ne 0) { throw 'Independent updater verified-cache executable self-test failed' }
+          $cacheSelf = Start-Process -FilePath $updater -ArgumentList @('--cache-self-test-output',$cacheProbe) -PassThru
+          if (-not $cacheSelf.WaitForExit(30000)) { Stop-Process -Id $cacheSelf.Id -Force -ErrorAction SilentlyContinue; throw 'Independent updater cache self-test hung' }
+          if ($cacheSelf.ExitCode -ne 0 -or -not (Test-Path $cacheProbe)) { throw "Independent updater cache self-test failed exit=$($cacheSelf.ExitCode)" }
           $cacheOutcome = Get-Content $cacheProbe -Raw | ConvertFrom-Json
           if (-not $cacheOutcome.ok -or -not $cacheOutcome.validCacheAccepted -or -not $cacheOutcome.tamperRejected -or -not $cacheOutcome.lengthRejected) {
             throw 'Independent updater trusted cache accepted corruption or invalid length'
