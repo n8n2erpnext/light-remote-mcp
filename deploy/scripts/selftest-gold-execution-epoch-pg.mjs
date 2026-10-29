@@ -151,9 +151,16 @@ try{
   assert.equal(firstReboot.ready,false,'partial reboot inventory cannot open execution gate');
   await assert.rejects(()=>A.assertReady({accountId,deviceId,connectionId:successorConnection,
     instanceId:'ei_fixture_process_5'}),/execution_inventory_not_reconciled/);
-  const completeReboot=await A.recordInventory({accountId,deviceId,
-    connectionId:successorConnection,statement:rebootPages[1],devicePublicKey:deviceKeys.publicKey});
-  assert.equal(completeReboot.ready,true);
+  const bothFinal=await Promise.all([
+    A.recordInventory({accountId,deviceId,connectionId:successorConnection,
+      statement:rebootPages[1],devicePublicKey:deviceKeys.publicKey}),
+    B.recordInventory({accountId,deviceId,connectionId:successorConnection,
+      statement:rebootPages[1],devicePublicKey:deviceKeys.publicKey})
+  ]);
+  assert.ok(bothFinal.every(row=>row.ready===true));
+  assert.equal(bothFinal.filter(row=>row.idempotent===true).length,1,
+    'two Operators racing to commit final page must converge to one immutable inventory');
+  assert.equal(bothFinal[0].digest,bothFinal[1].digest);
   await B.assertReady({accountId,deviceId,connectionId:successorConnection,
     instanceId:'ei_fixture_process_5'});
   await assert.rejects(()=>B.recordInventory({accountId,deviceId,connectionId,
@@ -163,6 +170,7 @@ try{
   assert.equal((await poolA.query('SELECT count(*)::int n FROM lr_gold_terminal_receipt_acks')).rows[0].n,0);
   console.log(JSON.stringify({ok:true,postgresql:true,operators:2,monotonicEpoch:5,
     rotatedConnectionFenced:true,partialRebootInventoryDenied:true,readyAfterAllSignedPages:true,
+    concurrentFinalPageIdempotent:true,
     identicalSnapshotReplayIdempotent:true,conflictingSnapshotRejected:true,oldSnapshotHashPinned:true,
     duplicateConcurrentIssuance:1,oneTimePgEffectStart:true,oldEpochCommandDenied:true,staleInventoryDenied:true,
     journalFsyncRecovery:true,realNativeOSProcessStartedOnce:true,signedInventoryPages:2,terminalAcksCreated:0,sourceOnly:true}));
