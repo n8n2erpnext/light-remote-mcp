@@ -51,10 +51,12 @@ internal static class AgentHost
             EventHandler? exitHandler = null;
             IntPtr job = IntPtr.Zero;
             var uptime = Stopwatch.StartNew();
+            string? bootRecoveryPath = null;
+            using var bootRecoveryCancel = new CancellationTokenSource();
             try
             {
                 job = CreateKillOnCloseJob();
-                var psi = CreateStartInfo();
+                var psi = CreateStartInfo(out bootRecoveryPath);
                 child = new Process { StartInfo = psi, EnableRaisingEvents = true };
                 child.OutputDataReceived += (_, e) => { if (e.Data is not null) Log("OUT", e.Data); };
                 child.ErrorDataReceived += (_, e) => { if (e.Data is not null) Log("ERR", e.Data); };
@@ -68,6 +70,11 @@ internal static class AgentHost
                 }
                 child.BeginOutputReadLine();
                 child.BeginErrorReadLine();
+                if (bootRecoveryPath is not null)
+                {
+                    var recoveryToken = bootRecoveryCancel.Token;
+                    _ = Task.Run(() => WindowsBootEvidence.RecoverAsync(bootRecoveryPath, recoveryToken));
+                }
                 Log("SYS", $"agent host started host={Environment.ProcessId} child={child.Id} job=kill-on-close");
                 child.WaitForExit();
                 Log("SYS", $"agent child exited code={child.ExitCode} child={child.Id}");
@@ -78,6 +85,8 @@ internal static class AgentHost
             }
             finally
             {
+                bootRecoveryCancel.Cancel();
+                WindowsBootEvidence.DeleteRecoveryFile(bootRecoveryPath);
                 if (exitHandler is not null) AppDomain.CurrentDomain.ProcessExit -= exitHandler;
                 StopChild(child);
                 child?.Dispose();
@@ -118,7 +127,7 @@ internal static class AgentHost
         finally { Marshal.FreeHGlobal(ptr); }
     }
 
-    private static ProcessStartInfo CreateStartInfo()
+    private static ProcessStartInfo CreateStartInfo(out string? bootRecoveryPath)
     {
         if (!File.Exists(AppPaths.NodeExe)) throw new FileNotFoundException("Bundled Node runtime is missing.", AppPaths.NodeExe);
         if (!File.Exists(AppPaths.AgentScript)) throw new FileNotFoundException("Bundled operator agent is missing.", AppPaths.AgentScript);
@@ -139,7 +148,7 @@ internal static class AgentHost
         psi.Environment["OPERATOR_AGENT_BASE_URL"] = connection.BridgeUrl;
         psi.Environment["OPERATOR_AGENT_HUB_URL"] = connection.HubUrl;
         ConfigureRealRemoteEnvironment(psi);
-        WindowsBootEvidence.Configure(psi);
+        bootRecoveryPath = WindowsBootEvidence.Configure(psi);
         return psi;
     }
 

@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import crypto from 'node:crypto';
-import {sampleWindowsBootEvidence,sanitizeWindowsBootEvidence,nativeWindowsBootFromHost} from '../../lib/device-boot-telemetry.mjs';
+import {sampleWindowsBootEvidence,sanitizeWindowsBootEvidence,nativeWindowsBootFromHost,nativeWindowsBootFromRecoveryFile} from '../../lib/device-boot-telemetry.mjs';
 import {GoldDeviceBootObservations} from '../../operator-host/gold-device-boot-observations.mjs';
 
 const now=1793244000000, boot=now-7200000;
@@ -23,6 +25,38 @@ assert.equal(sanitizeWindowsBootEvidence(nativeSample,{now}).nativeBootAtMs,boot
 assert.equal(nativeWindowsBootFromHost({...nativeEnv,LIGHT_REMOTE_NATIVE_BOOT_SOURCE:'powershell'},{sampledAtMs:now}),null);
 assert.equal(nativeWindowsBootFromHost({...nativeEnv,LIGHT_REMOTE_NATIVE_BOOT_AT_MS:'1;whoami'},{sampledAtMs:now}),null);
 assert.equal(nativeWindowsBootFromHost({...nativeEnv,LIGHT_REMOTE_NATIVE_BOOT_OBSERVED_AT_MS:String(now+50000)},{sampledAtMs:now}),null);
+
+// Physical cold-boot regression: WMI is unavailable at native daemon startup,
+// then becomes available later WITHOUT restarting Node or dispatching M4 work.
+const scratch=fs.mkdtempSync(path.join(os.tmpdir(),'lr-p0-boot-'));
+const recoveryDir=path.join(scratch,'GPTOperatorAgent');
+fs.mkdirSync(recoveryDir);
+const recoveryPath=path.join(recoveryDir,'native-boot-'+crypto.randomBytes(16).toString('hex')+'.json');
+const recoveryEnv={LIGHT_REMOTE_NATIVE_BOOT_RECOVERY_PATH:recoveryPath};
+const lateSample=()=>sampleWindowsBootEvidence({platform:'win32',clock:()=>now,
+  uptime:()=>7200,agentUptime:()=>180,nativeEnv:recoveryEnv});
+try{
+  assert.equal(lateSample().nativeBootAtMs,undefined,'missing startup WMI must fail open for heartbeat only');
+  const storeCache=(value)=>fs.writeFileSync(recoveryPath,JSON.stringify(value));
+  storeCache({nativeSource:'win32_wmi_lastbootuptime',nativeBootAtMs:boot,
+    nativeObservedAtMs:now-30000});
+  assert.equal(nativeWindowsBootFromRecoveryFile(recoveryEnv,{sampledAtMs:now}).nativeBootAtMs,boot);
+  assert.equal(lateSample().nativeConsistency,'consistent');
+  assert.equal(sanitizeWindowsBootEvidence(lateSample(),{now}).releaseEligible,undefined);
+  storeCache({nativeSource:'powershell',nativeBootAtMs:boot,nativeObservedAtMs:now-30000});
+  assert.equal(lateSample().nativeBootAtMs,undefined,'must reject source spoofing');
+  storeCache({nativeSource:'win32_wmi_lastbootuptime',nativeBootAtMs:boot,
+    nativeObservedAtMs:now+40000});
+  assert.equal(lateSample().nativeBootAtMs,undefined,'must reject future WMI timestamp');
+  fs.writeFileSync(recoveryPath,' '.repeat(600));
+  assert.equal(lateSample().nativeBootAtMs,undefined,'oversized cache must be rejected');
+  assert.equal(nativeWindowsBootFromRecoveryFile({
+    LIGHT_REMOTE_NATIVE_BOOT_RECOVERY_PATH:path.join(scratch,'wrong.json')
+  },{sampledAtMs:now}),null,'only trusted per-daemon path pattern may be read');
+  fs.unlinkSync(recoveryPath);
+  assert.equal(lateSample().nativeBootAtMs,undefined,'no stale native evidence after cache is removed');
+}finally{fs.rmSync(scratch,{recursive:true,force:true});}
+console.log('BOOT_COLD_START_RECOVERY_WITHOUT_DAEMON_RESTART_OR_M4_PASS');
 const diverged=sampleWindowsBootEvidence({platform:'win32',clock:()=>now,
   uptime:()=>7200,agentUptime:()=>180,nativeEnv:{...nativeEnv,LIGHT_REMOTE_NATIVE_BOOT_AT_MS:String(boot+3600000)}});
 assert.equal(diverged.nativeConsistency,'divergent');
@@ -86,6 +120,15 @@ assert.equal((await restarted.inspect({accountId:'acct-A',deviceId:'win11'})).re
 assert.ok(calls.every(x=>!/(?:DELETE|UPDATE)\s+lr_gold_(?:device_resource_claims|terminal_receipt_acks)/i.test(x)));
 console.log('BOOT_STORE_ISOLATION_REPLAY_RESTART_STALE_AND_NO_UNLOCK=PASS');
 
+const nativeHost=fs.readFileSync('client/windows-native/GptOperator.Client/WindowsBootEvidence.cs','utf8');
+const scheduler=fs.readFileSync('client/windows-native/GptOperator.Client/AgentHost.cs','utf8');
+const tray=fs.readFileSync('client/windows-native/GptOperator.Client/AgentSupervisor.cs','utf8');
+assert.match(nativeHost,/RecoveryAttempts = 12/);
+assert.match(nativeHost,/Task.Delay\(RetryInterval, cancellationToken\)/);
+assert.match(nativeHost,/File.Move\(temporary, path, overwrite: true\)/);
+assert.match(scheduler,/Task.Run\(\(\) => WindowsBootEvidence.RecoverAsync/);
+assert.match(tray,/Task.Run\(\(\) => WindowsBootEvidence.RecoverAsync/);
+assert.doesNotMatch(nativeHost,/Process.Start\(|powershell.exe|wmic.exe|cmd.exe/i);
 const agent=fs.readFileSync('device-agent/operator-agent.mjs','utf8');
 const routes=fs.readFileSync('operator-host/executor-routes-device-channel.mjs','utf8');
 const account=fs.readFileSync('operator-host/executor-routes-account.mjs','utf8');

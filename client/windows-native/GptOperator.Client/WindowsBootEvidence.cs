@@ -5,21 +5,22 @@ using System.Text.Json;
 
 namespace GptOperator.Client;
 
-// WMI is queried directly in the already-trusted native host before Node
-// startup. No PowerShell/WMIC, arbitrary command text, M4 scheduler dispatch,
-// or remote execution path is involved. This is OS-reported health telemetry,
-// not hardware attestation or signed evidence that old work completed.
+// Fixed, OS-local WMI health observation by the trusted native host. Neither
+// boot timestamps nor the recovery cache attest process exit or release M4 locks.
+// No PowerShell, WMIC, scheduler job or remote command is used.
 internal static class WindowsBootEvidence
 {
     internal const string BootTimeKey = "LIGHT_REMOTE_NATIVE_BOOT_AT_MS";
     internal const string ObservedTimeKey = "LIGHT_REMOTE_NATIVE_BOOT_OBSERVED_AT_MS";
     internal const string SourceKey = "LIGHT_REMOTE_NATIVE_BOOT_SOURCE";
+    internal const string RecoveryPathKey = "LIGHT_REMOTE_NATIVE_BOOT_RECOVERY_PATH";
     internal const string Source = "win32_wmi_lastbootuptime";
     private static readonly TimeSpan CaptureDeadline = TimeSpan.FromSeconds(3);
+    private const int RecoveryAttempts = 12;
+    private static readonly TimeSpan RetryInterval = TimeSpan.FromSeconds(15);
 
     internal static long? Validate(long bootAtMs, long observedAtMs)
     {
-        // Tolerate a small source/host clock offset but reject impossible dates.
         const long year2020 = 1577836800000L;
         if (bootAtMs < year2020 || observedAtMs < year2020 ||
             bootAtMs > observedAtMs + 30000L || observedAtMs > DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + 30000L)
@@ -58,8 +59,7 @@ internal static class WindowsBootEvidence
 
     internal static (long BootAtMs, long ObservedAtMs)? Capture()
     {
-        // WMI can be slow or unavailable on consumer Windows PCs. A health
-        // sample must NEVER block the Agent host or prevent remote connectivity.
+        // The daemon must remain available even if WMI hangs during cold boot.
         try
         {
             var task = Task.Run(CaptureDirect);
@@ -68,17 +68,68 @@ internal static class WindowsBootEvidence
         catch { return null; }
     }
 
-    internal static void Configure(ProcessStartInfo psi)
+    // Return a unique, per-daemon recovery path ONLY if startup WMI is missing.
+    // The Node child can read this narrow file after the native host recovers
+    // WMI; the host never restarts an active daemon to repair health telemetry.
+    internal static string? Configure(ProcessStartInfo psi)
     {
-        // Never inherit user-controlled/injected evidence through process env.
         psi.Environment.Remove(BootTimeKey);
         psi.Environment.Remove(ObservedTimeKey);
         psi.Environment.Remove(SourceKey);
+        psi.Environment.Remove(RecoveryPathKey);
         var observation = Capture();
-        if (observation is null) return;
-        psi.Environment[BootTimeKey] = observation.Value.BootAtMs.ToString(CultureInfo.InvariantCulture);
-        psi.Environment[ObservedTimeKey] = observation.Value.ObservedAtMs.ToString(CultureInfo.InvariantCulture);
-        psi.Environment[SourceKey] = Source;
+        if (observation is not null)
+        {
+            psi.Environment[BootTimeKey] = observation.Value.BootAtMs.ToString(CultureInfo.InvariantCulture);
+            psi.Environment[ObservedTimeKey] = observation.Value.ObservedAtMs.ToString(CultureInfo.InvariantCulture);
+            psi.Environment[SourceKey] = Source;
+            return null;
+        }
+        try
+        {
+            Directory.CreateDirectory(AppPaths.LocalData);
+            var path = Path.Combine(AppPaths.LocalData, "native-boot-" + Guid.NewGuid().ToString("N") + ".json");
+            psi.Environment[RecoveryPathKey] = path;
+            return path;
+        }
+        catch (IOException) { return null; }
+        catch (UnauthorizedAccessException) { return null; }
+    }
+
+    internal static async Task RecoverAsync(string path, CancellationToken cancellationToken)
+    {
+        var temporary = path + ".tmp";
+        try
+        {
+            for (var attempt = 0; attempt < RecoveryAttempts; attempt++)
+            {
+                if (attempt > 0) await Task.Delay(RetryInterval, cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
+                var observation = Capture();
+                if (observation is null) continue;
+                var payload = JsonSerializer.Serialize(new
+                {
+                    nativeSource = Source,
+                    nativeBootAtMs = observation.Value.BootAtMs,
+                    nativeObservedAtMs = observation.Value.ObservedAtMs
+                });
+                await File.WriteAllTextAsync(temporary, payload, cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
+                File.Move(temporary, path, overwrite: true);
+                return;
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
+        finally { try { File.Delete(temporary); } catch { } }
+    }
+
+    internal static void DeleteRecoveryFile(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return;
+        try { File.Delete(path); } catch { }
+        try { File.Delete(path + ".tmp"); } catch { }
     }
 
     internal static bool SelfTest(string destination)
@@ -86,7 +137,8 @@ internal static class WindowsBootEvidence
         var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         var valid = Validate(now - 3600000, now) is not null &&
                     Validate(now + 3600000, now) is null &&
-                    Validate(0, now) is null;
+                    Validate(0, now) is null &&
+                    RecoveryAttempts > 0 && RetryInterval > TimeSpan.Zero;
         var osRead = Capture();
         var result = new
         {

@@ -28,6 +28,8 @@ internal sealed class AgentSupervisor : IDisposable
     private readonly object _gate = new();
     private Process? _daemon;
     private CancellationTokenSource? _restartCts;
+    private CancellationTokenSource? _bootRecoveryCts;
+    private string? _bootRecoveryPath;
     private int _restartFailures;
     private bool _disposed;
     private bool _serviceDesired = true;
@@ -107,6 +109,7 @@ internal sealed class AgentSupervisor : IDisposable
         _restartCts?.Cancel();
         lock (_gate)
         {
+            StopBootRecovery();
             if (_daemon is { HasExited: false })
             {
                 try { _daemon.Kill(entireProcessTree: true); } catch { }
@@ -134,14 +137,26 @@ internal sealed class AgentSupervisor : IDisposable
             var psi = BaseStartInfo();
             psi.ArgumentList.Add(AppPaths.AgentScript);
             psi.ArgumentList.Add("daemon");
-            WindowsBootEvidence.Configure(psi);
+            StopBootRecovery();
+            var bootRecoveryPath = WindowsBootEvidence.Configure(psi);
             var process = new Process { StartInfo = psi, EnableRaisingEvents = true };
             process.OutputDataReceived += (_, e) => { if (e.Data != null) AppendLog("OUT", e.Data); };
             process.ErrorDataReceived += (_, e) => { if (e.Data != null) AppendLog("ERR", e.Data); };
             process.Exited += (_, _) => OnDaemonExited(process);
-            if (!process.Start()) throw new InvalidOperationException("Could not start operator agent.");
+            if (!process.Start())
+            {
+                WindowsBootEvidence.DeleteRecoveryFile(bootRecoveryPath);
+                throw new InvalidOperationException("Could not start operator agent.");
+            }
             process.BeginOutputReadLine(); process.BeginErrorReadLine();
             _daemon = process; _restartFailures = 0; LastError = null;
+            _bootRecoveryPath = bootRecoveryPath;
+            if (bootRecoveryPath is not null)
+            {
+                _bootRecoveryCts = new CancellationTokenSource();
+                var recoveryToken = _bootRecoveryCts.Token;
+                _ = Task.Run(() => WindowsBootEvidence.RecoverAsync(bootRecoveryPath, recoveryToken));
+            }
         }
         Changed?.Invoke();
     }
@@ -152,7 +167,11 @@ internal sealed class AgentSupervisor : IDisposable
         AppendLog("SYS", $"agent exited code={exitCode}");
         lock (_gate)
         {
-            if (ReferenceEquals(_daemon, process)) _daemon = null;
+            if (ReferenceEquals(_daemon, process))
+            {
+                _daemon = null;
+                StopBootRecovery();
+            }
         }
         process.Dispose();
         Changed?.Invoke();
@@ -167,6 +186,15 @@ internal sealed class AgentSupervisor : IDisposable
             if (_serviceDesired && !_disposed) StartDaemon();
         }
         catch (OperationCanceledException) { }
+    }
+
+    private void StopBootRecovery()
+    {
+        _bootRecoveryCts?.Cancel();
+        _bootRecoveryCts?.Dispose();
+        _bootRecoveryCts = null;
+        WindowsBootEvidence.DeleteRecoveryFile(_bootRecoveryPath);
+        _bootRecoveryPath = null;
     }
 
     private static ProcessStartInfo BaseStartInfo()
@@ -257,7 +285,7 @@ internal sealed class AgentSupervisor : IDisposable
     public void Dispose()
     {
         _disposed = true; _serviceDesired = false; DesiredConnected = false; _restartCts?.Cancel();
-        lock (_gate) { try { if (_daemon is { HasExited: false }) _daemon.Kill(true); } catch { } _daemon?.Dispose(); _daemon = null; }
+        lock (_gate) { StopBootRecovery(); try { if (_daemon is { HasExited: false }) _daemon.Kill(true); } catch { } _daemon?.Dispose(); _daemon = null; }
         _restartCts?.Dispose();
     }
 }
