@@ -22,7 +22,8 @@ function readClaim(jobId){
      WHERE co.device_id=c.device_id AND co.account_id=c.account_id
        AND co.closed_at IS NULL AND co.hard_expires_at>NOW()),
    'ackPresent',EXISTS(SELECT 1 FROM lr_gold_terminal_receipt_acks a
-     WHERE a.account_id=c.account_id AND a.device_id=c.device_id AND a.process_id=c.process_id)
+     WHERE a.account_id=c.account_id AND a.device_id=c.device_id
+       AND (a.job_id=c.job_id OR (c.process_id IS NOT NULL AND a.process_id=c.process_id)))
  ) FROM lr_gold_device_resource_claims c
  JOIN lr_gold_job_records j ON j.job_id=c.job_id AND j.account_id=c.account_id AND j.device_id=c.device_id
  JOIN lr_devices d ON d.device_id=c.device_id${exactOrphanClaimWhere(jobId)}`;
@@ -30,7 +31,9 @@ function readClaim(jobId){
  const lines=raw.split('\n').filter(Boolean);
  assert(lines.length===1,'Expected exactly one claim; refuse ambiguous selection.');
  const claim=JSON.parse(lines[0]);
- assert(claim.workerState==='running'&&claim.launchStatus==='ok'&&!claim.ackPresent,
+ const launched=claim.workerState==='running'&&claim.launchStatus==='ok';
+ const admissionUnknown=claim.workerState==='terminal_unknown'&&claim.launchStatus==='interrupted';
+ assert((launched||admissionUnknown)&&!claim.ackPresent,
   'Claim changed, no longer eligible, or has a terminal ACK.');
  return claim;
 }
@@ -82,7 +85,7 @@ async function main(){
  assert(hostname==='light-remote-gold-uat','Not the Gold UAT container.');
  const claim=readClaim(requireOrphanJobId(process.argv.slice(2)));
  stdout.write('Gold UAT administrative orphan recovery (never creates a terminal ACK)\n');
- stdout.write('Claimed at: '+claim.claimedAt+'; Device label: '+String(claim.deviceLabel||'unknown')+'; Device state: '+claim.deviceState+'\n');
+ stdout.write('Claimed at: '+claim.claimedAt+'; Worker state: '+claim.workerState+'; Device label: '+String(claim.deviceLabel||'unknown')+'; Device state: '+claim.deviceState+'\n');
  stdout.write('Result will remain UNKNOWN. No claim is released until authenticated owner confirmation.\n');
  const rl=createInterface({input:stdin,output:stdout,terminal:true});
  let email,bootText,reason,confirm;
