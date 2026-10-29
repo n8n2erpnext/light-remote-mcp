@@ -79,7 +79,7 @@ try{
   // All journal records must be represented across signed 128-record pages.
   // No single truncated last-64 inventory is ever treated as complete.
   for(let i=0;i<130;i++){
-    const id='cmd_fixture_'+String(i).padStart(20,'0');
+    const id='cmd_fixture-'+String(i).padStart(20,'0');
     journal.rows.set(id,{commandId:id,jobId:crypto.randomUUID(),processId:null,
       operationId:'op_fixture_'+String(i).padStart(20,'0'),executionEpoch:'1',
       state:'reserved',startedAt:Date.now()-1000});

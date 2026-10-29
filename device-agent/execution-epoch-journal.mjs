@@ -132,7 +132,7 @@ export class AgentExecutionEpochJournal {
     const snapshotId=crypto.randomBytes(16).toString('hex');
     const pages=[];
     for(let i=0;i<count;i++){
-      const processes=rows.slice(i*128,(i+1)*128).map(row=>({jobId:row.jobId,processId:row.processId,
+      const processes=rows.slice(i*128,(i+1)*128).map(row=>({commandId:row.commandId,jobId:row.jobId,processId:row.processId,
         operationId:row.operationId,state:row.state,startedAt:row.startedAt,
         ...(Number.isSafeInteger(row.pid)?{pid:row.pid}:{}),
         ...(Number.isSafeInteger(row.nativeStartedAt)?{nativeStartedAt:row.nativeStartedAt}:{})}));
