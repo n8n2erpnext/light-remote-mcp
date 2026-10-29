@@ -448,6 +448,18 @@
     {
       "source": "assets/icons/material/visibility_off.svg",
       "destination": "assets/icons/material/visibility_off.svg"
+    },
+    {
+      "source": "device-agent/execution-epoch-journal.mjs",
+      "destination": "device-agent/execution-epoch-journal.mjs"
+    },
+    {
+      "source": "lib/gold-execution-epoch.mjs",
+      "destination": "lib/gold-execution-epoch.mjs"
+    },
+    {
+      "source": "lib/gold-reconnect-proof.mjs",
+      "destination": "lib/gold-reconnect-proof.mjs"
     }
   ]
 }

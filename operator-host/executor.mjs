@@ -115,6 +115,13 @@ const CONNECTION_REAP_MS = Number(process.env.OPERATOR_CONNECTION_REAP_MS || 30 
 const CONNECTION_JOB_GC_ENABLED = process.env.OPERATOR_CONNECTION_JOB_GC_ENABLED==='1';
 // Additive schema041 feature: OFF until signed Agent + PG epoch UAT acceptance.
 const EXECUTION_EPOCH_ENABLED = process.env.OPERATOR_EXECUTION_EPOCH_ENABLED==='1';
+const EXECUTION_EPOCH_ONLY_DEVICE_IDS=Object.hasOwn(process.env,'OPERATOR_EXECUTION_EPOCH_ONLY_DEVICE_IDS')
+ ? String(process.env.OPERATOR_EXECUTION_EPOCH_ONLY_DEVICE_IDS).split(',').map(x=>x.trim()) : null;
+if(EXECUTION_EPOCH_ONLY_DEVICE_IDS&&(!EXECUTION_EPOCH_ONLY_DEVICE_IDS.length||
+ EXECUTION_EPOCH_ONLY_DEVICE_IDS.some(id=>!/^[A-Za-z0-9._:-]{1,160}$/.test(id))))
+ throw Error('gold_execution_epoch_invalid_device_allowlist');
+const requiresExecutionEpoch=deviceId=>EXECUTION_EPOCH_ENABLED&&
+ (EXECUTION_EPOCH_ONLY_DEVICE_IDS===null||EXECUTION_EPOCH_ONLY_DEVICE_IDS.includes(String(deviceId)));
 const CONNECTION_JOB_GC_OFFLINE_MS = Number(process.env.OPERATOR_CONNECTION_JOB_GC_OFFLINE_MS || DEFAULT_OFFLINE_GC_MS);
 const CONNECTION_JOB_GC_SCAN_MS = Math.max(5000,Math.min(300000,Number(process.env.OPERATOR_CONNECTION_JOB_GC_SCAN_MS)||10000));
 const CONNECTION_JOB_GC_BATCH = Math.max(1,Math.min(128,Number(process.env.OPERATOR_CONNECTION_JOB_GC_BATCH)||128));
@@ -445,6 +452,10 @@ connectionReaper.unref();
 // OS effects without a signed terminal receipt retain independent PG fences.
 if(CONNECTION_JOB_GC_ENABLED&&!DEVICE_RESOURCE_LOCKS)throw Error('gold_connection_gc_requires_m4');
 if(CONNECTION_JOB_GC_ENABLED&&!EXECUTION_EPOCH_ENABLED)throw Error('gold_connection_gc_requires_durable_execution_epoch');
+if(CONNECTION_JOB_GC_ENABLED&&EXECUTION_EPOCH_ONLY_DEVICE_IDS!==null&&
+ (!CONNECTION_JOB_GC_ONLY_DEVICE_IDS||
+  CONNECTION_JOB_GC_ONLY_DEVICE_IDS.some(id=>!EXECUTION_EPOCH_ONLY_DEVICE_IDS.includes(id))))
+ throw Error('gold_connection_gc_outside_epoch_device_allowlist');
 let connectionJobGcTicker=null,connectionJobGcBusy=false;
 if(CONNECTION_JOB_GC_ENABLED){
   const reaper=new GoldConnectionJobReaper({
@@ -1571,7 +1582,7 @@ const routeDeps=()=>({
   connectionViewForDevice,connections,decryptEnvelope,deviceView,devices,
   deviceHasHistoricalReferences:deviceId=>goldRegistries.native.accounts.deviceHasHistoricalReferences(deviceId),
   emitStream,enrollments,finishJob,fleet,fleetAuthority,reconcileSignedTerminalProcessReceipts,
-  executionEpochs,EXECUTION_EPOCH_ENABLED,
+  executionEpochs,requiresExecutionEpoch,
   fleetEligibility,fleetTarget,flushDiskRecords,flushGoldRegistries:()=>goldRegistries.flush(),fs,fullOutputFromDisk,
   ingressTelemetry,jobView,jobs,goldJobs,deviceResourceLocks,deviceResourceSampleCache,deviceBootObservations,memorySyncPolicy,memoryAccountDelete,
   inspectOwnerOrphanDevice:options=>deviceResourceLocks.inspectOwnerOrphanDevice(goldStorage.pool,options),

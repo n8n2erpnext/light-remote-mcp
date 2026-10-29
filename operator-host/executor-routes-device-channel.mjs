@@ -7,7 +7,7 @@ import { ownerDeviceResourceMetrics } from '../lib/gold-device-resource-metrics.
 
 
 export async function handleDeviceChannelRoutes(req,res,url,deps){
-  const {ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,DeviceAccessGrantError,DevicePairingRegistryError,EnrollmentError,FleetAuthorityError,FleetError,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,MIN_SUPPORTED_CLIENT_VERSION,NODE_ID,VERSION,abandonedCommandReceiptFromDisk,completedCommandReceiptFromDisk,accessGrants,accounts,agentClients,allDeviceViews,applyDeviceTelemetry,capabilities,clientCompatibility,connectionSpec,connections,deviceView,devices,emitStream,enrollments,finishJob,fleet,fleetAuthority,fleetEligibility,fleetTarget,jobView,jobs,goldJobs,deviceResourceLocks,deviceResourceSampleCache,deviceBootObservations,cancelQueuedPersonalJob,cancelControlJob,deviceStopRequests,requestFleetProcessStop,reconcileSignedTerminalProcessReceipts,executionEpochs,EXECUTION_EPOCH_ENABLED,normalizeUpdateReport,pairingCodes,planEntitlements,pushEvent,queueHelperUpdate,readJson,reapAccessGrants,realRemoteLive,recentEvents,requireDeviceConnection,sendJson,sessions,targetRoute,terminalResultSummary,verifiedChannelContext,verifiedFleetContext,verifiedLeafCapabilities,memorySyncPolicy,memoryAccountDelete,accountNotifications,proTeams}=deps;
+  const {ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,DeviceAccessGrantError,DevicePairingRegistryError,EnrollmentError,FleetAuthorityError,FleetError,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,MIN_SUPPORTED_CLIENT_VERSION,NODE_ID,VERSION,abandonedCommandReceiptFromDisk,completedCommandReceiptFromDisk,accessGrants,accounts,agentClients,allDeviceViews,applyDeviceTelemetry,capabilities,clientCompatibility,connectionSpec,connections,deviceView,devices,emitStream,enrollments,finishJob,fleet,fleetAuthority,fleetEligibility,fleetTarget,jobView,jobs,goldJobs,deviceResourceLocks,deviceResourceSampleCache,deviceBootObservations,cancelQueuedPersonalJob,cancelControlJob,deviceStopRequests,requestFleetProcessStop,reconcileSignedTerminalProcessReceipts,executionEpochs,requiresExecutionEpoch,normalizeUpdateReport,pairingCodes,planEntitlements,pushEvent,queueHelperUpdate,readJson,reapAccessGrants,realRemoteLive,recentEvents,requireDeviceConnection,sendJson,sessions,targetRoute,terminalResultSummary,verifiedChannelContext,verifiedFleetContext,verifiedLeafCapabilities,memorySyncPolicy,memoryAccountDelete,accountNotifications,proTeams}=deps;
   // Boot telemetry uses the authenticated device channel, never the M4
   // scheduler. Errors are isolated from command ACK and cannot free claims.
   const persistBoot=async(ctx,value,agentVersion)=>{
@@ -615,7 +615,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
     // Epoch changes serialize with M4 and GC under the SAME PG advisory lock.
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/execution-epoch') {
       const body=await readJson(req),ctx=await verifiedChannelContext(body,'execution-epoch');
-      if(!EXECUTION_EPOCH_ENABLED)throw new FleetError('execution_epoch_not_enabled',409);
+      if(!requiresExecutionEpoch(ctx.device.deviceId))throw new FleetError('execution_epoch_not_enabled',409);
       const connection=connections.assertConnected(ctx.device.deviceId);
       const grant=await executionEpochs.issue({accountId:ctx.binding.accountId,
         deviceId:ctx.device.deviceId,connectionId:connection.connectionId,
@@ -624,7 +624,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/execution-start') {
       const body=await readJson(req),ctx=await verifiedChannelContext(body,'execution-start');
-      if(!EXECUTION_EPOCH_ENABLED)throw new FleetError('execution_epoch_not_enabled',409);
+      if(!requiresExecutionEpoch(ctx.device.deviceId))throw new FleetError('execution_epoch_not_enabled',409);
       const connection=connections.assertConnected(ctx.device.deviceId);
       const start=await executionEpochs.validateStart({accountId:ctx.binding.accountId,
         deviceId:ctx.device.deviceId,connectionId:connection.connectionId,
@@ -633,7 +633,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/execution-inventory') {
       const body=await readJson(req),ctx=await verifiedChannelContext(body,'execution-inventory');
-      if(!EXECUTION_EPOCH_ENABLED)throw new FleetError('execution_epoch_not_enabled',409);
+      if(!requiresExecutionEpoch(ctx.device.deviceId))throw new FleetError('execution_epoch_not_enabled',409);
       const connection=connections.assertConnected(ctx.device.deviceId);
       const key=crypto.createPublicKey({key:Buffer.from(ctx.binding.publicIdentityKey,'base64'),format:'der',type:'spki'});
       const inventory=await executionEpochs.recordInventory({accountId:ctx.binding.accountId,
@@ -650,7 +650,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
           const reportedRevision=Math.max(0,Number(payload.policyRevision)||0);
           const capabilities=verifiedLeafCapabilities(payload.capabilities,ctx.binding,reportedRevision);
           const connection=connections.assertConnected(ctx.device.deviceId);
-          if(EXECUTION_EPOCH_ENABLED)await executionEpochs.assertReady({accountId:ctx.binding.accountId,
+          if(requiresExecutionEpoch(ctx.device.deviceId))await executionEpochs.assertReady({accountId:ctx.binding.accountId,
             deviceId:ctx.device.deviceId,connectionId:connection.connectionId,instanceId:payload.executionInstanceId});
           devices.heartbeat(ctx.device.deviceId,{capabilities,agentVersion:payload.agentVersion,updateStatus:payload.updateStatus});
           const touchInput={accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,sessionCeiling:payload.sessionCeiling,draining:Boolean(payload.draining),executorReady:payload.executorReady,capabilities,policyRevision:reportedRevision};
@@ -667,8 +667,9 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
         resume:async authorized=>{fleet.resume(authorized.nodeId);},
         poll:async(authorized,wait,shouldStop)=>{
           const result=await fleet.waitPoll(()=>({...authorized.context.touchInput,transport:'device-duplex-v1'}),wait,shouldStop);
-          if(EXECUTION_EPOCH_ENABLED&&result.command){
-            const ctx=authorized.context.ctx,conn=connections.assertConnected(ctx.device.deviceId);
+          const ctx=authorized.context.ctx;
+          if(requiresExecutionEpoch(ctx.device.deviceId)&&result.command){
+            const conn=connections.assertConnected(ctx.device.deviceId);
             result.command=await executionEpochs.authorizeCommand({accountId:ctx.binding.accountId,
               deviceId:ctx.device.deviceId,connectionId:conn.connectionId,
               instanceId:authorized.context.executionInstanceId,command:result.command});
@@ -679,7 +680,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
         onLive:async(authorized,payload)=>acceptDesktopLivePush(authorized.context.ctx,payload),
         onHeartbeat:async(authorized,payload)=>{
           const state=authorized.context,ctx=state.ctx;
-          if(EXECUTION_EPOCH_ENABLED)await executionEpochs.assertReady({accountId:ctx.binding.accountId,
+          if(requiresExecutionEpoch(ctx.device.deviceId))await executionEpochs.assertReady({accountId:ctx.binding.accountId,
             deviceId:ctx.device.deviceId,connectionId:connections.assertConnected(ctx.device.deviceId).connectionId,
             instanceId:state.executionInstanceId});
           const reportedRevision=Math.max(0,Number(payload.policyRevision??state.reportedRevision)||0);
@@ -725,11 +726,11 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       await persistBoot(ctx,ctx.payload.bootEvidence,ctx.payload.agentVersion);
       const terminalReceiptsAck=await reconcileSignedTerminalProcessReceipts(ctx,ctx.payload.processTerminalReceipts);
       const waitMs=Math.max(0,Math.min(Number(ctx.payload.waitMs)||8000,15000));
-      if(EXECUTION_EPOCH_ENABLED)await executionEpochs.assertReady({accountId:ctx.binding.accountId,
+      if(requiresExecutionEpoch(ctx.device.deviceId))await executionEpochs.assertReady({accountId:ctx.binding.accountId,
         deviceId:ctx.device.deviceId,connectionId:connections.assertConnected(ctx.device.deviceId).connectionId,
         instanceId:ctx.payload.executionInstanceId});
       const channel=await fleet.waitPoll({accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,nodeId:ctx.device.nodeId,sessionCeiling:ctx.payload.sessionCeiling,draining:Boolean(ctx.payload.draining),executorReady:ctx.payload.executorReady,capabilities,policyRevision:reportedRevision,transport:'signed-poll-v1'},waitMs);
-      if(EXECUTION_EPOCH_ENABLED&&channel.command){
+      if(requiresExecutionEpoch(ctx.device.deviceId)&&channel.command){
         const connection=connections.assertConnected(ctx.device.deviceId);
         channel.command=await executionEpochs.authorizeCommand({accountId:ctx.binding.accountId,
           deviceId:ctx.device.deviceId,connectionId:connection.connectionId,
