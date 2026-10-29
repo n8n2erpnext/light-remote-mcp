@@ -63,6 +63,7 @@ on:
       - 'deploy/scripts/selftest-gold-memory-scope-management.mjs'
       - 'deploy/scripts/selftest-gold-codex-task-management.mjs'
       - 'deploy/scripts/selftest-gold-client-core-imports.mjs'
+      - 'deploy/scripts/selftest-gold-p0-win11-boot-telemetry.mjs' # additive schema boot regression test
       - 'client/core-files.json'
       - 'plugin-server/device-public.mjs'
       - 'deploy/scripts/selftest-g3-duplex-ready-timeout-diagnostic.mjs'
@@ -281,6 +282,14 @@ jobs:
           $agentRoot = Join-Path $stage 'agent'
           $updaterStage = Join-Path $PWD 'dist\windows\updater'
           $updater = Join-Path $updaterStage 'LightRemote.Updater.exe'
+          $cacheProbe = Join-Path $env:RUNNER_TEMP 'gold-updater-cache-fixture.json'
+          & $updater --cache-self-test-output $cacheProbe
+          if ($LASTEXITCODE -ne 0) { throw 'Independent updater verified-cache executable self-test failed' }
+          $cacheOutcome = Get-Content $cacheProbe -Raw | ConvertFrom-Json
+          if (-not $cacheOutcome.ok -or -not $cacheOutcome.validCacheAccepted -or -not $cacheOutcome.tamperRejected -or -not $cacheOutcome.lengthRejected) {
+            throw 'Independent updater trusted cache accepted corruption or invalid length'
+          }
+          Write-Host 'gold-windows-update-verified-prefetch-cache=PASS'
           node deploy/scripts/stage-client-core.mjs --verify $agentRoot
           foreach ($memoryModule in @('gold-memory-ledger.mjs','gold-memory-scope.mjs','gold-memory-scope-admin.mjs','gold-memory-auto.mjs','gold-memory-sync.mjs','gold-memory-evidence.mjs','gold-memory-manual-evidence.mjs','gold-memory-key-permissions.mjs')) {
             if (-not (Test-Path (Join-Path $agentRoot ('device-agent\'+$memoryModule)))) { throw "Gold Windows Memory module missing: $memoryModule" }
