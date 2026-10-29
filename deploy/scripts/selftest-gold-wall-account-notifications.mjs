@@ -108,6 +108,27 @@ try{
  const login='/account/login?next='+encodeURIComponent(requested);
  assert.equal(new URL(login,'https://gold.light-remote.thaiduy.digital').searchParams.get('next'),requested);
 }
+const other=startLocalWall({host:'127.0.0.1',port:0,auth,
+ getLocalStatus:async()=>({update:{state:'available',targetVersion:'0.9.0-rc.50'}}),
+ getClientAnnouncements:async()=>({ok:true,revision:'wall-only',items:[{
+  id:'22222222-3333-4444-5555-666666666666',kind:'maintenance',title:'Wall Only',
+  message:'Never show this in Distribution',dismissible:true,linkLabel:'More',
+  linkUrl:'https://light-remote.thaiduy.digital/support'}]})});
+try{
+ await new Promise(ok=>other.server.listening?ok():other.server.once('listening',ok));
+ const url='http://127.0.0.1:'+other.server.address().port;
+ assert.equal((await fetch(url+'/api/client-announcements')).status,401);
+ const feed=await fetch(url+'/api/client-announcements',{headers:{'x-test-owner':'yes'}});
+ assert.equal(feed.status,200);assert.equal((await feed.json()).items[0].title,'Wall Only');
+ const html=await (await fetch(url+'/long-memory',{headers:{'x-test-owner':'yes'}})).text();
+ for(const term of ['id="confirmCopyRow"','id="confirmCopyBtn"',
+  'wallPromptExact','/api/client-announcements','wallClientBanner'])assert(html.includes(term),term);
+ assert.match(html,/wallPromptExact\('Delete local checkpoints for/);
+ assert.match(html,/copyHint:expected/);
+ for(const block of html.matchAll(/<script(?:[^>]*)>([\s\S]*?)<\/script>/g))
+   if(block[1].trim())new vm.Script(block[1],{filename:'gold-wall-p1d.inline.js'});
+}finally{await other.close()}
+console.log('GOLD_WALL_P1D_AUTHENTICATED_BROADCAST_BELL_AND_COPY_EXACT_CONFIRMATION_PASS');
 console.log('GOLD_WALL_NOTIFICATIONS_SIGNED_ACCOUNT_SCOPE_PROTEAM_PREVIEW_AUTH_AND_LOGIN_DEEPLINK_PASS');
 }finally{if(wall)await wall.close();}
 

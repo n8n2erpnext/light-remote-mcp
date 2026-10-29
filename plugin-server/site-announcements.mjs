@@ -65,7 +65,7 @@ function sanitize(v,prior={}){
  linkLabel:max(v.linkLabel??prior.linkLabel,50),linkUrl:safeUrl(v.linkUrl??prior.linkUrl),
  pages:pages.length?pages:['/'],
  // Existing announcements remain site-only until an admin explicitly enables client delivery.
- audience:['site','clients','both'].includes(v.audience??prior.audience)?(v.audience??prior.audience):'site',
+ audience:['site','clients','both','wall'].includes(v.audience??prior.audience)?(v.audience??prior.audience):'site',
  kind:clientKinds.has(v.kind??prior.kind)?(v.kind??prior.kind):'feature',
  platforms:(Array.isArray(v.platforms)?v.platforms:prior.platforms||[...clientPlatforms]).filter(p=>clientPlatforms.has(p)).slice(0,3),
  priority:Math.max(-100,Math.min(100,Number(v.priority??prior.priority)||0)),
@@ -150,7 +150,26 @@ export function clientAnnouncementFeed({platform='windows',now=Date.now()}={}){
  const revision=crypto.createHash('sha256').update(JSON.stringify(items)).digest('hex').slice(0,20);
  return {schemaVersion:1,platform:target,revision,checkedAt:new Date(now).toISOString(),pollAfterSeconds:300,items};
 }
+/** Independent Wall announcement channel; never leaks Distribution records. */
+export function wallAnnouncementFeed({platform='windows',now=Date.now()}={}){
+ const target=String(platform).toLowerCase();
+ if(!clientPlatforms.has(target))throw Object.assign(new Error('invalid_wall_platform'),{status:400});
+ const items=listAnnouncements().filter(x=>x.enabled&&x.audience==='wall'
+  &&(x.platforms||[...clientPlatforms]).includes(target)
+  &&(!x.startAt||Date.parse(x.startAt)<=now)&&(!x.endAt||Date.parse(x.endAt)>now))
+  .slice(0,25).map(x=>({id:x.id,kind:x.kind||'feature',title:x.title,message:x.message,
+    priority:x.priority,dismissible:x.dismissible,linkLabel:x.linkLabel,linkUrl:x.linkUrl,
+    updatedAt:x.updatedAt}));
+ const revision=crypto.createHash('sha256').update(JSON.stringify(items)).digest('hex').slice(0,20);
+ return {schemaVersion:1,channel:'wall',platform:target,revision,
+   checkedAt:new Date(now).toISOString(),pollAfterSeconds:300,items};
+}
 export function registerClientAnnouncementFeed(app){
+ app.get('/api/wall-announcements',async(req,res)=>{
+  try{await refreshSiteAnnouncements();const feed=wallAnnouncementFeed({platform:req.query.platform||'windows'});
+   res.set('Cache-Control','no-store').set('X-Content-Type-Options','nosniff');return res.json(feed);
+  }catch(error){return res.status(error.status||500).json({ok:false,error:error.message});}
+ });
  app.get('/api/client-announcements',async(req,res)=>{
   try{await refreshSiteAnnouncements();const feed=clientAnnouncementFeed({platform:req.query.platform||'windows'});
    res.set('Cache-Control','no-store').set('X-Content-Type-Options','nosniff');

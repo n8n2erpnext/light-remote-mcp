@@ -30,6 +30,15 @@ on:
       - 'deploy/scripts/selftest-gold-p1-terminal-replay-pg.mjs'
       - 'device-agent/fleet-job-page.mjs'
       - 'deploy/scripts/selftest-gold-fleet-jobs-m6.mjs'
+      - 'device-agent/local-wall.mjs'
+      - 'device-agent/wall-account-notifications.mjs'
+      - 'device-agent/fleet-wall-runtime.mjs'
+      - 'plugin-server/site-announcements.mjs'
+      - 'plugin-server/admin-portal/index.html'
+      - 'platform-v2/sql/042_gold_wall_announcements_channel.sql'
+      - 'deploy/scripts/selftest-gold-site-native.mjs'
+      - 'deploy/scripts/selftest-gold-wall-account-notifications.mjs'
+      - 'deploy/scripts/selftest-gold-p1-owner-recovery-wall.mjs'
       - 'deploy/scripts/ci-gold-epoch-pg.mjs'
       - 'deploy/scripts/selftest-gold-signed-http-duplex-pg.mjs'
       - 'deploy/scripts/selftest-gold-real-agent-daemon-pg.mjs'
@@ -61,6 +70,15 @@ jobs:
           node --check lib/gold-stale-claim-monitor.mjs
           node --check device-agent/fleet-job-page.mjs
           node deploy/scripts/selftest-gold-fleet-jobs-m6.mjs
+          node --check device-agent/local-wall.mjs
+          node --check device-agent/wall-account-notifications.mjs
+          node --check device-agent/fleet-wall-runtime.mjs
+          node --check plugin-server/site-announcements.mjs
+          node deploy/scripts/selftest-gold-site-native.mjs
+          node deploy/scripts/selftest-gold-wall-account-notifications.mjs
+          node deploy/scripts/selftest-gold-wall-notifications-signed-proof.mjs
+          node deploy/scripts/selftest-gold-p1-owner-recovery-wall.mjs
+          node deploy/scripts/selftest-gold-m6-owner-orphan-recovery.mjs
           node --check lib/gold-execution-epoch.mjs
           node --check lib/gold-db.mjs
           node --check device-agent/execution-epoch-journal.mjs

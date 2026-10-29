@@ -82,7 +82,7 @@ body.wall-view-memory #goldModulesPanel>summary,body.wall-view-codex #goldModule
 body.wall-view-memory #ptyOpen,body.wall-view-codex #ptyOpen{display:none}
 .module-nav-status{font-size:10px;border-radius:5px;padding:2px 4px;background:#303943;color:#abbccc}
 .module-nav-status.on{background:#123627;color:#7ee8ad}
-.confirm-card #confirmInput{width:100%;margin:12px 0 5px;max-width:100%;font:inherit}.confirm-card #confirmInput[hidden]{display:none!important}${notificationBellStyles}</style></head><body class="wall-view-${view}"><div id="toastHost" class="toasts" aria-live="polite"></div><div id="confirmOverlay" class="confirm-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="confirmText"><div class="confirm-card"><div id="confirmText" class="confirm-text"></div><input id="confirmInput" type="text" autocomplete="off" spellcheck="false" aria-label="Confirmation text" maxlength="2000" hidden><div class="confirm-actions"><button id="confirmCancel" class="btn small" type="button">Cancel</button><button id="confirmOk" class="btn small danger" type="button">Confirm</button></div></div></div><div class="wrap"><div class="top"><div><div class="brand"><span>${brandSvg}</span><span><strong>Light Remote</strong> <small>MCP</small></span></div><div class="muted" style="margin-top:6px">Local Wall · one device · session lanes · operator history</div></div><div class="topright">${authEnabled?notificationBellMarkup.replace('🔔',materialIcon('notifications')):''}${view==='home'?'':'<a id="backToWall" class="btn small" href="/" aria-label="Back to Wall">'+materialIcon('arrowBack')+'<span>Back to Wall</span></a>'}<span id="conn" class="pill">connecting…</span><span class="paircontrol"><span class="pairprefix">A</span><span id="acode" class="paircode">••••-••••</span><span id="aexp" class="code-exp">--:--</span><button id="toggleA" class="icon-only" type="button" title="Show A" aria-label="Show A" disabled><span class="eye-open">${materialIcon('visibility')}</span><span class="eye-off">${materialIcon('visibilityOff')}</span></button><button id="copyA" class="icon-only" type="button" title="Copy A" aria-label="Copy A" disabled>${materialIcon('copy')}</button><button id="refreshA" class="icon-only" type="button" title="Refresh A" aria-label="Refresh A">${materialIcon('refresh')}</button></span><button id="connectCloud" class="btn small">${materialIcon('link')}<span>Connect</span></button><button id="disconnectCloud" class="btn small">${materialIcon('power')}<span>Disconnect</span></button><button id="linkDevice" class="btn small" style="display:none">${materialIcon('device')}<span class="label">Link device</span></button><span id="deviceCodeWrap" class="pill" style="display:none">Device <span id="deviceCode" class="paircode">—</span> <span id="deviceCodeExp" class="muted"></span></span><button id="copyDeviceCode" class="btn small" style="display:none" disabled>${materialIcon('copy')}<span>Copy code</span></button><span id="enrollMsg" class="muted"></span><a id="fleetWall" class="btn small" href="#" target="_blank" rel="noopener" style="display:none">${materialIcon('device')}<span>Open Fleet Wall</span></a><a class="btn small" href="/permissions">${materialIcon('security')}<span>Permissions</span></a><a class="btn small" href="/approve">${materialIcon('approve')}<span>Approve B</span></a>${moduleSupported?'<a class="btn small" href="/long-memory">'+materialIcon("folder")+'<span>Long Memory</span> <span id="navMemoryState" class="module-nav-status">…</span></a><a class="btn small" href="/codex-cli">'+materialIcon("smart_toy")+'<span>Codex</span> <span id="navCodexState" class="module-nav-status">…</span></a>':''}<a class="btn small" href="/settings">${materialIcon('settings')}<span>Settings</span></a>${authEnabled?'<form method="post" action="/auth/logout" style="margin:0"><input type="hidden" name="csrf" value="'+csrf+'"><button class="btn small" type="submit">'+materialIcon('logout')+'<span>Logout</span></button></form>':''}</div></div>
+.confirm-copy-row{display:flex;align-items:center;justify-content:space-between;gap:9px;margin-top:10px;padding:7px 9px;background:#172331;border:1px solid #3c5264;border-radius:8px}.confirm-copy-row[hidden]{display:none}.confirm-copy-row code{font:600 12px/1.4 inherit;user-select:all;overflow-wrap:anywhere;min-width:0}.confirm-card #confirmInput{width:100%;margin:12px 0 5px;max-width:100%;font:inherit}.confirm-card #confirmInput[hidden]{display:none!important}${notificationBellStyles}</style></head><body class="wall-view-${view}"><div id="toastHost" class="toasts" aria-live="polite"></div><div id="confirmOverlay" class="confirm-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="confirmText"><div class="confirm-card"><div id="confirmText" class="confirm-text"></div><div id="confirmCopyRow" class="confirm-copy-row" hidden><code id="confirmCopyValue"></code><button id="confirmCopyBtn" class="btn small" type="button" title="Copy exact confirmation text">Copy</button></div><input id="confirmInput" type="text" autocomplete="off" spellcheck="false" aria-label="Confirmation text" maxlength="2000" hidden><div class="confirm-actions"><button id="confirmCancel" class="btn small" type="button">Cancel</button><button id="confirmOk" class="btn small danger" type="button">Confirm</button></div></div></div><div class="wrap"><div class="top"><div><div class="brand"><span>${brandSvg}</span><span><strong>Light Remote</strong> <small>MCP</small></span></div><div class="muted" style="margin-top:6px">Local Wall · one device · session lanes · operator history</div></div><div class="topright">${authEnabled?notificationBellMarkup.replace('🔔',materialIcon('notifications')):''}${view==='home'?'':'<a id="backToWall" class="btn small" href="/" aria-label="Back to Wall">'+materialIcon('arrowBack')+'<span>Back to Wall</span></a>'}<span id="conn" class="pill">connecting…</span><span class="paircontrol"><span class="pairprefix">A</span><span id="acode" class="paircode">••••-••••</span><span id="aexp" class="code-exp">--:--</span><button id="toggleA" class="icon-only" type="button" title="Show A" aria-label="Show A" disabled><span class="eye-open">${materialIcon('visibility')}</span><span class="eye-off">${materialIcon('visibilityOff')}</span></button><button id="copyA" class="icon-only" type="button" title="Copy A" aria-label="Copy A" disabled>${materialIcon('copy')}</button><button id="refreshA" class="icon-only" type="button" title="Refresh A" aria-label="Refresh A">${materialIcon('refresh')}</button></span><button id="connectCloud" class="btn small">${materialIcon('link')}<span>Connect</span></button><button id="disconnectCloud" class="btn small">${materialIcon('power')}<span>Disconnect</span></button><button id="linkDevice" class="btn small" style="display:none">${materialIcon('device')}<span class="label">Link device</span></button><span id="deviceCodeWrap" class="pill" style="display:none">Device <span id="deviceCode" class="paircode">—</span> <span id="deviceCodeExp" class="muted"></span></span><button id="copyDeviceCode" class="btn small" style="display:none" disabled>${materialIcon('copy')}<span>Copy code</span></button><span id="enrollMsg" class="muted"></span><a id="fleetWall" class="btn small" href="#" target="_blank" rel="noopener" style="display:none">${materialIcon('device')}<span>Open Fleet Wall</span></a><a class="btn small" href="/permissions">${materialIcon('security')}<span>Permissions</span></a><a class="btn small" href="/approve">${materialIcon('approve')}<span>Approve B</span></a>${moduleSupported?'<a class="btn small" href="/long-memory">'+materialIcon("folder")+'<span>Long Memory</span> <span id="navMemoryState" class="module-nav-status">…</span></a><a class="btn small" href="/codex-cli">'+materialIcon("smart_toy")+'<span>Codex</span> <span id="navCodexState" class="module-nav-status">…</span></a>':''}<a class="btn small" href="/settings">${materialIcon('settings')}<span>Settings</span></a>${authEnabled?'<form method="post" action="/auth/logout" style="margin:0"><input type="hidden" name="csrf" value="'+csrf+'"><button class="btn small" type="submit">'+materialIcon('logout')+'<span>Logout</span></button></form>':''}</div></div>
 <div class="wall-primary"><div id="devicebox" class="sessionbox muted">loading device…</div><div id="abGrantTimer" class="muted" style="margin:5px 0">Agent A/B access · checking…</div><div id="tabs" class="tabs"></div><div id="sessionbox" class="sessionbox muted">loading sessions…</div><div id="sessionActions" class="controls" style="margin-top:7px"></div>
 <div class="controls" style="margin-top:9px"><input id="filter" placeholder="filter cwd / command / output / PTY"><select id="status"><option value="">all status</option><option>queued</option><option>running</option><option>ok</option><option>error</option><option>timeout</option></select><button id="pause" class="btn">${materialIcon('pause')}<span>Pause</span></button><button id="copyVisible" class="btn">${materialIcon('copy')}<span>Copy visible</span></button></div>
 </div>
@@ -270,11 +270,14 @@ async function copyText(value,label='Copied'){
 }
 // Gold Wall dialog: never invoke the browser's native alert/confirm/prompt.
 let wallDialogActive=false;
-function wallDialog(message,{textInput=false,initialValue=''}={}){
+function wallDialog(message,{textInput=false,initialValue='',copyHint=''}={}){
   return new Promise(resolve=>{
     const overlay=document.getElementById('confirmOverlay');
     const text=document.getElementById('confirmText');
     const input=document.getElementById('confirmInput');
+    const copyRow=document.getElementById('confirmCopyRow');
+    const copyValue=document.getElementById('confirmCopyValue');
+    const copyButton=document.getElementById('confirmCopyBtn');
     const ok=document.getElementById('confirmOk');
     const cancel=document.getElementById('confirmCancel');
     if(wallDialogActive||!overlay||!text||!input||!ok||!cancel){
@@ -285,6 +288,8 @@ function wallDialog(message,{textInput=false,initialValue=''}={}){
     text.textContent=String(message||'Confirm action?');
     input.hidden=!textInput;
     input.value=textInput?String(initialValue??'').slice(0,2000):'';
+    const hint=textInput?String(copyHint||'').slice(0,2000):'';
+    if(copyRow&&copyValue&&copyButton){copyRow.hidden=!hint;copyValue.textContent=hint;copyButton.onclick=async()=>{const copied=await copyText(hint);if(copied)copyButton.textContent='Copied';};copyButton.textContent='Copy';}
     ok.textContent=textInput?'Continue':'Confirm';
     ok.classList.toggle('danger',!textInput&&/delete|remove|revoke|sign out|stop|cancel|archive/i.test(String(message)));
     overlay.classList.add('show');
@@ -296,6 +301,8 @@ function wallDialog(message,{textInput=false,initialValue=''}={}){
       overlay.onclick=null;
       ok.onclick=null;cancel.onclick=null;
       input.hidden=true;
+      if(copyRow)copyRow.hidden=true;
+      if(copyButton)copyButton.onclick=null;
       wallDialogActive=false;
       resolve(accepted?(textInput?input.value:true):(textInput?null:false));
       if(previous&&typeof previous.focus==='function')previous.focus();
@@ -319,6 +326,7 @@ function wallDialog(message,{textInput=false,initialValue=''}={}){
 }
 function confirmAction(message){return wallDialog(message);}
 function wallPrompt(message,initialValue=''){return wallDialog(message,{textInput:true,initialValue});}
+function wallPromptExact(message,expected){return wallDialog(message,{textInput:true,copyHint:expected});}
 
 function displayBadgeLabel(j){return toolLabel(j)||fallbackCommandBadge(j);}function fallbackCommandBadge(j){const text=String(commandText(j)||'').trim();if(!text)return 'COMMAND';if(/\$env:|\b(?:Write-Output|Get-|Set-|New-|Remove-|Start-|Stop-|Invoke-)/i.test(text))return 'POWERSHELL';const m=text.match(/^\s*(?:sudo\s+|env\s+|nohup\s+|time\s+)?([^\s;&|]+)/),raw=String(m?.[1]||'').replace(/^.*[\\/]/,'').toLowerCase(),map={git:'GIT',powershell:'POWERSHELL','powershell.exe':'POWERSHELL',pwsh:'POWERSHELL','pwsh.exe':'POWERSHELL',cmd:'CMD','cmd.exe':'CMD',npm:'PACKAGE',pnpm:'PACKAGE',yarn:'PACKAGE',bun:'PACKAGE',pip:'PACKAGE',pip3:'PACKAGE',docker:'CONTAINER',podman:'CONTAINER',kubectl:'K8S',helm:'K8S',k3s:'K8S',ssh:'SSH',journalctl:'JOURNAL',systemctl:'SYSTEMCTL'};return map[raw]||'COMMAND';}
 function refreshAbGrantTimer(){
@@ -958,7 +966,7 @@ document.getElementById('goldReaderDeleteAccount').onclick=async()=>{
     const row=goldMemoryUsageCache?.scopes?.find(s=>s.scopeId===scopeId);
     if(!row)throw Error('Select a work and refresh its details first');
     const name=row.displayName;
-    const typed=await wallPrompt('Delete '+name+' across ALL enrolled devices? This cannot be undone. Type the exact work name to request deletion:');
+    const typed=await wallPromptExact('Delete '+name+' across ALL enrolled devices? This cannot be undone. Type the exact work name to request deletion:',name);
     if(typed!==name){status.textContent='Canceled: work name did not match.';return;}
     if(!await confirmAction('Final confirmation: permanently delete this work on this device and send signed deletion instructions to other devices? Offline devices remain PENDING until they acknowledge. Exports and backups remain.'))return;
     button.disabled=true;
@@ -977,7 +985,7 @@ document.getElementById('goldReaderDeleteLocal').onclick=async()=>{
     const scopeId=goldReaderSelected(),row=goldMemoryUsageCache?.scopes?.find(s=>s.scopeId===scopeId);
     if(!row)throw Error('Refresh storage and choose a scope first');
     const name=row.displayName;
-    const typed=await wallPrompt('Delete local checkpoints for '+name+'? Other devices and backups remain unchanged. To confirm, type the exact scope name:');
+    const typed=await wallPromptExact('Delete local checkpoints for '+name+'? Other devices and backups remain unchanged. To confirm, type the exact scope name:',name);
     if(typed!==name){status.textContent='Canceled: scope name not confirmed.';return;}
     if(!await confirmAction('Permanently remove this scope’s local content and retain a tombstone preventing stale resync on this device?'))return;
     const j=await wallMutation('/api/gold/modules/scope/delete/local',
@@ -1637,7 +1645,7 @@ async function goldObserverRefresh(){
     };
     input.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();save.click();}else if(e.key==='Escape')cancel.click();};
     remove.onclick=async()=>{
-      const typed=await wallPrompt('Delete task from active Task Controller? Existing Codex receipts remain available. Type the exact task title to confirm:',task.title);
+      const typed=await wallPromptExact('Delete task from active Task Controller? Existing Codex receipts remain available. Type the exact task title to confirm:',task.title);
       if(typed!==task.title)return;
       if(!await confirmAction('Hide this task from future Codex observations? Previous receipts and task history are retained; this cannot be undone from this view.'))return;
       remove.disabled=true;
@@ -1873,7 +1881,7 @@ document.getElementById('goldManagedCodexInstall').onclick=async()=>{
   finally{b.disabled=false;}
 };
 document.getElementById('goldManagedCodexRemove').onclick=async()=>{
-  const typed=await wallPrompt('Type REMOVE CODEX RUNTIME to delete only the Codex executable managed by Light Remote:');
+  const typed=await wallPromptExact('Type REMOVE CODEX RUNTIME to delete only the Codex executable managed by Light Remote:','REMOVE CODEX RUNTIME');
   if(typed!=='REMOVE CODEX RUNTIME')return;
   try{await wallMutation('/api/gold/modules/codex-runtime/remove',{confirmText:typed});await goldManagedRuntimeRefresh();}
   catch(e){document.getElementById('goldManagedCodexStatus').textContent=String(e.message||e);}
@@ -2150,7 +2158,7 @@ function approvePage(brandSvg,csrf=''){return `<!doctype html><html lang="en"><h
 const wallCsrf=${JSON.stringify(csrf)},code=document.getElementById('code'),msg=document.getElementById('msg'),decision=document.getElementById('decision'),request=document.getElementById('request');let current=null;function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}async function lookup(){msg.className='muted';msg.textContent='Checking…';decision.style.display='none';current=null;const r=await fetch('/api/approve?code='+encodeURIComponent(code.value),{cache:'no-store'}),j=await r.json();if(!r.ok||!j.ok){msg.className='error';msg.textContent=j.error==='approval_code_not_found'?'No pending request matches this code.':(j.error||'Unable to check code.');return;}current=j.request;msg.textContent='';request.innerHTML='<b>'+esc(current.label||'ChatGPT')+'</b> requests access to <b>'+esc(current.deviceName||'this device')+'</b><br><span class="muted">Agent '+esc(current.agentId||'')+' · code '+esc(current.userCode||'')+'</span>';decision.style.display='block';}async function decide(kind){if(!current)return;const r=await fetch('/api/approve',{method:'POST',headers:{'content-type':'application/json','x-light-remote-csrf':wallCsrf},body:JSON.stringify({code:code.value,decision:kind})}),j=await r.json();if(!r.ok||!j.ok){msg.className='error';msg.textContent=j.error||'Request failed.';return;}decision.style.display='none';msg.className='ok';msg.textContent=kind==='approve'?'Access approved':'Access denied';setTimeout(()=>location.href='/',900);}document.getElementById('lookup').onclick=lookup;document.getElementById('approve').onclick=()=>decide('approve');document.getElementById('deny').onclick=()=>decide('deny');code.addEventListener('keydown',e=>{if(e.key==='Enter')lookup();});const q=new URLSearchParams(location.search).get('code');if(q){code.value=q;lookup();}
 </script></body></html>`;}
 
-export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvgPath,fontPath=null,cascadiaMonoFontPath=DEFAULT_CASCADIA_MONO_FONT,cascadiaCodeFontPath=DEFAULT_CASCADIA_CODE_FONT,auth={enabled:false},accountAuthenticate,getLocalStatus,getLocalPolicyStatus,getRemoteStatus,getRemoteActivity,cancelRemoteJob,getPendingAccess,getAccountNotifications,getMemoryAccountDevices,getMemoryAccountInvites,getMemoryAccountSyncPolicy,getMemoryAccountDelete,getLocalTerminals,readLocalTerminal,getLocalProcesses,stopLocalProcess,connect,disconnect,setGrace,setPermissions,setFilesystemRoots,getFilesystemVolumes,ownerApprovePermissions,rescanCapabilities,beginEnrollment,pollEnrollment,pairingCode,ownerProofCode,accessApprove,accessDeny,closeSession,requestUpdate}={}){
+export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvgPath,fontPath=null,cascadiaMonoFontPath=DEFAULT_CASCADIA_MONO_FONT,cascadiaCodeFontPath=DEFAULT_CASCADIA_CODE_FONT,auth={enabled:false},accountAuthenticate,getLocalStatus,getLocalPolicyStatus,getRemoteStatus,getRemoteActivity,cancelRemoteJob,getPendingAccess,getAccountNotifications,getClientAnnouncements,getMemoryAccountDevices,getMemoryAccountInvites,getMemoryAccountSyncPolicy,getMemoryAccountDelete,getLocalTerminals,readLocalTerminal,getLocalProcesses,stopLocalProcess,connect,disconnect,setGrace,setPermissions,setFilesystemRoots,getFilesystemVolumes,ownerApprovePermissions,rescanCapabilities,beginEnrollment,pollEnrollment,pairingCode,ownerProofCode,accessApprove,accessDeny,closeSession,requestUpdate}={}){
 
   if(!isAllowedLocalWallBindHost(host)) throw new Error('local_wall_bind_host_not_private');
   const loopback=['127.0.0.1','::1','localhost'].includes(String(host));
@@ -2268,6 +2276,15 @@ export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvg
         error:String(error.message||'peer_denied').slice(0,90)});}
     }
     if(auth?.enabled&&!auth.identity(req)){if(url.pathname.startsWith('/api/')||url.pathname==='/events')return json(res,401,{ok:false,error:'wall_auth_required'});res.writeHead(303,{location:`/login?next=${encodeURIComponent(safeNext(req.url||'/'))}`,'cache-control':'no-store'});return res.end();}
+    if(req.method==='GET'&&url.pathname==='/api/client-announcements'){
+      if(!auth?.enabled||!auth.identity(req))return json(res,401,{ok:false,error:'wall_auth_required'});
+      if(typeof getClientAnnouncements!=='function')return json(res,503,{ok:false,error:'client_announcements_unavailable'});
+      try{
+        const response=await getClientAnnouncements();
+        if(response?.ok!==true||!Array.isArray(response.items))throw Error('client_announcements_unavailable');
+        return json(res,200,response);
+      }catch{return json(res,503,{ok:false,error:'client_announcements_unavailable'});}
+    }
     if(req.method==='GET'&&url.pathname==='/api/account-notifications'){
       if(!auth?.enabled||!auth.identity(req))
         return json(res,401,{ok:false,error:'wall_auth_required'});

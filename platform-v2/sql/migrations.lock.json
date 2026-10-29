@@ -206,6 +206,11 @@
       "version": 41,
       "file": "041_gold_device_execution_epoch.sql",
       "sha256": "ff16394e4c72ff685bec3b704454ca688e3255146b68fdeaf657028fa03f533f"
+    },
+    {
+      "version": 42,
+      "file": "042_gold_wall_announcements_channel.sql",
+      "sha256": "56ec2b281582b67a537140b5a6cb1e3a95d7546604c222d8ea01ac53143d345b"
     }
   ]
 }

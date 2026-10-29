@@ -147,6 +147,21 @@ async function start(){
     const updateApi=url.pathname.match(/^\/api\/devices\/([A-Za-z0-9._:-]{1,128})\/maintenance\/update$/);
     if(req.method==='POST'&&updateApi){if(!mutationAllowed(req))return json(res,403,{ok:false,error:'csrf_invalid'});const value=await fleetCall('fleet-device-update',{deviceId:updateApi[1]});return json(res,200,value);}
     if(req.method==='POST'&&url.pathname==='/api/updates/all'){if(!mutationAllowed(req))return json(res,403,{ok:false,error:'csrf_invalid'});const value=await fleetCall('fleet-devices'),targets=(value.devices||[]).filter(d=>d.deviceId!==value.mainDeviceId&&d.state==='online'),results=[];for(const target of targets){try{const queued=await fleetCall('fleet-device-update',{deviceId:target.deviceId});results.push({deviceId:target.deviceId,nodeId:target.nodeId,status:'queued',jobId:queued.maintenance?.job?.jobId||null});}catch(error){results.push({deviceId:target.deviceId,nodeId:target.nodeId,status:'skipped',error:error.message});}}return json(res,200,{ok:true,queued:results.filter(x=>x.status==='queued').length,skipped:results.filter(x=>x.status!=='queued').length,results});}
+    if(req.method==='POST'&&url.pathname==='/api/owner-recovery'){
+      if(!mutationAllowed(req))return json(res,403,{ok:false,error:'csrf_invalid'});
+      const value=await jsonBody(req);
+      if(!['inspect','abandon'].includes(value.mode)||
+        !/^[A-Za-z0-9._:-]{1,160}$/.test(String(value.deviceId||''))||
+        !/^[a-f0-9-]{36}$/i.test(String(value.jobId||'')))
+        return json(res,400,{ok:false,error:'invalid_recovery_target'});
+      const body={mode:value.mode,deviceId:value.deviceId,jobId:value.jobId};
+      if(value.mode==='abandon'){
+        body.confirm=value.confirm;body.reason=value.reason;
+        body.password=String(value.password||'');body.observedBootAtMs=value.observedBootAtMs;
+      }
+      const result=await fleetCall('fleet-orphan-recovery',body);
+      return json(res,200,result);
+    }
     if(req.method==='POST'&&url.pathname==='/api/jobs/cancel'){
       if(!mutationAllowed(req))return json(res,403,{ok:false,error:'csrf_invalid'});
       const data=await jsonBody(req),jobId=String(data.jobId||'');

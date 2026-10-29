@@ -534,7 +534,74 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
         staleClaimStatus:{mode:'diagnostic_only',available:diagnosticAvailable,releaseAllowed:false,
           scanSource:observations===monitored?'periodic_monitor':'owner_read_only'},staleClaims});
     }
-    if (req.method === 'POST' && url.pathname === '/v1/device-channel/fleet-job-cancel') {
+    // P1-D owner recovery is deliberately separate from stale diagnostics.
+  // This is a signed Main/Fleet channel + owner password step-up + exact
+  // typed confirmation. Never turns an aged/UNKNOWN claim into a signed ACK.
+  if(req.method==='POST'&&url.pathname==='/v1/device-channel/fleet-orphan-recovery'){
+    const envelope=await readJson(req);
+    const ctx=verifiedFleetContext(await verifiedChannelContext(envelope,'fleet-orphan-recovery'));
+    const payload=ctx.payload||{};
+    const accountId=ctx.account.accountId,deviceId=String(payload.deviceId||'');
+    const jobId=String(payload.jobId||'');
+    if(!/^[A-Za-z0-9._:-]{1,160}$/.test(deviceId)||
+       !/^[a-f0-9-]{36}$/i.test(jobId)||deviceId===ctx.device.deviceId||
+       !['inspect','abandon'].includes(payload.mode))
+      throw new AccountError('owner_recovery_invalid_target',400);
+    accounts.assertOperational(accountId);
+    let device;
+    try{device=devices.get(deviceId)}catch(error){
+      if(error?.message!=='device_not_found')throw error;
+      const historical=await deviceResourceLocks?.inspectOwnerOrphanDevice(goldJobs.pool,
+        {accountId,deviceId,jobId});
+      if(!historical||historical.state!=='revoked'||
+         historical.policyProfile!=='__gold_removed_v1__')
+        throw new AccountError('owner_recovery_historical_unverified',403);
+      device=historical;
+    }
+    if(device.accountId!==accountId)throw new AccountError('owner_recovery_account_mismatch',403);
+    let channelFresh=false,connected=false;
+    try{channelFresh=fleet.view(device.nodeId||device.deviceId).channelFresh===true}
+    catch(e){if(e?.message!=='target_node_channel_not_found')throw e}
+    try{connected=connections.get(deviceId).state==='connected'}
+    catch(e){if(e?.message!=='device_connection_not_found')throw e}
+    if(connected||channelFresh)throw new AccountError('owner_recovery_channel_active',409);
+    const candidate=(await goldJobs.pool.query(`
+      SELECT c.claimed_at,c.worker_state,c.process_id,j.status AS launch_status,
+        EXISTS(SELECT 1 FROM lr_gold_terminal_receipt_acks a
+          WHERE a.account_id=c.account_id AND a.device_id=c.device_id
+            AND (a.job_id=c.job_id OR (c.process_id IS NOT NULL AND a.process_id=c.process_id))) AS has_terminal_ack
+      FROM lr_gold_device_resource_claims c
+      JOIN lr_gold_job_records j ON j.job_id=c.job_id
+       AND j.account_id=c.account_id AND j.device_id=c.device_id
+      WHERE c.account_id=$1 AND c.device_id=$2 AND c.job_id=$3
+      LIMIT 1`,[accountId,deviceId,jobId])).rows[0];
+    const eligible=Boolean(candidate&&!candidate.has_terminal_ack&&(
+      (candidate.worker_state==='running'&&candidate.launch_status==='ok'&&
+       /^lp_[A-Za-z0-9_-]{20,80}$/.test(String(candidate.process_id||'')))||
+      (candidate.worker_state==='terminal_unknown'&&candidate.launch_status==='interrupted'&&
+       candidate.process_id==null)));
+    if(!eligible)throw new AccountError('owner_recovery_claim_not_eligible',409);
+    if(payload.mode==='inspect'){
+      return sendJson(res,200,{ok:true,mode:'review',accountScoped:true,deviceId,jobId,
+        claimedAt:new Date(candidate.claimed_at).toISOString(),
+        workerState:candidate.worker_state,processIdentityKnown:Boolean(candidate.process_id),
+        requiresOwnerPassword:true,requiresPostClaimBootAttestation:true,
+        terminalReceiptCreated:false,processOutcome:'unknown',releasePerformed:false});
+    }
+    if(payload.confirm!=='ABANDON_UNKNOWN_RESULT'||
+       !['gold_agent_uninstalled','gold_agent_reinstalled'].includes(payload.reason))
+      throw new AccountError('owner_recovery_confirmation_required',403);
+    const password=String(payload.password||'');
+    if(!password||password.length>512)throw new AccountError('owner_recovery_owner_password_required',401);
+    const owner=accounts.verifyCredentials({email:ctx.account.email,password},
+      {recordLogin:true,eventType:'m6_wall_owner_recovery'});
+    if(owner.accountId!==accountId)throw new AccountError('owner_recovery_stepup_mismatch',403);
+    const observedBootAtMs=Number(payload.observedBootAtMs);
+    const outcome=await deviceResourceLocks.abandonOwnerAttestedOrphan(goldJobs.pool,
+      {accountId,deviceId,jobId,observedBootAtMs,reason:payload.reason,channelFresh});
+    return sendJson(res,200,{ok:true,...outcome});
+  }
+  if (req.method === 'POST' && url.pathname === '/v1/device-channel/fleet-job-cancel') {
       const body=await readJson(req);
       const ctx=verifiedFleetContext(await verifiedChannelContext(body,'fleet-job-cancel'));
       const devices=allDeviceViews().filter(v=>v.accountId===ctx.account.accountId&&v.state!=='revoked');

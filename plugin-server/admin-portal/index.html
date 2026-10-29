@@ -25,6 +25,7 @@
 
 <section id="view-licenses" class="admin-view hide"><div class="page-head"><div><div class="eyebrow">ENTITLEMENTS</div><h1>Licenses</h1><p>Keys remain available for gifts, manual grants and VIP delivery.</p></div></div><section class="panel"><div class="panel-head"><div><h2>Issue key</h2><div class="muted">Optional recipient sends the key immediately using Light Remote transactional mail.</div></div></div><form id="issueLicense" class="admin-form admin-form-license settings-body"><label>Plan<select id="licensePlan"><option value="pro">PRO</option><option value="vip">VIP</option></select></label><label>Duration days<input id="licenseDays" type="number" min="1" max="3650" value="30"></label><label>Max redemptions<input id="licenseMax" type="number" min="1" max="1000" value="1"></label><label>Recipient email<input id="licenseRecipient" type="email" placeholder="optional@example.com"></label><button class="btn primary" type="submit">Issue key</button></form><div id="issuedKey" class="setting-note settings-body"></div><div class="panel-head"><h2>Existing licenses</h2></div><div id="licenseRows"><div class="empty">Loading licenses…</div></div></section></section>
 <section id="view-announcements" class="admin-view hide"><div class="page-head"><div><div class="eyebrow">SITE CONTENT</div><h1>Announcements</h1><p>Publish and schedule the slim notice bar seen on public pages.</p></div><button id="refreshAnnouncements" class="btn">Refresh</button></div>
+<div class="admin-head-actions" role="group" aria-label="Independent announcement destinations" style="margin:14px 0"><button type="button" id="announcementDistributionTab" class="btn primary" aria-pressed="true">Distribution & website</button><button type="button" id="announcementWallTab" class="btn" aria-pressed="false">Device Wall</button><span id="announcementChannelExplanation" class="muted">Distribution notices do not appear on Device Walls.</span></div>
 <section class="panel"><div class="panel-head"><div><h2>Create or edit announcement</h2><div class="muted">Colors and links are scoped to this banner. A higher-priority active notice wins.</div></div></div>
 <form id="announcementForm" class="admin-announcement-form settings-body"><input id="announcementId" type="hidden">
 <label>Heading <input id="announcementTitle" maxlength="110" placeholder="Service update"></label>
@@ -37,7 +38,7 @@
 <label>Link color <input id="announcementLinkColor" type="color" value="#111418"></label>
 <label>Priority <input id="announcementPriority" type="number" min="-100" max="100" value="0"></label>
 <label>Visible on <select id="announcementPages" multiple size="6"><option selected value="/">Home</option><option value="/downloads">Downloads</option><option value="/support">Support</option><option value="/ai-guide">AI Guide</option><option value="/privacy">Privacy</option><option value="/terms">Terms</option><option value="/cookies">Cookies</option><option value="/account">Account</option><option value="/account/login">Login</option><option value="/account/register">Register</option></select></label>
-<label>Delivery audience <select id="announcementAudience"><option value="site">Website only</option><option value="clients">Clients only</option><option value="both">Website + clients</option></select></label>
+<label>Delivery audience <select id="announcementAudience"><option value="site">Website only</option><option value="clients">Clients only</option><option value="both">Website + Distribution clients</option><option value="wall" hidden>Wall only</option></select></label>
 <label>Client category <select id="announcementKind"><option value="feature">New feature</option><option value="update">New update</option><option value="maintenance">Maintenance</option><option value="service">Service notice</option></select></label>
 <label>Client platforms <select id="announcementPlatforms" multiple size="3"><option selected value="windows">Windows</option><option selected value="macos">macOS</option><option selected value="linux">Linux</option></select></label>
 <label>Start (optional) <input id="announcementStart" type="datetime-local"></label>
@@ -106,7 +107,25 @@ googleConfigForm.onsubmit=async ev=>{ev.preventDefault();const btn=ev.submitter;
 refreshAdmin.onclick=()=>Promise.all([loadOverview(),loadGroups(),loadAccounts(),loadPending(),loadUpgrades(),loadBilling(),loadLicenses(),loadSystem()]);
 Promise.all([loadOverview(),loadGroups(),loadAccounts(),loadPending(),loadUpgrades(),loadBilling(),loadLicenses(),loadSystem()]).catch(e=>{document.querySelector('.main').insertAdjacentHTML('beforeend','<div class="error">'+esc(e.message)+'</div>')});
 /* Admin V5: site announcements and privacy-preserving traffic aggregates. */
-let announcementsCache=[];
+let announcementsCache=[],announcementChannel='distribution';
+function setAnnouncementChannel(channel,{preserveForm=false}={}){
+ announcementChannel=channel==='wall'?'wall':'distribution';
+ const wall=announcementChannel==='wall';
+ announcementDistributionTab.classList.toggle('primary',!wall);
+ announcementWallTab.classList.toggle('primary',wall);
+ announcementDistributionTab.setAttribute('aria-pressed',String(!wall));
+ announcementWallTab.setAttribute('aria-pressed',String(wall));
+ announcementChannelExplanation.textContent=wall?'Wall-only banner and Bell; never shown on Distribution or website.':'Distribution and website; never delivered to the Wall.';
+ announcementAudience.closest('label').hidden=wall;
+ announcementPages.closest('label').hidden=wall;
+ announcementPlatforms.closest('label').hidden=false;
+ announcementKind.closest('label').hidden=false;
+ if(!preserveForm){resetAnnouncementForm();}
+ if(wall)announcementAudience.value='wall';
+ renderAnnouncements();
+}
+announcementDistributionTab.onclick=()=>setAnnouncementChannel('distribution');
+announcementWallTab.onclick=()=>setAnnouncementChannel('wall');
 const noticePresets={
  brand:['#ffcc00','#111418','#111418'],
  graphite:['#20252b','#ffffff','#ffcc00'],
@@ -140,7 +159,7 @@ function resetAnnouncementForm(){
  announcementPages.querySelector('option[value="/"]').selected=true;
  announcementTheme.value='brand';
  [announcementBackground.value,announcementColor.value,announcementLinkColor.value]=noticePresets.brand;
- announcementDismissible.checked=true;announcementAudience.value='site';announcementKind.value='feature';
+ announcementDismissible.checked=true;announcementAudience.value=announcementChannel==='wall'?'wall':'site';announcementKind.value='feature';
  for(const item of announcementPlatforms.options)item.selected=true;
  updateAnnouncementPreview();
 }
@@ -166,7 +185,7 @@ function editAnnouncement(id){
  announcementForm.scrollIntoView({behavior:'smooth',block:'start'});
 }
 function renderAnnouncements(){
- announcementRows.innerHTML=announcementsCache.map(a=>
+ announcementRows.innerHTML=announcementsCache.filter(a=>announcementChannel==='wall'?a.audience==='wall':a.audience!=='wall').map(a=>
  '<div class="admin-announcement-item"><div><strong>'+esc(a.title||a.message.slice(0,65))+'</strong>'+
  '<div class="muted">'+esc((a.enabled?'Enabled':'Draft')+' · '+(a.audience||'site')+' · priority '+a.priority+' · '+(a.pages||[]).join(', '))+'</div></div>'+
  '<div class="admin-head-actions"><button class="btn" data-notice-edit="'+esc(a.id)+'">Edit</button>'+
@@ -185,8 +204,8 @@ async function loadAnnouncements(){
 refreshAnnouncements.onclick=()=>loadAnnouncements().catch(e=>announcementMessageStatus.textContent=e.message);
 announcementForm.onsubmit=async event=>{
  event.preventDefault();const button=event.submitter,record=announcementEditorValues();
- if(record.audience!=='clients'&&!record.pages.length){announcementMessageStatus.textContent='Select a website destination.';return}
- if(record.audience!=='site'&&!record.platforms.length){announcementMessageStatus.textContent='Select client platforms.';return}
+ if(['site','both'].includes(record.audience)&&!record.pages.length){announcementMessageStatus.textContent='Select a website destination.';return}
+ if(['clients','both','wall'].includes(record.audience)&&!record.platforms.length){announcementMessageStatus.textContent='Select client platforms.';return}
  button.disabled=true;
  try{
   await api(record.id?'announcement-update':'announcement-create',{method:'POST',body:JSON.stringify(record)});
@@ -195,4 +214,5 @@ announcementForm.onsubmit=async event=>{
  }catch(error){announcementMessageStatus.textContent=error.message}finally{button.disabled=false}
 };
 resetAnnouncementForm();
+setAnnouncementChannel('distribution',{preserveForm:true});
 </script><script src="/admin/assets/notification-center.js" defer></script></body></html>
