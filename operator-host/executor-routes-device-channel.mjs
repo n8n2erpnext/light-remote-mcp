@@ -514,17 +514,24 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       // for the other devices the owner is authorized to inspect.
       const completeMonitorScope=Boolean(staleClaimMonitor&&
         [...owned].every(id=>staleClaimMonitor.allowed.has(id)));
-      const observations=completeMonitorScope&&monitored&&monitored.error===null&&ageMs<=90000
-        ? monitored : [...owned].length===0?{staleClaims:[],mode:'diagnostic_only'}:
-          await scanOwnerStaleClaims({pool:goldJobs.pool,accountId:ctx.account.accountId,
-            deviceIds:[...owned],minimumAgeMs:3600000,maxRows:1000});
-      const staleClaims=(observations.items||observations.staleClaims||[]).map(item=>({
+      let observations=null,diagnosticAvailable=true;
+      try{
+        observations=completeMonitorScope&&monitored&&monitored.error===null&&ageMs<=90000
+          ? monitored : [...owned].length===0?{staleClaims:[],mode:'diagnostic_only'}:
+            await scanOwnerStaleClaims({pool:goldJobs.pool,accountId:ctx.account.accountId,
+              deviceIds:[...owned],minimumAgeMs:3600000,maxRows:1000});
+      }catch{
+        // Preserve the existing Fleet Jobs view but NEVER render a successful
+        // empty stale-claim result when the bounded PG diagnostic failed.
+        diagnosticAvailable=false;
+      }
+      const staleClaims=(observations?.items||observations?.staleClaims||[]).map(item=>({
         deviceId:item.deviceId,deviceName:names.get(item.deviceId)||item.deviceId,
         jobId:item.jobId,ageMinutes:Math.floor(item.ageMs/60000),
         processIdentityKnown:item.processIdentityKnown,workerState:item.workerState,
         classification:item.classification,releaseAllowed:false,nextAction:item.nextAction}));
       return sendJson(res,200,{ok:true,mainDeviceId:ctx.account.mainDeviceId,jobs:rows,resources,
-        staleClaimStatus:{mode:'diagnostic_only',releaseAllowed:false,
+        staleClaimStatus:{mode:'diagnostic_only',available:diagnosticAvailable,releaseAllowed:false,
           scanSource:observations===monitored?'periodic_monitor':'owner_read_only'},staleClaims});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/fleet-job-cancel') {
