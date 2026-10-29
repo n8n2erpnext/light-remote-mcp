@@ -1,0 +1,51 @@
+name: Gold Connection Lifecycle GC Source Gate
+
+on:
+  push:
+    branches:
+      - 'feat/gold-connection-gc-reconciler-20261029'
+    paths:
+      - 'lib/gold-connection-job-reaper.mjs'
+      - 'lib/gold-reconnect-proof.mjs'
+      - 'lib/gold-device-resource-locks.mjs'
+      - 'operator-host/device-connection-registry.mjs'
+      - 'deploy/scripts/selftest-gold-connection-*.mjs'
+      - 'deploy/scripts/selftest-gold-reconnect-proof.mjs'
+      - 'platform-v2/sql/040_gold_connection_job_gc_fences.sql'
+      - '.github/workflows/gold-connection-lifecycle-gc.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.2'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+      - name: Verify syntax and source-only safety invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check lib/gold-connection-job-reaper.mjs
+          node --check lib/gold-reconnect-proof.mjs
+          node --check lib/gold-device-resource-locks.mjs
+          node --check operator-host/executor.mjs
+          node deploy/scripts/selftest-v09-device-connection.mjs
+          node deploy/scripts/selftest-v11-device-connection-renewal.mjs
+          node deploy/scripts/selftest-gold-connection-job-gc.mjs
+          node deploy/scripts/selftest-gold-connection-gc-races.mjs
+          node deploy/scripts/selftest-gold-reconnect-proof.mjs
+          node deploy/scripts/selftest-gold-m4-resource-policy.mjs
+          node deploy/scripts/selftest-gold-job-control-stop.mjs
+          node deploy/scripts/selftest-gold-job-control-durable-ack.mjs
+          node deploy/scripts/selftest-gold-wall-job-cancel-gateway.mjs
+      - name: Check patch whitespace
+        run: git diff --check HEAD~1 HEAD
