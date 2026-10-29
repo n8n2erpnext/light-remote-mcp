@@ -3,8 +3,8 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 
 export const DEFAULT_PLAN_CONNECTION_CAPS = Object.freeze({
-  free: 4 * 60 * 60 * 1000,
-  pro: 24 * 60 * 60 * 1000,
+  free: 12 * 60 * 60 * 1000,
+  pro: 48 * 60 * 60 * 1000,
   vip: 72 * 60 * 60 * 1000
 });
 export const MIN_RECONNECT_GRACE_MS = 15 * 60 * 1000;

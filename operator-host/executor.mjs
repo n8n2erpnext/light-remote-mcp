@@ -11,6 +11,7 @@ import { SessionRegistry, SessionError, SESSION_GRACE_PRESETS } from './session-
 import { personalCapacity } from './execution-capacity-policy.mjs';
 import { GoldPersonalAgentScheduler } from '../lib/gold-personal-agent-scheduler.mjs';
 import { GoldDeviceResourceLocks } from '../lib/gold-device-resource-locks.mjs';
+import { GoldConnectionJobReaper, DEFAULT_OFFLINE_GC_MS } from '../lib/gold-connection-job-reaper.mjs';
 import { DeviceResourceSampleCache } from '../lib/device-resource-telemetry.mjs';
 import { deviceResourceIntent } from './device-resource-intent.mjs';
 import { usesPersonalAgentSlot } from './personal-agent-tool-admission.mjs';
@@ -109,6 +110,11 @@ const ACCOUNT_ID = String(process.env.OPERATOR_ACCOUNT_ID || 'self-hosted-local'
 const ACCOUNT_PLAN = String(process.env.OPERATOR_ACCOUNT_PLAN || 'free').trim().toLowerCase();
 const CONNECTION_LEASE_ENFORCE = ['1','true','yes'].includes(String(process.env.OPERATOR_CONNECTION_LEASE_ENFORCE || '0').toLowerCase());
 const CONNECTION_REAP_MS = Number(process.env.OPERATOR_CONNECTION_REAP_MS || 30 * 1000);
+// Opt-in PG-authoritative cleanup of jobs after 60m continuously offline.
+const CONNECTION_JOB_GC_ENABLED = process.env.OPERATOR_CONNECTION_JOB_GC_ENABLED==='1';
+const CONNECTION_JOB_GC_OFFLINE_MS = Number(process.env.OPERATOR_CONNECTION_JOB_GC_OFFLINE_MS || DEFAULT_OFFLINE_GC_MS);
+const CONNECTION_JOB_GC_SCAN_MS = Math.max(5000,Math.min(300000,Number(process.env.OPERATOR_CONNECTION_JOB_GC_SCAN_MS)||10000));
+const CONNECTION_JOB_GC_BATCH = Math.max(1,Math.min(128,Number(process.env.OPERATOR_CONNECTION_JOB_GC_BATCH)||128));
 const DEVICE_ID = String(process.env.OPERATOR_DEVICE_ID || 'arm-local');
 const NODE_ID = String(process.env.OPERATOR_NODE_ID || 'arm');
 const DEVICE_NAME = String(process.env.OPERATOR_DEVICE_NAME || os.hostname());
@@ -425,6 +431,62 @@ const connectionReaper = setInterval(() => {
   } catch(error) { console.error('[connection] reap failed', error?.message || error); }
 }, Math.max(5000,CONNECTION_REAP_MS));
 connectionReaper.unref();
+
+// Separate from M4 admission: post-connection lifecycle GC. A server record
+// is retired as UNKNOWN only after an hour without a fresh Agent channel.
+// OS effects without a signed terminal receipt retain independent PG fences.
+if(CONNECTION_JOB_GC_ENABLED&&!DEVICE_RESOURCE_LOCKS)throw Error('gold_connection_gc_requires_m4');
+let connectionJobGcTicker=null,connectionJobGcBusy=false;
+if(CONNECTION_JOB_GC_ENABLED){
+  const reaper=new GoldConnectionJobReaper({
+    pool:goldStorage.pool,
+    offlineMs:CONNECTION_JOB_GC_OFFLINE_MS,
+    limit:CONNECTION_JOB_GC_BATCH,
+    channelFresh:async deviceId=>{
+      if(fleet.list().some(node=>node.deviceId===deviceId&&node.channelFresh))return true;
+      // A fresh connection/renewal may not yet have flushed to PG. Respect it,
+      // but do not treat an old connected lease as proof of an online channel.
+      const row=connections.get(deviceId),now=Date.now();
+      return row.state==='connected'&&
+        (Number(row.connectedAt)>now-CONNECTION_JOB_GC_OFFLINE_MS||
+          Number(row.lastRenewedAt)>now-CONNECTION_JOB_GC_OFFLINE_MS);
+    },
+    event:pushEvent,
+    onRetired:({deviceId,jobIds})=>{
+      const retired=new Set(jobIds);
+      // Prevent a queued/in-flight Fleet command from re-dispatching on
+      // reconnect after its durable server job was declared interrupted.
+      for(const [id,row] of [...fleet.commands]){
+        if(row.deviceId===deviceId&&retired.has(row.jobId))fleet.abandon(id,'offline_gc_unknown');
+      }
+      for(const jobId of retired){
+        pendingForegroundExec.delete(jobId);
+        const job=jobs.get(jobId);
+        if(!job||job.finishedAt)continue;
+        clearTimeout(job.timer);
+        for(const [cmd,row] of [...pendingDeviceJobStops]){
+          if(row.jobId===jobId)pendingDeviceJobStops.delete(cmd);
+        }
+        job.status='interrupted';job.finishedAt=Date.now();
+        job.resultSummary='offline_gc_unknown';job.exitCode=null;
+        job.signedResultVerified=false;
+        try{sessions.finishJob(job.sessionId,job.id,'interrupted');}catch{}
+      }
+    }
+  });
+  connectionJobGcTicker=setInterval(async()=>{
+    if(connectionJobGcBusy)return;connectionJobGcBusy=true;
+    try{
+      await goldJobs.flush(); // No older async ledger save may overwrite GC.
+      const result=await reaper.sweep({dryRun:false});
+      if(result.cleaned)pushEvent({type:'gold_connection_gc_batch',status:'ok',
+        checked:result.scanned,cleaned:result.cleaned});
+    }catch(error){console.error(JSON.stringify({event:'gold_connection_gc_failed',
+      code:String(error?.code||'PG_UNAVAILABLE')}));}
+    finally{connectionJobGcBusy=false}
+  },CONNECTION_JOB_GC_SCAN_MS);
+  connectionJobGcTicker.unref();
+}
 
 function pruneReplay(now = Date.now()) {
   for (const [id, exp] of replay) if (exp <= now) replay.delete(id);
@@ -1556,6 +1618,7 @@ function shutdown(signal) {
   console.log(`[operator] ${signal}, shutting down`);
   clearInterval(deviceHeartbeat);
   clearInterval(connectionReaper);
+  if(connectionJobGcTicker)clearInterval(connectionJobGcTicker);
   try { devices.markOffline(DEVICE_ID, signal.toLowerCase()); } catch {}
   for (const res of sseClients) { try { res.end(); } catch {} }
   sseClients.clear();

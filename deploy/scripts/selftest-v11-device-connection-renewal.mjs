@@ -23,11 +23,11 @@ assert.equal(renewed.hardExpiresAt,now+24*HOUR);
 assert.ok(renewed.hardExpiresAt>originalExpiry);
 assert.equal(access.renewConnection('dev-renew',{connectionId:renewed.connectionId,connectionExpiresAt:renewed.hardExpiresAt}),1);
 const renewedGrant=access.assert(grant.grantId,{deviceId:'dev-renew',connectionId:originalConnectionId,touch:false});
-assert.equal(renewedGrant.expiresAt,renewed.hardExpiresAt);
+assert.equal(renewedGrant.expiresAt,originalExpiry,'A/B authorization is capped at 24h even when the device lease renews');
 
 now=originalExpiry+1;
 assert.equal(connections.assertConnected('dev-renew').connectionId,originalConnectionId,'connection must survive its original hard-expiry after explicit renewal');
-assert.equal(access.assert(grant.grantId,{deviceId:'dev-renew',connectionId:originalConnectionId,touch:false}).grantId,grant.grantId,'grant must survive original connection expiry after renewal');
+assert.throws(()=>access.assert(grant.grantId,{deviceId:'dev-renew',connectionId:originalConnectionId,touch:false}),error=>error.message==='device_access_grant_expired','A/B must not silently extend beyond its original 24h maximum');
 assert.ok(events.some(e=>e.type==='device_connection_renewed'));
 assert.ok(events.some(e=>e.type==='device_access_renewed'));
 
