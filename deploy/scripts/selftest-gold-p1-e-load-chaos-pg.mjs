@@ -18,8 +18,8 @@ assert.match(db,/^lr_gold_epoch_fixture_[0-9]{8}$/,'refuse anything but ephemera
 assert.equal(process.env.LR_P1E_LOAD_ALLOW,'1','P1E explicit load opt-in required');
 const target=Number(process.env.LR_P1E_TARGET||10000);
 assert.ok([1000,10000].includes(target),'Only 1000 or 10000 synthetic devices permitted');
-const signatureSample=Math.min(1000,target); // genuine code path, NOT 10k Agent processes
-const effectSample=50;
+const signatureSample=target; // ALL simulated devices exercise real epoch and Ed25519 server paths
+const effectSample=200;
 const maxConcurrency=24;
 const poolA=new pg.Pool({database:db,max:12,connectionTimeoutMillis:15000,statement_timeout:30000});
 const poolB=new pg.Pool({database:db,max:12,connectionTimeoutMillis:15000,statement_timeout:30000});
@@ -117,7 +117,7 @@ try{
  assert.equal(await count("SELECT count(*)::int n FROM lr_gold_job_records WHERE device_id LIKE 'dev_p1e_%'"),target);
  assert.equal(await count("SELECT count(*)::int n FROM lr_gold_device_resource_claims WHERE device_id LIKE 'dev_p1e_%'"),target/2);
  const samples=Array.from({length:signatureSample},(_,i)=>i+1);
- // Real application-level epoch grants on 1,000 representative devices.
+ // Real application-level epoch grants on ALL simulated devices (no physical Agents).
  const initialStart=performance.now();
  const issue0=await bounded(samples,maxConcurrency,i=>
    (i%2?A:B).issue({accountId:account(i),deviceId:dev(i),connectionId:conn(i,0),instanceId:instance(i,0)})
@@ -186,7 +186,7 @@ try{
  // OS-effect-start permit; no process is actually launched by this test.
  const commandStart=performance.now();
  const commands=await bounded(Array.from({length:effectSample},(_,i)=>i+1),12,async i=>{
-   const command={commandId:'cmd_p1e_'+String(i).padStart(20,'0'),
+   const command={commandId:'cmd_p1e-'+String(i).padStart(20,'0'),
      jobId:job(i),payload:{type:'process',operationId:'op_p1e_'+i,op:'start',synthetic:true}};
    const args={accountId:account(i),deviceId:dev(i),connectionId:conn(i,1),instanceId:instance(i,1),command};
    const [first,second]=await Promise.all([A.authorizeCommand(args),B.authorizeCommand(args)]);
@@ -227,7 +227,7 @@ try{
    const i=k+1;
    return A.assertReady({accountId:account(i),deviceId:dev(i),connectionId:conn(i,1),instanceId:instance(i,1)})
      .then(()=>A.authorizeCommand({accountId:account(i),deviceId:dev(i),connectionId:conn(i,1),instanceId:instance(i,1),
-       command:{commandId:'cmd_p1e_old_'+String(i).padStart(20,'0'),jobId:job(i),payload:{synthetic:true}}}));
+       command:{commandId:'cmd_p1e-old-'+String(i).padStart(20,'0'),jobId:job(i),payload:{synthetic:true}}}));
  }));
  // Assert old tickets are NOT startable (via actual PG current connection).
  const stale=await Promise.allSettled(Array.from({length:effectSample},(_,k)=>{
@@ -252,6 +252,6 @@ try{
    noDuplicateEffects:true,verifiedEffectPermits:effectSample,
    noPidClaimsPreserved:true,terminalAcksFabricated:0,offlineGcAfterReconnect:0,
    phases:results,totalMs,
-   limits:'No real 10k Agent processes/sockets; SQL population and 1k actual epoch/inventory protocol calls only; CI host not production capacity benchmark'};
+   limits:'No real Agent processes/sockets or physical OS effects; all simulated devices exercise epoch and signed inventory against two actual Operator objects and disposable PostgreSQL; CI host not production capacity benchmark'};
  console.log('GOLD_P1E_CHAOS_REPORT '+JSON.stringify(report));
 }finally{await Promise.allSettled([poolA.end(),poolB.end()]);}
