@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Light Remote LM</title>
+  <link rel="stylesheet" href="popup.css">
+  <script src="popup.js" defer></script>
+</head>
+<body>
+  <header><img src="icon.png" width="34" height="34" alt=""><div><strong>Light Remote LM</strong><small>ChatGPT → Gold Long Memory</small></div></header>
+  <main>
+    <p>Capture the messages currently loaded in this ChatGPT tab. Review them on your local Wall before saving to a Memory Scope.</p>
+    <div class="info" id="info">No conversation captured.</div>
+    <button type="button" id="capture">Capture visible conversation</button>
+    <button type="button" id="send" disabled>Review in Local Wall</button>
+    <p class="notice">Nothing is captured automatically. The extension never sends chat text to a cloud server.</p>
+    <p class="status" id="status" role="status" aria-live="polite"></p>
+  </main>
+</body>
+</html>

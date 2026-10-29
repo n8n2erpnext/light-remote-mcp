@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Light Remote LM",
+  "short_name": "LR LM",
+  "version": "0.1.0",
+  "description": "User-approved capture of visible ChatGPT conversation into the existing Light Remote Gold Long Memory Wall.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "tabs",
+    "storage"
+  ],
+  "host_permissions": [
+    "http://127.0.0.1:5491/*",
+    "http://localhost:5491/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Light Remote LM",
+    "default_popup": "popup.html"
+  },
+  "icons": {
+    "16": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  }
+}
