@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "light-remote": {
+      "type": "http",
+      "url": "https://light-remote.thaiduy.digital/mcp"
+    }
+  }
+}

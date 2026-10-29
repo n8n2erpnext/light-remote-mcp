@@ -1,5 +1,7 @@
 # Light Remote MCP
 
+> **Claude.ai / Claude Desktop / Claude Code:** [Hướng dẫn kết nối Claude](docs/CLAUDE_CONNECTOR.md) qua endpoint MCP production, OAuth và A/B tại Local Wall. Đây là custom connector; listing công khai trong Claude Directory cần Anthropic duyệt riêng.
+
 <p align="center">
   <img src="assets/branding/light-remote-mark.svg" alt="Light Remote MCP" width="128">
 </p>

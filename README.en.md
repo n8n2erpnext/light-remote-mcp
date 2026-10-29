@@ -1,5 +1,7 @@
 # Light Remote MCP
 
+> **Claude.ai / Claude Desktop / Claude Code:** [Connect Light Remote to Claude](docs/CLAUDE_CONNECTOR.md) with the production remote MCP endpoint, OAuth sign-in and device-local A/B approval. This is a custom connector; a public Claude Directory listing requires separate Anthropic review.
+
 <p align="center">
   <img src="assets/branding/light-remote-mark.svg" alt="Light Remote MCP" width="128">
 </p>

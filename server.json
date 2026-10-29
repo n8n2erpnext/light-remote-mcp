@@ -1,0 +1,27 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.n8n2erpnext/light-remote-mcp",
+  "title": "Light Remote",
+  "description": "Connect AI to your own computers for governed file, terminal, process and desktop operations.",
+  "repository": {
+    "url": "https://github.com/n8n2erpnext/light-remote-mcp",
+    "source": "github"
+  },
+  "websiteUrl": "https://light-remote.thaiduy.digital",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/n8n2erpnext/light-remote-mcp/main/assets/branding/light-remote-mark-512.png",
+      "sizes": [
+        "512x512"
+      ],
+      "mimeType": "image/png"
+    }
+  ],
+  "version": "0.9.0-rc.47",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://light-remote.thaiduy.digital/mcp"
+    }
+  ]
+}
