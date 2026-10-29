@@ -132,7 +132,24 @@ export class AccountOperatorAdapter{
     return {product:'Light Remote',status,purpose:'Governed remote computing for AI agents on explicitly authorized user-owned devices.',account:safeAccount(account),productCapabilities:[...PRODUCT_CAPABILITIES],onboarding:{nextAction:transient?'retry_same_helper_no_repair':ready?'use_working_context_and_helper_menu':'ask_owner_for_local_wall_a_code',retryable:transient||undefined,retryAfterMs:transient?1500:undefined,normalFlow:['Open the target device Local Wall and copy the one-time A code.','Call this helper with that A code to create the B approval request.','Show only the B code to the owner.','The owner enters B at that same Local Wall /approve and chooses Approve.','Call this helper again with the returned continuation. Only then is the device available to this plugin client.'],trustBoundary:'OAuth signs the user into the account, but it does not authorize a device. Every target device must be A/B-approved into this plugin client. The MCP cannot mint A or bypass Local Wall /approve.'},topology:devices.map(d=>({deviceId:d.deviceId,name:d.displayName||d.name||d.deviceId,role:d.deviceId===mainId?'main':'device',platform:d.platform,architecture:d.architecture,state:d.state,routing:safeRouting(d.routing||{}),effectiveCapabilities:[...(d.effectiveCapabilities||d.capabilities||[])]})),context:working?.context||null,session:working?.session||null,toolHelper:helper,governance:{explicitTargetRequired:true,silentFallback:false,localPolicyFinalDeny:true,credentialsMustRemainLocal:true,deviceAuthorization:'local-wall-a-b'}};
   }
 
-  async inspectDevice(deviceId){const [d,a]=await Promise.all([this.deviceRaw(deviceId),this.accountRaw()]);return {device:cleanDevice(d),role:a.mainDeviceId===d.deviceId?'main':'device',routing:safeRouting(d.routing||{}),connection:safeConnection(d.connection||{}),policy:safePolicy(d),update:safeUpdate(d.updateStatus||{}),fleet:{accountPlan:String(a.plan||'free'),mainDeviceId:a.mainDeviceId||null,provisioning:a.fleetProvisioning?{state:a.fleetProvisioning.state||null,deviceId:a.fleetProvisioning.deviceId||null,moduleVersion:a.fleetProvisioning.moduleVersion||null}:null}};}
+  async inspectDevice(deviceId){
+    // deviceRaw first verifies this exact A/B grant via Operator.
+    const [d,a]=await Promise.all([this.deviceRaw(deviceId),this.accountRaw()]);
+    const client=await this.clientRaw({required:true});
+    const q=new URLSearchParams({agentId:this.agentId,clientSessionId:client.clientSessionId});
+    const boot=await callOperatorJson('GET',
+      `/v1/plugin/accounts/${encodeURIComponent(this.identity.accountId)}/devices/${encodeURIComponent(deviceId)}/boot-evidence?${q}`);
+    return {device:cleanDevice(d),role:a.mainDeviceId===d.deviceId?'main':'device',
+      routing:safeRouting(d.routing||{}),connection:safeConnection(d.connection||{}),
+      policy:safePolicy(d),update:safeUpdate(d.updateStatus||{}),
+      fleet:{accountPlan:String(a.plan||'free'),mainDeviceId:a.mainDeviceId||null,
+        provisioning:a.fleetProvisioning?{state:a.fleetProvisioning.state||null,
+          deviceId:a.fleetProvisioning.deviceId||null,
+          moduleVersion:a.fleetProvisioning.moduleVersion||null}:null},
+      bootEvidence:{state:boot.state,evidenceClass:boot.evidenceClass||null,
+        releaseEligible:false,evidence:boot.evidence||null,
+        recoveryAuthorization:'not_authorized_by_boot_telemetry'}};
+  }
   async recentActivity(deviceId,limit=50){await this.deviceRaw(deviceId);const n=Math.max(1,Math.min(Number(limit)||50,200)),row=await callOperatorJson('GET',`/v1/activity?deviceId=${encodeURIComponent(deviceId)}&limit=${n}`);return {deviceId,events:(row.events||[]).map(cleanActivityEvent)};}
   async setMainDevice(deviceId){await this.deviceRaw(deviceId);const row=await callOperatorJson('POST',`/v1/plugin/accounts/${encodeURIComponent(this.identity.accountId)}/main-device`,{deviceId});return {account:safeAccount(row.account),mainDevice:cleanDevice(row.mainDevice)};}
   async revokeDevice(deviceId,reason='plugin_owner_revoked'){await this.deviceRaw(deviceId);const row=await callOperatorJson('POST',`/v1/plugin/accounts/${encodeURIComponent(this.identity.accountId)}/devices/${encodeURIComponent(deviceId)}/revoke`,{reason:String(reason||'plugin_owner_revoked').slice(0,120)});return {deviceId:row.device?.deviceId||deviceId,state:row.device?.state||'revoked',revoked:true};}

@@ -208,7 +208,7 @@ export function registerPluginTools(server,identity){
 
   add(server,'light_remote_inspect_device',{
     title:'Inspect a Light Remote device',
-    description:'Read policy, connection, routing, Main/Fleet, update and capability state for one owned device.',
+    description:'Read policy, connection, routing, Main/Fleet, update, capabilities and authenticated read-only Windows boot diagnostics for one A/B-authorized device. Boot reports never release M4 claims.',
     inputSchema:{deviceId:id},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
   },guarded(identity,['remote:read'],(a,x)=>a.inspectDevice(x.deviceId)));
 

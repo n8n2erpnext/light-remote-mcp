@@ -14,6 +14,27 @@ function ownedSession(deps,{accountId,sessionId,agentId}){
   return {account,session};
 }
 export async function handlePluginRoutes(req,res,url,deps){
+  // Diagnostic-only owner/Agent read. Resolve the exact active A/B grant
+  // server-side: the plugin cannot select another account's device. No
+  // command or resource claim is dispatched and this can NEVER release M4.
+  const boot=url.pathname.match(/^\/v1\/plugin\/accounts\/([A-Za-z0-9._:-]+)\/devices\/([A-Za-z0-9._:-]+)\/boot-evidence$/);
+  if(req.method==='GET'&&boot){
+    const account=pluginAccount(deps,boot[1]);
+    const agentId=cleanId(url.searchParams.get('agentId'),'agent_id');
+    const clientSessionId=cleanId(url.searchParams.get('clientSessionId'),'client_session_id');
+    const binding=deps.agentClients.resolve(clientSessionId,{agentId,deviceId:boot[2],touch:false});
+    if(binding.accountId!==account.accountId||binding.deviceId!==boot[2])
+      throw new deps.AccountError('plugin_boot_device_scope_denied',403);
+    const device=deps.devices.get(boot[2]);
+    if(device.accountId!==account.accountId||device.state==='revoked')
+      throw new deps.AccountError('plugin_boot_device_scope_denied',403);
+    if(!deps.deviceBootObservations)
+      throw new deps.AccountError('boot_observation_store_unavailable',503);
+    const diagnostic=await deps.deviceBootObservations.inspect({
+      accountId:account.accountId,deviceId:device.deviceId});
+    return deps.sendJson(res,200,{ok:true,deviceId:device.deviceId,
+      ...diagnostic,recoveryAuthorization:'not_authorized_by_boot_telemetry'});
+  }
   if(req.method==='POST'&&url.pathname==='/v1/plugin/sessions/open'){
     const body=await deps.readJson(req),account=pluginAccount(deps,body.accountId),route=deps.targetRoute(body.nodeId,{accountId:account.accountId});
     const session=deps.sessions.open({accountId:account.accountId,openId:body.openId,agentId:body.agentId,label:body.label,workspace:body.workspace,graceMs:body.graceMs,gracePreset:body.gracePreset,leaseMs:body.leaseMs,leasePreset:body.leasePreset,nodeId:route.nodeId,deviceId:route.deviceId,maxActiveForNode:route.sessionCeiling,maxActiveForAccount:deps.planEntitlements(account).sessionLimit??null});
