@@ -86,10 +86,25 @@ try{
  assert.equal(rotatedRetry.bCode,updated.bCode,'retry sees current B after owner Refresh, never old B');
  await errors(store.approve({...o,requestId:issued.requestId,expectedAttempt:1,bCode:issued.bCode}),/abv2_attempt_changed/);
  await errors(store.approve({...o,requestId:issued.requestId,expectedAttempt:2,bCode:issued.bCode}),/abv2_b_invalid/);
+ await errors(store.grantReceipt({...o,requestId:other.requestId}),/abv2_b_not_verified/);
  const right=await store.approve({...o,requestId:issued.requestId,expectedAttempt:2,bCode:updated.bCode});
  assert.equal(right.state,'approved');
  assert.equal((await store.listDevicePending({...o})).length,1,'approved request removed from pending index');
  assert.equal((await store.agentPoll({...a,requestId:issued.requestId})).state,'approved');
+ const receipt=await store.grantReceipt({...o,requestId:issued.requestId});
+ assert.equal(receipt.state,'approved');
+ assert.equal(receipt.agent,'agent-1');
+ assert.ok(Number.isSafeInteger(receipt.approvedAt));
+ const grantId='dag_v2_'+issued.requestId.slice(4);
+ const done=await store.commitGrant({...o,requestId:issued.requestId,
+  attempt:2,approvedAt:receipt.approvedAt,grantId});
+ assert.equal(done.state,'granted');
+ assert.equal(done.grantId,grantId);
+ assert.equal((await store.agentPoll({...a,requestId:issued.requestId})).state,'granted');
+ assert.equal((await store.wallView({...o,requestId:issued.requestId})).state,'granted');
+ assert.equal((await store.commitGrant({...o,requestId:issued.requestId,
+  attempt:2,approvedAt:receipt.approvedAt,grantId})).grantId,grantId);
+ assert.equal(Object.hasOwn(await store.grantReceipt({...o,requestId:issued.requestId}),'box'),false);
  await errors(store.approve({...o,requestId:issued.requestId,expectedAttempt:2,bCode:updated.bCode}),/abv2_request_not_pending/);
  await errors(store.refresh({...o,requestId:issued.requestId,expectedAttempt:2}),/abv2_attempt_changed/);
  await store.deny({...o,requestId:other.requestId});

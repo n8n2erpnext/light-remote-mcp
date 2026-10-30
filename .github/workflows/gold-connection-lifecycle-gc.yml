@@ -13,6 +13,10 @@ on:
       - 'operator-host/gold-ab-v2-owner-http.mjs'
       - 'operator-host/gold-ab-v2-signed-preview.mjs'
       - 'operator-host/gold-ab-v2-helper-target.mjs'
+      - 'operator-host/gold-ab-v2-grant-coordinator.mjs'
+      - 'operator-host/gold-ab-v2-grant-operator.mjs'
+      - 'deploy/scripts/selftest-gold-ab-v2-grant-coordinator.mjs'
+      - 'deploy/scripts/selftest-gold-ab-v2-grant-operator.mjs'
       - 'operator-host/device-access-grant-registry.mjs'
       - 'deploy/scripts/selftest-gold-ab-reauthorization-clock.mjs'
       - 'deploy/scripts/selftest-v09-device-access-grant.mjs'
@@ -158,6 +162,10 @@ jobs:
           node --check deploy/scripts/selftest-gold-ab-v2-helper-issue.mjs
           node deploy/scripts/selftest-gold-ab-v2-helper-issue.mjs
           node deploy/scripts/selftest-gold-ab-v2-verified-grant.mjs
+          node --check operator-host/gold-ab-v2-grant-coordinator.mjs
+          node --check operator-host/gold-ab-v2-grant-operator.mjs
+          node deploy/scripts/selftest-gold-ab-v2-grant-coordinator.mjs
+          node deploy/scripts/selftest-gold-ab-v2-grant-operator.mjs
           node deploy/scripts/selftest-gold-ab-reauthorization-clock.mjs
           node deploy/scripts/selftest-v09-device-access-grant.mjs
           node deploy/scripts/selftest-v09-pairing-connect-flow.mjs
