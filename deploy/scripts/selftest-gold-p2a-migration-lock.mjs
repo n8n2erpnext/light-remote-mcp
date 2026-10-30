@@ -35,4 +35,7 @@ const denied=spawnSync(process.execPath,[path.join(root,'deploy/scripts/apply-go
 });
 assert.notEqual(denied.status,0,'runner must reject missing approval before DB connect');
 assert.match(String(denied.stderr),/explicit_gold_independent_migration_approval_required/);
+const g3=fs.readFileSync(path.join(root,'deploy/scripts/gold-g3-uat-cutover.sh'),'utf8');
+assert.match(g3,/G3_GOLD_LEGACY_THREE_UNIT_CUTOVER_UNSAFE_WITH_SUPERVISOR/);
+assert.match(g3,/light-remote-gold-process-supervisor\.service/);
 console.log('GOLD_P2A_LOCKED_42_MANIFEST_AND_OPTIN=PASS');

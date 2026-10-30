@@ -16,6 +16,13 @@ ROOT="/opt/light-remote-gold-uat-candidates/$SHA"
 BACKUP="/var/backups/light-remote-gold-uat/pre-g3-$SHA"
 SOCK="/run/light-remote-gold-uat/operator.sock"
 UNIT_ROOT="/etc/systemd/system"
+# Retire the legacy three-unit G3 path on the current four-service topology.
+# Fail BEFORE any overrides, restart, or rollback side effects. P2-B must
+# use a separately audited four-unit and database-coordinated cutover.
+if [[ -e "$UNIT_ROOT/light-remote-gold-process-supervisor.service" ]]; then
+  echo G3_GOLD_LEGACY_THREE_UNIT_CUTOVER_UNSAFE_WITH_SUPERVISOR >&2
+  exit 3
+fi
 SERVICES=(light-remote-gold-operator light-remote-gold-plugin light-remote-gold-wall)
 if [[ ! -f "$ROOT/.git-source-sha" || "$(cat "$ROOT/.git-source-sha")" != "$SHA" ]];then echo G3_GOLD_CANDIDATE_MISSING >&2;exit 3;fi
 if [[ ! -s "$BACKUP/SHA256SUMS.txt" ]];then echo G3_GOLD_VERIFIED_BACKUP_REQUIRED >&2;exit 3;fi
