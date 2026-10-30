@@ -308,16 +308,16 @@
       "path": "docs/gold/GOLD_P2_INTEGRATED_ABV2_NICKNAME_PRO_SHARE_PLAN_20261030.md",
       "shelf": "gold",
       "extension": "md",
-      "bytes": 37169,
-      "sha256": "81530a40f3f517ed6732fa2b1e8bee0352ea9316b979e76bf22e6ef5041071d1",
+      "bytes": 41948,
+      "sha256": "30460717e268df202f0013c85b9580061560c2beb161d56b693c3a5be54e1b67",
       "title": "Light Remote Gold — Unified P2 release plan: A/B V2 + Agent nickname + Pro Share"
     },
     {
       "path": "docs/gold/GOLD_P2_UNIFIED_ACCEPTANCE_LEDGER_20261030.md",
       "shelf": "gold",
       "extension": "md",
-      "bytes": 7116,
-      "sha256": "251651fcc2a20fb99f4f0bc938b8d53bfdc6a56a0663e4118aacd241bc1bd1b8",
+      "bytes": 7636,
+      "sha256": "7e0364edb2a3643976e09d5e978d39a02a1d14045135b87101cac6877e0e93ad",
       "title": "Gold P2 — single acceptance ledger for AB V2, nickname, Pro Share and P2"
     },
     {

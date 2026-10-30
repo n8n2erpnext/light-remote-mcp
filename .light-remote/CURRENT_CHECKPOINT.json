@@ -35,7 +35,7 @@
     "Gold UAT 039→042 migration and production release not authorized",
     "One historical M4 resource claim and 27 UNKNOWN records protected"
   ],
-  "nextAction": "Review migration 043 upgrade/rollback compatibility and register only after pin 042 P2-A gate is safely extended; wire short ID into Gold native device/readback + authorized Operator/Wall STANDBY and V2 target query. Keep legacy A/B V1, existing UAT039 and production rc47 unchanged.",
+  "nextAction": "Review migration 043 upgrade/rollback and wire Short ID to authorized Operator/Wall STANDBY. A/B V2 design: request TTL 300 seconds; pending Refresh is an explicit atomic new A suffix + B attempt on the same bound request, with Agent Helper synchronization; STANDBY Refresh checks presence without code minting and explicit V1 manual pairing remains the fallback. Preserve legacy V1 TTL 180 seconds, live UAT039 and production rc47.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIBRARY_RULES.md",
