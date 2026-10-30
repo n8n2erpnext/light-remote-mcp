@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-30",
-  "status": "P2-I2h2e-C1 source independent /account-session owner 90s consent + exact signed Wall B/Redis8 one-use scope PASS; clone STOPPED, Gold UAT untouched, V2 runtime OFF. Native PG043 installed Agent E2E and interrupted PG retry UX HOLD; SHA/CI pending.",
+  "status": "P2-I2h2e-C1 source 30a0bcc pushed HEAD=origin; independent server-verified 90s one-time /account owner consent + signed Local Wall B grant gate, real no-NIC Redis8 atomic replay/scope PASS; Gold UAT unchanged, V2 OFF, PG043/native browser E2E HOLD; GitHub push Actions unverified.",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -76,7 +76,7 @@
     "P2-I2h2e-C1 native installed browser/Agent OAuth E2E and full schema PG043/Redis8 clone integration NOT run; owner consent recovery after interrupted PG stage requires fresh authenticated code",
     "Account↔Wall two-screen/copy-paste 90s consent UX is intentional security tradeoff; zero-copy redirect-based proof not developed"
   ],
-  "nextAction": "P2-I2h2e-C2 isolated full PG039 schema+PG043 migration + Redis8 and native Gold agent-client binding readback/restart, plus owner consent retry/recovery UI after interrupted PG, installed browser/Agent E2E and exact GitHub Actions push-run check. Do not deploy UAT/prod; keep all flags OFF; preserve per-Agent 24h and V1.",
+  "nextAction": "P2-I2h2e-C2: no-NIC clone full PG039→PG043 migration + native Redis8 and OAuth Agent binding readback/restart/crash tests, owner-consent recovery UX for interrupted PG coordinator, actual installed Agent/browser E2E and Github Actions push gate. Keep V2 flags OFF, do not migrate Gold UAT/production or auto release Windows/mac/Linux.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -370,8 +370,10 @@
         "nativeInstalledE2E": false,
         "pg043": false,
         "liveEnabled": false,
-        "sourceSHA": "PENDING_COMMIT",
-        "githubActions": "PENDING_EXACT_SHA"
+        "sourceSHA": "30a0bcc88335508e4d59853017889601fb01c3ad",
+        "githubActions": "PUSH_NOT_VERIFIED_PR_ONLY_CONNECTOR",
+        "vercelN": "SUCCESS",
+        "vercelMcp": "FAILURE_EXPLICIT_BUILD_RATE_LIMIT"
       }
     },
     "abPerAgentTimerHotfix": {
