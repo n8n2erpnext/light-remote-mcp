@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-30",
-  "status": "Gold P2-I2h2d full clone PG039-schema FK/CHECK native PG 2-phase PASS; owner /account B V2 approval source OFF-by-default with CSRF/Origin/PG grant, source tests PASS; signed Local Wall & Helper ready NOT wired; SHA/CI pending",
+  "status": "Gold P2-I2h2d source 65b9204 pushed HEAD=origin: isolated full PG039 FK/CHECK native 2-phase PASS, owner Account Portal V2 B approve gated source tests PASS, all V2 OFF on UAT/prod. Actions push unverified; Vercel MCP build-rate-limit failure.",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -67,7 +67,7 @@
     "P2-I2h2d signed Local Wall owner B V2 mutation and OAuth Agent exact grant/ready still NOT wired, installed browser/physical E2E and release CI remain unverified",
     "PG043 is not in live schema/migration manifest; full-schema test used only clone PG039 source (no migration 043)"
   ],
-  "nextAction": "P2-I2h2e signed device-channel Local Wall owner B V2 approval bound to real authenticated Wall owner and exact active device, then OAuth Agent poll scoped client/requestId current connection with Redis granted AND active native PG grant before Helper ready. Native Windows/macOS/Linux and browser E2E after source gates; no Gold UAT/prod deploy or migration043 until separate release authorization.",
+  "nextAction": "P2-I2h2e signed Local Wall V2 B owner approval bound to real signed channel and authenticated Wall owner; after that OAuth Agent poll exact principal/requestId/client/current connection plus Redis granted AND active native PG grant to Helper ready. Native browser physical acceptance & GitHub Actions run required; Vercel build-rate-limit is external blocker. Keep V2 OFF UAT/prod, no PG043 live migration.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -302,8 +302,10 @@
         "ownerRuntimeEnabled": false,
         "signedWallApproval": false,
         "helperReady": false,
-        "sourceSha": "PENDING_COMMIT",
-        "githubActions": "PENDING_EXACT_SHA"
+        "sourceSha": "65b9204d535a4218ac20b8187303e8f19af1a8fd",
+        "githubActions": "PUSH_NOT_VERIFIED_PR_ONLY_CONNECTOR",
+        "vercelMcp": "FAILURE_EXPLICIT_BUILD_RATE_LIMIT",
+        "vercelNInitial": "PENDING"
       }
     },
     "abPerAgentTimerHotfix": {
