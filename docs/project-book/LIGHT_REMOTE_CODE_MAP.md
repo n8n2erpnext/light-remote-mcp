@@ -72,3 +72,11 @@ An MCP login provides account identity only. Device operations require device en
 
 ## 6. Update rule
 When code entrypoints, authority, persistence, major routes or trusted data flows change, update THIS map with the new exact source SHA and tests. Do not attempt to list every method in the repository; use targeted bookmarks and refer to actual source. When claims are not verified, mark as future or source hypothesis, not current runtime.
+
+## 7. Engineering truth gate (documentation governance; NOT a production execution path)
+
+- [Guard](../../deploy/scripts/check-project-truth-sync.mjs) — parses staged and Git-committed blob IDs, computes deterministic source SHA-256, checks synchronized checkpoint, dated Worklog, and Code Map on runtime/trust-boundary changes. `--stamp` writes and stages a fresh source digest in the **single** `.light-remote/CURRENT_CHECKPOINT.json`.
+- [Fixture regression](../../deploy/scripts/selftest-project-truth-sync.mjs) — synthetic disposable Git repo tests missing Worklog, missing checkpoint, stale code digest, authority-map requirement, compliant same-commit source and range.
+- [Local pre-commit](../../.githooks/pre-commit) and [Gold GitHub Actions gate](../../.github/workflows/gold-project-truth-sync.yml) — same policy enforced during local authoring and remote CI. The hook must be enabled per Gold worktree; CI cannot replace GitHub required-status branch protection.
+- Existing [document catalog integrity](../../.github/workflows/gold-doc-library.yml) remains responsible for source catalog SHA-256 and canonical relative bookmarks.
+- **Authority limitation:** this is a *source/documentation consistency guard*, not an assertion that a Gold candidate is live, owner-accepted, or safe to release. It never mutates operator runtime, device agents, A/B grants, billing, PostgreSQL, Redis or production.

@@ -1,0 +1,5 @@
+#!/bin/sh
+# Active Gold worktree guard. Fails a source-code commit when its
+# Worklog, checkpoint source digest or trust-boundary Code Map is stale.
+set -eu
+exec node deploy/scripts/check-project-truth-sync.mjs --staged

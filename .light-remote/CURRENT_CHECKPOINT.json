@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-30",
-  "status": "Documentation governance adopted from LightBI and CI-verified on Gold source; core P2-I1 implementation next",
+  "status": "Gold source→Worklog→Code Map→checkpoint drift gate under implementation; source-only, no live UAT change",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -32,7 +32,7 @@
     "Gold UAT 039→042 migration and production release not authorized",
     "One historical M4 resource claim and 27 UNKNOWN records protected"
   ],
-  "nextAction": "Start Gold P2-I1 source-only stable six-character device Short ID and scoped discovery foundation on the verified Gold worktree. Read Project Book/Code Map first, check Git/running SHA, maintain one Worklog and overwrite this checkpoint. No enterprise RBAC implementation.",
+  "nextAction": "Verify GitHub source/docs checkpoint drift gate PASS on this exact Gold commit; after that, implement Gold P2-I1 stable Short ID and scoped discovery source-only. Maintain dated Worklog and checkpoint sourceSync digest per code commit. Future enterprise RBAC remains deferred.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIBRARY_RULES.md",
@@ -41,5 +41,12 @@
     "docs/project-book/LIGHT_REMOTE_WORKLOG.md",
     "docs/gold/GOLD_P2_INTEGRATED_ABV2_NICKNAME_PRO_SHARE_PLAN_20261030.md",
     "docs/gold/GOLD_P2_UNIFIED_ACCEPTANCE_LEDGER_20261030.md"
-  ]
+  ],
+  "sourceSync": {
+    "algorithm": "sha256-git-blobs-v1",
+    "treeDigest": "48ef37a933abf45ce39121a3d2904281a260401914cad3a897a1da9ac8a0bf95",
+    "trackedFiles": 990,
+    "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
+    "recordedAt": "2026-10-30T09:12:26.611Z"
+  }
 }

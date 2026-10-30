@@ -1,0 +1,50 @@
+name: Gold project truth source/docs checkpoint gate
+
+on:
+  push:
+    branches:
+      - feat/gold-connection-gc-reconciler-20261029
+  pull_request:
+    branches:
+      - feat/gold-connection-gc-reconciler-20261029
+
+permissions:
+  contents: read
+
+jobs:
+  source-docs-checkpoint-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate source/documentation gate syntax
+        run: |
+          node --check deploy/scripts/check-project-truth-sync.mjs
+          node --check deploy/scripts/selftest-project-truth-sync.mjs
+          node deploy/scripts/selftest-project-truth-sync.mjs
+      - name: Verify source commits have same-commit Worklog and checkpoint digest
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_BEFORE: ${{ github.event.before }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            git fetch origin "$BASE_REF" --depth=1 || true
+            BASE="$(git merge-base HEAD "origin/$BASE_REF")"
+          else
+            BASE="$EVENT_BEFORE"
+            if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+              BASE="$(git rev-parse HEAD^)"
+            fi
+          fi
+          node deploy/scripts/check-project-truth-sync.mjs --range "$BASE" HEAD
+      - name: Validate catalog and new canonical links
+        run: |
+          node deploy/scripts/generate-doc-catalog.mjs --check
+          node deploy/scripts/check-doc-links.mjs

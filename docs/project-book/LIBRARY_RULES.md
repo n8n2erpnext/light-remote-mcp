@@ -44,3 +44,16 @@ Gold P2 currently targets **Light Remote core, A/B V2, Agent nickname and contro
 
 ## Checkpoint discipline
 `.light-remote/CURRENT_CHECKPOINT.json` is **one small overwrite-only state file**: timestamp, verified baseline source SHA, deployed-runtime distinction, completed evidence, blockers, one exact next action, and read-first paths. It is not a replacement for Git, Project Book, Worklog, or owner approval, nor is it itself production authority. It is excluded from the document catalog; update it without generating a second handoff for every turn.
+
+## Hard Git source↔documentation checkpoint gate (Gold, activated 2026-10-30)
+
+Light Remote Gold now has **executable enforcement**, not merely a writing convention:
+- Source-bearing changes in `api/`, `client/`, `deploy/`, `lib/`, `device-agent/`, `operator-host/`, `plugin-server/`, other runtime directories, `.github/workflows/`, `.githooks/` and root package/plugin manifests must stage **both** this cumulative [Worklog](LIGHT_REMOTE_WORKLOG.md) and the single `.light-remote/CURRENT_CHECKPOINT.json` **in the same commit**. Worklog requires a new `## YYYY-MM-DD` section describing actual changes and evidence.
+- Changes to Operator, device Agent, plugin protocol, SQL/migration or Gold auth/trust modules also require the [Code Map](LIGHT_REMOTE_CODE_MAP.md) to change in that same commit.
+- The checkpoint's `sourceSync.treeDigest` is a SHA-256 of sorted *staged Git source blob IDs and file paths*, excluding documentation and checkpoint. A superficial touch to checkpoint with an old digest is rejected.
+- **Local**: `.githooks/pre-commit` runs `node deploy/scripts/check-project-truth-sync.mjs --staged`. **Remote**: `.github/workflows/gold-project-truth-sync.yml` verifies every new code-bearing commit in the pushed range. The existing document catalog/link gate remains separate.
+- Author workflow: `git add <source files> docs/project-book/LIGHT_REMOTE_WORKLOG.md [docs/project-book/LIGHT_REMOTE_CODE_MAP.md]`; update checkpoint status and nextAction; run `node deploy/scripts/check-project-truth-sync.mjs --stamp` to generate and stage the exact digest; then `node deploy/scripts/check-project-truth-sync.mjs --staged`; only then commit. To validate history: `node deploy/scripts/check-project-truth-sync.mjs --range <base> HEAD`.
+- `--stamp` is not a substitute for describing actual engineering evidence, current runtime vs source, unresolved work and one real nextAction. The tool validates integrity and minimum content structure, not the semantic truth of a human claim. Never write secrets into checkpoint.
+- The Git hook is configured **per Gold worktree**; other worktrees and production branches are not modified. A user may bypass hooks with Git flags, but CI independently fails noncompliant commits. Branch protection/required status check is a separate GitHub repository policy not asserted by these scripts.
+
+Read `deploy/scripts/selftest-project-truth-sync.mjs` for isolated positive and negative tests. A docs-only change may update the cumulative Worklog without regenerating the source digest; source and docs SHA are intentionally decoupled to avoid circular hashes.
