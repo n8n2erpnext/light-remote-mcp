@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { callOperatorJson } from './operator-client.mjs';
+import {createGoldAbV2AccountPortalProxy,isGoldAbV2PortalAction} from './account-ab-v2.mjs';
 import { PUBLIC_ORIGIN } from './config.mjs';
 import { mailConfig, sendDormancyWarning, sendDormantNotice, sendMagicLogin, sendPasswordReset, sendTeamInvitation, sendUpgradeRequested, sendWelcomeVerification } from './mailer.mjs';
 import { beginGoogleAuth, finishGoogleAuth, googleAuthStatus } from './google-auth.mjs';
@@ -13,6 +14,10 @@ const PENDING_COOKIE='__Host-light_remote_pending';
 const RECOVERY_FILE=String(process.env.LIGHT_REMOTE_ACCOUNT_RECOVERY_FILE||'/etc/light-remote-direct/account-recovery.json');
 const portalFile=name=>fileURLToPath(new URL(`./account-portal/${name}`,import.meta.url));
 const publicAuthRate=new Map();
+const goldAbV2AccountProxy=createGoldAbV2AccountPortalProxy({
+ enabled:process.env.LR_GOLD_AB_V2_ACCOUNT_UI==='1',publicOrigin:PUBLIC_ORIGIN,
+ sessionToken,callOperatorJson
+});
 const DORMANCY_SCAN_INTERVAL_MS=6*60*60*1000;
 let dormancyScanRunning=false;
 function clientIp(req){return String(req.headers?.['x-forwarded-for']||req.socket?.remoteAddress||'unknown').split(',')[0].trim().slice(0,96);}
@@ -151,6 +156,8 @@ async function accountApi(req,res){
   const mutations=new Set(['register','login','logout','password-change','password-setup','password-reset-request','password-reset-complete','magic-request','verification-resend','verification-verify','reactivate','enrollment-approve','device-revoke','device-remove','device-update','devices-revoke-all','redeem-license','main-device','main-device-clear','upgrade-request','paddle-checkout','paddle-offer-checkout','paddle-portal','team-create','team-invite','team-accept','team-inbox-read','team-inbox-accept','notifications-read','team-remove','team-device-share','team-device-unshare','team-access-request']);
   if(mutations.has(action)&&!sameOriginMutation(req)){accountAudit(action,'cross_site_denied');return res.status(403).json({ok:false,error:'cross_site_request_denied'});}
   try{
+    if(isGoldAbV2PortalAction(action))
+      return await goldAbV2AccountProxy(req,res,action);
     if(action==='register'){
       if(!method(req,res,'POST'))return;
       if(!allowPublicAuth(req,action,{limit:4,windowMs:60*60_000}))return res.status(429).json({ok:false,error:'account_rate_limited'});
@@ -461,6 +468,7 @@ export function registerAccountPortal(app){
   app.get('/account/assets/theme.js',(_q,r)=>sendPortal(r,'theme.js','application/javascript'));
   app.get('/account/assets/ai-guide-actions.js',(_q,r)=>sendPortal(r,'ai-guide-actions.js','application/javascript'));
   app.get('/account/assets/notifications.js',(_q,r)=>sendPortal(r,'notifications.js','application/javascript'));
+  app.get('/account/assets/ab-v2.js',(_q,r)=>sendPortal(r,'ab-v2.js','application/javascript'));
   app.get('/account/assets/home-demo.js',(_q,r)=>sendPortal(r,'home-demo.js','application/javascript'));
   app.get('/account/assets/hero-demo-library.json',(_q,r)=>sendPortal(r,'hero-demo-library.json','application/json'));
   app.get('/account/assets/light-remote-mark.svg',(_q,r)=>sendPortal(r,'light-remote-mark.svg','image/svg+xml'));

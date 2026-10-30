@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-30",
-  "status": "Gold P2-I2d source bc2c5d3 pushed, HEAD=origin, local auth/CSRF HTTP fixtures PASS; Actions push CI NOT VERIFIED; V2 owner HTTP default OFF, no Helper/Wall/24h grant",
+  "status": "Gold P2-I2e owner /account pending UI + cookie-only proxy SOURCE PASS; no deploy, two flags OFF, no real grant/Wall/Helper; exact source SHA and CI PENDING",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -34,7 +34,8 @@
     "Source 8b1863b CI Gold GC 41041843902 PASS 4/4, checkpoint 41041843809 SUCCESS, library 41041844080 SUCCESS",
     "P2-I2c owner pending adapter source-only: verified server account identity injected at boundary, owner/device/current connection, enrolled policy, CSRF/Origin, OFF default, no B/grant; local negative fixture PASS",
     "P2-I2d real Operator factory and HTTP route behind default-OFF, 32-byte sealed key + owner/device allowlist + HTTPS origin; session/connection/enrollment/policy authenticated, Redis rate before effects; loopback HTTP + factory negative tests PASS",
-    "P2-I2d source commit bc2c5d3 pushed with clean HEAD=origin, project truth --head PASS, doc catalog/link PASS (303 links); GitHub Actions at this SHA not yet verified"
+    "P2-I2d source commit bc2c5d3 pushed with clean HEAD=origin, project truth --head PASS, doc catalog/link PASS (303 links); GitHub Actions at this SHA not yet verified",
+    "P2-I2e server cookie owner /account proxy and hidden V2 pending list/refresh/deny preview added; Origin+csrf, exact ids, no B/approve, source/HTTP fixtures PASS; not deployed"
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -42,9 +43,10 @@
     "Gold UAT 039→042 migration and production release not authorized",
     "One historical M4 resource claim and 27 UNKNOWN records protected",
     "P2-I2c adapter not wired to real Operator auth/Wall; no true V2 grant reconciliation or installed Agent E2E",
-    "Real /account and Local Wall owner V2 route not wired; OAuth Agent targetQuery exact-request binding and Redis-approved→durable 24h grant reconciliation absent"
+    "Real /account and Local Wall owner V2 route not wired; OAuth Agent targetQuery exact-request binding and Redis-approved→durable 24h grant reconciliation absent",
+    "Local Wall V2 signed device preview/standby and real Helper requestId→grant 24h reconciliation remain unimplemented; schema 043 excluded from migration lock"
   ],
-  "nextAction": "Independently verify GitHub Actions push CI at source bc2c5d3 (current connector fetch_commit_workflow_runs returns only PR-triggered runs). Then authenticate and integrate exact /account + signed Local Wall owner pending UI with CSRF, default OFF. Separately build Agent targetQuery and true grant reconciliation; do not enable owner approve or deploy Gold UAT/production.",
+  "nextAction": "Commit and verify source SHA CI; add signed channel-bound owner-authenticated Local Wall V2 pending read-only preview with no OAuth cookie and no B/approve; then exact Agent pending/grant authority and migration 043 isolated rehearsal, all flags OFF and no UAT/production changes.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -57,10 +59,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "330a0b39c2cfa21586605a7cfdfcc2b906787b5c3ced47c22941d6e822983483",
-    "trackedFiles": 1001,
+    "treeDigest": "d60d93fc62798aec89a8d84cf705ca277aeab1015e732aed15762b07cf75b0c9",
+    "trackedFiles": 1004,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-10-30T11:03:04.460Z"
+    "recordedAt": "2026-10-30T11:16:52.728Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -137,6 +139,19 @@
         "approvedGrantWired": false,
         "CI": "PUSH_WORKFLOWS_NOT_VERIFIED_FROM_CURRENT_CONNECTOR",
         "sourceCommit": "bc2c5d3f1421e3bc12081e0ff6e3a4ba09185488"
+      },
+      "accountPortalPreview": {
+        "proxy": "plugin-server/account-ab-v2.mjs",
+        "portal": "plugin-server/account-portal.mjs",
+        "ui": "plugin-server/account-portal/index.html",
+        "script": "plugin-server/account-portal/ab-v2.js",
+        "test": "deploy/scripts/selftest-gold-ab-v2-account-portal.mjs",
+        "localSourceFixture": "PASS",
+        "accountUiFlag": "LR_GOLD_AB_V2_ACCOUNT_UI=1 default OFF",
+        "operatorFlag": "LR_GOLD_AB_V2_OWNER_PENDING_HTTP=1 default OFF",
+        "wallWired": false,
+        "grantWired": false,
+        "ci": "PENDING_SOURCE_SHA"
       }
     }
   }
