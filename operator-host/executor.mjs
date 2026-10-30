@@ -55,6 +55,7 @@ import { restoreActivityRing } from '../lib/activity-ring.mjs';
 import { isOutboundTarget } from '../lib/operator-target-route.mjs';
 import { createPlatformAdapter } from '../device-agent/platform-adapters/index.mjs';
 import { handleAccountRoutes } from './executor-routes-account.mjs';
+import {createGoldAbV2OwnerHttpFromOperator} from './gold-ab-v2-owner-http.mjs';
 import { GoldDeviceBootObservations } from './gold-device-boot-observations.mjs';
 import { handleDeviceChannelRoutes } from './executor-routes-device-channel.mjs';
 import {GoldMemoryAccountSyncPolicy} from './gold-memory-account-sync-policy.mjs';
@@ -1624,6 +1625,12 @@ const routeDeps=()=>({
   verifiedFleetContext,verifiedLeafCapabilities,waitForJob,wakeDeviceChannelForDevice,
 });
 
+// Source-only A/B V2 owner HTTP seam; OFF unless an explicit allowlisted
+// source/UAT runtime supplies key, HTTPS origin and exact owner/device lists.
+const goldAbV2OwnerHttp=createGoldAbV2OwnerHttpFromOperator({
+ env:process.env,storage:goldStorage,requireAccount,accountSessionToken,
+ accounts,devices,connections,enrollments,readJson,sendJson
+});
 await Promise.all([goldRegistries.flush(),goldSessionState.flush(),goldJobs.flush()]);
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url || '/', 'http://operator.local');
@@ -1634,6 +1641,8 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && url.pathname === '/v1/capabilities') {
       return sendJson(res, 200, { ok: true, ...capabilities() });
     }
+    await goldAbV2OwnerHttp(req,res,url);
+    if(res.headersSent)return;
     await handlePluginRoutes(req,res,url,routeDeps());
     if(res.headersSent)return;
     await handleAccountRoutes(req,res,url,routeDeps());
