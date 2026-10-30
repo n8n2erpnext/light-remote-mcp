@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-30",
-  "status": "Gold P2-I2e SOURCE commit 79135d7 pushed HEAD=origin; account owner preview/proxy local fixtures PASS; GitHub Actions push CI NOT VERIFIED; V2 flags OFF, no Wall/Helper/grant",
+  "status": "Gold P2-I2f signed Agent→Operator→Wall pending read-only preview SOURCE PASS; runtime OFF, no V2 grant/approve, Git SHA+CI pending",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -36,7 +36,8 @@
     "P2-I2d real Operator factory and HTTP route behind default-OFF, 32-byte sealed key + owner/device allowlist + HTTPS origin; session/connection/enrollment/policy authenticated, Redis rate before effects; loopback HTTP + factory negative tests PASS",
     "P2-I2d source commit bc2c5d3 pushed with clean HEAD=origin, project truth --head PASS, doc catalog/link PASS (303 links); GitHub Actions at this SHA not yet verified",
     "P2-I2e server cookie owner /account proxy and hidden V2 pending list/refresh/deny preview added; Origin+csrf, exact ids, no B/approve, source/HTTP fixtures PASS; not deployed",
-    "P2-I2e source 79135d7 pushed; HEAD=origin, source/docs/checkpoint guard PASS, 308 document links validated; Actions push CI not verified, Vercel light-remote-mcp SUCCESS only"
+    "P2-I2e source 79135d7 pushed; HEAD=origin, source/docs/checkpoint guard PASS, 308 document links validated; Actions push CI not verified, Vercel light-remote-mcp SUCCESS only",
+    "P2-I2f signed Local Wall preview: Operator signed Ed25519 channel verified, owner/device/current connection/enrollment policy checked, owner signed email vs local Wall account login; hidden read-only V2 /approve panel, no OAuth cookie or B, fixtures PASS"
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -45,9 +46,10 @@
     "One historical M4 resource claim and 27 UNKNOWN records protected",
     "P2-I2c adapter not wired to real Operator auth/Wall; no true V2 grant reconciliation or installed Agent E2E",
     "Real /account and Local Wall owner V2 route not wired; OAuth Agent targetQuery exact-request binding and Redis-approved→durable 24h grant reconciliation absent",
-    "Local Wall V2 signed device preview/standby and real Helper requestId→grant 24h reconciliation remain unimplemented; schema 043 excluded from migration lock"
+    "Local Wall V2 signed device preview/standby and real Helper requestId→grant 24h reconciliation remain unimplemented; schema 043 excluded from migration lock",
+    "P2-I2f signed proof tested with fixture only, not installed Agent; Helper targetQuery and durable 24h grant reconciliation, B approve, 043 migration remain unimplemented"
   ],
-  "nextAction": "Independently verify source Actions CI at 79135d7; connect Local Wall read-only V2 pending through enrolled device signed channel, owner local authentication + email/device scope, no cloud cookie and no B/Approve; then authenticated Agent exact requestId and idempotent real 24h grant bridge; PG043 isolated rehearsal before any STANDBY/migration. Keep all feature flags OFF and live Gold/production unchanged.",
+  "nextAction": "Verify exact source SHA and Gold GC Actions after source commit. Then Agent-first Helper owner-scoped targetQuery/exact requestId + authorization trust, design true durable A/B 24h grant prepare/commit/reconcile and repeated/expired/revoked negative tests BEFORE exposing owner B approve. Rehearse PG043 in no-NIC clone; do not enable V2 flags or deploy UAT/production.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -60,10 +62,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "d60d93fc62798aec89a8d84cf705ca277aeab1015e732aed15762b07cf75b0c9",
-    "trackedFiles": 1004,
+    "treeDigest": "4b5a3c37cb798c1b547a9effa3f5e7c7063b58e1ebce0ff061bac992a3ee3f6c",
+    "trackedFiles": 1008,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-10-30T11:16:52.728Z"
+    "recordedAt": "2026-10-30T11:27:35.215Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -154,6 +156,23 @@
         "grantWired": false,
         "ci": "GITHUB_ACTIONS_PUSH_NOT_VERIFIED",
         "sourceCommit": "79135d7c976fa3684929d4ce420113deaed4585f"
+      },
+      "signedWallPreview": {
+        "module": "operator-host/gold-ab-v2-signed-preview.mjs",
+        "routes": "operator-host/executor-routes-device-channel.mjs",
+        "publicProxy": "plugin-server/device-public.mjs",
+        "agent": "device-agent/operator-agent.mjs",
+        "wall": "device-agent/local-wall.mjs",
+        "wallFragment": "device-agent/wall-ab-v2-preview.mjs",
+        "tests": [
+          "deploy/scripts/selftest-gold-ab-v2-signed-preview.mjs",
+          "deploy/scripts/selftest-gold-ab-v2-wall-preview.mjs"
+        ],
+        "featureDefault": "OFF",
+        "flag": "LR_GOLD_AB_V2_WALL_PENDING_PREVIEW=1 requires LR_GOLD_AB_V2_OWNER_PENDING_HTTP=1",
+        "realAgentE2E": false,
+        "grantWired": false,
+        "ci": "PENDING_EXACT_SHA"
       }
     }
   }

@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { LOCAL_WALL_COOKIE } from './local-wall-auth.mjs';
 import { createWallStatusCache } from './wall-status-cache.mjs';
 import { notificationBellStyles,notificationBellMarkup,notificationBellScript } from './wall-account-notifications.mjs';
+import {wallAbV2PreviewFragment} from './wall-ab-v2-preview.mjs';
 import { localProcessPage } from './local-process-page.mjs';
 import { updateSettingsHtml } from './update-settings-page.mjs';
 import { brandFaviconSvg } from '../lib/brand.mjs';
@@ -2158,7 +2159,7 @@ function approvePage(brandSvg,csrf=''){return `<!doctype html><html lang="en"><h
 const wallCsrf=${JSON.stringify(csrf)},code=document.getElementById('code'),msg=document.getElementById('msg'),decision=document.getElementById('decision'),request=document.getElementById('request');let current=null;function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}async function lookup(){msg.className='muted';msg.textContent='Checking…';decision.style.display='none';current=null;const r=await fetch('/api/approve?code='+encodeURIComponent(code.value),{cache:'no-store'}),j=await r.json();if(!r.ok||!j.ok){msg.className='error';msg.textContent=j.error==='approval_code_not_found'?'No pending request matches this code.':(j.error||'Unable to check code.');return;}current=j.request;msg.textContent='';request.innerHTML='<b>'+esc(current.label||'ChatGPT')+'</b> requests access to <b>'+esc(current.deviceName||'this device')+'</b><br><span class="muted">Agent '+esc(current.agentId||'')+' · code '+esc(current.userCode||'')+'</span>';decision.style.display='block';}async function decide(kind){if(!current)return;const r=await fetch('/api/approve',{method:'POST',headers:{'content-type':'application/json','x-light-remote-csrf':wallCsrf},body:JSON.stringify({code:code.value,decision:kind})}),j=await r.json();if(!r.ok||!j.ok){msg.className='error';msg.textContent=j.error||'Request failed.';return;}decision.style.display='none';msg.className='ok';msg.textContent=kind==='approve'?'Access approved':'Access denied';setTimeout(()=>location.href='/',900);}document.getElementById('lookup').onclick=lookup;document.getElementById('approve').onclick=()=>decide('approve');document.getElementById('deny').onclick=()=>decide('deny');code.addEventListener('keydown',e=>{if(e.key==='Enter')lookup();});const q=new URLSearchParams(location.search).get('code');if(q){code.value=q;lookup();}
 </script></body></html>`;}
 
-export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvgPath,fontPath=null,cascadiaMonoFontPath=DEFAULT_CASCADIA_MONO_FONT,cascadiaCodeFontPath=DEFAULT_CASCADIA_CODE_FONT,auth={enabled:false},accountAuthenticate,getLocalStatus,getLocalPolicyStatus,getRemoteStatus,getRemoteActivity,cancelRemoteJob,getPendingAccess,getAccountNotifications,getClientAnnouncements,getMemoryAccountDevices,getMemoryAccountInvites,getMemoryAccountSyncPolicy,getMemoryAccountDelete,getLocalTerminals,readLocalTerminal,getLocalProcesses,stopLocalProcess,connect,disconnect,setGrace,setPermissions,setFilesystemRoots,getFilesystemVolumes,ownerApprovePermissions,rescanCapabilities,beginEnrollment,pollEnrollment,pairingCode,ownerProofCode,accessApprove,accessDeny,closeSession,requestUpdate}={}){
+export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvgPath,fontPath=null,cascadiaMonoFontPath=DEFAULT_CASCADIA_MONO_FONT,cascadiaCodeFontPath=DEFAULT_CASCADIA_CODE_FONT,auth={enabled:false},accountAuthenticate,getLocalStatus,getLocalPolicyStatus,getRemoteStatus,getRemoteActivity,cancelRemoteJob,getPendingAccess,getAccountNotifications,getAbV2Pending,getClientAnnouncements,getMemoryAccountDevices,getMemoryAccountInvites,getMemoryAccountSyncPolicy,getMemoryAccountDelete,getLocalTerminals,readLocalTerminal,getLocalProcesses,stopLocalProcess,connect,disconnect,setGrace,setPermissions,setFilesystemRoots,getFilesystemVolumes,ownerApprovePermissions,rescanCapabilities,beginEnrollment,pollEnrollment,pairingCode,ownerProofCode,accessApprove,accessDeny,closeSession,requestUpdate}={}){
 
   if(!isAllowedLocalWallBindHost(host)) throw new Error('local_wall_bind_host_not_private');
   const loopback=['127.0.0.1','::1','localhost'].includes(String(host));
@@ -2285,6 +2286,24 @@ export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvg
         return json(res,200,response);
       }catch{return json(res,503,{ok:false,error:'client_announcements_unavailable'});}
     }
+    if(req.method==='GET'&&url.pathname==='/api/abv2/pending'){
+      if(!auth?.enabled||!auth.identity(req))
+        return json(res,401,{ok:false,error:'wall_auth_required'});
+      if(typeof getAbV2Pending!=='function')
+        return json(res,404,{ok:false,error:'not_found'});
+      const owner=auth.identity(req);
+      if(!owner?.username||!String(owner.username).includes('@'))
+        return json(res,403,{ok:false,error:'abv2_owner_account_login_required'});
+      try{
+        const response=await getAbV2Pending({wallUsername:owner.username});
+        if(response?.ok!==true||!Array.isArray(response.pending)||response.pending.length>5)
+          throw Error('abv2_wall_preview_invalid');
+        return json(res,200,{ok:true,pending:response.pending});
+      }catch(error){
+        return json(res,Number(error?.status)===404?404:503,
+          {ok:false,error:'abv2_wall_preview_unavailable'});
+      }
+    }
     if(req.method==='GET'&&url.pathname==='/api/account-notifications'){
       if(!auth?.enabled||!auth.identity(req))
         return json(res,401,{ok:false,error:'wall_auth_required'});
@@ -2308,7 +2327,7 @@ export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvg
       const view=url.pathname==='/'?'home':url.pathname==='/long-memory'?'memory':'codex';
       let html=wallPage(brandSvg,Boolean(auth?.enabled),auth?.enabled?auth.csrfForRequest(req)||'':'',auth?.enabled?auth.identity(req):null,Boolean(modules),view);
       if(view!=='home')html=html.replace('<details id="goldModulesPanel"','<details open id="goldModulesPanel"');if(!auth?.enabled||typeof getLocalProcesses!=='function')html=html.replace(/<a class="btn small" href="\/processes">.*?<\/a>/,'');res.writeHead(200,pageHeaders());res.end(html);return;}
-    if(req.method==='GET'&&url.pathname==='/approve'){const html=approvePage(brandSvg,auth?.enabled?auth.csrfForRequest(req)||'':'');res.writeHead(200,pageHeaders());res.end(html);return;}
+    if(req.method==='GET'&&url.pathname==='/approve'){const html=approvePage(brandSvg,auth?.enabled?auth.csrfForRequest(req)||'':'').replace('</body></html>',wallAbV2PreviewFragment+'</body></html>');res.writeHead(200,pageHeaders());res.end(html);return;}
     if(req.method==='GET'&&url.pathname==='/processes'){
       if(!auth?.enabled||!auth.identity(req))return json(res,403,{ok:false,error:'process_view_auth_required'});
       if(typeof getLocalProcesses!=='function')return json(res,501,{ok:false,error:'process_view_unavailable'});

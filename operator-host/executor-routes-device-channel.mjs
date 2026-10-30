@@ -8,7 +8,7 @@ import { scanOwnerStaleClaims } from '../lib/gold-stale-claim-detector.mjs';
 
 
 export async function handleDeviceChannelRoutes(req,res,url,deps){
-  const {ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,DeviceAccessGrantError,DevicePairingRegistryError,EnrollmentError,FleetAuthorityError,FleetError,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,MIN_SUPPORTED_CLIENT_VERSION,NODE_ID,VERSION,abandonedCommandReceiptFromDisk,completedCommandReceiptFromDisk,accessGrants,accounts,agentClients,allDeviceViews,applyDeviceTelemetry,capabilities,clientCompatibility,connectionSpec,connections,deviceView,devices,emitStream,enrollments,finishJob,fleet,fleetAuthority,fleetEligibility,fleetTarget,jobView,jobs,goldJobs,deviceResourceLocks,staleClaimMonitor,deviceResourceSampleCache,deviceBootObservations,cancelQueuedPersonalJob,cancelControlJob,deviceStopRequests,requestFleetProcessStop,reconcileSignedTerminalProcessReceipts,executionEpochs,requiresExecutionEpoch,normalizeUpdateReport,pairingCodes,planEntitlements,pushEvent,queueHelperUpdate,readJson,reapAccessGrants,realRemoteLive,recentEvents,requireDeviceConnection,sendJson,sessions,targetRoute,terminalResultSummary,verifiedChannelContext,verifiedFleetContext,verifiedLeafCapabilities,memorySyncPolicy,memoryAccountDelete,accountNotifications,proTeams}=deps;
+  const {ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,DeviceAccessGrantError,DevicePairingRegistryError,EnrollmentError,FleetAuthorityError,FleetError,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,MIN_SUPPORTED_CLIENT_VERSION,NODE_ID,VERSION,abandonedCommandReceiptFromDisk,completedCommandReceiptFromDisk,accessGrants,accounts,agentClients,allDeviceViews,applyDeviceTelemetry,capabilities,clientCompatibility,connectionSpec,connections,deviceView,devices,emitStream,enrollments,finishJob,fleet,fleetAuthority,fleetEligibility,fleetTarget,jobView,jobs,goldJobs,deviceResourceLocks,staleClaimMonitor,deviceResourceSampleCache,deviceBootObservations,cancelQueuedPersonalJob,cancelControlJob,deviceStopRequests,requestFleetProcessStop,reconcileSignedTerminalProcessReceipts,executionEpochs,requiresExecutionEpoch,normalizeUpdateReport,pairingCodes,planEntitlements,pushEvent,queueHelperUpdate,readJson,reapAccessGrants,realRemoteLive,recentEvents,requireDeviceConnection,sendJson,sessions,targetRoute,terminalResultSummary,verifiedChannelContext,verifiedFleetContext,verifiedLeafCapabilities,memorySyncPolicy,memoryAccountDelete,accountNotifications,proTeams,goldAbV2SignedPreview}=deps;
   // Boot telemetry uses the authenticated device channel, never the M4
   // scheduler. Errors are isolated from command ACK and cannot free claims.
   const persistBoot=async(ctx,value,agentVersion)=>{
@@ -22,6 +22,15 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
         status:'error',reason:'boot_store_unavailable'});
     }
   };
+  // Enrolled-Agent signed, owner-scoped, READ-ONLY V2 preview.
+  // No account cookie or unverified deviceId, no B plaintext, no approve.
+  if(req.method==='POST'&&url.pathname==='/v1/device-channel/abv2-pending-preview'){
+    if(typeof goldAbV2SignedPreview!=='function')
+      return sendJson(res,404,{ok:false,error:'not_found'});
+    const envelope=await readJson(req);
+    const ctx=await verifiedChannelContext(envelope,'abv2-pending-preview');
+    return sendJson(res,200,await goldAbV2SignedPreview(ctx));
+  }
   // Reuse the canonical account notification inbox. The signed enrollment
   // determines the account; the browser cannot supply an account ID.
   if(req.method==='POST'&&url.pathname==='/v1/device-channel/account-notifications'){

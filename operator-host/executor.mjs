@@ -56,6 +56,7 @@ import { isOutboundTarget } from '../lib/operator-target-route.mjs';
 import { createPlatformAdapter } from '../device-agent/platform-adapters/index.mjs';
 import { handleAccountRoutes } from './executor-routes-account.mjs';
 import {createGoldAbV2OwnerHttpFromOperator} from './gold-ab-v2-owner-http.mjs';
+import {createGoldAbV2SignedPreview} from './gold-ab-v2-signed-preview.mjs';
 import { GoldDeviceBootObservations } from './gold-device-boot-observations.mjs';
 import { handleDeviceChannelRoutes } from './executor-routes-device-channel.mjs';
 import {GoldMemoryAccountSyncPolicy} from './gold-memory-account-sync-policy.mjs';
@@ -1616,7 +1617,7 @@ const routeDeps=()=>({
   inspectOwnerOrphanDevice:options=>deviceResourceLocks.inspectOwnerOrphanDevice(goldStorage.pool,options),
   abandonOwnerAttestedOrphan:options=>deviceResourceLocks.abandonOwnerAttestedOrphan(goldStorage.pool,options),
   cancelQueuedPersonalJob,cancelControlJob,deviceStopRequests,requestFleetProcessStop,licenses,normalizeUpdateReport,
-  pairingCodes,planEntitlements,pruneRing,pushEvent,queueHelperUpdate,
+  pairingCodes,goldAbV2SignedPreview,planEntitlements,pruneRing,pushEvent,queueHelperUpdate,
   queueSignedUpdate,readJson,reapAccessGrants,accountNotifications,realRemoteLive,recentEvents,redact,proTeams,teamSessions,requestTeamMemberApproval,operationalAccount,
   removeRuntimeForDevice,requireAccount,requireDeviceConnection,revokeRuntimeForDevice,ring,
   ringBytes,sendJson,sessionStatsFromDisk,sessions,sseClients,
@@ -1627,6 +1628,9 @@ const routeDeps=()=>({
 
 // Source-only A/B V2 owner HTTP seam; OFF unless an explicit allowlisted
 // source/UAT runtime supplies key, HTTPS origin and exact owner/device lists.
+const goldAbV2SignedPreview=createGoldAbV2SignedPreview({
+ env:process.env,storage:goldStorage,accounts,devices,connections,enrollments
+});
 const goldAbV2OwnerHttp=createGoldAbV2OwnerHttpFromOperator({
  env:process.env,storage:goldStorage,requireAccount,accountSessionToken,
  accounts,devices,connections,enrollments,readJson,sendJson
