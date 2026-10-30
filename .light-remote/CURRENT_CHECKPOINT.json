@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-30",
-  "status": "P2-I2h2e-C2 real clone PG039+PG043 native Short ID owner JOIN + GoldNativeAB + AgentClients/2 Agents/restart PASS, interrupted PG owner consent source recovery PASS; Gold UAT/production OFF, clone STOPPED; local SHA pending, origin still at 30a0bcc until push verified",
+  "status": "P2-I2h2e-C2 source 5683d18 pushed HEAD=origin, prior adaa804 pushed too; full PG039+candidate043 native Short ID/AgentClients 2-Agent/restart PASS, interrupted PG fresh consent recovery PASS; clone STOPPED, UAT unchanged, runtime flags OFF; push Actions unverified, Vercel mcp build-rate-limit.",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -77,10 +77,9 @@
     "P2-I2h2e-A signed Wall ownerLoggedIn claim still not independently server-verifiable; maintain explicit release HOLD",
     "P2-I2h2e-C1 native installed browser/Agent OAuth E2E and full schema PG043/Redis8 clone integration NOT run; owner consent recovery after interrupted PG stage requires fresh authenticated code",
     "Account↔Wall two-screen/copy-paste 90s consent UX is intentional security tradeoff; zero-copy redirect-based proof not developed",
-    "Native installed owner browser/Agent OAuth/Redis8+PG043 combined E2E not yet run; full isolated native database and Redis8 tests were independent",
-    "GitHub branch push permission was denied after prior source 30a0bcc; local docs-only adaa804 ahead of origin; verify new push, preserve commit history"
+    "Native installed owner browser/Agent OAuth/Redis8+PG043 combined E2E not yet run; full isolated native database and Redis8 tests were independent"
   ],
-  "nextAction": "P2-I2h2e-C3 cross-service no-NIC OAuth Agent/owner browser/Redis8+PG043 integration, test owner consent approval interruptions and 2 Agent clocks, ensure SSH/GitHub branch write permission and exact Actions run; PG043 remains candidate off migration lock, do NOT enable UAT/prod or lose V1.",
+  "nextAction": "P2-I2h2e-C3: execute installed real OAuth Agent browser/Local Wall + simultaneous Redis8/PG043 cross-service on isolated no-NIC test harness, owner-consent fallback and crash/restart, separate per-Agent 24h clocks; verify exact GitHub Actions via appropriate runner. Candidate 043 remains out of live migration lock; do not enable on UAT/prod without explicit cutover signoff.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -390,8 +389,10 @@
         "cloneNoLiveMigration": true,
         "installedOAuthBrowserE2E": false,
         "ownerConsentPgInterruptedRetry": "SOURCE_PASS",
-        "sourceSHA": "PENDING_COMMIT",
-        "githubActions": "PENDING_EXACT_SHA"
+        "sourceSHA": "5683d18f2723ba2b81fbc13246ef2b3812fd988f",
+        "githubActions": "PUSH_NOT_VERIFIED_PR_ONLY_CONNECTOR",
+        "vercelNInitial": "PENDING",
+        "vercelMcp": "FAILURE_EXPLICIT_BUILD_RATE_LIMIT"
       }
     },
     "abPerAgentTimerHotfix": {
