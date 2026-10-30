@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-30",
-  "status": "Gold P2-I2h2a source-only verified B grant candidate; deterministic per-Agent 24h grant and restart regression PASS; Redis B receipt bridge NOT wired, Git SHA/CI pending, runtime V2 OFF",
+  "status": "P2-I2h2a source f8b8ae3 pushed; deterministic verified V2 grant per-Agent local test PASS. Redis receipt/owner approve/PG flush/Helper ready NOT wired; runtime OFF, Actions push CI unverified.",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -59,7 +59,7 @@
     "V2 B owner approval not mounted on /approve; no durable per-Agent 24h grant or Helper ready. Never use Redis pending-approved as equivalent to real access grant",
     "Trusted Redis owner B verification receipt + Gold PostgreSQL async flush before grant commitment still NOT implemented; no owner V2 approval/Helper ready route wired"
   ],
-  "nextAction": "Finish P2-I2h2b trusted owner B verification receipt/crash recovery, validate current enrollment and connection, await goldRegistries.flush() before confirming A/B grant/ready. Add isolated Redis8/Gold PG/native Agent tests; keep runtime V2 OFF, no UAT/prod migration.",
+  "nextAction": "P2-I2h2b trusted authenticated owner B receipt (correct requestId and attempt), recover after crash and await GoldRegistryPersistence.flush before real V2 grant. Build exact negative/restart/Redis8/Gold PG E2E; only after that expose owner V2 approve and Agent Helper ready. No live migrations or flags.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -234,8 +234,9 @@
         "goldPgFlushRequired": true,
         "ownerBReceiptWired": false,
         "localSourceFixture": "PASS",
-        "sourceSha": "PENDING_COMMIT",
-        "githubActions": "PENDING_EXACT_SHA"
+        "sourceSha": "f8b8ae3706b9edf0e2dc69fe6170021c10f6fcbf",
+        "githubActions": "PUSH_RUN_NOT_VERIFIED",
+        "vercelInitial": "pending two contexts"
       }
     },
     "abPerAgentTimerHotfix": {

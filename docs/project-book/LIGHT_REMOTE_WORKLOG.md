@@ -112,3 +112,5 @@ Added signed source/mock-Redis/PG test for replay, purpose, idempotency, owner/A
 ## 2026-10-30 — P2-I2h2a grant candidate
 
 VPS-ARM worktree resumed at clean 0fdfae2. Added internal-only deterministic V2 requestId-to-grantId mapping in DeviceAccessGrantRegistry. Source/JSON restart fixture PASS: original verifiedAt fixes the maximum 24h lifetime, same request cannot renew it, separate Agents retain their own clocks, reapproval is Agent-scoped, mismatched identities and revoked grants fail closed. Gold uses async PostgreSQL snapshot persistence; the future owner B coordinator MUST await goldRegistries.flush() before declaring ready. The Redis B verification/receipt coordinator remains unimplemented and no owner route invokes this method. Experimental Redis edits were restored. No UAT/production/Windows changes; V2 flags OFF.
+
+P2-I2h2a commit f8b8ae3 pushed; HEAD=origin. Local tests PASS, 339 documentation links PASS. Actions push CI not verified. Vercel checks initially pending. Runtime unchanged. Next: B receipt and PostgreSQL flush gate.
