@@ -23,7 +23,12 @@ if(!['postgresql:','postgres:'].includes(parsed.protocol)||
 
 const sqlRoot=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../platform-v2/sql');
 const manifest=JSON.parse(fs.readFileSync(path.join(sqlRoot,'migrations.lock.json'),'utf8'));
-if(manifest.migrations?.length!==39||manifest.target!=='light_remote_gold_dev - independent Gold only')
+// Pin the reviewed additive Gold P2-A schema chain through 042. Do not
+// silently accept future manifest versions without a new migration audit.
+if(manifest.migrations?.length!==42||manifest.target!=='light_remote_gold_dev - independent Gold only'||
+   manifest.migrations[39]?.file!=='040_gold_connection_job_gc_fences.sql'||
+   manifest.migrations[40]?.file!=='041_gold_device_execution_epoch.sql'||
+   manifest.migrations[41]?.file!=='042_gold_wall_announcements_channel.sql')
  throw Error('gold_migration_manifest_not_verified');
 const records=manifest.migrations.map((row,i)=>{
  if(row.version!==i+1||!/^[0-9]{3}_[a-z0-9_]+\.sql$/.test(row.file))
