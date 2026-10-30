@@ -235,6 +235,8 @@ Next **P2-I3b**: verified owner rename through authenticated owner account UI, f
 
 ### P2-I3b — Owner-authenticated session rename (2026-10-30, SOURCE ONLY)
 
+**SOURCE `ec56d713ebe5edbeb6bc85867dc9fedee92ab7ee` pushed HEAD=origin.** Existing nickname/Redis restart fixtures PASS, owner API syntax and sessions.html inline JavaScript PASS. Dedicated owner HTTP fixture NOT RUN (write blocked by tool safety); physical browser acceptance deferred to final combined candidate, not an extra A/B test ladder. During P2-I4 review source read was blocked by safety; **no Pro Share grant/dispatch/entitlement code or billing was changed**. Do not imply P2-I4 is implemented.
+
 **Scope:** Continue Unified P2 Plan, no A/B V2 retest ladder. Gold feature branch `feat/gold-connection-gc-reconciler-20261029` from `60aa6869487b7a3974806a69e524d505da9b3a83`. Source-only, Gold UAT/production unchanged.
 
 - `operator-host/gold-session-owner-http.mjs`: new default-OFF `LR_GOLD_SESSION_OWNER_RENAME=1` requiring `LR_GOLD_SESSION_AGENT_NICKNAME=1` and exact HTTPS `LR_GOLD_SESSION_OWNER_ORIGIN`. GET `/v1/accounts/session-names` authenticates the existing HttpOnly owner account session and returns **only** that account's sessions plus HMAC CSRF bound to the account session token. POST `/v1/accounts/session-names/:sessionId` reauthenticates that same account session and exact Origin, strictly checks CSRF and account ownership, writes display metadata with `source:'owner'`, **awaits GoldSessionRedis.flush()** before success. Body cannot choose account/Agent/grant; owner cannot rename another account session; revoked/expired session cannot be renamed. No sessionId, execution capability or lease mutation.

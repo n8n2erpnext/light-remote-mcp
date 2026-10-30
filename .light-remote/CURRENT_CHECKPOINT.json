@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-30",
-  "status": "Unified P2: P2-I3 nickname Agent source b9f906b and owner session rename API/UI P2-I3b SOURCE implemented (default OFF); owner HTTP fixture not run due tool safety block; no UAT/prod changes. NEXT P2-I4 Pro Share owner+one guest, independent entitlements and authorization.",
+  "status": "Unified P2: P2-I3a Agent nickname + P2-I3b authenticated owner rename source committed/pushed ec56d71, default OFF; syntax/UI/Redis nickname fixture PASS, owner HTTP full fixture NOT RUN (tool safety). Next P2-I4 Pro Share fail-closed one Guest; source security review blocked by safety, no guest implementation/runtime/billing changes.",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -79,9 +79,10 @@
     "P2-I2h2e-A signed Wall ownerLoggedIn claim still not independently server-verifiable; maintain explicit release HOLD",
     "P2-I2h2e-C1 native installed browser/Agent OAuth E2E and full schema PG043/Redis8 clone integration NOT run; owner consent recovery after interrupted PG stage requires fresh authenticated code",
     "Account↔Wall two-screen/copy-paste 90s consent UX is intentional security tradeoff; zero-copy redirect-based proof not developed",
-    "Native installed owner browser/Agent OAuth/Redis8+PG043 combined E2E not yet run; full isolated native database and Redis8 tests were independent"
+    "Native installed owner browser/Agent OAuth/Redis8+PG043 combined E2E not yet run; full isolated native database and Redis8 tests were independent",
+    "P2-I4 guest dispatch review read blocked by tool safety; no Pro Share guest code or billing entitlement activation performed in this session"
   ],
-  "nextAction": "P2-I4 one Pro owner + one invited Free guest, explicit selected-device sharing, guest independent A/B, owner-billed exact-once quota and revoke/queue fences. Preserve dormant Pro Team 5-seat code. Do not turn on billing or UAT/prod. Final integrated physical acceptance once after freeze.",
+  "nextAction": "P2-I4 Pro Share: audit current Team grant/dispatch, add separate owner+one guest entitlement and selected-device assignment, independently approved guest OAuth A/B, owner-paid exact-once quotas and queue/revocation fences. Keep legacy five-seat Team and billing OFF; one integrated P2 physical UAT at final freeze.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -435,7 +436,8 @@
         "browserInlineSyntax": "PASS",
         "httpFixture": "NOT_RUN_TOOL_SAFETY_BLOCK",
         "liveUat": false,
-        "sourceSha": "PENDING_COMMIT"
+        "sourceSha": "ec56d713ebe5edbeb6bc85867dc9fedee92ab7ee",
+        "githubActions": "PUSH_RUN_NOT_INDEPENDENTLY_VERIFIED"
       }
     }
   }
