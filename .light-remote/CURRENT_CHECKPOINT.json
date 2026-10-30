@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-30",
-  "status": "Gold source↔Worklog↔checkpoint Git hook and GitHub CI active and verified; P2-I1 code next",
+  "status": "Gold P2-I1 source candidate implemented: immutable Short ID 6 + owner-scoped lookup; PG043 clone fixture PASS; not migrated/live",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -25,7 +25,9 @@
     "Light Remote Project Book, Code Map, Library Rules, Worklog and machine status created",
     "186 source docs indexed with SHA-256; 264 canonical relative links checked; CI 41030427322 SUCCESS",
     "Future enterprise IT Support RBAC confirmed future-only and non-blocking for core Gold P2",
-    "SHA-based source/docs/checkpoint guard installed on Gold worktree; exact commit 01791be CI source gate and documentation gate both SUCCESS"
+    "SHA-based source/docs/checkpoint guard installed on Gold worktree; exact commit 01791be CI source gate and documentation gate both SUCCESS",
+    "P2-I1 043 candidate Short ID SQL and backend helper/owner-scoped resolver authored; 043 deliberately not in locked 042 migration manifest",
+    "2026-10-30 no-NIC clone PG043 fixture PASS, exit0/stderr0; 12 concurrent allocations idempotent; tombstone/no reuse; 0 disposable databases left; clone stopped"
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -33,7 +35,7 @@
     "Gold UAT 039→042 migration and production release not authorized",
     "One historical M4 resource claim and 27 UNKNOWN records protected"
   ],
-  "nextAction": "Begin Gold P2-I1 Short ID and A/B V2 source-only implementation. Before every code commit update dated Worklog, Code Map if security/device boundary changes, checkpoint status/nextAction; stage code/docs then run node deploy/scripts/check-project-truth-sync.mjs --stamp. Do not implement future enterprise RBAC yet.",
+  "nextAction": "Review migration 043 upgrade/rollback compatibility and register only after pin 042 P2-A gate is safely extended; wire short ID into Gold native device/readback + authorized Operator/Wall STANDBY and V2 target query. Keep legacy A/B V1, existing UAT039 and production rc47 unchanged.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIBRARY_RULES.md",
@@ -45,10 +47,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "48ef37a933abf45ce39121a3d2904281a260401914cad3a897a1da9ac8a0bf95",
-    "trackedFiles": 990,
+    "treeDigest": "149d76c7fd6c07dfffada37dedf5b837fa331b41287e339507f135da59d0a4df",
+    "trackedFiles": 994,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-10-30T09:12:26.611Z"
+    "recordedAt": "2026-10-30T09:27:33.406Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -63,5 +65,17 @@
     },
     "negativeTests": "code-only, Worklog-only, stale SHA and missing trust Code Map denied",
     "verifiedAt": "2026-10-30"
+  },
+  "sourceProgress": {
+    "baselineCommit": "b0cb5544dd04f7bb85b85cf951415e6f2cf346ea",
+    "p2i1Candidate": {
+      "sql": "platform-v2/sql/043_gold_device_short_ids.sql",
+      "library": "lib/gold-device-short-id.mjs",
+      "unitTest": "deploy/scripts/selftest-gold-p2i1-short-id.mjs",
+      "isolatedPgTest": "deploy/scripts/ci-gold-p2i1-short-id-pg.mjs",
+      "schemaRegistered": false,
+      "liveDeployed": false,
+      "fixtureResult": "PASS"
+    }
   }
 }

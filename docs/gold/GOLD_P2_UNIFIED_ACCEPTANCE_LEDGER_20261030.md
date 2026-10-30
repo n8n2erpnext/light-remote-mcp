@@ -14,7 +14,7 @@ Plan: `docs/gold/GOLD_P2_INTEGRATED_ABV2_NICKNAME_PRO_SHARE_PLAN_20261030.md`
 | C01 | PG039->042 isolated four-unit success/failure/rollback | REUSED_SOURCE_PASS at ad64059 | Add new migrations, repeat paired rollback ONCE at frozen SHA |
 | C02 | Ed25519 epoch, inventory, exact terminal ACK, no-PID fence | REUSED_SOURCE_PASS at d6892d7; fixture only | Live authorized Agent signed receipt and no fabricated ACK |
 | C03 | Two Operators, 1,000/10,000 synthetic devices | REUSED_SOURCE_PASS, baseline Git CI 41025222358 | CI at integrated SHA, expanded pairing nickname/guest concurrency |
-| A01 | Owner/account-scoped stable 6-char device short IDs | NEEDS_IMPLEMENTATION | **Prefix always visible** in authorized Wall STANDBY + `/account` list, stable across restart/idle/offline; no rotating suffix until request; backfill/reboot/collision/old devices, non-recycled |
+| A01 | Owner/account-scoped stable 6-char device short IDs | **PARTIAL_SOURCE_PASS** — PG043 candidate + ID allocator/owner-scoped resolver pass isolated tests; not wired to Wall/Operator, not in migration manifest | **Prefix always visible** in authorized Wall STANDBY + `/account` list, stable across restart/idle/offline; no rotating suffix until request; backfill/reboot/collision/old devices, non-recycled |
 | A02 | Bounded resolver 0/1/N, duplicate hostname, 100 devices | NEEDS_IMPLEMENTATION | Only permitted metadata; no automatic Main or issue on ambiguous |
 | A03 | On-demand 6+5 A, independent B, atomic single-use/TTL | NEEDS_IMPLEMENTATION | Multi-tab/multi-Agent, wrong B/expired/revoked/device change denied |
 | A04 | Local Wall standby/approve + account portal approval | NEEDS_IMPLEMENTATION | B never plaintext on Wall; protected exact request, CSRF |
