@@ -12,6 +12,9 @@ Audit is READ-ONLY, not a deployed feature or final implementation sign-off.
 
 **Schema:** Current migration lock has sequential 040,041,042; allocate new immutable numbers only **after 042**. PostgreSQL17 durable state, Redis8 TTL/CAS; no shadow JSON/SQLite authority. Gold UAT still 039. A/B V2 and guest auth feature flags default OFF. Production rc47 unchanged.
 
+## Owner extension mandate: future Light Remote IT Support
+A/B V2 target discovery and approval must be a reusable device-scoped gateway, not hardwired to exactly one owner/account/device. Future distinct axes are tenant/organization, branch/site, logical device collection/cluster, authorized user, group membership and explicit approver delegation. **Current Gold P2 does NOT implement these structures or management UI**; make the resolver operate on a policy-provided *permitted device set*, keep device UUID and Short ID independent of placement, and preserve canonical actor/owner/device/agent/approver/audit identity with optional validated future scope context. Require fail-closed authorization at discover/request/approve/session/dispatch. A group/site assignment alone never replaces B or grants remote execution. Pro Share is the initial simple one-guest assignment, not an organization entitlement. See master plan section 12; acceptance ledger A06 is extension-seam only.
+
 ## I0 implementation-ready contracts to freeze next
 1. `DeviceShortId`: device UUID ↔ globally/owner-unique six-character ID, never recycled, explicit guest visibility policy.
 2. `TargetResolution`: OAuth-owner/guest principal, query -> bounded safe metadata 0/1/N without grant or A issuance.

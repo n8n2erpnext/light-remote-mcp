@@ -19,6 +19,7 @@ Plan: `docs/gold/GOLD_P2_INTEGRATED_ABV2_NICKNAME_PRO_SHARE_PLAN_20261030.md`
 | A03 | On-demand 6+5 A, independent B, atomic single-use/TTL | NEEDS_IMPLEMENTATION | Multi-tab/multi-Agent, wrong B/expired/revoked/device change denied |
 | A04 | Local Wall standby/approve + account portal approval | NEEDS_IMPLEMENTATION | B never plaintext on Wall; protected exact request, CSRF |
 | A05 | Legacy 4+4 A/B backwards compat, 24h lease | REUSED_SOURCE_PASS for legacy only | Old/new client and device policy/capacity on same SHA |
+| A06 | Future IT Support extension seam: organization, branch, device cluster, assigned user and group | NEEDS_IMPLEMENTATION (seam only; full IT Support deferred) | Two synthetic orgs/branches, overlapping device clusters and groups: scoped discovery, no cross-org/device leakage or self-approval; assignment revocation fences jobs; stable Short ID on site/cluster move; Pro Share still exactly shared devices |
 | N01 | First automatically Agent-chosen nickname after ready | NEEDS_IMPLEMENTATION; hardcoded label today | No user step, no server fallback, no invented model |
 | N02 | Immutable sessionId, persistent name, owner override | NEEDS_IMPLEMENTATION | Hold/reconnect/reboot/GC/guest sessions; cross-Operator race |
 | N03 | UI, Unicode/XSS/bidi and cross-owner rename controls | NEEDS_IMPLEMENTATION | Browser + adversarial strings, distinct AI clients |
