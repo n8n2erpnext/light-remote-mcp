@@ -47,6 +47,13 @@ try{
   const who=(await client.query("SELECT current_database() AS db,current_user AS role,(SELECT rolsuper FROM pg_roles WHERE rolname=current_user) AS superuser")).rows?.[0];
   if(who?.db!=='light_remote_gold_dev'||who?.role!=='lr_gold_migrator'||who.superuser!==false)
    throw Error('gold_migrator_identity_mismatch');
+  // Reject drifted or future ledgers before touching any existing schema.
+  const ledgerExists=(await client.query("SELECT to_regclass('public.lr_schema_migrations') AS ledger")).rows[0]?.ledger;
+  if(ledgerExists){
+   const versions=(await client.query('SELECT version FROM lr_schema_migrations ORDER BY version')).rows;
+   if(versions.length>records.length||versions.some((v,i)=>Number(v.version)!==i+1))
+    throw Error('gold_migration_ledger_not_contiguous_or_future');
+  }
   for(const row of records){
    await client.query('BEGIN');
    try{
@@ -59,6 +66,26 @@ try{
     if(!applied){
      await client.query(row.sql);
      await client.query('INSERT INTO lr_schema_migrations(version) VALUES($1) ON CONFLICT(version) DO NOTHING',[row.version]);
+    }
+    // Also validate previously applied 040-042 schema, not only ledger labels.
+    if(row.version===40){
+     const present=(await client.query("SELECT to_regclass('public.lr_gold_device_gc_fences') IS NOT NULL AS present")).rows[0]?.present;
+     if(present!==true)throw Error('gold_migration_040_schema_missing');
+    }
+    if(row.version===41){
+     const schema=(await client.query(`SELECT
+       to_regclass('public.lr_gold_device_execution_epochs') IS NOT NULL AS epochs,
+       to_regclass('public.lr_gold_execution_command_issuance') IS NOT NULL AS commands,
+       to_regclass('public.lr_gold_device_execution_inventory_pages') IS NOT NULL AS pages,
+       to_regclass('public.lr_gold_execution_effect_starts') IS NOT NULL AS starts`)).rows[0];
+     if(!schema?.epochs||!schema?.commands||!schema?.pages||!schema?.starts)
+      throw Error('gold_migration_041_schema_missing');
+    }
+    if(row.version===42){
+     const definition=(await client.query(`SELECT pg_get_constraintdef(oid) AS definition FROM pg_constraint
+       WHERE conrelid='public.lr_site_announcements'::regclass
+       AND conname='lr_site_announcements_audience_check'`)).rows[0]?.definition||'';
+     if(!definition.includes("'wall'"))throw Error('gold_migration_042_wall_audience_missing');
     }
     await client.query('COMMIT');
     console.log('gold_sql_version',row.version,applied?'already_applied':'applied');

@@ -8,6 +8,8 @@ on:
       - 'lib/gold-connection-job-reaper.mjs'
       - 'lib/gold-execution-epoch.mjs'
       - 'lib/gold-db.mjs'
+      - 'deploy/scripts/apply-gold-db.mjs'
+      - 'deploy/scripts/selftest-gold-p2a-migration-lock.mjs'
       - 'device-agent/operator-agent.mjs'
       - 'device-agent/execution-epoch-journal.mjs'
       - 'operator-host/executor.mjs'
@@ -83,6 +85,8 @@ jobs:
           node --check deploy/scripts/selftest-gold-p1-e-load-chaos-pg.mjs
           node --check lib/gold-execution-epoch.mjs
           node --check lib/gold-db.mjs
+          node --check deploy/scripts/apply-gold-db.mjs
+          node deploy/scripts/selftest-gold-p2a-migration-lock.mjs
           node --check device-agent/execution-epoch-journal.mjs
           node --check device-agent/operator-agent.mjs
           node --check operator-host/executor-routes-device-channel.mjs
