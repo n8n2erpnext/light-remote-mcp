@@ -181,3 +181,71 @@ Updated acceptance:
   key/TTL compatibility, signed Agent reconnect and approval-gated live
   rollback **NOT TESTED / HOLD**. P2-A is **partially accepted**, and
   P2-B must not promote or migrate live UAT automatically.
+
+
+## P2-A final isolated Wall/Redis root-cause & compatibility acceptance (2026-10-30)
+
+This section resolves the isolated Wall/Redis HOLDs above. Earlier negative observations
+were real but **the Wall restart cause was identified and corrected in clone only**.
+The original UAT runtime/IP binding was **not** changed.
+
+### Wall restart diagnosis and independent proof
+
+- Reopened the deliberately networkless LXD clone
+  `gold-p2a-runtime-rollback-20261030` with only `lo`, no NIC and no route.
+- Sanitized journal error: `Error: listen EADDRNOTAVAIL: address not available
+  10.192.135.61:5491`. This is the hard-bound **original UAT container IP**
+  which is absent inside the isolated snapshot clone.
+- Resolved only on clone by a temporary systemd drop-in defining
+  `OPERATOR_AGENT_WALL_HOST=127.0.0.1` and
+  `OPERATOR_FLEET_WALL_HOST=127.0.0.1`. Did not open external networking.
+- Wall immediately became ACTIVE. Repeated 15 samples of all six units:
+  Operator, Plugin, Wall, Process Supervisor, PostgreSQL, Redis: **PASS**.
+  `systemctl show`: `ActiveState=active`, `ExecMainStatus=0`,
+  `NRestarts=0`.
+- Loopback HTTP `http://127.0.0.1:5491/` returned **303**, verifying the
+  HTTP handler responded. Port 5492 **did not listen on the clone**; no
+  acceptance claim is made for Fleet Wall / 5492. Do not infer authenticated
+  owner login or signed native Agent E2E from HTTP 303 alone.
+
+### Redis 8 authenticated TTL/schema + restart
+
+- Local Redis 8.10.2, original `requirepass` kept. The clone-only private
+  probe read authentication from the local Redis config *in memory*,
+  authenticated via `REDISCLI_AUTH`, and did not print passwords, key
+  names, key values, tokens, session IDs or private Redis content.
+- Gold Redis namespace observed **126 keys; 126 expiring**, zero permanent or
+  missing. Session snapshot `runtime:sessions`: one checked, JSON
+  `schemaVersion=1`, arrays `sessions`, `openDedupe`,
+  `agentDeviceSessions` valid; no session content disclosed.
+- Existing key TTL positive, range at measurement approximately
+  604775735..2549092298 milliseconds (snapshot in time, not constant).
+- Private test key `lr:gold:p2a-isolated:synthetic-ttl` created with PX=9000,
+  PTTL decreased after ~1.2 seconds, key deleted and absence confirmed.
+  No other Redis keys were modified by the probe.
+- Restarted **clone-only Redis**; authenticated probe then read the same
+  **126/126 expiring Gold keys** and valid session schema; the synthetic
+  TTL/cleanup test passed again. All six units remained active for **15
+  consecutive health samples** after restart. Wall HTTP again returned 303,
+  NRestarts=0, clone network was still `lo` only.
+- Limit: this proves snapshot Redis 8 **authenticated readback, TTL behavior
+  and restart persistence**; no cross-version Redis downgrade, load-test,
+  live distributed cache or 24-hour A/B lease expiry was exercised.
+
+### Cleanup and gate disposition
+
+- Removed both temporary Wall bind overrides from clone, called systemd
+  daemon-reload, compared entire four-unit config against original
+  `preimage-four-units.tar` with `tar -df`: **PASS identical**.
+- Restored clone PG to 039/039, historical foreign M4 claim count 1 (verified).
+- Stopped clone; `gold-p2a-runtime-rollback-20261030` is STOPPED,
+  with NIC removed and `boot.autostart=false`. The private preimages remain.
+- Live Gold UAT unchanged: four units ACTIVE, schema039/39 migrations,
+  foreign historical claim count1. Production rc.47 not touched.
+
+**P2-A isolated database + four-unit rollback + Wall loopback + authenticated
+Redis TTL/restart rehearsal: PASS.** This is sufficient to **close P2-A
+isolated rehearsal**, not to approve live deployment. **P2-B live Gold UAT
+migration/deployment, Fleet Wall 5492, signed Windows 10/11 Agent reconnection,
+full browser Owner Wall, and any production promotion remain separate gates
+requiring fresh preimages and explicit owner approval.**
