@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-30",
-  "status": "Gold P2 hotfix: per-Agent independent 24h A/B countdown + immediate owner B approval Wall cache refresh SOURCE PASS, V1 pairing regression PASS; source SHA and Actions CI pending. Windows rc49 not deployed.",
+  "status": "Gold P2 per-Agent A/B 24h countdown hotfix source 31c0e70 pushed HEAD=origin; independent timers and instant B refresh local tests PASS; GitHub Actions push CI NOT VERIFIED, no Windows rc49/Gold UAT/prod deploy.",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -41,7 +41,8 @@
     "P2-I2f exact source aaec466 pushed with clean HEAD=origin, source/docs/checkpoint gate and 317 doc links PASS, signed Wall/read only and V1 regression fixture PASS; Actions push-run not verified",
     "P2-I2g optional MCP Helper targetQuery + signed OAuth principal/query/nonce→Operator scope 0/1/N resolver, dual flags OFF, PG043 failclosed, no A/B/grant/ready, test fixtures PASS",
     "P2-I2g source commit 2e853415 pushed HEAD=origin; HMAC/Redis replay, signed scoped 0/1/N resolver, schema 043 failclosed, optional V1-compatible Helper schema static source checks PASS; GitHub Actions push CI unverified",
-    "Gold P2 per-Agent A/B clock: new approved grant resets only same Agent (old 1m30 + new B 24h), other Agents unchanged; backend signed status activeGrants, Wall multi-row timer, owner approve cache invalidate, source/HTTP fixtures PASS"
+    "Gold P2 per-Agent A/B clock: new approved grant resets only same Agent (old 1m30 + new B 24h), other Agents unchanged; backend signed status activeGrants, Wall multi-row timer, owner approve cache invalidate, source/HTTP fixtures PASS",
+    "P2 per-Agent clock hotfix source 31c0e70 pushed with clean HEAD=origin, registry+Wall+HTTP B approval and V1 regression PASS, source/docs/checkpoint gate and 330 links PASS; push Actions status not independently verified"
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -53,7 +54,7 @@
     "Local Wall V2 read-only signed preview and /account list/refresh/deny source-wired, but Short ID STANDBY / real B owner approve / true durable 24h grant/Helper ready NOT implemented",
     "Per-Agent A/B countdown fix is SOURCE ONLY: not shipped to Windows rc49 screenshot or UAT, needs controlled candidate/native signed Agent E2E and exact source SHA push Actions CI"
   ],
-  "nextAction": "Verify exact source SHA GitHub Actions after commit and native installed Windows client Wall 5491 per-Agent independent countdown in controlled candidate; do not deploy Gold UAT/production without release gate. Then return to P2-I2h Agent-first requestId issuance and durable true V2 24h grant reconciliation.",
+  "nextAction": "Independently verify exact 31c0e70 Gold GC Actions push run, then accept per-Agent B countdown on controlled signed native Windows rc49+ candidate and controlled release. No production/Gold UAT deploy yet. Resume P2-I2h Agent-first requestId issuance and durable V2 24h owner B grant when clock fix accepted.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -213,8 +214,9 @@
       "prodTouched": false,
       "nativeWindows49Acceptance": "NOT_TESTED",
       "localSourceFixtures": "PASS",
-      "sourceSha": "PENDING_COMMIT",
-      "actionsPushCI": "NOT_VERIFIED"
+      "sourceSha": "31c0e702ec590b9148f508c621f0d0b727a2b099",
+      "actionsPushCI": "UNVERIFIED_CONNECTOR_NO_PUSH_RUN",
+      "vercelInitialStatus": "PENDING_TWO_CONTEXTS"
     }
   }
 }
