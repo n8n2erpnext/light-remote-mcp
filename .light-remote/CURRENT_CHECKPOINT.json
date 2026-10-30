@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-30",
-  "status": "Gold P2-I2h2e-B OAuth Helper request poll HMAC identity + Redis granted AND active native PG grant and durable Agent client binding source-only, fixtures PASS; no UAT/prod deployment, PG043 not live, signed Wall owner-intent gate still HOLD; source SHA pending",
+  "status": "P2-I2h2e-B source 4b49270 pushed HEAD=origin; OAuth Helper poll exact HMAC OAuth Agent+requestId + Redis granted+native PG active grant AND Agent binding PG flush/readback source fixtures PASS; PG043 and independent Wall owner intent release HOLD, no UAT/prod deploy; GitHub Actions push unverified, Vercel both build-rate-limit.",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -73,7 +73,7 @@
     "P2-I2h2e-B source-only mocking PG043/Redis; no real PG043 installed-native Agent E2E, GitHub Actions push-run unverified",
     "P2-I2h2e-A signed Wall ownerLoggedIn claim still not independently server-verifiable; maintain explicit release HOLD"
   ],
-  "nextAction": "P2-I2h2e-C independent server-verifiable Wall owner-intent challenge (do NOT trust only signed ownerLoggedIn boolean), then no-NIC full PG043 + Redis8 + OAuth Agent native browser E2E, GitHub push Actions check. Preserve per-Agent 24h lease and V1; keep ALL V2 flags OFF on UAT/production.",
+  "nextAction": "P2-I2h2e-C independently attested owner intent on signed Wall, then real Redis8 + full PG043 schema no-NIC clone + OAuth Agent native browser E2E and exact GitHub Actions push-run; only then consider safe Gold UAT rollout with explicit authorization. Preserve V1 and per-Agent 24h clocks. Keep all V2 flags OFF.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -345,8 +345,10 @@
         "nativePg043": false,
         "nativeOAuthE2E": false,
         "signedWallOwnerIndependent": false,
-        "sourceSHA": "PENDING_COMMIT",
-        "githubActions": "PENDING_EXACT_SHA"
+        "sourceSHA": "4b4927002c568ca784a8e284fb2f553a6c53f17f",
+        "githubActions": "PUSH_NOT_VERIFIED_PR_ONLY_CONNECTOR",
+        "vercelMcp": "FAILURE_EXPLICIT_BUILD_RATE_LIMIT",
+        "vercelN": "FAILURE_EXPLICIT_BUILD_RATE_LIMIT"
       }
     },
     "abPerAgentTimerHotfix": {
