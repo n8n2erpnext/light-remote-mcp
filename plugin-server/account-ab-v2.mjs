@@ -12,11 +12,12 @@ const ACTIONS=new Map([
  ['abv2-view',{verb:'GET',resource:'pending',request:true}],
  ['abv2-refresh',{verb:'POST',resource:'pending',request:true,verbAction:'refresh'}],
  ['abv2-deny',{verb:'POST',resource:'pending',request:true,verbAction:'deny'}],
- ['abv2-approve',{verb:'POST',resource:'pending',request:true,verbAction:'approve'}]
+ ['abv2-approve',{verb:'POST',resource:'pending',request:true,verbAction:'approve'}],
+ ['abv2-wall-consent',{verb:'POST',resource:'pending',request:true,verbAction:'consent'}]
 ]);
 export function isGoldAbV2PortalAction(value){return ACTIONS.has(String(value||''));}
 export function createGoldAbV2AccountPortalProxy({
- enabled=false,approveEnabled=false,publicOrigin,sessionToken,callOperatorJson
+ enabled=false,approveEnabled=false,consentEnabled=false,publicOrigin,sessionToken,callOperatorJson
 }={}){
  if(typeof sessionToken!=='function'||typeof callOperatorJson!=='function'||
    (enabled&&!(typeof publicOrigin==='string'&&/^https:\/\/[^/]+$/.test(publicOrigin))))
@@ -25,7 +26,8 @@ export function createGoldAbV2AccountPortalProxy({
   const route=ACTIONS.get(String(action||''));
   if(!route)return false;
   const reply=(status,payload)=>res.status(status).set('Cache-Control','no-store').json(payload);
-  if(!enabled||(route.verbAction==='approve'&&!approveEnabled))
+  if(!enabled||(route.verbAction==='approve'&&!approveEnabled)||
+      (route.verbAction==='consent'&&!consentEnabled))
    return reply(404,{ok:false,error:'not_found'});
   if(req.method!==route.verb)return reply(405,{ok:false,error:'method_not_allowed'});
   const deviceId=String(route.verb==='GET'?req.query?.deviceId:req.body?.deviceId||'');
@@ -55,7 +57,12 @@ export function createGoldAbV2AccountPortalProxy({
    const csrf=String(req.headers?.['x-light-abv2-csrf']||'');
    if(!CSRF_RE.test(csrf))return reply(403,{ok:false,error:'abv2_csrf_required'});
    headers['x-light-abv2-csrf']=csrf;
-   if(route.verbAction==='approve'){
+   if(route.verbAction==='consent'){
+    const expectedAttempt=req.body?.expectedAttempt;
+    if(!Number.isSafeInteger(expectedAttempt)||expectedAttempt<1)
+     return reply(400,{ok:false,error:'abv2_wall_consent_attempt_invalid'});
+    body={expectedAttempt};
+   }else if(route.verbAction==='approve'){
     const attempt=req.body?.expectedAttempt,bCode=String(req.body?.bCode||'');
     if(!Number.isSafeInteger(attempt)||attempt<1||
        !AB_V2_B_RE.test(bCode))
@@ -72,6 +79,7 @@ export function createGoldAbV2AccountPortalProxy({
   // forwarded. The Operator reauthenticates the cookie-derived session.
   const data=await callOperatorJson(route.verb,target,body,headers);
   return reply(200,route.verbAction?data:{...data,
-   ...(action==='abv2-pending'?{ownerApproveEnabled:Boolean(approveEnabled)}:{})});
+   ...(action==='abv2-pending'?{ownerApproveEnabled:Boolean(approveEnabled),
+    wallConsentEnabled:Boolean(consentEnabled)}:{})});
  };
 }

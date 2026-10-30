@@ -1178,17 +1178,18 @@ async function remoteAbV2PendingPreview(hub=DEFAULT_HUB,{wallUsername}={}){
 }
 // Device-signed owner mutation: Local Wall must authenticate owner and CSRF
 // before calling; Operator independently revalidates enrollment and policy.
-async function remoteAbV2OwnerApprove(hub=DEFAULT_HUB,{wallUsername,requestId,expectedAttempt,bCode}={}){
+async function remoteAbV2OwnerApprove(hub=DEFAULT_HUB,{wallUsername,requestId,expectedAttempt,bCode,consentCode}={}){
  const state=readState();
  if(!state?.enrollment?.deviceId||!state.enrollment.accountId)
   throw Error('abv2_device_not_enrolled');
  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(wallUsername||''))||
    !/^av2_[a-f0-9]{32}$/.test(String(requestId||''))||
    !Number.isSafeInteger(expectedAttempt)||expectedAttempt<1||
-   !/^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/.test(String(bCode||'')))
+   !/^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/.test(String(bCode||''))||
+   !/^[A-Za-z0-9_-]{32}$/.test(String(consentCode||'')))
   throw Error('abv2_wall_approval_invalid');
  const result=await channelRequest(state,hub,'abv2-owner-approve',{
-  action:'approve',ownerLoggedIn:true,wallUsername,requestId,expectedAttempt,bCode
+  action:'approve',ownerLoggedIn:true,wallUsername,requestId,expectedAttempt,bCode,consentCode
  });
  if(result?.ok!==true||result.state!=='granted'||result.requestId!==requestId)
   throw Error('abv2_wall_grant_not_durable');

@@ -10,6 +10,9 @@ on:
       - 'lib/gold-device-short-id.mjs'
       - 'lib/gold-ab-v2-pending-redis.mjs'
       - 'lib/gold-ab-v2-owner-pending-adapter.mjs'
+      - 'lib/gold-ab-v2-wall-owner-consent.mjs'
+      - 'deploy/scripts/selftest-gold-ab-v2-wall-owner-consent.mjs'
+      - 'deploy/scripts/selftest-gold-ab-v2-wall-owner-consent-redis.mjs'
       - 'operator-host/gold-ab-v2-owner-http.mjs'
       - 'operator-host/gold-ab-v2-signed-preview.mjs'
       - 'operator-host/gold-ab-v2-signed-approval.mjs'
@@ -164,6 +167,8 @@ jobs:
           node --check operator-host/gold-ab-v2-signed-preview.mjs
           node --check operator-host/gold-ab-v2-signed-approval.mjs
           node deploy/scripts/selftest-gold-ab-v2-signed-approval.mjs
+          node deploy/scripts/selftest-gold-ab-v2-wall-owner-consent.mjs
+          node --check deploy/scripts/selftest-gold-ab-v2-wall-owner-consent-redis.mjs
           node --check device-agent/wall-ab-v2-preview.mjs
           node deploy/scripts/selftest-gold-ab-v2-signed-preview.mjs
           node deploy/scripts/selftest-gold-ab-v2-wall-preview.mjs

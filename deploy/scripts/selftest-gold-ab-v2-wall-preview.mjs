@@ -76,7 +76,7 @@ try{
   },getAbV2Approve:async data=>{
    approvals++;
    assert.deepEqual(data,{wallUsername:'owner@example.invalid',
-    requestId,expectedAttempt:1,bCode:'ABCD-2345'});
+    requestId,expectedAttempt:1,bCode:'ABCD-2345',consentCode:'a'.repeat(32)});
    return {ok:true,state:'granted',requestId,agentId:'agent-one',
     expiresAt:Date.now()+200000,absoluteExpiresAt:Date.now()+86400000};
   }});
@@ -108,11 +108,12 @@ try{
   method:'POST',headers:{'content-type':'application/json','x-test-owner':owner,
    ...(csrf?{'x-light-remote-csrf':csrf}:{})},body:JSON.stringify(body)
  });
- const proof={requestId,expectedAttempt:1,bCode:'ABCD-2345',ownerAccountId:'forged',agentId:'forged'};
+ const proof={requestId,expectedAttempt:1,bCode:'ABCD-2345',consentCode:'a'.repeat(32),ownerAccountId:'forged',agentId:'forged'};
  assert.equal((await post('', 'fixture-csrf',proof)).status,401);
  assert.equal((await post('recovery','fixture-csrf',proof)).status,403);
  assert.equal((await post('owner',null,proof)).status,403);
  assert.equal((await post('owner','fixture-csrf',{...proof,bCode:'NOTA-BBBB'})).status,400);
+ assert.equal((await post('owner','fixture-csrf',{...proof,consentCode:''})).status,400);
  assert.equal(approvals,0);
  const grant=await post('owner','fixture-csrf',proof);
  assert.equal(grant.status,200);

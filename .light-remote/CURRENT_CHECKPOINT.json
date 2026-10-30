@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-30",
-  "status": "P2-I2h2e-B source 4b49270 pushed HEAD=origin; OAuth Helper poll exact HMAC OAuth Agent+requestId + Redis granted+native PG active grant AND Agent binding PG flush/readback source fixtures PASS; PG043 and independent Wall owner intent release HOLD, no UAT/prod deploy; GitHub Actions push unverified, Vercel both build-rate-limit.",
+  "status": "P2-I2h2e-C1 source independent /account-session owner 90s consent + exact signed Wall B/Redis8 one-use scope PASS; clone STOPPED, Gold UAT untouched, V2 runtime OFF. Native PG043 installed Agent E2E and interrupted PG retry UX HOLD; SHA/CI pending.",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -50,7 +50,8 @@
     "P2-I2h2d full actual clone PG039 schema-only restore into isolated disposable database, native Gold AB 2-phase staged/activated grant+FK+24h CHECK+restart/multi Agent PASS; disposable DB deleted, clone STOPPED",
     "P2-I2h2d owner B V2 API+account proxy/UI source gated OFF, exact owner cookie/Origin/CSRF/rate limit/Agent B 4+4, only returns grant after native PG readback, no identity spoof or grantId leak; source HTTP/account tests PASS",
     "P2-I2h2e-A separately gated signed enrolled-device channel abv2-owner-approve, owner Wall auth/CSRF and conditional masked B form, Operator current enrollment/connection/policy + two-phase PG grant coordinator, source Wall/Operator tests PASS; no live enable.",
-    "P2-I2h2e-B dedicated OAuth Agent poll proof and gated private Operator poll path with exact Redis+native PG active grant and Agent client native PG binding readback; MCP Helper schema all-or-none, local fixtures PASS, V1 unchanged."
+    "P2-I2h2e-B dedicated OAuth Agent poll proof and gated private Operator poll path with exact Redis+native PG active grant and Agent client native PG binding readback; MCP Helper schema all-or-none, local fixtures PASS, V1 unchanged.",
+    "P2-I2h2e-C1 source independent server-issued owner consent: 90s Redis HMAC/Lua one-use request/attempt/device/connection, authenticated /account+CSRF+Origin issuer, masked Wall B+consent, real Redis8 no-NIC clone PASS."
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -71,9 +72,11 @@
     "P2-I2h2e-A signed device proves enrolled Agent key but not independently the owner Wall login; requires server-verifiable owner intent challenge or validated hardened device-local trust before ON",
     "P2-I2h2e-B OAuth exact Agent/client/requestId signed grant poll and legacy agent-client/attach/Helper ready NOT implemented; physical native browser E2E NOT run",
     "P2-I2h2e-B source-only mocking PG043/Redis; no real PG043 installed-native Agent E2E, GitHub Actions push-run unverified",
-    "P2-I2h2e-A signed Wall ownerLoggedIn claim still not independently server-verifiable; maintain explicit release HOLD"
+    "P2-I2h2e-A signed Wall ownerLoggedIn claim still not independently server-verifiable; maintain explicit release HOLD",
+    "P2-I2h2e-C1 native installed browser/Agent OAuth E2E and full schema PG043/Redis8 clone integration NOT run; owner consent recovery after interrupted PG stage requires fresh authenticated code",
+    "Account↔Wall two-screen/copy-paste 90s consent UX is intentional security tradeoff; zero-copy redirect-based proof not developed"
   ],
-  "nextAction": "P2-I2h2e-C independently attested owner intent on signed Wall, then real Redis8 + full PG043 schema no-NIC clone + OAuth Agent native browser E2E and exact GitHub Actions push-run; only then consider safe Gold UAT rollout with explicit authorization. Preserve V1 and per-Agent 24h clocks. Keep all V2 flags OFF.",
+  "nextAction": "P2-I2h2e-C2 isolated full PG039 schema+PG043 migration + Redis8 and native Gold agent-client binding readback/restart, plus owner consent retry/recovery UI after interrupted PG, installed browser/Agent E2E and exact GitHub Actions push-run check. Do not deploy UAT/prod; keep all flags OFF; preserve per-Agent 24h and V1.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -86,10 +89,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "571631da127fb0d4314393daafccf4839c201ef393680efc3d2507ca9b5bbc2a",
-    "trackedFiles": 1027,
+    "treeDigest": "b7d9cb983d892baeb1ee1f2619e19af050cc8badb7eab7fa2dba3e5a1de1d9f4",
+    "trackedFiles": 1030,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-10-30T14:02:15.135Z"
+    "recordedAt": "2026-10-30T14:21:34.385Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -349,6 +352,26 @@
         "githubActions": "PUSH_NOT_VERIFIED_PR_ONLY_CONNECTOR",
         "vercelMcp": "FAILURE_EXPLICIT_BUILD_RATE_LIMIT",
         "vercelN": "FAILURE_EXPLICIT_BUILD_RATE_LIMIT"
+      },
+      "wallIndependentOwnerConsent": {
+        "source": "lib/gold-ab-v2-wall-owner-consent.mjs",
+        "operatorIssue": "operator-host/gold-ab-v2-owner-http.mjs",
+        "signedWall": "operator-host/gold-ab-v2-signed-approval.mjs",
+        "account": "plugin-server/account-ab-v2.mjs",
+        "accountUI": "plugin-server/account-portal/ab-v2.js",
+        "wall": "device-agent/local-wall.mjs",
+        "realRedisFixture": "deploy/scripts/selftest-gold-ab-v2-wall-owner-consent-redis.mjs",
+        "mockFixture": "deploy/scripts/selftest-gold-ab-v2-wall-owner-consent.mjs",
+        "flag": "LR_GOLD_AB_V2_WALL_OWNER_CONSENT=1",
+        "default": "OFF",
+        "maxTtlSeconds": 90,
+        "realRedis8": "PASS",
+        "independentSessionProof": "SOURCE_PASS",
+        "nativeInstalledE2E": false,
+        "pg043": false,
+        "liveEnabled": false,
+        "sourceSHA": "PENDING_COMMIT",
+        "githubActions": "PENDING_EXACT_SHA"
       }
     },
     "abPerAgentTimerHotfix": {

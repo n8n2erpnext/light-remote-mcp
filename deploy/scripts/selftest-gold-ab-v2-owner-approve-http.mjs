@@ -36,9 +36,16 @@ const route=createGoldAbV2OwnerHttp({...fake,
    requestId,agentId:'agent-a',approvedAt:1_800_000_000_000,
    expiresAt:1_800_000_100_000,absoluteExpiresAt:1_800_086_400_000};
  }});
+const consentRoute=createGoldAbV2OwnerHttp({...fake,
+ issueWallConsent:async(req,args)=>{
+  assert.equal(req.headers.origin,origin);
+  assert.deepEqual(args,{deviceId:'dev1',requestId,expectedAttempt:2});
+  return {consentCode:'c'.repeat(32),requestId,expiresAt:1800000000000};
+ }});
 const disabled=createGoldAbV2OwnerHttp({...fake});
 const server=http.createServer(async(req,res)=>{
- await (req.url.startsWith('/disabled/')?disabled:route)(req,res,
+ await (req.url.startsWith('/disabled/')?disabled:
+  req.url.endsWith('/consent')?consentRoute:route)(req,res,
   new URL(req.url.replace(/^\/disabled/,''),'http://localhost'));
 });
 server.listen(0,'127.0.0.1');await once(server,'listening');
@@ -66,6 +73,16 @@ try{
  assert.equal(good.status,200);
  assert.equal(good.data.state,'granted');
  assert.equal(approved,1);
+ const consentPath=base.replace('/approve','/consent');
+ const consOff=await call('/disabled'+consentPath,{csrfToken:cs});
+ assert.equal(consOff.status,404);
+ assert.equal((await call(consentPath,{csrfToken:null})).status,403);
+ assert.equal((await call(consentPath,{csrfToken:cs,originHeader:'https://bad.test'})).status,403);
+ assert.equal((await call(consentPath,{csrfToken:cs,body:{expectedAttempt:0}})).status,400);
+ const minted=await call(consentPath,{csrfToken:cs,body:{expectedAttempt:2,
+  ownerAccountId:'spoof',connectionId:'spoof',agentId:'spoof'}});
+ assert.equal(minted.status,200);
+ assert.equal(minted.data.consentCode,'c'.repeat(32));
  assert.equal(Object.hasOwn(good.data,'grantId'),false,'never expose internal grantId');
  assert.ok(!JSON.stringify(good.data).includes('ABCD-2345'));
  console.log('GOLD_ABV2_OWNER_B_HTTP_ORIGIN_CSRF_NO_SPOOF_FLAG_OFF=PASS');

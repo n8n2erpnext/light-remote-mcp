@@ -2347,12 +2347,13 @@ export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvg
       if(!payload||typeof payload!=='object'||Array.isArray(payload)||
          !/^av2_[a-f0-9]{32}$/.test(String(payload.requestId||''))||
          !Number.isSafeInteger(payload.expectedAttempt)||payload.expectedAttempt<1||
-         !/^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/.test(String(payload.bCode||'')))
+         !/^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/.test(String(payload.bCode||''))||
+         !/^[A-Za-z0-9_-]{32}$/.test(String(payload.consentCode||'')))
         return json(res,400,{ok:false,error:'abv2_owner_approve_payload_invalid'});
       try{
         const approved=await getAbV2Approve({wallUsername,
           requestId:payload.requestId,expectedAttempt:payload.expectedAttempt,
-          bCode:payload.bCode});
+          bCode:payload.bCode,consentCode:payload.consentCode});
         if(approved?.ok!==true||approved.state!=='granted'||
            approved.requestId!==payload.requestId)
           throw Error('abv2_grant_not_durable');

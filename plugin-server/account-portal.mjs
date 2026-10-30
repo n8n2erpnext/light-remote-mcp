@@ -17,6 +17,7 @@ const publicAuthRate=new Map();
 const goldAbV2AccountProxy=createGoldAbV2AccountPortalProxy({
  enabled:process.env.LR_GOLD_AB_V2_ACCOUNT_UI==='1',
  approveEnabled:process.env.LR_GOLD_AB_V2_ACCOUNT_APPROVE_UI==='1',
+ consentEnabled:process.env.LR_GOLD_AB_V2_WALL_OWNER_CONSENT==='1',
  publicOrigin:PUBLIC_ORIGIN,
  sessionToken,callOperatorJson
 });

@@ -4,6 +4,7 @@
 // Operator independently verifies signed binding, current owner, enrollment,
 // policy, connection and PG 2-phase durability. Not a Helper ready endpoint.
 import {GoldAbV2PendingRedis,AB_V2_B_RE} from '../lib/gold-ab-v2-pending-redis.mjs';
+import {GoldAbV2WallOwnerConsent} from '../lib/gold-ab-v2-wall-owner-consent.mjs';
 import {goldAbV2OwnerHttpConfig} from './gold-ab-v2-owner-http.mjs';
 import {GoldAbV2GrantBridgeError,createGoldAbV2GrantCoordinator}
  from './gold-ab-v2-grant-coordinator.mjs';
@@ -16,7 +17,8 @@ export function createGoldAbV2SignedApproval({
  accessGrants,goldRegistries,now=Date.now
 }={}){
  if(env.LR_GOLD_AB_V2_WALL_SIGNED_APPROVE!=='1')return null;
- if(env.LR_GOLD_AB_V2_DURABLE_GRANT_BRIDGE!=='1'||
+ if(env.LR_GOLD_AB_V2_WALL_OWNER_CONSENT!=='1'||
+    env.LR_GOLD_AB_V2_DURABLE_GRANT_BRIDGE!=='1'||
     env.LR_GOLD_AB_V2_OWNER_APPROVE_HTTP!=='1'||
     env.LR_GOLD_AB_V2_WALL_PENDING_PREVIEW!=='1'||
     env.LR_GOLD_AB_V2_HELPER_REQUEST_ISSUE!=='1'||
@@ -26,6 +28,8 @@ export function createGoldAbV2SignedApproval({
  if(!cfg.enabled||!storage?.pool?.query||!storage?.redis?.eval||!storage.prefix||
     !accounts||!devices||!connections||!enrollments||!accessGrants||
     typeof goldRegistries?.flush!=='function')deny('abv2_wall_grant_dependencies_invalid',503);
+ const consent=new GoldAbV2WallOwnerConsent({redis:storage.redis,
+  prefix:storage.prefix,sealingKey:cfg.sealingKey,now});
  const pending=new GoldAbV2PendingRedis({
   redis:storage.redis,prefix:storage.prefix,sealingKey:cfg.sealingKey
  });
@@ -88,9 +92,14 @@ export function createGoldAbV2SignedApproval({
   const p=ctx?.payload;
   if(!p||p.action!=='approve'||!REQUEST.test(p.requestId||'')||
      !Number.isSafeInteger(p.expectedAttempt)||p.expectedAttempt<1||
-     !AB_V2_B_RE.test(String(p.bCode||'')))
+     !AB_V2_B_RE.test(String(p.bCode||''))||
+     !/^[A-Za-z0-9_-]{32}$/.test(String(p.consentCode||'')))
    deny('abv2_wall_approval_payload_invalid',400);
   const owner=await authorizeOwner(ctx);
+  // Server-issued one-time consent, minted under authenticated /account
+  // session+CSRF; device-signed ownerLoggedIn alone is NEVER authority.
+  await consent.consume({...owner,requestId:p.requestId,
+   expectedAttempt:p.expectedAttempt,consentCode:p.consentCode});
   const out=await coordinator(ctx,{deviceId:owner.deviceId,requestId:p.requestId,
    expectedAttempt:p.expectedAttempt,bCode:p.bCode});
   return {ok:true,state:out.state,requestId:out.requestId,

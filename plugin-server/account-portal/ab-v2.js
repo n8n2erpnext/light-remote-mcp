@@ -70,6 +70,20 @@
   }catch(error){input.value='';msg('Approval not completed: '+error.message);}
   finally{button.disabled=false;}
  }
+ async function generateWallConsent(row,target,button){
+  const deviceId=select.value;
+  if(!window.confirm('Authorize this exact Agent request for Local Wall approval? The code expires in 90 seconds.'))return;
+  try{
+   button.disabled=true;
+   const data=await request('abv2-wall-consent',{method:'POST',csrf:await csrf(deviceId),
+    body:{deviceId,requestId:row.requestId,expectedAttempt:row.attempt}});
+   if(!/^[A-Za-z0-9_-]{32}$/.test(String(data.consentCode||'')))
+    throw Error('Owner consent unavailable');
+   target.textContent='One-time consent (paste on Local Wall): '+data.consentCode+
+    ' · expires '+new Date(Number(data.expiresAt)).toLocaleTimeString();
+  }catch(error){target.textContent='Consent unavailable: '+error.message;}
+  finally{button.disabled=false;}
+ }
  async function load(){
   const turn=++generation,deviceId=select.value;
   clear();
@@ -102,6 +116,14 @@
      const action=item('button','Approve Agent','btn');action.type='button';
      action.addEventListener('click',()=>approve(row,input,action));
      buttons.append(input,action);
+    }
+    if(data.wallConsentEnabled===true){
+     const codeView=item('code','No one-time consent issued');
+     const issue=item('button','Generate Local Wall consent','btn');
+     issue.type='button';
+     issue.addEventListener('click',()=>generateWallConsent(row,codeView,issue));
+     buttons.append(issue);
+     card.append(codeView);
     }
     card.append(meta,code,buttons);
     list.append(card);
