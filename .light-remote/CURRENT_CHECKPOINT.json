@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-30",
-  "status": "Gold P2-I2g OAuth HMAC-bound Helper targetQuery discovery SOURCE PASS; not issuer, no request/grant/ready; PG043 absent live, flags OFF; source SHA/CI pending",
+  "status": "P2-I2g source 2e853415 pushed, HEAD=origin; OAuth HMAC Helper targetQuery discovery only, PG043 failclosed, all flags OFF; local fixtures PASS, push Actions CI NOT VERIFIED; no A/B issuance/grant/ready",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -39,20 +39,19 @@
     "P2-I2e source 79135d7 pushed; HEAD=origin, source/docs/checkpoint guard PASS, 308 document links validated; Actions push CI not verified, Vercel light-remote-mcp SUCCESS only",
     "P2-I2f signed Local Wall preview: Operator signed Ed25519 channel verified, owner/device/current connection/enrollment policy checked, owner signed email vs local Wall account login; hidden read-only V2 /approve panel, no OAuth cookie or B, fixtures PASS",
     "P2-I2f exact source aaec466 pushed with clean HEAD=origin, source/docs/checkpoint gate and 317 doc links PASS, signed Wall/read only and V1 regression fixture PASS; Actions push-run not verified",
-    "P2-I2g optional MCP Helper targetQuery + signed OAuth principal/query/nonce→Operator scope 0/1/N resolver, dual flags OFF, PG043 failclosed, no A/B/grant/ready, test fixtures PASS"
+    "P2-I2g optional MCP Helper targetQuery + signed OAuth principal/query/nonce→Operator scope 0/1/N resolver, dual flags OFF, PG043 failclosed, no A/B/grant/ready, test fixtures PASS",
+    "P2-I2g source commit 2e853415 pushed HEAD=origin; HMAC/Redis replay, signed scoped 0/1/N resolver, schema 043 failclosed, optional V1-compatible Helper schema static source checks PASS; GitHub Actions push CI unverified"
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
     "Live native signed Agent↔Operator terminal ACK unverified",
     "Gold UAT 039→042 migration and production release not authorized",
     "One historical M4 resource claim and 27 UNKNOWN records protected",
-    "P2-I2c adapter not wired to real Operator auth/Wall; no true V2 grant reconciliation or installed Agent E2E",
-    "Real /account and Local Wall owner V2 route not wired; OAuth Agent targetQuery exact-request binding and Redis-approved→durable 24h grant reconciliation absent",
-    "Local Wall V2 signed device preview/standby and real Helper requestId→grant 24h reconciliation remain unimplemented; schema 043 excluded from migration lock",
     "P2-I2f signed proof tested with fixture only, not installed Agent; Helper targetQuery and durable 24h grant reconciliation, B approve, 043 migration remain unimplemented",
-    "P2-I2g targetQuery discovers only, Agent-first exact requestId issuance/poll/true B owner approval + durable 24h grant and native installed E2E not yet connected"
+    "P2-I2g targetQuery discovers only, Agent-first exact requestId issuance/poll/true B owner approval + durable 24h grant and native installed E2E not yet connected",
+    "Local Wall V2 read-only signed preview and /account list/refresh/deny source-wired, but Short ID STANDBY / real B owner approve / true durable 24h grant/Helper ready NOT implemented"
   ],
-  "nextAction": "Verify exact pushed SHA Gold GC Actions. Continue P2-I2h signed OAuth Helper exact selected requestId issuance with Redis 300s A6+5 B4+4 under PG043+current signed enrollment/connection; then durable idempotent 24h grant prepare/B owner approve/reconcile before any ready. Do not enable flags, move schema 043 into migration lock, deploy Gold UAT, or touch rc47.",
+  "nextAction": "Check exact 2e853415 Gold GC push Actions via independent GitHub run listing; then P2-I2h Agent-first exact selected device+OAuth Agent requestId issuance (PG043 + Redis A6+5 B4+4) with signed session binding; plan durable 24h grant B owner commit/reconciliation before any V2 ready. Continue SOURCE ONLY; do not migrate/live enable/clear unknown historical claims.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -101,7 +100,7 @@
       "isolatedRedis8Test": "deploy/scripts/selftest-gold-ab-v2-pending-redis.mjs",
       "realRedis8Fixture": "PASS exit0 stderr0; no-NIC clone stopped",
       "helperRouteWired": false,
-      "ownerWallWired": false,
+      "ownerWallWired": true,
       "grantRegistryWired": false,
       "enabledLive": false,
       "pendingIndex": {
@@ -127,7 +126,7 @@
         "test": "deploy/scripts/selftest-gold-ab-v2-owner-pending-adapter.mjs",
         "localFixture": "PASS",
         "featureDefault": "OFF",
-        "publicRouteWired": false,
+        "publicRouteWired": true,
         "realGrantWired": false,
         "ci": "PENDING_SOURCE_SHA"
       },
@@ -139,7 +138,7 @@
         "ownerDeviceAllowlistRequired": true,
         "secretFileRequired": true,
         "realOperatorCallbacks": true,
-        "publicAccountPortalWired": false,
+        "publicAccountPortalWired": true,
         "localWallWired": false,
         "helperWired": false,
         "approvedGrantWired": false,
@@ -195,9 +194,10 @@
         "requestIssuance": false,
         "grantWired": false,
         "readyWired": false,
-        "exactSourceSha": "PENDING_COMMIT",
-        "githubActions": "PENDING_EXACT_SHA"
-      }
+        "exactSourceSha": "2e853415c1b7cfe748d413c4d2687f75b3ba1e11",
+        "githubActions": "PUSH_WORKFLOW_UNVERIFIED_CONNECTOR"
+      },
+      "ownerWallWiredScope": "signed read-only preview, not B approval"
     }
   }
 }
