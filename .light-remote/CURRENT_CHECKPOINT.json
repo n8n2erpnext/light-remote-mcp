@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-30",
-  "status": "Gold P2-I2h2e-A source f076fd3 pushed HEAD=origin: default-OFF signed Local Wall owner B V2 source + two-phase PG grant mock tests PASS; operator cannot independently attest Wall owner login; Helper poll/attach/ready NOT wired; CI push unverified, Vercel MCP rate-limit failure.",
+  "status": "Gold P2-I2h2e-B OAuth Helper request poll HMAC identity + Redis granted AND active native PG grant and durable Agent client binding source-only, fixtures PASS; no UAT/prod deployment, PG043 not live, signed Wall owner-intent gate still HOLD; source SHA pending",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -49,7 +49,8 @@
     "P2-I2h2c real Redis8 no-NIC clone B CAS/receipt/commit PASS; native GoldNativeAB+GoldRegistryPersistence disposable PostgreSQL staged/activation flush and restart PASS after fixing pre-durable grant exposure, clone STOPPED",
     "P2-I2h2d full actual clone PG039 schema-only restore into isolated disposable database, native Gold AB 2-phase staged/activated grant+FK+24h CHECK+restart/multi Agent PASS; disposable DB deleted, clone STOPPED",
     "P2-I2h2d owner B V2 API+account proxy/UI source gated OFF, exact owner cookie/Origin/CSRF/rate limit/Agent B 4+4, only returns grant after native PG readback, no identity spoof or grantId leak; source HTTP/account tests PASS",
-    "P2-I2h2e-A separately gated signed enrolled-device channel abv2-owner-approve, owner Wall auth/CSRF and conditional masked B form, Operator current enrollment/connection/policy + two-phase PG grant coordinator, source Wall/Operator tests PASS; no live enable."
+    "P2-I2h2e-A separately gated signed enrolled-device channel abv2-owner-approve, owner Wall auth/CSRF and conditional masked B form, Operator current enrollment/connection/policy + two-phase PG grant coordinator, source Wall/Operator tests PASS; no live enable.",
+    "P2-I2h2e-B dedicated OAuth Agent poll proof and gated private Operator poll path with exact Redis+native PG active grant and Agent client native PG binding readback; MCP Helper schema all-or-none, local fixtures PASS, V1 unchanged."
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -68,9 +69,11 @@
     "P2-I2h2d signed Local Wall owner B V2 mutation and OAuth Agent exact grant/ready still NOT wired, installed browser/physical E2E and release CI remain unverified",
     "PG043 is not in live schema/migration manifest; full-schema test used only clone PG039 source (no migration 043)",
     "P2-I2h2e-A signed device proves enrolled Agent key but not independently the owner Wall login; requires server-verifiable owner intent challenge or validated hardened device-local trust before ON",
-    "P2-I2h2e-B OAuth exact Agent/client/requestId signed grant poll and legacy agent-client/attach/Helper ready NOT implemented; physical native browser E2E NOT run"
+    "P2-I2h2e-B OAuth exact Agent/client/requestId signed grant poll and legacy agent-client/attach/Helper ready NOT implemented; physical native browser E2E NOT run",
+    "P2-I2h2e-B source-only mocking PG043/Redis; no real PG043 installed-native Agent E2E, GitHub Actions push-run unverified",
+    "P2-I2h2e-A signed Wall ownerLoggedIn claim still not independently server-verifiable; maintain explicit release HOLD"
   ],
-  "nextAction": "P2-I2h2e-B: implement OAuth Helper proof poll scoped to exact requestId/device/ShortID/verified Agent+client identity, Redis granted receipt + active native PG grant/current connection, then durable agent-client/attach before Helper ready. Also independently attest Wall owner intent or explicitly accept hardened device-local trust only after adversarial native tests. Check exact SHA Actions. V2 flags OFF; NO Gold UAT/prod/Windows runtime changes or PG043 live.",
+  "nextAction": "P2-I2h2e-C independent server-verifiable Wall owner-intent challenge (do NOT trust only signed ownerLoggedIn boolean), then no-NIC full PG043 + Redis8 + OAuth Agent native browser E2E, GitHub push Actions check. Preserve per-Agent 24h lease and V1; keep ALL V2 flags OFF on UAT/production.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -83,10 +86,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "16eaf94b62bf469168a4f251972bb6709ecce5b8015dbd17c738d841c715d347",
-    "trackedFiles": 1024,
+    "treeDigest": "571631da127fb0d4314393daafccf4839c201ef393680efc3d2507ca9b5bbc2a",
+    "trackedFiles": 1027,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-10-30T13:48:58.747Z"
+    "recordedAt": "2026-10-30T14:02:15.135Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -329,6 +332,21 @@
         "githubActions": "PUSH_NOT_VERIFIED_PR_ONLY_CONNECTOR",
         "vercelMcp": "FAILURE_EXPLICIT_BUILD_RATE_LIMIT",
         "vercelNInitial": "PENDING"
+      },
+      "helperPollDurable": {
+        "proof": "lib/gold-ab-v2-helper-poll-proof.mjs",
+        "operator": "operator-host/gold-ab-v2-helper-poll.mjs",
+        "adapter": "plugin-server/operator-adapter.mjs",
+        "toolSchema": "plugin-server/tools.mjs",
+        "fixture": "deploy/scripts/selftest-gold-ab-v2-helper-poll.mjs",
+        "flag": "LR_GOLD_AB_V2_HELPER_POLL_ATTACH=1",
+        "default": "OFF",
+        "sourceFixture": "PASS",
+        "nativePg043": false,
+        "nativeOAuthE2E": false,
+        "signedWallOwnerIndependent": false,
+        "sourceSHA": "PENDING_COMMIT",
+        "githubActions": "PENDING_EXACT_SHA"
       }
     },
     "abPerAgentTimerHotfix": {

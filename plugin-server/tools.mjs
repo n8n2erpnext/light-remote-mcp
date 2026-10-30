@@ -170,10 +170,18 @@ export function registerPluginTools(server,identity){
   add(server,'light_remote_connection_helper',{
     title:'Connect Light Remote with A/B approval',
     description:'Start here. Handles Local Wall A/B pairing and, when ready, returns/reuses the working context plus a compact tool-family menu. Call again with helperGroup=workspace|files|shell|transfer|desktop only when detailed syntax for that family is needed. OAuth account login alone never authorizes a device.',
-    inputSchema:{targetQuery:z.string().min(1).max(120).optional(),startAbV2:z.boolean().optional(),requestKey:z.string().regex(/^[a-f0-9]{32}$/).optional(),aCode:z.string().regex(/^[A-Za-z2-9]{4}-?[A-Za-z2-9]{4}$/).optional(),continuation:z.string().min(20).max(8192).optional(),label:z.string().min(1).max(120).optional(),helperGroup:z.enum(['workspace','files','shell','transfer','desktop']).optional()},
+    inputSchema:{targetQuery:z.string().min(1).max(120).optional(),startAbV2:z.boolean().optional(),requestKey:z.string().regex(/^[a-f0-9]{32}$/).optional(),pollRequestId:z.string().regex(/^av2_[a-f0-9]{32}$/).optional(),pollDeviceId:id.optional(),pollShortId:z.string().regex(/^[0-9A-HJKMNP-TV-Z]{6}$/).optional(),aCode:z.string().regex(/^[A-Za-z2-9]{4}-?[A-Za-z2-9]{4}$/).optional(),continuation:z.string().min(20).max(8192).optional(),label:z.string().min(1).max(120).optional(),helperGroup:z.enum(['workspace','files','shell','transfer','desktop']).optional()},
     securitySchemes:security(['remote:read']),annotations:annotations(false,false,false,false)
   },guarded(identity,['remote:read'],async(a,x)=>{
     if(x.aCode&&x.continuation)throw new Error('pairing_input_conflict');
+    if(x.pollRequestId||x.pollDeviceId||x.pollShortId){
+      if(!x.pollRequestId||!x.pollDeviceId||!x.pollShortId||
+         x.targetQuery||x.startAbV2||x.requestKey||x.aCode||
+         x.continuation||x.helperGroup)
+        throw new Error('abv2_helper_poll_input_conflict');
+      return a.pollAbV2Request({requestId:x.pollRequestId,
+       deviceId:x.pollDeviceId,shortId:x.pollShortId});
+    }
     if((x.startAbV2||x.requestKey)&&!x.targetQuery)
       throw new Error('abv2_helper_target_required');
     if(x.requestKey&&!x.startAbV2)throw new Error('abv2_helper_issue_required');

@@ -25,3 +25,13 @@ assert.match(adapter,/helperReady:false,approvalState:'not_issued'/);
 assert.ok(!source.includes('if(x.targetQuery)return a.pairBegin'),
  'a name search must not reuse V1 A-code issuance');
 console.log('GOLD_ABV2_MCP_HELPER_TARGET_QUERY_OPTIONAL_V1_UNCHANGED_OFF_FAILCLOSED=PASS');
+
+assert.match(source,/pollRequestId:z\.string\(\)\.regex/,'V2 poll request id must be exact');
+assert.match(source,/pollDeviceId:id\.optional\(\)/);
+assert.match(source,/pollShortId:z\.string\(\)\.regex/);
+assert.match(source,/if\(x\.pollRequestId\|\|x\.pollDeviceId\|\|x\.pollShortId\)/);
+assert.match(source,/a\.pollAbV2Request\(\{requestId:x\.pollRequestId/);
+assert.match(adapter,/async pollAbV2Request\(\{requestId,deviceId,shortId\}=\{\}\)/);
+assert.match(adapter,/LR_GOLD_AB_V2_HELPER_POLL_ATTACH!=='1'/);
+assert.match(adapter,/result\.status!=='ready'\|\|result\.helperReady!==true/);
+console.log('GOLD_ABV2_MCP_HELPER_POLL_SCHEMA_V1_UNCHANGED=PASS');

@@ -5,6 +5,7 @@ import { redactRestrictedText } from './response-sanitizer.mjs';
 import { helperOverview, helperGroup } from './tool-helper.mjs';
 import { cleanJob } from './job-view.mjs';
 import {goldAbV2HelperKey,signGoldAbV2HelperTarget} from '../lib/gold-ab-v2-helper-proof.mjs';
+import {signGoldAbV2HelperPoll} from '../lib/gold-ab-v2-helper-poll-proof.mjs';
 
 const opId=p=>`${p}-${crypto.randomUUID()}`;
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -96,6 +97,26 @@ export class AccountOperatorAdapter{
       approvalState:response.approvalState||'not_issued',
       helperReady:false,reused:Boolean(response.reused),
       nextAction:response.nextAction||'request_not_ready'};
+  }
+  async pollAbV2Request({requestId,deviceId,shortId}={}){
+    if(process.env.LR_GOLD_AB_V2_HELPER_POLL_ATTACH!=='1')
+      return {status:'poll_unavailable',helperReady:false,nextAction:'use_legacy_a_code'};
+    const proof=signGoldAbV2HelperPoll({identity:this.identity,
+      requestId,deviceId,shortId});
+    const result=await callOperatorJson('POST','/v1/plugin/abv2/request-poll',proof);
+    if(result.status!=='ready'||result.helperReady!==true)
+      return {status:result.status||'approval_pending',requestId,
+       approvalState:result.approvalState||'pending',helperReady:false,
+       nextAction:result.nextAction||'owner_b_approval_pending'};
+    if(result.requestId!==requestId||result.deviceId!==deviceId||
+       result.shortId!==shortId||result.agentId!==this.agentId||
+       !/^lrc_[A-Za-z0-9_-]+$/.test(result.clientSessionId||''))
+      throw Error('abv2_helper_durable_binding_invalid');
+    // Operator confirmed actual native PG grant AND native Agent binding.
+    // A working execution session is an independent, later request.
+    return {status:'ready',helperReady:true,requestId,deviceId,shortId,
+     clientSessionId:result.clientSessionId,pairedDevice:deviceId,
+     expiresAt:result.expiresAt,context:null,session:null};
   }
   async pairBegin(aCode,label='ChatGPT'){
     const row=await callOperatorJson('POST','/v1/device-pair/begin',{aCode:String(aCode||'').trim(),accountId:this.identity.accountId,agentId:this.agentId,label:String(label||'ChatGPT').slice(0,120)}),access=row.access;

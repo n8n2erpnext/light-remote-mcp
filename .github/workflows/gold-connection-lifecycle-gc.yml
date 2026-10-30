@@ -29,6 +29,9 @@ on:
       - 'deploy/scripts/selftest-gold-ab-reauthorization-clock.mjs'
       - 'deploy/scripts/selftest-v09-device-access-grant.mjs'
       - 'lib/gold-ab-v2-helper-proof.mjs'
+      - 'lib/gold-ab-v2-helper-poll-proof.mjs'
+      - 'operator-host/gold-ab-v2-helper-poll.mjs'
+      - 'deploy/scripts/selftest-gold-ab-v2-helper-poll.mjs'
       - 'plugin-server/operator-adapter.mjs'
       - 'plugin-server/tools.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-helper-target.mjs'
@@ -172,6 +175,9 @@ jobs:
           node deploy/scripts/selftest-gold-ab-v2-helper-tool.mjs
           node --check deploy/scripts/selftest-gold-ab-v2-helper-issue.mjs
           node deploy/scripts/selftest-gold-ab-v2-helper-issue.mjs
+          node --check lib/gold-ab-v2-helper-poll-proof.mjs
+          node --check operator-host/gold-ab-v2-helper-poll.mjs
+          node deploy/scripts/selftest-gold-ab-v2-helper-poll.mjs
           node deploy/scripts/selftest-gold-ab-v2-verified-grant.mjs
           node --check operator-host/gold-ab-v2-grant-coordinator.mjs
           node --check operator-host/gold-ab-v2-grant-operator.mjs
