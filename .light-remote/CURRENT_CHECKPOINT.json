@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-30",
-  "status": "Gold P2-I2h2c real isolated Redis8 Lua and native PostgreSQL two-phase V2 staged-grant/flush/restart PASS; pre-durability exposure found then fixed, clone STOPPED; owner B V2 public route/Helper ready OFF; source SHA/CI pending",
+  "status": "Gold P2-I2h2c source fc06c35 pushed HEAD=origin; real no-NIC Redis8 and native PG staged/activated flush/restart PASS, pre-durability leak fixed; clone STOPPED, all V2 flags OFF, Actions push CI UNVERIFIED",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -63,7 +63,7 @@
     "P2-I2h2b real Redis Lua + native PostgreSQL readback/restart not yet run in no-NIC clone; public V2 B owner approval/Agent Helper ready unmounted, all V2 OFF",
     "P2-I2h2c native PG fixture uses minimal contract tables not full 039→043 schema FK constraints; live installed OAuth Agent/Wall approve and Helper ready still NOT wired"
   ],
-  "nextAction": "Check source SHA GitHub Actions. P2-I2h2d full native schema/FK no-NIC clone crash windows, then gated authenticated /account B V2 owner approve and separately signed Local Wall owner action, exact OAuth Agent poll checked against real PG active grant/current connection before Helper ready. No UAT/prod/Windows deploy, keep flags OFF.",
+  "nextAction": "P2-I2h2d full production native PG schema FK + crash/restart rehearsal on no-NIC isolated clone, then gated owner V2 B approval /account and signed Local Wall; Agent Helper ready only after active PG grant AND Redis granted and exact authenticated requestId/current connection. Keep V2 OFF on UAT/production, no 043 migration or Windows deploy.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -277,8 +277,9 @@
         "productionChange": false,
         "ownerBRoute": false,
         "helperReady": false,
-        "sourceSHA": "PENDING_COMMIT",
-        "ci": "PENDING_EXACT_SHA"
+        "sourceSHA": "fc06c3554a440b6ad313485408528959c44316ee",
+        "ci": "GITHUB_ACTIONS_PUSH_NOT_VERIFIED_PR_ONLY_CONNECTOR",
+        "vercelInitial": "two pending"
       }
     },
     "abPerAgentTimerHotfix": {
