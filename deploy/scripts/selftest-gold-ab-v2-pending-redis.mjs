@@ -35,6 +35,13 @@ try{
  assert.match(wall.aCode,AB_V2_A_RE);
  assert.ok(wall.aCode.startsWith('ABCD02-'));
  assert.equal(wall.attempt,1);
+ const pendingOne=await store.listDevicePending({...o});
+ assert.equal(pendingOne.length,1,'one pending request listed');
+ assert.equal(pendingOne[0].requestId,issued.requestId);
+ assert.equal(JSON.stringify(pendingOne).includes(issued.bCode),false,'index must not expose B');
+ assert.deepEqual(await store.listDevicePending({...o,ownerAccountId:'foreign-owner'}),[],'other owner sees no pending requests');
+ assert.deepEqual(await store.listDevicePending({...o,connectionId:'other-connection'}),[],'other connection sees no pending requests');
+ await errors(store.listDevicePending({...o,limit:6}),/abv2_index_limit_invalid/);
  assert.equal(JSON.stringify(wall).includes(issued.bCode),false,'B must not be available on Wall');
  const backing=await client.get(store.key(issued.requestId));
  assert.equal(backing.includes(issued.bCode),false,'B cannot be plaintext in Redis');
@@ -53,6 +60,7 @@ try{
  await client.set(store.key(issued.requestId),JSON.stringify(stored),{KEEPTTL:true});
  await client.pExpire(store.key(issued.requestId),60000); // simulate short storage lifetime before explicit Refresh
  const other=await store.issue({...base,agentId:'agent-2'});
+ assert.equal((await store.listDevicePending({...o})).length,2,'two Agent requests independently visible to owner');
  const r=await Promise.allSettled([store.refresh({...o,requestId:issued.requestId,expectedAttempt:1}),
   store.refresh({...o,requestId:issued.requestId,expectedAttempt:1})]);
  assert.equal(r.filter(x=>x.status==='fulfilled').length,1,'exactly one atomic refresh accepted');
@@ -60,6 +68,7 @@ try{
  const newWall=await store.wallView({...o,requestId:issued.requestId});
  assert.ok((await client.pTTL(store.key(issued.requestId)))>800000,'explicit Refresh must extend storage TTL enough for its full 5-minute approval period');
  assert.equal(newWall.attempt,2);
+ assert.equal((await store.listDevicePending({...o})).find(x=>x.requestId===issued.requestId).attempt,2,'index tracks refreshed generation');
  assert.notEqual(newWall.aCode,wall.aCode);
  assert.equal((await store.wallView({...o,requestId:other.requestId})).attempt,1,'another Agent unaffected');
  const updated=await store.agentPoll({...a,requestId:issued.requestId});
@@ -70,10 +79,12 @@ try{
  await errors(store.approve({...o,requestId:issued.requestId,expectedAttempt:2,bCode:issued.bCode}),/abv2_b_invalid/);
  const right=await store.approve({...o,requestId:issued.requestId,expectedAttempt:2,bCode:updated.bCode});
  assert.equal(right.state,'approved');
+ assert.equal((await store.listDevicePending({...o})).length,1,'approved request removed from pending index');
  assert.equal((await store.agentPoll({...a,requestId:issued.requestId})).state,'approved');
  await errors(store.approve({...o,requestId:issued.requestId,expectedAttempt:2,bCode:updated.bCode}),/abv2_request_not_pending/);
  await errors(store.refresh({...o,requestId:issued.requestId,expectedAttempt:2}),/abv2_attempt_changed/);
  await store.deny({...o,requestId:other.requestId});
+ assert.deepEqual(await store.listDevicePending({...o}),[],'denied request removed from index');
  assert.equal((await store.agentPoll({...a,agentId:'agent-2',requestId:other.requestId})).state,'denied');
  // Server-clock expiry: mutate only in isolated fixture, don't fake client time.
  const exp=await store.issue({...base,agentId:'agent-3'});
@@ -82,11 +93,13 @@ try{
  await client.set(store.key(exp.requestId),JSON.stringify(expState),{KEEPTTL:true});
  const expired=await store.wallView({...o,requestId:exp.requestId});
  assert.equal(expired.state,'expired');
+ assert.deepEqual(await store.listDevicePending({...o}),[],'expired request removed from index');
  await errors(store.approve({...o,requestId:exp.requestId,expectedAttempt:1,bCode:exp.bCode}),/abv2_request_not_pending/);
  const bad=await store.issue({...base,agentId:'agent-4'});
  for(let i=0;i<5;i++)await errors(
   store.approve({...o,requestId:bad.requestId,expectedAttempt:1,bCode:'AAAA-AAAA'}),/abv2_b_invalid/);
  assert.equal((await store.wallView({...o,requestId:bad.requestId})).state,'locked');
+ assert.deepEqual(await store.listDevicePending({...o}),[],'locked request removed from index');
  await errors(store.approve({...o,requestId:bad.requestId,expectedAttempt:1,bCode:bad.bCode}),/abv2_request_not_pending/);
  for(let i=0;i<3;i++)await store.issue({...base,agentId:'agent-1'});
  await errors(store.issue({...base,agentId:'agent-1'}),/abv2_issue_rate_limited/);

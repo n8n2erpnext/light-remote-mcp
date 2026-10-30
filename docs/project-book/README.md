@@ -18,6 +18,8 @@ Read in this order before implementation or documentation work:
 
 **Critical distinction:** the Project Book is a guide and snapshot, never a replacement for the exact working-tree Git SHA, CI at that SHA, or observed running Gold UAT schema/services. Source code and live runtime can diverge.
 
+**Active Gold P2 continuation:** [Rolling Implementation Handoff](LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md). Read its environment/source and next-step safeguards together with the one current checkpoint; rewrite this same rolling file after major verified milestones, rather than minting new session-specific handoffs.
+
 Historical Light Remote handoffs in `/home/ubuntu/handoffs` are still external operational evidence, not silently promoted to canonical repository authority. Do not move or overwrite them en masse.
 
 The first governance edition follows the **patterns**, not the content or product details, of LightBI Project Book, Document Library, Code Map, Source Catalog, Worklog and micro-checkpoint. Its historical reference was inspected read-only in `/home/ubuntu/n8n2erpnext/LightBI-docs-cli-lightbi/docs/project-book` on 2026-10-30.
