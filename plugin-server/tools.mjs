@@ -170,10 +170,13 @@ export function registerPluginTools(server,identity){
   add(server,'light_remote_connection_helper',{
     title:'Connect Light Remote with A/B approval',
     description:'Start here. Handles Local Wall A/B pairing and, when ready, returns/reuses the working context plus a compact tool-family menu. Call again with helperGroup=workspace|files|shell|transfer|desktop only when detailed syntax for that family is needed. OAuth account login alone never authorizes a device.',
-    inputSchema:{aCode:z.string().regex(/^[A-Za-z2-9]{4}-?[A-Za-z2-9]{4}$/).optional(),continuation:z.string().min(20).max(8192).optional(),label:z.string().min(1).max(120).optional(),helperGroup:z.enum(['workspace','files','shell','transfer','desktop']).optional()},
+    inputSchema:{targetQuery:z.string().min(1).max(120).optional(),aCode:z.string().regex(/^[A-Za-z2-9]{4}-?[A-Za-z2-9]{4}$/).optional(),continuation:z.string().min(20).max(8192).optional(),label:z.string().min(1).max(120).optional(),helperGroup:z.enum(['workspace','files','shell','transfer','desktop']).optional()},
     securitySchemes:security(['remote:read']),annotations:annotations(false,false,false,false)
   },guarded(identity,['remote:read'],async(a,x)=>{
     if(x.aCode&&x.continuation)throw new Error('pairing_input_conflict');
+    if(x.targetQuery&&(x.aCode||x.continuation||x.helperGroup))
+      throw new Error('abv2_helper_target_query_conflict');
+    if(x.targetQuery)return a.resolveAbV2Target(x.targetQuery);
     if(x.helperGroup&&(x.aCode||x.continuation))throw new Error('helper_group_pairing_conflict');
     if(x.aCode){
       const pending=await a.pairBegin(x.aCode,x.label||'ChatGPT'),continuation=await mintPairingContinuation(identity,{requestId:pending.requestId,pollToken:pending.pollToken,agentId:a.agentId,expiresAt:pending.expiresAt});

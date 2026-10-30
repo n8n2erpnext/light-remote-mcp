@@ -12,6 +12,12 @@ on:
       - 'lib/gold-ab-v2-owner-pending-adapter.mjs'
       - 'operator-host/gold-ab-v2-owner-http.mjs'
       - 'operator-host/gold-ab-v2-signed-preview.mjs'
+      - 'operator-host/gold-ab-v2-helper-target.mjs'
+      - 'lib/gold-ab-v2-helper-proof.mjs'
+      - 'plugin-server/operator-adapter.mjs'
+      - 'plugin-server/tools.mjs'
+      - 'deploy/scripts/selftest-gold-ab-v2-helper-target.mjs'
+      - 'deploy/scripts/selftest-gold-ab-v2-helper-tool.mjs'
       - 'device-agent/wall-ab-v2-preview.mjs'
       - 'plugin-server/device-public.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-signed-preview.mjs'
@@ -138,6 +144,12 @@ jobs:
           node --check device-agent/wall-ab-v2-preview.mjs
           node deploy/scripts/selftest-gold-ab-v2-signed-preview.mjs
           node deploy/scripts/selftest-gold-ab-v2-wall-preview.mjs
+          node --check lib/gold-ab-v2-helper-proof.mjs
+          node --check operator-host/gold-ab-v2-helper-target.mjs
+          node --check plugin-server/operator-adapter.mjs
+          node --check plugin-server/tools.mjs
+          node deploy/scripts/selftest-gold-ab-v2-helper-target.mjs
+          node deploy/scripts/selftest-gold-ab-v2-helper-tool.mjs
           node --check plugin-server/account-ab-v2.mjs
           node --check plugin-server/account-portal.mjs
           node --check plugin-server/account-portal/ab-v2.js

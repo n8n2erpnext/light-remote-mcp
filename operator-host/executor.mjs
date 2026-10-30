@@ -57,6 +57,7 @@ import { createPlatformAdapter } from '../device-agent/platform-adapters/index.m
 import { handleAccountRoutes } from './executor-routes-account.mjs';
 import {createGoldAbV2OwnerHttpFromOperator} from './gold-ab-v2-owner-http.mjs';
 import {createGoldAbV2SignedPreview} from './gold-ab-v2-signed-preview.mjs';
+import {createGoldAbV2HelperTarget} from './gold-ab-v2-helper-target.mjs';
 import { GoldDeviceBootObservations } from './gold-device-boot-observations.mjs';
 import { handleDeviceChannelRoutes } from './executor-routes-device-channel.mjs';
 import {GoldMemoryAccountSyncPolicy} from './gold-memory-account-sync-policy.mjs';
@@ -1631,6 +1632,10 @@ const routeDeps=()=>({
 const goldAbV2SignedPreview=createGoldAbV2SignedPreview({
  env:process.env,storage:goldStorage,accounts,devices,connections,enrollments
 });
+const goldAbV2HelperTarget=createGoldAbV2HelperTarget({
+ env:process.env,storage:goldStorage,accounts,devices,connections,enrollments,
+ readJson,sendJson
+});
 const goldAbV2OwnerHttp=createGoldAbV2OwnerHttpFromOperator({
  env:process.env,storage:goldStorage,requireAccount,accountSessionToken,
  accounts,devices,connections,enrollments,readJson,sendJson
@@ -1647,6 +1652,7 @@ const server = http.createServer(async (req, res) => {
     }
     await goldAbV2OwnerHttp(req,res,url);
     if(res.headersSent)return;
+    if(await goldAbV2HelperTarget(req,res,url))return;
     await handlePluginRoutes(req,res,url,routeDeps());
     if(res.headersSent)return;
     await handleAccountRoutes(req,res,url,routeDeps());

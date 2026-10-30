@@ -4,6 +4,7 @@ import { sealOperatorPayload } from '../gateway/operator-crypto.mjs';
 import { redactRestrictedText } from './response-sanitizer.mjs';
 import { helperOverview, helperGroup } from './tool-helper.mjs';
 import { cleanJob } from './job-view.mjs';
+import {goldAbV2HelperKey,signGoldAbV2HelperTarget} from '../lib/gold-ab-v2-helper-proof.mjs';
 
 const opId=p=>`${p}-${crypto.randomUUID()}`;
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -54,6 +55,20 @@ export class AccountOperatorAdapter{
   async hasActiveSessionEvidence(){
     const q=new URLSearchParams({accountId:this.identity.accountId}),row=await callOperatorJson('GET',`/v1/plugin/sessions?${q}`);
     return (row.sessions||[]).some(s=>s.accountId===this.identity.accountId&&s.agentId===this.agentId&&['active','hold'].includes(s.state));
+  }
+  async resolveAbV2Target(targetQuery){
+    // Only a verified OAuth identity reaches this method through guarded().
+    // SOURCE GATE: cannot create A/B, grant or ready while PG043 is absent.
+    if(process.env.LR_GOLD_AB_V2_HELPER_TARGET_QUERY!=='1')
+      return {status:'target_resolution_unavailable',nextAction:'use_legacy_a_code',
+        helperReady:false,approvalState:'not_issued'};
+    const proof=signGoldAbV2HelperTarget({identity:this.identity,targetQuery,
+      key:goldAbV2HelperKey()});
+    const response=await callOperatorJson('POST','/v1/plugin/abv2/target-resolve',proof);
+    return {status:'target_resolution',resolution:response.status,
+      total:response.total,matches:response.matches||[],
+      helperReady:false,approvalState:'not_issued',
+      nextAction:response.nextAction||'specify_target'};
   }
   async pairBegin(aCode,label='ChatGPT'){
     const row=await callOperatorJson('POST','/v1/device-pair/begin',{aCode:String(aCode||'').trim(),accountId:this.identity.accountId,agentId:this.agentId,label:String(label||'ChatGPT').slice(0,120)}),access=row.access;
