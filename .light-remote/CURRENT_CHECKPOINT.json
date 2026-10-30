@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-30",
-  "status": "P2-I2 Redis8 device-scoped pending index source-only PASS on no-NIC clone; authoritative rolling full handoff written; exact CI SHA to verify after push",
+  "status": "Gold P2-I2b scoped pending index accepted at source SHA 8b1863b; 4/4 Gold GC and 2 documentation CI SUCCESS, no live activation",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -30,7 +30,8 @@
     "2026-10-30 no-NIC clone PG043 fixture PASS, exit0/stderr0; 12 concurrent allocations idempotent; tombstone/no reuse; 0 disposable databases left; clone stopped",
     "P2-I2 Redis8 atomic pending issue/agent poll/owner Wall view/Refresh/approve/deny candidate, A6+5 B4+4, 300s Redis TIME; AES-GCM encrypted B + HMAC; real no-NIC Redis8 fixture PASS",
     "P2-I2b HMAC owner/device/connection pending index and bounded listing, refreshed deadline update, exact terminal cleanup; real Redis8 no-NIC fixture PASS exit0/stderr0",
-    "Read-only Gold UAT still PG039/39, 1 historical claim, 27 UNKNOWN; clone STOPPED no autostart; current rolling full handoff prepared under docs/project-book"
+    "Read-only Gold UAT still PG039/39, 1 historical claim, 27 UNKNOWN; clone STOPPED no autostart; current rolling full handoff prepared under docs/project-book",
+    "Source 8b1863b CI Gold GC 41041843902 PASS 4/4, checkpoint 41041843809 SUCCESS, library 41041844080 SUCCESS"
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -38,7 +39,7 @@
     "Gold UAT 039→042 migration and production release not authorized",
     "One historical M4 resource claim and 27 UNKNOWN records protected"
   ],
-  "nextAction": "At new session, read docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md and current checkpoint, verify HEAD/remote/CI, then audit exact Operator device-channel/OAuth/Wall/Helper integration seams. Wire *authenticated* owner-scoped pending list first, then per-request B approval with actual 24-hour grant handoff; never interpret Redis-approved as grant; 043 migration candidate stays OFF.",
+  "nextAction": "Read the canonical rolling handoff docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md and verify Git/CI; audit exact Operator/Plugin/Wall trust routes, then add a strictly authenticated owner-scoped device pending-list adapter with current device-connection and OAuth checks, NO live activation. Real grant wiring next, migration 043 isolated rehearsal after. Keep P2-A historical data and production untouched.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -95,7 +96,18 @@
         "scope": "HMAC owner+device+connection",
         "test": "no-NIC Redis8 two Agents, refresh and index remove PASS",
         "routesWired": false,
-        "wallWired": false
+        "wallWired": false,
+        "commit": "8b1863bfc8f7cfd8908bbc33fa3fe9e492ab558f",
+        "sourceCi": {
+          "runId": 41041843902,
+          "conclusion": "success",
+          "jobs": "4/4"
+        },
+        "docsCi": {
+          "sourceDocsRunId": 41041843809,
+          "docLibraryRunId": 41041844080,
+          "conclusion": "success"
+        }
       }
     }
   }
