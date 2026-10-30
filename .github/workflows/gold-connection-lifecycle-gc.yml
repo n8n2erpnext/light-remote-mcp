@@ -21,6 +21,7 @@ on:
       - 'deploy/scripts/selftest-gold-p2b-native-signed-boundary.mjs'
       - 'deploy/scripts/ci-gold-epoch-pg.mjs'
       - 'deploy/scripts/selftest-gold-signed-http-duplex-pg.mjs'
+      - 'lib/gold-verified-channel-context.mjs'
       - 'lib/gold-p2b-signed-quiescence.mjs'
       - 'deploy/scripts/gold-p2b-four-service-orchestrator.mjs'
       - 'lib/gold-p2b-release-gate.mjs'
@@ -62,6 +63,7 @@ on:
       - 'deploy/scripts/ci-gold-epoch-pg.mjs'
       - 'deploy/scripts/selftest-gold-p1-e-load-chaos-pg.mjs'
       - 'deploy/scripts/selftest-gold-signed-http-duplex-pg.mjs'
+      - 'lib/gold-verified-channel-context.mjs'
       - 'deploy/scripts/selftest-gold-real-agent-daemon-pg.mjs'
       - '.github/workflows/gold-connection-lifecycle-gc.yml'
   workflow_dispatch:
@@ -102,6 +104,7 @@ jobs:
           node deploy/scripts/selftest-gold-m6-owner-orphan-recovery.mjs
           node --check deploy/scripts/selftest-gold-p1-e-load-chaos-pg.mjs
           node --check lib/gold-execution-epoch.mjs
+          node --check lib/gold-verified-channel-context.mjs
           node --check lib/gold-db.mjs
           node --check deploy/scripts/apply-gold-db.mjs
           bash -n deploy/scripts/gold-g3-uat-cutover.sh

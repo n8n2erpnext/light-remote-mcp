@@ -170,3 +170,53 @@ live end-to-end signed terminal ACK for the historical M4 resource claim.
 The one started UNKNOWN and one running historical M4 resource claim
 remain unresolved, with `releaseAllowed=false`. Never clear them
 or promote live cutover on the strength of these offline tests.
+
+## P2-B real EnrollmentRegistry boundary on isolated signed HTTP fixture
+
+A further disposable no-NIC clone rehearsal now exercises the **actual
+`operator-host/enrollment-registry.mjs` EnrollmentRegistry** during
+synthetic enrollment begin → code approval → authorized poll and
+device-channel signature checks. The synthetic principal/key pair is
+created only for the fixture, never via a live owner enrollment.
+A small new test-facing helper in
+`lib/gold-verified-channel-context.mjs` preserves the validation
+sequence used by `executor.mjs`: payload type, enrolled signature and
+nonce, registry device account/public key binding, rate limiter, then
+authenticated context. It is exercised by the HTTP fixture.
+**The actual runtime `executor.mjs` has NOT been refactored to import
+the new helper.** A production-path equivalence claim would therefore
+be premature; the concrete runtime's current verifiedChannelContext
+was inspected separately and left unchanged.
+
+The fixture checks:
+- Invalid enrollment code/poll token rejected; approved enrollment
+  binds a real synthetic Ed25519 key and account, and consumed device
+  code cannot approve again.
+- HTTP signed Poll + NDJSON Duplex with PG040–042 and actual
+  `GoldExecutionEpochs`, executing two harmless native OS children
+  exactly once.
+- Authenticated pulse with exact process-state/finishedAt creates
+  durable terminal ACK and releases only the exact synthetic M4 claim.
+- Tampered signed payload and wrong native process ID rejected.
+- Replayed same channel nonce rejected (HTTP 409), without new ACK.
+- Synthetic account/public-key mismatch rejected, including when the
+  envelope itself is validly signed.
+- Revoked enrolled device rejected (HTTP 403), with claim counts
+  unchanged.
+- Duplicate terminal receipt idempotent, changed finishedAt rejected,
+  and independent NULL-process ID claim remains fenced.
+
+Observed actual no-NIC LXD clone output:
+`P2B_PHYSICALLY_ISOLATED_CLONE_HTTP_ONLY=PASS`
+`GOLD_P2B_FIXTURE_SQL040_041_042=PASS`
+`P2B_REAL_ENROLLMENT_APPROVAL_REPLAY_REVOKE_AND_BINDING=PASS`
+`P2B_REAL_SIGNED_HTTP_PG_EXACT_TERMINAL_ACK_AND_FENCE=PASS`
+`P2B_DUPLICATE_ACK_IDEMPOTENT_MISSING_PID_FENCED=PASS`
+`P2B_REAL_LOOPBACK_SIGNED_HTTP_PG042_FIXTURE=PASS`.
+
+This further narrows the enrollment gap but DOES NOT demonstrate
+a real A/B authorized client, runtime Operator's exact callback,
+real device's enrolled private key, persisted UAT epoch, real
+production resource claim release, or live Gold UAT cutover.
+Live quiescence gate remains HOLD. No historical M4 claim or 27 UNKNOWN
+work rows were changed.

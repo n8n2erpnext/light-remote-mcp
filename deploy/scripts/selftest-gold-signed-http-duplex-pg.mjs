@@ -6,6 +6,8 @@ import path from 'node:path';
 import http from 'node:http';
 import pg from 'pg';
 import {GoldExecutionEpochs} from '../../lib/gold-execution-epoch.mjs';
+import {EnrollmentRegistry,EnrollmentError} from '../../operator-host/enrollment-registry.mjs';
+import {verifiedGoldChannelContext} from '../../lib/gold-verified-channel-context.mjs';
 import {GoldDeviceResourceLocks} from '../../lib/gold-device-resource-locks.mjs';
 import {AgentExecutionEpochJournal} from '../../device-agent/execution-epoch-journal.mjs';
 import {NativeProcessRegistry} from '../../lib/native-process.mjs';
@@ -23,14 +25,29 @@ const device=crypto.generateKeyPairSync('ed25519');
 const issuer=crypto.generateKeyPairSync('ed25519');
 const signer=new GoldExecutionEpochs({pool,signer:issuer});
 const resourceLocks=new GoldDeviceResourceLocks({capacity:2});
-const accountId='acct-http-fixture',deviceId='dev-http-fixture',connectionId='dc_http_fixture_1';
+const accountId='acct-http-fixture',connectionId='dc_http_fixture_1';
 const nodeId='node-http-fixture',instanceId='ei_http_fixture_1';
 const publicIdentityKey=device.publicKey.export({format:'der',type:'spki'}).toString('base64');
+const enrollment=new EnrollmentRegistry();
+const pendingEnrollment=enrollment.begin({publicIdentityKey,
+  capabilities:['filesystem'],sourceHash:'signed-http-fixture',
+  displayName:'P2B fixture Agent',platform:'linux',architecture:'arm64'});
+assert.throws(()=>enrollment.approve({enrollmentId:pendingEnrollment.enrollmentId,
+  code:'ZZZZ-ZZZZ',accountId}),/device_code_not_found_or_used/);
+assert.throws(()=>enrollment.poll({enrollmentId:pendingEnrollment.enrollmentId,
+  pollToken:'bad-token'}),/invalid_enrollment_poll_token/);
+const approvedEnrollment=enrollment.approve({enrollmentId:pendingEnrollment.enrollmentId,
+  code:pendingEnrollment.deviceCode,accountId,approvedCapabilities:['filesystem']});
+const deviceId=approvedEnrollment.deviceId;
+assert.equal(enrollment.poll({enrollmentId:pendingEnrollment.enrollmentId,
+  pollToken:pendingEnrollment.pollToken}).deviceId,deviceId);
+assert.throws(()=>enrollment.approve({enrollmentId:pendingEnrollment.enrollmentId,
+  code:pendingEnrollment.deviceCode,accountId}),/device_code_not_found_or_used/);
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'lr-signed-http-fixture-'));
 if(process.platform!=='win32')fs.chmodSync(dir,0o700);
 const journal=new AgentExecutionEpochJournal({directory:dir});
 const native=new NativeProcessRegistry();
-const commandMap=new Map(),jobMap=new Map(),results=new Map(),usedNonces=new Set();
+const commandMap=new Map(),jobMap=new Map(),results=new Map();
 const makeCommand=label=>{
  const commandId='cmd_'+crypto.randomUUID(),jobId=crypto.randomUUID();
  const command={commandId,jobId,accountId,deviceId,nodeId,
@@ -53,18 +70,17 @@ const readJson=async req=>{
  return JSON.parse(raw||'{}');
 };
 const sendJson=(res,status,body)=>{res.writeHead(status,{'content-type':'application/json'});res.end(JSON.stringify(body));return body;};
-const verifiedChannelContext=async(body,action)=>{
- const stamp=Number(body?.timestamp),nonce=String(body?.nonce||'');
- assert.equal(body?.deviceId,deviceId);
- assert.ok(Number.isSafeInteger(stamp)&&Math.abs(Date.now()-stamp)<60000);
- assert.ok(nonce.length>=18&&!usedNonces.has(nonce));
- const canonical=deviceChannelMessage({deviceId,action,timestamp:stamp,nonce,payload:body.payload});
- assert.ok(crypto.verify(null,Buffer.from(canonical),device.publicKey,
-  Buffer.from(String(body.signature||''),'base64url')),'bad enrolled device signature');
- usedNonces.add(nonce);
- return {binding:{accountId,deviceId,publicIdentityKey,policyRevision:1},
-  device:{deviceId,nodeId,agentVersion:'synthetic'},payload:body.payload||{}};
-};
+const deviceRegistry={get:id=>{
+ const binding=enrollment.binding(id);
+ return {accountId:binding.accountId,deviceId:id,
+  publicIdentityKey:binding.publicIdentityKey,nodeId,
+  agentVersion:'synthetic'};
+}};
+const verifiedChannelContext=async(body,action)=>verifiedGoldChannelContext({
+ body,action,enrollments:enrollment,devices:deviceRegistry,
+ sessions:{activeCountByNode:()=>0},
+ rateLimiter:{check:async()=>true},EnrollmentError
+});
 const fakeFleet={
  async waitPoll(touch,wait,stop){
   if(pending.length)return {command:pending.shift()};
@@ -233,6 +249,37 @@ try{
  assert.equal(remaining[0].job_id,foreignJob);
  assert.equal(remaining[0].process_id,null);
  assert.equal(remaining[0].worker_state,'terminal_unknown');
+
+ // Real EnrollmentRegistry nonce replay, identity and revocation boundaries.
+ const auditPulse={nodeId,agentVersion:'p2b-fixture',policyRevision:1,
+  sessionCeiling:1,capabilities:[],processTerminalReceipts:[]};
+ const replayFrame=signed('pulse',auditPulse);
+ const postFrame=frame=>fetch(base+'/device-channel/pulse',{method:'POST',
+  headers:{'content-type':'application/json'},body:JSON.stringify(frame)});
+ const firstFrame=await postFrame(replayFrame);
+ assert.equal(firstFrame.status,200);
+ const replayedFrame=await postFrame(replayFrame);
+ assert.equal(replayedFrame.status,409,'same signed channel nonce must not execute twice');
+ assert.deepEqual(await query(),{claims:1,acks:1});
+ const driftFrame=signed('pulse',auditPulse);
+ await assert.rejects(()=>verifiedGoldChannelContext({
+  body:driftFrame,action:'pulse',enrollments:enrollment,
+  devices:{get:id=>({...deviceRegistry.get(id),accountId:'other-account'})},
+  sessions:{activeCountByNode:()=>0},
+  rateLimiter:{check:async()=>true},EnrollmentError
+ }),/device_binding_mismatch/);
+ const keyDriftFrame=signed('pulse',auditPulse);
+ await assert.rejects(()=>verifiedGoldChannelContext({
+  body:keyDriftFrame,action:'pulse',enrollments:enrollment,
+  devices:{get:id=>({...deviceRegistry.get(id),publicIdentityKey:'other-key'})},
+  sessions:{activeCountByNode:()=>0},
+  rateLimiter:{check:async()=>true},EnrollmentError
+ }),/device_binding_mismatch/);
+ enrollment.revoke({deviceId,accountId,reason:'test-only-revocation'});
+ const revoked=await postFrame(signed('pulse',auditPulse));
+ assert.equal(revoked.status,403,'revoked enrollment must deny signed channel');
+ assert.deepEqual(await query(),{claims:1,acks:1});
+ console.log('P2B_REAL_ENROLLMENT_APPROVAL_REPLAY_REVOKE_AND_BINDING=PASS');
  console.log('P2B_REAL_SIGNED_HTTP_PG_EXACT_TERMINAL_ACK_AND_FENCE=PASS');
  console.log('P2B_TAMPERED_ENVELOPE_AND_UNKNOWN_PID_NO_RELEASE=PASS');
  console.log('P2B_DUPLICATE_ACK_IDEMPOTENT_MISSING_PID_FENCED=PASS');
