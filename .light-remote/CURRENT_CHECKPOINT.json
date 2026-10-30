@@ -1,15 +1,15 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-30",
-  "status": "Gold source→Worklog→Code Map→checkpoint drift gate under implementation; source-only, no live UAT change",
+  "status": "Gold source↔Worklog↔checkpoint Git hook and GitHub CI active and verified; P2-I1 code next",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
   "verifiedDocumentationCI": {
-    "runId": 41030427322,
+    "runId": 41031856846,
     "conclusion": "success",
     "jobs": "1/1",
-    "url": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/41030427322"
+    "url": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/41031856846"
   },
   "provenance": "Git and last read-only Gold UAT observations dated 2026-10-30, not a statement of live rollout; verify before mutation",
   "runtime": {
@@ -24,7 +24,8 @@
     "Read LightBI Project Book, governance rules, library map, code map, worklog, source catalog and micro-checkpoint",
     "Light Remote Project Book, Code Map, Library Rules, Worklog and machine status created",
     "186 source docs indexed with SHA-256; 264 canonical relative links checked; CI 41030427322 SUCCESS",
-    "Future enterprise IT Support RBAC confirmed future-only and non-blocking for core Gold P2"
+    "Future enterprise IT Support RBAC confirmed future-only and non-blocking for core Gold P2",
+    "SHA-based source/docs/checkpoint guard installed on Gold worktree; exact commit 01791be CI source gate and documentation gate both SUCCESS"
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -32,7 +33,7 @@
     "Gold UAT 039→042 migration and production release not authorized",
     "One historical M4 resource claim and 27 UNKNOWN records protected"
   ],
-  "nextAction": "Verify GitHub source/docs checkpoint drift gate PASS on this exact Gold commit; after that, implement Gold P2-I1 stable Short ID and scoped discovery source-only. Maintain dated Worklog and checkpoint sourceSync digest per code commit. Future enterprise RBAC remains deferred.",
+  "nextAction": "Begin Gold P2-I1 Short ID and A/B V2 source-only implementation. Before every code commit update dated Worklog, Code Map if security/device boundary changes, checkpoint status/nextAction; stage code/docs then run node deploy/scripts/check-project-truth-sync.mjs --stamp. Do not implement future enterprise RBAC yet.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIBRARY_RULES.md",
@@ -48,5 +49,19 @@
     "trackedFiles": 990,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
     "recordedAt": "2026-10-30T09:12:26.611Z"
+  },
+  "sourceDocsGate": {
+    "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
+    "localHook": "enabled in Gold worktree via core.hooksPath=.githooks",
+    "guardCI": {
+      "runId": 41031856922,
+      "conclusion": "success"
+    },
+    "catalogCI": {
+      "runId": 41031856846,
+      "conclusion": "success"
+    },
+    "negativeTests": "code-only, Worklog-only, stale SHA and missing trust Code Map denied",
+    "verifiedAt": "2026-10-30"
   }
 }
