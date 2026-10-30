@@ -47,6 +47,13 @@ An MCP login provides account identity only. Device operations require device en
 - [Local Wall](../../device-agent/local-wall.mjs) — legacy A and B entry; /account V2 B approval not currently accepted.
 - [V2 Product Contract](../gold/GOLD_P2_INTEGRATED_ABV2_NICKNAME_PRO_SHARE_PLAN_20261030.md) — design only: stable Short ID6 visible on idle Wall; A suffix5 on Agent request, independent B, account-scoped discovery, exact pending correlation and old-client compatibility.
 
+### P2-I2c server-internal owner pending adapter (source-only, after 28766f4)
+
+- [Owner pending adapter](../../lib/gold-ab-v2-owner-pending-adapter.mjs) — **NOT imported by Operator or exposed as an HTTP route**. Its only entry accepts the actual server request and calls an injected, server-session-derived `authenticateOwner(request)`; it never consumes body-supplied account/Agent/client identity. Every call rechecks canonical device ownership, current connection ID and expiry, enrolled signed connection verifier, action policy and an OFF-by-default feature switch. Refresh/Deny additionally require server-checked Origin+CSRF via `verifyOwnerMutation`.
+- The adapter contains read-only `list/view`, owner-selected `refresh` and `deny`; output is strictly allowlisted (no B plaintext, ciphertext, HMAC, Redis index). It **intentionally has no approve method or grant issuance**. Its hooks are required and fail closed; future HTTP integration must supply Operator-authenticated implementations, not request JSON.
+- [Negative source test](../../deploy/scripts/selftest-gold-ab-v2-owner-pending-adapter.mjs) — mocked account sessions, denied cross-owner and revoked device, stale connection, policy/enrollment/flag OFF, CSRF/Origin failure, spoofed request body ignored, no B spill, and no grant path. Gold GC workflow runs this test. Source fixture only; no real OAuth request, deployed Wall or native device acceptance.
+- Existing legacy `/v1/device-access/*` in [device channel routes](../../operator-host/executor-routes-device-channel.mjs) and `pairBegin/recover` in [plugin adapter](../../plugin-server/operator-adapter.mjs) remain V1 and are **not authorized integration paths for V2**. Need exact server-authenticated Agent request identity and real 24h grant preparation/commit next, with a distinct idempotent request binding before introducing any V2 route.
+
 ## 3. Durable session and nickname
 - [Session Registry](../../operator-host/session-manager.mjs) — open, hold, resume, display `label`; immutable sessionId.
 - [Redis session persistence](../../lib/gold-session-redis.mjs) — registry snapshots/mutator whitelist; new rename setter must participate in durable writes.

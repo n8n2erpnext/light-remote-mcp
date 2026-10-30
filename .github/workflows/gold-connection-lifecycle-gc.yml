@@ -9,6 +9,8 @@ on:
       - 'lib/gold-execution-epoch.mjs'
       - 'lib/gold-device-short-id.mjs'
       - 'lib/gold-ab-v2-pending-redis.mjs'
+      - 'lib/gold-ab-v2-owner-pending-adapter.mjs'
+      - 'deploy/scripts/selftest-gold-ab-v2-owner-pending-adapter.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-source.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-pending-redis.mjs'
       - 'platform-v2/sql/043_gold_device_short_ids.sql'
@@ -116,6 +118,8 @@ jobs:
           node --check lib/gold-ab-v2-pending-redis.mjs
           node --check deploy/scripts/selftest-gold-ab-v2-pending-redis.mjs
           node deploy/scripts/selftest-gold-ab-v2-source.mjs
+          node --check lib/gold-ab-v2-owner-pending-adapter.mjs
+          node deploy/scripts/selftest-gold-ab-v2-owner-pending-adapter.mjs
           node --check deploy/scripts/ci-gold-p2i1-short-id-pg.mjs
           node deploy/scripts/selftest-gold-p2i1-short-id.mjs
           node --check lib/gold-db.mjs
