@@ -120,3 +120,53 @@ SQL → CLI result was `classification=HOLD`,
 The read-only SQL is deliberately separate from `apply-gold-db.mjs`;
 never call the migration runner to obtain evidence. A known schema039
 database cannot produce a schema041 execution epoch by inference.
+
+## P2-B real native Windows 10 offline signed-boundary canary
+
+The additional test `deploy/scripts/selftest-gold-p2b-native-signed-boundary.mjs`
+runs against the actual production-source modules, with an ephemeral
+Ed25519 test issuer/device key pair and **one disposable OS child**.
+There is no Gold UAT HTTP request, no real device enrollment/key,
+no claim manipulation, no permanent Agent file change and no fake
+terminal ACK inserted into PostgreSQL.
+
+Linux/ARM direct source execution PASS:
+- Real OS process reached `finished`; durable journal survived restart
+  with exact native start identity.
+- Duplicate command returned a previously reserved row without another
+  OS side effect.
+- Challenge-bound signed inventory verified with device test key;
+  wrong challenge, different device and stale execution epoch denied.
+- Missing legacy inventory was explicitly `complete=false`.
+- Device-spooled terminal receipt persisted through journal reload;
+  mismatched `finishedAt` and state refused; exact local ACK was
+  idempotent, including duplicate replay.
+- Crucially, verified inventory and an acknowledged **local** spool
+  still resulted in `await_exact_terminal_receipt` for the resource
+  fence, not `released`; no server-side signed ACK was issued.
+
+Windows 10 native canary on already authorized Gold plugin device
+`DESKTOP-VA16D27`, Windows build 19045, Node.js v26.7.0:
+- Six exact `b4f1d43484009df4337aacefe3ccfebc24db3288` Gold source
+  modules were copied into an isolated per-user `%LOCALAPPDATA%\Temp`
+  test folder: device proof, reconnect proof, execution epoch, native
+  process registry, native terminal spool and execution epoch journal.
+  SHA256 of **all six** files matched the ARM repository exactly.
+- A standalone disposable Windows harness imported these six actual
+  modules. It passed real native child, signed challenge, cross-device
+  denial, stale epoch denial, duplicate-effect denial, local durable
+  terminal receipt and exact ACK replay. It expressly confirmed
+  `serverTerminalAckStillRequired=true`. Console output contained
+  only PASS booleans; no keys, account IDs or process IDs were printed.
+- Per-user test directory was removed and separately checked absent;
+  existing `LightRemoteDeviceAgent` scheduled task remained Running.
+  No update, reboot or restart of Gold Windows rc49 Agent.
+
+**Evidence boundary:** Windows test generated **test** Ed25519 keys,
+not actual enrolled Windows device signing keys. Neither client had
+the schema041-enabled Gold UAT server channel. Thus this verifies
+native Windows cryptographic/process-journal *capability*, not a
+live end-to-end signed terminal ACK for the historical M4 resource claim.
+The one started UNKNOWN and one running historical M4 resource claim
+remain unresolved, with `releaseAllowed=false`. Never clear them
+or promote live cutover on the strength of these offline tests.

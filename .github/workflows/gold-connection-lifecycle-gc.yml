@@ -18,6 +18,7 @@ on:
       - 'deploy/scripts/gold-p2b-unknown-claim-audit.sql'
       - 'deploy/scripts/gold-p2b-audit-report.mjs'
       - 'deploy/scripts/selftest-gold-p2b-signed-quiescence.mjs'
+      - 'deploy/scripts/selftest-gold-p2b-native-signed-boundary.mjs'
       - 'lib/gold-p2b-signed-quiescence.mjs'
       - 'deploy/scripts/gold-p2b-four-service-orchestrator.mjs'
       - 'lib/gold-p2b-release-gate.mjs'
@@ -111,6 +112,8 @@ jobs:
           node --check lib/gold-p2b-signed-quiescence.mjs
           node --check deploy/scripts/gold-p2b-audit-report.mjs
           node deploy/scripts/selftest-gold-p2b-signed-quiescence.mjs
+          node --check deploy/scripts/selftest-gold-p2b-native-signed-boundary.mjs
+          node deploy/scripts/selftest-gold-p2b-native-signed-boundary.mjs
           node --check device-agent/execution-epoch-journal.mjs
           node --check device-agent/operator-agent.mjs
           node --check operator-host/executor-routes-device-channel.mjs
