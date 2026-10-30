@@ -13,6 +13,8 @@ on:
       - 'deploy/scripts/selftest-gold-p2a-migration-lock.mjs'
       - 'deploy/scripts/selftest-gold-p2b-legacy-release-gates.mjs'
       - 'deploy/scripts/selftest-gold-p2b-four-service-orchestrator.mjs'
+      - 'deploy/scripts/gold-p2b-clone-transaction.sh'
+      - 'deploy/scripts/selftest-gold-p2b-clone-transaction.mjs'
       - 'deploy/scripts/gold-p2b-four-service-orchestrator.mjs'
       - 'lib/gold-p2b-release-gate.mjs'
       - 'deploy/scripts/gold-m6-uat-four-service-cutover.sh'
@@ -100,6 +102,8 @@ jobs:
           node deploy/scripts/selftest-gold-p2b-legacy-release-gates.mjs
           node --check deploy/scripts/gold-p2b-four-service-orchestrator.mjs
           node deploy/scripts/selftest-gold-p2b-four-service-orchestrator.mjs
+          bash -n deploy/scripts/gold-p2b-clone-transaction.sh
+          node deploy/scripts/selftest-gold-p2b-clone-transaction.mjs
           node --check device-agent/execution-epoch-journal.mjs
           node --check device-agent/operator-agent.mjs
           node --check operator-host/executor-routes-device-channel.mjs

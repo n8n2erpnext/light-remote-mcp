@@ -151,3 +151,132 @@ separately reviewed four-service staging/switch + audited paired
 PostgreSQL/Redis rollback, first in an isolated clone, with **new owner
 approval** before any live UAT code or schema changes. Do not infer
 permission to deploy merely because P2-A rehearsals passed.
+
+## P2-B real clone-only paired failure/rollback rehearsal (2026-10-30)
+
+**A real paired transaction FAIL-INJECTION rehearsal has now PASSED in the
+isolated LXD clone. It is NOT a successful new-code UAT candidate cutover.**
+
+New script `deploy/scripts/gold-p2b-clone-transaction.sh` is deliberately
+**hard-bound to hostname `gold-p2a-runtime-rollback-20261030` and no NIC
+other than `lo`**, no default route, schema039 39/39, no active jobs,
+exactly one preserved historical foreign M4 claim and 27 pre-existing
+`unknown` work rows. Invalid target or mode fails before writes. Default
+`--preflight` is read-only. The only destructive mode
+`--rehearse-failure --isolated-only` is restricted to the isolated
+clone. The normal live-UAT orchestrator remains read-only and denies
+`--apply`, `--migrate` and `--rollback`.
+
+Observed actual sequence:
+1. Check locked migration manifest and all 42 SQL SHA256 digests.
+2. Stop all four actual systemd units in isolated clone.
+3. Take and verify private PostgreSQL 039 custom dump (including grants),
+   authenticated Redis 8 RDB preimage, and tar of all four systemd units
+   and their complete existing override directories. All SHA256 checks PASS.
+4. Apply SQL 040/041/042 with PostgreSQL role
+   `SET ROLE lr_gold_migrator` (non-superuser), ledger becomes 042.
+5. Inject a real systemd negative `ConditionPathExists` for all four
+   units and attempt to start; all four appropriately fail to activate.
+6. Execute exit-trap rollback: stop four units, remove injected overrides,
+   `dropdb`/`createdb` ONLY within clone and restore the actual
+   PostgreSQL 039 preimage, stop Redis and restore saved RDB, restart
+   Redis, verify schema039/39, historical M4 claim1, UNKNOWN27 and absence
+   of epoch041 table. Temporarily change Wall bind to 127.0.0.1 on
+   clone only (original UAT IP is absent), then verify all four units,
+   PostgreSQL and Redis in 12 consecutive checks with HTTP 303. Stop
+   units again, remove loopback override and compare all unit files
+   byte-for-byte with original tar. No injected override remains.
+7. Deliberately exit code **42** means `bad candidate detected and
+   complete coordinated rollback SUCCESS`; exit5 means incomplete
+   rollback requiring clone forensic inspection.
+
+During engineering, earlier attempts reproduced a strict rollback false
+failure due piping dump through `cat | pg_restore` with `pipefail`.
+It was corrected to direct `pg_restore < preimage039.dump`, and
+readiness is now bounded (up to 25 seconds) before the 12-sample stable
+health window. Final isolated trial returned exit42 and all PASS receipts.
+The earlier failed trials must not be misrepresented as successful.
+
+Independent postcheck after successful rollback:
+- Redis 8.10.2 authenticated readback **126 Gold keys, 126 with TTL**,
+  valid `runtime:sessions` snapshot schemaVersion1, clean synthetic key.
+- Clone PG schema039 39/39, M4 claim1, 27 UNKNOWN, epoch041 absent.
+- All four original unit configs restored, no leftover P2-B drop-ins.
+- Clone STOPPED after test, root disk only/no NIC/autostart disabled.
+- Live Gold UAT unchanged: schema039, claim1, all 4 services ACTIVE.
+  Production rc.47 untouched.
+
+`deploy/scripts/selftest-gold-p2b-clone-transaction.mjs` is source
+static safety regression in GitHub CI; it does not recreate LXD
+end-to-end physical tests in GitHub Actions. Full runtime logs and private
+backup artifacts remain inside clone, not committed or exposed.
+
+**Remaining P2-B gates:** actual immutable candidate staging/rehearsal
+success path (not just induced failure/rollback), exact signed OS effect
+quiescence for foreign M4 claim and 27 UNKNOWN work rows, Fleet Wall 5492,
+signed native Windows 10/11 canary, and separately owner-approved LIVE
+Gold UAT migration/cutover after fresh backups. Do not promote to
+production or pretend the isolated exercise resolves those gates.
+
+## P2-B physically isolated success-path receipt (2026-10-30)
+
+**New result: TRUE source-content-addressed candidate cutover SUCCESS on a
+no-NIC LXD clone**, including immediate coordinated rollback to the
+preserved preimage. This augments, but does not supersede, the earlier
+induced-failure rollback PASS.
+
+- An independent stopped-clone Btrfs preimage was captured:
+  `gold-p2a-runtime-rollback-20261030/gold-p2b-before-success-20261030`.
+  The host built `git archive` from Git HEAD
+  `48cc61c323d050b20cf2535500b39393ac064f73` (not the
+  uncommitted rehearsal harness files). Archive SHA256:
+  `d56f5d90cb4425d4ff00ea1ac3ef1b2cfeb76509653e76dcccdc2bd2e4b9e371`.
+- Archived 1,170 tracked source files were extracted to a private clone
+  staging dir. A SHA256 manifest covering those tracked files was checked.
+  Package lock digest `b32e919535512c6bd4585913314ce6f0c49f7e9a46f8904cf14da4e073371c2b`
+  matched the clone's existing runtime. Existing installed dependency and
+  secret references were symlinked, *only inside the clone*; nothing
+  downloaded, published or copied into Git. Candidate moved to
+  `/opt/light-remote-gold-uat-candidates/48cc61c323d050b20cf2535500b39393ac064f73`.
+  Four Node entrypoints passed syntax check as `gold-uat`.
+- The hardened CLONE-ONLY runner now accepts
+  `--rehearse-success --isolated-only`, in addition to
+  `--rehearse-failure --isolated-only`; both modes require
+  clone hostname, loopback-only interfaces, no default route, schema039
+  exact preimage, no queued/running jobs, historical foreign M4 claim1,
+  27 UNKNOWN work rows, full 42 migration SQL digests. No mode in this
+  script can run on the Gold UAT hostname. Normal live orchestrator
+  still refuses `--apply`, `--migrate`, `--rollback`.
+- To defeat historical deeply z-prefixed systemd overrides, the clone
+  runner selected a strictly higher lexicographic drop-in filename and
+  verified **effective WorkingDirectory + ExecStart for all four units**
+  against the exact candidate SHA before start.
+- Actual test applied SQL 040–042 to cloned PostgreSQL, switched all four
+  services (Operator, Supervisor, Plugin, Wall) to new SHA, bound Wall to
+  127.0.0.1 on clone (no real NIC), established readiness and sustained
+  **15 consecutive samples of all 4 units + PostgreSQL + Redis** with
+  Wall HTTP 303. Explicit success receipts:
+  `P2B_REAL_IMMUTABLE_FOUR_SERVICE_SCHEMA042_CANDIDATE=PASS`,
+  `P2B_SUCCESS_CANDIDATE_15_SAMPLES_HTTP303=PASS`.
+- Job `45962b8f-fac1-4a8d-bd8e-f1e63971d7fd` exited **43 deliberately**,
+  triggering the same paired recovery: four-unit config, PostgreSQL039
+  private dump, authenticated Redis RDB; original runtime was restarted
+  and healthy for another 12 samples, then services were stopped and
+  temporary loopback drop-in removed to leave the networkless clone
+  safe. Every rollback diagnostic BROKEN=0.
+- Independent postcheck: clone PG039/39, historical claim1, Redis
+  **126/126 Gold keys expiring** and valid session snapshot; no leftover
+  P2-B overrides, only lo. Live Gold UAT was independently schema039,
+  historical claim1; no live service was switched.
+
+The source-code candidate was content-addressed/manifest-verified; it
+was **not** a new signed binary installer and does not prove a live
+Windows native Agent or Fleet Wall 5492. The Gold branch's new test and
+runbook modifications were **not yet committed/pushed at this
+checkpoint**; do not infer CI success for them from earlier runs.
+
+Remaining separate live release gates: signed quiescence of unknown jobs
+and foreign M4 effect, explicit owner approval, fresh point-in-time
+cross-service backup and restoration, controlled native Windows 10/11
+canary and operator browser, Fleet Wall 5492, and independent production
+approval. No 039→042 live UAT migration is authorized by this rehearsal.
