@@ -143,3 +143,44 @@ Maintain one handoff pointer, one release manifest and one signed/dated evidence
 - Pro Share guest can discover **only explicitly selected owner-shared devices**, not all devices in a branch/group; unknown short IDs and duplicate hostnames cannot enumerate other organizations.
 - Confirm exact request/device/agent/approver binding and 24h approval ceiling remain intact; an assigned support user cannot approve their own request by simply declaring `approver` or `group` in a payload.
 - This P2 test certifies only the **architectural extension seam and fail-closed properties**, not a working tenant/RBAC/branch management product. Full IT Support management UI, branch lifecycle, nested group RBAC, policy inheritance, support roles and SLA/ITSM are a **separate later roadmap and certification**.
+
+## 13. OWNER ENTERPRISE IT EXAMPLE — scoped administration of 10 branches, 5 support engineers, 100 endpoints (2026-10-30)
+
+This is an exact owner-supplied future product use case, not an abstract role label: **one business has one IT Leader A, ten branches (B01–B10), five IT Support users (S01–S05) and 100 company-managed devices**. As an illustrative evenly split dataset there are ten devices per branch, but the architecture must not depend on equal counts.
+
+| Principal | Example role-binding (scope + capabilities), not a global account rank | Expected devices discoverable |
+| --- | --- | --- |
+| Leader A | `IT_LEADER @ organization` on this one business | All 100 devices across B01–B10 |
+| Support S01 | `IT_SUPPORT @ branches B01, B02` | Devices assigned to B01+B02 only (initially 20) |
+| Support S02 | `IT_SUPPORT @ branches B03, B04` | B03+B04 only (initially 20) |
+| Support S03 | `IT_SUPPORT @ branches B05, B06` | B05+B06 only (initially 20) |
+| Support S04 | `IT_SUPPORT @ branches B07, B08` | B07+B08 only (initially 20) |
+| Support S05 | `IT_SUPPORT @ branches B09, B10` | B09+B10 only (initially 20) |
+
+**IT Leader's "all devices" means within the business's organization and within explicit role capabilities, NOT global SaaS admin, and NOT automatic permanent remote execution without A/B/policy.** IT Support branch assignments likewise grant only their configured discovery/request/operation capabilities. `approver` is a distinct privilege delegated by owner/enterprise policy; branch membership alone never grants authority to approve B.
+
+### Scoped RBAC plus device-attribute/policy evaluation
+This example requires **role + scope binding**, not a flat enum `admin|user`. An extensible policy evaluator takes: authenticated **actor** (and optionally groups), target **device** with organization and current branch, requested **action** (discover, request pairing, approve B, read, terminal, desktop, execute, manage assignment), active role/group/device assignments, expiry/revocation and approved device capabilities. Deny unless authorized by an explicit applicable binding. In the later IT Support product, effective grants may be direct per-user, via group, via branch, via named device collection, or org-wide. Evaluate union of explicit allow scopes subject to more restrictive device policy, explicit denies and tenant isolation; never infer permission from display name, Short ID or client-provided branch. Keep decision records/audit with the matched authoritative assignment/policy revision.
+
+Illustrative logical data relationships (not executable migrations or a demand to create all tables now):
+`Organization → Branch (1:N)`; `Organization → Device (1:N)`;
+`Device → currentBranch (0..1)`; `Device ↔ Cluster (N:M)`;
+`User ↔ Group (N:M)`; `Principal/Group ↔ ScopeBinding(role, organization/branch/cluster/device, actions, expiry)`.
+IT Leader's org-scoped role covers all branches automatically; each support engineer's role covers only their two assigned branches. A group may contain users covering different or overlapping scopes, and a person can have additional direct-device exceptions. Group membership is **not** an A/B approval credential.
+
+### Required transfer / reassignment semantics
+1. **Move device from B01 to B03 within same company:** its UUID, enrolled device identity, stable six-character Short ID and history remain unchanged. After a transactional branch-assignment update, S01 loses effective device discovery and new pairing/execution access while S02 gains **eligibility** to discover/request. S02 DOES NOT inherit S01's prior A/B approval or sessions; owner/delegated approver must approve B for S02's own Agent. Leader A retains org-wide scope.
+2. **Change S03 assignment from B05+B06 to B05+B08:** revoke permissions inherited through B06 immediately and add eligibility for B08 only. Apply the change to all devices in the branch without manually relabeling 10 individual device grants. Previously authorized sessions/jobs must recheck current scope; newly forbidden queued work is fenced, in-flight effects retain honest unknown/terminal accounting and are not falsely ACKed or killed by database changes alone.
+3. **Move a device to another support group, cluster, or direct user:** evaluate effective permissions based on each independent assignment. Do not mutate its immutable ID. Explicit one-device exception does not accidentally grant the entire branch; moving a cluster tag is not changing ownership.
+4. **Transfer between separate organizations/tenants:** different from moving branches. Require authorized release/acceptance, revoke old organization grants, enforce tenant isolation, re-evaluate enrollment trust and potentially re-enroll according to ownership-transfer policy; NEVER automatically carry over old company approvals/credentials or billing identity.
+
+### UX and future APIs, without overbuilding P2
+- Leader's IT Support console may choose `All company devices` or drill down **Branch → Group/Cluster → Device**, and reassign branch or responsible support user with audit. The five support consoles show their permitted two branches only; inaccessible branch names, device counts and Short IDs must not leak.
+- Existing Gold A/B V2 Helper resolves `connect branch B03 device ABCD02` only within the actor's authorized set; it must never create a pairing request from a mere group/branch hint without exact device resolution. Show at most five matches by default.
+- A/B pending request stores canonical device UUID, requester, approver, source organization/branch and **policy version** as authoritative server-derived context. On a device move or assignment revoke while pending, **revalidate before approval**; stale pending requests fail closed and are cancelled instead of approving a previous access scope.
+- Session display nickname and Pro Share guest membership do not change any of these device ownership/assignment semantics. Keep these future scope constructs composable rather than embedding Pro Share billing into IT Support group roles.
+
+### Proposed dedicated future scenario test — not a full IT Support feature launch
+Fixture: 10 branches, 100 devices, 5 support actors, one Leader, overlapping cluster/group bindings, plus an unrelated second organization. Assert: Leader sees 100; each Support initially sees only its assigned ~20; targeted Short ID resolves only when in scope; move one device B01→B03 and assert Leader still sees 100, S01 loses one and S02 gains one, both with unchanged device UUID/Short ID; S02 has **no inherited grant**; revoke an entire branch assignment and assert forbidden in-flight revalidation / queued-work fencing; move a cluster without crossing tenant; cross-organization enumeration denied; no self-approval by claiming leader/group fields in the request. Use this scenario to **validate P2's policy abstraction seam**, not to claim future enterprise management UI/RBAC is deployed.
+
+For **current Gold P2**, implement only the generic server-derived policy context and scoped resolver seams required by owner-owned and Pro Share-shared devices. All organization/branch/group CRUD, complex inheritance, enterprise user onboarding, delegated approver management and a full IT Support management console remain for a separate Light Remote IT Support product. The enterprise scenario must not expand current scope or delay security gates by attempting to implement the whole enterprise system now.
