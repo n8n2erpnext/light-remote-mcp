@@ -8,6 +8,9 @@ on:
       - 'lib/gold-connection-job-reaper.mjs'
       - 'lib/gold-execution-epoch.mjs'
       - 'lib/gold-device-short-id.mjs'
+      - 'lib/gold-ab-v2-pending-redis.mjs'
+      - 'deploy/scripts/selftest-gold-ab-v2-source.mjs'
+      - 'deploy/scripts/selftest-gold-ab-v2-pending-redis.mjs'
       - 'platform-v2/sql/043_gold_device_short_ids.sql'
       - 'deploy/scripts/selftest-gold-p2i1-short-id.mjs'
       - 'deploy/scripts/ci-gold-p2i1-short-id-pg.mjs'
@@ -110,6 +113,9 @@ jobs:
           node --check lib/gold-execution-epoch.mjs
           node --check lib/gold-verified-channel-context.mjs
           node --check lib/gold-device-short-id.mjs
+          node --check lib/gold-ab-v2-pending-redis.mjs
+          node --check deploy/scripts/selftest-gold-ab-v2-pending-redis.mjs
+          node deploy/scripts/selftest-gold-ab-v2-source.mjs
           node --check deploy/scripts/ci-gold-p2i1-short-id-pg.mjs
           node deploy/scripts/selftest-gold-p2i1-short-id.mjs
           node --check lib/gold-db.mjs

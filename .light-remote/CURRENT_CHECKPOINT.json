@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-30",
-  "status": "Gold P2-I1 source candidate implemented: immutable Short ID 6 + owner-scoped lookup; PG043 clone fixture PASS; not migrated/live",
+  "status": "Gold P2-I2 source-only Redis pending A/B V2 CAS candidate passed isolated Redis8 fixture; no Helper/Wall/live activation",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -27,7 +27,8 @@
     "Future enterprise IT Support RBAC confirmed future-only and non-blocking for core Gold P2",
     "SHA-based source/docs/checkpoint guard installed on Gold worktree; exact commit 01791be CI source gate and documentation gate both SUCCESS",
     "P2-I1 043 candidate Short ID SQL and backend helper/owner-scoped resolver authored; 043 deliberately not in locked 042 migration manifest",
-    "2026-10-30 no-NIC clone PG043 fixture PASS, exit0/stderr0; 12 concurrent allocations idempotent; tombstone/no reuse; 0 disposable databases left; clone stopped"
+    "2026-10-30 no-NIC clone PG043 fixture PASS, exit0/stderr0; 12 concurrent allocations idempotent; tombstone/no reuse; 0 disposable databases left; clone stopped",
+    "P2-I2 Redis8 atomic pending issue/agent poll/owner Wall view/Refresh/approve/deny candidate, A6+5 B4+4, 300s Redis TIME; AES-GCM encrypted B + HMAC; real no-NIC Redis8 fixture PASS"
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -35,7 +36,7 @@
     "Gold UAT 039→042 migration and production release not authorized",
     "One historical M4 resource claim and 27 UNKNOWN records protected"
   ],
-  "nextAction": "Review migration 043 upgrade/rollback and wire Short ID to authorized Operator/Wall STANDBY. A/B V2 design: request TTL 300 seconds; pending Refresh is an explicit atomic new A suffix + B attempt on the same bound request, with Agent Helper synchronization; STANDBY Refresh checks presence without code minting and explicit V1 manual pairing remains the fallback. Preserve legacy V1 TTL 180 seconds, live UAT039 and production rc47.",
+  "nextAction": "Wire authenticated device-scoped Redis V2 request list and exact Agent Helper/Owner Wall approval endpoints with fresh OAuth, CSRF, device connection, policy and DeviceAccessGrantRegistry grant validation. Schema043 still not in live migration manifest; preserve V1 3min fallback and all Gold UAT runtime boundaries.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIBRARY_RULES.md",
@@ -47,10 +48,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "149d76c7fd6c07dfffada37dedf5b837fa331b41287e339507f135da59d0a4df",
-    "trackedFiles": 994,
+    "treeDigest": "7d45121e10786134b9eba08ef88a1c3d1b10c151827ae2ef60fa7e0b29a24d3d",
+    "trackedFiles": 997,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-10-30T09:27:33.406Z"
+    "recordedAt": "2026-10-30T10:22:12.252Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -76,6 +77,16 @@
       "schemaRegistered": false,
       "liveDeployed": false,
       "fixtureResult": "PASS"
+    },
+    "p2i2Candidate": {
+      "library": "lib/gold-ab-v2-pending-redis.mjs",
+      "ci": "deploy/scripts/selftest-gold-ab-v2-source.mjs",
+      "isolatedRedis8Test": "deploy/scripts/selftest-gold-ab-v2-pending-redis.mjs",
+      "realRedis8Fixture": "PASS exit0 stderr0; no-NIC clone stopped",
+      "helperRouteWired": false,
+      "ownerWallWired": false,
+      "grantRegistryWired": false,
+      "enabledLive": false
     }
   }
 }
