@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-30",
-  "status": "Gold P2-I2h1 Agent-first issue source PASS; signed exact device/Short ID, per-OAuth-Agent requestId+B pending only, idempotent requestKey, no V2 B owner approval/grant/ready; flags OFF; source SHA/CI pending",
+  "status": "Gold P2-I2h1 source 05a6fd9 pushed HEAD=origin; local Helper issuer and retry tests PASS; no V2 B approval or 24h grant yet; flags OFF; GitHub Actions push status unverified.",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -57,7 +57,7 @@
     "P2-I2h1 real Redis Lua idempotency regression added but NOT YET RUN on no-NIC clone; source mock contract PASS, native OAuth/Agent E2E not run",
     "V2 B owner approval not mounted on /approve; no durable per-Agent 24h grant or Helper ready. Never use Redis pending-approved as equivalent to real access grant"
   ],
-  "nextAction": "Run new Redis Lua idempotent retry + after-Refresh tests only in explicit no-NIC isolated clone; independently verify source GitHub Actions SHA. Implement P2-I2h2 durable idempotent owner V2 B+PG 24h per-Agent grant with requestId+attempt+current signed connection/restart recovery, then owner UI and Helper ready. Do NOT enable flags, migrate PG043 live, touch UAT/production/Windows.",
+  "nextAction": "Verify source SHA CI. Execute Redis8 idempotency fixture only in no-NIC clone. Implement owner V2 B verification and durable per-Agent 24h grant reconciliation, then Helper ready. Do not enable flags or deploy UAT/production.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -222,8 +222,8 @@
         "durable24hGrant": false,
         "helperReady": false,
         "localSourceFixtures": "PASS",
-        "sourceSha": "PENDING_COMMIT",
-        "ci": "PENDING_EXACT_SHA"
+        "sourceSha": "05a6fd93e08593c64e20faa4eebc7f8815727b17",
+        "ci": "GITHUB_ACTIONS_PUSH_UNVERIFIED"
       }
     },
     "abPerAgentTimerHotfix": {
