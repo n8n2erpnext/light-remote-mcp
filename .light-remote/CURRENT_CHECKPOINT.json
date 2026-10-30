@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-30",
-  "status": "Gold P2-I2d Operator-authenticated owner pending HTTP SOURCE TEST PASS; off-by-default, no owner portal/Wall/Helper/grant, new Git SHA + CI pending",
+  "status": "Gold P2-I2d source bc2c5d3 pushed, HEAD=origin, local auth/CSRF HTTP fixtures PASS; Actions push CI NOT VERIFIED; V2 owner HTTP default OFF, no Helper/Wall/24h grant",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -33,7 +33,8 @@
     "Read-only Gold UAT still PG039/39, 1 historical claim, 27 UNKNOWN; clone STOPPED no autostart; current rolling full handoff prepared under docs/project-book",
     "Source 8b1863b CI Gold GC 41041843902 PASS 4/4, checkpoint 41041843809 SUCCESS, library 41041844080 SUCCESS",
     "P2-I2c owner pending adapter source-only: verified server account identity injected at boundary, owner/device/current connection, enrolled policy, CSRF/Origin, OFF default, no B/grant; local negative fixture PASS",
-    "P2-I2d real Operator factory and HTTP route behind default-OFF, 32-byte sealed key + owner/device allowlist + HTTPS origin; session/connection/enrollment/policy authenticated, Redis rate before effects; loopback HTTP + factory negative tests PASS"
+    "P2-I2d real Operator factory and HTTP route behind default-OFF, 32-byte sealed key + owner/device allowlist + HTTPS origin; session/connection/enrollment/policy authenticated, Redis rate before effects; loopback HTTP + factory negative tests PASS",
+    "P2-I2d source commit bc2c5d3 pushed with clean HEAD=origin, project truth --head PASS, doc catalog/link PASS (303 links); GitHub Actions at this SHA not yet verified"
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -43,7 +44,7 @@
     "P2-I2c adapter not wired to real Operator auth/Wall; no true V2 grant reconciliation or installed Agent E2E",
     "Real /account and Local Wall owner V2 route not wired; OAuth Agent targetQuery exact-request binding and Redis-approved→durable 24h grant reconciliation absent"
   ],
-  "nextAction": "Verify CI for exact new SHA; then add /account and Local Wall secure owner UI routing/CSRF behind OFF flag; separately design authenticated Agent Helper targetQuery with exact requestId and true 24h grant commit/recovery. Do not deploy to UAT/production or enable billing, migration 043 remains candidate.",
+  "nextAction": "Independently verify GitHub Actions push CI at source bc2c5d3 (current connector fetch_commit_workflow_runs returns only PR-triggered runs). Then authenticate and integrate exact /account + signed Local Wall owner pending UI with CSRF, default OFF. Separately build Agent targetQuery and true grant reconciliation; do not enable owner approve or deploy Gold UAT/production.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -134,7 +135,8 @@
         "localWallWired": false,
         "helperWired": false,
         "approvedGrantWired": false,
-        "CI": "PENDING_EXACT_SHA"
+        "CI": "PUSH_WORKFLOWS_NOT_VERIFIED_FROM_CURRENT_CONNECTOR",
+        "sourceCommit": "bc2c5d3f1421e3bc12081e0ff6e3a4ba09185488"
       }
     }
   }
