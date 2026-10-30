@@ -2,12 +2,21 @@
 // refuses to replace or drop a database that already exists.
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
 import pg from 'pg';
 assert.equal(process.env.LR_EPOCH_PG_TEST_ALLOW,'1','disposable PG test opt-in required');
 const db='lr_gold_epoch_fixture_20261029';
+const isolatedHttp=process.env.LR_P2B_HTTP_ONLY==='1';
+if(isolatedHttp){
+ assert.equal(os.hostname(),'gold-p2a-runtime-rollback-20261030','clone hostname required');
+ assert.deepEqual(await fs.readdir('/sys/class/net'),['lo'],'no physical/network NIC allowed');
+ const route=await fs.readFile('/proc/net/route','utf8');
+ assert.ok(!route.split('\n').some(row=>/\s00000000\s/.test(row)),'default route denied');
+ console.log('P2B_PHYSICALLY_ISOLATED_CLONE_HTTP_ONLY=PASS');
+}
 const admin=new pg.Pool({database:'postgres',max:2});
 let created=false;
 const sqlRoot=fileURLToPath(new URL('../../platform-v2/sql/',import.meta.url));
@@ -40,12 +49,22 @@ try{
         PRIMARY KEY(account_id,device_id,process_id));
       CREATE TABLE lr_audit_events(event_id TEXT PRIMARY KEY,actor_account_id TEXT,owner_account_id TEXT,
         kind TEXT,resource_type TEXT,resource_id TEXT,metadata JSONB);
+      CREATE TABLE lr_site_announcements(announcement_id TEXT PRIMARY KEY,
+        audience TEXT NOT NULL CHECK (audience IN ('site','clients','both')));
       INSERT INTO lr_devices VALUES('dev-epoch-fixture','online',now());
       INSERT INTO lr_device_connections VALUES('dc_epoch_fixture_1','acct-epoch-fixture',
         'dev-epoch-fixture',now(),NULL,now()+interval '12 hours');`);
-    for(const version of ['040_gold_connection_job_gc_fences.sql','041_gold_device_execution_epoch.sql'])
+    for(const version of ['040_gold_connection_job_gc_fences.sql','041_gold_device_execution_epoch.sql','042_gold_wall_announcements_channel.sql'])
       await pool.query(await fs.readFile(path.join(sqlRoot,version),'utf8'));
+    const schema042=await pool.query("SELECT pg_get_constraintdef(oid) AS rule FROM pg_constraint WHERE conname='lr_site_announcements_audience_check'");
+    assert.equal(schema042.rowCount,1,'schema042 audience constraint required');
+    assert.ok(schema042.rows[0].rule.includes('wall'),'schema042 wall audience required');
+    console.log('GOLD_P2B_FIXTURE_SQL040_041_042=PASS');
   }finally{await pool.end();}
+  if(isolatedHttp){
+    run('./selftest-gold-signed-http-duplex-pg.mjs');
+    console.log('P2B_REAL_LOOPBACK_SIGNED_HTTP_PG042_FIXTURE=PASS');
+  }else{
   run('./selftest-gold-execution-epoch-pg.mjs');
   run('./selftest-gold-gc-epoch-race-pg.mjs');
   run('./selftest-gold-gc-boundary-pg.mjs');
@@ -59,6 +78,7 @@ try{
   run('./selftest-gold-p1-e-load-chaos-pg.mjs',600000,
     {LR_P1E_LOAD_ALLOW:'1',LR_P1E_TARGET:process.env.LR_P1E_TARGET||'10000'});
   console.log('GOLD_EPOCH_REAL_PG_TWO_OPERATOR_GC_RECONNECT_RACE=PASS');
+  }
 }finally{
   if(created){
     try{await admin.query('DROP DATABASE '+db+' WITH (FORCE)');}

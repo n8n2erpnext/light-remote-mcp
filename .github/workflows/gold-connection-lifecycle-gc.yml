@@ -19,6 +19,8 @@ on:
       - 'deploy/scripts/gold-p2b-audit-report.mjs'
       - 'deploy/scripts/selftest-gold-p2b-signed-quiescence.mjs'
       - 'deploy/scripts/selftest-gold-p2b-native-signed-boundary.mjs'
+      - 'deploy/scripts/ci-gold-epoch-pg.mjs'
+      - 'deploy/scripts/selftest-gold-signed-http-duplex-pg.mjs'
       - 'lib/gold-p2b-signed-quiescence.mjs'
       - 'deploy/scripts/gold-p2b-four-service-orchestrator.mjs'
       - 'lib/gold-p2b-release-gate.mjs'

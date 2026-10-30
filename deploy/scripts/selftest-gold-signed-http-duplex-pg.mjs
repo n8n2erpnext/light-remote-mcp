@@ -6,6 +6,7 @@ import path from 'node:path';
 import http from 'node:http';
 import pg from 'pg';
 import {GoldExecutionEpochs} from '../../lib/gold-execution-epoch.mjs';
+import {GoldDeviceResourceLocks} from '../../lib/gold-device-resource-locks.mjs';
 import {AgentExecutionEpochJournal} from '../../device-agent/execution-epoch-journal.mjs';
 import {NativeProcessRegistry} from '../../lib/native-process.mjs';
 import {deviceChannelMessage} from '../../lib/device-proof.mjs';
@@ -21,6 +22,7 @@ const pool=new pg.Pool({database,max:4});
 const device=crypto.generateKeyPairSync('ed25519');
 const issuer=crypto.generateKeyPairSync('ed25519');
 const signer=new GoldExecutionEpochs({pool,signer:issuer});
+const resourceLocks=new GoldDeviceResourceLocks({capacity:2});
 const accountId='acct-http-fixture',deviceId='dev-http-fixture',connectionId='dc_http_fixture_1';
 const nodeId='node-http-fixture',instanceId='ei_http_fixture_1';
 const publicIdentityKey=device.publicKey.export({format:'der',type:'spki'}).toString('base64');
@@ -83,7 +85,16 @@ const deps={
  connections:{assertConnected:()=>({connectionId}),get:()=>({connectionId})},
  devices:{heartbeat:()=>true},deviceBootObservations:null,
  deviceResourceSampleCache:{record:()=>true},verifiedLeafCapabilities:()=>[],
- requireDeviceConnection:()=>true,reconcileSignedTerminalProcessReceipts:async()=>null,
+ requireDeviceConnection:()=>true,reconcileSignedTerminalProcessReceipts:async(ctx,items)=>{
+  if(!Array.isArray(items))return [];
+  const acks=[];
+  for(const process of items.slice(0,32)){
+   const ack=await resourceLocks.acknowledgeVerifiedTerminal(pool,{
+    accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,process});
+   if(ack.acked)acks.push({processId:process.processId,state:process.state,finishedAt:process.finishedAt});
+  }
+  return acks;
+ },
  deviceStopRequests:()=>[],fleet:fakeFleet,
  accessGrants:{pendingForDevice:()=>[],activeForDevice:()=>null},
  enrollments:{policyEnvelope:()=>null},
@@ -127,6 +138,7 @@ try{
   assert.equal(r.inventory.ready,true);
  }
  const executed=[];
+ const terminalByCommand=new Map();
  const execute=async command=>{
   journal.checkCommand(command,{accountId,deviceId,publicKey:issuer.publicKey});
   const approval=await request('execution-start',{instanceId,executionAuthorization:command.executionAuthorization});
@@ -143,6 +155,7 @@ try{
   }
   assert.equal(done.state,'finished');
   journal.observeProcesses([done],{accountId,deviceId});
+  terminalByCommand.set(command.commandId,{processId:done.processId,state:done.state,finishedAt:done.finishedAt});
   assert.equal(fs.readFileSync(marker,'utf8'),'1');
   executed.push(label);
   return {commandId:command.commandId,status:'ok',exitCode:0,stdout:'',stderr:'',durationMs:1,data:{ok:true}};
@@ -172,9 +185,61 @@ try{
  assert.equal(fs.readFileSync(path.join(dir,'poll.txt'),'utf8'),'1');
  assert.equal(fs.readFileSync(path.join(dir,'duplex.txt'),'utf8'),'1');
  assert.equal((await pool.query('SELECT COUNT(*)::int n FROM lr_gold_execution_effect_starts WHERE device_id=$1',[deviceId])).rows[0].n,2);
+
+ // P2-B: exact terminal receipt through the real signed HTTP PULSE route,
+ // real PostgreSQL ACK transaction and actual native child process identity.
+ // Claims are inserted ONLY into this explicitly disposable fixture DB.
+ const done=terminalByCommand.get(pollCommand.commandId);
+ assert.ok(done&&done.processId&&done.state==='finished'&&done.finishedAt>0);
+ const foreignJob=crypto.randomUUID();
+ await pool.query(`INSERT INTO lr_gold_device_resource_claims
+ (job_id,account_id,device_id,resource_key,resource_mode,worker_state,process_id)
+ VALUES ($1,$2,$3,$4,'exclusive','running',$5),
+        ($6,$2,$3,$7,'exclusive','terminal_unknown',NULL)`,
+ [pollCommand.jobId,accountId,deviceId,'p2b:fixture:real',done.processId,foreignJob,'p2b:fixture:no-pid']);
+ const pulsePayload={nodeId,agentVersion:'p2b-fixture',policyRevision:1,
+  sessionCeiling:1,capabilities:[],processTerminalReceipts:[done]};
+ const query=async()=>({
+  claims:Number((await pool.query('SELECT COUNT(*) n FROM lr_gold_device_resource_claims WHERE device_id=$1',[deviceId])).rows[0].n),
+  acks:Number((await pool.query('SELECT COUNT(*) n FROM lr_gold_terminal_receipt_acks WHERE device_id=$1',[deviceId])).rows[0].n)
+ });
+ assert.deepEqual(await query(),{claims:2,acks:0});
+ const invalidEnvelope=signed('pulse',pulsePayload);
+ invalidEnvelope.payload={...pulsePayload,processTerminalReceipts:[{...done,finishedAt:done.finishedAt+5}]};
+ const invalidResponse=await fetch(base+'/device-channel/pulse',{method:'POST',
+  headers:{'content-type':'application/json'},body:JSON.stringify(invalidEnvelope)});
+ assert.ok(invalidResponse.status>=400,'tampered signature must fail authentication');
+ assert.deepEqual(await query(),{claims:2,acks:0});
+ const fake=await request('pulse',{...pulsePayload,
+  processTerminalReceipts:[{...done,processId:'lp_00000000000000000000'}]});
+ assert.deepEqual(fake.terminalReceiptsAck,[]);
+ assert.deepEqual(await query(),{claims:2,acks:0});
+ const accepted=await request('pulse',pulsePayload);
+ assert.deepEqual(accepted.terminalReceiptsAck,[done]);
+ assert.deepEqual(await query(),{claims:1,acks:1});
+ const exact=(await pool.query('SELECT process_id,terminal_state,finished_at_ms FROM lr_gold_terminal_receipt_acks WHERE device_id=$1',[deviceId])).rows[0];
+ assert.equal(exact.process_id,done.processId);
+ assert.equal(exact.terminal_state,done.state);
+ assert.equal(Number(exact.finished_at_ms),done.finishedAt);
+ const duplicate=await request('pulse',pulsePayload);
+ assert.deepEqual(duplicate.terminalReceiptsAck,[done]);
+ assert.deepEqual(await query(),{claims:1,acks:1});
+ const mismatch=await request('pulse',{...pulsePayload,
+  processTerminalReceipts:[{...done,finishedAt:done.finishedAt+1}]});
+ assert.deepEqual(mismatch.terminalReceiptsAck,[]);
+ assert.deepEqual(await query(),{claims:1,acks:1});
+ const remaining=(await pool.query('SELECT job_id,process_id,worker_state FROM lr_gold_device_resource_claims WHERE device_id=$1',[deviceId])).rows;
+ assert.equal(remaining.length,1);
+ assert.equal(remaining[0].job_id,foreignJob);
+ assert.equal(remaining[0].process_id,null);
+ assert.equal(remaining[0].worker_state,'terminal_unknown');
+ console.log('P2B_REAL_SIGNED_HTTP_PG_EXACT_TERMINAL_ACK_AND_FENCE=PASS');
+ console.log('P2B_TAMPERED_ENVELOPE_AND_UNKNOWN_PID_NO_RELEASE=PASS');
+ console.log('P2B_DUPLICATE_ACK_IDEMPOTENT_MISSING_PID_FENCED=PASS');
  console.log(JSON.stringify({ok:true,realHttpSignedEnrollment:true,realNdjsonDuplex:true,
   transports:['signed-poll-v1','device-duplex-v1'],realPostgres:true,
-  realOSChildren:2,noDuplicateOSMarkers:true,realUATUnchanged:true}));
+  realOSChildren:2,noDuplicateOSMarkers:true,fixtureOnly:true,
+  signedPulseAckTransaction:true,unknownPidClaimPreserved:true,realUATUnchanged:true}));
 }finally{
  try{await duplex?.close('fixture_done')}catch{}
  await new Promise(r=>server?server.close(()=>r()):r());
