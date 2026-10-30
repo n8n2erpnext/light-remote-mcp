@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-30",
-  "status": "Gold P2-I2e owner /account pending UI + cookie-only proxy SOURCE PASS; no deploy, two flags OFF, no real grant/Wall/Helper; exact source SHA and CI PENDING",
+  "status": "Gold P2-I2e SOURCE commit 79135d7 pushed HEAD=origin; account owner preview/proxy local fixtures PASS; GitHub Actions push CI NOT VERIFIED; V2 flags OFF, no Wall/Helper/grant",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -35,7 +35,8 @@
     "P2-I2c owner pending adapter source-only: verified server account identity injected at boundary, owner/device/current connection, enrolled policy, CSRF/Origin, OFF default, no B/grant; local negative fixture PASS",
     "P2-I2d real Operator factory and HTTP route behind default-OFF, 32-byte sealed key + owner/device allowlist + HTTPS origin; session/connection/enrollment/policy authenticated, Redis rate before effects; loopback HTTP + factory negative tests PASS",
     "P2-I2d source commit bc2c5d3 pushed with clean HEAD=origin, project truth --head PASS, doc catalog/link PASS (303 links); GitHub Actions at this SHA not yet verified",
-    "P2-I2e server cookie owner /account proxy and hidden V2 pending list/refresh/deny preview added; Origin+csrf, exact ids, no B/approve, source/HTTP fixtures PASS; not deployed"
+    "P2-I2e server cookie owner /account proxy and hidden V2 pending list/refresh/deny preview added; Origin+csrf, exact ids, no B/approve, source/HTTP fixtures PASS; not deployed",
+    "P2-I2e source 79135d7 pushed; HEAD=origin, source/docs/checkpoint guard PASS, 308 document links validated; Actions push CI not verified, Vercel light-remote-mcp SUCCESS only"
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -46,7 +47,7 @@
     "Real /account and Local Wall owner V2 route not wired; OAuth Agent targetQuery exact-request binding and Redis-approved→durable 24h grant reconciliation absent",
     "Local Wall V2 signed device preview/standby and real Helper requestId→grant 24h reconciliation remain unimplemented; schema 043 excluded from migration lock"
   ],
-  "nextAction": "Commit and verify source SHA CI; add signed channel-bound owner-authenticated Local Wall V2 pending read-only preview with no OAuth cookie and no B/approve; then exact Agent pending/grant authority and migration 043 isolated rehearsal, all flags OFF and no UAT/production changes.",
+  "nextAction": "Independently verify source Actions CI at 79135d7; connect Local Wall read-only V2 pending through enrolled device signed channel, owner local authentication + email/device scope, no cloud cookie and no B/Approve; then authenticated Agent exact requestId and idempotent real 24h grant bridge; PG043 isolated rehearsal before any STANDBY/migration. Keep all feature flags OFF and live Gold/production unchanged.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -151,7 +152,8 @@
         "operatorFlag": "LR_GOLD_AB_V2_OWNER_PENDING_HTTP=1 default OFF",
         "wallWired": false,
         "grantWired": false,
-        "ci": "PENDING_SOURCE_SHA"
+        "ci": "GITHUB_ACTIONS_PUSH_NOT_VERIFIED",
+        "sourceCommit": "79135d7c976fa3684929d4ce420113deaed4585f"
       }
     }
   }
