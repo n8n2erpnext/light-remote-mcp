@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-30",
-  "status": "Gold P2-I2h1 source 05a6fd9 pushed HEAD=origin; local Helper issuer and retry tests PASS; no V2 B approval or 24h grant yet; flags OFF; GitHub Actions push status unverified.",
+  "status": "Gold P2-I2h2a source-only verified B grant candidate; deterministic per-Agent 24h grant and restart regression PASS; Redis B receipt bridge NOT wired, Git SHA/CI pending, runtime V2 OFF",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -43,7 +43,8 @@
     "P2-I2g source commit 2e853415 pushed HEAD=origin; HMAC/Redis replay, signed scoped 0/1/N resolver, schema 043 failclosed, optional V1-compatible Helper schema static source checks PASS; GitHub Actions push CI unverified",
     "Gold P2 per-Agent A/B clock: new approved grant resets only same Agent (old 1m30 + new B 24h), other Agents unchanged; backend signed status activeGrants, Wall multi-row timer, owner approve cache invalidate, source/HTTP fixtures PASS",
     "P2 per-Agent clock hotfix source 31c0e70 pushed with clean HEAD=origin, registry+Wall+HTTP B approval and V1 regression PASS, source/docs/checkpoint gate and 330 links PASS; push Actions status not independently verified",
-    "P2-I2h1 OAuth signed purpose-specific Agent→Operator pending issuance source: exact selected Short ID, owner/enrollment/connection/PG043 verification, Redis idempotent requestKey + sealed B returned only to Agent, source tests PASS; no owner V2 grant/ready"
+    "P2-I2h1 OAuth signed purpose-specific Agent→Operator pending issuance source: exact selected Short ID, owner/enrollment/connection/PG043 verification, Redis idempotent requestKey + sealed B returned only to Agent, source tests PASS; no owner V2 grant/ready",
+    "P2-I2h2a internal deterministic V2 grantId from requestId and verifiedAt, scoped per Agent with no lifetime extension or closed-grant resurrection; source/JSON restart regression PASS"
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -55,9 +56,10 @@
     "Local Wall V2 read-only signed preview and /account list/refresh/deny source-wired, but Short ID STANDBY / real B owner approve / true durable 24h grant/Helper ready NOT implemented",
     "Per-Agent A/B countdown fix is SOURCE ONLY: not shipped to Windows rc49 screenshot or UAT, needs controlled candidate/native signed Agent E2E and exact source SHA push Actions CI",
     "P2-I2h1 real Redis Lua idempotency regression added but NOT YET RUN on no-NIC clone; source mock contract PASS, native OAuth/Agent E2E not run",
-    "V2 B owner approval not mounted on /approve; no durable per-Agent 24h grant or Helper ready. Never use Redis pending-approved as equivalent to real access grant"
+    "V2 B owner approval not mounted on /approve; no durable per-Agent 24h grant or Helper ready. Never use Redis pending-approved as equivalent to real access grant",
+    "Trusted Redis owner B verification receipt + Gold PostgreSQL async flush before grant commitment still NOT implemented; no owner V2 approval/Helper ready route wired"
   ],
-  "nextAction": "Verify source SHA CI. Execute Redis8 idempotency fixture only in no-NIC clone. Implement owner V2 B verification and durable per-Agent 24h grant reconciliation, then Helper ready. Do not enable flags or deploy UAT/production.",
+  "nextAction": "Finish P2-I2h2b trusted owner B verification receipt/crash recovery, validate current enrollment and connection, await goldRegistries.flush() before confirming A/B grant/ready. Add isolated Redis8/Gold PG/native Agent tests; keep runtime V2 OFF, no UAT/prod migration.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -70,10 +72,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "d8a32864e78bec4bb856986c8b48555ef0be120d4d1fe8c495529fa115bd11ef",
-    "trackedFiles": 1014,
+    "treeDigest": "e25d1685ebd899998808df9602c45f218e867373aeb8bad81a50fe22bfd75f8e",
+    "trackedFiles": 1015,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-10-30T12:28:39.758Z"
+    "recordedAt": "2026-10-30T12:41:34.655Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -224,6 +226,16 @@
         "localSourceFixtures": "PASS",
         "sourceSha": "05a6fd93e08593c64e20faa4eebc7f8815727b17",
         "ci": "GITHUB_ACTIONS_PUSH_UNVERIFIED"
+      },
+      "verifiedGrantCandidate": {
+        "registry": "operator-host/device-access-grant-registry.mjs",
+        "test": "deploy/scripts/selftest-gold-ab-v2-verified-grant.mjs",
+        "mode": "internal_source_only",
+        "goldPgFlushRequired": true,
+        "ownerBReceiptWired": false,
+        "localSourceFixture": "PASS",
+        "sourceSha": "PENDING_COMMIT",
+        "githubActions": "PENDING_EXACT_SHA"
       }
     },
     "abPerAgentTimerHotfix": {

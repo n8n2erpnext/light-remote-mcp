@@ -123,6 +123,70 @@ export class DeviceAccessGrantRegistry {
     this.emit({type:'device_access_approved',accountId:row.accountId,deviceId:row.deviceId,connectionId:cid,requestId:row.requestId,grantId:grant.grantId,status:'approved'});
     return {...grant};
   }
+  /**
+   * P2-I2h2: ONLY caller with a Redis-verified, owner-authenticated B receipt
+   * may invoke this method. Deterministic grantId binds one V2 request to
+   * exactly one durable Agent grant, across PostgreSQL flush/restart/retry.
+   * This method does NOT validate B; the trusted bridge must do that first.
+   */
+  approveVerifiedV2({requestId,ownerAccountId,agentId,deviceId,connectionId,
+    connectionExpiresAt,verifiedAt,label='Light Remote Agent'}={}){
+    const rid=String(requestId||'');
+    if(!/^av2_[a-f0-9]{32}$/.test(rid))
+      throw new DeviceAccessGrantError('abv2_verified_request_invalid',400);
+    const owner=validId(ownerAccountId,'abv2_owner_invalid'),
+      agent=validId(agentId,'abv2_agent_invalid'),
+      device=validId(deviceId,'abv2_device_invalid'),
+      connection=validId(connectionId,'abv2_connection_invalid');
+    const now=this.now(),approvedAt=Number(verifiedAt),connExpiry=Number(connectionExpiresAt);
+    if(!Number.isSafeInteger(approvedAt)||approvedAt<=0||approvedAt>now+30000||
+       now>=approvedAt+AB_GRANT_MAX_LIFETIME_MS)
+      throw new DeviceAccessGrantError('abv2_verified_time_invalid',409);
+    if(!Number.isFinite(connExpiry)||connExpiry<=now)
+      throw new DeviceAccessGrantError('abv2_connection_expired',409);
+    const grantId='dag_v2_'+rid.slice(4),priorRecord=this.grants.get(grantId);
+    if(priorRecord){
+      if(priorRecord.accountId!==owner||priorRecord.agentId!==agent||
+         priorRecord.deviceId!==device||priorRecord.connectionId!==connection||
+         priorRecord.approvedAt!==approvedAt||
+         priorRecord.absoluteExpiresAt!==approvedAt+AB_GRANT_MAX_LIFETIME_MS)
+        throw new DeviceAccessGrantError('abv2_grant_scope_conflict',409);
+      if(priorRecord.closedAt||now>=this._expiry(priorRecord))
+        throw new DeviceAccessGrantError('abv2_grant_closed_or_expired',409);
+      return {...priorRecord,reused:true};
+    }
+    // New B approval replaces only grants from the same owner/device/Agent.
+    // Do not revoke unrelated Agents, including team-member grants.
+    const closed=[];
+    for(const old of this.grants.values()){
+      if(old.accountId===owner&&old.deviceId===device&&
+         old.agentId===agent&&String(old.purpose||'device')==='device'&&
+         !old.closedAt){
+        old.closedAt=now;old.closeReason='owner_reapproved';closed.push(old);
+      }
+    }
+    const grant={grantId,accountId:owner,agentId:agent,deviceId:device,
+      connectionId:connection,label:String(label||'Light Remote Agent').slice(0,120),
+      purpose:'device',approvedAt,lastActivityAt:now,
+      idleGraceMs:AB_GRANT_MAX_LIFETIME_MS,
+      absoluteExpiresAt:approvedAt+AB_GRANT_MAX_LIFETIME_MS,
+      expiresAt:Math.min(connExpiry,approvedAt+AB_GRANT_MAX_LIFETIME_MS),
+      closedAt:null,closeReason:null};
+    this.grants.set(grantId,grant);
+    try{this._persist();}
+    catch(error){
+      this.grants.delete(grantId);
+      for(const old of closed){old.closedAt=null;old.closeReason=null;}
+      throw error;
+    }
+    for(const old of closed)this.emit({type:'device_access_closed',
+      accountId:owner,deviceId:device,connectionId:old.connectionId,
+      grantId:old.grantId,status:'closed',reason:'owner_reapproved'});
+    this.emit({type:'device_access_approved',accountId:owner,
+      deviceId:device,connectionId:connection,requestId:rid,
+      grantId,status:'approved'});
+    return {...grant,reused:false};
+  }
   deny(requestId,reason='owner_denied',{deviceId=null}={}){
     const id=validId(requestId,'invalid_plus_request_id'),row=this.requests.get(id);
     if(!row||row.consumedAt)throw new DeviceAccessGrantError('plus_authorization_not_found',404);

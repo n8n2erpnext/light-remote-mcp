@@ -22,6 +22,7 @@ on:
       - 'deploy/scripts/selftest-gold-ab-v2-helper-target.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-helper-tool.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-helper-issue.mjs'
+      - 'deploy/scripts/selftest-gold-ab-v2-verified-grant.mjs'
       - 'device-agent/wall-ab-v2-preview.mjs'
       - 'plugin-server/device-public.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-signed-preview.mjs'
@@ -156,6 +157,7 @@ jobs:
           node deploy/scripts/selftest-gold-ab-v2-helper-tool.mjs
           node --check deploy/scripts/selftest-gold-ab-v2-helper-issue.mjs
           node deploy/scripts/selftest-gold-ab-v2-helper-issue.mjs
+          node deploy/scripts/selftest-gold-ab-v2-verified-grant.mjs
           node deploy/scripts/selftest-gold-ab-reauthorization-clock.mjs
           node deploy/scripts/selftest-v09-device-access-grant.mjs
           node deploy/scripts/selftest-v09-pairing-connect-flow.mjs
