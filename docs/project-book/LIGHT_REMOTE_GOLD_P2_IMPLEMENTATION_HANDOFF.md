@@ -221,6 +221,8 @@ Critical: Gold UAT has unique historical claims and UNKNOWN work. Neither rollba
 
 ### P2-I3a — Return to unified Plan: Agent-selected nickname core (2026-10-30)
 
+**SOURCE COMMIT `b9f906bb49288d774f3b869feeddc56ad963441c` pushed, HEAD=origin, working tree clean at source checkpoint, direct nickname/GoldSessionRedis source fixtures PASS; Gold UAT runtime unchanged, GitHub Actions push run not independently verified. Owner UI pending.**
+
 Owner directed STOP the repeated standalone A/B V2 test ladder and return to the **unified P2 Plan** at `docs/gold/GOLD_P2_INTEGRATED_ABV2_NICKNAME_PRO_SHARE_PLAN_20261030.md`. A/B V2 source has issuance, owner B consent, signed Wall and durable grant/Helper source gates but is **NOT live on Gold UAT**: PG043 absent there, flags OFF, native installed owner+Agent browser end-to-end not yet accepted. Freeze A/B V2 source; do not present it as commercially finished.
 
 Audited actual Gold session path: `SessionRegistry.open` supports `label` but `/v1/agent-client/context` hardcodes `ChatGPT Light Remote`; `cleanSession` drops any display label; `GoldSessionRedis` wraps only mutators on existing Redis session snapshot. Implemented additive, default OFF `LR_GOLD_SESSION_AGENT_NICKNAME=1` metadata to avoid a new pairing step:

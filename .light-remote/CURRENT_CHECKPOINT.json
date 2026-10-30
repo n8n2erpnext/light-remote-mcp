@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-30",
-  "status": "Owner redirects to Unified P2 Plan: A/B V2 source complete but NOT live-UAT shipped; freeze its standalone test ladder. P2-I3a Agent-supplied durable nickname core/Redis/Wall source PASS, flag OFF, owner UI P2-I3b next, then Pro Share P2-I4.",
+  "status": "Gold Unified P2 Plan resumed. A/B V2 SOURCE complete, not UAT shipped, standalone A/B test ladder frozen. P2-I3a durable agent-chosen nickname source b9f906b pushed, source tests PASS, runtime flag OFF; owner rename UI P2-I3b pending; then Pro Share P2-I4.",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -80,7 +80,7 @@
     "Account↔Wall two-screen/copy-paste 90s consent UX is intentional security tradeoff; zero-copy redirect-based proof not developed",
     "Native installed owner browser/Agent OAuth/Redis8+PG043 combined E2E not yet run; full isolated native database and Redis8 tests were independent"
   ],
-  "nextAction": "Unified P2: finish authenticated owner rename P2-I3b and then Pro Share P2-I4 (one Pro owner + one Free guest, $20+$5 proposed, Pro Team 5 seats frozen), one combined candidate freeze/physical UAT, no standalone repeated A/B V2 ladder. No Gold UAT/prod change.",
+  "nextAction": "P2-I3b authenticated owner rename route/UI on existing session registry, then P2-I4 Pro Share owner+1 Free guest (20+5 USD proposed), selected-device sharing, owner-billed usage, Pro Team frozen, billing OFF. Single combined physical UAT at frozen candidate; no standalone A/B V2 test loop.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -423,7 +423,8 @@
       "defaultFlag": "LR_GOLD_SESSION_AGENT_NICKNAME OFF",
       "ownerUI": "NOT YET WIRED",
       "uatDeployed": false,
-      "sha": "PENDING_COMMIT"
+      "sha": "b9f906bb49288d774f3b869feeddc56ad963441c",
+      "githubActions": "PUSH_RUN_NOT_INDEPENDENTLY_VERIFIED"
     }
   }
 }
