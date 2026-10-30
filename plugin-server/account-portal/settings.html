@@ -28,6 +28,10 @@
       <div><h2 id="passwordTitle">Change password</h2><div id="passwordHint" class="muted">Update the password you use to sign in.</div></div>
       <button id="openPassword" class="btn">Change password</button>
     </section>
+    <section id="sessionNamesRow" class="panel setting-row" style="display:none">
+      <div><h2>Session names</h2><div class="muted">Change the display name of your Agent sessions without changing their access.</div></div>
+      <a class="btn" href="/account/sessions">Manage sessions</a>
+    </section>
     <section class="panel setting-row">
       <div><h2>Appearance</h2><div class="muted">Match the rest of your tooling.</div></div>
       <div class="segmented"><button id="darkMode" class="btn">Dark</button><button id="lightMode" class="btn">Light</button></div>
@@ -60,5 +64,8 @@ $('darkMode').onclick=()=>{LightRemoteTheme.set('dark');syncTheme()};$('lightMod
 const modal=$('passwordModal');function closeModal(){modal.classList.add('hide');$('passwordForm').reset();$('passwordMsg').textContent='';}
 $('openPassword').onclick=()=>{modal.classList.remove('hide');(hasAccountPassword?$('currentPassword'):$('newPassword')).focus()};$('closePassword').onclick=closeModal;$('cancelPassword').onclick=closeModal;
 $('passwordForm').onsubmit=async ev=>{ev.preventDefault();const cur=$('currentPassword').value,nw=$('newPassword').value,confirm=$('confirmPassword').value,msg=$('passwordMsg');if(nw!==confirm){msg.className='setting-note error';msg.textContent='New passwords do not match.';return}if(nw.length<10){msg.className='setting-note error';msg.textContent='Password must be at least 10 characters.';return}const btn=ev.submitter,action=hasAccountPassword?'password-change':'password-setup',body=hasAccountPassword?{currentPassword:cur,newPassword:nw}:{newPassword:nw};btn.disabled=true;msg.className='setting-note muted';msg.textContent=hasAccountPassword?'Updating…':'Setting password…';try{await api(action,{method:'POST',body:JSON.stringify(body)});hasAccountPassword=true;msg.className='setting-note ok';msg.textContent=action==='password-setup'?'Password set. You can now sign in to Local Wall and desktop clients.':'Password updated. Other account sessions were signed out.';await load();setTimeout(closeModal,1100)}catch(e){msg.className='setting-note error';msg.textContent=e.message==='invalid_account_credentials'?'Current password is incorrect.':e.message}finally{btn.disabled=false}};
-load().catch(e=>{if(e.message!=='login_required')console.error(e)});
+load().then(async()=>{
+  try{await api('sessions-list');$('sessionNamesRow').style.display='';}
+  catch{/* Not exposed when feature flags are OFF. */}
+}).catch(e=>{if(e.message!=='login_required')console.error(e)});
 </script><script src="/account/assets/notifications.js" defer></script></body></html>

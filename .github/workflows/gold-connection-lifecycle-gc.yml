@@ -39,6 +39,9 @@ on:
       - 'plugin-server/operator-adapter.mjs'
       - 'plugin-server/tools.mjs'
       - 'operator-host/session-manager.mjs'
+      - 'operator-host/gold-session-owner-http.mjs'
+      - 'plugin-server/account-session-names.mjs'
+      - 'plugin-server/account-portal/sessions.html'
       - 'lib/gold-session-redis.mjs'
       - 'deploy/scripts/selftest-gold-agent-session-nickname.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-helper-target.mjs'
@@ -188,6 +191,8 @@ jobs:
           node --check operator-host/gold-ab-v2-helper-poll.mjs
           node deploy/scripts/selftest-gold-ab-v2-helper-poll.mjs
           node deploy/scripts/selftest-gold-agent-session-nickname.mjs
+          node --check operator-host/gold-session-owner-http.mjs
+          node --check plugin-server/account-session-names.mjs
           node deploy/scripts/selftest-gold-ab-v2-verified-grant.mjs
           node --check operator-host/gold-ab-v2-grant-coordinator.mjs
           node --check operator-host/gold-ab-v2-grant-operator.mjs

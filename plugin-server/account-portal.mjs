@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { callOperatorJson } from './operator-client.mjs';
 import {createGoldAbV2AccountPortalProxy,isGoldAbV2PortalAction} from './account-ab-v2.mjs';
+import {createGoldSessionNameAccountProxy} from './account-session-names.mjs';
 import { PUBLIC_ORIGIN } from './config.mjs';
 import { mailConfig, sendDormancyWarning, sendDormantNotice, sendMagicLogin, sendPasswordReset, sendTeamInvitation, sendUpgradeRequested, sendWelcomeVerification } from './mailer.mjs';
 import { beginGoogleAuth, finishGoogleAuth, googleAuthStatus } from './google-auth.mjs';
@@ -20,6 +21,10 @@ const goldAbV2AccountProxy=createGoldAbV2AccountPortalProxy({
  consentEnabled:process.env.LR_GOLD_AB_V2_WALL_OWNER_CONSENT==='1',
  publicOrigin:PUBLIC_ORIGIN,
  sessionToken,callOperatorJson
+});
+const goldSessionNameAccountProxy=createGoldSessionNameAccountProxy({
+ enabled:process.env.LR_GOLD_SESSION_OWNER_RENAME==='1',
+ origin:PUBLIC_ORIGIN,sessionToken,callOperatorJson
 });
 const DORMANCY_SCAN_INTERVAL_MS=6*60*60*1000;
 let dormancyScanRunning=false;
@@ -159,6 +164,8 @@ async function accountApi(req,res){
   const mutations=new Set(['register','login','logout','password-change','password-setup','password-reset-request','password-reset-complete','magic-request','verification-resend','verification-verify','reactivate','enrollment-approve','device-revoke','device-remove','device-update','devices-revoke-all','redeem-license','main-device','main-device-clear','upgrade-request','paddle-checkout','paddle-offer-checkout','paddle-portal','team-create','team-invite','team-accept','team-inbox-read','team-inbox-accept','notifications-read','team-remove','team-device-share','team-device-unshare','team-access-request']);
   if(mutations.has(action)&&!sameOriginMutation(req)){accountAudit(action,'cross_site_denied');return res.status(403).json({ok:false,error:'cross_site_request_denied'});}
   try{
+    if(action==='sessions-list'||action==='session-rename')
+      return await goldSessionNameAccountProxy(req,res,action);
     if(isGoldAbV2PortalAction(action))
       return await goldAbV2AccountProxy(req,res,action);
     if(action==='register'){
@@ -457,6 +464,9 @@ export function registerAccountPortal(app){
   app.get(['/account/usage','/account/usage/'],(_q,r)=>sendPortal(r,'usage.html'));
   app.get(['/account/billing','/account/billing/'],(_q,r)=>sendPortal(r,'billing.html'));
   app.get(['/account/settings','/account/settings/'],(_q,r)=>sendPortal(r,'settings.html'));
+  app.get(['/account/sessions','/account/sessions/'],(_q,r)=>
+    process.env.LR_GOLD_SESSION_OWNER_RENAME==='1'?
+      sendPortal(r,'sessions.html'):r.status(404).type('text').send('Not found'));
   app.get(['/account/login','/account/login/'],(_q,r)=>sendPortal(r,'login.html'));
   app.get(['/account/register','/account/register/'],(_q,r)=>sendPortal(r,'register.html'));
   app.get(['/account/verify-email','/account/verify-email/'],(_q,r)=>sendPortal(r,'verify-email.html'));

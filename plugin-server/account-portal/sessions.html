@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>Light Remote — Session names</title>
+<link rel="icon" href="/account/assets/light-remote.ico"><script src="/account/assets/theme.js"></script>
+<link rel="stylesheet" href="/account/assets/portal.css"></head>
+<body><div class="app"><aside class="sidebar">
+<div class="brand"><img src="/account/assets/light-remote-mark.svg" alt=""><span><strong>Light Remote</strong><small>Remote MCP</small></span></div>
+<nav class="nav"><a href="/account">Devices</a><a href="/account/team">Pro Team</a>
+<a href="/account/inbox">Inbox</a><a href="/account/usage">Usage</a>
+<a href="/account/billing">Plan &amp; billing</a><a class="active" href="/account/sessions">Session names</a>
+<a href="/account/settings">Settings</a></nav>
+</aside><main class="main"><div class="page-head"><div><h1>Session names</h1>
+<p>Names are display-only. Changing a name does not change the session ID, Agent permissions or connection.</p></div></div>
+<section class="panel"><h2>My Agent sessions</h2><div id="status" class="muted" role="status">Loading…</div>
+<div id="sessions"></div><div style="margin-top:1rem"><button id="refresh" class="btn">Refresh</button></div></section>
+</main></div>
+<script>
+const status=document.getElementById('status'),list=document.getElementById('sessions');
+let csrf='';
+async function api(action,body){
+ const response=await fetch('/account/api?action='+encodeURIComponent(action),{
+  method:body?'POST':'GET',credentials:'same-origin',cache:'no-store',
+  headers:{...(body?{'content-type':'application/json',
+    'x-light-session-name-csrf':csrf}:{})},
+  ...(body?{body:JSON.stringify(body)}:{})
+ });
+ const result=await response.json().catch(()=>({}));
+ if(response.status===401){location.href='/account/login';throw Error('login_required');}
+ if(!response.ok)throw Error(result.error||'HTTP '+response.status);
+ return result;
+}
+async function load(){
+ list.replaceChildren();status.textContent='Loading…';
+ try{
+  const data=await api('sessions-list');
+  csrf=data.csrf;
+  if(!data.sessions.length){status.textContent='No Agent sessions yet.';return;}
+  status.textContent=data.sessions.length+' sessions · owner rename takes priority over Agent nicknames';
+  for(const session of data.sessions){
+   const box=document.createElement('div');box.className='setting-row';
+   const info=document.createElement('div'),name=document.createElement('strong'),
+    detail=document.createElement('div');
+   name.textContent=session.displayName||session.label||session.sessionId;
+   detail.className='muted';detail.textContent=session.state+' · '+session.deviceId+
+     ' · '+session.sessionId;
+   info.append(name,detail);
+   const form=document.createElement('form'),input=document.createElement('input'),
+    button=document.createElement('button');
+   input.type='text';input.maxLength=96;input.minLength=3;input.required=true;
+   input.value=session.displayName||session.label||'';
+   input.setAttribute('aria-label','Name for session '+session.sessionId);
+   button.type='submit';button.className='btn';button.textContent='Save name';
+   form.append(input,button);form.addEventListener('submit',async event=>{
+    event.preventDefault();button.disabled=true;
+    try{
+     const updated=await api('session-rename',{sessionId:session.sessionId,
+      displayName:input.value});
+     name.textContent=updated.session.displayName;
+     status.textContent='Session display name saved. Session ID unchanged.';
+    }catch(error){status.textContent=error.message;}
+    finally{button.disabled=false;}
+   });
+   box.append(info,form);list.append(box);
+  }
+ }catch(error){status.textContent=error.message;}
+}
+document.getElementById('refresh').addEventListener('click',load);
+load();
+</script></body></html>

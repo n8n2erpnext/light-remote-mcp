@@ -55,6 +55,7 @@ import { restoreActivityRing } from '../lib/activity-ring.mjs';
 import { isOutboundTarget } from '../lib/operator-target-route.mjs';
 import { createPlatformAdapter } from '../device-agent/platform-adapters/index.mjs';
 import { handleAccountRoutes } from './executor-routes-account.mjs';
+import {createGoldSessionOwnerHttp} from './gold-session-owner-http.mjs';
 import {createGoldAbV2OwnerHttpFromOperator} from './gold-ab-v2-owner-http.mjs';
 import {createGoldAbV2GrantOperator} from './gold-ab-v2-grant-operator.mjs';
 import {createGoldAbV2SignedPreview} from './gold-ab-v2-signed-preview.mjs';
@@ -1651,6 +1652,10 @@ const goldAbV2GrantOperator=createGoldAbV2GrantOperator({
  env:process.env,storage:goldStorage,requireAccount,accountSessionToken,
  accounts,devices,connections,enrollments,accessGrants,goldRegistries
 });
+const goldSessionOwnerHttp=createGoldSessionOwnerHttp({
+ env:process.env,requireAccount,accountSessionToken,sessions,
+ flushSessions:()=>goldSessionState.flush(),readJson,sendJson
+});
 const goldAbV2OwnerHttp=createGoldAbV2OwnerHttpFromOperator({
  env:process.env,storage:goldStorage,requireAccount,accountSessionToken,
  accounts,devices,connections,enrollments,readJson,sendJson,
@@ -1672,6 +1677,7 @@ const server = http.createServer(async (req, res) => {
     if(await goldAbV2HelperPoll(req,res,url))return;
     await handlePluginRoutes(req,res,url,routeDeps());
     if(res.headersSent)return;
+    if(await goldSessionOwnerHttp(req,res,url))return;
     await handleAccountRoutes(req,res,url,routeDeps());
     if(res.headersSent)return;
     await handleDeviceChannelRoutes(req,res,url,routeDeps());

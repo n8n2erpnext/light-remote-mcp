@@ -166,6 +166,12 @@ An MCP login provides account identity only. Device operations require device en
 - `deploy/scripts/selftest-gold-agent-session-nickname.mjs` PASS (owner priority, first Agent choice, two-Agent collision, spoofed owner/Agent denial, unsafe text rejection, Redis snapshot/restart and stable IDs), also `selftest-gold-session-redis.mjs` PASS. **Owner rename API/UI not implemented yet; P2-I3b**. Gold UAT and production remain untouched, flag OFF.
 - Unified plan: `docs/gold/GOLD_P2_INTEGRATED_ABV2_NICKNAME_PRO_SHARE_PLAN_20261030.md`; **next Pro Share** only after P2-I3b. Do not reopen standalone A/B V2 test cycle or sell frozen Pro Team.
 
+### P2-I3b — Owner rename via authenticated account session (source-only OFF)
+
+- `operator-host/gold-session-owner-http.mjs`: Operator GET/POST `/v1/accounts/session-names[/sessionId]`; existing owner cookie session verified at Operator, exact session account, strict Origin and HMAC CSRF tied to that authenticated session; owner rename only, existing Gold Redis session-state mutator flushed before returning success. Gated by BOTH `LR_GOLD_SESSION_AGENT_NICKNAME=1` and `LR_GOLD_SESSION_OWNER_RENAME=1` plus `LR_GOLD_SESSION_OWNER_ORIGIN=https://...`.
+- `plugin-server/account-session-names.mjs`: authenticated cookie-derived account proxy, no client-supplied account/Agent/grant, strict Origin+CSRF; `plugin-server/account-portal.mjs`: `sessions-list`/`session-rename` actions and flag-hidden `/account/sessions`. `plugin-server/account-portal/sessions.html` uses textContent, exposes displayName/state/sessionId, lets owner set display name. Settings hides navigation unless API available.
+- Core nickname and Redis snapshot regression PASS; Node syntax + inline browser JS compilation PASS; new owner HTTP negative fixture and installed browser E2E NOT RUN. No release or flag change, source-only. Next Pro Share one guest, no 5-seat Team reactivation.
+
 ## 3. Durable session and nickname
 - [Session Registry](../../operator-host/session-manager.mjs) — open, hold, resume, display `label`; immutable sessionId.
 - [Redis session persistence](../../lib/gold-session-redis.mjs) — registry snapshots/mutator whitelist; new rename setter must participate in durable writes.
