@@ -10,7 +10,7 @@ import {signGoldAbV2HelperPoll} from '../lib/gold-ab-v2-helper-poll-proof.mjs';
 const opId=p=>`${p}-${crypto.randomUUID()}`;
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const cleanDevice=d=>({deviceId:d.deviceId,name:d.displayName||d.name||d.deviceId,platform:d.platform,architecture:d.architecture,state:d.state,capabilities:[...(d.effectiveCapabilities||d.capabilities||d.approvedCapabilities||[])]});
-const cleanSession=s=>({sessionId:s.sessionId,deviceId:s.deviceId,state:s.state,workspace:s.workspace||'',gracePreset:s.gracePreset||null,holdReason:s.holdReason||null,expiresAt:s.expiresAt||null,reconnectCount:Number(s.reconnectCount)||0});
+const cleanSession=s=>({sessionId:s.sessionId,deviceId:s.deviceId,displayName:s.displayName||null,nameSource:s.nameSource||null,state:s.state,workspace:s.workspace||'',gracePreset:s.gracePreset||null,holdReason:s.holdReason||null,expiresAt:s.expiresAt||null,reconnectCount:Number(s.reconnectCount)||0});
 const cleanContext=c=>c?({deviceId:c.deviceId||null,sessionId:c.sessionId||null,nodeId:c.nodeId||null,workspace:c.workspace||'',gracePreset:c.gracePreset||null,platform:c.platform||null,architecture:c.architecture||null,deviceState:c.deviceState||null,connectionState:c.connectionState||null}):null;
 // Job view normalization is shared with P0 regression fixtures.
 const PRODUCT_CAPABILITIES=Object.freeze([
@@ -177,11 +177,12 @@ export class AccountOperatorAdapter{
     if(!d||d.accountId!==this.identity.accountId||d.state==='revoked')throw Object.assign(new Error('device_not_available'),{status:404});
     return d;
   }
-  async workingContext({deviceId=null,workspace=null,gracePreset=null}={}){
+  async workingContext({deviceId=null,workspace=null,gracePreset=null,agentNickname=null}={}){
     const client=await this.clientRaw({required:true,continuity:true}),body={clientSessionId:client.clientSessionId,agentId:this.agentId};
     if(deviceId)body.deviceId=deviceId;
     if(workspace!==null)body.workspace=String(workspace||'').slice(0,512);
     if(gracePreset)body.gracePreset=gracePreset;
+    if(agentNickname!=null)body.agentNickname=String(agentNickname).slice(0,120);
     const row=await callOperatorJson('POST','/v1/agent-client/context',body);
     if(row?.session?.accountId!==this.identity.accountId)throw new Error('session_account_mismatch');
     return {context:cleanContext(row.context),session:cleanSession(row.session)};
@@ -217,13 +218,13 @@ export class AccountOperatorAdapter{
   async setMainDevice(deviceId){await this.deviceRaw(deviceId);const row=await callOperatorJson('POST',`/v1/plugin/accounts/${encodeURIComponent(this.identity.accountId)}/main-device`,{deviceId});return {account:safeAccount(row.account),mainDevice:cleanDevice(row.mainDevice)};}
   async revokeDevice(deviceId,reason='plugin_owner_revoked'){await this.deviceRaw(deviceId);const row=await callOperatorJson('POST',`/v1/plugin/accounts/${encodeURIComponent(this.identity.accountId)}/devices/${encodeURIComponent(deviceId)}/revoke`,{reason:String(reason||'plugin_owner_revoked').slice(0,120)});return {deviceId:row.device?.deviceId||deviceId,state:row.device?.state||'revoked',revoked:true};}
   async removeDevice(deviceId,reason='plugin_owner_removed'){await this.deviceRaw(deviceId);const row=await callOperatorJson('POST',`/v1/plugin/accounts/${encodeURIComponent(this.identity.accountId)}/devices/${encodeURIComponent(deviceId)}/remove`,{reason:String(reason||'plugin_owner_removed').slice(0,120)});return {deviceId,removed:Boolean(row.removed?.removed||row.binding?.removed||row.removed===true)};}
-  async openSession({deviceId,openId=null,workspace='',gracePreset='60m'}={}){
+  async openSession({deviceId,openId=null,workspace='',gracePreset='60m',agentNickname=null}={}){
     const d=await this.deviceRaw(deviceId);if(d.state!=='online')throw new Error('device_offline');
     if(openId){
       const row=await callOperatorJson('POST','/v1/plugin/sessions/open',{accountId:this.identity.accountId,openId,agentId:this.agentId,label:'ChatGPT Light Remote',workspace:String(workspace||'').slice(0,512),gracePreset,nodeId:d.nodeId});
       if(row?.session?.accountId!==this.identity.accountId||row?.session?.deviceId!==d.deviceId)throw new Error('session_target_mismatch');
     }
-    const working=await this.workingContext({deviceId:d.deviceId,workspace,gracePreset});
+    const working=await this.workingContext({deviceId:d.deviceId,workspace,gracePreset,agentNickname});
     return working.session;
   }
   async sessionRaw(sessionId){const q=new URLSearchParams({accountId:this.identity.accountId,agentId:this.agentId}),row=await callOperatorJson('GET',`/v1/plugin/sessions/${encodeURIComponent(sessionId)}?${q}`),s=row.session;if(!s||s.accountId!==this.identity.accountId)throw Object.assign(new Error('session_not_found'),{status:404});await this.deviceRaw(s.deviceId,{continuity:true});return s;}

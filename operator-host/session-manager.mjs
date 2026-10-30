@@ -83,7 +83,9 @@ export class SessionRegistry {
     const inferredHold=state==='hold' && !activeJobHold;
     const holdReason=activeJobHold ? 'active_job' : inferredHold ? (s.holdReason || 'agent_inactive') : null;    return {
       accountId:s.accountId, deviceId:s.deviceId, sessionId:s.id, agentId:s.agentId, nodeId:s.nodeId,
-      openId:s.openId || null, label:s.label, workspace:s.workspace, implicit:s.implicit, state,
+      openId:s.openId || null, label:s.label,
+      displayName:s.displayName||null,nameSource:s.nameSource||null,namedAt:s.namedAt||null,
+      workspace:s.workspace, implicit:s.implicit, state,
       graceMs:s.graceMs, gracePreset:s.gracePreset,
       // Compatibility aliases for v0.9 callers while the protocol migrates from lease terminology.
       leaseMs:s.graceMs, leasePreset:s.gracePreset,
@@ -186,7 +188,7 @@ export class SessionRegistry {
     const requestedGrace=graceMs??leaseMs, requestedPreset=gracePreset??leasePreset;
     const graceSpec=this._graceSpec(requestedGrace,requestedPreset), now=this.now();
     const s={id:sessionId,accountId:targetAccountId,deviceId:targetDeviceId,agentId:aid,nodeId:targetNodeId,openId:stableOpenId,
-      label:String(label||'').slice(0,120),workspace:String(workspace||'').slice(0,512),implicit:Boolean(implicit),
+      label:String(label||'').slice(0,120),displayName:null,nameSource:null,namedAt:null,workspace:String(workspace||'').slice(0,512),implicit:Boolean(implicit),
       graceMs:graceSpec.graceMs,gracePreset:graceSpec.gracePreset,createdAt:now,lastSeenAt:now,closedAt:null,expiredAt:null,
       holdReason:null,activeJobs:new Set(),connectCount:1,reconnectCount:0,
       stats:{toolCalls:0,execCalls:0,jobsStarted:0,jobsFinished:0,outputReads:0,jobReads:0,errors:0}};
@@ -233,6 +235,34 @@ export class SessionRegistry {
   get(id,agentId=null) {
     const s=this.sessions.get(String(id||'')); if (!s) throw new SessionError('session_not_found',404);
     if (agentId!=null) this._owner(s,agentId);
+    return this._view(s);
+  }
+
+  // Display metadata only; NEVER mutate sessionId, authorization, grace or lease.
+  // First Agent name wins; owner may override via a separately authenticated route.
+  setDisplayName(id,{agentId,accountId,displayName,source='agent'}={}) {
+    const s=this.sessions.get(String(id||''));
+    if(!s)throw new SessionError('session_not_found',404);
+    if(s.accountId!==String(accountId||''))throw new SessionError('session_account_mismatch',403);
+    if(source==='agent')this._owner(s,agentId);
+    else if(source!=='owner')throw new SessionError('session_name_source_invalid',400);
+    if(['closed','expired'].includes(this._state(s)))throw new SessionError('session_not_active',410);
+    if(typeof displayName!=='string')throw new SessionError('session_display_name_invalid',400);
+    const name=displayName.normalize('NFC').trim().replace(/ +/g,' ');
+    if(name.length<3||name.length>96||/[\p{Cc}\p{Cf}\p{Cs}<>]/u.test(name))
+      throw new SessionError('session_display_name_invalid',400);
+    if(source==='agent'&&(s.nameSource==='owner'||s.nameSource==='agent'))return this._view(s);
+    if(s.displayName===name&&s.nameSource===source)return this._view(s);
+    const taken=new Set([...this.sessions.values()].filter(x=>x.id!==s.id&&
+      x.accountId===s.accountId&&x.displayName).map(x=>x.displayName));
+    let unique=name;
+    for(let n=2;taken.has(unique);n++){
+      const suffix=' '+n;
+      unique=name.slice(0,96-suffix.length).trimEnd()+suffix;
+    }
+    s.displayName=unique;s.nameSource=source;s.namedAt=this.now();
+    this.emit({type:'session_display_name_updated',accountId:s.accountId,deviceId:s.deviceId,
+      sessionId:s.id,agentId:s.agentId,nameSource:source,displayName:name});
     return this._view(s);
   }
 

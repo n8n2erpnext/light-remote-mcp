@@ -217,8 +217,8 @@ export function registerPluginTools(server,identity){
 
   add(server,'light_remote_context',{
     title:'Recover or change the working Light Remote context',
-    description:'Reuse or create the durable working session for one A/B-authorized device, optionally changing workspace or grace. Never silently switches to an unauthorized target.',
-    inputSchema:{deviceId:id.optional(),workspace:z.string().max(512).optional(),gracePreset:z.enum(['15m','30m','45m','60m']).optional()},
+    description:'Reuse or create the durable working session for one A/B-authorized device. Optionally supply an Agent-chosen playful session nickname (fruit, animal, insect, flower, plant or place); do not ask the owner, do not guess the model. Naming never blocks connection.',
+    inputSchema:{deviceId:id.optional(),workspace:z.string().max(512).optional(),gracePreset:z.enum(['15m','30m','45m','60m']).optional(),agentNickname:z.string().min(3).max(96).optional()},
     securitySchemes:security(['remote:write']),annotations:annotations(false,false,false,true)
   },guarded(identity,['remote:write'],(a,x)=>a.workingContext(x)));
 
@@ -255,7 +255,7 @@ export function registerPluginTools(server,identity){
   add(server,'light_remote_open_session',{
     title:'Open or reuse a durable session',
     description:'Bind work to one explicit owned device and this MCP client.',
-    inputSchema:{deviceId:id,openId:z.string().regex(/^[A-Za-z0-9._:-]{16,160}$/).optional(),workspace:z.string().max(512).optional(),gracePreset:z.enum(['15m','30m','45m','60m']).optional()},securitySchemes:security(['remote:write']),annotations:annotations(false,false,false,true)
+    inputSchema:{deviceId:id,openId:z.string().regex(/^[A-Za-z0-9._:-]{16,160}$/).optional(),workspace:z.string().max(512).optional(),gracePreset:z.enum(['15m','30m','45m','60m']).optional(),agentNickname:z.string().min(3).max(96).optional()},securitySchemes:security(['remote:write']),annotations:annotations(false,false,false,true)
   },guarded(identity,['remote:write'],(a,x)=>a.openSession(x)));
 
   add(server,'light_remote_list_sessions',{
