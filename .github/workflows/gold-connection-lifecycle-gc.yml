@@ -12,6 +12,9 @@ on:
       - 'deploy/scripts/gold-g3-uat-cutover.sh'
       - 'deploy/scripts/selftest-gold-p2a-migration-lock.mjs'
       - 'deploy/scripts/selftest-gold-p2b-legacy-release-gates.mjs'
+      - 'deploy/scripts/selftest-gold-p2b-four-service-orchestrator.mjs'
+      - 'deploy/scripts/gold-p2b-four-service-orchestrator.mjs'
+      - 'lib/gold-p2b-release-gate.mjs'
       - 'deploy/scripts/gold-m6-uat-four-service-cutover.sh'
       - 'deploy/scripts/gold-g3-uat-backup.sh'
       - 'deploy/scripts/gold-g3-uat-rollback.sh'
@@ -95,6 +98,8 @@ jobs:
           bash -n deploy/scripts/gold-g3-uat-cutover.sh
           node deploy/scripts/selftest-gold-p2a-migration-lock.mjs
           node deploy/scripts/selftest-gold-p2b-legacy-release-gates.mjs
+          node --check deploy/scripts/gold-p2b-four-service-orchestrator.mjs
+          node deploy/scripts/selftest-gold-p2b-four-service-orchestrator.mjs
           node --check device-agent/execution-epoch-journal.mjs
           node --check device-agent/operator-agent.mjs
           node --check operator-host/executor-routes-device-channel.mjs

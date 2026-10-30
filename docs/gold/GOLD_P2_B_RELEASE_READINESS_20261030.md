@@ -101,3 +101,53 @@ without explicit opt-in, and real paired PG restore rollback.
 Rehearse the new script on a disposable no-NIC clone and use a controlled
 signed Agent canary later; do NOT deploy to live Gold UAT until owner
 approves the risk and fresh backups.
+
+## P2-B source-only four-service orchestrator v1 (2026-10-30, follow-up)
+
+New code:
+- `lib/gold-p2b-release-gate.mjs`: pure testable 16-condition release gate.
+  It insists on 4 real units sharing one immutable runtime source, explicit
+  schema039 ledger, no active jobs, no unclassified UNKNOWN work, no
+  unproved resource claims, signed fleet/effect quiescence, independent
+  confirmed preimages, Redis TTL, feature flags OFF, and device allowlist.
+- `deploy/scripts/gold-p2b-four-service-orchestrator.mjs`: default
+  `--preflight` is **READ-ONLY**, reports observed PG/systemd/fleet counts,
+  and prints status `HOLD` / exit status 4 until every required gate
+  is proved. The `--plan` mode renders immutable ordered advance/rollback
+  phases; does NOT execute them. All `--apply`, `--migrate` and
+  `--rollback` options deliberately return exit 3 before opening any
+  database, systemd or network connection.
+- `deploy/scripts/selftest-gold-p2b-four-service-orchestrator.mjs`:
+  fixture tests cover schema mismatch, missing supervisor, source split,
+  active job, unresolved UNKNOWN, foreign claim, backup, signed proofs,
+  and explicit denial of all mutation flags. Even an artificially
+  fully-green fixture yields `liveMutationAuthorized=false`. It only
+  reaches `READINESS_REVIEW_REQUIRED`, not automatic approval.
+- GitHub CI source gate now runs the new test and checks orchestrator syntax.
+
+### Real isolated clone preflight (observations, not simulation)
+
+Executed the new CLI as root inside the existing *networkless* LXD clone
+`gold-p2a-runtime-rollback-20261030` after proving it has only a root
+disk and `boot.autostart=false`. PG query was read-only. Report:
+- `operation=READ_ONLY`, `status=HOLD`, `liveMutationAuthorized=false`.
+- PostgreSQL schema039 39/39, active jobs0, unknown work **27**, one
+  protected historical foreign M4 resource claim.
+- Clone hostname intentionally does not match live Gold target;
+  the unit observation was taken while clone systemd was starting
+  (four units not yet active), and pending fresh preimage/candidate/
+  signed-evidence gates were HOLD. None was forged or overridden.
+- No NIC (loopback only). After run the clone was STOPPED again.
+- Live UAT independently remained schema039, 4/4 units ACTIVE,
+  historical claim count1. Production rc.47 untouched.
+
+### Explicit non-goals and future P2-B engineering gate
+
+This is the **read-only orchestrator/preflight/transaction blueprint**, NOT
+a working production or live UAT deploy-and-restore tool. Its advance and
+rollback phases all carry `action=NOT_IMPLEMENTED`; this is deliberate
+to prevent implicit authorization. A next P2-B patch must implement
+separately reviewed four-service staging/switch + audited paired
+PostgreSQL/Redis rollback, first in an isolated clone, with **new owner
+approval** before any live UAT code or schema changes. Do not infer
+permission to deploy merely because P2-A rehearsals passed.
