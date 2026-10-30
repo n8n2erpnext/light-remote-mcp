@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "light-remote.current-checkpoint.v1",
+  "updatedDate": "2026-10-30",
+  "status": "LightBI-style documentation governance integrated in Gold branch; source-only, not deployed",
+  "branch": "feat/gold-connection-gc-reconciler-20261029",
+  "verifiedSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
+  "provenance": "Source branch/Git and previous 2026-10-30 live read-only evidence; recheck before mutations",
+  "runtime": {
+    "goldUatSchemaLastVerified": 39,
+    "sourceMigrationsUpTo": 42,
+    "servicesLastVerified": "4 active",
+    "historicalClaimsPreserved": 1,
+    "unknownWorkRowsPreserved": 27,
+    "productionRc47Touched": false
+  },
+  "completed": [
+    "LightBI library rules and project-book code map read",
+    "Light Remote canonical docs shelves and code map initialized",
+    "Source catalog generator and bounded docs link validation authored",
+    "Future IT Support RBAC moved out of Gold P2 acceptance scope"
+  ],
+  "open": [
+    "Doc generator and link CI exact SHA must pass",
+    "Gold A/B V2, nickname and Pro Share remain not implemented",
+    "Live signed Agent ↔ Operator terminal ACK not accepted",
+    "Live Gold UAT migration and production cutover not approved"
+  ],
+  "nextAction": "Verify Gold doc-library GitHub Actions at the exact documentation commit; then resume Gold P2-I1 source-only stable Short ID and scoped discovery with Project Book, Code Map, Worklog, source catalog and this overwrite-only checkpoint.",
+  "readFirst": [
+    "docs/project-book/README.md",
+    "docs/project-book/LIBRARY_RULES.md",
+    "docs/project-book/LIGHT_REMOTE_PROJECT_BOOK.md",
+    "docs/project-book/LIGHT_REMOTE_CODE_MAP.md",
+    "docs/project-book/LIGHT_REMOTE_WORKLOG.md",
+    "docs/gold/GOLD_P2_UNIFIED_ACCEPTANCE_LEDGER_20261030.md"
+  ]
+}

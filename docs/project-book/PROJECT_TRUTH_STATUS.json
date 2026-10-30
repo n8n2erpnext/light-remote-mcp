@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "light-remote.project-book.truth-status.v1",
+  "snapshotDate": "2026-10-30",
+  "authority": "dated source/runtime evidence snapshot; verify before acting",
+  "referenceGoldSourceCommit": "47556b829425784e4c1240c88f08e7272970595f",
+  "repository": "n8n2erpnext/light-remote-mcp",
+  "sourceBranch": "feat/gold-connection-gc-reconciler-20261029",
+  "projectPhase": "Gold P2 integrated source development; no live cutover",
+  "runtimeLastVerified": {
+    "goldUatContainer": "light-remote-gold-uat",
+    "schemaVersion": 39,
+    "sourceHasMigrationsUpTo": 42,
+    "fourServicesActive": true,
+    "historicalResourceClaims": 1,
+    "unknownWorkRows": 27,
+    "exactNativeSignedTerminalEvidenceForHistoricalClaim": false,
+    "productionRc47Untouched": true
+  },
+  "evidence": {
+    "p1SourceCI": "PASS scoped synthetic protocol, not production capacity",
+    "p2AClone": "PASS isolated migration and PG/Redis/four-service rollback",
+    "p2BFixture": "PASS scoped real PG signed HTTP and enrollment fixture",
+    "windowsNative": "PASS offline Win10 module boundary, not installed Agent/server E2E",
+    "lastVerifiedCIRun": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/41025222358",
+    "lastVerifiedCISourceSHA": "d6892d7d99b585ff355caf7503de877bbfc3068c"
+  },
+  "acceptedDirectionsNotImplemented": [
+    "A/B V2 Agent initiated request",
+    "durable agent-selected session nickname",
+    "Pro Share owner plus one guest"
+  ],
+  "futureOnlyNonBlocking": [
+    "enterprise IT Support organization/branch/user/group scoped RBAC after core product stability"
+  ],
+  "blockers": [
+    "live PG041/042 not migrated",
+    "signed native end-to-end Operator/Agent ACK unproven",
+    "historical M4 claim and started UNKNOWN preserved",
+    "new A/B V2, nickname, Pro Share not implemented",
+    "owner approval needed for live Gold UAT and production promotion"
+  ],
+  "readFirst": [
+    "docs/project-book/README.md",
+    "docs/project-book/LIBRARY_RULES.md",
+    "docs/project-book/LIGHT_REMOTE_PROJECT_BOOK.md",
+    "docs/project-book/LIGHT_REMOTE_CODE_MAP.md",
+    "docs/gold/GOLD_P2_INTEGRATED_ABV2_NICKNAME_PRO_SHARE_PLAN_20261030.md",
+    ".light-remote/CURRENT_CHECKPOINT.json"
+  ]
+}

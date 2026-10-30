@@ -1,0 +1,1500 @@
+{
+  "schemaVersion": "light-remote.project-book.source-catalog.v1",
+  "scope": "docs/**/*.md and docs/**/*.json, excluding docs/project-book to avoid self-reference",
+  "generatedBy": "deploy/scripts/generate-doc-catalog.mjs",
+  "counts": {
+    "total": 186,
+    "markdown": 186,
+    "json": 0
+  },
+  "files": [
+    {
+      "path": "docs/DEVELOPMENT.md",
+      "shelf": "DEVELOPMENT.md",
+      "extension": "md",
+      "bytes": 7291,
+      "sha256": "f2e9e2091cf6b91ecd1b055b9e8e36db2cf4ff88e759c18ca1340286702183d1",
+      "title": "Light Remote MCP — Development & Testing"
+    },
+    {
+      "path": "docs/experiments/MACOS_RMV2_SCP.md",
+      "shelf": "experiments",
+      "extension": "md",
+      "bytes": 14801,
+      "sha256": "7d359ca6e591a66b160a540e09a6b4606255e631a3b7cb1edb98a4b4b898a8c4",
+      "title": "Experimental macOS Real Remote V2 + SCP"
+    },
+    {
+      "path": "docs/gold/CODEX_CHATGPT_PLUS_NATIVE_WALL_20261024.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 6460,
+      "sha256": "a135b2862c4bf9bfbbb9a63d4eb759772e65c1b7c33245fda9dda96447efa451",
+      "title": "Gold native Codex Bridge - Sign in with ChatGPT (Plus plan)"
+    },
+    {
+      "path": "docs/gold/G3_ACCOUNT_FIRST_SYNC_HANDOFF_20261025.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 9980,
+      "sha256": "7470e8bfdfce66663a54f4c89ea5f53ad352dbc8a6a3dd93aa318dc88292bd9e",
+      "title": "Light Remote Gold — G3 Account-first Memory Sync Handoff — 2026-10-25"
+    },
+    {
+      "path": "docs/gold/GOLD_ACCOUNT_SCOPE_DELETE_ENGINEERING_20261026.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 2897,
+      "sha256": "3e5c1b9cca29606f688b6faabd1eba56945799b5db2e40b764187284777e03d6",
+      "title": "Gold account-wide scoped Memory deletion (2026-10-26)"
+    },
+    {
+      "path": "docs/gold/GOLD_BRANCH_PR_AUDIT_AND_WALL_DIALOGS_20261026.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 5761,
+      "sha256": "406ac8896d1e7b620952f2522ad7715e3305cf4b69d881196db58cff019370cd",
+      "title": "Gold branch code audit and Wall-owned dialogs — 2026-10-26"
+    },
+    {
+      "path": "docs/gold/GOLD_CODEX_COORDINATOR_MICROTASK_PLAN_20261026.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 4197,
+      "sha256": "97e6005899a35d84533a396744cbb5c3570fef0a1ebd59d1f3ccc161bca0192f",
+      "title": "Gold Codex Review Loop — microtask orchestration plan (2026-10-26)"
+    },
+    {
+      "path": "docs/gold/GOLD_CODEX_SUPERVISOR_HANDOFF_20261026.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 3659,
+      "sha256": "f325410df82369243e1177bcc2409ae7337b2bb570063a6335a494ebd929cc9e",
+      "title": "Gold Codex Supervisor — 2026-10-26"
+    },
+    {
+      "path": "docs/gold/GOLD_CODEX_SUPERVISOR_LIVE_UAT_ACCEPTANCE_20261026.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 3425,
+      "sha256": "3ee260239f86cc8ad017bb626fa47fca2e7d320d736ff985b8eca7b06919b05c",
+      "title": "Gold Codex Supervisor — live acceptance, 2026-10-26"
+    },
+    {
+      "path": "docs/gold/GOLD_CODEX_WINDOWS_LIVE_REVIEW_AND_ACL_20261026.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 3911,
+      "sha256": "61f16e16d94b9fe26024bf8ba1b7f489ae290944fcac179394780c507310ea94",
+      "title": "Gold Codex Review Loop: Windows acceptance and recoverable WAIT_OWNER (2026-10-26)"
+    },
+    {
+      "path": "docs/gold/GOLD_CONNECTION_LIFECYCLE_GC_20261029.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 5570,
+      "sha256": "3020ddb77d523afa98f6427ece55af151a7ca81c52c20d332e8ecb61aade6294",
+      "title": "Gold Connection Lifecycle GC — 29 October 2026"
+    },
+    {
+      "path": "docs/gold/GOLD_EXECUTION_EPOCH_041_LIMITED_UAT_PREP_20261029.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 7793,
+      "sha256": "6ebdb9a55e338dcb3ad4813334217e03a3f45e0b1b468f3266b3ddd7cab37443",
+      "title": "Gold signed execution epochs / inventory — scoped UAT preparation"
+    },
+    {
+      "path": "docs/gold/GOLD_G3_CLOSE_SESSION_WINDOWS_UAT_BUILD_RECEIPT_20261025.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 4211,
+      "sha256": "7f9df6746ca36780cfab5f52d4e2c1639fd9d4b6ae15bfe2d16d6710f522049d",
+      "title": "GOLD G3 + Close Session — Windows UAT build receipt"
+    },
+    {
+      "path": "docs/gold/GOLD_LONG_MEMORY_CONTROLLER_HANDOFF_20261024.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 6913,
+      "sha256": "87892dbe85af6ffd77a47110c63638b142df31e708322b8d57bbd514941dada6",
+      "title": "Gold Long Memory + Codex Task Controller — integrated UAT plan / receipts"
+    },
+    {
+      "path": "docs/gold/GOLD_MEMORY_COMPLETION_SOURCE_HANDOFF_20261026.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 6541,
+      "sha256": "574ea4cf392ce1e5460863ace5abb827cca07f2e7f06adfc5aeec0c347ecaaf5",
+      "title": "Gold Long Memory Completion — source-only handoff, 2026-10-26"
+    },
+    {
+      "path": "docs/gold/GOLD_P0_4789C8A_RUNTIME_CUTOVER_ACCEPTANCE_20261028.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 4082,
+      "sha256": "3407d26d3779d8d11d508be272bad04aa9ab4bd001b2ee946a4c0864d54551a6",
+      "title": "Gold P0 — Uniform Runtime Cutover 4789c8a (2026-10-28)"
+    },
+    {
+      "path": "docs/gold/GOLD_P0_AGENT_ACCEPTANCE_CLOSURE_20261029.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 5445,
+      "sha256": "364b33be6aebfc6dd688904d3cb085cf1cf6dddfc0edb6c494fd6484c86edaf8",
+      "title": "Gold P0 Agent / Job Controller acceptance — 2026-10-29"
+    },
+    {
+      "path": "docs/gold/GOLD_P0_COMPLETED_RECEIPT_RESTART_20261029.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 2862,
+      "sha256": "f430a59d18d668ed9e4de83d323e28ac77153a444087b4e203ac6b6fcaeda2de",
+      "title": "Gold P0 — Completed Fleet receipt recovery after Operator restart (2026-10-29)"
+    },
+    {
+      "path": "docs/gold/GOLD_P0_F603643_SIGNED_RESULT_CUTOVER_20261028.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 3483,
+      "sha256": "6bb331dc4e59de9eeb87f5eecd61420d116f435b0cf0375f527aa30df8f7833a",
+      "title": "Gold P0 — durable signed result ACK / runtime cutover"
+    },
+    {
+      "path": "docs/gold/GOLD_P0_GRACEFUL_STOP_WIN11_AND_WALL_RENDER_ACCEPTANCE_20261028.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 3868,
+      "sha256": "5fa6caaf842e53aa3e4cda430f1c91a70db3885562b016de8208b7a6e5e54da0",
+      "title": "Gold P0 — Windows graceful Stop and Wall Stopping verification (2026-10-28)"
+    },
+    {
+      "path": "docs/gold/GOLD_P0_M4_A2F4_RUNTIME_CUTOVER_20261028.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 4205,
+      "sha256": "fa582209dc9db8320b7583a13bb9d6cbd8236d128d679c02429d7b9900b0f4b4",
+      "title": "Light Remote Gold — P0 M4 conservative unknown-workspace guard / UAT cutover"
+    },
+    {
+      "path": "docs/gold/GOLD_P0_M4_UNKNOWN_PROJECT_PATH_CONFLICT_20261028.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 2027,
+      "sha256": "fbdc290e8b9d74ddc86407617dd9d7f588e1560060b37891df9f2c39e5b2ff7e",
+      "title": "Gold P0 — M4 unknown-workspace conservative conflict fix"
+    },
+    {
+      "path": "docs/gold/GOLD_P0_OWNER_HOLD_AND_M2_M5_GATE_20261028.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 4406,
+      "sha256": "03aec0479555fee32c8d7e14d9371bfcaadb10e281a4b07c32699c958013e310",
+      "title": "Light Remote Gold P0 — owner HOLD decisions and independent gates (2026-10-28)"
+    },
+    {
+      "path": "docs/gold/GOLD_P0_PG38_RESTART_LEDGER_FIXTURE_20261029.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 1810,
+      "sha256": "4b01156c029f19253d7fbb00e6452eafd3a1ad470429de4d31b80ecd12c9ef37",
+      "title": "Gold P0 — Real PostgreSQL38 restart/ledger fixture (2026-10-29)"
+    },
+    {
+      "path": "docs/gold/GOLD_P0_POST_C0C6977_CONTINUATION_20261028.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 4561,
+      "sha256": "005ed86d51a722f89e27301467512eacbb230b32af3aa094248dbf12feacdc1c",
+      "title": "Gold P0 checkpoint — uniform runtime, PG38 concurrency, M6 orphan selection"
+    },
+    {
+      "path": "docs/gold/GOLD_P0_UNKNOWN_ADMITTING_CLAIM_RECOVERY_20261028.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 2846,
+      "sha256": "c6a977c42cab257827157f8bba7788f3d7267306913f7f741c7de2e11f79bcb6",
+      "title": "Gold P0 — unknown admitting claim continuity (2026-10-28)"
+    },
+    {
+      "path": "docs/gold/GOLD_P0_WALL_STOPPING_DISPLAY_20261028.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 1642,
+      "sha256": "2438ac39dd84aa1f26e9201ce0306b6810b83aea6fc982908b99c06d29b0b9e9",
+      "title": "Gold P0 Local Wall — truthful visible Stopping state"
+    },
+    {
+      "path": "docs/gold/GOLD_P0_WIN10_WIN11_WALL_KILL_ACTION_DENIED_20261028.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 2067,
+      "sha256": "3d16d34f26dbfe78ed5301b0ed12b08123c128c3a048b1e6b93539e62097422e",
+      "title": "Gold P0 — Local Wall Kill denied on Windows 10 + Windows 11"
+    },
+    {
+      "path": "docs/gold/GOLD_P0_WIN11_BOOT_TELEMETRY_SOURCE_20261029.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 5444,
+      "sha256": "51c9010be15d0540d2aa8fcf45e1ec91a746ebb82a5d148e5de3ffdf67a0411b",
+      "title": "Gold P0 Windows 11 — authenticated boot observation (source-only checkpoint, 2026-10-29)"
+    },
+    {
+      "path": "docs/gold/GOLD_P0_WIN11_OWNER_ATTESTED_UNKNOWN_RECOVERY_20261029.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 4390,
+      "sha256": "91c192e809623b03b41109d0e6d8455ae84487a4c2bd155554da9d46af5b2187",
+      "title": "Gold P0 — Windows 11 held-claim owner recovery, 2026-10-29"
+    },
+    {
+      "path": "docs/gold/GOLD_P0_WINDOWS_GRACEFUL_STOP_SOURCE_FIX_20261028.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 2331,
+      "sha256": "a4560c5c1752ce6b3f1800c82a6345f933e054b42a27b51c519808bbedcfad83",
+      "title": "Gold P0 Windows graceful Stop — source fix and release boundary"
+    },
+    {
+      "path": "docs/gold/GOLD_P0_WINDOWS10_11_NATIVE_BOOT_WMI_20261029.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 5271,
+      "sha256": "c3bdc111997f06e43785031a177691a54fbfe91c5a560ce86dc2dbe8f63ff498",
+      "title": "Gold P0 Windows 10/11 Native OS Boot Source — 2026-10-29"
+    },
+    {
+      "path": "docs/gold/GOLD_P0_WINDOWS11_WMI_COLD_START_AUTO_RECOVERY_20261029.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 3338,
+      "sha256": "1d9559486882d07e1df48ab5f1392d175858f0eac3fcd15775534f52ed1e122c",
+      "title": "Gold P0 Windows 10/11 — native WMI cold-start recovery (2026-10-29)"
+    },
+    {
+      "path": "docs/gold/GOLD_P2_A_BACKUP_RESTORE_ROLLBACK_20261030.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 15313,
+      "sha256": "f2f4acd9ef880ea8ec2daac70a8b088880db1b45b7b071a12706f73b71ed17b6",
+      "title": "Gold P2-A — Backup, migration and rollback gate (2026-10-30)"
+    },
+    {
+      "path": "docs/gold/GOLD_P2_B_RELEASE_READINESS_20261030.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 16769,
+      "sha256": "329cef775200e89da36592a6105843d22b5ec9dd5d266b8456b80b3f9e6ada0a",
+      "title": "Gold P2-B — Four-unit candidate staging and schema042 release gates"
+    },
+    {
+      "path": "docs/gold/GOLD_P2_B_SIGNED_EFFECTS_NATIVE_CANARY_20261030.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 11408,
+      "sha256": "6dd6d6dcce3f26b4cd07bb12bcda5c7c4be6355548c297b7d524e5ea01e7ef7c",
+      "title": "Gold P2-B — Signed effects, historical claims, native Windows canary"
+    },
+    {
+      "path": "docs/gold/GOLD_P2_I0_SOURCE_CONTRACT_AUDIT_20261030.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 5933,
+      "sha256": "a47bc37d7985daecd45d6b7b532dd711117c02fa84b0b85c759ed128eeae4e26",
+      "title": "Gold P2-I0 — first implementation source-contract audit (2026-10-30)"
+    },
+    {
+      "path": "docs/gold/GOLD_P2_INTEGRATED_ABV2_NICKNAME_PRO_SHARE_PLAN_20261030.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 37169,
+      "sha256": "81530a40f3f517ed6732fa2b1e8bee0352ea9316b979e76bf22e6ef5041071d1",
+      "title": "Light Remote Gold — Unified P2 release plan: A/B V2 + Agent nickname + Pro Share"
+    },
+    {
+      "path": "docs/gold/GOLD_P2_UNIFIED_ACCEPTANCE_LEDGER_20261030.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 6981,
+      "sha256": "979ab91b1ca95c62155679b87163a090ff900e836a705b2f6dddd9cd15c4e06c",
+      "title": "Gold P2 — single acceptance ledger for AB V2, nickname, Pro Share and P2"
+    },
+    {
+      "path": "docs/gold/GOLD_SIGNED_RECONNECT_EPOCH_GATE_20261029.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 5207,
+      "sha256": "fa966d6b13cedc7e648c5aecc4dabf985ffb470708207283f1e1a91ebe31194f",
+      "title": "Gold signed Agent reconnect process inventory & execution-epoch gate"
+    },
+    {
+      "path": "docs/gold/GOLD_WALL_NAV_CODEX_MANAGED_MEMORY_DELETE_HANDOFF_20261025.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 3801,
+      "sha256": "d1d1e36e7f079daa97865ed0cfa19da842d9582f5aeaab2264fb7cd80429479a",
+      "title": "Gold Wall navigation, managed Codex and Memory deletion — UAT handoff"
+    },
+    {
+      "path": "docs/gold/LONG_MEMORY_V2_MASTER_PLAN_20261024.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 59375,
+      "sha256": "216d3f1257baf2c510040bb1b9fccaa7e1fe9bae14d9a598363409a20a394f55",
+      "title": "LIGHT REMOTE GOLD — LONG MEMORY V2"
+    },
+    {
+      "path": "docs/gold/MEMORY_SYNC_ACCOUNT_DEVICE_MODES_20261025.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 28648,
+      "sha256": "6f605a0c3816a6b15728110f1cba5faa9b7a4522ce08c2cda9500b7e7adbde43",
+      "title": "Gold Memory Sync — Account-wide per-device modes (2026-10-25)"
+    },
+    {
+      "path": "docs/gold/OWNER_FILESYSTEM_ROOTS_20261023.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 5097,
+      "sha256": "f28b6cbdf407a1ebd389b23ff394a26bfca713104ccc8238590a08202bf29aae",
+      "title": "Gold — owner-configurable filesystem allowed roots (2026-10-23)"
+    },
+    {
+      "path": "docs/gold/RDC_GOLD_LIBREDESK_INBOUND_WEBHOOK_HANDOFF_20261027.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 7013,
+      "sha256": "703c5d759f0ada62a9f54b56ffa927d9b72a26c41c08365335220262f3d172df",
+      "title": "Gold Support Center — Signed Inbox Event Intake / Handoff (2026-10-27)"
+    },
+    {
+      "path": "docs/gold/RDC_GOLD_LIBREDESK_SUPPORT_GATE_HANDOFF_20261026.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 15769,
+      "sha256": "1d47a6cade553bc3252e65a5e285f793de1fb89e50bff117755b6f72e618cdee",
+      "title": "Gold Libredesk Support Gate — Master Handoff — 26 October 2026"
+    },
+    {
+      "path": "docs/gold/RDC_GOLD_MASTER_HANDOFF_20261026_PR4_FINAL_AUDIT.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 22193,
+      "sha256": "ec89f43b7e5deb2c4707bfbf8e7c33b8b25b86725d3cfbbd9a8817e655610658",
+      "title": "LIGHT REMOTE GOLD — MASTER HANDOFF 2026-10-26"
+    },
+    {
+      "path": "docs/gold/RDC_GOLD_PR4_SCHEMA37_ORPHAN_GATE_20261026.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 18244,
+      "sha256": "b427cfec052f9a163e497055246bdba0b021ded7f19467fd56f0859eb9375019",
+      "title": "Gold PR #4 continuation — schema 37 and orphan claim guarded release (2026-10-26)"
+    },
+    {
+      "path": "docs/gold/RDC_GOLD_RESUME_READ_FIRST_20261026.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 1316,
+      "sha256": "5f806eb4b5cd428bb56ade01614cefa6ebb5945f4f9c191f3402f01716a71eb3",
+      "title": "Gold PR #4 / Audit: RESUME FIRST (2026-10-26)"
+    },
+    {
+      "path": "docs/gold/RDC_GOLD_SUPPORT_RESUME_READ_FIRST_20261027.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 82293,
+      "sha256": "b0ab176471d66512a5bca8b525fdfa4a60037400871f2665ac608610235a779b",
+      "title": "READ FIRST — Libredesk + AI Support Gate, VPS-ARM (2026-10-27)"
+    },
+    {
+      "path": "docs/gold/RDC_GOLD_SUPPORT_TICKET_UI_V2_HANDOFF_20261027.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 18477,
+      "sha256": "b4959fc38241db5e524ed3967c78180555cd6d04899c90eede80bd726dff0ba5",
+      "title": "Gold Support Ticket UI V2 — 2026-10-27 — LIVE UAT"
+    },
+    {
+      "path": "docs/gold/RDC_GOLD_WALL_ACCOUNT_NOTIFICATIONS_HANDOFF_20261026.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 25364,
+      "sha256": "da5e7ed502111754ed6247f12e7c347cf9aa8729f0103804086ccb96e52fdbec",
+      "title": "Gold Local Wall — account notification bell UAT handoff (26 October 2026)"
+    },
+    {
+      "path": "docs/gold/RESTORE_POINT_OFFICIAL_20261024.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 2470,
+      "sha256": "65d6913c64971d863df034ad08614f727ff3e04ade5841d1fa90c486c769a924",
+      "title": "OFFICIAL RESTORE POINT — Gold before Long Memory / Codex Bridge"
+    },
+    {
+      "path": "docs/gold/WALL_NATIVE_MEMORY_CODEX_CHECKPOINT_20261024.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 10907,
+      "sha256": "29e1cd6138b193f51ef0cfcdb71ea5154eb8b77ed33a0e4194b114d9414c8efc",
+      "title": "Gold Wall optional modules — first native implementation checkpoint (2026-10-24)"
+    },
+    {
+      "path": "docs/gold/WIN11_RELINK_RM_STABILITY_RCA_20261028.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 8446,
+      "sha256": "036981c7d520a5a2cf30e75492d923d1fc85abc75bb547634ecbc3c4f3f61404",
+      "title": "Gold Windows 11 stability RCA and release gates — 2026-10-28"
+    },
+    {
+      "path": "docs/gold/WINDOWS_TRAY_RELINK_CI_20261028.md",
+      "shelf": "gold",
+      "extension": "md",
+      "bytes": 2419,
+      "sha256": "7da7ac41eeb2f117eefcf278e848fa7d0a2e3f651e50bdf45915fd79a53072ec",
+      "title": "Gold Windows Tray Relink — UAT handoff (2026-10-28)"
+    },
+    {
+      "path": "docs/operations/RETIRED_NETLIFY_2026-09-28.md",
+      "shelf": "operations",
+      "extension": "md",
+      "bytes": 1253,
+      "sha256": "9c0017cbd4510ff9ff170f456298fcecc38da49da4b7d734164020d0b8527917",
+      "title": "Retired Netlify backup lane — 2026-09-28"
+    },
+    {
+      "path": "docs/optimization/DOCKER_CAPABILITY_RESCAN_20261022.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 8812,
+      "sha256": "603c239569113e7a0da32f3a017a0e546551ba25f9972ff428905d3310cd456f",
+      "title": "Gold capability catalog and infrastructure rights — 2026-10-22"
+    },
+    {
+      "path": "docs/optimization/GOLD_MULTIOS_OWNER_PERMISSIONS_20261022.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 10629,
+      "sha256": "f0d73d158ee3d621d01710633d50e3fa8a62e1cc0e69d7d29fceea8435668068",
+      "title": "Gold Multi-OS Owner Permissions — UAT handoff (2026-10-22)"
+    },
+    {
+      "path": "docs/optimization/GOLD_UAT_WALL_CI315_DEPLOY_20261022.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 3943,
+      "sha256": "5df4a4638e8a244ad63f7e468db7942b3cf3c3a3042288ca66544b0121fb6e9d",
+      "title": "Gold UAT Wall-only CI #315 deployment — 2026-10-22"
+    },
+    {
+      "path": "docs/optimization/LIGHT_REMOTE_LINUX_SUDO_MOUNT_NAMESPACE_RCA_20261020.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 11697,
+      "sha256": "03103ef3a8eb8e17dc3d4ccd6118b361b0d97c3bedeb5dca98bde6006be7f329",
+      "title": "LIGHT REMOTE — Linux sudo-on-demand works but host writes fail under ProtectSystem=strict"
+    },
+    {
+      "path": "docs/optimization/RDC_FEATURE_GAP_MATRIX.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 9692,
+      "sha256": "8663359fa6f452ad37834e8a33b226fa99957f8cf20badccbadd1efb40cab9e9",
+      "title": "RDC → Light Remote: Gold source gap matrix (G0)"
+    },
+    {
+      "path": "docs/optimization/RDC_G1_TOOL_REFUSALS_EVIDENCE_2026-10-20.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 6552,
+      "sha256": "0d8a3ce75874a6185e2e4085005e2b2f6d3b9d8c2146c71a2318c920a1f0bdde",
+      "title": "G1 — Light Remote refusal evidence, Gold endpoint rebuild"
+    },
+    {
+      "path": "docs/optimization/RDC_G1_UNRESOLVED_REFUSALS_20261019.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 3225,
+      "sha256": "a7d62eda4375159b88525662be0ace21f619a7066da4fb26a61244670ab8d37b",
+      "title": "G1 — Unresolved refused tool calls (rolling evidence log)"
+    },
+    {
+      "path": "docs/optimization/RDC_G2_WINDOWS_WALL_DOUBLE_HEADERS_CRASH_20261020.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 5497,
+      "sha256": "2fc8930710cca4697ab242f0a3debbb6a35f4d1ff9f5171a5487149e1278fbad",
+      "title": "Gold G2 — Windows Local Wall 5491 crash / ERR_HTTP_HEADERS_SENT"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_EXECUTION_RCA_MAP.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 6900,
+      "sha256": "73b4d2f58dbe4a8d0c31ca60c492ea71517535e9cd234792f49041576960ebb4",
+      "title": "RDC vs Light Remote Gold — execution path and reliability RCA map (G0)"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G_PLAN_ENGINEERING_CHECKPOINT_20261021.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 7321,
+      "sha256": "ca785b2fd1fdc010943d527f49d77edea2375e88941c85b396a4e89f0e9f9f6f",
+      "title": "RDC → Light Remote Gold — G Plan engineering checkpoint / owner handoff"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G0_BASELINE_20261019.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 4970,
+      "sha256": "d7ad3764a3ead9ff7b9537d6c42c3c659334355d2e99181513d972d6715259ec",
+      "title": "Gold G0 read-only baseline and reproducibility log — 2026-10-19"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G0_HANDOFF_20261019.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 6253,
+      "sha256": "32191bd151bbfc11a9ebed6b3321a38e72d05e829bdd35e0b0373420a58a83f8",
+      "title": "RDC → Gold reliability optimization — G0 checkpoint/handoff (2026-10-19)"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G1_ALL_TOOL_PREDISPATCH_RCA_20261019.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 9269,
+      "sha256": "433bb6be283d7979229c3ddf0503a91a58c79da3b60398e0bc2a57b91e3d32e6",
+      "title": "Light Remote Gold G1 — All-tool pre-dispatch and MCP failure semantics RCA"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G1_CAPABILITY_PROVENANCE_CHECKPOINT_20261019.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 6688,
+      "sha256": "d2d5e7573bf522b091ee2d9ed72e797c2ba43cc0778a6793d576f7699c560bad",
+      "title": "RDC → Gold G1: Capability Provenance Checkpoint — 2026-10-19"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G1_ENVELOPE_AND_NEWLINE_GREEN_CHECKPOINT_20261019.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 8210,
+      "sha256": "b360770fcb3c2e5396fcfebdf5a3cd76cc815e74186099e36f35012cfd72b970",
+      "title": "G1 Gold — previously blocked fixes retried, verified, and deployed (2026-10-19)"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G1_HANDOFF_20261019.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 6696,
+      "sha256": "9e50189627a1f6cca00b065d5e43b7477729c6b6ecabdc56e291b4a046a9dd3c",
+      "title": "RDC → Gold G1: Capability Admission & Tool Error Origins — checkpoint 2026-10-19"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G1_JOURNALCTL_UNIT_CHECKPOINT_20261019.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 5068,
+      "sha256": "f599e3c16d8a55b8366a72271a2e46fcc887b1515d29f1961fd967b67bb12d83",
+      "title": "Gold G1 — journalctl unit-name false Docker capability (2026-10-19)"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G1_LINUX_SERVICE_QUERY_CHECKPOINT_20261019.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 6175,
+      "sha256": "765578ef067274c0bf80d09a470c415fe373aabce9ffbbd4bd185122055d3153",
+      "title": "G1 — Linux Docker service-name inference: false positive + substitution coverage"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G1_MCP_ERROR_BOUNDARY_CHECKPOINT_20261019.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 5139,
+      "sha256": "e2c8e76aaafb8c56d9aa58e775a3cd9f5f406e16cfc12ff51712c8a4a67733f3",
+      "title": "G1 Gold MCP error-boundary reliability checkpoint — 2026-10-19"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G1_MCP_RETURNED_FAILURE_ISERROR_20261019.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 3806,
+      "sha256": "83875abcda85f48b2892de2db10abab1c462802433d3430acb538102cf9b1ede",
+      "title": "Light Remote Gold G1 — returned operation errors carry MCP isError (2026-10-19)"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G1_OUTBOUND_EXEC_PARITY_CHECKPOINT_20261019.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 6171,
+      "sha256": "5161f382e13eb6395c4a98952fd672727b5ec50a091d00fafb2e8bdc0dca5bef",
+      "title": "Light Remote Gold — G1 outbound exec capability parity checkpoint"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G1_POLICY_REVISION_CHECKPOINT_20261019.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 5772,
+      "sha256": "98b8eafa706ce1b800d52499e8cc06b5d7b11b611360ba56735f9338450fd3ee",
+      "title": "RDC → Light Remote Gold G1: Policy Revision Diagnostic Checkpoint — 2026-10-19"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G1_RETURNED_FAILURE_ORIGIN_MULTIFAMILY_20261019.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 5319,
+      "sha256": "404d26ac8371c8962ce757b9570030316a2c256bf6b227d1140e477d7f86116f",
+      "title": "Gold G1 — Returned failure origin across MCP tool families (2026-10-19)"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G2_CLIENT_BUILD_RUNTIME_VALIDATION_20261019.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 8320,
+      "sha256": "bfbac7fb5b6dc2b03df7c8b89d9083bfe1dfb8c9136a818bc291a9dca6e80bde",
+      "title": "Gold G2 — Client builds and runtime lifecycle validation (2026-10-19)"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G2_NATIVE_PROCESS_STDIN_EPIPE_20261019.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 4014,
+      "sha256": "426211483b4f4ed2e9e40b87bbde6e6e02432b73dc7859687584c4799665666c",
+      "title": "Gold G2 — NativeProcess asynchronous stdin EPIPE hardening (2026-10-19)"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G2_POSIX_NATURAL_PARENT_REAP_20261020.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 5748,
+      "sha256": "3564ff5c81f7627edac7b153d5ad3dbbc3378fe3217cd262b17205eddbe67fa3",
+      "title": "Gold G2 — POSIX managed process natural-parent-exit orphan (Linux RED→GREEN)"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G2_PROCESS_STOP_TREE_LIFECYCLE_20261019.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 5722,
+      "sha256": "49ad28b3f6f56c47b81cffed6bac747da8bf6bf996d10da0780a8964be7de675",
+      "title": "G2 NativeProcess Lifecycle — bounded stop and process-tree cleanup"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G2_PTY_FLOATING_WIDGET_20261019.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 4731,
+      "sha256": "d8045cf1e06b8bc0af9709a27236192ed1e7ca5e99f1ebcd559c645f7daec092",
+      "title": "Gold G2 — Floating PTY Viewer + offline Material icons (2026-10-19)"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G2_PTY_ICON_MINIMIZE_REAL_SMOKE_20261019.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 3569,
+      "sha256": "cbb3522544868166c6af5626912f1079359ca4893616bad31dcc603d595a14d3",
+      "title": "Gold G2 — Icon / minimize regression and real PTY output (2026-10-19)"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G2_PTY_MISSING_EXIT_NATURAL_ORPHAN_20261020.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 4408,
+      "sha256": "0197ec3d6195628264c7429670d1df31f71b6eaeef4b72d7c2ff56c372c0c49c",
+      "title": "Gold G2 — Missing PTY onExit, Windows natural-exit orphan and reconnect"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G2_PTY_WALL_VIEWER_AND_PROCESS_BASELINE_20261019.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 5128,
+      "sha256": "191fb0021fb3d07bded9c9a558bbf4aa4e0cdfb5b9297432e30c4a9102ef203b",
+      "title": "Light Remote Gold G2 — PTY Wall Viewer and NativeProcess probe"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G2_TCP_ABORT_PTY_UNVERIFIED_20261020.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 5998,
+      "sha256": "1d89a49d4c83d6d1c9afbbaf8e84ca31659958d3cadf4270b41976eee6273558",
+      "title": "G2 Gold — TCP lost-response and PTY missing exit evidence"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G2_WALL_PACKAGED_MATERIAL_ICONS_20261020.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 8261,
+      "sha256": "e1c9719e14fc65c33603f257577a79001b478533b0edd63327addad4ad2a037f",
+      "title": "Gold G2 — Windows Local Wall missing packaged Material SVG RCA"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G2_WIN_JOB_OBJECT_ENVELOPE_20261020.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 9644,
+      "sha256": "d60fa3486c19f1c883c8de6ad8ac2d7cf20b971297c6e771fe964f0e924903fa",
+      "title": "Gold G2 — Windows managed process per-job containment candidate"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G2_WINDOWS_441_OWNER_E2E_20261020.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 3743,
+      "sha256": "bb6b13d1f7937853c7a3244ea9cd14b7b0fc8857bbe76ef30aacd5244aa74d87",
+      "title": "G2 — Owner Windows Gold #441 installed E2E acceptance (2026-10-20)"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G2_WINDOWS_PROCESS_TREE_FIX_20261020.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 8120,
+      "sha256": "ae4a05c04cd448afaa3cacfa4d38bfbcd3123d3831b2412316b44fd711da3ba6",
+      "title": "Gold G2 — Windows NativeProcess descendant orphan, RED → patch → CI"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G3_AB_APPROVAL_429_ISOLATION_20261021.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 4387,
+      "sha256": "8d1c6e63cbd36a984a6691949485adaccc048ddb7d15f1023dd19e6607713fc6",
+      "title": "Light Remote Gold G3 — Local Wall A/B approval independent of observer 429 (2026-10-21)"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G3_AB_RATE_LIMIT_UAT_CUTOVER_20261021.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 5370,
+      "sha256": "165e5289b54900bd09c35b2a764e1ba3f50fe200dabf9fc7588522947c255a85",
+      "title": "G3 Gold — A/B lookup isolated from observer 429, UAT cutover acceptance (2026-10-21)"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G3_AGENT_EFFICIENCY_AB_20261021.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 7034,
+      "sha256": "57143eddb4033927ae1661c10bdce76432e258002b09ae29ac01ff6bbef2fd37",
+      "title": "G3 — Agent work rhythm & output efficiency, production-vs-Gold A/B (2026-10-21)"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G3_AGENT_INLINE_BENCH_AND_RATE_CRASH_RCA_20261021.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 8302,
+      "sha256": "e2eb9d57c92b87607701e45a953ce2a02ca7ec450a3a753b0a86355a80edba8f",
+      "title": "GOLD G3 — Agent inline-output A/B acceptance and Redis error-handler crash fix"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G3_BOUNDED_SOAK_ARM_LXD_20261020.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 5574,
+      "sha256": "07c55e62fc307c451e266f35be7e13e408eb538b121f318ca33f8c703f6cf22e",
+      "title": "G3 Gold — bounded TCP/Executor soak on VPS-ARM and real Linux UAT LXD"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G3_CI_OPERATOR_ISOLATION_20261020.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 5088,
+      "sha256": "6930ed816fd15f0e0c6dec2fbfb72c0f6693c4924d482eda5ce7bec4f344ee55",
+      "title": "G3 Gold — Separate Operator/Server CI from legacy host workflows"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G3_DEPLOYED_OPERATOR_ACCEPTANCE_GATE_20261020.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 6839,
+      "sha256": "3d0f90181c60572676a0e612c08245c61f43fdaa4ec2c8d9dfc085d449a1a174",
+      "title": "Gold G3 — Deployed Operator parity + guarded live signed enrollment gate"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G3_DUPLEX_HALFOPEN_WATCHDOG_20261020.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 5643,
+      "sha256": "67cbe99e41dcceb7a0efb461d2e792c95377d66ce2d1beb2c626137f95e1ca22",
+      "title": "G3 Gold — Device Duplex half-open receive watchdog"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G3_DUPLEX_RECONNECT_INFLIGHT_RACE_20261020.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 5865,
+      "sha256": "74ea2182541159382669d6bd53e5e94d0bb5f7cd9557a11121e732e72a1e6556",
+      "title": "G3 Gold — In-flight duplex disconnect/reconnect and stale-readiness race"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G3_EXECUTOR_HANG_READINESS_20261020.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 6973,
+      "sha256": "0d2867d6e9f8eab6699c1e2d8257bd8b2e0caa016d0264e07ee8dee8b7f44b6e",
+      "title": "G3 Gold — Hung Executor readiness with fresh channel"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G3_EXECUTOR_PROBE_DEADLINE_20261020.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 5629,
+      "sha256": "f3395becebe042b4dd9418414ccce0cf161ada4c642afa841fa976db10e41a53",
+      "title": "Gold G3 — Executor probe deadline, stale evidence and late-result fencing"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G3_EXECUTOR_REJECTION_RECOVERY_20261020.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 5787,
+      "sha256": "0b079bb7f06cfe8767c9e4d8bafe6982c97649c3d3526f0c754e803edb634f07",
+      "title": "G3 Gold — Duplex executor rejection must not wedge live dispatch"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G3_FLEET_READINESS_LXD_20261020.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 7355,
+      "sha256": "36d27a0dacd9a75d27ecc2fab3f6f155ef8be1b49046716816750b17b63b500f",
+      "title": "G3 Gold — Fleet channel freshness versus in-flight dispatch"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G3_INDEPENDENT_EXECUTOR_CANARY_20261020.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 6808,
+      "sha256": "670ee1c138f19448b83ea39764317aa679befea02ae7b8d76adc9bac0c471599",
+      "title": "Gold G3 — Agent-native independent executor readiness canary"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G3_LEGACY_WINDOWS_AGENT_UPGRADE_20261020.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 7396,
+      "sha256": "f04b01484cfa76d74dfac2d5ffa90027e24f9d31c68002a08497e05e663962ba",
+      "title": "Gold G3 — Legacy Windows Agent readiness migration and compatibility visibility"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G3_LOCAL_WALL_EXECUTOR_DIAGNOSTICS_20261020.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 4368,
+      "sha256": "eb4065d2ae32ab9d6bb8cbbc045900dd9ba83e6caabec7d5a499abc66a604d08",
+      "title": "G3 Gold — Local Wall executor readiness diagnostics"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G3_MCP_PERMISSION_SAFETY_AB_AUDIT_20261021.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 9058,
+      "sha256": "bc6a676a99a83a96900c420795a69eb26a89979d92a44b0f6752b70037432fc2",
+      "title": "Gold G3 — Production vs Gold MCP execution / permission / ambiguous-denial audit (2026-10-21)"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G3_NGINX_DUPLEX_PHYSICAL_RECONNECT_20261021.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 7578,
+      "sha256": "3f814ce1018d2eb65d951677b3ef40d3ae8de497370127e60a12f87b537fde89",
+      "title": "GOLD G3 — 2026-10-21 Gold-only Nginx stream correction and physical Windows Duplex reconnect"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G3_PHYSICAL_DUPLEX_HANDSHAKE_RCA_20261021.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 7035,
+      "sha256": "77c44e0d51c0779517ea13e2584d6dcc98f3fb88cf20eec1d340f0889e03709e",
+      "title": "GOLD G3 — 2026-10-21 physical Duplex live RCA / compatibility readiness patch"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G3_REAL_AGENT_DAEMON_LIFECYCLE_LXD_20261020.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 6169,
+      "sha256": "fbc5b1e7dfc5d676507ea564684dae909ad3f633b2b14da9d0b0074ec3275aa1",
+      "title": "G3 Gold — Real Agent daemon lifecycle, SIGSTOP/SIGCONT, Local Wall, and bounded RSS"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G3_REDIS_WALL_RATE_LIMIT_20261021.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 5156,
+      "sha256": "e178cc5cfd568b472bbd4e59183a0d428fec3db80e6153a120f96c52327cb32c",
+      "title": "G3 Gold — Redis-backed signed-channel quota + Local Wall status backoff (2026-10-21)"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G3_REDIS_WALL_UAT_CUTOVER_20261021.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 5062,
+      "sha256": "671a55bc0c59a30a8c345216d65df3a83ee3efc486f858d4378a6c9fd629a8e9",
+      "title": "G3 Gold Redis / Local Wall — real LXD UAT cutover, 2026-10-21"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G3_SIGNED_ENROLLMENT_DUPLEX_UAT_20261020.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 5386,
+      "sha256": "950eb2b152e2b57f8c8d570d4612afce7943df68e0380c8b67c330cc6aa74253",
+      "title": "G3 Gold — Signed ephemeral enrollment → Duplex → Executor readiness → Reconnect"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G3_STRICT_EXECUTOR_ADMISSION_ROLLOUT_20261020.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 3827,
+      "sha256": "cea6bbfca1ee753dfe530867f9d9747564dc653aeb945e02240c0ad069b6b860",
+      "title": "Gold G3 — Optional strict Executor Readiness admission and rollout"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G3_STRICT_LIVE_WINDOWS_SOAK_20261021.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 7902,
+      "sha256": "f14aafeadc000fe72740042064dba604a020e7ef711e2834376c7d18224fca81",
+      "title": "Light Remote Gold — G3 strict ON, physical Windows, bounded soak (2026-10-21)"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G3_STRICT_PREFLIGHT_AUDIT_20261021.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 4813,
+      "sha256": "c6e7047fbe8e7e47382a54fd5d9bfa1f7f3b0379f3b59bbc8d77ab2a7ecaf3c3",
+      "title": "Gold G3 — Strict admission preflight audit hardening (2026-10-21)"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G3_SYNTHETIC_AGENT_CLI_ENV_ISOLATION_20261020.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 4545,
+      "sha256": "e0dae4fedef6c6ef4f59794645fa7eac294409d269d1f28d4d32fd34eb5302cb",
+      "title": "G3 Gold — Isolate synthetic Agent CLI enrollment from inherited live identity and Wall bind"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G3_UAT_CUTOVER_SUCCESS_20261020.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 7180,
+      "sha256": "f365eae502e49393f29fc3968cc15099af3554997aa540c64fb3a23c75393d32",
+      "title": "Gold G3 — UAT source-parity cutover and strict-readiness gate"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G3_WINDOWS_453_AND_PROMOTION_20261021.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 8115,
+      "sha256": "607d80d2eb58aa56a6994ac06e06a3f358197cc10601b70b9ad2c9dc3080294b",
+      "title": "Light Remote Gold G3 — Windows CI #453 staging + versioned Gold UAT promotion"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G3_WINDOWS_453_PHYSICAL_ACCEPTANCE_20261021.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 4792,
+      "sha256": "63bfd166e74a210b2190569ccbf94ed532bf5ad6e5bed7b02505f8d74dff9499",
+      "title": "Gold G3 — Owner Windows #453 installed and live readiness acceptance (2026-10-21)"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G4_DURABLE_OPERATION_CLAIMS_20261021.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 7042,
+      "sha256": "cc060428da1e418fc811c70dd104b5fd4bf5612427a7423fafb8e71719b37f27",
+      "title": "Light Remote Gold G4 — Durable PostgreSQL operation claims, no blind replay"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G5_CAS_AND_SCP_ACCEPTANCE_20261021.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 3965,
+      "sha256": "14c4b92f4b79aadd8353ec743a55ea0d78b23bcd9902fba53278d989b64660ad",
+      "title": "Gold G5 — Surgical edit optimistic CAS + existing SCP resume / inline progress"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G5_SCP_INLINE_OPERATOR_STREAM_20261019.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 5540,
+      "sha256": "6263bb9781475ce97b2d54855d4e1ef9058ddaff3f05fcd4308305562952a760",
+      "title": "Gold G5 — SCP inline progress in Live Operator Stream (2026-10-19)"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G5_SCP_WALL_PROGRESS_PILOT_20261019.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 6041,
+      "sha256": "615e50c1771d395729f0f25d711dbef631c7b6ad809129c49cb870fc458b9057",
+      "title": "Gold G5 — SCP Upload/Download Wall Progress Pilot (2026-10-19)"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_G6_BOUNDED_SOAK_RESOURCE_BUDGET_20261021.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 3655,
+      "sha256": "489cef909035c457063304d2db682d6945e6d9f65529e38999d793a6068b0c09",
+      "title": "Gold G6 — Bounded TCP/Executor soak, latency and RSS budget (2026-10-21)"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_ISSUE3_OWNER_WINDOWS_BEFORE_AFTER_20261021.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 6877,
+      "sha256": "eb253fbcd5b0f2ba75fd303807e122dc0b2248b934b696ef671b7bfe9f89e290",
+      "title": "Issue #3 — owner Windows before/after acceptance (2026-10-21)"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_ISSUE3_WIN_CROSS_PROCESS_FILE_LOCK_ACCEPTANCE_20261021.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 4068,
+      "sha256": "0d518833a90c686fda7aeb6e5334e60bb22c7e08e63d9c2d3ca4d56eaa3be05b",
+      "title": "GitHub Issue #3 — Windows Gold exclusive file-lock acceptance"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_LINUX_HOST_WRITE_SCOPED_PILOT_20261020.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 6702,
+      "sha256": "a30a44dc0d7e8dfbdfe3c0e112e31b7995fa7512471bcc3ab4f558bb994d228a",
+      "title": "GOLD — Linux sudo + mount namespace scoped host-write pilot"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_M_PLAN_INITIAL_IMPLEMENTATION_CHECKPOINT_20261021.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 6580,
+      "sha256": "56c7e194dc1cf7937a7f81b7d1ffa48e9b05159c125a13b17c42d3baac58bb47",
+      "title": "Gold M Plan implementation checkpoint — first scoped session/entitlement slice (2026-10-21)"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_M2_LONG_COMMAND_BACKGROUND_FIRST_SLICE_20261021.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 11671,
+      "sha256": "72c550ed0989323f1ffaf0503e79d7a09a2ab8e86fdc4403c416b2dd59298c13",
+      "title": "Gold M2 — long-running shell auto-background, first code slice"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_M3_PERSONAL_AGENT_PG_SCHEDULER_20261021.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 10156,
+      "sha256": "191cbe9b92304cd305598d81e7956a5263fbb16672890a64a4b3b532458df662",
+      "title": "Gold M3 — Personal Agent PostgreSQL Scheduler (first executable slice)"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_M3_SCOPED_SESSIONS_LXD_CUTOVER_20261021.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 4622,
+      "sha256": "ecf197e2d2be923098b489ffd0c659ef7cb417120c44f66e63512e5ff76e9a00",
+      "title": "Gold M3 Scoped Sessions — physical UAT cutover acceptance"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_M3_SHARED_TOOL_ADMISSION_20261021.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 10147,
+      "sha256": "38d4f56d43916a09d893aacb5c9c9e7181c800e1a6a33b55b1c72496f1188f86",
+      "title": "Gold M3 — Shared personal Agent Scheduler across tool families"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_M4_BACKGROUND_WORKER_RESOURCE_LEASE_20261021.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 6352,
+      "sha256": "36d04367d7449edffa815ce45d195e37cd7f6f99697fad20f5f4b9e858c9e52a",
+      "title": "Gold M4 — Background process resource lease"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_M4_DOWNLOAD_RESOURCE_ALIAS_AND_REAL_AGENT_GATE_20261021.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 8232,
+      "sha256": "e4e667a38586b825829fa11e0d3eb3627a85cd2f3b0aa3e4e9cfbab5e2cbf3d6",
+      "title": "Gold M4 — Download/build resource intent and authentic multi-Agent gate"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_M4_RESOURCE_LOCKS_20261021.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 13320,
+      "sha256": "b394f1ebedd0fca2f4c07666f0b3cf16d3988de205c6d183a673bc7334accd93",
+      "title": "Gold M4 — PostgreSQL device resource claims, first conservative slice"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_M5_INDEPENDENT_PROCESS_SUPERVISOR_20261021.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 12002,
+      "sha256": "81ca183f324e040994c4e2c2b894200ff76effb84c109935c68a432dd9b902c4",
+      "title": "Gold M5 — Independent Process Supervisor for Agent Restart (2026-10-21)"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_M5_ISOLATED_SYSTEMD_WORKER_20261021.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 14065,
+      "sha256": "90a8fe49d78a3a1708749e055000f5d35ed1786a15755c2f23696479067ec06c",
+      "title": "Gold M5 — Isolated per-job systemd user workers (Linux UAT, first slice)"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_M5_OWNER_PROCESS_WALL_20261021.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 7971,
+      "sha256": "585c3e50bf432e4c2639899a3b4204657906b337c3257c3c13f1226384170a00",
+      "title": "Gold M5 — owner-managed process control from Local Wall (first functional slice)"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_M5_SUPERVISOR_RESTART_RECONCILIATION_20261021.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 11394,
+      "sha256": "37bdb0ca6ad865800279fee957a0cc1917317b502f7b720c1829b22a6123dec7",
+      "title": "Gold M5 — Supervisor restart reconciliation and crash-safe operation journal"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_M6_DURABLE_TERMINAL_ACK_REPLAY_20261022.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 5617,
+      "sha256": "7993f9f1eb65e4f1cc1c0a62f104e0d5d2a83879f731ebe43b61ff9d7a8949df",
+      "title": "Gold M6 — Durable terminal receipt ACK/replay (2026-10-22)"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_M6_FLEET_JOBS_FIRST_SLICE_20261022.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 4773,
+      "sha256": "3eaed4710901998be70bb2a863f85aee4948f548388c81d23e5f462ce4f0f4c6",
+      "title": "Gold M plan — M6 Fleet Wall Jobs & Queue first slice (2026-10-22)"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_M6_FLEET_MANAGED_PROCESS_STOP_20261022.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 4293,
+      "sha256": "931f8fd75173d13d4c867a5157c082006558b632d1b46adb7b905d961fd69e30",
+      "title": "Gold M6 — Fleet Wall managed process graceful Stop (2026-10-22)"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_M6_NATIVE_TERMINAL_REPLAY_20261022.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 4554,
+      "sha256": "de9cb996aa3db0f0cae05687244ace9797e94a6bf80bbfaf675fad95e16e6a31",
+      "title": "Gold M6 — Native terminal ACK journal for Windows/macOS (2026-10-22)"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_M6_OWNER_QUEUED_CANCEL_20261022.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 3671,
+      "sha256": "4807c6376a35fba9be378d00ccb4ebdf1991f1954934eef85e0ff19cc2f32e14",
+      "title": "Gold M6 — Fleet Wall owner cancel, queued-only (2026-10-22)"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_M6_RESOURCE_LEASE_OBSERVABILITY_20261022.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 4431,
+      "sha256": "e0c795e119826c665e76e83ce264961c49f834e54280350ce21744afb7fafd4e",
+      "title": "Gold M6 — Resource lease audit & terminal receipt recovery (2026-10-22)"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_M6_RESUME_INTEGRATED_20261023.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 24602,
+      "sha256": "29d8a2f9d3119de0b76a7c4749521c3f20f6c5d7c6cc4fc2f960ca66595ee568",
+      "title": "Gold M plan resumed — M6 integrated permissions and safe cutover gate (2026-10-23)"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_M6_SIGNED_DEVICE_TELEMETRY_20261022.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 4911,
+      "sha256": "536a308e3f6c2135c3b48ccbf329fec8258b893812ba4d850dc76e7b64ff8001",
+      "title": "Gold M6 — Signed per-device CPU/RAM/I/O telemetry (2026-10-22)"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_M6_UAT_SCHEMA35_STAGING_GATE_20261022.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 3600,
+      "sha256": "01279a25c218b140b9b4abc70bbdf47a43c9d390392339a80ee34f5845042542",
+      "title": "Gold M6 — LXD UAT schema 035, staging and four-service cutover"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_MASTER_HANDOFF_20261021.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 41613,
+      "sha256": "56bc510cc66479f04d519945b9d312ea9cfc10cce745bbfd8bd29601b92793a1",
+      "title": "MASTER HANDOFF — Light Remote Gold / RDC Optimization / G3–G6"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_MULTI_AGENT_EXISTING_LIMITS_BASELINE_20261021.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 13182,
+      "sha256": "7a2759ccd478c725ea965227de7b9fd68b288c784585ac6f97cd301509bcc88d",
+      "title": "Gold Multi-Agent / Running / Drain — measured existing limits baseline"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_MULTI_AGENT_JOB_SCHEDULER_MASTER_PLAN_20261021.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 28365,
+      "sha256": "22c36f53bd65207d4fd06e4b5d88a97bb91165ab51a72a24ac8bd5dd321b052c",
+      "title": "Light Remote Gold — Multi-Agent Execution & Durable Job Scheduler Master Plan"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_MULTI_AGENT_PRO_TEAM_COMPATIBILITY_20261021.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 12738,
+      "sha256": "c92c3f495e1cc16660b86433e94d7cde6ba7649fee6a9fcaa127c49d4f608832",
+      "title": "Light Remote Gold — Pro Personal / Pro Team quota and concurrency allocation"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_REAL_OAUTH_MULTI_AGENT_UAT_20261022.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 7032,
+      "sha256": "01ef1d996360701df503cba85f11f621e3346c529ef41de1c581955d5d619025",
+      "title": "Gold UAT — four authentic OAuth Agent clients / Pro personal 3+1"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_WINDOWS_BUILD_486_ACCEPTED_BASELINE_20261023.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 4214,
+      "sha256": "d810042e4e14619aa0d1baf57f3d7d52d7bb2f305d7a1335141c49aa9a5be378",
+      "title": "Light Remote Gold Windows: owner-tested build #486 regression baseline"
+    },
+    {
+      "path": "docs/optimization/RDC_GOLD_WINDOWS_WALL_LOADING_STALL_RCA_20261023.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 4835,
+      "sha256": "7a63f327b11d9f8b5efd65c58c7a11e3d8b8d2bed235231e4ac6383615bc0a5a",
+      "title": "Gold Windows Local Wall stall after Remove/re-link — 2026-10-23"
+    },
+    {
+      "path": "docs/optimization/RDC_HANDOFF_CURRENT.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 102283,
+      "sha256": "7c0815423b6e42245b0bbe300418732914e5cd8272802ee7f07cf8913fc67284",
+      "title": "Current RDC → Light Remote Gold optimization handoff"
+    },
+    {
+      "path": "docs/optimization/RDC_LIGHT_REMOTE_GOLD_MASTER_PLAN.md",
+      "shelf": "optimization",
+      "extension": "md",
+      "bytes": 13180,
+      "sha256": "bcf1e46371d57eb1e00f304780fbd29ac48a7137fb5d263f70aefd17ba31dbb6",
+      "title": "RDC → Light Remote Gold: reliability optimization master plan"
+    },
+    {
+      "path": "docs/README.md",
+      "shelf": "README.md",
+      "extension": "md",
+      "bytes": 1172,
+      "sha256": "88154672c919476f61e96809f2f594d26e9ef0296f702582fe1b27da66b1fb72",
+      "title": "Light Remote Documentation Library"
+    },
+    {
+      "path": "docs/real-remote-v2/README.md",
+      "shelf": "real-remote-v2",
+      "extension": "md",
+      "bytes": 2832,
+      "sha256": "b8dc9e50b1dd7f5c7af69ca6bcc93395d8499c7ff9d5d044a004c5a4805d948e",
+      "title": "Real Remote V2 - Golden Rebuild"
+    },
+    {
+      "path": "docs/releases/GOLD_AB_AGENT_CLIENT_PG_FIX_20261019.md",
+      "shelf": "releases",
+      "extension": "md",
+      "bytes": 3557,
+      "sha256": "8b581b7b86558a1c33df66d60b0d05cc25a98d04cdc8a99cd601e44b4edcbfba",
+      "title": "Gold A/B pairing PostgreSQL persistence hotfix — 2026-10-19"
+    },
+    {
+      "path": "docs/releases/GOLD_DEMO_READINESS_GATE_20261019.md",
+      "shelf": "releases",
+      "extension": "md",
+      "bytes": 4221,
+      "sha256": "01c3a3b1c927d899370b567d2f6ac96220af28808d1f3ca0c0e2e46357e1b59c",
+      "title": "Gold Demo Readiness Gate — 2026-10-19"
+    },
+    {
+      "path": "docs/releases/GOLD_JOB_REAL_PG_UAT_20261019.md",
+      "shelf": "releases",
+      "extension": "md",
+      "bytes": 2840,
+      "sha256": "27cf65d25be3140b829e6575b4e5dbbbdd680ddd4c76ec45e02e95ae4906d4cc",
+      "title": "Gold real PostgreSQL Job Ledger UAT — 2026-10-19"
+    },
+    {
+      "path": "docs/releases/GOLD_LEGACY_STORAGE_PRO_TEAM_HTTP_PG17_UAT_20261019.md",
+      "shelf": "releases",
+      "extension": "md",
+      "bytes": 10000,
+      "sha256": "f8727b208d2b50dc2fb92de3401820b224216cf92266b2761e1361145c0658c3",
+      "title": "Gold legacy JSON/SQLite and Pro Team HTTP/PG17 audit — 2026-10-19"
+    },
+    {
+      "path": "docs/releases/GOLD_LICENSE_REAL_PG_UAT_20261019.md",
+      "shelf": "releases",
+      "extension": "md",
+      "bytes": 2592,
+      "sha256": "7e30433d667d955e7aaf8908667a0bac75bab198a2e82dfdaf8e815cd10b5fb5",
+      "title": "Gold License — real PostgreSQL 17 durability UAT (2026-10-19)"
+    },
+    {
+      "path": "docs/releases/GOLD_PADDLE_OPERATOR_HTTP_E2E_20261019.md",
+      "shelf": "releases",
+      "extension": "md",
+      "bytes": 3952,
+      "sha256": "1532abd1dae51129c423b154d03d43bc71f01aa2139a9994550bd5b3dac26309",
+      "title": "Gold Paddle HTTP/Operator/PostgreSQL integration UAT — 2026-10-19"
+    },
+    {
+      "path": "docs/releases/GOLD_PADDLE_REAL_PG_UAT_20261019.md",
+      "shelf": "releases",
+      "extension": "md",
+      "bytes": 3497,
+      "sha256": "a5a977046eb79cc241ecb250fc8e59a1733f6741dc34d43981583068a7f1c929",
+      "title": "Gold Paddle — PostgreSQL 17 real persistence UAT (2026-10-19)"
+    },
+    {
+      "path": "docs/releases/GOLD_PADDLE_SIGNED_HTTP_UAT_20261019.md",
+      "shelf": "releases",
+      "extension": "md",
+      "bytes": 3030,
+      "sha256": "0d8c0579d121afe54f478648aa1ec6cfe703256dacc2598879e0dd1c8d77b135",
+      "title": "Gold Paddle signed HTTP webhook UAT — 2026-10-19 (PARTIAL; cleanup blocked)"
+    },
+    {
+      "path": "docs/releases/GOLD_PRO_TEAM_REAL_PG_UAT_20261019.md",
+      "shelf": "releases",
+      "extension": "md",
+      "bytes": 1998,
+      "sha256": "5f390c37a9136ea59f25dfabcfeaa90a7d0dfa8a6ad61aab3e6c5c07532a7305",
+      "title": "Gold Pro Team — PostgreSQL 17 real persistence UAT (2026-10-19)"
+    },
+    {
+      "path": "docs/releases/GOLD_PUBLIC_DEMO_READY_20261019.md",
+      "shelf": "releases",
+      "extension": "md",
+      "bytes": 5012,
+      "sha256": "9984a2ca89e570d8246be7dcc87677d073f45ab7710468987f98bb46a5dd6709",
+      "title": "Light Remote Gold demo — PUBLIC PREVIEW HANDOFF — 2026-10-19"
+    },
+    {
+      "path": "docs/releases/GOLD_REBUILD_SCOPE_AND_DB_STATUS_20261018.md",
+      "shelf": "releases",
+      "extension": "md",
+      "bytes": 16123,
+      "sha256": "de4e4b8a7639fb893cc39681b62ce9d3d14e4da0a9f444aa8e9e94ff180fb87c",
+      "title": "Light Remote Gold Rebuild — scope and honest checkpoint (2026-10-18)"
+    },
+    {
+      "path": "docs/releases/GOLD_WEBUI_MCP_WALL_UAT_20261019.md",
+      "shelf": "releases",
+      "extension": "md",
+      "bytes": 6229,
+      "sha256": "995d5993b9575c0b2b58633e3b5af38002c9f5740febc5d036dbd36e2f16926d",
+      "title": "Gold WebUI / MCP / Wall UAT handoff — 2026-10-19"
+    },
+    {
+      "path": "docs/releases/GOLDEN_SOURCE_MAP_2026-09-28.md",
+      "shelf": "releases",
+      "extension": "md",
+      "bytes": 2039,
+      "sha256": "83cdaef0cdcf0dd5e718d50c642c002a14135c4ccb28a1beb4271a264d0f624d",
+      "title": "Light Remote Golden Source Map — 2026-09-28"
+    },
+    {
+      "path": "docs/releases/LIGHT_REMOTE_CAPABILITY_COMMAND_AUDIT_20261018.md",
+      "shelf": "releases",
+      "extension": "md",
+      "bytes": 7720,
+      "sha256": "f50d294b0fe04f16d62f803b37f6a40241570d53465f6f996f1a7c097c7d15ea",
+      "title": "Light Remote cross-platform command/capability audit — 2026-10-18"
+    },
+    {
+      "path": "docs/releases/LIGHT_REMOTE_MAIN_LEAF_CAPABILITY_ROUTING_20261018.md",
+      "shelf": "releases",
+      "extension": "md",
+      "bytes": 4330,
+      "sha256": "9f99b63a9dd4c9a9530e917927e9731cdbc8ce9ad03820d1ffe8ed8351e7192d",
+      "title": "Light Remote Main vs leaf capability-routing mismatch — 2026-10-18"
+    },
+    {
+      "path": "docs/releases/LIGHT_REMOTE_TOOL_SAFETY_MULTILAYER_AUDIT_20261019.md",
+      "shelf": "releases",
+      "extension": "md",
+      "bytes": 8496,
+      "sha256": "655beba769682e2304a56de174f63456bd37eb5c2f96bb080284b02caaeeb0e2",
+      "title": "Light Remote Tool Safety — multilayer direct-tool audit (2026-10-19)"
+    },
+    {
+      "path": "docs/releases/RELEASE_BOM_0_9_1_BETA_1.md",
+      "shelf": "releases",
+      "extension": "md",
+      "bytes": 1852,
+      "sha256": "68142b9c64cf79adaa1de3b9128a3e112644b9c5da49831243097605effbf74c",
+      "title": "Release BOM — 0.9.1-beta.1"
+    },
+    {
+      "path": "docs/releases/RELEASE_BOM_0_9_1_BETA_2.md",
+      "shelf": "releases",
+      "extension": "md",
+      "bytes": 2470,
+      "sha256": "80b170f6a3c39f234269bf3a0db07f1dfc60eb487b87d0548f0c18221dd5345a",
+      "title": "Release BOM — 0.9.1-beta.2"
+    },
+    {
+      "path": "docs/releases/RELEASE_NOTES_V0_9_0_BETA_1.md",
+      "shelf": "releases",
+      "extension": "md",
+      "bytes": 1185,
+      "sha256": "27785714917917fb9f40e3f125a3b3e8e945e07e3bcaf1762ccc152f9cf627b4",
+      "title": "Light Remote MCP v0.9.0-beta.1"
+    },
+    {
+      "path": "docs/releases/RELEASE_NOTES_V0_9_0_RC.md",
+      "shelf": "releases",
+      "extension": "md",
+      "bytes": 9977,
+      "sha256": "c42d3f3d9276650034f0d3193eca5193a8792b9801e50faa2684381a599aa6aa",
+      "title": "Light Remote MCP v0.9.0 Release Candidate"
+    },
+    {
+      "path": "docs/releases/RELEASE_NOTES_V0_9_1_BETA_1.md",
+      "shelf": "releases",
+      "extension": "md",
+      "bytes": 1527,
+      "sha256": "36b6e31bf691410289fd827b91873803b4bf45877f229086d8f199fefb70f05e",
+      "title": "Light Remote MCP v0.9.1-beta.1"
+    },
+    {
+      "path": "docs/releases/RELEASE_NOTES_V0_9_1_BETA_2.md",
+      "shelf": "releases",
+      "extension": "md",
+      "bytes": 1676,
+      "sha256": "aa8cb41c59b4dcedd62f99df6cdb2c912e0826dc5bd83142baa72e08d2450260",
+      "title": "Light Remote MCP v0.9.1-beta.2"
+    },
+    {
+      "path": "docs/releases/VERSIONING_POLICY.md",
+      "shelf": "releases",
+      "extension": "md",
+      "bytes": 590,
+      "sha256": "97ea0c41ad830632a29dd99db599524877aeade33863eec09c7eb02b0e7f412c",
+      "title": "Light Remote versioning policy"
+    }
+  ]
+}

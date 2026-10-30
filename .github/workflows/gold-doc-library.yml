@@ -1,0 +1,36 @@
+name: Gold documentation library integrity
+on:
+  push:
+    paths:
+      - 'docs/**'
+      - '.light-remote/CURRENT_CHECKPOINT.json'
+      - 'deploy/scripts/generate-doc-catalog.mjs'
+      - 'deploy/scripts/check-doc-links.mjs'
+      - '.github/workflows/gold-doc-library.yml'
+  pull_request:
+    paths:
+      - 'docs/**'
+      - '.light-remote/CURRENT_CHECKPOINT.json'
+      - 'deploy/scripts/generate-doc-catalog.mjs'
+      - 'deploy/scripts/check-doc-links.mjs'
+      - '.github/workflows/gold-doc-library.yml'
+jobs:
+  documentation-governance:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate library scripts and the current checkpoint
+        run: |
+          node --check deploy/scripts/generate-doc-catalog.mjs
+          node --check deploy/scripts/check-doc-links.mjs
+          node -e "const x=require('./.light-remote/CURRENT_CHECKPOINT.json');if(x.schemaVersion!=='light-remote.current-checkpoint.v1'||!x.nextAction||!Array.isArray(x.readFirst))process.exit(1)"
+          node -e "const x=require('./docs/project-book/PROJECT_TRUTH_STATUS.json');if(x.schemaVersion!=='light-remote.project-book.truth-status.v1')process.exit(1)"
+      - name: Validate deterministic SHA256 source catalog
+        run: node deploy/scripts/generate-doc-catalog.mjs --check
+      - name: Validate canonical library relative bookmarks
+        run: node deploy/scripts/check-doc-links.mjs
