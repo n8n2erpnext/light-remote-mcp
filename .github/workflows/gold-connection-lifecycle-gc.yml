@@ -18,6 +18,9 @@ on:
       - 'deploy/scripts/selftest-gold-ab-v2-grant-coordinator.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-grant-operator.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-native-pg-grant.mjs'
+      - 'deploy/scripts/selftest-gold-ab-v2-full-schema-pg.mjs'
+      - 'deploy/scripts/selftest-gold-ab-v2-owner-approve-http.mjs'
+      - 'operator-host/executor.mjs'
       - 'operator-host/device-access-grant-registry.mjs'
       - 'deploy/scripts/selftest-gold-ab-reauthorization-clock.mjs'
       - 'deploy/scripts/selftest-v09-device-access-grant.mjs'
@@ -150,6 +153,7 @@ jobs:
           node deploy/scripts/selftest-gold-ab-v2-owner-pending-adapter.mjs
           node --check operator-host/gold-ab-v2-owner-http.mjs
           node deploy/scripts/selftest-gold-ab-v2-owner-http.mjs
+          node deploy/scripts/selftest-gold-ab-v2-owner-approve-http.mjs
           node --check operator-host/gold-ab-v2-signed-preview.mjs
           node --check device-agent/wall-ab-v2-preview.mjs
           node deploy/scripts/selftest-gold-ab-v2-signed-preview.mjs
@@ -168,6 +172,7 @@ jobs:
           node deploy/scripts/selftest-gold-ab-v2-grant-coordinator.mjs
           node deploy/scripts/selftest-gold-ab-v2-grant-operator.mjs
           node --check deploy/scripts/selftest-gold-ab-v2-native-pg-grant.mjs
+          node --check deploy/scripts/selftest-gold-ab-v2-full-schema-pg.mjs
           node deploy/scripts/selftest-gold-ab-reauthorization-clock.mjs
           node deploy/scripts/selftest-v09-device-access-grant.mjs
           node deploy/scripts/selftest-v09-pairing-connect-flow.mjs

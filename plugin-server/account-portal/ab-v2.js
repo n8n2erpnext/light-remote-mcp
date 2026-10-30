@@ -1,4 +1,4 @@
-// Gold P2-I2e owner A/B V2 pending preview, no B, no Approve/grant.
+// Gold P2-I2h2d owner A/B V2 pending preview; optional Owner B approval (OFF by default).
 // OFF by default: no visible UI unless both portal + Operator gates accept it.
 (() => {
  'use strict';
@@ -53,6 +53,23 @@
   }catch(error){msg('Request not changed: '+error.message);}
   finally{refresh.disabled=false;}
  }
+ async function approve(row,input,button){
+  const deviceId=select.value;
+  const value=String(input.value||'').trim().toUpperCase();
+  if(!/^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/.test(value)){
+   msg('Enter the 4+4 B code shown to this Agent.');return;
+  }
+  if(!window.confirm('Approve this Agent for up to 24 hours on this device?'))return;
+  try{
+   button.disabled=true;
+   const response=await request('abv2-approve',{method:'POST',csrf:await csrf(deviceId),
+    body:{deviceId,requestId:row.requestId,expectedAttempt:row.attempt,bCode:value}});
+   input.value='';
+   if(response.state!=='granted')throw Error('Grant not yet durable');
+   await load();
+  }catch(error){input.value='';msg('Approval not completed: '+error.message);}
+  finally{button.disabled=false;}
+ }
  async function load(){
   const turn=++generation,deviceId=select.value;
   clear();
@@ -77,6 +94,15 @@
     rotate.addEventListener('click',()=>mutate('abv2-refresh',row.requestId,row.attempt));
     deny.addEventListener('click',()=>mutate('abv2-deny',row.requestId));
     buttons.append(rotate,deny);
+    if(data.ownerApproveEnabled===true){
+     const input=document.createElement('input');
+     input.type='password';input.autocomplete='off';input.maxLength=9;
+     input.placeholder='B code from Agent';
+     input.setAttribute('aria-label','Agent B approval code');
+     const action=item('button','Approve Agent','btn');action.type='button';
+     action.addEventListener('click',()=>approve(row,input,action));
+     buttons.append(input,action);
+    }
     card.append(meta,code,buttons);
     list.append(card);
    }

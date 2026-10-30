@@ -56,6 +56,7 @@ import { isOutboundTarget } from '../lib/operator-target-route.mjs';
 import { createPlatformAdapter } from '../device-agent/platform-adapters/index.mjs';
 import { handleAccountRoutes } from './executor-routes-account.mjs';
 import {createGoldAbV2OwnerHttpFromOperator} from './gold-ab-v2-owner-http.mjs';
+import {createGoldAbV2GrantOperator} from './gold-ab-v2-grant-operator.mjs';
 import {createGoldAbV2SignedPreview} from './gold-ab-v2-signed-preview.mjs';
 import {createGoldAbV2HelperTarget} from './gold-ab-v2-helper-target.mjs';
 import { GoldDeviceBootObservations } from './gold-device-boot-observations.mjs';
@@ -1636,9 +1637,14 @@ const goldAbV2HelperTarget=createGoldAbV2HelperTarget({
  env:process.env,storage:goldStorage,accounts,devices,connections,enrollments,
  readJson,sendJson
 });
+const goldAbV2GrantOperator=createGoldAbV2GrantOperator({
+ env:process.env,storage:goldStorage,requireAccount,accountSessionToken,
+ accounts,devices,connections,enrollments,accessGrants,goldRegistries
+});
 const goldAbV2OwnerHttp=createGoldAbV2OwnerHttpFromOperator({
  env:process.env,storage:goldStorage,requireAccount,accountSessionToken,
- accounts,devices,connections,enrollments,readJson,sendJson
+ accounts,devices,connections,enrollments,readJson,sendJson,
+ grantOperator:goldAbV2GrantOperator
 });
 await Promise.all([goldRegistries.flush(),goldSessionState.flush(),goldJobs.flush()]);
 const server = http.createServer(async (req, res) => {

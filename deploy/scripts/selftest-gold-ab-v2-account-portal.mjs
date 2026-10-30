@@ -22,7 +22,11 @@ const proxy=createGoldAbV2AccountPortalProxy({enabled:true,publicOrigin:origin,
  sessionToken:()=>token,callOperatorJson:toOperator});
 async function invoke(action,req){const res=makeRes();await proxy(req,res,action);return res;}
 assert.equal(isGoldAbV2PortalAction('abv2-pending'),true);
-assert.equal(isGoldAbV2PortalAction('abv2-approve'),false);
+assert.equal(isGoldAbV2PortalAction('abv2-approve'),true);
+const defaultOff=await invoke('abv2-approve',makeReq('POST',{},
+ {deviceId:'dev1',requestId,expectedAttempt:1,bCode:'ABCD-2345'},
+ {origin,'x-light-abv2-csrf':csrf}));
+assert.equal(defaultOff.statusCode,404,'new B owner proxy stays OFF without explicit gate');
 const list=await invoke('abv2-pending',makeReq('GET',{deviceId:'dev1',accountId:'evil',clientId:'fake'}));
 assert.equal(list.statusCode,200);assert.equal(list.headers['Cache-Control'],'no-store');
 assert.deepEqual(calls.at(-1),{method:'GET',target:'/v1/accounts/ab-v2/devices/dev1/pending',body:null,
@@ -70,6 +74,30 @@ await off(makeReq('GET',{deviceId:'dev1'}),offRes,'abv2-pending');
 assert.equal(offRes.statusCode,404);
 assert.equal(calls.length,before,'off cannot proxy');
 assert.equal(await off(makeReq(),makeRes(),'unknown-action'),false);
+const enabledApproval=createGoldAbV2AccountPortalProxy({enabled:true,approveEnabled:true,
+ publicOrigin:origin,sessionToken:()=>token,callOperatorJson:toOperator});
+const approvalList=makeRes();
+await enabledApproval(makeReq('GET',{deviceId:'dev1'}),approvalList,'abv2-pending');
+assert.equal(approvalList.payload.ownerApproveEnabled,true);
+const approvalReq=makeReq('POST',{}, {deviceId:'dev1',requestId,
+ expectedAttempt:2,bCode:'ABCD-2345',agentId:'spoof',accountId:'spoof',connectionId:'spoof'},
+ {origin,'x-light-abv2-csrf':csrf});
+const approvalRes=makeRes();
+await enabledApproval(approvalReq,approvalRes,'abv2-approve');
+assert.equal(approvalRes.statusCode,200);
+assert.deepEqual(calls.at(-1).body,{expectedAttempt:2,bCode:'ABCD-2345'});
+assert.equal(calls.at(-1).target,
+ '/v1/accounts/ab-v2/devices/dev1/pending/'+requestId+'/approve');
+const invalidB=makeRes();
+await enabledApproval(makeReq('POST',{}, {deviceId:'dev1',requestId,
+ expectedAttempt:2,bCode:'BAD1-0000'},{origin,'x-light-abv2-csrf':csrf}),
+ invalidB,'abv2-approve');
+assert.equal(invalidB.statusCode,400);
+const invalidOrigin=makeRes();
+await enabledApproval(makeReq('POST',{}, {deviceId:'dev1',requestId,
+ expectedAttempt:2,bCode:'ABCD-2345'},{origin:'https://evil.test',
+ 'x-light-abv2-csrf':csrf}),invalidOrigin,'abv2-approve');
+assert.equal(invalidOrigin.statusCode,403);
 import fs from 'node:fs';
 const portal=fs.readFileSync(new URL('../../plugin-server/account-portal/index.html',import.meta.url),'utf8');
 const ui=fs.readFileSync(new URL('../../plugin-server/account-portal/ab-v2.js',import.meta.url),'utf8');
@@ -79,7 +107,9 @@ assert.match(portal,/src="\/account\/assets\/ab-v2\.js"/);
 assert.match(ui,/panel\.hidden=false;panel\.style\.display='';/);
 assert.match(router,/app\.get\('\/account\/assets\/ab-v2\.js'/);
 assert.match(router,/if\(isGoldAbV2PortalAction\(action\)\)/);
-assert.ok(!ui.includes('abv2-approve'),'UI must not ship Redis-only approval');
-assert.ok(!ui.includes('bCode'),'owner UI must not render Agent-only B');
-console.log('GOLD_ABV2_ACCOUNT_UI_DEFAULT_HIDDEN_NO_B_NO_APPROVE=PASS');
-console.log('GOLD_ABV2_ACCOUNT_COOKIE_PROXY_ORIGIN_CSRF_NO_APPROVE=PASS');
+assert.match(ui,/data\.ownerApproveEnabled===true/,'B input stays hidden unless owner approval is explicitly enabled');
+assert.match(ui,/response\.state!=='granted'/,'must require durable grant state');
+assert.ok(!ui.includes('localStorage'),'B must not be persisted in browser storage');
+assert.ok(!ui.includes('response.bCode'),'never display Agent-only B from server');
+console.log('GOLD_ABV2_ACCOUNT_UI_DEFAULT_HIDDEN_OWNER_B_OPT_IN=PASS');
+console.log('GOLD_ABV2_ACCOUNT_COOKIE_PROXY_ORIGIN_CSRF_GATED_B_APPROVE=PASS');

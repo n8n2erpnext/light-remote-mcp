@@ -1,11 +1,13 @@
 // Gold P2-I2d: Operator-owned, owner-session HTTP bridge for Redis A/B V2
-// pending list/view/refresh/deny ONLY. NO approve, Helper-ready or 24h grant.
+// pending list/view/refresh/deny and separately gated owner B approve.
+// No Helper-ready or automatic Agent attachment.
 // No live route is active without explicit owner+device allowlists and key.
 // Public account portal / Local Wall are NOT wired in this milestone.
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import {GoldAbV2PendingRedis} from '../lib/gold-ab-v2-pending-redis.mjs';
+import {GoldAbV2PendingRedis,AB_V2_B_RE} from '../lib/gold-ab-v2-pending-redis.mjs';
+import {GoldAbV2GrantBridgeError} from './gold-ab-v2-grant-coordinator.mjs';
 import {GoldAbV2OwnerPendingAdapter,GoldAbV2OwnerPendingError} from '../lib/gold-ab-v2-owner-pending-adapter.mjs';
 
 const ID_RE=/^[A-Za-z0-9._:-]{1,160}$/;
@@ -64,13 +66,14 @@ export function createGoldAbV2Csrf({sealingKey,origin,sessionToken}={}){
  return {nonce,verify};
 }
 export function createGoldAbV2OwnerHttp({
- enabled=false,adapter=null,csrf=null,rateLimit=null,readJson=null,sendJson=null
+ enabled=false,adapter=null,csrf=null,rateLimit=null,readJson=null,sendJson=null,
+ approveOwner=null
 }={}){
  if(enabled&&(!adapter||!csrf||typeof rateLimit!=='function'||
    typeof readJson!=='function'||typeof sendJson!=='function'))
   deny('abv2_owner_http_dependencies_required',503);
  return async(req,res,url)=>{
-  const match=url.pathname.match(/^\/v1\/accounts\/ab-v2\/devices\/([A-Za-z0-9._:-]+)\/(csrf|pending)(?:\/(av2_[a-f0-9]{32})(?:\/(refresh|deny))?)?$/);
+  const match=url.pathname.match(/^\/v1\/accounts\/ab-v2\/devices\/([A-Za-z0-9._:-]+)\/(csrf|pending)(?:\/(av2_[a-f0-9]{32})(?:\/(refresh|deny|approve))?)?$/);
   if(!match)return false;
   if(!enabled){sendJson(res,404,{ok:false,error:'not_found'});return true;}
   try{
@@ -80,6 +83,9 @@ export function createGoldAbV2OwnerHttp({
    const isList=resource==='pending'&&!requestId&&!mutation&&req.method==='GET';
    const isView=resource==='pending'&&requestId&&!mutation&&req.method==='GET';
    const isWrite=resource==='pending'&&requestId&&mutation&&req.method==='POST';
+   if(mutation==='approve'&&typeof approveOwner!=='function'){
+    sendJson(res,404,{ok:false,error:'not_found'});return true;
+   }
    if(!isCsrf&&!isList&&!isView&&!isWrite){
     sendJson(res,405,{ok:false,error:'method_not_allowed'});return true;
    }
@@ -100,13 +106,21 @@ export function createGoldAbV2OwnerHttp({
     if(!csrf.verify(req,deviceId))deny('abv2_owner_mutation_denied',403);
     const body=await readJson(req);
     if(!body||typeof body!=='object'||Array.isArray(body))deny('abv2_body_invalid',400);
-    payload=mutation==='refresh'
+    if(mutation==='approve'){
+     if(!Number.isSafeInteger(body.expectedAttempt)||body.expectedAttempt<1||
+        !AB_V2_B_RE.test(String(body.bCode||'')))deny('abv2_owner_b_invalid',400);
+     const result=await approveOwner(req,{deviceId,requestId,
+      expectedAttempt:body.expectedAttempt,bCode:body.bCode});
+     payload={state:result.state,requestId:result.requestId,agentId:result.agentId,
+      approvedAt:result.approvedAt,expiresAt:result.expiresAt,
+      absoluteExpiresAt:result.absoluteExpiresAt};
+    }else payload=mutation==='refresh'
      ?await adapter.refresh(req,{deviceId,requestId,expectedAttempt:body.expectedAttempt})
      :await adapter.deny(req,{deviceId,requestId});
    }else {sendJson(res,405,{ok:false,error:'method_not_allowed'});return true;}
    sendJson(res,200,{ok:true,...payload});
   }catch(error){
-   const own=error instanceof GoldAbV2OwnerPendingError;
+   const own=error instanceof GoldAbV2OwnerPendingError||error instanceof GoldAbV2GrantBridgeError;
    const status=own&&[400,401,403,404,409,429,503].includes(error.status)?error.status:503;
    sendJson(res,status,{ok:false,error:own?error.message:'abv2_owner_unavailable'});
   }
@@ -115,7 +129,7 @@ export function createGoldAbV2OwnerHttp({
 }
 export function createGoldAbV2OwnerHttpFromOperator({env=process.env,storage,
  requireAccount,accountSessionToken,accounts,devices,connections,enrollments,
- readJson,sendJson}={}){
+ readJson,sendJson,grantOperator=null}={}){
  const config=goldAbV2OwnerHttpConfig(env);
  if(!config.enabled)return createGoldAbV2OwnerHttp({enabled:false,sendJson});
  if(!storage?.redis?.eval||!storage.prefix)deny('abv2_redis_required',503);
@@ -160,5 +174,8 @@ export function createGoldAbV2OwnerHttpFromOperator({env=process.env,storage,
    {keys:[key],arguments:['60000',mutation?'12':'60']});
   if(Number(ok)!==1)deny('abv2_owner_http_rate_limited',429);
  };
- return createGoldAbV2OwnerHttp({enabled:true,adapter,csrf,rateLimit,readJson,sendJson});
+ if(env.LR_GOLD_AB_V2_OWNER_APPROVE_HTTP==='1'&&typeof grantOperator!=='function')
+  deny('abv2_owner_approve_grant_bridge_required',503);
+ return createGoldAbV2OwnerHttp({enabled:true,adapter,csrf,rateLimit,readJson,sendJson,
+  approveOwner:env.LR_GOLD_AB_V2_OWNER_APPROVE_HTTP==='1'?grantOperator:null});
 }

@@ -15,7 +15,9 @@ const RECOVERY_FILE=String(process.env.LIGHT_REMOTE_ACCOUNT_RECOVERY_FILE||'/etc
 const portalFile=name=>fileURLToPath(new URL(`./account-portal/${name}`,import.meta.url));
 const publicAuthRate=new Map();
 const goldAbV2AccountProxy=createGoldAbV2AccountPortalProxy({
- enabled:process.env.LR_GOLD_AB_V2_ACCOUNT_UI==='1',publicOrigin:PUBLIC_ORIGIN,
+ enabled:process.env.LR_GOLD_AB_V2_ACCOUNT_UI==='1',
+ approveEnabled:process.env.LR_GOLD_AB_V2_ACCOUNT_APPROVE_UI==='1',
+ publicOrigin:PUBLIC_ORIGIN,
  sessionToken,callOperatorJson
 });
 const DORMANCY_SCAN_INTERVAL_MS=6*60*60*1000;
