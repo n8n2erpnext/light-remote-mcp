@@ -76,25 +76,40 @@ export function createGoldAbV2GrantCoordinator({
    connectionExpiresAt:fresh.connectionExpiresAt,
    verifiedAt:receipt.approvedAt,label:receipt.agent
   });
-  // Crucial: Gold native registry persists asynchronously. No "granted"
-  // indication or successful response before a real durable PG readback.
+  // Phase 1: durable QUARANTINED row, not an active grant. This blocks
+  // both in-memory authorization before PG flush and restart exposure.
+  const base={grantId,requestId,ownerAccountId:s.ownerAccountId,
+   deviceId,connectionId:s.connectionId,agentId:receipt.agent,
+   approvedAt:receipt.approvedAt,absoluteExpiresAt:grant.absoluteExpiresAt};
+  const phase=grant.closedAt?'staged':'active';
   await flushGrants();
-  const persisted=await confirmPersisted({grantId,requestId,
-   ownerAccountId:s.ownerAccountId,deviceId,connectionId:s.connectionId,
-   agentId:receipt.agent,approvedAt:receipt.approvedAt,
-   absoluteExpiresAt:grant.absoluteExpiresAt});
-  if(persisted!==true)fail('abv2_grant_not_durable',503);
+  if(await confirmPersisted({...base,phase})!==true)
+   fail('abv2_grant_not_durable',503);
   const final=await authorization(req,deviceId);
   if(final.ownerAccountId!==s.ownerAccountId||
      final.connectionId!==s.connectionId)
    fail('abv2_grant_connection_changed',409);
-  accessGrants.assert(grantId,{accountId:s.ownerAccountId,
-   deviceId,connectionId:s.connectionId,agentId:receipt.agent,touch:false});
-  // Redis marker is idempotent; failure after PG commit is safe to replay.
+  if(phase==='active'&&receipt.state!=='granted')
+   fail('abv2_active_without_redis_commit',503);
+  // Only a successfully staged PG grant may be marked granted in Redis.
   const committed=await pending.commitGrant({...id,attempt:receipt.attempt,
    approvedAt:receipt.approvedAt,grantId});
   if(committed?.state!=='granted'||committed.grantId!==grantId)
    fail('abv2_grant_redis_commit_mismatch',503);
+  // Phase 2: activate in registry after Redis commit, still withheld from
+  // assert()/status while the second PostgreSQL write is in flight.
+  const activated=accessGrants.activateVerifiedV2(grantId);
+  await flushGrants();
+  if(await confirmPersisted({...base,phase:'active'})!==true)
+   fail('abv2_grant_activation_not_durable',503);
+  const latest=await authorization(req,deviceId);
+  if(latest.ownerAccountId!==s.ownerAccountId||
+     latest.connectionId!==s.connectionId)
+   fail('abv2_grant_connection_changed',409);
+  accessGrants.finalizeVerifiedV2(grantId);
+  await flushGrants();
+  accessGrants.assert(grantId,{accountId:s.ownerAccountId,
+   deviceId,connectionId:s.connectionId,agentId:receipt.agent,touch:false});
   return {state:'granted',requestId,grantId,agentId:receipt.agent,
    approvedAt:receipt.approvedAt,
    expiresAt:Math.min(grant.expiresAt,grant.absoluteExpiresAt),

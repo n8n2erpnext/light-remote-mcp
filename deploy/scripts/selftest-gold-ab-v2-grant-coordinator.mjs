@@ -6,10 +6,10 @@ import path from 'node:path';
 import {DeviceAccessGrantRegistry} from '../../operator-host/device-access-grant-registry.mjs';
 import {createGoldAbV2GrantCoordinator} from '../../operator-host/gold-ab-v2-grant-coordinator.mjs';
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'abv2-bridge-'));
-let now=1800000000000,online=true,connection='conn',persisted=false,failCommit=false,commits=0;
+let now=1800000000000,online=true,connection='conn',persisted=false,activeDurable=true,failCommit=false,commits=0;
 const registry=new DeviceAccessGrantRegistry({stateFile:path.join(dir,'grants.json'),now:()=>now});
 const id=ch=>'av2_'+ch.repeat(32);
-const rows=new Map(['a','b','c'].map(ch=>[id(ch),{requestId:id(ch),state:'pending',attempt:1,
+const rows=new Map(['a','b','c','d'].map(ch=>[id(ch),{requestId:id(ch),state:'pending',attempt:1,
  owner:'owner',actor:'owner',device:'device',connection:'conn',
  agent:ch==='b'?'agent-b':'agent-a',client:'oauth-'+'f'.repeat(64),b:'7KPX-42NM'}]));
 const pending={
@@ -42,7 +42,9 @@ const runner=createGoldAbV2GrantCoordinator({enabled:true,pending,accessGrants:r
   return {ownerAccountId:'owner',deviceId,connectionId:connection,
    connectionExpiresAt:now+172800000};
  },flushGrants:async()=>{},confirmPersisted:async p=>
-   persisted&&registry.grants.get(p.grantId)?.approvedAt===p.approvedAt});
+   persisted&&registry.grants.get(p.grantId)?.approvedAt===p.approvedAt&&
+   (p.phase==='staged'?registry.grants.get(p.grantId)?.closeReason==='abv2_uncommitted':
+    p.phase==='active'&&activeDurable&&registry.grants.get(p.grantId)?.closedAt==null)});
 const request=ch=>({deviceId:'device',requestId:id(ch),expectedAttempt:1,bCode:'7KPX-42NM'});
 const owner={owner:true,csrf:true};
 try{
@@ -77,6 +79,17 @@ try{
  assert.equal(registry.activeGrantsForDevice('device','conn').length,2);
  assert.equal(registry.assert(b.grantId,{touch:false}).grantId,b.grantId);
  assert.throws(()=>registry.assert(a.grantId,{touch:false}),/device_access_grant_required/);
+ now+=1000;
+ activeDurable=false;
+ await assert.rejects(runner(owner,request('d')),/abv2_grant_activation_not_durable/);
+ assert.equal(rows.get(id('d')).state,'granted','Redis may commit after staged PG row only');
+ const quarantined='dag_v2_'+id('d').slice(4);
+ assert.throws(()=>registry.assert(quarantined,{touch:false}),/device_access_grant_required/);
+ assert.equal(registry.activeGrantsForDevice('device','conn').some(x=>x.grantId===quarantined),false);
+ activeDurable=true;
+ const resumed=await runner(owner,request('d'));
+ assert.equal(resumed.grantId,quarantined);
+ assert.equal(registry.assert(quarantined,{touch:false}).grantId,quarantined);
  connection='changed';
  await assert.rejects(runner(owner,request('c')),/scope mismatch/);
  connection='conn';online=false;

@@ -62,7 +62,8 @@ const mk=(cfg=env)=>createGoldAbV2GrantOperator({env:cfg,
    return {rows:durable&&g?[{grant_id:g.grantId,
     account_id:g.accountId,device_id:g.deviceId,connection_id:g.connectionId,
     agent_id:g.agentId,approved_at:new Date(g.approvedAt),
-    absolute_expires_at:new Date(g.absoluteExpiresAt),closed_at:null}]:[]};
+    absolute_expires_at:new Date(g.absoluteExpiresAt),
+    closed_at:g.closedAt==null?null:new Date(g.closedAt),close_reason:g.closeReason}]:[]};
   }}},
  requireAccount:()=>({account:{accountId:validOwner?'owner':'other',status:'active'}}),
  accountSessionToken,accounts:{assertOperational:()=>({accountId:'owner',emailVerified:true})},

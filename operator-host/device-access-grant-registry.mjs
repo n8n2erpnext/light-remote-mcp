@@ -151,41 +151,79 @@ export class DeviceAccessGrantRegistry {
          priorRecord.approvedAt!==approvedAt||
          priorRecord.absoluteExpiresAt!==approvedAt+AB_GRANT_MAX_LIFETIME_MS)
         throw new DeviceAccessGrantError('abv2_grant_scope_conflict',409);
-      if(priorRecord.closedAt||now>=this._expiry(priorRecord))
+      const staged=priorRecord.closeReason==='abv2_uncommitted';
+      if((priorRecord.closedAt&&!staged)||now>=Number(priorRecord.absoluteExpiresAt))
         throw new DeviceAccessGrantError('abv2_grant_closed_or_expired',409);
       return {...priorRecord,reused:true};
     }
-    // New B approval replaces only grants from the same owner/device/Agent.
-    // Do not revoke unrelated Agents, including team-member grants.
-    const closed=[];
-    for(const old of this.grants.values()){
-      if(old.accountId===owner&&old.deviceId===device&&
-         old.agentId===agent&&String(old.purpose||'device')==='device'&&
-         !old.closedAt){
-        old.closedAt=now;old.closeReason='owner_reapproved';closed.push(old);
-      }
-    }
+    // P2-I2h2c: STAGE AS INACTIVE. This native PostgreSQL snapshot
+    // must not authorize an Agent while its asynchronous write is pending.
+    // Persisted closeReason survives a crashed process/reloaded registry.
+    // Previous same-Agent grant remains valid until activation succeeds.
     const grant={grantId,accountId:owner,agentId:agent,deviceId:device,
       connectionId:connection,label:String(label||'Light Remote Agent').slice(0,120),
       purpose:'device',approvedAt,lastActivityAt:now,
       idleGraceMs:AB_GRANT_MAX_LIFETIME_MS,
       absoluteExpiresAt:approvedAt+AB_GRANT_MAX_LIFETIME_MS,
       expiresAt:Math.min(connExpiry,approvedAt+AB_GRANT_MAX_LIFETIME_MS),
-      closedAt:null,closeReason:null};
+      closedAt:approvedAt,closeReason:'abv2_uncommitted'};
     this.grants.set(grantId,grant);
     try{this._persist();}
+    catch(error){this.grants.delete(grantId);throw error;}
+    return {...grant,reused:false};
+  }
+  activateVerifiedV2(grantId){
+    const id=validId(grantId,'abv2_grant_id_invalid'),row=this.grants.get(id);
+    if(!row||!/^dag_v2_[a-f0-9]{32}$/.test(id))
+      throw new DeviceAccessGrantError('abv2_grant_not_found',404);
+    if(row.activationPending)return {...row,reused:true};
+    if(!row.closedAt)return {...row,reused:true};
+    if(row.closeReason!=='abv2_uncommitted')
+      throw new DeviceAccessGrantError('abv2_grant_closed_or_expired',409);
+    if(this.now()>=this._expiry(row))
+      throw new DeviceAccessGrantError('abv2_grant_expired',409);
+    // Reject a delayed old request trying to supersede a newer B approval
+    // for the SAME Agent. The Agent's 24h clock must never move backward.
+    for(const old of this.grants.values()){
+      if(old.grantId!==id&&old.accountId===row.accountId&&
+         old.deviceId===row.deviceId&&old.agentId===row.agentId&&
+         String(old.purpose||'device')==='device'&&!old.closedAt&&
+         Number(old.approvedAt)>=Number(row.approvedAt))
+        throw new DeviceAccessGrantError('abv2_grant_superseded',409);
+    }
+    // Prevent use during second PostgreSQL flush as well. The activation
+    // is safe after Redis granted + PG readback of this activation snapshot.
+    const changed=[];
+    for(const old of this.grants.values()){
+      if(old.grantId!==id&&old.accountId===row.accountId&&
+         old.deviceId===row.deviceId&&old.agentId===row.agentId&&
+         String(old.purpose||'device')==='device'&&!old.closedAt){
+        changed.push({row:old,closedAt:old.closedAt,closeReason:old.closeReason});
+        old.closedAt=this.now();old.closeReason='owner_reapproved';
+      }
+    }
+    row.closedAt=null;row.closeReason=null;row.activationPending=true;
+    try{this._persist();}
     catch(error){
-      this.grants.delete(grantId);
-      for(const old of closed){old.closedAt=null;old.closeReason=null;}
+      row.closedAt=row.approvedAt;row.closeReason='abv2_uncommitted';
+      row.activationPending=false;
+      for(const x of changed){x.row.closedAt=x.closedAt;x.row.closeReason=x.closeReason;}
       throw error;
     }
-    for(const old of closed)this.emit({type:'device_access_closed',
-      accountId:owner,deviceId:device,connectionId:old.connectionId,
-      grantId:old.grantId,status:'closed',reason:'owner_reapproved'});
-    this.emit({type:'device_access_approved',accountId:owner,
-      deviceId:device,connectionId:connection,requestId:rid,
-      grantId,status:'approved'});
-    return {...grant,reused:false};
+    return {...row};
+  }
+  finalizeVerifiedV2(grantId){
+    const id=validId(grantId,'abv2_grant_id_invalid'),row=this.grants.get(id);
+    if(!row||row.closedAt||!/^dag_v2_[a-f0-9]{32}$/.test(id))
+      throw new DeviceAccessGrantError('abv2_activation_required',409);
+    if(row.activationPending){
+      row.activationPending=false;
+      this._persist();
+      this.emit({type:'device_access_approved',accountId:row.accountId,
+        deviceId:row.deviceId,connectionId:row.connectionId,
+        grantId:id,status:'approved'});
+    }
+    return {...row};
   }
   deny(requestId,reason='owner_denied',{deviceId=null}={}){
     const id=validId(requestId,'invalid_plus_request_id'),row=this.requests.get(id);
@@ -201,7 +239,8 @@ export class DeviceAccessGrantRegistry {
   }
   assert(grantId,{deviceId=null,connectionId=null,agentId=null,accountId=null,touch=true}={}){
     const id=validId(grantId,'invalid_access_grant_id'),row=this.grants.get(id),now=this.now();
-    if(!row||row.closedAt)throw new DeviceAccessGrantError('device_access_grant_required',401);
+    if(!row||row.closedAt||row.activationPending)
+      throw new DeviceAccessGrantError('device_access_grant_required',401);
     if(now>=this._expiry(row)){this.close(row.grantId,'device_access_grant_expired');throw new DeviceAccessGrantError('device_access_grant_expired',401);}
     if(deviceId!=null&&row.deviceId!==String(deviceId))throw new DeviceAccessGrantError('device_access_grant_device_mismatch',403);
     if(connectionId!=null&&row.connectionId!==String(connectionId))throw new DeviceAccessGrantError('device_access_grant_connection_mismatch',403);
@@ -302,7 +341,7 @@ export class DeviceAccessGrantRegistry {
     // Each approved Agent has its OWN 24h deadline. Do not collapse or
     // revoke grants belonging to other Agents when one owner reapproves.
     const rows=[...this.grants.values()].filter(row=>
-      row.deviceId===did&&!row.closedAt&&now<this._expiry(row)&&
+      row.deviceId===did&&!row.closedAt&&!row.activationPending&&now<this._expiry(row)&&
       (connectionId==null||row.connectionId===String(connectionId)));
     rows.sort((a,b)=>Number(b.approvedAt||0)-Number(a.approvedAt||0)||
       String(b.grantId).localeCompare(String(a.grantId)));

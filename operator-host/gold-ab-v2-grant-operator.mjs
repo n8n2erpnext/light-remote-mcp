@@ -62,13 +62,14 @@ export function createGoldAbV2GrantOperator({
   accessGrants,authorizeOwner,flushGrants:()=>goldRegistries.flush(),
   confirmPersisted:async scope=>{
    const result=await storage.pool.query(
-    'SELECT grant_id,account_id,device_id,connection_id,agent_id,approved_at,absolute_expires_at,closed_at FROM lr_ab_grants WHERE grant_id=$1',
+    'SELECT g.grant_id,g.account_id,g.device_id,g.connection_id,g.agent_id,g.approved_at,g.absolute_expires_at,g.closed_at,m.close_reason FROM lr_ab_grants g JOIN lr_gold_ab_grant_metadata m ON m.grant_id=g.grant_id WHERE g.grant_id=$1',
     [scope.grantId]);
    const r=result?.rows?.[0];
    return Boolean(r&&r.grant_id===scope.grantId&&
     r.account_id===scope.ownerAccountId&&r.device_id===scope.deviceId&&
     r.connection_id===scope.connectionId&&r.agent_id===scope.agentId&&
-    r.closed_at==null&&
+    (scope.phase==='staged'?(r.closed_at!=null&&r.close_reason==='abv2_uncommitted'):
+     (scope.phase==='active'&&r.closed_at==null))&&
     new Date(r.approved_at).getTime()===scope.approvedAt&&
     new Date(r.absolute_expires_at).getTime()===scope.absoluteExpiresAt);
   }});

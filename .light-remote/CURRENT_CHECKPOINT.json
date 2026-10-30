@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-30",
-  "status": "P2-I2h2b source 58c2783 pushed HEAD=origin: Redis verified owner B receipt→PG flush/readback→atomic granted marker source fixtures PASS, factory NOT publicly mounted; Actions push CI UNVERIFIED; no runtime deploy.",
+  "status": "Gold P2-I2h2c real isolated Redis8 Lua and native PostgreSQL two-phase V2 staged-grant/flush/restart PASS; pre-durability exposure found then fixed, clone STOPPED; owner B V2 public route/Helper ready OFF; source SHA/CI pending",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -45,7 +45,8 @@
     "P2 per-Agent clock hotfix source 31c0e70 pushed with clean HEAD=origin, registry+Wall+HTTP B approval and V1 regression PASS, source/docs/checkpoint gate and 330 links PASS; push Actions status not independently verified",
     "P2-I2h1 OAuth signed purpose-specific Agent→Operator pending issuance source: exact selected Short ID, owner/enrollment/connection/PG043 verification, Redis idempotent requestKey + sealed B returned only to Agent, source tests PASS; no owner V2 grant/ready",
     "P2-I2h2a internal deterministic V2 grantId from requestId and verifiedAt, scoped per Agent with no lifetime extension or closed-grant resurrection; source/JSON restart regression PASS",
-    "P2-I2h2b source internal grant coordinator and Operator owner factory: Redis verified B receipt + atomic grant commit after PG flush/readback; idempotent per-Agent 24h; mock owner CSRF/PG/restart tests PASS, no public route."
+    "P2-I2h2b source internal grant coordinator and Operator owner factory: Redis verified B receipt + atomic grant commit after PG flush/readback; idempotent per-Agent 24h; mock owner CSRF/PG/restart tests PASS, no public route.",
+    "P2-I2h2c real Redis8 no-NIC clone B CAS/receipt/commit PASS; native GoldNativeAB+GoldRegistryPersistence disposable PostgreSQL staged/activation flush and restart PASS after fixing pre-durable grant exposure, clone STOPPED"
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -59,9 +60,10 @@
     "P2-I2h1 real Redis Lua idempotency regression added but NOT YET RUN on no-NIC clone; source mock contract PASS, native OAuth/Agent E2E not run",
     "V2 B owner approval not mounted on /approve; no durable per-Agent 24h grant or Helper ready. Never use Redis pending-approved as equivalent to real access grant",
     "Trusted Redis owner B verification receipt + Gold PostgreSQL async flush before grant commitment still NOT implemented; no owner V2 approval/Helper ready route wired",
-    "P2-I2h2b real Redis Lua + native PostgreSQL readback/restart not yet run in no-NIC clone; public V2 B owner approval/Agent Helper ready unmounted, all V2 OFF"
+    "P2-I2h2b real Redis Lua + native PostgreSQL readback/restart not yet run in no-NIC clone; public V2 B owner approval/Agent Helper ready unmounted, all V2 OFF",
+    "P2-I2h2c native PG fixture uses minimal contract tables not full 039→043 schema FK constraints; live installed OAuth Agent/Wall approve and Helper ready still NOT wired"
   ],
-  "nextAction": "P2-I2h2c no-NIC Redis8 true Lua grant receipt/commit + Gold native PostgreSQL async flush/readback/restart acceptance; security review in-memory pre-durable grant visibility. Then gated authenticated owner /account+signed Wall V2 B approve and exact Agent Helper poll/ready. Keep runtime flags OFF and do not migrate PG043 or change production.",
+  "nextAction": "Check source SHA GitHub Actions. P2-I2h2d full native schema/FK no-NIC clone crash windows, then gated authenticated /account B V2 owner approve and separately signed Local Wall owner action, exact OAuth Agent poll checked against real PG active grant/current connection before Helper ready. No UAT/prod/Windows deploy, keep flags OFF.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -74,10 +76,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "bbfc1022bd8f136bd06ae096dfa01c2cbc3b8bc745903109d89cdf8ce174f4df",
-    "trackedFiles": 1019,
+    "treeDigest": "c658d6812fb4332596be06a5ca7d70e21a1f3192d2d910da0c3c3872a4687d94",
+    "trackedFiles": 1020,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-10-30T12:56:46.859Z"
+    "recordedAt": "2026-10-30T13:16:20.161Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -260,6 +262,23 @@
         "sourceSha": "58c2783e39e03ebc5d9bc1b5a41652b6dbefb68d",
         "githubActions": "PUSH_CI_UNVERIFIED_CONNECTOR_PR_ONLY",
         "vercelInitial": "two pending"
+      },
+      "isolatedTwoPhaseAcceptance": {
+        "redisFixture": "deploy/scripts/selftest-gold-ab-v2-pending-redis.mjs",
+        "nativePgFixture": "deploy/scripts/selftest-gold-ab-v2-native-pg-grant.mjs",
+        "redis8": true,
+        "nativePg": true,
+        "initialFail": "PRE_DURABILITY_GRANT_VISIBLE",
+        "fix": "abv2_uncommitted staged/closed PG row + Redis granted + activationPending fence + second PG flush/readback + finalize; block superseded older same-Agent B",
+        "nativeSchema": "disposable minimal AB contract tables, not full production FK",
+        "disposableDbDeleted": true,
+        "clone": "gold-p2a-runtime-rollback-20261030 STOPPED no NIC",
+        "uATChange": false,
+        "productionChange": false,
+        "ownerBRoute": false,
+        "helperReady": false,
+        "sourceSHA": "PENDING_COMMIT",
+        "ci": "PENDING_EXACT_SHA"
       }
     },
     "abPerAgentTimerHotfix": {
