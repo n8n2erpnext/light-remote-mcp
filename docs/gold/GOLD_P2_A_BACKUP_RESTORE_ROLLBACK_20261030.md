@@ -119,3 +119,65 @@ runbook, **not** an authorization to change live Gold UAT or production rc.47.
 - P2-A fresh live backup/snapshot evidence: PASS at rehearsal, refresh at cutover.
 - P2-A physical four-unit/Redis rollback: **NOT YET TESTED**.
 - P2-B deployment, P2-C native E2E, P2-D updater, P2-E production: NOT STARTED.
+
+
+## P2-A real LXD clone four-service recovery rehearsal (2026-10-30, same day)
+
+This evidence supersedes the earlier statement that the four-unit rollback was
+entirely untested, **but does NOT close the Wall steady-state or Redis key
+compatibility acceptance gates**.
+
+- Created `gold-p2a-runtime-rollback-20261030` from
+  `light-remote-gold-uat/gold-p2a-before-schema040-20261030` with LXD Btrfs
+  CoW. Removed inherited NIC and all profiles before first boot; effective
+  devices contained only `root`, network interfaces only `lo`, no IPv4
+  default route. `boot.autostart=false`, memory limit 2 GiB.
+- Snapshot clone had local PostgreSQL 17, Redis and four real systemd units.
+  Database started at 039 with one historical foreign M4 claim. Clone was
+  independent of the live UAT database and **could not reach remote devices**.
+- Preimage backups were made **inside the isolated clone**:
+  `/var/lib/light-remote-p2a/preimage039.dump`, SHA256
+  `4eb164685c9369f27da45ae6bbdd85276cd1582060096e0695fe570ce6b9a6e1`
+  and four-unit `preimage-four-units.tar`, SHA256
+  `0e21ebb1ac0a7bd2e995341ca1a13d323e9363d38e71561d57be0cf3212b6b81`.
+  Files and secret-bearing systemd overrides remain PRIVATE inside clone.
+- Stopped Wall, Plugin, Process Supervisor, Operator. Inserted an isolated
+  `ConditionPathExists` negative override for **all four** services.
+- On clone only, applied locked 040/041/042 SQL and ledger to schema 042.
+  Attempted restart; all 4 units remained inactive. Expected failed-candidate
+  detection PASS. This injection did not alter live UAT service files.
+- Dropped/restored ONLY cloned PostgreSQL database to 039 using its private
+  dump: 39/39 migrations, foreign historical claim count 1, epoch 041 absent.
+- Removed four negative overrides; compared complete original four-unit
+  archive with `tar -d`, **bit-for-bit original unit config PASS**;
+  `systemctl daemon-reload`; started Operator → Supervisor → Plugin → Wall.
+  All four initially reported `active` and `ExecStart` pointed back to
+  the immutable source 7f46dea.
+- 10-sample continuous systemd health check: Operator, Plugin,
+  Process Supervisor, PostgreSQL and Redis **PASS**. Wall **HOLD**:
+  transitions to `activating/auto-restart`, `ExecMainStatus=1`,
+  `NRestarts>=24` in this deliberately networkless clone. No signed
+  outbound E2E was attempted. Do NOT claim four-service stable health PASS
+  or attribute the failure solely to networking without explicit proof.
+- Redis ran locally, bound `127.0.0.1:6379` and `::1:6379`;
+  unauthenticated `redis-cli PING` returned `NOAUTH`. No Redis
+  flush/delete, no shared Redis access and no private key/secret read.
+  **Redis per-key/TTL readback and cross-version protocol compatibility
+  remain unverified**, not PASS.
+- On clone, executed current Gold-source legacy G3 cutover script with
+  explicit opt-in flags and received exact safe denial:
+  `G3_GOLD_LEGACY_THREE_UNIT_CUTOVER_UNSAFE_WITH_SUPERVISOR`.
+  Four-unit original archive remained identical after the denial.
+- Stopped the clone cleanly at the end, leaving its Btrfs CoW volume
+  available, network disabled and autostart disabled. Btrfs pool used
+  approximately 31.69 / 40 GiB after clone test.
+- Verified live UAT **unmodified**: PostgreSQL schema039, claim count1,
+  Operator/Plugin/Wall/Supervisor all active. Production rc.47 untouched.
+
+Updated acceptance:
+- Four-unit STOP / bad-candidate detection / config restoration /
+  safe restart ordering / PG restore **PASS in isolated LXD**.
+- Gold UAT live four-unit restart, Wall stable health, authenticated Redis
+  key/TTL compatibility, signed Agent reconnect and approval-gated live
+  rollback **NOT TESTED / HOLD**. P2-A is **partially accepted**, and
+  P2-B must not promote or migrate live UAT automatically.
