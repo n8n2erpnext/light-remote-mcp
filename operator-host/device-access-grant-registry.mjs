@@ -111,12 +111,15 @@ export class DeviceAccessGrantRegistry {
     if(cid!==row.connectionId)throw new DeviceAccessGrantError('device_connection_changed',409);
     if(!Number.isFinite(expiresAt)||expiresAt<=now)throw new DeviceAccessGrantError('device_connection_expired',410);
     const prior=this._activeGrant(row.deviceId,cid,now,row.agentId,row.accountId,row.purpose||'device');
-    if(prior&&row.pairingRequired)this.close(prior.grantId,'owner_reapproved');
-    const grant=prior&&!row.pairingRequired?prior:{grantId:`dag_${crypto.randomUUID()}`,accountId:row.accountId,agentId:row.agentId,purpose:row.purpose||'device',deviceId:row.deviceId,connectionId:cid,approvedAt:now,lastActivityAt:now,idleGraceMs:row.pairingRequired?AB_GRANT_MAX_LIFETIME_MS:this._grace(idleGraceMs),absoluteExpiresAt:now+AB_GRANT_MAX_LIFETIME_MS,expiresAt:Math.min(expiresAt,now+AB_GRANT_MAX_LIFETIME_MS),closedAt:null,closeReason:null};
+    // Replace only THIS Agent's old grant, in the SAME persisted snapshot
+    // as the new one. Never close another Agent while refreshing 24h.
+    if(prior&&row.pairingRequired){prior.closedAt=now;prior.closeReason='owner_reapproved';}
+    const grant=prior&&!row.pairingRequired?prior:{grantId:`dag_${crypto.randomUUID()}`,accountId:row.accountId,agentId:row.agentId,label:row.label,purpose:row.purpose||'device',deviceId:row.deviceId,connectionId:cid,approvedAt:now,lastActivityAt:now,idleGraceMs:row.pairingRequired?AB_GRANT_MAX_LIFETIME_MS:this._grace(idleGraceMs),absoluteExpiresAt:now+AB_GRANT_MAX_LIFETIME_MS,expiresAt:Math.min(expiresAt,now+AB_GRANT_MAX_LIFETIME_MS),closedAt:null,closeReason:null};
     if(prior&&!row.pairingRequired){grant.lastActivityAt=now;if(idleGraceMs!=null)grant.idleGraceMs=this._grace(idleGraceMs);}
     this.grants.set(grant.grantId,grant);
     row.state='approved';
     this._persist();
+    if(prior&&row.pairingRequired)this.emit({type:'device_access_closed',accountId:prior.accountId,deviceId:prior.deviceId,connectionId:cid,grantId:prior.grantId,status:'closed',reason:'owner_reapproved'});
     this.emit({type:'device_access_approved',accountId:row.accountId,deviceId:row.deviceId,connectionId:cid,requestId:row.requestId,grantId:grant.grantId,status:'approved'});
     return {...grant};
   }
@@ -230,10 +233,22 @@ export class DeviceAccessGrantRegistry {
     const did=validId(deviceId,'invalid_access_device_id'),now=this.now();
     return [...this.requests.values()].filter(row=>row.deviceId===did&&row.state==='pending'&&!row.consumedAt&&row.expiresAt>now).map(row=>({requestId:row.requestId,deviceId:row.deviceId,connectionId:row.connectionId,agentId:row.agentId,label:row.label,userCode:row.userCode,createdAt:row.createdAt,expiresAt:row.expiresAt}));
   }
-  activeForDevice(deviceId,connectionId=null){
+  activeGrantsForDevice(deviceId,connectionId=null){
     const did=validId(deviceId,'invalid_access_device_id'),now=this.now();
-    for(const row of this.grants.values())if(row.deviceId===did&&!row.closedAt&&now<this._expiry(row)&&(connectionId==null||row.connectionId===String(connectionId)))return {...row};
-    return null;
+    // Each approved Agent has its OWN 24h deadline. Do not collapse or
+    // revoke grants belonging to other Agents when one owner reapproves.
+    const rows=[...this.grants.values()].filter(row=>
+      row.deviceId===did&&!row.closedAt&&now<this._expiry(row)&&
+      (connectionId==null||row.connectionId===String(connectionId)));
+    rows.sort((a,b)=>Number(b.approvedAt||0)-Number(a.approvedAt||0)||
+      String(b.grantId).localeCompare(String(a.grantId)));
+    return rows.map(row=>({...row}));
+  }
+  activeForDevice(deviceId,connectionId=null){
+    // Backward compatibility for older clients: one most-recent A/B grant.
+    // Gold Wall now uses activeGrantsForDevice (all independent Agent timers).
+    return this.activeGrantsForDevice(deviceId,connectionId)
+      .find(row=>String(row.purpose||'device')==='device')||null;
   }
   reap({connectionForDevice=()=>null,liveSessionsForDevice=()=>0}={}){
     const now=this.now(),closed=[];let changed=false;

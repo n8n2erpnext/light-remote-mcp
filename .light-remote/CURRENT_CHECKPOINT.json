@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-30",
-  "status": "P2-I2g source 2e853415 pushed, HEAD=origin; OAuth HMAC Helper targetQuery discovery only, PG043 failclosed, all flags OFF; local fixtures PASS, push Actions CI NOT VERIFIED; no A/B issuance/grant/ready",
+  "status": "Gold P2 hotfix: per-Agent independent 24h A/B countdown + immediate owner B approval Wall cache refresh SOURCE PASS, V1 pairing regression PASS; source SHA and Actions CI pending. Windows rc49 not deployed.",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -40,7 +40,8 @@
     "P2-I2f signed Local Wall preview: Operator signed Ed25519 channel verified, owner/device/current connection/enrollment policy checked, owner signed email vs local Wall account login; hidden read-only V2 /approve panel, no OAuth cookie or B, fixtures PASS",
     "P2-I2f exact source aaec466 pushed with clean HEAD=origin, source/docs/checkpoint gate and 317 doc links PASS, signed Wall/read only and V1 regression fixture PASS; Actions push-run not verified",
     "P2-I2g optional MCP Helper targetQuery + signed OAuth principal/query/nonce→Operator scope 0/1/N resolver, dual flags OFF, PG043 failclosed, no A/B/grant/ready, test fixtures PASS",
-    "P2-I2g source commit 2e853415 pushed HEAD=origin; HMAC/Redis replay, signed scoped 0/1/N resolver, schema 043 failclosed, optional V1-compatible Helper schema static source checks PASS; GitHub Actions push CI unverified"
+    "P2-I2g source commit 2e853415 pushed HEAD=origin; HMAC/Redis replay, signed scoped 0/1/N resolver, schema 043 failclosed, optional V1-compatible Helper schema static source checks PASS; GitHub Actions push CI unverified",
+    "Gold P2 per-Agent A/B clock: new approved grant resets only same Agent (old 1m30 + new B 24h), other Agents unchanged; backend signed status activeGrants, Wall multi-row timer, owner approve cache invalidate, source/HTTP fixtures PASS"
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -49,9 +50,10 @@
     "One historical M4 resource claim and 27 UNKNOWN records protected",
     "P2-I2f signed proof tested with fixture only, not installed Agent; Helper targetQuery and durable 24h grant reconciliation, B approve, 043 migration remain unimplemented",
     "P2-I2g targetQuery discovers only, Agent-first exact requestId issuance/poll/true B owner approval + durable 24h grant and native installed E2E not yet connected",
-    "Local Wall V2 read-only signed preview and /account list/refresh/deny source-wired, but Short ID STANDBY / real B owner approve / true durable 24h grant/Helper ready NOT implemented"
+    "Local Wall V2 read-only signed preview and /account list/refresh/deny source-wired, but Short ID STANDBY / real B owner approve / true durable 24h grant/Helper ready NOT implemented",
+    "Per-Agent A/B countdown fix is SOURCE ONLY: not shipped to Windows rc49 screenshot or UAT, needs controlled candidate/native signed Agent E2E and exact source SHA push Actions CI"
   ],
-  "nextAction": "Check exact 2e853415 Gold GC push Actions via independent GitHub run listing; then P2-I2h Agent-first exact selected device+OAuth Agent requestId issuance (PG043 + Redis A6+5 B4+4) with signed session binding; plan durable 24h grant B owner commit/reconciliation before any V2 ready. Continue SOURCE ONLY; do not migrate/live enable/clear unknown historical claims.",
+  "nextAction": "Verify exact source SHA GitHub Actions after commit and native installed Windows client Wall 5491 per-Agent independent countdown in controlled candidate; do not deploy Gold UAT/production without release gate. Then return to P2-I2h Agent-first requestId issuance and durable true V2 24h grant reconciliation.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -64,10 +66,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "fdf7a5fd09b26a5bfa2ffdc8850cb24097d6ad74f44b499b365b52c05633832b",
-    "trackedFiles": 1012,
+    "treeDigest": "3c3726a79b1979ba6b2050df253849039aedb66f89534dfacc6b346fbe9965e1",
+    "trackedFiles": 1013,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-10-30T11:55:29.905Z"
+    "recordedAt": "2026-10-30T12:16:10.847Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -198,6 +200,21 @@
         "githubActions": "PUSH_WORKFLOW_UNVERIFIED_CONNECTOR"
       },
       "ownerWallWiredScope": "signed read-only preview, not B approval"
+    },
+    "abPerAgentTimerHotfix": {
+      "registry": "operator-host/device-access-grant-registry.mjs",
+      "signedStatus": "operator-host/executor-routes-device-channel.mjs",
+      "wall": "device-agent/local-wall.mjs",
+      "fixture": "deploy/scripts/selftest-gold-ab-reauthorization-clock.mjs",
+      "legacyTest": "deploy/scripts/selftest-v09-device-access-grant.mjs",
+      "scope": "per-agent with same-agent owner B reapproval resets only own grant",
+      "ownerApprovalCacheInvalidation": true,
+      "rollbackUatTouched": false,
+      "prodTouched": false,
+      "nativeWindows49Acceptance": "NOT_TESTED",
+      "localSourceFixtures": "PASS",
+      "sourceSha": "PENDING_COMMIT",
+      "actionsPushCI": "NOT_VERIFIED"
     }
   }
 }

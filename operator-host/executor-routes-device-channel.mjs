@@ -679,7 +679,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       const body=await readJson(req), ctx=await verifiedChannelContext(body,'status');
       const connection=requireDeviceConnection(ctx.device.deviceId);
       const liveSessions=sessions.list({deviceId:ctx.device.deviceId}).filter(item=>item.state==='active'||item.state==='hold');
-      return sendJson(res,200,{ok:true,device:deviceView(ctx.device),connection:{...connections.get(ctx.device.deviceId),enforced:CONNECTION_LEASE_ENFORCE},sessions:liveSessions,access:{pending:accessGrants.pendingForDevice(ctx.device.deviceId),activeGrant:accessGrants.activeForDevice(ctx.device.deviceId,connection.connectionId)}});
+      return sendJson(res,200,{ok:true,device:deviceView(ctx.device),connection:{...connections.get(ctx.device.deviceId),enforced:CONNECTION_LEASE_ENFORCE},sessions:liveSessions,access:{pending:accessGrants.pendingForDevice(ctx.device.deviceId),activeGrant:accessGrants.activeForDevice(ctx.device.deviceId,connection.connectionId),activeGrants:accessGrants.activeGrantsForDevice(ctx.device.deviceId,connection.connectionId).map(g=>({agentId:g.agentId||null,label:String(g.label||'Agent').slice(0,120),purpose:g.purpose||'device',approvedAt:g.approvedAt,expiresAt:g.expiresAt,absoluteExpiresAt:g.absoluteExpiresAt}))}});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/session-close') {
       const body=await readJson(req), ctx=await verifiedChannelContext(body,'session-close');

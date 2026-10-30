@@ -13,6 +13,9 @@ on:
       - 'operator-host/gold-ab-v2-owner-http.mjs'
       - 'operator-host/gold-ab-v2-signed-preview.mjs'
       - 'operator-host/gold-ab-v2-helper-target.mjs'
+      - 'operator-host/device-access-grant-registry.mjs'
+      - 'deploy/scripts/selftest-gold-ab-reauthorization-clock.mjs'
+      - 'deploy/scripts/selftest-v09-device-access-grant.mjs'
       - 'lib/gold-ab-v2-helper-proof.mjs'
       - 'plugin-server/operator-adapter.mjs'
       - 'plugin-server/tools.mjs'
@@ -150,6 +153,9 @@ jobs:
           node --check plugin-server/tools.mjs
           node deploy/scripts/selftest-gold-ab-v2-helper-target.mjs
           node deploy/scripts/selftest-gold-ab-v2-helper-tool.mjs
+          node deploy/scripts/selftest-gold-ab-reauthorization-clock.mjs
+          node deploy/scripts/selftest-v09-device-access-grant.mjs
+          node deploy/scripts/selftest-v09-pairing-connect-flow.mjs
           node --check plugin-server/account-ab-v2.mjs
           node --check plugin-server/account-portal.mjs
           node --check plugin-server/account-portal/ab-v2.js
