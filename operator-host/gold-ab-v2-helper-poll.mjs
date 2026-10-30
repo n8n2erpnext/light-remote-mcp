@@ -62,7 +62,7 @@ export function createGoldAbV2HelperPoll({env=process.env,storage,accounts,
    const cn=validateDevice(p);
    // Exact Short ID and device, no Main fallback.
    const short=await storage.pool.query(
-    'SELECT short_id FROM lr_gold_device_short_ids WHERE owner_account_id=$1 AND device_id=$2',
+    'SELECT s.short_id FROM lr_gold_device_short_ids s JOIN lr_devices d ON d.device_id=s.device_id WHERE d.owner_account_id=$1 AND s.device_id=$2',
     [p.accountId,p.deviceId]);
    if(short.rowCount!==1||short.rows[0].short_id!==p.shortId)
     deny('abv2_poll_short_id_changed',409);

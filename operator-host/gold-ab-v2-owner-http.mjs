@@ -19,6 +19,14 @@ const RATE_LUA=[
  "return 1"
 ].join('\n');
 const deny=(error,status=403)=>{throw new GoldAbV2OwnerPendingError(error,status);};
+// Retry a once-authorized B after an interrupted PG phase with fresh owner
+// consent. It never changes the Redis attempt, B TTL or Agent 24h clock.
+export function isGoldAbV2WallConsentRecoverable(row,expectedAttempt,now=Date.now()){
+ return row!=null&&['pending','approved','granted'].includes(row.state)&&
+  Number.isSafeInteger(expectedAttempt)&&expectedAttempt>0&&
+  row.attempt===expectedAttempt&&Number.isFinite(Number(row.expiresAt))&&
+  Number(row.expiresAt)>now;
+}
 function ids(input){
  const raw=String(input||'');
  if(!raw||raw.length>4000)deny('abv2_owner_allowlist_required',503);
@@ -184,7 +192,7 @@ export function createGoldAbV2OwnerHttpFromOperator({env=process.env,storage,
    deny('abv2_wall_consent_origin_csrf_denied',403);
   const scope=await adapter.guard(req,deviceId,'issue_wall_owner_consent',{mutation:true});
   const row=await adapter.view(req,{deviceId,requestId});
-  if(row.state!=='pending'||row.attempt!==expectedAttempt)
+  if(!isGoldAbV2WallConsentRecoverable(row,expectedAttempt))
    deny('abv2_wall_consent_pending_changed',409);
   return wallConsent.issue({...scope,requestId,expectedAttempt,
    requestExpiresAt:row.expiresAt});

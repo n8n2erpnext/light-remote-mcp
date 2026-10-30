@@ -60,8 +60,13 @@ const redis={
  }
 };
 const pg={query:async(sql,params)=>{
- if(sql.includes('lr_gold_device_short_ids'))
+ if(sql.includes('lr_gold_device_short_ids')){
+  assert.match(sql,/JOIN lr_devices d ON d\.device_id=s\.device_id/,
+   'PG043 Short ID owner is on canonical devices, not SID table');
+  assert.match(sql,/d\.owner_account_id=\$1/);
+  assert.deepEqual(params,['acct1','dev1']);
   return {rowCount:1,rows:[{short_id:'ABCD02'}]};
+ }
  if(sql.includes('lr_ab_grants')){
   const row={grant_id:grantId,account_id:'acct1',device_id:'dev1',connection_id:'conn1',
    agent_id:agentId,approved_at:new Date(grantTime),

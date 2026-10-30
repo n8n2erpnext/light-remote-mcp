@@ -4,11 +4,20 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import crypto from 'node:crypto';
 import {once} from 'node:events';
-import {createGoldAbV2Csrf,createGoldAbV2OwnerHttp}
+import {createGoldAbV2Csrf,createGoldAbV2OwnerHttp,isGoldAbV2WallConsentRecoverable}
  from '../../operator-host/gold-ab-v2-owner-http.mjs';
 const origin='https://gold.example.test';
 const owner='owner-proof-'+crypto.randomBytes(16).toString('hex');
 const requestId='av2_'+'a'.repeat(32);
+const t=Date.now(),baseRow={attempt:2,expiresAt:t+300000};
+for(const state of ['pending','approved','granted']){
+ assert.equal(isGoldAbV2WallConsentRecoverable({...baseRow,state},2,t),true);
+}
+for(const state of ['denied','expired','locked'])
+ assert.equal(isGoldAbV2WallConsentRecoverable({...baseRow,state},2,t),false);
+assert.equal(isGoldAbV2WallConsentRecoverable({...baseRow,state:'approved'},1,t),false);
+assert.equal(isGoldAbV2WallConsentRecoverable({...baseRow,state:'approved',expiresAt:t},2,t),false);
+console.log('GOLD_ABV2_WALL_OWNER_FRESH_CONSENT_PG_INTERRUPTED_RECOVERY_STATES=PASS');
 const base='/v1/accounts/ab-v2/devices/dev1/pending/'+requestId+'/approve';
 const key=crypto.randomBytes(32);
 const csrf=createGoldAbV2Csrf({sealingKey:key,origin,sessionToken:req=>

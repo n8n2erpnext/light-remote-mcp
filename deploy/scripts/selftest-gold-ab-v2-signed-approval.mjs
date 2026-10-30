@@ -11,7 +11,7 @@ const file=path.join(root,'key');const secret=crypto.randomBytes(32);
 fs.writeFileSync(file,secret,{mode:0o600});
 const reqid='av2_'+'a'.repeat(32);
 const consentRows=new Map();
-let time=Date.now(),approved=false,grantCommitted=false,writeCount=0,conn='conn1',revoked=false,policyEnabled=true;
+let time=Date.now(),approved=false,grantCommitted=false,writeCount=0,failPgOnce=false,conn='conn1',revoked=false,policyEnabled=true;
 const id={deviceId:'dev1',accountId:'owner1',publicIdentityKey:'pub1'};
 const binding={...id},ctx={
  binding,proof:{binding},device:{...id},
@@ -82,7 +82,9 @@ const deps={
    policyProfile:policyEnabled?'default':'disabled',approvedCapabilities:['filesystem']})},
  connections:{assertConnected:()=>({deviceId:'dev1',accountId:'owner1',
   connectionId:conn,state:'connected',hardExpiresAt:time+7200000})},
- accessGrants:grantRegistry,goldRegistries:{flush:async()=>{writeCount++;}},
+ accessGrants:grantRegistry,goldRegistries:{flush:async()=>{
+  writeCount++;if(failPgOnce){failPgOnce=false;throw Error('pg_fixture_interrupted_stage');}
+ }},
  now:()=>time
 };
 const consent=new GoldAbV2WallOwnerConsent({redis,prefix:'lr:gold:test:',
@@ -111,7 +113,15 @@ try{
  conn='conn1';
  ctx.payload.consentCode=(await issueConsent()).consentCode;
  assert.equal(grantRegistry.grants.size,0);
+ failPgOnce=true;
+ await assert.rejects(handler(ctx),/pg_fixture_interrupted_stage/);
+ assert.equal(receipt.state,'approved','B was verified, grant not yet durable');
+ assert.equal(grantCommitted,false,'Redis granted must not be issued on failed PG stage');
+ const originalApproval=receipt.approvedAt;
+ await assert.rejects(handler(ctx),/abv2_wall_consent_expired_or_used/);
+ ctx.payload.consentCode=(await issueConsent()).consentCode;
  const good=await handler(ctx);
+ assert.equal(good.approvedAt,originalApproval,'new consent must not restart 24h');
  assert.equal(good.ok,true);assert.equal(good.state,'granted');
  assert.equal(good.requestId,reqid);assert.equal(good.agentId,'agent-a');
  assert.equal(good.absoluteExpiresAt,receipt.approvedAt+86400000);
