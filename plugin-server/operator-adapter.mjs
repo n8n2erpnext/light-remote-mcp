@@ -70,6 +70,33 @@ export class AccountOperatorAdapter{
       helperReady:false,approvalState:'not_issued',
       nextAction:response.nextAction||'specify_target'};
   }
+  async issueAbV2Request(targetQuery,{requestKey=null}={}){
+    if(process.env.LR_GOLD_AB_V2_HELPER_REQUEST_ISSUE!=='1')
+      return {status:'request_issuance_unavailable',nextAction:'use_legacy_a_code',
+        helperReady:false,approvalState:'not_issued'};
+    // Resolve first as the same OAuth principal; if the name is ambiguous,
+    // never guess Main or grant a session on a partial name match.
+    const resolved=await this.resolveAbV2Target(targetQuery);
+    if(resolved.status!=='target_resolution'||resolved.resolution!=='single'||
+      resolved.matches.length!==1)return resolved;
+    const selected=resolved.matches[0];
+    if(!selected?.deviceId||!selected?.shortId||!selected.online)
+      return {...resolved,status:'target_not_online',
+        nextAction:'select_online_device',helperReady:false};
+    const key=requestKey||crypto.randomBytes(16).toString('hex');
+    const proof=signGoldAbV2HelperTarget({identity:this.identity,
+      targetQuery:selected.shortId,purpose:'issue',
+      selectedDeviceId:selected.deviceId,requestKey:key,
+      key:goldAbV2HelperKey()});
+    const response=await callOperatorJson('POST','/v1/plugin/abv2/request-issue',proof);
+    return {status:response.status||'not_ready',requestId:response.requestId||null,
+      deviceId:response.deviceId||null,shortId:response.shortId||null,
+      bCode:response.bCode||null,requestKey:key,
+      expiresAt:response.expiresAt||null,
+      approvalState:response.approvalState||'not_issued',
+      helperReady:false,reused:Boolean(response.reused),
+      nextAction:response.nextAction||'request_not_ready'};
+  }
   async pairBegin(aCode,label='ChatGPT'){
     const row=await callOperatorJson('POST','/v1/device-pair/begin',{aCode:String(aCode||'').trim(),accountId:this.identity.accountId,agentId:this.agentId,label:String(label||'ChatGPT').slice(0,120)}),access=row.access;
     if(access?.state!=='pending'||!access?.request?.requestId||!access?.pollToken)throw new Error('invalid_pairing_access_request');

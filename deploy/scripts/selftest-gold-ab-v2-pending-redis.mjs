@@ -26,7 +26,12 @@ const o={ownerAccountId:owner,deviceId:device,connectionId:connection};
 const a={actorAccountId:actor,agentId:'agent-1',clientId:'oauth-client',connectionId:connection};
 const errors=async(p,re)=>{await assert.rejects(p,re)};
 try{
- const issued=await store.issue(base);
+ const issued=await store.issue({...base,requestKey:'a'.repeat(32)});
+ const retry=await store.issue({...base,requestKey:'a'.repeat(32)});
+ assert.equal(retry.reused,true,'same OAuth client request key reuses pending');
+ assert.equal(retry.requestId,issued.requestId);
+ assert.equal(retry.bCode,issued.bCode,'same Agent can recover its sealed B');
+ assert.equal((await store.listDevicePending({...o})).length,1,'no duplicate pending after retry');
  assert.match(issued.bCode,AB_V2_B_RE);
  assert.equal(issued.shortId,'ABCD02');
  assert.equal(Object.hasOwn(issued,'aCode'),false,'Agent should not get A');
@@ -75,6 +80,10 @@ try{
  assert.equal(updated.attempt,2);
  assert.match(updated.bCode,AB_V2_B_RE);
  assert.notEqual(updated.bCode,issued.bCode);
+ const rotatedRetry=await store.issue({...base,requestKey:'a'.repeat(32)});
+ assert.equal(rotatedRetry.reused,true);
+ assert.equal(rotatedRetry.requestId,issued.requestId);
+ assert.equal(rotatedRetry.bCode,updated.bCode,'retry sees current B after owner Refresh, never old B');
  await errors(store.approve({...o,requestId:issued.requestId,expectedAttempt:1,bCode:issued.bCode}),/abv2_attempt_changed/);
  await errors(store.approve({...o,requestId:issued.requestId,expectedAttempt:2,bCode:issued.bCode}),/abv2_b_invalid/);
  const right=await store.approve({...o,requestId:issued.requestId,expectedAttempt:2,bCode:updated.bCode});

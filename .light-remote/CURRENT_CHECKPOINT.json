@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-30",
-  "status": "Gold P2 per-Agent A/B 24h countdown hotfix source 31c0e70 pushed HEAD=origin; independent timers and instant B refresh local tests PASS; GitHub Actions push CI NOT VERIFIED, no Windows rc49/Gold UAT/prod deploy.",
+  "status": "Gold P2-I2h1 Agent-first issue source PASS; signed exact device/Short ID, per-OAuth-Agent requestId+B pending only, idempotent requestKey, no V2 B owner approval/grant/ready; flags OFF; source SHA/CI pending",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -42,7 +42,8 @@
     "P2-I2g optional MCP Helper targetQuery + signed OAuth principal/query/nonce→Operator scope 0/1/N resolver, dual flags OFF, PG043 failclosed, no A/B/grant/ready, test fixtures PASS",
     "P2-I2g source commit 2e853415 pushed HEAD=origin; HMAC/Redis replay, signed scoped 0/1/N resolver, schema 043 failclosed, optional V1-compatible Helper schema static source checks PASS; GitHub Actions push CI unverified",
     "Gold P2 per-Agent A/B clock: new approved grant resets only same Agent (old 1m30 + new B 24h), other Agents unchanged; backend signed status activeGrants, Wall multi-row timer, owner approve cache invalidate, source/HTTP fixtures PASS",
-    "P2 per-Agent clock hotfix source 31c0e70 pushed with clean HEAD=origin, registry+Wall+HTTP B approval and V1 regression PASS, source/docs/checkpoint gate and 330 links PASS; push Actions status not independently verified"
+    "P2 per-Agent clock hotfix source 31c0e70 pushed with clean HEAD=origin, registry+Wall+HTTP B approval and V1 regression PASS, source/docs/checkpoint gate and 330 links PASS; push Actions status not independently verified",
+    "P2-I2h1 OAuth signed purpose-specific Agent→Operator pending issuance source: exact selected Short ID, owner/enrollment/connection/PG043 verification, Redis idempotent requestKey + sealed B returned only to Agent, source tests PASS; no owner V2 grant/ready"
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -52,9 +53,11 @@
     "P2-I2f signed proof tested with fixture only, not installed Agent; Helper targetQuery and durable 24h grant reconciliation, B approve, 043 migration remain unimplemented",
     "P2-I2g targetQuery discovers only, Agent-first exact requestId issuance/poll/true B owner approval + durable 24h grant and native installed E2E not yet connected",
     "Local Wall V2 read-only signed preview and /account list/refresh/deny source-wired, but Short ID STANDBY / real B owner approve / true durable 24h grant/Helper ready NOT implemented",
-    "Per-Agent A/B countdown fix is SOURCE ONLY: not shipped to Windows rc49 screenshot or UAT, needs controlled candidate/native signed Agent E2E and exact source SHA push Actions CI"
+    "Per-Agent A/B countdown fix is SOURCE ONLY: not shipped to Windows rc49 screenshot or UAT, needs controlled candidate/native signed Agent E2E and exact source SHA push Actions CI",
+    "P2-I2h1 real Redis Lua idempotency regression added but NOT YET RUN on no-NIC clone; source mock contract PASS, native OAuth/Agent E2E not run",
+    "V2 B owner approval not mounted on /approve; no durable per-Agent 24h grant or Helper ready. Never use Redis pending-approved as equivalent to real access grant"
   ],
-  "nextAction": "Independently verify exact 31c0e70 Gold GC Actions push run, then accept per-Agent B countdown on controlled signed native Windows rc49+ candidate and controlled release. No production/Gold UAT deploy yet. Resume P2-I2h Agent-first requestId issuance and durable V2 24h owner B grant when clock fix accepted.",
+  "nextAction": "Run new Redis Lua idempotent retry + after-Refresh tests only in explicit no-NIC isolated clone; independently verify source GitHub Actions SHA. Implement P2-I2h2 durable idempotent owner V2 B+PG 24h per-Agent grant with requestId+attempt+current signed connection/restart recovery, then owner UI and Helper ready. Do NOT enable flags, migrate PG043 live, touch UAT/production/Windows.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -67,10 +70,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "3c3726a79b1979ba6b2050df253849039aedb66f89534dfacc6b346fbe9965e1",
-    "trackedFiles": 1013,
+    "treeDigest": "d8a32864e78bec4bb856986c8b48555ef0be120d4d1fe8c495529fa115bd11ef",
+    "trackedFiles": 1014,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-10-30T12:16:10.847Z"
+    "recordedAt": "2026-10-30T12:28:39.758Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -200,7 +203,28 @@
         "exactSourceSha": "2e853415c1b7cfe748d413c4d2687f75b3ba1e11",
         "githubActions": "PUSH_WORKFLOW_UNVERIFIED_CONNECTOR"
       },
-      "ownerWallWiredScope": "signed read-only preview, not B approval"
+      "ownerWallWiredScope": "signed read-only preview, not B approval",
+      "agentFirstIssue": {
+        "proof": "lib/gold-ab-v2-helper-proof.mjs",
+        "issuer": "operator-host/gold-ab-v2-helper-target.mjs",
+        "pending": "lib/gold-ab-v2-pending-redis.mjs",
+        "helper": "plugin-server/operator-adapter.mjs",
+        "schema": "plugin-server/tools.mjs",
+        "fixtures": [
+          "deploy/scripts/selftest-gold-ab-v2-helper-issue.mjs",
+          "deploy/scripts/selftest-gold-ab-v2-helper-tool.mjs"
+        ],
+        "realRedisFixture": "deploy/scripts/selftest-gold-ab-v2-pending-redis.mjs",
+        "realRedisFixtureExecuted": false,
+        "featureFlag": "LR_GOLD_AB_V2_HELPER_REQUEST_ISSUE=1",
+        "featureDefault": "OFF",
+        "ownerV2BApproval": false,
+        "durable24hGrant": false,
+        "helperReady": false,
+        "localSourceFixtures": "PASS",
+        "sourceSha": "PENDING_COMMIT",
+        "ci": "PENDING_EXACT_SHA"
+      }
     },
     "abPerAgentTimerHotfix": {
       "registry": "operator-host/device-access-grant-registry.mjs",

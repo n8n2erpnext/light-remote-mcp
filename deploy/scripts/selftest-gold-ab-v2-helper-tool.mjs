@@ -13,7 +13,12 @@ assert.match(source,/targetQuery:z\.string\(\)\.min\(1\)\.max\(120\)\.optional\(
 assert.match(source,/aCode:z\.string\(\)\.regex/,'V1 aCode must remain');
 assert.match(source,/continuation:z\.string\(\)\.min\(20\)\.max\(8192\)\.optional\(\)/);
 assert.match(source,/abv2_helper_target_query_conflict/);
-assert.match(source,/if\(x.targetQuery\)return a.resolveAbV2Target\(x.targetQuery\);/);
+assert.match(source,/startAbV2:z\.boolean\(\)\.optional\(\)/);
+assert.match(source,/requestKey:z\.string\(\)\.regex/);
+assert.match(source,/if\(x.targetQuery\)return x.startAbV2\?/);
+assert.match(source,/a.issueAbV2Request\(x.targetQuery,\{requestKey:x.requestKey\|\|null\}\)/);
+assert.match(adapter,/async issueAbV2Request\(targetQuery,\{requestKey=null\}=\{\}\)/);
+assert.match(adapter,/LR_GOLD_AB_V2_HELPER_REQUEST_ISSUE!=='1'/);
 assert.match(adapter,/if\(process.env.LR_GOLD_AB_V2_HELPER_TARGET_QUERY!=='1'\)/);
 assert.match(adapter,/status:'target_resolution_unavailable'/);
 assert.match(adapter,/helperReady:false,approvalState:'not_issued'/);
