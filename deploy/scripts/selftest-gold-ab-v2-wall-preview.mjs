@@ -33,20 +33,52 @@ assert.equal(verified,1,'flag OFF must avoid even parsing signed envelope');
 const badProof={...deps,verifiedChannelContext:async()=>{throw Error('invalid_device_proof');}};
 await assert.rejects(()=>handleDeviceChannelRoutes({method:'POST'}, {},route,badProof),/invalid_device_proof/);
 assert.equal(served,1,'no pending preview on invalid signature');
+const approvalRoute=new URL('http://operator/v1/device-channel/abv2-owner-approve');
+let approvalInvoked=0,approvalVerified=0;
+const approvalDeps={...deps,goldAbV2SignedApproval:async ctx=>{
+ approvalInvoked++;assert.equal(ctx,signed);
+ return {ok:true,state:'granted',requestId,agentId:'agent-one'};
+},verifiedChannelContext:async(_body,action)=>{
+ assert.equal(action,'abv2-owner-approve');
+ approvalVerified++;return signed;
+}};
+const approveRes={};
+await handleDeviceChannelRoutes({method:'POST'},approveRes,approvalRoute,approvalDeps);
+assert.equal(approveRes.status,200);
+assert.equal(approvalInvoked,1);
+assert.equal(approvalVerified,1);
+const offApprove={};
+await handleDeviceChannelRoutes({method:'POST'},offApprove,approvalRoute,{
+ ...approvalDeps,goldAbV2SignedApproval:null
+});
+assert.equal(offApprove.status,404);
+assert.equal(approvalVerified,1,'disabled approve must not even read signed envelope');
+await assert.rejects(
+ ()=>handleDeviceChannelRoutes({method:'POST'},{},approvalRoute,{
+  ...approvalDeps,verifiedChannelContext:async()=>{throw Error('invalid_device_proof')}
+ }),/invalid_device_proof/);
+assert.equal(approvalInvoked,1,'invalid signed action never mutates grant');
 
 const auth={
  enabled:true,
  identity:req=>req.headers['x-test-owner']==='owner'?{username:'owner@example.invalid'}:
   req.headers['x-test-owner']==='recovery'?{username:'local-recovery'}:null,
- csrfForRequest:()=> 'fixture-csrf',verifyRequestCsrf:()=>true
+ csrfForRequest:()=> 'fixture-csrf',verifyRequestCsrf:(req,token)=>
+  token==='fixture-csrf'&&req.headers['x-light-remote-csrf']==='fixture-csrf'
 };
-let calls=0,wall;
+let calls=0,approvals=0,wall;
 try{
  wall=startLocalWall({host:'127.0.0.1',port:0,auth,
   getLocalStatus:async()=>({cloudDesiredConnected:true,cloudState:'connected'}),
   getAbV2Pending:async({wallUsername})=>{
    calls++;assert.equal(wallUsername,'owner@example.invalid');
-   return {ok:true,pending:preview.pending};
+   return {ok:true,ownerApproveEnabled:true,pending:preview.pending};
+  },getAbV2Approve:async data=>{
+   approvals++;
+   assert.deepEqual(data,{wallUsername:'owner@example.invalid',
+    requestId,expectedAttempt:1,bCode:'ABCD-2345'});
+   return {ok:true,state:'granted',requestId,agentId:'agent-one',
+    expiresAt:Date.now()+200000,absoluteExpiresAt:Date.now()+86400000};
   }});
  await new Promise((resolve,reject)=>
   wall.server.listening?resolve():wall.server.once('listening',resolve).once('error',reject));
@@ -69,13 +101,32 @@ try{
  assert.match(html,/id="approve"/,'legacy V1 approve unaffected');
  for(const fragment of html.matchAll(/<script(?:[^>]*)>([\s\S]*?)<\/script>/g))
   if(fragment[1].trim())new vm.Script(fragment[1],{filename:'abv2-wall-approve-inline.js'});
- assert.ok(!wallAbV2PreviewFragment.includes('bCode'));
- assert.ok(!wallAbV2PreviewFragment.includes('/api/abv2/approve'));
+ assert.match(wallAbV2PreviewFragment,/ownerApproveEnabled===true/);
+ assert.match(wallAbV2PreviewFragment,/\/api\/abv2\/approve/);
+ assert.ok(!wallAbV2PreviewFragment.includes('result.bCode'));
+ const post=async (owner,csrf,body)=>fetch(url+'/api/abv2/approve',{
+  method:'POST',headers:{'content-type':'application/json','x-test-owner':owner,
+   ...(csrf?{'x-light-remote-csrf':csrf}:{})},body:JSON.stringify(body)
+ });
+ const proof={requestId,expectedAttempt:1,bCode:'ABCD-2345',ownerAccountId:'forged',agentId:'forged'};
+ assert.equal((await post('', 'fixture-csrf',proof)).status,401);
+ assert.equal((await post('recovery','fixture-csrf',proof)).status,403);
+ assert.equal((await post('owner',null,proof)).status,403);
+ assert.equal((await post('owner','fixture-csrf',{...proof,bCode:'NOTA-BBBB'})).status,400);
+ assert.equal(approvals,0);
+ const grant=await post('owner','fixture-csrf',proof);
+ assert.equal(grant.status,200);
+ assert.equal((await grant.json()).state,'granted');
+ assert.equal(approvals,1);
  await wall.close();wall=null;
  const fail=startLocalWall({host:'127.0.0.1',port:0,auth,
   getAbV2Pending:async()=>{throw Object.assign(Error('not_found'),{status:404});}});
  wall=fail;
  await new Promise(resolve=>wall.server.listening?resolve():wall.server.once('listening',resolve));
+ const disabledApprove=await fetch('http://127.0.0.1:'+wall.server.address().port+'/api/abv2/approve',
+  {method:'POST',headers:{'x-test-owner':'owner','x-light-remote-csrf':'fixture-csrf',
+   'content-type':'application/json'},body:JSON.stringify({requestId,expectedAttempt:1,bCode:'ABCD-2345'})});
+ assert.equal(disabledApprove.status,404);
  const unavailable=await fetch('http://127.0.0.1:'+wall.server.address().port+'/api/abv2/pending',
   {headers:{'x-test-owner':'owner'}});
  assert.equal(unavailable.status,404);
@@ -86,4 +137,7 @@ assert.match(agent,/channelRequest\(state,hub,'abv2-pending-preview',\{\}\)/);
 assert.match(agent,/assertNotificationOwnerEmail\(result.accountEmail,wallUsername\)/);
 assert.match(agent,/getAbV2Pending:async\(\{wallUsername\}\)=>remoteAbV2PendingPreview\(hub,\{wallUsername\}\)/);
 assert.match(router,/'abv2-pending-preview'/);
+assert.match(router,/'abv2-owner-approve'/);
+assert.match(agent,/channelRequest\(state,hub,'abv2-owner-approve'/);
+assert.match(agent,/getAbV2Approve:async data=>remoteAbV2OwnerApprove\(hub,data\)/);
 console.log('GOLD_ABV2_SIGNED_CHANNEL_WALL_OWNER_PREVIEW_AUTH_NO_GRANT=PASS');

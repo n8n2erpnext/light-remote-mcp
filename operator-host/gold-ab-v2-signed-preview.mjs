@@ -60,6 +60,7 @@ export function createGoldAbV2SignedPreview({
   if(!Array.isArray(rows)||rows.length>5)
    deny('abv2_pending_result_invalid',503);
   return {ok:true,deviceId,accountEmail,
+   ownerApproveEnabled:env.LR_GOLD_AB_V2_WALL_SIGNED_APPROVE==='1',
    pending:rows.map(safeGoldAbV2Pending)};
  };
 }

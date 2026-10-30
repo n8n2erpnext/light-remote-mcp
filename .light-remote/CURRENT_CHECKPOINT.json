@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-30",
-  "status": "Gold P2-I2h2d source 65b9204 pushed HEAD=origin: isolated full PG039 FK/CHECK native 2-phase PASS, owner Account Portal V2 B approve gated source tests PASS, all V2 OFF on UAT/prod. Actions push unverified; Vercel MCP build-rate-limit failure.",
+  "status": "Gold P2-I2h2e-A default-OFF signed Local Wall owner B V2 source path completed; local owner/CSRF/Ed25519 route preflight, native PG coordinator mock tests PASS; owner intent server-verifiable challenge and OAuth Helper poll→attach→ready still HOLD; SHA/CI pending",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -48,7 +48,8 @@
     "P2-I2h2b source internal grant coordinator and Operator owner factory: Redis verified B receipt + atomic grant commit after PG flush/readback; idempotent per-Agent 24h; mock owner CSRF/PG/restart tests PASS, no public route.",
     "P2-I2h2c real Redis8 no-NIC clone B CAS/receipt/commit PASS; native GoldNativeAB+GoldRegistryPersistence disposable PostgreSQL staged/activation flush and restart PASS after fixing pre-durable grant exposure, clone STOPPED",
     "P2-I2h2d full actual clone PG039 schema-only restore into isolated disposable database, native Gold AB 2-phase staged/activated grant+FK+24h CHECK+restart/multi Agent PASS; disposable DB deleted, clone STOPPED",
-    "P2-I2h2d owner B V2 API+account proxy/UI source gated OFF, exact owner cookie/Origin/CSRF/rate limit/Agent B 4+4, only returns grant after native PG readback, no identity spoof or grantId leak; source HTTP/account tests PASS"
+    "P2-I2h2d owner B V2 API+account proxy/UI source gated OFF, exact owner cookie/Origin/CSRF/rate limit/Agent B 4+4, only returns grant after native PG readback, no identity spoof or grantId leak; source HTTP/account tests PASS",
+    "P2-I2h2e-A separately gated signed enrolled-device channel abv2-owner-approve, owner Wall auth/CSRF and conditional masked B form, Operator current enrollment/connection/policy + two-phase PG grant coordinator, source Wall/Operator tests PASS; no live enable."
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -65,9 +66,11 @@
     "P2-I2h2b real Redis Lua + native PostgreSQL readback/restart not yet run in no-NIC clone; public V2 B owner approval/Agent Helper ready unmounted, all V2 OFF",
     "P2-I2h2c native PG fixture uses minimal contract tables not full 039→043 schema FK constraints; live installed OAuth Agent/Wall approve and Helper ready still NOT wired",
     "P2-I2h2d signed Local Wall owner B V2 mutation and OAuth Agent exact grant/ready still NOT wired, installed browser/physical E2E and release CI remain unverified",
-    "PG043 is not in live schema/migration manifest; full-schema test used only clone PG039 source (no migration 043)"
+    "PG043 is not in live schema/migration manifest; full-schema test used only clone PG039 source (no migration 043)",
+    "P2-I2h2e-A signed device proves enrolled Agent key but not independently the owner Wall login; requires server-verifiable owner intent challenge or validated hardened device-local trust before ON",
+    "P2-I2h2e-B OAuth exact Agent/client/requestId signed grant poll and legacy agent-client/attach/Helper ready NOT implemented; physical native browser E2E NOT run"
   ],
-  "nextAction": "P2-I2h2e signed Local Wall V2 B owner approval bound to real signed channel and authenticated Wall owner; after that OAuth Agent poll exact principal/requestId/client/current connection plus Redis granted AND active native PG grant to Helper ready. Native browser physical acceptance & GitHub Actions run required; Vercel build-rate-limit is external blocker. Keep V2 OFF UAT/prod, no PG043 live migration.",
+  "nextAction": "P2-I2h2e-B: audited OAuth proof purpose poll bound to requestId/targetDevice/current connection; require Redis granted AND active exact native PG grant before agent-client/attach and Helper ready. Independently verify owner-intent provenance on signed Local Wall approval; run native installed Win/mac/Linux browser E2E and GitHub Actions push-run. Keep V2 flags OFF, no migration043 live and no UAT/prod deploy.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -80,10 +83,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "da35cd7b862d171bee3cb54bb001e4ea5c5939e405d1f047e1e04f37b6d20da6",
-    "trackedFiles": 1022,
+    "treeDigest": "16eaf94b62bf469168a4f251972bb6709ecce5b8015dbd17c738d841c715d347",
+    "trackedFiles": 1024,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-10-30T13:30:54.145Z"
+    "recordedAt": "2026-10-30T13:48:58.747Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -306,6 +309,24 @@
         "githubActions": "PUSH_NOT_VERIFIED_PR_ONLY_CONNECTOR",
         "vercelMcp": "FAILURE_EXPLICIT_BUILD_RATE_LIMIT",
         "vercelNInitial": "PENDING"
+      },
+      "signedWallApproval": {
+        "source": "operator-host/gold-ab-v2-signed-approval.mjs",
+        "deviceChannel": "operator-host/executor-routes-device-channel.mjs",
+        "proxyAllowlist": "plugin-server/device-public.mjs",
+        "wall": "device-agent/local-wall.mjs",
+        "agent": "device-agent/operator-agent.mjs",
+        "ui": "device-agent/wall-ab-v2-preview.mjs",
+        "test": "deploy/scripts/selftest-gold-ab-v2-signed-approval.mjs",
+        "uiTest": "deploy/scripts/selftest-gold-ab-v2-wall-preview.mjs",
+        "flag": "LR_GOLD_AB_V2_WALL_SIGNED_APPROVE=1",
+        "default": "OFF",
+        "sourceFixture": "PASS",
+        "ownerServerProof": "NOT_INDEPENDENTLY_VERIFIED",
+        "nativeInstalledE2E": false,
+        "helperPollReady": false,
+        "sourceSha": "PENDING_COMMIT",
+        "githubActions": "PENDING_EXACT_SHA"
       }
     },
     "abPerAgentTimerHotfix": {

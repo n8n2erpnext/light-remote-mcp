@@ -58,6 +58,7 @@ import { handleAccountRoutes } from './executor-routes-account.mjs';
 import {createGoldAbV2OwnerHttpFromOperator} from './gold-ab-v2-owner-http.mjs';
 import {createGoldAbV2GrantOperator} from './gold-ab-v2-grant-operator.mjs';
 import {createGoldAbV2SignedPreview} from './gold-ab-v2-signed-preview.mjs';
+import {createGoldAbV2SignedApproval} from './gold-ab-v2-signed-approval.mjs';
 import {createGoldAbV2HelperTarget} from './gold-ab-v2-helper-target.mjs';
 import { GoldDeviceBootObservations } from './gold-device-boot-observations.mjs';
 import { handleDeviceChannelRoutes } from './executor-routes-device-channel.mjs';
@@ -1619,7 +1620,7 @@ const routeDeps=()=>({
   inspectOwnerOrphanDevice:options=>deviceResourceLocks.inspectOwnerOrphanDevice(goldStorage.pool,options),
   abandonOwnerAttestedOrphan:options=>deviceResourceLocks.abandonOwnerAttestedOrphan(goldStorage.pool,options),
   cancelQueuedPersonalJob,cancelControlJob,deviceStopRequests,requestFleetProcessStop,licenses,normalizeUpdateReport,
-  pairingCodes,goldAbV2SignedPreview,planEntitlements,pruneRing,pushEvent,queueHelperUpdate,
+  pairingCodes,goldAbV2SignedPreview,goldAbV2SignedApproval,planEntitlements,pruneRing,pushEvent,queueHelperUpdate,
   queueSignedUpdate,readJson,reapAccessGrants,accountNotifications,realRemoteLive,recentEvents,redact,proTeams,teamSessions,requestTeamMemberApproval,operationalAccount,
   removeRuntimeForDevice,requireAccount,requireDeviceConnection,revokeRuntimeForDevice,ring,
   ringBytes,sendJson,sessionStatsFromDisk,sessions,sseClients,
@@ -1632,6 +1633,10 @@ const routeDeps=()=>({
 // source/UAT runtime supplies key, HTTPS origin and exact owner/device lists.
 const goldAbV2SignedPreview=createGoldAbV2SignedPreview({
  env:process.env,storage:goldStorage,accounts,devices,connections,enrollments
+});
+const goldAbV2SignedApproval=createGoldAbV2SignedApproval({
+ env:process.env,storage:goldStorage,accounts,devices,connections,enrollments,
+ accessGrants,goldRegistries
 });
 const goldAbV2HelperTarget=createGoldAbV2HelperTarget({
  env:process.env,storage:goldStorage,accounts,devices,connections,enrollments,

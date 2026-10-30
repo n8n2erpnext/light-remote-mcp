@@ -34,7 +34,37 @@ export const wallAbV2PreviewFragment=`
       (Number.isFinite(exp)?new Date(exp).toLocaleTimeString():'unknown');
     const code=document.createElement('code');
     code.textContent=String(row.aCode||'');
-    wrapper.append(line,code);items.append(wrapper);
+    wrapper.append(line,code);
+    if(data.ownerApproveEnabled===true){
+      const input=document.createElement('input');
+      input.type='password';input.autocomplete='off';input.maxLength=9;
+      input.placeholder='B from Agent';input.setAttribute('aria-label','Agent B approval code');
+      const approve=document.createElement('button');
+      approve.type='button';approve.className='btn';approve.textContent='Approve this Agent';
+      approve.addEventListener('click',async()=>{
+        const bCode=String(input.value||'').trim().toUpperCase();
+        if(!/^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/.test(bCode)){
+          status.textContent='Enter the B code shown by the requesting Agent.';return;
+        }
+        if(!window.confirm('Approve this Agent for up to 24 hours on this device?'))return;
+        approve.disabled=true;
+        try{
+          const result=await fetch('/api/abv2/approve',{method:'POST',
+            credentials:'same-origin',cache:'no-store',
+            headers:{'content-type':'application/json','x-light-remote-csrf':
+              typeof wallCsrf==='string'?wallCsrf:''},
+            body:JSON.stringify({requestId:row.requestId,expectedAttempt:row.attempt,bCode})});
+          const outcome=await result.json().catch(()=>({}));
+          input.value='';
+          if(!result.ok||outcome.state!=='granted')
+            throw Error('Owner approval has not committed a durable grant.');
+          await load();
+        }catch(error){input.value='';status.textContent=error.message;}
+        finally{approve.disabled=false;}
+      });
+      wrapper.append(input,approve);
+    }
+    items.append(wrapper);
    }
   }catch{host.hidden=true}
   finally{button.disabled=false}
