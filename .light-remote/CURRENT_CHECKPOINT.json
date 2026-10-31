@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-31",
-  "status": "Gold P2-I4C3a SOURCE candidate: durable one-Guest PostgreSQL slot SQL044, transaction lock + active-device unique index, persisted UNKNOWN before effect, exact existing M6 signed terminal ACK reconciliation behind default-OFF flags. Unit/mock regression PASS, not mounted to Guest execution, native PG044/physical UAT untested, no UAT/prod/billing changes. Commit pending at checkpoint authoring.",
+  "status": "Gold P2-I4C3a SOURCE 35f2cc7538ab523f93732df8f56de7abd8c9a3af pushed clean HEAD=origin. SQL044 candidate durable one-Guest device slot with UNKNOWN-before-effect, cross-Operator unique transaction lock and M6 signed terminal ACK readback; new fixtures and regressions PASS. No trusted Guest queue/signed-launch verifier/Agent attach/ready/dispatch, no native SQL044 clone test, no live UAT/prod/billing changes; CI run at source SHA unverified.",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
