@@ -66,13 +66,13 @@ const auth={
  csrfForRequest:()=> 'fixture-csrf',verifyRequestCsrf:(req,token)=>
   token==='fixture-csrf'&&req.headers['x-light-remote-csrf']==='fixture-csrf'
 };
-let calls=0,approvals=0,wall;
+let calls=0,approvals=0,wall,approvalEnabled=true;
 try{
  wall=startLocalWall({host:'127.0.0.1',port:0,auth,
   getLocalStatus:async()=>({cloudDesiredConnected:true,cloudState:'connected'}),
   getAbV2Pending:async({wallUsername})=>{
    calls++;assert.equal(wallUsername,'owner@example.invalid');
-   return {ok:true,ownerApproveEnabled:true,pending:preview.pending};
+   return {ok:true,ownerApproveEnabled:approvalEnabled,pending:preview.pending};
   },getAbV2Approve:async data=>{
    approvals++;
    assert.deepEqual(data,{wallUsername:'owner@example.invalid',
@@ -92,8 +92,16 @@ try{
  const allowed=await fetch(url+'/api/abv2/pending',{headers:{'x-test-owner':'owner'}});
  assert.equal(allowed.status,200);
  const json=await allowed.json();
+ assert.equal(json.ownerApproveEnabled,true,
+  'Owner B approval must be advertised to Local Wall only after signed Operator approval gate');
  assert.equal(json.pending.length,1);
  assert.ok(!JSON.stringify(json).includes('bCode'));
+ approvalEnabled=false;
+ const offApproval=await fetch(url+'/api/abv2/pending',{headers:{'x-test-owner':'owner'}});
+ assert.equal(offApproval.status,200);
+ assert.equal((await offApproval.json()).ownerApproveEnabled,false,
+  'Wall must hide owner B approval unless source gates explicitly enable it');
+ approvalEnabled=true;
  const html=await (await fetch(url+'/approve',{headers:{'x-test-owner':'owner'}})).text();
  assert.match(html,/id="abV2OwnerPreview" hidden/);
  assert.match(html,/\/api\/abv2\/pending/);

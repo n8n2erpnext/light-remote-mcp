@@ -2325,7 +2325,9 @@ export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvg
         const response=await getAbV2Pending({wallUsername:owner.username});
         if(response?.ok!==true||!Array.isArray(response.pending)||response.pending.length>5)
           throw Error('abv2_wall_preview_invalid');
-        return json(res,200,{ok:true,pending:response.pending});
+        return json(res,200,{ok:true,
+          ownerApproveEnabled:response.ownerApproveEnabled===true,
+          pending:response.pending});
       }catch(error){
         return json(res,Number(error?.status)===404?404:503,
           {ok:false,error:'abv2_wall_preview_unavailable'});

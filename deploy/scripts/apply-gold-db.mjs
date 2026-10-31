@@ -8,6 +8,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import {Pool} from 'pg';
 import {fileURLToPath} from 'node:url';
+import {reviewGoldMigratorReleaseManifest} from '../../lib/gold-043-migrator-release-gate.mjs';
 
 const root=fs.realpathSync(process.env.LIGHT_REMOTE_GOLD_ROOT||'/nonexistent');
 if(process.env.LIGHT_REMOTE_GOLD_INDEPENDENT!=='1'||process.env.LR_GOLD_APPLY_MIGRATIONS!=='1')
@@ -23,13 +24,11 @@ if(!['postgresql:','postgres:'].includes(parsed.protocol)||
 
 const sqlRoot=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../platform-v2/sql');
 const manifest=JSON.parse(fs.readFileSync(path.join(sqlRoot,'migrations.lock.json'),'utf8'));
-// Pin the reviewed additive Gold P2-A schema chain through 042. Do not
-// silently accept future manifest versions without a new migration audit.
-if(manifest.migrations?.length!==42||manifest.target!=='light_remote_gold_dev - independent Gold only'||
-   manifest.migrations[39]?.file!=='040_gold_connection_job_gc_fences.sql'||
-   manifest.migrations[40]?.file!=='041_gold_device_execution_epoch.sql'||
-   manifest.migrations[41]?.file!=='042_gold_wall_announcements_channel.sql')
- throw Error('gold_migration_manifest_not_verified');
+// Keep 042 as the shipped baseline. A later checksum-locked 043 is separately
+// gated by a source-reviewed migrator switch + the runtime 043 release switch.
+// Registering SQL043 and granting live UAT maintenance remain separate owner
+// decisions: this does not alter the current migrations.lock.json or UAT.
+reviewGoldMigratorReleaseManifest(manifest,{env:process.env});
 const records=manifest.migrations.map((row,i)=>{
  if(row.version!==i+1||!/^[0-9]{3}_[a-z0-9_]+\.sql$/.test(row.file))
   throw Error('gold_migration_version_invalid');
@@ -86,6 +85,16 @@ try{
        WHERE conrelid='public.lr_site_announcements'::regclass
        AND conname='lr_site_announcements_audience_check'`)).rows[0]?.definition||'';
      if(!definition.includes("'wall'"))throw Error('gold_migration_042_wall_audience_missing');
+    }
+    if(row.version===43){
+     const schema=(await client.query(`SELECT
+       to_regclass('public.lr_gold_device_short_ids') IS NOT NULL AS short_ids,
+       EXISTS(SELECT 1 FROM pg_trigger
+         WHERE tgrelid='public.lr_gold_device_short_ids'::regclass
+           AND tgname='lr_gold_short_id_immutable_trg'
+           AND NOT tgisinternal) AS immutable_trigger`)).rows[0];
+     if(schema?.short_ids!==true||schema?.immutable_trigger!==true)
+      throw Error('gold_migration_043_short_id_contract_missing');
     }
     await client.query('COMMIT');
     console.log('gold_sql_version',row.version,applied?'already_applied':'applied');
