@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-31",
-  "status": "P2-I5: source d4401641 installed as immutable verified candidate in Gold LXD, not activated; four live services still 7f46dea, PG039, SQL lock042, no 043/044 registration. Native offline 039->043 PASS, PG backup PASS. Release forensic audit: one revoked historical device running resource claim, job ok, no signed terminal ACK and no boot observation; 26 protected pre-dispatch restart tombstones plus 1 started UNKNOWN without signed receipt. Four-unit release review HOLD 5/16, no live apply runner. Production unchanged.",
+  "status": "P2-I5 UAT cleanup: owner authorized deletion of exactly 27 legacy UNKNOWN test work rows, performed in guarded transaction after independent PostgreSQL custom dump/SHA256/pg_restore validation and fresh LXD snapshot. Post-check unknown=0, one revoked-device historical M4 claim preserved, 32 interrupted job ledger entries preserved, four Gold services active. P2-B read-only review now HOLD 6/16 (previously 5/16); signed cutover/apply not implemented. Candidate d4401641 staged, live four units 7f46dea, PG039, SQL lock042, no 043/044 release. Production rc47 untouched.",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -128,7 +128,7 @@
     "Authenticated Guest Fleet source adapter was previously tool-safety-blocked; no E2E on actual signed Agent or billing once, SQL043/044 absent migration lock and no release signoff.",
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD."
   ],
-  "nextAction": "Owner must independently verify exact post-claim reboot/uninstall of historical revoked device and privately authenticate to current Gold Owner Recovery route; no recorded boot observation is available and no fake terminal ACK is allowed. Separately review 1 started UNKNOWN with no signed terminal evidence, preserve 26 pre-dispatch UNKNOWN records. Then build/review real four-unit signed-quiescent UAT cutover, SQL043 lock/migrator acceptance and physical installed Agent Owner Wall B->Helper 24h grant E2E. PG044, Paddle and production remain untouched.",
+  "nextAction": "Legacy 27 UNKNOWN UAT test work rows were removed with verified backup and snapshot. One separate revoked-device M4 claim remains and requires real owner-attested recovery/verified terminal outcome, not a direct SQL bypass. Need independent signed 4-unit cutover runner/evidence, reviewed PG043 lock and UAT migration authorization, installed Agent Owner Wall B->Helper 24h grant E2E. Keep Guest044, billing and production off.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
