@@ -79,6 +79,8 @@ assert.match(installer,/DisableDirPage=yes/);
 assert.match(installer,/DisableReadyPage=yes/);
 assert.match(installer,/CreateCustomPage\(wpWelcome/);
 assert.match(installer,/procedure CurPageChanged\(CurPageID: Integer\)/);
+assert.doesNotMatch(installer,/IsFinished \? /,'Inno Pascal Script has no C-style ternary');
+
 assert.match(installer,/BrandedInstallingPanel\.Visible := CurPageID = wpInstalling/);
 assert.match(installer,/BrandedFinishedPanel\.Visible := CurPageID = wpFinished/);
 assert.match(installer,/WizardForm\.ProgressGauge\.Parent := BrandedInstallingPanel/);

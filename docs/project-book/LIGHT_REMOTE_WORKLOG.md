@@ -528,3 +528,7 @@ Windows CI run 41221013909 source fba46239 compiled native .NET8 and RMV2 but In
 ## 2026-10-31 — proactive 150%-DPI Inno wizard vertical bounds correction
 
 Owner machine has Windows AppliedDPI=144 (150%). The custom Inno stage panel uses ScaleY positions but dialog content ends near logical y~460; the first branded Finish RunList was at logical y453 +64 (would clip) and final install note at 449+50 (would clip). Before release, changed Finish RunList to y414+38, last install status to 421+28, and Finished helper note to y386+26. Source regression now checks the Finish checkbox bounds at 150%. Pending native Windows CI. Do not claim graphics accepted until interactive screenshot.
+
+## 2026-10-31 — Inno Pascal Script ternary compiler failure and fast dedicated gate
+
+Windows CI 41221423584 failed the custom installer compilation line268: `IsFinished ? MutedColor : Accent` is C-style ternary, unsupported by Inno Pascal Script. Replaced with explicit `if IsFinished then ... else ...` branches for phase/sidebar labels, and added source guard against ternary. Added `.github/workflows/inno-pascal-syntax.yml`: Windows-latest Inno compiler tests REAL setup source with harmless fixture Assets, Windows notepad.exe PE as watchdog, no runtime install and no fixture artifact shipped. This speeds syntax detection without full 300MB .NET/Node staging. Full Windows native CI remains authoritative for install/uninstall/screenshot. Neither backend nor owner machine changed.

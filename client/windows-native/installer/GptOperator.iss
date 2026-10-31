@@ -264,10 +264,20 @@ begin
     MutedColor, True);
   AddPhaseLabel(Inner, '1   Welcome', 22, 192, 152, 25, 12,
     MutedColor, False);
-  AddPhaseLabel(Inner, '2   Install & verify', 22, 237, 160, 26, 12,
-    IsFinished ? MutedColor : Accent, not IsFinished);
-  AddPhaseLabel(Inner, '3   Ready to use', 22, 283, 160, 26, 12,
-    IsFinished ? Accent : MutedColor, IsFinished);
+  if IsFinished then
+  begin
+    AddPhaseLabel(Inner, '2   Install & verify', 22, 237, 160, 26, 12,
+      MutedColor, False);
+    AddPhaseLabel(Inner, '3   Ready to use', 22, 283, 160, 26, 12,
+      Accent, True);
+  end
+  else
+  begin
+    AddPhaseLabel(Inner, '2   Install & verify', 22, 237, 160, 26, 12,
+      Accent, True);
+    AddPhaseLabel(Inner, '3   Ready to use', 22, 283, 160, 26, 12,
+      MutedColor, False);
+  end;
   AddPhaseLabel(Inner, 'Your desktop,', 22, 354, 155, 23, 11,
     MutedColor, False);
   AddPhaseLabel(Inner, 'available to your AI.', 22, 381, 157, 50, 11,

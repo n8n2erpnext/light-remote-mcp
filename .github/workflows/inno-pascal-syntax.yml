@@ -1,0 +1,38 @@
+name: Windows Inno Pascal Fast Compiler
+on:
+  push:
+    paths:
+      - 'client/windows-native/installer/GptOperator.iss'
+      - '.github/workflows/inno-pascal-syntax.yml'
+  workflow_dispatch:
+jobs:
+  inno-pascal:
+    runs-on: windows-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Inno compiler
+        shell: pwsh
+        run: |
+          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup -y --no-progress
+            if ($LASTEXITCODE -ne 0) { throw 'Inno compiler bootstrap failed' }
+          }
+          "ISCC=$iscc" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - name: Compile real setup Pascal Script using harmless fixture files
+        shell: pwsh
+        run: |
+          $stage = Join-Path $PWD 'dist\inno-compile-fixture'
+          $output = Join-Path $PWD 'dist\inno-syntax-output'
+          New-Item -ItemType Directory -Force -Path (Join-Path $stage 'Assets'),$output | Out-Null
+          Copy-Item 'client/windows-native/GptOperator.Client/Assets/light-remote.ico' (Join-Path $stage 'Assets\light-remote.ico')
+          Copy-Item VERSION (Join-Path $stage 'VERSION')
+          $testWatchdog = Join-Path $env:WINDIR 'System32\notepad.exe'
+          if (-not (Test-Path $testWatchdog)) { throw 'Windows PE test fixture missing' }
+          $version = (Get-Content VERSION -Raw).Trim()
+          & $env:ISCC "/DStageDir=$stage" "/DOutputDir=$output" "/DAppVersion=$version" "/DWatchdogExe=$testWatchdog" client/windows-native/installer/GptOperator.iss
+          if ($LASTEXITCODE -ne 0) { throw 'REAL INNO PASCAL COMPILER FAILED' }
+          $fixtureExe = Join-Path $output 'Light-Remote-MCP-Setup-x64.exe'
+          if (-not (Test-Path $fixtureExe)) { throw 'Inno fixture compile produced no executable' }
+          Write-Host 'inno-pascal-compiler-fast-gate=PASS fixture-only never distribute'
