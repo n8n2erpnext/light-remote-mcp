@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-31",
-  "status": "P2-I4C3c2b3c2b8: real Gold UAT039 schema-only->disposable no-NIC PG17 candidate migrations 040→041→042→043 in production order PASS. Native synthetic owner/foreign-owner Short ID, immutable ID and tombstone nonreuse, lr_gold_app grants, existing 041 execution epoch and 042 Wall constraint, 043 actual startup schema SQL PASS. SQL043 still unregistered, apply-gold-db pinned 042, Gold UAT at 039 and Guest044 absent. CI shell check and release handoff updated; source commit/CI pending.",
+  "status": "P2-I4C3c2b3c2b9: source-only, read-only PG043 release preflight PASS on live UAT (39/39, 4/4 services, snapshot and independent dump checksum verified, Guest044 absent). Status is HOLD_NO_UAT_CHANGE and canApply=false. LXC 6.10 snapshot parsing corrected; no live migration/feature enablement. 043/044 remain unregistered, Guest Fleet adapter HOLD.",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -11,7 +11,7 @@
     "jobs": "1/1",
     "url": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/41031856846"
   },
-  "provenance": "Git and last read-only Gold UAT observations dated 2026-10-30, not a statement of live rollout; verify before mutation",
+  "provenance": "Direct Git HEAD/origin and read-only VPS-ARM UAT evidence on 2026-10-31; not installed Agent E2E or release authorization",
   "runtime": {
     "goldUatSchemaLastVerified": 39,
     "sourceMigrationsUpTo": 42,
@@ -79,7 +79,8 @@
     "P2-I4C3c2b3c2b5: bounded cancelled/cancelled restart cleanup source+PG17 tests, Redis8 native CAS A/B purpose fixtures and source-gate PASS, verified Gold UAT rollback snapshot plus DB dump full offline restore.",
     "P2-I4C3c2b3c2b6 source build-time SQL044 hard HOLD cannot be overridden by all Guest env flags or hypothetical pinned migration lock; source negative regression.",
     "P2-I4C3c2b3c2b7: independent native A/B V2 SQL043 isolated no-NIC PG17 owner Short ID + 2 Agent durable grant restart PASS; source tests now protect actual Operator route mounting and explicit flag gates.",
-    "P2-I4C3c2b3c2b8: private UAT 039 schema-only cloned to no-NIC PG17, actual migration 040/041/042/043 order, owner-scoped/tombstone ShortID, native startup probe and privileges PASS."
+    "P2-I4C3c2b3c2b8: private UAT 039 schema-only cloned to no-NIC PG17, actual migration 040/041/042/043 order, owner-scoped/tombstone ShortID, native startup probe and privileges PASS.",
+    "2026-10-31 P2-I4C3c2b3c2b9 PG043 read-only preflight and fail-closed selftest PASS: UAT 039/39 4/4, LXD rollback snapshot, PG SHA256 dump, missing Guest044, canApply false; no UAT mutation, Gold source/CI pending."
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -127,7 +128,7 @@
     "Authenticated Guest Fleet source adapter was previously tool-safety-blocked; no E2E on actual signed Agent or billing once, SQL043/044 absent migration lock and no release signoff.",
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD."
   ],
-  "nextAction": "A/B V2 independent release preparation: explicit owner approval required for source-locked 043 manifest, reviewed migrator beyond042, maintenance rollback/backout with no new live writes, allowlisted UAT Owner Wall B consent → signed Helper → durable Agent lease 24h physical E2E. Do not apply 043 or Guest044 on live UAT now; Guest adapter prior safety block remains HOLD and must not be retried/bypassed.",
+  "nextAction": "Finish source+docs+checkpoint commit/CI on Gold branch; then review explicit 043 release manifest and migrator gate plus owner-approved UAT physical signed Wall B→Helper→Agent 24h lease, before any live migration. Guest044, Fleet adapter safety HOLD, production rc47 and Paddle remain untouched.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -140,10 +141,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "ba917fd417e16ab7f9a0648756fa289c5c0755848630031ee7980d5345eaf3d4",
-    "trackedFiles": 1090,
+    "treeDigest": "e1b88d58b4c059a9419295bf346d0e0aad060aa76bc35b87f3e8115dc4274083",
+    "trackedFiles": 1093,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-10-31T07:04:09.934Z"
+    "recordedAt": "2026-10-31T08:15:58.029Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -516,6 +517,21 @@
       "pg044Delegation": "candidate SQL native grants connection_owner_account_id trigger + FK + purpose checks; NOT TESTED; NO LIVE MIGRATION",
       "b2SourceFixtures": "PASS: Guest OAuth HMAC shortID resolve/issue, Account CSRF owner B/PG two-phase, owner ABV2/Team/V1 regression",
       "guestHelperReady": false
+    },
+    "p2i4c3c2b3c2b9": {
+      "phase": "READ_ONLY_RELEASE_PREFLIGHT_SOURCE",
+      "sourceCommitted": false,
+      "sourceCi": "PENDING",
+      "uatApplied": false,
+      "uatSchema": 39,
+      "uatUnitsActive": 4,
+      "snapshotVerified": true,
+      "pgDumpShaVerified": true,
+      "guestSchemaAbsent": true,
+      "canApply": false,
+      "canEnableGuest": false,
+      "candidate043Sha256": "935b268899c7b59761781db33d8ad2c573773566844fbfab0b861046f3a680d4",
+      "fleetAdapter": "PRIOR_TOOL_SAFETY_HOLD"
     }
   },
   "verifiedP2GateCI": {

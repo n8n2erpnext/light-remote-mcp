@@ -29,6 +29,9 @@ on:
       - 'deploy/scripts/selftest-gold-ab-v2-pg043-native-client.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-043-uat-chain.sh'
       - 'deploy/scripts/selftest-gold-ab-v2-043-uat-chain.sql'
+      - 'lib/gold-abv2-043-release-readiness.mjs'
+      - 'deploy/scripts/gold-ab-v2-043-release-preflight.mjs'
+      - 'deploy/scripts/selftest-gold-ab-v2-043-release-readiness.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-owner-approve-http.mjs'
       - 'operator-host/executor.mjs'
       - 'operator-host/device-access-grant-registry.mjs'
@@ -230,6 +233,9 @@ jobs:
           node --check lib/gold-ab-v2-pending-redis.mjs
           node --check deploy/scripts/selftest-gold-ab-v2-pending-redis.mjs
           sh -n deploy/scripts/selftest-gold-ab-v2-043-uat-chain.sh
+          node --check lib/gold-abv2-043-release-readiness.mjs
+          node --check deploy/scripts/gold-ab-v2-043-release-preflight.mjs
+          node deploy/scripts/selftest-gold-ab-v2-043-release-readiness.mjs
           node deploy/scripts/selftest-gold-ab-v2-source.mjs
           node --check lib/gold-ab-v2-owner-pending-adapter.mjs
           node deploy/scripts/selftest-gold-ab-v2-owner-pending-adapter.mjs
