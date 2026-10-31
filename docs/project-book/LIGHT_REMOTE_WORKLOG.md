@@ -484,3 +484,7 @@ Windows-native-client run 41207613613 stopped in first new Moryqa source test: N
 ## 2026-10-31 — Windows CI native MSBuild project XML correction
 
 Windows Tray Client run 41207796302 passed Moryqa design contract, cross-platform typing, Gold Long Memory, owner filesystem and Relink tests but failed at native tray dotnet publish: five embedded PNG resources had been serialized with literal escaped newline text inside GptOperator.Client.csproj. Rewrote as six separate valid EmbeddedResource XML elements (brand mark + five Figma state icon assets); Python ElementTree XML parse and file existence PASS, Node Moryqa regression PASS. Added guard against newline escape reintroduction. Next Windows CI must verify native .NET8 and Inno compile; do not install active Windows10 until artifact accepted.
+
+## 2026-10-31 — Windows boot telemetry CI contract refreshed after Gold PG042
+
+Windows Tray Client CI 41207996273 successfully published the .NET8 native tray (Moryqa assets compiled), then stopped in historical selftest-gold-p0-win11-boot-telemetry.mjs, which expected a literal `34,35,36,37,38,39` legacy startup-schema string. Native Gold source now checks each additive migration through 042 independently. Updated assertion to require explicit guards at versions 039/040/041/042 plus immutable boot-observation schema039 check and signed migrations.lock SHA, not a schema gate bypass. Test PASS locally; native installer CI rerun remains required.
