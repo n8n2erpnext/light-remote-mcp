@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-31",
-  "status": "Gold P2-I4C3c1 SOURCE and isolated disposable PostgreSQL17 schema PASS; Guest sealed process intent AES-GCM+AAD and hash, strict dispatch payload/native Agent protocol fence, device-agent owner command downgrade rejection, Guest-specific signed launch provenance required. Cold 001-043 and PG044 apply + synthetic FK/slot checks PASS on no-network disposable DB; not actual Gold UAT/Agent E2E. No live Guest, source SHA pending.",
+  "status": "Gold P2-I4C3c1 SOURCE 845dc2e9073f2e591f0b35ec0e2dcb7eb62308cd pushed clean HEAD=origin. New immutable AES-GCM Guest process intent PG044, Guest-specific signed launch provenance, Owner Fleet legacy Guest downgrade deny; 18 source/mock regression groups PASS. Disposable --network none PostgreSQL17 full cold 001-043 + SQL044 apply and synthetic real FK/owner/slot checks PASS. 441 links PASS. NO physical signed Guest Agent protocol or Owner-channel dispatch; gate not mounted, flags OFF, PG044 outside migrations.lock, UAT/prod/Paddle untouched. Exact GitHub CI SHA not independently verified.",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
