@@ -133,4 +133,23 @@ process.stdout.write("PREPARE uat_clone_guest_outbound_"+kind+
   -c "$sql" postgres || { echo "UAT_CLONE_GUEST_OUTBOUND_$kind=FAIL" >&2;exit 7; }
  echo "UAT_CLONE_GUEST_OUTBOUND_$kind=PASS"
 done
+# Run the exact source native schema-contract SELECTs against the restored
+# UAT-derived PG039->044 structure, with no fake app catalog metadata.
+for kind in short_id guest;do
+ query=$(node -e '
+const fs=require("node:fs"),x=fs.readFileSync(process.argv[1],"utf8");
+const arr=[...x.matchAll(/const x=\(await pool\.query\(`(SELECT[\s\S]*?)`\)\)\.rows\?\.\[0\]/g)];
+if(arr.length!==2)process.exit(4);
+process.stdout.write(arr[process.argv[2]==="short_id"?0:1][1]);
+' "$repo/lib/gold-schema-startup-gate.mjs" "$kind")
+ [ -n "$query" ] || { echo "Guest startup probe source missing for $kind" >&2;exit 8; }
+ result=$(docker exec "$name" psql -X -U postgres -Atq -v ON_ERROR_STOP=1 -c "$query" postgres) || {
+  echo "UAT_CLONE_STARTUP_PROBE_$kind=FAIL" >&2;exit 8
+ }
+ case "$result" in
+  t|t\|t|t\|t\|t|t\|t\|t\|t\|t\|t\|t\|t\|t) ;;
+  *) echo "UAT_CLONE_STARTUP_PROBE_$kind=FALSE" >&2;exit 8;;
+ esac
+ echo "UAT_CLONE_STARTUP_PROBE_$kind=PASS"
+done
 echo 'GOLD_UAT_SCHEMA_CLONE_039_TO_044_NO_DATA_NO_NETWORK=PASS'

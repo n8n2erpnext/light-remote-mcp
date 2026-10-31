@@ -63,6 +63,8 @@ on:
       - 'lib/gold-pro-share-guest-device-ticket.mjs'
       - 'lib/gold-pro-share-guest-launch-evidence.mjs'
       - 'lib/gold-job-ledger.mjs'
+      - 'lib/gold-schema-startup-gate.mjs'
+      - 'lib/gold-db.mjs'
       - 'operator-host/executor-routes-device-channel.mjs'
       - 'lib/gold-pro-share-device-guest-fence.mjs'
       - 'operator-host/shared-device-capability-policy.mjs'
@@ -80,6 +82,7 @@ on:
       - 'deploy/scripts/selftest-gold-pro-share-guest-owner-m4.mjs'
       - 'deploy/scripts/selftest-gold-pro-share-guest-outbound.mjs'
       - 'deploy/scripts/selftest-gold-pro-share-guest-ledger-restart.mjs'
+      - 'deploy/scripts/selftest-gold-schema-startup-gate.mjs'
       - 'deploy/scripts/selftest-gold-pro-share-guest-launch-bind.mjs'
       - 'deploy/scripts/selftest-gold-pro-share-guest-terminal-pg.mjs'
       - 'deploy/scripts/selftest-gold-pro-share-guest-device-ticket.mjs'
@@ -263,6 +266,9 @@ jobs:
           node deploy/scripts/selftest-gold-pro-share-guest-owner-m4.mjs
           node deploy/scripts/selftest-gold-pro-share-guest-outbound.mjs
           node deploy/scripts/selftest-gold-pro-share-guest-ledger-restart.mjs
+          node deploy/scripts/selftest-gold-schema-startup-gate.mjs
+          node --check lib/gold-schema-startup-gate.mjs
+          node --check lib/gold-db.mjs
           node deploy/scripts/selftest-gold-pro-share-guest-launch-bind.mjs
           node deploy/scripts/selftest-gold-pro-share-guest-terminal-pg.mjs
           node --check operator-host/pro-share-guest-terminal-pg.mjs

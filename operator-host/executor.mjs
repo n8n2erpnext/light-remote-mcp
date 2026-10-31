@@ -188,7 +188,10 @@ if(singleWriter!==true){
 }
 const goldRegistries=await GoldRegistryPersistence.open({pool:goldStorage.pool});
 const goldSessionState=await GoldSessionRedis.open({client:goldStorage.redis,prefix:goldStorage.prefix});
-const goldJobs=await GoldJobLedger.open({pool:goldStorage.pool,redact});
+// Only a DB schema approved by the checksum-pinned migration lock and the runtime
+// release gate may preserve Guest UNKNOWN across an Operator restart.
+const goldJobs=await GoldJobLedger.open({pool:goldStorage.pool,redact,
+ preserveGuestUnknown:goldStorage.schema?.guestSchemaReady===true});
 // Separate OFF-by-default Guest slot receipt reconciliation. This never
 // admits a Guest tool or attaches an Agent and does not change owner M6.
 const goldProShareGuestSlots=process.env.LR_GOLD_PRO_SHARE_GUEST_SLOTS==='1'?
