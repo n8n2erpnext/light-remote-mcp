@@ -2,264 +2,12 @@
   "schemaVersion": 1,
   "files": [
     {
-      "source": "device-agent/fleet-component-manager.mjs",
-      "destination": "device-agent/fleet-component-manager.mjs"
+      "source": "assets/branding/light-remote-mark-256.png",
+      "destination": "assets/branding/light-remote-mark-256.png"
     },
     {
-      "source": "device-agent/fleet-component-supervisor.mjs",
-      "destination": "device-agent/fleet-component-supervisor.mjs"
-    },
-    {
-      "source": "device-agent/install-windows-task.ps1",
-      "destination": "device-agent/install-windows-task.ps1"
-    },
-    {
-      "source": "device-agent/local-wall-auth.mjs",
-      "destination": "device-agent/local-wall-auth.mjs"
-    },
-    {
-      "source": "device-agent/filesystem-volume-inventory.mjs",
-      "destination": "device-agent/filesystem-volume-inventory.mjs"
-    },
-    {
-      "source": "lib/wall-dialogs.mjs",
-      "destination": "lib/wall-dialogs.mjs"
-    },
-    {
-      "source": "device-agent/local-wall.mjs",
-      "destination": "device-agent/local-wall.mjs"
-    },
-    {
-      "source": "device-agent/wall-account-notifications.mjs",
-      "destination": "device-agent/wall-account-notifications.mjs"
-    },
-    {
-      "source": "device-agent/gold-wall-modules.mjs",
-      "destination": "device-agent/gold-wall-modules.mjs"
-    },
-    {
-      "source": "device-agent/gold-memory-ledger.mjs",
-      "destination": "device-agent/gold-memory-ledger.mjs"
-    },
-    {
-      "source": "device-agent/gold-memory-scope.mjs",
-      "destination": "device-agent/gold-memory-scope.mjs"
-    },
-    {
-      "source": "device-agent/gold-memory-scope-admin.mjs",
-      "destination": "device-agent/gold-memory-scope-admin.mjs"
-    },
-    {
-      "source": "device-agent/gold-memory-account-delete.mjs",
-      "destination": "device-agent/gold-memory-account-delete.mjs"
-    },
-    {
-      "source": "device-agent/gold-memory-auto.mjs",
-      "destination": "device-agent/gold-memory-auto.mjs"
-    },
-    {
-      "source": "device-agent/gold-memory-sync.mjs",
-      "destination": "device-agent/gold-memory-sync.mjs"
-    },
-    {
-      "source": "device-agent/gold-memory-evidence.mjs",
-      "destination": "device-agent/gold-memory-evidence.mjs"
-    },
-    {
-      "source": "device-agent/gold-memory-manual-evidence.mjs",
-      "destination": "device-agent/gold-memory-manual-evidence.mjs"
-    },
-    {
-      "source": "device-agent/gold-memory-device-selection.mjs",
-      "destination": "device-agent/gold-memory-device-selection.mjs"
-    },
-    {
-      "source": "device-agent/gold-memory-peer.mjs",
-      "destination": "device-agent/gold-memory-peer.mjs"
-    },
-    {
-      "source": "device-agent/gold-memory-key-permissions.mjs",
-      "destination": "device-agent/gold-memory-key-permissions.mjs"
-    },
-    {
-      "source": "device-agent/gold-memory-cli.mjs",
-      "destination": "device-agent/gold-memory-cli.mjs"
-    },
-    {
-      "source": "device-agent/gold-codex-api.mjs",
-      "destination": "device-agent/gold-codex-api.mjs"
-    },
-    {
-      "source": "device-agent/gold-codex-plus.mjs",
-      "destination": "device-agent/gold-codex-plus.mjs"
-    },
-    {
-      "source": "device-agent/gold-codex-supervisor.mjs",
-      "destination": "device-agent/gold-codex-supervisor.mjs"
-    },
-    {
-      "source": "device-agent/gold-codex-coordinator.mjs",
-      "destination": "device-agent/gold-codex-coordinator.mjs"
-    },
-    {
-      "source": "device-agent/gold-codex-runtime-manager.mjs",
-      "destination": "device-agent/gold-codex-runtime-manager.mjs"
-    },
-    {
-      "source": "device-agent/gold-memory-delete.mjs",
-      "destination": "device-agent/gold-memory-delete.mjs"
-    },
-    {
-      "source": "device-agent/local-process-page.mjs",
-      "destination": "device-agent/local-process-page.mjs"
-    },
-    {
-      "source": "lib/supervisor-job-journal.mjs",
-      "destination": "lib/supervisor-job-journal.mjs"
-    },
-    {
-      "source": "device-agent/isolated-process-worker.mjs",
-      "destination": "device-agent/isolated-process-worker.mjs"
-    },
-    {
-      "source": "lib/isolated-worker-manager.mjs",
-      "destination": "lib/isolated-worker-manager.mjs"
-    },
-    {
-      "source": "device-agent/process-supervisor.mjs",
-      "destination": "device-agent/process-supervisor.mjs"
-    },
-    {
-      "source": "device-agent/process-supervisor-client.mjs",
-      "destination": "device-agent/process-supervisor-client.mjs"
-    },
-    {
-      "source": "device-agent/wall-status-cache.mjs",
-      "destination": "device-agent/wall-status-cache.mjs"
-    },
-    {
-      "source": "device-agent/operator-agent.mjs",
-      "destination": "device-agent/operator-agent.mjs"
-    },
-    {
-      "source": "device-agent/platform-adapters/index.mjs",
-      "destination": "device-agent/platform-adapters/index.mjs"
-    },
-    {
-      "source": "device-agent/platform-adapters/linux.mjs",
-      "destination": "device-agent/platform-adapters/linux.mjs"
-    },
-    {
-      "source": "device-agent/platform-adapters/macos.mjs",
-      "destination": "device-agent/platform-adapters/macos.mjs"
-    },
-    {
-      "source": "device-agent/platform-adapters/shared.mjs",
-      "destination": "device-agent/platform-adapters/shared.mjs"
-    },
-    {
-      "source": "device-agent/platform-adapters/windows.mjs",
-      "destination": "device-agent/platform-adapters/windows.mjs"
-    },
-    {
-      "source": "device-agent/update-settings-page.mjs",
-      "destination": "device-agent/update-settings-page.mjs"
-    },
-    {
-      "source": "lib/activity-ring.mjs",
-      "destination": "lib/activity-ring.mjs"
-    },
-    {
-      "source": "lib/brand.mjs",
-      "destination": "lib/brand.mjs"
-    },
-    {
-      "source": "lib/device-proof.mjs",
-      "destination": "lib/device-proof.mjs"
-    },
-    {
-      "source": "lib/device-duplex-client.mjs",
-      "destination": "lib/device-duplex-client.mjs"
-    },
-    {
-      "source": "lib/executor-readiness-probe.mjs",
-      "destination": "lib/executor-readiness-probe.mjs"
-    },
-    {
-      "source": "lib/light-scp-file.mjs",
-      "destination": "lib/light-scp-file.mjs"
-    },
-    {
-      "source": "lib/light-scp-registry.mjs",
-      "destination": "lib/light-scp-registry.mjs"
-    },
-    {
-      "source": "lib/native-desktop.mjs",
-      "destination": "lib/native-desktop.mjs"
-    },
-    {
-      "source": "lib/rmv2-visual-lease-recovery.mjs",
-      "destination": "lib/rmv2-visual-lease-recovery.mjs"
-    },
-    {
-      "source": "lib/gold-pro-share-device-guest-fence.mjs",
-      "destination": "lib/gold-pro-share-device-guest-fence.mjs"
-    },
-    {
-      "source": "lib/native-fs.mjs",
-      "destination": "lib/native-fs.mjs"
-    },
-    {
-      "source": "lib/native-process.mjs",
-      "destination": "lib/native-process.mjs"
-    },
-    {
-      "source": "lib/native-terminal-receipt-spool.mjs",
-      "destination": "lib/native-terminal-receipt-spool.mjs"
-    },
-    {
-      "source": "lib/device-resource-telemetry.mjs",
-      "destination": "lib/device-resource-telemetry.mjs"
-    },
-    {
-      "source": "lib/device-boot-telemetry.mjs",
-      "destination": "lib/device-boot-telemetry.mjs"
-    },
-    {
-      "source": "lib/native-search.mjs",
-      "destination": "lib/native-search.mjs"
-    },
-    {
-      "source": "lib/native-terminal.mjs",
-      "destination": "lib/native-terminal.mjs"
-    },
-    {
-      "source": "lib/real-remote-input.cjs",
-      "destination": "lib/real-remote-input.cjs"
-    },
-    {
-      "source": "lib/real-remote-policy.mjs",
-      "destination": "lib/real-remote-policy.mjs"
-    },
-    {
-      "source": "lib/public-endpoint.mjs",
-      "destination": "lib/public-endpoint.mjs"
-    },
-    {
-      "source": "lib/runtime-version.mjs",
-      "destination": "lib/runtime-version.mjs"
-    },
-    {
-      "source": "lib/update-contract.mjs",
-      "destination": "lib/update-contract.mjs"
-    },
-    {
-      "source": "lib/update-helper-reconcile.mjs",
-      "destination": "lib/update-helper-reconcile.mjs"
-    },
-    {
-      "source": "lib/version-compat.mjs",
-      "destination": "lib/version-compat.mjs"
+      "source": "assets/branding/light-remote-mark.svg",
+      "destination": "assets/branding/light-remote-mark.svg"
     },
     {
       "source": "assets/fonts/CascadiaMono-OFL.txt",
@@ -270,36 +18,12 @@
       "destination": "assets/fonts/CascadiaMono.ttf"
     },
     {
-      "source": "assets/branding/light-remote-mark.svg",
-      "destination": "assets/branding/light-remote-mark.svg"
-    },
-    {
-      "source": "assets/branding/light-remote-mark-256.png",
-      "destination": "assets/branding/light-remote-mark-256.png"
-    },
-    {
-      "source": "client/update-public.pem",
-      "destination": "client/update-public.pem"
-    },
-    {
-      "source": "device-agent/result-delivery.mjs",
-      "destination": "device-agent/result-delivery.mjs"
-    },
-    {
-      "source": "lib/material-icon.mjs",
-      "destination": "lib/material-icon.mjs"
-    },
-    {
-      "source": "lib/web-typography.mjs",
-      "destination": "lib/web-typography.mjs"
+      "source": "assets/fonts/web/CascadiaCode.ttf",
+      "destination": "assets/fonts/web/CascadiaCode.ttf"
     },
     {
       "source": "assets/fonts/web/GoogleSans-Variable.ttf",
       "destination": "assets/fonts/web/GoogleSans-Variable.ttf"
-    },
-    {
-      "source": "assets/fonts/web/CascadiaCode.ttf",
-      "destination": "assets/fonts/web/CascadiaCode.ttf"
     },
     {
       "source": "assets/icons/material/add.svg",
@@ -450,24 +174,316 @@
       "destination": "assets/icons/material/terminal.svg"
     },
     {
+      "source": "assets/icons/material/visibility_off.svg",
+      "destination": "assets/icons/material/visibility_off.svg"
+    },
+    {
       "source": "assets/icons/material/visibility.svg",
       "destination": "assets/icons/material/visibility.svg"
     },
     {
-      "source": "assets/icons/material/visibility_off.svg",
-      "destination": "assets/icons/material/visibility_off.svg"
+      "source": "client/update-public.pem",
+      "destination": "client/update-public.pem"
     },
     {
       "source": "device-agent/execution-epoch-journal.mjs",
       "destination": "device-agent/execution-epoch-journal.mjs"
     },
     {
+      "source": "device-agent/filesystem-volume-inventory.mjs",
+      "destination": "device-agent/filesystem-volume-inventory.mjs"
+    },
+    {
+      "source": "device-agent/fleet-component-manager.mjs",
+      "destination": "device-agent/fleet-component-manager.mjs"
+    },
+    {
+      "source": "device-agent/fleet-component-supervisor.mjs",
+      "destination": "device-agent/fleet-component-supervisor.mjs"
+    },
+    {
+      "source": "device-agent/gold-codex-api.mjs",
+      "destination": "device-agent/gold-codex-api.mjs"
+    },
+    {
+      "source": "device-agent/gold-codex-coordinator.mjs",
+      "destination": "device-agent/gold-codex-coordinator.mjs"
+    },
+    {
+      "source": "device-agent/gold-codex-plus.mjs",
+      "destination": "device-agent/gold-codex-plus.mjs"
+    },
+    {
+      "source": "device-agent/gold-codex-runtime-manager.mjs",
+      "destination": "device-agent/gold-codex-runtime-manager.mjs"
+    },
+    {
+      "source": "device-agent/gold-codex-supervisor.mjs",
+      "destination": "device-agent/gold-codex-supervisor.mjs"
+    },
+    {
+      "source": "device-agent/gold-memory-account-delete.mjs",
+      "destination": "device-agent/gold-memory-account-delete.mjs"
+    },
+    {
+      "source": "device-agent/gold-memory-auto.mjs",
+      "destination": "device-agent/gold-memory-auto.mjs"
+    },
+    {
+      "source": "device-agent/gold-memory-cli.mjs",
+      "destination": "device-agent/gold-memory-cli.mjs"
+    },
+    {
+      "source": "device-agent/gold-memory-delete.mjs",
+      "destination": "device-agent/gold-memory-delete.mjs"
+    },
+    {
+      "source": "device-agent/gold-memory-device-selection.mjs",
+      "destination": "device-agent/gold-memory-device-selection.mjs"
+    },
+    {
+      "source": "device-agent/gold-memory-evidence.mjs",
+      "destination": "device-agent/gold-memory-evidence.mjs"
+    },
+    {
+      "source": "device-agent/gold-memory-key-permissions.mjs",
+      "destination": "device-agent/gold-memory-key-permissions.mjs"
+    },
+    {
+      "source": "device-agent/gold-memory-ledger.mjs",
+      "destination": "device-agent/gold-memory-ledger.mjs"
+    },
+    {
+      "source": "device-agent/gold-memory-manual-evidence.mjs",
+      "destination": "device-agent/gold-memory-manual-evidence.mjs"
+    },
+    {
+      "source": "device-agent/gold-memory-peer.mjs",
+      "destination": "device-agent/gold-memory-peer.mjs"
+    },
+    {
+      "source": "device-agent/gold-memory-scope-admin.mjs",
+      "destination": "device-agent/gold-memory-scope-admin.mjs"
+    },
+    {
+      "source": "device-agent/gold-memory-scope.mjs",
+      "destination": "device-agent/gold-memory-scope.mjs"
+    },
+    {
+      "source": "device-agent/gold-memory-sync.mjs",
+      "destination": "device-agent/gold-memory-sync.mjs"
+    },
+    {
+      "source": "device-agent/gold-wall-modules.mjs",
+      "destination": "device-agent/gold-wall-modules.mjs"
+    },
+    {
+      "source": "device-agent/guest-device-process.mjs",
+      "destination": "device-agent/guest-device-process.mjs"
+    },
+    {
+      "source": "device-agent/install-windows-task.ps1",
+      "destination": "device-agent/install-windows-task.ps1"
+    },
+    {
+      "source": "device-agent/isolated-process-worker.mjs",
+      "destination": "device-agent/isolated-process-worker.mjs"
+    },
+    {
+      "source": "device-agent/local-process-page.mjs",
+      "destination": "device-agent/local-process-page.mjs"
+    },
+    {
+      "source": "device-agent/local-wall-auth.mjs",
+      "destination": "device-agent/local-wall-auth.mjs"
+    },
+    {
+      "source": "device-agent/local-wall.mjs",
+      "destination": "device-agent/local-wall.mjs"
+    },
+    {
+      "source": "device-agent/operator-agent.mjs",
+      "destination": "device-agent/operator-agent.mjs"
+    },
+    {
+      "source": "device-agent/platform-adapters/index.mjs",
+      "destination": "device-agent/platform-adapters/index.mjs"
+    },
+    {
+      "source": "device-agent/platform-adapters/linux.mjs",
+      "destination": "device-agent/platform-adapters/linux.mjs"
+    },
+    {
+      "source": "device-agent/platform-adapters/macos.mjs",
+      "destination": "device-agent/platform-adapters/macos.mjs"
+    },
+    {
+      "source": "device-agent/platform-adapters/shared.mjs",
+      "destination": "device-agent/platform-adapters/shared.mjs"
+    },
+    {
+      "source": "device-agent/platform-adapters/windows.mjs",
+      "destination": "device-agent/platform-adapters/windows.mjs"
+    },
+    {
+      "source": "device-agent/process-supervisor-client.mjs",
+      "destination": "device-agent/process-supervisor-client.mjs"
+    },
+    {
+      "source": "device-agent/process-supervisor.mjs",
+      "destination": "device-agent/process-supervisor.mjs"
+    },
+    {
+      "source": "device-agent/result-delivery.mjs",
+      "destination": "device-agent/result-delivery.mjs"
+    },
+    {
+      "source": "device-agent/update-settings-page.mjs",
+      "destination": "device-agent/update-settings-page.mjs"
+    },
+    {
+      "source": "device-agent/wall-ab-v2-preview.mjs",
+      "destination": "device-agent/wall-ab-v2-preview.mjs"
+    },
+    {
+      "source": "device-agent/wall-account-notifications.mjs",
+      "destination": "device-agent/wall-account-notifications.mjs"
+    },
+    {
+      "source": "device-agent/wall-status-cache.mjs",
+      "destination": "device-agent/wall-status-cache.mjs"
+    },
+    {
+      "source": "lib/activity-ring.mjs",
+      "destination": "lib/activity-ring.mjs"
+    },
+    {
+      "source": "lib/brand.mjs",
+      "destination": "lib/brand.mjs"
+    },
+    {
+      "source": "lib/device-boot-telemetry.mjs",
+      "destination": "lib/device-boot-telemetry.mjs"
+    },
+    {
+      "source": "lib/device-duplex-client.mjs",
+      "destination": "lib/device-duplex-client.mjs"
+    },
+    {
+      "source": "lib/device-proof.mjs",
+      "destination": "lib/device-proof.mjs"
+    },
+    {
+      "source": "lib/device-resource-telemetry.mjs",
+      "destination": "lib/device-resource-telemetry.mjs"
+    },
+    {
+      "source": "lib/executor-readiness-probe.mjs",
+      "destination": "lib/executor-readiness-probe.mjs"
+    },
+    {
       "source": "lib/gold-execution-epoch.mjs",
       "destination": "lib/gold-execution-epoch.mjs"
     },
     {
+      "source": "lib/gold-pro-share-device-guest-fence.mjs",
+      "destination": "lib/gold-pro-share-device-guest-fence.mjs"
+    },
+    {
+      "source": "lib/gold-pro-share-guest-device-ticket.mjs",
+      "destination": "lib/gold-pro-share-guest-device-ticket.mjs"
+    },
+    {
+      "source": "lib/gold-pro-share-guest-process-contract.mjs",
+      "destination": "lib/gold-pro-share-guest-process-contract.mjs"
+    },
+    {
       "source": "lib/gold-reconnect-proof.mjs",
       "destination": "lib/gold-reconnect-proof.mjs"
+    },
+    {
+      "source": "lib/isolated-worker-manager.mjs",
+      "destination": "lib/isolated-worker-manager.mjs"
+    },
+    {
+      "source": "lib/light-scp-file.mjs",
+      "destination": "lib/light-scp-file.mjs"
+    },
+    {
+      "source": "lib/light-scp-registry.mjs",
+      "destination": "lib/light-scp-registry.mjs"
+    },
+    {
+      "source": "lib/material-icon.mjs",
+      "destination": "lib/material-icon.mjs"
+    },
+    {
+      "source": "lib/native-desktop.mjs",
+      "destination": "lib/native-desktop.mjs"
+    },
+    {
+      "source": "lib/native-fs.mjs",
+      "destination": "lib/native-fs.mjs"
+    },
+    {
+      "source": "lib/native-process.mjs",
+      "destination": "lib/native-process.mjs"
+    },
+    {
+      "source": "lib/native-search.mjs",
+      "destination": "lib/native-search.mjs"
+    },
+    {
+      "source": "lib/native-terminal-receipt-spool.mjs",
+      "destination": "lib/native-terminal-receipt-spool.mjs"
+    },
+    {
+      "source": "lib/native-terminal.mjs",
+      "destination": "lib/native-terminal.mjs"
+    },
+    {
+      "source": "lib/public-endpoint.mjs",
+      "destination": "lib/public-endpoint.mjs"
+    },
+    {
+      "source": "lib/real-remote-input.cjs",
+      "destination": "lib/real-remote-input.cjs"
+    },
+    {
+      "source": "lib/real-remote-policy.mjs",
+      "destination": "lib/real-remote-policy.mjs"
+    },
+    {
+      "source": "lib/rmv2-visual-lease-recovery.mjs",
+      "destination": "lib/rmv2-visual-lease-recovery.mjs"
+    },
+    {
+      "source": "lib/runtime-version.mjs",
+      "destination": "lib/runtime-version.mjs"
+    },
+    {
+      "source": "lib/supervisor-job-journal.mjs",
+      "destination": "lib/supervisor-job-journal.mjs"
+    },
+    {
+      "source": "lib/update-contract.mjs",
+      "destination": "lib/update-contract.mjs"
+    },
+    {
+      "source": "lib/update-helper-reconcile.mjs",
+      "destination": "lib/update-helper-reconcile.mjs"
+    },
+    {
+      "source": "lib/version-compat.mjs",
+      "destination": "lib/version-compat.mjs"
+    },
+    {
+      "source": "lib/wall-dialogs.mjs",
+      "destination": "lib/wall-dialogs.mjs"
+    },
+    {
+      "source": "lib/web-typography.mjs",
+      "destination": "lib/web-typography.mjs"
     }
   ]
 }

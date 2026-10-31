@@ -8,7 +8,7 @@ const listed=new Set(manifest.files.map(x=>x.source.replaceAll('\\','/')));
 function visit(file,seen){
   if(seen.has(file))return;seen.add(file);
   const content=fs.readFileSync(path.join(repo,file),'utf8');
-  for(const m of content.matchAll(/\bfrom\s*['"]([.][.\/]\/[^'"]+\.mjs)['"]/g)){
+  for(const m of content.matchAll(/\bfrom\s*['"](\.{1,2}\/[^'"]+\.mjs)['"]/g)){
     const dep=path.posix.normalize(path.posix.join(path.posix.dirname(file),m[1]));
     assert.ok(listed.has(dep),'Gold Client Core manifest missing statically imported '+dep+' (from '+file+')');
     visit(dep,seen);
