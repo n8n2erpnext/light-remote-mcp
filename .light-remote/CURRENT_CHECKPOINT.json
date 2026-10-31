@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-31",
-  "status": "Gold P2-I4C2 source candidate: Guest read-only OAuth poll, purpose-separated HMAC, exact Redis+PG+native grant/revocation checks, PG044 FK/Agent binding candidate compatibility, no Agent attach/ready/dispatch. Source tests PASS; commit/push pending; native full PG044/physical UAT unverified. All Gold UAT/prod flags OFF, no live migration/billing.",
+  "status": "Gold P2-I4C2 SOURCE pushed at 1d9004b360156ff2e21687e4a25febc27d9b8a6e; HEAD equals origin and working tree clean immediately after source push. Guest OAuth poll verifies Redis+PG+native grant and current Guest seat/share but never attaches/returns ready/dispatches. PG044 FK and binding purpose fix candidate, native PG044 full-schema UAT untested. Gold UAT/prod flags OFF and untouched; GitHub Actions exact-SHA CI not independently verified.",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
