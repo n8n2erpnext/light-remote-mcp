@@ -291,7 +291,7 @@ begin
       221, 327, 410, 55, 12, MutedColor, False);
     AddPhaseLabel(Panel,
       'Start Light Remote tray is selected by default.',
-      221, 404, 415, 45, 11, MutedColor, False);
+      221, 386, 415, 26, 11, MutedColor, False);
   end
   else
   begin
@@ -307,7 +307,7 @@ begin
       221, 370, 420, 50, 11, MutedColor, False);
     AddPhaseLabel(Panel,
       'Installation is recoverable; do not turn off Windows during setup.',
-      221, 449, 425, 50, 10, MutedColor, False);
+      221, 421, 425, 28, 10, MutedColor, False);
   end;
 end;
 
@@ -341,8 +341,8 @@ begin
   if CurPageID = wpFinished then
   begin
     WizardForm.RunList.Parent := BrandedFinishedPanel;
-    WizardForm.RunList.SetBounds(ScaleX(221), ScaleY(453),
-      BrandedFinishedPanel.Width - ScaleX(240), ScaleY(64));
+    WizardForm.RunList.SetBounds(ScaleX(221), ScaleY(414),
+      BrandedFinishedPanel.Width - ScaleX(240), ScaleY(38));
     BrandedFinishedPanel.BringToFront();
   end;
 end;

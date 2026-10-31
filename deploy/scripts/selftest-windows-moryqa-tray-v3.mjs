@@ -83,6 +83,11 @@ assert.match(installer,/BrandedInstallingPanel\.Visible := CurPageID = wpInstall
 assert.match(installer,/BrandedFinishedPanel\.Visible := CurPageID = wpFinished/);
 assert.match(installer,/WizardForm\.ProgressGauge\.Parent := BrandedInstallingPanel/);
 assert.match(installer,/WizardForm\.RunList\.Parent := BrandedFinishedPanel/);
+// Inno dialog's content area is ~460 logical px at Windows 150% DPI.
+// Finish checklist bottom must stay inside it rather than clipping as before.
+assert.match(installer,/WizardForm\.RunList\.SetBounds\(ScaleX\(221\), ScaleY\(414\)/);
+assert.match(installer,/BrandedFinishedPanel\.Width - ScaleX\(240\), ScaleY\(38\)/);
+
 assert.match(installer,/BuildInstallPhasePanel\(BrandedInstallingPanel, False\)/);
 assert.match(installer,/BuildInstallPhasePanel\(BrandedFinishedPanel, True\)/);
 

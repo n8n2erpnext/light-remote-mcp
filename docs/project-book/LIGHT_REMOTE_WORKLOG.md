@@ -524,3 +524,7 @@ Windows workflow 41220648524 (source 9c991910) .NET8 compiled, but visual proof 
 ## 2026-10-31 — Inno compiler caught forward-call ordering defect
 
 Windows CI run 41221013909 source fba46239 compiled native .NET8 and RMV2 but Inno compile FAILED: error line196 Unknown identifier `InitializeBrandedInstallPhases`; `InitializeWizard()` had been declared earlier than its stage-panel builder in Pascal Script. Moved the entire InitializeWizard callback **below** InitializeBrandedInstallPhases and CurPageChanged, preserving original callback logic and AppId/rollback. Added source test enforcing declaration order. Requires real Inno compiler rerun and native screenshot pixel diversity gate after Inno. No UAT or Windows10 client replacement.
+
+## 2026-10-31 — proactive 150%-DPI Inno wizard vertical bounds correction
+
+Owner machine has Windows AppliedDPI=144 (150%). The custom Inno stage panel uses ScaleY positions but dialog content ends near logical y~460; the first branded Finish RunList was at logical y453 +64 (would clip) and final install note at 449+50 (would clip). Before release, changed Finish RunList to y414+38, last install status to 421+28, and Finished helper note to y386+26. Source regression now checks the Finish checkbox bounds at 150%. Pending native Windows CI. Do not claim graphics accepted until interactive screenshot.
