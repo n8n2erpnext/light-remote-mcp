@@ -10,6 +10,7 @@ const p=async(sql,args=[])=>{
  if(q==='BEGIN'){assert.equal(txHeld,false,'fixture transactions serialized');txHeld=true;return results([])}
  if(q==='COMMIT'||q==='ROLLBACK'){assert.equal(txHeld,true);txHeld=false;return results([])}
  if(q.startsWith('SELECT pg_advisory_xact_lock'))return results([{acquired:true}]);
+ if(q.startsWith('SELECT job_id FROM lr_gold_pro_share_guest_outbound'))return results([]);
  if(q.startsWith('SELECT * FROM lr_gold_pro_share_guest_slots WHERE operation_id=')){
   const x=slots.get(args[0]);return results(x?[{...x}]:[]);
  }
@@ -107,6 +108,13 @@ const p=async(sql,args=[])=>{
     process_id:x.process_id})));
  }
  throw Error('unmodeled PG SQL: '+q.slice(0,110));
+};
+let outboundExists=false;
+const guardedP=async(sql,args=[])=>{
+ const q=sql.replace(/\s+/g,' ').trim();
+ if(q.startsWith('SELECT job_id FROM lr_gold_pro_share_guest_outbound'))
+  return results(outboundExists?[{job_id:args[0]}]:[]);
+ return p(sql,args);
 };
 const pool={connect:async()=>({query:p,release(){}}),query:p};
 let signedLaunch=false;
@@ -227,3 +235,21 @@ assert.equal(txHeld,false);
 console.log('GOLD_P2I4C3_PG_SLOT_CROSS_OPERATOR_RESTART_UNKNOWN_FENCE=PASS');
 console.log('GOLD_P2I4C3_TERMINAL_ACK_EXACT_OWNER_DEVICE_JOB_PROCESS=PASS');
 console.log('GOLD_P2I4C3_NO_TTL_NO_REPLAY_PRE_DISPATCH_CANCEL=PASS');
+
+// M4-enabled source must deny a slot-only cancellation if an outbound
+// already exists. This protects the M4 cleanup rule from orphaning a claim.
+const guardedPool={connect:async()=>({query:guardedP,release(){}}),
+ query:guardedP};
+const guardedM4=new GoldProShareGuestSlotPg({pool:guardedPool,env:{
+ LR_GOLD_PRO_SHARE_GUEST_SLOTS:'1',LR_GOLD_PRO_SHARE_CORE:'1',
+ LR_GOLD_PRO_SHARE_GUEST_QUEUE:'1',
+ LR_GOLD_PRO_SHARE_GUEST_M4_BRIDGE:'1'}});
+const protectedSlot=await guardedM4.acquire(args('m4-protected','device-m4-test'));
+assert.equal(protectedSlot.acquired,true);
+outboundExists=true;
+await assert.rejects(protectedSlot.release(),
+ /guest_slot_outbound_exists_cannot_cancel/);
+assert.equal((await guardedM4.inspectDevice('device-m4-test'))[0].state,'reserved');
+outboundExists=false;
+assert.equal(await protectedSlot.release(),true);
+console.log('GOLD_GUEST_SLOT_OUTBOUND_PREPARED_CANNOT_PARTIALLY_CANCEL_M4=PASS');

@@ -45,5 +45,11 @@ assert.match(source,/guest_outbound_attempt_lost_race/);
 assert.match(source,/guest_outbound_epoch_or_permission_changed/);
 assert.match(source,/resubmissionAllowed:false/);
 assert.match(source,/deviceSignerPublicKey!==this.signerPublicKey/);
+assert.match(source,/SELECT device_id FROM lr_gold_pro_share_guest_jobs WHERE job_id=\$1/);
+assert.match(source,/lr_gold_pro_share_guest_slot:'\+device.rows\[0\].device_id/);
+assert.doesNotMatch(source,/lr_gold_pro_share_guest_slot:'\+jobId/);
+assert.match(source,/guest_outbound_device_changed/);
 console.log('GOLD_P2I4C3C2B2_OUTBOUND_DEFAULT_OFF_EPOCH_SIGNER_FENCE=PASS');
 console.log('GOLD_P2I4C3C2B2_ONE_ID_UNKNOWN_NO_AUTOMATIC_RETRY_SOURCE=PASS');
+
+console.log('GOLD_GUEST_OUTBOUND_PREPARE_USES_DEVICE_SLOT_ADVISORY_LOCK=PASS');

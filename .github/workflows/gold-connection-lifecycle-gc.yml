@@ -85,6 +85,7 @@ on:
       - 'deploy/scripts/selftest-gold-m3-recovery-unknown-claim.mjs'
       - 'deploy/scripts/selftest-gold-guest-pre-effect-restart-pg044.sql'
       - 'deploy/scripts/selftest-gold-guest-pre-effect-restart-verify.sql'
+      - 'deploy/scripts/selftest-gold-guest-cancel-billing-pg044.sql'
       - 'deploy/scripts/selftest-gold-guest-restart-source-sql.mjs'
       - 'deploy/scripts/selftest-gold-schema-startup-gate.mjs'
       - 'deploy/scripts/selftest-gold-pro-share-guest-launch-bind.mjs'

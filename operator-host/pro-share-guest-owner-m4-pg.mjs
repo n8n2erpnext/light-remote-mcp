@@ -173,28 +173,55 @@ export class GoldProShareGuestOwnerM4Pg{
   return this._tx(async db=>{
    await db.query('SELECT pg_advisory_xact_lock(hashtext($1))',
     ['lr_gold_pro_share_guest_slot:'+deviceId]);
+   await db.query('SELECT pg_advisory_xact_lock(hashtext($1))',
+    ['lr_gold_m4_resource:'+deviceId]);
+   // Cancellation is valid ONLY after the trusted Guest slot and queue
+   // reached CANCELLED but before an outbound command even exists.
+   // Verify Gold, M3 and M4 are still the SAME queued/no-PID reservation.
    const locked=await db.query(`SELECT g.state AS queue_state,
-      s.state AS slot_state,c.worker_state
+      s.state AS slot_state,c.worker_state,c.process_id,
+      w.state AS m3_state,j.status AS gold_status,
+      o.job_id AS outbound_job
      FROM lr_gold_pro_share_guest_jobs g
-     JOIN lr_gold_pro_share_guest_slots s ON s.job_id=g.job_id
-     JOIN lr_gold_device_resource_claims c ON c.job_id=g.job_id
+     JOIN lr_gold_pro_share_guest_slots s
+       ON s.job_id=g.job_id AND s.operation_id=g.operation_id
+       AND s.owner_account_id=g.owner_account_id
+       AND s.guest_account_id=g.guest_account_id
+       AND s.device_id=g.device_id
+       AND s.grant_id=g.grant_id AND s.connection_id=g.connection_id
+     JOIN lr_gold_personal_agent_work w
+       ON w.job_id=g.job_id AND w.account_id=g.owner_account_id
+       AND w.device_id=g.device_id
+     JOIN lr_gold_job_records j
+       ON j.job_id=g.job_id AND j.account_id=g.owner_account_id
+       AND j.device_id=g.device_id
+     JOIN lr_gold_device_resource_claims c
+       ON c.job_id=g.job_id AND c.account_id=g.owner_account_id
+       AND c.device_id=g.device_id
+     LEFT JOIN lr_gold_pro_share_guest_outbound o ON o.job_id=g.job_id
      WHERE g.job_id=$1 AND g.owner_account_id=$2 AND g.device_id=$3
-     FOR UPDATE OF g,s,c`,[jobId,ownerAccountId,deviceId]);
+     FOR UPDATE OF g,s,w,j,c`,[jobId,ownerAccountId,deviceId]);
    const row=locked.rows?.[0];
-   // If slot was already cancelled by the gate, this is safe only while
-   // canonical queue is cancelled and claim has not observed any process.
    if(locked.rowCount!==1||row.queue_state!=='cancelled'||
-      row.slot_state!=='cancelled'||row.worker_state!=='admitting')
+      row.slot_state!=='cancelled'||row.worker_state!=='admitting'||
+      row.process_id!=null||row.m3_state!=='running'||
+      row.gold_status!=='queued'||row.outbound_job!=null)
     deny('guest_m4_cannot_cancel_after_effect',409);
    const gone=await db.query(`DELETE FROM lr_gold_device_resource_claims
     WHERE job_id=$1 AND account_id=$2 AND device_id=$3
       AND worker_state='admitting' AND process_id IS NULL
     RETURNING job_id`,[jobId,ownerAccountId,deviceId]);
    if(gone.rowCount!==1)deny('guest_m4_cancel_claim_mismatch',409);
-   await db.query('DELETE FROM lr_gold_personal_agent_work WHERE job_id=$1',
-    [jobId]);
-   await db.query("DELETE FROM lr_gold_job_records WHERE job_id=$1 AND status='queued'",
-    [jobId]);
+   const m3=await db.query(`DELETE FROM lr_gold_personal_agent_work
+    WHERE job_id=$1 AND account_id=$2 AND device_id=$3
+      AND state='running' RETURNING job_id`,
+    [jobId,ownerAccountId,deviceId]);
+   if(m3.rowCount!==1)deny('guest_m4_cancel_m3_mismatch',409);
+   const ledger=await db.query(`DELETE FROM lr_gold_job_records
+    WHERE job_id=$1 AND account_id=$2 AND device_id=$3
+      AND status='queued' RETURNING job_id`,
+    [jobId,ownerAccountId,deviceId]);
+   if(ledger.rowCount!==1)deny('guest_m4_cancel_gold_mismatch',409);
    return {cancelled:true,jobId};
   });
  }

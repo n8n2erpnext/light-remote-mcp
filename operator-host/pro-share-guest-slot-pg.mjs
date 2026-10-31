@@ -124,6 +124,16 @@ export class GoldProShareGuestSlotPg{
   const dev=id(evidence.deviceId,'guest_slot_device_invalid');
   return this._tx(async db=>{
    await this._locked(db,dev);
+   // The durable outbound may have been PREPARED but not attempted.
+   // Canceling just the Guest slot would strand its canonical M4 claim,
+   // because M4 cleanup refuses any existing outbound record.
+   if(this.m4Bridge){
+    const outbound=await db.query(
+     'SELECT job_id FROM lr_gold_pro_share_guest_outbound WHERE job_id=$1',
+     [evidence.jobId]);
+    if(outbound.rowCount)
+     fail('guest_slot_outbound_exists_cannot_cancel',409);
+   }
    const r=await db.query(`UPDATE lr_gold_pro_share_guest_slots
     SET state='cancelled',updated_at=clock_timestamp()
     WHERE operation_id=$1 AND device_id=$2 AND owner_account_id=$3

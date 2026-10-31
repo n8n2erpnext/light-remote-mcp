@@ -62,8 +62,16 @@ export class GoldGuestSignedOutboundPg{
   const commandIntent=normalizeGoldGuestProcessIntent(processIntent);
   const digest=goldGuestIntentHash(commandIntent),at=this.now();
   return this._tx(async db=>{
+   // Guest-slot cancellation and M4 admission serialize per DEVICE,
+   // never per job ID. Read identity only; the canonical SELECT below
+   // still locks and rechecks all owner/Guest/slot/epoch evidence.
+   const device=await db.query(
+    'SELECT device_id FROM lr_gold_pro_share_guest_jobs WHERE job_id=$1',
+    [jobId]);
+   if(device.rowCount!==1)
+    fail('guest_outbound_job_not_found',404);
    await db.query('SELECT pg_advisory_xact_lock(hashtext($1))',
-    ['lr_gold_pro_share_guest_slot:'+jobId]);
+    ['lr_gold_pro_share_guest_slot:'+device.rows[0].device_id]);
    const r=await db.query(`SELECT g.job_id,g.operation_id,g.owner_account_id,
     g.guest_account_id,g.device_id,g.agent_id,g.connection_id,
     g.grant_id,g.permission_revision,g.required_capabilities,g.operation,
@@ -116,6 +124,8 @@ export class GoldGuestSignedOutboundPg{
     FOR UPDATE OF g,s,w,j,c,e,a,se,ab,cn`,[jobId]);
    if(r.rowCount!==1)fail('guest_outbound_canonical_rows_missing',403);
    const x=r.rows[0],ledger=x.ledger_view||{};
+   if(x.device_id!==device.rows[0].device_id)
+    fail('guest_outbound_device_changed',409);
    if(x.job_id!==jobId||x.operation!=='process'||
       x.queue_state!=='unknown'||x.slot_state!=='unknown'||
       x.m4_state!=='unknown'||x.ledger_status!=='running'||

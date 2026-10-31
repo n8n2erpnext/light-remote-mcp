@@ -28,8 +28,10 @@ const row={
  bound_connection:'conn1',bound_purpose:'pro-share-guest'
 };
 let received={...row},resourceAllowed=true,writeFailures=false,
+ cancellationFail=null,
  cancellationStates={queue_state:'cancelled',slot_state:'cancelled',
- worker_state:'admitting'};
+ worker_state:'admitting',process_id:null,m3_state:'running',
+ gold_status:'queued',outbound_job:null};
 const statements=[],events=[];
 const query=async(sql,args=[])=>{
  const q=sql.replace(/\s+/g,' ').trim();
@@ -58,10 +60,15 @@ const query=async(sql,args=[])=>{
  if(q.startsWith('SELECT g.state AS queue_state'))
   return {rowCount:1,rows:[cancellationStates]};
  if(q.startsWith('DELETE FROM lr_gold_device_resource_claims'))
-  return {rowCount:1,rows:[{job_id:e.jobId}]};
+  return cancellationFail==='claim'?{rowCount:0,rows:[]}:
+   {rowCount:1,rows:[{job_id:e.jobId}]};
  if(q.startsWith('DELETE FROM lr_gold_personal_agent_work')||
-    q.startsWith('DELETE FROM lr_gold_job_records'))
-  return {rowCount:1,rows:[]};
+    q.startsWith('DELETE FROM lr_gold_job_records')){
+  assert.deepEqual(args,[e.jobId,e.ownerAccountId,e.deviceId]);
+  const target=q.includes('lr_gold_personal_agent_work')?'m3':'gold';
+  return cancellationFail===target?{rowCount:0,rows:[]}:
+    {rowCount:1,rows:[{job_id:e.jobId}]};
+ }
  throw Error('unrecognized-query:'+q.slice(0,90));
 };
 let lockCalls=0;
@@ -112,6 +119,32 @@ writeFailures=false;
 assert.equal((await bridge.cancelBeforeEffect({
  jobId:e.jobId,ownerAccountId:e.ownerAccountId,deviceId:e.deviceId
 })).cancelled,true);
+// No outbound, same canonical Guest and M4, and all three exact deletes
+// are mandatory: any missing Gold/M3/claim must ROLLBACK, never report success.
+for(const [target,code] of [
+ ['claim','guest_m4_cancel_claim_mismatch'],
+ ['m3','guest_m4_cancel_m3_mismatch'],
+ ['gold','guest_m4_cancel_gold_mismatch']]){
+ cancellationFail=target;
+ await assert.rejects(bridge.cancelBeforeEffect({
+  jobId:e.jobId,ownerAccountId:e.ownerAccountId,deviceId:e.deviceId
+ }),new RegExp(code));
+ assert.equal(events.at(-2),'ROLLBACK');
+}
+cancellationFail=null;
+for(const mutated of [
+ {outbound_job:e.jobId},{m3_state:'unknown'},{gold_status:'interrupted'},
+ {process_id:'lp_'+'x'.repeat(24)},{worker_state:'terminal_unknown'},
+ {queue_state:'unknown'},{slot_state:'unknown'}
+]){
+ cancellationStates={queue_state:'cancelled',slot_state:'cancelled',
+  worker_state:'admitting',process_id:null,m3_state:'running',
+  gold_status:'queued',outbound_job:null,...mutated};
+ await assert.rejects(bridge.cancelBeforeEffect({
+  jobId:e.jobId,ownerAccountId:e.ownerAccountId,deviceId:e.deviceId
+ }),/guest_m4_cannot_cancel_after_effect/);
+ assert.equal(events.at(-2),'ROLLBACK');
+}
 cancellationStates={queue_state:'unknown',slot_state:'unknown',
  worker_state:'running'};
 await assert.rejects(bridge.cancelBeforeEffect({
@@ -125,3 +158,5 @@ assert.throws(()=>new GoldProShareGuestOwnerM4Pg({
 console.log('GOLD_P2I4C3C2B1_M4_OWNER_UUID_PG_TXN_ATOMIC_RESOURCE_LEDGER=PASS');
 console.log('GOLD_P2I4C3C2B1_GUEST_SCOPE_REVOKE_CONFLICT_ROLLBACK=PASS');
 console.log('GOLD_P2I4C3C2B1_UNKNOWN_REFUSES_CANCEL_NO_OS_REPLAY=PASS');
+
+console.log('GOLD_GUEST_M4_CANCEL_OUTBOUND_PID_AND_PARTIAL_DELETE_FAIL_CLOSED=PASS');

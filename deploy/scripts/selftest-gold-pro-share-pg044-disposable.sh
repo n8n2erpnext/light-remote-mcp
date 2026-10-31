@@ -20,6 +20,7 @@ docker run --pull never --rm -d --network none --cpus 1 --memory 512m \
  -e POSTGRES_PASSWORD="$pass" \
  -v "$repo/deploy/scripts/selftest-gold-guest-pre-effect-restart-pg044.sql:/restart-stage.sql:ro" \
  -v "$repo/deploy/scripts/selftest-gold-guest-pre-effect-restart-verify.sql:/restart-verify.sql:ro" \
+ -v "$repo/deploy/scripts/selftest-gold-guest-cancel-billing-pg044.sql:/cancel-billing.sql:ro" \
  -v "$repo/platform-v2/sql:/migrations:ro" \
  -v "$repo/deploy/scripts/selftest-gold-pro-share-pg044-disposable.sql:/fixture.sql:ro" \
  postgres:17-alpine -c listen_addresses='' >/dev/null
@@ -117,3 +118,28 @@ printf '%s\n' "$restart_sql" |
 docker exec "$name" psql -X -U postgres -v ON_ERROR_STOP=1 -q \
  -f /restart-verify.sql postgres || exit 11
 echo "GOLD_NATIVE_GUEST_PRE_EFFECT_RESTART_SOURCE_SQL=PASS"
+docker exec "$name" psql -X -U postgres -v ON_ERROR_STOP=1 -q \
+ -f /cancel-billing.sql postgres || exit 12
+echo "GOLD_NATIVE_GUEST_CANCEL_AND_BILL_ONCE=PASS"
+
+# Check the actual production-source cancellation SQL on the installed
+# PostgreSQL column/FK schema. All statements are PREPARE only here.
+for idx in select claim m3 ledger;do
+ sql=$(node -e '
+const fs=require("node:fs");
+const x=fs.readFileSync(process.argv[1],"utf8");
+const key=process.argv[2];
+const patterns={
+ select:/const locked=await db\.query\(`(SELECT g\.state AS queue_state,[\s\S]*?)`,\[jobId,ownerAccountId,deviceId\]\)/,
+ claim:/const gone=await db\.query\(`(DELETE FROM lr_gold_device_resource_claims[\s\S]*?)`,\[jobId,ownerAccountId,deviceId\]\)/,
+ m3:/const m3=await db\.query\(`(DELETE FROM lr_gold_personal_agent_work[\s\S]*?)`,[\s\S]*?\[jobId,ownerAccountId,deviceId\]\)/,
+ ledger:/const ledger=await db\.query\(`(DELETE FROM lr_gold_job_records[\s\S]*?)`,[\s\S]*?\[jobId,ownerAccountId,deviceId\]\)/
+};
+const m=x.match(patterns[key]);if(!m)process.exit(4);
+process.stdout.write("PREPARE guest_cancel_"+key+"(text,text,text) AS "+m[1]);
+' "$repo/operator-host/pro-share-guest-owner-m4-pg.mjs" "$idx")
+ [ -n "$sql" ] || { echo "Missing source cancellation SQL $idx" >&2;exit 13; }
+ docker exec "$name" psql -X -U postgres -v ON_ERROR_STOP=1 -q \
+ -c "$sql" postgres || exit 13
+ echo "GOLD_NATIVE_GUEST_M4_CANCEL_SOURCE_SQL_$idx=PASS"
+done
