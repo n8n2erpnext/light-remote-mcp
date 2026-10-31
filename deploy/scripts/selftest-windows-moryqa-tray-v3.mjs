@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-const root=path.resolve(new URL('../..',import.meta.url).pathname);
+import {fileURLToPath} from 'node:url';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const read=x=>fs.readFileSync(path.join(root,x),'utf8');
 const ui=read('client/windows-native/GptOperator.Client/UiTheme.cs');
 const tray=read('client/windows-native/GptOperator.Client/TrayApplicationContext.cs');

@@ -476,3 +476,7 @@ Local Wall screenshots show visual_session_missing followed by desktop_session_m
 ## 2026-10-31 — Moryqa Windows Tray V3 UI and installer integration
 
 Used Moryqa Studio MCP read-only to obtain exact state icon SVGs, installer/uninstaller labels, available dark V3 500x740 popover; built original PNG icon assets, Windows system Light/Dark palette, native left-click popover and existing right-click advanced menu, connected-state relink hiding, accessible sessions through Local Wall and default Desktop shortcut in Inno Setup. Wired source/asset regression into Windows CI. Exact requested V3 light multi-session frame not found on selected Figma page; follow-up fidelity gate remains. No Windows 10 client restart.
+
+## 2026-10-31 — Windows CI Moryqa source fixture path fix
+
+Windows-native-client run 41207613613 stopped in first new Moryqa source test: Node import.meta.url.pathname on Windows produced D:\\D:\\ path. The source test now uses fileURLToPath(import.meta.url) and path.dirname; original Linux source assertions remained PASS. This is test-fixture cross-platform correction only, not a runtime installer/Tray fix. Follow-up Windows x64 CI required.
