@@ -28,6 +28,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
 
     private readonly NotifyIcon _tray;
     private readonly TrayPopoverForm _popover;
+    private readonly ContextMenuStrip _advancedMenu;
     private readonly ToolStripMenuItem _state = new("Starting...") { Enabled = false };
     private readonly ToolStripMenuItem _deviceInfo = new("Windows device") { Enabled = false };
     private readonly ToolStripMenuItem _sessions = new("Authorized AI sessions");
@@ -93,14 +94,16 @@ internal sealed class TrayApplicationContext : ApplicationContext
         {
             Visible = true,
             Text = "Light Remote",
-            ContextMenuStrip = menu,
+            ContextMenuStrip = null,
             Icon = TrayIconFactory.Create(TrayVisualState.Stopped)
         };
+        _advancedMenu = menu;
         _popover = new TrayPopoverForm(async action =>
         {
             switch (action)
             {
                 case "wall": await OpenWallAsync(); break;
+                case "approval": OpenUrl(WallUrl + "approve", "owner_access_open_failed"); break;
                 case "fleet": OpenFleet(); break;
                 case "account": OpenUrl(AccountUrl, "account_open_failed"); break;
                 case "connect": await ToggleConnectionAsync(); break;
@@ -109,14 +112,16 @@ internal sealed class TrayApplicationContext : ApplicationContext
                 case "service": await ToggleServiceAsync(); break;
                 case "updates": await CheckForUpdatesAsync(); break;
                 case "quit": ExitThread(); break;
-                case "more": _tray.ContextMenuStrip?.Show(Cursor.Position); break;
+                case "more": _advancedMenu.Show(Cursor.Position); break;
             }
         });
-        // The native right-click menu remains available; left-click opens
-        // the Figma V3 native popover without losing existing tray actions.
+        // Both mouse buttons open the branded V3 tray. Advanced native actions
+        // live under More actions; the user should never land in the old menu
+        // as the primary right-click experience.
         _tray.MouseClick += (_, e) =>
         {
-            if (e.Button == MouseButtons.Left) _popover.Toggle(Cursor.Position);
+            if (e.Button == MouseButtons.Left || e.Button == MouseButtons.Right)
+                _popover.Toggle(Cursor.Position);
         };
         _tray.DoubleClick += async (_, _) => await OpenWallAsync();
 
@@ -896,6 +901,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
         _tray.Visible = false;
         _tray.Icon?.Dispose();
         _tray.Dispose();
+        _advancedMenu.Dispose();
         _popover.Dispose();
         base.ExitThreadCore();
     }

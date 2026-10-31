@@ -228,8 +228,7 @@ internal sealed class TrayPopoverForm : Form
             alignment: ContentAlignment.MiddleRight);
         Card(deviceCard, 16, 51, 422, 1);
         TextLine(deviceCard, "A/B authorization", 20, 60, 250, 24, 10f, UiTheme.Text);
-        TextLine(deviceCard, "Manage in Wall  ›", 265, 61, 169, 23, 9.5f, UiTheme.Success,
-            alignment: ContentAlignment.MiddleRight);
+        Action(deviceCard, "Approve Agent / Manage", "approval", 247, 61, 188, 30, _wallOnline);
 
         Card(root, 23, 691, 452, 1);
         Action(root, "Local Wall", "wall", 23, 703, 127, 28, _wallOnline);

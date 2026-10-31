@@ -30,7 +30,7 @@
 
 [Setup]
 AppId={{A8D073F5-9792-4FA6-96A6-13C565F255F3}
-AppName=Light Remote MCP
+AppName=Light Remote
 AppVersion={#AppVersion}
 AppPublisher=Thai Duy
 DefaultDirName={localappdata}\Programs\Light Remote MCP
@@ -47,6 +47,9 @@ SolidCompression=yes
 ArchiveExtraction=full
 #endif
 WizardStyle=modern
+DisableWelcomePage=yes
+DisableDirPage=yes
+DisableReadyPage=yes
 CloseApplications=yes
 RestartApplications=no
 UninstallDisplayIcon={app}\GptOperator.Client.exe
@@ -89,8 +92,107 @@ begin
     'AppsUseLightTheme', LightApps) and (LightApps = 0);
 end;
 
+// This is an actual custom Inno wizard page, not just a renamed stock
+// WelcomeLabel. Windows-light defaults to Moryqa #F5F8FD / #162B4C.
+var
+  BrandedWelcomePage: TWizardPage;
+  BrandedDesktopShortcut: TNewCheckBox;
+
+procedure AddBrandedText(Page: TWizardPage; TextValue: String;
+  LeftValue, TopValue, WidthValue, FontSize: Integer; TextColor: TColor);
+var
+  L: TNewStaticText;
+begin
+  L := TNewStaticText.Create(Page);
+  L.Parent := Page.Surface;
+  L.Left := ScaleX(LeftValue);
+  L.Top := ScaleY(TopValue);
+  L.Width := ScaleX(WidthValue);
+  L.Height := ScaleY(35);
+  L.AutoSize := False;
+  L.WordWrap := True;
+  L.Caption := TextValue;
+  L.Font.Name := 'Segoe UI';
+  L.Font.Size := FontSize;
+  L.Font.Color := TextColor;
+end;
+
+procedure BuildBrandedWelcomePage();
+var
+  Card: TPanel;
+  IsDark: Boolean;
+  Fore, Muted, Surface: TColor;
+begin
+  IsDark := LightRemoteDarkWindowsTheme();
+  BrandedWelcomePage := CreateCustomPage(wpWelcome,
+    'Light Remote for Windows', 'Your desktop, available to your AI.');
+  if IsDark then
+  begin
+    Fore := clWhite;
+    Muted := $00C3B1A1;
+    Surface := $00221A14;
+    BrandedWelcomePage.Surface.Color := $0017110D;
+  end
+  else
+  begin
+    Fore := $004C2B16;
+    Muted := $008B7564;
+    Surface := $00FCF9F5;
+    BrandedWelcomePage.Surface.Color := clWhite;
+  end;
+  AddBrandedText(BrandedWelcomePage, 'Install Light Remote',
+    16, 10, 440, 24, Fore);
+  AddBrandedText(BrandedWelcomePage,
+    'Secure desktop access for your authorized AI agents.',
+    16, 54, 440, 11, Muted);
+  Card := TPanel.Create(BrandedWelcomePage);
+  Card.Parent := BrandedWelcomePage.Surface;
+  Card.Left := ScaleX(15);
+  Card.Top := ScaleY(93);
+  Card.Width := BrandedWelcomePage.SurfaceWidth - ScaleX(30);
+  Card.Height := ScaleY(93);
+  Card.BevelOuter := bvNone;
+  Card.Color := Surface;
+  // These labels belong to the page surface and remain readable on themes.
+  AddBrandedText(BrandedWelcomePage, '01  Device installation',
+    29, 105, 390, 15, Fore);
+  AddBrandedText(BrandedWelcomePage,
+    'Per-user setup. No administrator elevation required.',
+    29, 137, 414, 11, Muted);
+  BrandedDesktopShortcut := TNewCheckBox.Create(BrandedWelcomePage);
+  BrandedDesktopShortcut.Parent := BrandedWelcomePage.Surface;
+  BrandedDesktopShortcut.Left := ScaleX(20);
+  BrandedDesktopShortcut.Top := ScaleY(198);
+  BrandedDesktopShortcut.Width := BrandedWelcomePage.SurfaceWidth - ScaleX(38);
+  BrandedDesktopShortcut.Height := ScaleY(29);
+  BrandedDesktopShortcut.Caption := 'Create Desktop shortcut';
+  BrandedDesktopShortcut.Font.Name := 'Segoe UI';
+  BrandedDesktopShortcut.Font.Size := 11;
+  BrandedDesktopShortcut.Font.Color := Fore;
+  BrandedDesktopShortcut.Checked := True;
+  AddBrandedText(BrandedWelcomePage,
+    'Starts with Windows  ·  Keeps your linked device identity',
+    20, 234, 430, 10, Muted);
+end;
+
+function ShouldSkipPage(PageID: Integer): Boolean;
+begin
+  Result := PageID = wpSelectTasks;
+end;
+
+function NextButtonClick(CurPageID: Integer): Boolean;
+begin
+  Result := True;
+  if CurPageID = BrandedWelcomePage.ID then
+  begin
+    if BrandedDesktopShortcut.Checked then WizardSelectTasks('desktopicon')
+    else WizardSelectTasks('!desktopicon');
+  end;
+end;
+
 procedure InitializeWizard();
 begin
+  BuildBrandedWelcomePage();
   WizardForm.WelcomeLabel1.Caption := 'Install Light Remote';
   WizardForm.WelcomeLabel2.Caption :=
     'Your desktop, available to your AI.' + #13#10 + #13#10 +
