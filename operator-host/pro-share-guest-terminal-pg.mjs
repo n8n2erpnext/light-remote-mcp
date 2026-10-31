@@ -35,7 +35,9 @@ export class GoldGuestTerminalSettlementPg {
    const checked=await db.query(`SELECT g.job_id,g.operation_id,
      g.owner_account_id,g.guest_account_id,g.device_id,
      g.state AS queue_state,s.state AS slot_state,
-     s.process_id AS slot_pid,w.state AS m3_state,
+     s.process_id AS slot_pid,s.terminal_state AS slot_terminal_state,
+     s.terminal_acked_at AS slot_terminal_acked_at,
+     w.state AS m3_state,w.disposition AS m3_disposition,
      j.status AS launch_job_status,j.public_view AS launch_evidence,
      c.job_id AS claim_job,c.account_id AS claim_owner,
      c.device_id AS claim_device,c.process_id AS claim_pid,
@@ -63,25 +65,50 @@ export class GoldGuestTerminalSettlementPg {
     FOR UPDATE OF g,s,w,j`,[jobId]);
    if(checked.rowCount!==1)deny('guest_terminal_canonical_rows_missing',403);
    const r=checked.rows[0],j=r.launch_evidence;
-   if(device.rows[0].device_id!==r.device_id||
-      r.queue_state!=='unknown'||r.slot_state!=='submitted'||
-      !/^lp_[A-Za-z0-9_-]{20,80}$/.test(r.slot_pid||'')||
+   // A duplicate after COMMIT must not be confused with a missing ACK or
+   // an arbitrary terminal claim. Require the exact signed ledger, durable
+   // M6 ACK and corresponding canonical completed states for idempotency.
+   const signedLaunchOk=
+    device.rows[0].device_id===r.device_id&&
+    r.launch_job_status==='ok'&&
+    j?.signedResultVerified===true&&
+    j?.signedGuestDelegationVerified===true&&
+    j?.guestDelegation?.purpose==='pro-share-guest'&&
+    j?.guestDelegation?.jobId===jobId&&
+    j?.guestDelegation?.ownerAccountId===r.owner_account_id&&
+    j?.guestDelegation?.guestAccountId===r.guest_account_id&&
+    j?.guestDelegation?.deviceId===r.device_id&&
+    j?.guestDelegation?.processId===r.slot_pid;
+   const durableAckOk=
+    /^lp_[A-Za-z0-9_-]{20,80}$/.test(r.slot_pid||'')&&
+    r.ack_owner===r.owner_account_id&&
+    r.ack_device===r.device_id&&
+    r.ack_job===jobId&&r.ack_pid===r.slot_pid&&
+    endStates.has(r.terminal_state)&&
+    Number.isSafeInteger(Number(r.finished_at_ms))&&
+    Number(r.finished_at_ms)>0&&r.acked_at!=null;
+   if(!signedLaunchOk||!durableAckOk)
+    deny('guest_terminal_signed_m6_ack_not_confirmed',409);
+   if(r.queue_state==='terminal'||r.slot_state==='terminal'||
+      r.m3_state==='finished'){
+    const ackedMs=new Date(r.acked_at).getTime();
+    const slotAckedMs=r.slot_terminal_acked_at==null?NaN:
+      new Date(r.slot_terminal_acked_at).getTime();
+    if(r.queue_state!=='terminal'||r.slot_state!=='terminal'||
+       r.m3_state!=='finished'||
+       r.m3_disposition!=='guest_signed_m6_terminal'||
+       r.slot_terminal_state!==r.terminal_state||
+       !Number.isFinite(ackedMs)||slotAckedMs!==ackedMs||
+       r.claim_job!=null)
+      deny('guest_terminal_partial_or_conflicting_completion',409);
+    await db.query('COMMIT');tx=false;
+    return Object.freeze({settled:true,alreadySettled:true,jobId,
+     ownerAccountId:r.owner_account_id,deviceId:dev,
+     terminalState:r.terminal_state,receiptPersisted:true,
+     m3Released:true,m4Released:true,shouldReissue:false});
+   }
+   if(r.queue_state!=='unknown'||r.slot_state!=='submitted'||
       r.m3_state!=='unknown'||
-      r.launch_job_status!=='ok'||
-      j?.signedResultVerified!==true||
-      j?.signedGuestDelegationVerified!==true||
-      j?.guestDelegation?.jobId!==jobId||
-      j.guestDelegation?.ownerAccountId!==r.owner_account_id||
-      j.guestDelegation?.guestAccountId!==r.guest_account_id||
-      j.guestDelegation?.deviceId!==r.device_id||
-      j.guestDelegation?.processId!==r.slot_pid||
-      r.ack_owner!==r.owner_account_id||
-      r.ack_device!==r.device_id||
-      r.ack_job!==jobId||r.ack_pid!==r.slot_pid||
-      !endStates.has(r.terminal_state)||
-      !Number.isSafeInteger(Number(r.finished_at_ms))||
-      Number(r.finished_at_ms)<=0||
-      r.acked_at==null||
       (r.claim_job!=null&&(
        r.claim_job!==jobId||
        r.claim_owner!==r.owner_account_id||

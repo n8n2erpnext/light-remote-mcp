@@ -6,7 +6,7 @@ const jobId='0af5a9c1-8050-478a-83d1-5e26821cf101',
  owner='owner1',guest='guest1',device='device1',
  pid='lp_'+('p'.repeat(24));
 const signed={signedResultVerified:true,signedGuestDelegationVerified:true,
- guestDelegation:{jobId,ownerAccountId:owner,guestAccountId:guest,
+ guestDelegation:{purpose:'pro-share-guest',jobId,ownerAccountId:owner,guestAccountId:guest,
  deviceId:device,processId:pid}};
 const base={job_id:jobId,operation_id:'guestop-one-123456',
  owner_account_id:owner,guest_account_id:guest,device_id:device,
@@ -68,7 +68,7 @@ for(const modified of [
 ]){
  row={...base,...modified};
  await assert.rejects(terminal.settle({jobId}),
-  /guest_terminal_signed_m6_ack_not_confirmed/);
+  /guest_terminal_signed_m6_ack_not_confirmed|guest_terminal_partial_or_conflicting_completion/);
  assert.equal(modifications,0);
 }
 row={...base};forceFailure=true;
@@ -88,6 +88,33 @@ row={...base,claim_job:null,claim_owner:null,claim_device:null,
 modifications=0;
 assert.equal((await terminal.settle({jobId})).settled,true);
 assert.equal(modifications,3,'already released M6 claim does not cause another release');
+// ACK retry / Operator restart must not run a second M4 or M3 release.
+const completed={...base,queue_state:'terminal',slot_state:'terminal',
+ m3_state:'finished',m3_disposition:'guest_signed_m6_terminal',
+ slot_terminal_state:'finished',slot_terminal_acked_at:base.acked_at,
+ claim_job:null,claim_owner:null,claim_device:null,claim_pid:null,
+ claim_state:null};
+row={...completed};
+modifications=0;
+const duplicate=await terminal.settle({jobId});
+assert.equal(duplicate.settled,true);
+assert.equal(duplicate.alreadySettled,true);
+assert.equal(duplicate.shouldReissue,false);
+assert.equal(modifications,0,'terminal replay must be read-only');
+for(const bad of [
+ {slot_terminal_state:'error'},
+ {slot_terminal_acked_at:new Date('2026-10-31T00:00:01Z')},
+ {m3_disposition:'operator_restart_reconcile'},
+ {claim_job:jobId,claim_owner:owner,claim_device:device,
+  claim_pid:pid,claim_state:'running'},
+ {ack_pid:'lp_'+('q'.repeat(24))},
+ {launch_evidence:{...signed,signedGuestDelegationVerified:false}}
+]){
+ row={...completed,...bad};
+ await assert.rejects(terminal.settle({jobId}),
+ /guest_terminal_signed_m6_ack_not_confirmed|guest_terminal_partial_or_conflicting_completion/);
+ assert.equal(modifications,0,'partial or forged terminal retry must never mutate');
+}
 const slot=new GoldProShareGuestSlotPg({pool,env});
 await assert.rejects(slot.reconcileSignedTerminal({
  ownerAccountId:owner,deviceId:device,jobId,processId:pid
@@ -98,3 +125,4 @@ await assert.rejects(slot.reconcileDevice({
 console.log('GOLD_P2I4C3C2B3_M6_EXACT_SIGNED_RECEIPT_M3_M4_SLOT_QUEUE=PASS');
 console.log('GOLD_P2I4C3C2B3_M6_UNSIGNED_WRONG_PID_OTHER_GUEST_DENIED=PASS');
 console.log('GOLD_P2I4C3C2B3_M6_ONLY_ATOMIC_SETTLEMENT_NO_SLOT_ONLY_RELEASE=PASS');
+console.log('GOLD_P2I4C3C2B3_M6_RESTART_REPLAY_EXACT_RECEIPT_READONLY=PASS');
