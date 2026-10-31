@@ -448,3 +448,7 @@ Read-only inspection of LXD Gold UAT after candidate `d4401641` was staged. Gold
 ## 2026-10-31 — Gold UAT removed 27 legacy UNKNOWN test work rows
 
 Owner-directed and fully backed-up. PostgreSQL guarded transaction removed exactly 27 `lr_gold_personal_agent_work` UNKNOWN entries, all interrupted in source job ledger and none holding claims; after counts unknown=0, claims=1, historical interrupted jobs=32. Independent native-PG-restore-verified dump and LXD snapshot `pre-unknown-test-cleanup-20261031` were created beforehand. Four services unchanged and healthy. P2-B read-only gate improved 5/16→6/16 but remains HOLD due to historical revoked claim and unavailable signed cutover evidence; SQL043 UAT preflight unchanged HOLD. Full details in P2 implementation handoff.
+
+## 2026-10-31 — Gold P2-I5 post-cleanup preimage and full-data SQL test
+
+Created LXD snapshot pre-p2i5-zero-unknown-20261031 and secure paired four-systemd-unit configuration + native PG039 dump in container; SHA256, native pg_restore and four-service health PASS. Full current post-cleanup Gold UAT database restored into disposable no-network PostgreSQL17; actual SQL040-043 sequence PASS, ledger 43/43 only in fixture; original job, M4 claim, terminal ACK, personal work and device counts unchanged. Test Docker/private data cleaned. Live UAT remains 039, UNKNOWN=0, one historical revoked claim, 4/4 old-source services, candidate d4401641 staged only; migration release and signed four-unit cutover still HOLD. Detailed evidence in P2 implementation handoff.

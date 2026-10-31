@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-31",
-  "status": "P2-I5 UAT cleanup: owner authorized deletion of exactly 27 legacy UNKNOWN test work rows, performed in guarded transaction after independent PostgreSQL custom dump/SHA256/pg_restore validation and fresh LXD snapshot. Post-check unknown=0, one revoked-device historical M4 claim preserved, 32 interrupted job ledger entries preserved, four Gold services active. P2-B read-only review now HOLD 6/16 (previously 5/16); signed cutover/apply not implemented. Candidate d4401641 staged, live four units 7f46dea, PG039, SQL lock042, no 043/044 release. Production rc47 untouched.",
+  "status": "P2-I5 post-cleanup UAT: UNKNOWN test work=0, one revoked-device historic M4 claim retained, 32 interrupted job ledger entries preserved, four units active on 7f46dea. Candidate d4401641 staged/hash-verified, SQL lock ends 042, live schema039. New post-cleanup LXD snapshot pre-p2i5-zero-unknown-20261031 plus root-only four-unit configuration and PG039 dump SHA/pg_restore preimage verified. Full actual data, not only schema, migrated 039 through 043 in isolated no-NIC PG17; preserved job/claim/ACK/device counts; only disposable 43/43, no live migration. Signed cutover remains HOLD; Guest044 and production rc47 unchanged.",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -128,7 +128,7 @@
     "Authenticated Guest Fleet source adapter was previously tool-safety-blocked; no E2E on actual signed Agent or billing once, SQL043/044 absent migration lock and no release signoff.",
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD."
   ],
-  "nextAction": "Legacy 27 UNKNOWN UAT test work rows were removed with verified backup and snapshot. One separate revoked-device M4 claim remains and requires real owner-attested recovery/verified terminal outcome, not a direct SQL bypass. Need independent signed 4-unit cutover runner/evidence, reviewed PG043 lock and UAT migration authorization, installed Agent Owner Wall B->Helper 24h grant E2E. Keep Guest044, billing and production off.",
+  "nextAction": "Full-data PG043 offline migration rehearsal and post-cleanup verified 4-unit/PG backup completed. To activate staged d4401641 on UAT, require owner-authenticated exact orphan job db964413-f80f-4869-96aa-fa9b56dded09 recovery with real reboot evidence (do not bypass), independent signed-quiescence/allowlist four-unit cutover runner, reviewed SHA-locked PG043 registration and live UAT migration, then physical installed Agent Owner Wall B->Helper 24h grant E2E. Guest044, billing and production stay off.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
