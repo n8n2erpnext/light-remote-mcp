@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-31",
-  "status": "P2-I4C3c2b3c2a source-only: M6 signed terminal proof now requires immutable SQL044 outbound ticket and exact Guest signed launch delegation scope (job, owner/Guest, device, Agent, grant, connection, operation, revision, command ID, intent SHA, PID), GoldJobLedger verified process_launch/result_observed/exit0; all before first M6 settlement and duplicate readback. Mock and isolated PG17 SQL001-044 + source M6 SELECT PREPARE PASS. No installed Guest Agent E2E, no Fleet adapter/clone. Commit pending; UAT/prod/PG044/Paddle untouched, flags OFF.",
+  "status": "Gold P2-I4C3c2b3c2a SOURCE 8ae7dde1c9cfe54c210199bd956d578568904f76 pushed clean HEAD=origin: signed M6 terminal settlement enforces exact immutable Guest outbound ticket, signed Device delegation and Gold ledger process_launch/result_observed/exitCode0 for same job, owner/Guest, device, Agent, grant, connection, operation, revision, commandId, payload SHA and PID, including idempotent M6 replay. 26 source/mock suites PASS; isolated PG17 SQL001-044 + source M6 SELECT PREPARE PASS; 479 doc links PASS. Fleet adapter safety-blocked/unmounted, physical Guest Agent E2E and actual Gold schema clone not run; flags OFF, PG044 unregistered, UAT/prod/Paddle untouched. GitHub Actions exact SHA not independently checked.",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
