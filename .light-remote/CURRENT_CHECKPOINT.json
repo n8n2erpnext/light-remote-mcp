@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-31",
-  "status": "P2-I4C3c2b2 SOURCE: one immutable signed Guest command ID with current M4 execution epoch and auth/payload digest stored in SQL044; irreversible PREPARED->UNKNOWN before Fleet enqueue; signed Device JobLedger Guest launch can bind M4 PID + Guest slot together without circular verifier. Source tests and disposable PG17 full 001-044 outbound unique/FK/SQL PREPARE PASS. No mounted outbound, no physical Agent Guest E2E. Native launch-binder SQL compile and large test fixture were blocked, NOT PASS. Commit pending.",
+  "status": "Gold P2-I4C3c2b2 SOURCE b2866f3f7cfd8643b2e5abd3851a7447896867bf pushed clean HEAD=origin. Exactly one Guest signed outbound command per canonical UUID/epoch with PG044 FK and no replay; source-only signer and M4 epoch issuance preconditions, irrevocable UNKNOWN before prospective Fleet. Separate signed Device GoldJobLedger Guest launch -> M4 PID + Guest slot PG binder without circular proof. 24 source/mock regression groups PASS, 464 document links PASS; disposable PG17 SQL001-044 + unique command/cross-actor FK and actual outbound SELECT native PREPARE PASS. Native launch-binder SELECT PG PREPARE not verified (tool block), physical signed Guest E2E not run, no live Fleet adapter; feature flags OFF, PG044 unregistered, Gold UAT/prod/Paddle unchanged. Exact GitHub Actions SHA not separately checked.",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
