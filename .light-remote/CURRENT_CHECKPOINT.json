@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-31",
-  "status": "Gold P2-I4C3b2 SOURCE ebdf9b53cfae8b0849fff4b8f1fb41a88dd33a39 pushed clean HEAD=origin. Dedicated Guest native B PG bind and generic owner-route denial; strictly signed OAuth queue stage, no OS payload; queue+slot UNKNOWN/cancel/terminal atomic transactions under PG candidate. 16 source/mock regression groups PASS, catalog/431 docs links PASS. Native PG044 full clone/physical Guest signed channel E2E NOT run; Guest Helper ready FALSE, no live dispatch, feature flags OFF; Gold UAT/prod/Paddle unchanged. GitHub Actions exact-SHA not independently verified.",
+  "status": "Gold P2-I4C3c1 SOURCE and isolated disposable PostgreSQL17 schema PASS; Guest sealed process intent AES-GCM+AAD and hash, strict dispatch payload/native Agent protocol fence, device-agent owner command downgrade rejection, Guest-specific signed launch provenance required. Cold 001-043 and PG044 apply + synthetic FK/slot checks PASS on no-network disposable DB; not actual Gold UAT/Agent E2E. No live Guest, source SHA pending.",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -63,7 +63,8 @@
     "P2-I4C2 source: guest-poll OAuth proof domain-separated, separate read-only Guest-poll route Redis/PG native grant and repeated share validation, preserved owner poll; PG044 legacy FK compatibility and purpose-scoped binding; source regression PASS.",
     "P2-I4C3a source: candidate PG044 durable one-Guest slot, exact M6 signed terminal ACK-only release, cross-Operator no-TTL/restart UNKNOWN fence, dispatch pre-effect persisted UNKNOWN; mocked source PASS; no live Guest execution.",
     "P2-I4C3b1 source: dedicated authoritative PG Guest queue with OAuth-native binding and server-generated operation ID, exact owner/connection/revision rechecks, source-only signed launch validator with M4+Gold ledger, candidate composite queue-slot FK.",
-    "P2-I4C3b2 source: gated native Guest B Agent binding, private signed OAuth staged queue and producer proof, generic owner API Guest guards, atomic queue/slot unknown/cancel/terminal, source mocked regression PASS."
+    "P2-I4C3b2 source: gated native Guest B Agent binding, private signed OAuth staged queue and producer proof, generic owner API Guest guards, atomic queue/slot unknown/cancel/terminal, source mocked regression PASS.",
+    "P2-I4C3c1 source: AES-GCM immutable process payload intent with PG044 composite FK, dispatch requires signed native Guest protocol, legacy Agent Guest downgrade deny; actual disposable PostgreSQL17 migrations 001-044 and synthetic Guest FK/one-slot/owner grant checks PASS."
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -97,9 +98,10 @@
     "Guest Poll intentionally NOT native Agent attached/ready; cross-account targetRoute owner guards, durable slot, queue and signed terminal receipt release not yet wired. PG044 candidate still unregistered/untested on real clone; no live deployment.",
     "P2-I4C3a still lacks trusted Guest queue, verified signed-launch evidence provider/Agent attach and real cross-account execution. Candidate SQL044 slot not applied to native PG clone or UAT; existing Gold UAT/prod untouched.",
     "Guest queue has no live authenticated OAuth producer, native Guest attach, actual Agent execution or queue-to-slot terminal state bridge; candidate PG044 native migration and installed E2E not run, all OFF.",
-    "Guest runtime OS payload/Agent dispatch not yet implemented; signed queue stages only operation family/caps; helperReady false, no PG044 physical migration/test, no UAT/prod billing."
+    "Guest runtime OS payload/Agent dispatch not yet implemented; signed queue stages only operation family/caps; helperReady false, no PG044 physical migration/test, no UAT/prod billing.",
+    "Physical Agent has no signed Guest delegation protocol/attestation and Gate remains unmounted; SQL044 only tested on no-network blank disposable PG17, no Gold existing schema clone, no installed Agent E2E or UAT/prod/billing changes."
   ],
-  "nextAction": "P2-I4C3c: trusted Guest command payload bound to authenticated OAuth actor + immutable queue job, verified outbound owner Agent channel dispatch via separate Guest route with per-operation capability checks and owner billing, bind signed launch, reconcile M6 terminal. Then freeze one integrated candidate and native isolated PG044/physical UAT before any owner-approved rollout. No generic owner targetRoute or Helper ready shortcut.",
+  "nextAction": "P2-I4C3c2: implement independent signed Guest Agent execution protocol and owner-channel-to-Guest job binding with device-local final deny, actual signed Guest launch+terminal evidence and one-call owner billing. Then frozen integrated candidate on true Gold schema clone and installed physical Agent under owner release approval; never use classic owner Fleet/session for Guest. All flags OFF.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -112,10 +114,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "5cac02a5c50571b607394fbaf2874ad8aab1813ca09bd656b18dd39deaea53ca",
-    "trackedFiles": 1059,
+    "treeDigest": "a82460adfe23fbf9c95c57e3a144703caa5d5dd6038ae53cfe7b780c7df7fea9",
+    "trackedFiles": 1065,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-10-31T03:15:25.884Z"
+    "recordedAt": "2026-10-31T03:25:53.795Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",

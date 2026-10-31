@@ -174,9 +174,25 @@ ALTER TABLE lr_gold_pro_share_guest_slots
  REFERENCES lr_gold_pro_share_guest_jobs
  (operation_id,job_id,owner_account_id,guest_account_id,
   device_id,grant_id,connection_id);
+-- Encrypted Guest process payload intent; separate from queue identity.
+-- Nothing in this table authorizes dispatch. A release must implement a
+-- distinct signed Agent Guest execution lane with local final policy.
+ALTER TABLE lr_gold_pro_share_guest_jobs ADD CONSTRAINT lr_gold_pro_share_guest_job_op_actor_unique
+ UNIQUE(job_id,operation_id,guest_account_id);
+CREATE TABLE lr_gold_pro_share_guest_payloads(
+ job_id TEXT PRIMARY KEY REFERENCES lr_gold_pro_share_guest_jobs(job_id),
+ operation_id TEXT NOT NULL REFERENCES lr_gold_pro_share_guest_jobs(operation_id),
+ guest_account_id TEXT NOT NULL REFERENCES lr_accounts(account_id),
+ payload_sha256 CHAR(64) NOT NULL CHECK(payload_sha256 ~ '^[a-f0-9]{64}$'),
+ sealed_payload JSONB NOT NULL,
+ staged_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
+ FOREIGN KEY(job_id,operation_id,guest_account_id)
+  REFERENCES lr_gold_pro_share_guest_jobs(job_id,operation_id,guest_account_id)
+);
 -- No public/guest SQL privileges; only trusted Operator Gold app role can write.
 GRANT SELECT,INSERT,UPDATE,DELETE ON
  lr_gold_pro_share_addons,lr_gold_pro_share_seats,
  lr_gold_pro_share_devices,lr_gold_pro_share_usage_events,
- lr_gold_pro_share_guest_slots,lr_gold_pro_share_guest_jobs TO lr_gold_app;
+ lr_gold_pro_share_guest_slots,lr_gold_pro_share_guest_jobs,
+ lr_gold_pro_share_guest_payloads TO lr_gold_app;
 COMMIT;

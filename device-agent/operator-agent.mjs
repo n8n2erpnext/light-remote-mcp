@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import {assertLegacyOwnerCommandNotGuest} from '../lib/gold-pro-share-device-guest-fence.mjs';
 import fs from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
@@ -824,6 +825,9 @@ function applyDeviceStopRequests(rows){
   }
 }
 async function executeCommandCore(state,command,{hub=DEFAULT_HUB}={}){
+  // No Guest request may fall through to the classic owner command switch.
+  // A future Guest protocol must verify B scope and local policy separately.
+  assertLegacyOwnerCommandNotGuest(command?.payload||{});
   const existing=readCommand(command.commandId);
   if(existing?.state==='finished'&&existing.result)return existing.result;
   if(existing?.state==='running'){

@@ -12,16 +12,19 @@ const valid=v=>typeof v==='string'&&ID.test(v);
 const eq=(a,b)=>a===b;
 export function createGoldProShareDispatchGate({
  env=process.env,store,accessGrants,loadTrustedJob,loadFreshContext,
- acquireGuestSlot,dispatchEffect,now=Date.now
+ acquireGuestSlot,loadTrustedIntent,dispatchEffect,now=Date.now
 }={}){
  const on=env.LR_GOLD_PRO_SHARE_GUEST_DISPATCH==='1';
  const tickets=new Map();
  if(on&&(
   env.LR_GOLD_PRO_SHARE_CORE!=='1'||
+  env.LR_GOLD_PRO_SHARE_GUEST_PAYLOAD_STAGE!=='1'||
+  env.LR_GOLD_PRO_SHARE_GUEST_AGENT_PROTOCOL!=='1'||
   !store||typeof store.authorizeOperation!=='function'||
   typeof store.billOnce!=='function'||!accessGrants?.assert||
   typeof loadTrustedJob!=='function'||typeof loadFreshContext!=='function'||
-  typeof acquireGuestSlot!=='function'||typeof dispatchEffect!=='function'
+  typeof acquireGuestSlot!=='function'||
+  typeof loadTrustedIntent!=='function'||typeof dispatchEffect!=='function'
  ))deny('pro_share_dispatch_dependencies_missing',503);
  async function context(jobId){
   if(!on)deny('pro_share_dispatch_disabled',404);
@@ -51,7 +54,8 @@ export function createGoldProShareDispatchGate({
      current.connection.connectionId!==job.connectionId||
      current.connection.deviceId!==job.deviceId||
      current.connection.accountId!==current.device.accountId||
-     current.device.nodeId!==current.nodeId)
+     current.device.nodeId!==current.nodeId||
+     current.guestNativeProtocol!=='signed-pro-share-guest-v1')
    deny('pro_share_fresh_owner_route_required',403);
   const authority=await store.authorizeOperation({
    authenticatedActorAccountId:job.actorAccountId,
@@ -74,11 +78,29 @@ export function createGoldProShareDispatchGate({
      authority.accessExpiresAt<=now()||
      authority.maxGuestConcurrentJobs!==1)
    deny('pro_share_authority_mismatch',403);
+  // An immutable encrypted intent is mandatory; previous versions of
+  // this gate had no payload binding and must never be enabled with an
+  // arbitrary callback. Only the independent Guest process lane is staged.
+  if(job.operation!=='process')
+   deny('guest_dispatch_process_only_until_native_protocol',403);
+  const intent=await loadTrustedIntent(job);
+  if(!intent||!(/^[a-f0-9]{64}$/.test(intent.payloadSha256||''))||
+     intent.command?.type!=='process-start'||intent.operation!=='process'||
+     intent.jobId!==job.jobId||
+     intent.ownerAccountId!==job.ownerAccountId||
+     intent.actorAccountId!==job.actorAccountId||
+     intent.agentId!==job.agentId||
+     intent.deviceId!==job.deviceId||
+     intent.grantId!==job.grantId||
+     intent.connectionId!==job.connectionId||
+     intent.operationId!==job.operationId||
+     intent.permissionRevision!==job.permissionRevision)
+   deny('guest_dispatch_immutable_payload_required',403);
   // Snapshot immutable ticket identity; the queue provider may later
   // update its own objects, but it cannot rewrite an admitted ticket.
   const snapshot=Object.freeze({...job,
    requiredCapabilities:Object.freeze([...job.requiredCapabilities])});
-  return {job:snapshot,authority,current};
+  return {job:snapshot,authority,current,intent};
  }
  function assertSame(original,later){
   const a=original.job,b=later.job;
@@ -88,6 +110,8 @@ export function createGoldProShareDispatchGate({
    if(!eq(a[k],b[k]))deny('pro_share_queue_identity_changed',409);
   if(JSON.stringify(a.requiredCapabilities)!==JSON.stringify(b.requiredCapabilities))
    deny('pro_share_queue_capabilities_changed',409);
+  if(original.intent.payloadSha256!==later.intent.payloadSha256)
+   deny('guest_dispatch_payload_digest_changed',409);
   if(original.authority.permissionRevision!==later.authority.permissionRevision||
      original.authority.connectionId!==later.authority.connectionId||
      original.authority.billedAccountId!==later.authority.billedAccountId)
@@ -154,7 +178,10 @@ export function createGoldProShareDispatchGate({
      deviceId:last.job.deviceId,ownerAccountId:last.authority.billedAccountId,
      grantId:last.job.grantId,connectionId:last.authority.connectionId,
      operation:last.job.operation,
-     requiredCapabilities:last.authority.requiredCapabilities
+     requiredCapabilities:last.authority.requiredCapabilities,
+     // Explicitly a GUEST payload, never an owner session/command.
+     guestPayloadSha256:last.intent.payloadSha256,
+     guestProcessIntent:last.intent.command
     }));
     // dispatchEffect is responsible for durable OS-effect receipt tracking.
     if(!receipt||receipt.accepted!==true)

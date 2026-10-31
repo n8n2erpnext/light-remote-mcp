@@ -15,7 +15,7 @@ const device={deviceId:'device1',accountId:'owner1',nodeId:'node1',state:'online
 const context=()=>({device,connection:{
  deviceId:'device1',accountId:'owner1',
  connectionId:currentConnection,hardExpiresAt:time+100000,state:'connected'},
- nodeId:'node1',approvedCapabilities:['filesystem'],
+ nodeId:'node1',guestNativeProtocol:'signed-pro-share-guest-v1',approvedCapabilities:['filesystem'],
  routeCapabilities:['filesystem']});
 const binding=()=>({deviceId:'device1',grantPurpose,
  grantId:wrongGrant?'grantWrong':'grant1',
@@ -136,7 +136,9 @@ await assert.rejects(queue.enqueue({...base,requestKey:'b'.repeat(32)}),
 grantPurpose='pro-share-guest';
 seatRevision++;
 const gate=createGoldProShareDispatchGate({
- env:{LR_GOLD_PRO_SHARE_CORE:'1',LR_GOLD_PRO_SHARE_GUEST_DISPATCH:'1'},
+ env:{LR_GOLD_PRO_SHARE_CORE:'1',LR_GOLD_PRO_SHARE_GUEST_DISPATCH:'1',
+ LR_GOLD_PRO_SHARE_GUEST_PAYLOAD_STAGE:'1',
+ LR_GOLD_PRO_SHARE_GUEST_AGENT_PROTOCOL:'1'},
  store:{authorizeOperation:async()=>({
  actorAccountId:'guest1',agentId:agent,deviceId:'device1',grantId:'grant1',
  connectionId:'connection1',billedAccountId:'owner1',
@@ -144,6 +146,7 @@ const gate=createGoldProShareDispatchGate({
  maxGuestConcurrentJobs:1}),billOnce:async()=>{throw Error('not dispatched')}},
  accessGrants:{assert(){}},
  loadTrustedJob:id=>queue.loadTrustedJob(id),
+ loadTrustedIntent:async()=>null,
  loadFreshContext:async()=>context(),
  acquireGuestSlot:async()=>{slotsCreated++;throw Error('slot must not be acquired')},
  dispatchEffect:async()=>{throw Error('no live dispatch')},now:()=>time

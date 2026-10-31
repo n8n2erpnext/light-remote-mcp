@@ -1,13 +1,16 @@
 import assert from 'node:assert/strict';
 import {createGoldProShareDispatchGate} from '../../operator-host/pro-share-dispatch-gate.mjs';
-const env={LR_GOLD_PRO_SHARE_CORE:'1',LR_GOLD_PRO_SHARE_GUEST_DISPATCH:'1'};
+const env={LR_GOLD_PRO_SHARE_CORE:'1',
+ LR_GOLD_PRO_SHARE_GUEST_PAYLOAD_STAGE:'1',
+ LR_GOLD_PRO_SHARE_GUEST_AGENT_PROTOCOL:'1',
+ LR_GOLD_PRO_SHARE_GUEST_DISPATCH:'1'};
 let clock=1850000000000,revision=3,revoked=false,quota=false,slotBusy=false,
  calls=0,slots=0,checks=0,charged=0,dispatched=0,changedConnection=false,terminalRelease=null;
 const jobs=new Map(),events=new Map();
 const job=(name,options={})=>({jobId:name,identitySource:'verified-oauth',state:'queued',
  actorAccountId:'guest-1',agentId:'agent-1',deviceId:'device-1',
  grantId:'guest-grant',operationId:name+'-operation-accepted',
- operation:'exec',requiredCapabilities:['filesystem'],
+ operation:'process',requiredCapabilities:['filesystem'],
  permissionRevision:3,clientSessionId:'lrc_guest_1',
  ownerAccountId:'owner-1',connectionId:'connection-1',...options});
 const device={deviceId:'device-1',nodeId:'node-1',accountId:'owner-1',state:'online'};
@@ -19,7 +22,7 @@ const store={
   assert.equal(input.authenticatedActorAccountId,'guest-1');
   if(input.authenticatedAgentId!=='agent-1')throw Error('pro_share_guest_independent_agent_denied');
   assert.equal(input.grantId,'guest-grant');
-  assert.equal(input.operation,'exec');
+  assert.equal(input.operation,'process');
   assert.deepEqual(input.requiredCapabilities,['filesystem']);
   if(revoked)throw Error('pro_share_guest_device_or_addon_required');
   if(!input.routeCapabilities.includes('filesystem'))throw Error('shared_device_capability_denied');
@@ -42,7 +45,8 @@ const store={
 const getJob=async id=>jobs.get(id);
 const getContext=async()=>({device,connection:{
  ...baseConnection,connectionId:changedConnection?'connection-2':'connection-1'},
- nodeId:'node-1',approvedCapabilities:['filesystem'],routeCapabilities:['filesystem']});
+ nodeId:'node-1',guestNativeProtocol:'signed-pro-share-guest-v1',
+ approvedCapabilities:['filesystem'],routeCapabilities:['filesystem']});
 const acquireGuestSlot=async ({maxConcurrent})=>{
  assert.equal(maxConcurrent,1);
  if(slotBusy)return {acquired:false};
@@ -55,12 +59,28 @@ const dispatchEffect=async payload=>{
  assert.equal(payload.ownerAccountId,'owner-1');
  assert.equal(payload.actorAccountId,'guest-1');
  assert.deepEqual(payload.requiredCapabilities,['filesystem']);
+ assert.equal(payload.guestPayloadSha256,'d'.repeat(64));
+ assert.equal(payload.guestProcessIntent?.type,'process-start');
  return {accepted:true};
 };
+const loadTrustedIntent=async row=>({
+ jobId:row.jobId,actorAccountId:row.actorAccountId,
+ ownerAccountId:row.ownerAccountId,agentId:row.agentId,
+ deviceId:row.deviceId,grantId:row.grantId,
+ connectionId:row.connectionId,operationId:row.operationId,
+ permissionRevision:row.permissionRevision,
+ payloadSha256:'d'.repeat(64),operation:'process',
+ command:{type:'process-start',script:'echo test',cwd:'/tmp',
+  shell:'bash',timeoutMs:1000}
+});
 const opts={env,store,accessGrants:{assert(){}},loadTrustedJob:getJob,
+ loadTrustedIntent,
  loadFreshContext:getContext,acquireGuestSlot,dispatchEffect,now:()=>clock};
 const off=createGoldProShareDispatchGate({...opts,env:{}});
 await assert.rejects(off.admit({jobId:'job-off'}),/pro_share_dispatch_disabled/);
+assert.throws(()=>createGoldProShareDispatchGate({...opts,
+ env:{...env,LR_GOLD_PRO_SHARE_GUEST_AGENT_PROTOCOL:'0'}}),
+ /pro_share_dispatch_dependencies_missing/);
 assert.throws(()=>createGoldProShareDispatchGate({...opts,acquireGuestSlot:null}),
  /pro_share_dispatch_dependencies_missing/);
 const gate=createGoldProShareDispatchGate(opts);

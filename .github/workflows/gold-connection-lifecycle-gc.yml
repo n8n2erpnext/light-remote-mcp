@@ -53,6 +53,8 @@ on:
       - 'operator-host/pro-share-guest-queue-pg.mjs'
       - 'operator-host/pro-share-guest-queue-http.mjs'
       - 'operator-host/pro-share-verified-launch.mjs'
+      - 'operator-host/pro-share-guest-intent-pg.mjs'
+      - 'lib/gold-pro-share-device-guest-fence.mjs'
       - 'operator-host/shared-device-capability-policy.mjs'
       - 'operator-host/team-dispatch-authority.mjs'
       - 'plugin-server/operator-adapter.mjs'
@@ -64,6 +66,10 @@ on:
       - 'deploy/scripts/selftest-gold-pro-share-guest-queue.mjs'
       - 'deploy/scripts/selftest-gold-pro-share-guest-queue-http.mjs'
       - 'deploy/scripts/selftest-gold-pro-share-verified-launch.mjs'
+      - 'deploy/scripts/selftest-gold-pro-share-guest-intent.mjs'
+      - 'deploy/scripts/selftest-gold-pro-share-device-guest-fence.mjs'
+      - 'deploy/scripts/selftest-gold-pro-share-pg044-disposable.sql'
+      - 'deploy/scripts/selftest-gold-pro-share-pg044-disposable.sh'
       - 'plugin-server/account-pro-share.mjs'
       - 'plugin-server/account-portal/pro-share.html'
       - 'deploy/scripts/selftest-gold-pro-share-account.mjs'
@@ -234,6 +240,12 @@ jobs:
           node --check lib/gold-pro-share-guest-queue-proof.mjs
           node --check operator-host/pro-share-guest-queue-http.mjs
           node deploy/scripts/selftest-gold-pro-share-verified-launch.mjs
+          node deploy/scripts/selftest-gold-pro-share-guest-intent.mjs
+          node deploy/scripts/selftest-gold-pro-share-device-guest-fence.mjs
+          node --check operator-host/pro-share-guest-intent-pg.mjs
+          node --check lib/gold-pro-share-device-guest-fence.mjs
+          node --check device-agent/operator-agent.mjs
+          sh -n deploy/scripts/selftest-gold-pro-share-pg044-disposable.sh
           node --check operator-host/pro-share-guest-queue-pg.mjs
           node --check operator-host/pro-share-verified-launch.mjs
           node --check operator-host/pro-share-guest-slot-pg.mjs
