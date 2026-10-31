@@ -60,6 +60,7 @@ import {createGoldProShareAccountHttp,createGoldProShareStoreFromOperator} from 
 import {createGoldProShareGuestHelper} from './pro-share-guest-helper.mjs';
 import {createGoldProShareGuestPoll} from './pro-share-guest-poll.mjs';
 import {GoldProShareGuestSlotPg} from './pro-share-guest-slot-pg.mjs';
+import {createGoldProShareVerifiedLaunch} from './pro-share-verified-launch.mjs';
 import {createGoldProShareGuestApproval} from './pro-share-guest-approval.mjs';
 import {createGoldAbV2OwnerHttpFromOperator} from './gold-ab-v2-owner-http.mjs';
 import {createGoldAbV2GrantOperator} from './gold-ab-v2-grant-operator.mjs';
@@ -190,7 +191,11 @@ const goldJobs=await GoldJobLedger.open({pool:goldStorage.pool,redact});
 // Separate OFF-by-default Guest slot receipt reconciliation. This never
 // admits a Guest tool or attaches an Agent and does not change owner M6.
 const goldProShareGuestSlots=process.env.LR_GOLD_PRO_SHARE_GUEST_SLOTS==='1'?
- new GoldProShareGuestSlotPg({pool:goldStorage.pool,env:process.env}):null;
+ new GoldProShareGuestSlotPg({
+  pool:goldStorage.pool,env:process.env,
+  verifySignedLaunch:createGoldProShareVerifiedLaunch({
+   pool:goldStorage.pool,env:process.env})
+ }):null;
 const deviceResourceLocks=DEVICE_RESOURCE_LOCKS?
  new GoldDeviceResourceLocks({capacity:Math.max(1,Math.min(8,Number(process.env.OPERATOR_DEVICE_WORKER_BUDGET)||2))}):null;
 const personalAgentScheduler=PERSONAL_AGENT_SCHEDULER?

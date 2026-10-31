@@ -106,6 +106,30 @@ CREATE TABLE lr_gold_pro_share_usage_events (
 );
 CREATE INDEX lr_gold_pro_share_usage_period_idx
   ON lr_gold_pro_share_usage_events(owner_account_id,period_utc);
+-- Server-owned Guest job identities; never share personal/Pro Team queue.
+-- No command body/scripts in this table. Payload remains OS-channel fenced.
+CREATE TABLE lr_gold_pro_share_guest_jobs (
+ job_id TEXT PRIMARY KEY CHECK(job_id ~ '^[a-f0-9-]{36}$'),
+ operation_id TEXT NOT NULL UNIQUE CHECK(length(operation_id) BETWEEN 16 AND 160),
+ request_key CHAR(32) NOT NULL CHECK(request_key ~ '^[a-f0-9]{32}$'),
+ owner_account_id TEXT NOT NULL REFERENCES lr_accounts(account_id),
+ guest_account_id TEXT NOT NULL REFERENCES lr_accounts(account_id),
+ agent_id TEXT NOT NULL,
+ client_session_id TEXT NOT NULL REFERENCES lr_agent_clients(client_session_id),
+ device_id TEXT NOT NULL REFERENCES lr_devices(device_id),
+ grant_id TEXT NOT NULL REFERENCES lr_ab_grants(grant_id),
+ connection_id TEXT NOT NULL REFERENCES lr_device_connections(connection_id),
+ operation TEXT NOT NULL CHECK(operation IN ('exec','fs','search','process','terminal','scp','desktop')),
+ required_capabilities TEXT[] NOT NULL DEFAULT ARRAY[]::text[],
+ permission_revision BIGINT NOT NULL CHECK(permission_revision>=1),
+ state TEXT NOT NULL CHECK(state IN ('queued','cancelled','unknown','terminal')),
+ queued_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
+ updated_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
+ CHECK(owner_account_id<>guest_account_id),
+ UNIQUE(guest_account_id,agent_id,request_key)
+);
+CREATE INDEX lr_gold_pro_share_guest_queue_actor
+ ON lr_gold_pro_share_guest_jobs(guest_account_id,state,queued_at);
 -- Independent, cross-Operator one-Guest-per-device physical-effect reservation.
 -- NO TTL: if launch/terminal is uncertain, preserve UNKNOWN through restart.
 -- Completion is derived ONLY from Gold M6's previously verified durable ACK.
@@ -136,9 +160,23 @@ CREATE UNIQUE INDEX lr_gold_pro_share_one_active_device
 CREATE UNIQUE INDEX lr_gold_pro_share_device_process
  ON lr_gold_pro_share_guest_slots(device_id,process_id)
  WHERE process_id IS NOT NULL;
+-- Prevent a slot from being created against a fabricated owner/device
+-- or a job/operation belonging to a different Guest. The queue is canonical
+-- and immutable; only the trusted Operator inserts into both tables.
+ALTER TABLE lr_gold_pro_share_guest_jobs
+ ADD CONSTRAINT lr_gold_pro_share_guest_job_scope_unique
+ UNIQUE(operation_id,job_id,owner_account_id,guest_account_id,
+        device_id,grant_id,connection_id);
+ALTER TABLE lr_gold_pro_share_guest_slots
+ ADD CONSTRAINT lr_gold_pro_share_slot_matches_trusted_job
+ FOREIGN KEY(operation_id,job_id,owner_account_id,guest_account_id,
+             device_id,grant_id,connection_id)
+ REFERENCES lr_gold_pro_share_guest_jobs
+ (operation_id,job_id,owner_account_id,guest_account_id,
+  device_id,grant_id,connection_id);
 -- No public/guest SQL privileges; only trusted Operator Gold app role can write.
 GRANT SELECT,INSERT,UPDATE,DELETE ON
  lr_gold_pro_share_addons,lr_gold_pro_share_seats,
  lr_gold_pro_share_devices,lr_gold_pro_share_usage_events,
- lr_gold_pro_share_guest_slots TO lr_gold_app;
+ lr_gold_pro_share_guest_slots,lr_gold_pro_share_guest_jobs TO lr_gold_app;
 COMMIT;

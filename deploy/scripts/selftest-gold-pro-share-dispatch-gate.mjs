@@ -7,7 +7,9 @@ const jobs=new Map(),events=new Map();
 const job=(name,options={})=>({jobId:name,identitySource:'verified-oauth',state:'queued',
  actorAccountId:'guest-1',agentId:'agent-1',deviceId:'device-1',
  grantId:'guest-grant',operationId:name+'-operation-accepted',
- operation:'exec',requiredCapabilities:['filesystem'],...options});
+ operation:'exec',requiredCapabilities:['filesystem'],
+ permissionRevision:3,clientSessionId:'lrc_guest_1',
+ ownerAccountId:'owner-1',connectionId:'connection-1',...options});
 const device={deviceId:'device-1',nodeId:'node-1',accountId:'owner-1',state:'online'};
 const baseConnection={deviceId:'device-1',accountId:'owner-1',
  connectionId:'connection-1',state:'connected',hardExpiresAt:clock+50000};
@@ -81,12 +83,13 @@ revoked=false;
 jobs.set('job-revision',job('job-revision'));
 const rev=await gate.admit({jobId:'job-revision'});
 revision++;
-await assert.rejects(gate.dispatch({ticketId:rev.ticketId}),/pro_share_permission_revision_changed/);
+await assert.rejects(gate.dispatch({ticketId:rev.ticketId}),/pro_share_authority_mismatch/);
 assert.equal(dispatched,1);
+revision=3;
 jobs.set('job-connection',job('job-connection'));
 const conn=await gate.admit({jobId:'job-connection'});
 changedConnection=true;
-await assert.rejects(gate.dispatch({ticketId:conn.ticketId}),/pro_share_permission_revision_changed/);
+await assert.rejects(gate.dispatch({ticketId:conn.ticketId}),/pro_share_fresh_owner_route_required/);
 changedConnection=false;
 jobs.set('job-no-slot',job('job-no-slot'));
 const busy=await gate.admit({jobId:'job-no-slot'});

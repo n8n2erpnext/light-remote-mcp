@@ -49,6 +49,8 @@ on:
       - 'operator-host/pro-share-guest-approval.mjs'
       - 'operator-host/pro-share-dispatch-gate.mjs'
       - 'operator-host/pro-share-guest-slot-pg.mjs'
+      - 'operator-host/pro-share-guest-queue-pg.mjs'
+      - 'operator-host/pro-share-verified-launch.mjs'
       - 'operator-host/shared-device-capability-policy.mjs'
       - 'operator-host/team-dispatch-authority.mjs'
       - 'plugin-server/operator-adapter.mjs'
@@ -57,6 +59,8 @@ on:
       - 'deploy/scripts/selftest-gold-agent-client-tenant-binding.mjs'
       - 'deploy/scripts/selftest-gold-pro-share-dispatch-gate.mjs'
       - 'deploy/scripts/selftest-gold-pro-share-guest-slot.mjs'
+      - 'deploy/scripts/selftest-gold-pro-share-guest-queue.mjs'
+      - 'deploy/scripts/selftest-gold-pro-share-verified-launch.mjs'
       - 'plugin-server/account-pro-share.mjs'
       - 'plugin-server/account-portal/pro-share.html'
       - 'deploy/scripts/selftest-gold-pro-share-account.mjs'
@@ -222,6 +226,10 @@ jobs:
           node --check operator-host/pro-share-guest-poll.mjs
           node deploy/scripts/selftest-gold-pro-share-dispatch-gate.mjs
           node deploy/scripts/selftest-gold-pro-share-guest-slot.mjs
+          node deploy/scripts/selftest-gold-pro-share-guest-queue.mjs
+          node deploy/scripts/selftest-gold-pro-share-verified-launch.mjs
+          node --check operator-host/pro-share-guest-queue-pg.mjs
+          node --check operator-host/pro-share-verified-launch.mjs
           node --check operator-host/pro-share-guest-slot-pg.mjs
           node --check operator-host/pro-share-dispatch-gate.mjs
           node --check operator-host/pro-share-guest-approval.mjs

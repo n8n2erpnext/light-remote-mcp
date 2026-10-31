@@ -30,8 +30,12 @@ export function createGoldProShareDispatchGate({
   // A trusted queue item has a verified OAuth principal, an immutable
   // operation ID and an independently authorized Guest A/B grant.
   if(!job||job.jobId!==jobId||job.identitySource!=='verified-oauth'||
-     job.state!=='queued'||!valid(job.actorAccountId)||
+     job.state!=='queued'||
+     !Number.isSafeInteger(job.permissionRevision)||job.permissionRevision<1||
+     !valid(job.actorAccountId)||
      !valid(job.agentId)||!valid(job.deviceId)||!valid(job.grantId)||
+     !valid(job.ownerAccountId)||!valid(job.connectionId)||
+     !valid(job.clientSessionId)||
      !valid(job.operationId)||job.operationId.length<16||
      !valid(job.operation)||!Array.isArray(job.requiredCapabilities)||
      job.requiredCapabilities.length>32)
@@ -42,6 +46,8 @@ export function createGoldProShareDispatchGate({
      !Array.isArray(current.routeCapabilities)||
      current.device.deviceId!==job.deviceId||
      current.device.accountId===job.actorAccountId||
+     current.device.accountId!==job.ownerAccountId||
+     current.connection.connectionId!==job.connectionId||
      current.connection.deviceId!==job.deviceId||
      current.connection.accountId!==current.device.accountId||
      current.device.nodeId!==current.nodeId)
@@ -63,6 +69,7 @@ export function createGoldProShareDispatchGate({
        authority.deviceOwnerAccountId!==current.device.accountId||
      authority.billedAccountId!==current.device.accountId||
      !Number.isSafeInteger(authority.permissionRevision)||
+     authority.permissionRevision!==job.permissionRevision||
      authority.accessExpiresAt<=now()||
      authority.maxGuestConcurrentJobs!==1)
    deny('pro_share_authority_mismatch',403);
@@ -75,7 +82,8 @@ export function createGoldProShareDispatchGate({
  function assertSame(original,later){
   const a=original.job,b=later.job;
   for(const k of ['jobId','actorAccountId','agentId','deviceId',
-   'grantId','operationId','operation','identitySource'])
+   'grantId','operationId','operation','identitySource',
+   'permissionRevision','clientSessionId','ownerAccountId','connectionId'])
    if(!eq(a[k],b[k]))deny('pro_share_queue_identity_changed',409);
   if(JSON.stringify(a.requiredCapabilities)!==JSON.stringify(b.requiredCapabilities))
    deny('pro_share_queue_capabilities_changed',409);
