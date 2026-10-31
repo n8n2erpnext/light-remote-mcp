@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-31",
-  "status": "Gold P2-I4C3c2b3a source-only: corrected outbound markAttempt M4/Gold SELECT and prepare aliases, opt-in GoldJobLedger preservation for canonical Guest UNKNOWN across restart, default owner startup unchanged; tests targeted + PG17 disposable SQL001-044 and native outbound SELECT PREPARE PASS. Attempt to create guarded Fleet adapter tool-safety BLOCKED; no adapter/mount/OS Guest dispatch, no M6 physical acceptance. Gold UAT/prod/Paddle/SQL044 lock unchanged, flags OFF. Commit pending.",
+  "status": "Gold P2-I4C3c2b3a source f39ad5074aeac3b3a5e2bd8adc980948aaf155e2 pushed clean, 9 targeted Guest/M4 regression groups plus separate GoldJobLedger restart fixture PASS, offline PostgreSQL17 001-044 and outbound SQL PREPARE PASS, 467 doc links PASS. Fixed default-OFF Guest UNKNOWN restart preservation and missing outbound M4 SELECT. A guarded Fleet adapter generation was tool-safety BLOCKED; NO real Guest Fleet send, M6 physical E2E, SQL044 Gold UAT migration, production or Paddle change. Feature flags OFF.",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
