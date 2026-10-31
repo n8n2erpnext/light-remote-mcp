@@ -208,3 +208,68 @@ BEGIN
 END $$;
 COMMIT;
 SELECT 'PG044_NATIVE_GUEST_QUEUE_SLOT_M4_GOLD_UNKNOWN=PASS';
+-- A durable Guest command can be issued only once for exactly one Guest job.
+-- This is a metadata-only synthetic fixture, not an OS command.
+BEGIN;
+INSERT INTO lr_gold_pro_share_guest_outbound(
+ job_id,operation_id,owner_account_id,guest_account_id,device_id,
+ grant_id,connection_id,command_id,execution_epoch,payload_sha256,
+ fleet_payload_sha256,permission_revision,device_policy_revision,
+ ticket_envelope,ticket_expires_at_ms)
+ VALUES('0af5a9c1-8050-478a-83d1-5e26821cf101',
+ 'guestop-a111111111111111','p44-owner','p44-guest','p44-device',
+ 'p44-guest-grant','p44-connection',
+ 'cmd_aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',5,
+ repeat('a',64),repeat('b',64),1,7,
+ '{"fixture":true}'::jsonb,1850000020000);
+DO $$
+DECLARE refused boolean;
+BEGIN
+ refused:=FALSE;
+ BEGIN
+  INSERT INTO lr_gold_pro_share_guest_outbound(
+   job_id,operation_id,owner_account_id,guest_account_id,device_id,
+   grant_id,connection_id,command_id,execution_epoch,payload_sha256,
+   fleet_payload_sha256,permission_revision,device_policy_revision,
+   ticket_envelope,ticket_expires_at_ms)
+  VALUES('0af5a9c1-8050-478a-83d1-5e26821cf101',
+   'guestop-a111111111111111','p44-owner','p44-guest','p44-device',
+   'p44-guest-grant','p44-connection',
+   'cmd_ffffffff-1111-2222-3333-444444444444',5,
+   repeat('a',64),repeat('b',64),1,7,'{}'::jsonb,1850000020000);
+ EXCEPTION WHEN unique_violation THEN refused:=TRUE;
+ END;
+ IF NOT refused THEN RAISE EXCEPTION 'same Guest job got second command'; END IF;
+ refused:=FALSE;
+ BEGIN
+  INSERT INTO lr_gold_pro_share_guest_outbound(
+   job_id,operation_id,owner_account_id,guest_account_id,device_id,
+   grant_id,connection_id,command_id,execution_epoch,payload_sha256,
+   fleet_payload_sha256,permission_revision,device_policy_revision,
+   ticket_envelope,ticket_expires_at_ms)
+  VALUES('0af5a9c1-8050-478a-83d1-5e26821cf102',
+   'guestop-b111111111111111','p44-owner','p44-other','p44-device',
+   'p44-guest-grant','p44-connection',
+   'cmd_ffffffff-1111-2222-3333-555555555555',5,
+   repeat('a',64),repeat('b',64),1,7,'{}'::jsonb,1850000020000);
+ EXCEPTION WHEN foreign_key_violation THEN refused:=TRUE;
+ END;
+ IF NOT refused THEN RAISE EXCEPTION 'foreign Guest forged outbound job scope'; END IF;
+ refused:=FALSE;
+ BEGIN
+  INSERT INTO lr_gold_pro_share_guest_outbound(
+   job_id,operation_id,owner_account_id,guest_account_id,device_id,
+   grant_id,connection_id,command_id,execution_epoch,payload_sha256,
+   fleet_payload_sha256,permission_revision,device_policy_revision,
+   ticket_envelope,ticket_expires_at_ms)
+  VALUES('0af5a9c1-8050-478a-83d1-5e26821cf102',
+   'guestop-b111111111111111','p44-owner','p44-guest','p44-device',
+   'p44-guest-grant','p44-connection',
+   'cmd_aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',5,
+   repeat('a',64),repeat('b',64),1,7,'{}'::jsonb,1850000020000);
+ EXCEPTION WHEN unique_violation THEN refused:=TRUE;
+ END;
+ IF NOT refused THEN RAISE EXCEPTION 'same commandId mapped to second job'; END IF;
+END $$;
+COMMIT;
+SELECT 'PG044_NATIVE_ONE_GUEST_COMMAND_ID_AND_CROSS_ACTOR_FK=PASS';

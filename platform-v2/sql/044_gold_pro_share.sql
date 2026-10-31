@@ -189,10 +189,42 @@ CREATE TABLE lr_gold_pro_share_guest_payloads(
  FOREIGN KEY(job_id,operation_id,guest_account_id)
   REFERENCES lr_gold_pro_share_guest_jobs(job_id,operation_id,guest_account_id)
 );
+-- Irrevocable one-command, one-epoch Guest launch attempt identity.
+-- Prepared is safe before external effect; UNKNOWN is committed before a
+-- Fleet enqueue. Never mint a second command after loss of send/launch ACK.
+-- No plaintext scripts or OAuth credentials are stored here.
+CREATE TABLE lr_gold_pro_share_guest_outbound(
+ job_id TEXT PRIMARY KEY,
+ operation_id TEXT NOT NULL,
+ owner_account_id TEXT NOT NULL,
+ guest_account_id TEXT NOT NULL,
+ device_id TEXT NOT NULL,
+ grant_id TEXT NOT NULL,
+ connection_id TEXT NOT NULL,
+ command_id TEXT NOT NULL UNIQUE CHECK(command_id ~ '^cmd_[a-f0-9-]{36}$'),
+ execution_epoch BIGINT NOT NULL CHECK(execution_epoch>0),
+ payload_sha256 CHAR(64) NOT NULL CHECK(payload_sha256 ~ '^[a-f0-9]{64}$'),
+ fleet_payload_sha256 CHAR(64) NOT NULL CHECK(fleet_payload_sha256 ~ '^[a-f0-9]{64}$'),
+ permission_revision BIGINT NOT NULL CHECK(permission_revision>0),
+ device_policy_revision BIGINT NOT NULL CHECK(device_policy_revision>0),
+ ticket_envelope JSONB NOT NULL CHECK(jsonb_typeof(ticket_envelope)='object'),
+ ticket_expires_at_ms BIGINT NOT NULL CHECK(ticket_expires_at_ms>0),
+ state TEXT NOT NULL DEFAULT 'prepared' CHECK(state IN ('prepared','unknown')),
+ prepared_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
+ attempted_at TIMESTAMPTZ,
+ CHECK ((state='prepared' AND attempted_at IS NULL)
+        OR (state='unknown' AND attempted_at IS NOT NULL)),
+ FOREIGN KEY(operation_id,job_id,owner_account_id,guest_account_id,
+             device_id,grant_id,connection_id)
+ REFERENCES lr_gold_pro_share_guest_jobs(
+ operation_id,job_id,owner_account_id,guest_account_id,
+ device_id,grant_id,connection_id)
+);
 -- No public/guest SQL privileges; only trusted Operator Gold app role can write.
 GRANT SELECT,INSERT,UPDATE,DELETE ON
  lr_gold_pro_share_addons,lr_gold_pro_share_seats,
  lr_gold_pro_share_devices,lr_gold_pro_share_usage_events,
  lr_gold_pro_share_guest_slots,lr_gold_pro_share_guest_jobs,
- lr_gold_pro_share_guest_payloads TO lr_gold_app;
+ lr_gold_pro_share_guest_payloads,
+ lr_gold_pro_share_guest_outbound TO lr_gold_app;
 COMMIT;

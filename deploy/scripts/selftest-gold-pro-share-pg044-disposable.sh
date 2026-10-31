@@ -67,3 +67,23 @@ docker exec "$name" psql -X -U postgres -v ON_ERROR_STOP=1 -q \
   exit 7
 }
 echo "DISPOSABLE_GUEST_M4_ACTUAL_SQL_PREPARE=PASS"
+# Compile both actual guarded Guest outbound SQL SELECTs against PG001–044.
+for kind in prepare attempt; do
+ query=$(node -e '
+const fs=require("node:fs"),x=fs.readFileSync(process.argv[1],"utf8");
+const prepare=process.argv[2]==="prepare";
+const pattern=prepare?
+ /const r=await db\.query\(`(SELECT g\.job_id[\s\S]*?)`,\[jobId\]\)/:
+ /const q=await db\.query\(`(SELECT o\.job_id[\s\S]*?)`,\[jobId,commandId\]\)/;
+const hit=x.match(pattern);if(!hit)process.exit(4);
+process.stdout.write("PREPARE guest_outbound_"+process.argv[2]+
+ (prepare?"(text)":"(text,text)")+" AS "+hit[1]);
+' "$repo/operator-host/pro-share-guest-outbound-pg.mjs" "$kind")
+ [ -n "$query" ] || exit 8
+ docker exec "$name" psql -X -U postgres -v ON_ERROR_STOP=1 -q \
+  -c "$query" postgres || {
+  echo "DISPOSABLE_GUEST_OUTBOUND_SQL_$kind=FAIL" >&2
+  exit 8
+ }
+ echo "DISPOSABLE_GUEST_OUTBOUND_SQL_$kind=PASS"
+done
