@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-31",
-  "status": "Gold P2-I4C3b1 SOURCE candidate: PostgreSQL server-issued Guest queue IDs, opaque OAuth verifier and native Free Guest A/B Agent binding requirement, permissionRevision/owner/connection gate and signed-launch PG M4+Gold ledger verifier. SQL044 adds canonical queue/slot FK. Fixture PASS but not live mounted, no Guest attach/ready/dispatch. Gold UAT/prod flags OFF, PG044 unregistered, billing/Paddle OFF. Source commit pending.",
+  "status": "Gold P2-I4C3b1 SOURCE pushed at db8ae212635229d534042843ba15d0c81e9f2e85; HEAD=origin, clean immediately after source commit. Server-generated Guest queue and signed-launch verifier source fixtures plus regressions PASS. Queue is unmounted to plugin execution and native Guest Agent attach/ready remains OFF. PG044 candidate unregistered and untested on native clone; no Gold UAT/prod/Paddle mutation, GitHub Actions exact-SHA result not independently verified.",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
