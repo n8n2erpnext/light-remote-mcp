@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-31",
-  "status": "P2-I5: source d4401641 installed as an immutable verified staged candidate inside light-remote-gold-uat, NOT activated. Four live services still use 7f46dea. PostgreSQL remains schema 039; migration lock 042; 043/044 unregistered. Offline schema-only UAT039 to PG043 PostgreSQL17 chain PASS. New native-checked dump and checksum PASS. One existing retained resource claim and 27 UNKNOWN work rows preserved. Runtime cutover and SQL043/044 release remain HOLD; production untouched.",
+  "status": "P2-I5: source d4401641 installed as immutable verified candidate in Gold LXD, not activated; four live services still 7f46dea, PG039, SQL lock042, no 043/044 registration. Native offline 039->043 PASS, PG backup PASS. Release forensic audit: one revoked historical device running resource claim, job ok, no signed terminal ACK and no boot observation; 26 protected pre-dispatch restart tombstones plus 1 started UNKNOWN without signed receipt. Four-unit release review HOLD 5/16, no live apply runner. Production unchanged.",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -128,7 +128,7 @@
     "Authenticated Guest Fleet source adapter was previously tool-safety-blocked; no E2E on actual signed Agent or billing once, SQL043/044 absent migration lock and no release signoff.",
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD."
   ],
-  "nextAction": "Candidate d4401641 is staged and source-verifiable inside Gold UAT. Before activating, resolve protected historical resource claim only through authorized signed owner/terminal evidence; verify live fleet quiescence, register and review PG043 in signed migration lock and authorize native maintenance, then complete installed Agent Owner Wall B Helper 24h lease E2E. Keep Guest044 OFF until its genuine native runtime is accepted; do not change production rc47.",
+  "nextAction": "Owner must independently verify exact post-claim reboot/uninstall of historical revoked device and privately authenticate to current Gold Owner Recovery route; no recorded boot observation is available and no fake terminal ACK is allowed. Separately review 1 started UNKNOWN with no signed terminal evidence, preserve 26 pre-dispatch UNKNOWN records. Then build/review real four-unit signed-quiescent UAT cutover, SQL043 lock/migrator acceptance and physical installed Agent Owner Wall B->Helper 24h grant E2E. PG044, Paddle and production remain untouched.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
