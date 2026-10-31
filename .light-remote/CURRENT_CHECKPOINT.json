@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-31",
-  "status": "P2-I5: Gold source-only candidate. Native migrator supports a future independently reviewed locked PG043 behind explicit dual release gates; migration lock remains 042. A/B V2 Local Wall now preserves ownerApproveEnabled from the signed Agent preview, with true/false regression coverage. Gold UAT remains schema 039 and 4 services active. SQL043/044 release remains HOLD_NO_UAT_CHANGE; no UAT deployment or guest activation.",
+  "status": "P2-I5: source d4401641 installed as an immutable verified staged candidate inside light-remote-gold-uat, NOT activated. Four live services still use 7f46dea. PostgreSQL remains schema 039; migration lock 042; 043/044 unregistered. Offline schema-only UAT039 to PG043 PostgreSQL17 chain PASS. New native-checked dump and checksum PASS. One existing retained resource claim and 27 UNKNOWN work rows preserved. Runtime cutover and SQL043/044 release remain HOLD; production untouched.",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -128,7 +128,7 @@
     "Authenticated Guest Fleet source adapter was previously tool-safety-blocked; no E2E on actual signed Agent or billing once, SQL043/044 absent migration lock and no release signoff.",
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD."
   ],
-  "nextAction": "Finish Gold P2-I5 source/docs/checkpoint Git gate and verify CI. Then require independent PG043 manifest approval, real installed Agent/Owner Wall/Helper 24h lease acceptance and explicit authorized UAT maintenance before migrating. Guest044 and billing stay disabled.",
+  "nextAction": "Candidate d4401641 is staged and source-verifiable inside Gold UAT. Before activating, resolve protected historical resource claim only through authorized signed owner/terminal evidence; verify live fleet quiescence, register and review PG043 in signed migration lock and authorize native maintenance, then complete installed Agent Owner Wall B Helper 24h lease E2E. Keep Guest044 OFF until its genuine native runtime is accepted; do not change production rc47.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
