@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-31",
-  "status": "P2-I4C3b2 SOURCE candidate: native Guest B binding persisted/readback with helperReady false; generic owner attach/resolve/context excludes Guest; distinct signed OAuth queue producer stages no OS payload, queue+slot PG transaction atomic unknown/cancel/terminal using M6 ACK, all OFF. Native PG044/physical Agent UAT unverified, Gold UAT/prod/Paddle unchanged. Source commit pending.",
+  "status": "Gold P2-I4C3b2 SOURCE ebdf9b53cfae8b0849fff4b8f1fb41a88dd33a39 pushed clean HEAD=origin. Dedicated Guest native B PG bind and generic owner-route denial; strictly signed OAuth queue stage, no OS payload; queue+slot UNKNOWN/cancel/terminal atomic transactions under PG candidate. 16 source/mock regression groups PASS, catalog/431 docs links PASS. Native PG044 full clone/physical Guest signed channel E2E NOT run; Guest Helper ready FALSE, no live dispatch, feature flags OFF; Gold UAT/prod/Paddle unchanged. GitHub Actions exact-SHA not independently verified.",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
