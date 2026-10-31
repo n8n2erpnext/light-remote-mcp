@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-31",
-  "status": "Gold Unified P2-I4C1 SOURCE in worktree (commit/CI pending at time of checkpoint): trusted Guest admission and dispatch-time reauthorization gate plus source regression PASS, but not mounted to live queue/Agent; no Guest Helper ready. B2 baseline 8e021b07 previously pushed and clean. Gold UAT and production untouched; new I4C flag default OFF.",
+  "status": "Gold Unified P2-I4C1 SOURCE pushed at 1c9d67ff1b99490589e16184d2b2ee7abe4125c5; HEAD=origin, clean after commit. Trusted Guest dispatch queue/admission fence source fixture PASS, but module not connected to Operator queue/Agent and Guest Helper ready remains OFF. Full native PG044/browser/physical E2E and exact-SHA GitHub Actions CI unverified. Gold UAT and production unchanged.",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
