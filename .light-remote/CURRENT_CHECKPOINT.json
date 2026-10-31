@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-31",
-  "status": "Gold P2-I4C3c2b2 SOURCE b2866f3f7cfd8643b2e5abd3851a7447896867bf pushed clean HEAD=origin. Exactly one Guest signed outbound command per canonical UUID/epoch with PG044 FK and no replay; source-only signer and M4 epoch issuance preconditions, irrevocable UNKNOWN before prospective Fleet. Separate signed Device GoldJobLedger Guest launch -> M4 PID + Guest slot PG binder without circular proof. 24 source/mock regression groups PASS, 464 document links PASS; disposable PG17 SQL001-044 + unique command/cross-actor FK and actual outbound SELECT native PREPARE PASS. Native launch-binder SELECT PG PREPARE not verified (tool block), physical signed Guest E2E not run, no live Fleet adapter; feature flags OFF, PG044 unregistered, Gold UAT/prod/Paddle unchanged. Exact GitHub Actions SHA not separately checked.",
+  "status": "Gold P2-I4C3c2b3a source-only: corrected outbound markAttempt M4/Gold SELECT and prepare aliases, opt-in GoldJobLedger preservation for canonical Guest UNKNOWN across restart, default owner startup unchanged; tests targeted + PG17 disposable SQL001-044 and native outbound SELECT PREPARE PASS. Attempt to create guarded Fleet adapter tool-safety BLOCKED; no adapter/mount/OS Guest dispatch, no M6 physical acceptance. Gold UAT/prod/Paddle/SQL044 lock unchanged, flags OFF. Commit pending.",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -67,7 +67,8 @@
     "P2-I4C3c1 source: AES-GCM immutable process payload intent with PG044 composite FK, dispatch requires signed native Guest protocol, legacy Agent Guest downgrade deny; actual disposable PostgreSQL17 migrations 001-044 and synthetic Guest FK/one-slot/owner grant checks PASS.",
     "P2-I4C3c2a source: signed Ed25519 Guest B/share ticket (max 15s), local policy Device guest process branch + journal/epoch and independent signed Guest launch receipt verifier to Gold ledger, mock tests; no live dispatch.",
     "P2-I4C3c2b1 source: owner-scoped Guest M4 reservation and GoldJobLedger same UUID under PG transaction; exact reserved payload phase; queue+slot+M4+Gold UNKNOWN together, pre-effect-only cleanup; disposable native PG17 SQL001-044 + FK/bridge actual query PASS.",
-    "P2-I4C3c2b2 SOURCE: one-shot Guest outbound command epoch/Ed25519 ticket SQL044 + signed ledger launch binder M4/slot without circular proof; native PG17 unique command/FK/outbound SELECT queries PASS."
+    "P2-I4C3c2b2 SOURCE: one-shot Guest outbound command epoch/Ed25519 ticket SQL044 + signed ledger launch binder M4/slot without circular proof; native PG17 unique command/FK/outbound SELECT queries PASS.",
+    "P2-I4C3c2b3a: corrected outbound SQL state selection; default-OFF GoldJobLedger restart preserve Guest UNKNOWN, default owner unchanged; native PG17/outbound SQL and targeted tests PASS."
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -105,9 +106,10 @@
     "Physical Agent has no signed Guest delegation protocol/attestation and Gate remains unmounted; SQL044 only tested on no-network blank disposable PG17, no Gold existing schema clone, no installed Agent E2E or UAT/prod/billing changes.",
     "Operator Guest issuer not mounted; Guest native protocol not advertised; no exact owner M4 JobLedger/Device queue binding or live M6 terminal/billing physical E2E. No PG044 UAT deployment.",
     "Operator Ed25519 Guest issuer and authenticated outbound mapping not mounted; signed launch process claim binding and physical M6 terminal E2E pending; PG044 still candidate outside migrations.lock.",
-    "Guest Operator outbound adapter not mounted; native launch binder SQL compile and comprehensive fixture NOT verified due safety block; M6 and physical installed Agent UAT pending."
+    "Guest Operator outbound adapter not mounted; native launch binder SQL compile and comprehensive fixture NOT verified due safety block; M6 and physical installed Agent UAT pending.",
+    "Guest Fleet adapter source execution blocked by tool safety. No mounted real outbound, no signed Agent launch/M6 E2E. PreserveGuestUnknown option deliberately not enabled on Gold UAT."
   ],
-  "nextAction": "P2-I4C3c2b3: guarded Operator adapter with exact Guest UUID, live signer/epoch authorizer, irreversible PG outbound UNKNOWN then one Fleet enqueue with no owner session substitution, verified Device result GoldJobLedger to PG M4/slot binder, signed M6 terminal + owner M3 completion. Validate native launch binder SQL and actual Gold schema clone, hard restart/revocation, Agent physical E2E before enabling any Guest flags or SQL044 UAT migration.",
+  "nextAction": "P2-I4C3c2b3b (HOLD): implement only through an authorized permitted path the guarded server-owned Guest Fleet adapter with exact source verified epoch issuance, one PG commandId, irrecoverable UNKNOWN before enqueue and no owner-session fallback; integrated signed Device launch, PG M4/Guest binder, signed M6 terminal and owner M3 release, tests on isolated real Gold clone and physical Agent. Adapter attempt hit tool safety block; do not bypass. Keep all flags OFF and no UAT migration or production rollout.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -120,10 +122,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "ca2d9a4b575d14d1bf1664ea6f4e8cafbd08e00c6010d6461dce6ed849895488",
-    "trackedFiles": 1078,
+    "treeDigest": "e548e60968ccce6012e225fd035d1ebc10882090c88a4886e4d9b17814bf659f",
+    "trackedFiles": 1079,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-10-31T03:59:40.789Z"
+    "recordedAt": "2026-10-31T04:35:00.294Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",

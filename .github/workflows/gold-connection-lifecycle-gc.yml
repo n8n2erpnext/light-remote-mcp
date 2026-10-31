@@ -78,6 +78,7 @@ on:
       - 'deploy/scripts/selftest-gold-pro-share-guest-intent.mjs'
       - 'deploy/scripts/selftest-gold-pro-share-guest-owner-m4.mjs'
       - 'deploy/scripts/selftest-gold-pro-share-guest-outbound.mjs'
+      - 'deploy/scripts/selftest-gold-pro-share-guest-ledger-restart.mjs'
       - 'deploy/scripts/selftest-gold-pro-share-guest-launch-bind.mjs'
       - 'deploy/scripts/selftest-gold-pro-share-guest-device-ticket.mjs'
       - 'deploy/scripts/selftest-gold-pro-share-guest-device-process.mjs'
@@ -258,6 +259,7 @@ jobs:
           node deploy/scripts/selftest-gold-pro-share-guest-intent.mjs
           node deploy/scripts/selftest-gold-pro-share-guest-owner-m4.mjs
           node deploy/scripts/selftest-gold-pro-share-guest-outbound.mjs
+          node deploy/scripts/selftest-gold-pro-share-guest-ledger-restart.mjs
           node deploy/scripts/selftest-gold-pro-share-guest-launch-bind.mjs
           node --check operator-host/pro-share-guest-outbound-pg.mjs
           node --check operator-host/pro-share-guest-launch-bind-pg.mjs

@@ -68,8 +68,6 @@ export class GoldGuestSignedOutboundPg{
     g.guest_account_id,g.device_id,g.agent_id,g.connection_id,
     g.grant_id,g.permission_revision,g.required_capabilities,g.operation,
     g.state AS queue_state,s.state AS slot_state,
-     w.state AS m4_state,j.status AS ledger_status,
-     c.worker_state AS claim_state,c.process_id AS claim_process_id,
     p.payload_sha256 AS intent_sha,
     w.state AS m4_state,j.account_id AS ledger_owner,
     j.status AS ledger_status,j.public_view AS ledger_view,
@@ -83,8 +81,8 @@ export class GoldGuestSignedOutboundPg{
     ab.purpose AS grant_purpose,ab.closed_at AS grant_closed,
     ab.expires_at AS grant_expires,
     ab.absolute_expires_at AS grant_absolute_expires,
-    cn.account_id AS connection_owner,cn.account_id AS connection_owner,
-     cn.closed_at AS connection_closed,
+    cn.account_id AS connection_owner,
+    cn.closed_at AS connection_closed,
     cn.hard_expires_at AS connection_expires
     FROM lr_gold_pro_share_guest_jobs g
     JOIN lr_gold_pro_share_guest_slots s
@@ -220,6 +218,8 @@ export class GoldGuestSignedOutboundPg{
      i.device_id AS issued_device,i.connection_id AS issued_connection,
      i.epoch AS issued_epoch,i.payload_sha256 AS issued_digest,
      g.state AS queue_state,s.state AS slot_state,
+     w.state AS m4_state,j.status AS ledger_status,
+     c.worker_state AS claim_state,c.process_id AS claim_process_id,
      a.revision AS share_revision,a.state AS addon_state,
      a.valid_until_ms AS addon_expires,
      se.status AS seat_status,sh.device_id AS shared_device,
