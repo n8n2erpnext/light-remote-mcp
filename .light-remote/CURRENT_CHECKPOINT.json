@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-31",
-  "status": "P2-I4C3c2b1 SOURCE: canonical Guest UUID maps into owner GoldJobLedger, M3 work and exclusive M4 resource claim under PG txn, explicit fresh B/share/AgentClient grant scope, pre-effect safe cancellation, four-table UNKNOWN before OS. Source/mock and disposable PostgreSQL17 001-044 real FK/SQL PREPARE/UNKNOWN PASS. Live issuer/Fleet outbound/M6 Agent E2E not wired; Gold UAT/prod/PG044/Paddle unchanged. Commit pending.",
+  "status": "Gold P2-I4C3c2b1 SOURCE 1fb3e75c0cb35431f6de32358789c087e5eb4205 pushed, HEAD=origin clean. Exact Guest UUID owner M3/M4/GoldJobLedger reservation under PG advisory lock and strict Guest/owner/AB/share/connection/binding/permission revision; dispatch M4 before owner bill; queue+slot+M4+Gold UNKNOWN before effect and safe pre-effect-only release. 22 source/mock groups and 458 doc links PASS. Disposable offline Postgres17 SQL001-044, actual SQL query PREPARE, FK and four-table UNKNOWN PASS. Guest real Ed25519 issuer/Fleet outbound/M4 signed launch+M6 physical E2E not mounted, feature flags OFF, PG044 outside migrations.lock, Gold UAT/prod/Paddle untouched; exact GitHub Actions SHA unverified.",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
