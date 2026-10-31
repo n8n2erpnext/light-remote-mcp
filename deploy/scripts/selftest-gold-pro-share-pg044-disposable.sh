@@ -51,3 +51,19 @@ psql -X -U postgres -v ON_ERROR_STOP=1 -q \
  }
 cat /tmp/last-out
 '
+# SQL is extracted from the actual Runtime bridge module, not a copy.
+# PREPARE validates the native column/join/lock shape against 001-044.
+bridge_select=$(node -e '
+const fs=require("node:fs");
+const s=fs.readFileSync(process.argv[1],"utf8");
+const m=s.match(/const q=await db\.query\(`(SELECT g\.job_id[\s\S]*?)`,\[e\.jobId\]\)/);
+if(!m)process.exit(4);
+process.stdout.write("PREPARE guest_m4_native_scope(text) AS "+m[1]);
+' "$repo/operator-host/pro-share-guest-owner-m4-pg.mjs")
+[ -n "$bridge_select" ] || exit 4
+docker exec "$name" psql -X -U postgres -v ON_ERROR_STOP=1 -q \
+ -c "$bridge_select" postgres || {
+  echo "DISPOSABLE_GUEST_M4_ACTUAL_SQL_PREPARE=FAIL" >&2
+  exit 7
+}
+echo "DISPOSABLE_GUEST_M4_ACTUAL_SQL_PREPARE=PASS"

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {GoldProShareGuestSlotPg} from '../../operator-host/pro-share-guest-slot-pg.mjs';
 const results=rows=>({rowCount:rows.length,rows});
-const slots=new Map(),acks=new Map(),jobs=new Map(),commands=[];
+const slots=new Map(),acks=new Map(),jobs=new Map(),m4Work=new Map(),m4Ledger=new Map(),commands=[];
 let txHeld=false;
 const active=x=>['reserved','unknown','submitted'].includes(x.state);
 const p=async(sql,args=[])=>{
@@ -68,6 +68,16 @@ const p=async(sql,args=[])=>{
    (!x.process_id||x.process_id===pid));
   if(!x)return results([]);
   x.process_id=pid;x.state='submitted';return results([{operation_id:x.operation_id}]);
+ }
+ if(q.startsWith('UPDATE lr_gold_personal_agent_work')){
+  const [job]=args,r=m4Work.get(job);
+  if(r!=='running')return results([]);
+  m4Work.set(job,'unknown');return results([{job_id:job}]);
+ }
+ if(q.startsWith('UPDATE lr_gold_job_records')){
+  const [job]=args,r=m4Ledger.get(job);
+  if(r!=='queued')return results([]);
+  m4Ledger.set(job,'running');return results([{job_id:job}]);
  }
  if(q.startsWith('UPDATE lr_gold_pro_share_guest_jobs')){
   // Simulates same transaction visibility as the durable slot table.
@@ -195,6 +205,23 @@ assert.equal(jobs.get(args('direct','device-3').operationId).state,'terminal');
 assert.equal((await a.reconcileSignedTerminal({
  ownerAccountId:'owner-1',deviceId:'device-3',jobId:'job-direct',processId:directPid
 })).released,false);
+// M4 bridge activates only with explicit flag; the same PG transaction
+// must mark Guest queue, slot, owner work and GoldJobLedger UNKNOWN.
+const m4=new GoldProShareGuestSlotPg({
+ ...options,env:{...options.env,
+  LR_GOLD_PRO_SHARE_GUEST_QUEUE:'1',
+  LR_GOLD_PRO_SHARE_GUEST_M4_BRIDGE:'1'}
+});
+const sc=args('m4','device-m4');
+m4Work.set(sc.jobId,'running');m4Ledger.set(sc.jobId,'queued');
+const held=await m4.acquire(sc);
+assert.equal(held.acquired,true);
+await held.markDispatchAttempt();
+assert.equal(slots.get(sc.operationId).state,'unknown');
+assert.equal(jobs.get(sc.operationId).state,'unknown');
+assert.equal(m4Work.get(sc.jobId),'unknown');
+assert.equal(m4Ledger.get(sc.jobId),'running');
+assert.equal(await held.release(),false,'M4 UNKNOWN cannot be released from timeout');
 assert.ok(commands.some(x=>x.includes('pg_advisory_xact_lock')));
 assert.equal(txHeld,false);
 console.log('GOLD_P2I4C3_PG_SLOT_CROSS_OPERATOR_RESTART_UNKNOWN_FENCE=PASS');

@@ -113,3 +113,98 @@ BEGIN
 END $$;
 COMMIT;
 SELECT 'PG044_NATIVE_CROSS_GUEST_FK_ONE_ACTIVE_SLOT_PAYLOAD_GUARD=PASS';
+-- Native M4/GoldJobLedger canonical one-UUID chain. This is a real PG FK
+-- smoke test, not a statement that an Agent process was started.
+BEGIN;
+INSERT INTO lr_gold_personal_agent_work(
+ job_id,account_id,agent_id,session_id,operation_id,state,
+ started_at,device_id,resource_key,resource_mode,worker_weight)
+ VALUES('0af5a9c1-8050-478a-83d1-5e26821cf101',
+ 'p44-owner','p44-plugin-agent',
+ 'gshare_0af5a9c1-8050-478a-83d1-5e26821cf101',
+ 'guestop-a111111111111111','running',clock_timestamp(),
+ 'p44-device','device:unknown','exclusive',1);
+INSERT INTO lr_gold_device_resource_claims(
+ job_id,account_id,device_id,resource_key,resource_mode,worker_weight)
+ VALUES('0af5a9c1-8050-478a-83d1-5e26821cf101',
+ 'p44-owner','p44-device','device:unknown','exclusive',1);
+INSERT INTO lr_gold_job_records(
+ job_id,account_id,device_id,session_id,agent_id,operation_id,
+ status,started_at,public_view)
+ VALUES('0af5a9c1-8050-478a-83d1-5e26821cf101',
+ 'p44-owner','p44-device',
+ 'gshare_0af5a9c1-8050-478a-83d1-5e26821cf101',
+ 'p44-plugin-agent','guestop-a111111111111111','queued',
+ clock_timestamp(),'{"guestScope":{"purpose":"pro-share-guest"},"signedGuestDelegationVerified":false}'::jsonb);
+DO $$
+DECLARE n integer;
+BEGIN
+ SELECT count(*) INTO n
+ FROM lr_gold_pro_share_guest_jobs g
+ JOIN lr_gold_pro_share_guest_slots s ON s.job_id=g.job_id
+ JOIN lr_gold_personal_agent_work w
+  ON w.job_id=g.job_id AND w.account_id=g.owner_account_id
+  AND w.device_id=g.device_id
+ JOIN lr_gold_device_resource_claims c
+  ON c.job_id=w.job_id AND c.account_id=w.account_id
+  AND c.device_id=w.device_id
+ JOIN lr_gold_job_records j
+  ON j.job_id=g.job_id AND j.account_id=g.owner_account_id
+  AND j.device_id=g.device_id
+ WHERE g.job_id='0af5a9c1-8050-478a-83d1-5e26821cf101'
+  AND g.owner_account_id='p44-owner' AND g.guest_account_id='p44-guest'
+  AND c.worker_state='admitting' AND c.resource_key='device:unknown'
+  AND j.status='queued' AND s.state='reserved';
+ IF n<>1 THEN
+  RAISE EXCEPTION 'Guest UUID did not join one owner Gold/M4 claim';
+ END IF;
+ n:=0;
+ BEGIN
+  INSERT INTO lr_gold_device_resource_claims(
+   job_id,account_id,device_id,resource_key,resource_mode,worker_weight)
+  VALUES('p44-nonexistent','p44-owner','p44-device',
+   'device:unknown','exclusive',1);
+ EXCEPTION WHEN foreign_key_violation THEN n:=1;
+ END;
+ IF n<>1 THEN
+  RAISE EXCEPTION 'M4 resource claim without canonical work accepted';
+ END IF;
+END $$;
+COMMIT;
+SELECT 'PG044_NATIVE_GUEST_OWNER_GOLD_M4_SINGLE_UUID_AND_FK=PASS';
+-- Crash-fence transition: one transaction spans four independent PG tables.
+BEGIN;
+UPDATE lr_gold_pro_share_guest_jobs SET state='unknown'
+ WHERE job_id='0af5a9c1-8050-478a-83d1-5e26821cf101'
+  AND state='queued';
+UPDATE lr_gold_pro_share_guest_slots SET state='unknown',
+ dispatch_attempted_at=clock_timestamp()
+ WHERE job_id='0af5a9c1-8050-478a-83d1-5e26821cf101'
+  AND state='reserved';
+UPDATE lr_gold_personal_agent_work SET state='unknown'
+ WHERE job_id='0af5a9c1-8050-478a-83d1-5e26821cf101'
+  AND account_id='p44-owner' AND state='running';
+UPDATE lr_gold_job_records SET status='running',
+ public_view=jsonb_set(jsonb_set(public_view,'{status}',
+  '"running"'::jsonb,true),'{effectState}',
+  '"unknown"'::jsonb,true)
+ WHERE job_id='0af5a9c1-8050-478a-83d1-5e26821cf101'
+  AND account_id='p44-owner' AND status='queued';
+DO $$
+DECLARE n integer;
+BEGIN
+ SELECT count(*) INTO n
+ FROM lr_gold_pro_share_guest_jobs g
+ JOIN lr_gold_pro_share_guest_slots s ON s.job_id=g.job_id
+ JOIN lr_gold_personal_agent_work w ON w.job_id=g.job_id
+ JOIN lr_gold_job_records j ON j.job_id=g.job_id
+ JOIN lr_gold_device_resource_claims c ON c.job_id=g.job_id
+ WHERE g.job_id='0af5a9c1-8050-478a-83d1-5e26821cf101'
+  AND g.state='unknown' AND s.state='unknown'
+  AND w.state='unknown' AND j.status='running'
+  AND j.public_view->>'effectState'='unknown'
+  AND c.worker_state='admitting' AND c.process_id IS NULL;
+ IF n<>1 THEN RAISE EXCEPTION 'PG044/M4 crash fence not atomic'; END IF;
+END $$;
+COMMIT;
+SELECT 'PG044_NATIVE_GUEST_QUEUE_SLOT_M4_GOLD_UNKNOWN=PASS';

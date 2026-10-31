@@ -138,7 +138,8 @@ seatRevision++;
 const gate=createGoldProShareDispatchGate({
  env:{LR_GOLD_PRO_SHARE_CORE:'1',LR_GOLD_PRO_SHARE_GUEST_DISPATCH:'1',
  LR_GOLD_PRO_SHARE_GUEST_PAYLOAD_STAGE:'1',
- LR_GOLD_PRO_SHARE_GUEST_AGENT_PROTOCOL:'1'},
+ LR_GOLD_PRO_SHARE_GUEST_AGENT_PROTOCOL:'1',
+ LR_GOLD_PRO_SHARE_GUEST_M4_BRIDGE:'1'},
  store:{authorizeOperation:async()=>({
  actorAccountId:'guest1',agentId:agent,deviceId:'device1',grantId:'grant1',
  connectionId:'connection1',billedAccountId:'owner1',
@@ -147,6 +148,8 @@ const gate=createGoldProShareDispatchGate({
  accessGrants:{assert(){}},
  loadTrustedJob:id=>queue.loadTrustedJob(id),
  loadTrustedIntent:async()=>null,
+ reserveOwnerM4:async()=>{throw Error('source only')},
+ cancelOwnerM4:async()=>({cancelled:true}),
  loadFreshContext:async()=>context(),
  acquireGuestSlot:async()=>{slotsCreated++;throw Error('slot must not be acquired')},
  dispatchEffect:async()=>{throw Error('no live dispatch')},now:()=>time

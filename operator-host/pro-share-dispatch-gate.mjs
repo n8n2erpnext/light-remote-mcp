@@ -12,7 +12,7 @@ const valid=v=>typeof v==='string'&&ID.test(v);
 const eq=(a,b)=>a===b;
 export function createGoldProShareDispatchGate({
  env=process.env,store,accessGrants,loadTrustedJob,loadFreshContext,
- acquireGuestSlot,loadTrustedIntent,dispatchEffect,now=Date.now
+ acquireGuestSlot,loadTrustedIntent,reserveOwnerM4,cancelOwnerM4,dispatchEffect,now=Date.now
 }={}){
  const on=env.LR_GOLD_PRO_SHARE_GUEST_DISPATCH==='1';
  const tickets=new Map();
@@ -20,13 +20,16 @@ export function createGoldProShareDispatchGate({
   env.LR_GOLD_PRO_SHARE_CORE!=='1'||
   env.LR_GOLD_PRO_SHARE_GUEST_PAYLOAD_STAGE!=='1'||
   env.LR_GOLD_PRO_SHARE_GUEST_AGENT_PROTOCOL!=='1'||
+  env.LR_GOLD_PRO_SHARE_GUEST_M4_BRIDGE!=='1'||
   !store||typeof store.authorizeOperation!=='function'||
   typeof store.billOnce!=='function'||!accessGrants?.assert||
   typeof loadTrustedJob!=='function'||typeof loadFreshContext!=='function'||
   typeof acquireGuestSlot!=='function'||
-  typeof loadTrustedIntent!=='function'||typeof dispatchEffect!=='function'
+  typeof loadTrustedIntent!=='function'||
+  typeof reserveOwnerM4!=='function'||typeof cancelOwnerM4!=='function'||
+  typeof dispatchEffect!=='function'
  ))deny('pro_share_dispatch_dependencies_missing',503);
- async function context(jobId){
+ async function context(jobId,{reservedSlot=null}={}){
   if(!on)deny('pro_share_dispatch_disabled',404);
   if(!valid(jobId))deny('pro_share_job_id_invalid',400);
   const job=await loadTrustedJob(jobId);
@@ -83,7 +86,7 @@ export function createGoldProShareDispatchGate({
   // arbitrary callback. Only the independent Guest process lane is staged.
   if(job.operation!=='process')
    deny('guest_dispatch_process_only_until_native_protocol',403);
-  const intent=await loadTrustedIntent(job);
+  const intent=await loadTrustedIntent(job,{reservedSlot});
   if(!intent||!(/^[a-f0-9]{64}$/.test(intent.payloadSha256||''))||
      intent.command?.type!=='process-start'||intent.operation!=='process'||
      intent.jobId!==job.jobId||
@@ -131,7 +134,7 @@ export function createGoldProShareDispatchGate({
    if(!on)deny('pro_share_dispatch_disabled',404);
    const t=tickets.get(ticketId);
    if(!t||t.state!=='queued')deny('pro_share_ticket_not_queued',409);
-   t.state='dispatching';let slot,effectSubmitted=false;
+   t.state='dispatching';let slot,m4,effectSubmitted=false;
    try{
     const fresh=await context(t.evidence.job.jobId);
     assertSame(t.evidence,fresh);
@@ -147,8 +150,29 @@ export function createGoldProShareDispatchGate({
     if(!slot||typeof slot.release!=='function'||
        typeof slot.markDispatchAttempt!=='function'||slot.acquired!==true)
      deny('pro_share_guest_slot_unavailable',409);
-    const atDispatch=await context(t.evidence.job.jobId);
+    const atDispatch=await context(t.evidence.job.jobId,{reservedSlot:slot});
     assertSame(t.evidence,atDispatch);
+    // A single server-owned Guest UUID must exist in GoldJobLedger and M4
+    // before bill or outbound effect; neither the Guest's native session nor
+    // an owner's existing session can be substituted.
+    m4=await reserveOwnerM4(Object.freeze({
+     jobId:atDispatch.job.jobId,
+     operationId:atDispatch.job.operationId,
+     ownerAccountId:atDispatch.authority.billedAccountId,
+     actorAccountId:atDispatch.job.actorAccountId,
+     agentId:atDispatch.job.agentId,
+     clientSessionId:atDispatch.job.clientSessionId,
+     deviceId:atDispatch.job.deviceId,
+     grantId:atDispatch.job.grantId,
+     connectionId:atDispatch.job.connectionId,
+     permissionRevision:atDispatch.job.permissionRevision,
+     payloadSha256:atDispatch.intent.payloadSha256,
+     nodeId:atDispatch.current.nodeId
+    }));
+    if(m4?.reserved!==true||m4.jobId!==atDispatch.job.jobId||
+       m4.ownerAccountId!==atDispatch.authority.billedAccountId||
+       m4.deviceId!==atDispatch.job.deviceId)
+     deny('guest_owner_m4_canonical_reservation_missing',503);
     // Charge exactly once for this server-owned operation ID BEFORE any
     // OS dispatch. A rejected/failed OS submission may still count as an
     // attempted call; retrying an ambiguous side effect is forbidden.
@@ -162,7 +186,7 @@ export function createGoldProShareDispatchGate({
     if(billed.billedAccountId!==atDispatch.authority.billedAccountId||
        billed.operationId!==atDispatch.job.operationId)
      deny('pro_share_meter_receipt_mismatch',503);
-    const last=await context(t.evidence.job.jobId);
+    const last=await context(t.evidence.job.jobId,{reservedSlot:slot});
     assertSame(t.evidence,last);
     // After this boundary, an OS side effect may be running even if its
     // ACK is lost. Keep the durable Guest slot until signed terminal
@@ -196,7 +220,14 @@ export function createGoldProShareDispatchGate({
     // Pre-dispatch refusals can free the reservation immediately. Once the
     // callback was invoked, only the external trusted signed terminal ACK /
     // owner recovery reconciler may release the durable reservation.
-    if(slot?.acquired===true&&!effectSubmitted)await slot.release();
+    if(slot?.acquired===true&&!effectSubmitted){
+     const cancelled=await slot.release();
+     // Never drop M4 after an ambiguous effect, and never delete the claim
+     // unless the canonical Guest queue+slot cancellation is proven durable.
+     if(cancelled===true&&m4?.reserved===true)
+      await cancelOwnerM4({jobId:m4.jobId,
+       ownerAccountId:m4.ownerAccountId,deviceId:m4.deviceId});
+    }
    }
   }
  });

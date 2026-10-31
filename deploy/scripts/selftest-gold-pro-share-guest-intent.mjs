@@ -48,7 +48,8 @@ const query=async(sql,args=[])=>{
  }
  if(q.startsWith('SELECT p.payload_sha256,p.sealed_payload')){
   const row=payloads.get(args[0]);
-  return (!slot&&row)?{rowCount:1,rows:[{
+  const admitted=args[1]===true?slot===true:slot===false;
+  return (admitted&&row)?{rowCount:1,rows:[{
    payload_sha256:row.hash,sealed_payload:row.sealed}]}:
    {rowCount:0,rows:[]};
  }
@@ -106,7 +107,14 @@ authorityOK=true;slot=true;
 await assert.rejects(stage.stage({opaquePrincipal:'oauth-cap',jobId:job.jobId,payload}),
  /guest_intent_queue_no_longer_admissible/);
 assert.equal(await stage.loadTrustedIntent(job.jobId),null,
- 'reserved slot removes intent from dispatchable view');
+ 'reserved slot must be invisible without exact slot evidence');
+const exactSlot={jobId:job.jobId,operationId:job.operationId,
+ ownerAccountId:job.ownerAccountId,guestAccountId:job.actorAccountId,
+ deviceId:job.deviceId,grantId:job.grantId,connectionId:job.connectionId};
+assert.deepEqual((await stage.loadTrustedIntent(job.jobId,{reservedSlot:exactSlot})).command,payload);
+await assert.rejects(stage.loadTrustedIntent(job.jobId,{reservedSlot:{
+ ...exactSlot,guestAccountId:'other'}}),
+ /guest_intent_reserved_slot_scope_invalid/);
 slot=false;active=false;
 await assert.rejects(stage.stage({opaquePrincipal:'oauth-cap',jobId:job.jobId,payload}),
  /guest_intent_queue_actor_mismatch/);

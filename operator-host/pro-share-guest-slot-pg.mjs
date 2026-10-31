@@ -14,7 +14,12 @@ export class GoldProShareGuestSlotPg{
  constructor({pool,env=process.env,verifySignedLaunch=null}={}){
   if(!pool?.connect||typeof pool.connect!=='function')fail('guest_slot_pg_required',503);
   this.pool=pool;this.enabled=env.LR_GOLD_PRO_SHARE_GUEST_SLOTS==='1';
+  this.m4Bridge=env.LR_GOLD_PRO_SHARE_GUEST_M4_BRIDGE==='1';
   this.verifySignedLaunch=typeof verifySignedLaunch==='function'?verifySignedLaunch:null;
+  if(this.m4Bridge&&(!this.enabled||
+   env.LR_GOLD_PRO_SHARE_CORE!=='1'||
+   env.LR_GOLD_PRO_SHARE_GUEST_QUEUE!=='1'))
+   fail('guest_slot_m4_prerequisites_off',503);
   if(this.enabled&&env.LR_GOLD_PRO_SHARE_CORE!=='1')
    fail('guest_slot_core_prerequisite_off',503);
  }
@@ -159,6 +164,26 @@ export class GoldProShareGuestSlotPg{
     [op,dev,evidence.ownerAccountId,evidence.guestAccountId,
      evidence.jobId,evidence.grantId,evidence.connectionId]);
    if(r.rowCount!==1)fail('guest_slot_dispatch_attempt_conflict');
+   if(this.m4Bridge){
+    // Same PG transaction as Guest queue+slot UNKNOWN: a crash must not
+    // strand an apparently queued owner Gold job after an effect is possible.
+    const m=await db.query(`UPDATE lr_gold_personal_agent_work
+     SET state='unknown'
+     WHERE job_id=$1 AND account_id=$2 AND device_id=$3
+      AND state='running' RETURNING job_id`,
+     [evidence.jobId,evidence.ownerAccountId,dev]);
+    if(m.rowCount!==1)fail('guest_m4_unknown_work_transition_failed',503);
+    const j=await db.query(`UPDATE lr_gold_job_records
+     SET status='running',
+      public_view=jsonb_set(jsonb_set(public_view,
+       '{status}','"running"'::jsonb,true),
+       '{effectState}','"unknown"'::jsonb,true),
+      updated_at=clock_timestamp()
+     WHERE job_id=$1 AND account_id=$2 AND device_id=$3
+      AND status='queued' RETURNING job_id`,
+     [evidence.jobId,evidence.ownerAccountId,dev]);
+    if(j.rowCount!==1)fail('guest_m4_unknown_ledger_transition_failed',503);
+   }
    return {persistedUnknown:true,operationId:op};
   });
  }

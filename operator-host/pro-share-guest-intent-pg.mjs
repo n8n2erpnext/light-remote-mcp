@@ -81,22 +81,41 @@ export class GoldProShareGuestIntentPg {
  // loads fresh queue identity from PG, rechecks Grant/connection/revision
  // via injected authority and authenticates encrypted AAD before returning
  // the private script to an independent Guest-capable Agent lane.
- async loadTrustedIntent(jobId){
+ async loadTrustedIntent(jobId,{reservedSlot=null}={}){
   if(!this.enabled)DENY('guest_intent_staging_disabled',404);
   if(!ID.test(jobId||''))DENY('guest_intent_job_invalid',400);
   const job=await this.loadTrustedJob(jobId);
   if(!job||job.state!=='queued'||job.operation!=='process'||
      await this.validateFreshAuthority(job)!==true)
    DENY('guest_intent_current_authority_denied',403);
+  // Phase one has NO slot. Phase two is legal only with the exact PG
+  // RESERVED slot of this same job; never accept UNKNOWN/submitted.
+  const slotScoped=reservedSlot!==null;
+  if(slotScoped&&[
+    ['jobId',job.jobId],['operationId',job.operationId],
+    ['ownerAccountId',job.ownerAccountId],
+    ['guestAccountId',job.actorAccountId],['deviceId',job.deviceId],
+    ['grantId',job.grantId],['connectionId',job.connectionId]
+   ].some(([k,value])=>reservedSlot?.[k]!==value))
+   DENY('guest_intent_reserved_slot_scope_invalid',403);
   const result=await this.pool.query(`SELECT p.payload_sha256,p.sealed_payload
     FROM lr_gold_pro_share_guest_payloads p
     JOIN lr_gold_pro_share_guest_jobs g
       ON g.job_id=p.job_id AND g.operation_id=p.operation_id
        AND g.guest_account_id=p.guest_account_id
     WHERE p.job_id=$1 AND g.state='queued'
-      AND NOT EXISTS(SELECT 1 FROM lr_gold_pro_share_guest_slots s
-         WHERE s.job_id=g.job_id)
-    LIMIT 2`,[jobId]);
+      AND (
+       ($2::boolean=false AND NOT EXISTS(
+         SELECT 1 FROM lr_gold_pro_share_guest_slots s WHERE s.job_id=g.job_id))
+       OR ($2::boolean=true AND EXISTS(
+         SELECT 1 FROM lr_gold_pro_share_guest_slots s
+         WHERE s.job_id=g.job_id AND s.operation_id=g.operation_id
+          AND s.owner_account_id=g.owner_account_id
+          AND s.guest_account_id=g.guest_account_id
+          AND s.device_id=g.device_id AND s.grant_id=g.grant_id
+          AND s.connection_id=g.connection_id AND s.state='reserved'))
+      )
+    LIMIT 2`,[jobId,slotScoped]);
   if(result.rowCount!==1)return null;
   const row=result.rows[0],command=this.codec.open({
    job,sealed:row.sealed_payload});

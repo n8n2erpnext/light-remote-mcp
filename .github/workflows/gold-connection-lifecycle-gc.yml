@@ -54,6 +54,7 @@ on:
       - 'operator-host/pro-share-guest-queue-http.mjs'
       - 'operator-host/pro-share-verified-launch.mjs'
       - 'operator-host/pro-share-guest-intent-pg.mjs'
+      - 'operator-host/pro-share-guest-owner-m4-pg.mjs'
       - 'device-agent/guest-device-process.mjs'
       - 'lib/gold-pro-share-guest-process-contract.mjs'
       - 'lib/gold-pro-share-guest-device-ticket.mjs'
@@ -73,6 +74,7 @@ on:
       - 'deploy/scripts/selftest-gold-pro-share-guest-queue-http.mjs'
       - 'deploy/scripts/selftest-gold-pro-share-verified-launch.mjs'
       - 'deploy/scripts/selftest-gold-pro-share-guest-intent.mjs'
+      - 'deploy/scripts/selftest-gold-pro-share-guest-owner-m4.mjs'
       - 'deploy/scripts/selftest-gold-pro-share-guest-device-ticket.mjs'
       - 'deploy/scripts/selftest-gold-pro-share-guest-device-process.mjs'
       - 'deploy/scripts/selftest-gold-pro-share-guest-launch-evidence.mjs'
@@ -250,6 +252,8 @@ jobs:
           node --check operator-host/pro-share-guest-queue-http.mjs
           node deploy/scripts/selftest-gold-pro-share-verified-launch.mjs
           node deploy/scripts/selftest-gold-pro-share-guest-intent.mjs
+          node deploy/scripts/selftest-gold-pro-share-guest-owner-m4.mjs
+          node --check operator-host/pro-share-guest-owner-m4-pg.mjs
           node deploy/scripts/selftest-gold-pro-share-guest-device-ticket.mjs
           node deploy/scripts/selftest-gold-pro-share-guest-device-process.mjs
           node deploy/scripts/selftest-gold-pro-share-guest-launch-evidence.mjs

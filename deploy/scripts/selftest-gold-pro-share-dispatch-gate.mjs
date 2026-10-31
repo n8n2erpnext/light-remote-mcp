@@ -3,10 +3,12 @@ import {createGoldProShareDispatchGate} from '../../operator-host/pro-share-disp
 const env={LR_GOLD_PRO_SHARE_CORE:'1',
  LR_GOLD_PRO_SHARE_GUEST_PAYLOAD_STAGE:'1',
  LR_GOLD_PRO_SHARE_GUEST_AGENT_PROTOCOL:'1',
+ LR_GOLD_PRO_SHARE_GUEST_M4_BRIDGE:'1',
  LR_GOLD_PRO_SHARE_GUEST_DISPATCH:'1'};
 let clock=1850000000000,revision=3,revoked=false,quota=false,slotBusy=false,
- calls=0,slots=0,checks=0,charged=0,dispatched=0,changedConnection=false,terminalRelease=null;
-const jobs=new Map(),events=new Map();
+ calls=0,slots=0,checks=0,charged=0,dispatched=0,
+ m4Reserved=0,m4Cancelled=0,changedConnection=false,terminalRelease=null;
+const jobs=new Map(),events=new Map(),order=[];
 const job=(name,options={})=>({jobId:name,identitySource:'verified-oauth',state:'queued',
  actorAccountId:'guest-1',agentId:'agent-1',deviceId:'device-1',
  grantId:'guest-grant',operationId:name+'-operation-accepted',
@@ -33,6 +35,7 @@ const store={
    maxGuestConcurrentJobs:1,requiredCapabilities:['filesystem']};
  },
  async billOnce({operationId,...args}){
+  order.push('bill');
   assert.equal(args.authenticatedActorAccountId,'guest-1');
   assert.equal(args.device.accountId,'owner-1');
   assert.equal(args.units,1);
@@ -51,11 +54,11 @@ const acquireGuestSlot=async ({maxConcurrent})=>{
  assert.equal(maxConcurrent,1);
  if(slotBusy)return {acquired:false};
  slotBusy=true;slots++;
- const release=async()=>{slotBusy=false};terminalRelease=release;
- return {acquired:true,release,async markDispatchAttempt(){}};
+ const release=async()=>{slotBusy=false;return true};terminalRelease=release;
+ return {acquired:true,release,async markDispatchAttempt(){order.push('unknown')}};
 };
 const dispatchEffect=async payload=>{
- dispatched++;
+ order.push('effect');dispatched++;
  assert.equal(payload.ownerAccountId,'owner-1');
  assert.equal(payload.actorAccountId,'guest-1');
  assert.deepEqual(payload.requiredCapabilities,['filesystem']);
@@ -75,6 +78,10 @@ const loadTrustedIntent=async row=>({
 });
 const opts={env,store,accessGrants:{assert(){}},loadTrustedJob:getJob,
  loadTrustedIntent,
+ reserveOwnerM4:async row=>{m4Reserved++;order.push('m4');
+  return {reserved:true,jobId:row.jobId,
+   ownerAccountId:row.ownerAccountId,deviceId:row.deviceId}},
+ cancelOwnerM4:async()=>{m4Cancelled++;return {cancelled:true}},
  loadFreshContext:getContext,acquireGuestSlot,dispatchEffect,now:()=>clock};
 const off=createGoldProShareDispatchGate({...opts,env:{}});
 await assert.rejects(off.admit({jobId:'job-off'}),/pro_share_dispatch_disabled/);
@@ -90,6 +97,8 @@ assert.equal(one.dispatchable,true);
 assert.equal((await gate.dispatch({ticketId:one.ticketId})).accepted,true);
 assert.equal(charged,1);
 assert.equal(dispatched,1);
+assert.deepEqual(order.slice(-4),['m4','bill','unknown','effect'],
+ 'must reserve M4 before billing, persist UNKNOWN before outbound effect');
 assert.equal(slots,1);
 assert.equal(slotBusy,true,'accepted job holds slot until signed terminal evidence');
 await terminalRelease(); // mocked signed terminal reconciler (not an Operator ACK)
@@ -136,7 +145,7 @@ assert.ok(checks>=10);
 let tried=0,releaseBeforeEffect=0,attemptedBeforeEffect=false;
 const gateAttemptFailure=createGoldProShareDispatchGate({...opts,
  acquireGuestSlot:async()=>({
-  acquired:true,async release(){releaseBeforeEffect++},
+  acquired:true,async release(){releaseBeforeEffect++;return true},
   async markDispatchAttempt(){tried++;throw Error('guest_slot_unknown_persist_failed')}
  }),
  dispatchEffect:async()=>{attemptedBeforeEffect=true;return {accepted:true}}
@@ -148,6 +157,7 @@ await assert.rejects(gateAttemptFailure.dispatch({ticketId:failedTicket.ticketId
 assert.equal(tried,1);
 assert.equal(attemptedBeforeEffect,false,'cannot dispatch without durable UNKNOWN write');
 assert.equal(releaseBeforeEffect,1,'pre-effect refusal may cancel reserved slot');
+assert.ok(m4Cancelled>=2,'owner M4 must be released only after durable pre-effect cancellation');
 let uncertainRelease=0,unknownWritten=0;
 const gateUnknown=createGoldProShareDispatchGate({...opts,
  acquireGuestSlot:async()=>({
