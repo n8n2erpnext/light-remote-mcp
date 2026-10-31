@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-31",
-  "status": "P2-I4C3c2b3c2b5 source: Guest cancelled/cancelled crash window fixed alongside queued/reserved preserving exact preeffect M3/M4/Gold canonical no-outbound/no-PID state, no OS replay. A/B V2 source and native Redis8 fixtures fixed actor/purpose mismatch without weakening backend. Full local GitHub source-gate PASS; native Redis8.10.2 CAS/replay/TTL/secrecy PASS in no-NIC clone; PostgreSQL17 source SQL001-044 and UAT039 schema clone to 044 synthetic Guest cleanup PASS. On-host LXD Gold UAT snapshot pre-p2-final-gate-20261031 and PostgreSQL 17 custom dump SHA256/full no-network restore PASS. Gold UAT four active, schema039, no Guest table. Source awaiting GitHub CI for new SHA. Feature Guest OFF; 043/044 unregistered; signed real Agent M6 billing E2E absent.",
+  "status": "Gold P2-I4C3c2b3c2b5 source complete and pushed 6c2d29bfdc12406138081f11cc716adef04f51ea. GitHub Actions exact SHA 3/3 workflows SUCCESS: Gold Connection Lifecycle GC Source Gate 4/4 jobs PASS (source, Windows Agent epoch, PG GC/epoch 1k and 10k), project truth checkpoint SUCCESS, docs integrity SUCCESS. Redis8 no-network native CAS and offline PG17 full candidate schema and UAT 039 clone PASS. Gold UAT remains 039, 4 services active, Guest table absent. LXD snapshot pre-p2-final-gate-20261031 and separate SHA256-checked pg dump with full offline PG17 restore PASS. Runtime Guest Fleet Adapter prior tool-safety HOLD, no physical signed Guest Agent/M6/owner bill-once E2E, 043/044 unregistered and flags OFF. No live deployment or Paddle changes.",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -124,7 +124,7 @@
     "Authenticated Guest Fleet source adapter was previously tool-safety-blocked; no E2E on actual signed Agent or billing once, SQL043/044 absent migration lock and no release signoff.",
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD."
   ],
-  "nextAction": "Do not deploy SQL043/044 or enable Guest: native signed Fleet dispatch adapter earlier safety-blocked, real installed Agent signed launch + M6 terminal and owner bill-once E2E missing; migration lock and explicit owner release approval missing. After source commit, verify exact SHA GitHub CI, preserve working Gold UAT 039 and rollback snapshot.",
+  "nextAction": "HOLD Guest release and Gold UAT cutover until authorized Fleet adapter (prior tool-safety block, do not bypass), actual signed Agent OS Guest launch/M4/M6/revocation/reconnect plus owner billOnce E2E PASS, SQL043/044 migrations registered and owner-approved release. Source CI already 3/3 SUCCESS at 6c2d29bf; snapshot and pg dump ready.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -513,6 +513,22 @@
       "pg044Delegation": "candidate SQL native grants connection_owner_account_id trigger + FK + purpose checks; NOT TESTED; NO LIVE MIGRATION",
       "b2SourceFixtures": "PASS: Guest OAuth HMAC shortID resolve/issue, Account CSRF owner B/PG two-phase, owner ABV2/Team/V1 regression",
       "guestHelperReady": false
+    }
+  },
+  "verifiedP2GateCI": {
+    "commitSha": "6c2d29bfdc12406138081f11cc716adef04f51ea",
+    "goldConnectionLifecycleGc": {
+      "runId": 41176769189,
+      "conclusion": "success",
+      "jobs": "4/4"
+    },
+    "sourceDocsCheckpoint": {
+      "runId": 41176769177,
+      "conclusion": "success"
+    },
+    "documentationIntegrity": {
+      "runId": 41176769179,
+      "conclusion": "success"
     }
   }
 }

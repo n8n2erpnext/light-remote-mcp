@@ -381,3 +381,15 @@ A/B V2: Historical [source test](../../deploy/scripts/selftest-gold-ab-v2-source
 Before deployment, created LXD snapshot `light-remote-gold-uat/pre-p2-final-gate-20261031` and independent PostgreSQL17 custom-format dump in `/home/ubuntu/handoffs/gold-p2-rollback-20261031/light_remote_gold_dev.pg17.dump`. SHA256 verification PASS and full restore to `postgres:17-alpine` offline no-network disposable container PASS, 39/39 migrations, no Guest SQL044 table. UAT four services continue active, rollback clone stopped, test containers and temporary bundles cleaned. This is an **on-host snapshot and independent database backup**, not off-host LXD disaster recovery.
 
 Release HOLD remains explicit: migrations 043/044 absent from `platform-v2/sql/migrations.lock.json`, Guest Fleet adapter previously blocked by tool policy and not retried, real signed Agent launch → M4 → M6 terminal and owner billing-once end-to-end not accepted, Guest feature flags OFF. Do not apply migrations 043/044, enable Guest or claim a live Agent/Paddle E2E. GitHub Actions for the *new* commit must be rechecked after push; local source-gate PASS alone does not establish remote CI.
+
+## 2026-10-31 — Verified post-push Gold P2 gate: 6c2d29bf
+
+Source + same-commit project-truth docs successfully committed and pushed to `feat/gold-connection-gc-reconciler-20261029` at `6c2d29bfdc12406138081f11cc716adef04f51ea`. After the push, GitHub Actions confirmed **all 3 workflows SUCCESS**:
+
+- Gold Connection Lifecycle GC Source Gate: https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/41176769189 — **4/4 jobs SUCCESS** (source gate, Windows Agent epoch contract, no-live PostgreSQL GC/epoch P1-E 1,000 and 10,000 simulated devices).
+- Gold Project Truth Source/Docs Checkpoint Gate: https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/41176769177 — SUCCESS.
+- Gold Documentation Library Integrity: https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/41176769179 — SUCCESS.
+
+This verifies **the new SHA**, not the previously failing `31ffe539` source-gate. Backup remains on-host LXD snapshot `pre-p2-final-gate-20261031`, independent SHA256-checked PostgreSQL dump `/home/ubuntu/handoffs/gold-p2-rollback-20261031/light_remote_gold_dev.pg17.dump`, and separate offline PostgreSQL17 full restore PASS at schema 039. Gold UAT remained 4/4 active with no Guest table, rollback LXD clone stopped. No Gold UAT code deployment or schema migration was performed.
+
+**Release is not accepted.** Guest Fleet adapter previous tool-safety HOLD must not be bypassed. The source-only dispatch gate and `billOnce` have no live Operator call path; no authenticated physical signed Agent launch→M4→M6 terminal→owner billing-once E2E exists. Migration 043 and 044 are unregistered, release flags remain OFF. Do not interpret source CI PASS, synthetic SQL usage uniqueness or Redis8 CAS as real Guest execution acceptance. No production, Paddle or Gold UAT cutover before these blockers are legitimately resolved and owner-approved.
