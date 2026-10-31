@@ -24,7 +24,12 @@
     <PackageReference Include="System.Management" Version="8.0.0" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Assets\light-remote-mark.png" LogicalName="LightRemoteMark.png" />\n    <EmbeddedResource Include="Assets\\TrayStates\\connected-32.png" LogicalName="LightRemoteTray.connected.png" />\n    <EmbeddedResource Include="Assets\\TrayStates\\disconnected-32.png" LogicalName="LightRemoteTray.disconnected.png" />\n    <EmbeddedResource Include="Assets\\TrayStates\\dormant-32.png" LogicalName="LightRemoteTray.dormant.png" />\n    <EmbeddedResource Include="Assets\\TrayStates\\unlinked-32.png" LogicalName="LightRemoteTray.unlinked.png" />\n    <EmbeddedResource Include="Assets\\TrayStates\\stopped-32.png" LogicalName="LightRemoteTray.stopped.png" />
+    <EmbeddedResource Include="Assets\light-remote-mark.png" LogicalName="LightRemoteMark.png" />
+    <EmbeddedResource Include="Assets\TrayStates\connected-32.png" LogicalName="LightRemoteTray.connected.png" />
+    <EmbeddedResource Include="Assets\TrayStates\disconnected-32.png" LogicalName="LightRemoteTray.disconnected.png" />
+    <EmbeddedResource Include="Assets\TrayStates\dormant-32.png" LogicalName="LightRemoteTray.dormant.png" />
+    <EmbeddedResource Include="Assets\TrayStates\unlinked-32.png" LogicalName="LightRemoteTray.unlinked.png" />
+    <EmbeddedResource Include="Assets\TrayStates\stopped-32.png" LogicalName="LightRemoteTray.stopped.png" />
     <Content Include="Assets\light-remote.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>Always</CopyToPublishDirectory>

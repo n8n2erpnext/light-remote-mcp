@@ -10,6 +10,8 @@ const popover=read('client/windows-native/GptOperator.Client/TrayPopoverForm.cs'
 const icons=read('client/windows-native/GptOperator.Client/TrayIconFactory.cs');
 const project=read('client/windows-native/GptOperator.Client/GptOperator.Client.csproj');
 const installer=read('client/windows-native/installer/GptOperator.iss');
+assert.equal((project.match(/<EmbeddedResource /g)||[]).length,6,'all Figma art resource elements must be individual XML elements');
+assert.equal(project.includes('\\\\n    <EmbeddedResource'),false,'do not encode literal newline escapes into MSBuild XML');
 const assertValidPng=(src,size)=>{
  const file=fs.readFileSync(path.join(root,src));
  assert.ok(file.length>100,src);

@@ -480,3 +480,7 @@ Used Moryqa Studio MCP read-only to obtain exact state icon SVGs, installer/unin
 ## 2026-10-31 — Windows CI Moryqa source fixture path fix
 
 Windows-native-client run 41207613613 stopped in first new Moryqa source test: Node import.meta.url.pathname on Windows produced D:\\D:\\ path. The source test now uses fileURLToPath(import.meta.url) and path.dirname; original Linux source assertions remained PASS. This is test-fixture cross-platform correction only, not a runtime installer/Tray fix. Follow-up Windows x64 CI required.
+
+## 2026-10-31 — Windows CI native MSBuild project XML correction
+
+Windows Tray Client run 41207796302 passed Moryqa design contract, cross-platform typing, Gold Long Memory, owner filesystem and Relink tests but failed at native tray dotnet publish: five embedded PNG resources had been serialized with literal escaped newline text inside GptOperator.Client.csproj. Rewrote as six separate valid EmbeddedResource XML elements (brand mark + five Figma state icon assets); Python ElementTree XML parse and file existence PASS, Node Moryqa regression PASS. Added guard against newline escape reintroduction. Next Windows CI must verify native .NET8 and Inno compile; do not install active Windows10 until artifact accepted.
