@@ -507,6 +507,35 @@ jobs:
           if (-not (Test-Path $exe)) { throw 'Real Remote V2 executable missing' }
           "RMV2_EXE=$exe" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
+      - name: Native WinForms Tray popup visual snapshots and bounds (DPI-safe)
+        shell: pwsh
+        run: |
+          $exe = Join-Path $PWD 'dist\windows\stage\GptOperator.Client.exe'
+          $base = Join-Path $env:RUNNER_TEMP 'light-remote-v3-preview'
+          $p = Start-Process -FilePath $exe -ArgumentList @('--tray-ui-preview',$base) -PassThru
+          if (-not $p.WaitForExit(30000)) {
+            Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+            throw 'Native Tray visual preview timeout'
+          }
+          if ($p.ExitCode -ne 0) { throw "Native Tray bounds/visual preview failed: exit=$($p.ExitCode)" }
+          foreach ($mode in @('overview','advanced')) {
+            $file = "$base-$mode.png"
+            if (-not (Test-Path $file) -or (Get-Item $file).Length -lt 5000) {
+              throw "Native Tray WinForms screenshot missing/invalid: $mode"
+            }
+            Write-Host "tray-visual-preview=$file bytes=$((Get-Item $file).Length)"
+          }
+          New-Item -ItemType Directory -Force -Path 'dist\windows\ui-previews' | Out-Null
+          Copy-Item "$base-overview.png","$base-advanced.png" 'dist\windows\ui-previews'
+          Write-Host 'windows-tray-native-preview-bounds=PASS'
+      - name: Upload native UI preview images
+        uses: actions/upload-artifact@v4
+        with:
+          name: light-remote-windows-ui-preview-${{ github.sha }}
+          path: dist/windows/ui-previews/*.png
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Real Remote V2 self test
         shell: pwsh
         run: |

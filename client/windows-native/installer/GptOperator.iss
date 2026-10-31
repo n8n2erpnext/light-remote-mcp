@@ -193,6 +193,7 @@ end;
 procedure InitializeWizard();
 begin
   BuildBrandedWelcomePage();
+  InitializeBrandedInstallPhases();
   WizardForm.WelcomeLabel1.Caption := 'Install Light Remote';
   WizardForm.WelcomeLabel2.Caption :=
     'Your desktop, available to your AI.' + #13#10 + #13#10 +
@@ -211,6 +212,163 @@ begin
     WizardForm.PageDescriptionLabel.Font.Color := $00B9A89B;
   end;
 end;
+
+
+// Full three-phase Windows installation presentation, not just a custom welcome.
+// Real underlying Inno install transaction, progress and Finish RunList are kept.
+var
+  BrandedInstallingPanel: TPanel;
+  BrandedFinishedPanel: TPanel;
+
+procedure AddPhaseLabel(ParentControl: TWinControl; CaptionText: String;
+  LeftValue, TopValue, WidthValue, HeightValue, FontSize: Integer;
+  TextColor: TColor; IsBold: Boolean);
+var
+  L: TNewStaticText;
+begin
+  L := TNewStaticText.Create(WizardForm);
+  L.Parent := ParentControl;
+  L.Left := ScaleX(LeftValue);
+  L.Top := ScaleY(TopValue);
+  L.Width := ScaleX(WidthValue);
+  L.Height := ScaleY(HeightValue);
+  L.AutoSize := False;
+  L.WordWrap := True;
+  L.Caption := CaptionText;
+  L.Font.Name := 'Segoe UI';
+  L.Font.Size := FontSize;
+  L.Font.Color := TextColor;
+  if IsBold then L.Font.Style := [fsBold];
+end;
+
+procedure BuildInstallPhasePanel(Panel: TPanel; IsFinished: Boolean);
+var
+  Header, Side, Surface, Accent: TColor;
+  LabelColor, MutedColor: TColor;
+  Inner: TPanel;
+  IsDark: Boolean;
+begin
+  IsDark := LightRemoteDarkWindowsTheme();
+  if IsDark then
+  begin
+    Header := $0017110D;
+    Side := $002C2016;
+    Surface := $00221A14;
+    LabelColor := clWhite;
+    MutedColor := $00C3B1A1;
+  end
+  else
+  begin
+    Header := clWhite;
+    Side := $00FFF1EA;
+    Surface := $00FCF9F5;
+    LabelColor := $004C2B16;
+    MutedColor := $008B7564;
+  end;
+  Accent := $00F05D20;
+
+  Panel.Parent := WizardForm;
+  Panel.SetBounds(0, 0, WizardForm.ClientWidth,
+    WizardForm.CancelButton.Top - ScaleY(12));
+  Panel.BevelOuter := bvNone;
+  Panel.Color := Header;
+  Panel.Visible := False;
+
+  Inner := TPanel.Create(WizardForm);
+  Inner.Parent := Panel;
+  Inner.SetBounds(0, 0, ScaleX(185), Panel.Height);
+  Inner.BevelOuter := bvNone;
+  Inner.Color := Side;
+  AddPhaseLabel(Inner, 'LR', 21, 29, 82, 42, 29, Accent, True);
+  AddPhaseLabel(Inner, 'Light Remote', 21, 80, 152, 30, 18,
+    LabelColor, True);
+  AddPhaseLabel(Inner, 'WINDOWS SETUP', 22, 123, 150, 20, 9,
+    MutedColor, True);
+  AddPhaseLabel(Inner, '1   Welcome', 22, 192, 152, 25, 12,
+    MutedColor, False);
+  AddPhaseLabel(Inner, '2   Install & verify', 22, 237, 160, 26, 12,
+    IsFinished ? MutedColor : Accent, not IsFinished);
+  AddPhaseLabel(Inner, '3   Ready to use', 22, 283, 160, 26, 12,
+    IsFinished ? Accent : MutedColor, IsFinished);
+  AddPhaseLabel(Inner, 'Your desktop,', 22, 354, 155, 23, 11,
+    MutedColor, False);
+  AddPhaseLabel(Inner, 'available to your AI.', 22, 381, 157, 50, 11,
+    MutedColor, False);
+
+  // Real page status, not a static mock. The original Inno transaction
+  // remains authoritative; these cards only present its existing controls.
+  if IsFinished then
+  begin
+    AddPhaseLabel(Panel, 'Application installed', 218, 52, 405, 40, 25,
+      LabelColor, True);
+    AddPhaseLabel(Panel, 'Light Remote is ready', 221, 109, 415, 31, 16,
+      Accent, True);
+    AddPhaseLabel(Panel,
+      'Your agent and desktop application have been installed. ' +
+      'Your existing device identity is preserved.',
+      221, 164, 406, 90, 12, MutedColor, False);
+    AddPhaseLabel(Panel, 'Ready to use', 221, 277, 415, 35, 16,
+      LabelColor, True);
+    AddPhaseLabel(Panel, 'Open Local Wall to link or manage your device.',
+      221, 327, 410, 55, 12, MutedColor, False);
+    AddPhaseLabel(Panel,
+      'Start Light Remote tray is selected by default.',
+      221, 404, 415, 45, 11, MutedColor, False);
+  end
+  else
+  begin
+    AddPhaseLabel(Panel, 'Installing your desktop agent',
+      218, 52, 430, 62, 22, LabelColor, True);
+    AddPhaseLabel(Panel,
+      'Application files  ·  Verify Node runtime  ·  Register Agent',
+      221, 136, 418, 54, 12, MutedColor, False);
+    AddPhaseLabel(Panel, 'Installation progress',
+      221, 221, 412, 29, 14, LabelColor, True);
+    AddPhaseLabel(Panel,
+      'Verified files, runtime integrity and updater registration.',
+      221, 370, 420, 50, 11, MutedColor, False);
+    AddPhaseLabel(Panel,
+      'Installation is recoverable; do not turn off Windows during setup.',
+      221, 449, 425, 50, 10, MutedColor, False);
+  end;
+end;
+
+procedure InitializeBrandedInstallPhases();
+begin
+  BrandedInstallingPanel := TPanel.Create(WizardForm);
+  BuildInstallPhasePanel(BrandedInstallingPanel, False);
+  BrandedFinishedPanel := TPanel.Create(WizardForm);
+  BuildInstallPhasePanel(BrandedFinishedPanel, True);
+end;
+
+procedure CurPageChanged(CurPageID: Integer);
+begin
+  // Inno still manages update/rollback, progress, and [Run] checkbox.
+  BrandedInstallingPanel.Visible := CurPageID = wpInstalling;
+  BrandedFinishedPanel.Visible := CurPageID = wpFinished;
+
+  if CurPageID = wpInstalling then
+  begin
+    WizardForm.ProgressGauge.Parent := BrandedInstallingPanel;
+    WizardForm.ProgressGauge.SetBounds(ScaleX(221), ScaleY(274),
+      BrandedInstallingPanel.Width - ScaleX(245), ScaleY(23));
+    WizardForm.StatusLabel.Parent := BrandedInstallingPanel;
+    WizardForm.StatusLabel.SetBounds(ScaleX(221), ScaleY(307),
+      BrandedInstallingPanel.Width - ScaleX(245), ScaleY(38));
+    WizardForm.FilenameLabel.Parent := BrandedInstallingPanel;
+    WizardForm.FilenameLabel.SetBounds(ScaleX(221), ScaleY(342),
+      BrandedInstallingPanel.Width - ScaleX(245), ScaleY(24));
+    BrandedInstallingPanel.BringToFront();
+  end;
+  if CurPageID = wpFinished then
+  begin
+    WizardForm.RunList.Parent := BrandedFinishedPanel;
+    WizardForm.RunList.SetBounds(ScaleX(221), ScaleY(453),
+      BrandedFinishedPanel.Width - ScaleX(240), ScaleY(64));
+    BrandedFinishedPanel.BringToFront();
+  end;
+end;
+
 
 var
   InstallTransactionStarted: Boolean;

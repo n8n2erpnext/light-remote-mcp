@@ -16,6 +16,7 @@ internal sealed class TrayPopoverForm : Form
     private bool _wallOnline;
     private bool _connected;
     private bool _fleetReady;
+    private bool _advanced;
     private static readonly Dictionary<TrayVisualState, Image> Icons = new();
 
     public TrayPopoverForm(Func<string, Task> dispatch)
@@ -26,7 +27,11 @@ internal sealed class TrayPopoverForm : Form
         TopMost = true;
         StartPosition = FormStartPosition.Manual;
         ClientSize = new Size(500, 740);
-        AutoScaleMode = AutoScaleMode.Dpi;
+        // Popup coordinates are in physical pixels; WinForms DPI autoscales
+        // text controls but NOT the authored card geometry consistently.
+        // On owner's Windows 10 DPI=144 (150%), this clipped headers/buttons.
+        // Keep a pixel grid and use explicit pixel fonts for visual labels.
+        AutoScaleMode = AutoScaleMode.None;
         BackColor = UiTheme.Border;
         Padding = new Padding(2);
         AccessibleName = "Light Remote tray";
@@ -46,6 +51,7 @@ internal sealed class TrayPopoverForm : Form
     public void Toggle(Point anchor)
     {
         if (Visible) { Hide(); return; }
+        _advanced = false;
         Render();
         var area = Screen.FromPoint(anchor).WorkingArea;
         var width = Math.Min(Width, area.Width);
@@ -55,6 +61,41 @@ internal sealed class TrayPopoverForm : Form
             Math.Clamp(anchor.Y - height - 12, area.Top, area.Bottom - height));
         Show();
         Activate();
+    }
+
+    // CI/owner screenshot probe. Does not pair or change a device, requires
+    // no Agent, and can render both pages using the exact native WinForms tree.
+    internal void SavePreview(string filename, bool advanced)
+    {
+        _advanced = advanced;
+        Render();
+        using var output = new Bitmap(ClientSize.Width, ClientSize.Height);
+        DrawToBitmap(output, new Rectangle(Point.Empty, ClientSize));
+        output.Save(filename, System.Drawing.Imaging.ImageFormat.Png);
+    }
+
+    internal void AssertLayoutFits()
+    {
+        Render();
+        VerifyBounds(this, "popover");
+        _advanced = true;
+        Render();
+        VerifyBounds(this, "advanced");
+    }
+
+    private static void VerifyBounds(Control container, string prefix)
+    {
+        foreach (Control child in container.Controls)
+        {
+            var bounds = child.Bounds;
+            if (bounds.Left < 0 || bounds.Top < 0 ||
+                bounds.Right > container.ClientSize.Width + 1 ||
+                bounds.Bottom > container.ClientSize.Height + 1)
+                throw new InvalidOperationException(
+                    "tray_ui_layout_overflow:" + prefix + "/" + child.Name +
+                    ":" + bounds + " inside " + container.ClientSize);
+            VerifyBounds(child, prefix);
+        }
     }
 
     protected override void OnDeactivate(EventArgs e)
@@ -90,6 +131,14 @@ internal sealed class TrayPopoverForm : Form
         return panel;
     }
 
+    // Figma coordinates and heights here are physical pixels, so font height
+    // must be pixel-based too. 1pt = 96/72px at the authored baseline, with
+    // no additional 150%-DPI inflation from Windows. All labels are readable
+    // at 100%, 125%, 150% and 200% system display scaling.
+    private static Font PopoverFont(float pointAtReferenceDpi, bool bold)
+        => new("Segoe UI", pointAtReferenceDpi * (96f / 72f),
+            bold ? FontStyle.Bold : FontStyle.Regular, GraphicsUnit.Pixel);
+
     private static Label TextLine(Control parent, string content,
         int x, int y, int width, int height, float size, Color color,
         bool bold = false, ContentAlignment alignment = ContentAlignment.MiddleLeft)
@@ -99,7 +148,7 @@ internal sealed class TrayPopoverForm : Form
             Text = content,
             Location = new Point(x, y),
             Size = new Size(width, height),
-            Font = UiTheme.Font(size, bold ? FontStyle.Bold : FontStyle.Regular),
+            Font = PopoverFont(size, bold),
             ForeColor = color,
             BackColor = Color.Transparent,
             AutoSize = false,
@@ -123,7 +172,7 @@ internal sealed class TrayPopoverForm : Form
             FlatStyle = FlatStyle.Flat,
             BackColor = UiTheme.SurfaceAlt,
             ForeColor = UiTheme.Text,
-            Font = UiTheme.Font(9.5f, FontStyle.Bold),
+            Font = PopoverFont(9.5f, true),
             TextAlign = ContentAlignment.MiddleCenter,
             UseVisualStyleBackColor = false,
             Cursor = enabled ? Cursors.Hand : Cursors.Default,
@@ -135,6 +184,12 @@ internal sealed class TrayPopoverForm : Form
         parent.Controls.Add(button);
         button.Click += async (_, _) =>
         {
+            if (code == "more" || code == "overview")
+            {
+                _advanced = code == "more";
+                Render();
+                return;
+            }
             Hide();
             try { await _dispatch(code); }
             catch { /* The owning TrayApplicationContext logs action failures. */ }
@@ -158,6 +213,40 @@ internal sealed class TrayPopoverForm : Form
         _ => "Stopped"
     };
 
+    // Advanced actions are rendered in the SAME native Figma-styled popover.
+    // Do not open the legacy white ContextMenuStrip from More actions.
+    private void RenderAdvanced(Control root)
+    {
+        TextLine(root, "Light Remote", 24, 19, 420, 29, 16f, UiTheme.Text, bold: true);
+        TextLine(root, "Device controls · " + StatusText(_visual), 24, 57,
+            430, 26, 10.5f, UiTheme.Muted);
+        Card(root, 23, 95, 452, 1);
+        Action(root, "‹  Back to overview", "overview", 23, 112, 452, 37);
+        TextLine(root, "ACCOUNT", 24, 171, 430, 23, 10f, UiTheme.Muted, bold: true);
+        Action(root, "Manage Account", "account", 23, 205, 452, 41);
+        Action(root, "Open Local Wall", "wall", 23, 255, 219, 41, _wallOnline);
+        Action(root, "Open Fleet", "fleet", 259, 255, 219, 41, _fleetReady);
+
+        TextLine(root, "DEVICE CONTROLS", 24, 316, 430, 23, 10f, UiTheme.Muted, bold: true);
+        Action(root, _connected ? "Disconnect" : "Connect", "connect",
+            23, 351, 219, 42, _wallOnline && _status.Enrolled);
+        if (!_connected)
+            Action(root, "Link / Relink device", "relink",
+                259, 351, 219, 42, _wallOnline);
+        else
+            Action(root, "Approve Agent / Manage", "approval",
+                259, 351, 219, 42, _wallOnline);
+        Action(root, "Restart Light Remote", "restart", 23, 402, 219, 42);
+        Action(root, "Stop Light Remote", "service", 259, 402, 219, 42);
+        Action(root, "Check for updates", "updates", 23, 453, 452, 42);
+        Card(root, 23, 524, 452, 1);
+        TextLine(root, "Installed locally · Device identity stays on this PC",
+            25, 545, 445, 24, 10f, UiTheme.Muted);
+        TextLine(root, "Background Agent remains active if you close this UI.",
+            25, 576, 445, 41, 10f, UiTheme.Muted);
+        Action(root, "Exit Tray UI", "quit", 23, 661, 452, 46);
+    }
+
     private void Render()
     {
         SuspendLayout();
@@ -173,6 +262,12 @@ internal sealed class TrayPopoverForm : Form
             Padding = Padding.Empty
         };
         Controls.Add(root);
+        if (_advanced)
+        {
+            RenderAdvanced(root);
+            ResumeLayout();
+            return;
+        }
 
         var logo = new PictureBox
         {

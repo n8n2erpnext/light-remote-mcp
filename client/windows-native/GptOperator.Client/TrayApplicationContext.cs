@@ -112,7 +112,8 @@ internal sealed class TrayApplicationContext : ApplicationContext
                 case "service": await ToggleServiceAsync(); break;
                 case "updates": await CheckForUpdatesAsync(); break;
                 case "quit": ExitThread(); break;
-                case "more": _advancedMenu.Show(Cursor.Position); break;
+                // "more" and "overview" are handled internally by TrayPopoverForm.
+                case "more": break;
             }
         });
         // Both mouse buttons open the branded V3 tray. Advanced native actions

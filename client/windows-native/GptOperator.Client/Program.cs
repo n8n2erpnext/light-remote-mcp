@@ -17,6 +17,33 @@ internal static class Program
             Environment.ExitCode = WindowsBootEvidence.SelfTest(args[1]) ? 0 : 1;
             return;
         }
+        // Deterministic REAL WinForms visual probe for CI. Bypasses normal
+        // agent/mutex and never touches account, device state or Local Wall.
+        var previewIndex = Array.IndexOf(args, "--tray-ui-preview");
+        if (previewIndex >= 0 && previewIndex + 1 < args.Length)
+        {
+            try
+            {
+                ApplicationConfiguration.Initialize();
+                var target = args[previewIndex + 1];
+                Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(target))!);
+                using var popup = new TrayPopoverForm(_ => Task.CompletedTask);
+                popup.UpdateState(
+                    new TrayAgentSnapshot(true, true, true, "connected", "VIP",
+                        "", true, null, null, "DESKTOP-VA16D27"),
+                    TrayVisualState.Connected, true, true, true);
+                popup.AssertLayoutFits();
+                popup.SavePreview(target + "-overview.png", false);
+                popup.SavePreview(target + "-advanced.png", true);
+                Environment.ExitCode = 0;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine(ex.ToString());
+                Environment.ExitCode = 1;
+            }
+            return;
+        }
         AppPaths.EnsureDirectories();
         var selfTestIndex = Array.IndexOf(args, "--self-test-output");
         if (selfTestIndex >= 0 && selfTestIndex + 1 < args.Length)
