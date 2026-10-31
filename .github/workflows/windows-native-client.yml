@@ -507,51 +507,6 @@ jobs:
           if (-not (Test-Path $exe)) { throw 'Real Remote V2 executable missing' }
           "RMV2_EXE=$exe" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
-      - name: Native WinForms Tray popup visual snapshots and bounds (DPI-safe)
-        shell: pwsh
-        run: |
-          $exe = Join-Path $PWD 'dist\windows\stage\GptOperator.Client.exe'
-          $base = Join-Path $env:RUNNER_TEMP 'light-remote-v3-preview'
-          $p = Start-Process -FilePath $exe -ArgumentList @('--tray-ui-preview',$base) -PassThru
-          if (-not $p.WaitForExit(30000)) {
-            Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
-            throw 'Native Tray visual preview timeout'
-          }
-          if ($p.ExitCode -ne 0) { throw "Native Tray bounds/visual preview failed: exit=$($p.ExitCode)" }
-          New-Item -ItemType Directory -Force -Path 'dist\windows\ui-previews' | Out-Null
-          foreach ($mode in @('overview','advanced')) {
-            $file = "$base-$mode.png"
-            if (-not (Test-Path $file) -or (Get-Item $file).Length -lt 200) {
-              throw "Native Tray WinForms screenshot missing/invalid: $mode"
-            }
-            $bitmap = [System.Drawing.Bitmap]::new($file)
-            try {
-              if ($bitmap.Width -ne 500 -or $bitmap.Height -ne 740) {
-                throw "Native Tray screenshot has wrong dimensions ($($bitmap.Width)x$($bitmap.Height)): $mode"
-              }
-              $colors = [System.Collections.Generic.HashSet[int]]::new()
-              for ($y = 10; $y -lt $bitmap.Height; $y += 11) {
-                for ($x = 10; $x -lt $bitmap.Width; $x += 11) {
-                  [void]$colors.Add($bitmap.GetPixel($x,$y).ToArgb())
-                }
-              }
-              Write-Host "tray-real-winforms-preview=$mode bytes=$((Get-Item $file).Length) unique-sampled-colors=$($colors.Count) dimensions=$($bitmap.Width)x$($bitmap.Height)"
-              if ($colors.Count -lt 8) {
-                throw "Tray DrawToBitmap was blank/underdrawn: $mode unique=$($colors.Count)"
-              }
-            } finally { $bitmap.Dispose() }
-            Copy-Item $file 'dist\windows\ui-previews'
-          }
-          Write-Host 'windows-tray-native-preview-dimensions-pixel-diversity-bounds=PASS'
-      - name: Upload native UI preview images
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: light-remote-windows-ui-preview-${{ github.sha }}
-          path: dist/windows/ui-previews/*.png
-          if-no-files-found: warn
-          retention-days: 14
-
       - name: Real Remote V2 self test
         shell: pwsh
         run: |
@@ -727,6 +682,51 @@ jobs:
           if ($compactBytes -ge $fullBytes) { throw "compact installer is not smaller: compact=$compactBytes full=$fullBytes" }
           Write-Host "windows-compact-vs-full-bytes=$compactBytes/$fullBytes"
           "WINDOWS_COMPACT_INSTALLER=$compact" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Native WinForms Tray popup visual snapshots and bounds (DPI-safe)
+        shell: pwsh
+        run: |
+          $exe = Join-Path $PWD 'dist\windows\stage\GptOperator.Client.exe'
+          $base = Join-Path $env:RUNNER_TEMP 'light-remote-v3-preview'
+          $p = Start-Process -FilePath $exe -ArgumentList @('--tray-ui-preview',$base) -PassThru
+          if (-not $p.WaitForExit(30000)) {
+            Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+            throw 'Native Tray visual preview timeout'
+          }
+          if ($p.ExitCode -ne 0) { throw "Native Tray bounds/visual preview failed: exit=$($p.ExitCode)" }
+          New-Item -ItemType Directory -Force -Path 'dist\windows\ui-previews' | Out-Null
+          foreach ($mode in @('overview','advanced')) {
+            $file = "$base-$mode.png"
+            if (-not (Test-Path $file) -or (Get-Item $file).Length -lt 200) {
+              throw "Native Tray WinForms screenshot missing/invalid: $mode"
+            }
+            $bitmap = [System.Drawing.Bitmap]::new($file)
+            try {
+              if ($bitmap.Width -ne 500 -or $bitmap.Height -ne 740) {
+                throw "Native Tray screenshot has wrong dimensions ($($bitmap.Width)x$($bitmap.Height)): $mode"
+              }
+              $colors = [System.Collections.Generic.HashSet[int]]::new()
+              for ($y = 10; $y -lt $bitmap.Height; $y += 11) {
+                for ($x = 10; $x -lt $bitmap.Width; $x += 11) {
+                  [void]$colors.Add($bitmap.GetPixel($x,$y).ToArgb())
+                }
+              }
+              Write-Host "tray-real-winforms-preview=$mode bytes=$((Get-Item $file).Length) unique-sampled-colors=$($colors.Count) dimensions=$($bitmap.Width)x$($bitmap.Height)"
+              if ($colors.Count -lt 8) {
+                throw "Tray DrawToBitmap was blank/underdrawn: $mode unique=$($colors.Count)"
+              }
+            } finally { $bitmap.Dispose() }
+            Copy-Item $file 'dist\windows\ui-previews'
+          }
+          Write-Host 'windows-tray-native-preview-dimensions-pixel-diversity-bounds=PASS'
+      - name: Upload native UI preview images
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: light-remote-windows-ui-preview-${{ github.sha }}
+          path: dist/windows/ui-previews/*.png
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Install tray, background agent and updater tasks
         timeout-minutes: 4

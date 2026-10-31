@@ -68,7 +68,18 @@ internal sealed class TrayPopoverForm : Form
     internal void SavePreview(string filename, bool advanced)
     {
         _advanced = advanced;
+        // DrawToBitmap on a never-shown Form paints only the Form background
+        // (observed 500x740, one color, 3100 bytes in Windows CI). Open its
+        // real HWND/control tree first; this mode is CI-only and bypasses Agent.
+        if (!Visible)
+        {
+            Location = new Point(32, 32);
+            Show();
+        }
         Render();
+        Application.DoEvents();
+        Refresh();
+        Application.DoEvents();
         using var output = new Bitmap(ClientSize.Width, ClientSize.Height);
         DrawToBitmap(output, new Rectangle(Point.Empty, ClientSize));
         output.Save(filename, System.Drawing.Imaging.ImageFormat.Png);
