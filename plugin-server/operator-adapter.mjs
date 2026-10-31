@@ -102,12 +102,19 @@ export class AccountOperatorAdapter{
       helperReady:false,reused:Boolean(response.reused),
       nextAction:response.nextAction||'request_not_ready'};
   }
-  async pollAbV2Request({requestId,deviceId,shortId}={}){
-    if(process.env.LR_GOLD_AB_V2_HELPER_POLL_ATTACH!=='1')
+  async pollAbV2Request({requestId,deviceId,shortId,guestShare=false}={}){
+    if((guestShare?process.env.LR_GOLD_PRO_SHARE_GUEST_AB_POLL:
+       process.env.LR_GOLD_AB_V2_HELPER_POLL_ATTACH)!=='1')
       return {status:'poll_unavailable',helperReady:false,nextAction:'use_legacy_a_code'};
     const proof=signGoldAbV2HelperPoll({identity:this.identity,
-      requestId,deviceId,shortId});
-    const result=await callOperatorJson('POST','/v1/plugin/abv2/request-poll',proof);
+      requestId,deviceId,shortId,purpose:guestShare?'guest-poll':'poll'});
+    const result=await callOperatorJson('POST',guestShare?
+      '/v1/plugin/pro-share/request-poll':'/v1/plugin/abv2/request-poll',proof);
+    // Cross-account Guest poll deliberately does not attach to the owner-only
+    // working session/execute routes before a dedicated dispatch lane exists.
+    if(guestShare)return {status:result.status||'approval_pending',requestId,
+     approvalState:result.approvalState||'pending',helperReady:false,
+     nextAction:result.nextAction||'guest_dispatch_not_enabled'};
     if(result.status!=='ready'||result.helperReady!==true)
       return {status:result.status||'approval_pending',requestId,
        approvalState:result.approvalState||'pending',helperReady:false,

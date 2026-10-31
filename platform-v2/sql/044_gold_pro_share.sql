@@ -35,7 +35,10 @@ CREATE TRIGGER lr_gold_pro_share_ab_owner_guard
  ON lr_ab_grants FOR EACH ROW
  EXECUTE FUNCTION lr_gold_pro_share_ab_owner_from_connection();
 ALTER TABLE lr_ab_grants
- DROP CONSTRAINT lr_ab_grants_connection_id_device_id_account_id_fkey;
+ -- PG004 already removed this legacy FK on actual Gold schema; retain
+ -- PG004's two-column device+connection owner-independent FK and add the
+ -- stronger connection-owner triple FK below.
+ DROP CONSTRAINT IF EXISTS lr_ab_grants_connection_id_device_id_account_id_fkey;
 ALTER TABLE lr_ab_grants
  ADD CONSTRAINT lr_ab_grants_owner_connection_fk
  FOREIGN KEY(connection_id,device_id,connection_owner_account_id)
@@ -47,6 +50,13 @@ ALTER TABLE lr_ab_grants
   OR purpose='team-member'
   OR (purpose='pro-share-guest' AND account_id<>connection_owner_account_id)
  );
+-- PG004 deliberately requires direct grants for native Agent bindings.
+-- The Guest must retain a distinct purpose and exact actor identity through
+-- the existing composite FK; never switch all bindings to permissive text.
+ALTER TABLE lr_agent_bindings DROP CONSTRAINT IF EXISTS lr_binding_direct_grant_only;
+ALTER TABLE lr_agent_bindings
+ ADD CONSTRAINT lr_binding_pro_share_or_device_only
+ CHECK(grant_purpose IN ('device','pro-share-guest'));
 CREATE TABLE lr_gold_pro_share_addons (
   owner_account_id TEXT PRIMARY KEY REFERENCES lr_accounts(account_id) ON DELETE CASCADE,
   state TEXT NOT NULL CHECK(state IN ('trial','active','paused','revoked')),

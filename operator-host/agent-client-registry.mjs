@@ -78,7 +78,11 @@ export class AgentClientRegistry {
     else if(requestId){for(const candidate of this.rows.values()){const prior=candidate.bindings?.[grant.deviceId];if(!candidate.closedAt&&candidate.accountId===aid&&candidate.agentId===agent&&prior?.pairingRequestId===requestId&&prior?.grantId===grant.grantId){row=candidate;break;}}}
     if(!row){const id=`lrc_${crypto.randomBytes(18).toString('base64url')}`;row={clientSessionId:id,accountId:aid,agentId:agent,createdAt:now,lastActivityAt:now,expiresAt:now+this.ttlMs,closedAt:null,closeReason:null,defaultDeviceId:null,bindings:{}};this.rows.set(id,row);this.emit({type:'agent_client_created',accountId:aid,agentId:agent,clientSessionId:id,status:'active'});}
     row.bindings=row.bindings&&typeof row.bindings==='object'?row.bindings:{};
-    const previous=row.bindings[grant.deviceId];row.bindings[grant.deviceId]={deviceId:grant.deviceId,grantId:grant.grantId,connectionId:grant.connectionId,boundAt:previous?.boundAt||now,lastActivityAt:now,pairingRequestId:requestId||previous?.pairingRequestId||null,workingContext:previous?.workingContext||null};row.defaultDeviceId=grant.deviceId;this._renew(row,now);
+    const previous=row.bindings[grant.deviceId];row.bindings[grant.deviceId]={deviceId:grant.deviceId,grantId:grant.grantId,
+      grantPurpose:String(grant.purpose||'device'),connectionId:grant.connectionId,
+      boundAt:previous?.boundAt||now,lastActivityAt:now,
+      pairingRequestId:requestId||previous?.pairingRequestId||null,
+      workingContext:previous?.workingContext||null};row.defaultDeviceId=grant.deviceId;this._renew(row,now);
     this._persist();this.emit({type:'agent_client_device_bound',accountId:aid,agentId:agent,clientSessionId:row.clientSessionId,deviceId:grant.deviceId,connectionId:grant.connectionId,grantId:grant.grantId,status:'authorized'});
     return this.view(row.clientSessionId,{agentId:agent});
   }

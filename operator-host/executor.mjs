@@ -58,6 +58,7 @@ import { handleAccountRoutes } from './executor-routes-account.mjs';
 import {createGoldSessionOwnerHttp} from './gold-session-owner-http.mjs';
 import {createGoldProShareAccountHttp,createGoldProShareStoreFromOperator} from './pro-share-account-http.mjs';
 import {createGoldProShareGuestHelper} from './pro-share-guest-helper.mjs';
+import {createGoldProShareGuestPoll} from './pro-share-guest-poll.mjs';
 import {createGoldProShareGuestApproval} from './pro-share-guest-approval.mjs';
 import {createGoldAbV2OwnerHttpFromOperator} from './gold-ab-v2-owner-http.mjs';
 import {createGoldAbV2GrantOperator} from './gold-ab-v2-grant-operator.mjs';
@@ -1661,6 +1662,10 @@ const goldProShareGuestHelper=createGoldProShareGuestHelper({
  env:process.env,storage:goldStorage,store:goldProShareGuestStore,
  accounts,devices,connections,enrollments,readJson,sendJson
 });
+const goldProShareGuestPoll=createGoldProShareGuestPoll({
+ env:process.env,storage:goldStorage,store:goldProShareGuestStore,
+ accounts,devices,connections,enrollments,accessGrants,readJson,sendJson
+});
 const goldProShareGuestApproval=createGoldProShareGuestApproval({
  env:process.env,storage:goldStorage,accounts,devices,connections,enrollments,
  accessGrants,goldRegistries,store:goldProShareGuestStore,
@@ -1693,6 +1698,7 @@ const server = http.createServer(async (req, res) => {
     await goldAbV2OwnerHttp(req,res,url);
     if(res.headersSent)return;
     if(await goldProShareGuestHelper(req,res,url))return;
+    if(await goldProShareGuestPoll(req,res,url))return;
     if(await goldAbV2HelperTarget(req,res,url))return;
     if(await goldAbV2HelperPoll(req,res,url))return;
     await handlePluginRoutes(req,res,url,routeDeps());

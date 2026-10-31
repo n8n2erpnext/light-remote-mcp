@@ -180,7 +180,8 @@ export function registerPluginTools(server,identity){
          x.continuation||x.helperGroup)
         throw new Error('abv2_helper_poll_input_conflict');
       return a.pollAbV2Request({requestId:x.pollRequestId,
-       deviceId:x.pollDeviceId,shortId:x.pollShortId});
+       deviceId:x.pollDeviceId,shortId:x.pollShortId,
+       guestShare:x.guestShare===true});
     }
     if((x.startAbV2||x.requestKey)&&!x.targetQuery)
       throw new Error('abv2_helper_target_required');
