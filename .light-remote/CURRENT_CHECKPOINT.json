@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-31",
-  "status": "Unified P2-I4B2 SOURCE candidate: reuse existing Team operation/capability fence, Gold A/B V2 signed OAuth/Redis B/24h PG coordinator, owner Account CSRF to issue Guest-purpose A/B for one accepted Free Guest on explicitly shared device. Owner/Team source regression PASS. Guest Helper-ready/dispatch/billing NOT wired, PG044 native migration not tested and not in lock; Gold UAT/prod OFF. SHA pending.",
+  "status": "Gold Unified P2-I4B2 SOURCE 737b7eb47c3898b5fe531e818d495e0a5f38bb24 pushed clean HEAD=origin. Pro Share reuses Team shared capabilities + Gold V2 OAuth/Redis B/staged PG 24h grant with verified Free guest actor and strict owner/device/purpose. Source mock/legacy regression PASS, 398 docs links. Guest Helper-ready/dispatch/billing OFF, native PG044 migration untested/outside lock, UAT/prod unchanged.",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -89,7 +89,7 @@
     "Candidate PG044 modifies native lr_ab_grants FK via connection_owner_account_id trigger for delegated Guest actor, NOT tested on native PG clone and NOT in migration lock; do not deploy before combined physical release acceptance",
     "P2-I4B2 Guest OAuth B issued/approved source but Guest poll/Agent binding/actual cross-account dispatch/owner-paid meter still OFF, no real Guest ready"
   ],
-  "nextAction": "P2-I4C: reuse existing Gold native AgentClient attach/Helper poll for verified Free Guest distinct actor, then adapt authorized device/target routing and queue+dispatch to call Pro Share fresh seat/device/purpose checks, shared Team capability intersection, one-job guest policy and owner-billed exactly-once operation metering. Combine PG044 full schema native FK trigger validation+OAuth owner Guest browser on a single frozen isolated/UAT candidate, no more standalone A/B test ladder. All flags OFF on Gold UAT/prod, Pro Team five-seat remains frozen.",
+  "nextAction": "P2-I4C: reuse existing Gold OAuth AgentClient helper poll/native binding and target routing for Pro Share guest with fresh owner/device/seat grant checks; queue and dispatch revalidation and shared Pro Team capability policy, one Guest worker, exact-once owner billing, revoke invalidation. Candidate PG044 full native FK/trigger on isolated environment + real Guest owner OAuth browser in ONE final frozen-candidate integrated UAT. Keep Gold UAT/prod flags OFF, no migration lock or Paddle changes until owner signoff.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -463,7 +463,7 @@
       "billing": "OFF",
       "nativePgTest": "NOT_RUN",
       "liveGuestExecution": false,
-      "sourceSha": "PENDING_COMMIT",
+      "sourceSha": "737b7eb47c3898b5fe531e818d495e0a5f38bb24",
       "githubActions": "PUSH_RUN_NOT_INDEPENDENTLY_VERIFIED",
       "accountHttp": "operator-host/pro-share-account-http.mjs",
       "accountProxy": "plugin-server/account-pro-share.mjs",
@@ -476,7 +476,7 @@
       "reusedTeamCapability": "operator-host/shared-device-capability-policy.mjs used by team-dispatch-authority and ProShareStore authorizeOperation",
       "reusedNativeAB": "GoldAbV2PendingRedis actor!=owner purpose pro-share-guest, DeviceAccessGrantRegistry approveVerifiedV2 and staged PG 2-phase",
       "pg044Delegation": "candidate SQL native grants connection_owner_account_id trigger + FK + purpose checks; NOT TESTED; NO LIVE MIGRATION",
-      "b2SourceFixtures": "PASS: guest helper, owner B grant coordinator, ProShare account CSRF proxy, Team scoped revoke, owner signed B regression",
+      "b2SourceFixtures": "PASS: Guest OAuth HMAC shortID resolve/issue, Account CSRF owner B/PG two-phase, owner ABV2/Team/V1 regression",
       "guestHelperReady": false
     }
   }
