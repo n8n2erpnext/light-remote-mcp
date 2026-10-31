@@ -34,6 +34,10 @@ export class GoldGuestTerminalSettlementPg {
     ['lr_gold_m4_resource:'+dev]);
    const checked=await db.query(`SELECT g.job_id,g.operation_id,
      g.owner_account_id,g.guest_account_id,g.device_id,
+     g.agent_id,g.grant_id,g.connection_id,g.permission_revision,
+     g.operation_id,g.operation AS guest_operation,
+     o.state AS outbound_state,o.command_id,o.payload_sha256,
+     o.ticket_envelope,
      g.state AS queue_state,s.state AS slot_state,
      s.process_id AS slot_pid,s.terminal_state AS slot_terminal_state,
      s.terminal_acked_at AS slot_terminal_acked_at,
@@ -52,6 +56,12 @@ export class GoldGuestTerminalSettlementPg {
       AND s.guest_account_id=g.guest_account_id
       AND s.device_id=g.device_id
       AND s.grant_id=g.grant_id AND s.connection_id=g.connection_id
+    JOIN lr_gold_pro_share_guest_outbound o ON o.job_id=g.job_id
+      AND o.operation_id=g.operation_id
+      AND o.owner_account_id=g.owner_account_id
+      AND o.guest_account_id=g.guest_account_id
+      AND o.device_id=g.device_id AND o.grant_id=g.grant_id
+      AND o.connection_id=g.connection_id
     JOIN lr_gold_personal_agent_work w ON w.job_id=g.job_id
       AND w.account_id=g.owner_account_id AND w.device_id=g.device_id
     JOIN lr_gold_job_records j ON j.job_id=g.job_id
@@ -64,7 +74,8 @@ export class GoldGuestTerminalSettlementPg {
     WHERE g.job_id=$1
     FOR UPDATE OF g,s,w,j`,[jobId]);
    if(checked.rowCount!==1)deny('guest_terminal_canonical_rows_missing',403);
-   const r=checked.rows[0],j=r.launch_evidence;
+   const r=checked.rows[0],j=r.launch_evidence,
+    proof=j?.guestDelegation,ticket=r.ticket_envelope?.ticket;
    // A duplicate after COMMIT must not be confused with a missing ACK or
    // an arbitrary terminal claim. Require the exact signed ledger, durable
    // M6 ACK and corresponding canonical completed states for idempotency.
@@ -73,12 +84,38 @@ export class GoldGuestTerminalSettlementPg {
     r.launch_job_status==='ok'&&
     j?.signedResultVerified===true&&
     j?.signedGuestDelegationVerified===true&&
-    j?.guestDelegation?.purpose==='pro-share-guest'&&
-    j?.guestDelegation?.jobId===jobId&&
-    j?.guestDelegation?.ownerAccountId===r.owner_account_id&&
-    j?.guestDelegation?.guestAccountId===r.guest_account_id&&
-    j?.guestDelegation?.deviceId===r.device_id&&
-    j?.guestDelegation?.processId===r.slot_pid;
+    j?.jobId===jobId&&j?.accountId===r.owner_account_id&&
+    j?.deviceId===r.device_id&&j?.status==='ok'&&
+    j?.jobRole==='process_launch'&&
+    j?.effectState==='result_observed'&&
+    j?.exitCode===0&&
+    Number.isSafeInteger(j?.finishedAt)&&j.finishedAt>0&&
+    r.guest_operation==='process'&&
+    r.outbound_state==='unknown'&&
+    proof?.purpose==='pro-share-guest'&&
+    proof?.jobId===jobId&&
+    proof?.ownerAccountId===r.owner_account_id&&
+    proof?.guestAccountId===r.guest_account_id&&
+    proof?.deviceId===r.device_id&&
+    proof?.processId===r.slot_pid&&
+    proof?.agentId===r.agent_id&&
+    proof?.grantId===r.grant_id&&
+    proof?.connectionId===r.connection_id&&
+    proof?.operationId===r.operation_id&&
+    Number(proof?.permissionRevision)===Number(r.permission_revision)&&
+    proof?.payloadSha256===r.payload_sha256&&
+    proof?.commandId===r.command_id&&
+    ticket?.purpose==='pro-share-guest-process'&&
+    ticket?.jobId===jobId&&ticket?.commandId===r.command_id&&
+    ticket?.ownerAccountId===r.owner_account_id&&
+    ticket?.guestAccountId===r.guest_account_id&&
+    ticket?.deviceId===r.device_id&&
+    ticket?.agentId===r.agent_id&&
+    ticket?.grantId===r.grant_id&&
+    ticket?.connectionId===r.connection_id&&
+    ticket?.operationId===r.operation_id&&
+    Number(ticket?.permissionRevision)===Number(r.permission_revision)&&
+    ticket?.payloadSha256===r.payload_sha256;
    const durableAckOk=
     /^lp_[A-Za-z0-9_-]{20,80}$/.test(r.slot_pid||'')&&
     r.ack_owner===r.owner_account_id&&

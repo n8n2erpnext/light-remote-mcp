@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-31",
-  "status": "Gold P2-I4C3c2b3c1 source ef3fa21289e26b3f6513af07270abd517138c6ef pushed, HEAD=origin clean: Guest M6 terminal exact idempotent restart readback only if canonical queue/slot terminal + M3 finished matching disposition, no M4 claim, exact previously signed Gold Guest launch and exact durable M6 ACK outcome/timestamp. No replay OS effect or second resource update, partial or forged ACK denied. 26/26 mock/source regression suites PASS; disposable no-network PG17 001-044 + source M6 SELECT PREPARE and synthetic terminal continuity PASS; 475 document links PASS. No previously safety-blocked Fleet adapter, no physical Agent E2E or actual Gold UAT schema clone, flags OFF, Gold UAT/prod/Paddle/migrations.lock unchanged. GitHub Actions exact SHA unverified.",
+  "status": "P2-I4C3c2b3c2a source-only: M6 signed terminal proof now requires immutable SQL044 outbound ticket and exact Guest signed launch delegation scope (job, owner/Guest, device, Agent, grant, connection, operation, revision, command ID, intent SHA, PID), GoldJobLedger verified process_launch/result_observed/exit0; all before first M6 settlement and duplicate readback. Mock and isolated PG17 SQL001-044 + source M6 SELECT PREPARE PASS. No installed Guest Agent E2E, no Fleet adapter/clone. Commit pending; UAT/prod/PG044/Paddle untouched, flags OFF.",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -70,7 +70,8 @@
     "P2-I4C3c2b2 SOURCE: one-shot Guest outbound command epoch/Ed25519 ticket SQL044 + signed ledger launch binder M4/slot without circular proof; native PG17 unique command/FK/outbound SELECT queries PASS.",
     "P2-I4C3c2b3a: corrected outbound SQL state selection; default-OFF GoldJobLedger restart preserve Guest UNKNOWN, default owner unchanged; native PG17/outbound SQL and targeted tests PASS.",
     "P2-I4C3c2b3b-source: signed launch now submitted+exact PID and M4; source-only M6 exact durable signed terminal ACK atomic M3/M4/Guest settlement; source mock and disposable full PG17 terminal fixture PASS.",
-    "P2-I4C3c2b3c1: signed M6 exact read-only ACK replay idempotency after restart; mismatched receipt/partial settlement denies, no double M3/M4 release. Source and disposable offline PG17 regression PASS."
+    "P2-I4C3c2b3c1: signed M6 exact read-only ACK replay idempotency after restart; mismatched receipt/partial settlement denies, no double M3/M4 release. Source and disposable offline PG17 regression PASS.",
+    "P2-I4C3c2b3c2a: M6 terminal immutable signed Guest ticket/Device delegation full scope and Gold process_launch status/effect/exit proof, negative guest grant/connection/command/payload/revision/role tests PASS; offline PG17 source SQL PREPARE PASS."
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -111,9 +112,10 @@
     "Guest Operator outbound adapter not mounted; native launch binder SQL compile and comprehensive fixture NOT verified due safety block; M6 and physical installed Agent UAT pending.",
     "Guest Fleet adapter source execution blocked by tool safety. No mounted real outbound, no signed Agent launch/M6 E2E. PreserveGuestUnknown option deliberately not enabled on Gold UAT.",
     "Guest Fleet adapter remains tool-safety-blocked and not mounted; physical Agent signed terminal E2E and existing Gold schema clone still pending. M6 source settlement not mounted.",
-    "Live Guest Fleet adapter remains blocked; physical Agent E2E and actual existing Gold schema clone not completed. No UAT migration or Guest activation permitted."
+    "Live Guest Fleet adapter remains blocked; physical Agent E2E and actual existing Gold schema clone not completed. No UAT migration or Guest activation permitted.",
+    "Fleet adapter creation previously tool-safety blocked and still not mounted; physical installed Agent signed E2E, existing Gold schema clone and GitHub Actions exact SHA acceptance pending."
   ],
-  "nextAction": "P2-I4C3c2b3c2 HOLD: only via authorized permitted path integrate previously safety-blocked Guest Fleet adapter and signed native launch/M6 into Operator, validate exact restart, billing once on isolated Gold schema clone/physical Agent before owner release signoff. No bypass. Until then do offline source/restart/receipt audits only; keep SQL044 unregistered, Guest flags OFF.",
+  "nextAction": "P2-I4C3c2b3c2b HOLD: only authorized permitted Fleet adapter and full signed Guest process launch→M4→M6 physical acceptance using isolated existing Gold schema clone and native Agent; confirm correct restart/revocation/bill once. Prior Fleet adapter tool-safety block must not be bypassed. Until then source-only defensive tests, no UAT/prod/PG044/Paddle changes, all Guest flags OFF.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -126,10 +128,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "43fb7f8fbb50f497578f82475c5eda90b04b2ef5e2efc7c46d54baf9ed446a0b",
+    "treeDigest": "cdbcdcc322077f9d28224a180276cca44a9563b3f3a20bc4574c085827ebeace",
     "trackedFiles": 1081,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-10-31T04:44:45.638Z"
+    "recordedAt": "2026-10-31T04:59:05.005Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",

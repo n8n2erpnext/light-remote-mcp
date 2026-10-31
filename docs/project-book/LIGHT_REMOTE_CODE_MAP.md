@@ -315,3 +315,7 @@ Source CI: [selftest-gold-ab-v2-source.mjs](../../deploy/scripts/selftest-gold-a
 ### P2-I4C3c2b3c1 — Idempotent exact M6 terminal replay (source-only, OFF)
 
 - [Guest terminal settlement](../../operator-host/pro-share-guest-terminal-pg.mjs) now recognizes an already-complete Guest M3/M4/slot/queue only on *exact* signed M6 receipt readback, same original signed launch/job/PID, terminal state, ACK time and no residual claim. Never performs a second release; mixed/partial states still HOLD. [Regression](../../deploy/scripts/selftest-gold-pro-share-guest-terminal-pg.mjs) includes duplicate restart, signed receipt conflicts and partial write protections.
+
+### P2-I4C3c2b3c2a — Guest M6 immutable ticket and signed launch proof
+
+- [Guest M6 settlement](../../operator-host/pro-share-guest-terminal-pg.mjs) now requires canonical SQL044 Guest outbound `unknown`, same immutable operation/job/owner/Guest/device/grant/connection, original ticket and exact signed Device delegation with commandId, Agent, permission revision, payload hash and process ID. GoldJobLedger must report verified `process_launch` / `result_observed` / exitCode=0. First ACK and duplicate replay enforce identical proof; wrong scope never causes M3/M4 release. [Mock negative regression](../../deploy/scripts/selftest-gold-pro-share-guest-terminal-pg.mjs), native PG17 source SQL PREPARE.

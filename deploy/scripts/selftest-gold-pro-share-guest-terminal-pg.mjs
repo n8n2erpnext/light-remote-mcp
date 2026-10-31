@@ -5,11 +5,25 @@ import {GoldProShareGuestSlotPg} from '../../operator-host/pro-share-guest-slot-
 const jobId='0af5a9c1-8050-478a-83d1-5e26821cf101',
  owner='owner1',guest='guest1',device='device1',
  pid='lp_'+('p'.repeat(24));
-const signed={signedResultVerified:true,signedGuestDelegationVerified:true,
- guestDelegation:{purpose:'pro-share-guest',jobId,ownerAccountId:owner,guestAccountId:guest,
- deviceId:device,processId:pid}};
+const scope={jobId,ownerAccountId:owner,guestAccountId:guest,
+ deviceId:device,processId:pid,
+ agentId:'agent_1234567890123',grantId:'grant1',connectionId:'conn1',
+ operationId:'guestop-one-123456',permissionRevision:7,
+ payloadSha256:'a'.repeat(64),
+ commandId:'cmd_aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'};
+const signed={jobId,accountId:owner,deviceId:device,
+ status:'ok',jobRole:'process_launch',effectState:'result_observed',
+ exitCode:0,finishedAt:1850000001234,
+ signedResultVerified:true,signedGuestDelegationVerified:true,
+ guestDelegation:{purpose:'pro-share-guest',...scope}};
+const ticket={purpose:'pro-share-guest-process',...scope};
 const base={job_id:jobId,operation_id:'guestop-one-123456',
  owner_account_id:owner,guest_account_id:guest,device_id:device,
+ agent_id:scope.agentId,grant_id:scope.grantId,
+ connection_id:scope.connectionId,operation_id:scope.operationId,
+ permission_revision:7,guest_operation:'process',outbound_state:'unknown',
+ command_id:scope.commandId,payload_sha256:scope.payloadSha256,
+ ticket_envelope:{ticket},
  queue_state:'unknown',slot_state:'submitted',slot_pid:pid,
  m3_state:'unknown',launch_job_status:'ok',launch_evidence:signed,
  claim_job:jobId,claim_owner:owner,claim_device:device,
@@ -61,8 +75,22 @@ for(const modified of [
  {ack_job:'other-job'},{slot_state:'unknown'},
  {claim_state:'admitting'},
  {launch_evidence:{...signed,signedGuestDelegationVerified:false}},
+ {launch_evidence:{...signed,jobRole:'operation'}},
+ {launch_evidence:{...signed,effectState:'unknown'}},
+ {launch_evidence:{...signed,accountId:'foreign'}},
+ {launch_evidence:{...signed,exitCode:1}},
  {launch_evidence:{...signed,
   guestDelegation:{...signed.guestDelegation,guestAccountId:'foreign'}}},
+ {launch_evidence:{...signed,
+  guestDelegation:{...signed.guestDelegation,grantId:'foreign'}}},
+ {launch_evidence:{...signed,
+  guestDelegation:{...signed.guestDelegation,commandId:'cmd_fake'}}},
+ {launch_evidence:{...signed,
+  guestDelegation:{...signed.guestDelegation,payloadSha256:'b'.repeat(64)}}},
+ {launch_evidence:{...signed,
+  guestDelegation:{...signed.guestDelegation,permissionRevision:8}}},
+ {ticket_envelope:{ticket:{...ticket,connectionId:'forged'}}},
+ {outbound_state:'prepared'},
  {terminal_state:'running'},{m3_state:'finished'},
  {queue_state:'queued'}
 ]){
@@ -108,7 +136,10 @@ for(const bad of [
  {claim_job:jobId,claim_owner:owner,claim_device:device,
   claim_pid:pid,claim_state:'running'},
  {ack_pid:'lp_'+('q'.repeat(24))},
- {launch_evidence:{...signed,signedGuestDelegationVerified:false}}
+ {launch_evidence:{...signed,signedGuestDelegationVerified:false}},
+ {launch_evidence:{...signed,guestDelegation:{...signed.guestDelegation,
+  operationId:'foreign'}}},
+ {ticket_envelope:{ticket:{...ticket,grantId:'other'}}}
 ]){
  row={...completed,...bad};
  await assert.rejects(terminal.settle({jobId}),
