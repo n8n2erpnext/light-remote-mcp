@@ -41,6 +41,10 @@ on:
       - 'operator-host/session-manager.mjs'
       - 'operator-host/gold-session-owner-http.mjs'
       - 'operator-host/pro-share-store.mjs'
+      - 'operator-host/pro-share-account-http.mjs'
+      - 'plugin-server/account-pro-share.mjs'
+      - 'plugin-server/account-portal/pro-share.html'
+      - 'deploy/scripts/selftest-gold-pro-share-account.mjs'
       - 'platform-v2/sql/044_gold_pro_share.sql'
       - 'deploy/scripts/selftest-gold-pro-share-core.mjs'
       - 'plugin-server/account-session-names.mjs'
@@ -196,6 +200,9 @@ jobs:
           node deploy/scripts/selftest-gold-agent-session-nickname.mjs
           node --check operator-host/pro-share-store.mjs
           node deploy/scripts/selftest-gold-pro-share-core.mjs
+          node deploy/scripts/selftest-gold-pro-share-account.mjs
+          node --check operator-host/pro-share-account-http.mjs
+          node --check plugin-server/account-pro-share.mjs
           node --check operator-host/gold-session-owner-http.mjs
           node --check plugin-server/account-session-names.mjs
           node deploy/scripts/selftest-gold-ab-v2-verified-grant.mjs

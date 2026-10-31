@@ -28,6 +28,10 @@
       <div><h2 id="passwordTitle">Change password</h2><div id="passwordHint" class="muted">Update the password you use to sign in.</div></div>
       <button id="openPassword" class="btn">Change password</button>
     </section>
+    <section id="proShareRow" class="panel setting-row" style="display:none">
+      <div><h2>Pro Share</h2><div class="muted">Invite one Guest and choose exactly which devices to share.</div></div>
+      <a class="btn" href="/account/pro-share">Manage Pro Share</a>
+    </section>
     <section id="sessionNamesRow" class="panel setting-row" style="display:none">
       <div><h2>Session names</h2><div class="muted">Change the display name of your Agent sessions without changing their access.</div></div>
       <a class="btn" href="/account/sessions">Manage sessions</a>
@@ -67,5 +71,7 @@ $('passwordForm').onsubmit=async ev=>{ev.preventDefault();const cur=$('currentPa
 load().then(async()=>{
   try{await api('sessions-list');$('sessionNamesRow').style.display='';}
   catch{/* Not exposed when feature flags are OFF. */}
+  try{await api('pro-share-csrf');$('proShareRow').style.display='';}
+  catch{/* Pro Share stays hidden until explicitly enabled. */}
 }).catch(e=>{if(e.message!=='login_required')console.error(e)});
 </script><script src="/account/assets/notifications.js" defer></script></body></html>

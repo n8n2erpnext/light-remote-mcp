@@ -56,6 +56,7 @@ import { isOutboundTarget } from '../lib/operator-target-route.mjs';
 import { createPlatformAdapter } from '../device-agent/platform-adapters/index.mjs';
 import { handleAccountRoutes } from './executor-routes-account.mjs';
 import {createGoldSessionOwnerHttp} from './gold-session-owner-http.mjs';
+import {createGoldProShareAccountHttp} from './pro-share-account-http.mjs';
 import {createGoldAbV2OwnerHttpFromOperator} from './gold-ab-v2-owner-http.mjs';
 import {createGoldAbV2GrantOperator} from './gold-ab-v2-grant-operator.mjs';
 import {createGoldAbV2SignedPreview} from './gold-ab-v2-signed-preview.mjs';
@@ -1652,6 +1653,10 @@ const goldAbV2GrantOperator=createGoldAbV2GrantOperator({
  env:process.env,storage:goldStorage,requireAccount,accountSessionToken,
  accounts,devices,connections,enrollments,accessGrants,goldRegistries
 });
+const goldProShareAccountHttp=createGoldProShareAccountHttp({
+ env:process.env,pool:goldStorage.pool,accounts,requireAccount,
+ accountSessionToken,readJson,sendJson
+});
 const goldSessionOwnerHttp=createGoldSessionOwnerHttp({
  env:process.env,requireAccount,accountSessionToken,sessions,
  flushSessions:()=>goldSessionState.flush(),readJson,sendJson
@@ -1671,6 +1676,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && url.pathname === '/v1/capabilities') {
       return sendJson(res, 200, { ok: true, ...capabilities() });
     }
+    if(await goldProShareAccountHttp(req,res,url))return;
     await goldAbV2OwnerHttp(req,res,url);
     if(res.headersSent)return;
     if(await goldAbV2HelperTarget(req,res,url))return;

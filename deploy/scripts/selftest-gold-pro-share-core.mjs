@@ -17,6 +17,20 @@ function query(sql,args=[]){
    monthly_guest_call_budget:b,source:'explicit-uat',revision:(old?.revision??0)+1};
   addons.set(o,a);return result([a]);
  }
+ if(q.startsWith('SELECT state,valid_until_ms,monthly_guest_call_budget,revision')){
+  const a=addons.get(args[0]);return result(a?[a]:[]);
+ }
+ if(q.startsWith('SELECT status,guest_account_id,invited_email,invite_expires_ms')){
+  const a=seats.get(args[0]);return result(a?[a]:[]);
+ }
+ if(q.startsWith('SELECT d.device_id,d.display_name,d.state')){
+  const o=args[0];return result(o===owner?[{device_id:'device-1',display_name:'Owner computer',state:'online',shared:shared.has(o+':device-1')}]:[]);
+ }
+ if(q.startsWith('SELECT a.revision FROM lr_gold_pro_share_addons')){
+  const [o,g,d,t]=args,a=addons.get(o),seat=seats.get(o);
+  return result(a&&['trial','active'].includes(a.state)&&a.valid_until_ms>t&&
+   seat?.status==='accepted'&&seat.guest_account_id===g&&shared.has(o+':'+d)?[{revision:a.revision}]:[]);
+ }
  if(q.startsWith('SELECT * FROM lr_gold_pro_share_addons')){
   const a=addons.get(args[0]);return result(a?[a]:[]);
  }
@@ -112,7 +126,7 @@ await assert.rejects(store.shareDevice({authenticatedOwnerAccountId:owner,
  deviceId:'foreign-device'}),/pro_share_device_not_owned/);
 await store.shareDevice({authenticatedOwnerAccountId:owner,deviceId:'device-1'});
 const device={deviceId:'device-1',accountId:owner,state:'online'};
-const connection={connectionId:'connection-1',accountId:owner,
+const connection={connectionId:'connection-1',deviceId:'device-1',accountId:owner,
  state:'connected',hardExpiresAt:clock+86400000};
 const grant={grantId:'guest-grant-1',accountId:guest,agentId:'agent-1',
  deviceId:'device-1',connectionId:'connection-1',purpose:approvedPurpose,
@@ -129,6 +143,14 @@ const authority={authenticatedActorAccountId:guest,authenticatedAgentId:'agent-1
  device,connection,grantId:grant.grantId,accessGrants};
 assert.equal((await store.authorize(authority)).billedAccountId,owner);
 assert.equal((await store.authorize(authority)).maxGuestConcurrentJobs,1);
+await assert.rejects(store.authorize({...authority,connection:{...connection,deviceId:'other-device'}}),/pro_share_device_or_connection_invalid/);
+await assert.rejects(store.assertEligibleGuestRequest({authenticatedGuestAccountId:guest,device,connection:{...connection,deviceId:'other-device'}}),/pro_share_guest_request_denied/);
+const overview=await store.overview({authenticatedOwnerAccountId:owner});
+assert.equal(overview.seat.status,'accepted');
+assert.equal(overview.devices[0].shared,true);
+assert.equal(overview.checkoutEnabled,false);
+assert.equal((await store.assertEligibleGuestRequest({authenticatedGuestAccountId:guest,device,connection})).grantPurpose,'pro-share-guest');
+await assert.rejects(store.assertEligibleGuestRequest({authenticatedGuestAccountId:stranger,device,connection}),/pro_share_guest_device_or_addon_required/);
 approvedPurpose='team-member';
 await assert.rejects(store.authorize(authority),/pro_share_guest_independent_ab_required/);
 approvedPurpose='pro-share-guest';
@@ -144,7 +166,9 @@ await assert.rejects(store.billOnce({...authority,operationId:'operation-2222222
 assert.equal(events.size,2);
 await store.revoke({authenticatedOwnerAccountId:owner,deviceId:'device-1'});
 await assert.rejects(store.authorize(authority),/pro_share_guest_device_or_addon_required/);
+await assert.rejects(store.assertEligibleGuestRequest({authenticatedGuestAccountId:guest,device,connection}),/pro_share_guest_device_or_addon_required/);
 plan='free';
+assert.equal((await store.overview({authenticatedOwnerAccountId:owner})).addOnActive,false);
 await assert.rejects(store.inviteEmail({authenticatedOwnerAccountId:owner,
  guestEmail:'new@example.test'}),/pro_share_owner_not_eligible/);
 plan='pro';

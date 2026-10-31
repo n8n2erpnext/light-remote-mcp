@@ -89,7 +89,7 @@ export class GoldProShareStore {
     invite_hash=EXCLUDED.invite_hash,invite_expires_ms=EXCLUDED.invite_expires_ms,
     accepted_at=NULL,updated_at=now()`,[owner,email,hash(code),expiry]);
    await db.query('UPDATE lr_gold_pro_share_addons SET revision=revision+1,updated_at=now() WHERE owner_account_id=$1',[owner]);
-   return {inviteCode:code,expiresAt:expiry,guestEmail:email,seatLimit:1};
+   return {ownerAccountId:owner,inviteCode:code,expiresAt:expiry,guestEmail:email,seatLimit:1};
   });
  }
  async acceptInvite({authenticatedGuestAccountId,ownerAccountId,inviteCode}={}){
@@ -153,6 +153,62 @@ export class GoldProShareStore {
    return {ownerAccountId:owner,guestRemoved:Boolean(removeGuest),deviceRemoved:deviceId||null};
   });
  }
+ async overview({authenticatedOwnerAccountId}={}){
+  const owner=safe(authenticatedOwnerAccountId,'pro_share_owner_invalid');
+  this._enabled();
+  if(!this.accountActive(owner)||!this.accountVerified(owner))
+   fail('pro_share_owner_not_active');
+  const [addon,seat,devices]=await Promise.all([
+   this.pool.query('SELECT state,valid_until_ms,monthly_guest_call_budget,revision FROM lr_gold_pro_share_addons WHERE owner_account_id=$1',[owner]),
+   this.pool.query('SELECT status,guest_account_id,invited_email,invite_expires_ms FROM lr_gold_pro_share_seats WHERE owner_account_id=$1',[owner]),
+   this.pool.query(`SELECT d.device_id,d.display_name,d.state,
+     CASE WHEN sh.device_id IS NULL THEN false ELSE true END AS shared
+     FROM lr_devices d LEFT JOIN lr_gold_pro_share_devices sh
+      ON sh.device_id=d.device_id AND sh.owner_account_id=d.owner_account_id
+     WHERE d.owner_account_id=$1 AND d.state<>'revoked'
+     ORDER BY d.device_id LIMIT 100`,[owner])
+  ]);
+  const a=addon.rows?.[0]||null,t=seat.rows?.[0]||null;
+  return {ownerAccountId:owner,addOnActive:Boolean(a&&['trial','active'].includes(a.state)&&
+    Number(a.valid_until_ms)>this.now()&&
+    ['pro','vip'].includes(String(this.planFor(owner)||'free').toLowerCase())),validUntil:a?.valid_until_ms||null,
+   monthlyGuestCallBudget:a?.monthly_guest_call_budget||null,
+   revision:a?.revision||null,seatLimit:1,seat:{status:t?.status||'empty',
+    guestAccountId:t?.guest_account_id||null,invitedEmail:t?.invited_email||null,
+    inviteExpiresAt:t?.invite_expires_ms||null},devices:devices.rows||[],
+   checkoutEnabled:false,guestExecutionEnabled:false};
+ }
+ // Pre-issuance eligibility only: no B grant/connection/session is minted here.
+ // The future guest OAuth Helper MUST derive actor from its verified OAuth proof
+ // and recheck this on resolve, issue, owner B approval and actual dispatch.
+ async assertEligibleGuestRequest({authenticatedGuestAccountId,device,connection}={}){
+  this._enabled();
+  const guest=safe(authenticatedGuestAccountId,'pro_share_guest_invalid');
+  if(!device?.deviceId||!device?.accountId||guest===device.accountId||
+     !this.accountActive(guest)||!this.accountVerified(guest)||
+     String(this.planFor(guest)||'free').toLowerCase()!=='free'||
+     device.state!=='online'||!connection||connection.state!=='connected'||
+     connection.accountId!==device.accountId||
+     connection.deviceId!==device.deviceId||
+     !ID.test(String(connection.connectionId||''))||
+     Number(connection.hardExpiresAt)<=this.now())
+    fail('pro_share_guest_request_denied');
+  this._eligible(device.accountId);
+  const row=await this.pool.query(`SELECT a.revision FROM lr_gold_pro_share_addons a
+    JOIN lr_gold_pro_share_seats s ON s.owner_account_id=a.owner_account_id
+      AND s.status='accepted' AND s.guest_account_id=$2
+    JOIN lr_gold_pro_share_devices x ON x.owner_account_id=a.owner_account_id
+      AND x.device_id=$3
+    JOIN lr_devices d ON d.device_id=x.device_id
+      AND d.owner_account_id=a.owner_account_id
+    WHERE a.owner_account_id=$1 AND a.state IN ('trial','active') AND a.valid_until_ms>$4`,
+    [device.accountId,guest,device.deviceId,this.now()]);
+  if(row.rowCount!==1)fail('pro_share_guest_device_or_addon_required');
+  return Object.freeze({actorAccountId:guest,ownerAccountId:device.accountId,
+   deviceId:device.deviceId,connectionId:connection.connectionId,
+   permissionRevision:Number(row.rows[0].revision),
+   grantPurpose:'pro-share-guest',requiresOwnerB:true});
+ }
  // This preflight is NOT an execution route. Every queued operation MUST call
  // it again at dispatch, with the authenticated OAuth guest and fresh A/B.
  async authorize({authenticatedActorAccountId,authenticatedAgentId,device,
@@ -166,6 +222,8 @@ export class GoldProShareStore {
      guest===device.accountId||device.state!=='online'||
      !connection||connection.state!=='connected'||
      connection.accountId!==device.accountId||
+     connection.deviceId!==device.deviceId||
+     !ID.test(String(connection.connectionId||''))||
      Number(connection.hardExpiresAt)<=this.now())
    fail('pro_share_device_or_connection_invalid');
   this._eligible(device.accountId);

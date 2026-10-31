@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
+<title>Pro Share · Light Remote</title><link rel="icon" href="/account/assets/light-remote.ico">
+<link rel="stylesheet" href="/account/assets/portal.css">
+<script src="/account/assets/theme.js"></script>
+<style>
+.share-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.share-panel{padding:22px;border:1px solid var(--line,#303840);border-radius:13px;margin:16px 0}
+.share-panel h2{margin:0 0 12px;font-size:18px}
+.share-subtle{opacity:.75;font-size:13px;line-height:1.6}
+.share-input{box-sizing:border-box;width:100%;padding:10px;margin:6px 0 12px;border:1px solid var(--line,#303840);border-radius:7px;background:var(--surface,#131920);color:inherit}
+.share-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px solid var(--line,#303840)}
+.share-status{min-height:26px;overflow-wrap:anywhere}.share-code{overflow-wrap:anywhere;font-family:monospace}
+@media(max-width:760px){.share-grid{grid-template-columns:1fr}}
+</style>
+</head><body><div class="app"><aside class="sidebar">
+<div class="brand"><img src="/account/assets/light-remote-mark.svg" alt="">
+<span><strong>Light Remote</strong><small>Remote MCP</small></span></div>
+<nav class="nav">
+<a href="/account">Devices</a><a href="/account/usage">Usage</a>
+<a href="/account/billing">Plan &amp; billing</a>
+<a class="active" href="/account/pro-share">Pro Share</a>
+<a href="/account/settings">Settings</a>
+</nav></aside><main class="main">
+<div class="page-head"><div><h1>Pro Share</h1><p>One invited Guest. Share only the devices you choose.</p></div></div>
+<section class="share-panel">
+<strong>UAT preview — no charges or remote Guest access enabled</strong>
+<p class="share-subtle">The optional $5/month Guest add-on is a proposal, not an active subscription.
+Guest pairing and command execution remain unavailable until the integrated Gold release is approved.</p>
+<div id="notice" class="share-status" role="status" aria-live="polite">Checking account permissions…</div>
+</section>
+<div class="share-grid">
+<section class="share-panel" id="ownerPanel" hidden>
+<h2>Owner — my sharing</h2>
+<div id="entitlement" class="share-subtle">Loading…</div>
+<div id="seat" class="share-subtle"></div>
+<form id="inviteForm">
+<label for="guestEmail">Invite a verified Free account by email</label>
+<input class="share-input" id="guestEmail" type="email" maxlength="254" autocomplete="email" required>
+<button class="btn" id="inviteButton" type="submit">Create one-time invitation</button>
+</form>
+<div id="inviteCode" class="share-code" aria-live="polite"></div>
+<p class="share-subtle">Invitations last 24 hours. Email delivery is not connected in this source preview.
+Send the code to your intended Guest through a trusted channel; it appears here only once.</p>
+<button class="btn" id="removeGuest" type="button">Remove Guest</button>
+<h2 style="margin-top:20px">Selected devices</h2>
+<div id="devices" class="share-subtle">No devices loaded</div>
+</section>
+<section class="share-panel">
+<h2>Guest — accept invitation</h2>
+<p class="share-subtle">Sign in with the exact verified Free account invited by the owner.
+Invitation acceptance never grants A/B or device access by itself.</p>
+<form id="acceptForm">
+<label for="ownerId">Owner account ID</label>
+<input class="share-input" id="ownerId" maxlength="160" autocomplete="off" required>
+<label for="code">One-time invitation code</label>
+<input class="share-input" id="code" maxlength="32" minlength="32" autocomplete="off" required>
+<button class="btn" id="acceptButton" type="submit">Accept invitation</button>
+</form>
+</section>
+</div>
+<button class="btn" id="refresh" type="button">Refresh</button>
+</main></div>
+<script>
+const $=id=>document.getElementById(id);
+let csrf='',shareActive=false;
+function note(message){$('notice').textContent=message}
+async function api(action,body){
+ const response=await fetch('/account/api?action='+encodeURIComponent(action),{
+  method:body?'POST':'GET',credentials:'same-origin',cache:'no-store',
+  headers:{...(body?{'content-type':'application/json',
+   'x-light-pro-share-csrf':csrf}:{})},
+  ...(body?{body:JSON.stringify(body)}:{})
+ });
+ const data=await response.json().catch(()=>({}));
+ if(response.status===401){location.href='/account/login';throw Error('login_required')}
+ if(!response.ok)throw Error(data.error||'HTTP '+response.status);
+ return data;
+}
+async function refresh(){
+ $('devices').replaceChildren();$('inviteCode').textContent='';
+ try{
+  const security=await api('pro-share-csrf');csrf=security.csrf;
+  if(!/^[A-Za-z0-9_-]{43}$/.test(csrf))throw Error('account_csrf_unavailable');
+  $('ownerPanel').hidden=true;
+  try{
+   const data=await api('pro-share-overview');
+   $('ownerPanel').hidden=false;shareActive=data.addOnActive===true;
+   $('entitlement').textContent=shareActive?
+    'Owner add-on: UAT trial active · valid until '+new Date(Number(data.validUntil)).toLocaleString():
+    'Owner add-on: not enabled. No guest device access or payments are active.';
+   $('seat').textContent='Guest: '+String(data.seat?.status||'empty')+
+    (data.seat?.guestAccountId?' · '+data.seat.guestAccountId:'')+
+    (data.seat?.invitedEmail?' · '+data.seat.invitedEmail:'');
+   $('inviteButton').disabled=!shareActive;
+   $('removeGuest').disabled=data.seat?.status==='empty';
+   for(const device of data.devices||[]){
+    const row=document.createElement('div');row.className='share-row';
+    const name=document.createElement('span');
+    name.textContent=(device.display_name||device.device_id)+' · '+device.state;
+    const button=document.createElement('button');
+    button.className='btn';button.type='button';
+    button.textContent=device.shared?'Unshare':'Share';
+    button.disabled=!shareActive&&!device.shared;
+    button.addEventListener('click',async()=>{
+     button.disabled=true;
+     try{
+      await api(device.shared?'pro-share-revoke':'pro-share-share',
+       {deviceId:device.device_id});
+      note('Device permission updated. Guest authorization still requires separate A/B.');
+      await refresh();
+     }catch(error){note(error.message);button.disabled=!shareActive}
+    });
+    row.append(name,button);$('devices').append(row);
+   }
+   note('Owner sharing settings loaded. Guest execution and checkout remain disabled.');
+  }catch(error){
+   shareActive=false;
+   if(error.message==='login_required')throw error;
+   note('Guest acceptance available. Owner sharing requires an eligible Pro account and an explicit UAT add-on.');
+  }
+ }catch(error){note(error.message)}
+}
+$('inviteForm').addEventListener('submit',async event=>{
+ event.preventDefault();
+ const button=$('inviteButton');button.disabled=true;
+ try{
+  const out=await api('pro-share-invite',{guestEmail:$('guestEmail').value});
+  $('inviteCode').textContent='Owner ID: '+out.ownerAccountId+
+   ' · invitation code: '+out.inviteCode+
+   ' · valid until '+new Date(Number(out.expiresAt)).toLocaleString();
+  note('Share this one-time code securely with the intended Guest. No email was sent.');
+ }catch(error){note(error.message)}
+ finally{button.disabled=!shareActive}
+});
+$('acceptForm').addEventListener('submit',async event=>{
+ event.preventDefault();
+ const button=$('acceptButton');button.disabled=true;
+ try{
+  await api('pro-share-accept',{ownerAccountId:$('ownerId').value.trim(),
+   inviteCode:$('code').value.trim()});
+  $('code').value='';
+  note('Invitation accepted. Guest access still requires independent owner-approved A/B.');
+ }catch(error){note(error.message)}
+ finally{button.disabled=false}
+});
+$('removeGuest').addEventListener('click',async()=>{
+ if(!window.confirm('Remove the Guest seat? This also prevents future Pro Share authorization.'))return;
+ try{
+  await api('pro-share-revoke',{removeGuest:true});
+  note('Guest removed.');await refresh();
+ }catch(error){note(error.message)}
+});
+$('refresh').addEventListener('click',refresh);
+refresh();
+</script></body></html>

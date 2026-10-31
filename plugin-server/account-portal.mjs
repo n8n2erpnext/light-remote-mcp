@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { callOperatorJson } from './operator-client.mjs';
 import {createGoldAbV2AccountPortalProxy,isGoldAbV2PortalAction} from './account-ab-v2.mjs';
 import {createGoldSessionNameAccountProxy} from './account-session-names.mjs';
+import {createGoldProShareAccountProxy,isProShareAccountAction} from './account-pro-share.mjs';
 import { PUBLIC_ORIGIN } from './config.mjs';
 import { mailConfig, sendDormancyWarning, sendDormantNotice, sendMagicLogin, sendPasswordReset, sendTeamInvitation, sendUpgradeRequested, sendWelcomeVerification } from './mailer.mjs';
 import { beginGoogleAuth, finishGoogleAuth, googleAuthStatus } from './google-auth.mjs';
@@ -24,6 +25,12 @@ const goldAbV2AccountProxy=createGoldAbV2AccountPortalProxy({
 });
 const goldSessionNameAccountProxy=createGoldSessionNameAccountProxy({
  enabled:process.env.LR_GOLD_SESSION_OWNER_RENAME==='1',
+ origin:PUBLIC_ORIGIN,sessionToken,callOperatorJson
+});
+const goldProShareAccountProxy=createGoldProShareAccountProxy({
+ enabled:process.env.LR_GOLD_PRO_SHARE_CORE==='1'&&
+  process.env.LR_GOLD_PRO_SHARE_ACCOUNT_HTTP==='1'&&
+  process.env.LR_GOLD_PRO_SHARE_PORTAL_UI==='1',
  origin:PUBLIC_ORIGIN,sessionToken,callOperatorJson
 });
 const DORMANCY_SCAN_INTERVAL_MS=6*60*60*1000;
@@ -164,6 +171,8 @@ async function accountApi(req,res){
   const mutations=new Set(['register','login','logout','password-change','password-setup','password-reset-request','password-reset-complete','magic-request','verification-resend','verification-verify','reactivate','enrollment-approve','device-revoke','device-remove','device-update','devices-revoke-all','redeem-license','main-device','main-device-clear','upgrade-request','paddle-checkout','paddle-offer-checkout','paddle-portal','team-create','team-invite','team-accept','team-inbox-read','team-inbox-accept','notifications-read','team-remove','team-device-share','team-device-unshare','team-access-request']);
   if(mutations.has(action)&&!sameOriginMutation(req)){accountAudit(action,'cross_site_denied');return res.status(403).json({ok:false,error:'cross_site_request_denied'});}
   try{
+    if(isProShareAccountAction(action))
+      return await goldProShareAccountProxy(req,res,action);
     if(action==='sessions-list'||action==='session-rename')
       return await goldSessionNameAccountProxy(req,res,action);
     if(isGoldAbV2PortalAction(action))
@@ -464,6 +473,11 @@ export function registerAccountPortal(app){
   app.get(['/account/usage','/account/usage/'],(_q,r)=>sendPortal(r,'usage.html'));
   app.get(['/account/billing','/account/billing/'],(_q,r)=>sendPortal(r,'billing.html'));
   app.get(['/account/settings','/account/settings/'],(_q,r)=>sendPortal(r,'settings.html'));
+  app.get(['/account/pro-share','/account/pro-share/'],(_q,r)=>
+    process.env.LR_GOLD_PRO_SHARE_CORE==='1'&&
+    process.env.LR_GOLD_PRO_SHARE_ACCOUNT_HTTP==='1'&&
+    process.env.LR_GOLD_PRO_SHARE_PORTAL_UI==='1'?
+      sendPortal(r,'pro-share.html'):r.status(404).type('text').send('Not found'));
   app.get(['/account/sessions','/account/sessions/'],(_q,r)=>
     process.env.LR_GOLD_SESSION_OWNER_RENAME==='1'?
       sendPortal(r,'sessions.html'):r.status(404).type('text').send('Not found'));
