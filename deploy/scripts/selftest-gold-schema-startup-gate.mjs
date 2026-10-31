@@ -3,7 +3,8 @@ import fs from 'node:fs';
 import crypto from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import {
- assertGoldStartupMigrationLedger,assertGoldStartupExtensionTables
+ assertGoldStartupMigrationLedger,assertGoldStartupExtensionTables,
+ GOLD_GUEST_NATIVE_RUNTIME_WIRED
 } from '../../lib/gold-schema-startup-gate.mjs';
 const rows=n=>Array.from({length:n},(_,i)=>({version:i+1}));
 const lock=JSON.parse(fs.readFileSync(
@@ -56,9 +57,16 @@ assert.deepEqual(assertGoldStartupMigrationLedger(rows(43),{
 assert.throws(()=>assertGoldStartupMigrationLedger(rows(44),{
  env:allow43,lock:approved
 }),/gold_pg_schema_044_guest_runtime_release_not_approved/);
-assert.deepEqual(assertGoldStartupMigrationLedger(rows(44),{
+// SQL044 is a source candidate; a forged all-flags-ON environment and
+// a hypothetical correctly pinned migration lock must NOT enable runtime.
+assert.equal(GOLD_GUEST_NATIVE_RUNTIME_WIRED,false);
+assert.throws(()=>assertGoldStartupMigrationLedger(rows(44),{
  env:allow44,lock:approved
-}),{version:44,guestSchemaReady:true});
+}),/gold_pg_schema_044_native_guest_runtime_not_wired/);
+assert.throws(()=>assertGoldStartupMigrationLedger(rows(44),{
+ env:{...allow44,LR_GOLD_PRO_SHARE_GUEST_NATIVE_RUNTIME_WIRED:'1'},
+ lock:approved
+}),/gold_pg_schema_044_native_guest_runtime_not_wired/);
 for(const key of flags){
  assert.throws(()=>assertGoldStartupMigrationLedger(rows(44),{
   env:{...allow44,[key]:'0'},lock:approved
@@ -113,3 +121,4 @@ console.log('GOLD_SCHEMA_034_TO_042_BACKWARDS_COMPATIBLE=PASS');
 console.log('GOLD_SCHEMA_043_044_REAL_LOCK_UNREGISTERED_DENIED=PASS');
 console.log('GOLD_SCHEMA_043_044_FUTURE_APPROVED_CONTRACT_HASH_ENFORCED=PASS');
 console.log('GOLD_SCHEMA_043_044_NATIVE_STRUCTURAL_PROBES_FAIL_CLOSED=PASS');
+console.log('GOLD_SCHEMA_044_ALL_FLAGS_AND_PINNED_LOCK_STILL_REQUIRE_NATIVE_RUNTIME=PASS');
