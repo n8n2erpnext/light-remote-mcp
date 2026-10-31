@@ -39,7 +39,9 @@ const fake={
    if(sql.includes('INSERT INTO lr_gold_device_gc_fences')){s.fences++;return {rows:[],rowCount:1};}
    if(sql.includes('INSERT INTO lr_audit_events')){
     s.audit++;
-    const audit=JSON.parse(args[4]);
+    assert.equal(args[1],accountId);
+    assert.equal(args[2],accountId);
+    const audit=JSON.parse(args[5]);
     assert.equal(audit.processOutcome,'unknown');
     assert.equal(audit.terminalReceiptCreated,false);
     assert.equal(audit.fenced,true);

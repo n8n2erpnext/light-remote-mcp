@@ -22,11 +22,12 @@ function validEmail(value){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value
 
 export function registerAdminPortal(app){
   app.get('/admin/assets/notification-center.js',(_req,res)=>res.type('application/javascript').send(fs.readFileSync(adminFile('notification-center.js'))));
+  app.get('/admin/assets/job-recovery.js',(_req,res)=>res.type('application/javascript').send(fs.readFileSync(adminFile('job-recovery.js'))));
   app.get(['/admin','/admin/'],async(req,res)=>{const admin=await requireAdmin(req,res,{html:true});if(!admin)return;return sendAdmin(res);});
   app.all('/admin/api',async(req,res)=>{
     const admin=await requireAdmin(req,res);if(!admin)return;
     const action=String(req.query?.action||'').trim();
-    const mutations=new Set(['notification-publish','notification-cancel','announcement-create','announcement-update','announcement-delete','set-plan','set-group','set-status','create-group','rename-group','delete-group','cancel-pending','issue-license','revoke-license','resolve-upgrade','mail-test','google-config','paddle-refund']);
+    const mutations=new Set(['notification-publish','notification-cancel','announcement-create','announcement-update','announcement-delete','set-plan','set-group','set-status','create-group','rename-group','delete-group','cancel-pending','issue-license','revoke-license','resolve-upgrade','mail-test','google-config','paddle-refund','job-recovery-retire']);
     if(mutations.has(action)&&!sameOrigin(req))return res.status(403).json({ok:false,error:'cross_site_request_denied'});
     try{
       if(action==='notifications'&&req.method==='GET')
@@ -56,6 +57,22 @@ export function registerAdminPortal(app){
       if(action==='announcement-create'&&req.method==='POST')return res.status(201).json({ok:true,announcement:await mutateAnnouncement('POST',null,req.body)});
       if(action==='announcement-update'&&req.method==='POST')return res.json({ok:true,announcement:await mutateAnnouncement('PUT',String(req.body?.id||''),req.body)});
       if(action==='announcement-delete'&&req.method==='POST')return res.json({ok:true,announcement:await mutateAnnouncement('DELETE',String(req.body?.id||''))});
+      if(action==='job-recovery'&&req.method==='GET'){
+        const id=String(req.query?.jobId||'').trim();
+        if(id&&!/^[a-f0-9-]{36}$/i.test(id))return res.status(400).json({ok:false,error:'invalid_job_id'});
+        return res.json(await callOperatorJson('GET','/v1/admin/job-recovery?limit=50'+
+          (id?'&jobId='+encodeURIComponent(id):''),null,headers(admin.token)));
+      }
+      if(action==='job-recovery-retire'&&req.method==='POST'){
+        // Require browser Origin and independent Operator owner-session validation.
+        if(!req.headers?.origin||!sameOrigin(req)||String(req.headers.origin)!==PUBLIC_ORIGIN)
+          return res.status(403).json({ok:false,error:'admin_recovery_origin_required'});
+        const id=String(req.body?.jobId||'');
+        if(!/^[a-f0-9-]{36}$/i.test(id))return res.status(400).json({ok:false,error:'invalid_job_id'});
+        return res.json(await callOperatorJson('POST','/v1/admin/job-recovery/'+encodeURIComponent(id)+'/retire',{
+          confirm:req.body?.confirm,reason:req.body?.reason
+        },headers(admin.token)));
+      }
       if(action==='overview'&&req.method==='GET')return res.json(await callOperatorJson('GET','/v1/admin/overview'));
       if(action==='accounts'&&req.method==='GET')return res.json(await callOperatorJson('GET','/v1/admin/accounts'));
       if(action==='groups'&&req.method==='GET')return res.json(await callOperatorJson('GET','/v1/admin/groups'));

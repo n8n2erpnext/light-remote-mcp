@@ -12,6 +12,7 @@ import { personalCapacity } from './execution-capacity-policy.mjs';
 import { GoldPersonalAgentScheduler } from '../lib/gold-personal-agent-scheduler.mjs';
 import { GoldDeviceResourceLocks } from '../lib/gold-device-resource-locks.mjs';
 import { GoldConnectionJobReaper, DEFAULT_OFFLINE_GC_MS } from '../lib/gold-connection-job-reaper.mjs';
+import {GoldAdminJobRecovery} from './gold-admin-job-recovery.mjs';
 import { GoldStaleClaimMonitor } from '../lib/gold-stale-claim-monitor.mjs';
 import { GoldExecutionEpochs } from '../lib/gold-execution-epoch.mjs';
 import { DeviceResourceSampleCache } from '../lib/device-resource-telemetry.mjs';
@@ -497,9 +498,9 @@ if(CONNECTION_JOB_GC_ENABLED&&EXECUTION_EPOCH_ONLY_DEVICE_IDS!==null&&
  (!CONNECTION_JOB_GC_ONLY_DEVICE_IDS||
   CONNECTION_JOB_GC_ONLY_DEVICE_IDS.some(id=>!EXECUTION_EPOCH_ONLY_DEVICE_IDS.includes(id))))
  throw Error('gold_connection_gc_outside_epoch_device_allowlist');
-let connectionJobGcTicker=null,connectionJobGcBusy=false;
+let connectionJobGcTicker=null,connectionJobGcBusy=false,connectionJobGcReaper=null;
 if(CONNECTION_JOB_GC_ENABLED){
-  const reaper=new GoldConnectionJobReaper({
+  connectionJobGcReaper=new GoldConnectionJobReaper({
     pool:goldStorage.pool,
     offlineMs:CONNECTION_JOB_GC_OFFLINE_MS,
     limit:CONNECTION_JOB_GC_BATCH,
@@ -540,7 +541,7 @@ if(CONNECTION_JOB_GC_ENABLED){
     if(connectionJobGcBusy)return;connectionJobGcBusy=true;
     try{
       await goldJobs.flush(); // No older async ledger save may overwrite GC.
-      const result=await reaper.sweep({dryRun:false});
+      const result=await connectionJobGcReaper.sweep({dryRun:false});
       if(result.cleaned)pushEvent({type:'gold_connection_gc_batch',status:'ok',
         checked:result.scanned,cleaned:result.cleaned});
     }catch(error){console.error(JSON.stringify({event:'gold_connection_gc_failed',
@@ -1631,6 +1632,7 @@ async function dispatchFleetProcessStop({jobId,accountId,deviceIds}={}){
   terminalVerified:false,reason:'awaiting_device_terminal_receipt'};
 }
 
+const adminJobRecovery=new GoldAdminJobRecovery({pool:goldStorage.pool,reaper:connectionJobGcReaper});
 const deviceResourceSampleCache=new DeviceResourceSampleCache();
 const deviceBootObservations=new GoldDeviceBootObservations(goldStorage.pool);
 const routeDeps=()=>({
@@ -1646,7 +1648,7 @@ const routeDeps=()=>({
   emitStream,enrollments,finishJob,fleet,fleetAuthority,reconcileSignedTerminalProcessReceipts,
   executionEpochs,requiresExecutionEpoch,
   fleetEligibility,fleetTarget,flushDiskRecords,flushGoldRegistries:()=>goldRegistries.flush(),fs,fullOutputFromDisk,
-  ingressTelemetry,jobView,jobs,goldJobs,deviceResourceLocks,staleClaimMonitor,deviceResourceSampleCache,deviceBootObservations,memorySyncPolicy,memoryAccountDelete,
+  ingressTelemetry,jobView,jobs,goldJobs,deviceResourceLocks,staleClaimMonitor,adminJobRecovery,deviceResourceSampleCache,deviceBootObservations,memorySyncPolicy,memoryAccountDelete,
   inspectOwnerOrphanDevice:options=>deviceResourceLocks.inspectOwnerOrphanDevice(goldStorage.pool,options),
   abandonOwnerAttestedOrphan:options=>deviceResourceLocks.abandonOwnerAttestedOrphan(goldStorage.pool,options),
   cancelQueuedPersonalJob,cancelControlJob,deviceStopRequests,requestFleetProcessStop,licenses,normalizeUpdateReport,

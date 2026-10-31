@@ -1,7 +1,33 @@
 import {verifyTeamMemberAuthorization} from './team-member-auth.mjs';
 import {authorizeTrustedTeamDispatch} from './team-dispatch-authority.mjs';
 export async function handleAccountRoutes(req,res,url,deps){
-  const {deviceBootObservations,ACCOUNT_ID,AccountError,DEVICE_ID,accountSessionToken,accounts,accountNotifications,allDeviceViews,capabilities,clearMainIfMatches,closeRuntimeForAccount,compatibilityFor,devices,enrollments,fleet,fleetAuthority,licenses,planEntitlements,proTeams,teamSessions,requestTeamMemberApproval,operationalAccount,accessGrants,connections,targetRoute,verifyTeamPrincipal,queueHelperUpdate,readJson,removeRuntimeForDevice,requireAccount,revokeRuntimeForDevice,sendJson,usage,wakeDeviceChannelForDevice}=deps;
+  const {adminJobRecovery,deviceBootObservations,ACCOUNT_ID,AccountError,DEVICE_ID,accountSessionToken,accounts,accountNotifications,allDeviceViews,capabilities,clearMainIfMatches,closeRuntimeForAccount,compatibilityFor,devices,enrollments,fleet,fleetAuthority,licenses,planEntitlements,proTeams,teamSessions,requestTeamMemberApproval,operationalAccount,accessGrants,connections,targetRoute,verifyTeamPrincipal,queueHelperUpdate,readJson,removeRuntimeForDevice,requireAccount,revokeRuntimeForDevice,sendJson,usage,wakeDeviceChannelForDevice}=deps;
+    // Stronger than the legacy internal /v1/admin APIs: verify the owner session
+    // independently in Operator, not merely in the plugin /admin proxy.
+    if(url.pathname==='/v1/admin/job-recovery'||
+       /^\/v1\/admin\/job-recovery\/[a-f0-9-]{36}\/retire$/i.test(url.pathname)){
+      const principal=requireAccount(req,{touch:false}).account;
+      if(String(principal.accountId)!==String(process.env.LIGHT_REMOTE_ADMIN_ACCOUNT_ID||'direct-production-local'))
+        throw new AccountError('admin_account_required',403);
+      if(!adminJobRecovery)throw new AccountError('gold_admin_job_recovery_unavailable',503);
+      if(req.method==='GET'&&url.pathname==='/v1/admin/job-recovery'){
+        const row=await adminJobRecovery.list({
+          jobId:url.searchParams.get('jobId')||'',
+          limit:Number(url.searchParams.get('limit')||50)
+        });
+        return sendJson(res,200,row);
+      }
+      const match=url.pathname.match(/^\/v1\/admin\/job-recovery\/([a-f0-9-]{36})\/retire$/i);
+      if(req.method==='POST'&&match){
+        const body=await readJson(req);
+        const outcome=await adminJobRecovery.retire({
+          jobId:match[1],confirm:body.confirm,reason:body.reason,
+          actorAccountId:principal.accountId
+        });
+        return sendJson(res,outcome.ok?200:409,outcome);
+      }
+      throw new AccountError('gold_admin_recovery_method_invalid',405);
+    }
     if (req.method === 'GET' && url.pathname === '/v1/admin/overview') {
       const accountRows=accounts.list(),deviceRows=allDeviceViews(),current=accountRows.map(account=>({account,entitlements:planEntitlements(account),usage:usage.summary(account.accountId,{months:1})}));
       const toolCallsThisMonth=current.reduce((sum,row)=>sum+(Number(row.usage.toolCallsThisMonth)||0),0),plans=current.reduce((out,row)=>{const key=String(row.account.plan||'free');out[key]=(out[key]||0)+1;return out;},{}),statuses=current.reduce((out,row)=>{const key=String(row.account.status||'active');out[key]=(out[key]||0)+1;return out;},{});
