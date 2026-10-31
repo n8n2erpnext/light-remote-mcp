@@ -88,6 +88,7 @@ on:
       - 'deploy/scripts/selftest-gold-pro-share-device-guest-fence.mjs'
       - 'deploy/scripts/selftest-gold-pro-share-pg044-disposable.sql'
       - 'deploy/scripts/selftest-gold-pro-share-pg044-disposable.sh'
+      - 'deploy/scripts/selftest-gold-pro-share-uat-schema-clone.sh'
       - 'plugin-server/account-pro-share.mjs'
       - 'plugin-server/account-portal/pro-share.html'
       - 'deploy/scripts/selftest-gold-pro-share-account.mjs'
@@ -282,6 +283,7 @@ jobs:
           node --check lib/gold-pro-share-device-guest-fence.mjs
           node --check device-agent/operator-agent.mjs
           sh -n deploy/scripts/selftest-gold-pro-share-pg044-disposable.sh
+          sh -n deploy/scripts/selftest-gold-pro-share-uat-schema-clone.sh
           node --check operator-host/pro-share-guest-queue-pg.mjs
           node --check operator-host/pro-share-verified-launch.mjs
           node --check operator-host/pro-share-guest-slot-pg.mjs

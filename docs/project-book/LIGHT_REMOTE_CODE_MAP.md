@@ -319,3 +319,8 @@ Source CI: [selftest-gold-ab-v2-source.mjs](../../deploy/scripts/selftest-gold-a
 ### P2-I4C3c2b3c2a — Guest M6 immutable ticket and signed launch proof
 
 - [Guest M6 settlement](../../operator-host/pro-share-guest-terminal-pg.mjs) now requires canonical SQL044 Guest outbound `unknown`, same immutable operation/job/owner/Guest/device/grant/connection, original ticket and exact signed Device delegation with commandId, Agent, permission revision, payload hash and process ID. GoldJobLedger must report verified `process_launch` / `result_observed` / exitCode=0. First ACK and duplicate replay enforce identical proof; wrong scope never causes M3/M4 release. [Mock negative regression](../../deploy/scripts/selftest-gold-pro-share-guest-terminal-pg.mjs), native PG17 source SQL PREPARE.
+
+### P2-I4C3c2b3c2b1 — Gold UAT read-only native schema clone acceptance
+
+- [UAT schema-only clone script](../../deploy/scripts/selftest-gold-pro-share-uat-schema-clone.sh), manual owner-authorized opt-in only. Reads actual Gold UAT 039 structure, no rows, restores to no-network disposable PG17, applies SQL040–044 only there, synthetic Guest/M4/M6 fixture and **source-extracted** PG PREPARE for owner M4, outbound prepare/attempt, launch binder, and terminal settlement. No UAT writes; cleans schema file and container.
+- Separate runtime gate: [Gold storage](../../lib/gold-db.mjs) currently allows schema migration counts only through **042** and [migration lock](../../platform-v2/sql/migrations.lock.json) excludes 044. PASS on clone is not runtime acceptance. Do not change release startup allowlist/migration lock without explicit approval and integrated E2E.
