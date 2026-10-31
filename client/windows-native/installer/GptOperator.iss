@@ -190,28 +190,6 @@ begin
   end;
 end;
 
-procedure InitializeWizard();
-begin
-  BuildBrandedWelcomePage();
-  InitializeBrandedInstallPhases();
-  WizardForm.WelcomeLabel1.Caption := 'Install Light Remote';
-  WizardForm.WelcomeLabel2.Caption :=
-    'Your desktop, available to your AI.' + #13#10 + #13#10 +
-    'Per-user installation — no administrator elevation required.' + #13#10 +
-    'Run at Windows sign-in and create a Desktop shortcut (selected by default).' + #13#10 +
-    'Your device identity remains under your control.';
-  if LightRemoteDarkWindowsTheme() then
-  begin
-    // Use the same dark Figma status surfaces as the native Windows Tray.
-    WizardForm.Color := $0017110D;
-    WizardForm.MainPanel.Color := $0017110D;
-    WizardForm.InnerPage.Color := $0017110D;
-    WizardForm.WelcomeLabel1.Font.Color := clWhite;
-    WizardForm.WelcomeLabel2.Font.Color := $00B9A89B;
-    WizardForm.PageNameLabel.Font.Color := clWhite;
-    WizardForm.PageDescriptionLabel.Font.Color := $00B9A89B;
-  end;
-end;
 
 
 // Full three-phase Windows installation presentation, not just a custom welcome.
@@ -369,6 +347,29 @@ begin
   end;
 end;
 
+
+procedure InitializeWizard();
+begin
+  BuildBrandedWelcomePage();
+  InitializeBrandedInstallPhases();
+  WizardForm.WelcomeLabel1.Caption := 'Install Light Remote';
+  WizardForm.WelcomeLabel2.Caption :=
+    'Your desktop, available to your AI.' + #13#10 + #13#10 +
+    'Per-user installation — no administrator elevation required.' + #13#10 +
+    'Run at Windows sign-in and create a Desktop shortcut (selected by default).' + #13#10 +
+    'Your device identity remains under your control.';
+  if LightRemoteDarkWindowsTheme() then
+  begin
+    // Use the same dark Figma status surfaces as the native Windows Tray.
+    WizardForm.Color := $0017110D;
+    WizardForm.MainPanel.Color := $0017110D;
+    WizardForm.InnerPage.Color := $0017110D;
+    WizardForm.WelcomeLabel1.Font.Color := clWhite;
+    WizardForm.WelcomeLabel2.Font.Color := $00B9A89B;
+    WizardForm.PageNameLabel.Font.Color := clWhite;
+    WizardForm.PageDescriptionLabel.Font.Color := $00B9A89B;
+  end;
+end;
 
 var
   InstallTransactionStarted: Boolean;

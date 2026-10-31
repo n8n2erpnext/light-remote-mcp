@@ -145,10 +145,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "b0541d7c1b1bbffeccdac5f5161d2e8e2f0e856a43d75e481ce7644f42027e62",
+    "treeDigest": "f0002aa422afc4ded9a5e51605260c2a50d7f838310e6ff64d6af2f68d28da4f",
     "trackedFiles": 1125,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-10-31T16:42:56.280Z"
+    "recordedAt": "2026-10-31T16:48:05.737Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",

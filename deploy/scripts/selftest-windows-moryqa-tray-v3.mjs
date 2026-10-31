@@ -91,6 +91,10 @@ assert.match(installer,/TNewCheckBox\.Create/);
 assert.match(installer,/WizardSelectTasks\('desktopicon'\)/);
 assert.match(installer,/WizardSelectTasks\('!desktopicon'\)/);
 assert.match(installer,/procedure InitializeWizard/);
+assert.ok(installer.indexOf('procedure InitializeBrandedInstallPhases();')
+  < installer.indexOf('procedure InitializeWizard();'),
+  'Inno Pascal Script must declare installer-stage builder before InitializeWizard');
+
 assert.match(installer,/Your desktop, available to your AI\./);
 assert.match(installer,/UninstallDisplayName=Light Remote/);
 assert.match(installer,/AppId=\{\{/);

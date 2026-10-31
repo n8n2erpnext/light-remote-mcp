@@ -520,3 +520,7 @@ Windows CI run 41220244496 successfully compiled .NET8, Agent, RMV2 but **FAILED
 ## 2026-10-31 — CI real WinForms screenshot empty due never-shown Form
 
 Windows workflow 41220648524 (source 9c991910) .NET8 compiled, but visual proof FAILED: overview PNG had exact 500x740 pixels, 3100 bytes and **ONE** sampled color. This proves DrawToBitmap of Form with hidden HWND paints only background (prior 5000 bytes threshold failure wasn't an image validity judgment). Fixed CI-only TrayPopoverForm.SavePreview to Show() the actual native WinForms window, then process paint events before taking screenshot. Moved screenshot gate to after Inno per-user/compact compiler stages so both outputs are validated in the same CI attempt. Enforce >8 unique sampled colors and exact geometry; do not relax this. Production/Gold UAT and Windows10 installed app untouched.
+
+## 2026-10-31 — Inno compiler caught forward-call ordering defect
+
+Windows CI run 41221013909 source fba46239 compiled native .NET8 and RMV2 but Inno compile FAILED: error line196 Unknown identifier `InitializeBrandedInstallPhases`; `InitializeWizard()` had been declared earlier than its stage-panel builder in Pascal Script. Moved the entire InitializeWizard callback **below** InitializeBrandedInstallPhases and CurPageChanged, preserving original callback logic and AppId/rollback. Added source test enforcing declaration order. Requires real Inno compiler rerun and native screenshot pixel diversity gate after Inno. No UAT or Windows10 client replacement.
