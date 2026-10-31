@@ -2,6 +2,7 @@
 // SOURCE ONLY: not mounted in Operator routing or billing. A Pro Team grant
 // NEVER implies a Pro Share right. Guest OAuth/A-B and queue must be wired later.
 import crypto from 'node:crypto';
+import {assertSharedDeviceCapabilityPolicy} from './shared-device-capability-policy.mjs';
 
 const ID=/^[A-Za-z0-9._:-]{1,160}$/;
 const EMAIL=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -257,6 +258,16 @@ export class GoldProShareStore {
    monthlyGuestCallBudget:Number(q.rows[0].monthly_guest_call_budget),
    accessExpiresAt:Math.min(Number(grant.expiresAt),Number(grant.absoluteExpiresAt),
      Number(connection.hardExpiresAt)),maxGuestConcurrentJobs:1});
+ }
+ // Reuse the existing Pro Team operation/capability intersection. This is
+ // still a policy primitive, NOT mounted as a guest execution route.
+ async authorizeOperation({operation,requiredCapabilities=[],
+   approvedCapabilities,routeCapabilities,...context}={}){
+  const caps=assertSharedDeviceCapabilityPolicy({operation,requiredCapabilities,
+   approvedCapabilities,routeCapabilities});
+  const grant=await this.authorize(context);
+  return Object.freeze({...grant,operation:caps.operation,
+   requiredCapabilities:caps.requiredCapabilities});
  }
  // No live metering route calls this. To use at dispatch, first re-authorize
  // after queue wait, then atomically debit via one PG owner-row lock.

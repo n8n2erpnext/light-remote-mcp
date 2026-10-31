@@ -10,9 +10,13 @@ export class GoldAbV2GrantBridgeError extends Error{
 const fail=(msg,status=409)=>{throw new GoldAbV2GrantBridgeError(msg,status)};
 export function createGoldAbV2GrantCoordinator({
  pending,accessGrants,authorizeOwner,flushGrants,confirmPersisted,
+ expectedPurpose='device',authorizeGuest=null,
  enabled=false,now=Date.now
 }={}){
  if(!enabled)return null;
+ if(!['device','pro-share-guest'].includes(expectedPurpose)||
+    (expectedPurpose==='pro-share-guest'&&typeof authorizeGuest!=='function'))
+  fail('abv2_grant_purpose_authority_invalid',503);
  if(!pending||!['approve','grantReceipt','commitGrant'].every(x=>typeof pending[x]==='function')||
     typeof accessGrants?.approveVerifiedV2!=='function'||
     typeof accessGrants?.assert!=='function'||
@@ -53,7 +57,10 @@ export function createGoldAbV2GrantCoordinator({
   if(receipt?.requestId!==requestId||
      !['approved','granted'].includes(receipt?.state)||
      receipt.attempt!==expectedAttempt||
-     receipt.owner!==s.ownerAccountId||receipt.actor!==s.ownerAccountId||
+     receipt.owner!==s.ownerAccountId||
+     (receipt.purpose||'device')!==expectedPurpose||
+     (expectedPurpose==='device'&&receipt.actor!==s.ownerAccountId)||
+     (expectedPurpose==='pro-share-guest'&&receipt.actor===s.ownerAccountId)||
      receipt.device!==deviceId||receipt.connection!==s.connectionId||
      !ID.test(receipt.agent||'')||
      !/^oauth-[a-f0-9]{64}$/.test(receipt.client||'')||
@@ -63,6 +70,17 @@ export function createGoldAbV2GrantCoordinator({
   const grantId='dag_v2_'+requestId.slice(4);
   if(receipt.grantId!=null&&receipt.grantId!==grantId)
    fail('abv2_grant_receipt_conflict',409);
+  // Guest rights come from the authenticated Guest seat and selected device,
+  // never from a user-supplied actor or from the owner's grant.
+  const actor=expectedPurpose==='device'?s.ownerAccountId:receipt.actor;
+  if(expectedPurpose==='pro-share-guest')
+   await authorizeGuest(req,{ownerAccountId:s.ownerAccountId,
+    guestAccountId:actor,deviceId,connectionId:s.connectionId,
+    agentId:receipt.agent,requestId,purpose:expectedPurpose});
+  const recheckGuest=()=>expectedPurpose==='pro-share-guest'?
+   authorizeGuest(req,{ownerAccountId:s.ownerAccountId,
+    guestAccountId:actor,deviceId,connectionId:s.connectionId,
+    agentId:receipt.agent,requestId,purpose:expectedPurpose}):null;
   // Recheck owner/session/current signed enrollment AND connection after
   // the potentially delayed Redis verification and before mutating grant.
   const fresh=await authorization(req,deviceId);
@@ -71,7 +89,8 @@ export function createGoldAbV2GrantCoordinator({
    fail('abv2_grant_connection_changed',409);
   // Deterministic, per-Agent idempotent, no new 24h on retry.
   const grant=accessGrants.approveVerifiedV2({
-   requestId,ownerAccountId:s.ownerAccountId,agentId:receipt.agent,
+   requestId,ownerAccountId:s.ownerAccountId,actorAccountId:actor,
+   purpose:expectedPurpose,agentId:receipt.agent,
    deviceId,connectionId:s.connectionId,
    connectionExpiresAt:fresh.connectionExpiresAt,
    verifiedAt:receipt.approvedAt,label:receipt.agent
@@ -79,6 +98,7 @@ export function createGoldAbV2GrantCoordinator({
   // Phase 1: durable QUARANTINED row, not an active grant. This blocks
   // both in-memory authorization before PG flush and restart exposure.
   const base={grantId,requestId,ownerAccountId:s.ownerAccountId,
+   actorAccountId:actor,purpose:expectedPurpose,
    deviceId,connectionId:s.connectionId,agentId:receipt.agent,
    approvedAt:receipt.approvedAt,absoluteExpiresAt:grant.absoluteExpiresAt};
   const phase=grant.closedAt?'staged':'active';
@@ -89,6 +109,7 @@ export function createGoldAbV2GrantCoordinator({
   if(final.ownerAccountId!==s.ownerAccountId||
      final.connectionId!==s.connectionId)
    fail('abv2_grant_connection_changed',409);
+  await recheckGuest();
   if(phase==='active'&&receipt.state!=='granted')
    fail('abv2_active_without_redis_commit',503);
   // Only a successfully staged PG grant may be marked granted in Redis.
@@ -98,6 +119,8 @@ export function createGoldAbV2GrantCoordinator({
    fail('abv2_grant_redis_commit_mismatch',503);
   // Phase 2: activate in registry after Redis commit, still withheld from
   // assert()/status while the second PostgreSQL write is in flight.
+  await recheckGuest();
+  await recheckGuest();
   const activated=accessGrants.activateVerifiedV2(grantId);
   await flushGrants();
   if(await confirmPersisted({...base,phase:'active'})!==true)
@@ -106,11 +129,13 @@ export function createGoldAbV2GrantCoordinator({
   if(latest.ownerAccountId!==s.ownerAccountId||
      latest.connectionId!==s.connectionId)
    fail('abv2_grant_connection_changed',409);
+  await recheckGuest();
   accessGrants.finalizeVerifiedV2(grantId);
   await flushGrants();
-  accessGrants.assert(grantId,{accountId:s.ownerAccountId,
+  accessGrants.assert(grantId,{accountId:actor,
    deviceId,connectionId:s.connectionId,agentId:receipt.agent,touch:false});
   return {state:'granted',requestId,grantId,agentId:receipt.agent,
+   actorAccountId:actor,purpose:expectedPurpose,
    approvedAt:receipt.approvedAt,
    expiresAt:Math.min(grant.expiresAt,grant.absoluteExpiresAt),
    absoluteExpiresAt:grant.absoluteExpiresAt,reused:Boolean(grant.reused)};

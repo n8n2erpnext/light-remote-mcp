@@ -1,12 +1,11 @@
 import {verifyTeamMemberAuthorization} from './team-member-auth.mjs';
 import {TeamEntitlementError} from './team-entitlement-policy.mjs';
+import {assertSharedDeviceCapabilityPolicy,SHARED_DEVICE_OPERATION_FAMILIES} from './shared-device-capability-policy.mjs';
 
 // Deliberately NOT connected to production targetRoute or FleetRouter.
 // Owner device access and account billing are validated before any Team job
 // dispatch can be enabled. Future integrations must revalidate EVERY operation.
-export const TEAM_UAT_OPERATION_FAMILIES=Object.freeze([
-  'exec','fs','search','process','terminal','scp','desktop'
-]);
+export const TEAM_UAT_OPERATION_FAMILIES=SHARED_DEVICE_OPERATION_FAMILIES;
 
 export class TeamDispatchAuthorityError extends Error{
   constructor(message,status=403){super(message);this.status=status;}
@@ -38,14 +37,18 @@ export function authorizeTeamDispatch({
      !connection.connectionId||!Number.isFinite(Number(connection.hardExpiresAt))||
      Number(connection.hardExpiresAt)<=Number(now))
     throw new TeamDispatchAuthorityError('team_owner_connection_required',409);
-  if(!Array.isArray(requiredCapabilities)||requiredCapabilities.length>32||
-     requiredCapabilities.some(c=>!validId(c,80)))
+  let capabilityPolicy;
+  try{capabilityPolicy=assertSharedDeviceCapabilityPolicy({operation:requestedOperation,
+   requiredCapabilities,approvedCapabilities,routeCapabilities});}
+  catch(error){
+   if(error.message==='shared_required_capabilities_invalid')
     throw new TeamDispatchAuthorityError('team_required_capabilities_invalid',400);
-  if(!Array.isArray(approvedCapabilities)||!Array.isArray(routeCapabilities))
+   if(error.message==='shared_device_policy_required')
     throw new TeamDispatchAuthorityError('team_device_policy_required',403);
-  const approved=new Set(approvedCapabilities),routed=new Set(routeCapabilities);
-  if(requiredCapabilities.some(c=>!approved.has(c)||!routed.has(c)))
+   if(error.message==='shared_device_capability_denied')
     throw new TeamDispatchAuthorityError('team_device_capability_denied',403);
+   throw error;
+  }
 
   const decision=verifyTeamMemberAuthorization({
     device,connection,actorAccountId:actor,agentId:agent,accessGrantId,
@@ -68,7 +71,7 @@ export function authorizeTeamDispatch({
     deviceId:device.deviceId,
     nodeId:device.nodeId,
     operation:requestedOperation,
-    requiredCapabilities:Object.freeze([...new Set(requiredCapabilities)].sort()),
+    requiredCapabilities:capabilityPolicy.requiredCapabilities,
     maxWorkers:Math.min(3,Number(decision.maxWorkers)||1),
     teamShared:true
   });

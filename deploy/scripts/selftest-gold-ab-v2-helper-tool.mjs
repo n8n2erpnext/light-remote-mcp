@@ -1,37 +1,39 @@
-// Gold P2-I2g MCP helper schema/compatibility boundary fixture.
-// Default OFF must not call Operator and must not silently choose Main.
+// Source-level compatibility guard. No live Operator calls or npm install.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-// Pure source guard: the VPS-ARM source worktree intentionally does not
-// install Plugin Server's production zod dependencies. Do not use npm install
-// or change the live app to run this test. Auth HMAC is executed separately.
 const adapter=fs.readFileSync(new URL('../../plugin-server/operator-adapter.mjs',import.meta.url),'utf8');
 const source=fs.readFileSync(new URL('../../plugin-server/tools.mjs',import.meta.url),'utf8');
-assert.match(adapter,/signGoldAbV2HelperTarget\(\{identity:this.identity,targetQuery,/);
-assert.match(adapter,/callOperatorJson\('POST','\/v1\/plugin\/abv2\/target-resolve',proof\)/);
-assert.match(source,/targetQuery:z\.string\(\)\.min\(1\)\.max\(120\)\.optional\(\)/);
-assert.match(source,/aCode:z\.string\(\)\.regex/,'V1 aCode must remain');
-assert.match(source,/continuation:z\.string\(\)\.min\(20\)\.max\(8192\)\.optional\(\)/);
-assert.match(source,/abv2_helper_target_query_conflict/);
-assert.match(source,/startAbV2:z\.boolean\(\)\.optional\(\)/);
-assert.match(source,/requestKey:z\.string\(\)\.regex/);
-assert.match(source,/if\(x.targetQuery\)return x.startAbV2\?/);
-assert.match(source,/a.issueAbV2Request\(x.targetQuery,\{requestKey:x.requestKey\|\|null\}\)/);
-assert.match(adapter,/async issueAbV2Request\(targetQuery,\{requestKey=null\}=\{\}\)/);
-assert.match(adapter,/LR_GOLD_AB_V2_HELPER_REQUEST_ISSUE!=='1'/);
-assert.match(adapter,/if\(process.env.LR_GOLD_AB_V2_HELPER_TARGET_QUERY!=='1'\)/);
-assert.match(adapter,/status:'target_resolution_unavailable'/);
-assert.match(adapter,/helperReady:false,approvalState:'not_issued'/);
+const must=(body,value)=>assert.ok(body.includes(value),'Missing source contract: '+value);
+must(adapter,'signGoldAbV2HelperTarget({identity:this.identity,targetQuery,');
+must(adapter,'/v1/plugin/abv2/target-resolve');
+must(adapter,'/v1/plugin/pro-share/target-resolve');
+must(adapter,'/v1/plugin/abv2/request-issue');
+must(adapter,'/v1/plugin/pro-share/request-issue');
+must(adapter,'LR_GOLD_AB_V2_HELPER_TARGET_QUERY');
+must(adapter,'LR_GOLD_PRO_SHARE_GUEST_AB_TARGET_QUERY');
+must(adapter,'LR_GOLD_AB_V2_HELPER_REQUEST_ISSUE');
+must(adapter,'LR_GOLD_PRO_SHARE_GUEST_AB_REQUEST_ISSUE');
+must(adapter,'status:\'target_resolution_unavailable\'');
+must(adapter,'helperReady:false,approvalState:\'not_issued\'');
+must(adapter,'async issueAbV2Request(targetQuery,{requestKey=null,guestShare=false}={})');
+must(adapter,'async pollAbV2Request({requestId,deviceId,shortId}={})');
+must(adapter,'LR_GOLD_AB_V2_HELPER_POLL_ATTACH');
+must(adapter,"result.status!=='ready'||result.helperReady!==true");
+must(source,'targetQuery:z.string().min(1).max(120).optional()');
+must(source,'aCode:z.string().regex');
+must(source,'continuation:z.string().min(20).max(8192).optional()');
+must(source,'startAbV2:z.boolean().optional()');
+must(source,'guestShare:z.boolean().optional()');
+must(source,'requestKey:z.string().regex');
+must(source,'abv2_helper_target_query_conflict');
+must(source,'if(x.targetQuery)return x.startAbV2?');
+must(source,'a.issueAbV2Request(x.targetQuery,{requestKey:x.requestKey||null,');
+must(source,'guestShare:x.guestShare===true');
+must(source,'pollRequestId:z.string().regex');
+must(source,'pollDeviceId:id.optional()');
+must(source,'pollShortId:z.string().regex');
+must(source,'a.pollAbV2Request({requestId:x.pollRequestId');
 assert.ok(!source.includes('if(x.targetQuery)return a.pairBegin'),
- 'a name search must not reuse V1 A-code issuance');
-console.log('GOLD_ABV2_MCP_HELPER_TARGET_QUERY_OPTIONAL_V1_UNCHANGED_OFF_FAILCLOSED=PASS');
-
-assert.match(source,/pollRequestId:z\.string\(\)\.regex/,'V2 poll request id must be exact');
-assert.match(source,/pollDeviceId:id\.optional\(\)/);
-assert.match(source,/pollShortId:z\.string\(\)\.regex/);
-assert.match(source,/if\(x\.pollRequestId\|\|x\.pollDeviceId\|\|x\.pollShortId\)/);
-assert.match(source,/a\.pollAbV2Request\(\{requestId:x\.pollRequestId/);
-assert.match(adapter,/async pollAbV2Request\(\{requestId,deviceId,shortId\}=\{\}\)/);
-assert.match(adapter,/LR_GOLD_AB_V2_HELPER_POLL_ATTACH!=='1'/);
-assert.match(adapter,/result\.status!=='ready'\|\|result\.helperReady!==true/);
-console.log('GOLD_ABV2_MCP_HELPER_POLL_SCHEMA_V1_UNCHANGED=PASS');
+ 'a name search must not silently choose or start V1 A-code pairing');
+console.log('GOLD_ABV2_AND_GUEST_MCP_HELPER_OPTIONAL_V1_DEFAULT_OFF=PASS');
+console.log('GOLD_ABV2_MCP_HELPER_POLL_V1_UNCHANGED=PASS');

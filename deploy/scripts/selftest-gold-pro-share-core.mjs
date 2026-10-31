@@ -143,6 +143,15 @@ const authority={authenticatedActorAccountId:guest,authenticatedAgentId:'agent-1
  device,connection,grantId:grant.grantId,accessGrants};
 assert.equal((await store.authorize(authority)).billedAccountId,owner);
 assert.equal((await store.authorize(authority)).maxGuestConcurrentJobs,1);
+const permitted=await store.authorizeOperation({...authority,operation:'exec',
+ requiredCapabilities:['process','terminal'],approvedCapabilities:['process','terminal'],
+ routeCapabilities:['process','terminal']});
+assert.deepEqual(permitted.requiredCapabilities,['process','terminal']);
+await assert.rejects(store.authorizeOperation({...authority,operation:'exec',
+ requiredCapabilities:['desktop'],approvedCapabilities:['process','terminal'],
+ routeCapabilities:['process','terminal']}),/shared_device_capability_denied/);
+await assert.rejects(store.authorizeOperation({...authority,operation:'arbitrary',
+ approvedCapabilities:[],routeCapabilities:[]}),/shared_operation_not_allowed/);
 await assert.rejects(store.authorize({...authority,connection:{...connection,deviceId:'other-device'}}),/pro_share_device_or_connection_invalid/);
 await assert.rejects(store.assertEligibleGuestRequest({authenticatedGuestAccountId:guest,device,connection:{...connection,deviceId:'other-device'}}),/pro_share_guest_request_denied/);
 const overview=await store.overview({authenticatedOwnerAccountId:owner});

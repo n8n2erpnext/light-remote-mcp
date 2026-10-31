@@ -5,7 +5,9 @@ const ACTIONS=Object.freeze({
  'pro-share-invite':['POST','invite'],
  'pro-share-accept':['POST','accept'],
  'pro-share-share':['POST','share'],
- 'pro-share-revoke':['POST','revoke']
+ 'pro-share-revoke':['POST','revoke'],
+ 'pro-share-guest-pending':['GET','guest-pending'],
+ 'pro-share-guest-approve':['POST','guest-approve']
 });
 export const isProShareAccountAction=name=>Object.hasOwn(ACTIONS,name);
 export function createGoldProShareAccountProxy({enabled=false,origin,sessionToken,
@@ -24,6 +26,13 @@ export function createGoldProShareAccountProxy({enabled=false,origin,sessionToke
    return reply(401,{ok:false,error:'account_session_required'});
   const headers={'x-light-account-session':token};
   let payload=null;
+  let suffix='';
+  if(route==='guest-pending'){
+   const id=String(req.query?.deviceId||'');
+   if(!/^[A-Za-z0-9._:-]{1,160}$/.test(id))
+    return reply(400,{ok:false,error:'pro_share_device_invalid'});
+   suffix='?deviceId='+encodeURIComponent(id);
+  }
   if(method==='POST'){
    if(req.headers?.origin!==origin||req.headers?.['sec-fetch-site']==='cross-site')
     return reply(403,{ok:false,error:'pro_share_cross_origin_denied'});
@@ -37,8 +46,10 @@ export function createGoldProShareAccountProxy({enabled=false,origin,sessionToke
    if(route==='accept')payload={ownerAccountId:body.ownerAccountId,inviteCode:body.inviteCode};
    if(route==='share')payload={deviceId:body.deviceId};
    if(route==='revoke')payload={deviceId:body.deviceId,removeGuest:body.removeGuest===true};
+   if(route==='guest-approve')payload={deviceId:body.deviceId,
+    requestId:body.requestId,expectedAttempt:body.expectedAttempt,bCode:body.bCode};
   }
-  const response=await callOperatorJson(method,'/v1/accounts/pro-share/'+route,
+  const response=await callOperatorJson(method,'/v1/accounts/pro-share/'+route+suffix,
    payload,headers);
   return reply(200,response);
  };

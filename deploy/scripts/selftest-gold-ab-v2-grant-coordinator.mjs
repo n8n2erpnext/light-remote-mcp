@@ -90,6 +90,45 @@ try{
  const resumed=await runner(owner,request('d'));
  assert.equal(resumed.grantId,quarantined);
  assert.equal(registry.assert(quarantined,{touch:false}).grantId,quarantined);
+ // Pro Share reuses this same two-phase B/PG grant coordinator, never the
+ // owner's or Team member's permission.
+ let guestSeatActive=true;
+ for(const x of ['e','f'])rows.set(id(x),{requestId:id(x),state:'pending',
+  attempt:1,owner:'owner',actor:'guest-account',purpose:'pro-share-guest',
+  device:'device',connection:'conn',agent:'guest-agent',
+  client:'oauth-'+'a'.repeat(64),b:'7KPX-42NM'});
+ const guestRunner=createGoldAbV2GrantCoordinator({enabled:true,pending,
+  accessGrants:registry,now:()=>now,expectedPurpose:'pro-share-guest',
+  authorizeOwner:async(_req,deviceId)=>({
+   ownerAccountId:'owner',deviceId,connectionId:'conn',
+   connectionExpiresAt:now+172800000
+  }),
+  authorizeGuest:async(_req,scope)=>{
+   assert.equal(scope.ownerAccountId,'owner');
+   assert.equal(scope.guestAccountId,'guest-account');
+   assert.equal(scope.deviceId,'device');
+   assert.equal(scope.purpose,'pro-share-guest');
+   if(!guestSeatActive)throw Error('pro_share_guest_seat_revoked');
+  },
+  flushGrants:async()=>{},
+  confirmPersisted:async p=>p.actorAccountId==='guest-account'&&
+   p.purpose==='pro-share-guest'&&registry.grants.has(p.grantId)&&
+   (p.phase==='staged'?
+     registry.grants.get(p.grantId).closeReason==='abv2_uncommitted':
+     registry.grants.get(p.grantId).closedAt==null)
+ });
+ const guestGrant=await guestRunner(owner,request('e'));
+ assert.equal(guestGrant.actorAccountId,'guest-account');
+ assert.equal(guestGrant.purpose,'pro-share-guest');
+ assert.equal(registry.assert(guestGrant.grantId,{
+  accountId:'guest-account',agentId:'guest-agent',touch:false}).purpose,'pro-share-guest');
+ assert.throws(()=>registry.assert(guestGrant.grantId,{
+  accountId:'owner',touch:false}),/device_access_grant_account_mismatch/);
+ assert.equal(registry.assert(b.grantId,{touch:false}).purpose,'device');
+ guestSeatActive=false;
+ await assert.rejects(guestRunner(owner,request('f')),/pro_share_guest_seat_revoked/);
+ assert.equal(registry.grants.has('dag_v2_'+id('f').slice(4)),false);
+ console.log('GOLD_P2I4_GUEST_B_REUSES_OWNER_GRANT_COORDINATOR_STRICT_ACTOR_PURPOSE=PASS');
  connection='changed';
  await assert.rejects(runner(owner,request('c')),/scope mismatch/);
  connection='conn';online=false;

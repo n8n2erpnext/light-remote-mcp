@@ -47,6 +47,9 @@ Send the code to your intended Guest through a trusted channel; it appears here 
 <button class="btn" id="removeGuest" type="button">Remove Guest</button>
 <h2 style="margin-top:20px">Selected devices</h2>
 <div id="devices" class="share-subtle">No devices loaded</div>
+<h2 style="margin-top:20px">Guest Agent B approvals</h2>
+<p class="share-subtle">Only a verified, separately signed-in owner can approve the Guest's exact Agent request. The Guest supplies B; no approval occurs automatically.</p>
+<div id="guestRequests" class="share-subtle">Choose a shared device to view pending requests.</div>
 </section>
 <section class="share-panel">
 <h2>Guest — accept invitation</h2>
@@ -67,8 +70,10 @@ Invitation acceptance never grants A/B or device access by itself.</p>
 const $=id=>document.getElementById(id);
 let csrf='',shareActive=false;
 function note(message){$('notice').textContent=message}
-async function api(action,body){
- const response=await fetch('/account/api?action='+encodeURIComponent(action),{
+async function api(action,body,query=null){
+ const url='/account/api?action='+encodeURIComponent(action)+
+  (query?'&deviceId='+encodeURIComponent(query):'');
+ const response=await fetch(url,{
   method:body?'POST':'GET',credentials:'same-origin',cache:'no-store',
   headers:{...(body?{'content-type':'application/json',
    'x-light-pro-share-csrf':csrf}:{})},
@@ -81,6 +86,7 @@ async function api(action,body){
 }
 async function refresh(){
  $('devices').replaceChildren();$('inviteCode').textContent='';
+ $('guestRequests').replaceChildren();
  try{
   const security=await api('pro-share-csrf');csrf=security.csrf;
   if(!/^[A-Za-z0-9_-]{43}$/.test(csrf))throw Error('account_csrf_unavailable');
@@ -114,6 +120,13 @@ async function refresh(){
      }catch(error){note(error.message);button.disabled=!shareActive}
     });
     row.append(name,button);$('devices').append(row);
+    if(device.shared){
+     const pendingButton=document.createElement('button');
+     pendingButton.className='btn';pendingButton.type='button';
+     pendingButton.textContent='View Guest B requests for '+device.device_id;
+     pendingButton.addEventListener('click',()=>loadGuestRequests(device.device_id));
+     $('guestRequests').append(pendingButton);
+    }
    }
    note('Owner sharing settings loaded. Guest execution and checkout remain disabled.');
   }catch(error){
@@ -122,6 +135,44 @@ async function refresh(){
    note('Guest acceptance available. Owner sharing requires an eligible Pro account and an explicit UAT add-on.');
   }
  }catch(error){note(error.message)}
+}
+async function loadGuestRequests(deviceId){
+ const panel=$('guestRequests');panel.replaceChildren();
+ try{
+  const data=await api('pro-share-guest-pending',null,deviceId);
+  if(!data.pending?.length){panel.textContent='No pending Guest B requests on '+deviceId;return;}
+  for(const request of data.pending){
+   const row=document.createElement('div');row.className='share-row';
+   const label=document.createElement('span');
+   label.textContent='Guest '+request.requesterAccountId+' · '+request.requestId+
+    ' · attempt '+request.attempt;
+   const form=document.createElement('form');
+   const code=document.createElement('input');code.className='share-input';
+   code.type='password';code.maxLength=9;code.placeholder='B code 4+4';
+   code.autocomplete='off';code.required=true;
+   const approve=document.createElement('button');approve.className='btn';
+   approve.type='submit';approve.textContent='Approve Guest Agent';
+   form.append(code,approve);
+   form.addEventListener('submit',async event=>{
+    event.preventDefault();
+    const bCode=code.value.trim().toUpperCase();
+    if(!/^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/.test(bCode)){
+     note('Enter the exact B code from the Guest Agent.');return;
+    }
+    if(!window.confirm('Approve only this Guest Agent on this shared device for up to 24 hours?'))return;
+    approve.disabled=true;
+    try{
+     const out=await api('pro-share-guest-approve',{deviceId,
+      requestId:request.requestId,expectedAttempt:request.attempt,bCode});
+     code.value='';note(out.state==='granted'?
+      'Guest Agent grant approved. Guest execution remains disabled in this source preview.':
+      'Guest Agent request updated.');
+     await loadGuestRequests(deviceId);
+    }catch(error){code.value='';note(error.message);approve.disabled=false;}
+   });
+   row.append(label,form);panel.append(row);
+  }
+ }catch(error){panel.textContent='Guest approval unavailable: '+error.message;}
 }
 $('inviteForm').addEventListener('submit',async event=>{
  event.preventDefault();

@@ -8,7 +8,8 @@ import {createGoldAbV2GrantCoordinator,GoldAbV2GrantBridgeError}
 const deny=(message,status=403)=>{throw new GoldAbV2GrantBridgeError(message,status)};
 export function createGoldAbV2GrantOperator({
  env=process.env,storage,requireAccount,accountSessionToken,
- accounts,devices,connections,enrollments,accessGrants,goldRegistries
+ accounts,devices,connections,enrollments,accessGrants,goldRegistries,
+ expectedPurpose='device',authorizeGuest=null
 }={}){
  if(env.LR_GOLD_AB_V2_DURABLE_GRANT_BRIDGE!=='1')return null;
  if(env.LR_GOLD_AB_V2_HELPER_REQUEST_ISSUE!=='1')
@@ -59,14 +60,20 @@ export function createGoldAbV2GrantOperator({
    connectionExpiresAt:Number(connection.hardExpiresAt)};
  };
  return createGoldAbV2GrantCoordinator({enabled:true,pending,
-  accessGrants,authorizeOwner,flushGrants:()=>goldRegistries.flush(),
+  accessGrants,authorizeOwner,expectedPurpose,authorizeGuest,
+  flushGrants:()=>goldRegistries.flush(),
   confirmPersisted:async scope=>{
    const result=await storage.pool.query(
-    'SELECT g.grant_id,g.account_id,g.device_id,g.connection_id,g.agent_id,g.approved_at,g.absolute_expires_at,g.closed_at,m.close_reason FROM lr_ab_grants g JOIN lr_gold_ab_grant_metadata m ON m.grant_id=g.grant_id WHERE g.grant_id=$1',
+    'SELECT g.grant_id,g.account_id,g.purpose,g.device_id,g.connection_id,g.agent_id,g.approved_at,g.absolute_expires_at,g.closed_at,'+
+    (expectedPurpose==='pro-share-guest'?'g.connection_owner_account_id,':'')+
+    'm.close_reason FROM lr_ab_grants g JOIN lr_gold_ab_grant_metadata m ON m.grant_id=g.grant_id WHERE g.grant_id=$1',
     [scope.grantId]);
    const r=result?.rows?.[0];
    return Boolean(r&&r.grant_id===scope.grantId&&
-    r.account_id===scope.ownerAccountId&&r.device_id===scope.deviceId&&
+    r.account_id===(scope.actorAccountId||scope.ownerAccountId)&&
+    (expectedPurpose!=='pro-share-guest'||
+      (r.purpose==='pro-share-guest'&&r.connection_owner_account_id===scope.ownerAccountId))&&
+    r.device_id===scope.deviceId&&
     r.connection_id===scope.connectionId&&r.agent_id===scope.agentId&&
     (scope.phase==='staged'?(r.closed_at!=null&&r.close_reason==='abv2_uncommitted'):
      (scope.phase==='active'&&r.closed_at==null))&&

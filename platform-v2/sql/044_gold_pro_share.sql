@@ -2,6 +2,51 @@
 -- Owner + exactly one Free (or other eligible) guest. Independent of Pro Team.
 -- Do NOT apply to Gold UAT or production before integrated release sign-off.
 BEGIN;
+-- Widen the existing native A/B registry for cross-account delegation rather
+-- than creating a second A/B engine. Preserve original owner constraints:
+-- device grants MUST have the connection owner as actor; Guest grants MUST NOT.
+-- A server-side trigger derives owner from the immutable connection record.
+-- The separate Pro Share seat/device/approval checks remain mandatory in code.
+ALTER TABLE lr_ab_requests DROP CONSTRAINT lr_ab_requests_purpose_check;
+ALTER TABLE lr_ab_requests ADD CONSTRAINT lr_ab_requests_purpose_check
+ CHECK(purpose IN ('device','team-member','pro-share-guest'));
+ALTER TABLE lr_ab_grants DROP CONSTRAINT lr_ab_grants_purpose_check;
+ALTER TABLE lr_ab_grants ADD CONSTRAINT lr_ab_grants_purpose_check
+ CHECK(purpose IN ('device','team-member','pro-share-guest'));
+ALTER TABLE lr_ab_grants ADD COLUMN connection_owner_account_id TEXT
+ REFERENCES lr_accounts(account_id);
+UPDATE lr_ab_grants g SET connection_owner_account_id=c.account_id
+ FROM lr_device_connections c
+ WHERE c.connection_id=g.connection_id AND c.device_id=g.device_id;
+ALTER TABLE lr_ab_grants ALTER COLUMN connection_owner_account_id SET NOT NULL;
+CREATE FUNCTION lr_gold_pro_share_ab_owner_from_connection()
+ RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+ SELECT account_id INTO NEW.connection_owner_account_id
+ FROM lr_device_connections
+ WHERE connection_id=NEW.connection_id AND device_id=NEW.device_id;
+ IF NOT FOUND THEN
+  RAISE EXCEPTION 'invalid connection/device' USING ERRCODE='23503';
+ END IF;
+ RETURN NEW;
+END $$;
+CREATE TRIGGER lr_gold_pro_share_ab_owner_guard
+ BEFORE INSERT OR UPDATE OF connection_id,device_id,account_id,purpose
+ ON lr_ab_grants FOR EACH ROW
+ EXECUTE FUNCTION lr_gold_pro_share_ab_owner_from_connection();
+ALTER TABLE lr_ab_grants
+ DROP CONSTRAINT lr_ab_grants_connection_id_device_id_account_id_fkey;
+ALTER TABLE lr_ab_grants
+ ADD CONSTRAINT lr_ab_grants_owner_connection_fk
+ FOREIGN KEY(connection_id,device_id,connection_owner_account_id)
+ REFERENCES lr_device_connections(connection_id,device_id,account_id);
+ALTER TABLE lr_ab_grants
+ ADD CONSTRAINT lr_ab_grants_purpose_actor_owner_scope
+ CHECK(
+  (purpose='device' AND account_id=connection_owner_account_id)
+  OR purpose='team-member'
+  OR (purpose='pro-share-guest' AND account_id<>connection_owner_account_id)
+ );
 CREATE TABLE lr_gold_pro_share_addons (
   owner_account_id TEXT PRIMARY KEY REFERENCES lr_accounts(account_id) ON DELETE CASCADE,
   state TEXT NOT NULL CHECK(state IN ('trial','active','paused','revoked')),

@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-31",
-  "status": "Gold Unified P2 P2-I4B1 source 74e9ca7f6f6d3a9867e1801b95ccdd15a29e17c6 pushed HEAD=origin. Pro Share authenticated owner/Free guest Account API & UI plus read-only Guest pre-issuance authorization PASS source/mock tests, 398 docs links. Guest A/B issuance/PG grant and dispatch NOT wired; all flags OFF on Gold UAT/prod, candidate PG044 not migrated.",
+  "status": "Unified P2-I4B2 SOURCE candidate: reuse existing Team operation/capability fence, Gold A/B V2 signed OAuth/Redis B/24h PG coordinator, owner Account CSRF to issue Guest-purpose A/B for one accepted Free Guest on explicitly shared device. Owner/Team source regression PASS. Guest Helper-ready/dispatch/billing NOT wired, PG044 native migration not tested and not in lock; Gold UAT/prod OFF. SHA pending.",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -57,7 +57,8 @@
     "P2-I3a Agent-selected session displayName behind OFF flag: SessionRegistry + GoldSessionRedis mutator, MCP context/open metadata, Local Wall UI, source collision/owner precedence/XSS/restart tests PASS.",
     "P2-I3b owner account session authenticated rename, strict Origin/HMAC CSRF and session ownership, Redis flush; /account/sessions UI and hidden Settings link source-only syntax PASS, real owner HTTP E2E pending integrated candidate.",
     "P2-I4A independent Pro Share schema044 candidate and fail-closed store: one email-invited verified Free Guest, owner-scoped selected devices and revocation, independent Guest A/B purpose required, owner-paid exact-once monthly call budget source tests PASS; default OFF, not wired to live guest dispatch/Paddle.",
-    "P2-I4B1 default OFF Operator/Account Portal Owner invite/one-time code/selected-device share/revoke and Free Guest acceptance UI; server-derived identity, strict CSRF/Origin, Guest preissue eligibility on exact owner/device/connection; source fixtures/inline JS syntax PASS."
+    "P2-I4B1 default OFF Operator/Account Portal Owner invite/one-time code/selected-device share/revoke and Free Guest acceptance UI; server-derived identity, strict CSRF/Origin, Guest preissue eligibility on exact owner/device/connection; source fixtures/inline JS syntax PASS.",
+    "P2-I4B2 converted Pro Team reusable capability families into shared module, Gold native V2 Redis/owner B/PG grant and Helper OAuth delegated Guest actor & pro-share-guest purpose, exact shared Short ID and owner-approved B. Source guest/owner/Team regression PASS, no live execution."
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -84,9 +85,11 @@
     "Native installed owner browser/Agent OAuth/Redis8+PG043 combined E2E not yet run; full isolated native database and Redis8 tests were independent",
     "P2-I4 guest dispatch review read blocked by tool safety; no Pro Share guest code or billing entitlement activation performed in this session",
     "P2-I4A only synthetic SQL fixture, PG044 candidate outside migration lock, no Guest-purpose A/B issuer/Operator route/queue dispatch/owner UI or Paddle authorization; default OFF on UAT/prod",
-    "P2-I4B1 account HTTP owner/Guest source fixture and HTML syntax PASS, but no native PG044/installed browser testing, no automatic invitation email, Guest A/B issuance and independent owner B durable grant NOT implemented"
+    "P2-I4B1 account HTTP owner/Guest source fixture and HTML syntax PASS, but no native PG044/installed browser testing, no automatic invitation email, Guest A/B issuance and independent owner B durable grant NOT implemented",
+    "Candidate PG044 modifies native lr_ab_grants FK via connection_owner_account_id trigger for delegated Guest actor, NOT tested on native PG clone and NOT in migration lock; do not deploy before combined physical release acceptance",
+    "P2-I4B2 Guest OAuth B issued/approved source but Guest poll/Agent binding/actual cross-account dispatch/owner-paid meter still OFF, no real Guest ready"
   ],
-  "nextAction": "P2-I4B2 implement independently OAuth-proven Guest target discovery and on-demand A/B V2, owner B approval + purpose-isolated durable PG pro-share-guest grant with exact permissionRevision/fresh share checks. No owner/Team grant inheritance or global account bypass. Then P2-I4C queue/dispatch reauth+owner metering exact once; freeze one integrated Gold candidate for physical UAT. All flags OFF and PG044 not applied on UAT/prod.",
+  "nextAction": "P2-I4C: reuse existing Gold native AgentClient attach/Helper poll for verified Free Guest distinct actor, then adapt authorized device/target routing and queue+dispatch to call Pro Share fresh seat/device/purpose checks, shared Team capability intersection, one-job guest policy and owner-billed exactly-once operation metering. Combine PG044 full schema native FK trigger validation+OAuth owner Guest browser on a single frozen isolated/UAT candidate, no more standalone A/B test ladder. All flags OFF on Gold UAT/prod, Pro Team five-seat remains frozen.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -99,10 +102,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "e4c9c43c8b6d8ffbf598a24b40b60a5cef5c944f10aafb8b9dea9efe14ff914e",
-    "trackedFiles": 1042,
+    "treeDigest": "b8e9f8e9b8b46822ba92b9c833b51831d9f53b5afaaece807cf0763287040833",
+    "trackedFiles": 1046,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-10-31T02:19:08.953Z"
+    "recordedAt": "2026-10-31T02:39:21.908Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -445,7 +448,7 @@
       }
     },
     "p2i4ProShare": {
-      "phase": "P2-I4B1_SOURCE_ONLY",
+      "phase": "P2-I4B2_SOURCE_ONLY",
       "schema": "platform-v2/sql/044_gold_pro_share.sql",
       "schemaLock": "NOT_REGISTERED_NOT_APPLIED",
       "store": "operator-host/pro-share-store.mjs",
@@ -460,14 +463,21 @@
       "billing": "OFF",
       "nativePgTest": "NOT_RUN",
       "liveGuestExecution": false,
-      "sourceSha": "74e9ca7f6f6d3a9867e1801b95ccdd15a29e17c6",
+      "sourceSha": "PENDING_COMMIT",
       "githubActions": "PUSH_RUN_NOT_INDEPENDENTLY_VERIFIED",
       "accountHttp": "operator-host/pro-share-account-http.mjs",
       "accountProxy": "plugin-server/account-pro-share.mjs",
       "accountUi": "plugin-server/account-portal/pro-share.html",
       "guestPreissue": "operator-host/pro-share-store.mjs assertEligibleGuestRequest (NOT WIRED TO OAUTH ISSUER)",
       "accountFixture": "deploy/scripts/selftest-gold-pro-share-account.mjs",
-      "accountFlags": "LR_GOLD_PRO_SHARE_CORE, LR_GOLD_PRO_SHARE_ACCOUNT_HTTP, LR_GOLD_PRO_SHARE_PORTAL_UI, LR_GOLD_PRO_SHARE_OWNER_ORIGIN: DEFAULT OFF"
+      "accountFlags": "LR_GOLD_PRO_SHARE_CORE, LR_GOLD_PRO_SHARE_ACCOUNT_HTTP, LR_GOLD_PRO_SHARE_PORTAL_UI, LR_GOLD_PRO_SHARE_OWNER_ORIGIN: DEFAULT OFF",
+      "guestOauthTarget": "operator-host/pro-share-guest-helper.mjs; same signed GoldAbV2HelperTarget, private exact PG043 Short ID share JOIN",
+      "guestBApproval": "operator-host/pro-share-guest-approval.mjs plus existing GoldAbV2GrantOperator/coordinator, owner ProShare account CSRF",
+      "reusedTeamCapability": "operator-host/shared-device-capability-policy.mjs used by team-dispatch-authority and ProShareStore authorizeOperation",
+      "reusedNativeAB": "GoldAbV2PendingRedis actor!=owner purpose pro-share-guest, DeviceAccessGrantRegistry approveVerifiedV2 and staged PG 2-phase",
+      "pg044Delegation": "candidate SQL native grants connection_owner_account_id trigger + FK + purpose checks; NOT TESTED; NO LIVE MIGRATION",
+      "b2SourceFixtures": "PASS: guest helper, owner B grant coordinator, ProShare account CSRF proxy, Team scoped revoke, owner signed B regression",
+      "guestHelperReady": false
     }
   }
 }

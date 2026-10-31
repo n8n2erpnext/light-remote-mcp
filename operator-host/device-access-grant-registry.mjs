@@ -129,15 +129,25 @@ export class DeviceAccessGrantRegistry {
    * exactly one durable Agent grant, across PostgreSQL flush/restart/retry.
    * This method does NOT validate B; the trusted bridge must do that first.
    */
-  approveVerifiedV2({requestId,ownerAccountId,agentId,deviceId,connectionId,
-    connectionExpiresAt,verifiedAt,label='Light Remote Agent'}={}){
+  approveVerifiedV2({requestId,ownerAccountId,actorAccountId=null,purpose='device',
+    agentId,deviceId,connectionId,connectionExpiresAt,verifiedAt,
+    label='Light Remote Agent'}={}){
     const rid=String(requestId||'');
     if(!/^av2_[a-f0-9]{32}$/.test(rid))
       throw new DeviceAccessGrantError('abv2_verified_request_invalid',400);
     const owner=validId(ownerAccountId,'abv2_owner_invalid'),
+      actor=validId(actorAccountId??ownerAccountId,'abv2_actor_invalid'),
+      kind=String(purpose||''),
       agent=validId(agentId,'abv2_agent_invalid'),
       device=validId(deviceId,'abv2_device_invalid'),
       connection=validId(connectionId,'abv2_connection_invalid');
+    // Reuse the native per-Agent 24h grant lifecycle for delegated Guests.
+    // The separate owner-approved Guest B coordinator MUST independently
+    // authorize the Guest seat/device at issue and commit. No public caller.
+    if(!['device','pro-share-guest'].includes(kind)||
+       (kind==='device'&&actor!==owner)||
+       (kind==='pro-share-guest'&&actor===owner))
+      throw new DeviceAccessGrantError('abv2_grant_purpose_or_actor_invalid',403);
     const now=this.now(),approvedAt=Number(verifiedAt),connExpiry=Number(connectionExpiresAt);
     if(!Number.isSafeInteger(approvedAt)||approvedAt<=0||approvedAt>now+30000||
        now>=approvedAt+AB_GRANT_MAX_LIFETIME_MS)
@@ -146,7 +156,8 @@ export class DeviceAccessGrantRegistry {
       throw new DeviceAccessGrantError('abv2_connection_expired',409);
     const grantId='dag_v2_'+rid.slice(4),priorRecord=this.grants.get(grantId);
     if(priorRecord){
-      if(priorRecord.accountId!==owner||priorRecord.agentId!==agent||
+      if(priorRecord.accountId!==actor||String(priorRecord.purpose||'device')!==kind||
+         priorRecord.agentId!==agent||
          priorRecord.deviceId!==device||priorRecord.connectionId!==connection||
          priorRecord.approvedAt!==approvedAt||
          priorRecord.absoluteExpiresAt!==approvedAt+AB_GRANT_MAX_LIFETIME_MS)
@@ -160,9 +171,9 @@ export class DeviceAccessGrantRegistry {
     // must not authorize an Agent while its asynchronous write is pending.
     // Persisted closeReason survives a crashed process/reloaded registry.
     // Previous same-Agent grant remains valid until activation succeeds.
-    const grant={grantId,accountId:owner,agentId:agent,deviceId:device,
+    const grant={grantId,accountId:actor,agentId:agent,deviceId:device,
       connectionId:connection,label:String(label||'Light Remote Agent').slice(0,120),
-      purpose:'device',approvedAt,lastActivityAt:now,
+      purpose:kind,approvedAt,lastActivityAt:now,
       idleGraceMs:AB_GRANT_MAX_LIFETIME_MS,
       absoluteExpiresAt:approvedAt+AB_GRANT_MAX_LIFETIME_MS,
       expiresAt:Math.min(connExpiry,approvedAt+AB_GRANT_MAX_LIFETIME_MS),
@@ -187,7 +198,7 @@ export class DeviceAccessGrantRegistry {
     for(const old of this.grants.values()){
       if(old.grantId!==id&&old.accountId===row.accountId&&
          old.deviceId===row.deviceId&&old.agentId===row.agentId&&
-         String(old.purpose||'device')==='device'&&!old.closedAt&&
+         String(old.purpose||'device')===String(row.purpose||'device')&&!old.closedAt&&
          Number(old.approvedAt)>=Number(row.approvedAt))
         throw new DeviceAccessGrantError('abv2_grant_superseded',409);
     }
@@ -197,7 +208,7 @@ export class DeviceAccessGrantRegistry {
     for(const old of this.grants.values()){
       if(old.grantId!==id&&old.accountId===row.accountId&&
          old.deviceId===row.deviceId&&old.agentId===row.agentId&&
-         String(old.purpose||'device')==='device'&&!old.closedAt){
+         String(old.purpose||'device')===String(row.purpose||'device')&&!old.closedAt){
         changed.push({row:old,closedAt:old.closedAt,closeReason:old.closeReason});
         old.closedAt=this.now();old.closeReason='owner_reapproved';
       }

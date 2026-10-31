@@ -56,7 +56,9 @@ import { isOutboundTarget } from '../lib/operator-target-route.mjs';
 import { createPlatformAdapter } from '../device-agent/platform-adapters/index.mjs';
 import { handleAccountRoutes } from './executor-routes-account.mjs';
 import {createGoldSessionOwnerHttp} from './gold-session-owner-http.mjs';
-import {createGoldProShareAccountHttp} from './pro-share-account-http.mjs';
+import {createGoldProShareAccountHttp,createGoldProShareStoreFromOperator} from './pro-share-account-http.mjs';
+import {createGoldProShareGuestHelper} from './pro-share-guest-helper.mjs';
+import {createGoldProShareGuestApproval} from './pro-share-guest-approval.mjs';
 import {createGoldAbV2OwnerHttpFromOperator} from './gold-ab-v2-owner-http.mjs';
 import {createGoldAbV2GrantOperator} from './gold-ab-v2-grant-operator.mjs';
 import {createGoldAbV2SignedPreview} from './gold-ab-v2-signed-preview.mjs';
@@ -1653,9 +1655,20 @@ const goldAbV2GrantOperator=createGoldAbV2GrantOperator({
  env:process.env,storage:goldStorage,requireAccount,accountSessionToken,
  accounts,devices,connections,enrollments,accessGrants,goldRegistries
 });
+const goldProShareGuestStore=process.env.LR_GOLD_PRO_SHARE_GUEST_AB_TARGET_QUERY==='1'?
+ createGoldProShareStoreFromOperator({env:process.env,pool:goldStorage.pool,accounts}):null;
+const goldProShareGuestHelper=createGoldProShareGuestHelper({
+ env:process.env,storage:goldStorage,store:goldProShareGuestStore,
+ accounts,devices,connections,enrollments,readJson,sendJson
+});
+const goldProShareGuestApproval=createGoldProShareGuestApproval({
+ env:process.env,storage:goldStorage,accounts,devices,connections,enrollments,
+ accessGrants,goldRegistries,store:goldProShareGuestStore,
+ requireAccount,accountSessionToken
+});
 const goldProShareAccountHttp=createGoldProShareAccountHttp({
  env:process.env,pool:goldStorage.pool,accounts,requireAccount,
- accountSessionToken,readJson,sendJson
+ accountSessionToken,readJson,sendJson,guestApproval:goldProShareGuestApproval
 });
 const goldSessionOwnerHttp=createGoldSessionOwnerHttp({
  env:process.env,requireAccount,accountSessionToken,sessions,
@@ -1679,6 +1692,7 @@ const server = http.createServer(async (req, res) => {
     if(await goldProShareAccountHttp(req,res,url))return;
     await goldAbV2OwnerHttp(req,res,url);
     if(res.headersSent)return;
+    if(await goldProShareGuestHelper(req,res,url))return;
     if(await goldAbV2HelperTarget(req,res,url))return;
     if(await goldAbV2HelperPoll(req,res,url))return;
     await handlePluginRoutes(req,res,url,routeDeps());

@@ -57,27 +57,30 @@ export class AccountOperatorAdapter{
     const q=new URLSearchParams({accountId:this.identity.accountId}),row=await callOperatorJson('GET',`/v1/plugin/sessions?${q}`);
     return (row.sessions||[]).some(s=>s.accountId===this.identity.accountId&&s.agentId===this.agentId&&['active','hold'].includes(s.state));
   }
-  async resolveAbV2Target(targetQuery){
+  async resolveAbV2Target(targetQuery,{guestShare=false}={}){
     // Only a verified OAuth identity reaches this method through guarded().
     // SOURCE GATE: cannot create A/B, grant or ready while PG043 is absent.
-    if(process.env.LR_GOLD_AB_V2_HELPER_TARGET_QUERY!=='1')
+    if((guestShare&&process.env.LR_GOLD_PRO_SHARE_GUEST_AB_TARGET_QUERY!=='1')||
+       (!guestShare&&process.env.LR_GOLD_AB_V2_HELPER_TARGET_QUERY!=='1'))
       return {status:'target_resolution_unavailable',nextAction:'use_legacy_a_code',
         helperReady:false,approvalState:'not_issued'};
     const proof=signGoldAbV2HelperTarget({identity:this.identity,targetQuery,
       key:goldAbV2HelperKey()});
-    const response=await callOperatorJson('POST','/v1/plugin/abv2/target-resolve',proof);
+    const response=await callOperatorJson('POST',guestShare?
+      '/v1/plugin/pro-share/target-resolve':'/v1/plugin/abv2/target-resolve',proof);
     return {status:'target_resolution',resolution:response.status,
       total:response.total,matches:response.matches||[],
       helperReady:false,approvalState:'not_issued',
       nextAction:response.nextAction||'specify_target'};
   }
-  async issueAbV2Request(targetQuery,{requestKey=null}={}){
-    if(process.env.LR_GOLD_AB_V2_HELPER_REQUEST_ISSUE!=='1')
+  async issueAbV2Request(targetQuery,{requestKey=null,guestShare=false}={}){
+    if((guestShare&&process.env.LR_GOLD_PRO_SHARE_GUEST_AB_REQUEST_ISSUE!=='1')||
+       (!guestShare&&process.env.LR_GOLD_AB_V2_HELPER_REQUEST_ISSUE!=='1'))
       return {status:'request_issuance_unavailable',nextAction:'use_legacy_a_code',
         helperReady:false,approvalState:'not_issued'};
     // Resolve first as the same OAuth principal; if the name is ambiguous,
     // never guess Main or grant a session on a partial name match.
-    const resolved=await this.resolveAbV2Target(targetQuery);
+    const resolved=await this.resolveAbV2Target(targetQuery,{guestShare});
     if(resolved.status!=='target_resolution'||resolved.resolution!=='single'||
       resolved.matches.length!==1)return resolved;
     const selected=resolved.matches[0];
@@ -89,7 +92,8 @@ export class AccountOperatorAdapter{
       targetQuery:selected.shortId,purpose:'issue',
       selectedDeviceId:selected.deviceId,requestKey:key,
       key:goldAbV2HelperKey()});
-    const response=await callOperatorJson('POST','/v1/plugin/abv2/request-issue',proof);
+    const response=await callOperatorJson('POST',guestShare?
+      '/v1/plugin/pro-share/request-issue':'/v1/plugin/abv2/request-issue',proof);
     return {status:response.status||'not_ready',requestId:response.requestId||null,
       deviceId:response.deviceId||null,shortId:response.shortId||null,
       bCode:response.bCode||null,requestKey:key,
