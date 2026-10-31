@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-31",
-  "status": "Gold P2-I4C3c2b3b SOURCE ONLY: signed Guest launch verifier now post-binder submitted/PID/M4 exact, Guest slot-only launch/M6 release blocked in M4 mode, OFF-by-default Guest signed M6 terminal settlement atomically closes M3/M4/Guest queue/slot via exact durable ACK. Mock/source tests and disposable PG17 001-044 + M6 SQL SELECT and synthetic M6 terminal continuity PASS. No live Fleet adapter, no real Guest command, Gold UAT/prod/Paddle unchanged. Commit pending.",
+  "status": "Gold P2-I4C3c2b3b source e9d427d9b3278e0a5d636e1b622c16f6c1b681cc pushed, HEAD=origin clean. Signed launch verifier matches submitted Guest slot+M4 PID+signed Device job; old slot-only M4 Guest release denied; new OFF/unmounted signed M6 terminal settlement atomically closes Guest queue/slot and M3/M4 claim after exact durable M6 ACK. 26 source/mock groups PASS, disposable no-network PostgreSQL17 SQL001-044, source M6 SELECT PREPARE and synthetic M6 terminal continuity PASS, 472 project-book links PASS. Fleet adapter still tool-safety blocked, no actual Guest OS execution or physical signed Agent E2E, Gold UAT/prod/Paddle/migrations.lock unchanged. GitHub exact SHA not verified.",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
