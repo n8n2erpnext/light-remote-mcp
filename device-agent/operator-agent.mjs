@@ -29,6 +29,7 @@ import { ProcessSupervisorClient } from './process-supervisor-client.mjs';
 import { NativeTerminalRegistry } from '../lib/native-terminal.mjs';
 import { NativeSearchRegistry } from '../lib/native-search.mjs';
 import { NativeDesktopBridge, realRemoteAvailable } from '../lib/native-desktop.mjs';
+import {recoverableVisualFrameError,reacquireNativeVisual} from '../lib/rmv2-visual-lease-recovery.mjs';
 import { withRealRemoteCapabilities, defaultRealRemoteDenied, realRemotePolicyAfterSave, REAL_REMOTE_INPUT_CAPABILITY } from '../lib/real-remote-policy.mjs';
 import realRemoteInputPolicy from '../lib/real-remote-input.cjs';
 import { LightScpRegistry } from '../lib/light-scp-registry.mjs';
@@ -342,6 +343,8 @@ async function attachRealRemoteVisual(p,request){
   const desktopSessionId='desk_'+crypto.randomBytes(12).toString('base64url');
   const row={desktopSessionId,visualSessionId:String(native.visualSessionId||''),leaseToken:String(native.leaseToken||''),...owner,
     idleTimeoutMs,minIntervalMs:Math.max(0,Math.min(Number(request.minIntervalMs)||250,5000)),omitUnchanged:request.omitUnchanged!==false,
+    screen:native.screen,maxWidth:native.maxWidth,maxHeight:native.maxHeight,quality:native.quality,
+    displayTopologyId:String(native.displayTopologyId||''),nativeEpoch:String(native.epoch||''),nativeStale:false,recovering:null,
     lastFrameSha:null,lastObservedAt:0,expiresAt:0,timer:null,release:NATIVE_DESKTOP.retain(),stopping:null};
   if(!row.visualSessionId||!row.leaseToken){try{row.release();}catch{};throw new Error('desktop_visual_attach_invalid');}
   REAL_REMOTE_VISUAL.set(desktopSessionId,row);armRealRemoteVisual(row);
@@ -349,8 +352,23 @@ async function attachRealRemoteVisual(p,request){
 }
 async function resumeRealRemoteVisual(p,request){
   const row=requireRealRemoteVisual(p,request.desktopSessionId);
-  const native=await NATIVE_DESKTOP.request('visual-resume',{visualSessionId:row.visualSessionId,leaseToken:row.leaseToken,leaseMs:row.idleTimeoutMs},{timeoutMs:10000});
-  armRealRemoteVisual(row);return visualPublicView(row,native);
+  const reacquire=()=>reacquireNativeVisual(row,{requestNative:(...args)=>NATIVE_DESKTOP.request(...args),
+    isCurrent:r=>REAL_REMOTE_VISUAL.get(r.desktopSessionId)===r,
+    onRecovered:r=>{try{r.release?.();}catch{}r.release=NATIVE_DESKTOP.retain();}});
+  if(row.nativeStale){
+    await reacquire();armRealRemoteVisual(row);
+    return visualPublicView(row,{resumed:true,epochChanged:true,expiresAt:row.expiresAt});
+  }
+  try{
+    const native=await NATIVE_DESKTOP.request('visual-resume',{
+      visualSessionId:row.visualSessionId,leaseToken:row.leaseToken,leaseMs:row.idleTimeoutMs
+    });
+    armRealRemoteVisual(row);return visualPublicView(row,native);
+  }catch(error){
+    if(!recoverableVisualFrameError(error)||row.stopping)throw error;
+    await reacquire();armRealRemoteVisual(row);
+    return visualPublicView(row,{resumed:true,epochChanged:true,expiresAt:row.expiresAt});
+  }
 }
 async function detachRealRemoteVisual(p,request){
   const row=requireRealRemoteVisual(p,request.desktopSessionId),native=await stopRealRemoteVisual(row,{detach:true});
@@ -368,16 +386,41 @@ async function frameRealRemoteVisual(p,request,{observe=false}={}){
   }
   const row=requireRealRemoteVisual(p,id),now=Date.now(),remaining=Math.max(0,row.minIntervalMs-(now-row.lastObservedAt));
   if(observe&&remaining>0){armRealRemoteVisual(row);return {desktopSessionId:id,unchanged:true,throttled:true,retryAfterMs:remaining,frameSeq:null,expiresAt:row.expiresAt};}
-  let native;
-  try{native=await NATIVE_DESKTOP.request('visual-frame',{visualSessionId:row.visualSessionId,leaseToken:row.leaseToken},{timeoutMs:10000});}
-  catch(error){await stopRealRemoteVisual(row,{detach:false}).catch(()=>{});throw error;}
+  let native,recovered=false;
+  const reacquire=()=>reacquireNativeVisual(row,{requestNative:(...args)=>NATIVE_DESKTOP.request(...args),
+    isCurrent:r=>REAL_REMOTE_VISUAL.get(r.desktopSessionId)===r,
+    onRecovered:r=>{try{r.release?.();}catch{}r.release=NATIVE_DESKTOP.retain();}});
+  try{
+    // Only read-only visual session state is recoverable. Never replay input.
+    if(row.nativeStale){await reacquire();recovered=true;}
+    const nativeIdBeforeFrame=row.visualSessionId;
+    try{
+      native=await NATIVE_DESKTOP.request('visual-frame',{
+        visualSessionId:row.visualSessionId,leaseToken:row.leaseToken
+      },{timeoutMs:10000});
+    }catch(error){
+      if(!recoverableVisualFrameError(error)||row.stopping)throw error;
+      // Two concurrent reads can observe the same dead helper; reattach once.
+      if(row.visualSessionId===nativeIdBeforeFrame)await reacquire();
+      recovered=true;
+      native=await NATIVE_DESKTOP.request('visual-frame',{
+        visualSessionId:row.visualSessionId,leaseToken:row.leaseToken
+      },{timeoutMs:10000});
+    }
+  }catch(error){
+    await stopRealRemoteVisual(row,{detach:false}).catch(()=>{});
+    throw error;
+  }
   row.lastObservedAt=Date.now();armRealRemoteVisual(row);
+  if(recovered)console.log(JSON.stringify({
+    event:'desktop_visual_native_lease_recovered',desktopSessionId:id,epochChanged:true
+  }));
   const capture=native?.frame&&typeof native.frame==='object'?native.frame:null,hash=String(capture?.frameSha256||'');
   const unchanged=Boolean(observe&&row.omitUnchanged&&hash&&row.lastFrameSha===hash);
   if(hash)row.lastFrameSha=hash;
-  if(!unchanged)return visualPublicView(row,native);
+  if(!unchanged)return visualPublicView(row,{...native,...(recovered?{epochChanged:true,resyncRecommended:true}:{})});
   const safeCapture={...capture};delete safeCapture.data;
-  return visualPublicView(row,{...native,frame:safeCapture,unchanged:true});
+  return visualPublicView(row,{...native,frame:safeCapture,unchanged:true,...(recovered?{epochChanged:true,resyncRecommended:true}:{})});
 }
 const COMMAND_EXECUTIONS=new CommandExecutionCoordinator();
 // Only bounded terminal worker receipts, no scripts/paths/output or secrets.
@@ -579,7 +622,7 @@ async function pushDirectRealRemoteDelta(row,data){
 }
 function onRealRemoteLiveEvent(message){
   const name=String(message?.eventName||'');
-  if(name==='robot.closed'){for(const row of [...REAL_REMOTE_LIVE.values()])void stopRealRemoteLive(row,{detach:false,notify:true});for(const row of [...REAL_REMOTE_VISUAL.values()]){REAL_REMOTE_VISUAL.delete(row.desktopSessionId);if(row.timer)clearTimeout(row.timer);try{row.release?.();}catch{}}return;}
+  if(name==='robot.closed'){for(const row of [...REAL_REMOTE_LIVE.values()])void stopRealRemoteLive(row,{detach:false,notify:true});for(const row of [...REAL_REMOTE_VISUAL.values()]){row.nativeStale=true;row.lastFrameSha=null;}return;}
   if(name!=='semantic.changed'&&name!=='browser.semantic.changed')return;
   const data=message?.data||{},id=realRemoteLiveId(data),row=REAL_REMOTE_LIVE.get(id);if(!row||row.stopped)return;
   if(name==='semantic.changed'&&Array.isArray(data.events)){

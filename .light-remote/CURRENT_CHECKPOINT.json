@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-31",
-  "status": "GOLD UAT ADMIN JOB RECOVERY LIVE: owner-approved native PG039->042 migrator PASS; 4/4 Operator/Process Supervisor/Plugin/Wall services now immutable source 49b0a2e9f98640a6081b54481858e765125b9f9e. Worker live flags GC and execution epoch=ON, strict allowlist exactly one revoked historical test device, 60-second scan. Actual long-stuck M4 claim retired by GC without owner password: claims 1->0, durable unresolved GC fences 0->1, signed terminal ACK for job remains 0, exactly one unknown audit, UNKNOWN work0. Fleet 3/3 fresh signed executor-ready and active sessions0; /admin unauth HTTP303, admin API and Operator unauthorized HTTP401, Admin asset HTTP200. Schema042/42; SQL043/044 OFF. Verified backup: LXD snapshot pre-admin-gc-migration-20261031, PG039 dump and four-unit config SHA256 in /var/backups/light-remote-gold-uat/pre-admin-gc-migration-20261031; rollback shell evidence in /home/ubuntu/handoffs/gold-admin-gc-release-20261031. No production rc47 or billing change. Manual authenticated admin browser click not yet tested.",
+  "status": "GOLD UAT ADMIN JOB RECOVERY LIVE: owner-approved native PG039->042 migrator PASS; 4/4 Operator/Process Supervisor/Plugin/Wall services now immutable source 49b0a2e9f98640a6081b54481858e765125b9f9e. Worker live flags GC and execution epoch=ON, strict allowlist exactly one revoked historical test device, 60-second scan. Actual long-stuck M4 claim retired by GC without owner password: claims 1->0, durable unresolved GC fences 0->1, signed terminal ACK for job remains 0, exactly one unknown audit, UNKNOWN work0. Fleet 3/3 fresh signed executor-ready and active sessions0; /admin unauth HTTP303, admin API and Operator unauthorized HTTP401, Admin asset HTTP200. Schema042/42; SQL043/044 OFF. Verified backup: LXD snapshot pre-admin-gc-migration-20261031, PG039 dump and four-unit config SHA256 in /var/backups/light-remote-gold-uat/pre-admin-gc-migration-20261031; rollback shell evidence in /home/ubuntu/handoffs/gold-admin-gc-release-20261031. No production rc47 or billing change. Manual authenticated admin browser click not yet tested. Windows Tray V3 UI candidate FROM MORYQA: five exported state variants embedded, native 500x740 left-click popover, Windows system light/dark, installer default Desktop shortcut, Inno wizard visual palette, RMV2 frame-lease fix integrated. SOURCE stage for Windows CI only; NOT installed on Windows10, Gold UAT backend schema042/GC remains unchanged. Exact requested light multi-session screen absent in current Figma page (no fake sessions).",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -81,7 +81,8 @@
     "P2-I4C3c2b3c2b7: independent native A/B V2 SQL043 isolated no-NIC PG17 owner Short ID + 2 Agent durable grant restart PASS; source tests now protect actual Operator route mounting and explicit flag gates.",
     "P2-I4C3c2b3c2b8: private UAT 039 schema-only cloned to no-NIC PG17, actual migration 040/041/042/043 order, owner-scoped/tombstone ShortID, native startup probe and privileges PASS.",
     "2026-10-31 P2-I4C3c2b3c2b9 PG043 read-only preflight and fail-closed selftest PASS: UAT 039/39 4/4, LXD rollback snapshot, PG SHA256 dump, missing Guest044, canApply false; no UAT mutation, Gold source/CI pending.",
-    "2026-10-31 live Gold UAT: guarded PG039->042 migration, source49b0a2e9 four-unit cutover, GC+epoch enabled one-revoked-device canary; actual old M4 claim retired to 1 durable unresolved fence and 1 unknown audit, zero fabricated ACKs, 3/3 leaves healthy; verified backup/rollback and admin HTTP auth boundary."
+    "2026-10-31 live Gold UAT: guarded PG039->042 migration, source49b0a2e9 four-unit cutover, GC+epoch enabled one-revoked-device canary; actual old M4 claim retired to 1 durable unresolved fence and 1 unknown audit, zero fabricated ACKs, 3/3 leaves healthy; verified backup/rollback and admin HTTP auth boundary.",
+    "2026-10-31 source implementation: Moryqa five state SVG variants and PNG, Windows native V3 popover with system theme, Inno installer/uninstaller v2 copy+default shortcut, Windows CI test wiring, client import closure."
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -129,7 +130,7 @@
     "Authenticated Guest Fleet source adapter was previously tool-safety-blocked; no E2E on actual signed Agent or billing once, SQL043/044 absent migration lock and no release signoff.",
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD."
   ],
-  "nextAction": "Admin Job Recovery live canary ACCEPTED for one revoked device. Next review logged-in bootstrap admin UI and manual retire on a new isolated, correctly fenced/eligible test claim (do not fabricate signed OS receipt); show searchable unresolved fences + their audits; verify signed native Agent execution epoch, reconnection and terminal replay across Windows/macOS/Linux before widening GC rollout from revoked-device canary to beta/fleet. PG043 Short ID A/B V2 migration and Guest044 stay separate unreleased gates. Preserve historical unresolved fence and snapshot; production rc47 untouched.",
+  "nextAction": "Run Windows-native-client GitHub x64 build and Inno installer CI for Moryqa Tray+RMV2 candidate; inspect failures and stage verified installer artifact WITHOUT installing over owner active Windows10. Source design refs: assets/shared/tray/icon-state-variants-v2 2516:707, sections/windows/installer-uninstaller-v2 2516:768, screens/tray-v3/windows/01-connected 2530:3. Missing exact screens/windows/tray-v3-light/01-connected-multi-session. When Figma page available, verify light multi-session fidelity; manually test Windows10 while idle. Gold UAT live GC and production rc47 untouched.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -142,10 +143,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "2972d9030574d7c361f5adaea7123d0ebf541b264a2a819342ad38fb808871ea",
-    "trackedFiles": 1100,
+    "treeDigest": "6f81e73e09916e4b4231ae835b795d1bb71d903f77859492c2dda441293d0502",
+    "trackedFiles": 1125,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-10-31T09:16:45.711Z"
+    "recordedAt": "2026-10-31T13:52:51.346Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",

@@ -14,7 +14,8 @@ internal sealed record TrayAgentSnapshot(
     string LastCloudError,
     bool FleetHealthy,
     string? FleetUrl,
-    string? PendingEnrollmentId = null
+    string? PendingEnrollmentId = null,
+    string DeviceName = ""
 );
 
 internal sealed class TrayApplicationContext : ApplicationContext
@@ -26,7 +27,12 @@ internal sealed class TrayApplicationContext : ApplicationContext
     private const string LocalFleetUrl = "http://127.0.0.1:5492/";
 
     private readonly NotifyIcon _tray;
+    private readonly TrayPopoverForm _popover;
     private readonly ToolStripMenuItem _state = new("Starting...") { Enabled = false };
+    private readonly ToolStripMenuItem _deviceInfo = new("Windows device") { Enabled = false };
+    private readonly ToolStripMenuItem _sessions = new("Authorized AI sessions");
+    private readonly ToolStripMenuItem _viewSessions = new("View sessions in Local Wall");
+
     private readonly ToolStripMenuItem _openWall = new("Open Local Wall");
     private readonly ToolStripMenuItem _openFleet = new("Open Fleet") { Visible = false, Enabled = false };
     private readonly ToolStripMenuItem _account = new("Manage Account");
@@ -52,6 +58,9 @@ internal sealed class TrayApplicationContext : ApplicationContext
         var menu = new ContextMenuStrip();
         UiTheme.StyleMenu(menu);
         menu.Items.Add(_state);
+        menu.Items.Add(_deviceInfo);
+        _sessions.DropDownItems.Add(_viewSessions);
+        menu.Items.Add(_sessions);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(_openWall);
         menu.Items.Add(_openFleet);
@@ -65,7 +74,12 @@ internal sealed class TrayApplicationContext : ApplicationContext
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(_quit);
 
+        // Refresh palette each time the user opens the menu: Windows can change
+        // AppsUseLightTheme without restarting the Agent or tray.
+        menu.Opening += (_, _) => UiTheme.StyleMenu(menu);
+        _state.Font = UiTheme.Font(10f, FontStyle.Bold);
         _openWall.Click += async (_, _) => await OpenWallAsync();
+        _viewSessions.Click += async (_, _) => await OpenWallAsync();
         _openFleet.Click += (_, _) => OpenFleet();
         _account.Click += (_, _) => OpenUrl(AccountUrl, "account_open_failed");
         _relink.Click += async (_, _) => await RelinkWindowsAsync();
@@ -81,6 +95,28 @@ internal sealed class TrayApplicationContext : ApplicationContext
             Text = "Light Remote",
             ContextMenuStrip = menu,
             Icon = TrayIconFactory.Create(TrayVisualState.Stopped)
+        };
+        _popover = new TrayPopoverForm(async action =>
+        {
+            switch (action)
+            {
+                case "wall": await OpenWallAsync(); break;
+                case "fleet": OpenFleet(); break;
+                case "account": OpenUrl(AccountUrl, "account_open_failed"); break;
+                case "connect": await ToggleConnectionAsync(); break;
+                case "relink": await RelinkWindowsAsync(); break;
+                case "restart": await RestartLightRemoteAsync(); break;
+                case "service": await ToggleServiceAsync(); break;
+                case "updates": await CheckForUpdatesAsync(); break;
+                case "quit": ExitThread(); break;
+                case "more": _tray.ContextMenuStrip?.Show(Cursor.Position); break;
+            }
+        });
+        // The native right-click menu remains available; left-click opens
+        // the Figma V3 native popover without losing existing tray actions.
+        _tray.MouseClick += (_, e) =>
+        {
+            if (e.Button == MouseButtons.Left) _popover.Toggle(Cursor.Position);
         };
         _tray.DoubleClick += async (_, _) => await OpenWallAsync();
 
@@ -386,7 +422,9 @@ internal sealed class TrayApplicationContext : ApplicationContext
             fleetHealthy = fw.TryGetProperty("healthy", out var fh) && fh.ValueKind == JsonValueKind.True;
             fleetUrl = fw.TryGetProperty("publicUrl", out var fu) && fu.ValueKind == JsonValueKind.String ? fu.GetString() : null;
         }
-        return new(true, enrolled, desired, cloudState, plan, lastError, fleetHealthy, fleetUrl, pendingId);
+        var deviceName = root.TryGetProperty("deviceName", out var dn)
+            && dn.ValueKind == JsonValueKind.String ? dn.GetString() ?? "" : "";
+        return new(true, enrolled, desired, cloudState, plan, lastError, fleetHealthy, fleetUrl, pendingId, deviceName);
     }
 
     private void SetActionStatus(string message, int seconds = 8)
@@ -422,17 +460,30 @@ internal sealed class TrayApplicationContext : ApplicationContext
 
             var label = EffectiveLabel(hasPendingEnrollment ? "Waiting for account approval" : LabelFor(wallOnline, taskRunning, status));
             _state.Text = label;
+            _state.Tag = visual;
+            _deviceInfo.Text = status.StatusAvailable
+                ? (string.IsNullOrWhiteSpace(status.DeviceName) ? "Windows device" : status.DeviceName)
+                  + (string.IsNullOrWhiteSpace(status.Plan) ? "" : "  ·  " + status.Plan.ToUpperInvariant())
+                : "Windows device · status unavailable";
+            _sessions.Enabled = wallOnline && status.StatusAvailable && status.Enrolled;
+            // The Agent status endpoint does not expose a signed list of AI
+            // leases; the authenticated Local Wall is the source of truth.
+            _sessions.Text = "Authorized AI sessions";
             _connect.Text = connected ? "Disconnect" : "Connect";
             _connect.Enabled = wallOnline && status.StatusAvailable && status.Enrolled;
             _restart.Enabled = wallOnline;
             _serviceToggle.Text = wallOnline ? "Stop Light Remote" : "Start Light Remote";
             _account.Text = status.Enrolled ? "Manage Account" : "Sign in / Manage Account";
             _relink.Text = status.Enrolled ? "Relink this Windows PC…" : "Link this Windows PC…";
-            _relink.Enabled = status.StatusAvailable && !hasPendingEnrollment && !_enrollmentStarting;
+            // Relink must never appear as the primary action while connected.
+            _relink.Visible = !connected;
+            _relink.Enabled = status.StatusAvailable && !connected
+                && !hasPendingEnrollment && !_enrollmentStarting;
 
             _fleetUrl = FleetUrl(status);
             _openFleet.Visible = _fleetUrl is not null;
             _openFleet.Enabled = _fleetUrl is not null;
+            _popover.UpdateState(status, visual, wallOnline, connected, _fleetUrl is not null);
 
             var title = TrimTrayText("Light Remote - " + label);
             _tray.Text = title;
@@ -444,6 +495,12 @@ internal sealed class TrayApplicationContext : ApplicationContext
         {
             var wallOnline = WallPortListening();
             _state.Text = EffectiveLabel(wallOnline ? "Status unavailable" : "Stopped");
+            _state.Tag = wallOnline ? TrayVisualState.Disconnected : TrayVisualState.Stopped;
+            _deviceInfo.Text = "Windows device · status unavailable";
+            _sessions.Enabled = false;
+            _popover.UpdateState(new(false,false,false,"","","",false,null),
+                wallOnline ? TrayVisualState.Disconnected : TrayVisualState.Stopped,
+                wallOnline,false,false);
             _connect.Enabled = false;
             _relink.Enabled = false;
             _restart.Enabled = wallOnline;
@@ -839,6 +896,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
         _tray.Visible = false;
         _tray.Icon?.Dispose();
         _tray.Dispose();
+        _popover.Dispose();
         base.ExitThreadCore();
     }
 }

@@ -50,6 +50,7 @@ WizardStyle=modern
 CloseApplications=yes
 RestartApplications=no
 UninstallDisplayIcon={app}\GptOperator.Client.exe
+UninstallDisplayName=Light Remote
 SetupIconFile={#StageDir}\Assets\light-remote.ico
 
 [Files]
@@ -70,12 +71,45 @@ Name: "{group}\Light Remote MCP"; Filename: "{app}\GptOperator.Client.exe"; Para
 Name: "{userdesktop}\Light Remote MCP"; Filename: "{app}\GptOperator.Client.exe"; Parameters: "--launch"; Tasks: desktopicon
 
 [Tasks]
-Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional icons:"; Flags: unchecked
+Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Windows shortcuts:"
 
 [Run]
 Filename: "{app}\GptOperator.Client.exe"; Description: "Start Light Remote tray"; Flags: nowait postinstall skipifsilent
 
 [Code]
+// Moryqa Windows installer/uninstaller v2: per-user setup, native light/dark
+// palette, and Desktop shortcut checked by default. Application identity stays
+// on the original AppId to preserve upgrades and rollback.
+function LightRemoteDarkWindowsTheme(): Boolean;
+var
+  LightApps: Cardinal;
+begin
+  Result := RegQueryDWordValue(HKCU,
+    'Software\Microsoft\Windows\CurrentVersion\Themes\Personalize',
+    'AppsUseLightTheme', LightApps) and (LightApps = 0);
+end;
+
+procedure InitializeWizard();
+begin
+  WizardForm.WelcomeLabel1.Caption := 'Install Light Remote';
+  WizardForm.WelcomeLabel2.Caption :=
+    'Your desktop, available to your AI.' + #13#10 + #13#10 +
+    'Per-user installation — no administrator elevation required.' + #13#10 +
+    'Run at Windows sign-in and create a Desktop shortcut (selected by default).' + #13#10 +
+    'Your device identity remains under your control.';
+  if LightRemoteDarkWindowsTheme() then
+  begin
+    // Use the same dark Figma status surfaces as the native Windows Tray.
+    WizardForm.Color := $0017110D;
+    WizardForm.MainPanel.Color := $0017110D;
+    WizardForm.InnerPage.Color := $0017110D;
+    WizardForm.WelcomeLabel1.Font.Color := clWhite;
+    WizardForm.WelcomeLabel2.Font.Color := $00B9A89B;
+    WizardForm.PageNameLabel.Font.Color := clWhite;
+    WizardForm.PageDescriptionLabel.Font.Color := $00B9A89B;
+  end;
+end;
+
 var
   InstallTransactionStarted: Boolean;
   InstallTransactionCommitted: Boolean;

@@ -1,20 +1,41 @@
 using System.Drawing.Drawing2D;
 using System.Runtime.InteropServices;
+using Microsoft.Win32;
 
 namespace GptOperator.Client;
 
 internal static class UiTheme
 {
-    public static readonly Color Background = Color.FromArgb(17, 20, 24);
-    public static readonly Color Surface = Color.FromArgb(24, 28, 33);
-    public static readonly Color SurfaceAlt = Color.FromArgb(29, 34, 40);
-    public static readonly Color Border = Color.FromArgb(47, 54, 63);
-    public static readonly Color Text = Color.FromArgb(239, 243, 247);
-    public static readonly Color Muted = Color.FromArgb(145, 156, 170);
-    public static readonly Color Accent = Color.FromArgb(84, 166, 255);
-    public static readonly Color Success = Color.FromArgb(75, 201, 136);
-    public static readonly Color Warning = Color.FromArgb(245, 181, 73);
-    public static readonly Color Danger = Color.FromArgb(240, 103, 103);
+
+    // Windows system preference, not a separate Light Remote account setting.
+    // Missing/invalid registry state uses the Windows light default.
+    public static bool IsDark
+    {
+        get
+        {
+            try
+            {
+                var pref = Registry.GetValue(
+                    @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
+                    "AppsUseLightTheme", 1);
+                return Convert.ToInt32(pref) == 0;
+            }
+            catch { return false; }
+        }
+    }
+
+    // Light colors are matched to Figma's tray-v2/v3 light surfaces;
+    // dark colors derive from the Figma tray-v3 core-state palette.
+    public static Color Background => IsDark ? Color.FromArgb(13,17,23) : Color.FromArgb(247,249,252);
+    public static Color Surface => IsDark ? Color.FromArgb(20,26,35) : Color.White;
+    public static Color SurfaceAlt => IsDark ? Color.FromArgb(27,34,46) : Color.White;
+    public static Color Border => IsDark ? Color.FromArgb(52,64,80) : Color.FromArgb(226,234,242);
+    public static Color Text => IsDark ? Color.FromArgb(238,243,247) : Color.FromArgb(30,48,75);
+    public static Color Muted => IsDark ? Color.FromArgb(155,168,185) : Color.FromArgb(100,117,139);
+    public static Color Accent => IsDark ? Color.FromArgb(92,153,250) : Color.FromArgb(32,93,197);
+    public static Color Success => IsDark ? Color.FromArgb(42,211,139) : Color.FromArgb(21,118,79);
+    public static Color Warning => IsDark ? Color.FromArgb(248,167,55) : Color.FromArgb(164,106,32);
+    public static Color Danger => IsDark ? Color.FromArgb(245,103,110) : Color.FromArgb(232,59,74);
 
     public static Font Font(float size, FontStyle style = FontStyle.Regular)
         => new("Segoe UI", size, style, GraphicsUnit.Point);
@@ -39,7 +60,9 @@ internal static class UiTheme
         menu.ForeColor = Text;
         menu.Font = Font(9.5f);
         menu.ShowImageMargin = true;
-        menu.Padding = new Padding(6);
+        menu.Padding = new Padding(7);
+        menu.MinimumSize = new Size(330, 0);
+        menu.ImageScalingSize = new Size(20, 20);
         menu.Renderer = new DarkMenuRenderer();
     }
 
@@ -48,7 +71,7 @@ internal static class UiTheme
         if (!OperatingSystem.IsWindows()) return;
         try
         {
-            var enabled = 1;
+            var enabled = IsDark ? 1 : 0;
             var value = Marshal.AllocHGlobal(sizeof(int));
             try
             {
@@ -119,7 +142,13 @@ internal sealed class DarkMenuRenderer : ToolStripProfessionalRenderer
 
     protected override void OnRenderItemText(ToolStripItemTextRenderEventArgs e)
     {
-        e.TextColor = e.Item.Enabled ? UiTheme.Text : UiTheme.Muted;
+        e.TextColor = e.Item.Tag is TrayVisualState state ? state switch
+        {
+            TrayVisualState.Connected => UiTheme.Success,
+            TrayVisualState.Disconnected => UiTheme.Danger,
+            TrayVisualState.Dormant => UiTheme.Warning,
+            _ => UiTheme.Muted
+        } : (e.Item.Enabled ? UiTheme.Text : UiTheme.Muted);
         base.OnRenderItemText(e);
     }
 }
@@ -127,7 +156,7 @@ internal sealed class DarkMenuRenderer : ToolStripProfessionalRenderer
 internal sealed class DarkMenuColors : ProfessionalColorTable
 {
     public override Color ToolStripDropDownBackground => UiTheme.SurfaceAlt;
-    public override Color MenuItemSelected => Color.FromArgb(42, 49, 58);
+    public override Color MenuItemSelected => UiTheme.IsDark ? Color.FromArgb(42, 49, 58) : Color.FromArgb(234, 241, 255);
     public override Color MenuItemBorder => UiTheme.Border;
     public override Color ImageMarginGradientBegin => UiTheme.SurfaceAlt;
     public override Color ImageMarginGradientMiddle => UiTheme.SurfaceAlt;

@@ -29,6 +29,8 @@ on:
       - 'docs/real-remote-v2/**'
       - 'device-agent/**'
       - 'lib/device-proof.mjs'
+      - 'lib/native-desktop.mjs'
+      - 'lib/rmv2-visual-lease-recovery.mjs'
       - 'lib/native-fs.mjs'
       - 'lib/native-process.mjs'
       - 'lib/native-terminal.mjs'
@@ -81,6 +83,8 @@ on:
       - 'operator-host/executor.mjs'
       - 'deploy/scripts/selftest-v12-macos-physical-type-routing.mjs'
       - 'deploy/scripts/selftest-v12-rm-cursor-effect-parity.mjs'
+      - 'deploy/scripts/selftest-rmv2-visual-lease-recovery.mjs'
+      - 'deploy/scripts/selftest-windows-moryqa-tray-v3.mjs'
       - 'deploy/scripts/selftest-gold-owner-filesystem-roots.mjs'
       - 'device-agent/filesystem-volume-inventory.mjs'
       - '.github/workflows/windows-native-client.yml'
@@ -102,6 +106,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22.23.2'
+      - name: Verify Moryqa Windows Tray theme and installer contract
+        shell: pwsh
+        run: |
+          node deploy/scripts/selftest-windows-moryqa-tray-v3.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Moryqa Tray assets, automatic theme and Windows installer contract failed' }
       - name: Verify cross-platform physical typing route
         shell: pwsh
         run: |
@@ -483,6 +492,10 @@ jobs:
           Write-Host 'rmv2-live-push-contract=PASS polling=ABSENT'
           node deploy/scripts/selftest-v10-desktop-productization.mjs
           if ($LASTEXITCODE -ne 0) { throw 'RM V2 guarded input contract failed' }
+          node deploy/scripts/selftest-rmv2-visual-lease-recovery.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'RM V2 native visual session recovery regression failed' }
+          node deploy/scripts/selftest-gold-client-core-imports.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold Client Core recovery module import missing' }
 
       - name: Publish isolated Real Remote V2 companion
         shell: pwsh

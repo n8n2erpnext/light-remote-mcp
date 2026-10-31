@@ -198,6 +198,14 @@
       "destination": "lib/native-desktop.mjs"
     },
     {
+      "source": "lib/rmv2-visual-lease-recovery.mjs",
+      "destination": "lib/rmv2-visual-lease-recovery.mjs"
+    },
+    {
+      "source": "lib/gold-pro-share-device-guest-fence.mjs",
+      "destination": "lib/gold-pro-share-device-guest-fence.mjs"
+    },
+    {
       "source": "lib/native-fs.mjs",
       "destination": "lib/native-fs.mjs"
     },
