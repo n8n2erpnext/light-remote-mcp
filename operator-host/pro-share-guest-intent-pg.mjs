@@ -3,33 +3,11 @@
 // trusted: live job is loaded from PG and must survive fresh OAuth/B checks.
 import crypto from 'node:crypto';
 import {goldAbV2HelperKey} from '../lib/gold-ab-v2-helper-proof.mjs';
+import {goldGuestIntentHash,normalizeGoldGuestProcessIntent} from '../lib/gold-pro-share-guest-process-contract.mjs';
+export {goldGuestIntentHash,normalizeGoldGuestProcessIntent} from '../lib/gold-pro-share-guest-process-contract.mjs';
 const ID=/^[A-Za-z0-9._:-]{1,160}$/;
 const SHA=/^[a-f0-9]{64}$/;
 const DENY=(code,status=403)=>{const e=Error(code);e.status=status;throw e};
-const FIELDS=['type','script','cwd','shell','timeoutMs'];
-function exact(obj,keys){
- return obj&&typeof obj==='object'&&!Array.isArray(obj)&&
-  Object.keys(obj).sort().join('|')===[...keys].sort().join('|');
-}
-export function normalizeGoldGuestProcessIntent(payload){
- if(!exact(payload,FIELDS))DENY('guest_payload_extra_or_missing_fields',400);
- if(payload.type!=='process-start'||typeof payload.script!=='string'||
-    !payload.script.trim()||Buffer.byteLength(payload.script,'utf8')>8192||
-    /[\u0000]/.test(payload.script)||
-    typeof payload.cwd!=='string'||payload.cwd.length>512||
-    /[\u0000]/.test(payload.cwd)||
-    !['bash','sh','pwsh','powershell','cmd'].includes(payload.shell)||
-    !Number.isSafeInteger(payload.timeoutMs)||
-    payload.timeoutMs<1000||payload.timeoutMs>300000)
-  DENY('guest_payload_process_contract_denied',400);
- return Object.freeze({...payload});
-}
-export function goldGuestIntentHash(payload){
- const p=normalizeGoldGuestProcessIntent(payload);
- return crypto.createHash('sha256')
-  .update(JSON.stringify(['gold-pro-share-process-v1',p.type,p.script,
-   p.cwd,p.shell,p.timeoutMs])).digest('hex');
-}
 function aadFor(job){
  const keys=['jobId','actorAccountId','ownerAccountId','agentId',
   'deviceId','grantId','connectionId','operationId','permissionRevision'];

@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import {verifyGoldGuestLaunchEvidence} from '../lib/gold-pro-share-guest-launch-evidence.mjs';
 import {memoryDirectory,memoryInvites,memoryRelay} from './gold-memory-rendezvous.mjs';
 import { DEVICE_DUPLEX_PROTOCOL } from './device-duplex-transport.mjs';
 import { handleDeviceDuplexSession } from './device-duplex-session.mjs';
@@ -245,6 +246,17 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
     const stdout=String(result.stdout||''),stderr=String(result.stderr||'');
     if(Buffer.byteLength(stdout)>MAX_MEMORY_OUTPUT||Buffer.byteLength(stderr)>MAX_MEMORY_OUTPUT)throw new FleetError('remote_result_too_large',413);
     if(result.data!==undefined&&Buffer.byteLength(JSON.stringify(result.data))>MAX_MEMORY_OUTPUT)throw new FleetError('remote_result_data_too_large',413);
+    // This handler is entered ONLY after verifiedDeviceChannel context.
+    // Owner-signed result bodies cannot self-assert Guest permission.
+    if(command.payload?.type==='guest-process-v1'){
+      const attested=verifyGoldGuestLaunchEvidence({
+       authenticatedDeviceChannel:true,command,job,result});
+      job.signedGuestDelegationVerified=true;
+      job.guestDelegation=attested;
+      job.managedExec=true;
+    }else if(result.data?.guestLaunch!==undefined){
+      throw new FleetError('guest_launch_unbound_owner_command',403);
+    }
     if(result.data!==undefined){job.resultData=result.data;job.resultSummary='';}
     applyDeviceTelemetry(job,result.telemetry);
     const exitCode=Number(result.exitCode);

@@ -54,6 +54,12 @@ on:
       - 'operator-host/pro-share-guest-queue-http.mjs'
       - 'operator-host/pro-share-verified-launch.mjs'
       - 'operator-host/pro-share-guest-intent-pg.mjs'
+      - 'device-agent/guest-device-process.mjs'
+      - 'lib/gold-pro-share-guest-process-contract.mjs'
+      - 'lib/gold-pro-share-guest-device-ticket.mjs'
+      - 'lib/gold-pro-share-guest-launch-evidence.mjs'
+      - 'lib/gold-job-ledger.mjs'
+      - 'operator-host/executor-routes-device-channel.mjs'
       - 'lib/gold-pro-share-device-guest-fence.mjs'
       - 'operator-host/shared-device-capability-policy.mjs'
       - 'operator-host/team-dispatch-authority.mjs'
@@ -67,6 +73,9 @@ on:
       - 'deploy/scripts/selftest-gold-pro-share-guest-queue-http.mjs'
       - 'deploy/scripts/selftest-gold-pro-share-verified-launch.mjs'
       - 'deploy/scripts/selftest-gold-pro-share-guest-intent.mjs'
+      - 'deploy/scripts/selftest-gold-pro-share-guest-device-ticket.mjs'
+      - 'deploy/scripts/selftest-gold-pro-share-guest-device-process.mjs'
+      - 'deploy/scripts/selftest-gold-pro-share-guest-launch-evidence.mjs'
       - 'deploy/scripts/selftest-gold-pro-share-device-guest-fence.mjs'
       - 'deploy/scripts/selftest-gold-pro-share-pg044-disposable.sql'
       - 'deploy/scripts/selftest-gold-pro-share-pg044-disposable.sh'
@@ -241,6 +250,15 @@ jobs:
           node --check operator-host/pro-share-guest-queue-http.mjs
           node deploy/scripts/selftest-gold-pro-share-verified-launch.mjs
           node deploy/scripts/selftest-gold-pro-share-guest-intent.mjs
+          node deploy/scripts/selftest-gold-pro-share-guest-device-ticket.mjs
+          node deploy/scripts/selftest-gold-pro-share-guest-device-process.mjs
+          node deploy/scripts/selftest-gold-pro-share-guest-launch-evidence.mjs
+          node --check device-agent/guest-device-process.mjs
+          node --check lib/gold-pro-share-guest-process-contract.mjs
+          node --check lib/gold-pro-share-guest-device-ticket.mjs
+          node --check lib/gold-pro-share-guest-launch-evidence.mjs
+          node --check lib/gold-job-ledger.mjs
+          node --check operator-host/executor-routes-device-channel.mjs
           node deploy/scripts/selftest-gold-pro-share-device-guest-fence.mjs
           node --check operator-host/pro-share-guest-intent-pg.mjs
           node --check lib/gold-pro-share-device-guest-fence.mjs

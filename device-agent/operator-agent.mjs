@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import {assertLegacyOwnerCommandNotGuest} from '../lib/gold-pro-share-device-guest-fence.mjs';
+import {executeGoldGuestDeviceProcess} from './guest-device-process.mjs';
 import fs from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
@@ -825,6 +826,28 @@ function applyDeviceStopRequests(rows){
   }
 }
 async function executeCommandCore(state,command,{hub=DEFAULT_HUB}={}){
+  if(command?.payload?.type==='guest-process-v1'){
+   return executeGoldGuestDeviceProcess({
+    command,state,
+    executionEpochReady:EXECUTION_EPOCH_REQUIRED&&Boolean(EXECUTION_JOURNAL)&&
+      ACTIVE_EPOCH_READY===state?.cloud?.connectionId,
+    readCommand,writeCommand,now:Date.now,
+    inferRequiredCapabilities:(script,opts)=>
+      PLATFORM_ADAPTER.inferRequiredCapabilities(script,opts),
+    hardDeny:script=>PLATFORM_ADAPTER.hardDeny?.(script)||null,
+    localDirectoryExists:cwd=>{
+      try{return fs.statSync(cwd).isDirectory()}catch{return false}
+    },
+    launchProcess:async verified=>executeProcessCommand(state,{
+      operationId:verified.operationId,agentId:verified.agentId,
+      sessionId:verified.sessionId,
+      process:{op:'start',script:verified.command.script,
+       cwd:verified.command.cwd,shell:verified.command.shell,
+       timeoutMs:verified.command.timeoutMs,
+       requiredCapabilities:verified.ticket.requiredCapabilities}
+    })
+   });
+  }
   // No Guest request may fall through to the classic owner command switch.
   // A future Guest protocol must verify B scope and local policy separately.
   assertLegacyOwnerCommandNotGuest(command?.payload||{});

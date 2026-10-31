@@ -19,6 +19,13 @@ for(const payload of [
 const agent=fs.readFileSync('device-agent/operator-agent.mjs','utf8');
 const i=agent.indexOf('async function executeCommandCore(');
 assert.ok(i>0);
-assert.match(agent.slice(i,i+390),/assertLegacyOwnerCommandNotGuest\(command\?\.payload\|\|\{\}\)/);
-assert.match(agent.slice(i+390,i+1500),/p\.type==='update'/);
+const core=agent.slice(i,i+4000);
+assert.match(core,/if\(command\?\.payload\?\.type==='guest-process-v1'\)/);
+assert.match(core,/executeGoldGuestDeviceProcess/);
+assert.match(core,/assertLegacyOwnerCommandNotGuest\(command\?\.payload\|\|\{\}\)/);
+assert.match(core,/p\.type==='update'/);
+assert.ok(core.indexOf('executeGoldGuestDeviceProcess')<
+ core.indexOf('assertLegacyOwnerCommandNotGuest'));
+assert.ok(core.indexOf('assertLegacyOwnerCommandNotGuest')<
+ core.indexOf("p.type==='update'"));
 console.log('GOLD_P2I4C3C_DEVICE_AGENT_LEGACY_GUEST_DOWNGRADE_DENIED=PASS');
