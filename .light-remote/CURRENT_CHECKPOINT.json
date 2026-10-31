@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-31",
-  "status": "Unified P2 resumed at verified clean Gold HEAD a0f04dc. P2-I3 source done/OFF; P2-I4A separate one-Guest Pro Share PostgreSQL candidate044 and fail-closed source store/owner-billed ledger mock fixture PASS, NOT runtime wired. Gold UAT/prod untouched, Pro Team five seats frozen; source SHA pending.",
+  "status": "Verified Gold HEAD a0f04dc before I4A; P2-I3 source done. P2-I4A Pro Share guarded one-Guest foundation source 258a9c78bd0fcc2da43c9bb3c8f1fa3630e163cd pushed HEAD=origin, mock SQL tests PASS. Not runtime mounted; candidate PG044 not migrated, UAT/prod/Billing OFF. P2-I4B Guest A/B and owner UI next.",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -84,7 +84,7 @@
     "P2-I4 guest dispatch review read blocked by tool safety; no Pro Share guest code or billing entitlement activation performed in this session",
     "P2-I4A only synthetic SQL fixture, PG044 candidate outside migration lock, no Guest-purpose A/B issuer/Operator route/queue dispatch/owner UI or Paddle authorization; default OFF on UAT/prod"
   ],
-  "nextAction": "P2-I4B: separate OAuth-verified Free Guest A/B issuance+owner B approval bound to owner/device and Pro Share assignment, authenticated Pro owner invite/share/revoke /account UI. P2-I4C: dispatch and queued-work reauthorization/capability/billing exact-once, no Team 5-seat reactivation. Final single frozen-candidate physical UAT; leave billing and UAT/prod flags OFF.",
+  "nextAction": "P2-I4B: OAuth-verified Guest A/B issuance and owner B approval on explicitly shared device, no owner/team grant inheritance; owner account invite/share/revoke UI, guest acceptance. P2-I4C queue-dispatch time reauth+capability fence+owner billed exact-once operation debit. One final combined physical UAT at frozen SHA. Keep all new flags OFF, no PG044 live migration or Paddle activation.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -425,7 +425,7 @@
       "sourceFixture": "deploy/scripts/selftest-gold-agent-session-nickname.mjs",
       "sourceTest": "PASS",
       "defaultFlag": "LR_GOLD_SESSION_AGENT_NICKNAME OFF",
-      "ownerUI": "NOT YET WIRED",
+      "ownerUI": "P2-I3B SOURCE_IMPLEMENTED_DEFAULT_OFF",
       "uatDeployed": false,
       "sha": "b9f906bb49288d774f3b869feeddc56ad963441c",
       "githubActions": "PUSH_RUN_NOT_INDEPENDENTLY_VERIFIED",
@@ -458,7 +458,8 @@
       "billing": "OFF",
       "nativePgTest": "NOT_RUN",
       "liveGuestExecution": false,
-      "sourceSha": "PENDING_COMMIT"
+      "sourceSha": "258a9c78bd0fcc2da43c9bb3c8f1fa3630e163cd",
+      "githubActions": "PUSH_RUN_NOT_INDEPENDENTLY_VERIFIED"
     }
   }
 }

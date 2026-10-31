@@ -247,6 +247,8 @@ Next **P2-I3b**: verified owner rename through authenticated owner account UI, f
 
 ### P2-I4A — Pro Share independent one-Guest core, SOURCE ONLY (2026-10-31)
 
+**SOURCE SHA `258a9c78bd0fcc2da43c9bb3c8f1fa3630e163cd` pushed HEAD=origin.** Synthetic Pro Share fixture/legacy nickname regression PASS; 398 doc links, source↔docs security boundary staged gate PASS. GitHub Actions push-run not independently verified. Gold UAT RUNNING, no-NIC clone STOPPED, production unchanged. Next P2-I4B not I3.
+
 **Checkpoint verification:** live Light Remote reconnected with owner B, VPS-ARM Gold worktree `/home/ubuntu/n8n2erpnext/light-remote-mcp-worktrees/gold-windows-stability-20261028` clean at `a0f04dc99a051a3c028d0e1465ad1cf133f25a99` / origin. Read the canonical Unified Plan and current checkpoint; P2-I3a/b source implemented and OFF. User said do not repeat I3/A-B tests. Proceeded P2-I4 only.
 
 **Implementation:**
