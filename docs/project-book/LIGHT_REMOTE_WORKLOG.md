@@ -460,3 +460,7 @@ Confirmed existing GoldConnectionJobReaper supports user-password-free automatic
 ## 2026-10-31 — Gold Admin manual Job Recovery source
 
 Added bootstrap-admin-only /admin Job Recovery status + manual exact-UUID GC retire, reusing existing M4/connection worker (no customer password or raw SQL delete). Operator validates authenticated admin session independently of plugin; browser requires same Origin + typed confirmation; under-lock exact-job scope, fresh signed channel, terminal ACK and schema040/041 fences make action fail-closed. Actor is admin, audit owner is original customer, unknown fence remains until real signed receipt. New API/GC unit tests PASS; existing ownerless and GC source tests PASS. Source staged in git worktree only; UAT SQL039/old four services and production unchanged. Details in Code Map and P2 handoff.
+
+## 2026-10-31 — Gold admin recovery candidate staged in UAT
+
+Source commit 49b0a2e9 immutable candidate unpacked to /opt/light-remote-gold-uat-candidates/49b0a2e9f98640a6081b54481858e765125b9f9e. Git source manifest SHA256 PASS; package-lock parity PASS; staged Admin Job Recovery and M4 GC transaction regression PASS. Four live service binaries remain 7f46dea and schema039; no /admin cutover, DB write or M4 claim release. Exact handoff and rollback paths in P2 implementation handoff.
