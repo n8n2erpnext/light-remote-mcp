@@ -452,3 +452,7 @@ Owner-directed and fully backed-up. PostgreSQL guarded transaction removed exact
 ## 2026-10-31 — Gold P2-I5 post-cleanup preimage and full-data SQL test
 
 Created LXD snapshot pre-p2i5-zero-unknown-20261031 and secure paired four-systemd-unit configuration + native PG039 dump in container; SHA256, native pg_restore and four-service health PASS. Full current post-cleanup Gold UAT database restored into disposable no-network PostgreSQL17; actual SQL040-043 sequence PASS, ledger 43/43 only in fixture; original job, M4 claim, terminal ACK, personal work and device counts unchanged. Test Docker/private data cleaned. Live UAT remains 039, UNKNOWN=0, one historical revoked claim, 4/4 old-source services, candidate d4401641 staged only; migration release and signed four-unit cutover still HOLD. Detailed evidence in P2 implementation handoff.
+
+## 2026-10-31 — Ownerless stalled-job GC scalability source regression
+
+Confirmed existing GoldConnectionJobReaper supports user-password-free automatic offline GC (60m) for stale M4 claims whose launch jobs already show OK, with unknown audit, durable SQL040 fence and no forged receipt. Root UAT deployment gap: Gold PG039, SQL040 fence + SQL041 execution epoch disabled/unavailable. Added exact revoked-device ownerless GC source regression plus Gold lifecycle CI path; original GC and owner recovery source suites pass. Manual owner CLI is exceptional only, never fleet support default. Full plan in Code Map and rolling P2 handoff; live UAT unchanged.

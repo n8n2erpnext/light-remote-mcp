@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-31",
-  "status": "P2-I5 post-cleanup UAT: UNKNOWN test work=0, one revoked-device historic M4 claim retained, 32 interrupted job ledger entries preserved, four units active on 7f46dea. Candidate d4401641 staged/hash-verified, SQL lock ends 042, live schema039. New post-cleanup LXD snapshot pre-p2i5-zero-unknown-20261031 plus root-only four-unit configuration and PG039 dump SHA/pg_restore preimage verified. Full actual data, not only schema, migrated 039 through 043 in isolated no-NIC PG17; preserved job/claim/ACK/device counts; only disposable 43/43, no live migration. Signed cutover remains HOLD; Guest044 and production rc47 unchanged.",
+  "status": "P2-I5 post-cleanup UAT: UNKNOWN test work=0, one revoked-device historic M4 claim retained, 32 interrupted job ledger entries preserved, four units active on 7f46dea. Candidate d4401641 staged/hash-verified, SQL lock ends 042, live schema039. New post-cleanup LXD snapshot pre-p2i5-zero-unknown-20261031 plus root-only four-unit configuration and PG039 dump SHA/pg_restore preimage verified. Full actual data, not only schema, migrated 039 through 043 in isolated no-NIC PG17; preserved job/claim/ACK/device counts; only disposable 43/43, no live migration. Signed cutover remains HOLD; Guest044 and production rc47 unchanged. Ownerless scale RCA: GoldConnectionJobReaper already supports 60m offline GC for revoked-device launched-OK M4 claims without user password, with auditable UNKNOWN plus durable SQL040 device fence (no ACK forgery); SQL040/041 and physical signed epoch not yet deployed. Added ownerless revoked-claim test and CI source gate.",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -128,7 +128,7 @@
     "Authenticated Guest Fleet source adapter was previously tool-safety-blocked; no E2E on actual signed Agent or billing once, SQL043/044 absent migration lock and no release signoff.",
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD."
   ],
-  "nextAction": "Full-data PG043 offline migration rehearsal and post-cleanup verified 4-unit/PG backup completed. To activate staged d4401641 on UAT, require owner-authenticated exact orphan job db964413-f80f-4869-96aa-fa9b56dded09 recovery with real reboot evidence (do not bypass), independent signed-quiescence/allowlist four-unit cutover runner, reviewed SHA-locked PG043 registration and live UAT migration, then physical installed Agent Owner Wall B->Helper 24h grant E2E. Guest044, billing and production stay off.",
+  "nextAction": "Full-data PG043 offline migration rehearsal and post-cleanup verified 4-unit/PG backup completed. The scalable default is ownerless GC: first review/pilot SQL040 fences plus SQL041 signed execution epochs through an authorized four-service UAT runner, then run scoped 60-minute offline GC for exact stale revoked M4 claim (without password, UNKNOWN audit and durable fence, no invented terminal ACK). Verify epoch/channel/reconnect races before activation. Owner Recovery requiring affected user's own password is exceptional self-service only. Separately review PG043 checksum lock/migration and installed Agent Owner Wall B->Helper 24h signed grant E2E. Guest044, billing and production stay off.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -141,10 +141,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "d993fe670ba4953bde172b477cd4628bb199bea7ebe0fc3a12c5a19ea84fcd4e",
-    "trackedFiles": 1095,
+    "treeDigest": "e12a5d576f829c826ea94b02b34c203a8df2c86271901f4a42828bf0227ddb17",
+    "trackedFiles": 1096,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-10-31T08:31:16.594Z"
+    "recordedAt": "2026-10-31T09:04:32.468Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",

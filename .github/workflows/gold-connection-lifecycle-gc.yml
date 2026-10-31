@@ -6,6 +6,7 @@ on:
       - 'feat/gold-connection-gc-reconciler-20261029'
     paths:
       - 'lib/gold-connection-job-reaper.mjs'
+      - 'deploy/scripts/selftest-gold-gc-revoked-ownerless.mjs'
       - 'lib/gold-execution-epoch.mjs'
       - 'lib/gold-device-short-id.mjs'
       - 'lib/gold-ab-v2-pending-redis.mjs'
@@ -363,6 +364,7 @@ jobs:
           node deploy/scripts/selftest-v09-device-connection.mjs
           node deploy/scripts/selftest-v11-device-connection-renewal.mjs
           node deploy/scripts/selftest-gold-connection-job-gc.mjs
+          node deploy/scripts/selftest-gold-gc-revoked-ownerless.mjs
           node deploy/scripts/selftest-gold-connection-gc-races.mjs
           node deploy/scripts/selftest-gold-reconnect-proof.mjs
           node deploy/scripts/selftest-gold-execution-epoch-wiring.mjs
