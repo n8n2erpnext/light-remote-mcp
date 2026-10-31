@@ -40,6 +40,9 @@ export class GoldProShareGuestSlotPg{
    ['lr_gold_pro_share_guest_slot:'+deviceId]);
  }
  async _reconcileLocked(db,{deviceId,ownerAccountId=null}){
+  // With M4 enabled, only GoldGuestTerminalSettlementPg may move Guest,
+  // M3 work and M4 claim atomically. Never silently retire just the slot.
+  if(this.m4Bridge)return [];
   // This ledger is written after the enrolled Device signed terminal proof
   // is verified and the M6 receipt was persisted. This method cannot create
   // a receipt and cannot infer terminal success from a missing process.
@@ -199,6 +202,11 @@ export class GoldProShareGuestSlotPg{
   // Never accept a raw process ID as verified launch. A future server
   // adapter must inject a trusted, database-backed signed-launch verifier;
   // the current source-only reconciler intentionally has none.
+  // In M4 Guest mode only the independent signed Gold ledger binder
+  // may atomically change both the M4 claim and Guest slot. The historical
+  // slot-only method would violate the owner resource fence.
+  if(this.m4Bridge)
+   fail('guest_slot_use_atomic_m4_guest_launch_binder',409);
   if(!this.verifySignedLaunch)
    fail('guest_slot_verified_launch_authority_not_wired',503);
   if(await this.verifySignedLaunch({ownerAccountId:owner,deviceId:dev,
@@ -219,6 +227,8 @@ export class GoldProShareGuestSlotPg{
  }
  async reconcileSignedTerminal({ownerAccountId,deviceId,jobId,processId}={}){
   this._enabled();
+  if(this.m4Bridge)
+   fail('guest_slot_use_atomic_m6_terminal_settlement',409);
   const owner=id(ownerAccountId,'guest_slot_owner_invalid'),
    dev=id(deviceId,'guest_slot_device_invalid'),
    job=id(jobId,'guest_slot_job_invalid');
@@ -253,6 +263,8 @@ export class GoldProShareGuestSlotPg{
  // Also safe after restart: a new Operator can reconcile previous ACKs.
  async reconcileDevice({ownerAccountId,deviceId}={}){
   this._enabled();
+  if(this.m4Bridge)
+   fail('guest_slot_use_atomic_m6_terminal_settlement',409);
   const owner=id(ownerAccountId,'guest_slot_owner_invalid'),
    dev=id(deviceId,'guest_slot_device_invalid');
   return this._tx(async db=>{

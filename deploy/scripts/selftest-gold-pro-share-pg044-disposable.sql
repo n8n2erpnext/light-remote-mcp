@@ -273,3 +273,77 @@ BEGIN
 END $$;
 COMMIT;
 SELECT 'PG044_NATIVE_ONE_GUEST_COMMAND_ID_AND_CROSS_ACTOR_FK=PASS';
+-- Synthetic M6 terminal continuity; no OS/process launched.
+-- The M6 receipt in this fixture represents a previously validated signed
+-- Device receipt. Test only schema/transaction invariants.
+BEGIN;
+UPDATE lr_gold_device_resource_claims SET
+ process_id='lp_aaaaaaaaaaaaaaaaaaaaaaaa',
+ worker_state='running',launch_observed_at=clock_timestamp()
+ WHERE job_id='0af5a9c1-8050-478a-83d1-5e26821cf101'
+ AND account_id='p44-owner' AND worker_state='admitting';
+UPDATE lr_gold_pro_share_guest_slots SET
+ process_id='lp_aaaaaaaaaaaaaaaaaaaaaaaa',state='submitted'
+ WHERE job_id='0af5a9c1-8050-478a-83d1-5e26821cf101'
+ AND state='unknown';
+INSERT INTO lr_gold_terminal_receipt_acks(
+ account_id,device_id,process_id,job_id,terminal_state,finished_at_ms)
+ VALUES ('p44-owner','p44-device',
+ 'lp_aaaaaaaaaaaaaaaaaaaaaaaa',
+ '0af5a9c1-8050-478a-83d1-5e26821cf101','finished',1850000001234);
+-- A forged receipt for another process is ineligible for our exact scoped JOIN.
+INSERT INTO lr_gold_terminal_receipt_acks(
+ account_id,device_id,process_id,job_id,terminal_state,finished_at_ms)
+ VALUES('p44-owner','p44-device','lp_bbbbbbbbbbbbbbbbbbbbbbbb',
+ '0af5a9c1-8050-478a-83d1-5e26821cf101','error',1850000001234);
+DO $$
+DECLARE n integer;
+BEGIN
+ SELECT count(*) INTO n FROM lr_gold_pro_share_guest_slots s
+ JOIN lr_gold_terminal_receipt_acks a
+  ON a.account_id=s.owner_account_id
+  AND a.device_id=s.device_id AND a.job_id=s.job_id
+  AND a.process_id=s.process_id
+ WHERE s.job_id='0af5a9c1-8050-478a-83d1-5e26821cf101'
+  AND s.state='submitted' AND a.terminal_state='finished';
+ IF n<>1 THEN RAISE EXCEPTION 'M6 matched wrong receipt'; END IF;
+END $$;
+DELETE FROM lr_gold_device_resource_claims
+ WHERE job_id='0af5a9c1-8050-478a-83d1-5e26821cf101'
+  AND account_id='p44-owner' AND device_id='p44-device'
+  AND process_id='lp_aaaaaaaaaaaaaaaaaaaaaaaa'
+  AND worker_state='running';
+UPDATE lr_gold_personal_agent_work
+ SET state='finished',finished_at=clock_timestamp(),
+ disposition='guest_signed_m6_terminal'
+ WHERE job_id='0af5a9c1-8050-478a-83d1-5e26821cf101'
+  AND account_id='p44-owner' AND state='unknown';
+UPDATE lr_gold_pro_share_guest_slots
+ SET state='terminal',terminal_state='finished',
+ terminal_acked_at=clock_timestamp()
+ WHERE job_id='0af5a9c1-8050-478a-83d1-5e26821cf101'
+  AND owner_account_id='p44-owner'
+  AND process_id='lp_aaaaaaaaaaaaaaaaaaaaaaaa'
+  AND state='submitted';
+UPDATE lr_gold_pro_share_guest_jobs
+ SET state='terminal',updated_at=clock_timestamp()
+ WHERE job_id='0af5a9c1-8050-478a-83d1-5e26821cf101'
+  AND owner_account_id='p44-owner' AND state='unknown';
+DO $$
+DECLARE n integer;
+BEGIN
+ SELECT count(*) INTO n FROM lr_gold_pro_share_guest_jobs g
+ JOIN lr_gold_pro_share_guest_slots s ON s.job_id=g.job_id
+ JOIN lr_gold_personal_agent_work w ON w.job_id=g.job_id
+ WHERE g.job_id='0af5a9c1-8050-478a-83d1-5e26821cf101'
+  AND g.state='terminal' AND s.state='terminal'
+  AND s.terminal_state='finished' AND w.state='finished'
+  AND w.disposition='guest_signed_m6_terminal'
+  AND NOT EXISTS(
+   SELECT 1 FROM lr_gold_device_resource_claims c
+   WHERE c.job_id=g.job_id
+  );
+ IF n<>1 THEN RAISE EXCEPTION 'Guest M3/M4/slot terminal not synchronized'; END IF;
+END $$;
+COMMIT;
+SELECT 'PG044_NATIVE_GUEST_M6_M3_M4_TERMINAL_CONTINUITY=PASS';

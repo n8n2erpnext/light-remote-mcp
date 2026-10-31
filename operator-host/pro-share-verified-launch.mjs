@@ -40,7 +40,7 @@ export function createGoldProShareVerifiedLaunch({pool,env=process.env}={}){
       ON c.job_id=j.job_id AND c.account_id=j.account_id
       AND c.device_id=j.device_id
     WHERE g.job_id=$1 AND g.owner_account_id=$2 AND g.device_id=$3
-      AND s.state='unknown' AND c.process_id=$4
+      AND s.state='submitted' AND s.process_id=$4 AND c.process_id=$4
       AND c.worker_state='running'
     LIMIT 2`,[jobId,ownerAccountId,deviceId,processId]);
   if(result.rowCount!==1)return false;
@@ -51,12 +51,14 @@ export function createGoldProShareVerifiedLaunch({pool,env=process.env}={}){
   // as signedGuestDelegationVerified. No current Agent sets this field.
   return r.job_id===jobId&&r.account_id===ownerAccountId&&
    r.device_id===deviceId&&r.process_id===processId&&
-   r.worker_state==='running'&&r.guest_slot_state==='unknown'&&
+   r.worker_state==='running'&&r.guest_slot_state==='submitted'&&
    r.guest_owner===ownerAccountId&&r.status==='ok'&&
    j?.jobId===jobId&&j.accountId===ownerAccountId&&
    j.deviceId===deviceId&&j.signedResultVerified===true&&
    j.signedGuestDelegationVerified===true&&
-   d?.purpose==='pro-share-guest'&&d.ownerAccountId===ownerAccountId&&
+   d?.purpose==='pro-share-guest'&&d.jobId===jobId&&
+   d.deviceId===deviceId&&d.processId===processId&&
+   d.ownerAccountId===ownerAccountId&&
    d.guestAccountId===r.guest_actor&&d.agentId===r.guest_agent&&
    d.grantId===r.guest_grant&&d.connectionId===r.guest_connection&&
    d.operationId===r.guest_operation&&

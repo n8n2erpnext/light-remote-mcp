@@ -87,3 +87,19 @@ process.stdout.write("PREPARE guest_outbound_"+process.argv[2]+
  }
  echo "DISPOSABLE_GUEST_OUTBOUND_SQL_$kind=PASS"
 done
+# Verify the new signed M6 terminal settlement SELECT against PG17 native
+# schema (not the earlier source-only Guest launch-binder query).
+terminal_sql=$(node -e '
+const fs=require("node:fs");
+const source=fs.readFileSync(process.argv[1],"utf8");
+const m=source.match(/const checked=await db\.query\(`(SELECT g\.job_id[\s\S]*?)`,\[jobId\]\)/);
+if(!m)process.exit(4);
+process.stdout.write("PREPARE gold_guest_m6_terminal_select(text) AS "+m[1]);
+' "$repo/operator-host/pro-share-guest-terminal-pg.mjs")
+[ -n "$terminal_sql" ] || exit 10
+docker exec "$name" psql -X -U postgres -v ON_ERROR_STOP=1 -q \
+ -c "$terminal_sql" postgres || {
+ echo "DISPOSABLE_GUEST_M6_TERMINAL_SOURCE_SQL=FAIL" >&2
+ exit 10
+}
+echo "DISPOSABLE_GUEST_M6_TERMINAL_SOURCE_SQL=PASS"

@@ -57,6 +57,7 @@ on:
       - 'operator-host/pro-share-guest-owner-m4-pg.mjs'
       - 'operator-host/pro-share-guest-outbound-pg.mjs'
       - 'operator-host/pro-share-guest-launch-bind-pg.mjs'
+      - 'operator-host/pro-share-guest-terminal-pg.mjs'
       - 'device-agent/guest-device-process.mjs'
       - 'lib/gold-pro-share-guest-process-contract.mjs'
       - 'lib/gold-pro-share-guest-device-ticket.mjs'
@@ -80,6 +81,7 @@ on:
       - 'deploy/scripts/selftest-gold-pro-share-guest-outbound.mjs'
       - 'deploy/scripts/selftest-gold-pro-share-guest-ledger-restart.mjs'
       - 'deploy/scripts/selftest-gold-pro-share-guest-launch-bind.mjs'
+      - 'deploy/scripts/selftest-gold-pro-share-guest-terminal-pg.mjs'
       - 'deploy/scripts/selftest-gold-pro-share-guest-device-ticket.mjs'
       - 'deploy/scripts/selftest-gold-pro-share-guest-device-process.mjs'
       - 'deploy/scripts/selftest-gold-pro-share-guest-launch-evidence.mjs'
@@ -261,6 +263,8 @@ jobs:
           node deploy/scripts/selftest-gold-pro-share-guest-outbound.mjs
           node deploy/scripts/selftest-gold-pro-share-guest-ledger-restart.mjs
           node deploy/scripts/selftest-gold-pro-share-guest-launch-bind.mjs
+          node deploy/scripts/selftest-gold-pro-share-guest-terminal-pg.mjs
+          node --check operator-host/pro-share-guest-terminal-pg.mjs
           node --check operator-host/pro-share-guest-outbound-pg.mjs
           node --check operator-host/pro-share-guest-launch-bind-pg.mjs
           node --check operator-host/pro-share-guest-owner-m4-pg.mjs
