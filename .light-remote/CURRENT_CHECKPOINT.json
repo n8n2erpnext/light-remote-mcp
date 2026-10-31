@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-31",
-  "status": "Gold P2-I4C3c2b3c2b6 source candidate: build-time GOLD_GUEST_NATIVE_RUNTIME_WIRED=false denies future SQL044 startup despite all environment Guest flags ON and hypothetical checksum-locked SQL044; no false readiness while native Operator Guest Fleet adapter/M4 signed binder/M6 signed terminal/owner billOnce path is absent. SQL034-042 legacy unchanged, 043 separate approval retained. Gold UAT schema039 and 4 services unchanged, rollback snapshot+PG dump remain verified. Source/checkpoint commit and exact-SHA CI pending.",
+  "status": "P2-I4C3c2b3c2b7: Native A/B V2 PG043 in no-NIC isolated LXD PASS: owner-scoped stable Short ID, two Agents durable grant/client binding, restart/reapproval; ephemeral SQL043 only in fixture DB, Gold UAT remains 039. Corrected audit: A/B V2 owner HTTP, helper target/issue, helper poll and signed preview/approval actually imported/mounted by canonical Operator behind explicit flags; CI source invariant added. No UAT rollout, migration lock only 042; separate Guest SQL044 native runtime safety HOLD unchanged. Source docs/CI commit pending.",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -77,7 +77,8 @@
     "P2-I4C3c2b3c2b3 batch: conditional valid Guest pre-dispatch queued/reserved M3/M4+Gold restart continuity and manual cancellation support; actual no-network PG17 native restart SQL verified on both source migration schema and UAT 039-derived clone, owner restart unaffected.",
     "P2-I4C3c2b3c2b4: canonical no-effect M4 cancel exact scoped rows and outbound rejection; transaction rollback for any partial deletion; slot M4 outbound-first denial; isolated native postrestart Guest cancel no M3/M4/Gold orphan and SQL044 owner-operation billing uniqueness.",
     "P2-I4C3c2b3c2b5: bounded cancelled/cancelled restart cleanup source+PG17 tests, Redis8 native CAS A/B purpose fixtures and source-gate PASS, verified Gold UAT rollback snapshot plus DB dump full offline restore.",
-    "P2-I4C3c2b3c2b6 source build-time SQL044 hard HOLD cannot be overridden by all Guest env flags or hypothetical pinned migration lock; source negative regression."
+    "P2-I4C3c2b3c2b6 source build-time SQL044 hard HOLD cannot be overridden by all Guest env flags or hypothetical pinned migration lock; source negative regression.",
+    "P2-I4C3c2b3c2b7: independent native A/B V2 SQL043 isolated no-NIC PG17 owner Short ID + 2 Agent durable grant restart PASS; source tests now protect actual Operator route mounting and explicit flag gates."
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -125,7 +126,7 @@
     "Authenticated Guest Fleet source adapter was previously tool-safety-blocked; no E2E on actual signed Agent or billing once, SQL043/044 absent migration lock and no release signoff.",
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD."
   ],
-  "nextAction": "Release HOLD: do not change build-time GOLD_GUEST_NATIVE_RUNTIME_WIRED=false until independently approved authenticated native Guest Fleet adapter and physical signed installed Device Agent launch→M4→M6→owner billOnce E2E pass, signed migration 043/044 release approved. Prior Fleet adapter tool action safety-blocked; never retry/bypass. Gold UAT stays 039, Guest OFF, no Paddle changes.",
+  "nextAction": "Finish source-gate tests and commit/verify exact GitHub SHA. A/B V2 integration source is mounted but not approved live: need separately reviewed migration043 lock and phased owner Wall/Helper signed approval+lease E2E on allowlisted UAT device before rollout. Do NOT apply 043 to UAT or enable 044/Guest until native release gates. Prior Fleet adapter tool safety block still HOLD; do not retry or bypass.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -138,10 +139,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "0f4f859e01e82b4e0790f49a45b43586dc55d5213676b7ce6ee313abc77208f0",
+    "treeDigest": "7246934161045bd0b54f1c1be7d4bf335257c5288af766324bee26f71c6ebcbe",
     "trackedFiles": 1088,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-10-31T06:38:28.113Z"
+    "recordedAt": "2026-10-31T06:51:36.414Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",

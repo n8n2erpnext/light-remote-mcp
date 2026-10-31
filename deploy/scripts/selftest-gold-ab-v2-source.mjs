@@ -57,3 +57,33 @@ await assert.rejects(store.issue({ownerAccountId:'owner',actorAccountId:'owner',
 assert.throws(()=>new GoldAbV2PendingRedis({redis:client,prefix:'lr:gold:x:',
  sealingKey:crypto.randomBytes(12)}),/abv2_redis_secret_required/);
 console.log('GOLD_ABV2_SOURCE_6PLUS5_B4PLUS4_AND_SEALED_B=PASS');
+
+// Check the actual canonical Operator wiring; unit module existence is
+// NOT equivalent to the HTTP routes being mounted. These handlers remain
+// fail-closed unless their individual source/UAT feature flags are ON.
+import fs from 'node:fs';
+const runtime=fs.readFileSync(new URL('../../operator-host/executor.mjs',import.meta.url),'utf8');
+for(const [name,handler] of [
+ ['OwnerHttp','goldAbV2OwnerHttp'],
+ ['HelperTarget','goldAbV2HelperTarget'],
+ ['HelperPoll','goldAbV2HelperPoll']
+]){
+ assert.match(runtime,new RegExp('const '+handler+'=createGoldAbV2'+name+'(?:FromOperator)?\\('));
+ assert.match(runtime,new RegExp('await '+handler+'\\(req,res,url\\)'));
+}
+for(const name of ['SignedPreview','SignedApproval']){
+ assert.match(runtime,new RegExp('const goldAbV2'+name+'=createGoldAbV2'+name+'\\('));
+ assert.match(runtime,new RegExp('routeDeps=\\(\\)=>\\([\\s\\S]*goldAbV2'+name));
+}
+for(const [file,flag] of [
+ ['gold-ab-v2-owner-http.mjs','LR_GOLD_AB_V2_OWNER_PENDING_HTTP'],
+ ['gold-ab-v2-helper-target.mjs','LR_GOLD_AB_V2_HELPER_TARGET_QUERY'],
+ ['gold-ab-v2-helper-poll.mjs','LR_GOLD_AB_V2_HELPER_POLL_ATTACH']
+]){
+ const src=fs.readFileSync(new URL('../../operator-host/'+file,import.meta.url),'utf8');
+ assert.ok(src.includes('env.'+flag+"==='1'"),file+' requires explicit ON flag');
+}
+assert.match(runtime,/await goldAbV2OwnerHttp\(req,res,url\)/);
+assert.match(runtime,/if\(await goldAbV2HelperTarget\(req,res,url\)\)return/);
+assert.match(runtime,/if\(await goldAbV2HelperPoll\(req,res,url\)\)return/);
+console.log('GOLD_ABV2_CANONICAL_OPERATOR_HTTP_MOUNT_FLAG_GATES=PASS');
