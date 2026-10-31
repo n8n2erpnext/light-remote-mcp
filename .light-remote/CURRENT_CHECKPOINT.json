@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-31",
-  "status": "Gold Unified P2 P2-I4B1 authenticated Owner/Guest Pro Share account HTTP+UI and Guest preissue eligibility source only; from verified 359c1d5 clean. New strict account session/CSRF and shared device/connection scope source fixtures PASS; Guest OAuth A/B issue and owner B grant NOT wired, no guest execution, native PG044, checkout or runtime changes. SHA pending.",
+  "status": "Gold Unified P2 P2-I4B1 source 74e9ca7f6f6d3a9867e1801b95ccdd15a29e17c6 pushed HEAD=origin. Pro Share authenticated owner/Free guest Account API & UI plus read-only Guest pre-issuance authorization PASS source/mock tests, 398 docs links. Guest A/B issuance/PG grant and dispatch NOT wired; all flags OFF on Gold UAT/prod, candidate PG044 not migrated.",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -86,7 +86,7 @@
     "P2-I4A only synthetic SQL fixture, PG044 candidate outside migration lock, no Guest-purpose A/B issuer/Operator route/queue dispatch/owner UI or Paddle authorization; default OFF on UAT/prod",
     "P2-I4B1 account HTTP owner/Guest source fixture and HTML syntax PASS, but no native PG044/installed browser testing, no automatic invitation email, Guest A/B issuance and independent owner B durable grant NOT implemented"
   ],
-  "nextAction": "P2-I4B2 verified Guest OAuth Helper scope for owner-selected device, independent Guest-purpose A/B V2 pending B and owner approval+native durable PG grant (never inherit Team/owner access). P2-I4C dispatch reauthorize per queue+execute, capability budgets and owner-billed exactly-once; single final candidate physical UAT. Leave all flags OFF Gold UAT/production and PG044 outside migration lock.",
+  "nextAction": "P2-I4B2 implement independently OAuth-proven Guest target discovery and on-demand A/B V2, owner B approval + purpose-isolated durable PG pro-share-guest grant with exact permissionRevision/fresh share checks. No owner/Team grant inheritance or global account bypass. Then P2-I4C queue/dispatch reauth+owner metering exact once; freeze one integrated Gold candidate for physical UAT. All flags OFF and PG044 not applied on UAT/prod.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -460,7 +460,7 @@
       "billing": "OFF",
       "nativePgTest": "NOT_RUN",
       "liveGuestExecution": false,
-      "sourceSha": "PENDING_COMMIT",
+      "sourceSha": "74e9ca7f6f6d3a9867e1801b95ccdd15a29e17c6",
       "githubActions": "PUSH_RUN_NOT_INDEPENDENTLY_VERIFIED",
       "accountHttp": "operator-host/pro-share-account-http.mjs",
       "accountProxy": "plugin-server/account-pro-share.mjs",

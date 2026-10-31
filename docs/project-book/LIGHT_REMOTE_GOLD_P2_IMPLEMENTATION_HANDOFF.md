@@ -262,6 +262,8 @@ Next **P2-I3b**: verified owner rename through authenticated owner account UI, f
 
 ### P2-I4B1 — Pro Share account-plane UI + Guest enrollment preflight (2026-10-31)
 
+**P2-I4B1 SOURCE SHA `74e9ca7f6f6d3a9867e1801b95ccdd15a29e17c6` pushed, HEAD=origin clean.** Synthetic Pro Share core + Portal proxy/CSRF/Origin/identity filter + default-OFF Operator route + nickname/Redis regressions PASS; inline Pro Share/Settings HTML scripts compile and 398 doc links PASS. GitHub push Actions workflow not independently verified. No native PostgreSQL044 or installed browser E2E; keep Guest execution and Paddle OFF.
+
 **Start source:** branch `feat/gold-connection-gc-reconciler-20261029`, exact clean HEAD=origin `359c1d5225bb9da8097ec5cb78edcd3382d6705b`, VPS-ARM. Current Gold UAT RUNNING unchanged; rollback clone STOPPED. **P2-I3 nickname source completed and OFF.** Unified Plan directs P2-I4. Never restart the standalone A/B V2 acceptance ladder.
 
 **Source additions (separate flags OFF by default):**
