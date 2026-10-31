@@ -52,7 +52,16 @@ export class GoldProShareGuestSlotPg{
      AND a.terminal_state IN ('finished','stopped','timeout','error')
      AND a.finished_at_ms>0
    RETURNING s.operation_id`,[deviceId,ownerAccountId]);
-  return out.rows?.map(r=>r.operation_id)||[];
+  const settled=out.rows?.map(r=>r.operation_id)||[];
+  if(settled.length){
+   const q=await db.query(`UPDATE lr_gold_pro_share_guest_jobs
+     SET state='terminal',updated_at=clock_timestamp()
+     WHERE operation_id=ANY($1::text[]) AND state='unknown'
+     RETURNING operation_id`,[settled]);
+   if(q.rowCount!==settled.length)
+    fail('guest_queue_terminal_transition_conflict',503);
+  }
+  return settled;
  }
  async acquire({ownerAccountId,deviceId,guestAccountId,operationId,jobId,
    grantId,connectionId,maxConcurrent=1}={}){
@@ -115,7 +124,13 @@ export class GoldProShareGuestSlotPg{
     RETURNING operation_id`,
     [op,dev,evidence.ownerAccountId,evidence.guestAccountId,
      evidence.jobId,evidence.grantId,evidence.connectionId]);
-   return r.rowCount===1;
+   if(r.rowCount!==1)return false;
+   const changed=await db.query(`UPDATE lr_gold_pro_share_guest_jobs
+    SET state='cancelled',updated_at=clock_timestamp()
+    WHERE operation_id=$1 AND job_id=$2 AND state='queued'
+    RETURNING operation_id`,[op,evidence.jobId]);
+   if(changed.rowCount!==1)fail('guest_queue_precall_cancel_conflict',503);
+   return true;
   });
  }
  async markDispatchAttempt(evidence={}){
@@ -126,6 +141,14 @@ export class GoldProShareGuestSlotPg{
    await this._locked(db,dev);
    // Persist UNKNOWN BEFORE invoking the OS dispatch callback; a crash at
    // this point is conservative (a possible effect, not proof of execution).
+   // One PG transaction moves BOTH authoritative queue and reservation to
+   // UNKNOWN. Crash cannot leave a queue marked dispatchable while a
+   // possibly-running OS effect exists. Rollback keeps both RESERVED/QUEUED.
+   const queued=await db.query(`UPDATE lr_gold_pro_share_guest_jobs
+    SET state='unknown',updated_at=clock_timestamp()
+    WHERE operation_id=$1 AND job_id=$2 AND state='queued'
+    RETURNING operation_id`,[op,evidence.jobId]);
+   if(queued.rowCount!==1)fail('guest_queue_unknown_transition_conflict',409);
    const r=await db.query(`UPDATE lr_gold_pro_share_guest_slots
     SET state='unknown',dispatch_attempted_at=clock_timestamp(),
       updated_at=clock_timestamp()
@@ -189,6 +212,13 @@ export class GoldProShareGuestSlotPg{
        AND a.terminal_state IN ('finished','stopped','timeout','error')
        AND a.finished_at_ms>0
      RETURNING s.operation_id`,[owner,dev,job,processId]);
+   if(r.rowCount){
+    const changed=await db.query(`UPDATE lr_gold_pro_share_guest_jobs
+     SET state='terminal',updated_at=clock_timestamp()
+     WHERE operation_id=$1 AND job_id=$2 AND state='unknown'
+     RETURNING operation_id`,[r.rows[0].operation_id,job]);
+    if(changed.rowCount!==1)fail('guest_queue_terminal_transition_conflict',503);
+   }
    return {released:r.rowCount===1,
     reason:r.rowCount===1?'durable_verified_terminal':'terminal_ack_not_confirmed'};
   });

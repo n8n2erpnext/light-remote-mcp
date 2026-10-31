@@ -38,6 +38,7 @@ export function createGoldProShareDispatchGate({
      !valid(job.clientSessionId)||
      !valid(job.operationId)||job.operationId.length<16||
      !valid(job.operation)||!Array.isArray(job.requiredCapabilities)||
+     job.requiredCapabilities.length===0||
      job.requiredCapabilities.length>32)
    deny('pro_share_trusted_queued_job_required',403);
   const current=await loadFreshContext(job.deviceId);

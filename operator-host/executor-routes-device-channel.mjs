@@ -341,6 +341,8 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
     if (req.method === 'GET' && accessGrantMatch) {
       reapAccessGrants();
       const grant=accessGrants.assert(accessGrantMatch[1],{touch:false});
+      if(grant.purpose==='pro-share-guest')
+        throw new AgentClientRegistryError('guest_purpose_owner_grant_view_denied',403);
       const connection=connections.assertConnected(grant.deviceId);
       accessGrants.assert(grant.grantId,{deviceId:grant.deviceId,connectionId:connection.connectionId});
       const device=devices.get(grant.deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
@@ -349,10 +351,17 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
     if (req.method === 'GET' && url.pathname === '/v1/agent-client/by-agent') {
       const accountId=String(url.searchParams.get('accountId')||''),agentId=String(url.searchParams.get('agentId')||'');
       const client=agentClients.findActive({accountId,agentId,touch:true});
-      return sendJson(res,200,{ok:true,client:{clientSessionId:client.clientSessionId,accountId:client.accountId,agentId:client.agentId,expiresAt:client.expiresAt,defaultDeviceId:client.defaultDeviceId,bindings:client.bindings}});
+      const ownerBindings=client.bindings.filter(b=>b.grantPurpose!=='pro-share-guest');
+      const visibleDefault=ownerBindings.some(b=>b.deviceId===client.defaultDeviceId)?
+        client.defaultDeviceId:null;
+      return sendJson(res,200,{ok:true,client:{clientSessionId:client.clientSessionId,accountId:client.accountId,agentId:client.agentId,expiresAt:client.expiresAt,defaultDeviceId:visibleDefault,bindings:ownerBindings}});
     }
     if (req.method === 'POST' && url.pathname === '/v1/agent-client/attach') {
       const body=await readJson(req), grant=accessGrants.assert(body.grantId,{touch:false});
+      // Guest delegation can NEVER use the generic owner A/B attach path.
+      // Its separate OAuth+B poll checks seat/share/revision and PG044.
+      if(grant.purpose==='pro-share-guest')
+        throw new AgentClientRegistryError('guest_purpose_requires_verified_pro_share_poll',403);
       const connection=connections.assertConnected(grant.deviceId);
       if(connection.connectionId!==grant.connectionId)throw new AgentClientRegistryError('agent_client_device_connection_mismatch',409);
       const client=agentClients.attach({clientSessionId:body.clientSessionId||null,accountId:grant.accountId,agentId:body.agentId,grant,pairingRequestId:body.pairingRequestId||null});
@@ -363,6 +372,8 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
     if (req.method === 'GET' && agentClientDevicesMatch) {
       const agentId=String(url.searchParams.get('agentId')||''),client=agentClients.view(agentClientDevicesMatch[1],{agentId,touch:true}),authorized=[];
       for(const binding of client.bindings){
+        // General owner device enumeration must never list Guest shares.
+        if(binding.grantPurpose==='pro-share-guest')continue;
         try{
           const grant=accessGrants.assert(binding.grantId,{agentId:client.agentId,accountId:client.accountId,deviceId:binding.deviceId,connectionId:binding.connectionId,touch:false}),connection=connections.assertConnected(binding.deviceId);
           if(connection.connectionId!==binding.connectionId)throw new AgentClientRegistryError('agent_client_device_connection_mismatch',409);
@@ -373,7 +384,10 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       return sendJson(res,200,{ok:true,client:{clientSessionId:client.clientSessionId,agentId:client.agentId,expiresAt:client.expiresAt},devices:authorized});
     }
     if (req.method === 'POST' && url.pathname === '/v1/agent-client/resolve') {
-      const body=await readJson(req),binding=agentClients.resolve(body.clientSessionId,{agentId:body.agentId,deviceId:body.deviceId||null,touch:true});
+      const body=await readJson(req),binding=agentClients.resolve(body.clientSessionId,{agentId:body.agentId,deviceId:body.deviceId||null,touch:false});
+      if(binding.grantPurpose==='pro-share-guest')
+        throw new AgentClientRegistryError('guest_purpose_owner_route_denied',403);
+      agentClients.resolve(body.clientSessionId,{agentId:body.agentId,deviceId:binding.deviceId,touch:true});
       try{
         const grant=accessGrants.assert(binding.grantId,{agentId:binding.agentId,accountId:binding.accountId,deviceId:binding.deviceId,connectionId:binding.connectionId}),connection=connections.assertConnected(binding.deviceId);
         if(connection.connectionId!==binding.connectionId)throw new AgentClientRegistryError('agent_client_device_connection_mismatch',409);
@@ -382,7 +396,10 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       }catch(error){agentClients.removeDevice(binding.deviceId,'binding_invalid');throw error;}
     }
     if (req.method === 'POST' && url.pathname === '/v1/agent-client/context') {
-      const body=await readJson(req),binding=agentClients.resolve(body.clientSessionId,{agentId:body.agentId,deviceId:body.deviceId||null,touch:true});
+      const body=await readJson(req),binding=agentClients.resolve(body.clientSessionId,{agentId:body.agentId,deviceId:body.deviceId||null,touch:false});
+      if(binding.grantPurpose==='pro-share-guest')
+        throw new AgentClientRegistryError('guest_purpose_owner_context_denied',403);
+      agentClients.resolve(body.clientSessionId,{agentId:body.agentId,deviceId:binding.deviceId,touch:true});
       try{
         const grant=accessGrants.assert(binding.grantId,{agentId:binding.agentId,accountId:binding.accountId,deviceId:binding.deviceId,connectionId:binding.connectionId}),connection=connections.assertConnected(binding.deviceId);
         if(connection.connectionId!==binding.connectionId)throw new AgentClientRegistryError('agent_client_device_connection_mismatch',409);

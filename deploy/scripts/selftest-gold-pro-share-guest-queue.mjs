@@ -102,6 +102,8 @@ const base={opaqueOAuthContext:oauthToken,deviceId:'device1',requestKey:key,
  operation:'exec',requiredCapabilities:['filesystem','filesystem']};
 await assert.rejects(queue.enqueue({...base,opaqueOAuthContext:{...guest,verified:true}}),
  /guest_queue_verified_oauth_required/);
+await assert.rejects(queue.enqueue({...base,requiredCapabilities:[]}),
+ /guest_queue_required_capability_missing/);
 const created=await queue.enqueue(base);
 assert.equal(created.reused,false);
 assert.equal(created.job.identitySource,'verified-oauth');

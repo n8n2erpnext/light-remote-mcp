@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {GoldProShareGuestSlotPg} from '../../operator-host/pro-share-guest-slot-pg.mjs';
 const results=rows=>({rowCount:rows.length,rows});
-const slots=new Map(),acks=new Map(),commands=[];
+const slots=new Map(),acks=new Map(),jobs=new Map(),commands=[];
 let txHeld=false;
 const active=x=>['reserved','unknown','submitted'].includes(x.state);
 const p=async(sql,args=[])=>{
@@ -21,6 +21,7 @@ const p=async(sql,args=[])=>{
   const [op,owner,guest,dev,job,grant,conn]=args;
   if(slots.has(op)||[...slots.values()].some(x=>x.job_id===job||
     x.device_id===dev&&active(x)))return results([]);
+  jobs.set(op,{job_id:job,state:'queued'});
   slots.set(op,{operation_id:op,owner_account_id:owner,guest_account_id:guest,
    device_id:dev,job_id:job,grant_id:grant,connection_id:conn,
    state:'reserved',process_id:null,terminal_state:null,terminal_acked_at:null});
@@ -68,6 +69,28 @@ const p=async(sql,args=[])=>{
   if(!x)return results([]);
   x.process_id=pid;x.state='submitted';return results([{operation_id:x.operation_id}]);
  }
+ if(q.startsWith('UPDATE lr_gold_pro_share_guest_jobs')){
+  // Simulates same transaction visibility as the durable slot table.
+  if(q.includes('operation_id=ANY($1::text[])')){
+   const changed=[];
+   for(const op of args[0])if(jobs.get(op)?.state==='unknown'){
+    jobs.get(op).state='terminal';changed.push({operation_id:op});
+   }
+   return results(changed);
+  }
+  const op=args[0],r=jobs.get(op);
+  if(!r||r.job_id!==args[1])return results([]);
+  if(q.includes("state='unknown'")&&r.state==='queued'){
+   r.state='unknown';return results([{operation_id:op}]);
+  }
+  if(q.includes("state='cancelled'")&&r.state==='queued'){
+   r.state='cancelled';return results([{operation_id:op}]);
+  }
+  if(q.includes("state='terminal'")&&r.state==='unknown'){
+   r.state='terminal';return results([{operation_id:op}]);
+  }
+  return results([]);
+ }
  if(q.startsWith('SELECT operation_id,job_id,state,process_id FROM lr_gold_pro_share_guest_slots')){
   return results([...slots.values()].filter(x=>x.device_id===args[0]&&active(x))
    .map(x=>({operation_id:x.operation_id,job_id:x.job_id,state:x.state,
@@ -101,6 +124,7 @@ assert.equal(blocked.reason,'guest_slot_device_busy');
 assert.equal((await a.inspectDevice('device-1'))[0].state,'reserved');
 await first.markDispatchAttempt();
 assert.equal((await b.inspectDevice('device-1'))[0].state,'unknown');
+assert.equal(jobs.get(args().operationId).state,'unknown');
 assert.equal(await first.release(),false,'unknown cannot be silently retired');
 const restart=new GoldProShareGuestSlotPg(options);
 assert.equal((await restart.acquire(args('restart'))).acquired,false);
@@ -141,19 +165,36 @@ assert.equal((await restart.reconcileSignedTerminal({
  ownerAccountId:'owner-1',deviceId:'device-1',jobId:'job-one',processId:pid
 })).released,false,'duplicate terminal must be idempotent');
 assert.equal(slots.get(args().operationId).state,'terminal');
+assert.equal(jobs.get(args().operationId).state,'terminal');
 const second=await b.acquire(args('two'));
 assert.equal(second.acquired,true);
 assert.equal((await a.acquire(args())).acquired,false,'old operation ID never replayed');
 await assert.rejects(a.acquire({...args(),guestAccountId:'another-guest'}),
  /guest_slot_operation_conflict/);
 assert.equal(await second.release(),true);
-await assert.rejects(second.markDispatchAttempt(),/guest_slot_dispatch_attempt_conflict/);
+assert.equal(jobs.get(args('two').operationId).state,'cancelled');
+await assert.rejects(second.markDispatchAttempt(),/guest_queue_unknown_transition_conflict/);
 const third=await restart.acquire(args('third'));
 assert.equal(third.acquired,true);
 await third.markDispatchAttempt();
 assert.equal((await a.acquire(args('fourth'))).acquired,false);
 assert.equal((await a.inspectDevice('device-1'))[0].state,'unknown');
 assert.equal((await b.acquire(args('parallel','device-2'))).acquired,true);
+// Direct signed ACK lifecycle (without the background sweep) must settle
+// BOTH queue and slot, and replayed receipt must remain idempotent.
+const exact=await b.acquire(args('direct','device-3'));
+await exact.markDispatchAttempt();
+const directPid='lp_'+'z'.repeat(25);
+await b.bindVerifiedProcess({ownerAccountId:'owner-1',deviceId:'device-3',
+ jobId:'job-direct',processId:directPid});
+acks.set(['owner-1','device-3','job-direct',directPid].join('|'),{state:'stopped'});
+assert.equal((await a.reconcileSignedTerminal({
+ ownerAccountId:'owner-1',deviceId:'device-3',jobId:'job-direct',processId:directPid
+})).released,true);
+assert.equal(jobs.get(args('direct','device-3').operationId).state,'terminal');
+assert.equal((await a.reconcileSignedTerminal({
+ ownerAccountId:'owner-1',deviceId:'device-3',jobId:'job-direct',processId:directPid
+})).released,false);
 assert.ok(commands.some(x=>x.includes('pg_advisory_xact_lock')));
 assert.equal(txHeld,false);
 console.log('GOLD_P2I4C3_PG_SLOT_CROSS_OPERATOR_RESTART_UNKNOWN_FENCE=PASS');

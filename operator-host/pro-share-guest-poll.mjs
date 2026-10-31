@@ -10,7 +10,7 @@ const ROUTE='/v1/plugin/pro-share/request-poll';
 const deny=(reason,status=403)=>{throw new GoldAbV2HelperProofError(reason,status)};
 export function createGoldProShareGuestPoll({
  env=process.env,storage,store,accounts,devices,connections,enrollments,
- accessGrants,readJson,sendJson,now=Date.now
+ accessGrants,agentClients,goldRegistries,readJson,sendJson,now=Date.now
 }={}){
  const enabled=env.LR_GOLD_PRO_SHARE_GUEST_AB_POLL==='1';
  if(enabled&&(
@@ -23,6 +23,12 @@ export function createGoldProShareGuestPoll({
   if(url.pathname!==ROUTE)return false;
   sendJson(res,404,{ok:false,error:'not_found'});return true;
  };
+ const bindEnabled=env.LR_GOLD_PRO_SHARE_GUEST_BIND==='1';
+ if(bindEnabled&&(env.LR_GOLD_PRO_SHARE_GUEST_QUEUE!=='1'||
+    env.LR_GOLD_PRO_SHARE_GUEST_SLOTS!=='1'||
+    env.LR_GOLD_PRO_SHARE_GUEST_SIGNED_LAUNCH!=='1'||
+    !agentClients?.attach||!goldRegistries?.flush))
+  deny('guest_bind_requires_queue_slot_signed_launch_and_native_pg',503);
  const cfg=goldAbV2OwnerHttpConfig(env);
  if(!cfg.enabled||!storage?.pool?.query||!storage?.redis?.eval||
     !storage?.redis?.set||!storage?.prefix||!store?.assertEligibleGuestRequest||
@@ -134,6 +140,48 @@ export function createGoldProShareGuestPoll({
    if(last.owner!==first.owner||last.cn.connectionId!==first.cn.connectionId||
       last.revision!==first.revision)
     deny('pro_share_guest_permission_or_connection_changed',409);
+   // Native binding is a separate persisted permission, NOT an execution
+   // session nor helperReady. Distinct from the generic owner-only attach.
+   if(bindEnabled){
+    const currentGrant=accessGrants.assert(grantId,{
+     accountId:p.accountId,agentId:p.agentId,
+     deviceId:p.deviceId,connectionId:first.cn.connectionId,touch:false});
+    const pre=await validate(p);
+    if(currentGrant.purpose!=='pro-share-guest'||
+       pre.revision!==first.revision||pre.cn.connectionId!==first.cn.connectionId)
+     deny('guest_bind_preflush_permission_changed',409);
+    const client=agentClients.attach({accountId:p.accountId,
+     agentId:p.agentId,grant:currentGrant,pairingRequestId:p.requestId});
+    await goldRegistries.flush();
+    const persisted=await storage.pool.query(
+     'SELECT c.account_id,c.agent_id,c.closed_at,c.expires_at,'+
+     'b.device_id,b.connection_id,b.grant_id,b.grant_purpose,b.pairing_request_id '+
+     'FROM lr_agent_clients c JOIN lr_agent_bindings b '+
+     'ON b.client_session_id=c.client_session_id '+
+     'WHERE c.client_session_id=$1 AND b.device_id=$2',
+     [client.clientSessionId,p.deviceId]);
+    const row=persisted.rows?.[0];
+    if(persisted.rowCount!==1||row.account_id!==p.accountId||
+       row.agent_id!==p.agentId||row.device_id!==p.deviceId||
+       row.connection_id!==first.cn.connectionId||
+       row.grant_id!==grantId||row.grant_purpose!=='pro-share-guest'||
+       row.pairing_request_id!==p.requestId||row.closed_at!==null||
+       new Date(row.expires_at).getTime()<=now())
+     deny('guest_bind_pg_native_readback_failed',503);
+    const final=await validate(p);
+    if(final.revision!==first.revision||
+       final.cn.connectionId!==first.cn.connectionId||
+       accessGrants.assert(grantId,{accountId:p.accountId,
+        agentId:p.agentId,deviceId:p.deviceId,
+        connectionId:first.cn.connectionId,touch:false}).purpose!=='pro-share-guest')
+     deny('guest_bind_postflush_permission_changed',409);
+    sendJson(res,200,{ok:true,status:'guest_binding_persisted_dispatch_hold',
+     approvalState:'granted',requestId:p.requestId,deviceId:p.deviceId,
+     shortId:p.shortId,agentId:p.agentId,
+     clientSessionId:client.clientSessionId,
+     helperReady:false,nextAction:'guest_execution_unavailable_until_integrated_uat'});
+    return true;
+   }
    sendJson(res,200,{ok:true,status:'guest_grant_verified_dispatch_hold',
     approvalState:'granted',requestId:p.requestId,deviceId:p.deviceId,
     shortId:p.shortId,agentId:p.agentId,helperReady:false,

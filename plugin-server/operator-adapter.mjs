@@ -6,6 +6,7 @@ import { helperOverview, helperGroup } from './tool-helper.mjs';
 import { cleanJob } from './job-view.mjs';
 import {goldAbV2HelperKey,signGoldAbV2HelperTarget} from '../lib/gold-ab-v2-helper-proof.mjs';
 import {signGoldAbV2HelperPoll} from '../lib/gold-ab-v2-helper-poll-proof.mjs';
+import {signGoldGuestQueueProof} from '../lib/gold-pro-share-guest-queue-proof.mjs';
 
 const opId=p=>`${p}-${crypto.randomUUID()}`;
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -128,6 +129,21 @@ export class AccountOperatorAdapter{
     return {status:'ready',helperReady:true,requestId,deviceId,shortId,
      clientSessionId:result.clientSessionId,pairedDevice:deviceId,
      expiresAt:result.expiresAt,context:null,session:null};
+  }
+  // Private staged source adapter, not exposed as an MCP tool yet.
+  // OAuth identity is inherited from guarded(identity) only; caller never
+  // supplies an actor, owner billing account, grant, or Agent ID.
+  async stageGuestQueue({deviceId,requestKey,operation,
+   requiredCapabilities=[]}={}){
+   if(process.env.LR_GOLD_PRO_SHARE_GUEST_QUEUE_HTTP!=='1')
+    return {status:'guest_queue_unavailable',helperReady:false};
+   const proof=signGoldGuestQueueProof({
+    identity:this.identity,deviceId,requestKey,operation,requiredCapabilities});
+   const row=await callOperatorJson('POST',
+    '/v1/plugin/pro-share/guest-queue/enqueue',proof);
+   return {status:'guest_queue_dispatch_hold',helperReady:false,
+    jobId:row.jobId||null,reused:row.reused===true,
+    nextAction:'guest_dispatch_not_yet_enabled'};
   }
   async pairBegin(aCode,label='ChatGPT'){
     const row=await callOperatorJson('POST','/v1/device-pair/begin',{aCode:String(aCode||'').trim(),accountId:this.identity.accountId,agentId:this.agentId,label:String(label||'ChatGPT').slice(0,120)}),access=row.access;

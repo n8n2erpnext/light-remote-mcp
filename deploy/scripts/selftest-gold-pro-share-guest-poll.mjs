@@ -27,7 +27,8 @@ const client='oauth-'+crypto.createHash('sha256').update(identity.clientId).dige
 const requestId='av2_'+'a'.repeat(32),grantId='dag_v2_'+requestId.slice(4);
 const now=Date.now(),approvedAt=now-3000;
 let phase='approved',revoked=false,revision=7,mutateRevisionAtFinal=false,grantPurpose='pro-share-guest',
- ownerId='owner1',connId='conn1',queryCount=0,attachCount=0;
+ ownerId='owner1',connId='conn1',queryCount=0,attachCount=0,
+ persistedClient=false,failedFlush=false;
 const nonce=new Set();
 const redis={
  async set(k){if(nonce.has(k))return null;nonce.add(k);return 'OK'},
@@ -51,6 +52,13 @@ const pool={async query(sql,params){
  queryCount++;
  if(sql.includes('lr_gold_device_short_ids'))
   return {rowCount:1,rows:[{short_id:'ABCD02'}]};
+ if(sql.includes('FROM lr_agent_clients c JOIN lr_agent_bindings b')){
+  if(!persistedClient)return {rowCount:0,rows:[]};
+  return {rowCount:1,rows:[{account_id:'guest1',agent_id:agent,
+   closed_at:null,expires_at:new Date(now+86400000),device_id:'dev1',
+   connection_id:'conn1',grant_id:grantId,grant_purpose:grantPurpose,
+   pairing_request_id:requestId}]};
+ }
  if(sql.includes('lr_ab_grants'))
   return {rowCount:1,rows:[{grant_id:grantId,
    account_id:'guest1',purpose:grantPurpose,connection_owner_account_id:'owner1',
@@ -125,6 +133,52 @@ try{
  assert.equal(yes.body.clientSessionId,undefined);
  assert.equal(yes.body.grantId,undefined);
  assert.equal(attachCount,0);
+ // Full Guest binding must NEVER become a usable owner session.
+ const bindEnv={...env,LR_GOLD_PRO_SHARE_GUEST_BIND:'1',
+  LR_GOLD_PRO_SHARE_GUEST_QUEUE:'1',LR_GOLD_PRO_SHARE_GUEST_SLOTS:'1',
+  LR_GOLD_PRO_SHARE_GUEST_SIGNED_LAUNCH:'1'};
+ assert.throws(()=>createGoldProShareGuestPoll({...deps,
+  env:{...bindEnv,LR_GOLD_PRO_SHARE_GUEST_QUEUE:'0'}}),
+  /guest_bind_requires_queue_slot_signed_launch_and_native_pg/);
+ const bindDeps={...deps,env:bindEnv,
+  agentClients:{attach({accountId,agentId,grant:approvedGrant,pairingRequestId}){
+   assert.equal(accountId,'guest1');assert.equal(agentId,agent);
+   assert.equal(approvedGrant.purpose,'pro-share-guest');
+   assert.equal(pairingRequestId,requestId);attachCount++;
+   return {clientSessionId:'lrc_fixture_guest'};
+  }},
+  goldRegistries:{async flush(){
+   if(failedFlush)throw Error('pg_flush_failed');
+   persistedClient=true;
+  }}
+ };
+ const binder=createGoldProShareGuestPoll(bindDeps);
+ const bound=await call(binder);
+ assert.equal(bound.status,200);
+ assert.equal(bound.body.status,'guest_binding_persisted_dispatch_hold');
+ assert.equal(bound.body.helperReady,false);
+ assert.equal(bound.body.clientSessionId,'lrc_fixture_guest');
+ assert.equal(attachCount,1);
+ assert.equal(persistedClient,true);
+ const identical=await call(binder);
+ assert.equal(identical.body.clientSessionId,'lrc_fixture_guest');
+ assert.equal(attachCount,2,'native attach must be idempotent by request ID');
+ revoked=true;
+ assert.notEqual((await call(binder)).status,200);
+ assert.equal(attachCount,2,'revoke must prevent attach');
+ revoked=false;persistedClient=false;failedFlush=true;
+ assert.equal((await call(binder)).status,503);
+ failedFlush=false;persistedClient=true;
+ // Generic AgentClient APIs are explicitly fenced from Guest purpose.
+ const routes=fs.readFileSync(new URL('../../operator-host/executor-routes-device-channel.mjs',import.meta.url),'utf8');
+ assert.match(routes,/guest_purpose_requires_verified_pro_share_poll/);
+ assert.match(routes,/guest_purpose_owner_route_denied/);
+ assert.match(routes,/guest_purpose_owner_context_denied/);
+ assert.match(routes,/guest_purpose_owner_grant_view_denied/);
+ assert.match(routes,/visibleDefault/);
+ assert.match(routes,/binding\.grantPurpose==='pro-share-guest'\)continue/);
+ console.log('GOLD_P2I4C3B2_GUEST_NATIVE_BIND_PG_READBACK_HOLD=PASS');
+ console.log('GOLD_P2I4C3B2_GENERIC_OWNER_ATTACH_RESOLVE_DENIED=PASS');
  const replayProof=proof();
  assert.equal((await call(handler,replayProof)).status,200);
  assert.equal((await call(handler,replayProof)).status,409);

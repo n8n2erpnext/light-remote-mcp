@@ -60,6 +60,7 @@ export class GoldProShareGuestQueuePg{
   const device=id(deviceId,'guest_queue_device_invalid');
   if(!KEY.test(String(requestKey||'')))fail('guest_queue_request_key_invalid',400);
   const caps=normalizeCaps(requiredCapabilities);
+  if(!caps.length)fail('guest_queue_required_capability_missing',400);
   const actor=await this.authenticateOAuth(opaqueOAuthContext);
   if(!actor||actor.verified!==true||typeof actor.accountId!=='string'||
      typeof actor.clientId!=='string')fail('guest_queue_verified_oauth_required',401);
