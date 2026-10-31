@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-31",
-  "status": "Gold P2-I4C3c2b3c2b2 BATCH source ed9bbfa8c211b7a40f3110b7a200a79f022b921b pushed, HEAD=origin. 034-042 startup unchanged, 043/044 fail closed unless checksum-pinned SQL in migrations.lock and separate explicit release flags plus native constraints. Actual lock ends at 042; no 043/044 startup. Guest UNKNOWN restart preservation controlled only by signed-off storage.schema, not ambient env. 27 source/mock regression suites PASS, actual read-only UAT 039 schema-only clone offline PG17 candidate 040-044 and M3/M4/M6 fixture + 5 source PREPARE + 2 startup native structure probes PASS, 494 doc links PASS. No Fleet adapter (prior safety block), no physical Guest Agent E2E, no live UAT/production/Paddle/SQL044/flags changes. Exact GitHub CI SHA unverified.",
+  "status": "P2-I4C3c2b3c2b3 SOURCE batch: fixed Guest pre-effect queued/reserved restart orphan trap. Both GoldJobLedger and M3/M4 restart preserve exact canonical Guest queued/reserved with matching owner M3 running, M4 admitting/no PID and NO outbound ONLY if goldStorage.schema.guestSchemaReady; classic owner unknown fencing unchanged. Future 044 gate also requires M3 and M4 enabled. Native actual SQL restart source verified on both offline PG17 SQL001-044 and read-only UAT 039 schema-clone->044; Guest reservation stays cancelable, legacy owner becomes interrupted/unknown/terminal_unknown. Full regression and commit pending. SQL043/044 still unregistered; Fleet adapter tool-safety HOLD, no physical Guest E2E; UAT/prod/Paddle/flags unchanged.",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -73,7 +73,8 @@
     "P2-I4C3c2b3c1: signed M6 exact read-only ACK replay idempotency after restart; mismatched receipt/partial settlement denies, no double M3/M4 release. Source and disposable offline PG17 regression PASS.",
     "P2-I4C3c2b3c2a: M6 terminal immutable signed Guest ticket/Device delegation full scope and Gold process_launch status/effect/exit proof, negative guest grant/connection/command/payload/revision/role tests PASS; offline PG17 source SQL PREPARE PASS.",
     "P2-I4C3c2b3c2b1: actual Gold UAT schema-only 039 clone no customer rows, isolated PG17 candidate 040-044, synthetic Guest M3/M4/M6/FK and source SQL 5 PG PREPARE PASS; UAT unchanged and temporary copies deleted.",
-    "P2-I4C3c2b3c2b2 combined source: version 034-042 compatibility, independent checksum/flag/schema 043/044 release gates, future Guest restart wiring, native UAT read-only schema clone 039->044 with startup structural SQL probes and M3/M4/M6 fixtures PASS."
+    "P2-I4C3c2b3c2b2 combined source: version 034-042 compatibility, independent checksum/flag/schema 043/044 release gates, future Guest restart wiring, native UAT read-only schema clone 039->044 with startup structural SQL probes and M3/M4/M6 fixtures PASS.",
+    "P2-I4C3c2b3c2b3 batch: conditional valid Guest pre-dispatch queued/reserved M3/M4+Gold restart continuity and manual cancellation support; actual no-network PG17 native restart SQL verified on both source migration schema and UAT 039-derived clone, owner restart unaffected."
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -117,9 +118,10 @@
     "Live Guest Fleet adapter remains blocked; physical Agent E2E and actual existing Gold schema clone not completed. No UAT migration or Guest activation permitted.",
     "Fleet adapter creation previously tool-safety blocked and still not mounted; physical installed Agent signed E2E, existing Gold schema clone and GitHub Actions exact SHA acceptance pending.",
     "Gold Operator storage schema startup allowlist ends at migration 042 while source has 043/044; SQL044 unregistered and Guest execution not wired. No live UAT schema migration permitted without release approval.",
-    "043 and 044 still absent from migrations.lock, and no approved real Guest Fleet adapter / physical Agent M6 billing-once E2E. No live release is approved."
+    "043 and 044 still absent from migrations.lock, and no approved real Guest Fleet adapter / physical Agent M6 billing-once E2E. No live release is approved.",
+    "Authenticated Guest Fleet source adapter was previously tool-safety-blocked; no E2E on actual signed Agent or billing once, SQL043/044 absent migration lock and no release signoff."
   ],
-  "nextAction": "Release HOLD: 043/044 missing from signed/checksum-pinned migrations.lock; future owner-approved migration and startup gate needed, prior safety-blocked authenticated Guest Fleet adapter not installed, actual installed Agent signed launch→M4→M6 terminal + owner billed-once E2E not accepted. Do NOT enable flags or apply 043/044 to live UAT/prod until those pass and owner signs off. Batch other independent source audits/tests rather than micro-steps.",
+  "nextAction": "HOLD pending owner-approved native Fleet adapter (prior tool safety block: do not bypass), signed real Guest process launch+M6+one-owner-billing E2E and explicit 043/044 locked migration release. Continue bounded independent source/native test batches; no live UAT/prod/PG044/Paddle changes or flags.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -132,10 +134,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "b5d5b9915bf4c654ac84558e835753ec68c436d01f78b3e1b79077be1a4d8517",
-    "trackedFiles": 1084,
+    "treeDigest": "36ec1fd871f586fd6f72742aa54ec76ea11eeda3d4c3b0f52e67dabb46df62dc",
+    "trackedFiles": 1087,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-10-31T05:16:50.550Z"
+    "recordedAt": "2026-10-31T05:23:58.358Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",

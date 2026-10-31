@@ -203,7 +203,9 @@ const goldProShareGuestSlots=process.env.LR_GOLD_PRO_SHARE_GUEST_SLOTS==='1'?
 const deviceResourceLocks=DEVICE_RESOURCE_LOCKS?
  new GoldDeviceResourceLocks({capacity:Math.max(1,Math.min(8,Number(process.env.OPERATOR_DEVICE_WORKER_BUDGET)||2))}):null;
 const personalAgentScheduler=PERSONAL_AGENT_SCHEDULER?
- new GoldPersonalAgentScheduler({pool:goldStorage.pool,resources:deviceResourceLocks}):null;
+ new GoldPersonalAgentScheduler({pool:goldStorage.pool,
+  resources:deviceResourceLocks,
+  preserveGuestReservations:goldStorage.schema?.guestSchemaReady===true}):null;
 if(personalAgentScheduler)await personalAgentScheduler.recoverStartup();
 const pendingForegroundExec=new Map();
 // Stop intents are retried over independently signed liveness channels.

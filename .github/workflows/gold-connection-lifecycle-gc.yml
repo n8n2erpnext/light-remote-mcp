@@ -82,6 +82,10 @@ on:
       - 'deploy/scripts/selftest-gold-pro-share-guest-owner-m4.mjs'
       - 'deploy/scripts/selftest-gold-pro-share-guest-outbound.mjs'
       - 'deploy/scripts/selftest-gold-pro-share-guest-ledger-restart.mjs'
+      - 'deploy/scripts/selftest-gold-m3-recovery-unknown-claim.mjs'
+      - 'deploy/scripts/selftest-gold-guest-pre-effect-restart-pg044.sql'
+      - 'deploy/scripts/selftest-gold-guest-pre-effect-restart-verify.sql'
+      - 'deploy/scripts/selftest-gold-guest-restart-source-sql.mjs'
       - 'deploy/scripts/selftest-gold-schema-startup-gate.mjs'
       - 'deploy/scripts/selftest-gold-pro-share-guest-launch-bind.mjs'
       - 'deploy/scripts/selftest-gold-pro-share-guest-terminal-pg.mjs'
@@ -266,6 +270,8 @@ jobs:
           node deploy/scripts/selftest-gold-pro-share-guest-owner-m4.mjs
           node deploy/scripts/selftest-gold-pro-share-guest-outbound.mjs
           node deploy/scripts/selftest-gold-pro-share-guest-ledger-restart.mjs
+          node deploy/scripts/selftest-gold-m3-recovery-unknown-claim.mjs
+          node --check deploy/scripts/selftest-gold-guest-restart-source-sql.mjs
           node deploy/scripts/selftest-gold-schema-startup-gate.mjs
           node --check lib/gold-schema-startup-gate.mjs
           node --check lib/gold-db.mjs

@@ -33,4 +33,17 @@ assert.doesNotMatch(statements[0],/lr_gold_device_resource_claims/,
 await assert.rejects(
  ()=>new GoldPersonalAgentScheduler({pool:{connect:async()=>({}),query:async()=>{throw Error('pg_flush_failed')}},resources:{}}).recoverStartup(),
  /pg_flush_failed/,'fail closed if durable PG recovery fails');
+statements.length=0;
+await new GoldPersonalAgentScheduler({pool,resources:{},
+ preserveGuestReservations:true}).recoverStartup();
+assert.equal(statements.length,1);
+assert.match(statements[0],/lr_gold_pro_share_guest_slots/);
+assert.match(statements[0],/g.state='queued' AND s.state='reserved'/);
+assert.match(statements[0],/c.worker_state='admitting' AND c.process_id IS NULL/);
+assert.match(statements[0],/lr_gold_pro_share_guest_outbound/);
+assert.doesNotMatch(sql,/lr_gold_pro_share_guest_jobs/,
+ 'Classic M3/M4 recovery source must remain unchanged by default');
+assert.throws(()=>new GoldPersonalAgentScheduler({pool,
+ preserveGuestReservations:true}),/m3_guest_restart_requires_m4/);
+console.log('GOLD_M3_GUEST_PRE_EFFECT_RESTART_CANCELABLE_ONLY_WHEN_SCHEMA_APPROVED=PASS');
 console.log('GOLD_M3_RECOVERY_UNKNOWN_CLAIM_ATOMIC_FAIL_CLOSED=PASS');

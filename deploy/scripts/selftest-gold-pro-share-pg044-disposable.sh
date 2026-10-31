@@ -18,6 +18,8 @@ pass=$(od -An -N24 -tx1 /dev/urandom | tr -d ' \n')
 docker run --pull never --rm -d --network none --cpus 1 --memory 512m \
  --name "$name" -e POSTGRES_USER=postgres -e POSTGRES_DB=postgres \
  -e POSTGRES_PASSWORD="$pass" \
+ -v "$repo/deploy/scripts/selftest-gold-guest-pre-effect-restart-pg044.sql:/restart-stage.sql:ro" \
+ -v "$repo/deploy/scripts/selftest-gold-guest-pre-effect-restart-verify.sql:/restart-verify.sql:ro" \
  -v "$repo/platform-v2/sql:/migrations:ro" \
  -v "$repo/deploy/scripts/selftest-gold-pro-share-pg044-disposable.sql:/fixture.sql:ro" \
  postgres:17-alpine -c listen_addresses='' >/dev/null
@@ -103,3 +105,15 @@ docker exec "$name" psql -X -U postgres -v ON_ERROR_STOP=1 -q \
  exit 10
 }
 echo "DISPOSABLE_GUEST_M6_TERMINAL_SOURCE_SQL=PASS"
+
+# Execute the exact source startup SQL on synthetic RESERVE(no outbound)
+# and owner job rows, not a hand-written mock of Operator recovery.
+docker exec "$name" psql -X -U postgres -v ON_ERROR_STOP=1 -q \
+ -f /restart-stage.sql postgres || exit 11
+restart_sql=$(node "$repo/deploy/scripts/selftest-gold-guest-restart-source-sql.mjs")
+[ -n "$restart_sql" ] || { echo "Missing source recovery SQL" >&2;exit 11; }
+printf '%s\n' "$restart_sql" |
+ docker exec -i "$name" psql -X -U postgres -v ON_ERROR_STOP=1 -q postgres || exit 11
+docker exec "$name" psql -X -U postgres -v ON_ERROR_STOP=1 -q \
+ -f /restart-verify.sql postgres || exit 11
+echo "GOLD_NATIVE_GUEST_PRE_EFFECT_RESTART_SOURCE_SQL=PASS"

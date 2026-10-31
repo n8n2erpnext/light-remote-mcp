@@ -37,6 +37,8 @@ const flags=[
  'LR_GOLD_PRO_SHARE_GUEST_SIGNED_LAUNCH',
  'LR_GOLD_PRO_SHARE_GUEST_LAUNCH_BIND',
  'LR_GOLD_PRO_SHARE_GUEST_TERMINAL_SETTLE',
+ 'OPERATOR_PERSONAL_AGENT_SCHEDULER',
+ 'OPERATOR_DEVICE_RESOURCE_LOCKS',
  'OPERATOR_EXECUTION_EPOCH_ENABLED'
 ];
 const allow44={...allow43,
@@ -105,6 +107,7 @@ const db=fs.readFileSync(new URL('../../lib/gold-db.mjs',import.meta.url),'utf8'
 const operator=fs.readFileSync(new URL('../../operator-host/executor.mjs',import.meta.url),'utf8');
 assert.match(db,/schema:startup/);
 assert.match(operator,/preserveGuestUnknown:goldStorage\.schema\?\.guestSchemaReady===true/);
+assert.match(operator,/preserveGuestReservations:goldStorage\.schema\?\.guestSchemaReady===true/);
 console.log('GOLD_SCHEMA_STARTUP_LOCKED_GATE_CONTROLS_GUEST_RESTART_FENCE=PASS');
 console.log('GOLD_SCHEMA_034_TO_042_BACKWARDS_COMPATIBLE=PASS');
 console.log('GOLD_SCHEMA_043_044_REAL_LOCK_UNREGISTERED_DENIED=PASS');
