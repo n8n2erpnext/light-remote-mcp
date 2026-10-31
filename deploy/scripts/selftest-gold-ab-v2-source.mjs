@@ -19,7 +19,7 @@ const store=new GoldAbV2PendingRedis({redis:client,prefix:'lr:gold:sourcefixture
  sealingKey:crypto.randomBytes(32)});
 const ids=new Set();
 for(let i=0;i<40;i++){
- const issued=await store.issue({ownerAccountId:'owner',actorAccountId:'actor',
+ const issued=await store.issue({ownerAccountId:'owner',actorAccountId:'owner',
   agentId:'agent',clientId:'client',deviceId:'device',connectionId:'connection',
   shortId:'ABCD02'});
  assert.match(issued.bCode,AB_V2_B_RE);
@@ -34,7 +34,24 @@ for(let i=0;i<40;i++){
  assert.ok(row.box?.iv&&row.box?.ct&&row.box?.tag);
 }
 assert.equal(ids.size,40,'CSPRNG request identifiers unique in fixture');
-await assert.rejects(store.issue({ownerAccountId:'owner',actorAccountId:'actor',
+// Owner and Guest pairing are purpose-isolated security domains.
+const guest=await store.issue({ownerAccountId:'owner',
+ actorAccountId:'guest',agentId:'guest-agent',clientId:'guest-client',
+ deviceId:'device',connectionId:'connection',shortId:'ABCD02',
+ purpose:'pro-share-guest'});
+assert.match(guest.bCode,AB_V2_B_RE);
+assert.equal(captured.at(-1).args.purpose,'pro-share-guest');
+assert.equal(captured.at(-1).args.actor,'guest');
+await assert.rejects(store.issue({ownerAccountId:'owner',
+ actorAccountId:'guest',agentId:'guest-agent',clientId:'guest-client',
+ deviceId:'device',connectionId:'connection',shortId:'ABCD02',
+ purpose:'device'}),/abv2_invalid_actor_purpose/);
+await assert.rejects(store.issue({ownerAccountId:'owner',
+ actorAccountId:'owner',agentId:'agent',clientId:'client',
+ deviceId:'device',connectionId:'connection',shortId:'ABCD02',
+ purpose:'pro-share-guest'}),/abv2_invalid_actor_purpose/);
+
+await assert.rejects(store.issue({ownerAccountId:'owner',actorAccountId:'owner',
  agentId:'agent',clientId:'client',deviceId:'device',connectionId:'connection',
  shortId:'BADBAD!'}),/abv2_short_id_invalid/);
 assert.throws(()=>new GoldAbV2PendingRedis({redis:client,prefix:'lr:gold:x:',

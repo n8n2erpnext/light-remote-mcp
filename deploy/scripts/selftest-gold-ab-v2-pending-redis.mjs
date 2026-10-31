@@ -19,13 +19,32 @@ await client.connect();
 const prefix='lr:gold:p2i2fixture:';
 const key=crypto.randomBytes(32);
 const store=new GoldAbV2PendingRedis({redis:client,prefix,sealingKey:key});
-const owner='owner-1',actor='agent-owner',device='device-1',connection='connection-1';
+const owner='owner-1',actor=owner,device='device-1',connection='connection-1';
 const base={ownerAccountId:owner,actorAccountId:actor,agentId:'agent-1',clientId:'oauth-client',
  deviceId:device,connectionId:connection,shortId:'ABCD02'};
 const o={ownerAccountId:owner,deviceId:device,connectionId:connection};
 const a={actorAccountId:actor,agentId:'agent-1',clientId:'oauth-client',connectionId:connection};
 const errors=async(p,re)=>{await assert.rejects(p,re)};
 try{
+ // Owner/device pairing never accepts a foreign actor. Guest B approval
+ // has its own explicit purpose, owner Wall and device+connection scope.
+ const guestBase={ownerAccountId:'owner-guest-fixture',
+  actorAccountId:'guest-fixture',agentId:'guest-agent-1',
+  clientId:'oauth-guest-fixture',deviceId:'guest-device-1',
+  connectionId:'guest-connection-1',shortId:'ABCDEF'};
+ const guest=await store.issue({...guestBase,purpose:'pro-share-guest'});
+ assert.match(guest.bCode,AB_V2_B_RE);
+ assert.equal((await store.wallView({
+  ownerAccountId:guestBase.ownerAccountId,
+  deviceId:guestBase.deviceId,connectionId:guestBase.connectionId,
+  requestId:guest.requestId
+ })).purpose,'pro-share-guest');
+ await errors(store.issue({...guestBase,purpose:'device'}),
+  /abv2_invalid_actor_purpose/);
+ await errors(store.issue({...base,actorAccountId:'guest-fixture',
+  purpose:'device'}),/abv2_invalid_actor_purpose/);
+ await errors(store.issue({...base,purpose:'pro-share-guest'}),
+  /abv2_invalid_actor_purpose/);
  const issued=await store.issue({...base,requestKey:'a'.repeat(32)});
  const retry=await store.issue({...base,requestKey:'a'.repeat(32)});
  assert.equal(retry.reused,true,'same OAuth client request key reuses pending');

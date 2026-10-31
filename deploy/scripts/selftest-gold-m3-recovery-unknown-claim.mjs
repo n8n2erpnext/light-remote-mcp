@@ -39,6 +39,8 @@ await new GoldPersonalAgentScheduler({pool,resources:{},
 assert.equal(statements.length,1);
 assert.match(statements[0],/lr_gold_pro_share_guest_slots/);
 assert.match(statements[0],/g.state='queued' AND s.state='reserved'/);
+assert.match(statements[0],/g.state='cancelled' AND s.state='cancelled'/);
+assert.match(statements[0],/j.status='queued'|lr_gold_job_records.status='queued'/);
 assert.match(statements[0],/c.worker_state='admitting' AND c.process_id IS NULL/);
 assert.match(statements[0],/lr_gold_pro_share_guest_outbound/);
 assert.doesNotMatch(sql,/lr_gold_pro_share_guest_jobs/,

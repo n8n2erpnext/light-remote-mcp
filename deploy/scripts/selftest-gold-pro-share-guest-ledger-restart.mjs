@@ -16,6 +16,8 @@ assert.match(statements[0],/lr_gold_pro_share_guest_jobs/);
 assert.match(statements[0],/lr_gold_pro_share_guest_slots/);
 assert.match(statements[0],/g.state='unknown'/);
 assert.match(statements[0],/g.state='queued' AND s.state='reserved'/);
+assert.match(statements[0],/g.state='cancelled' AND s.state='cancelled'/);
+assert.match(statements[0],/j.status='queued'|lr_gold_job_records.status='queued'/);
 assert.match(statements[0],/lr_gold_pro_share_guest_outbound/);
 assert.match(statements[0],/lr_gold_personal_agent_work/);
 assert.match(statements[0],/lr_gold_device_resource_claims/);
