@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-31",
-  "status": "P2-I4C3c2b3c1 source ONLY: added exact idempotent M6 signed terminal readback after restart, requiring canonical Guest queue/slot terminal, M3 finished disposition, M4 released, matching Gold signed launch and M6 ACK state/timestamp. No second resource mutation; forged/partial mismatch denied. Source mock and offline PG17 001-044/M6 SQL PREPARE PASS. No Fleet adapter permitted yet, no physical E2E or existing Gold clone, Guest flags OFF; commit pending.",
+  "status": "Gold P2-I4C3c2b3c1 source ef3fa21289e26b3f6513af07270abd517138c6ef pushed, HEAD=origin clean: Guest M6 terminal exact idempotent restart readback only if canonical queue/slot terminal + M3 finished matching disposition, no M4 claim, exact previously signed Gold Guest launch and exact durable M6 ACK outcome/timestamp. No replay OS effect or second resource update, partial or forged ACK denied. 26/26 mock/source regression suites PASS; disposable no-network PG17 001-044 + source M6 SELECT PREPARE and synthetic terminal continuity PASS; 475 document links PASS. No previously safety-blocked Fleet adapter, no physical Agent E2E or actual Gold UAT schema clone, flags OFF, Gold UAT/prod/Paddle/migrations.lock unchanged. GitHub Actions exact SHA unverified.",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
