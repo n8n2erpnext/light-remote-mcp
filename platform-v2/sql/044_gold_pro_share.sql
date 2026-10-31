@@ -106,8 +106,39 @@ CREATE TABLE lr_gold_pro_share_usage_events (
 );
 CREATE INDEX lr_gold_pro_share_usage_period_idx
   ON lr_gold_pro_share_usage_events(owner_account_id,period_utc);
+-- Independent, cross-Operator one-Guest-per-device physical-effect reservation.
+-- NO TTL: if launch/terminal is uncertain, preserve UNKNOWN through restart.
+-- Completion is derived ONLY from Gold M6's previously verified durable ACK.
+CREATE TABLE lr_gold_pro_share_guest_slots(
+ operation_id TEXT PRIMARY KEY CHECK(length(operation_id) BETWEEN 16 AND 160),
+ owner_account_id TEXT NOT NULL REFERENCES lr_accounts(account_id),
+ guest_account_id TEXT NOT NULL REFERENCES lr_accounts(account_id),
+ device_id TEXT NOT NULL REFERENCES lr_devices(device_id),
+ job_id TEXT NOT NULL UNIQUE CHECK(length(job_id) BETWEEN 1 AND 160),
+ grant_id TEXT NOT NULL REFERENCES lr_ab_grants(grant_id),
+ connection_id TEXT NOT NULL REFERENCES lr_device_connections(connection_id),
+ state TEXT NOT NULL DEFAULT 'reserved'
+   CHECK(state IN ('reserved','unknown','submitted','terminal','cancelled')),
+ process_id TEXT CHECK(process_id ~ '^lp_[A-Za-z0-9_-]{20,80}$'),
+ dispatch_attempted_at TIMESTAMPTZ,
+ terminal_state TEXT CHECK(terminal_state IN ('finished','stopped','timeout','error')),
+ terminal_acked_at TIMESTAMPTZ,
+ created_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
+ updated_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
+ CHECK(owner_account_id<>guest_account_id),
+ CHECK((state NOT IN ('submitted','terminal')) OR process_id IS NOT NULL),
+ CHECK((state<>'terminal' AND terminal_acked_at IS NULL AND terminal_state IS NULL)
+   OR (state='terminal' AND terminal_acked_at IS NOT NULL AND terminal_state IS NOT NULL))
+);
+CREATE UNIQUE INDEX lr_gold_pro_share_one_active_device
+ ON lr_gold_pro_share_guest_slots(device_id)
+ WHERE state IN ('reserved','unknown','submitted');
+CREATE UNIQUE INDEX lr_gold_pro_share_device_process
+ ON lr_gold_pro_share_guest_slots(device_id,process_id)
+ WHERE process_id IS NOT NULL;
 -- No public/guest SQL privileges; only trusted Operator Gold app role can write.
 GRANT SELECT,INSERT,UPDATE,DELETE ON
  lr_gold_pro_share_addons,lr_gold_pro_share_seats,
- lr_gold_pro_share_devices,lr_gold_pro_share_usage_events TO lr_gold_app;
+ lr_gold_pro_share_devices,lr_gold_pro_share_usage_events,
+ lr_gold_pro_share_guest_slots TO lr_gold_app;
 COMMIT;

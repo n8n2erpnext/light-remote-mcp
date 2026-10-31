@@ -46,7 +46,7 @@ const acquireGuestSlot=async ({maxConcurrent})=>{
  if(slotBusy)return {acquired:false};
  slotBusy=true;slots++;
  const release=async()=>{slotBusy=false};terminalRelease=release;
- return {acquired:true,release};
+ return {acquired:true,release,async markDispatchAttempt(){}};
 };
 const dispatchEffect=async payload=>{
  dispatched++;
@@ -109,5 +109,35 @@ await assert.rejects(gate.admit({jobId:'job-bad-oauth'}),/pro_share_trusted_queu
 assert.equal(charged,1);
 assert.equal(slotBusy,false);
 assert.ok(checks>=10);
+// The PG slot must be UNKNOWN before the first byte of an OS callback.
+let tried=0,releaseBeforeEffect=0,attemptedBeforeEffect=false;
+const gateAttemptFailure=createGoldProShareDispatchGate({...opts,
+ acquireGuestSlot:async()=>({
+  acquired:true,async release(){releaseBeforeEffect++},
+  async markDispatchAttempt(){tried++;throw Error('guest_slot_unknown_persist_failed')}
+ }),
+ dispatchEffect:async()=>{attemptedBeforeEffect=true;return {accepted:true}}
+});
+jobs.set('job-guard-pg',job('job-guard-pg'));
+const failedTicket=await gateAttemptFailure.admit({jobId:'job-guard-pg'});
+await assert.rejects(gateAttemptFailure.dispatch({ticketId:failedTicket.ticketId}),
+ /guest_slot_unknown_persist_failed/);
+assert.equal(tried,1);
+assert.equal(attemptedBeforeEffect,false,'cannot dispatch without durable UNKNOWN write');
+assert.equal(releaseBeforeEffect,1,'pre-effect refusal may cancel reserved slot');
+let uncertainRelease=0,unknownWritten=0;
+const gateUnknown=createGoldProShareDispatchGate({...opts,
+ acquireGuestSlot:async()=>({
+  acquired:true,async release(){uncertainRelease++},
+  async markDispatchAttempt(){unknownWritten++}
+ }),
+ dispatchEffect:async()=>{throw Error('agent_ack_lost')}
+});
+jobs.set('job-agent-unknown',job('job-agent-unknown'));
+const unk=await gateUnknown.admit({jobId:'job-agent-unknown'});
+await assert.rejects(gateUnknown.dispatch({ticketId:unk.ticketId}),/agent_ack_lost/);
+assert.equal(unknownWritten,1);
+assert.equal(uncertainRelease,0,'callback exception cannot release possibly running OS effect');
+console.log('GOLD_P2I4C3_DISPATCH_REQUIRES_DURABLE_UNKNOWN_BEFORE_EFFECT=PASS');
 console.log('GOLD_P2I4C_GUEST_ADMISSION_DISPATCH_REVOKE_CAPABILITY_BUDGET_SINGLE_SLOT=PASS');
 console.log('GOLD_P2I4C_LEGACY_ROUTES_UNMOUNTED_AND_DEFAULT_OFF=PASS');

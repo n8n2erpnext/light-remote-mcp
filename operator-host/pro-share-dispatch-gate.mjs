@@ -107,9 +107,12 @@ export function createGoldProShareDispatchGate({
     slot=await acquireGuestSlot({
      ownerAccountId:fresh.authority.billedAccountId,
      deviceId:fresh.job.deviceId,guestAccountId:fresh.job.actorAccountId,
-     operationId:fresh.job.operationId,maxConcurrent:1
+     operationId:fresh.job.operationId,jobId:fresh.job.jobId,
+     grantId:fresh.job.grantId,connectionId:fresh.authority.connectionId,
+     maxConcurrent:1
     });
-    if(!slot||typeof slot.release!=='function'||slot.acquired!==true)
+    if(!slot||typeof slot.release!=='function'||
+       typeof slot.markDispatchAttempt!=='function'||slot.acquired!==true)
      deny('pro_share_guest_slot_unavailable',409);
     const atDispatch=await context(t.evidence.job.jobId);
     assertSame(t.evidence,atDispatch);
@@ -131,6 +134,10 @@ export function createGoldProShareDispatchGate({
     // After this boundary, an OS side effect may be running even if its
     // ACK is lost. Keep the durable Guest slot until signed terminal
     // reconciliation, rather than releasing it on an initial ACK.
+    // Durable unknown intent must be committed BEFORE calling any OS effect.
+    // Once an unknown intent exists, even a callback exception may describe
+    // an executing process; the reservation is released only from M6 ACK.
+    await slot.markDispatchAttempt();
     effectSubmitted=true;
     const receipt=await dispatchEffect(Object.freeze({
      jobId:last.job.jobId,operationId:last.job.operationId,

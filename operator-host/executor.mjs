@@ -59,6 +59,7 @@ import {createGoldSessionOwnerHttp} from './gold-session-owner-http.mjs';
 import {createGoldProShareAccountHttp,createGoldProShareStoreFromOperator} from './pro-share-account-http.mjs';
 import {createGoldProShareGuestHelper} from './pro-share-guest-helper.mjs';
 import {createGoldProShareGuestPoll} from './pro-share-guest-poll.mjs';
+import {GoldProShareGuestSlotPg} from './pro-share-guest-slot-pg.mjs';
 import {createGoldProShareGuestApproval} from './pro-share-guest-approval.mjs';
 import {createGoldAbV2OwnerHttpFromOperator} from './gold-ab-v2-owner-http.mjs';
 import {createGoldAbV2GrantOperator} from './gold-ab-v2-grant-operator.mjs';
@@ -186,6 +187,10 @@ if(singleWriter!==true){
 const goldRegistries=await GoldRegistryPersistence.open({pool:goldStorage.pool});
 const goldSessionState=await GoldSessionRedis.open({client:goldStorage.redis,prefix:goldStorage.prefix});
 const goldJobs=await GoldJobLedger.open({pool:goldStorage.pool,redact});
+// Separate OFF-by-default Guest slot receipt reconciliation. This never
+// admits a Guest tool or attaches an Agent and does not change owner M6.
+const goldProShareGuestSlots=process.env.LR_GOLD_PRO_SHARE_GUEST_SLOTS==='1'?
+ new GoldProShareGuestSlotPg({pool:goldStorage.pool,env:process.env}):null;
 const deviceResourceLocks=DEVICE_RESOURCE_LOCKS?
  new GoldDeviceResourceLocks({capacity:Math.max(1,Math.min(8,Number(process.env.OPERATOR_DEVICE_WORKER_BUDGET)||2))}):null;
 const personalAgentScheduler=PERSONAL_AGENT_SCHEDULER?
@@ -227,7 +232,15 @@ async function reconcileSignedTerminalProcessReceipts(ctx,items){
    if(pending)await pending;
    const ack=await deviceResourceLocks.acknowledgeVerifiedTerminal(goldStorage.pool,{
     accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,process:entry});
-   if(ack.acked)acks.push({processId:entry.processId,state:entry.state,finishedAt:entry.finishedAt});
+   if(ack.acked){
+    // A verified Agent receipt has ALREADY been committed by M6 above.
+    // Only the matching durable owner/device/job/process ACK may retire
+    // the independent Guest slot. Failing this keeps Agent replay active.
+    if(goldProShareGuestSlots)
+     await goldProShareGuestSlots.reconcileDevice({
+      ownerAccountId:ctx.binding.accountId,deviceId:ctx.device.deviceId});
+    acks.push({processId:entry.processId,state:entry.state,finishedAt:entry.finishedAt});
+   }
    if(!ack.released)continue;
    pushEvent({type:'m4_worker_signed_terminal_receipt',accountId:ctx.binding.accountId,
     deviceId:ctx.device.deviceId,processId:entry.processId,state:entry.state});
