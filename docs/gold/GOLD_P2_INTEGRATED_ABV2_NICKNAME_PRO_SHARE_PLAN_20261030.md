@@ -13,6 +13,10 @@ Do **NOT** complete P2-C/D/E and then bolt on pairing/session/sharing. Introduce
 
 **Owner product decisions are authoritative**, but actual paid launch still requires billing configuration and explicit owner commercial sign-off. Do not activate add-on payments or guest execution in live Gold while designing.
 
+## 1a. Implementation progress (2026-10-31, source only)
+
+P2-I2 A/B V2 source implemented but still OFF and not native installed UAT; do not reopen the standalone test ladder. P2-I3 Agent nickname and owner /account rename source implemented; flags OFF. **P2-I4A Pro Share independent core implemented as an OFF-by-default source candidate**: `platform-v2/sql/044_gold_pro_share.sql` (not in migrations.lock), `operator-host/pro-share-store.mjs`, one Guest seat/verified email invite, explicit owner device share/revoke, independent Guest-purpose A/B authority requirement, owner-billed operation-id usage budget primitive, and source regression fixture. **Not yet wired to native Operator/Agent/Wall/queue or real billing**. Next P2-I4B scopes Guest OAuth, separate A/B grant and invite/share owner UI; P2-I4C links operation dispatch with reauthorization and budget/idempotency. One frozen candidate integrated acceptance, no paid activation before owner approval.
+
 ## 2. Read-first source decisions
 - `/home/ubuntu/handoffs/GOLD_AB_V2_DEVICE_DISCOVERY_AGENT_INITIATED_SESSION_HANDOFF_20261028.md`
 - `/home/ubuntu/handoffs/LIGHT_REMOTE_AGENT_SESSION_NAMING_HANDOFF_2026-10-29.md`
