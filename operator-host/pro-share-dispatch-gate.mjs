@@ -1,0 +1,160 @@
+// Gold P2-I4C: source-only, never mounted to personal/Pro Team routes.
+// Admission is NOT dispatch. Load principals/job/route only from trusted
+// Operator state; never accept OAuth identity or grant IDs from MCP input.
+// The slot provider MUST serialize across Operator workers and devices.
+import crypto from 'node:crypto';
+export class GoldProShareDispatchError extends Error {
+ constructor(reason,status=403){super(reason);this.name='GoldProShareDispatchError';this.status=status;}
+}
+const deny=(reason,status=403)=>{throw new GoldProShareDispatchError(reason,status)};
+const ID=/^[A-Za-z0-9._:-]{1,160}$/;
+const valid=v=>typeof v==='string'&&ID.test(v);
+const eq=(a,b)=>a===b;
+export function createGoldProShareDispatchGate({
+ env=process.env,store,accessGrants,loadTrustedJob,loadFreshContext,
+ acquireGuestSlot,dispatchEffect,now=Date.now
+}={}){
+ const on=env.LR_GOLD_PRO_SHARE_GUEST_DISPATCH==='1';
+ const tickets=new Map();
+ if(on&&(
+  env.LR_GOLD_PRO_SHARE_CORE!=='1'||
+  !store||typeof store.authorizeOperation!=='function'||
+  typeof store.billOnce!=='function'||!accessGrants?.assert||
+  typeof loadTrustedJob!=='function'||typeof loadFreshContext!=='function'||
+  typeof acquireGuestSlot!=='function'||typeof dispatchEffect!=='function'
+ ))deny('pro_share_dispatch_dependencies_missing',503);
+ async function context(jobId){
+  if(!on)deny('pro_share_dispatch_disabled',404);
+  if(!valid(jobId))deny('pro_share_job_id_invalid',400);
+  const job=await loadTrustedJob(jobId);
+  // A trusted queue item has a verified OAuth principal, an immutable
+  // operation ID and an independently authorized Guest A/B grant.
+  if(!job||job.jobId!==jobId||job.identitySource!=='verified-oauth'||
+     job.state!=='queued'||!valid(job.actorAccountId)||
+     !valid(job.agentId)||!valid(job.deviceId)||!valid(job.grantId)||
+     !valid(job.operationId)||job.operationId.length<16||
+     !valid(job.operation)||!Array.isArray(job.requiredCapabilities)||
+     job.requiredCapabilities.length>32)
+   deny('pro_share_trusted_queued_job_required',403);
+  const current=await loadFreshContext(job.deviceId);
+  if(!current?.device||!current?.connection||
+     !Array.isArray(current.approvedCapabilities)||
+     !Array.isArray(current.routeCapabilities)||
+     current.device.deviceId!==job.deviceId||
+     current.device.accountId===job.actorAccountId||
+     current.connection.deviceId!==job.deviceId||
+     current.connection.accountId!==current.device.accountId||
+     current.device.nodeId!==current.nodeId)
+   deny('pro_share_fresh_owner_route_required',403);
+  const authority=await store.authorizeOperation({
+   authenticatedActorAccountId:job.actorAccountId,
+   authenticatedAgentId:job.agentId,device:current.device,
+   connection:current.connection,grantId:job.grantId,accessGrants,
+   operation:job.operation,requiredCapabilities:job.requiredCapabilities,
+   approvedCapabilities:current.approvedCapabilities,
+   routeCapabilities:current.routeCapabilities
+  });
+  if(authority.actorAccountId!==job.actorAccountId||
+     authority.agentId!==job.agentId||
+     authority.deviceId!==job.deviceId||
+     authority.connectionId!==current.connection.connectionId||
+     authority.grantId!==job.grantId||
+     authority.deviceOwnerAccountId!==undefined&&
+       authority.deviceOwnerAccountId!==current.device.accountId||
+     authority.billedAccountId!==current.device.accountId||
+     !Number.isSafeInteger(authority.permissionRevision)||
+     authority.accessExpiresAt<=now()||
+     authority.maxGuestConcurrentJobs!==1)
+   deny('pro_share_authority_mismatch',403);
+  // Snapshot immutable ticket identity; the queue provider may later
+  // update its own objects, but it cannot rewrite an admitted ticket.
+  const snapshot=Object.freeze({...job,
+   requiredCapabilities:Object.freeze([...job.requiredCapabilities])});
+  return {job:snapshot,authority,current};
+ }
+ function assertSame(original,later){
+  const a=original.job,b=later.job;
+  for(const k of ['jobId','actorAccountId','agentId','deviceId',
+   'grantId','operationId','operation','identitySource'])
+   if(!eq(a[k],b[k]))deny('pro_share_queue_identity_changed',409);
+  if(JSON.stringify(a.requiredCapabilities)!==JSON.stringify(b.requiredCapabilities))
+   deny('pro_share_queue_capabilities_changed',409);
+  if(original.authority.permissionRevision!==later.authority.permissionRevision||
+     original.authority.connectionId!==later.authority.connectionId||
+     original.authority.billedAccountId!==later.authority.billedAccountId)
+   deny('pro_share_permission_revision_changed',409);
+ }
+ return Object.freeze({
+  async admit({jobId}={}){
+   const evidence=await context(jobId);
+   if([...tickets.values()].some(x=>x.evidence.job.jobId===jobId))
+    deny('pro_share_job_already_admitted',409);
+   const ticketId='pst_'+crypto.randomBytes(24).toString('hex');
+   tickets.set(ticketId,{state:'queued',evidence});
+   return Object.freeze({ticketId,jobId,accessExpiresAt:evidence.authority.accessExpiresAt,
+    permissionRevision:evidence.authority.permissionRevision,dispatchable:true});
+  },
+  async dispatch({ticketId}={}){
+   if(!on)deny('pro_share_dispatch_disabled',404);
+   const t=tickets.get(ticketId);
+   if(!t||t.state!=='queued')deny('pro_share_ticket_not_queued',409);
+   t.state='dispatching';let slot,effectSubmitted=false;
+   try{
+    const fresh=await context(t.evidence.job.jobId);
+    assertSame(t.evidence,fresh);
+    // The provider must use a durable atomic semaphore (one running Guest
+    // per shared device), NOT a process-local counter.
+    slot=await acquireGuestSlot({
+     ownerAccountId:fresh.authority.billedAccountId,
+     deviceId:fresh.job.deviceId,guestAccountId:fresh.job.actorAccountId,
+     operationId:fresh.job.operationId,maxConcurrent:1
+    });
+    if(!slot||typeof slot.release!=='function'||slot.acquired!==true)
+     deny('pro_share_guest_slot_unavailable',409);
+    const atDispatch=await context(t.evidence.job.jobId);
+    assertSame(t.evidence,atDispatch);
+    // Charge exactly once for this server-owned operation ID BEFORE any
+    // OS dispatch. A rejected/failed OS submission may still count as an
+    // attempted call; retrying an ambiguous side effect is forbidden.
+    const billed=await store.billOnce({
+     authenticatedActorAccountId:atDispatch.job.actorAccountId,
+     authenticatedAgentId:atDispatch.job.agentId,
+     device:atDispatch.current.device,connection:atDispatch.current.connection,
+     grantId:atDispatch.job.grantId,accessGrants,
+     operationId:atDispatch.job.operationId,units:1
+    });
+    if(billed.billedAccountId!==atDispatch.authority.billedAccountId||
+       billed.operationId!==atDispatch.job.operationId)
+     deny('pro_share_meter_receipt_mismatch',503);
+    const last=await context(t.evidence.job.jobId);
+    assertSame(t.evidence,last);
+    // After this boundary, an OS side effect may be running even if its
+    // ACK is lost. Keep the durable Guest slot until signed terminal
+    // reconciliation, rather than releasing it on an initial ACK.
+    effectSubmitted=true;
+    const receipt=await dispatchEffect(Object.freeze({
+     jobId:last.job.jobId,operationId:last.job.operationId,
+     actorAccountId:last.job.actorAccountId,agentId:last.job.agentId,
+     deviceId:last.job.deviceId,ownerAccountId:last.authority.billedAccountId,
+     grantId:last.job.grantId,connectionId:last.authority.connectionId,
+     operation:last.job.operation,
+     requiredCapabilities:last.authority.requiredCapabilities
+    }));
+    // dispatchEffect is responsible for durable OS-effect receipt tracking.
+    if(!receipt||receipt.accepted!==true)
+     deny('pro_share_dispatch_receipt_missing',503);
+    t.state='accepted';
+    return Object.freeze({accepted:true,terminalReleaseRequired:true,
+     jobId:last.job.jobId,
+     operationId:last.job.operationId,charged:billed.charged===true,
+     idempotent:billed.idempotent===true});
+   }catch(error){t.state='unknown_or_denied';throw error}
+   finally{
+    // Pre-dispatch refusals can free the reservation immediately. Once the
+    // callback was invoked, only the external trusted signed terminal ACK /
+    // owner recovery reconciler may release the durable reservation.
+    if(slot?.acquired===true&&!effectSubmitted)await slot.release();
+   }
+  }
+ });
+}

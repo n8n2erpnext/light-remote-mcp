@@ -44,10 +44,12 @@ on:
       - 'operator-host/pro-share-account-http.mjs'
       - 'operator-host/pro-share-guest-helper.mjs'
       - 'operator-host/pro-share-guest-approval.mjs'
+      - 'operator-host/pro-share-dispatch-gate.mjs'
       - 'operator-host/shared-device-capability-policy.mjs'
       - 'operator-host/team-dispatch-authority.mjs'
       - 'plugin-server/operator-adapter.mjs'
       - 'deploy/scripts/selftest-gold-pro-share-guest-helper.mjs'
+      - 'deploy/scripts/selftest-gold-pro-share-dispatch-gate.mjs'
       - 'plugin-server/account-pro-share.mjs'
       - 'plugin-server/account-portal/pro-share.html'
       - 'deploy/scripts/selftest-gold-pro-share-account.mjs'
@@ -208,6 +210,8 @@ jobs:
           node deploy/scripts/selftest-gold-pro-share-core.mjs
           node deploy/scripts/selftest-gold-pro-share-account.mjs
           node deploy/scripts/selftest-gold-pro-share-guest-helper.mjs
+          node deploy/scripts/selftest-gold-pro-share-dispatch-gate.mjs
+          node --check operator-host/pro-share-dispatch-gate.mjs
           node --check operator-host/pro-share-guest-approval.mjs
           node --check operator-host/shared-device-capability-policy.mjs
           node --check operator-host/team-dispatch-authority.mjs
