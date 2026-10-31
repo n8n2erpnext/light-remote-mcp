@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-10-31",
-  "status": "Gold P2-I4C3c2a SOURCE: independent Ed25519 Guest B/share/UNKNOWN-slot ticket pinned by Agent enrollment signer, 15s bounded with strict local policy, device Guest process branch with mandatory execution epoch and crash-safe journal, authenticated Device result→GoldJobLedger verified Guest launch. Source tests PASS, no real outbound/M4 route or physical Agent E2E, Guest flags OFF, PG044 not deployed, Gold UAT/prod/Paddle unchanged. Commit pending.",
+  "status": "Gold P2-I4C3c2a SOURCE 163270433be9dc36a089da2d67ce15b59f631af9 pushed, clean HEAD=origin. Independent Ed25519 Guest B+share ticket max15s pinned signer, exact local policy Agent process branch with execution epoch+journal, signed owner Device result verification+guest attestation persisted in Gold job ledger. 21 source/mock regression groups PASS, 451 document links PASS. Issuer not mounted, signed Guest outbound/M4 channel bridge and M6 installed E2E not done; flags OFF, Gold UAT/prod/Paddle/PG044 unchanged; GitHub Actions exact-SHA result not independently verified.",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
