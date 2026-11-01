@@ -473,3 +473,10 @@ Admin Owner security emblem uses /assets/icons/material/security.svg (verified H
 - device-agent/local-wall.mjs: account mismatch guidance points to machine-local admin console, not remote Wall.
 - operator-host/enrollment-registry.mjs: denies cross-account ownership by reuse of same device public key.
 - deploy/scripts/selftest-linux-server-relink.mjs: signed new-identity relink, tamper, tenancy, permission ceiling, privilege, stale-state and dormant regression; selftest-device-agent-cli.mjs: Wall HTTP403 Linux re-enroll.
+
+### 2026-11-02 Final owner Link/Relink contract (supersedes local-console-only notes above)
+- device-agent/relink-linux-server.py: sudo light-remote-device link|relink|complete|status, SSH interactive terminal permitted; systemd service context and typed confirmation. No physical-console/logind seat requirement.
+- device-agent/operator-agent.mjs: Wall Link accepts NEW/REVOKED or REMOVED device on all platforms; active assigned device may not Wall Relink; revoked old binding no longer forces old account login, new account may sign in and Link; cloud local deny policy preserved.
+- operator-host/enrollment-registry.mjs + operator-host/device-registry.mjs: cross-account same public key can be reused ONLY if old binding was explicitly revoked. Both source-of-truth registries must agree.
+- deploy/scripts/selftest-device-agent-cli.mjs + deploy/scripts/selftest-linux-server-relink.mjs: signed relink and account takeover/revoke cross-account regression.
+- docs/project-book/LIGHT_REMOTE_ABV2_ACCOUNT_LOGIN_SECURITY_RESEARCH_HANDOFF.md: research ONLY about unknown browser logins, email OTP, Apple-style trusted device approvals, unusual concurrent geographic login; NO 2FA deployed.

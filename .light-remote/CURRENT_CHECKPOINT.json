@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-01",
-  "status": "goldabv2_linux_relink_source_verified_pending_install",
+  "status": "goldabv2_link_relink_state_contract_source_verified_pending_lab_install",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -93,7 +93,8 @@
     "2026-11-01: NetBird-style only-one-Owner handoff source; SQL045 singleton+audit, verified target and current-owner password, one-transaction session revocation and source disable, dynamic Admin/Operator authority, UI. PostgreSQL17 disposable schema PASS; source regressions PASS. NO actual Owner transfer and NO Gold UAT/production changes.",
     "2026-11-01: SQL045 applied ONLY GoldABV2 LXD after PG dump+LXD snapshot, singleton seeded from exact current Plugin Admin ID. Narrow lr_gold_app GRANT fixed in lab and SQL source. Source 6659594d runtime four lab units active, HTTPS health200 TLS0, ownerRevision0 and 0 handoffs. Gold UAT schema42 unchanged.",
     "2026-11-02: Owner already transferred in isolated GoldABV2, SQL045 singleton revision1, legacy fake Owner disabled and verified replacement admin active. Responsive post-handoff Owner Authority status UI implemented; form collapsed when no verified candidate, no destructive button misuse; Owner badge and new operator email fields; VM UX, SQL, V1 fallback tests PASS. No real Owner action executed during UX work.",
-    "2026-11-02: Owner UX v2 live on isolated GoldABV2 commit 2587f79d. HTTPS 200 after Plugin restart, Owner verified revision1 handoff1, old legacy account disabled; real-origin icon shield.svg 404 corrected to security.svg 200 in new source, pending final sync to lab."
+    "2026-11-02: Owner UX v2 live on isolated GoldABV2 commit 2587f79d. HTTPS 200 after Plugin restart, Owner verified revision1 handoff1, old legacy account disabled; real-origin icon shield.svg 404 corrected to security.svg 200 in new source, pending final sync to lab.",
+    "2026-11-02: Final owner contract NEW or REVOKED -> Wall Link for any account; ACTIVE -> Tray/App/interactive Linux sudo Terminal Relink, SSH valid. Account-login Wall accepts new account after revoke but rejects active foreign-account login. Both Enrollment and Device registries accept revoked cross-account same-key Link; active cross-tenant denied. Security account takeover research documented separately without enabling OTP/2FA or changing AB V2."
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -144,7 +145,7 @@
     "Agent V2 no-arg recovery source is newly changed; not yet deployed, not yet GitHub CI-verified and cannot pass physical Owner B→Helper 24h end-to-end while live PG043 is unregistered. Keep source, runtime and UI acceptance distinct.",
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID."
   ],
-  "nextAction": "Install source in isolated GoldABV2 after snapshot. Owner uses Linux local console to initiate relink and approves code in new account.",
+  "nextAction": "Commit latest corrections and tests; snapshot and install only in GoldABV2 isolated LXD operator + wall and install root-owned terminal helper; validate owner rev1 untouched and no actual relink. Then user can initiate sudo light-remote-device relink via real admin SSH TTY; new verified owner approves device code.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -157,10 +158,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "61702d6f58c4f105090d39934f1c336d735d0e773508017bc0224c2402640d20",
+    "treeDigest": "af99e50b6840392c2a7e0383834baecd446e761532675e3aac4aafb9146e015c",
     "trackedFiles": 1137,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-01T18:13:00.818Z"
+    "recordedAt": "2026-11-01T19:01:37.698Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",

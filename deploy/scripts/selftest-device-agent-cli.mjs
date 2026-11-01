@@ -30,6 +30,13 @@ const server=http.createServer(async(req,res)=>{
   }
   if(req.url!=='/api/operator')return send(res,404,{ok:false,error:'not_found'});
   const {action,payload}=body;
+  if(action==='account-login'){
+    if(payload.email==='new-owner@example.test')
+      return send(res,200,{ok:true,upstream:{account:{
+        accountId:'acct_new_owner',email:'new-owner@example.test'},
+        entitlements:{}}});
+    return send(res,401,{ok:false,error:'invalid_credentials'});
+  }
   if(action==='enrollment-begin'){
     beginPayload=payload;
     return send(res,200,{ok:true,upstream:{enrollment:{enrollmentId,pollToken,deviceCode,activationUrl:`http://example.invalid/enroll?id=${enrollmentId}`,expiresAt:Date.now()+600000,expiresInSeconds:600,requestedCapabilities:payload.capabilities,requestedPolicy:payload.policyProfile}}});
@@ -84,20 +91,48 @@ const wallCookie=String(loggedIn.headers['set-cookie']?.[0]||'').split(';')[0];
 const wallHome=await wallReq(wallPort,'GET','/',null,{headers:{cookie:wallCookie}});const wallCsrf=String(wallHome.text).match(/const wallCsrf="([^"]+)"/)?.[1];if(wallHome.status!==200||!wallCsrf){daemonChild.kill('SIGTERM');throw new Error('daemon_wall_session_csrf_missing');}
 const wallHeaders={cookie:wallCookie,'x-light-remote-csrf':wallCsrf};
 const readyStatus=await wallReq(wallPort,'GET','/api/status',null,{headers:{cookie:wallCookie}});if(readyStatus.status!==200){daemonChild.kill('SIGTERM');throw new Error('daemon_local_wall_auth_status_failed');}
+if(process.platform==='linux'){
+ const activeLoginPage=await wallReq(wallPort,'GET','/login');
+ const activeCsrf=String(activeLoginPage.text).match(/name="csrf" value="([^"]+)"/)?.[1];
+ const wrongOwner=await wallReq(wallPort,'POST','/auth/login',
+  {username:'new-owner@example.test',password:'synthetic-test-only',csrf:activeCsrf},
+  {form:true});
+ if(wrongOwner.status!==409||!wrongOwner.text.includes('belongs to another Light Remote account')){
+   daemonChild.kill('SIGTERM');
+   throw new Error('active_device_must_block_foreign_wall_account_login');
+ }
+ console.log('linux-active-device-rejects-foreign-wall-account-login=PASS');
+ const illegal=await wallReq(wallPort,'POST','/api/enrollment/begin',{}, {headers:wallHeaders});
+ if(illegal.status!==403||illegal.json?.error!=='device_relink_requires_local_app_or_terminal'){
+   daemonChild.kill('SIGTERM');throw new Error('active_linux_wall_must_not_relink');
+ }
+ console.log('linux-active-enrollment-relink-terminal-only=PASS');
+}
 revokeChannel=true;
 let revokedLocal=null;for(let i=0;i<40;i++){revokedLocal=JSON.parse(fs.readFileSync(stateFile,'utf8'));if(revokedLocal.cloud?.lastError==='device_revoked')break;await new Promise(r=>setTimeout(r,100));}
 if(revokedLocal?.cloud?.lastError!=='device_revoked'||revokedLocal.cloud?.state!=='dormant'||revokedLocal.cloud?.desiredConnected!==false||revokedLocal.cloud?.connectionId!=null||revokedLocal.cloud?.hardExpiresAt!=null){daemonChild.kill('SIGTERM');throw new Error('daemon_revoked_state_not_persisted');}
 const revokedStatus=await wallReq(wallPort,'GET','/api/status',null,{headers:{cookie:wallCookie}});
 if(revokedStatus.status!==200||revokedStatus.json?.local?.lastCloudError!=='device_revoked'){daemonChild.kill('SIGTERM');throw new Error('local_wall_revoked_state_missing');}
 revokeChannel=false;
+if(process.platform==='linux'){
+ const releasedLoginPage=await wallReq(wallPort,'GET','/login');
+ const releasedCsrf=String(releasedLoginPage.text).match(/name="csrf" value="([^"]+)"/)?.[1];
+ const newAccountAllowed=await wallReq(wallPort,'POST','/auth/login',
+  {username:'new-owner@example.test',password:'synthetic-test-only',csrf:releasedCsrf},
+  {form:true});
+ if(newAccountAllowed.status!==303){
+   daemonChild.kill('SIGTERM');
+   throw new Error('revoked_device_must_accept_new_owner_wall_login:'+newAccountAllowed.status);
+ }
+ console.log('linux-revoked-device-accepts-new-account-wall-login=PASS');
+}
 const reBegin=await wallReq(wallPort,'POST','/api/enrollment/begin',{}, {headers:wallHeaders});
 if(process.platform==='linux'){
- if(reBegin.status!==403||reBegin.json?.error!=='linux_relink_requires_local_console'){
-  daemonChild.kill('SIGTERM');
-  throw new Error('linux_wall_relink_must_be_denied');
+ if(reBegin.status!==200||reBegin.json?.enrollment?.mode!=='reenroll'){
+  daemonChild.kill('SIGTERM');throw new Error('linux_revoked_wall_link_must_remain_allowed');
  }
- console.log('device-agent-linux-server-wall-relink-fail-closed=PASS');
-}else{
+ console.log('linux-revoked-wall-link-remains-enabled=PASS');
+}
 if(reBegin.status!==200||reBegin.json?.enrollment?.mode!=='reenroll'||!beginPayload.capabilities.includes('sudo-on-demand')){daemonChild.kill('SIGTERM');throw new Error('daemon_reenroll_begin_failed');}
 const rePending=JSON.parse(fs.readFileSync(stateFile,'utf8'));
 if(!rePending.policy?.deniedCapabilities?.includes('sudo-on-demand')){daemonChild.kill('SIGTERM');throw new Error('reenroll_local_deny_lost_at_begin');}
@@ -106,7 +141,6 @@ if(rePoll.status!==200||rePoll.json?.enrollment?.state!=='approved'){daemonChild
 const reenrolled=JSON.parse(fs.readFileSync(stateFile,'utf8'));
 if(!reenrolled.enrollment?.approvedCapabilities?.includes('sudo-on-demand')||!reenrolled.policy?.deniedCapabilities?.includes('sudo-on-demand')||reenrolled.effectiveCapabilities?.includes('sudo-on-demand')){daemonChild.kill('SIGTERM');throw new Error('reenroll_local_policy_not_preserved');}
 if(reenrolled.cloud?.state!=='dormant'||reenrolled.cloud?.desiredConnected!==false||reenrolled.cloud?.lastError!=null){daemonChild.kill('SIGTERM');throw new Error('reenroll_connection_state_not_reset');}
-}
 daemonChild.kill('SIGTERM');const daemonCode=await new Promise(resolve=>daemonChild.on('exit',resolve));
 if(daemonCode!==0||!daemonOut.includes('device_agent_started')||!daemonOut.includes('device_agent_stopped'))throw new Error(`daemon_shutdown_failed:${daemonCode}:${daemonErr}`);
 console.log('device-agent-fresh-enrollment-dormant=PASS');
@@ -118,6 +152,6 @@ console.log('device-agent-certificate-verify=PASS');
 console.log('device-agent-signed-heartbeat=PASS');
 console.log('device-agent-local-deny-boundary=PASS');
 console.log('device-agent-revoked-state-persists-for-wall-reenroll=PASS');
-if(process.platform!=='linux')console.log('device-agent-reenroll-full-grantable-local-deny-preserved=PASS');
-if(process.platform!=='linux')console.log('device-agent-reenroll-returns-dormant=PASS');
+console.log('device-agent-reenroll-full-grantable-local-deny-preserved=PASS');
+console.log('device-agent-reenroll-returns-dormant=PASS');
 server.close();fs.rmSync(dir,{recursive:true,force:true});

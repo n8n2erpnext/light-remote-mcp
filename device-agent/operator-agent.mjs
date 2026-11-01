@@ -667,10 +667,20 @@ async function finishEnrollment(state,base,{wait=false}={}){
 async function beginWallEnrollment(base=DEFAULT_BASE){let state=readState()||{};
  // Account-to-account relinking on Linux is NEVER a Wall action. The Wall
  // can be exposed on LAN/NetBird, which does not prove physical presence.
- if(process.platform==='linux'&&(state.enrollment?.deviceId||
-    state.cloud?.lastError==='device_removed'||state.identityResetRequired))
-   throw Object.assign(new Error('linux_relink_requires_local_console'),{status:403});if(state.identityResetRequired)throw new Error('external_identity_rotation_required');state=ensureIdentity(state);const discovered=discoverCapabilities();if(!discovered.length)throw new Error('device_capabilities_required');const denied=defaultRealRemoteDenied({discovered,denied:normalizeDeviceCapabilities(state.policy?.deniedCapabilities||[]),inputDecision:state.policy?.realRemoteInputDecision});const hostname=os.hostname(),hadEnrollment=Boolean(state.enrollment?.deviceId),revoked=String(state.cloud?.lastError||'')==='device_revoked';const policyProfile=String(state.enrollment?.policyProfile||state.pendingEnrollment?.requestedPolicy||'default');const upstream=await operator(base,'enrollment-begin',{publicIdentityKey:state.identity.publicIdentityKey,displayName:hostname,platform:os.platform(),architecture:os.arch(),agentVersion:VERSION,fingerprintSummary:`${hostname} / ${os.platform()} ${os.arch()} / key ${state.identity.publicKeySha256.slice(0,12)}`,capabilities:discovered,policyProfile});const e=upstream.enrollment;state.policy={...(state.policy||{}),deniedCapabilities:denied,localFinalDenyBoundary:true};state.pendingEnrollment={enrollmentId:e.enrollmentId,pollToken:e.pollToken,activationUrl:e.activationUrl,expiresAt:e.expiresAt,requestedCapabilities:e.requestedCapabilities||discovered,requestedPolicy:e.requestedPolicy||policyProfile};writeState(state);return {state:'pending',mode:hadEnrollment||revoked?'reenroll':'link',deviceCode:e.deviceCode,activationUrl:e.activationUrl,expiresAt:e.expiresAt,expiresInSeconds:e.expiresInSeconds,deniedCapabilities:[...denied]};}
-async function pollWallEnrollment(base=DEFAULT_BASE){const state=readState();if(!state?.pendingEnrollment?.enrollmentId)throw new Error('no_pending_enrollment');return finishEnrollment(state,base,{wait:false});}
+ // Keep the original Wall Link flow for NEW and explicitly REVOKED devices.
+ // A device still bound to an account requires OS-admin terminal Relink.
+ const linkableAfterRelease=['device_revoked','device_removed'].includes(
+   String(state.cloud?.lastError||''));
+ if(state.enrollment?.deviceId&&!linkableAfterRelease)
+   throw Object.assign(new Error('device_relink_requires_local_app_or_terminal'),{status:403});
+ if(state.identityResetRequired)throw new Error('external_identity_rotation_required');state=ensureIdentity(state);const discovered=discoverCapabilities();if(!discovered.length)throw new Error('device_capabilities_required');const denied=defaultRealRemoteDenied({discovered,denied:normalizeDeviceCapabilities(state.policy?.deniedCapabilities||[]),inputDecision:state.policy?.realRemoteInputDecision});const hostname=os.hostname(),hadEnrollment=Boolean(state.enrollment?.deviceId),revoked=String(state.cloud?.lastError||'')==='device_revoked';const policyProfile=String(state.enrollment?.policyProfile||state.pendingEnrollment?.requestedPolicy||'default');const upstream=await operator(base,'enrollment-begin',{publicIdentityKey:state.identity.publicIdentityKey,displayName:hostname,platform:os.platform(),architecture:os.arch(),agentVersion:VERSION,fingerprintSummary:`${hostname} / ${os.platform()} ${os.arch()} / key ${state.identity.publicKeySha256.slice(0,12)}`,capabilities:discovered,policyProfile});const e=upstream.enrollment;state.policy={...(state.policy||{}),deniedCapabilities:denied,localFinalDenyBoundary:true};state.pendingEnrollment={enrollmentId:e.enrollmentId,pollToken:e.pollToken,activationUrl:e.activationUrl,expiresAt:e.expiresAt,requestedCapabilities:e.requestedCapabilities||discovered,requestedPolicy:e.requestedPolicy||policyProfile};writeState(state);return {state:'pending',mode:hadEnrollment||revoked?'reenroll':'link',deviceCode:e.deviceCode,activationUrl:e.activationUrl,expiresAt:e.expiresAt,expiresInSeconds:e.expiresInSeconds,deniedCapabilities:[...denied]};}
+async function pollWallEnrollment(base=DEFAULT_BASE){
+ const state=readState();
+ // Wall may finish only Wall-created link/revoked re-enrollment; a Linux
+ // admin-terminal relink carries an alternate private identity and must be
+ // finalized by the same privileged local OS flow.
+ if(process.platform==='linux'&&state?.pendingEnrollment?.relinkIdentity)
+   throw Object.assign(new Error('linux_relink_requires_admin_terminal'),{status:403});if(!state?.pendingEnrollment?.enrollmentId)throw new Error('no_pending_enrollment');return finishEnrollment(state,base,{wait:false});}
 async function login(args){
  const base=args.base||DEFAULT_BASE;
  let state=ensureIdentity(readState()||{});
@@ -696,7 +706,7 @@ async function login(args){
      state.enrollment?.approvedCapabilities||[]).includes(c))
    :discovered;
  if(!requestedCapabilities.length)throw new Error('relink_no_previously_approved_capabilities');
- const upstream=await operator(base,'enrollment-begin',{publicIdentityKey:(nextIdentity||state.identity).publicIdentityKey,displayName:args.name||hostname,platform:os.platform(),architecture:os.arch(),agentVersion:VERSION,fingerprintSummary:`${hostname} / ${os.platform()} ${os.arch()} / key ${state.identity.publicKeySha256.slice(0,12)}`,capabilities:requestedCapabilities,policyProfile});const e=upstream.enrollment;state.pendingEnrollment={enrollmentId:e.enrollmentId,pollToken:e.pollToken,activationUrl:e.activationUrl,expiresAt:e.expiresAt,requestedCapabilities:e.requestedCapabilities||discovered,requestedPolicy:e.requestedPolicy||policyProfile,...(nextIdentity?{relinkIdentity:nextIdentity}:{})};writeState(state);console.log(`Activation URL: ${e.activationUrl}`);console.log(`Device code: ${e.deviceCode}`);console.log(`Expires in: ${e.expiresInSeconds}s`);if(args['no-wait'])return;console.log('Waiting for approval…');const result=await finishEnrollment(state,base,{wait:true});console.log(JSON.stringify({ok:result.state==='approved',enrollment:result.state,deviceId:state.enrollment?.deviceId||null,nodeId:state.enrollment?.nodeId||null,state:result.device?.state||null,effectiveCapabilities:state.effectiveCapabilities||[]},null,2));}
+ const upstream=await operator(base,'enrollment-begin',{publicIdentityKey:(nextIdentity||state.identity).publicIdentityKey,displayName:args.name||hostname,platform:os.platform(),architecture:os.arch(),agentVersion:VERSION,fingerprintSummary:`${hostname} / ${os.platform()} ${os.arch()} / key ${state.identity.publicKeySha256.slice(0,12)}`,capabilities:requestedCapabilities,policyProfile});const e=upstream.enrollment;state.pendingEnrollment={enrollmentId:e.enrollmentId,pollToken:e.pollToken,activationUrl:e.activationUrl,expiresAt:e.expiresAt,requestedCapabilities,requestedPolicy:e.requestedPolicy||policyProfile,...(nextIdentity?{relinkIdentity:nextIdentity}:{})};writeState(state);console.log(`Activation URL: ${e.activationUrl}`);console.log(`Device code: ${e.deviceCode}`);console.log(`Expires in: ${e.expiresInSeconds}s`);if(args['no-wait'])return;console.log('Waiting for approval…');const result=await finishEnrollment(state,base,{wait:true});console.log(JSON.stringify({ok:result.state==='approved',enrollment:result.state,deviceId:state.enrollment?.deviceId||null,nodeId:state.enrollment?.nodeId||null,state:result.device?.state||null,effectiveCapabilities:state.effectiveCapabilities||[]},null,2));}
 function commandFile(commandId){if(!/^cmd_[A-Za-z0-9-]{20,}$/.test(String(commandId||'')))throw new Error('invalid_command_id');return path.join(COMMAND_DIR,`${commandId}.json`);}
 function readCommand(commandId){try{return JSON.parse(fs.readFileSync(commandFile(commandId),'utf8'));}catch{return null;}}
 function writeCommand(commandId,value){fs.mkdirSync(COMMAND_DIR,{recursive:true,mode:0o700});writeJson0600(commandFile(commandId),value);}
@@ -1372,7 +1382,16 @@ async function authenticateWallAccount(email,credential,base=DEFAULT_BASE){
   const state=readState()||{},field='pass'+'word';
   const response=await operator(base,'account-login',{email:String(email||'').trim(),[field]:String(credential||'')});
   if(!response?.account?.accountId)throw new Error('invalid_account_credentials');
-  if(state.enrollment?.accountId&&response.account.accountId!==state.enrollment.accountId){const error=new Error('device_account_mismatch');error.status=403;throw error;}
+  // A revoked/removed device is unowned: do NOT require the next Wall
+  // account to match its historical device enrollment. Active binding
+  // still requires the original account; account takeover via Wall cannot
+  // relink an actively owned device.
+  const released=['device_revoked','device_removed'].includes(
+    String(state.cloud?.lastError||''));
+  if(state.enrollment?.accountId&&!released&&
+     response.account.accountId!==state.enrollment.accountId){
+    const error=new Error('device_account_mismatch');error.status=403;throw error;
+  }
   return {account:response.account,entitlements:response.entitlements};
 }
 async function rotatePairingCode(hub=DEFAULT_HUB,options={}){

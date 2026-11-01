@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
-"""Local console-only Linux Server re-enrollment / account relink.
+"""Linux Server Link/Relink: OS administrator terminal replaces Windows/macOS tray.
 
 Usage:
-  sudo light-remote-relink --begin [--unit gpt-operator-device-agent.service]
-  sudo light-remote-relink --poll [--unit gpt-operator-device-agent.service]
-  sudo light-remote-relink --status [--unit gpt-operator-device-agent.service]
+  sudo light-remote-device link
+  sudo light-remote-device relink
+  sudo light-remote-device complete
+  sudo light-remote-device status
 
-No password, token, or device private key is accepted over CLI. The one-time
-code MUST be approved by the owner in the HTTPS account portal. This script
-temporarily stops the Agent service to prevent concurrent state writes and
-always starts it again before exiting. Scoped to a locally installed unit.
+For custom local systemd agents, add --unit <unit-name>. An interactive
+administrator terminal (including SSH with TTY) initiates these operations.
+Wall and MCP cannot initiate ownership changes. A signed device certificate
+must be approved by the new account before the local identity changes.
 """
 import argparse
 import os
@@ -19,7 +20,11 @@ import shlex
 import subprocess
 import sys
 
-DEFAULT_UNIT = "gpt-operator-device-agent.service"
+DEFAULT_UNIT = "auto"
+KNOWN_AGENT_UNITS = (
+    "gpt-operator-device-agent.service",
+    "light-remote-gold-wall.service",
+)
 ALLOWED_UNIT = re.compile(r"^[A-Za-z0-9_.@-]{3,110}\.service$")
 
 def systemctl(*args):
@@ -50,56 +55,53 @@ def service_config(unit):
         key, value = item.split("=", 1)
         if re.fullmatch(r"[A-Za-z_][A-Za-z_0-9]*", key):
             env[key] = value
-    # Only a console-controlled action can request a new device key.
+    # Only an interactive OS administrator action can request a new device key.
     env["LR_LINUX_RELINK_CONSOLE"] = "1"
     return user_name, argv[0], argv[1], workdir, env
 
-def require_local_machine_console():
-    # Root is necessary but not sufficient. SSH sessions, remote PTYs and
-    # AI-operated device shells do not count as local physical authorization.
+def confirm_os_admin_action(action):
+    """Admin OS terminal confirmation; SSH TTY is valid for headless servers.
+
+    No enrollment API / browser request may call this root-only helper.
+    """
     if not (os.isatty(0) and os.isatty(1)):
-        raise RuntimeError("local_console_tty_required")
-    if os.environ.get("SSH_CONNECTION") or os.environ.get("SSH_TTY"):
-        raise RuntimeError("ssh_session_not_local_console")
-    tty = os.ttyname(0)
-    if tty == "/dev/console" or re.fullmatch(
-        r"/dev/(?:tty[0-9]+|ttyS[0-9]+|ttyAMA[0-9]+|hvc[0-9]+|xvc[0-9]+)", tty
-    ):
-        return
-    # A local workstation terminal is usually /dev/pts/N. Its logind session
-    # must be active, non-remote and attached to a real local seat.
-    if re.fullmatch(r"/dev/pts/[0-9]+", tty):
-        session_id = os.environ.get("XDG_SESSION_ID", "")
-        if not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", session_id):
-            raise RuntimeError("local_seat_session_required")
-        row = subprocess.run(
-            ["loginctl", "show-session", session_id,
-             "-p", "Remote", "-p", "Active", "-p", "Seat"],
-            text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-            check=False, timeout=5
-        )
-        fields = dict(line.split("=", 1) for line in row.stdout.splitlines() if "=" in line)
-        if row.returncode == 0 and fields.get("Remote") == "no" and (
-            fields.get("Active") == "yes" and fields.get("Seat")
-        ):
-            return
-    raise RuntimeError("local_machine_console_required")
+        raise RuntimeError("interactive_admin_terminal_required")
+    print("Linux Server ownership will change ONLY after the new account approves "
+          "the one-time device code.")
+    try:
+        response = input("Type " + action.upper() + " to confirm this device action: ")
+    except (EOFError, KeyboardInterrupt) as error:
+        raise RuntimeError("linux_relink_confirmation_cancelled") from error
+    if response.strip() != action.upper():
+        raise RuntimeError("linux_relink_confirmation_cancelled")
+
 
 def main():
     parser = argparse.ArgumentParser(description="Owner-approved Light Remote Linux Server relink")
-    mode = parser.add_mutually_exclusive_group(required=True)
-    mode.add_argument("--begin", action="store_true", help="Generate a new device identity and one-time link code")
-    mode.add_argument("--poll", action="store_true", help="Complete relink after the new account approves the code")
-    mode.add_argument("--status", action="store_true", help="Read current device status without changing enrollment")
-    parser.add_argument("--unit", default=DEFAULT_UNIT, help="Existing systemd Device Agent unit")
+    parser.add_argument("action", choices=("link", "relink", "complete", "status"),
+                        help="link for new/revoked, relink for already-bound, complete after approval")
+    parser.add_argument("--unit", default=DEFAULT_UNIT,
+                        help="Existing Device Agent systemd service (default: autodetect)")
     args = parser.parse_args()
     if os.geteuid() != 0:
         parser.error("Run this from the Linux server as root (sudo).")
-    if not ALLOWED_UNIT.fullmatch(args.unit):
+    if args.unit != "auto" and not ALLOWED_UNIT.fullmatch(args.unit):
         parser.error("Invalid systemd unit name.")
-    require_local_machine_console()
-    user_name, node_bin, agent, workdir, env = service_config(args.unit)
-    if args.begin:
+    if args.action in ("link", "relink"):
+        confirm_os_admin_action(args.action)
+    if args.unit == "auto":
+        for candidate in KNOWN_AGENT_UNITS:
+            try:
+                user_name, node_bin, agent, workdir, env = service_config(candidate)
+                args.unit = candidate
+                break
+            except (RuntimeError, subprocess.CalledProcessError, KeyError):
+                continue
+        else:
+            raise RuntimeError("linux_device_agent_service_not_found")
+    else:
+        user_name, node_bin, agent, workdir, env = service_config(args.unit)
+    if args.action in ("link", "relink"):
         state_path = env.get("OPERATOR_AGENT_STATE") or (
             os.path.join(env.get("HOME", ""), ".config/gpt-operator-agent/device.json")
         )
@@ -110,32 +112,40 @@ def main():
                 old = json.load(stream)
         except (OSError, ValueError):
             pass
-        if old.get("enrollment", {}).get("deviceId"):
+        has_enrollment = bool(old.get("enrollment", {}).get("deviceId"))
+        revoked = old.get("cloud", {}).get("lastError") in ("device_revoked", "device_removed")
+        if args.action == "relink":
+            if not has_enrollment or revoked:
+                raise RuntimeError("No active linked device: use 'link' instead")
             action = ["login", "--relink", "--no-wait"]
-        elif old.get("cloud", {}).get("lastError") == "device_removed":
-            action = ["login", "--reenroll", "--no-wait"]
         else:
-            action = ["login", "--no-wait"]
+            if has_enrollment and not revoked:
+                raise RuntimeError("Device already linked: use 'relink' instead")
+            # Revoked is free to Link via Wall or OS terminal. Re-enroll
+            # locally using the existing key if revoked; the server accepts
+            # cross-account linking only when it has a revocation record.
+            action = (["login", "--reenroll", "--no-wait"] if has_enrollment
+                      else ["login", "--no-wait"])
     else:
-        action = ["poll"] if args.poll else ["status"]
+        action = ["poll"] if args.action == "complete" else ["status"]
     was_active = unit_setting(args.unit, "ActiveState") == "active"
-    if not args.status and was_active:
+    if args.action != "status" and was_active:
         systemctl("stop", args.unit)
     try:
-        if args.begin:
-            print("Creating a NEW key for a one-time owner-approved relink; previous enrollment is retained until approval.", flush=True)
+        if args.action in ("link", "relink"):
+            print("Creating a one-time owner-approved device code. The previous identity is preserved until approval.", flush=True)
         result = subprocess.run(
             ["runuser", "-u", user_name, "--", node_bin, agent, *action],
-            cwd=workdir, env=env, check=False, timeout=45 if args.status or args.begin else 60)
-        if result.returncode == 0 and args.begin:
+            cwd=workdir, env=env, check=False, timeout=45 if args.action in ("link", "relink", "status") else 60)
+        if result.returncode == 0 and args.action in ("link", "relink"):
             print("\nApprove the displayed code in GoldABV2 Account → Devices → Add device.")
-            print("Then run: sudo light-remote-relink --poll" +
-                  ("" if args.unit == DEFAULT_UNIT else " --unit " + args.unit))
-        if result.returncode == 0 and args.poll:
+            print("Then run: sudo light-remote-device complete" +
+                  " --unit " + args.unit)
+        if result.returncode == 0 and args.action == "complete":
             print("Poll complete; device state remains cloud-dormant until the owner explicitly connects.")
         return result.returncode
     finally:
-        if not args.status and was_active:
+        if args.action != "status" and was_active:
             systemctl("start", args.unit)
 
 if __name__ == "__main__":

@@ -7,6 +7,7 @@ import path from 'node:path';
 import {spawn} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {EnrollmentRegistry} from '../../operator-host/enrollment-registry.mjs';
+import {DeviceRegistry} from '../../operator-host/device-registry.mjs';
 
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'lr-linux-server-relink-'));
 const stateFile=path.join(dir,'device.json');
@@ -103,6 +104,9 @@ try{
  assert.notEqual(pending.pendingEnrollment.relinkIdentity.publicIdentityKey,oldKey);
  assert.notEqual(begun.publicIdentityKey,oldKey);
  assert.deepEqual([...begun.capabilities].sort(),[...originalApproved].sort(),'cross-owner approval ceiling');
+ assert.deepEqual([...pending.pendingEnrollment.requestedCapabilities].sort(),
+  [...originalApproved].sort(),'persisted grantable ceiling must not be expanded');
+ assert.equal(pending.pendingEnrollment.requestedCapabilities.includes('terminal'),false);
  assert.equal((fs.statSync(stateFile).mode&0o777),0o600);
  assert.ok(!begin.stdout.includes(pending.pendingEnrollment.relinkIdentity.privateKey));
  assert.ok(!begin.stdout.includes(pending.pendingEnrollment.pollToken));
@@ -137,8 +141,12 @@ try{
  const registry=new EnrollmentRegistry();
  const reqBase={publicIdentityKey:pub,displayName:'Linux Server',platform:'linux',
   architecture:'arm64',agentVersion:'test',capabilities:['filesystem']};
+ const devices=new DeviceRegistry({now:()=>Date.now()});
  const a=registry.begin(reqBase);
- registry.approve({code:a.deviceCode,accountId:originalAccount});
+ const initialBinding=registry.approve({code:a.deviceCode,accountId:originalAccount});
+ devices.enroll({deviceId:initialBinding.deviceId,nodeId:initialBinding.deviceId,
+  accountId:originalAccount,publicIdentityKey:pub,displayName:'Linux Server',
+  platform:'linux',architecture:'arm64',capabilities:['filesystem']});
  const b=registry.begin(reqBase);
  assert.throws(()=>registry.approve({code:b.deviceCode,accountId:newAccount}),
   /device_relink_requires_new_identity_key/);
@@ -148,6 +156,28 @@ try{
  const rotated=registry.begin({...reqBase,publicIdentityKey:newKeys.publicKey.export({format:'der',type:'spki'}).toString('base64')});
  const approved=registry.approve({code:rotated.deviceCode,accountId:newAccount});
  assert.notEqual(approved.deviceId,oldDevice);
+ // A Revoke explicitly releases the previous account's claim: any new
+ // account (including old Owner) can LINK the same device key through Wall.
+ registry.revoke({deviceId:oldDevice,accountId:originalAccount});
+ devices.revoke(oldDevice,'account_owner_revoked');
+ const linkAfterRevoke=registry.begin(reqBase);
+ const transferredByLink=registry.approve({
+  code:linkAfterRevoke.deviceCode,accountId:newAccount
+ });
+ assert.equal(transferredByLink.deviceId,oldDevice);
+ const reopened=devices.enroll({deviceId:transferredByLink.deviceId,
+  nodeId:transferredByLink.deviceId,accountId:newAccount,
+  publicIdentityKey:pub,displayName:'Linux Server',
+  platform:'linux',architecture:'arm64',capabilities:['filesystem']});
+ assert.equal(reopened.accountId,newAccount);
+ assert.equal(reopened.state,'offline');
+ assert.equal(registry.binding(oldDevice).accountId,newAccount);
+ assert.equal(registry.binding(oldDevice).revokedAt,undefined);
+ const remainAssigned=registry.begin(reqBase);
+ assert.throws(()=>registry.approve({
+  code:remainAssigned.deviceCode,accountId:originalAccount
+ }),/device_relink_requires_new_identity_key/);
+ console.log('LINUX_WALL_REVOKED_DEVICE_LINKS_ANY_ACCOUNT_BUT_ACTIVE_RELINK_DENIED=PASS');
  console.log('LINUX_OWNER_RELINK_BACKEND_REJECTS_CROSS_TENANT_SAME_KEY=PASS');
 }finally{
  server.close();fs.rmSync(dir,{recursive:true,force:true});

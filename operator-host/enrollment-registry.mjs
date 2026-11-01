@@ -203,7 +203,11 @@ export class EnrollmentRegistry {
     const policyProfile = bounded(input.policyProfile || row.requestedPolicy || 'default',80);
     if (!POLICY_RE.test(policyProfile)) throw new EnrollmentError('invalid_policy_profile');
     const priorBinding=this.bindings.get(deviceIdForFingerprint(row.publicKeySha256));
-    if(priorBinding&&priorBinding.accountId!==accountId)
+    // An ACTIVE binding cannot be reassigned by someone who merely knows
+    // the Wall URL and another account. Once the existing Owner explicitly
+    // revokes the binding, it becomes unowned: its locally initiated Wall
+    // Link can be approved by any account (the original owner included).
+    if(priorBinding&&!priorBinding.revokedAt&&priorBinding.accountId!==accountId)
       throw new EnrollmentError('device_relink_requires_new_identity_key',409);
     const now = this.now(), deviceId=deviceIdForFingerprint(row.publicKeySha256), certificateId=`cert_${crypto.randomUUID()}`;
     const binding = { deviceId, accountId, publicKeySha256:row.publicKeySha256, publicIdentityKey:row.publicIdentityKey, grantableCapabilities:[...row.requestedCapabilities], approvedCapabilities, policyProfile, policyRevision:1, policyUpdatedAt:now, displayName:bounded(input.displayName || row.displayName,120), platform:row.platform, architecture:row.architecture, agentVersion:row.agentVersion, fingerprintSummary:row.fingerprintSummary, certificateId, issuedAt:now, notAfter:now+this.certificateTtlMs };
