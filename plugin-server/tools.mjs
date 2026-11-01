@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { z } from 'zod';
+import {goldAbV2LabV1Disabled} from '../lib/gold-ab-v2-lab-v1-lock.mjs';
 import { AccountOperatorAdapter } from './operator-adapter.mjs';
 import { mintPairingContinuation, requireScopes, verifyPairingContinuation } from './oauth.mjs';
 import { redactRestrictedText, sanitizeForMcp } from './response-sanitizer.mjs';
@@ -173,6 +174,9 @@ export function registerPluginTools(server,identity){
     inputSchema:{targetQuery:z.string().min(1).max(120).optional(),startAbV2:z.boolean().optional(),guestShare:z.boolean().optional(),requestKey:z.string().regex(/^[a-f0-9]{32}$/).optional(),pollRequestId:z.string().regex(/^av2_[a-f0-9]{32}$/).optional(),pollDeviceId:id.optional(),pollShortId:z.string().regex(/^[0-9A-HJKMNP-TV-Z]{6}$/).optional(),aCode:z.string().regex(/^[A-Za-z2-9]{4}-?[A-Za-z2-9]{4}$/).optional(),continuation:z.string().min(20).max(8192).optional(),label:z.string().min(1).max(120).optional(),helperGroup:z.enum(['workspace','files','shell','transfer','desktop']).optional()},
     securitySchemes:security(['remote:read']),annotations:annotations(false,false,false,false)
   },guarded(identity,['remote:read'],async(a,x)=>{
+    const labV2Only=goldAbV2LabV1Disabled();
+    if(labV2Only&&(x.aCode||x.continuation))
+      throw new Error('abv2_lab_legacy_v1_temporarily_disabled');
     if(x.aCode&&x.continuation)throw new Error('pairing_input_conflict');
     if(x.pollRequestId||x.pollDeviceId||x.pollShortId){
       if(!x.pollRequestId||!x.pollDeviceId||!x.pollShortId||
@@ -214,6 +218,8 @@ export function registerPluginTools(server,identity){
         }
         return v2;
       }
+      if(labV2Only)return {status:'abv2_only',protocol:'abv2',
+       helperReady:false,nextAction:'start_abv2_request_for_owned_target'};
       const recovered=await a.pairRecover();
       if(recovered?.state==='pending')return {status:'approval_required',code:recovered.request?.userCode||null,resumeMode:'call_same_helper_without_arguments',expiresInSeconds:Math.max(0,Math.ceil((Number(recovered.request?.expiresAt||Date.now())-Date.now())/1000)),approvalPath:'/approve'};
       if(recovered?.state==='approved'){const helper=await a.connectionHelper();return {...helper,status:'ready',pairedDevice:recovered.device?.displayName||recovered.device?.deviceId||null,recovered:true};}

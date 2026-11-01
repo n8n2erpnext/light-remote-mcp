@@ -54,6 +54,7 @@ on:
       - 'deploy/scripts/selftest-gold-ab-v2-helper-poll.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-helper-recovery.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-helper-noarg.mjs'
+      - 'deploy/scripts/selftest-gold-ab-v2-lab-v1-lock.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-recovery-redis.mjs'
       - 'plugin-server/operator-adapter.mjs'
       - 'plugin-server/tools.mjs'
@@ -279,6 +280,7 @@ jobs:
           node deploy/scripts/selftest-gold-ab-v2-helper-poll.mjs
           node deploy/scripts/selftest-gold-ab-v2-helper-recovery.mjs
           node deploy/scripts/selftest-gold-ab-v2-helper-noarg.mjs
+          node deploy/scripts/selftest-gold-ab-v2-lab-v1-lock.mjs
           node --check deploy/scripts/selftest-gold-ab-v2-recovery-redis.mjs
           node deploy/scripts/selftest-gold-agent-session-nickname.mjs
           node --check operator-host/pro-share-store.mjs
