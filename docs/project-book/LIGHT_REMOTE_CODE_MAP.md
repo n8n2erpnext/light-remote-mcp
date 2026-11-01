@@ -462,3 +462,6 @@ platform-v2/sql/045_gold_single_owner_authority.sql grants lr_gold_app table-spe
 - plugin-server/account-portal/portal.css: scoped Owner components and 1080/650px responsive layout; dark/light styles; no shared .admin-form three-column inheritance.
 - operator-host/executor-routes-account.mjs: authenticated /v1/admin/owner-authority includes ownerEmail/ownerEmailVerified.
 - deploy/scripts/selftest-gold-owner-authority-ux.mjs: VM simulation of post-handoff zero candidates and eligible target flow. Added to .github/workflows/gold-connection-lifecycle-gc.yml on feature branch.
+
+### 2026-11-02 Owner UX public asset follow-up
+Admin Owner security emblem uses /assets/icons/material/security.svg (verified HTTP200 on GoldABV2 public host), not missing shield.svg. Dedicated UX regression asserts this asset path.

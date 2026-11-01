@@ -4,6 +4,7 @@ import vm from 'node:vm';
 const html=fs.readFileSync(new URL('../../plugin-server/admin-portal/index.html',import.meta.url),'utf8');
 const css=fs.readFileSync(new URL('../../plugin-server/account-portal/portal.css',import.meta.url),'utf8');
 assert.match(html,/id="ownerAuthorityEmail"/);
+assert.match(html,/assets\/icons\/material\/security\.svg/);
 assert.match(html,/id="ownerAuthorityRevision"/);
 assert.match(html,/id="ownerTransferToggle"[^>]+aria-expanded="false"[^>]+disabled/);
 assert.match(html,/id="ownerTransferEditor" class="owner-transfer-editor hide"/);

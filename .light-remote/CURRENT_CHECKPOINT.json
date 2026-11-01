@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-01",
-  "status": "goldabv2_single_owner_transferred_revision1_admin_ux_v2_source_verified",
+  "status": "goldabv2_owner_ux_v2_live_rev1_source_verified_icon_followup",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -92,7 +92,8 @@
     "2026-11-01: Linux CI found missing client core V1 guard and 18 host installer imports + Wall preview; package manifests repaired; host installer and client core stage/verify smoke PASS; CI rerun needed.",
     "2026-11-01: NetBird-style only-one-Owner handoff source; SQL045 singleton+audit, verified target and current-owner password, one-transaction session revocation and source disable, dynamic Admin/Operator authority, UI. PostgreSQL17 disposable schema PASS; source regressions PASS. NO actual Owner transfer and NO Gold UAT/production changes.",
     "2026-11-01: SQL045 applied ONLY GoldABV2 LXD after PG dump+LXD snapshot, singleton seeded from exact current Plugin Admin ID. Narrow lr_gold_app GRANT fixed in lab and SQL source. Source 6659594d runtime four lab units active, HTTPS health200 TLS0, ownerRevision0 and 0 handoffs. Gold UAT schema42 unchanged.",
-    "2026-11-02: Owner already transferred in isolated GoldABV2, SQL045 singleton revision1, legacy fake Owner disabled and verified replacement admin active. Responsive post-handoff Owner Authority status UI implemented; form collapsed when no verified candidate, no destructive button misuse; Owner badge and new operator email fields; VM UX, SQL, V1 fallback tests PASS. No real Owner action executed during UX work."
+    "2026-11-02: Owner already transferred in isolated GoldABV2, SQL045 singleton revision1, legacy fake Owner disabled and verified replacement admin active. Responsive post-handoff Owner Authority status UI implemented; form collapsed when no verified candidate, no destructive button misuse; Owner badge and new operator email fields; VM UX, SQL, V1 fallback tests PASS. No real Owner action executed during UX work.",
+    "2026-11-02: Owner UX v2 live on isolated GoldABV2 commit 2587f79d. HTTPS 200 after Plugin restart, Owner verified revision1 handoff1, old legacy account disabled; real-origin icon shield.svg 404 corrected to security.svg 200 in new source, pending final sync to lab."
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -143,7 +144,7 @@
     "Agent V2 no-arg recovery source is newly changed; not yet deployed, not yet GitHub CI-verified and cannot pass physical Owner B→Helper 24h end-to-end while live PG043 is unregistered. Keep source, runtime and UI acceptance distinct.",
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID."
   ],
-  "nextAction": "Commit and deploy Admin Owner UI UX v2 into isolated GoldABV2 LXD after snapshot. Validate HTTPS and current owner singleton rev1 unchanged. Continue A/B V2 enrollment under new owner.",
+  "nextAction": "Deploy final verified security.svg icon source into GoldABV2 only; verify public HTTPS and Owner singleton unchanged. User browser reload /admin > Accounts for visual acceptance. A/B V2 physical enrollment under new Owner follows.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -156,10 +157,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "ab10b43408a270355b5a17832549ef01cb9d7827fe09fe1e5cce786643ce299f",
+    "treeDigest": "fbb0a95278ae737769cd543bf46d1bd74ad8aba3d30c3e8adf78d9cd15a89cc1",
     "trackedFiles": 1135,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-01T17:32:09.882Z"
+    "recordedAt": "2026-11-01T17:36:53.874Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
