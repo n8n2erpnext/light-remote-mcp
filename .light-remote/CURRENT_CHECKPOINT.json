@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-01",
-  "status": "goldabv2_link_relink_deployed_source_665daa91_owner_rev1",
+  "status": "goldabv2_new_owner_device_connected_short_id_missing_abv2_24h_pending",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -95,7 +95,8 @@
     "2026-11-02: Owner already transferred in isolated GoldABV2, SQL045 singleton revision1, legacy fake Owner disabled and verified replacement admin active. Responsive post-handoff Owner Authority status UI implemented; form collapsed when no verified candidate, no destructive button misuse; Owner badge and new operator email fields; VM UX, SQL, V1 fallback tests PASS. No real Owner action executed during UX work.",
     "2026-11-02: Owner UX v2 live on isolated GoldABV2 commit 2587f79d. HTTPS 200 after Plugin restart, Owner verified revision1 handoff1, old legacy account disabled; real-origin icon shield.svg 404 corrected to security.svg 200 in new source, pending final sync to lab.",
     "2026-11-02: Final owner contract NEW or REVOKED -> Wall Link for any account; ACTIVE -> Tray/App/interactive Linux sudo Terminal Relink, SSH valid. Account-login Wall accepts new account after revoke but rejects active foreign-account login. Both Enrollment and Device registries accept revoked cross-account same-key Link; active cross-tenant denied. Security account takeover research documented separately without enabling OTP/2FA or changing AB V2.",
-    "2026-11-02: source 665daa91 deployed Operator+Wall only in GoldABV2 isolated LXD after pre-linux-owner-link-relink-20261102 snapshot; sudo light-remote-device installed root0700, status autodetect and no-TTY denial PASS; 4/4 services healthy, HTTPS200, Owner revision1 and prior disabled account unchanged; main Gold UAT schema42 unchanged. Separate browser-login risk handoff written, no OTP changes."
+    "2026-11-02: source 665daa91 deployed Operator+Wall only in GoldABV2 isolated LXD after pre-linux-owner-link-relink-20261102 snapshot; sudo light-remote-device installed root0700, status autodetect and no-TTY denial PASS; 4/4 services healthy, HTTPS200, Owner revision1 and prior disabled account unchanged; main Gold UAT schema42 unchanged. Separate browser-login risk handoff written, no OTP changes.",
+    "2026-11-02 post-handoff read-only recheck: lab device dev_2e6ca4ded175829131a280e9 has signed enrollment for new verified Owner, cloud connected, no pending enrollment. Legacy dev_e68276c691ba5413f42d5dde Short ID X3AQQ6 stays with disabled old Owner. New device has no lr_gold_device_short_ids row and no lr_ab_grants row. Full 255-line master handoff created on VPS and in project-book; do not relink again."
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -146,7 +147,7 @@
     "Agent V2 no-arg recovery source is newly changed; not yet deployed, not yet GitHub CI-verified and cannot pass physical Owner B→Helper 24h end-to-end while live PG043 is unregistered. Keep source, runtime and UI acceptance distinct.",
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID."
   ],
-  "nextAction": "Real Linux device cross-owner RELINK must be initiated by Owner from interactive SSH admin terminal via sudo light-remote-device relink; approve emitted one-time code with verified new owner in Account Portal; sudo light-remote-device complete and status, then acceptance A/B V2. No assistant-triggered relink or 2FA.",
+  "nextAction": "Read docs/project-book/LIGHT_REMOTE_GOLDABV2_MASTER_20261102.md. Confirm current new owner device state; fix automatic stable Short ID allocation for newly enrolled device in lab only, add tests, commit/CI, snapshot and deploy lab; then Owner approves real A/B V2 B remotely, verify per-Agent durable 24h grant. Do not repeat Relink/Owner transfer or implement deferred OTP.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -162,7 +163,7 @@
     "treeDigest": "e686df92619a5539755cf70f0f40a610a1b4fa93f4a3306d5965230e2b749f6b",
     "trackedFiles": 1137,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-01T19:07:10.785Z"
+    "recordedAt": "2026-11-01T19:21:30.295Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
