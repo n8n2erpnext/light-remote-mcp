@@ -456,3 +456,9 @@ Source: client/windows-native/GptOperator.Client/{TrayPopoverForm.cs,Program.cs,
 
 ### SQL045 installation note — 2026-11-01
 platform-v2/sql/045_gold_single_owner_authority.sql grants lr_gold_app table-specific SELECT/INSERT/UPDATE on singleton, SELECT/INSERT on history, never DELETE. GoldABV2 isolated LXD used existing PG Admin authority as explicit owner singleton bootstrap. Host Operator device account ID must NOT be inferred as that Admin identity.
+
+### 2026-11-02 — Admin Owner UI post-handoff responsive layout
+- plugin-server/admin-portal/index.html: Owner authority status first, dedicated hidden two-stage transfer UI, disabled CTA when no verified target, dynamic owner email/revision, OWNER account badge, proper Owner protection tooltip. Client code clears password and confirmation when closed.
+- plugin-server/account-portal/portal.css: scoped Owner components and 1080/650px responsive layout; dark/light styles; no shared .admin-form three-column inheritance.
+- operator-host/executor-routes-account.mjs: authenticated /v1/admin/owner-authority includes ownerEmail/ownerEmailVerified.
+- deploy/scripts/selftest-gold-owner-authority-ux.mjs: VM simulation of post-handoff zero candidates and eligible target flow. Added to .github/workflows/gold-connection-lifecycle-gc.yml on feature branch.

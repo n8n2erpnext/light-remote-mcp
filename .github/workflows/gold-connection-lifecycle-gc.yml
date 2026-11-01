@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - 'feat/gold-connection-gc-reconciler-20261029'
+      - 'feat/gold-single-owner-transfer-20261101'
     paths:
       - 'lib/gold-connection-job-reaper.mjs'
       - 'operator-host/gold-admin-job-recovery.mjs'
@@ -16,6 +17,8 @@ on:
       - 'deploy/scripts/selftest-gold-single-owner-sql.mjs'
       - 'plugin-server/admin-portal.mjs'
       - 'plugin-server/admin-portal/index.html'
+      - 'plugin-server/account-portal/portal.css'
+      - 'deploy/scripts/selftest-gold-owner-authority-ux.mjs'
       - 'plugin-server/admin-portal/job-recovery.js'
       - 'deploy/scripts/selftest-gold-admin-job-recovery.mjs'
       - 'deploy/scripts/selftest-gold-admin-gc-transaction.mjs'
@@ -200,6 +203,8 @@ on:
       - 'device-agent/fleet-wall-runtime.mjs'
       - 'plugin-server/site-announcements.mjs'
       - 'plugin-server/admin-portal/index.html'
+      - 'plugin-server/account-portal/portal.css'
+      - 'deploy/scripts/selftest-gold-owner-authority-ux.mjs'
       - 'platform-v2/sql/042_gold_wall_announcements_channel.sql'
       - 'deploy/scripts/selftest-gold-site-native.mjs'
       - 'deploy/scripts/selftest-gold-wall-account-notifications.mjs'
@@ -389,6 +394,7 @@ jobs:
           node deploy/scripts/selftest-gold-admin-job-recovery.mjs
           LR_GOLD_SINGLE_OWNER_AUTHORITY=1 LR_GOLD_SINGLE_OWNER_TRANSFER=1 node deploy/scripts/selftest-gold-single-owner-transfer.mjs
           node deploy/scripts/selftest-gold-single-owner-sql.mjs
+          node deploy/scripts/selftest-gold-owner-authority-ux.mjs
           node deploy/scripts/selftest-gold-gc-revoked-ownerless.mjs
           node deploy/scripts/selftest-gold-connection-gc-races.mjs
           node deploy/scripts/selftest-gold-reconnect-proof.mjs

@@ -49,6 +49,8 @@ try {
   {},new URL('http://operator'+route),deps);
  const before=await request('GET','/v1/admin/owner-authority');
  assert.equal(before.ownerAccountId,OWNER);
+ assert.equal(before.ownerEmail,oldEmail);
+ assert.equal(before.ownerEmailVerified,false);
  assert.equal(before.candidates.length,1);
  const done=await request('POST','/v1/admin/owner-transfer',{
   toAccountId:NEXT,currentPassword:oldPass,confirmText:data.confirmText,

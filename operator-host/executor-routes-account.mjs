@@ -39,7 +39,10 @@ export async function handleAccountRoutes(req,res,url,deps){
       const previousOwnerDevices=allDeviceViews().filter(
        d=>d.accountId===principal.accountId&&d.state!=='revoked');
       if(req.method==='GET'&&url.pathname==='/v1/admin/owner-authority'){
+       const currentOwner=accounts.list().find(a=>a.accountId===accounts.ownerAccountId);
        return sendJson(res,200,{ok:true,ownerAccountId:accounts.ownerAccountId,
+        ownerEmail:currentOwner?.email||null,
+        ownerEmailVerified:currentOwner?.emailVerified===true,
         ownerRevision:accounts.ownerRevision,
         previousOwnerDeviceCount:previousOwnerDevices.length,
         candidates:accounts.list().filter(
