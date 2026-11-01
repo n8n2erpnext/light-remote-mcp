@@ -528,3 +528,9 @@ Admin Owner security emblem uses /assets/icons/material/security.svg (verified H
 - device-agent/wall-ab-v2-preview.mjs: V2 fragment is a section with native .card, .btn, .primary, .muted and scoped layout utilities; synced with parent approvePage styling. Native status/pending/owner consent/expiry and direct Account/Back controls; signed preview and CSRF remain unchanged.
 - device-agent/local-wall.mjs /approve GET: renders original approvePage, injects V2 inside existing .wrap before V1 script, hides legacy card ONLY for V1-locked LAB. In regular V1-enabled environments legacy approval remains; V2 hides it only when signed V2 preview succeeds.
 - deploy/scripts/selftest-gold-ab-v2-lab-v1-lock.mjs, selftest-gold-ab-v2-wall-preview.mjs: regression asserts native markup, target, and V1 fallback. Previous outside-body AB2 injected blue block and temporary locked CSS removed.
+
+### 2026-11-02 — GoldABV2 deployed native /approve UI
+- Isolated lab runtime: light-remote-gold-wall -> /opt/light-remote-abv2-lab/source-8fb5d377; Operator/Plugin -> source-18730e99; no main UAT/production change.
+- Snapshot: pre-v2-wall-native-ux-20261102. V1 production fallback intentionally preserved.
+- Human acceptance: new request Short ID R01KAP, B approved by verified Owner in GoldABV2 Account only. Owner must visually inspect private Wall /approve for native look.
+- Master handoff docs/project-book/LIGHT_REMOTE_GOLDABV2_MASTER_20261102.md updated with deployed state and test checkpoint.

@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-01",
-  "status": "goldabv2_v2_wall_approve_native_ui_source_tested_pending_lab_deployment",
+  "status": "goldabv2_native_wall_approve_ui_deployed_await_owner_visual_and_B",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -102,7 +102,8 @@
     "2026-11-02: Real AB V2 request pending R01KAP returned misleading owner_v2_b_approval_not_enabled despite Operator and Plugin owner approval gates all enabled. Root: hardcoded Helper nextAction, incorrect Wall V2 Owner-account link to production, outdated Account onboarding V1 approval instruction. Fixed source for /account V2 approval and recover, retained V1 separate, no B entered. Owner HTTP/PG signed consent/grant/per-Agent 24h regression PASS; pending lab-only release.",
     "2026-11-02: Fixed misleading Helper owner_v2_b_approval_not_enabled (flags already ON) and redirected V2 B action/recovery to GoldABV2 /account; Wall V1-locked Owner link now lab Account not production. Signed Operator preview provides current verified owner scoped Short ID to Wall, ignores stale X3AQQ6 systemd env without rewriting protected config; missing cosmetic DB code cannot block B. Full Owner CSRF signed Wall + PG durable grant + 24h test suite PASS. LXD snapshot pre-abv2-owner-b-ux-20261102 already taken, pending deploy.",
     "2026-11-02: Live GoldABV2 Operator/Plugin/Wall all source-18730e99, after snapshot pre-abv2-owner-b-ux-20261102. Fixed wrong Helper owner_v2_b_approval_not_enabled and V2 Wall-to-production account link; owner B now directed to GoldABV2 /account. Signed Owner-scoped Short ID preview avoids stale static X3AQQ6. Source regression PASS, live public account HTTPS200, R01KAP online, 0 grants; main UAT schema42 untouched. No human B approved yet.",
-    "2026-11-02: Owner noticed separate blue A/B V2 approval widget appended outside native Wall layout, incorrectly labeled Windows device on Linux. Replaced with native /approve card styling and inserted INSIDE .wrap; LAB hides V1 only and real V1 keeps fallback. Tests native DOM, pending signed preview, local Wall and signed B grant PASS."
+    "2026-11-02: Owner noticed separate blue A/B V2 approval widget appended outside native Wall layout, incorrectly labeled Windows device on Linux. Replaced with native /approve card styling and inserted INSIDE .wrap; LAB hides V1 only and real V1 keeps fallback. Tests native DOM, pending signed preview, local Wall and signed B grant PASS.",
+    "2026-11-02 ~04:10 VN: Native Wall /approve UI source 8fb5d377 deployed to only GoldABV2 Wall after snapshot pre-v2-wall-native-ux-20261102. Removed standalone blue panel and Windows-only label, inserted V2 card into original centered .wrap and reused native .card/.btn/.primary/Cascadia; original V1 fallback retained. Lab Wall active, 4/4 services active; Owner rev1/audit1, R01KAP online, no B grant, Gold UAT schema42 untouched. VPS+GitHub master handoff updated."
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -153,7 +154,7 @@
     "Agent V2 no-arg recovery source is newly changed; not yet deployed, not yet GitHub CI-verified and cannot pass physical Owner B→Helper 24h end-to-end while live PG043 is unregistered. Keep source, runtime and UI acceptance distinct.",
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID."
   ],
-  "nextAction": "Commit, snapshot GoldABV2 isolated LXD, deploy V2 native Wall UI to lab only and verify live /approve DOM + 4/4 services. Do not touch main Gold UAT/production or auto-approve any B. Owner can then assess visual UX and grant B manually.",
+  "nextAction": "Owner refresh lab http://100.94.184.141:15591/approve to visually accept native Wall dark card. Then initiate new R01KAP A/B V2 request, approve B at GoldABV2 /account, poll same Helper for durable 24h grant. No auto B/Owner transition, no Prod rollout.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -169,7 +170,7 @@
     "treeDigest": "1ab3048bcc0a94d425e48610a632d125a7e88bcab4c6738dfb1004bf3201f7bc",
     "trackedFiles": 1140,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-01T21:08:37.443Z"
+    "recordedAt": "2026-11-01T21:11:11.464Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
