@@ -523,3 +523,8 @@ Admin Owner security emblem uses /assets/icons/material/security.svg (verified H
 - Approved human route: https://goldabv2.light-remote.thaiduy.digital/account -> A/B V2 Pending Agent requests -> select NEW Owner device R01KAP -> enter Agent B -> Approve Agent. Code is single-use and expires after request TTL.
 - Plugin Helper: targetQuery R01KAP, new nextAction=owner_enter_b_in_account, no readiness before durable human grant. Wall V2 signed shortID is display only, keyed to verified Owner+Device through PG043. No grant from this metadata.
 - HANDOFF: docs/project-book/LIGHT_REMOTE_GOLDABV2_MASTER_20261102.md; original VPS handoff /home/ubuntu/handoffs/LIGHT_REMOTE_GOLDABV2_FULL_MASTER_HANDOFF_20261102.md.
+
+### 2026-11-02 — Native Wall approval V2 layout, no stand-alone blue panel
+- device-agent/wall-ab-v2-preview.mjs: V2 fragment is a section with native .card, .btn, .primary, .muted and scoped layout utilities; synced with parent approvePage styling. Native status/pending/owner consent/expiry and direct Account/Back controls; signed preview and CSRF remain unchanged.
+- device-agent/local-wall.mjs /approve GET: renders original approvePage, injects V2 inside existing .wrap before V1 script, hides legacy card ONLY for V1-locked LAB. In regular V1-enabled environments legacy approval remains; V2 hides it only when signed V2 preview succeeds.
+- deploy/scripts/selftest-gold-ab-v2-lab-v1-lock.mjs, selftest-gold-ab-v2-wall-preview.mjs: regression asserts native markup, target, and V1 fallback. Previous outside-body AB2 injected blue block and temporary locked CSS removed.

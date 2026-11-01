@@ -1,40 +1,47 @@
-// Moryqa Windows A/B V2 owner-approval screen, rendered only after an
-// authenticated local owner receives signed backend data. No fabricated A/B.
+// Native Local Wall A/B V2 approval UI, shared by Windows/macOS/Linux.
+ // Only rendered after authenticated local Owner; never generates A/B.
+// Signed Operator preview; explicit human B and Owner consent still required.
 export const wallAbV2PreviewFragment = `
-<section id="abV2OwnerPreview" hidden class="ab2-shell" aria-label="A/B V2 Owner authorization">
+<section id="abV2OwnerPreview" hidden class="card ab2-shell" aria-label="A/B V2 Agent approval">
  <style>
- .ab2-shell{max-width:640px;margin:18px auto;padding:24px;border:1px solid #364d65;border-radius:15px;background:#111b27;color:#e7eef7}
- .ab2-shell h2{font-size:22px;line-height:1.3;margin:0 0 5px;color:#f1f6fc}
- .ab2-shell .ab2-muted{color:#a1b1c3;font-size:13px;line-height:1.55}
- .ab2-shell .ab2-head{display:flex;justify-content:space-between;gap:14px;align-items:center}
- .ab2-shell .ab2-badge{border:1px solid #4770ac;color:#b9d2ff;background:#1c2a42;border-radius:20px;padding:7px 13px;font-size:12px;white-space:nowrap}
- .ab2-shell .ab2-panel{background:#172435;border:1px solid #354761;border-radius:12px;padding:16px;margin-top:14px}
- .ab2-shell .ab2-panel h3{font-size:16px;color:#d7e8ff;margin:0 0 7px}
- .ab2-shell .ab2-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
- .ab2-shell code{color:#ffe28d;font-size:16px;letter-spacing:.045em;user-select:text;overflow-wrap:anywhere}
- .ab2-shell input{width:100%;box-sizing:border-box;padding:11px 12px;background:#0b1520;color:#fff;border-radius:9px;border:1px solid #50657b;letter-spacing:.04em}
- .ab2-shell .ab2-btn{padding:10px 16px;border:1px solid #526b86;border-radius:9px;background:#1c3049;color:#e9f2ff;cursor:pointer;font:inherit}
- .ab2-shell .ab2-btn.primary{background:#205dc5;color:#fff;border-color:#205dc5}
- .ab2-shell .ab2-btn:disabled{opacity:.55;cursor:not-allowed}
- .ab2-shell .ab2-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:15px;align-items:center}
- .ab2-shell .ab2-timer{color:#87b4ff;font-variant-numeric:tabular-nums;font-weight:600}
- .ab2-shell .ab2-state{color:#78d7a2}
- @media(max-width:620px){.ab2-shell{padding:13px}.ab2-shell .ab2-grid{grid-template-columns:1fr}}
+ /* Use the SAME native .wrap / .card / .btn / .primary tokens as V1 Wall.
+    Only layout utilities are scoped here; no second blue theme or overlay. */
+ .ab2-shell{margin-top:18px}
+ .ab2-shell .ab2-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+ .ab2-shell h2{font-size:18px;line-height:1.35;margin:0 0 5px;color:#e7edf4}
+ .ab2-shell h3{font-size:14px;line-height:1.45;margin:0;color:#d8dee7}
+ .ab2-shell .ab2-muted{color:#8390a1;font-size:12px;line-height:1.55}
+ .ab2-shell .ab2-kicker{color:#ffcc00;font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;margin:0 0 7px}
+ .ab2-shell .ab2-badge{border:1px solid #38434d;color:#aab6c5;background:#10161b;border-radius:6px;padding:6px 9px;font-size:11px;white-space:nowrap}
+ .ab2-shell .ab2-empty{padding:15px 0 5px;border-top:1px solid #252d36;margin-top:16px}
+ .ab2-shell .ab2-state{font-weight:700;color:#c8d2dd;margin:0 0 5px}
+ .ab2-shell .ab2-panel{padding:14px 0;margin-top:12px;border-top:1px solid #252d36;background:transparent}
+ .ab2-shell .ab2-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+ .ab2-shell code{color:#ffcc00;font-size:14px;letter-spacing:.05em;user-select:text;overflow-wrap:anywhere}
+ .ab2-shell input{width:100%;min-width:0;font-size:13px;letter-spacing:normal;text-transform:none;padding:9px 11px}
+ .ab2-shell input[aria-label="B code from requesting Agent"]{letter-spacing:.1em;text-transform:uppercase}
+ .ab2-shell .ab2-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
+ .ab2-shell .ab2-actions .btn{font-size:13px;padding:9px 12px}
+ .ab2-shell .ab2-timer{color:#aab6c5;font-variant-numeric:tabular-nums;font-size:12px;margin:5px 0 0}
+ .ab2-shell .ab2-footnote{border-top:1px solid #252d36;margin:15px 0 0;padding-top:12px}
+ @media(max-width:540px){.ab2-shell .ab2-grid{grid-template-columns:1fr}.ab2-shell .ab2-badge{font-size:10px}}
  </style>
  <div class="ab2-head">
-  <div><h2>AI access · A/B V2</h2><div class="ab2-muted">Owner authorization · this Windows device</div></div>
-  <span class="ab2-badge">24-hour Agent grant</span>
+  <div><div class="ab2-kicker">A/B V2 · Device authorization</div>
+   <h2>Agent access requests</h2>
+   <div class="ab2-muted">Review requests for this device before granting access.</div></div>
+  <span class="ab2-badge">Up to 24 hours</span>
  </div>
- <div class="ab2-panel">
-  <h3 id="abV2PreviewState" class="ab2-state">Ready for AI requests</h3>
-  <p class="ab2-muted" id="abV2PreviewStatus" role="status" aria-live="polite">Checking signed Agent requests…</p>
-  <div class="ab2-actions"><button type="button" id="abV2PreviewRefresh" class="ab2-btn">Refresh requests</button>
-  <a class="ab2-btn" href="https://light-remote.thaiduy.digital/account" target="_blank" rel="noopener">Owner account</a></div>
+ <div class="ab2-empty">
+  <div id="abV2PreviewState" class="ab2-state">Checking requests…</div>
+  <p class="ab2-muted" id="abV2PreviewStatus" role="status" aria-live="polite">Checking the signed request list.</p>
+  <div class="ab2-actions"><button type="button" id="abV2PreviewRefresh" class="btn">Refresh</button>
+  <a class="btn" href="https://light-remote.thaiduy.digital/account" target="_blank" rel="noopener">Open Account</a>
+  <a class="btn" href="/">Back to Wall</a></div>
  </div>
  <div id="abV2PreviewItems"></div>
- <p class="ab2-muted">A code: fixed 6-character device ID + rotating 5-character request code.
- B code: 4+4 from the Agent. Request expires after 5 minutes. No request code is generated while idle.
- Owner consent must be minted from your signed-in account. Grants apply to this Agent only.</p>
+ <p class="ab2-muted ab2-footnote">A/B V2 requests expire after 5 minutes. Each approval applies only to the requesting Agent.
+  You can approve directly in Account; Wall approval additionally requires a one-time Owner consent from Account.</p>
 </section>
 <script>
 (()=>{
@@ -68,14 +75,16 @@ export const wallAbV2PreviewFragment = `
    const data=await resp.json();
    if(data?.ok!==true||!Array.isArray(data.pending))throw Error('Invalid signed request feed');
    host.hidden=false;
-   const legacyCard=document.querySelector('.wrap .card');
-   if(legacyCard)legacyCard.hidden=true;
+   // Swap the legacy card only if a working V2 backend is actually present.
+   // In V1 production, failed/disabled V2 leaves the original Wall approval.
+   const legacy=document.querySelector('.wrap>.card:not(#abV2OwnerPreview)');
+   if(legacy)legacy.hidden=true;
    items.replaceChildren();pending=[];
    const approvalEnabled=data.ownerApproveEnabled===true;
-   state.textContent=data.pending.length?'Agent requests pending':'Ready for AI requests';
+   state.textContent=data.pending.length?'Requests awaiting approval':'No pending requests';
    status.textContent=data.pending.length
       ?data.pending.length+' signed request(s) awaiting owner verification'
-      :'Standby · No pending Agent request. No temporary A code while idle.';
+      :'When an Agent requests access, it will appear here.';
    for(const row of data.pending.slice(0,5)){
     const card=document.createElement('div');card.className='ab2-panel';
     const name=document.createElement('h3');
@@ -99,7 +108,7 @@ export const wallAbV2PreviewFragment = `
     consent.style.marginTop='12px';
     const actions=document.createElement('div');actions.className='ab2-actions';
     const approve=document.createElement('button');
-    approve.className='ab2-btn primary';approve.type='button';
+    approve.className='btn primary';approve.type='button';
     approve.textContent='Approve Agent · 24h';approve.disabled=!approvalEnabled;
     approve.onclick=async()=>{
      const bCode=String(input.value||'').trim().toUpperCase();
@@ -130,7 +139,7 @@ export const wallAbV2PreviewFragment = `
     actions.append(approve);card.append(consent,actions);
     if(!approvalEnabled){
       const notice=document.createElement('p');notice.className='ab2-muted';
-      notice.textContent='Owner approval is not yet enabled on this backend.';
+      notice.textContent='Direct approval is unavailable. Open Account to check the Owner approval settings.';
       card.append(notice);
     }
     items.append(card);pending.push({expiresAt:row.expiresAt,expiresNode:expire});

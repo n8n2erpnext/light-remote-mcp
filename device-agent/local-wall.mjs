@@ -2431,18 +2431,24 @@ export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvg
       const view=url.pathname==='/'?'home':url.pathname==='/long-memory'?'memory':'codex';
       let html=wallPage(brandSvg,Boolean(auth?.enabled),auth?.enabled?auth.csrfForRequest(req)||'':'',auth?.enabled?auth.identity(req):null,Boolean(modules),view);
       if(view!=='home')html=html.replace('<details id="goldModulesPanel"','<details open id="goldModulesPanel"');if(!auth?.enabled||typeof getLocalProcesses!=='function')html=html.replace(/<a class="btn small" href="\/processes">.*?<\/a>/,'');res.writeHead(200,pageHeaders());res.end(html);return;}
-    if(req.method==='GET'&&url.pathname==='/approve'){const labV2Only=goldAbV2LabV1Disabled();
+    if(req.method==='GET'&&url.pathname==='/approve'){
+      const labV2Only=goldAbV2LabV1Disabled();
+      const base=approvePage(brandSvg,auth?.enabled?auth.csrfForRequest(req)||'':'');
       const fragment=labV2Only?wallAbV2PreviewFragment
         .replace('href="https://light-remote.thaiduy.digital/account"',
           'href="https://goldabv2.light-remote.thaiduy.digital/account"')
-        .replace('if(resp.status===404){host.hidden=true;return;}',
-          "if(resp.status===404){host.hidden=false;state.textContent='A/B V2 lab · waiting for backend';status.textContent='V1 temporarily locked; signed V2 preview is unavailable.';return;}")
-        .replace('if(!resp.ok){host.hidden=true;return;}',
-          "if(!resp.ok){host.hidden=false;state.textContent='A/B V2 lab · not ready';status.textContent='Signed V2 preview unavailable. V1 temporarily locked; retry after account verification.';return;}")
         :wallAbV2PreviewFragment;
-      const labLockStyle=labV2Only?'<style>.wrap>.card{display:none!important}</style>':'';
-      const html=approvePage(brandSvg,auth?.enabled?auth.csrfForRequest(req)||'':'')
-       .replace('</body></html>',labLockStyle+fragment+'</body></html>');res.writeHead(200,pageHeaders());res.end(html);return;}
+      // Both V1 and V2 are native content INSIDE the same centered Wall .wrap.
+      // Only LAB V1 is disabled; production retains its original V1 card.
+      const legacy='<div class="card"><label for="code">';
+      const anchor='</div></div><script>';
+      if(!base.includes(legacy)||!base.includes(anchor))
+        throw Error('wall_approve_layout_contract_changed');
+      const page=labV2Only?
+        base.replace(legacy,'<div class="card" id="legacyApproveCard" hidden><label for="code">'):base;
+      const html=page.replace(anchor,'</div>'+fragment+'</div><script>');
+      res.writeHead(200,pageHeaders());res.end(html);return;
+    }
     if(req.method==='GET'&&url.pathname==='/processes'){
       if(!auth?.enabled||!auth.identity(req))return json(res,403,{ok:false,error:'process_view_auth_required'});
       if(typeof getLocalProcesses!=='function')return json(res,501,{ok:false,error:'process_view_unavailable'});

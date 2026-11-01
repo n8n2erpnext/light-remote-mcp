@@ -110,6 +110,11 @@ try{
  for(const fragment of html.matchAll(/<script(?:[^>]*)>([\s\S]*?)<\/script>/g))
   if(fragment[1].trim())new vm.Script(fragment[1],{filename:'abv2-wall-approve-inline.js'});
  assert.match(wallAbV2PreviewFragment,/ownerApproveEnabled===true/);
+ assert.match(wallAbV2PreviewFragment,/class="card ab2-shell"/);
+ assert.match(wallAbV2PreviewFragment,/className='btn primary'/);
+ assert.doesNotMatch(wallAbV2PreviewFragment,/background:#205dc5|background:#111b27/);
+ assert.doesNotMatch(wallAbV2PreviewFragment,/this Windows device/);
+
  assert.match(wallAbV2PreviewFragment,/\/api\/abv2\/approve/);
  assert.ok(!wallAbV2PreviewFragment.includes('result.bCode'));
  const post=async (owner,csrf,body)=>fetch(url+'/api/abv2/approve',{

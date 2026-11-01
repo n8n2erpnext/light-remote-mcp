@@ -49,7 +49,16 @@ try{
  assert.equal((await fetch(host+'/api/approve',{method:'POST',headers:owner})).status,423);
  const approve=await (await fetch(host+'/approve',{headers:owner})).text();
  assert.match(approve,/abV2OwnerPreview/);
- assert.match(approve,/V1 temporarily locked/);
+ assert.match(approve,/id="legacyApproveCard" hidden/);
+ assert.match(approve,/id="abV2OwnerPreview" hidden class="card ab2-shell"/);
+ assert.doesNotMatch(approve,/this Windows device/);
+ assert.doesNotMatch(approve,/\.wrap>\.card\{display:none!important\}/);
+ assert.match(approve,/A\/B V2 · Device authorization/);
+ assert.match(approve,/href="\/">Back to Wall<\/a>/);
+ assert.match(approve,/href="https:\/\/goldabv2\.light-remote\.thaiduy\.digital\/account"/);
+ assert.ok(approve.indexOf('id="abV2OwnerPreview"')<approve.indexOf('const wallCsrf='),
+  'V2 approval card must live inside native Wall .wrap, before legacy script');
+
  for(const fragment of approve.matchAll(/<script(?:[^>]*)>([\s\S]*?)<\/script>/g))
   if(fragment[1].trim())new vm.Script(fragment[1],{filename:'abv2-lab-v1locked-approve.js'});
  const registered=new Map();
