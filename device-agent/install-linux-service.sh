@@ -46,6 +46,9 @@ else
 fi
 sudo install -d -m 0755 /opt/gpt-operator-agent/device-agent /opt/gpt-operator-agent/device-agent/platform-adapters /opt/gpt-operator-agent/lib /opt/gpt-operator-agent/assets/branding /opt/gpt-operator-agent/assets/fonts/web /opt/gpt-operator-agent/assets/icons/material
 sudo install -m 0755 "$ROOT_DIR/device-agent/operator-agent.mjs" /opt/gpt-operator-agent/device-agent/operator-agent.mjs
+# Re-enrollment/relink has NO Wall/MCP endpoint on Linux. Install the
+# root-owned local-console helper only (sudo required; not user-writable).
+sudo install -m 0700 -o root -g root "$ROOT_DIR/device-agent/relink-linux-server.py" /usr/local/sbin/light-remote-relink
 sudo install -m 0644 "$ROOT_DIR/device-agent/local-wall.mjs" /opt/gpt-operator-agent/device-agent/local-wall.mjs
 sudo install -m 0644 "$ROOT_DIR/device-agent/local-wall-auth.mjs" /opt/gpt-operator-agent/device-agent/local-wall-auth.mjs
 sudo install -m 0644 "$ROOT_DIR/device-agent/update-settings-page.mjs" /opt/gpt-operator-agent/device-agent/update-settings-page.mjs

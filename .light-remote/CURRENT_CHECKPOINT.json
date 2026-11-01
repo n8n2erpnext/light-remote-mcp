@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-01",
-  "status": "goldabv2_owner_ux_v2_live_rev1_source_verified_icon_followup",
+  "status": "goldabv2_linux_relink_source_verified_pending_install",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -144,7 +144,7 @@
     "Agent V2 no-arg recovery source is newly changed; not yet deployed, not yet GitHub CI-verified and cannot pass physical Owner B→Helper 24h end-to-end while live PG043 is unregistered. Keep source, runtime and UI acceptance distinct.",
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID."
   ],
-  "nextAction": "Deploy final verified security.svg icon source into GoldABV2 only; verify public HTTPS and Owner singleton unchanged. User browser reload /admin > Accounts for visual acceptance. A/B V2 physical enrollment under new Owner follows.",
+  "nextAction": "Install source in isolated GoldABV2 after snapshot. Owner uses Linux local console to initiate relink and approves code in new account.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -157,10 +157,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "fbb0a95278ae737769cd543bf46d1bd74ad8aba3d30c3e8adf78d9cd15a89cc1",
-    "trackedFiles": 1135,
+    "treeDigest": "61702d6f58c4f105090d39934f1c336d735d0e773508017bc0224c2402640d20",
+    "trackedFiles": 1137,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-01T17:36:53.874Z"
+    "recordedAt": "2026-11-01T18:13:00.818Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",

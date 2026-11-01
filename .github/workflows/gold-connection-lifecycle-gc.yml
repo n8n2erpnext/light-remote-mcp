@@ -36,6 +36,12 @@ on:
       - 'deploy/scripts/selftest-gold-ab-v2-signed-approval.mjs'
       - 'operator-host/executor-routes-device-channel.mjs'
       - 'device-agent/local-wall.mjs'
+      - 'device-agent/operator-agent.mjs'
+      - 'device-agent/relink-linux-server.py'
+      - 'device-agent/install-linux-service.sh'
+      - 'operator-host/enrollment-registry.mjs'
+      - 'deploy/scripts/selftest-linux-server-relink.mjs'
+      - 'deploy/scripts/selftest-device-agent-cli.mjs'
       - 'operator-host/gold-ab-v2-helper-target.mjs'
       - 'operator-host/gold-ab-v2-grant-coordinator.mjs'
       - 'operator-host/gold-ab-v2-grant-operator.mjs'
@@ -199,6 +205,12 @@ on:
       - 'device-agent/fleet-job-page.mjs'
       - 'deploy/scripts/selftest-gold-fleet-jobs-m6.mjs'
       - 'device-agent/local-wall.mjs'
+      - 'device-agent/operator-agent.mjs'
+      - 'device-agent/relink-linux-server.py'
+      - 'device-agent/install-linux-service.sh'
+      - 'operator-host/enrollment-registry.mjs'
+      - 'deploy/scripts/selftest-linux-server-relink.mjs'
+      - 'deploy/scripts/selftest-device-agent-cli.mjs'
       - 'device-agent/wall-account-notifications.mjs'
       - 'device-agent/fleet-wall-runtime.mjs'
       - 'plugin-server/site-announcements.mjs'
@@ -395,6 +407,8 @@ jobs:
           LR_GOLD_SINGLE_OWNER_AUTHORITY=1 LR_GOLD_SINGLE_OWNER_TRANSFER=1 node deploy/scripts/selftest-gold-single-owner-transfer.mjs
           node deploy/scripts/selftest-gold-single-owner-sql.mjs
           node deploy/scripts/selftest-gold-owner-authority-ux.mjs
+          node deploy/scripts/selftest-linux-server-relink.mjs
+          node deploy/scripts/selftest-device-agent-cli.mjs
           node deploy/scripts/selftest-gold-gc-revoked-ownerless.mjs
           node deploy/scripts/selftest-gold-connection-gc-races.mjs
           node deploy/scripts/selftest-gold-reconnect-proof.mjs

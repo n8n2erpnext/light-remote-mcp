@@ -91,6 +91,13 @@ const revokedStatus=await wallReq(wallPort,'GET','/api/status',null,{headers:{co
 if(revokedStatus.status!==200||revokedStatus.json?.local?.lastCloudError!=='device_revoked'){daemonChild.kill('SIGTERM');throw new Error('local_wall_revoked_state_missing');}
 revokeChannel=false;
 const reBegin=await wallReq(wallPort,'POST','/api/enrollment/begin',{}, {headers:wallHeaders});
+if(process.platform==='linux'){
+ if(reBegin.status!==403||reBegin.json?.error!=='linux_relink_requires_local_console'){
+  daemonChild.kill('SIGTERM');
+  throw new Error('linux_wall_relink_must_be_denied');
+ }
+ console.log('device-agent-linux-server-wall-relink-fail-closed=PASS');
+}else{
 if(reBegin.status!==200||reBegin.json?.enrollment?.mode!=='reenroll'||!beginPayload.capabilities.includes('sudo-on-demand')){daemonChild.kill('SIGTERM');throw new Error('daemon_reenroll_begin_failed');}
 const rePending=JSON.parse(fs.readFileSync(stateFile,'utf8'));
 if(!rePending.policy?.deniedCapabilities?.includes('sudo-on-demand')){daemonChild.kill('SIGTERM');throw new Error('reenroll_local_deny_lost_at_begin');}
@@ -99,6 +106,7 @@ if(rePoll.status!==200||rePoll.json?.enrollment?.state!=='approved'){daemonChild
 const reenrolled=JSON.parse(fs.readFileSync(stateFile,'utf8'));
 if(!reenrolled.enrollment?.approvedCapabilities?.includes('sudo-on-demand')||!reenrolled.policy?.deniedCapabilities?.includes('sudo-on-demand')||reenrolled.effectiveCapabilities?.includes('sudo-on-demand')){daemonChild.kill('SIGTERM');throw new Error('reenroll_local_policy_not_preserved');}
 if(reenrolled.cloud?.state!=='dormant'||reenrolled.cloud?.desiredConnected!==false||reenrolled.cloud?.lastError!=null){daemonChild.kill('SIGTERM');throw new Error('reenroll_connection_state_not_reset');}
+}
 daemonChild.kill('SIGTERM');const daemonCode=await new Promise(resolve=>daemonChild.on('exit',resolve));
 if(daemonCode!==0||!daemonOut.includes('device_agent_started')||!daemonOut.includes('device_agent_stopped'))throw new Error(`daemon_shutdown_failed:${daemonCode}:${daemonErr}`);
 console.log('device-agent-fresh-enrollment-dormant=PASS');
@@ -110,6 +118,6 @@ console.log('device-agent-certificate-verify=PASS');
 console.log('device-agent-signed-heartbeat=PASS');
 console.log('device-agent-local-deny-boundary=PASS');
 console.log('device-agent-revoked-state-persists-for-wall-reenroll=PASS');
-console.log('device-agent-reenroll-full-grantable-local-deny-preserved=PASS');
-console.log('device-agent-reenroll-returns-dormant=PASS');
+if(process.platform!=='linux')console.log('device-agent-reenroll-full-grantable-local-deny-preserved=PASS');
+if(process.platform!=='linux')console.log('device-agent-reenroll-returns-dormant=PASS');
 server.close();fs.rmSync(dir,{recursive:true,force:true});

@@ -465,3 +465,11 @@ platform-v2/sql/045_gold_single_owner_authority.sql grants lr_gold_app table-spe
 
 ### 2026-11-02 Owner UX public asset follow-up
 Admin Owner security emblem uses /assets/icons/material/security.svg (verified HTTP200 on GoldABV2 public host), not missing shield.svg. Dedicated UX regression asserts this asset path.
+
+### 2026-11-02 — Linux owner re-enrollment security
+- device-agent/relink-linux-server.py: root-owned console-only executable with verified local tty/loginctl seat, exact systemd service stop/start, launch as original unprivileged OS user; never exposed as Wall API.
+- device-agent/install-linux-service.sh: installs root:root mode0700 helper at /usr/local/sbin/light-remote-relink.
+- device-agent/operator-agent.mjs: login --relink stages a new Ed25519 private identity pending account approval and requires root-runuser locally; signed cert pinned to prior server signer; no credential disclosure. Linux enrolled/revoked Wall enrollment and remote Linux CLI re-enroll denied. Previously approved capability ceiling, local denied permissions and filesystem scope retained; cloud dormant post-relink.
+- device-agent/local-wall.mjs: account mismatch guidance points to machine-local admin console, not remote Wall.
+- operator-host/enrollment-registry.mjs: denies cross-account ownership by reuse of same device public key.
+- deploy/scripts/selftest-linux-server-relink.mjs: signed new-identity relink, tamper, tenancy, permission ceiling, privilege, stale-state and dormant regression; selftest-device-agent-cli.mjs: Wall HTTP403 Linux re-enroll.
