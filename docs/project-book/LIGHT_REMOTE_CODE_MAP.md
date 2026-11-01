@@ -517,3 +517,9 @@ Admin Owner security emblem uses /assets/icons/material/security.svg (verified H
 - device-agent/operator-agent.mjs: check 6-char Short ID before forwarding verified preview; no B, account or device secret forwarding.
 - device-agent/local-wall.mjs: /api/abv2/pending reports verified current shortId; no lab static env X3AQQ6 on initial V1-locked UI; signed dynamic update for pending or standby. Owner link in V1-locked lab goes to GoldABV2 account.
 - deploy/scripts/selftest-gold-ab-v2-signed-preview.mjs, selftest-gold-abv2-wall-short-id-display.mjs, selftest-gold-ab-v2-lab-v1-lock.mjs: tests for source scope, no stale id, safe dynamic status.
+
+### 2026-11-02 — Owner B approval release runtime mapping
+- Runtime LAB Operator/Plugin/Wall: /opt/light-remote-abv2-lab/source-18730e99. Supervisor remains previous source; production and Gold UAT unchanged.
+- Approved human route: https://goldabv2.light-remote.thaiduy.digital/account -> A/B V2 Pending Agent requests -> select NEW Owner device R01KAP -> enter Agent B -> Approve Agent. Code is single-use and expires after request TTL.
+- Plugin Helper: targetQuery R01KAP, new nextAction=owner_enter_b_in_account, no readiness before durable human grant. Wall V2 signed shortID is display only, keyed to verified Owner+Device through PG043. No grant from this metadata.
+- HANDOFF: docs/project-book/LIGHT_REMOTE_GOLDABV2_MASTER_20261102.md; original VPS handoff /home/ubuntu/handoffs/LIGHT_REMOTE_GOLDABV2_FULL_MASTER_HANDOFF_20261102.md.
