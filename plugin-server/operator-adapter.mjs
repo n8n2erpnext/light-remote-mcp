@@ -103,6 +103,37 @@ export class AccountOperatorAdapter{
       helperReady:false,reused:Boolean(response.reused),
       nextAction:response.nextAction||'request_not_ready'};
   }
+  // The no-argument Helper recovers ONLY the current OAuth principal's
+  // unique V2 request. The private Operator derives the request binding from
+  // Redis; the model cannot pick "newest" or borrow another Agent's pending B.
+  async recoverAbV2Request(){
+    if(process.env.LR_GOLD_AB_V2_HELPER_REQUEST_ISSUE!=='1'||
+       process.env.LR_GOLD_AB_V2_HELPER_POLL_ATTACH!=='1')return null;
+    const proof=signGoldAbV2HelperTarget({identity:this.identity,
+     targetQuery:'',purpose:'recover',key:goldAbV2HelperKey()});
+    const row=await callOperatorJson('POST',
+     '/v1/plugin/abv2/request-recover',proof);
+    if(row.status==='none')return null;
+    if(row.status==='ambiguous')return {status:'ambiguous_pending_requests',
+     helperReady:false,nextAction:'poll_exact_request_explicitly'};
+    if(!/^av2_[a-f0-9]{32}$/.test(row.requestId||'')||
+       !/^[0-9A-HJKMNP-TV-Z]{6}$/.test(row.shortId||'')||
+       !/^[A-Za-z0-9._:-]{1,160}$/.test(row.deviceId||''))
+      throw Error('abv2_helper_recovered_scope_invalid');
+    if(row.status==='pending'){
+     if(!/^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/.test(row.bCode||''))
+      throw Error('abv2_helper_recovered_b_invalid');
+     return {status:'approval_required',protocol:'abv2',code:row.bCode,
+      shortId:row.shortId,deviceId:row.deviceId,
+      expiresInSeconds:Math.max(0,Math.ceil((Number(row.expiresAt)-Date.now())/1000)),
+      approvalPath:'/approve',resumeMode:'call_same_helper_without_arguments',
+      helperReady:false,nextAction:'owner_enter_b_on_wall'};
+    }
+    if(!['approved','granted'].includes(row.status))
+     throw Error('abv2_helper_recovered_status_invalid');
+    return this.pollAbV2Request({requestId:row.requestId,
+      deviceId:row.deviceId,shortId:row.shortId});
+  }
   async pollAbV2Request({requestId,deviceId,shortId,guestShare=false}={}){
     if((guestShare?process.env.LR_GOLD_PRO_SHARE_GUEST_AB_POLL:
        process.env.LR_GOLD_AB_V2_HELPER_POLL_ATTACH)!=='1')

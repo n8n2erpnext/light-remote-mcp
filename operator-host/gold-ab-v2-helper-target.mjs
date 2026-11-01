@@ -10,14 +10,16 @@ import {goldAbV2HelperKey,verifyGoldAbV2HelperTarget,GoldAbV2HelperProofError}
 const deny=(reason,status=403)=>{throw new GoldAbV2HelperProofError(reason,status)};
 const RESOLVE='/v1/plugin/abv2/target-resolve';
 const ISSUE='/v1/plugin/abv2/request-issue';
+const RECOVER='/v1/plugin/abv2/request-recover';
 export function createGoldAbV2HelperTarget({
  env=process.env,storage,accounts,devices,enrollments,connections,readJson,sendJson
 }={}){
  const enabled=env.LR_GOLD_AB_V2_HELPER_TARGET_QUERY==='1';
  const issueEnabled=env.LR_GOLD_AB_V2_HELPER_REQUEST_ISSUE==='1';
+ const recoverEnabled=issueEnabled&&env.LR_GOLD_AB_V2_HELPER_POLL_ATTACH==='1';
  if(issueEnabled&&!enabled)deny('abv2_helper_issue_requires_resolve',503);
  if(!enabled)return async(req,res,url)=>{
-  if(![RESOLVE,ISSUE].includes(url.pathname))return false;
+  if(![RESOLVE,ISSUE,RECOVER].includes(url.pathname))return false;
   sendJson(res,404,{ok:false,error:'not_found'});return true;
  };
  const config=goldAbV2OwnerHttpConfig(env);
@@ -30,8 +32,9 @@ export function createGoldAbV2HelperTarget({
  const pending=issueEnabled?new GoldAbV2PendingRedis({redis:storage.redis,
   prefix:storage.prefix,sealingKey:config.sealingKey}):null;
  return async(req,res,url)=>{
-  if(![RESOLVE,ISSUE].includes(url.pathname))return false;
-  if(url.pathname===ISSUE&&!issueEnabled){
+  if(![RESOLVE,ISSUE,RECOVER].includes(url.pathname))return false;
+  if((url.pathname===ISSUE&&!issueEnabled)||
+    (url.pathname===RECOVER&&!recoverEnabled)){
    sendJson(res,404,{ok:false,error:'not_found'});return true;
   }
   if(req.method!=='POST'){
@@ -42,7 +45,7 @@ export function createGoldAbV2HelperTarget({
    const proof=await readJson(req);
    const p=await verifyGoldAbV2HelperTarget({proof,key,
     redis:storage.redis,prefix:storage.prefix,
-    expectedPurpose:issue?'issue':'resolve'});
+    expectedPurpose:issue?'issue':url.pathname===RECOVER?'recover':'resolve'});
    if(!config.allowedAccounts.has(p.accountId))
     deny('abv2_helper_account_not_allowed',404);
    const account=accounts.assertOperational(p.accountId);
@@ -53,6 +56,50 @@ export function createGoldAbV2HelperTarget({
     "SELECT to_regclass('public.lr_gold_device_short_ids') IS NOT NULL AS present");
    if(schema.rows?.[0]?.present!==true)
     deny('abv2_short_id_schema_not_ready',503);
+   if(url.pathname===RECOVER){
+    const clientId='oauth-'+crypto.createHash('sha256')
+     .update(p.clientId).digest('hex');
+    const recovered=await pending.recoverAgent({actorAccountId:p.accountId,
+     agentId:p.agentId,clientId});
+    if(recovered.state==='none'||recovered.state==='ambiguous'){
+     sendJson(res,200,{ok:true,status:recovered.state,
+      helperReady:false,nextAction:recovered.state==='ambiguous'?
+       'poll_exact_request_explicitly':'no_abv2_request_to_recover'});
+     return true;
+    }
+    // Recovery is NOT an authorization. Revalidate the same enrolled
+    // device/connection and immutable owner Short ID before revealing B.
+    if(!config.allowedDevices.has(recovered.deviceId))
+     deny('abv2_recover_device_not_allowed',404);
+    const d=devices.get(recovered.deviceId);
+    const binding=enrollments.binding(recovered.deviceId);
+    const policy=enrollments.policyView(recovered.deviceId);
+    const cn=connections.assertConnected(recovered.deviceId);
+    if(d.deviceId!==recovered.deviceId||d.accountId!==p.accountId||
+       d.state!=='online'||d.revokedAt||
+       binding.deviceId!==recovered.deviceId||
+       binding.accountId!==p.accountId||binding.revokedAt||
+       binding.publicIdentityKey!==d.publicIdentityKey||
+       policy.accountId!==p.accountId||policy.policyProfile==='disabled'||
+       !Array.isArray(policy.approvedCapabilities)||!policy.approvedCapabilities.length||
+       cn.deviceId!==recovered.deviceId||cn.accountId!==p.accountId||
+       cn.connectionId!==recovered.connectionId||cn.state!=='connected'||
+       Number(cn.hardExpiresAt)<=Date.now())
+     deny('abv2_recover_enrollment_or_connection_changed',409);
+    const short=await storage.pool.query(
+     'SELECT s.short_id FROM lr_gold_device_short_ids s JOIN lr_devices d ON d.device_id=s.device_id WHERE d.owner_account_id=$1 AND s.device_id=$2',
+     [p.accountId,recovered.deviceId]);
+    if(short.rowCount!==1||short.rows[0].short_id!==recovered.shortId)
+     deny('abv2_recover_short_id_changed',409);
+    sendJson(res,200,{ok:true,status:recovered.state,
+     requestId:recovered.requestId,deviceId:recovered.deviceId,
+     shortId:recovered.shortId,expiresAt:recovered.expiresAt,
+     attempt:recovered.attempt,
+     ...(recovered.state==='pending'?{bCode:recovered.bCode}:{}),
+     helperReady:false,nextAction:recovered.state==='pending'?
+      'owner_enter_b_on_wall':'verified_grant_poll_required'});
+    return true;
+   }
    const ownerRows=await listOwnerShortIdDevices(storage.pool,
     {accountId:p.accountId,limit:500});
    const permitted=[];

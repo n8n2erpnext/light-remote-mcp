@@ -52,6 +52,9 @@ on:
       - 'lib/gold-pro-share-guest-queue-proof.mjs'
       - 'operator-host/gold-ab-v2-helper-poll.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-helper-poll.mjs'
+      - 'deploy/scripts/selftest-gold-ab-v2-helper-recovery.mjs'
+      - 'deploy/scripts/selftest-gold-ab-v2-helper-noarg.mjs'
+      - 'deploy/scripts/selftest-gold-ab-v2-recovery-redis.mjs'
       - 'plugin-server/operator-adapter.mjs'
       - 'plugin-server/tools.mjs'
       - 'operator-host/session-manager.mjs'
@@ -274,6 +277,9 @@ jobs:
           node --check lib/gold-ab-v2-helper-poll-proof.mjs
           node --check operator-host/gold-ab-v2-helper-poll.mjs
           node deploy/scripts/selftest-gold-ab-v2-helper-poll.mjs
+          node deploy/scripts/selftest-gold-ab-v2-helper-recovery.mjs
+          node deploy/scripts/selftest-gold-ab-v2-helper-noarg.mjs
+          node --check deploy/scripts/selftest-gold-ab-v2-recovery-redis.mjs
           node deploy/scripts/selftest-gold-agent-session-nickname.mjs
           node --check operator-host/pro-share-store.mjs
           node deploy/scripts/selftest-gold-pro-share-core.mjs

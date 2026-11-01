@@ -205,6 +205,15 @@ export function registerPluginTools(server,identity){
       const helper=await a.connectionHelper();return {...helper,status:'ready',pairedDevice:paired.device?.displayName||paired.device?.deviceId||null};
     }
     if(!x.helperGroup){
+      const v2=await a.recoverAbV2Request();
+      if(v2){
+        if(v2.status==='ready'){
+          const helper=await a.connectionHelper();
+          return {...helper,status:'ready',protocol:'abv2',
+           pairedDevice:v2.pairedDevice,recovered:true};
+        }
+        return v2;
+      }
       const recovered=await a.pairRecover();
       if(recovered?.state==='pending')return {status:'approval_required',code:recovered.request?.userCode||null,resumeMode:'call_same_helper_without_arguments',expiresInSeconds:Math.max(0,Math.ceil((Number(recovered.request?.expiresAt||Date.now())-Date.now())/1000)),approvalPath:'/approve'};
       if(recovered?.state==='approved'){const helper=await a.connectionHelper();return {...helper,status:'ready',pairedDevice:recovered.device?.displayName||recovered.device?.deviceId||null,recovered:true};}
