@@ -562,3 +562,7 @@ Owner confirmed V1 is the intended long-term production fallback, but requested 
 ## 2026-11-01 — CI-only Linux ARM64 build trigger for isolated A/B V2 lab
 
 The separate codex/goldabv2-linux-lab-ci-20261101 branch makes comment-only changes to Linux Server Bundle and Linux Client GitHub workflows to trigger both packaging jobs for source candidate cf3aa1de. The source and test lab's runtime code is unchanged; no production deployment. This branch is a disposable CI artifact provenance only. Preserve the original feature branch as canonical.
+
+## 2026-11-01 — CI retest of Linux ARM64 package dependency parity
+
+Initial Linux Server CI 41324297496 failed host installer import parity (old curated list); Linux Client CI 41324297446 failed packaged Wall import for new V1 lock. Imported packaging fixes from canonical source feature commit 3b74183e into this isolated codex CI branch, source/runtime V1 guard code unchanged. Host and client core staging local regression PASS. GitHub Actions Linux Server and Linux Client build retest on this disposable branch, no production deployment.

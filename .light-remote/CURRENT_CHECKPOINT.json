@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-01",
-  "status": "gold_abv2_isolated_linux_arm64_ci_artifact_candidate",
+  "status": "gold_abv2_linux_ci_package_fix_retest",
   "branch": "codex/goldabv2-linux-lab-ci-20261101",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -89,7 +89,8 @@
     "2026-11-01: Corrected ABV2 SQL043 read-only readiness to require actual UAT schema042; 4/4 UAT units healthy, snapshot+PG backup verified. 042 schema-only no-network disposable PG17+candidate 043 Short ID/tombstone/startup test PASS; 14 Helper/Owner/Wall/24h source tests PASS. Live UAT/production unchanged.",
     "2026-11-01: A/B V2 OAuth Agent exact no-argument Helper recovery with per-client Redis8 index, signed Operator recover route and PG grant poll; 18 source test fixtures PASS and isolated disposable localhost-only native Redis8 restart/Refresh/expiry/two-Agent ambiguity PASS. Source only. UAT SQL042 and four units unchanged.",
     "2026-11-01: Owner instructed Gold ABV2 lab-only V1 lock and preserving production fallback. Exact two-key instance guard, Wall V1 issuance/approval HTTP423, UI V2 only, MCP legacy A/continuation/noargs denied. Regression and source tests passed, separate Gold UAT unchanged.",
-    "2026-11-01: CI-only isolated codex branch triggers both Linux Server Bundle and Linux Client ARM64 packaging; only workflow comments changed, real Gold ABV2 lab remains on source candidate cf3aa1de, no production deploy."
+    "2026-11-01: CI-only isolated codex branch triggers both Linux Server Bundle and Linux Client ARM64 packaging; only workflow comments changed, real Gold ABV2 lab remains on source candidate cf3aa1de, no production deploy.",
+    "2026-11-01 CI retest: synchronized 3 packaging fix files from canonical commit 3b74183e; this is a disposable artifact-only branch."
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -139,7 +140,7 @@
     "A/B V2 SQL043 remains absent from signed migration lock and UAT runtime; actual installed Agent→Owner B→Helper ready 24h E2E has NOT run. No Owner 043 release approval; do not enable flags, migrate or claim runtime ready.",
     "Agent V2 no-arg recovery source is newly changed; not yet deployed, not yet GitHub CI-verified and cannot pass physical Owner B→Helper 24h end-to-end while live PG043 is unregistered. Keep source, runtime and UI acceptance distinct."
   ],
-  "nextAction": "Build/install Gold ABV2 Linux ARM64 in separate lab; verify live Wall no V1 and MCP old A denial. Owner must verify copied system account email before real V2 grant. Revert lab test lock by setting LR_GOLD_ABV2_LAB_DISABLE_LEGACY_V1=0.",
+  "nextAction": "Verify the new Linux Server Bundle and Linux Client Packages ARM64 CI results and artifacts; source installed in lab cf3aa1de remains unchanged, Gold production fallback intact.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -152,10 +153,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "4063758a2888f8ea3fadfc418977dda57cf4fb3a3420d0cfcc52c3d9d67998df",
+    "treeDigest": "b78c1258228b81b2d3dc5713de382f019e0624a690905671f0a034c5203e3ece",
     "trackedFiles": 1131,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-01T16:03:03.174Z"
+    "recordedAt": "2026-11-01T16:07:33.246Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",

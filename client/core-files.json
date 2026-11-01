@@ -174,12 +174,12 @@
       "destination": "assets/icons/material/terminal.svg"
     },
     {
-      "source": "assets/icons/material/visibility_off.svg",
-      "destination": "assets/icons/material/visibility_off.svg"
-    },
-    {
       "source": "assets/icons/material/visibility.svg",
       "destination": "assets/icons/material/visibility.svg"
+    },
+    {
+      "source": "assets/icons/material/visibility_off.svg",
+      "destination": "assets/icons/material/visibility_off.svg"
     },
     {
       "source": "client/update-public.pem",
@@ -380,6 +380,10 @@
     {
       "source": "lib/executor-readiness-probe.mjs",
       "destination": "lib/executor-readiness-probe.mjs"
+    },
+    {
+      "source": "lib/gold-ab-v2-lab-v1-lock.mjs",
+      "destination": "lib/gold-ab-v2-lab-v1-lock.mjs"
     },
     {
       "source": "lib/gold-execution-epoch.mjs",

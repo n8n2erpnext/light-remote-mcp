@@ -442,3 +442,6 @@ Source: client/windows-native/GptOperator.Client/{TrayPopoverForm.cs,Program.cs,
 ### 2026-11-01 Linux ARM64 lab CI-only branch
 
 .github/workflows/server-linux-build.yml and .github/workflows/linux-client-build.yml are triggered by comment-only edits on the disposable codex/goldabv2-linux-lab-ci-20261101 branch. CI outputs are not used as production installers. See code base cf3aa1de for A/B V2 lab-only V1 lock.
+
+### Linux ARM64 package CI retest — 2026-11-01
+client/core-files.json, deploy/scripts/install-host.sh, and deploy/scripts/selftest-host-install-layout.mjs match the packaging repair in canonical feature commit 3b74183e. This disposable codex branch is used solely for packaging CI and remains outside Gold UAT.
