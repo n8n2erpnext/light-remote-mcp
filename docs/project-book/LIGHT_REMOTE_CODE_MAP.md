@@ -504,3 +504,10 @@ Admin Owner security emblem uses /assets/icons/material/security.svg (verified H
 - runtime operator-host/executor.mjs from isolated source-fa12eea2, commit fa12eea2. Short ID generated R01KAP for new verified Owner's device, old X3AQQ6 remains associated old disabled Owner.
 - gold-ab-v2-helper-target.mjs read-only helper query R01KAP returns online single device; list_devices only shows locally A/B approved plugin binding after B, so empty is NOT offline.
 - device-agent/local-wall.mjs still uses static LR_GOLD_ABV2_LAB_SHORT_ID in UI. Deployment label remained old X3AQQ6 at last observation; must correct config/source separately and not change ownership/shortID DB mapping.
+
+### 2026-11-02 — Owner A/B V2 B approval route and error-message accuracy
+- operator-host/gold-ab-v2-helper-target.mjs: issued pending status no longer always returns false owner_v2_b_approval_not_enabled; exposes owner_enter_b_in_account when the actual Owner HTTP and Portal UI approval gates are on; recover uses same nextAction.
+- plugin-server/operator-adapter.mjs: V2 no-arg recover leads to /account instead of legacy V1 /approve, while OAuth/Agent/Short ID validation unchanged.
+- device-agent/local-wall.mjs: in isolated LAB V1 lock only, link "Owner account" in V2 preview uses https://goldabv2.light-remote.thaiduy.digital/account; stale Short ID badge polling fix included, no production Wall URL change.
+- plugin-server/account-portal/index.html: Account portal tells V2 user to select the device under A/B V2 pending, enter Agent B and Approve Agent; V1 Local Wall /approve only on V1 systems. No new B approval permissions or privileges.
+- deploy/scripts/selftest-gold-abv2-owner-approval-navigation.mjs and selftest-gold-abv2-wall-short-id-display.mjs: source checks in Gold CI for correct routing and retained Short ID after async badge refresh. Existing signed Owner/PG grant tests validate actual grant security.

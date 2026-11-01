@@ -18,6 +18,7 @@ const env={LIGHT_REMOTE_GOLD_ROOT:root,LR_GOLD_AB_V2_SEAL_KEY_FILE:keyFile,
  LR_GOLD_AB_V2_HELPER_PROOF_KEY_FILE:keyFile,
  LR_GOLD_AB_V2_OWNER_PENDING_HTTP:'1',LR_GOLD_AB_V2_HELPER_TARGET_QUERY:'1',
  LR_GOLD_AB_V2_HELPER_REQUEST_ISSUE:'1',
+ LR_GOLD_AB_V2_OWNER_APPROVE_HTTP:'1',LR_GOLD_AB_V2_ACCOUNT_APPROVE_UI:'1',
  LR_GOLD_AB_V2_OWNER_ORIGIN:'https://gold.example.test',
  LR_GOLD_AB_V2_OWNER_ALLOWED_ACCOUNTS:'acct1',
  LR_GOLD_AB_V2_OWNER_ALLOWED_DEVICES:'dev1;invalid'.split(';')[0]};
@@ -100,7 +101,7 @@ try{
  assert.match(first.body.bCode,AB_V2_B_RE);
  assert.equal(first.body.shortId,'ABCD02');
  assert.equal(first.body.requestKey,'a'.repeat(32));
- assert.equal(first.body.nextAction,'owner_v2_b_approval_not_enabled');
+ assert.equal(first.body.nextAction,'owner_enter_b_in_account');
  assert.equal(records.size,1);
  const stored=[...records.values()][0];
  assert.equal(stored.actor,'acct1');

@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const wall=readFileSync(new URL('../../device-agent/local-wall.mjs',import.meta.url),'utf8');
+assert.match(wall,/const labShortId=String\(process\.env\.LR_GOLD_ABV2_LAB_SHORT_ID/);
+assert.match(wall,/const shortLabel=\/\^\[0-9A-HJKMNP-TV-Z\]\{6\}\$\//);
+assert.match(wall,/const wallAbV2ShortLabel=\$\{JSON\.stringify\(shortLabel\)\}/);
+assert.match(wall,/'A\/B V2 · standby'\+wallAbV2ShortLabel\+' · V1 locked'/);
+assert.match(wall,/' pending'\+wallAbV2ShortLabel\+' · V1 locked'/);
+assert.match(wall,/A\/B V2 · standby'\+shortLabel\+' · V1 locked/);
+console.log('ABV2_WALL_SHORTID_VISIBLE_BEFORE_AND_AFTER_ASYNC_STATUS_REFRESH=PASS');

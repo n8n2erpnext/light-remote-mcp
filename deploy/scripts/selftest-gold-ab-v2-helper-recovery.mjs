@@ -89,6 +89,7 @@ try{
  assert.equal(first.body.bCode,issued.body.bCode);
  assert.equal(first.body.deviceId,'dev1');assert.equal(first.body.shortId,'ABCD02');
  assert.equal(first.body.helperReady,false);
+ assert.equal(first.body.nextAction,'owner_enter_b_in_account');
  const signed=sign();
  assert.equal((await call(handler,signed)).status,200);
  assert.equal((await call(handler,signed)).status,409,'signed proof is one-time');

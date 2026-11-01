@@ -155,6 +155,8 @@ on:
       - 'plugin-server/account-portal/index.html'
       - 'plugin-server/account-portal/ab-v2.js'
       - 'deploy/scripts/selftest-gold-ab-v2-account-portal.mjs'
+      - 'deploy/scripts/selftest-gold-abv2-owner-approval-navigation.mjs'
+      - 'deploy/scripts/selftest-gold-abv2-wall-short-id-display.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-owner-http.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-owner-pending-adapter.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-source.mjs'
@@ -380,6 +382,8 @@ jobs:
           node --check plugin-server/account-portal.mjs
           node --check plugin-server/account-portal/ab-v2.js
           node deploy/scripts/selftest-gold-ab-v2-account-portal.mjs
+          node deploy/scripts/selftest-gold-abv2-owner-approval-navigation.mjs
+          node deploy/scripts/selftest-gold-abv2-wall-short-id-display.mjs
           node --check deploy/scripts/ci-gold-p2i1-short-id-pg.mjs
           node deploy/scripts/selftest-gold-p2i1-short-id.mjs
           node deploy/scripts/selftest-gold-abv2-enrollment-short-id-lifecycle.mjs

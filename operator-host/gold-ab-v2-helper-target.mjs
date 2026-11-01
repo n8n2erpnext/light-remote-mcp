@@ -97,7 +97,7 @@ export function createGoldAbV2HelperTarget({
      attempt:recovered.attempt,
      ...(recovered.state==='pending'?{bCode:recovered.bCode}:{}),
      helperReady:false,nextAction:recovered.state==='pending'?
-      'owner_enter_b_on_wall':'verified_grant_poll_required'});
+      'owner_enter_b_in_account':'verified_grant_poll_required'});
     return true;
    }
    const ownerRows=await listOwnerShortIdDevices(storage.pool,
@@ -162,7 +162,11 @@ export function createGoldAbV2HelperTarget({
     shortId:chosen.shortId,deviceId:chosen.deviceId,
     ...(pendingState?{bCode:issued.bCode}:{}),
     requestKey:p.requestKey,reused:Boolean(issued.reused),
-    nextAction:pendingState?'owner_v2_b_approval_not_enabled':'request_expired_or_pending_grant'});
+    nextAction:pendingState?
+      (env.LR_GOLD_AB_V2_OWNER_APPROVE_HTTP==='1'&&
+       env.LR_GOLD_AB_V2_ACCOUNT_APPROVE_UI==='1'
+       ?'owner_enter_b_in_account':'owner_approval_not_enabled')
+      :'request_expired_or_pending_grant'});
   }catch(error){
    const status=error instanceof GoldAbV2HelperProofError?error.status:503;
    sendJson(res,[400,401,403,404,405,409,429,503].includes(status)?status:503,

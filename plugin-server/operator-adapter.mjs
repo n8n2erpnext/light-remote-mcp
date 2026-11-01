@@ -126,8 +126,8 @@ export class AccountOperatorAdapter{
      return {status:'approval_required',protocol:'abv2',code:row.bCode,
       shortId:row.shortId,deviceId:row.deviceId,
       expiresInSeconds:Math.max(0,Math.ceil((Number(row.expiresAt)-Date.now())/1000)),
-      approvalPath:'/approve',resumeMode:'call_same_helper_without_arguments',
-      helperReady:false,nextAction:'owner_enter_b_on_wall'};
+      approvalPath:'/account',resumeMode:'call_same_helper_without_arguments',
+      helperReady:false,nextAction:'owner_enter_b_in_account'};
     }
     if(!['approved','granted'].includes(row.status))
      throw Error('abv2_helper_recovered_status_invalid');

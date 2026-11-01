@@ -97,6 +97,7 @@ ${moduleSupported?"<details id=\"goldModulesPanel\" class=\"sessionbox\" style=\
 const box=document.getElementById('jobs'),devicebox=document.getElementById('devicebox'),tabs=document.getElementById('tabs'),sessionbox=document.getElementById('sessionbox'),sessionActions=document.getElementById('sessionActions'),filter=document.getElementById('filter'),statusSel=document.getElementById('status'),conn=document.getElementById('conn'),stats=document.getElementById('stats'),acode=document.getElementById('acode'),aexp=document.getElementById('aexp'),toggleA=document.getElementById('toggleA'),copyA=document.getElementById('copyA'),connectCloud=document.getElementById('connectCloud'),disconnectCloud=document.getElementById('disconnectCloud'),linkDevice=document.getElementById('linkDevice'),deviceCodeWrap=document.getElementById('deviceCodeWrap'),deviceCode=document.getElementById('deviceCode'),deviceCodeExp=document.getElementById('deviceCodeExp'),copyDeviceCode=document.getElementById('copyDeviceCode'),enrollMsg=document.getElementById('enrollMsg'),fleetWall=document.getElementById('fleetWall');
 const wallCsrf=${JSON.stringify(csrf)};
 const labAbV2Only=${JSON.stringify(labV2Only)};
+const wallAbV2ShortLabel=${JSON.stringify(shortLabel)};
 ${notificationBellScript}
 const jobs=new Map(),sessions=new Map(),seenEvents=new Set(),seenOrder=[],dirtyJobs=new Set(),pendingKeys=new Set();let paused=false,pending=[],selected='ALL',localState=null,remoteState=null,grantTimerRows=[],renderTimer=null,pairingA='',pairingVisible=false,pairingExpiresAt=0,pairRefreshInFlight=false,deviceEnrollmentCode='',enrollmentPollTimer=null;
 const ptyOverlay=document.getElementById('ptyOverlay'),ptyList=document.getElementById('ptyList'),ptyOutput=document.getElementById('ptyOutput'),ptyTitle=document.getElementById('ptyTitle');
@@ -382,7 +383,7 @@ async function refreshAbV2WallMode(){
     pairingA='';pairingExpiresAt=0;pairingVisible=false;renderPairing();
     const badge=document.getElementById('abV2WallStatus');
     if(badge){badge.style.display='inline-flex';badge.textContent=data.pending.length
-      ?'A/B V2 · '+data.pending.length+' pending · V1 locked':'A/B V2 · standby · V1 locked';}
+      ?'A/B V2 · '+data.pending.length+' pending'+wallAbV2ShortLabel+' · V1 locked':'A/B V2 · standby'+wallAbV2ShortLabel+' · V1 locked';}
     const label=document.querySelector('a[href="/approve"] span:last-child');
     if(label)label.textContent='AI Access V2';
     return true;
@@ -2427,6 +2428,8 @@ export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvg
       if(view!=='home')html=html.replace('<details id="goldModulesPanel"','<details open id="goldModulesPanel"');if(!auth?.enabled||typeof getLocalProcesses!=='function')html=html.replace(/<a class="btn small" href="\/processes">.*?<\/a>/,'');res.writeHead(200,pageHeaders());res.end(html);return;}
     if(req.method==='GET'&&url.pathname==='/approve'){const labV2Only=goldAbV2LabV1Disabled();
       const fragment=labV2Only?wallAbV2PreviewFragment
+        .replace('href="https://light-remote.thaiduy.digital/account"',
+          'href="https://goldabv2.light-remote.thaiduy.digital/account"')
         .replace('if(resp.status===404){host.hidden=true;return;}',
           "if(resp.status===404){host.hidden=false;state.textContent='A/B V2 lab · waiting for backend';status.textContent='V1 temporarily locked; signed V2 preview is unavailable.';return;}")
         .replace('if(!resp.ok){host.hidden=true;return;}',
