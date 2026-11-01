@@ -542,3 +542,9 @@ Admin Owner security emblem uses /assets/icons/material/security.svg (verified H
 - operator-host/gold-ab-v2-helper-target.mjs: DISCOVER route, verifies OAuth proof, Owner identity verified, narrow allowed accounts/devices and live signed enrollment/connection/policy; only reads preapproved metadata, no pending or grant issuance.
 - lib/gold-device-short-id.mjs summarizePermittedDeviceDiscovery(): count matches/online/offline with optional onlineOnly, exact/partial name/platform/architecture/ShortID/hostname, deterministic ranking online-first, cap5; listOwnerShortIdDevices returns architecture from PG schema43; >=500 rows report incomplete.
 - deploy/scripts/selftest-gold-abv2-account-device-discovery.mjs: 100 simulated devices, OS Windows=38, online/offline counts, duplicate hostname THISPC, VPS-ARM, Short ID, architecture, wrong-account denials, tampering/replay and no grant/pair; gold plugin contract 84 tools. CI job gold-connection-lifecycle-gc.yml includes test.
+
+### 2026-11-02 GoldABV2 live deployment of preapproval Discovery tool
+- Operator and Plugin running source-187de2e8 only in LXD light-remote-abv2-lab-20261101, snapshot pre-abv2-readonly-device-discovery-20261102.
+- User-facing MCP metadata refresh required in current ChatGPT session to expose newly registered light_remote_discover_devices, scope remote:read. Do not misreport absent cached schema as a server failure.
+- Real lab matching: current Owner owns only R01KAP (light-remote-abv2-lab-20261101), online Linux arm64. Query Windows should be zero in this LAB; VPS-ARM hostname not registered for this account. Old authorized-only list_devices remains [] pending B approval.
+- Full source+runtime master handoff: docs/project-book/LIGHT_REMOTE_GOLDABV2_MASTER_20261102.md, VPS handoff path /home/ubuntu/handoffs/LIGHT_REMOTE_GOLDABV2_FULL_MASTER_HANDOFF_20261102.md.

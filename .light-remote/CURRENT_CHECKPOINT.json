@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-01",
-  "status": "goldabv2_preapproval_metadata_discovery_source_regressions_pass_pending_lab_deploy",
+  "status": "goldabv2_preapproval_device_discovery_deployed_live_registered_84",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -104,7 +104,8 @@
     "2026-11-02: Live GoldABV2 Operator/Plugin/Wall all source-18730e99, after snapshot pre-abv2-owner-b-ux-20261102. Fixed wrong Helper owner_v2_b_approval_not_enabled and V2 Wall-to-production account link; owner B now directed to GoldABV2 /account. Signed Owner-scoped Short ID preview avoids stale static X3AQQ6. Source regression PASS, live public account HTTPS200, R01KAP online, 0 grants; main UAT schema42 untouched. No human B approved yet.",
     "2026-11-02: Owner noticed separate blue A/B V2 approval widget appended outside native Wall layout, incorrectly labeled Windows device on Linux. Replaced with native /approve card styling and inserted INSIDE .wrap; LAB hides V1 only and real V1 keeps fallback. Tests native DOM, pending signed preview, local Wall and signed B grant PASS.",
     "2026-11-02 ~04:10 VN: Native Wall /approve UI source 8fb5d377 deployed to only GoldABV2 Wall after snapshot pre-v2-wall-native-ux-20261102. Removed standalone blue panel and Windows-only label, inserted V2 card into original centered .wrap and reused native .card/.btn/.primary/Cascadia; original V1 fallback retained. Lab Wall active, 4/4 services active; Owner rev1/audit1, R01KAP online, no B grant, Gold UAT schema42 untouched. VPS+GitHub master handoff updated.",
-    "2026-11-02: Re-read original GOLD_AB_V2_DEVICE_DISCOVERY_AGENT_INITIATED_SESSION_HANDOFF_20261028.md; owner requires count online, search VPS-ARM/name, Windows/OS/arm64 and Short ID BEFORE B. Added separate remote:read light_remote_discover_devices Tool and HMAC purpose=discover Operator endpoint; list_devices remains grant-only. Unit integration 100 devices (38 Windows), cross-account/tamper/replay, no B grant/issue all PASS."
+    "2026-11-02: Re-read original GOLD_AB_V2_DEVICE_DISCOVERY_AGENT_INITIATED_SESSION_HANDOFF_20261028.md; owner requires count online, search VPS-ARM/name, Windows/OS/arm64 and Short ID BEFORE B. Added separate remote:read light_remote_discover_devices Tool and HMAC purpose=discover Operator endpoint; list_devices remains grant-only. Unit integration 100 devices (38 Windows), cross-account/tamper/replay, no B grant/issue all PASS.",
+    "2026-11-02 ~04:42 VN: feature SHA 187de2e8 pushed, snapshot pre-abv2-readonly-device-discovery-20261102. Isolated GoldABV2 Operator/Plugin running source-187de2e8, Wall 8fb5d377; 4/4 active, HTTPS200 TLS0, owner rev1 audit1, main Gold UAT schema42 untouched. Runtime plugin module registered 84 tools including readOnly remote:read light_remote_discover_devices. DB one online Linux arm64 R01KAP; 0 grants. This current ChatGPT tool schema does not yet include new tool until refresh."
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -155,7 +156,7 @@
     "Agent V2 no-arg recovery source is newly changed; not yet deployed, not yet GitHub CI-verified and cannot pass physical Owner B→Helper 24h end-to-end while live PG043 is unregistered. Keep source, runtime and UI acceptance distinct.",
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID."
   ],
-  "nextAction": "Confirm CI tests and code-map/worklog checkpoint; commit/push feature branch. Snapshot GoldABV2 LXD, deploy only Operator+Plugin with new discovery. Validate read-only account-scoped total/online/Windows/VPS-ARM/R01KAP and new tool registration with ChatGPT plugin refreshed. Do NOT ask for B to list, do not grant or change V1 production.",
+  "nextAction": "Refresh/reconnect user-facing official Light Remote AB plugin to obtain new tool metadata. Real test light_remote_discover_devices({onlineOnly:true}) ->1, query Windows online ->0, query arm64 ->1, query R01KAP ->1 online; no B. Old list_devices remains A/B granted-only[]. Owner B approval 24h is separate pending acceptance. Do not expand outside lab or deploy MFA without new decision.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -171,7 +172,7 @@
     "treeDigest": "d54b3b39e25282039bf0357d009b3d573f9bd286f8738d866c507bbf5b4f18ab",
     "trackedFiles": 1141,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-01T21:39:01.159Z"
+    "recordedAt": "2026-11-01T21:43:01.457Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
