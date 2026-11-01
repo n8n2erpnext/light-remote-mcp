@@ -491,3 +491,11 @@ Admin Owner security emblem uses /assets/icons/material/security.svg (verified H
 - operator-host/gold-ab-v2-helper-target.mjs: resolve target only for permitted devices joined to lr_gold_device_short_ids; old Short ID X3AQQ6 is the disabled prior Owner's device, not new Owner.
 - operator-host/device-registry.mjs and operator-host/enrollment-registry.mjs already fixed revoked/active Link/Relink ownership boundary at runtime commit 665daa91; do not refactor while solving Short ID without regressions.
 - docs/project-book/LIGHT_REMOTE_ABV2_ACCOUNT_LOGIN_SECURITY_RESEARCH_HANDOFF.md remains deferred; no OTP/passkey/Apple-like approvals or geographic restrictions active.
+
+### 2026-11-02 GoldABV2 enrollment automatic Short ID and Owner allowlist
+- lib/gold-device-short-id.mjs reconcileGoldOwnerDeviceShortIds(pool,{accountIds,maxDevices}): scopes to trusted config, only nonrevoked and unmapped PG device rows; uses existing idempotent ensureGoldDeviceShortId.
+- operator-host/executor.mjs: goldShortIdAfterEnrollment disabled unless SQL043+ and ABV2 helper enabled; flushes native registry then allocates. On startup reconciles up to 50 devices of allowed Owner accounts only.
+- operator-host/executor-routes-account.mjs: account enrollment approval invokes the Short ID hook after device persist.
+- operator-host/executor-routes-device-channel.mjs: legacy/signed enrollment approval also invokes hook.
+- deploy/scripts/selftest-gold-abv2-enrollment-short-id-lifecycle.mjs: Owner-scoped, restart recovery, old Owner exclusion, revoked exclusion, repeat stability, route source wiring regression.
+- Lab LR_GOLD_AB_V2_OWNER_ALLOWED_ACCOUNTS and DEVICES plus Wall's LR_GOLD_ABV2_LAB_SHORT_ID were stale after Owner transfer. Correct only in isolated lab after snapshot; Plugin OAuth may also need user reauthorization to new Owner account. list_devices is intentionally A/B-authorized-only, not all online devices.

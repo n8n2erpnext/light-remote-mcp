@@ -1,7 +1,7 @@
 import {verifyTeamMemberAuthorization} from './team-member-auth.mjs';
 import {authorizeTrustedTeamDispatch} from './team-dispatch-authority.mjs';
 export async function handleAccountRoutes(req,res,url,deps){
-  const {adminJobRecovery,deviceBootObservations,ACCOUNT_ID,AccountError,DEVICE_ID,accountSessionToken,accounts,accountNotifications,allDeviceViews,capabilities,flushGoldRegistries,clearMainIfMatches,closeRuntimeForAccount,compatibilityFor,devices,enrollments,fleet,fleetAuthority,licenses,planEntitlements,proTeams,teamSessions,requestTeamMemberApproval,operationalAccount,accessGrants,connections,targetRoute,verifyTeamPrincipal,queueHelperUpdate,readJson,removeRuntimeForDevice,requireAccount,revokeRuntimeForDevice,sendJson,usage,wakeDeviceChannelForDevice}=deps;
+  const {adminJobRecovery,deviceBootObservations,ACCOUNT_ID,AccountError,DEVICE_ID,accountSessionToken,accounts,accountNotifications,allDeviceViews,capabilities,flushGoldRegistries,goldShortIdAfterEnrollment,clearMainIfMatches,closeRuntimeForAccount,compatibilityFor,devices,enrollments,fleet,fleetAuthority,licenses,planEntitlements,proTeams,teamSessions,requestTeamMemberApproval,operationalAccount,accessGrants,connections,targetRoute,verifyTeamPrincipal,queueHelperUpdate,readJson,removeRuntimeForDevice,requireAccount,revokeRuntimeForDevice,sendJson,usage,wakeDeviceChannelForDevice}=deps;
     // Stronger than the legacy internal /v1/admin APIs: verify the owner session
     // independently in Operator, not merely in the plugin /admin proxy.
     if(url.pathname==='/v1/admin/job-recovery'||
@@ -644,6 +644,8 @@ export async function handleAccountRoutes(req,res,url,deps){
     if(req.method==='POST'&&url.pathname==='/v1/accounts/enrollments/approve'){
       const identity=requireAccount(req);accounts.assertOperational(identity.account.accountId);const body=await readJson(req),approval=enrollments.approve({...body,accountId:identity.account.accountId});
       const binding=enrollments.binding(approval.deviceId),device=devices.enroll({accountId:binding.accountId,deviceId:binding.deviceId,nodeId:binding.deviceId,displayName:binding.displayName,platform:binding.platform,architecture:binding.architecture,agentVersion:binding.agentVersion,publicIdentityKey:binding.publicIdentityKey,capabilities:binding.approvedCapabilities,policyProfile:binding.policyProfile});
+      if(typeof goldShortIdAfterEnrollment==='function')
+        await goldShortIdAfterEnrollment(device.deviceId);
       accounts.recordDeviceAdded(identity.account.accountId,device.firstSeenAt||Date.now());
       return sendJson(res,200,{ok:true,approval,device});
     }

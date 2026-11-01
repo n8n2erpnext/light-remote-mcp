@@ -25,6 +25,7 @@ on:
       - 'deploy/scripts/selftest-gold-gc-revoked-ownerless.mjs'
       - 'lib/gold-execution-epoch.mjs'
       - 'lib/gold-device-short-id.mjs'
+      - 'deploy/scripts/selftest-gold-abv2-enrollment-short-id-lifecycle.mjs'
       - 'lib/gold-ab-v2-pending-redis.mjs'
       - 'lib/gold-ab-v2-owner-pending-adapter.mjs'
       - 'lib/gold-ab-v2-wall-owner-consent.mjs'
@@ -381,6 +382,7 @@ jobs:
           node deploy/scripts/selftest-gold-ab-v2-account-portal.mjs
           node --check deploy/scripts/ci-gold-p2i1-short-id-pg.mjs
           node deploy/scripts/selftest-gold-p2i1-short-id.mjs
+          node deploy/scripts/selftest-gold-abv2-enrollment-short-id-lifecycle.mjs
           node --check lib/gold-db.mjs
           node --check deploy/scripts/apply-gold-db.mjs
           bash -n deploy/scripts/gold-g3-uat-cutover.sh
