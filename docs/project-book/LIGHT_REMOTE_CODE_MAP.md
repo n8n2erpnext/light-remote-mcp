@@ -438,3 +438,8 @@ Source: client/windows-native/GptOperator.Client/{TrayPopoverForm.cs,Program.cs,
 - Local Wall: ../../device-agent/local-wall.mjs blocks legacy V1 issuance /api/pairing-code, legacy /api/approve (423) in locked lab. Hides controls, shows V2 Short ID and V2 pending/unavailable screen.
 - MCP Helper: ../../plugin-server/tools.mjs rejects legacy aCode/continuation and skips legacy no-argument pairing recovery while exact lab lock active. Signed V2 target/issue/poll/ready unchanged.
 - Regression: ../../deploy/scripts/selftest-gold-ab-v2-lab-v1-lock.mjs in ../../.github/workflows/gold-connection-lifecycle-gc.yml.
+
+### 2026-11-01 Linux bundle packaging parity
+- client/core-files.json stages lib/gold-ab-v2-lab-v1-lock.mjs alongside packaged device-agent/local-wall.mjs. CI package smoke checks the bundled import.
+- deploy/scripts/install-host.sh copies 18 missing current Operator/Wall imported lib modules plus device-agent/wall-ab-v2-preview.mjs to host Wall runtime.
+- deploy/scripts/selftest-host-install-layout.mjs checks executor imports against the actual installer lib manifest and asserts Wall V2 preview module staged. Local host/Wall source package parity tests PASS; isolated CI retest required.

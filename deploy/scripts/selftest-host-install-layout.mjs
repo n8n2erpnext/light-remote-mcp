@@ -18,17 +18,18 @@ if(!installer.includes('/opt/gpt-vps-operator/operator-host/'))throw new Error('
 if(!installer.includes('/opt/gpt-vps-operator/device-agent/platform-adapters/'))throw new Error('operator_platform_adapter_layout_missing');
 if(!unit.includes('WorkingDirectory=/opt/gpt-vps-operator/operator-host'))throw new Error('operator_workdir_layout_stale');
 if(!unit.includes('ExecStart=/usr/bin/node /opt/gpt-vps-operator/operator-host/executor.mjs'))throw new Error('operator_exec_layout_stale');
+const installLoops=[...installer.matchAll(/for lib in ([^;]+); do/g)].map(match=>match[1].trim());
+if(installLoops.length!==2||installLoops[0]!==installLoops[1])throw new Error('host_operator_and_wall_lib_lists_diverged');
+const installedLibs=new Set(installLoops[0].split(/\s+/));
 const executorLibImports=[...executor.matchAll(/from '\.\.\/lib\/([^']+\.mjs)'/g)].map(match=>match[1]);
-for(const lib of executorLibImports)if(!libs.includes(lib))throw new Error(`host_installer_missing_executor_import:${lib}`);
+for(const lib of executorLibImports)if(!installedLibs.has(lib))throw new Error(`host_installer_missing_executor_import:${lib}`);
 for(const rel of ['../lib/native-fs.mjs','../lib/native-process.mjs','../lib/native-terminal.mjs','../lib/native-search.mjs','../lib/activity-ring.mjs','../lib/light-scp-registry.mjs','../lib/runtime-version.mjs','../lib/version-compat.mjs','../lib/operator-target-route.mjs','../device-agent/platform-adapters/index.mjs']){
   if(!executor.includes(`from '${rel}'`))throw new Error(`executor_import_contract_missing:${rel}`);
 }
 // Verify complete static import coverage, not just the executor entrypoint.
 // Gold M6 telemetry/receipt and owner UI introduced transitive dependencies
 // previously omitted by the curated system/host-wall install list.
-const installLoops=[...installer.matchAll(/for lib in ([^;]+); do/g)].map(match=>match[1].trim());
-if(installLoops.length!==2||installLoops[0]!==installLoops[1])throw new Error('host_operator_and_wall_lib_lists_diverged');
-const installedLibs=new Set(installLoops[0].split(/\s+/));
+
 const hostSources=[
   ...fs.readdirSync(path.join(root,'operator-host')).filter(name=>name.endsWith('.mjs')).map(name=>'operator-host/'+name),
   'device-agent/operator-agent.mjs','device-agent/local-wall.mjs'
@@ -39,7 +40,7 @@ for(const rel of hostSources){
     if(!installedLibs.has(match[1]))throw new Error('host_installer_missing_import:'+rel+':'+match[1]);
   }
 }
-for(const moduleName of ['local-process-page.mjs','process-supervisor-client.mjs']){
+for(const moduleName of ['local-process-page.mjs','process-supervisor-client.mjs','wall-ab-v2-preview.mjs']){
   if(!installer.includes('$ROOT_DIR/device-agent/'+moduleName))
     throw new Error('host_wall_installer_missing_device_module:'+moduleName);
 }
