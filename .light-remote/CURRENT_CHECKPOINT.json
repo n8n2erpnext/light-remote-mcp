@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-01",
-  "status": "goldabv2_abv2_allowlist_stale_and_new_owner_shortid_lifecycle_source_tested",
+  "status": "goldabv2_abv2_new_owner_shortid_R01KAP_online_plugin_discovery_pass",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -97,7 +97,8 @@
     "2026-11-02: Final owner contract NEW or REVOKED -> Wall Link for any account; ACTIVE -> Tray/App/interactive Linux sudo Terminal Relink, SSH valid. Account-login Wall accepts new account after revoke but rejects active foreign-account login. Both Enrollment and Device registries accept revoked cross-account same-key Link; active cross-tenant denied. Security account takeover research documented separately without enabling OTP/2FA or changing AB V2.",
     "2026-11-02: source 665daa91 deployed Operator+Wall only in GoldABV2 isolated LXD after pre-linux-owner-link-relink-20261102 snapshot; sudo light-remote-device installed root0700, status autodetect and no-TTY denial PASS; 4/4 services healthy, HTTPS200, Owner revision1 and prior disabled account unchanged; main Gold UAT schema42 unchanged. Separate browser-login risk handoff written, no OTP changes.",
     "2026-11-02 post-handoff read-only recheck: lab device dev_2e6ca4ded175829131a280e9 has signed enrollment for new verified Owner, cloud connected, no pending enrollment. Legacy dev_e68276c691ba5413f42d5dde Short ID X3AQQ6 stays with disabled old Owner. New device has no lr_gold_device_short_ids row and no lr_ab_grants row. Full 255-line master handoff created on VPS and in project-book; do not relink again.",
-    "2026-11-02: Actual official AB plugin list_devices returned [] and Helper returned abv2_helper_account_not_allowed. Lab operator allowlist still old disabled account; Wall static Short ID X3AQQ6 belongs old device. Source lifecycle patch and scoped Owner recovery tested locally; no grant approved."
+    "2026-11-02: Actual official AB plugin list_devices returned [] and Helper returned abv2_helper_account_not_allowed. Lab operator allowlist still old disabled account; Wall static Short ID X3AQQ6 belongs old device. Source lifecycle patch and scoped Owner recovery tested locally; no grant approved.",
+    "2026-11-02: GoldABV2 Operator source fa12eea2 deployed under LXD snapshot pre-new-owner-shortid-20261102. Updated ABV2 lab Owner/Device allowlist to NEW verified Owner/new signed device only. DB auto-created new Short ID R01KAP; official AB helper targetQuery=R01KAP returned one ONLINE matching device, approval not issued. list_devices intentionally [] until human B; Wall banner static X3AQQ6 remains outdated and needs UI-only correction."
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -148,7 +149,7 @@
     "Agent V2 no-arg recovery source is newly changed; not yet deployed, not yet GitHub CI-verified and cannot pass physical Owner B→Helper 24h end-to-end while live PG043 is unregistered. Keep source, runtime and UI acceptance distinct.",
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID."
   ],
-  "nextAction": "Snapshot isolated GoldABV2; deploy Short ID auto-assignment source; update only lab Operator allowlists to verified NEW Owner and NEW signed device; check generated Short ID and change stale Wall display; verify no B grant, 4/4 active, production unchanged. Then new Owner OAuth reauth if needed and human B approval.",
+  "nextAction": "Correct LAB Wall misleading displayed Short ID X3AQQ6 to current new device Short ID R01KAP through owner-authorized config/source change; ensure no protected env/secret exposure. Then user requests AB V2 using exact R01KAP through official plugin and personally approves B in /account, verify 24h grant and list_devices authorized. No repeat Owner transfer or Linux Relink.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -164,7 +165,7 @@
     "treeDigest": "96682980af6b0098558a4ab5857706b1e992c36f8577099e6f36ceebd8c06fd9",
     "trackedFiles": 1138,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-01T19:33:19.700Z"
+    "recordedAt": "2026-11-01T19:37:36.048Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",

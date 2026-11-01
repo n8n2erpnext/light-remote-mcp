@@ -499,3 +499,8 @@ Admin Owner security emblem uses /assets/icons/material/security.svg (verified H
 - operator-host/executor-routes-device-channel.mjs: legacy/signed enrollment approval also invokes hook.
 - deploy/scripts/selftest-gold-abv2-enrollment-short-id-lifecycle.mjs: Owner-scoped, restart recovery, old Owner exclusion, revoked exclusion, repeat stability, route source wiring regression.
 - Lab LR_GOLD_AB_V2_OWNER_ALLOWED_ACCOUNTS and DEVICES plus Wall's LR_GOLD_ABV2_LAB_SHORT_ID were stale after Owner transfer. Correct only in isolated lab after snapshot; Plugin OAuth may also need user reauthorization to new Owner account. list_devices is intentionally A/B-authorized-only, not all online devices.
+
+### 2026-11-02 — GoldABV2 exact deployed ABV2 discovery checkpoint
+- runtime operator-host/executor.mjs from isolated source-fa12eea2, commit fa12eea2. Short ID generated R01KAP for new verified Owner's device, old X3AQQ6 remains associated old disabled Owner.
+- gold-ab-v2-helper-target.mjs read-only helper query R01KAP returns online single device; list_devices only shows locally A/B approved plugin binding after B, so empty is NOT offline.
+- device-agent/local-wall.mjs still uses static LR_GOLD_ABV2_LAB_SHORT_ID in UI. Deployment label remained old X3AQQ6 at last observation; must correct config/source separately and not change ownership/shortID DB mapping.
