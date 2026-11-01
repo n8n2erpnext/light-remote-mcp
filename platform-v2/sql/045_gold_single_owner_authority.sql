@@ -15,4 +15,8 @@ CREATE TABLE lr_gold_owner_handoffs (
  transferred_at TIMESTAMPTZ NOT NULL DEFAULT now(),
  CHECK (from_account_id <> to_account_id)
 );
+-- Only Operator may read/write the singleton and append handoff audit.
+-- No DELETE grant: Owner transfer is a transition, not authority removal.
+GRANT SELECT,INSERT,UPDATE ON lr_gold_owner_authority TO lr_gold_app;
+GRANT SELECT,INSERT ON lr_gold_owner_handoffs TO lr_gold_app;
 COMMIT;

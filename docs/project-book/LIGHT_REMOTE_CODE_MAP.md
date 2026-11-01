@@ -453,3 +453,6 @@ Source: client/windows-native/GptOperator.Client/{TrayPopoverForm.cs,Program.cs,
 - plugin-server/admin-portal.mjs and plugin-server/admin-portal/index.html: dynamically authorized Admin, exact-origin transfer route, verified-target UI, reauth and typed confirmation, immediate re-login.
 - deploy/scripts/selftest-gold-single-owner-transfer.mjs and selftest-gold-single-owner-sql.mjs: portable regression, referenced by Gold CI source workflow.
 - Feature configuration: LR_GOLD_SINGLE_OWNER_AUTHORITY is permanent after first successful handoff; LR_GOLD_SINGLE_OWNER_TRANSFER controls whether another transfer may be requested. No prod feature flag or SQL change authorized yet.
+
+### SQL045 installation note — 2026-11-01
+platform-v2/sql/045_gold_single_owner_authority.sql grants lr_gold_app table-specific SELECT/INSERT/UPDATE on singleton, SELECT/INSERT on history, never DELETE. GoldABV2 isolated LXD used existing PG Admin authority as explicit owner singleton bootstrap. Host Operator device account ID must NOT be inferred as that Admin identity.
