@@ -534,3 +534,11 @@ Admin Owner security emblem uses /assets/icons/material/security.svg (verified H
 - Snapshot: pre-v2-wall-native-ux-20261102. V1 production fallback intentionally preserved.
 - Human acceptance: new request Short ID R01KAP, B approved by verified Owner in GoldABV2 Account only. Owner must visually inspect private Wall /approve for native look.
 - Master handoff docs/project-book/LIGHT_REMOTE_GOLDABV2_MASTER_20261102.md updated with deployed state and test checkpoint.
+
+### 2026-11-02 — Preapproval OAuth account-device Discovery (NEW tool)
+- plugin-server/tools.mjs light_remote_discover_devices({query?,onlineOnly?}): remote:read only; for total online/name/Windows/Short ID queries BEFORE Owner B; sends through guarded OAuth identity. Existing light_remote_list_devices remains ONLY previously granted client devices; empty does not imply offline.
+- plugin-server/operator-adapter.mjs discoverAbV2Devices(): creates domain-separated signed proof with purpose discover and onlineOnly; sends /v1/plugin/abv2/device-discover; returns total, matchedTotal, onlineCount, offlineCount, max 5 matches, complete, hasMore, approvalState=not_issued, helperReady=false, requestCreated=false.
+- lib/gold-ab-v2-helper-proof.mjs: purpose discover allowed with empty targetQuery and signed onlineOnly; original resolve/issue/recover signature canonicalization unchanged. Replay TTL bound to OAuth account/client/nonce and Redis NX.
+- operator-host/gold-ab-v2-helper-target.mjs: DISCOVER route, verifies OAuth proof, Owner identity verified, narrow allowed accounts/devices and live signed enrollment/connection/policy; only reads preapproved metadata, no pending or grant issuance.
+- lib/gold-device-short-id.mjs summarizePermittedDeviceDiscovery(): count matches/online/offline with optional onlineOnly, exact/partial name/platform/architecture/ShortID/hostname, deterministic ranking online-first, cap5; listOwnerShortIdDevices returns architecture from PG schema43; >=500 rows report incomplete.
+- deploy/scripts/selftest-gold-abv2-account-device-discovery.mjs: 100 simulated devices, OS Windows=38, online/offline counts, duplicate hostname THISPC, VPS-ARM, Short ID, architecture, wrong-account denials, tampering/replay and no grant/pair; gold plugin contract 84 tools. CI job gold-connection-lifecycle-gc.yml includes test.

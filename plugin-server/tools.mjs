@@ -227,9 +227,17 @@ export function registerPluginTools(server,identity){
     return a.connectionHelper(x.helperGroup||null);
   }));
 
+  add(server,'light_remote_discover_devices',{
+    title:'Find account devices online without A/B approval',
+    description:'Use this FIRST for questions such as "How many devices are online?", "Is VPS-ARM online?", "Any Windows machines online?", or "Find Short ID R01KAP". Read-only A/B V2 Discovery lists minimal metadata for devices owned by the OAuth account BEFORE B approval. Optional query matches device name, hostname, OS, architecture or Short ID; onlineOnly=true counts only currently online matches. Returns total, onlineCount, offlineCount and at most five matching devices, with no full-fleet dump. NEVER creates a pairing request, grants access, or opens a session. To CONNECT, use light_remote_connection_helper with exact target and startAbV2=true; the Owner must approve B.',
+    inputSchema:{query:z.string().max(120).optional(),onlineOnly:z.boolean().optional()},
+    securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
+  },guarded(identity,['remote:read'],(a,x)=>
+    a.discoverAbV2Devices({query:x.query||'',onlineOnly:x.onlineOnly===true})));
+
   add(server,'light_remote_list_devices',{
     title:'List A/B-authorized Light Remote devices',
-    description:'List only devices that this plugin client has explicitly paired through Local Wall A/B approval. Targeting remains explicit; no silent fallback.',
+    description:'List ONLY devices already granted to THIS plugin client by A/B approval. An empty list does NOT mean devices are offline or absent from the account. For account-owned online counts, OS/name/Short ID search BEFORE B, use light_remote_discover_devices. No silent target fallback.',
     securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
   },guarded(identity,['remote:read'],a=>a.devices()));
 

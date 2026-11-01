@@ -58,6 +58,27 @@ export class AccountOperatorAdapter{
     const q=new URLSearchParams({accountId:this.identity.accountId}),row=await callOperatorJson('GET',`/v1/plugin/sessions?${q}`);
     return (row.sessions||[]).some(s=>s.accountId===this.identity.accountId&&s.agentId===this.agentId&&['active','hold'].includes(s.state));
   }
+  async discoverAbV2Devices({query='',onlineOnly=false}={}){
+    // Metadata only, signed with the OAuth account + independent purpose.
+    // This method never calls issue, poll, agent-client attach or sessions.
+    if(process.env.LR_GOLD_AB_V2_HELPER_TARGET_QUERY!=='1')
+      return {status:'device_discovery_unavailable',total:0,onlineCount:0,
+       matches:[],helperReady:false,approvalState:'not_issued'};
+    const proof=signGoldAbV2HelperTarget({identity:this.identity,
+      targetQuery:String(query||'').trim(),onlineOnly:onlineOnly===true,
+      purpose:'discover',key:goldAbV2HelperKey()});
+    const row=await callOperatorJson('POST',
+      '/v1/plugin/abv2/device-discover',proof);
+    return {status:'device_discovery',query:row.query??null,
+      onlineOnly:row.onlineOnly===true,total:Number(row.total)||0,
+      matchedTotal:Number(row.matchedTotal)||0,
+      onlineCount:Number(row.onlineCount)||0,
+      offlineCount:Number(row.offlineCount)||0,
+      matches:Array.isArray(row.matches)?row.matches.slice(0,5):[],
+      hasMore:row.hasMore===true,complete:row.complete===true,
+      helperReady:false,approvalState:'not_issued',
+      requestCreated:false,nextAction:'select_exact_device_before_request'};
+  }
   async resolveAbV2Target(targetQuery,{guestShare=false}={}){
     // Only a verified OAuth identity reaches this method through guarded().
     // SOURCE GATE: cannot create A/B, grant or ready while PG043 is absent.

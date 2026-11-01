@@ -143,6 +143,7 @@ on:
       - 'lib/gold-session-redis.mjs'
       - 'deploy/scripts/selftest-gold-agent-session-nickname.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-helper-target.mjs'
+      - 'deploy/scripts/selftest-gold-abv2-account-device-discovery.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-helper-tool.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-helper-issue.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-verified-grant.mjs'
@@ -300,6 +301,7 @@ jobs:
           node --check plugin-server/operator-adapter.mjs
           node --check plugin-server/tools.mjs
           node deploy/scripts/selftest-gold-ab-v2-helper-target.mjs
+          node deploy/scripts/selftest-gold-abv2-account-device-discovery.mjs
           node deploy/scripts/selftest-gold-ab-v2-helper-tool.mjs
           node --check deploy/scripts/selftest-gold-ab-v2-helper-issue.mjs
           node deploy/scripts/selftest-gold-ab-v2-helper-issue.mjs

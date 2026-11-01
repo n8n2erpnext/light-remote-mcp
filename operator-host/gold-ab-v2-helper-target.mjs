@@ -1,13 +1,15 @@
 // P2-I2g/h OAuth Helper discovery and Agent-first pending REQUEST source gate.
 // No owner B approval, durable grant issuance or Helper-ready in this module.
 import crypto from 'node:crypto';
-import {resolvePermittedDeviceTarget,listOwnerShortIdDevices,SHORT_ID_RE}
+import {resolvePermittedDeviceTarget,summarizePermittedDeviceDiscovery,
+ listOwnerShortIdDevices,SHORT_ID_RE}
  from '../lib/gold-device-short-id.mjs';
 import {GoldAbV2PendingRedis} from '../lib/gold-ab-v2-pending-redis.mjs';
 import {goldAbV2OwnerHttpConfig} from './gold-ab-v2-owner-http.mjs';
 import {goldAbV2HelperKey,verifyGoldAbV2HelperTarget,GoldAbV2HelperProofError}
  from '../lib/gold-ab-v2-helper-proof.mjs';
 const deny=(reason,status=403)=>{throw new GoldAbV2HelperProofError(reason,status)};
+const DISCOVER='/v1/plugin/abv2/device-discover';
 const RESOLVE='/v1/plugin/abv2/target-resolve';
 const ISSUE='/v1/plugin/abv2/request-issue';
 const RECOVER='/v1/plugin/abv2/request-recover';
@@ -19,7 +21,7 @@ export function createGoldAbV2HelperTarget({
  const recoverEnabled=issueEnabled&&env.LR_GOLD_AB_V2_HELPER_POLL_ATTACH==='1';
  if(issueEnabled&&!enabled)deny('abv2_helper_issue_requires_resolve',503);
  if(!enabled)return async(req,res,url)=>{
-  if(![RESOLVE,ISSUE,RECOVER].includes(url.pathname))return false;
+  if(![DISCOVER,RESOLVE,ISSUE,RECOVER].includes(url.pathname))return false;
   sendJson(res,404,{ok:false,error:'not_found'});return true;
  };
  const config=goldAbV2OwnerHttpConfig(env);
@@ -32,7 +34,7 @@ export function createGoldAbV2HelperTarget({
  const pending=issueEnabled?new GoldAbV2PendingRedis({redis:storage.redis,
   prefix:storage.prefix,sealingKey:config.sealingKey}):null;
  return async(req,res,url)=>{
-  if(![RESOLVE,ISSUE,RECOVER].includes(url.pathname))return false;
+  if(![DISCOVER,RESOLVE,ISSUE,RECOVER].includes(url.pathname))return false;
   if((url.pathname===ISSUE&&!issueEnabled)||
     (url.pathname===RECOVER&&!recoverEnabled)){
    sendJson(res,404,{ok:false,error:'not_found'});return true;
@@ -42,10 +44,12 @@ export function createGoldAbV2HelperTarget({
   }
   try{
    const issue=url.pathname===ISSUE;
+   const discover=url.pathname===DISCOVER;
    const proof=await readJson(req);
    const p=await verifyGoldAbV2HelperTarget({proof,key,
     redis:storage.redis,prefix:storage.prefix,
-    expectedPurpose:issue?'issue':url.pathname===RECOVER?'recover':'resolve'});
+    expectedPurpose:issue?'issue':url.pathname===RECOVER?'recover':
+     discover?'discover':'resolve'});
    if(!config.allowedAccounts.has(p.accountId))
     deny('abv2_helper_account_not_allowed',404);
    const account=accounts.assertOperational(p.accountId);
@@ -120,6 +124,20 @@ export function createGoldAbV2HelperTarget({
       online:d.state==='online'&&connection?.state==='connected'&&
        Number(connection.hardExpiresAt)>Date.now()});
     }catch{/* revoked/unknown device not discoverable */}
+   }
+   if(discover){
+    const listing=summarizePermittedDeviceDiscovery({
+     permittedDevices:permitted,query:p.targetQuery,
+     onlineOnly:p.onlineOnly,limit:5
+    });
+    sendJson(res,200,{ok:true,...listing,
+     status:'device_discovery',resolution:listing.status,
+     // PG listing is intentionally bounded to 500 account-owned devices.
+     // Never falsely call 500 entries an exact whole-account count.
+     complete:ownerRows.length<500,helperReady:false,
+     approvalState:'not_issued',requestCreated:false,
+     nextAction:'select_exact_device_before_request'});
+    return true;
    }
    const match=resolvePermittedDeviceTarget({permittedDevices:permitted,
     query:p.targetQuery,limit:5});

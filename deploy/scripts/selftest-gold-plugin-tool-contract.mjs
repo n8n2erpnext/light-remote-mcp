@@ -51,6 +51,7 @@ const must={
  light_remote_process:['remote:execute',false,true],
  light_remote_terminal_input:['remote:terminal',false,true],
  light_remote_list_devices:['remote:read',true,false],
+ light_remote_discover_devices:['remote:read',true,false],
  light_remote_inspect_device:['remote:read',true,false],
  light_remote_recent_activity:['remote:read',true,false],
  light_remote_read_file:['remote:read',true,false],
@@ -66,4 +67,9 @@ for(const [name,[scope,readOnly,destructive]] of Object.entries(must)){
  assert.equal(config.annotations.readOnlyHint,readOnly,name+':read_only_mismatch');
  assert.equal(config.annotations.destructiveHint,destructive,name+':destructive_mismatch');
 }
+const discovery=registered.get('light_remote_discover_devices');
+assert.match(discovery.description,/BEFORE B approval/);
+assert.match(discovery.description,/onlineOnly/);
+assert.match(registered.get('light_remote_list_devices').description,
+ /An empty list does NOT mean devices are offline/);
 console.log('G1_GOLD_MCP_TOOL_METADATA_CONTRACT=PASS registered='+registered.size);
