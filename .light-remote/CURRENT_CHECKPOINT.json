@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-01",
-  "status": "goldabv2_b_approval_source_tested_wrong_legacy_wall_path_pending_lab_release",
+  "status": "goldabv2_owner_approval_account_portal_and_signed_shortid_verified_source_ready",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -99,7 +99,8 @@
     "2026-11-02 post-handoff read-only recheck: lab device dev_2e6ca4ded175829131a280e9 has signed enrollment for new verified Owner, cloud connected, no pending enrollment. Legacy dev_e68276c691ba5413f42d5dde Short ID X3AQQ6 stays with disabled old Owner. New device has no lr_gold_device_short_ids row and no lr_ab_grants row. Full 255-line master handoff created on VPS and in project-book; do not relink again.",
     "2026-11-02: Actual official AB plugin list_devices returned [] and Helper returned abv2_helper_account_not_allowed. Lab operator allowlist still old disabled account; Wall static Short ID X3AQQ6 belongs old device. Source lifecycle patch and scoped Owner recovery tested locally; no grant approved.",
     "2026-11-02: GoldABV2 Operator source fa12eea2 deployed under LXD snapshot pre-new-owner-shortid-20261102. Updated ABV2 lab Owner/Device allowlist to NEW verified Owner/new signed device only. DB auto-created new Short ID R01KAP; official AB helper targetQuery=R01KAP returned one ONLINE matching device, approval not issued. list_devices intentionally [] until human B; Wall banner static X3AQQ6 remains outdated and needs UI-only correction.",
-    "2026-11-02: Real AB V2 request pending R01KAP returned misleading owner_v2_b_approval_not_enabled despite Operator and Plugin owner approval gates all enabled. Root: hardcoded Helper nextAction, incorrect Wall V2 Owner-account link to production, outdated Account onboarding V1 approval instruction. Fixed source for /account V2 approval and recover, retained V1 separate, no B entered. Owner HTTP/PG signed consent/grant/per-Agent 24h regression PASS; pending lab-only release."
+    "2026-11-02: Real AB V2 request pending R01KAP returned misleading owner_v2_b_approval_not_enabled despite Operator and Plugin owner approval gates all enabled. Root: hardcoded Helper nextAction, incorrect Wall V2 Owner-account link to production, outdated Account onboarding V1 approval instruction. Fixed source for /account V2 approval and recover, retained V1 separate, no B entered. Owner HTTP/PG signed consent/grant/per-Agent 24h regression PASS; pending lab-only release.",
+    "2026-11-02: Fixed misleading Helper owner_v2_b_approval_not_enabled (flags already ON) and redirected V2 B action/recovery to GoldABV2 /account; Wall V1-locked Owner link now lab Account not production. Signed Operator preview provides current verified owner scoped Short ID to Wall, ignores stale X3AQQ6 systemd env without rewriting protected config; missing cosmetic DB code cannot block B. Full Owner CSRF signed Wall + PG durable grant + 24h test suite PASS. LXD snapshot pre-abv2-owner-b-ux-20261102 already taken, pending deploy."
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -150,7 +151,7 @@
     "Agent V2 no-arg recovery source is newly changed; not yet deployed, not yet GitHub CI-verified and cannot pass physical Owner B→Helper 24h end-to-end while live PG043 is unregistered. Keep source, runtime and UI acceptance distinct.",
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID."
   ],
-  "nextAction": "Commit source after Project Truth guard; snapshot isolated GoldABV2; deploy Operator+Plugin+Wall only. Check /account A/B V2 panel and pending request using owner session, update stale Wall Short ID env only if permitted by protected policy, otherwise leave explicitly pending. Owner initiate FRESH request R01KAP and approve B directly at https://goldabv2.light-remote.thaiduy.digital/account; no AI auto grant. Verify 24h grant after owner approves.",
+  "nextAction": "Commit signed Short ID followup; stage same source into lab under new commit after LXD pre-abv2-owner-b-ux-20261102 snapshot; switch only operator+plugin+wall services; confirm /account and signed Wall V2 display R01KAP and 4/4 healthy. Owner reissue NEW B and approve from GoldABV2 /account; observe durable grant and readiness, never approve code as assistant.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -163,10 +164,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "484bbe558b902262e6206328c368d4eb68e6af6a67dc268f201593d6be556feb",
+    "treeDigest": "ac88d219566077d33c8f45f7079f3c52b42f07b43c6dd909becfc16515325ebd",
     "trackedFiles": 1140,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-01T20:53:21.830Z"
+    "recordedAt": "2026-11-01T20:57:53.167Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",

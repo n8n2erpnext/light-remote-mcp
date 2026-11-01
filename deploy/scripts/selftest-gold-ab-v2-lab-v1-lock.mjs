@@ -33,7 +33,7 @@ try{
  const owner={'x-test-owner':'owner'};
  const home=await (await fetch(host+'/',{headers:owner})).text();
  assert.match(home,/id="abV2WallStatus"/);
- assert.match(home,/Short ID X3AQQ6/);
+ assert.doesNotMatch(home,/Short ID X3AQQ6/,'stale lab env is not device identity');
  assert.match(home,/V1 locked/);
  assert.match(home,/class="paircontrol" style="display:none"/);
  assert.match(home,/const labAbV2Only=true/);

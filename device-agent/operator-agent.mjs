@@ -1307,7 +1307,8 @@ async function remoteAbV2PendingPreview(hub=DEFAULT_HUB,{wallUsername}={}){
    result.deviceId!==state.enrollment.deviceId)
   throw Object.assign(new Error('abv2_signed_preview_invalid'),{status:503});
  assertNotificationOwnerEmail(result.accountEmail,wallUsername);
- return {ok:true,ownerApproveEnabled:result.ownerApproveEnabled===true,
+ return {ok:true,shortId:/^[0-9A-HJKMNP-TV-Z]{6}$/.test(String(result.shortId||''))
+  ?result.shortId:null,ownerApproveEnabled:result.ownerApproveEnabled===true,
   pending:result.pending.slice(0,5).map(row=>({
   requestId:row.requestId,state:row.state,attempt:row.attempt,
   expiresAt:row.expiresAt,aCode:row.aCode,

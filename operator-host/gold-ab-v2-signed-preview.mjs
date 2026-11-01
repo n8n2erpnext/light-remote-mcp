@@ -59,7 +59,22 @@ export function createGoldAbV2SignedPreview({
    connectionId:connection.connectionId,limit:5});
   if(!Array.isArray(rows)||rows.length>5)
    deny('abv2_pending_result_invalid',503);
-  return {ok:true,deviceId,accountEmail,
+  // Display-only identity: resolved from the currently enrolled, signed
+  // device + verified account, never a stale Wall environment variable.
+  // A temporary Short ID DB failure must NOT disable human B approval.
+  let shortId=null;
+  if(typeof storage?.pool?.query==='function'){
+   try{
+    const r=await storage.pool.query(
+     "SELECT s.short_id FROM lr_gold_device_short_ids s "+
+     "JOIN lr_devices d ON d.device_id=s.device_id "+
+     "WHERE s.device_id=$1 AND d.owner_account_id=$2 AND d.state<>'revoked' LIMIT 1",
+     [deviceId,ownerAccountId]);
+    const value=String(r?.rows?.[0]?.short_id||'');
+    if(/^[0-9A-HJKMNP-TV-Z]{6}$/.test(value))shortId=value;
+   }catch{/* Owner B authorization remains independent of UI metadata */}
+  }
+  return {ok:true,deviceId,accountEmail,shortId,
    ownerApproveEnabled:env.LR_GOLD_AB_V2_WALL_SIGNED_APPROVE==='1'&&
     env.LR_GOLD_AB_V2_WALL_OWNER_CONSENT==='1',
    pending:rows.map(safeGoldAbV2Pending)};

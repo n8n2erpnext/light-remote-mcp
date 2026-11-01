@@ -511,3 +511,9 @@ Admin Owner security emblem uses /assets/icons/material/security.svg (verified H
 - device-agent/local-wall.mjs: in isolated LAB V1 lock only, link "Owner account" in V2 preview uses https://goldabv2.light-remote.thaiduy.digital/account; stale Short ID badge polling fix included, no production Wall URL change.
 - plugin-server/account-portal/index.html: Account portal tells V2 user to select the device under A/B V2 pending, enter Agent B and Approve Agent; V1 Local Wall /approve only on V1 systems. No new B approval permissions or privileges.
 - deploy/scripts/selftest-gold-abv2-owner-approval-navigation.mjs and selftest-gold-abv2-wall-short-id-display.mjs: source checks in Gold CI for correct routing and retained Short ID after async badge refresh. Existing signed Owner/PG grant tests validate actual grant security.
+
+### 2026-11-02 — Signed current Owner Short ID preview
+- operator-host/gold-ab-v2-signed-preview.mjs: signed enrolled device-channel read-only Short ID from lr_gold_device_short_ids joined to lr_devices scoped to verified owner/current device; optional cosmetic field, not B authorization.
+- device-agent/operator-agent.mjs: check 6-char Short ID before forwarding verified preview; no B, account or device secret forwarding.
+- device-agent/local-wall.mjs: /api/abv2/pending reports verified current shortId; no lab static env X3AQQ6 on initial V1-locked UI; signed dynamic update for pending or standby. Owner link in V1-locked lab goes to GoldABV2 account.
+- deploy/scripts/selftest-gold-ab-v2-signed-preview.mjs, selftest-gold-abv2-wall-short-id-display.mjs, selftest-gold-ab-v2-lab-v1-lock.mjs: tests for source scope, no stale id, safe dynamic status.
