@@ -129,8 +129,8 @@ function PendingApprovals() {
     <Card className="approval-card">
       <CardHeading description="Owner-verified A/B V2 requests">PENDING APPROVALS</CardHeading>
       <div className="approval-surface">
-        <h3>No signed requests</h3>
-        <p>Requests appear only after signed Agent discovery.</p>
+        <h3>Approval requests not verified</h3>
+        <p>The Owner request list is unavailable until signed Agent discovery and authorization are verified.</p>
         <div className="approval-state">
           <span className="eyebrow">STANDBY · DEVICE SHORT ID</span>
           <strong>—</strong>

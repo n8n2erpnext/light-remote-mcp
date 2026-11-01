@@ -1,0 +1,24 @@
+[package]
+name = "light-remote-desktop-v4-pilot"
+version = "0.1.0"
+description = "Light Remote V4 UI-only native shell pilot"
+authors = ["Thai Duy Digital"]
+edition = "2021"
+rust-version = "1.77.2"
+build = "build.rs"
+publish = false
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+
+[profile.dev]
+incremental = true
+
+[profile.release]
+codegen-units = 1
+lto = true
+panic = "abort"
+strip = "symbols"

@@ -6,3 +6,7 @@ coverage/
 .env
 .env.*
 !.env.example
+
+src-tauri/target/
+visual-evidence/
+src-tauri/gen/

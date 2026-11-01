@@ -430,3 +430,11 @@ Source: client/windows-native/GptOperator.Client/{TrayPopoverForm.cs,Program.cs,
 - Tests: `src/lib/{routes,status}.test.ts`, `src/App.test.tsx`; Node22 Vite8 TypeScript7 build and 12 tests PASS on ARM.
 - Figma source: responsive AI Access 55:5880 (light/wide), 55:5955 (light/stacked), 55:6030 (dark/wide), 55:6127 (dark/stacked). Older 52 V4 design frames remain DRAFT; source-only pilot **does not** grant Design Freeze.
 - API gaps: Owner A/B pending/B approval SQL043 gated, sessions/leases/revoke, enrollment/relink, plan usage, signed monitor, Memory/Codex module commands, native Tauri2 shell and 100/125/150/200% physical DPI. Each must pass signed Owner/Agent/CSRF/capability review before UI action becomes enabled. No Gold backend or installed client changes.
+
+## 2026-11-01 — Native Tauri2 PILOT / CI-only trust boundary
+
+- `client/desktop-v4/src-tauri/tauri.conf.json`: independent package id `digital.thaiduy.lightremote.v4pilot`, **zero native capabilities**, `withGlobalTauri:false`, CSP self-only for scripts/net/fonts/images, browser preview origin isolated; no app bundling/installer release. Actual Owner-scope must come from a separately reviewed authenticated Wall session or allowlisted native IPC; no privileged operations at all in this binary.
+- `client/desktop-v4/src-tauri/src/main.rs`: `tauri::Builder::default().run(...)` only. No `invoke_handler`, plugins, native Agent spawn, shell, file system or process operations. Build only on GitHub runners.
+- `client/desktop-v4/src/lib/native-shell.test.ts`: fail-closed regression tests for empty permissions, absent privileged APIs and CSP.
+- `client/desktop-v4/e2e/visual-smoke.mjs`: isolated Playwright test intercepting `/api/**` to HTTP401, eight viewport/theme combinations with screenshot and geometry evidence; never contacts Owner Wall.
+- `.github/workflows/desktop-v4-native-ci.yml`: branch-gated Vite/test/Chromium CI and cross-platform Tauri no-bundle binaries on GitHub Windows/macOS/Linux with short-lived artifacts. **No on-VPS builds** after owner-requested cleanup. Critical: compiled native shell does NOT imply A/B V2 SQL043 enabled, Owner access or desktop physical DPI acceptance.

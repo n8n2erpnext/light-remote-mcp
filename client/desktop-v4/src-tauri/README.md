@@ -1,0 +1,17 @@
+# Tauri 2 shell proof — NO Agent/Owner privileges
+
+Tauri 2 native window hosts the *existing built React UI*, no duplicate Agent or background service. Initial pilot deliberately refuses:
+- `invoke_handler`, custom Rust commands, any Tauri plugin, filesystem/process/shell execution.
+- Broad `core:default` capabilities. `app.security.capabilities` is empty and global Tauri injection disabled.
+- Launching Local Wall or obtaining Owner authentication / CSRF from the native process.
+- Any SQL migration, Operator/Gold deployment, update to installed Windows rc49.
+
+The native webview has its **own origin** and same-origin `/api/status` will fail closed (local device unverified); it does **not** silently fetch from the real Owner Wall. The only current native functionality is opening/closing/resizing the V4 UI window.
+
+To validate: `npm run build && npm run tauri:check` (Rust + WebKitGTK libraries required); `npm run tauri:build` when UI preview is acceptable and native toolchain is available. `bundle.active=false` means the test does not ship an installer. Avoid placing a production app id next to this isolated pilot.
+
+Required next: a constrained, authenticated native bridge with explicit status-only IPC, OS-specific tray icon/window lifecycle and recovery without Agent duplication; separately review the signed Owner permission boundary before exposing any mutation. Need physical Windows10 150%/Win11/macOS/Linux GUI E2E.
+
+## No more build on VPS-ARM
+
+Owner requested GitHub Actions builds only. Use `.github/workflows/desktop-v4-native-ci.yml` for Rust release compilation on GitHub Windows/macOS/Linux runners and for browser visual screenshots. VPS-ARM is for SSH Git push, source and evidence only. Do **not** run `cargo build`, `tauri build`, `npm ci` or install packages locally on ARM just to check this pilot. The source and Rust lockfile are preserved; local build artifacts have been removed.

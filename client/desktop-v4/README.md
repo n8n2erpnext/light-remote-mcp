@@ -65,3 +65,13 @@ The development server is intentionally unauthenticated and does **not** proxy t
 3. Visual screenshot comparisons at 1280 and 1024, both themes; intermediate and narrow widths.
 4. Physical Windows 10/11 100/125/150/200% DPI, macOS WebKit, Linux WebKitGTK and Linux headless Wall browser.
 5. Complete Figma mapping and owner review of all 16 primary screens + safety state flows, then release-gated cutover from WinForms.
+
+## Native shell / CI-only build policy — 2026-11-01
+
+Owner requires **GitHub Actions runners for all native and browser builds**, not VPS-ARM SSD. Workflow: `.github/workflows/desktop-v4-native-ci.yml`, triggered on V4 branch pushes or manual dispatch. VPS-ARM is only the authenticated SSH Git source control endpoint, for small source/docs/handoff and QA evidence; do not run `cargo build`, Tauri release, `npm ci`, Chromium downloads or install software on the VPS in follow-up coding sessions.
+
+CI workflow uses Node 22 and a scoped npm lockfile, Vitest (15 checks), headless Chromium visual tests at 8 theme/breakpoint combinations and isolated Tauri 2 **no-bundle UI-only native executable** builds on Windows/macOS/Linux GitHub-hosted runners. UI screenshots and short-lived unsigned test binaries are GitHub Actions artifacts. No rollout to existing Agent/Wall or Gold UAT is authorized.
+
+The first ARM `cargo check` passed on 2026-11-01, but the subsequent local release build was explicitly stopped on owner's instruction; ARM-specific target cache and temporary V4 dependencies were removed. This is **not** physical native GUI acceptance. Native Tauri capabilities default to empty and Rust has no privileged commands/plugins; Owner/API mutations remain disabled.
+
+Never copy GitHub CI binary onto owner's real device without separately confirming security, signed API boundary, physical DPI and release gates.
