@@ -480,3 +480,7 @@ Admin Owner security emblem uses /assets/icons/material/security.svg (verified H
 - operator-host/enrollment-registry.mjs + operator-host/device-registry.mjs: cross-account same public key can be reused ONLY if old binding was explicitly revoked. Both source-of-truth registries must agree.
 - deploy/scripts/selftest-device-agent-cli.mjs + deploy/scripts/selftest-linux-server-relink.mjs: signed relink and account takeover/revoke cross-account regression.
 - docs/project-book/LIGHT_REMOTE_ABV2_ACCOUNT_LOGIN_SECURITY_RESEARCH_HANDOFF.md: research ONLY about unknown browser logins, email OTP, Apple-style trusted device approvals, unusual concurrent geographic login; NO 2FA deployed.
+
+### 2026-11-02 — Linux helper CLI guidance follow-up after Lab installation
+- device-agent/relink-linux-server.py: helper prints actual Activation URL usage rather than assuming /account menu labels; final poll only counts as completed when returned enrollment state is approved. sudo light-remote-device status autodetects existing Agent unit; CLI at root:root mode0700. Executable is installed into GoldABV2 lab /usr/local/sbin/light-remote-device. No change to backend, A/B V2 or device owner in this docs-only release.
+- GoldABV2 operator-host/device-registry.mjs & device-agent/operator-agent.mjs remain at source commit 665daa91; latest docs/helper text update does not require service restart. Security login risk research remains proposal-only.

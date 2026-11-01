@@ -138,11 +138,11 @@ def main():
             ["runuser", "-u", user_name, "--", node_bin, agent, *action],
             cwd=workdir, env=env, check=False, timeout=45 if args.action in ("link", "relink", "status") else 60)
         if result.returncode == 0 and args.action in ("link", "relink"):
-            print("\nApprove the displayed code in GoldABV2 Account → Devices → Add device.")
+            print("\nOpen the Activation URL shown above, sign in to the intended account, and approve the code.")
             print("Then run: sudo light-remote-device complete" +
                   " --unit " + args.unit)
         if result.returncode == 0 and args.action == "complete":
-            print("Poll complete; device state remains cloud-dormant until the owner explicitly connects.")
+            print("Check the enrollment state above. Only approved completes Link/Relink; access stays cloud-dormant.")
         return result.returncode
     finally:
         if args.action != "status" and was_active:
