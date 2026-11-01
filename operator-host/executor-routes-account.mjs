@@ -1,13 +1,13 @@
 import {verifyTeamMemberAuthorization} from './team-member-auth.mjs';
 import {authorizeTrustedTeamDispatch} from './team-dispatch-authority.mjs';
 export async function handleAccountRoutes(req,res,url,deps){
-  const {adminJobRecovery,deviceBootObservations,ACCOUNT_ID,AccountError,DEVICE_ID,accountSessionToken,accounts,accountNotifications,allDeviceViews,capabilities,clearMainIfMatches,closeRuntimeForAccount,compatibilityFor,devices,enrollments,fleet,fleetAuthority,licenses,planEntitlements,proTeams,teamSessions,requestTeamMemberApproval,operationalAccount,accessGrants,connections,targetRoute,verifyTeamPrincipal,queueHelperUpdate,readJson,removeRuntimeForDevice,requireAccount,revokeRuntimeForDevice,sendJson,usage,wakeDeviceChannelForDevice}=deps;
+  const {adminJobRecovery,deviceBootObservations,ACCOUNT_ID,AccountError,DEVICE_ID,accountSessionToken,accounts,accountNotifications,allDeviceViews,capabilities,flushGoldRegistries,clearMainIfMatches,closeRuntimeForAccount,compatibilityFor,devices,enrollments,fleet,fleetAuthority,licenses,planEntitlements,proTeams,teamSessions,requestTeamMemberApproval,operationalAccount,accessGrants,connections,targetRoute,verifyTeamPrincipal,queueHelperUpdate,readJson,removeRuntimeForDevice,requireAccount,revokeRuntimeForDevice,sendJson,usage,wakeDeviceChannelForDevice}=deps;
     // Stronger than the legacy internal /v1/admin APIs: verify the owner session
     // independently in Operator, not merely in the plugin /admin proxy.
     if(url.pathname==='/v1/admin/job-recovery'||
        /^\/v1\/admin\/job-recovery\/[a-f0-9-]{36}\/retire$/i.test(url.pathname)){
       const principal=requireAccount(req,{touch:false}).account;
-      if(String(principal.accountId)!==String(process.env.LIGHT_REMOTE_ADMIN_ACCOUNT_ID||'direct-production-local'))
+      if(principal.isOwner!==true)
         throw new AccountError('admin_account_required',403);
       if(!adminJobRecovery)throw new AccountError('gold_admin_job_recovery_unavailable',503);
       if(req.method==='GET'&&url.pathname==='/v1/admin/job-recovery'){
@@ -27,6 +27,53 @@ export async function handleAccountRoutes(req,res,url,deps){
         return sendJson(res,outcome.ok?200:409,outcome);
       }
       throw new AccountError('gold_admin_recovery_method_invalid',405);
+    }
+    if(url.pathname==='/v1/admin/owner-authority' ||
+       url.pathname==='/v1/admin/owner-transfer'){
+      if(process.env.LR_GOLD_SINGLE_OWNER_AUTHORITY!=='1'||
+         process.env.LR_GOLD_SINGLE_OWNER_TRANSFER!=='1')
+        throw new AccountError('owner_handoff_feature_disabled',404);
+      const principal=requireAccount(req,{touch:false}).account;
+      if(principal.isOwner!==true||principal.accountId!==accounts.ownerAccountId)
+        throw new AccountError('admin_account_required',403);
+      const previousOwnerDevices=allDeviceViews().filter(
+       d=>d.accountId===principal.accountId&&d.state!=='revoked');
+      if(req.method==='GET'&&url.pathname==='/v1/admin/owner-authority'){
+       return sendJson(res,200,{ok:true,ownerAccountId:accounts.ownerAccountId,
+        ownerRevision:accounts.ownerRevision,
+        previousOwnerDeviceCount:previousOwnerDevices.length,
+        candidates:accounts.list().filter(
+         a=>a.accountId!==accounts.ownerAccountId&&a.status==='active'&&
+           a.emailVerified===true&&a.authProviders.includes('password'))
+         .map(a=>({accountId:a.accountId,email:a.email,emailVerified:a.emailVerified,
+          status:a.status,plan:a.plan}))});
+      }
+      if(req.method!=='POST')throw new AccountError('owner_transfer_method_invalid',405);
+      const body=await readJson(req);
+      if(typeof flushGoldRegistries!=='function')
+        throw new AccountError('owner_transfer_durable_store_unavailable',503);
+      // Drain prior account writes before changing admin identity in memory.
+      await flushGoldRegistries();
+      const result=accounts.transferOwner({fromAccountId:principal.accountId,
+       toAccountId:body.toAccountId,currentPassword:body.currentPassword,
+       confirmText:body.confirmText,
+       acknowledgeDeviceIsolation:body.acknowledgeDeviceIsolation===true,
+       previousOwnerDeviceCount:previousOwnerDevices.length});
+      // Do not acknowledge the transfer until the single typed PG transaction
+      // has committed Owner revision, account status and session invalidation.
+      try{
+        await flushGoldRegistries();
+        accounts.confirmOwnerTransfer(result.ownerRevision);
+      }catch(error){
+        try{accounts.rollbackOwnerTransfer(result.ownerRevision);}
+        catch(rollbackError){
+          throw new AccountError('owner_transfer_rollback_requires_operator_restart',503);
+        }
+        throw new AccountError('owner_transfer_not_durable',503);
+      }
+      const closedDevices=closeRuntimeForAccount(principal.accountId,'account_owner_transferred');
+      fleetAuthority.invalidateAccount(principal.accountId,'account_owner_transferred');
+      return sendJson(res,200,{...result,closedDevices});
     }
     if (req.method === 'GET' && url.pathname === '/v1/admin/overview') {
       const accountRows=accounts.list(),deviceRows=allDeviceViews(),current=accountRows.map(account=>({account,entitlements:planEntitlements(account),usage:usage.summary(account.accountId,{months:1})}));

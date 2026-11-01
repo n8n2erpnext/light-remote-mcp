@@ -443,3 +443,13 @@ Source: client/windows-native/GptOperator.Client/{TrayPopoverForm.cs,Program.cs,
 - client/core-files.json stages lib/gold-ab-v2-lab-v1-lock.mjs alongside packaged device-agent/local-wall.mjs. CI package smoke checks the bundled import.
 - deploy/scripts/install-host.sh copies 18 missing current Operator/Wall imported lib modules plus device-agent/wall-ab-v2-preview.mjs to host Wall runtime.
 - deploy/scripts/selftest-host-install-layout.mjs checks executor imports against the actual installer lib manifest and asserts Wall V2 preview module staged. Local host/Wall source package parity tests PASS; isolated CI retest required.
+
+### Gold single-Owner transfer — 2026-11-01
+
+- operator-host/account-registry.mjs: persistent ownerAccountId/revision, pending handoff state, password reauthentication, target email verification, source disable, both account session invalidation, rollback/commit and dynamic isOwner/disableProtected.
+- platform-v2/sql/045_gold_single_owner_authority.sql: NOT in signed migration lock; disposable lab only until release approval. Singleton with CHECK ID=1, typed FK, revision, handoff audit table.
+- lib/gold-native-account-aux.mjs: opt-in SQL045 Owner read/write and SELECT FOR UPDATE CAS with stale-writer denial, same transaction as account status/session updates. lib/gold-registry-persistence.mjs: two owner scalars hydration and refusal to guess current Admin from OPERATOR_ACCOUNT_ID.
+- operator-host/executor-routes-account.mjs: strict authenticated Owner GET authority and POST transfer, password/confirmation/device acknowledgement, flush before+after, finalize/rollback, legacy device runtime revocation; Job Recovery dynamic Owner authority.
+- plugin-server/admin-portal.mjs and plugin-server/admin-portal/index.html: dynamically authorized Admin, exact-origin transfer route, verified-target UI, reauth and typed confirmation, immediate re-login.
+- deploy/scripts/selftest-gold-single-owner-transfer.mjs and selftest-gold-single-owner-sql.mjs: portable regression, referenced by Gold CI source workflow.
+- Feature configuration: LR_GOLD_SINGLE_OWNER_AUTHORITY is permanent after first successful handoff; LR_GOLD_SINGLE_OWNER_TRANSFER controls whether another transfer may be requested. No prod feature flag or SQL change authorized yet.

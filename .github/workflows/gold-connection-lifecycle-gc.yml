@@ -8,6 +8,12 @@ on:
       - 'lib/gold-connection-job-reaper.mjs'
       - 'operator-host/gold-admin-job-recovery.mjs'
       - 'operator-host/executor-routes-account.mjs'
+      - 'operator-host/account-registry.mjs'
+      - 'lib/gold-registry-persistence.mjs'
+      - 'lib/gold-native-account-aux.mjs'
+      - 'platform-v2/sql/045_gold_single_owner_authority.sql'
+      - 'deploy/scripts/selftest-gold-single-owner-transfer.mjs'
+      - 'deploy/scripts/selftest-gold-single-owner-sql.mjs'
       - 'plugin-server/admin-portal.mjs'
       - 'plugin-server/admin-portal/index.html'
       - 'plugin-server/admin-portal/job-recovery.js'
@@ -381,6 +387,8 @@ jobs:
           node deploy/scripts/selftest-gold-connection-job-gc.mjs
           node deploy/scripts/selftest-gold-admin-gc-transaction.mjs
           node deploy/scripts/selftest-gold-admin-job-recovery.mjs
+          LR_GOLD_SINGLE_OWNER_AUTHORITY=1 LR_GOLD_SINGLE_OWNER_TRANSFER=1 node deploy/scripts/selftest-gold-single-owner-transfer.mjs
+          node deploy/scripts/selftest-gold-single-owner-sql.mjs
           node deploy/scripts/selftest-gold-gc-revoked-ownerless.mjs
           node deploy/scripts/selftest-gold-connection-gc-races.mjs
           node deploy/scripts/selftest-gold-reconnect-proof.mjs
