@@ -75,3 +75,7 @@ CI workflow uses Node 22 and a scoped npm lockfile, Vitest (15 checks), headless
 The first ARM `cargo check` passed on 2026-11-01, but the subsequent local release build was explicitly stopped on owner's instruction; ARM-specific target cache and temporary V4 dependencies were removed. This is **not** physical native GUI acceptance. Native Tauri capabilities default to empty and Rust has no privileged commands/plugins; Owner/API mutations remain disabled.
 
 Never copy GitHub CI binary onto owner's real device without separately confirming security, signed API boundary, physical DPI and release gates.
+
+## Windows screenshot review: correct fonts and distinct feature layouts
+
+The first native screenshots exposed two gaps now corrected in the source: slider-styled Settings icons instead of the Figma toothed gear, and six generic access placeholder pages. `src/FeatureScreens.tsx` now provides distinct Sessions, Live Monitor, Devices, Long Memory, Codex Bridge and Account structure while leaving all unauthenticated/privileged controls disabled. `src/styles.css` imports the Git-tracked `assets/fonts/web/GoogleSans-Variable.ttf` directly into the Vite output. This is the internal **Google Sans** variable font, not a verified exact separately named **Google Sans Flex** binary. See `licenses/README.md` and SIL OFL. Chromium CI verifies the font resource was actually loaded (not the Windows fallback) and captures screenshots for 8 responsive AI Access sizes/theme variants plus 12 route-theme specimens. Do not compile/install on VPS-ARM; use GitHub Actions.

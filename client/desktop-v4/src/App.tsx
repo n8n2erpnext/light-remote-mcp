@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   Activity, Bell, Database, House, Monitor, RefreshCcw,
-  Settings2, Shield, Terminal, UserRound, Users, CircleHelp,
-  CheckCircle2, ShieldAlert, type LucideIcon
+  Settings, Shield, Terminal, UserRound, Users, CircleHelp,
+  ShieldAlert, type LucideIcon
 } from 'lucide-react';
+import { FeatureScreen } from './FeatureScreens';
 import { Button } from './components/ui/button';
 import { Card, CardHeading } from './components/ui/card';
 import { navRoutes, parseRoute, routeHref, type RouteKey } from './lib/routes';
@@ -18,7 +19,7 @@ const iconMap: Record<(typeof navRoutes)[number]['icon'], LucideIcon> = {
   database: Database,
   terminal: Terminal,
   user: UserRound,
-  settings: Settings2
+  settings: Settings
 };
 
 type ThemePreference = 'light' | 'dark' | 'system';
@@ -242,66 +243,6 @@ function Overview({ status, navigate }: {
   );
 }
 
-const gatedScreens: Partial<Record<RouteKey, {
-  heading: string;
-  intro: string;
-  features: string[];
-  gate: string;
-}>> = {
-  sessions: {
-    heading: 'Session authority required',
-    intro: 'Per-Agent nicknames, session lifecycle and 24-hour leases must come from an authenticated session source.',
-    features: ['Active / held / revoked', 'Lease expiry and session names', 'Manual close with signed receipts'],
-    gate: 'Sessions remain read-only and unavailable until the source contract is verified.'
-  },
-  'live-monitor': {
-    heading: 'Waiting for verified Agent events',
-    intro: 'Running, queued, stop-requested and terminal results must be sourced from signed execution records.',
-    features: ['Live redacted activity', 'Job / process details', 'Stop requested is not a terminal state'],
-    gate: 'No synthetic logs or fabricated execution states.'
-  },
-  devices: {
-    heading: 'Devices and enrollment',
-    intro: 'New Link and Relink require trusted device identity, signed enrollment and explicit Owner verification.',
-    features: ['New Link · Owner approval', 'Relink · identity preservation', 'Offline diagnostics and recovery'],
-    gate: 'No device enumeration or owner action has been authorized by this preview.'
-  },
-  'long-memory': {
-    heading: 'Long Memory',
-    intro: 'Local Home/Replica selection and sync modes require device-scoped capabilities and true module state.',
-    features: ['Auto / Follow Project / Manual', 'Storage and last-sync receipts', 'Archive / delete with explicit scope'],
-    gate: 'Module status has not been wired to this shell.'
-  },
-  'codex-bridge': {
-    heading: 'Codex Bridge',
-    intro: 'Optional local Codex observer and task management depend on installed runtime and permission gates.',
-    features: ['Observer state', 'Task history and edit', 'Delete / stop with explicit confirmation'],
-    gate: 'No Codex process can be started from this preview.'
-  },
-  account: {
-    heading: 'Account and plan',
-    intro: 'Sign-in, plan, quotas and usage per device require verified account ownership and server-issued totals.',
-    features: ['Owner identity', 'Plan and quota', 'Device usage by month'],
-    gate: 'Unknown plan or call counts remain blank; sign-out is not implemented here.'
-  }
-};
-
-function GatedScreen({ route }: { route: RouteKey }) {
-  const detail = gatedScreens[route];
-  if (!detail) return null;
-  return (
-    <div className="screen-content">
-      <Card className="gated-panel">
-        <div className="gated-symbol"><Shield size={25} aria-hidden="true" /></div>
-        <h2>{detail.heading}</h2>
-        <p>{detail.intro}</p>
-        <ul>{detail.features.map(item => <li key={item}><CheckCircle2 size={16} aria-hidden="true" />{item}</li>)}</ul>
-        <div className="gated-note"><ShieldAlert size={17} aria-hidden="true" />{detail.gate}</div>
-      </Card>
-    </div>
-  );
-}
-
 function SettingsPage({ theme, choose, status }: {
   theme: ThemePreference;
   choose: (theme: ThemePreference) => void;
@@ -409,7 +350,7 @@ export function App() {
           <div className="header-actions">
             <Bell size={19} aria-hidden="true" className="header-symbol" />
             <Button variant="ghost" size="icon" aria-label="Open Settings" onClick={() => navigate('settings')}>
-              <Settings2 size={19} aria-hidden="true" />
+              <Settings size={19} aria-hidden="true" />
             </Button>
             <Button variant="ghost" size="icon" aria-label="Refresh verified Local Wall status"
               title="Refresh read-only Local Wall device state"
@@ -422,7 +363,7 @@ export function App() {
         {route === 'overview' ? <Overview status={status} navigate={navigate} />
           : route === 'ai-access' ? <AiAccess status={status} />
             : route === 'settings' ? <SettingsPage theme={theme} choose={choose} status={status} />
-              : <GatedScreen route={route} />}
+              : <FeatureScreen route={route} status={status.result} />}
         <footer className="page-footer">
           <CircleHelp size={14} aria-hidden="true" />
           Desktop V4 pilot · no native Agent control or Owner grant mutations

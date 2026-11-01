@@ -108,6 +108,15 @@ try {
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.goto('http://127.0.0.1:4174/#/ai-access', { waitUntil: 'networkidle' });
+    // Wait for the bundled variable font, not an OS fallback font.
+    const fontLoaded = await page.evaluate(async () => {
+      await document.fonts.load("400 16px 'Light Remote Google Sans'");
+      await document.fonts.ready;
+      return Array.from(document.fonts).some(
+        face => face.family === 'Light Remote Google Sans' && face.status === 'loaded'
+      );
+    });
+
     await page.evaluate(theme => {
       localStorage.setItem('lr-v4-theme', theme);
       document.documentElement.dataset.theme = theme;
@@ -120,6 +129,7 @@ try {
     await page.screenshot({ path: png, fullPage: true, animations: 'disabled' });
     const passed =
       errors.length === 0 &&
+      fontLoaded &&
       detail.navCount === 9 &&
       detail.settingsVisibleInDom &&
       detail.ownerActionDisabled &&
@@ -128,8 +138,52 @@ try {
       !detail.mainHorizontalScroll &&
       detail.cardOverflow.length === 0 &&
       detail.columnCountObserved === variant.columns;
-    results.push({ key, passed, errors, ...detail, screenshot: png });
+    results.push({ key, passed, fontLoaded, errors, ...detail, screenshot: png });
     console.log(`${passed ? 'PASS' : 'FAIL'} ${key}: columns=${detail.columnCountObserved} nav=${detail.navCount} overflow=${detail.cardOverflow.length} horizontalScroll=${detail.mainHorizontalScroll}`);
+    await context.close();
+  }
+
+  // Validate the six originally Figma-designed feature pages in the real
+  // Chromium renderer. The display must never imply verified Owner records.
+  const featureRoutes = ['sessions', 'live-monitor', 'devices', 'long-memory', 'codex-bridge', 'account'];
+  for (const theme of ['light', 'dark']) {
+    const context = await browser.newContext({
+      viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1, colorScheme: theme
+    });
+    const page = await context.newPage();
+    await page.route('**/api/**', route => route.fulfill({
+      status: 401, contentType: 'application/json',
+      body: JSON.stringify({ ok: false, error: 'visual_qa_unauthenticated' })
+    }));
+    const errors = [];
+    page.on('pageerror', error => errors.push(error.message));
+    for (const route of featureRoutes) {
+      await page.goto('http://127.0.0.1:4174/#/' + route, { waitUntil: 'networkidle' });
+      const detail = await page.evaluate(async () => {
+        await document.fonts.load("400 16px 'Light Remote Google Sans'");
+        await document.fonts.ready;
+        return {
+          fontLoaded: Array.from(document.fonts).some(f => f.family === 'Light Remote Google Sans' && f.status === 'loaded'),
+          hasTable: Boolean(document.querySelector('.feature-table')),
+          hasSourceBoundary: Boolean(document.querySelector('.feature-unavailable')),
+          navCount: document.querySelectorAll('nav[aria-label="Main navigation"] a').length,
+          allFeatureButtonsDisabled: Array.from(document.querySelectorAll('.feature-dashboard button')).every(b => b.disabled),
+          gearIcon: Boolean(document.querySelector('nav a[href="#/settings"] svg.lucide-settings')),
+          horizontalOverflow: document.documentElement.scrollWidth > innerWidth + 3,
+          theme: document.documentElement.dataset.theme,
+          activeRoute: location.hash
+        };
+      });
+      const key = route + '-' + theme + '-1440x900';
+      const png = path.join(outputDir, key + '.png');
+      await page.screenshot({ path: png, fullPage: true, animations: 'disabled' });
+      const passed = errors.length === 0 && detail.fontLoaded && detail.hasTable
+        && detail.hasSourceBoundary && detail.allFeatureButtonsDisabled
+        && detail.gearIcon && !detail.horizontalOverflow
+        && detail.navCount === 9 && detail.activeRoute === '#/' + route;
+      results.push({ key, passed, errors: [...errors], ...detail, screenshot: png });
+      console.log(`${passed ? 'PASS' : 'FAIL'} ${key}: font=${detail.fontLoaded} table=${detail.hasTable} gear=${detail.gearIcon}`);
+    }
     await context.close();
   }
   await writeFile(path.join(outputDir, 'evidence.json'), JSON.stringify({ date: new Date().toISOString(), source: 'local isolated Chromium headless QA', results }, null, 2) + '\n');
