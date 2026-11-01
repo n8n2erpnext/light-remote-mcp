@@ -233,3 +233,5 @@ jobs:
             dist/linux/${{ matrix.arch }}/deb/*.deb
           if-no-files-found: error
           retention-days: 14
+
+# Gold A/B V2 lab Linux ARM64 Agent/Wall package acceptance (CI-only trigger 2026-11-01).

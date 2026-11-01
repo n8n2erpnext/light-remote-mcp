@@ -157,3 +157,5 @@ jobs:
             dist/fleet-wall/SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 14
+
+# Gold A/B V2 lab Linux ARM64 package acceptance (CI-only trigger 2026-11-01).

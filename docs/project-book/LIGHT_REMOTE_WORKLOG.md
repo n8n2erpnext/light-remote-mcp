@@ -558,3 +558,7 @@ Implemented Redis8 atomic per-OAuth-Agent/client pending-request index with a bo
 ## 2026-11-01 — Gold A/B V2 lab: temporarily LOCK legacy pairing only
 
 Owner confirmed V1 is the intended long-term production fallback, but requested V1 temporarily OFF for isolated A/B V2 acceptance. A two-key guard LR_GOLD_INSTANCE_ID=abv2lab01 AND LR_GOLD_ABV2_LAB_DISABLE_LEGACY_V1=1 exists in lib/gold-ab-v2-lab-v1-lock.mjs; all other instances preserve V1. Lab-only gates disable new V1 A issuance/legacy approval on Local Wall and legacy aCode/continuation/no-argument pair recovery in MCP Helper. Owner Wall shows A/B V2 V1 locked with validated device short ID. V2 preview unavailable does not expose V1 approval in lab. Source regression covers HTTP423, Helper denial, rendered HTML parsing and production fallback. Remove the lab flag to restore original V1 without code changes. Lab account email_verified=false must be legitimately verified for V2 grant, never override verification SQL. Main Gold UAT unchanged.
+
+## 2026-11-01 — CI-only Linux ARM64 build trigger for isolated A/B V2 lab
+
+The separate codex/goldabv2-linux-lab-ci-20261101 branch makes comment-only changes to Linux Server Bundle and Linux Client GitHub workflows to trigger both packaging jobs for source candidate cf3aa1de. The source and test lab's runtime code is unchanged; no production deployment. This branch is a disposable CI artifact provenance only. Preserve the original feature branch as canonical.

@@ -1,8 +1,8 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-01",
-  "status": "gold_abv2_lab_v1_temporarily_locked_source_verified_requires_owner_account_verification",
-  "branch": "feat/gold-connection-gc-reconciler-20261029",
+  "status": "gold_abv2_isolated_linux_arm64_ci_artifact_candidate",
+  "branch": "codex/goldabv2-linux-lab-ci-20261101",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
   "verifiedDocumentationCI": {
@@ -88,7 +88,8 @@
     "2026-10-31 Windows Moryqa corrective CI fd05804f; Windows native run41221910168 SUCCESS; 2 WinForms 500x740 images inspected overview/advanced 50/42 sampled colors; native Inno syntax 41221910268 PASS; installer artifact13049804161 SHA256 known; physical 150% not yet run.",
     "2026-11-01: Corrected ABV2 SQL043 read-only readiness to require actual UAT schema042; 4/4 UAT units healthy, snapshot+PG backup verified. 042 schema-only no-network disposable PG17+candidate 043 Short ID/tombstone/startup test PASS; 14 Helper/Owner/Wall/24h source tests PASS. Live UAT/production unchanged.",
     "2026-11-01: A/B V2 OAuth Agent exact no-argument Helper recovery with per-client Redis8 index, signed Operator recover route and PG grant poll; 18 source test fixtures PASS and isolated disposable localhost-only native Redis8 restart/Refresh/expiry/two-Agent ambiguity PASS. Source only. UAT SQL042 and four units unchanged.",
-    "2026-11-01: Owner instructed Gold ABV2 lab-only V1 lock and preserving production fallback. Exact two-key instance guard, Wall V1 issuance/approval HTTP423, UI V2 only, MCP legacy A/continuation/noargs denied. Regression and source tests passed, separate Gold UAT unchanged."
+    "2026-11-01: Owner instructed Gold ABV2 lab-only V1 lock and preserving production fallback. Exact two-key instance guard, Wall V1 issuance/approval HTTP423, UI V2 only, MCP legacy A/continuation/noargs denied. Regression and source tests passed, separate Gold UAT unchanged.",
+    "2026-11-01: CI-only isolated codex branch triggers both Linux Server Bundle and Linux Client ARM64 packaging; only workflow comments changed, real Gold ABV2 lab remains on source candidate cf3aa1de, no production deploy."
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -151,10 +152,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "0ab6c00b0334d6c76018eba861923fb78fdc7d51edbae0282c2b130b4248d974",
+    "treeDigest": "4063758a2888f8ea3fadfc418977dda57cf4fb3a3420d0cfcc52c3d9d67998df",
     "trackedFiles": 1131,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-01T15:57:54.725Z"
+    "recordedAt": "2026-11-01T16:03:03.174Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",

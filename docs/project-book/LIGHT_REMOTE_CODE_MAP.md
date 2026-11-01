@@ -438,3 +438,7 @@ Source: client/windows-native/GptOperator.Client/{TrayPopoverForm.cs,Program.cs,
 - Local Wall: ../../device-agent/local-wall.mjs blocks legacy V1 issuance /api/pairing-code, legacy /api/approve (423) in locked lab. Hides controls, shows V2 Short ID and V2 pending/unavailable screen.
 - MCP Helper: ../../plugin-server/tools.mjs rejects legacy aCode/continuation and skips legacy no-argument pairing recovery while exact lab lock active. Signed V2 target/issue/poll/ready unchanged.
 - Regression: ../../deploy/scripts/selftest-gold-ab-v2-lab-v1-lock.mjs in ../../.github/workflows/gold-connection-lifecycle-gc.yml.
+
+### 2026-11-01 Linux ARM64 lab CI-only branch
+
+.github/workflows/server-linux-build.yml and .github/workflows/linux-client-build.yml are triggered by comment-only edits on the disposable codex/goldabv2-linux-lab-ci-20261101 branch. CI outputs are not used as production installers. See code base cf3aa1de for A/B V2 lab-only V1 lock.
