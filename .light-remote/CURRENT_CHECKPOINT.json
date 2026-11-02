@@ -156,7 +156,7 @@
     "Agent V2 no-arg recovery source is newly changed; not yet deployed, not yet GitHub CI-verified and cannot pass physical Owner B→Helper 24h end-to-end while live PG043 is unregistered. Keep source, runtime and UI acceptance distinct.",
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID."
   ],
-  "nextAction": "P0 e519175b deployed to GoldABV2 Lab Plugin; live exit7 structured PASS incl both streams, exit0 PASS, 4/4 active HTTPS200. Negative invalid shell returned reserved pre-spawn exit126 misclassified as executionCompleted. Conservative reserved exit guard source tests PASS; commit/push/deploy corrected Plugin Lab and retest exit7/exit0/invalid shell. Preserve snapshot/backup. No Gold UAT/prod/V4.",
+  "nextAction": "P0 GoldABV2 Lab exec nonzero MCP fully LIVE ACCEPTED: Plugin source 3b61c558 active, 4/4 services, HTTPS200, real exit7 structured failed-command result with inline stdout+stderr and canonical job/output, exit0 success, invalid shell exit126 remains MCP error and not executionCompleted. CI 2/2 SUCCESS. Gold UAT/prod/V4 untouched. Next independent backlog: 84th Discovery tool schema refresh, Long Memory Linux binding policy, SCP zero-byte, shell aliases; do not conflate with accepted P0.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -649,11 +649,12 @@
     "reproduced": true,
     "fix": "completed exec receipt as normal MCP structured failure; optional inline stdout+stderr; policy errors unchanged",
     "sourceTests": "tool error, inline output, 84 tool contract, V2 helper PASS",
-    "liveAcceptance": "e519175b Lab live exit7 PASS stdout+stderr, exit0 PASS; negative invalid shell exposed pre-spawn exit126 overclassification; source corrected, live recheck pending",
-    "ci": "GitHub Actions 41380416010 GC Source Gate SUCCESS and 41380416082 documentation SUCCESS",
+    "liveAcceptance": "PASS: exit7 structured failed execution with inline stdout/stderr and canonical job, exit0 success, invalid shell exit126 not reclassified and no command marker",
+    "ci": "3b61c558 GitHub GC Source Gate run 41382557992 SUCCESS, Docs Integrity run 41382557926 SUCCESS",
     "operatorPairing": "VPS-ARM official A/B reauthorized READY; LXD invocation nevertheless blocked by OpenAI safety",
-    "labPluginCurrent": "source-e519175b-plugin-overlay-6da0d29e",
-    "rollback": "snapshot pre-exec-nonzero-receipt-20261102; plugin-last-override-before-e519175b-20261102.conf",
-    "newGuard": "fail closed reserved exit codes 72/124/126/127/130 when spawn-phase evidence absent; source tests PASS, live recheck pending"
+    "labPluginCurrent": "source-3b61c558-plugin-overlay-e519175b",
+    "rollback": "LXD snapshot pre-exec-nonzero-receipt-20261102; overrides plugin-last-override-before-e519175b-20261102.conf and plugin-before-3b61c558-20261102.conf",
+    "newGuard": "fail closed reserved exit codes 72/124/126/127/130 when spawn-phase evidence absent; source tests PASS, live recheck pending",
+    "scope": "GoldABV2 Lab Plugin only; Operator Wall Gold UAT production Desktop V4 unchanged"
   }
 }
