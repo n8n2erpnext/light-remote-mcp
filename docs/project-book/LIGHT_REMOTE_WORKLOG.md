@@ -579,3 +579,6 @@ GitHub source e9cf3757 CI run 41471343468 found TS1308 in App.test.tsx: async as
 
 ## 2026-11-02 — Desktop V4 native permission manifest correction
 GitHub CI 41471479014 Web/Chromium PASS; Linux Tauri native custom app manifest failed with exact \"Permission app:allow-open-local-wall not found, expected one of allow-open-local-wall\". Corrected to generated bare allow-open-local-wall, preserving same single scoped command and no broad fallback. Windows/macOS were not yet completed. CI rerun required.
+
+## 2026-11-02 — Desktop V4 UI frozen by Owner after 4/4 native CI
+Owner explicitly approved the latest V4 build UI ("ok UI mới build chốt rồi"). Freeze design of nine existing pages plus Open Wall header and Settings Activity Logs at code SHA 73d448e9. GitHub Actions run 41472068915 completed SUCCESS for Web visual/tests + Windows, macOS and Linux Tauri native builds 4/4. No more Figma required for these features. Do not mislabel UI signoff as real Owner consent/Agent backend integration or physical Windows/Mac/Linux E2E; those remain open. Gold UAT production unchanged.

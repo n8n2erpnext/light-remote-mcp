@@ -20,3 +20,11 @@ Owner accepted screenshots of V4's 9 existing Light-theme routes on actual Windo
 - GitHub CI \`.github/workflows/desktop-v4-native-ci.yml\` extended to feature branch.
 - Until exact new commit's GitHub CI and physical Windows native execution are independently verified: CODED SOURCE only, **NOT** native accepted/released.
 - No design freeze of V4's other Figma frames, no Gold UAT or installed WinForms replacement.
+
+## 2026-11-02 FINAL OWNER UI FREEZE + CI ACCEPTANCE
+- **Owner decision:** "ok UI mới build chốt rồi" — approve and FREEZE current Desktop V4 UI baseline with nine original screens plus header Open Wall and Settings Activity Logs. This is OWNER UI DESIGN approval; do not require additional Figma design work for these additions and do not automatically redesign navigation/themes/typography.
+- **Frozen implementation source:** \`73d448e969e8c653b390ba6a27d65d31e57aa11e\` on \`feat/desktop-v4-wall-activity-20261102\` (future docs-only commits do not change baseline).
+- **GitHub CI verified:** https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/41472068915 — completed SUCCESS, four jobs: Web build/tests/Chromium screenshots, Windows Tauri 2, macOS Tauri 2, Linux Tauri 2 all SUCCESS.
+- **Acceptance boundary:** UI visual/build baseline approved. Native installed/Owner-click physical Open Wall E2E, local Agent log module deployment to Windows/macOS/Linux, and authenticated Owner backend/session/module bridges are still distinct OPEN integration gates. Never state these are production-ready based solely on CI.
+- **No production cutover:** Windows WinForms existing client and Gold UAT/production untouched. Only new native test binaries/artifacts emitted by CI.
+- **Next:** connect V4 to authenticated device/Owner contracts incrementally, preserving frozen layouts; use approved small design changes only if functional integration requires them.

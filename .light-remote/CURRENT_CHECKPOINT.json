@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-02",
-  "status": "desktop_v4_logs_native_permission_exact_identifier_ci_rerun_pending",
+  "status": "desktop_v4_ui_owner_frozen_73d448e9_ci_4of4_success_native_functional_e2e_pending",
   "branch": "feat/desktop-v4-wall-activity-20261102",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -89,7 +89,8 @@
     "2026-11-01 separate Desktop V4 React19/TypeScript7/Tailwind4 pilot: 9 routes, responsive AI Access Light/Dark, verified-only status, disabled Owner controls; Node22 build and 12/12 tests PASS; original Gold UAT and WinForms unchanged.",
     "2026-11-01 owner CI-only build pivot: safe Tauri 2 source (no privileged IPC), 8/8 Chromium visual checks, 15/15 tests, ARM cargo check PASS before build migration, exact native release job terminated; dedicated ARM target/node_modules/dist cleaned, +~2GB free; GitHub hosted runner matrix source added.",
     "V4 screenshot-review source patch: six distinct feature screen layouts, correct Settings gear icon, Google Sans Variable @font-face sourced from existing repo, OFL attribution, 20 total CI visual snapshots with loaded-font checks; original Gold runtime unchanged.",
-    "2026-11-02 V4 source-only: Owner-approved UI retains nine screens; minimal Open Wall and Activity Logs controls authored with only fixed native browser opener, failclosed read-only Owner log state; CI pending, Gold UAT unchanged"
+    "2026-11-02 V4 source-only: Owner-approved UI retains nine screens; minimal Open Wall and Activity Logs controls authored with only fixed native browser opener, failclosed read-only Owner log state; CI pending, Gold UAT unchanged",
+    "2026-11-02 Owner approved Desktop V4 FINAL UI baseline (9 screens + Open Wall + Activity Logs), source SHA 73d448e9; GitHub Tauri CI 41472068915 Web/Windows/macOS/Linux 4/4 SUCCESS; physical native Agent integration still pending"
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -138,7 +139,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "Push exact Tauri generated permission correction, inspect 4-job native CI; VPS-ARM no builds.",
+  "nextAction": "Desktop V4 UI baseline frozen by Owner at code SHA 73d448e9; native CI run 41472068915 4/4 SUCCESS. Next implement authenticated/native device bridges and real Windows/Mac/Linux app integration without visual redesign; physical open-wall and local logs Agent deployment remain open.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -600,9 +601,14 @@
       "Settings Activity Logs with same-origin verified state or safe CTA to Wall"
     ],
     "nativePermissions": "allow-open-local-wall (exact tauri_build generated name), main window only",
-    "ci": "41471479014 web PASS, Linux failed exact permission typo, correction pending rerun",
+    "ci": "41472068915 completed success Web+Windows+macOS+Linux 4/4",
     "ownerNativeOpenWallE2E": false,
     "productionChanged": false,
-    "handoff": "docs/project-book/LIGHT_REMOTE_DESKTOP_V4_WALL_LOG_CONTROLS_20261102.md"
+    "handoff": "docs/project-book/LIGHT_REMOTE_DESKTOP_V4_WALL_LOG_CONTROLS_20261102.md",
+    "sourceCommit": "73d448e969e8c653b390ba6a27d65d31e57aa11e",
+    "ownerUiFreezeApproved": true,
+    "ownerUiFreezeDate": "2026-11-02",
+    "windowsMacNativeCI": true,
+    "nativeFunctionIntegrationComplete": false
   }
 }
