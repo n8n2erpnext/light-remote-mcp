@@ -35,3 +35,10 @@ Owner accepted screenshots of V4's 9 existing Light-theme routes on actual Windo
 - Main-window-only generated Tauri permission is still \`allow-open-local-wall\`, with exact command allowlist \`open_local_wall\` and \`probe_local_wall\`. No filesystem/shell plugin, arbitrary endpoint, native Owner grant or process launch other than existing browser opener.
 - TypeScript wrapper \`client/desktop-v4/src/lib/native-wall-probe.ts\` normalizes unknown IPC responses to unavailable; \`App.tsx\` polls alongside existing read-only UI refresh and shows \`Wall reachable · Owner login required\` in the EXISTING sidebar footer (and corresponding Overview read-only subtitle). **This is NOT device verified or Agent Connected**. Browser-only Wall UI continues to use existing Owner session status API.
 - Tests \`native-wall-probe.test.ts\`, \`App.test.tsx\`, and \`native-shell.test.ts\` cover no IPC, bad IPC, locked Wall classification, no false verified sessions/Connected, fixed command allowlist. Native CI exact-commit acceptance required before build release. Gold UAT production and actual Windows Agent remain untouched.
+
+## 2026-11-02 Source CI receipt: native Wall probe
+- Code baseline commit \`46bc2edf7f472aad6c6c132bdf2e9868059ac235\`. One failing newly-written UI test expected obsolete “Not verified” string after feature replaced it with truthful “Wall responding · Owner login required”; corrected only assertion in \`d4e0d8a3\`. No security bypass.
+- GitHub Actions V4 exact-commit run: https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/41476105872
+- Verified jobs at handoff: Web TypeScript/unit/Chromium **PASS**, native Windows **PASS**, native Linux **PASS**, native macOS still **QUEUED** at last check — NOT yet claim 4/4.
+- Isolated GoldABV2 Lab live \`/api/status\` unauthenticated request responded HTTP **401**. Local Wall service active. This probes the real Owner gate, without exposing device/account/session details.
+- Native Windows/macOS physical GUI, installed Agent/Owner login integration and signed data E2E are separate acceptance gates. Gold UAT production unchanged. Frozen V4 design and nine routes remain unchanged.

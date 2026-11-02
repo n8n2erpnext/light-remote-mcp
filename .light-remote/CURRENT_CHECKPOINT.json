@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-02",
-  "status": "desktop_v4_ui_frozen_native_wall_probe_test_corrected_ci_rerun_pending",
+  "status": "desktop_v4_ui_frozen_native_wall_probe_web_windows_linux_ci_pass_macos_queued",
   "branch": "feat/desktop-v4-wall-activity-20261102",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -140,7 +140,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "Rerun GitHub Web + Windows/macOS/Linux native V4 CI after updating only stale UI test assertion. Do not build on VPS-ARM.",
+  "nextAction": "Check macOS job of run41476105872, then physical installed Windows10/11/ macOS tests of Open Wall and anonymous Owner-required status; signed Owner session data remains separate future bridge. No production cutover.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -619,9 +619,11 @@
     "permission": "main window only: allow-open-local-wall, commands open_local_wall and probe_local_wall",
     "noOwnerCookies": true,
     "noRemoteGrantActions": true,
-    "ci": "41475938499 web UI test single stale text expectation; corrected, CI rerun required",
+    "ci": "run41476105872 web/visual PASS, Windows PASS, Linux PASS; macOS queued at checkpoint",
     "realNativeInstalledE2E": false,
     "productionChanged": false,
-    "handoff": "docs/project-book/LIGHT_REMOTE_DESKTOP_V4_WALL_LOG_CONTROLS_20261102.md"
+    "handoff": "docs/project-book/LIGHT_REMOTE_DESKTOP_V4_WALL_LOG_CONTROLS_20261102.md",
+    "sourceCommit": "d4e0d8a3",
+    "wallAuthLiveProof": "isolated GoldABV2 Lab GET /api/status without cookie returns HTTP 401"
   }
 }

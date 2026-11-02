@@ -588,3 +588,6 @@ After Owner V4 UI freeze, confirmed that Local Wall /api/status is strictly Owne
 
 ## 2026-11-02 — V4 native Wall presence initial CI test assertion adjustment
 Initial GitHub V4 CI 41475938499 failed only the newly added App.test.tsx assertion that expected the replaced Overview subtitle "Not verified". New owner-safe behavior intentionally states "Wall responding · Owner login required" while actual local device remains "Device not verified" and Agent Connected is not inferred. Corrected assertion to inspect unchanged device verification boundary. No source runtime or UI modification; re-run CI.
+
+## 2026-11-02 — V4 native probe Web Windows Linux CI evidence
+Exact commit d4e0d8a3 V4 pipeline 41476105872: Web/Chromium, Windows Tauri and Linux Tauri SUCCESS. macOS-native job queued at last check, not accepted yet. Isolated Lab HTTP401 Owner wall_auth_required confirmed live. Not a production deploy nor a signed authenticated Agent bridge.
