@@ -156,7 +156,7 @@
     "Agent V2 no-arg recovery source is newly changed; not yet deployed, not yet GitHub CI-verified and cannot pass physical Owner B→Helper 24h end-to-end while live PG043 is unregistered. Keep source, runtime and UI acceptance distinct.",
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID."
   ],
-  "nextAction": "GoldABV2 Lab signed Wall B is restored, both Operator and Wall full 3-key Lab B-only config active, 4 services active, HTTP200. PG AB V2 grant for R01KAP 1 active; Light_Remote_AB list_devices has device and helper ready. Correct stale V1 helper onboarding copy-A next by deploying isolated Plugin-only change; verify Lab/production text. Do not infer grant approval origin from DB alone. No main UAT/Prod/V4 modification.",
+  "nextAction": "User has corrected A/B V2 owner-spec: Wall /approve OR Account must approve typed B. Lab Operator+Wall running scoped source 38fdc76c, plugin source 6da0d29e; 4/4 active, health200, one live 24h B grant R01KAP, list_devices granted and Helper ready. Owner still to visually inspect Wall B field for a NEW pending request if desired; approval source of existing PG grant not proven. Do not remove Wall B, do not reintroduce copy-A V1 onboarding in Lab. Do not change main Gold UAT/prod/V4.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -609,14 +609,17 @@
     "flag": "LR_GOLD_ABV2_LAB_SIGNED_WALL_B_ONLY",
     "productionEffect": "none",
     "ownerLiveE2E": "PENDING",
-    "liveGrantEvidence": "one current 24h durable grant, AB plugin list_devices returned R01KAP and Helper ready; actual approval origin not determined",
-    "runtime": "Operator+Wall 38fdc76c Lab-only overlays, 4/4 active, HTTPS200"
+    "liveGrantEvidence": "one active, unclosed durable 24h grant for R01KAP; official AB plugin list_devices R01KAP and Helper ready; approval origin Wall vs Account not evidenced by PG alone",
+    "runtime": "Operator+Wall source-38fdc76c overlays, three-key Lab flag validated on both, 4/4 active HTTPS200",
+    "labSnapshot": "pre-owner-wall-b-restore-20261102"
   },
   "abv2HelperOnboardingLabV2": {
     "date": "2026-11-02",
     "source": "plugin-server/operator-adapter.mjs",
     "goal": "avoid outdated V1 copy-A instructions in Lab ABV2 Helper ready response",
     "tests": "dynamic Lab V2 and production V1 mocked adapter PASS",
-    "liveDeployed": false
+    "liveDeployed": true,
+    "liveEvidence": "AB plugin Helper ready normalFlow V2 Agent-first B Wall-or-Account, no copy-A",
+    "labSnapshot": "pre-plugin-v2-onboarding-20261102"
   }
 }
