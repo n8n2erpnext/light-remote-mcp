@@ -1,6 +1,7 @@
 // Source-level compatibility guard. No live Operator calls or npm install.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {AccountOperatorAdapter} from '../../plugin-server/operator-adapter.mjs';
 const adapter=fs.readFileSync(new URL('../../plugin-server/operator-adapter.mjs',import.meta.url),'utf8');
 const source=fs.readFileSync(new URL('../../plugin-server/tools.mjs',import.meta.url),'utf8');
 const must=(body,value)=>assert.ok(body.includes(value),'Missing source contract: '+value);
@@ -43,3 +44,36 @@ assert.ok(!source.includes('if(x.targetQuery)return a.pairBegin'),
  'a name search must not silently choose or start V1 A-code pairing');
 console.log('GOLD_ABV2_AND_GUEST_MCP_HELPER_OPTIONAL_V1_DEFAULT_OFF=PASS');
 console.log('GOLD_ABV2_MCP_HELPER_POLL_V1_UNCHANGED=PASS');
+
+// Dynamic candidate test: Lab V2 ready onboarding MUST NOT tell Owner to copy A.
+// Production/V1 onboarding must remain unchanged.
+const envKeys=['LR_GOLD_INSTANCE_ID','LR_GOLD_ABV2_LAB_DISABLE_LEGACY_V1'];
+const originalEnv=Object.fromEntries(envKeys.map(k=>[k,process.env[k]]));
+try {
+ const a=new AccountOperatorAdapter({accountId:'acct1',clientId:'fixture-oauth'});
+ a.accountRaw=async()=>({plan:'vip',mainDeviceId:null});
+ a.clientRaw=async()=>({clientSessionId:'lrc_fixture'});
+ a.authorizedDeviceDetails=async()=>[{
+  deviceId:'dev1',displayName:'Lab',state:'online',
+  platform:'linux',architecture:'arm64',effectiveCapabilities:['filesystem']
+ }];
+ a.workingContext=async()=>({context:{deviceId:'dev1',sessionId:'s_fixture'},
+   session:{deviceId:'dev1',sessionId:'s_fixture',state:'active'}});
+ process.env.LR_GOLD_INSTANCE_ID='abv2lab01';
+ process.env.LR_GOLD_ABV2_LAB_DISABLE_LEGACY_V1='1';
+ const lab=await a.connectionHelper();
+ assert.equal(lab.status,'ready');
+ assert.match(lab.onboarding.normalFlow.join(' '),/Owner enters B/);
+ assert.doesNotMatch(lab.onboarding.normalFlow.join(' '),/copy the one-time A code/);
+ assert.equal(lab.governance.deviceAuthorization,'agent-initiated-abv2-local-wall-or-account-b');
+ process.env.LR_GOLD_INSTANCE_ID='production';
+ const prod=await a.connectionHelper();
+ assert.match(prod.onboarding.normalFlow.join(' '),/copy the one-time A code/);
+ assert.equal(prod.governance.deviceAuthorization,'local-wall-a-b');
+ console.log('GOLD_ABV2_LAB_HELPER_ONBOARDING_V2_NOT_LEGACY_COPY_A=PASS');
+ console.log('GOLD_V1_HELPER_ONBOARDING_PRESERVED=PASS');
+}finally{
+ for(const [k,v] of Object.entries(originalEnv)){
+  if(v==null)delete process.env[k];else process.env[k]=v;
+ }
+}

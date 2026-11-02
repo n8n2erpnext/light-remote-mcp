@@ -576,3 +576,8 @@ Admin Owner security emblem uses /assets/icons/material/security.svg (verified H
 - device-agent/local-wall.mjs, device-agent/operator-agent.mjs: local logged-in Owner email, CSRF, typed B, signed channel and current device required; lab only permits absent consentCode. All other instances still require it.
 - operator-host/gold-ab-v2-signed-approval.mjs: Lab exception to manual Account consent only; verified owner email/device enrollment policy/connection + signed request + typed B + durable PG grant remain mandatory. Default and production unchanged, release security review required.
 - deploy/scripts/selftest-gold-ab-v2-wall-preview.mjs, selftest-gold-ab-v2-signed-approval.mjs, selftest-gold-abv2-owner-approval-navigation.mjs: positive/negative tests including Lab B-only, no Owner and wrong CSRF denial, non-Lab consent still required.
+
+### 2026-11-02 — Helper ready onboarding Lab V2 vs V1
+- plugin-server/operator-adapter.mjs AccountOperatorAdapter.connectionHelper: in explicitly isolated Lab V1-disabled instance only, normalFlow and nextAction/deviceAuthorization now describe read-only Discovery -> Agent-initiated B -> Owner approve on Wall OR Account -> Helper ready 24h. No more wrong Wall copy-A instructions. Production V1 response preserved.
+- deploy/scripts/selftest-gold-ab-v2-helper-tool.mjs: dynamic mocked adapter test asserts Lab ready V2 flow and production ready V1 flow.
+- Live Lab Operator+Wall 38fdc76c, Plugin b36cb451 source overlay; PG grant for R01KAP active and Helper ready observed. Approval origin requires separate audit if attributing Wall versus Account.

@@ -156,7 +156,7 @@
     "Agent V2 no-arg recovery source is newly changed; not yet deployed, not yet GitHub CI-verified and cannot pass physical Owner B→Helper 24h end-to-end while live PG043 is unregistered. Keep source, runtime and UI acceptance distinct.",
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID."
   ],
-  "nextAction": "A/B V2 P0 Owner design restore: snapshot+deploy coordinated Lab Wall+Operator only with explicit LR_GOLD_ABV2_LAB_SIGNED_WALL_B_ONLY gate, read Local Wall B field and single-code approval, then real Owner B->PG durable grant->Helper ready acceptance. Do not bypass owner/B/CSRF or touch production, main Gold UAT or Desktop V4. Cached plugin discovery b36cb451 still separate.",
+  "nextAction": "GoldABV2 Lab signed Wall B is restored, both Operator and Wall full 3-key Lab B-only config active, 4 services active, HTTP200. PG AB V2 grant for R01KAP 1 active; Light_Remote_AB list_devices has device and helper ready. Correct stale V1 helper onboarding copy-A next by deploying isolated Plugin-only change; verify Lab/production text. Do not infer grant approval origin from DB alone. No main UAT/Prod/V4 modification.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -169,10 +169,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "74088ec9e56080815c8614316d26d5bdf03d3b0b91a5969feb209460af7a0af0",
+    "treeDigest": "01bf4c4f7ee09ea23f42b5e50a0b89fe82dfc782213d6ef23ca544fd03ba282e",
     "trackedFiles": 1141,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-02T02:32:58.107Z"
+    "recordedAt": "2026-11-02T02:40:01.148Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -608,6 +608,15 @@
     "restored": "local Wall B input and Approve as alternative to /account; Lab-only no visible second consent with signed Owner/CSRF/B validation",
     "flag": "LR_GOLD_ABV2_LAB_SIGNED_WALL_B_ONLY",
     "productionEffect": "none",
-    "ownerLiveE2E": "PENDING"
+    "ownerLiveE2E": "PENDING",
+    "liveGrantEvidence": "one current 24h durable grant, AB plugin list_devices returned R01KAP and Helper ready; actual approval origin not determined",
+    "runtime": "Operator+Wall 38fdc76c Lab-only overlays, 4/4 active, HTTPS200"
+  },
+  "abv2HelperOnboardingLabV2": {
+    "date": "2026-11-02",
+    "source": "plugin-server/operator-adapter.mjs",
+    "goal": "avoid outdated V1 copy-A instructions in Lab ABV2 Helper ready response",
+    "tests": "dynamic Lab V2 and production V1 mocked adapter PASS",
+    "liveDeployed": false
   }
 }
