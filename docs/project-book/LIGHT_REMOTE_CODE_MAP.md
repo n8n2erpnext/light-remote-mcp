@@ -606,3 +606,8 @@ Admin Owner security emblem uses /assets/icons/material/security.svg (verified H
 - operator-host/agent-client-registry.mjs: detachGrant removes only exact grant-bound device under matched Agent client, closes empty client; preserves other Agents and devices.
 - operator-host/executor-routes-device-channel.mjs: signed enrolled device Owner Wall close route calls helper in explicitly V1-locked ABV2 Lab only; non-Lab unchanged. PG and Redis durable flush occurs before HTTP200.
 - deploy/scripts/selftest-gold-abv2-owner-close-revokes-grant.mjs: scoped Owner positive/negative tests; no destructive live test.
+
+### 2026-11-02 — SCP upload size contract alignment
+- plugin-server/tools.mjs generic SCP upload and dedicated registered SCP input totalBytes now >=1, matching lib/light-scp-file.mjs. Zero-length upload remains unsupported.
+- deploy/scripts/selftest-gold-plugin-tool-contract.mjs verifies registered schema rejects 0 and -1, accepts 1; all transfer logic and permissions unchanged.
+- Deploy as isolated Lab Plugin-only overlay after CI; no Agent/Wall or Gold UAT/production change.

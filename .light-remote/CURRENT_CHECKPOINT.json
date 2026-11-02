@@ -156,7 +156,7 @@
     "Agent V2 no-arg recovery source is newly changed; not yet deployed, not yet GitHub CI-verified and cannot pass physical Owner B→Helper 24h end-to-end while live PG043 is unregistered. Keep source, runtime and UI acceptance distinct.",
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID."
   ],
-  "nextAction": "GoldABV2 Lab Owner cleanup COMPLETE: one Claude grant revoked, both Claude clients closed, two Claude bindings removed, GPT6 grant preserved, 4/4 services active HTTP200; snapshot pre-keep-gpt6-claude-revoke-20261102. GPT6 Helper READY on existing 24h grant, new active session s_mvys898w_7bece3571695c7ce named GPT-6 Golden Lotus 2 (old session expired/name reserved). No Claude access. No Gold UAT/prod/V4 change. Optional later nickname dedup polish.",
+  "nextAction": "GoldABV2 audit: 84th direct Discovery live PASS; Lab 4/4 active HTTP200; sole GPT6 grant, no Claude. Critical Source tests PASS; two opt-in no-NIC-clone PG/Redis tests intentionally not run. SCP 0-byte schema bug fixed (min1) in two tool declarations, test PASS, CI/Plugin Lab rollout pending. Future Owner Close live E2E would revoke sole protected GPT6 grant: do NOT perform without new approval. Long Memory Home binding mismatch needs authority review; Helper client schema still lacks optional agentNickname; /bin/sh path unsupported but shell sh works. No VPS-ARM build or Prod/Gold UAT/V4 mutation. Write full handoff.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -169,10 +169,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "d892bcaf44ea10d9f7ce139e2cb103c18c788006b768e986a17621ed6be2e23d",
+    "treeDigest": "3673e0a5fd9a0ceeac271b02df6fbbe12722324776864ae5236c1a755a8a184b",
     "trackedFiles": 1143,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-02T04:24:36.914Z"
+    "recordedAt": "2026-11-02T05:05:28.191Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -690,5 +690,14 @@
     "retainedGrant": "dag_v2_bc15b3daf348b6d7461b4c86fb58cb1e",
     "postCleanupServiceStatus": "4/4 active HTTPS200",
     "currentGptSession": "s_mvys898w_7bece3571695c7ce GPT-6 Golden Lotus 2 active"
+  },
+  "abv2ReleaseReadinessAudit": {
+    "date": "2026-11-02",
+    "live": "Lab 4/4 HTTPS200; one GPT6 grant; direct 84th Discovery PASS",
+    "tests": "all applicable critical unit/contract suites PASS; restricted clone-only PG/Redis not run",
+    "scpZeroContract": "source input min1 matches Agent min1, tests PASS; rollout pending",
+    "ownerCloseLiveE2E": "NOT RUN, would destroy sole protected GPT6 grant",
+    "memory": "configured Memory Device ID differs from R01KAP; scope review required",
+    "nickname": "Helper server supports optional Agent name, current client schema stale"
   }
 }
