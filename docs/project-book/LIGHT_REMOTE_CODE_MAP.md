@@ -564,3 +564,7 @@ Admin Owner security emblem uses /assets/icons/material/security.svg (verified H
 - plugin-server/tools.mjs light_remote_connection_helper: in Lab A/B V2-only mode, no-arg after secure pending recovery returns discoverAbV2Devices summary with online/offline counts and at most 5 account-scoped entries; targetQuery=online/devices/all/arm64/... uses same signed metadata when startAbV2 absent; explicit connect always requires exact selected target+B. V1 production and granted-only list_devices unchanged.
 - light_remote_discover_devices: tool #84 exists server-side but may remain absent from current ChatGPT MCP tool cache; fallback uses the already exposed Helper.
 - deploy/scripts/selftest-gold-ab-v2-lab-v1-lock.mjs and selftest-gold-ab-v2-helper-tool.mjs: count and pending recovery precedence, no V1 regression, OAuth Helper issue/poll preserved.
+
+### 2026-11-02 — Lab old list_devices fallback
+- plugin-server/tools.mjs: when strict Lab V1-disabled flag is active, light_remote_list_devices returns unchanged granted-only items plus separate accountDiscovery signed read-only metadata. This avoids cached ChatGPT schema wrongly treating items:[] as 0 online. Discovery unavailable is explicit, not a synthetic 0. Other instances return original granted-only array, normalized to items as before.
+- deploy/scripts/selftest-gold-ab-v2-lab-v1-lock.mjs: asserts Lab items:[]+accountDiscovery online=1 and normal production no accountDiscovery.

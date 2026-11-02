@@ -18,7 +18,7 @@ process.env.LR_GOLD_ABV2_LAB_SHORT_ID='X3AQQ6';
 let wall;
 const prot=AccountOperatorAdapter.prototype;
 const old=Object.fromEntries(['pairBegin','pairRecover','pairPoll',
- 'recoverAbV2Request','connectionHelper','discoverAbV2Devices'].map(k=>[k,prot[k]]));
+ 'recoverAbV2Request','connectionHelper','discoverAbV2Devices','devices'].map(k=>[k,prot[k]]));
 let legacyCalled=0;
 try{
  const auth={enabled:true,identity:req=>req.headers['x-test-owner']==='owner'
@@ -65,10 +65,12 @@ try{
  registerPluginTools({registerTool:(name,_cfg,fn)=>registered.set(name,fn)},
   {accountId:'owner',clientId:'oauth-agent',scopes:['remote:read']});
  const helper=registered.get('light_remote_connection_helper');
+ const listDevices=registered.get('light_remote_list_devices');
  prot.pairBegin=async()=>{legacyCalled++;throw Error('unexpected_v1_start')};
  prot.pairPoll=async()=>{legacyCalled++;throw Error('unexpected_v1_poll')};
  prot.pairRecover=async()=>{legacyCalled++;throw Error('unexpected_v1_recover')};
  prot.recoverAbV2Request=async()=>null;
+ prot.devices=async()=>[];
  let discoveries=0,issues=0;
  prot.discoverAbV2Devices=async({query='',onlineOnly=false}={})=>{
   discoveries++;
@@ -91,12 +93,19 @@ try{
  const arm=(await helper({targetQuery:'arm64'})).structuredContent;
  assert.equal(arm.query,'arm64');
  assert.equal(discoveries,3);
+ const list=(await listDevices({})).structuredContent;
+ assert.deepEqual(list.items,[],
+  'legacy items must still contain granted devices only');
+ assert.equal(list.accountDiscovery.onlineCount,1);
+ assert.equal(list.accountDiscovery.matches[0].shortId,'R01KAP');
+ assert.equal(list.accountDiscovery.requestCreated,false);
+ assert.equal(discoveries,4);
  // Recovering an actual B request must take priority over the discovery fallback.
  prot.recoverAbV2Request=async()=>({status:'approval_required',code:'ABCD-2345',
    helperReady:false,approvalPath:'/account'});
  const pending=(await helper({})).structuredContent;
  assert.equal(pending.status,'approval_required');
- assert.equal(discoveries,3);
+ assert.equal(discoveries,4);
  prot.recoverAbV2Request=async()=>null;
  assert.equal(issues,0);
  const rejected=await helper({aCode:'ABCD-2345'});
@@ -113,6 +122,10 @@ try{
   userCode:'ABCD-2345',expiresAt:Date.now()+120000}}};
  const production=(await helper({})).structuredContent;
  assert.equal(production.status,'approval_required');
+ const productionList=(await listDevices({})).structuredContent;
+ assert.deepEqual(productionList.items,[]);
+ assert.equal(Object.hasOwn(productionList,'accountDiscovery'),false,
+  'production V1 list_devices response remains granted-only');
  assert.equal(legacyCalled,1);
  console.log('GOLD_ABV2_LAB_V1_LOCK_PROD_FALLBACK_PRESERVED=PASS');
 }finally{

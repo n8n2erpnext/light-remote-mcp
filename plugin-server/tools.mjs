@@ -256,9 +256,21 @@ export function registerPluginTools(server,identity){
 
   add(server,'light_remote_list_devices',{
     title:'List A/B-authorized Light Remote devices',
-    description:'List ONLY devices already granted to THIS plugin client by A/B approval. An empty list does NOT mean devices are offline or absent from the account. For account-owned online counts, OS/name/Short ID search BEFORE B, use light_remote_discover_devices. No silent target fallback.',
+    description:'items lists ONLY devices granted to THIS OAuth plugin client after Owner B approval. An empty list does NOT mean devices are offline or absent from the account. items:[] NEVER means no account devices online. In isolated A/B V2 Lab, accountDiscovery is a SEPARATE read-only account-scoped online/offline summary included for cached tool schemas. Prefer light_remote_discover_devices for pre-B status; if absent, use connection_helper with no args after checking for pending B. Never claim 0 online based on items. No silent target fallback.',
     securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
-  },guarded(identity,['remote:read'],a=>a.devices()));
+  },guarded(identity,['remote:read'],async a=>{
+    const granted=await a.devices();
+    if(!goldAbV2LabV1Disabled())return granted;
+    // Compatibility data is explicitly separate from granted-only items.
+    // It uses the same signed account-scoped read-only Discovery route.
+    // Never present a failed discovery as zero devices online.
+    let accountDiscovery;
+    try{accountDiscovery=await a.discoverAbV2Devices();}
+    catch{accountDiscovery={status:'device_discovery_unavailable',
+      helperReady:false,requestCreated:false,
+      nextAction:'check_discovery_or_refresh_plugin_metadata'};}
+    return {items:granted,accountDiscovery};
+  }));
 
   add(server,'light_remote_context',{
     title:'Recover or change the working Light Remote context',
