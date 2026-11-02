@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-02",
-  "status": "goldabv2_wall_r3_live_smoke_csp_css_correction_pending_ci",
+  "status": "goldabv2_wall_pty_r3_final_live_4of4_2grants_preserved",
   "branch": "feat/gold-single-owner-transfer-20261101",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -156,7 +156,7 @@
     "Agent V2 no-arg recovery source is newly changed; not yet deployed, not yet GitHub CI-verified and cannot pass physical Owner B→Helper 24h end-to-end while live PG043 is unregistered. Keep source, runtime and UI acceptance distinct.",
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID."
   ],
-  "nextAction": "Push minor CSP/layout correction, require full Gold Source + Docs CI, deploy Wall-only into new isolated Lab source stage, verify xterm 200, CSP allows same origin, 4/4, grants intact.",
+  "nextAction": "Owner Chrome Ctrl+Shift+R then validate PTY Viewer automatic active terminal, live ANSI, resize and full-width Settings/Approve/Permissions/Memory/Codex. Only isolate Lab R4 tweaks after screenshot.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -172,7 +172,7 @@
     "treeDigest": "cd3976d3e2586d3dc0a4b12bdf87ed3ffce393b45cb9a85834d9f54ffafbd7a5",
     "trackedFiles": 1156,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-02T11:47:46.374Z"
+    "recordedAt": "2026-11-02T11:50:49.939Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -767,6 +767,18 @@
     "productionTouched": false,
     "grantChanged": false,
     "ownerVisualAcceptance": "pending",
-    "postSmokeCorrection": "xterm folder 0755 for service user, same-origin script/style CSP, desktop terminal screen layout"
+    "postSmokeCorrection": "xterm folder 0755 for service user, same-origin script/style CSP, desktop terminal screen layout",
+    "activeSource": "/opt/light-remote-abv2-lab/source-fb005567-wall-r3-final-STAGED",
+    "sourceCi": "41439609955 4/4 PASS",
+    "docsCi": "41439610106 PASS",
+    "firstSnapshot": "pre-goldabv2-wall-pty-r3-20261102",
+    "finalSnapshot": "pre-goldabv2-wall-pty-csp-20261102",
+    "rollback": "/var/backups/light-remote-goldabv2-wall-before-pty-csp-20261102.conf",
+    "services": "4/4 active",
+    "grantsBefore": 2,
+    "grantsAfter": 2,
+    "xtermAssets": "3/3 HTTP 200",
+    "csp": "self JS/style and framing deny",
+    "browserVisualAcceptance": "pending screenshots"
   }
 }

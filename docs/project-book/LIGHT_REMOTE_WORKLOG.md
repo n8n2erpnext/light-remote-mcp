@@ -877,3 +877,7 @@ Owner screenshots showed PTY viewer initially waits for manual selection and str
 
 ## 2026-11-02 — GoldABV2 PTY renderer browser CSP and asset permissions
 Live R3 smoke found vendor asset 404 caused by staged xterm directory mode 0700; corrected to 0755 within isolated Lab staging, verified 200. Subsequent source review found same-origin xterm.js/CSS would be blocked by script/style CSP; narrowly permit 'self' along with preexisting inline tokens, retaining all other CSP boundaries. Add desktop terminal screen CSS and six-route CSP regression. No auth/API/grant mutation.
+
+## 2026-11-02 — GoldABV2 PTY R3 final Live and verified
+
+After source commits 21c47388 and fb005567 passed Gold 4/4 CI and docs checks, isolated GoldABV2 Lab cutover to source-fb005567-wall-r3-final-STAGED. 4/4 services active, 2/2 grants preserved, login HTTP 200 and HTTPS health 200, xterm JS/CSS/FitAddon public same-origin HTTP200, GET CSP allows self scripts/styles but denies framing, no Wall journal errors. Owner real Chrome terminal/layout visual acceptance still pending. Hand-off docs/project-book/LIGHT_REMOTE_GOLDABV2_WALL_PTY_R3_LIVE_DEPLOY_20261102.md.
