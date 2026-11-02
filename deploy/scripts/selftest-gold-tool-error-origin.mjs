@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {classifyPluginToolError} from '../../plugin-server/tool-error-classification.mjs';
-import {operationView,result,pluginToolErrorResult} from '../../plugin-server/tools.mjs';
+import {operationView,result,pluginToolErrorResult,completedExecOutcome} from '../../plugin-server/tools.mjs';
 
 // Exercise the shared normal MCP result path used by filesystem, search,
 // process, terminal, transfer and desktop tools (not thrown exceptions).
@@ -26,6 +26,36 @@ for(const [code,layer,nextAction,httpStatus] of [
  assert.equal(projected.job.jobId,'fixture',code+':job-preserved');
  assert.equal(projected.data.error,code,code+':original-error-preserved');
 }
+
+// A finished nonzero command is a truthful completed job, not an MCP
+// INVALID_ARGUMENT exception. Keep failure semantics, jobId and exit code.
+const commandExit=completedExecOutcome({
+ ok:false,data:null,job:{jobId:'cmd-fixture-7',state:'error',finishedAt:123,exitCode:7}
+});
+assert.equal(commandExit.ok,false);
+assert.equal(commandExit.executionCompleted,true);
+assert.equal(commandExit.commandSucceeded,false);
+assert.equal(commandExit.error,'command_exit_nonzero');
+assert.equal(commandExit.layer,'command_execution');
+assert.equal(commandExit.nextAction,'read_existing_job_output');
+assert.equal(commandExit.job.exitCode,7);
+assert.equal(result(commandExit).isError,undefined);
+assert.equal(result(commandExit).structuredContent.job.jobId,'cmd-fixture-7');
+// No execution receipt: policy denials and failed dispatch must not be recast
+// as completed application-level commands, even with an error job attached.
+for(const raw of [
+ {ok:false,data:{error:'filesystem_path_outside_allowed_roots',status:403},
+  job:{jobId:'deny',state:'error',finishedAt:123,exitCode:7}},
+ {ok:false,data:null,job:{jobId:'pending',state:'running',exitCode:7}},
+ {ok:false,data:null,job:{jobId:'unknown',state:'error',finishedAt:123,exitCode:null}}
+]){
+ const v=completedExecOutcome(raw);
+ assert.notEqual(v.error,'command_exit_nonzero');
+}
+assert.equal(result(completedExecOutcome({ok:false,data:{error:'invalid_terminal_id',status:400},
+ job:{jobId:'denied',state:'error',finishedAt:123,exitCode:7}})).isError,true);
+console.log('GOLD_EXEC_NONZERO_EXIT_MCP_RESULT_NOT_PROTOCOL_ERROR=PASS');
+
 // A known local path deny is a valid completed policy decision. Keep all
 // machine-readable denial metadata but do not convert it into an opaque MCP
 // INVALID_ARGUMENT exception on clients that unwrap isError as a tool failure.

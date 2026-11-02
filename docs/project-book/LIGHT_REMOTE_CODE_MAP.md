@@ -581,3 +581,8 @@ Admin Owner security emblem uses /assets/icons/material/security.svg (verified H
 - plugin-server/operator-adapter.mjs AccountOperatorAdapter.connectionHelper: in explicitly isolated Lab V1-disabled instance only, normalFlow and nextAction/deviceAuthorization now describe read-only Discovery -> Agent-initiated B -> Owner approve on Wall OR Account -> Helper ready 24h. No more wrong Wall copy-A instructions. Production V1 response preserved.
 - deploy/scripts/selftest-gold-ab-v2-helper-tool.mjs: dynamic mocked adapter test asserts Lab ready V2 flow and production ready V1 flow.
 - Live Lab Operator+Wall 38fdc76c, Plugin b36cb451 source overlay; PG grant for R01KAP active and Helper ready observed. Approval origin requires separate audit if attributing Wall versus Account.
+
+### 2026-11-02 — Exec completed nonzero vs MCP protocol errors
+- plugin-server/tools.mjs: completedExecOutcome applies ONLY to finished exec receipt with null data, state error, nonzero exitCode; preserve job with ok:false, executionCompleted:true, commandSucceeded:false and command_exit_nonzero; result() suppresses isError for this exact completed decision, policy/auth/transport remain denied.
+- plugin-server/exec-inline-output.mjs: explicit inline stdout option returns bounded stdout and stderr for completed nonzero exec via canonical authorized output, or pointers to light_remote_output.
+- selftest-gold-tool-error-origin and selftest-g3-agent-inline-stdout: exit 7, both streams, no fabricated command success, policy deny isolation, V1 fallback.

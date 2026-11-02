@@ -27,9 +27,35 @@ const fallback=await maybeInlineExecStdout(finished,{output:async()=>{throw Erro
 assert.equal(fallback.ok,true);assert.equal(fallback.job.jobId,'job-1');
 assert.equal(fallback.inlineStdout.complete,false);
 console.log('G3_INLINE_STDOUT_ERROR_RECOVERABLE_CANONICAL_JOBID=PASS');
+
+const failed={ok:false,data:null,error:'command_exit_nonzero',
+ layer:'command_execution',retryable:false,executionCompleted:true,
+ commandSucceeded:false,job:{jobId:'nonzero-7',state:'error',running:false,exitCode:7}};
+const streams=[];
+const failedOut=await maybeInlineExecStdout(failed,{
+ output:async(id,stream,offset,limit,full)=>{
+  assert.equal(id,'nonzero-7');assert.equal(offset,0);assert.equal(limit,1536);
+  assert.equal(full,false);streams.push(stream);
+  return {output:stream==='stdout'?'FAILED_OUT':'FAILED_ERR',
+    totalBytes:10,hasMore:false};
+ }
+},{inlineStdout:true});
+assert.equal(failedOut.ok,false);
+assert.equal(failedOut.executionCompleted,true);
+assert.equal(failedOut.commandSucceeded,false);
+assert.equal(failedOut.inlineStdout.output,'FAILED_OUT');
+assert.equal(failedOut.inlineStderr.output,'FAILED_ERR');
+assert.deepEqual(streams,['stdout','stderr']);
+assert.equal(failedOut.job.jobId,'nonzero-7');
+// Do not inline output for policy error even if error job has exitCode 7.
+const rejected=await maybeInlineExecStdout({...failed,
+ error:'filesystem_path_outside_allowed_roots',executionCompleted:undefined},
+ {output:async()=>{throw Error('should_not_fetch_denied_output')}},{inlineStdout:true});
+assert.equal(rejected.inlineStdout,undefined);
+console.log('GOLD_EXEC_NONZERO_SMALL_STDOUT_STDERR_INLINE_RECEIPT=PASS');
 const source=fs.readFileSync(new URL('../../plugin-server/tools.mjs',import.meta.url),'utf8');
 assert.ok(source.includes('inlineStdout:z.boolean().optional()'));
-assert.ok(source.includes('maybeInlineExecStdout(operationView(await a.exec'));
+assert.ok(source.includes('maybeInlineExecStdout(completedExecOutcome(await a.exec'));
 assert.ok(source.includes("process.env.LIGHT_REMOTE_GOLD_INDEPENDENT==='1'&&process.env.LIGHT_REMOTE_GOLD_INLINE_STDOUT_DEFAULT==='1'"));
 assert.ok(source.includes('inlineStdout:x.inlineStdout??goldAutoInlineStdout'));
 console.log('G3_INLINE_STDOUT_GOLD_TOOL_SCHEMA=PASS');

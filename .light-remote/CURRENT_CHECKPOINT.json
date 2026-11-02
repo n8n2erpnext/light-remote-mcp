@@ -156,7 +156,7 @@
     "Agent V2 no-arg recovery source is newly changed; not yet deployed, not yet GitHub CI-verified and cannot pass physical Owner B→Helper 24h end-to-end while live PG043 is unregistered. Keep source, runtime and UI acceptance distinct.",
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID."
   ],
-  "nextAction": "GoldABV2 live E2E (09:44+ VN 2026-11-02) PASS: account Discovery R01KAP online, 24h grant existing, Helper ready, exec inlineStdout/exit0, job/output final stdout, managed process finished exit0+stdout/stderr, default Bash PTY, bounded list_files. Nickname now enabled Lab-only after snapshot and verified session displayName GPT-6 Golden Lotus persisted. Current ChatGPT tool schema 83 vs server registered 84; next test direct light_remote_discover_devices after plugin schema refresh (NOT grant prerequisite). No V4/Gold main/production mutations.",
+  "nextAction": "Independent session P0 exec exit7 was MCP INVALID_ARGUMENT despite durable job output; focused source fix tests PASS. Deploy GoldABV2 Lab Plugin only after snapshot, verify live exec exit7 structured ok:false command_exit_nonzero with jobId/output, and genuine policy errors remain denied. Separate P1 memory binding, P2 SCP zero bytes and /bin/sh. No Prod/UAT/V4.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -169,10 +169,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "01bf4c4f7ee09ea23f42b5e50a0b89fe82dfc782213d6ef23ca544fd03ba282e",
+    "treeDigest": "6636e541cdb24d8696899ad21bb47c4fc5fd57c939b53bbd4be7756a50d54846",
     "trackedFiles": 1141,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-02T02:40:01.148Z"
+    "recordedAt": "2026-11-02T02:57:07.886Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -642,5 +642,13 @@
     "remaining": "schema refresh for direct discover tool; new human Wall B screenshot only if new request needed",
     "nicknameSnapshot": "pre-agent-nickname-acceptance-20261102",
     "prodUatChanged": false
+  },
+  "abv2ExecNonzeroMcp": {
+    "date": "2026-11-02",
+    "independentReport": "83-tool smoke, exit7 became MCP INVALID_ARGUMENT but receipt survived",
+    "reproduced": true,
+    "fix": "completed exec receipt as normal MCP structured failure; optional inline stdout+stderr; policy errors unchanged",
+    "sourceTests": "tool error, inline output, 84 tool contract, V2 helper PASS",
+    "liveAcceptance": "PENDING"
   }
 }
