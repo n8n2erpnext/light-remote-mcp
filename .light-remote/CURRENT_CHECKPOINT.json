@@ -156,7 +156,7 @@
     "Agent V2 no-arg recovery source is newly changed; not yet deployed, not yet GitHub CI-verified and cannot pass physical Owner B→Helper 24h end-to-end while live PG043 is unregistered. Keep source, runtime and UI acceptance distinct.",
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID."
   ],
-  "nextAction": "GoldABV2 Lab: deploy Operator-only raw DeviceConnectionRegistry fix, then LIVE Owner B on signed-in Account for R01KAP and plugin Helper recover/poll. No-arg Recover and Owner grant were blocked by impossible .state check on assertConnected() raw row. Keep 4/4 GoldABV2 services, snapshot before Operator restart, verify no grant until Owner approves. V4 integration deferred.",
+  "nextAction": "GoldABV2 Lab: deploy plugin-only discovery helper compatibility to handle cached MCP tools; live call connection_helper({}) with no pending B should show onlineCount=1 R01KAP Linux; targetQuery online and arm64 should show signed read-only Discovery; granted-only list_devices remains []; 24h Owner B grant separate. Verify CI, leave Gold UAT/prod.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -169,10 +169,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "93599d2d2b5c63eb5f14da287b757bd227a6cb8589f26dc07455c3da9357f4e1",
+    "treeDigest": "abd3ea5cc9b0f1c6b257770475e955f2ffa9ecd002e5c3c542afb0fd89d6cf7e",
     "trackedFiles": 1141,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-02T02:04:57.322Z"
+    "recordedAt": "2026-11-02T02:19:57.874Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -591,5 +591,13 @@
     "cause": "DeviceConnectionRegistry.assertConnected returns raw live record without .state; prior A/B checked .state",
     "test": "4 aligned suites PASS + real contract assertion; live deployment pending",
     "humanOwnerGrantVerified": false
+  },
+  "abv2DiscoveryCachedToolFallback": {
+    "date": "2026-11-02",
+    "scope": "GoldABV2 Lab plugin only",
+    "reason": "ChatGPT cached 83 tools while Lab registered 84",
+    "behavior": "no-arg Helper after pending recovery returns account-scoped Discovery; online/architecture query aliases; no B",
+    "sourceTests": "Lab lock, 100-device discovery, plugin tool, helper, recovery and Account PASS",
+    "liveAcceptance": "PENDING"
   }
 }

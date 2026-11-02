@@ -18,7 +18,7 @@ process.env.LR_GOLD_ABV2_LAB_SHORT_ID='X3AQQ6';
 let wall;
 const prot=AccountOperatorAdapter.prototype;
 const old=Object.fromEntries(['pairBegin','pairRecover','pairPoll',
- 'recoverAbV2Request','connectionHelper'].map(k=>[k,prot[k]]));
+ 'recoverAbV2Request','connectionHelper','discoverAbV2Devices'].map(k=>[k,prot[k]]));
 let legacyCalled=0;
 try{
  const auth={enabled:true,identity:req=>req.headers['x-test-owner']==='owner'
@@ -69,9 +69,36 @@ try{
  prot.pairPoll=async()=>{legacyCalled++;throw Error('unexpected_v1_poll')};
  prot.pairRecover=async()=>{legacyCalled++;throw Error('unexpected_v1_recover')};
  prot.recoverAbV2Request=async()=>null;
+ let discoveries=0,issues=0;
+ prot.discoverAbV2Devices=async({query='',onlineOnly=false}={})=>{
+  discoveries++;
+  return {status:'device_discovery',query,onlineOnly,total:1,
+   matchedTotal:1,onlineCount:1,offlineCount:0,
+   matches:[{deviceId:'dev1',shortId:'R01KAP',platform:'linux',
+     architecture:'arm64',online:true}],
+   helperReady:false,approvalState:'not_issued',requestCreated:false,
+   complete:true,hasMore:false};
+ };
  prot.connectionHelper=async()=>{legacyCalled++;throw Error('unexpected_working_session')};
  const noargs=(await helper({})).structuredContent;
- assert.equal(noargs.status,'abv2_only');assert.equal(noargs.helperReady,false);
+ assert.equal(noargs.status,'device_discovery');
+ assert.equal(noargs.onlineCount,1);
+ assert.equal(noargs.matches[0].shortId,'R01KAP');
+ assert.equal(noargs.requestCreated,false);
+ const all=(await helper({targetQuery:'online'})).structuredContent;
+ assert.equal(all.status,'device_discovery');
+ assert.equal(all.onlineOnly,true);
+ const arm=(await helper({targetQuery:'arm64'})).structuredContent;
+ assert.equal(arm.query,'arm64');
+ assert.equal(discoveries,3);
+ // Recovering an actual B request must take priority over the discovery fallback.
+ prot.recoverAbV2Request=async()=>({status:'approval_required',code:'ABCD-2345',
+   helperReady:false,approvalPath:'/account'});
+ const pending=(await helper({})).structuredContent;
+ assert.equal(pending.status,'approval_required');
+ assert.equal(discoveries,3);
+ prot.recoverAbV2Request=async()=>null;
+ assert.equal(issues,0);
  const rejected=await helper({aCode:'ABCD-2345'});
  assert.equal(rejected.isError,true);
  assert.match(JSON.stringify(rejected),/abv2_lab_legacy_v1_temporarily_disabled/);

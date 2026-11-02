@@ -170,7 +170,7 @@ export async function callLegacyMultiplexedTool(identity,name,input={}){
 export function registerPluginTools(server,identity){
   add(server,'light_remote_connection_helper',{
     title:'Connect Light Remote with A/B approval',
-    description:'Start here. Handles Local Wall A/B pairing and, when ready, returns/reuses the working context plus a compact tool-family menu. Call again with helperGroup=workspace|files|shell|transfer|desktop only when detailed syntax for that family is needed. OAuth account login alone never authorizes a device.',
+    description:'Use for A/B V2 target search and connection. BEFORE B, light_remote_discover_devices is the preferred read-only account-device online/offline counter. If that newer tool is missing in your ChatGPT tool list, call THIS helper with no args: when no pending A/B request exists, it returns read-only account Discovery (not abv2_only or zero granted devices) in the A/B V2 Lab. targetQuery searches owned targets without B; only startAbV2=true with an exact selected target initiates B approval. When pending B, no-arg recovers that request first. light_remote_list_devices lists granted devices ONLY, never total account online. OAuth login alone does not authorize device control. After approval call this helper again.',
     inputSchema:{targetQuery:z.string().min(1).max(120).optional(),startAbV2:z.boolean().optional(),guestShare:z.boolean().optional(),requestKey:z.string().regex(/^[a-f0-9]{32}$/).optional(),pollRequestId:z.string().regex(/^av2_[a-f0-9]{32}$/).optional(),pollDeviceId:id.optional(),pollShortId:z.string().regex(/^[0-9A-HJKMNP-TV-Z]{6}$/).optional(),aCode:z.string().regex(/^[A-Za-z2-9]{4}-?[A-Za-z2-9]{4}$/).optional(),continuation:z.string().min(20).max(8192).optional(),label:z.string().min(1).max(120).optional(),helperGroup:z.enum(['workspace','files','shell','transfer','desktop']).optional()},
     securitySchemes:security(['remote:read']),annotations:annotations(false,false,false,false)
   },guarded(identity,['remote:read'],async(a,x)=>{
@@ -193,10 +193,22 @@ export function registerPluginTools(server,identity){
     if(x.guestShare&&!x.targetQuery)throw new Error('pro_share_guest_exact_target_required');
     if(x.targetQuery&&(x.aCode||x.continuation||x.helperGroup))
       throw new Error('abv2_helper_target_query_conflict');
-    if(x.targetQuery)return x.startAbV2?
-      a.issueAbV2Request(x.targetQuery,{requestKey:x.requestKey||null,
-       guestShare:x.guestShare===true}):
-      a.resolveAbV2Target(x.targetQuery,{guestShare:x.guestShare===true});
+    if(x.targetQuery){
+      // Backward-compatible read-only Discovery for MCP hosts that still
+      // expose the old tool list without light_remote_discover_devices.
+      // Explicit connection requests always use the separate signed B path.
+      const lookup=String(x.targetQuery).trim().toLowerCase();
+      if(!x.startAbV2&&!x.guestShare&&
+         ['all','devices','all devices','online','online devices',
+          'arm64','aarch64','x64','amd64'].includes(lookup))
+        return a.discoverAbV2Devices({
+          query:['arm64','aarch64','x64','amd64'].includes(lookup)?lookup:'',
+          onlineOnly:lookup==='online'||lookup==='online devices'});
+      return x.startAbV2?
+        a.issueAbV2Request(x.targetQuery,{requestKey:x.requestKey||null,
+         guestShare:x.guestShare===true}):
+        a.resolveAbV2Target(x.targetQuery,{guestShare:x.guestShare===true});
+    }
     if(x.helperGroup&&(x.aCode||x.continuation))throw new Error('helper_group_pairing_conflict');
     if(x.aCode){
       const pending=await a.pairBegin(x.aCode,x.label||'ChatGPT'),continuation=await mintPairingContinuation(identity,{requestId:pending.requestId,pollToken:pending.pollToken,agentId:a.agentId,expiresAt:pending.expiresAt});
@@ -218,8 +230,15 @@ export function registerPluginTools(server,identity){
         }
         return v2;
       }
-      if(labV2Only)return {status:'abv2_only',protocol:'abv2',
-       helperReady:false,nextAction:'start_abv2_request_for_owned_target'};
+      if(labV2Only){
+        // No active B request: safely show signed OAuth account metadata.
+        // Never confuse the empty per-client granted-device list with 0 online.
+        const discovery=await a.discoverAbV2Devices();
+        return {...discovery,protocol:'abv2',
+          nextAction:discovery.status==='device_discovery'?
+           'select_exact_device_before_request':
+           'device_discovery_unavailable_refresh_plugin_metadata'};
+      }
       const recovered=await a.pairRecover();
       if(recovered?.state==='pending')return {status:'approval_required',code:recovered.request?.userCode||null,resumeMode:'call_same_helper_without_arguments',expiresInSeconds:Math.max(0,Math.ceil((Number(recovered.request?.expiresAt||Date.now())-Date.now())/1000)),approvalPath:'/approve'};
       if(recovered?.state==='approved'){const helper=await a.connectionHelper();return {...helper,status:'ready',pairedDevice:recovered.device?.displayName||recovered.device?.deviceId||null,recovered:true};}
