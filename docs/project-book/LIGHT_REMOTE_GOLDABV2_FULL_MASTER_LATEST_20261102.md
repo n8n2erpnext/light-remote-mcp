@@ -1,4 +1,9 @@
 # LIGHT REMOTE GOLDABV2 — FULL MASTER HANDOFF (LATEST)
+
+### LATEST R5 UPDATE — 2026-11-02 20:01 ICT (supersedes R4 runtime pointers below)
+
+The Owner corrected the font request: LIVE OPERATOR STREAM heading remains 12px; only COMMAND/output body increased 1–2px. New R5 source 61b18b8b is LIVE in isolated Lab Wall at /opt/light-remote-abv2-lab/source-61b18b8b-wall-r5-STAGED. Hover border/no underline, Live green connected / yellow cloud dormant / red disconnected. Source Gate 41449324814 4/4 PASS, Docs Integrity 41449324833 PASS, 4/4 services, HTTP/HTTPS 200. LXD snapshot pre-goldabv2-wall-r5-20261102; rollback /var/backups/light-remote-goldabv2-wall-before-r5-20261102.conf. Active unexpired grants 0 before and 0 after R5 Wall-only restart; earlier 1/2 grant counts below are historical. Owner Chrome acceptance OPEN. Latest detail docs/project-book/LIGHT_REMOTE_GOLDABV2_WALL_R5_LIVE_DEPLOY_20261102.md. The older R4 notes below remain chronological evidence and are not the current runtime pointer.
+
 ## 2026-11-02 · Session continuity after Wall Approve B R4 · VPS-ARM / isolated GoldABV2 Lab
 
 **STATUS: GoldABV2 LAB HEALTHY; UI R4 DEPLOYED; OWNER BROWSER ACCEPTANCE OPEN; NOT PRODUCTION-READY.**

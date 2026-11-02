@@ -897,3 +897,7 @@ Audited live Lab 4/4 services and HTTP200, exact working source paths per Operat
 ## 2026-11-02 — GoldABV2 Wall R5 hover, stream content font and Live status
 
 Owner clarified LIVE OPERATOR STREAM heading remains 12px while commands/output/meta below increase ~1–2px. Updated only stream body typography; added Web Distribution-style blue border hover/no underline to bordered controls, with semantic primary/danger and accessible focus. Fixed misleading green live badge on dormant using cloudDesiredConnected/cloudState and SSE status: yellow dormant, red disconnected/failed SSE, green connected. Added six-page render/state regression selftest-gold-wall-r5-interactions.mjs. See docs/project-book/LIGHT_REMOTE_GOLDABV2_WALL_R5_HOVER_STREAM_STATUS_20261102.md.
+
+## 2026-11-02 — GoldABV2 Wall R5 LIVE isolated Lab
+
+After source commit 61b18b8b, Source Gate 41449324814 4/4 PASS and Docs Integrity 41449324833 PASS, snapshotted pre-goldabv2-wall-r5-20261102, staged matching R5 source and tested as gold-uat, atomically updated only Wall drop-in and restarted Wall. Four services healthy, local/public HTTP login and HTTPS health 200, zero active unexpired grants before/after, zero recent Wall errors. User requirement heading unchanged; command/output body +1–2px, cyan border hover/no underline, green/yellow/red cloud-aware Live status. See GoldABV2 Wall R5 LIVE deployment doc. Full Master latest updated and copied to ARM.
