@@ -87,7 +87,7 @@ export function createGoldAbV2HelperTarget({
        policy.accountId!==p.accountId||policy.policyProfile==='disabled'||
        !Array.isArray(policy.approvedCapabilities)||!policy.approvedCapabilities.length||
        cn.deviceId!==recovered.deviceId||cn.accountId!==p.accountId||
-       cn.connectionId!==recovered.connectionId||cn.state!=='connected'||
+       cn.connectionId!==recovered.connectionId||cn.closedAt||
        Number(cn.hardExpiresAt)<=Date.now())
      deny('abv2_recover_enrollment_or_connection_changed',409);
     const short=await storage.pool.query(

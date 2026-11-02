@@ -72,7 +72,7 @@ const mk=(cfg=env)=>createGoldAbV2GrantOperator({env:cfg,
   policyView:()=>({accountId:'owner',policyRevision:1,policyProfile:policy?'default':'disabled',
    approvedCapabilities:['filesystem']})},
  connections:{assertConnected:()=>({deviceId:'dev1',accountId:'owner',
-  connectionId:connection,state:'connected',hardExpiresAt:Date.now()+3600000})},
+  connectionId:connection,closedAt:null,hardExpiresAt:Date.now()+3600000})},
  accessGrants:registry,goldRegistries:{flush:async()=>{flushes++;}}
 });
 const input={deviceId:'dev1',requestId:rid,expectedAttempt:1,bCode:'7KPX-42NM'};

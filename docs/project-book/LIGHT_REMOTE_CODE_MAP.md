@@ -554,3 +554,8 @@ Admin Owner security emblem uses /assets/icons/material/security.svg (verified H
 - device-agent/local-wall.mjs: existing lab-only Owner Account URL substitution preserved; V1 legacy fallback and server-side signed Owner/CSRF verification unchanged.
 - plugin-server/account-portal/ab-v2.js and account-ab-v2.mjs: unchanged trusted Owner B single-input approval, cookie + CSRF + Operator durable PG grant path.
 - deploy/scripts/selftest-gold-abv2-owner-approval-navigation.mjs and selftest-gold-ab-v2-wall-preview.mjs: require direct Account link, prohibit local Wall direct B mutation, keep backend negative auth tests. Physical Browser/Owner approval acceptance pending.
+
+### 2026-11-02 — A/B V2 raw DeviceConnectionRegistry contract fix
+- operator-host/device-connection-registry.mjs assertConnected(deviceId) returns a LIVE raw connection row, no .state; get(deviceId) returns a view with .state. Treat assertConnected as authoritative and reject closedAt, expired lease, wrong exact account/device/connection.
+- operator-host/gold-ab-v2-helper-target.mjs (no-arg recovery), gold-ab-v2-helper-poll.mjs (grant readiness), gold-ab-v2-grant-operator.mjs (/account B approval), gold-ab-v2-signed-approval.mjs (Wall signed approval): previously required nonexistent .state on raw rows; now verify real raw contract without bypassing auth, B, policy or durable PG.
+- deploy/scripts/selftest-gold-ab-v2-{helper-recovery,helper-poll,grant-operator,signed-approval}.mjs: raw row fixture parity, direct actual DeviceConnectionRegistry check in Recovery fixture. E2E human approval remains distinct.

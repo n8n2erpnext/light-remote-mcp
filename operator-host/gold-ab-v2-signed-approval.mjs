@@ -62,7 +62,7 @@ export function createGoldAbV2SignedApproval({
    deny('abv2_wall_enrollment_or_policy_denied',403);
   const connection=connections.assertConnected(deviceId);
   if(connection.deviceId!==deviceId||connection.accountId!==owner||
-     connection.state!=='connected'||!IDENT.test(connection.connectionId||'')||
+     connection.closedAt||!IDENT.test(connection.connectionId||'')||
      !Number.isFinite(Number(connection.hardExpiresAt))||
      Number(connection.hardExpiresAt)<=now())
    deny('abv2_wall_connection_changed',409);

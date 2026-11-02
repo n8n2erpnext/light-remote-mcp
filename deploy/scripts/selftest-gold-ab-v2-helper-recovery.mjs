@@ -4,11 +4,17 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {GoldAbV2PendingRedis} from '../../lib/gold-ab-v2-pending-redis.mjs';
+import {DeviceConnectionRegistry} from '../../operator-host/device-connection-registry.mjs';
 import {createGoldAbV2HelperTarget} from '../../operator-host/gold-ab-v2-helper-target.mjs';
 import {goldAbV2HelperKey,signGoldAbV2HelperTarget}
  from '../../lib/gold-ab-v2-helper-proof.mjs';
 
 const root=fs.mkdtempSync(path.join(os.tmpdir(),'abv2-recover-'));
+const realConnection=new DeviceConnectionRegistry();
+realConnection.connect({accountId:'acct1',deviceId:'dev1'});
+assert.equal(realConnection.get('dev1').state,'connected');
+assert.equal(Object.hasOwn(realConnection.assertConnected('dev1'),'state'),false,
+ 'production assertConnected returns a live raw row without a state property');
 const file=path.join(root,'key');fs.writeFileSync(file,crypto.randomBytes(32),{mode:0o600});
 const env={LIGHT_REMOTE_GOLD_ROOT:root,LR_GOLD_AB_V2_SEAL_KEY_FILE:file,
  LR_GOLD_AB_V2_HELPER_PROOF_KEY_FILE:file,
@@ -63,7 +69,7 @@ const enrollments={binding:()=>({deviceId:'dev1',accountId:'acct1',
  policyView:()=>({accountId:'acct1',policyProfile:'default',approvedCapabilities:['filesystem']})};
 const connections={get:()=>({deviceId:'dev1',accountId:'acct1',connectionId:cn,
  state:'connected',hardExpiresAt:Date.now()+300000}),
- assertConnected:()=>connections.get()};
+ assertConnected:()=>{const {state,...raw}=connections.get();return raw;}};
 const make=(e=env)=>createGoldAbV2HelperTarget({env:e,
  storage:{pool:sql,redis,prefix:'lr:gold:fixture:'},
  accounts:{assertOperational:()=>({accountId:'acct1',emailVerified:true})},

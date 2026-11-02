@@ -81,7 +81,7 @@ const deps={
   policyView:()=>({accountId:'owner1',policyRevision:1,
    policyProfile:policyEnabled?'default':'disabled',approvedCapabilities:['filesystem']})},
  connections:{assertConnected:()=>({deviceId:'dev1',accountId:'owner1',
-  connectionId:conn,state:'connected',hardExpiresAt:time+7200000})},
+  connectionId:conn,closedAt:null,hardExpiresAt:time+7200000})},
  accessGrants:grantRegistry,goldRegistries:{flush:async()=>{
   writeCount++;if(failPgOnce){failPgOnce=false;throw Error('pg_fixture_interrupted_stage');}
  }},
