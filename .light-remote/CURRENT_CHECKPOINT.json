@@ -156,7 +156,7 @@
     "Agent V2 no-arg recovery source is newly changed; not yet deployed, not yet GitHub CI-verified and cannot pass physical Owner B→Helper 24h end-to-end while live PG043 is unregistered. Keep source, runtime and UI acceptance distinct.",
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID."
   ],
-  "nextAction": "GoldABV2 Lab Operator 94933590 live deployed, snapshot pre-owner-close-grant-revoke-20261102, backup override. 4/4 services active HTTPS200, focused tests PASS. New Owner Close will revoke exactly matching A/B grant+client binding then close session, DB flush before ack; needs manual Owner B->Close runtime acceptance. Historical Claude grant dag_v2_89f9... is STILL active after its session was closed before patch; do not just hide timer or revoke by Agent name, need scoped reconciliation after matching closed sessionId. ChatGPT separate grant stays active. Gold UAT/prod/V4 untouched.",
+  "nextAction": "GoldABV2 Lab Owner cleanup COMPLETE: one Claude grant revoked, both Claude clients closed, two Claude bindings removed, GPT6 grant preserved, 4/4 services active HTTP200; snapshot pre-keep-gpt6-claude-revoke-20261102. GPT6 Helper READY on existing 24h grant, new active session s_mvys898w_7bece3571695c7ce named GPT-6 Golden Lotus 2 (old session expired/name reserved). No Claude access. No Gold UAT/prod/V4 change. Optional later nickname dedup polish.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -684,6 +684,11 @@
     "historicalCleanup": "Review before mutation; do not revoke newer grant",
     "rollback": "LXD snapshot pre-owner-close-grant-revoke-20261102 and operator-before-owner-close-94933590-20261102.conf",
     "historicGrant": "Claude prior closed session old active grant dag_v2_89f9... remains in PG; no cleanup performed",
-    "noOtherAgentMutation": true
+    "noOtherAgentMutation": true,
+    "historicalClaudeCleanup": "COMPLETED: exact one Claude grant revoked and both Claude client/bindings closed; GPT6 preserved",
+    "historicalCleanupSnapshot": "pre-keep-gpt6-claude-revoke-20261102",
+    "retainedGrant": "dag_v2_bc15b3daf348b6d7461b4c86fb58cb1e",
+    "postCleanupServiceStatus": "4/4 active HTTPS200",
+    "currentGptSession": "s_mvys898w_7bece3571695c7ce GPT-6 Golden Lotus 2 active"
   }
 }
