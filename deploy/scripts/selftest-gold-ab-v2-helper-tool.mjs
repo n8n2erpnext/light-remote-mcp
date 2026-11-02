@@ -57,8 +57,9 @@ try {
   deviceId:'dev1',displayName:'Lab',state:'online',
   platform:'linux',architecture:'arm64',effectiveCapabilities:['filesystem']
  }];
- a.workingContext=async()=>({context:{deviceId:'dev1',sessionId:'s_fixture'},
-   session:{deviceId:'dev1',sessionId:'s_fixture',state:'active'}});
+ a.workingContext=async({agentNickname=null}={})=>({context:{deviceId:'dev1',sessionId:'s_fixture'},
+   session:{deviceId:'dev1',sessionId:'s_fixture',state:'active',
+     displayName:agentNickname,nameSource:agentNickname?'agent':null}});
  process.env.LR_GOLD_INSTANCE_ID='abv2lab01';
  process.env.LR_GOLD_ABV2_LAB_DISABLE_LEGACY_V1='1';
  const lab=await a.connectionHelper();
@@ -66,6 +67,13 @@ try {
  assert.match(lab.onboarding.normalFlow.join(' '),/Owner enters B/);
  assert.doesNotMatch(lab.onboarding.normalFlow.join(' '),/copy the one-time A code/);
  assert.equal(lab.governance.deviceAuthorization,'agent-initiated-abv2-local-wall-or-account-b');
+ assert.equal(lab.sessionId,'s_fixture');
+ assert.equal(lab.sessionNickname,null,'optional nickname omission cannot block ready');
+ const named=await a.connectionHelper(null,{agentNickname:'Claude Curious Otter'});
+ assert.equal(named.status,'ready');
+ assert.equal(named.sessionId,'s_fixture');
+ assert.equal(named.sessionNickname,'Claude Curious Otter');
+ assert.equal(named.nicknameSource,'agent');
  process.env.LR_GOLD_INSTANCE_ID='production';
  const prod=await a.connectionHelper();
  assert.match(prod.onboarding.normalFlow.join(' '),/copy the one-time A code/);

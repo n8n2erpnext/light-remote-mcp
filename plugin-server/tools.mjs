@@ -197,8 +197,8 @@ export async function callLegacyMultiplexedTool(identity,name,input={}){
 export function registerPluginTools(server,identity){
   add(server,'light_remote_connection_helper',{
     title:'Connect Light Remote with A/B approval',
-    description:'Use for A/B V2 target search and connection. BEFORE B, light_remote_discover_devices is the preferred read-only account-device online/offline counter. If that newer tool is missing in your ChatGPT tool list, call THIS helper with no args: when no pending A/B request exists, it returns read-only account Discovery (not abv2_only or zero granted devices) in the A/B V2 Lab. targetQuery searches owned targets without B; only startAbV2=true with an exact selected target initiates B approval. When pending B, no-arg recovers that request first. light_remote_list_devices lists granted devices ONLY, never total account online. OAuth login alone does not authorize device control. After approval call this helper again.',
-    inputSchema:{targetQuery:z.string().min(1).max(120).optional(),startAbV2:z.boolean().optional(),guestShare:z.boolean().optional(),requestKey:z.string().regex(/^[a-f0-9]{32}$/).optional(),pollRequestId:z.string().regex(/^av2_[a-f0-9]{32}$/).optional(),pollDeviceId:id.optional(),pollShortId:z.string().regex(/^[0-9A-HJKMNP-TV-Z]{6}$/).optional(),aCode:z.string().regex(/^[A-Za-z2-9]{4}-?[A-Za-z2-9]{4}$/).optional(),continuation:z.string().min(20).max(8192).optional(),label:z.string().min(1).max(120).optional(),helperGroup:z.enum(['workspace','files','shell','transfer','desktop']).optional()},
+    description:'Use for A/B V2 target search and connection. BEFORE B, light_remote_discover_devices is the preferred read-only account-device online/offline counter. If that newer tool is missing in your ChatGPT tool list, call THIS helper with no args: when no pending A/B request exists, it returns read-only account Discovery (not abv2_only or zero granted devices) in the A/B V2 Lab. targetQuery searches owned targets without B; only startAbV2=true with an exact selected target initiates B approval. When pending B, no-arg recovers that request first. light_remote_list_devices lists granted devices ONLY, never total account online. OAuth login alone does not authorize device control. Suggest, but never require, an Agent-chosen playful nickname (animal, fruit, insect, flower or place). Do not ask Owner, do not assume this is ChatGPT or guess the model. On the post-B Helper call pass optional agentNickname; if omitted, connection still succeeds. Read back the server-confirmed sessionNickname and sessionId. After approval call this helper again.',
+    inputSchema:{targetQuery:z.string().min(1).max(120).optional(),startAbV2:z.boolean().optional(),guestShare:z.boolean().optional(),requestKey:z.string().regex(/^[a-f0-9]{32}$/).optional(),pollRequestId:z.string().regex(/^av2_[a-f0-9]{32}$/).optional(),pollDeviceId:id.optional(),pollShortId:z.string().regex(/^[0-9A-HJKMNP-TV-Z]{6}$/).optional(),aCode:z.string().regex(/^[A-Za-z2-9]{4}-?[A-Za-z2-9]{4}$/).optional(),continuation:z.string().min(20).max(8192).optional(),label:z.string().min(1).max(120).optional(),agentNickname:z.string().min(3).max(96).optional(),helperGroup:z.enum(['workspace','files','shell','transfer','desktop']).optional()},
     securitySchemes:security(['remote:read']),annotations:annotations(false,false,false,false)
   },guarded(identity,['remote:read'],async(a,x)=>{
     const labV2Only=goldAbV2LabV1Disabled();
@@ -245,13 +245,13 @@ export function registerPluginTools(server,identity){
       const ctx=await verifyPairingContinuation(identity,x.continuation);if(ctx.agentId!==a.agentId)throw new Error('pairing_continuation_agent_mismatch');
       const paired=await a.pairPoll(ctx);
       if(paired.state!=='approved')return {status:'approval_required',continuation:x.continuation,resumeMode:'call_same_helper_without_arguments',expiresInSeconds:Math.max(0,Math.ceil((Number(paired.request?.expiresAt||Date.now())-Date.now())/1000)),approvalPath:'/approve'};
-      const helper=await a.connectionHelper();return {...helper,status:'ready',pairedDevice:paired.device?.displayName||paired.device?.deviceId||null};
+      const helper=await a.connectionHelper(null,{agentNickname:x.agentNickname||null});return {...helper,status:'ready',pairedDevice:paired.device?.displayName||paired.device?.deviceId||null};
     }
     if(!x.helperGroup){
       const v2=await a.recoverAbV2Request();
       if(v2){
         if(v2.status==='ready'){
-          const helper=await a.connectionHelper();
+          const helper=await a.connectionHelper(null,{agentNickname:x.agentNickname||null});
           return {...helper,status:'ready',protocol:'abv2',
            pairedDevice:v2.pairedDevice,recovered:true};
         }
@@ -268,9 +268,9 @@ export function registerPluginTools(server,identity){
       }
       const recovered=await a.pairRecover();
       if(recovered?.state==='pending')return {status:'approval_required',code:recovered.request?.userCode||null,resumeMode:'call_same_helper_without_arguments',expiresInSeconds:Math.max(0,Math.ceil((Number(recovered.request?.expiresAt||Date.now())-Date.now())/1000)),approvalPath:'/approve'};
-      if(recovered?.state==='approved'){const helper=await a.connectionHelper();return {...helper,status:'ready',pairedDevice:recovered.device?.displayName||recovered.device?.deviceId||null,recovered:true};}
+      if(recovered?.state==='approved'){const helper=await a.connectionHelper(null,{agentNickname:x.agentNickname||null});return {...helper,status:'ready',pairedDevice:recovered.device?.displayName||recovered.device?.deviceId||null,recovered:true};}
     }
-    return a.connectionHelper(x.helperGroup||null);
+    return a.connectionHelper(x.helperGroup||null,{agentNickname:x.agentNickname||null});
   }));
 
   add(server,'light_remote_discover_devices',{

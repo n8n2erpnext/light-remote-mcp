@@ -106,6 +106,19 @@ try{
  const pending=(await helper({})).structuredContent;
  assert.equal(pending.status,'approval_required');
  assert.equal(discoveries,4);
+ // Agent picks nickname on the post-Owner-B Helper call, before working
+ // context/session opens. No nickname is required for a ready result.
+ prot.recoverAbV2Request=async()=>({status:'ready',pairedDevice:'R01KAP'});
+ prot.connectionHelper=async(_group,{agentNickname=null}={})=>({status:'ready',
+  sessionId:'s_fixture',sessionNickname:agentNickname,nicknameSource:agentNickname?'agent':null});
+ const named=(await helper({agentNickname:'Claude Curious Otter'})).structuredContent;
+ assert.equal(named.status,'ready');
+ assert.equal(named.sessionId,'s_fixture');
+ assert.equal(named.sessionNickname,'Claude Curious Otter');
+ assert.equal(named.nicknameSource,'agent');
+ const unnamed=(await helper({})).structuredContent;
+ assert.equal(unnamed.status,'ready');
+ assert.equal(unnamed.sessionNickname,null);
  prot.recoverAbV2Request=async()=>null;
  assert.equal(issues,0);
  const rejected=await helper({aCode:'ABCD-2345'});

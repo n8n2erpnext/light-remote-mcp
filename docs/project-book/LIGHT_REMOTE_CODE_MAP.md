@@ -590,3 +590,9 @@ Admin Owner security emblem uses /assets/icons/material/security.svg (verified H
 ### 2026-11-02 — Exec nonzero pre-spawn ambiguity guard
 - plugin-server/tools.mjs completedExecOutcome: only 1..125 except 72 and 124 may be treated as a completed command when job.state error, running false, data null. Device Agent reserves codes 72/124/126/127/130 for pre-spawn cwd, timeout, adapter/capability/policy, spawn and cancellation. Without signed spawn-phase evidence, fail closed. Legitimate applications using reserved exit codes remain conservative false negatives.
 - deploy/scripts/selftest-gold-tool-error-origin.mjs: fail-closed regression for reserved codes; positive exit7 and canonical inline stdout/stderr tests still PASS.
+
+### 2026-11-02 — Optional Agent nickname in A/B V2 Helper
+- plugin-server/tools.mjs: Helper input agentNickname optional, Agent chooses creative name without asking Owner. Only post-B ready calls pass nickname; same result includes server-confirmed sessionNickname and sessionId. No nickname requirement for Discovery, B approval, client grant or session.
+- plugin-server/operator-adapter.mjs: connectionHelper(requestedGroup,{agentNickname}) passes name to existing workingContext before creating/reusing session, exposes sessionId, sessionNickname, nicknameSource in ready output. Lab explicit openSession default neutral; production fallback preserved.
+- operator-host/executor-routes-device-channel.mjs: Lab-only V1-locked Operator session.open fallback label is Light Remote Agent instead of ChatGPT Light Remote; LR_GOLD_SESSION_AGENT_NICKNAME opt-in still controls durable naming.
+- selftest-gold-ab-v2-helper-tool.mjs and selftest-gold-ab-v2-lab-v1-lock.mjs: explicit named and unnamed Agent helper ready output; existing V1 and 84-tool contracts.

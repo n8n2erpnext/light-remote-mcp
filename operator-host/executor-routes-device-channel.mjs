@@ -422,7 +422,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
         const gracePreset=String(body.gracePreset||binding.workingContext?.gracePreset||'60m');
         let session=null;
         if(binding.workingContext?.sessionId){try{const prior=sessions.get(binding.workingContext.sessionId,binding.agentId);if(['active','hold'].includes(prior.state))session=prior;}catch{}}
-        if(!session)session=sessions.open({accountId:grant.accountId,agentId:binding.agentId,label:'ChatGPT Light Remote',workspace,gracePreset,nodeId:device.nodeId,deviceId:device.deviceId,maxActiveForNode:route.sessionCeiling,maxActiveForAccount:planEntitlements(accounts.account(grant.accountId)).sessionLimit??null});
+        if(!session)session=sessions.open({accountId:grant.accountId,agentId:binding.agentId,label:process.env.LR_GOLD_INSTANCE_ID==='abv2lab01'&&process.env.LR_GOLD_ABV2_LAB_DISABLE_LEGACY_V1==='1'?'Light Remote Agent':'ChatGPT Light Remote',workspace,gracePreset,nodeId:device.nodeId,deviceId:device.deviceId,maxActiveForNode:route.sessionCeiling,maxActiveForAccount:planEntitlements(accounts.account(grant.accountId)).sessionLimit??null});
         if(process.env.LR_GOLD_SESSION_AGENT_NICKNAME==='1'&&typeof body.agentNickname==='string'){
           // Optional, nonblocking display metadata: never gate A/B or session ready.
           try{session=sessions.setDisplayName(session.sessionId,{accountId:grant.accountId,
