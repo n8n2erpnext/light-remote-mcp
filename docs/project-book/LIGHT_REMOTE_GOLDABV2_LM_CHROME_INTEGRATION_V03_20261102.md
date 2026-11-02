@@ -59,3 +59,11 @@
 - Regression: deploy/scripts/selftest-gold-lm-extension-abv2.mjs. GitHub CI: .github/workflows/gold-connection-lifecycle-gc.yml.
 - Wall context form and signed save endpoint: device-agent/local-wall.mjs, device-agent/gold-wall-modules.mjs, device-agent/gold-memory-scope-admin.mjs.
 - Identity audit: docs/project-book/LIGHT_REMOTE_GOLDABV2_LONG_MEMORY_AUDIT_20261102.md.
+
+## Hosted CI and post-push verification
+
+- Extension integration source commit: ea622a336b1a29073aff7936f5730277b35942f2.
+- GitHub Source Gate run 41454866776: 4/4 PASS on 2026-11-02; Documentation Integrity run 41454866605: PASS. Verified GitHub branch HEAD/origin after push.
+- Isolated Lab post-push read-only check: 4/4 services active, Wall WorkingDirectory remains source-61b18b8b-wall-r5-STAGED, HTTP /long-memory returns 303 login redirect for unauthenticated request and HTTPS health returns 200. No service restarted.
+- Long Memory flag ON, Codex flag ON; 3 historical mismatched scopes remain unchanged; no data deletion or account/device migration.
+- Pending: actual Windows Chrome unpacked install, NetBird reachability from Windows, Owner login redirect/injected DOM and signed checkpoint read-back with a synthetic conversation.

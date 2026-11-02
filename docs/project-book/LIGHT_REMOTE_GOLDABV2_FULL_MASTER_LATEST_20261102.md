@@ -1,5 +1,10 @@
 # LIGHT REMOTE GOLDABV2 — FULL MASTER HANDOFF (LATEST)
 
+### Chrome LM v0.3 — HOSTED CI VERIFIED (2026-11-02)
+
+Source commit ea622a33, GitHub Source Gate 41454866776 4/4 PASS and Docs Integrity 41454866605 PASS. Lab remains 4/4 active with R5 Wall unchanged; Extension ZIP/source ready to install on Owner Windows Chrome, no real Chrome or signed Memory E2E yet. Current old Memory scopes still present (3) and modules ON. This latest CI verification supplements the v0.3 integration note below and detailed handoff.
+
+
 ### LATEST — Chrome Extension LM v0.3 integration for GoldABV2 (2026-11-02)
 
 Found independent LM v0.2 extension branch feature/gold-lm-chrome-extension-20261029 (6cafb33b) and ported its approved user-click capture, SHA-256 chunked DOM snapshot and manual Wall handoff as GoldABV2-only v0.3 preview at extensions/light-remote-lm-abv2. Exact permitted Wall target is http://100.94.184.141:15591/long-memory rather than Windows localhost; Owner still must explicitly choose Work/opt in/Save. Pending plaintext session data TTL is ten minutes with Chrome alarm cleanup. Preview ZIP at extensions/releases/Light-Remote-LM-GoldABV2-v0.3.0.zip. This is SOURCE/package integration; NOT installed or real Chrome/Owner signed Memory E2E yet. GoldABV2 Wall/DB untouched. Current Owner has no authorized Memory scopes because 3 historic Gold scopes belong to old Account/Home. Previous request to DELETE only old Long Memory data remains OPEN because current Device Sync is ON with this device selected; official deletion must not bypass safety fence. Read docs/project-book/LIGHT_REMOTE_GOLDABV2_LM_CHROME_INTEGRATION_V03_20261102.md before further changes.

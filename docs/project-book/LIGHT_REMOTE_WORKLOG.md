@@ -909,3 +909,7 @@ On isolated Lab R5, 17/17 Long Memory temporary-DB source tests PASS. Live modul
 ## 2026-11-02 — GoldABV2 LM Chrome extension v0.3 integration
 
 Located real Chrome Extension source in independent 2026-10-29 branch/worktree, verified source handoff and v0.2 64KiB SHA-256 chunked capture/manual Wall staging. Ported as separate GoldABV2-Lab-only MV3 extension v0.3 with exact NetBird Wall origin 100.94.184.141:15591, explicit user capture and owner review, pending plaintext alarm expiry, native My Work prompt, no auto Save. Preview ZIP and source regression added. Original Gold extension left unchanged. Lab Wall and DB untouched. Current 3 old Memory scopes still await Owner-authorized data-only cleanup after Device Sync guard is disabled; never bypass binding. See docs/project-book/LIGHT_REMOTE_GOLDABV2_LM_CHROME_INTEGRATION_V03_20261102.md.
+
+## 2026-11-02 — GoldABV2 LM extension v0.3 GitHub CI accepted
+
+Source integration ea622a33 passed hosted Gold Source Gate 41454866776 4/4 and Documentation Integrity 41454866605 PASS. Lab post-push remains 4/4 with R5 Wall source, unauthenticated /long-memory 303 (expected login) and HTTPS health 200. Long Memory and Codex modules still ON with 3 historical Gold old-Owner scopes untouched. No Chrome installation / Owner signed E2E yet. ZIP SHA256 unchanged 76a3649a4fb7704cb930f4a1912f70b80d8387128f69aff023e9a306f3fd0dcd.
