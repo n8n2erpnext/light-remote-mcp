@@ -2,13 +2,15 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   Activity, Bell, Database, House, Monitor, RefreshCcw,
   Settings, Shield, Terminal, UserRound, Users, CircleHelp,
-  ShieldAlert, type LucideIcon
+  ShieldAlert, ExternalLink, ScrollText, type LucideIcon
 } from 'lucide-react';
 import { FeatureScreen } from './FeatureScreens';
 import { Button } from './components/ui/button';
 import { Card, CardHeading } from './components/ui/card';
 import { navRoutes, parseRoute, routeHref, type RouteKey } from './lib/routes';
 import { readLocalWallStatus, type SnapshotResult } from './lib/status';
+import { readLocalLogState, type LocalLogResult } from './lib/local-logs';
+import { nativeOpenWallAvailable, openLocalWall, type WallView } from './lib/open-wall';
 
 const iconMap: Record<(typeof navRoutes)[number]['icon'], LucideIcon> = {
   house: House,
@@ -243,11 +245,23 @@ function Overview({ status, navigate }: {
   );
 }
 
-function SettingsPage({ theme, choose, status }: {
+function SettingsPage({ theme, choose, status, openWall, canOpenWall }: {
   theme: ThemePreference;
   choose: (theme: ThemePreference) => void;
   status: LoadState;
+  openWall: (view: WallView) => void;
+  canOpenWall: boolean;
 }) {
+  const [logs, setLogs] = useState<LocalLogResult>({ state: 'unavailable', reason: 'not_checked' });
+  const [refreshLog, setRefreshLog] = useState(0);
+  useEffect(() => {
+    const controller = new AbortController();
+    void readLocalLogState(fetch, controller.signal).then(data => {
+      if (!controller.signal.aborted) setLogs(data);
+    });
+    return () => controller.abort();
+  }, [refreshLog]);
+  const toMiB = (bytes: number) => (bytes / 1048576).toFixed(1) + ' MiB';
   return (
     <div className="screen-content settings-layout">
       <Card>
@@ -255,6 +269,7 @@ function SettingsPage({ theme, choose, status }: {
         <div className="settings-menu">
           <strong>Appearance</strong><span>Privacy &amp; Security</span><span>Filesystem Roots</span>
           <span>Desktop Permissions</span><span>Startup / Notifications</span><span>Agent / Updates</span>
+          <span>Activity Logs</span>
         </div>
       </Card>
       <div className="settings-column">
@@ -277,6 +292,35 @@ function SettingsPage({ theme, choose, status }: {
           </CardHeading>
           <p className="muted">Allowed filesystem roots require Admin approval. OS accessibility and screen recording permissions are separate platform gates.</p>
           <p className="muted">Denied / unsupported / Owner required are distinct states.</p>
+        </Card>
+        <Card className="activity-logs-card">
+          <CardHeading description="Device-local working history · bounded RAM and mandatory disk rotation">ACTIVITY LOGS</CardHeading>
+          {logs.state === 'ready' ? (
+            <div className="log-summary" role="status">
+              <span>Retention</span><strong>{logs.log.preset.charAt(0).toUpperCase() + logs.log.preset.slice(1)}</strong>
+              <span>Disk usage</span><strong>{toMiB(logs.log.usedBytes)} / {toMiB(logs.log.maxDiskBytes)}</strong>
+              <span>Recent RAM events</span><strong>{logs.log.ramEvents}</strong>
+              {logs.log.lastError && <p className="log-warning">{logs.log.lastError}</p>}
+            </div>
+          ) : (
+            <div className="inset log-unverified" role="status">
+              <ScrollText size={23} aria-hidden="true" />
+              <div><h3>Activity logs live on this device</h3>
+                <p>Log usage cannot be read without an authenticated, same-origin Local Wall session.
+                  Open Wall to view history, configure rotation or clean local logs.</p>
+              </div>
+            </div>
+          )}
+          <div className="log-actions">
+            <Button variant="primary" disabled={!canOpenWall} onClick={() => openWall('logs')}>
+              <ExternalLink size={16} aria-hidden="true" /> Open Activity Logs in Wall
+            </Button>
+            <Button variant="secondary" onClick={() => setRefreshLog(x => x + 1)}>Refresh log status</Button>
+          </div>
+          <p className="muted log-footnote">RAM: 8 MiB / 5,000 events / 60 minutes.
+            Disk: Compact 48 MiB · Standard 200 MiB (default) · Extended 300 MiB.
+            All presets rotate automatically. Clean Log requires authenticated Owner confirmation in Wall.</p>
+          {!canOpenWall && <p className="muted">Open Wall is available in the native Desktop app; no local browser launch is performed from this web preview.</p>}
         </Card>
         <DataBoundaryNotice status={status} />
       </div>
@@ -301,6 +345,14 @@ export function App() {
   const { theme, choose } = useTheme();
   const [status, setStatus] = useState<LoadState>({ phase: 'loading', result: null });
   const [reload, setReload] = useState(0);
+  const [wallOpenError, setWallOpenError] = useState<string | null>(null);
+  const canOpenWall = nativeOpenWallAvailable();
+  const requestOpenWall = useCallback((view: WallView) => {
+    setWallOpenError(null);
+    void openLocalWall(view).then(result => {
+      if (result.state === 'unavailable') setWallOpenError('Could not launch the system browser. Check that the default browser is available.');
+    });
+  }, []);
 
   useEffect(() => {
     const update = () => setRoute(parseRoute(window.location.hash));
@@ -348,6 +400,11 @@ export function App() {
             <p>{info.subtitle}</p>
           </div>
           <div className="header-actions">
+            <Button variant="secondary" className="open-wall-button" disabled={!canOpenWall}
+              title={canOpenWall ? 'Open this device Local Wall in the default browser' : 'Available only inside the native Desktop app'}
+              onClick={() => requestOpenWall('home')} aria-label="Open Wall">
+              <ExternalLink size={16} aria-hidden="true" /> <span className="open-wall-label">Open Wall</span>
+            </Button>
             <Bell size={19} aria-hidden="true" className="header-symbol" />
             <Button variant="ghost" size="icon" aria-label="Open Settings" onClick={() => navigate('settings')}>
               <Settings size={19} aria-hidden="true" />
@@ -360,9 +417,10 @@ export function App() {
             <span className="preview-pill"><span className="status-dot" aria-hidden="true" />PREVIEW · VERIFIED DATA ONLY</span>
           </div>
         </header>
+        {wallOpenError && <div className="open-wall-error" role="alert">{wallOpenError}</div>}
         {route === 'overview' ? <Overview status={status} navigate={navigate} />
           : route === 'ai-access' ? <AiAccess status={status} />
-            : route === 'settings' ? <SettingsPage theme={theme} choose={choose} status={status} />
+            : route === 'settings' ? <SettingsPage theme={theme} choose={choose} status={status} openWall={requestOpenWall} canOpenWall={canOpenWall} />
               : <FeatureScreen route={route} status={status.result} />}
         <footer className="page-footer">
           <CircleHelp size={14} aria-hidden="true" />

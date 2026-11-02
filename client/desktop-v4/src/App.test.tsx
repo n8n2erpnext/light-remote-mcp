@@ -17,6 +17,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   cleanup();
+  delete (window as Window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__;
   vi.unstubAllGlobals();
   window.history.replaceState(null, '', '#/');
 });
@@ -51,7 +52,12 @@ describe('Desktop V4 fail-closed interaction', () => {
     fireEvent.click(screen.getByRole('radio', { name: 'Dark' }));
     expect(document.documentElement.dataset.theme).toBe('dark');
     expect(window.localStorage.getItem('lr-v4-theme')).toBe('dark');
-    expect(vi.mocked(fetch)).toHaveBeenCalledTimes(1);
+    await screen.findByText('Activity logs live on this device');
+    // Settings adds one authorized same-origin read-only log status request.
+    expect(vi.mocked(fetch)).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(fetch).mock.calls.map(x => x[0])).toEqual([
+      '/api/status', '/api/activity/logs/state'
+    ]);
   });
 
   it('renders real Local Wall status but never infers signed Agent grants', async () => {
@@ -72,4 +78,17 @@ describe('Desktop V4 fail-closed interaction', () => {
     expect(screen.getByText('No verified grants')).toBeTruthy();
     expect(screen.queryByText(/FORBIDDEN/)).toBeNull();
   });
+  it('opens native Local Wall and activity logs through exact local-only bridge', async () => {
+    const invoke = vi.fn().mockResolvedValue(undefined);
+    Object.assign(window, { __TAURI_INTERNALS__: { invoke } });
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open Wall' }));
+    expect(invoke).toHaveBeenCalledWith('open_local_wall', { view: 'home' });
+    const nav = screen.getByRole('navigation', { name: 'Main navigation' });
+    fireEvent.click(within(nav).getByRole('link', { name: 'Settings' }));
+    await screen.findByText('Activity logs live on this device');
+    fireEvent.click(screen.getByRole('button', { name: /Open Activity Logs in Wall/ }));
+    expect(invoke).toHaveBeenCalledWith('open_local_wall', { view: 'logs' });
+  });
+
 });

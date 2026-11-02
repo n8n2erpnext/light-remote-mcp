@@ -1,3 +1,8 @@
 fn main() {
-    tauri_build::build()
+    // Explicit custom-command permission, never a blanket shell/fs plugin.
+    tauri_build::try_build(
+        tauri_build::Attributes::new().app_manifest(
+            tauri_build::AppManifest::new().commands(&["open_local_wall"])
+        )
+    ).expect("Tauri V4 capability manifest generation failed");
 }

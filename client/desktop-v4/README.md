@@ -79,3 +79,17 @@ Never copy GitHub CI binary onto owner's real device without separately confirmi
 ## Windows screenshot review: correct fonts and distinct feature layouts
 
 The first native screenshots exposed two gaps now corrected in the source: slider-styled Settings icons instead of the Figma toothed gear, and six generic access placeholder pages. `src/FeatureScreens.tsx` now provides distinct Sessions, Live Monitor, Devices, Long Memory, Codex Bridge and Account structure while leaving all unauthenticated/privileged controls disabled. `src/styles.css` imports the Git-tracked `assets/fonts/web/GoogleSans-Variable.ttf` directly into the Vite output. This is the internal **Google Sans** variable font, not a verified exact separately named **Google Sans Flex** binary. See `licenses/README.md` and SIL OFL. Chromium CI verifies the font resource was actually loaded (not the Windows fallback) and captures screenshots for 8 responsive AI Access sizes/theme variants plus 12 route-theme specimens. Do not compile/install on VPS-ARM; use GitHub Actions.
+
+## 2026-11-02 Native Open Wall and Activity Logs
+This post-pilot addendum supersedes the older claim that Tauri has zero native commands.
+Owner approved the nine-screen Windows visual layout. Exactly one new native command
+(open_local_wall) may open two literal Local Wall localhost:5491 addresses (home or
+Settings activity-log section) in the system default browser. This fixed allowlist does
+not start an Agent, access credentials or enable arbitrary shell, file or URL actions.
+The main window receives only the custom app:allow-open-local-wall permission.
+Settings now shows bounded Activity Logs retention and optionally safe, verified
+same-origin log statistics. Standalone Tauri is NOT a Local Wall Owner session; statistics
+remain unverified there, and the functional CTA opens the real authenticated browser Wall
+to view history, configure rotation and Clean Log. The local Wall remains authoritative.
+No Gold UAT/production or installed WinForms client was changed. Native CI and physical
+acceptance still required. Read project-book V4 WALL LOG CONTROLS 20261102.

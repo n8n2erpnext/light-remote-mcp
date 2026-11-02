@@ -1,8 +1,8 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
-  "updatedDate": "2026-11-01",
-  "status": "GOLD UAT ADMIN JOB RECOVERY LIVE: owner-approved native PG039->042 migrator PASS; 4/4 Operator/Process Supervisor/Plugin/Wall services now immutable source 49b0a2e9f98640a6081b54481858e765125b9f9e. Worker live flags GC and execution epoch=ON, strict allowlist exactly one revoked historical test device, 60-second scan. Actual long-stuck M4 claim retired by GC without owner password: [REDACTED] 1->0, durable unresolved GC fences 0->1, signed terminal ACK for job remains 0, exactly one unknown audit, UNKNOWN work0. Fleet 3/3 fresh signed executor-ready and active sessions0; /admin unauth HTTP303, admin API and Operator unauthorized HTTP401, Admin asset HTTP200. Schema042/42; SQL043/044 OFF. Verified backup: LXD snapshot pre-admin-gc-migration-20261031, PG039 dump and four-unit config SHA256 in /var/backups/light-remote-gold-uat/pre-admin-gc-migration-20261031; rollback shell evidence in /home/ubuntu/handoffs/gold-admin-gc-release-20261031. No production rc47 or billing change. Manual authenticated admin browser click not yet tested. Windows Tray V3 UI candidate FROM MORYQA: five exported state variants embedded, native 500x740 left-click popover, Windows system light/dark, installer default Desktop shortcut, Inno wizard visual palette, RMV2 frame-lease fix integrated. SOURCE stage for Windows CI only; NOT installed on Windows10, Gold UAT backend schema042/GC remains unchanged. Exact requested light multi-session screen absent in current Figma page (no fake sessions). Owner screenshot corrective Windows UI candidate: Moryqa latest five state SVG source variants re-exported, 15 matching PNGs; right-click AND left-click now custom V3 tray (old menu under More actions); custom native Inno TWizardPage with actual Light/Dark, Desktop shortcut checkbox and skip stock wizard pages; authenticated Owner A/B V2 pending/standby screen and Home legacy A controls switch only when backend signed V2 preview returns 200; no V1 downgrade after confirmation. Figma new reference screens 2536:2 and 2536:41; new owner approval frame creation timed out. UAT backend PG042 and live scoped GC unchanged. Windows10 rc49 installed client untouched pending native CI. Windows x64 client Moryqa UI corrective source 283e7dd6 passed GitHub run 41214864707: .NET8 publish, true Inno custom installer per-user and compact, Agent/Wall/Tray RM smoke, native silent install/uninstall and updater rollback, SHA256 PASS. Artifact 13047930540 (332208043-byte ZIP) available until 2026-11-14. Moryqa new owner approval Figma reference created 2537:125. Installed Windows10 rc49 still untouched; interactive UI walkthrough remains untested; backend AB V2 SQL043 not enabled (Gold UAT remains PG042). CORRECTIVE WINDOWS V3 CI ACCEPTED: source fd05804f190fb19855b275742bf3b188d40b978c, full Windows GitHub run 41221910168 SUCCESS all steps, real WinForms 500x740 screenshots overview 50 unique colors advanced 42 and visuals inspected no clipping; fast native Inno syntax run 41221910268 SUCCESS, real silent per-user/compact install/uninstall/update rollback PASS. Native Moryqa designer 150%-DPI pixel font/Advanced inside styled popup, Inno Installing/Finish panels implemented. Artifact ID13049804161, full setup SHA a0b65613f8254805484b14315ee80d977bb96d28f4e6ece173e305de54fa4f50, compact SHA d55457d56dc51b997532e4785e7277548a802720cf2161e1285b9190cba4f48b. THIS IS NOT PHYSICAL WINDOWS10 150%-DPI ACCEPTANCE: interactive installer and popup clicks on owner Windows10 remain untested. Gold UAT PG042/GC untouched; SQL043 AB V2 OFF. 2026-11-01 isolated Desktop V4 React pilot source: brand+9 routes+AI Access Light/Dark responsive+read-only status fail-closed; Node22 build PASS, 12/12 UI tests PASS. Separate worktree; Gold UAT PG042, SQL043 OFF, production/Windows rc49 unchanged; Tauri2/native DPI and Owner API E2E pending. 2026-11-01 owner CI-only pivot: Tauri2 UI-only shell with zero privileged IPC and Chromium responsive QA (8/8 PASS), 15/15 Vitest PASS; ARM cargo check PASS before owner requested cancellation of release build; stopped job, removed ~2.4GB V4 build artifacts; all future builds on GitHub-hosted Windows/macOS/Linux via SSH Git push, no VPS builds. Existing Gold UAT and Windows rc49 unchanged. 2026-11-01 V4 Figma/Windows screenshot parity: replaced slider Settings2 with toothed Settings; six feature route shells now distinct; existing Google Sans Variable repo font embedded by Vite CSS import and OFL attribution; CI visual snapshots verify real font load. Gold unchanged. Source not locally built per owner CI-only rule.",
-  "branch": "feat/desktop-v4-shared-ui-20261101",
+  "updatedDate": "2026-11-02",
+  "status": "desktop_v4_ui_owner_approved_add_open_wall_and_activity_logs_source_ci_pending",
+  "branch": "feat/desktop-v4-wall-activity-20261102",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
   "verifiedDocumentationCI": {
@@ -88,7 +88,8 @@
     "2026-10-31 Windows Moryqa corrective CI fd05804f; Windows native run41221910168 SUCCESS; 2 WinForms 500x740 images inspected overview/advanced 50/42 sampled colors; native Inno syntax 41221910268 PASS; installer artifact13049804161 SHA256 known; physical 150% not yet run.",
     "2026-11-01 separate Desktop V4 React19/TypeScript7/Tailwind4 pilot: 9 routes, responsive AI Access Light/Dark, verified-only status, disabled Owner controls; Node22 build and 12/12 tests PASS; original Gold UAT and WinForms unchanged.",
     "2026-11-01 owner CI-only build pivot: safe Tauri 2 source (no privileged IPC), 8/8 Chromium visual checks, 15/15 tests, ARM cargo check PASS before build migration, exact native release job terminated; dedicated ARM target/node_modules/dist cleaned, +~2GB free; GitHub hosted runner matrix source added.",
-    "V4 screenshot-review source patch: six distinct feature screen layouts, correct Settings gear icon, Google Sans Variable @font-face sourced from existing repo, OFL attribution, 20 total CI visual snapshots with loaded-font checks; original Gold runtime unchanged."
+    "V4 screenshot-review source patch: six distinct feature screen layouts, correct Settings gear icon, Google Sans Variable @font-face sourced from existing repo, OFL attribution, 20 total CI visual snapshots with loaded-font checks; original Gold runtime unchanged.",
+    "2026-11-02 V4 source-only: Owner-approved UI retains nine screens; minimal Open Wall and Activity Logs controls authored with only fixed native browser opener, failclosed read-only Owner log state; CI pending, Gold UAT unchanged"
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -137,7 +138,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "GitHub CI-only build/typecheck/tests: verify bundled Google Sans font and six feature layouts/screenshots; inspect native runner statuses and compare Windows Tauri DPI150, then continue scoped API bridge. Never build on ARM. GitHub Actions desktop-v4-native-ci.yml: verify isolated web/visual tests and Windows/macOS/Linux no-bundle Tauri pilots. Do not compile on VPS-ARM. Inspect GitHub artifacts and physical Windows10 DPI150 before owner acceptance; no Gold deploy, Owner grants or SQL043 enable. Retrieve artifact id13049804161 from Actions run 41221910168 and verify installer SHA; safely stage/upgrade owner Windows10 (DESKTOP-VA16D27) with rollback and no device identity loss once its currently active Agent is idle; inspect actual native Tray at 150% DPI light and dark, More/Back owner access, real Installing/Finish interactive screens. Record physical screenshots and signed RM Frame E2E; do not mark visual full acceptance until physical tests. Gold UAT backend PG042 and M4 GC canary unchanged; A/B V2 SQL043 gate separate. Parallel V4 branch: validate browser screenshots, responsive widths and Tauri2 native packaging in isolation; API-gap and Owner auth E2E before integrating any privileged controls. Do not replace installed Agent/Wall yet.",
+  "nextAction": "Run GitHub native V4 UI+Tauri 4-job CI on this branch; fix actual errors on CI only; then Owner inspect Windows V4 Open Wall + Activity Logs. Do not build on VPS-ARM or touch Gold UAT.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -150,10 +151,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "28c372ce2e8ed16593b51a25af76e62850f7396911e3bc047bb28e7b0f131af6",
-    "trackedFiles": 1160,
+    "treeDigest": "f8d932af676054524d71f61c997adf365afb7b217da836d31f1dd9f28817174c",
+    "trackedFiles": 1165,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-01T13:40:22.238Z"
+    "recordedAt": "2026-11-02T15:24:38.776Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -589,5 +590,19 @@
     "fontIdentity": "Google Sans Variable (NOT verified exact Google Sans Flex)",
     "fontCiValidation": "document.fonts.load + loaded FontFace for both themes",
     "v4FeatureScreens": "six distinct route UI shells, scoped APIs not wired"
+  },
+  "desktopV4WallLog": {
+    "ownerVisualFeedback": "Nine V4 screenshot pages accepted as good 2026-11-02",
+    "featureBranch": "feat/desktop-v4-wall-activity-20261102",
+    "rootSourceCommit": "3a40871874a8c9e9fdf3e0dc728bb80013dab4d1",
+    "features": [
+      "Open Wall exact local default-browser link on native host",
+      "Settings Activity Logs with same-origin verified state or safe CTA to Wall"
+    ],
+    "nativePermissions": "app:allow-open-local-wall only on main window",
+    "ci": "pending",
+    "ownerNativeOpenWallE2E": false,
+    "productionChanged": false,
+    "handoff": "docs/project-book/LIGHT_REMOTE_DESKTOP_V4_WALL_LOG_CONTROLS_20261102.md"
   }
 }

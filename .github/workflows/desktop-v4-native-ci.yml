@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - feat/desktop-v4-shared-ui-20261101
+      - feat/desktop-v4-wall-activity-20261102
     paths:
       - client/desktop-v4/**
       - .github/workflows/desktop-v4-native-ci.yml

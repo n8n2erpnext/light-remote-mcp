@@ -15,3 +15,17 @@ Required next: a constrained, authenticated native bridge with explicit status-o
 ## No more build on VPS-ARM
 
 Owner requested GitHub Actions builds only. Use `.github/workflows/desktop-v4-native-ci.yml` for Rust release compilation on GitHub Windows/macOS/Linux runners and for browser visual screenshots. VPS-ARM is for SSH Git push, source and evidence only. Do **not** run `cargo build`, `tauri build`, `npm ci` or install packages locally on ARM just to check this pilot. The source and Rust lockfile are preserved; local build artifacts have been removed.
+
+## 2026-11-02 Native Open Wall and Activity Logs
+This post-pilot addendum supersedes the older claim that Tauri has zero native commands.
+Owner approved the nine-screen Windows visual layout. Exactly one new native command
+(open_local_wall) may open two literal Local Wall localhost:5491 addresses (home or
+Settings activity-log section) in the system default browser. This fixed allowlist does
+not start an Agent, access credentials or enable arbitrary shell, file or URL actions.
+The main window receives only the custom app:allow-open-local-wall permission.
+Settings now shows bounded Activity Logs retention and optionally safe, verified
+same-origin log statistics. Standalone Tauri is NOT a Local Wall Owner session; statistics
+remain unverified there, and the functional CTA opens the real authenticated browser Wall
+to view history, configure rotation and Clean Log. The local Wall remains authoritative.
+No Gold UAT/production or installed WinForms client was changed. Native CI and physical
+acceptance still required. Read project-book V4 WALL LOG CONTROLS 20261102.

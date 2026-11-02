@@ -446,3 +446,12 @@ Source: client/windows-native/GptOperator.Client/{TrayPopoverForm.cs,Program.cs,
 - `client/desktop-v4/src/styles.css`: responsive per-route KPI/table/card grid styles and `@font-face` CSS asset import `../../../assets/fonts/web/GoogleSans-Variable.ttf` from existing repo. Original binary metadata: **Google Sans** variable, `GRAD,opsz,wght`; CSS alias `Light Remote Google Sans` selects the bundled face, not OS Segoe UI fallback. Same font asset is already Git-tracked; no redundant 4.8 MB copy.
 - `client/desktop-v4/licenses/GoogleSans-OFL-1.1.txt`: matching SIL Open Font License, copied from verified original source distribution; `licenses/README.md` documents the source and distinction from Figma's separately-named Google Sans Flex. No modified or rebranded font binaries.
 - `client/desktop-v4/src/FeatureScreens.test.tsx`: six render-structure tests and fail-closed disabled-controls/unknown-state tests. `e2e/visual-smoke.mjs`: existing eight AI Access screenshots plus 12 desktop feature-route/theme screenshots; each asserts **the actual bundled font has loaded**, correct gear, no root horizontal overflow, no privileged buttons enabled and no fabricated verified Owner data. All test execution exclusively on GitHub Actions runners.
+
+## Desktop V4 incremental Wall launcher and Log Settings (2026-11-02)
+- \`client/desktop-v4/src/App.tsx\`, \`src/styles.css\` — header Open Wall and Owner-safe Activity Logs Settings card, Light/Dark responsiveness, no added route or Figma redesign.
+- \`client/desktop-v4/src/lib/open-wall.ts\` — native-only guarded IPC with fixed views; no arbitrary URL/payload.
+- \`client/desktop-v4/src/lib/local-logs.ts\` — strict read-only same-origin GET /api/activity/logs/state projection, no cookies exported or magic native file access.
+- \`client/desktop-v4/src-tauri/src/main.rs\` — sole Rust \`open_local_wall\` native command opens literal localhost:5491 Wall home/log Settings; no user URL or shell interpreter.
+- \`client/desktop-v4/src-tauri/build.rs\`, \`permissions/open-local-wall.toml\`, \`tauri.conf.json\` — explicit main-window-only app-command capability.
+- \`client/desktop-v4/src/lib/*.test.ts\`, \`src/App.test.tsx\` — native permission and failclosed/log projection/UI tests.
+- Isolated V4 shell only; Windows/macOS/Linux native CI and installed app visual test still pending. Local Wall Owner authentication and user-requested Activity Logs remain in the Agent, not duplicated here.
