@@ -881,3 +881,7 @@ Live R3 smoke found vendor asset 404 caused by staged xterm directory mode 0700;
 ## 2026-11-02 — GoldABV2 PTY R3 final Live and verified
 
 After source commits 21c47388 and fb005567 passed Gold 4/4 CI and docs checks, isolated GoldABV2 Lab cutover to source-fb005567-wall-r3-final-STAGED. 4/4 services active, 2/2 grants preserved, login HTTP 200 and HTTPS health 200, xterm JS/CSS/FitAddon public same-origin HTTP200, GET CSP allows self scripts/styles but denies framing, no Wall journal errors. Owner real Chrome terminal/layout visual acceptance still pending. Hand-off docs/project-book/LIGHT_REMOTE_GOLDABV2_WALL_PTY_R3_LIVE_DEPLOY_20261102.md.
+
+## 2026-11-02 — GoldABV2 Approve B segmented input R4
+
+Owner requested two visual A/B code blocks, animated arrow, larger/bolder code font, simple English instructions and a robust 8-cell B code input to prevent copy/paste formatting errors. Implemented in device-agent/wall-ab-v2-preview.mjs without changing backend approval payload/fences, with per-cell focus, Backspace, arrows, paste cleanup, 4+4 code validation and preserving active input during 12-second signed request refresh. Added deploy/scripts/selftest-gold-abv2-b-segmented-input.mjs, local simulated real DOM test PASS. See docs/project-book/LIGHT_REMOTE_GOLDABV2_APPROVE_B_SEGMENTED_R4_20261102.md.

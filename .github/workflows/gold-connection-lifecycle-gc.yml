@@ -148,6 +148,7 @@ on:
       - 'deploy/scripts/selftest-gold-ab-v2-helper-issue.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-verified-grant.mjs'
       - 'device-agent/wall-ab-v2-preview.mjs'
+      - 'deploy/scripts/selftest-gold-abv2-b-segmented-input.mjs'
       - 'device-agent/wall-ui-refinement.mjs'
       - 'deploy/scripts/selftest-gold-wall-ui-refinement.mjs'
       - 'deploy/scripts/selftest-gold-wall-pty-terminal-r3.mjs'
@@ -309,6 +310,7 @@ jobs:
           node --check device-agent/wall-ab-v2-preview.mjs
           node deploy/scripts/selftest-gold-ab-v2-signed-preview.mjs
           node deploy/scripts/selftest-gold-ab-v2-wall-preview.mjs
+          node deploy/scripts/selftest-gold-abv2-b-segmented-input.mjs
           node deploy/scripts/selftest-gold-wall-ui-refinement.mjs
           node deploy/scripts/selftest-gold-wall-pty-terminal-r3.mjs
           node deploy/scripts/selftest-gold-wall-shared-navigation-dialog-v2.mjs

@@ -649,3 +649,9 @@ Admin Owner security emblem uses /assets/icons/material/security.svg (verified H
 - device-agent/local-wall.mjs pageHeaders CSP now permits only same-origin vendor terminal JS/CSS plus existing inline scripts/styles. Preserves default-src self, frame-ancestors none, connect-src self, form-action self.
 - device-agent/wall-ui-refinement.mjs includes desktop-width ptyOutput xterm layout override to prevent double scroll and preserve FitAddon sizing in floating viewer.
 - deploy/scripts/selftest-gold-wall-pty-terminal-r3.mjs checks rendered HTTP CSP on Home plus five feature routes and only locally bundled xterm assets.
+
+## GoldABV2 Approve B segmented R4 (2026-11-02)
+
+- device-agent/wall-ab-v2-preview.mjs: two A/B cards, small inline SVG arrow and reduced-motion CSS; high-contrast Google Sans Code A code; 8 one-character B inputs with paste normalization, keyboard navigation, validation, focus preservation and unchanged secure approval API.
+- deploy/scripts/selftest-gold-abv2-b-segmented-input.mjs: VM-executed real input handlers, normalization, B8 validation, focus/navigation and structural UI assertions.
+- .github/workflows/gold-connection-lifecycle-gc.yml: source gate regression added.
