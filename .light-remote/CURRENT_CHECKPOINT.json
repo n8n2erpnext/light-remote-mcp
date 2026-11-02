@@ -156,7 +156,7 @@
     "Agent V2 no-arg recovery source is newly changed; not yet deployed, not yet GitHub CI-verified and cannot pass physical Owner B→Helper 24h end-to-end while live PG043 is unregistered. Keep source, runtime and UI acceptance distinct.",
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID."
   ],
-  "nextAction": "A/B V2 Lab P2-I3 optional Agent session nickname: source changes in tools Helper, adapter and Lab Operator neutral default, tests PASS. Next commit/push and verify CI, then snapshot isolated GoldABV2 Lab before coordinated Plugin+Operator update. Validate Helper({agentNickname:Claude Curious Otter}) ready returns verified sessionNickname + sessionId; Helper no nickname still works; existing Claude owner session must NOT be modified during code rollout. No Gold UAT/Prod/V4 change.",
+  "nextAction": "GoldABV2 Lab ddd012b1 nickname code deployed Plugin+Operator, 4 services active HTTPS200, feature flag active. Existing B grant R01KAP still listed but noarg Helper returned Discovery after restart (no pending recovery). Source fix grants-over-discovery tested PASS; commit/push/CI and deploy incremental Lab Plugin tools.mjs, then live noarg Helper must return ready with backend sessionNickname and sessionId, no new B. Other instances untouched.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -169,10 +169,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "c89f8f2fc5a5999629408904f8b6f59b6ece06bc2aa8303ec97aeaaa610a975d",
+    "treeDigest": "728a51b5142b2fc67573758a9ff22f2d7e0e56979fb79aaaef30b07ef47a5d33",
     "trackedFiles": 1141,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-02T03:44:44.870Z"
+    "recordedAt": "2026-11-02T03:49:47.650Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -662,7 +662,9 @@
     "problem": "Claude initial session had hardcoded ChatGPT Light Remote label; Claude manually renamed it later",
     "design": "Helper suggests but never requires Agent-chosen nickname, pass at post-B ready before creating working session, respond server-confirmed sessionId/sessionNickname/nicknameSource",
     "sourceTests": "ABV2 helper, lab V1 lock, nickname, MCP tool contract PASS",
-    "liveAcceptance": "PENDING",
-    "productionEffect": "none"
+    "liveAcceptance": "PARTIAL: ddd012b1 deployed and healthy; Lab Helper noarg recovered Discovery despite existing valid grant; fix tested and pending Plugin-only rollout.",
+    "productionEffect": "none",
+    "labRuntime": "ddd012b1 Plugin and Operator overlays, snapshot pre-optional-nickname-helper-20261102, 4/4 services active HTTPS200",
+    "postRestartGrantFix": "No pending A/B recovery but existing client grants => ready before Lab Discovery; source tests PASS"
   }
 }

@@ -120,6 +120,15 @@ try{
  assert.equal(unnamed.status,'ready');
  assert.equal(unnamed.sessionNickname,null);
  prot.recoverAbV2Request=async()=>null;
+ // After pending request expires, a still-valid B grant must recover ready
+ // instead of incorrectly returning Discovery (observed after Lab restart).
+ prot.devices=async()=>[{deviceId:'dev1'}];
+ const grantedReady=(await helper({agentNickname:'Claude Curious Otter'})).structuredContent;
+ assert.equal(grantedReady.status,'ready');
+ assert.equal(grantedReady.sessionId,'s_fixture');
+ assert.equal(grantedReady.sessionNickname,'Claude Curious Otter');
+ assert.equal(discoveries,4,'grant ready must not silently degrade to Discovery');
+ prot.devices=async()=>[];
  assert.equal(issues,0);
  const rejected=await helper({aCode:'ABCD-2345'});
  assert.equal(rejected.isError,true);

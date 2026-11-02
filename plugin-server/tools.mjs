@@ -258,7 +258,11 @@ export function registerPluginTools(server,identity){
         return v2;
       }
       if(labV2Only){
-        // No active B request: safely show signed OAuth account metadata.
+        // An existing durable A/B grant survives pending request expiry and
+        // Operator restart. Reuse it before falling back to read-only Discovery.
+        const granted=await a.devices();
+        if(granted.length)return a.connectionHelper(null,{agentNickname:x.agentNickname||null});
+        // No active B request or grant: show signed OAuth account metadata.
         // Never confuse the empty per-client granted-device list with 0 online.
         const discovery=await a.discoverAbV2Devices();
         return {...discovery,protocol:'abv2',

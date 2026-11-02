@@ -596,3 +596,7 @@ Admin Owner security emblem uses /assets/icons/material/security.svg (verified H
 - plugin-server/operator-adapter.mjs: connectionHelper(requestedGroup,{agentNickname}) passes name to existing workingContext before creating/reusing session, exposes sessionId, sessionNickname, nicknameSource in ready output. Lab explicit openSession default neutral; production fallback preserved.
 - operator-host/executor-routes-device-channel.mjs: Lab-only V1-locked Operator session.open fallback label is Light Remote Agent instead of ChatGPT Light Remote; LR_GOLD_SESSION_AGENT_NICKNAME opt-in still controls durable naming.
 - selftest-gold-ab-v2-helper-tool.mjs and selftest-gold-ab-v2-lab-v1-lock.mjs: explicit named and unnamed Agent helper ready output; existing V1 and 84-tool contracts.
+
+### 2026-11-02 — Existing durable grant must outrank Lab Discovery fallback
+- plugin-server/tools.mjs noarg Lab Helper: after recovering any pending B request, check a.devices() granted-only array; return a.connectionHelper(null,{agentNickname}) when nonempty, else account Discovery. This fixes post-Operator-restart "0 ready" despite valid durable A/B grants. Never creates B for queries.
+- deploy/scripts/selftest-gold-ab-v2-lab-v1-lock.mjs: regression for no pending + active granted device => ready, confirmed nickname and sessionId, no extra Discovery. V1 and pending request precedence unchanged.
