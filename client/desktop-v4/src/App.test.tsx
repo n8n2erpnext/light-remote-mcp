@@ -44,7 +44,7 @@ describe('Desktop V4 fail-closed interaction', () => {
     }));
   });
 
-  it('navigates and changes local theme without privileged backend calls', () => {
+  it('navigates and changes local theme without privileged backend calls', async () => {
     render(<App />);
     const nav = screen.getByRole('navigation', { name: 'Main navigation' });
     fireEvent.click(within(nav).getByRole('link', { name: 'Settings' }));

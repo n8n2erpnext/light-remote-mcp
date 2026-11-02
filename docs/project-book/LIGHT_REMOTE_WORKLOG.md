@@ -573,3 +573,6 @@ Owner also clarified the fonts were already included in Light Remote Web Distrib
 
 ## 2026-11-02 — Desktop V4 minimal Open Wall + Activity Logs
 Owner accepted 9-screen Windows V4 UI appearance; requested Open Wall and Logs without more Figma. Branch feat/desktop-v4-wall-activity-20261102 adds one fixed-localhost native default-browser opener (home or Settings Activity Logs), main-window-only custom Tauri command allowlist, same-origin owner-authenticated log-status safe reader, Settings card and responsive header, negative/security tests. NOT a cross-origin native Owner bridge. Build/test in GitHub Actions only. No Gold UAT/WinForms replacement. New SHA/CI/physical acceptance pending.
+
+## 2026-11-02 — Desktop V4 Wall Logs first CI test correction
+GitHub source e9cf3757 CI run 41471343468 found TS1308 in App.test.tsx: async assertion inside non-async test; corrected callback only. No production/runtime change. Must rerun exact new source through CI and inspect native builds.
