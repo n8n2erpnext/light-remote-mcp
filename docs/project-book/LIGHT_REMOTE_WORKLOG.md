@@ -585,3 +585,6 @@ Owner explicitly approved the latest V4 build UI ("ok UI mới build chốt rồ
 
 ## 2026-11-02 — Desktop V4 Owner-gated read-only local presence integration
 After Owner V4 UI freeze, confirmed that Local Wall /api/status is strictly Owner-authenticated (HTTP401 for unlogged native webview). Added a tiny fixed localhost:5491 native GET presence probe without credential transfer; visual baseline unchanged except existing sidebar/Overview local status label distinguishes “Wall reachable, Owner login required” from “Device/Agent verified”. Native permission still restricted to main window commands open_local_wall and probe_local_wall. Web and Tauri CI only, no builds on ARM. Native Owner credential bridge, A/B session changes and production cutover remain open.
+
+## 2026-11-02 — V4 native Wall presence initial CI test assertion adjustment
+Initial GitHub V4 CI 41475938499 failed only the newly added App.test.tsx assertion that expected the replaced Overview subtitle "Not verified". New owner-safe behavior intentionally states "Wall responding · Owner login required" while actual local device remains "Device not verified" and Agent Connected is not inferred. Corrected assertion to inspect unchanged device verification boundary. No source runtime or UI modification; re-run CI.

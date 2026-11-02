@@ -86,7 +86,7 @@ describe('Desktop V4 fail-closed interaction', () => {
     render(<App />);
     await screen.findByText('Wall reachable · Owner login required');
     expect(screen.getByText('Wall responding · Owner login required')).toBeTruthy();
-    expect(screen.getByText('Not verified')).toBeTruthy();
+    expect(screen.getByText('Device not verified')).toBeTruthy();
     expect(screen.queryByText('Connected · verified Local Wall')).toBeNull();
     expect(invoke).toHaveBeenCalledWith('probe_local_wall');
   });

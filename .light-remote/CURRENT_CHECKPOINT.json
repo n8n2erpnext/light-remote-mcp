@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-02",
-  "status": "desktop_v4_ui_frozen_native_wall_probe_source_ci_pending",
+  "status": "desktop_v4_ui_frozen_native_wall_probe_test_corrected_ci_rerun_pending",
   "branch": "feat/desktop-v4-wall-activity-20261102",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -140,7 +140,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "Run V4 GitHub CI 4/4 for native read-only loopback probe. After PASS, Owner may test new native binary; do not infer Agent connection or grant from HTTP401, do not touch Gold UAT.",
+  "nextAction": "Rerun GitHub Web + Windows/macOS/Linux native V4 CI after updating only stale UI test assertion. Do not build on VPS-ARM.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -153,10 +153,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "18e4a5cfd9bd2b8c75597c8a474b4329f198dffd444200a9dfd2dd9bc6af6114",
+    "treeDigest": "a2c78558698db2fb608d5c844358a8fa67f7c0418cc54c7da6257f20b7f99e2f",
     "trackedFiles": 1167,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-02T15:52:40.300Z"
+    "recordedAt": "2026-11-02T15:53:50.389Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -619,7 +619,7 @@
     "permission": "main window only: allow-open-local-wall, commands open_local_wall and probe_local_wall",
     "noOwnerCookies": true,
     "noRemoteGrantActions": true,
-    "ci": "pending",
+    "ci": "41475938499 web UI test single stale text expectation; corrected, CI rerun required",
     "realNativeInstalledE2E": false,
     "productionChanged": false,
     "handoff": "docs/project-book/LIGHT_REMOTE_DESKTOP_V4_WALL_LOG_CONTROLS_20261102.md"
