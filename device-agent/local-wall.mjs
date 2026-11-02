@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { LOCAL_WALL_COOKIE } from './local-wall-auth.mjs';
 import { createWallStatusCache } from './wall-status-cache.mjs';
 import { notificationBellStyles,notificationBellMarkup,notificationBellScript } from './wall-account-notifications.mjs';
-import {goldAbV2LabV1Disabled} from '../lib/gold-ab-v2-lab-v1-lock.mjs';
+import {goldAbV2LabV1Disabled,goldAbV2LabWallBOnly} from '../lib/gold-ab-v2-lab-v1-lock.mjs';
 import {wallAbV2PreviewFragment} from './wall-ab-v2-preview.mjs';
 import { localProcessPage } from './local-process-page.mjs';
 import { updateSettingsHtml } from './update-settings-page.mjs';
@@ -2369,6 +2369,7 @@ export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvg
           throw Error('abv2_wall_preview_invalid');
         return json(res,200,{ok:true,
           ownerApproveEnabled:response.ownerApproveEnabled===true,
+          ownerConsentRequired:!goldAbV2LabWallBOnly(),
           shortId:/^[0-9A-HJKMNP-TV-Z]{6}$/.test(String(response.shortId||''))?response.shortId:null,
           pending:response.pending});
       }catch(error){
@@ -2393,7 +2394,7 @@ export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvg
          !/^av2_[a-f0-9]{32}$/.test(String(payload.requestId||''))||
          !Number.isSafeInteger(payload.expectedAttempt)||payload.expectedAttempt<1||
          !/^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/.test(String(payload.bCode||''))||
-         !/^[A-Za-z0-9_-]{32}$/.test(String(payload.consentCode||'')))
+         (!goldAbV2LabWallBOnly()&&!/^[A-Za-z0-9_-]{32}$/.test(String(payload.consentCode||''))))
         return json(res,400,{ok:false,error:'abv2_owner_approve_payload_invalid'});
       try{
         const approved=await getAbV2Approve({wallUsername,

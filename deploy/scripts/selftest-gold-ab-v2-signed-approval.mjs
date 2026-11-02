@@ -6,6 +6,7 @@ import crypto from 'node:crypto';
 import {DeviceAccessGrantRegistry} from '../../operator-host/device-access-grant-registry.mjs';
 import {createGoldAbV2SignedApproval} from '../../operator-host/gold-ab-v2-signed-approval.mjs';
 import {GoldAbV2WallOwnerConsent} from '../../lib/gold-ab-v2-wall-owner-consent.mjs';
+import {goldAbV2LabWallBOnly} from '../../lib/gold-ab-v2-lab-v1-lock.mjs';
 const root=fs.mkdtempSync(path.join(os.tmpdir(),'lr-abv2-signed-approve-'));
 const file=path.join(root,'key');const secret=crypto.randomBytes(32);
 fs.writeFileSync(file,secret,{mode:0o600});
@@ -138,6 +139,24 @@ try{
  const retry=await handler(ctx);
  assert.equal(retry.absoluteExpiresAt,good.absoluteExpiresAt,'no 24h renewal on retry');
  assert.equal(grantRegistry.activeGrantsForDevice('dev1','conn1').length,1);
+ // Lab only: original spec permits signed authenticated Owner Local Wall + B
+ // without manually copying a separate /account consent token.
+ const labEnv={...env,LR_GOLD_INSTANCE_ID:'abv2lab01',
+  LR_GOLD_ABV2_LAB_DISABLE_LEGACY_V1:'1',
+  LR_GOLD_ABV2_LAB_SIGNED_WALL_B_ONLY:'1'};
+ assert.equal(goldAbV2LabWallBOnly(labEnv),true);
+ assert.equal(goldAbV2LabWallBOnly({...labEnv,LR_GOLD_INSTANCE_ID:'production'}),false);
+ const labHandler=createGoldAbV2SignedApproval({env:labEnv,...deps});
+ ctx.payload.consentCode=undefined;
+ await assert.rejects(handler(ctx),/abv2_wall_approval_payload_invalid/);
+ await assert.rejects(labHandler({...ctx,payload:{...ctx.payload,
+   wallUsername:'wrong@example.test'}}),/abv2_wall_owner_email_mismatch/);
+ await assert.rejects(labHandler({...ctx,payload:{...ctx.payload,
+   bCode:'WRONG'}}),/abv2_wall_approval_payload_invalid/);
+ const labGood=await labHandler(ctx);
+ assert.equal(labGood.state,'granted');
+ assert.equal(labGood.absoluteExpiresAt,good.absoluteExpiresAt);
+ console.log('GOLD_ABV2_LAB_SIGNED_LOCAL_OWNER_B_NO_EXTRA_VISIBLE_CONSENT=PASS');
  console.log('GOLD_ABV2_SIGNED_WALL_OWNER_B_PG_DURABLE_GRANT_SCOPE=PASS');
  console.log('GOLD_ABV2_SIGNED_WALL_OWNER_B_RETRY_RESTART_SAFE_NO_SECRET=PASS');
 }finally{fs.rmSync(root,{recursive:true,force:true});}

@@ -13,6 +13,7 @@ import { deviceChannelMessage, deviceHeartbeatMessage, devicePolicyMessage, norm
 import { createPlatformAdapter } from './platform-adapters/index.mjs';
 import { invalidateCommandExistenceCache } from './platform-adapters/shared.mjs';
 import { startLocalWall } from './local-wall.mjs';
+import {goldAbV2LabWallBOnly} from '../lib/gold-ab-v2-lab-v1-lock.mjs';
 import {assertNotificationOwnerEmail} from './wall-account-notifications.mjs';
 import {createGoldWallModules} from './gold-wall-modules.mjs';
 import { filesystemVolumeInventory } from './filesystem-volume-inventory.mjs';
@@ -1315,7 +1316,7 @@ async function remoteAbV2PendingPreview(hub=DEFAULT_HUB,{wallUsername}={}){
   ...(row.requester?{requester:row.requester}:{})
  }))};
 }
-// Device-signed owner mutation: Local Wall must authenticate owner and CSRF
+// Device-signed owner B mutation: Local Wall must authenticate owner and CSRF
 // before calling; Operator independently revalidates enrollment and policy.
 async function remoteAbV2OwnerApprove(hub=DEFAULT_HUB,{wallUsername,requestId,expectedAttempt,bCode,consentCode}={}){
  const state=readState();
@@ -1325,7 +1326,7 @@ async function remoteAbV2OwnerApprove(hub=DEFAULT_HUB,{wallUsername,requestId,ex
    !/^av2_[a-f0-9]{32}$/.test(String(requestId||''))||
    !Number.isSafeInteger(expectedAttempt)||expectedAttempt<1||
    !/^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/.test(String(bCode||''))||
-   !/^[A-Za-z0-9_-]{32}$/.test(String(consentCode||'')))
+   (!goldAbV2LabWallBOnly()&&!/^[A-Za-z0-9_-]{32}$/.test(String(consentCode||''))))
   throw Error('abv2_wall_approval_invalid');
  const result=await channelRequest(state,hub,'abv2-owner-approve',{
   action:'approve',ownerLoggedIn:true,wallUsername,requestId,expectedAttempt,bCode,consentCode

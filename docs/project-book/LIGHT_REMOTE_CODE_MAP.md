@@ -568,3 +568,11 @@ Admin Owner security emblem uses /assets/icons/material/security.svg (verified H
 ### 2026-11-02 — Lab old list_devices fallback
 - plugin-server/tools.mjs: when strict Lab V1-disabled flag is active, light_remote_list_devices returns unchanged granted-only items plus separate accountDiscovery signed read-only metadata. This avoids cached ChatGPT schema wrongly treating items:[] as 0 online. Discovery unavailable is explicit, not a synthetic 0. Other instances return original granted-only array, normalized to items as before.
 - deploy/scripts/selftest-gold-ab-v2-lab-v1-lock.mjs: asserts Lab items:[]+accountDiscovery online=1 and normal production no accountDiscovery.
+
+### 2026-11-02 — Owner-spec Local Wall B approval restored
+- GOLD_AB_V2_DEVICE_DISCOVERY_AGENT_INITIATED_SESSION_HANDOFF_20261028.md is authoritative: signed Owner can enter B at authenticated Local Wall /approve OR signed-in Account device row. Previous Account-only UX was an unauthorized deviation.
+- device-agent/wall-ab-v2-preview.mjs: restore native Wall pending A, masked B label, B input, Approve button and POST /api/abv2/approve. In explicitly gated Lab only, do not show the second Owner consent form; outside Lab the previous consent remains.
+- lib/gold-ab-v2-lab-v1-lock.mjs: goldAbV2LabWallBOnly 3-key deny-by-default gate (abv2lab01, V1 disabled, explicit opt-in).
+- device-agent/local-wall.mjs, device-agent/operator-agent.mjs: local logged-in Owner email, CSRF, typed B, signed channel and current device required; lab only permits absent consentCode. All other instances still require it.
+- operator-host/gold-ab-v2-signed-approval.mjs: Lab exception to manual Account consent only; verified owner email/device enrollment policy/connection + signed request + typed B + durable PG grant remain mandatory. Default and production unchanged, release security review required.
+- deploy/scripts/selftest-gold-ab-v2-wall-preview.mjs, selftest-gold-ab-v2-signed-approval.mjs, selftest-gold-abv2-owner-approval-navigation.mjs: positive/negative tests including Lab B-only, no Owner and wrong CSRF denial, non-Lab consent still required.

@@ -156,7 +156,7 @@
     "Agent V2 no-arg recovery source is newly changed; not yet deployed, not yet GitHub CI-verified and cannot pass physical Owner B→Helper 24h end-to-end while live PG043 is unregistered. Keep source, runtime and UI acceptance distinct.",
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID."
   ],
-  "nextAction": "Deploy GoldABV2 Lab Plugin cached schema fallback: Helper noarg Discovery and list_devices accountDiscovery separate field; verify both with current ChatGPT plugin, pending B and grant remain independent. Production shape unchanged; no Gold UAT/V4 deploy.",
+  "nextAction": "A/B V2 P0 Owner design restore: snapshot+deploy coordinated Lab Wall+Operator only with explicit LR_GOLD_ABV2_LAB_SIGNED_WALL_B_ONLY gate, read Local Wall B field and single-code approval, then real Owner B->PG durable grant->Helper ready acceptance. Do not bypass owner/B/CSRF or touch production, main Gold UAT or Desktop V4. Cached plugin discovery b36cb451 still separate.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -169,10 +169,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "a229eee51caf3e11cbe61e396236c8b9a03e9daefe8c58767f10c31783129aeb",
+    "treeDigest": "74088ec9e56080815c8614316d26d5bdf03d3b0b91a5969feb209460af7a0af0",
     "trackedFiles": 1141,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-02T02:24:21.719Z"
+    "recordedAt": "2026-11-02T02:32:58.107Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -600,5 +600,14 @@
     "sourceTests": "Lab lock, 100-device discovery, plugin tool, helper, recovery and Account PASS",
     "liveAcceptance": "Helper fallback PASS; list_devices extra field awaiting Lab deployment",
     "additional": "Lab-only list_devices response preserves granted-only items and carries independent accountDiscovery; missing account discovery is unavailable not zero."
+  },
+  "abv2WallOwnerCorrection": {
+    "date": "2026-11-02",
+    "reference": "GOLD_AB_V2_DEVICE_DISCOVERY_AGENT_INITIATED_SESSION_HANDOFF_20261028.md",
+    "mistake": "Account-only Wall navigation in 390192ef",
+    "restored": "local Wall B input and Approve as alternative to /account; Lab-only no visible second consent with signed Owner/CSRF/B validation",
+    "flag": "LR_GOLD_ABV2_LAB_SIGNED_WALL_B_ONLY",
+    "productionEffect": "none",
+    "ownerLiveE2E": "PENDING"
   }
 }
