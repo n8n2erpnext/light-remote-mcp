@@ -156,7 +156,7 @@
     "Agent V2 no-arg recovery source is newly changed; not yet deployed, not yet GitHub CI-verified and cannot pass physical Owner B→Helper 24h end-to-end while live PG043 is unregistered. Keep source, runtime and UI acceptance distinct.",
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID."
   ],
-  "nextAction": "GoldABV2 audit: 84th direct Discovery live PASS; Lab 4/4 active HTTP200; sole GPT6 grant, no Claude. Critical Source tests PASS; two opt-in no-NIC-clone PG/Redis tests intentionally not run. SCP 0-byte schema bug fixed (min1) in two tool declarations, test PASS, CI/Plugin Lab rollout pending. Future Owner Close live E2E would revoke sole protected GPT6 grant: do NOT perform without new approval. Long Memory Home binding mismatch needs authority review; Helper client schema still lacks optional agentNickname; /bin/sh path unsupported but shell sh works. No VPS-ARM build or Prod/Gold UAT/V4 mutation. Write full handoff.",
+  "nextAction": "AUTHORITATIVE HANDOFF READY: docs/project-book/LIGHT_REMOTE_GOLDABV2_RELEASE_READINESS_HANDOFF_20261102.md and /home/ubuntu/handoffs/LIGHT_REMOTE_GOLDABV2_RELEASE_READINESS_FULL_HANDOFF_20261102.md. Verified Lab Operator 94933590 + Plugin 856c4684 (SCP min1), 4/4 active HTTP200, direct 84th Discovery LIVE PASS, only GPT6 grant. DO NOT revoke GPT6 for Owner-close test. Remaining gate: fresh Owner approved disposable Agent B->ready->Wall Close->matching B grant gone->new B required; cached Helper agentNickname schema fresh-model acceptance. Memory Home mismatched ID requires authority review. No Gold UAT/prod/V4 mutation. Begin next session by reading the NEW handoff, checking Git/health, no VPS build.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -172,7 +172,7 @@
     "treeDigest": "3673e0a5fd9a0ceeac271b02df6fbbe12722324776864ae5236c1a755a8a184b",
     "trackedFiles": 1143,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-02T05:05:28.191Z"
+    "recordedAt": "2026-11-02T05:12:04.079Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -695,9 +695,12 @@
     "date": "2026-11-02",
     "live": "Lab 4/4 HTTPS200; one GPT6 grant; direct 84th Discovery PASS",
     "tests": "all applicable critical unit/contract suites PASS; restricted clone-only PG/Redis not run",
-    "scpZeroContract": "source input min1 matches Agent min1, tests PASS; rollout pending",
+    "scpZeroContract": "DEPLOYED isolated GoldABV2 Lab Plugin 856c4684: runtime 84 registered, totalBytes=0 rejected, positive accepted, HTTPS200; GitHub CI 41391998357 and 41391998373 success",
     "ownerCloseLiveE2E": "NOT RUN, would destroy sole protected GPT6 grant",
     "memory": "configured Memory Device ID differs from R01KAP; scope review required",
-    "nickname": "Helper server supports optional Agent name, current client schema stale"
+    "nickname": "Helper server supports optional Agent name, current client schema stale",
+    "authoritativeHandoff": "docs/project-book/LIGHT_REMOTE_GOLDABV2_RELEASE_READINESS_HANDOFF_20261102.md; ARM /home/ubuntu/handoffs/LIGHT_REMOTE_GOLDABV2_RELEASE_READINESS_FULL_HANDOFF_20261102.md",
+    "rollback": "pre-scp-upload-schema-20261102 snapshot; plugin-before-scp-856c4684-20261102.conf",
+    "primaryHumanGate": "Owner newly approves disposable test Agent B, closes own session, verify grant revoke; no existing GPT6 grant mutation"
   }
 }
