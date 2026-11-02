@@ -866,3 +866,7 @@ Brand-header placement for Live, Short ID and signed visible pending A code, Eng
 
 ## 2026-11-02 — GoldABV2 R2 CI multi-Agent DOM mock alignment
 Initial R2 source gate failed due to an old source test creating DOM nodes without dataset or appendChild, and expecting three full-width Agent rows. Updated deploy/scripts/selftest-gold-ab-reauthorization-clock.mjs fixture to model native HTMLElement dataset and child grid, and assert all three independent clock values, responsive grid, 30/20 percent state, and expired Agent removal. Real grant implementation and Owner approval unchanged. Local test PASS; CI rerun required.
+
+## 2026-11-02 — GoldABV2 Wall R2 LIVE isolated Lab deployment
+
+Following 4/4 Gold Source Gate and Docs CI PASS, created pre-goldabv2-wall-r2-20261102 LXD snapshot, staged SHA-matching R2 files and tested under gold-uat user. Atomically updated only the final Wall drop-in to source-2856faf9-wall-r2-STAGED and restarted Wall. 4/4 services active, HTTP local/public login 200, HTTPS health 200, exactly 2 active grant records preserved before/after, no recent Wall journal errors, 6-page render and font/UI regressions PASS. Manual Owner screenshot approval still pending. Full rollback and acceptance: docs/project-book/LIGHT_REMOTE_GOLDABV2_WALL_REFINEMENT_R2_LIVE_DEPLOY_20261102.md.
