@@ -885,3 +885,7 @@ After source commits 21c47388 and fb005567 passed Gold 4/4 CI and docs checks, i
 ## 2026-11-02 — GoldABV2 Approve B segmented input R4
 
 Owner requested two visual A/B code blocks, animated arrow, larger/bolder code font, simple English instructions and a robust 8-cell B code input to prevent copy/paste formatting errors. Implemented in device-agent/wall-ab-v2-preview.mjs without changing backend approval payload/fences, with per-cell focus, Backspace, arrows, paste cleanup, 4+4 code validation and preserving active input during 12-second signed request refresh. Added deploy/scripts/selftest-gold-abv2-b-segmented-input.mjs, local simulated real DOM test PASS. See docs/project-book/LIGHT_REMOTE_GOLDABV2_APPROVE_B_SEGMENTED_R4_20261102.md.
+
+## 2026-11-02 — GoldABV2 Approve B segmented R4 deployed LIVE
+
+Source 1a99c489 passed Source Gate 41442446526 4/4 and Documentation Integrity 41442446648. LXD snapshot pre-goldabv2-approve-b-r4-20261102; staged approved preview source with matching SHA. Atomically cut over only the GoldABV2 Lab Wall service to source-1a99c489-approve-b-r4-STAGED, preserving Operator/Plugin services. Verified 4/4 services active, local/public login and HTTPS health 200, active A/B grants 2 before and 2 after, preview + new segmented B tests PASS under gold-uat, no Wall errors. Manual Chrome pixel/focus acceptance open. Complete handoff docs/project-book/LIGHT_REMOTE_GOLDABV2_APPROVE_B_R4_LIVE_DEPLOY_20261102.md.

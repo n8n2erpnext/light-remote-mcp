@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-02",
-  "status": "goldabv2_approve_b_r4_source_candidate_pending_ci_and_lab_cutover",
+  "status": "goldabv2_approve_b_r4_live_4of4_2grants_preserved",
   "branch": "feat/gold-single-owner-transfer-20261101",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -156,7 +156,7 @@
     "Agent V2 no-arg recovery source is newly changed; not yet deployed, not yet GitHub CI-verified and cannot pass physical Owner B→Helper 24h end-to-end while live PG043 is unregistered. Keep source, runtime and UI acceptance distinct.",
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID."
   ],
-  "nextAction": "Push R4 source and run GitHub CI; stage R4 Wall only in isolated Lab with snapshot; verify 4/4 and existing A/B grants. Owner visually tests A/B cards and 8 segmented B character inputs.",
+  "nextAction": "Owner visually inspect B8 separated code blocks and A-to-B arrow on http://100.94.184.141:15591/approve with real pending request. Confirm clipboard normalization and focus; polish isolated GoldABV2 Lab only.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -172,7 +172,7 @@
     "treeDigest": "ad204a15d843b6a696245a85e57b7c3b9bd2a51c65919fdf9c907fa93d2f414c",
     "trackedFiles": 1157,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-02T12:09:09.965Z"
+    "recordedAt": "2026-11-02T12:12:55.681Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -788,6 +788,18 @@
     "productionTouched": false,
     "schemaChanged": false,
     "grantLogicChanged": false,
-    "ownerVisualAcceptance": "pending"
+    "ownerVisualAcceptance": "pending",
+    "runtime": "/opt/light-remote-abv2-lab/source-1a99c489-approve-b-r4-STAGED",
+    "sourceCiRun": 41442446526,
+    "sourceCi": "4/4 PASS",
+    "documentationCiRun": 41442446648,
+    "documentationCi": "PASS",
+    "snapshot": "pre-goldabv2-approve-b-r4-20261102",
+    "rollback": "/var/backups/light-remote-goldabv2-wall-before-approve-b-r4-20261102.conf",
+    "serviceCount": "4/4 active",
+    "http": "local/login 200, public/login 200, https/health 200",
+    "activeGrantsBefore": 2,
+    "activeGrantsAfter": 2,
+    "browserVisualAcceptance": "pending"
   }
 }
