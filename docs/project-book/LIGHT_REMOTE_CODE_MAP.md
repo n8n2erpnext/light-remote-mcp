@@ -643,3 +643,9 @@ Admin Owner security emblem uses /assets/icons/material/security.svg (verified H
 - device-agent/local-wall.mjs: statically allowlist local vendor assets; non-editable xterm screen instead of stripped pre text; auto-select terminal, 500ms read, 3500ms list; remove duplicate content Back to Wall.
 - device-agent/wall-ui-refinement.mjs: full-width feature-page CSS, safely remove only redundant Wall/Back to Wall content links before injecting left sidebar.
 - deploy/scripts/selftest-gold-wall-pty-terminal-r3.mjs: vendor endpoints + six-page navigation/PTY contract regression.
+
+## GoldABV2 R3 same-origin CSP/browser renderer correction
+
+- device-agent/local-wall.mjs pageHeaders CSP now permits only same-origin vendor terminal JS/CSS plus existing inline scripts/styles. Preserves default-src self, frame-ancestors none, connect-src self, form-action self.
+- device-agent/wall-ui-refinement.mjs includes desktop-width ptyOutput xterm layout override to prevent double scroll and preserve FitAddon sizing in floating viewer.
+- deploy/scripts/selftest-gold-wall-pty-terminal-r3.mjs checks rendered HTTP CSP on Home plus five feature routes and only locally bundled xterm assets.

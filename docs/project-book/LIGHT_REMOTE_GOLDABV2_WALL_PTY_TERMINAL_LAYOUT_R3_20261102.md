@@ -25,3 +25,6 @@ Old PTY Viewer had to wait for manually selected terminal; list fetched after op
 
 ## Rollback
 Create separate LXD snapshot and exact Wall drop-in backup before Lab-only cutover. Revert to old source-2856faf9-wall-r2-STAGED and restart only Wall. Do not revert database state or expire grants for visual testing.
+
+## Same-origin CSP correction after live smoke
+Live static asset URLs returned HTTP 200 after fixing stage folder xterm permission (0755 traverse, files 0644). Browser CSP originally allowed only inline script/style and blocked same-origin vendor libraries. Add 'self' alongside existing 'unsafe-inline' to script-src and style-src, preserving anti-framing, connect-src, form-action and no arbitrary remote hosts. Add desktop-wide xterm screen overflow/layout override, not only mobile media rule. R3 test now checks CSP response headers on all six routes.

@@ -874,3 +874,6 @@ Following 4/4 Gold Source Gate and Docs CI PASS, created pre-goldabv2-wall-r2-20
 ## 2026-11-02 — GoldABV2 R3 PTY terminal and persistent sidebar UX
 
 Owner screenshots showed PTY viewer initially waits for manual selection and strips ANSI; introduced self-hosted xterm.js + FitAddon with immutable source licenses, auto-select running PTY, read-only 500ms incremental output, proper VT terminal rendering, 3000-line scrollback, and 3500ms session list refresh. Layout: remove duplicated Back to Wall/Wall content links, widen all dedicated feature pages like Codex to right of persistent left panel. API authorization and Operator grant behavior unchanged. See docs/project-book/LIGHT_REMOTE_GOLDABV2_WALL_PTY_TERMINAL_LAYOUT_R3_20261102.md.
+
+## 2026-11-02 — GoldABV2 PTY renderer browser CSP and asset permissions
+Live R3 smoke found vendor asset 404 caused by staged xterm directory mode 0700; corrected to 0755 within isolated Lab staging, verified 200. Subsequent source review found same-origin xterm.js/CSS would be blocked by script/style CSP; narrowly permit 'self' along with preexisting inline tokens, retaining all other CSP boundaries. Add desktop terminal screen CSS and six-route CSP regression. No auth/API/grant mutation.

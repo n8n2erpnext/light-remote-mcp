@@ -86,6 +86,10 @@ body.wall-sidebar-collapsed .sidebar-items .pill,body.wall-sidebar-collapsed #en
 .term .actions .btn{font:500 11px 'Google Sans Code',monospace;padding:4px 6px;gap:4px}
 .term .actions .mi{width:13px;height:13px}
 .term .resultline{font-size:12px}
+#ptyOutput.pty-screen{min-height:0;min-width:0;padding:0;overflow:hidden;white-space:normal;word-break:normal;background:#06090d;display:flex;flex-direction:column}
+#ptyOutput .xterm{width:100%;min-height:0;flex:1}
+#ptyOutput .xterm-viewport{overscroll-behavior:contain}
+
 @media(max-width:870px){body .wrap{margin-left:calc(var(--wall-sidebar-width) + 7px);margin-right:6px;max-width:calc(100% - var(--wall-sidebar-width) - 13px)}.top{align-items:flex-start}.topright{justify-content:flex-start}.term .commandrow{grid-template-columns:52px 1fr}.term .cmdwrap{grid-column:1/-1}.term .actions{grid-column:1/-1}}
 @media(max-width:540px){body{--wall-sidebar-width:63px}.wall-sidebar{padding:7px}.wall-sidebar .sidebar-items .btn span,.wall-sidebar .sidebar-toggle .nav-label{display:none}.wall-sidebar .sidebar-items .btn{justify-content:center;padding:8px}.wall-sidebar .sidebar-toggle{justify-content:center}.topright .wall-notification{margin-left:0}}
 `;

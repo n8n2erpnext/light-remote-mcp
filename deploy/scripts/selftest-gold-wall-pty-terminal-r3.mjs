@@ -30,6 +30,10 @@ try{
  for(const path of paths){
   const r=await fetch(base+path);
   assert.equal(r.status,200,path);
+  const csp=r.headers.get('content-security-policy');
+  assert.ok(csp?.includes("script-src 'self' 'unsafe-inline'"),path+' self-hosted scripts allowed');
+  assert.ok(csp?.includes("style-src 'self' 'unsafe-inline'"),path+' self-hosted style allowed');
+  assert.ok(csp?.includes("frame-ancestors 'none'"),path+' anti-framing policy kept');
   const html=await r.text();
   assert.doesNotMatch(html,/id="backToWall"/,path);
   assert.match(html,/title="Wall"/,path+' sidebar available');
