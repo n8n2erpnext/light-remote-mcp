@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
-  "updatedDate": "2026-11-01",
+  "updatedDate": "2026-11-02",
   "status": "goldabv2_preapproval_device_discovery_deployed_live_registered_84",
   "branch": "feat/gold-connection-gc-reconciler-20261029",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
@@ -156,7 +156,7 @@
     "Agent V2 no-arg recovery source is newly changed; not yet deployed, not yet GitHub CI-verified and cannot pass physical Owner B→Helper 24h end-to-end while live PG043 is unregistered. Keep source, runtime and UI acceptance distinct.",
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID."
   ],
-  "nextAction": "Refresh/reconnect user-facing official Light Remote AB plugin to obtain new tool metadata. Real test light_remote_discover_devices({onlineOnly:true}) ->1, query Windows online ->0, query arm64 ->1, query R01KAP ->1 online; no B. Old list_devices remains A/B granted-only[]. Owner B approval 24h is separate pending acceptance. Do not expand outside lab or deploy MFA without new decision.",
+  "nextAction": "GoldABV2 Lab Wall approval UX: /approve is pending-list read-only and links signed-in Owner to /account for B-only approval. Owner should enter current B in /account -> A/B V2 Pending Agent requests, then Helper no-arg recovery/poll for durable grant; investigate abv2_recover_enrollment_or_connection_changed before declaring E2E. Preapproval discovery source test PASS; ChatGPT A/B plugin registered discovery tool not yet exposed in session schema. No Gold UAT/production. V4 build separate.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -169,10 +169,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "d54b3b39e25282039bf0357d009b3d573f9bd286f8738d866c507bbf5b4f18ab",
+    "treeDigest": "e5a65c494047d00738d13d7c76f8ce605be3371a878bee2d8271abea3d4ba12c",
     "trackedFiles": 1141,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-01T21:43:01.457Z"
+    "recordedAt": "2026-11-02T01:56:15.321Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -577,5 +577,12 @@
       "runId": 41176769179,
       "conclusion": "success"
     }
+  },
+  "lastUxCorrection": {
+    "date": "2026-11-02",
+    "scope": "GoldABV2 Lab only",
+    "finding": "Wall direct approval required second Owner consent; switched UI to signed-in Account direct B approval; backend Wall signed approval verification remains unchanged",
+    "liveGrantAccepted": false,
+    "tests": "owner-approval-navigation and wall-preview PASS in source"
   }
 }

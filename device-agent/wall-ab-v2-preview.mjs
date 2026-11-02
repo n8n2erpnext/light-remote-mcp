@@ -1,6 +1,6 @@
 // Native Local Wall A/B V2 approval UI, shared by Windows/macOS/Linux.
  // Only rendered after authenticated local Owner; never generates A/B.
-// Signed Operator preview; explicit human B and Owner consent still required.
+// Signed Operator preview only. The logged-in Account owns Owner B approval.
 export const wallAbV2PreviewFragment = `
 <section id="abV2OwnerPreview" hidden class="card ab2-shell" aria-label="A/B V2 Agent approval">
  <style>
@@ -36,12 +36,12 @@ export const wallAbV2PreviewFragment = `
   <div id="abV2PreviewState" class="ab2-state">Checking requests…</div>
   <p class="ab2-muted" id="abV2PreviewStatus" role="status" aria-live="polite">Checking the signed request list.</p>
   <div class="ab2-actions"><button type="button" id="abV2PreviewRefresh" class="btn">Refresh</button>
-  <a class="btn" href="https://light-remote.thaiduy.digital/account" target="_blank" rel="noopener">Open Account</a>
+  <a class="btn" data-abv2-account href="https://light-remote.thaiduy.digital/account" target="_blank" rel="noopener noreferrer">Open Account</a>
   <a class="btn" href="/">Back to Wall</a></div>
  </div>
  <div id="abV2PreviewItems"></div>
  <p class="ab2-muted ab2-footnote">A/B V2 requests expire after 5 minutes. Each approval applies only to the requesting Agent.
-  You can approve directly in Account; Wall approval additionally requires a one-time Owner consent from Account.</p>
+  Approve by entering the Agent B code in your signed-in Account. Local Wall cannot approve on its own.</p>
 </section>
 <script>
 (()=>{
@@ -88,60 +88,27 @@ export const wallAbV2PreviewFragment = `
    for(const row of data.pending.slice(0,5)){
     const card=document.createElement('div');card.className='ab2-panel';
     const name=document.createElement('h3');
-    name.textContent=String(row.requester||'Authorized Agent')+' requests access';
+    name.textContent='Agent requests access to this device';
     const expire=document.createElement('p');expire.className='ab2-timer';
-    const codes=document.createElement('div');codes.className='ab2-grid';
     const a=document.createElement('div');a.className='ab2-muted';
     const code=document.createElement('code');
     code.textContent=String(row.aCode||'');
-    a.append('A code · one-time',document.createElement('br'),code);
-    const b=document.createElement('div');b.className='ab2-muted';
-    const input=document.createElement('input');input.type='text';input.maxLength=9;
-    input.autocomplete='one-time-code';input.placeholder='B: ____-____';
-    input.setAttribute('aria-label','B code from requesting Agent');
-    b.append('B code · 4+4',document.createElement('br'),input);
-    codes.append(a,b);card.append(name,expire,codes);
-    const consent=document.createElement('input');consent.type='password';
-    consent.maxLength=32;consent.autocomplete='off';
-    consent.placeholder='Account-verified one-time Owner consent';
-    consent.setAttribute('aria-label','Owner account-verified one-time consent');
-    consent.style.marginTop='12px';
+    a.append('Device A · one-time',document.createElement('br'),code);
+    const guide=document.createElement('p');guide.className='ab2-muted';
+    guide.textContent='To approve for 24 hours: open your signed-in Account, select this device and enter the B code shown to the requesting Agent. No second Owner code required.';
     const actions=document.createElement('div');actions.className='ab2-actions';
-    const approve=document.createElement('button');
-    approve.className='btn primary';approve.type='button';
-    approve.textContent='Approve Agent · 24h';approve.disabled=!approvalEnabled;
-    approve.onclick=async()=>{
-     const bCode=String(input.value||'').trim().toUpperCase();
-     const consentCode=String(consent.value||'').trim();
-     if(!/^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/.test(bCode)){
-      status.textContent='Enter the B code provided by the requesting Agent.';return;
-     }
-     if(!/^[A-Za-z0-9_-]{32}$/.test(consentCode)){
-      status.textContent='Generate the one-time Owner consent at /account.';return;
-     }
-     if(!window.confirm('Grant this Agent access to this device for up to 24 hours?'))return;
-     approve.disabled=true;
-     try{
-      const result=await fetch('/api/abv2/approve',{
-       method:'POST',credentials:'same-origin',cache:'no-store',
-       headers:{'content-type':'application/json','x-light-remote-csrf':
-        typeof wallCsrf==='string'?wallCsrf:''},
-       body:JSON.stringify({requestId:row.requestId,expectedAttempt:row.attempt,bCode,consentCode})
-      });
-      const outcome=await result.json().catch(()=>({}));
-      input.value='';consent.value='';
-      if(!result.ok||outcome.state!=='granted')throw Error('Grant not committed by Operator');
-      status.textContent='Owner approval committed. Agent lease granted.';
-      await load();
-     }catch(error){input.value='';consent.value='';status.textContent=String(error.message||'Approval unavailable');}
-     finally{approve.disabled=!approvalEnabled;}
-    };
-    actions.append(approve);card.append(consent,actions);
-    if(!approvalEnabled){
+    const accountLink=host.querySelector('a[data-abv2-account]');
+    if(approvalEnabled&&accountLink){
+      const go=document.createElement('a');go.className='btn primary';
+      go.href=accountLink.href;go.target='_blank';go.rel='noopener noreferrer';
+      go.textContent='Review & approve in Account';
+      actions.append(go);
+    }else{
       const notice=document.createElement('p');notice.className='ab2-muted';
-      notice.textContent='Direct approval is unavailable. Open Account to check the Owner approval settings.';
-      card.append(notice);
+      notice.textContent='Account approval unavailable. Do not grant access from Local Wall.';
+      actions.append(notice);
     }
+    card.append(name,expire,a,guide,actions);
     items.append(card);pending.push({expiresAt:row.expiresAt,expiresNode:expire});
    }
    tick();

@@ -548,3 +548,9 @@ Admin Owner security emblem uses /assets/icons/material/security.svg (verified H
 - User-facing MCP metadata refresh required in current ChatGPT session to expose newly registered light_remote_discover_devices, scope remote:read. Do not misreport absent cached schema as a server failure.
 - Real lab matching: current Owner owns only R01KAP (light-remote-abv2-lab-20261101), online Linux arm64. Query Windows should be zero in this LAB; VPS-ARM hostname not registered for this account. Old authorized-only list_devices remains [] pending B approval.
 - Full source+runtime master handoff: docs/project-book/LIGHT_REMOTE_GOLDABV2_MASTER_20261102.md, VPS handoff path /home/ubuntu/handoffs/LIGHT_REMOTE_GOLDABV2_FULL_MASTER_HANDOFF_20261102.md.
+
+### 2026-11-02 — Native Wall A/B V2 approval navigation (Lab UX)
+- device-agent/wall-ab-v2-preview.mjs: read-only signed pending list now links directly to Owner-authenticated Account for B submission. There is no B input or Owner-consent input on Wall; no grant can be committed by clicking a local-only UI control. The current device Short ID / signed pending still display; raw Owner account UUID no longer rendered as the Agent's display name.
+- device-agent/local-wall.mjs: existing lab-only Owner Account URL substitution preserved; V1 legacy fallback and server-side signed Owner/CSRF verification unchanged.
+- plugin-server/account-portal/ab-v2.js and account-ab-v2.mjs: unchanged trusted Owner B single-input approval, cookie + CSRF + Operator durable PG grant path.
+- deploy/scripts/selftest-gold-abv2-owner-approval-navigation.mjs and selftest-gold-ab-v2-wall-preview.mjs: require direct Account link, prohibit local Wall direct B mutation, keep backend negative auth tests. Physical Browser/Owner approval acceptance pending.

@@ -115,7 +115,8 @@ try{
  assert.doesNotMatch(wallAbV2PreviewFragment,/background:#205dc5|background:#111b27/);
  assert.doesNotMatch(wallAbV2PreviewFragment,/this Windows device/);
 
- assert.match(wallAbV2PreviewFragment,/\/api\/abv2\/approve/);
+ assert.match(wallAbV2PreviewFragment,/Review & approve in Account/);
+ assert.doesNotMatch(wallAbV2PreviewFragment,/fetch\('\/api\/abv2\/approve'/);
  assert.ok(!wallAbV2PreviewFragment.includes('result.bCode'));
  const post=async (owner,csrf,body)=>fetch(url+'/api/abv2/approve',{
   method:'POST',headers:{'content-type':'application/json','x-test-owner':owner,
