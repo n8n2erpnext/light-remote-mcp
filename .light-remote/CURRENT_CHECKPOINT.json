@@ -156,7 +156,7 @@
     "Agent V2 no-arg recovery source is newly changed; not yet deployed, not yet GitHub CI-verified and cannot pass physical Owner B→Helper 24h end-to-end while live PG043 is unregistered. Keep source, runtime and UI acceptance distinct.",
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID."
   ],
-  "nextAction": "Owner Wall Close session security bug: session closed but 24h grant stays active until new B. Lab-only source patch verifies exact session->agent-client workingContext->grant, revokes just its B and detaches binding before session close. Source tests PASS. Next CI, isolated Lab Operator-only deploy with snapshot, then fresh Owner test B->close->grant removed. Existing historical closed session grant requires scoped reconciliation. No Gold UAT/Prod/V4.",
+  "nextAction": "GoldABV2 Lab Operator 94933590 live deployed, snapshot pre-owner-close-grant-revoke-20261102, backup override. 4/4 services active HTTPS200, focused tests PASS. New Owner Close will revoke exactly matching A/B grant+client binding then close session, DB flush before ack; needs manual Owner B->Close runtime acceptance. Historical Claude grant dag_v2_89f9... is STILL active after its session was closed before patch; do not just hide timer or revoke by Agent name, need scoped reconciliation after matching closed sessionId. ChatGPT separate grant stays active. Gold UAT/prod/V4 untouched.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -679,8 +679,11 @@
     "rootCause": "session-close called only sessions.close and left agent A/B grant live",
     "fix": "exact scoped matching client session grant revoke and detach under signed Owner and Lab flag",
     "tests": "four focused suites + Wall close/cache + AB Helper PASS",
-    "liveDeployment": "PENDING",
+    "liveDeployment": "Operator Lab source-94933590-op-overlay-ddd012b1 active, 4/4 active HTTPS200, source tests PASS; real Owner new close E2E pending",
     "liveGrantMutation": false,
-    "historicalCleanup": "Review before mutation; do not revoke newer grant"
+    "historicalCleanup": "Review before mutation; do not revoke newer grant",
+    "rollback": "LXD snapshot pre-owner-close-grant-revoke-20261102 and operator-before-owner-close-94933590-20261102.conf",
+    "historicGrant": "Claude prior closed session old active grant dag_v2_89f9... remains in PG; no cleanup performed",
+    "noOtherAgentMutation": true
   }
 }
