@@ -153,6 +153,9 @@ on:
       - 'deploy/scripts/selftest-gold-wall-ui-refinement.mjs'
       - 'deploy/scripts/selftest-gold-wall-pty-terminal-r3.mjs'
       - 'deploy/scripts/selftest-gold-wall-r5-interactions.mjs'
+      - 'extensions/light-remote-lm-abv2/**'
+      - 'extensions/releases/Light-Remote-LM-GoldABV2-v0.3.0.zip'
+      - 'deploy/scripts/selftest-gold-lm-extension-abv2.mjs'
       - 'assets/vendor/xterm/**'
       - 'deploy/scripts/selftest-gold-wall-shared-navigation-dialog-v2.mjs'
       - 'lib/web-typography.mjs'
@@ -315,6 +318,7 @@ jobs:
           node deploy/scripts/selftest-gold-wall-ui-refinement.mjs
           node deploy/scripts/selftest-gold-wall-pty-terminal-r3.mjs
           node deploy/scripts/selftest-gold-wall-r5-interactions.mjs
+          node deploy/scripts/selftest-gold-lm-extension-abv2.mjs
           node deploy/scripts/selftest-gold-wall-shared-navigation-dialog-v2.mjs
           node deploy/scripts/selftest-gold-wall-google-typography.mjs
           node --check lib/gold-ab-v2-helper-proof.mjs

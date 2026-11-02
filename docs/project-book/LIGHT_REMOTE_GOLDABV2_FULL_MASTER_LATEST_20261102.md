@@ -1,5 +1,10 @@
 # LIGHT REMOTE GOLDABV2 — FULL MASTER HANDOFF (LATEST)
 
+### LATEST — Chrome Extension LM v0.3 integration for GoldABV2 (2026-11-02)
+
+Found independent LM v0.2 extension branch feature/gold-lm-chrome-extension-20261029 (6cafb33b) and ported its approved user-click capture, SHA-256 chunked DOM snapshot and manual Wall handoff as GoldABV2-only v0.3 preview at extensions/light-remote-lm-abv2. Exact permitted Wall target is http://100.94.184.141:15591/long-memory rather than Windows localhost; Owner still must explicitly choose Work/opt in/Save. Pending plaintext session data TTL is ten minutes with Chrome alarm cleanup. Preview ZIP at extensions/releases/Light-Remote-LM-GoldABV2-v0.3.0.zip. This is SOURCE/package integration; NOT installed or real Chrome/Owner signed Memory E2E yet. GoldABV2 Wall/DB untouched. Current Owner has no authorized Memory scopes because 3 historic Gold scopes belong to old Account/Home. Previous request to DELETE only old Long Memory data remains OPEN because current Device Sync is ON with this device selected; official deletion must not bypass safety fence. Read docs/project-book/LIGHT_REMOTE_GOLDABV2_LM_CHROME_INTEGRATION_V03_20261102.md before further changes.
+
+
 ### CURRENT LONG MEMORY AUDIT — 2026-11-02 (read before attempting Memory Home changes)
 
 Long Memory and Codex Bridge flags ON; 17/17 isolated memory selftests PASS; live SQLite quick_check OK with 3 historical scopes, 12 scoped checkpoints, 24 historical ACKs (last October 29) and zero quarantine. **All three scopes and Device Sync selection bind to a coherent previous Account ID / Home Device ID, NOT the current GoldABV2 enrollment**. Current account has zero scopes and device is not a member, so My Work may appear empty. This is an authorization/migration gate, NOT permission to rewrite IDs. Do NOT mutate DB/keys/scope Owner or force sync; Owner must identify authorized Memory Home and approve signed clone-tested migration. Full evidence and test suite: docs/project-book/LIGHT_REMOTE_GOLDABV2_LONG_MEMORY_AUDIT_20261102.md. No live Memory data was changed.

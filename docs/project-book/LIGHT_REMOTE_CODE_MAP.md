@@ -667,3 +667,11 @@ Admin Owner security emblem uses /assets/icons/material/security.svg (verified H
 - docs/project-book/LIGHT_REMOTE_GOLDABV2_LONG_MEMORY_AUDIT_20261102.md contains live read-only DB inventory, cross-identity mismatch evidence, 17/17 temporary DB tests and authorized remediation gates.
 - device-agent/operator-agent.mjs builds scopeIdentity from enrolled accountId/deviceId; device-agent/gold-wall-modules.mjs scopes filtered by current Account ID.
 - Do not override old scopes in SQLite or bypass signed Home/device assertions for UI convenience. Live GoldABV2 enrollment currently differs from the old coherent Memory Home identity.
+
+## GoldABV2 LM Chrome extension v0.3 (2026-11-02)
+
+- extensions/light-remote-lm-abv2/: isolated Manifest V3 capture/review UI port from original feature/gold-lm-chrome-extension-20261029. Private NetBird GoldABV2 host only. Capture source SHA256/UTF8 cursor; pending 10-min alarm; Owner manually selects Work and submits existing Wall context form.
+- extensions/releases/Light-Remote-LM-GoldABV2-v0.3.0.zip: Chrome load-unpacked preview; NOT installed/published.
+- deploy/scripts/selftest-gold-lm-extension-abv2.mjs: mocked DOM/output staging, security checks and source contract.
+- docs/project-book/LIGHT_REMOTE_GOLDABV2_LM_CHROME_INTEGRATION_V03_20261102.md: integration and physical Chrome acceptance.
+- device-agent/local-wall.mjs already contains #goldContextText/#goldContextTitle and the Owner confirmation/CSRF route. No service code touched; R5 remains Live.
