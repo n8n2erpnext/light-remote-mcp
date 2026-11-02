@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-02",
-  "status": "desktop_v4_wall_logs_ci_rerun_after_typecheck_fix",
+  "status": "desktop_v4_logs_native_permission_exact_identifier_ci_rerun_pending",
   "branch": "feat/desktop-v4-wall-activity-20261102",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -138,7 +138,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "Push test async correction with Project Truth; verify V4 native CI new exact SHA; no build on VPS ARM.",
+  "nextAction": "Push exact Tauri generated permission correction, inspect 4-job native CI; VPS-ARM no builds.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -151,10 +151,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "5857cff8c82cfd30d13fc660f925d83fe354f385b96a6f00e93757ad256f21b5",
+    "treeDigest": "41eec9f4c9c2a933a4b8cbee18f7947dd8d2075239fad6aee7a931a40543275d",
     "trackedFiles": 1165,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-02T15:25:36.704Z"
+    "recordedAt": "2026-11-02T15:29:17.042Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -599,8 +599,8 @@
       "Open Wall exact local default-browser link on native host",
       "Settings Activity Logs with same-origin verified state or safe CTA to Wall"
     ],
-    "nativePermissions": "app:allow-open-local-wall only on main window",
-    "ci": "run41471343468 TS1308 App.test await nonasync, fix source and rerun",
+    "nativePermissions": "allow-open-local-wall (exact tauri_build generated name), main window only",
+    "ci": "41471479014 web PASS, Linux failed exact permission typo, correction pending rerun",
     "ownerNativeOpenWallE2E": false,
     "productionChanged": false,
     "handoff": "docs/project-book/LIGHT_REMOTE_DESKTOP_V4_WALL_LOG_CONTROLS_20261102.md"

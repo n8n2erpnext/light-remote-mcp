@@ -22,7 +22,7 @@ Owner approved the nine-screen Windows visual layout. Exactly one new native com
 (open_local_wall) may open two literal Local Wall localhost:5491 addresses (home or
 Settings activity-log section) in the system default browser. This fixed allowlist does
 not start an Agent, access credentials or enable arbitrary shell, file or URL actions.
-The main window receives only the custom app:allow-open-local-wall permission.
+The main window receives only the custom allow-open-local-wall permission.
 Settings now shows bounded Activity Logs retention and optionally safe, verified
 same-origin log statistics. Standalone Tauri is NOT a Local Wall Owner session; statistics
 remain unverified there, and the functional CTA opens the real authenticated browser Wall

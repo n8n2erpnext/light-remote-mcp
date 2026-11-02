@@ -20,7 +20,7 @@ describe('Tauri2 UI-only pilot trust boundary', () => {
       identifier: 'main-local-wall-browser',
       description: expect.any(String),
       windows: ['main'],
-      permissions: ['app:allow-open-local-wall']
+      permissions: ['allow-open-local-wall']
     }]);
     expect(conf.app.windows).toHaveLength(1);
     expect(conf.app.windows[0]?.label).toBe('main');

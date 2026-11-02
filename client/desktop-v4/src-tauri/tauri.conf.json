@@ -35,7 +35,7 @@
             "main"
           ],
           "permissions": [
-            "app:allow-open-local-wall"
+            "allow-open-local-wall"
           ]
         }
       ],

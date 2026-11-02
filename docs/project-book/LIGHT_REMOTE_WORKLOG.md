@@ -576,3 +576,6 @@ Owner accepted 9-screen Windows V4 UI appearance; requested Open Wall and Logs w
 
 ## 2026-11-02 — Desktop V4 Wall Logs first CI test correction
 GitHub source e9cf3757 CI run 41471343468 found TS1308 in App.test.tsx: async assertion inside non-async test; corrected callback only. No production/runtime change. Must rerun exact new source through CI and inspect native builds.
+
+## 2026-11-02 — Desktop V4 native permission manifest correction
+GitHub CI 41471479014 Web/Chromium PASS; Linux Tauri native custom app manifest failed with exact \"Permission app:allow-open-local-wall not found, expected one of allow-open-local-wall\". Corrected to generated bare allow-open-local-wall, preserving same single scoped command and no broad fallback. Windows/macOS were not yet completed. CI rerun required.
