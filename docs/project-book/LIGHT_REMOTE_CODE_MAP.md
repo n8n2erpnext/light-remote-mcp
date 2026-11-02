@@ -613,4 +613,4 @@ Admin Owner security emblem uses /assets/icons/material/security.svg (verified H
 - Deploy as isolated Lab Plugin-only overlay after CI; no Agent/Wall or Gold UAT/production change.
 
 ### 2026-11-02 — Release-readiness authoritative handoff
-- docs/project-book/LIGHT_REMOTE_GOLDABV2_RELEASE_READINESS_HANDOFF_20261102.md: complete verified Git, LXD overlay, granted Agent, 84-tool Discovery, SCP 856c4684, tests, risk boundaries, rollback, Owner human acceptance and Desktop V4 handoff; MUST read before coding. Identifiers shortened in tracked Markdown.
+- docs/project-book/LIGHT_REMOTE_GOLDABV2_RELEASE_READINESS_20261102.md: complete verified Git, LXD overlay, granted Agent, 84-tool Discovery, SCP 856c4684, tests, risk boundaries, rollback, Owner human acceptance and Desktop V4 handoff; MUST read before coding. Identifiers shortened in tracked Markdown.
