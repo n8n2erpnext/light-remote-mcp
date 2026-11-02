@@ -636,3 +636,10 @@ Admin Owner security emblem uses /assets/icons/material/security.svg (verified H
 - device-agent/local-wall.mjs: signed pending A code display, moving header, Agent grid, cloud plan timer colors, decorating Approve/Permissions/Settings/Processes.
 - device-agent/wall-ab-v2-preview.mjs: awaiting web dialog instead of window.confirm, fail closed, expiration colors.
 - deploy/scripts/selftest-gold-wall-shared-navigation-dialog-v2.mjs: 6 authenticated HTML/JS route tests.
+
+## GoldABV2 R3 Local PTY and feature width (2026-11-02)
+
+- assets/vendor/xterm/{xterm.js,xterm.css,addon-fit.js,LICENSE,ADDON-FIT-LICENSE}: bundled licensed xterm terminal renderer; no runtime CDN.
+- device-agent/local-wall.mjs: statically allowlist local vendor assets; non-editable xterm screen instead of stripped pre text; auto-select terminal, 500ms read, 3500ms list; remove duplicate content Back to Wall.
+- device-agent/wall-ui-refinement.mjs: full-width feature-page CSS, safely remove only redundant Wall/Back to Wall content links before injecting left sidebar.
+- deploy/scripts/selftest-gold-wall-pty-terminal-r3.mjs: vendor endpoints + six-page navigation/PTY contract regression.

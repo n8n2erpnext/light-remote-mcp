@@ -151,10 +151,21 @@ export function decorateWallSubpage(html,{csrf='',authEnabled=false,moduleSuppor
   nav+=anchor('/settings','settings','Settings');
   if(authEnabled)nav+='<form method="post" action="/auth/logout"><input type="hidden" name="csrf" value="'+esc(csrf)+'"><button type="submit" class="btn" title="Logout">'+materialIcon('logout')+'<span>Logout</span></button></form>';
   const sidebar='<aside id="wallSidebar" class="wall-sidebar" aria-label="Wall navigation"><button class="sidebar-toggle" id="sidebarToggle" type="button" aria-expanded="true"><span class="nav-menu-glyph">☰</span><span class="nav-label">Navigation</span></button><nav class="sidebar-items">'+nav+'</nav></aside>';
-  let out=html.replace('</style>',WALL_UI_REFINEMENT_CSS+'</style>');
+  let out=html.replace('</style>',WALL_UI_REFINEMENT_CSS+WALL_SUBPAGE_FULLWIDTH_CSS+'</style>');
   out=out.replace(/<body([^>]*)>/i,(_m,attributes)=>'<body'+attributes.replace(/class="([^"]*)"/g,'')+' class="wall-subpage wall-'+esc(path.replace(/[^a-z]/g,'')||'home')+'">');
+  out=out.replace(/<a\b[^>]*href="\/"[^>]*>[\s\S]*?<\/a>/gi,link=>{
+    const label=link.replace(/<svg[\s\S]*?<\/svg>/gi,'').replace(/<[^>]*>/g,'').trim();
+    return /^(?:back to wall|wall)$/i.test(label)?'':link;
+  }); // Preserve Cancel and other functional actions
   out=out.replace(/<body[^>]*>/i,match=>match+sidebar+WALL_NATIVE_DIALOG_MARKUP);
-  out=out.replace(/<a([^>]+)href="\/"([^>]*)>\s*(?:Back to Wall|Cancel)\s*<\/a>/g,''); // preserve semantics elsewhere via Home navigation
   out=out.replace('</body>','<script>'+WALL_UI_REFINEMENT_SCRIPT+WALL_NATIVE_DIALOG_SCRIPT+'</script></body>');
   return out;
 }
+
+export const WALL_SUBPAGE_FULLWIDTH_CSS = `body.wall-subpage .wrap{width:auto;max-width:none!important;margin:16px 14px 16px calc(var(--wall-sidebar-width) + 12px)!important;padding:0!important;transform:none!important}
+body.wall-subpage .wrap>.card{width:100%;max-width:none}
+body.wall-subpage .wrap .brand{margin:0 0 14px}
+body.wall-subpage.wall-sidebar-collapsed .wrap{margin-left:calc(var(--wall-sidebar-width) + 12px)!important}
+body.wall-subpage .card{max-width:none}
+@media(max-width:640px){body.wall-subpage .wrap{margin-right:7px!important;margin-left:calc(var(--wall-sidebar-width) + 7px)!important}}
+`;

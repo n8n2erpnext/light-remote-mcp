@@ -870,3 +870,7 @@ Initial R2 source gate failed due to an old source test creating DOM nodes witho
 ## 2026-11-02 — GoldABV2 Wall R2 LIVE isolated Lab deployment
 
 Following 4/4 Gold Source Gate and Docs CI PASS, created pre-goldabv2-wall-r2-20261102 LXD snapshot, staged SHA-matching R2 files and tested under gold-uat user. Atomically updated only the final Wall drop-in to source-2856faf9-wall-r2-STAGED and restarted Wall. 4/4 services active, HTTP local/public login 200, HTTPS health 200, exactly 2 active grant records preserved before/after, no recent Wall journal errors, 6-page render and font/UI regressions PASS. Manual Owner screenshot approval still pending. Full rollback and acceptance: docs/project-book/LIGHT_REMOTE_GOLDABV2_WALL_REFINEMENT_R2_LIVE_DEPLOY_20261102.md.
+
+## 2026-11-02 — GoldABV2 R3 PTY terminal and persistent sidebar UX
+
+Owner screenshots showed PTY viewer initially waits for manual selection and strips ANSI; introduced self-hosted xterm.js + FitAddon with immutable source licenses, auto-select running PTY, read-only 500ms incremental output, proper VT terminal rendering, 3000-line scrollback, and 3500ms session list refresh. Layout: remove duplicated Back to Wall/Wall content links, widen all dedicated feature pages like Codex to right of persistent left panel. API authorization and Operator grant behavior unchanged. See docs/project-book/LIGHT_REMOTE_GOLDABV2_WALL_PTY_TERMINAL_LAYOUT_R3_20261102.md.
