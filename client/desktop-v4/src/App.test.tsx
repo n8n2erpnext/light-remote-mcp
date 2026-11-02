@@ -78,6 +78,19 @@ describe('Desktop V4 fail-closed interaction', () => {
     expect(screen.getByText('No verified grants')).toBeTruthy();
     expect(screen.queryByText(/FORBIDDEN/)).toBeNull();
   });
+  it('labels a native locked Wall without claiming an authenticated Agent', async () => {
+    const invoke = vi.fn(async (name: string) => name === 'probe_local_wall'
+      ? 'owner_login_required' : undefined);
+    Object.assign(window, { __TAURI_INTERNALS__: { invoke } });
+    window.history.replaceState(null, '', '#/overview');
+    render(<App />);
+    await screen.findByText('Wall reachable · Owner login required');
+    expect(screen.getByText('Wall responding · Owner login required')).toBeTruthy();
+    expect(screen.getByText('Not verified')).toBeTruthy();
+    expect(screen.queryByText('Connected · verified Local Wall')).toBeNull();
+    expect(invoke).toHaveBeenCalledWith('probe_local_wall');
+  });
+
   it('opens native Local Wall and activity logs through exact local-only bridge', async () => {
     const invoke = vi.fn().mockResolvedValue(undefined);
     Object.assign(window, { __TAURI_INTERNALS__: { invoke } });

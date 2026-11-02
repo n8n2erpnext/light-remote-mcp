@@ -455,3 +455,10 @@ Source: client/windows-native/GptOperator.Client/{TrayPopoverForm.cs,Program.cs,
 - \`client/desktop-v4/src-tauri/build.rs\`, \`permissions/open-local-wall.toml\`, \`tauri.conf.json\` — explicit main-window-only app-command capability.
 - \`client/desktop-v4/src/lib/*.test.ts\`, \`src/App.test.tsx\` — native permission and failclosed/log projection/UI tests.
 - Isolated V4 shell only; Windows/macOS/Linux native CI and installed app visual test still pending. Local Wall Owner authentication and user-requested Activity Logs remain in the Agent, not duplicated here.
+
+## Desktop V4 native Wall presence / Owner 401 boundary (2026-11-02)
+- \`client/desktop-v4/src-tauri/src/main.rs\`: adds exact \`probe_local_wall\` anonymous read-only loopback 127.0.0.1:5491 status-header classifier with time/size bounds; no device metadata or cookie exposure. \`open_local_wall\` unchanged.
+- \`client/desktop-v4/src-tauri/build.rs\` and \`permissions/open-local-wall.toml\`: main-only generated capability now allowlists \`open_local_wall\` and \`probe_local_wall\`.
+- \`client/desktop-v4/src/lib/native-wall-probe.ts\`: IPC output whitelist, fail-closed web without native bridge.
+- \`client/desktop-v4/src/App.tsx\`: same 9 frozen screens, updates only existing local-device text to distinguish Wall reachable/Owner sign-in vs authenticated Agent status. Never infer Connected from 401.
+- \`client/desktop-v4/src/lib/native-wall-probe.test.ts\`, \`App.test.tsx\`, \`native-shell.test.ts\`: positive/negative UI and security tests.

@@ -11,6 +11,7 @@ import { navRoutes, parseRoute, routeHref, type RouteKey } from './lib/routes';
 import { readLocalWallStatus, type SnapshotResult } from './lib/status';
 import { readLocalLogState, type LocalLogResult } from './lib/local-logs';
 import { nativeOpenWallAvailable, openLocalWall, type WallView } from './lib/open-wall';
+import { probeNativeLocalWall, type NativeWallProbe } from './lib/native-wall-probe';
 
 const iconMap: Record<(typeof navRoutes)[number]['icon'], LucideIcon> = {
   house: House,
@@ -55,7 +56,7 @@ function useTheme() {
   return { theme, choose };
 }
 
-function StatusLine({ status }: { status: LoadState }) {
+function StatusLine({ status, wallProbe }: { status: LoadState; wallProbe: NativeWallProbe }) {
   if (status.phase === 'loading') {
     return <span className="verification-line" role="status">Checking Local Wall…</span>;
   }
@@ -71,14 +72,18 @@ function StatusLine({ status }: { status: LoadState }) {
     );
   }
   return <span className="verification-line" role="status">
-    <span className="status-dot" aria-hidden="true" />Device state not verified
+    <span className="status-dot" aria-hidden="true" />
+    {wallProbe === 'owner_login_required' ? 'Wall reachable · Owner login required'
+      : wallProbe === 'responding_unverified' ? 'Wall responding · state unverified'
+      : 'Device state not verified'}
   </span>;
 }
 
-function Sidebar({ active, navigate, status }: {
+function Sidebar({ active, navigate, status, wallProbe }: {
   active: RouteKey;
   navigate: (route: RouteKey) => void;
   status: LoadState;
+  wallProbe: NativeWallProbe;
 }) {
   const deviceName = status.result?.state === 'ready'
     ? status.result.device.deviceName
@@ -110,7 +115,7 @@ function Sidebar({ active, navigate, status }: {
       <div className="side-footer" aria-live="polite">
         <span className="eyebrow">LOCAL DEVICE</span>
         <strong>{deviceName || 'Device not verified'}</strong>
-        <StatusLine status={status} />
+        <StatusLine status={status} wallProbe={wallProbe} />
       </div>
     </aside>
   );
@@ -189,9 +194,10 @@ function AiAccess({ status }: { status: LoadState }) {
   );
 }
 
-function Overview({ status, navigate }: {
+function Overview({ status, navigate, wallProbe }: {
   status: LoadState;
   navigate: (route: RouteKey) => void;
+  wallProbe: NativeWallProbe;
 }) {
   const verified = status.result?.state === 'ready' ? status.result.device : null;
   return (
@@ -200,7 +206,10 @@ function Overview({ status, navigate }: {
         <Card className="metric-card">
           <CardHeading>LOCAL DEVICE</CardHeading>
           <strong className="metric-value metric-text">{verified?.deviceName || '—'}</strong>
-          <span className="muted">{verified ? 'Response verified from this Local Wall' : 'Not verified'}</span>
+          <span className="muted">{verified ? 'Response verified from this Local Wall'
+            : wallProbe === 'owner_login_required' ? 'Wall responding · Owner login required'
+              : wallProbe === 'responding_unverified' ? 'Wall responding · device unverified'
+                : 'Not verified'}</span>
         </Card>
         <Card className="metric-card">
           <CardHeading>AI SESSIONS</CardHeading>
@@ -345,6 +354,7 @@ export function App() {
   const { theme, choose } = useTheme();
   const [status, setStatus] = useState<LoadState>({ phase: 'loading', result: null });
   const [reload, setReload] = useState(0);
+  const [wallProbe, setWallProbe] = useState<NativeWallProbe>('unavailable');
   const [wallOpenError, setWallOpenError] = useState<string | null>(null);
   const canOpenWall = nativeOpenWallAvailable();
   const requestOpenWall = useCallback((view: WallView) => {
@@ -370,6 +380,14 @@ export function App() {
     return () => { live = false; controller.abort(); };
   }, [reload]);
 
+  useEffect(() => {
+    if (!nativeOpenWallAvailable()) return;
+    let live = true;
+    setWallProbe('unavailable');
+    void probeNativeLocalWall().then(result => { if (live) setWallProbe(result); });
+    return () => { live = false; };
+  }, [reload]);
+
   // A previously verified connection must not remain shown forever.
   // Poll read-only status while visible and revalidate immediately after returning.
   useEffect(() => {
@@ -392,7 +410,7 @@ export function App() {
 
   return (
     <div className="app-shell">
-      <Sidebar active={route} navigate={navigate} status={status} />
+      <Sidebar active={route} navigate={navigate} status={status} wallProbe={wallProbe} />
       <main className="main-area" id="main-content">
         <header className="page-header">
           <div className="header-copy">
@@ -418,7 +436,7 @@ export function App() {
           </div>
         </header>
         {wallOpenError && <div className="open-wall-error" role="alert">{wallOpenError}</div>}
-        {route === 'overview' ? <Overview status={status} navigate={navigate} />
+        {route === 'overview' ? <Overview status={status} navigate={navigate} wallProbe={wallProbe} />
           : route === 'ai-access' ? <AiAccess status={status} />
             : route === 'settings' ? <SettingsPage theme={theme} choose={choose} status={status} openWall={requestOpenWall} canOpenWall={canOpenWall} />
               : <FeatureScreen route={route} status={status.result} />}

@@ -582,3 +582,6 @@ GitHub CI 41471479014 Web/Chromium PASS; Linux Tauri native custom app manifest 
 
 ## 2026-11-02 — Desktop V4 UI frozen by Owner after 4/4 native CI
 Owner explicitly approved the latest V4 build UI ("ok UI mới build chốt rồi"). Freeze design of nine existing pages plus Open Wall header and Settings Activity Logs at code SHA 73d448e9. GitHub Actions run 41472068915 completed SUCCESS for Web visual/tests + Windows, macOS and Linux Tauri native builds 4/4. No more Figma required for these features. Do not mislabel UI signoff as real Owner consent/Agent backend integration or physical Windows/Mac/Linux E2E; those remain open. Gold UAT production unchanged.
+
+## 2026-11-02 — Desktop V4 Owner-gated read-only local presence integration
+After Owner V4 UI freeze, confirmed that Local Wall /api/status is strictly Owner-authenticated (HTTP401 for unlogged native webview). Added a tiny fixed localhost:5491 native GET presence probe without credential transfer; visual baseline unchanged except existing sidebar/Overview local status label distinguishes “Wall reachable, Owner login required” from “Device/Agent verified”. Native permission still restricted to main window commands open_local_wall and probe_local_wall. Web and Tauri CI only, no builds on ARM. Native Owner credential bridge, A/B session changes and production cutover remain open.

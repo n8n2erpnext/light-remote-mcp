@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-02",
-  "status": "desktop_v4_ui_owner_frozen_73d448e9_ci_4of4_success_native_functional_e2e_pending",
+  "status": "desktop_v4_ui_frozen_native_wall_probe_source_ci_pending",
   "branch": "feat/desktop-v4-wall-activity-20261102",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -90,7 +90,8 @@
     "2026-11-01 owner CI-only build pivot: safe Tauri 2 source (no privileged IPC), 8/8 Chromium visual checks, 15/15 tests, ARM cargo check PASS before build migration, exact native release job terminated; dedicated ARM target/node_modules/dist cleaned, +~2GB free; GitHub hosted runner matrix source added.",
     "V4 screenshot-review source patch: six distinct feature screen layouts, correct Settings gear icon, Google Sans Variable @font-face sourced from existing repo, OFL attribution, 20 total CI visual snapshots with loaded-font checks; original Gold runtime unchanged.",
     "2026-11-02 V4 source-only: Owner-approved UI retains nine screens; minimal Open Wall and Activity Logs controls authored with only fixed native browser opener, failclosed read-only Owner log state; CI pending, Gold UAT unchanged",
-    "2026-11-02 Owner approved Desktop V4 FINAL UI baseline (9 screens + Open Wall + Activity Logs), source SHA 73d448e9; GitHub Tauri CI 41472068915 Web/Windows/macOS/Linux 4/4 SUCCESS; physical native Agent integration still pending"
+    "2026-11-02 Owner approved Desktop V4 FINAL UI baseline (9 screens + Open Wall + Activity Logs), source SHA 73d448e9; GitHub Tauri CI 41472068915 Web/Windows/macOS/Linux 4/4 SUCCESS; physical native Agent integration still pending",
+    "2026-11-02 Desktop V4 native read-only localhost probe authored without Owner credential bypass; exact status authority and tests documented; source native CI pending"
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -139,7 +140,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "Desktop V4 UI baseline frozen by Owner at code SHA 73d448e9; native CI run 41472068915 4/4 SUCCESS. Next implement authenticated/native device bridges and real Windows/Mac/Linux app integration without visual redesign; physical open-wall and local logs Agent deployment remain open.",
+  "nextAction": "Run V4 GitHub CI 4/4 for native read-only loopback probe. After PASS, Owner may test new native binary; do not infer Agent connection or grant from HTTP401, do not touch Gold UAT.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -152,10 +153,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "41eec9f4c9c2a933a4b8cbee18f7947dd8d2075239fad6aee7a931a40543275d",
-    "trackedFiles": 1165,
+    "treeDigest": "18e4a5cfd9bd2b8c75597c8a474b4329f198dffd444200a9dfd2dd9bc6af6114",
+    "trackedFiles": 1167,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-02T15:29:17.042Z"
+    "recordedAt": "2026-11-02T15:52:40.300Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -610,5 +611,17 @@
     "ownerUiFreezeDate": "2026-11-02",
     "windowsMacNativeCI": true,
     "nativeFunctionIntegrationComplete": false
+  },
+  "desktopV4NativeWallProbe": {
+    "uiFreezeCommit": "73d448e969e8c653b390ba6a27d65d31e57aa11e",
+    "ownerAuthBoundary": "/api/status Owner authenticated; native probe reveals only login-required/reachable/unavailable",
+    "fixedTarget": "127.0.0.1:5491",
+    "permission": "main window only: allow-open-local-wall, commands open_local_wall and probe_local_wall",
+    "noOwnerCookies": true,
+    "noRemoteGrantActions": true,
+    "ci": "pending",
+    "realNativeInstalledE2E": false,
+    "productionChanged": false,
+    "handoff": "docs/project-book/LIGHT_REMOTE_DESKTOP_V4_WALL_LOG_CONTROLS_20261102.md"
   }
 }

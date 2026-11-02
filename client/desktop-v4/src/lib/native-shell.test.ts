@@ -28,7 +28,7 @@ describe('Tauri2 UI-only pilot trust boundary', () => {
   });
   it('allows the OS browser only for two hardcoded local Wall addresses', () => {
     expect(rust).toContain('tauri::Builder::default()');
-    expect(rust).toContain('tauri::generate_handler![open_local_wall]');
+    expect(rust).toContain('tauri::generate_handler![open_local_wall, probe_local_wall]');
     expect(rust).toContain('http://127.0.0.1:5491/');
     expect(rust).toContain('http://127.0.0.1:5491/settings#activityLogSettings');
     expect(rust).toContain('unsupported_local_wall_view');
@@ -39,8 +39,8 @@ describe('Tauri2 UI-only pilot trust boundary', () => {
     ]) expect(rust).not.toContain(forbidden);
     const manifest = readFileSync(path.resolve(process.cwd(), 'src-tauri/build.rs'), 'utf8');
     const permission = readFileSync(path.resolve(process.cwd(), 'src-tauri/permissions/open-local-wall.toml'), 'utf8');
-    expect(manifest).toContain('.commands(&["open_local_wall"])');
-    expect(permission).toContain('commands.allow = ["open_local_wall"]');
+    expect(manifest).toContain('.commands(&["open_local_wall", "probe_local_wall"])');
+    expect(permission).toContain('commands.allow = ["open_local_wall", "probe_local_wall"]');
   });
   it('uses a local-only dev URL, bundled static files and restrictive CSP', () => {
     expect(conf.build.devUrl).toBe('http://127.0.0.1:5174');
