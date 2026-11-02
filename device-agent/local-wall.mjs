@@ -9,6 +9,7 @@ import {goldAbV2LabV1Disabled,goldAbV2LabWallBOnly} from '../lib/gold-ab-v2-lab-
 import {wallAbV2PreviewFragment} from './wall-ab-v2-preview.mjs';
 import { localProcessPage } from './local-process-page.mjs';
 import { updateSettingsHtml } from './update-settings-page.mjs';
+import { DeviceLocalActivityLog } from './local-activity-log.mjs';
 import { brandFaviconSvg } from '../lib/brand.mjs';
 import { materialIcon } from '../lib/material-icon.mjs';
 import { WALL_FONT_FACE_CSS, WALL_UI_FONT, WALL_CODE_FONT, WALL_TYPOGRAPHY_CSS } from '../lib/web-typography.mjs';
@@ -507,13 +508,13 @@ async function stopWallJob(j,button){
   }finally{button.disabled=false;}
 }
 function flushRenders(){renderTimer=null;const ids=[...dirtyJobs];dirtyJobs.clear();for(const id of ids){const j=jobs.get(id);if(j)renderJob(j);}applyFilter();}function scheduleRender(id){if(id)dirtyJobs.add(id);if(!renderTimer)renderTimer=setTimeout(flushRenders,50);}
-function ingest(e,queue=true){if(!e||eventSeen(e))return;if(paused&&queue){const k=eventKey(e);if(!k||!pendingKeys.has(k)){pending.push(e);if(k)pendingKeys.add(k);}return;}let j=e.jobId?jobs.get(e.jobId):null;if(e.type==='job_started'){if(!j){j={jobId:e.jobId,requestId:e.requestId,sessionId:e.sessionId,agentId:e.agentId,status:e.status||'running',cwd:e.cwd,script:e.script,note:e.note,toolMeta:e.toolMeta||null,requiredCapabilities:e.requiredCapabilities||[],resultSummary:e.resultSummary||'',stdout:'',stderr:'',at:e.at};jobs.set(e.jobId,j);}else Object.assign(j,e);}else if(e.type==='job_stop_requested'&&j){
+function ingest(e,queue=true){if(!e||eventSeen(e))return;if(paused&&queue){const k=eventKey(e);if(!k||!pendingKeys.has(k)){pending.push(e);if(k)pendingKeys.add(k);while(pending.length>5000){const old=pending.shift();pendingKeys.delete(eventKey(old));}}return;}let j=e.jobId?jobs.get(e.jobId):null;if(e.type==='job_started'){if(!j){j={jobId:e.jobId,requestId:e.requestId,sessionId:e.sessionId,agentId:e.agentId,status:e.status||'running',cwd:e.cwd,script:e.script,note:e.note,toolMeta:e.toolMeta||null,requiredCapabilities:e.requiredCapabilities||[],resultSummary:e.resultSummary||'',stdout:'',stderr:'',at:e.at};jobs.set(e.jobId,j);}else Object.assign(j,e);}else if(e.type==='job_stop_requested'&&j){
     j.stopRequested=true; // Only a signed terminal result changes primary status.
   }else if(e.type==='node_command_queued'&&j&&!j.finishedAt){
     j.status='queued';
   }else if(e.type==='node_command_dispatched'&&j){
     j.status='running';
-  }else if(e.type==='stdout'||e.type==='stderr'){if(!j)return;const chunk=safeOutputChunk(e.chunk);if(chunk&&!(chunk===LEGACY_BINARY_MARKER&&j[e.type].endsWith(LEGACY_BINARY_MARKER)))j[e.type]+=chunk;}else if(e.type==='job_finished'){if(!j){j={jobId:e.jobId,requestId:e.requestId,sessionId:e.sessionId,agentId:e.agentId,status:e.status||'ok',cwd:e.cwd||'',script:e.script||'',note:e.note||'',toolMeta:e.toolMeta||null,requiredCapabilities:e.requiredCapabilities||[],resultSummary:e.resultSummary||'',stdout:'',stderr:'',at:e.at};jobs.set(e.jobId,j);}Object.assign(j,{status:e.status,stopRequested:false,exitCode:e.exitCode,durationMs:e.durationMs,cwd:e.cwd??j.cwd,script:e.script??j.script,note:e.note??j.note,requiredCapabilities:e.requiredCapabilities||j.requiredCapabilities||[],resultSummary:e.resultSummary||j.resultSummary||'',toolMeta:e.toolMeta||j.toolMeta||null});}else if(e.type?.startsWith('session_')||e.type?.startsWith('device_')||e.type?.startsWith('device_access_'))refreshStatus(e.type==='device_access_approved');rememberEvent(e);if(j)scheduleRender(j.jobId);}
+  }else if(e.type==='stdout'||e.type==='stderr'){if(!j)return;const chunk=safeOutputChunk(e.chunk);if(chunk&&!(chunk===LEGACY_BINARY_MARKER&&j[e.type].endsWith(LEGACY_BINARY_MARKER)))j[e.type]=(j[e.type]+chunk).slice(-32768);}else if(e.type==='job_finished'){if(!j){j={jobId:e.jobId,requestId:e.requestId,sessionId:e.sessionId,agentId:e.agentId,status:e.status||'ok',cwd:e.cwd||'',script:e.script||'',note:e.note||'',toolMeta:e.toolMeta||null,requiredCapabilities:e.requiredCapabilities||[],resultSummary:e.resultSummary||'',stdout:'',stderr:'',at:e.at};jobs.set(e.jobId,j);}Object.assign(j,{status:e.status,stopRequested:false,exitCode:e.exitCode,durationMs:e.durationMs,cwd:e.cwd??j.cwd,script:e.script??j.script,note:e.note??j.note,requiredCapabilities:e.requiredCapabilities||j.requiredCapabilities||[],resultSummary:e.resultSummary||j.resultSummary||'',toolMeta:e.toolMeta||j.toolMeta||null});}else if(e.type?.startsWith('session_')||e.type?.startsWith('device_')||e.type?.startsWith('device_access_'))refreshStatus(e.type==='device_access_approved');rememberEvent(e);while(jobs.size>200){const oldest=[...jobs.values()].find(x=>!['running','queued','stopping'].includes(x.status));if(!oldest)break;jobs.delete(oldest.jobId);document.getElementById('j-'+oldest.jobId)?.remove();}if(j)scheduleRender(j.jobId);}
 let statusEpoch=0;async function refreshStatus(fresh=false){const epoch=statusEpoch;try{const r=await fetch('/api/status'+(fresh?'?fresh=1':''),{cache:'no-store'}),d=await r.json();if(epoch!==statusEpoch)return;localState=d.local||null;remoteState=d.remote||null;statusFetchFailed=false;renderLiveIndicator();
   const access=remoteState?.access||{};
   const grants=Array.isArray(access.activeGrants)?access.activeGrants:
@@ -2283,22 +2284,72 @@ function approvePage(brandSvg,csrf=''){return `<!doctype html><html lang="en"><h
 const wallCsrf=${JSON.stringify(csrf)},code=document.getElementById('code'),msg=document.getElementById('msg'),decision=document.getElementById('decision'),request=document.getElementById('request');let current=null;function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}async function lookup(){msg.className='muted';msg.textContent='Checking…';decision.style.display='none';current=null;const r=await fetch('/api/approve?code='+encodeURIComponent(code.value),{cache:'no-store'}),j=await r.json();if(!r.ok||!j.ok){msg.className='error';msg.textContent=j.error==='approval_code_not_found'?'No pending request matches this code.':(j.error||'Unable to check code.');return;}current=j.request;msg.textContent='';request.innerHTML='<b>'+esc(current.label||'ChatGPT')+'</b> requests access to <b>'+esc(current.deviceName||'this device')+'</b><br><span class="muted">Agent '+esc(current.agentId||'')+' · code '+esc(current.userCode||'')+'</span>';decision.style.display='block';}async function decide(kind){if(!current)return;const r=await fetch('/api/approve',{method:'POST',headers:{'content-type':'application/json','x-light-remote-csrf':wallCsrf},body:JSON.stringify({code:code.value,decision:kind})}),j=await r.json();if(!r.ok||!j.ok){msg.className='error';msg.textContent=j.error||'Request failed.';return;}decision.style.display='none';msg.className='ok';msg.textContent=kind==='approve'?'Access approved':'Access denied';setTimeout(()=>location.href='/',900);}document.getElementById('lookup').onclick=lookup;document.getElementById('approve').onclick=()=>decide('approve');document.getElementById('deny').onclick=()=>decide('deny');code.addEventListener('keydown',e=>{if(e.key==='Enter')lookup();});const q=new URLSearchParams(location.search).get('code');if(q){code.value=q;lookup();}
 </script></body></html>`;}
 
-export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvgPath,fontPath=null,cascadiaMonoFontPath=DEFAULT_CASCADIA_MONO_FONT,cascadiaCodeFontPath=DEFAULT_CASCADIA_CODE_FONT,auth={enabled:false},accountAuthenticate,getLocalStatus,getLocalPolicyStatus,getRemoteStatus,getRemoteActivity,cancelRemoteJob,getPendingAccess,getAccountNotifications,getAbV2Pending,getAbV2Approve,getClientAnnouncements,getMemoryAccountDevices,getMemoryAccountInvites,getMemoryAccountSyncPolicy,getMemoryAccountDelete,getLocalTerminals,readLocalTerminal,getLocalProcesses,stopLocalProcess,connect,disconnect,setGrace,setPermissions,setFilesystemRoots,getFilesystemVolumes,ownerApprovePermissions,rescanCapabilities,beginEnrollment,pollEnrollment,pairingCode,ownerProofCode,accessApprove,accessDeny,closeSession,requestUpdate}={}){
+export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvgPath,fontPath=null,cascadiaMonoFontPath=DEFAULT_CASCADIA_MONO_FONT,cascadiaCodeFontPath=DEFAULT_CASCADIA_CODE_FONT,auth={enabled:false},accountAuthenticate,getLocalStatus,getLocalPolicyStatus,getRemoteStatus,getRemoteActivity,activityLogRoot=null,cancelRemoteJob,getPendingAccess,getAccountNotifications,getAbV2Pending,getAbV2Approve,getClientAnnouncements,getMemoryAccountDevices,getMemoryAccountInvites,getMemoryAccountSyncPolicy,getMemoryAccountDelete,getLocalTerminals,readLocalTerminal,getLocalProcesses,stopLocalProcess,connect,disconnect,setGrace,setPermissions,setFilesystemRoots,getFilesystemVolumes,ownerApprovePermissions,rescanCapabilities,beginEnrollment,pollEnrollment,pairingCode,ownerProofCode,accessApprove,accessDeny,closeSession,requestUpdate}={}){
 
   if(!isAllowedLocalWallBindHost(host)) throw new Error('local_wall_bind_host_not_private');
   const loopback=['127.0.0.1','::1','localhost'].includes(String(host));
   if(!loopback&&!auth?.enabled) throw new Error('local_wall_auth_required_for_non_loopback');
   const brandSvg=loadBrand(brandSvgPath),loginFailures=new Map();
-  let activityTimer=null,activityInFlight=false;
+  let activityTimer=null,activityInFlight=false,activityStore=null,activityDeviceId=null,lastActivityPollAt=0;
   const activityPollMs=Math.max(1000,Math.min(Number(process.env.LIGHT_REMOTE_WALL_ACTIVITY_POLL_MS)||2500,10000));
   const activityClients=new Set(),activitySeen=new Set(),activityOrder=[];
-  const activityKey=event=>`${String(event?.id??'')}@${String(event?.at??'')}`;
-  const rememberActivity=event=>{const key=activityKey(event);if(!key||activitySeen.has(key))return false;activitySeen.add(key);activityOrder.push(key);while(activityOrder.length>2000)activitySeen.delete(activityOrder.shift());return true;};
-  const broadcastActivity=event=>{const id=String(event?.id??''),data=JSON.stringify(event);for(const res of [...activityClients]){try{res.write(`id: ${id}\nevent: activity\ndata: ${data}\n\n`);}catch{activityClients.delete(res);}}};
-  const stopActivityPumpIfIdle=()=>{if(activityClients.size||!activityTimer)return;clearInterval(activityTimer);activityTimer=null;activitySeen.clear();activityOrder.length=0;};
-  const activityPump=async()=>{if(activityInFlight||!activityClients.size||typeof getRemoteActivity!=='function')return;activityInFlight=true;try{const local=await getLocalStatus();if(local?.cloudDesiredConnected&&local?.cloudState==='connected'){const value=await getRemoteActivity(250);for(const event of (value?.events||[]))if(rememberActivity(event))broadcastActivity(event);}}catch{}finally{activityInFlight=false;stopActivityPumpIfIdle();}};
-  const ensureActivityPump=()=>{if(activityTimer)return;void activityPump();activityTimer=setInterval(activityPump,activityPollMs);activityTimer.unref?.();};
-  const shutdownActivityPump=()=>{if(activityTimer){clearInterval(activityTimer);activityTimer=null;}for(const res of [...activityClients]){try{res.end();}catch{}}activityClients.clear();activitySeen.clear();activityOrder.length=0;};
+  function localActivityStore(local){
+    const deviceId=String(local?.deviceId||'');
+    if(!activityLogRoot||!local?.enrolled||!/^[A-Za-z0-9._:-]{1,160}$/.test(deviceId))return null;
+    if(activityDeviceId!==deviceId){
+      activityStore?.close();activityStore=null;activityDeviceId=deviceId;
+      activitySeen.clear();activityOrder.length=0;
+      activityStore=new DeviceLocalActivityLog({root:activityLogRoot,deviceId});
+    }
+    return activityStore;
+  }
+  const activityKey=event=>String(event?.id??'')+'@'+String(event?.at??'')+'@'+String(event?.type??'');
+  const rememberActivity=event=>{
+    const key=activityKey(event);
+    if(!key||activitySeen.has(key))return false;
+    activitySeen.add(key);activityOrder.push(key);
+    while(activityOrder.length>5000)activitySeen.delete(activityOrder.shift());
+    return true;
+  };
+  const broadcastActivity=event=>{
+    const data=JSON.stringify(event),id=String(event?.id??'');
+    for(const res of [...activityClients]){
+      try{res.write('id: '+id+'\nevent: activity\ndata: '+data+'\n\n');}
+      catch{activityClients.delete(res);}
+    }
+  };
+  // Poll even when nobody has the Wall open. Only the signed device-scoped
+  // Operator activity API can supply events, never a global account/Fleet feed.
+  const activityPump=async()=>{
+    if(activityInFlight||typeof getRemoteActivity!=='function')return;
+    // Background collection runs at a lower cadence to avoid hammering the
+    // signed observer channel on large fleets. Open Wall stays responsive.
+    if(!activityClients.size&&Date.now()-lastActivityPollAt<5000)return;
+    lastActivityPollAt=Date.now();activityInFlight=true;
+    try{
+      const local=await getLocalStatus(),store=localActivityStore(local);
+      if(local?.cloudDesiredConnected&&local?.cloudState==='connected'){
+        const value=await getRemoteActivity(500);
+        for(const event of value?.events||[]){
+          const first=store?store.add(event):rememberActivity(event);
+          if(first&&activityClients.size)broadcastActivity(store?store.recent(1)[0]:event);
+        }
+      }
+    }catch(error){console.warn('[wall-activity] poll unavailable:',String(error?.code||error?.message||'unavailable').slice(0,90));}
+    finally{activityInFlight=false;}
+  };
+  const ensureActivityPump=()=>{
+    if(activityTimer)return;
+    void activityPump();
+    activityTimer=setInterval(()=>void activityPump(),activityPollMs);
+    activityTimer.unref?.();
+  };
+  const shutdownActivityPump=()=>{
+    if(activityTimer){clearInterval(activityTimer);activityTimer=null;}
+    activityStore?.close();
+    for(const res of [...activityClients]){try{res.end();}catch{}}
+    activityClients.clear();activitySeen.clear();activityOrder.length=0;
+  };
   const mutationAllowed=req=>!auth?.enabled||auth.verifyRequestCsrf(req,String(req.headers['x-light-remote-csrf']||''));
   const statusCache=typeof getRemoteStatus==='function'?createWallStatusCache({fetchRemote:getRemoteStatus}):null;
   async function status({fresh=false}={}){
@@ -2867,7 +2918,36 @@ export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvg
       const result=await cancelRemoteJob(jobId);
       return json(res,200,result);
     }
-    if(req.method==='GET'&&url.pathname==='/api/activity'){const limit=Math.max(1,Math.min(Number(url.searchParams.get('limit'))||500,5000));const local=await getLocalStatus();if(!local?.cloudDesiredConnected||local?.cloudState!=='connected'||typeof getRemoteActivity!=='function')return json(res,200,{ok:true,events:[]});try{const value=await getRemoteActivity(limit);return json(res,200,{ok:true,events:value?.events||[]});}catch(error){return json(res,200,{ok:true,events:[],warning:error.message});}}
+    if(req.method==='GET'&&url.pathname==='/api/activity'){
+      const limit=Math.max(1,Math.min(Number(url.searchParams.get('limit'))||500,5000));
+      const local=await getLocalStatus(),store=localActivityStore(local);
+      if(store){void activityPump();return json(res,200,{ok:true,source:'device_local',events:store.recent(limit)});}
+      if(!local?.cloudDesiredConnected||local?.cloudState!=='connected'||typeof getRemoteActivity!=='function')
+        return json(res,200,{ok:true,events:[]});
+      try{const value=await getRemoteActivity(limit);return json(res,200,{ok:true,events:value?.events||[]});}
+      catch(error){return json(res,200,{ok:true,events:[],warning:error.message});}
+    }
+    if(url.pathname.startsWith('/api/activity/logs/')){
+      if(!auth?.enabled||!auth.identity(req))return json(res,403,{ok:false,error:'activity_log_owner_auth_required'});
+      if(req.method==='POST'&&!mutationAllowed(req))return json(res,403,{ok:false,error:'csrf_invalid'});
+      const store=localActivityStore(await getLocalStatus());
+      if(!store)return json(res,503,{ok:false,error:'activity_log_enrolled_device_required'});
+      if(req.method==='GET'&&url.pathname==='/api/activity/logs/state')
+        return json(res,200,{ok:true,log:store.stat()});
+      if(req.method==='GET'&&url.pathname==='/api/activity/logs/history')
+        return json(res,200,{ok:true,events:store.history(Math.max(1,Math.min(Number(url.searchParams.get('limit'))||100,200)))});
+      if(req.method==='POST'&&url.pathname==='/api/activity/logs/config'){
+        const input=await body(req);
+        return json(res,200,{ok:true,log:store.setPreset(input.preset)});
+      }
+      if(req.method==='POST'&&url.pathname==='/api/activity/logs/clean'){
+        const input=await body(req);
+        if(input.confirmText!=='CLEAN ACTIVITY LOGS')
+          return json(res,400,{ok:false,error:'activity_log_clean_confirmation_required'});
+        return json(res,200,{ok:true,log:store.clean()});
+      }
+      return json(res,404,{ok:false,error:'activity_log_route_unknown'});
+    }
     if(req.method==='GET'&&url.pathname==='/events'){
       res.writeHead(200,{'content-type':'text/event-stream','cache-control':'no-store',connection:'keep-alive','x-accel-buffering':'no'});
       res.write(`event: hello\ndata: ${JSON.stringify({ok:true,now:new Date().toISOString()})}\n\n`);
@@ -2886,5 +2966,5 @@ export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvg
     const access=url.pathname.match(/^\/api\/access\/(pa_[A-Za-z0-9_-]{20,80})\/(approve|deny)$/);if(req.method==='POST'&&access){if(!mutationAllowed(req))return json(res,403,{ok:false,error:'csrf_invalid'});const data=await body(req);const fn=access[2]==='approve'?accessApprove:accessDeny;if(typeof fn!=='function')return json(res,501,{ok:false,error:'access_control_unavailable'});const value=await fn(access[1],data||{});statusCache?.invalidate();return json(res,200,{ok:true,authorization:value});}
     return json(res,404,{ok:false,error:'not_found'});
   }catch(error){const code=String(error?.message||'local_wall_error');console.error(JSON.stringify({event:'local_wall_request_error',method:String(req.method||''),route:new URL(req.url||'/','http://local.wall').pathname,error:code.slice(0,240),headersSent:res.headersSent}));if(res.headersSent||res.writableEnded){if(!res.writableEnded)res.destroy();return;}return json(res,Number(error?.status)||400,{ok:false,error:code});}});
-  server.listen(Number(port),host);return{server,host,port:Number(port),url:`http://${host}:${Number(port)}/`,close:()=>{shutdownActivityPump();return new Promise(resolve=>server.close(()=>resolve()));}};
+  ensureActivityPump();server.listen(Number(port),host);return{server,host,port:Number(port),url:`http://${host}:${Number(port)}/`,close:()=>{shutdownActivityPump();return new Promise(resolve=>server.close(()=>resolve()));}};
 }

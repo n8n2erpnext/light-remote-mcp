@@ -298,6 +298,10 @@
       "destination": "device-agent/local-wall-auth.mjs"
     },
     {
+      "source": "device-agent/local-activity-log.mjs",
+      "destination": "device-agent/local-activity-log.mjs"
+    },
+    {
       "source": "device-agent/local-wall.mjs",
       "destination": "device-agent/local-wall.mjs"
     },
@@ -340,6 +344,10 @@
     {
       "source": "device-agent/update-settings-page.mjs",
       "destination": "device-agent/update-settings-page.mjs"
+    },
+    {
+      "source": "device-agent/wall-ui-refinement.mjs",
+      "destination": "device-agent/wall-ui-refinement.mjs"
     },
     {
       "source": "device-agent/wall-ab-v2-preview.mjs",

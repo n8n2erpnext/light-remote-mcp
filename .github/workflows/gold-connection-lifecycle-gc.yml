@@ -5,6 +5,7 @@ on:
     branches:
       - 'feat/gold-connection-gc-reconciler-20261029'
       - 'feat/gold-single-owner-transfer-20261101'
+      - 'feat/goldabv2-device-local-activity-logs-20261102'
     paths:
       - 'lib/gold-connection-job-reaper.mjs'
       - 'operator-host/gold-admin-job-recovery.mjs'
@@ -37,6 +38,11 @@ on:
       - 'deploy/scripts/selftest-gold-ab-v2-signed-approval.mjs'
       - 'operator-host/executor-routes-device-channel.mjs'
       - 'device-agent/local-wall.mjs'
+      - 'device-agent/local-activity-log.mjs'
+      - 'device-agent/update-settings-page.mjs'
+      - 'client/core-files.json'
+      - 'deploy/scripts/selftest-gold-device-local-activity-log.mjs'
+      - 'deploy/scripts/selftest-gold-wall-local-activity-http.mjs'
       - 'device-agent/operator-agent.mjs'
       - 'device-agent/relink-linux-server.py'
       - 'device-agent/install-linux-service.sh'
@@ -318,6 +324,8 @@ jobs:
           node deploy/scripts/selftest-gold-wall-ui-refinement.mjs
           node deploy/scripts/selftest-gold-wall-pty-terminal-r3.mjs
           node deploy/scripts/selftest-gold-wall-r5-interactions.mjs
+          node deploy/scripts/selftest-gold-device-local-activity-log.mjs
+          node deploy/scripts/selftest-gold-wall-local-activity-http.mjs
           node deploy/scripts/selftest-gold-lm-extension-abv2.mjs
           node deploy/scripts/selftest-gold-wall-shared-navigation-dialog-v2.mjs
           node deploy/scripts/selftest-gold-wall-google-typography.mjs

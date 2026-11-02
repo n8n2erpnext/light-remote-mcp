@@ -379,3 +379,8 @@ Source build/tests, CI, staged Wall rollout and 4/4 Lab health are proved. Curre
 Final production certification requires explicit Owner sign-off and security/functional E2E evidence. Continue the isolated Lab only until that point. Protect each active grant, maintain exact authorization per Agent, and preserve rollback and project-truth chronology.
 
 END OF FULL GOLDABV2 MASTER HANDOFF.
+
+## Activity Log local-first feature branch (2026-11-02)
+- New non-production feature branch \`feat/goldabv2-device-local-activity-logs-20261102\` provides Device Agent local-first bounded JSONL/gzip rotation, Owner Settings clean/config/history and cross-platform client-core staging. See \`LIGHT_REMOTE_GOLDABV2_DEVICE_LOCAL_ACTIVITY_LOG_20261102.md\` for exact semantics, test receipts and restrictions.
+- Isolated Lab Operator logrotate now correctly targets \`/var/log/light-remote-gold-uat/operations.jsonl\`, dry-run PASS; existing Operator log unmodified. The device-local history source is not yet deployed to Lab or production.
+- Source tests PASS; Windows/macOS native builds and real device acceptance remain OPEN, use GitHub Actions. Do not conflate local Activity Logs with Long Memory or Codex. Previous Long Memory historical data deletion remains owner-gated and untouched.

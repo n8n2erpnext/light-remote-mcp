@@ -1,8 +1,8 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-02",
-  "status": "goldabv2_r5_4of4_lm_chrome_v03_ci_pass_legacy_memory_data_cleanup_and_owner_windows_e2e_pending",
-  "branch": "feat/gold-single-owner-transfer-20261101",
+  "status": "goldabv2_r5_live_device_local_activity_logs_source_ci_pending_isolated_lab_operator_rotation_fixed",
+  "branch": "feat/goldabv2-device-local-activity-logs-20261102",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
   "verifiedDocumentationCI": {
@@ -105,7 +105,8 @@
     "2026-11-02: Owner noticed separate blue A/B V2 approval widget appended outside native Wall layout, incorrectly labeled Windows device on Linux. Replaced with native /approve card styling and inserted INSIDE .wrap; LAB hides V1 only and real V1 keeps fallback. Tests native DOM, pending signed preview, local Wall and signed B grant PASS.",
     "2026-11-02 ~04:10 VN: Native Wall /approve UI source 8fb5d377 deployed to only GoldABV2 Wall after snapshot pre-v2-wall-native-ux-20261102. Removed standalone blue panel and Windows-only label, inserted V2 card into original centered .wrap and reused native .card/.btn/.primary/Cascadia; original V1 fallback retained. Lab Wall active, 4/4 services active; Owner rev1/audit1, R01KAP online, no B grant, Gold UAT schema42 untouched. VPS+GitHub master handoff updated.",
     "2026-11-02: Re-read original GOLD_AB_V2_DEVICE_DISCOVERY_AGENT_INITIATED_SESSION_HANDOFF_20261028.md; owner requires count online, search VPS-ARM/name, Windows/OS/arm64 and Short ID BEFORE B. Added separate remote:read light_remote_discover_devices Tool and HMAC purpose=discover Operator endpoint; list_devices remains grant-only. Unit integration 100 devices (38 Windows), cross-account/tamper/replay, no B grant/issue all PASS.",
-    "2026-11-02 ~04:42 VN: feature SHA 187de2e8 pushed, snapshot pre-abv2-readonly-device-discovery-20261102. Isolated GoldABV2 Operator/Plugin running source-187de2e8, Wall 8fb5d377; 4/4 active, HTTPS200 TLS0, owner rev1 audit1, main Gold UAT schema42 untouched. Runtime plugin module registered 84 tools including readOnly remote:read light_remote_discover_devices. DB one online Linux arm64 R01KAP; 0 grants. This current ChatGPT tool schema does not yet include new tool until refresh."
+    "2026-11-02 ~04:42 VN: feature SHA 187de2e8 pushed, snapshot pre-abv2-readonly-device-discovery-20261102. Isolated GoldABV2 Operator/Plugin running source-187de2e8, Wall 8fb5d377; 4/4 active, HTTPS200 TLS0, owner rev1 audit1, main Gold UAT schema42 untouched. Runtime plugin module registered 84 tools including readOnly remote:read light_remote_discover_devices. DB one online Linux arm64 R01KAP; 0 grants. This current ChatGPT tool schema does not yet include new tool until refresh.",
+    "2026-11-02 Device-local Wall Activity Logs source: bounded RAM and JSONL/gzip disk, Owner-only CSRF retention/clean/history, Windows/macOS canonical package parity, source test PASS; GoldABV2 Lab Operator logrotate correct path installed/dry-run PASS; live Agent deployment pending CI"
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -154,9 +155,10 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "A/B V2 SQL043 remains absent from signed migration lock and UAT runtime; actual installed Agent→Owner B→Helper ready 24h E2E has NOT run. No Owner 043 release approval; do not enable flags, migrate or claim runtime ready.",
     "Agent V2 no-arg recovery source is newly changed; not yet deployed, not yet GitHub CI-verified and cannot pass physical Owner B→Helper 24h end-to-end while live PG043 is unregistered. Keep source, runtime and UI acceptance distinct.",
-    "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID."
+    "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
+    "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "Read CURRENT FIRST in Full Master latest and LM Chrome v0.3 detail. Owner requested old Long Memory DATA deletion ONLY (feature stays ON); Device Sync still selected so use official guarded deletion after Owner unselect and backup. Then Windows Chrome NetBird Load unpacked v0.3, synthetic ChatGPT Capture/Review, authorized current-owner Work, explicit opt-in/Save and signed readback. Gold UAT/production out of scope.",
+  "nextAction": "Run GitHub Gold Source Gate on device-local activity logs branch; after PASS stage Lab-only Agent/Wall and perform Owner Settings/log rotation E2E, then Windows/macOS native CI; do not touch Gold UAT production.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -169,10 +171,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "f87e5a1a0d148e3917b760f8fe5614697c6c170db7ba5d6a195c54a8317d23c1",
-    "trackedFiles": 1159,
+    "treeDigest": "23d1ef89db52752a0d55ba826b938bb961b3598430cd93f464a82300b9e8f402",
+    "trackedFiles": 1163,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-02T13:46:20.500Z"
+    "recordedAt": "2026-11-02T14:41:54.932Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -883,5 +885,18 @@
     "handoffRunbookReconciled": true,
     "currentLabOldScopesRemaining": 3,
     "deviceSyncSelectionEnabled": true
+  },
+  "deviceLocalActivityLogs": {
+    "sourceBranch": "feat/goldabv2-device-local-activity-logs-20261102",
+    "implementation": "DeviceAgent-owned per-device JSONL/gzip bounded and Owner Settings clean/config/history",
+    "defaultMemoryLimit": "8MiB, 5000 events, 60min",
+    "defaultDiskLimit": "50MiB active + 3 archives <=200MiB nominal",
+    "maxSelectableDiskLimit": "50MiB active + 5 archives <=300MiB nominal",
+    "linuxPackageStage": "PASS",
+    "windowsMacNativeInstallE2E": false,
+    "goldABV2LabAgentWallDeployed": false,
+    "goldABV2LabOperatorLogrotateInstalled": true,
+    "goldUATProductionChanged": false,
+    "testReport": "docs/project-book/LIGHT_REMOTE_GOLDABV2_DEVICE_LOCAL_ACTIVITY_LOG_20261102.md"
   }
 }

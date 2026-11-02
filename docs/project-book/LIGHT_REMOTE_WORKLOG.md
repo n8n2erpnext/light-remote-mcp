@@ -917,3 +917,11 @@ Source integration ea622a33 passed hosted Gold Source Gate 41454866776 4/4 and D
 ## 2026-11-02 — GoldABV2 master handoff reconciled after LM Chrome v0.3
 
 Reconciled latest Full Master: R5/current extension facts at top; demoted old R4 'CURRENT' claims to archived snapshots. VPS-ARM isolated Lab confirmed 4/4 active and read-only Long Memory/Codex enabled with 3 legacy Gold scopes and enabled Device Sync selection. Owner wants data-only cleanup, not module removal. Source/ZIP v0.3 CI PASS; physical Windows Chrome and signed snapshot E2E still pending. Updated detailed Chrome integration handoff/checkpoint and synced copies to VPS-ARM. No service, grant or memory content changed.
+
+## Activity Log local-first feature branch (2026-11-02)
+- New non-production feature branch \`feat/goldabv2-device-local-activity-logs-20261102\` provides Device Agent local-first bounded JSONL/gzip rotation, Owner Settings clean/config/history and cross-platform client-core staging. See \`LIGHT_REMOTE_GOLDABV2_DEVICE_LOCAL_ACTIVITY_LOG_20261102.md\` for exact semantics, test receipts and restrictions.
+- Isolated Lab Operator logrotate now correctly targets \`/var/log/light-remote-gold-uat/operations.jsonl\`, dry-run PASS; existing Operator log unmodified. The device-local history source is not yet deployed to Lab or production.
+- Source tests PASS; Windows/macOS native builds and real device acceptance remain OPEN, use GitHub Actions. Do not conflate local Activity Logs with Long Memory or Codex. Previous Long Memory historical data deletion remains owner-gated and untouched.
+
+## 2026-11-02 — GoldABV2 per-device activity log source
+Owner requested RAM-bounded local Wall command/output history with durable bounded on-device JSONL/gzip, 50MiB×(1+3) default rotation, Owner Settings to configure retention/Clean Log, and Windows/macOS/Linux parity. Source changes and selftests PASS on dedicated feature branch. Desktop packaging fix adds missing R5 Wall refinement module. Isolated Lab Operator logrotate correct path installed/dry-run PASS. New device-local logger is NOT deployed in Lab or production; native installed E2E pending.

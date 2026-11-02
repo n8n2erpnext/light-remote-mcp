@@ -675,3 +675,13 @@ Admin Owner security emblem uses /assets/icons/material/security.svg (verified H
 - deploy/scripts/selftest-gold-lm-extension-abv2.mjs: mocked DOM/output staging, security checks and source contract.
 - docs/project-book/LIGHT_REMOTE_GOLDABV2_LM_CHROME_INTEGRATION_V03_20261102.md: integration and physical Chrome acceptance.
 - device-agent/local-wall.mjs already contains #goldContextText/#goldContextTitle and the Owner confirmation/CSRF route. No service code touched; R5 remains Live.
+
+## GoldABV2 Device-local Activity Logs (2026-11-02)
+- \`device-agent/local-activity-log.mjs\` — OS-portable, device-scoped JSONL/GZIP log with RAM caps, per-device persisted settings, redaction, crash restore, archive rotation and cleanup tombstone.
+- \`device-agent/local-wall.mjs\` — independent device activity polling even when browser closed, local ring replay while disconnected, owner-only REST routes for retention, history and clean, bounded browser job/output caches.
+- \`device-agent/operator-agent.mjs\` — supplies \`activityLogRoot\` under each Agent's STATE_FILE directory for Linux, Windows and macOS.
+- \`device-agent/update-settings-page.mjs\` — Owner Activity Logs section (Compact/Standard/Extended, usage, read history, exact typed Clean).
+- \`client/core-files.json\` — includes new local activity logger and fixes missing Wall R5 refinement module for packaged Windows/macOS.
+- \`deploy/logrotate/light-remote-gold-abv2-lab\` — standalone isolated LXD Operator audit-log rotation (not device-local logger).
+- \`deploy/scripts/selftest-gold-device-local-activity-log.mjs\`, \`deploy/scripts/selftest-gold-wall-local-activity-http.mjs\` — local archive and Owner HTTP regression fixtures.
+- Source branch \`feat/goldabv2-device-local-activity-logs-20261102\` is NOT installed Agent runtime and NOT approved for production until CI/native acceptance. The latest focused handoff is \`LIGHT_REMOTE_GOLDABV2_DEVICE_LOCAL_ACTIVITY_LOG_20261102.md\`.
