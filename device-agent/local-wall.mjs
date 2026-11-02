@@ -514,7 +514,7 @@ function ingest(e,queue=true){if(!e||eventSeen(e))return;if(paused&&queue){const
   }else if(e.type==='node_command_dispatched'&&j){
     j.status='running';
   }else if(e.type==='stdout'||e.type==='stderr'){if(!j)return;const chunk=safeOutputChunk(e.chunk);if(chunk&&!(chunk===LEGACY_BINARY_MARKER&&j[e.type].endsWith(LEGACY_BINARY_MARKER)))j[e.type]+=chunk;}else if(e.type==='job_finished'){if(!j){j={jobId:e.jobId,requestId:e.requestId,sessionId:e.sessionId,agentId:e.agentId,status:e.status||'ok',cwd:e.cwd||'',script:e.script||'',note:e.note||'',toolMeta:e.toolMeta||null,requiredCapabilities:e.requiredCapabilities||[],resultSummary:e.resultSummary||'',stdout:'',stderr:'',at:e.at};jobs.set(e.jobId,j);}Object.assign(j,{status:e.status,stopRequested:false,exitCode:e.exitCode,durationMs:e.durationMs,cwd:e.cwd??j.cwd,script:e.script??j.script,note:e.note??j.note,requiredCapabilities:e.requiredCapabilities||j.requiredCapabilities||[],resultSummary:e.resultSummary||j.resultSummary||'',toolMeta:e.toolMeta||j.toolMeta||null});}else if(e.type?.startsWith('session_')||e.type?.startsWith('device_')||e.type?.startsWith('device_access_'))refreshStatus(e.type==='device_access_approved');rememberEvent(e);if(j)scheduleRender(j.jobId);}
-let statusEpoch=0;async function refreshStatus(fresh=false){const epoch=statusEpoch;try{const r=await fetch('/api/status'+(fresh?'?fresh=1':''),{cache:'no-store'}),d=await r.json();if(epoch!==statusEpoch)return;localState=d.local||null;remoteState=d.remote||null;
+let statusEpoch=0;async function refreshStatus(fresh=false){const epoch=statusEpoch;try{const r=await fetch('/api/status'+(fresh?'?fresh=1':''),{cache:'no-store'}),d=await r.json();if(epoch!==statusEpoch)return;localState=d.local||null;remoteState=d.remote||null;statusFetchFailed=false;renderLiveIndicator();
   const access=remoteState?.access||{};
   const grants=Array.isArray(access.activeGrants)?access.activeGrants:
     (access.activeGrant?[access.activeGrant]:[]);
@@ -525,7 +525,7 @@ let statusEpoch=0;async function refreshStatus(fresh=false){const epoch=statusEp
       expiryAt:absolute&&rolling?Math.min(absolute,rolling):absolute||rolling};
   }).filter(g=>Number.isFinite(g.expiryAt)&&g.expiryAt>0)
     .sort((a,b)=>b.expiryAt-a.expiryAt);
-  refreshAbGrantTimer();sessions.clear();for(const s of (remoteState?.sessions||[]))sessions.set(s.sessionId,s);renderHeader();renderTabs();applyFilter();}catch{devicebox.textContent='device metadata unavailable';}}
+  refreshAbGrantTimer();sessions.clear();for(const s of (remoteState?.sessions||[]))sessions.set(s.sessionId,s);renderHeader();renderTabs();applyFilter();}catch{statusFetchFailed=true;renderLiveIndicator();devicebox.textContent='device metadata unavailable';}}
 async function refreshPairing(forceRotate=false){if(labAbV2Only||pairRefreshInFlight)return;pairRefreshInFlight=true;try{const j=await wallMutation('/api/pairing-code',{rotate:forceRotate});pairingA=String(j.pairing.code||'');pairingExpiresAt=Number(j.pairing.expiresAt)||0;pairingVisible=false;renderPairing();}catch(e){pairingA='';pairingExpiresAt=0;pairingVisible=false;renderPairing();aexp.textContent=(String(e.message).includes('connection')?'connect first':'unavailable');}finally{pairRefreshInFlight=false;}}
 async function wallMutation(path,payload={}){const r=await fetch(path,{method:'POST',headers:{'content-type':'application/json','x-light-remote-csrf':wallCsrf},body:JSON.stringify(payload)}),j=await r.json();if(!r.ok||!j.ok)throw new Error(j.error||'wall_action_failed');return j;}
 function stopEnrollmentPoll(){if(enrollmentPollTimer){clearInterval(enrollmentPollTimer);enrollmentPollTimer=null;}}
@@ -533,7 +533,18 @@ async function pollDeviceEnrollment(){try{const j=await wallMutation('/api/enrol
 async function beginDeviceEnrollment(){linkDevice.disabled=true;stopEnrollmentPoll();enrollMsg.className='muted';enrollMsg.textContent='Creating one-time device code…';try{const j=await wallMutation('/api/enrollment/begin'),e=j.enrollment||{};deviceEnrollmentCode=String(e.deviceCode||'');if(!deviceEnrollmentCode)throw new Error('device_code_missing');deviceCode.textContent=deviceEnrollmentCode;deviceCodeWrap.style.display='';copyDeviceCode.style.display='';copyDeviceCode.disabled=false;deviceCodeExp.textContent=Math.max(1,Math.ceil((Number(e.expiresAt||Date.now())-Date.now())/60000))+'m';enrollMsg.className='muted';enrollMsg.textContent=(e.mode==='reenroll'?'Re-enroll':'Link')+': enter this code in Account → Add a device';notify('Device link code created','ok');await refreshStatus();enrollmentPollTimer=setInterval(pollDeviceEnrollment,2000);await pollDeviceEnrollment();}catch(e){enrollMsg.className='error';enrollMsg.textContent=e.message;notify(e.message,'error');}finally{linkDevice.disabled=false;}}
 async function loadActivity(limit=5000){try{const r=await fetch('/api/activity?limit='+limit,{cache:'no-store'}),d=await r.json();for(const e of (d.events||[]))ingest(e,false);}catch{}}
 let es=null;
-function openEvents(){if(es||document.hidden)return;es=new EventSource('/events');es.onopen=()=>{conn.textContent='live';conn.className='pill ok';};es.onerror=()=>{conn.textContent='reconnecting';conn.className='pill running';};es.addEventListener('activity',ev=>{try{ingest(JSON.parse(ev.data),true);}catch{}});}
+let streamConnectionState='connecting',statusFetchFailed=false;
+function renderLiveIndicator(){
+ const local=localState||{},state=String(local.cloudState||'').toLowerCase();
+ const connected=local.cloudDesiredConnected===true&&state==='connected';
+ const dormant=state==='dormant'||state==='standby'||(local.cloudDesiredConnected===false&&state!=='disconnected'&&state!=='error');
+ const mode=statusFetchFailed||streamConnectionState==='error'?'error':connected?'ok':dormant?'running':'error';
+ conn.className='pill '+mode;
+ conn.textContent=mode==='error'?'disconnected':'live';
+ conn.dataset.cloudPhase=mode==='ok'?'connected':mode==='running'?'dormant':'disconnected';
+ conn.title=mode==='ok'?'Cloud connected · activity stream live':mode==='running'?'Cloud dormant · Wall available':'Cloud disconnected or activity stream unavailable';
+}
+function openEvents(){if(es||document.hidden)return;streamConnectionState='connecting';renderLiveIndicator();es=new EventSource('/events');es.onopen=()=>{streamConnectionState='open';renderLiveIndicator();};es.onerror=()=>{streamConnectionState='error';renderLiveIndicator();};es.addEventListener('activity',ev=>{try{ingest(JSON.parse(ev.data),true);}catch{}});}
 function closeEvents(){if(es){es.close();es=null;}}
 document.addEventListener('visibilitychange',()=>{if(document.hidden){closeEvents();return;}loadActivity(500);refreshStatus();openEvents();});
 if(document.getElementById('goldModulesPanel')){

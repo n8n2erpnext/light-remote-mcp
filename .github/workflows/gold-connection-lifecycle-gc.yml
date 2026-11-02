@@ -152,6 +152,7 @@ on:
       - 'device-agent/wall-ui-refinement.mjs'
       - 'deploy/scripts/selftest-gold-wall-ui-refinement.mjs'
       - 'deploy/scripts/selftest-gold-wall-pty-terminal-r3.mjs'
+      - 'deploy/scripts/selftest-gold-wall-r5-interactions.mjs'
       - 'assets/vendor/xterm/**'
       - 'deploy/scripts/selftest-gold-wall-shared-navigation-dialog-v2.mjs'
       - 'lib/web-typography.mjs'
@@ -313,6 +314,7 @@ jobs:
           node deploy/scripts/selftest-gold-abv2-b-segmented-input.mjs
           node deploy/scripts/selftest-gold-wall-ui-refinement.mjs
           node deploy/scripts/selftest-gold-wall-pty-terminal-r3.mjs
+          node deploy/scripts/selftest-gold-wall-r5-interactions.mjs
           node deploy/scripts/selftest-gold-wall-shared-navigation-dialog-v2.mjs
           node deploy/scripts/selftest-gold-wall-google-typography.mjs
           node --check lib/gold-ab-v2-helper-proof.mjs

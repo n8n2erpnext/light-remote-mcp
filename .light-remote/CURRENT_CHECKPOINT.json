@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-02",
-  "status": "goldabv2_r4_lab_live_full_master_handoff_latest_published",
+  "status": "goldabv2_wall_r5_hover_stream_body_live_indicator_source_pending_ci",
   "branch": "feat/gold-single-owner-transfer-20261101",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -156,7 +156,7 @@
     "Agent V2 no-arg recovery source is newly changed; not yet deployed, not yet GitHub CI-verified and cannot pass physical Owner B→Helper 24h end-to-end while live PG043 is unregistered. Keep source, runtime and UI acceptance distinct.",
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID."
   ],
-  "nextAction": "Read docs/project-book/LIGHT_REMOTE_GOLDABV2_FULL_MASTER_LATEST_20261102.md end-to-end. Recheck git and Lab grants (last aggregate 1 active) before any work; Owner Chrome R4 UI acceptance is next. Continue only isolated Lab, protect existing Agents, then disposable-Agent Owner Close E2E.",
+  "nextAction": "Push R5 and require Source+Documentation CI PASS. Snapshot isolated GoldABV2 Lab; stage Wall-only source, verify 4/4 services and active grant count; Owner visual test on Chrome.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -169,10 +169,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "ad204a15d843b6a696245a85e57b7c3b9bd2a51c65919fdf9c907fa93d2f414c",
-    "trackedFiles": 1157,
+    "treeDigest": "fa2e0634fb5b4116c565ef900bc38af5c8af67ef4bd8d44aa16e659aaa051aa8",
+    "trackedFiles": 1158,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-02T12:23:38.090Z"
+    "recordedAt": "2026-11-02T13:00:18.480Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -819,5 +819,11 @@
     "ownerBrowserAcceptance": "pending",
     "ownerCloseE2E": "pending disposable Agent",
     "handoffVerified": true
+  },
+  "goldAbV2WallR5_20261102": {
+    "scope": "button border hover/no underline; STREAM COMMAND/OUTPUT body font +1-2px, heading unchanged; cloud Live green/yellow/red",
+    "prodTouched": false,
+    "grantChanged": false,
+    "ownerVisualAcceptance": "pending"
   }
 }

@@ -655,3 +655,9 @@ Admin Owner security emblem uses /assets/icons/material/security.svg (verified H
 - device-agent/wall-ab-v2-preview.mjs: two A/B cards, small inline SVG arrow and reduced-motion CSS; high-contrast Google Sans Code A code; 8 one-character B inputs with paste normalization, keyboard navigation, validation, focus preservation and unchanged secure approval API.
 - deploy/scripts/selftest-gold-abv2-b-segmented-input.mjs: VM-executed real input handlers, normalization, B8 validation, focus/navigation and structural UI assertions.
 - .github/workflows/gold-connection-lifecycle-gc.yml: source gate regression added.
+
+## GoldABV2 Wall R5 (2026-11-02)
+
+- device-agent/wall-ui-refinement.mjs: border-color hover/no underline, semantic danger/primary, focus ring and reduced-motion; stream BODY font +1–2px while TITLE stays 12px, connection badge green/amber/red.
+- device-agent/local-wall.mjs: renderLiveIndicator reads cloudDesiredConnected/cloudState plus SSE and status-fetch errors; SSE onopen does not force green.
+- deploy/scripts/selftest-gold-wall-r5-interactions.mjs: state VM and six-route HTTP/CSS/JS contract tests.

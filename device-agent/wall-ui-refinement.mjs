@@ -76,21 +76,36 @@ body.wall-sidebar-collapsed .sidebar-items .pill,body.wall-sidebar-collapsed #en
 .term .head{font-size:12px;font-weight:650;padding:8px 10px}
 .term #jobs{padding:5px}
 .term .job{margin:5px 0}
-.term .commandrow{grid-template-columns:52px 74px minmax(220px,1fr) auto;gap:8px;padding:8px;align-items:center;font-size:12px}
+.term .commandrow{grid-template-columns:58px 86px minmax(220px,1fr) auto;gap:8px;padding:8px;align-items:center;font-size:13.5px}
 .term .cmdwrap{gap:5px;align-items:center}
-.term .opbadge,.term .riskbadge{font:700 10px/1.4 'Google Sans Code',monospace;padding:1px 5px;border-radius:5px;margin-top:0;letter-spacing:0}
-.term .cmdtext{font-size:12.5px;line-height:1.5}
-.term .meta{font-size:11.5px;padding:6px 8px}
-.term pre{font:12.5px/1.5 'Google Sans Code',monospace;padding:8px 10px}
+.term .opbadge,.term .riskbadge{font:700 11px/1.4 'Google Sans Code',monospace;padding:1px 5px;border-radius:5px;margin-top:0;letter-spacing:0}
+.term .cmdtext{font-size:14px;line-height:1.5}
+.term .meta{font-size:13px;padding:6px 8px}
+.term pre{font:14px/1.5 'Google Sans Code',monospace;padding:8px 10px}
 .term .actions{gap:4px}
-.term .actions .btn{font:500 11px 'Google Sans Code',monospace;padding:4px 6px;gap:4px}
+.term .actions .btn{font:500 12px 'Google Sans Code',monospace;padding:4px 6px;gap:4px}
 .term .actions .mi{width:13px;height:13px}
-.term .resultline{font-size:12px}
+.term .resultline{font-size:13.5px}
+
+ /* Distribution-like outlined interactions: no underlined controls, hover border rather than label shift */
+ :where(a,button,.btn,.tab,[role="button"],input[type="submit"]){text-decoration:none!important}
+ :where(.btn,.tab,button,[role="button"],input[type="submit"],.sidebar-toggle){transition:border-color .16s ease,background-color .16s ease,color .16s ease}
+ :where(.btn,.tab,button,[role="button"],input[type="submit"],.sidebar-toggle]):not(:disabled):not([aria-disabled="true"]):hover{border-color:#67b9e4!important;text-decoration:none!important}
+ :where(.danger,.btn.danger,button[data-danger]):not(:disabled):hover{border-color:#ff8791!important}
+ .wall-native-dialog button[data-confirm]:not(:disabled):hover,.ab2-shell .btn.primary:not(:disabled):hover{border-color:#ffdf60!important}
+ :where(.btn,.tab,button,[role="button"],input[type="submit"],.sidebar-toggle]):focus-visible{outline:2px solid #6cbce7;outline-offset:2px}
+ @media(prefers-reduced-motion:reduce){:where(.btn,.tab,button,[role="button"],input[type="submit"],.sidebar-toggle){transition:none}}
+ #conn.ok{color:#62d991}
+ #conn.running{color:#f2c161}
+ #conn.error{color:#ff858b}
+ #conn.error::before{background:#ff737a}
+ #conn.running::before{background:#f2c161;animation:none}
+
 #ptyOutput.pty-screen{min-height:0;min-width:0;padding:0;overflow:hidden;white-space:normal;word-break:normal;background:#06090d;display:flex;flex-direction:column}
 #ptyOutput .xterm{width:100%;min-height:0;flex:1}
 #ptyOutput .xterm-viewport{overscroll-behavior:contain}
 
-@media(max-width:870px){body .wrap{margin-left:calc(var(--wall-sidebar-width) + 7px);margin-right:6px;max-width:calc(100% - var(--wall-sidebar-width) - 13px)}.top{align-items:flex-start}.topright{justify-content:flex-start}.term .commandrow{grid-template-columns:52px 1fr}.term .cmdwrap{grid-column:1/-1}.term .actions{grid-column:1/-1}}
+@media(max-width:870px){body .wrap{margin-left:calc(var(--wall-sidebar-width) + 7px);margin-right:6px;max-width:calc(100% - var(--wall-sidebar-width) - 13px)}.top{align-items:flex-start}.topright{justify-content:flex-start}.term .commandrow{grid-template-columns:58px 1fr}.term .cmdwrap{grid-column:1/-1}.term .actions{grid-column:1/-1}}
 @media(max-width:540px){body{--wall-sidebar-width:63px}.wall-sidebar{padding:7px}.wall-sidebar .sidebar-items .btn span,.wall-sidebar .sidebar-toggle .nav-label{display:none}.wall-sidebar .sidebar-items .btn{justify-content:center;padding:8px}.wall-sidebar .sidebar-toggle{justify-content:center}.topright .wall-notification{margin-left:0}}
 `;
 export const WALL_UI_REFINEMENT_SCRIPT = `
