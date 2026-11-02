@@ -855,3 +855,7 @@ Implemented Owner screenshot-driven UX source: collapsible icon-only left naviga
 ## 2026-11-02 — GoldABV2 V1 backend lock/UI label regression alignment
 
 Gold source CI for Wall layout 21154b91 initially failed solely because selftest-gold-ab-v2-lab-v1-lock.mjs asserted the obsolete literal 'V1 locked' appears to Owner. Owner explicitly requested removing that UI phrase. Updated the assertion to require it absent while retaining V1 feature-gate, no V1 pairing calls, and HTTP 423 API denial checks. No production runtime or A/B policy change. The final Linux Lab Wall cutover remains after successful GitHub Source Gate.
+
+## 2026-11-02 — GoldABV2 Wall sidebar/refinement isolated Lab LIVE cutover
+
+After full Gold source and documentation CI PASS, created LXD snapshot pre-goldabv2-wall-sidebar-20261102 and staged SHA-matching UI source. Switched only the final GoldABV2 Lab Wall systemd drop-in source path to source-21154b91-wall-ui-STAGED (restarted only Wall). Verified 4/4 services active, HTTP public/local login 200, HTTPS health 200, single active GPT-6 lab grant retained, R01KAP online through official AB plugin, no recent Wall journal errors. Automated UI source/HTTP tests PASS; manual owner browser visual acceptance pending. Full deployment and rollback handoff: docs/project-book/LIGHT_REMOTE_GOLDABV2_WALL_LAYOUT_LIVE_DEPLOY_20261102.md.
