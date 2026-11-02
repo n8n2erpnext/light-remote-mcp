@@ -130,19 +130,25 @@ try{
    {agentId:'agent-c',label:'Team C',purpose:'team-member',expiryAt:now+60_000}
   ],
   remoteState:{ok:true},
-  document:{getElementById:()=>host,createElement:()=>({className:'',textContent:''})},
+  document:{getElementById:()=>host,createElement:()=>({className:'',textContent:'',dataset:{},children:[],appendChild(x){this.children.push(x);}})},
   Date:{now:()=>now},
   String,Math,Number
  });
  vm.runInContext(timerCode+'\nrefreshAbGrantTimer()',context);
- assert.equal(host.children.length,4,'one header + one independent timer per Agent');
- assert(host.children[1].textContent.includes('Agent Alpha'));
- assert(host.children[1].textContent.includes('00:01:30'));
- assert(host.children[2].textContent.includes('Agent Beta'));
- assert(host.children[2].textContent.includes('24:00:00'));
- assert(host.children[3].textContent.includes('Team C'));
+ assert.equal(host.children.length,2,'one header + one independent Agent timer grid');
+ let grid=host.children[1];
+ assert.equal(grid.children.length,3,'all three Agent lifetimes shown in responsive grid');
+ assert(grid.children[0].textContent.includes('Agent Alpha'));
+ assert(grid.children[0].textContent.includes('00:01:30'));
+ assert(grid.children[1].textContent.includes('Agent Beta'));
+ assert(grid.children[1].textContent.includes('24:00:00'));
+ assert(grid.children[2].textContent.includes('Team C'));
+ assert.equal(grid.children[0].dataset.phase,'danger','90 seconds of 24h is below 20%');
+ assert.equal(grid.children[1].dataset.phase,'ok','full 24h is above 30%');
  vm.runInContext('grantTimerRows[0].expiryAt=Date.now()-1;refreshAbGrantTimer()',context);
- assert.equal(host.children.length,3,'expired Alpha disappears, Beta clock unaffected');
+ grid=host.children[1];
+ assert.equal(grid.children.length,2,'expired Alpha disappears, Beta clock unaffected');
+ assert(grid.children[0].textContent.includes('Agent Beta'));
  // A brand-new owner B approval must invalidate Wall's 12-second cached
  // /status immediately, even if the SSE observer is delayed or disconnected.
  await wall.close();wall=null;

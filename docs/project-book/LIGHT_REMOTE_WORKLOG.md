@@ -863,3 +863,6 @@ After full Gold source and documentation CI PASS, created LXD snapshot pre-golda
 ## 2026-11-02 — GoldABV2 Wall R2 after Owner's 7 screenshots
 
 Brand-header placement for Live, Short ID and signed visible pending A code, English status, web-native approval dialog (no window.confirm), responsive inline fit-width two-Agent grants, shared persistent collapsible Wall sidebar on separate feature pages with local Material icon, 30%/20% countdown colors, Profile link without underline. Kept Owner B approval fences and existing A/B expiry untouched. See docs/project-book/LIGHT_REMOTE_GOLDABV2_WALL_REFINEMENT_R2_20261102.md.
+
+## 2026-11-02 — GoldABV2 R2 CI multi-Agent DOM mock alignment
+Initial R2 source gate failed due to an old source test creating DOM nodes without dataset or appendChild, and expecting three full-width Agent rows. Updated deploy/scripts/selftest-gold-ab-reauthorization-clock.mjs fixture to model native HTMLElement dataset and child grid, and assert all three independent clock values, responsive grid, 30/20 percent state, and expired Agent removal. Real grant implementation and Owner approval unchanged. Local test PASS; CI rerun required.

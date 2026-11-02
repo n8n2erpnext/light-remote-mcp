@@ -20,3 +20,6 @@ Owner screenshot requirements, UI scope ONLY. No Operator migration, grant revoc
 - Previous runtime: /opt/light-remote-abv2-lab/source-21154b91-wall-ui-STAGED.
 - Rollback: atomically restore prior exact drop-in and restart only Wall; full LXD restore last resort (DB state rewind).
 - Owner visual browser screenshot acceptance remains pending.
+
+## CI correction — independent Agent grid test
+The first Gold Source Gate run for 2856faf9 detected a stale DOM stub in selftest-gold-ab-reauthorization-clock.mjs. The fix upgrades the test to verify HTML-style dataset/appendChild, one header plus the Agent grid, 3 independently timed grants, expected color phases and expiration removal. It is test-only. No API or grant contract changes.
