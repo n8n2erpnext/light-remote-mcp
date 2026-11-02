@@ -1,3 +1,5 @@
+> **CURRENT GOLDABV2 HANDOFF (2026-11-02 evening):** Read [LIGHT_REMOTE_GOLDABV2_FULL_MASTER_LATEST_20261102.md](./LIGHT_REMOTE_GOLDABV2_FULL_MASTER_LATEST_20261102.md) first. This file is historical and its runtime/grant counts may be stale; the latest consolidated handoff supersedes its NEXT steps.
+
 # LIGHT REMOTE GOLD A/B V2 — RELEASE-READINESS FULL MASTER HANDOFF
 ## 2026-11-02, 12:09 ICT | GoldABV2 Lab | Code-session continuation
 

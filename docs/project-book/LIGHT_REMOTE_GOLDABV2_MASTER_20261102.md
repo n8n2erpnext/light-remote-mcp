@@ -1,3 +1,5 @@
+> **CURRENT GOLDABV2 HANDOFF (2026-11-02 evening):** Read [LIGHT_REMOTE_GOLDABV2_FULL_MASTER_LATEST_20261102.md](./LIGHT_REMOTE_GOLDABV2_FULL_MASTER_LATEST_20261102.md) first. This file is historical and its runtime/grant counts may be stale; the latest consolidated handoff supersedes its NEXT steps.
+
 # LIGHT REMOTE — GOLDABV2 FULL MASTER HANDOFF
 Date: 2026-11-02, Asia/Ho_Chi_Minh
 Owner project: Light Remote Gold, isolated A/B V2 Custom MCP / exactly-one Owner / Linux Link-Relink.
