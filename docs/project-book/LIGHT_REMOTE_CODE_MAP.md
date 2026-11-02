@@ -614,3 +614,12 @@ Admin Owner security emblem uses /assets/icons/material/security.svg (verified H
 
 ### 2026-11-02 — Release-readiness authoritative handoff
 - docs/project-book/LIGHT_REMOTE_GOLDABV2_RELEASE_READINESS_20261102.md: complete verified Git, LXD overlay, granted Agent, 84-tool Discovery, SCP 856c4684, tests, risk boundaries, rollback, Owner human acceptance and Desktop V4 handoff; MUST read before coding. Identifiers shortened in tracked Markdown.
+
+## GoldABV2 Wall typography (2026-11-02)
+
+- lib/web-typography.mjs: shared WALL_FONT_FACE_CSS (Google Sans + Google Sans Code local files), WALL_UI_FONT, WALL_CODE_FONT, WALL_TYPOGRAPHY_CSS (22/18/16/14/13/12px scale). WEB_* defaults unchanged.
+- assets/fonts/web/GoogleSans-Variable.ttf: existing shared Google Sans variable used without recopy; GoogleSansCode-Variable.ttf + GoogleSansCode-OFL-1.1.txt copied from n8n2erpnext; GoogleSans-OFL-1.1.txt added from same local font package.
+- device-agent/local-wall.mjs: Local Wall static file whitelist for both fonts, Home/Memory/Codex/Approve/Permissions typography and operator stream Google Sans Code, unchanged A/B and Close routes.
+- device-agent/update-settings-page.mjs: Settings shared scale; device-agent/wall-ab-v2-preview.mjs, wall-account-notifications.mjs: secondary text. device-agent/fleet-wall-runtime.mjs: Fleet fonts, whitelist. device-agent/local-process-page.mjs and fleet-job-page.mjs: separate process/queue pages.
+- deploy/scripts/selftest-gold-wall-google-typography.mjs: generated HTML and isolated HTTP font endpoint regression; .github/workflows/gold-connection-lifecycle-gc.yml: runs test in Gold source gate.
+- Runtime impact: NEVER restart protected GPT-6 Lab Device Agent/Wall without separate permission; source-only candidate may be staged read-only.

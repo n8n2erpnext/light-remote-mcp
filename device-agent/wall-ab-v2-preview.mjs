@@ -10,21 +10,21 @@ export const wallAbV2PreviewFragment = `
  .ab2-shell .ab2-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
  .ab2-shell h2{font-size:18px;line-height:1.35;margin:0 0 5px;color:#e7edf4}
  .ab2-shell h3{font-size:14px;line-height:1.45;margin:0;color:#d8dee7}
- .ab2-shell .ab2-muted{color:#8390a1;font-size:12px;line-height:1.55}
- .ab2-shell .ab2-kicker{color:#ffcc00;font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;margin:0 0 7px}
- .ab2-shell .ab2-badge{border:1px solid #38434d;color:#aab6c5;background:#10161b;border-radius:6px;padding:6px 9px;font-size:11px;white-space:nowrap}
+ .ab2-shell .ab2-muted{color:#8390a1;font-size:13px;line-height:1.55}
+ .ab2-shell .ab2-kicker{color:#ffcc00;font-size:12px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;margin:0 0 7px}
+ .ab2-shell .ab2-badge{border:1px solid #38434d;color:#aab6c5;background:#10161b;border-radius:6px;padding:6px 9px;font-size:12px;white-space:nowrap}
  .ab2-shell .ab2-empty{padding:15px 0 5px;border-top:1px solid #252d36;margin-top:16px}
  .ab2-shell .ab2-state{font-weight:700;color:#c8d2dd;margin:0 0 5px}
  .ab2-shell .ab2-panel{padding:14px 0;margin-top:12px;border-top:1px solid #252d36;background:transparent}
  .ab2-shell .ab2-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
- .ab2-shell code{color:#ffcc00;font-size:14px;letter-spacing:.05em;user-select:text;overflow-wrap:anywhere}
+ .ab2-shell code{font-family:'Google Sans Code',ui-monospace,monospace;color:#ffcc00;font-size:14px;letter-spacing:.05em;user-select:text;overflow-wrap:anywhere}
  .ab2-shell input{width:100%;min-width:0;font-size:13px;letter-spacing:normal;text-transform:none;padding:9px 11px}
  .ab2-shell input[aria-label="B code from requesting Agent"]{letter-spacing:.1em;text-transform:uppercase}
  .ab2-shell .ab2-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
  .ab2-shell .ab2-actions .btn{font-size:13px;padding:9px 12px}
- .ab2-shell .ab2-timer{color:#aab6c5;font-variant-numeric:tabular-nums;font-size:12px;margin:5px 0 0}
+ .ab2-shell .ab2-timer{color:#aab6c5;font-variant-numeric:tabular-nums;font-size:13px;margin:5px 0 0}
  .ab2-shell .ab2-footnote{border-top:1px solid #252d36;margin:15px 0 0;padding-top:12px}
- @media(max-width:540px){.ab2-shell .ab2-grid{grid-template-columns:1fr}.ab2-shell .ab2-badge{font-size:10px}}
+ @media(max-width:540px){.ab2-shell .ab2-grid{grid-template-columns:1fr}.ab2-shell .ab2-badge{font-size:12px}}
  </style>
  <div class="ab2-head">
   <div><div class="ab2-kicker">A/B V2 · Device authorization</div>
