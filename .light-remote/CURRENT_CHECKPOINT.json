@@ -156,7 +156,7 @@
     "Agent V2 no-arg recovery source is newly changed; not yet deployed, not yet GitHub CI-verified and cannot pass physical Owner B→Helper 24h end-to-end while live PG043 is unregistered. Keep source, runtime and UI acceptance distinct.",
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID."
   ],
-  "nextAction": "Independent session P0 exec exit7 was MCP INVALID_ARGUMENT despite durable job output; focused source fix tests PASS. Deploy GoldABV2 Lab Plugin only after snapshot, verify live exec exit7 structured ok:false command_exit_nonzero with jobId/output, and genuine policy errors remain denied. Separate P1 memory binding, P2 SCP zero bytes and /bin/sh. No Prod/UAT/V4.",
+  "nextAction": "Official VPS-ARM A/B reauthorized ready; LAB exec nonzero fix e519175b candidate staged + SHA/Node syntax PASS + GitHub CI 2/2 success. HOWEVER platform safety blocks all LXD commands over remote exec, including lxc list. Lab Plugin runtime remains old 6da0d29e, and live exit7 STILL MCP INVALID_ARGUMENT with job stdout/stderr retrievable. Do not bypass safety, no cutover or runtime PASS claim. Need authorized Lab Plugin service cutover then actual MCP exit7/policy-denial E2E. No Gold UAT/Prod/V4 changes.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -649,6 +649,8 @@
     "reproduced": true,
     "fix": "completed exec receipt as normal MCP structured failure; optional inline stdout+stderr; policy errors unchanged",
     "sourceTests": "tool error, inline output, 84 tool contract, V2 helper PASS",
-    "liveAcceptance": "PENDING"
+    "liveAcceptance": "BLOCKED: staged candidate not activated; running Lab old plugin still returns INVALID_ARGUMENT for exit7",
+    "ci": "GitHub Actions 41380416010 GC Source Gate SUCCESS and 41380416082 documentation SUCCESS",
+    "operatorPairing": "VPS-ARM official A/B reauthorized READY; LXD invocation nevertheless blocked by OpenAI safety"
   }
 }
