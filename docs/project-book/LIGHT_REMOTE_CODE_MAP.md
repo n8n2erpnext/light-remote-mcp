@@ -623,3 +623,10 @@ Admin Owner security emblem uses /assets/icons/material/security.svg (verified H
 - device-agent/update-settings-page.mjs: Settings shared scale; device-agent/wall-ab-v2-preview.mjs, wall-account-notifications.mjs: secondary text. device-agent/fleet-wall-runtime.mjs: Fleet fonts, whitelist. device-agent/local-process-page.mjs and fleet-job-page.mjs: separate process/queue pages.
 - deploy/scripts/selftest-gold-wall-google-typography.mjs: generated HTML and isolated HTTP font endpoint regression; .github/workflows/gold-connection-lifecycle-gc.yml: runs test in Gold source gate.
 - Runtime impact: NEVER restart protected GPT-6 Lab Device Agent/Wall without separate permission; source-only candidate may be staged read-only.
+
+## GoldABV2 Wall sidebar/layout refinement (2026-11-02)
+
+- device-agent/wall-ui-refinement.mjs: UI-only sidebar layout, collapse control script (localStorage optional), live ping, pending phase colors, compact all-code operator stream CSS, viewport responsive rules.
+- device-agent/local-wall.mjs: move existing exact buttons to fixed sidebar, notify bell at right header, signed pending Short ID and deadline; new renderAbV2PendingCountdown; remove duplicated A/B status ID and old forced 'AI Access V2' text; no grant logic changed.
+- deploy/scripts/selftest-gold-wall-ui-refinement.mjs: mocked HTML/JS/expiry tests; existing A/B display and Owner B navigation tests updated.
+- .github/workflows/gold-connection-lifecycle-gc.yml: includes source and test trigger.

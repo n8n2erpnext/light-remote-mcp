@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-02",
-  "status": "goldabv2_wall_google_typography_source_candidate_not_live_wall_cutover",
+  "status": "goldabv2_wall_layout_refinement_source_candidate_pending_ci_and_lab_cutover",
   "branch": "feat/gold-single-owner-transfer-20261101",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -156,7 +156,7 @@
     "Agent V2 no-arg recovery source is newly changed; not yet deployed, not yet GitHub CI-verified and cannot pass physical Owner B→Helper 24h end-to-end while live PG043 is unregistered. Keep source, runtime and UI acceptance distinct.",
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID."
   ],
-  "nextAction": "Verify GitHub CI and stage GoldABV2 Lab-only immutable candidate; do not restart the shared Wall/Device-Agent service while protected GPT-6 grant is active. Then Owner-approved maintenance activation and visual acceptance before any layout changes.",
+  "nextAction": "Run complete source regression and GitHub Gold source/doc CI, stage new GoldABV2 Lab-only Wall snapshot/rollback, restart only Lab Wall and confirm grant GPT-6 remains active; inspect authenticated UI screenshots for iterative spacing.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -169,10 +169,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "4137e83111dc597de0a278c65cf0247efaed9d0f38c7b3a15f58f400b2ae76c0",
-    "trackedFiles": 1147,
+    "treeDigest": "f9b82a3d246e28fda43dba4d226aaa9183a6e72991054f30bc86dd141bf453d2",
+    "trackedFiles": 1149,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-02T08:31:06.121Z"
+    "recordedAt": "2026-11-02T09:13:56.580Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -721,5 +721,14 @@
     },
     "protectedGrant": "sole GPT-6 A/B 24h grant; must remain active",
     "runtimeNote": "Lab Wall and Device Agent are one systemd process; restart is a separate acceptance gate"
+  },
+  "goldAbV2WallLayoutRefinement20261102": {
+    "branch": "feat/gold-single-owner-transfer-20261101",
+    "scope": "sidebar collapse, signed short ID + pending timer, bell top-right, live ping, compact code stream",
+    "protectedGrant": "sole GPT-6 device A/B grant",
+    "productionTouched": false,
+    "schemaChanged": false,
+    "rollbackRequired": true,
+    "ownerVisualAcceptance": "pending browser screenshots"
   }
 }

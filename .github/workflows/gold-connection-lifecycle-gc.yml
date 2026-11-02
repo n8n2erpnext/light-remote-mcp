@@ -148,6 +148,8 @@ on:
       - 'deploy/scripts/selftest-gold-ab-v2-helper-issue.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-verified-grant.mjs'
       - 'device-agent/wall-ab-v2-preview.mjs'
+      - 'device-agent/wall-ui-refinement.mjs'
+      - 'deploy/scripts/selftest-gold-wall-ui-refinement.mjs'
       - 'lib/web-typography.mjs'
       - 'assets/fonts/web/GoogleSans-Variable.ttf'
       - 'assets/fonts/web/GoogleSansCode-Variable.ttf'
@@ -304,6 +306,7 @@ jobs:
           node --check device-agent/wall-ab-v2-preview.mjs
           node deploy/scripts/selftest-gold-ab-v2-signed-preview.mjs
           node deploy/scripts/selftest-gold-ab-v2-wall-preview.mjs
+          node deploy/scripts/selftest-gold-wall-ui-refinement.mjs
           node deploy/scripts/selftest-gold-wall-google-typography.mjs
           node --check lib/gold-ab-v2-helper-proof.mjs
           node --check operator-host/gold-ab-v2-helper-target.mjs
