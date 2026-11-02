@@ -156,7 +156,7 @@
     "Agent V2 no-arg recovery source is newly changed; not yet deployed, not yet GitHub CI-verified and cannot pass physical Owner B→Helper 24h end-to-end while live PG043 is unregistered. Keep source, runtime and UI acceptance distinct.",
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID."
   ],
-  "nextAction": "User has corrected A/B V2 owner-spec: Wall /approve OR Account must approve typed B. Lab Operator+Wall running scoped source 38fdc76c, plugin source 6da0d29e; 4/4 active, health200, one live 24h B grant R01KAP, list_devices granted and Helper ready. Owner still to visually inspect Wall B field for a NEW pending request if desired; approval source of existing PG grant not proven. Do not remove Wall B, do not reintroduce copy-A V1 onboarding in Lab. Do not change main Gold UAT/prod/V4.",
+  "nextAction": "GoldABV2 live E2E (09:44+ VN 2026-11-02) PASS: account Discovery R01KAP online, 24h grant existing, Helper ready, exec inlineStdout/exit0, job/output final stdout, managed process finished exit0+stdout/stderr, default Bash PTY, bounded list_files. Nickname now enabled Lab-only after snapshot and verified session displayName GPT-6 Golden Lotus persisted. Current ChatGPT tool schema 83 vs server registered 84; next test direct light_remote_discover_devices after plugin schema refresh (NOT grant prerequisite). No V4/Gold main/production mutations.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -621,5 +621,26 @@
     "liveDeployed": true,
     "liveEvidence": "AB plugin Helper ready normalFlow V2 Agent-first B Wall-or-Account, no copy-A",
     "labSnapshot": "pre-plugin-v2-onboarding-20261102"
+  },
+  "abv2LiveAcceptanceFollowup": {
+    "date": "2026-11-02",
+    "scope": "GoldABV2 Lab only",
+    "device": "R01KAP",
+    "runtime": {
+      "grantedDevice": true,
+      "helperReady": true,
+      "execFinalExit": 0,
+      "execInlineStdout": true,
+      "processStdoutStderr": true,
+      "ptyBash": true,
+      "listFilesStructured": true,
+      "agentNickname": "GPT-6 Golden Lotus",
+      "services": "4/4 active",
+      "httpHealth": 200
+    },
+    "toolSchema": "ChatGPT exposes 83 of server registered 84, direct discover tool still absent",
+    "remaining": "schema refresh for direct discover tool; new human Wall B screenshot only if new request needed",
+    "nicknameSnapshot": "pre-agent-nickname-acceptance-20261102",
+    "prodUatChanged": false
   }
 }
