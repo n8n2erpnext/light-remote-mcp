@@ -54,6 +54,15 @@ for(const raw of [
 }
 assert.equal(result(completedExecOutcome({ok:false,data:{error:'invalid_terminal_id',status:400},
  job:{jobId:'denied',state:'error',finishedAt:123,exitCode:7}})).isError,true);
+// The Agent reserves these statuses for errors before spawning a command.
+for(const exitCode of [72,124,126,127,130]){
+ const view=completedExecOutcome({ok:false,data:null,
+  job:{jobId:'preexec-'+exitCode,state:'error',finishedAt:123,exitCode}});
+ assert.equal(view.error,'operation_failed','reserved exit '+exitCode);
+ assert.equal(view.executionCompleted,undefined);
+ assert.equal(result(view).isError,true);
+}
+console.log('GOLD_EXEC_LOCAL_POLICY_ADAPTER_DENIAL_STAYS_FAIL_CLOSED=PASS');
 console.log('GOLD_EXEC_NONZERO_EXIT_MCP_RESULT_NOT_PROTOCOL_ERROR=PASS');
 
 // A known local path deny is a valid completed policy decision. Keep all

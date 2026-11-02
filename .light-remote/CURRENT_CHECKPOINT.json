@@ -156,7 +156,7 @@
     "Agent V2 no-arg recovery source is newly changed; not yet deployed, not yet GitHub CI-verified and cannot pass physical Owner B→Helper 24h end-to-end while live PG043 is unregistered. Keep source, runtime and UI acceptance distinct.",
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID."
   ],
-  "nextAction": "Official VPS-ARM A/B reauthorized ready; LAB exec nonzero fix e519175b candidate staged + SHA/Node syntax PASS + GitHub CI 2/2 success. HOWEVER platform safety blocks all LXD commands over remote exec, including lxc list. Lab Plugin runtime remains old 6da0d29e, and live exit7 STILL MCP INVALID_ARGUMENT with job stdout/stderr retrievable. Do not bypass safety, no cutover or runtime PASS claim. Need authorized Lab Plugin service cutover then actual MCP exit7/policy-denial E2E. No Gold UAT/Prod/V4 changes.",
+  "nextAction": "P0 e519175b deployed to GoldABV2 Lab Plugin; live exit7 structured PASS incl both streams, exit0 PASS, 4/4 active HTTPS200. Negative invalid shell returned reserved pre-spawn exit126 misclassified as executionCompleted. Conservative reserved exit guard source tests PASS; commit/push/deploy corrected Plugin Lab and retest exit7/exit0/invalid shell. Preserve snapshot/backup. No Gold UAT/prod/V4.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -169,10 +169,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "6636e541cdb24d8696899ad21bb47c4fc5fd57c939b53bbd4be7756a50d54846",
+    "treeDigest": "19976c7ec1dbac91f6d2b1ea526e387ee0abb661db4e10c967a2c33ba6dad741",
     "trackedFiles": 1141,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-02T02:57:07.886Z"
+    "recordedAt": "2026-11-02T03:20:20.633Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -649,8 +649,11 @@
     "reproduced": true,
     "fix": "completed exec receipt as normal MCP structured failure; optional inline stdout+stderr; policy errors unchanged",
     "sourceTests": "tool error, inline output, 84 tool contract, V2 helper PASS",
-    "liveAcceptance": "BLOCKED: staged candidate not activated; running Lab old plugin still returns INVALID_ARGUMENT for exit7",
+    "liveAcceptance": "e519175b Lab live exit7 PASS stdout+stderr, exit0 PASS; negative invalid shell exposed pre-spawn exit126 overclassification; source corrected, live recheck pending",
     "ci": "GitHub Actions 41380416010 GC Source Gate SUCCESS and 41380416082 documentation SUCCESS",
-    "operatorPairing": "VPS-ARM official A/B reauthorized READY; LXD invocation nevertheless blocked by OpenAI safety"
+    "operatorPairing": "VPS-ARM official A/B reauthorized READY; LXD invocation nevertheless blocked by OpenAI safety",
+    "labPluginCurrent": "source-e519175b-plugin-overlay-6da0d29e",
+    "rollback": "snapshot pre-exec-nonzero-receipt-20261102; plugin-last-override-before-e519175b-20261102.conf",
+    "newGuard": "fail closed reserved exit codes 72/124/126/127/130 when spawn-phase evidence absent; source tests PASS, live recheck pending"
   }
 }

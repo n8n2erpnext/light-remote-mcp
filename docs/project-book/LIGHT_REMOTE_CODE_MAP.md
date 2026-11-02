@@ -586,3 +586,7 @@ Admin Owner security emblem uses /assets/icons/material/security.svg (verified H
 - plugin-server/tools.mjs: completedExecOutcome applies ONLY to finished exec receipt with null data, state error, nonzero exitCode; preserve job with ok:false, executionCompleted:true, commandSucceeded:false and command_exit_nonzero; result() suppresses isError for this exact completed decision, policy/auth/transport remain denied.
 - plugin-server/exec-inline-output.mjs: explicit inline stdout option returns bounded stdout and stderr for completed nonzero exec via canonical authorized output, or pointers to light_remote_output.
 - selftest-gold-tool-error-origin and selftest-g3-agent-inline-stdout: exit 7, both streams, no fabricated command success, policy deny isolation, V1 fallback.
+
+### 2026-11-02 — Exec nonzero pre-spawn ambiguity guard
+- plugin-server/tools.mjs completedExecOutcome: only 1..125 except 72 and 124 may be treated as a completed command when job.state error, running false, data null. Device Agent reserves codes 72/124/126/127/130 for pre-spawn cwd, timeout, adapter/capability/policy, spawn and cancellation. Without signed spawn-phase evidence, fail closed. Legitimate applications using reserved exit codes remain conservative false negatives.
+- deploy/scripts/selftest-gold-tool-error-origin.mjs: fail-closed regression for reserved codes; positive exit7 and canonical inline stdout/stderr tests still PASS.

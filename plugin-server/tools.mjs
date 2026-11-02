@@ -69,7 +69,12 @@ export function completedExecOutcome(row){
   if(view.ok!==false || view.data!==null ||
      job?.state!=='error' || job.running!==false ||
      !Number.isInteger(job.exitCode) ||
-     job.exitCode<1 || job.exitCode>255 ||
+     job.exitCode<1 || job.exitCode>125 ||
+     // Device Agent reserves 72 (invalid cwd), 124 (timeout), 126
+     // (local policy/capability/adapter denial), 127 (spawn failure) and
+     // 130 (cancel). Without a signed spawn phase in the receipt, fail
+     // closed rather than falsely claiming the user command ran.
+     job.exitCode===72 || job.exitCode===124 ||
      !/^[A-Za-z0-9._:-]{1,160}$/.test(String(job.jobId||'')))return view;
   return {...view,error:'command_exit_nonzero',layer:'command_execution',
     retryable:false,nextAction:'read_existing_job_output',
