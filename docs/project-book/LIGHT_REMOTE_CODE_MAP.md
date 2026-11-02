@@ -661,3 +661,9 @@ Admin Owner security emblem uses /assets/icons/material/security.svg (verified H
 - device-agent/wall-ui-refinement.mjs: border-color hover/no underline, semantic danger/primary, focus ring and reduced-motion; stream BODY font +1–2px while TITLE stays 12px, connection badge green/amber/red.
 - device-agent/local-wall.mjs: renderLiveIndicator reads cloudDesiredConnected/cloudState plus SSE and status-fetch errors; SSE onopen does not force green.
 - deploy/scripts/selftest-gold-wall-r5-interactions.mjs: state VM and six-route HTTP/CSS/JS contract tests.
+
+## GoldABV2 Long Memory identity mismatch audit (2026-11-02)
+
+- docs/project-book/LIGHT_REMOTE_GOLDABV2_LONG_MEMORY_AUDIT_20261102.md contains live read-only DB inventory, cross-identity mismatch evidence, 17/17 temporary DB tests and authorized remediation gates.
+- device-agent/operator-agent.mjs builds scopeIdentity from enrolled accountId/deviceId; device-agent/gold-wall-modules.mjs scopes filtered by current Account ID.
+- Do not override old scopes in SQLite or bypass signed Home/device assertions for UI convenience. Live GoldABV2 enrollment currently differs from the old coherent Memory Home identity.

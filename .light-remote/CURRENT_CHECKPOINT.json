@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-02",
-  "status": "goldabv2_wall_r5_live_4of4_zero_active_grants",
+  "status": "goldabv2_wall_r5_live_long_memory_audit_failed_closed_identity_mismatch",
   "branch": "feat/gold-single-owner-transfer-20261101",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -156,7 +156,7 @@
     "Agent V2 no-arg recovery source is newly changed; not yet deployed, not yet GitHub CI-verified and cannot pass physical Owner B→Helper 24h end-to-end while live PG043 is unregistered. Keep source, runtime and UI acceptance distinct.",
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID."
   ],
-  "nextAction": "Owner Chrome hard refresh and visually inspect hover/no underline, larger STREAM command/output body only, Live amber dormant/red disconnected/green connected. Continue isolated Lab, use latest Full Master handoff R5 addendum.",
+  "nextAction": "Long Memory current enrollment identity mismatch: Owner must verify authorized Memory Home/account before ANY config/DB change. Read docs/project-book/LIGHT_REMOTE_GOLDABV2_LONG_MEMORY_AUDIT_20261102.md; 17/17 temp DB tests pass but live sync unverified. Continue isolated Lab only.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -836,5 +836,27 @@
     "activeGrantsBefore": 0,
     "activeGrantsAfter": 0,
     "visualOwnerAcceptance": "pending"
+  },
+  "goldAbV2LongMemoryAudit_20261102": {
+    "status": "ON, live scope identity mismatch, fail-closed; no mutation",
+    "sqliteQuickCheck": "ok",
+    "moduleFlags": {
+      "longMemory": true,
+      "codexBridge": true
+    },
+    "scopesHistorical": 3,
+    "scopedCheckpoints": 12,
+    "historicalAckedOutbox": 24,
+    "lastAckDateUTC": "2026-10-29",
+    "currentEnrollmentAccountMatchesOldScopes": false,
+    "currentEnrollmentDeviceMatchesOldHome": false,
+    "currentEnrollmentHasScopes": false,
+    "quarantine": 0,
+    "pendingOutbox": 0,
+    "isolatedSourceTests": "17/17 PASS",
+    "liveE2ESync": "NOT VERIFIED",
+    "ownerIdentityConfirmation": "REQUIRED before migration",
+    "changesToLiveMemory": false,
+    "report": "docs/project-book/LIGHT_REMOTE_GOLDABV2_LONG_MEMORY_AUDIT_20261102.md"
   }
 }

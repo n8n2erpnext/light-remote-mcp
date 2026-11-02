@@ -1,5 +1,10 @@
 # LIGHT REMOTE GOLDABV2 — FULL MASTER HANDOFF (LATEST)
 
+### CURRENT LONG MEMORY AUDIT — 2026-11-02 (read before attempting Memory Home changes)
+
+Long Memory and Codex Bridge flags ON; 17/17 isolated memory selftests PASS; live SQLite quick_check OK with 3 historical scopes, 12 scoped checkpoints, 24 historical ACKs (last October 29) and zero quarantine. **All three scopes and Device Sync selection bind to a coherent previous Account ID / Home Device ID, NOT the current GoldABV2 enrollment**. Current account has zero scopes and device is not a member, so My Work may appear empty. This is an authorization/migration gate, NOT permission to rewrite IDs. Do NOT mutate DB/keys/scope Owner or force sync; Owner must identify authorized Memory Home and approve signed clone-tested migration. Full evidence and test suite: docs/project-book/LIGHT_REMOTE_GOLDABV2_LONG_MEMORY_AUDIT_20261102.md. No live Memory data was changed.
+
+
 ### LATEST R5 UPDATE — 2026-11-02 20:01 ICT (supersedes R4 runtime pointers below)
 
 The Owner corrected the font request: LIVE OPERATOR STREAM heading remains 12px; only COMMAND/output body increased 1–2px. New R5 source 61b18b8b is LIVE in isolated Lab Wall at /opt/light-remote-abv2-lab/source-61b18b8b-wall-r5-STAGED. Hover border/no underline, Live green connected / yellow cloud dormant / red disconnected. Source Gate 41449324814 4/4 PASS, Docs Integrity 41449324833 PASS, 4/4 services, HTTP/HTTPS 200. LXD snapshot pre-goldabv2-wall-r5-20261102; rollback /var/backups/light-remote-goldabv2-wall-before-r5-20261102.conf. Active unexpired grants 0 before and 0 after R5 Wall-only restart; earlier 1/2 grant counts below are historical. Owner Chrome acceptance OPEN. Latest detail docs/project-book/LIGHT_REMOTE_GOLDABV2_WALL_R5_LIVE_DEPLOY_20261102.md. The older R4 notes below remain chronological evidence and are not the current runtime pointer.

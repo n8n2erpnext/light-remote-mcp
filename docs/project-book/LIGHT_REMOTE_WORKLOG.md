@@ -901,3 +901,7 @@ Owner clarified LIVE OPERATOR STREAM heading remains 12px while commands/output/
 ## 2026-11-02 — GoldABV2 Wall R5 LIVE isolated Lab
 
 After source commit 61b18b8b, Source Gate 41449324814 4/4 PASS and Docs Integrity 41449324833 PASS, snapshotted pre-goldabv2-wall-r5-20261102, staged matching R5 source and tested as gold-uat, atomically updated only Wall drop-in and restarted Wall. Four services healthy, local/public HTTP login and HTTPS health 200, zero active unexpired grants before/after, zero recent Wall errors. User requirement heading unchanged; command/output body +1–2px, cyan border hover/no underline, green/yellow/red cloud-aware Live status. See GoldABV2 Wall R5 LIVE deployment doc. Full Master latest updated and copied to ARM.
+
+## 2026-11-02 — GoldABV2 Long Memory read-only deep audit
+
+On isolated Lab R5, 17/17 Long Memory temporary-DB source tests PASS. Live module longMemory ON and Codex Bridge ON, SQLite quick_check ok, 3 historical active scopes, 12 scoped checkpoints and 24 acked historical outbox frames (last ACK October 29), key files 0600, no quarantine. CRITICAL: all historical scope Account IDs and Home Device IDs, and sync selection, differ from current enrollment; current Account sees zero scopes by account filter and current Device is not a member. No data changed or live sync performed. Owner must verify Home identity and approve any signed, clone-tested re-home migration. Historical journal relay failures include 'fetch failed'. See docs/project-book/LIGHT_REMOTE_GOLDABV2_LONG_MEMORY_AUDIT_20261102.md.
