@@ -382,5 +382,5 @@ END OF FULL GOLDABV2 MASTER HANDOFF.
 
 ## Activity Log local-first feature branch (2026-11-02)
 - New non-production feature branch \`feat/goldabv2-device-local-activity-logs-20261102\` provides Device Agent local-first bounded JSONL/gzip rotation, Owner Settings clean/config/history and cross-platform client-core staging. See \`LIGHT_REMOTE_GOLDABV2_DEVICE_LOCAL_ACTIVITY_LOG_20261102.md\` for exact semantics, test receipts and restrictions.
-- Isolated Lab Operator logrotate now correctly targets \`/var/log/light-remote-gold-uat/operations.jsonl\`, dry-run PASS; existing Operator log unmodified. The device-local history source is not yet deployed to Lab or production.
+- Isolated Lab Operator logrotate now correctly targets \`/var/log/light-remote-gold-uat/operations.jsonl\`, dry-run PASS; existing Operator log unmodified. The device-local activity log source is now deployed to isolated GoldABV2 Lab Wall only after snapshot/4-of-4 CI and health tests; not production.
 - Source tests PASS; Windows/macOS native builds and real device acceptance remain OPEN, use GitHub Actions. Do not conflate local Activity Logs with Long Memory or Codex. Previous Long Memory historical data deletion remains owner-gated and untouched.

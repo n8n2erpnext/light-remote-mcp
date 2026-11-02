@@ -684,4 +684,4 @@ Admin Owner security emblem uses /assets/icons/material/security.svg (verified H
 - \`client/core-files.json\` — includes new local activity logger and fixes missing Wall R5 refinement module for packaged Windows/macOS.
 - \`deploy/logrotate/light-remote-gold-abv2-lab\` — standalone isolated LXD Operator audit-log rotation (not device-local logger).
 - \`deploy/scripts/selftest-gold-device-local-activity-log.mjs\`, \`deploy/scripts/selftest-gold-wall-local-activity-http.mjs\` — local archive and Owner HTTP regression fixtures.
-- Source branch \`feat/goldabv2-device-local-activity-logs-20261102\` is NOT installed Agent runtime and NOT approved for production until CI/native acceptance. The latest focused handoff is \`LIGHT_REMOTE_GOLDABV2_DEVICE_LOCAL_ACTIVITY_LOG_20261102.md\`.
+- Source branch \`feat/goldabv2-device-local-activity-logs-20261102\` is installed ONLY on isolated GoldABV2 Lab Wall after source CI 4/4; NOT on Gold UAT production or native Windows/macOS until native acceptance. The latest focused handoff is \`LIGHT_REMOTE_GOLDABV2_DEVICE_LOCAL_ACTIVITY_LOG_20261102.md\`.

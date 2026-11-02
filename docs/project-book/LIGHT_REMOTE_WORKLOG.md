@@ -925,3 +925,6 @@ Reconciled latest Full Master: R5/current extension facts at top; demoted old R4
 
 ## 2026-11-02 — GoldABV2 per-device activity log source
 Owner requested RAM-bounded local Wall command/output history with durable bounded on-device JSONL/gzip, 50MiB×(1+3) default rotation, Owner Settings to configure retention/Clean Log, and Windows/macOS/Linux parity. Source changes and selftests PASS on dedicated feature branch. Desktop packaging fix adds missing R5 Wall refinement module. Isolated Lab Operator logrotate correct path installed/dry-run PASS. New device-local logger is NOT deployed in Lab or production; native installed E2E pending.
+
+## 2026-11-02 — GoldABV2 local Wall activity live acceptance
+Commit 3453ff09 GitHub Source Gate run 41464473906 PASS 4/4, Documentation run 41464473944 SUCCESS. Snapshot pre-wall-activity-3453ff09-20261102; isolated LXD Wall staged source-3453ff09-wall-activity-STAGED, 4/4 services active, health 200, local private device JSONL 21 valid events/0 invalid, Long Memory/Codex ON. Gold UAT production unchanged. Native Windows/macOS physical E2E and Owner Settings visual acceptance pending.

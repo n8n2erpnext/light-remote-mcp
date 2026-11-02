@@ -36,4 +36,7 @@
 - Source staging: `stage-client-core.mjs` and `selftest-packaged-local-wall.mjs` PASS (124 files).
 - Rendered Settings inline JavaScript validated through Node vm.Script.
 - Historical `selftest-v09-local-wall.mjs` expects pre-R5 Cascadia typography and fails against existing Google Sans; not a new log regression.
-- GoldABV2 Lab has not been redeployed from this new code branch; live Local Wall still runs prior R5 source until release acceptance.
+- GoldABV2 Lab Wall **deployed** from Git source commit \`3453ff0981b2c970dcb85a3fb52aa54a0735c3c7\` after GitHub Source Gate 41464473906 PASS 4/4 and Documentation CI 41464473944 PASS. Baseline Wall R5 candidate exact Git SHA parity 3/3; new module 4/4 SHA matches Git.
+- Before deployment, LXD snapshot \`pre-wall-activity-3453ff09-20261102\` captured. Staged source: \`/opt/light-remote-abv2-lab/source-3453ff09-wall-activity-STAGED\`. Old R5 staged source remains unchanged as rollback.
+- Live GoldABV2 Lab verified: Wall/Operator/Plugin/Process Supervisor **4/4 active**, HTTPS health 200, isolated Wall HTTP 303 auth redirect, device-local JSONL at \`/var/lib/light-remote-gold-uat/wall/wall-activity/<enrolled-deviceId>/activity.jsonl\`, 21 valid events, 0 JSON errors, file owner gold-uat, mode 0600; 0 activity-log runtime errors; Memory and Codex flags both ON. Existing old Memory scopes observed 0 in read-only check; this task did NOT perform Long Memory deletion.
+- No Gold UAT production or rc47 environment mutation. Windows/macOS physical native acceptance and Owner visual Settings acceptance remain OPEN; no native builds performed on VPS-ARM.
