@@ -5,6 +5,8 @@ import { DEVICE_DUPLEX_PROTOCOL } from './device-duplex-transport.mjs';
 import { handleDeviceDuplexSession } from './device-duplex-session.mjs';
 import { ownerFleetJobRows } from './fleet-job-view.mjs';
 import { ownerDeviceResourceMetrics } from '../lib/gold-device-resource-metrics.mjs';
+import { goldAbV2LabV1Disabled } from '../lib/gold-ab-v2-lab-v1-lock.mjs';
+import { closeOwnerSessionAndGrant } from './owner-session-close-abv2.mjs';
 import { scanOwnerStaleClaims } from '../lib/gold-stale-claim-detector.mjs';
 
 
@@ -732,6 +734,16 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       const sessionId=String(ctx.payload.sessionId||'').trim(), agentId=String(ctx.payload.agentId||'').trim();
       const current=sessions.get(sessionId,agentId);
       if(current.deviceId!==ctx.device.deviceId)throw new EnrollmentError('session_device_mismatch',409);
+      const ownerClose=String(ctx.payload.reason||'owner_closed_from_wall')==='owner_closed_from_wall';
+      if(goldAbV2LabV1Disabled()&&ownerClose){
+        const connection=connections.assertConnected(ctx.device.deviceId);
+        const result=closeOwnerSessionAndGrant({
+          sessionId,agentId,accountId:ctx.binding.accountId,
+          deviceId:ctx.device.deviceId,connectionId:connection.connectionId,
+          sessions,accessGrants,agentClients
+        });
+        return sendJson(res,200,{ok:true,...result});
+      }
       const session=sessions.close(sessionId,agentId,String(ctx.payload.reason||'owner_closed_from_wall').slice(0,80));
       return sendJson(res,200,{ok:true,session});
     }

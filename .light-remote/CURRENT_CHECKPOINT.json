@@ -156,7 +156,7 @@
     "Agent V2 no-arg recovery source is newly changed; not yet deployed, not yet GitHub CI-verified and cannot pass physical Owner B→Helper 24h end-to-end while live PG043 is unregistered. Keep source, runtime and UI acceptance distinct.",
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID."
   ],
-  "nextAction": "Optional Agent nickname A/B V2 Helper SOURCE + isolated LAB LIVE ACCEPTED: Plugin 14f8bfed, Operator ddd012b1, 4/4 active HTTPS200, old grant R01KAP reused, helper noargs ready returns sessionId s_mvynerzg_bd3955a3b49c0938 and nickname GPT-6 Golden Lotus nameSource agent. Model-suggested Helper optional agentNickname code/test PASS but current ChatGPT AB schema still stale and does not advertise new arg; refresh connector schema and run new Claude fresh-session acceptance when owner chooses. Do not create B or rename Claude old session just for this test. Gold UAT/Prod/V4 untouched.",
+  "nextAction": "Owner Wall Close session security bug: session closed but 24h grant stays active until new B. Lab-only source patch verifies exact session->agent-client workingContext->grant, revokes just its B and detaches binding before session close. Source tests PASS. Next CI, isolated Lab Operator-only deploy with snapshot, then fresh Owner test B->close->grant removed. Existing historical closed session grant requires scoped reconciliation. No Gold UAT/Prod/V4.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -169,10 +169,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "728a51b5142b2fc67573758a9ff22f2d7e0e56979fb79aaaef30b07ef47a5d33",
-    "trackedFiles": 1141,
+    "treeDigest": "d892bcaf44ea10d9f7ce139e2cb103c18c788006b768e986a17621ed6be2e23d",
+    "trackedFiles": 1143,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-02T03:49:47.650Z"
+    "recordedAt": "2026-11-02T04:24:36.914Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -673,5 +673,14 @@
       "nameSource": "agent"
     },
     "clientSchema": "currently cached Light_Remote_AB Helper metadata lacks agentNickname; requires MCP tool refresh or use light_remote_context"
+  },
+  "abv2OwnerCloseGrantRevocation": {
+    "date": "2026-11-02",
+    "rootCause": "session-close called only sessions.close and left agent A/B grant live",
+    "fix": "exact scoped matching client session grant revoke and detach under signed Owner and Lab flag",
+    "tests": "four focused suites + Wall close/cache + AB Helper PASS",
+    "liveDeployment": "PENDING",
+    "liveGrantMutation": false,
+    "historicalCleanup": "Review before mutation; do not revoke newer grant"
   }
 }

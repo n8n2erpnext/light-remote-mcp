@@ -600,3 +600,9 @@ Admin Owner security emblem uses /assets/icons/material/security.svg (verified H
 ### 2026-11-02 — Existing durable grant must outrank Lab Discovery fallback
 - plugin-server/tools.mjs noarg Lab Helper: after recovering any pending B request, check a.devices() granted-only array; return a.connectionHelper(null,{agentNickname}) when nonempty, else account Discovery. This fixes post-Operator-restart "0 ready" despite valid durable A/B grants. Never creates B for queries.
 - deploy/scripts/selftest-gold-ab-v2-lab-v1-lock.mjs: regression for no pending + active granted device => ready, confirmed nickname and sessionId, no extra Discovery. V1 and pending request precedence unchanged.
+
+### 2026-11-02 — Owner Wall close implies matching A/B grant revoke
+- operator-host/owner-session-close-abv2.mjs: verified session, account, device, Agent client working context and exact grant. Revoke only that active A/B and detach client binding before returning closed; fail closed for unverified binding or busy jobs.
+- operator-host/agent-client-registry.mjs: detachGrant removes only exact grant-bound device under matched Agent client, closes empty client; preserves other Agents and devices.
+- operator-host/executor-routes-device-channel.mjs: signed enrolled device Owner Wall close route calls helper in explicitly V1-locked ABV2 Lab only; non-Lab unchanged. PG and Redis durable flush occurs before HTTP200.
+- deploy/scripts/selftest-gold-abv2-owner-close-revokes-grant.mjs: scoped Owner positive/negative tests; no destructive live test.
