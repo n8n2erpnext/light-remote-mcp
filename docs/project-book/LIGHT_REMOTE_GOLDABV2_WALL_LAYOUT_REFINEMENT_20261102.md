@@ -23,3 +23,6 @@ Owner screenshots after Google Sans rollout requested five visual changes. Branc
 - Last snapshot pre-goldabv2-fonts-20261102 is BEFORE previous font rollout; create a new snapshot now to avoid losing that rollout if rollback required.
 - Rollback via backup of the final exact Wall drop-in and restart ONLY light-remote-gold-wall.service. Avoid full LXD rollback unless Owner accepts possible PG/Redis rewind.
 - Verify 4/4 services, login HTTP200, signed Short ID and sole GPT-6 grant unchanged after restart; test generated HTML under gold-uat service user. Browser visual acceptance and popup clipping can only be fully established with authenticated real desktop screenshots.
+
+## Source CI correction
+Initial 21154b91 Gold Source Gate 41419031725: 3 jobs PASS, source-gate FAIL on old literal /V1 locked/ UI assertion in selftest-gold-ab-v2-lab-v1-lock.mjs. Owner expressly removed that visible text. The correction checks that V1 remains locked through existing HTTP 423 and no legacy call assertions while ensuring the phrase does not appear. No runtime source code changed.

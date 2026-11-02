@@ -34,7 +34,8 @@ try{
  const home=await (await fetch(host+'/',{headers:owner})).text();
  assert.match(home,/id="abV2WallStatus"/);
  assert.doesNotMatch(home,/Short ID X3AQQ6/,'stale lab env is not device identity');
- assert.match(home,/V1 locked/);
+ assert.doesNotMatch(home,/V1 locked/,'the V1 lock is a backend policy, not Owner-facing header text');
+ assert.match(home,/id="abV2ShortId"/);
  assert.match(home,/class="paircontrol" style="display:none"/);
  assert.match(home,/const labAbV2Only=true/);
  for(const fragment of home.matchAll(/<script(?:[^>]*)>([\s\S]*?)<\/script>/g))

@@ -851,3 +851,7 @@ After Owner requested unified Wall font sizes (Settings too large, Long Memory/C
 ## 2026-11-02 — GoldABV2 Local Wall sidebar / code-stream / signed A-code status
 
 Implemented Owner screenshot-driven UX source: collapsible icon-only left navigation, Approve B label retained, live SSE ping, notification bell in slim upper-right with preexisting viewport-clamped popover, signed Short ID highlighted yellow, 5-minute pending countdown with green/yellow/orange/red phases, compact Google Sans Code for entire LIVE OPERATOR STREAM and small command/risk labels. Kept session/grant APIs, B approval boundaries and grant TTL unchanged. Source tests updated for signed dynamic Short ID, new UI source test covers DOM markup, CSS and countdown boundaries. See docs/project-book/LIGHT_REMOTE_GOLDABV2_WALL_LAYOUT_REFINEMENT_20261102.md. GoldABV2 Lab-only rollout after GitHub CI; protected GPT-6 grant must remain intact.
+
+## 2026-11-02 — GoldABV2 V1 backend lock/UI label regression alignment
+
+Gold source CI for Wall layout 21154b91 initially failed solely because selftest-gold-ab-v2-lab-v1-lock.mjs asserted the obsolete literal 'V1 locked' appears to Owner. Owner explicitly requested removing that UI phrase. Updated the assertion to require it absent while retaining V1 feature-gate, no V1 pairing calls, and HTTP 423 API denial checks. No production runtime or A/B policy change. The final Linux Lab Wall cutover remains after successful GitHub Source Gate.
