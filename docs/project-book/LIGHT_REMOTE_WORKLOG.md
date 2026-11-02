@@ -913,3 +913,7 @@ Located real Chrome Extension source in independent 2026-10-29 branch/worktree, 
 ## 2026-11-02 — GoldABV2 LM extension v0.3 GitHub CI accepted
 
 Source integration ea622a33 passed hosted Gold Source Gate 41454866776 4/4 and Documentation Integrity 41454866605 PASS. Lab post-push remains 4/4 with R5 Wall source, unauthenticated /long-memory 303 (expected login) and HTTPS health 200. Long Memory and Codex modules still ON with 3 historical Gold old-Owner scopes untouched. No Chrome installation / Owner signed E2E yet. ZIP SHA256 unchanged 76a3649a4fb7704cb930f4a1912f70b80d8387128f69aff023e9a306f3fd0dcd.
+
+## 2026-11-02 — GoldABV2 master handoff reconciled after LM Chrome v0.3
+
+Reconciled latest Full Master: R5/current extension facts at top; demoted old R4 'CURRENT' claims to archived snapshots. VPS-ARM isolated Lab confirmed 4/4 active and read-only Long Memory/Codex enabled with 3 legacy Gold scopes and enabled Device Sync selection. Owner wants data-only cleanup, not module removal. Source/ZIP v0.3 CI PASS; physical Windows Chrome and signed snapshot E2E still pending. Updated detailed Chrome integration handoff/checkpoint and synced copies to VPS-ARM. No service, grant or memory content changed.

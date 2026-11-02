@@ -1,5 +1,28 @@
 # LIGHT REMOTE GOLDABV2 — FULL MASTER HANDOFF (LATEST)
 
+## CURRENT FIRST — GoldABV2 Lab continuation (2026-11-02, after LM Chrome v0.3)
+
+**Authoritative current state — older R4 snapshots below are historical, not the live deployment.**
+
+- GitHub: n8n2erpnext/light-remote-mcp; branch feat/gold-single-owner-transfer-20261101. Extension source commit ea622a336b1a29073aff7936f5730277b35942f2; previous handoff HEAD 5b4fd64dac6a22ca91c03a658dac0bd8c80992c9. Always recheck HEAD and origin before modifying files.
+- Isolated runtime ONLY: VPS-ARM LXD light-remote-abv2-lab-20261101. Wall **R5**, working directory /opt/light-remote-abv2-lab/source-61b18b8b-wall-r5-STAGED (NOT R4). Operator, Plugin, Wall, Process Supervisor all 4/4 ACTIVE. Do not deploy main Gold UAT or production.
+- Long Memory **ON** and Codex Bridge **ON**. GoldABV2 local SQLite still has 3 old Gold Memory scopes, bound to previous Account/Home, not current enrollment. Read-only current check confirmed Device Sync selection ENABLED. Owner explicitly requested clearing **old Long Memory DATA ONLY**, NOT deleting/disabling Long Memory feature. Cleanup NOT performed. Official local deletion requires satisfying Device Sync safety guard; do not bypass it, rewrite account_id/home_device_id, delete raw SQLite, alter signing keys, or delete any Windows/Gold UAT data.
+- Chrome LM Extension GoldABV2 v0.3.0 source/ZIP READY on this branch; original Gold Chrome v0.2 source (feature/gold-lm-chrome-extension-20261029, commit 6cafb33b) kept unchanged. Dedicated extension source: extensions/light-remote-lm-abv2/. Preview ZIP: extensions/releases/Light-Remote-LM-GoldABV2-v0.3.0.zip; SHA-256 76a3649a4fb7704cb930f4a1912f70b80d8387128f69aff023e9a306f3fd0dcd.
+- Extension permits exactly Lab Wall http://100.94.184.141:15591/long-memory (NetBird), not Windows localhost. It captures only loaded ChatGPT Web user/assistant DOM after an Owner click, verifies UTF-8 SHA-256 chunks, and stages pending plaintext with a 10-minute expiry. It does NOT select Work, authorize memory, enable sync, opt in, click Save, or issue A/B approval. Existing Owner login, CSRF, Home-signed checkpoint verification remain mandatory.
+- CI for extension feature commit ea622a33: GitHub Gold Source Gate run 41454866776 **4/4 PASS**; documentation integrity run 41454866605 PASS. Source regressions and ZIP CRC/SHA pass. **NO real Windows Chrome installation, authenticated capture-to-Wall handoff or signed checkpoint readback acceptance yet.** Not production-ready.
+- Pending gates: Owner data-only legacy Memory cleanup (after Device Sync guard), correctly bound new current-owner Work, synthetic Chrome capture and review, authenticated Wall redirect, signed snapshot save/readback E2E, R5 Chrome visual review, disposable-Agent Owner Close E2E. None may be silently marked PASS.
+- No service restart, grant mutation or Memory data changes for Chrome Extension packaging; keep project and runtime isolation.
+
+### Next session runbook (do these in order)
+
+1. Read docs/project-book/LIGHT_REMOTE_GOLDABV2_LM_CHROME_INTEGRATION_V03_20261102.md, extensions/light-remote-lm-abv2/README.md, docs/project-book/LIGHT_REMOTE_GOLDABV2_LONG_MEMORY_AUDIT_20261102.md and .light-remote/CURRENT_CHECKPOINT.json. Verify branch, Git SHA, 4/4 isolated Lab, Wall R5, health, grants and memory flags/scopes read-only.
+2. For cleanup, Owner first unselects the **GoldABV2 Lab** device in Device Sync; then use official Owner-confirmed deletion of OLD LM data following restricted backup and local verification. Keep Long Memory and Codex enabled; never touch Windows localhost old Gold or main Gold UAT.
+3. Owner Windows Chrome (connected to NetBird) loads unpacked ZIP only after verifying SHA. Test first with a **synthetic ChatGPT conversation**. Confirm manual Capture and Review in GoldABV2 Lab, Owner login and staged text/TTL; no automatic Save.
+4. On authorized new current-Home Work, Owner reviews/redacts captured text, explicitly opts in, manually saves and verifies signed checkpoint readback. An empty current-owner Work list is expected until a current-owner Work is created; old Gold scopes remain off-limits.
+5. Log observed Chrome behavior and failures; add tests or fixes only for evidence-backed issues. Preserve prior extension branch, source gates, snapshot/rollback. Do not deploy production/main Gold UAT.
+
+---
+
 ### Chrome LM v0.3 — HOSTED CI VERIFIED (2026-11-02)
 
 Source commit ea622a33, GitHub Source Gate 41454866776 4/4 PASS and Docs Integrity 41454866605 PASS. Lab remains 4/4 active with R5 Wall unchanged; Extension ZIP/source ready to install on Owner Windows Chrome, no real Chrome or signed Memory E2E yet. Current old Memory scopes still present (3) and modules ON. This latest CI verification supplements the v0.3 integration note below and detailed handoff.
@@ -21,13 +44,13 @@ The Owner corrected the font request: LIVE OPERATOR STREAM heading remains 12px;
 
 ## 2026-11-02 · Session continuity after Wall Approve B R4 · VPS-ARM / isolated GoldABV2 Lab
 
-**STATUS: GoldABV2 LAB HEALTHY; UI R4 DEPLOYED; OWNER BROWSER ACCEPTANCE OPEN; NOT PRODUCTION-READY.**
-**AUTHORITATIVE CONTINUATION POINTER:** This is the consolidated latest handoff for the next code session, superseding historical NEXT steps in older 2026-11-01 and 2026-11-02 handoffs. Older documents remain as evidence, not current runtime truth.
+**HISTORICAL R4 SNAPSHOT: superseded by R5 and Chrome LM v0.3 current status above. Not production-ready.**
+**ARCHIVAL NOTE:** Historical R4 procedures below are retained as evidence. Follow CURRENT FIRST above for the authoritative continuation.
 **THE MOST IMPORTANT RULE:** Do not modify Gold main UAT or production, do not grant/revoke/close an active Agent solely for UI testing, do not build heavy distributions on VPS-ARM, and do not substitute a browser/simulated test for signed Owner approval.
 
 ---
 
-## 0. NEXT SESSION — FIRST 5 MINUTES
+## 0. HISTORICAL R4 NEXT SESSION NOTES — ARCHIVAL ONLY
 
 1. Read this complete file BEFORE coding. Then read .light-remote/CURRENT_CHECKPOINT.json, docs/project-book/LIGHT_REMOTE_CODE_MAP.md, recent WORKLOG and the R4 source/detail files.
 2. Via official connected Light Remote, target **VPS-ARM** exactly. Recover/open the authorized remote session; do not accidentally target HOMESV or the main Gold UAT.
@@ -39,7 +62,7 @@ The Owner corrected the font request: LIVE OPERATOR STREAM heading remains 12px;
 
 ---
 
-## 1. VERIFIED CURRENT CHECKPOINT — THIS HANDOFF AUDIT
+## 1. HISTORICAL R4 VERIFIED CHECKPOINT — ARCHIVAL ONLY
 
 Repository:
 - GitHub: n8n2erpnext/light-remote-mcp
@@ -66,7 +89,7 @@ Isolated Lab:
 Actual runtime WorkingDirectory paths (MIXED overlays; do not assume Git HEAD runs across every unit):
 - Operator: /opt/light-remote-abv2-lab/source-94933590-op-overlay-ddd012b1
 - Plugin: /opt/light-remote-abv2-lab/source-856c4684-plugin-overlay-14f8bfed
-- Wall: /opt/light-remote-abv2-lab/source-1a99c489-approve-b-r4-STAGED  **CURRENT**
+- Wall: /opt/light-remote-abv2-lab/source-1a99c489-approve-b-r4-STAGED  **HISTORICAL R4 — NOT CURRENT; R5 ACTIVE AS ABOVE**
 - Process Supervisor: /opt/light-remote-abv2-lab/source-fa0699ee
 
 **Do not run a blanket deploy, service installer, or entire-container rollback.** The effective service unit override is defined by lexically final systemd drop-ins. Review systemctl show/cat first; only change the target unit.

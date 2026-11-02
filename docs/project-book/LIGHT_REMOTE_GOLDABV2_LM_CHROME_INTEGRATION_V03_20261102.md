@@ -60,6 +60,14 @@
 - Wall context form and signed save endpoint: device-agent/local-wall.mjs, device-agent/gold-wall-modules.mjs, device-agent/gold-memory-scope-admin.mjs.
 - Identity audit: docs/project-book/LIGHT_REMOTE_GOLDABV2_LONG_MEMORY_AUDIT_20261102.md.
 
+## CURRENT OWNER HANDOFF: DATA-ONLY CLEANUP AND E2E ORDER
+
+- Post-commit 5b4fd64d read-only Lab verification: all four GoldABV2 services ACTIVE, Wall is R5. Local SQLite shows Long Memory and Codex flags both enabled, 3 historical Gold scopes remain, Device Sync selection enabled=true. No old data cleanup has been performed.
+- Owner instruction: **Delete old Long Memory DATA, not Long Memory FEATURE**. Official deletion is gated by Device Sync selection; still blocked/pending. No direct SQLite DELETE, account/device ID rewrite, key or module disabling.
+- Owner Windows Chrome physical installation and real signed checkpoint E2E are NOT DONE; source CI and static ZIP only.
+- Correct next sequence: verify ZIP/hash, Owner unselect target Lab device in Device Sync, official Owner-confirmed data-only cleanup after restricted backup, establish new current-enrollment Work, manual synthetic ChatGPT Capture/Review in authenticated Lab Wall, explicit opt-in and Owner Save, signed checkpoint verification.
+- Exclude main Gold UAT, production and previous original Chrome LM v0.2 branch from any change.
+
 ## Hosted CI and post-push verification
 
 - Extension integration source commit: ea622a336b1a29073aff7936f5730277b35942f2.
