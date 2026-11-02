@@ -859,3 +859,7 @@ Gold source CI for Wall layout 21154b91 initially failed solely because selftest
 ## 2026-11-02 — GoldABV2 Wall sidebar/refinement isolated Lab LIVE cutover
 
 After full Gold source and documentation CI PASS, created LXD snapshot pre-goldabv2-wall-sidebar-20261102 and staged SHA-matching UI source. Switched only the final GoldABV2 Lab Wall systemd drop-in source path to source-21154b91-wall-ui-STAGED (restarted only Wall). Verified 4/4 services active, HTTP public/local login 200, HTTPS health 200, single active GPT-6 lab grant retained, R01KAP online through official AB plugin, no recent Wall journal errors. Automated UI source/HTTP tests PASS; manual owner browser visual acceptance pending. Full deployment and rollback handoff: docs/project-book/LIGHT_REMOTE_GOLDABV2_WALL_LAYOUT_LIVE_DEPLOY_20261102.md.
+
+## 2026-11-02 — GoldABV2 Wall R2 after Owner's 7 screenshots
+
+Brand-header placement for Live, Short ID and signed visible pending A code, English status, web-native approval dialog (no window.confirm), responsive inline fit-width two-Agent grants, shared persistent collapsible Wall sidebar on separate feature pages with local Material icon, 30%/20% countdown colors, Profile link without underline. Kept Owner B approval fences and existing A/B expiry untouched. See docs/project-book/LIGHT_REMOTE_GOLDABV2_WALL_REFINEMENT_R2_20261102.md.

@@ -32,19 +32,21 @@ try{
  const b=source.indexOf('async function refreshAbV2WallMode(){',a);
  assert.ok(a>0&&b>a);
  let now=1000000000000,refreshes=0;
- const elements=Object.fromEntries(['abV2WallStatus','abV2State','abV2Timer','abV2ApproveLink'].map(k=>[k,{hidden:true,dataset:{},textContent:''}]));
- const ctx={document:{getElementById:k=>elements[k]},Date:{now:()=>now},abV2PendingCount:1,abV2PendingDeadline:now+300000,abV2PendingExpiredRefresh:false,refreshAbV2WallMode:()=>{refreshes++}};
+ const elements=Object.fromEntries(['abV2WallStatus','abV2State','abV2Timer','abV2ApproveLink','abV2AValue'].map(k=>[k,{hidden:true,dataset:{},textContent:''}]));
+ const ctx={abV2PendingAValue:'R01KAP-HX61N',document:{getElementById:k=>elements[k]},Date:{now:()=>now},abV2PendingCount:1,abV2PendingDeadline:now+300000,abV2PendingExpiredRefresh:false,refreshAbV2WallMode:()=>{refreshes++}};
  vm.runInNewContext(source.slice(a,b),ctx);
  const check=(left,phase)=>{
   ctx.abV2PendingDeadline=now+left;ctx.renderAbV2PendingCountdown();assert.equal(elements.abV2WallStatus.dataset.phase,phase);
-  assert.equal(elements.abV2State.textContent,'đợi duyệt');assert.equal(elements.abV2ApproveLink.hidden,false);
+  assert.equal(elements.abV2State.textContent,'· Pending approval');
+  assert.equal(elements.abV2AValue.textContent,'R01KAP-HX61N');assert.equal(elements.abV2ApproveLink.hidden,false);
  };
- check(300000,'pending');check(115000,'yellow');check(59000,'orange');check(29000,'red');
+ check(300000,'pending');check(115000,'pending');check(79000,'orange');check(59000,'red');check(29000,'red');
  ctx.abV2PendingDeadline=now;ctx.renderAbV2PendingCountdown();ctx.renderAbV2PendingCountdown();
  assert.equal(elements.abV2WallStatus.dataset.phase,'expired');
  assert.equal(refreshes,1,'expired state only triggers one immediate refresh');
  ctx.abV2PendingCount=0;ctx.renderAbV2PendingCountdown();
  assert.equal(elements.abV2WallStatus.dataset.phase,'standby');
+ assert.equal(elements.abV2AValue.textContent,'standby');
  assert.equal(elements.abV2ApproveLink.hidden,true);
  assert.equal(elements.abV2Timer.hidden,true);
  assert.match(source,/short\.textContent=shortId/);

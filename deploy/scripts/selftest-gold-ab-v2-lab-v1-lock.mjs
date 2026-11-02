@@ -55,7 +55,9 @@ try{
  assert.doesNotMatch(approve,/this Windows device/);
  assert.doesNotMatch(approve,/\.wrap>\.card\{display:none!important\}/);
  assert.match(approve,/A\/B V2 · Device authorization/);
- assert.match(approve,/href="\/">Back to Wall<\/a>/);
+ assert.match(approve,/title="Wall"/);
+ assert.match(approve,/id="wallSidebar"/);
+ assert.doesNotMatch(approve,/href="\/">Back to Wall<\/a>/);
  assert.match(approve,/href="https:\/\/goldabv2\.light-remote\.thaiduy\.digital\/account"/);
  assert.ok(approve.indexOf('id="abV2OwnerPreview"')<approve.indexOf('const wallCsrf='),
   'V2 approval card must live inside native Wall .wrap, before legacy script');

@@ -34,6 +34,42 @@ body.wall-sidebar-collapsed .sidebar-items .pill,body.wall-sidebar-collapsed #en
 .ab-v2-status[data-phase="orange"] #abV2State,.ab-v2-status[data-phase="orange"] #abV2Timer{color:#ffa85c}
 .ab-v2-status[data-phase="red"] #abV2State,.ab-v2-status[data-phase="red"] #abV2Timer,.ab-v2-status[data-phase="expired"] #abV2State{color:#ff7979}
 .ab-v2-status #abV2Timer{font:700 12px 'Google Sans Code',monospace;font-variant-numeric:tabular-nums}
+.wall-brand-status{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:9px}
+.wall-brand-status .ab-v2-status{max-width:min(100%,780px)}
+.wall-brand-status #conn{padding:6px 10px}
+.ab-v2-status #abV2AValue{color:#f0c94d;font:700 12px 'Google Sans Code',monospace;letter-spacing:.025em;user-select:text}
+.ab-v2-status[data-phase="standby"] #abV2AValue{color:#93a0b1}
+.wall-sidebar .sidebar-items>a[data-wall-current="true"]{background:#1c2834;border-color:#456277;color:#f1f6fc}
+.wall-subpage .wrap{max-width:950px;margin:16px auto;padding:18px 22px;transform:translateX(calc(var(--wall-sidebar-width) / 2));}
+.wall-subpage.wall-approve .wrap{max-width:680px}
+.wall-subpage .wall-back,.wall-subpage #backToWall{display:none!important}
+.wall-subpage .wall-sidebar .sidebar-items .btn{padding:8px 11px;font-size:13px;display:inline-flex;align-items:center}
+.wall-subpage.wall-sidebar-collapsed .wall-sidebar .sidebar-items .btn{padding:8px}
+.ab-grant-grid{display:grid;grid-template-columns:repeat(2,minmax(0,max-content));gap:7px 9px;align-items:start;margin-top:5px}
+.ab-grant-grid .ab-grant-agent-row{display:inline-flex;min-width:0;width:max-content;max-width:100%;align-items:center;overflow-wrap:anywhere;font-size:12px;padding:5px 9px}
+.ab-grant-grid .ab-grant-agent-row[data-phase="warn"]{border-color:#86651e;background:#241b0b;color:#ffd17b}
+.ab-grant-grid .ab-grant-agent-row[data-phase="danger"]{border-color:#8a3540;background:#271014;color:#ff919e}
+.ab-v2-status[data-phase="yellow"] #abV2State,.ab-v2-status[data-phase="yellow"] #abV2Timer{color:#f3ad59}
+.ab-v2-status[data-phase="orange"] #abV2State,.ab-v2-status[data-phase="orange"] #abV2Timer{color:#f3ad59}
+.ab-v2-status[data-phase="pending"] #abV2AValue{color:#6ee7a4}
+.ab-v2-status[data-phase="orange"] #abV2AValue{color:#f3ad59}
+.ab-v2-status[data-phase="red"] #abV2AValue{color:#ff7979}
+.lr-time-warn{color:#ffba62}
+.lr-time-danger{color:#ff838e}
+.ab2-shell .ab2-timer[data-phase="warn"]{color:#ffba62}
+.ab2-shell .ab2-timer[data-phase="danger"]{color:#ff838e}
+
+.wall-native-dialog{border:1px solid #445261;border-radius:12px;background:#111920;color:#e1eaf2;max-width:min(440px,calc(100vw - 30px));width:100%;padding:18px 20px;box-shadow:0 20px 70px #000b;font-family:'Google Sans',sans-serif}
+.wall-native-dialog::backdrop{background:#000b;backdrop-filter:blur(2px)}
+.wall-native-dialog p{margin:0 0 18px;font-size:14px;line-height:1.55}
+.wall-native-dialog .wall-dialog-actions{display:flex;justify-content:flex-end;gap:9px}
+.wall-native-dialog button{background:#18232d;color:#dce5ed;border:1px solid #425262;border-radius:7px;padding:8px 15px;font:600 13px 'Google Sans',sans-serif;cursor:pointer}
+.wall-native-dialog button[data-confirm]{background:#f1bf25;color:#0b0e11;border-color:#f1bf25}
+#devicebox a:not(:hover){text-decoration:none}
+#devicebox a:hover{text-decoration:none;color:#c2e8ff}
+@media(max-width:1050px){.wall-subpage .wrap{margin-left:calc(var(--wall-sidebar-width) + 10px);margin-right:12px;max-width:calc(100% - var(--wall-sidebar-width) - 22px);transform:none}}
+@media(max-width:640px){.ab-grant-grid{grid-template-columns:1fr}.ab-grant-grid .ab-grant-agent-row{width:auto}.wall-subpage .wrap{padding:12px}}
+
 .ab-v2-status #abV2ApproveLink{border:1px solid #276442;border-radius:5px;color:#90f3b9;text-decoration:none;padding:2px 6px;font-size:12px}
 .ab-v2-status [hidden]{display:none!important}
 .term{font-family:'Google Sans Code',ui-monospace,monospace}
@@ -73,3 +109,52 @@ export const WALL_UI_REFINEMENT_SCRIPT = `
  apply();
 })();
 `;
+
+export const WALL_NATIVE_DIALOG_MARKUP = '<dialog id="wallNativeConfirm" class="wall-native-dialog" aria-label="Confirm access"><p id="wallNativeConfirmText"></p><div class="wall-dialog-actions"><button type="button" data-cancel>Cancel</button><button type="button" data-confirm>Confirm</button></div></dialog>';
+export const WALL_NATIVE_DIALOG_SCRIPT = `
+(function(){
+  const dialog=document.getElementById('wallNativeConfirm');
+  if(!dialog)return;
+  let resolvePending=null;
+  window.lrWebConfirm=(message)=>{
+    if(resolvePending||typeof dialog.showModal!=='function')return Promise.resolve(false);
+    const text=document.getElementById('wallNativeConfirmText');
+    text.textContent=String(message||'Please confirm this action.').slice(0,300);
+    return new Promise(resolve=>{
+      resolvePending=resolve;
+      dialog.showModal();
+    });
+  };
+  const finish=(ok)=>{
+    if(!resolvePending)return;
+    const settle=resolvePending;resolvePending=null;
+    if(dialog.open)dialog.close();
+    settle(ok);
+  };
+  dialog.querySelector('[data-confirm]').addEventListener('click',()=>finish(true));
+  dialog.querySelector('[data-cancel]').addEventListener('click',()=>finish(false));
+  dialog.addEventListener('cancel',event=>{event.preventDefault();finish(false);});
+})();
+`;
+export function decorateWallSubpage(html,{csrf='',authEnabled=false,moduleSupported=false,materialIcon,path='/'}={}){
+  if(typeof html!=='string'||!html.includes('</body>')||!html.includes('</style>'))throw Error('wall_subpage_html_contract');
+  const esc=value=>String(value||'').replace(/[&<>"']/g,ch=>ch==='&'?'&amp;':ch==='<'?'&lt;':ch==='>'?'&gt;':ch==='"'?'&quot;':'&#39;');
+  const icons={wall:'dashboard',connect:'link',disconnect:'power',permissions:'security',approve:'approve',memory:'folder',codex:'smart_toy',settings:'settings',logout:'logout'};
+  const anchor=(href,icon,label)=>
+   '<a class="btn" href="'+href+'" data-wall-current="'+String(path===href)+'" title="'+label+'">'+materialIcon(icons[icon])+'<span>'+label+'</span></a>';
+  let nav=anchor('/','wall','Wall')+
+   anchor('/#connectCloud','connect','Connect')+
+   anchor('/#disconnectCloud','disconnect','Disconnect')+
+   anchor('/permissions','permissions','Permissions')+
+   anchor('/approve','approve','Approve B');
+  if(moduleSupported)nav+=anchor('/long-memory','memory','Long Memory')+anchor('/codex-cli','codex','Codex');
+  nav+=anchor('/settings','settings','Settings');
+  if(authEnabled)nav+='<form method="post" action="/auth/logout"><input type="hidden" name="csrf" value="'+esc(csrf)+'"><button type="submit" class="btn" title="Logout">'+materialIcon('logout')+'<span>Logout</span></button></form>';
+  const sidebar='<aside id="wallSidebar" class="wall-sidebar" aria-label="Wall navigation"><button class="sidebar-toggle" id="sidebarToggle" type="button" aria-expanded="true"><span class="nav-menu-glyph">☰</span><span class="nav-label">Navigation</span></button><nav class="sidebar-items">'+nav+'</nav></aside>';
+  let out=html.replace('</style>',WALL_UI_REFINEMENT_CSS+'</style>');
+  out=out.replace(/<body([^>]*)>/i,(_m,attributes)=>'<body'+attributes.replace(/class="([^"]*)"/g,'')+' class="wall-subpage wall-'+esc(path.replace(/[^a-z]/g,'')||'home')+'">');
+  out=out.replace(/<body[^>]*>/i,match=>match+sidebar+WALL_NATIVE_DIALOG_MARKUP);
+  out=out.replace(/<a([^>]+)href="\/"([^>]*)>\s*(?:Back to Wall|Cancel)\s*<\/a>/g,''); // preserve semantics elsewhere via Home navigation
+  out=out.replace('</body>','<script>'+WALL_UI_REFINEMENT_SCRIPT+WALL_NATIVE_DIALOG_SCRIPT+'</script></body>');
+  return out;
+}

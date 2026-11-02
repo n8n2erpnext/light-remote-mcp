@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-02",
-  "status": "goldabv2_wall_sidebar_layout_live_lab_4of4_gpt6_grant_preserved",
+  "status": "goldabv2_wall_r2_source_ready_pending_ci_and_lab_cutover",
   "branch": "feat/gold-single-owner-transfer-20261101",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -156,7 +156,7 @@
     "Agent V2 no-arg recovery source is newly changed; not yet deployed, not yet GitHub CI-verified and cannot pass physical Owner B→Helper 24h end-to-end while live PG043 is unregistered. Keep source, runtime and UI acceptance distinct.",
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID."
   ],
-  "nextAction": "Owner Ctrl+Shift+R and visual acceptance of sidebar, bell popover, signed A/B header countdown, LIVE OPERATOR STREAM; fix only remaining spacing/layout in isolated Lab, no main Gold UAT or production release.",
+  "nextAction": "Push GoldABV2 Wall R2 source and CI; after PASS snapshot isolated Lab, stage files, restart Wall only, verify 4/4 service and protected GPT-6 grant; Owner inspect screenshots.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -169,10 +169,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "cb093700cdd5f8d3e4a49d45a18b2ec43fe9c79515b50f99d419f9d039482643",
-    "trackedFiles": 1149,
+    "treeDigest": "1ac8e273f546cc4788e7f79d60dcdde0fd97b0b9b2bf8bca0ad8d4f920084616",
+    "trackedFiles": 1150,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-02T09:16:53.195Z"
+    "recordedAt": "2026-11-02T11:09:36.798Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -741,5 +741,13 @@
     "postCutoverServiceCount": "4/4 active",
     "postCutoverHttp": "public/local login 200, HTTPS healthz 200",
     "postCutoverGrants": "1 active, GPT-6 grant kept"
+  },
+  "goldAbV2WallRefinementR2_20261102": {
+    "scope": "brand status position, signed A code visible, web dialog, 2-column agent grants, persistent sidebar all feature pages, 30/20-percent time colors, profile no underline",
+    "productionTouched": false,
+    "schemaChanged": false,
+    "sourceTests": "local PASS",
+    "ownerVisualAcceptance": "pending",
+    "labOnly": true
   }
 }

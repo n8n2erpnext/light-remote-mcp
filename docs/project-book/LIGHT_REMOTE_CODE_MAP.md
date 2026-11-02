@@ -630,3 +630,9 @@ Admin Owner security emblem uses /assets/icons/material/security.svg (verified H
 - device-agent/local-wall.mjs: move existing exact buttons to fixed sidebar, notify bell at right header, signed pending Short ID and deadline; new renderAbV2PendingCountdown; remove duplicated A/B status ID and old forced 'AI Access V2' text; no grant logic changed.
 - deploy/scripts/selftest-gold-wall-ui-refinement.mjs: mocked HTML/JS/expiry tests; existing A/B display and Owner B navigation tests updated.
 - .github/workflows/gold-connection-lifecycle-gc.yml: includes source and test trigger.
+
+## GoldABV2 Wall R2 shared navigation and web approval (2026-11-02)
+- device-agent/wall-ui-refinement.mjs: decorateWallSubpage server helper, native HTML approval dialog, sidebar, grant grid, 30/20 percentage timer colors.
+- device-agent/local-wall.mjs: signed pending A code display, moving header, Agent grid, cloud plan timer colors, decorating Approve/Permissions/Settings/Processes.
+- device-agent/wall-ab-v2-preview.mjs: awaiting web dialog instead of window.confirm, fail closed, expiration colors.
+- deploy/scripts/selftest-gold-wall-shared-navigation-dialog-v2.mjs: 6 authenticated HTML/JS route tests.

@@ -61,6 +61,7 @@ export const wallAbV2PreviewFragment = `
    if(row.expiresNode){
     const left=Number(row.expiresAt)-Date.now();
     row.expiresNode.textContent=left>0?'Expires in '+fmtRemaining(left):'Request expired';
+     row.expiresNode.dataset.phase=left<=60000?'danger':left<=90000?'warn':'ok';
     if(left<=0)row.expiresNode.className='ab2-muted';
    }
   }
@@ -120,7 +121,7 @@ export const wallAbV2PreviewFragment = `
      if(consentRequired&&!/^[A-Za-z0-9_-]{32}$/.test(consentCode)){
       status.textContent='Generate the one-time Owner consent at /account.';return;
      }
-     if(!window.confirm('Grant this Agent access to this device for up to 24 hours?'))return;
+     if(!await window.lrWebConfirm?.('Grant this Agent access to this device for up to 24 hours?'))return;
      approve.disabled=true;
      try{
       const result=await fetch('/api/abv2/approve',{
