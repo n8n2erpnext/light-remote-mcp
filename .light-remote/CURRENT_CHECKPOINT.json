@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-03",
-  "status": "goldabv2_T03c2c7_Real_Chrome_Origin_null_from_no_referrer_scoped_fix_source_27of27_CI_PENDING",
+  "status": "goldabv2_T03c2c7_referrer_policy_origin_CI4of4_Lab_auth_TEMP_ON_until_1240UTC_Owner_E2E_OPEN",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "URGENT: Owner retried Windows Chrome consent and STILL got desktop_origin_required HTTP403 after hotfix 1183fd6a despite synthetic 27/27 PASS. Real request source category UNKNOWN. A temporary sanitized provenance TRACE was installed ONLY in active LXD Plugin 2026-11-03 ~11:34UTC; marker [desktop-owner-origin-denied-sanitized] in journalctl -u light-remote-gold-plugin.service. Logs only categorized site, Origin match, contentType, csrfPresent/Shape, referer match, bodyParsed; NO secrets. Synthetic cross-site probe verified trace. Owner needs to Cancel waiting native login, initiate new PKCE flow and click Continue ONE MORE TIME, then say 'Da bam'. Immediately inspect newest trace to identify exact real header/body mismatch, fix based on real evidence with security regressions+CI. Restore temporary diagnostic source from restricted backup preserving live permissions after capture. Existing Lab auto-OFF timer due 2026-11-03 11:45:08UTC / 18:45:08 HCM; after timer recheck flags, never assume still on. Real Owner callback/Keyring/session/10m refresh/logout/T04 SSO OPEN. Production Gold UAT, custom MCP, A/B unchanged.",
+  "nextAction": "2026-11-03 12:10 UTC: Owner-authorized retry via official Light Remote on VPS-ARM SUCCEEDED. Isolated Lab Plugin both Desktop Owner Auth flags temporarily ON, exact source fix 9c7d5582 Referrer-Policy:origin (source CI 41629686136 4/4, LXD tests 27/27 PASS). New guarded timer lr-desktop-owner-lab-autooff-20261103-refpol.timer will restore OFF at 2026-11-03 12:40:39 UTC / 19:40:39 HCM. Live anonymous authorize303 health200 4/4 services active, cross-site consent403, native no credentials401, active A/B grants0. Owner needs cancel prior Windows Desktop V4 sign-in, start NEW native PKCE sign-in, click Continue to Desktop and report outcome with URL/query redacted. Real callback, Windows Credential Manager, 10-minute refresh/restart/logout T03c2c E2E and T04 App-to-Wall SSO remain OPEN. No Gold UAT/prod/custom MCP change. Do NOT assume window active after deadline; verify live flags before further work.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -928,7 +928,7 @@
     "sourceOnlyRollback": "/var/backups/light-remote-abv2-lab-desktop-owner-9d996956-20261103/{plugin,operator}.{original.conf,path}",
     "desktopOwnerFlags": "both explicitly OFF (0) in final Lab systemd override after two controlled smoke probes; no valid login or tokens issued",
     "ownerCandidateCI": "Corrected Desktop source 4d1f0c22, GitHub 41613182472 7/7 PASS standalone Tauri CLI Owner candidates, Windows executable SHA256 96A9C44B7EEAC3A36BCF3E72945939BDE98DC0CBBF7FFBC2460C93BF03B92AB2. Owner Windows screenshot CONFIRMS native Login-first and Awaiting secure sign-in render; browser authorize initially 404 while backend flags OFF; callback and keyring NOT tested.",
-    "ownerConsentLabTemporaryWindow": "FIRST timer lr-desktop-owner-lab-autooff-20261103.timer triggered 2026-11-03 11:13 UTC and flags OFF verified. SECOND currently armed lab consentfix test timer lr-desktop-owner-lab-autooff-20261103-consentfix.timer due 2026-11-03 11:45:08 UTC (18:45:08 HCM), flags TEMP ON with original OFF restore script and extra backup plugin.flags-off-consentfix-20261103.conf. Positive Owner Login not yet observed; synthetic originless CSRF without Owner401, explicit cross-site403, missing CSRF403. ALWAYS verify live flags after expiry.",
+    "ownerConsentLabTemporaryWindow": "THIRD bounded retry SUCCEEDED 2026-11-03 12:10 UTC: lr-desktop-owner-lab-autooff-20261103-refpol.timer active/waiting, 30m to 12:40:39 UTC / 19:40:39 HCM. Both flags TEMP ON in isolated Lab Plugin only. 4/4 services active, health200 authorize303, cross-site403, missing native creds401, A/B grants0. Previous two timers expired and were not reused; verify live after expiry.",
     "t03c2c6Source": "1183fd6a8ea63108e9e60e208f99672865f1c41e",
     "t03c2c6Ci": "GitHub 41625626313 Gold Source Gate 4/4 PASS, documentation 41625626322 PASS, LXD Desktop Auth tests 27/27 PASS",
     "t03c2c6LabHotfix": "Exact two Plugin files sha matched, 4/4 services healthy, guarded new temporary feature activation; anonymous authorize303, synthetic originless CSRF no Owner401, cross-site403, missing CSRF403; no valid Owner callback observed",
@@ -939,6 +939,8 @@
     "pairedWindowsMcpDevice": false,
     "desktopOwnerLiveE2E": false,
     "appToWallSSO": false,
-    "handoff": "docs/project-book/LIGHT_REMOTE_GOLDABV2_DESKTOP_OWNER_AUTH_LAB_20261103.md"
+    "handoff": "docs/project-book/LIGHT_REMOTE_GOLDABV2_DESKTOP_OWNER_AUTH_LAB_20261103.md",
+    "t03c2c7Source": "9c7d5582f10e4ce6a9f4b03e6c65ceb5bb8f58c4 (consent HTML only Referrer-Policy: origin); GitHub CI 41629686136 4/4 SUCCESS",
+    "t03c2c7LiveStatus": "Source staged in Lab SHA matched and removed temporary diagnostics, tests 27/27 PASS, guarded Lab Owner auth enable retry SUCCESS but REAL Windows browser callback/OS vault E2E still UNVERIFIED."
   }
 }

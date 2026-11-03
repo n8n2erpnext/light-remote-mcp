@@ -958,3 +958,6 @@ Gold source 1183fd6a Source Gate 41625626313 4/4 PASS, Docs 41625626322 PASS, No
 
 ## 2026-11-03 — T03c2c7 real Chrome Origin mismatch caused by consent GET no-referrer
 Real sanitized 11:37:43 request: site=same-origin, origin=mismatch, form and CSRF shape valid. Source consent GET sets Referrer-Policy:no-referrer, which per Fetch Standard makes navigation-mode form POST Origin:null; explains 403 without weakening CSRF. Scoped verified Owner GET consent to Referrer-Policy:origin (Referer origin only; no PKCE query), strict Origin exact-match unchanged. Node Desktop Auth27/27 and Gold Single Owner Transfer PASS. GitHub CI/LXD staging pending; no valid Windows callback yet.
+
+## 2026-11-03 12:10 UTC — T03c2c7 successful authorized retry (bounded Lab-only Auth ON)
+Owner retry of previously blocked Light Remote operation completed via official VPS-ARM session. LXD GoldABV2 Lab Plugin toggled two Desktop auth flags ON with 30m systemd auto-OFF timer due 12:40:39 UTC/19:40:39 HCM. 4/4 services active, HTTPS health200, anonymous authorize303, cross-site form403, missing native token401, A/B active grants0. Source 9c7d5582 consent-only Referrer-Policy:origin CI 4/4 and LXD27/27 PASS. Owner physical browser POST/callback and OS Keyring E2E still OPEN. Production unchanged.
