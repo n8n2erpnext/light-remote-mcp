@@ -22,9 +22,54 @@ afterEach(() => {
   window.history.replaceState(null, '', '#/');
 });
 
+function renderPreview() {
+  const view = render(<App />);
+  fireEvent.click(screen.getByRole('button', { name: 'Explore UI (design preview)' }));
+  return view;
+}
+
 describe('Desktop V4 fail-closed interaction', () => {
-  it('renders nine sidebar destinations and disabled Owner approval action', () => {
+  it('requires entry authentication before any workspace route, even on a direct hash', async () => {
+    window.history.replaceState(null, '', '#/sessions');
     render(<App />);
+    expect(screen.getByRole('heading', { name: 'Welcome to Light Remote' })).toBeTruthy();
+    expect(screen.queryByRole('navigation', { name: 'Main navigation' })).toBeNull();
+    expect((screen.getByRole('button', { name: 'Continue in browser' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(vi.mocked(fetch)).not.toHaveBeenCalled();
+    window.location.hash = '#/settings';
+    fireEvent(window, new Event('hashchange'));
+    expect(screen.queryByRole('navigation', { name: 'Main navigation' })).toBeNull();
+  });
+
+  it('previews browser waiting, OS lock, revoked and account mismatch without authentication', () => {
+    render(<App />);
+    for (const [button, title] of [
+      ['Browser pending', 'Awaiting secure sign-in'],
+      ['App Lock', 'Unlock Light Remote'],
+      ['Expired', 'Sign in again to continue'],
+      ['Wrong account', 'This is a different account'],
+      ['Sign out', 'Keep your device identity']
+    ]) {
+      fireEvent.click(screen.getByRole('button', { name: button }));
+      expect(screen.getByRole('heading', { name: title })).toBeTruthy();
+      expect(screen.queryByRole('navigation', { name: 'Main navigation' })).toBeNull();
+    }
+    expect(vi.mocked(fetch)).not.toHaveBeenCalled();
+  });
+
+  it('uses ephemeral UI preview only, never a saved Owner session', () => {
+    renderPreview();
+    expect(screen.getByRole('navigation', { name: 'Main navigation' })).toBeTruthy();
+    expect(screen.getByText('DESIGN PREVIEW · NOT SIGNED IN')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Exit UI preview' }));
+    expect(screen.getByRole('heading', { name: 'Welcome to Light Remote' })).toBeTruthy();
+    expect(screen.queryByRole('navigation', { name: 'Main navigation' })).toBeNull();
+    expect(window.localStorage.getItem('lr-v4-auth')).toBeNull();
+  });
+
+
+  it('renders nine sidebar destinations and disabled Owner approval action', () => {
+    renderPreview();
     const nav = screen.getByRole('navigation', { name: 'Main navigation' });
     expect(within(nav).getAllByRole('link')).toHaveLength(9);
     expect(within(nav).getByRole('link', { name: 'AI Access' }).getAttribute('aria-current')).toBe('page');
@@ -35,7 +80,7 @@ describe('Desktop V4 fail-closed interaction', () => {
   });
 
   it('keeps unauthenticated /api/status as unverified, not connected', async () => {
-    render(<App />);
+    renderPreview();
     await screen.findByText('Device state not verified');
     expect(screen.queryByText('Connected · verified Local Wall')).toBeNull();
     const fetchMock = vi.mocked(fetch);
@@ -45,7 +90,7 @@ describe('Desktop V4 fail-closed interaction', () => {
   });
 
   it('navigates and changes local theme without privileged backend calls', async () => {
-    render(<App />);
+    renderPreview();
     const nav = screen.getByRole('navigation', { name: 'Main navigation' });
     fireEvent.click(within(nav).getByRole('link', { name: 'Settings' }));
     expect(screen.getByRole('heading', { name: 'Settings & Permissions' })).toBeTruthy();
@@ -70,7 +115,7 @@ describe('Desktop V4 fail-closed interaction', () => {
       ok: true, status: 200, headers: { get: () => 'application/json' },
       json: async () => payload
     }));
-    render(<App />);
+    renderPreview();
     const nav = screen.getByRole('navigation', { name: 'Main navigation' });
     fireEvent.click(within(nav).getByRole('link', { name: 'AI Access' }));
     await screen.findByText('Connected · verified Local Wall');
@@ -83,7 +128,7 @@ describe('Desktop V4 fail-closed interaction', () => {
       ? 'owner_login_required' : undefined);
     Object.assign(window, { __TAURI_INTERNALS__: { invoke } });
     window.history.replaceState(null, '', '#/overview');
-    render(<App />);
+    renderPreview();
     await screen.findByText('Wall reachable · Owner login required');
     expect(screen.getByText('Wall responding · Owner login required')).toBeTruthy();
     expect(screen.getByText('Device not verified')).toBeTruthy();
@@ -94,7 +139,7 @@ describe('Desktop V4 fail-closed interaction', () => {
   it('opens native Local Wall and activity logs through exact local-only bridge', async () => {
     const invoke = vi.fn().mockResolvedValue(undefined);
     Object.assign(window, { __TAURI_INTERNALS__: { invoke } });
-    render(<App />);
+    renderPreview();
     fireEvent.click(screen.getByRole('button', { name: 'Open Wall' }));
     expect(invoke).toHaveBeenCalledWith('open_local_wall', { view: 'home' });
     const nav = screen.getByRole('navigation', { name: 'Main navigation' });

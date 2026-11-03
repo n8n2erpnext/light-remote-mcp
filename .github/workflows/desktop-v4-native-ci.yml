@@ -6,6 +6,7 @@ on:
     branches:
       - feat/desktop-v4-shared-ui-20261101
       - feat/desktop-v4-wall-activity-20261102
+      - feat/desktop-v4-login-entry-20261103
     paths:
       - client/desktop-v4/**
       - .github/workflows/desktop-v4-native-ci.yml
@@ -24,6 +25,8 @@ concurrency:
 jobs:
   web-test-visual:
     name: Web build, tests, isolated browser screenshots
+    env:
+      VITE_LR_V4_UI_TEST: '1' # Signed-off UI-only test artifact; production omits this
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     defaults:
@@ -60,6 +63,8 @@ jobs:
           retention-days: 7
 
   native-shell:
+    env:
+      VITE_LR_V4_UI_TEST: '1' # UI-only test artifact; no Owner credential bridge
     name: Tauri 2 UI-only native build / ${{ matrix.os }}
     needs: web-test-visual
     runs-on: ${{ matrix.os }}

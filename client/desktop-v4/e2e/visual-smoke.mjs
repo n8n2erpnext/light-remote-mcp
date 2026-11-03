@@ -123,6 +123,33 @@ try {
       document.documentElement.style.colorScheme = theme;
     }, variant.theme);
     await page.waitForTimeout(100);
+    // Every route MUST show the Account gate first, before Owner API calls.
+    const auth = await page.evaluate(() => ({
+      heading: document.querySelector('#auth-title')?.textContent?.trim(),
+      navCount: document.querySelectorAll('nav[aria-label="Main navigation"] a').length,
+      loginDisabled: Boolean(document.querySelector('.auth-primary')?.disabled),
+      horizontalOverflow: document.documentElement.scrollWidth > innerWidth + 3,
+      demoControl: Boolean(document.querySelector('.auth-preview-enter')),
+      fontFamily: getComputedStyle(document.querySelector('.auth-card') ?? document.body).fontFamily,
+      logoLoaded: document.querySelector('.auth-brand-lockup img')?.naturalWidth > 0,
+      layoutOverflow: Array.from(document.querySelectorAll(
+        '.auth-card, .auth-brand-panel, .auth-main, .auth-secure-note, .auth-preview, .auth-steps'
+      )).filter(el => el.scrollWidth > el.clientWidth + 3)
+        .map(el => el.className)
+    }));
+    const authKey = `auth-entry-${variant.theme}-${variant.width}x${variant.height}`;
+    const authPng = path.join(outputDir, authKey + '.png');
+    await page.screenshot({ path: authPng, fullPage: true, animations: 'disabled' });
+    const authPassed = errors.length === 0 && fontLoaded && auth.navCount === 0 &&
+      auth.heading === 'Welcome to Light Remote' && auth.loginDisabled &&
+      !auth.horizontalOverflow && auth.demoControl && auth.logoLoaded &&
+      auth.fontFamily.includes('Light Remote Google Sans') &&
+      auth.layoutOverflow.length === 0;
+    results.push({ key: authKey, passed: authPassed, fontLoaded, errors: [...errors], ...auth, screenshot: authPng });
+    console.log(`${authPassed ? 'PASS' : 'FAIL'} ${authKey}: nav=${auth.navCount} loginDisabled=${auth.loginDisabled} overflow=${auth.horizontalOverflow}`);
+    // Preview is an in-memory, explicitly labelled UI demo; no Owner session.
+    await page.getByRole('button', { name: 'Explore UI (design preview)' }).click();
+    await page.locator('nav[aria-label="Main navigation"]').waitFor();
     const detail = await inspect(page, variant);
     const key = `ai-access-${variant.theme}-${variant.width}x${variant.height}`;
     const png = path.join(outputDir, key + '.png');
@@ -159,6 +186,23 @@ try {
     page.on('pageerror', error => errors.push(error.message));
     for (const route of featureRoutes) {
       await page.goto('http://127.0.0.1:4174/#/' + route, { waitUntil: 'networkidle' });
+      // Hash-only navigation may keep React memory alive. A real app restart
+      // MUST re-enter the Login gate before each direct workspace URL.
+      await page.reload({ waitUntil: 'networkidle' });
+      if (route === featureRoutes[0]) {
+        const authCheck = await page.evaluate(() => ({
+          title: document.querySelector('#auth-title')?.textContent?.trim(),
+          navCount: document.querySelectorAll('nav[aria-label="Main navigation"] a').length
+        }));
+        const authKey = 'auth-entry-' + theme + '-1440x900';
+        const authPng = path.join(outputDir, authKey + '.png');
+        await page.screenshot({ path: authPng, fullPage: true, animations: 'disabled' });
+        const authPassed = authCheck.title === 'Welcome to Light Remote' && authCheck.navCount === 0;
+        results.push({ key: authKey, passed: authPassed, ...authCheck, screenshot: authPng });
+        console.log(`${authPassed ? 'PASS' : 'FAIL'} ${authKey}: first-route protected`);
+      }
+      await page.getByRole('button', { name: 'Explore UI (design preview)' }).click();
+      await page.locator('nav[aria-label="Main navigation"]').waitFor();
       const detail = await page.evaluate(async () => {
         await document.fonts.load("400 16px 'Light Remote Google Sans'");
         await document.fonts.ready;

@@ -12,6 +12,7 @@ import { readLocalWallStatus, type SnapshotResult } from './lib/status';
 import { readLocalLogState, type LocalLogResult } from './lib/local-logs';
 import { nativeOpenWallAvailable, openLocalWall, type WallView } from './lib/open-wall';
 import { probeNativeLocalWall, type NativeWallProbe } from './lib/native-wall-probe';
+import { AuthEntry } from './AuthEntry';
 
 const iconMap: Record<(typeof navRoutes)[number]['icon'], LucideIcon> = {
   house: House,
@@ -24,6 +25,11 @@ const iconMap: Record<(typeof navRoutes)[number]['icon'], LucideIcon> = {
   user: UserRound,
   settings: Settings
 };
+
+// This switch is compiled only into the UNSIGNED UI acceptance pilot and tests.
+ // A production build without this flag has NO preview entry and remains gated
+ // until real OAuth/Owner session support is implemented.
+const UI_DESIGN_PREVIEW = import.meta.env.MODE === 'test' || import.meta.env.VITE_LR_V4_UI_TEST === '1';
 
 type ThemePreference = 'light' | 'dark' | 'system';
 type LoadState = { phase: 'loading' | 'settled'; result: SnapshotResult | null };
@@ -351,6 +357,7 @@ const titles: Record<RouteKey, { title: string; subtitle: string }> = {
 
 export function App() {
   const [route, setRoute] = useState<RouteKey>(() => parseRoute(window.location.hash));
+  const [inDesignPreview, setInDesignPreview] = useState(false);
   const { theme, choose } = useTheme();
   const [status, setStatus] = useState<LoadState>({ phase: 'loading', result: null });
   const [reload, setReload] = useState(0);
@@ -371,6 +378,10 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    if (!inDesignPreview) {
+      setStatus({ phase: 'settled', result: null });
+      return;
+    }
     const controller = new AbortController();
     let live = true;
     setStatus({ phase: 'loading', result: null });
@@ -378,19 +389,20 @@ export function App() {
       if (live) setStatus({ phase: 'settled', result });
     });
     return () => { live = false; controller.abort(); };
-  }, [reload]);
+  }, [reload, inDesignPreview]);
 
   useEffect(() => {
-    if (!nativeOpenWallAvailable()) return;
+    if (!inDesignPreview || !nativeOpenWallAvailable()) return;
     let live = true;
     setWallProbe('unavailable');
     void probeNativeLocalWall().then(result => { if (live) setWallProbe(result); });
     return () => { live = false; };
-  }, [reload]);
+  }, [reload, inDesignPreview]);
 
   // A previously verified connection must not remain shown forever.
   // Poll read-only status while visible and revalidate immediately after returning.
   useEffect(() => {
+    if (!inDesignPreview) return;
     const refreshVisible = () => {
       if (!document.hidden) setReload(value => value + 1);
     };
@@ -400,13 +412,22 @@ export function App() {
       window.clearInterval(timer);
       document.removeEventListener('visibilitychange', refreshVisible);
     };
-  }, []);
+  }, [inDesignPreview]);
 
   const navigate = (next: RouteKey) => {
     setRoute(next);
     if (window.location.hash !== routeHref(next)) window.location.hash = routeHref(next);
   };
   const info = titles[route];
+
+  // Enforce authentication as the ENTRY route. Neither location.hash nor
+  // native localhost probe can skip this gate. Only explicit UI-test builds
+  // expose a non-authoritative preview; no credential is persisted.
+  if (!inDesignPreview) {
+    return <AuthEntry theme={theme} chooseTheme={choose}
+      allowDesignPreview={UI_DESIGN_PREVIEW}
+      onPreviewWorkspace={() => { if (UI_DESIGN_PREVIEW) setInDesignPreview(true); }} />;
+  }
 
   return (
     <div className="app-shell">
@@ -418,6 +439,9 @@ export function App() {
             <p>{info.subtitle}</p>
           </div>
           <div className="header-actions">
+            <Button variant="secondary" className="auth-exit-preview" onClick={() => setInDesignPreview(false)}>
+              Exit UI preview
+            </Button>
             <Button variant="secondary" className="open-wall-button" disabled={!canOpenWall}
               title={canOpenWall ? 'Open this device Local Wall in the default browser' : 'Available only inside the native Desktop app'}
               onClick={() => requestOpenWall('home')} aria-label="Open Wall">
@@ -432,7 +456,7 @@ export function App() {
               onClick={() => setReload(i => i + 1)} disabled={status.phase === 'loading'}>
               <RefreshCcw size={18} aria-hidden="true" />
             </Button>
-            <span className="preview-pill"><span className="status-dot" aria-hidden="true" />PREVIEW · VERIFIED DATA ONLY</span>
+            <span className="preview-pill"><span className="status-dot" aria-hidden="true" />DESIGN PREVIEW · NOT SIGNED IN</span>
           </div>
         </header>
         {wallOpenError && <div className="open-wall-error" role="alert">{wallOpenError}</div>}
@@ -442,7 +466,7 @@ export function App() {
               : <FeatureScreen route={route} status={status.result} />}
         <footer className="page-footer">
           <CircleHelp size={14} aria-hidden="true" />
-          Desktop V4 pilot · no native Agent control or Owner grant mutations
+          Desktop V4 UI preview · not authenticated · no Owner grants or Agent mutations
         </footer>
       </main>
     </div>

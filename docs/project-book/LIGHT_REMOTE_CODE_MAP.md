@@ -462,3 +462,9 @@ Source: client/windows-native/GptOperator.Client/{TrayPopoverForm.cs,Program.cs,
 - \`client/desktop-v4/src/lib/native-wall-probe.ts\`: IPC output whitelist, fail-closed web without native bridge.
 - \`client/desktop-v4/src/App.tsx\`: same 9 frozen screens, updates only existing local-device text to distinguish Wall reachable/Owner sign-in vs authenticated Agent status. Never infer Connected from 401.
 - \`client/desktop-v4/src/lib/native-wall-probe.test.ts\`, \`App.test.tsx\`, \`native-shell.test.ts\`: positive/negative UI and security tests.
+## Desktop V4 Login-first / Moryqa typography (2026-11-03)
+- client/desktop-v4/src/AuthEntry.tsx and auth-entry.css: outside-shell auth gate, repo Google Sans, responsive Light/Dark state specimens.
+- client/desktop-v4/src/App.tsx: nine existing workspace routes gated before any sidebar; isolated in-memory UI test preview only.
+- client/desktop-v4/src/App.test.tsx and e2e/visual-smoke.mjs: negative login bypass and visual font/geometry/route reload tests.
+- Moryqa Figma six new nodes 63:76,63:105,63:244,63:278,63:312,63:346, authentic Google Sans Flex text; old Inter hidden.
+- Full handoff in docs/project-book/LIGHT_REMOTE_DESKTOP_V4_LOGIN_ENTRY_UI_20261103.md.
