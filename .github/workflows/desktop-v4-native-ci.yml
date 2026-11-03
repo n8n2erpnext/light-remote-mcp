@@ -69,6 +69,8 @@ jobs:
         env:
           VITE_LR_V4_UI_TEST: '0'
           VITE_LR_V4_OWNER_LOGIN: '1'
+      - name: Reject dev-server-only Owner candidate packaging
+        run: node e2e/tauri-production-packaging-contract.mjs
 
   native-shell:
     env:
@@ -187,8 +189,14 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Build real Owner Login frontend (NO design preview)
         run: npm run build
-      - name: Compile feature-enabled native candidate (NO installer)
-        run: cargo build --manifest-path src-tauri/Cargo.toml --release --features desktop-owner-login --bin light-remote-desktop-v4-pilot
+      - name: Verify standalone frontend packaging contract
+        run: node e2e/tauri-production-packaging-contract.mjs
+      - name: Build feature-enabled native candidate with EMBEDDED frontend (NO installer)
+        # Raw `cargo build --release` bypasses Tauri's production asset
+        # pipeline: Windows WebView2 then navigates to 127.0.0.1:5174
+        # (the Vite dev URL), causing ERR_CONNECTION_REFUSED.
+        # The Tauri CLI embeds ../dist into this standalone release executable.
+        run: npm exec -- tauri build --no-bundle --features desktop-owner-login --ci
       - name: Verify candidate SHA256 Windows
         if: runner.os == 'Windows'
         shell: pwsh

@@ -554,3 +554,7 @@ Source: client/windows-native/GptOperator.Client/{TrayPopoverForm.cs,Program.cs,
 
 ## Desktop V4 opt-in Owner LAB candidate CI (T03c2c2, 2026-11-03)
 - .github/workflows/desktop-v4-native-ci.yml owner-login-lab-candidate job: separate Windows/macOS/Linux GitHub-runner native cargo release build with --features desktop-owner-login and React VITE_LR_V4_OWNER_LOGIN=1, VITE_LR_V4_UI_TEST=0. Preserves existing native-shell UI-only job; exact Lab Wall profile; signed-in native UI candidate only, no backend enable. SHA256 print and unsigned/non-production artifact labels, 3-day retention. Source/CI acceptance pending.
+
+## Desktop V4 T03c2c4 standalone Owner LAB packaging (2026-11-03)
+- .github/workflows/desktop-v4-native-ci.yml owner-login-lab-candidate: previously `cargo build --release --features desktop-owner-login`, which compiles a WebView that targets Vite `devUrl` and fails offline `127.0.0.1` on Windows. Replaced with `npm exec -- tauri build --no-bundle --features desktop-owner-login --ci` so Tauri CLI embeds production `../dist` assets. Same non-production flags and unsigned portable artifact naming; UI-only build job unchanged.
+- client/desktop-v4/e2e/tauri-production-packaging-contract.mjs: CI source guard for correct Tauri production CLI, fixed Owner LAB feature/profile flags, locked JS CLI, non-installer config, compiled dist/index.html, JS/CSS and no dev-server HTML. Called in Web and Owner candidate workflow steps. This is packaging evidence, not a substitute for actual UI launch acceptance.
