@@ -46,7 +46,7 @@ describe('Tauri2 UI-only pilot trust boundary', () => {
     ]) expect(rust).not.toContain(forbidden);
     const manifest = readFileSync(path.resolve(process.cwd(), 'src-tauri/build.rs'), 'utf8');
     const permission = readFileSync(path.resolve(process.cwd(), 'src-tauri/permissions/open-local-wall.toml'), 'utf8');
-    expect(manifest).toContain('.commands(&commands)');
+    expect(manifest).toContain('.commands(commands)');
     expect(manifest).toContain('CARGO_FEATURE_DESKTOP_OWNER_LOGIN');
     expect(manifest).toContain('"desktop_owner_begin"');
     expect(permission).toContain('commands.allow = ["open_local_wall", "probe_local_wall"]');

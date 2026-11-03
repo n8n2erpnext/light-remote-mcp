@@ -636,3 +636,6 @@ T03c2a OS keyring 4/4 CI PASS run41579644386. Continued T03c2b native candidate:
 
 ## 2026-11-03 - T03c2b CI first Web test corrections
 First GitHub CI 41582176494 for source 548992dd: Web failed exactly three legacy/new UI assertions, native jobs skipped. Preserved exact preview visible label, zero-arg click wrapper to Owner login, and modified static check to allow only native feature-managed OwnerRuntime; no token bridge or backend feature activation. Next CI pending, source-only.
+
+## 2026-11-03 - T03c2b static Tauri manifest lifetime correction
+GitHub V4 CI 41582409955 Web/Chromium PASS, 3 native OS jobs FAIL E0597 build.rs local Vec lifetime. Corrected using static UI_ONLY and OWNER_CANDIDATE command slices; default feature OFF remains two commands. Native signout uses refresh before stale access and forbids new login while verified. Repeat CI pending, all runtime flags OFF.

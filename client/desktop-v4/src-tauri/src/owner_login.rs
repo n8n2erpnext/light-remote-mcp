@@ -88,6 +88,9 @@ impl OwnerRuntime {
     }
     fn transition(&self, phase:&str) -> Result<u64,String> {
         let mut s=self.inner.lock().map_err(|_|"owner_state_unavailable")?;
+        if s.phase=="verified" {
+            return Err("owner_signout_required".into());
+        }
         if s.phase=="browser_pending" || s.phase=="restoring" {
             return Err("owner_login_already_pending".into());
         }
@@ -412,7 +415,9 @@ pub(crate) fn desktop_owner_logout(state:State<'_,OwnerRuntime>) -> Result<Owner
     let stored=owner_vault::read_refresh()?;
     // Delete even if the server is offline. No credentials remain on device.
     owner_vault::remove_refresh()?;
-    if let Some(value)=access.or(stored) {
+    // Prefer the rotating refresh in OS vault over an older access token;
+    // a revoked/expired access token must not prevent family invalidation.
+    if let Some(value)=stored.or(access) {
         let client=http()?;
         client.post(LOGOUT)
             .header("Authorization",format!("Bearer {}",value))
