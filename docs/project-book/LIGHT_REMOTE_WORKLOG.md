@@ -654,3 +654,6 @@ Added a separate GitHub-only 3-OS unsigned Owner Login LAB candidate job, preser
 
 ## 2026-11-03 — T03c2c2 candidate CI and GoldABV2 isolated flags-OFF cutover verified
 Desktop candidate commit 73b41e86 GitHub Actions 41605694255 7/7 PASS, three unsigned LAB binaries with SHA256 archived in Master. Gold compatibility branch 9d996956 Source Gate 41606865066 4/4 PASS; latest Gold handoff e6a970f6 docs CI 41608502565 PASS. Isolated Lab Plugin/Operator switched to staged Gold code with both Desktop flags OFF; 4 services active, HTTPS200 and Desktop routes 404. Snapshot and systemd rollback held. No Owner browser/native Keyring E2E, App→Wall SSO, Windows installed app or production change.
+
+## 2026-11-03 — Desktop V4 T03c2c3 Gold Lab backend negative HTTP acceptance
+Gold source c2bb754b CI41610511239 4/4 PASS; isolated Lab source hotfix checksum verified, native web endpoints temporary ON tested anonymous 303, cross-origin 403, missing credential 401, then both auth flags restored OFF with HTTPS200 and 4/4 services active. Gold authoritative handoff 7dbe1480 docs CI41611241211 PASS. No Windows A/B paired to this MCP client; real PKCE/Windows Keyring E2E and T04 SSO not performed. Installed Windows app/Gold UAT/production unaffected.
