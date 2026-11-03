@@ -130,6 +130,7 @@ try {
       loginDisabled: Boolean(document.querySelector('.auth-primary')?.disabled),
       horizontalOverflow: document.documentElement.scrollWidth > innerWidth + 3,
       demoControl: Boolean(document.querySelector('.auth-preview-enter')),
+      loginThemeControls: document.querySelectorAll('.auth-theme button').length,
       fontFamily: getComputedStyle(document.querySelector('.auth-card') ?? document.body).fontFamily,
       logoLoaded: document.querySelector('.auth-brand-lockup img')?.naturalWidth > 0,
       layoutOverflow: Array.from(document.querySelectorAll(
@@ -142,7 +143,7 @@ try {
     await page.screenshot({ path: authPng, fullPage: true, animations: 'disabled' });
     const authPassed = errors.length === 0 && fontLoaded && auth.navCount === 0 &&
       auth.heading === 'Welcome to Light Remote' && auth.loginDisabled &&
-      !auth.horizontalOverflow && auth.demoControl && auth.logoLoaded &&
+      !auth.horizontalOverflow && auth.demoControl && auth.logoLoaded && auth.loginThemeControls === 0 &&
       auth.fontFamily.includes('Light Remote Google Sans') &&
       auth.layoutOverflow.length === 0;
     results.push({ key: authKey, passed: authPassed, fontLoaded, errors: [...errors], ...auth, screenshot: authPng });

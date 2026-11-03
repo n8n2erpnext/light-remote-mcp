@@ -494,3 +494,10 @@ Source: client/windows-native/GptOperator.Client/{TrayPopoverForm.cs,Program.cs,
 - plugin-server/desktop-auth-v4-contract.test.mjs: negative tests for wrong owner, scopes/audience, tampered verifier, callback spoof, B/grant/consent injection.
 - .github/workflows/desktop-v4-native-ci.yml: Node 22 offline contract tests as part of Web job before native builds; no VPS-ARM npm/cargo build.
 - Source and CI acceptance in docs/project-book/LIGHT_REMOTE_DESKTOP_V4_API_MASTER_HANDOFF_20261103.md.
+
+## Desktop V4 T01b remove Login theme switch (2026-11-03)
+- Current Owner decision supersedes one-icon T01 attempt. Login has NO appearance button; Appearance remains under Settings.
+- client/desktop-v4/src/AuthEntry.tsx: remove Login-only appearance interaction and unused theme props.
+- client/desktop-v4/src/auth-entry.css: remove auth-theme styles entirely; client/desktop-v4/src/App.tsx no longer passes them.
+- client/desktop-v4/src/App.test.tsx + e2e/visual-smoke.mjs: absence assertion plus original Settings-only theme test, no arbitrary Owner authority.
+- Master handoff T01b tracks source SHA and CI; do not relabel the prior one-icon UI build as Owner acceptance.

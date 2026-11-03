@@ -44,7 +44,7 @@ E. OS App Lock applies only after verified account session; unlock cannot overri
 | Task | Scope / gate | Status |
 |---|---|---|
 | T00 | Write master handoff + checkpoint, verify canonical ARM SSH Git and baseline | DONE |
-| T01 | One-icon Light/Dark appearance switch, fix restored-window edge collision; targeted UI test | CODE + CI 4/4 PASS; physical Windows UI E2E OPEN |
+| T01 | Login theme collision: owner superseded single-icon approach; remove Login toggle entirely (Settings retains Appearance) | T01b SOURCE FIXED, CI PENDING |
 | T02 | Inventory exact Account Portal / Operator OAuth / Local Wall signed API contracts and auth security | SOURCE AUDIT COMPLETE |
 | T03 | Native Owner login PKCE + callback + secure OS vault + logout/refresh | IN PROGRESS: T03a validator/test only; no live auth |
 | T04 | Signed one-way App -> Local Wall SSO, replay prevention and logout link | BLOCKED ON T03 |
@@ -104,3 +104,14 @@ Resume on ARM: cd /home/ubuntu/n8n2erpnext/light-remote-mcp-worktrees/desktop-v4
 - Denies remote:MCP audiences/scopes, wrong Owner/account client parameters, forged Agent/grant/B/consent payload, wrong callbacks, weak verifier/challenge.
 - On VPS-ARM only lightweight Node 22 syntax + node --test (NO npm build): 5/5 PASS. New dedicated test step added to GitHub V4 CI; exact run PENDING.
 - This module is never imported/mounted by Account Portal or Operator; creates NO authorization code, session, bearer/refresh token or grant. T03b still needed before enabling actual Sign in.
+
+### T01b ? OWNER SCREENSHOT CORRECTION (2026-11-03)
+- Owner's latest restored-window screenshot shows the one-icon Light/Dark toggle still overlapping top-right of Login card. Owner explicitly selected removal of the Login toggle instead of repositioning again. **The prior T01 one-icon design is SUPERSEDED.**
+- Changed client/desktop-v4/src/AuthEntry.tsx: remove standalone theme toggle, derived mode variables, unnecessary theme props and Sun/Moon icon imports.
+- Changed client/desktop-v4/src/App.tsx: stop passing theme controls to Login gate; Settings still independently supports Light/Dark/System via existing useTheme and stored preference.
+- Changed client/desktop-v4/src/auth-entry.css: delete all Login auth-theme positioning styles, including small-screen overrides; avoids titlebar/card collision regardless of DPI/restored window size.
+- Changed client/desktop-v4/src/App.test.tsx: expect NO theme control in Login and no privileged fetch; existing Settings theme test remains.
+- Changed client/desktop-v4/e2e/visual-smoke.mjs: Chromium geometry evidence additionally requires zero Login theme controls.
+- Native/Login Owner API and permissions unaffected. No standalone UI test build or production deployment requested. GitHub CI on next source commit is automated; actual physical Windows acceptance remains separate.
+- This task's source commit/CI: pending until the atomic changes are committed and checked.
+- Continue T03b Desktop Owner authentication after T01b checkpoint, without faking account authority.

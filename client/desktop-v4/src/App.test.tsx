@@ -30,20 +30,13 @@ function renderPreview() {
 
 describe('Desktop V4 fail-closed interaction', () => {
 
-  it('uses one accessible Light/Dark icon clear of the restored window titlebar', () => {
+  it('keeps appearance controls out of the Login gate while Settings owns them', () => {
     render(<App />);
-    expect(document.querySelectorAll('.auth-theme button')).toHaveLength(1);
-    expect(screen.queryByRole('button', { name: 'System appearance' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Switch to dark appearance' }));
-    expect(document.documentElement.dataset.theme).toBe('dark');
-    expect(window.localStorage.getItem('lr-v4-theme')).toBe('dark');
-    fireEvent.click(screen.getByRole('button', { name: 'Switch to light appearance' }));
-    expect(document.documentElement.dataset.theme).toBe('light');
-    expect(window.localStorage.getItem('lr-v4-theme')).toBe('light');
-    expect(screen.queryByRole('navigation', { name: 'Main navigation' })).toBeNull();
+    expect(document.querySelector('.auth-theme')).toBeNull();
+    expect(screen.queryByRole('button', { name: /Switch to (light|dark) appearance/i })).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Welcome to Light Remote' })).toBeTruthy();
     expect(vi.mocked(fetch)).not.toHaveBeenCalled();
   });
-
 
   it('requires entry authentication before any workspace route, even on a direct hash', async () => {
     window.history.replaceState(null, '', '#/sessions');

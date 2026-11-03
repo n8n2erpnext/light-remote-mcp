@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowRight, CheckCircle2, Fingerprint, LockKeyhole, ShieldCheck, Sun, Moon, ExternalLink, RotateCcw } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Fingerprint, LockKeyhole, ShieldCheck, ExternalLink, RotateCcw } from 'lucide-react';
 import './auth-entry.css';
 
 export type AuthEntryMode =
@@ -7,8 +7,6 @@ export type AuthEntryMode =
   'expired' | 'account-mismatch' | 'sign-out';
 
 type Props = {
-  theme: 'light' | 'dark' | 'system';
-  chooseTheme: (theme: 'light' | 'dark' | 'system') => void;
   allowDesignPreview: boolean;
   onPreviewWorkspace: () => void;
 };
@@ -63,16 +61,9 @@ const previews: { key: Exclude<AuthEntryMode, 'signed-out'>; label: string }[] =
   { key: 'sign-out', label: 'Sign out' }
 ];
 
-export function AuthEntry({ theme, chooseTheme, allowDesignPreview, onPreviewWorkspace }: Props) {
+export function AuthEntry({ allowDesignPreview, onPreviewWorkspace }: Props) {
   const [mode, setMode] = useState<AuthEntryMode>('signed-out');
   const detail = mode === 'signed-out' ? null : states[mode];
-  // A single target-mode icon replaces the old three-button theme group.
-  // With System selected in Settings, clicking explicitly selects the other
-  // mode; it never changes any account or Agent permission.
-  const effectiveTheme = theme === 'system'
-    ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-    : theme;
-  const nextTheme = effectiveTheme === 'light' ? 'dark' : 'light';
   return (
     <div className="auth-shell" aria-label="Light Remote account sign-in">
       <aside className="auth-brand-panel">
@@ -93,14 +84,6 @@ export function AuthEntry({ theme, chooseTheme, allowDesignPreview, onPreviewWor
         <p className="auth-brand-footnote">Local login does not approve A/B grants.</p>
       </aside>
       <main className="auth-main">
-        <div className="auth-theme">
-          <button type="button"
-            aria-label={nextTheme === 'dark' ? 'Switch to dark appearance' : 'Switch to light appearance'}
-            title={nextTheme === 'dark' ? 'Switch to Dark mode' : 'Switch to Light mode'}
-            onClick={() => chooseTheme(nextTheme)}>
-            {nextTheme === 'dark' ? <Moon size={19} aria-hidden="true" /> : <Sun size={19} aria-hidden="true" />}
-          </button>
-        </div>
         <section className="auth-card" aria-labelledby="auth-title">
           <div className="auth-card-gold-rule" />
           <p className="auth-eyebrow">{detail?.label || 'ACCOUNT AUTHENTICATION'}</p>

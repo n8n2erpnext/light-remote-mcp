@@ -424,7 +424,7 @@ export function App() {
   // native localhost probe can skip this gate. Only explicit UI-test builds
   // expose a non-authoritative preview; no credential is persisted.
   if (!inDesignPreview) {
-    return <AuthEntry theme={theme} chooseTheme={choose}
+    return <AuthEntry
       allowDesignPreview={UI_DESIGN_PREVIEW}
       onPreviewWorkspace={() => { if (UI_DESIGN_PREVIEW) setInDesignPreview(true); }} />;
   }

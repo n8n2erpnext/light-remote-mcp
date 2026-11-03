@@ -609,3 +609,6 @@ Read-only source audit of Account Portal and Operator account routes, strict MCP
 
 ## 2026-11-03 - T01 CI complete / T03a Desktop Owner PKCE contract scaffold
 T01 single-icon theme source SHA 9f89a63a now GitHub V4 CI run 41571945654 4/4 PASS (Web, Windows, macOS, Linux), not yet physical UI acceptance. T03a pure Desktop owner PKCE challenge/callback validator added with distinct non-MCP audience/scope, 90s intent and strict 127.0.0.1/[::1] callback, rejects forged Owner/A-B authority. Offline Node unit tests 5/5 PASS on ARM without builds; GitHub CI added, pending. Module NOT mounted; real Owner Login, refresh/OS vault, App-Wall SSO still OPEN. Production/Gold UAT unchanged.
+
+## 2026-11-03 ? T01b Login theme collision final removal
+Owner showed a new Windows restored-window screenshot confirming the single Light/Dark icon still contacts the Login card. Removed icon entirely from Login JSX and CSS as specifically permitted, rather than moving it again. Settings keeps Light/Dark/System. Added unit and Chromium visual negative assertions; independent Login/Owner APIs unaffected. Source commit and CI pending; production/installed clients unchanged.
