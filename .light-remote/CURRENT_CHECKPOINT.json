@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-03",
-  "status": "desktop_v4_Windows_Owner_Login_Logout_Welcome_LIVE_PASS_T04b4_Gold_SSO_gateway_source_CI4of4_PASS",
+  "status": "desktop_v4_Windows_Owner_Login_Logout_Welcome_PASS_T04b5_Gold_shared_Redis_79of79_CI4of4_source_only",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "Real Windows Owner Login/Sign out/Welcome after 41653557757 EXE and OS Credential Manager cold restore PASS. Gold T04b4 source commit 8a2d49da one-use signed Operator SSO gateway, default OFF: Gold Source Gate CI 41658255479 4/4 SUCCESS, Docs Integrity 41658254452 PASS, 66/66 Node and Wall HTTP loopback PASS, not mounted to Lab/production. Next actual integration: private server-to-server Owner family Redis authority, enrolled Agent signed device transport, Rust-only native transfer and HTTPS/loopback Wall session bootstrap, then real Windows E2E. Still OPEN independent server-side logout family revocation and sustained 10minute proactive refresh, do not mark these physical PASS. Previous isolated Gold Lab Desktop Auth test window timer scheduled to OFF 2026-11-03 15:00:37 UTC/22:00:37 HCM, live-check flags before retry. Production, main Gold UAT, ChatGPT MCP, A/B unchanged.",
+  "nextAction": "Owner physical Windows Desktop V4 Login/Signout/Welcome and cold OS vault restore PASS; >10min proactive native refresh and independent backend logout family revocation E2E remain OPEN. Gold T04b5 source commit 931b86ade48a9d19c5dcbf83a9c2174db64e8276 default-disabled Operator shared Redis Desktop Owner family proof with AccountRegistry single Owner Portal session binding and T04a/b3 one-use ticket+Ed25519 device proof; 13 new tests, selected T04 79/79 PASS, Gold CI41662764438 4/4 SUCCESS, Docs Integrity41662764452 SUCCESS; Gold checkpoint7ed843d1. No actual cross-process Redis or Windows T04 SSO E2E; no server factory mounted, native Rust ticket transfer, signed Agent transport or secure HTTPS/loopback Wall. Isolated GoldABV2 Lab Auth/Token flags were verified OFF after previous timer at 2026-11-03 15:11 UTC; open a separate bounded QA window only when the full flow is testable. Gold main UAT/prod, MCP and Agent A/B unchanged.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -811,5 +811,15 @@
     "nativeTauriSSOIntegrated": false,
     "wallSSOUserReady": false,
     "blocking": "Trusted Owner-family Redis adapter + real signed device transport + native ticket and HTTPS Wall"
+  },
+  "t04b5GoldOwnerRedisAuthority": {
+    "sourceCommit": "931b86ade48a9d19c5dcbf83a9c2174db64e8276",
+    "ci": "Gold Source Gate 41662764438 4/4 SUCCESS",
+    "test": "79/79 T04 Node and Wall HTTP loopback PASS; Redis test double only, not live cross-process",
+    "goldCheckpoint": "7ed843d1f3ede610858f8a1ece0aa3f56c99da97",
+    "defaultOff": true,
+    "deployed": false,
+    "nativeTicketIntegrated": false,
+    "labAuthFlags": "OFF at 2026-11-03 15:11 UTC"
   }
 }
