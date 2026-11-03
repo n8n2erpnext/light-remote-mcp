@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-03",
-  "status": "desktop_v4_Owner_login_logout_Welcome_live_PASS_Gold_T04b6_exact5flag_Operator_source_CI4of4_PASS",
+  "status": "desktop_v4_Owner_Windows_Login_Logout_Welcome_LIVE_PASS_T04b7a_Gold_native_https_issue_source_103of103_PASS_NOT_MOUNTED",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "T04b6 Gold SOURCE accepted commit fa1f75bfbdf35cc8cec10443d891b7301f7a4274; Gold Source Gate41665190911 4/4 PASS, Docs41665190879 PASS, selected T04 89/89 Node plus Wall HTTP loopback regression PASS, Gold checkpoint646f0dc2569f96817930f964b403099bedfce60c. Operator now has a strict five-flag opt-in factory for enrolled Ed25519 one-use ticket redemption; default OFF 404, no running services or Windows EXE updated. T04 App->Wall physical SSO NOT READY. NEXT T04b7 native-only HTTPS ticket issue and trustworthy signed device transport, Rust-only callback plus eligible HTTPS/loopback Wall session bootstrap. Do not expose Desktop bearer/refresh to Wall, browser or A/B Agent grants. T03 native Login/Logout/Welcome Windows physical PASS; uninterrupted >10m proactive refresh and independent server-side family logout revocation E2E OPEN. Lab Desktop Auth/Token flags OFF after previous time-bounded QA; never claim login active without current check. Production, Gold UAT, ChatGPT MCP and Agent A/B unchanged.",
+  "nextAction": "T04b7a Gold SOURCE ONLY commit 0f0a002d65cc3958ada84ecbe4510fbc95d2918d, 14 new tests plus selected T04 103/103 PASS and real local Wall loopback revocation PASS. Added pure default-off Plugin HTTPS ticket request handler accepting only scoped Desktop Owner Authorization Bearer plus exact {device_id}, true TLS or explicitly pinned proxy peer, rejecting spoofed XFP/browser cookies/Origin/URL query/Agent/B/refresh; response only 45s ticket+expiry+deviceId. Added unmounted Operator Unix-socket internal ticket issue handler with default 404 and TCP/browser denial. Both handlers UNMOUNTED, plugin-server/server.mjs and Operator dispatcher NOT changed, no new Tauri candidate. One edit to inject test clock in Operator handler was policy blocked and not bypassed. GitHub Gold Source Gate run41668319985 3/4 PASS 1 PostgreSQL job running as of checkpoint, docs41668319987 PASS. NEXT T04b7b/8 explicit bounded Plugin↔Operator feature gating with correct proxy peer, pre-parser body/rate limit, real Redis/Ed25519, Rust-only native secure transfer, signed device relay and eligible HTTPS/loopback Wall cookie then physical Windows E2E. Owner Windows Login/Logout/Welcome/cold OS vault restore LIVE PASS; >10m native token rotation and independent remote family logout revoke E2E OPEN. Gold production, UAT, ChatGPT MCP, A/B and running Lab services untouched.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -831,5 +831,18 @@
     "deployed": false,
     "newWindowsCandidate": false,
     "blocking": "Native-only ticket issue, enrolled device signed relay, secure HTTPS/loopback Wall bootstrap, physical Windows SSO E2E"
+  },
+  "t04b7aGoldNativeIssueSource": {
+    "sourceCommit": "0f0a002d65cc3958ada84ecbe4510fbc95d2918d",
+    "ci": "Gold Source Gate 41668319985 in progress at checkpoint; Docs Integrity41668319987 PASS",
+    "tests": "103/103 selected T04 Node PASS + real Wall HTTP loopback revoke PASS",
+    "newModules": [
+      "plugin-server/desktop-wall-sso-native-issue-v4.mjs",
+      "operator-host/desktop-wall-sso-internal-issue-v4.mjs"
+    ],
+    "liveRouteRegistered": false,
+    "nativeRustUpdated": false,
+    "goldLabDeployed": false,
+    "blocking": "real Plugin↔Operator trust boundary, rate and parser guard, TLS termination, signed relay, Tauri/Wall full E2E"
   }
 }
