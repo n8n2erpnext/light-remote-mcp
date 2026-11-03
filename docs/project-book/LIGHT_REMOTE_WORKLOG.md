@@ -651,3 +651,6 @@ Continued from T03c2c transfer checkpoint on feat/desktop-v4-api-integration-202
 
 ## 2026-11-03 — Desktop V4 T03c2c2 independent feature-enabled Owner candidate CI
 Added a separate GitHub-only 3-OS unsigned Owner Login LAB candidate job, preserving the existing UI-only executable/job; Cargo feature and React Owner flag are both opt-in, design preview off, no installers/release. Workflow YAML parse and static feature gate PASS. Exact candidate CI/builds are pending. Previous refresh source be91bf70 completed GitHub Actions 41604858829 4/4 SUCCESS; Windows/macOS/Linux 12/12 Rust tests each. Lab runtime is unchanged and Desktop authorize/token paths remain 404.
+
+## 2026-11-03 — T03c2c2 candidate CI and GoldABV2 isolated flags-OFF cutover verified
+Desktop candidate commit 73b41e86 GitHub Actions 41605694255 7/7 PASS, three unsigned LAB binaries with SHA256 archived in Master. Gold compatibility branch 9d996956 Source Gate 41606865066 4/4 PASS; latest Gold handoff e6a970f6 docs CI 41608502565 PASS. Isolated Lab Plugin/Operator switched to staged Gold code with both Desktop flags OFF; 4 services active, HTTPS200 and Desktop routes 404. Snapshot and systemd rollback held. No Owner browser/native Keyring E2E, App→Wall SSO, Windows installed app or production change.
