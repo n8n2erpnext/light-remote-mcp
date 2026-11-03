@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-03",
-  "status": "desktop_v4_T02b_CI4of4_PASS_T03b_default_OFF_browser_consent_source_CI_pending",
+  "status": "desktop_v4_T01b_T02b_CI4of4_PASS_T03b_default_OFF_CI4of4_PASS_T03c_next",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -100,7 +100,8 @@
     "2026-11-03 T01 CI 4/4 PASS run41571945654; T03a candidate strict Desktop PKCE/loopback validator + 5 negative Node tests pass; no live Owner endpoint mounted.",
     "2026-11-03 T01b source correction: remove Login theme toggle/overlapping top-right control, retain Settings appearance; unit and visual no-control checks added; GitHub CI pending.",
     "2026-11-03 T02b source: GoldABV2 Lab Wall port 15591 separated from ChatGPT MCP; fixed compile-time native URL+anonymous probe, preserve local default, CI pending",
-    "2026-11-03 T02b GoldABV2 Lab Wall target CI 4/4 PASS run41575414419; T03b Account Portal browser Owner consent + Redis single-use code source tested 16/16, default OFF, no native token."
+    "2026-11-03 T02b GoldABV2 Lab Wall target CI 4/4 PASS run41575414419; T03b Account Portal browser Owner consent + Redis single-use code source tested 16/16, default OFF, no native token.",
+    "2026-11-03 T03b source SHA 376cb8ff exact GitHub CI 41576488187 SUCCESS 4/4 Web+Windows+macOS+Linux; docs CI 41576488180 PASS. Browser Owner consent remains default OFF, no native token/session."
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -149,7 +150,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "Verify GitHub CI for T03b exact SHA. Implement T03c native purpose-scoped code exchange + revocable Owner session and OS secure credential vault, then T04 signed App-to-Wall SSO. Do not confuse GoldABV2 /mcp with app Login.",
+  "nextAction": "T03c: implement Desktop-only one-time code exchange, revocable Owner account/device-bound access/refresh session and native OS secure vault + callback; keep feature disabled until security+native tests. Then T04 signed App->Wall one-way SSO for 100.94.184.141:15591. Custom ChatGPT /mcp remains separate.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -670,7 +671,7 @@
     "masterHandoff": "docs/project-book/LIGHT_REMOTE_DESKTOP_V4_API_MASTER_HANDOFF_20261103.md",
     "tasks": {
       "T00": "DONE 8004a074ac427c2bc33b8cbde263a6ecfc1e809c; staged guard PASS",
-      "T01": "T01b Owner screenshot correction: Login toggle completely removed; Settings appearance retained; source staged, CI pending.",
+      "T01": "T01b Login toggle removed; source b22f75fe, CI 41574241626 4/4 PASS; installed Windows visual acceptance open.",
       "T02": "DONE read-only source contract commit b681e6a61b8d2955923323896efca3d851492929",
       "T03": "T03a pure PKCE and T03b browser consent/code issued source-only default OFF; NO native token/login; CI pending.",
       "T04": "blocked-on-T03",
@@ -682,8 +683,8 @@
       "T10": "open",
       "T11": "open",
       "T12": "open",
-      "T02b": "DONE source 294aefba1611b16c31ff6b5b0f6ef1d331ee6375, GitHub CI run41575414419 4/4 PASS, physical Windows E2E pending.",
-      "T03b": "Source complete, feature flag OFF, Redis single-use CSRF and code/PKCE, 16/16 Node tests PASS, GitHub CI pending."
+      "T02b": "Source 294aefba, CI 41575414419 4/4 PASS; NetBird Lab HTTP401; physical installed App E2E open.",
+      "T03b": "Source 376cb8ff, CI 41576488187 4/4 PASS; default OFF, native token/session/callback not implemented."
     },
     "themeDecision": "Remove all appearance toggle controls from Login (owner supersedes 1-icon T01); Settings retains Light/Dark/System.",
     "realOwnerAuth": false,
@@ -698,13 +699,13 @@
     "t03aPureModule": "plugin-server/desktop-auth-v4-contract.mjs",
     "t03aUnitTests": "plugin-server/desktop-auth-v4-contract.test.mjs 5/5 offline node --test PASS",
     "t01bSourceSha": "b22f75fe463552d77e31005419f48bcec928a2df",
-    "t01bCiRun": "41574241626 pending verification",
+    "t01bCiRun": "41574241626 4/4 SUCCESS",
     "ownerUiAcceptancePending": true,
     "goldAbv2LabWall": "http://100.94.184.141:15591",
     "goldAbv2Mcp": "https://goldabv2.light-remote.thaiduy.digital/mcp (custom ChatGPT MCP only)",
     "goldAbv2AccountPortal": "https://goldabv2.light-remote.thaiduy.digital/account",
     "wallProfile": "compile-time LR_V4_WALL_PROFILE=goldabv2-lab in native CI; fallback localhost",
-    "t02bCi": "41575414419 success 4/4 Web, Windows, macOS, Linux.",
+    "t02bCi": "41575414419 4/4 SUCCESS",
     "t03bFlag": "LR_GOLD_ABV2_DESKTOP_OWNER_AUTH_V4 default OFF",
     "t03bPaths": [
       "plugin-server/desktop-auth-v4-server.mjs",
@@ -712,6 +713,8 @@
       "plugin-server/server.mjs"
     ],
     "t03bTests": "16/16 Node test PASS",
-    "t03bCi": "pending"
+    "t03bCi": "41576488187 4/4 SUCCESS; docs integrity 41576488180 PASS",
+    "t03bSourceSha": "376cb8ffd10ec17a4ee0ef88eef9b3f0fa7310c8",
+    "nativeOwnerLogin": false
   }
 }

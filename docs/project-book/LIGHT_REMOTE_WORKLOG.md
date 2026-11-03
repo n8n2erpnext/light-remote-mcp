@@ -618,3 +618,6 @@ Owner established new Wall endpoint http://100.94.184.141:15591 and custom ChatG
 
 ## 2026-11-03 ? T03b separate Desktop Owner browser consent source
 Feature-OFF Desktop Owner Account Portal authorization consent added, backed by verified browser Owner session, explicit Continue/Cancel, one-use Redis CSRF/code with 90-second code TTL and 12/10min Owner cap. Separate Desktop audience; no ChatGPT MCP resource reuse. Offline T03a+T03b 16/16 negative security tests PASS. No /token route, OS vault, native Login or App-to-Wall SSO. GoldABV2 runtime and installed Windows Agent unchanged; GitHub CI pending.
+
+## 2026-11-03 ? T03b exact GitHub CI 4 of 4 accepted (runtime OFF)
+Source SHA 376cb8ffd10ec17a4ee0ef88eef9b3f0fa7310c8, run 41576488187 4/4 PASS Web, Windows, macOS, Linux. Docs integrity run41576488180 PASS. Earlier Login theme T01b CI41574241626 and Lab Wall profile T02b CI41575414419 4/4 PASS. T03b feature LR_GOLD_ABV2_DESKTOP_OWNER_AUTH_V4 default OFF, no live Desktop owner token or App-Wall SSO, no GoldABV2 Lab deployment. Next T03c native secure code exchange/OS vault + revocation.

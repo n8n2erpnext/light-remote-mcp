@@ -44,11 +44,11 @@ E. OS App Lock applies only after verified account session; unlock cannot overri
 | Task | Scope / gate | Status |
 |---|---|---|
 | T00 | Write master handoff + checkpoint, verify canonical ARM SSH Git and baseline | DONE |
-| T01 | Login theme collision: owner superseded single-icon approach; remove Login toggle entirely (Settings retains Appearance) | T01b SOURCE FIXED, CI PENDING |
+| T01 | Login theme collision: owner superseded single-icon approach; remove Login toggle entirely (Settings retains Appearance) | SOURCE + CI 4/4 PASS, physical acceptance OPEN |
 | T02 | Inventory exact Account Portal / Operator OAuth / Local Wall signed API contracts and auth security | SOURCE AUDIT COMPLETE |
-| T02b | GoldABV2 Lab Wall target / custom ChatGPT MCP separation | SOURCE DONE; CI PENDING |
+| T02b | GoldABV2 Lab Wall target / custom ChatGPT MCP separation | SOURCE + CI 4/4 PASS, installed E2E OPEN |
 | T03 | Native Owner login PKCE + callback + secure OS vault + logout/refresh | IN PROGRESS: T03a validator/test only; no live auth |
-| T03b | Account Portal Owner browser consent + one-use Redis authorization code; default OFF | SOURCE DONE; CI PENDING |
+| T03b | Account Portal Owner browser consent + one-use Redis authorization code; default OFF | SOURCE + CI 4/4 PASS, runtime OFF |
 | T04 | Signed one-way App -> Local Wall SSO, replay prevention and logout link | BLOCKED ON T03 |
 | T05 | Overview/Devices/Link/Relink with actual enrolled ShortID and signed status | OPEN |
 | T06 | Sessions / AI Access (per-Agent leases/nicknames, B and consent, Owner close) | OPEN |
@@ -134,3 +134,11 @@ Resume on ARM: cd /home/ubuntu/n8n2erpnext/light-remote-mcp-worktrees/desktop-v4
 - Offline Node security tests T03a+T03b 16/16 PASS. CI workflow now runs both; exact native CI pending.
 - T03c still OPEN: native callback, access/refresh token issuer and revocation, OS credential vault. T04 App-to-Wall SSO also OPEN. UI Continue in browser remains disabled; this is NOT real Owner Login.
 - Owner endpoints: Lab Wall http://100.94.184.141:15591; browser Account Portal https://goldabv2.light-remote.thaiduy.digital/account; ChatGPT custom MCP https://goldabv2.light-remote.thaiduy.digital/mcp remains separate.
+
+### T03b ? CI receipt (exact source)
+- Source SHA: 376cb8ffd10ec17a4ee0ef88eef9b3f0fa7310c8.
+- GitHub Actions: https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/41576488187; Web + Chromium, Tauri Windows, macOS, Linux all SUCCESS (4/4).
+- Gold documentation library integrity: run41576488180 SUCCESS. Project Truth --staged passed securityBoundaryChanged=true. Local lightweight Node T03a/T03b 16/16 PASS.
+- T01b Login theme removal earlier source b22f75fe CI 41574241626 4/4 PASS. T02b GoldABV2 NetBird Wall profile source 294aefba CI 41575414419 4/4 PASS.
+- Only SOURCE, binary build and test acceptance. No App login browser callback, no secure OS vault, no token endpoint, no runtime feature flag activation, no App->Wall SSO and no native installed E2E. GoldABV2 Lab Wall and custom ChatGPT MCP unchanged.
+- Next: T03c must specify durable revocable Desktop-only session authority (account/device binding), build native localhost callback and OS vault with fail-closed revocation before enabling browser consent. DO NOT share Account Portal cookies with HTTP Wall; use T04 signed one-use SSO later.
