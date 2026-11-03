@@ -51,6 +51,26 @@ fn challenge(verifier: &str) -> String {
     URL_SAFE_NO_PAD.encode(Sha256::digest(verifier.as_bytes()))
 }
 
+// Leave enough time for a bounded HTTPS refresh before the 10-minute access
+// expires. Verification never extends an access token by itself.
+const OWNER_CHECK_INTERVAL: Duration = Duration::from_secs(15);
+const OWNER_REFRESH_MARGIN: Duration = Duration::from_secs(90);
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+enum OwnerPoll { Idle, Verify, Refresh }
+
+fn next_owner_poll(s: &NativeSession, now: Instant) -> OwnerPoll {
+    if s.phase != "verified" || s.status_inflight { return OwnerPoll::Idle; }
+    if s.access_deadline.map_or(true, |deadline| deadline <= now + OWNER_REFRESH_MARGIN) {
+        return OwnerPoll::Refresh;
+    }
+    if s.last_verified.map_or(true, |last| now.saturating_duration_since(last) >= OWNER_CHECK_INTERVAL) {
+        OwnerPoll::Verify
+    } else {
+        OwnerPoll::Idle
+    }
+}
+
 #[derive(Clone, Serialize)]
 #[serde(rename_all="camelCase")]
 pub(crate) struct OwnerView {
@@ -63,12 +83,23 @@ struct NativeSession {
     access_token: Option<String>,
     access_deadline: Option<Instant>,
     last_verified: Option<Instant>,
+    status_inflight: bool,
     generation: u64,
+}
+impl NativeSession {
+    fn expire(&mut self) {
+        self.phase="expired".into();
+        self.account_id=None;
+        self.access_token=None;
+        self.access_deadline=None;
+        self.last_verified=None;
+        self.status_inflight=false;
+    }
 }
 impl Default for NativeSession {
     fn default() -> Self {
         Self { phase:"signed_out".into(),account_id:None,access_token:None,
-            access_deadline:None,last_verified:None,generation:0 }
+            access_deadline:None,last_verified:None,status_inflight:false,generation:0 }
     }
 }
 #[derive(Default, Clone)]
@@ -78,11 +109,15 @@ pub(crate) struct OwnerRuntime {
 impl OwnerRuntime {
     fn view(&self) -> Result<OwnerView,String> {
         let mut s = self.inner.lock().map_err(|_|"owner_state_unavailable")?;
-        if s.phase=="verified" && s.access_deadline.is_some_and(|d| Instant::now() >= d) {
-            s.phase="expired".into();
-            s.access_token=None;
-            s.account_id=None;
-            s.last_verified=None;
+        if s.phase=="verified" {
+            let now=Instant::now();
+            // A status poll may be renewing an expired access after wake from
+            // sleep. Return no Owner proof until rotation actually commits.
+            if s.status_inflight &&
+               s.access_deadline.map_or(true, |d| d<=now+OWNER_REFRESH_MARGIN) {
+                return Ok(OwnerView {phase:"restoring".into(),account_id:None});
+            }
+            if s.access_deadline.map_or(true, |d|now>=d) {s.expire();}
         }
         Ok(OwnerView {phase:s.phase.clone(),account_id:s.account_id.clone()})
     }
@@ -100,6 +135,7 @@ impl OwnerRuntime {
         s.access_token=None;
         s.access_deadline=None;
         s.last_verified=None;
+        s.status_inflight=false;
         Ok(s.generation)
     }
     fn finish(&self, generation:u64, result:Result<TokenSet,String>) {
@@ -113,6 +149,7 @@ impl OwnerRuntime {
             }
             return;
         }
+        s.status_inflight=false;
         match result {
             Ok(tokens)=>{
                 // Hold the native state mutex through persistence so Sign out
@@ -348,43 +385,106 @@ pub(crate) fn desktop_owner_begin(state:State<'_,OwnerRuntime>) -> Result<OwnerV
     });
     state.view()
 }
-// Revalidate the original Owner account session through the dedicated HTTPS
-// Desktop endpoint at most every 15 seconds. On network loss or revocation,
-// lock immediately instead of keeping stale Owner privilege in the Webview.
-fn revalidate_owner(runtime:&OwnerRuntime) -> Result<OwnerView,String> {
-    let info={
-        let s=runtime.inner.lock().map_err(|_|"owner_state_unavailable")?;
-        if s.phase!="verified" || s.last_verified.is_some_and(|t|t.elapsed()<Duration::from_secs(15)){
+// HTTPS session checks and refreshes are serialized per native runtime, not
+// per React poll. A slow validation must never overwrite a newer rotation or
+// resurrect a session invalidated by Sign out.
+fn verify_owner_session(access: &str, account: &str) -> bool {
+    let response=http().and_then(|client|{
+        let res=client.get(SESSION).bearer_auth(access)
+            .send().map_err(|_|"owner_https_unavailable")?;
+        read_json(res)
+    });
+    response.is_ok_and(|value|
+        value.get("verified").and_then(Value::as_bool)==Some(true) &&
+        value.get("accountId").and_then(Value::as_str)==Some(account) &&
+        value.get("resource").and_then(Value::as_str)==Some(RESOURCE) &&
+        value.get("scope").and_then(Value::as_str)==Some(SCOPE))
+}
+
+fn finish_owner_verification(runtime: &OwnerRuntime, generation: u64,
+                              expected_access: &str, verified: bool) {
+    let Ok(mut s)=runtime.inner.lock() else {return;};
+    if s.generation!=generation || s.phase!="verified" ||
+       !s.status_inflight || s.access_token.as_deref()!=Some(expected_access) {
+        return;
+    }
+    s.status_inflight=false;
+    if verified {s.last_verified=Some(Instant::now());}
+    else {s.expire();}
+}
+
+// Returns a newly rotated credential to revoke if the result is stale, the
+// server changed Owner, or private OS-vault persistence fails. Never commit a
+// new refresh after logout. Hold the native mutex across the vault write so
+// logout cannot delete the old credential before a late refresh overwrites it.
+fn finish_owner_refresh<F>(runtime: &OwnerRuntime, generation: u64,
+                           expected_account: &str, result: Result<TokenSet,String>,
+                           persist: F) -> Option<String>
+where F: FnOnce(&str) -> Result<(),String> {
+    let Ok(mut s)=runtime.inner.lock() else {
+        return result.ok().map(|tokens|tokens.refresh_token);
+    };
+    if s.generation!=generation || s.phase!="verified" || !s.status_inflight {
+        return result.ok().map(|tokens|tokens.refresh_token);
+    }
+    s.status_inflight=false;
+    match result {
+        Ok(tokens) if tokens.account_id==expected_account => {
+            if persist(&tokens.refresh_token).is_err() {
+                s.expire();
+                return Some(tokens.refresh_token);
+            }
+            s.access_token=Some(tokens.access_token);
+            s.access_deadline=Some(Instant::now()+Duration::from_secs(tokens.expires_in));
+            // The refresh endpoint itself rechecks the exact Portal Owner
+            // session and its original expiry before issuing new credentials.
+            s.last_verified=Some(Instant::now());
             None
-        } else {
-            Some((s.access_token.clone(),s.account_id.clone(),s.generation))
         }
-    };
-    let Some(info)=info else {return runtime.view();};
-    let ok=match (info.0.as_deref(),info.1.as_deref()) {
-        (Some(access),Some(account))=>{
-            let response=http().and_then(|client|{
-                let res=client.get(SESSION).bearer_auth(access)
-                    .send().map_err(|_|"owner_https_unavailable")?;
-                read_json(res)
-            });
-            response.is_ok_and(|value|
-                value.get("verified").and_then(Value::as_bool)==Some(true) &&
-                value.get("accountId").and_then(Value::as_str)==Some(account) &&
-                value.get("resource").and_then(Value::as_str)==Some(RESOURCE) &&
-                value.get("scope").and_then(Value::as_str)==Some(SCOPE))
+        Ok(tokens) => {
+            s.expire();
+            Some(tokens.refresh_token)
         }
-        _=>false
-    };
-    {
+        Err(_) => {
+            // Network loss, revoked Portal session, locked keyring or an
+            // ambiguous refresh failure must never preserve Owner authority.
+            s.expire();
+            None
+        }
+    }
+}
+
+fn revalidate_owner(runtime:&OwnerRuntime) -> Result<OwnerView,String> {
+    let pending={
         let mut s=runtime.inner.lock().map_err(|_|"owner_state_unavailable")?;
-        if s.generation==info.2 && s.phase=="verified" {
-            if ok {s.last_verified=Some(Instant::now());}
-            else {
-                s.phase="expired".into();
-                s.account_id=None;s.access_token=None;s.access_deadline=None;s.last_verified=None;
+        let action=next_owner_poll(&s,Instant::now());
+        if action==OwnerPoll::Idle {None}
+        else {
+            s.status_inflight=true;
+            Some((action,s.generation,s.account_id.clone(),s.access_token.clone()))
+        }
+    };
+    let Some((action,generation,account,access))=pending else {return runtime.view();};
+    match action {
+        OwnerPoll::Refresh => {
+            // Also applies after sleep/resume if the 10m access already expired:
+            // during rotation the sanitized UI is "restoring", not "verified".
+            let rotated=finish_owner_refresh(runtime,generation,
+                account.as_deref().unwrap_or(""),refresh_from_vault(),
+                owner_vault::store_refresh);
+            if let Some(secret)=rotated {
+                if let Ok(client)=http() {revoke_remote(&client,&secret);}
             }
         }
+        OwnerPoll::Verify => {
+            let ok=match (access.as_deref(),account.as_deref()) {
+                (Some(token),Some(owner))=>verify_owner_session(token,owner),
+                _=>false
+            };
+            finish_owner_verification(runtime,generation,
+                access.as_deref().unwrap_or(""),ok);
+        }
+        OwnerPoll::Idle => {}
     }
     runtime.view()
 }
@@ -410,6 +510,7 @@ pub(crate) fn desktop_owner_logout(state:State<'_,OwnerRuntime>) -> Result<Owner
         s.account_id=None;
         s.access_deadline=None;
         s.last_verified=None;
+        s.status_inflight=false;
         s.access_token.take()
     };
     let stored=owner_vault::read_refresh()?;
@@ -485,5 +586,126 @@ mod tests {
         let a=secret();let b=secret();
         assert!(token_ok(&a));assert!(token_ok(&b));assert_ne!(a,b);
         assert!(token_ok(&challenge(&a)));
+    }
+    fn owner_with_deadline(deadline: Instant, last_verified: Option<Instant>) -> OwnerRuntime {
+        let runtime=OwnerRuntime::default();
+        {
+            let mut s=runtime.inner.lock().unwrap();
+            s.phase="verified".into();
+            s.account_id=Some("owner1".into());
+            s.access_token=Some("A".repeat(43));
+            s.access_deadline=Some(deadline);
+            s.last_verified=last_verified;
+            s.generation=4;
+        }
+        runtime
+    }
+    fn mock_tokens(account: &str) -> TokenSet {
+        TokenSet {
+            access_token:"B".repeat(43),
+            refresh_token:"R".repeat(43),
+            account_id:account.into(),
+            expires_in:600
+        }
+    }
+    #[test]
+    fn refresh_happens_before_expiry_and_after_sleep_resume() {
+        let now=Instant::now();
+        let runtime=owner_with_deadline(now+Duration::from_secs(600),Some(now));
+        let mut s=runtime.inner.lock().unwrap();
+        assert_eq!(next_owner_poll(&s,now),OwnerPoll::Idle);
+        s.last_verified=Some(now-Duration::from_secs(16));
+        assert_eq!(next_owner_poll(&s,now),OwnerPoll::Verify);
+        s.access_deadline=Some(now+Duration::from_secs(89));
+        assert_eq!(next_owner_poll(&s,now),OwnerPoll::Refresh);
+        s.access_deadline=Some(now-Duration::from_secs(3600));
+        assert_eq!(next_owner_poll(&s,now),OwnerPoll::Refresh);
+        s.status_inflight=true;
+        assert_eq!(next_owner_poll(&s,now),OwnerPoll::Idle);
+        drop(s);
+        // Concurrent polls cannot expose verified Owner during a rotation,
+        // including wake-up after the old access token has expired.
+        assert_eq!(runtime.view().unwrap().phase,"restoring");
+    }
+    #[test]
+    fn native_refresh_commits_one_keyring_rotation_and_preserves_owner() {
+        let now=Instant::now();
+        let runtime=owner_with_deadline(now+Duration::from_secs(30),Some(now));
+        runtime.inner.lock().unwrap().status_inflight=true;
+        let mut writes=0;
+        let revoked=finish_owner_refresh(&runtime,4,"owner1",Ok(mock_tokens("owner1")),|token|{
+            assert_eq!(token.len(),43);
+            writes+=1;
+            Ok(())
+        });
+        assert!(revoked.is_none());
+        assert_eq!(writes,1);
+        assert_eq!(runtime.view().unwrap().phase,"verified");
+        let s=runtime.inner.lock().unwrap();
+        assert_eq!(s.access_token.as_deref(),Some("B".repeat(43).as_str()));
+        assert!(s.access_deadline.unwrap()>now+Duration::from_secs(500));
+        assert_eq!(next_owner_poll(&s,Instant::now()),OwnerPoll::Idle);
+    }
+    #[test]
+    fn signout_during_refresh_never_persists_a_late_token() {
+        let now=Instant::now();
+        let runtime=owner_with_deadline(now+Duration::from_secs(5),Some(now));
+        {
+            let mut s=runtime.inner.lock().unwrap();
+            s.status_inflight=true;
+            s.generation+=1;
+            s.phase="signed_out".into();
+            s.account_id=None;
+            s.access_token=None;
+            s.status_inflight=false;
+        }
+        let mut writes=0;
+        let revoked=finish_owner_refresh(&runtime,4,"owner1",Ok(mock_tokens("owner1")),|_|{
+            writes+=1;Ok(())
+        });
+        assert!(revoked.is_some());
+        assert_eq!(writes,0);
+        assert_eq!(runtime.view().unwrap().phase,"signed_out");
+    }
+    #[test]
+    fn refresh_failure_wrong_owner_or_locked_vault_fails_closed() {
+        let now=Instant::now();
+        for case in 0..3 {
+            let runtime=owner_with_deadline(now-Duration::from_secs(30),Some(now));
+            runtime.inner.lock().unwrap().status_inflight=true;
+            let result=match case {
+                0=>Err("owner_https_unavailable".into()),
+                1=>Ok(mock_tokens("different-owner")),
+                _=>Ok(mock_tokens("owner1"))
+            };
+            let mut writes=0;
+            let revoked=finish_owner_refresh(&runtime,4,"owner1",result,|_|{
+                writes+=1;
+                if case==2 {Err("os_vault_write_failed".into())}
+                else {Ok(())}
+            });
+            assert_eq!(runtime.view().unwrap().phase,"expired");
+            assert_eq!(writes,if case==2 {1} else {0});
+            assert_eq!(revoked.is_some(),case!=0);
+            assert_eq!(runtime.inner.lock().unwrap().access_token,None);
+        }
+    }
+    #[test]
+    fn session_revalidation_revocation_and_stale_result_are_fenced() {
+        let now=Instant::now();
+        let runtime=owner_with_deadline(now+Duration::from_secs(300),
+            Some(now-Duration::from_secs(20)));
+        runtime.inner.lock().unwrap().status_inflight=true;
+        finish_owner_verification(&runtime,4,&"A".repeat(43),false);
+        assert_eq!(runtime.view().unwrap().phase,"expired");
+        let later=owner_with_deadline(now+Duration::from_secs(300),Some(now));
+        {
+            let mut s=later.inner.lock().unwrap();
+            s.status_inflight=true;
+            s.generation=5;
+        }
+        finish_owner_verification(&later,4,&"A".repeat(43),false);
+        assert_eq!(later.view().unwrap().phase,"verified");
+        assert!(later.inner.lock().unwrap().status_inflight);
     }
 }

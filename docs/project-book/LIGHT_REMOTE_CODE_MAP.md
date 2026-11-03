@@ -547,3 +547,7 @@ Source: client/windows-native/GptOperator.Client/{TrayPopoverForm.cs,Program.cs,
 - Plugin source plugin-server/desktop-auth-v4-server.mjs, desktop-owner-token-v4.mjs, server.mjs: Desktop auth default OFF; deployed Lab plugin older source-f228c2bb, endpoint HTTP404 before rollout.
 - Workflow .github/workflows/desktop-v4-native-ci.yml: current UI-only artifact preserved; feature-enabled isolated candidate NOT yet produced (prior write safety-blocked).
 - Current Master Handoff transfer checkpoint is source of truth for next session, including E2E acceptance/rollback and T04 boundaries.
+
+## Desktop V4 native Owner proactive refresh (T03c2c1, 2026-11-03)
+- client/desktop-v4/src-tauri/src/owner_login.rs: OWNER_REFRESH_MARGIN (90s), OWNER_CHECK_INTERVAL (15s), next_owner_poll selects native refresh before access deadline or after sleep/resume, single-flight status_inflight prevents duplicate requests, finish_owner_refresh persists rotated refresh only to OS Keyring with OwnerRuntime mutex and generation/account checks; stale results are revoked, failed verification/rotation locks Owner UI. Rust unit tests use injected vault persistence and fake credentials.
+- No new native IPC, React token handling, backend runtime route or Wall Owner privilege; Cargo desktop-owner-login still default OFF. Lab/runtime E2E and hosted CI must be independently verified before claiming completion.
