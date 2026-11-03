@@ -147,7 +147,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "Commit and push T01b complete removal of Login mode toggle with unit/visual assertions via VPS-ARM SSH; allow regular GitHub CI, do not install/build separately. Then continue T03b Desktop Owner auth; no live Login or SSO yet.",
+  "nextAction": "After run 41574241626 verifies T01b, update CI status. Main API task remains T03b separate Desktop Owner auth grant; do not use MCP resource or install UI-only pilot as production.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -693,8 +693,8 @@
     "t01NativeCI": "41571945654 4/4 SUCCESS Web+Windows+macOS+Linux",
     "t03aPureModule": "plugin-server/desktop-auth-v4-contract.mjs",
     "t03aUnitTests": "plugin-server/desktop-auth-v4-contract.test.mjs 5/5 offline node --test PASS",
-    "t01bSourceSha": "pending",
-    "t01bCiRun": "pending",
+    "t01bSourceSha": "b22f75fe463552d77e31005419f48bcec928a2df",
+    "t01bCiRun": "41574241626 pending verification",
     "ownerUiAcceptancePending": true
   }
 }

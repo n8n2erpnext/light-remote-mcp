@@ -113,5 +113,5 @@ Resume on ARM: cd /home/ubuntu/n8n2erpnext/light-remote-mcp-worktrees/desktop-v4
 - Changed client/desktop-v4/src/App.test.tsx: expect NO theme control in Login and no privileged fetch; existing Settings theme test remains.
 - Changed client/desktop-v4/e2e/visual-smoke.mjs: Chromium geometry evidence additionally requires zero Login theme controls.
 - Native/Login Owner API and permissions unaffected. No standalone UI test build or production deployment requested. GitHub CI on next source commit is automated; actual physical Windows acceptance remains separate.
-- This task's source commit/CI: pending until the atomic changes are committed and checked.
+- Source commit: b22f75fe463552d77e31005419f48bcec928a2df. GitHub CI: https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/41574241626; pending complete verification. Production app unchanged.
 - Continue T03b Desktop Owner authentication after T01b checkpoint, without faking account authority.
