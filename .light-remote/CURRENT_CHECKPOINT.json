@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-03",
-  "status": "desktop_v4_T03c2c10_COLD_SIGNOUT_BUG_FIX_WIN_OWNER_NATIVE_CI_PASS_NEW_LAB_EXE_READY_E2E_PENDING",
+  "status": "desktop_v4_T03c2c10_REAL_WINDOWS_Owner_Login_Logout_Welcome_E2E_PASS_SERVER_REVOKE_REFRESH_OPEN",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "T03c2c10 source 002ae870 fixes explicit signout then cold start wrongly showing SESSION EXPIRED when Credential Manager has no entry: restoring+owner_not_signed_in -> signed_out Welcome, other errors remain expired fail-closed. GitHub Desktop CI 41653557757: Web and native UI-only Win/Mac/Linux PASS, real Owner Login LAB unsigned Windows and Linux PASS, Owner LAB macOS was still running at this checkpoint. Downloadable USER artifact ZIP/EXE from GitHub artifact 13237749262, Windows EXE 7,972,864 bytes SHA256 DF97808F00253F79B50999FF7CEA0E1539DA1FF5372320FF13A7D45F10F72C84, delivered in this conversation. Windows post-signout read-only cmdkey metadata Owner V4 credential target count0, process count0; no secret values read. User must test NEW Windows EXE cold start after signed out: expected Welcome (not SESSION EXPIRED). Do not mark live UX PASS until image. Server-side family revocation still unverified. Lab Desktop Auth temporary ON only until 2026-11-03 15:00:37 UTC/22:00:37 HCM, recheck flags if logging in after. Gold UAT/prod unchanged, T04 signed App-to-Wall SSO still OFF.",
+  "nextAction": "OWNER ACCEPTED T03c2c10 physical Windows E2E: latest LAB unsigned 41653557757 source 002ae870, login and explicit logout return to standard Welcome, no SESSION EXPIRED, no workspace access. USER CONFIRMED on 2026-11-03 screenshot. Old Credential Manager owner-target count0 read-only after logout. Outstanding T03c2c: independent backend Owner session family revocation on Logout and sustained proactive native token refresh >10min with Lab flags ON. T04 App->Wall signed SSO still default OFF, no Agent HTTP signed adapter/native Rust ticket/HTTPS Wall wiring. Bounded Lab Owner auth timer due 2026-11-03 15:00:37 UTC/22:00:37 HCM; recheck before new test. Gold main UAT/prod untouched.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -795,7 +795,10 @@
     "githubRun": 41653557757,
     "windowsOwnerCandidate": "PASS, unsigned artifact13237749262, exact EXE sha256 DF97808F00253F79B50999FF7CEA0E1539DA1FF5372320FF13A7D45F10F72C84",
     "windowsOwnerCredentialTargetCountAfterSignout": 0,
-    "windowsUXNewCandidateE2E": "PENDING user QA",
-    "macOwnerCI": "in_progress at checkpoint"
+    "windowsUXNewCandidateE2E": "PASS: Owner supplied actual Windows LAB 41653557757 screenshot showing standard Welcome + Continue in browser after login/signout; user explicitly confirms normal login/logout",
+    "macOwnerCI": "in_progress at checkpoint",
+    "ownerAcceptedAt": "2026-11-03T14:40:51Z approx screenshot file label",
+    "serverRevocation": "NOT VERIFIED",
+    "proactive10mRotation": "NOT VERIFIED"
   }
 }
