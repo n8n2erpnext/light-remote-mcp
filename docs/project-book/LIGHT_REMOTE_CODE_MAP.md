@@ -476,3 +476,9 @@ Source: client/windows-native/GptOperator.Client/{TrayPopoverForm.cs,Program.cs,
 - Existing Login shell client/desktop-v4/src/AuthEntry.tsx and auth-entry.css; App.tsx must only expose authenticated routes after verified Server Owner proof. Test-only preview is NOT login.
 - Pending T01: single Light/Dark toggle, fix restored Window edge, preserve Google Sans from repository.
 - Pending T02-T12: audited Account/Wall SSO, typed Owner projections and native modules across platforms, GitHub Actions runners only.
+
+## Desktop V4 T01 one-icon restored-window theme picker (2026-11-03)
+- client/desktop-v4/src/AuthEntry.tsx: single accessible target-mode Light/Dark toggle; initial System effective theme resolves from OS preference without auth effect.
+- client/desktop-v4/src/auth-entry.css: restored-window top clearance and 44x44 icon with responsive placement; no old screen visual changes.
+- client/desktop-v4/src/App.test.tsx: no three-button mode group; toggles theme only, no privileged calls.
+- Master task status and exact test evidence: docs/project-book/LIGHT_REMOTE_DESKTOP_V4_API_MASTER_HANDOFF_20261103.md, T01.

@@ -29,6 +29,22 @@ function renderPreview() {
 }
 
 describe('Desktop V4 fail-closed interaction', () => {
+
+  it('uses one accessible Light/Dark icon clear of the restored window titlebar', () => {
+    render(<App />);
+    expect(document.querySelectorAll('.auth-theme button')).toHaveLength(1);
+    expect(screen.queryByRole('button', { name: 'System appearance' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Switch to dark appearance' }));
+    expect(document.documentElement.dataset.theme).toBe('dark');
+    expect(window.localStorage.getItem('lr-v4-theme')).toBe('dark');
+    fireEvent.click(screen.getByRole('button', { name: 'Switch to light appearance' }));
+    expect(document.documentElement.dataset.theme).toBe('light');
+    expect(window.localStorage.getItem('lr-v4-theme')).toBe('light');
+    expect(screen.queryByRole('navigation', { name: 'Main navigation' })).toBeNull();
+    expect(vi.mocked(fetch)).not.toHaveBeenCalled();
+  });
+
+
   it('requires entry authentication before any workspace route, even on a direct hash', async () => {
     window.history.replaceState(null, '', '#/sessions');
     render(<App />);

@@ -43,8 +43,8 @@ E. OS App Lock applies only after verified account session; unlock cannot overri
 ## 5. Task board (update after each completed task)
 | Task | Scope / gate | Status |
 |---|---|---|
-| T00 | Write master handoff + checkpoint, verify canonical ARM SSH Git and baseline | IN PROGRESS |
-| T01 | One-icon Light/Dark appearance switch, fix restored-window edge collision; targeted UI test | OPEN |
+| T00 | Write master handoff + checkpoint, verify canonical ARM SSH Git and baseline | DONE |
+| T01 | One-icon Light/Dark appearance switch, fix restored-window edge collision; targeted UI test | SOURCE DONE, CI PENDING |
 | T02 | Inventory exact Account Portal / Operator OAuth / Local Wall signed API contracts and auth security | OPEN |
 | T03 | Native Owner login PKCE + callback + secure OS vault + logout/refresh | BLOCKED ON T02 |
 | T04 | Signed one-way App -> Local Wall SSO, replay prevention and logout link | BLOCKED ON T03 |
@@ -65,4 +65,17 @@ Next: complete T00 handoff commit/push on ARM, then T01 cosmetic icon without st
 Resume on ARM: cd /home/ubuntu/n8n2erpnext/light-remote-mcp-worktrees/desktop-v4-shared-ui-20261101; git status -sb; git log -3 --oneline; cat docs/project-book/LIGHT_REMOTE_DESKTOP_V4_API_MASTER_HANDOFF_20261103.md
 
 ## 8. Atomic completion receipts
-Pending T00 first commit, then append one receipt per task.
+### T00 ? COMPLETE: first handoff and SSH commit
+- Source commit: 8004a074ac427c2bc33b8cbde263a6ecfc1e809c.
+- Files: this master handoff, checkpoint JSON, Code Map, Worklog and V4 GitHub CI branch allowlist.
+- Environment: verified Windows -> authorized SSH -> VPS-ARM ubuntu; GitHub SSH identity on VPS-ARM succeeded; git remote uses git@github.com:n8n2erpnext/light-remote-mcp.git.
+- Tests: project-truth --staged PASS, git diff --cached --check PASS, Git branch pushed and clean.
+- Runtime E2E: NOT APPLICABLE; documentation bootstrap only. Gold UAT and installed Windows Agent untouched.
+- Next task: T01 single appearance icon, then T02 precise Owner API contract.
+
+### T01 ? SOURCE ADDED; CI / native screenshot PENDING
+- Changed AuthEntry.tsx: replaced three-button Light/Dark/Auto switch with ONE accessible target-mode button; System setting remains supported elsewhere.
+- Changed auth-entry.css: 44x44 button, top 64px for restored windows, focus/hover, responsive compact top offset; no impact on internal nine workspace screens.
+- Changed App.test.tsx: verifies one button, correct light/dark state and local preference, no Owner API or route bypass.
+- Exact commit, GitHub CI and native Windows screenshot: PENDING; do not mark accepted before proof.
+- Next: stage + push this source change through VPS-ARM SSH; inspect CI. No standalone cosmetic-only build request.

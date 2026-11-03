@@ -66,6 +66,13 @@ const previews: { key: Exclude<AuthEntryMode, 'signed-out'>; label: string }[] =
 export function AuthEntry({ theme, chooseTheme, allowDesignPreview, onPreviewWorkspace }: Props) {
   const [mode, setMode] = useState<AuthEntryMode>('signed-out');
   const detail = mode === 'signed-out' ? null : states[mode];
+  // A single target-mode icon replaces the old three-button theme group.
+  // With System selected in Settings, clicking explicitly selects the other
+  // mode; it never changes any account or Agent permission.
+  const effectiveTheme = theme === 'system'
+    ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+    : theme;
+  const nextTheme = effectiveTheme === 'light' ? 'dark' : 'light';
   return (
     <div className="auth-shell" aria-label="Light Remote account sign-in">
       <aside className="auth-brand-panel">
@@ -86,10 +93,13 @@ export function AuthEntry({ theme, chooseTheme, allowDesignPreview, onPreviewWor
         <p className="auth-brand-footnote">Local login does not approve A/B grants.</p>
       </aside>
       <main className="auth-main">
-        <div className="auth-theme" role="group" aria-label="Appearance">
-          <button type="button" className={theme === 'light' ? 'selected' : ''} onClick={() => chooseTheme('light')} aria-label="Light appearance"><Sun size={17} /></button>
-          <button type="button" className={theme === 'dark' ? 'selected' : ''} onClick={() => chooseTheme('dark')} aria-label="Dark appearance"><Moon size={17} /></button>
-          <button type="button" className={theme === 'system' ? 'selected' : ''} onClick={() => chooseTheme('system')} aria-label="System appearance">Auto</button>
+        <div className="auth-theme">
+          <button type="button"
+            aria-label={nextTheme === 'dark' ? 'Switch to dark appearance' : 'Switch to light appearance'}
+            title={nextTheme === 'dark' ? 'Switch to Dark mode' : 'Switch to Light mode'}
+            onClick={() => chooseTheme(nextTheme)}>
+            {nextTheme === 'dark' ? <Moon size={19} aria-hidden="true" /> : <Sun size={19} aria-hidden="true" />}
+          </button>
         </div>
         <section className="auth-card" aria-labelledby="auth-title">
           <div className="auth-card-gold-rule" />

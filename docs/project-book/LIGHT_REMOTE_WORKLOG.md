@@ -600,3 +600,6 @@ Exact source 4878db7596 GitHub Actions run 41569151264 completed 4/4 SUCCESS: we
 
 ## 2026-11-03 - Desktop V4 API integration master handoff T00
 Owner reviewed Login-first Windows pilot and requested the titlebar-colliding 3-way theme picker replaced by a single Light/Dark icon, then full API integration with a master handoff updated after EVERY task. Canonical Git SSH source verified on VPS-ARM (ubuntu), not the Windows scratch clone. Created feature branch feat/desktop-v4-api-integration-20261103 from 54c69365. Master handoff documents accepted 9-screen UI, auth and A/B boundaries, 13 atomic tasks, tests, and on-device safety. T00 pending commit/push; production unchanged.
+
+## 2026-11-03 - T00 completed and T01 login theme switch source
+T00 master handoff pushed to GitHub SSH from VPS-ARM at 8004a074. T01 login-first theme picker changed from Light/Dark/Auto trio to single 44x44 Light/Dark mode icon to avoid Windows restored-window edge collisions; accessible next-mode label, existing System mode remains selectable in Settings. Unit test added. Not yet claimed CI or native Windows acceptance. Gold UAT/production unchanged.
