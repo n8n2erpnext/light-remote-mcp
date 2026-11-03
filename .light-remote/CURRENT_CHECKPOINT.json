@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-03",
-  "status": "goldabv2_T03c2c8_Windows_Keyring_read_after_cold_restart_PASS_T04a_source_CI4of4_PASS",
+  "status": "gold_20261103_T03c2c_Windows_PKCE_and_cold_keyring_restore_PASS_T04a_source_CI_PASS_Lab_auth_FLAGS_OFF",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "T03c2c actual Owner browser PKCE callback and cold Windows OS Credential Manager re-read / remote refresh / Overview PASS on real DESKTOP-VA16D27. Source fa74b1eb Gold T04a one-use signed-device-bound Owner Wall SSO contract 16/16 Node and GitHub 41636624729 4/4 CI PASS, NOT MOUNTED. Remaining: proactive continuous refresh after >10min and Logout/revoke E2E. Then T04b native HTTPS ticket issuer + signed enrolled Wall redeem + new local HttpOnly cookie with per-request Owner-family revocation; never copy Desktop bearer/refresh across HTTP or autoapprove A/B. Temporary Lab Owner flags ON only until 2026-11-03 12:40:39 UTC/19:40:39 HCM then OFF; recheck live flags before testing, no automatic extension. Gold UAT/prod unchanged.",
+  "nextAction": "At 2026-11-03 12:43:07 UTC (19:43:07 HCM), isolated GoldABV2 Lab auto-OFF timer successfully completed: both Desktop Owner auth flags OFF, 4/4 services active, HTTPS health200, authorize404. Real Windows Owner PKCE/login and OS Credential Manager cold-read/HTTPS refresh/Overview PASS. Continuous 10min proactive refresh, explicit Logout/server revocation/wrong Owner still OPEN; cannot test while backend feature flags OFF. T04a 45s one-use signed device bound ticket contract fa74b1eb 16/16 Node CI41636624729 4/4 PASS, SOURCE ONLY; T04b native ticket issue, enrolled device-signed redemption, revocable Wall HttpOnly cookie not integrated or enabled. Separate authorized bounded Lab test window needed for future E2E. Gold UAT/prod/custom MCP/A-B unchanged.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -958,5 +958,6 @@
     "handoff": "docs/project-book/LIGHT_REMOTE_DESKTOP_V4_WALL_SSO_T04_CONTRACT_20261103.md",
     "gitSource": "fa74b1eb02bc575f81f5eaace5874c9f75dfd5b6"
   },
-  "windowsCredentialColdRestore": "PASS on 2026-11-03: DESKTOP-VA16D27, correct exe 96A9C44B...03B92AB2, 0 prior process, cold launched PID14424 in interactive session1, app entered Overview OWNER VERIFIED without browser, code path desktop_owner_restore -> refresh_from_vault -> verified; no credential secrets read."
+  "windowsCredentialColdRestore": "PASS on 2026-11-03: DESKTOP-VA16D27, correct exe 96A9C44B...03B92AB2, 0 prior process, cold launched PID14424 in interactive session1, app entered Overview OWNER VERIFIED without browser, code path desktop_owner_restore -> refresh_from_vault -> verified; no credential secrets read.",
+  "labAuthFinalState": "OFF verified 2026-11-03 12:43:07 UTC: authOn0/tokenOn0/authOff1/tokenOff1, timer result=success, Plugin/Operator/Wall/Supervisor 4/4 active, HTTPS200, authorize404."
 }
