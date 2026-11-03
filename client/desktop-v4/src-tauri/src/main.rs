@@ -3,6 +3,11 @@
 //! Owner credentials, changes a grant or takes a user-supplied URL/path.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+// Candidate native-only Owner refresh vault is never exposed by Tauri IPC.
+// All credential use will stay in Rust, never React JS or Local Wall cookies.
+#[cfg(feature = "desktop-owner-login")]
+mod owner_vault;
+
 // Only preapproved build-time profiles may open a Wall.
 // An isolated GoldABV2 Lab V4 pilot targets a NetBird overlay address.
 fn use_goldabv2_lab_wall() -> bool {

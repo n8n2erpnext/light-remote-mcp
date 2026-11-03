@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-03",
-  "status": "desktop_v4_T03c1_server_revocable_owner_session_source_tests25_pass_CI_pending_default_OFF",
+  "status": "desktop_v4_T03c1_server_e20d699e_T03c2a_native_vault_source_CI_pending",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -102,7 +102,8 @@
     "2026-11-03 T02b source: GoldABV2 Lab Wall port 15591 separated from ChatGPT MCP; fixed compile-time native URL+anonymous probe, preserve local default, CI pending",
     "2026-11-03 T02b GoldABV2 Lab Wall target CI 4/4 PASS run41575414419; T03b Account Portal browser Owner consent + Redis single-use code source tested 16/16, default OFF, no native token.",
     "2026-11-03 T03b source SHA 376cb8ff exact GitHub CI 41576488187 SUCCESS 4/4 Web+Windows+macOS+Linux; docs CI 41576488180 PASS. Browser Owner consent remains default OFF, no native token/session.",
-    "2026-11-03 T03c1 SOURCE: Operator exact Account Portal session checked on access/refresh, 10m opaque desktop access/7d rotating refresh, family logout and 25 Node negative tests PASS; defaults OFF."
+    "2026-11-03 T03c1 SOURCE: Operator exact Account Portal session checked on access/refresh, 10m opaque desktop access/7d rotating refresh, family logout and 25 Node negative tests PASS; defaults OFF.",
+    "2026-11-03 T03c1 revocable Owner token backend source e20d699e, 25/25 Node security tests; T03c2a private OS keyring vault source, feature OFF, native CI pending."
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -151,7 +152,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "Validate GitHub CI T03c1 exact SHA. Then T03c2 implement native callback + OS credential vault on Windows/macOS/Linux and non-preview Login gate. Keep both Desktop auth feature flags OFF until native E2E and SSO separate.",
+  "nextAction": "Verify vault keyring Cargo feature CI on Windows/macOS/Linux; fix any compile errors. Then implement native loopback callback, HTTPS code exchange, secure native session restore and Owner App gate; do not enable backend flags before E2E.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -164,10 +165,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "7de9ef6ce1bc271e435951c07d72b4c55d4caa648a7b882a624e0f14dbe3a8cc",
-    "trackedFiles": 1175,
+    "treeDigest": "64de674a60b99bc6e3089122141a883ff81380611572fadba64b33853e98b6e6",
+    "trackedFiles": 1176,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-03T04:36:29.211Z"
+    "recordedAt": "2026-11-03T04:41:52.281Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -686,7 +687,8 @@
       "T12": "open",
       "T02b": "Source 294aefba, CI 41575414419 4/4 PASS; NetBird Lab HTTP401; physical installed App E2E open.",
       "T03b": "Source 376cb8ff, CI 41576488187 4/4 PASS; default OFF, native token/session/callback not implemented.",
-      "T03c1": "Source complete: Portal exact session binding, opaque access/refresh family, Redis one-time rotation+revocation, default OFF; 25/25 lightweight Node PASS; GitHub CI pending."
+      "T03c1": "Source e20d699e65aeb4d2a80e1b1b46f3aa660c042a27, 25/25 Node PASS, GitHub CI 41579145997 running.",
+      "T03c2a": "Source OS keyring candidate feature OFF, native CI pending."
     },
     "themeDecision": "Remove all appearance toggle controls from Login (owner supersedes 1-icon T01); Settings retains Light/Dark/System.",
     "realOwnerAuth": false,
@@ -726,6 +728,8 @@
       "POST /account/desktop/v4/logout"
     ],
     "t03c1Tests": "25/25 Node security tests PASS (T03a+b+c1)",
-    "t03c1Ci": "pending"
+    "t03c1Ci": "41579145997 in progress during handoff",
+    "t03c2aVault": "client/desktop-v4/src-tauri/src/owner_vault.rs; keyring 3.6.3 optional",
+    "t03c2aCi": "pending"
   }
 }

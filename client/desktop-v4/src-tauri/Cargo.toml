@@ -11,8 +11,15 @@ publish = false
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
+[features]
+default = []
+# Candidate native Owner bridge. The installed UI pilot does not enable this.
+desktop-owner-login = ["dep:keyring"]
+
 [dependencies]
 tauri = { version = "2", features = [] }
+# Platform native OS credential stores, never a Webview/localStorage credential.
+keyring = { version = "=3.6.3", default-features = false, features = ["apple-native", "windows-native", "sync-secret-service"], optional = true }
 
 [profile.dev]
 incremental = true

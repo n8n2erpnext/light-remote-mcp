@@ -521,3 +521,9 @@ Source: client/windows-native/GptOperator.Client/{TrayPopoverForm.cs,Program.cs,
 - plugin-server/desktop-owner-token-v4.mjs: new default-OFF native token/refresh/status/logout, Redis hashed opaque credentials, 10-minute access, 7-day max refresh/family, Portal-source session revalidation and family revoke.
 - plugin-server/desktop-owner-token-v4.test.mjs: Node security tests of rotation/replay, expiry, cross-site requests, disabled account and revocation. Existing T03a/b regressions in GitHub Web job.
 - plugin-server/server.mjs: two separate flags must both be ON to mount Desktop token routes; no runtime activation in this step.
+
+## Desktop V4 T03c2a native OS vault (feature default OFF)
+- client/desktop-v4/src-tauri/src/owner_vault.rs: private Rust OS keyring secret store/read/delete; no Tauri IPC and no fallback.
+- Cargo.toml: pinned keyring 3.6.3 with apple-native/windows-native/sync-secret-service, optional desktop-owner-login feature.
+- main.rs only includes vault with feature. Existing native IPC unchanged.
+- client/desktop-v4/src/lib/native-shell.test.ts and GitHub V4 CI: source boundary and native Rust compile/unit tests on Windows/macOS/Linux runners.

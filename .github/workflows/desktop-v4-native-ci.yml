@@ -94,7 +94,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            build-essential pkg-config libwebkit2gtk-4.1-dev \
+            build-essential pkg-config libdbus-1-dev libwebkit2gtk-4.1-dev \
             libgtk-3-dev libssl-dev libxdo-dev librsvg2-dev \
             libayatana-appindicator3-dev patchelf
       - name: Rust stable
@@ -108,6 +108,9 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Build native Tauri UI-only executable, no installer/bundle
         run: npm run tauri:build
+      - name: Candidate Owner OS secure-vault compile and Rust unit tests (no actual credentials)
+        run: cargo test --manifest-path src-tauri/Cargo.toml --features desktop-owner-login --bin light-remote-desktop-v4-pilot
+
       - name: Verify native executable and SHA256 (Windows)
         if: runner.os == 'Windows'
         shell: pwsh

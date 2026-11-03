@@ -624,3 +624,6 @@ Source SHA 376cb8ffd10ec17a4ee0ef88eef9b3f0fa7310c8, run 41576488187 4/4 PASS We
 
 ## 2026-11-03 ? T03c1 Owner native token server, default OFF (source only)
 Implemented AccountRegistry direct exact login-session-id validation via Operator Unix socket; browser PKCE code now inherits real sessionId and original expiry. Added separately gated native Owner read-only token exchange, 10-minute access, one-time rotating refresh max 7d, immediate family revocation and source Account Portal logout invalidation. No token leaks to React/Webview/MCP/Wall. Node T03a+b+c1 combined 25/25 security tests PASS; GitHub CI wired, exact run pending. Feature flags remain OFF. Native Tauri callback, OS vault, real UI login and App-Wall SSO are separate OPEN tasks; GoldABV2 Lab untouched.
+
+## 2026-11-03 ? T03c2a native OS keyring credential vault
+After T03c1 server source e20d699e with 25/25 Node security tests, implemented source-only default OFF OS keyring vault using Credential Manager/Keychain/Secret Service. No native credential IPC, no plaintext fallback. GitHub CI compiles native candidate on 3 platforms, pending. Native PKCE callback and actual Owner UI session remain OPEN; GoldABV2 Lab unchanged.

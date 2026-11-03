@@ -50,6 +50,7 @@ E. OS App Lock applies only after verified account session; unlock cannot overri
 | T03 | Native Owner login PKCE + callback + secure OS vault + logout/refresh | IN PROGRESS: T03a validator/test only; no live auth |
 | T03b | Account Portal Owner browser consent + one-use Redis authorization code; default OFF | SOURCE + CI 4/4 PASS, runtime OFF |
 | T03c1 | Revocable Owner access/refresh on server, bound to exact Portal session | SOURCE DONE; CI PENDING; runtime OFF |
+| T03c2a | Native OS credential vault with feature default OFF | SOURCE DONE, CI PENDING |
 | T04 | Signed one-way App -> Local Wall SSO, replay prevention and logout link | BLOCKED ON T03 |
 | T05 | Overview/Devices/Link/Relink with actual enrolled ShortID and signed status | OPEN |
 | T06 | Sessions / AI Access (per-Agent leases/nicknames, B and consent, Owner close) | OPEN |
@@ -153,3 +154,10 @@ Resume on ARM: cd /home/ubuntu/n8n2erpnext/light-remote-mcp-worktrees/desktop-v4
 - Lightweight Node syntax and security tests: 25/25 PASS across T03a/T03b/T03c1, including invalid/cross-site requests, revoked Portal session, refresh reuse, family revocation, expiry and AccountRegistry disabled account. GitHub CI runs all three suites; exact CI pending.
 - T03c2 NOT DONE: Tauri system-browser launcher + temporary 127.0.0.1 loopback callback with exact state/issuer, native HTTPS code exchange and OS secure vault Windows Credential Manager, macOS Keychain and Linux Secret Service. No real Desktop session yet; continue only after standalone native security tests.
 - T04 App -> Wall signed SSO still OPEN; NetBird Lab Wall 100.94.184.141:15591 remains HTTP and must not receive bearer/refresh secrets.
+
+### T03c2a ? Native platform credential vault (2026-11-03)
+- Paths: client/desktop-v4/src-tauri/src/owner_vault.rs; Cargo.toml; main.rs; src/lib/native-shell.test.ts; V4 GitHub workflow.
+- Native Cargo feature desktop-owner-login DEFAULT OFF; pinned keyring 3.6.3 with Windows Credential Manager, Apple Keychain and Linux Secret Service backends. Refresh credential stays private to native Rust. No Tauri invoke/API, Webview/localStorage/plaintext file exposure.
+- Credentials fail closed on unavailable or locked OS keystore. Linux libdbus-1-dev installed on CI runner only, not VPS-ARM. GitHub CI runs cargo test --features desktop-owner-login on all three OS runners without modifying existing UI-only native binary defaults.
+- Tests in Rust validate opaque token syntax, namespace. Web static test checks private-only keyring boundary. Cross-OS GitHub CI PENDING.
+- Next: T03c2b native loopback PKCE callback, OS-only HTTPS exchange, restore/revoke and verified native Owner UI gate. Real login and App-to-Wall SSO NOT implemented. GoldABV2 Lab unchanged.

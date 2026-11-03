@@ -49,6 +49,21 @@ describe('Tauri2 UI-only pilot trust boundary', () => {
     expect(manifest).toContain('.commands(&["open_local_wall", "probe_local_wall"])');
     expect(permission).toContain('commands.allow = ["open_local_wall", "probe_local_wall"]');
   });
+  it('has a native-only Owner refresh vault behind a default-off Cargo feature', () => {
+    const cargo = readFileSync(path.resolve(process.cwd(), 'src-tauri/Cargo.toml'), 'utf8');
+    const vault = readFileSync(path.resolve(process.cwd(), 'src-tauri/src/owner_vault.rs'), 'utf8');
+    expect(cargo).toContain('desktop-owner-login = ["dep:keyring"]');
+    expect(cargo).toContain('"apple-native", "windows-native", "sync-secret-service"');
+    expect(rust).toContain('#[cfg(feature = "desktop-owner-login")]');
+    expect(vault).toContain('Entry::new(SERVICE, ACCOUNT)');
+    expect(vault).toContain('.set_password(token)');
+    expect(vault).toContain('.get_password()');
+    expect(vault).toContain('.delete_credential()');
+    expect(vault).not.toContain('localStorage');
+    expect(vault).not.toContain('#[tauri::command]');
+    expect(vault).not.toContain('light-remote.thaiduy.digital/mcp');
+  });
+
   it('uses a local-only dev URL, bundled static files and restrictive CSP', () => {
     expect(conf.build.devUrl).toBe('http://127.0.0.1:5174');
     expect(conf.build.frontendDist).toBe('../dist');
