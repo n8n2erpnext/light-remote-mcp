@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-03",
-  "status": "goldabv2_T03c2c6_Consent_POST_hotfix_27of27_CI4of4_Lab_TEMP_ON_until_1145UTC_Windows_CALLBACK_PENDING",
+  "status": "goldabv2_T03c2c6_Real_Chrome_STILL_403_sanitized_provenance_trace_Lab_until_1145UTC",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "T03c2c6 consent header provenance source fix 1183fd6a: Gold Source Gate 41625626313 4/4 PASS, LXD 27/27 PASS. Prior Lab auto-OFF fired 11:13UTC successfully. Exact modified Plugin files deployed to isolated Lab; new guarded 30-minute Desktop Owner Auth TEMP ON timer lr-desktop-owner-lab-autooff-20261103-consentfix.timer due 2026-11-03 11:45:08 UTC/18:45:08 HCM. Anonymous authorize303, synthetic headerless CSRF request without Owner401 (not 403), cross-site403, missing CSRF403, HTTPS health200. Owner must CANCEL old Windows sign-in and START NEW native PKCE login, then click Continue to Desktop and report result. Real Owner callback, Windows OS Keyring, session refresh/logout, T04 SSO remain OPEN. After timer automatically OFF, verify live runtime before further tests. Gold UAT/prod/custom MCP/LM unchanged.",
+  "nextAction": "URGENT: Owner retried Windows Chrome consent and STILL got desktop_origin_required HTTP403 after hotfix 1183fd6a despite synthetic 27/27 PASS. Real request source category UNKNOWN. A temporary sanitized provenance TRACE was installed ONLY in active LXD Plugin 2026-11-03 ~11:34UTC; marker [desktop-owner-origin-denied-sanitized] in journalctl -u light-remote-gold-plugin.service. Logs only categorized site, Origin match, contentType, csrfPresent/Shape, referer match, bodyParsed; NO secrets. Synthetic cross-site probe verified trace. Owner needs to Cancel waiting native login, initiate new PKCE flow and click Continue ONE MORE TIME, then say 'Da bam'. Immediately inspect newest trace to identify exact real header/body mismatch, fix based on real evidence with security regressions+CI. Restore temporary diagnostic source from restricted backup preserving live permissions after capture. Existing Lab auto-OFF timer due 2026-11-03 11:45:08UTC / 18:45:08 HCM; after timer recheck flags, never assume still on. Real Owner callback/Keyring/session/10m refresh/logout/T04 SSO OPEN. Production Gold UAT, custom MCP, A/B unchanged.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
