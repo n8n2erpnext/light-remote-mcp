@@ -615,3 +615,6 @@ Owner showed a new Windows restored-window screenshot confirming the single Ligh
 
 ## 2026-11-03 ? T02b NetBird Lab Wall exact target (custom MCP separate)
 Owner established new Wall endpoint http://100.94.184.141:15591 and custom ChatGPT MCP https://goldabv2.light-remote.thaiduy.digital/mcp. Windows/ARM read-only probes confirmed Wall /api/status 401, GoldABV2 Account Portal 200, MCP HEAD 405. Native build-only Lab Wall target added to browser opener and anonymous probe, default local 127.0.0.1 preserved. No Owner SSO or native token access. CI pending; installed Agent unchanged.
+
+## 2026-11-03 ? T03b separate Desktop Owner browser consent source
+Feature-OFF Desktop Owner Account Portal authorization consent added, backed by verified browser Owner session, explicit Continue/Cancel, one-use Redis CSRF/code with 90-second code TTL and 12/10min Owner cap. Separate Desktop audience; no ChatGPT MCP resource reuse. Offline T03a+T03b 16/16 negative security tests PASS. No /token route, OS vault, native Login or App-to-Wall SSO. GoldABV2 runtime and installed Windows Agent unchanged; GitHub CI pending.

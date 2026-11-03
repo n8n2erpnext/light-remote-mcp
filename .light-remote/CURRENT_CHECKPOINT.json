@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-03",
-  "status": "desktop_v4_T02b_lab_wall_profile_source_ci_pending_T03a_pkce_only",
+  "status": "desktop_v4_T02b_CI4of4_PASS_T03b_default_OFF_browser_consent_source_CI_pending",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -99,7 +99,8 @@
     "2026-11-03 T02 source audit complete: Portal Owner cookie, dedicated Local Wall Owner cookie, strict MCP_RESOURCE OAuth, separate A/B consent. Native Desktop SSO still unimplemented.",
     "2026-11-03 T01 CI 4/4 PASS run41571945654; T03a candidate strict Desktop PKCE/loopback validator + 5 negative Node tests pass; no live Owner endpoint mounted.",
     "2026-11-03 T01b source correction: remove Login theme toggle/overlapping top-right control, retain Settings appearance; unit and visual no-control checks added; GitHub CI pending.",
-    "2026-11-03 T02b source: GoldABV2 Lab Wall port 15591 separated from ChatGPT MCP; fixed compile-time native URL+anonymous probe, preserve local default, CI pending"
+    "2026-11-03 T02b source: GoldABV2 Lab Wall port 15591 separated from ChatGPT MCP; fixed compile-time native URL+anonymous probe, preserve local default, CI pending",
+    "2026-11-03 T02b GoldABV2 Lab Wall target CI 4/4 PASS run41575414419; T03b Account Portal browser Owner consent + Redis single-use code source tested 16/16, default OFF, no native token."
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -148,7 +149,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "Run CI of native exact GoldABV2 Lab Wall profile. Then T03b source-only default-OFF Desktop Owner auth endpoints; never use /mcp or open an Owner session from anonymous Wall status.",
+  "nextAction": "Verify GitHub CI for T03b exact SHA. Implement T03c native purpose-scoped code exchange + revocable Owner session and OS secure credential vault, then T04 signed App-to-Wall SSO. Do not confuse GoldABV2 /mcp with app Login.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -161,10 +162,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "7d0185f83f0d3d7072de590e829a55f4b1655b1f317b973677910af980076c78",
-    "trackedFiles": 1171,
+    "treeDigest": "a8431a23f422f75fa8a960cfaa30ee8d5663d8a4ddb213913379a8b8bc7e9d78",
+    "trackedFiles": 1173,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-03T03:59:07.794Z"
+    "recordedAt": "2026-11-03T04:09:37.320Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -671,7 +672,7 @@
       "T00": "DONE 8004a074ac427c2bc33b8cbde263a6ecfc1e809c; staged guard PASS",
       "T01": "T01b Owner screenshot correction: Login toggle completely removed; Settings appearance retained; source staged, CI pending.",
       "T02": "DONE read-only source contract commit b681e6a61b8d2955923323896efca3d851492929",
-      "T03": "T03a pure PKCE + Desktop callback contract source, offline unit tests 5/5 PASS; no live endpoints, CI pending",
+      "T03": "T03a pure PKCE and T03b browser consent/code issued source-only default OFF; NO native token/login; CI pending.",
       "T04": "blocked-on-T03",
       "T05": "open",
       "T06": "open",
@@ -681,7 +682,8 @@
       "T10": "open",
       "T11": "open",
       "T12": "open",
-      "T02b": "fixed Lab Wall profile implemented; CI pending"
+      "T02b": "DONE source 294aefba1611b16c31ff6b5b0f6ef1d331ee6375, GitHub CI run41575414419 4/4 PASS, physical Windows E2E pending.",
+      "T03b": "Source complete, feature flag OFF, Redis single-use CSRF and code/PKCE, 16/16 Node tests PASS, GitHub CI pending."
     },
     "themeDecision": "Remove all appearance toggle controls from Login (owner supersedes 1-icon T01); Settings retains Light/Dark/System.",
     "realOwnerAuth": false,
@@ -702,6 +704,14 @@
     "goldAbv2Mcp": "https://goldabv2.light-remote.thaiduy.digital/mcp (custom ChatGPT MCP only)",
     "goldAbv2AccountPortal": "https://goldabv2.light-remote.thaiduy.digital/account",
     "wallProfile": "compile-time LR_V4_WALL_PROFILE=goldabv2-lab in native CI; fallback localhost",
-    "t02bCi": "pending"
+    "t02bCi": "41575414419 success 4/4 Web, Windows, macOS, Linux.",
+    "t03bFlag": "LR_GOLD_ABV2_DESKTOP_OWNER_AUTH_V4 default OFF",
+    "t03bPaths": [
+      "plugin-server/desktop-auth-v4-server.mjs",
+      "plugin-server/desktop-auth-v4-server.test.mjs",
+      "plugin-server/server.mjs"
+    ],
+    "t03bTests": "16/16 Node test PASS",
+    "t03bCi": "pending"
   }
 }

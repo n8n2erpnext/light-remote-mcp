@@ -48,6 +48,7 @@ E. OS App Lock applies only after verified account session; unlock cannot overri
 | T02 | Inventory exact Account Portal / Operator OAuth / Local Wall signed API contracts and auth security | SOURCE AUDIT COMPLETE |
 | T02b | GoldABV2 Lab Wall target / custom ChatGPT MCP separation | SOURCE DONE; CI PENDING |
 | T03 | Native Owner login PKCE + callback + secure OS vault + logout/refresh | IN PROGRESS: T03a validator/test only; no live auth |
+| T03b | Account Portal Owner browser consent + one-use Redis authorization code; default OFF | SOURCE DONE; CI PENDING |
 | T04 | Signed one-way App -> Local Wall SSO, replay prevention and logout link | BLOCKED ON T03 |
 | T05 | Overview/Devices/Link/Relink with actual enrolled ShortID and signed status | OPEN |
 | T06 | Sessions / AI Access (per-Agent leases/nicknames, B and consent, Owner close) | OPEN |
@@ -124,3 +125,12 @@ Resume on ARM: cd /home/ubuntu/n8n2erpnext/light-remote-mcp-worktrees/desktop-v4
 - GitHub V4 native pilot workflow sets the compile-time Lab profile and artifact names include goldabv2-lab. Webview CSP remains self-only; no browser fetch to Lab data from React.
 - Source unit/static contract: client/desktop-v4/src/lib/native-shell.test.ts checks both literal profiles and prohibits MCP in opener. Exact CI proof pending; no runtime production deployment or installed Agent change.
 - Next after profile CI: T03b dedicated Desktop Owner authorization, distinct from MCP RESOURCE and account cookie sharing.
+
+### T03b ? Source-only Owner browser authorization (feature OFF)
+- Source: plugin-server/desktop-auth-v4-server.mjs, desktop-auth-v4-server.test.mjs, and feature registration in plugin-server/server.mjs. Flag LR_GOLD_ABV2_DESKTOP_OWNER_AUTH_V4 must equal 1; default OFF and NOT deployed to GoldABV2 Lab/production.
+- Browser GET /account/desktop/v4/authorize verifies Account Portal Owner cookie via real Operator /v1/accounts/me. If absent redirects to same-origin Account login. Explicit Continue/Cancel form, exact CSP and strict Origin/CSRF on POST.
+- Separate audience urn:light-remote:desktop-owner:v4, client light-remote-desktop-v4, desktop:read scope, PKCE S256, state and install nonce 43 chars, exact local loopback callback. No MCP bearer, remote execution or A/B authorization.
+- Browser Owner session fingerprint is SHA256 hashed in Redis; consent is one-use GETDEL, limited 12 intents per Owner per ten minutes. A 256-bit authorization code has 90-second TTL, stored as SHA256 key, once-only consumption. Wrong verifier/redirect/nonce/state consumes and rejects. No token endpoint yet.
+- Offline Node security tests T03a+T03b 16/16 PASS. CI workflow now runs both; exact native CI pending.
+- T03c still OPEN: native callback, access/refresh token issuer and revocation, OS credential vault. T04 App-to-Wall SSO also OPEN. UI Continue in browser remains disabled; this is NOT real Owner Login.
+- Owner endpoints: Lab Wall http://100.94.184.141:15591; browser Account Portal https://goldabv2.light-remote.thaiduy.digital/account; ChatGPT custom MCP https://goldabv2.light-remote.thaiduy.digital/mcp remains separate.

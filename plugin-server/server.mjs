@@ -7,6 +7,7 @@ import { PUBLIC_ALLOWED_HOSTS, PUBLIC_HOST, PUBLIC_ORIGIN, PUBLIC_PORT, OPENAI_C
 import { authenticateAccess, registerOAuth, initializeOAuthRedis } from './oauth.mjs';
 import { registerPublicDeviceRoutes, prunePublicRateState, initializePublicRateRedis } from './device-public.mjs';
 import { registerAccountPortal } from './account-portal.mjs';
+import { registerDesktopOwnerV4Authorization } from './desktop-auth-v4-server.mjs';
 import { initializeGoldGoogleAuth, initializeGoogleRedis } from './google-auth.mjs';
 import { registerDistributionPortal } from './distribution-portal.mjs';
 import { registerAdminPortal } from './admin-portal.mjs';
@@ -96,6 +97,14 @@ installSiteAnalytics(app);
 registerOAuth(app);
 registerWebAssets(app);
 registerAccountPortal(app);
+// GoldABV2 Desktop Owner V4 account consent. Feature OFF by default.
+// Does NOT expose token exchange/refresh, App-Wall SSO, or an MCP grant.
+registerDesktopOwnerV4Authorization(app,{
+  enabled:process.env.LR_GOLD_ABV2_DESKTOP_OWNER_AUTH_V4==='1',
+  redis:goldStorage.redis,
+  prefix:goldStorage.prefix,
+  publicOrigin:PUBLIC_ORIGIN
+});
 registerSupportBackoffice(app,{outbox:supportOutbox});
 registerDistributionPortal(app);
 registerAdminPortal(app);

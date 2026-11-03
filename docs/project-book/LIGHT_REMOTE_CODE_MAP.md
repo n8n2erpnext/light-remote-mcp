@@ -507,3 +507,9 @@ Source: client/windows-native/GptOperator.Client/{TrayPopoverForm.cs,Program.cs,
 - client/desktop-v4/src/lib/native-shell.test.ts: static target boundary tests.
 - .github/workflows/desktop-v4-native-ci.yml: LR_V4_WALL_PROFILE=goldabv2-lab for isolated UI native build; artifacts tagged accordingly.
 - Master handoff T02b records runtime proof and separate ChatGPT custom MCP path.
+
+## Desktop V4 T03b default-OFF browser Owner consent
+- plugin-server/desktop-auth-v4-server.mjs: Owner Account Portal cookie server-verification, browser consent, Redis one-use CSRF/code, PKCE and separate Desktop resource, with rate limits.
+- plugin-server/server.mjs: register only when LR_GOLD_ABV2_DESKTOP_OWNER_AUTH_V4=1; default OFF, no token endpoint.
+- plugin-server/desktop-auth-v4-server.test.mjs: unit negative tests for CSRF, wrong Origin/Owner/session, replay, PKCE, callback and rate cap. CI runs both T03 suites.
+- Master T03b: source only; no native Owner auth or GoldABV2 Lab rollout.
