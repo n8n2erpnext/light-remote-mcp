@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-03",
-  "status": "desktop_v4_T04b7a_Gold_native_HTTPS_issue_source_CI4of4_PASS_unmounted_WindowsOwner_LoginLogout_LIVE_PASS",
+  "status": "desktop_v4_T04b7b_Gold_HTTPS_Unix_ticket_issue_source_122of122_PASS_default_OFF_WindowsOwner_LoginLogout_LIVE_PASS",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "T04b7a Gold SOURCE commit0f0a002d65cc3958ada84ecbe4510fbc95d2918d and Gold acceptance checkpoint254d00e3: Source Gate41668319985 4/4 SUCCESS, Gold Docs41668319987 PASS, Desktop Docs41668531877 PASS, 103/103 selected T04 Node + local Wall loopback HTTP revoke PASS. Pure Plugin native HTTPS Owner Bearer ticket request handler and Operator Unix-only internal issue handler remain UNMOUNTED; no public or running endpoint, no native Rust binary, no actual cross-process Redis/Wall SSO. T04b7b must implement guarded route registration with pinned reverse-proxy origin, request parsing/body rate, trusted Operator Unix issue, device enrolled Ed25519 signed transport, private Rust ticket transfer and HTTPS/loopback Wall bootstrap before any Windows SSO E2E. Tool safety blocked one clock-edit in unmounted Operator source, not bypassed. Owner Windows Login/Signout/Welcome/cold OS vault restore PASS; proactive >10m and independent server family revoke E2E OPEN. Gold UAT/prod/custom MCP/A-B unchanged.",
+  "nextAction": "T04b7b Gold SOURCE commit89b607d04c3000bb82fdf2ccf2981822c471148a: Native Desktop Owner HTTPS ticket route bound in source only to Operator Unix-socket internal issue via six exact string-1 independent flags (original B6 five + LR_GOLD_ABV2_DESKTOP_WALL_SSO_ISSUER_V4). Default OFF 404, pre-parser native JSON 2KiB before general 12MiB only when opt-in, exact Host/peer and LR_GOLD_ABV2_DESKTOP_WALL_SSO_PROXY_PEERS_V4, only Owner access Bearer + device ID and 45s ticket returned; no refresh/bearer/Agent/B grant to Wall. Bounded hashed-token 5/min, global100/min, 512 tracked: capacity tuning required. 12 router +5 Node HTTP actual temporary Unix socket simulated HTTPS/proxy/pre-parser +2 new Operator flag tests; selected T04 122/122 PASS, Wall HTTP loopback revoke PASS. Source CI41671804510 pending initial checkpoint; docs41671804368 success. This is NOT deployed and not yet physical TLS/NGINX/Express, real multi-process Redis, Agent signed relay or native Tauri ticket/Wall E2E. NEXT T04b8: explicit Lab snapshot with independent auto-OFF after physical proxy peer validation, real Redis Owner/Enrollment checks, native Rust-only ticket and signed device relay, loopback/HTTPS Wall cookie, Windows E2E. Existing Windows native Owner Login/Logout/Welcome and cold vault restore PASS; sustained >10min refresh and independently proven backend family revoke E2E OPEN. Gold UAT/prod, MCP, Agent A/B unchanged.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -845,5 +845,16 @@
     "goldLabDeployed": false,
     "blocking": "real Plugin↔Operator trust boundary, rate and parser guard, TLS termination, signed relay, Tauri/Wall full E2E",
     "goldCheckpoint": "254d00e3b53b82039796bbdae4d1d965e4913d3d"
+  },
+  "t04b7bGoldNativeHttpsUnixTicket": {
+    "sourceCommit": "89b607d04c3000bb82fdf2ccf2981822c471148a",
+    "ci": "Gold Source Gate 41671804510 pending; Docs Integrity 41671804368 success",
+    "tests": "Selected T04 Node 122/122 PASS, Wall HTTP revoke PASS; actual temporary Unix transport, simulated HTTP trust/Express parser",
+    "defaultEnabled": false,
+    "deployed": false,
+    "nativeRustUpdated": false,
+    "physicalWindowsSSOReady": false,
+    "requiredExtraFlag": "LR_GOLD_ABV2_DESKTOP_WALL_SSO_ISSUER_V4",
+    "blocking": "Proxy/HTTPS actual validation, real Redis and enrollment cross-process, signed Agent relay, private Tauri bootstrap, secure Wall session, physical E2E"
   }
 }

@@ -717,3 +717,6 @@ Gold source commit 0f0a002d: unmounted Plugin native HTTPS request boundary (sco
 
 ## 2026-11-03 — T04b7a CI final
 Gold source 0f0a002d Source Gate41668319985 4/4 PASS, Docs41668319987 PASS, Desktop Docs41668531877 PASS, Gold acceptance checkpoint254d00e3. Source-only unmounted ticket issuer, 103/103 Node plus local Wall HTTP regression PASS; no user Windows SSO candidate.
+
+## 2026-11-03 — Gold T04b7b ticket issue Plugin↔Operator source
+Gold code commit 89b607d0 routes scoped Desktop Owner HTTPS ticket request into private Operator Unix socket with six exact flags, default OFF. Host/Origin/TLS-peer and 2KiB JSON pre-parser; bounded per-token/global hashed request limiter, one-use 45s Owner family+enrollment-bound ticket; Agent A/B untouched. 122/122 selected source tests PASS including real temporary Unix socket and simulated HTTPS proxy/HTTP harness, Wall loopback revoke PASS. Gold CI41671804510 pending, docs41671804368 PASS. No live service, native EXE or production change; next physical proxy and live Redis validation, signed Agent relay and Tauri/Wall SSO E2E.
