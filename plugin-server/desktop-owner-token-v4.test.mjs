@@ -197,3 +197,47 @@ test('Account Registry verifies exact active Owner browser session by id, logout
   registry.ownerTransferPending=true;
   assert.equal(registry.desktopOwnerSessionActive(ACCOUNT,SESSION),false);
 });
+
+test('T04b2 internal Owner family proof is exact and never exposed by WebView session projection',async()=>{
+  const x=setup();
+  const issued=await x.service.exchange(x.input);
+  const view=await x.service.inspect(issued.access_token);
+  assert.equal(Object.hasOwn(view,'familyId'),false);
+  const internal=await x.service.inspectForWallSso(issued.access_token);
+  assert.deepEqual(Object.keys(internal).sort(),[
+    'accountId','familyId','isOwner','resource','scope','verified'
+  ]);
+  assert.equal(internal.verified,true);
+  assert.equal(internal.isOwner,true);
+  assert.equal(internal.accountId,ACCOUNT);
+  assert.equal(internal.resource,DESKTOP_OWNER_RESOURCE);
+  assert.equal(internal.familyId.length,43);
+  assert.equal(await x.service.familyCurrentForWallSso(ACCOUNT,internal.familyId),true);
+  assert.equal(await x.service.familyCurrentForWallSso('acct_attacker',internal.familyId),false);
+  assert.equal(await x.service.familyCurrentForWallSso(ACCOUNT,'invalid'),false);
+  assert.equal(JSON.stringify(view).includes(internal.familyId),false);
+  await x.service.logout(issued.refresh_token);
+  assert.equal(await x.service.familyCurrentForWallSso(ACCOUNT,internal.familyId),false);
+  await assert.rejects(x.service.inspectForWallSso(issued.access_token));
+});
+
+test('T04b2 Portal logout/Owner transfer revokes server-internal Wall principal',async()=>{
+  const x=setup();
+  const issued=await x.service.exchange(x.input);
+  const proof=await x.service.inspectForWallSso(issued.access_token);
+  x.setPortalActive(false);
+  assert.equal(await x.service.familyCurrentForWallSso(ACCOUNT,proof.familyId),false);
+  await assert.rejects(x.service.inspectForWallSso(issued.access_token),
+    /desktop_session_revoked/);
+});
+
+test('T04b2 expired native access can never mint a Wall SSO ticket',async()=>{
+  const x=setup();
+  const issued=await x.service.exchange(x.input);
+  const proof=await x.service.inspectForWallSso(issued.access_token);
+  x.advance(DESKTOP_ACCESS_TTL_MS+1000);
+  await assert.rejects(x.service.inspectForWallSso(issued.access_token),
+    /desktop_token_invalid/);
+  assert.equal(await x.service.familyCurrentForWallSso(ACCOUNT,proof.familyId),true,
+    'valid Owner family remains independently revocable after access expires');
+});

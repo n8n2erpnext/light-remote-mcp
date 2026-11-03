@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import net from 'node:net';
 import { fileURLToPath } from 'node:url';
 import { LOCAL_WALL_COOKIE } from './local-wall-auth.mjs';
+import { createDesktopWallSsoSession } from './desktop-wall-sso-session.mjs';
 import { createWallStatusCache } from './wall-status-cache.mjs';
 import { notificationBellStyles,notificationBellMarkup,notificationBellScript } from './wall-account-notifications.mjs';
 import {goldAbV2LabV1Disabled,goldAbV2LabWallBOnly} from '../lib/gold-ab-v2-lab-v1-lock.mjs';
@@ -2284,11 +2285,32 @@ function approvePage(brandSvg,csrf=''){return `<!doctype html><html lang="en"><h
 const wallCsrf=${JSON.stringify(csrf)},code=document.getElementById('code'),msg=document.getElementById('msg'),decision=document.getElementById('decision'),request=document.getElementById('request');let current=null;function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}async function lookup(){msg.className='muted';msg.textContent='Checking…';decision.style.display='none';current=null;const r=await fetch('/api/approve?code='+encodeURIComponent(code.value),{cache:'no-store'}),j=await r.json();if(!r.ok||!j.ok){msg.className='error';msg.textContent=j.error==='approval_code_not_found'?'No pending request matches this code.':(j.error||'Unable to check code.');return;}current=j.request;msg.textContent='';request.innerHTML='<b>'+esc(current.label||'ChatGPT')+'</b> requests access to <b>'+esc(current.deviceName||'this device')+'</b><br><span class="muted">Agent '+esc(current.agentId||'')+' · code '+esc(current.userCode||'')+'</span>';decision.style.display='block';}async function decide(kind){if(!current)return;const r=await fetch('/api/approve',{method:'POST',headers:{'content-type':'application/json','x-light-remote-csrf':wallCsrf},body:JSON.stringify({code:code.value,decision:kind})}),j=await r.json();if(!r.ok||!j.ok){msg.className='error';msg.textContent=j.error||'Request failed.';return;}decision.style.display='none';msg.className='ok';msg.textContent=kind==='approve'?'Access approved':'Access denied';setTimeout(()=>location.href='/',900);}document.getElementById('lookup').onclick=lookup;document.getElementById('approve').onclick=()=>decide('approve');document.getElementById('deny').onclick=()=>decide('deny');code.addEventListener('keydown',e=>{if(e.key==='Enter')lookup();});const q=new URLSearchParams(location.search).get('code');if(q){code.value=q;lookup();}
 </script></body></html>`;}
 
-export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvgPath,fontPath=null,cascadiaMonoFontPath=DEFAULT_CASCADIA_MONO_FONT,cascadiaCodeFontPath=DEFAULT_CASCADIA_CODE_FONT,auth={enabled:false},accountAuthenticate,getLocalStatus,getLocalPolicyStatus,getRemoteStatus,getRemoteActivity,activityLogRoot=null,cancelRemoteJob,getPendingAccess,getAccountNotifications,getAbV2Pending,getAbV2Approve,getClientAnnouncements,getMemoryAccountDevices,getMemoryAccountInvites,getMemoryAccountSyncPolicy,getMemoryAccountDelete,getLocalTerminals,readLocalTerminal,getLocalProcesses,stopLocalProcess,connect,disconnect,setGrace,setPermissions,setFilesystemRoots,getFilesystemVolumes,ownerApprovePermissions,rescanCapabilities,beginEnrollment,pollEnrollment,pairingCode,ownerProofCode,accessApprove,accessDeny,closeSession,requestUpdate}={}){
+export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvgPath,fontPath=null,cascadiaMonoFontPath=DEFAULT_CASCADIA_MONO_FONT,cascadiaCodeFontPath=DEFAULT_CASCADIA_CODE_FONT,auth={enabled:false},accountAuthenticate,desktopWallSso=null,getLocalStatus,getLocalPolicyStatus,getRemoteStatus,getRemoteActivity,activityLogRoot=null,cancelRemoteJob,getPendingAccess,getAccountNotifications,getAbV2Pending,getAbV2Approve,getClientAnnouncements,getMemoryAccountDevices,getMemoryAccountInvites,getMemoryAccountSyncPolicy,getMemoryAccountDelete,getLocalTerminals,readLocalTerminal,getLocalProcesses,stopLocalProcess,connect,disconnect,setGrace,setPermissions,setFilesystemRoots,getFilesystemVolumes,ownerApprovePermissions,rescanCapabilities,beginEnrollment,pollEnrollment,pairingCode,ownerProofCode,accessApprove,accessDeny,closeSession,requestUpdate}={}){
 
   if(!isAllowedLocalWallBindHost(host)) throw new Error('local_wall_bind_host_not_private');
   const loopback=['127.0.0.1','::1','localhost'].includes(String(host));
   if(!loopback&&!auth?.enabled) throw new Error('local_wall_auth_required_for_non_loopback');
+  // Opt-in only. No device/channel adapter is wired by default. A remote
+  // HTTP Wall is NOT a safe bearer-cookie destination: require HTTPS unless
+  // the Wall is actually bound to loopback.
+  if(desktopWallSso?.enabled===true && !auth?.enabled)
+    throw new Error('desktop_wall_sso_requires_owner_auth');
+  const desktopSsoSession=desktopWallSso?.enabled===true
+    ?createDesktopWallSsoSession({
+      redeemSignedTicket:desktopWallSso.redeemSignedTicket,
+      verifyLiveOwnerFamily:desktopWallSso.verifyLiveOwnerFamily
+    }):null;
+  if(desktopSsoSession){
+    const originalAuth=auth;
+    auth={...auth,
+      identity:req=>req.desktopWallSsoVerified||originalAuth.identity(req),
+      csrfForRequest:req=>req.desktopWallSsoVerified
+        ?desktopSsoSession.csrfForRequest(req):originalAuth.csrfForRequest(req),
+      verifyRequestCsrf:(req,value)=>req.desktopWallSsoVerified
+        ?desktopSsoSession.verifyRequestCsrf(req,value)
+        :originalAuth.verifyRequestCsrf(req,value)
+    };
+  }
   const brandSvg=loadBrand(brandSvgPath),loginFailures=new Map();
   let activityTimer=null,activityInFlight=false,activityStore=null,activityDeviceId=null,lastActivityPollAt=0;
   const activityPollMs=Math.max(1000,Math.min(Number(process.env.LIGHT_REMOTE_WALL_ACTIVITY_POLL_MS)||2500,10000));
@@ -2373,6 +2395,44 @@ export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvg
   }
   const server=http.createServer(async(req,res)=>{try{
     const url=new URL(req.url||'/','http://local.wall');
+    // Every SSO-protected request revalidates the current remote Owner family
+    // and enrolled device before a local identity can be projected. No
+    // cached Wall cookie can survive cloud revocation or a disconnected Owner.
+    if(desktopSsoSession)await desktopSsoSession.identity(req);
+    if(url.pathname==='/auth/desktop/sso/redeem'){
+      if(!desktopSsoSession)return json(res,404,{ok:false,error:'not_found'});
+      if(req.method!=='POST')return json(res,405,{ok:false,error:'method_not_allowed'});
+      const requestHost=String(req.headers.host||'').toLowerCase();
+      const configuredHost=(String(host).includes(':')?'['+String(host)+']':String(host)).toLowerCase()+':'+String(server.address()?.port??port);
+      // Do not trust a caller-supplied x-forwarded-proto as proof of TLS.
+      const tls=Boolean(req.socket?.encrypted);
+      const origin=(tls?'https://':'http://')+configuredHost;
+      const site=String(req.headers['sec-fetch-site']||'').toLowerCase();
+      const type=String(req.headers['content-type']||'').split(';')[0].trim();
+      // No native bearer or refresh credential is ever accepted at the Wall.
+      // Do not issue an HttpOnly cookie over plain HTTP on non-loopback hosts.
+      if(requestHost!==configuredHost||req.headers.origin!==origin||
+         site==='cross-site'||site==='same-site'||
+         type!=='application/json'||(!loopback&&!tls))
+        return json(res,403,{ok:false,error:'desktop_wall_sso_origin_required'});
+      let payload;
+      try{payload=await body(req,1024)}
+      catch{return json(res,400,{ok:false,error:'desktop_wall_sso_request_invalid'});}
+      if(!payload||typeof payload!=='object'||Array.isArray(payload)||
+         Object.keys(payload).length!==1||typeof payload.ticket!=='string')
+        return json(res,400,{ok:false,error:'desktop_wall_sso_request_invalid'});
+      try{
+        const issued=await desktopSsoSession.redeem(payload.ticket,{
+          secure:tls
+        });
+        res.writeHead(200,{
+          'content-type':'application/json; charset=utf-8',
+          'cache-control':'no-store','referrer-policy':'no-referrer',
+          'x-content-type-options':'nosniff','set-cookie':issued.cookie
+        });
+        return res.end(JSON.stringify({ok:true,expiresAt:issued.expiresAt}));
+      }catch{return json(res,403,{ok:false,error:'desktop_wall_sso_denied'});}
+    }
     if(req.method==='GET'&&['/assets/vendor/xterm/xterm.js','/assets/vendor/xterm/xterm.css','/assets/vendor/xterm/addon-fit.js'].includes(url.pathname)){
       const name=url.pathname.slice('/assets/vendor/xterm/'.length);
       try{const data=fs.readFileSync(PTY_VENDOR_DIR+name);res.writeHead(200,{'content-type':name.endsWith('.css')?'text/css; charset=utf-8':'application/javascript; charset=utf-8','cache-control':'public,max-age=86400','x-content-type-options':'nosniff','content-length':data.length});res.end(data);}
@@ -2424,7 +2484,7 @@ export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvg
       res.writeHead(303,{location:safeNext(data.next),'set-cookie':sessionCookie(issued.token,issued.ttlSeconds,secureRequest(req)),'cache-control':'no-store'});
       return res.end();
     }
-    if(auth?.enabled&&url.pathname==='/auth/logout'&&req.method==='POST'){const data=await formBody(req);if(!auth.verifyRequestCsrf(req,data.csrf))return json(res,403,{ok:false,error:'csrf_invalid'});res.writeHead(303,{location:'/login','set-cookie':clearSessionCookie(secureRequest(req)),'cache-control':'no-store'});return res.end();}
+    if(auth?.enabled&&url.pathname==='/auth/logout'&&req.method==='POST'){const data=await formBody(req);if(!auth.verifyRequestCsrf(req,data.csrf))return json(res,403,{ok:false,error:'csrf_invalid'});const clear=[clearSessionCookie(secureRequest(req))];if(desktopSsoSession)clear.push(desktopSsoSession.logout(req,{secure:Boolean(req.socket?.encrypted)}));res.writeHead(303,{location:'/login','set-cookie':clear,'cache-control':'no-store'});return res.end();}
     // Narrow, peer-signed route is deliberately separate from owner browser cookies.
     // No response contains plaintext checkpoint data.
     if(url.pathname==='/api/gold/peer/v1'&&req.method==='POST'){

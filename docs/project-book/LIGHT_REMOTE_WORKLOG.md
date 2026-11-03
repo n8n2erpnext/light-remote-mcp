@@ -973,3 +973,9 @@ On A/B-paired Windows DESKTOP-VA16D27, zero Desktop Pilot processes initially; W
 
 ## 2026-11-03 12:43 UTC — T03/T04a Lab automatic OFF final verification
 Previous 30-minute systemd auto-OFF timer completed successfully: both Desktop Owner Auth/Token feature flags OFF; all four isolated GoldABV2 Lab services active, HTTPS /healthz 200, Desktop authorize endpoint 404. Auth window is now CLOSED. A future >10min refresh or Logout/revocation test must use a separate authorized, bounded Lab flag window; do not autoextend. Native Windows actual credential cold restore PASS and T04a source CI 41636624729 4/4 PASS remain preserved. T04b signed Wall SSO is not live. Gold UAT/prod unaffected.
+
+## 2026-11-03 ~13:20 UTC — T04b1/b2 revocable Wall sessions + guarded loopback redemption SOURCE
+New default-OFF Wall cookie module has 14/14 negative tests: separate HttpOnly 10-minute in-memory sessions, family recheck on each request, fail closed on Owner revocation/offline, limited 64 active, no Desktop bearer, scoped CSRF/logout. Native-only HTTP Wall route guarded by same Host+Origin, JSON, and true TLS for nonloopback; no trusted device adapter is wired in actual Agent so route 404. Real ephemeral-loopback HTTP test PASS (origin 403, forged proto403, valid synthetic adapter session200, revoked Owner GET303/API401). Server-internal Desktop Owner family proof and current-family check added, 3 tests; public session projection unchanged. Selected Node T04a/b total 43/43 PASS. Client packaging manifest and Gold CI Source Gate updated; NO live backend deploy, Windows native ticket wiring or Agent A/B change. Real E2E test not ready.
+
+## T04b package staging verified — 2026-11-03
+Ran actual client-core staging + SHA-256 verify + packaged Wall smoke in /dev/shm; 125 files staged, packaged HTTP home/permissions/approve/settings/status and icon parity PASS; temporary RAM-only staging cleaned automatically. Source-only Wall SSO stays default-OFF.

@@ -43,6 +43,8 @@ on:
       - 'deploy/scripts/selftest-gold-ab-v2-signed-approval.mjs'
       - 'operator-host/executor-routes-device-channel.mjs'
       - 'device-agent/local-wall.mjs'
+      - 'device-agent/desktop-wall-sso-session*.mjs'
+      - 'deploy/scripts/selftest-desktop-wall-sso-v4-http.mjs'
       - 'device-agent/local-activity-log.mjs'
       - 'device-agent/update-settings-page.mjs'
       - 'client/core-files.json'
@@ -239,6 +241,8 @@ on:
       - 'device-agent/fleet-job-page.mjs'
       - 'deploy/scripts/selftest-gold-fleet-jobs-m6.mjs'
       - 'device-agent/local-wall.mjs'
+      - 'device-agent/desktop-wall-sso-session*.mjs'
+      - 'deploy/scripts/selftest-desktop-wall-sso-v4-http.mjs'
       - 'device-agent/operator-agent.mjs'
       - 'device-agent/relink-linux-server.py'
       - 'device-agent/install-linux-service.sh'
@@ -290,6 +294,11 @@ jobs:
           node --check device-agent/fleet-job-page.mjs
           node deploy/scripts/selftest-gold-fleet-jobs-m6.mjs
           node --check device-agent/local-wall.mjs
+          node --check device-agent/desktop-wall-sso-session.mjs
+          node --check device-agent/desktop-wall-sso-session.test.mjs
+          node --check deploy/scripts/selftest-desktop-wall-sso-v4-http.mjs
+          node --test device-agent/desktop-wall-sso-session.test.mjs
+          node deploy/scripts/selftest-desktop-wall-sso-v4-http.mjs
           node --check device-agent/wall-account-notifications.mjs
           node --check device-agent/fleet-wall-runtime.mjs
           node --check plugin-server/site-announcements.mjs

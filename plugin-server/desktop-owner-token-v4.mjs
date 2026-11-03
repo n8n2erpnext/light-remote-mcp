@@ -127,6 +127,34 @@ export function createDesktopOwnerTokenService({
     if(record.purpose!=='desktop_owner_v4')deny('desktop_token_invalid');
     return publicProjection(await principalFor(record));
   }
+  // Server-internal T04 Owner-family proof. This is NEVER mounted as a
+  // browser or WebView HTTP response; public /session stays restricted to
+  // the sanitized projection without family identifiers or bearer secrets.
+  async function inspectForWallSso(accessToken){
+    const record=await get('access',accessToken);
+    if(record.purpose!=='desktop_owner_v4')deny('desktop_token_invalid');
+    const family=await principalFor(record);
+    return Object.freeze({
+      verified:true,isOwner:true,accountId:family.accountId,
+      familyId:family.familyId,
+      resource:DESKTOP_OWNER_RESOURCE,scope:DESKTOP_OWNER_SCOPE
+    });
+  }
+  async function familyCurrentForWallSso(accountId,familyId){
+    if(!ACCOUNT.test(String(accountId||''))||
+       !TOKEN.test(String(familyId||'')))return false;
+    try{
+      const family=await get('family',familyId);
+      if(family.purpose!=='desktop_owner_v4'||
+         family.accountId!==accountId||family.familyId!==familyId)
+        return false;
+      await principalFor({
+        accountId:family.accountId,accountSessionId:family.accountSessionId,
+        familyId:family.familyId
+      });
+      return true;
+    }catch{return false;}
+  }
   async function logout(token){
     // An expired access may be replaced by active refresh in the OS vault.
     // Family delete invalidates ALL access/refresh descendants.
@@ -202,6 +230,7 @@ export function createDesktopOwnerTokenService({
   }
   return Object.freeze({
     exchange,refresh,inspect,logout,
+    inspectForWallSso,familyCurrentForWallSso,
     routeExchange,routeRefresh,routeSession,routeLogout
   });
 }

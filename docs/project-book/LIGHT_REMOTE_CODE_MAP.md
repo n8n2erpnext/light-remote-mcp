@@ -711,3 +711,11 @@ Admin Owner security emblem uses /assets/icons/material/security.svg (verified H
 - `plugin-server/desktop-wall-sso-v4.test.mjs`: 16 tests; replay, wrong device/account, signature binding, expiration, revocation, malformed callers and Agent/B grants forbidden. Explicit test ensures no HTTP route currently mounted.
 - `.github/workflows/gold-connection-lifecycle-gc.yml`: tests and syntax guards in source-gate, branch path filter includes `plugin-server/desktop-wall-sso-v4*.mjs`.
 - `docs/project-book/LIGHT_REMOTE_DESKTOP_V4_WALL_SSO_T04_CONTRACT_20261103.md`: precise trust boundaries, active revocation requirement, missing Wall/native integration. Current Wall local stateless HMAC cookie is not family-revocable yet. Full T04 cannot go LIVE without separate Wall revocation enforcement and native Windows E2E.
+
+## T04b1/b2 Default-OFF Wall SSO cookie and private Owner proof (2026-11-03)
+- `device-agent/desktop-wall-sso-session.mjs`: bounded 10m separate device-local HttpOnly cookie, HMAC nonce, 64-session in-memory store, remote Owner family validation on *every* request, fail-closed on revocation/offline, scoped CSRF, logout. 14 tests in `device-agent/desktop-wall-sso-session.test.mjs`.
+- `device-agent/local-wall.mjs`: added optional `desktopWallSso=null`, default OFF; opt-in POST /auth/desktop/sso/redeem only after trusted adapter, same Host+Origin and JSON exact body, direct TLS for non-loopback, no spoofed forwarded TLS, local logout clears both cookie types. Actual device agent `operator-agent.mjs` has NO adapter yet. No Agent/B grant created.
+- `deploy/scripts/selftest-desktop-wall-sso-v4-http.mjs`: real bounded local loopback route and revocation regression.
+- `plugin-server/desktop-owner-token-v4.mjs`: private `inspectForWallSso` / `familyCurrentForWallSso` with current Portal Owner family checks, NEVER browser routes; 3 tests in .test.mjs.
+- `client/core-files.json`: package required SSO runtime imported by default-OFF Wall, preventing missing-module startup errors. `.github/workflows/gold-connection-lifecycle-gc.yml` adds the tests/syntax/source paths.
+- T04b signed device transport, native Tauri secure ticket exchange, Wall origin TLS and live Windows E2E still OPEN.

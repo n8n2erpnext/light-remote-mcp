@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-03",
-  "status": "gold_20261103_T03c2c_Windows_PKCE_and_cold_keyring_restore_PASS_T04a_source_CI_PASS_Lab_auth_FLAGS_OFF",
+  "status": "goldabv2_T04b1b2_Revocable_Local_Wall_SSO_Cookie_Internal_Owner_Family_Source43of43_HTTP_PASS_CI_PENDING",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "At 2026-11-03 12:43:07 UTC (19:43:07 HCM), isolated GoldABV2 Lab auto-OFF timer successfully completed: both Desktop Owner auth flags OFF, 4/4 services active, HTTPS health200, authorize404. Real Windows Owner PKCE/login and OS Credential Manager cold-read/HTTPS refresh/Overview PASS. Continuous 10min proactive refresh, explicit Logout/server revocation/wrong Owner still OPEN; cannot test while backend feature flags OFF. T04a 45s one-use signed device bound ticket contract fa74b1eb 16/16 Node CI41636624729 4/4 PASS, SOURCE ONLY; T04b native ticket issue, enrolled device-signed redemption, revocable Wall HttpOnly cookie not integrated or enabled. Separate authorized bounded Lab test window needed for future E2E. Gold UAT/prod/custom MCP/A-B unchanged.",
+  "nextAction": "T04b1/b2 CURRENT: owner login, browser PKCE and cold Windows OS credential restore LIVE PASS (prior checkpoint). SOURCE ONLY Default OFF: device-agent/desktop-wall-sso-session.mjs 10m separate HttpOnly SameSite SSO cookie with max64 memory sessions, live Owner family check EVERY protected Wall request, offline/revoked fail closed, 5m CSRF/logout; local-wall.mjs guarded opt-in desktopWallSso=null /auth/desktop/sso/redeem, strict Host+Origin JSON, direct TLS for nonloopback, no spoofed forwarded TLS. client/core-files.json packs new import. plugin-server/desktop-owner-token-v4.mjs private inspectForWallSso/familyCurrentForWallSso helpers not browser routes. 43/43 selected Node tests and actual ephemeral loopback HTTP test PASS; GitHub Source Gate CI PENDING. CRITICAL blockers before asking Owner to test: operator-agent supplies independent enrolled signed-device redeem adapter and current Owner-family proof, real Tauri native ticket HTTPS and browser bootstrap without leaking tokens, eligible HTTPS or actual loopback Wall target. Remote Lab NetBird Wall over plain HTTP is NOT eligible for SSO cookies; default OFF/no running services modified. Next implement device-channel proof + native flow then CI4/4 and bounded Lab QA. Lab Owner auth flags previously automatically OFF 12:40:39 UTC 2026-11-03; do not assume still on. Gold UAT/prod/Agent A/B unchanged.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -172,10 +172,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "bc513a3c283c550c851a6c493a98e0fd29637afd4a65434a9a6eafb6bf21457e",
-    "trackedFiles": 1171,
+    "treeDigest": "d811cfedb4450147283ad186c0176b28b5bf70c03f37dcbf58b02ada307e180b",
+    "trackedFiles": 1174,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-03T12:32:44.124Z"
+    "recordedAt": "2026-11-03T13:07:29.404Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -959,5 +959,21 @@
     "gitSource": "fa74b1eb02bc575f81f5eaace5874c9f75dfd5b6"
   },
   "windowsCredentialColdRestore": "PASS on 2026-11-03: DESKTOP-VA16D27, correct exe 96A9C44B...03B92AB2, 0 prior process, cold launched PID14424 in interactive session1, app entered Overview OWNER VERIFIED without browser, code path desktop_owner_restore -> refresh_from_vault -> verified; no credential secrets read.",
-  "labAuthFinalState": "OFF verified 2026-11-03 12:43:07 UTC: authOn0/tokenOn0/authOff1/tokenOff1, timer result=success, Plugin/Operator/Wall/Supervisor 4/4 active, HTTPS200, authorize404."
+  "labAuthFinalState": "OFF verified 2026-11-03 12:43:07 UTC: authOn0/tokenOn0/authOff1/tokenOff1, timer result=success, Plugin/Operator/Wall/Supervisor 4/4 active, HTTPS200, authorize404.",
+  "t04b1b2SourceOnly": {
+    "module": "device-agent/desktop-wall-sso-session.mjs",
+    "localWallOptIn": "desktopWallSso=null; no operator-agent adapter, redemption route returns 404",
+    "serverPrivateOwnerFamily": [
+      "inspectForWallSso",
+      "familyCurrentForWallSso"
+    ],
+    "cookie": "separate lr_wall_desktop_sso_v4; in-memory 10m; max64; every request revalidates Owner family and enrolled target",
+    "transport": "JSON POST same exact Origin/Host; true TLS required off loopback; no Desktop bearer to Wall",
+    "packaged": true,
+    "tests": "43/43 local Node + real ephemeral loopback HTTP PASS; Gold CI pending",
+    "deployed": false,
+    "productionModified": false,
+    "blocking": "real signed device channel, native Rust ticket transfer, proper TLS or localhost Wall destination, live E2E",
+    "packagingSmoke": "PASS: /dev/shm temporary full client-core stage 125 files + SHA-256 verify + packaged Wall HTTP and icons smoke; temp auto-cleaned"
+  }
 }

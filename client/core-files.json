@@ -302,6 +302,10 @@
       "destination": "device-agent/local-activity-log.mjs"
     },
     {
+      "source": "device-agent/desktop-wall-sso-session.mjs",
+      "destination": "device-agent/desktop-wall-sso-session.mjs"
+    },
+    {
       "source": "device-agent/local-wall.mjs",
       "destination": "device-agent/local-wall.mjs"
     },
