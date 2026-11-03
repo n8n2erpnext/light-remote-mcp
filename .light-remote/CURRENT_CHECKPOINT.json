@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "T03c2c3 backend source CI 4/4 and isolated Lab negative HTTP activation PASS, both flags restored OFF. NEXT owner-authorized REAL Windows Desktop V4 candidate test: pair Windows through its own Local Wall A/B (only VPS-ARM currently paired), verify browser Owner login/consent -> localhost callback/PKCE/issuer -> native Windows Credential Manager, restart/restore and >10min auto-refresh/logout/revocation. Temporarily enable both Lab flags only for controlled test with code-only rollback; finish OFF. Then T04 signed App-to-Wall SSO. No Gold UAT/prod/custom MCP/Long Memory changes.",
+  "nextAction": "Owner must FIRST test corrected standalone Desktop V4 Windows Owner LAB binary from GitHub run 41613182472 (prior 41605694255 BROKEN WebView2 ERR_CONNECTION_REFUSED due raw Cargo). Confirm Login-first UI loads without a Vite/localhost dev server. Only then pair Windows through its own Local Wall A/B; run Owner-consented Browser/PKCE/Windows Credential Manager/10min refresh/logout/revoke E2E with isolated GoldABV2 Lab temporary Auth flags and code-only rollback. Both flags remain OFF now; Gold UAT/prod/custom MCP/Long Memory unchanged. T04 App-to-Wall SSO pending.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -927,7 +927,8 @@
     "lxdRollbackSnapshot": "pre-desktop-owner-9d996956-20261103 (disaster backup only; do not rewind grants)",
     "sourceOnlyRollback": "/var/backups/light-remote-abv2-lab-desktop-owner-9d996956-20261103/{plugin,operator}.{original.conf,path}",
     "desktopOwnerFlags": "both explicitly OFF (0) in final Lab systemd override after two controlled smoke probes; no valid login or tokens issued",
-    "ownerCandidateCI": "41605694255 7/7 PASS; three unsigned non-production LAB binaries, not installed",
+    "ownerCandidateCI": "Previous 41605694255 7/7 PASS built BAD standalone Owner binary (Windows WebView2 localhost refused). Corrected Desktop source 4d1f0c22, GitHub 41613182472 7/7 PASS standalone Tauri CLI Owner candidates; Windows executable SHA256 96A9C44B7EEAC3A36BCF3E72945939BDE98DC0CBBF7FFBC2460C93BF03B92AB2; physical UI acceptance not done",
+    "ownerCandidateCorrectedRun": "41613182472 7/7 SUCCESS; corrected Windows artifact id13220640812; no install or Owner login E2E",
     "t03c2c3AuthCodeHotfix": "c2bb754be3eff11cdb25b724ba517f36b5409b98: code maps to generic HTTP401, not 503. GitHub CI 41610511239 4/4 PASS; copied into LXD staged active Plugin with SHA parity, Node 26/26 PASS",
     "t03c2c3LabSmoke": "Controlled temp ON loopback suite PASS: consent anonymous 303; cross-origin consent and native issue/refresh/logout 403; invalid or missing native creds for issue/refresh/logout/session 401; cookie native 403; Account Login 200. Guarded rollback restored both flags OFF; final Plugin/Operator/Wall/Supervisor 4/4 active, public HTTPS200, authorize/session 404, active A/B grants0. Windows E2E not run.",
     "pairedWindowsMcpDevice": false,
